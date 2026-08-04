@@ -1,0 +1,1 @@
+wsl -e sudo sh /mnt/c/programmieren/linoleum/install_x11.sh

@@ -1,0 +1,122 @@
+
+      ( *** mul64 - software 32x32 -> 64 bit unsigned multiply *** )
+
+      ( L.in.oleum's MUL instructions ('* unsigned, * signed) return only
+        the low 32 bits of a product. There is no high-word form and no
+        "split" variant like the // divide instruction has.
+
+        Noctis IV's galaxy generator needs the full 64-bit product: the
+        original DOS code used the x86 imul that leaves the result in
+        edx:eax, then folds the halves back together with "edx += eax".
+        That fold is what places every star in the galaxy, so we cannot
+        approximate it - we have to reproduce it exactly.
+
+        This routine builds the 64-bit product from four 16x16 partial
+        products, each of which fits comfortably in 32 bits.
+
+            a = ahi:alo,  b = bhi:blo   (16 bits each half)
+
+            ll = alo*blo    lh = alo*bhi
+            hl = ahi*blo    hh = ahi*bhi
+
+            mid = (ll >> 16) + (lh & FFFF) + (hl & FFFF)
+            lo  = (ll & FFFF) | (mid << 16)
+            hi  = hh + (lh >> 16) + (hl >> 16) + (mid >> 16)                )
+
+"directors"
+
+	program name = { mul64 };
+	unit = 32;
+
+      ( NOTE: these must live in "variables", not "workspace".
+        In "variables",  name = N;  declares a variable holding N.
+        In "workspace",  name = N;  allocates a vector of N units and
+        the name becomes its ADDRESS - so "= 0" allocates nothing at all,
+        top-of-workspace never advances, and every name collapses onto
+        the same cell. That mistake makes all values read back as zero. )
+
+"variables"
+
+	( inputs )
+	mulA	= 0;
+	mulB	= 0;
+
+	( outputs )
+	mulLo	= 0;
+	mulHi	= 0;
+
+	( scratch )
+	mulAlo	= 0;
+	mulAhi	= 0;
+	mulBlo	= 0;
+	mulBhi	= 0;
+	mulLL	= 0;
+	mulLH	= 0;
+	mulHL	= 0;
+	mulHH	= 0;
+	mulMid	= 0;
+
+"programme"
+
+	( Test vector: 12345678h * 76543210h
+	  Both operands stay below 2^31 so sign is never in question,
+	  but the product needs 61 bits - so the high word is exercised. )
+
+	[mulA] = 12345678h;
+	[mulB] = 76543210h;
+
+	=> Mul64;
+
+	( Present the results in the registers so "show registers"
+	  displays them:
+	     A = low 32 bits
+	     B = high 32 bits
+	     C = hi + lo, the fold Noctis actually consumes  )
+
+	A = [mulLo];
+	B = [mulHi];
+	C = [mulHi]; C + [mulLo];
+	D = 0;
+	E = 0;
+
+	show registers;
+
+	end;
+
+"Mul64"
+    ( Unsigned 32x32 -> 64 bit multiply. )
+    ( In:  [mulA], [mulB].   Out: [mulLo], [mulHi]. )
+    ( All registers destroyed. )
+
+	( split both operands into 16-bit halves )
+	A = [mulA]; A & FFFFh;	[mulAlo] = A;
+	A = [mulA]; A > 16;	[mulAhi] = A;
+	A = [mulB]; A & FFFFh;	[mulBlo] = A;
+	A = [mulB]; A > 16;	[mulBhi] = A;
+
+	( four partial products, each fits in 32 bits )
+	A = [mulAlo]; A '* [mulBlo];	[mulLL] = A;
+	A = [mulAlo]; A '* [mulBhi];	[mulLH] = A;
+	A = [mulAhi]; A '* [mulBlo];	[mulHL] = A;
+	A = [mulAhi]; A '* [mulBhi];	[mulHH] = A;
+
+	( mid = (ll >> 16) + (lh & FFFF) + (hl & FFFF) )
+	A = [mulLL]; A > 16;
+	B = [mulLH]; B & FFFFh; A + B;
+	B = [mulHL]; B & FFFFh; A + B;
+	[mulMid] = A;
+
+	( lo = (ll & FFFF) | (mid << 16) )
+	A = [mulLL]; A & FFFFh;
+	B = [mulMid]; B < 16;
+	A | B;
+	[mulLo] = A;
+
+	( hi = hh + (lh >> 16) + (hl >> 16) + (mid >> 16) )
+	A = [mulHH];
+	B = [mulLH]; B > 16; A + B;
+	B = [mulHL]; B > 16; A + B;
+	B = [mulMid]; B > 16; A + B;
+	[mulHi] = A;
+
+	end;

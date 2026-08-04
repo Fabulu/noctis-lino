@@ -1,0 +1,114 @@
+
+      ( *** mulcheck2 - same vectors, but Mul64 uses the CPU directly *** )
+
+      ( Identical to mulcheck.txt except that the Mul64 subroutine is a
+        two-byte machine-language fragment instead of ~25 lino
+        instructions.
+
+        L.in.oleum's registers ARE the x86 registers on the i386 pack:
+
+            A = EAX   B = EBX   C = ECX   D = EDX   E = ESI
+            O = EDI (workspace origin)    EBP = return state
+
+        so "mul ebx" (F7 E3) leaves the full 64-bit product exactly where
+        lino can read it: low half in A, high half in D. The language has
+        no MUL analogue of its SPL split-divide, so the high word is
+        unreachable from the portable instruction set - a fragment is the
+        only route to it.
+
+        Writes to mulout2.bin so it can be diffed against the portable
+        implementation's mulout.bin.                                     )
+
+"directors"
+
+	program name = { mulcheck2 };
+	unit = 32;
+
+"constants"
+
+	NVECTORS	= 8;
+	RESULTSPERVEC	= 3;
+
+"variables"
+
+	test vectors	= 00000000h;	no label = 00000000h;
+	no label	= 00000001h;	no label = 00000001h;
+	no label	= FFFFFFFFh;	no label = FFFFFFFFh;
+	no label	= 00010000h;	no label = 00010000h;
+	no label	= 12345678h;	no label = 76543210h;
+	no label	= DEADBEEFh;	no label = CAFEBABEh;
+	no label	= 7FFFFFFFh;	no label = 7FFFFFFFh;
+	no label	= 000186A0h;	no label = 00030D40h;
+
+	vecIndex	= 0;
+
+	result file name = { mulout2.bin };
+
+	mulA	= 0;
+	mulB	= 0;
+	mulLo	= 0;
+	mulHi	= 0;
+
+"workspace"
+
+	results = NVECTORS multiplied RESULTSPERVEC;
+
+"programme"
+
+	[vecIndex] = 0;
+
+    "next vector"
+
+	A = test vectors;
+	B = [vecIndex]; B < 1;
+	A + B;
+	C = [A];  [mulA] = C;
+	A + 1;
+	C = [A];  [mulB] = C;
+
+	=> Mul64;
+
+	A = results;
+	B = [vecIndex]; B '* RESULTSPERVEC;
+	A + B;
+
+	C = [mulLo];			[A] = C;
+	A + 1;
+	C = [mulHi];			[A] = C;
+	A + 1;
+	C = [mulHi]; C + [mulLo];	[A] = C;
+
+	[vecIndex] +;
+	? [vecIndex] < NVECTORS -> next vector;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= NVECTORS multiplied RESULTSPERVEC;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= NVECTORS multiplied RESULTSPERVEC;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+"Mul64"
+    ( Unsigned 32x32 -> 64 bit multiply, in hardware. )
+    ( In:  [mulA], [mulB].   Out: [mulLo], [mulHi]. )
+    ( Destroys A and D. B, C, E preserved. )
+
+	A = [mulA];
+	B = [mulB];
+	{
+	    F7 E3	(mul ebx  ->  edx:eax = eax * ebx)
+	}
+	[mulLo] = A;
+	[mulHi] = D;
+
+	end;

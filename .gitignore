@@ -1,0 +1,21 @@
+# Build artifacts produced by the L.in.oleum compiler.
+# Everything here is reproducible from source via lino_build.ps1.
+work/*.exe
+work/*.bin
+work/errorlog.txt
+work/smblsmap.txt
+
+# Bootstrapped compiler (rebuild from main/lib/gen/compiler.txt if wanted)
+main/lib/gen/*.exe
+
+# The compiler emits "<name>.txt .exe" if the argument string picks up a
+# trailing space - see README, "Toolchain gotchas".
+*.txt .exe
+
+# Test harness outputs (oracle.bin / python.bin / lino.bin are regenerated)
+noctis-harness/*.exe
+noctis-harness/*.bin
+
+# Backups and crash droppings
+*.bak
+*.stackdump

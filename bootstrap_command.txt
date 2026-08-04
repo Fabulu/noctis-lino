@@ -1,0 +1,1 @@
+& 'C:\programmieren\linoleum\main\compiler.exe' '--sys:win32--cpu:i386--ext:.exe--env:C:\programmieren\linoleum\main--src:C:\programmieren\linoleum\main\lib\gen\compiler.txt'
