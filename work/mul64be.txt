@@ -1,0 +1,51 @@
+
+      ( *** mul64star - 32x32 -> 64 multiply via the *% language extension *** )
+
+      ( Same interface as mul64frag and mul64limb:
+
+            "Mul64u"   [m64a] * [m64b] -> [m64lo], [m64hi]   unsigned
+            "Mul64s"   [m64a] * [m64b] -> [m64lo], [m64hi]   signed
+
+        This backend requires the PATCHED toolchain:
+
+            -Compiler main\lib\gen\compiler114m.exe   -Cpu i386m
+
+        It is by far the most readable of the three - one instruction, no
+        clobber the compiler cannot see, and nothing x86-specific, so it is
+        the only one of the three that would survive a non-Intel CPU pack.
+        It is also the only one that cannot currently be redistributed,
+        because it depends on a modified compiler and main/lib/gen/
+        compiler.txt is licensed against modification. Hence three backends
+        rather than a choice.                                              )
+
+"variables"
+
+	m64a	= 0;
+	m64b	= 0;
+	m64lo	= 0;
+	m64hi	= 0;
+
+"programme"
+
+"Mul64u"
+    ( Unsigned 32x32 -> 64.  In: [m64a],[m64b].  Out: [m64lo],[m64hi].  )
+    ( Destroys A, B.                                                    )
+
+	A = [m64a];
+	B = [m64b];
+	A *%' B;		( A = low 32, B = high 32, UNSIGNED )
+	[m64lo] = A;
+	[m64hi] = B;
+
+	end;
+
+"Mul64s"
+    ( Signed 32x32 -> 64.  Same contract as Mul64u. )
+
+	A = [m64a];
+	B = [m64b];
+	A *% B;			( A = low 32, B = high 32, SIGNED )
+	[m64lo] = A;
+	[m64hi] = B;
+
+	end;

@@ -1,0 +1,171 @@
+
+      ( *** sitecount_galaxy2 - the galaxy hash over the shared Mul64 interface *** )
+
+      ( Byte-for-byte work/galaxy.txt except that its private "FoldMul" - which
+        inlined { F7 EB } directly - is gone, replaced by calls to whichever
+        backend the build driver selected. Everything else, including the
+        deliberate 32-bit truncation in "A * SECTORSIZE", is untouched.
+
+        The point is to run the ONE algorithm that is already externally
+        anchored - work/galaxy.bin agrees with harness/oracle.c and
+        harness/oracle.py across all 343 sectors - through all three backends,
+        so the backends inherit that anchoring instead of merely agreeing with
+        each other.
+
+        Do not point this at galaxy.bin. That file is the frozen reference and
+        has to stay untouched to stay meaningful.                            )
+
+"libraries"
+
+	mul64be;
+
+"directors"
+
+	program name = { sitecount galaxy2 };
+	unit = 32;
+
+"constants"
+
+	SECTORSIZE	= 100000;
+	CUTOFF		= 50000;
+	SPAN		= 7;		( k = -3..+3 )
+	KOFFSET 	= 3;
+	PERSECTOR	= 5;
+
+"variables"
+
+	ix	= 0;
+	iy	= 0;
+	iz	= 0;
+	outIdx	= 0;
+
+	sectx	= 0;
+	secty	= 0;
+	sectz	= 0;
+
+	sumxz	= 0;
+	tempx	= 0;
+	tempy	= 0;
+	tempz	= 0;
+	accum	= 0;
+	idk	= 0;
+	netpos	= 0;
+	flags	= 0;
+
+	result file name = { sitecount-galaxy2.bin };
+
+"workspace"
+
+	results = SPAN multiplied SPAN multiplied SPAN multiplied PERSECTOR;
+
+"programme"
+
+	[outIdx] = 0;
+	[ix] = 0;
+
+    "loop x"
+	[iy] = 0;
+
+    "loop y"
+	[iz] = 0;
+
+    "loop z"
+
+	( sect = (i - 3) * 100000, so sectors straddle the origin.
+	  This is a plain 32-bit multiply whose wraparound is part of
+	  the algorithm - it must NOT be widened.                    )
+
+	A = [ix]; A - KOFFSET; A * SECTORSIZE;	[sectx] = A;
+	A = [iy]; A - KOFFSET; A * SECTORSIZE;	[secty] = A;
+	A = [iz]; A - KOFFSET; A * SECTORSIZE;	[sectz] = A;
+
+	[flags] = 0;
+
+	( sum_xz = sect_x + sect_z )
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	( temp_x = (sum_xz & 1FFFF) + sect_x )
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> gx no cutoff x;
+	A = [flags]; A | 1;			[flags] = A;
+    "gx no cutoff x"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	( accum = low(temp_x * sum_xz) + high(temp_x * sum_xz), SIGNED.
+	  The original is imul followed by "edx += eax".               )
+
+	A = [tempx]; [m64a] = A;
+	A = [sumxz]; [m64b] = A;
+	=> Mul64s;
+	A = [m64lo]; A + [m64hi];		[accum] = A;
+
+	( idk = sum_xz + accum )
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	( temp_y = (accum & 1FFFF) + sect_y )
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> gx no cutoff y;
+	A = [flags]; A | 2;			[flags] = A;
+    "gx no cutoff y"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	( accum = fold(temp_y * idk) )
+
+	A = [tempy]; [m64a] = A;
+	A = [idk];   [m64b] = A;
+	=> Mul64s;
+	A = [m64lo]; A + [m64hi];		[accum] = A;
+
+	( temp_z = (accum & 1FFFF) + sect_z )
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> gx no cutoff z;
+	A = [flags]; A | 4;			[flags] = A;
+    "gx no cutoff z"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	( netpos = temp_x + temp_y + temp_z )
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	( store the five results for this sector )
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( advance the three nested loops )
+
+	A = [iz]; A + 1; [iz] = A;
+      ? [iz] < SPAN -> loop z;
+	A = [iy]; A + 1; [iy] = A;
+      ? [iy] < SPAN -> loop y;
+	A = [ix]; A + 1; [ix] = A;
+      ? [ix] < SPAN -> loop x;
+
+	( dump everything to disk )
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= SPAN multiplied SPAN multiplied SPAN multiplied PERSECTOR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= SPAN multiplied SPAN multiplied SPAN multiplied PERSECTOR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

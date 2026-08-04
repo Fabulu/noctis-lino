@@ -1,0 +1,377 @@
+
+      ( QA: *% halves kept separate, so low vs high is observable. )
+
+"directors"
+
+	program name = { qahalu };
+	unit = 32;
+
+"constants"
+
+	NPAIR	= 30;
+	PERPAIR	= 4;
+
+"variables"
+
+	outIdx	= 0;
+	pa	= 0;
+	pb	= 0;
+	lo	= 0;
+	hi	= 0;
+
+	result file name = { qahalu.bin };
+
+"workspace"
+
+	results = NPAIR multiplied PERPAIR;
+
+"programme"
+
+	[outIdx] = 0;
+
+	( pair 0 )
+	A = 0; A + 0;		[pa] = A;
+	A = 0; A + 0;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 1 )
+	A = 0; A + 1;		[pa] = A;
+	A = 0; A + 1;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 2 )
+	A = 0; A + 1;		[pa] = A;
+	A = 0; A + 0;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 3 )
+	A = 0; A + 0;		[pa] = A;
+	A = 0; A + 1;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 4 )
+	A = 0; A + 2;		[pa] = A;
+	A = 0; A + 3;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 5 )
+	A = 0; A - 1;		[pa] = A;
+	A = 0; A - 1;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 6 )
+	A = 0; A - 1;		[pa] = A;
+	A = 0; A + 1;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 7 )
+	A = 0; A + 1;		[pa] = A;
+	A = 0; A - 1;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 8 )
+	A = 0; A - 2147483647; A - 1;	[pa] = A;
+	A = 0; A - 2147483647; A - 1;	[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 9 )
+	A = 0; A - 2147483647; A - 1;	[pa] = A;
+	A = 0; A - 1;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 10 )
+	A = 0; A - 1;		[pa] = A;
+	A = 0; A - 2147483647; A - 1;	[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 11 )
+	A = 0; A + 2147483647;		[pa] = A;
+	A = 0; A + 2147483647;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 12 )
+	A = 0; A + 2147483647;		[pa] = A;
+	A = 0; A - 2147483647; A - 1;	[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 13 )
+	A = 0; A - 2147483647; A - 1;	[pa] = A;
+	A = 0; A + 2147483647;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 14 )
+	A = 0; A - 2147483647; A - 1;	[pa] = A;
+	A = 0; A + 2;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 15 )
+	A = 0; A + 2;		[pa] = A;
+	A = 0; A - 2147483647; A - 1;	[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 16 )
+	A = 0; A + 2147483647;		[pa] = A;
+	A = 0; A + 2;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 17 )
+	A = 0; A + 2;		[pa] = A;
+	A = 0; A + 2147483647;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 18 )
+	A = 0; A + 65536;		[pa] = A;
+	A = 0; A + 65536;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 19 )
+	A = 0; A + 65537;		[pa] = A;
+	A = 0; A + 65536;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 20 )
+	A = 0; A - 1431655766;		[pa] = A;
+	A = 0; A + 1431655765;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 21 )
+	A = 0; A + 1431655765;		[pa] = A;
+	A = 0; A - 1431655766;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 22 )
+	A = 0; A - 559038737;		[pa] = A;
+	A = 0; A - 889275714;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 23 )
+	A = 0; A - 889275714;		[pa] = A;
+	A = 0; A - 559038737;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 24 )
+	A = 0; A + 123456789;		[pa] = A;
+	A = 0; A + 987654321;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 25 )
+	A = 0; A - 65536;		[pa] = A;
+	A = 0; A + 65535;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 26 )
+	A = 0; A - 350000;		[pa] = A;
+	A = 0; A - 600000;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 27 )
+	A = 0; A - 600000;		[pa] = A;
+	A = 0; A - 350000;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 28 )
+	A = 0; A + 299950;		[pa] = A;
+	A = 0; A + 400000;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	( pair 29 )
+	A = 0; A + 200000;		[pa] = A;
+	A = 0; A + 100000;		[pb] = A;
+	A = [pa]; B = [pb]; A *%' B;	[lo] = A; [hi] = B;
+	A = results; A + [outIdx];
+	C = [pa];  [A] = C;
+	A + 1; C = [pb]; [A] = C;
+	A + 1; C = [lo]; [A] = C;
+	A + 1; C = [hi]; [A] = C;
+	A = [outIdx]; A + PERPAIR;	[outIdx] = A;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= NPAIR multiplied PERPAIR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= NPAIR multiplied PERPAIR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

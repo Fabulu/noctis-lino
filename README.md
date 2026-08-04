@@ -54,6 +54,7 @@ Two details turned out to be load-bearing:
 | `work/*.txt` | our L.in.oleum programs |
 | `verify_mul.py` | checks the 64-bit multiply against exact arithmetic |
 | `noctis-harness/` | C and Python reference implementations + three-way diff |
+| `tests/` | regression suite for the galaxy hash and the `*%` instruction |
 
 ## Building and testing
 
@@ -83,6 +84,29 @@ python compare3.py
 
 Those two repositories are deliberately **not** vendored here — they are separate
 upstream projects with their own licensing.
+
+### Regression suite
+
+```powershell
+python tests\run_all.py           # everything, about 80 seconds
+python tests\run_all.py galaxy    # just the tests matching "galaxy"
+```
+
+Four tests, each also runnable on its own and each carrying a header that says
+what it guards and how it would fail:
+
+| Test | Guards |
+|---|---|
+| `test_toolchain.py` | the extended toolchain is installed, the two copies of `i386m.bin` agree, `main/` is pristine, and every wrong compiler/pack pairing refuses to build |
+| `test_galaxy.py` | `work/galaxy2.txt` (the `*%` rewrite) is bit-exact with the `{ F7 EB }` version, a freshly compiled C oracle, and two bignum Python references — plus signedness at the opcode level |
+| `test_galaxy_stress.py` | the same arithmetic on coordinates the 343-sector sweep cannot reach, including the ones that make all three cutoff branches fire |
+| `test_mulsplit.py` | the `*%` contract `galaxy2.txt` cannot self-test: which half lands in which operand, signed vs unsigned, and which registers survive |
+
+Nothing is graded against a stored `.bin` — every side is rebuilt and re-run on
+each invocation, because a stored `.bin` is exactly what goes stale unnoticed.
+Each test also builds a deliberately wrong version of its subject and requires
+it to *fail*, so a check that has quietly stopped discriminating shows up as a
+failure rather than a green tick. Needs `gcc` on `PATH` for the C references.
 
 ## Toolchain gotchas
 

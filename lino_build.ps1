@@ -68,9 +68,13 @@ for ($i = 0; $i -lt $TimeoutSec; $i++) {
     $built = (Get-Fresh $outExe); if (-not $built) { $built = (Get-Fresh $strayExe) }
     if ($built) { Start-Sleep -Milliseconds 400; break }
 
-    # Fatal errors mean no .exe will ever appear - stop waiting.
+    # Fatal conditions mean no .exe will ever appear - stop waiting.
+    # "internal problem:" is not a synonym for "error:" - it is what a
+    # mismatched compiler/pack pairing reports, and matching only "error:"
+    # made that failure look like a timeout, blaming the harness for a
+    # correct refusal.
     if (Test-Path $errorLog) {
-        if ((Get-Content $errorLog -Raw) -match 'error:') { break }
+        if ((Get-Content $errorLog -Raw) -match 'error:|internal problem:') { break }
     }
     if ($proc.HasExited) { break }
 }
@@ -85,8 +89,8 @@ $warnings = @()
 $errors   = @()
 if (Test-Path $errorLog) {
     foreach ($line in (Get-Content $errorLog)) {
-        if ($line -match 'error:')       { $errors   += $line.Trim() }
-        elseif ($line -match 'warning:') { $warnings += $line.Trim() }
+        if ($line -match 'error:|internal problem:') { $errors   += $line.Trim() }
+        elseif ($line -match 'warning:')             { $warnings += $line.Trim() }
     }
 }
 

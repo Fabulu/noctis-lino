@@ -1,0 +1,138 @@
+
+      ( *** sitecount_rnd - Noctis IV's fast_random, in L.in.oleum *** )
+
+      ( The galaxy hash gets all the attention, but this is the OTHER genuine
+        32x32 -> 64 site in Noctis IV, and it is the one with more of the game
+        hanging off it: fast_random and ranged_fast_random are called from
+        roughly 168 places. Every planet surface, every star name and every
+        terrain feature is seeded from this sequence, so it has to be
+        bit-exact or nothing in the universe matches.
+
+        Original, NOCTIS-0.CPP:1086-1101:
+
+            db 0x66; mov ax, flat_rnd_seed      ( eax = seed )
+            db 0x66; mov dx, flat_rnd_seed      ( edx = seed )
+            db 0x66; mul dx                     ( UNSIGNED - not imul )
+                     add al, dl                 ( EIGHT-BIT add, no carry out )
+            db 0x66; add flat_rnd_seed, ax
+            db 0x66; and ax, mask
+
+        Two details carry the whole thing:
+
+        * the multiply is MUL, not IMUL. sky and isthere are the other way
+          round. That is why Mul64u and Mul64s are separate entry points and
+          not one routine with a sign flag - a wrong guess here is silent.
+
+        * "add al, dl" is 8 bits wide and drops its carry, so only bits 32..39
+          of the product are ever consumed. Widening it to a 32-bit add
+          produces a different and perfectly plausible sequence.
+
+        fast_srand is "or word ptr seed, 3". That is a 16-bit OR, but 3 fits
+        in the low word, so the 32-bit form is equivalent; niv-lr reads it the
+        same way ("| 0x03u").
+
+        Writes two units per draw to sitecount-rnd.bin: value, seed after.  )
+
+"libraries"
+
+	mul64be;
+
+"directors"
+
+	program name = { sitecount rnd };
+	unit = 32;
+
+"constants"
+
+	NDRAWS	= 4096;
+	SEED	= 12345;
+	MASK	= 0FFFFh;
+
+"variables"
+
+	rndseed = 0;
+	rndmask = 0;
+	rndval	= 0;
+	rndeax	= 0;
+
+	i	= 0;
+	outIdx	= 0;
+
+	result file name = { sitecount-rnd.bin };
+
+"workspace"
+
+	draws = NDRAWS multiplied 2;
+
+"programme"
+
+	A = SEED;
+	[rndseed] = A;
+	=> FastSrand;
+
+	[rndmask] = MASK;
+	[i] = 0;
+	[outIdx] = 0;
+
+    "draw loop"
+
+	=> FastRandom;
+
+	A = draws; A + [outIdx];
+	C = [rndval];  [A] = C;
+	A + 1;
+	C = [rndseed]; [A] = C;
+
+	A = [outIdx]; A + 2; [outIdx] = A;
+	A = [i];      A + 1; [i]      = A;
+      ? [i] < NDRAWS -> draw loop;
+
+	( dump )
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = draws;
+	[Block Size]	= NDRAWS multiplied 2;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= NDRAWS multiplied 2;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+"FastSrand"
+    ( In/out: [rndseed].  The DOS "or word ptr seed, 3". )
+
+	A = [rndseed];
+	A | 3;
+	[rndseed] = A;
+
+	end;
+
+"FastRandom"
+    ( In: [rndmask].  In/out: [rndseed].  Out: [rndval].  Destroys A, B, C, D. )
+
+	A = [rndseed];
+	[m64a] = A;
+	[m64b] = A;
+	=> Mul64u;			( UNSIGNED - the original is mul, not imul )
+
+	A = [m64lo]; A & 0FFh;		( al )
+	B = [m64hi]; B & 0FFh;		( dl )
+	A + B;       A & 0FFh;		( add al, dl - 8 bits, carry discarded )
+
+	B = [m64lo]; B & FFFFFF00h;
+	A | B;				( eax with only its low byte changed )
+	[rndeax] = A;
+
+	B = [rndseed]; B + A;		[rndseed] = B;
+
+	A = [rndeax]; A & [rndmask];	[rndval] = A;
+
+	end;

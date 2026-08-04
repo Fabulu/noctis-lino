@@ -1,0 +1,324 @@
+
+      ( *** starmap_read - decode every record of the real STARMAP.BIN *** )
+
+      ( STARMAP.BIN is twenty years of player-charted names: 4 header bytes
+        giving the file size, then 37578 records of 32 bytes. The layout,
+        verified against the actual bytes rather than assumed, is
+
+            0 .. 7    double  id_code
+            8 ..27    name, space-padded, NO terminator
+              28      always 20h - a separator, not part of the name
+              29      'S' star or 'P' planet
+            30 ..31   two ASCII digits: the body index within the system
+
+        Record i begins at byte 4 + 32i, which is 4-byte aligned, so every
+        record is exactly eight units and the whole tail field 28..31 is a
+        single unit. That is what makes this readable without byte
+        addressing, which L.in.oleum does not have.
+
+        This programme decodes all of them and hands the result to Python
+        to be checked. It proves the reader and the decoder on real data;
+        it proves nothing whatever about the galaxy generator, which is
+        starmap_find's job.
+
+        The Decode and Neg96 routines are copied verbatim from
+        starmap_kernel.txt, where they are refereed vector by vector
+        against Python arbitrary-precision arithmetic. L.in.oleum has no
+        include mechanism, so the copy is the reuse.
+
+        REQUIRES THE EXTENDED TOOLCHAIN, for *%' :
+            -Compiler main\lib\gen\compiler114m.exe  -Cpu i386m
+
+        Reads  STARMAP.BIN        (a working copy in this directory)
+        Writes starmap_keys.bin   4 header units:
+                                     nrec, nstar, nbad28, ntomb
+                                  then 5 units per record:
+                                     tail, drej, N0, N1, N2               )
+
+"directors"
+
+	program name = { starmap\usread };
+	unit = 32;
+
+"constants"
+
+	MAPBYTES	= 1202500;
+	MAXREC		= 40000;
+
+	E15LO		= A4C68000h;
+	E15HI		= 38D7Eh;
+	KZERO		= 104;
+	EMAX		= 1068;
+
+	( "Removed:" as two little-endian units. cast.cpp:69 skips such )
+	( records; there are none in this file, but a port that did not )
+	( look would not know that.                                     )
+
+	TOMB0		= 6F6D6552h;
+	TOMB1		= 3A646576h;
+
+"variables"
+
+	nrec	= 0;
+	nstar	= 0;
+	nbad28	= 0;
+	ntomb	= 0;
+	ri	= 0;
+	tail	= 0;
+	failed	= 0;
+
+	dlo	= 0;
+	dhi	= 0;
+	drej	= 0;
+	de	= 0;
+	dsn	= 0;
+	dmh	= 0;
+	dml	= 0;
+	dk	= 0;
+	dq	= 0;
+	dr	= 0;
+	drc	= 0;
+
+	ua0 = 0; ua1 = 0;
+	ub0 = 0; ub1 = 0;
+	uc0 = 0; uc1 = 0;
+	ud0 = 0; ud1 = 0;
+	u0 = 0; u1 = 0; u2 = 0; u3 = 0;
+	cy1 = 0;
+
+	g0	= 0;
+	g1	= 0;
+	g2	= 0;
+
+	map file name	= { STARMAP.BIN };
+	out file name	= { starmap\uskeys.bin };
+	err file name	= { starmap\usread.err };
+
+"workspace"
+
+	du	= 8;
+
+	mapbuf	= 300640;
+	outbuf	= 200004;
+
+"programme"
+
+	[File Name]	= map file name;
+	[File Command]	= TEST;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+      ? [File Size] != MAPBYTES -> io failed;
+
+	[File Name]	= map file name;
+	[File Command]	= READ;
+	[File Position] = 0;
+	[Block Pointer] = mapbuf;
+	[Block Size]	= MAPBYTES;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+      ? [Block Size] != MAPBYTES -> io failed;
+
+	( nrec = (filesize - 4) / 32, derived rather than assumed )
+
+	A = MAPBYTES; A - 4; A / 32;	[nrec] = A;
+      ? [nrec] '> MAXREC -> io failed;
+
+	[nstar] = 0; [nbad28] = 0; [ntomb] = 0;
+	[ri] = 0;
+
+    "rec loop"
+      ? [ri] >= [nrec] -> rec done;
+
+	E = mapbuf; E + 1;
+	A = [ri]; A * 8; E + A;
+
+	A = [E plus 7];			[tail] = A;
+
+	( byte 28 is 20h in all 37578 records: assert it rather than trust it )
+
+	A = [tail]; A & FFh;
+      ? A = 20h -> rd b28 ok;
+	A = [nbad28]; A + 1;		[nbad28] = A;
+    "rd b28 ok"
+
+	( tombstone: the first eight bytes read "Removed:" )
+
+	A = [E];
+      ? A != TOMB0 -> rd not tomb;
+	A = [E plus 1];
+      ? A != TOMB1 -> rd not tomb;
+	A = [ntomb]; A + 1;		[ntomb] = A;
+    "rd not tomb"
+
+	A = [tail]; A > 8; A & FFh;
+      ? A != 53h -> rd not star;		( 53h = 'S' )
+	A = [nstar]; A + 1;		[nstar] = A;
+    "rd not star"
+
+	A = [E];			[dlo] = A;
+	A = [E plus 1];			[dhi] = A;
+	=> Decode;
+
+	D = outbuf; D + 4; A = [ri]; A * 5; D + A;
+	A = [tail]; [D]        = A;
+	A = [drej]; [D plus 1] = A;
+	A = [g0];   [D plus 2] = A;
+	A = [g1];   [D plus 3] = A;
+	A = [g2];   [D plus 4] = A;
+
+	A = [ri]; A + 1;		[ri] = A;
+	-> rec loop;
+
+    "rec done"
+
+	D = outbuf;
+	A = [nrec];   [D]        = A;
+	A = [nstar];  [D plus 1] = A;
+	A = [nbad28]; [D plus 2] = A;
+	A = [ntomb];  [D plus 3] = A;
+
+	[File Name]	= out file name;
+	[File Command]	= WRITE;
+	[File Position] = 0;
+	[Block Pointer] = outbuf;
+	[Block Size]	= [nrec]; [Block Size] * 5; [Block Size] + 4;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+
+	[File Name]	= out file name;
+	[File Command]	= SET SIZE;
+	[File Size]	= [nrec]; [File Size] * 5; [File Size] + 4;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+    "io failed"
+	[failed] = 1;
+	[File Name]	= err file name;
+	[File Command]	= WRITE;
+	[File Position] = 0;
+	[Block Pointer] = failed;
+	[Block Size]	= 1 multiplied BYTES PER UNIT;
+	isocall;
+	[File Name]	= err file name;
+	[File Command]	= SET SIZE;
+	[File Size]	= 1 multiplied BYTES PER UNIT;
+	isocall;
+	end;
+
+( ---- copied verbatim from starmap_kernel.txt --------------------------- )
+
+"Neg96"
+    ( g = -g, 96 bits, two's complement. Destroys A, C, D. )
+
+	A = [g0]; ! A; A + 1; [g0] = A;
+	C = 0;
+      ? A != 0 -> neg96 l1;
+	C = 1;
+    "neg96 l1"
+	A = [g1]; ! A; A + C; [g1] = A;
+	D = 0;
+      ? C = 0 -> neg96 l2;
+      ? A != 0 -> neg96 l2;
+	D = 1;
+    "neg96 l2"
+	A = [g2]; ! A; A + D; [g2] = A;
+	end;
+
+"Decode"
+    ( N = trunc(d * 1e15), signed 96-bit, from [dlo]/[dhi] into [g0..g2]. )
+    ( [drej]: 0 usable, 1 exponent 0, 2 inf/NaN, 3 exponent too large.    )
+
+	[drej] = 0;
+	[g0] = 0; [g1] = 0; [g2] = 0;
+
+	A = [dhi]; A > 20; A & 7FFh;	[de] = A;
+      ? [de] = 0	-> dec reject zero;
+      ? [de] = 7FFh	-> dec reject nan;
+      ? [de] >= EMAX	-> dec reject big;
+
+	A = [dhi]; A > 31;			[dsn] = A;
+	A = [dhi]; A & FFFFFh; A | 100000h;	[dmh] = A;
+	A = [dlo];				[dml] = A;
+
+	A = 1075; A - [de];			[dk] = A;
+      ? [dk] >= KZERO -> dec done;
+
+	A = [dml]; B = E15LO; A *%' B;	[ua0] = A; [ua1] = B;
+	A = [dml]; B = E15HI; A *%' B;	[ub0] = A; [ub1] = B;
+	A = [dmh]; B = E15LO; A *%' B;	[uc0] = A; [uc1] = B;
+	A = [dmh]; B = E15HI; A *%' B;	[ud0] = A; [ud1] = B;
+
+	A = [ua0];				[u0] = A;
+
+	A = [ua1]; B = [ub0]; A + B; E = 0;
+      ? A '>= B -> dec c1a;
+	E = 1;
+    "dec c1a"
+	B = [uc0]; A + B;
+      ? A '>= B -> dec c1b;
+	E + 1;
+    "dec c1b"
+	[u1] = A;
+	[cy1] = E;
+
+	A = [ub1]; B = [uc1]; A + B; D = 0;
+      ? A '>= B -> dec c2a;
+	D = 1;
+    "dec c2a"
+	B = [ud0]; A + B;
+      ? A '>= B -> dec c2b;
+	D + 1;
+    "dec c2b"
+	B = [cy1]; A + B;
+      ? A '>= B -> dec c2c;
+	D + 1;
+    "dec c2c"
+	[u2] = A;
+
+	A = [ud1]; A + D;			[u3] = A;
+
+	E = du;
+	A = [u0]; [E]        = A;
+	A = [u1]; [E plus 1] = A;
+	A = [u2]; [E plus 2] = A;
+	A = [u3]; [E plus 3] = A;
+	A = 0;
+	[E plus 4] = A; [E plus 5] = A; [E plus 6] = A; [E plus 7] = A;
+
+	( the r == 0 branch is load-bearing: x86 masks shift counts to five )
+	( bits, so "<< (32 - r)" becomes a no-op rather than a zero at r=0  )
+
+	A = [dk]; A > 5;	[dq] = A;
+	A = [dk]; A & 31;	[dr] = A;
+
+	E = du; E + [dq];
+      ? [dr] = 0 -> dec aligned;
+
+	A = 32; A - [dr];	[drc] = A;
+
+	A = [E];          A > [dr]; B = [E plus 1]; B < [drc]; A | B; [g0] = A;
+	A = [E plus 1];   A > [dr]; B = [E plus 2]; B < [drc]; A | B; [g1] = A;
+	A = [E plus 2];   A > [dr]; B = [E plus 3]; B < [drc]; A | B; [g2] = A;
+	-> dec sign;
+
+    "dec aligned"
+	A = [E];	  [g0] = A;
+	A = [E plus 1];	  [g1] = A;
+	A = [E plus 2];	  [g2] = A;
+
+    "dec sign"
+      ? [dsn] = 0 -> dec done;
+	=> Neg96;
+
+    "dec done"
+	end;
+
+    "dec reject zero"
+	[drej] = 1; end;
+    "dec reject nan"
+	[drej] = 2; end;
+    "dec reject big"
+	[drej] = 3; end;

@@ -1,0 +1,996 @@
+
+      ( *** starmap_find - match generated stars against the real catalogue *** )
+
+      ( Sweeps sectors with Noctis's galaxy hash, derives each star's
+        identity, and looks it up in STARMAP.BIN - twenty years of names
+        charted by players, none of which this programme has ever seen.
+
+        The whole point is that the lookup is done in INTEGERS. Noctis
+        computes
+
+            identity = x / 100000 * y / 100000 * z / 100000
+
+        in double precision and accepts a match within idscale = 1e-5
+        (search_id_code, noctis-0.cpp:3323). L.in.oleum has no doubles and
+        binary32 is useless here - 88.85% of catalogue stars have |id|
+        above 167.8, where one binary32 ulp is already wider than the
+        epsilon, and only a quarter of the lookups survive. Multiplying the
+        acceptance condition through by 1e15 removes floating point from
+        the problem entirely:
+
+            | x*y*z  -  trunc(stored * 1e15) |  <  1e10
+
+        both sides exact integers. The budget is not generous: half an ulp
+        of the STORED double, scaled by 1e15, is about 0.111*|id|, which is
+        38% of the window for WARP DESTINATION 1. It is a factor of two,
+        not a factor of a million, so the window is neither widened nor
+        narrowed.
+
+        THE FOLD IS SIGNED. Sector coordinates go negative either side of
+        the galactic centre, and an unsigned 64-bit product gives a
+        different high word and therefore a different galaxy - a perfectly
+        plausible one that is not this one. FoldMul can be switched to the
+        unsigned form at RUNTIME, as a negative control; that is what mode
+        bit 1 is for. It is a runtime branch and not a compile-time
+        constant on purpose, because a control that needs a recompile is a
+        control on a different binary.
+
+        This file also retires the inline machine-language fragment
+        { F7 EB } that galaxy.txt used to reach a 64-bit product: the fold
+        here is the *% language extension. Mode bit 2 dumps the raw
+        five-units-per-sector galaxy in galaxy.bin's exact layout so the
+        two can be compared byte for byte.
+
+        REQUIRES THE EXTENDED TOOLCHAIN:
+            -Compiler main\lib\gen\compiler114m.exe  -Cpu i386m
+
+        Reads   starmap_cfg.bin   3 units: K, mode, hit_cap
+                STARMAP.BIN       a working copy in this directory
+        Writes  starmap_find.bin
+                  mode bit 2 clear: 16 hdrbuf units then 9 units per hit
+                     hdrbuf: magic, K, mode, nsect, nlive, ndead,
+                             nkeys, nrejkeys, nbigkeys, nhits, overflow,
+                             anchors, unsorted, 0, 0, 0
+                     hit:    record_ordinal, x, y, z, P0, P1, P2, G0, G1
+                  mode bit 2 set: 5 units per sector and nothing else,
+                     tempx, tempy, tempz, netpos, flags               )
+
+"directors"
+
+	program name = { starmap\usfind };
+	unit = 32;
+
+"constants"
+
+	SECTORSIZE	= 100000;
+	CUTOFF		= 50000;
+
+	MAPBYTES	= 1202500;
+	MAXREC		= 40000;
+	MAXKEY		= 8000;
+	HITMAX		= 60000;
+	KLIMIT		= 20000;
+	RAWSPAN		= 7;		( raw dump is only ever the k=-3..3 box )
+
+	MODEDECOY	= 1;
+	MODEUNS 	= 2;
+	MODERAW 	= 4;
+
+	( the acceptance window, 1e10 = 2_540BE400h )
+
+	WIN0		= 540BE400h;
+	WIN1		= 2;
+
+	( the decoy perturbation, 2^40: about 1.1e-3 in identity units, some )
+	( 110 windows away from every real id                               )
+
+	DEC1		= 100h;
+
+	E15LO		= A4C68000h;
+	E15HI		= 38D7Eh;
+	KZERO		= 104;
+	EMAX		= 1068;
+
+	TOMB0		= 6F6D6552h;
+	TOMB1		= 3A646576h;
+
+	MAGIC		= 53544D50h;	( "STMP" - so a stale file cannot be misread )
+
+"variables"
+
+	( ---- the three anchor sectors, as sector indices ---------------- )
+	( These are the author's own constants, hard-coded in noctis-1.cpp  )
+	( at lines 3164, 3187 and 3208 - independent of STARMAP.BIN and of  )
+	( any player. They are checked before the catalogue is even opened. )
+
+	asec	= 0;		( BALASTRACKONASTREYA, sector 0,-1,-1 )
+	no label = minus 1;
+	no label = minus 1;
+	no label = 43;		( FENIA, sector 43,-46,-8 )
+	no label = minus 46;
+	no label = minus 8;
+	no label = minus 1;	( YLASTRAVENYA, sector -1,0,-2 )
+	no label = 0;
+	no label = minus 2;
+
+	( ---- the acceptance window for each anchor, as inclusive 96-bit -- )
+	( bounds.  (int32_t)(identity*1e6) == -37828 for Balastrackonastreya )
+	( is trunc(P/1e9) == -37828, hence P in [-37828999999999,            )
+	( -37828000000000]; likewise for the other two.                      )
+
+	abnd	 = 3FE48E01h;
+	no label = FFFFDD98h;
+	no label = FFFFFFFFh;
+	no label = 7B7F5800h;
+	no label = FFFFDD98h;
+	no label = FFFFFFFFh;
+	no label = ECE9C000h;
+	no label = DDFB808Bh;
+	no label = 00000000h;
+	no label = 40F5A3FFh;
+	no label = DDFB808Eh;
+	no label = 00000000h;
+	no label = E15D3481h;
+	no label = FFFF9702h;
+	no label = FFFFFFFFh;
+	no label = E1F5CB00h;
+	no label = FFFF9702h;
+	no label = FFFFFFFFh;
+
+	( ---- configuration ---------------------------------------------- )
+
+	cfgK	= 0;
+	cfgMode = 0;
+	hitcap	= 0;
+	uflag	= 0;
+	decoy	= 0;
+	rawmode = 0;
+	span	= 0;
+
+	( ---- counters ---------------------------------------------------- )
+
+	nrec	= 0;
+	nkeys	= 0;
+	nrejkey = 0;
+	nbigkey = 0;
+	nsect	= 0;
+	nlive	= 0;
+	ndead	= 0;
+	hitn	= 0;
+	hovf	= 0;
+	anchok	= 0;
+	unsorted = 0;
+	failed	= 0;
+
+	( ---- the galaxy hash --------------------------------------------- )
+
+	sectx	= 0;
+	secty	= 0;
+	sectz	= 0;
+	sumxz	= 0;
+	tempx	= 0;
+	tempy	= 0;
+	tempz	= 0;
+	accum	= 0;
+	idk	= 0;
+	netpos	= 0;
+	flags	= 0;
+	fmA	= 0;
+	fmB	= 0;
+	fmR	= 0;
+
+	( ---- Mul96 -------------------------------------------------------- )
+
+	mx = 0; my = 0; mz = 0;
+	mrej = 0; msgn = 0;
+	mgx = 0; mgy = 0; mgz = 0;
+	mt0 = 0; mt1 = 0;
+	mq0 = 0; mq1 = 0;
+	mk0 = 0; mk1 = 0;
+
+	( ---- Decode ------------------------------------------------------- )
+
+	dlo = 0; dhi = 0; drej = 0;
+	de = 0; dsn = 0; dmh = 0; dml = 0;
+	dk = 0; dq = 0; dr = 0; drc = 0;
+	ua0 = 0; ua1 = 0;
+	ub0 = 0; ub1 = 0;
+	uc0 = 0; uc1 = 0;
+	ud0 = 0; ud1 = 0;
+	u0 = 0; u1 = 0; u2 = 0; u3 = 0;
+	cy1 = 0;
+
+	( ---- 96-bit working triples ---------------------------------------- )
+
+	g0 = 0; g1 = 0; g2 = 0;		( accumulator / gap )
+	p0 = 0; p1 = 0; p2 = 0;		( the product for the current star )
+	t0 = 0; t1 = 0; t2 = 0; t3 = 0;	( comparand, and the sort's scratch key )
+	kptr = 0;
+	cmpr = 0;
+	inwin = 0;
+
+	( ---- loop state ----------------------------------------------------- )
+
+	ri = 0; ai = 0;
+	ix = 0; iy = 0; iz = 0;
+	rawi = 0;
+	si = 0;
+	slo = 0; shi = 0; smid = 0;
+	sgap = 0; spi = 0; spj = 0;
+	tail = 0;
+
+	cfg file name	= { starmap\uscfg.bin };
+	map file name	= { STARMAP.BIN };
+	out file name	= { starmap\usfind.bin };
+	err file name	= { starmap\usfind.err };
+
+"workspace"
+
+	du	= 8;
+	cfgbuf	= 8;
+	mapbuf	= 300640;
+	ktab	= 32000;
+	hittab	= 540000;	( HITMAX * 9 )
+	rawbuf	= 1715; 	( RAWSPAN^3 * 5 )
+	hdrbuf	= 16;
+
+"programme"
+
+	( ================= configuration ================================== )
+
+	[File Name]	= cfg file name;
+	[File Command]	= TEST;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+      ? [File Size] != 12 -> io failed;
+
+	[File Name]	= cfg file name;
+	[File Command]	= READ;
+	[File Position] = 0;
+	[Block Pointer] = cfgbuf;
+	[Block Size]	= 12;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+
+	E = cfgbuf;
+	A = [E];		[cfgK]	 = A;
+	A = [E plus 1]; 	[cfgMode] = A;
+	A = [E plus 2]; 	[hitcap]  = A;
+
+      ? [cfgK] < 0 -> io failed;
+      ? [cfgK] > KLIMIT -> io failed;
+      ? [hitcap] < 1 -> io failed;
+      ? [hitcap] > HITMAX -> io failed;
+
+	[uflag] = 0;
+      ? [cfgMode] - MODEUNS -> cfg not unsigned;
+	[uflag] = 1;
+    "cfg not unsigned"
+
+	[decoy] = 0;
+      ? [cfgMode] - MODEDECOY -> cfg not decoy;
+	[decoy] = 1;
+    "cfg not decoy"
+
+	[rawmode] = 0;
+      ? [cfgMode] - MODERAW -> cfg not raw;
+	[rawmode] = 1;
+      ? [cfgK] != 3 -> io failed;	( the raw dump only ever compares )
+    "cfg not raw"				( against the k=-3..3 galaxy.bin  )
+
+	A = [cfgK]; A * 2; A + 1;	[span] = A;
+
+	( ================= the three anchors ============================== )
+
+	( These do not depend on STARMAP.BIN at all. If they fail, nothing )
+	( downstream means anything, so they run first.                    )
+
+	[anchok] = 0;
+	[ai] = 0;
+
+    "anchor loop"
+	A = [ai]; A * 3; E = asec; E + A;
+	A = [E];		A * SECTORSIZE; [sectx] = A;
+	A = [E plus 1]; 	A * SECTORSIZE; [secty] = A;
+	A = [E plus 2]; 	A * SECTORSIZE; [sectz] = A;
+
+	=> HashSector;
+
+	A = [tempx]; [mx] = A;
+	A = [tempy]; [my] = A;
+	A = [tempz]; [mz] = A;
+	=> Mul96;
+      ? [mrej] != 0 -> anchor next;
+	A = [g0]; [t0] = A;
+	A = [g1]; [t1] = A;
+	A = [g2]; [t2] = A;
+
+	A = [ai]; A * 6; E = abnd; E + A; [kptr] = E;
+	=> CmpKT;			( sign(low bound - P), want <= 0 )
+      ? [cmpr] > 0 -> anchor next;
+
+	A = [ai]; A * 6; A + 3; E = abnd; E + A; [kptr] = E;
+	=> CmpKT;			( sign(high bound - P), want >= 0 )
+      ? [cmpr] < 0 -> anchor next;
+
+	A = 1; C = [ai]; A < C; B = [anchok]; A | B; [anchok] = A;
+
+    "anchor next"
+	A = [ai]; A + 1; [ai] = A;
+      ? [ai] < 3 -> anchor loop;
+
+	( the raw dump needs no catalogue at all )
+      ? [rawmode] != 0 -> sweep start;
+
+	( ================= build the key table ============================ )
+
+	[File Name]	= map file name;
+	[File Command]	= TEST;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+      ? [File Size] != MAPBYTES -> io failed;
+
+	[File Name]	= map file name;
+	[File Command]	= READ;
+	[File Position] = 0;
+	[Block Pointer] = mapbuf;
+	[Block Size]	= MAPBYTES;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+      ? [Block Size] != MAPBYTES -> io failed;
+
+	A = MAPBYTES; A - 4; A / 32;	[nrec] = A;
+      ? [nrec] '> MAXREC -> io failed;
+
+	[nkeys] = 0; [nrejkey] = 0; [nbigkey] = 0;
+	[ri] = 0;
+
+    "key loop"
+      ? [ri] >= [nrec] -> key done;
+
+	A = [ri]; A * 8; E = mapbuf; E + 1; E + A;
+
+	A = [E plus 7]; 		[tail] = A;
+	A = [tail]; A > 8; A & FFh;
+      ? A != 53h -> key next;		( 53h = 'S': planets are not ktab )
+
+	( tombstones are skipped by cast.cpp:69; there are none here, but )
+	( a port that did not look would not know that                   )
+
+	A = [E];
+      ? A != TOMB0 -> key live;
+	A = [E plus 1];
+      ? A = TOMB1 -> key next;
+    "key live"
+
+	A = [E];		[dlo] = A;
+	A = [E plus 1]; 	[dhi] = A;
+	=> Decode;
+      ? [drej] = 0 -> key usable;
+	A = [nrejkey]; A + 1;	[nrejkey] = A;
+	-> key next;
+    "key usable"
+
+	( |N| must stay below 2^94 so that P - N cannot overflow 96 bits.  )
+	( The largest real id is 4.84e10, i.e. |N| < 2^86, so this rejects )
+	( nothing that exists - but it is checked, not assumed.            )
+
+	A = [g2]; |A|;
+      ? A '< 40000000h -> key sized;
+	A = [nbigkey]; A + 1;	[nbigkey] = A;
+	-> key next;
+    "key sized"
+
+      ? [decoy] = 0 -> key nodecoy;
+	=> DecoyShift;
+    "key nodecoy"
+
+      ? [nkeys] '>= MAXKEY -> io failed;
+	A = [nkeys]; A * 4; D = ktab; D + A;
+	A = [g0]; [D]	     = A;
+	A = [g1]; [D plus 1] = A;
+	A = [g2]; [D plus 2] = A;
+	A = [ri]; [D plus 3] = A;
+	A = [nkeys]; A + 1;	[nkeys] = A;
+
+    "key next"
+	A = [ri]; A + 1;	[ri] = A;
+	-> key loop;
+
+    "key done"
+
+	( ================= sort the key table ============================= )
+
+	( Shellsort with Knuth's 3h+1 gaps, generated rather than tabulated. )
+	( The comparison is CmpKT, the same routine the binary search uses,  )
+	( so there is one signed-96-bit compare in this programme and not    )
+	( two that could disagree.                                          )
+
+	[sgap] = 1;
+    "gap grow"
+	A = [sgap]; A * 3; A + 1;
+      ? A '>= [nkeys] -> gap grown;
+	[sgap] = A;
+	-> gap grow;
+    "gap grown"
+
+    "gap loop"
+      ? [sgap] < 1 -> sort done;
+
+	A = [sgap];		[spi] = A;
+
+    "pass i"
+      ? [spi] >= [nkeys] -> pass done;
+
+	A = [spi]; A * 4; E = ktab; E + A;
+	A = [E];	  [t0] = A;
+	A = [E plus 1];   [t1] = A;
+	A = [E plus 2];   [t2] = A;
+	A = [E plus 3];   [t3] = A;
+	A = [spi];	  [spj] = A;
+
+    "pass j"
+	A = [spj];
+      ? A < [sgap] -> pass place;
+	A - [sgap]; A * 4; E = ktab; E + A; [kptr] = E;
+	=> CmpKT;
+      ? [cmpr] <= 0 -> pass place;
+
+	A = [spj]; A * 4; D = ktab; D + A;
+	E = [kptr];
+	A = [E];	  [D]	     = A;
+	A = [E plus 1];   [D plus 1] = A;
+	A = [E plus 2];   [D plus 2] = A;
+	A = [E plus 3];   [D plus 3] = A;
+
+	A = [spj]; A - [sgap];	[spj] = A;
+	-> pass j;
+
+    "pass place"
+	A = [spj]; A * 4; E = ktab; E + A;
+	A = [t0]; [E]	     = A;
+	A = [t1]; [E plus 1] = A;
+	A = [t2]; [E plus 2] = A;
+	A = [t3]; [E plus 3] = A;
+
+	A = [spi]; A + 1;	[spi] = A;
+	-> pass i;
+
+    "pass done"
+	A = [sgap]; A - 1; A / 3;	[sgap] = A;
+	-> gap loop;
+
+    "sort done"
+
+	( verify the sort rather than trust it )
+
+	[unsorted] = 0;
+	[si] = 1;
+    "verify loop"
+      ? [si] >= [nkeys] -> verify done;
+	A = [si]; A * 4; E = ktab; E + A;
+	A = [E];	  [t0] = A;
+	A = [E plus 1];   [t1] = A;
+	A = [E plus 2];   [t2] = A;
+	A = [si]; A - 1; A * 4; E = ktab; E + A; [kptr] = E;
+	=> CmpKT;			( sign(key[i-1] - key[i]) )
+      ? [cmpr] <= 0 -> verify next;
+	A = [unsorted]; A + 1;	[unsorted] = A;
+    "verify next"
+	A = [si]; A + 1;	[si] = A;
+	-> verify loop;
+    "verify done"
+
+	( ================= sweep ========================================== )
+
+    "sweep start"
+	[nsect] = 0; [nlive] = 0; [ndead] = 0;
+	[hitn] = 0; [hovf] = 0; [rawi] = 0;
+	[ix] = 0;
+
+    "loop x"
+	[iy] = 0;
+    "loop y"
+	[iz] = 0;
+    "loop z"
+
+	A = [ix]; A - [cfgK]; A * SECTORSIZE;	[sectx] = A;
+	A = [iy]; A - [cfgK]; A * SECTORSIZE;	[secty] = A;
+	A = [iz]; A - [cfgK]; A * SECTORSIZE;	[sectz] = A;
+
+	=> HashSector;
+
+	A = [nsect]; A + 1;	[nsect] = A;
+
+      ? [rawmode] = 0 -> sweep live test;
+
+	( raw dump: galaxy.bin's exact layout, five units per sector )
+
+	A = [rawi]; D = rawbuf; D + A;
+	A = [tempx];  [D]	 = A;
+	A = [tempy];  [D plus 1] = A;
+	A = [tempz];  [D plus 2] = A;
+	A = [netpos]; [D plus 3] = A;
+	A = [flags];  [D plus 4] = A;
+	A = [rawi]; A + 5;	[rawi] = A;
+	-> sweep next;
+
+    "sweep live test"
+      ? [flags] = 0 -> sweep live;
+	A = [ndead]; A + 1;	[ndead] = A;
+	-> sweep next;
+    "sweep live"
+	A = [nlive]; A + 1;	[nlive] = A;
+
+	A = [tempx]; [mx] = A;
+	A = [tempy]; [my] = A;
+	A = [tempz]; [mz] = A;
+	=> Mul96;
+      ? [mrej] != 0 -> sweep next;
+
+	A = [g0]; [p0] = A; [t0] = A;
+	A = [g1]; [p1] = A; [t1] = A;
+	A = [g2]; [p2] = A; [t2] = A;
+
+	( binary search for the insertion point of P in the sorted ktab )
+
+	[slo] = 0;
+	A = [nkeys];		[shi] = A;
+    "bs loop"
+      ? [slo] >= [shi] -> bs done;
+	A = [slo]; A + [shi]; A > 1;	[smid] = A;
+	A = [smid]; A * 4; E = ktab; E + A; [kptr] = E;
+	=> CmpKT;
+      ? [cmpr] >= 0 -> bs high;
+	A = [smid]; A + 1;	[slo] = A;
+	-> bs loop;
+    "bs high"
+	A = [smid];		[shi] = A;
+	-> bs loop;
+    "bs done"
+
+	( Scan OUTWARD in both directions. The insertion point is not the  )
+	( only candidate: the identity is symmetric in x,y,z and the hash  )
+	( emits mirrored sectors, so distinct stars collide exactly, and   )
+	( near-equal catalogue ids sit inside one another's windows.       )
+
+	A = [slo];		[si] = A;
+    "scan up"
+      ? [si] >= [nkeys] -> scan up done;
+	A = [si]; A * 4; E = ktab; E + A; [kptr] = E;
+	=> Gap96;
+	=> WinTest;
+      ? [inwin] = 0 -> scan up done;
+	=> RecordHit;
+	A = [si]; A + 1;	[si] = A;
+	-> scan up;
+    "scan up done"
+
+	A = [slo];		[si] = A;
+    "scan dn"
+      ? [si] <= 0 -> sweep next;
+	A = [si]; A - 1;	[si] = A;
+	A = [si]; A * 4; E = ktab; E + A; [kptr] = E;
+	=> Gap96;
+	=> WinTest;
+      ? [inwin] = 0 -> sweep next;
+	=> RecordHit;
+	-> scan dn;
+
+    "sweep next"
+	A = [iz]; A + 1; [iz] = A;
+      ? [iz] < [span] -> loop z;
+	A = [iy]; A + 1; [iy] = A;
+      ? [iy] < [span] -> loop y;
+	A = [ix]; A + 1; [ix] = A;
+      ? [ix] < [span] -> loop x;
+
+	( ================= write the results ============================== )
+
+      ? [rawmode] = 0 -> write hittab;
+
+	[File Name]	= out file name;
+	[File Command]	= WRITE;
+	[File Position] = 0;
+	[Block Pointer] = rawbuf;
+	[Block Size]	= [rawi]; [Block Size] * BYTES PER UNIT;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+	[File Name]	= out file name;
+	[File Command]	= SET SIZE;
+	[File Size]	= [rawi]; [File Size] * BYTES PER UNIT;
+	isocall;
+	end;
+
+    "write hittab"
+	E = hdrbuf;
+	A = MAGIC;	  [E]		= A;
+	A = [cfgK];	  [E plus 1]	= A;
+	A = [cfgMode];	  [E plus 2]	= A;
+	A = [nsect];	  [E plus 3]	= A;
+	A = [nlive];	  [E plus 4]	= A;
+	A = [ndead];	  [E plus 5]	= A;
+	A = [nkeys];	  [E plus 6]	= A;
+	A = [nrejkey];	  [E plus 7]	= A;
+	A = [nbigkey];	  [E plus 8]	= A;
+	A = [hitn];	  [E plus 9]	= A;
+	A = [hovf];	  [E plus 10]	= A;
+	A = [anchok];	  [E plus 11]	= A;
+	A = [unsorted];   [E plus 12]	= A;
+	A = 0;		  [E plus 13]	= A;
+			  [E plus 14]	= A;
+			  [E plus 15]	= A;
+
+	[File Name]	= out file name;
+	[File Command]	= WRITE;
+	[File Position] = 0;
+	[Block Pointer] = hdrbuf;
+	[Block Size]	= 16 multiplied BYTES PER UNIT;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+
+	[File Name]	= out file name;
+	[File Command]	= WRITE;
+	[File Position] = 16 multiplied BYTES PER UNIT;
+	[Block Pointer] = hittab;
+	[Block Size]	= [hitn]; [Block Size] * 9; [Block Size] * BYTES PER UNIT;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+
+	[File Name]	= out file name;
+	[File Command]	= SET SIZE;
+	[File Size]	= [hitn]; [File Size] * 9; [File Size] + 16;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+    "io failed"
+	[failed] = 1;
+	[File Name]	= err file name;
+	[File Command]	= WRITE;
+	[File Position] = 0;
+	[Block Pointer] = failed;
+	[Block Size]	= 1 multiplied BYTES PER UNIT;
+	isocall;
+	[File Name]	= err file name;
+	[File Command]	= SET SIZE;
+	[File Size]	= 1 multiplied BYTES PER UNIT;
+	isocall;
+	end;
+
+( ======================================================================== )
+
+"FoldMul"
+    ( [fmR] = low32(a*b) + high32(a*b), the original's imul ebx / add eax,edx )
+    (                                                                        )
+    ( SIGNED by default. *% puts the high half in B, NOT in D - that is the   )
+    ( one difference from the { F7 EB } fragment this replaces, and the       )
+    ( easiest thing to get wrong when porting the fragment away.              )
+
+      ? [uflag] != 0 -> fold unsigned;
+	A = [fmA]; B = [fmB]; A *% B; A + B;	[fmR] = A;
+	end;
+    "fold unsigned"
+	( negative control only: a different, plausible, wrong galaxy )
+	A = [fmA]; B = [fmB]; A *%' B; A + B;	[fmR] = A;
+	end;
+
+"HashSector"
+    ( [sectx],[secty],[sectz] -> [tempx],[tempy],[tempz],[netpos],[flags] )
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> hs no cutoff x;
+	A = [flags]; A | 1;			[flags] = A;
+    "hs no cutoff x"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmR];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> hs no cutoff y;
+	A = [flags]; A | 2;			[flags] = A;
+    "hs no cutoff y"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk];   [fmB] = A;
+	=> FoldMul;
+	A = [fmR];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> hs no cutoff z;
+	A = [flags]; A | 4;			[flags] = A;
+    "hs no cutoff z"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+	end;
+
+( ======================================================================== )
+
+"Neg96"
+    ( g = -g, 96 bits, two's complement. Destroys A, C, D. )
+
+	A = [g0]; ! A; A + 1; [g0] = A;
+	C = 0;
+      ? A != 0 -> neg96 l1;
+	C = 1;
+    "neg96 l1"
+	A = [g1]; ! A; A + C; [g1] = A;
+	D = 0;
+      ? C = 0 -> neg96 l2;
+      ? A != 0 -> neg96 l2;
+	D = 1;
+    "neg96 l2"
+	A = [g2]; ! A; A + D; [g2] = A;
+	end;
+
+"Mul96"
+    ( P = x*y*z, signed 96-bit, from [mx],[my],[mz] into [g0..g2].     )
+    ( [mrej] = 1 if a coordinate was 80000000h, whose magnitude does   )
+    ( not fit in 32 bits.                                             )
+    ( UNSIGNED *%' throughout: these are magnitudes with the sign      )
+    ( carried separately. The galaxy fold above is the SIGNED one.     )
+
+	[mrej] = 0;
+	[g0] = 0; [g1] = 0; [g2] = 0;
+
+      ? [mx] = 80000000h -> mul96 reject;
+      ? [my] = 80000000h -> mul96 reject;
+      ? [mz] = 80000000h -> mul96 reject;
+
+	A = [mx]; A >> 31;
+	B = [my]; B >> 31; A # B;
+	B = [mz]; B >> 31; A # B;
+	[msgn] = A;
+
+	A = [mx]; |A|; [mgx] = A;
+	A = [my]; |A|; [mgy] = A;
+	A = [mz]; |A|; [mgz] = A;
+
+	A = [mgx]; B = [mgy]; A *%' B;	[mt0] = A; [mt1] = B;
+	A = [mt0]; B = [mgz]; A *%' B;	[mq0] = A; [mk0] = B;
+	A = [mt1]; B = [mgz]; A *%' B;	[mq1] = A; [mk1] = B;
+
+	A = [mq0];			[g0] = A;
+
+	( carry must be the UNSIGNED compare: the signed one is right only )
+	( while the limbs are small, which is to say until it matters      )
+
+	A = [mk0]; B = [mq1]; A + B;	[g1] = A;
+	C = 0;
+      ? A '>= B -> mul96 nocarry;
+	C = 1;
+    "mul96 nocarry"
+	A = [mk1]; A + C;		[g2] = A;
+
+      ? [msgn] = 0 -> mul96 done;
+	=> Neg96;
+    "mul96 done"
+	end;
+
+    "mul96 reject"
+	[mrej] = 1;
+	end;
+
+"Decode"
+    ( N = trunc(d * 1e15), signed 96-bit, from [dlo]/[dhi] into [g0..g2]. )
+    ( [drej]: 0 usable, 1 exponent 0, 2 inf/NaN, 3 exponent too large.    )
+    (                                                                    )
+    ( Exponent 0 is REJECTED rather than treated as zero. Two catalogue   )
+    ( records land there - WESTOS is -0.0 and MDIR 17 is a NaN written    )
+    ( byte-reversed - and both would scale to N = 0, whose window would   )
+    ( then claim every generated star with |x*y*z| < 1e10.                )
+
+	[drej] = 0;
+	[g0] = 0; [g1] = 0; [g2] = 0;
+
+	A = [dhi]; A > 20; A & 7FFh;	[de] = A;
+      ? [de] = 0	-> dec reject zero;
+      ? [de] = 7FFh	-> dec reject nan;
+      ? [de] >= EMAX	-> dec reject big;
+
+	A = [dhi]; A > 31;			[dsn] = A;
+	A = [dhi]; A & FFFFFh; A | 100000h;	[dmh] = A;
+	A = [dlo];				[dml] = A;
+
+	A = 1075; A - [de];			[dk] = A;
+      ? [dk] >= KZERO -> dec done;
+
+	A = [dml]; B = E15LO; A *%' B;	[ua0] = A; [ua1] = B;
+	A = [dml]; B = E15HI; A *%' B;	[ub0] = A; [ub1] = B;
+	A = [dmh]; B = E15LO; A *%' B;	[uc0] = A; [uc1] = B;
+	A = [dmh]; B = E15HI; A *%' B;	[ud0] = A; [ud1] = B;
+
+	A = [ua0];				[u0] = A;
+
+	A = [ua1]; B = [ub0]; A + B; E = 0;
+      ? A '>= B -> dec c1a;
+	E = 1;
+    "dec c1a"
+	B = [uc0]; A + B;
+      ? A '>= B -> dec c1b;
+	E + 1;
+    "dec c1b"
+	[u1] = A;
+	[cy1] = E;
+
+	A = [ub1]; B = [uc1]; A + B; D = 0;
+      ? A '>= B -> dec c2a;
+	D = 1;
+    "dec c2a"
+	B = [ud0]; A + B;
+      ? A '>= B -> dec c2b;
+	D + 1;
+    "dec c2b"
+	B = [cy1]; A + B;
+      ? A '>= B -> dec c2c;
+	D + 1;
+    "dec c2c"
+	[u2] = A;
+
+	A = [ud1]; A + D;			[u3] = A;
+
+	E = du;
+	A = [u0]; [E]	     = A;
+	A = [u1]; [E plus 1] = A;
+	A = [u2]; [E plus 2] = A;
+	A = [u3]; [E plus 3] = A;
+	A = 0;
+	[E plus 4] = A; [E plus 5] = A; [E plus 6] = A; [E plus 7] = A;
+
+	( the r == 0 branch is load-bearing: x86 masks shift counts to five )
+	( bits, so "<< (32 - r)" degenerates to a no-op rather than a zero  )
+
+	A = [dk]; A > 5;	[dq] = A;
+	A = [dk]; A & 31;	[dr] = A;
+
+	E = du; E + [dq];
+      ? [dr] = 0 -> dec aligned;
+
+	A = 32; A - [dr];	[drc] = A;
+
+	A = [E];          A > [dr]; B = [E plus 1]; B < [drc]; A | B; [g0] = A;
+	A = [E plus 1];   A > [dr]; B = [E plus 2]; B < [drc]; A | B; [g1] = A;
+	A = [E plus 2];   A > [dr]; B = [E plus 3]; B < [drc]; A | B; [g2] = A;
+	-> dec sign;
+
+    "dec aligned"
+	A = [E];	  [g0] = A;
+	A = [E plus 1];   [g1] = A;
+	A = [E plus 2];   [g2] = A;
+
+    "dec sign"
+      ? [dsn] = 0 -> dec done;
+	=> Neg96;
+
+    "dec done"
+	end;
+
+    "dec reject zero"
+	[drej] = 1; end;
+    "dec reject nan"
+	[drej] = 2; end;
+    "dec reject big"
+	[drej] = 3; end;
+
+"DecoyShift"
+    ( Negative control: shift every catalogue key by 2^40 before it is )
+    ( ever compared. About 110 windows - no real star should survive.  )
+
+	A = [g1]; B = DEC1; A + B; [g1] = A;
+      ? A '>= B -> decoy done;
+	A = [g2]; A + 1; [g2] = A;
+    "decoy done"
+	end;
+
+( ======================================================================== )
+
+"CmpKT"
+    ( [cmpr] = sign( the 96-bit key at [kptr] - the triple [t0],[t1],[t2] ). )
+    ( Top limb compared SIGNED, the lower two UNSIGNED. One comparator for   )
+    ( both the sort and the search, so there is one place to be wrong.       )
+
+	E = [kptr];
+	A = [E plus 2]; B = [t2];
+      ? A < B -> ckt lt;
+      ? A > B -> ckt gt;
+	A = [E plus 1]; B = [t1];
+      ? A '< B -> ckt lt;
+      ? A '> B -> ckt gt;
+	A = [E]; B = [t0];
+      ? A '< B -> ckt lt;
+      ? A '> B -> ckt gt;
+	[cmpr] = 0;
+	end;
+    "ckt lt"
+	[cmpr] = minus 1;
+	end;
+    "ckt gt"
+	[cmpr] = 1;
+	end;
+
+"Gap96"
+    ( [g0..g2] = | [t0..t2] - the key at [kptr] |.                      )
+    ( |P| < 2^93 and every key is below 2^94, so the difference cannot  )
+    ( overflow 96 bits - the key builder enforces that bound.           )
+
+	E = [kptr];
+
+	A = [t0]; B = [E];
+	C = 0;
+      ? A '>= B -> gap b0;
+	C = 1;
+    "gap b0"
+	A - B;			[g0] = A;
+
+	A = [t1]; B = [E plus 1];
+	D = 0;
+      ? A '>= B -> gap b1;
+	D = 1;
+    "gap b1"
+	A - B;
+	( if the first subtraction borrowed then A is nonzero here, so at )
+	( most one of the two tests can fire and D stays 0 or 1           )
+      ? A '>= C -> gap b2;
+	D + 1;
+    "gap b2"
+	A - C;			[g1] = A;
+
+	A = [t2]; B = [E plus 2];
+	A - B; A - D;		[g2] = A;
+
+	A = [g2];
+      ? A >= 0 -> gap done;
+	=> Neg96;
+    "gap done"
+	end;
+
+"WinTest"
+    ( [inwin] = 1 if the non-negative [g0..g2] is below 1e10 )
+
+	[inwin] = 0;
+	A = [g2];
+      ? A != 0 -> wintest done;
+	A = [g1];
+      ? A '> WIN1 -> wintest done;
+      ? A '< WIN1 -> wintest yes;
+	A = [g0];
+      ? A '>= WIN0 -> wintest done;
+    "wintest yes"
+	[inwin] = 1;
+    "wintest done"
+	end;
+
+"RecordHit"
+    ( Every candidate is recorded, not just the first. Keeping only the )
+    ( first is how a permutation collision gets mistaken for a match.   )
+
+      ? [hitn] '>= [hitcap] -> hit overflow;
+	A = [hitn]; A * 9; D = hittab; D + A;
+	E = [kptr];
+	A = [E plus 3]; [D]	    = A;	( catalogue record ordinal )
+	A = [tempx];	[D plus 1] = A;
+	A = [tempy];	[D plus 2] = A;
+	A = [tempz];	[D plus 3] = A;
+	A = [p0];	[D plus 4] = A;
+	A = [p1];	[D plus 5] = A;
+	A = [p2];	[D plus 6] = A;
+	A = [g0];	[D plus 7] = A;
+	A = [g1];	[D plus 8] = A;
+	A = [hitn]; A + 1;	[hitn] = A;
+	end;
+
+    "hit overflow"
+	[hovf] = 1;
+	end;

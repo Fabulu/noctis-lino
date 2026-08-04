@@ -1,0 +1,82 @@
+
+      ( QA probe: register preservation across *%, and whether the direct
+        form really writes the high half back over its memory operand -
+        which is the reason galaxy2.txt uses register x register only. )
+
+"directors"
+
+	program name = { qaregs };
+	unit = 32;
+
+"variables"
+
+	pa	= 0;
+	pb	= 0;
+	memv	= 0;
+
+	oA	= 0;
+	oB	= 0;
+	oC	= 0;
+	oD	= 0;
+	oE	= 0;
+	dlo	= 0;
+	dmem	= 0;
+
+	result file name = { qaregs.bin };
+
+"workspace"
+
+	results = 7;
+
+"programme"
+
+	( --- reg x reg: 100000 *% 70000 = 7000000000 = 0000 0001 A13B 8600 --- )
+
+	A = 0; A + 100000;		[pa] = A;
+	A = 0; A + 70000;		[pb] = A;
+
+	A = [pa];
+	B = [pb];
+	C = 0; C + 202116108;		( 0C0C0C0C sentinel )
+	D = 0; D + 218959117;		( 0D0D0D0D sentinel )
+	E = 0; E + 235802126;		( 0E0E0E0E sentinel )
+
+	A *% B;
+
+	[oA] = A; [oB] = B; [oC] = C; [oD] = D; [oE] = E;
+
+	( --- direct form: does A *% [memv] overwrite the variable memv? --- )
+
+	A = 0; A + 70000;		[memv] = A;
+	A = 0; A + 100000;
+	A *% [memv];
+	[dlo] = A;
+	A = [memv];			[dmem] = A;
+
+	( --- dump --- )
+
+	A = results;
+	C = [oA];   [A] = C;
+	A + 1; C = [oB];   [A] = C;
+	A + 1; C = [oC];   [A] = C;
+	A + 1; C = [oD];   [A] = C;
+	A + 1; C = [oE];   [A] = C;
+	A + 1; C = [dlo];  [A] = C;
+	A + 1; C = [dmem]; [A] = C;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 7;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 7;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

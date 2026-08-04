@@ -1,0 +1,175 @@
+
+      ( *** galaxy2 - the star-position hash, using *% *** )
+
+      ( Identical arithmetic to galaxy.txt; only the 64-bit multiply is
+        expressed differently. galaxy.txt reaches it through an inline
+        machine-language fragment { F7 EB } wrapped in a subroutine, because
+        stock L.in.oleum has no instruction that keeps the high half of a
+        product. This file uses the split-multiply the language was extended
+        with:
+
+            a *%  b     signed    32x32 -> 64,  a = low, b = high
+            a *%' b     unsigned  same shape
+
+        mirroring the existing /% and /%' split-divide.
+
+        REQUIRES THE EXTENDED TOOLCHAIN. Build with
+            -Compiler main/lib/gen/compiler114m.exe  -Cpu i386m
+        Under the stock compiler this fails with "unrecognized instruction";
+        under the patched compiler with the stock pack it fails with
+        "invalid cpu pack". galaxy.txt remains the portable version.
+
+        Signedness is still the load-bearing detail - sector coordinates go
+        negative either side of the galactic centre, and an unsigned product
+        gives a different high word, hence a perfectly plausible galaxy that
+        is not this one. So *% here, never *%'.
+
+        Only the register x register form is used. Every other form of *%
+        stores the high half back over its second operand, and both operands
+        here are read again afterwards.
+
+        Sweeps k = -3..+3 on each axis, 343 sectors, 5 units per sector to
+        galaxy2.bin: temp_x, temp_y, temp_z, netpos, flags. Must be
+        byte-identical to galaxy.bin.                                      )
+
+"directors"
+
+	program name = { qawidem };
+	unit = 32;
+
+"constants"
+
+	SECTORSIZE	= 100000;
+	CUTOFF		= 50000;
+	SPAN		= 21;		( k = -3..+3 )
+	KOFFSET 	= 10;
+	PERSECTOR	= 5;
+
+"variables"
+
+	ix	= 0;
+	iy	= 0;
+	iz	= 0;
+	outIdx	= 0;
+
+	sectx	= 0;
+	secty	= 0;
+	sectz	= 0;
+
+	sumxz	= 0;
+	tempx	= 0;
+	tempy	= 0;
+	tempz	= 0;
+	accum	= 0;
+	idk	= 0;
+	netpos	= 0;
+	flags	= 0;
+
+	result file name = { qawidem.bin };
+
+"workspace"
+
+	results = SPAN multiplied SPAN multiplied SPAN multiplied PERSECTOR;
+
+"programme"
+
+	[outIdx] = 0;
+	[ix] = 0;
+
+    "loop x"
+	[iy] = 0;
+
+    "loop y"
+	[iz] = 0;
+
+    "loop z"
+
+	( sect = (i - 3) * 100000, so sectors straddle the origin )
+
+	A = [ix]; A - KOFFSET; A * SECTORSIZE;	[sectx] = A;
+	A = [iy]; A - KOFFSET; A * SECTORSIZE;	[secty] = A;
+	A = [iz]; A - KOFFSET; A * SECTORSIZE;	[sectz] = A;
+
+	[flags] = 0;
+
+	( sum_xz = sect_x + sect_z )
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	( temp_x = (sum_xz & 1FFFF) + sect_x )
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> gx no cutoff x;
+	A = [flags]; A | 1;			[flags] = A;
+    "gx no cutoff x"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	( accum = fold(temp_x * sum_xz): low half plus high half )
+
+	A = [tempx]; B = [sumxz]; A *% B; A + B; [accum] = A;
+
+	( idk = sum_xz + accum )
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	( temp_y = (accum & 1FFFF) + sect_y )
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> gx no cutoff y;
+	A = [flags]; A | 2;			[flags] = A;
+    "gx no cutoff y"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	( accum = fold(temp_y * idk) )
+
+	A = [tempy]; B = [idk];   A *% B; A + B; [accum] = A;
+
+	( temp_z = (accum & 1FFFF) + sect_z )
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> gx no cutoff z;
+	A = [flags]; A | 4;			[flags] = A;
+    "gx no cutoff z"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	( netpos = temp_x + temp_y + temp_z )
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	( store the five results for this sector )
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( advance the three nested loops )
+
+	A = [iz]; A + 1; [iz] = A;
+      ? [iz] < SPAN -> loop z;
+	A = [iy]; A + 1; [iy] = A;
+      ? [iy] < SPAN -> loop y;
+	A = [ix]; A + 1; [ix] = A;
+      ? [ix] < SPAN -> loop x;
+
+	( dump everything to disk )
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= SPAN multiplied SPAN multiplied SPAN multiplied PERSECTOR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= SPAN multiplied SPAN multiplied SPAN multiplied PERSECTOR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

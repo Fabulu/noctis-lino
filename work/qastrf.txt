@@ -1,0 +1,1637 @@
+
+      ( QA stress test - adversarial sector coordinates. )
+
+"directors"
+
+	program name = { qastrf };
+	unit = 32;
+
+"constants"
+
+	CUTOFF		= 50000;
+	PERSECTOR	= 5;
+	NCASES		= 32;
+
+"variables"
+
+	outIdx	= 0;
+	sectx	= 0;
+	secty	= 0;
+	sectz	= 0;
+	sumxz	= 0;
+	tempx	= 0;
+	tempy	= 0;
+	tempz	= 0;
+	accum	= 0;
+	idk	= 0;
+	netpos	= 0;
+	flags	= 0;
+	fmA	= 0;
+	fmB	= 0;
+	fmResult = 0;
+
+	result file name = { qastrf.bin };
+
+"workspace"
+
+	results = NCASES multiplied PERSECTOR;
+
+"programme"
+
+	[outIdx] = 0;
+
+	( case 0 )
+	A = 0; A - 142300000;		[sectx] = A;
+	A = 0; A + 0;		[secty] = A;
+	A = 0; A - 147300000;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 0;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 0"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 0;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 0"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 0;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 0"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 1 )
+	A = 0; A - 140800000;		[sectx] = A;
+	A = 0; A + 0;		[secty] = A;
+	A = 0; A + 11700000;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 1;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 1"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 1;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 1"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 1;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 1"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 2 )
+	A = 0; A - 139300000;		[sectx] = A;
+	A = 0; A + 0;		[secty] = A;
+	A = 0; A - 117400000;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 2;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 2"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 2;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 2"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 2;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 2"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 3 )
+	A = 0; A - 132000000;		[sectx] = A;
+	A = 0; A + 0;		[secty] = A;
+	A = 0; A + 109500000;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 3;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 3"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 3;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 3"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 3;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 3"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 4 )
+	A = 0; A - 130800000;		[sectx] = A;
+	A = 0; A + 0;		[secty] = A;
+	A = 0; A + 18900000;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 4;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 4"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 4;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 4"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 4;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 4"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 5 )
+	A = 0; A - 141300000;		[sectx] = A;
+	A = 0; A + 100700000;		[secty] = A;
+	A = 0; A + 0;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 5;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 5"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 5;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 5"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 5;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 5"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 6 )
+	A = 0; A - 140600000;		[sectx] = A;
+	A = 0; A - 111400000;		[secty] = A;
+	A = 0; A + 0;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 6;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 6"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 6;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 6"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 6;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 6"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 7 )
+	A = 0; A - 137100000;		[sectx] = A;
+	A = 0; A + 135400000;		[secty] = A;
+	A = 0; A + 0;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 7;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 7"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 7;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 7"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 7;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 7"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 8 )
+	A = 0; A - 132000000;		[sectx] = A;
+	A = 0; A + 45900000;		[secty] = A;
+	A = 0; A + 0;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 8;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 8"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 8;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 8"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 8;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 8"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 9 )
+	A = 0; A - 122200000;		[sectx] = A;
+	A = 0; A + 24700000;		[secty] = A;
+	A = 0; A + 0;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 9;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 9"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 9;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 9"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 9;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 9"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 10 )
+	A = 0; A + 0;		[sectx] = A;
+	A = 0; A + 0;		[secty] = A;
+	A = 0; A + 0;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 10;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 10"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 10;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 10"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 10;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 10"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 11 )
+	A = 0; A + 1;		[sectx] = A;
+	A = 0; A + 1;		[secty] = A;
+	A = 0; A + 1;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 11;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 11"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 11;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 11"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 11;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 11"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 12 )
+	A = 0; A - 1;		[sectx] = A;
+	A = 0; A - 1;		[secty] = A;
+	A = 0; A - 1;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 12;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 12"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 12;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 12"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 12;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 12"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 13 )
+	A = 0; A + 2147483647;		[sectx] = A;
+	A = 0; A + 2147483647;		[secty] = A;
+	A = 0; A + 2147483647;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 13;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 13"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 13;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 13"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 13;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 13"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 14 )
+	A = 0; A - 2147483647; A - 1;	[sectx] = A;
+	A = 0; A - 2147483647; A - 1;	[secty] = A;
+	A = 0; A - 2147483647; A - 1;	[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 14;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 14"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 14;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 14"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 14;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 14"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 15 )
+	A = 0; A - 2147483647; A - 1;	[sectx] = A;
+	A = 0; A + 0;		[secty] = A;
+	A = 0; A - 2147483647; A - 1;	[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 15;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 15"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 15;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 15"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 15;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 15"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 16 )
+	A = 0; A - 2147483647; A - 1;	[sectx] = A;
+	A = 0; A - 1;		[secty] = A;
+	A = 0; A + 2147483647;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 16;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 16"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 16;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 16"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 16;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 16"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 17 )
+	A = 0; A + 2147483647;		[sectx] = A;
+	A = 0; A - 2147483647; A - 1;	[secty] = A;
+	A = 0; A - 1;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 17;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 17"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 17;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 17"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 17;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 17"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 18 )
+	A = 0; A - 1;		[sectx] = A;
+	A = 0; A + 1;		[secty] = A;
+	A = 0; A - 2147483647; A - 1;	[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 18;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 18"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 18;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 18"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 18;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 18"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 19 )
+	A = 0; A + 131071;		[sectx] = A;
+	A = 0; A + 0;		[secty] = A;
+	A = 0; A + 0;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 19;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 19"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 19;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 19"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 19;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 19"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 20 )
+	A = 0; A + 131072;		[sectx] = A;
+	A = 0; A + 0;		[secty] = A;
+	A = 0; A + 0;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 20;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 20"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 20;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 20"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 20;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 20"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 21 )
+	A = 0; A + 50000;		[sectx] = A;
+	A = 0; A + 50000;		[secty] = A;
+	A = 0; A + 50000;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 21;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 21"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 21;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 21"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 21;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 21"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 22 )
+	A = 0; A - 65536;		[sectx] = A;
+	A = 0; A + 65535;		[secty] = A;
+	A = 0; A - 2147483647;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 22;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 22"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 22;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 22"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 22;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 22"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 23 )
+	A = 0; A + 2147483646;		[sectx] = A;
+	A = 0; A + 2;		[secty] = A;
+	A = 0; A - 2;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 23;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 23"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 23;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 23"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 23;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 23"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 24 )
+	A = 0; A - 1431655766;		[sectx] = A;
+	A = 0; A + 1431655765;		[secty] = A;
+	A = 0; A - 858993460;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 24;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 24"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 24;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 24"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 24;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 24"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 25 )
+	A = 0; A + 32;		[sectx] = A;
+	A = 0; A - 32;		[secty] = A;
+	A = 0; A + 32768;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 25;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 25"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 25;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 25"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 25;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 25"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 26 )
+	A = 0; A + 2147483647;		[sectx] = A;
+	A = 0; A + 1;		[secty] = A;
+	A = 0; A + 1;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 26;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 26"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 26;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 26"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 26;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 26"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 27 )
+	A = 0; A + 1;		[sectx] = A;
+	A = 0; A + 2147483647;		[secty] = A;
+	A = 0; A + 1;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 27;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 27"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 27;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 27"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 27;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 27"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 28 )
+	A = 0; A + 1;		[sectx] = A;
+	A = 0; A + 1;		[secty] = A;
+	A = 0; A + 2147483647;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 28;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 28"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 28;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 28"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 28;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 28"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 29 )
+	A = 0; A + 50000;		[sectx] = A;
+	A = 0; A + 0;		[secty] = A;
+	A = 0; A - 50000;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 29;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 29"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 29;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 29"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 29;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 29"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 30 )
+	A = 0; A + 50000;		[sectx] = A;
+	A = 0; A + 7;		[secty] = A;
+	A = 0; A - 50000;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 30;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 30"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 30;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 30"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 30;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 30"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	( case 31 )
+	A = 0; A + 50000;		[sectx] = A;
+	A = 0; A - 50000;		[secty] = A;
+	A = 0; A - 50000;		[sectz] = A;
+
+	[flags] = 0;
+
+	A = [sectx]; A + [sectz];		[sumxz] = A;
+
+	A = [sumxz]; A & 1FFFFh; A + [sectx];	[tempx] = A;
+      ? [tempx] != CUTOFF -> no cutoff x 31;
+	A = [flags]; A | 1;			[flags] = A;
+    "no cutoff x 31"
+	A = [tempx]; A - CUTOFF;		[tempx] = A;
+
+	A = [tempx]; [fmA] = A;
+	A = [sumxz]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [sumxz]; A + [accum];		[idk] = A;
+
+	A = [accum]; A & 1FFFFh; A + [secty];	[tempy] = A;
+      ? [tempy] != CUTOFF -> no cutoff y 31;
+	A = [flags]; A | 2;			[flags] = A;
+    "no cutoff y 31"
+	A = [tempy]; A - CUTOFF;		[tempy] = A;
+
+	A = [tempy]; [fmA] = A;
+	A = [idk]; [fmB] = A;
+	=> FoldMul;
+	A = [fmResult];				[accum] = A;
+
+	A = [accum]; A & 1FFFFh; A + [sectz];	[tempz] = A;
+      ? [tempz] != CUTOFF -> no cutoff z 31;
+	A = [flags]; A | 4;			[flags] = A;
+    "no cutoff z 31"
+	A = [tempz]; A - CUTOFF;		[tempz] = A;
+
+	A = [tempx]; A + [tempy]; A + [tempz];	[netpos] = A;
+
+	A = results; A + [outIdx];
+	C = [tempx];  [A] = C;
+	A + 1; C = [tempy];  [A] = C;
+	A + 1; C = [tempz];  [A] = C;
+	A + 1; C = [netpos]; [A] = C;
+	A + 1; C = [flags];  [A] = C;
+	A = [outIdx]; A + PERSECTOR;		[outIdx] = A;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= NCASES multiplied PERSECTOR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= NCASES multiplied PERSECTOR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+"FoldMul"
+	A = [fmA];
+	B = [fmB];
+	{
+	    F7 EB
+	}
+	A + D;
+	[fmResult] = A;
+
+	end;

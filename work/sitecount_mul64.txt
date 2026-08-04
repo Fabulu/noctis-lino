@@ -1,0 +1,121 @@
+
+      ( *** sitecount_mul64 - run one 64-bit-multiply backend over a table *** )
+
+      ( Reads pairs of 32-bit operands from sitecount-vec.bin, calls both
+        Mul64u and Mul64s on each, and writes four units per pair to
+        sitecount-mul64.bin:
+
+            lo_unsigned, hi_unsigned, lo_signed, hi_signed
+
+        The backend is selected purely by which file the build driver copied
+        into mul64be.txt, so this one source is built three times, unchanged,
+        against three mechanically unrelated implementations.
+
+        Input layout is [count][x0][y0][x1][y1]..., so the count is read
+        first and the operand block second. Nothing here is compiled against
+        a hard-coded length: a short table would truncate the output and the
+        length assertion in sitecount_cmp.py would catch it.
+
+        Note: an underscore inside a { } string is the BLANK SPACE MARKER
+        (see docs/variable.htm), so file names here use hyphens. Writing
+        sitecount_vec.bin would silently open "sitecount vec.bin".        )
+
+"libraries"
+
+	mul64be;
+
+"directors"
+
+	program name = { sitecount mul64 };
+	unit = 32;
+
+"constants"
+
+	MAXPAIRS	= 4096;
+
+"variables"
+
+	i	= 0;
+	n	= 0;
+	inIdx	= 0;
+	outIdx	= 0;
+
+	vec file name	 = { sitecount-vec.bin };
+	result file name = { sitecount-mul64.bin };
+
+"workspace"
+
+	hdr	= 1;
+	inbuf	= MAXPAIRS multiplied 2;
+	outbuf	= MAXPAIRS multiplied 4;
+
+"programme"
+
+	( how many pairs? )
+
+	[File Name]	= vec file name;
+	[File Position] = 0;
+	[File Command]	= READ;
+	[Block Pointer] = hdr;
+	[Block Size]	= 1;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	A = hdr; A = [A];			[n] = A;
+
+	( the operand block itself, starting one unit in )
+
+	[File Name]	= vec file name;
+	[File Position] = BYTES PER UNIT;
+	[File Command]	= READ;
+	[Block Pointer] = inbuf;
+	[Block Size]	= [n];
+	[Block Size]	* 2;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[i] = 0;
+	[inIdx] = 0;
+	[outIdx] = 0;
+
+    "mul loop"
+
+	A = inbuf; A + [inIdx];
+	C = [A];		[m64a] = C;
+	A + 1; C = [A];		[m64b] = C;
+
+	=> Mul64u;
+	A = outbuf; A + [outIdx];
+	C = [m64lo]; [A] = C;
+	A + 1; C = [m64hi]; [A] = C;
+
+	=> Mul64s;
+	A = outbuf; A + [outIdx]; A + 2;
+	C = [m64lo]; [A] = C;
+	A + 1; C = [m64hi]; [A] = C;
+
+	A = [inIdx];  A + 2; [inIdx]  = A;
+	A = [outIdx]; A + 4; [outIdx] = A;
+	A = [i];      A + 1; [i]      = A;
+      ? [i] < [n] -> mul loop;
+
+	( dump )
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = outbuf;
+	[Block Size]	= [n];
+	[Block Size]	* 4;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= [n];
+	[File Size]	* 4;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

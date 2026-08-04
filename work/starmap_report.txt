@@ -1,0 +1,163 @@
+==========================================================================
+Tier 2 - generated stars against the real STARMAP.BIN catalogue
+==========================================================================
+run at 2026-08-04 23:29   source starmap_find.bin
+K = 64  (sectors -64..64 on each axis)   mode = 0
+
+L.in.oleum header:
+    K          64
+    mode       0
+    nsect      2146689
+    nlive      2146689
+    ndead      0
+    nkeys      7577
+    nrejkey    2
+    nbigkey    0
+    nhits      4332
+    overflow   0
+    anchors    7
+    unsorted   0
+
+--------------------------------------------------------------------------
+GATE  the three anchor stars (external: the author's own constants)
+--------------------------------------------------------------------------
+    PASS  BALASTRACKONASTREYA   sector (0,-1,-1)    (int32_t)(id*1e6) == -37828   noctis-1.cpp:3164
+    PASS  FENIA                 sector (43,-46,-8)  (int32_t)(id*1e5) == 1599551984   noctis-1.cpp:3187
+    PASS  YLASTRAVENYA          sector (-1,0,-2)    (int32_t)(id*1e8) == -11543634   noctis-1.cpp:3208
+    anchor bitmask = 7 (7 = all three)
+
+--------------------------------------------------------------------------
+GATE  the vectorised hash, re-refereed against oracle.py
+--------------------------------------------------------------------------
+    vectorised hash vs oracle.py (1331 sectors): PASS
+
+--------------------------------------------------------------------------
+GATE  exact integer-window hit set: L.in.oleum vs Python
+--------------------------------------------------------------------------
+    swept 2146689 sectors, 2146689 live, 0 killed by the cutoff
+    L.in.oleum: nsect=2146689 nlive=2146689 ndead=0
+    catalogue keys: 7577 usable (lino 7577, rejected 2, oversized 0)
+    python re-derivation took 1.8s, 4388 candidate pairs examined
+    hits: lino 4332, python 4332, lino-only 0, python-only 0
+    of lino's hits: P != x*y*z in 0; |P-N| wrong in 0
+    -> PASS
+
+--------------------------------------------------------------------------
+RESULT
+--------------------------------------------------------------------------
+    catalogue: 37578 records, 7579 'S', 2 unusable, denominator 7577
+        excluded #3876 'WESTOS'  stored value -0.0
+        excluded #34754 'MDIR 17'  stored value 3.143e-319
+
+    catalogue stars reproduced : 4194/7577 = 55.35%
+    ... with a UNIQUE claimant  : 4113/7577 = 54.28%
+
+    A single-star id match proves little on its own. The identity is
+    x*y*z, symmetric in the three coordinates, and the hash emits
+    mirrored sectors, so (X,Y,Z) and (Z,Y,X) produce EXACTLY the same
+    id. Both rates are given so the difference is visible.
+
+    ids claimed by more than one generated triple: 81 = 1.93% of matches
+        'NOBODY'                 id=13.125 claimed 7 times
+            (250000, -150000, -350000)
+            (150000, -350000, -250000)
+            (50000, -1750000, -150000)
+            (-50000, 5250000, -50000)
+        'LONESTAR'               id=7.875 claimed 5 times
+            (350000, -50000, -450000)
+            (50000, -1050000, -150000)
+            (-50000, 3150000, -50000)
+            (-150000, -1050000, 50000)
+        'EKA48 REPLENISHER'      id=-7.875 claimed 5 times
+            (350000, 50000, -450000)
+            (50000, 1050000, -150000)
+            (-50000, -3150000, -50000)
+            (-150000, 1050000, 50000)
+        'BLOOM'                  id=9.375 claimed 5 times
+            (150000, -250000, -250000)
+            (50000, -1250000, -150000)
+            (-50000, 3750000, -50000)
+            (-150000, -1250000, 50000)
+        'BLANCO EMPTY'           id=5.625 claimed 5 times
+            (150000, -150000, -250000)
+            (50000, -750000, -150000)
+            (-50000, 2250000, -50000)
+            (-150000, -750000, 50000)
+
+    matches reproducing the STORED DOUBLE bit for bit, computing
+    x/100000*y/100000*z/100000 the way prepare_nearstar does:
+        IEEE double throughout          : 2315/4194 = 55.20%
+        80-bit x87 intermediates        : 4194/4194 = 100.00%
+    The catalogue was written by Borland C++ 3.1 on a 387, where every
+    intermediate lives in an 80-bit register and only the final store
+    rounds to double. Modern double-everywhere arithmetic rounds five
+    times instead of once, and disagrees in the last ulp on nearly half
+    of them. Under the arithmetic that actually wrote the file, every
+    matched star reproduces its stored value exactly - which is a
+    stronger statement than the epsilon match, and it also identifies
+    which arithmetic produced the file.
+    window budget used by the matched stars (1.0 = the full 1e10):
+        p50 2.100e-08   p90 1.679e-07   p99 4.712e-07   max 1.397e-06
+    NOTE the whole-catalogue worst case is NOT this small. Half an ulp
+    of the stored double, scaled by 1e15, is about 0.111*|id|, which is
+    38% of the window for WARP DESTINATION 1 (|id| = 4.84e10). The
+    matched stars are all near the origin and so all have small |id|;
+    the margin at the far end of the catalogue is a factor of ~2.
+
+--------------------------------------------------------------------------
+the integer window vs the float epsilon actually used by the game
+--------------------------------------------------------------------------
+    float-epsilon set : 4194 ids
+    integer-window set: 4194 ids
+    in float but not integer: 0
+    in integer but not float: 0
+    The two differ only where a star sits within a rounding of the
+    window edge; the integer form is the one with no rounding in it.
+
+--------------------------------------------------------------------------
+the unmatched stars
+--------------------------------------------------------------------------
+    3383 of 7577 catalogue stars were not reproduced.
+    These are stars OUTSIDE the swept box, not errors. |id| is a bad
+    proxy for distance - one coordinate near zero shrinks the product
+    regardless of the other two - so a sweep must not be bounded by it:
+        largest |id| reachable at K=64: 2.850e+05
+        unmatched stars whose |id| is nonetheless below that: 1369
+        (they are simply not in this box, at any |id|)
+
+--------------------------------------------------------------------------
+negative controls - the SAME binary, mode chosen at runtime
+--------------------------------------------------------------------------
+    real      the signed fold and the untouched catalogue
+                matched 4194/7577 = 55.352%   anchors passed: 3/3
+    decoy     every catalogue key shifted by 2^40 (~1.1e-3 in identity units, about 110 windows)
+                matched 5/7577 = 0.066%   anchors passed: 3/3
+    unsigned  the galaxy fold done with the UNSIGNED *%' - a different, perfectly plausible galaxy
+                matched 140/7577 = 1.848%   anchors passed: 0/3
+    
+    signal over the decoy control: 839x
+    signal over the unsigned control: 30x
+    
+    The unsigned-fold control is the informative one. It does not
+    collapse to zero, and it should not: a wrong-but-plausible
+    galaxy still puts stars near the origin, where small |id|
+    catalogue entries are dense, so some ids are hit by chance.
+    That rate is the chance-match floor for ANY plausible
+    generator, and it is the number the real rate has to beat.
+    All three anchor tests fail under it, as they must.
+
+--------------------------------------------------------------------------
+what this does and does not prove
+--------------------------------------------------------------------------
+    Python and L.in.oleum agreeing is an IMPLEMENTATION cross-check.
+    Both run the same algorithm; agreement says the port is faithful
+    and nothing more. The evidence that the algorithm is Noctis's is:
+      - STARMAP.BIN: 7579 ids charted by players over two decades,
+        none of them produced by us. Reproducing them is the claim.
+      - the three anchors: constants the author wrote in his own
+        source, independent of the catalogue and of any player.
+      - the planet-derived parent identities (starmap_planets.py),
+        a structural check with no generator involved at all.
+      - the negative controls (starmap_all.py), which must collapse
+        the match rate on the SAME binary.
+==========================================================================

@@ -1,0 +1,83 @@
+
+      ( *** sitecount_bench - relative cost of the three Mul64 backends *** )
+
+      ( Two million signed 64-bit products over a walking operand pair, with
+        both halves XOR-folded into a checksum so the loop cannot be optimised
+        away and so a backend that silently computed something else would show
+        up as a different checksum rather than just a different time.
+
+        Read the timing as a rough ratio only. It is measured as time-to-output
+        under poll-and-kill, so it includes process startup and is quantised by
+        the poll interval. The two exact numbers to report beside it are source
+        line count and .exe size.
+
+        Expectation: one instruction per multiply for frag and star, about
+        twenty for limb. If limb comes out fast, suspect the benchmark.      )
+
+"libraries"
+
+	mul64be;
+
+"directors"
+
+	program name = { sitecount bench };
+	unit = 32;
+
+"constants"
+
+	NITER	= 2000000;
+
+"variables"
+
+	bi	= 0;
+	bx	= 0;
+	by	= 0;
+	csum	= 0;
+
+	result file name = { sitecount-bench.bin };
+
+"workspace"
+
+	out = 2;
+
+"programme"
+
+	[bx] = 12345678h;
+	[by] = 9E3779B9h;
+	[csum] = 0;
+	[bi] = 0;
+
+    "bench loop"
+
+	A = [bx]; [m64a] = A;
+	A = [by]; [m64b] = A;
+	=> Mul64s;
+
+	A = [csum]; A # [m64lo]; A # [m64hi];	[csum] = A;
+
+	A = [bx]; A + 1; [bx] = A;
+	A = [by]; A - 1; [by] = A;
+
+	A = [bi]; A + 1; [bi] = A;
+      ? [bi] < NITER -> bench loop;
+
+	A = out;
+	C = [csum]; [A] = C;
+	A + 1; C = NITER; [A] = C;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = out;
+	[Block Size]	= 2;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 2;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

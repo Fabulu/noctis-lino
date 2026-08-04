@@ -1,0 +1,431 @@
+
+      ( *** starmap_kernel - integer arithmetic for catalogue lookups *** )
+
+      ( Noctis identifies a star by
+
+            identity = x / 100000 * y / 100000 * z / 100000
+
+        computed in DOUBLE precision, and looks it up in STARMAP.BIN with
+        an epsilon: search_id_code accepts |computed - stored| < 1e-5
+        (noctis-0.cpp:3323). L.in.oleum has no doubles, and doing this in
+        binary32 loses three quarters of the lookups - 88.85% of catalogue
+        stars have |id| > 167.8, where a single binary32 ulp is already
+        wider than the epsilon. So the whole test is moved into integers.
+        Multiplying the acceptance condition through by 1e15 gives
+
+            | x*y*z  -  trunc(stored * 1e15) |  <  1e10
+
+        with both sides exact integers, no rounding anywhere, and a budget
+        of 1e10 against a worst-case error of about 0.111*|id| coming from
+        the quantisation of the STORED double - roughly a factor of two of
+        headroom at the far end of the catalogue. That margin is why the
+        window is 1e10 and not something rounder.
+
+        This file is the arithmetic alone, exercised by a vector file, so
+        that it can be refereed against Python arbitrary-precision integers
+        before anything is claimed about the galaxy. Two routines matter:
+
+            Mul96    x,y,z (signed 32)          -> P  (signed 96)
+            Decode   an IEEE double, as 2 units -> N = trunc(d * 1e15)
+
+        REQUIRES THE EXTENDED TOOLCHAIN, for *%' :
+            -Compiler main\lib\gen\compiler114m.exe  -Cpu i386m
+
+        NOTE ON FILE NAMES. Inside { } an underscore MEANS A SPACE - it is
+        the language's way of writing one, since real spaces are stripped.
+        A literal underscore is \us. Written the obvious way, this
+        programme silently reads "starmap vec.bin", finds nothing, and
+        writes "starmap kernel.bin"; there is no error, and the artifact
+        you were watching for simply never appears. Several such files
+        from other tracks are lying around work/ as evidence.
+
+        Note which multiply is which. Mul96 works on MAGNITUDES and uses the
+        UNSIGNED *%' throughout, with the sign carried separately; the
+        galaxy hash in starmap_find uses the SIGNED *%. Swapping them is
+        silent - both produce plausible numbers - so each site says so.
+
+        Reads  starmap_vec.bin  : 1 unit count, then 5 units per vector
+                                  (x, y, z, double_lo, double_hi)
+        Writes starmap_kernel.bin: 8 units per vector
+                                  (P0, P1, P2, Prej, N0, N1, N2, Nrej)   )
+
+"directors"
+
+	program name = { starmap\uskernel };
+	unit = 32;
+
+"constants"
+
+	MAXVEC		= 4000;
+
+	( 1e15 = 38D7EA4C68000h, the scale that turns the epsilon test into )
+	( an integer one. Split into two units for the schoolbook multiply. )
+
+	E15LO		= A4C68000h;
+	E15HI		= 38D7Eh;
+
+	( trunc(d * 1e15) = (M * 1e15) >> (1075 - e). Above 103 the shift    )
+	( empties the 103-bit product, and bounding it there also bounds the )
+	( limb index q = k >> 5 to 3, which is what keeps the funnel shift   )
+	( inside the eight units of "du".                                    )
+
+	KZERO		= 104;
+
+	( e >= 1068 would put N beyond 96 bits. The largest exponent in the )
+	( real catalogue is 1058 (WARP DESTINATION 1, |id| = 4.84e10), so   )
+	( this rejects nothing that exists - it is a bound, not a filter.   )
+
+	EMAX		= 1068;
+
+"variables"
+
+	nvec	= 0;
+	vi	= 0;
+	failed	= 0;
+
+	( Mul96 )
+
+	mx	= 0;
+	my	= 0;
+	mz	= 0;
+	mrej	= 0;
+	msgn	= 0;
+	mgx	= 0;
+	mgy	= 0;
+	mgz	= 0;
+	mt0	= 0;
+	mt1	= 0;
+	mq0	= 0;
+	mq1	= 0;
+	mk0	= 0;
+	mk1	= 0;
+
+	( Decode )
+
+	dlo	= 0;
+	dhi	= 0;
+	drej	= 0;
+	de	= 0;
+	dsn	= 0;
+	dmh	= 0;
+	dml	= 0;
+	dk	= 0;
+	dq	= 0;
+	dr	= 0;
+	drc	= 0;
+
+	ua0 = 0; ua1 = 0;
+	ub0 = 0; ub1 = 0;
+	uc0 = 0; uc1 = 0;
+	ud0 = 0; ud1 = 0;
+	u0 = 0; u1 = 0; u2 = 0; u3 = 0;
+	cy1 = 0;
+
+	( the shared 96-bit accumulator triple, g2 most significant )
+
+	g0	= 0;
+	g1	= 0;
+	g2	= 0;
+
+	vec file name	= { starmap\usvec.bin };
+	out file name	= { starmap\uskernel.bin };
+	err file name	= { starmap\uskernel.err };
+
+"workspace"
+
+	( du needs q+3 <= 6 readable, and q is bounded to 3 by KZERO. )
+
+	du	= 8;
+
+	vecbuf	= 20001;
+	outbuf	= 32000;
+
+"programme"
+
+	( ---- load the vectors ------------------------------------------- )
+
+	[File Name]	= vec file name;
+	[File Command]	= TEST;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+
+	[File Name]	= vec file name;
+	[File Command]	= READ;
+	[File Position] = 0;
+	[Block Pointer] = vecbuf;
+	[Block Size]	= [File Size];
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+
+	A = [vecbuf];	[nvec] = A;
+      ? [nvec] '> MAXVEC -> io failed;
+
+	( ---- run every vector through both routines --------------------- )
+
+	[vi] = 0;
+
+    "vec loop"
+      ? [vi] >= [nvec] -> vec done;
+
+	E = vecbuf; E + 1;
+	A = [vi]; A * 5; E + A;
+	A = [E];	[mx]  = A;
+	A = [E plus 1];	[my]  = A;
+	A = [E plus 2];	[mz]  = A;
+	A = [E plus 3];	[dlo] = A;
+	A = [E plus 4];	[dhi] = A;
+
+	=> Mul96;
+
+	D = outbuf; A = [vi]; A * 8; D + A;
+	A = [g0];   [D]   = A;
+	A = [g1];   [D plus 1] = A;
+	A = [g2];   [D plus 2] = A;
+	A = [mrej]; [D plus 3] = A;
+
+	=> Decode;
+
+	D = outbuf; A = [vi]; A * 8; D + A;
+	A = [g0];   [D plus 4] = A;
+	A = [g1];   [D plus 5] = A;
+	A = [g2];   [D plus 6] = A;
+	A = [drej]; [D plus 7] = A;
+
+	A = [vi]; A + 1; [vi] = A;
+	-> vec loop;
+
+    "vec done"
+
+	[File Name]	= out file name;
+	[File Command]	= WRITE;
+	[File Position] = 0;
+	[Block Pointer] = outbuf;
+	[Block Size]	= [nvec]; [Block Size] * 8; [Block Size] * BYTES PER UNIT;
+	isocall;
+      ? [File Status] + ERROR -> io failed;
+
+	[File Name]	= out file name;
+	[File Command]	= SET SIZE;
+	[File Size]	= [nvec]; [File Size] * 8; [File Size] * BYTES PER UNIT;
+	isocall;
+
+	end;
+
+      ( The runtime's fault tolerance is near zero and a failed isocall is )
+      ( silent, so leave a file behind rather than an empty result that    )
+      ( would be mistaken for a clean run of zero vectors.                 )
+
+    "io failed"
+	[failed] = 1;
+	[File Name]	= err file name;
+	[File Command]	= WRITE;
+	[File Position] = 0;
+	[Block Pointer] = failed;
+	[Block Size]	= 1 multiplied BYTES PER UNIT;
+	isocall;
+	[File Name]	= err file name;
+	[File Command]	= SET SIZE;
+	[File Size]	= 1 multiplied BYTES PER UNIT;
+	isocall;
+	end;
+
+( ------------------------------------------------------------------------ )
+
+"Neg96"
+    ( g = -g, 96 bits, two's complement. Destroys A, C, D. )
+
+    ( Carry out of (~limb)+carry_in is 1 exactly when the result is zero    )
+    ( AND carry_in was 1 - there is no borrow-in on the lowest limb, where  )
+    ( the +1 is unconditional, so its carry is just "result == 0".          )
+
+	A = [g0]; ! A; A + 1; [g0] = A;
+	C = 0;
+      ? A != 0 -> neg96 l1;
+	C = 1;
+    "neg96 l1"
+	A = [g1]; ! A; A + C; [g1] = A;
+	D = 0;
+      ? C = 0 -> neg96 l2;
+      ? A != 0 -> neg96 l2;
+	D = 1;
+    "neg96 l2"
+	A = [g2]; ! A; A + D; [g2] = A;
+	end;
+
+( ------------------------------------------------------------------------ )
+
+"Mul96"
+    ( P = x*y*z as a signed 96-bit integer.                          )
+    ( In:  [mx], [my], [mz]   signed 32-bit                          )
+    ( Out: [g0], [g1], [g2]   and [mrej] = 1 if a coordinate was     )
+    (      80000000h, whose magnitude does not fit in 32 bits.       )
+
+	[mrej] = 0;
+	[g0] = 0; [g1] = 0; [g2] = 0;
+
+      ? [mx] = 80000000h -> mul96 reject;
+      ? [my] = 80000000h -> mul96 reject;
+      ? [mz] = 80000000h -> mul96 reject;
+
+	( sign of the product as a 0 / FFFFFFFF mask: the parity of the )
+	( three sign bits, obtained with SAR rather than a comparison   )
+
+	A = [mx]; A >> 31;
+	B = [my]; B >> 31; A # B;
+	B = [mz]; B >> 31; A # B;
+	[msgn] = A;
+
+	A = [mx]; |A|; [mgx] = A;
+	A = [my]; |A|; [mgy] = A;
+	A = [mz]; |A|; [mgz] = A;
+
+	( Everything below is UNSIGNED: these are magnitudes, each < 2^31, )
+	( and *% would read the top bit as a sign. )
+
+	A = [mgx]; B = [mgy]; A *%' B;	[mt0] = A; [mt1] = B;
+
+	A = [mt0]; B = [mgz]; A *%' B;	[mq0] = A; [mk0] = B;
+	A = [mt1]; B = [mgz]; A *%' B;	[mq1] = A; [mk1] = B;
+
+	A = [mq0];			[g0] = A;
+
+	( g1 = k0 + q1. Carry must be detected with the UNSIGNED '<: the )
+	( signed compare gets this right only while the limbs are small. )
+
+	A = [mk0]; B = [mq1]; A + B;	[g1] = A;
+	C = 0;
+      ? A '>= B -> mul96 nocarry;
+	C = 1;
+    "mul96 nocarry"
+
+	( t1 < 2^30 because x*y < 2^62, so k1 < 2^29 and this cannot carry )
+
+	A = [mk1]; A + C;		[g2] = A;
+
+      ? [msgn] = 0 -> mul96 done;
+	=> Neg96;
+    "mul96 done"
+	end;
+
+    "mul96 reject"
+	[mrej] = 1;
+	end;
+
+( ------------------------------------------------------------------------ )
+
+"Decode"
+    ( N = trunc(d * 1e15) as a signed 96-bit integer.                    )
+    ( In:  [dlo], [dhi]  - the two units of an IEEE double, low first    )
+    ( Out: [g0], [g1], [g2]  and [drej]:                                 )
+    (        0  usable                                                   )
+    (        1  biased exponent 0  - zero or denormal. REJECTED, because )
+    (           these scale to N = 0 and their window would then claim   )
+    (           every star with |x*y*z| < 1e10. Two such records exist.   )
+    (        2  biased exponent 7FF - infinity or NaN                    )
+    (        3  exponent too large for a 96-bit N                        )
+
+	[drej] = 0;
+	[g0] = 0; [g1] = 0; [g2] = 0;
+
+	A = [dhi]; A > 20; A & 7FFh;	[de] = A;
+      ? [de] = 0	-> dec reject zero;
+      ? [de] = 7FFh	-> dec reject nan;
+      ? [de] >= EMAX	-> dec reject big;
+
+	A = [dhi]; A > 31;			[dsn] = A;
+	A = [dhi]; A & FFFFFh; A | 100000h;	[dmh] = A;
+	A = [dlo];				[dml] = A;
+
+	A = 1075; A - [de];			[dk] = A;
+      ? [dk] >= KZERO -> dec done;
+
+	( U = M * 1e15, 128 bits, unsigned schoolbook on four products. )
+	( M < 2^53 and 1e15 < 2^50, so U < 2^103 and the top limb is tiny. )
+
+	A = [dml]; B = E15LO; A *%' B;	[ua0] = A; [ua1] = B;
+	A = [dml]; B = E15HI; A *%' B;	[ub0] = A; [ub1] = B;
+	A = [dmh]; B = E15LO; A *%' B;	[uc0] = A; [uc1] = B;
+	A = [dmh]; B = E15HI; A *%' B;	[ud0] = A; [ud1] = B;
+
+	A = [ua0];				[u0] = A;
+
+	( limb 1 = a1 + b0 + c0, carrying at most 2 into limb 2 )
+
+	A = [ua1]; B = [ub0]; A + B; E = 0;
+      ? A '>= B -> dec c1a;
+	E = 1;
+    "dec c1a"
+	B = [uc0]; A + B;
+      ? A '>= B -> dec c1b;
+	E + 1;
+    "dec c1b"
+	[u1] = A;
+	[cy1] = E;
+
+	( limb 2 = b1 + c1 + d0 + carry, carrying at most 3 into limb 3 )
+
+	A = [ub1]; B = [uc1]; A + B; D = 0;
+      ? A '>= B -> dec c2a;
+	D = 1;
+    "dec c2a"
+	B = [ud0]; A + B;
+      ? A '>= B -> dec c2b;
+	D + 1;
+    "dec c2b"
+	B = [cy1]; A + B;
+      ? A '>= B -> dec c2c;
+	D + 1;
+    "dec c2c"
+	[u2] = A;
+
+	( limb 3 = d1 + carry. U < 2^103 so this limb is below 2^7. )
+
+	A = [ud1]; A + D;			[u3] = A;
+
+	E = du;
+	A = [u0]; [E]   = A;
+	A = [u1]; [E plus 1] = A;
+	A = [u2]; [E plus 2] = A;
+	A = [u3]; [E plus 3] = A;
+	A = 0;
+	[E plus 4] = A; [E plus 5] = A; [E plus 6] = A; [E plus 7] = A;
+
+	( N = U >> k, as three limbs starting at q = k >> 5.                )
+	(                                                                   )
+	( The r == 0 branch is NOT redundant. x86 masks shift counts to     )
+	( five bits, so the "<< (32 - r)" of the general case degenerates   )
+	( to "<< 0" - a no-op that ORs in a whole neighbouring limb - the   )
+	( moment r is zero. It only bites when (1075 - e) is a multiple of  )
+	( 32, which is why the vector file contains such doubles on purpose.)
+
+	A = [dk]; A > 5;	[dq] = A;
+	A = [dk]; A & 31;	[dr] = A;
+
+	E = du; E + [dq];
+      ? [dr] = 0 -> dec aligned;
+
+	A = 32; A - [dr];	[drc] = A;
+
+	A = [E];   A > [dr]; B = [E plus 1]; B < [drc]; A | B; [g0] = A;
+	A = [E plus 1]; A > [dr]; B = [E plus 2]; B < [drc]; A | B; [g1] = A;
+	A = [E plus 2]; A > [dr]; B = [E plus 3]; B < [drc]; A | B; [g2] = A;
+	-> dec sign;
+
+    "dec aligned"
+	A = [E];	[g0] = A;
+	A = [E plus 1];	[g1] = A;
+	A = [E plus 2];	[g2] = A;
+
+    "dec sign"
+      ? [dsn] = 0 -> dec done;
+	=> Neg96;
+
+    "dec done"
+	end;
+
+    "dec reject zero"
+	[drej] = 1; end;
+    "dec reject nan"
+	[drej] = 2; end;
+    "dec reject big"
+	[drej] = 3; end;

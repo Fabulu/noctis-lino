@@ -1,0 +1,17 @@
+real      the signed fold and the untouched catalogue
+            matched 4194/7577 = 55.352%   anchors passed: 3/3
+decoy     every catalogue key shifted by 2^40 (~1.1e-3 in identity units, about 110 windows)
+            matched 5/7577 = 0.066%   anchors passed: 3/3
+unsigned  the galaxy fold done with the UNSIGNED *%' - a different, perfectly plausible galaxy
+            matched 140/7577 = 1.848%   anchors passed: 0/3
+
+signal over the decoy control: 839x
+signal over the unsigned control: 30x
+
+The unsigned-fold control is the informative one. It does not
+collapse to zero, and it should not: a wrong-but-plausible
+galaxy still puts stars near the origin, where small |id|
+catalogue entries are dense, so some ids are hit by chance.
+That rate is the chance-match floor for ANY plausible
+generator, and it is the number the real rate has to beat.
+All three anchor tests fail under it, as they must.

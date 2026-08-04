@@ -1,0 +1,99 @@
+
+      ( *** sitecount_shifts - pin down the primitives the limb multiply rests on *** )
+
+      ( The pure-L.in.oleum 64-bit multiply splits its operands with SHR and
+        corrects the sign with SAR. docs/instr_qr.htm says > is SHR (zero fill)
+        and >> is SAR (sign fill), but the limb algorithm is wrong in a way that
+        only shows on negative operands if those two are the other way round.
+        So pin them empirically BEFORE anything depends on them.
+
+        Also checks the "workspace" trap: a workspace symbol is an ADDRESS, and
+        two separately declared vectors must not collapse onto the same cell.
+
+        Writes 8 units to sitecount_shifts.bin.                                )
+
+"directors"
+
+	program name = { sitecount_shifts };
+	unit = 32;
+
+"constants"
+
+	NPROBE	= 8;
+
+"variables"
+
+	tmp	= 0;
+	( An underscore inside a { } string is the BLANK SPACE MARKER, character )
+	( 95 in docs/variable.htm - so { sitecount_shifts.bin } would silently   )
+	( open a file called "sitecount shifts.bin". Hyphens throughout.         )
+
+	result file name = { sitecount-shifts.bin };
+
+"workspace"
+
+	probe	= NPROBE;
+	sentA	= 4;
+	sentB	= 4;
+
+"programme"
+
+	( 0: SHR of minus 1 by 31 - zero fill gives 1 )
+
+	A = minus 1; A > 31;
+	B = probe; [B] = A;
+
+	( 1: SAR of minus 1 by 31 - sign fill gives minus 1 )
+
+	A = minus 1; A >> 31;
+	B = probe; B + 1; [B] = A;
+
+	( 2: the limb split. 0FFFFFFFFh > 16 must be 65535, not minus 1 )
+
+	A = minus 1; A > 16;
+	B = probe; B + 2; [B] = A;
+
+	( 3: MUL.n on two split limbs. 65535 '* 65535 = 0FFFE0001h.
+	     Read back as a signed unit that is minus 131071.        )
+
+	A = minus 1; A > 16; [tmp] = A;
+	A '* [tmp];
+	B = probe; B + 3; [B] = A;
+
+	( 4,5: 80000000h shifted both ways. Built as 1 << 31 because the
+	       literal would have to be written as a negative.          )
+
+	A = 1; A < 31; A > 31;
+	B = probe; B + 4; [B] = A;
+
+	A = 1; A < 31; A >> 31;
+	B = probe; B + 5; [B] = A;
+
+	( 6,7: workspace aliasing sentinel. Two vectors, two distinct writes.
+	       If the compiler collapsed them these read back equal.        )
+
+	A = sentA; C = 111; [A] = C;
+	A = sentB; C = 222; [A] = C;
+	A = sentA; C = [A];
+	B = probe; B + 6; [B] = C;
+	A = sentB; C = [A];
+	B = probe; B + 7; [B] = C;
+
+	( dump )
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = probe;
+	[Block Size]	= NPROBE;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= NPROBE;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

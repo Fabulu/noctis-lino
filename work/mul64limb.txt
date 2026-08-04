@@ -1,0 +1,119 @@
+
+      ( *** mul64limb - 32x32 -> 64 multiply in pure L.in.oleum *** )
+
+      ( Same interface as mul64frag and mul64star:
+
+            "Mul64u"   [m64a] * [m64b] -> [m64lo], [m64hi]   unsigned
+            "Mul64s"   [m64a] * [m64b] -> [m64lo], [m64hi]   signed
+
+        No machine-language fragment, no patched compiler, no x86. This is
+        the backend that proves the language is sufficient on its own: if
+        both the fragment idiom and the *% extension were taken away, the
+        Noctis galaxy hash and fast_random would still be reachable.
+
+        Each operand is cut into two 16-bit limbs, so every partial product
+        is at most FFFF * FFFF = FFFE0001h and fits in an unsigned 32-bit
+        unit with nothing to widen. Carries are propagated by explicit
+        shifts, so no carry flag is needed - which matters, because a
+        L.in.oleum program has no portable access to one.
+
+        Two bounds are the reason this is correct rather than merely
+        plausible, and they are checked in the comments at their sites:
+
+            mid peaks at FFFE + FFFF + FFFF = 2FFFCh          - room to spare
+            hi  peaks at FFFE0001h + FFFE + FFFE + 2
+                       = FFFFFFFFh                            - EXACTLY full
+
+        The hi bound has zero headroom. Any restructuring that adds one more
+        term to it is wrong.
+
+        MUL.n ('*) is used rather than MUL.i (*): the manual says MUL.n is
+        undefined for negative operands, and every limb here is 0..65535 by
+        construction, so '* is both safe and self-documenting.
+
+        > is SHR (zero fill) and >> is SAR (sign fill); work/sitecount_shifts
+        pins both empirically before this file is trusted.                  )
+
+"constants"
+
+	M16	= 65535;
+
+"variables"
+
+	m64a	= 0;
+	m64b	= 0;
+	m64lo	= 0;
+	m64hi	= 0;
+
+	mlxl	= 0;
+	mlxh	= 0;
+	mlyl	= 0;
+	mlyh	= 0;
+	mlp0	= 0;
+	mlp1	= 0;
+	mlp2	= 0;
+	mlp3	= 0;
+	mlmid	= 0;
+	mltmp	= 0;
+
+"programme"
+
+"Mul64u"
+    ( Unsigned 32x32 -> 64.  In: [m64a],[m64b].  Out: [m64lo],[m64hi].  )
+    ( Destroys A, B.                                                    )
+
+	( split both operands into 16-bit limbs. The & M16 after the shift )
+	( is redundant - SHR already zero-fills - but it is applied to all )
+	( four uniformly so the "every limb is 0..65535" invariant is      )
+	( local and survives editing.                                     )
+
+	A = [m64a]; A & M16;			[mlxl] = A;
+	A = [m64a]; A > 16; A & M16;		[mlxh] = A;
+	A = [m64b]; A & M16;			[mlyl] = A;
+	A = [m64b]; A > 16; A & M16;		[mlyh] = A;
+
+	( four partial products, each < 2^32 unsigned )
+
+	A = [mlxl]; A '* [mlyl];		[mlp0] = A;
+	A = [mlxl]; A '* [mlyh];		[mlp1] = A;
+	A = [mlxh]; A '* [mlyl];		[mlp2] = A;
+	A = [mlxh]; A '* [mlyh];		[mlp3] = A;
+
+	( mid = (p0 >> 16) + (p1 & M16) + (p2 & M16), peaks at 2FFFCh )
+
+	A = [mlp0]; A > 16;			[mltmp] = A;
+	A = [mlp1]; A & M16; A + [mltmp];	[mltmp] = A;
+	A = [mlp2]; A & M16; A + [mltmp];	[mlmid] = A;
+
+	( lo = (p0 & M16) | ((mid & M16) << 16) )
+
+	A = [mlmid]; A & M16; A < 16;		[mltmp] = A;
+	A = [mlp0]; A & M16; A | [mltmp];	[m64lo] = A;
+
+	( hi = p3 + (p1 >> 16) + (p2 >> 16) + (mid >> 16), peaks at exactly FFFFFFFFh )
+
+	A = [mlp3];
+	B = [mlp1]; B > 16; A + B;
+	B = [mlp2]; B > 16; A + B;
+	B = [mlmid]; B > 16; A + B;		[m64hi] = A;
+
+	end;
+
+"Mul64s"
+    ( Signed 32x32 -> 64, as the unsigned product plus a sign correction: )
+    (                                                                     )
+    (     signed_hi = unsigned_hi - (x<0 ? y : 0) - (y<0 ? x : 0)   mod 2^32 )
+    (                                                                     )
+    ( Written branch-free with SAR-generated masks (0 or minus 1) rather  )
+    ( than with ? tests, which sidesteps any question about whether the   )
+    ( comparison is signed or unsigned on a value with bit 31 set.        )
+    ( Destroys A, B.                                                      )
+
+	=> Mul64u;
+
+	A = [m64hi];
+	B = [m64a]; B >> 31; B & [m64b];	A - B;
+	B = [m64b]; B >> 31; B & [m64a];	A - B;
+	[m64hi] = A;
+
+	end;
