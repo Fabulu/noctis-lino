@@ -4,10 +4,13 @@ import struct
 import sys
 
 sys.path.insert(0, ".")
-from mulall_expect import EXPECTED, NAMES  # noqa: E402
-from genmul import LINO                    # noqa: E402
+from genmul import LINO  # noqa: E402
 
-PATH = r"C:\programmieren\linoleum\work\mulall.bin"
+TAG = "mulallu" if "--unsigned" in sys.argv else "mulall"
+mod = __import__(f"{TAG}_expect")
+EXPECTED, NAMES = mod.EXPECTED, mod.NAMES
+
+PATH = rf"C:\programmieren\linoleum\work\{TAG}.bin"
 PERPAT = 7
 SLOTS = LINO + ["m1", "m2"]
 

@@ -23,3 +23,8 @@ noctis-harness/*.bin
 # pristine baseline copies (git is the real backup)
 pristine/
 tools/*.bin
+
+# bootstrap intermediates
+main/lib/gen/compiler114*.exe
+main/lib/gen/compiler114n.txt
+main/cpu/i386m.bin

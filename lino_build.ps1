@@ -15,7 +15,12 @@ param(
     [Parameter(Mandatory = $true)][string]$Src,
     [int]$TimeoutSec = 240,
     [string]$Compiler = 'C:\programmieren\linoleum\main\compiler.exe',
-    [string]$LinoEnv  = 'C:\programmieren\linoleum\main'
+    [string]$LinoEnv  = 'C:\programmieren\linoleum\main',
+    # The CPU pack is named per invocation, so an extended pack can sit beside
+    # the stock one and the two toolchains never collide. The compiler checks
+    # alignment * patterns + 8 == filesize exactly, so a mismatched pairing
+    # fails loudly rather than miscompiling.
+    [string]$Cpu = 'i386'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,7 +48,7 @@ $startedAt = Get-Date
 # Launch via .NET rather than Start-Process: Start-Process appends a trailing
 # space to the argument string, which the compiler folds into the output
 # filename ("prog.txt .exe"). ProcessStartInfo.Arguments is passed verbatim.
-$argLine = "--sys:win32--cpu:i386--ext:.exe--env:$LinoEnv--src:$Src"
+$argLine = "--sys:win32--cpu:$Cpu--ext:.exe--env:$LinoEnv--src:$Src"
 $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.FileName        = $Compiler
 $psi.Arguments       = $argLine
