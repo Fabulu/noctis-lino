@@ -19,3 +19,7 @@ noctis-harness/*.bin
 # Backups and crash droppings
 *.bak
 *.stackdump
+
+# pristine baseline copies (git is the real backup)
+pristine/
+tools/*.bin
