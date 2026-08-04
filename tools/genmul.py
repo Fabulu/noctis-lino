@@ -224,18 +224,20 @@ def gen(op1, op2, signed):
             if op2.x86 != EDX:
                 code += movrr(op2.x86, EDX)
     else:
-        # At least one destination is memory. Store the low half first; edx
-        # still holds the high half and nothing here disturbs it.
-        if op1.cls == REG:
-            if op1.x86 != EAX:
-                code += movrr(op1.x86, EAX)
-        else:
+        # At least one destination is memory. Do the memory stores FIRST.
+        # They read eax, edx and the pointer registers but modify none of
+        # them, whereas writing a register destination can destroy something
+        # still needed - either edx itself (op1 = D) or a register the other
+        # operand is using as its pointer (op1 = B with op2 = [B]). Ordering
+        # memory before registers removes that entire hazard class.
+        if op1.is_mem:
             code += store(EAX, op1.cls, ptr1, op1.disp)
-        if op2.cls == REG:
-            if op2.x86 != EDX:
-                code += movrr(op2.x86, EDX)
-        else:
+        if op2.is_mem:
             code += store(EDX, op2.cls, ptr2, op2.disp)
+        if op1.cls == REG and op1.x86 != EAX:
+            code += movrr(op1.x86, EAX)
+        if op2.cls == REG and op2.x86 != EDX:
+            code += movrr(op2.x86, EDX)
 
     if use_pusha:
         code += popa()
