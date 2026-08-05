@@ -1,0 +1,216 @@
+      ( *** PROBE W5B-5 : exclusive versus cooperative display mode ***
+
+	Cooperative is the L.in.oleum default and is what every measurement
+	so far used.  Exclusive takes the physical screen through
+	DirectDraw, forces [Display Width]/[Display Height] to the physical
+	resolution and [Display X/Y Position] to zero at every isocall, and
+	gives the run-time module a pointer to the linear frame buffer.
+	The manual says a resolution the adapter refuses silently reverts to
+	cooperative, so the switch's success has to be read back rather than
+	assumed.
+
+	Sequence, deliberately short because a real mode switch rearranges
+	the user's desktop:
+
+	  1  cooperative 320x200, 300 frames of expand+RETRACE, timed
+	  2  switch to exclusive 320x200, timed, status read back
+	  3  exclusive, 300 frames of expand+RETRACE, timed
+	  4  switch back to cooperative, timed, status read back
+	  5  cooperative again, 300 frames, timed
+
+	Step 3 also answers whether RETRACE blocks on vertical blank when it
+	owns the hardware: if it does, the per-frame figures land on the
+	monitor's refresh period instead of on the copy cost. )
+
+"directors"
+
+	program name = { probew5bexcl };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+	display mode = COOPERATIVE;
+
+"constants"
+
+	NPIX	= 64000;
+	FRAMES	= 300;
+	HDR	= 64;
+
+"variables"
+
+	result file name = { probew5bexcl.bin };
+
+	c0 = 0; tdelta = 0; fc = 0; wp = 0; tmp = 0;
+	sw1 = 0; sw2 = 0; ok1 = 0; ok2 = 0;
+	w0 = 0; w1 = 0;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;
+	fb	= 1920 mtp 1200;
+	samples = 900;
+	head	= 64;
+
+"programme"
+
+	[Display Origin] = fb;
+	[Display Live Region] = WHOLE DISPLAY;
+
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	A = adapted; B = 0;
+    "adfill"
+	C = B; C & 255;
+	[A] = C; A+; B+;
+	? B < NPIX -> adfill;
+
+	[head plus 0] = [Counts Per Millisecond];
+	[head plus 1] = FRAMES;
+
+	( ---- 0 : before anything ---- )
+	[head plus 2] = [Display Status];
+	[head plus 3] = [Display Width];
+	[head plus 4] = [Display Height];
+	[head plus 5] = [Display Physical Width];
+	[head plus 6] = [Display Physical Height];
+
+	[wp] = samples;
+
+	( ---- 1 : cooperative ---- )
+	=> Battery;
+
+	( ---- 2 : switch to exclusive ---- )
+	=> Read wall ms; [w0] = [tmp];
+	=> T0;
+	[Display Width]   = 320;
+	[Display Height]  = 200;
+	[Display Command] = SET EXCLUSIVE MODE;
+	isocall;
+	? failed -> ex bad;
+	[ok1] = 1; -> ex done;
+    "ex bad"
+	[ok1] = 0;
+    "ex done"
+	=> T1; [sw1] = [tdelta];
+	=> Read wall ms; [w1] = [tmp]; [w1] - [w0];
+
+	[head plus 7]  = [Display Status];
+	[head plus 8]  = [Display Width];
+	[head plus 9]  = [Display Height];
+	[head plus 10] = [Display Physical Width];
+	[head plus 11] = [Display Physical Height];
+	[head plus 12] = [ok1];
+	[head plus 13] = [sw1];
+	[head plus 14] = [w1];
+
+	( ---- 3 : exclusive ---- )
+	=> Battery;
+
+	( ---- 4 : back to cooperative ---- )
+	=> Read wall ms; [w0] = [tmp];
+	=> T0;
+	[Display Command] = SET COOPERATIVE MODE;
+	isocall;
+	? failed -> co bad;
+	[ok2] = 1; -> co done;
+    "co bad"
+	[ok2] = 0;
+    "co done"
+	=> T1; [sw2] = [tdelta];
+	=> Read wall ms; [w1] = [tmp]; [w1] - [w0];
+
+	[Display Width]  = 320; isocall;
+	[Display Height] = 200; isocall;
+
+	[head plus 15] = [Display Status];
+	[head plus 16] = [Display Width];
+	[head plus 17] = [Display Height];
+	[head plus 18] = [Display Physical Width];
+	[head plus 19] = [Display Physical Height];
+	[head plus 20] = [ok2];
+	[head plus 21] = [sw2];
+	[head plus 22] = [w1];
+
+	( ---- 5 : cooperative again ---- )
+	=> Battery;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = HDR mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = samples;
+	[Block Size]	= 900;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 964;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+"Battery"
+	[fc] = 0;
+    "ba loop"
+	=> T0;
+	=> Expand;
+	[Display Command] = RETRACE; isocall;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> ba loop;
+	end;
+
+"Expand"
+	D = adapted; E = fb;
+	A = 0; A + NPIX;
+    "ex loop"
+	C = [D]; C + pal; C = [C]; [E] = C;
+	D+; E+;
+	A ^ ex loop;
+	end;
+
+"T0"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	end;
+
+"T1"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [c0];
+	[tdelta] = A;
+	end;
+
+"T1R"
+	=> T1;
+	C = [tdelta];
+	A = [wp];
+	[A] = C;
+	[wp]+;
+	end;
+
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Minute];
+	A * 60000;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

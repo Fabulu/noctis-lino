@@ -1,0 +1,987 @@
+      ( *** w5probe - the Wave 5 buffer-model / framebuffer regression probe ***
+
+	OWNED BY tests/.  test_wave5.py copies this file, the three
+	libraries under test (work/fbmem.txt, work/fbpal.txt,
+	work/fbtick.txt) and the Wave 3 float engine into
+	tests/gen/w5/ on every run, builds it there, and grades every
+	number it dumps against tests/w5spec.py - a Python model written
+	from NOCTIS-D.H, NOCTIS.CPP and NOCTIS-0.CPP, never from this
+	file and never from the lino libraries.
+
+	THIS PROBE IS NOT work/fbshell.txt.  It links the same three
+	libraries but its own shell, so that the shell's own defects
+	cannot be mistaken for the model's, and so that the present path
+	can be written the way BUFFERMODEL.md rules it must be: the
+	expand is READ-ONLY on the index page and the background colour
+	cycle is a separate pass over s_background, which is the buffer
+	NOCTIS.CPP:3779-3784 actually cycles.
+
+	NO DISPLAY IS OPENED HERE.  There are no display directors, so
+	this probe never puts a window on the user's desktop and never
+	calls RETRACE.  The on-screen present is a separate, deliberately
+	tiny probe (w5disp.txt) and the test header says so.
+
+	Everything this probe writes is one FBDUMP v1 stream (LINOBUF
+	section 6) staged in "twdump" - the probe's own staging vector,
+	not fbmem's 140,000-unit one, because three 64,000-unit pages do
+	not fit there.  The record format is still fbmem's "DMP rec", so
+	the format is the library's and only the buffer is local.
+
+	FILENAME TRAP: underscores in lino string literals become spaces.
+	The output name comes from fbmem's [fbdumpname] = { fb-out.bin }
+	and the harness renames it afterwards.                            )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	fbpal;
+	fbtick;
+
+"directors"
+
+	program name = { w5probe };
+	unit = 32;
+
+"constants"
+
+	TWMAGIC	= 1414812929;	( 0x54545501, 'TTU' )
+
+	( these five are rewritten by test_wave5.py when it generates the
+	  short variant used for the sabotage builds.  The long values are
+	  what the reference run uses. )
+	TWNTICK	= 200;		( < SERVON, so the servo cannot fire mid-soak )
+	TWHITCH	= 37;		( inject a hitch every N ticks )
+	TWHITMS	= 60;		( ... of this many ms: longer than one period )
+	TWANCH	= 4096;		( wrap-battery anchors )
+	TWCALMS	= 2500;		( calibration bracket, ms of real work )
+
+	TWSELFN	= 96;
+	TWADVN	= 64;		( advance steps per cpms )
+	TWSKYN	= 264;
+	TWPRESN	= 60;		( presents, in the display variant only )
+	TWFRMN	= 128;
+
+	( extension record kinds.  1,2,3,4,5,6 are FBDUMP v1's. )
+	TWKSLF	= 16;
+	TWKADV	= 17;
+	TWKSRV	= 18;
+	TWKFB	= 19;
+	TWKSKY	= 21;
+	TWKFRM	= 20;
+
+	TWSEAN	= 32768;	( the sea/horizon texture, 256 x 128 )
+
+"variables"
+
+	TWy	= 0;
+	TWt1	= 0;
+	TWt2	= 0;
+	TWi	= 0;
+	TWj	= 0;
+	TWp	= 0;
+	TWq	= 0;
+	TWcpms	= 0;		( the calibrated value, saved across the batteries )
+	TWw0	= 0;
+	TWank	= 0;
+	TWoff	= 0;
+	TWwrapf	= 0;
+	TWwrapn	= 0;
+	TWbchk	= 0;
+	TWonek	= 0;
+	TWqchk	= 0;
+	TWtxtr	= 0;		( txtr is an OFFSET VARIABLE, BUFFERMODEL 5 )
+	TWpbg	= 0;		( p_background's base is a VARIABLE: it becomes
+				  s_background at NOCTIS-0.CPP:5326 )
+	TWelap	= 0;
+	TWsrvp	= 0;
+	TWadvp	= 0;
+
+"workspace"
+
+	twdump	= 210000;
+	twself	= 96;
+	twadv	= 256;
+	twsrv	= 48;
+	twriga	= 200;		( riga[c] = 320*c - a Noctis static )
+	twctab	= 18;
+	twsky	= 264;
+	twfrm	= 128;		( raw present costs, display variant only )
+
+"programme"
+
+	( the entry point.  It has to be the first thing in the main
+	  source's programme section; everything else is a label. )
+	=> TW run;
+	end;
+
+( ==================================================================== )
+( THE SHELL                                                            )
+( ==================================================================== )
+
+"TW run"
+	=> FEnter;			( x87 control word 133Fh, FLOATPOLICY )
+	=> PAL float init;
+
+	=> TK seed;
+	=> MEM build rtab;
+	=> TW riga build;
+
+	( calibration bracket around real work.  The residency touch makes
+	  the whole 1.61 MB workspace resident, which is the condition
+	  every later measurement has to be taken under. )
+	=> TK cal begin;
+	=> TW residency;
+	=> TK cal end;
+	[TWcpms] = [TKcpms];
+
+	=> TW byte battery;
+	=> TW quad battery;
+	=> TW alias battery;
+	=> TW canary battery;
+	=> MEM zero pads;		( restore the FAITHFUL pad state )
+	=> TW overrun battery;
+
+	=> TW palette pinned;
+
+	=> TW adv battery;
+	=> TW srv battery;
+	=> TW wrap battery;
+
+	( restore the calibrated clock the batteries clobbered )
+	[TKcpms] = [TWcpms]; => TK period;
+
+	=> TW soak;
+
+	=> TW page build;
+	=> TW expand;
+	=> TW sky cycle;
+
+	=> TW emit;
+	end;
+
+( ==================================================================== )
+( residency - the working set has to be REAL before anything is timed   )
+( ==================================================================== )
+
+"TW residency"
+	=> TK read wall; [TWw0] = [TKtmp];
+    "TW res round"
+	A = nw; B = 0; B + NWTOP; C = 0;
+    "TW res loop"
+	C + 2654435761;
+	[A] = C; A+;
+	B ^ TW res loop;
+	=> TK read wall;
+	A = [TKtmp]; A - [TWw0];
+	? A '< TWCALMS -> TW res round;
+	end;
+
+( ==================================================================== )
+( battery 1 - byte semantics, and the proof that one-per-unit is real   )
+( ==================================================================== )
+
+"TW byte battery"
+	[TWbchk] = 0; [TWonek] = 0;
+
+	( a char store wraps: 300 -> 44 )
+	[MBptr] = 5000; [MBval] = 300; => MEM put byte;
+	[MBptr] = 5000; => MEM get byte;
+	A = [MBval]; A - 44; ? A = 0 -> TW bb1;
+	A = [TWbchk]; A | 1; [TWbchk] = A;
+    "TW bb1"
+	( and -1 -> 255 )
+	[MBptr] = 5001; A = 0; A-; [MBval] = A; => MEM put byte;
+	[MBptr] = 5001; => MEM get byte;
+	A = [MBval]; A - 255; ? A = 0 -> TW bb2;
+	A = [TWbchk]; A | 2; [TWbchk] = A;
+    "TW bb2"
+	( ...and the truncation must happen in the STORE, not only in the
+	  load.  Reading the unit back through "MEM get byte" masks with
+	  255 as well, so a store that forgot to truncate is invisible
+	  that way and sabotage 1 walked straight through the first
+	  version of this battery.  Read the RAW unit. )
+	A = nw; A + 5000; C = [A]; C - 44;
+	? C = 0 -> TW bb2a;
+	A = [TWbchk]; A | 256; [TWbchk] = A;
+    "TW bb2a"
+	A = nw; A + 5001; C = [A]; C - 255;
+	? C = 0 -> TW bb2b;
+	A = [TWbchk]; A | 512; [TWbchk] = A;
+    "TW bb2b"
+	( a byte store must not disturb the NEXT unit )
+	A = nw; A + 5002; [A plus 1] = 305419896;
+	[MBptr] = 5002; [MBval] = 200; => MEM put byte;
+	A = nw; A + 5002; C = [A plus 1]; C - 305419896;
+	? C = 0 -> TW bb3;
+	A = [TWbchk]; A | 4; [TWbchk] = A;
+    "TW bb3"
+
+	( ONE ITEM PER UNIT.  Eight byte offsets, four of them inside a
+	  single would-be packed unit and four at the very top of the
+	  workspace, each given a distinct value and each read back.  A
+	  store that divided the offset by four collides 0,1,2,3 into one
+	  unit and this is where that shows. )
+	[MBptr] = 0;      [MBval] = 11;  => MEM put byte;
+	[MBptr] = 1;      [MBval] = 22;  => MEM put byte;
+	[MBptr] = 2;      [MBval] = 33;  => MEM put byte;
+	[MBptr] = 3;      [MBval] = 44;  => MEM put byte;
+	[MBptr] = 402192; [MBval] = 55;  => MEM put byte;
+	[MBptr] = 402193; [MBval] = 66;  => MEM put byte;
+	[MBptr] = 402194; [MBval] = 77;  => MEM put byte;
+	[MBptr] = 402195; [MBval] = 88;  => MEM put byte;
+
+	[MBptr] = 0;      => MEM get byte; A = [MBval]; A - 11; ? A != 0 -> TW ok bad;
+	[MBptr] = 1;      => MEM get byte; A = [MBval]; A - 22; ? A != 0 -> TW ok bad;
+	[MBptr] = 2;      => MEM get byte; A = [MBval]; A - 33; ? A != 0 -> TW ok bad;
+	[MBptr] = 3;      => MEM get byte; A = [MBval]; A - 44; ? A != 0 -> TW ok bad;
+	[MBptr] = 402192; => MEM get byte; A = [MBval]; A - 55; ? A != 0 -> TW ok bad;
+	[MBptr] = 402193; => MEM get byte; A = [MBval]; A - 66; ? A != 0 -> TW ok bad;
+	[MBptr] = 402194; => MEM get byte; A = [MBval]; A - 77; ? A != 0 -> TW ok bad;
+	[MBptr] = 402195; => MEM get byte; A = [MBval]; A - 88; ? A != 0 -> TW ok bad;
+	-> TW bb4;
+    "TW ok bad"
+	[TWonek] = 1;
+    "TW bb4"
+	( put the four low units back to zero: they sit in the low pad and
+	  the low-pad coverage probe writes there next. )
+	[MBptr] = 0; [MBval] = 0; => MEM put byte;
+	[MBptr] = 1; [MBval] = 0; => MEM put byte;
+	[MBptr] = 2; [MBval] = 0; => MEM put byte;
+	[MBptr] = 3; [MBval] = 0; => MEM put byte;
+	end;
+
+( ==================================================================== )
+( battery 2 - the quadrant bitfields objectschart and ruinschart share  )
+( ==================================================================== )
+
+"TW quad battery"
+	[TWqchk] = 0;
+	( AF1/AF2/AF3 = 0x40/0x80/0xC0 write object2_class, NOCTIS-D.H:171 )
+	[MQval] = 64;  [MQfld] = 3; => MEM quad get;
+	A = [MQout]; A - 1; ? A = 0 -> TW qb1;
+	A = [TWqchk]; A | 1; [TWqchk] = A;
+    "TW qb1"
+	[MQval] = 128; [MQfld] = 3; => MEM quad get;
+	A = [MQout]; A - 2; ? A = 0 -> TW qb2;
+	A = [TWqchk]; A | 2; [TWqchk] = A;
+    "TW qb2"
+	[MQval] = 192; [MQfld] = 3; => MEM quad get;
+	A = [MQout]; A - 3; ? A = 0 -> TW qb3;
+	A = [TWqchk]; A | 4; [TWqchk] = A;
+    "TW qb3"
+	( round trip over all four fields: 3,2,1,0 -> 0b00011011 = 27 )
+	[MQval] = 0;
+	[MQfld] = 0; [MQout] = 3; => MEM quad set;
+	[MQfld] = 1; [MQout] = 2; => MEM quad set;
+	[MQfld] = 2; [MQout] = 1; => MEM quad set;
+	[MQfld] = 3; [MQout] = 0; => MEM quad set;
+	A = [MQval]; A - 27; ? A = 0 -> TW qb4;
+	A = [TWqchk]; A | 8; [TWqchk] = A;
+    "TW qb4"
+	[MQfld] = 0; => MEM quad get; A = [MQout]; A - 3; ? A != 0 -> TW qb bad;
+	[MQfld] = 1; => MEM quad get; A = [MQout]; A - 2; ? A != 0 -> TW qb bad;
+	[MQfld] = 2; => MEM quad get; A = [MQout]; A - 1; ? A != 0 -> TW qb bad;
+	[MQfld] = 3; => MEM quad get; A = [MQout];       ? A != 0 -> TW qb bad;
+	-> TW qb5;
+    "TW qb bad"
+	A = [TWqchk]; A | 16; [TWqchk] = A;
+    "TW qb5"
+	end;
+
+( ==================================================================== )
+( battery 3 - the alias register, exercised in BOTH directions          )
+( ==================================================================== )
+
+      ( Each alias is written through one name and read through the
+	other.  Nothing here asserts that an alias exists; every value is
+	recomputed by w5spec.py from the layout and the fill rule. )
+
+"TW alias battery"
+	( --- A1: objectschart <-> ruinschart, BUFFERMODEL alias 3 ---------
+	  Same byte, different views.  131 = nr_of_objects 3, obj2 2.
+	  ruinschart[h1] = AF1 is a WHOLE-BYTE store of 0x40, so it
+	  clobbers the object slot - which is the observable behaviour
+	  that makes splitting the two charts illegal. )
+	[MBptr] = 0; [MBptr] + ROBJ; [MBptr] + 12345; [MBval] = 131; => MEM put byte;
+	[MBptr] = 0; [MBptr] + ROBJ; [MBptr] + 12346; [MBval] = 255; => MEM put byte;
+	[MBptr] = 0; [MBptr] + ROBJ; [MBptr] + 12345; => MEM get byte;
+	[MQval] = [MBval]; [MQfld] = 0; => MEM quad get; [twself plus 10] = [MQout];
+	( now the ruins writer, at the SAME index )
+	[MBptr] = 0; [MBptr] + ROBJ; [MBptr] + 12345; [MBval] = 64; => MEM put byte;
+	[MBptr] = 0; [MBptr] + ROBJ; [MBptr] + 12345; => MEM get byte;
+	[twself plus 9] = [MBval];
+	[MQval] = [MBval]; [MQfld] = 3; => MEM quad get; [twself plus 11] = [MQout];
+	[MBptr] = 0; [MBptr] + ROBJ; [MBptr] + 12346; => MEM get byte;
+	[twself plus 12] = [MBval];
+
+	( --- A2: n_globes_map <-> the sea/horizon texture, alias 1 ----
+	  Write a globe byte at the texel the texture unit will fetch,
+	  then fetch it through the 16-bit texel address:
+	      texel = ((V>>8) AND 255)*256 + ((U>>8) AND 255)
+	  U = 0x2A00, V = 0x1300 -> texel 19*256 + 42 = 4906. )
+	[MBptr] = 0; [MBptr] + RNGLB; [MBptr] + 4906; [MBval] = 200; => MEM put byte;
+	=> TW texel;
+	[MBptr] = 0; [MBptr] + RNGLB; [MBptr] + [TWq]; => MEM get byte;
+	[twself plus 13] = [MBval];
+
+	( digimap2 is SPLIT, so it is a vector of its own and holds one
+	  packed uint32 per unit rather than four byte units.  Written
+	  BEFORE the sea gradient runs, so that surviving it means
+	  something. )
+	[digimap2 plus 7] = 305419896;		( 0x12345678 )
+
+	( the sea gradient destroys globes.map: sea[i] = (i >> 8) AND 63 )
+	=> TW sea fill;
+	[MBptr] = 0; [MBptr] + RNGLB; [MBptr] + 1000; => MEM get byte;
+	[twself plus 14] = [MBval];
+	=> TW texel;
+	[MBptr] = 0; [MBptr] + RNGLB; [MBptr] + [TWq]; => MEM get byte;
+	[twself plus 15] = [MBval];
+
+	( --- A3: digimap2 is SPLIT, BUFFERMODEL alias 2 ------------------
+	  In DOS the 32x36 pilot font lives at &n_globes_map[gl_bytes] and
+	  the sea fill destroys it.  Split, it survives - and the unit
+	  that used to hold it is destroyed exactly as before.  Both
+	  halves of that are recorded. )
+	[twself plus 16] = [digimap2 plus 7];
+	[MBptr] = 0; [MBptr] + RNGLB; [MBptr] + 22586; [MBptr] + 28; => MEM get byte;
+	[twself plus 17] = [MBval];
+
+	( --- A4: p_background BECOMES s_background at runtime, alias 5.
+	  The base is an offset VARIABLE; the swap is one assignment. )
+	[TWpbg] = 0; [TWpbg] + RPBG;
+	[MBptr] = [TWpbg]; [MBptr] + 50; [MBval] = 7; => MEM put byte;
+	[TWpbg] = 0; [TWpbg] + RSBG;
+	[MBptr] = [TWpbg]; [MBptr] + 50; [MBval] = 9; => MEM put byte;
+	[MBptr] = 0; [MBptr] + RPBG; [MBptr] + 50; => MEM get byte;
+	[twself plus 18] = [MBval];
+	[MBptr] = 0; [MBptr] + RSBG; [MBptr] + 50; => MEM get byte;
+	[twself plus 19] = [MBval];
+
+	( --- A5: txtr re-based onto p_surfacemap and p_surfacemap+2064,
+	  alias 6.  NOCTIS.CPP:1010.  A byte slide is a unit slide. )
+	[TWtxtr] = 0; [TWtxtr] + RPSM;
+	[MBptr] = [TWtxtr]; [MBptr] + 100; [MBval] = 5; => MEM put byte;
+	[TWtxtr] = 0; [TWtxtr] + RPSM; [TWtxtr] + 2064;
+	[MBptr] = [TWtxtr]; [MBptr] + 100; [MBval] = 99; => MEM put byte;
+	[MBptr] = 0; [MBptr] + RPSM; [MBptr] + 100; => MEM get byte;
+	[twself plus 20] = [MBval];
+	[MBptr] = 0; [MBptr] + RPSM; [MBptr] + 2164; => MEM get byte;
+	[twself plus 21] = [MBval];
+	end;
+
+      ( TW texel : [TWq] <- ((V>>8) AND 255)*256 + ((U>>8) AND 255) for
+	U = 0x2A00, V = 0x1300.  TDPOLYGS.H:2817-2821. )
+
+"TW texel"
+	C = 4864;			( 0x1300 )
+	C > 8; C & 255; C < 8;
+	[TWt1] = 10752;			( 0x2A00 )
+	[TWt1] > 8; [TWt1] & 255;
+	C + [TWt1];
+	[TWq] = C;
+	end;
+
+      ( TW sea fill : sea[i] = (i >> 8) AND 63 over the whole 32768. )
+
+"TW sea fill"
+	A = nw; A + RNGLB; C = 0; B = 0; B + TWSEAN;
+    "TW sf loop"
+	[TWt1] = C; [TWt1] > 8; [TWt1] & 63;
+	[A] = [TWt1]; A+; C+;
+	B ^ TW sf loop;
+	end;
+
+( ==================================================================== )
+( battery 4 - the pad canaries, and what they do NOT cover              )
+( ==================================================================== )
+
+"TW canary battery"
+	=> MEM poison pads;
+	=> MEM check pads;
+	[twself plus 22] = [MCfired];
+	[twself plus 23] = [MCn];
+	( keep the CLEAN table: it is what gets dumped as kind 6 )
+	A = ctab; D = twctab; B = 0; B + 18;
+    "TW cc save"
+	C = [A]; [D] = C; A+; D+;
+	B ^ TW cc save;
+
+	( THE LOW PADS.  nw[0..15] and nw[16..31] sit below the first
+	  region.  Corrupt one unit in each, AFTER poisoning, and ask the
+	  canary.  A guard that covers all eleven pads reports 2; one that
+	  covers only the nine inter-region pads reports 0.  This is a
+	  measurement, not an assertion - w5spec.py decides which it wants. )
+	A = nw; [A plus 3]  = 3735928559;
+	A = nw; [A plus 20] = 3735928559;
+	=> MEM check pads;
+	[twself plus 24] = [MCfired];
+	[twself plus 25] = [MCn];
+	A = nw; [A plus 3]  = 0;
+	A = nw; [A plus 20] = 0;
+	end;
+
+( ==================================================================== )
+( battery 5 - the three overrun classes                                 )
+( ==================================================================== )
+
+"TW overrun battery"
+	( --- class B: digit_at's txtr[-6..-1].  NOCTIS.CPP:614-628 does
+	  i = 256*n - 5 and then txtr[i-1] = 0 with n = 0, so it writes
+	  six bytes BELOW p_surfacemap.  The pad below p_surfacemap is
+	  p_background's trailing pad, 170540..170555, so the write lands
+	  at 170550 and the canary must name region 3. )
+	=> MEM poison pads;
+	[TWtxtr] = 0; [TWtxtr] + RPSM;
+	[TWi] = 0; [TWi] - 6;
+    "TW ob dg"
+	[MBptr] = [TWtxtr]; [MBptr] + [TWi]; [MBval] = 0; => MEM put byte;
+	[TWi]+;
+	A = [TWi]; ? A < 0 -> TW ob dg;
+	=> MEM check pads;
+	[twself plus 26] = [MCfired];
+	[twself plus 27] = [MCn];
+	[twself plus 28] = [MCat];
+
+	( --- class B: loadpv writing one unit past the pvfile arena --- )
+	=> MEM poison pads;
+	A = nw; A + RPVF; A + ZPVF; [A] = 57005;
+	=> MEM check pads;
+	[twself plus 29] = [MCfired];
+	[twself plus 30] = [MCn];
+	[twself plus 31] = [MCat];
+
+	=> MEM zero pads;
+
+	( --- class C: the sea texture's texel 32768.. is a READ past the
+	  end of n_globes_map.  farmalloc order says it lands on the pad
+	  and then on s_background, which is what DOS gave it.  Marker
+	  first, then read it back through the texture base. )
+	[MBptr] = 0; [MBptr] + RSBG; [MBval] = 123; => MEM put byte;
+	[MBptr] = 0; [MBptr] + RNGLB; [MBptr] + 32768; => MEM get byte;
+	[twself plus 32] = [MBval];
+	[MBptr] = 0; [MBptr] + RNGLB; [MBptr] + 32784; => MEM get byte;
+	[twself plus 33] = [MBval];
+
+	( --- class A: adapted is 65540 units, not 64000, because
+	  mask_pixels wraps a 16-bit DI.  The four units above the
+	  segment must exist and must not be adaptor. )
+	A = nw; A + RADPT; A + 65536;
+	[A plus 0] = 65; [A plus 1] = 66; [A plus 2] = 67; [A plus 3] = 68;
+	A = nw; A + RADPT; A + 65536;
+	[twself plus 34] = [A plus 0];
+	[twself plus 35] = [A plus 3];
+	A = nw; A + RADPT; A + ZADPT;
+	[twself plus 36] = [A];
+	end;
+
+( ==================================================================== )
+( battery 6 - the pinned palette state                                  )
+( ==================================================================== )
+
+      ( A sequence chosen so that every documented trap is exercised at
+	least once and the CLEAN build itself carries the evidence:
+	  P2  a real tavola_colori from range8088, filter 64 on red so
+	      that the "> 63" clamp fires exactly once
+	  P3  shade with a non-dyadic k (n = 24)
+	  P4  shade with DESCENDING ramps, so the chop is visible
+	  P5  shade whose running value leaves 0..64 at BOTH ends, which
+	      is the original's inverted clamp
+	  P6  the SELF-COPY form, uploading 0..191
+	  P7  a shade that rewrites 192..255 and uploads NOTHING, so
+	      curpal6 and pal6 differ in one dump - upload-from-zero
+	  P8  a filter above 127, which is a NEGATIVE signed char )
+
+"TW palette pinned"
+	=> PAL zero;
+	=> PAL range;
+
+	( P2 )
+	A = range8088; [PVsrc] = A; [PVself] = 0;
+	[PVfirst] = 0; [PVn] = 64;
+	[PVfr] = 64; [PVfg] = 40; [PVfb] = 10;
+	=> PAL tavola;
+
+	( P3 )
+	[SHfirst] = 64; [SHn] = 24;
+	[TWt1] = 0;  [TWt2] = 0;  [TWi] = 0;
+	[TWj] = 63;  [TWp] = 40;  [TWq] = 20;
+	=> TW shade i;
+
+	( P4 )
+	[SHfirst] = 88; [SHn] = 40;
+	[TWt1] = 63; [TWt2] = 40; [TWi] = 20;
+	[TWj] = 1;   [TWp] = 2;   [TWq] = 3;
+	=> TW shade i;
+
+	( P5 - the inverted clamp, both ends )
+	[SHfirst] = 128; [SHn] = 16;
+	[TWt1] = 0; [TWt1] - 8;
+	[TWt2] = 0; [TWt2] - 8;
+	[TWi]  = 0; [TWi]  - 8;
+	[TWj] = 70;  [TWp] = 70;  [TWq] = 70;
+	=> TW shade i;
+
+	( P6 - the self-copy, NOCTIS-0.CPP:5193.  Uploads 0..191. )
+	[PVself] = 1; [PVfirst] = 128; [PVn] = 64;
+	[PVfr] = 63; [PVfg] = 50; [PVfb] = 40;
+	=> PAL tavola;
+
+	( P7 - rewrites pal6 192..255 and uploads NOTHING )
+	[SHfirst] = 192; [SHn] = 64;
+	[TWt1] = 0;  [TWt2] = 0;  [TWi] = 0;
+	[TWj] = 63;  [TWp] = 63;  [TWq] = 63;
+	=> TW shade i;
+
+	( P8 - filter 200 is a NEGATIVE signed char.  [PVrange] must
+	  record it; nothing else in the port may. )
+	[PVself] = 1; [PVfirst] = 0; [PVn] = 8;
+	[PVfr] = 200; [PVfg] = 100; [PVfb] = 5;
+	=> PAL tavola;
+	[twself plus 37] = [PVrange];
+	end;
+
+      ( TW shade i : shade() with integer-valued float arguments held in
+	[TWt1],[TWt2],[TWi] (start) and [TWj],[TWp],[TWq] (finish). )
+
+"TW shade i"
+	[PFden] = 1;
+	[PFnum] = [TWt1]; => PAL f32 make; [SHsr] = [PFbits];
+	[PFnum] = [TWt2]; => PAL f32 make; [SHsg] = [PFbits];
+	[PFnum] = [TWi];  => PAL f32 make; [SHsb] = [PFbits];
+	[PFnum] = [TWj];  => PAL f32 make; [SHer] = [PFbits];
+	[PFnum] = [TWp];  => PAL f32 make; [SHeg] = [PFbits];
+	[PFnum] = [TWq];  => PAL f32 make; [SHeb] = [PFbits];
+	=> PAL shade;
+	end;
+
+( ==================================================================== )
+( battery 7 - the period, as pure deterministic arithmetic              )
+( ==================================================================== )
+
+      ( TK advance driven from SYNTHETIC counts-per-millisecond values,
+	so the exact rational recurrence is graded with no clock in it at
+	all.  Four values spanning the 0.43% spread recon C measured
+	across launches. )
+
+"TW adv battery"
+	A = twadv; [TWadvp] = A;
+	[TWt1] = 8984; => TW adv one;
+	[TWt1] = 8999; => TW adv one;
+	[TWt1] = 9000; => TW adv one;
+	[TWt1] = 9023; => TW adv one;
+	end;
+
+"TW adv one"
+	[TKcpms] = [TWt1]; => TK period;
+	[TKacc] = 0; [TKdeadline] = 0;
+	( the counter is a VARIABLE, not B: "TK advance" clobbers A, B and
+	  C, so a register loop counter around a call runs away.  This is
+	  the same trap fbshell's own comment on [FBy] describes. )
+	[TWj] = 0;
+    "TW ao loop"
+	=> TK advance;
+	A = [TWadvp]; C = [TKdeadline]; [A] = C; A+; [TWadvp] = A;
+	[TWj]+;
+	A = [TWj]; ? A '< TWADVN -> TW ao loop;
+	end;
+
+( ==================================================================== )
+( battery 8 - the servo, driven across the 32-bit counter wrap          )
+( ==================================================================== )
+
+      ( [Counts] is 32 bits and wraps every 2^32/cpms seconds - about
+	477 s at 9000 counts/ms.  A servo that brackets against the START
+	of the run therefore reads a WRAPPED difference the moment the run
+	passes that point.  Waiting eight minutes is not a test; setting
+	the origin is.  Six elapsed times, three of them past the wrap.
+
+	Six units per case: elapsed ms, srvcnt, srvms, cpms in, srvnew,
+	cpms out. )
+
+"TW srv battery"
+	A = twsrv; [TWsrvp] = A;
+	[TWelap] = 60000;  => TW srv one;
+	[TWelap] = 300000; => TW srv one;
+	[TWelap] = 450000; => TW srv one;
+	[TWelap] = 600000; => TW srv one;
+	[TWelap] = 900000; => TW srv one;
+	[TWelap] = 1200000; => TW srv one;
+	end;
+
+"TW srv one"
+	[TKcpms] = 8999; => TK period;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	C = [TWelap]; C '* 8999;	( wraps mod 2^32, exactly as the counter does )
+	A - C; [TKsrv0c] = A;
+	=> TK read wall;
+	A = [TKtmp]; A - [TWelap]; [TKsrv0w] = A;
+	[TKsrvn] = 0; [TKsrvn] + SERVON; [TKsrvn] - 1;
+	=> TK servo;
+	A = [TWsrvp];
+	[A plus 0] = [TWelap];
+	[A plus 1] = [TKsrvcnt];
+	[A plus 2] = [TKsrvms];
+	[A plus 3] = 8999;
+	[A plus 4] = [TKsrvnew];
+	[A plus 5] = [TKcpms];
+	A + 6; [TWsrvp] = A;
+	end;
+
+( ==================================================================== )
+( battery 9 - the wait predicate, across the wrap and the sign boundary )
+( ==================================================================== )
+
+"TW wrap battery"
+	[TWwrapf] = 0; [TWwrapn] = 0;
+
+	[TWank] = 0;			=> TW wrap anchor;
+	[TWank] = 1;			=> TW wrap anchor;
+	[TWank] = 2147483647;		=> TW wrap anchor;
+	[TWank] = 2147483648;		=> TW wrap anchor;
+	[TWank] = 2147483649;		=> TW wrap anchor;
+	[TWank] = 4294967295;		=> TW wrap anchor;
+
+	[TWank] = 0; [TWi] = 0;
+    "TW wa loop"
+	=> TW wrap anchor;
+	[TWank] + 65537;		( odd stride: the anchors sweep all 2^32 )
+	[TWi]+;
+	A = [TWi]; ? A '< TWANCH -> TW wa loop;
+	end;
+
+"TW wrap anchor"
+	[TWoff] = 0; [TWoff] - 3;
+    "TW wo loop"
+	[TKnow] = [TWank];
+	A = [TWank]; A + [TWoff]; [TKdeadline] = A;
+	=> TK is late;
+	[TWwrapn]+;
+	( late exactly when the deadline is at or behind the anchor )
+	? [TWoff] > 0 -> TW wo early;
+	A = [TKlate]; A - 1; ? A = 0 -> TW wo next;
+	[TWwrapf]+;
+	-> TW wo next;
+    "TW wo early"
+	A = [TKlate]; ? A = 0 -> TW wo next;
+	[TWwrapf]+;
+    "TW wo next"
+	[TWoff]+;
+	A = [TWoff]; ? A <= 3 -> TW wo loop;
+	end;
+
+( ==================================================================== )
+( the pages                                                             )
+( ==================================================================== )
+
+"TW riga build"
+	A = twriga; C = 0; B = 0; B + 200;
+    "TW rg loop"
+	[A] = C; A+; C + 320;
+	B ^ TW rg loop;
+	end;
+
+"TW page build"
+	( pclear(adapted, 0) over the FULL SEGMENT - 65540, not 64000 )
+	A = nw; A + RADPT; B = 0; B + ZADPT; C = 0;
+    "TW pb c1"
+	[A] = C; A+;
+	B ^ TW pb c1;
+	A = nw; A + RADPR; B = 0; B + ZADPR; C = 0;
+    "TW pb c2"
+	[A] = C; A+;
+	B ^ TW pb c2;
+
+	=> TW draw;
+
+	( tinta and escrescenze, TDPOLYGS.H.  Under farmalloc offset == 4
+	  they are VISIBLE PIXELS: row 199, columns 316 and 317.  niv-lr
+	  relocated them to 64000, outside the page; BUFFERMODEL alias 8 keeps
+	  them where the original put them. )
+	A = nw; A + RADPT; A + 63996;
+	[A plus 0] = 211;
+	[A plus 1] = 212;
+
+	( pcopy(adaptor, adapted) : index -> index, both pages real )
+	D = nw; D + RADPT; E = nw; E + RADPR; A = 0; A + NPIX;
+    "TW pb copy"
+	C = [D]; [E] = C; D+; E+;
+	A ^ TW pb copy;
+
+	( vanilla's type-9 substellar case writes the VISIBLE page.  Do
+	  not optimise adaptor away. )
+	A = nw; A + RADPR; A + [twriga plus 100]; A + 128;
+	B = 0; B + 64; C = 255;
+    "TW pb poke"
+	[A] = C; A+;
+	B ^ TW pb poke;
+	end;
+
+      ( TW draw : adapted[riga[y]+x] = (((x*y)>>4) + 3x + 5y) AND 255.
+	Two-dimensional and not symmetric in x and y, so a transposed or
+	off-by-one scanline table shows up rather than cancelling. )
+
+"TW draw"
+	[TWy] = 0;
+    "TW dr y"
+	A = [TWy]; A + twriga; A = [A];
+	D = nw; D + RADPT; D + A;
+	E = 0;
+    "TW dr x"
+	C = E; C * [TWy]; C > 4;
+	[TWt1] = E; [TWt1] * 3; C + [TWt1];
+	[TWt2] = [TWy]; [TWt2] * 5; C + [TWt2];
+	C & 255;
+	[D] = C; D+; E+;
+	? E '< 320 -> TW dr x;
+	[TWy]+;
+	A = [TWy]; ? A '< 200 -> TW dr y;
+	end;
+
+( ==================================================================== )
+( the present path - READ-ONLY on the index page                        )
+( ==================================================================== )
+
+      ( BUFFERMODEL.md section 7.  The expand reads adaptor and writes
+	fb and touches nothing else.  LINOBUF section 5.4 fused Noctis's
+	background colour cycle into this loop; that is the wrong buffer
+	at the wrong rate - NOCTIS.CPP:3779-3784 cycles s_background, an
+	offscreen map, in the sky-palette path, not the visible page and
+	not once per present.  The cycle is "TW sky cycle" below and it
+	is a separate pass.
+
+	Unrolled four ways.  Not pre-biased: recon B measured the bias at
+	0.0001 ms and it would destroy the byte semantics. )
+
+"TW expand"
+	D = nw; D + RADPR; E = fb; A = 0; A + NQUAD;
+    "TW ex loop"
+	C = [D];	C + pal; C = [C]; [E] = C;
+	C = [D plus 1];	C + pal; C = [C]; [E plus 1] = C;
+	C = [D plus 2];	C + pal; C = [C]; [E plus 2] = C;
+	C = [D plus 3];	C + pal; C = [C]; [E plus 3] = C;
+	D + 4; E + 4;
+	A ^ TW ex loop;
+	end;
+
+      ( TW present : expand, then hand the buffer to the platform.
+
+	NOT CALLED in the default build - there are no display directors,
+	so no window is created and nothing is presented.  test_wave5.py
+	generates ONE extra variant, w5disp, which adds the directors and
+	one call to this routine, so that the on-screen path is exercised
+	exactly once per suite run instead of once per probe.
+
+	The costs are logged RAW, one count per present, and the test
+	recomputes them.  They are a measurement, not a pass criterion:
+	the same binary measured 1.47 / 2.60 / 4.78 ms p50 for a frame on
+	three different runs of this machine.  Only a catastrophic
+	regression - a present costing a whole tick - is graded. )
+
+"TW present"
+	[Display Origin] = fb;
+	[Display Live Region] = WHOLE DISPLAY;
+	A = twfrm; [TWadvp] = A;
+	[TWj] = 0;
+    "TW pr loop"
+	[Timer Command] = READ COUNTS; isocall;
+	[TWw0] = [Counts];
+	=> TW expand;
+	[Display Command] = RETRACE; isocall;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [TWw0];
+	C = [TWadvp]; [C] = A; C+; [TWadvp] = C;
+	[TWj]+;
+	A = [TWj]; ? A '< TWPRESN -> TW pr loop;
+	[Display Live Region] = VOID REGION;
+	[twself plus 63] = [TWj];
+	[twself plus 64] = [Display Status];
+	[twself plus 65] = [Display Physical Width];
+	[twself plus 66] = [Display Physical Height];
+	end;
+
+      ( TW sky cycle : NOCTIS.CPP:3779-3784, verbatim.
+	    ig = (s_background[ir]+1) % 64;
+	    ib = (s_background[ir] >> 6) << 6;
+	    s_background[ir] = ig + ib;
+	over all 64800 entries.  Seeded deterministically first, because
+	the residency touch left the buffer full of noise. )
+
+"TW sky cycle"
+	A = nw; A + RSBG; B = 0; B + ZSBG; C = 0;
+    "TW sc zero"
+	[A] = C; A+;
+	B ^ TW sc zero;
+	A = nw; A + RSBG; C = 0; B = 0; B + 256;
+    "TW sc seed"
+	[A] = C; A+; C+;
+	B ^ TW sc seed;
+
+	A = nw; A + RSBG; B = 0; B + ZSBG;
+    "TW sc loop"
+	C = [A]; C & 255;
+	[TWt1] = C; [TWt1] & 192;
+	C+; C & 63; C + [TWt1];
+	[A] = C; A+;
+	B ^ TW sc loop;
+
+	A = nw; A + RSBG; D = twsky; B = 0; B + TWSKYN;
+    "TW sc samp"
+	C = [A]; [D] = C; A+; D+;
+	B ^ TW sc samp;
+	end;
+
+( ==================================================================== )
+( the soak                                                             )
+( ==================================================================== )
+
+"TW soak"
+	=> TK start;
+	[TWi] = 0;
+    "TW sk loop"
+	=> TW page build;
+	=> TW expand;
+
+	( a deterministic hitch, so skip-to-grid is TESTED not asserted )
+	A = 0; A + TWHITCH; ? A = 0 -> TW sk nohitch;
+	A = [TWi]; A+; A % TWHITCH;
+	? A != 0 -> TW sk nohitch;
+	[TKtmp] = 0; [TKtmp] + TWHITMS; => TK burn;
+    "TW sk nohitch"
+
+	=> TK step;
+	[TWi]+;
+	A = [TWi]; ? A '< TWNTICK -> TW sk loop;
+	end;
+
+( ==================================================================== )
+( the dump                                                             )
+( ==================================================================== )
+
+"TW emit"
+	=> TW build self;
+
+	A = twdump; [DPptr] = A; [DPcnt] = 0;
+	[DCpms]  = [TKcpms];
+	[DTicks] = [TKticks];
+
+	[DKind] = KLAY; [DW] = 0; [DH] = 0;
+	A = rtab;    [DBptr] = A; [DBcnt] = 36;  => DMP rec;
+
+	[DKind] = KCAN;
+	A = twctab;  [DBptr] = A; [DBcnt] = 18;  => DMP rec;
+
+	[DKind] = TWKSLF;
+	A = twself;  [DBptr] = A; [DBcnt] = TWSELFN; => DMP rec;
+
+	[DKind] = KPAL6;
+	A = pal6;    [DBptr] = A; [DBcnt] = 768; => DMP rec;
+
+	[DKind] = KPAL6;
+	A = curpal6; [DBptr] = A; [DBcnt] = 768; => DMP rec;
+
+	[DKind] = KLUT;
+	A = pal;     [DBptr] = A; [DBcnt] = 256; => DMP rec;
+
+	[DKind] = TWKADV;
+	A = twadv;   [DBptr] = A; [DBcnt] = 256; => DMP rec;
+
+	[DKind] = TWKSRV;
+	A = twsrv;   [DBptr] = A; [DBcnt] = 36;  => DMP rec;
+
+	[DKind] = TWKSKY;
+	A = twsky;   [DBptr] = A; [DBcnt] = TWSKYN; => DMP rec;
+
+	( raw present costs.  All zero unless this is the display variant. )
+	[DKind] = TWKFRM;
+	A = twfrm;   [DBptr] = A; [DBcnt] = TWFRMN; => DMP rec;
+
+	[DKind] = KTICK;
+	A = tlog;    [DBptr] = A; C = [TKlogn]; C * 3; [DBcnt] = C; => DMP rec;
+
+	( adapted, the hidden page - what snapshot() writes )
+	[DKind] = KPAGE; [DW] = 320; [DH] = 200;
+	A = nw; A + RADPT; [DBptr] = A; [DBcnt] = NPIX; => DMP rec;
+
+	( adaptor, the visible page - what DOSBox captures.  Dumped AFTER
+	  the expand, so an expand that wrote back into the index page
+	  shows up here. )
+	[DKind] = KPAGE;
+	A = nw; A + RADPR; [DBptr] = A; [DBcnt] = NPIX; => DMP rec;
+
+	( fb, the expanded 00RRGGBB framebuffer )
+	[DKind] = TWKFB; [DW] = 320; [DH] = 200;
+	A = fb; [DBptr] = A; [DBcnt] = NPIX; => DMP rec;
+
+	=> TW write;
+	end;
+
+"TW write"
+	[File Name]	= fbdumpname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= twdump;
+	[Block Size]	= [DPcnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= fbdumpname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= [DPcnt];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+( ==================================================================== )
+( the self-check words - the index map w5spec.py reads                  )
+( ==================================================================== )
+
+"TW build self"
+	[twself plus 0]  = TWMAGIC;
+	[twself plus 1]  = NWTOP;
+	[twself plus 2]  = [TWbchk];
+	[twself plus 3]  = [TWonek];
+	[twself plus 4]  = [TWqchk];
+	C = 192; => MEM sx8; [twself plus 5] = C;
+	C = 63;  => MEM sx8; [twself plus 6] = C;
+	C = 128; => MEM sx8; [twself plus 7] = C;
+	C = 127; => MEM sx8; [twself plus 8] = C;
+	( 9..21 written by the alias battery )
+	( 22..25 written by the canary battery )
+	( 26..36 written by the overrun battery )
+	( 37 written by the palette battery )
+	[twself plus 38] = [TWwrapf];
+	[twself plus 39] = [TWwrapn];
+	[twself plus 40] = [TKcpms0];
+	[twself plus 41] = [TKcpms];
+	[twself plus 42] = [TKcalms];
+	[twself plus 43] = [TKcalcnt];
+	[twself plus 44] = [TKbase];
+	[twself plus 45] = [TKsubper];
+	[twself plus 46] = [TKticks];
+	[twself plus 47] = [TKskips];
+	[twself plus 48] = [TKsleeps];
+	[twself plus 49] = [TKlogn];
+	[twself plus 50] = [TKsrvlogn];
+	[twself plus 51] = SERVON;
+	[twself plus 52] = SUBN;
+	[twself plus 53] = SUBD;
+	[twself plus 54] = TKSPINMS;
+	[twself plus 55] = QWSTEADY;
+	[twself plus 56] = PADU;
+	[twself plus 57] = NREG;
+	A = ZPVF; A '/ 50; [twself plus 58] = A;
+	[twself plus 59] = TWNTICK;
+	[twself plus 60] = TWHITCH;
+	[twself plus 61] = TWHITMS;
+	[twself plus 62] = TWANCH;
+	( 63..66 belong to "TW present" and are left alone here: they are
+	  zero in every build that never opens a display. )
+	end;

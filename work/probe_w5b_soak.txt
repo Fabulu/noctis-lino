@@ -1,0 +1,239 @@
+      ( *** PROBE W5B-6 : unthrottled rate, and a 400-tick soak ***
+
+	Part 1 and 2 measure the real frame rate: a whole batch of frames
+	runs with NO timer isocall inside the loop, and only the wall clock
+	either side is read.  The recorded "785 fps" came from a probe that
+	read the timer twice per frame, so it was measuring the timer too.
+
+	Part 3 runs 400 ticks at the TRUE DOS period, 65536/1193182 s =
+	54.9254 ms, with the deadline accumulated rather than re-based, and
+	records both the released-at time and the frame's work time for
+	every tick.  The deadline steps by an exact rational so the target
+	does not itself drift:
+
+	  counts per tick = countsPerMs * 1000 * 32768 / 596591
+
+	evaluated as an integer quotient plus a carried remainder, because
+	countsPerMs * 32768 * 1000 overflows a 32-bit unit.
+
+	Part 3 is also the soak the wave plan asks for: 22 seconds of real
+	frames, so a display path that degrades after a few hundred presents
+	shows up here rather than in Wave 8. )
+
+"directors"
+
+	program name = { probew5bsoak };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	W	= 320;
+	H	= 200;
+	W2	= 640;
+	H2	= 400;
+	NPIX	= 64000;
+	UFRAMES = 2000;
+	UFRAM2	= 1000;
+	TICKS	= 400;
+	DENOM	= 596591;
+	HDR	= 32;
+
+"variables"
+
+	result file name = { probew5bsoak.bin };
+
+	c0 = 0; tdelta = 0; fc = 0; wp = 0; tmp = 0;
+	srcp = 0; dp0 = 0; dp1 = 0; cx = 0; dsty = 0;
+	w0 = 0; u1ms = 0; u2ms = 0;
+	base = 0; dl = 0; carry = 0; qstep = 0; rstep = 0;
+	work = 0; elapsed = 0; nwait = 0;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;
+	fb	= 640 mtp 400;
+	samples = 800;
+	head	= 32;
+
+"programme"
+
+	[Display Origin] = fb;
+	[Display Live Region] = WHOLE DISPLAY;
+
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	A = adapted; B = 0;
+    "adfill"
+	C = B; C & 255;
+	[A] = C; A+; B+;
+	? B < NPIX -> adfill;
+
+	( ---- part 1 : unthrottled 320x200, no timer in the loop ---- )
+
+	=> Read wall ms; [w0] = [tmp];
+	[fc] = 0;
+    "u1"
+	=> Clear; => Expand;
+	[Display Command] = RETRACE; isocall;
+	[fc]+; A = [fc]; ? A < UFRAMES -> u1;
+	=> Read wall ms; [u1ms] = [tmp]; [u1ms] - [w0];
+
+	( ---- part 2 : unthrottled 640x400, 2x upscale ---- )
+
+	[Display Width] = W2; isocall;
+	[Display Height] = H2; isocall;
+
+	=> Read wall ms; [w0] = [tmp];
+	[fc] = 0;
+    "u2"
+	=> Clear; => Expand 2x;
+	[Display Command] = RETRACE; isocall;
+	[fc]+; A = [fc]; ? A < UFRAM2 -> u2;
+	=> Read wall ms; [u2ms] = [tmp]; [u2ms] - [w0];
+
+	[Display Width] = W; isocall;
+	[Display Height] = H; isocall;
+
+	( ---- part 3 : 400 ticks at 54.9254 ms, accumulated deadline ---- )
+
+	A = [Counts Per Millisecond];
+	A * 32768;
+	B = A; B / DENOM; [qstep] = B; B * 1000; [qstep] = B;
+	B = [Counts Per Millisecond]; B * 32768;
+	C = [qstep]; C / 1000; C * DENOM;
+	B - C; B * 1000; [rstep] = B;
+
+	[carry] = 0;
+	[dl] = 0;
+	[wp] = samples;
+
+	[Timer Command] = READ COUNTS; isocall;
+	[base] = [Counts];
+
+	[fc] = 0;
+    "tk loop"
+	=> T0;
+	=> Clear; => Expand;
+	[Display Command] = RETRACE; isocall;
+	=> T1; [work] = [tdelta];
+
+	A = [dl]; A + [qstep];
+	B = [carry]; B + [rstep];
+	C = B; C / DENOM; A + C;
+	C * DENOM; B - C; [carry] = B;
+	[dl] = A;
+
+	[nwait] = 0;
+    "tk wait"
+	[nwait]+;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [base];
+	? A '< [dl] -> tk wait;
+	[elapsed] = A;
+
+	C = [elapsed]; A = [wp]; [A] = C; [wp]+;
+	C = [work];    A = [wp]; [A] = C; [wp]+;
+
+	[fc]+; A = [fc]; ? A < TICKS -> tk loop;
+
+	( ---- dump ---- )
+
+	[head plus 0] = [Counts Per Millisecond];
+	[head plus 1] = UFRAMES;
+	[head plus 2] = [u1ms];
+	[head plus 3] = UFRAM2;
+	[head plus 4] = [u2ms];
+	[head plus 5] = TICKS;
+	[head plus 6] = [qstep];
+	[head plus 7] = [rstep];
+	[head plus 8] = [dl];
+	[head plus 9] = [elapsed];
+	[head plus 10] = [Display Status];
+	[head plus 11] = [Display Width];
+	[head plus 12] = [Display Height];
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = HDR mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = samples;
+	[Block Size]	= 800;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 832;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+"Clear"
+	A = adapted; B = 0; B + NPIX; C = 0;
+    "ca loop"
+	[A] = C; A+;
+	B ^ ca loop;
+	end;
+
+"Expand"
+	D = adapted; E = fb; A = 0; A + NPIX;
+    "ex loop"
+	C = [D]; C + pal; C = [C]; [E] = C;
+	D+; E+;
+	A ^ ex loop;
+	end;
+
+"Expand 2x"
+	[srcp] = adapted;
+	[dsty] = 0;
+    "e2 row"
+	A = [dsty]; A * 2; A * W2; A + fb;
+	[dp0] = A;
+	A + W2;
+	[dp1] = A;
+	[cx] = 0;
+    "e2 pix"
+	D = [srcp];
+	C = [D]; C + pal; C = [C];
+	A = [dp0]; [A] = C; A+; [A] = C;
+	B = [dp1]; [B] = C; B+; [B] = C;
+	[dp0] + 2; [dp1] + 2;
+	[srcp]+;
+	[cx]+; A = [cx]; ? A < W -> e2 pix;
+	[dsty]+; A = [dsty]; ? A < H -> e2 row;
+	end;
+
+"T0"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	end;
+
+"T1"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [tdelta] = A;
+	end;
+
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Minute]; A * 60000;
+	B = [Second];  B * 1000;
+	A + B; A + [Milliseconds];
+	[tmp] = A;
+	end;

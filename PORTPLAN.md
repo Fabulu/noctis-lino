@@ -117,6 +117,76 @@ the real resolution; and a gcc-built hardware witness caught a genuine
 round-to-nearest bug in the Python referee that a self-agreeing referee would
 have shipped.
 
+### Wave 4 — star identity and system generation (DONE)
+
+The port turns a star's coordinates into its planetary system, and **the 1996
+binary agrees**.
+
+```
+IDENTITY   4100/4100 bit-exact      NOB      0 violations / 2450
+CLASS      4099/4099                PHASE H  4100/4100 (16,307 bodies)
+DL.EXE     4365/4365                3-way    bit-exact, all 100 fields
+```
+
+`DL.EXE` is the first *dynamic* oracle in the project — the real game executing
+under DOSBox-X rather than a static file. Proven by breaking: seven single-edit
+sabotages, one per generation phase, each built and run. A dropped phase-A draw
+moves 3,837 of 5,540 systems.
+
+**Two sabotages are invisible to the 1996 oracles, recorded as measurements
+rather than worked around.** Adding a draw in phase G is undetectable by
+anything — structurally, phase G is last and every later `rand()` consumer
+re-seeds. The class-0 clip is invisible to DL because the capture set has no
+class-0 star with few enough planets. The test requires 5 of 7 caught per
+oracle rather than implying all seven.
+
+**Correction to earlier reconnaissance:** phase A is **12 draws**, not ~10, and
+**13** on class 8's else branch. Checked on every record now.
+
+Geometry is deliberately **out of scope**, stated in the test header, with the
+float-site registry pinned at 11 sites / 17 draws so geometry's arrival fails
+that test first rather than slipping in ungraded. Detail in
+`docs-notes/WAVE4_NEARSTAR.md`.
+
+### Wave 5 — buffer model and framebuffer (REVIEWER REJECTED — corrective wave required)
+
+**Do not treat this wave as done.** The suite passes 17/17, but the tests were
+written around a model the adversarial reviewer rejected. Green tests over a
+wrong model is exactly the failure the separate review/QA/test roles exist to
+catch, and here they caught it.
+
+**Sound, keep:** Decision 1 (one Noctis byte per 32-bit unit) and Decision 2
+(one flat 402,196-unit workspace in `farmalloc` order) — triple-corroborated
+across all 27 layout units. The tick's period arithmetic, accumulation,
+skip-to-grid and signed-difference predicate are correct and cross-graded.
+`docs-notes/BUFFERMAP.md` (718 lines) stands and is the wave's durable value.
+
+**CRITICAL 1 — the tick servo wraps.** `TK servo` divides counts-since-start by
+wall-ms-since-start. `[Counts]` is 32 bits and wraps every 477.3 s; the
+denominator grows without bound. From ~8 minutes in the ratio is nonsense —
+1840 cpms at t=600 s against a true 8999, 4226 at t=900 s — and the ±1% clamp
+turns a one-shot collapse into a **permanent 1%-per-14-s ratchet**. The period
+is proportional to cpms, so the whole tick degrades. Reproduced arithmetically.
+
+**CRITICAL 2 — class A does not reproduce a 16-bit wrap.** Decision 3 treats
+"write contained by 16-bit wrap inside the buffer's own segment" by allocating
+the full segment. **Allocation size cannot reproduce a wrap.** Under DOS the
+write folded to offset 0; under 32-bit unit addressing it walks linearly past
+the region end. This is the decision Waves 6–9 inherit.
+
+**MAJOR:** the 16-unit pads are given two mutually exclusive jobs (guard band
+*and* legitimate destination for `digit_at`'s `txtr[-6..-1]`), so the first
+cockpit glyph fires the canary; Tier 2 was not achieved for the palette, LUT or
+index page (one implementation only, so the two-implementation standard is
+unmet there); the canary cross-check writes the same poison on both sides by
+construction and therefore **passes regardless**; and `PAL shade` hard-codes its
+destination while 17 of 24 original call sites pass a different buffer.
+
+**Honestly recorded by the wave itself:** three XFAILs asserting things are
+still broken (so a silent fix fails the test), and the 16-bit index wrap is
+**not expressible in the delivered model** — `BUFFERMODEL.md` open item 6, and
+Wave 6's first job.
+
 ### Census
 Noctis IV has 20 multiply sites, 5 that matter, and only 2 distinct algorithms
 need a full 64-bit product â€” both now ported. Six of nine builds use the stock

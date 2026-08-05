@@ -1,0 +1,200 @@
+      ( *** PROBE W5B-3 : what happens on a frame that makes NO isocall ***
+
+	The claim under test, from PORTPLAN.md: "Events are drained at the
+	top of every isocall, so a frame that makes no isocall stops
+	responding."
+
+	The programme runs three phases and drops a marker file at each
+	boundary so an outside watcher can timestamp them:
+
+	  m0 -> phase A : ~3 s of ordinary frames, one RETRACE isocall each
+	  m1 -> phase B : ~6 s of pure computation with ZERO isocalls
+	  m2 -> phase C : ~3 s of ordinary frames again
+	  m3 -> done, results written
+
+	The watcher polls Process.Responding, which is a WM_NULL
+	SendMessageTimeout against the main window - it is true only while
+	the window is pumping messages.  If the claim holds, Responding goes
+	false during phase B and comes back in phase C.
+
+	Phase B needs a fixed iteration count because READ COUNTS is itself
+	an isocall, so the programme first calibrates the spin loop against
+	the timer and only then runs it blind. )
+
+"directors"
+
+	program name = { probew5bnoiso };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	NPIX	 = 64000;
+	CALSPIN  = 2000000;
+	PHASEAMS = 3000;
+	PHASEBMS = 6000;
+	PHASECMS = 3000;
+
+"variables"
+
+	m0 name = { w5bm0.bin };
+	m1 name = { w5bm1.bin };
+	m2 name = { w5bm2.bin };
+	m3 name = { w5bm3.bin };
+	result file name = { probew5bnoiso.bin };
+
+	c0 = 0; tmp = 0; w0 = 0; wa = 0; wb = 0; wc = 0;
+	calc = 0; spins = 0; acc = 0; frames = 0;
+	fa = 0; fc = 0;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;
+	fb	= 64000;
+	head	= 16;
+
+"programme"
+
+	[Display Origin] = fb;
+
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	A = adapted; B = 0;
+    "adfill"
+	C = B; C & 255;
+	[A] = C; A+; B+;
+	? B < NPIX -> adfill;
+
+	( ---- calibrate the isocall-free spin loop ---- )
+
+	=> Read wall ms; [w0] = [tmp];
+	B = 0; B + CALSPIN;
+	[acc] = 0;
+    "cal loop"
+	A = [acc]; A + 3; A * 5; A & FFFFFFh; [acc] = A;
+	B ^ cal loop;
+	=> Read wall ms; [calc] = [tmp]; [calc] - [w0];
+
+	( spins needed for PHASEBMS: CALSPIN * PHASEBMS / calc,
+	  computed as (CALSPIN/calc) * PHASEBMS to stay in range;
+	  guard against a zero measurement )
+	A = [calc]; ? A '> 0 -> cal ok;
+	[calc] = 1;
+    "cal ok"
+	A = 0; A + CALSPIN;
+	A / [calc];
+	A * PHASEBMS;
+	[spins] = A;
+
+	( ---- marker 0 ---- )
+	[File Name] = m0 name; => Drop marker;
+
+	( ================= phase A : isocalls every frame ================= )
+
+	=> Read wall ms; [w0] = [tmp];
+	[fa] = 0;
+    "A loop"
+	=> Frame;
+	[fa]+;
+	=> Read wall ms; A = [tmp]; A - [w0];
+	? A '< PHASEAMS -> A loop;
+	[wa] = A;
+
+	( ---- marker 1 : phase B starts now ---- )
+	[File Name] = m1 name; => Drop marker;
+
+	( ============ phase B : NOT ONE isocall for ~6 seconds ============ )
+
+	B = [spins];
+	[acc] = 0;
+    "B loop"
+	A = [acc]; A + 3; A * 5; A & FFFFFFh; [acc] = A;
+	B ^ B loop;
+
+	( ---- marker 2 : phase B ends, this write is the first isocall ---- )
+	[File Name] = m2 name; => Drop marker;
+
+	( ================= phase C : isocalls every frame ================= )
+
+	=> Read wall ms; [w0] = [tmp];
+	[fc] = 0;
+    "C loop"
+	=> Frame;
+	[fc]+;
+	=> Read wall ms; A = [tmp]; A - [w0];
+	? A '< PHASECMS -> C loop;
+	[wc] = A;
+
+	( ========================= dump ========================= )
+
+	[head plus 0] = [Counts Per Millisecond];
+	[head plus 1] = [calc];
+	[head plus 2] = [spins];
+	[head plus 3] = [wa];
+	[head plus 4] = [fa];
+	[head plus 5] = [wc];
+	[head plus 6] = [fc];
+	[head plus 7] = [acc];
+	[head plus 8] = [Display Status];
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 16;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 16;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name] = m3 name; => Drop marker;
+
+	end;
+
+"Drop marker"
+    ( [File Name] must already be set )
+	--> A; --> B; --> C;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 4;
+	isocall;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 4;
+	isocall;
+	<-- C; <-- B; <-- A;
+	end;
+
+"Frame"
+	D = adapted; E = fb;
+	A = 0; A + NPIX;
+    "fx loop"
+	C = [D]; C + pal; C = [C]; [E] = C;
+	D+; E+;
+	A ^ fx loop;
+	[Display Command] = RETRACE; isocall;
+	end;
+
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Minute];
+	A * 60000;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

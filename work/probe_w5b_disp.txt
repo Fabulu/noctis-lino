@@ -1,0 +1,331 @@
+      ( *** PROBE W5B-1 : the display path, measured per frame ***
+
+	The Wave-5 brief quotes 0.799 ms for "clear + palette-expand +
+	RETRACE at 320x200".  That number came from work/probe_fb.txt, which
+	timed each battery ONCE, as a 60-frame total, in a fixed order.  Its
+	own output is self-contradictory: RETRACE alone came out at 1.2735
+	ms/frame while expand+RETRACE came out at 0.7988 ms/frame.  A strict
+	superset cannot be cheaper than its subset, so at least one of those
+	two numbers is measuring something other than the work in the loop.
+
+	This probe re-measures with the per-frame cost recorded individually
+	so a distribution can be computed, and with the batteries interleaved
+	over several rounds so warm-up and thermal drift hit every battery
+	equally instead of only the first.
+
+	Batteries at 320x200 (cooperative):
+	  0  null                      - the two READ COUNTS isocalls only
+	  1  clear 64000 index units
+	  2  palette expand 64000 px   - index -> 00RRGGBB through a 256 LUT
+	  3  RETRACE, whole display
+	  4  expand + RETRACE
+	  5  clear + expand + RETRACE  - a Noctis-shaped frame
+	  6  RETRACE with VOID REGION  - retrace is ignored: isocall floor
+	  7  RETRACE with a 16x16 live region - fixed cost vs per-pixel cost
+
+	Then the display is resized to 640x400 and:
+	  8  RETRACE, whole display
+	  9  2x upscale expand + RETRACE
+
+	Every frame's cost is stored, in HPT counts, so the reader can take
+	a median instead of a mean and see the tail. )
+
+"directors"
+
+	program name = { probew5bdisp };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	W	= 320;
+	H	= 200;
+	NPIX	= 64000;
+	W2	= 640;
+	H2	= 400;
+	FRAMES	= 200;
+	ROUNDS	= 3;
+	NSAMP	= 4800;		( 8 batteries * 3 rounds * 200 frames )
+	NSAMP2	= 1200;		( 2 batteries * 3 rounds * 200 frames )
+	HDR	= 32;
+
+"variables"
+
+	result file name = { probew5bdisp.bin };
+
+	c0 = 0; tdelta = 0; fc = 0; rnd = 0; wp = 0;
+	srcp = 0; dp0 = 0; dp1 = 0; cx = 0; dsty = 0;
+	tmp = 0; wall0 = 0; wall1 = 0; wall2 = 0; resizec = 0;
+
+	vector lr small = 0; 0; 15; 15;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;
+	fb	= 640 mtp 400;
+	samples = 4800;
+	samp2	= 1200;
+	head	= 32;
+
+"programme"
+
+	[Display Origin] = fb;
+	[Display Live Region] = WHOLE DISPLAY;
+
+	( ---- a 256-entry greyscale LUT, one 00RRGGBB unit per index ---- )
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	( ---- index buffer filled with a non-constant pattern ---- )
+	A = adapted; B = 0;
+    "adfill"
+	C = B; C & 255;
+	[A] = C; A+; B+;
+	? B < NPIX -> adfill;
+
+	[wp] = samples;
+	=> Read wall ms; [wall0] = [tmp];
+
+	[rnd] = 0;
+    "r loop"
+
+	( ---- 0 : null ---- )
+	[fc] = 0;
+    "k0"
+	=> T0;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k0;
+
+	( ---- 1 : clear ---- )
+	[fc] = 0;
+    "k1"
+	=> T0;
+	=> Clear;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k1;
+
+	( ---- 2 : palette expand ---- )
+	[fc] = 0;
+    "k2"
+	=> T0;
+	=> Expand;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k2;
+
+	( ---- 3 : RETRACE whole ---- )
+	[fc] = 0;
+    "k3"
+	=> T0;
+	[Display Command] = RETRACE; isocall;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k3;
+
+	( ---- 4 : expand + RETRACE ---- )
+	[fc] = 0;
+    "k4"
+	=> T0;
+	=> Expand;
+	[Display Command] = RETRACE; isocall;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k4;
+
+	( ---- 5 : clear + expand + RETRACE ---- )
+	[fc] = 0;
+    "k5"
+	=> T0;
+	=> Clear;
+	=> Expand;
+	[Display Command] = RETRACE; isocall;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k5;
+
+	( ---- 6 : RETRACE with VOID REGION (ignored) ---- )
+	[Display Live Region] = VOID REGION;
+	[fc] = 0;
+    "k6"
+	=> T0;
+	[Display Command] = RETRACE; isocall;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k6;
+	[Display Live Region] = WHOLE DISPLAY;
+
+	( ---- 7 : RETRACE with a 16x16 live region ---- )
+	[Display Live Region] = vector lr small;
+	[fc] = 0;
+    "k7"
+	=> T0;
+	[Display Command] = RETRACE; isocall;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k7;
+	[Display Live Region] = WHOLE DISPLAY;
+
+	[rnd]+; A = [rnd]; ? A < ROUNDS -> r loop;
+
+	=> Read wall ms; [wall1] = [tmp];
+
+	( ================= resize to 640x400 ================= )
+
+	=> T0;
+	[Display Width] = W2; isocall;
+	[Display Height] = H2; isocall;
+	=> T1;
+	[resizec] = [tdelta];
+
+	[wp] = samp2;
+	[rnd] = 0;
+    "r2 loop"
+
+	( ---- 8 : RETRACE whole, 640x400 ---- )
+	[fc] = 0;
+    "k8"
+	=> T0;
+	[Display Command] = RETRACE; isocall;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k8;
+
+	( ---- 9 : 2x upscale expand + RETRACE, 640x400 ---- )
+	[fc] = 0;
+    "k9"
+	=> T0;
+	=> Expand 2x;
+	[Display Command] = RETRACE; isocall;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k9;
+
+	[rnd]+; A = [rnd]; ? A < ROUNDS -> r2 loop;
+
+	=> Read wall ms; [wall2] = [tmp];
+
+	( ========================= dump ========================= )
+
+	[head plus 0]  = [Counts Per Millisecond];
+	[head plus 1]  = FRAMES;
+	[head plus 2]  = ROUNDS;
+	[head plus 3]  = 8;
+	[head plus 4]  = 2;
+	[head plus 5]  = [Display Width];
+	[head plus 6]  = [Display Height];
+	[head plus 7]  = [Display Status];
+	[head plus 8]  = [Display Physical Width];
+	[head plus 9]  = [Display Physical Height];
+	[head plus 10] = [resizec];
+	A = [wall1]; A - [wall0]; [head plus 11] = A;
+	A = [wall2]; A - [wall1]; [head plus 12] = A;
+	[head plus 13] = NPIX;
+	[head plus 14] = [Priority];
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = HDR mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = samples;
+	[Block Size]	= NSAMP;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 4832 mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = samp2;
+	[Block Size]	= NSAMP2;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 6032;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+"Clear"
+	A = adapted;
+	B = 0; B + NPIX;
+	C = 0;
+    "ca loop"
+	[A] = C; A+;
+	B ^ ca loop;
+	end;
+
+"Expand"
+    ( 64000 palette lookups into the 32bpp display buffer )
+	D = adapted;
+	E = fb;
+	A = 0; A + NPIX;
+    "ex loop"
+	C = [D];
+	C + pal;
+	C = [C];
+	[E] = C;
+	D+; E+;
+	A ^ ex loop;
+	end;
+
+"Expand 2x"
+    ( 320x200 indices -> 640x400 32bpp, doubling in both axes )
+	[srcp] = adapted;
+	[dsty] = 0;
+    "e2 row"
+	A = [dsty]; A * 2; A * W2; A + fb;
+	[dp0] = A;
+	A + W2;
+	[dp1] = A;
+	[cx] = 0;
+    "e2 pix"
+	D = [srcp];
+	C = [D];
+	C + pal;
+	C = [C];
+	A = [dp0]; [A] = C; A+; [A] = C;
+	B = [dp1]; [B] = C; B+; [B] = C;
+	[dp0] + 2; [dp1] + 2;
+	[srcp]+;
+	[cx]+; A = [cx]; ? A < W -> e2 pix;
+	[dsty]+; A = [dsty]; ? A < H -> e2 row;
+	end;
+
+"T0"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	end;
+
+"T1"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [c0];
+	[tdelta] = A;
+	end;
+
+"T1R"
+	=> T1;
+	C = [tdelta];
+	A = [wp];
+	[A] = C;
+	[wp]+;
+	end;
+
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Minute];
+	A * 60000;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

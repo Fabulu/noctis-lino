@@ -1,0 +1,446 @@
+      ( *** PROBE W5B-2 : the palette, measured ***
+
+	Noctis holds its palette as 768 six-bit components (256 colours x
+	R,G,B, each 0..63 - the VGA DAC range) in tmppal, and pushes them
+	to the DAC with tavola_colori().  There is no palette hardware
+	here, so the DAC upload becomes "rebuild a 256-entry 00RRGGBB
+	lookup table" and the per-pixel expansion happens on every present.
+
+	This probe measures every piece of that, per frame:
+
+	  palette-side (per palette change)
+	  1  rebuild the 256-entry LUT from the 768 six-bit components
+	  2  tavola_colori filter over 64 colours (192 components)
+	  3  tavola_colori filter over 256 colours (768 components)
+	  4  shade() x3 building the 64-colour sky band, native floats
+
+	  pixel-side (per frame, 64000 pixels)
+	  5  expand V0  baseline: load index, add base, load, store
+	  6  expand V1  the same, unrolled four pixels per iteration
+	  7  expand V2  index buffer pre-biased to hold  pal+index
+	  8  expand V3  straight copy, no lookup at all - the memory floor
+	  9  expand V4  Noctis's per-frame colour cycle FUSED into the expand
+	 10  colour cycle alone (64000 read-modify-writes)
+	 11  expand V5  pre-biased AND unrolled - the best case
+	 12  page copy 64000 units (the pcopy(adaptor,adapted) page swap)
+
+	V0, V1, V2 and V5 must produce byte-identical output; the probe
+	checksums the display buffer after each and stores all four, so a
+	"faster" variant that is also wrong cannot pass unnoticed. )
+
+"directors"
+
+	program name = { probew5bpal };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	NPIX	= 64000;
+	NQUAD	= 16000;
+	FRAMES	= 200;
+	ROUNDS	= 3;
+	NBAT	= 13;
+	NSAMP	= 7800;		( 13 * 3 * 200 )
+	HDR	= 32;
+
+"variables"
+
+	result file name = { probew5bpal.bin };
+
+	c0 = 0; tdelta = 0; fc = 0; rnd = 0; wp = 0; tmp = 0;
+	chk = 0;
+	chk0 = 0; chk1 = 0; chk2 = 0; chk5 = 0;
+	ftr = 0; ftg = 0; ftb = 0;
+	tf first = 0; tf n = 0;
+	lb first = 0; lb n = 0;
+
+	sh first = 0; sh n = 0;
+	sh r = 0f; sh g = 0f; sh b = 0f;
+	sh dr = 0f; sh dg = 0f; sh db = 0f;
+
+"workspace"
+
+	pal	= 256;		( 00RRGGBB lookup, one unit per colour )
+	pal6	= 768;		( six-bit components, one unit per component )
+	adapted = 64000;	( the index buffer, values 0..255 )
+	adaptb	= 64000;	( the same, pre-biased to pal+index )
+	adaptor = 64000;	( the second page, for the page-swap copy )
+	fb	= 64000;
+	samples = 7800;
+	head	= 32;
+
+"programme"
+
+	[Display Origin] = fb;
+	[Display Live Region] = VOID REGION;	( never present: this probe
+						  measures CPU work only )
+
+	( ---- a six-bit palette with all three components distinct ---- )
+	A = pal6; B = 0;
+    "p6fill"
+	C = B; C % 61; [A] = C; A+;
+	C = B; C % 47; [A] = C; A+;
+	C = B; C % 53; [A] = C; A+;
+	B+;
+	? B < 256 -> p6fill;
+
+	[lb first] = 0; [lb n] = 256;
+	=> LUT rebuild;
+
+	( ---- index buffer, and its pre-biased twin ---- )
+	A = adapted; D = adaptb; E = adaptor; B = 0;
+    "adfill"
+	C = B; C & 255;
+	[A] = C; A+;
+	[E] = C; E+;
+	C + pal;
+	[D] = C; D+;
+	B+;
+	? B < NPIX -> adfill;
+
+	( ================= correctness first ================= )
+
+	=> Clear fb;  => Expand v0;	   => Checksum fb; [chk0] = [chk];
+	=> Clear fb;  => Expand v1;	   => Checksum fb; [chk1] = [chk];
+	=> Clear fb;  => Expand v2;	   => Checksum fb; [chk2] = [chk];
+	=> Clear fb;  => Expand v5;	   => Checksum fb; [chk5] = [chk];
+
+	( ================= timing ================= )
+
+	[wp] = samples;
+	[rnd] = 0;
+    "r loop"
+
+	[fc] = 0;
+    "k0"
+	=> T0; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k0;
+
+	[fc] = 0;
+    "k1"
+	=> T0;
+	[lb first] = 0; [lb n] = 256; => LUT rebuild;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k1;
+
+	[fc] = 0;
+    "k2"
+	=> T0;
+	[ftr] = 40; [ftg] = 50; [ftb] = 63;
+	[tf first] = 0; [tf n] = 64; => Tav filter;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k2;
+
+	[fc] = 0;
+    "k3"
+	=> T0;
+	[ftr] = 40; [ftg] = 50; [ftb] = 63;
+	[tf first] = 0; [tf n] = 256; => Tav filter;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k3;
+
+	[fc] = 0;
+    "k4"
+	=> T0;
+	=> Sky band;
+	=> T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k4;
+
+	[fc] = 0;
+    "k5"
+	=> T0; => Expand v0; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k5;
+
+	[fc] = 0;
+    "k6"
+	=> T0; => Expand v1; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k6;
+
+	[fc] = 0;
+    "k7"
+	=> T0; => Expand v2; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k7;
+
+	[fc] = 0;
+    "k8"
+	=> T0; => Expand v3; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k8;
+
+	[fc] = 0;
+    "k9"
+	=> T0; => Expand v4; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k9;
+
+	[fc] = 0;
+    "k10"
+	=> T0; => Cycle only; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k10;
+
+	[fc] = 0;
+    "k11"
+	=> T0; => Expand v5; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k11;
+
+	[fc] = 0;
+    "k12"
+	=> T0; => Page copy; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k12;
+
+	[rnd]+; A = [rnd]; ? A < ROUNDS -> r loop;
+
+	( ========================= dump ========================= )
+
+	[head plus 0]  = [Counts Per Millisecond];
+	[head plus 1]  = FRAMES;
+	[head plus 2]  = ROUNDS;
+	[head plus 3]  = NBAT;
+	[head plus 4]  = NPIX;
+	[head plus 5]  = [chk0];
+	[head plus 6]  = [chk1];
+	[head plus 7]  = [chk2];
+	[head plus 8]  = [chk5];
+	[head plus 9]  = [Display Status];
+	[head plus 10] = [Priority];
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = HDR mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = samples;
+	[Block Size]	= NSAMP;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 7832;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+( ------------------------------------------------------------------ )
+
+"LUT rebuild"
+    ( [lb n] colours starting at [lb first]: three six-bit components
+      -> one 00RRGGBB unit.  Six bits to eight is a multiply by four,
+      which is what noctis-iv-lr does, so 63 maps to 252 not 255. )
+	D = [lb first]; D * 3; D + pal6;
+	E = [lb first]; E + pal;
+	B = 0; B + [lb n];
+    "lb loop"
+	C = [D];	  C < 18;
+	A = [D plus 1];   A < 10;  C + A;
+	A = [D plus 2];   A < 2;   C + A;
+	[E] = C;
+	D + 3; E+;
+	B ^ lb loop;
+	end;
+
+"Tav filter"
+    ( tavola_colori's filter pass over [tf n] colours from [tf first]:
+      v = v * filter / 63, clamped to 63.  Integer throughout, exactly
+      as the original - the filters are chars and the components ints. )
+	A = [tf first]; A * 3; A + pal6;
+	B = 0; B + [tf n];
+    "tf loop"
+	C = [A]; C * [ftr]; C / 63; ? C '< 64 -> tf1; C = 63;
+    "tf1"
+	[A] = C; A+;
+	C = [A]; C * [ftg]; C / 63; ? C '< 64 -> tf2; C = 63;
+    "tf2"
+	[A] = C; A+;
+	C = [A]; C * [ftb]; C / 63; ? C '< 64 -> tf3; C = 63;
+    "tf3"
+	[A] = C; A+;
+	B ^ tf loop;
+	end;
+
+"Sky band"
+    ( the three shade() calls that rebuild colours 64..127 every frame
+      the sky tint moves, then the LUT rebuild for that band )
+	[sh first] = 64; [sh n] = 24;
+	[sh r] = 0f; [sh g] = 0f; [sh b] = 0f;
+	[sh dr] = 1f; [sh dg] = 1.3f; [sh db] = 1.6f;
+	=> Shade;
+	[sh first] = 88; [sh n] = 16;
+	[sh r] = 24f; [sh g] = 32f; [sh b] = 40f;
+	[sh dr] = 1.5f; [sh dg] = 1.5f; [sh db] = 1.5f;
+	=> Shade;
+	[sh first] = 104; [sh n] = 24;
+	[sh r] = 48f; [sh g] = 56f; [sh b] = 63f;
+	[sh dr] = 0.6f; [sh dg] = 0.5f; [sh db] = 0.5f;
+	=> Shade;
+	[lb first] = 64; [lb n] = 64;
+	=> LUT rebuild;
+	end;
+
+"Shade"
+    ( linear ramp of [sh n] colours from [sh first], clamped to 0..63 )
+	A = [sh first]; A * 3; A + pal6;
+	B = 0; B + [sh n];
+    "sh loop"
+	C = [sh r]; C =, C;
+	? C >= 0 -> sr1; C = 0; -> sr2;
+    "sr1"
+	? C <= 63 -> sr2; C = 63;
+    "sr2"
+	[A] = C; A+;
+	C = [sh g]; C =, C;
+	? C >= 0 -> sg1; C = 0; -> sg2;
+    "sg1"
+	? C <= 63 -> sg2; C = 63;
+    "sg2"
+	[A] = C; A+;
+	C = [sh b]; C =, C;
+	? C >= 0 -> sb1; C = 0; -> sb2;
+    "sb1"
+	? C <= 63 -> sb2; C = 63;
+    "sb2"
+	[A] = C; A+;
+	[sh r] ++ [sh dr];
+	[sh g] ++ [sh dg];
+	[sh b] ++ [sh db];
+	B ^ sh loop;
+	end;
+
+( ------------------------------------------------------------------ )
+
+"Expand v0"
+	D = adapted; E = fb;
+	A = 0; A + NPIX;
+    "e0 loop"
+	C = [D]; C + pal; C = [C]; [E] = C;
+	D+; E+;
+	A ^ e0 loop;
+	end;
+
+"Expand v1"
+	D = adapted; E = fb;
+	A = 0; A + NQUAD;
+    "e1 loop"
+	C = [D];	  C + pal; C = [C]; [E] = C;
+	C = [D plus 1];   C + pal; C = [C]; [E plus 1] = C;
+	C = [D plus 2];   C + pal; C = [C]; [E plus 2] = C;
+	C = [D plus 3];   C + pal; C = [C]; [E plus 3] = C;
+	D + 4; E + 4;
+	A ^ e1 loop;
+	end;
+
+"Expand v2"
+	D = adaptb; E = fb;
+	A = 0; A + NPIX;
+    "e2 loop"
+	C = [D]; C = [C]; [E] = C;
+	D+; E+;
+	A ^ e2 loop;
+	end;
+
+"Expand v3"
+    ( no lookup at all: the pure 64000-unit read/write floor )
+	D = adapted; E = fb;
+	A = 0; A + NPIX;
+    "e3 loop"
+	C = [D]; [E] = C;
+	D+; E+;
+	A ^ e3 loop;
+	end;
+
+"Expand v4"
+    ( Noctis cycles the low six bits of every background index every
+      frame and keeps the top two band bits; fused with the expand )
+	D = adaptor; E = fb;
+	A = 0; A + NPIX;
+    "e4 loop"
+	C = [D];
+	B = C; B & 192;
+	C + 1; C & 63; C + B;
+	[D] = C;
+	C + pal; C = [C]; [E] = C;
+	D+; E+;
+	A ^ e4 loop;
+	end;
+
+"Cycle only"
+	D = adaptor;
+	A = 0; A + NPIX;
+    "co loop"
+	C = [D];
+	B = C; B & 192;
+	C + 1; C & 63; C + B;
+	[D] = C;
+	D+;
+	A ^ co loop;
+	end;
+
+"Expand v5"
+	D = adaptb; E = fb;
+	A = 0; A + NQUAD;
+    "e5 loop"
+	C = [D];	  C = [C]; [E] = C;
+	C = [D plus 1];   C = [C]; [E plus 1] = C;
+	C = [D plus 2];   C = [C]; [E plus 2] = C;
+	C = [D plus 3];   C = [C]; [E plus 3] = C;
+	D + 4; E + 4;
+	A ^ e5 loop;
+	end;
+
+"Page copy"
+	D = adaptor; E = adapted;
+	A = 0; A + NPIX;
+    "pc loop"
+	C = [D]; [E] = C;
+	D+; E+;
+	A ^ pc loop;
+	end;
+
+"Clear fb"
+	E = fb; C = 0;
+	A = 0; A + NPIX;
+    "cf loop"
+	[E] = C; E+;
+	A ^ cf loop;
+	end;
+
+"Checksum fb"
+	[chk] = 0;
+	D = fb;
+	A = 0; A + NPIX;
+    "cs loop"
+	C = [D];
+	B = [chk]; B * 31; B + C; [chk] = B;
+	D+;
+	A ^ cs loop;
+	end;
+
+( ------------------------------------------------------------------ )
+
+"T0"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	end;
+
+"T1"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [c0];
+	[tdelta] = A;
+	end;
+
+"T1R"
+	=> T1;
+	C = [tdelta];
+	A = [wp];
+	[A] = C;
+	[wp]+;
+	end;

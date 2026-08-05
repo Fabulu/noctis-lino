@@ -1,0 +1,303 @@
+      ( PROBE W5C-1 : holding Noctis IV's TRUE DOS tick under a real frame load.
+
+        The DOS period is 65536/1193182 s = 54.9254012... ms, not 55.  This
+        probe holds it four ways, 210 ticks each, with a Noctis-shaped frame
+        (clear a 64000-index buffer, draw a full-screen pattern into it,
+        expand through a 256-entry palette into the 32bpp display, RETRACE):
+
+          A  ACCUMULATE the deadline, pure busy-wait
+          B  RE-BASE each tick from the moment the previous one fired,
+             pure busy-wait, using a single rounded integer period
+          C  ACCUMULATE, SLEEP down to a 16 ms margin then spin
+          D  ACCUMULATE, SLEEP down to a  4 ms margin then spin
+
+        The exact period is carried as a RATIONAL, in HPT counts:
+
+            period = cpms * 65536000 / 1193182
+                   = cpms * 32768000 /  596591
+                   = 55*cpms  -  cpms*44505/596591
+
+        so no 64-bit product is needed and nothing overflows:  the largest
+        intermediate is 44505*cpms, which is 400,945,545 at the 9009 counts
+        per millisecond this machine reports -- comfortably below 2^31.  The
+        leftover numerator is carried in [acc] from tick to tick, so the
+        accumulated deadline is exact to the count over any run length.
+
+        Every tick's ABSOLUTE count is recorded, so the reader computes the
+        periods, the jitter and the total drift itself. )
+
+"directors"
+
+	program name = { probe_w5c_tick };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	W	= 320;
+	H	= 200;
+	NPIX	= 64000;
+	NT	= 210;
+	SUBN	= 44505;
+	SUBD	= 596591;
+	HALFD	= 298295;
+	FRAMES	= 60;
+
+"variables"
+
+	result file name = { probe_w5c_tick.bin };
+
+	cpms	= 0;
+	base	= 0;
+	subper	= 0;
+	perfix	= 0;
+	acc	= 0;
+	deadline = 0;
+	margin	= 0;
+	arrbase	= 0;
+	spins	= 0;
+	sleeps	= 0;
+	tick	= 0;
+	c0	= 0;
+	tmp	= 0;
+	wall0	= 0;
+	phase	= 0;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;
+	fb	= 320 mtp 200;
+	arrA	= 210;
+	arrB	= 210;
+	arrC	= 210;
+	arrD	= 210;
+	head	= 24;
+
+"programme"
+
+	[Display Origin] = fb;
+
+	( greyscale palette )
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	( ---------- the exact period, as a rational in HPT counts ---------- )
+
+	[cpms] = [Counts Per Millisecond];
+	A = [cpms]; A '* 55;	[base]   = A;
+	A = [cpms]; A '* SUBN;	[subper] = A;
+
+	( the naive discipline gets ONE rounded integer period -- that is the
+	  whole of its error source, and it is what phase B measures )
+	A = [subper]; A + HALFD; A '/ SUBD;
+	B = [base]; B - A; [perfix] = B;
+
+	( ---------- how long the frame load actually takes ---------- )
+
+	=> T0;
+	[tick] = 0;
+    "fbench"
+	=> Frame;
+	[tick]+; A = [tick]; ? A < FRAMES -> fbench;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [head plus 20] = A;
+
+	( ================= phase A : accumulate + pure spin ================ )
+
+	=> Read wall ms; [wall0] = [tmp];
+	[spins] = 0;
+	[acc] = 0;
+	[Timer Command] = READ COUNTS; isocall;
+	[deadline] = [Counts];
+	[head plus 16] = [deadline];
+	[tick] = 0;
+    "A loop"
+	=> Frame;
+	=> Advance;
+    "A wait"
+	[spins]+;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [deadline];
+	? A < 0 -> A wait;
+	B = [tick]; B + arrA; A = [Counts]; [B] = A;
+	[tick]+;
+	A = [tick]; ? A < NT -> A loop;
+	=> Read wall ms; A = [tmp]; A - [wall0]; [head plus 6] = A;
+	[head plus 10] = [spins];
+
+	( ============== phase B : re-base + pure spin (naive) ============== )
+
+	=> Read wall ms; [wall0] = [tmp];
+	[spins] = 0;
+	[Timer Command] = READ COUNTS; isocall;
+	[head plus 17] = [Counts];
+	[tick] = 0;
+    "B loop"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	=> Frame;
+    "B wait"
+	[spins]+;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [c0];
+	A - [perfix];
+	? A < 0 -> B wait;
+	B = [tick]; B + arrB; A = [Counts]; [B] = A;
+	[tick]+;
+	A = [tick]; ? A < NT -> B loop;
+	=> Read wall ms; A = [tmp]; A - [wall0]; [head plus 7] = A;
+	[head plus 11] = [spins];
+
+	( ============ phase C : accumulate + sleep to 16 ms ============ )
+
+	[margin] = 16; [arrbase] = arrC;
+	=> Sleep phase;
+	[head plus 8]  = [tmp];
+	[head plus 12] = [spins];
+	[head plus 14] = [sleeps];
+	[head plus 18] = [c0];
+	[head plus 21] = [margin];
+
+	( ============ phase D : accumulate + sleep to 4 ms ============= )
+
+	[margin] = 4; [arrbase] = arrD;
+	=> Sleep phase;
+	[head plus 9]  = [tmp];
+	[head plus 13] = [spins];
+	[head plus 15] = [sleeps];
+	[head plus 19] = [c0];
+	[head plus 22] = [margin];
+
+	( ========================= dump ========================= )
+
+	[head plus 0] = [cpms];
+	[head plus 1] = NT;
+	[head plus 2] = [base];
+	[head plus 3] = [subper];
+	[head plus 4] = SUBD;
+	[head plus 5] = [perfix];
+	[head plus 23] = [Display Status];
+
+	[Block Pointer] = head;	[tmp] = 24;  [c0] = 0;   => Put;
+	[Block Pointer] = arrA;	[tmp] = NT;  [c0] = 24;  => Put;
+	[Block Pointer] = arrB;	[tmp] = NT;  [c0] = 234; => Put;
+	[Block Pointer] = arrC;	[tmp] = NT;  [c0] = 444; => Put;
+	[Block Pointer] = arrD;	[tmp] = NT;  [c0] = 654; => Put;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 864;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+    ( ---- write [tmp] units from [Block Pointer] at unit offset [c0] ---- )
+"Put"
+	[File Name]	= result file name;
+	[File Position] = [c0];
+	[File Position] * BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Size]	= [tmp];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+    ( ---- advance the accumulated deadline by one exact period ---- )
+"Advance"
+	A = [acc]; A + [subper];
+	B = A; B '/ SUBD;
+	C = B; C '* SUBD; A - C;
+	[acc] = A;
+	A = [base]; A - B;
+	[deadline] + A;
+	end;
+
+    ( ---- accumulate + sleep-assisted wait, [margin] ms of spin ---- )
+"Sleep phase"
+	=> Read wall ms; [wall0] = [tmp];
+	[spins] = 0; [sleeps] = 0; [acc] = 0;
+	[Timer Command] = READ COUNTS; isocall;
+	[deadline] = [Counts];
+	[c0] = [deadline];
+	[tick] = 0;
+    "S loop"
+	=> Frame;
+	=> Advance;
+    "S wait"
+	[spins]+;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [deadline];
+	? A >= 0 -> S done;
+	A+-;
+	A '/ [cpms];
+	? A <= [margin] -> S wait;
+	A - [margin];
+	[Sleep Timeout] = A;
+	[Process Command] = SLEEP; isocall;
+	[sleeps]+;
+	-> S wait;
+    "S done"
+	B = [tick]; B + [arrbase]; A = [Counts]; [B] = A;
+	[tick]+;
+	A = [tick]; ? A < NT -> S loop;
+	=> Read wall ms; A = [tmp]; A - [wall0]; [tmp] = A;
+	end;
+
+    ( ---- a Noctis-shaped frame: clear, draw, palette-expand, present ---- )
+"Frame"
+	A = adapted;
+	B = 0; B + NPIX;
+	C = 0;
+    "f clear"
+	[A] = C; A+;
+	B ^ f clear;
+
+	( a full-screen "render" pass so the load is not just a memset )
+	A = adapted;
+	B = 0; B + NPIX;
+	C = [tick];
+    "f draw"
+	C + 7; C & 255;
+	[A] = C; A+;
+	B ^ f draw;
+
+	D = adapted;
+	E = fb;
+	A = 0; A + NPIX;
+    "f expand"
+	C = [D];
+	C + pal;
+	C = [C];
+	[E] = C;
+	D+; E+;
+	A ^ f expand;
+
+	[Display Command] = RETRACE; isocall;
+	end;
+
+"T0"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	end;
+
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Minute];
+	A * 60000;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

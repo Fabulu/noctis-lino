@@ -1,0 +1,73 @@
+      ( *** w5shade - does shade() take its destination buffer? ***
+
+	NOCTIS-0.CPP:1151 is
+
+	    void shade (unsigned char far *palette_buffer,
+	                unsigned first_color, unsigned num_of_colors,
+	                float start_r, float start_g, float start_b,
+	                float finish_r, float finish_g, float finish_b)
+
+	and 14 of its 21 call sites pass surface_palette, not tmppal.
+	A port whose shade() can only write tmppal cannot express the
+	majority of the original's calls.
+
+	So this probe simply asks for the thing the original asks for:
+	it points [SHdstb] at srfpal6 and runs a shade.  If the library
+	has no such parameter the build fails with "symbol not declared",
+	and THAT IS THE RESULT - test_wave5.py reports the build failure
+	as the check failing, not as a broken harness.  If it does build,
+	the probe dumps both buffers and the test requires srfpal6 to
+	carry the ramp and pal6 to be untouched.
+
+	Record 0: kind 2, 768 units, pal6.
+	Record 1: kind 2, 768 units, srfpal6.                             )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	fbpal;
+	fbtick;
+
+"directors"
+
+	program name = { w5shade };
+	unit = 32;
+
+"variables"
+
+	WSa	= 0;
+
+"programme"
+
+	=> FEnter;
+	=> PAL float init;
+	=> PAL zero;
+
+	( a sentinel in pal6, so "pal6 untouched" is checkable rather than
+	  vacuous: PAL zero already left it zero everywhere. )
+	[pal6 plus 0] = 41; [pal6 plus 1] = 42; [pal6 plus 2] = 43;
+
+	A = srfpal6; [SHdstb] = A;
+	[SHfirst] = 0; [SHn] = 16;
+	[PFden] = 1;
+	[PFnum] = 0;  => PAL f32 make; [SHsr] = [PFbits];
+	[PFnum] = 0;  => PAL f32 make; [SHsg] = [PFbits];
+	[PFnum] = 0;  => PAL f32 make; [SHsb] = [PFbits];
+	[PFnum] = 60; => PAL f32 make; [SHer] = [PFbits];
+	[PFnum] = 40; => PAL f32 make; [SHeg] = [PFbits];
+	[PFnum] = 20; => PAL f32 make; [SHeb] = [PFbits];
+	=> PAL shade;
+
+	=> DMP reset;
+	[DCpms] = 0; [DTicks] = 0;
+	[DKind] = KPAL6; [DW] = 0; [DH] = 0;
+	A = pal6;    [DBptr] = A; [DBcnt] = 768; => DMP rec;
+	[DKind] = KPAL6;
+	A = srfpal6; [DBptr] = A; [DBcnt] = 768; => DMP rec;
+	=> DMP write;
+	end;

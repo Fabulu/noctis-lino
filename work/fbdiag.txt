@@ -1,0 +1,119 @@
+      ( fbdiag - stage-by-stage driver.  Writes fb-diag.bin after EVERY
+	stage, so a run that never finishes still says exactly which
+	stage it died or hung in.  Same libraries as fbmain. )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	fbpal;
+	fbtick;
+	fbshell;
+
+"directors"
+
+	program name = { fbdiag };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	NTICK		= 400;
+	NFRAME		= 100;
+	HITCHMOD	= 37;
+	CALMS		= 1000;
+
+"variables"
+
+	fbdiagname = { fb-diag.bin };
+	DGstage	= 0;
+
+"workspace"
+
+	dghead = 8;
+
+"programme"
+
+	[DGstage] = 1;  => DG mark;
+	=> FEnter;
+	[DGstage] = 2;  => DG mark;
+	=> PAL float init;
+	[DGstage] = 3;  => DG mark;
+	[Display Origin] = fb;
+	[Display Live Region] = VOID REGION;
+	=> TK seed;
+	[DGstage] = 4;  => DG mark;
+	=> MEM build rtab;
+	[DGstage] = 5;  => DG mark;
+	=> TK cal begin;
+	=> FB residency;
+	=> TK cal end;
+	[DGstage] = 6;  => DG mark;
+	=> FB byte battery;
+	[DGstage] = 7;  => DG mark;
+	=> FB quad battery;
+	[DGstage] = 8;  => DG mark;
+	=> FB txtr battery;
+	[DGstage] = 9;  => DG mark;
+	=> FB canary battery;
+	=> MEM zero pads;
+	[DGstage] = 10; => DG mark;
+	=> FB pvfile check;
+	[DGstage] = 11; => DG mark;
+	=> PAL zero;
+	=> PAL range;
+	[DGstage] = 12; => DG mark;
+	A = range8088; [PVsrc] = A; [PVself] = 0;
+	[PVfirst] = 0; [PVn] = 64;
+	[PVfr] = 16; [PVfg] = 32; [PVfb] = 63;
+	=> PAL tavola;
+	[DGstage] = 13; => DG mark;
+	[SHfirst] = 192; [SHn] = 16;
+	[FBsr] = 0;  [FBsg] = 0;  [FBsb] = 0;
+	[FBer] = 4;  [FBeg] = 2;  [FBeb] = 1;
+	=> FB shade i;
+	[DGstage] = 14; => DG mark;
+	=> FB palette pinned;
+	[DGstage] = 15; => DG mark;
+	=> FB riga build;
+	=> FB page build;
+	[DGstage] = 16; => DG mark;
+	[Display Live Region] = WHOLE DISPLAY;
+	=> FB frame battery;
+	[DGstage] = 17; => DG mark;
+	=> FB wrap battery;
+	[DGstage] = 18; => DG mark;
+	=> FB soak;
+	[DGstage] = 19; => DG mark;
+	=> FB dump;
+	[DGstage] = 20; => DG mark;
+	end;
+
+"DG mark"
+	[dghead plus 0] = [DGstage];
+	[dghead plus 1] = [FBbchk];
+	[dghead plus 2] = [FBqchk];
+	[dghead plus 3] = [FBtxchk];
+	[dghead plus 4] = [FBclnf];
+	[dghead plus 5] = [FBdrtf];
+	[dghead plus 6] = [FBwrapf];
+	[dghead plus 7] = [TKcpms];
+	[File Name]	= fbdiagname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= dghead;
+	[Block Size]	= 8;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	[File Name]	= fbdiagname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 8;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;

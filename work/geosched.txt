@@ -1,0 +1,272 @@
+      ( *** geosched - prepare_nearstar's GEOMETRY, transcribed from
+	    NOCTIS.EXE ***
+
+	DATA, not code.  Nothing includes this file.  It is the artifact
+	FLOATSITES.md 3.4.5 said did not exist:
+
+	    "Under -f287 -O Borland will keep the sum on the stack, so where
+	     exactly the narrowing lands is a spill-schedule question, not a
+	     source question.  This is the single most schedule-sensitive
+	     line in the generation path ... It needs the binary."
+
+	Here is the binary.  Every line below was read out of the shipped
+	C:\programmieren\noctis\niv-plus\modules\NOCTIS.EXE with the Wave 2
+	loader (noctis-harness/w2_disasm.py), and every file offset is
+	quoted so it can be re-derived rather than believed.  Segment 03DF,
+	DGROUP paragraph 2A18 (file base 182144).  Nothing in this file was
+	inferred from NOCTIS-0.CPP; the C is quoted only so a reader can see
+	that the two agree.
+
+	----------------------------------------------------------------
+	0.  THE ONE INSTRUCTION EVERYTHING TURNS ON: __ftol, at 0000:1265
+	----------------------------------------------------------------
+
+	    1265  push bp / mov bp,sp / sub sp,0Ah
+	    126C  fnstcw word [bp-2]
+	    1271  mov   al, [bp-1]
+	    1274  or    byte [bp-1], 0Ch      ; RC <- 11 (chop).  OR only.
+	    1279  fldcw word [bp-2]
+	    127D  fistp qword [bp-0Ah]        ; chops whatever is in st(0)
+	    1280  mov   [bp-1], al
+	    1284  fldcw word [bp-2]
+	    1287  mov ax,[bp-0Ah] / mov dx,[bp-8]
+	    1290  retf
+
+	It has NO parameter.  Its operand is the live x87 top of stack.
+	FLOATPOLICY.md 3.3 records the cast boundary as UNSETTLED because
+	"the engine has no way to truncate an unstored extended value"; the
+	question of which reading is the original's is settled here, and it
+	is settled the same way at every one of the eleven sites: there is
+	no fstp between the last arithmetic instruction and the lcall.
+
+	Two details a tidy port gets wrong:
+	  * OR 0Ch, not AND-then-OR.  Identical under the game's 133Fh.
+	  * fistp QWORD.  A 32-bit fistp stores the integer indefinite
+	    80000000h, masked, for everything outside int32; this one lets
+	    the low half through.  work/geocast battery 8 measures it.
+
+	----------------------------------------------------------------
+	1.  DGROUP CONSTANTS, read out of the image
+	----------------------------------------------------------------
+
+	  offset  width   value                  what it is
+	  0184    qword   0.017453292519943295   deg = M_PI/180   (DOUBLE)
+	  027F    dword   -                      nearstar_ray     (FLOAT)
+	  0518    qword   -                      *_orb_scaling    (double)
+	  0528    qword[] -                      avg_planet_ray[] (double)
+	  0DE6    dword   10.0                   (float)
+	  0DEE    qword   0.001                  (DOUBLE - inexact, so the
+						  width is load-bearing)
+	  0E30    qword   0.01                   (DOUBLE - ditto)
+	  0EC0    dword   100.0                  (float)
+	  108C    dword   300.0                  (float)
+	  1090    dword   500.0                  (float)
+	  1094    dword   5000.0                 (float)
+	  1098    dword   2000.0                 (float)
+	  109C    dword   50.0                   (float)
+	  10A0    qword   0.05                   (DOUBLE - inexact)
+	  10A8    qword   0.1                    (DOUBLE - inexact)
+	  10D8    dword   0.75                   (float)
+
+	Every FLOAT constant above is exactly representable in binary32, so
+	its width costs nothing.  Every DOUBLE constant above is NOT, so a
+	port that stores 0.001 or 0.05 as a float is wrong and a port that
+	stores 10.0 or 300.0 as a double is not.
+
+	----------------------------------------------------------------
+	2.  PHASE A, the per-planet loop.  NOCTIS-0.CPP:4088-4094
+	----------------------------------------------------------------
+
+	Array bases, all qword-strided (shl bx,3):
+	  58C7 p_orb_orient   53C7 p_orb_seed   4C47 p_tilt
+	  5647 p_orb_tilt     5B47 p_orb_ecc    4EC7 p_ray
+	  49C7 p_ring         4887 p_type (byte)
+
+	:4088  p_orb_orient[n] = (double) deg * (double) random (360);
+	  61494  call  random           ; arg 360
+	  61501  fild  word [bp-12h]    ; the int16 random() returned
+	  61505  fmul  qword [0184]     ; * deg
+	  61515  fstp  qword [bx+58C7]
+	  -> ONE multiply, ONE store.  orb_orient is one of exactly 360
+	     binary64 values and can be tabulated (FLOATSITES 3.1b).
+
+	:4089  p_orb_seed[n] = 3*(n*n+1)*nearstar_ray
+			     + (float) random (300*nearstar_ray) / 100;
+	  61519  mov ax,si / imul si / inc ax / imul ax,ax,3   ; int16
+	  61533  fild  word [bp-12h]
+	  61537  fmul  dword [027F]     ; * nearstar_ray, a FLOAT operand
+	  61542  fstp  XWORD [bp-1Ch]   ; <-- 80-BIT spill.  Loses nothing.
+	  61546  fld   dword [108C]     ; 300.0f
+	  61551  fmul  dword [027F]     ; * nearstar_ray
+	  61555  lcall __ftol           ; LIVE - no store in between
+	  61560  push  ax               ; random(int16)
+	  61563  call  random
+	  61571  fild  word [bp-12h]
+	  61575  fdiv  dword [0EC0]     ; / 100.0f
+	  61580  fld   XWORD [bp-1Ch]   ; reload the 80-bit temp
+	  61584  faddp st(1)
+	  61592  fstp  qword [bx+53C7]
+
+	  THIS SETTLES THE LINE FLOATSITES CALLED THE MOST DANGEROUS.  The
+	  `(float)` cast is not materialised: random() returns an int16,
+	  fild of it is exact, and the divide by 100 happens at 64-bit
+	  significand and is never narrowed to binary32.  The only spill in
+	  the whole statement is an XWORD, i.e. full extended precision.
+	  So the entire RHS is evaluated at PC=64 with no loss and is
+	  rounded to binary64 exactly once, at the store.  A port that
+	  honours the C type of the sub-expression and narrows to float is
+	  WRONG; so is one that spills to a double.
+
+	:4090  p_tilt[n]     = zrandom (10*p_orb_seed[n]) / 500;
+	  61602  fld   qword [bx+53C7]
+	  61607  fmul  dword [0DE6]     ; * 10.0f
+	  61611  lcall __ftol           ; LIVE
+	  61617  call  zrandom          ; returns in st(0)
+	  61623  fdiv  dword [1090]     ; / 500.0f
+	  61633  fstp  qword [bx+4C47]
+
+	:4091  p_orb_tilt[n] = zrandom (10*p_orb_seed[n]) / 5000;
+	  61643  fld qword [bx+53C7] / fmul dword [0DE6] / lcall __ftol
+	  61659  call zrandom / fdiv dword [1094] / fstp qword [bx+5647]
+
+	:4092  p_orb_ecc[n] = 1 - (double) random (p_orb_seed[n]
+			       + 10*fabs(p_orb_tilt[n])) / 2000;
+	  61684  fld   qword [bx+5647]
+	  61692  fstp  qword [bp-28h]   ; fabs is a REAL CALL, arg via memory
+	  61697  lcall 0000:04FC        ; fabs, result in st(0)
+	  61706  fmul  dword [0DE6]     ; * 10.0f
+	  61716  fadd  qword [bx+53C7]  ; + p_orb_seed[n]   <- this order
+	  61720  lcall __ftol           ; LIVE
+	  61728  call  random
+	  61736  fild  word [bp-12h]
+	  61740  fdiv  dword [1098]     ; / 2000.0f
+	  61745  fld1
+	  61748  fsubrp st(1)           ; 1 - it
+	  61756  fstp  qword [bx+5B47]
+
+	  Note fabs is a library call through a qword, so p_orb_tilt is
+	  ALREADY a binary64 there and the round trip costs nothing.  The
+	  addition is (10*|tilt|) + orb_seed, in that operand order.
+
+	:4093  p_ray[n] = (double) random (p_orb_seed[n]) * 0.001 + 0.01;
+	  61766  fld   qword [bx+53C7]
+	  61770  lcall __ftol           ; live and spilled agree here: the
+				          operand is already a binary64
+	  61778  call  random
+	  61786  fild  word [bp-12h]
+	  61790  fmul  qword [0DEE]     ; * 0.001, a DOUBLE
+	  61795  fadd  qword [0E30]     ; + 0.01,  a DOUBLE
+	  61805  fstp  qword [bx+4EC7]
+
+	:4094  p_ring[n] = zrandom (p_ray[n]) * (1 + (double)random(1000)/100);
+	  61815  fld   qword [bx+4EC7]
+	  61819  lcall __ftol
+	  61826  call  zrandom
+	  61831  fstp  XWORD [bp-1Ch]   ; 80-bit spill of zrandom's result
+	  61834  push  1000 / call random
+	  61847  fild  word [bp-12h] / fdiv dword [0EC0]   ; /100.0f
+	  61856  fld1 / faddp st(1)
+	  61862  fld   XWORD [bp-1Ch] / fmulp st(1)
+	  61874  fstp  qword [bx+49C7]
+
+	  SETTLES AN OPEN QUESTION IN nstopo.txt.  Its header says "the two
+	  operands of the `*` at :4094 are unsequenced in C; the order
+	  changes which draw lands where ... The order here is left to
+	  right, matching the plan's control."  The binary evaluates
+	  zrandom(p_ray[n]) FIRST and random(1000) second.  Left to right.
+	  nstopo's choice is now measured, not assumed.
+
+	----------------------------------------------------------------
+	3.  PHASE E, the per-moon loop.  :4194-4199
+	----------------------------------------------------------------
+
+	Same shapes, different divisors, and the array index register is
+	DI (q, the body) while the operand of :4199 is indexed by SI (n,
+	the PARENT planet) - visible directly at 62783-62789:
+
+	  62779  fstp qword [bx+5B47]   ; bx from DI  -> p_orb_ecc[q]
+	  62783  mov  bx,si             ; <-- the PARENT
+	  62789  fld  qword [bx+53C7]   ; p_orb_seed[n]
+	  62793  lcall __ftol / call random
+	  62809  fild word / fmul qword [10A0] (0.05) / fadd qword [10A8] (0.1)
+	  62828  fstp qword [bx+4EC7]   ; bx from DI  -> p_ray[q]
+	  62838  fldz / fstp qword [bx+49C7]        ; p_ring[q] = 0
+
+	  WAVE 4's ":4199 uses the PARENT's seed" is therefore not a reading
+	  of the C, it is in the register allocation.
+
+	:4196  fdiv dword [109C]  ; / 50.0f     (planets used 500)
+	:4197  fdiv dword [1090]  ; / 500.0f    (planets used 5000)
+	:4198  identical to :4092, including the fabs call at 0000:04FC.
+
+	----------------------------------------------------------------
+	4.  PHASES F AND G
+	----------------------------------------------------------------
+
+	key_radius is a DOUBLE STACK LOCAL at [bp-10h] and is stored on
+	every iteration (63467 fstp qword [bp-10h]), so the running sum is
+	rounded to binary64 once per planet.  It is not carried at extended
+	precision.
+
+	  63509  fld qword [bx+4EC7] / fmul qword [0518] / fstp qword [bp-10h]
+		 ; key_radius = p_ray[owner] * moon_orb_scaling
+	  63538  fld  qword [bx+0528]   ; avg_planet_ray[type], a double table
+	  63543  fstp XWORD [bp-1Ch]    ; 80-bit spill again
+	  63546  push 100 / call zrandom
+	  63554  fld  XWORD [bp-1Ch] / fmulp st(1)
+
+	:4348  p_ring[n] = 0.75 * p_ray[n] * (2 + random(3));
+	  63821  call random(3) / add ax,2
+	  63832  fild word [bp-12h]     ; (2 + r)  -- evaluated FIRST
+	  63841  fld  qword [bx+4EC7]   ; p_ray[n]
+	  63846  fmul dword [10D8]      ; * 0.75f
+	  63851  fmulp st(1)            ; * (2+r)
+	  63859  fstp qword [bx+49C7]
+
+	  Association is ((0.75 * p_ray) * (2+r)), matching C's left-to-
+	  right reading, but the DRAW happens before either multiply.
+
+	----------------------------------------------------------------
+	5.  WHAT THIS FILE DOES NOT SETTLE - say it out loud
+	----------------------------------------------------------------
+
+	* It is a transcription, and NOTHING GRADES IT.  There is no 1996
+	  artifact that exposes a geometry value: see the recon note below.
+	  Two readers agreeing that these bytes decode this way is evidence
+	  about the transcription, not about a running port.
+
+	* Phases F and G above are transcribed only at the points quoted.
+	  The full F loop (:4301-4341, the key_radius accumulation with its
+	  0.22 / 0.12 / 0.025 branch weights) and extract_ap_target_infos'
+	  nearstar_ray are NOT transcribed here.  Do not assume the missing
+	  parts look like the quoted ones.
+
+	* GEOMETRY IS NOT GRADEABLE BY ANY G.O.E.S MODULE.  Checked by
+	  reading them, and one first reading of this was WRONG and is
+	  corrected here rather than quietly dropped: of the module sources
+	  only DL.CPP and ST.CPP carry a copy of prepare_nearstar (both
+	  compute the geometry in full), and BOTH call it - DL.CPP:838 and
+	  ST.CPP:809.  What neither does is print any of it.
+
+	  DL.CPP prints through msg() -> printf() and emits nothing but
+	  object labels, nearstar_p_owner and nearstar_p_moonid
+	  (DL.CPP:890-981).  ST.CPP calls prepare_nearstar only to populate
+	  nearstar_x/y/z for a containment test (ST.CPP:799-804) and then
+	  writes a planet NUMBER to the comm file (ST.CPP:816-818); its
+	  printed output is four fixed strings.
+
+	  No module prints a radius, an orbital radius, a tilt, an
+	  eccentricity or a ring.  The only float format specifiers in the
+	  whole module set are SL.CPP:435-445 and PAR.CPP:480-501, and all
+	  ten of those print laststar_x/y/z or a distance - star
+	  coordinates, which STARMAP.BIN already constrains.
+
+	  The only 1996 exposure of a geometry value is NOCTIS.EXE's own
+	  HUD datasheet: NOCTIS.CPP:3083 prints "%1.4f" of
+	  nearstar_p_ray[ip_targetted] and :3065-3076 prints rtp() as
+	  EPOCS/triads.  Both go through wrouthud() into the 320x200
+	  framebuffer, not to stdout.  They are recoverable - snapshot()
+	  at NOCTIS-0.CPP:6413 writes a BMP - but only by driving the game
+	  interactively to a targeted planet, and %1.4f of a radius in
+	  0.01..0.5 centidyams carries three or four significant digits.
+	  That refutes a gross error.  It cannot settle a rounding.        )

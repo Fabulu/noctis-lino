@@ -1,0 +1,460 @@
+      ( *** geocast - the float-to-int cast boundary, measured ***
+
+	A PROGRAMME.  Writes work/geocast.bin, 64 int32 units.
+
+	FLOATPOLICY.md 3.3 lists the cast boundary as UNSETTLED and gives
+	one reason: the engine cannot truncate an unstored extended value,
+	so the two candidate readings of every C cast site cannot be
+	compared.  It quotes a hardware fact it could not produce -
+	(long)(1.0/41.0*41.0) is 0 live and 1 spilled - and it estimates
+	the hazard at "about 1e-7 per site at these magnitudes".
+
+	This probe produces both readings for all four expression shapes
+	that occur at the eleven float-argument draw sites, over inputs of
+	the shape those sites actually see, and counts the disagreements.
+	It answers two separate questions:
+
+	  1. can the live-extended chop be done at all?   (battery 1)
+	  2. how often does it matter?                    (batteries 2-5)
+
+	and it carries its own control:
+
+	  3. two of the shapes are exact by construction, so their two
+	     readings MUST agree on every input.  If battery 6 is not zero
+	     the reasoning in geoconv.txt's header is wrong and the counts
+	     above mean nothing.                          (battery 6)
+
+	Every number below is computed on this machine's x87 at control
+	word 133Fh inside one FEnter bracket, and the word is read back at
+	the end and reported.  The register-file layout is checked with
+	fld1 before anything is graded (FLOATPOLICY 3.6): a binary64 1.0
+	must read 00000000h then 3FF00000h, or every score is meaningless.
+
+	----------------------------------------------------------------
+	geocast.bin - 64 int32 units
+	----------------------------------------------------------------
+
+	  0  magic 47454F43h 'GEOC'	 1  version 1
+	  2  units used			 3  live control word, masked 0F3Fh
+	  4  guard FA0 after fld1	 5  guard FA1
+	  6  FStackOK before the batteries
+
+	  battery 1 - the landmark, (long)(1.0/41.0*41.0)
+	  7  live   8  spill after the divide   9  spill after the multiply
+	 10  fl64(1.0/41.0*41.0) low  half
+	 11  fl64(1.0/41.0*41.0) high half
+
+	  battery 2 - shape K*x, K=10, x = fl64(k)/10.0,  k = 1..N
+	 12  N	13  disagreements  14  first k  15  live  16  spill
+	 17  x low  18  x high
+
+	  battery 3 - shape K*x, K=10, x = 21.0 + fl64(r)/100.0, r = 0..N-1
+	       (the real shape of nearstar_p_orb_seed[n] at :4089 for n=0
+		and a class-0 star: 3*(0+1)*7.0 + random(2100)/100)
+	 19  N	20  disagreements  21  first r	22  live  23  spill
+	 24  x low  25  x high
+
+	  battery 4 - shape K*x, K=300, x = fl64(r)/1000.0, r = 1..N
+	       (the shape of :4195, zrandom(300*nearstar_p_ray[n]))
+	 26  N	27  disagreements  28  first r	29  live  30  spill
+	 31  x low  32  x high
+
+	  battery 5 - shape x + 10*fabs(y), x = 21.0 + fl64(r)/100.0,
+	       y = -fl64(r)/500.0   (the real shape of :4092 and :4198)
+	 33  N	34  disagreements  35  first r	36  live  37  spill
+
+	  battery 6 - THE CONTROL.  x = (double)(float)(fl64(r)/1000.0),
+	       K = 300.  A binary32 significand is 24 bits and 300 needs 7
+	       more, so the product is exact in binary64 and in extended
+	       and the two readings CANNOT differ.  Required: 0.
+	 38  N	39  disagreements, MUST BE 0
+
+	  battery 7 - the int16 narrowing at the call boundary, sign
+	       extended.  218231 is 10*orb_seed at a class-1 outer planet
+	       (FLOATSITES 4.2), which overflows int16 by 3.3x, and the
+	       wrap is the behaviour.
+	 40  GeoChop16 (218231)   41  GeoChop16 (-218231)
+	 42  GeoChop16 (25816)
+
+	  battery 8 - __ftol is `fistp qword` and returns the low 32 bits
+	       (NOCTIS.EXE 0000:127D).  A 32-bit fistp is a DIFFERENT
+	       operation on anything outside int32.  x = 3.0e9.
+	 46  GeoPlainChop    (fistp qword, low 32)
+	 47  GeoPlainChopD32 (fistp dword) - expect 80000000h
+	 48  GeoChop16 of unit 46	48  ... which is what random() sees
+
+	 43  FStackOK after the batteries    44  control word at the end
+	 45  the ambient control word FEnter found, masked                )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	geoconv;
+
+"directors"
+
+	program name = { geocast };
+	unit = 32;
+
+"constants"
+
+	GCMAGIC 	= 47454F43h;
+	GCN		= 4000;
+
+"variables"
+
+	gpoutfile	= { geocast.bin };
+
+	( constants, adjacent low-first pairs )
+
+	gp1lo	= 0;
+	gp1hi	= 3FF00000h;		( 1.0	  = 3FF0000000000000h )
+
+	gp41lo	= 0;
+	gp41hi	= 40448000h;		( 41.0	  = 4044800000000000h )
+
+	gp10lo	= 0;
+	gp10hi	= 40240000h;		( 10.0	  = 4024000000000000h )
+
+	gp100lo = 0;
+	gp100hi = 40590000h;		( 100.0   = 4059000000000000h )
+
+	gp500lo = 0;
+	gp500hi = 407F4000h;		( 500.0   = 407F400000000000h )
+
+	gpk3lo	= 0;
+	gpk3hi	= 408F4000h;		( 1000.0  = 408F400000000000h )
+
+	gp21lo	= 0;
+	gp21hi	= 40350000h;		( 21.0	  = 4035000000000000h )
+
+	gp3g0	= 0C0000000h;
+	gp3g1	= 41E65A0Bh;		( 3.0e9   = 41E65A0BC0000000h )
+
+	( scratch pairs )
+
+	gpx0	= 0;
+	gpx1	= 0;
+
+	gpy0	= 0;
+	gpy1	= 0;
+
+	( loop state )
+
+	gpk	= 0;
+	gpnd	= 0;
+	gpfirst = 0;
+	gplive	= 0;
+	gpspill = 0;
+
+"workspace"
+
+	gpout	= 64;
+
+"programme"
+
+	( ---- clear the output block ---- )
+
+	E = gpout;
+	A = 64;
+    "gpclear"
+	[E] = 0;
+	E + 1;
+	A ^ gpclear;
+
+	[gpout plus 0] = GCMAGIC;
+	[gpout plus 1] = 1;
+	[gpout plus 2] = 64;
+
+	( ---- one bracket for the whole run ---- )
+
+	[FCW] = FCWEXT;
+	=> FEnter;
+	A = [FCWSAV]; A & FCWMASK; [gpout plus 45] = A;
+
+	=> FCWRead;
+	A = [FI]; [gpout plus 3] = A;
+
+	( ---- FLOATPOLICY 3.6: the register file must be low-half-first
+	       and adjacent, or every number below is noise ---- )
+
+	{
+	    D9 E8				(fld1)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
+	}
+	A = [FA0]; [gpout plus 4] = A;
+	A = [FA1]; [gpout plus 5] = A;
+
+	=> FStackOK;
+	A = [FI]; [gpout plus 6] = A;
+
+( ==================================================================== )
+( BATTERY 1 - the landmark                                              )
+( ==================================================================== )
+
+	A = [gp1lo];  [FB0] = A;
+	A = [gp1hi];  [FB1] = A;
+	A = [gp41lo]; [FC0] = A;
+	A = [gp41hi]; [FC1] = A;
+
+	=> GeoQuoMulChopLive;	A = [FI]; [gpout plus 7] = A;
+
+	A = [gp1lo];  [FB0] = A;
+	A = [gp1hi];  [FB1] = A;
+	=> GeoQuoMulChopSpill1; A = [FI]; [gpout plus 8] = A;
+
+	A = [gp1lo];  [FB0] = A;
+	A = [gp1hi];  [FB1] = A;
+	=> GeoQuoMulChopSpill2; A = [FI]; [gpout plus 9] = A;
+
+	( the binary64 the scalar route produces, for the record: FA=1.0,
+	  FQuo by 41, FMul by 41.  Three stores, which is the point. )
+
+	A = [gp1lo];  [FA0] = A;
+	A = [gp1hi];  [FA1] = A;
+	A = [gp41lo]; [FB0] = A;
+	A = [gp41hi]; [FB1] = A;
+	=> FQuo;
+	A = [gp41lo]; [FB0] = A;
+	A = [gp41hi]; [FB1] = A;
+	=> FMul;
+	A = [FA0]; [gpout plus 10] = A;
+	A = [FA1]; [gpout plus 11] = A;
+
+( ==================================================================== )
+( BATTERY 2 - K=10 over x = fl64(k)/10.0                                )
+( ==================================================================== )
+
+	[gpnd] = 0; [gpfirst] = 0; [gplive] = 0; [gpspill] = 0;
+	[gpk] = 1;
+	A = 0; => GeoSetK;
+
+    "gpb2"
+	A = [gpk]; [FI] = A; => IntToF;
+	A = [gp10lo]; [FB0] = A;
+	A = [gp10hi]; [FB1] = A;
+	=> FQuo;
+	=> GeoStoreFAtoFB;
+	A = [FA0]; [gpx0] = A;
+	A = [FA1]; [gpx1] = A;
+
+	=> GeoKMulChopLive;  A = [FI]; [gplive]  = A;
+	=> GeoKMulChopSpill; A = [FI]; [gpspill] = A;
+
+      ? [gplive] = [gpspill] -> gpb2next;
+	A = [gpnd]; A + 1; [gpnd] = A;
+      ? [gpfirst] != 0 -> gpb2next;
+	A = [gpk];     [gpfirst] = A;
+	A = [gplive];  [gpout plus 15] = A;
+	A = [gpspill]; [gpout plus 16] = A;
+	A = [gpx0];    [gpout plus 17] = A;
+	A = [gpx1];    [gpout plus 18] = A;
+    "gpb2next"
+	A = [gpk]; A + 1; [gpk] = A;
+      ? [gpk] <= GCN -> gpb2;
+
+	[gpout plus 12] = GCN;
+	A = [gpnd];    [gpout plus 13] = A;
+	A = [gpfirst]; [gpout plus 14] = A;
+
+( ==================================================================== )
+( BATTERY 3 - K=10 over x = 21.0 + fl64(r)/100.0                        )
+( ==================================================================== )
+
+	[gpnd] = 0; [gpfirst] = 0;
+	[gpk] = 0;
+	A = 0; => GeoSetK;
+
+    "gpb3"
+	A = [gpk]; [FI] = A; => IntToF;
+	A = [gp100lo]; [FB0] = A;
+	A = [gp100hi]; [FB1] = A;
+	=> FQuo;			( FA = fl64(r/100) )
+	=> GeoStoreFAtoFB;		( FB = it )
+	A = [gp21lo]; [FA0] = A;
+	A = [gp21hi]; [FA1] = A;
+	=> FAdd;			( FA = fl64(21 + r/100) )
+	=> GeoStoreFAtoFB;
+	A = [FA0]; [gpx0] = A;
+	A = [FA1]; [gpx1] = A;
+
+	=> GeoKMulChopLive;  A = [FI]; [gplive]  = A;
+	=> GeoKMulChopSpill; A = [FI]; [gpspill] = A;
+
+      ? [gplive] = [gpspill] -> gpb3next;
+	A = [gpnd]; A + 1; [gpnd] = A;
+      ? [gpfirst] != 0 -> gpb3next;
+	A = [gpk]; A + 1;  [gpfirst] = A;	( +1 so 0 still means "none" )
+	A = [gplive];  [gpout plus 22] = A;
+	A = [gpspill]; [gpout plus 23] = A;
+	A = [gpx0];    [gpout plus 24] = A;
+	A = [gpx1];    [gpout plus 25] = A;
+    "gpb3next"
+	A = [gpk]; A + 1; [gpk] = A;
+      ? [gpk] < GCN -> gpb3;
+
+	[gpout plus 19] = GCN;
+	A = [gpnd];    [gpout plus 20] = A;
+	A = [gpfirst]; [gpout plus 21] = A;
+
+( ==================================================================== )
+( BATTERY 4 - K=300 over x = fl64(r)/1000.0                             )
+( ==================================================================== )
+
+	[gpnd] = 0; [gpfirst] = 0;
+	[gpk] = 1;
+	A = 1; => GeoSetK;
+
+    "gpb4"
+	A = [gpk]; [FI] = A; => IntToF;
+	A = [gpk3lo]; [FB0] = A;
+	A = [gpk3hi]; [FB1] = A;
+	=> FQuo;
+	=> GeoStoreFAtoFB;
+	A = [FA0]; [gpx0] = A;
+	A = [FA1]; [gpx1] = A;
+
+	=> GeoKMulChopLive;  A = [FI]; [gplive]  = A;
+	=> GeoKMulChopSpill; A = [FI]; [gpspill] = A;
+
+      ? [gplive] = [gpspill] -> gpb4next;
+	A = [gpnd]; A + 1; [gpnd] = A;
+      ? [gpfirst] != 0 -> gpb4next;
+	A = [gpk];     [gpfirst] = A;
+	A = [gplive];  [gpout plus 29] = A;
+	A = [gpspill]; [gpout plus 30] = A;
+	A = [gpx0];    [gpout plus 31] = A;
+	A = [gpx1];    [gpout plus 32] = A;
+    "gpb4next"
+	A = [gpk]; A + 1; [gpk] = A;
+      ? [gpk] <= GCN -> gpb4;
+
+	[gpout plus 26] = GCN;
+	A = [gpnd];    [gpout plus 27] = A;
+	A = [gpfirst]; [gpout plus 28] = A;
+
+( ==================================================================== )
+( BATTERY 5 - x + 10*fabs(y), the :4092 / :4198 shape                   )
+( ==================================================================== )
+
+	[gpnd] = 0; [gpfirst] = 0;
+	[gpk] = 0;
+
+    "gpb5"
+	( y = -fl64(r)/500 )
+	A = [gpk]; [FI] = A; => IntToF;
+	A = [gp500lo]; [FB0] = A;
+	A = [gp500hi]; [FB1] = A;
+	=> FQuo;
+	=> FNeg;
+	A = [FA0]; [gpy0] = A;
+	A = [FA1]; [gpy1] = A;
+
+	( x = 21 + fl64(r)/100 )
+	A = [gpk]; [FI] = A; => IntToF;
+	A = [gp100lo]; [FB0] = A;
+	A = [gp100hi]; [FB1] = A;
+	=> FQuo;
+	=> GeoStoreFAtoFB;
+	A = [gp21lo]; [FA0] = A;
+	A = [gp21hi]; [FA1] = A;
+	=> FAdd;
+
+	=> GeoStoreFAtoFB;
+	A = [gpy0]; [FC0] = A;
+	A = [gpy1]; [FC1] = A;
+
+	=> GeoSeedTiltChopLive;  A = [FI]; [gplive]  = A;
+	=> GeoSeedTiltChopSpill; A = [FI]; [gpspill] = A;
+
+      ? [gplive] = [gpspill] -> gpb5next;
+	A = [gpnd]; A + 1; [gpnd] = A;
+      ? [gpfirst] != 0 -> gpb5next;
+	A = [gpk]; A + 1; [gpfirst] = A;
+	A = [gplive];  [gpout plus 36] = A;
+	A = [gpspill]; [gpout plus 37] = A;
+    "gpb5next"
+	A = [gpk]; A + 1; [gpk] = A;
+      ? [gpk] < GCN -> gpb5;
+
+	[gpout plus 33] = GCN;
+	A = [gpnd];    [gpout plus 34] = A;
+	A = [gpfirst]; [gpout plus 35] = A;
+
+( ==================================================================== )
+( BATTERY 6 - THE CONTROL.  Exact by construction: MUST be 0.           )
+( ==================================================================== )
+
+	[gpnd] = 0;
+	[gpk] = 1;
+	A = 1; => GeoSetK;
+
+    "gpb6"
+	A = [gpk]; [FI] = A; => IntToF;
+	A = [gpk3lo]; [FB0] = A;
+	A = [gpk3hi]; [FB1] = A;
+	=> FQuo;
+	=> F32Narrow;			( FA = (double)(float)FA )
+	=> GeoStoreFAtoFB;
+
+	=> GeoKMulChopLive;  A = [FI]; [gplive]  = A;
+	=> GeoKMulChopSpill; A = [FI]; [gpspill] = A;
+
+      ? [gplive] = [gpspill] -> gpb6next;
+	A = [gpnd]; A + 1; [gpnd] = A;
+    "gpb6next"
+	A = [gpk]; A + 1; [gpk] = A;
+      ? [gpk] <= GCN -> gpb6;
+
+	[gpout plus 38] = GCN;
+	A = [gpnd]; [gpout plus 39] = A;
+
+( ==================================================================== )
+( BATTERY 7 - the int16 narrowing                                       )
+( ==================================================================== )
+
+	[FI] = 218231; => GeoChop16; A = [FI]; [gpout plus 40] = A;
+	[FI] = 0; A = 218231; B = 0; B - A; [FI] = B;
+	=> GeoChop16; A = [FI]; [gpout plus 41] = A;
+	[FI] = 25816;  => GeoChop16; A = [FI]; [gpout plus 42] = A;
+
+( ==================================================================== )
+( BATTERY 8 - fistp qword vs fistp dword outside int32                  )
+( ==================================================================== )
+
+	A = [gp3g0]; [FB0] = A;
+	A = [gp3g1]; [FB1] = A;
+	=> GeoPlainChop;    A = [FI]; [gpout plus 46] = A;
+	=> GeoChop16;	    A = [FI]; [gpout plus 48] = A;
+
+	A = [gp3g0]; [FB0] = A;
+	A = [gp3g1]; [FB1] = A;
+	=> GeoPlainChopD32; A = [FI]; [gpout plus 47] = A;
+
+( ==================================================================== )
+
+	=> FStackOK;
+	A = [FI]; [gpout plus 43] = A;
+	=> FCWRead;
+	A = [FI]; [gpout plus 44] = A;
+
+	=> FLeave;
+
+	[File Name]	= gpoutfile;
+	[File Command]	= WRITE;
+	[File Position] = 0;
+	[Block Pointer] = gpout;
+	[Block Size]	= 64;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= gpoutfile;
+	[File Command]	= SET SIZE;
+	[File Size]	= 64;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

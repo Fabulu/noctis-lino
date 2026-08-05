@@ -1,0 +1,619 @@
+      ( *** qaw5 - INDEPENDENT VERIFICATION PROBE for Wave 5 ***
+
+	Written by the QA agent.  It links the SHIPPED, UNMODIFIED
+	work/fbmem.txt and work/fbtick.txt and drives them directly.
+	It does NOT link fbshell, so nothing here can be explained by
+	the shell's own scaffolding.
+
+	What it measures, in order:
+
+	  S  the SERVO.  fbtick's "TK servo" divides counts-since-start
+	     by wall-ms-since-start.  [Counts] is 32 bits.  The battery
+	     drives the routine with SYNTHETIC origins - exactly the way
+	     fbshell's wrap battery drives the wait predicate - so a
+	     600-second-old origin can be tested in a millisecond.
+
+	  T  the TICK, four ways, 220 ticks each, under a full
+	     Noctis-shaped frame load:
+	       A  accumulate  + deterministic 60 ms hitch every 37 ticks
+	       B  re-base     + the same hitch
+	       C  accumulate  + no hitch
+	       D  re-base     + no hitch
+	     Re-base here is the FAIR control: the SAME exact rational
+	     period with the SAME carry, differing only in that the
+	     deadline is re-based on the previous FIRE time instead of
+	     being advanced from the previous DEADLINE.  Raw absolute
+	     counts are logged; every statistic is computed by the
+	     reader.
+
+	  A  the ALIASES, exercised by writing through one name and
+	     reading through the other.
+
+	  O  the OVERRUNS the original tolerated, forced deliberately.
+
+	  E  the present path's read-modify-write on the visible page.
+
+	Output: work/qa-out.bin, FBDUMP v1 containers with private
+	kinds 30 (scalars), 31 (servo) and 4 (TICKLOG, four of them).   )
+
+"libraries"
+
+	fbmem;
+	fbtick;
+
+"directors"
+
+	program name = { qaw5 };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	NT	= 220;
+	QHITCH	= 37;
+	QHITMS	= 60;
+	QCALMS	= 3000;
+
+	KQSCAL	= 30;
+	KQSRV	= 31;
+
+	QCIRPY	= 65000;	( cirrus: unsigned py )
+	QCIRPX	= 60000;	( cirrus: unsigned px )
+
+"variables"
+
+	qaname	= { qa-out.bin };
+
+	Qi	= 0;
+	Qj	= 0;
+	Qk	= 0;
+	Qp	= 0;
+	Qtmp	= 0;
+	Qsave	= 0;
+	Qw0	= 0;
+	Qbase	= 0;
+	Qhit	= 0;
+	Qsrvp	= 0;
+	Qsec	= 0;
+	Qmid	= 0;
+	Qtxtr	= 0;
+	Qpbg	= 0;
+	Qcnt	= 0;
+	Qy	= 0;		( PRIVATE to QA frame - must not be the tick counter )
+
+"workspace"
+
+	qpal	= 256;
+	qlogA	= 660;
+	qlogB	= 660;
+	qlogC	= 660;
+	qlogD	= 660;
+	qsrv	= 64;
+	qres	= 128;
+	qsnap	= 16;
+
+"programme"
+
+	=> QA main;
+	end;
+
+"QA main"
+	[Display Origin] = fb;
+	[Display Live Region] = VOID REGION;
+
+	=> MEM build rtab;
+	=> QA palfill;
+
+	=> TK seed;
+	=> TK cal begin;
+	=> QA residency;
+	=> TK cal end;
+
+	[qres plus 0] = [TKcpms];
+	[qres plus 1] = [TKcpms0];
+	[qres plus 2] = [TKcalms];
+	[qres plus 3] = [TKcalcnt];
+	[qres plus 35] = QWSTEADY;
+	[qres plus 36] = [Display Status];
+	[qres plus 60] = NT;
+
+	=> QA servo battery;
+	=> QA alias battery;
+	=> QA oob battery;
+	=> QA expand battery;
+
+	[Display Live Region] = WHOLE DISPLAY;
+	=> QA tick batteries;
+	[Display Live Region] = VOID REGION;
+
+	=> QA dump;
+	end;
+
+( ==================================================================== )
+( scaffolding                                                          )
+( ==================================================================== )
+
+"QA palfill"
+	A = qpal; B = 0; C = 0; B + 256;
+    "QA pf loop"
+	D = C; D * 65793;
+	[A] = D; A+; C+;
+	B ^ QA pf loop;
+	end;
+
+      ( make the whole 1.61 MB workspace resident, and give the
+	calibration bracket QCALMS of real work while doing it. )
+
+"QA residency"
+	=> TK read wall; [Qw0] = [TKtmp];
+    "QA res round"
+	A = nw; B = 0; B + NWTOP; C = 0;
+    "QA res loop"
+	C + 2654435761;
+	[A] = C; A+;
+	B ^ QA res loop;
+	=> TK read wall;
+	A = [TKtmp]; A - [Qw0];
+	? A '< QCALMS -> QA res round;
+	end;
+
+      ( QA frame : a Noctis-shaped frame.  Deliberately WITHOUT the
+	fused colour cycle, so the tick measurement is not measuring a
+	read-modify-write on the page. )
+
+"QA frame"
+	A = nw; A + RADPT; B = 0; B + ZADPT; C = 0;
+    "QA fr c1"
+	[A] = C; A+;
+	B ^ QA fr c1;
+
+	[Qy] = 0;
+    "QA fr y"
+	A = [Qy]; A * 320;
+	D = nw; D + RADPT; D + A;
+	E = 0;
+    "QA fr x"
+	C = E; C * [Qy]; C + E; C + [Qy]; C & 255;
+	[D] = C; D+; E+;
+	? E '< 320 -> QA fr x;
+	[Qy]+;
+	A = [Qy]; ? A '< 200 -> QA fr y;
+
+	D = nw; D + RADPT; E = nw; E + RADPR; A = 0; A + NPIX;
+    "QA fr cp"
+	C = [D]; [E] = C; D+; E+;
+	A ^ QA fr cp;
+
+	D = nw; D + RADPR; E = fb; A = 0; A + NQUAD;
+    "QA fr ex"
+	C = [D];	C + qpal; C = [C]; [E] = C;
+	C = [D plus 1];	C + qpal; C = [C]; [E plus 1] = C;
+	C = [D plus 2];	C + qpal; C = [C]; [E plus 2] = C;
+	C = [D plus 3];	C + qpal; C = [C]; [E plus 3] = C;
+	D + 4; E + 4;
+	A ^ QA fr ex;
+
+	[Display Command] = RETRACE; isocall;
+	end;
+
+( ==================================================================== )
+( S - the servo, driven with synthetic origins                         )
+( ==================================================================== )
+
+      ( One case: pretend the run started [Qsec] seconds ago, with a
+	clock that has been running the whole time.  [TKsrv0c] is set to
+	exactly what [Counts] read then - which is a 32-bit value, so
+	for a long enough interval it is NOT "now minus the true
+	elapsed count", it is that difference taken mod 2^32.  That is
+	the whole point.  [Qmid] = 1 instead simulates the wall clock
+	crossing midnight one second ago. )
+
+"QA servo case"
+	[Qsave] = [TKcpms];
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Qsec]; A '* 1000;			( elapsed, ms )
+	[Qtmp] = A;
+	A '* [TKcpms];				( elapsed counts, mod 2^32 )
+	B = [Counts]; B - A; [TKsrv0c] = B;
+
+	=> TK read wall;
+	A = [TKtmp]; A - [Qtmp];
+	? [Qmid] = 0 -> QA sc nomid;
+	( midnight: the recorded origin is LATER than "now" )
+	A = [TKtmp]; A + 1000;
+    "QA sc nomid"
+	[TKsrv0w] = A;
+
+	A = 0; A + SERVON; A-; [TKsrvn] = A;
+	=> TK servo;
+
+	A = [Qsrvp];
+	[A plus 0] = [Qsec];
+	[A plus 1] = [TKsrvcnt];
+	[A plus 2] = [TKsrvms];
+	C = [TKsrvcnt];
+	? [TKsrvms] = 0 -> QA sc zero;
+	C '/ [TKsrvms];
+	-> QA sc rate;
+    "QA sc zero"
+	C = 0;
+    "QA sc rate"
+	[A plus 3] = C;
+	[A plus 4] = [Qsave];
+	[A plus 5] = [TKcpms];
+	[A plus 6] = [Qmid];
+	[A plus 7] = 0;
+	A + 8; [Qsrvp] = A;
+
+	( restore )
+	[TKcpms] = [Qsave];
+	=> TK period;
+	end;
+
+"QA servo battery"
+	A = qsrv; [Qsrvp] = A;
+	[Qmid] = 0;
+	[Qsec] = 60;	=> QA servo case;
+	[Qsec] = 300;	=> QA servo case;
+	[Qsec] = 450;	=> QA servo case;
+	[Qsec] = 600;	=> QA servo case;
+	[Qsec] = 900;	=> QA servo case;
+	[Qmid] = 1; [Qsec] = 1;
+			=> QA servo case;
+	end;
+
+( ==================================================================== )
+( A - the aliases                                                      )
+( ==================================================================== )
+
+"QA alias battery"
+
+	( ---- A1: objectschart <-> ruinschart, LINOBUF alias 3 ----
+	  NOCTIS-1.CPP:1813 stores the WHOLE BYTE 0x40 through
+	  ruinschart; NOCTIS-1.CPP:1324 reads bits 0-1 of the SAME byte
+	  through objectschart[h].nr_of_objects.  Write one, read the
+	  other. )
+
+	( objectschart[12345].nr_of_objects = 3, object2_class = 2 )
+	[MQval] = 0;
+	[MQfld] = 0; [MQout] = 3; => MEM quad set;
+	[MQfld] = 3; [MQout] = 2; => MEM quad set;
+	A = ROBJ; A + 12345; [MBptr] = A; [MBval] = [MQval]; => MEM put byte;
+	A = ROBJ; A + 12346; [MBptr] = A; [MBval] = 255;     => MEM put byte;
+
+	A = ROBJ; A + 12345; [MBptr] = A; => MEM get byte;
+	[qres plus 4] = [MBval];
+	[MQval] = [MBval]; [MQfld] = 0; => MEM quad get;
+	[qres plus 5] = [MQout];
+
+	( ruinschart[12345] = AF1 : a whole-byte store of 0x40 )
+	A = ROBJ; A + 12345; [MBptr] = A; [MBval] = 64; => MEM put byte;
+
+	A = ROBJ; A + 12345; [MBptr] = A; => MEM get byte;
+	[qres plus 6] = [MBval];
+	[MQval] = [MBval]; [MQfld] = 0; => MEM quad get;
+	[qres plus 7] = [MQout];
+	[MQval] = [MBval]; [MQfld] = 3; => MEM quad get;
+	[qres plus 8] = [MQout];
+	A = ROBJ; A + 12346; [MBptr] = A; => MEM get byte;
+	[qres plus 9] = [MBval];
+
+	( ---- A3 setup: put a known font row in the SPLIT digimap2 ---- )
+	A = digimap2; [A plus 7] = 305419896;
+	A = RNGLB; A + 22586; A + 28;
+	[MBptr] = A; [MBval] = 171; => MEM put byte;
+
+	( ---- A2: n_globes_map <-> sea texture, LINOBUF alias 1 ----
+	  write a globe-table byte, then let the sea gradient run over
+	  the whole 32768-byte region, then read the same byte back. )
+
+	A = RNGLB; A + 1000; [MBptr] = A; [MBval] = 42; => MEM put byte;
+	A = RNGLB; A + 1000; [MBptr] = A; => MEM get byte;
+	[qres plus 10] = [MBval];
+
+	( sea fill: nw[RNGLB + k] = k AND 63, k = 0..32767 )
+	A = nw; A + RNGLB; C = 0; B = 0; B + ZNGLB;
+    "QA sea loop"
+	D = C; D & 63; [A] = D; A+; C+;
+	B ^ QA sea loop;
+
+	A = RNGLB; A + 1000; [MBptr] = A; => MEM get byte;
+	[qres plus 11] = [MBval];		( 1000 AND 63 = 40, not 42 )
+
+	( read the same region through the 16-bit texel address:
+	  U = 0x2A00, V = 0x1300 -> texel = 0x13*256 + 0x2A = 4906 )
+	C = 4864; C > 8; C & 255; C < 8;	( V = 0x1300 )
+	[Qtmp] = 10752; [Qtmp] > 8; [Qtmp] & 255;	( U = 0x2A00 )
+	C + [Qtmp];
+	[qres plus 13] = C;
+	A = RNGLB; A + C; [MBptr] = A; => MEM get byte;
+	[qres plus 12] = [MBval];
+
+	( ---- A3: digimap2 is SPLIT.  The sea fill has just walked over
+	  the bytes the DOS build aliased the font onto. ---- )
+	A = digimap2; [qres plus 14] = [A plus 7];
+	A = RNGLB; A + 22586; A + 28; [MBptr] = A; => MEM get byte;
+	[qres plus 15] = [MBval];		( DOS: the font byte, destroyed )
+	[qres plus 16] = 171;			( what was written there )
+
+	( ---- A4: p_background <-> s_background runtime swap ---- )
+	[Qpbg] = RPBG;
+	A = [Qpbg]; A + 100; [MBptr] = A; [MBval] = 7; => MEM put byte;
+	[Qpbg] = RSBG;				( NOCTIS-0.CPP:5326 )
+	A = [Qpbg]; A + 100; [MBptr] = A; [MBval] = 9; => MEM put byte;
+	A = RPBG; A + 100; [MBptr] = A; => MEM get byte; [qres plus 17] = [MBval];
+	A = RSBG; A + 100; [MBptr] = A; => MEM get byte; [qres plus 18] = [MBval];
+
+	( ---- A5: txtr at p_surfacemap and at p_surfacemap+2064 ---- )
+	[Qtxtr] = RPSM;
+	A = [Qtxtr]; A + 2064; A + 5; [MBptr] = A; [MBval] = 99; => MEM put byte;
+	A = RPSM; A + 2064; [Qtxtr] = A;	( NOCTIS.CPP:1010 )
+	A = [Qtxtr]; A + 5; [MBptr] = A; => MEM get byte;
+	[qres plus 19] = [MBval];
+	end;
+
+( ==================================================================== )
+( O - the overruns                                                     )
+( ==================================================================== )
+
+"QA oob battery"
+
+	( ---- O1: digit_at's txtr[-6..-1] with txtr = p_surfacemap.
+	  NOCTIS.CPP:614-628.  LINOBUF 3 class B calls the 16 units
+	  below p_surfacemap "a dead pad".  LINOBUF 3 also makes every
+	  pad a canary.  Do the write and ask the canary. ---- )
+
+	=> MEM poison pads;
+	=> MEM check pads;
+	[qres plus 64] = [MCfired];		( must be 0 : clean first )
+
+	A = RPSM; A - 6; [MBptr] = A; [MBval] = 0; => MEM put byte;
+	A = RPSM; A - 5; [MBptr] = A; [MBval] = 5; => MEM put byte;
+	A = RPSM; A - 4; [MBptr] = A; [MBval] = 5; => MEM put byte;
+	A = RPSM; A - 3; [MBptr] = A; [MBval] = 5; => MEM put byte;
+	A = RPSM; A - 2; [MBptr] = A; [MBval] = 5; => MEM put byte;
+	A = RPSM; A - 1; [MBptr] = A; [MBval] = 5; => MEM put byte;
+
+	=> MEM check pads;
+	[qres plus 20] = [MCfired];
+	[qres plus 21] = [MCn];
+	[qres plus 22] = [MCat];
+
+	( ---- O2: cirrus with a 32-bit index.  NOCTIS-0.CPP:4716-4727:
+		mov bx, py ; add bx, px ; shr bx, 1
+	  BX is 16 bits, so the sum wraps BEFORE the shift.  fbmem
+	  ships no 16-bit primitive, so the natural transcription keeps
+	  32 bits.  Where does each land? ---- )
+
+	=> MEM zero pads;
+	=> MEM poison pads;
+	=> MEM check pads;
+	[qres plus 65] = [MCfired];		( clean first )
+
+	A = QCIRPY; A + QCIRPX; A > 1;		( the UNWRAPPED index )
+	[qres plus 25] = A;
+	B = ROBJ; B + A; [Qtmp] = B;
+	[MBptr] = B; [MBval] = 31; => MEM put byte;
+
+	=> MEM check pads;
+	[qres plus 23] = [MCfired];
+	[qres plus 24] = [MCn];
+
+	A = [Qtmp]; [MBptr] = A; => MEM get byte;
+	[qres plus 26] = [MBval];
+	A = [Qtmp]; A - RADPT; [qres plus 27] = A;
+
+	A = QCIRPY; A + QCIRPX; A & 65535; A > 1;	( the WRAPPED index )
+	[qres plus 28] = A;
+	? A '< ZOBJ -> QA o2 in;
+	[qres plus 29] = 0;
+	-> QA o2 done;
+    "QA o2 in"
+	[qres plus 29] = 1;
+    "QA o2 done"
+
+	( ---- O3: the one-unit overrun the shell already claims to
+	  catch, repeated on a DIFFERENT region so the canary is not
+	  graded only where it was designed. ---- )
+	=> MEM zero pads;
+	=> MEM poison pads;
+	A = nw; A + RPVF; A + ZPVF; [A] = 48879;
+	=> MEM check pads;
+	[qres plus 66] = [MCfired];		( expect 7 = pvfile id 6 + 1 )
+	[qres plus 67] = [MCn];
+	[qres plus 68] = [MCat];
+
+	( ---- O4: nw[0..31].  LINOBUF 2.3 lists a low pad; MEM check
+	  pads iterates region END addresses only, so the 32 units below
+	  n_offsets_map are never poisoned and never checked.  Write
+	  there and ask. ---- )
+	=> MEM zero pads;
+	=> MEM poison pads;
+	A = nw; [A plus 0] = 3735928559; [A plus 31] = 3735928559;
+	=> MEM check pads;
+	[qres plus 69] = [MCfired];		( expect 0 : not covered )
+	[qres plus 70] = [MCn];
+
+	=> MEM zero pads;
+	A = nw; [A plus 0] = 0; [A plus 31] = 0;
+	end;
+
+( ==================================================================== )
+( E - the present path's read-modify-write                             )
+( ==================================================================== )
+
+      ( fbshell's "FB expand" fuses
+		C = [D]; B = C AND 192; C+1; C AND 63; C + B; [D] = C;
+	into the present, writing the result BACK into the visible page.
+	The identical arithmetic does appear in the original - at
+	NOCTIS.CPP:3781-3786 - but over s_background, 64800 bytes, in
+	the star-surface path, not over the page and not per present.
+	Here it is applied five times to adaptor, as the present path
+	does, and the page is NOT rebuilt in between. )
+
+"QA expand battery"
+	=> QA frame;			( builds adapted, copies to adaptor )
+
+	A = nw; A + RADPR;
+	[qsnap plus 0] = [A plus 0];
+	[qsnap plus 1] = [A plus 1];
+	[qsnap plus 2] = [A plus 12345];
+	[qres plus 30] = [A plus 0];
+	[qres plus 33] = [A plus 1];
+
+	[Qj] = 0;
+    "QA ex round"
+	D = nw; D + RADPR; E = fb; A = 0; A + NQUAD;
+    "QA ex loop"
+	C = [D];	 B = C; B & 192; C + 1; C & 63; C + B; [D] = C;
+			 C + qpal; C = [C]; [E] = C;
+	C = [D plus 1];  B = C; B & 192; C + 1; C & 63; C + B; [D plus 1] = C;
+			 C + qpal; C = [C]; [E plus 1] = C;
+	C = [D plus 2];  B = C; B & 192; C + 1; C & 63; C + B; [D plus 2] = C;
+			 C + qpal; C = [C]; [E plus 2] = C;
+	C = [D plus 3];  B = C; B & 192; C + 1; C & 63; C + B; [D plus 3] = C;
+			 C + qpal; C = [C]; [E plus 3] = C;
+	D + 4; E + 4;
+	A ^ QA ex loop;
+	[Qj]+;
+	A = [Qj]; ? A '< 5 -> QA ex round;
+
+	A = nw; A + RADPR;
+	[qres plus 31] = [A plus 0];
+	[qres plus 34] = [A plus 1];
+
+	( how many of the 64000 visible units moved )
+	[Qcnt] = 0;
+	D = nw; D + RADPR; E = nw; E + RADPT; A = 0; A + NPIX;
+    "QA ex cmp"
+	C = [D]; B = [E]; C - B;
+	? C = 0 -> QA ex same;
+	[Qcnt]+;
+    "QA ex same"
+	D+; E+;
+	A ^ QA ex cmp;
+	[qres plus 32] = [Qcnt];
+	end;
+
+( ==================================================================== )
+( T - the tick, four ways                                              )
+( ==================================================================== )
+
+"QA tick batteries"
+	[Qbase] = qlogA; [Qhit] = QHITCH; [Qmid] = 0;
+	[Qp] = 40; => QA phase acc;
+	[Qbase] = qlogB; [Qhit] = QHITCH;
+	[Qp] = 41; => QA phase reb;
+	[Qbase] = qlogC; [Qhit] = 0;
+	[Qp] = 42; => QA phase acc;
+	[Qbase] = qlogD; [Qhit] = 0;
+	[Qp] = 43; => QA phase reb;
+	end;
+
+      ( QA load : the frame, plus the deterministic hitch. )
+
+"QA load"
+	=> QA frame;
+	A = [Qhit]; ? A = 0 -> QA ld done;
+	A = [Qi]; A+; A % [Qhit];
+	? A != 0 -> QA ld done;
+	[TKtmp] = QHITMS; => TK burn;
+    "QA ld done"
+	end;
+
+"QA logit"
+	A = [Qbase]; B = [Qi]; C = B; C + B; C + B; A + C;
+	[A plus 0] = [TKnow];
+	[A plus 1] = [TKdeadline];
+	[A plus 2] = [TKflags];
+	end;
+
+      ( phase ACC : LINOBUF 5.5 rule 1, the shipped discipline. )
+
+"QA phase acc"
+	=> TK start;
+	=> TK read wall; [Qw0] = [TKtmp];
+	A = [Qp]; A + qres; C = [TKdeadline]; [A plus 4] = C;
+	[Qi] = 0;
+    "QA pa loop"
+	=> QA load;
+	[TKflags] = 0;
+	=> TK advance;
+	=> TK skip;
+	=> TK wait;
+	=> QA logit;
+	[Qi]+;
+	A = [Qi]; ? A '< NT -> QA pa loop;
+	=> QA phase tail;
+	end;
+
+      ( phase REB : identical in every respect except that the deadline
+	is re-based on the previous FIRE time.  Same exact rational
+	period, same carry, same skip, same wait, same load. )
+
+"QA phase reb"
+	=> TK start;
+	[TKnow] = [TKdeadline];
+	=> TK read wall; [Qw0] = [TKtmp];
+	A = [Qp]; A + qres; C = [TKdeadline]; [A plus 4] = C;
+	[Qi] = 0;
+    "QA pb loop"
+	=> QA load;
+	[TKflags] = 0;
+	[TKdeadline] = [TKnow];
+	=> TK advance;
+	=> TK skip;
+	=> TK wait;
+	=> QA logit;
+	[Qi]+;
+	A = [Qi]; ? A '< NT -> QA pb loop;
+	=> QA phase tail;
+	end;
+
+"QA phase tail"
+	=> TK read wall;
+	A = [TKtmp]; A - [Qw0];
+	B = [Qp]; B + qres; [B] = A;
+	C = [TKnow]; [B plus 5] = C;
+	C = [TKskips];  [B plus 12] = C;
+	C = [TKsleeps]; [B plus 16] = C;
+	end;
+
+( ==================================================================== )
+( the dump                                                             )
+( ==================================================================== )
+
+"QA dump"
+	=> DMP reset;
+	[DCpms] = [TKcpms];
+	[DTicks] = NT;
+
+	[DKind] = KQSCAL; [DW] = 0; [DH] = 0;
+	A = qres; [DBptr] = A; [DBcnt] = 128; => DMP rec;
+
+	[DKind] = KQSRV;
+	A = qsrv; [DBptr] = A; [DBcnt] = 64; => DMP rec;
+
+	[DKind] = KTICK;
+	A = qlogA; [DBptr] = A; C = NT; C * 3; [DBcnt] = C; => DMP rec;
+	A = qlogB; [DBptr] = A; C = NT; C * 3; [DBcnt] = C; => DMP rec;
+	A = qlogC; [DBptr] = A; C = NT; C * 3; [DBcnt] = C; => DMP rec;
+	A = qlogD; [DBptr] = A; C = NT; C * 3; [DBcnt] = C; => DMP rec;
+
+	[File Name]	= qaname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= dump;
+	[Block Size]	= [DPcnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= qaname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= [DPcnt];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;

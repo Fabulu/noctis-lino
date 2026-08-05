@@ -1,0 +1,308 @@
+      ( PROBE W5C-2 : [Counts] wraps every ~477 s.  Prove the tick survives it.
+
+        Three things are established here, none of them by waiting 477 s:
+
+        1. IDENTITY BY CONSTRUCTION.  For 196,608 origins spread over three
+           bands of the 32-bit ring -- the 64K just BELOW the wrap, the 64K
+           just ABOVE it, and the 64K around the SIGN boundary 2^31, which is
+           where a signed difference test could break -- and 10 deltas each,
+           (c0 + delta) - c0 == delta must hold with ordinary wrapping
+           32-bit arithmetic.
+
+        2. THE PREDICATE.  The tick loop does not compare timestamps, it
+           tests the SIGN of (now - deadline).  For the same origins and six
+           offsets t around one period P, sign(c0+t - (c0+P)) < 0 must be
+           true exactly when t < P.  That is the property the loop actually
+           relies on, checked separately from the identity.
+
+        3. THE LOOP ITSELF, ACROSS A REAL WRAP.  Every clock read is biased
+           by a constant chosen at run time so that the biased clock crosses
+           2^32 three ticks into the run.  The arithmetic is then genuinely
+           wrapping, driven by the real high performance timer -- only the
+           origin is moved.  The RAW counts are recorded alongside, so the
+           periods can be checked against an unwrapped clock.
+
+        4. THE BROKEN CONTROL.  The same loop with the predicate replaced by
+           the naive unsigned timestamp compare  ? now '< deadline -> wait .
+           It must fail at the wrap, and the recorded raw counts say by how
+           much.  A probe that only shows the good version passing has not
+           shown that the wrap is dangerous. )
+
+"directors"
+
+	program name = { probe_w5c_wrap };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	NPIX	= 64000;
+	NBAND	= 65536;
+	NDELTA	= 10;
+	NTV	= 6;
+	NTW	= 24;
+	SUBN	= 44505;
+	SUBD	= 596591;
+	HALFD	= 298295;
+
+"variables"
+
+	result file name = { probe_w5c_wrap.bin };
+
+	cpms	= 0;
+	base	= 0;
+	subper	= 0;
+	perfix	= 0;
+	acc	= 0;
+	deadline = 0;
+	bias	= 0;
+	rawnow	= 0;
+	biasnow	= 0;
+	tick	= 0;
+	i	= 0;
+	k	= 0;
+	c0	= 0;
+	dl	= 0;
+	now	= 0;
+	tv	= 0;
+	deadl	= 0;
+	bbase	= 0;
+	bstep	= 0;
+	nchk1	= 0;
+	nfail1	= 0;
+	nchk2	= 0;
+	nfail2	= 0;
+	tmp	= 0;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;
+	fb	= 320 mtp 200;
+	deltas	= 10;
+	tvals	= 6;
+	gr	= 24;
+	gb	= 24;
+	br	= 24;
+	bb	= 24;
+	head	= 16;
+
+"programme"
+
+	[Display Origin] = fb;
+
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	A = adapted; B = 0; C = 0;
+    "adfill"
+	[A] = C; A+; B+;
+	? B < NPIX -> adfill;
+
+	( ---- the exact period, same rational as probe W5C-1 ---- )
+
+	[cpms] = [Counts Per Millisecond];
+	A = [cpms]; A '* 55;	[base]   = A;
+	A = [cpms]; A '* SUBN;	[subper] = A;
+	A = [subper]; A + HALFD; A '/ SUBD;
+	B = [base]; B - A; [perfix] = B;
+
+	( ---- the delta table ---- )
+
+	[deltas plus 0] = 1;
+	[deltas plus 1] = 2;
+	[deltas plus 2] = 3;
+	[deltas plus 3] = 7;
+	[deltas plus 4] = 1000;
+	[deltas plus 5] = 65536;
+	[deltas plus 6] = [perfix];
+	A = [perfix]; A+; [deltas plus 7] = A;
+	[deltas plus 8] = 7FFFFFFEh;
+	[deltas plus 9] = 7FFFFFFFh;
+
+	( ---- the offsets around one period ---- )
+
+	[tvals plus 0] = 0;
+	[tvals plus 1] = 1;
+	A = [perfix]; A-;  [tvals plus 2] = A;
+	[tvals plus 3] = [perfix];
+	A = [perfix]; A+;  [tvals plus 4] = A;
+	A = [perfix]; A + [perfix]; [tvals plus 5] = A;
+
+	( ---- 1 and 2 : the three bands ---- )
+
+	[bbase] = FFFFFFFFh; [bstep] = FFFFFFFFh;	( c0 = 0xFFFFFFFF - i )
+	=> Band;
+	[bbase] = 0;          [bstep] = 1;		( c0 = i )
+	=> Band;
+	[bbase] = 7FFF8000h; [bstep] = 1;		( c0 = 2^31 - 32768 + i )
+	=> Band;
+
+	( ---- 3 : the real loop, biased so the clock wraps at tick 3 ---- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	B = 0; B - A;
+	C = [perfix]; C * 3;
+	B - C;
+	[bias] = B;			( bias = -(now + 3P) )
+	[head plus 8] = [Counts];
+
+	[acc] = 0;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A + [bias];
+	[deadline] = A;
+	[tick] = 0;
+    "G loop"
+	=> Frame;
+	=> Advance;
+    "G wait"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	[rawnow] = A;
+	A + [bias];
+	[biasnow] = A;
+	A - [deadline];
+	? A < 0 -> G wait;
+	B = [tick]; C = B; B + gr; [B] = [rawnow];
+	C + gb; [C] = [biasnow];
+	[tick]+;
+	A = [tick]; ? A < NTW -> G loop;
+
+	( ---- 4 : the same loop with the naive unsigned timestamp compare ---- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	B = 0; B - A;
+	C = [perfix]; C * 3;
+	B - C;
+	[bias] = B;
+
+	[acc] = 0;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A + [bias];
+	[deadline] = A;
+	[tick] = 0;
+    "X loop"
+	=> Frame;
+	=> Advance;
+    "X wait"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	[rawnow] = A;
+	A + [bias];
+	[biasnow] = A;
+	? A '< [deadline] -> X wait;
+	B = [tick]; C = B; B + br; [B] = [rawnow];
+	C + bb; [C] = [biasnow];
+	[tick]+;
+	A = [tick]; ? A < NTW -> X loop;
+
+	( ========================= dump ========================= )
+
+	[head plus 0]  = [cpms];
+	[head plus 1]  = [perfix];
+	[head plus 2]  = [nchk1];
+	[head plus 3]  = [nfail1];
+	[head plus 4]  = [nchk2];
+	[head plus 5]  = [nfail2];
+	[head plus 6]  = NTW;
+	[head plus 7]  = [bias];
+	[head plus 9]  = [base];
+	[head plus 10] = [subper];
+	[head plus 11] = SUBD;
+
+	[Block Pointer] = head;	[tmp] = 16;  [c0] = 0;   => Put;
+	[Block Pointer] = gr;	[tmp] = NTW; [c0] = 16;  => Put;
+	[Block Pointer] = gb;	[tmp] = NTW; [c0] = 40;  => Put;
+	[Block Pointer] = br;	[tmp] = NTW; [c0] = 64;  => Put;
+	[Block Pointer] = bb;	[tmp] = NTW; [c0] = 88;  => Put;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 112;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+"Put"
+	[File Name]	= result file name;
+	[File Position] = [c0];
+	[File Position] * BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Size]	= [tmp];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+"Advance"
+	A = [acc]; A + [subper];
+	B = A; B '/ SUBD;
+	C = B; C '* SUBD; A - C;
+	[acc] = A;
+	A = [base]; A - B;
+	[deadline] + A;
+	end;
+
+    ( ---- one band of 65536 origins: identity, then the sign predicate ---- )
+"Band"
+	[i] = 0;
+    "bi"
+	A = [i]; A * [bstep]; A + [bbase]; [c0] = A;
+
+	[k] = 0;
+    "bk"
+	A = [k]; A + deltas; A = [A]; [dl] = A;
+	B = [c0]; B + A; [now] = B;
+	B - [c0];
+	C = [dl];
+	? B != C -> b fail;
+	-> b ok;
+    "b fail"
+	[nfail1]+;
+    "b ok"
+	[nchk1]+;
+	[k]+; A = [k]; ? A < NDELTA -> bk;
+
+	A = [c0]; A + [perfix]; [deadl] = A;
+	[k] = 0;
+    "bp"
+	A = [k]; A + tvals; A = [A]; [tv] = A;
+	B = [c0]; B + A;
+	B - [deadl];
+	C = [tv];
+	D = [perfix];
+	? C '< D -> exp lt;
+	? B < 0 -> p fail;
+	-> p ok;
+    "exp lt"
+	? B >= 0 -> p fail;
+	-> p ok;
+    "p fail"
+	[nfail2]+;
+    "p ok"
+	[nchk2]+;
+	[k]+; A = [k]; ? A < NTV -> bp;
+
+	[i]+; A = [i]; ? A < NBAND -> bi;
+	end;
+
+"Frame"
+	D = adapted;
+	E = fb;
+	A = 0; A + NPIX;
+    "f expand"
+	C = [D];
+	C + pal;
+	C = [C];
+	[E] = C;
+	D+; E+;
+	A ^ f expand;
+	[Display Command] = RETRACE; isocall;
+	end;

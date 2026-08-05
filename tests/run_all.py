@@ -8,6 +8,7 @@
     python tests/run_all.py wave2      only the Wave 2 decoder pin
     python tests/run_all.py float      only the Wave 3 float contract
     python tests/run_all.py nearstar   only the Wave 4 generation test
+    python tests/run_all.py wave5      only the Wave 5 buffer model / framebuffer
 
 Each test is a standalone program - `python tests/test_galaxy.py` works on its
 own and prints the same output - so this driver only sequences them and sums up
@@ -31,6 +32,16 @@ test_nearstar does the same for the Wave 4 driver and its six libraries, and
 additionally builds seven deliberately sabotaged copies of them; it also needs
 the DL.EXE captures under tests/gen/recon_c, and reports the leg as skipped
 rather than passing quietly if they are missing.
+
+test_wave5 rebuilds tests/gen/w5 from scratch on every run - the three Wave 5
+libraries out of work/, the Wave 3 float engine, and its own probe - and then
+builds thirteen deliberately broken variants of them. It needs the DOS sources
+under the noctis clone root, because the workspace layout it grades is
+parsed out of NOCTIS-D.H and NOCTIS.CPP rather than typed in. It also builds
+ONE variant that opens a 320x200 window for about two seconds; --nodisp turns
+that off. Three of its checks are XFAIL - defects the code as shipped still
+has, listed in docs-notes/BUFFERMODEL.md section 10 - and it fails if one of
+them starts passing without the document being updated.
 """
 
 import os
@@ -57,6 +68,7 @@ TESTS = [
     ("test_wave2.py", "the random() argument type and zrandom's operand order"),
     ("test_floatcontract.py", "the Wave 3 float contract, graded by STARMAP.BIN"),
     ("test_nearstar.py", "Wave 4 draw accounting, graded by STARMAP.BIN and DL.EXE"),
+    ("test_wave5.py", "Wave 5 buffer model, framebuffer and the 54.9254 ms tick"),
 ]
 
 # Tests that have a slower, more complete mode of their own. run_all always
@@ -68,7 +80,9 @@ DEEPER = {"test_brtlrand.py": "--exhaustive",
 # reader knows they exist, and so nobody mistakes the fast path for the test.
 # test_nearstar --quick skips the seven sabotages, which is exactly the part
 # that shows the graders can fail; run_all never takes it.
-FASTER = {"test_nearstar.py": "--quick  (skips the sabotages - not a pass)"}
+FASTER = {"test_nearstar.py": "--quick  (skips the sabotages - not a pass)",
+          "test_wave5.py": "--quick  (skips the sabotages - not a pass); "
+                           "--nodisp skips the one probe that opens a window"}
 
 
 def main():

@@ -1,0 +1,400 @@
+      ( *** geoconv - float to int at the LIVE top of the x87 stack ***
+
+	This is a LIBRARY.  It needs fpabi, fpctl, fpx87 and fpconv, which
+	the top-level programme lists BEFORE it.  It modifies none of them,
+	so FLOATPOLICY.md's contract and tests/test_floatcontract.py stay
+	literally true: everything new lives in this wave's own namespace.
+
+	----------------------------------------------------------------
+	WHAT IS MISSING FROM fpconv, AND WHY IT MATTERS
+	----------------------------------------------------------------
+
+	FLOATPOLICY.md 3.3 and 6.1:
+
+	    "The engine has no way to truncate an unstored extended value.
+	     FToIntChop begins `fld qword [FA0]`, so the 80-bit intermediate
+	     is narrowed to binary64 BEFORE the truncation. ... On hardware
+	     the two differ."
+
+	Wave 4 closed that for exactly ONE site - nsident.txt's
+	NsIdentChop16, the srand at NOCTIS-0.CPP:3970 - by open-coding the
+	whole expression as one fragment ending in fldcw/fistp/fldcw.  It
+	could not be generalised because a value that is still in st(0)
+	cannot be handed between two L.in.oleum routines: there is no
+	calling convention that carries the x87 stack.
+
+	So a general FToIntChopExt cannot exist as "chop whatever is on the
+	stack".  What CAN exist, and is what this file provides, is one
+	fragment per EXPRESSION SHAPE, each of which builds its value and
+	chops it without ever storing it.  The shapes here are not invented:
+	they are the shapes of the ten float-argument call sites in
+	prepare_nearstar that can actually differ (site registry, nstopo.txt).
+
+	    :4090 :4091 :4196 :4197   random/zrandom (10 * <double>)
+	    :4195                     zrandom (300 * <double>)
+	    :4092 :4198               random (<double> + 10*fabs(<double>))
+	    :4093 :4199 :4094         random (<double>)          - see below
+	    :4089                     random (300 * <float>)     - see below
+
+	:4093, :4199 and :4094 pass a bare double array element.  Loading a
+	binary64 into an 80-bit register is exact, so live and spilled chop
+	are the SAME operation there and no fragment is needed.  :4089
+	multiplies 300 by the `float` nearstar_ray; 300 * (24-bit
+	significand) needs at most 33 bits, so that product is exact in both
+	precisions too.  Seven sites can differ, three cannot.  That is a
+	property of the operands and it is asserted, not assumed: geocast's
+	battery 4 runs the exact-by-construction shapes and REQUIRES zero
+	disagreements, so if the reasoning is wrong the probe says so.
+
+	----------------------------------------------------------------
+	WHICH ONE IS THE ORIGINAL'S
+	----------------------------------------------------------------
+
+	LIVE.  Not by argument from Borland's calling convention - read out
+	of the shipped NOCTIS.EXE.  __ftol is at 0000:1265 and its whole
+	body is:
+
+	    1265  push bp / mov bp,sp / sub sp,0Ah
+	    126C  fnstcw word [bp-2]
+	    1271  mov  al, [bp-1]          ; save the high byte
+	    1274  or   byte [bp-1], 0Ch    ; RC <- 11, chop.  OR, not AND/OR.
+	    1279  fldcw word [bp-2]
+	    127D  fistp qword [bp-0Ah]     ; truncates whatever is in st(0)
+	    1280  mov  [bp-1], al          ; put the saved byte back
+	    1284  fldcw word [bp-2]
+	    1287  mov ax,[bp-0Ah] / mov dx,[bp-8]   ; low 32 bits, in DX:AX
+	    1290  retf
+
+	It takes no parameter.  Its input is st(0), so the value it chops is
+	whatever the caller left on the stack, at whatever precision the
+	caller left it.  And the call sites leave it live: at :4089 in
+	prepare_nearstar (file offset 61546 in NOCTIS.EXE),
+
+	    8D7A  fld   dword [0x108C]     ; 300.0f
+	    8D7F  fmul  dword [0x027F]     ; * nearstar_ray
+	    8D83  lcall 0,0x1265           ; __ftol   <- no store in between
+	    8D88  push  ax                 ; random(int)
+
+	and the same shape at :4090 (8CB2 fld qword p_orb_seed / 8CB7 fmul
+	dword 10.0f / 8CBB lcall __ftol), :4092 (8D24 fadd qword p_orb_seed
+	/ 8D28 lcall), :4093, :4094, :4198 and :4199.  Not one of the eleven
+	sites has an fstp between the last arithmetic instruction and the
+	call.  The LIVE reading is the original's, at every one of them.
+
+	Two consequences that are easy to get wrong and are reproduced here:
+
+	  * __ftol ORs 0Ch into the high byte.  It does not clear RC first.
+	    Under the game's 133Fh the two are the same; under a hypothetical
+	    RC=10 they are not, and a port that "tidies" this into
+	    AND 0F3FFh / OR 0C00h has changed the instruction.
+
+	  * it is `fistp QWORD`, and only the low 32 bits are returned.  A
+	    32-bit fistp is a different operation: masked, it stores the
+	    integer indefinite 80000000h for every out-of-range value
+	    instead of letting the low half through.  geocast battery 8
+	    measures that difference rather than asserting it.
+
+	Both fragments below reproduce the RC flip; they differ ONLY in
+	whether an fstp qword / fld qword pair sits in front of it.
+
+	The Spill variants exist so the two can be MEASURED against each
+	other rather than argued about.  They are also exactly what a port
+	built on fpconv alone is forced to produce, so the gap between the
+	two pairs is the size of the mistake that was available.
+
+	----------------------------------------------------------------
+	INTERFACE
+	----------------------------------------------------------------
+
+	Every routine here:
+	  pre   caller is inside FEnter with [FCW] = 133Fh
+	  post  FI = the 32-bit chopped value; x87 stack balanced; the
+		control word is exactly what it was on entry
+
+	  GeoSetK      in A = 0 for 10.0, 1 for 300.0, 2 for 100.0
+		       sets the gcK pair used by the Kmul routines
+
+	  GeoKMulChopLive    FI <- (long) live ( K * FB )
+	  GeoKMulChopSpill   FI <- (long) fl64 ( K * FB )
+	  GeoSeedTiltChopLive   FI <- (long) live ( FB + 10*|FC| )
+	  GeoSeedTiltChopSpill  FI <- (long) fl64 ( FB + 10*|FC| )
+	  GeoPlainChop          FI <- (long) FB          both readings agree
+	  GeoQuoMulChopLive     FI <- (long) live ( FB / FC * FC )
+	  GeoQuoMulChopSpill1   FI <- (long) live ( fl64(FB/FC) * FC )
+	  GeoQuoMulChopSpill2   FI <- (long) fl64 ( FB/FC * FC )
+	  GeoChop16            FI <- low 16 bits of FI, SIGN extended.
+		       random() takes an `int`, and Borland large-model
+		       int is 16 bits.  srand()'s is zero extended - that
+		       asymmetry is nsident.txt's, not this file's.       )
+
+"variables"
+
+	( __ftol's own save slot.  PRIVATE, and deliberately not shared
+	  with FCWSAV (FEnter/FLeave) or with fpconv's FCWCSAV: a routine
+	  that borrowed either would silently replace the word its owner
+	  is going to put back. )
+
+	gcsav	= 0;
+	gcchop	= 0;
+
+	( the caller supplied multiplier, an adjacent low-first pair )
+
+	gcK0	= 0;
+	gcK1	= 40240000h;		( 10.0 )
+
+	( the spill slot.  Adjacent pair, low half first - fstp qword
+	  writes eight bytes from the first unit. )
+
+	gcT0	= 0;
+	gcT1	= 0;
+
+	( __ftol's own 64-bit result slot.  Read out of NOCTIS.EXE at
+	  0000:127D: the instruction is `fistp qword [bp-0Ah]` and only
+	  the low 32 bits are returned, in DX:AX.  A 32-bit fistp is NOT
+	  the same operation - masked, it stores the integer indefinite
+	  80000000h for every out-of-range value instead of letting the
+	  low half through.  Adjacent pair, low half first. )
+
+	gcQ0	= 0;
+	gcQ1	= 0;
+
+	( constants, each an adjacent pair, low half first )
+
+	gcTen0	= 0;
+	gcTen1	= 40240000h;		( 10.0  = 4024000000000000h )
+
+	gcHun0	= 0;
+	gcHun1	= 40590000h;		( 100.0 = 4059000000000000h )
+
+	gcThr0	= 0;
+	gcThr1	= 4072C000h;		( 300.0 = 4072C00000000000h )
+
+"programme"
+
+( ==================================================================== )
+
+      ( GeoChopEnter - read the ambient word, build the chop word.
+	Every routine below opens with this and closes by loading gcsav
+	back, which is __ftol's own bracket and NOT FEnter's. )
+
+"GeoChopEnter"
+	[gcsav] = 0;
+	{
+	    9B					(fwait)
+	    D9 BF <dgcsav mtp bytesperunit>	(fnstcw [edi+gcsav*4])
+	}
+	A = [gcsav]; A | 0C00h; [gcchop] = A;
+	end;
+
+      ( GeoSetK - choose the multiplier the Kmul routines use. )
+
+"GeoSetK"
+      ? A = 1 -> gcsk300;
+      ? A = 2 -> gcsk100;
+	A = [gcTen0]; [gcK0] = A;
+	A = [gcTen1]; [gcK1] = A;
+	end;
+    "gcsk300"
+	A = [gcThr0]; [gcK0] = A;
+	A = [gcThr1]; [gcK1] = A;
+	end;
+    "gcsk100"
+	A = [gcHun0]; [gcK0] = A;
+	A = [gcHun1]; [gcK1] = A;
+	end;
+
+( ==================================================================== )
+( SHAPE 1 - K * <double>                                                )
+( NOCTIS-0.CPP:4090 4091 4196 4197 (K=10) and :4195 (K=300)             )
+( ==================================================================== )
+
+"GeoKMulChopLive"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    DC 8F <dgcK0 mtp bytesperunit>	(fmul  qword [edi+gcK0*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
+	end;
+
+"GeoKMulChopSpill"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    DC 8F <dgcK0 mtp bytesperunit>	(fmul  qword [edi+gcK0*4])
+	    DD 9F <dgcT0 mtp bytesperunit>	(fstp  qword [edi+gcT0*4])
+	    DD 87 <dgcT0 mtp bytesperunit>	(fld   qword [edi+gcT0*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
+	end;
+
+( ==================================================================== )
+( SHAPE 2 - <double> + 10 * fabs(<double>)                              )
+( NOCTIS-0.CPP:4092 and :4198                                           )
+( ==================================================================== )
+
+"GeoSeedTiltChopLive"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    DD 87 <dFC0 mtp bytesperunit>	(fld   qword [edi+FC0*4])
+	    D9 E1				(fabs)
+	    DC 8F <dgcTen0 mtp bytesperunit>	(fmul  qword [edi+gcTen0*4])
+	    DE C1				(faddp st1,st0)
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
+	end;
+
+"GeoSeedTiltChopSpill"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    DD 87 <dFC0 mtp bytesperunit>	(fld   qword [edi+FC0*4])
+	    D9 E1				(fabs)
+	    DC 8F <dgcTen0 mtp bytesperunit>	(fmul  qword [edi+gcTen0*4])
+	    DE C1				(faddp st1,st0)
+	    DD 9F <dgcT0 mtp bytesperunit>	(fstp  qword [edi+gcT0*4])
+	    DD 87 <dgcT0 mtp bytesperunit>	(fld   qword [edi+gcT0*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
+	end;
+
+( ==================================================================== )
+( SHAPE 3 - a bare double.  Live and spilled are the SAME operation:    )
+( fld qword of a binary64 into an 80-bit register is exact.  Provided   )
+( so that :4093, :4199 and :4094 have a named routine rather than       )
+( being handled by a different mechanism from their neighbours.         )
+( ==================================================================== )
+
+"GeoPlainChop"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
+	end;
+
+
+      ( GeoPlainChopD32 - the SAME chop done with a 32-bit fistp.  This is
+	NOT what Borland does; it exists so that geocast can show what the
+	difference is instead of asserting there is one.  fistp m32int
+	stores 80000000h, masked, for anything outside int32; __ftol's
+	fistp m64int lets the low half through. )
+
+"GeoPlainChopD32"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DB 9F <dFI mtp bytesperunit>	(fistp dword [edi+FI*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	end;
+
+( ==================================================================== )
+( THE LANDMARK.  FLOATPOLICY 3.3 states, as the reason the boundary is  )
+( unsettled, that on hardware                                           )
+(                                                                       )
+(     (long)(1.0/41.0*41.0)                                             )
+(                                                                       )
+( is 0 with the chain kept in st(0) and 1 with the intermediate         )
+( spilled to a binary64, at the SAME control word.  Nothing in the      )
+( project could produce the first number.  These three routines produce )
+( all three readings so the claim can be measured instead of cited.     )
+( ==================================================================== )
+
+"GeoQuoMulChopLive"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    DC B7 <dFC0 mtp bytesperunit>	(fdiv  qword [edi+FC0*4])
+	    DC 8F <dFC0 mtp bytesperunit>	(fmul  qword [edi+FC0*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
+	end;
+
+      ( spill point 1: the QUOTIENT is narrowed to binary64, the
+	multiply then happens in extended.  This is what a port that
+	carries every C sub-expression in a double produces. )
+
+"GeoQuoMulChopSpill1"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    DC B7 <dFC0 mtp bytesperunit>	(fdiv  qword [edi+FC0*4])
+	    DD 9F <dgcT0 mtp bytesperunit>	(fstp  qword [edi+gcT0*4])
+	    DD 87 <dgcT0 mtp bytesperunit>	(fld   qword [edi+gcT0*4])
+	    DC 8F <dFC0 mtp bytesperunit>	(fmul  qword [edi+FC0*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
+	end;
+
+      ( spill point 2: the PRODUCT is narrowed before the chop.  This is
+	precisely what fpconv's FToIntChop can do and nothing else. )
+
+"GeoQuoMulChopSpill2"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    DC B7 <dFC0 mtp bytesperunit>	(fdiv  qword [edi+FC0*4])
+	    DC 8F <dFC0 mtp bytesperunit>	(fmul  qword [edi+FC0*4])
+	    DD 9F <dgcT0 mtp bytesperunit>	(fstp  qword [edi+gcT0*4])
+	    DD 87 <dgcT0 mtp bytesperunit>	(fld   qword [edi+gcT0*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
+	end;
+
+( ==================================================================== )
+
+      ( GeoChop16 - Borland large-model `int` is 16 bits, and random()'s
+	parameter is an int.  The 32-bit fistp runs first and the low 16
+	bits are then SIGN extended, because that is what the original's
+	register usage does.  fistp m16int would be wrong: masked, it
+	stores 8000h for every overflow, and the overflow is the normal
+	path - classes 1, 3, 4 and 9 exceed int16 at their outer planets
+	by up to 6.7x (FLOATSITES.md 4.2). )
+
+"GeoChop16"
+	A = [FI]; A & 0FFFFh; [FI] = A;
+      ? [FI] '< 8000h -> gc16done;
+	A = [FI]; A - 65536; [FI] = A;
+    "gc16done"
+	end;
+
+      ( GeoStoreFAtoFB / GeoStoreFAtoFC - plain unit copies, no FPU, so
+	they cannot round.  Written out because a chain's result always
+	lands in FA and these fragments read FB and FC. )
+
+"GeoStoreFAtoFB"
+	A = [FA0]; [FB0] = A;
+	A = [FA1]; [FB1] = A;
+	end;
+
+"GeoStoreFAtoFC"
+	A = [FA0]; [FC0] = A;
+	A = [FA1]; [FC1] = A;
+	end;

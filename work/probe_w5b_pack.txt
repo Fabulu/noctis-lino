@@ -1,0 +1,342 @@
+      ( *** PROBE W5B-7 : one byte per unit versus four bytes per unit ***
+
+	Decision (A) of the wave is the buffer model.  The display path is
+	where a packed index buffer would be hit hardest and most often, so
+	this probe measures the packed and unpacked forms of every access
+	pattern the renderer actually uses, on the same 64000-entry buffer:
+
+	  the palette expand      - reads every index once, in order
+	  the clear               - writes every index once
+	  sequential byte reads   - the texture mapper's access pattern
+	  sequential byte writes  - the rasteriser's access pattern
+	  scattered byte writes   - stride 7919, which defeats the prefetcher
+				    and stands in for polygon fill and blits
+
+	Packed costs a shift and a mask on every read and a full
+	read-modify-write on every write; unpacked costs four times the
+	memory.  The expand's output is checksummed from both buffers and
+	the two must agree, so a faster packed loop that is also wrong
+	cannot pass. )
+
+"directors"
+
+	program name = { probew5bpack };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	NPIX	= 64000;
+	NPACK	= 16000;
+	FRAMES	= 100;
+	ROUNDS	= 3;
+	NBAT	= 11;
+	NSAMP	= 3300;
+	STRIDE	= 7919;
+	HDR	= 32;
+
+"variables"
+
+	result file name = { probew5bpack.bin };
+
+	c0 = 0; tdelta = 0; fc = 0; rnd = 0; wp = 0;
+	chk = 0; chkp = 0; chku = 0;
+	ix = 0; sx = 0; acc = 0;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;	( one index per unit )
+	packed	= 16000;	( four indices per unit, little end first )
+	fb	= 64000;
+	samples = 3300;
+	head	= 32;
+
+"programme"
+
+	[Display Origin] = fb;
+	[Display Live Region] = VOID REGION;
+
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	A = adapted; B = 0;
+    "adfill"
+	C = B; C & 255;
+	[A] = C; A+; B+;
+	? B < NPIX -> adfill;
+
+	( ---- pack adapted into packed, four indices per unit ---- )
+	D = adapted; E = packed;
+	A = 0; A + NPACK;
+    "pk loop"
+	C = [D plus 3]; C < 8;
+	B = [D plus 2]; C + B; C < 8;
+	B = [D plus 1]; C + B; C < 8;
+	B = [D];	C + B;
+	[E] = C;
+	D + 4; E+;
+	A ^ pk loop;
+
+	( ---- correctness ---- )
+	=> Expand plain;  => Checksum fb; [chku] = [chk];
+	=> Clear fb;
+	=> Expand packed; => Checksum fb; [chkp] = [chk];
+
+	( ---- timing ---- )
+
+	[wp] = samples;
+	[rnd] = 0;
+    "r loop"
+
+	[fc] = 0;
+    "k0"
+	=> T0; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k0;
+
+	[fc] = 0;
+    "k1"
+	=> T0; => Expand plain; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k1;
+
+	[fc] = 0;
+    "k2"
+	=> T0; => Expand packed; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k2;
+
+	[fc] = 0;
+    "k3"
+	=> T0; => Clear plain; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k3;
+
+	[fc] = 0;
+    "k4"
+	=> T0; => Clear packed; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k4;
+
+	[fc] = 0;
+    "k5"
+	=> T0; => Get plain; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k5;
+
+	[fc] = 0;
+    "k6"
+	=> T0; => Get packed; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k6;
+
+	[fc] = 0;
+    "k7"
+	=> T0; => Put plain; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k7;
+
+	[fc] = 0;
+    "k8"
+	=> T0; => Put packed; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k8;
+
+	[fc] = 0;
+    "k9"
+	=> T0; => Scatter plain; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k9;
+
+	[fc] = 0;
+    "k10"
+	=> T0; => Scatter packed; => T1R;
+	[fc]+; A = [fc]; ? A < FRAMES -> k10;
+
+	[rnd]+; A = [rnd]; ? A < ROUNDS -> r loop;
+
+	( ---- dump ---- )
+
+	[head plus 0] = [Counts Per Millisecond];
+	[head plus 1] = FRAMES;
+	[head plus 2] = ROUNDS;
+	[head plus 3] = NBAT;
+	[head plus 4] = NPIX;
+	[head plus 5] = [chku];
+	[head plus 6] = [chkp];
+	[head plus 7] = [acc];
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = HDR mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = samples;
+	[Block Size]	= NSAMP;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 3332;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+( ------------------------------------------------------------------ )
+
+"Expand plain"
+	D = adapted; E = fb;
+	A = 0; A + NPIX;
+    "xp loop"
+	C = [D]; C + pal; C = [C]; [E] = C;
+	D+; E+;
+	A ^ xp loop;
+	end;
+
+"Expand packed"
+	D = packed; E = fb;
+	A = 0; A + NPACK;
+    "xk loop"
+	B = [D];
+	C = B; C & 255;		 C + pal; C = [C]; [E]	      = C;
+	C = B; C > 8;  C & 255;  C + pal; C = [C]; [E plus 1] = C;
+	C = B; C > 16; C & 255;  C + pal; C = [C]; [E plus 2] = C;
+	C = B; C > 24;		 C + pal; C = [C]; [E plus 3] = C;
+	D+; E + 4;
+	A ^ xk loop;
+	end;
+
+"Clear plain"
+	D = adapted; C = 0;
+	A = 0; A + NPIX;
+    "cp loop"
+	[D] = C; D+;
+	A ^ cp loop;
+	end;
+
+"Clear packed"
+	D = packed; C = 0;
+	A = 0; A + NPACK;
+    "ck loop"
+	[D] = C; D+;
+	A ^ ck loop;
+	end;
+
+"Get plain"
+	[ix] = 0; [acc] = 0;
+    "gp loop"
+	A = [ix]; A + adapted;
+	C = [A];
+	B = [acc]; B + C; [acc] = B;
+	[ix]+; A = [ix]; ? A < NPIX -> gp loop;
+	end;
+
+"Get packed"
+	[ix] = 0; [acc] = 0;
+    "gk loop"
+	A = [ix];
+	B = A; B > 2; B + packed;
+	C = A; C & 3; C < 3;
+	D = [B]; D > C; D & 255;
+	B = [acc]; B + D; [acc] = B;
+	[ix]+; A = [ix]; ? A < NPIX -> gk loop;
+	end;
+
+"Put plain"
+	[ix] = 0;
+    "pp loop"
+	A = [ix];
+	B = A; B + adapted;
+	C = A; C & 255;
+	[B] = C;
+	[ix]+; A = [ix]; ? A < NPIX -> pp loop;
+	end;
+
+"Put packed"
+	[ix] = 0;
+    "pk2 loop"
+	A = [ix];
+	B = A; B > 2; B + packed;
+	C = A; C & 3; C < 3;
+	D = 255; D < C; ! D;
+	E = [B]; E & D;
+	D = A; D & 255; D < C;
+	E | D;
+	[B] = E;
+	[ix]+; A = [ix]; ? A < NPIX -> pk2 loop;
+	end;
+
+"Scatter plain"
+	[ix] = 0; [sx] = 0;
+    "sp loop"
+	A = [sx];
+	B = A; B + adapted;
+	C = A; C & 255;
+	[B] = C;
+	=> Advance;
+	[ix]+; A = [ix]; ? A < NPIX -> sp loop;
+	end;
+
+"Scatter packed"
+	[ix] = 0; [sx] = 0;
+    "sk loop"
+	A = [sx];
+	B = A; B > 2; B + packed;
+	C = A; C & 3; C < 3;
+	D = 255; D < C; ! D;
+	E = [B]; E & D;
+	D = A; D & 255; D < C;
+	E | D;
+	[B] = E;
+	=> Advance;
+	[ix]+; A = [ix]; ? A < NPIX -> sk loop;
+	end;
+
+"Advance"
+	A = [sx]; A + STRIDE;
+	? A '< NPIX -> ad ok;
+	A - NPIX;
+    "ad ok"
+	[sx] = A;
+	end;
+
+"Clear fb"
+	E = fb; C = 0;
+	A = 0; A + NPIX;
+    "cf loop"
+	[E] = C; E+;
+	A ^ cf loop;
+	end;
+
+"Checksum fb"
+	[chk] = 0;
+	D = fb;
+	A = 0; A + NPIX;
+    "cs loop"
+	C = [D];
+	B = [chk]; B * 31; B + C; [chk] = B;
+	D+;
+	A ^ cs loop;
+	end;
+
+"T0"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	end;
+
+"T1"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [tdelta] = A;
+	end;
+
+"T1R"
+	=> T1;
+	C = [tdelta];
+	A = [wp];
+	[A] = C;
+	[wp]+;
+	end;

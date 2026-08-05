@@ -1,0 +1,47 @@
+      ( fbsmoke - does execution start in the MAIN programme period, or in
+	the first library's?  Everything else in Wave 5 depends on the
+	answer, and nothing documents it.  This writes one 4-unit file
+	with a marker that says which route ran. )
+
+"libraries"
+
+	fbmem;
+
+"directors"
+
+	program name = { fbsmoke };
+	unit = 32;
+
+"variables"
+
+	fbsmokename = { fb-smoke.bin };
+
+"workspace"
+
+	shead = 4;
+
+"programme"
+
+	[shead plus 0] = 1;
+	[shead plus 1] = NWTOP;
+	[shead plus 2] = [Counts Per Millisecond];
+	[shead plus 3] = 0;
+
+	=> MEM build rtab;
+	[shead plus 3] = [rtab plus 4];		( must be 7388 )
+
+	[File Name]	= fbsmokename;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= shead;
+	[Block Size]	= 4;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= fbsmokename;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 4;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;

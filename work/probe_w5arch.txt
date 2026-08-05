@@ -1,0 +1,476 @@
+      ( *** WAVE 5 ARCHITECT KEYSTONE PROBE ***
+
+	The buffer-model decision rests on facts nobody has actually run.
+	This probe runs them.  It is not a re-measurement of recon B or C;
+	it tests only the things the DECISION depends on, and it is built
+	to fail loudly if any of them is false.
+
+	K1  a flat 402,196-unit Noctis workspace + a 64,000-unit display
+	    buffer allocates and runs.  Touched at both extremes.
+	K2  "workspace" units really are zero at launch, across the whole
+	    1.6 MB - so guard bands and canaries cost no init code.
+	K3  the FARMALLOC-ORDER layout gives every one of the five txtr
+	    bases a full 65,536-unit readable window inside the workspace,
+	    with no per-buffer padding at all.  Each window top is read.
+	K4  what a Noctis-shaped frame costs with the REAL 1.87 MB working
+	    set resident - recon B warned its 0.057 ms expand and its
+	    0.130 ms expand were the same loop at different working-set
+	    sizes, so the number Waves 6-9 budget against has to be taken
+	    at the real size.  Measured back-to-back, paced, and expand
+	    alone.
+	K5  the pad-poison canary catches a ONE-UNIT overrun and names the
+	    region.  Checked clean first, so a canary that always fires
+	    cannot pass.
+	K6  byte semantics on a 32-bit unit: store-and-mask wraparound,
+	    8->16 sign extension, and the quadrant 2-bit bitfields that
+	    ruinschart and objectschart share.
+	K7  txtr as an integer base offset: the 16-bit texel address
+	    ((V>>8)&255)*256 + ((U>>8)&255), re-based across three buffers
+	    and slid by arbitrary byte amounts, never leaving the window.
+
+	Layout, in farmalloc order exactly as NOCTIS.CPP:2163-2172, with a
+	16-unit inter-block pad standing in for Borland's far-heap block
+	header.  The point of the order is that every READ overrun lands
+	on the same neighbouring buffer DOS gave it, for zero cost. )
+
+"directors"
+
+	program name = { probew5arch };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	( ---- the layout: base, size, in farmalloc order ---- )
+	RNOFF	= 32;		ZNOFF	= 7340;
+	RNGLB	= 7388;		ZNGLB	= 32768;
+	RSBG	= 40172;	ZSBG	= 64800;
+	RPBG	= 104988;	ZPBG	= 65552;
+	RPSM	= 170556;	ZPSM	= 40000;
+	ROBJ	= 210572;	ZOBJ	= 40000;
+	RPVF	= 250588;	ZPVF	= 20480;
+	RADPT	= 271084;	ZADPT	= 65540;
+	RADPR	= 336640;	ZADPR	= 65540;
+	NWTOP	= 402196;
+
+	PADU	= 16;		( inter-block pad, units )
+	POISON	= 2779096485;	( 0xA5A5A5A5 )
+	NREG	= 9;
+
+	WINDOW	= 65535;	( highest texel a 16-bit BX can reach )
+	NPIX	= 64000;
+	NQUAD	= 16000;
+
+	NFRB	= 100;		( back-to-back frames )
+	NFRP	= 100;		( paced frames )
+	NFRE	= 100;		( expand-alone frames )
+
+	SUBN	= 44505;
+	SUBD	= 596591;
+
+"variables"
+
+	result file name = { probew5arch.bin };
+
+	zchk = 0; zn = 0;
+	fired = 0; firedat = 0; firedn = 0;
+	tmp = 0; c0 = 0; td = 0; wp = 0; fc = 0;
+	adpt = 0; adpr = 0;
+	txbase = 0; txmin = 0; txmax = 0; txchk = 0;
+	bchk = 0; qchk = 0;
+	cpms = 0; base = 0; subper = 0; acc = 0; deadline = 0;
+	k1lo = 0; k1hi = 0;
+
+"workspace"
+
+	nw	= 402196;
+	fb	= 64000;
+	pal	= 256;
+	rtab	= 48;
+	samp	= 400;
+	head	= 64;
+
+"programme"
+
+	[Display Origin] = fb;
+	[Display Live Region] = VOID REGION;
+
+	( ================= K1 : the workspace exists ================= )
+
+	A = nw;			[A] = 305419896;	( 0x12345678 )
+	A = nw; A + NWTOP; A-;	[A] = 2596069104;	( 0x9ABCDEF0 )
+	A = nw;			[k1lo] = [A];
+	A = nw; A + NWTOP; A-;	[k1hi] = [A];
+
+	( ================= K2 : is the workspace zero? ================
+	  every 997th unit over the whole 402,196 - a stride coprime with
+	  every region size, so it samples inside all nine regions and all
+	  nine pads.  K1 wrote two units, so start above the first and
+	  stop below the last. )
+
+	[zchk] = 0; [zn] = 0;
+	A = nw; A + 997;
+	B = 0; B + 403;
+    "z loop"
+	C = [A];
+	D = [zchk]; D | C; [zchk] = D;
+	[zn]+;
+	A + 997;
+	B ^ z loop;
+
+	( ================= build the region table =================
+	  4 units per region: base, size, pad base, region id )
+
+	A = rtab;
+	[A plus 0] = RNOFF; [A plus 1] = ZNOFF; C = RNOFF; C + ZNOFF; [A plus 2] = C; [A plus 3] = 0;
+	A + 4;
+	[A plus 0] = RNGLB; [A plus 1] = ZNGLB; C = RNGLB; C + ZNGLB; [A plus 2] = C; [A plus 3] = 1;
+	A + 4;
+	[A plus 0] = RSBG;  [A plus 1] = ZSBG;  C = RSBG;  C + ZSBG;  [A plus 2] = C; [A plus 3] = 2;
+	A + 4;
+	[A plus 0] = RPBG;  [A plus 1] = ZPBG;  C = RPBG;  C + ZPBG;  [A plus 2] = C; [A plus 3] = 3;
+	A + 4;
+	[A plus 0] = RPSM;  [A plus 1] = ZPSM;  C = RPSM;  C + ZPSM;  [A plus 2] = C; [A plus 3] = 4;
+	A + 4;
+	[A plus 0] = ROBJ;  [A plus 1] = ZOBJ;  C = ROBJ;  C + ZOBJ;  [A plus 2] = C; [A plus 3] = 5;
+	A + 4;
+	[A plus 0] = RPVF;  [A plus 1] = ZPVF;  C = RPVF;  C + ZPVF;  [A plus 2] = C; [A plus 3] = 6;
+	A + 4;
+	[A plus 0] = RADPT; [A plus 1] = ZADPT; C = RADPT; C + ZADPT; [A plus 2] = C; [A plus 3] = 7;
+	A + 4;
+	[A plus 0] = RADPR; [A plus 1] = ZADPR; C = RADPR; C + ZADPR; [A plus 2] = C; [A plus 3] = 8;
+
+	( ============ K3 : every txtr window fits, unpadded ============
+	  read the TOP of each of the five 64 KiB windows.  If the layout
+	  were wrong this either faults or reads outside nw; the recorded
+	  headroom says by how much it fits. )
+
+	[txchk] = 0;
+	[txbase] = RPBG;  => Win top; [head plus 20] = RPBG;  [head plus 21] = [tmp];
+	[txbase] = RSBG;  => Win top; [head plus 22] = RSBG;  [head plus 23] = [tmp];
+	[txbase] = RNGLB; => Win top; [head plus 24] = RNGLB; [head plus 25] = [tmp];
+	[txbase] = RPSM;  => Win top; [head plus 26] = RPSM;  [head plus 27] = [tmp];
+	A = RPSM; A + 2064; [txbase] = A;
+	                  => Win top; [head plus 28] = A;     [head plus 29] = [tmp];
+
+	( ============ K6 : byte semantics on a 32-bit unit ============ )
+
+	[bchk] = 0;
+	( store 300 -> must read back 44 )
+	C = 300; C & 255;  A = C; A - 44;  ? A = 0 -> b1;  D = [bchk]; D | 1; [bchk] = D;
+    "b1"
+	( store -1 -> must read back 255 )
+	C = 0; C-; C & 255;  A = C; A - 255;  ? A = 0 -> b2;  D = [bchk]; D | 2; [bchk] = D;
+    "b2"
+	( sign-extend 8 -> 32 : 0xC0 must become -64 )
+	C = 192; => Sx8;  A = C; A + 64;  ? A = 0 -> b3;  D = [bchk]; D | 4; [bchk] = D;
+    "b3"
+	( sign-extend 8 -> 32 : 0x3F must stay +63 )
+	C = 63;  => Sx8;  A = C; A - 63;  ? A = 0 -> b4;  D = [bchk]; D | 8; [bchk] = D;
+    "b4"
+
+	( quadrant bitfields: nr_of_objects=bits0-1, obj0=2-3, obj1=4-5,
+	  obj2=6-7.  ruinschart writes AF1=0x40, which IS object2_class=1. )
+	[qchk] = 0;
+	C = 64; D = C; D > 6; D & 3;  A = D; A - 1;  ? A = 0 -> q1;  E = [qchk]; E | 1; [qchk] = E;
+    "q1"
+	C = 192; D = C; D > 6; D & 3;  A = D; A - 3;  ? A = 0 -> q2;  E = [qchk]; E | 2; [qchk] = E;
+    "q2"
+	( round trip: pack 3,2,1,0 and read every field back )
+	C = 0; D = 0;  D | 3;  E = 2; E < 2; D | E;  E = 1; E < 4; D | E;  E = 0; E < 6; D | E;
+	C = D; C & 3;        A = C; A - 3; ? A = 0 -> q3; E = [qchk]; E | 4; [qchk] = E;
+    "q3"
+	C = D; C > 2; C & 3; A = C; A - 2; ? A = 0 -> q4; E = [qchk]; E | 8; [qchk] = E;
+    "q4"
+	C = D; C > 4; C & 3; A = C; A - 1; ? A = 0 -> q5; E = [qchk]; E | 16; [qchk] = E;
+    "q5"
+	C = D; C > 6; C & 3; A = C;        ? A = 0 -> q6; E = [qchk]; E | 32; [qchk] = E;
+    "q6"
+
+	( ========== K7 : txtr as a base offset, 16-bit texel ==========
+	  sweep U and V over the whole 32-bit accumulator range in coarse
+	  steps and record the min and max texel offset reached from each
+	  of three bases, plus a byte slide of 48 and of (x<<3). )
+
+	[txmin] = 0; ! [txmin];		( 0xFFFFFFFF )
+	[txmax] = 0;
+
+	A = RNGLB; [txbase] = A;			=> Tex sweep;
+	A = RPBG;  [txbase] = A;			=> Tex sweep;
+	A = RPSM;  A + 2064; [txbase] = A;		=> Tex sweep;
+	A = RPSM;  A + 2064; A + 48; [txbase] = A;	=> Tex sweep;
+	A = RPSM;  A + 2064; A + 48; B = 37; B < 3; A + B; [txbase] = A;  => Tex sweep;
+
+	( ============ residency : make the working set REAL ============
+	  touch every one of the 402,196 units, so K4 measures the frame
+	  with the whole Noctis workspace live rather than with 64 KB in
+	  cache. )
+
+	A = nw; B = 0; B + NWTOP; C = 0;
+    "res loop"
+	C + 2654435761;
+	[A] = C; A+;
+	B ^ res loop;
+
+	( ================= K5 : the pad canary =================
+	  poison every 16-unit pad, verify NOTHING fires, then overrun
+	  n_globes_map by exactly one unit and verify the SAME check
+	  fires and names region 1. )
+
+	=> Poison pads;
+	=> Check pads;
+	[head plus 30] = [fired];
+	[head plus 31] = [firedn];
+
+	A = nw; A + RNGLB; A + ZNGLB; [A] = 57005;	( one unit over )
+
+	=> Check pads;
+	[head plus 32] = [fired];
+	[head plus 33] = [firedn];
+	[head plus 34] = [firedat];
+
+	=> Poison pads;		( restore, so K4 runs on a clean layout )
+
+	( ================= K4 : the frame, at real size ================= )
+
+	A = nw; A + RADPT; [adpt] = A;
+	A = nw; A + RADPR; [adpr] = A;
+
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793; [A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	[Display Live Region] = WHOLE DISPLAY;
+
+	[wp] = samp;
+
+	( -- battery B : back to back -- )
+	[fc] = 0;
+    "kb"
+	=> T0; => Frame; => T1R;
+	[fc]+; A = [fc]; ? A < NFRB -> kb;
+
+	( -- battery E : the palette expand alone, working set resident -- )
+	[fc] = 0;
+    "ke"
+	=> T0; => Expand; => T1R;
+	[fc]+; A = [fc]; ? A < NFRE -> ke;
+
+	( -- battery P : one frame per real DOS tick -- )
+	[cpms] = [Counts Per Millisecond];
+	A = [cpms]; A '* 55;   [base]   = A;
+	A = [cpms]; A '* SUBN; [subper] = A;
+	[acc] = 0;
+	[Timer Command] = READ COUNTS; isocall;
+	[deadline] = [Counts];
+	[fc] = 0;
+    "kp"
+	=> T0; => Frame; => T1R;
+	=> Advance;
+    "kp wait"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [deadline];
+	? A < 0 -> kp wait;
+	[fc]+; A = [fc]; ? A < NFRP -> kp;
+
+	[Display Live Region] = VOID REGION;
+
+	( ========================= dump ========================= )
+
+	[head plus 0]  = [Counts Per Millisecond];
+	[head plus 1]  = NWTOP;
+	[head plus 2]  = [k1lo];
+	[head plus 3]  = [k1hi];
+	[head plus 4]  = [zchk];
+	[head plus 5]  = [zn];
+	[head plus 6]  = [bchk];
+	[head plus 7]  = [qchk];
+	[head plus 8]  = [txmin];
+	[head plus 9]  = [txmax];
+	[head plus 10] = [txchk];
+	[head plus 11] = NFRB;
+	[head plus 12] = NFRE;
+	[head plus 13] = NFRP;
+	[head plus 14] = [Display Status];
+	[head plus 15] = [Display Physical Width];
+	[head plus 16] = [Display Physical Height];
+	[head plus 17] = [base];
+	[head plus 18] = [subper];
+	[head plus 19] = PADU;
+
+	[Block Pointer] = head; [tmp] = 64;  [c0] = 0;  => Put;
+	[Block Pointer] = samp; [tmp] = 400; [c0] = 64; => Put;
+
+	[File Name]	= result file name;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 464;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+( ------------------------------------------------------------------ )
+
+    ( the buffer at [txbase] must have a full 65,536-unit READABLE window
+      above it, inside nw, with no padding of its own.  Returns the
+      headroom in [tmp]; sets txchk bit 4 if the window does not fit and
+      bit 8 if its top unit is not a live workspace cell. )
+"Win top"
+	A = NWTOP; B = [txbase]; B + WINDOW; B+; A - B;
+	? A >= 0 -> wt fits;
+	C = [txchk]; C | 4; [txchk] = C;
+    "wt fits"
+	[tmp] = A;
+	B = nw; B + [txbase]; B + WINDOW;
+	[B] = 3735928559;			( 0xDEADBEEF )
+	C = [B]; C - 3735928559;
+	? C = 0 -> wt done;
+	C = [txchk]; C | 8; [txchk] = C;
+    "wt done"
+	end;
+
+    ( 8-bit sign extension, in C )
+"Sx8"
+	C & 255;
+	A = C; A & 128;
+	? A = 0 -> sx done;
+	C - 256;
+    "sx done"
+	end;
+
+    ( sweep the texel address from [txbase] and record min/max reached )
+"Tex sweep"
+	D = 0;			( V accumulator )
+	B = 0; B + 256;
+    "tv loop"
+	E = 0;			( U accumulator )
+	A = 0; A + 256;
+    "tu loop"
+	C = D; C > 8; C & 255; C < 8;
+	[tmp] = E; [tmp] > 8; [tmp] & 255;
+	C + [tmp];
+	C + [txbase];
+	? C '>= [txmax] -> tx1;
+	-> tx2;
+    "tx1"
+	[txmax] = C;
+    "tx2"
+	? C '<= [txmin] -> tx3;
+	-> tx4;
+    "tx3"
+	[txmin] = C;
+    "tx4"
+	( must land inside the workspace, always )
+	? C '< NWTOP -> tx5;
+	[tmp] = [txchk]; [tmp] | 1; [txchk] = [tmp];
+    "tx5"
+	( and never below its own base )
+	? C '>= [txbase] -> tx6;
+	[tmp] = [txchk]; [tmp] | 2; [txchk] = [tmp];
+    "tx6"
+	E + 16843009;		( 0x01010101 - steps U by 1 in the high byte )
+	A ^ tu loop;
+	D + 16843009;
+	B ^ tv loop;
+	end;
+
+"Poison pads"
+	D = rtab; B = 0; B + NREG;
+    "pp reg"
+	A = [D plus 2]; A + nw;
+	E = 0; E + PADU;
+	C = POISON;
+    "pp unit"
+	[A] = C; A+;
+	E ^ pp unit;
+	D + 4;
+	B ^ pp reg;
+	end;
+
+"Check pads"
+	[fired] = 0; [firedn] = 0; [firedat] = 0;
+	D = rtab; B = 0; B + NREG;
+    "cp reg"
+	A = [D plus 2]; A + nw;
+	E = 0; E + PADU;
+    "cp unit"
+	C = [A];
+	? C = POISON -> cp ok;
+	[firedn]+;
+	? [fired] != 0 -> cp ok;
+	[fired] = [D plus 3]; [fired]+;	( region id + 1, so 0 means clean )
+	[firedat] = A;
+	[firedat] - nw;
+    "cp ok"
+	A+;
+	E ^ cp unit;
+	D + 4;
+	B ^ cp reg;
+	end;
+
+    ( a Noctis-shaped frame: clear the hidden page, draw, page-copy to
+      the visible page, expand through the palette, present )
+"Frame"
+	A = [adpt]; B = 0; B + ZADPT; C = 0;
+    "fr clear"
+	[A] = C; A+;
+	B ^ fr clear;
+
+	A = [adpt]; B = 0; B + NPIX; C = [fc];
+    "fr draw"
+	C + 7; C & 255;
+	[A] = C; A+;
+	B ^ fr draw;
+
+	D = [adpt]; E = [adpr]; A = 0; A + NPIX;
+    "fr copy"
+	C = [D]; [E] = C; D+; E+;
+	A ^ fr copy;
+
+	=> Expand;
+	[Display Command] = RETRACE; isocall;
+	end;
+
+"Expand"
+	D = [adpr]; E = fb; A = 0; A + NQUAD;
+    "ex loop"
+	C = [D];	 C + pal; C = [C]; [E] = C;
+	C = [D plus 1];  C + pal; C = [C]; [E plus 1] = C;
+	C = [D plus 2];  C + pal; C = [C]; [E plus 2] = C;
+	C = [D plus 3];  C + pal; C = [C]; [E plus 3] = C;
+	D + 4; E + 4;
+	A ^ ex loop;
+	end;
+
+"Advance"
+	A = [acc]; A + [subper];
+	B = A; B '/ SUBD;
+	C = B; C '* SUBD; A - C;
+	[acc] = A;
+	A = [base]; A - B;
+	[deadline] + A;
+	end;
+
+"Put"
+	[File Name]	= result file name;
+	[File Position]	= [c0];
+	[File Position]	* BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Size]	= [tmp];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+"T0"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	end;
+
+"T1R"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [td] = A;
+	A = [wp]; [A] = [td]; [wp]+;
+	end;

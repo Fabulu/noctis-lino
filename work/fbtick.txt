@@ -1,0 +1,343 @@
+      ( *** fbtick - Noctis IV's 54.9254 ms tick ***
+
+	Normative source: docs-notes/LINOBUF.md section 5.5.
+	Original: NOCTIS-0.CPP:6025-6038 (sync_stop).
+
+	THE PERIOD IS 65536/1193182 SECONDS = 54.9254012... ms, not 55.
+	It is carried as an exact RATIONAL in high-performance-timer
+	counts, decomposed so that nothing overflows 32 bits:
+
+	    period = cpms * 65536000 / 1193182
+	           = cpms * 32768000 /  596591
+	           = 55*cpms  -  cpms*44505/596591
+
+	The naive form cpms*552086 overflows; this one's largest
+	intermediate is 44505*cpms, about 4.0e8 at 9000 counts per
+	millisecond.  The leftover numerator is carried in [TKacc] across
+	ticks, so the accumulated deadline is exact to the count over any
+	run length.
+
+	FIVE RULES, each with its reason.
+
+	1. ACCUMULATE, never re-base.  Not because re-basing drifts much
+	   (it does not - +0.00071 ms/tick) but because accumulation
+	   RECOVERS: a long tick is followed by a short one and the total
+	   returns to zero.  Re-basing keeps every hitch forever.
+
+	2. SKIP TO THE NEXT GRID POINT strictly in the future after a
+	   miss.  This is a FIDELITY requirement, not a timing one.  The
+	   original computes no deadline at all: sync_stop busy-waits for
+	   the next EDGE of a free-running counter, so an overrunning
+	   frame loses a whole tick and re-aligns, and the frame rate is
+	   18.2065/k and never anything between.  Recon C measured the
+	   real game at 15-17 fps with a mean of exactly 1.50 ticks -
+	   the signature of a 50/50 mixture of 1- and 2-tick frames.
+	   Without this, one RETRACE stall becomes a double-speed frame.
+
+	3. THE WAIT PREDICATE IS THE SIGN OF THE DIFFERENCE, never a
+	   timestamp compare.  [Counts] wraps about every 477 s, and an
+	   unsigned "now >= deadline" collapses a run of ticks to nothing
+	   at the wrap.  "TK is late" is the single place the predicate
+	   exists, and the shell's WRAP battery drives it directly by
+	   writing [TKnow] and [TKdeadline], so it can be enumerated
+	   across the wrap and the 2^31 sign boundary in milliseconds
+	   instead of eight minutes.
+
+	4. SLEEP DOWN TO A MARGIN, then spin.  Margin 16 costs 4.4x less
+	   CPU than spinning with identical p50/p90/max.  Margin 4 is
+	   unusable because Windows SLEEP overshoots by more than 4 ms.
+	   TKSPINMS = 0 means spin-only, for benchmarking.
+
+	5. CALIBRATE counts-per-millisecond; do not use the reported
+	   value.  [Counts Per Millisecond] is a per-process estimate,
+	   0.43% spread across launches, once carrying a +0.258% RATE
+	   error - and accumulation cannot remove a rate error.  Seed
+	   from it, recompute across a bracketed phase of real work, then
+	   servo against total counts / total ms since start, bounded to
+	   +-1% so one bad sample cannot wreck the tick.
+
+	TICKLOG IS RAW.  Three units per tick - absolute counts at fire,
+	the deadline it fired against, a flag word - so the grader
+	recomputes periods, drift and skips itself rather than trusting a
+	statistic this program computed.                                  )
+
+"constants"
+
+	SUBN	= 44505;
+	SUBD	= 596591;
+	TKSPINMS = 16;		( ms of spin at the end; 0 = spin only )
+	SERVON	= 256;		( servo interval, ticks )
+	TKLOGMAX = 1300;
+
+	TKFSKIP	= 1;		( flag bit 0: skipped at least one grid point )
+	TKFSLEEP = 2;		( flag bit 1: slept )
+
+"variables"
+
+	TKcpms	= 0;
+	TKbase	= 0;		( 55 * cpms )
+	TKsubper = 0;		( SUBN * cpms )
+	TKacc	= 0;		( carried numerator )
+	TKdeadline = 0;
+	TKnow	= 0;
+	TKlate	= 0;
+	TKflags	= 0;
+	TKticks	= 0;
+	TKskips	= 0;
+	TKsleeps = 0;
+	TKmargin = 0;
+	TKlogp	= 0;
+	TKlogn	= 0;
+	TKtmp	= 0;
+
+	TKcal0c	= 0;
+	TKcal0w	= 0;
+	TKcalcnt = 0;
+	TKcalms	= 0;
+	TKcpms0	= 0;		( what the runtime reported, kept for the dump )
+
+	TKsrv0c	= 0;
+	TKsrv0w	= 0;
+	TKsrvcnt = 0;
+	TKsrvms	= 0;
+	TKsrvnew = 0;
+	TKsrvn	= 0;
+
+	TKburnto = 0;
+	TKsrvlogn = 0;
+
+"workspace"
+
+	tlog	= 3900;		( 3 units x TKLOGMAX )
+	tsrvlog	= 16;		( up to 8 x (tick, new cpms) )
+
+"programme"
+
+( ==================================================================== )
+( the reference clock                                                   )
+( ==================================================================== )
+
+      ( TK read wall : [TKtmp] <- milliseconds since midnight.
+	READ TIME's [Milliseconds] steps by 1 ms in 200 of 256 observed
+	transitions, so it is a usable reference for a multi-second
+	bracket even though it is useless for a single tick. )
+
+"TK read wall"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Hour];   A * 3600000;
+	B = [Minute]; B * 60000;   A + B;
+	B = [Second]; B * 1000;    A + B;
+	A + [Milliseconds];
+	[TKtmp] = A;
+	end;
+
+( ==================================================================== )
+( the period                                                            )
+( ==================================================================== )
+
+"TK period"
+	A = [TKcpms]; A '* 55;   [TKbase]   = A;
+	A = [TKcpms]; A '* SUBN; [TKsubper] = A;
+	end;
+
+      ( TK advance : deadline += one exact period. )
+
+"TK advance"
+	A = [TKacc]; A + [TKsubper];
+	B = A; B '/ SUBD;
+	C = B; C '* SUBD; A - C;
+	[TKacc] = A;
+	A = [TKbase]; A - B;
+	[TKdeadline] + A;
+	end;
+
+( ==================================================================== )
+( calibration and servo                                                 )
+( ==================================================================== )
+
+      ( TK seed : take the runtime's guess, and remember it. )
+
+"TK seed"
+	[TKcpms0] = [Counts Per Millisecond];
+	[TKcpms]  = [Counts Per Millisecond];
+	[TKmargin] = TKSPINMS;
+	=> TK period;
+	end;
+
+"TK cal begin"
+	[Timer Command] = READ COUNTS; isocall;
+	[TKcal0c] = [Counts];
+	=> TK read wall; [TKcal0w] = [TKtmp];
+	end;
+
+      ( TK cal end : recompute from the bracket, but only if the bracket
+	is long enough to mean anything. )
+
+"TK cal end"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [TKcal0c]; [TKcalcnt] = A;
+	=> TK read wall;
+	A = [TKtmp]; A - [TKcal0w]; [TKcalms] = A;
+	? [TKcalms] '< 500 -> TK cal keep;
+	A = [TKcalcnt]; A '/ [TKcalms]; [TKcpms] = A;
+	=> TK period;
+    "TK cal keep"
+	end;
+
+      ( TK servo : every SERVON ticks, against TOTAL counts / TOTAL ms
+	since the run started, bounded to +-1%. )
+
+"TK servo"
+	[TKsrvn]+;
+	A = [TKsrvn]; ? A '< SERVON -> TK sv done;
+	[TKsrvn] = 0;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [TKsrv0c]; [TKsrvcnt] = A;
+	=> TK read wall;
+	A = [TKtmp]; A - [TKsrv0w]; [TKsrvms] = A;
+	? [TKsrvms] '< 500 -> TK sv done;
+	A = [TKsrvcnt]; A '/ [TKsrvms]; [TKsrvnew] = A;
+	B = [TKcpms]; B '/ 100;
+	C = [TKcpms]; C - B;
+	D = [TKcpms]; D + B;
+	? [TKsrvnew] '>= C -> TK sv lo;
+	[TKsrvnew] = C;
+    "TK sv lo"
+	? [TKsrvnew] '<= D -> TK sv hi;
+	[TKsrvnew] = D;
+    "TK sv hi"
+	[TKcpms] = [TKsrvnew];
+	=> TK period;
+	( record it.  cpms changing mid-run changes the period in COUNTS,
+	  so a reader that converts the whole tick log with one factor
+	  gets the drift wrong.  The log says exactly when it changed. )
+	A = [TKsrvlogn]; ? A '>= 8 -> TK sv done;
+	B = A; B + B; B + tsrvlog;
+	( the FIRST tick at which the new value is in force.  The servo
+	  runs at the END of a tick, after that tick's deadline was
+	  already advanced with the old period, so recording [TKticks]
+	  itself would mis-attribute one step by a whole period. )
+	A = [TKticks]; A+;
+	[B plus 0] = A;
+	[B plus 1] = [TKcpms];
+	[TKsrvlogn]+;
+    "TK sv done"
+	end;
+
+( ==================================================================== )
+( the tick                                                              )
+( ==================================================================== )
+
+"TK start"
+	[TKacc] = 0;
+	[TKticks] = 0; [TKskips] = 0; [TKsleeps] = 0;
+	[TKlogn] = 0;
+	A = tlog; [TKlogp] = A;
+	[TKsrvn] = 0; [TKsrvlogn] = 0;
+	A = tsrvlog; B = 0; B + 16;
+    "TK st clr"
+	[A] = 0; A+;
+	B ^ TK st clr;
+	( entry 0 is the cpms in force at tick 0, so the reader never has
+	  to guess what the period was before the first servo update )
+	[tsrvlog plus 0] = 0;
+	[tsrvlog plus 1] = [TKcpms];
+	[TKsrvlogn] = 1;
+	[Timer Command] = READ COUNTS; isocall;
+	[TKdeadline] = [Counts];
+	[TKsrv0c]    = [Counts];
+	=> TK read wall; [TKsrv0w] = [TKtmp];
+	end;
+
+      ( TK is late : [TKlate] <- 1 if [TKnow] has reached [TKdeadline].
+	THE SIGN OF THE DIFFERENCE.  Never a compare of the two values.
+	Everything else in this file is a convenience; this is the part
+	that is correct at the wrap. )
+
+"TK is late"
+	A = [TKnow]; A - [TKdeadline];
+	? A < 0 -> TK islate no;
+	[TKlate] = 1;
+	end;
+    "TK islate no"
+	[TKlate] = 0;
+	end;
+
+      ( TK skip : advance past every grid point already gone.
+	Rule 2.  A frame that overran does not get to catch up. )
+
+"TK skip"
+    "TK sk loop"
+	[Timer Command] = READ COUNTS; isocall;
+	[TKnow] = [Counts];
+	=> TK is late;
+	? [TKlate] = 0 -> TK sk done;
+	=> TK advance;
+	[TKskips]+;
+	C = [TKflags]; C | TKFSKIP; [TKflags] = C;
+	-> TK sk loop;
+    "TK sk done"
+	end;
+
+      ( TK wait : sleep down to [TKmargin] ms, then spin. )
+
+"TK wait"
+    "TK w loop"
+	[Timer Command] = READ COUNTS; isocall;
+	[TKnow] = [Counts];
+	=> TK is late;
+	? [TKlate] != 0 -> TK w done;
+	? [TKmargin] = 0 -> TK w loop;
+	A = [TKdeadline]; A - [TKnow];
+	A '/ [TKcpms];
+	? A '<= [TKmargin] -> TK w loop;
+	A - [TKmargin];
+	[Sleep Timeout] = A;
+	[Process Command] = SLEEP; isocall;
+	[TKsleeps]+;
+	C = [TKflags]; C | TKFSLEEP; [TKflags] = C;
+	-> TK w loop;
+    "TK w done"
+	end;
+
+      ( TK log : three RAW units.  No statistic is computed here. )
+
+"TK log"
+	A = [TKlogn]; ? A '>= TKLOGMAX -> TK log full;
+	A = [TKlogp];
+	[A plus 0] = [TKnow];
+	[A plus 1] = [TKdeadline];
+	[A plus 2] = [TKflags];
+	A + 3; [TKlogp] = A;
+	[TKlogn]+;
+    "TK log full"
+	end;
+
+      ( TK step : one whole tick boundary, in the order that matters.
+	advance, THEN skip, THEN wait, THEN log. )
+
+"TK step"
+	[TKflags] = 0;
+	=> TK advance;
+	=> TK skip;
+	=> TK wait;
+	=> TK log;
+	=> TK servo;
+	[TKticks]+;
+	end;
+
+      ( TK burn : busy-wait [TKtmp] milliseconds.  Used to inject a
+	deterministic hitch so that rule 2 can be TESTED rather than
+	asserted, and to give the calibration bracket real work. )
+
+"TK burn"
+	[Timer Command] = READ COUNTS; isocall;
+	[TKburnto] = [Counts];
+	A = [TKtmp]; A '* [TKcpms];
+	[TKburnto] + A;
+    "TK burn loop"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [TKburnto];
+	? A < 0 -> TK burn loop;
+	end;

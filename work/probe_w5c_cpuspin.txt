@@ -1,0 +1,141 @@
+      ( PROBE W5C-3A : CPU cost of one tick discipline, in isolation.
+
+        ACCUMULATE the deadline, pure busy-wait on the high performance timer.
+
+        120 ticks, identical frame load, identical exact-rational deadline.
+        The number that matters is not in the output file -- it is the
+        process's TotalProcessorTime, read by the runner from outside.  The
+        file exists only so the runner knows the program finished, and it
+        carries the spin/sleep counts as a second, in-process witness. )
+
+"directors"
+
+	program name = { probe_w5c_cpuspin };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	NPIX	= 64000;
+	NT	= 120;
+	SUBN	= 44505;
+	SUBD	= 596591;
+	MARGIN	= 0;
+
+"variables"
+
+	result file name = { probe_w5c_cpuspin.bin };
+
+	cpms = 0; base = 0; subper = 0; acc = 0; deadline = 0;
+	spins = 0; sleeps = 0; tick = 0; c0 = 0; tmp = 0; wall0 = 0;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;
+	fb	= 320 mtp 200;
+	arr	= 120;
+	head	= 8;
+
+"programme"
+
+	[Display Origin] = fb;
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	[cpms] = [Counts Per Millisecond];
+	A = [cpms]; A '* 55;	[base]   = A;
+	A = [cpms]; A '* SUBN;	[subper] = A;
+
+	=> Read wall ms; [wall0] = [tmp];
+	[acc] = 0; [spins] = 0; [sleeps] = 0;
+	[Timer Command] = READ COUNTS; isocall;
+	[deadline] = [Counts];
+	[c0] = [deadline];
+	[tick] = 0;
+    "T loop"
+	=> Frame;
+	=> Advance;
+    "T wait"
+	[spins]+;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [deadline];
+	? A >= 0 -> T done;
+	-> T wait;
+
+    "T done"
+	B = [tick]; B + arr; A = [Counts]; [B] = A;
+	[tick]+;
+	A = [tick]; ? A < NT -> T loop;
+	=> Read wall ms; A = [tmp]; A - [wall0];
+
+	[head plus 0] = [cpms];
+	[head plus 1] = NT;
+	[head plus 2] = [spins];
+	[head plus 3] = [sleeps];
+	[head plus 4] = A;
+	[head plus 5] = [c0];
+	[head plus 6] = MARGIN;
+	[head plus 7] = [Counts];
+
+	[Block Pointer] = head;	[tmp] = 8;   [c0] = 0;  => Put;
+	[Block Pointer] = arr;	[tmp] = NT;  [c0] = 8;  => Put;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 128;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+"Put"
+	[File Name]	= result file name;
+	[File Position] = [c0];
+	[File Position] * BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Size]	= [tmp];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+"Advance"
+	A = [acc]; A + [subper];
+	B = A; B '/ SUBD;
+	C = B; C '* SUBD; A - C;
+	[acc] = A;
+	A = [base]; A - B;
+	[deadline] + A;
+	end;
+
+"Frame"
+	A = adapted; B = 0; B + NPIX; C = 0;
+    "f clear"
+	[A] = C; A+;
+	B ^ f clear;
+	A = adapted; B = 0; B + NPIX; C = [tick];
+    "f draw"
+	C + 7; C & 255;
+	[A] = C; A+;
+	B ^ f draw;
+	D = adapted; E = fb; A = 0; A + NPIX;
+    "f expand"
+	C = [D]; C + pal; C = [C]; [E] = C;
+	D+; E+;
+	A ^ f expand;
+	[Display Command] = RETRACE; isocall;
+	end;
+
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Minute]; A * 60000;
+	B = [Second];  B * 1000;
+	A + B; A + [Milliseconds];
+	[tmp] = A;
+	end;

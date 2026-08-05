@@ -1,0 +1,297 @@
+      ( *** PROBE W5B-4 : IS the comm area live without isocalls? ***
+
+	Probe W5B-3 showed the window keeps answering WM_NULL through 7
+	seconds with no isocall, and the produced executable imports
+	CreateThread together with a blocking GetMessageA/DispatchMessageA
+	pair - so the message pump is on its own thread.  That refutes the
+	"window becomes unresponsive" half of the claim, but says nothing
+	about the half that matters: does the APPLICATION see the events?
+
+	Phase B here runs several seconds with ZERO isocalls while doing
+	nothing but reading the comm area:
+
+	  - [Display Status], OR-ed and AND-ed across every iteration, so
+	    any change at all shows up as OR != AND
+	  - all 98 LUCK table units, OR-ed, plus the iteration index at
+	    which the first non-zero appeared
+
+	An outside watcher posts a WM_KEYDOWN/WM_KEYUP pair for 'A' straight
+	to the probe's own window handle, and minimises and restores that
+	window, entirely during phase B.  Nothing is injected into the
+	desktop's input queue, so no other window can receive any of it.
+
+	If the LUCK table lights up with no isocall in between, held-key
+	input is live on the pump thread and a frame that skips its isocalls
+	loses nothing.  If it stays zero until phase C, the comm area is
+	only synchronised inside the isokernel and the claim stands. )
+
+"directors"
+
+	program name = { probew5bevt };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	NPIX	 = 64000;
+	CALSPIN  = 200000;
+	PHASEAMS = 2000;
+	PHASEBMS = 7000;
+	BSPINS   = 200000000;
+	PHASECMS = 2000;
+
+"variables"
+
+	m0 name = { w5bem0.bin };
+	m1 name = { w5bem1.bin };
+	m2 name = { w5bem2.bin };
+	m3 name = { w5bem3.bin };
+	result file name = { probew5bevt.bin };
+
+	tmp = 0; w0 = 0; calc = 0; spins = 0; iter = 0;
+
+	stor = 0; stand = 0;
+	luckor = 0; luckfirst = 0; luckcode = 0;
+	stfirst = 0;
+
+	astor = 0; astand = 0;
+	cstor = 0; cstand = 0; cluckor = 0;
+	nkeys = 0;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;
+	fb	= 64000;
+	kbuf	= 16;
+	head	= 32;
+
+"programme"
+
+	[Display Origin] = fb;
+
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	A = adapted; B = 0;
+    "adfill"
+	C = B; C & 255;
+	[A] = C; A+; B+;
+	? B < NPIX -> adfill;
+
+	A = kbuf; B = 0;
+    "kzero"
+	[A] = 0; A+; B+;
+	? B < 16 -> kzero;
+
+	( ---- calibrate phase B's loop, using its exact body ---- )
+
+	=> Reset scan;
+	=> Read wall ms; [w0] = [tmp];
+	B = 0; B + CALSPIN;
+    "cal loop"
+	--> B;
+	=> Scan;
+	<-- B;
+	B ^ cal loop;
+	=> Read wall ms; [calc] = [tmp]; [calc] - [w0];
+
+	( The calibration is REPORTED, not used.  Measured once, it read the
+	  loop 5x faster than it actually runs later in the process - the
+	  calibrated count overran phase B to 37 s - so the spin count is a
+	  fixed constant and [calc] is kept only as evidence of the drift. )
+	A = 0; A + BSPINS;
+	[spins] = A;
+
+	[File Name] = m0 name; => Drop marker;
+
+	( ============= phase A : isocalls every frame ============= )
+
+	=> Reset scan;
+	=> Read wall ms; [w0] = [tmp];
+    "A loop"
+	=> Frame;
+	=> Scan;
+	=> Read wall ms; A = [tmp]; A - [w0];
+	? A '< PHASEAMS -> A loop;
+	[astor] = [stor]; [astand] = [stand];
+
+	[File Name] = m1 name; => Drop marker;
+
+	( ========== phase B : NOT ONE isocall, comm area only ========== )
+
+	( Phase B leaves the loop the instant the LUCK table shows anything,
+	  so the wall time from marker m1 to marker m2 IS the latency from
+	  the posted WM_KEYDOWN to the application seeing it - measured with
+	  no isocall in between.  With nothing posted the cap is reached and
+	  m2 arrives late with luckor still zero, which is the control. )
+	=> Reset scan;
+	B = [spins];
+    "B loop"
+	--> B;
+	=> Scan;
+	<-- B;
+	A = [luckor]; ? A != 0 -> B done;
+	B ^ B loop;
+    "B done"
+
+	[File Name] = m2 name; => Drop marker;
+
+	( ============= phase C : isocalls every frame ============= )
+
+	A = [stor]; [tmp] = A;		( keep phase B's findings )
+
+	=> Read wall ms; [w0] = [tmp];
+	[cstor] = 0; [cstand] = 0; ! [cstand]; [cluckor] = 0;
+    "C loop"
+	=> Frame;
+	A = [Display Status];
+	B = [cstor]; B | A; [cstor] = B;
+	B = [cstand]; B & A; [cstand] = B;
+	=> Sum luck;
+	B = [cluckor]; B | C; [cluckor] = B;
+	=> Drain console;
+	=> Read wall ms; A = [tmp]; A - [w0];
+	? A '< PHASECMS -> C loop;
+
+	( ========================= dump ========================= )
+
+	[head plus 0]  = [Counts Per Millisecond];
+	[head plus 1]  = [calc];
+	[head plus 2]  = [spins];
+	[head plus 3]  = [iter];
+	[head plus 4]  = [astor];
+	[head plus 5]  = [astand];
+	[head plus 6]  = [stor];
+	[head plus 7]  = [stand];
+	[head plus 8]  = [luckor];
+	[head plus 9]  = [luckfirst];
+	[head plus 10] = [luckcode];
+	[head plus 11] = [cstor];
+	[head plus 12] = [cstand];
+	[head plus 13] = [cluckor];
+	[head plus 14] = [nkeys];
+	[head plus 15] = [stfirst];
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 32;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 32 mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = kbuf;
+	[Block Size]	= 16;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 48;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name] = m3 name; => Drop marker;
+
+	end;
+
+( ------------------------------------------------------------------ )
+
+"Reset scan"
+	[stor] = 0;
+	[stand] = 0; ! [stand];
+	[luckor] = 0; [luckfirst] = 0; [luckcode] = 0;
+	[iter] = 0; [stfirst] = 0;
+	end;
+
+"Scan"
+    ( one sample of the comm area - NO isocall anywhere in here )
+	[iter]+;
+	A = [Display Status];
+	? [stfirst] != 0 -> sc1;
+	[stfirst] = A;
+    "sc1"
+	B = [stor];  B | A; [stor] = B;
+	B = [stand]; B & A; [stand] = B;
+	=> Sum luck;
+	? C = 0 -> sc2;
+	B = [luckor]; B | C; [luckor] = B;
+	A = [luckfirst]; ? A != 0 -> sc2;
+	A = [iter]; [luckfirst] = A;
+	[luckcode] = C;
+    "sc2"
+	end;
+
+"Sum luck"
+    ( OR of all 98 LUCK units, returned in C )
+	D = key a;
+	B = 0; B + 98;
+	C = 0;
+    "lk loop"
+	A = [D]; C | A;
+	D+;
+	B ^ lk loop;
+	end;
+
+"Drain console"
+	B = 0; B + 8;
+    "dc loop"
+	--> B;
+	[Console Command] = GET CONSOLE INPUT; isocall;
+	? failed -> dc done;
+	A = [nkeys];
+	? A '>= 16 -> dc next;
+	B = kbuf; B + A; C = [Console Input]; [B] = C;
+    "dc next"
+	[nkeys]+;
+	<-- B;
+	B ^ dc loop;
+	end;
+    "dc done"
+	<-- B;
+	end;
+
+"Drop marker"
+	--> A; --> B; --> C;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 4;
+	isocall;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 4;
+	isocall;
+	<-- C; <-- B; <-- A;
+	end;
+
+"Frame"
+	D = adapted; E = fb;
+	A = 0; A + NPIX;
+    "fx loop"
+	C = [D]; C + pal; C = [C]; [E] = C;
+	D+; E+;
+	A ^ fx loop;
+	[Display Command] = RETRACE; isocall;
+	end;
+
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Minute];
+	A * 60000;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

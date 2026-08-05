@@ -1,0 +1,393 @@
+      ( *** fbmem - the Noctis workspace, byte semantics, canaries and the
+	    FBDUMP writer ***
+
+	Normative source: docs-notes/LINOBUF.md sections 1, 2, 3 and 6.
+	Nothing here is invented; every base and size is copied from
+	LINOBUF section 2.3, which took them from NOCTIS-D.H:25-56 and
+	NOCTIS.CPP:2163-2172.
+
+	DECISION 1.  One Noctis byte per 32-bit lino unit.  A byte offset
+	IS a unit offset, so every index expression transfers from the C
+	verbatim.  "MEM put byte" is the single canonical store and it
+	masks with 255; "MEM get byte" is the single canonical load.  They
+	exist as named routines - rather than being inlined everywhere -
+	precisely so that sabotage 10 can replace them with a packed
+	four-per-unit store and the byte-semantics battery can catch it.
+
+	DECISION 2.  ONE flat workspace nw, laid out in farmalloc order.
+	The order is the whole trick: every read past the end of a buffer
+	lands on the same neighbour DOS gave it, at zero cost and zero
+	code.  PADU = 16 units between blocks stands in for Borland's
+	far-heap block header.
+
+	DECISION 3.  Overruns are classified three ways.  Class A (writes
+	contained by 16-bit wrap) get the full segment - that is why
+	ZADPT and ZADPR are 65540 and not 64000.  Class B (writes outside,
+	never read) get the pad.  Class C (reads outside) are handled by
+	the layout ORDER and cost nothing.
+
+	The pad canary is a DEBUG tool, not a release mechanism.  Poison
+	changes what a class-C read samples, so grading runs must poison,
+	check, and then RESTORE ZERO before anything renders.  "MEM zero
+	pads" exists for that and the shell calls it.
+
+	FBDUMP v1 (LINOBUF section 6) is staged in the "dump" vector and
+	written once, so one run produces one artifact with one hash.  The
+	file is a STREAM of records, each a 16-unit header followed by its
+	payload; a reader walks it by header.
+
+	FILENAME TRAP: underscores in lino string literals become spaces.
+	Every output name here uses hyphens.                              )
+
+"constants"
+
+	( ---------------- FBDUMP v1 ---------------- )
+
+	FBMAGIC	= 1178747953;	( 0x46424431, 'FBD1' as a 32-bit value )
+	FBVER	= 1;
+
+	KPAGE	= 1;		( 64000 index units			)
+	KPAL6	= 2;		( 768 six-bit DAC components		)
+	KLUT	= 3;		( 256 00RRGGBB units			)
+	KTICK	= 4;		( 3 units per tick, RAW			)
+	KLAY	= 5;		( 4 units per region			)
+	KCAN	= 6;		( 2 units per region			)
+	KSELF	= 7;		( EXTENSION: this port's self-checks	)
+	KFRM	= 8;		( EXTENSION: raw frame-cost samples	)
+
+	DHDRU	= 16;		( header size, units )
+
+	( ---------------- the layout, farmalloc order ----------------
+	  LINOBUF section 2.3.  Verified against that table unit by unit:
+	  every base is the previous base + its size + PADU.  )
+
+	PADU	= 16;
+	NREG	= 9;
+
+	RNOFF	= 32;		ZNOFF	= 7340;		( offsets.map      )
+	RNGLB	= 7388;		ZNGLB	= 32768;	( globes.map | sea )
+	RSBG	= 40172;	ZSBG	= 64800;	( s_background     )
+	RPBG	= 104988;	ZPBG	= 65552;	( p_background     )
+	RPSM	= 170556;	ZPSM	= 40000;	( p_surfacemap     )
+	ROBJ	= 210572;	ZOBJ	= 40000;	( objectschart     )
+	RPVF	= 250588;	ZPVF	= 20480;	( pvfile arena     )
+	RADPT	= 271084;	ZADPT	= 65540;	( adapted, hidden  )
+	RADPR	= 336640;	ZADPR	= 65540;	( adaptor, visible )
+
+	NWTOP	= 402196;
+
+	POISON	= 2779096485;	( 0xA5A5A5A5 )
+
+	WINDOW	= 65535;	( highest texel a 16-bit BX can reach )
+
+	NPIX	= 64000;
+	NQUAD	= 16000;
+	QWSTEADY = 14560;	( QUADWORDS after NOCTIS.CPP:2206 - a
+				  VARIABLE, not 16000.  LINOBUF section 4. )
+
+	DUMPMAX	= 140000;
+
+"variables"
+
+	fbdumpname	= { fb-out.bin };
+
+	( byte access )
+	MBptr	= 0;
+	MBval	= 0;
+
+	( quadrant bitfields: nr_of_objects 0-1, obj0 2-3, obj1 4-5,
+	  obj2 6-7.  ruinschart's AF1/AF2/AF3 write field 3. )
+	MQval	= 0;
+	MQfld	= 0;
+	MQout	= 0;
+
+	( assembled wide views )
+	MDlo	= 0;
+	MDhi	= 0;
+
+	( canary state )
+	MCfired	= 0;		( region id + 1, so 0 means clean )
+	MCn	= 0;		( total units differing )
+	MCat	= 0;		( nw offset of the first difference )
+
+	( dump staging )
+	DPptr	= 0;
+	DPcnt	= 0;
+	DKind	= 0;
+	DW	= 0;
+	DH	= 0;
+	DBptr	= 0;
+	DBcnt	= 0;
+	DCpms	= 0;
+	DTicks	= 0;
+
+	MEMtmp	= 0;
+	MEMi	= 0;
+
+"workspace"
+
+	nw	= 402196;	( THE Noctis workspace, farmalloc order )
+	fb	= 64000;	( [Display Origin], 00RRGGBB - OUTSIDE nw )
+	digimap2 = 2340;	( SPLIT out of n_globes_map, LINOBUF alias 2 )
+	dump	= 140000;	( FBDUMP staging: two 64000-unit pages fit )
+	dhdr	= 16;
+	rtab	= 36;		( 9 regions x (base,size,padbase,id) )
+	ctab	= 18;		( 9 regions x (expected,actual) )
+
+"programme"
+
+( ==================================================================== )
+( the region table                                                      )
+( ==================================================================== )
+
+      ( 4 units per region: base, size, pad base, region id.  This IS
+	FBDUMP kind 5, emitted straight out of rtab, so the layout the
+	shell dumps is the layout the code uses - not a restatement of
+	it. )
+
+"MEM build rtab"
+	A = rtab;
+	[A plus 0] = RNOFF; [A plus 1] = ZNOFF; C = RNOFF; C + ZNOFF; [A plus 2] = C; [A plus 3] = 0;
+	A + 4;
+	[A plus 0] = RNGLB; [A plus 1] = ZNGLB; C = RNGLB; C + ZNGLB; [A plus 2] = C; [A plus 3] = 1;
+	A + 4;
+	[A plus 0] = RSBG;  [A plus 1] = ZSBG;  C = RSBG;  C + ZSBG;  [A plus 2] = C; [A plus 3] = 2;
+	A + 4;
+	[A plus 0] = RPBG;  [A plus 1] = ZPBG;  C = RPBG;  C + ZPBG;  [A plus 2] = C; [A plus 3] = 3;
+	A + 4;
+	[A plus 0] = RPSM;  [A plus 1] = ZPSM;  C = RPSM;  C + ZPSM;  [A plus 2] = C; [A plus 3] = 4;
+	A + 4;
+	[A plus 0] = ROBJ;  [A plus 1] = ZOBJ;  C = ROBJ;  C + ZOBJ;  [A plus 2] = C; [A plus 3] = 5;
+	A + 4;
+	[A plus 0] = RPVF;  [A plus 1] = ZPVF;  C = RPVF;  C + ZPVF;  [A plus 2] = C; [A plus 3] = 6;
+	A + 4;
+	[A plus 0] = RADPT; [A plus 1] = ZADPT; C = RADPT; C + ZADPT; [A plus 2] = C; [A plus 3] = 7;
+	A + 4;
+	[A plus 0] = RADPR; [A plus 1] = ZADPR; C = RADPR; C + ZADPR; [A plus 2] = C; [A plus 3] = 8;
+	end;
+
+( ==================================================================== )
+( byte semantics - the SINGLE canonical store and load                  )
+( ==================================================================== )
+
+      ( MEM put byte : nw[[MBptr]] <- [MBval] AND 255.
+	Reproduces C's wraparound on a char store: 300 -> 44, -1 -> 255. )
+
+"MEM put byte"
+	A = nw; A + [MBptr];
+	C = [MBval]; C & 255;
+	[A] = C;
+	end;
+
+      ( MEM get byte : [MBval] <- nw[[MBptr]], unsigned 0..255. )
+
+"MEM get byte"
+	A = nw; A + [MBptr];
+	C = [A]; C & 255;
+	[MBval] = C;
+	end;
+
+      ( MEM sx8 : C <- sign extension of C's low 8 bits.
+	REQUIRED, not decorative: n_globes_map is declared char at
+	NOCTIS-0.CPP:1004 and is right-shifted at NOCTIS-1.CPP:4241. )
+
+"MEM sx8"
+	C & 255;
+	A = C; A & 128;
+	? A = 0 -> MEMsx done;
+	C - 256;
+    "MEM sx done"
+	end;
+
+( ==================================================================== )
+( quadrant bitfields - objectschart == ruinschart, LINOBUF alias 3      )
+( ==================================================================== )
+
+      ( MEM quad get : [MQout] <- field [MQfld] of the byte [MQval]. )
+
+"MEM quad get"
+	C = [MQval]; C & 255;
+	A = [MQfld]; A + A;		( field index times 2 = shift )
+	C > A;
+	C & 3;
+	[MQout] = C;
+	end;
+
+      ( MEM quad set : field [MQfld] of [MQval] <- [MQout]. )
+
+"MEM quad set"
+	A = [MQfld]; A + A;
+	B = 3; B < A;
+	! B;				( mask of everything else )
+	C = [MQval]; C & 255; C & B;
+	D = [MQout]; D & 3; D < A;
+	C | D;
+	[MQval] = C;
+	end;
+
+( ==================================================================== )
+( wide views assembled from byte units - the disk boundary              )
+( ==================================================================== )
+
+      ( MEM u32 : [MBval] <- the little-endian uint32 held in the four
+	byte units at nw[[MBptr]].  This is how digimap2 rows and any
+	packed disk record are unpacked; nothing in working memory is
+	ever stored packed. )
+
+"MEM u32"
+	A = nw; A + [MBptr];
+	C = [A plus 3]; C & 255; C < 8;
+	D = [A plus 2]; D & 255; C + D; C < 8;
+	D = [A plus 1]; D & 255; C + D; C < 8;
+	D = [A plus 0]; D & 255; C + D;
+	[MBval] = C;
+	end;
+
+      ( MEM dbl : [MDlo],[MDhi] <- the little-endian binary64 held in
+	the eight byte units at nw[[MBptr]].  STARMAP.BIN records are
+	32 bytes with a double at offset 0 (NOCTIS-0.CPP:4020-4030), so
+	the byte array stays the storage and this is the VIEW.
+	LINOBUF alias 7: keep storage, split the view. )
+
+"MEM dbl"
+	A = nw; A + [MBptr];
+	C = [A plus 3]; C & 255; C < 8;
+	D = [A plus 2]; D & 255; C + D; C < 8;
+	D = [A plus 1]; D & 255; C + D; C < 8;
+	D = [A plus 0]; D & 255; C + D;
+	[MDlo] = C;
+	C = [A plus 7]; C & 255; C < 8;
+	D = [A plus 6]; D & 255; C + D; C < 8;
+	D = [A plus 5]; D & 255; C + D; C < 8;
+	D = [A plus 4]; D & 255; C + D;
+	[MDhi] = C;
+	end;
+
+( ==================================================================== )
+( the pad canaries - DEBUG BUILD ONLY                                   )
+( ==================================================================== )
+
+"MEM poison pads"
+	D = rtab; B = 0; B + NREG;
+    "MEM pp reg"
+	A = [D plus 2]; A + nw;
+	E = 0; E + PADU;
+	C = POISON;
+    "MEM pp unit"
+	[A] = C; A+;
+	E ^ MEM pp unit;
+	D + 4;
+	B ^ MEM pp reg;
+	end;
+
+      ( restore the FAITHFUL state.  A release/grading run must end here
+	or a class-C read overrun samples 0xA5A5A5A5 instead of zero. )
+
+"MEM zero pads"
+	D = rtab; B = 0; B + NREG;
+    "MEM zp reg"
+	A = [D plus 2]; A + nw;
+	E = 0; E + PADU;
+	C = 0;
+    "MEM zp unit"
+	[A] = C; A+;
+	E ^ MEM zp unit;
+	D + 4;
+	B ^ MEM zp reg;
+	end;
+
+      ( MEM check pads : [MCfired] <- region id + 1 of the FIRST region
+	whose pad differs (0 = clean), [MCn] <- total units differing,
+	[MCat] <- nw offset of the first difference.  ctab is filled with
+	(expected, actual) per region = FBDUMP kind 6. )
+
+"MEM check pads"
+	[MCfired] = 0; [MCn] = 0; [MCat] = 0;
+	D = rtab; B = 0; B + NREG;
+	[MEMi] = ctab;
+    "MEM cp reg"
+	A = [D plus 2]; A + nw;
+	E = 0; E + PADU;
+	[MEMtmp] = POISON;		( "actual" reported for this region )
+    "MEM cp unit"
+	C = [A];
+	? C = POISON -> MEM cp ok;
+	[MCn]+;
+	[MEMtmp] = C;
+	? [MCfired] != 0 -> MEM cp ok;
+	[MCfired] = [D plus 3]; [MCfired]+;
+	[MCat] = A;
+	[MCat] - nw;
+    "MEM cp ok"
+	A+;
+	E ^ MEM cp unit;
+	C = [MEMi];
+	[C plus 0] = POISON;
+	[C plus 1] = [MEMtmp];
+	C + 2; [MEMi] = C;
+	D + 4;
+	B ^ MEM cp reg;
+	end;
+
+( ==================================================================== )
+( FBDUMP v1 staging                                                     )
+( ==================================================================== )
+
+"DMP reset"
+	[DPptr] = dump;
+	[DPcnt] = 0;
+	end;
+
+      ( DMP rec : append one FBDUMP record.
+	in  [DKind] [DW] [DH] [DBptr] [DBcnt] [DCpms] [DTicks] )
+
+"DMP rec"
+	A = [DPptr];
+	[A plus 0]  = FBMAGIC;
+	[A plus 1]  = FBVER;
+	[A plus 2]  = [DKind];
+	[A plus 3]  = [DW];
+	[A plus 4]  = [DH];
+	[A plus 5]  = [DBcnt];
+	[A plus 6]  = [DCpms];
+	[A plus 7]  = [DTicks];
+	[A plus 8]  = 0;
+	[A plus 9]  = 0;
+	[A plus 10] = 0;
+	[A plus 11] = 0;
+	[A plus 12] = 0;
+	[A plus 13] = 0;
+	[A plus 14] = 0;
+	[A plus 15] = 0;
+	A + DHDRU;
+	C = [DPcnt]; C + DHDRU; [DPcnt] = C;
+
+	D = [DBptr];
+	B = [DBcnt];
+	? B = 0 -> DMP rec tail;
+    "DMP rec unit"
+	C = [D]; [A] = C; A+; D+;
+	B ^ DMP rec unit;
+	C = [DPcnt]; C + [DBcnt]; [DPcnt] = C;
+    "DMP rec tail"
+	[DPptr] = A;
+	end;
+
+      ( write the whole staged stream, then trim the file to it. )
+
+"DMP write"
+	[File Name]	= fbdumpname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= dump;
+	[Block Size]	= [DPcnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= fbdumpname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= [DPcnt];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;

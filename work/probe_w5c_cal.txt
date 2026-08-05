@@ -1,0 +1,137 @@
+      ( PROBE W5C-4 : is [Counts Per Millisecond] trustworthy enough to build
+        a 54.9254 ms tick on?
+
+        The runtime does not read a nominal frequency -- the manual says it
+        "calculates (elapses) this value before the application starts
+        running".  Three runs of the other W5C probes on this machine reported
+        9009, 8999 and 8984 counts per millisecond: a 0.28% spread.  A tick
+        period derived from that number inherits the whole of the error, and
+        accumulating the deadline cannot remove it, because it is a RATE
+        error, not a rounding error.
+
+        Two measurements, no display, a few seconds:
+
+        1. RATE.  Three back-to-back 8-second segments, each bounded by the
+           system clock (READ TIME) and measured with the high performance
+           timer (READ COUNTS).  counts / wall-ms is the true rate; the ratio
+           to the reported [Counts Per Millisecond] is the error the tick
+           would inherit.
+
+        2. SYSTEM CLOCK GRANULARITY.  256 observed steps of [Milliseconds],
+           found by spinning on READ TIME until the value changes.  This says
+           how much of measurement 1's residual is the reference's own
+           coarseness rather than the HPT's error. )
+
+"directors"
+
+	program name = { probe_w5c_cal };
+	unit = 32;
+
+"constants"
+
+	NSEG	= 3;
+	SEGMS	= 8000;
+	NGRAN	= 256;
+
+"variables"
+
+	result file name = { probe-w5c-cal.bin };
+
+	w0 = 0; w1 = 0; c0 = 0; c1 = 0;
+	seg = 0; i = 0; tmp = 0; last = 0; tmp2 = 0;
+
+"workspace"
+
+	segw	= 3;
+	segc	= 3;
+	gran	= 256;
+	head	= 8;
+
+"programme"
+
+	( ---- 1 : rate, three 8-second segments ---- )
+
+	[seg] = 0;
+    "R seg"
+	=> Read wall ms; [w0] = [tmp];
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+    "R spin"
+	=> Read wall ms;
+	A = [tmp]; A - [w0];
+	? A < SEGMS -> R spin;
+	[w1] = [tmp];
+	[Timer Command] = READ COUNTS; isocall;
+	[c1] = [Counts];
+
+	A = [seg]; A + segw;
+	B = [w1]; B - [w0]; [A] = B;
+	A = [seg]; A + segc;
+	B = [c1]; B - [c0]; [A] = B;
+
+	[seg]+; A = [seg]; ? A < NSEG -> R seg;
+
+	( ---- 2 : observed steps of the system clock ---- )
+
+	=> Read wall ms; [last] = [tmp];
+	[i] = 0;
+    "G loop"
+	=> Read wall ms;
+	A = [tmp]; A - [last];
+	? A != 0 -> G got;
+	-> G loop;
+    "G got"
+	B = [i]; B + gran; [B] = A;
+	[last] = [tmp];
+	[i]+; A = [i]; ? A < NGRAN -> G loop;
+
+	( ---- dump ---- )
+
+	[head plus 0] = [Counts Per Millisecond];
+	[head plus 1] = NSEG;
+	[head plus 2] = SEGMS;
+	[head plus 3] = NGRAN;
+	[head plus 4] = 0;
+	[head plus 5] = 0;
+	[head plus 6] = 0;
+	[head plus 7] = 0;
+
+	[Block Pointer] = head;	[tmp] = 8;     [c0] = 0;  => Put;
+	[Block Pointer] = segw;	[tmp] = NSEG;  [c0] = 8;  => Put;
+	[Block Pointer] = segc;	[tmp] = NSEG;  [c0] = 11; => Put;
+	[Block Pointer] = gran;	[tmp] = NGRAN; [c0] = 14; => Put;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 270;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+"Put"
+	[File Name]	= result file name;
+	[File Position] = [c0];
+	[File Position] * BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Size]	= [tmp];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+    ( milliseconds since midnight -- no hour wrap inside a 30 s probe )
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Hour];
+	A * 3600000;
+	B = [Minute];
+	B * 60000;
+	A + B;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

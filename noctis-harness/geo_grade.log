@@ -1,0 +1,243 @@
+
+==========================================================================
+BUILD -- everything from source, this run
+==========================================================================
+  [PASS] geo_ref.c builds clean
+  geo_ref.c   sha256 cdfed66038d01568ac03bbed031f2073faf3393a40d5d2ff692c20f8c87814e7
+  geo_spec.py sha256 71b55619971cca773ab8556f311b14f267a98867d96c2afb77247f74a44c64e6
+  geo_spec selftest: PASS
+  [PASS] geo_spec.py rounding self-test
+
+  re-sweeping the corpus from the galaxy hash and STARMAP.BIN
+  [PASS] corpus rebuilt
+  written: C:\programmieren\linoleum\noctis-harness\geo_corpus.nsin   (500 systems)
+  written: C:\programmieren\linoleum\noctis-harness\geo_corpus.tsv
+  systems carrying at least one charted body: 336
+
+==========================================================================
+LEG 0  THE SITE REGISTRY -- still eleven sites / 17 draws
+==========================================================================
+  [PASS] eleven float-argument sites declared   11
+  [PASS] seventeen draws across them   17
+  [PASS] float-site draws == 9 per planet + 8 per moon on every system   0 systems violate it, e.g. []
+
+==========================================================================
+LEG 1  ORACLE -- what the 1996 machine can and cannot print
+==========================================================================
+  CAST.EXE       15558  float-conversions: NONE
+  CAT.EXE        15838  float-conversions: NONE
+  CLEAN.EXE      14920  float-conversions: NONE
+  DELE.EXE       15860  float-conversions: NONE
+  DL.EXE         46004  float-conversions: NONE
+  HELP.com         159  float-conversions: NONE
+  INBOX.EXE      17814  float-conversions: NONE
+  NOCTIS.EXE    215744  float-conversions: %+3.1f, %01.2f, %1.0f, %1.1f, %1.2f, %1.4f, %1.8f, %2.2f, %2.3f, %3.0f, %G, %f
+  OUTBOX.EXE     15806  float-conversions: NONE
+  PAR.EXE        19822  float-conversions: %1.0f
+  PRI.EXE        16130  float-conversions: NONE
+  REP.EXE        15980  float-conversions: NONE
+  REPAIR.EXE     16324  float-conversions: NONE
+  SL.EXE         19670  float-conversions: %1.0f, %1.2f, %hf
+  ST.EXE         41615  float-conversions: NONE
+  WHERE.EXE      15144  float-conversions: NONE
+  txt.exe        16278  float-conversions: NONE
+  wri.exe        15961  float-conversions: NONE
+  [PASS] all shipped modules scanned   18 binaries
+  [PASS] DL.EXE -- the Wave 4 oracle -- prints no float at all   its whole format set is %02d %d %ld %s %u
+  [PASS] only NOCTIS/PAR/SL print any float   found: NOCTIS.EXE, PAR.EXE, SL.EXE
+
+  the two non-game modules that print a float print only these:
+    PAR.CPP:480 sprintf (textbuffer, "X=%1.0f", laststar_x);
+    PAR.CPP:482 sprintf (textbuffer, "Y=%1.0f", -laststar_y);
+    PAR.CPP:484 sprintf (textbuffer, "Z=%1.0f", laststar_z);
+    PAR.CPP:497 sprintf (textbuffer, "X=%1.0f", laststar_x);
+    PAR.CPP:499 sprintf (textbuffer, "Y=%1.0f", -laststar_y);
+    PAR.CPP:501 sprintf (textbuffer, "Z=%1.0f", laststar_z);
+    SL.CPP:435 sprintf (textbuffer, "$X=%1.0f", laststar_x);
+    SL.CPP:437 sprintf (textbuffer, "$Y=%1.0f", -laststar_y);
+    SL.CPP:439 sprintf (textbuffer, "$Z=%1.0f", laststar_z);
+    SL.CPP:445 sprintf (textbuffer, "$D=%1.2f L.Y.", dist * 5E-5);
+  [PASS] no GOES module prints any planetary geometry   0 geometry printouts found
+
+  the ONLY planetary geometry any 1996 binary prints:
+    NOCTIS.CPP:3083  sprintf (outhudbuffer, "%1.4f", nearstar_p_ray[ip_targetted]);
+  [PASS] exactly one such site, and it is a HUD sprintf in the game   1 found
+
+==========================================================================
+LEG 2  REFERENCES -- C on a real x87 vs exact-rational Python
+==========================================================================
+  geo_ref.c   long double (80-bit) chains at control word 133Fh,
+              one store per source statement, real hardware
+  geo_spec.py exact rationals, explicit round-to-nearest-even to
+              64/53/24 bits, NO hardware float anywhere
+
+  500 systems, 6982 bodies, 55856 graded values (8 fields each)
+  [PASS] class/nop/nob agree on every system   0 disagree
+  [PASS] every geometry value agrees BIT FOR BIT   0 / 55856 differ
+  [PASS] the two sides also agree under cast=near castsrc=ext   0 / 55856 differ
+  [PASS] the two sides also agree under cast=chop castsrc=f64   0 / 55856 differ
+
+==========================================================================
+LEG 3  TOPOLOGY -- the only external hold geometry has
+==========================================================================
+  Geometry is downstream of everything STARMAP.BIN and DL.EXE
+  grade.  This leg proves the inheritance is real by requiring
+  the Wave 4 reference and this one to produce the same class,
+  nop, nob and draw count on the same corpus -- and by requiring
+  that to be true for EVERY cast policy and precision class,
+  which is what makes the eleven float sites provably invisible
+  to the 1996 artifacts.
+
+  [PASS] Wave 4's ns_ref and this file agree on class/nop/nob/draws   0 of 500 systems differ
+  [PASS] topology unmoved under cast=chop castsrc=ext prec=ext
+  [PASS] topology unmoved under cast=chop castsrc=ext prec=f64
+  [PASS] topology unmoved under cast=chop castsrc=f64 prec=ext
+  [PASS] topology unmoved under cast=near castsrc=ext prec=ext
+  [PASS] topology unmoved under cast=near castsrc=f64 prec=ext
+
+==========================================================================
+LEG 4  THE CAST BOUNDARY -- measured, not decided
+==========================================================================
+  FLOATPOLICY.md 3.3 records the float-to-int boundary UNSETTLED.
+  The eleven geometry sites convert a double to a 16-bit int at a
+  call boundary.  Four hypotheses; this leg reports the distance
+  between them.  NONE of them is asserted to be the right one.
+
+  hypothesis                       values     differ   %
+  cast=chop  castsrc=ext              55856          0    0.000%
+  cast=chop  castsrc=f64              55856        111    0.199%
+  cast=near  castsrc=ext              55856       7867   14.084%
+  cast=near  castsrc=f64              55856       7857   14.067%
+
+  per field, chop/ext vs near/ext:
+    orb_orient         0 differing
+    orb_seed        2708 differing
+    tilt            1883 differing
+    orb_tilt        1803 differing
+    orb_ecc         1473 differing
+    ray                0 differing
+    orb_ray            0 differing
+    ring               0 differing
+  [PASS] the cast boundary reaches exactly four of the eight fields   reached: orb_ecc, orb_seed, orb_tilt, tilt
+
+  orb_orient's draw takes an INTEGER argument; ray, orb_ray and
+  ring are RECOMPUTED in phases F and G from zrandom(100) and
+  random(3)/random(5)/random(2), all integer arguments.  So four
+  of the eight fields cannot depend on the cast boundary at all,
+  and the measurement above confirms it rather than assuming it.
+  [PASS] chop and round-to-nearest are DISTINGUISHABLE in geometry   7867 of 55856 values move
+
+  castsrc (live 80-bit value vs its binary64 rounding) moves
+  111 of 55856 values.  FLOATPOLICY.md 3.3 says the engine cannot
+  currently truncate an unstored extended value at all; this is
+  the size of that gap for geometry specifically.
+
+==========================================================================
+LEG 5  PRECISION CLASS -- is the 80-bit schedule load-bearing here?
+==========================================================================
+  A plain `double` transcription (every intermediate narrowed to
+  53 bits) against the unspilled 80-bit schedule:
+    3881 of 55856 values differ  (6.9482%)
+    orb_orient         0 differing
+    orb_seed        1670 differing
+    tilt              34 differing
+    orb_tilt          30 differing
+    orb_ecc          275 differing
+    ray              432 differing
+    orb_ray         1367 differing
+    ring              73 differing
+    rec 0 body 0 ray 3f78a009f623076b != 3f78a009f623076d
+    rec 0 body 7 orb_ecc 3fe0c083126e978d != 3fe0c083126e978e
+  [PASS] the 80-bit schedule is load-bearing for geometry too   3881 of 55856 values move at 53 bits
+
+==========================================================================
+LEG 6  THE BOUND -- what the one 1996 printout could ever settle
+==========================================================================
+  NOCTIS.CPP:3083 sprintf's nearstar_p_ray[ip_targetted] as
+  "%1.4f".  If someone captured that HUD field for a body, the
+  strongest statement it could support is |ours - theirs| < 5e-5,
+  a BOUND, never an equality.  How much would that bound settle?
+
+  hypothesis vs chop/ext/ext           bodies  ray moved visible@1e-4
+  cast = round-to-nearest                6982          0            0
+  castsrc = binary64 first               6982          0            0
+  prec = 53-bit intermediates            6982        432            0
+
+  [PASS] the ONE field the original prints does not move under the cast boundary AT ALL   0 of 6982 bodies
+    Reason, and it is structural: phase F (:4306) overwrites
+    p_ray for EVERY body from avg_planet_ray[type] and
+    zrandom(100) -- an integer argument.  The phase A/E radius,
+    which does depend on the cast, is dead by then.  So the HUD
+    readout is blind to the open question BY CONSTRUCTION.
+
+  [PASS] a %1.4f readout cannot resolve the precision class either   432 of 6982 bodies move, 0 of them by more than 5e-5
+
+  Read that column as the ceiling on this route.  It is a bound on
+  a bound: even a perfect capture of every HUD radius would leave
+  the rows with 0 visible bodies completely unresolved, and the
+  capture itself is not headless (NOCTIS.EXE is the interactive
+  game, gated on video mode 13h and driven by keyboard).
+  [PASS] reported as a BOUND, not a pass   no equality is claimed
+
+==========================================================================
+LEG 7a  LIVE BREAKS -- five builds that must fail
+==========================================================================
+  Each is one compile-time edit of geo_ref.c, built with the real
+  compiler and run over the real corpus.  All five compile: they
+  are wrong, not broken.
+
+  [PASS] BREAK_F32RAY is caught   4621/55856 values differ (orb_seed=2278, tilt=33, orb_tilt=31, orb_ecc=1, orb_ray=2278)
+         first: rec 0 body 0 orb_seed 403eda5e353f7ced != 403eda5e328f5c29
+  [PASS] BREAK_FUSESIZING is caught   1393/55856 values differ (ray=572, orb_ray=695, ring=126)
+         first: rec 0 body 0 ray 3f78a009f623076c != 3f78a009f623076b
+  [PASS] BREAK_SPILL2 is caught   49/55856 values differ (orb_ray=49)
+         first: rec 2 body 7 orb_ray 40acdc33c8725cca != 40acdc33c8725ccb
+  [PASS] BREAK_ECCMUL is caught   139/55856 values differ (orb_ecc=139)
+         first: rec 5 body 5 orb_ecc 3fe9f3b645a1cac0 != 3fe9f3b645a1cac1
+  [PASS] BREAK_KEY8 is caught   237/55856 values differ (orb_ray=237)
+         first: rec 0 body 9 orb_ray 40d3c146043dec31 != 40c833ae8a970288
+
+==========================================================================
+LEG 7b  INERT SITES -- three edits that must change NOTHING
+==========================================================================
+  These are not weak tests.  Each asserts a positive property of
+  the 1996 routine that a later wave could break by accident, and
+  each would then fail loudly:
+
+    BREAK_SPILL       :4089's int*float product needs 35 bits, so
+                      a binary64 spill there cannot lose anything
+    BREAK_PARENTSEED  :4199's VALUE is dead -- phase F overwrites
+                      p_ray[q] for every moon.  The DRAW is live.
+    BREAK_ZORDER      :4094's VALUE is dead -- phase G overwrites
+                      p_ring[n] for every planet.  The two draws
+                      are live but the stream position is the same
+
+  So 3 of the 17 float-site draws (:4094 x2, :4199 x1) feed values
+  nothing in the routine ever reads.  14 are live.
+
+  [PASS] BREAK_SPILL changes nothing, as claimed   0/55856 values differ
+  [PASS] BREAK_SPILL leaves the draw ledger identical
+  [PASS] BREAK_PARENTSEED changes nothing, as claimed   0/55856 values differ
+  [PASS] BREAK_PARENTSEED leaves the draw ledger identical
+  [PASS] BREAK_ZORDER changes nothing, as claimed   0/55856 values differ
+  [PASS] BREAK_ZORDER leaves the draw ledger identical
+
+==========================================================================
+SUMMARY
+==========================================================================
+  * ORACLE: geometry has no headless 1996 readout.  The only planetary number the original ever prints is nearstar_p_ray at %1.4f on NOCTIS.EXE's graphical HUD.
+  * TOPOLOGY: every draw whose result selects a branch, a count or a type takes an INTEGER argument, and random(n) consumes one rand() for every n.  Measured here, not assumed: the draw ledger is byte-identical across all four cast policies and both precision classes.
+  * CAST: chop vs nearest moves 7867/55856 geometry values (14.084%); live-extended vs binary64-first moves 111/55856 (0.1987%).  Both remain OPEN -- nothing here decides between them.
+  * BOUND: the only planetary number any 1996 binary prints -- nearstar_p_ray at %1.4f -- is IDENTICAL under every cast hypothesis (0 of 6982 bodies move), because phase F recomputes it from an integer-argument draw.  Capturing it would settle nothing about the open item.  Under a 53-bit engine it moves on 432 bodies but never by as much as 5e-5, so %1.4f could not see that either.
+  * SITES: 3 of the 17 float-site draws (:4094 x2, :4199 x1) produce values NOTHING in prepare_nearstar reads -- phases F and G overwrite them.  Proven by leg 7b, which mutates each and requires zero movement.  14 draws are live.
+
+  all checks passed.
+
+  READ THIS BEFORE QUOTING ANY NUMBER ABOVE: leg 2's bit-exactness
+  is agreement between two implementations of the same reading of
+  the 1996 source.  It is NOT agreement with the 1996 machine.  No
+  1996 artifact in this project's possession contains a planetary
+  radius, orbital radius, tilt, eccentricity or ring value, and
+  leg 1 re-establishes that from the shipped binaries every run.
+  The cast boundary stays OPEN; leg 4 measures its cost instead of
+  closing it.

@@ -45,9 +45,21 @@ for p in (HERE, RECON):
 
 import ns_spec as N                                             # noqa: E402
 
-MANIFESTS = [os.path.join(RECON, "batch4.manifest")]
+MANIFESTS = [os.path.join(RECON, "batch4.manifest"),
+             os.path.join(RECON, "batch5.manifest")]
 # the ten hand-picked stars of batch 1/2 live in compare_dl.STARS/CAPTURES
 # rather than in a manifest; they are folded in below.
+#
+# batch5 is the wave-6 extension.  Wave 4 measured that the `bclip` sabotage
+# (phase B skipped when nop <= 4) was invisible to DL.EXE because batch4 was
+# built "richest first, at least three charted bodies" and therefore held no
+# class-0 star with nop <= 4.  batch5 adds 88 systems chosen by
+# tests/gen/recon_c/w6c_batch.py -- 49 of them class-0 stars with nop <= 4
+# whose CHARTED tree provably moves under bclip, plus the shortest systems of
+# every other class and the thin class-7/class-10 tail.  Three of the 88
+# print "NO KNOWN PLANETS." because every charted body of theirs is a moon of
+# an uncharted planet, which DL never reaches; they contribute no constraint
+# and the grader reports them.
 
 
 def _recon():
