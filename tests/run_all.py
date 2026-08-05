@@ -5,6 +5,7 @@
     python tests/run_all.py site       only the site-census tests (no builds)
     python tests/run_all.py star       only the Tier 2 catalogue tests
     python tests/run_all.py brtl       only the Wave 1 LCG test
+    python tests/run_all.py wave2      only the Wave 2 decoder pin
 
 Each test is a standalone program - `python tests/test_galaxy.py` works on its
 own and prints the same output - so this driver only sequences them and sums up
@@ -47,6 +48,7 @@ TESTS = [
     ("test_starwindow.py", "the 1e10 acceptance window and the outward scan"),
     ("test_staranchor.py", "the author's three hard-coded stars, uniquely"),
     ("test_brtlrand.py", "Borland's rand/srand/random over all 65,536 seeds"),
+    ("test_wave2.py", "the random() argument type and zrandom's operand order"),
 ]
 
 # Tests that have a slower, more complete mode of their own. run_all always
