@@ -1,0 +1,138 @@
+excluded as timing-dependent, not as passing: ticklog, framecost, servolog
+
+fbbreak1         LUT (v<<2)|(v>>4) instead of v*4
+      caught: lut differs in 140 of 256 units
+
+fbbreak2         tavola uploads only its own band
+      caught: curpal6 differs in 418 of 768 units
+      caught: lut differs in 140 of 256 units
+
+fbbreak3         shade rounds instead of chopping
+      caught: pal6 differs in 82 of 768 units
+      caught: curpal6 differs in 82 of 768 units
+      caught: lut differs in 45 of 256 units
+
+fbbreak4         unsigned timestamp compare
+      caught: wrap_predicate_failures  0 -> 14
+
+fbbreak5         no skip-to-grid
+      caught: skips  3 -> 0
+
+fbbreak6         FB draw raster loop from y = 1
+      caught: adapted differs in 315 of 64000 units
+      caught: adaptor differs in 315 of 64000 units
+      caught: canary differs in 11 of 44 units
+
+fbbreak7         guard check that can never fire
+      caught: canary differs in 22 of 44 units
+      caught: glyph_expectation  6 -> 0
+
+fbbreak8         tinta/escrescenze at 64000
+      caught: adapted differs in 2 of 64000 units
+      caught: adaptor differs in 2 of 64000 units
+      caught: canary differs in 11 of 44 units
+
+fbbreak9         layout in declaration order
+      caught: layout differs in 6 of 36 units
+      caught: canary differs in 2 of 44 units
+      caught: zones differs in 4 of 88 units
+      caught: glyph_expectation  6 -> 4
+      caught: glyph_violation_pad  0 -> 5
+      caught: glyph_violation_units  0 -> 2
+      caught: containment_failures  0 -> 340
+      caught: containment_at  0 -> 104987
+      caught: spot_cases_relocated  260 -> 340
+      caught: spot_delta_min  65536 -> 720
+      caught: spot_delta_max  65536 -> -64816
+      caught: wrapbat differs in 340 of 2040 units
+      caught: sky differs in 256 of 512 units
+
+fbbreak10        byte store packed 4 per unit
+      caught: glyph differs in 572 of 9216 units
+      caught: bchk  0 -> 19
+      caught: glyph_expectation  6 -> 0
+
+fbsrvrunstart    S-SRV-RUNSTART: no re-base
+      caught: rebase_counts_2  6 -> 44995023
+
+fbsrvunsigned    S-SRV-UNSIGNEDBAND
+      caught: midnight_why  3 -> 1
+      caught: midnight_cpms  8999 -> 8910
+
+fbsrvwidemax     S-SRV-WIDEMAX
+      caught: srv_windows differs in 15 of 144 units
+
+fbsrvtrunc       S-SRV-TRUNC
+      caught: round_rounded  9000 -> 8999
+
+fbsrvclampfl     S-SRV-CLAMPFLOOR
+      caught: clampfloor_after_1  100 -> 99
+      caught: clampfloor_after_5  104 -> 99
+
+fbsrvnofold      S-WALL-NOFOLD
+      caught: fold_at_000000_100  86400100 -> 100
+      caught: fold_delta  200 -> -86399800
+
+fbmaskspot       S-MASK-SPOT
+      caught: canary differs in 11 of 44 units
+      caught: wrapcount differs in 2 of 18 units
+
+fbmaskcirrus     S-MASK-CIRRUS-ADDR
+      caught: canary differs in 11 of 44 units
+      caught: wrapcount differs in 1 of 18 units
+      caught: containment_failures  0 -> 128
+      caught: containment_at  0 -> 261339
+      caught: cirrus_delta_min  32768 -> -1
+      caught: cirrus_delta_max  32768 -> 0
+      caught: wrapbat differs in 256 of 2040 units
+
+fbsegbase        S-SEGADDR-BASE
+      caught: spot_cases_relocated  260 -> 340
+      caught: spot_delta_min  65536 -> 65532
+      caught: spot_delta_max  65536 -> -4
+      caught: wrapbat differs in 340 of 2040 units
+
+fbpadonemagic    S-PAD-ONEMAGIC
+      caught: canary differs in 8 of 44 units
+
+fbpadnodigit     S-PAD-NODIGIT
+      caught: glyph differs in 14 of 9216 units
+      caught: canary differs in 11 of 44 units
+      caught: glyph_expectation  6 -> 0
+
+fbpad9walk       S-PAD-9WALK
+      caught: canary differs in 14 of 44 units
+      caught: glyph_expectation  6 -> 0
+
+fbcanstubpoison  S-CAN-STUBPOISON
+      caught: canary differs in 42 of 44 units
+      caught: canary_clean_fired  0 -> 1
+      caught: canary_clean_n  0 -> 141
+      caught: canary_clean_exp  0 -> 35
+      caught: glyph_expectation  6 -> 35
+      caught: glyph_violation_pad  0 -> 1
+      caught: glyph_violation_units  0 -> 141
+
+fbcanconst       S-CAN-CONSTACTUAL
+      caught: canary differs in 11 of 44 units
+
+fbshdst          SH-IGNOREDST
+      caught: pal6 differs in 755 of 768 units
+      caught: sentinel_broken  0 -> 1
+      caught: srfpal6_nonzero  752 -> 0
+      caught: pal6_nonzero_after_ladder  3 -> 752
+      caught: fade_components_differing  712 -> 0
+      caught: fade_max_difference  6 -> 0
+      caught: pal6[0]  41 -> 0
+      caught: pal6[1]  42 -> 0
+      caught: pal6[2]  43 -> 0
+      caught: srfpal6 differs in 752 of 768 units
+      caught: fade48 differs in 743 of 768 units
+      caught: fade24 differs in 732 of 768 units
+      caught: fade24_compounded differs in 723 of 768 units
+
+fbs12            S12: colour cycle fused into the expand
+      caught: adaptor differs in 64000 of 64000 units
+      caught: canary differs in 11 of 44 units
+
+sabotages: 26,  blind spots: 0 

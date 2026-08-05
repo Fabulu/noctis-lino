@@ -1,0 +1,573 @@
+fb_compare.py -- Wave 5-corrective grader   (FBDUMP v2)
+  references : fb_ref.c (C); fb_layout.py / fb_pal.py / fb_tick.py /
+               fb_wrap.py / fb_stick.py (Python)
+  captures   : C:\programmieren\linoleum\tests\gen\recon_w5c\artifacts
+  lino       : NOT SUPPLIED -- lino side outstanding
+
+Tier 3 -- layout by construction (fb_layout.py parses the 1996 sources)
+  [T3] fb_layout.py structural assertions (48 checks)                 PASS
+  [T3] layout sabotage CLAMPPBG       is rejected                     PASS
+  [T3] layout sabotage NOPAD          is rejected                     PASS
+  [T3] layout sabotage ONEZONE        is rejected                     PASS
+  [T3] layout sabotage ORDER          is rejected                     PASS
+  [T3] layout sabotage SEGBASE        is rejected                     PASS
+  [T3] layout sabotage SHRINKADAPTED  is rejected                     PASS
+  [T3] layout sabotage SWAPSEA        is rejected                     PASS
+
+Tier 2 -- fb_ref.c vs the Python references (independent constructions)
+  [T2] fb_ref.c builds clean with -Wall -Wextra                       PASS
+  [T2] fb_ref.exe self-test passes                                    PASS
+  [T2] ADAPTED   : Python == fb_ref.c, exact                          PASS
+  [T2] ADAPTOR   : Python == fb_ref.c, exact                          PASS
+  [T2] CANARY    : Python == fb_ref.c, exact                          PASS
+  [T2] CURPAL6   : Python == fb_ref.c, exact                          PASS
+  [T2] GLYPH     : Python == fb_ref.c, exact                          PASS
+  [T2] KSELF     : Python == fb_ref.c, exact                          PASS
+  [T2] LAYOUT    : Python == fb_ref.c, exact                          PASS
+  [T2] LUT       : Python == fb_ref.c, exact                          PASS
+  [T2] PAL6      : Python == fb_ref.c, exact                          PASS
+  [T2] WRAPCOUNT : Python == fb_ref.c, exact                          PASS
+  [T2] ZONES     : Python == fb_ref.c, exact                          PASS
+  [T2] alias 8: fb_layout.py PARSES `mov es:[0xFA00]` out of TDPOLYGS.H, fb_ref.c TRANSCRIBES it; both give adapted[63996] = row 199 col 316 PASS
+  [T0] ...but alias 8's PREMISE (farmalloc offset == 4) is Tier 0: four source-level witnesses, zero measurements NOT GRADED  see --ungraded item 1
+  [T3] sea texture actually overruns n_globes_map: 15986 of 32000 texels land past its end, so farmalloc order is under test PASS
+  [T3] the 16-unit pad IS reachable by the texel address (5 of those 15986), so grading runs must use the release pad state PASS
+  [T3] the raster loop is visible in TWO places: the 256x36 glyph plane, and EXACTLY 6 expectation hits in p_surfacemap's SUB zone PASS
+  [T3] and a real overrun is a VIOLATION, not an expectation: 1 unit past n_globes_map fires once, at NW 40156, in pad 3 TAIL PASS
+      canary v1 vs v2, proof by disabling (same workspace, same sabotage):
+        CANSTUBCHECK    v1 fnv 8BCC3C6D ( 0 units differ)   v2 fnv F4DC0228 (22 units differ)
+        CANSTUBPOISON   v1 fnv 6CAD1121 ( 9 units differ)   v2 fnv 82047120 (22 units differ)
+        CANCONSTACTUAL  v1 fnv 8BCC3C6D ( 0 units differ)   v2 fnv 9F2B5684 (11 units differ)
+        NINEWALK        v1 fnv 8BCC3C6D ( 0 units differ)   v2 fnv 8A8A40FE ( 4 units differ)
+  [T3] kind 6 v2 catches 3 sabotages that v1 is BIT-IDENTICAL under (CANSTUBCHECK,CANCONSTACTUAL,NINEWALK) -- a clean run and a stubbed mechanism produced the same v1 dump PASS
+  [T2] Workspace sabotage CANCONSTACTUAL  moves canary                PASS
+  [T2] Workspace sabotage CANSTUBCHECK    moves canary,kself          PASS
+  [T2] Workspace sabotage CANSTUBPOISON   moves canary                PASS
+  [T2] Workspace sabotage DIGITN1         moves adapted,adaptor,glyph,kself PASS
+  [T2] Workspace sabotage MASKCIRRUS      moves adapted,adaptor,kself,wrapcount PASS
+  [T2] Workspace sabotage MASKCIRRUSADDR  moves adapted,adaptor,kself,wrapcount PASS
+  [T2] Workspace sabotage MASKSPOT        moves glyph,kself,wrapcount PASS
+  [T2] Workspace sabotage NINEWALK        moves canary,kself          PASS
+  [T2] Workspace sabotage QUADWORDS       moves adapted,adaptor,kself PASS
+  [T2] Workspace sabotage TINTA64000      moves adapted,adaptor,kself PASS
+  [T2] fb_pal.py self-test (24 checks)                                PASS
+fb_tick.py -- independent tick reference
+  exact period  32768000/596591 ms = 54.9254012 ms = 65536/1193182 s
+
+period arithmetic:
+  PASS  A1 cpms=1000   accumulated error <= 1 count over 4096 ticks (worst 0.9993 counts, 0.000999 ms)
+  PASS  A2 cpms=1000   largest intermediate 45101150 fits int32
+  PASS  A1 cpms=2997   accumulated error <= 1 count over 4096 ticks (worst 0.9999 counts, 0.000334 ms)
+  PASS  A2 cpms=2997   largest intermediate 133978015 fits int32
+  PASS  A1 cpms=8984   accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000111 ms)
+  PASS  A2 cpms=8984   largest intermediate 400429500 fits int32
+  PASS  A1 cpms=9000   accumulated error <= 1 count over 4096 ticks (worst 0.9935 counts, 0.000110 ms)
+  PASS  A2 cpms=9000   largest intermediate 401137695 fits int32
+  PASS  A3 cpms=9000 period takes at most two adjacent values [494328, 494329]
+  PASS  A1 cpms=9023   accumulated error <= 1 count over 4096 ticks (worst 0.9998 counts, 0.000111 ms)
+  PASS  A2 cpms=9023   largest intermediate 402165086 fits int32
+  PASS  A1 cpms=10000  accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000100 ms)
+  PASS  A2 cpms=10000  largest intermediate 445646576 fits int32
+  PASS  A1 cpms=48239  accumulated error <= 1 count over 4096 ticks (worst 0.9997 counts, 0.000021 ms)
+  PASS  A2 cpms=48239  largest intermediate 2147473119 fits int32
+  PASS  A2b overflow ceiling is exactly cpms <= 48239 (5.4x the observed ~9000): 48239 fits (max 2147473119), 48240 does not (max 2147517772).  NOT unconditional.
+  PASS  A4 cpms*552086 = 4968774000 exceeds 2^31 (2147483648) -- the overflow is real
+  PASS  A5 with carry: error at 65536 ticks is 1.0000 counts -- bounded, not growing
+  PASS  A5 without carry: error grows 3191.7 counts -> 25533.6 counts as ticks go 8192 -> 65536 (linear)
+  PASS  A5 without carry that is 2.837 ms adrift after 65536 ticks (~1 hour of play)
+
+wrap / sign-boundary sweep:
+  1506000 constructed cases, 0 disagreements with unbounded-integer truth
+  PASS
+
+RESULT: PASS
+  [T2] fb_tick.py arithmetic + 1.5M-case wrap sweep                   PASS
+  [T2] fb_wrap.py class-A arithmetic, containment and the exhaustive reachability census (16 checks) PASS
+      PASS  W4 spot via permanent_storm, EXHAUSTIVE over cr in 1..30 (parsed: [(30, 1, 'NOCTIS-0.CPP:4980'), (5, 1, 'NOCTIS-0.CPP:5053')]), g in 1..cr-1, 90 angles, cx in 0..359: 118221 of 14094000 writes wrap (0.839%), worst px = 65536-29.  Every generated planet of these types reaches it.
+      PASS  W4 cirrus via storm, EXHAUSTIVE over cr in 1..20 (parsed: [(20, 1, 'NOCTIS-0.CPP:4887'), (15, 1, 'NOCTIS-0.CPP:5021')]): 33432 of 6156000 writes wrap (0.543%)
+      PASS  W4 and `py` is NOT a wrap source: cy >= cr and |g*sin(a)| <= g <= cr-1, so cy+g*sin(a) > 0 and 360*py <= 63720 for every one of the 5400 (cr,g,angle,cy) boundary cases.  The mechanism is px alone.
+      PASS  W5 M1 crater: the ray branch's conditional wrap rate is 1.683% at b=2*cr and 2.583% at b=3*cr -- a measured INTERVAL.  Which of the two fires is Borland random()-driven and is NOT graded; see --ungraded.
+
+Tier 2 -- every single-edit sabotage of fb_ref.c must be REJECTED
+  [T2] sabotage BREAK_SHIFTOR          caught by lut                  PASS
+  [T2] sabotage BREAK_UPLOADFIRST      caught by kself                PASS
+  [T2] sabotage BREAK_ROUNDSHADE       caught by curpal6,kself,lut,pal6 PASS
+  [T2] sabotage BREAK_NOCLAMP          caught by curpal6,kself,lut,pal6,selftest PASS
+  [T2] sabotage BREAK_NOSELF           caught by curpal6,kself,lut,pal6 PASS
+  [T2] sabotage BREAK_DIV64            caught by curpal6,kself,lut,pal6 PASS
+  [T2] sabotage BREAK_PYFILT           caught by curpal6,kself,lut,pal6,selftest PASS
+  [T2] sabotage BREAK_IGNOREDST        caught by kself,selftest       PASS
+  [T2] sabotage BREAK_SELFSOURCE       caught by kself,selftest       PASS
+  [T2] sabotage BREAK_DIGITN1          caught by adapted,adaptor,glyph,kself,selftest PASS
+  [T2] sabotage BREAK_TINTA64000       caught by adapted,adaptor,kself PASS
+  [T2] sabotage BREAK_PACK4            caught by canary,kself,selftest PASS
+  [T2] sabotage BREAK_QUADWORDS        caught by adapted,adaptor,kself PASS
+  [T2] sabotage BREAK_TICKCMP          caught by selftest             PASS
+  [T2] sabotage BREAK_SHRINKADAPTOR    caught by canary,kself,layout,zones PASS
+  [T2] sabotage BREAK_MASKSPOT         caught by glyph,kself,wrapcount,selftest PASS
+  [T2] sabotage BREAK_MASKCIRRUS       caught by adapted,adaptor,kself,wrapcount,selftest PASS
+  [T2] sabotage BREAK_MASKCIRRUSADDR   caught by adapted,adaptor,kself,wrapcount,selftest PASS
+  [T2] sabotage BREAK_SEGADDRBASE      caught by adapted,adaptor,kself,wrapcount,selftest PASS
+  [T2] sabotage BREAK_PADONEMAGIC      caught by canary,kself,zones,selftest PASS
+  [T2] sabotage BREAK_PAD9WALK         caught by canary,kself,selftest PASS
+  [T2] sabotage BREAK_CANSTUBCHECK     caught by canary,kself,selftest PASS
+  [T2] sabotage BREAK_CANSTUBPOISON    caught by canary,kself,selftest PASS
+  [T2] sabotage BREAK_CANCONSTACTUAL   caught by canary,selftest      PASS
+  [T2] sabotage BREAK_LAYOUTEND        caught by layout               PASS
+
+Tier 1 -- against artifacts this project did not make
+  [T1] capture artifacts present (2 BMP, 1 raw PNG)                   PASS
+  [T1] 00000003.BMP: DAC scaling is x4, not shift-or (mod4 [768, 0, 0, 0], max 252) PASS
+  [T1] 00000004.BMP: DAC scaling is x4, not shift-or (mod4 [768, 0, 0, 0], max 252) PASS
+  [T1] noctis_000.raw1.png: DOSBox writes shift-or, so the two routes need different inverses PASS
+  [T1] snapshot BMP and DOSBox PNG agree on all 768 6-bit DAC components (raw 8-bit bytes differ in 232) PASS
+  [T1] 00000003.BMP: band 0-63 is range8088 filtered by v*f/63 exactly, f = ([15],[31],[63, 64]) PASS
+  [T1] 00000003.BMP: falsifier round-to-nearest fits nothing (none)   PASS
+  [T1] 00000003.BMP: falsifier /64 fits nothing (none)                PASS
+  [T1] 00000004.BMP: band 0-63 is range8088 filtered by v*f/63 exactly, f = ([15],[31],[63, 64]) PASS
+  [T1] 00000004.BMP: falsifier round-to-nearest fits nothing (none)   PASS
+  [T1] 00000004.BMP: falsifier /64 fits nothing (none)                PASS
+  [T1] noctis_000.raw1.png: 2x2 doubling verified, 0 non-uniform subpixels PASS
+  [T1] two unpinned snapshots differ in 10/64000 pixels but 0/768 palette components -- the palette is the stable object PASS
+
+Tier 3 -- tick, recomputed from raw TICKLOGs
+  [T3] clean tick loop passes K1..K5 (drift -0.00004 ms over 402 grid steps) PASS
+  [T3] NOCARRY is caught in a 400-tick log too (156.6 counts adrift)  PASS
+  [T3] a legitimate 1-count servo step is ACCEPTED (9000->9001)       PASS
+  [T3] a 5% cpms lurch is REJECTED (by K3b)                           PASS
+  [T3] tick sabotage REBASE   rejected (by K2,K3,K3b,K4)              PASS
+  [T3] tick sabotage NOSKIP   rejected (by K4,K4c)                    PASS
+  [T3] tick sabotage ROUND55  rejected (by K2,K3)                     PASS
+  [T3] tick sabotage NOCARRY  rejected (by K3)                        PASS
+
+Tier 3 -- the SERVO (CRITICAL 1), windowed and re-based-first
+fb_tick.py -- independent tick reference
+  exact period  32768000/596591 ms = 54.9254012 ms = 65536/1193182 s
+
+period arithmetic:
+  PASS  A1 cpms=1000   accumulated error <= 1 count over 4096 ticks (worst 0.9993 counts, 0.000999 ms)
+  PASS  A2 cpms=1000   largest intermediate 45101150 fits int32
+  PASS  A1 cpms=2997   accumulated error <= 1 count over 4096 ticks (worst 0.9999 counts, 0.000334 ms)
+  PASS  A2 cpms=2997   largest intermediate 133978015 fits int32
+  PASS  A1 cpms=8984   accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000111 ms)
+  PASS  A2 cpms=8984   largest intermediate 400429500 fits int32
+  PASS  A1 cpms=9000   accumulated error <= 1 count over 4096 ticks (worst 0.9935 counts, 0.000110 ms)
+  PASS  A2 cpms=9000   largest intermediate 401137695 fits int32
+  PASS  A3 cpms=9000 period takes at most two adjacent values [494328, 494329]
+  PASS  A1 cpms=9023   accumulated error <= 1 count over 4096 ticks (worst 0.9998 counts, 0.000111 ms)
+  PASS  A2 cpms=9023   largest intermediate 402165086 fits int32
+  PASS  A1 cpms=10000  accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000100 ms)
+  PASS  A2 cpms=10000  largest intermediate 445646576 fits int32
+  PASS  A1 cpms=48239  accumulated error <= 1 count over 4096 ticks (worst 0.9997 counts, 0.000021 ms)
+  PASS  A2 cpms=48239  largest intermediate 2147473119 fits int32
+  PASS  A2b overflow ceiling is exactly cpms <= 48239 (5.4x the observed ~9000): 48239 fits (max 2147473119), 48240 does not (max 2147517772).  NOT unconditional.
+  PASS  A4 cpms*552086 = 4968774000 exceeds 2^31 (2147483648) -- the overflow is real
+  PASS  A5 with carry: error at 65536 ticks is 1.0000 counts -- bounded, not growing
+  PASS  A5 without carry: error grows 3191.7 counts -> 25533.6 counts as ticks go 8192 -> 65536 (linear)
+  PASS  A5 without carry that is 2.837 ms adrift after 65536 ticks (~1 hour of play)
+
+servo:
+  PASS  T8a window    500 ms -> why [3, 3, 3] cpms [8999, 8999, 8999] (want why 3)
+  PASS  T8a window   4000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  14061 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  60000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window 470000 ms -> why [4, 4, 4] cpms [8999, 8999, 8999] (want why 4)
+  PASS  T8a window 500000 ms -> why [4, 4, 4] cpms [8999, 8999, 8999] (want why 4)
+  PASS  T8b unsigned subtraction across the wrap is EXACT for every window up to 470000 ms, on all 65536 ring origins (9 lengths x 65536 origins)
+  PASS  T8b and it fails on 65536 of 65536 origins at 500000 ms -- so SRVMAX = 60000 is 7.95x under the counter's own aliasing limit 2^32/8999 = 477271 ms
+  PASS  T8c a midnight-straddling 200 ms window is REFUSED (why 3, cpms 8999).  The fold removes the discontinuity; the SIGNED band refuses the short window that remains.
+  PASS  T8c the wall fold is monotone across midnight: 86399900 -> 86400100, delta 200 ms (49-day limit at 32-bit unsigned)
+  PASS  T8d ms=14061 cnt=126541970: rounded -> 9000, truncated -> 8999, exactly one cpms apart
+  PASS  T8e from cpms 99 against a true 8999, the servo climbs (reached 149 in 50 firings).  With no floor on the clamp step it is FROZEN at 99 = 91x speed, forever.
+  PASS  T8f windowed servo over 20 min at a PERFECTLY CONSTANT 8999 cpms: 85 firings, cpms 8999..8999, worst error 0.0000%, 0.00 s/hour
+  PASS  T8f the SHIPPED run-start bracket over the SAME input: cpms 5409..8999 (52 distinct), worst error 39.89%, -1436.16 s/hour.  Its UNCLAMPED ratio reads 1864 cpms at t=600 s and 4279 at t=900 s against a true 8999.  The rate never moved; the bracket aliased, and the 1% clamp turned a one-shot collapse into a permanent ratchet.
+  PASS  T8g a clean 10 s calibration bracket returns 8999
+  PASS  T8g a midnight-straddling calibration bracket is REFUSED (cpms 8999, why 3).  Unclamped it yields cpms = 0, hence a period of ZERO COUNTS, hence a tick that fires continuously and forever.
+  PASS  T8g a bracket that computes cpms = 0 is REFUSED and the seed is kept (cpms 8999, why 5)
+  PASS  T8h the servolog grades clean and CONTAINS rejections (why histogram {0: 9, 3: 3}) -- a value derived from what the program did
+
+RESULT: PASS
+  [T3] fb_tick.py windowed-servo battery T8a..T8h                     PASS
+fb_tick.py -- independent tick reference
+  exact period  32768000/596591 ms = 54.9254012 ms = 65536/1193182 s
+  SABOTAGE SRVRUNSTART  the servo brackets against the RUN START instead of the previous firing -- the shipped Wave 5 defect  [S-SRV-RUNSTART]
+
+period arithmetic:
+  PASS  A1 cpms=1000   accumulated error <= 1 count over 4096 ticks (worst 0.9993 counts, 0.000999 ms)
+  PASS  A2 cpms=1000   largest intermediate 45101150 fits int32
+  PASS  A1 cpms=2997   accumulated error <= 1 count over 4096 ticks (worst 0.9999 counts, 0.000334 ms)
+  PASS  A2 cpms=2997   largest intermediate 133978015 fits int32
+  PASS  A1 cpms=8984   accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000111 ms)
+  PASS  A2 cpms=8984   largest intermediate 400429500 fits int32
+  PASS  A1 cpms=9000   accumulated error <= 1 count over 4096 ticks (worst 0.9935 counts, 0.000110 ms)
+  PASS  A2 cpms=9000   largest intermediate 401137695 fits int32
+  PASS  A3 cpms=9000 period takes at most two adjacent values [494328, 494329]
+  PASS  A1 cpms=9023   accumulated error <= 1 count over 4096 ticks (worst 0.9998 counts, 0.000111 ms)
+  PASS  A2 cpms=9023   largest intermediate 402165086 fits int32
+  PASS  A1 cpms=10000  accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000100 ms)
+  PASS  A2 cpms=10000  largest intermediate 445646576 fits int32
+  PASS  A1 cpms=48239  accumulated error <= 1 count over 4096 ticks (worst 0.9997 counts, 0.000021 ms)
+  PASS  A2 cpms=48239  largest intermediate 2147473119 fits int32
+  PASS  A2b overflow ceiling is exactly cpms <= 48239 (5.4x the observed ~9000): 48239 fits (max 2147473119), 48240 does not (max 2147517772).  NOT unconditional.
+  PASS  A4 cpms*552086 = 4968774000 exceeds 2^31 (2147483648) -- the overflow is real
+  PASS  A5 with carry: error at 65536 ticks is 1.0000 counts -- bounded, not growing
+  PASS  A5 without carry: error grows 3191.7 counts -> 25533.6 counts as ticks go 8192 -> 65536 (linear)
+  PASS  A5 without carry that is 2.837 ms adrift after 65536 ticks (~1 hour of play)
+
+servo:
+  PASS  T8a window    500 ms -> why [3, 3, 3] cpms [8999, 8999, 8999] (want why 3)
+  PASS  T8a window   4000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  14061 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  FAIL  T8a window  60000 ms -> why [0, 4, 4] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window 470000 ms -> why [4, 4, 4] cpms [8999, 8999, 8999] (want why 4)
+  PASS  T8a window 500000 ms -> why [4, 4, 4] cpms [8999, 8999, 8999] (want why 4)
+  PASS  T8b unsigned subtraction across the wrap is EXACT for every window up to 470000 ms, on all 65536 ring origins (9 lengths x 65536 origins)
+  PASS  T8b and it fails on 65536 of 65536 origins at 500000 ms -- so SRVMAX = 60000 is 7.95x under the counter's own aliasing limit 2^32/8999 = 477271 ms
+  PASS  T8c a midnight-straddling 200 ms window is REFUSED (why 3, cpms 8999).  The fold removes the discontinuity; the SIGNED band refuses the short window that remains.
+  PASS  T8c the wall fold is monotone across midnight: 86399900 -> 86400100, delta 200 ms (49-day limit at 32-bit unsigned)
+  PASS  T8d ms=14061 cnt=126541970: rounded -> 9000, truncated -> 8999, exactly one cpms apart
+  PASS  T8e from cpms 99 against a true 8999, the servo climbs (reached 111 in 50 firings).  With no floor on the clamp step it is FROZEN at 99 = 91x speed, forever.
+  PASS  T8f windowed servo over 20 min at a PERFECTLY CONSTANT 8999 cpms: 85 firings, cpms 8999..8999, worst error 0.0000%, 0.00 s/hour
+  PASS  T8f the SHIPPED run-start bracket over the SAME input: cpms 5409..8999 (52 distinct), worst error 39.89%, -1436.16 s/hour.  Its UNCLAMPED ratio reads 1864 cpms at t=600 s and 4279 at t=900 s against a true 8999.  The rate never moved; the bracket aliased, and the 1% clamp turned a one-shot collapse into a permanent ratchet.
+  PASS  T8g a clean 10 s calibration bracket returns 8999
+  PASS  T8g a midnight-straddling calibration bracket is REFUSED (cpms 8999, why 3).  Unclamped it yields cpms = 0, hence a period of ZERO COUNTS, hence a tick that fires continuously and forever.
+  PASS  T8g a bracket that computes cpms = 0 is REFUSED and the seed is kept (cpms 8999, why 5)
+  PASS  T8h the servolog grades clean and CONTAINS rejections (why histogram {0: 11, 3: 1}) -- a value derived from what the program did
+
+RESULT: FAIL
+  [T3] servo sabotage SRVRUNSTART      is rejected                    PASS
+fb_tick.py -- independent tick reference
+  exact period  32768000/596591 ms = 54.9254012 ms = 65536/1193182 s
+  SABOTAGE SRVWIDEMAX   SRVMAX = 600000 ms, past the counter's own wrap  [S-SRV-WIDEMAX]
+
+period arithmetic:
+  PASS  A1 cpms=1000   accumulated error <= 1 count over 4096 ticks (worst 0.9993 counts, 0.000999 ms)
+  PASS  A2 cpms=1000   largest intermediate 45101150 fits int32
+  PASS  A1 cpms=2997   accumulated error <= 1 count over 4096 ticks (worst 0.9999 counts, 0.000334 ms)
+  PASS  A2 cpms=2997   largest intermediate 133978015 fits int32
+  PASS  A1 cpms=8984   accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000111 ms)
+  PASS  A2 cpms=8984   largest intermediate 400429500 fits int32
+  PASS  A1 cpms=9000   accumulated error <= 1 count over 4096 ticks (worst 0.9935 counts, 0.000110 ms)
+  PASS  A2 cpms=9000   largest intermediate 401137695 fits int32
+  PASS  A3 cpms=9000 period takes at most two adjacent values [494328, 494329]
+  PASS  A1 cpms=9023   accumulated error <= 1 count over 4096 ticks (worst 0.9998 counts, 0.000111 ms)
+  PASS  A2 cpms=9023   largest intermediate 402165086 fits int32
+  PASS  A1 cpms=10000  accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000100 ms)
+  PASS  A2 cpms=10000  largest intermediate 445646576 fits int32
+  PASS  A1 cpms=48239  accumulated error <= 1 count over 4096 ticks (worst 0.9997 counts, 0.000021 ms)
+  PASS  A2 cpms=48239  largest intermediate 2147473119 fits int32
+  PASS  A2b overflow ceiling is exactly cpms <= 48239 (5.4x the observed ~9000): 48239 fits (max 2147473119), 48240 does not (max 2147517772).  NOT unconditional.
+  PASS  A4 cpms*552086 = 4968774000 exceeds 2^31 (2147483648) -- the overflow is real
+  PASS  A5 with carry: error at 65536 ticks is 1.0000 counts -- bounded, not growing
+  PASS  A5 without carry: error grows 3191.7 counts -> 25533.6 counts as ticks go 8192 -> 65536 (linear)
+  PASS  A5 without carry that is 2.837 ms adrift after 65536 ticks (~1 hour of play)
+
+servo:
+  PASS  T8a window    500 ms -> why [3, 3, 3] cpms [8999, 8999, 8999] (want why 3)
+  PASS  T8a window   4000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  14061 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  60000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  FAIL  T8a window 470000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 4)
+  FAIL  T8a window 500000 ms -> why [1, 1, 1] cpms [8910, 8821, 8733] (want why 4)
+  PASS  T8b unsigned subtraction across the wrap is EXACT for every window up to 470000 ms, on all 65536 ring origins (9 lengths x 65536 origins)
+  PASS  T8b and it fails on 65536 of 65536 origins at 500000 ms -- so SRVMAX = 60000 is 7.95x under the counter's own aliasing limit 2^32/8999 = 477271 ms
+  PASS  T8c a midnight-straddling 200 ms window is REFUSED (why 3, cpms 8999).  The fold removes the discontinuity; the SIGNED band refuses the short window that remains.
+  PASS  T8c the wall fold is monotone across midnight: 86399900 -> 86400100, delta 200 ms (49-day limit at 32-bit unsigned)
+  PASS  T8d ms=14061 cnt=126541970: rounded -> 9000, truncated -> 8999, exactly one cpms apart
+  PASS  T8e from cpms 99 against a true 8999, the servo climbs (reached 149 in 50 firings).  With no floor on the clamp step it is FROZEN at 99 = 91x speed, forever.
+  PASS  T8f windowed servo over 20 min at a PERFECTLY CONSTANT 8999 cpms: 85 firings, cpms 8999..8999, worst error 0.0000%, 0.00 s/hour
+  PASS  T8f the SHIPPED run-start bracket over the SAME input: cpms 5409..8999 (52 distinct), worst error 39.89%, -1436.16 s/hour.  Its UNCLAMPED ratio reads 1864 cpms at t=600 s and 4279 at t=900 s against a true 8999.  The rate never moved; the bracket aliased, and the 1% clamp turned a one-shot collapse into a permanent ratchet.
+  PASS  T8g a clean 10 s calibration bracket returns 8999
+  PASS  T8g a midnight-straddling calibration bracket is REFUSED (cpms 8999, why 3).  Unclamped it yields cpms = 0, hence a period of ZERO COUNTS, hence a tick that fires continuously and forever.
+  PASS  T8g a bracket that computes cpms = 0 is REFUSED and the seed is kept (cpms 8999, why 5)
+  PASS  T8h the servolog grades clean and CONTAINS rejections (why histogram {0: 9, 3: 3}) -- a value derived from what the program did
+
+RESULT: FAIL
+  [T3] servo sabotage SRVWIDEMAX       is rejected                    PASS
+fb_tick.py -- independent tick reference
+  exact period  32768000/596591 ms = 54.9254012 ms = 65536/1193182 s
+  SABOTAGE SRVUNSIGNEDBAND the window-length band is an UNSIGNED compare  [S-SRV-UNSIGNEDBAND]
+
+period arithmetic:
+  PASS  A1 cpms=1000   accumulated error <= 1 count over 4096 ticks (worst 0.9993 counts, 0.000999 ms)
+  PASS  A2 cpms=1000   largest intermediate 45101150 fits int32
+  PASS  A1 cpms=2997   accumulated error <= 1 count over 4096 ticks (worst 0.9999 counts, 0.000334 ms)
+  PASS  A2 cpms=2997   largest intermediate 133978015 fits int32
+  PASS  A1 cpms=8984   accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000111 ms)
+  PASS  A2 cpms=8984   largest intermediate 400429500 fits int32
+  PASS  A1 cpms=9000   accumulated error <= 1 count over 4096 ticks (worst 0.9935 counts, 0.000110 ms)
+  PASS  A2 cpms=9000   largest intermediate 401137695 fits int32
+  PASS  A3 cpms=9000 period takes at most two adjacent values [494328, 494329]
+  PASS  A1 cpms=9023   accumulated error <= 1 count over 4096 ticks (worst 0.9998 counts, 0.000111 ms)
+  PASS  A2 cpms=9023   largest intermediate 402165086 fits int32
+  PASS  A1 cpms=10000  accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000100 ms)
+  PASS  A2 cpms=10000  largest intermediate 445646576 fits int32
+  PASS  A1 cpms=48239  accumulated error <= 1 count over 4096 ticks (worst 0.9997 counts, 0.000021 ms)
+  PASS  A2 cpms=48239  largest intermediate 2147473119 fits int32
+  PASS  A2b overflow ceiling is exactly cpms <= 48239 (5.4x the observed ~9000): 48239 fits (max 2147473119), 48240 does not (max 2147517772).  NOT unconditional.
+  PASS  A4 cpms*552086 = 4968774000 exceeds 2^31 (2147483648) -- the overflow is real
+  PASS  A5 with carry: error at 65536 ticks is 1.0000 counts -- bounded, not growing
+  PASS  A5 without carry: error grows 3191.7 counts -> 25533.6 counts as ticks go 8192 -> 65536 (linear)
+  PASS  A5 without carry that is 2.837 ms adrift after 65536 ticks (~1 hour of play)
+
+servo:
+  FAIL  T8a window    500 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 3)
+  PASS  T8a window   4000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  14061 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  60000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  FAIL  T8a window 470000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 4)
+  FAIL  T8a window 500000 ms -> why [1, 1, 1] cpms [8910, 8821, 8733] (want why 4)
+  PASS  T8b unsigned subtraction across the wrap is EXACT for every window up to 470000 ms, on all 65536 ring origins (9 lengths x 65536 origins)
+  PASS  T8b and it fails on 65536 of 65536 origins at 500000 ms -- so SRVMAX = 60000 is 7.95x under the counter's own aliasing limit 2^32/8999 = 477271 ms
+  PASS  T8c a midnight-straddling 200 ms window is REFUSED (why 3, cpms 8999).  The fold removes the discontinuity; the SIGNED band refuses the short window that remains.
+  PASS  T8c the wall fold is monotone across midnight: 86399900 -> 86400100, delta 200 ms (49-day limit at 32-bit unsigned)
+  PASS  T8d ms=14061 cnt=126541970: rounded -> 9000, truncated -> 8999, exactly one cpms apart
+  PASS  T8e from cpms 99 against a true 8999, the servo climbs (reached 149 in 50 firings).  With no floor on the clamp step it is FROZEN at 99 = 91x speed, forever.
+  PASS  T8f windowed servo over 20 min at a PERFECTLY CONSTANT 8999 cpms: 85 firings, cpms 8999..8999, worst error 0.0000%, 0.00 s/hour
+  PASS  T8f the SHIPPED run-start bracket over the SAME input: cpms 5409..8999 (52 distinct), worst error 39.89%, -1436.16 s/hour.  Its UNCLAMPED ratio reads 1864 cpms at t=600 s and 4279 at t=900 s against a true 8999.  The rate never moved; the bracket aliased, and the 1% clamp turned a one-shot collapse into a permanent ratchet.
+  PASS  T8g a clean 10 s calibration bracket returns 8999
+  PASS  T8g a midnight-straddling calibration bracket is REFUSED (cpms 8999, why 5).  Unclamped it yields cpms = 0, hence a period of ZERO COUNTS, hence a tick that fires continuously and forever.
+  PASS  T8g a bracket that computes cpms = 0 is REFUSED and the seed is kept (cpms 8999, why 5)
+  PASS  T8h the servolog grades clean and CONTAINS rejections (why histogram {0: 9, 3: 3}) -- a value derived from what the program did
+
+RESULT: FAIL
+  [T3] servo sabotage SRVUNSIGNEDBAND  is rejected                    PASS
+fb_tick.py -- independent tick reference
+  exact period  32768000/596591 ms = 54.9254012 ms = 65536/1193182 s
+  SABOTAGE SRVTRUNC     the servo divide truncates instead of rounding  [S-SRV-TRUNC]
+
+period arithmetic:
+  PASS  A1 cpms=1000   accumulated error <= 1 count over 4096 ticks (worst 0.9993 counts, 0.000999 ms)
+  PASS  A2 cpms=1000   largest intermediate 45101150 fits int32
+  PASS  A1 cpms=2997   accumulated error <= 1 count over 4096 ticks (worst 0.9999 counts, 0.000334 ms)
+  PASS  A2 cpms=2997   largest intermediate 133978015 fits int32
+  PASS  A1 cpms=8984   accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000111 ms)
+  PASS  A2 cpms=8984   largest intermediate 400429500 fits int32
+  PASS  A1 cpms=9000   accumulated error <= 1 count over 4096 ticks (worst 0.9935 counts, 0.000110 ms)
+  PASS  A2 cpms=9000   largest intermediate 401137695 fits int32
+  PASS  A3 cpms=9000 period takes at most two adjacent values [494328, 494329]
+  PASS  A1 cpms=9023   accumulated error <= 1 count over 4096 ticks (worst 0.9998 counts, 0.000111 ms)
+  PASS  A2 cpms=9023   largest intermediate 402165086 fits int32
+  PASS  A1 cpms=10000  accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000100 ms)
+  PASS  A2 cpms=10000  largest intermediate 445646576 fits int32
+  PASS  A1 cpms=48239  accumulated error <= 1 count over 4096 ticks (worst 0.9997 counts, 0.000021 ms)
+  PASS  A2 cpms=48239  largest intermediate 2147473119 fits int32
+  PASS  A2b overflow ceiling is exactly cpms <= 48239 (5.4x the observed ~9000): 48239 fits (max 2147473119), 48240 does not (max 2147517772).  NOT unconditional.
+  PASS  A4 cpms*552086 = 4968774000 exceeds 2^31 (2147483648) -- the overflow is real
+  PASS  A5 with carry: error at 65536 ticks is 1.0000 counts -- bounded, not growing
+  PASS  A5 without carry: error grows 3191.7 counts -> 25533.6 counts as ticks go 8192 -> 65536 (linear)
+  PASS  A5 without carry that is 2.837 ms adrift after 65536 ticks (~1 hour of play)
+
+servo:
+  PASS  T8a window    500 ms -> why [3, 3, 3] cpms [8999, 8999, 8999] (want why 3)
+  PASS  T8a window   4000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  14061 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  60000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window 470000 ms -> why [4, 4, 4] cpms [8999, 8999, 8999] (want why 4)
+  PASS  T8a window 500000 ms -> why [4, 4, 4] cpms [8999, 8999, 8999] (want why 4)
+  PASS  T8b unsigned subtraction across the wrap is EXACT for every window up to 470000 ms, on all 65536 ring origins (9 lengths x 65536 origins)
+  PASS  T8b and it fails on 65536 of 65536 origins at 500000 ms -- so SRVMAX = 60000 is 7.95x under the counter's own aliasing limit 2^32/8999 = 477271 ms
+  PASS  T8c a midnight-straddling 200 ms window is REFUSED (why 3, cpms 8999).  The fold removes the discontinuity; the SIGNED band refuses the short window that remains.
+  PASS  T8c the wall fold is monotone across midnight: 86399900 -> 86400100, delta 200 ms (49-day limit at 32-bit unsigned)
+  FAIL  T8d ms=14061 cnt=126541970: rounded -> 8999, truncated -> 8999, exactly one cpms apart
+  PASS  T8e from cpms 99 against a true 8999, the servo climbs (reached 149 in 50 firings).  With no floor on the clamp step it is FROZEN at 99 = 91x speed, forever.
+  PASS  T8f windowed servo over 20 min at a PERFECTLY CONSTANT 8999 cpms: 85 firings, cpms 8999..8999, worst error 0.0000%, 0.00 s/hour
+  PASS  T8f the SHIPPED run-start bracket over the SAME input: cpms 5409..8999 (52 distinct), worst error 39.89%, -1436.16 s/hour.  Its UNCLAMPED ratio reads 1864 cpms at t=600 s and 4279 at t=900 s against a true 8999.  The rate never moved; the bracket aliased, and the 1% clamp turned a one-shot collapse into a permanent ratchet.
+  PASS  T8g a clean 10 s calibration bracket returns 8999
+  PASS  T8g a midnight-straddling calibration bracket is REFUSED (cpms 8999, why 3).  Unclamped it yields cpms = 0, hence a period of ZERO COUNTS, hence a tick that fires continuously and forever.
+  PASS  T8g a bracket that computes cpms = 0 is REFUSED and the seed is kept (cpms 8999, why 5)
+  PASS  T8h the servolog grades clean and CONTAINS rejections (why histogram {0: 9, 3: 3}) -- a value derived from what the program did
+
+RESULT: FAIL
+  [T3] servo sabotage SRVTRUNC         is rejected                    PASS
+fb_tick.py -- independent tick reference
+  exact period  32768000/596591 ms = 54.9254012 ms = 65536/1193182 s
+  SABOTAGE SRVCLAMPFLOOR the +-1% clamp step has no floor of 1  [S-SRV-CLAMPFLOOR]
+
+period arithmetic:
+  PASS  A1 cpms=1000   accumulated error <= 1 count over 4096 ticks (worst 0.9993 counts, 0.000999 ms)
+  PASS  A2 cpms=1000   largest intermediate 45101150 fits int32
+  PASS  A1 cpms=2997   accumulated error <= 1 count over 4096 ticks (worst 0.9999 counts, 0.000334 ms)
+  PASS  A2 cpms=2997   largest intermediate 133978015 fits int32
+  PASS  A1 cpms=8984   accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000111 ms)
+  PASS  A2 cpms=8984   largest intermediate 400429500 fits int32
+  PASS  A1 cpms=9000   accumulated error <= 1 count over 4096 ticks (worst 0.9935 counts, 0.000110 ms)
+  PASS  A2 cpms=9000   largest intermediate 401137695 fits int32
+  PASS  A3 cpms=9000 period takes at most two adjacent values [494328, 494329]
+  PASS  A1 cpms=9023   accumulated error <= 1 count over 4096 ticks (worst 0.9998 counts, 0.000111 ms)
+  PASS  A2 cpms=9023   largest intermediate 402165086 fits int32
+  PASS  A1 cpms=10000  accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000100 ms)
+  PASS  A2 cpms=10000  largest intermediate 445646576 fits int32
+  PASS  A1 cpms=48239  accumulated error <= 1 count over 4096 ticks (worst 0.9997 counts, 0.000021 ms)
+  PASS  A2 cpms=48239  largest intermediate 2147473119 fits int32
+  PASS  A2b overflow ceiling is exactly cpms <= 48239 (5.4x the observed ~9000): 48239 fits (max 2147473119), 48240 does not (max 2147517772).  NOT unconditional.
+  PASS  A4 cpms*552086 = 4968774000 exceeds 2^31 (2147483648) -- the overflow is real
+  PASS  A5 with carry: error at 65536 ticks is 1.0000 counts -- bounded, not growing
+  PASS  A5 without carry: error grows 3191.7 counts -> 25533.6 counts as ticks go 8192 -> 65536 (linear)
+  PASS  A5 without carry that is 2.837 ms adrift after 65536 ticks (~1 hour of play)
+
+servo:
+  PASS  T8a window    500 ms -> why [3, 3, 3] cpms [8999, 8999, 8999] (want why 3)
+  PASS  T8a window   4000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  14061 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  60000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window 470000 ms -> why [4, 4, 4] cpms [8999, 8999, 8999] (want why 4)
+  PASS  T8a window 500000 ms -> why [4, 4, 4] cpms [8999, 8999, 8999] (want why 4)
+  PASS  T8b unsigned subtraction across the wrap is EXACT for every window up to 470000 ms, on all 65536 ring origins (9 lengths x 65536 origins)
+  PASS  T8b and it fails on 65536 of 65536 origins at 500000 ms -- so SRVMAX = 60000 is 7.95x under the counter's own aliasing limit 2^32/8999 = 477271 ms
+  PASS  T8c a midnight-straddling 200 ms window is REFUSED (why 3, cpms 8999).  The fold removes the discontinuity; the SIGNED band refuses the short window that remains.
+  PASS  T8c the wall fold is monotone across midnight: 86399900 -> 86400100, delta 200 ms (49-day limit at 32-bit unsigned)
+  PASS  T8d ms=14061 cnt=126541970: rounded -> 9000, truncated -> 8999, exactly one cpms apart
+  FAIL  T8e from cpms 99 against a true 8999, the servo climbs (reached 99 in 50 firings).  With no floor on the clamp step it is FROZEN at 99 = 91x speed, forever.
+  PASS  T8f windowed servo over 20 min at a PERFECTLY CONSTANT 8999 cpms: 85 firings, cpms 8999..8999, worst error 0.0000%, 0.00 s/hour
+  PASS  T8f the SHIPPED run-start bracket over the SAME input: cpms 5409..8999 (52 distinct), worst error 39.89%, -1436.16 s/hour.  Its UNCLAMPED ratio reads 1864 cpms at t=600 s and 4279 at t=900 s against a true 8999.  The rate never moved; the bracket aliased, and the 1% clamp turned a one-shot collapse into a permanent ratchet.
+  PASS  T8g a clean 10 s calibration bracket returns 8999
+  PASS  T8g a midnight-straddling calibration bracket is REFUSED (cpms 8999, why 3).  Unclamped it yields cpms = 0, hence a period of ZERO COUNTS, hence a tick that fires continuously and forever.
+  PASS  T8g a bracket that computes cpms = 0 is REFUSED and the seed is kept (cpms 8999, why 5)
+  PASS  T8h the servolog grades clean and CONTAINS rejections (why histogram {0: 9, 3: 3}) -- a value derived from what the program did
+
+RESULT: FAIL
+  [T3] servo sabotage SRVCLAMPFLOOR    is rejected                    PASS
+fb_tick.py -- independent tick reference
+  exact period  32768000/596591 ms = 54.9254012 ms = 65536/1193182 s
+  SABOTAGE WALLNOFOLD   the wall clock is used raw, so midnight is a discontinuity  [S-WALL-NOFOLD]
+
+period arithmetic:
+  PASS  A1 cpms=1000   accumulated error <= 1 count over 4096 ticks (worst 0.9993 counts, 0.000999 ms)
+  PASS  A2 cpms=1000   largest intermediate 45101150 fits int32
+  PASS  A1 cpms=2997   accumulated error <= 1 count over 4096 ticks (worst 0.9999 counts, 0.000334 ms)
+  PASS  A2 cpms=2997   largest intermediate 133978015 fits int32
+  PASS  A1 cpms=8984   accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000111 ms)
+  PASS  A2 cpms=8984   largest intermediate 400429500 fits int32
+  PASS  A1 cpms=9000   accumulated error <= 1 count over 4096 ticks (worst 0.9935 counts, 0.000110 ms)
+  PASS  A2 cpms=9000   largest intermediate 401137695 fits int32
+  PASS  A3 cpms=9000 period takes at most two adjacent values [494328, 494329]
+  PASS  A1 cpms=9023   accumulated error <= 1 count over 4096 ticks (worst 0.9998 counts, 0.000111 ms)
+  PASS  A2 cpms=9023   largest intermediate 402165086 fits int32
+  PASS  A1 cpms=10000  accumulated error <= 1 count over 4096 ticks (worst 1.0000 counts, 0.000100 ms)
+  PASS  A2 cpms=10000  largest intermediate 445646576 fits int32
+  PASS  A1 cpms=48239  accumulated error <= 1 count over 4096 ticks (worst 0.9997 counts, 0.000021 ms)
+  PASS  A2 cpms=48239  largest intermediate 2147473119 fits int32
+  PASS  A2b overflow ceiling is exactly cpms <= 48239 (5.4x the observed ~9000): 48239 fits (max 2147473119), 48240 does not (max 2147517772).  NOT unconditional.
+  PASS  A4 cpms*552086 = 4968774000 exceeds 2^31 (2147483648) -- the overflow is real
+  PASS  A5 with carry: error at 65536 ticks is 1.0000 counts -- bounded, not growing
+  PASS  A5 without carry: error grows 3191.7 counts -> 25533.6 counts as ticks go 8192 -> 65536 (linear)
+  PASS  A5 without carry that is 2.837 ms adrift after 65536 ticks (~1 hour of play)
+
+servo:
+  PASS  T8a window    500 ms -> why [3, 3, 3] cpms [8999, 8999, 8999] (want why 3)
+  PASS  T8a window   4000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  14061 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window  60000 ms -> why [0, 0, 0] cpms [8999, 8999, 8999] (want why 0, cpms within 1 of 8999)
+  PASS  T8a window 470000 ms -> why [4, 4, 4] cpms [8999, 8999, 8999] (want why 4)
+  PASS  T8a window 500000 ms -> why [4, 4, 4] cpms [8999, 8999, 8999] (want why 4)
+  PASS  T8b unsigned subtraction across the wrap is EXACT for every window up to 470000 ms, on all 65536 ring origins (9 lengths x 65536 origins)
+  PASS  T8b and it fails on 65536 of 65536 origins at 500000 ms -- so SRVMAX = 60000 is 7.95x under the counter's own aliasing limit 2^32/8999 = 477271 ms
+  PASS  T8c a midnight-straddling 200 ms window is REFUSED (why 3, cpms 8999).  The fold removes the discontinuity; the SIGNED band refuses the short window that remains.
+  FAIL  T8c the wall fold is monotone across midnight: 86399900 -> 100, delta -86399800 ms (49-day limit at 32-bit unsigned)
+  PASS  T8d ms=14061 cnt=126541970: rounded -> 9000, truncated -> 8999, exactly one cpms apart
+  PASS  T8e from cpms 99 against a true 8999, the servo climbs (reached 149 in 50 firings).  With no floor on the clamp step it is FROZEN at 99 = 91x speed, forever.
+  PASS  T8f windowed servo over 20 min at a PERFECTLY CONSTANT 8999 cpms: 85 firings, cpms 8999..8999, worst error 0.0000%, 0.00 s/hour
+  PASS  T8f the SHIPPED run-start bracket over the SAME input: cpms 5409..8999 (52 distinct), worst error 39.89%, -1436.16 s/hour.  Its UNCLAMPED ratio reads 1864 cpms at t=600 s and 4279 at t=900 s against a true 8999.  The rate never moved; the bracket aliased, and the 1% clamp turned a one-shot collapse into a permanent ratchet.
+  PASS  T8g a clean 10 s calibration bracket returns 8999
+  PASS  T8g a midnight-straddling calibration bracket is REFUSED (cpms 8999, why 3).  Unclamped it yields cpms = 0, hence a period of ZERO COUNTS, hence a tick that fires continuously and forever.
+  PASS  T8g a bracket that computes cpms = 0 is REFUSED and the seed is kept (cpms 8999, why 5)
+  PASS  T8h the servolog grades clean and CONTAINS rejections (why histogram {0: 9, 3: 3}) -- a value derived from what the program did
+
+RESULT: FAIL
+  [T3] servo sabotage WALLNOFOLD       is rejected                    PASS
+
+Tier 3 -- class A (CRITICAL 2): the mask, and the two verdicts
+  [T3] class-A sabotage MASKCIRRUS       is rejected                  PASS
+  [T3] class-A sabotage MASKCIRRUSADDR   is rejected                  PASS
+  [T3] class-A sabotage MASKSPOT         is rejected                  PASS
+  [T3] class-A sabotage PTRSIGNED        is rejected                  PASS
+  [T3] class-A sabotage SEGADDRBASE      is rejected                  PASS
+fb_stick.py -- A1's bbox proof and A2's escape corpus
+
+RESULT: PASS
+  [T3] fb_stick.py A1 bbox proof (poly3d clamp, swept)                PASS
+fb_stick.py -- A1's bbox proof and A2's escape corpus
+  SABOTAGE CLIPSTAGE    delete one poly3d clip stage, so A1's bbox proof no longer holds [S-CLIP-STAGE]
+
+RESULT: FAIL
+  [T3] A1 sabotage CLIPSTAGE is rejected                              PASS
+fb_stick.py -- A1's bbox proof and A2's escape corpus
+
+  PASS  A1 poly3d's clamp (larghezza 306 altezza 180 centre (158, 100) -> x in [5,311], y in [10,190]) holds for every one of the swept bounding boxes: 0 violations, highest row 190, highest address riga[190]+311+4 = 61115.  riga[] is `unsigned riga[200]`, so Segmento's index CANNOT leave it -- class-A site A1 is PROVEN UNNECESSARY, not asserted.
+  PASS  A2 stick3d's clipper over a 1210000-case DETERMINISTIC corpus: 563075 lines survive the four early-outs and are not single points, and 416 of them (0.0739%) leave the clip rectangle [-150,160]x[-90,90].  A2 is REACHED and the mask is load-bearing.
+  PASS  A2 and the MECHANISM is the mindiff skip, not extrapolation: 416 of 416 escapes had at least one stage skipped.  The two x-clip stages move both endpoints' y to the SAME integer; `diff = fpy - ly` is then 0, `|diff| > mindiff = 0.01` is false, and stages 7 and 8 leave y exactly where it was.
+  PASS  A2 worst escape: (fpx,fpy,lx,ly) (43865, 396, -95073, 90) -> (160, 299, -150, 299), 2 stage(s) skipped, screen row 399 -- i.e. riga[399] on an `unsigned riga[200]`, 398 bytes past its end.  Masked to 16 bits, 320*399 becomes NW offset 62144, still on the page.
+  PASS  A2 out-of-range screen rows reached (row: count): {200: 12, 201: 10, 202: 10, 203: 4, 204: 2, 205: 18, 206: 10, 207: 8, 208: 8, 209: 10, 210: 12, 211: 14, 212: 16, 213: 6}
+  PASS  A2 NOTE: recon B reports 220 escapes / 98,596 lines = 0.22% by a rig this harness does not have.  THIS measurement is 0.0739% over its own corpus.  The two agree on the verdict and on the order of magnitude; they are not the same experiment and neither is derived from the other.
+
+  NOT GRADED, and named: the out-of-bounds VALUES `riga[y]` reads for
+  y outside 0..199.  They come from whatever the DOS data segment held
+  next to RIGA, which this project has never measured.  The adopted
+  divergence defines riga[y] = 320*y and masks the result; the retirement
+  condition is extracting RIGA's neighbours from NOCTIS.SYM (266,979
+  bytes, symbols RIGA / flares / global_x), which also settles the
+  farmalloc-offset open item.  One session settles both.
+
+RESULT: PASS
+  [T3] fb_stick.py A2 escape corpus (400k deterministic cases)        PASS
+
+Tier 3 -- the pinned scenario as a DOCUMENT (LINOBUF 6.1)
+  [T3] LINOBUF 6.1 exists and pins the scenario                       NOT GRADED  LINOBUF.md has no section 6.1.  The pinned scenario is the architect's deliverable and it is not on disk yet.  Until it lands, the two references agree with each other but nothing pins them to a document implementer 1 can read.
+
+Tier 2 -- the lino framebuffer (implementer 1)
+      OUTSTANDING: no --lino path given.  The lino side has not
+      been graded.  Every reference above stands on its own; nothing
+      here should be read as evidence about the lino build.
+
+==============================================================================
+  T0  1 checks, 0 failed, 1 NOT GRADED
+  T1  13 checks, 0 failed, 0 NOT GRADED
+  T2  52 checks, 0 failed, 0 NOT GRADED
+  T3  37 checks, 0 failed, 1 NOT GRADED
+  TOTAL 103 checks, 101 passed, 0 failed, 2 NOT GRADED
+
+  NOT GRADED rows, in full:
+    - ...but alias 8's PREMISE (farmalloc offset == 4) is Tier 0: four source-level witnesses, zero measurements
+      see --ungraded item 1
+    - LINOBUF 6.1 exists and pins the scenario
+      LINOBUF.md has no section 6.1.  The pinned scenario is the architect's deliverable and it is not on disk yet.  Until it lands, the two references agree with each other but nothing pins them to a document implementer 1 can read.
+
+  TIER PER ELEMENT -- replacing the blanket claim:
+    palette filter arithmetic          TIER 2  C + Python, 7 caught sabotages, and TIER 1 against the 1996 BMP
+    shade chop-vs-round                TIER 2  separated at the first entry of step 3
+    upload-from-zero                   TIER 2  trace digests; the FINAL state does not separate it
+    the self-copy                      TIER 2  separated by step 7, NOT by step 4 -- measured
+    v*4 vs shift-or                    TIER 1  768/768 BMP bytes = 0 mod 4, max 252; shift-or falsified
+    shade's destination buffer         TIER 2  21 sites counted from source, SH-COMPOUND caught
+    alias 8 placement                  TIER 2  parsed vs transcribed, agree on adapted[63996]
+    alias 8 PREMISE (offset==4)        TIER 0  four witnesses, zero measurements
+    the raster loop (digit_at n=0)     TIER 2  glyph plane AND the 6 SUB expectation hits
+    the 22-zone pad model              TIER 2  zones record + two-sided walk, 3 caught sabotages
+    the canary                         TIER 2  4 caught sabotages, proved by disabling
+    class-A masks                      TIER 2  4 caught sabotages; reachability EXHAUSTIVE over the domain
+    A1 Segmento                        PROVEN  unnecessary: poly3d's clamp, swept
+    A3 mask_pixels                     PROVEN  unnecessary: DI 2884..61123 at the steady QUADWORDS
+    A7 ptr                             PROVEN  a typing requirement, not a mask
+    A2 Stick riga[] INDEX              TIER 2  reached; 400k-case corpus, mechanism identified
+    A2 Stick riga[] VALUES             DIVERG. deliberate, named retirement condition
+    the tick period                    TIER 2  C + Python + 1.5M-case wrap sweep
+    the servo                          TIER 3  6 caught sabotages; the shipped bracket replayed and refuted
+    kinds 1/2/3 CONTENT                TIER 2  pinned scenario, C vs Python, exact
+    kinds 1/2/3 vs a FRAME             SCOPED OUT no renderer exists
+    KFRM (kind 8)                      UNGRADED raw timing, by nature
+
+  What this harness cannot grade at all (run --ungraded for detail):
+    farmalloc offset == 4                  TIER 0
+    Stick's riga[] out-of-bounds VALUES    DIVERGENCE
+    M1 crater's wrap RATE                  BOUNDED, NOT MEASURED
+    M3 polymap's bump branch               OPEN
+    Everything visual                      NO RENDERER
+    KFRM (kind 8)                          UNGRADED BY NATURE
+    KSELF field ids >= 100                 PORT-LOCAL
+    LINOBUF 6.1 as a DOCUMENT              SEE THE RUN
+
+  LINO SIDE: OUTSTANDING -- not present, not graded, not claimed.
+  RESULT: PASS
+==============================================================================
+EXIT 0

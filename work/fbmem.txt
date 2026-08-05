@@ -507,41 +507,65 @@
 	C & 65535;
 	end;
 
+      ( MEM u16 site : the same mask, COUNTED against [SAsite].
+
+	The counter belongs AT THE TRUNCATION POINT, not at the final
+	address, for the same reason the mask does.  cirrus truncates at
+	"mov bx,py / add bx,px" and only then shifts, so by the time the
+	address is formed the offset can no longer exceed 16 bits and a
+	counter placed there would read zero forever.  spot truncates at
+	the 16-bit DI, which IS the address offset, so for spot the two
+	points coincide - which is precisely why one counter site is not
+	enough to distinguish them. )
+
+"MEM u16 site"
+	A = [SAsite]; A '* 3; A + wtab;
+	[A plus 1]+;
+	? C '<= WINDOW -> MEM u16s nw;
+	[A plus 2]+;
+    "MEM u16s nw"
+	C & 65535;
+	end;
+
 ( ==================================================================== )
 ( the 16-bit index mask - the class-A mechanism                         )
 ( ==================================================================== )
 
       ( MEM seg addr : [SAnw] <- SEG + (OFF AND 65535).
-	in  [SAseg] segment origin, [SAoff] 16-bit offset, [SAsite] site id
+	in  [SAseg] segment origin, [SAoff] offset
 	out [SAnw]  workspace index
 
-	The counters are the graded artifact.  Delete a mask and the wrap
-	count goes to zero while the page content changes; mask the final
-	address instead of the truncation point and cirrus's delta halves
-	from 65,536 to 32,768.  Two independent places, both breakable. )
+	THE MASK IS TAKEN AGAINST THE SEGMENT ORIGIN, NOT THE BUFFER
+	BASE.  SEG is R* minus 4 for every farmalloc'd block, so a masked
+	offset of 0..3 lands on the four header units immediately below
+	the buffer - which is the SUB zone's allowance, not a violation.
+	Using the base here instead of the origin is sabotage
+	S-SEGADDR-BASE and shows up as a containment failure on every
+	low-offset case.
+
+	The wrap COUNTERS live in "MEM u16 site", at the truncation
+	point.  They are the graded artifact: delete a mask and the count
+	goes to zero while the page content changes, so the check is
+	breakable in two independent places. )
 
 "MEM seg addr"
-	A = [SAsite]; A '* 3; A + wtab;
-	[A plus 1]+;
 	C = [SAoff];
-	? C '<= WINDOW -> MEM sa nowrap;
-	[A plus 2]+;
-    "MEM sa nowrap"
 	=> MEM u16;
 	C + [SAseg];
 	[SAnw] = C;
 	end;
 
       ( MEM seg check : the containment assertion.  [SAnw] must lie in
-	[base(B), base(B)+size(B)) union SUB(B) - and those two intervals
-	are CONTIGUOUS, because SUB(B) is base-8..base-1.  So the window
-	is [SAlo, SAhi) with SAlo = base - 8.
+	the region itself, from base to base+size-1, or in that region's
+	SUB zone - and those two intervals are CONTIGUOUS, because SUB is
+	base-8 .. base-1.  So the window is [SAlo] .. [SAhi] minus one,
+	with SAlo = base - 8 and SAhi = base + size.
 
 	Note what this does NOT claim: the wrappable window and the buffer
 	are not the same interval.  adapted's 16-bit window is
 	nw[271,080..336,615], so adapted[65536..65539] - the four units
 	sc_bytes = 65540 exists for - lie OUTSIDE the wrap window and are
-	reachable only through the non-truncating path. )
+	reachable only through the non-truncating path.                  )
 
 "MEM seg check"
 	A = [SAnw];

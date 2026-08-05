@@ -1,285 +1,163 @@
 #!/usr/bin/env python3
-"""fbgrade.py - grade the reference build and require every sabotage to be caught.
+"""fbgrade.py - for every sabotage, print the OBSERVABLES that moved.
 
-The rule this file enforces: for each of the ten breaks, a named predicate must
-PASS on the reference dump and FAIL on that break's dump.  A predicate that
-fails on the reference is a broken test, not a caught sabotage, and is reported
-as such - so a test that always fails cannot be mistaken for a test that works.
+Rewritten for FBDUMP v2 and for the Wave 5-corrective sabotage register.
+
+The house standard is that every check must be provably breakable, demonstrated
+by breaking the thing it guards.  This compares each sabotage's FBDUMP against
+its harness's reference dump - fbshort for the shell (the reference at the SAME
+driver constants as the sabotages), fbsrv for the servo battery, fbshade for the
+shade battery - and prints which named observable changed.
+
+A sabotage that changes NOTHING is a blind spot and is reported as one.  That is
+the whole point: FBDUMP v1's kind 6 was bit-identical between a clean build and
+a build with no canary in it, and nothing in the project could see it.
 
 Usage: python fbgrade.py
 """
-import struct
-import sys
 import os
+import struct
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAGIC = 0x46424431
-TARGET_MS = 65536 / 1193182.0 * 1000.0        # 54.9254012...
+
+TAGNAME = {1: "adapted", 2: "adaptor", 3: "glyph", 4: "pal6", 5: "curpal6",
+           6: "lut", 7: "layout", 8: "canary", 9: "zones", 10: "ticklog",
+           11: "servolog", 12: "wrapcount", 13: "selfcheck", 14: "framecost",
+           15: "wrapbat", 16: "sky", 17: "srfpal6",
+           19: "srv_windows", 20: "srv_oldreplay",
+           22: "fade48", 23: "fade24", 24: "fade24_compounded"}
+
+SHELL_SELF = {
+    0: "bchk", 1: "qchk", 2: "txchk",
+    5: "canary_clean_fired", 6: "canary_clean_n", 7: "canary_clean_exp",
+    8: "glyph_expectation", 9: "glyph_violation_pad",
+    10: "wrap_predicate_failures", 18: "skips", 22: "pv_range",
+    32: "cal_why", 34: "servolog_overflow",
+    40: "glyph_violation_units", 41: "containment_failures",
+    42: "containment_at", 43: "spot_cases_relocated",
+    44: "spot_delta_min", 45: "spot_delta_max",
+    46: "cirrus_delta_min", 47: "cirrus_delta_max",
+    48: "maskpixels_precondition",
+}
+SRV_SELF = {
+    5: "round_truncated", 6: "round_rounded",
+    7: "clampfloor_after_1", 8: "clampfloor_after_5",
+    10: "rebase_window_1_ms", 11: "rebase_why_1",
+    12: "rebase_window_2_ms", 13: "rebase_why_2",
+    15: "fold_at_000000_100", 17: "fold_delta",
+    18: "midnight_why", 19: "midnight_cpms",
+    21: "ring_failures", 30: "servolog_overflow",
+    32: "rebase_counts_1", 33: "rebase_counts_2",
+}
+SHADE_SELF = {
+    0: "sentinel_broken", 1: "srfpal6_nonzero", 2: "pal6_nonzero_after_ladder",
+    3: "fade_components_differing", 4: "fade_max_difference",
+    6: "pal6[0]", 7: "pal6[1]", 8: "pal6[2]",
+}
+
+CASES = [
+    ("fbbreak1", "fbshort", "LUT (v<<2)|(v>>4) instead of v*4"),
+    ("fbbreak2", "fbshort", "tavola uploads only its own band"),
+    ("fbbreak3", "fbshort", "shade rounds instead of chopping"),
+    ("fbbreak4", "fbshort", "unsigned timestamp compare"),
+    ("fbbreak5", "fbshort", "no skip-to-grid"),
+    ("fbbreak6", "fbshort", "FB draw raster loop from y = 1"),
+    ("fbbreak7", "fbshort", "guard check that can never fire"),
+    ("fbbreak8", "fbshort", "tinta/escrescenze at 64000"),
+    ("fbbreak9", "fbshort", "layout in declaration order"),
+    ("fbbreak10", "fbshort", "byte store packed 4 per unit"),
+    ("fbsrvrunstart", "fbsrv", "S-SRV-RUNSTART: no re-base"),
+    ("fbsrvunsigned", "fbsrv", "S-SRV-UNSIGNEDBAND"),
+    ("fbsrvwidemax", "fbsrv", "S-SRV-WIDEMAX"),
+    ("fbsrvtrunc", "fbsrv", "S-SRV-TRUNC"),
+    ("fbsrvclampfl", "fbsrv", "S-SRV-CLAMPFLOOR"),
+    ("fbsrvnofold", "fbsrv", "S-WALL-NOFOLD"),
+    ("fbmaskspot", "fbshort", "S-MASK-SPOT"),
+    ("fbmaskcirrus", "fbshort", "S-MASK-CIRRUS-ADDR"),
+    ("fbsegbase", "fbshort", "S-SEGADDR-BASE"),
+    ("fbpadonemagic", "fbshort", "S-PAD-ONEMAGIC"),
+    ("fbpadnodigit", "fbshort", "S-PAD-NODIGIT"),
+    ("fbpad9walk", "fbshort", "S-PAD-9WALK"),
+    ("fbcanstubpoison", "fbshort", "S-CAN-STUBPOISON"),
+    ("fbcanconst", "fbshort", "S-CAN-CONSTACTUAL"),
+    ("fbshdst", "fbshade", "SH-IGNOREDST"),
+    ("fbs12", "fbshort", "S12: colour cycle fused into the expand"),
+]
+SELFMAP = {"fbshort": SHELL_SELF, "fbsrv": SRV_SELF, "fbshade": SHADE_SELF}
+
+# timing-dependent records: not discriminators, excluded and SAID so
+NOISY = {10, 14, 11}
+
+# self words that are MEASUREMENTS, not values.  A difference here is only a
+# discriminator if it is large; a few counts is jitter.  Named rather than
+# silently dropped, because "the check moved" has to mean the check moved.
+TOLERANT = {"rebase_counts_1", "rebase_counts_2"}
+# skip counts jitter by one because a hitch can straddle a grid point;
+# a change of more than one is a discriminator, a change of one is not.
+JITTER1 = {"skips"}
+TOLERANCE = 0.01
+TOLFLOOR = 1000      # counts; 1000 at 9000 cpms is 0.11 ms
 
 
 def load(tag):
-    data = open(os.path.join(HERE, tag + ".bin"), "rb").read()
-    recs = []
-    off = 0
-    while off + 64 <= len(data):
-        h = struct.unpack_from("<16I", data, off)
-        assert h[0] == MAGIC and h[1] == 1
+    buf = open(os.path.join(HERE, tag + ".bin"), "rb").read()
+    off, by = 0, {}
+    while off + 64 <= len(buf):
+        h = struct.unpack_from("<16I", buf, off)
+        assert h[0] == MAGIC, tag
         n = h[5]
-        recs.append({"kind": h[2], "w": h[3], "h": h[4],
-                     "p": struct.unpack_from("<%dI" % n, data, off + 64) if n else ()})
+        by[h[8]] = struct.unpack_from("<%dI" % n, buf, off + 64) if n else ()
         off += 64 + 4 * n
-    assert off == len(data)
-    d = {}
-    for r in recs:
-        d.setdefault(r["kind"], []).append(r["p"])
-    return d
+    return by
 
 
-# ---------------------------------------------------------------- predicates
-# Each returns (ok, detail).  ok must be True for the reference.
-
-def p_layout(d, _ref):
-    lay = d[5][0]
-    # derived independently from NOCTIS-D.H sizes, in main()'s farmalloc order
-    want = [("n_offsets_map", 7340), ("n_globes_map", 32768),
-            ("s_background", 64800), ("p_background", 65552),
-            ("p_surfacemap", 40000), ("objectschart", 40000),
-            ("pvfile", 20480), ("adapted", 65540), ("adaptor", 65540)]
-    base = 32
-    for i, (nm, sz) in enumerate(want):
-        b, s, pb, rid = lay[4 * i:4 * i + 4]
-        if rid != i:
-            return False, "region %d has id %d" % (i, rid)
-        if b != base:
-            return False, "%s base %d, expected %d" % (nm, b, base)
-        if s != sz:
-            return False, "%s size %d, expected %d (NOCTIS-D.H)" % (nm, s, sz)
-        if pb != b + s:
-            return False, "%s padbase %d" % (nm, pb)
-        base = b + s + 16
-    if base != 402196:
-        return False, "top %d" % base
-    return True, "9 regions, farmalloc order, 16-unit pads, top 402196"
-
-
-def p_bytes(d, _ref):
-    v = d[7][0][0]
-    return v == 0, "bchk=%d" % v
-
-
-def p_canary(d, _ref):
-    s = d[7][0]
-    clean_f, clean_n, dirty_f, dirty_n, dirty_at = s[5], s[6], s[7], s[8], s[9]
-    if clean_f or clean_n:
-        return False, "clean check fired (%d,%d)" % (clean_f, clean_n)
-    if dirty_f != 2 or dirty_n != 1 or dirty_at != 40156:
-        return False, ("one-unit overrun not caught as region 1: "
-                       "fired=%d n=%d at=%d" % (dirty_f, dirty_n, dirty_at))
-    return True, "clean=0, injected overrun -> region 1 at nw+40156, 1 unit"
-
-
-def p_wrap(d, _ref):
-    s = d[7][0]
-    return s[10] == 0 and s[11] > 400000, \
-        "failures=%d over %d constructed cases" % (s[10], s[11])
-
-
-def p_lut(d, _ref):
-    cur = d[2][1]
-    lut = d[3][0]
-    for c in range(256):
-        want = ((cur[3 * c] & 63) * 4 << 16) | ((cur[3 * c + 1] & 63) * 4 << 8) \
-               | ((cur[3 * c + 2] & 63) * 4)
-        if lut[c] != want:
-            return False, "colour %d: %06X != %06X" % (c, lut[c], want)
-    return True, "all 256 entries are curpal6 * 4"
-
-
-def p_lut_same(d, ref):
-    return d[3][0] == ref[3][0], "LUT record identical to reference"
-
-
-def p_curpal_same(d, ref):
-    n = sum(1 for i in range(768) if d[2][1][i] != ref[2][1][i])
-    return n == 0, "curpal6 differs from reference in %d components" % n
-
-
-def p_pal6_same(d, ref):
-    n = sum(1 for i in range(768) if d[2][0][i] != ref[2][0][i])
-    return n == 0, "pal6 differs from reference in %d components" % n
-
-
-def p_stale(d, _ref):
-    pal6, cur = d[2][0], d[2][1]
-    diff = [c for c in range(256)
-            if pal6[3 * c:3 * c + 3] != cur[3 * c:3 * c + 3]]
-    lo = [c for c in diff if c < 128]
-    if lo:
-        return False, "colours below 128 stale: %s" % lo[:8]
-    if not diff:
-        return False, "no stale band at all - S12 should have left one"
-    return True, ("upload-from-zero holds: 0..127 current, %d stale colours "
-                  "all >= 128 (%d..%d)" % (len(diff), min(diff), max(diff)))
-
-
-def p_page_same(d, ref):
-    n = sum(1 for i in range(64000) if d[1][0][i] != ref[1][0][i])
-    return n == 0, "adapted page differs from reference in %d pixels" % n
-
-
-def p_page_row0(d, _ref):
-    p = d[1][0]
-    bad = [x for x in range(320) if p[x] != (0 * x + x + 0) & 255]
-    return not bad, "row 0 correct" if not bad else "row 0 wrong in %d px" % len(bad)
-
-
-def p_tinta(d, _ref):
-    p = d[1][0]
-    return (p[63996], p[63997]) == (17, 34), \
-        "adapted[63996..7] = %d,%d (row 199 cols 316-317)" % (p[63996], p[63997])
-
-
-def p_skip(d, _ref):
-    tk = d[4][0]
-    s = d[7][0]
-    srv = [(s[32 + 2 * i], s[33 + 2 * i]) for i in range(8) if s[33 + 2 * i]]
-    n = len(tk) // 3
-
-    def sd(a, b):
-        x = (a - b) & 0xFFFFFFFF
-        return x - 0x100000000 if x >= 0x80000000 else x
-    cpms_at = [0] * n
-    cur = srv[0][1] if srv else s[13]
-    j = 0
-    for i in range(n):
-        while j < len(srv) and srv[j][0] <= i:
-            cur = srv[j][1]; j += 1
-        cpms_at[i] = cur
-    per = [sd(tk[3 * i], tk[3 * (i - 1)]) / cpms_at[i] for i in range(1, n)]
-    lat = [sd(tk[3 * i], tk[3 * i + 1]) / cpms_at[i] for i in range(n)]
-    bb = [i for i in range(1, n) if per[i - 1] < TARGET_MS * 0.5]
-    skips = sum(1 for i in range(n) if tk[3 * i + 2] & 1)
-    # The behavioural signature, and the one that does not merely re-read the
-    # flag the sabotage removes: with skip-to-grid the deadline is ALWAYS in
-    # the future when the wait starts, so no tick can fire measurably late.
-    # Without it, an overrunning frame fires immediately and its lateness is
-    # the whole of the overrun.
-    late = [(i, lat[i]) for i in range(n) if lat[i] > 1.0]
-    if late:
-        return False, ("%d ticks fired more than 1 ms late, worst %.3f ms at "
-                       "tick %d - the deadline was already in the past"
-                       % (len(late), max(x for _, x in late),
-                          max(late, key=lambda t: t[1])[0]))
-    if bb:
-        return False, ("%d back-to-back fires after a hitch (first at tick %d, "
-                       "%.3f ms)" % (len(bb), bb[0], per[bb[0] - 1]))
-    if skips == 0:
-        return False, "no grid point was ever skipped - the hitch never fired"
-    return True, ("%d grid points skipped, 0 back-to-back fires, max lateness "
-                  "%.4f ms" % (skips, max(lat)))
-
-
-def p_period(d, _ref):
-    tk = d[4][0]
-    s = d[7][0]
-    srv = [(s[32 + 2 * i], s[33 + 2 * i]) for i in range(8) if s[33 + 2 * i]]
-    n = len(tk) // 3
-
-    def sd(a, b):
-        x = (a - b) & 0xFFFFFFFF
-        return x - 0x100000000 if x >= 0x80000000 else x
-    cpms_at = [0] * n
-    cur = srv[0][1] if srv else s[13]
-    j = 0
-    for i in range(n):
-        while j < len(srv) and srv[j][0] <= i:
-            cur = srv[j][1]; j += 1
-        cpms_at[i] = cur
-    err = 0.0
-    steps = 0
-    for i in range(1, n):
-        c = cpms_at[i]
-        ideal = c * 32768000 / 596591.0
-        got = sd(tk[3 * i + 1], tk[3 * (i - 1) + 1])
-        k = round(got / ideal)
-        err += (got - k * ideal) / c
-        steps += k
-    if abs(err) > 1.0:
-        return False, "accumulated deadline error %.4f ms over %d grid points" % (err, steps)
-    return True, ("accumulated deadline error %+.5f ms over %d grid points "
-                  "(budget 1 ms)" % (err, steps))
-
-
-TESTS = {
-    "layout": p_layout,
-    "bytes": p_bytes,
-    "canary": p_canary,
-    "wrap": p_wrap,
-    "lut_is_x4": p_lut,
-    "lut_same": p_lut_same,
-    "curpal_same": p_curpal_same,
-    "pal6_same": p_pal6_same,
-    "upload_from_zero": p_stale,
-    "page_same": p_page_same,
-    "page_row0": p_page_row0,
-    "tinta_at_63996": p_tinta,
-    "skip_to_grid": p_skip,
-    "period_exact": p_period,
-}
-
-# which predicate each sabotage must break
-BREAKS = {
-    1:  ("lut_is_x4",        "LUT built with (v<<2)|(v>>4) instead of v*4"),
-    2:  ("curpal_same",      "tavola_colori uploads only its own band"),
-    3:  ("pal6_same",        "shade() rounds to nearest instead of chopping"),
-    4:  ("wrap",             "unsigned timestamp compare instead of the sign"),
-    5:  ("skip_to_grid",     "no skip-to-grid after a missed deadline"),
-    6:  ("page_row0",        "raster loop started at 1 (niv-lr's digit_at bug)"),
-    7:  ("canary",           "canary check that can never fire"),
-    8:  ("tinta_at_63996",   "tinta/escrescenze relocated to 64000 (niv-lr)"),
-    9:  ("layout",           "declaration order instead of farmalloc order"),
-    10: ("bytes",            "byte store packed four to a unit"),
-}
+def s32(v):
+    return v - (1 << 32) if v >= (1 << 31) else v
 
 
 def main():
-    ref = load("fbmain")
-    print("=== REFERENCE BUILD (fbmain.bin) ===")
-    refok = {}
-    bad = 0
-    for name, fn in TESTS.items():
-        ok, detail = fn(ref, ref)
-        refok[name] = ok
-        print("  %-18s %-4s %s" % (name, "PASS" if ok else "FAIL", detail))
-        if not ok:
-            bad += 1
-    print()
-    print("=== SABOTAGES: each must be CAUGHT by its named predicate ===")
-    caught = 0
-    for n in sorted(BREAKS):
-        pname, what = BREAKS[n]
-        try:
-            d = load("fbbreak%d" % n)
-        except FileNotFoundError:
-            print("  break %-2d MISSING dump" % n); bad += 1; continue
-        ok, detail = TESTS[pname](d, ref)
-        if not refok[pname]:
-            print("  break %-2d BROKEN-TEST  %s already fails on the reference"
-                  % (n, pname))
-            bad += 1
-            continue
-        if ok:
-            print("  break %-2d NOT CAUGHT   %-18s %s" % (n, pname, detail))
-            bad += 1
+    blind = []
+    print("excluded as timing-dependent, not as passing: ticklog, framecost, "
+          "servolog\n")
+    for name, ref, headline in CASES:
+        a, b = load(ref), load(name)
+        moved = []
+        for tag in sorted(set(a) | set(b)):
+            if tag in NOISY:
+                continue
+            pa, pb = a.get(tag, ()), b.get(tag, ())
+            if tag == 13:
+                for i, nm in sorted(SELFMAP[ref].items()):
+                    if i >= len(pa) or i >= len(pb) or pa[i] == pb[i]:
+                        continue
+                    x, y = s32(pa[i]), s32(pb[i])
+                    if nm in JITTER1 and abs(x - y) <= 1:
+                        continue
+                    if nm in TOLERANT:
+                        base = max(abs(x), abs(y), 1)
+                        if abs(x - y) < max(TOLFLOOR, TOLERANCE * base):
+                            continue
+                    moved.append("%s  %d -> %d" % (nm, x, y))
+                continue
+            if pa != pb:
+                if len(pa) != len(pb):
+                    moved.append("%s length %d -> %d"
+                                 % (TAGNAME.get(tag, tag), len(pa), len(pb)))
+                else:
+                    d = sum(1 for x, y in zip(pa, pb) if x != y)
+                    moved.append("%s differs in %d of %d units"
+                                 % (TAGNAME.get(tag, tag), d, len(pa)))
+        print("%-16s %s" % (name, headline))
+        if moved:
+            for m in moved:
+                print("      caught: %s" % m)
         else:
-            caught += 1
-            print("  break %-2d caught by     %-18s %s" % (n, pname, detail))
-        print("           sabotage: %s" % what)
-    print()
-    print("reference predicates passing : %d/%d" % (sum(refok.values()), len(TESTS)))
-    print("sabotages caught             : %d/%d" % (caught, len(BREAKS)))
-    return 1 if bad else 0
+            print("      *** NOTHING MOVED - BLIND SPOT ***")
+            blind.append(name)
+        print()
+    print("sabotages: %d,  blind spots: %d %s"
+          % (len(CASES), len(blind), blind if blind else ""))
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+main()

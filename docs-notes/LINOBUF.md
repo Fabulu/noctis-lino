@@ -253,25 +253,47 @@ reproduce the author's own workaround exactly.
 
 ### Canaries — a debug-build tool, not a release mechanism
 
-Each 16-unit pad's last unit is a canary. **Debug build**: the whole pad is
-filled with `0xA5A5A5A5` and all 16 units of all nine pads are verified once per
-tick; a mismatch halts loudly and names the region. **Release build**: pads are
-zero (the faithful state) and the check is compiled out.
+**SUPERSEDED IN TWO WAYS by BUFFERMODEL §4.1 and §4.2.** The paragraph below is
+kept because the *release/debug* distinction it draws is still right; the two
+corrections are that there are **eleven** pads and not nine, and that a pad is
+not one magic.
+
+Each 16-unit pad is split into two ZONES. **Debug build**: `TAIL` (the low 8
+units) is filled with `0xA5A5A5A5` and `SUB` (the high 8) with `0x5A5A5A5A`,
+every zone carries an explicit allowance list, and all 22 zones over all 11 pads
+are verified; a change to a guarded unit halts loudly and names the pad, while a
+change to an allowance unit is COUNTED. **Release build**: pads are zero (the
+faithful state) and the check is compiled out.
 
 They are *not* the same build, and that matters: the debug build's poison
 changes what a class-C read-overrun samples. Grading runs use the release build.
 
-**Verified, including the negative:**
+**Two corrections to the text this replaces.**
+
+1. *"all 16 units of all nine pads"* left `nw[0..31]` — the two pads below
+   `n_offsets_map` — guarded by nothing, because nine is `rtab`'s region count
+   and a workspace has eleven pads. The pad list is now written out
+   independently of `rtab`. Measured: corrupting `nw[3]` and `nw[20]` after
+   poisoning reports `fired = 1, n = 2, at = 3`; the `rtab`-derived walker
+   reports `0, 0, 0`.
+2. One magic per pad made the guard band and the legitimate-write destination
+   the same thing, so `digit_at`'s `txtr[-6..-1]` (`NOCTIS.CPP:614-628`, landing
+   in `nw[170,550..170,555]`) fired the canary and halted — the first cockpit
+   glyph of a debug build was indistinguishable from a buffer overrun.
+
+**Verified, including both negatives:**
 
 ```
-K5  pads poisoned, check run clean          : fired = 0, units differing = 0
-    n_globes_map overrun by exactly ONE unit: fired = 2 (region id 1 + 1),
-                                              units differing = 1,
-                                              at NW offset 40,156 = 7,388 + 32,768
+    all zones poisoned, check run clean : fired = 0, n = 0, exp = 0
+    digit_at txtr[-6..-1]               : fired = 0, n = 0, exp = 6   COUNTED
+    loadpv one unit past pvfile         : fired = 0, n = 0, exp = 1   COUNTED
+    one unit FURTHER (pad 8, TAIL+1)    : fired = 9, n = 1, at = 271,069
+    nw[3] and nw[20] after poisoning    : fired = 1, n = 2, at = 3
 ```
 
 A canary that always fires cannot pass this, because the clean check runs first
-and must report zero.
+and must report zero. A canary that *never* fires cannot pass it either, which
+FBDUMP kind 6 v1 could not establish — see §6.1.
 
 ---
 
@@ -589,10 +611,73 @@ payload: `count` units
 | 3 LUT | 256 units, `00RRGGBB` |
 | 4 TICKLOG | 3 units per tick: absolute `[Counts]` at fire, the deadline it fired against, a flag word (bit 0 = skipped a grid point, bit 1 = slept). **Raw, so the grader recomputes periods, drift and skips itself** rather than trusting a lino-computed statistic. |
 | 5 LAYOUT | 4 units per region: base, size, pad base, region id. How the two implementations compare layouts without either reading the other's source. |
-| 6 CANARY | 2 units per region: expected, actual |
+| 6 CANARY | 2 units per region: expected, actual — **withdrawn, see §6.1** |
 
 Grading: exact unit-for-unit compare on kinds 1, 2, 3, 5, 6; recomputed
 statistics on kind 4.
+
+### 6.1 FBDUMP v2 — what v1 got wrong, and the corrected record set
+
+**Header unit 1 is now `2`, and header unit 8 carries a TAG.** Version 1
+identified a record only by its `kind`, so two records of the same kind in one
+stream — `pal6` and `curpal6`, the hidden page and the visible page — were told
+apart by *position*, which is not an identity. The tag namespace is independent
+of order and of kind.
+
+**Kind 6 v1 was a check that could not fail, and this is the correction that
+matters most.** It was two units per region, "expected" and "actual", and both
+were `0xA5A5A5A5` — *written by construction on both sides*. A clean run and a
+build with the canary walker deleted produced a **bit-identical** record, so
+"lino CANARY == the reference" passed for a build with no canary in it. The
+grader compounded it by comparing `can[i]` against `can[i+1]`: two copies of one
+literal.
+
+**Kind 6 v2 is 4 units per PAD, eleven pads, 44 units, and stores no literal.**
+Every unit is either read back out of the workspace or produced by the walker,
+and the grader derives all four from the layout alone:
+
+| unit | field | derived from |
+|---|---|---|
+| 0 | clean read of `nw[padbase(i)+slot(i)]` after poisoning | the zone role: `0xA5A5A5A5` in a `TAIL`, `0x5A5A5A5A` in a `SUB` |
+| 1 | the same address re-read after storing `WITNESS(i)` | the witness rule |
+| 2 | the pad index + 1 the walker reported | `i + 1` |
+| 3 | the `nw` offset of the first violation | `padbase(i) + slot(i)` |
+
+Four failure modes are separated: no poison (unit 0), a constant "actual"
+(unit 1), a stubbed comparison (unit 2), the wrong address or the wrong pad set
+(unit 3). Proved by breaking it — stubbing `MEM check pads` moves 22 of the 44
+units, where under v1 the same edit moved nothing. *Limit, stated:* a saboteur
+who reads the witness rule can recompute unit 1 instead of loading it, so the
+load-bearing fields are 0, 2 and 3.
+
+**The record set, v2:**
+
+| kind | tag | payload |
+|---|---|---|
+| 1 INDEXPAGE | 1 `adapted`, 2 `adaptor`, 3 glyph page | 64,000 units, row-major from top-left |
+| 2 PALETTE6 | 4 `pal6`, 5 `curpal6`, 17 `srfpal6`, 18 `retpal6` | 768 units, 0..63 |
+| 3 LUT | 6 | 256 units, `00RRGGBB` |
+| 4 TICKLOG | 10 | 3 units per tick, RAW |
+| 5 LAYOUT | 7 | 4 units per region: base, size, pad base, id |
+| 6 CANARY | 8 | **4 units per PAD, 11 pads** — see above |
+| 7 SELF | 13 | the writer's own self-checks |
+| 8 FRAMECOST | 14 | raw per-present counts |
+| 9 ZONE | 9 | **new.** 4 units per zone, 22 zones: base, length, owner region id (−1 unowned), role (0 `TAIL`, 1 `SUB`). This is how the guard/allowance separation is compared without either side reading the other's source. |
+| 10 WRAPCOUNT | 12 | **new.** 3 units per class-A site: site id, calls, wraps |
+| 11 SERVOLOG | 11 | **new.** 3 units per servo firing: the first tick at which the value is in force, the cpms, the why-code (0 applied, 1 clamped low, 2 clamped high, 3 too short, 4 too long). **Rejections are logged too** — a run of rejections is the signature of a suspend or a mis-set band, and a log carrying only successes could not show it. |
+| 12 WRAPBATTERY | 15 | **new.** 6 units per synthetic class-A case |
+
+`tests/w5probe.txt` adds its own kinds above this namespace — 16 SELF, 17
+ADVANCE, 19 FRAMEBUFFER, 20 FRAMECOST, 21 SKY, 22 SERVO HORIZON, 23 CLASS-A
+MASK, 24 SERVO BAND — because the probe is not the shell and must not be
+mistaken for it.
+
+**`cpms` in header unit 6 is no longer a stream-wide constant.** `SERVON` is a
+driver constant now and a soak long enough to fire the servo changes cpms
+mid-stream. A reader that converts a whole `TICKLOG` with one factor gets the
+drift wrong; kind 11 says exactly when it changed and the grid must be rebuilt
+piecewise. Measured: the single-cpms reconstruction misses 199 of 200 deadlines
+on a run whose deadlines are every one of them exactly on the grid.
 
 **Filename trap, hit twice already:** underscores in lino string literals become
 spaces, so `{ fb_page.bin }` writes `fb page.bin`. Use hyphens or `\us` in every

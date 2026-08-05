@@ -1,0 +1,301 @@
+      ( *** fbshade - shade()'s destination buffer, and the compounding
+	    it exists to prevent ***
+
+	Defect 6.  NOCTIS-0.CPP:1151 declares
+
+	    void shade (unsigned char far *palette_buffer,
+	                unsigned first_color, unsigned num_of_colors,
+	                float start_r, float start_g, float start_b,
+	                float finish_r, float finish_g, float finish_b)
+
+	and 14 of its 21 call sites pass surface_palette, not tmppal -
+	3 in NOCTIS.CPP:3774-3776 and 4 in NOCTIS-0.CPP:5180-5183 pass
+	tmppal, 14 in NOCTIS-1.CPP:3050-3086 pass surface_palette.  The
+	Wave 5 library computed its destination as SHfirst*3 + pal6, a
+	literal, so it could not express two thirds of the game's calls -
+	and srfpal6/retpal6, whose whole purpose is to stop fades
+	COMPOUNDING, were dead weight no test touched.
+
+	This probe touches them.  Three things, in order:
+
+	A  THE PARAMETER EXISTS AND POINTS SOMEWHERE ELSE.  A sentinel is
+	   written into pal6, the NOCTIS-1.CPP:3050-3086 ladder is run
+	   with [SHdstb] = srfpal6, and both buffers are dumped.  srfpal6
+	   must carry the ladder and pal6 must still carry the sentinel
+	   and nothing else.  Sabotage SH-IGNOREDST reverts the one line
+	   to "A + pal6"; it then BUILDS - so this has to be a RUNNING
+	   check, not a build check - and destroys the sentinel while
+	   leaving srfpal6 zero.
+
+	B  THE FADES DO NOT COMPOUND.  Noctis fades a surface by calling
+	   tavola_colori(surface_palette, 0, 256, w, w, w) with a
+	   descending w.  Each call re-copies the PRISTINE surface
+	   palette and filters it once.  Two fades are run, w = 48 then
+	   w = 24, and the second is compared against the compounded form
+	   - filter by 48, then filter THAT by 24 - which is what a port
+	   with only one palette buffer is forced to do.
+
+	C  THE ARITHMETIC OF THE DIFFERENCE IS RECORDED, not asserted:
+	   how many of the 768 components differ, and by how much at the
+	   extremes.  v*24/63 against v*48/63*24/63 is a factor of about
+	   0.76 on every non-zero component, so this is not a rounding
+	   argument - it is a visible one.
+
+	Records, FBDUMP v2:
+	    kind 2 tag  4   768  pal6 after the ladder   - the sentinel
+	    kind 2 tag 17   768  srfpal6 after the ladder
+	    kind 2 tag 22   768  pal6 after fade w=48
+	    kind 2 tag 23   768  pal6 after fade w=24, from srfpal6
+	    kind 2 tag 24   768  pal6 after 48 then 24, compounded
+	    kind 7 tag 13    64  scalars                                )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	fbpal;
+	fbtick;
+
+"directors"
+
+	program name = { fbshade };
+	unit = 32;
+
+"constants"
+
+	SERVON	= 256;		( unused here; fbtick needs it declared )
+
+	TFADEA	= 22;
+	TFADEB	= 23;
+	TFADEC	= 24;
+
+	( the ladder's pinned filter triples.  Integer-valued floats, so
+	  the whole ladder is expressible without a float literal path. )
+	LFR0 = 20; LFG0 = 24; LFB0 = 28;
+	LFR1 = 52; LFG1 = 50; LFB1 = 48;
+	LFR2 = 36; LFG2 = 40; LFB2 = 44;
+	LFR3 = 30; LFG3 = 46; LFB3 = 26;
+
+"variables"
+
+	SDsr	= 0;
+	SDsg	= 0;
+	SDsb	= 0;
+	SDer	= 0;
+	SDeg	= 0;
+	SDeb	= 0;
+	SDsent	= 0;		( 0 = the pal6 sentinel survived )
+	SDsrfnz	= 0;		( non-zero components in srfpal6 )
+	SDpalnz	= 0;		( non-zero components in pal6 after the ladder )
+	SDdiff	= 0;		( components where correct != compounded )
+	SDdmax	= 0;
+	SDi	= 0;
+	SDp	= 0;
+
+"workspace"
+
+	fadea	= 768;
+	fadeb	= 768;
+	fadec	= 768;
+	sdsc	= 64;
+
+"programme"
+
+	=> SD run;
+	end;
+
+"SD run"
+	=> FEnter;
+	=> PAL float init;
+	=> PAL zero;
+
+	( a sentinel in pal6, so "pal6 untouched" is checkable rather than
+	  vacuous: PAL zero already left it zero everywhere. )
+	[pal6 plus 0] = 41; [pal6 plus 1] = 42; [pal6 plus 2] = 43;
+
+	=> SD ladder;
+	=> SD count;
+	( pal6 and srfpal6 are recorded BEFORE the fades, because the
+	  fades write pal6 - dumping it afterwards would record the fade
+	  and call it the ladder. )
+	=> SD dump head;
+	=> SD fades;
+	=> SD dump tail;
+	end;
+
+( ==================================================================== )
+( A - the ladder, NOCTIS-1.CPP:3050-3086, into surface_palette          )
+( ==================================================================== )
+
+"SD ladder"
+	A = srfpal6; [SHdstb] = A;
+
+	( the no-atmosphere branch: stars always well visible.
+	  100, 110 and 120 are ABOVE 64 and must saturate to 63 through
+	  the original's inverted else branch. )
+	[SHfirst] = 64;  [SHn] = 64;
+	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
+	[SDer] = 100; [SDeg] = 110; [SDeb] = 120;	=> SD shade;
+
+	( sfumatura per il suolo )
+	[SHfirst] = 0;   [SHn] = 44;
+	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
+	[SDer] = LFR0; [SDeg] = LFG0; [SDeb] = LFB0;	=> SD shade;
+	[SHfirst] = 44;  [SHn] = 20;
+	[SDsr] = LFR0; [SDsg] = LFG0; [SDsb] = LFB0;
+	[SDer] = LFR1; [SDeg] = LFG1; [SDeb] = LFB1;	=> SD shade;
+
+	( sfumatura per l'orizzonte )
+	[SHfirst] = 128; [SHn] = 10;
+	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
+	[SDer] = LFR0; [SDeg] = LFG0; [SDeb] = LFB0;	=> SD shade;
+	[SHfirst] = 138; [SHn] = 44;
+	[SDsr] = LFR0; [SDsg] = LFG0; [SDsb] = LFB0;
+	[SDer] = LFR2; [SDeg] = LFG2; [SDeb] = LFB2;	=> SD shade;
+	[SHfirst] = 182; [SHn] = 10;
+	[SDsr] = LFR2; [SDsg] = LFG2; [SDsb] = LFB2;
+	[SDer] = LFR1; [SDeg] = LFG1; [SDeb] = LFB1;	=> SD shade;
+
+	( sfumatura per la vegetazione )
+	[SHfirst] = 192; [SHn] = 10;
+	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
+	[SDer] = LFR0; [SDeg] = LFG0; [SDeb] = LFB0;	=> SD shade;
+	[SHfirst] = 202; [SHn] = 44;
+	[SDsr] = LFR0; [SDsg] = LFG0; [SDsb] = LFB0;
+	[SDer] = LFR3; [SDeg] = LFG3; [SDeb] = LFB3;	=> SD shade;
+	[SHfirst] = 246; [SHn] = 10;
+	[SDsr] = LFR3; [SDsg] = LFG3; [SDsb] = LFB3;
+	[SDer] = LFR1; [SDeg] = LFG1; [SDeb] = LFB1;	=> SD shade;
+	end;
+
+"SD shade"
+	[PFden] = 1;
+	[PFnum] = [SDsr]; => PAL f32 make; [SHsr] = [PFbits];
+	[PFnum] = [SDsg]; => PAL f32 make; [SHsg] = [PFbits];
+	[PFnum] = [SDsb]; => PAL f32 make; [SHsb] = [PFbits];
+	[PFnum] = [SDer]; => PAL f32 make; [SHer] = [PFbits];
+	[PFnum] = [SDeg]; => PAL f32 make; [SHeg] = [PFbits];
+	[PFnum] = [SDeb]; => PAL f32 make; [SHeb] = [PFbits];
+	=> PAL shade;
+	end;
+
+"SD count"
+	[SDsent] = 0;
+	A = [pal6 plus 0]; A - 41; ? A = 0 -> SD c1;
+	[SDsent] = 1;
+    "SD c1"
+	A = [pal6 plus 1]; A - 42; ? A = 0 -> SD c2;
+	[SDsent] = 1;
+    "SD c2"
+	A = [pal6 plus 2]; A - 43; ? A = 0 -> SD c3;
+	[SDsent] = 1;
+    "SD c3"
+	( captured HERE, before the fades write pal6 - a scalar labelled
+	  "pal6 after the ladder" that was in fact read after the fades
+	  would be exactly the kind of check this wave exists to remove )
+	[sdsc plus 6] = [pal6 plus 0];
+	[sdsc plus 7] = [pal6 plus 1];
+	[sdsc plus 8] = [pal6 plus 2];
+	[SDsrfnz] = 0; [SDpalnz] = 0;
+	A = srfpal6; D = pal6; B = 0; B + PALC6;
+    "SD c loop"
+	C = [A]; ? C = 0 -> SD c s0;
+	[SDsrfnz]+;
+    "SD c s0"
+	C = [D]; ? C = 0 -> SD c p0;
+	[SDpalnz]+;
+    "SD c p0"
+	A+; D+;
+	B ^ SD c loop;
+	end;
+
+( ==================================================================== )
+( B - the fades, and what they look like when they compound             )
+( ==================================================================== )
+
+"SD fades"
+	( fade A: w = 48, from the PRISTINE surface palette )
+	A = srfpal6; [PVsrc] = A; [PVself] = 0;
+	[PVfirst] = 0; [PVn] = 256;
+	[PVfr] = 48; [PVfg] = 48; [PVfb] = 48;
+	=> PAL tavola;
+	A = pal6; D = fadea; => SD save;
+
+	( fade B: w = 24, ALSO from the pristine surface palette.  This is
+	  what the game does, and it is why surface_palette exists. )
+	A = srfpal6; [PVsrc] = A; [PVself] = 0;
+	[PVfirst] = 0; [PVn] = 256;
+	[PVfr] = 24; [PVfg] = 24; [PVfb] = 24;
+	=> PAL tavola;
+	A = pal6; D = fadeb; => SD save;
+
+	( fade C: w = 48, then w = 24 applied to the RESULT - the only
+	  thing a port with a single palette buffer can do. )
+	A = srfpal6; [PVsrc] = A; [PVself] = 0;
+	[PVfirst] = 0; [PVn] = 256;
+	[PVfr] = 48; [PVfg] = 48; [PVfb] = 48;
+	=> PAL tavola;
+	[PVself] = 1;
+	[PVfirst] = 0; [PVn] = 256;
+	[PVfr] = 24; [PVfg] = 24; [PVfb] = 24;
+	=> PAL tavola;
+	A = pal6; D = fadec; => SD save;
+
+	( how far apart they are )
+	[SDdiff] = 0; [SDdmax] = 0;
+	A = fadeb; D = fadec; B = 0; B + PALC6;
+    "SD d loop"
+	C = [A]; C - [D];
+	? C = 0 -> SD d same;
+	[SDdiff]+;
+	|C|;
+	? C '<= [SDdmax] -> SD d same;
+	[SDdmax] = C;
+    "SD d same"
+	A+; D+;
+	B ^ SD d loop;
+	end;
+
+"SD save"
+	B = 0; B + PALC6;
+    "SD s loop"
+	C = [A]; [D] = C; A+; D+;
+	B ^ SD s loop;
+	end;
+
+( ==================================================================== )
+( the dump                                                             )
+( ==================================================================== )
+
+"SD dump head"
+	=> DMP reset;
+	[DCpms] = 0; [DTicks] = 0; [DW] = 0; [DH] = 0;
+	[DKind] = KPAL6; [DTag] = TPAL6;
+	A = pal6;    [DBptr] = A; [DBcnt] = PALC6; => DMP rec;
+	[DKind] = KPAL6; [DTag] = TSRFP;
+	A = srfpal6; [DBptr] = A; [DBcnt] = PALC6; => DMP rec;
+	end;
+
+"SD dump tail"
+	[sdsc plus 0] = [SDsent];
+	[sdsc plus 1] = [SDsrfnz];
+	[sdsc plus 2] = [SDpalnz];
+	[sdsc plus 3] = [SDdiff];
+	[sdsc plus 4] = [SDdmax];
+	[sdsc plus 5] = [PVrange];
+	[sdsc plus 9] = PALC6;
+
+	[DKind] = KPAL6; [DTag] = TFADEA;
+	A = fadea;   [DBptr] = A; [DBcnt] = PALC6; => DMP rec;
+	[DKind] = KPAL6; [DTag] = TFADEB;
+	A = fadeb;   [DBptr] = A; [DBcnt] = PALC6; => DMP rec;
+	[DKind] = KPAL6; [DTag] = TFADEC;
+	A = fadec;   [DBptr] = A; [DBcnt] = PALC6; => DMP rec;
+	[DKind] = KSELF; [DTag] = TSELF;
+	A = sdsc;    [DBptr] = A; [DBcnt] = 64; => DMP rec;
+	=> DMP write;
+	end;

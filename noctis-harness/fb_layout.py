@@ -786,14 +786,16 @@ KSELF_FIELD = {
     11: "spot_naive_fnv",
     12: "cirrus_masked_fnv",
     13: "cirrus_naive_fnv",
-    14: "glyph_row0_nonzero",
-    15: "upload_span_hi",
+    14: "glyph_nonzero",
+    15: "curpal6_trace_fnv",
     16: "srfpal6_nonzero",
     17: "adapted_fnv",
     18: "adaptor_fnv",
     19: "glyph_fnv",
     20: "canary_v2_bad",
-    21: "shade_compound_probe",
+    21: "shade_compound_fnv",
+    22: "pal6_trace_fnv",
+    23: "upload_spans_fnv",
 }
 
 
@@ -1096,11 +1098,26 @@ class Workspace(object):
     # v2 is 4 units per pad, and every one of them is either read back out of
     # the workspace or produced by the walker.
 
-    @staticmethod
-    def probeslot(i):
-        # the +1 is not cosmetic: with slot 0 on pad 0 (base 0) the `at` field
-        # is 0 in both the clean and the stubbed case.
-        return ((i * 7) + 1) % PAD
+    def probeslot(self, i):
+        """The slot sweeps the pad, so a walker that only checks the last unit
+        fails.  The +1 is not cosmetic either: with slot 0 on pad 0 (base 0)
+        the `at` field is 0 in both the clean and the stubbed case.
+
+        It also SKIPS allowance-listed units -- a probe that lands on one is
+        COUNTED rather than flagged, and the record would then read "not fired"
+        for a perfectly good walker.  Deriving the slot from the allowance
+        table means an implementation with the WRONG table probes a different
+        address and the `at` field moves: one more thing this record catches.
+        """
+        pb = self.lay.padbases[i]
+        for k in range(PAD):
+            s = ((i * 7) + 1 + k) % PAD
+            z = self.lay.zone_of(pb + s)
+            if z is None:
+                continue
+            if self.lay.allowed(z, pb + s) is None:
+                return s
+        return 0
 
     @staticmethod
     def witness(i):
@@ -1148,10 +1165,11 @@ class Workspace(object):
         land in p_surfacemap's SUB at +2..+7, which is on the allowance list.
         A conforming build reports 0 violations and EXACTLY 6 expectations.
 
-        A build whose raster loop starts at n = 1 reports 5, not 6: only
-        txtr[-6] is written by the n = 0 iteration, but txtr[-5..-1] are the
-        first five bytes of row 0, so the whole six-unit signature moves.
-        A build that never performs the legitimate write reports 0.
+        A build whose raster loop starts at n = 1 reports 0, not 6: the whole
+        underflow belongs to the n = 0 iteration (`i = -5`, and `txtr[i-1]`),
+        so niv-lr's bug removes the legitimate write entirely.  The count is a
+        value derived from what the program DID; a build that never performs
+        the write now FAILS instead of silently passing.
         """
         self.poison_pads()
         self.digit_at('A', 64 + 40, 1)
@@ -1168,6 +1186,36 @@ class Workspace(object):
         v, e, first = self.walk_pads()
         self.zero_pads()
         return v, e, first
+
+    def canary_v1(self):
+        """FBDUMP v1's kind 6, reproduced HERE AND ONLY HERE so that its
+        blindness can be demonstrated rather than argued.
+
+        18 units, 2 per region: `expected` is the literal CANARY_MAGIC and
+        `actual` is initialised to the same literal and only overwritten if a
+        differing unit is found.  Both fields are therefore written by
+        construction on both sides, and a build whose check never runs emits a
+        bit-identical record to a clean one.  That is MAJOR 5.
+        """
+        out = []
+        # v1 poisoned with ONE magic -- that is the defect being reproduced, so
+        # do not poison with the v2 two-magic scheme here or the comparison
+        # measures the pad model instead of the record design.
+        for z in self.lay.zones:
+            for j in range(z.length):
+                self.nw[z.base + j] = PGUARD
+        if "CANSTUBPOISON" in self.breaks:
+            self.zero_pads()
+        for r in self.lay.regions:
+            actual = PGUARD
+            if "CANSTUBCHECK" not in self.breaks:
+                for j in range(PAD):
+                    v = self.nw[r.padbase + j]
+                    if v != PGUARD:
+                        actual = v
+            out += [PGUARD, actual]
+        self.zero_pads()
+        return out
 
     # -- the pinned page scenario -------------------------------------------
 
@@ -1227,12 +1275,15 @@ class Workspace(object):
         #      corpus; see fb_wrap.py for the reachability measurement.
         self.wrap_battery()
 
-        # 8 -- vanilla's areaclear writes the VISIBLE page
-        self.areaclear(adaptor, 2, 191, 316, 7, 64 + 63)
-
-        # 9 -- present
+        # 8 -- present.  CORRECTION 5 to the draft fixture: the page flip must
+        #      come BEFORE the HUD band, or the band is overwritten by the copy
+        #      and the adaptor record is bit-identical to the adapted one --
+        #      which it was, measured, so the areaclear graded nothing.
         self.QUADWORDS = L.qw_declared
         self.pcopy(adaptor, adapted)
+
+        # 9 -- vanilla's areaclear writes the VISIBLE page, after the flip
+        self.areaclear(adaptor, 2, 191, 316, 7, 64 + 63)
 
     def wrap_battery(self):
         """The synthetic class-A battery.  Replays the exact `spot` and
@@ -1288,7 +1339,7 @@ class Workspace(object):
             11: fnv1a32(self.naive_idx.get(SITE_SPOT, [])),
             12: fnv1a32(self.masked_idx.get(SITE_CIRRUS, [])),
             13: fnv1a32(self.naive_idx.get(SITE_CIRRUS, [])),
-            14: sum(1 for v in glyph[0:256] if v),
+            14: sum(1 for v in glyph if v),
             17: fnv1a32(self.page("adapted")),
             18: fnv1a32(self.page("adaptor")),
             19: fnv1a32(glyph),

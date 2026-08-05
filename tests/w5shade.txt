@@ -38,6 +38,15 @@
 	program name = { w5shade };
 	unit = 32;
 
+"constants"
+
+	( SERVON is a DRIVER constant since the CRITICAL 1 correction, so
+	  every programme that links fbtick has to declare it.  This probe
+	  never starts a tick, so the value is irrelevant here - what
+	  matters is that a missing declaration is a BUILD failure and
+	  would be reported as P7 failing rather than as a broken harness. )
+	SERVON	= 96;
+
 "variables"
 
 	WSa	= 0;

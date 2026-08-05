@@ -114,8 +114,8 @@ Do **not** rely on the compiler placing separately-declared vectors adjacently.
 ```
 offset    units   region          NOCTIS-D.H          aliases and notes
 --------------------------------------------------------------------------------
-      0      16   (low pad)                           uncovered today - open item 1
-     16      16   (pad)                               uncovered today - open item 1
+      0      16   (low pad)                           zones 0-1, both UNOWNED
+     16      16   (pad)                               zone 2 UNOWNED, zone 3 = region 0's SUB
      32   7,340   n_offsets_map   om_bytes            offsets.map; background() only
   7,372      16   (pad)
   7,388  32,768   n_globes_map    gl_bytes+gl_brest   globes.map | sea/horizon texture
@@ -216,7 +216,7 @@ why this is over-running"*). Both are divergences we must not inherit.
 
 | class | what | sites | treatment | cost |
 |---|---|---|---|---|
-| **A** | write, contained by a 16-bit wrap inside the buffer's own segment | `Segmento`/`Stick` `riga[]` scatter (`TDPOLYGS.H:245-259`); `mask_pixels` `DI` wrap; `cirrus` `bx=(py+px)>>1`; `spot` `di` wrap; `NOCTIS-0.CPP:5069,6423` counter wraps | allocate the **full segment**: `adapted` and `adaptor` at 65,540; `p_background` already 65,552; `objectschart` 40,000 > 32,768 | 1,540 units, no code |
+| **A** | write, contained by a 16-bit wrap inside the buffer's own segment | `Segmento`/`Stick` `riga[]` scatter (`TDPOLYGS.H:245-259`); `mask_pixels` `DI` wrap; `cirrus` `bx=(py+px)>>1`; `spot` `di` wrap; `NOCTIS-0.CPP:5069,6423` counter wraps | **a MASK at each site's own truncation point**, plus the full segment so the folded address lands in the owning region: `adapted`/`adaptor` at 65,540, `p_background` 65,552, `objectschart` 40,000 > 32,768 | 1,540 units **and code** — `MEM u16`, `MEM u16 site`, `MEM seg addr`, `MEM seg check` |
 | **B** | write, outside the buffer, never read back | `digit_at` `txtr[-6..-1]` (`NOCTIS.CPP:614-628`); `loadpv`'s `3*npolygs` past `pvfile_c` (`NOCTIS-0.CPP:2383-2391`) | **dead pad**, and `loadpv` additionally fixed by the arena re-layout (§5 alias 9) | 16 units, no code |
 | **C** | read, outside the buffer | `polymap`'s 64 KiB window from any `txtr` base; `ssmooth` +39; `globe` tapestry +718; `hpoint` +201; `fragment` −1 | **`farmalloc`-order layout** (§3.2) | 0 units, 0 code |
 
@@ -226,32 +226,137 @@ modificare"* and sized the page at a full segment plus 4 precisely so it could
 scribble. Executed (O5): `adapted[65536..65539]` are writable, readable, and are
 not `adaptor`.
 
+### 4.0 CORRECTED — an allocation size cannot reproduce a wrap
+
+The row above used to read *"allocate the full segment … 1,540 units, no
+code"*, and that was **wrong**, not merely incomplete. Under DOS the write
+folded back to offset 0 **of the segment**; under 32-bit unit addressing the
+index keeps counting and the write walks linearly past the region end into
+whatever follows. No choice of *size* changes an *index*. A natural 32-bit
+transcription of `cirrus` with `py = 65000, px = 60000` — both legal `unsigned`,
+`NOCTIS-0.CPP:4446` — computes 62,500 where 16-bit `BX` computes 29,732, and the
+write lands 273,072 units away, over a pad and over the whole `pvfile` arena,
+undetected.
+
+**The mechanism is a mask, and it belongs at the site's own truncation point.**
+That point is *not* the same for the two sites, which is why one helper cannot
+serve both:
+
+| site | source | truncates at | masked form | delta if wrong |
+|---|---|---|---|---|
+| `spot` | `NOCTIS-0.CPP:4485` | the 16-bit `DI`, **after** both adds | `SPBG + ((4 + py + px) & 65535)` | 65,536 |
+| `cirrus` | `NOCTIS-0.CPP:4715` | `BX`, **before** the shift (`mov bx,py / add bx,px`) | `SOBJ + ((((py+px) & 65535) >> 1) + 4)` | 32,768 |
+
+A single "mask the final index" helper halves `cirrus`'s error and is still
+wrong, so the *difference between the two deltas* is the graded quantity, not
+the fact that a mask exists. Measured over 340 cases per site: `spot` min = max
+= 65,536 over 212 wrapping cases, `cirrus` min = max = 32,768 over 208. Two
+separate sabotages, one per mask, are each caught by a different check (M2, M3).
+
+**The mask is taken against the SEGMENT ORIGIN, not the buffer base.** `SEG` is
+`R* − 4` for every `farmalloc`'d block, so a masked offset of 0..3 lands on the
+four header units below the buffer, which is the `SUB` zone's *allowance* and
+not a violation. `adaptor` is the exception: it is the literal far pointer
+`A000:0000`, so its segment offset 0 *is* its base.
+
+**Containment is by construction, and saying so is part of the finding.**
+`SPBG + m` spans `RPBG−4 … RPBG+65531` against a legal window of
+`RPBG−8 … RPBG+65551`, so the assertion holds for *every* input at both sites.
+The 340-case battery is not what makes it true and must not be quoted as if it
+were.
+
+**Still open (§10 item 6):** the mask has no *game* call site. Wave 5 has no
+`spot()`, `cirrus()`, `crater()`, `wave()` or `stick()`, so the reachability
+census is **not exhaustive** and must not be called so — `volcano`
+(`NOCTIS-0.CPP:4625`) and `atm_cyclon` (`:4735-4740`) are callers whose `px` can
+escape and are not censused.
+
 Executed class B (O2, O3): `digit_at`'s six bytes below `p_surfacemap` land at
-`NW+170,550` and the guard names region 3 with 6 units differing; one unit past
-`pvfile` lands at `NW+271,068` and the guard names region 6 with 1 unit.
+`NW+170,550`; one unit past `pvfile` lands at `NW+271,068`. **Both are now
+COUNTED, not flagged** — see §4.1.
 
-### 4.1 The pad has TWO jobs, and they are ordered, not merged
+### 4.1 CORRECTED — the pad's two jobs are SEPARATED, not ordered
 
-A 16-unit pad is simultaneously the class-B guard band (must be *inert*, and in
-a faithful run must read as zero, because a class-C read may sample it) and the
-debug canary (must be *poisoned*, so an overrun is detectable). These conflict.
+The previous rule — *poison, check, then zero, in that order* — solved the wrong
+half of the problem. Ordering separates the **debug** job from the **release**
+job. It does nothing about the fact that within a single debug run the pad is
+*simultaneously* a guard band (any write is a violation) and the legitimate
+destination for `digit_at`'s `txtr[-6..-1]` (`NOCTIS.CPP:614-628`, with
+`txtr = p_surfacemap`, landing in `nw[170,550..170,555]`). So the first cockpit
+glyph of a debug build fired the canary and halted, and a legitimate write was
+indistinguishable from an overrun.
 
-**Rule: poison, check, then zero — in that order, before anything renders.**
-`MEM zero pads` exists for exactly this and every shell must call it after its
-canary batteries and before its first frame. LINOBUF §3 left this unresolved;
-it is resolved here by ordering, and `test_wave5.py` runs the class-C reads
-*after* `MEM zero pads`, which is why O4 expects 0 at texel 32,768.
+**Rule: every pad is TWO ZONES, and every zone carries an explicit allowance
+list.**
 
-A **release** build never poisons; a **debug** build poisons, verifies all pads
-once per tick, and halts naming the region. They are not the same build, and
-grading runs use the release state.
+```
+pad p  =  nw[padbase(p) .. padbase(p)+15]
+          TAIL = the low  8 units, immediately ABOVE region p−2   magic 0xA5A5A5A5
+          SUB  = the high 8 units, immediately BELOW region p−1   magic 0x5A5A5A5A
+zone index zi = 2p + role,  so the table is a pure function of the layout
+```
 
-### 4.2 A canary that always fires cannot pass
+Eleven pads, twenty-two zones, and **`nw[0..31]` is covered** — the pad list has
+eleven entries and is written out rather than derived from `rtab`'s nine, which
+is precisely the bug that left the two low pads guarded by nothing.
 
-`test_wave5.py` runs the clean check **first** and requires `fired = 0, n = 0`
-(O1), then fires each class-B overrun and requires the right region, count and
-offset. Sabotage S03 makes `MEM check pads` unconditionally clean and O2 must
-catch it.
+Three allowance entries, each with its citation:
+
+| zone | units | why |
+|---|---|---|
+| every owned `SUB` except `adaptor`'s | `SUB+4..+7` | the region's DOS segment offsets 0..3, reachable by any 16-bit wrap (§4.0) |
+| `p_surfacemap`'s `SUB` | `SUB+2..+7` | `digit_at`, `NOCTIS.CPP:614-628` |
+| `pvfile`'s `TAIL` | `TAIL+0` | `loadpv`, `NOCTIS-0.CPP:2383-2391`; retired when alias 9 re-lays the arena |
+
+An allowance unit that changes is **counted** in `[MCexp]`; anything else is a
+violation. A build that never performs `digit_at`'s write fails just as hard as
+one that performs it in the wrong place, because the count is derived from what
+the programme did.
+
+**The guard must not be swallowed by the allowance.** One unit *further* past
+`pvfile` — `TAIL+1` — is still a violation and is asserted to be (O3b). Without
+that, an allowance covering the whole pad would pass O2 and O3 and the two jobs
+would have been merged the other way round.
+
+Poison → check → zero still applies to the *release* state, and
+`test_wave5.py` still runs the class-C reads after `MEM zero pads`, which is why
+O4 expects 0 at texel 32,768.
+
+### 4.2 CORRECTED — a canary that cannot fail is worse than no canary
+
+The old text said *"a canary that always fires cannot pass"*, and that half was
+right: the clean check runs first and requires `fired = 0, n = 0, exp = 0`. The
+half that was missing cost more. **FBDUMP kind 6 v1 was 18 units in which both
+the "expected" and the "actual" field held `0xA5A5A5A5`, written by construction
+on both sides.** A clean run and a build with the walker deleted produced a
+**bit-identical** record, and the grader compared `can[i]` against `can[i+1]` —
+two copies of one literal. The check passed for every build that could ever be
+made.
+
+**v2 stores no literal.** Four units per pad, eleven pads:
+
+| unit | field | what the grader derives it from |
+|---|---|---|
+| 0 | clean read of `nw[padbase+slot]` after poisoning | the zone role: `0xA5A5A5A5` in a `TAIL`, `0x5A5A5A5A` in a `SUB` |
+| 1 | the same address re-read after storing `WITNESS(i)` | the witness rule |
+| 2 | the pad index + 1 the walker reported | `i + 1` |
+| 3 | the `nw` offset of the first violation | `padbase(i) + slot(i)` |
+
+`slot(i)` sweeps **mod 12, not mod 16**: units `+12..+15` are `SUB+4..+7`, an
+allowance that cannot fire by design, so a probe expecting them to fire would be
+asserting the guard model is wrong. Two independent walks exist and use
+different sweeps — `work/fbshell.txt` uses `(7i+1) mod 12`, `tests/w5probe.txt`
+uses `(5i+3) mod 12` — and both avoid `pvfile`'s `TAIL+0` and
+`p_surfacemap`'s `SUB+2..+7`.
+
+**Proved by breaking it:** stubbing `MEM check pads` moves 22 of the 44 units.
+Under v1 the same edit moved nothing.
+
+**Stated limit.** `WITNESS(i)` folds the poison the walker itself wrote into the
+value (`0xB0B32000 + 17i + (clean & 255)`), so no single literal can stand in
+for it — but a saboteur who reads the rule can still *recompute* it instead of
+loading it, and a build doing that produces a bit-identical unit 1. The
+load-bearing fields are 0, 2 and 3.
 
 ---
 
@@ -492,7 +597,9 @@ quantised to {1,2} periods with 5 skips.
 | the servo brackets against the start of the run | LINOBUF §5.5 rule 5 | **overruled.** It wraps at 477 s. §8 rule 6 |
 | `shade` may hard-code its destination | LINOBUF §5.3 implicitly | **overruled.** 14 of 21 call sites pass `surface_palette`. §6 |
 | `shade()` has 24 call sites, 17 with `surface_palette` | LINOBUF §5.3 | **corrected:** 21 and 14 |
-| the pad's two jobs are unresolved | LINOBUF §3 | **resolved by ordering:** poison, check, zero, then render. §4.1 |
+| the pad's two jobs are unresolved | LINOBUF §3 | **resolved by SEPARATION:** two zones per pad, each with an explicit allowance list. Ordering alone was not enough and is what shipped. §4.1 |
+| class A costs "1,540 units, no code" | this document, before Wave 5b | **wrong.** An allocation size cannot fold an index. A mask is required at each site's own truncation point. §4.0 |
+| FBDUMP kind 6 proves the canary works | LINOBUF §6 | **wrong.** v1 was 18 units of `0xA5A5A5A5` on both sides; a deleted canary produced a bit-identical record. §4.2 |
 | full frame 1.472 ms; expand 0.054 ms | LINOBUF §5.7 | **not reproducible.** 1.47/2.60/4.78 and 0.054/0.069/0.123 across runs. Quote ranges. §7 |
 | re-basing costs +0.057 ms/tick | PORTPLAN | **refuted:** +0.002 to +0.004 ms/tick here. Accumulate anyway, because it recovers. §8 rule 1 |
 | correctly-rounded re-base drifts +0.00071 ms/tick | LINOBUF §8 | **not reproduced:** 3–6× that |
@@ -509,19 +616,45 @@ quantised to {1,2} periods with 5 skips.
 
 ## 10. What remains open
 
-Ranked. Items 1, 2 and 5 are **executable and asserted**: `test_wave5.py` grades
-them XFAIL, so the suite fails the day one of them is fixed and this list is not
+Ranked. Two items are **executable and asserted**: `test_wave5.py` grades 2b and
+6 XFAIL, so the suite fails the day one of them is fixed and this list is not
 updated.
 
-1. **The low pads are guarded by nothing.** `nw[0..31]` — the two pads below
-   `n_offsets_map` — are outside every canary, because the walker iterates the
-   nine regions' *trailing* pads only. A workspace has eleven pads; nine are
-   covered. *Fix:* iterate `Layout.pads` (11 entries), not `rtab` (9).
-   *Guarded by:* O6, XFAIL.
-2. **The servo wraps at 2^32.** §8 rule 6. Threshold 477 s; from then on cpms
-   ratchets down 1 % every 14 s, forever. *Fix:* bracket over the servo
-   interval. *Guarded by:* T8, XFAIL, driven with synthetic origins so the
-   defect reproduces in milliseconds instead of eight minutes.
+**Items 1, 2 and 5 are CLOSED.** They were the three defects Wave 5 asserted
+rather than fixed, and each closure is justified by a measurement rather than by
+an edit to this list:
+
+- ~~1. The low pads are guarded by nothing.~~ **Closed.** `MEM build ztab`
+  walks eleven pads from its own `MEM pad base` rather than from `rtab`'s nine.
+  Corrupting `nw[3]` and `nw[20]` after poisoning now reports `fired = 1,
+  n = 2, at = 3`; a walker derived from `rtab` reports `0, 0, 0`, and that
+  sabotage (S05) is built and caught on every run. *Now asserted positively by:*
+  C3.
+- ~~2. The servo wraps at 2^32.~~ **Closed for the shipped rate; see 2b.** The
+  sampler re-bases both anchors unconditionally *before* the band test, so the
+  bracket is one window and never the whole run. Eight synthetic origins × 85
+  firings of a 14,061 ms window (19.9 simulated minutes), seeded 4 % low:
+  converged to the true rate in 4 firings and held it exactly across 2–3
+  wrap-straddling windows per scenario, worst error 0. The **original**
+  estimator on the identical data collapses to 5,355 against a true 8,999 —
+  that control is what makes the result a claim rather than a tautology. *Now
+  asserted positively by:* H1, H2, H3, T4.
+- ~~5. `shade()` has no destination parameter.~~ **Closed.** `PAL shade`
+  computes `3*[SHfirst] + [SHdstb]`; `PAL zero` defaults it to `pal6` so the 7
+  `tmppal` sites need no change. Sabotage S19 restores the hard-coded `pal6`
+  and is caught. *Now asserted positively by:* P7 (in the main dump) and P7b
+  (the separate probe, whose *build failure* is the result).
+
+2b. **`SRVMAX` is a literal, so the servo still aliases on a fast host.**
+   `fbtick.txt:141 SRVMAX = 60000` and `fb_tick.py`'s copy are compile-time
+   constants; neither derives from `[Counts Per Millisecond]`. The band
+   therefore accepts a window whose *count* aliases 2^32 whenever
+   `cpms > 2^32/SRVMAX = 71,583`. Driven at 1,000,000 cpms the shipped
+   estimator reproduces the original ratchet exactly: 408,595 against a true
+   1,000,000 after 85 firings, clamp-lo throughout, 59 % error. This host
+   reports ≈ 9,000, so the shipped configuration is 8× inside the boundary —
+   but the guard is a constant, not a derivation. *Fix:* one line, reject when
+   `window_ms > 2^32/(k*cpms)`. *Guarded by:* X1, XFAIL.
 3. **Re-grep `pvfile` for raw-byte readers** outside `loadpv`/`unloadpv` before
    the arena is re-laid out (§5 alias 9). None found; confirm at implementation
    time, because the re-layout is only observationally equivalent if that holds.
@@ -532,19 +665,23 @@ updated.
    (`tests/gen/recon_w5c/hostshot4.ps1`). Falsifiable prediction to check in the
    same session: `adapted[63996..63997]` carry `polymap`'s fill colour whenever
    `polymap` has run — row 199, columns 316-317.
-5. **`shade()` has no destination parameter.** §6. *Fix:* add `SHdstb` and use
-   it; `tests/w5shade.txt` already asks for it. *Guarded by:* P7, XFAIL — the
-   probe fails to compile, and that failure is the check.
-6. **The 16-bit index wrap is not expressible in the delivered model.** Class A
-   is priced at "1,540 units, no code", but that only makes the *destination*
-   land inside the buffer; it does not make the *index* wrap. A natural 32-bit
-   transcription of `cirrus` with `py = 65000, px = 60000` (both legal
-   `unsigned`, `NOCTIS-0.CPP:4446`) computes 62,500 where 16-bit `BX` computes
-   29,732, and the write lands 273,072 units into the workspace — over a pad and
-   over the whole `pvfile` arena, undetected. A masking primitive is needed,
-   plus an audit of every 16-bit index site: `cirrus`, `spot`,
-   `Segmento`/`Stick` `riga[]`, `mask_pixels`, `pv_dep_i`. **This is Wave 6's
-   first job.**
+6. **The class-A mask has no GAME call site, and the census is not
+   exhaustive.** The mechanism itself is closed — §4.0 replaces
+   "1,540 units, no code" with a mask at each site's own truncation point, and
+   both deltas (65,536 for `spot`, 32,768 for `cirrus`) are measured with
+   min = max over 212 and 208 wrapping cases. What is **not** closed is
+   reachability. Wave 5 has no `spot()`, `cirrus()`, `crater()`, `wave()` or
+   `stick()`: `FBDUMP` kind 10 reads `calls = 0` for sites 2..5, and the only
+   callers of the masking primitives anywhere are the two synthetic batteries.
+   The census must therefore **not** be called exhaustive. Two callers with the
+   same escape shape are not censused at all: `volcano` (`NOCTIS-0.CPP:4625`),
+   whose `px = cx + cos(a)*g` runs `g` over `cr/2 .. cr-1`, and `atm_cyclon`
+   (`:4735-4740`), which applies `px += random(4)` / `px -= random(4)` to an
+   already-wrapped unsigned `px` between calls. Of the omitted callers only the
+   `4990/4993` loop is provably safe (`px = ranged_fast_random(360)`, never
+   negative). The remaining audit — `Segmento`/`Stick` `riga[]`, `mask_pixels`,
+   `pv_dep_i` — **is Wave 6's first job**, and it is now an audit of *call
+   sites* rather than of the mechanism. *Guarded by:* X2, XFAIL.
 7. **`n_globes_map` is `char` (signed)** and is right-shifted. Values are 0..63
    in practice, so it does not bite — but check the loaded `globes.map` bytes
    rather than silently switching to unsigned.

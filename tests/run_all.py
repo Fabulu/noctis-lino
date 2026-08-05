@@ -35,13 +35,14 @@ rather than passing quietly if they are missing.
 
 test_wave5 rebuilds tests/gen/w5 from scratch on every run - the three Wave 5
 libraries out of work/, the Wave 3 float engine, and its own probe - and then
-builds thirteen deliberately broken variants of them. It needs the DOS sources
-under the noctis clone root, because the workspace layout it grades is
+builds twenty-three deliberately broken variants of them. It needs the DOS
+sources under the noctis clone root, because the workspace layout it grades is
 parsed out of NOCTIS-D.H and NOCTIS.CPP rather than typed in. It also builds
 ONE variant that opens a 320x200 window for about two seconds; --nodisp turns
-that off. Three of its checks are XFAIL - defects the code as shipped still
+that off. Two of its checks are XFAIL - defects the code as shipped still
 has, listed in docs-notes/BUFFERMODEL.md section 10 - and it fails if one of
-them starts passing without the document being updated.
+them starts passing without the document being updated. Wave 5b's three
+original XFAILs were converted to positive assertions; these two are new.
 """
 
 import os

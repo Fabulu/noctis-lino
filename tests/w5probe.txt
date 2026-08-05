@@ -54,27 +54,68 @@
 	( these five are rewritten by test_wave5.py when it generates the
 	  short variant used for the sabotage builds.  The long values are
 	  what the reference run uses. )
-	TWNTICK	= 200;		( < SERVON, so the servo cannot fire mid-soak )
+	TWNTICK	= 200;		( soak length in ticks )
 	TWHITCH	= 37;		( inject a hitch every N ticks )
 	TWHITMS	= 60;		( ... of this many ms: longer than one period )
 	TWANCH	= 4096;		( wrap-battery anchors )
 	TWCALMS	= 2500;		( calibration bracket, ms of real work )
 
-	TWSELFN	= 96;
+	( SERVON IS A DRIVER CONSTANT.  fbtick declared it at 256 while the
+	  soak ran 200 ticks, so "TK servo" HAD NEVER RUN in a soak - which
+	  is how the CRITICAL 1 wrap shipped past a 109-check suite.  96
+	  ticks is 5.27 s, over SRVMIN = 4000 ms, so the reference soak of
+	  200 ticks fires it TWICE and both firings are accepted samples.
+	  The short variant used for the sabotage builds runs 48 ticks and
+	  therefore never fires it, which is exactly why the reference run
+	  and not the short one carries T4. )
+	SERVON	= 96;
+
+	TWSELFN	= 128;
 	TWADVN	= 64;		( advance steps per cpms )
 	TWSKYN	= 264;
 	TWPRESN	= 60;		( presents, in the display variant only )
 	TWFRMN	= 128;
 
-	( extension record kinds.  1,2,3,4,5,6 are FBDUMP v1's. )
+	( extension record kinds.  1..12 are FBDUMP v2's (fbmem). )
 	TWKSLF	= 16;
 	TWKADV	= 17;
 	TWKSRV	= 18;
 	TWKFB	= 19;
 	TWKSKY	= 21;
 	TWKFRM	= 20;
+	TWKHOR	= 22;		( the long-horizon servo replay )
+	TWKMSK	= 23;		( the class-A 16-bit mask battery )
+	TWKBND	= 24;		( the servo acceptance band )
+	TWBANDN	= 6;		( band cases )
 
 	TWSEAN	= 32768;	( the sea/horizon texture, 256 x 128 )
+
+	( ---- the long-horizon servo replay, battery 8 ----
+
+	  TWHFIRE firings of a TWHWIN ms window, so the replay covers
+	  TWHFIRE*TWHWIN ms of simulated wall clock.  85 x 14061 ms is
+	  19.9 simulated minutes, which is 2.5 counter wraps at 8999 cpms
+	  and therefore straddles the wrap several times whatever the
+	  origin.  14061 is deliberately not a divisor of anything: a
+	  window that lined up with 2^32 would hide a phase error. )
+	TWHFIRE	= 85;
+	TWHWIN	= 14061;
+	TWHSCN	= 9;		( synthetic scenarios )
+	TWHRECU	= 20;		( units per scenario in the record )
+	TWHSETL	= 16;		( firings allowed for the seed error to settle )
+
+	( scenario 7's deterministic sub-count wobble.  jit(k) =
+	  ((k * TWHJM) mod TWHJP) - TWHJP/2, so the sampled count is not
+	  an exact multiple of the window and the ROUNDED divide becomes
+	  observable: truncation biases every estimate downwards, and the
+	  SIGNED SUM of the errors is what separates the two. )
+	TWHJM	= 40503;
+	TWHJP	= 21031;
+
+	( the class-A wrap battery: rows x wrapping px x control px )
+	TWMROW	= 5;
+	TWMWRAP	= 52;
+	TWMCTL	= 16;
 
 "variables"
 
@@ -101,16 +142,75 @@
 	TWsrvp	= 0;
 	TWadvp	= 0;
 
+	( the v2 canary walk )
+	TWcp	= 0;
+	TWslot	= 0;
+	TWoffs	= 0;
+	TWap	= 0;
+	TWwit	= 0;
+
+	( the long-horizon servo replay )
+	TWhp	= 0;
+	TWhsc	= 0;		( scenario index )
+	TWhc0	= 0;		( synthetic counter origin )
+	TWhcp	= 0;		( the TRUE counts per millisecond )
+	TWht	= 0;		( simulated wall clock, ms )
+	TWhk	= 0;
+	TWhcur	= 0;		( C(t) now )
+	TWhprv	= 0;		( C(t - window) )
+	TWhanc	= 0;		( the ANCHORED bracket's origin count )
+	TWhanw	= 0;		( ... and its wall origin )
+	TWherr	= 0;		( worst |cpms - true| over the horizon )
+	TWhwrap	= 0;		( windows that straddled 2^32 )
+	TWhsub	= 0;		( subtraction mismatches )
+	TWhwhy	= 0;		( OR of the why-codes seen )
+	TWhsd	= 0;		( the seed, 4% below the truth )
+	TWhhit	= 0;		( firings until the first exact hit )
+	TWhan2	= 0;		( anchored/new final )
+	TWhae2	= 0;		( anchored/new worst error )
+	TWhjit	= 0;		( 1 = add the sub-count wobble )
+	TWhbias	= 0;		( signed sum of the errors after settling )
+
+	( the acceptance band battery )
+	TWbp	= 0;
+	TWbc	= 0;
+	TWbm	= 0;
+	TWbcp	= 0;
+
+	( the ORIGINAL estimator, reproduced as the positive control )
+	TWocp	= 0;
+	TWosc	= 0;
+	TWosm	= 0;
+	TWonew	= 0;
+
+	( the class-A mask battery )
+	TWmp	= 0;
+	TWmry	= 0;
+	TWmpy	= 0;
+	TWmpx	= 0;
+	TWmk	= 0;
+	TWmsn	= 0;
+	TWmsm	= 0;
+	TWmcn	= 0;
+	TWmcm	= 0;
+	TWmsdlo	= 0;
+	TWmsdhi	= 0;
+	TWmcdlo	= 0;
+	TWmcdhi	= 0;
+	TWmnd	= 0;		( cases where naive and masked differ )
+
 "workspace"
 
 	twdump	= 210000;
-	twself	= 96;
+	twself	= 128;
 	twadv	= 256;
-	twsrv	= 48;
 	twriga	= 200;		( riga[c] = 320*c - a Noctis static )
-	twctab	= 18;
+	twcan	= 44;		( 4 units x 11 pads - FBDUMP kind 6 v2 )
 	twsky	= 264;
 	twfrm	= 128;		( raw present costs, display variant only )
+	twhor	= 180;		( TWHSCN x TWHRECU )
+	twband	= 24;		( 4 units x TWBANDN )
+	twmask	= 24;		( 4 units x 6 class-A sites )
 
 "programme"
 
@@ -129,6 +229,8 @@
 
 	=> TK seed;
 	=> MEM build rtab;
+	=> MEM build ztab;
+	=> MEM wrap reset;
 	=> TW riga build;
 
 	( calibration bracket around real work.  The residency touch makes
@@ -148,8 +250,11 @@
 
 	=> TW palette pinned;
 
+	=> TW mask battery;
+
 	=> TW adv battery;
-	=> TW srv battery;
+	=> TW horizon battery;
+	=> TW band battery;
 	=> TW wrap battery;
 
 	( restore the calibrated clock the batteries clobbered )
@@ -398,32 +503,102 @@
 	end;
 
 ( ==================================================================== )
-( battery 4 - the pad canaries, and what they do NOT cover              )
+( battery 4 - THE CANARY THAT CAN FAIL                                  )
 ( ==================================================================== )
 
+      ( DEFECT 5.  FBDUMP kind 6 v1 was 18 units in which BOTH the
+	"expected" and the "actual" field held 0xA5A5A5A5, written by
+	construction on both sides.  A clean run and a build with the
+	walker stubbed out produced a BIT-IDENTICAL record, so the check
+	could not fail, which is worse than no check.  The old "O1b canary
+	table dumped clean" compared can[i] against can[i+1] - two copies
+	of one literal - and passed for every build ever made.
+
+	v2 is 4 units per pad, eleven pads, and NO LITERAL is stored.
+	Every unit is either read back out of the workspace or produced by
+	the walker:
+
+	  0  clean read : nw[padbase(i) + slot(i)] AFTER poisoning
+	  1  dirty read : the same address after storing WITNESS(i)
+	  2  fired      : the pad index + 1 the walker reported
+	  3  at         : the nw offset of the first violation
+
+	THIS IS DELIBERATELY NOT fbshell's "FB canary battery".  That one
+	sweeps slot = (7i+1) mod 12 and folds four bits of the poison into
+	its witness; this one sweeps slot = (5i+3) mod 12 and folds eight.
+	Two independent walks over the same contract, and w5spec.py knows
+	all four fields from the LAYOUT alone - it never reads either.
+
+	WHY mod 12 AND NOT mod 16.  Units +12..+15 of a pad are SUB+4..+7,
+	the region's segment offsets 0..3, which are an ALLOWANCE and
+	cannot fire by design (defect 3).  A probe that expected them to
+	fire would be asserting the guard model is wrong.  (5i+3) mod 12
+	over i = 0..10 gives {3,8,1,6,11,4,9,2,7,0,5}: eleven distinct
+	guarded offsets, no two pads alike, and it avoids the two traps -
+	pad 8's TAIL+0, which loadpv legitimately writes, and pad 5's
+	SUB+2..+7, which digit_at legitimately writes.
+
+	WITNESS(i) = 0xB0B00000 + 17i + (clean read AND 255).  The last
+	term is what makes the dirty read a READ: the poison differs by
+	zone role (0xA5 in a TAIL, 0x5A in a SUB), so no single literal
+	can stand in for it.  STATED LIMIT: a saboteur who reads this
+	comment can still recompute the value instead of loading it.  The
+	load-bearing units are 0, 2 and 3 - stubbing the walker moves
+	those, and the test proves it by stubbing the walker. )
+
 "TW canary battery"
+	( the CLEAN pass first: a canary that always fires cannot pass )
 	=> MEM poison pads;
 	=> MEM check pads;
 	[twself plus 22] = [MCfired];
 	[twself plus 23] = [MCn];
-	( keep the CLEAN table: it is what gets dumped as kind 6 )
-	A = ctab; D = twctab; B = 0; B + 18;
-    "TW cc save"
-	C = [A]; [D] = C; A+; D+;
-	B ^ TW cc save;
+	[twself plus 67] = [MCexp];
 
-	( THE LOW PADS.  nw[0..15] and nw[16..31] sit below the first
-	  region.  Corrupt one unit in each, AFTER poisoning, and ask the
-	  canary.  A guard that covers all eleven pads reports 2; one that
-	  covers only the nine inter-region pads reports 0.  This is a
-	  measurement, not an assertion - w5spec.py decides which it wants. )
+	A = twcan; [TWcp] = A;
+	[TWi] = 0;
+    "TW cb pad"
+	=> MEM poison pads;
+	A = [TWi]; A '* 5; A + 3; A '% 12; [TWslot] = A;
+	[MEMi] = [TWi]; => MEM pad base;
+	A = [MEMtmp]; A + [TWslot]; [TWoffs] = A;
+	A = nw; A + [TWoffs]; [TWap] = A;
+
+	( unit 0 - the CLEAN read.  If nothing poisoned the pad this is
+	  whatever the residency touch left, not a magic. )
+	A = [TWap]; C = [A];
+	D = [TWcp]; [D plus 0] = C;
+
+	( WITNESS(i) = 0xB0B00000 + 17i + (clean AND 255) )
+	C = 2964529152; [TWt1] = [TWi]; [TWt1] '* 17; C + [TWt1];
+	D = [TWcp]; D = [D plus 0]; D & 255; C + D;
+	[TWwit] = C;
+	A = [TWap]; [A] = C;
+
+	=> MEM check pads;
+
+	A = [TWap]; C = [A];
+	D = [TWcp];
+	[D plus 1] = C;
+	[D plus 2] = [MCfired];
+	[D plus 3] = [MCat];
+
+	A = [TWcp]; A + 4; [TWcp] = A;
+	[TWi]+;
+	A = [TWi]; ? A '< NPAD -> TW cb pad;
+
+	( THE LOW PADS, defect 3 / open item 1.  nw[0..15] and nw[16..31]
+	  sit BELOW the first region and rtab has no entry for them, so a
+	  walker derived from rtab guards neither.  Corrupt one unit in
+	  each, AFTER poisoning, and ask.  Two units must be reported and
+	  the first must be pad 0. )
+	=> MEM poison pads;
 	A = nw; [A plus 3]  = 3735928559;
 	A = nw; [A plus 20] = 3735928559;
 	=> MEM check pads;
 	[twself plus 24] = [MCfired];
 	[twself plus 25] = [MCn];
-	A = nw; [A plus 3]  = 0;
-	A = nw; [A plus 20] = 0;
+	[twself plus 68] = [MCat];
+	=> MEM zero pads;
 	end;
 
 ( ==================================================================== )
@@ -431,11 +606,19 @@
 ( ==================================================================== )
 
 "TW overrun battery"
-	( --- class B: digit_at's txtr[-6..-1].  NOCTIS.CPP:614-628 does
-	  i = 256*n - 5 and then txtr[i-1] = 0 with n = 0, so it writes
-	  six bytes BELOW p_surfacemap.  The pad below p_surfacemap is
-	  p_background's trailing pad, 170540..170555, so the write lands
-	  at 170550 and the canary must name region 3. )
+	( --- DEFECT 3.  digit_at's txtr[-6..-1] is a LEGITIMATE WRITE, not
+	  a violation.  NOCTIS.CPP:614-628 does i = 256*n - 5 and then
+	  txtr[i-1] = 0 with n = 0, so with txtr = p_surfacemap it writes
+	  six bytes BELOW p_surfacemap, landing at nw[170550..170555] -
+	  SUB+2..+7 of pad 5.  Under the old single-magic model that fired
+	  the canary and HALTED, so the first cockpit glyph of a debug
+	  build was indistinguishable from a buffer overrun.
+
+	  The guard band and the allowance are now separate jobs.  The six
+	  units are COUNTED in [MCexp] and no violation is reported: a
+	  build that never performs the write fails this check just as
+	  hard as one that performs it in the wrong place, because the
+	  count is derived from what the programme did. )
 	=> MEM poison pads;
 	[TWtxtr] = 0; [TWtxtr] + RPSM;
 	[TWi] = 0; [TWi] - 6;
@@ -446,15 +629,29 @@
 	=> MEM check pads;
 	[twself plus 26] = [MCfired];
 	[twself plus 27] = [MCn];
-	[twself plus 28] = [MCat];
+	[twself plus 28] = [MCexp];
 
-	( --- class B: loadpv writing one unit past the pvfile arena --- )
+	( --- the same for loadpv's one unit past the pvfile arena.
+	  NOCTIS-0.CPP:2383-2391.  TAIL+0 of pad 8, an allowance of one. )
 	=> MEM poison pads;
 	A = nw; A + RPVF; A + ZPVF; [A] = 57005;
 	=> MEM check pads;
 	[twself plus 29] = [MCfired];
 	[twself plus 30] = [MCn];
-	[twself plus 31] = [MCat];
+	[twself plus 31] = [MCexp];
+
+	( --- and ONE UNIT FURTHER is a VIOLATION.  This is the half of
+	  defect 3 that keeps the allowance from swallowing the guard: if
+	  the whole pad were an allowance both of the above would still
+	  read 0/0, so the two jobs would have been merged the other way
+	  round.  Pad 8, TAIL+1, so fired = 9 and at = RPVF + ZPVF + 1. )
+	=> MEM poison pads;
+	A = nw; A + RPVF; A + ZPVF; [A plus 1] = 57005;
+	=> MEM check pads;
+	[twself plus 69] = [MCfired];
+	[twself plus 70] = [MCn];
+	[twself plus 71] = [MCat];
+	[twself plus 72] = [MCexp];
 
 	=> MEM zero pads;
 
@@ -468,9 +665,15 @@
 	[MBptr] = 0; [MBptr] + RNGLB; [MBptr] + 32784; => MEM get byte;
 	[twself plus 33] = [MBval];
 
-	( --- class A: adapted is 65540 units, not 64000, because
-	  mask_pixels wraps a 16-bit DI.  The four units above the
-	  segment must exist and must not be adaptor. )
+	( --- class A, THE SIZE HALF ONLY.  adapted is 65540 units, not
+	  64000, so the four units above the 64000-pixel page exist and
+	  are not adaptor.  READ THIS NARROWLY: defect 2 was that the
+	  MODEL claimed allocating a full segment REPRODUCED the DOS
+	  16-bit wrap.  It does not and cannot - a size cannot fold an
+	  index.  What a size buys is that a walk past 64000 stays inside
+	  the owning region instead of landing in the next one, and that
+	  is all this check now claims.  The wrap itself is "TW mask
+	  battery", which exercises the mask at the truncation point. )
 	A = nw; A + RADPT; A + 65536;
 	[A plus 0] = 65; [A plus 1] = 66; [A plus 2] = 67; [A plus 3] = 68;
 	A = nw; A + RADPT; A + 65536;
@@ -544,6 +747,28 @@
 	[PVfr] = 200; [PVfg] = 100; [PVfb] = 5;
 	=> PAL tavola;
 	[twself plus 37] = [PVrange];
+
+	( --- MAJOR 6.  shade()'s first parameter is the DESTINATION
+	  BUFFER: NOCTIS-0.CPP:1151 is shade (unsigned char far
+	  *palette_buffer, ...) and 14 of its 21 call sites pass
+	  surface_palette, not tmppal.  A shade that can only write pal6
+	  cannot express two thirds of the game's calls, and srfpal6 and
+	  retpal6 - the buffers whose whole purpose is to stop fades
+	  COMPOUNDING - are dead weight no test touches.
+
+	  So point it at srfpal6 and run one.  This is graded in the MAIN
+	  dump rather than only in the separate w5shade probe, because a
+	  sabotage of the library is applied to a renamed copy that
+	  w5shade.txt does not link - so a shade that ignored [SHdstb]
+	  would have gone uncaught.  Restore the default afterwards.  If
+	  the parameter is ignored, srfpal6 stays zero AND pal6 is
+	  clobbered, so P1 and P7 both fire. --- )
+	A = srfpal6; [SHdstb] = A;
+	[SHfirst] = 0; [SHn] = 16;
+	[TWt1] = 0;  [TWt2] = 0;  [TWi] = 0;
+	[TWj] = 60;  [TWp] = 40;  [TWq] = 20;
+	=> TW shade i;
+	A = pal6; [SHdstb] = A;
 	end;
 
       ( TW shade i : shade() with integer-valued float arguments held in
@@ -592,46 +817,505 @@
 	end;
 
 ( ==================================================================== )
-( battery 8 - the servo, driven across the 32-bit counter wrap          )
+( battery 8 - THE LONG-HORIZON SERVO REPLAY                             )
 ( ==================================================================== )
 
-      ( [Counts] is 32 bits and wraps every 2^32/cpms seconds - about
-	477 s at 9000 counts/ms.  A servo that brackets against the START
-	of the run therefore reads a WRAPPED difference the moment the run
-	passes that point.  Waiting eight minutes is not a test; setting
-	the origin is.  Six elapsed times, three of them past the wrap.
+      ( CRITICAL 1.  [Counts] is 32 bits and wraps every 2^32 counts =
+	477.3 s at 8999 cpms.  The old servo divided
+	([Counts] - [TKsrv0c]) by the milliseconds since TK START, so the
+	numerator wrapped while the denominator grew without bound: 1840
+	cpms at t = 600 s against a true 8999, 4226 at t = 900 s, and the
+	+-1% clamp turned the one-shot collapse into a PERMANENT ratchet.
 
-	Six units per case: elapsed ms, srvcnt, srvms, cpms in, srvnew,
-	cpms out. )
+	The old battery this replaces asked six SINGLE questions with the
+	elapsed time varied, which could never see the ratchet: the
+	ratchet is what a SEQUENCE of firings does to each other.  And
+	Wave 5's test then XFAILed the answer, so the defect was asserted
+	rather than fixed.
 
-"TW srv battery"
-	A = twsrv; [TWsrvp] = A;
-	[TWelap] = 60000;  => TW srv one;
-	[TWelap] = 300000; => TW srv one;
-	[TWelap] = 450000; => TW srv one;
-	[TWelap] = 600000; => TW srv one;
-	[TWelap] = 900000; => TW srv one;
-	[TWelap] = 1200000; => TW srv one;
+	THIS REPLAYS A WHOLE RUN.  A synthetic free-running counter
+
+	    C(t) = (C0 + cpms*t) mod 2^32
+
+	is evaluated at the ends of TWHFIRE consecutive windows of TWHWIN
+	ms each, 19.9 simulated minutes, and the servo is driven from it
+	THREE WAYS on the same timeline:
+
+	  1 WINDOWED, shipped estimator
+	      srvcnt = C(t) - C(t-w),  srvms = w        the fix
+	  2 ANCHORED, shipped estimator
+	      srvcnt = C(t) - C(0),    srvms = t        the old bracket
+	  3 ANCHORED, ORIGINAL estimator
+	      the same, through the pre-correction arithmetic: an
+	      UNSIGNED '< 500 band with no upper bound, a TRUNCATING
+	      divide and a +-1% clamp whose step has no floor
+
+	Legs 1 and 2 call the SAME unmodified "TK servo apply" out of
+	work/fbtick.txt.  Leg 3 is written out here because the code it
+	models no longer exists anywhere - it is the defect, and it is the
+	POSITIVE CONTROL.  Without it the battery would be worthless:
+	leg 2 alone recovers, because SRVMAX refuses every bracket past 60
+	s, so a run that only compared 1 against 2 would report success
+	for reasons that have nothing to do with the wrap.  Leg 3 is what
+	makes "the windowed servo holds across the wrap" a claim that
+	could have come out false.
+
+	SEEDED OFF THE TRUE RATE, deliberately.  [TKcpms] starts 4% low,
+	so a servo that did nothing at all scores a 4% error and fails.
+	The graded quantity is therefore CONVERGENCE - the estimator has
+	to walk the +-1% clamp up to the true rate and then stay there
+	across every wrap - not the tautology "an estimator seeded at the
+	answer returns the answer".
+
+	C0 IS A SYNTHETIC ORIGIN, and that is the whole point.  Seven
+	scenarios place the 2^32 crossing at seven different phases -
+	before the run, in the first millisecond, mid-window, exactly on a
+	window boundary, and at three later times - so the replay is not
+	at the mercy of when the machine happened to boot.  Waiting eight
+	minutes is not a test; setting the origin is.
+
+	Scenario 6 is the ADVERSARIAL one: cpms = 1,000,000, a host about
+	111x faster than this one.  There a single TWHWIN window already
+	encodes 1.4e10 counts, which itself aliases 2^32, and the WINDOWED
+	servo fails too - because SRVMAX is the literal 60000 rather than
+	anything derived from cpms.  The boundary is cpms > 2^32/SRVMAX =
+	71,583; this host reports about 9,000.  That is recorded, not
+	hidden: it is the part of CRITICAL 1 this wave did not close.
+
+	Sixteen units per scenario:
+	   0 C0                     1 true cpms
+	   2 windowed final cpms    3 windowed worst |err| after settling
+	   4 wrapped windows        5 subtraction mismatches
+	   6 why-code bitmask       7 seed cpms
+	   8 anchored-new final     9 anchored-new worst |err|
+	  10 anchored-OLD final    11 anchored-OLD worst |err|
+	  12 firings               13 window ms
+	  14 final t               15 firings to first exact hit )
+
+"TW horizon battery"
+	A = twhor; [TWhp] = A;
+	[TWhsc] = 0;
+
+	[TWhjit] = 0;
+	( 0: origin zero - the wrap lands at 477.3 s, mid-replay )
+	[TWhc0] = 0;          [TWhcp] = 8999;    => TW hor one;
+	( 1: one count short of 2^32 - it wraps in the first millisecond )
+	[TWhc0] = 4294967295; [TWhcp] = 8999;    => TW hor one;
+	( 2: placed so the crossing falls INSIDE window 22, not on its edge )
+	[TWhc0] = 1531079939; [TWhcp] = 8999;    => TW hor one;
+	( 3: placed so the crossing falls exactly ON a window boundary )
+	[TWhc0] = 3535163461; [TWhcp] = 8999;    => TW hor one;
+	( 4: a different rate, so the answer cannot be a constant )
+	[TWhc0] = 2147483648; [TWhcp] = 8984;    => TW hor one;
+	( 5: and a third )
+	[TWhc0] = 999999937;  [TWhcp] = 9023;    => TW hor one;
+	( 6: ADVERSARIAL - a host on which SRVMAX itself aliases )
+	[TWhc0] = 0;          [TWhcp] = 1000000; [TWhjit] = 0; => TW hor one;
+	( 7: JITTERED - the counter is no longer an exact multiple of the
+	  window, which is the only configuration in which the ROUNDED
+	  divide differs from a truncating one )
+	[TWhc0] = 271828182;  [TWhcp] = 8999;    [TWhjit] = 1; => TW hor one;
+	( 8: A VERY SLOW COUNTER, which is the only configuration in which
+	  the CLAMP STEP FLOOR does anything.  The step is cpms/100, so
+	  below 100 counts per millisecond it truncates to zero and the
+	  state becomes ABSORBING - no sample can ever move it again.
+	  Seeded at 58 against a true 60: with the floor it walks 58, 59,
+	  60 and stops; without it, it never leaves 58.  Nothing else in
+	  this suite reaches rule e. )
+	[TWhc0] = 123456789; [TWhcp] = 60;      [TWhjit] = 0; => TW hor one;
 	end;
 
-"TW srv one"
-	[TKcpms] = 8999; => TK period;
-	[Timer Command] = READ COUNTS; isocall;
-	A = [Counts];
-	C = [TWelap]; C '* 8999;	( wraps mod 2^32, exactly as the counter does )
-	A - C; [TKsrv0c] = A;
-	=> TK read wall;
-	A = [TKtmp]; A - [TWelap]; [TKsrv0w] = A;
-	[TKsrvn] = 0; [TKsrvn] + SERVON; [TKsrvn] - 1;
-	=> TK servo;
-	A = [TWsrvp];
-	[A plus 0] = [TWelap];
-	[A plus 1] = [TKsrvcnt];
-	[A plus 2] = [TKsrvms];
-	[A plus 3] = 8999;
-	[A plus 4] = [TKsrvnew];
-	[A plus 5] = [TKcpms];
-	A + 6; [TWsrvp] = A;
+( ==================================================================== )
+( battery 8c - the ACCEPTANCE BAND, and why it has to be SIGNED         )
+( ==================================================================== )
+
+      ( "TK read wall" returns milliseconds since midnight folded to be
+	monotone, but a fold cannot help a bracket that was OPENED before
+	a step and closed after one - and a resume from suspend does the
+	same thing.  The old band was an UNSIGNED '< 500: a window of
+	-86,395,000 ms reads as 4,294,572,296 unsigned, sails past a lower
+	bound of 500, and is then divided into, applying a permanent -1%.
+
+	Six windows, each with the answer the band owes it.  The
+	rejections matter as much as the acceptances: a band that accepts
+	everything and a band that rejects everything both pass a battery
+	made only of one kind.
+
+	Four units per case: counts, ms, why-code, cpms after. )
+
+"TW band battery"
+	A = twband; [TWbp] = A;
+	[TWbcp] = 9000;
+	( a midnight straddle: SIGNED this is short, UNSIGNED it is 4.2e9 )
+	[TWbc] = 0; [TWbm] = 0; [TWbm] - 86395000;	=> TW band one;
+	( one millisecond under SRVMIN )
+	[TWbc] = 35996001; [TWbm] = 3999;		=> TW band one;
+	( exactly SRVMIN - accepted )
+	[TWbc] = 36000000; [TWbm] = 4000;		=> TW band one;
+	( exactly SRVMAX - accepted )
+	[TWbc] = 540000000; [TWbm] = 60000;		=> TW band one;
+	( one millisecond over SRVMAX )
+	[TWbc] = 540009000; [TWbm] = 60001;		=> TW band one;
+	( a window long enough for the counter to have aliased )
+	[TWbc] = 1000000; [TWbm] = 600000;		=> TW band one;
+	end;
+
+"TW band one"
+	[TKcpms] = [TWbcp]; => TK period;
+	[TKsrvcnt] = [TWbc];
+	[TKsrvms] = [TWbm];
+	=> TK servo apply;
+	A = [TWbp];
+	[A plus 0] = [TWbc];
+	[A plus 1] = [TWbm];
+	[A plus 2] = [TKsrvwhy];
+	[A plus 3] = [TKcpms];
+	A + 4; [TWbp] = A;
+	end;
+
+      ( TW hor one : replay TWHFIRE windows from one synthetic origin,
+	three times over the same timeline. )
+
+"TW hor one"
+	( the seed: 4% below the truth, so doing nothing cannot pass )
+	A = [TWhcp]; C = A; C '/ 25; A - C; [TWhsd] = A;
+
+	( ---------------- leg 1: WINDOWED, shipped estimator ------------ )
+	[TKcpms] = [TWhsd]; => TK period;
+	[TWherr] = 0; [TWhwrap] = 0; [TWhsub] = 0; [TWhwhy] = 0;
+	[TWhhit] = TWHFIRE; [TWhbias] = 0;
+	[TWht] = 0;
+	[TWhk] = 0; => TW hor sample; [TWhprv] = [TWhcur];
+	[TWhk] = 0;
+    "TW ho win"
+	A = [TWht]; A + TWHWIN; [TWht] = A;
+	[TWhk]+; => TW hor sample; [TWhk]-;
+
+	( did this window straddle 2^32?  C(t) < C(t-w) unsigned says so. )
+	A = [TWhcur]; ? A '>= [TWhprv] -> TW ho nowrap;
+	[TWhwrap]+;
+    "TW ho nowrap"
+	( the SUBTRACTION cross-check.  The modular difference of two
+	  separately-built counter values must equal the independently
+	  built product cpms*w mod 2^32.  Not an identity: the left side
+	  comes from two products plus two adds and a subtract, the right
+	  from one product, and at scenario 6 the right side ITSELF
+	  aliases - which is how a wrap-blind implementation would show
+	  up here rather than only in the ratio.
+
+	  READ THIS NARROWLY.  It says the arithmetic engine truncates
+	  consistently - that (a*t) - (a*(t-w)) == a*w in Z/2^32 - which
+	  is a distributivity identity and is expected to hold in every
+	  build.  IT IS NOT EVIDENCE ABOUT THE SERVO and it is not counted
+	  as wrap evidence anywhere in test_wave5.py.  The wrap evidence
+	  is the triple (wraps > 0, windowed error 0, ORIGINAL estimator
+	  destroyed on the same data).  Skipped under jitter, where the
+	  two sides are legitimately different. )
+	A = [TWhjit]; ? A != 0 -> TW ho subok;
+	A = [TWhcur]; A - [TWhprv];
+	C = TWHWIN; C '* [TWhcp];
+	A - C; ? A = 0 -> TW ho subok;
+	[TWhsub]+;
+    "TW ho subok"
+
+	A = [TWhcur]; A - [TWhprv]; [TKsrvcnt] = A;
+	[TKsrvms] = TWHWIN;
+	=> TK servo apply;
+	C = [TKsrvwhy]; [TWt1] = 1; [TWt1] < C; C = [TWhwhy]; C | [TWt1];
+	[TWhwhy] = C;
+
+	( first firing at which it is EXACTLY right )
+	A = [TWhhit]; ? A '< TWHFIRE -> TW ho hit;
+	A = [TKcpms]; A - [TWhcp]; ? A != 0 -> TW ho hit;
+	[TWhhit] = [TWhk];
+    "TW ho hit"
+	( worst absolute error, counted only after the settling window:
+	  the seed error itself is not a servo defect. )
+	A = [TWhk]; ? A '< TWHSETL -> TW ho noworse;
+	( the SIGNED sum of the same errors.  A truncating divide biases
+	  every estimate downwards and this sum goes sharply negative; the
+	  rounded one leaves it near zero.  Nothing else in this suite
+	  grades rule d. )
+	A = [TKcpms]; A - [TWhcp]; C = [TWhbias]; C + A; [TWhbias] = C;
+	A = [TKcpms]; A - [TWhcp];
+	? A >= 0 -> TW ho abs;
+	C = 0; C - A; A = C;
+    "TW ho abs"
+	? A '<= [TWherr] -> TW ho noworse;
+	[TWherr] = A;
+    "TW ho noworse"
+
+	[TWhprv] = [TWhcur];
+	[TWhk]+;
+	A = [TWhk]; ? A '< TWHFIRE -> TW ho win;
+
+	[TWt2] = [TKcpms];		( the windowed answer, kept )
+
+	( ---------------- leg 2: ANCHORED, shipped estimator ------------ )
+	[TKcpms] = [TWhsd]; => TK period;
+	[TWht] = 0; [TWhk] = 0; [TWi] = 0;
+    "TW ho anc"
+	A = [TWht]; A + TWHWIN; [TWht] = A;
+	[TWhk]+; => TW hor sample; [TWhk]-;
+	A = [TWhcur]; A - [TWhc0]; [TKsrvcnt] = A;
+	[TKsrvms] = [TWht];
+	=> TK servo apply;
+	A = [TKcpms]; A - [TWhcp];
+	? A >= 0 -> TW ho aabs;
+	C = 0; C - A; A = C;
+    "TW ho aabs"
+	? A '<= [TWi] -> TW ho anoworse;
+	[TWi] = A;
+    "TW ho anoworse"
+	[TWhk]+;
+	A = [TWhk]; ? A '< TWHFIRE -> TW ho anc;
+	[TWhan2] = [TKcpms];
+	[TWhae2] = [TWi];
+
+	( ---------------- leg 3: ANCHORED, ORIGINAL estimator ----------- )
+	[TWocp] = [TWhsd];
+	[TWht] = 0; [TWhk] = 0; [TWi] = 0;
+    "TW ho old"
+	A = [TWht]; A + TWHWIN; [TWht] = A;
+	[TWhk]+; => TW hor sample; [TWhk]-;
+	A = [TWhcur]; A - [TWhc0]; [TWosc] = A;
+	[TWosm] = [TWht];
+	=> TW old apply;
+	A = [TWocp]; A - [TWhcp];
+	? A >= 0 -> TW ho oabs;
+	C = 0; C - A; A = C;
+    "TW ho oabs"
+	? A '<= [TWi] -> TW ho onoworse;
+	[TWi] = A;
+    "TW ho onoworse"
+	[TWhk]+;
+	A = [TWhk]; ? A '< TWHFIRE -> TW ho old;
+
+	A = [TWhp];
+	[A plus 0]  = [TWhc0];
+	[A plus 1]  = [TWhcp];
+	[A plus 2]  = [TWt2];
+	[A plus 3]  = [TWherr];
+	[A plus 4]  = [TWhwrap];
+	[A plus 5]  = [TWhsub];
+	[A plus 6]  = [TWhwhy];
+	[A plus 7]  = [TWhsd];
+	[A plus 8]  = [TWhan2];
+	[A plus 9]  = [TWhae2];
+	[A plus 10] = [TWocp];
+	[A plus 11] = [TWi];
+	[A plus 12] = TWHFIRE;
+	[A plus 13] = TWHWIN;
+	[A plus 14] = [TWht];
+	[A plus 15] = [TWhhit];
+	[A plus 16] = [TWhbias];
+	[A plus 17] = [TWhjit];
+	[A plus 18] = TWHSETL;
+	[A plus 19] = [TWhsc];
+	A + TWHRECU; [TWhp] = A;
+	[TWhsc]+;
+	end;
+
+      ( TW hor sample : [TWhcur] <- C(t) for the CURRENT [TWht], sample
+	index [TWhk].  Always built from the ORIGIN, never by accumulating
+	the previous value, so that a delta of two samples is a second
+	construction and not a restatement of one addition. )
+
+"TW hor sample"
+	C = [TWht]; C '* [TWhcp]; C + [TWhc0];
+	A = [TWhjit]; ? A = 0 -> TW hs done;
+	A = [TWhk]; A '* TWHJM; A '% TWHJP;
+	[TWt1] = TWHJP; [TWt1] '/ 2; A - [TWt1];
+	C + A;
+    "TW hs done"
+	[TWhcur] = C;
+	end;
+
+      ( TW old apply : THE DEFECT, reproduced.  This is what
+	work/fbtick.txt's servo did before the CRITICAL 1 correction, and
+	it exists in this file for one reason - so that the windowed leg
+	is measured against something that fails on the same data.
+
+	Three separate faults, all of them load-bearing:
+	  * the band is UNSIGNED and has no upper bound, so a bracket
+	    long enough for the counter to alias is accepted,
+	  * the divide TRUNCATES,
+	  * the clamp step is cpms/100 with NO FLOOR, so once cpms falls
+	    below 100 the step is zero and the state is ABSORBING. )
+
+"TW old apply"
+	A = [TWosm]; ? A '< 500 -> TW oa done;
+	A = [TWosc]; A '/ [TWosm]; [TWonew] = A;
+	B = [TWocp]; B '/ 100;
+	C = [TWocp]; C - B;
+	D = [TWocp]; D + B;
+	? [TWonew] '>= C -> TW oa lo;
+	[TWonew] = C;
+    "TW oa lo"
+	? [TWonew] '<= D -> TW oa hi;
+	[TWonew] = D;
+    "TW oa hi"
+	[TWocp] = [TWonew];
+    "TW oa done"
+	end;
+
+( ==================================================================== )
+( battery 8b - THE CLASS-A 16-BIT WRAP, AT THE TRUNCATION POINT         )
+( ==================================================================== )
+
+      ( CRITICAL 2.  Decision 3 class A used to be "allocate the full
+	segment, cost 1,540 units, no code".  AN ALLOCATION SIZE CANNOT
+	REPRODUCE A WRAP.  Under DOS the write folded back to offset 0 of
+	the segment; under 32-bit unit addressing it walks linearly past
+	the region end through whatever follows, and no size stops that.
+
+	The mechanism is a MASK, and it belongs where the ORIGINAL
+	truncates, which is not the same place for the two sites:
+
+	  spot    NOCTIS-0.CPP:4485.  The truncation point IS the 16-bit
+	          DI, formed AFTER both adds, so mask and address coincide:
+	              masked = SPBG + ((4 + py + px) AND 65535)
+	  cirrus  NOCTIS-0.CPP:4715.  "mov bx,py / add bx,px" truncates in
+	          BX and only THEN shifts right, so the mask is one step
+	          earlier:
+	              masked = SOBJ + ((((py+px) AND 65535) >> 1) + 4)
+
+	The two failure deltas therefore DIFFER - 65,536 for spot,
+	32,768 for cirrus.  A single "mask the final index" helper would
+	halve cirrus's error and still be wrong, and that is what makes
+	the difference between the deltas a graded quantity rather than a
+	restatement: min and max of each delta are recorded separately and
+	w5spec.py derives both from the arithmetic.
+
+	The mask is taken against the SEGMENT ORIGIN, not the buffer base.
+	SEG is R* minus 4 for every farmalloc'd block, so a masked offset
+	of 0..3 lands on the four header units below the buffer - the SUB
+	zone's allowance, not a violation.
+
+	Four units per site: calls, wraps, delta-min, delta-max. )
+
+"TW mask battery"
+	=> MEM wrap reset;
+	[TWmsdlo] = 0; ! [TWmsdlo]; [TWmsdhi] = 0;
+	[TWmcdlo] = 0; ! [TWmcdlo]; [TWmcdhi] = 0;
+	[TWmnd] = 0;
+	[TWmry] = 0;
+    "TW mb row"
+	=> TW mask py;
+	[TWmk] = 1;
+    "TW mb wrap"
+	A = 65536; A - [TWmk]; [TWmpx] = A;
+	=> TW mask one;
+	[TWmk]+;
+	A = [TWmk]; ? A '<= TWMWRAP -> TW mb wrap;
+	[TWmk] = 0;
+    "TW mb ctl"
+	A = 100; A + [TWmk]; [TWmpx] = A;
+	=> TW mask one;
+	[TWmk]+;
+	A = [TWmk]; ? A '< TWMCTL -> TW mb ctl;
+	[TWmry]+;
+	A = [TWmry]; ? A '< TWMROW -> TW mb row;
+
+	( the counters the LIBRARY kept, straight out of wtab )
+	A = wtab; D = twmask; B = 0; B + NSITE;
+    "TW mb save"
+	[D plus 0] = [A plus 1];	( calls )
+	[D plus 1] = [A plus 2];	( wraps )
+	A + 3; D + 2;
+	B ^ TW mb save;
+	( and the deltas this probe measured itself )
+	[twmask plus 12] = [TWmsdlo];
+	[twmask plus 13] = [TWmsdhi];
+	[twmask plus 14] = [TWmcdlo];
+	[twmask plus 15] = [TWmcdhi];
+	[twmask plus 16] = [TWmnd];
+	[twmask plus 17] = [MCoob];
+	[twmask plus 18] = [MCoobat];
+	[twmask plus 19] = TWMROW;
+	[twmask plus 20] = TWMWRAP;
+	[twmask plus 21] = TWMCTL;
+	[twmask plus 22] = 0;
+	[twmask plus 23] = 0;
+	end;
+
+      ( five rows: the top three, where a negative px folds to the row
+	above, plus mid-map and the last row. )
+
+"TW mask py"
+	A = [TWmry];
+	? A = 0 -> TW mp 0;
+	? A = 1 -> TW mp 1;
+	? A = 2 -> TW mp 2;
+	? A = 3 -> TW mp 3;
+	[TWmpy] = 64440; end;		( 179 * 360 )
+    "TW mp 0"
+	[TWmpy] = 0; end;
+    "TW mp 1"
+	[TWmpy] = 360; end;
+    "TW mp 2"
+	[TWmpy] = 720; end;
+    "TW mp 3"
+	[TWmpy] = 36000; end;		( 100 * 360 )
+
+      ( ONE TRUNCATION PER SITE, and this is not cosmetic.  The first
+	version of this battery masked C through "MEM u16 site" and then
+	handed the ALREADY MASKED value to "MEM seg addr", which masks
+	again - so spot's fold was applied twice and deleting either mask
+	on its own left spot's answer unchanged.  The sabotage that
+	deletes a mask was then caught only by cirrus, which is a check
+	passing for the wrong reason.  So spot now hands "MEM seg addr"
+	the RAW offset and lets it truncate, and "MEM u16 site" is used
+	for its COUNTER; cirrus still truncates early, in BX, because that
+	is where the original truncates.  Each mask is now the only thing
+	standing between one site and a linear walk. )
+
+"TW mask one"
+	( --- spot --- )
+	A = [TWmpy]; A + [TWmpx]; A + RPBG; [TWmsn] = A;
+	[SAsite] = SITESPOT;
+	C = [TWmpy]; C + [TWmpx]; C + 4;
+	[SAseg] = SPBG; [SAoff] = C;	( RAW: seg addr does the truncation )
+	=> MEM u16 site;		( the counter, at the same point )
+	=> MEM seg addr;
+	[TWmsm] = [SAnw];
+	A = RPBG; A - ZHALF; [SAlo] = A;
+	A = RPBG; A + ZPBG;  [SAhi] = A;
+	=> MEM seg check;
+
+	( --- cirrus --- )
+	A = [TWmpy]; A + [TWmpx]; A > 1; A + ROBJ; [TWmcn] = A;
+	[SAsite] = SITECIRR;
+	C = [TWmpy]; C + [TWmpx];
+	=> MEM u16 site;
+	C > 1; C + 4;
+	[SAseg] = SOBJ; [SAoff] = C;
+	=> MEM seg addr;
+	[TWmcm] = [SAnw];
+	A = ROBJ; A - ZHALF; [SAlo] = A;
+	A = ROBJ; A + ZOBJ;  [SAhi] = A;
+	=> MEM seg check;
+
+	( --- the deltas.  Zero when nothing wrapped. --- )
+	A = [TWmsn]; A - [TWmsm];
+	? A = 0 -> TW mo sdz;
+	? A '>= [TWmsdlo] -> TW mo sd1;
+	[TWmsdlo] = A;
+    "TW mo sd1"
+	? A '<= [TWmsdhi] -> TW mo sd2;
+	[TWmsdhi] = A;
+    "TW mo sd2"
+	[TWmnd]+;
+    "TW mo sdz"
+	A = [TWmcn]; A - [TWmcm];
+	? A = 0 -> TW mo cdz;
+	? A '>= [TWmcdlo] -> TW mo cd1;
+	[TWmcdlo] = A;
+    "TW mo cd1"
+	? A '<= [TWmcdhi] -> TW mo cd2;
+	[TWmcdhi] = A;
+    "TW mo cd2"
+    "TW mo cdz"
 	end;
 
 ( ==================================================================== )
@@ -841,7 +1525,20 @@
 ( the soak                                                             )
 ( ==================================================================== )
 
+      ( The soak is BRACKETED BY THE OTHER CLOCK.  T12 used to convert the
+	counter span into milliseconds with [TKcpms] and compare that
+	against the nominal grid - which stopped meaning anything the
+	moment the servo started running, because cpms then CHANGES during
+	the soak and the conversion measures the servo's own correction
+	rather than any drift.  READ TIME is a genuinely different clock
+	from the high-performance counter, so bracketing the soak with it
+	turns T12 into two independent clocks agreeing on how long 200
+	periods took.  Its granularity is about 1 ms, which over 11 s is
+	small enough for the bound to still catch a period of 55 ms
+	instead of 54.9254. )
+
 "TW soak"
+	=> TK read wall; [twself plus 86] = [TKtmp];
 	=> TK start;
 	[TWi] = 0;
     "TW sk loop"
@@ -858,6 +1555,7 @@
 	=> TK step;
 	[TWi]+;
 	A = [TWi]; ? A '< TWNTICK -> TW sk loop;
+	=> TK read wall; [twself plus 87] = [TKtmp];
 	end;
 
 ( ==================================================================== )
@@ -875,7 +1573,13 @@
 	A = rtab;    [DBptr] = A; [DBcnt] = 36;  => DMP rec;
 
 	[DKind] = KCAN;
-	A = twctab;  [DBptr] = A; [DBcnt] = 18;  => DMP rec;
+	A = twcan;   [DBptr] = A; [DBcnt] = 44;  => DMP rec;
+
+	( the ZONE table, straight out of ztab - defect 3's separation of
+	  guard from allowance is a property of THIS table, so it is
+	  dumped rather than described. )
+	[DKind] = KZONE;
+	A = ztab;    [DBptr] = A; [DBcnt] = 88;  => DMP rec;
 
 	[DKind] = TWKSLF;
 	A = twself;  [DBptr] = A; [DBcnt] = TWSELFN; => DMP rec;
@@ -886,14 +1590,28 @@
 	[DKind] = KPAL6;
 	A = curpal6; [DBptr] = A; [DBcnt] = 768; => DMP rec;
 
+	( surface_palette - the destination MAJOR 6 was about )
+	[DKind] = KPAL6;
+	A = srfpal6; [DBptr] = A; [DBcnt] = 768; => DMP rec;
+
 	[DKind] = KLUT;
 	A = pal;     [DBptr] = A; [DBcnt] = 256; => DMP rec;
 
 	[DKind] = TWKADV;
 	A = twadv;   [DBptr] = A; [DBcnt] = 256; => DMP rec;
 
-	[DKind] = TWKSRV;
-	A = twsrv;   [DBptr] = A; [DBcnt] = 36;  => DMP rec;
+	[DKind] = TWKHOR;
+	A = twhor;   [DBptr] = A; [DBcnt] = 180; => DMP rec;
+
+	[DKind] = TWKBND;
+	A = twband;  [DBptr] = A; [DBcnt] = 24;  => DMP rec;
+
+	[DKind] = TWKMSK;
+	A = twmask;  [DBptr] = A; [DBcnt] = 24;  => DMP rec;
+
+	( the servo log the SOAK produced - three units per firing, raw )
+	[DKind] = KSRVL;
+	A = tsrvlog; [DBptr] = A; C = [TKsrvlogn]; C * 3; [DBcnt] = C; => DMP rec;
 
 	[DKind] = TWKSKY;
 	A = twsky;   [DBptr] = A; [DBcnt] = TWSKYN; => DMP rec;
@@ -984,4 +1702,18 @@
 	[twself plus 62] = TWANCH;
 	( 63..66 belong to "TW present" and are left alone here: they are
 	  zero in every build that never opens a display. )
+	( 67..72 written by the canary and overrun batteries )
+	[twself plus 73] = [TKsrvfire];
+	[twself plus 74] = [TKsrvovf];
+	[twself plus 75] = [TKcalwhy];
+	[twself plus 76] = SRVMIN;
+	[twself plus 77] = SRVMAX;
+	[twself plus 78] = NZONE;
+	[twself plus 79] = NPAD;
+	[twself plus 80] = NSITE;
+	[twself plus 81] = WINDOW;
+	[twself plus 82] = [TKcalseed];
+	[twself plus 83] = TWHFIRE;
+	[twself plus 84] = TWHWIN;
+	[twself plus 85] = TWHSCN;
 	end;

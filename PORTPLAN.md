@@ -187,6 +187,51 @@ still broken (so a silent fix fails the test), and the 16-bit index wrap is
 **not expressible in the delivered model** — `BUFFERMODEL.md` open item 6, and
 Wave 6's first job.
 
+### Wave 5b — corrections (PARTIAL: tests fixed, harness still defective)
+
+**Fixed and verified by the reviewer in the source:** the tick servo. Sampler
+and estimator are split, both anchors re-base unconditionally before a SIGNED
+band test, the divide is rounded, the clamp has a floor, and there is a
+wall-fold plus a calibration-end clamp that never existed. The long-horizon leg
+is the proof: over 19.9 simulated minutes across wrap-straddling windows, the
+**original** estimator collapses to 5,355 against a true 8,999 while the new
+one holds with worst error 0.
+
+**Also fixed:** all three XFAILs converted to positive assertions with
+evidence; the fake canary in `tests/` deleted and replaced by one deriving all
+four fields from the layout with no stored literal; a blocking build break
+repaired; and three sabotages that revealed *real* holes were closed rather
+than dropped (a clamp floor nothing drove, a band nothing drove negative, and a
+mask double-applied so its deletion was invisible).
+
+**STILL DEFECTIVE — the same pattern recurred in a different file.** This wave
+existed because a canary compared a constant against itself. `tests/` was
+fixed; `noctis-harness/` now carries three fresh instances:
+
+- `lino_break_matrix` grades each sabotage against stored references and all 19
+  rows read identically — **passes regardless**.
+- `fb_layout.py`'s replacement canary returns a bare literal, then compares
+  against that same literal by construction.
+- the ring sweep computes `start` from `end` and `want`, then recovers `want`
+  from `start` and `end` — tautological in **both** implementations.
+
+`fb_compare.py --suite` reports **FAIL**: 117 checks, 6 failed, 3 NOT GRADED.
+The index page differs in 63,988 of 64,000 units because `w5probe` and
+`fb_ref.c` run different scenarios that no document reconciles.
+
+**Grading tiers, stated precisely rather than claimed:** palette and LUT reach
+Tier 2 (three producers, three sabotages caught). The index page is **Tier 1**.
+Alias 8's premise — that `farmalloc` returns offset 4 — is **Tier 0**.
+
+**Two new XFAILs, both genuinely open:** `SRVMAX` is a literal, so above
+~71,583 cpms the estimator still ratchets; and no game call site drives the
+class-A mask, so sites 2..5 read zero calls and two painters are uncensused.
+
+**The lesson worth keeping:** fixing the instance you are pointed at does not
+fix the pattern. The next wave that touches the harness must re-audit every
+comparison for "could this record differ between a working and a broken
+mechanism?"
+
 ### Census
 Noctis IV has 20 multiply sites, 5 that matter, and only 2 distinct algorithms
 need a full 64-bit product â€” both now ported. Six of nine builds use the stock

@@ -367,6 +367,28 @@
 	A = [TKtmp]; A - [TKsrv0w]; [TKsrvms] = A;
 	[TKsrv0w] = [TKtmp];			( RE-BASE FIRST )
 
+	=> TK servo apply;
+    "TK sv done"
+	end;
+
+      ( TK servo apply : the ESTIMATOR, split from the SAMPLER above.
+
+	in  [TKsrvcnt] counts in the window, [TKsrvms] milliseconds in it
+	out [TKcpms], [TKsrvwhy], one servo-log entry
+
+	Split for one reason: the sampler reads a clock and the estimator
+	does not, so the estimator can be driven with EXACT synthetic
+	windows - across the counter wrap, at a midnight step, at the
+	rounding boundary and at the clamp floor - in milliseconds instead
+	of hours.  work/fbsrv.txt does exactly that.  Nothing test-only
+	lives in this file; the shipped path calls the same two routines
+	in the same order.
+
+	CALLING CONTRACT: this routine clobbers A, B, C and D.  The last
+	thing it does is build a log pointer in B, so a caller must not
+	carry a loop count in a register across it. )
+
+"TK servo apply"
 	[TKsrvwhy] = SVWAPPLY;
 	A = [TKsrvms]; ? A < SRVMIN -> TK sv short;	( SIGNED )
 	A = [TKsrvms]; ? A > SRVMAX -> TK sv long;	( SIGNED )
@@ -416,8 +438,6 @@
 	end;
     "TK sv ovf"
 	[TKsrvovf]+;
-	end;
-    "TK sv done"
 	end;
 
 ( ==================================================================== )

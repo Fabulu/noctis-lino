@@ -42,6 +42,17 @@
 	HITCHMOD	= 37;
 	CALMS		= 3000;
 
+	( SERVON is a DRIVER constant now.  It lived in fbtick at 256
+	  while every soak in the suite ran 200 ticks, so "TK servo" was
+	  never once executed in a real soak - which is exactly how a
+	  servo that wraps at 477 s reached the reviewer.  The game keeps
+	  256; a soak driver sets it low enough to fire several times.
+	  At 96 ticks the window is 96 * 54.9254 ms = 5.27 s, which is
+	  above SRVMIN = 4000 ms, so the firings are ACCEPTED rather than
+	  rejected - a servo that only ever logged rejections would be no
+	  better tested than one that never ran. )
+	SERVON		= 96;
+
 "programme"
 
 	=> FB run;

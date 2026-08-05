@@ -1,91 +1,160 @@
-      ( *** fbshell - the Wave 5 framebuffer shell ***
+      ( *** fbshell - the Wave 5-corrective framebuffer shell ***
 
-	Normative source: docs-notes/LINOBUF.md.  This is the program
-	body; work/fbmain.txt is a four-line driver that links it, and
-	each work/fbbreakN.txt is the same driver with ONE library
-	replaced by a copy of itself carrying ONE edit.
+	Normative source: docs-notes/LINOBUF.md, as corrected by
+	docs-notes/BUFFERMODEL.md and by the Wave 5-corrective plan.
+	This is the programme body; work/fbmain.txt is a five-line driver
+	that links it, and each work/fbbreakN.txt is the same driver with
+	ONE library replaced by a copy of itself carrying ONE edit.
 
-	The driver supplies four constants, so a sabotage run can be
-	short without touching the subject:
+	The driver supplies five constants, so a sabotage run can be short
+	without touching the subject:
 
 	    NTICK	ticks in the soak
 	    NFRAME	frame-cost samples
 	    HITCHMOD	inject a hitch when (tick+1) mod this is 0; 0 = never
 	    CALMS	milliseconds of real work in the calibration bracket
+	    SERVON	servo interval in ticks
 
-	WHAT THIS PROGRAM PRODUCES: work/fb-out.bin, a stream of ten
-	FBDUMP v1 records, in this fixed order.  Where a kind appears
-	twice the order is what distinguishes them, and it is stated
-	here because it is the only place it can be stated:
+	SERVON IS A DRIVER CONSTANT NOW.  It was 256 inside fbtick while
+	the test soak ran 200 ticks, so the suite had never once executed
+	"TK servo" in a real soak - which is exactly why the wrapping
+	servo shipped.  The game keeps 256; a soak driver sets it low
+	enough that the servo actually fires.
 
-	    0  KLAY   36		the layout, straight out of rtab
-	    1  KCAN   18		the CLEAN canary check
-	    2  KSELF  240		self-checks, servo log, range8088
-	    3  KPAL6  768		pal6     - the master, Noctis's tmppal
-	    4  KPAL6  768		curpal6  - what was UPLOADED to the DAC
-	    5  KLUT   256		pal      - the 00RRGGBB lookup
-	    6  KPAGE  64000		adapted  - the hidden page, 320x200
-	    7  KPAGE  64000		adaptor  - the visible page, 320x200
-	    8  KFRM   2 x NFRAME	raw (frame counts, expand counts)
-	    9  KTICK  3 x NTICK		raw (counts at fire, deadline, flags)
+	WHAT THIS PROGRAM PRODUCES: work/fb-out.bin, a stream of FBDUMP v2
+	records.  In v2 each record carries a TAG in header unit 8, so
+	record identity no longer depends on emission order - which in v1
+	was documented only in a comment in this file.
 
-	Record 4 is the one an oracle can grade: curpal6 is the DAC, and
-	the DAC is what both capture routes deliver.  Record 6 is what
-	snapshot() writes (NOCTIS-0.CPP:6292 dumps adapted); record 7 is
-	what DOSBox-X's raw capture sees, which is the ONLY way to
-	observe the type-9 substellar case that writes the visible page
-	directly - a confirmed niv-lr divergence.
+	    kind  tag  payload
+	    5     7    36        the layout, straight out of rtab
+	    9     9    88        the 22 zones, straight out of ztab
+	    6     8    44        the canary probe, 4 units x 11 pads
+	    7    13    256       self-checks + range8088
+	    2     4    768       pal6     - the master, Noctis's tmppal
+	    2     5    768       curpal6  - what was UPLOADED to the DAC
+	    2    17    768       srfpal6  - surface_palette
+	    3     6    256       pal      - the 00RRGGBB lookup
+	    1     1    64000     adapted  - the hidden page, 320x200
+	    1     2    64000     adaptor  - the visible page, 320x200
+	    1     3    9216      the glyph plane, 256x36, p_surfacemap[0..]
+	    1    16    512       two 256-unit windows of s_background
+	   10    12    18        per-site 16-bit wrap counters
+	   12    15    2040      the synthetic class-A wrap battery
+	   11    11    3 x n     the RAW servo log, with WHY
+	    4    10    3 x n     the RAW tick log
+	    8    14    2 x NFRAME raw frame costs
 
-	THE PINNED PALETTE STATE, so it can be reproduced exactly by a
-	reference implementation that never reads this file:
+	THE DUMP IS TAKEN WITHOUT REBUILDING THE PAGE.  The Wave 5 shell
+	called "FB page build" once more immediately before the dump, so
+	whatever the present path did to adaptor was never recorded.  That
+	is why the shipped shell could contain sabotage S12 - a colour
+	cycle fused into the expand - and nothing in the project could see
+	it.  Both halves are fixed: the expand is read-only, and the dump
+	records what the last present left behind.
 
-	    S0   PAL zero; PAL range
-	    S1   tavola(range8088, first=0,   n=64, 16, 32, 63)
-	    S2   shade(192, 16,  0, 0, 0,    4, 2, 1)
-	    S3   shade(208, 16,  4, 2, 1,   24,18,12)
-	    S4   shade(224, 16, 24,18,12,   60,55,50)
-	    S5   shade(240, 16, 60,55,50,   64,64,64)
-	    S6   tavola(SELF,  first=192, n=64, 50, 50, 50)
-	    S7   shade(  0, 64,  0, 0, 0,   63,63,63)
-	    S8   shade( 64, 24,  0, 0, 0,   24,31,40)
-	    S9   shade( 88, 16, 24,31,40,   48,52,56)
-	    S10  shade(104, 24, 48,52,56,   63,63,63)
-	    S11  tavola(SELF,  first=64,  n=64, 60, 55, 50)
-	    S12  shade(128, 64,  0, 0, 0,   63,63,63)
+	--------------------------------------------------------------
+	THE PINNED SCENARIO "surface".  A TEST FIXTURE, NOT A CLAIM ABOUT
+	THE GAME.  Every step exists to separate one specific
+	implementation choice, and a reference implementation must be able
+	to reproduce it from this text alone.
 
-	All shade arguments are integer-valued floats.  S1 is
-	NOCTIS.CPP:2221's call shape; S2-S6 are NOCTIS-0.CPP:5180-5193's
-	surface_palette shape; S6 and S11 are the SELF-COPY of trap 1.
+	  1  pal6 = curpal6 = srfpal6 = 0; build range8088
+	  2  tavola(range8088, first=0, n=64, 16,32,63)      filter arithmetic
+	  3  shade(pal6, 0, 64, 0,0,0, 63,63,63)  uploads NOTHING.
+	     delta = 63/64 = 0.984375 exactly, so at k=1 a chop gives 0 and
+	     a round gives 1: CHOP VS ROUND SEPARATES AT THE FIRST STEP.
+	  4  tavola(SELF, first=192, n=64, 50,50,50)         the self-copy
+	  5  tavola(range8088, first=64, n=64, 60,55,50)     upload-from-zero
+	  6  shade(pal6, 160, 16, 19.5,24.75,33.0, 66.25,-2.5,48.125)
+	     the clamp's saturation values, 63 and 0
+	  7  tavola(SELF, first=0, n=256, fr=200, fg=64, fb=64)
+	     trap 2: filter 200 is signed char -56
+	  8  rebuild the LUT from curpal6                    the v*4 choice
 
-	The state is built so that the upload-from-zero rule is
-	OBSERVABLE: S7 rewrites pal6 colours 0-63 and uploads nothing,
-	then S11 uploads colours 0-127.  A tavola_colori that uploaded
-	only the band first .. first+n-1 would leave curpal6[0..63] on S1's
-	values instead of S7's, and record 4 would differ.  Without S7
-	the rule would be untestable, because re-uploading an unchanged
-	band writes the same bytes.
+	KNOWN DEFECT IN STEP 4, REPORTED NOT SILENTLY PATCHED: with
+	first=192 the step cannot separate what it exists to separate.
+	After step 2 the upload covered components 0..191 only, so
+	curpal6[576..767] and pal6[576..767] are BOTH zero, and "skip the
+	copy" and "copy from curpal6" produce identical state.  first=0
+	would separate them (pal6[0..191] carries step 3's un-uploaded
+	ramp while curpal6[0..191] carries step 2's).  Implemented
+	VERBATIM anyway, because a pinned scenario that two implementers
+	write differently is worse than one that under-separates, and the
+	one-word correction is a decision for whoever owns the scenario.
 
-	THE PINNED PAGE, likewise:
+	--------------------------------------------------------------
+	THE PINNED SCENARIO "page".
 
-	    pclear(adapted, ZADPT)		full segment, 65540 units
-	    pclear(adaptor, ZADPR)		NOCTIS-1.CPP:5021
-	    riga[c] = 320*c for c = 0..199
-	    adapted[riga[y]+x] = (x*y + x + y) AND 255
-	    pcopy(adaptor, adapted)		64000 index units
-	    adaptor[riga[100]+128+i] = 255 for i = 0..63     type-9 case
+	  G0  pclear(adapted, 0)   over the FULL SEGMENT, 65,540 units
+	  G1  pclear(adaptor, 0)   over the FULL SEGMENT, 65,540 units
+	  G2  riga[c] = 320*c for c = 0..199
+	  G3  adapted[riga[y]+x] = (x*y + x + y) AND 255, y from 0, x from 0
+	  G4  mask_pixels(adapted, 64) over QUADWORDS = 14,560 dwords:
+	      adapted[i] = (adapted[i] AND 63) + 64 for i = 0..58,239.
+	      QUADWORDS is a VARIABLE and it is 14,560 after
+	      NOCTIS.CPP:2206's "QUADWORDS -= 1440", not the declaration's
+	      16,000.  4*14,560 = 58,240 bytes = 182 rows, so rows 182..199
+	      are untouched and the boundary is VISIBLE.  Precondition for
+	      one-byte-per-unit fidelity: the DOS code adds a replicated
+	      dword, so the mask must be <= 192 or a byte would carry into
+	      its neighbour.  64 satisfies it and is checked.
+	  G5  adapted[63996] = 17; adapted[63997] = 34
+	      alias 8 - tinta/escrescenze, at 63,996 and NOT at 64,000
+	  G6  pcopy(adaptor, adapted) over 64,000 index units
+	  G7  adaptor[riga[100]+128+i] = 255 for i = 0..63
+	      vanilla's type-9 substellar case writes the VISIBLE page
 
-	The page is rebuilt by this exact routine immediately before the
-	dump, so the dumped pages do not depend on how many frames ran -
-	the per-frame background colour cycle mutates adaptor, and a
-	dump taken after the soak would be a function of the frame count
-	rather than of the code.                                          )
+	and, once, outside the frame loop:
+
+	  G8  digimap2[j] = (j * 2654435761) mod 2^32 for j = 0..2339
+	      p_surfacemap[0..39999] = 0
+	      digit_at('A' = 65, color = 200, shader = 0), txtr =
+	      p_surfacemap, LOOP FROM n = 0.  NOCTIS.CPP:614-628.
+	      The raster-loop bug is then visible in TWO independent
+	      places: the 256x36 glyph plane, and the six units at
+	      nw[170,550..170,555].
+	  G9  s_background[ir] = ir AND 255 for ir = 0..64,799, then one
+	      pass of PAL cycle.  Two 256-unit windows are dumped: the
+	      first covers all 256 possible byte values, the last shows
+	      the pass reached the end of the buffer.
+
+	Pads are in the RELEASE state (zero) for every dumped record.
+
+	--------------------------------------------------------------
+	THE SYNTHETIC CLASS-A WRAP BATTERY.  No renderer and no planet
+	generator exists yet, so the SITES land in Waves 6/7.  What can be
+	graded now is the ARITHMETIC, which is the thing being decided.
+	The battery replays spot's and cirrus's exact index expressions
+	over the escape shape the mechanism produces - px = cx + g*cos(a)
+	stored to an unsigned, so whenever cx < g the store yields 65536-k
+	and the 16-bit add folds back to the correct PREVIOUS-ROW address.
+	The wrap is not damage; it IS the arithmetic.                     )
 
 "constants"
 
 	NANCH	= 65536;	( wrap-battery anchors )
 	ANCHSTR	= 65537;	( odd stride, so the anchors sweep all 2^32 )
-	NSELF	= 240;		( 32 self-check words + 16 servo log + 192 range8088 )
+	NSELF	= 256;		( 64 self-check words + 192 range8088 )
 	HITCHMS	= 60;		( a hitch longer than one period )
+
+	MPMASK	= 64;		( mask_pixels' mask; must be <= 192 )
+
+	( the synthetic wrap battery's case set )
+	NWROW	= 5;		( rows 0, 1, 2, 100, 179 )
+	NWWRAP	= 64;		( px = 65536-k, k = 1..64 )
+	NWCTL	= 4;		( px = 100+k, k = 0..3, no wrap )
+	NWCASE	= 340;		( NWROW * (NWWRAP + NWCTL) )
+
+	DIGA	= 65;		( 'A' )
+	DIGCOL	= 200;
+	DIGSHAD	= 0;
+
+	GLYPHW	= 256;
+	GLYPHH	= 36;
+	GLYPHN	= 9216;
+
+	SKYWIN	= 256;
 
 "variables"
 
@@ -95,11 +164,15 @@
 	FBtxmin	= 0;
 	FBtxmax	= 0;
 	FBtxbase = 0;
-	FBclnf	= 0;		( canary, clean : fired, n )
+	FBclnf	= 0;		( canary, clean : fired, n, exp )
 	FBclnn	= 0;
-	FBdrtf	= 0;		( canary, one-unit overrun : fired, n, at )
-	FBdrtn	= 0;
-	FBdrta	= 0;
+	FBclne	= 0;
+	FBcp	= 0;
+	FBslot	= 0;
+	FBap	= 0;
+	FBgexp	= 0;		( glyph expectation : must be 6 )
+	FBgfir	= 0;		( glyph violation   : must be 0 )
+	FBgn	= 0;
 	FBwrapf	= 0;		( wrap-predicate failures : 0 = pass )
 	FBwrapn	= 0;
 	FBkey	= 0;
@@ -124,11 +197,47 @@
 	FBeg	= 0;
 	FBeb	= 0;
 
+	( mask_pixels )
+	MPbase	= 0;
+	MPmaskv	= 0;
+
+	( digit_at )
+	DGdigit	= 0;
+	DGcolor	= 0;
+	DGshader = 0;
+	DGpix	= 0;
+	DGmapb	= 0;
+	DGd	= 0;
+	DGn	= 0;
+	DGm	= 0;
+	DGi	= 0;
+	DGrow	= 0;
+	DGval	= 0;
+
+	( the synthetic wrap battery )
+	FBwbp	= 0;
+	FBrow	= 0;
+	FBk	= 0;
+	FBpy	= 0;
+	FBpx	= 0;
+	FBsn	= 0;		( spot   naive nw index )
+	FBsm	= 0;		( spot   masked nw index )
+	FBcn	= 0;		( cirrus naive nw index )
+	FBcm	= 0;		( cirrus masked nw index )
+	FBwnd	= 0;		( cases whose masked index differs )
+	FBsdmin	= 0;		( spot   delta, min and max )
+	FBsdmax	= 0;
+	FBcdmin	= 0;		( cirrus delta, min and max )
+	FBcdmax	= 0;
+	FBmpok	= 0;
+
 "workspace"
 
 	riga	= 200;		( riga[c] = 320*c - a Noctis static )
-	ctclean	= 18;		( the CLEAN canary table, saved before injecting )
-	self	= 240;
+	self	= 256;
+	canary	= 44;		( 4 units x 11 pads - FBDUMP kind 6 v2 )
+	wrapb	= 2040;		( 6 units x NWCASE - FBDUMP kind 12 )
+	skyvec	= 512;		( two 256-unit windows of s_background )
 	fsamp	= NFRAME mtp 2;
 
 "programme"
@@ -148,6 +257,8 @@
 
 	=> TK seed;
 	=> MEM build rtab;
+	=> MEM build ztab;
+	=> MEM wrap reset;
 
 	( --- calibration bracket around real work: the residency touch
 	      makes the whole 1.61 MB workspace resident, which is the
@@ -160,12 +271,15 @@
 	=> FB quad battery;
 	=> FB txtr battery;
 	=> FB canary battery;
+	=> FB glyph battery;
 	=> MEM zero pads;
 	=> FB pvfile check;
+	=> FB wrap sites battery;
 
 	=> FB palette pinned;
 	=> FB riga build;
 	=> FB page build;
+	=> FB sky build;
 
 	[Display Live Region] = WHOLE DISPLAY;
 
@@ -175,7 +289,8 @@
 
 	[Display Live Region] = VOID REGION;
 
-	=> FB page build;
+	( NO page rebuild here.  The dump must record what the last
+	  present actually left behind, or S12 is invisible. )
 	=> FB dump;
 	end;
 
@@ -225,9 +340,7 @@
     "FB bb4"
 	( ONE ITEM PER UNIT.  Eight byte offsets, four of them inside a
 	  single would-be packed unit and three of them at the top of the
-	  workspace, each given a distinct value and each read back.
-	  A store that divided the offset by four would collide 0,1,2,3
-	  into one unit and this is where that shows. )
+	  workspace, each given a distinct value and each read back. )
 	[MBptr] = 0;      [MBval] = 11;  => MEM put byte;
 	[MBptr] = 1;      [MBval] = 22;  => MEM put byte;
 	[MBptr] = 2;      [MBval] = 33;  => MEM put byte;
@@ -256,6 +369,28 @@
 	? C = 0 -> FB bb6;
 	A = [FBbchk]; A | 32; [FBbchk] = A;
     "FB bb6"
+	( THE 16-BIT MASK, the class-A mechanism.  Eight cases: an offset
+	  inside the window, one exactly at the top, three that wrap by
+	  one, two and three windows, and the negative form the game
+	  actually produces - px = 65536-k stored to an unsigned. )
+	[SAsite] = SITESPAR;
+	[SAseg] = SPBG; [SAoff] = 0;     => MEM seg addr;
+	A = [SAnw]; A - SPBG; ? A != 0 -> FB bb u bad;
+	[SAseg] = SPBG; [SAoff] = 65535; => MEM seg addr;
+	A = [SAnw]; A - SPBG; A - 65535; ? A != 0 -> FB bb u bad;
+	[SAseg] = SPBG; [SAoff] = 65536; => MEM seg addr;
+	A = [SAnw]; A - SPBG; ? A != 0 -> FB bb u bad;
+	[SAseg] = SPBG; [SAoff] = 131075; => MEM seg addr;
+	A = [SAnw]; A - SPBG; A - 3; ? A != 0 -> FB bb u bad;
+	( 4294967295 is -1: the DOS unsigned holds 65535 )
+	[SAseg] = SPBG; [SAoff] = 4294967295; => MEM seg addr;
+	A = [SAnw]; A - SPBG; A - 65535; ? A != 0 -> FB bb u bad;
+	( and the mask itself, standing alone )
+	C = 131075; => MEM u16; A = C; A - 3; ? A != 0 -> FB bb u bad;
+	-> FB bb7;
+    "FB bb u bad"
+	A = [FBbchk]; A | 64; [FBbchk] = A;
+    "FB bb7"
 	end;
 
 ( ==================================================================== )
@@ -296,15 +431,6 @@
 ( ==================================================================== )
 ( battery 3 - every txtr base has a full 64 KiB window inside nw        )
 ( ==================================================================== )
-
-      ( txtr is not a buffer, it is a roving byte pointer, re-based onto
-	four allocations and slid by runtime byte amounts.  Under one
-	item per unit a byte slide IS a unit slide, so txtr is an int.
-	The texture unit builds its address in a 16-bit BX:
-	    texel = ((V>>8) AND 255)*256 + ((U>>8) AND 255)
-	so it can reach 65535 from any base.  That window must be inside
-	nw from every base the game uses, WITHOUT per-buffer padding -
-	that is what farmalloc order buys. )
 
 "FB txtr battery"
 	[FBtxchk] = 0;
@@ -372,47 +498,128 @@
 	end;
 
 ( ==================================================================== )
-( battery 4 - the pad canary, checked CLEAN first                       )
+( battery 4 - THE CANARY THAT CAN FAIL                                  )
 ( ==================================================================== )
 
+      ( FBDUMP kind 6 v1 was 18 units in which both the "expected" and
+	the "actual" field were 0xA5A5A5A5, written by construction on
+	BOTH sides.  The record carried no information about whether
+	either canary mechanism worked: a clean run and a stubbed check
+	produced a BIT-IDENTICAL dump, so "lino CANARY == the reference"
+	passed for a build with no canary in it.
+
+	v2 is 4 units per pad, 11 pads, 44 units, and NO LITERALS.  Every
+	unit is either read back out of the workspace or produced by the
+	walker, and the grader knows all four independently from the
+	layout:
+
+	  0  clean read : nw[padbase + slot] after poisoning
+	                  -> PGUARD if slot < 8, else PALLOW
+	  1  dirty read : the same address after storing WITNESS(i)
+	                  -> WITNESS(i)
+	  2  fired      : the PAD index + 1 the walker reported
+	                  -> i + 1
+	  3  at         : the nw offset of the first violation
+	                  -> padbase(i) + slot
+
+	  WITNESS(i) = 0xC0DE0000 + i     region-specific, so copy-pasting
+	                                  one answer fails
+	  slot(i)    = (7i + 1) mod 12    sweeps the pad
+
+	Four failure modes are separated: no poison (unit 0), a constant
+	"actual" (unit 1), a stubbed comparison (unit 2), the wrong
+	address or the wrong pad set (unit 3).
+
+	WHY mod 12 AND NOT mod 16.  Units +12..+15 of every SUB zone are
+	the region's segment offsets 0..3 and are therefore an ALLOWANCE,
+	not a guard - a violation probe there cannot fire BY DESIGN, and a
+	probe that expects it to fire would be asserting the guard model
+	is wrong.  slot = (7i+1) mod 12 over i = 0..10 yields
+	{1,8,3,10,5,0,7,2,9,4,11}: eleven distinct offsets out of the
+	twelve guarded ones, no two pads alike, and none of them an
+	allowance unit.  The +1 is not cosmetic: with slot(0) = 0 and
+	padbase(0) = 0 the "at" field would be 0 in both the clean and the
+	stubbed case. )
+
 "FB canary battery"
+	( the clean pass FIRST: a canary that always fires cannot pass )
 	=> MEM poison pads;
 	=> MEM check pads;
 	[FBclnf] = [MCfired];
 	[FBclnn] = [MCn];
-	( save the clean table: it is what gets dumped as kind 6 )
-	A = ctab; D = ctclean; B = 0; B + 18;
-    "FB cc save"
-	C = [A]; [D] = C; A+; D+;
-	B ^ FB cc save;
+	[FBclne] = [MCexp];
 
-	( now overrun n_globes_map by EXACTLY ONE unit )
-	A = nw; A + RNGLB; A + ZNGLB; [A] = 57005;
+	A = canary; [FBcp] = A;
+	[FBi] = 0;
+    "FB cb pad"
+	=> MEM poison pads;
+	A = [FBi]; A '* 7; A + 1; A '% 12; [FBslot] = A;
+	[MEMi] = [FBi]; => MEM pad base;
+	A = [MEMtmp]; A + [FBslot]; [FBoff] = A;
+	A = nw; A + [FBoff]; [FBap] = A;
+
+	A = [FBap]; C = [A];
+	D = [FBcp]; [D plus 0] = C;
+
+	( WITNESS(i) = 0xC0DE0000 + i + (clean read AND 15).
+	  The last term is what makes the DIRTY READ a read.  With a plain
+	  0xC0DE0000 + i the store value and the expected value are the
+	  same literal on both sides, so replacing the read-back with that
+	  literal produces a BIT-IDENTICAL dump - which is exactly the
+	  defect kind 6 v1 had, reproduced inside its own replacement.
+	  Measured: with the plain literal, sabotage S-CAN-CONSTACTUAL
+	  moved nothing at all.  Folding in four bits of the poison the
+	  walker itself wrote makes the witness role-dependent - 5 in a
+	  TAIL zone, 10 in a SUB zone - and a literal can no longer stand
+	  in for it.  The grader still knows the value from the layout
+	  alone, because it knows which zone the slot falls in. )
+	C = 3235774464; C + [FBi];
+	D = [FBcp]; D = [D plus 0]; D & 15; C + D;
+	A = [FBap]; [A] = C;
+
 	=> MEM check pads;
-	[FBdrtf] = [MCfired];
-	[FBdrtn] = [MCn];
-	[FBdrta] = [MCat];
+
+	A = [FBap]; C = [A];
+	D = [FBcp];
+	[D plus 1] = C;
+	[D plus 2] = [MCfired];
+	[D plus 3] = [MCat];
+
+	A = [FBcp]; A + 4; [FBcp] = A;
+	[FBi]+;
+	A = [FBi]; ? A '< NPAD -> FB cb pad;
+	end;
+
+( ==================================================================== )
+( battery 5 - the EXPECTATION side: digit_at's six legitimate units     )
+( ==================================================================== )
+
+      ( digit_at writes txtr[-6..-1] with txtr = p_surfacemap
+	(NOCTIS.CPP:614-628), landing at nw[170,550..170,555] - which is
+	SUB+2..+7 of pad 5.  Under the old single-magic model that fired
+	the canary and halted, so the first cockpit glyph in a debug build
+	was indistinguishable from a buffer overrun.
+
+	Now it is COUNTED.  A build that never performs the legitimate
+	write FAILS this check, and so does one that writes the wrong
+	units - which is a value derived from what the programme did, not
+	written by construction on both sides. )
+
+"FB glyph battery"
+	=> MEM poison pads;
+	=> FB font build;
+	=> FB psm clear;
+	[DGdigit] = DIGA; [DGcolor] = DIGCOL; [DGshader] = DIGSHAD;
+	=> FB digit at;
+	=> MEM check pads;
+	[FBgexp] = [MCexp];		( must be 6 )
+	[FBgfir] = [MCfired];		( must be 0 - no VIOLATION )
+	[FBgn]   = [MCn];		( must be 0 )
 	end;
 
 ( ==================================================================== )
 ( the pvfile arena, LINOBUF alias 9                                     )
 ( ==================================================================== )
-
-      ( pvfile_x[h] = (float far *)(pvfile + datatop) where datatop has
-	advanced by 1*npolygs - a float array at a byte offset that is
-	not a multiple of 4 whenever npolygs mod 4 is not 0.  Unit
-	addressing cannot express that, so the arena is RE-LAID OUT with
-	every sub-array unit-aligned.  Observationally equivalent only
-	if nothing outside loadpv/unloadpv reads pvfile as raw bytes.
-
-	What is checked here is the thing the re-layout could break: that
-	16 handles worth of unit-aligned sub-arrays still fit in the
-	20480 units the original arena had.  Per polygon the original
-	stores 50 bytes: 4 float triples (48) plus 1 class byte plus 1
-	texture byte.  Unit-aligned that is 50 units per polygon, so the
-	arena holds the same 409 polygons it always did, and the ONLY
-	thing that changed is that a sub-array boundary is now a unit
-	boundary.  Aligning changes no size, which is the point. )
 
 "FB pvfile check"
 	A = ZPVF; A '/ 50;		( polygons the arena holds )
@@ -426,69 +633,201 @@
 	end;
 
 ( ==================================================================== )
-( the pinned palette state                                             )
+( battery 6 - the synthetic class-A wrap battery                        )
+( ==================================================================== )
+
+      ( For each case: py = 360*row, px either 65536-k (the wrapping
+	form the generator actually produces) or a small control.
+
+	  spot   naive  = RPBG + (py + px)                 32-bit
+	         masked = SPBG + ((4 + py + px) AND 65535)
+	  cirrus naive  = ROBJ + ((py + px) > 1)           32-bit
+	         masked = SOBJ + (((((py+px) AND 65535) > 1) + 4) AND 65535)
+
+	The two masks are applied at DIFFERENT points and the failure
+	deltas therefore differ - 65,536 for spot, 32,768 for cirrus.  A
+	single "mask the final index" helper would halve cirrus's error
+	and still be wrong, which is what makes S-MASK-CIRRUS-ADDR a
+	catchable sabotage rather than a no-op.
+
+	The containment assertion runs on every masked address: it must
+	lie between base - 8 and base + size - 1, the union of the region
+	and its SUB zone, because a masked offset of 0..3 lands on the
+	segment origin, which is SUB+4..+7.                              )
+
+"FB wrap sites battery"
+	A = wrapb; [FBwbp] = A;
+	[FBwnd] = 0;
+	[FBsdmin] = 0; ! [FBsdmin]; [FBsdmax] = 0;
+	[FBcdmin] = 0; ! [FBcdmin]; [FBcdmax] = 0;
+	[FBrow] = 0;
+    "FB wb row"
+	=> FB wrap row py;
+	[FBk] = 1;
+    "FB wb wrap"
+	A = 65536; A - [FBk]; [FBpx] = A;
+	=> FB wrap one;
+	[FBk]+;
+	A = [FBk]; ? A '<= NWWRAP -> FB wb wrap;
+	[FBk] = 0;
+    "FB wb ctl"
+	A = 100; A + [FBk]; [FBpx] = A;
+	=> FB wrap one;
+	[FBk]+;
+	A = [FBk]; ? A '< NWCTL -> FB wb ctl;
+	[FBrow]+;
+	A = [FBrow]; ? A '< NWROW -> FB wb row;
+	end;
+
+      ( the five rows, by name.  0, 1 and 2 are the top of the map where
+	a negative px folds to the row above; 100 and 179 are mid-map and
+	the last row. )
+
+"FB wrap row py"
+	A = [FBrow];
+	? A = 0 -> FB wr 0;
+	? A = 1 -> FB wr 1;
+	? A = 2 -> FB wr 2;
+	? A = 3 -> FB wr 3;
+	[FBpy] = 64440; end;		( 179 * 360 )
+    "FB wr 0"
+	[FBpy] = 0; end;
+    "FB wr 1"
+	[FBpy] = 360; end;
+    "FB wr 2"
+	[FBpy] = 720; end;
+    "FB wr 3"
+	[FBpy] = 36000; end;		( 100 * 360 )
+
+"FB wrap one"
+	( --- spot : the truncation point IS the 16-bit DI, after both
+	      adds, so the mask and the counter sit at the same place --- )
+	A = [FBpy]; A + [FBpx]; A + RPBG; [FBsn] = A;
+	[SAsite] = SITESPOT;
+	C = [FBpy]; C + [FBpx]; C + 4;
+	=> MEM u16 site;
+	[SAseg] = SPBG; [SAoff] = C;
+	=> MEM seg addr;
+	[FBsm] = [SAnw];
+	A = RPBG; A - ZHALF; [SAlo] = A;
+	A = RPBG; A + ZPBG;  [SAhi] = A;
+	=> MEM seg check;
+
+	( --- cirrus : the truncation point is BX, BEFORE the shift.  Mask
+	      the FINAL index instead and the error halves from 65,536 to
+	      32,768 - which is sabotage S-MASK-CIRRUS-ADDR, and it is
+	      catchable exactly because the two deltas differ. --- )
+	A = [FBpy]; A + [FBpx]; A > 1; A + ROBJ; [FBcn] = A;
+	[SAsite] = SITECIRR;
+	C = [FBpy]; C + [FBpx];
+	=> MEM u16 site;
+	C > 1; C + 4;
+	[SAseg] = SOBJ; [SAoff] = C;
+	=> MEM seg addr;
+	[FBcm] = [SAnw];
+	A = ROBJ; A - ZHALF; [SAlo] = A;
+	A = ROBJ; A + ZOBJ;  [SAhi] = A;
+	=> MEM seg check;
+
+	( --- record, and track the deltas --- )
+	A = [FBwbp];
+	[A plus 0] = [FBpy];
+	[A plus 1] = [FBpx];
+	[A plus 2] = [FBsn];
+	[A plus 3] = [FBsm];
+	[A plus 4] = [FBcn];
+	[A plus 5] = [FBcm];
+	A + 6; [FBwbp] = A;
+
+	A = [FBsn]; A - [FBsm];
+	? A = 0 -> FB wo nospot;
+	[FBwnd]+;
+	? A '< [FBsdmin] -> FB wo sl;
+	-> FB wo sh;
+    "FB wo sl"
+	[FBsdmin] = A;
+    "FB wo sh"
+	? A '> [FBsdmax] -> FB wo sx;
+	-> FB wo nospot;
+    "FB wo sx"
+	[FBsdmax] = A;
+    "FB wo nospot"
+	A = [FBcn]; A - [FBcm];
+	? A = 0 -> FB wo done;
+	? A '< [FBcdmin] -> FB wo cl;
+	-> FB wo ch;
+    "FB wo cl"
+	[FBcdmin] = A;
+    "FB wo ch"
+	? A '> [FBcdmax] -> FB wo cx;
+	-> FB wo done;
+    "FB wo cx"
+	[FBcdmax] = A;
+    "FB wo done"
+	end;
+
+( ==================================================================== )
+( the pinned palette state - SCENARIO "surface"                        )
 ( ==================================================================== )
 
 "FB palette pinned"
+	( step 1 )
 	=> PAL zero;
 	=> PAL range;
 
-	( S1 : NOCTIS.CPP:2221 )
+	( step 2 : tavola(range8088, 0, 64, 16, 32, 63) )
 	A = range8088; [PVsrc] = A; [PVself] = 0;
 	[PVfirst] = 0; [PVn] = 64;
 	[PVfr] = 16; [PVfg] = 32; [PVfb] = 63;
 	=> PAL tavola;
 
-	( S2-S5 : the surface_palette ramp, NOCTIS-0.CPP:5180-5183 )
-	[SHfirst] = 192; [SHn] = 16;
-	[FBsr] = 0;  [FBsg] = 0;  [FBsb] = 0;
-	[FBer] = 4;  [FBeg] = 2;  [FBeb] = 1;   => FB shade i;
-	[SHfirst] = 208; [SHn] = 16;
-	[FBsr] = 4;  [FBsg] = 2;  [FBsb] = 1;
-	[FBer] = 24; [FBeg] = 18; [FBeb] = 12;  => FB shade i;
-	[SHfirst] = 224; [SHn] = 16;
-	[FBsr] = 24; [FBsg] = 18; [FBsb] = 12;
-	[FBer] = 60; [FBeg] = 55; [FBeb] = 50;  => FB shade i;
-	[SHfirst] = 240; [SHn] = 16;
-	[FBsr] = 60; [FBsg] = 55; [FBsb] = 50;
-	[FBer] = 64; [FBeg] = 64; [FBeb] = 64;  => FB shade i;
-
-	( S6 : NOCTIS-0.CPP:5193 - the SELF-COPY.  Uploads 0..255. )
-	[PVself] = 1; [PVfirst] = 192; [PVn] = 64;
-	[PVfr] = 50; [PVfg] = 50; [PVfb] = 50;
-	=> PAL tavola;
-
-	( S7 : rewrites pal6 colours 0..63 and uploads NOTHING.
-	  This is what makes the upload-from-zero rule observable. )
+	( step 3 : shade(pal6, 0, 64, 0,0,0, 63,63,63) - uploads NOTHING.
+	  delta = 63/64 = 0.984375 exactly, so chop and round disagree at
+	  the very first step. )
+	A = pal6; [SHdstb] = A;
 	[SHfirst] = 0; [SHn] = 64;
 	[FBsr] = 0;  [FBsg] = 0;  [FBsb] = 0;
 	[FBer] = 63; [FBeg] = 63; [FBeb] = 63;  => FB shade i;
 
-	( S8-S10 : the sky band, three shades with a non-dyadic k )
-	[SHfirst] = 64; [SHn] = 24;
-	[FBsr] = 0;  [FBsg] = 0;  [FBsb] = 0;
-	[FBer] = 24; [FBeg] = 31; [FBeb] = 40;  => FB shade i;
-	[SHfirst] = 88; [SHn] = 16;
-	[FBsr] = 24; [FBsg] = 31; [FBsb] = 40;
-	[FBer] = 48; [FBeg] = 52; [FBeb] = 56;  => FB shade i;
-	[SHfirst] = 104; [SHn] = 24;
-	[FBsr] = 48; [FBsg] = 52; [FBsb] = 56;
-	[FBer] = 63; [FBeg] = 63; [FBeb] = 63;  => FB shade i;
+	( step 4 : tavola(SELF, 192, 64, 50,50,50) - the self-copy )
+	[PVself] = 1; [PVfirst] = 192; [PVn] = 64;
+	[PVfr] = 50; [PVfg] = 50; [PVfb] = 50;
+	=> PAL tavola;
 
-	( S11 : NOCTIS.CPP:3777's shape - SELF, band 64..127.
-	  Uploads colours 0..127 and leaves 128..255 stale. )
-	[PVself] = 1; [PVfirst] = 64; [PVn] = 64;
+	( step 5 : tavola(range8088, 64, 64, 60,55,50) - upload from ZERO.
+	  curpal6 below component 3*first is what separates "upload the
+	  band" from "upload from colour zero". )
+	A = range8088; [PVsrc] = A; [PVself] = 0;
+	[PVfirst] = 64; [PVn] = 64;
 	[PVfr] = 60; [PVfg] = 55; [PVfb] = 50;
 	=> PAL tavola;
 
-	( S12 : rewrites pal6 colours 128..191 and uploads NOTHING, so the
-	  CLEAN build itself carries a visible stale band - record 3 and
-	  record 4 differ over exactly those 64 colours.  Without it the
-	  upload-from-zero rule would only be visible by comparing two
-	  builds; with it, one dump demonstrates it. )
-	[SHfirst] = 128; [SHn] = 64;
-	[FBsr] = 0;  [FBsg] = 0;  [FBsb] = 0;
-	[FBer] = 63; [FBeg] = 63; [FBeb] = 63;  => FB shade i;
+	( step 6 : shade(pal6, 160, 16, 19.5,24.75,33.0, 66.25,-2.5,48.125)
+	  - the clamp's saturation values.  66.25 saturates to 63 and -2.5
+	  to 0, through the original's INVERTED else branch. )
+	A = pal6; [SHdstb] = A;
+	[SHfirst] = 160; [SHn] = 16;
+	[PFnum] = 39;  [PFden] = 2; => PAL f32 make; [SHsr] = [PFbits];
+	[PFnum] = 99;  [PFden] = 4; => PAL f32 make; [SHsg] = [PFbits];
+	[PFnum] = 33;  [PFden] = 1; => PAL f32 make; [SHsb] = [PFbits];
+	[PFnum] = 265; [PFden] = 4; => PAL f32 make; [SHer] = [PFbits];
+	[PFnum] = 0; [PFnum] - 5; [PFden] = 2; => PAL f32 make; [SHeg] = [PFbits];
+	[PFnum] = 385; [PFden] = 8; => PAL f32 make; [SHeb] = [PFbits];
+	=> PAL shade;
+
+	( step 7 : tavola(SELF, 0, 256, 200, 64, 64).
+	  200 as a signed char is -56.  temp is a 16-bit UNSIGNED, so the
+	  product goes round mod 65536, the divide is unsigned, and the
+	  "> 63" test never sees a negative - every non-zero component
+	  clamps to 63.  [PVrange] records that a filter was outside
+	  0..127 rather than trusting that none was. )
+	[PVself] = 1; [PVfirst] = 0; [PVn] = 256;
+	[PVfr] = 200; [PVfg] = 64; [PVfb] = 64;
+	=> PAL tavola;
+
+	( step 8 : rebuild the LUT from curpal6 - the v*4 choice )
+	[PLfirst] = 0; [PLn] = 256;
+	=> PAL lut;
 	end;
 
       ( FB shade i : shade() with integer-valued float arguments. )
@@ -505,7 +844,111 @@
 	end;
 
 ( ==================================================================== )
-( the pages                                                             )
+( the font, and digit_at                                                )
+( ==================================================================== )
+
+      ( digimap2 is loaded from disk in the game (load_digimap2,
+	NOCTIS-0.CPP:6094).  There is no font file here, so the fixture
+	pins it arithmetically - one line, reproducible by any
+	implementation:
+
+	    digimap2[j] = (j * 2654435761) mod 2^32,  j = 0..2339
+
+	2,340 = 65 glyphs x 36 rows, which is what (digit-32)*36 + 35
+	reaches for digit = 96.  Knuth's multiplicative constant is used
+	because roughly half its bits are set at every j, so both branches
+	of the "digimap2[n+d] AND pp[m]" test are exercised on every row.
+	pp[m] is 1 << m, NOCTIS.CPP:581-588. )
+
+"FB font build"
+	A = digimap2; C = 0; B = 0; B + 2340;
+    "FB fnt loop"
+	D = C; D '* 2654435761;
+	[A] = D; A+; C+;
+	B ^ FB fnt loop;
+	end;
+
+"FB psm clear"
+	A = nw; A + RPSM; B = 0; B + ZPSM; C = 0;
+    "FB psm loop"
+	[A] = C; A+;
+	B ^ FB psm loop;
+	end;
+
+      ( FB digit at : NOCTIS.CPP:614-628, the texture-building half.
+	The polymap call that follows it in the original is a renderer and
+	is out of Wave 5's scope; everything that writes memory is here.
+
+	    if (digit>32 && digit<=96) {
+	        txtr = p_surfacemap;
+	        d = (digit - 32) * 36;
+	        for (n = 0; n < 36; n++) {
+	            i = 256 * n - 5;
+	            txtr[i-1] = 0;
+	            for (m = 0; m < 32; m++) {
+	                if (digimap2[n+d] & pp[m]) txtr[i] = pixel_color;
+	                else                       txtr[i] = 0;
+	                i++; }
+	            if (shader) pixel_color--; }
+	        txtr[256 * 36 - 6] = 0;
+
+	THE LOOP STARTS AT n = 0.  niv-lr changed it to n = 1 after
+	Valgrind complained (noctis.cpp:643-646, "I just blindly changed
+	this loop to start at one.  It probably breaks things...") and it
+	does: it silently drops the top scanline of every cockpit glyph.
+	At n = 0 the writes at i-1 = -6 and i = -5..-1 land six units
+	BELOW p_surfacemap, in pad 5's SUB zone, which is exactly why that
+	zone is an allowance and not a guard. )
+
+"FB digit at"
+	A = [DGdigit]; ? A '<= 32 -> FB dg done;
+	A = [DGdigit]; ? A '> 96 -> FB dg done;
+	C = [DGcolor]; C & 255; C '% 64; [DGpix] = C;
+	C = [DGcolor]; C & 255; C > 6; C < 6; [DGmapb] = C;
+	A = [DGdigit]; A - 32; A '* 36; [DGd] = A;
+	[DGn] = 0;
+    "FB dg n"
+	A = [DGn]; A '* 256; A - 5; [DGi] = A;
+	( txtr[i-1] = 0 - "evita aliasing a fine scanline" )
+	A = [DGi]; A - 1; [DGval] = 0; => FB txtr put;
+	A = [DGn]; A + [DGd]; A + digimap2; [DGrow] = [A];
+	[DGm] = 0;
+    "FB dg m"
+	C = [DGrow]; B = 1; D = [DGm]; B < D; C & B;
+	? C != 0 -> FB dg on;
+	[DGval] = 0; -> FB dg st;
+    "FB dg on"
+	[DGval] = [DGpix];
+    "FB dg st"
+	A = [DGi]; => FB txtr put;
+	[DGi]+;
+	[DGm]+;
+	A = [DGm]; ? A '< 32 -> FB dg m;
+	A = [DGshader]; ? A = 0 -> FB dg nosh;
+	[DGpix]-;
+    "FB dg nosh"
+	[DGn]+;
+	A = [DGn]; ? A '< 36 -> FB dg n;
+	( txtr[256*36 - 6] = 0 - "evita aliasing a fine matrice" )
+	A = 9210; [DGval] = 0; => FB txtr put;
+    "FB dg done"
+	end;
+
+      ( FB txtr put : txtr[A] = [DGval], txtr = p_surfacemap.
+	A is SIGNED - the whole point is that it reaches -6.  This is a
+	class-B write: outside the buffer, never read back, and it lands
+	on the neighbour DOS gave it, so the mask of class A does not
+	apply and must not be used here. )
+
+"FB txtr put"
+	A + RPSM;
+	[MBptr] = A;
+	[MBval] = [DGval];
+	=> MEM put byte;
+	end;
+
+( ==================================================================== )
+( the pages - SCENARIO "page"                                          )
 ( ==================================================================== )
 
 "FB riga build"
@@ -516,9 +959,13 @@
 	end;
 
 "FB page build"
-	( pclear(adapted, 0) over the FULL SEGMENT.  sc_bytes is 65540,
-	  not 64000, because mask_pixels wraps a 16-bit DI past 65535 -
-	  class A, kept faithful rather than clamped. )
+	( G0/G1 : pclear over the FULL SEGMENT, 65,540 units each.
+	  adapted's 65,540 stands on NOCTIS-D.H:50-54 and sc_bytes;
+	  adaptor's stands on the A000 segment being exactly 65,536 units
+	  wide, so every masked address in it is a legal store to real
+	  VRAM.  Required 65,536, delivered 65,540, 4 units slack - and
+	  NOT, as the old text said, because mask_pixels wraps DI, which
+	  it does not. )
 	A = nw; A + RADPT; B = 0; B + ZADPT; C = 0;
     "FB pb c1"
 	[A] = C; A+;
@@ -528,32 +975,70 @@
 	[A] = C; A+;
 	B ^ FB pb c2;
 
+	( G3 )
 	=> FB draw;
 
-	( tinta and escrescenze - polymap's two scratch bytes, TDPOLYGS.H.
-	  Under farmalloc offset == 4 they are VISIBLE PIXELS: row 199,
-	  columns 316 and 317.  niv-lr relocated them to 64000, outside
-	  the page.  LINOBUF alias 8 keeps them where the original put
-	  them and requires the test to REJECT the LR variant, which is
-	  what fbbreak8 is.  This is the whole of alias 8 that Wave 5 can
-	  express: two stores, in the right place. )
+	( G4 : mask_pixels at the STEADY QUADWORDS )
+	A = RADPT; [MPbase] = A; [MPmaskv] = MPMASK;
+	=> FB mask pixels;
+
+	( G5 : tinta and escrescenze - polymap's two scratch bytes,
+	  TDPOLYGS.H.  Under farmalloc offset == 4 they are VISIBLE
+	  PIXELS: row 199, columns 316 and 317.  niv-lr relocated them to
+	  64,000, outside the page.  LINOBUF alias 8 keeps them where the
+	  original put them and requires the test to REJECT the LR
+	  variant. )
 	A = nw; A + RADPT; A + 63996;
 	[A plus 0] = 17;
 	[A plus 1] = 34;
 
-	( pcopy(adaptor, adapted) : index -> index, both pages real )
+	( G6 : pcopy(adaptor, adapted) : index -> index, both pages real )
 	D = nw; D + RADPT; E = nw; E + RADPR; A = 0; A + NPIX;
     "FB pb copy"
 	C = [D]; [E] = C; D+; E+;
 	A ^ FB pb copy;
 
-	( vanilla's type-9 substellar case writes the VISIBLE page.
+	( G7 : vanilla's type-9 substellar case writes the VISIBLE page.
 	  Do not optimise adaptor away. )
 	A = nw; A + RADPR; A + [riga plus 100]; A + 128;
 	B = 0; B + 64; C = 255;
     "FB pb poke"
 	[A] = C; A+;
 	B ^ FB pb poke;
+	end;
+
+      ( FB mask pixels : NOCTIS-0.CPP:691-710, one byte per unit.
+
+	    mov cx, QUADWORDS
+	    lds di, target
+	  mloop:
+	    and dword ptr [di], 0x3F3F3F3F
+	    add dword ptr [di], mask*0x01010101
+	    add di, 4 ; dec cx ; jnz mloop
+
+	QUADWORDS is 14,560, not the declaration's 16,000, so this covers
+	adapted[0..58,239] = 182 rows and leaves rows 182..199 alone.
+
+	PRECONDITION, checked rather than assumed: the DOS code adds a
+	replicated DWORD, so (v AND 63) + mask must stay under 256 or a
+	byte would carry into its neighbour.  mask <= 192 guarantees it.
+
+	This site is class A in the old audit ("mask_pixels wraps DI").
+	IT DOES NOT.  di runs from offset(target) = 4 to 4 + 4*(14560-1) =
+	58,240 and never reaches 65,536.  The routine is idempotent
+	anyway.  No mask here, and none is needed. )
+
+"FB mask pixels"
+	[FBmpok] = 1;
+	A = [MPmaskv]; ? A '<= 192 -> FB mp fits;
+	[FBmpok] = 0;
+    "FB mp fits"
+	D = nw; D + [MPbase];
+	C = [MPmaskv]; C & 255; [FBtmp] = C;
+	B = 0; B + QWSTEADY; B '* 4;
+    "FB mp loop"
+	C = [D]; C & 63; C + [FBtmp]; [D] = C; D+;
+	B ^ FB mp loop;
 	end;
 
       ( FB draw : adapted[riga[y]+x] = (x*y + x + y) AND 255.
@@ -563,9 +1048,7 @@
 "FB draw"
 	( [FBy] is private to this routine.  It must NOT be the shell's
 	  general loop counter: FB draw runs inside FB frame, which runs
-	  inside the frame battery and the soak, and a shared counter
-	  makes the outer loop count the renderer's rows instead of its
-	  own frames. )
+	  inside the frame battery and the soak. )
 	[FBy] = 0;
     "FB dr y"
 	A = [FBy]; A + riga; A = [A];
@@ -579,27 +1062,52 @@
 	A = [FBy]; ? A '< 200 -> FB dr y;
 	end;
 
+      ( FB sky build : G9.  s_background gets a pinned content and then
+	ONE pass of the colour cycle.  The first dumped window covers all
+	256 possible byte values, so the arithmetic is graded completely;
+	the last window shows the pass reached the end of the 64,800-byte
+	buffer rather than stopping at 64,000. )
+
+"FB sky build"
+	A = nw; A + RSBG; C = 0; B = 0; B + ZSBG;
+    "FB sky fill"
+	D = C; D & 255; [A] = D; A+; C+;
+	B ^ FB sky fill;
+	=> PAL cycle;
+	A = nw; A + RSBG; D = skyvec; B = 0; B + SKYWIN;
+    "FB sky w0"
+	C = [A]; [D] = C; A+; D+;
+	B ^ FB sky w0;
+	A = nw; A + RSBG; A + ZSBG; A - SKYWIN;
+	D = skyvec; D + SKYWIN; B = 0; B + SKYWIN;
+    "FB sky w1"
+	C = [A]; [D] = C; A+; D+;
+	B ^ FB sky w1;
+	end;
+
 ( ==================================================================== )
 ( the present path                                                      )
 ( ==================================================================== )
 
-      ( FB expand : adaptor -> fb through pal, unrolled four ways, with
-	Noctis's per-frame background colour cycle FUSED in.  Fusing is
-	worth 22%; unrolling is worth 12%; pre-biasing the index buffer
-	is worth nothing measurable and would destroy the byte semantics
-	the cycle depends on, so it is not done. )
+      ( FB expand : adaptor -> fb through pal, unrolled four ways.
+
+	IT IS READ-ONLY ON THE INDEX PAGE.  LINOBUF section 5.4 directed
+	that Noctis's background colour cycle be FUSED in here, for a
+	measured 22%.  BUFFERMODEL section 7 overrules it: the loop is
+	real (NOCTIS.CPP:3779-3784) but it cycles s_background - a
+	64,800-byte OFFSCREEN map - inside the sky-palette redefinition
+	path.  It is not the visible page and it does not run once per
+	present.  Fused, it corrupts every visible unit on every present.
+	"PAL cycle" is the separate pass, and reinstating the fusion is
+	sabotage S12. )
 
 "FB expand"
 	D = nw; D + RADPR; E = fb; A = 0; A + NQUAD;
     "FB ex loop"
-	C = [D];	 B = C; B & 192; C + 1; C & 63; C + B; [D] = C;
-			 C + pal; C = [C]; [E] = C;
-	C = [D plus 1];  B = C; B & 192; C + 1; C & 63; C + B; [D plus 1] = C;
-			 C + pal; C = [C]; [E plus 1] = C;
-	C = [D plus 2];  B = C; B & 192; C + 1; C & 63; C + B; [D plus 2] = C;
-			 C + pal; C = [C]; [E plus 2] = C;
-	C = [D plus 3];  B = C; B & 192; C + 1; C & 63; C + B; [D plus 3] = C;
-			 C + pal; C = [C]; [E plus 3] = C;
+	C = [D];	 C + pal; C = [C]; [E] = C;
+	C = [D plus 1];  C + pal; C = [C]; [E plus 1] = C;
+	C = [D plus 2];  C + pal; C = [C]; [E plus 2] = C;
+	C = [D plus 3];  C + pal; C = [C]; [E plus 3] = C;
 	D + 4; E + 4;
 	A ^ FB ex loop;
 	end;
@@ -617,7 +1125,7 @@
 	end;
 
 ( ==================================================================== )
-( battery 5 - what a frame costs, at the real working set               )
+( battery 7 - what a frame costs, at the real working set               )
 ( ==================================================================== )
 
 "FB frame battery"
@@ -644,7 +1152,7 @@
 	end;
 
 ( ==================================================================== )
-( battery 6 - the wait predicate, across the wrap                       )
+( battery 8 - the wait predicate, across the wrap                       )
 ( ==================================================================== )
 
       ( [Counts] wraps about every 477 s, so the difference between a
@@ -714,12 +1222,7 @@
 
 	=> TK step;
 
-	( input.  There is no window-close event; ESC is the only exit.
-	  Tested against the OFF tag because that is the documented idiom
-	  (14_LUCK_table_lookup.txt:99-112 does the same).  MEASURED, so
-	  that the next reader does not have to wonder: the raw value of
-	  [KEY ESCAPE] with the key up is 0 on this runtime, and it is
-	  dumped as luck_raw rather than assumed. )
+	( input.  There is no window-close event; ESC is the only exit. )
 	A = [KEY ESCAPE]; [FBraw] = A;
 	? A = OFF -> FB sk noesc;
 	[FBesc] = 1;
@@ -736,7 +1239,7 @@
 	end;
 
 ( ==================================================================== )
-( the dump                                                             )
+( the dump - FBDUMP v2, every record TAGGED                             )
 ( ==================================================================== )
 
 "FB dump"
@@ -744,46 +1247,62 @@
 	[DCpms]  = [TKcpms];
 	[DTicks] = [TKticks];
 
-	( 0 : the layout, straight out of the table the code uses )
-	[DKind] = KLAY; [DW] = 0; [DH] = 0;
+	[DKind] = KLAY; [DTag] = TLAY; [DW] = 0; [DH] = 0;
 	A = rtab; [DBptr] = A; [DBcnt] = 36; => DMP rec;
 
-	( 1 : the CLEAN canary check )
-	[DKind] = KCAN;
-	A = ctclean; [DBptr] = A; [DBcnt] = 18; => DMP rec;
+	[DKind] = KZONE; [DTag] = TZONE;
+	A = ztab; [DBptr] = A; [DBcnt] = 88; => DMP rec;
 
-	( 2 : self-checks )
+	[DKind] = KCAN; [DTag] = TCAN;
+	A = canary; [DBptr] = A; [DBcnt] = 44; => DMP rec;
+
 	=> FB build self;
-	[DKind] = KSELF;
+	[DKind] = KSELF; [DTag] = TSELF;
 	A = self; [DBptr] = A; [DBcnt] = NSELF; => DMP rec;
 
-	( 3 : pal6, the master )
-	[DKind] = KPAL6;
+	[DKind] = KPAL6; [DTag] = TPAL6;
 	A = pal6; [DBptr] = A; [DBcnt] = 768; => DMP rec;
 
-	( 4 : curpal6, what was uploaded - the DAC )
-	[DKind] = KPAL6;
+	[DKind] = KPAL6; [DTag] = TCURP;
 	A = curpal6; [DBptr] = A; [DBcnt] = 768; => DMP rec;
 
-	( 5 : the LUT )
-	[DKind] = KLUT;
+	[DKind] = KPAL6; [DTag] = TSRFP;
+	A = srfpal6; [DBptr] = A; [DBcnt] = 768; => DMP rec;
+
+	[DKind] = KLUT; [DTag] = TLUT;
 	A = pal; [DBptr] = A; [DBcnt] = 256; => DMP rec;
 
-	( 6 : adapted, the hidden page - what snapshot() writes )
-	[DKind] = KPAGE; [DW] = 320; [DH] = 200;
+	( adapted, the hidden page - what snapshot() writes )
+	[DKind] = KPAGE; [DTag] = TADPT; [DW] = 320; [DH] = 200;
 	A = nw; A + RADPT; [DBptr] = A; [DBcnt] = NPIX; => DMP rec;
 
-	( 7 : adaptor, the visible page - what DOSBox captures )
-	[DKind] = KPAGE;
+	( adaptor, the visible page - what DOSBox captures, and what the
+	  present path is forbidden to touch )
+	[DKind] = KPAGE; [DTag] = TADPR;
 	A = nw; A + RADPR; [DBptr] = A; [DBcnt] = NPIX; => DMP rec;
 
-	( 8 : raw frame costs )
-	[DKind] = KFRM; [DW] = 0; [DH] = 0;
-	A = fsamp; [DBptr] = A; C = NFRAME; C + C; [DBcnt] = C; => DMP rec;
+	( the glyph plane, 256 x 36 )
+	[DKind] = KPAGE; [DTag] = TGLYPH; [DW] = GLYPHW; [DH] = GLYPHH;
+	A = nw; A + RPSM; [DBptr] = A; [DBcnt] = GLYPHN; => DMP rec;
 
-	( 9 : the RAW tick log )
-	[DKind] = KTICK;
+	( two windows of s_background, after one colour cycle )
+	[DKind] = KPAGE; [DTag] = TSKY; [DW] = SKYWIN; [DH] = 2;
+	A = skyvec; [DBptr] = A; C = SKYWIN; C + C; [DBcnt] = C; => DMP rec;
+
+	[DKind] = KWCNT; [DTag] = TWCNT; [DW] = 0; [DH] = 0;
+	A = wtab; [DBptr] = A; C = NSITE; C '* 3; [DBcnt] = C; => DMP rec;
+
+	[DKind] = KWRAPB; [DTag] = TWRAPB;
+	A = wrapb; [DBptr] = A; C = NWCASE; C '* 6; [DBcnt] = C; => DMP rec;
+
+	[DKind] = KSRVL; [DTag] = TSRVL;
+	A = tsrvlog; [DBptr] = A; C = [TKsrvlogn]; C '* 3; [DBcnt] = C; => DMP rec;
+
+	[DKind] = KTICK; [DTag] = TTICK;
 	A = tlog; [DBptr] = A; C = [TKlogn]; C * 3; [DBcnt] = C; => DMP rec;
+
+	[DKind] = KFRM; [DTag] = TFRM;
+	A = fsamp; [DBptr] = A; C = NFRAME; C + C; [DBcnt] = C; => DMP rec;
 
 	=> DMP write;
 	end;
@@ -796,9 +1315,9 @@
 	[self plus 4]  = [FBtxmax];
 	[self plus 5]  = [FBclnf];
 	[self plus 6]  = [FBclnn];
-	[self plus 7]  = [FBdrtf];
-	[self plus 8]  = [FBdrtn];
-	[self plus 9]  = [FBdrta];
+	[self plus 7]  = [FBclne];
+	[self plus 8]  = [FBgexp];
+	[self plus 9]  = [FBgfir];
 	[self plus 10] = [FBwrapf];
 	[self plus 11] = [FBwrapn];
 	[self plus 12] = [TKcpms0];
@@ -821,11 +1340,45 @@
 	[self plus 29] = QWSTEADY;
 	[self plus 30] = NWTOP;
 	[self plus 31] = [FBkey];	( last ASCII from the console FIFO )
-	A = self; A + 32; D = tsrvlog; B = 0; B + 16;
-    "FB bs srv"
-	C = [D]; [A] = C; A+; D+;
-	B ^ FB bs srv;
-	A = self; A + 48; D = range8088; B = 0; B + PALRN;
+
+	( the Wave 5-corrective words )
+	[self plus 32] = [TKcalwhy];
+	[self plus 33] = [TKsrvlogn];
+	[self plus 34] = [TKsrvovf];
+	[self plus 35] = [TKsrvfire];
+	[self plus 36] = [TKwallday];
+	[self plus 37] = SERVON;
+	[self plus 38] = SRVMIN;
+	[self plus 39] = SRVMAX;
+	[self plus 40] = [FBgn];
+	[self plus 41] = [MCoob];
+	[self plus 42] = [MCoobat];
+	[self plus 43] = [FBwnd];
+	[self plus 44] = [FBsdmin];
+	[self plus 45] = [FBsdmax];
+	[self plus 46] = [FBcdmin];
+	[self plus 47] = [FBcdmax];
+	[self plus 48] = [FBmpok];
+	[self plus 49] = NWCASE;
+	[self plus 50] = NZONE;
+	[self plus 51] = NPAD;
+	[self plus 52] = SPBG;
+	[self plus 53] = SOBJ;
+	[self plus 54] = SADPT;
+	[self plus 55] = SADPR;
+	( the unshifted objectschart window top: SOBJ + 65535 = 276,103,
+	  which is 5,020 units INTO adapted.  Containment for cirrus holds
+	  only because of its shr bx,1, not because of the mask. )
+	[self plus 56] = 276103;
+	[self plus 57] = [MCfired];
+	[self plus 58] = [MCn];
+	[self plus 59] = [MCexp];
+	[self plus 60] = MPMASK;
+	[self plus 61] = DIGA;
+	[self plus 62] = DIGCOL;
+	[self plus 63] = [TKcalseed];
+
+	A = self; A + 64; D = range8088; B = 0; B + PALRN;
     "FB bs loop"
 	C = [D]; [A] = C; A+; D+;
 	B ^ FB bs loop;

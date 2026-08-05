@@ -104,8 +104,42 @@ def parse_farmalloc_order(src_dir=NOCTIS_SRC):
     return [(n, a) for _, n, a in block]
 
 
+ROLTAIL, ROLSUB = 0, 1
+ZHALF = PAD // 2
+PGUARD = 0xA5A5A5A5      # the TAIL magic: pure guard band
+PALLOW = 0x5A5A5A5A      # the SUB magic:  guard band WITH an allowance list
+
+
 class Layout(object):
-    """base / size / trailing-pad for every region, plus the two low pads."""
+    """base / size / trailing-pad for every region, plus the two low pads.
+
+    From Wave 5b this also carries the ZONE table, which is what defect 3
+    is about. The 16-unit pads had two mutually exclusive jobs: a guard
+    band, where any write is a violation, and the legitimate destination
+    for digit_at's txtr[-6..-1] (NOCTIS.CPP:614-628, txtr = p_surfacemap,
+    landing in nw[170550..170555]). So the first cockpit glyph of a debug
+    build fired the canary and halted, and a legitimate write could not be
+    told from an overrun.
+
+    The two jobs are separated by splitting every pad into two zones and
+    giving each zone an explicit ALLOWANCE LIST:
+
+      TAIL  the low 8 units, immediately ABOVE region p-2
+      SUB   the high 8 units, immediately BELOW region p-1
+
+    An allowance unit is COUNTED, never flagged; every other unit is a
+    guard. Three allowance entries exist and each is derived here rather
+    than copied:
+
+      SUB+4..+7 of every owned SUB except adaptor's -- these are the
+          region's DOS segment offsets 0..3. Every farmalloc'd block's
+          segment origin is base-4 (BUFFERMODEL section 3), so a 16-bit
+          index that wraps to a small offset lands here by construction.
+          adaptor is excluded: it is the literal far pointer A000:0000,
+          so its segment offset 0 IS its base and its SUB is pure guard.
+      SUB+2..+7 of p_surfacemap's SUB -- digit_at, NOCTIS.CPP:614-628.
+      TAIL+0 of pvfile's TAIL -- loadpv, NOCTIS-0.CPP:2383-2391.
+    """
 
     def __init__(self, sizes):
         self.sizes = sizes
@@ -114,11 +148,47 @@ class Layout(object):
         for rid, (name, syms) in enumerate(FARMALLOC):
             size = sum(sizes[s] for s in syms)
             self.regions.append(dict(id=rid, name=name, base=base, size=size,
-                                     end=base + size, pad=base + size))
+                                     end=base + size, pad=base + size,
+                                     seg=(base - 4) if name != "adaptor" else base))
             base = base + size + PAD
         self.top = base
         # every pad in the workspace, low ones first
         self.pads = [0, LOWPAD] + [r["pad"] for r in self.regions]
+        self.zones = [self.zone(p, r) for p in range(len(self.pads))
+                      for r in (ROLTAIL, ROLSUB)]
+
+    def zone(self, pad, role):
+        """One zone, derived from the pad list. zi = 2*pad + role."""
+        base = self.pads[pad] + (0 if role == ROLTAIL else ZHALF)
+        if role == ROLTAIL:
+            owner = pad - 2 if pad >= 2 else -1
+        else:
+            # pad 9's SUB is the eight units immediately below adaptor's
+            # base, so it is owned; pad 10's SUB is below nothing at all.
+            owner = pad - 1 if 1 <= pad <= len(self.regions) else -1
+        return dict(zi=2 * pad + role, pad=pad, role=role, base=base,
+                    length=ZHALF, owner=owner, mask=self.allow(owner, role))
+
+    @staticmethod
+    def allow(owner, role):
+        """The 8-bit allowance mask. Bit u set == unit u is legitimate."""
+        if owner < 0:
+            return 0
+        if role == ROLTAIL:
+            return 1 if owner == 6 else 0          # loadpv, pvfile
+        m = 0 if owner == 8 else 240               # segment offsets 0..3
+        if owner == 4:
+            m |= 252                               # digit_at, p_surfacemap
+        return m
+
+    def magic(self, role):
+        return PGUARD if role == ROLTAIL else PALLOW
+
+    def zone_of(self, off):
+        for z in self.zones:
+            if z["base"] <= off < z["base"] + z["length"]:
+                return z
+        return None
 
     def __getitem__(self, name):
         for r in self.regions:
@@ -350,11 +420,331 @@ def s32(x):
     return x - 0x100000000 if x >= 0x80000000 else x
 
 
-# ----------------------------------------------------------------- FBDUMP v1
+# ------------------------------------------------- the canary that can fail
+#
+# DEFECT 5. FBDUMP kind 6 v1 was 18 units in which both the "expected" and
+# the "actual" field held 0xA5A5A5A5, written by construction on BOTH sides.
+# A clean run and a build whose canary had been deleted produced a
+# bit-identical record, so the check could not fail. This is its replacement:
+# four units per pad, none of them a literal, all four derived HERE from the
+# layout and never read out of the lino.
+
+CANWIT = 0xB0B32000
+
+
+def canary_slot(i):
+    """w5probe.txt's sweep. Deliberately not fbshell.txt's (7i+1) mod 12.
+
+    mod 12 and not mod 16 because units +12..+15 of a pad are SUB+4..+7, an
+    ALLOWANCE by construction: a probe that expected them to fire would be
+    asserting the guard model is wrong.
+    """
+    return (5 * i + 3) % 12
+
+
+def expected_canary(L):
+    """The 44 units of FBDUMP kind 6 v2, from the layout alone."""
+    out = []
+    for i in range(len(L.pads)):
+        slot = canary_slot(i)
+        role = ROLTAIL if slot < ZHALF else ROLSUB
+        clean = L.magic(role)
+        wit = (CANWIT + 17 * i + (clean & 255)) & M32
+        out += [clean, wit, i + 1, L.pads[i] + slot]
+    return out
+
+
+def expected_zones(L):
+    """The 88 units of FBDUMP kind 9: base, length, owner, role per zone."""
+    out = []
+    for z in L.zones:
+        out += [z["base"] & M32, z["length"], z["owner"] & M32, z["role"]]
+    return out
+
+
+# ------------------------------------- class A: the 16-bit index wrap, for real
+#
+# CRITICAL 2. Class A used to be "allocate the full segment, 1,540 units, no
+# code". AN ALLOCATION SIZE CANNOT REPRODUCE A WRAP: under DOS the write
+# folded back to offset 0 of the segment, and under 32-bit unit addressing it
+# walks linearly past the region end no matter how the region was sized.
+#
+# The mechanism is a mask, and it belongs where the ORIGINAL truncates. That
+# is not the same place for the two sites, which is why the two failure
+# deltas differ and why the difference is a graded quantity.
+
+MASK_ROWS = (0, 360, 720, 36000, 64440)
+
+
+def mask_cases(nwrap=52, nctl=16):
+    """(py, px) exactly as w5probe.txt's battery enumerates them."""
+    for py in MASK_ROWS:
+        for k in range(1, nwrap + 1):
+            yield py, 65536 - k
+        for k in range(nctl):
+            yield py, 100 + k
+
+
+def expected_mask(L, nwrap=52, nctl=16):
+    """calls / wraps / delta-min / delta-max for spot and cirrus.
+
+    spot    NOCTIS-0.CPP:4485. The truncation point IS the 16-bit DI, formed
+            AFTER both adds, so the mask and the address coincide.
+    cirrus  NOCTIS-0.CPP:4715. "mov bx,py / add bx,px" truncates in BX and
+            only THEN shifts right, so the mask is one step earlier and the
+            error a masked-at-the-address implementation makes is HALVED --
+            32,768, not 65,536. A single "mask the final index" helper would
+            be wrong for cirrus and right for spot, so one delta cannot
+            stand in for the other.
+    """
+    pbg, obj = L["p_background"], L["objectschart"]
+    sd, cd, sw, cw, n = [], [], 0, 0, 0
+    oob = 0
+    for py, px in mask_cases(nwrap, nctl):
+        n += 1
+        # spot
+        naive = (pbg["base"] + py + px) & M32
+        if py + px + 4 > 0xFFFF:
+            sw += 1
+        masked = (pbg["seg"] + ((py + px + 4) & 0xFFFF)) & M32
+        d = (naive - masked) & M32
+        if d:
+            sd.append(d)
+        if not (pbg["base"] - ZHALF <= masked < pbg["base"] + pbg["size"]):
+            oob += 1
+        # cirrus
+        naive = (obj["base"] + ((py + px) >> 1)) & M32
+        if py + px > 0xFFFF:
+            cw += 1
+        masked = (obj["seg"] + (((((py + px) & 0xFFFF) >> 1) + 4) & 0xFFFF)) & M32
+        d = (naive - masked) & M32
+        if d:
+            cd.append(d)
+        if not (obj["base"] - ZHALF <= masked < obj["base"] + obj["size"]):
+            oob += 1
+    return dict(calls=n, spot_wraps=sw, cirrus_wraps=cw, oob=oob,
+                spot_delta=(min(sd) if sd else 0, max(sd) if sd else 0),
+                cirrus_delta=(min(cd) if cd else 0, max(cd) if cd else 0),
+                spot_ndiff=len(sd))
+
+
+# ----------------------------------------- the servo, over a long horizon
+#
+# CRITICAL 1. [Counts] is 32 bits and wraps every 2^32 counts = 477.3 s at
+# 8999 cpms. The old servo divided ([Counts] - [TKsrv0c]) by the milliseconds
+# since the START OF THE RUN, so the numerator aliased while the denominator
+# grew without bound. The unsigned subtraction was never the bug -- modular
+# arithmetic gives the true delta as long as the delta itself is under 2^32.
+# The bug was the BRACKET.
+
+SRVMIN, SRVMAX = 4000, 60000
+SVWAPPLY, SVWCLLO, SVWCLHI, SVWSHORT, SVWLONG = 0, 1, 2, 3, 4
+
+HOR_FIRE, HOR_WIN, HOR_SETTLE = 85, 14061, 16
+HOR_JM, HOR_JP = 40503, 21031
+
+# (C0, true cpms, jitter). Seven wrap phases plus one jittered rate.
+HOR_SCEN = [
+    (0, 8999, 0),
+    (4294967295, 8999, 0),
+    (1531079939, 8999, 0),
+    (3535163461, 8999, 0),
+    (2147483648, 8984, 0),
+    (999999937, 9023, 0),
+    (0, 1000000, 0),                # past the aliasing boundary
+    (271828182, 8999, 1),           # jittered: the rounded divide
+    (123456789, 60, 0),             # very slow: the clamp step floor
+]
+
+# The window/count pairs the band battery drives, and nothing more: a band
+# that accepts everything and a band that rejects everything both pass a
+# battery made of only one kind, so three of these are accepted and three
+# are refused, and one of the refusals is NEGATIVE.
+BAND_CASES = [
+    (0, -86395000),          # a midnight straddle: unsigned this reads 4.2e9
+    (35996001, 3999),        # one ms under SRVMIN
+    (36000000, 4000),        # exactly SRVMIN
+    (540000000, 60000),      # exactly SRVMAX
+    (540009000, 60001),      # one ms over SRVMAX
+    (1000000, 600000),       # long enough for the counter to have aliased
+]
+BAND_SEED = 9000
+
+
+def expected_band():
+    """(counts, ms, why, cpms after) for every band case, from BAND_SEED."""
+    out = []
+    for cnt, ms in BAND_CASES:
+        c, w = servo_apply(BAND_SEED, cnt & M32, ms & M32)
+        out += [cnt & M32, ms & M32, w, c]
+    return out
+
+
+def servo_apply(cpms, cnt, ms):
+    """work/fbtick.txt's estimator, re-derived: signed band, rounded divide,
+    clamp step with a floor of 1. Returns (cpms, why)."""
+    if s32(ms) < SRVMIN:
+        return cpms, SVWSHORT
+    if s32(ms) > SRVMAX:
+        return cpms, SVWLONG
+    new = (cnt + ms // 2) // ms
+    step = cpms // 100 or 1
+    lo, hi, why = cpms - step, cpms + step, SVWAPPLY
+    if new < lo:
+        new, why = lo, SVWCLLO
+    if new > hi:
+        new, why = hi, SVWCLHI
+    return new, why
+
+
+def servo_apply_original(cpms, cnt, ms):
+    """THE DEFECT, as it shipped: an UNSIGNED band with no upper bound, a
+    TRUNCATING divide, and a clamp step with no floor. The positive control."""
+    if (ms & M32) < 500:
+        return cpms
+    new = (cnt & M32) // (ms & M32)
+    step = cpms // 100
+    lo, hi = cpms - step, cpms + step
+    if new < lo:
+        new = lo
+    if new > hi:
+        new = hi
+    return new
+
+
+def hor_sample(c0, cpms, t, k, jit):
+    v = (c0 + cpms * t) & M32
+    if jit:
+        v = (v + ((k * HOR_JM) % HOR_JP) - HOR_JP // 2) & M32
+    return v
+
+
+def expected_horizon(scen=None):
+    """Replay every scenario three ways, exactly as w5probe.txt does.
+
+    Returns one dict per scenario. The graded facts are:
+      * the WINDOWED leg converges to the true rate and stays there across
+        windows that straddle 2^32,
+      * the ANCHORED leg through the ORIGINAL estimator is destroyed by the
+        same data -- which is what makes the first statement a claim rather
+        than a tautology,
+      * scenario 6 shows the windowed leg failing too, because SRVMAX is a
+        literal rather than anything derived from cpms.
+    """
+    out = []
+    for c0, true, jit in (scen or HOR_SCEN):
+        seed = true - true // 25
+        # leg 1: windowed, shipped estimator
+        cpms, worst, wraps, sub, why, hit, bias = seed, 0, 0, 0, 0, HOR_FIRE, 0
+        prev = hor_sample(c0, true, 0, 0, jit)
+        t = 0
+        for k in range(HOR_FIRE):
+            t += HOR_WIN
+            cur = hor_sample(c0, true, t, k + 1, jit)
+            if cur < prev:
+                wraps += 1
+            if not jit and ((cur - prev) & M32) != ((HOR_WIN * true) & M32):
+                sub += 1
+            cpms, w = servo_apply(cpms, (cur - prev) & M32, HOR_WIN)
+            why |= 1 << w
+            if hit == HOR_FIRE and cpms == true:
+                hit = k
+            if k >= HOR_SETTLE:
+                bias += cpms - true
+                worst = max(worst, abs(cpms - true))
+            prev = cur
+        win, winerr = cpms, worst
+        # leg 2: anchored, shipped estimator
+        cpms, aworst, t = seed, 0, 0
+        for k in range(HOR_FIRE):
+            t += HOR_WIN
+            cur = hor_sample(c0, true, t, k + 1, jit)
+            cpms, _ = servo_apply(cpms, (cur - c0) & M32, t)
+            aworst = max(aworst, abs(cpms - true))
+        anc, ancerr = cpms, aworst
+        # leg 3: anchored, ORIGINAL estimator
+        cpms, oworst, t = seed, 0, 0
+        for k in range(HOR_FIRE):
+            t += HOR_WIN
+            cur = hor_sample(c0, true, t, k + 1, jit)
+            cpms = servo_apply_original(cpms, (cur - c0) & M32, t)
+            oworst = max(oworst, abs(cpms - true))
+        out.append(dict(c0=c0, true=true, jit=jit, seed=seed,
+                        win=win, winerr=winerr, wraps=wraps, sub=sub,
+                        why=why, hit=hit, bias=bias,
+                        anc=anc, ancerr=ancerr, old=cpms, olderr=oworst,
+                        n=HOR_FIRE, w=HOR_WIN, t=t))
+    return out
+
+
+# --------------------------------------------- the deadline grid, PIECEWISE
+#
+# cpms changes DURING the soak now: SERVON is a driver constant and the
+# reference run sets it low enough that the servo actually fires, which the
+# Wave 5 probe never did -- and never firing it in a soak is exactly how the
+# wrap shipped. A grid rebuilt with one cpms is therefore wrong. The servo
+# log says when the value changed, so the grid is rebuilt piecewise from the
+# RAW logs and nothing is taken on trust.
+
+def cpms_schedule(srvlog):
+    """[(first tick at which in force, cpms)], from FBDUMP kind 11."""
+    n = len(srvlog) // 3
+    return [(srvlog[3 * i], srvlog[3 * i + 1]) for i in range(n)]
+
+
+def cpms_at(sched, tick):
+    cur = sched[0][1]
+    for t, c in sched:
+        if t <= tick:
+            cur = c
+    return cur
+
+
+def replay_grid(deadlines, sched, maxmult=8):
+    """Reproduce every logged deadline by running fbtick's own recurrence.
+
+    TK advance is  acc += SUBN*cpms; b = acc/SUBD; acc -= b*SUBD;
+                   deadline += 55*cpms - b
+    with acc CARRIED ACROSS ticks and across changes of cpms. Returns
+    (multiples, bad) where bad is the number of deadlines that no number of
+    advances reproduces.
+    """
+    acc, off = 0, 0
+
+    def advance(c):
+        nonlocal acc, off
+        acc += SUBN * c
+        b = acc // SUBD
+        acc -= b * SUBD
+        off += 55 * c - b
+
+    advance(cpms_at(sched, 0))
+    base = (deadlines[0] - off) & M32
+    mult, bad = [1], 0
+    for i in range(1, len(deadlines)):
+        c = cpms_at(sched, i)
+        k = 0
+        while k < maxmult:
+            advance(c)
+            k += 1
+            if ((base + off) & M32) == deadlines[i]:
+                break
+        else:
+            bad += 1
+            mult.append(0)
+            continue
+        mult.append(k)
+    return mult, bad
+
+
+# ----------------------------------------------------------------- FBDUMP v2
 
 FBMAGIC = 0x46424431
 KPAGE, KPAL6, KLUT, KTICK, KLAY, KCAN = 1, 2, 3, 4, 5, 6
-TWKSLF, TWKADV, TWKSRV, TWKFB, TWKFRM, TWKSKY = 16, 17, 18, 19, 20, 21
+KSELF, KFRM, KZONE, KWCNT, KSRVL, KWRAPB = 7, 8, 9, 10, 11, 12
+# w5probe.txt's own extensions, above fbmem's namespace
+TWKSLF, TWKADV, TWKFB, TWKFRM, TWKSKY = 16, 17, 19, 20, 21
+TWKHOR, TWKMSK, TWKBND = 22, 23, 24
 
 
 def read_fbdump(blob):

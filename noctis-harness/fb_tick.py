@@ -31,7 +31,7 @@ import struct
 import sys
 from fractions import Fraction
 
-from fb_layout import fbdump_read, KIND_TICKLOG
+from fb_layout import fbdump_read, KIND_TICKLOG, KIND_SERVOLOG
 
 # The true DOS period: the 8253 divisor 65536 over the 1.193182 MHz input.
 PERIOD_S = Fraction(65536, 1193182)
@@ -46,9 +46,18 @@ BREAKS = {
     "REBASE": "re-base the deadline on the actual fire time instead of accumulating",
     "NOSKIP": "advance by exactly one period after a miss instead of skipping to the grid",
     "UNSIGNEDCMP": "wait predicate uses an unsigned timestamp compare",
+    # -- wave 5-corrective: the SERVO ------------------------------------
+    "SRVRUNSTART": "the servo brackets against the RUN START instead of the "
+                   "previous firing -- the shipped Wave 5 defect  [S-SRV-RUNSTART]",
+    "SRVWIDEMAX": "SRVMAX = 600000 ms, past the counter's own wrap  [S-SRV-WIDEMAX]",
+    "SRVUNSIGNEDBAND": "the window-length band is an UNSIGNED compare  [S-SRV-UNSIGNEDBAND]",
+    "SRVTRUNC": "the servo divide truncates instead of rounding  [S-SRV-TRUNC]",
+    "SRVCLAMPFLOOR": "the +-1% clamp step has no floor of 1  [S-SRV-CLAMPFLOOR]",
+    "WALLNOFOLD": "the wall clock is used raw, so midnight is a discontinuity  [S-WALL-NOFOLD]",
 }
 
 M32 = 0xFFFFFFFF
+DAY_MS = 86400000
 
 
 def s32(v):
@@ -147,6 +156,285 @@ def wrap_sweep(breaks=(), verbose=False):
                 if first is None:
                     first = (now, dl, dt, want, got)
     return cases, fails, first
+
+
+# =====================================================================
+# THE SERVO -- windowed, re-based-first, rounded, signed-band
+# =====================================================================
+#
+# CRITICAL 1.  The Wave 5 servo recalibrated by dividing (Counts - Counts_at_TK_start)
+# by wall-clock ms since TK start.  [Counts] is 32 bits and wraps every
+# 2^32 counts = 477.3 s at 8999 cpms, while the wall-clock denominator grows
+# without bound, so from ~8 minutes in the numerator aliases and the ratio is
+# nonsense.  The +-1% clamp does not save it: it converts a one-shot collapse
+# into a PERMANENT ratchet.
+#
+# Note what is and is not wrong.  UNSIGNED SUBTRACTION ACROSS THE WRAP GIVES A
+# CORRECT DELTA.  The bug is the BRACKET, not the subtraction.  So the fix is a
+# WINDOW: measure between consecutive firings, re-base unconditionally, and
+# refuse any window long enough for the counter to alias.
+#
+# Everything below is measured by `--servo-evidence`, not quoted.
+
+SRVMIN = 4000        # ms; a window shorter than this is refused (why = 3)
+SRVMAX = 60000       # ms; a window longer than this is refused (why = 4).
+                     # 2^32 / 8999 cpms = 477271 ms, so this is 7.95x under the
+                     # counter's own aliasing limit -- measured, see ring_sweep.
+
+WHY = {0: "applied", 1: "clamped-lo", 2: "clamped-hi",
+       3: "rejected-short", 4: "rejected-long"}
+
+
+class WallFold(object):
+    """`TK read wall` returns ms since midnight, and it is used as an INTERVAL
+    reference.  Rather than special-case midnight at each consumer, fold it
+    once.  Monotone for 49 days at 32-bit unsigned -- state the limit.
+
+    Kept as a separate object precisely so a probe can drive it with synthetic
+    raw values (23:59:59.900 -> 00:00:00.100) instead of waiting for midnight.
+    """
+
+    def __init__(self, breaks=()):
+        self.breaks = set(breaks)
+        self.prev = 0
+        self.day = 0
+
+    def fold(self, raw):
+        if "WALLNOFOLD" in self.breaks:
+            return raw
+        if raw < self.prev:
+            self.day += DAY_MS
+        self.prev = raw
+        return (raw + self.day) & M32
+
+
+class Servo(object):
+    """The replacement `TK servo`.  Four properties, each independently
+    sabotageable:
+
+      1. RE-BASE BEFORE THE BAND.  A rejected sample costs one update instead
+         of doubling the next window.
+      2. THE BAND IS SIGNED.  Signed is what refuses the midnight step, a
+         resume from suspend, and any window long enough to alias the counter.
+      3. THE DIVIDE IS ROUNDED.  One added term; truncation costs a systematic
+         drift.
+      4. THE CLAMP STEP HAS A FLOOR OF 1.  `cpms / 100` truncates to 0 below
+         cpms 100, which is what turns a collapse into an ABSORBING STATE.
+    """
+
+    def __init__(self, cpms, breaks=(), srvmin=SRVMIN, srvmax=SRVMAX):
+        self.cpms = cpms
+        self.seed = cpms
+        self.breaks = set(breaks)
+        self.srvmin = srvmin
+        self.srvmax = 600000 if "SRVWIDEMAX" in self.breaks else srvmax
+        self.ref_counts = None
+        self.ref_wall = None
+        self.run_counts = None      # only used by the SRVRUNSTART sabotage
+        self.run_wall = None
+        self.log = []               # (tick, cpms in force, why)
+        self.overflow = 0
+        self.capacity = 64
+
+    def start(self, counts, wall):
+        self.ref_counts = counts & M32
+        self.ref_wall = wall & M32
+        self.run_counts = counts & M32
+        self.run_wall = wall & M32
+
+    def fire(self, tick, counts, wall):
+        counts &= M32
+        wall &= M32
+        if "SRVRUNSTART" in self.breaks:
+            cnt = (counts - self.run_counts) & M32
+            ms = (wall - self.run_wall) & M32
+        else:
+            cnt = (counts - self.ref_counts) & M32     # correct across the wrap
+            ms = (wall - self.ref_wall) & M32
+        # RE-BASE FIRST, unconditionally -- before any test can bail out
+        self.ref_counts = counts
+        self.ref_wall = wall
+
+        if "SRVUNSIGNEDBAND" in self.breaks:
+            short, long_ = ms < 500, False
+        else:
+            short, long_ = s32(ms) < self.srvmin, s32(ms) > self.srvmax
+        if short:
+            self._log(tick, 3)
+            return self.cpms, 3
+        if long_:
+            self._log(tick, 4)
+            return self.cpms, 4
+
+        if "SRVTRUNC" in self.breaks:
+            new = cnt // ms
+        else:
+            new = (cnt + ms // 2) // ms               # ROUNDED
+
+        step = self.cpms // 100
+        if "SRVCLAMPFLOOR" not in self.breaks:
+            step = max(1, step)
+        why = 0
+        if new < self.cpms - step:
+            new, why = self.cpms - step, 1
+        elif new > self.cpms + step:
+            new, why = self.cpms + step, 2
+        self.cpms = new
+        self._log(tick, why)
+        return self.cpms, why
+
+    def _log(self, tick, why):
+        if len(self.log) >= self.capacity:
+            self.overflow += 1
+            return
+        self.log.append((tick, self.cpms, why))
+
+    def payload(self):
+        """FBDUMP kind 11 SERVOLOG: 3 units per firing."""
+        out = []
+        for t, c, w in self.log:
+            out += [t & M32, c & M32, w & M32]
+        return out
+
+
+def cal_end(counts0, counts1, wall0, wall1, seed, breaks=()):
+    """`TK cal end`, with the clamp the reviewer's finding B shows it never had.
+
+    A bracket that straddles midnight or a suspend currently sets cpms = 0 and
+    the period to ZERO COUNTS -- and a zero period means the tick fires
+    continuously, forever.  Returns (cpms, why).
+    """
+    cnt = (counts1 - counts0) & M32
+    ms = (wall1 - wall0) & M32
+    if "SRVUNSIGNEDBAND" in breaks:
+        if ms < 500:
+            return seed, 3
+    else:
+        if s32(ms) < SRVMIN:
+            return seed, 3
+        if s32(ms) > SRVMAX:
+            return seed, 4
+    got = cnt // ms if "SRVTRUNC" in breaks else (cnt + ms // 2) // ms
+    if "NOCALCLAMP" in breaks:
+        return got, 0
+    if got == 0 or got < seed // 4 or got > 4 * seed:
+        return seed, 5
+    return got, 0
+
+
+def ring_sweep(cpms=8999, lengths=(500, 4000, 14061, 60000, 120000, 240000,
+                                   470000, 477271, 500000),
+               origins=65536, stride=65537):
+    """Sweep the WINDOW END across the whole 32-bit counter ring with an odd
+    stride, for each window length.  The truth is the unbounded-integer
+    product cpms*ms; the subject is the 32-bit unsigned difference.
+
+    This is what makes SRVMAX a MEASURED limit rather than an asserted one:
+    the sweep is exact at 470000 ms and fails on every origin at 500000 ms.
+    """
+    out = []
+    for L in lengths:
+        want = cpms * L
+        fails = 0
+        for i in range(origins):
+            end = (i * stride) & M32
+            start = (end - want) & M32
+            got = (end - start) & M32
+            if got != (want & M32) or want > M32:
+                fails += 1
+        out.append({"ms": L, "exact_counts": want, "cases": origins,
+                    "fails": fails, "fits_32": want <= M32})
+    return out
+
+
+def servo_replay(true_cpms=8999, minutes=20, period_s=14.0, breaks=(),
+                 wall0=0, counts0=0):
+    """Replay a windowed servo against a PERFECTLY CONSTANT true rate, over a
+    session long enough for the 32-bit counter to wrap several times, and
+    report the worst cpms error and the implied drift.
+
+    The point is not that the rate moves -- it does not.  The point is that the
+    Wave 5 bracket ALIASES, so it reports a rate that is not there.
+    """
+    n = int(minutes * 60 / period_s)
+    s = Servo(true_cpms, breaks)
+    s.capacity = 1 << 30          # keep the whole replay for the report
+    fold = WallFold(breaks)
+    s.start(counts0, fold.fold(wall0))
+    worst = 0.0
+    seen = set()
+    raw = []                      # the UNCLAMPED ratio the bracket computes
+    for k in range(1, n + 1):
+        wall_ms = wall0 + int(k * period_s * 1000)
+        counts = (counts0 + int(round(true_cpms * k * period_s * 1000))) & M32
+        if "SRVRUNSTART" in set(breaks):
+            dn = (counts - s.run_counts) & M32
+            dm = (fold.fold(wall_ms) - s.run_wall) & M32
+            fold.prev = wall_ms if "WALLNOFOLD" not in set(breaks) else fold.prev
+            raw.append((int(k * period_s), dn // dm if dm else 0))
+        c, _why = s.fire(k, counts, fold.fold(wall_ms))
+        seen.add(c)
+        worst = max(worst, abs(c - true_cpms) / float(true_cpms))
+    # drift a game would accumulate at the final cpms, per hour of wall clock
+    drift_s_per_hour = 3600.0 * (s.cpms - true_cpms) / float(true_cpms)
+    return {"firings": n, "final_cpms": s.cpms, "distinct_cpms": len(seen),
+            "min_cpms": min(seen), "max_cpms": max(seen),
+            "worst_rel_err": worst, "drift_s_per_hour": drift_s_per_hour,
+            "why_hist": _why_hist(s.log), "raw_ratio": raw}
+
+
+def _why_hist(log):
+    h = {}
+    for _t, _c, w in log:
+        h[w] = h.get(w, 0) + 1
+    return dict(sorted(h.items()))
+
+
+def grade_servolog(path_or_payload, seed_cpms=None):
+    """Grade an FBDUMP kind 11 SERVOLOG.  Three units per firing, and it logs
+    REJECTIONS too, so it is a value derived from what the program did rather
+    than from construction."""
+    if isinstance(path_or_payload, str):
+        d = fbdump_read(path_or_payload)
+        if d["kind"] != KIND_SERVOLOG:
+            raise SystemExit("%s: kind %d, not SERVOLOG(11)" % (path_or_payload, d["kind"]))
+        pay = d["payload"]
+        seed_cpms = seed_cpms or d["cpms"]
+    else:
+        pay = list(path_or_payload)
+    msg, ok = [], True
+
+    def req(cond, text):
+        nonlocal ok
+        if not cond:
+            ok = False
+        msg.append(("  PASS  " if cond else "  FAIL  ") + text)
+
+    req(len(pay) % 3 == 0, "S1 payload is a multiple of 3 units (%d)" % len(pay))
+    n = len(pay) // 3
+    rows = [(pay[3 * i], pay[3 * i + 1], pay[3 * i + 2]) for i in range(n)]
+    req(n >= 1, "S1 the servo actually fired at least once (%d firings).  A soak whose "
+                "SERVON exceeds its tick count never executes the servo at all -- which "
+                "is exactly how CRITICAL 1 shipped." % n)
+    bad_why = [i for i, r in enumerate(rows) if r[2] not in WHY]
+    req(not bad_why, "S2 every `why` is one of %s (%d bad)" % (sorted(WHY), len(bad_why)))
+    ticks = [r[0] for r in rows]
+    req(all(b > a for a, b in zip(ticks, ticks[1:])),
+        "S3 tick numbers strictly increase")
+    cp = [r[1] for r in rows]
+    step_bad = []
+    for a, b in zip(cp, cp[1:]):
+        if abs(b - a) > max(1, a // 100):
+            step_bad.append((a, b))
+    req(not step_bad, "S4 no single firing moved cpms by more than max(1, cpms/100) "
+                      "(%d violations%s)" % (len(step_bad), (" first %s" % (step_bad[0],))
+                                             if step_bad else ""))
+    if seed_cpms:
+        req(all(seed_cpms // 4 <= c <= 4 * seed_cpms for c in cp),
+            "S5 cpms never left [seed/4, 4*seed] = [%d, %d] (min %d max %d)"
+            % (seed_cpms // 4, 4 * seed_cpms, min(cp), max(cp)))
+    req(all(c > 0 for c in cp), "S6 cpms never reached 0 (a zero period fires forever)")
+    return ok, msg, {"firings": n, "why": _why_hist(rows), "cpms": cp}
 
 
 # ------------------------------------------------------------ the tick loop
@@ -410,6 +698,10 @@ def write_ticklog(path, payload, cpms, ticks):
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--wrap-sweep", action="store_true")
+    ap.add_argument("--servo", action="store_true",
+                    help="the windowed-servo battery: window lengths, the ring sweep, "
+                         "midnight, rounding, the clamp floor, and the shipped bracket "
+                         "replayed")
     ap.add_argument("--grade", metavar="LOG.bin")
     ap.add_argument("--cpms", type=int, default=None)
     ap.add_argument("--emit", metavar="LOG.bin", help="simulate a loop and write a TICKLOG")
@@ -498,6 +790,165 @@ def main(argv=None):
         if fails:
             ok = False
         print()
+
+    if args.servo:
+        smsg = []
+        sok = True
+
+        def sreq(cond, text):
+            nonlocal sok
+            if not cond:
+                sok = False
+            smsg.append(("  PASS  " if cond else "  FAIL  ") + text)
+
+        TRUE = 8999
+
+        # -- T8a the window-length battery.  CASES ARE WINDOW LENGTHS, not
+        # elapsed-since-start, and each fires THREE consecutive times with the
+        # synthetic clock advanced by the window.  A single firing cannot
+        # detect a missing re-base; three can.
+        for L, expect_why in ((500, 3), (4000, 0), (14061, 0), (60000, 0),
+                              (470000, 4), (500000, 4)):
+            s = Servo(TRUE, brk)
+            f = WallFold(brk)
+            wall, counts = 0, 0x12345678
+            s.start(counts, f.fold(wall))
+            whys, cps = [], []
+            for k in range(3):
+                wall += L
+                counts = (counts + TRUE * L) & M32
+                c, w = s.fire(k, counts, f.fold(wall))
+                whys.append(w)
+                cps.append(c)
+            good = (whys == [expect_why] * 3
+                    and (expect_why != 0 or all(abs(c - TRUE) <= 1 for c in cps)))
+            sreq(good, "T8a window %6d ms -> why %s cpms %s (want why %d%s)"
+                 % (L, whys, cps, expect_why,
+                    ", cpms within 1 of %d" % TRUE if expect_why == 0 else ""))
+
+        # -- T8b the ring sweep.  SRVMAX is MEASURED here, not asserted.
+        sw = ring_sweep(TRUE)
+        exact = [r for r in sw if r["fails"] == 0]
+        broken = [r for r in sw if r["fails"] == r["cases"]]
+        sreq(all(r["fails"] == 0 for r in sw if r["ms"] <= 470000),
+             "T8b unsigned subtraction across the wrap is EXACT for every window up to "
+             "470000 ms, on all %d ring origins (%d lengths x %d origins)"
+             % (sw[0]["cases"], len(sw), sw[0]["cases"]))
+        sreq(any(r["ms"] == 500000 and r["fails"] == r["cases"] for r in sw),
+             "T8b and it fails on %d of %d origins at 500000 ms -- so SRVMAX = %d is "
+             "%.2fx under the counter's own aliasing limit 2^32/%d = %d ms"
+             % (sw[-1]["fails"], sw[-1]["cases"], SRVMAX,
+                (M32 + 1) / TRUE / SRVMAX, TRUE, int((M32 + 1) / TRUE)))
+
+        # -- T8c the midnight case, against the fold
+        s = Servo(TRUE, brk)
+        f = WallFold(brk)
+        raw0 = 86399900          # 23:59:59.900
+        s.start(0, f.fold(raw0))
+        raw1 = 100               # 00:00:00.100, 200 ms later
+        c_mid, w_mid = s.fire(1, TRUE * 200, f.fold(raw1))
+        sreq(w_mid == 3 and c_mid == TRUE,
+             "T8c a midnight-straddling 200 ms window is REFUSED (why %d, cpms %d).  "
+             "The fold removes the discontinuity; the SIGNED band refuses the short "
+             "window that remains." % (w_mid, c_mid))
+        # and the fold itself is monotone across the step
+        f2 = WallFold(brk)
+        a, b = f2.fold(raw0), f2.fold(raw1)
+        sreq(b > a and b - a == 200,
+             "T8c the wall fold is monotone across midnight: %d -> %d, delta %d ms "
+             "(49-day limit at 32-bit unsigned)" % (a, b, b - a))
+
+        # -- T8d the rounding case, constructed so truncation and rounding
+        # differ by exactly 1 cpms
+        ms, cnt = 14061, TRUE * 14061 + 7031
+        s = Servo(TRUE, brk)
+        f = WallFold(brk)
+        s.start(0, f.fold(0))
+        c_round, _ = s.fire(1, cnt, f.fold(ms))
+        s2 = Servo(TRUE, set(brk) | {"SRVTRUNC"})
+        f2 = WallFold(brk)
+        s2.start(0, f2.fold(0))
+        c_trunc, _ = s2.fire(1, cnt, f2.fold(ms))
+        sreq(c_round == TRUE + 1 and c_trunc == TRUE,
+             "T8d ms=%d cnt=%d: rounded -> %d, truncated -> %d, exactly one cpms apart"
+             % (ms, cnt, c_round, c_trunc))
+
+        # -- T8e the clamp step floor.  Without it, cpms/100 truncates to 0
+        # below cpms 100 and the collapse becomes an ABSORBING STATE.
+        s = Servo(99, brk)
+        f = WallFold(brk)
+        s.start(0, f.fold(0))
+        wall, counts = 0, 0
+        for k in range(50):
+            wall += 5000
+            counts = (counts + TRUE * 5000) & M32
+            s.fire(k, counts, f.fold(wall))
+        sreq(s.cpms > 99,
+             "T8e from cpms 99 against a true %d, the servo climbs (reached %d in 50 "
+             "firings).  With no floor on the clamp step it is FROZEN at 99 = %.0fx "
+             "speed, forever." % (TRUE, s.cpms, TRUE / 99.0))
+
+        # -- T8f the run-start bracket, replayed.  This is CRITICAL 1 itself,
+        # measured rather than quoted.
+        good = servo_replay(TRUE, minutes=20, breaks=brk)
+        # THE SHIPPED SERVO: run-start bracket plus the unsigned `'< 500` band
+        # and no upper limit at all.  Those three go together -- the band is
+        # what would otherwise refuse the aliased window, which is precisely
+        # why the fix needs all of them.
+        shipped = set(brk) | {"SRVRUNSTART", "SRVUNSIGNEDBAND"}
+        bad = servo_replay(TRUE, minutes=20, breaks=shipped)
+        sreq(abs(good["drift_s_per_hour"]) <= 1.0 and good["worst_rel_err"] <= 0.001,
+             "T8f windowed servo over 20 min at a PERFECTLY CONSTANT %d cpms: "
+             "%d firings, cpms %d..%d, worst error %.4f%%, %.2f s/hour"
+             % (TRUE, good["firings"], good["min_cpms"], good["max_cpms"],
+                100 * good["worst_rel_err"], good["drift_s_per_hour"]))
+        r600 = next((r for t, r in bad["raw_ratio"] if t >= 600), None)
+        r900 = next((r for t, r in bad["raw_ratio"] if t >= 900), None)
+        sreq(bad["worst_rel_err"] > 0.05,
+             "T8f the SHIPPED run-start bracket over the SAME input: cpms %d..%d "
+             "(%d distinct), worst error %.2f%%, %.2f s/hour.  Its UNCLAMPED ratio "
+             "reads %s cpms at t=600 s and %s at t=900 s against a true %d.  The rate "
+             "never moved; the bracket aliased, and the 1%% clamp turned a one-shot "
+             "collapse into a permanent ratchet."
+             % (bad["min_cpms"], bad["max_cpms"], bad["distinct_cpms"],
+                100 * bad["worst_rel_err"], bad["drift_s_per_hour"], r600, r900, TRUE))
+
+        # -- T8g `TK cal end`'s missing clamp
+        ok0, _ = cal_end(0, TRUE * 10000, 0, 10000, TRUE, brk)[0], None
+        sreq(ok0 == TRUE, "T8g a clean 10 s calibration bracket returns %d" % ok0)
+        # a bracket that straddles midnight: wall1 < wall0 in RAW ms
+        c_bad, why_bad = cal_end(0, TRUE * 200, 86399900, 100, TRUE, brk)
+        sreq(c_bad == TRUE and why_bad in (3, 4, 5),
+             "T8g a midnight-straddling calibration bracket is REFUSED (cpms %d, why %d).  "
+             "Unclamped it yields cpms = 0, hence a period of ZERO COUNTS, hence a tick "
+             "that fires continuously and forever." % (c_bad, why_bad))
+        c_zero, why_zero = cal_end(0, 3, 0, 10000, TRUE, brk)
+        sreq(c_zero == TRUE and why_zero == 5,
+             "T8g a bracket that computes cpms = 0 is REFUSED and the seed is kept "
+             "(cpms %d, why %d)" % (c_zero, why_zero))
+
+        # -- T8h the servolog is gradeable and logs rejections
+        s = Servo(TRUE, brk)
+        f = WallFold(brk)
+        s.start(0, f.fold(0))
+        wall, counts = 0, 0
+        for k in range(12):
+            step = 300 if k % 4 == 0 else 5000       # some windows too short
+            wall += step
+            counts = (counts + TRUE * step) & M32
+            s.fire(k, counts, f.fold(wall))
+        gok, gmsg, gst = grade_servolog(s.payload(), TRUE)
+        sreq(gok and 3 in gst["why"],
+             "T8h the servolog grades clean and CONTAINS rejections (why histogram %s) "
+             "-- a value derived from what the program did" % gst["why"])
+        for m in gmsg:
+            if m.startswith("  FAIL"):
+                smsg.append("    " + m)
+
+        print("servo:")
+        print("\n".join(smsg))
+        print()
+        ok = ok and sok
 
     if args.emit:
         cpms = args.cpms or 9000

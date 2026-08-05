@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""fb_compare.py -- Wave 5, implementer 2.  The grader.
+"""fb_compare.py -- Wave 5-corrective, implementer 2.  The grader.
 
 Grades the lino framebuffer against the two independent references and against
 the 1996 capture routes, on three tiers:
@@ -7,17 +7,24 @@ the 1996 capture routes, on three tiers:
   Tier 1  against artifacts this project did not make.  Wave 5 has no
           renderer, so this is the PALETTE only -- but that grades the whole
           palette pipeline, and it is genuinely non-circular.
-  Tier 2  lino vs fb_ref.c and lino vs fb_pal.py / fb_tick.py, byte-exact on
-          every FBDUMP kind.
+  Tier 2  lino vs fb_ref.c and lino vs fb_pal.py / fb_layout.py / fb_tick.py,
+          byte-exact on every FBDUMP kind.
   Tier 3  properties that need no oracle: the layout by construction, the
-          canaries, the tick soak recomputed from raw counts.
+          canary, the tick soak recomputed from raw counts, the servo.
 
 Every comparison is exact.  Nothing is graded against a stored artifact this
 project produced, and every subject has a deliberately broken build that this
 script must reject.
 
+A row is PASS, FAIL, or **NOT GRADED**.  NOT GRADED is printed, counted
+separately, and never folded into the pass count -- because the Wave 5 defect
+this file exists to fix was a suite that reported a bare pass for things it
+could not see.
+
   python fb_compare.py --suite                     # everything, from scratch
   python fb_compare.py --suite --lino DIR          # ... including the lino dumps
+  python fb_compare.py --ungraded                  # what this harness cannot grade
+  python fb_compare.py --scenario-spec             # LINOBUF 6.1, from the doc
   python fb_compare.py A.bin B.bin                 # one pairwise compare
 """
 
@@ -29,111 +36,181 @@ import struct
 import subprocess
 import sys
 
-from fb_layout import (Layout, fbdump_read, fbdump_write, layout_payload,
-                       KIND_NAME, KIND_INDEXPAGE, KIND_PALETTE6, KIND_LUT,
-                       KIND_TICKLOG, KIND_LAYOUT, KIND_CANARY)
+from fb_layout import (Layout, Workspace, fbdump_read, fbdump_write, layout_payload,
+                       zones_payload, fnv1a32, KIND_NAME, TAG_NAME, TAG, KSELF_FIELD,
+                       KIND_INDEXPAGE, KIND_PALETTE6, KIND_LUT, KIND_TICKLOG,
+                       KIND_LAYOUT, KIND_CANARY, KIND_KSELF, KIND_KFRM, KIND_ZONES,
+                       KIND_WRAPCOUNT, KIND_SERVOLOG, FBD_VERSION,
+                       LAYOUT_BREAKS, WORKSPACE_BREAKS)
 import fb_pal
 import fb_tick
 import fb_bmp
+import fb_wrap
+import fb_stick
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "fbout")
 CAPS = os.path.abspath(os.path.join(HERE, "..", "tests", "gen", "recon_w5c", "artifacts"))
 SUPPORTS = r"C:\programmieren\noctis\niv-plus\data\SUPPORTS.NCT"
+LINOBUF = os.path.abspath(os.path.join(HERE, "..", "docs-notes", "LINOBUF.md"))
 
-# every single-edit sabotage of the C reference, and which check must reject it
+# Every single-edit sabotage of the C reference, and the record that must
+# reject it.  `target` is asserted, but the grader also prints EVERY record that
+# moved, so a sabotage caught only by accident is visible.
 C_BREAKS = [
     ("BREAK_SHIFTOR", "LUT via (v<<2)|(v>>4) instead of v*4", "lut"),
-    ("BREAK_UPLOADFIRST", "tavola_colori uploads [first,first+n)", "lut"),
+    ("BREAK_UPLOADFIRST", "tavola_colori uploads [first,first+n)", "kself"),
     ("BREAK_ROUNDSHADE", "shade() rounds instead of truncating", "pal6"),
     ("BREAK_NOCLAMP", "tavola_colori drops the >63 clamp", "pal6"),
     ("BREAK_NOSELF", "self-copy reloads a stale source", "pal6"),
+    ("BREAK_DIV64", "the filter divides by 64 instead of 63", "pal6"),
+    ("BREAK_PYFILT", "the filter uses unbounded floor division (fb_pal.py's old bug)", "pal6"),
+    ("BREAK_IGNOREDST", "shade() ignores its destination buffer  [SH-IGNOREDST]", "selftest"),
+    ("BREAK_SELFSOURCE", "the fade re-reads tmppal, so fades compound  [SH-COMPOUND]", "selftest"),
     ("BREAK_DIGITN1", "digit_at loop starts at n=1 (niv-lr's bug)", "glyph"),
-    ("BREAK_TINTA64000", "tinta/escrescenze at 64000 (niv-lr's divergence)", "adapted"),
+    ("BREAK_TINTA64000", "alias 8 at 64000 (niv-lr's divergence)", "adapted"),
     ("BREAK_PACK4", "packed 4 bytes per unit", "selftest"),
     ("BREAK_QUADWORDS", "page ops hard-code 64000 bytes", "adapted"),
     ("BREAK_TICKCMP", "unsigned timestamp wait predicate", "selftest"),
     ("BREAK_SHRINKADAPTOR", "adaptor sized 64000, not a full segment", "layout"),
+    ("BREAK_MASKSPOT", "drop the 16-bit store mask at spot  [S-MASK-SPOT]", "wrapcount"),
+    ("BREAK_MASKCIRRUS", "drop the 16-bit store mask at cirrus", "wrapcount"),
+    ("BREAK_MASKCIRRUSADDR", "mask cirrus' address, not its truncation point "
+                             "[S-MASK-CIRRUS-ADDR]", "kself"),
+    ("BREAK_SEGADDRBASE", "wrap taken against the base, not base-4  [S-SEGADDR-BASE]", "adapted"),
+    ("BREAK_PADONEMAGIC", "one poison for both pad zones  [S-PAD-ONEMAGIC]", "zones"),
+    ("BREAK_PAD9WALK", "walk 9 region pads, not 22 zones  [S-PAD-9WALK]", "canary"),
+    ("BREAK_CANSTUBCHECK", "the walker never compares  [S-CAN-STUBCHECK]", "canary"),
+    ("BREAK_CANSTUBPOISON", "the pads are never poisoned  [S-CAN-STUBPOISON]", "canary"),
+    ("BREAK_CANCONSTACTUAL", "the canary's `actual` is a literal  [S-CAN-CONSTACTUAL]", "canary"),
+    ("BREAK_LAYOUTEND", "kind 5 unit 2 is the preceding pad, not base+size", "layout"),
 ]
 
-KIND_OF = {
-    "layout": KIND_LAYOUT, "pal6": KIND_PALETTE6, "lut": KIND_LUT,
-    "adapted": KIND_INDEXPAGE, "adaptor": KIND_INDEXPAGE,
-    "glyph": KIND_INDEXPAGE, "canary": KIND_CANARY,
+# Which reference file carries each record.
+REC = {
+    "layout": ("fb-ref-layout.bin", KIND_LAYOUT, "layout"),
+    "zones": ("fb-ref-zones.bin", KIND_ZONES, "zones"),
+    "pal6": ("fb-ref-pal6.bin", KIND_PALETTE6, "pal6"),
+    "curpal6": ("fb-ref-curpal6.bin", KIND_PALETTE6, "curpal6"),
+    "lut": ("fb-ref-lut.bin", KIND_LUT, "lut"),
+    "adapted": ("fb-ref-adapted.bin", KIND_INDEXPAGE, "adapted"),
+    "adaptor": ("fb-ref-adaptor.bin", KIND_INDEXPAGE, "adaptor"),
+    "glyph": ("fb-ref-glyph.bin", KIND_INDEXPAGE, "glyph"),
+    "canary": ("fb-ref-canary.bin", KIND_CANARY, "canary"),
+    "wrapcount": ("fb-ref-wrapcount.bin", KIND_WRAPCOUNT, "wrapcount"),
+    "kself": ("fb-ref-kself.bin", KIND_KSELF, "selfcheck"),
 }
 
-# FBDUMP v1 (LINOBUF 6) pins the CONTAINER and says nothing about what state
-# the machine should be in when a record is written.  For LAYOUT, CANARY and
-# TICKLOG that does not matter -- they are properties of the build.  For
-# PALETTE6, LUT and INDEXPAGE it decides every unit, so without an agreed
-# scenario the two sides dump different pictures and the compare measures
-# nothing.  This is that agreement, stated so it can be implemented from the
-# text alone.  It is a TEST FIXTURE, not a claim about the game.
-SCENARIO_SPEC = r"""
-FBDUMP v1 -- PINNED SCENARIOS (implementer 2, fb_ref.c / fb_pal.py)
-==================================================================
-Emit records in this order.  All arithmetic is integer unless stated.
+# What this harness CANNOT grade, stated rather than pretended.  Printed by
+# --ungraded and by every suite run.
+UNGRADED = [
+    ("farmalloc offset == 4", "TIER 0",
+     "Four independent source-level witnesses -- Stick/Segmento's `es:[di+4]`, "
+     "sc_bytes = 65540, wave()'s `add ax,4`, and polymap's es:[0xFA00] into a "
+     "65540-byte page -- which is documentary corroboration, not measurement.  "
+     "Alias 8's PLACEMENT arithmetic reaches Tier 2 (fb_layout.py parses the asm "
+     "literal, fb_ref.c transcribes it, they agree); its PREMISE does not.  "
+     "Decisive experiment: DOSBox-X + NOCTIS.SYM, read adapted's offset word "
+     "after init_FP_segments (rig at tests/gen/recon_w5c/hostshot4.ps1)."),
+    ("Stick's riga[] out-of-bounds VALUES", "DIVERGENCE",
+     "fb_stick.py measures that the index escapes and by how much, but the VALUES "
+     "riga[y] reads for y outside 0..199 come from whatever the DOS data segment "
+     "held next to RIGA, which this project has never measured.  The adopted "
+     "divergence defines riga[y] = 320*y and masks the result.  Retirement "
+     "condition: extract RIGA's neighbours from NOCTIS.SYM -- the same rig as "
+     "item 1."),
+    ("M1 crater's wrap RATE", "BOUNDED, NOT MEASURED",
+     "fb_wrap.py measures the conditional rate for both ray multipliers, which "
+     "brackets it; which multiplier fires is Borland random()-driven and outside "
+     "the exhaustive parameter sweep."),
+    ("M3 polymap's bump branch", "OPEN",
+     "`sub di,320` x(1..8) then `mov [di+640+3]` underflows in the top 8 rows.  "
+     "Reachability depends on whether any Noctis material sets flag 8.  "
+     "Unresolved; nothing here touches it."),
+    ("Everything visual", "NO RENDERER",
+     "Kinds 1/2/3 are graded as exact transformations of state the project itself "
+     "built, plus the 1996 BMP palette for v*4 (Tier 1).  Nothing is eyeballed as "
+     "a pass criterion."),
+    ("KFRM (kind 8)", "UNGRADED BY NATURE",
+     "Raw frame timing.  A defined kind with no oracle; reported, never graded."),
+    ("KSELF field ids >= 100", "PORT-LOCAL",
+     "Ids 1..99 are normative and independently computable, so they are graded.  "
+     "100+ are port-local by definition and are printed, never compared."),
+    ("LINOBUF 6.1 as a DOCUMENT", "SEE THE RUN",
+     "The scenario is normative in LINOBUF 6.1, which the architect owns.  This "
+     "harness checks whether that section exists and whether its numbers match "
+     "what the two references actually ran; if the section is absent the check "
+     "reports NOT GRADED rather than passing."),
+]
 
-SCENARIO "surface"  -> kinds 2 (pal6), 2 (curpal6), 3 (lut)
-  1  pal6[0..767] = 0 ; curpal6[0..767] = 0
-  2  tavola_colori(range8088, first=0,   n=64,  fr=16, fg=32, fb=63)
-  3  tavola_colori(SELF,      first=0,   n=256, fr=64, fg=64, fb=64)
-  4  shade(pal6, 0,   64, 8.0,8.0,8.0,      40.0,52.0,63.0)
-  5  tavola_colori(SELF,      first=64,  n=64,  fr=48, fg=52, fb=63)
-  6  shade(pal6, 128, 16, 0.0,0.0,0.0,      3.25,5.50,7.75)
-  7  shade(pal6, 144, 16, 3.25,5.50,7.75,   19.50,24.75,33.00)
-  8  shade(pal6, 160, 16, 19.50,24.75,33.00, 66.25,-2.50,48.125)
-  9  shade(pal6, 176, 16, 66.25,-2.50,48.125, 64.0,64.0,64.0)
- 10  tavola_colori(SELF,      first=128, n=64,  fr=64, fg=64, fb=64)
- 11  rebuild the LUT from curpal6:  pal[c] = (r*4)<<16 | (g*4)<<8 | (b*4)
-  tavola_colori: copy n*3 from src into pal6[first*3..] (SELF = filter in
-  place, no copy); then v = v*f/63 with integer truncation, clamped to 63;
-  then upload curpal6[0 .. (first+n)*3) <- pal6, ALWAYS starting at colour 0.
-  shade: v = trunc(from + (to-from)*i/n) per component, then the original's
-  inverted clamp -- if not (v >= 0 and v < 64) then v = (v > 0) ? 63 : 0.
-  range8088 is the 64-entry ramp of NOCTIS-0.CPP:166-241.
-  Steps 4-5 exist to make the upload-from-zero rule observable: step 4 writes
-  band 0 WITHOUT uploading, and step 5's sky call is what carries it to the DAC.
+# Per-element tier statement.  LINOBUF 7's blanket "Tier 2, lino vs C, byte
+# exact on every FBDUMP kind" was true of the container and false of the
+# content; this table says which is which, element by element.
+TIER_TABLE = [
+    ("palette filter arithmetic", "TIER 2", "C + Python, 7 caught sabotages, and TIER 1 "
+                                            "against the 1996 BMP"),
+    ("shade chop-vs-round", "TIER 2", "separated at the first entry of step 3"),
+    ("upload-from-zero", "TIER 2", "trace digests; the FINAL state does not separate it"),
+    ("the self-copy", "TIER 2", "separated by step 7, NOT by step 4 -- measured"),
+    ("v*4 vs shift-or", "TIER 1", "768/768 BMP bytes = 0 mod 4, max 252; shift-or falsified"),
+    ("shade's destination buffer", "TIER 2", "21 sites counted from source, SH-COMPOUND caught"),
+    ("alias 8 placement", "TIER 2", "parsed vs transcribed, agree on adapted[63996]"),
+    ("alias 8 PREMISE (offset==4)", "TIER 0", "four witnesses, zero measurements"),
+    ("the raster loop (digit_at n=0)", "TIER 2", "glyph plane AND the 6 SUB expectation hits"),
+    ("the 22-zone pad model", "TIER 2", "zones record + two-sided walk, 3 caught sabotages"),
+    ("the canary", "TIER 2", "4 caught sabotages, proved by disabling"),
+    ("class-A masks", "TIER 2", "4 caught sabotages; reachability EXHAUSTIVE over the domain"),
+    ("A1 Segmento", "PROVEN", "unnecessary: poly3d's clamp, swept"),
+    ("A3 mask_pixels", "PROVEN", "unnecessary: DI 2884..61123 at the steady QUADWORDS"),
+    ("A7 ptr", "PROVEN", "a typing requirement, not a mask"),
+    ("A2 Stick riga[] INDEX", "TIER 2", "reached; 400k-case corpus, mechanism identified"),
+    ("A2 Stick riga[] VALUES", "DIVERG.", "deliberate, named retirement condition"),
+    ("the tick period", "TIER 2", "C + Python + 1.5M-case wrap sweep"),
+    ("the servo", "TIER 3", "6 caught sabotages; the shipped bracket replayed and refuted"),
+    ("kinds 1/2/3 CONTENT", "TIER 2", "pinned scenario, C vs Python, exact"),
+    ("kinds 1/2/3 vs a FRAME", "SCOPED OUT", "no renderer exists"),
+    ("KFRM (kind 8)", "UNGRADED", "raw timing, by nature"),
+]
 
-SCENARIO "page"  -> kind 1 (adapted 320x200), kind 1 (adaptor 320x200),
-                    kind 1 (glyph 256x36)
-  1  QUADWORDS = 16000        ; pclear(adaptor, 0)
-  2  QUADWORDS = 16000 - 1440 ; pclear(adapted, 7)      <- 14560 dwords, NOT 64000 bytes
-  3  seed with Borland's LCG, state = state*0x015A4E35 + 1,
-     rand = (state >> 16) & 0x7FFF, srand(1996) sets state = 1996:
-       n_globes_map[i]   = rand() & 63          for i in 0..32767
-       s_background[i]   = 128 + (rand() & 63)  for i in 0..4095
-  4  sea texture sweep, i in 0..31999:
-       u = (i*517) & 0xFFFF ;  v = (i*1031) & 0xFFFF
-       texel = ((v>>8) & 0xFF)*256 + ((u>>8) & 0xFF)        <- 16-bit, TDPOLYGS.H:2817
-       adapted[i] = NW[n_globes_map + texel]                <- overruns, class C
-  5  digit_at('A', x = 104, y = 1) with txtr based at p_surfacemap,
-     INCLUDING the txtr[-6..-1] underflow -- loop from n = 0, not n = 1
-  6  adapted[32000 + i] = NW[p_surfacemap - 5 + i]  for i in 0..9215
-  7  adapted[63996] = 0x37 ; adapted[63997] = 0x5B        <- tinta/escrescenze,
-     at 63996, NOT at 64000 (that is niv-lr's divergence)
-  8  areaclear(adaptor, x=2, y=191, w=316, h=7, colour=127)
-  9  QUADWORDS = 16000 ; pcopy(adaptor, adapted)
- 10  the glyph record is NW[p_surfacemap - 5 + i] for i in 0..9215, as 256x36
+# The scenario constants LINOBUF 6.1 must carry if it is to pin what the two
+# references implemented.  Checked against the doc, not against each other.
+SCENARIO_MARKERS = [
+    "range8088", "16", "32", "63",          # step 2
+    "0.984375",                              # step 3's delta, the chop/round split
+    "192", "50",                             # step 4
+    "64", "60", "55",                        # step 5
+    "160", "19.5", "24.75", "66.25",         # step 6
+    "200",                                   # step 7, the signed-char filter
+    "14560", "63996", "1996", "517", "1031",  # page scenario
+]
 
-  Pads are in the RELEASE state (zero) for every record above.  The canary
-  poison must be written, checked and CLEARED only around the kind-6 record --
-  5 of the 32000 texels in step 4 land in a pad, so poison left in place
-  changes the adapted page.
 
-CANARY (kind 6): poison all nine pads plus the low pad and the top pad with
-  0xA5A5A5A5, then emit (expected, actual) per region.  A clean debug check is
-  therefore expected == actual == 0xA5A5A5A5.
-"""
+def read_linobuf_61():
+    """LINOBUF 6.1 is the architect's, and this file may not carry a copy of it.
+    Read it off disk; if it is not there, say so."""
+    if not os.path.exists(LINOBUF):
+        return None, "LINOBUF.md not found at %s" % LINOBUF
+    with open(LINOBUF, "r", encoding="utf-8", errors="replace") as fh:
+        text = fh.read()
+    lines = text.splitlines()
+    start = None
+    for i, ln in enumerate(lines):
+        if ln.strip().lower().startswith("### 6.1") or \
+           ("6.1" in ln and "PINNED SCENARIO" in ln.upper()):
+            start = i
+            break
+    if start is None:
+        return None, ("LINOBUF.md has no section 6.1.  The pinned scenario is the "
+                      "architect's deliverable and it is not on disk yet.")
+    end = len(lines)
+    for j in range(start + 1, len(lines)):
+        if lines[j].startswith("## ") or (lines[j].startswith("### ") and j > start):
+            end = j
+            break
+    return "\n".join(lines[start:end]), None
 
 
 # ----------------------------------------------------------- containers
-#
-# FBDUMP v1 describes ONE record: a 16-unit header and its payload.  It does
-# not say a file holds only one, and implementer 1 concatenates every record of
-# a run into a single .bin.  That is a legal reading, so the grader accepts it:
-# a --lino argument may be a single multi-record file, or a directory, in which
-# case every .bin inside it is read and its records pooled.
 
 
 def read_container(path):
@@ -151,14 +228,15 @@ def read_container(path):
         h = struct.unpack("<16I", d[off:off + 64])
         if h[0] != 0x46424431:
             raise SystemExit("%s: bad FBDUMP magic %08X at offset %d" % (path, h[0], off))
-        if h[1] != 1:
-            raise SystemExit("%s: FBDUMP version %d, expected 1" % (path, h[1]))
+        if h[1] not in (1, 2):
+            raise SystemExit("%s: FBDUMP version %d, expected 1 or 2" % (path, h[1]))
         cnt = h[5]
         end = off + 64 + 4 * cnt
         if end > len(d):
             raise SystemExit("%s: record at %d claims %d units but the file ends" % (path, off, cnt))
-        out.append({"kind": h[2], "width": h[3], "height": h[4], "count": cnt,
-                    "cpms": h[6], "ticks": h[7],
+        out.append({"kind": h[2], "version": h[1], "width": h[3], "height": h[4],
+                    "count": cnt, "cpms": h[6], "ticks": h[7],
+                    "tag": h[8] if h[1] >= 2 else 0,
                     "payload": list(struct.unpack("<%dI" % cnt, d[off + 64:end])),
                     "raw": d[off:end], "offset": off, "path": path})
         off = end
@@ -168,8 +246,6 @@ def read_container(path):
 
 
 def write_record(path, rec):
-    """Re-emit one record from a container as a standalone FBDUMP, so the
-    existing exact comparer and the tick grader can be pointed straight at it."""
     with open(path, "wb") as fh:
         fh.write(rec["raw"])
     return path
@@ -178,8 +254,85 @@ def write_record(path, rec):
 # ------------------------------------------------------------- compare core
 
 
+def diff_payload(a, b):
+    n = min(len(a), len(b))
+    return [i for i in range(n) if a[i] != b[i]] + \
+           ([len(a)] if len(a) != len(b) else [])
+
+
+def compare_keyed(a, b, label_a, label_b, kind):
+    """KSELF (kind 7) and WRAPCOUNT (kind 10) are KEYED records, not positional
+    ones: KSELF is (field id, value) pairs and WRAPCOUNT is (site id, calls,
+    wraps) rows.  Two conforming implementations may legally carry different
+    SETS -- KSELF ids >= 100 are port-local by definition, and a port that
+    instruments more class-A sites than this reference has more rows.
+
+    So compare on the INTERSECTION of the normative keys, and report the rest
+    rather than failing on a length mismatch.  A straight payload compare here
+    would turn "the other side instruments more" into a failure, which is
+    exactly the kind of false verdict the container-vs-content confusion
+    produced in v1.
+    """
+    lines = []
+    if kind == KIND_KSELF:
+        stride, keyname = 2, "field"
+        da = {a[i]: tuple(a[i + 1:i + 2]) for i in range(0, len(a) - 1, 2)}
+        db = {b[i]: tuple(b[i + 1:i + 2]) for i in range(0, len(b) - 1, 2)}
+        normative = lambda k: 1 <= k < 100
+        name = lambda k: KSELF_FIELD.get(k, "port-local")
+    else:
+        stride, keyname = 3, "site"
+        da = {a[i]: (a[i + 1], a[i + 2]) for i in range(0, len(a) - 2, 3)}
+        db = {b[i]: (b[i + 1], b[i + 2]) for i in range(0, len(b) - 2, 3)}
+        normative = lambda k: True
+        name = lambda k: {1: "spot", 2: "cirrus", 3: "crater", 4: "alias8"}.get(k, "?")
+    if kind == KIND_KSELF:
+        # SHAPE diagnostic.  A record read as (field id, value) pairs whose ids
+        # are not a strictly increasing set of small integers is almost
+        # certainly a POSITIONAL dump instead -- a different reading of "KSELF's
+        # field list", and a format divergence rather than a value disagreement.
+        # Say which it is; the two need different fixes.
+        for lbl, raw in ((label_a, a), (label_b, b)):
+            ids = [raw[i] for i in range(0, len(raw) - 1, 2)]
+            increasing = all(y > x for x, y in zip(ids, ids[1:]))
+            if not increasing:
+                return False, [
+                    "    SHAPE MISMATCH, not a value disagreement: %s does not read as "
+                    "(field id, value) pairs" % lbl,
+                    "      its even-indexed units are %s..., which is not a strictly "
+                    "increasing id set" % ids[:8],
+                    "      FBDUMP v2 kind 7 is 2 units per field, (id, value), ids 1..99 "
+                    "normative and 100+ port-local.  A positional dump carries the same",
+                    "      information but cannot be compared across implementations with "
+                    "different field sets, which is the whole reason for the id.",
+                ]
+    shared = sorted(k for k in da if k in db and normative(k))
+    bad = [k for k in shared if da[k] != db[k]]
+    only_a = sorted(k for k in da if k not in db and normative(k))
+    only_b = sorted(k for k in db if k not in da and normative(k))
+    extra_a = sorted(k for k in da if not normative(k))
+    ok = not bad and not only_a and not only_b
+    if ok:
+        lines.append("    %s == %s on all %d normative %ss%s"
+                     % (label_a, label_b, len(shared), keyname,
+                        "" if not extra_a else
+                        "; %d port-local %s(s) reported, never compared: %s"
+                        % (len(extra_a), keyname, extra_a[:8])))
+        return True, lines
+    for k in bad[:8]:
+        lines.append("      %s %-3d (%-20s)  %s=%s  %s=%s"
+                     % (keyname, k, name(k), label_a, da[k], label_b, db[k]))
+    if only_a:
+        lines.append("      %ss only in %s: %s" % (keyname, label_a, only_a[:12]))
+    if only_b:
+        lines.append("      %ss only in %s: %s" % (keyname, label_b, only_b[:12]))
+    if extra_a:
+        lines.append("      port-local %ss in %s (not graded): %s"
+                     % (keyname, label_a, extra_a[:12]))
+    return False, lines
+
+
 def compare_dumps(pa, pb, label_a="A", label_b="B", show=6):
-    """Exact unit-for-unit compare of two FBDUMPs.  Returns (ok, lines)."""
     lines = []
     try:
         a = fbdump_read(pa)
@@ -190,17 +343,23 @@ def compare_dumps(pa, pb, label_a="A", label_b="B", show=6):
     if a["kind"] != b["kind"]:
         return False, ["    kind mismatch: %s=%s %s=%s"
                        % (label_a, KIND_NAME.get(a["kind"]), label_b, KIND_NAME.get(b["kind"]))]
+    if a["kind"] in (KIND_KSELF, KIND_WRAPCOUNT):
+        return compare_keyed(a["payload"], b["payload"], label_a, label_b, a["kind"])
     if a["count"] != b["count"]:
         return False, ["    count mismatch: %s=%d %s=%d" % (label_a, a["count"], label_b, b["count"])]
     if a["kind"] == KIND_INDEXPAGE and (a["width"], a["height"]) != (b["width"], b["height"]):
         return False, ["    geometry mismatch: %dx%d vs %dx%d"
                        % (a["width"], a["height"], b["width"], b["height"])]
+    if a["version"] >= 2 and b["version"] >= 2 and a["tag"] != b["tag"]:
+        return False, ["    tag mismatch: %s=%s %s=%s"
+                       % (label_a, TAG_NAME.get(a["tag"]), label_b, TAG_NAME.get(b["tag"]))]
 
     pa_, pb_ = a["payload"], b["payload"]
     diff = [i for i in range(len(pa_)) if pa_[i] != pb_[i]]
     if not diff:
-        lines.append("    %s == %s  (%d units of %s, exact)"
-                     % (label_a, label_b, a["count"], KIND_NAME.get(a["kind"], a["kind"])))
+        lines.append("    %s == %s  (%d units of %s%s, exact)"
+                     % (label_a, label_b, a["count"], KIND_NAME.get(a["kind"], a["kind"]),
+                        "/" + TAG_NAME.get(a["tag"], "?") if a["tag"] else ""))
         return True, lines
 
     lines.append("    %s != %s  (%d of %d units differ)" % (label_a, label_b, len(diff), a["count"]))
@@ -216,12 +375,26 @@ def compare_dumps(pa, pb, label_a="A", label_b="B", show=6):
         elif k == KIND_LUT:
             lines.append("      colour %3d  %s=%08X  %s=%08X" % (i, label_a, pa_[i], label_b, pb_[i]))
         elif k == KIND_LAYOUT:
-            fld = ["base", "size", "padbase", "rid"][i % 4]
-            lines.append("      region %d field %-7s  %s=%d  %s=%d"
+            fld = ["base", "size", "base+size", "rid"][i % 4]
+            lines.append("      region %d field %-9s  %s=%d  %s=%d"
+                         % (i // 4, fld, label_a, pa_[i], label_b, pb_[i]))
+        elif k == KIND_ZONES:
+            fld = ["base", "len", "owner", "role"][i % 4]
+            lines.append("      zone %d field %-6s  %s=%d  %s=%d"
                          % (i // 4, fld, label_a, pa_[i], label_b, pb_[i]))
         elif k == KIND_CANARY:
-            lines.append("      region %d %s  %s=%08X  %s=%08X"
-                         % (i // 2, ["expected", "actual"][i % 2], label_a, pa_[i], label_b, pb_[i]))
+            fld = ["clean_read", "dirty_read", "fired", "at"][i % 4]
+            lines.append("      pad %d %-11s  %s=%08X  %s=%08X"
+                         % (i // 4, fld, label_a, pa_[i], label_b, pb_[i]))
+        elif k == KIND_WRAPCOUNT:
+            fld = ["site", "calls", "wraps"][i % 3]
+            lines.append("      site row %d %-6s  %s=%d  %s=%d"
+                         % (i // 3, fld, label_a, pa_[i], label_b, pb_[i]))
+        elif k == KIND_KSELF:
+            fid = pa_[i - 1] if i % 2 else pa_[i]
+            lines.append("      field %d (%s)  %s=%d  %s=%d"
+                         % (fid, KSELF_FIELD.get(fid, "port-local"), label_a, pa_[i],
+                            label_b, pb_[i]))
         else:
             lines.append("      unit %6d  %s=%d  %s=%d" % (i, label_a, pa_[i], label_b, pb_[i]))
     if len(diff) > show:
@@ -229,20 +402,65 @@ def compare_dumps(pa, pb, label_a="A", label_b="B", show=6):
     return False, lines
 
 
+# ------------------------------------------------- the Python-side records
+
+
+def python_records(breaks=()):
+    """Build every record from the Python references, independently of the C."""
+    lb = [b for b in breaks if b in LAYOUT_BREAKS]
+    lay = Layout(lb)
+    w = Workspace(lay, breaks=breaks)
+    w.scenario_page()
+    p = fb_pal.scenario_surface([b for b in breaks if b in fb_pal.BREAKS])
+    pc, want, ladder = fb_pal.scenario_compound([b for b in breaks if b in fb_pal.BREAKS])
+    probe_viol, probe_exp, _ = w.pad_probe_expectation()
+    extra = {
+        4: probe_viol, 5: probe_exp,
+        15: p.curpal6_trace_fnv(),
+        16: sum(1 for v in ladder if v),
+        20: sum(1 for i in range(11) if w.canary_v2()[4 * i + 2] == 0),
+        21: fnv1a32(pc.pal6),
+        22: p.pal6_trace_fnv(),
+        23: p.upload_spans_fnv(),
+    }
+    recs = {
+        "layout": (KIND_LAYOUT, layout_payload(lay), 0, 0, TAG["layout"]),
+        "zones": (KIND_ZONES, zones_payload(lay), 0, 0, TAG["zones"]),
+        "pal6": (KIND_PALETTE6, p.pal6, 0, 0, TAG["pal6"]),
+        "curpal6": (KIND_PALETTE6, p.curpal6, 0, 0, TAG["curpal6"]),
+        "lut": (KIND_LUT, p.lut(), 0, 0, TAG["lut"]),
+        "adapted": (KIND_INDEXPAGE, w.page("adapted"), 320, 200, TAG["adapted"]),
+        "adaptor": (KIND_INDEXPAGE, w.page("adaptor"), 320, 200, TAG["adaptor"]),
+        "glyph": (KIND_INDEXPAGE, w.glyph_plane(), 256, 36, TAG["glyph"]),
+        "canary": (KIND_CANARY, w.canary_v2(), 0, 0, TAG["canary"]),
+        "wrapcount": (KIND_WRAPCOUNT, w.wrapcount_payload(), 0, 0, TAG["wrapcount"]),
+        "kself": (KIND_KSELF, w.kself_payload(extra), 0, 0, TAG["selfcheck"]),
+    }
+    return recs, w, p
+
+
+def write_python_records(recs, prefix="fb-py-"):
+    for name, (kind, pay, wdt, hgt, tag) in recs.items():
+        fbdump_write(os.path.join(OUT, "%s%s.bin" % (prefix, name)), kind, pay,
+                     width=wdt, height=hgt, tag=tag)
+
+
 # ---------------------------------------------------------------- the suite
 
 
 class Suite(object):
-    def __init__(self, linosrc=None, verbose=False, linobreaks=()):
+    def __init__(self, linosrc=None, verbose=False, linobreaks=(), fast=False):
         self.linosrc = linosrc
         self.linobreaks = list(linobreaks)
         self.verbose = verbose
-        self.rows = []       # (tier, name, ok, detail)
+        self.fast = fast
+        self.rows = []       # (tier, name, ok|None, detail)
 
     def rec(self, tier, name, ok, detail=""):
         self.rows.append((tier, name, ok, detail))
-        print("  [%s] %-56s %s%s" % (tier, name, "PASS" if ok else "FAIL",
-                                     ("  " + detail) if detail and not ok else ""))
+        tagtxt = "PASS" if ok is True else ("FAIL" if ok is False else "NOT GRADED")
+        print("  [%s] %-62s %s%s" % (tier, name, tagtxt,
+                                     ("  " + detail) if detail and ok is not True else ""))
         return ok
 
     # -- build helpers ---------------------------------------------------
@@ -266,14 +484,11 @@ class Suite(object):
         lay = Layout()
         ok, msg = lay.check()
         self.rec("T3", "fb_layout.py structural assertions (%d checks)" % len(msg), ok)
-        if self.verbose:
+        if self.verbose or not ok:
             for m in msg:
-                print("      " + m)
-        fbdump_write(os.path.join(OUT, "fb-py-layout.bin"), KIND_LAYOUT, layout_payload(lay))
-
-        # sabotages of the layout itself
-        from fb_layout import BREAKS as LBREAKS
-        for b in sorted(LBREAKS):
+                if not ok or self.verbose:
+                    print("      " + m)
+        for b in LAYOUT_BREAKS:
             bad, _ = Layout([b]).check()
             self.rec("T3", "layout sabotage %-14s is rejected" % b, not bad)
         return ok
@@ -283,7 +498,8 @@ class Suite(object):
     def tier2_c_vs_py(self):
         print("\nTier 2 -- fb_ref.c vs the Python references (independent constructions)")
         ok, log = self.build_c(os.path.join(HERE, "fb_ref.exe"))
-        if not self.rec("T2", "fb_ref.c builds clean with -Wall -Wextra", ok, log[:200]):
+        if not self.rec("T2", "fb_ref.c builds clean with -Wall -Wextra", ok and "warning" not in log,
+                        log[:300]):
             return False
         rc, out = self.run_c(os.path.join(HERE, "fb_ref.exe"), OUT)
         self.rec("T2", "fb_ref.exe self-test passes", rc == 0,
@@ -291,100 +507,137 @@ class Suite(object):
         if self.verbose:
             print(out)
 
-        # layout: C transcribes, Python parses.  They must agree.
-        good, lines = compare_dumps(os.path.join(OUT, "fb-py-layout.bin"),
-                                    os.path.join(OUT, "fb-ref-layout.bin"), "py", "C")
-        self.rec("T2", "LAYOUT: fb_layout.py (parsed) == fb_ref.c (transcribed)", good)
-        for l in lines:
-            if not good or self.verbose:
-                print(l)
-
-        # palette: two implementations of tavola_colori/shade/LUT
-        p = fb_pal.scenario_surface()
-        fbdump_write(os.path.join(OUT, "fb-py-pal6.bin"), KIND_PALETTE6, p.pal6)
-        fbdump_write(os.path.join(OUT, "fb-py-lut.bin"), KIND_LUT, p.lut())
-        for what in ("pal6", "lut"):
-            good, lines = compare_dumps(os.path.join(OUT, "fb-py-%s.bin" % what),
-                                        os.path.join(OUT, "fb-ref-%s.bin" % what), "py", "C")
-            self.rec("T2", "%s: fb_pal.py == fb_ref.c (scenario 'surface')" % what.upper(), good)
+        recs, w, p = python_records()
+        write_python_records(recs)
+        for name in sorted(REC):
+            fn = REC[name][0]
+            good, lines = compare_dumps(os.path.join(OUT, "fb-py-%s.bin" % name),
+                                        os.path.join(OUT, fn), "py", "C")
+            self.rec("T2", "%-9s : Python == fb_ref.c, exact" % name.upper(), good)
             for l in lines:
                 if not good or self.verbose:
                     print(l)
 
-        # the buffer model itself: the page scenario, computed independently in
-        # Python.  This is what puts the class-C read overrun, QUADWORDS, the
-        # texel address and digit_at under a two-implementation check rather
-        # than only under C-versus-its-own-sabotage.
-        from fb_layout import Workspace
-        w = Workspace()
-        w.scenario_page()
+        # the two independent derivations of alias 8
+        a8 = Layout().alias8()
+        kself = {}
+        pay = fbdump_read(os.path.join(OUT, "fb-ref-kself.bin"))["payload"]
+        for i in range(0, len(pay), 2):
+            kself[pay[i]] = pay[i + 1]
+        self.rec("T2", "alias 8: fb_layout.py PARSES `mov es:[0x%04X]` out of TDPOLYGS.H, "
+                       "fb_ref.c TRANSCRIBES it; both give adapted[%d] = row %d col %d"
+                 % (a8["segoff"], a8["index"], a8["row"], a8["col"]),
+                 (kself.get(7), kself.get(8), kself.get(9)) == (a8["nw"], a8["row"], a8["col"]))
+        self.rec("T0", "...but alias 8's PREMISE (farmalloc offset == 4) is Tier 0: four "
+                       "source-level witnesses, zero measurements", None,
+                 "see --ungraded item 1")
+
+        # the raster loop, visible in two independent places
         census, padhits = w.overrun_census()
-        self.rec("T3", "sea texture actually overruns n_globes_map: %d of 32000 texels "
-                       "land past its end, so farmalloc order is under test" % census, census > 0)
-        # LINOBUF 2.4 records the 16-unit pad as the one knowing divergence
-        # from DOS, on the grounds that no audited read-overrun is proven to
-        # sample it.  The 16-bit texel address reaches it directly -- texels
-        # 32768..32783 ARE the pad -- so pad contents are observable, and a
-        # grading run must use the release (zero) pad state, not the poisoned
-        # debug one.  Leaving the poison in place is what made C and Python
-        # disagree in exactly these units.
-        self.rec("T3", "pad IS reachable by the texel address: %d of those %d land in the "
-                       "16-unit pad, so release-state pads are load-bearing" % (padhits, census),
+        self.rec("T3", "sea texture actually overruns n_globes_map: %d of 32000 texels land "
+                       "past its end, so farmalloc order is under test" % census, census > 0)
+        self.rec("T3", "the 16-unit pad IS reachable by the texel address (%d of those %d), "
+                       "so grading runs must use the release pad state" % (padhits, census),
                  padhits > 0)
-        fbdump_write(os.path.join(OUT, "fb-py-adapted.bin"), KIND_INDEXPAGE,
-                     w.page("adapted"), width=320, height=200)
-        fbdump_write(os.path.join(OUT, "fb-py-adaptor.bin"), KIND_INDEXPAGE,
-                     w.page("adaptor"), width=320, height=200)
-        fbdump_write(os.path.join(OUT, "fb-py-glyph.bin"), KIND_INDEXPAGE,
-                     w.glyph_plane(), width=256, height=36)
-        for what in ("adapted", "adaptor", "glyph"):
-            good, lines = compare_dumps(os.path.join(OUT, "fb-py-%s.bin" % what),
-                                        os.path.join(OUT, "fb-ref-%s.bin" % what), "py", "C")
-            self.rec("T2", "%s: fb_layout.Workspace == fb_ref.c (page scenario)" % what.upper(), good)
-            for l in lines:
-                if not good or self.verbose:
-                    print(l)
+        pv, pe, _ = w.pad_probe_expectation()
+        self.rec("T3", "the raster loop is visible in TWO places: the 256x36 glyph plane, and "
+                       "EXACTLY %d expectation hits in p_surfacemap's SUB zone" % pe,
+                 (pv, pe) == (0, 6))
+        vio, _, first = w.pad_probe_violation()
+        self.rec("T3", "and a real overrun is a VIOLATION, not an expectation: 1 unit past "
+                       "n_globes_map fires once, at NW %s, in pad %s TAIL"
+                 % (first, vio[0][1] if vio else "-"),
+                 len(vio) == 1 and vio[0][2] == "TAIL")
 
-        # and the Python side's own sabotages of the buffer model
-        for b, target in (("DIGITN1", "glyph"), ("TINTA64000", "adapted"), ("QUADWORDS", "adapted")):
-            wb = Workspace(breaks=[b])
-            wb.scenario_page()
-            got = wb.glyph_plane() if target == "glyph" else wb.page(target)
-            ref = w.glyph_plane() if target == "glyph" else w.page(target)
-            self.rec("T2", "Workspace sabotage %-11s changes %s" % (b, target), got != ref)
+        # MAJOR 5, demonstrated rather than argued: v1's kind 6 is BLIND to the
+        # very sabotages v2 catches.  Both records are computed from the same
+        # workspace under the same sabotage, so this is a like-for-like
+        # comparison of the two record designs.
+        print("      canary v1 vs v2, proof by disabling (same workspace, same sabotage):")
+        base_v1 = Workspace().canary_v1()
+        base_v2 = Workspace().canary_v2()
+        blind = []
+        for b in ("CANSTUBCHECK", "CANSTUBPOISON", "CANCONSTACTUAL", "NINEWALK"):
+            ww = Workspace(breaks=[b])
+            v1 = ww.canary_v1()
+            ww2 = Workspace(breaks=[b])
+            v2 = ww2.canary_v2()
+            d1 = sum(1 for x, y in zip(v1, base_v1) if x != y)
+            d2 = sum(1 for x, y in zip(v2, base_v2) if x != y)
+            print("        %-15s v1 fnv %08X (%2d units differ)   v2 fnv %08X (%2d units differ)"
+                  % (b, fnv1a32(v1), d1, fnv1a32(v2), d2))
+            if d1 == 0:
+                blind.append(b)
+        self.rec("T3", "kind 6 v2 catches %d sabotages that v1 is BIT-IDENTICAL under (%s) "
+                       "-- a clean run and a stubbed mechanism produced the same v1 dump"
+                 % (len(blind), ",".join(blind)),
+                 len(blind) >= 1 and all(
+                     sum(1 for x, y in zip(Workspace(breaks=[b]).canary_v2(), base_v2)
+                         if x != y) > 0 for b in blind))
 
-        # palette self-test and tick self-test, in their own constructions
-        pok, _ = fb_pal.selftest()
-        self.rec("T2", "fb_pal.py self-test", pok)
-        rc = fb_tick.main(["--wrap-sweep"])
-        self.rec("T2", "fb_tick.py arithmetic + 1.5M-case wrap sweep", rc == 0)
+        # the Python side's own sabotages of the buffer model
+        for b in sorted(WORKSPACE_BREAKS):
+            try:
+                bad, _, _ = python_records([b])
+            except Exception as exc:
+                self.rec("T2", "Workspace sabotage %-15s changes a graded record" % b, False, str(exc))
+                continue
+            moved = [n for n in sorted(REC)
+                     if bad[n][1] != recs[n][1]]
+            self.rec("T2", "Workspace sabotage %-15s moves %s"
+                     % (b, ",".join(moved) or "NOTHING"), bool(moved))
+
+        # palette self-test, tick self-test, wrap and stick, in their own
+        # constructions
+        pok, pmsg = fb_pal.selftest()
+        self.rec("T2", "fb_pal.py self-test (%d checks)" % len(pmsg), pok)
+        if not pok:
+            for m in pmsg:
+                if m.startswith("  FAIL"):
+                    print("      " + m)
+        self.rec("T2", "fb_tick.py arithmetic + 1.5M-case wrap sweep",
+                 fb_tick.main(["--wrap-sweep"]) == 0)
+        wok, wmsg, wstats = fb_wrap.run()
+        self.rec("T2", "fb_wrap.py class-A arithmetic, containment and the exhaustive "
+                       "reachability census (%d checks)" % len(wmsg), wok)
+        for m in wmsg:
+            if m.startswith("  PASS  W4") or m.startswith("  PASS  W5") or self.verbose or not wok:
+                print("      " + m.strip())
         return True
 
     # -- tier 2b: the sabotages of the C reference -----------------------
 
     def tier2_sabotage(self):
         print("\nTier 2 -- every single-edit sabotage of fb_ref.c must be REJECTED")
-        base = {}
-        for what in ("layout", "pal6", "lut", "adapted", "adaptor", "glyph", "canary"):
-            base[what] = os.path.join(OUT, "fb-ref-%s.bin" % what)
+        base = {n: os.path.join(OUT, REC[n][0]) for n in REC}
         allok = True
         for define, desc, target in C_BREAKS:
             exe = os.path.join(HERE, "fb_brk.exe")
             odir = os.path.join(OUT, "brk")
             bok, log = self.build_c(exe, [define])
             if not bok:
-                allok &= self.rec("T2", "sabotage %-20s builds" % define, False, log[:200])
+                allok &= bool(self.rec("T2", "sabotage %-22s builds" % define, False, log[:200]))
                 continue
             rc, out = self.run_c(exe, odir)
-            if target == "selftest":
-                caught = rc != 0
-                detail = "self-test still passed"
-            else:
-                good, _ = compare_dumps(base[target], os.path.join(odir, "fb-ref-%s.bin" % target))
-                caught = (not good) or rc != 0
-                detail = "%s compare still matched and self-test passed" % target
-            allok &= self.rec("T2", "sabotage %-20s caught by %-8s (%s)" % (define, target, desc),
-                              caught, detail)
+            moved = []
+            for n in sorted(REC):
+                p = os.path.join(odir, REC[n][0])
+                if not os.path.exists(p):
+                    moved.append(n + "(missing)")
+                    continue
+                good, _ = compare_dumps(base[n], p)
+                if not good:
+                    moved.append(n)
+            if rc != 0:
+                moved.append("selftest")
+            caught = bool(moved)
+            hit_target = target in moved
+            allok &= bool(self.rec(
+                "T2", "sabotage %-22s caught by %s" % (define, ",".join(moved) or "NOTHING"),
+                caught and hit_target,
+                "expected %s to move; it did not" % target if caught else "caught NOTHING"))
+            if self.verbose:
+                print("      %s" % desc)
         return allok
 
     # -- tier 1: the 1996 artifacts --------------------------------------
@@ -401,13 +654,10 @@ class Suite(object):
         for f in bmps + pngs:
             path = os.path.join(CAPS, f)
             try:
-                idx, pal6, pal8, info = fb_bmp.load_any(path)
-                loaded[f] = (idx, pal6, pal8, info)
+                loaded[f] = fb_bmp.load_any(path)
             except Exception as exc:
                 self.rec("T1", "decode %s" % f, False, str(exc))
 
-        # T1a -- the game's own writer scales the DAC by x4, not (v<<2)|(v>>4).
-        # This grades LINOBUF's 6->8 decision against the 1996 binary.
         for f in bmps:
             a = fb_bmp.scale_audit(loaded[f][2])
             self.rec("T1", "%s: DAC scaling is x4, not shift-or (mod4 %s, max %d)"
@@ -418,8 +668,6 @@ class Suite(object):
             self.rec("T1", "%s: DOSBox writes shift-or, so the two routes need different inverses" % f,
                      a["consistent_with_shift_or"] and not a["consistent_with_x4"])
 
-        # T1b -- the two routes agree EXACTLY on the 6-bit DAC once each is
-        # inverted correctly.  If they did not, neither could be an oracle.
         if bmps and pngs:
             a6 = loaded[bmps[0]][1]
             b6 = loaded[pngs[0]][1]
@@ -429,9 +677,6 @@ class Suite(object):
                            "components (raw 8-bit bytes differ in %d)" % len(raw), not d,
                      "%d differ" % len(d))
 
-        # T1c -- tavola_colori's filter arithmetic, fitted from the capture.
-        # One integer per channel over 64 samples; the falsifiers must find
-        # nothing at all.
         for f in bmps:
             fit = fb_pal.tier1_palette_audit(loaded[f][1])
             got = all(fit[c] for c in "RGB")
@@ -442,15 +687,11 @@ class Suite(object):
             self.rec("T1", "%s: falsifier /64 fits nothing (%s)"
                      % (f, fit["_div64_fits"] or "none"), not fit["_div64_fits"])
 
-        # T1d -- the raw PNG really is a 2x2 doubled mode-13h plane.  Measured,
-        # not assumed: every 2x2 block must be uniform.
         for f in pngs:
             self.rec("T1", "%s: 2x2 doubling verified, %d non-uniform subpixels"
                      % (f, loaded[f][3]["nonuniform_subpixels"]),
                      loaded[f][3]["nonuniform_subpixels"] == 0)
 
-        # T1e -- state pinning.  Two snapshots from the same session differ,
-        # which is why an unpinned frame is a picture and not an oracle.
         if len(bmps) >= 2:
             a, b = loaded[bmps[0]][0], loaded[bmps[1]][0]
             npx = sum(1 for i in range(len(a)) if a[i] != b[i])
@@ -461,7 +702,7 @@ class Suite(object):
                      npal == 0)
         return True
 
-    # -- tier 3: the tick ------------------------------------------------
+    # -- tier 3: the tick and the servo ----------------------------------
 
     def tier3_tick(self):
         print("\nTier 3 -- tick, recomputed from raw TICKLOGs")
@@ -470,13 +711,6 @@ class Suite(object):
         work = [int(exact * 0.04)] * 400
         work[100] = int(exact * 1.4)
         work[250] = int(exact * 2.6)
-        # NOCARRY is a ~0.7 count/tick truncation.  Against the OLD K3 -- a
-        # 1 ms budget for the whole log -- it was invisible in 400 ticks and
-        # needed a 20,000-tick soak.  The rewritten K3 grades the accumulation
-        # inside each constant-cpms run against the exact rational with the
-        # carry's own bound of ONE COUNT, which is where the truncation shows up
-        # after two ticks.  The long soak is kept anyway: it is the one that
-        # demonstrates the growth is LINEAR rather than a one-off.
         longwork = [int(exact * 0.04)] * 20000
         specs = [("clean", (), work)] + [(b, (b,), work) for b in ("REBASE", "NOSKIP", "ROUND55")]
         specs.append(("NOCARRY", ("NOCARRY",), longwork))
@@ -485,48 +719,79 @@ class Suite(object):
             pay = fb_tick.run_loop(cpms, work_, brk)
             path = os.path.join(OUT, "tick-%s.bin" % name)
             fb_tick.write_ticklog(path, pay, cpms, len(pay) // 3)
-            ok, msg, stats = fb_tick.grade_ticklog(path)
-            results[name] = (ok, msg, stats)
+            results[name] = fb_tick.grade_ticklog(path)
         ok0, msg0, st0 = results["clean"]
         self.rec("T3", "clean tick loop passes K1..K5 (drift %.5f ms over %d grid steps)"
                  % (st0["drift_ms"], st0["grid_steps"]), ok0)
         if self.verbose or not ok0:
             for m in msg0:
                 print("      " + m)
-        # the former blind spot, re-measured after K3 was tightened
         shortpay = fb_tick.run_loop(cpms, work, ("NOCARRY",))
         sp = os.path.join(OUT, "tick-NOCARRY-400.bin")
         fb_tick.write_ticklog(sp, shortpay, cpms, len(shortpay) // 3)
         sok, _, sst = fb_tick.grade_ticklog(sp)
-        self.rec("T3", "NOCARRY is now caught in a 400-tick log too (%.1f counts adrift; the old "
-                 "1 ms/log budget missed it at %.4f ms)"
-                 % (sst["drift_worst_segment_counts"], sst["drift_ms"]), not sok)
-
-        # -- controls on the SERVO leniency ------------------------------
-        # K2/K3 grade per constant-cpms run because a conforming port
-        # recalibrates (LINOBUF 5.5 rule 5).  That leniency has to be fenced,
-        # or "the period changed" becomes an excuse for any drift at all.
+        self.rec("T3", "NOCARRY is caught in a 400-tick log too (%.1f counts adrift)"
+                 % sst["drift_worst_segment_counts"], not sok)
         servo = fb_tick.run_loop(cpms, work, servo={256: cpms + 1})
         svp = os.path.join(OUT, "tick-SERVO1.bin")
         fb_tick.write_ticklog(svp, servo, cpms + 1, len(servo) // 3)
         vok, _, vst = fb_tick.grade_ticklog(svp)
-        self.rec("T3", "a legitimate 1-count servo step is ACCEPTED (%s, spread %.4f%%)"
-                 % ("->".join(str(s["cpms"]) for s in vst["segments"]),
-                    100.0 * (max(s["cpms"] for s in vst["segments"])
-                             - min(s["cpms"] for s in vst["segments"])) / cpms), vok)
-        # and a 5% lurch is not
+        self.rec("T3", "a legitimate 1-count servo step is ACCEPTED (%s)"
+                 % "->".join(str(s["cpms"]) for s in vst["segments"]), vok)
         wild = fb_tick.run_loop(cpms, work, servo={256: int(cpms * 1.05)})
         wp = os.path.join(OUT, "tick-SERVOWILD.bin")
         fb_tick.write_ticklog(wp, wild, cpms, len(wild) // 3)
         wok, wmsg, _ = fb_tick.grade_ticklog(wp)
         which = [m.split()[1] for m in wmsg if m.startswith("  FAIL")]
-        self.rec("T3", "a 5%% cpms lurch is REJECTED (by %s) -- the segment split is not a "
-                 "licence to drift" % (",".join(which) or "-"), not wok)
+        self.rec("T3", "a 5%% cpms lurch is REJECTED (by %s)" % (",".join(which) or "-"), not wok)
         for name, _, _ in specs[1:]:
             ok, msg, _ = results[name]
             which = [m.split()[1] for m in msg if m.startswith("  FAIL")]
-            self.rec("T3", "tick sabotage %-8s rejected (by %s)" % (name, ",".join(which) or "-"), not ok)
+            self.rec("T3", "tick sabotage %-8s rejected (by %s)" % (name, ",".join(which) or "-"),
+                     not ok)
         return ok0
+
+    def tier3_servo(self):
+        print("\nTier 3 -- the SERVO (CRITICAL 1), windowed and re-based-first")
+        rc = fb_tick.main(["--servo"])
+        self.rec("T3", "fb_tick.py windowed-servo battery T8a..T8h", rc == 0)
+        for b in ("SRVRUNSTART", "SRVWIDEMAX", "SRVUNSIGNEDBAND", "SRVTRUNC",
+                  "SRVCLAMPFLOOR", "WALLNOFOLD"):
+            rc = fb_tick.main(["--servo", "--break", b])
+            self.rec("T3", "servo sabotage %-16s is rejected" % b, rc != 0)
+        return True
+
+    def tier3_classA(self):
+        print("\nTier 3 -- class A (CRITICAL 2): the mask, and the two verdicts")
+        for b in sorted(fb_wrap.BREAKS):
+            rc = fb_wrap.run([b])[0]
+            self.rec("T3", "class-A sabotage %-16s is rejected" % b, not rc)
+        rc = fb_stick.main(["--quick", "--quiet"])
+        self.rec("T3", "fb_stick.py A1 bbox proof (poly3d clamp, swept)", rc == 0)
+        rc = fb_stick.main(["--quick", "--quiet", "--break", "CLIPSTAGE"])
+        self.rec("T3", "A1 sabotage CLIPSTAGE is rejected", rc != 0)
+        if not self.fast:
+            rc = fb_stick.main(["--quiet"])
+            self.rec("T3", "fb_stick.py A2 escape corpus (400k deterministic cases)", rc == 0)
+        else:
+            self.rec("T3", "fb_stick.py A2 escape corpus", None, "--fast: skipped")
+        return True
+
+    # -- LINOBUF 6.1 conformance ------------------------------------------
+
+    def scenario_doc(self):
+        print("\nTier 3 -- the pinned scenario as a DOCUMENT (LINOBUF 6.1)")
+        text, err = read_linobuf_61()
+        if text is None:
+            self.rec("T3", "LINOBUF 6.1 exists and pins the scenario", None,
+                     err + "  Until it lands, the two references agree with each "
+                           "other but nothing pins them to a document implementer 1 can read.")
+            return None
+        missing = [m for m in SCENARIO_MARKERS if m not in text]
+        self.rec("T3", "LINOBUF 6.1 carries every scenario constant the references ran "
+                       "(%d markers, %d missing)" % (len(SCENARIO_MARKERS), len(missing)),
+                 not missing, ",".join(missing[:8]))
+        return not missing
 
     # -- the lino side ---------------------------------------------------
 
@@ -542,84 +807,105 @@ class Suite(object):
             return False
 
         recs = read_container(self.linosrc)
-        print("      %s: %d FBDUMP records, %s"
-              % (os.path.basename(self.linosrc), len(recs),
+        vers = sorted(set(r["version"] for r in recs))
+        print("      %s: %d FBDUMP records, version(s) %s, %s"
+              % (os.path.basename(self.linosrc), len(recs), vers,
                  ", ".join("%s x%d" % (KIND_NAME.get(k, "kind%d" % k), v)
                            for k, v in sorted(collections.Counter(r["kind"] for r in recs).items()))))
-        by = collections.defaultdict(list)
+        if 1 in vers:
+            self.rec("T2", "lino dump is FBDUMP v2", False,
+                     "v1 record(s) present.  v1 has no tag and pins no scenario, so "
+                     "kinds 1/2/3 in it CANNOT be graded -- that is the defect v2 exists "
+                     "to fix, not a property of the build.")
+
+        by_tag = collections.defaultdict(list)
+        by_kind = collections.defaultdict(list)
         for r in recs:
-            by[r["kind"]].append(r)
+            by_kind[r["kind"]].append(r)
+            if r["version"] >= 2 and r["tag"]:
+                by_tag[TAG_NAME.get(r["tag"], "tag%d" % r["tag"])].append(r)
+
         allok = True
+        # every v2 record with a known tag is graded against BOTH references
+        for name in sorted(REC):
+            tagname = REC[name][2]
+            if not by_tag.get(tagname):
+                if 2 in vers:
+                    allok &= bool(self.rec("T2", "lino %-9s (tag %s) present" % (name.upper(), tagname),
+                                           False, "missing"))
+                else:
+                    self.rec("T2", "lino %-9s (tag %s)" % (name.upper(), tagname), None,
+                             "no v2 record carries this tag")
+                continue
+            lp = os.path.join(OUT, "fb-lino-%s.bin" % name)
+            write_record(lp, by_tag[tagname][0])
+            gc, lc = compare_dumps(lp, os.path.join(OUT, REC[name][0]), "lino", "C")
+            gp, lpn = compare_dumps(lp, os.path.join(OUT, "fb-py-%s.bin" % name), "lino", "py")
+            allok &= bool(self.rec("T2", "lino %-9s == fb_ref.c AND == the Python reference"
+                                   % name.upper(), gc and gp))
+            for l in (lc if not gc else []) + (lpn if not gp else []):
+                print(l)
 
-        # -- LAYOUT (kind 5) : scenario-free, and the whole point of Decision 2
-        if by[5]:
-            allok &= self.lino_layout(by[5][0])
-        else:
-            allok &= self.rec("T2", "lino LAYOUT record present", False, "missing")
-
-        # -- CANARY (kind 6) : scenario-free
-        if by[6]:
-            lp = os.path.join(OUT, "fb-lino-canary.bin")
-            write_record(lp, by[6][0])
-            good, lines = compare_dumps(lp, os.path.join(OUT, "fb-ref-canary.bin"), "lino", "C")
-            allok &= self.rec("T2", "lino CANARY == fb_ref.c (all %d pads intact, "
-                                    "expected==actual==A5A5A5A5)" % (len(by[6][0]["payload"]) // 2), good)
-            for l in lines:
-                if not good or self.verbose:
-                    print(l)
-        else:
-            allok &= self.rec("T2", "lino CANARY record present", False, "missing")
-
-        # -- TICKLOG (kind 4) : scenario-free
-        if by[4]:
+        # TICKLOG and SERVOLOG are scenario-free
+        if by_kind[KIND_TICKLOG]:
             lp = os.path.join(OUT, "fb-lino-ticklog.bin")
-            write_record(lp, by[4][0])
+            write_record(lp, by_kind[KIND_TICKLOG][0])
             ok, msg, stats = fb_tick.grade_ticklog(lp)
-            allok &= self.rec("T2", "lino TICKLOG passes K1..K5 (%d ticks, %d grid steps, worst "
-                                    "in-run drift %.4f counts)"
-                              % (stats["ticks"], stats["grid_steps"],
-                                 stats["drift_worst_segment_counts"]), ok)
+            allok &= bool(self.rec("T2", "lino TICKLOG passes K1..K5 (%d ticks, %d grid steps, "
+                                         "worst in-run drift %.4f counts)"
+                                   % (stats["ticks"], stats["grid_steps"],
+                                      stats["drift_worst_segment_counts"]), ok))
             for m in msg:
                 if m.startswith("  FAIL") or self.verbose:
                     print("      " + m)
-            print("      periods in force: %s"
-                  % " -> ".join("cpms %d for %d grid steps (%.4f counts adrift)"
-                                % (s["cpms"], s["grid_steps"], s["drift_counts"])
-                                for s in stats["segments"]))
-            print("      fps %.2f, tick multiples %s, max frame %.2f ms"
-                  % (stats["implied_fps"], stats["tick_multiple_histogram"],
-                     stats["measured_max_gap_ms"]))
         else:
-            allok &= self.rec("T2", "lino TICKLOG record present", False, "missing")
+            allok &= bool(self.rec("T2", "lino TICKLOG record present", False, "missing"))
 
-        # -- the scenario-DEPENDENT kinds ---------------------------------
-        allok &= self.lino_scenario(by)
+        if by_kind[KIND_SERVOLOG]:
+            pay = by_kind[KIND_SERVOLOG][0]["payload"]
+            ok, msg, st = fb_tick.grade_servolog(pay, by_kind[KIND_SERVOLOG][0]["cpms"])
+            allok &= bool(self.rec("T2", "lino SERVOLOG passes S1..S6 (%d firings, why %s)"
+                                   % (st["firings"], st["why"]), ok))
+            for m in msg:
+                if m.startswith("  FAIL"):
+                    print("      " + m)
+        else:
+            self.rec("T2", "lino SERVOLOG (kind 11) present", None,
+                     "missing.  CRITICAL 1 shipped precisely because SERVON > the soak's "
+                     "tick count, so the servo never executed.  Without this record the "
+                     "servo is not graded at all.")
 
-        # -- implementer 1's own sabotaged builds -------------------------
+        if by_kind[KIND_KFRM]:
+            print("      KFRM (kind 8): %d record(s), %d units -- raw timing, UNGRADED BY "
+                  "NATURE, reported not compared"
+                  % (len(by_kind[KIND_KFRM]), by_kind[KIND_KFRM][0]["count"]))
+
         if self.linobreaks:
-            allok &= self.lino_break_matrix(recs)
+            allok &= bool(self.lino_break_matrix(recs))
 
-        # -- records outside FBDUMP v1 ------------------------------------
-        extra = sorted(k for k in by if k not in (1, 2, 3, 4, 5, 6))
+        extra = sorted(k for k in by_kind if k not in KIND_NAME)
         if extra:
-            print("      NOT GRADED: %s carry kinds %s, which FBDUMP v1 (LINOBUF 6) does not"
-                  % (os.path.basename(self.linosrc), extra))
-            print("      define.  An undefined kind has no agreed payload, so there is nothing")
-            print("      to compare against; they are reported, not silently accepted.")
+            self.rec("T2", "lino emits kind(s) %s, which FBDUMP v2 does not define" % extra,
+                     None,
+                     "KIND and TAG are SEPARATE namespaces and the plan's two lists "
+                     "read as if they were one.  KINDS run 1..11 (1 INDEXPAGE, 2 "
+                     "PALETTE6, 3 LUT, 4 TICKLOG, 5 LAYOUT, 6 CANARY, 7 KSELF, 8 KFRM, "
+                     "9 ZONES, 10 WRAPCOUNT, 11 SERVOLOG); TAGS run 1..14 and 12 is "
+                     "`wrapcount`.  A record carrying the wrap counters is kind 10, "
+                     "tag 12.  This is the single most likely interop break between the "
+                     "two implementers and it needs one line in LINOBUF 6.")
             for k in extra:
-                print("        kind %d: %d record(s), %d units, first units %s"
-                      % (k, len(by[k]), by[k][0]["count"], by[k][0]["payload"][:6]))
+                print("        kind %d: %d record(s), %d units, tag %s, first units %s"
+                      % (k, len(by_kind[k]), by_kind[k][0]["count"],
+                         by_kind[k][0]["tag"], by_kind[k][0]["payload"][:6]))
         return allok
 
     def lino_break_matrix(self, clean):
-        """Implementer 1 ships ten deliberately broken builds.  A grader that
-        cannot tell them from the clean one is not grading anything, so run
-        every one of them through and say exactly which this grader catches --
-        and, just as importantly, which it CANNOT, and why."""
         print("\n      implementer 1's sabotaged builds, through this grader:")
         cleanby = collections.defaultdict(list)
         for r in clean:
-            cleanby[r["kind"]].append(r)
+            key = (r["kind"], r["tag"])
+            cleanby[key].append(r)
         allok = True
         for path in self.linobreaks:
             name = os.path.splitext(os.path.basename(path))[0]
@@ -628,149 +914,55 @@ class Suite(object):
             except SystemExit as exc:
                 self.rec("T2", "lino sabotage %-11s rejected (container: %s)" % (name, exc), True)
                 continue
-            by = collections.defaultdict(list)
+            moved = []
             for r in recs:
-                by[r["kind"]].append(r)
-            caught, blind = [], []
-            # the three kinds this grader can actually judge without a scenario
-            if by[5]:
-                ref = fbdump_read(os.path.join(OUT, "fb-ref-layout.bin"))["payload"]
-                got = by[5][0]["payload"]
-                n = min(len(ref), len(got)) // 4
-                if len(got) != len(ref) or any(
-                        (got[4 * i], got[4 * i + 1], got[4 * i + 3])
-                        != (ref[4 * i], ref[4 * i + 1], ref[4 * i + 3]) for i in range(n)):
-                    caught.append("LAYOUT")
-            else:
-                caught.append("LAYOUT missing")
-            if by[6]:
-                if any(by[6][0]["payload"][2 * i] != by[6][0]["payload"][2 * i + 1]
-                       for i in range(len(by[6][0]["payload"]) // 2)):
-                    caught.append("CANARY")
-            else:
-                caught.append("CANARY missing")
-            if by[4]:
-                p = os.path.join(OUT, "brk", "%s-ticklog.bin" % name)
-                os.makedirs(os.path.dirname(p), exist_ok=True)
-                write_record(p, by[4][0])
-                ok, msg, _ = fb_tick.grade_ticklog(p)
-                if not ok:
-                    caught.append("TICKLOG(%s)" % ",".join(m.split()[1] for m in msg
-                                                           if m.startswith("  FAIL")))
-            # kinds 1/2/3 differ from the clean build -- a difference, but not
-            # a verdict, because there is no agreed scenario to judge against
-            undef = []
-            for k in sorted(by):
-                if k in (4, 5, 6):
+                key = (r["kind"], r["tag"])
+                peers = cleanby.get(key, [])
+                if not peers:
+                    moved.append("%s(new)" % KIND_NAME.get(r["kind"], r["kind"]))
                     continue
-                for j, r in enumerate(by[k]):
-                    if j >= len(cleanby[k]) or r["payload"] == cleanby[k][j]["payload"]:
-                        continue
-                    tag = "%s#%d" % (KIND_NAME.get(k, "kind%d" % k), j)
-                    (blind if k in (1, 2, 3) else undef).append(tag)
-            if caught:
-                self.rec("T2", "lino sabotage %-11s CAUGHT by %s" % (name, ",".join(caught)), True)
-            elif blind:
-                allok &= self.rec(
-                    "T2", "lino sabotage %-11s NOT caught -- moves %s, scenario-dependent "
-                          "and so ungraded" % (name, ",".join(blind)), False, "blind spot")
+                if r["payload"] != peers[0]["payload"]:
+                    moved.append(TAG_NAME.get(r["tag"]) or KIND_NAME.get(r["kind"], r["kind"]))
+            # and the records this grader can judge on its own terms
+            judged = []
+            for r in recs:
+                if r["tag"] and TAG_NAME.get(r["tag"]) in [REC[n][2] for n in REC]:
+                    nm = [n for n in REC if REC[n][2] == TAG_NAME.get(r["tag"])][0]
+                    lp = os.path.join(OUT, "brk", "%s-%s.bin" % (name, nm))
+                    os.makedirs(os.path.dirname(lp), exist_ok=True)
+                    write_record(lp, r)
+                    g, _ = compare_dumps(lp, os.path.join(OUT, REC[nm][0]))
+                    if not g:
+                        judged.append(nm)
+                if r["kind"] == KIND_TICKLOG:
+                    lp = os.path.join(OUT, "brk", "%s-ticklog.bin" % name)
+                    os.makedirs(os.path.dirname(lp), exist_ok=True)
+                    write_record(lp, r)
+                    ok, msg, _ = fb_tick.grade_ticklog(lp)
+                    if not ok:
+                        judged.append("TICKLOG(%s)" % ",".join(m.split()[1] for m in msg
+                                                               if m.startswith("  FAIL")))
+            if judged:
+                self.rec("T2", "lino sabotage %-11s CAUGHT by %s" % (name, ",".join(sorted(set(judged)))),
+                         True)
+            elif moved:
+                allok &= bool(self.rec(
+                    "T2", "lino sabotage %-11s moves %s but this grader has no reference "
+                          "for it" % (name, ",".join(sorted(set(moved)))), False, "blind spot"))
             else:
-                allok &= self.rec(
-                    "T2", "lino sabotage %-11s NOT caught -- moves NOTHING in any FBDUMP v1 "
-                          "kind; its only effect is on %s" % (name, ",".join(undef) or "no record"),
-                    False, "evidence is in an undefined kind")
-        print("      A 'NOT caught' row is a limit of THIS grader, never a pass for the build.")
-        print("      Two distinct causes, and they need different fixes:")
-        print("        - 'scenario-dependent': the sabotage does move a specified kind, but")
-        print("          kinds 1/2/3 stay ungraded until both sides run the pinned scenario")
-        print("          (fb_compare.py --scenario-spec).  Pinning it closes these.")
-        print("        - 'evidence is in an undefined kind': the sabotage's whole visible")
-        print("          effect is on a record FBDUMP v1 does not define, so no independent")
-        print("          grader can read the verdict.  A self-test result that travels only")
-        print("          in a private format is exactly what two implementations were")
-        print("          supposed to avoid; it needs a specified kind, or a scenario that")
-        print("          makes the effect show up in kinds 1/2/3/4/5/6.")
+                allok &= bool(self.rec(
+                    "T2", "lino sabotage %-11s moves NOTHING in any FBDUMP v2 record"
+                          % name, False, "not caught"))
+        print("      A 'not caught' row is a limit of THIS grader, never a pass for the build.")
         return allok
 
-    def lino_layout(self, rec):
-        """Kind 5 is 4 units per region.  Grade the SUBSTANCE (base, size,
-        region id) separately from the third column, because a disagreement in
-        one of those is a different animal from a disagreement in the other."""
-        ref = fbdump_read(os.path.join(OUT, "fb-ref-layout.bin"))["payload"]
-        got = rec["payload"]
-        if len(got) != len(ref):
-            return self.rec("T2", "lino LAYOUT has %d units (ref %d)" % (len(got), len(ref)), False)
-        n = len(ref) // 4
-        bad_sub = [i for i in range(n)
-                   if (got[4 * i], got[4 * i + 1], got[4 * i + 3])
-                   != (ref[4 * i], ref[4 * i + 1], ref[4 * i + 3])]
-        ok = self.rec("T2", "lino LAYOUT base/size/region-id == fb_layout.py and fb_ref.c "
-                            "for all %d regions (%d of %d units exact)"
-                      % (n, 3 * n - 3 * len(bad_sub), 3 * n), not bad_sub)
-        if bad_sub:
-            for i in bad_sub[:5]:
-                print("        region %d: lino (%d,%d,rid %d) vs ref (%d,%d,rid %d)"
-                      % (i, got[4 * i], got[4 * i + 1], got[4 * i + 3],
-                         ref[4 * i], ref[4 * i + 1], ref[4 * i + 3]))
-        # the third column
-        third_ok = all(got[4 * i + 2] == ref[4 * i + 2] for i in range(n))
-        as_end = all(got[4 * i + 2] == got[4 * i] + got[4 * i + 1] for i in range(n))
-        ok &= self.rec("T2", "lino LAYOUT third column is the PAD BASE that FBDUMP v1 kind 5 "
-                             "specifies%s"
-                       % ("" if third_ok else
-                          " -- it is the region END (base+size) instead, on all %d regions%s"
-                          % (n, "; consistently so" if as_end else "; inconsistently")),
-                       third_ok)
-        if not third_ok and as_end:
-            print("        Diagnosis is exact and the geometry is NOT in dispute: lino's")
-            print("        end[k] equals the reference's padbase[k+1] for every k, so both")
-            print("        sides describe the same nine regions and the same sixteen-unit")
-            print("        pads.  It is a field-semantics defect in the writer, not a layout")
-            print("        defect.  LINOBUF 6 kind 5 reads 'base, size, pad base, region id'")
-            print("        and LINOBUF 2.3's table gives the pad base as the pad PRECEDING")
-            print("        each region (n_offsets_map -> 16, n_globes_map -> 7372).")
-        return ok
-
-    def lino_scenario(self, by):
-        """PALETTE6 / LUT / INDEXPAGE cannot be graded until the two sides run
-        the SAME scenario, and FBDUMP v1 does not pin one.  Say so, prove it is
-        a scenario difference rather than a substantive one where that can be
-        shown, and refuse to report either a pass or a fail."""
-        interesting = [k for k in (1, 2, 3) if by[k]]
-        if not interesting:
-            return True
-        print("      NOT GRADED (blocked, not failed): kinds %s -- PALETTE6, LUT and"
-              % interesting)
-        print("      INDEXPAGE are functions of the SCENARIO, and FBDUMP v1 pins the")
-        print("      container but no scenario.  The two sides ran different ones, so a")
-        print("      compare here would measure the disagreement of the test inputs, not")
-        print("      of the implementations.  Run `fb_compare.py --scenario-spec` for the")
-        print("      pinned scenario this side emits; when the lino side runs it, these")
-        print("      become exact compares and this text goes away.")
-        for k in interesting:
-            for j, r in enumerate(by[k]):
-                pay = r["payload"]
-                cand = {1: ["adapted", "adaptor", "glyph"], 2: ["pal6"], 3: ["lut"]}[k]
-                best = None
-                for c in cand:
-                    p = os.path.join(OUT, "fb-ref-%s.bin" % c)
-                    if not os.path.exists(p):
-                        continue
-                    ref = fbdump_read(p)["payload"]
-                    if len(ref) != len(pay):
-                        continue
-                    same = sum(1 for a, b in zip(pay, ref) if a == b)
-                    if best is None or same > best[1]:
-                        best = (c, same, len(ref))
-                if best:
-                    print("        kind %d rec %d (%d units): best match is fb-ref-%s at %d/%d units"
-                          % (k, j, len(pay), best[0], best[1], best[2]))
-        return True
+    # -- the report ------------------------------------------------------
 
     def run(self):
         os.makedirs(OUT, exist_ok=True)
-        print("fb_compare.py -- Wave 5 grader")
-        print("  references : fb_ref.c (C), fb_layout.py / fb_pal.py / fb_tick.py (Python)")
+        print("fb_compare.py -- Wave 5-corrective grader   (FBDUMP v%d)" % FBD_VERSION)
+        print("  references : fb_ref.c (C); fb_layout.py / fb_pal.py / fb_tick.py /")
+        print("               fb_wrap.py / fb_stick.py (Python)")
         print("  captures   : %s" % CAPS)
         print("  lino       : %s" % (self.linosrc or "NOT SUPPLIED -- lino side outstanding"))
         self.tier3_layout()
@@ -778,20 +970,104 @@ class Suite(object):
         self.tier2_sabotage()
         self.tier1_capture()
         self.tier3_tick()
+        self.tier3_servo()
+        self.tier3_classA()
+        self.scenario_doc()
         linoresult = self.lino()
 
-        npass = sum(1 for r in self.rows if r[2])
-        nfail = len(self.rows) - npass
-        print("\n" + "=" * 74)
-        for tier in ("T1", "T2", "T3"):
+        npass = sum(1 for r in self.rows if r[2] is True)
+        nfail = sum(1 for r in self.rows if r[2] is False)
+        nng = sum(1 for r in self.rows if r[2] is None)
+        print("\n" + "=" * 78)
+        for tier in ("T0", "T1", "T2", "T3"):
             rows = [r for r in self.rows if r[0] == tier]
-            print("  %s  %d checks, %d failed" % (tier, len(rows), sum(1 for r in rows if not r[2])))
-        print("  TOTAL %d checks, %d passed, %d failed" % (len(self.rows), npass, nfail))
+            if not rows:
+                continue
+            print("  %s  %d checks, %d failed, %d NOT GRADED"
+                  % (tier, len(rows), sum(1 for r in rows if r[2] is False),
+                     sum(1 for r in rows if r[2] is None)))
+        print("  TOTAL %d checks, %d passed, %d failed, %d NOT GRADED"
+              % (len(self.rows), npass, nfail, nng))
+        if nng:
+            print("\n  NOT GRADED rows, in full:")
+            for r in self.rows:
+                if r[2] is None:
+                    print("    - %s" % r[1])
+                    if r[3]:
+                        print("      %s" % r[3])
+        print("\n  TIER PER ELEMENT -- replacing the blanket claim:")
+        for elem, tier, note in TIER_TABLE:
+            print("    %-34s %-7s %s" % (elem, tier, note))
+        print("\n  What this harness cannot grade at all (run --ungraded for detail):")
+        for title, status, _why in UNGRADED:
+            print("    %-38s %s" % (title, status))
         if linoresult is None:
-            print("  LINO SIDE: OUTSTANDING -- not present, not graded, not claimed.")
+            print("\n  LINO SIDE: OUTSTANDING -- not present, not graded, not claimed.")
         print("  RESULT: %s" % ("PASS" if nfail == 0 else "FAIL"))
-        print("=" * 74)
+        print("=" * 78)
         return 0 if nfail == 0 else 1
+
+
+def print_ungraded():
+    print("What this harness does NOT grade, stated rather than pretended")
+    print("=" * 78)
+    for title, status, why in UNGRADED:
+        print("\n%s   [%s]" % (title, status))
+        for line in why.split("  "):
+            if line.strip():
+                print("  " + line.strip())
+    print("\n" + "=" * 78)
+    print("Everything else in the six defects reaches two independent implementations")
+    print("plus a caught sabotage.  Run `fb_compare.py --suite` for the matrix.")
+
+
+def print_scenario_spec():
+    text, err = read_linobuf_61()
+    if text:
+        print(text)
+        return 0
+    print("LINOBUF 6.1 -- NOT ON DISK")
+    print("=" * 78)
+    print(err)
+    print()
+    print("This file may not carry its own copy of the normative scenario -- that is")
+    print("exactly the defect that made kinds 1/2/3 ungradeable in Wave 5, where the")
+    print("reference invented a scenario after the fact and never handed it to")
+    print("implementer 1.  What follows is NOT a spec.  It is a report of what")
+    print("implementer 2's two independent references ACTUALLY RAN, generated from")
+    print("the code, so the architect can lift the numbers into LINOBUF 6.1 and so")
+    print("implementer 1 is not blocked.")
+    print()
+    print("SCENARIO \"surface\"  (fb_pal.py scenario_surface, fb_ref.c scenario_surface)")
+    for lbl, why in fb_pal.SURFACE_STEPS:
+        print("  %-58s  %s" % (lbl, why))
+    p = fb_pal.scenario_surface()
+    print("  -> uploads %s" % (p.uploads,))
+    print("  -> fnv pal6 %08X curpal6 %08X lut %08X"
+          % (fnv1a32(p.pal6), fnv1a32(p.curpal6), fnv1a32(p.lut())))
+    print()
+    print("SCENARIO \"page\"  (fb_layout.Workspace.scenario_page, fb_ref.c scenario_page)")
+    lay = Layout()
+    for line in [
+        "  1  pads in the RELEASE state (zero)",
+        "  2  QUADWORDS = %d ; pclear(adaptor, 0)" % lay.qw_declared,
+        "     QUADWORDS = %d ; pclear(adapted, 7)   <- DERIVED from `QUADWORDS -= 1440`"
+        % lay.qw_steady,
+        "  3  Borland LCG srand(1996): n_globes_map[i] = rand()&63 for i<32768;",
+        "     s_background[i] = 128 + (rand()&63) for i<4096",
+        "  4  sea texture i<32000: u=(i*517)&0xFFFF, v=(i*1031)&0xFFFF,",
+        "     texel = ((v>>8)&0xFF)*256 + ((u>>8)&0xFF), adapted[i] = NW[globes+texel]",
+        "  5  digit_at('A', colour 104, shader 1), txtr = p_surfacemap, LOOP FROM n = 0;",
+        "     then adapted[32000+i] = NW[p_surfacemap-5+i] for i<9216",
+        "  6  alias 8 through seg_index(adapted, 0x%04X) -> adapted[%d] = row %d col %d"
+        % (lay.alias8_segoff, lay.alias8()["index"], lay.alias8()["row"], lay.alias8()["col"]),
+        "  7  the class-A wrap battery (spot and cirrus, masked at the truncation point)",
+        "  8  QUADWORDS = %d ; pcopy(adaptor, adapted)      <- CORRECTION 5: flip BEFORE"
+        % lay.qw_declared,
+        "  9  areaclear(adaptor, x=2, y=191, w=316, h=7, colour=127)",
+    ]:
+        print(line)
+    return 0
 
 
 def main(argv=None):
@@ -801,22 +1077,26 @@ def main(argv=None):
     ap.add_argument("--lino", metavar="PATH",
                     help="implementer 1's FBDUMP: a multi-record .bin, or a directory of them")
     ap.add_argument("--scenario-spec", action="store_true",
-                    help="print the pinned scenario the references emit, so the lino side "
-                         "can reproduce it and the scenario-dependent kinds can be graded")
+                    help="print LINOBUF 6.1 from the doc, or say why it cannot")
+    ap.add_argument("--ungraded", action="store_true",
+                    help="what this harness cannot grade, and why")
     ap.add_argument("--lino-break", metavar="PATH", action="append", default=[],
                     help="a deliberately broken lino FBDUMP; repeatable, globs accepted")
+    ap.add_argument("--fast", action="store_true", help="skip the slowest corpora")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args(argv)
 
-    if args.scenario_spec:
-        print(SCENARIO_SPEC)
+    if args.ungraded:
+        print_ungraded()
         return 0
+    if args.scenario_spec:
+        return print_scenario_spec()
     if args.suite:
         brk = []
         for pat in args.lino_break:
             hits = sorted(glob.glob(pat))
             brk += hits if hits else [pat]
-        return Suite(args.lino, args.verbose, brk).run()
+        return Suite(args.lino, args.verbose, brk, args.fast).run()
     if len(args.pair) == 2:
         ok, lines = compare_dumps(args.pair[0], args.pair[1],
                                   os.path.basename(args.pair[0]), os.path.basename(args.pair[1]))

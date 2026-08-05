@@ -1,0 +1,59 @@
+      ( *** fbshort - the reference build at the SABOTAGE driver constants ***
+
+	Four lines of programme and four constants.  Everything else is
+	in the libraries, which is the point: each work/fbbreakN.txt is
+	this same driver with ONE library replaced by a copy of itself
+	carrying ONE edit, so a sabotage cannot accidentally also change
+	the harness.
+
+	The float engine is Wave 3's, linked and NOT rebuilt:
+	fp/fpabi is the register file, fp/fpctl the control word (133Fh,
+	stated because the win32 lino stub forces chop at entry),
+	fp/fpx87 the scalar backend and fp/fpconv the conversions -
+	FToIntChop is Borland's __ftol and is what makes shade() chop.
+
+	Run:  powershell -File lino_build.ps1 -Src work\fbmain.txt
+	      then run fbmain.exe with the poll-and-kill pattern and
+	      collect work\fb-out.bin.                                    )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	fbpal;
+	fbtick;
+	fbshell;
+
+"directors"
+
+	program name = { fbshort };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	NTICK		= 120;
+	NFRAME		= 20;
+	HITCHMOD	= 37;
+	CALMS		= 600;
+
+	( SERVON is a DRIVER constant now.  It lived in fbtick at 256
+	  while every soak in the suite ran 200 ticks, so "TK servo" was
+	  never once executed in a real soak - which is exactly how a
+	  servo that wraps at 477 s reached the reviewer.  The game keeps
+	  256; a soak driver sets it low enough to fire several times.
+	  At 96 ticks the window is 96 * 54.9254 ms = 5.27 s, which is
+	  above SRVMIN = 4000 ms, so the firings are ACCEPTED rather than
+	  rejected - a servo that only ever logged rejections would be no
+	  better tested than one that never ran. )
+	SERVON		= 96;
+
+"programme"
+
+	=> FB run;
+	end;
