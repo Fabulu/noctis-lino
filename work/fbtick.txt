@@ -1,6 +1,8 @@
       ( *** fbtick - Noctis IV's 54.9254 ms tick ***
 
-	Normative source: docs-notes/LINOBUF.md section 5.5.
+	Normative source: docs-notes/LINOBUF.md section 5.5, as corrected
+	by docs-notes/BUFFERMODEL.md section 8 rule 6 and by the Wave
+	5-corrective plan section 1.
 	Original: NOCTIS-0.CPP:6025-6038 (sync_stop).
 
 	THE PERIOD IS 65536/1193182 SECONDS = 54.9254012... ms, not 55.
@@ -17,60 +19,154 @@
 	ticks, so the accumulated deadline is exact to the count over any
 	run length.
 
+	THE PERIOD ARITHMETIC, THE ACCUMULATION, THE SKIP-TO-GRID AND THE
+	SIGNED-DIFFERENCE PREDICATE ARE UNCHANGED.  They were cross-graded
+	and they are correct.  What follows changes ONLY the measurement
+	of counts-per-millisecond.
+
 	FIVE RULES, each with its reason.
 
 	1. ACCUMULATE, never re-base.  Not because re-basing drifts much
-	   (it does not - +0.00071 ms/tick) but because accumulation
-	   RECOVERS: a long tick is followed by a short one and the total
-	   returns to zero.  Re-basing keeps every hitch forever.
+	   (it does not - +0.002 to +0.004 ms/tick measured) but because
+	   accumulation RECOVERS: a long tick is followed by a short one
+	   and the total returns to zero.  Re-basing keeps every hitch
+	   forever.
 
 	2. SKIP TO THE NEXT GRID POINT strictly in the future after a
 	   miss.  This is a FIDELITY requirement, not a timing one.  The
 	   original computes no deadline at all: sync_stop busy-waits for
 	   the next EDGE of a free-running counter, so an overrunning
 	   frame loses a whole tick and re-aligns, and the frame rate is
-	   18.2065/k and never anything between.  Recon C measured the
-	   real game at 15-17 fps with a mean of exactly 1.50 ticks -
-	   the signature of a 50/50 mixture of 1- and 2-tick frames.
-	   Without this, one RETRACE stall becomes a double-speed frame.
+	   18.2065/k and never anything between.
 
 	3. THE WAIT PREDICATE IS THE SIGN OF THE DIFFERENCE, never a
 	   timestamp compare.  [Counts] wraps about every 477 s, and an
 	   unsigned "now >= deadline" collapses a run of ticks to nothing
 	   at the wrap.  "TK is late" is the single place the predicate
-	   exists, and the shell's WRAP battery drives it directly by
-	   writing [TKnow] and [TKdeadline], so it can be enumerated
-	   across the wrap and the 2^31 sign boundary in milliseconds
-	   instead of eight minutes.
+	   exists, and the shell's WRAP battery drives it directly.
 
 	4. SLEEP DOWN TO A MARGIN, then spin.  Margin 16 costs 4.4x less
 	   CPU than spinning with identical p50/p90/max.  Margin 4 is
 	   unusable because Windows SLEEP overshoots by more than 4 ms.
 	   TKSPINMS = 0 means spin-only, for benchmarking.
 
-	5. CALIBRATE counts-per-millisecond; do not use the reported
-	   value.  [Counts Per Millisecond] is a per-process estimate,
-	   0.43% spread across launches, once carrying a +0.258% RATE
-	   error - and accumulation cannot remove a rate error.  Seed
-	   from it, recompute across a bracketed phase of real work, then
-	   servo against total counts / total ms since start, bounded to
-	   +-1% so one bad sample cannot wreck the tick.
+	5. CALIBRATE counts-per-millisecond OVER A BOUNDED WINDOW.
+	   [Counts Per Millisecond] is a per-process estimate, 0.43%
+	   spread across launches, once carrying a +0.258% RATE error -
+	   and accumulation cannot remove a rate error.  So: seed from it,
+	   recompute across a bracketed phase of real work, then servo.
+
+	   THE SERVO IS WINDOWED, NOT ANCHORED AT THE RUN START.  This is
+	   the CRITICAL 1 correction.  The old servo divided
+	   ([Counts] - [TKsrv0c]) by the milliseconds since TK start.
+	   [Counts] is 32 bits and wraps every 2^32 counts = 477.3 s at
+	   8999 cpms, while the wall-clock denominator grows without
+	   bound.  From ~8 minutes in, the numerator aliases and the ratio
+	   is nonsense - 1840 cpms at t=600 s against a true 8999, 4226 at
+	   t=900 s.  The +-1% clamp does not save it: it converts a
+	   one-shot collapse into a PERMANENT 1%-per-window ratchet, and
+	   since the period is proportional to cpms the whole tick
+	   degrades.
+
+	   Note carefully what is and is not wrong.  The unsigned
+	   subtraction [Counts] - [TKsrv0c] is CORRECT across the wrap and
+	   is kept verbatim: modular arithmetic gives the true delta as
+	   long as the delta itself is under 2^32.  The bug is the
+	   BRACKET, not the subtraction.  So:
+
+	     a. RE-BASE FIRST, unconditionally.  Both anchors are moved to
+	        "now" before any acceptance test.  A rejected sample then
+	        costs one update instead of doubling the next window, and
+	        a run of rejections cannot grow the bracket back toward
+	        the wrap.
+	     b. THE ACCEPTANCE BAND IS SIGNED.  ? A < SRVMIN and
+	        ? A > SRVMAX, not the unsigned '< of the old code.  Signed
+	        is what refuses a midnight step, a resume from suspend,
+	        and any window long enough for the counter to wrap: the
+	        old unsigned '< 500 ACCEPTS a -86,395,000 ms window as
+	        4.2e9 ms and applies a permanent -1%.
+	     c. SRVMAX = 60000 ms is 7.95x under 2^32/cpms = 477,271 ms.
+	     d. THE DIVIDE IS ROUNDED, one added term.  Truncation costs a
+	        systematic ~0.2 s/hour.
+	     e. THE CLAMP STEP HAS A FLOOR OF 1.  cpms/100 truncates to 0
+	        below cpms 100, which is what turns a collapse into an
+	        ABSORBING state: once there, no sample can ever move it.
+
+	   THE WALL CLOCK IS FOLDED ONCE, not special-cased per consumer.
+	   "TK read wall" returns milliseconds since midnight, which steps
+	   backwards by 86,400,000 at midnight.  "TK wall fold" turns that
+	   into a monotone value by adding a day every time the raw value
+	   goes backwards.  It is a SEPARATE routine precisely so a probe
+	   can drive it with synthetic raw values instead of waiting for
+	   midnight.  Monotone for 49 days at 32-bit unsigned; state the
+	   limit rather than pretending there is none.
+
+	   "TK cal end" gets the same treatment plus the clamp it never
+	   had.  A bracket that straddles midnight or a suspend used to
+	   set cpms = 0, hence a period of ZERO counts, hence a tick that
+	   fires continuously forever.  CALMIN is signed, and the result
+	   must additionally be non-zero and inside [seed/4, 4*seed].
+
+	   SERVON IS A DRIVER CONSTANT.  It was 256 here while the test
+	   soak ran 200 ticks, so the suite had NEVER EXECUTED "TK servo"
+	   in a real soak - which is exactly why CRITICAL 1 shipped.  A
+	   soak driver sets it low enough to fire several times.
 
 	TICKLOG IS RAW.  Three units per tick - absolute counts at fire,
 	the deadline it fired against, a flag word - so the grader
 	recomputes periods, drift and skips itself rather than trusting a
-	statistic this program computed.                                  )
+	statistic this program computed.
+
+	SERVO LOG IS RAW TOO, AND IT LOGS REJECTIONS.  Three units per
+	firing: the first tick at which the value is in force, the cpms in
+	force, and WHY - 0 applied, 1 clamped low, 2 clamped high, 3
+	rejected as too short, 4 rejected as too long.  A value derived
+	from what the programme did, not written by construction.  The old
+	8-entry, 2-unit log silently truncated any run past ~2 minutes;
+	capacity is now 64 entries and the overflow is COUNTED.        )
 
 "constants"
 
 	SUBN	= 44505;
 	SUBD	= 596591;
 	TKSPINMS = 16;		( ms of spin at the end; 0 = spin only )
-	SERVON	= 256;		( servo interval, ticks )
 	TKLOGMAX = 1300;
+
+	( the servo acceptance band, SIGNED milliseconds.
+	  SRVMIN: below this the quantisation of a single window dominates
+	  - a 1.9 s window measured 0.134% worst error, 13.3 s measured
+	  0.0158%.  SRVMAX: 2^32 counts / 8999 cpms = 477,271 ms is where
+	  the numerator aliases; 60,000 is 7.95x under it. )
+	SRVMIN	= 4000;
+	SRVMAX	= 60000;
+
+	( the calibration bracket's band.  The LOWER bound stays at the
+	  original 500 ms - the fix there is that the test is SIGNED, so a
+	  midnight straddle or a suspend is refused instead of being read
+	  as a 4.2e9 ms bracket.  The upper bound is SRVMAX. )
+	CALMIN	= 500;
+
+	SRVLOGN	= 64;		( servo log capacity, entries )
+
+	( why-codes, in the servo log's third unit )
+	SVWAPPLY = 0;
+	SVWCLLO	= 1;
+	SVWCLHI	= 2;
+	SVWSHORT = 3;
+	SVWLONG	= 4;
+
+	( why-codes for TK cal end, in [TKcalwhy] )
+	CALWOK	= 0;
+	CALWSHORT = 3;
+	CALWLONG = 4;
+	CALWZERO = 5;
+	CALWLO	= 6;
+	CALWHI	= 7;
 
 	TKFSKIP	= 1;		( flag bit 0: skipped at least one grid point )
 	TKFSLEEP = 2;		( flag bit 1: slept )
+
+	MSPERDAY = 86400000;
 
 "variables"
 
@@ -90,10 +186,17 @@
 	TKlogn	= 0;
 	TKtmp	= 0;
 
+	( the wall clock, and its fold )
+	TKwraw	= 0;		( raw ms since midnight, before folding )
+	TKwallprev = 0;		( the previous raw value )
+	TKwallday = 0;		( accumulated days, in milliseconds )
+
 	TKcal0c	= 0;
 	TKcal0w	= 0;
 	TKcalcnt = 0;
 	TKcalms	= 0;
+	TKcalwhy = 0;
+	TKcalseed = 0;		( the seed cpms the sanity clamp brackets )
 	TKcpms0	= 0;		( what the runtime reported, kept for the dump )
 
 	TKsrv0c	= 0;
@@ -102,6 +205,9 @@
 	TKsrvms	= 0;
 	TKsrvnew = 0;
 	TKsrvn	= 0;
+	TKsrvwhy = 0;
+	TKsrvovf = 0;		( servo log entries that did not fit )
+	TKsrvfire = 0;		( servo firings, accepted or not )
 
 	TKburnto = 0;
 	TKsrvlogn = 0;
@@ -109,7 +215,7 @@
 "workspace"
 
 	tlog	= 3900;		( 3 units x TKLOGMAX )
-	tsrvlog	= 16;		( up to 8 x (tick, new cpms) )
+	tsrvlog	= 192;		( 3 units x SRVLOGN )
 
 "programme"
 
@@ -117,7 +223,7 @@
 ( the reference clock                                                   )
 ( ==================================================================== )
 
-      ( TK read wall : [TKtmp] <- milliseconds since midnight.
+      ( TK read wall : [TKtmp] <- FOLDED milliseconds.
 	READ TIME's [Milliseconds] steps by 1 ms in 200 of 256 observed
 	transitions, so it is a usable reference for a multi-second
 	bracket even though it is useless for a single tick. )
@@ -129,7 +235,30 @@
 	B = [Minute]; B * 60000;   A + B;
 	B = [Second]; B * 1000;    A + B;
 	A + [Milliseconds];
-	[TKtmp] = A;
+	[TKwraw] = A;
+	=> TK wall fold;
+	end;
+
+      ( TK wall fold : [TKtmp] <- [TKwraw] made monotone.
+	Milliseconds-since-midnight steps back by 86,400,000 once a day.
+	Every consumer of this clock uses it as an INTERVAL reference, so
+	rather than teach each consumer about midnight, fold it here.
+
+	Separate from "TK read wall" so a probe can drive it with
+	synthetic raw values - 23:59:59.900 then 00:00:00.100 - instead of
+	waiting for midnight.
+
+	LIMIT, stated: [TKwallday] is 32-bit, so the folded clock is
+	monotone for 2^32 ms = 49.7 days.  Past that it wraps and the
+	SIGNED band in the servo refuses the sample, which is a
+	degradation, not a collapse. )
+
+"TK wall fold"
+	A = [TKwraw]; ? A '>= [TKwallprev] -> TK wf same;
+	[TKwallday] + MSPERDAY;
+    "TK wf same"
+	[TKwallprev] = [TKwraw];
+	A = [TKwraw]; A + [TKwallday]; [TKtmp] = A;
 	end;
 
 ( ==================================================================== )
@@ -161,7 +290,10 @@
 "TK seed"
 	[TKcpms0] = [Counts Per Millisecond];
 	[TKcpms]  = [Counts Per Millisecond];
+	[TKcalseed] = [Counts Per Millisecond];
 	[TKmargin] = TKSPINMS;
+	[TKwallprev] = 0;
+	[TKwallday]  = 0;
 	=> TK period;
 	end;
 
@@ -172,56 +304,119 @@
 	end;
 
       ( TK cal end : recompute from the bracket, but only if the bracket
-	is long enough to mean anything. )
+	means anything AND the answer is sane.
+
+	The reviewer's finding B: this routine had no clamp at all.  A
+	bracket that straddled midnight gave a negative delta, the
+	unsigned '< 500 read it as ~4.2e9 and accepted it, cpms became 0,
+	"TK period" made the period ZERO COUNTS, and the tick then fired
+	continuously, forever.  Three guards, each of which alone would
+	have stopped that: the SIGNED band, the non-zero test, and the
+	seed-ratio bracket. )
 
 "TK cal end"
+	[TKcalwhy] = CALWOK;
 	[Timer Command] = READ COUNTS; isocall;
 	A = [Counts]; A - [TKcal0c]; [TKcalcnt] = A;
 	=> TK read wall;
 	A = [TKtmp]; A - [TKcal0w]; [TKcalms] = A;
-	? [TKcalms] '< 500 -> TK cal keep;
-	A = [TKcalcnt]; A '/ [TKcalms]; [TKcpms] = A;
+	A = [TKcalms]; ? A < CALMIN -> TK cal short;	( SIGNED )
+	A = [TKcalms]; ? A > SRVMAX -> TK cal long;	( SIGNED )
+	B = [TKcalms]; C = B; C '/ 2;
+	A = [TKcalcnt]; A + C; A '/ B;			( ROUNDED )
+	? A = 0 -> TK cal zero;
+	B = [TKcalseed]; B '/ 4; ? A '< B -> TK cal lo;
+	B = [TKcalseed]; B '* 4; ? A '> B -> TK cal hi;
+	[TKcpms] = A;
 	=> TK period;
-    "TK cal keep"
 	end;
+    "TK cal short"
+	[TKcalwhy] = CALWSHORT; end;
+    "TK cal long"
+	[TKcalwhy] = CALWLONG; end;
+    "TK cal zero"
+	[TKcalwhy] = CALWZERO; end;
+    "TK cal lo"
+	[TKcalwhy] = CALWLO; end;
+    "TK cal hi"
+	[TKcalwhy] = CALWHI; end;
 
-      ( TK servo : every SERVON ticks, against TOTAL counts / TOTAL ms
-	since the run started, bounded to +-1%. )
+      ( TK servo : every SERVON ticks, over the LAST WINDOW.
+
+	Four independently sabotageable properties, in order:
+	  1 re-base both anchors BEFORE the band test,
+	  2 the band is SIGNED,
+	  3 the divide is ROUNDED,
+	  4 the clamp step has a floor of 1.
+
+	[Counts] is named twice without an intervening isocall.  Measured:
+	3000 of 3000 reads unchanged across READ TIME / SLEEP / GET
+	CONSOLE INPUT, with a positive control of 941 of 1000 changed - so
+	the two names see one latched value. )
 
 "TK servo"
 	[TKsrvn]+;
 	A = [TKsrvn]; ? A '< SERVON -> TK sv done;
 	[TKsrvn] = 0;
+	[TKsrvfire]+;
+
 	[Timer Command] = READ COUNTS; isocall;
 	A = [Counts]; A - [TKsrv0c]; [TKsrvcnt] = A;
+	[TKsrv0c] = [Counts];			( RE-BASE FIRST )
 	=> TK read wall;
 	A = [TKtmp]; A - [TKsrv0w]; [TKsrvms] = A;
-	? [TKsrvms] '< 500 -> TK sv done;
-	A = [TKsrvcnt]; A '/ [TKsrvms]; [TKsrvnew] = A;
-	B = [TKcpms]; B '/ 100;
+	[TKsrv0w] = [TKtmp];			( RE-BASE FIRST )
+
+	[TKsrvwhy] = SVWAPPLY;
+	A = [TKsrvms]; ? A < SRVMIN -> TK sv short;	( SIGNED )
+	A = [TKsrvms]; ? A > SRVMAX -> TK sv long;	( SIGNED )
+
+	B = [TKsrvms]; C = B; C '/ 2;
+	A = [TKsrvcnt]; A + C; A '/ B; [TKsrvnew] = A;	( ROUNDED )
+
+	B = [TKcpms]; B '/ 100; ? B != 0 -> TK sv step;
+	B = 1;					( clamp step floor )
+    "TK sv step"
 	C = [TKcpms]; C - B;
 	D = [TKcpms]; D + B;
 	? [TKsrvnew] '>= C -> TK sv lo;
-	[TKsrvnew] = C;
+	[TKsrvnew] = C; [TKsrvwhy] = SVWCLLO;
     "TK sv lo"
 	? [TKsrvnew] '<= D -> TK sv hi;
-	[TKsrvnew] = D;
+	[TKsrvnew] = D; [TKsrvwhy] = SVWCLHI;
     "TK sv hi"
 	[TKcpms] = [TKsrvnew];
 	=> TK period;
-	( record it.  cpms changing mid-run changes the period in COUNTS,
-	  so a reader that converts the whole tick log with one factor
-	  gets the drift wrong.  The log says exactly when it changed. )
-	A = [TKsrvlogn]; ? A '>= 8 -> TK sv done;
-	B = A; B + B; B + tsrvlog;
-	( the FIRST tick at which the new value is in force.  The servo
-	  runs at the END of a tick, after that tick's deadline was
-	  already advanced with the old period, so recording [TKticks]
-	  itself would mis-attribute one step by a whole period. )
+	-> TK sv log;
+
+    "TK sv short"
+	[TKsrvwhy] = SVWSHORT; -> TK sv log;
+    "TK sv long"
+	[TKsrvwhy] = SVWLONG; -> TK sv log;
+
+      ( record it.  cpms changing mid-run changes the period in COUNTS,
+	so a reader that converts the whole tick log with one factor gets
+	the drift wrong.  The log says exactly when it changed, and it
+	logs the REJECTIONS too - a run of rejections is the signature of
+	a suspend or of a servo whose band is mis-set, and a log that
+	only carried successes could not show it. )
+
+    "TK sv log"
+	A = [TKsrvlogn]; ? A '>= SRVLOGN -> TK sv ovf;
+	B = A; B '* 3; B + tsrvlog;
+	( the FIRST tick at which the value is in force.  The servo runs
+	  at the END of a tick, after that tick's deadline was already
+	  advanced with the old period, so recording [TKticks] itself
+	  would mis-attribute one step by a whole period. )
 	A = [TKticks]; A+;
 	[B plus 0] = A;
 	[B plus 1] = [TKcpms];
+	[B plus 2] = [TKsrvwhy];
 	[TKsrvlogn]+;
+	end;
+    "TK sv ovf"
+	[TKsrvovf]+;
+	end;
     "TK sv done"
 	end;
 
@@ -234,8 +429,8 @@
 	[TKticks] = 0; [TKskips] = 0; [TKsleeps] = 0;
 	[TKlogn] = 0;
 	A = tlog; [TKlogp] = A;
-	[TKsrvn] = 0; [TKsrvlogn] = 0;
-	A = tsrvlog; B = 0; B + 16;
+	[TKsrvn] = 0; [TKsrvlogn] = 0; [TKsrvovf] = 0; [TKsrvfire] = 0;
+	A = tsrvlog; B = 0; B + 192;
     "TK st clr"
 	[A] = 0; A+;
 	B ^ TK st clr;
@@ -243,6 +438,7 @@
 	  to guess what the period was before the first servo update )
 	[tsrvlog plus 0] = 0;
 	[tsrvlog plus 1] = [TKcpms];
+	[tsrvlog plus 2] = SVWAPPLY;
 	[TKsrvlogn] = 1;
 	[Timer Command] = READ COUNTS; isocall;
 	[TKdeadline] = [Counts];

@@ -20,8 +20,11 @@ even, all exceptions masked), with the intermediates **never stored** across
 an expression. The control word is **stated at every boundary**, never
 inherited. Rendering is not held to that: it goes through the same engine but
 its errors are cosmetic and it is graded against a hardware reference rather
-than against the 1996 catalogue. The **float-to-int cast boundary is
-UNSETTLED** and nothing in the graded path is allowed to depend on it.
+than against the 1996 catalogue. At the **float-to-int cast boundary** the
+original **chops the live 80-bit `st(0)`** — settled by Wave 6 out of the
+shipped `NOCTIS.EXE` (§3.3), after Wave 3 left it open — but the code
+generator still cannot express that, so a conversion must be a hand-checked
+fragment and never a generated chain.
 
 ---
 
@@ -190,7 +193,18 @@ given the 8 chop-forcing sites in `win32.bin` the question is not academic.
 concludes the original ran in chop mode. It did not: the shipped `NOCTIS.EXE`
 carries 133Fh, read out of the MZ image and the Borland C0 startup.
 
-### 3.3 Float to int — **UNSETTLED**
+### 3.3 Float to int — **the ORIGINAL's behaviour is SETTLED (Wave 6); the
+### ENGINE still cannot reproduce it in general**
+
+> **Changed 2026-08-05 by Wave 6.** This section previously read "UNSETTLED"
+> in both halves. One half is now closed. What the 1996 program does at a
+> cast site was read out of the shipped `NOCTIS.EXE` — see "What Wave 6
+> settled" below — and it is **chop applied to the live 80-bit `st(0)`**.
+> What the delivered L.in.oleum engine can *express* is unchanged, so the
+> interim policy at the end of this section still stands, but it now stands
+> for a different reason: a limitation of our engine, not an unknown about
+> the original. `tests/test_geometry.py` section 1 re-derives the settled
+> answer from the binary on every run and fails if it stops being true.
 
 The original has **two** float-to-int behaviours and they are not
 interchangeable:
@@ -207,11 +221,57 @@ interchangeable:
 `FToIntChop` unless the site registry names the site as one of the 37, because
 a wrong chop site is critical and a wrong near site is cosmetic.
 
-**What is not settled.** The engine has **no way to truncate an unstored
-extended value**. `FToIntChop` begins `fld qword [FA0]`, so the 80-bit
-intermediate is narrowed to binary64 *before* the truncation; and `genfp`'s
-`out` directive accepts only `f64`, so a generated chain must end in an
-`fstp` before any conversion. On hardware the two differ:
+**What Wave 6 settled, and how.** Not by argument from Borland's calling
+convention — by decoding the shipped `NOCTIS.EXE`. The MZ header gives the
+image base (608 paragraphs → file 9728), so `__ftol` at image `1265h` is file
+14437, and its whole body decodes to 21 instructions:
+
+```
+push bp / mov bp,sp / sub sp,0Ah
+fnstcw word [bp-2]          ; save the caller's control word
+mov   al,[bp-1]             ; save its high byte
+or    byte [bp-1],0Ch       ; RC <- 11 = CHOP.  OR, not AND/OR.
+fldcw word [bp-2]
+fistp qword [bp-0Ah]        ; truncates whatever is in st(0)
+mov   [bp-1],al / fldcw word [bp-2]      ; put the caller's word back
+mov ax,[bp-0Ah] / mov dx,[bp-8] / retf   ; low 32 bits, in DX:AX
+```
+
+Three readings follow from that and are asserted, not narrated:
+
+* **It takes no parameter.** Every frame access in the body is a *negative*
+  displacement from `bp`; nothing is read from the parameter area. Its input
+  can only be `st(0)`.
+* **The operand is still live at 80 bits.** Of the **274** `lcall 0000:1265`
+  sites in the image, **130** are fed directly by an x87 instruction and
+  **none** of those is a store. At the eleven `prepare_nearstar` geometry
+  sites specifically there is no `fstp` between the last arithmetic and the
+  call.
+* **Only `RC` is touched.** `OR 0Ch` sets both rounding-control bits and
+  leaves the precision-control bits alone, so the 64-bit chain the caller
+  built is chopped *at 64-bit precision*.
+
+So a cast site is `chop(live extended)`. In the Wave 6 reference engines that
+is spelled `--cast chop --castsrc ext`, and both `geo_ref.c` and `geo_spec.py`
+**default** to it; `test_geometry.py` section 2 requires that default and
+fails if either engine's default moves. The cost of getting it wrong is
+measured on the real generator rather than guessed: chop vs round-to-nearest
+moves **14.5%** of planetary geometry values, and live-extended vs
+binary64-first moves **0.28%**.
+
+Nothing here changes the **37 hand-written `fistp` sites**. They inherit
+133Fh and round to nearest even; that was never the open half.
+
+**What is still not settled — and it is about our engine, not the original.**
+The engine has **no way to truncate an unstored extended value** in general.
+`FToIntChop` begins `fld qword [FA0]`, so the 80-bit intermediate is narrowed
+to binary64 *before* the truncation; and `genfp`'s `out` directive accepts
+only `f64`, so a generated chain must end in an `fstp` before any conversion.
+Wave 6's `work/geoconv.txt` closes this **per expression shape** — one
+fragment per shape that builds its value and chops it without ever storing it,
+covering the seven geometry shapes that can differ — but a general
+`FToIntChopExt` still cannot exist, because a value in `st(0)` cannot be
+handed between two L.in.oleum routines. On hardware the two readings differ:
 `(long)(1.0/41.0*41.0)` is **0** with the chain kept in `st(0)` and **1** with
 the intermediate spilled to a binary64, at the same control word. The
 delivered `fpconv` can only produce the second answer.
@@ -223,17 +283,21 @@ seed for 1488/2981, 663/1376 and 231/475 of the in-range stars. The rule
 "NEVER emit a bare `=,`" is currently a comment in `fpconv.txt` with nothing
 enforcing it.
 
-**Interim policy, and what the test enforces.** Until an `FToIntChopExt`
-exists (bracket the control word around a `fistp` on the *live* `st(0)`) and
-`genfp` refuses a bare `fistp`:
+**Interim policy, and what the test enforces.** Unchanged in wording, changed
+in reason. Until `genfp` can end a chain on a live `st(0)` and refuses a bare
+`fistp`:
 
-> No generation chain may convert to an integer. The cast boundary is not to
-> be relied on by anything the oracle grades.
+> No **generated** chain may convert to an integer. A conversion must be
+> written as a hand-checked fragment naming its own reading.
 
 `test_floatcontract.py` asserts exactly that and nothing stronger: `genfp`
 refuses a non-`f64` output, and the generated `fpchains.txt` contains no
-`fistp` encoding at all. It deliberately does **not** assert a cast policy the
-wave did not prove.
+`fistp` encoding at all. Note what that rule is now *for*: it is a guard on
+the code generator, **not** an admission that we do not know what the
+original does. We do — see above — and the two hand-written places that need
+it (`nsident.txt`'s `NsIdentChop16`, Wave 4, and `work/geoconv.txt`'s
+per-shape fragments, Wave 6) implement the settled reading, chop on the live
+value. `test_geometry.py` is what keeps the settled reading honest.
 
 Mitigating fact, so this is not overstated: the narrowing hazard's probability
 is about 1e-7 per site at these magnitudes, and it does not bite at any of the
@@ -291,7 +355,7 @@ check fails loudly instead of every score below becoming quietly meaningless.
 | `FCWEXT`=133Fh, `FCWDBL`=123Fh, `FCWSGL`=103Fh, `FCWEXTCHOP`=1F3Fh | `fpabi` | the four words. Only the first is the original's. |
 | `FA0/FA1 … FD0/FD1`, `FJ0..FJ3`, `FI`, `FS0` | `fpabi` | the register file. **Order is load-bearing.** |
 | generated chains (`NsIdentity`, `Prod4`, …) | `fpchains` (from `fpsched`) | one fragment each, result in `FA`, no intermediate reaches memory, control word NOT set — call `FEnter` first. |
-| `FToIntChop` / `FToIntNear` / `FToInt16*` | `fpconv` | cast sites vs the 37 hand-written sites. **See §3.3 — this boundary is unsettled.** |
+| `FToIntChop` / `FToIntNear` / `FToInt16*` | `fpconv` | cast sites vs the 37 hand-written sites. **See §3.3 — the original chops the LIVE 80-bit value; `FToIntChop` chops a stored binary64, so it is the right answer only where the two coincide.** |
 | `F32Narrow`, `FStoreF32`, `FLoadF32` | `fpconv` | the deliberate binary32 quantisations. |
 
 ---
@@ -353,9 +417,14 @@ about it.
 
 ## 6. What remains open
 
-1. **The cast boundary (§3.3).** Needs an `FToIntChopExt` that brackets the
-   control word around a `fistp` on the live `st(0)`, and a `genfp` rule that
-   refuses a bare `fistp`. Until then, no generation chain may convert to int.
+1. **The cast boundary (§3.3) — half closed by Wave 6.** *What the original
+   does* is settled: chop on the live 80-bit `st(0)`, read out of
+   `NOCTIS.EXE` and re-derived by `tests/test_geometry.py` section 1 on every
+   run. *What `genfp` can emit* is not: a generated chain still ends in an
+   `fstp`, and `genfp` will still emit a bare `fistp` with no `fldcw`
+   bracket. The remaining work is a `genfp` rule that refuses a bare `fistp`;
+   the live chop itself is available per expression shape in
+   `work/geoconv.txt`. Until then, no *generated* chain may convert to int.
 2. **Isocalls other than file I/O.** Control-word persistence is measured only
    across a file write. Graphics, sound, timer and memory isocalls are
    untested and `win32.bin` has 8 chop-forcing sites.

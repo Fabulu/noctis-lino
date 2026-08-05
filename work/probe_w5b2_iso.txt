@@ -1,0 +1,112 @@
+      ( PROBE W5B2-ISO : does [Counts] survive an unrelated isocall?
+
+        The windowed servo has to do two things with ONE counter reading:
+        subtract it from the previous reference, and become the next
+        reference.  Between those two uses it reads the wall clock, which
+        is a READ TIME isocall.  If the comm area's [Counts] is left alone
+        by that isocall the two uses can both name [Counts]; if it is not,
+        the value must be cached in a variable first and a port that does
+        not cache it stores a corrupted reference every servo interval.
+
+        Four cases, 1000 trials each: READ TIME, a 0 ms SLEEP,
+        GET CONSOLE INPUT - and, as the positive control that makes the
+        other three mean something, a second READ COUNTS, which MUST
+        change the value.  A probe in which nothing can come out
+        different has measured nothing. )
+
+"directors"
+
+	program name = { probe_w5b2_iso };
+	unit = 32;
+
+"constants"
+
+	NT	= 1000;
+
+"variables"
+
+	result file name = { probe-w5b2-iso.bin };
+
+	i	= 0;
+	c1	= 0;
+	c2	= 0;
+	nsame	= 0;
+	ndiff	= 0;
+	f1	= 0;
+	f2	= 0;
+	pos	= 0;
+	cnt	= 0;
+	k	= 0;
+
+"workspace"
+
+	res	= 24;
+
+"programme"
+
+	[k] = 0;
+    "K loop"
+	[nsame] = 0; [ndiff] = 0; [f1] = 0; [f2] = 0;
+	[i] = 0;
+    "T loop"
+	[Timer Command] = READ COUNTS; isocall;
+	[c1] = [Counts];
+
+	A = [k];
+	? A = 0 -> T time;
+	? A = 1 -> T sleep;
+	? A = 2 -> T con;
+	[Timer Command] = READ COUNTS; isocall;	( the positive control )
+	-> T after;
+    "T con"
+	[Console Command] = GET CONSOLE INPUT; isocall;
+	-> T after;
+    "T time"
+	[Timer Command] = READ TIME; isocall;
+	-> T after;
+    "T sleep"
+	[Sleep Timeout] = 0;
+	[Process Command] = SLEEP; isocall;
+    "T after"
+
+	[c2] = [Counts];
+	A = [c2]; A - [c1];
+	? A != 0 -> T diff;
+	[nsame]+;
+	-> T next;
+    "T diff"
+	[ndiff]+;
+	A = [f1]; ? A != 0 -> T next;
+	[f1] = [c1]; [f2] = [c2];
+    "T next"
+	[i]+; A = [i]; ? A '< NT -> T loop;
+
+	A = [k]; A '* 6; A + res;
+	[A plus 0] = [k];
+	[A plus 1] = NT;
+	[A plus 2] = [nsame];
+	[A plus 3] = [ndiff];
+	[A plus 4] = [f1];
+	[A plus 5] = [f2];
+
+	[k]+; A = [k]; ? A '< 4 -> K loop;
+
+	[Block Pointer] = res; [cnt] = 24; [pos] = 0; => Put;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 24;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+"Put"
+	[File Name]	= result file name;
+	[File Position] = [pos];
+	[File Position] * BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Size]	= [cnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	end;

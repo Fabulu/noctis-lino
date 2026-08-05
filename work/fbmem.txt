@@ -1,7 +1,8 @@
-      ( *** fbmem - the Noctis workspace, byte semantics, canaries and the
-	    FBDUMP writer ***
+      ( *** fbmem - the Noctis workspace, byte semantics, the 16-bit index
+	    mask, the zone guards and the FBDUMP writer ***
 
-	Normative source: docs-notes/LINOBUF.md sections 1, 2, 3 and 6.
+	Normative source: docs-notes/LINOBUF.md sections 1, 2, 3 and 6, as
+	corrected by the Wave 5-corrective plan sections 2, 3 and 4.
 	Nothing here is invented; every base and size is copied from
 	LINOBUF section 2.3, which took them from NOCTIS-D.H:25-56 and
 	NOCTIS.CPP:2163-2172.
@@ -9,10 +10,7 @@
 	DECISION 1.  One Noctis byte per 32-bit lino unit.  A byte offset
 	IS a unit offset, so every index expression transfers from the C
 	verbatim.  "MEM put byte" is the single canonical store and it
-	masks with 255; "MEM get byte" is the single canonical load.  They
-	exist as named routines - rather than being inlined everywhere -
-	precisely so that sabotage 10 can replace them with a packed
-	four-per-unit store and the byte-semantics battery can catch it.
+	masks with 255; "MEM get byte" is the single canonical load.
 
 	DECISION 2.  ONE flat workspace nw, laid out in farmalloc order.
 	The order is the whole trick: every read past the end of a buffer
@@ -20,40 +18,149 @@
 	code.  PADU = 16 units between blocks stands in for Borland's
 	far-heap block header.
 
-	DECISION 3.  Overruns are classified three ways.  Class A (writes
-	contained by 16-bit wrap) get the full segment - that is why
-	ZADPT and ZADPR are 65540 and not 64000.  Class B (writes outside,
-	never read) get the pad.  Class C (reads outside) are handled by
-	the layout ORDER and cost nothing.
+	DECISION 3, CORRECTED.  The old text said class A - a write
+	contained by a 16-bit wrap inside the buffer's own segment - was
+	handled by "allocating the full segment, 1,540 units, no code".
 
-	The pad canary is a DEBUG tool, not a release mechanism.  Poison
-	changes what a class-C read samples, so grading runs must poison,
-	check, and then RESTORE ZERO before anything renders.  "MEM zero
-	pads" exists for that and the shell calls it.
+	ALLOCATION SIZE CANNOT REPRODUCE A WRAP.  Under DOS the write
+	folded back to offset 0 of the segment; under 32-bit unit
+	addressing it walks linearly past the region end through whatever
+	follows.  The full segment is a CONTAINMENT PRECONDITION - it
+	makes every masked address legal - but the MECHANISM is the mask,
+	and the mask is code.  Three things provide it here:
 
-	FBDUMP v1 (LINOBUF section 6) is staged in the "dump" vector and
-	written once, so one run produces one artifact with one hash.  The
-	file is a STREAM of records, each a 16-unit header followed by its
-	payload; a reader walks it by header.
+	  the nine S* SEGMENT ORIGINS.  Every buffer's DOS segment starts
+	  four units BELOW its base, because Borland's far heap gives each
+	  block an offset of 4 (adaptor is the exception: it is the
+	  literal far pointer A000:0000, so its origin IS its base).
+	  Those four units live in the preceding pad, which is why the pad
+	  must be at least 4 units and why the zone model below protects
+	  exactly them.
+
+	  "MEM seg addr" - nw_index = SEG(B) + ((OFF(B) + i) AND 65535).
+	  The mask is taken against the SEGMENT ORIGIN, not the buffer
+	  base.
+
+	  "MEM u16" - the 16-bit sibling of "MEM put byte"'s AND 255,
+	  applied AT THE POINT WHERE THE DOS CODE TRUNCATES.
+
+	THE NON-OBVIOUS RULE, and the reason one helper is not enough:
+	THE MASK GOES WHERE THE DOS CODE TRUNCATES, NOT AT THE FINAL
+	ADDRESS.  ((py+px) mod 65536) >> 1 is not ((py+px) >> 1) mod
+	65536.  spot's failure delta is 65,536; cirrus's is 32,768,
+	because cirrus shifts AFTER the 16-bit add:
+
+	  spot   (NOCTIS-0.CPP:4485)  les di,p_background
+	                              add di,py / add di,px
+	         -> nw = SPBG + ((4 + py + px) AND 65535)
+	  cirrus (NOCTIS-0.CPP:4715)  les di,objectschart
+	                              mov bx,py / add bx,px / shr bx,1
+	         -> nw = SOBJ + ((((py+px) AND 65535) > 1) + 4 AND 65535)
+
+	A single "mask the final index" helper would silently halve
+	cirrus's error and still be wrong.
+
+	THE PAD HAS TWO JOBS AND THEY ARE SPLIT, NOT MERGED.  A 16-unit
+	pad was simultaneously the guard band (a write into it is a
+	violation) and the legitimate destination of digit_at's
+	txtr[-6..-1] (NOCTIS.CPP:614-628, txtr = p_surfacemap, landing at
+	nw[170,550..170,555]).  So the first cockpit glyph in a debug
+	build fired the canary, and a legitimate write was
+	indistinguishable from a violation.  Each gap now splits by
+	OWNERSHIP into two zones of 8 units:
+
+	  gap[k] = nw[ base(k)+size(k) .. base(k+1)-1 ]        16 units
+	    TAIL(k)   = gap[k] + 0..+7    owned by region k    "over the end"
+	    SUB(k+1)  = gap[k] + 8..+15   owned by region k+1  "below the base"
+	                SUB(k+1) + 4..+7  IS region k+1's segment offsets 0..3
+
+	That division is PHYSICAL, not a convenience: in DOS the 16 bytes
+	between blocks are the Borland far-heap block header of the UPPER
+	block, and offset == 4 means the upper block's own header occupies
+	the four bytes immediately below it - exactly the bytes a wrap or
+	a negative index reaches.
+
+	TAIL carries PGUARD; SUB carries PALLOW.  A legitimate write and a
+	violation now live in disjoint unit sets carrying different
+	poison, so they are distinguishable BY CONSTRUCTION.
+
+	THERE ARE ELEVEN PADS, NOT NINE.  nw[0..15], nw[16..31], the eight
+	inter-region gaps and nw[402180..402195].  The old walker iterated
+	rtab's nine regions and so never looked at nw[0..31] at all - and
+	nw[16..31]'s SUB is where n_offsets_map's segment origin lives.
+	22 zones over 11 pads.  This closes BUFFERMODEL open item 1.
+
+	THE CHECK IS TWO-SIDED.
+	  (i)  VIOLATION - any unit outside the allowance table differing
+	       from its zone's magic.  [MCn] counts them, [MCfired] names
+	       the pad, [MCat] gives the offset.  Unchanged strength.
+	  (ii) EXPECTATION - allowance units that are no longer PALLOW are
+	       COUNTED, not forbidden, in [MCexp].  A build that never
+	       performs the legitimate write therefore FAILS, and so does
+	       one that writes the wrong units.  That is a value derived
+	       from what the programme did, not written by construction on
+	       both sides.
+
+	The allowance table has three entries, each with its citation:
+	  p_surfacemap SUB +2..+7   digit_at,  NOCTIS.CPP:614-628
+	  pvfile       TAIL +0      loadpv,    NOCTIS-0.CPP:2383-2391
+	  every owned SUB +4..+7    the region's segment offsets 0..3
+	                            (adaptor excluded: its origin is its
+	                             base, so its SUB is pure guard)
+
+	ORDERING IS UNCHANGED AND STILL NORMATIVE: poison, probe, check,
+	"MEM zero pads", render.  A release build never poisons; grading
+	runs use the release state.
+
+	FBDUMP v2 (LINOBUF section 6) is staged in the "dump" vector and
+	written once, so one run produces one artifact with one hash.  v2
+	defines header unit 8 as a TAG, so record identity stops depending
+	on emission order - which in v1 was documented only in a comment
+	in one implementer's file.
 
 	FILENAME TRAP: underscores in lino string literals become spaces.
 	Every output name here uses hyphens.                              )
 
 "constants"
 
-	( ---------------- FBDUMP v1 ---------------- )
+	( ---------------- FBDUMP v2 ---------------- )
 
 	FBMAGIC	= 1178747953;	( 0x46424431, 'FBD1' as a 32-bit value )
-	FBVER	= 1;
+	FBVER	= 2;
 
-	KPAGE	= 1;		( 64000 index units			)
+	KPAGE	= 1;		( W x H index units			)
 	KPAL6	= 2;		( 768 six-bit DAC components		)
 	KLUT	= 3;		( 256 00RRGGBB units			)
 	KTICK	= 4;		( 3 units per tick, RAW			)
 	KLAY	= 5;		( 4 units per region			)
-	KCAN	= 6;		( 2 units per region			)
-	KSELF	= 7;		( EXTENSION: this port's self-checks	)
-	KFRM	= 8;		( EXTENSION: raw frame-cost samples	)
+	KCAN	= 6;		( v2: 4 units per PAD, 11 pads		)
+	KSELF	= 7;		( this port's self-checks		)
+	KFRM	= 8;		( raw frame-cost samples		)
+	KZONE	= 9;		( 4 units per zone, 22 zones		)
+	KWCNT	= 10;		( 3 units per class-A site		)
+	KSRVL	= 11;		( 3 units per servo firing		)
+	KWRAPB	= 12;		( 6 units per synthetic wrap case	)
+
+	( TAGS - header unit 8.  Record identity, independent of order. )
+
+	TADPT	= 1;
+	TADPR	= 2;
+	TGLYPH	= 3;
+	TPAL6	= 4;
+	TCURP	= 5;
+	TLUT	= 6;
+	TLAY	= 7;
+	TCAN	= 8;
+	TZONE	= 9;
+	TTICK	= 10;
+	TSRVL	= 11;
+	TWCNT	= 12;
+	TSELF	= 13;
+	TFRM	= 14;
+	TWRAPB	= 15;		( EXTENSION beyond the plan's list )
+	TSKY	= 16;		( EXTENSION beyond the plan's list )
+	TSRFP	= 17;		( surface_palette			)
+	TRETP	= 18;		( return_palette			)
 
 	DHDRU	= 16;		( header size, units )
 
@@ -62,7 +169,10 @@
 	  every base is the previous base + its size + PADU.  )
 
 	PADU	= 16;
+	ZHALF	= 8;		( units per zone: PADU / 2 )
 	NREG	= 9;
+	NPAD	= 11;
+	NZONE	= 22;
 
 	RNOFF	= 32;		ZNOFF	= 7340;		( offsets.map      )
 	RNGLB	= 7388;		ZNGLB	= 32768;	( globes.map | sea )
@@ -76,16 +186,56 @@
 
 	NWTOP	= 402196;
 
-	POISON	= 2779096485;	( 0xA5A5A5A5 )
+	( ---------------- the DOS segment origins ----------------
+	  R* minus 4 everywhere except adaptor, which is the literal far
+	  pointer A000:0000 and therefore has offset 0.  Each of these
+	  lands in the preceding pad's SUB zone, at SUB+4.
+
+	  adaptor's window is exactly the 65,536 units of the A000
+	  segment, so EVERY masked address in it is a legal store to real
+	  VRAM.  Required 65,536; delivered 65,540; the extra 4 are slack.
+	  That, and not "mask_pixels wraps DI", is why the size stands -
+	  mask_pixels' DI runs 4..58,240 at QWSTEADY and never wraps. )
+
+	SNOFF	= 28;
+	SNGLB	= 7384;
+	SSBG	= 40168;
+	SPBG	= 104984;
+	SPSM	= 170552;
+	SOBJ	= 210568;
+	SPVF	= 250584;
+	SADPT	= 271080;
+	SADPR	= 336640;	( offset 0 - not R* minus 4 )
+
+	( ---------------- zone roles and magics ---------------- )
+
+	ROLTAIL	= 0;
+	ROLSUB	= 1;
+
+	PGUARD	= 2779096485;	( 0xA5A5A5A5, in TAIL  - pure guard    )
+	PALLOW	= 1515870810;	( 0x5A5A5A5A, in SUB   - guard + allowance )
+
+	( ---------------- class-A sites ---------------- )
+
+	NSITE	= 6;
+	SITESPOT = 0;		( NOCTIS-0.CPP:4485 )
+	SITECIRR = 1;		( NOCTIS-0.CPP:4715 )
+	SITECRAT = 2;		( NOCTIS-0.CPP:4516 )
+	SITEWAVE = 3;		( NOCTIS-0.CPP:4583 )
+	SITESTIK = 4;		( TDPOLYGS.H:161-177 )
+	SITESPAR = 5;
 
 	WINDOW	= 65535;	( highest texel a 16-bit BX can reach )
 
 	NPIX	= 64000;
 	NQUAD	= 16000;
 	QWSTEADY = 14560;	( QUADWORDS after NOCTIS.CPP:2206 - a
-				  VARIABLE, not 16000.  LINOBUF section 4. )
+				  VARIABLE, not 16000, and the wrap
+				  computation at 16000 in BUFFERMAP:454 /
+				  BUFFERMODEL:166 is wrong.  4*14560 =
+				  58,240 bytes = 182 rows. )
 
-	DUMPMAX	= 140000;
+	DUMPMAX	= 200000;
 
 "variables"
 
@@ -105,15 +255,37 @@
 	MDlo	= 0;
 	MDhi	= 0;
 
-	( canary state )
-	MCfired	= 0;		( region id + 1, so 0 means clean )
-	MCn	= 0;		( total units differing )
-	MCat	= 0;		( nw offset of the first difference )
+	( the 16-bit index mask )
+	SAseg	= 0;
+	SAoff	= 0;
+	SAsite	= 0;
+	SAnw	= 0;
+	SAlo	= 0;
+	SAhi	= 0;
+
+	( zone state )
+	ZAowner	= 0;
+	ZArole	= 0;
+	ZAmask	= 0;
+
+	( guard state )
+	MCfired	= 0;		( PAD index + 1, so 0 means clean )
+	MCreg	= 0;		( owner region id of the zone that fired )
+	MCn	= 0;		( violating units )
+	MCexp	= 0;		( allowance units that changed )
+	MCat	= 0;		( nw offset of the first violation )
+	MCzi	= 0;
+	MCzp	= 0;
+	MCap	= 0;
+	MCui	= 0;
+	MCoob	= 0;		( containment assertion failures )
+	MCoobat	= 0;
 
 	( dump staging )
 	DPptr	= 0;
 	DPcnt	= 0;
 	DKind	= 0;
+	DTag	= 0;
 	DW	= 0;
 	DH	= 0;
 	DBptr	= 0;
@@ -129,10 +301,10 @@
 	nw	= 402196;	( THE Noctis workspace, farmalloc order )
 	fb	= 64000;	( [Display Origin], 00RRGGBB - OUTSIDE nw )
 	digimap2 = 2340;	( SPLIT out of n_globes_map, LINOBUF alias 2 )
-	dump	= 140000;	( FBDUMP staging: two 64000-unit pages fit )
-	dhdr	= 16;
+	dump	= 200000;	( FBDUMP staging )
 	rtab	= 36;		( 9 regions x (base,size,padbase,id) )
-	ctab	= 18;		( 9 regions x (expected,actual) )
+	ztab	= 88;		( 22 zones x (base,len,owner,role) )
+	wtab	= 18;		( 6 sites x (site,calls,wraps) )
 
 "programme"
 
@@ -140,10 +312,12 @@
 ( the region table                                                      )
 ( ==================================================================== )
 
-      ( 4 units per region: base, size, pad base, region id.  This IS
-	FBDUMP kind 5, emitted straight out of rtab, so the layout the
-	shell dumps is the layout the code uses - not a restatement of
-	it. )
+      ( 4 units per region: base, size, TRAILING pad base, region id.
+	This IS FBDUMP kind 5, emitted straight out of rtab, so the layout
+	the shell dumps is the layout the code uses - not a restatement of
+	it.  Unit 2 is DEFINED as base + size, which is the base of the
+	gap above the region.  FBDUMP v1 named this field and never
+	defined it; that ambiguity is closed here by fiat. )
 
 "MEM build rtab"
 	A = rtab;
@@ -164,6 +338,129 @@
 	[A plus 0] = RADPT; [A plus 1] = ZADPT; C = RADPT; C + ZADPT; [A plus 2] = C; [A plus 3] = 7;
 	A + 4;
 	[A plus 0] = RADPR; [A plus 1] = ZADPR; C = RADPR; C + ZADPR; [A plus 2] = C; [A plus 3] = 8;
+	end;
+
+( ==================================================================== )
+( the ZONE table - 22 zones over 11 pads                                )
+( ==================================================================== )
+
+      ( 4 units per zone: base, length, owner region id (-1 = unowned),
+	role (0 TAIL, 1 SUB).  Zone index zi = 2*pad + role, so the pad
+	index is zi >> 1 and the table is a pure function of the layout.
+
+	This IS FBDUMP kind 9, emitted straight out of ztab.
+
+	Pad p covers nw[padbase(p) .. padbase(p)+15]:
+	  p = 0   nw[0..15]        both zones UNOWNED
+	  p = 1   nw[16..31]       SUB owned by region 0; SUB+4 = SNOFF
+	  p = 2..9                 the eight inter-region gaps
+	  p = 10  nw[402180..]     TAIL owned by region 8; SUB UNOWNED
+
+	Unowned zones carry an EMPTY allowance list, so any change there
+	is a violation. )
+
+"MEM build ztab"
+	[MEMi] = 0;
+    "MEM bz pad"
+	=> MEM pad base;		( [MEMtmp] <- padbase([MEMi]) )
+	A = [MEMi]; A + A; A '* 4; A + ztab;	( 8 units per pad )
+
+	( TAIL: owner = pad - 2, unowned for pads 0 and 1 )
+	[A plus 0] = [MEMtmp];
+	[A plus 1] = ZHALF;
+	[A plus 3] = ROLTAIL;
+	C = [MEMi]; C - 2;
+	? C >= 0 -> MEM bz t;
+	C = 0; C-;
+    "MEM bz t"
+	[A plus 2] = C;
+
+	( SUB: owner = pad - 1, unowned for pad 0 and pad 10 )
+	C = [MEMtmp]; C + ZHALF;
+	[A plus 4] = C;
+	[A plus 5] = ZHALF;
+	[A plus 7] = ROLSUB;
+	C = [MEMi]; C - 1;
+	? C < 0 -> MEM bz sneg;
+	? C '> 8 -> MEM bz sneg;
+	-> MEM bz s;
+    "MEM bz sneg"
+	C = 0; C-;
+    "MEM bz s"
+	[A plus 6] = C;
+
+	[MEMi]+;
+	A = [MEMi]; ? A '< NPAD -> MEM bz pad;
+	end;
+
+      ( MEM pad base : [MEMtmp] <- the nw offset of pad [MEMi].
+	Written out rather than derived from rtab, because rtab has nine
+	entries and there are eleven pads - deriving it from rtab is
+	exactly the bug that left nw[0..31] unguarded. )
+
+"MEM pad base"
+	A = [MEMi];
+	? A = 0  -> MEM pb 0;
+	? A = 1  -> MEM pb 1;
+	? A = 2  -> MEM pb 2;
+	? A = 3  -> MEM pb 3;
+	? A = 4  -> MEM pb 4;
+	? A = 5  -> MEM pb 5;
+	? A = 6  -> MEM pb 6;
+	? A = 7  -> MEM pb 7;
+	? A = 8  -> MEM pb 8;
+	? A = 9  -> MEM pb 9;
+	C = RADPR; C + ZADPR; [MEMtmp] = C; end;
+    "MEM pb 0"
+	[MEMtmp] = 0; end;
+    "MEM pb 1"
+	[MEMtmp] = PADU; end;
+    "MEM pb 2"
+	C = RNOFF; C + ZNOFF; [MEMtmp] = C; end;
+    "MEM pb 3"
+	C = RNGLB; C + ZNGLB; [MEMtmp] = C; end;
+    "MEM pb 4"
+	C = RSBG;  C + ZSBG;  [MEMtmp] = C; end;
+    "MEM pb 5"
+	C = RPBG;  C + ZPBG;  [MEMtmp] = C; end;
+    "MEM pb 6"
+	C = RPSM;  C + ZPSM;  [MEMtmp] = C; end;
+    "MEM pb 7"
+	C = ROBJ;  C + ZOBJ;  [MEMtmp] = C; end;
+    "MEM pb 8"
+	C = RPVF;  C + ZPVF;  [MEMtmp] = C; end;
+    "MEM pb 9"
+	C = RADPT; C + ZADPT; [MEMtmp] = C; end;
+
+      ( MEM zone allow : [ZAmask] <- the 8-bit allowance mask of the zone
+	described by [ZAowner] and [ZArole].  Bit u set means "unit u of
+	this zone is a LEGITIMATE destination; count it, do not fire".
+
+	Three entries, each with its citation.  Deriving the mask instead
+	of storing it keeps ztab exactly equal to FBDUMP kind 9. )
+
+"MEM zone allow"
+	[ZAmask] = 0;
+	A = [ZAowner]; ? A < 0 -> MEM za done;
+	A = [ZArole]; ? A = ROLTAIL -> MEM za tail;
+
+	( SUB+4..+7 are the region's segment offsets 0..3, reachable by
+	  any 16-bit wrap.  adaptor is excluded: A000:0000 means its
+	  segment offset 0 IS its base, so its SUB is pure guard. )
+	A = [ZAowner]; ? A = 8 -> MEM za sub2;
+	[ZAmask] = 240;
+    "MEM za sub2"
+	( digit_at writes txtr[-6..-1] with txtr = p_surfacemap, which is
+	  SUB+2..+7 of pad 5.  NOCTIS.CPP:614-628. )
+	A = [ZAowner]; ? A != 4 -> MEM za done;
+	C = [ZAmask]; C | 252; [ZAmask] = C;
+	-> MEM za done;
+    "MEM za tail"
+	( loadpv writes one unit past pvfile_c.  NOCTIS-0.CPP:2383-2391.
+	  Retired when alias 9 re-lays the arena. )
+	A = [ZAowner]; ? A != 6 -> MEM za done;
+	[ZAmask] = 1;
+    "MEM za done"
 	end;
 
 ( ==================================================================== )
@@ -199,6 +496,74 @@
     "MEM sx done"
 	end;
 
+      ( MEM u16 : C <- C AND 65535.  The 16-bit sibling of "MEM put
+	byte"'s AND 255, and the model already owned this primitive at 8
+	bits - it simply never generalised it.  A NAMED routine so that a
+	sabotage can remove it and the wrap counters go to zero while the
+	page content changes: the check is then breakable in two
+	independent places. )
+
+"MEM u16"
+	C & 65535;
+	end;
+
+( ==================================================================== )
+( the 16-bit index mask - the class-A mechanism                         )
+( ==================================================================== )
+
+      ( MEM seg addr : [SAnw] <- SEG + (OFF AND 65535).
+	in  [SAseg] segment origin, [SAoff] 16-bit offset, [SAsite] site id
+	out [SAnw]  workspace index
+
+	The counters are the graded artifact.  Delete a mask and the wrap
+	count goes to zero while the page content changes; mask the final
+	address instead of the truncation point and cirrus's delta halves
+	from 65,536 to 32,768.  Two independent places, both breakable. )
+
+"MEM seg addr"
+	A = [SAsite]; A '* 3; A + wtab;
+	[A plus 1]+;
+	C = [SAoff];
+	? C '<= WINDOW -> MEM sa nowrap;
+	[A plus 2]+;
+    "MEM sa nowrap"
+	=> MEM u16;
+	C + [SAseg];
+	[SAnw] = C;
+	end;
+
+      ( MEM seg check : the containment assertion.  [SAnw] must lie in
+	[base(B), base(B)+size(B)) union SUB(B) - and those two intervals
+	are CONTIGUOUS, because SUB(B) is base-8..base-1.  So the window
+	is [SAlo, SAhi) with SAlo = base - 8.
+
+	Note what this does NOT claim: the wrappable window and the buffer
+	are not the same interval.  adapted's 16-bit window is
+	nw[271,080..336,615], so adapted[65536..65539] - the four units
+	sc_bytes = 65540 exists for - lie OUTSIDE the wrap window and are
+	reachable only through the non-truncating path. )
+
+"MEM seg check"
+	A = [SAnw];
+	? A '< [SAlo] -> MEM sc bad;
+	? A '>= [SAhi] -> MEM sc bad;
+	end;
+    "MEM sc bad"
+	[MCoob]+;
+	? [MCoobat] != 0 -> MEM sc done;
+	[MCoobat] = [SAnw];
+    "MEM sc done"
+	end;
+
+"MEM wrap reset"
+	A = wtab; C = 0; B = 0; B + NSITE;
+    "MEM wr site"
+	[A plus 0] = C; [A plus 1] = 0; [A plus 2] = 0;
+	A + 3; C+;
+	B ^ MEM wr site;
+	[MCoob] = 0; [MCoobat] = 0;
+	end;
+
 ( ==================================================================== )
 ( quadrant bitfields - objectschart == ruinschart, LINOBUF alias 3      )
 ( ==================================================================== )
@@ -230,9 +595,7 @@
 ( ==================================================================== )
 
       ( MEM u32 : [MBval] <- the little-endian uint32 held in the four
-	byte units at nw[[MBptr]].  This is how digimap2 rows and any
-	packed disk record are unpacked; nothing in working memory is
-	ever stored packed. )
+	byte units at nw[[MBptr]]. )
 
 "MEM u32"
 	A = nw; A + [MBptr];
@@ -245,8 +608,7 @@
 
       ( MEM dbl : [MDlo],[MDhi] <- the little-endian binary64 held in
 	the eight byte units at nw[[MBptr]].  STARMAP.BIN records are
-	32 bytes with a double at offset 0 (NOCTIS-0.CPP:4020-4030), so
-	the byte array stays the storage and this is the VIEW.
+	32 bytes with a double at offset 0 (NOCTIS-0.CPP:4020-4030).
 	LINOBUF alias 7: keep storage, split the view. )
 
 "MEM dbl"
@@ -264,73 +626,90 @@
 	end;
 
 ( ==================================================================== )
-( the pad canaries - DEBUG BUILD ONLY                                   )
+( the zone guards - DEBUG BUILD ONLY                                    )
 ( ==================================================================== )
 
 "MEM poison pads"
-	D = rtab; B = 0; B + NREG;
-    "MEM pp reg"
-	A = [D plus 2]; A + nw;
-	E = 0; E + PADU;
-	C = POISON;
+	[MCzi] = 0;
+    "MEM pp zone"
+	A = [MCzi]; A '* 4; A + ztab;
+	D = [A plus 0]; D + nw;
+	C = PGUARD;
+	E = [A plus 3]; ? E = ROLTAIL -> MEM pp mag;
+	C = PALLOW;
+    "MEM pp mag"
+	B = 0; B + ZHALF;
     "MEM pp unit"
-	[A] = C; A+;
-	E ^ MEM pp unit;
-	D + 4;
-	B ^ MEM pp reg;
+	[D] = C; D+;
+	B ^ MEM pp unit;
+	[MCzi]+;
+	A = [MCzi]; ? A '< NZONE -> MEM pp zone;
 	end;
 
       ( restore the FAITHFUL state.  A release/grading run must end here
-	or a class-C read overrun samples 0xA5A5A5A5 instead of zero. )
+	or a class-C read overrun samples poison instead of zero. )
 
 "MEM zero pads"
-	D = rtab; B = 0; B + NREG;
-    "MEM zp reg"
-	A = [D plus 2]; A + nw;
-	E = 0; E + PADU;
+	[MCzi] = 0;
+    "MEM zp zone"
+	A = [MCzi]; A '* 4; A + ztab;
+	D = [A plus 0]; D + nw;
+	B = 0; B + ZHALF;
 	C = 0;
     "MEM zp unit"
-	[A] = C; A+;
-	E ^ MEM zp unit;
-	D + 4;
-	B ^ MEM zp reg;
+	[D] = C; D+;
+	B ^ MEM zp unit;
+	[MCzi]+;
+	A = [MCzi]; ? A '< NZONE -> MEM zp zone;
 	end;
 
-      ( MEM check pads : [MCfired] <- region id + 1 of the FIRST region
-	whose pad differs (0 = clean), [MCn] <- total units differing,
-	[MCat] <- nw offset of the first difference.  ctab is filled with
-	(expected, actual) per region = FBDUMP kind 6. )
+      ( MEM check pads : the two-sided check.
+
+	  [MCfired] PAD index + 1 of the first VIOLATION (0 = clean)
+	  [MCreg]   owner region id of the zone that fired (-1 unowned)
+	  [MCn]     total violating units
+	  [MCexp]   total ALLOWANCE units that changed - the expectation
+	  [MCat]    nw offset of the first violation                    )
 
 "MEM check pads"
-	[MCfired] = 0; [MCn] = 0; [MCat] = 0;
-	D = rtab; B = 0; B + NREG;
-	[MEMi] = ctab;
-    "MEM cp reg"
-	A = [D plus 2]; A + nw;
-	E = 0; E + PADU;
-	[MEMtmp] = POISON;		( "actual" reported for this region )
+	[MCfired] = 0; [MCn] = 0; [MCat] = 0; [MCexp] = 0;
+	[MCreg] = 0; [MCreg]-;
+	[MCzi] = 0;
+    "MEM cp zone"
+	A = [MCzi]; A '* 4; A + ztab; [MCzp] = A;
+	[ZAowner] = [A plus 2];
+	[ZArole]  = [A plus 3];
+	=> MEM zone allow;
+	A = [MCzp]; A = [A plus 0]; A + nw; [MCap] = A;
+	[MEMtmp] = PGUARD;
+	A = [ZArole]; ? A = ROLTAIL -> MEM cp mag;
+	[MEMtmp] = PALLOW;
+    "MEM cp mag"
+	[MCui] = 0;
     "MEM cp unit"
-	C = [A];
-	? C = POISON -> MEM cp ok;
+	A = [MCap]; C = [A];
+	? C = [MEMtmp] -> MEM cp next;
+	B = 1; D = [MCui]; B < D;
+	D = [ZAmask]; D & B;
+	? D != 0 -> MEM cp allowed;
 	[MCn]+;
-	[MEMtmp] = C;
-	? [MCfired] != 0 -> MEM cp ok;
-	[MCfired] = [D plus 3]; [MCfired]+;
-	[MCat] = A;
-	[MCat] - nw;
-    "MEM cp ok"
-	A+;
-	E ^ MEM cp unit;
-	C = [MEMi];
-	[C plus 0] = POISON;
-	[C plus 1] = [MEMtmp];
-	C + 2; [MEMi] = C;
-	D + 4;
-	B ^ MEM cp reg;
+	? [MCfired] != 0 -> MEM cp next;
+	A = [MCzi]; A > 1; A+; [MCfired] = A;
+	[MCreg] = [ZAowner];
+	A = [MCap]; A - nw; [MCat] = A;
+	-> MEM cp next;
+    "MEM cp allowed"
+	[MCexp]+;
+    "MEM cp next"
+	[MCap]+;
+	[MCui]+;
+	A = [MCui]; ? A '< ZHALF -> MEM cp unit;
+	[MCzi]+;
+	A = [MCzi]; ? A '< NZONE -> MEM cp zone;
 	end;
 
 ( ==================================================================== )
-( FBDUMP v1 staging                                                     )
+( FBDUMP v2 staging                                                     )
 ( ==================================================================== )
 
 "DMP reset"
@@ -339,7 +718,7 @@
 	end;
 
       ( DMP rec : append one FBDUMP record.
-	in  [DKind] [DW] [DH] [DBptr] [DBcnt] [DCpms] [DTicks] )
+	in  [DKind] [DTag] [DW] [DH] [DBptr] [DBcnt] [DCpms] [DTicks] )
 
 "DMP rec"
 	A = [DPptr];
@@ -351,7 +730,7 @@
 	[A plus 5]  = [DBcnt];
 	[A plus 6]  = [DCpms];
 	[A plus 7]  = [DTicks];
-	[A plus 8]  = 0;
+	[A plus 8]  = [DTag];
 	[A plus 9]  = 0;
 	[A plus 10] = 0;
 	[A plus 11] = 0;

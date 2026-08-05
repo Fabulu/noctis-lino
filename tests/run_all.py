@@ -69,6 +69,7 @@ TESTS = [
     ("test_floatcontract.py", "the Wave 3 float contract, graded by STARMAP.BIN"),
     ("test_nearstar.py", "Wave 4 draw accounting, graded by STARMAP.BIN and DL.EXE"),
     ("test_wave5.py", "Wave 5 buffer model, framebuffer and the 54.9254 ms tick"),
+    ("test_geometry.py", "the cast boundary from __ftol; geometry bit-exact between engines but UNGRADED against 1996"),
 ]
 
 # Tests that have a slower, more complete mode of their own. run_all always

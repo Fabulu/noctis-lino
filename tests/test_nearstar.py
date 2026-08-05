@@ -65,12 +65,15 @@ WHAT THIS TEST DOES NOT COVER, PLAINLY:
     by this port at all, so no check here says anything about them. Section
     2 pins the site registry at eleven so that the day geometry arrives, it
     arrives as a deliberate change that fails this test first.
-  * THE FLOAT-TO-INT CAST BOUNDARY. NsIdentChop16 truncates a live, unstored
-    extended value. FLOATPOLICY.md 3.3 still calls that boundary UNSETTLED,
-    and the catalogue cannot separate it from a chop of the stored binary64:
-    both give the same seed on every record in the corpus. The CLASS leg
-    below ranks chop against nothing finer, and must not be read as closing
-    that question.
+  * THE FLOAT-TO-INT CAST BOUNDARY IS NOT CLOSED HERE. NsIdentChop16
+    truncates a live, unstored extended value, and the catalogue cannot
+    separate that from a chop of the stored binary64: both give the same
+    seed on every record in the corpus. The CLASS leg below ranks chop
+    against nothing finer, and no result in this file may be read as
+    settling the question. (Wave 6 settled it elsewhere, out of NOCTIS.EXE's
+    machine code - chop on the live 80-bit st(0), so NsIdentChop16's reading
+    is the original's. That evidence is in test_geometry.py section 1 and
+    docs-notes/OPENITEMS.md entry 1, not here.)
   * ONE PHASE IS INVISIBLE TO BOTH 1996 ORACLES. Section 9 measures it
     rather than asserting around it.
   * THE NSIN SEED OVERRIDE. Section 10 pins a known, bounded disagreement

@@ -1,0 +1,410 @@
+      ( PROBE W5B2-SRV : the tick servo, and what a correct one looks like.
+
+        work/fbtick.txt "TK servo" recomputes counts-per-millisecond as
+
+            ([Counts] - [TKsrv0c])  /  (wall ms - [TKsrv0w])
+
+        where [TKsrv0c] and [TKsrv0w] are taken ONCE, at "TK start".  The
+        numerator is a 32-bit counter difference and is therefore correct
+        only while the true elapsed count is below 2^32; the denominator
+        grows without bound.  At 8999 counts/ms that is 477.27 s.  After
+        that the ratio is nonsense and, because the +-1% clamp only limits
+        the STEP, the nonsense becomes a permanent ratchet.
+
+        THE SUBTRACTION IS NOT THE BUG.  Unsigned subtraction across the
+        wrap yields the correct delta - probe W5C-2 proved that identity
+        over 196,608 origins.  The bug is the BRACKET: measuring against
+        the start of the run instead of against a bounded window.
+
+        Five batteries, all of them measurements:
+
+        1. OLD.  The shipped servo's arithmetic, driven with fabricated
+           (now, ref) pairs for elapsed times from 60 s to 30 min.  The
+           reviewer's figures - 1840 cpms at t=600 s, 4226 at t=900 s -
+           must come out of the lino arithmetic, not just out of Python.
+
+        2. WIN.  The same arithmetic bracketed against the PREVIOUS servo
+           sample instead of the start of the run.  Same elapsed times.
+
+        3. THE STRADDLE SWEEP.  65,536 window END positions with an odd
+           stride, so the whole 32-bit ring is swept, times ten window
+           LENGTHS.  For every window shorter than 2^32/cpms the estimate
+           must be exactly 8999; the 500,000 ms case is included and is
+           expected to FAIL, because that is where the fix's own limit is
+           and a limit that is not measured is an assumption.
+
+        4. REAL WINDOWS.  The real high performance timer and the real
+           system clock, six window lengths from 500 ms to 14 s, six
+           repeats each, RAW pairs only.  The reader computes the implied
+           rate and its spread; that is what says how long a window has
+           to be for the estimate to be worth applying.
+
+        5. THE OTHER DISCONTINUITY.  "TK read wall" is milliseconds since
+           MIDNIGHT.  A session that crosses midnight makes the wall-clock
+           difference negative, which the unsigned "'< 500" guard reads as
+           a huge positive interval and accepts.  Measured for the old
+           servo, the windowed servo, and a windowed servo with an
+           explicit plausibility band. )
+
+"directors"
+
+	program name = { probe_w5b2_srv };
+	unit = 32;
+
+"constants"
+
+	CPMSF	= 8999;		( the fabricated true rate, so the numbers are
+				  comparable with the reviewer's )
+	NCASE	= 10;
+	NB	= 65536;	( straddle-sweep origins per window length )
+	STRIDE	= 2654435761;	( odd, so i*STRIDE sweeps the whole ring )
+	NW3	= 10;		( window lengths in the sweep )
+	NW4	= 6;		( window lengths against the real clock )
+	REP4	= 6;
+	WINMS	= 14061;	( 256 periods, the shipped servo interval )
+	NB5	= 4;
+	DAYMS	= 86400000;
+
+"variables"
+
+	result file name = { probe-w5b2-srv.bin };
+
+	SVcn	= 0;		( window end,   counts )
+	SVcr	= 0;		( window start, counts )
+	SVwn	= 0;		( window end,   wall ms )
+	SVwr	= 0;		( window start, wall ms )
+	SVcpms	= 0;		( the value in force )
+	SVcnt	= 0;
+	SVms	= 0;
+	SVnew	= 0;
+	SVout	= 0;
+	SVwhy	= 0;
+
+	i	= 0;
+	k	= 0;
+	t	= 0;
+	wl	= 0;
+	nchk	= 0;
+	nfail	= 0;
+	p	= 0;
+	tmp	= 0;
+	pos	= 0;
+	cnt	= 0;
+	c0	= 0;
+	c1	= 0;
+	w0	= 0;
+	w1	= 0;
+	base	= 0;
+
+"workspace"
+
+	cases	= 10;		( elapsed times, ms )
+	wl3	= 10;		( sweep window lengths, ms )
+	wl4	= 6;		( real window lengths, ms )
+	b1	= 60;
+	b2	= 60;
+	b3	= 30;
+	b4	= 72;
+	b5	= 24;
+	head	= 16;
+
+"programme"
+
+	[cases plus 0] = 60000;
+	[cases plus 1] = 300000;
+	[cases plus 2] = 450000;
+	[cases plus 3] = 477000;
+	[cases plus 4] = 480000;
+	[cases plus 5] = 540000;
+	[cases plus 6] = 600000;
+	[cases plus 7] = 900000;
+	[cases plus 8] = 1200000;
+	[cases plus 9] = 1800000;
+
+	[wl3 plus 0] = 500;
+	[wl3 plus 1] = 1000;
+	[wl3 plus 2] = 2000;
+	[wl3 plus 3] = 4000;
+	[wl3 plus 4] = 8000;
+	[wl3 plus 5] = WINMS;
+	[wl3 plus 6] = 60000;
+	[wl3 plus 7] = 300000;
+	[wl3 plus 8] = 470000;
+	[wl3 plus 9] = 500000;	( past 2^32/cpms - expected to fail )
+
+	[wl4 plus 0] = 500;
+	[wl4 plus 1] = 1000;
+	[wl4 plus 2] = 2000;
+	[wl4 plus 3] = 4000;
+	[wl4 plus 4] = 8000;
+	[wl4 plus 5] = 14000;
+
+( ==================================================================== )
+( 1 - the shipped servo, bracketed against the start of the run         )
+( ==================================================================== )
+
+	( a fabricated origin near the top of the ring, so the first wrap
+	  is reached inside the case list rather than by luck )
+	[base] = 4294900000;
+
+	[i] = 0;
+    "A loop"
+	A = [i]; A + cases; A = [A]; [t] = A;
+	[SVcpms] = CPMSF;
+	[SVcr] = [base];
+	A = [t]; A '* CPMSF;
+	B = [base]; B + A; [SVcn] = B;
+	[SVwr] = 0;
+	[SVwn] = [t];
+	=> SV eval;
+	A = [i]; A '* 6; A + b1; [p] = A;
+	=> Store;
+	[i]+; A = [i]; ? A '< NCASE -> A loop;
+
+( ==================================================================== )
+( 2 - the same arithmetic against the PREVIOUS sample                   )
+( ==================================================================== )
+
+	[i] = 0;
+    "B loop"
+	A = [i]; A + cases; A = [A]; [t] = A;
+	[SVcpms] = CPMSF;
+	A = [t]; A '* CPMSF;
+	B = [base]; B + A; [SVcn] = B;
+	A = WINMS; A '* CPMSF;
+	B = [SVcn]; B - A; [SVcr] = B;
+	[SVwn] = [t];
+	A = [t]; A - WINMS; [SVwr] = A;
+	=> SV eval;
+	A = [i]; A '* 6; A + b2; [p] = A;
+	=> Store;
+	[i]+; A = [i]; ? A '< NCASE -> B loop;
+
+( ==================================================================== )
+( 3 - the straddle sweep                                                )
+( ==================================================================== )
+
+	[k] = 0;
+    "C wl"
+	A = [k]; A + wl3; A = [A]; [wl] = A;
+	[nchk] = 0; [nfail] = 0;
+	[i] = 0;
+    "C loop"
+	A = [i]; A '* STRIDE; [SVcn] = A;
+	A = [wl]; A '* CPMSF;
+	B = [SVcn]; B - A; [SVcr] = B;
+	[SVwn] = [wl]; [SVwr] = 0;
+	[SVcpms] = CPMSF;
+	=> SV eval;
+	[nchk]+;
+	A = [SVnew]; A - CPMSF;
+	? A = 0 -> C ok;
+	[nfail]+;
+    "C ok"
+	[i]+; A = [i]; ? A '< NB -> C loop;
+	A = [k]; A '* 3; A + b3;
+	[A plus 0] = [wl];
+	[A plus 1] = [nchk];
+	[A plus 2] = [nfail];
+	[k]+; A = [k]; ? A '< NW3 -> C wl;
+
+( ==================================================================== )
+( 4 - real windows against the real clocks, raw pairs only              )
+( ==================================================================== )
+
+	[k] = 0;
+    "D wl"
+	A = [k]; A + wl4; A = [A]; [wl] = A;
+	[i] = 0;
+    "D rep"
+	=> Read wall ms; [w0] = [tmp];
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+    "D spin"
+	=> Read wall ms;
+	A = [tmp]; A - [w0];
+	? A '< [wl] -> D spin;
+	[w1] = [tmp];
+	[Timer Command] = READ COUNTS; isocall;
+	[c1] = [Counts];
+
+	A = [k]; A '* REP4; A + [i]; A '* 2; A + b4;
+	B = [c1]; B - [c0]; [A plus 0] = B;
+	B = [w1]; B - [w0]; [A plus 1] = B;
+
+	[i]+; A = [i]; ? A '< REP4 -> D rep;
+	[k]+; A = [k]; ? A '< NW4 -> D wl;
+
+( ==================================================================== )
+( 5 - the midnight discontinuity                                        )
+( ==================================================================== )
+
+	( case 0: old servo, run started 14061 ms ago, clock crossed midnight )
+	[SVcpms] = CPMSF;
+	[SVcr] = [base];
+	A = WINMS; A '* CPMSF; B = [base]; B + A; [SVcn] = B;
+	[SVwr] = 0;
+	A = WINMS; A - DAYMS; [SVwn] = A;
+	=> SV eval;
+	[p] = b5; [t] = 0; => Store;
+
+	( case 1: windowed servo, plain guard, same crossing )
+	[SVcpms] = CPMSF;
+	A = WINMS; A '* CPMSF; B = [base]; B + A; [SVcn] = B;
+	A = WINMS; A '* CPMSF; B = [SVcn]; B - A; [SVcr] = B;
+	[SVwr] = 0;
+	A = WINMS; A - DAYMS; [SVwn] = A;
+	=> SV eval;
+	A = b5; A + 6; [p] = A; [t] = 1; => Store;
+
+	( case 2: windowed servo with a plausibility band, same crossing )
+	[SVcpms] = CPMSF;
+	A = WINMS; A '* CPMSF; B = [base]; B + A; [SVcn] = B;
+	A = WINMS; A '* CPMSF; B = [SVcn]; B - A; [SVcr] = B;
+	[SVwr] = 0;
+	A = WINMS; A - DAYMS; [SVwn] = A;
+	=> SV sane;
+	A = b5; A + 12; [p] = A; [t] = 2; => Store;
+
+	( case 3: a window LONGER than the counter period, banded servo )
+	[SVcpms] = CPMSF;
+	[SVcr] = [base];
+	A = 500000; A '* CPMSF; B = [base]; B + A; [SVcn] = B;
+	[SVwr] = 0; [SVwn] = 500000;
+	=> SV sane;
+	A = b5; A + 18; [p] = A; [t] = 3; => Store;
+
+( ==================================================================== )
+( dump                                                                  )
+( ==================================================================== )
+
+	[head plus 0]  = [Counts Per Millisecond];
+	[head plus 1]  = CPMSF;
+	[head plus 2]  = NCASE;
+	[head plus 3]  = NB;
+	[head plus 4]  = NW3;
+	[head plus 5]  = NW4;
+	[head plus 6]  = REP4;
+	[head plus 7]  = WINMS;
+	[head plus 8]  = NB5;
+	[head plus 9]  = [base];
+	[head plus 10] = 0;
+	[head plus 11] = 0;
+	[head plus 12] = 0;
+	[head plus 13] = 0;
+	[head plus 14] = 0;
+	[head plus 15] = 0;
+
+	[Block Pointer] = head;	[cnt] = 16; [pos] = 0;   => Put;
+	[Block Pointer] = b1;	[cnt] = 60; [pos] = 16;  => Put;
+	[Block Pointer] = b2;	[cnt] = 60; [pos] = 76;  => Put;
+	[Block Pointer] = b3;	[cnt] = 30; [pos] = 136; => Put;
+	[Block Pointer] = b4;	[cnt] = 72; [pos] = 166; => Put;
+	[Block Pointer] = b5;	[cnt] = 24; [pos] = 238; => Put;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 262;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+( ==================================================================== )
+( the two servo bodies                                                  )
+( ==================================================================== )
+
+      ( SV eval : exactly the shipped arithmetic.  Only the caller decides
+	what the reference point is, which is the entire difference between
+	battery 1 and battery 2. )
+
+"SV eval"
+	[SVwhy] = 0;
+	[SVnew] = 0;
+	[SVout] = [SVcpms];
+	A = [SVcn]; A - [SVcr]; [SVcnt] = A;
+	A = [SVwn]; A - [SVwr]; [SVms] = A;
+	? [SVms] '< 500 -> SV e short;
+	A = [SVcnt]; A '/ [SVms]; [SVnew] = A;
+	=> SV clamp;
+	end;
+    "SV e short"
+	[SVwhy] = 1;
+	end;
+
+      ( SV sane : the same, plus the two things the shipped guard does not
+	do - a SIGNED plausibility band on the window, which is what makes
+	the midnight case and a negative interval refusable, and a band on
+	the resulting rate. )
+
+"SV sane"
+	[SVwhy] = 0;
+	[SVnew] = 0;
+	[SVout] = [SVcpms];
+	A = [SVcn]; A - [SVcr]; [SVcnt] = A;
+	A = [SVwn]; A - [SVwr]; [SVms] = A;
+	A = [SVms]; ? A < 500 -> SV s badw;
+	A = [SVms]; ? A > 60000 -> SV s badw;
+	A = [SVcnt]; A '/ [SVms]; [SVnew] = A;
+	B = [SVcpms]; B '/ 2;
+	? [SVnew] '< B -> SV s badr;
+	C = [SVcpms]; C + [SVcpms];
+	? [SVnew] '> C -> SV s badr;
+	=> SV clamp;
+	end;
+    "SV s badw"
+	[SVwhy] = 2;
+	end;
+    "SV s badr"
+	[SVwhy] = 3;
+	end;
+
+"SV clamp"
+	B = [SVcpms]; B '/ 100;
+	C = [SVcpms]; C - B;
+	D = [SVcpms]; D + B;
+	A = [SVnew];
+	? A '>= C -> SV c lo;
+	A = C;
+    "SV c lo"
+	? A '<= D -> SV c hi;
+	A = D;
+    "SV c hi"
+	[SVout] = A;
+	end;
+
+"Store"
+	A = [p];
+	[A plus 0] = [t];
+	[A plus 1] = [SVcnt];
+	[A plus 2] = [SVms];
+	[A plus 3] = [SVnew];
+	[A plus 4] = [SVout];
+	[A plus 5] = [SVwhy];
+	end;
+
+"Put"
+	[File Name]	= result file name;
+	[File Position] = [pos];
+	[File Position] * BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Size]	= [cnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Hour];
+	A * 3600000;
+	B = [Minute];
+	B * 60000;
+	A + B;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

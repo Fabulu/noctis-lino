@@ -1,0 +1,184 @@
+      ( PROBE W5B2-RATE : does the high performance timer's rate actually
+        drift over a long run, and what does [Counts] do at the wrap?
+
+        Two questions the Wave 5 servo answers by assumption:
+
+        1. IS A SERVO NEEDED AT ALL?  [Counts Per Millisecond] is reported
+           by the runtime and a startup bracket can refine it.  Both are
+           only worth servoing if the TRUE rate moves during a session.
+           This probe measures the rate continuously for ~20 minutes, in
+           ~2 s samples, ALTERNATING an idle sample (SLEEP) with a busy
+           one (spin), because a TSC that is not invariant changes rate
+           with the P-state and that shows up as an idle/busy split.
+
+        2. WHAT HAPPENS AT THE WRAP.  2^32 counts is about 477 s, so a
+           20 minute run crosses the wrap about 2.5 times FOR REAL - no
+           synthetic origin needed.  Every sample records the RAW counter
+           and the unsigned difference from the previous sample.  The
+           grader checks three separate things from that: the raw value
+           decreases exactly as many times as 2^32/rate predicts, the
+           unsigned difference is CORRECT across each of those decreases,
+           and the wall time between successive wraps equals 2^32/rate.
+
+        Nothing is computed here beyond the unsigned difference.  Rates,
+        drift and wrap counts are all recomputed by the reader from the
+        raw pairs, so the probe cannot flatter itself.
+
+        A startup calibration bracket is taken first, over 2.5 s of real
+        spinning, so the reader can score "calibrate once at startup and
+        never servo" against the 20 minute truth. )
+
+"directors"
+
+	program name = { probe_w5b2_rate };
+	unit = 32;
+
+"constants"
+
+	NS	= 600;		( samples )
+	DWELLMS	= 1900;		( per sample )
+	CALMS	= 2500;		( startup calibration bracket )
+
+"variables"
+
+	result file name = { probe-w5b2-rate.bin };
+
+	i	= 0;
+	tmp	= 0;
+	w0	= 0;
+	c0	= 0;
+	w1	= 0;
+	c1	= 0;
+	cw0	= 0;		( the calibration bracket keeps its OWN pair.
+				  The first build of this probe reused w0/w1 for
+				  the per-sample spin and the dumped bracket ms
+				  came out as 4293826197 - a clobbered value,
+				  visible because it is nonsense.  The counts
+				  slot was unaffected.  No number in the recon
+				  came from these slots; the sample arrays are
+				  the measurement. )
+	cw1	= 0;
+	prev	= 0;
+	cn	= 0;
+	wn	= 0;
+	pos	= 0;
+	cnt	= 0;
+
+"workspace"
+
+	raw	= 600;
+	wal	= 600;
+	del	= 600;
+	head	= 16;
+
+"programme"
+
+	( ---- 0 : the startup calibration bracket, over real spinning ---- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	=> Read wall ms; [cw0] = [tmp];
+    "C spin"
+	=> Read wall ms;
+	A = [tmp]; A - [cw0];
+	? A '< CALMS -> C spin;
+	[cw1] = [tmp];
+	[Timer Command] = READ COUNTS; isocall;
+	[c1] = [Counts];
+
+	( ---- 1 : the long run ---- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	[prev] = [Counts];
+	[i] = 0;
+    "S loop"
+	A = [i]; A % 2;
+	? A = 0 -> S sleep;
+
+	( odd sample: spin, so the core is loaded )
+	=> Read wall ms; [w0] = [tmp];
+    "S spin"
+	=> Read wall ms;
+	A = [tmp]; A - [w0];
+	? A '< DWELLMS -> S spin;
+	-> S got;
+
+	( even sample: idle )
+    "S sleep"
+	[Sleep Timeout] = DWELLMS;
+	[Process Command] = SLEEP; isocall;
+
+    "S got"
+	[Timer Command] = READ COUNTS; isocall;
+	[cn] = [Counts];
+	=> Read wall ms; [wn] = [tmp];
+
+	A = [i]; A + raw; [A] = [cn];
+	A = [i]; A + wal; [A] = [wn];
+	A = [cn]; A - [prev];
+	B = [i]; B + del; [B] = A;
+	[prev] = [cn];
+
+	[i]+; A = [i]; ? A '< NS -> S loop;
+
+	( ---- dump ---- )
+
+	[head plus 0]  = [Counts Per Millisecond];
+	[head plus 1]  = NS;
+	[head plus 2]  = DWELLMS;
+	[head plus 3]  = CALMS;
+	[head plus 4]  = [c0];
+	[head plus 5]  = [c1];
+	[head plus 6]  = [cw0];
+	[head plus 7]  = [cw1];
+	A = [c1]; A - [c0]; [head plus 8] = A;
+	A = [cw1]; A - [cw0]; [head plus 9] = A;
+	[head plus 10] = 0;
+	[head plus 11] = 0;
+	[head plus 12] = 0;
+	[head plus 13] = 0;
+	[head plus 14] = 0;
+	[head plus 15] = 0;
+
+	[Block Pointer] = head;	[cnt] = 16; [pos] = 0;   => Put;
+	[Block Pointer] = raw;	[cnt] = NS; [pos] = 16;  => Put;
+	[Block Pointer] = wal;	[cnt] = NS; [pos] = 616; => Put;
+	[Block Pointer] = del;	[cnt] = NS; [pos] = 1216; => Put;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 1816;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+"Put"
+	[File Name]	= result file name;
+	[File Position] = [pos];
+	[File Position] * BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Size]	= [cnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+    ( milliseconds since midnight.  A run that crosses midnight shows up
+      as one hugely negative difference, which the reader repairs; it is
+      not repaired here, because a probe that silently fixes its own
+      reference hides the fact that the reference has a discontinuity. )
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Hour];
+	A * 3600000;
+	B = [Minute];
+	B * 60000;
+	A + B;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

@@ -183,7 +183,7 @@ compile — they are wrong, not broken.
 | break | phase | edit | counts moved | records changed | DL score | caught by |
 |---|---|---|---|---|---|---|
 | `adrop` | A | the `random(1000)` at :4094 removed | 3,837 | 4,085 | 1,354 / 4,365 | refs, audit, catalogue, dl |
-| `bclip` | B | phase B skipped when `nop <= 4` | 561 | 561 | 4,365 / 4,365 | refs, audit, catalogue |
+| `bclip` | B | phase B skipped when `nop <= 4` | 561 | 561 | 4,365 / 4,365 | refs, audit, catalogue — **and `dl` since Wave 6**, 4,597 / 4,707 on the extended capture set |
 | `cadd` | C | one spurious draw per class-9 re-roll | 242 | 243 | 3,663 / 4,365 | refs, catalogue, dl |
 | `d4152` | D | the short-circuited `random(4)` at :4152 removed | 280 | 345 | 3,894 / 4,365 | refs, catalogue, dl |
 | `e4213` | E | `random(c)` at :4213 skipped when `c == 0` | 1,030 | 1,040 | 3,970 / 4,365 | refs, catalogue, dl |
@@ -217,6 +217,21 @@ happen to contain one. That is a limit of the capture set's size, not of the
 oracle, and it is exactly why the test requires an aggregate (five of seven)
 rather than demanding DL catch everything.
 
+> **CLOSED by Wave 6, 2026-08-05.** The prediction in that paragraph was
+> tested by taking more captures rather than by arguing. 88 further DL.EXE
+> captures were chosen for class-0 stars with small `nop`; against the
+> extended **210**-capture set the same `bclip` sabotage loses **110 of
+> 4,707** constraints (97.66%), first mismatch `JUNOVA` body 6 `MONNEZHA`,
+> want owner/moonid (3,0), the sabotaged port says (2,1). The unmutated port
+> still scores 4,365/4,365 and 4,707/4,707. `bclip` was therefore a gap in
+> the CAPTURE SET, exactly as recorded, and not in the method.
+> `tests/test_geometry.py` section 7 rebuilds both ports with the real
+> compiler and re-grades both sets on every run: it requires `bclip` to be
+> still invisible to the 122 and caught by the 210, so neither half of the
+> statement can rot. **`gadd` is unaffected** — it remains invisible to both
+> 1996 artifacts for the structural reason given above, and Wave 6's coverage
+> sweep confirms it moves 0 charted bodies in either capture set.
+
 The audit is an honest partial. It carries an *exact* invariant only for the
 prelude and phases A, B, F and G; phases C, D and E have unbounded while-loops
 and short-circuits, so only range invariants exist there and the audit cannot
@@ -244,7 +259,8 @@ least five of the seven and DL.EXE alone catches at least five.
 * **Draw accounting is externally constrained, phase by phase**, and the
   strength differs by phase — demonstrated, not asserted:
   phases **A, C, D and E** by *both* 1996 artifacts, in count and in order;
-  phase **B** by STARMAP.BIN alone;
+  phase **B** by STARMAP.BIN alone at the time of this wave — by DL.EXE too
+  since Wave 6 extended the capture set to 210 (section 4);
   phase **G** by neither (section 4), only by the counters and the references.
   All seven sabotages disagree with the references.
 * Phase **A is 12 draws per planet**, and 13 on class 8's else branch. (The
@@ -280,15 +296,38 @@ least five of the seven and DL.EXE alone catches at least five.
   `ns_diff.py --jitter` perturbs `nearstar_ray` by 1e-7 and requires the
   topology, the draw counts and the identity not to move.
 
-* **The float-to-int cast boundary is still UNSETTLED.** `NsIdentChop16`
-  truncates a live, unstored extended value; FLOATPOLICY.md 3.3 forbids
-  exactly that and calls the boundary open. Worse, the catalogue **cannot**
-  separate the two candidates: chopping the live extended value and chopping
-  its binary64 rounding give a **different** seed on **0 of 4,099** records
-  (measured by `ns_catalogue.py`, not by the suite). The CLASS leg ranks chop
-  against floor, ceil and nearest and nothing finer. The boundary is closed
-  here by construction and by measurement, not by an oracle, and that is a
-  different and weaker thing.
+  > **Wave 6 status, 2026-08-05.** Still true of *this port*: the eleven sites
+  > still discard their values and `tests/test_geometry.py` section 6 keeps
+  > the registry pinned at eleven sites / 17 draws in `work/nstopo.txt`. What
+  > changed is that the values now exist in two independent **references** —
+  > `noctis-harness/geo_ref.c` (80-bit x87) and `geo_spec.py` (exact
+  > rationals) — which agree bit for bit on 22,768 values over 200 systems.
+  > Read that as transcription evidence and nothing more: **planetary
+  > geometry is still UNGRADED against the 1996 machine**, because no 1996
+  > artifact contains a radius, orbital radius, tilt, eccentricity or ring
+  > value. See docs-notes/OPENITEMS.md.
+
+* **The float-to-int cast boundary was UNSETTLED here; Wave 6 settled it, and
+  `NsIdentChop16` turns out to have been right.** What this wave could say
+  was only this: the catalogue **cannot** separate the two candidates —
+  chopping the live extended value and chopping its binary64 rounding give a
+  **different** seed on **0 of 4,099** records (measured by
+  `ns_catalogue.py`, not by the suite) — and the CLASS leg ranks chop against
+  floor, ceil and nearest and nothing finer. So the boundary was closed here
+  by construction and by measurement, not by an oracle, which is a different
+  and weaker thing.
+
+  > **SETTLED by Wave 6, 2026-08-05, from the shipped machine code.**
+  > Borland's `__ftol` in `NOCTIS.EXE` reads nothing from its parameter area,
+  > forces the rounding control to 11 (chop) with an `OR 0Ch` that leaves the
+  > precision control alone, and does `fistp QWORD` on `st(0)`. Of the 274
+  > `__ftol` call sites in the image, 130 are fed directly by an x87
+  > instruction and **none** of those stores the value first. So a cast site
+  > is `chop(live extended)`: `NsIdentChop16`'s reading is the original's.
+  > FLOATPOLICY.md §3.3 carries the decode; `tests/test_geometry.py` section
+  > 1 re-derives it from the binary every run and breaks itself four ways to
+  > show the checks can fail. What is still open is only what *`genfp`* can
+  > emit, which is a code-generator limitation, not an unknown.
 
   Additionally, the catalogue's `S` tail was written by NOCTIS.CPP:1244-1257,
   which assigns the expression into the `double ap_target_id` **first** and
