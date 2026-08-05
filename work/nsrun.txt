@@ -1,0 +1,416 @@
+      ( *** nsrun - the Wave 4 driver: NSIN in, NSTOPO out ***
+
+	Reads  nsin.bin    NSIN v1
+	Writes nstopo.bin  NSTOPO v1
+	       nsdiag.bin  8 units of diagnostics that the interchange
+			   format has no room for
+
+	This is a PROGRAMME.  It lists every library once, in dependency
+	order, so that nothing is included twice.
+
+	----------------------------------------------------------------
+	NSIN v1 - little-endian int32 units
+	----------------------------------------------------------------
+
+	header, 4 units
+	  u0  magic	4E53494Eh   'NSIN'
+	  u1  version	1
+	  u2  nrec
+	  u3  stride	8
+
+	record, 8 units
+	  i0  x				int32
+	  i1  y				int32
+	  i2  z				int32
+	  i3  class override		-1 = derive:
+					NsIdentChop16 -> NsSrand -> random(12)
+	  i4  seed  override		-1 = derive: NsSeedFromXYZ(x,y,z)
+	  i5  reserved (ray*1000, Wave 4b)	-1
+	  i6  flags	bit0 = run phase H
+	  i7  reserved	0
+
+	The two overrides exist so a synthetic stress corpus can sweep all
+	12 classes x all 65536 seeds without needing coordinates that
+	happen to produce them.
+
+	----------------------------------------------------------------
+	NSTOPO v1
+	----------------------------------------------------------------
+
+	header, 8 units
+	  u0  magic	4E53544Fh   'NSTO'
+	  u1  version	1
+	  u2  nrec
+	  u3  stride	100
+	  u4  mode	0 = full records
+	  u5  producer	0 = lino
+	  u6  u7	reserved 0
+
+	record, 100 units
+	  r0  x		 r1  y		r2  z
+	  r3  nearstar_class
+	  r4  the srand argument actually used, 0..65535
+	  r5  nop	 r6  nob
+	  r7  starnop()
+	  r8  nearstar_labeled  (-1 when phase H was not run)
+	  r9  identity, low  32 bits of the binary64
+	  r10 identity, high 32 bits
+	  r11 total rand() calls consumed by prepare_nearstar
+	  r12 phase 0 (the nop draw, always 1)
+	  r13 A  r14 B  r15 C  r16 D  r17 E  r18 F  r19 G
+	  r20..r99  one word per body index 0..79
+
+	body word, index k:
+	  k >= nob		 FFFFFFFFh
+	  k <  nop  (a planet)	 (type & FF) | ((owner+1) & FF) << 8 | 0 << 16
+	  k >= nop  (a moon)	 (type & FF) | ((owner+1) & FF) << 8
+						| (moonid & FF) << 16
+
+	owner is -1 for planets, hence the +1.  moonid is FORCED TO 0 for
+	planets and must never be graded there: the original writes
+	nearstar_p_moonid[q] only inside the moon loop, so a planet's slot
+	keeps stale data from the previous star.  That is real behaviour,
+	it is invisible, and a port that helpfully zeroes or computes it is
+	inventing state.
+
+	ENDIANNESS GUARD.  Every reader checks the magic word first and
+	fails loudly by name.  PORTPLAN still lists "lino assembles file
+	bytes into units little-endian" as unverified; nsprobe.txt measured
+	it (04030201h reads back as the bytes 01 02 03 04) and this check
+	turns the assumption into an assertion on every run.
+
+	----------------------------------------------------------------
+	nsdiag.bin, 8 units
+	----------------------------------------------------------------
+
+	  0  DEFACEDh
+	  1  records processed
+	  2  systems whose draw budget was exceeded   MUST BE 0
+	  3  the largest total draw count seen
+	  4  STARMAP.BIN size in bytes, 0 if phase H never ran
+	  5  bytes actually read from it
+	  6  'P' records compacted
+	  7  the live control word at the end, masked with 0F3Fh          )
+
+"libraries"
+
+	brtl;
+	nsrng;
+	nsseed;
+	nstopo;
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+
+	nsident;
+	nslabel;
+
+"directors"
+
+	program name = { nsrun };
+	unit = 32;
+
+"constants"
+
+	NSINMAGIC	= 4E53494Eh;
+	NSTOMAGIC	= 4E53544Fh;
+	NSMAXREC	= 16384;
+	NSSTRIDE	= 100;
+	NSSTARCLASSES	= 12;
+
+"variables"
+
+	nsinfile	= { nsin.bin };
+	nsoutfile	= { nstopo.bin };
+	nsdiagfile	= { nsdiag.bin };
+
+	nrn		= 0;		( record count )
+	nri		= 0;		( record index )
+	nriptr		= 0;
+	nroptr		= 0;
+	nrbp		= 0;
+	nrk		= 0;
+	nrw		= 0;
+
+	nrx		= 0;
+	nry		= 0;
+	nrz		= 0;
+	nrcls		= 0;
+	nrsd		= 0;
+	nrflags 	= 0;
+
+	nrmaploaded	= 0;
+	nrbudgetbad	= 0;
+	nrmaxdraws	= 0;
+	nrfilebytes	= 0;
+
+"workspace"
+
+	nrhdr		= 4;
+	nrin		= 131072;	( NSMAXREC * 8 )
+	nrouthdr	= 8;
+	nrout		= 1638400;	( NSMAXREC * 100 )
+	nrdiag		= 8;
+
+"programme"
+
+	( ================= read NSIN ================= )
+
+	[File Name]	= nsinfile;
+	[File Command]	= TEST;
+	isocall;
+      ? failed -> nrdie;
+	A = [File Size]; [nrfilebytes] = A;
+
+	[File Name]	= nsinfile;
+	[File Command]	= READ;
+	[File Position] = 0;
+	[Block Pointer] = nrhdr;
+	[Block Size]	= 4;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+      ? failed -> nrdie;
+
+      ? [nrhdr plus 0] != NSINMAGIC -> nrdie;
+      ? [nrhdr plus 1] != 1 -> nrdie;
+      ? [nrhdr plus 3] != 8 -> nrdie;
+	A = [nrhdr plus 2]; [nrn] = A;
+      ? [nrn] <= 0 -> nrdie;
+      ? [nrn] > NSMAXREC -> nrdie;
+
+	[File Name]	= nsinfile;
+	[File Command]	= READ;
+	[File Position] = 16;
+	[Block Pointer] = nrin;
+	[Block Size]	= [nrn];
+	[Block Size]	* 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+      ? failed -> nrdie;
+
+	( ---- load STARMAP.BIN only if some record asks for phase H ---- )
+
+	[nrmaploaded] = 0;
+	[nri] = 0;
+	A = nrin; [nriptr] = A;
+    "nrscanflags"
+	E = [nriptr];
+      ? [E plus 6] + 1 -> nrneedmap;
+	A = [nriptr]; A + 8; [nriptr] = A;
+	A = [nri]; A + 1; [nri] = A;
+      ? [nri] < [nrn] -> nrscanflags;
+	-> nrnomap;
+    "nrneedmap"
+	=> NsMapLoad;
+      ? failed -> nrdie;
+	[nrmaploaded] = 1;
+    "nrnomap"
+
+	( ================= the run ================= )
+
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	[nrbudgetbad] = 0;
+	[nrmaxdraws]  = 0;
+	[nri] = 0;
+	A = nrin;  [nriptr] = A;
+	A = nrout; [nroptr] = A;
+
+    "nrsystem"
+
+	E = [nriptr];
+	A = [E plus 0]; [nrx]	 = A; [nsx] = A; [FJ0] = A;
+	A = [E plus 1]; [nry]	 = A; [nsy] = A; [FJ1] = A;
+	A = [E plus 2]; [nrz]	 = A; [nsz] = A; [FJ2] = A;
+	A = [E plus 3]; [nrcls]  = A;
+	A = [E plus 4]; [nrsd]	 = A;
+	A = [E plus 6]; [nrflags] = A;
+
+	( ---- nearstar_identity, :4078.  No draws. ---- )
+
+	=> NsIdentityD;
+
+	( ---- the class.  extract_ap_target_infos, :3970-3972.
+	       This is the ONE site in the wave that truncates a live,
+	       unstored extended value - see nsident.txt. ---- )
+
+      ? [nrcls] >= 0 -> nrclsgiven;
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = NSSTARCLASSES; => NsRandom;
+	[nsclass] = A;
+	-> nrclsdone;
+    "nrclsgiven"
+	A = [nrcls]; [nsclass] = A;
+    "nrclsdone"
+
+	( ---- the seed, :4080 ---- )
+
+      ? [nrsd] >= 0 -> nrsdgiven;
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+	-> nrsddone;
+    "nrsdgiven"
+	A = [nrsd]; A & 0FFFFh; [nsseedin] = A;
+    "nrsddone"
+
+	( ---- starnop, :4047-4057.  Its own srand and 3 draws, which is
+	       why the counters are reset after it and not before. ---- )
+
+	=> NsStarnop;
+	=> NsResetAll;
+
+	( ---- prepare_nearstar, phases 0 and A to G ---- )
+
+	=> NsPrepare;
+
+      ? [nserr] = 0 -> nrokbudget;
+	A = [nrbudgetbad]; A + 1; [nrbudgetbad] = A;
+    "nrokbudget"
+      ? [nsdraws] <= [nrmaxdraws] -> nrokmax;
+	A = [nsdraws]; [nrmaxdraws] = A;
+    "nrokmax"
+
+	( ---- phase H, :4364-4369.  Zero draws. ---- )
+
+	A = 0; A - 1; [nslabeled] = A;
+      ? [nrflags] - 1 -> nrnoh;
+	=> NsLabelCount;
+    "nrnoh"
+
+	( ================= emit ================= )
+
+	E = [nroptr];
+	A = [nrx];	  [E plus 0]  = A;
+	A = [nry];	  [E plus 1]  = A;
+	A = [nrz];	  [E plus 2]  = A;
+	A = [nsclass];	  [E plus 3]  = A;
+	A = [nsseedin];   [E plus 4]  = A;
+	A = [nsnop];	  [E plus 5]  = A;
+	A = [nsnob];	  [E plus 6]  = A;
+	A = [nsnopest];  [E plus 7]  = A;
+	A = [nslabeled];  [E plus 8]  = A;
+	A = [nsid0];	  [E plus 9]  = A;
+	A = [nsid1];	  [E plus 10] = A;
+	A = [nsdraws];	  [E plus 11] = A;
+	A = [nsphc plus 0]; [E plus 12] = A;
+	A = [nsphc plus 1]; [E plus 13] = A;
+	A = [nsphc plus 2]; [E plus 14] = A;
+	A = [nsphc plus 3]; [E plus 15] = A;
+	A = [nsphc plus 4]; [E plus 16] = A;
+	A = [nsphc plus 5]; [E plus 17] = A;
+	A = [nsphc plus 6]; [E plus 18] = A;
+	A = [nsphc plus 7]; [E plus 19] = A;
+
+	[nrk] = 0;
+    "nrbody"
+	A = [nroptr]; A + 20; A + [nrk]; [nrbp] = A;
+      ? [nrk] >= [nsnob] -> nrbodynone;
+	E = nsptype;  E + [nrk]; A = [E]; A & 0FFh; [nrw] = A;
+	E = nspowner; E + [nrk]; A = [E]; A + 1; A & 0FFh; A < 8;
+	B = [nrw]; B | A; [nrw] = B;
+      ? [nrk] < [nsnop] -> nrbodyput;
+	E = nspmoonid; E + [nrk]; A = [E]; A & 0FFh; A < 16;
+	B = [nrw]; B | A; [nrw] = B;
+    "nrbodyput"
+	E = [nrbp]; A = [nrw]; [E] = A;
+	-> nrbodynext;
+    "nrbodynone"
+	E = [nrbp]; A = 0FFFFFFFFh; [E] = A;
+    "nrbodynext"
+	A = [nrk]; A + 1; [nrk] = A;
+      ? [nrk] < 80 -> nrbody;
+
+	A = [nriptr]; A + 8;	    [nriptr] = A;
+	A = [nroptr]; A + NSSTRIDE; [nroptr] = A;
+	A = [nri]; A + 1; [nri] = A;
+      ? [nri] < [nrn] -> nrsystem;
+
+	=> FCWRead;
+	A = [FI]; [nrdiag plus 7] = A;
+	=> FLeave;
+
+	( ================= write ================= )
+
+	[nrouthdr plus 0] = NSTOMAGIC;
+	[nrouthdr plus 1] = 1;
+	A = [nrn]; [nrouthdr plus 2] = A;
+	[nrouthdr plus 3] = NSSTRIDE;
+	[nrouthdr plus 4] = 0;
+	[nrouthdr plus 5] = 0;
+	[nrouthdr plus 6] = 0;
+	[nrouthdr plus 7] = 0;
+
+	[File Name]	= nsoutfile;
+	[File Command]	= WRITE;
+	[File Position] = 0;
+	[Block Pointer] = nrouthdr;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= nsoutfile;
+	[File Command]	= WRITE;
+	[File Position] = 32;
+	[Block Pointer] = nrout;
+	[Block Size]	= [nrn];
+	[Block Size]	* NSSTRIDE;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= nsoutfile;
+	[File Command]	= SET SIZE;
+	[File Size]	= [nrn];
+	[File Size]	* NSSTRIDE;
+	[File Size]	+ 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	[nrdiag plus 0] = 0DEFACEDh;
+	A = [nrn];	     [nrdiag plus 1] = A;
+	A = [nrbudgetbad];   [nrdiag plus 2] = A;
+	A = [nrmaxdraws];    [nrdiag plus 3] = A;
+	A = [nshfilebytes];  [nrdiag plus 4] = A;
+	A = [nshreadbytes];  [nrdiag plus 5] = A;
+	A = [nshnp];	     [nrdiag plus 6] = A;
+
+	=> nrwritediag;
+	end;
+
+	( ================= failure exit ================= )
+
+      ( A lino programme that fails still exits 0, so the only way the
+	harness can tell is a file that is either absent or says so.
+	nstopo.bin is deliberately NOT written on this path, and
+	nsdiag.bin carries a magic of zero instead of DEFACED. )
+
+    "nrdie"
+	[nrdiag plus 0] = 0;
+	[nrdiag plus 1] = 0;
+	[nrdiag plus 2] = 0;
+	[nrdiag plus 3] = 0;
+	[nrdiag plus 4] = 0;
+	[nrdiag plus 5] = 0;
+	[nrdiag plus 6] = 0;
+	A = [nrfilebytes]; [nrdiag plus 7] = A;
+	=> nrwritediag;
+	end;
+
+"nrwritediag"
+	[File Name]	= nsdiagfile;
+	[File Command]	= WRITE;
+	[File Position] = 0;
+	[Block Pointer] = nrdiag;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+	[File Name]	= nsdiagfile;
+	[File Command]	= SET SIZE;
+	[File Size]	= 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+	end;

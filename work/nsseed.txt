@@ -1,0 +1,101 @@
+      ( *** nsseed - the srand seed at NOCTIS-0.CPP:4080 and :4051 ***
+
+	This is a LIBRARY.
+
+	----------------------------------------------------------------
+	THE EXPRESSION, AND WHY IT IS NOT THE IDENTITY EXPRESSION
+	----------------------------------------------------------------
+
+	Two lines apart, prepare_nearstar computes two things that look
+	alike and are not:
+
+	  :4078   nearstar_identity = x/100000*y/100000*z/100000
+		  a DOUBLE product of quotients - see nsident.txt
+
+	  :4080   srand ((long)x%10000*(long)y%10000*(long)z%10000)
+		  a LONG product of remainders - this file
+
+	% and * have equal precedence in C and associate to the left, so
+	:4080 is
+
+	    ((((x % 10000) * y) % 10000) * z) % 10000
+
+	and NOT the three-remainder product (x%1e4)*(y%1e4)*(z%1e4) that a
+	quick reading gives.  The architect graded both against the class
+	labels the catalogue carries: the left-associated form is refuted
+	0 times in 2585 systems, every misreading 71-77 times, and a random
+	16-bit seed 70-98 times.  Every wrong spelling sits inside the
+	random-seed control's range.  This one is outside it.
+
+	----------------------------------------------------------------
+	WHY NO FLOAT ENGINE APPEARS IN THIS FILE
+	----------------------------------------------------------------
+
+	nearstar_x/y/z are doubles that hold EXACTLY the integers the
+	galaxy hash produced.  (long) of an exactly representable integer
+	is that integer, at any precision control, in any rounding mode, so
+	the three chops here are the identity function and the port can
+	carry star coordinates as int32 - which is what the galaxy hash
+	produces natively - without the expression ever entering the float
+	engine.  That shortcut is not assumed: the corpus builder asserts
+	trunc(v)==v and |v|<2^31 for every coordinate it grades, and reports
+	the count.  If one star fails, the shortcut is void and the seed has
+	to go through FToIntChop on three stored doubles instead.
+
+	----------------------------------------------------------------
+	WHAT WAS PROBED RATHER THAN READ
+	----------------------------------------------------------------
+
+	3179 of 4194 real stars overflow the first multiply, so negative
+	intermediates are the NORMAL path.  Both properties this file needs
+	were therefore measured on this machine by work/nsprobe.txt before
+	a line of it was written, not looked up:
+
+	    (-7) % 3          = -1        truncation toward zero, so the
+	    7 % (-3)          =  1        sign follows the DIVIDEND, which
+	    (-7) % (-3)       = -1        is what Borland's idiv does
+	    (-12345678)%10000 = -5678
+	    100000 * 100000   =  1410065408   low 32 bits, wrapping
+	    (-100000)*100000  = -1410065408
+
+	----------------------------------------------------------------
+	THE NARROWING ASYMMETRY - the single most likely silent bug here
+	----------------------------------------------------------------
+
+	srand's parameter is `unsigned`, and Borland's srand stores an
+	explicit zero into the seed's high word (c7 06 5c 39 00 00 in
+	NOCTIS.EXE), so its argument is ZERO extended from 16 bits.
+	random()'s int16 is SIGN extended.  Two different narrowings, one
+	file apart.  NsSeedFromXYZ returns the ZERO-extended form.
+
+	    NsSeedFromXYZ   in  [nsx] [nsy] [nsz]   int32
+			    out A		    0..65535
+				[nsseedfull]	    the full int32, for
+						    the interchange record  )
+
+"variables"
+
+	nsx		= 0;
+	nsy		= 0;
+	nsz		= 0;
+	nsseedfull	= 0;
+
+"programme"
+
+"NsSeedFromXYZ"
+	( evaluated exactly as C parses it, left to right:
+	      step 1   x % 10000
+	      step 2   * y
+	      step 3   % 10000
+	      step 4   * z
+	      step 5   % 10000                                    )
+
+	A = [nsx];
+	A % 10000;
+	A * [nsy];
+	A % 10000;
+	A * [nsz];
+	A % 10000;
+	[nsseedfull] = A;
+	A & 0FFFFh;		( srand (unsigned): ZERO extended )
+	end;

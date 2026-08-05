@@ -7,6 +7,7 @@
     python tests/run_all.py brtl       only the Wave 1 LCG test
     python tests/run_all.py wave2      only the Wave 2 decoder pin
     python tests/run_all.py float      only the Wave 3 float contract
+    python tests/run_all.py nearstar   only the Wave 4 generation test
 
 Each test is a standalone program - `python tests/test_galaxy.py` works on its
 own and prints the same output - so this driver only sequences them and sums up
@@ -26,6 +27,10 @@ C:\\programmieren\\noctis - the DOS sources and the real STARMAP.BIN.
 The star tests never write into work/. Each copies the programme it is testing
 into its own sandbox under tests/gen with only the file-name literals changed,
 so the delivered Tier 2 artifacts are left exactly as the pipeline left them.
+test_nearstar does the same for the Wave 4 driver and its six libraries, and
+additionally builds seven deliberately sabotaged copies of them; it also needs
+the DL.EXE captures under tests/gen/recon_c, and reports the leg as skipped
+rather than passing quietly if they are missing.
 """
 
 import os
@@ -51,12 +56,19 @@ TESTS = [
     ("test_brtlrand.py", "Borland's rand/srand/random over all 65,536 seeds"),
     ("test_wave2.py", "the random() argument type and zrandom's operand order"),
     ("test_floatcontract.py", "the Wave 3 float contract, graded by STARMAP.BIN"),
+    ("test_nearstar.py", "Wave 4 draw accounting, graded by STARMAP.BIN and DL.EXE"),
 ]
 
 # Tests that have a slower, more complete mode of their own. run_all always
 # takes the fast path; the flag is for when you are about to trust the result.
 DEEPER = {"test_brtlrand.py": "--exhaustive",
           "test_floatcontract.py": "--K 96"}
+
+# The reverse of DEEPER: modes that trade coverage for speed. Named here so a
+# reader knows they exist, and so nobody mistakes the fast path for the test.
+# test_nearstar --quick skips the seven sabotages, which is exactly the part
+# that shows the graders can fail; run_all never takes it.
+FASTER = {"test_nearstar.py": "--quick  (skips the sabotages - not a pass)"}
 
 
 def main():
@@ -85,6 +97,10 @@ def main():
     for name, flag in sorted(DEEPER.items()):
         if any(r[0] == name for r in results):
             print("  note: %s has a slower complete mode: python tests/%s %s"
+                  % (name, name, flag))
+    for name, flag in sorted(FASTER.items()):
+        if any(r[0] == name for r in results):
+            print("  note: %s has a faster INCOMPLETE mode: python tests/%s %s"
                   % (name, name, flag))
     print()
     print("%d passed, %d failed, %.1fs total" % (len(results) - failed, failed, time.time() - t0))

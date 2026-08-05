@@ -1,0 +1,604 @@
+      ( *** nstopo - prepare_nearstar's TOPOLOGY, phases A to G ***
+
+	This is a LIBRARY.  It needs brtl, nsrng and nsseed, which the
+	top-level programme lists before it.
+
+	Subject: NOCTIS-0.CPP:4047-4057 (starnop) and :4059-4376
+	(prepare_nearstar).  Transcribed from niv-plus/source/NOCTIS-0.CPP,
+	expression for expression, with the line numbers of that file.
+
+	----------------------------------------------------------------
+	WHAT IS IN AND WHAT IS OUT
+	----------------------------------------------------------------
+
+	IN:   nop, nob, and every body's p_type, p_owner and p_moonid -
+	      the complete topology of the system - plus every draw, in
+	      the right order and the right number of times.
+
+	OUT:  every VALUE phases A, E, F and G compute: p_orb_seed,
+	      p_tilt, p_orb_tilt, p_orb_ecc, p_ray, p_orb_ray,
+	      p_orb_orient, p_ring and key_radius.  The draws at those
+	      sites are taken; the results are discarded.
+
+	That line is not a convenience.  Every draw in prepare_nearstar
+	whose value selects a branch, a count or a type takes an INTEGER
+	argument - all of :4082, :4096, :4098, :4103, :4112-4114, :4123,
+	:4127, :4134, :4138, :4148, :4152, :4153, :4161, :4183, :4186,
+	:4201, :4213, :4214, :4238, :4255, :4348, :4354, :4358.  The
+	eleven float-argument sites feed nothing but geometry, and
+	geometry is read back by nothing on this path.  Since rand has
+	exactly ONE caller in NOCTIS.EXE - random() is a real out-of-line
+	function, not a macro, and the call to rand is not predicated -
+	one rand() is consumed per random() for every n.  So the whole
+	topology is computable with ZERO floating-point arithmetic
+	downstream of the seed, and the RNG stream is provably identical
+	rather than approximately identical.
+
+	----------------------------------------------------------------
+	THE SITE REGISTRY - exactly ELEVEN discarded-value sites
+	----------------------------------------------------------------
+
+	Each row is ONE call site in the code below, marked "SITE nn".
+	A site that draws twice is a zrandom and uses NsZDrawOnly.
+	A twelfth site, or one of these computed for real, is a Wave 4b
+	change and must fail this wave's test.
+
+	 nn  line   draws  expression
+	 --  -----  -----  --------------------------------------------
+	  1  :4089    1    random (300 * nearstar_ray)
+	  2  :4090    2    zrandom (10 * nearstar_p_orb_seed[n])
+	  3  :4091    2    zrandom (10 * nearstar_p_orb_seed[n])
+	  4  :4092    1    random (p_orb_seed[n] + 10*fabs(p_orb_tilt[n]))
+	  5  :4093    1    random (nearstar_p_orb_seed[n])
+	  6  :4094    2    zrandom (nearstar_p_ray[n])
+	  7  :4195    2    zrandom (300 * nearstar_p_ray[n])
+	  8  :4196    2    zrandom (10 * nearstar_p_orb_seed[q])
+	  9  :4197    2    zrandom (10 * nearstar_p_orb_seed[q])
+	 10  :4198    1    random (p_orb_seed[q] + 10*fabs(p_orb_tilt[q]))
+	 11  :4199    1    random (nearstar_p_orb_seed[n])   PARENT index
+	 --  -----  -----
+	 11 sites, 17 draws
+
+	:4094 also contains `random (1000)`, whose argument is an integer
+	literal, so it is a plain NsRandom with the value discarded and it
+	is NOT one of the eleven.  The two operands of the `*` at :4094 are
+	unsequenced in C; the order changes which draw lands where but not
+	how many are taken, so the topology is unaffected either way.  The
+	order here is left to right, matching the plan's control.
+
+	----------------------------------------------------------------
+	TWO BEHAVIOURS A TIDY PORT SILENTLY REPAIRS.  Both are required.
+	----------------------------------------------------------------
+
+	1. :4213 `if (n > 7 && random(c)) r = 7;` fires on the FIRST moon
+	   too, where c == 0.  random(0) still calls rand().  Skipping it
+	   because "the answer is always 0" desynchronises the stream.
+
+	2. :4232 `if (n > 7) r = 7;` runs BEFORE the :4238 test, and that
+	   test can then set r = 5, overwriting the 7.  Reaching :4238 at
+	   all requires s == 6 exactly: r can only be 3 from :4201, :4221
+	   rewrites r=1 unless s==6 or s>=9, and :4235 additionally
+	   demands s < 9.
+
+	And one that is NOT repaired here: nearstar_p_moonid[q] is written
+	only inside the moon loop, so a PLANET's slot keeps whatever the
+	previous star left in it.  That is real behaviour, it is invisible
+	(DL prints owner.moonid only for moons), and a port that helpfully
+	zeroes or computes it is inventing state.  This file does not touch
+	p_moonid for planets; the interchange record writes 0 there and the
+	field must never be graded for k < nop.
+
+	----------------------------------------------------------------
+	INTERFACE
+	----------------------------------------------------------------
+
+	    NsStarnop   in  [nsclass], [nsseedin]
+			out [nsnopest]
+			Does its OWN srand and consumes 3 draws.  Run it
+			BEFORE NsPrepare and call NsResetAll in between,
+			or its draws pollute prepare_nearstar's counts.
+
+			starnop's seed expression at :4051 is textually
+			identical to prepare_nearstar's at :4080, so it
+			takes the already-derived [nsseedin] rather than
+			recomputing it.  That also keeps the two coherent
+			when the interchange record overrides the seed.
+
+	    NsPrepare   in  [nsclass], [nsseedin] = srand argument
+			out [nsnop] [nsnob], nsptype/nspowner/nspmoonid
+			    and nsrng's counters                        )
+
+"constants"
+
+	NSPLTYPES	= 10;		( planet_types,  NOCTIS-D.H:141 )
+	NSMAXBODIES	= 80;		( maxbodies = 20*avgmoons, :144  )
+	NSNEG1		= 0FFFFFFFFh;
+
+"variables"
+
+	( class_planets, NOCTIS-0.CPP:930.  Declared `char`, all values
+	  positive, so the promotion to int is a no-op. )
+
+	nsclasstab	= 12;
+	no label	= 18;
+	no label	= 8;
+	no label	= 15;
+	no label	= 20;
+	no label	= 3;
+	no label	= 0;		( class 6 - no planets, ever )
+	no label	= 1;
+	no label	= 7;
+	no label	= 20;
+	no label	= 2;
+	no label	= 5;
+
+	( planet_possiblemoons, NOCTIS-0.CPP:976.  Eleven entries, indexed
+	  by planet type 0..10; type 10 is only produced by class 8. )
+
+	nsmoontab	= 1;
+	no label	= 1;
+	no label	= 2;
+	no label	= 3;
+	no label	= 2;
+	no label	= 2;
+	no label	= 18;
+	no label	= 2;
+	no label	= 3;
+	no label	= 20;
+	no label	= 20;
+
+	( the arrays.  One item per unit - LINOBUF's standing decision. )
+
+	nsptype 	= 0 *** 80;
+	nspowner	= 0 *** 80;
+	nspmoonid	= 0 *** 80;
+
+	( state )
+
+	nsclass 	= 0;
+	nsseedin	= 0;
+	nsnop		= 0;
+	nsnob		= 0;
+	nsnopest	= 0;
+
+	( the C locals n, c, q, r, s, t - same names, same roles )
+
+	nsn		= 0;
+	nsc		= 0;
+	nsq		= 0;
+	nsr		= 0;
+	nss		= 0;
+	nst		= 0;
+
+"programme"
+
+( ==================================================================== )
+( starnop - NOCTIS-0.CPP:4047-4057                                      )
+( ==================================================================== )
+
+      ( int starnop (double star_x, double star_y, double star_z)
+	{
+		int r;
+		srand ((long)x%10000*(long)y%10000*(long)z%10000);
+		r  = random (class_planets[ap_target_class] + 1);
+		r += random (2);
+		r -= random (2);
+		if (r < 0) r = 0;
+		return (r);
+	}
+
+	Note it indexes class_planets with ap_target_class, not with
+	nearstar_class.  In this port the caller supplies the class it
+	means, in [nsclass]. )
+
+"NsStarnop"
+	A = [nsseedin];
+	=> NsSrand;
+	E = nsclasstab; E + [nsclass]; A = [E]; A + 1;
+	=> NsRandom;
+	[nsnopest] = A;
+	A = 2; => NsRandom;
+	B = A; A = [nsnopest]; A + B; [nsnopest] = A;
+	A = 2; => NsRandom;
+	B = A; A = [nsnopest]; A - B; [nsnopest] = A;
+      ? [nsnopest] >= 0 -> nssnok;
+	[nsnopest] = 0;
+    "nssnok"
+	end;
+
+( ==================================================================== )
+( prepare_nearstar - NOCTIS-0.CPP:4059-4376, topology only              )
+( ==================================================================== )
+
+"NsPrepare"
+
+	( ---- phase 0 : :4080-4082 --------------------------------- )
+
+	A = 0; => NsSetPhase;
+	A = [nsseedin]; => NsSrand;
+
+	E = nsclasstab; E + [nsclass]; A = [E]; A + 1;
+	=> NsRandom;
+	[nsnop] = A;
+
+	( ---- phase A : :4086-4107, first extraction --------------- )
+
+	A = 1; => NsSetPhase;
+      ? [nsnop] <= 0 -> nsadone;
+	[nsn] = 0;
+
+    "nsaloop"
+
+	( :4087  nearstar_p_owner[n] = -1 )
+	B = NSNEG1; E = nspowner; E + [nsn]; [E] = B;
+
+	A = 360; => NsRandom;		( :4088 orb_orient, int arg     )
+	=> NsDrawOnly;			( SITE 1  :4089                 )
+	=> NsZDrawOnly;			( SITE 2  :4090                 )
+	=> NsZDrawOnly;			( SITE 3  :4091                 )
+	=> NsDrawOnly;			( SITE 4  :4092                 )
+	=> NsDrawOnly;			( SITE 5  :4093                 )
+	=> NsZDrawOnly;			( SITE 6  :4094 zrandom(p_ray)  )
+	A = 1000; => NsRandom;		( :4094 random(1000), int arg   )
+
+      ? [nsclass] != 8 -> nsaplain;
+
+	( :4098-4104  class 8 alone can make a companion star )
+	A = 2; => NsRandom;
+      ? A != 0 -> nsaten;
+	A = NSPLTYPES; => NsRandom;	( :4103 )
+	-> nsasettype;
+    "nsaten"
+	A = 10;				( :4099 p_type = 10, no draw )
+	-> nsasettype;
+    "nsaplain"
+	A = NSPLTYPES; => NsRandom;	( :4096 )
+    "nsasettype"
+	B = A; E = nsptype; E + [nsn]; [E] = B;
+
+	( :4105-4106  orb_seed *= 10 for classes 2, 7, 15 - geometry,
+	  no draw, deliberately not carried )
+
+	A = [nsn]; A + 1; [nsn] = A;
+      ? [nsn] < [nsnop] -> nsaloop;
+    "nsadone"
+
+	( ---- phase B : :4111-4115, class-0 habitability -----------
+
+	  Three UNCONDITIONAL draws when the class is zero.  Nothing
+	  short-circuits: all three ifs evaluate.  The writes to
+	  p_type[2..4] happen whatever nop is; indices at or past nop are
+	  overwritten before anything reads them (phase A rewrites
+	  0..nop-1 next star, the moon loop rewrites nop..nob-1 this
+	  star), so they are inert - but the DRAWS are not, and clipping
+	  them to n < nop is a 1.47% divergence. )
+
+	A = 2; => NsSetPhase;
+      ? [nsclass] != 0 -> nsbdone;
+
+	A = 4; => NsRandom;
+      ? A != 2 -> nsbb;
+	B = 3; E = nsptype; E + 2; [E] = B;
+    "nsbb"
+	A = 4; => NsRandom;
+      ? A != 2 -> nsbc;
+	B = 3; E = nsptype; E + 3; [E] = B;
+    "nsbc"
+	A = 4; => NsRandom;
+      ? A != 2 -> nsbdone;
+	B = 3; E = nsptype; E + 4; [E] = B;
+    "nsbdone"
+
+	( ---- phase C : :4120-4139, filter by STAR CLASS -----------
+
+	  While-loops with no iteration cap anywhere.  Class 9 accepts 3
+	  of 10 and class 11 accepts 2 of 10; the observed maxima over a
+	  star are 109 and 78 iterations.  Each loop also tests [nserr]
+	  so that a type-table slip halts with a diagnosis instead of
+	  hanging - a lino programme that fails still exits 0, so a hang
+	  is indistinguishable from a wrong answer at the harness. )
+
+	A = 3; => NsSetPhase;
+      ? [nsnop] <= 0 -> nscdone;
+	[nsn] = 0;
+
+    "nscloop"
+      ? [nsclass] = 2  -> nsccl2;
+      ? [nsclass] = 5  -> nsccl5;
+      ? [nsclass] = 7  -> nsccl7;
+      ? [nsclass] = 9  -> nsccl9;
+      ? [nsclass] = 11 -> nsccl11;
+	-> nscnext;
+
+    "nsccl2"				( while type == 3 )
+      ? [nserr] != 0 -> nscnext;
+	E = nsptype; E + [nsn]; A = [E];
+      ? A != 3 -> nscnext;
+	A = 10; => NsRandom;		( :4123 )
+	B = A; E = nsptype; E + [nsn]; [E] = B;
+	-> nsccl2;
+
+    "nsccl5"				( while type == 6 || type == 9 )
+      ? [nserr] != 0 -> nscnext;
+	E = nsptype; E + [nsn]; A = [E];
+      ? A = 6 -> nsccl5r;
+      ? A = 9 -> nsccl5r;
+	-> nscnext;
+    "nsccl5r"
+	A = 10; => NsRandom;		( :4127 )
+	B = A; E = nsptype; E + [nsn]; [E] = B;
+	-> nsccl5;
+
+    "nsccl7"				( type = 9.  ZERO draws. )
+	B = 9; E = nsptype; E + [nsn]; [E] = B;
+	-> nscnext;
+
+    "nsccl9"				( while type not in {0,6,9} )
+      ? [nserr] != 0 -> nscnext;
+	E = nsptype; E + [nsn]; A = [E];
+      ? A = 0 -> nscnext;
+      ? A = 6 -> nscnext;
+      ? A = 9 -> nscnext;
+	A = 10; => NsRandom;		( :4134 )
+	B = A; E = nsptype; E + [nsn]; [E] = B;
+	-> nsccl9;
+
+    "nsccl11"				( while type not in {1,7} )
+      ? [nserr] != 0 -> nscnext;
+	E = nsptype; E + [nsn]; A = [E];
+      ? A = 1 -> nscnext;
+      ? A = 7 -> nscnext;
+	A = 10; => NsRandom;		( :4138 )
+	B = A; E = nsptype; E + [nsn]; [E] = B;
+	-> nsccl11;
+
+    "nscnext"
+	A = [nsn]; A + 1; [nsn] = A;
+      ? [nsn] < [nsnop] -> nscloop;
+    "nscdone"
+
+	( ---- phase D : :4144-4166, filter by DISTANCE -------------
+
+	  No loops.  0 to 2 draws per planet, and the count depends on
+	  C's short-circuiting, which is the whole difficulty:
+	  (n<2)||(n>6)||(class && random(4)) fires the random(4) only
+	  when 2<=n<=6 AND class != 0, and the following random(2) only
+	  when the whole guard came out true. )
+
+	A = 4; => NsSetPhase;
+      ? [nsnop] <= 0 -> nsddone;
+	[nsn] = 0;
+
+    "nsdloop"
+	E = nsptype; E + [nsn]; A = [E];
+      ? A = 0 -> nsdt0;
+      ? A = 3 -> nsdt3;
+      ? A = 7 -> nsdt7;
+	-> nsdnext;
+
+    "nsdt0"				( if (random(8)) type++ )
+	A = 8; => NsRandom;		( :4148 )
+      ? A = 0 -> nsdnext;
+	B = 1;				( type is 0 here, so ++ is 1 )
+	E = nsptype; E + [nsn]; [E] = B;
+	-> nsdnext;
+
+    "nsdt3"
+      ? [nsn] < 2 -> nsdt3go;
+      ? [nsn] > 6 -> nsdt3go;
+      ? [nsclass] = 0 -> nsdnext;	( && short-circuits: no draw )
+	A = 4; => NsRandom;		( :4152 )
+      ? A = 0 -> nsdnext;
+    "nsdt3go"
+	A = 2; => NsRandom;		( :4153 )
+      ? A = 0 -> nsdt3dec;
+	B = 4;				( type++ from 3 )
+	-> nsdt3put;
+    "nsdt3dec"
+	B = 2;				( type-- from 3 )
+    "nsdt3put"
+	E = nsptype; E + [nsn]; [E] = B;
+	-> nsdnext;
+
+    "nsdt7"
+      ? [nsn] >= 7 -> nsdnext;
+	A = 2; => NsRandom;		( :4161 )
+      ? A = 0 -> nsdt7two;
+	B = 6;				( type-- from 7 )
+	-> nsdt7put;
+    "nsdt7two"
+	B = 5;				( type -= 2 from 7 )
+    "nsdt7put"
+	E = nsptype; E + [nsn]; [E] = B;
+
+    "nsdnext"
+	A = [nsn]; A + 1; [nsn] = A;
+      ? [nsn] < [nsnop] -> nsdloop;
+    "nsddone"
+
+	( ---- phase E : :4171-4258, moons -------------------------- )
+
+	A = 5; => NsSetPhase;
+	A = [nsnop]; [nsnob] = A;
+
+	( :4173-4174  goto no_moons.  ZERO draws for classes 2, 7, 15. )
+      ? [nsclass] = 2  -> nsfstart;
+      ? [nsclass] = 7  -> nsfstart;
+      ? [nsclass] = 15 -> nsfstart;
+
+      ? [nsnop] <= 0 -> nsedone;
+	[nsn] = 0;
+
+    "nseloop"
+	E = nsptype; E + [nsn]; A = [E]; [nss] = A;	( s = p_type[n] )
+
+      ? [nsn] >= 2 -> nseelse;
+	[nst] = 0;					( :4180 t = 0 )
+      ? [nss] != 10 -> nseclamp;
+	A = 3; => NsRandom; [nst] = A;			( :4183 )
+	-> nseclamp;
+    "nseelse"
+	E = nsmoontab; E + [nss]; A = [E]; A + 1;
+	=> NsRandom; [nst] = A;				( :4186 )
+
+    "nseclamp"
+	( :4187-4188  the clamp removes BODIES, not the draw )
+	A = [nsnob]; A + [nst];
+      ? A <= NSMAXBODIES -> nsemoons;
+	A = NSMAXBODIES; A - [nsnob]; [nst] = A;
+
+    "nsemoons"
+	[nsc] = 0;
+      ? [nst] <= 0 -> nseadd;
+
+    "nsemloop"
+	A = [nsnob]; A + [nsc]; [nsq] = A;		( :4191 )
+	B = [nsn]; E = nspowner;  E + [nsq]; [E] = B;	( :4192 )
+	B = [nsc]; E = nspmoonid; E + [nsq]; [E] = B;	( :4193 )
+
+	A = 360; => NsRandom;		( :4194 orb_orient, int arg )
+	=> NsZDrawOnly;			( SITE 7  :4195 )
+	=> NsZDrawOnly;			( SITE 8  :4196 )
+	=> NsZDrawOnly;			( SITE 9  :4197 )
+	=> NsDrawOnly;			( SITE 10 :4198 )
+	=> NsDrawOnly;			( SITE 11 :4199 - p_orb_seed[n],
+					  the PARENT index.  The value is
+					  dead; the draw is live. )
+
+	A = NSPLTYPES; => NsRandom;			( :4201 )
+	B = A; E = nsptype; E + [nsq]; [E] = B;
+	[nsr] = A;					( :4203 r = p_type[q] )
+
+	( :4206  if (r==9 && s != 10) r = 2 )
+      ? [nsr] != 9 -> nser6;
+      ? [nss] = 10 -> nser6;
+	[nsr] = 2;
+    "nser6"
+	( :4210  if (r==6 && s < 9) r = 5 )
+      ? [nsr] != 6 -> nsecool1;
+      ? [nss] >= 9 -> nsecool1;
+	[nsr] = 5;
+    "nsecool1"
+	( :4213  if (n > 7 && random(c)) r = 7.  c is 0 on the first
+	  moon and random(0) STILL DRAWS. )
+      ? [nsn] <= 7 -> nsecool2;
+	A = [nsc]; => NsRandom;
+      ? A = 0 -> nsecool2;
+	[nsr] = 7;
+    "nsecool2"
+	( :4214  if (n > 9 && random(c)) r = 7 )
+      ? [nsn] <= 9 -> nsebig;
+	A = [nsc]; => NsRandom;
+      ? A = 0 -> nsebig;
+	[nsr] = 7;
+    "nsebig"
+	( :4221  if (r==2||3||4||8) { if (s != 6 && s < 9) r = 1 } )
+      ? [nsr] = 2 -> nsebigy;
+      ? [nsr] = 3 -> nsebigy;
+      ? [nsr] = 4 -> nsebigy;
+      ? [nsr] = 8 -> nsebigy;
+	-> nsehab;
+    "nsebigy"
+      ? [nss] = 6 -> nsehab;
+      ? [nss] >= 9 -> nsehab;
+	[nsr] = 1;
+    "nsehab"
+	( :4235-4243  if (r==3 && s < 9) { ... }.  Reaching here needs
+	  s == 6 exactly - see the header note. )
+      ? [nsr] != 3 -> nseice;
+      ? [nss] >= 9 -> nseice;
+      ? [nsn] <= 7 -> nsehab2;
+	[nsr] = 7;			( :4237 - can be overwritten below )
+    "nsehab2"
+      ? [nsclass] = 0 -> nsehab3;	( && short-circuits: no draw )
+	A = 4; => NsRandom;		( :4238 )
+      ? A = 0 -> nsehab3;
+	[nsr] = 5;
+    "nsehab3"
+      ? [nsclass] = 2  -> nsehab8;
+      ? [nsclass] = 7  -> nsehab8;
+      ? [nsclass] = 11 -> nsehab8;
+	-> nseice;
+    "nsehab8"
+	[nsr] = 8;
+    "nseice"
+	( :4248  if (r==7 && n <= 5) r = 1 )
+      ? [nsr] != 7 -> nsecold;
+      ? [nsn] > 5 -> nsecold;
+	[nsr] = 1;
+    "nsecold"
+	( :4253-4255  if ((class==2||5||7||11) && random(n)) r = 7.
+	  Classes 2 and 7 never get here, so effectively {5,11}. )
+      ? [nsclass] = 2  -> nsecoldy;
+      ? [nsclass] = 5  -> nsecoldy;
+      ? [nsclass] = 7  -> nsecoldy;
+      ? [nsclass] = 11 -> nsecoldy;
+	-> nsesetr;
+    "nsecoldy"
+	A = [nsn]; => NsRandom;		( :4255 )
+      ? A = 0 -> nsesetr;
+	[nsr] = 7;
+    "nsesetr"
+	B = [nsr]; E = nsptype; E + [nsq]; [E] = B;	( :4257 )
+
+	A = [nsc]; A + 1; [nsc] = A;
+      ? [nsc] < [nst] -> nsemloop;
+
+    "nseadd"
+	A = [nsnob]; A + [nst]; [nsnob] = A;		( :4259 )
+	A = [nsn]; A + 1; [nsn] = A;
+      ? [nsn] < [nsnop] -> nseloop;
+    "nsedone"
+
+	( ---- phase F : :4301-4342, Kepler renormalisation ---------
+
+	  Exactly 4 * nob draws: two zrandom(100) per planet and two per
+	  moon.  The moon half is transcribed with its real loop shape
+	  rather than as a count, so that a wrong p_owner shows up here
+	  as well as in the body words. )
+
+    "nsfstart"
+	A = 6; => NsSetPhase;
+      ? [nsnop] <= 0 -> nsfmoons;
+	[nsn] = 0;
+    "nsfploop"
+	A = 100; => NsZRandom;		( :4308 p_ray            )
+	A = 100; => NsZRandom;		( :4310 p_orb_ray        )
+	A = [nsn]; A + 1; [nsn] = A;
+      ? [nsn] < [nsnop] -> nsfploop;
+
+    "nsfmoons"
+	A = [nsnop]; [nsn] = A;			( :4325 )
+    "nsfouter"
+      ? [nsn] >= [nsnob] -> nsfdone;
+	E = nspowner; E + [nsn]; A = [E]; [nsc] = A;	( :4328 )
+    "nsfinner"
+      ? [nsn] >= [nsnob] -> nsfouter;
+	E = nspowner; E + [nsn]; A = [E];
+      ? A != [nsc] -> nsfouter;
+	A = 100; => NsZRandom;		( :4331 p_ray            )
+	A = 100; => NsZRandom;		( :4333 p_orb_ray        )
+	A = [nsn]; A + 1; [nsn] = A;
+	-> nsfinner;
+    "nsfdone"
+
+	( ---- phase G : :4347-4361, rings -------------------------- )
+
+	A = 7; => NsSetPhase;
+      ? [nsnop] <= 0 -> nsgdone;
+	[nsn] = 0;
+    "nsgloop"
+	A = 3; => NsRandom;		( :4348 ring radius, int arg )
+	E = nsptype; E + [nsn]; A = [E]; [nss] = A;
+      ? [nss] = 6 -> nsggas;
+      ? [nss] = 9 -> nsggas;
+	A = 5; => NsRandom;		( :4354 )
+	-> nsgnext;
+    "nsggas"
+	A = 2; => NsRandom;		( :4358 )
+    "nsgnext"
+	A = [nsn]; A + 1; [nsn] = A;
+      ? [nsn] < [nsnop] -> nsgloop;
+    "nsgdone"
+
+	end;

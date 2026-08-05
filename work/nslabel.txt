@@ -1,0 +1,275 @@
+      ( *** nslabel - phase H: nearstar_labeled, NOCTIS-0.CPP:4364-4369 ***
+
+	This is a LIBRARY.  It needs fpabi, fpctl, fpx87, fpconv, fpchains
+	and nsident, which the top-level programme lists before it.
+
+	    nearstar_labeled = 0;
+	    for (n = 1; n <= nearstar_nob; n++)
+		if (search_id_code (nearstar_identity + n, 'P') != -1)
+		    nearstar_labeled++;
+
+	Zero draws.  It is here because it is the only part of
+	prepare_nearstar that reads an external artifact, and because the
+	count is a second, independent witness that nob is right.
+
+	----------------------------------------------------------------
+	THE FLOAT SIDE - three binary64 values, and no more
+	----------------------------------------------------------------
+
+	    double id_low  = id_code - idscale;
+	    double id_high = id_code + idscale;
+	    ... buffer_double[index] > id_low && buffer_double[index] < id_high
+
+	All three are C locals of type double, so all three are stored, so
+	all three are binary64.  The argument crossing search_id_code's
+	call boundary is pushed as eight bytes, so `nearstar_identity + n`
+	is ALSO a binary64: one add, one store, which is what nsident's
+	NsIdentAddInt does.  This is the one place in the wave where a
+	routine is correct precisely BECAUSE it stores.
+
+	idscale is the global double 0.00001 (NOCTIS-0.CPP:4000), whose
+	binary64 bits are 3EE4F8B588E368F1 - the same constant fpsched.txt
+	carries as K1EM5.
+
+	----------------------------------------------------------------
+	THE COMPARISON IS DONE IN INTEGERS, AND THAT IS EXACT, NOT NEARLY
+	----------------------------------------------------------------
+
+	Scanning 30k stored doubles per body through x87 compares is slow
+	and buys nothing, because for non-NaN binary64 the IEEE bit pattern
+	is order-isomorphic to the value under the standard monotone map
+
+	    key = (bits & 8000000000000000h) ? ~bits : bits | 8000000000000000h
+
+	after which an unsigned 64-bit integer comparison IS the
+	floating-point comparison.  Two catalogue records need saying out
+	loud, because PORTPLAN names them as malformed and requires they be
+	rejected rather than zeroed:
+
+	  #3876 WESTOS is -0.0.  Under the map, -0.0 sorts just below +0.0,
+	  which is the one place the map is not faithful, so NsF64Key
+	  normalises -0.0 to +0.0 before mapping.  (It could only ever
+	  matter for a body whose id_code is within 1e-5 of zero.)
+
+	  #34754 MDIR 17 is a byte-reversed NaN.  Under IEEE, `NaN > lo` and
+	  `NaN < hi` are both false, so it never matches.  Under the map a
+	  positive NaN keys above every finite value and so fails `< hi`,
+	  and a negative NaN keys below every finite value and so fails
+	  `> lo`.  It never matches either way.  Rejected, not zeroed.
+
+	----------------------------------------------------------------
+	WHAT IS DELIBERATELY NOT REPRODUCED
+	----------------------------------------------------------------
+
+	search_id_code returns the POSITION of the first matching record,
+	and its caller compares that only against -1.  Only existence is
+	observable, so this scans a compacted key array rather than the
+	raw file and stops at the first hit.  It also does not read through
+	p_surfacemap.  The original DOES - search_id_code uses the surface
+	buffer as its read buffer, so prepare_nearstar clobbers the surface
+	map as a side effect.  That is a genuine aliasing hazard for the
+	port; it costs nothing here and is recorded for Wave 5's LINOBUF.md
+	rather than reproduced.
+
+	    NsMapLoad     reads STARMAP.BIN and builds the key array.
+			  Call ONCE.  Sets [nshnp], [nshfilebytes],
+			  [nshreadbytes], [nshrecs].
+	    NsLabelCount  in  nsid0/nsid1 (from NsIdentityD), [nsnob]
+			  out [nslabeled].  Zero draws.                 )
+
+"constants"
+
+	NSMAPRECS	= 37578;
+	NSMAPBYTES	= 1202496;	( 37578 * 32, the file less its
+					  4-byte header - search_id_code
+					  lseeks to 4 before reading )
+	NSMAPUNITS	= 300624;
+	NSKEYUNITS	= 75156;	( 2 units per record, worst case )
+
+	NSTAGP		= 50h;		( 'P' )
+
+	NSIDSC0 	= 88E368F1h;	( 0.00001 = 3EE4F8B588E368F1 )
+	NSIDSC1 	= 3EE4F8B5h;
+
+"variables"
+
+	nsmapfile	= { STARMAP.BIN };
+
+	nshnp		= 0;		( how many 'P' records were found )
+	nshrecs 	= 0;
+	nshfilebytes	= 0;
+	nshreadbytes	= 0;
+
+	nskin0		= 0;
+	nskin1		= 0;
+	nskouthi	= 0;
+	nskoutlo	= 0;
+
+	nshlowhi	= 0;
+	nshlowlo	= 0;
+	nshhighhi	= 0;
+	nshhighlo	= 0;
+	nshhit		= 0;
+
+	nshid0		= 0;
+	nshid1		= 0;
+	nshn		= 0;
+	nslabeled	= 0;
+
+"workspace"
+
+	nshraw		= 300624;
+	nshkeys 	= 75156;
+
+"programme"
+
+( ==================================================================== )
+
+      ( NsF64Key - the monotone map.  In: [nskin0] low half, [nskin1]
+	high half.  Out: [nskouthi] [nskoutlo].  Destroys A and B only,
+	so a build loop may keep its cursor in D and its counter in C. )
+
+"NsF64Key"
+	A = [nskin1];
+	B = [nskin0];
+      ? A != 80000000h -> nskgo;
+      ? B != 0 -> nskgo;
+	A = 0;				( -0.0 becomes +0.0 )
+    "nskgo"
+      ? A + 80000000h -> nskneg;	( bit-wise: sign bit set? )
+	A | 80000000h;
+	[nskouthi] = A;
+	[nskoutlo] = B;
+	end;
+    "nskneg"
+	! A; [nskouthi] = A;
+	! B; [nskoutlo] = B;
+	end;
+
+( ==================================================================== )
+
+      ( NsMapLoad - read the catalogue and compact the 'P' records.
+
+	Record layout, 32 bytes: a binary64 id, then 20 name bytes, then
+	a blank, then the type tag at byte 29, then two ASCII digits.
+	Byte 29 is byte 1 of unit 7, hence the >8 and the mask. )
+
+"NsMapLoad"
+	[nshnp]        = 0;
+	[nshrecs]      = 0;
+	[nshfilebytes] = 0;
+	[nshreadbytes] = 0;
+
+	[File Name]	= nsmapfile;
+	[File Command]	= TEST;
+	isocall;
+      ? failed -> nsmlbad;
+	A = [File Size]; [nshfilebytes] = A;
+
+	[File Name]	= nsmapfile;
+	[File Command]	= READ;
+	[File Position] = 4;
+	[Block Pointer] = nshraw;
+	[Block Size]	= NSMAPBYTES;
+	isocall;
+	A = [Block Size]; [nshreadbytes] = A;
+      ? [nshreadbytes] != NSMAPBYTES -> nsmlbad;
+
+	E = nshraw;
+	D = nshkeys;
+	C = NSMAPRECS;
+    "nsmlrec"
+	A = [E plus 7]; A > 8; A & 0FFh;
+      ? A != NSTAGP -> nsmlnext;
+	A = [E];        [nskin0] = A;
+	A = [E plus 1]; [nskin1] = A;
+	=> NsF64Key;
+	A = [nskouthi]; [D] = A;
+	A = [nskoutlo]; [D plus 1] = A;
+	D + 2;
+	A = [nshnp]; A + 1; [nshnp] = A;
+    "nsmlnext"
+	E + 8;
+	C ^ nsmlrec;
+
+	[nshrecs] = NSMAPRECS;
+	end;
+
+    "nsmlbad"
+	[nshnp] = 0;
+	fail;
+
+( ==================================================================== )
+
+      ( NsHScan - is there a 'P' key strictly inside (low, high)?
+	Out: [nshhit] = 0 or 1.  Unsigned 64-bit compares, high half
+	first.  Strict at both ends, exactly as the C is. )
+
+"NsHScan"
+	[nshhit] = 0;
+      ? [nshnp] = 0 -> nshsdone;
+	E = nshkeys;
+	C = [nshnp];
+    "nshsloop"
+	A = [E];
+	B = [E plus 1];
+      ? A '> [nshlowhi] -> nshsgt;
+      ? A '< [nshlowhi] -> nshsnext;
+      ? B '> [nshlowlo] -> nshsgt;
+	-> nshsnext;
+    "nshsgt"
+      ? A '< [nshhighhi] -> nshshit;
+      ? A '> [nshhighhi] -> nshsnext;
+      ? B '< [nshhighlo] -> nshshit;
+    "nshsnext"
+	E + 2;
+	C ^ nshsloop;
+	-> nshsdone;
+    "nshshit"
+	[nshhit] = 1;
+    "nshsdone"
+	end;
+
+( ==================================================================== )
+
+      ( NsLabelCount - the loop at :4365-4368.
+
+	PRE: the caller is inside an FEnter bracket with [FCW]=133Fh and
+	has already run NsIdentityD for this star. )
+
+"NsLabelCount"
+	[nslabeled] = 0;
+      ? [nsnob] <= 0 -> nslcdone;
+	[nshn] = 1;
+    "nslcloop"
+	A = [nshn]; [FI] = A;
+	=> NsIdentAddInt;		( FA = fl(identity + n) )
+	A = [FA0]; [nshid0] = A;
+	A = [FA1]; [nshid1] = A;
+
+	[FB0] = NSIDSC0; [FB1] = NSIDSC1;
+	=> FSub;			( id_low  = id_code - idscale )
+	A = [FA0]; [nskin0] = A;
+	A = [FA1]; [nskin1] = A;
+	=> NsF64Key;
+	A = [nskouthi]; [nshlowhi] = A;
+	A = [nskoutlo]; [nshlowlo] = A;
+
+	A = [nshid0]; [FA0] = A;
+	A = [nshid1]; [FA1] = A;
+	[FB0] = NSIDSC0; [FB1] = NSIDSC1;
+	=> FAdd;			( id_high = id_code + idscale )
+	A = [FA0]; [nskin0] = A;
+	A = [FA1]; [nskin1] = A;
+	=> NsF64Key;
+	A = [nskouthi]; [nshhighhi] = A;
+	A = [nskoutlo]; [nshhighlo] = A;
+
+	=> NsHScan;
+      ? [nshhit] = 0 -> nslcnext;
+	A = [nslabeled]; A + 1; [nslabeled] = A;
+    "nslcnext"
+	A = [nshn]; A + 1; [nshn] = A;
+      ? [nshn] <= [nsnob] -> nslcloop;
+    "nslcdone"
+	end;

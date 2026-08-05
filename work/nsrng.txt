@@ -1,0 +1,189 @@
+      ( *** nsrng - Wave 1's LCG with a draw counter bolted to it ***
+
+	This is a LIBRARY.  It does not include brtl itself: the top-level
+	programme lists
+
+	    "libraries"
+		brtl;
+		nsrng;
+
+	in that order, so that no library is ever included twice.
+
+	----------------------------------------------------------------
+	WHY THIS FILE EXISTS
+	----------------------------------------------------------------
+
+	Getting a draw COUNT wrong desynchronises everything after it, so
+	draw accounting is the central correctness problem of Wave 4 -
+	more than any individual formula.  A count that the model reports
+	about itself is worth nothing: a model that forgets to draw also
+	forgets to count.  So the counter is a property of the RNG, not of
+	the model.  Everything in work/ns*.txt draws through NsRand /
+	NsRandom / NsZRandom / NsDrawOnly / NsZDrawOnly, and NOTHING calls
+	BrtlRand directly.  That rule is greppable, and it is meant to be
+	grepped: one hit on "BrtlRand" outside this file is a bug.
+
+	brtl.txt itself is Wave 1's pinned artifact and is NOT modified.
+
+	----------------------------------------------------------------
+	THE COUNTERS
+	----------------------------------------------------------------
+
+	    nsdraws		every rand() this run of the model consumed
+	    nsphc[0..7]		the same, split by phase
+	    nsdiscarded 	draws taken purely to advance the stream
+	    nsphase		which phase counter is live
+
+	The phases are prepare_nearstar's, and they are the granularity at
+	which a control-flow bug can be located:
+
+	    0	the nop draw			NOCTIS-0.CPP:4082
+	    1	A - per-planet first extraction 	   :4086-4107
+	    2	B - class-0 habitability		   :4111-4115
+	    3	C - impossible-by-star-class filter	   :4120-4139
+	    4	D - impossible-by-distance filter	   :4144-4166
+	    5	E - moons				   :4171-4258
+	    6	F - Kepler renormalisation		   :4301-4342
+	    7	G - rings				   :4347-4361
+
+	----------------------------------------------------------------
+	THE BUDGET
+	----------------------------------------------------------------
+
+	Phase C is an UNBOUNDED while-loop - class 9 accepts 3 outcomes in
+	10 and class 11 accepts 2 in 10, with no iteration cap anywhere in
+	the original.  A type-table slip therefore does not produce a wrong
+	answer, it produces a program that never returns, and a L.in.oleum
+	programme that fails still exits 0.  NsCount raises [nserr] when
+	the per-system budget is passed; the phase-C loops test it and bail.
+	The harness treats a non-zero nserr as a FAIL naming the system,
+	which is a diagnosis instead of a timeout.
+
+	NsRand      in  -        out A = rand() in [0,32767]
+	NsRandom    in  A = n    out A = random(n).  ALWAYS draws, n=0 too.
+	NsZRandom   in  A = n    out A = random(n) - random(n), IN THAT
+				 ORDER (Wave 2: LEFT_TO_RIGHT), 2 draws.
+	NsDrawOnly  in  -        out -   1 draw, value discarded
+	NsZDrawOnly in  -        out -   2 draws, values discarded
+	NsSrand     in  A        out -   state = A & FFFF
+	NsSetPhase  in  A = 0..7 out -
+	NsResetAll  in  -        out -   zero every counter and [nserr]  )
+
+"constants"
+
+	NSPHASES	= 8;
+	NSBUDGET	= 100000;
+
+"variables"
+
+	nsdraws 	= 0;
+	nsdiscarded	= 0;
+	nsphase 	= 0;
+	nserr		= 0;
+
+	nsphc		= 0 *** 8;
+
+	nsrarg		= 0;		( NsRandom's argument )
+	nszarg		= 0;		( NsZRandom's argument )
+	nszfirst	= 0;		( NsZRandom's first draw )
+
+"programme"
+
+( ==================================================================== )
+
+"NsResetAll"
+	[nsdraws]	= 0;
+	[nsdiscarded]	= 0;
+	[nsphase]	= 0;
+	[nserr] 	= 0;
+	E = nsphc;
+	A = NSPHASES;
+    "nsrarzero"
+	[E] = 0;
+	E + 1;
+	A ^ nsrarzero;
+	end;
+
+      ( NsSetPhase - A selects which per-phase counter is live. )
+
+"NsSetPhase"
+	[nsphase] = A;
+	end;
+
+      ( NsCount - one draw happened.  Destroys A and E.
+
+	The budget check is deliberately AFTER the increment, so the
+	reported nsdraws is the true count at the moment of the halt. )
+
+"NsCount"
+	A = [nsdraws]; A + 1; [nsdraws] = A;
+	E = nsphc; E + [nsphase];
+	A = [E]; A + 1; [E] = A;
+      ? [nsdraws] < NSBUDGET -> nsctok;
+	[nserr] = 1;
+    "nsctok"
+	end;
+
+( ==================================================================== )
+
+"NsSrand"
+	=> BrtlSrand;
+	end;
+
+"NsRand"
+	=> NsCount;
+	=> BrtlRand;
+	end;
+
+"NsRandom"
+	[nsrarg] = A;
+	=> NsCount;
+	A = [nsrarg];
+	=> BrtlRandom;
+	end;
+
+      ( NsZRandom - NOCTIS-0.CPP:3987
+
+	    float zrandom (int range) { return (random(range) - random(range)); }
+
+	zrandom is a real function compiled ONCE, so the evaluation order
+	is fixed in its single body and does not vary per call site.  Wave 2
+	read that body out of NOCTIS.EXE and the verdict is LEFT_TO_RIGHT:
+	the FIRST draw is the minuend.  No sign flip is needed anywhere. )
+
+"NsZRandom"
+	[nszarg] = A;
+	=> NsRandom;
+	[nszfirst] = A;
+	A = [nszarg];
+	=> NsRandom;
+	B = A;
+	A = [nszfirst];
+	A - B;
+	end;
+
+      ( NsDrawOnly / NsZDrawOnly - advance the stream, keep nothing.
+
+	These exist because Wave 4 scopes IN the topology and scopes OUT
+	the geometry.  Eleven expressions in prepare_nearstar take a FLOAT
+	argument; their results feed nothing but geometry, and geometry is
+	read back by nothing in the topology path.  Since Borland compiled
+	random() as a real out-of-line function - rand has exactly one
+	caller in NOCTIS.EXE - the call to rand is not predicated on the
+	argument, so ONE rand() is consumed per random() for every n.  The
+	stream is therefore provably identical, not approximately so.
+
+	The eleven sites are registered in nstopo.txt and a test asserts
+	there are exactly eleven of them.  Adding a twelfth, or computing
+	one for real, both fail the build. )
+
+"NsDrawOnly"
+	=> NsCount;
+	=> BrtlRand;
+	A = [nsdiscarded]; A + 1; [nsdiscarded] = A;
+	end;
+
+"NsZDrawOnly"
+	=> NsDrawOnly;
+	=> NsDrawOnly;
+	end;

@@ -82,6 +82,41 @@ mask keeps bits 16..30 and sign-fill only touches bits it discards (verified
 over 200,000 random seeds, zero differences). No behavioural test can catch
 that mutation; the byte-template check is the only way to pin it, and it does.
 
+### Wave 3 — the float engine (DONE)
+
+**Extended precision works in L.in.oleum.** The x87 control word can be set to
+`133Fh` (64-bit precision, round-to-nearest-even, exceptions masked) from a
+machine-language fragment — which modifies nothing and needs no permission —
+and the 1996 catalogue then decodes exactly.
+
+```
+PC=64, values held on the x87 stack   4113/4113
+PC=53 (IEEE double)                   2239
+PC=24 (lino native)                      4
+ambient Windows control word             7
+PC=64 but with ONE spill to memory    3063
+```
+
+**Setting the precision is NOT sufficient.** A single store to memory anywhere
+in a chain costs 1,050 records. The original's 80-bit behaviour comes from
+values staying in `st(0)` across whole expressions, so the port must reproduce
+the *scheduling*, not just the precision. Generation arithmetic runs on the x87
+stack with intermediates never stored across an expression, and the control
+word is stated at every boundary rather than inherited.
+
+Policy in `docs-notes/FLOATPOLICY.md`, pinned by `tests/test_floatcontract.py`,
+which recomputes every quoted number on each run.
+
+**The float-to-int cast boundary is UNSETTLED** and nothing in the graded path
+may depend on it. Recorded as open rather than guessed.
+
+Two corrections the wave made to its own brief: a one-*extended*-ULP flip does
+**not** fail the oracle (it still scores 4113/4113), so the test pins that
+number and instead asserts a binary64-ULP flip is caught at 341/4113, locating
+the real resolution; and a gcc-built hardware witness caught a genuine
+round-to-nearest bug in the Python referee that a self-agreeing referee would
+have shipped.
+
 ### Census
 Noctis IV has 20 multiply sites, 5 that matter, and only 2 distinct algorithms
 need a full 64-bit product â€” both now ported. Six of nine builds use the stock

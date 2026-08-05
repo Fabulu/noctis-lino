@@ -1,0 +1,132 @@
+      ( *** nsprobe - the assumptions Wave 4's seed arithmetic rests on ***
+
+	WAVEPLAN mitigation 6.6 says, in these words: "a probe with negative
+	operands, run before any model code is written, not a documentation
+	read".  This is that probe.  Nothing in work/ns*.txt may be written
+	until this programme has run and every slot below matches C.
+
+	The seed expression at NOCTIS-0.CPP:4080 is
+
+	    srand ((long)x%10000*(long)y%10000*(long)z%10000)
+
+	which C parses, % and * having equal precedence and associating to
+	the left, as
+
+	    ((((x % 10000) * y) % 10000) * z) % 10000
+
+	3179 of 4194 real stars overflow the first multiply, so negative
+	intermediates are the NORMAL path here, not an edge case.  Two
+	things therefore have to be true of L.in.oleum and neither may be
+	assumed:
+
+	  1. "%" must truncate toward zero, so that the sign of the result
+	     follows the DIVIDEND, as Borland's idiv does.  A flooring
+	     remainder (Python's) gives a different number on every
+	     negative intermediate.
+	  2. "*" must wrap modulo 2^32 and keep the low half, as a 32-bit
+	     imul does.
+
+	Slots, and what C says each one is:
+
+	   0  (-7) % 3                 -1
+	   1  7 % (-3)                  1
+	   2  (-7) % (-3)              -1
+	   3  (-12345678) % 10000   -5678
+	   4  12345678 % 10000       5678
+	   5  (-100000) % 10000         0
+	   6  100000 * 100000       1410065408   (10^10 mod 2^32)
+	   7  (-100000) * 100000   -1410065408
+	   8  the full seed for x=-347127, y=181818, z=-99999
+	   9  slot 8 masked to 16 bits, which is what srand receives
+	  10  0x12348000 narrowed to int16          -32768
+	  11  0x12347FFF narrowed to int16           32767
+	  12  BYTES PER UNIT                              4
+	  13  a byte-order witness: 0x04030201
+	  14  (-1) / 2, to see which way integer division rounds     0
+	  15  0DEFACEDh, so a truncated file is visible as such       )
+
+"directors"
+
+	program name = { nsprobe };
+	unit = 32;
+
+"constants"
+
+	NPROBE	= 16;
+
+"variables"
+
+	nsprobeout = { nsprobe.bin };
+
+	npx	= 0;
+	npy	= 0;
+	npz	= 0;
+
+"workspace"
+
+	npres	= NPROBE;
+
+"programme"
+
+	( ---- signed remainder, all four sign combinations ---- )
+
+	A = 0; A - 7;	A % 3;			[npres plus 0] = A;
+	A = 7;		B = 0; B - 3; A % B;	[npres plus 1] = A;
+	A = 0; A - 7;	B = 0; B - 3; A % B;	[npres plus 2] = A;
+	A = 0; A - 12345678; A % 10000;		[npres plus 3] = A;
+	A = 12345678;	A % 10000;		[npres plus 4] = A;
+	A = 0; A - 100000; A % 10000;		[npres plus 5] = A;
+
+	( ---- signed multiply, low 32 bits ---- )
+
+	A = 100000;	A * 100000;		[npres plus 6] = A;
+	A = 0; A - 100000; A * 100000;		[npres plus 7] = A;
+
+	( ---- the real seed expression on a real negative triple ---- )
+
+	[npx] = 0; A = 0; A - 347127; [npx] = A;
+	[npy] = 181818;
+	[npz] = 0; A = 0; A - 99999;  [npz] = A;
+
+	A = [npx];
+	A % 10000;
+	A * [npy];
+	A % 10000;
+	A * [npz];
+	A % 10000;
+	[npres plus 8] = A;
+	A & 0FFFFh;
+	[npres plus 9] = A;
+
+	( ---- int16 narrowing, the Borland "int is 16 bits" idiom ---- )
+
+	A = 12348000h;	A & 0FFFFh; A # 8000h; A - 8000h;
+	[npres plus 10] = A;
+	A = 12347FFFh;	A & 0FFFFh; A # 8000h; A - 8000h;
+	[npres plus 11] = A;
+
+	( ---- structural ---- )
+
+	A = 0; A + BYTES PER UNIT;		[npres plus 12] = A;
+	[npres plus 13] = 04030201h;
+	A = 0; A - 1; A / 2;			[npres plus 14] = A;
+	[npres plus 15] = 0DEFACEDh;
+
+	( ---- out ---- )
+
+	[File Name]	= nsprobeout;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= npres;
+	[Block Size]	= NPROBE;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= nsprobeout;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= NPROBE;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
