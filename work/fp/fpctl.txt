@@ -1,0 +1,108 @@
+      ( *** fpctl - the control word, shared by every backend ***
+
+	Split out of fpx87 so the X87 and NATIVE backends cannot drift
+	apart on the one thing they must agree about.  These routines are
+	x87 instructions in both cases, because the control word is a
+	property of the FPU, not of the arithmetic style: L.in.oleum's own
+	float instructions are fld/op/fstp on the same FPU and obey the
+	same rounding control.  That is Recon A's finding and it is why
+	fpnative has to set the word too.
+
+	THE LANDMINE THIS REMOVES.  The win32 L.in.oleum runtime stub
+	deliberately forces chop at entry - all eight copies of it read
+	    fnstcw / and ax,0F3FFh / or ax,0C00h / fldcw
+	- while main/sys/linux.bin contains no FLDCW at all.  So the same
+	L.in.oleum source produces different float results on the two
+	runtimes.  Stating the word removes that; documenting it would
+	not have.
+
+	MEASURED GOTCHA: fnstcw reads bit 6 back as 1 no matter what was
+	loaded.  Load 103Fh, read 107Fh.  Every comparison masks. )
+
+"programme"
+
+( ==================================================================== )
+( control word                                                          )
+( ==================================================================== )
+
+      ( FEnter - save the ambient control word and install [FCW].
+
+	This is NOT optional and it is NOT only about fidelity.  The
+	win32 L.in.oleum runtime stub deliberately forces RC=chop at
+	entry - all eight copies of the stub read
+	    fnstcw / and ax,0F3FFh / or ax,0C00h / fldcw
+	- and main/sys/linux.bin contains no FLDCW at all.  So the SAME
+	source produces DIFFERENT float results on the two runtimes
+	unless the control word is stated.  FEnter states it. )
+
+"FEnter"
+	[FCWSAV] = 0;
+	{
+	    9B					(fwait)
+	    D9 BF <dFCWSAV mtp bytesperunit>	(fnstcw [edi+FCWSAV*4])
+	}
+	{
+	    D9 AF <dFCW mtp bytesperunit>	(fldcw [edi+FCW*4])
+	}
+	end;
+
+      ( FLeave - put back exactly what FEnter found.  The value has bit
+	6 set whatever was loaded, which is harmless: bit 6 is reserved
+	and the FPU ignores it. )
+
+"FLeave"
+	{
+	    D9 AF <dFCWSAV mtp bytesperunit>	(fldcw [edi+FCWSAV*4])
+	}
+	end;
+
+      ( FLoadCW - install [FCW] WITHOUT saving what was there.
+
+	FEnter is the boundary routine and saves; this is the one to use
+	when the ambient word has already been captured once and the
+	control word is being changed again inside that bracket.  Calling
+	FEnter twice would make FLeave restore the FIRST call's word
+	instead of the ambient one. )
+
+"FLoadCW"
+	{
+	    D9 AF <dFCW mtp bytesperunit>	(fldcw [edi+FCW*4])
+	}
+	end;
+
+      ( FCWRead - FI <- the live control word, MASKED with 0F3Fh.
+	Masked because fnstcw reads bit 6 back as 1 regardless. )
+
+"FCWRead"
+	[FCWTMP] = 0;
+	{
+	    9B					(fwait)
+	    D9 BF <dFCWTMP mtp bytesperunit>	(fnstcw [edi+FCWTMP*4])
+	}
+	A = [FCWTMP]; A & FCWMASK; [FI] = A;
+	end;
+
+      ( FSWRead - FI <- the live status word. )
+
+"FSWRead"
+	[FSW] = 0;
+	{
+	    9B					(fwait)
+	    DD BF <dFSW mtp bytesperunit>	(fnstsw [edi+FSW*4])
+	}
+	A = [FSW]; A & FFFFh; [FI] = A;
+	end;
+
+      ( FStackOK - FI <- the TOP field, bits 13..11 of the status word.
+	Zero means balanced.  A backend that leaks one register per
+	expression is unusable however good its numbers look, and the
+	only way to see that is to look. )
+
+"FStackOK"
+	=> FSWRead;
+	A = [FI]; A > 11; A & 7; [FI] = A;
+      ? [FI] = 0 -> FSTOK done;
+	A = [FFLG]; A | FFLGSTACKBAD; [FFLG] = A;
+    "FSTOK done"
+	end;
+

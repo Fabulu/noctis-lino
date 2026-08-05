@@ -35,3 +35,8 @@ main/lib/gen/compiler114n.txt
 main/cpu/i386m.bin
 
 COMMITMSG.tmp
+
+# stray copies of reference data pulled in by test sandboxes
+work/STARMAP.BIN
+work/hits.tsv
+work/*.tmp

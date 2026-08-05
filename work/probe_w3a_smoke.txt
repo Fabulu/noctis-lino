@@ -1,0 +1,113 @@
+      ( *** Wave 3 recon A - smoke probe ***
+
+        Two things must be proven before the real control-word probe is
+        worth writing:
+
+          1. does [vector + displacement] work as a destination, so the
+             probe does not need the four-instruction store idiom, and
+          2. does an ML fragment assemble, and does <dVar mtp bytesperunit>
+             resolve to a workspace displacement usable with EDI.
+
+        Slots written to p3a-smoke.bin, 8 units:
+
+          0  0BADC0DEh written through [results plus 0]
+          1  0BADC0DEh written through an ML fragment
+             (C7 87 <dresults..> is not possible - results is a workspace
+              vector, so the fragment stores through a variable instead)
+          2  bit pattern of 1.0 produced by ,= from integer 1
+             expect 3F800000h if lino floats are IEEE-754 binary32
+          3  bit pattern of 3.0
+          4  1.0 // 3.0
+             3EAAAAABh under round-to-nearest, 3EAAAAAAh under chop
+          5  the x87 control word, read with FNSTCW
+          6  =, of 3.5   -  4 under round-to-nearest, 3 under chop
+          7  0DEFACEDh sentinel                                        )
+
+"directors"
+
+	program name = { p3asmoke };
+	unit = 32;
+
+"variables"
+
+	mlslot	= 0;
+	cw	= 0;
+	fone	= 0;
+	fthree	= 0;
+	fq	= 0;
+	ival	= 0;
+	fval	= 0;
+
+	result file name = { p3a-smoke.bin };
+
+"workspace"
+
+	results = 8;
+
+"programme"
+
+	( slot 0 - plain [vector + displacement] store )
+
+	A = 0BADC0DEh;
+	[results plus 0] = A;
+
+	( slot 1 - the same value, but written by machine language.
+	  mov dword [edi + mlslot*4], 0BADC0DEh )
+
+	{
+	    C7 87 <dmlslot mtp bytesperunit> DEC0AD0B   (mov [edi+mlslot*4],0BADC0DEh)
+	}
+	A = [mlslot];
+	[results plus 1] = A;
+
+	( slots 2, 3 - integer to float )
+
+	[ival] = 1;
+	[fone]	 ,= [ival];
+	[ival] = 3;
+	[fthree] ,= [ival];
+	A = [fone];   [results plus 2] = A;
+	A = [fthree]; [results plus 3] = A;
+
+	( slot 4 - 1.0 divided by 3.0, still as raw bits )
+
+	[fq] = [fone];
+	[fq] // [fthree];
+	A = [fq]; [results plus 4] = A;
+
+	( slot 5 - the control word actually in force )
+
+	[cw] = 0;
+	{
+	    9B					(fwait)
+	    D9 BF <dcw mtp bytesperunit>	(fnstcw [edi+cw*4])
+	}
+	A = [cw]; [results plus 5] = A;
+
+	( slot 6 - float to int of 3.5 )
+
+	[fval] = 40600000h;
+	[ival] =, [fval];
+	A = [ival]; [results plus 6] = A;
+
+	( slot 7 - sentinel )
+
+	A = 0DEFACEDh;
+	[results plus 7] = A;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

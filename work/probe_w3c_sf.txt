@@ -1,0 +1,687 @@
+      ( *** probe w3c sf - soft-float cost, MEASURED ***
+
+        Three routines, each correctly rounded round-nearest-even, on the
+        IEEE binary64 layout (two units: low half, high half):
+
+            SFMul   a * b
+            SFAdd   a + b   (sign-magnitude, handles cancellation)
+            SFQuo   a / b   (restoring, bit at a time)
+
+        and one extra:
+
+            XMul    the 64-BIT-MANTISSA multiply core, which is what an
+                    80-bit x87 emulation actually needs. Mantissas are two
+                    full units, so it is STRUCTURALLY CHEAPER than the
+                    binary64 one - no 21-bit half-limb to mask around.
+
+        Inputs are read from sfvec.bin so the same vectors can be refereed
+        in Python with no rounding of its own. The programme times each
+        routine over REPS passes with the high performance timer, so the
+        number reported is the number an implementer gets, not an estimate.
+
+        Denormals, zero, infinity and NaN are REJECTED, not handled: they
+        never occur in Noctis's generation path, and pretending to support
+        them would inflate the measurement with dead code. The reject flag
+        is counted and reported so a vector set that trips it is visible.
+
+        REQUIRES THE EXTENDED TOOLCHAIN, for *%' :
+            -Compiler main\lib\gen\compiler114m.exe  -Cpu i386m
+
+        Reads  sfvec.bin    4 units per vector: aLo aHi bLo bHi
+        Writes sfout.bin    16 header units, then 8 units per vector:
+                            mulLo mulHi addLo addHi divLo divHi xmLo xmHi  )
+
+"directors"
+
+	program name = { probew3csf };
+	unit = 32;
+
+"constants"
+
+	NVEC		= 4096;
+	REPS		= 64;
+	HDR		= 16;
+
+"variables"
+
+	vector file name = { sfvec.bin };
+	result file name = { sfout.bin };
+
+	( unpacked operands )
+	aLo = 0; aHi = 0; bLo = 0; bHi = 0;
+	sa = 0; ea = 0; mah = 0; mal = 0;
+	sb = 0; eb = 0; mbh = 0; mbl = 0;
+	sr = 0; er = 0; mrh = 0; mrl = 0;
+	rLo = 0; rHi = 0;
+	sfrej = 0;
+	nrej = 0;
+
+	( 128-bit product limbs )
+	ua0 = 0; ua1 = 0; ub0 = 0; ub1 = 0;
+	uc0 = 0; uc1 = 0; ud0 = 0; ud1 = 0;
+	p0 = 0; p1 = 0; p2 = 0; p3 = 0;
+	cy1 = 0;
+
+	( rounding )
+	rbit = 0; sbit = 0;
+
+	( add / div scratch )
+	dsh = 0; tmp = 0; tmp2 = 0;
+	qh = 0; ql = 0; rh = 0; rl = 0;
+	iter = 0; borrow = 0;
+	xdel = 0;
+
+	( driver )
+	vptr = 0; optr = 0; nv = 0; rep = 0;
+	c0 = 0;
+	cMul = 0;
+	cAdd = 0;
+	cQuo = 0;
+	cXm = 0;
+	sink = 0;
+
+"workspace"
+
+	head	= HDR;
+	vecs	= 16384;			( NVEC multiplied 4 )
+	outs	= 32768;			( NVEC multiplied 8 )
+
+"programme"
+
+	( ---------------- load the vectors ---------------- )
+
+	[File Name]	= vector file name;
+	[File Position]	= 0;
+	[File Command]	= READ;
+	[Block Pointer]	= vecs;
+	[Block Size]	= 16384;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[nrej] = 0;
+
+	( ---------------- MUL, timed ---------------- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; [c0] = A;
+	[rep] = 0;
+    "mul rep"
+	A = vecs; [vptr] = A;
+	[nv] = 0;
+    "mul one"
+	E = [vptr];
+	A = [E];          [aLo] = A;
+	A = [E plus 1];   [aHi] = A;
+	A = [E plus 2];   [bLo] = A;
+	A = [E plus 3];   [bHi] = A;
+	=> SFMul;
+	A = [sink]; B = [rLo]; A # B; [sink] = A;
+	A = [vptr]; A + 4; [vptr] = A;
+	[nv]+;
+      ? [nv] < NVEC -> mul one;
+	[rep]+;
+      ? [rep] < REPS -> mul rep;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [cMul] = A;
+
+	( ---------------- ADD, timed ---------------- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; [c0] = A;
+	[rep] = 0;
+    "add rep"
+	A = vecs; [vptr] = A;
+	[nv] = 0;
+    "add one"
+	E = [vptr];
+	A = [E];          [aLo] = A;
+	A = [E plus 1];   [aHi] = A;
+	A = [E plus 2];   [bLo] = A;
+	A = [E plus 3];   [bHi] = A;
+	=> SFAdd;
+	A = [sink]; B = [rLo]; A # B; [sink] = A;
+	A = [vptr]; A + 4; [vptr] = A;
+	[nv]+;
+      ? [nv] < NVEC -> add one;
+	[rep]+;
+      ? [rep] < REPS -> add rep;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [cAdd] = A;
+
+	( ---------------- DIV, timed ---------------- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; [c0] = A;
+	[rep] = 0;
+    "quo rep"
+	A = vecs; [vptr] = A;
+	[nv] = 0;
+    "quo one"
+	E = [vptr];
+	A = [E];          [aLo] = A;
+	A = [E plus 1];   [aHi] = A;
+	A = [E plus 2];   [bLo] = A;
+	A = [E plus 3];   [bHi] = A;
+	=> SFQuo;
+	A = [sink]; B = [rLo]; A # B; [sink] = A;
+	A = [vptr]; A + 4; [vptr] = A;
+	[nv]+;
+      ? [nv] < NVEC -> quo one;
+	[rep]+;
+      ? [rep] < REPS -> quo rep;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [cQuo] = A;
+
+	( ---------------- XMUL (64-bit mantissa core), timed ---------------- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; [c0] = A;
+	[rep] = 0;
+    "xm rep"
+	A = vecs; [vptr] = A;
+	[nv] = 0;
+    "xm one"
+	E = [vptr];
+	A = [E];          [mal] = A;
+	A = [E plus 1];   [mah] = A;
+	A = [E plus 2];   [mbl] = A;
+	A = [E plus 3];   [mbh] = A;
+	( force both mantissas normalised: top bit set )
+	A = [mah]; A | 80000000h; [mah] = A;
+	A = [mbh]; A | 80000000h; [mbh] = A;
+	=> XMul;
+	A = [sink]; B = [mrl]; A # B; [sink] = A;
+	A = [vptr]; A + 4; [vptr] = A;
+	[nv]+;
+      ? [nv] < NVEC -> xm one;
+	[rep]+;
+      ? [rep] < REPS -> xm rep;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [cXm] = A;
+
+	( ---------------- one unrolled pass, results kept ---------------- )
+
+	A = vecs; [vptr] = A;
+	A = outs; [optr] = A;
+	[nv] = 0;
+    "keep one"
+	E = [vptr];
+	A = [E];          [aLo] = A;
+	A = [E plus 1];   [aHi] = A;
+	A = [E plus 2];   [bLo] = A;
+	A = [E plus 3];   [bHi] = A;
+	=> SFMul;
+	E = [optr];
+	A = [rLo]; [E] = A;
+	A = [rHi]; [E plus 1] = A;
+
+	E = [vptr];
+	A = [E];          [aLo] = A;
+	A = [E plus 1];   [aHi] = A;
+	A = [E plus 2];   [bLo] = A;
+	A = [E plus 3];   [bHi] = A;
+	=> SFAdd;
+	E = [optr];
+	A = [rLo]; [E plus 2] = A;
+	A = [rHi]; [E plus 3] = A;
+
+	E = [vptr];
+	A = [E];          [aLo] = A;
+	A = [E plus 1];   [aHi] = A;
+	A = [E plus 2];   [bLo] = A;
+	A = [E plus 3];   [bHi] = A;
+	=> SFQuo;
+	E = [optr];
+	A = [rLo]; [E plus 4] = A;
+	A = [rHi]; [E plus 5] = A;
+
+	E = [vptr];
+	A = [E];          [mal] = A;
+	A = [E plus 1];   [mah] = A;
+	A = [E plus 2];   [mbl] = A;
+	A = [E plus 3];   [mbh] = A;
+	A = [mah]; A | 80000000h; [mah] = A;
+	A = [mbh]; A | 80000000h; [mbh] = A;
+	=> XMul;
+	E = [optr];
+	A = [mrl]; [E plus 6] = A;
+	A = [mrh]; [E plus 7] = A;
+
+	A = [vptr]; A + 4; [vptr] = A;
+	A = [optr]; A + 8; [optr] = A;
+	[nv]+;
+      ? [nv] < NVEC -> keep one;
+
+	( ---------------- header and write ---------------- )
+
+	[head plus 0] = [Counts Per Millisecond];
+	[head plus 1] = NVEC;
+	[head plus 2] = REPS;
+	[head plus 3] = [cMul];
+	[head plus 4] = [cAdd];
+	[head plus 5] = [cQuo];
+	[head plus 6] = [cXm];
+	[head plus 7] = [nrej];
+	[head plus 8] = [sink];
+	[head plus 9] = 0;
+	[head plus 10] = 0;
+	[head plus 11] = 0;
+	[head plus 12] = 0;
+	[head plus 13] = 0;
+	[head plus 14] = 0;
+	[head plus 15] = 5346574Ch;
+
+	[File Name]	= result file name;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= head;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position]	= HDR;
+	[File Position] * BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer]	= outs;
+	[Block Size]	= 32768;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 32768;
+	[File Size]	+ HDR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+( ==================================================================== )
+
+"Unpack"
+    ( aLo,aHi -> sa,ea,mah,mal; same for b. )
+    ( sfrej set if either operand is zero, denormal, inf or NaN.      )
+
+	[sfrej] = 0;
+
+	A = [aHi]; A > 31;			[sa] = A;
+	A = [aHi]; A > 20; A & 7FFh;		[ea] = A;
+	A = [aHi]; A & FFFFFh; A | 100000h;	[mah] = A;
+	A = [aLo];				[mal] = A;
+
+	A = [bHi]; A > 31;			[sb] = A;
+	A = [bHi]; A > 20; A & 7FFh;		[eb] = A;
+	A = [bHi]; A & FFFFFh; A | 100000h;	[mbh] = A;
+	A = [bLo];				[mbl] = A;
+
+      ? [ea] = 0    -> unp bad;
+      ? [eb] = 0    -> unp bad;
+      ? [ea] = 7FFh -> unp bad;
+      ? [eb] = 7FFh -> unp bad;
+	end;
+    "unp bad"
+	[sfrej] = 1;
+	[nrej]+;
+	end;
+
+( -------------------------------------------------------------------- )
+
+"Mul128"
+    ( mah:mal times mbh:mbl -> p0..p3, unsigned, exact. )
+
+	A = [mal]; B = [mbl]; A *%' B;	[ua0] = A; [ua1] = B;
+	A = [mal]; B = [mbh]; A *%' B;	[ub0] = A; [ub1] = B;
+	A = [mah]; B = [mbl]; A *%' B;	[uc0] = A; [uc1] = B;
+	A = [mah]; B = [mbh]; A *%' B;	[ud0] = A; [ud1] = B;
+
+	A = [ua0];			[p0] = A;
+
+	A = [ua1]; B = [ub0]; A + B; E = 0;
+      ? A '>= B -> m128 c1a;
+	E = 1;
+    "m128 c1a"
+	B = [uc0]; A + B;
+      ? A '>= B -> m128 c1b;
+	E + 1;
+    "m128 c1b"
+	[p1] = A;
+	[cy1] = E;
+
+	A = [ub1]; B = [uc1]; A + B; D = 0;
+      ? A '>= B -> m128 c2a;
+	D = 1;
+    "m128 c2a"
+	B = [ud0]; A + B;
+      ? A '>= B -> m128 c2b;
+	D + 1;
+    "m128 c2b"
+	B = [cy1]; A + B;
+      ? A '>= B -> m128 c2c;
+	D + 1;
+    "m128 c2c"
+	[p2] = A;
+
+	A = [ud1]; A + D;		[p3] = A;
+	end;
+
+( -------------------------------------------------------------------- )
+
+"SFMul"
+    ( aLo,aHi times bLo,bHi -> rLo,rHi, round-nearest-even. )
+
+	=> Unpack;
+      ? [sfrej] != 0 -> sfm zero;
+
+	=> Mul128;
+
+	( the 106-bit product sits in p2:p1:p0; bit 105 or 104 is the top )
+	A = [sa]; B = [sb]; A # B;	[sr] = A;
+	A = [ea]; A + [eb];		[er] = A;
+
+	A = [p3]; A > 9; A & 1;		( bit 105 )
+      ? A = 0 -> sfm sh52;
+
+	( shift 53 )
+	A = [p1]; A > 21; B = [p2]; B < 11; A | B;	[mrl] = A;
+	A = [p2]; A > 21; B = [p3]; B < 11; A | B;	[mrh] = A;
+	A = [p1]; A > 20; A & 1;			[rbit] = A;
+	A = [p1]; A & FFFFFh; B = [p0]; A | B;		[sbit] = A;
+	A = [er]; A + 1; [er] = A;
+	-> sfm round;
+
+    "sfm sh52"
+	A = [p1]; A > 20; B = [p2]; B < 12; A | B;	[mrl] = A;
+	A = [p2]; A > 20; B = [p3]; B < 12; A | B;	[mrh] = A;
+	A = [p1]; A > 19; A & 1;			[rbit] = A;
+	A = [p1]; A & 7FFFFh; B = [p0]; A | B;		[sbit] = A;
+
+    "sfm round"
+      ? [rbit] = 0 -> sfm pack;
+      ? [sbit] != 0 -> sfm inc;
+	A = [mrl]; A & 1;
+      ? A = 0 -> sfm pack;
+    "sfm inc"
+	A = [mrl]; A + 1; [mrl] = A;
+      ? A != 0 -> sfm pack;
+	A = [mrh]; A + 1; [mrh] = A;
+      ? A != 200000h -> sfm pack;
+	A = 100000h; [mrh] = A;
+	A = [er]; A + 1; [er] = A;
+
+    "sfm pack"
+	( er currently holds ea+eb plus carry; the true exponent is that )
+	( minus the bias 1023, and the store re-adds it: net -1023.    )
+	A = [er]; A - 1023; [er] = A;
+      ? [er] <= 0 -> sfm zero;
+      ? [er] >= 7FFh -> sfm zero;
+	A = [mrl];					[rLo] = A;
+	A = [mrh]; A & FFFFFh;
+	B = [er]; B < 20; A | B;
+	B = [sr]; B < 31; A | B;			[rHi] = A;
+	end;
+    "sfm zero"
+	[rLo] = 0; [rHi] = 0;
+	end;
+
+( -------------------------------------------------------------------- )
+
+"SFAdd"
+    ( aLo,aHi plus bLo,bHi -> rLo,rHi, round-nearest-even.               )
+    ( Both mantissas are widened by three bits - guard, round, sticky -  )
+    ( so the 56-bit value still fits two units and no separate sticky    )
+    ( bookkeeping is needed: the bit shifted out is OR-ed back into       )
+    ( bit 0, which is exactly what a sticky bit means.                   )
+
+	=> Unpack;
+      ? [sfrej] != 0 -> sfa zero;
+
+	( order so that a is the one with the larger magnitude )
+      ? [ea] > [eb] -> sfa ordered;
+      ? [ea] < [eb] -> sfa swap;
+      ? [mah] '> [mbh] -> sfa ordered;
+      ? [mah] '< [mbh] -> sfa swap;
+      ? [mal] '>= [mbl] -> sfa ordered;
+    "sfa swap"
+	A = [ea]; B = [eb]; [ea] = B; [eb] = A;
+	A = [sa]; B = [sb]; [sa] = B; [sb] = A;
+	A = [mah]; B = [mbh]; [mah] = B; [mbh] = A;
+	A = [mal]; B = [mbl]; [mal] = B; [mbl] = A;
+    "sfa ordered"
+
+	( widen by three bits )
+	A = [mah]; A < 3; B = [mal]; B > 29; A | B; [mah] = A;
+	A = [mal]; A < 3; [mal] = A;
+	A = [mbh]; A < 3; B = [mbl]; B > 29; A | B; [mbh] = A;
+	A = [mbl]; A < 3; [mbl] = A;
+
+	A = [ea]; A - [eb]; [dsh] = A;
+      ? [dsh] = 0 -> sfa aligned;
+      ? [dsh] >= 56 -> sfa tiny;
+
+	[iter] = 0;
+    "sfa shloop"
+	A = [mbl]; A & 1; [sbit] = A;
+	A = [mbl]; A > 1; B = [mbh]; B < 31; A | B; B = [sbit]; A | B; [mbl] = A;
+	A = [mbh]; A > 1; [mbh] = A;
+	[iter]+;
+      ? [iter] < [dsh] -> sfa shloop;
+	-> sfa aligned;
+
+    "sfa tiny"
+	[mbh] = 0; [mbl] = 1;
+
+    "sfa aligned"
+	A = [sa]; [sr] = A;
+	A = [ea]; [er] = A;
+	A = [sa]; B = [sb];
+      ? A != B -> sfa sub;
+
+	( ---- same sign: add ---- )
+	A = [mal]; B = [mbl]; A + B; [mrl] = A;
+	E = 0;
+      ? A '>= B -> sfa noc;
+	E = 1;
+    "sfa noc"
+	A = [mah]; A + [mbh]; A + E; [mrh] = A;
+      ? [mrh] '< 1000000h -> sfa round;
+	( bit 56 set: shift right one, folding the lost bit into sticky )
+	A = [mrl]; A & 1; [sbit] = A;
+	A = [mrl]; A > 1; B = [mrh]; B < 31; A | B; B = [sbit]; A | B; [mrl] = A;
+	A = [mrh]; A > 1; [mrh] = A;
+	A = [er]; A + 1; [er] = A;
+	-> sfa round;
+
+    "sfa sub"
+	( ---- opposite signs: subtract, a is the larger ---- )
+	A = [mal]; E = 0;
+      ? A '>= [mbl] -> sfa nob;
+	E = 1;
+    "sfa nob"
+	A = [mal]; A - [mbl]; [mrl] = A;
+	A = [mah]; A - [mbh]; A - E; [mrh] = A;
+
+    "sfa norm"
+	A = [mrh];
+      ? A '>= 800000h -> sfa round;
+	A = [mrh]; B = [mrl]; A | B;
+      ? A = 0 -> sfa zero;
+	A = [mrh]; A < 1; B = [mrl]; B > 31; A | B; [mrh] = A;
+	A = [mrl]; A < 1; [mrl] = A;
+	A = [er]; A - 1; [er] = A;
+      ? [er] <= 0 -> sfa zero;
+	-> sfa norm;
+
+    "sfa round"
+	A = [mrl]; A > 2; A & 1;			[rbit] = A;
+	A = [mrl]; A & 3;				[sbit] = A;
+	A = [mrl]; A > 3; B = [mrh]; B < 29; A | B;	[mrl] = A;
+	A = [mrh]; A > 3;				[mrh] = A;
+      ? [rbit] = 0 -> sfa pack;
+      ? [sbit] != 0 -> sfa inc;
+	A = [mrl]; A & 1;
+      ? A = 0 -> sfa pack;
+    "sfa inc"
+	A = [mrl]; A + 1; [mrl] = A;
+      ? A != 0 -> sfa pack;
+	A = [mrh]; A + 1; [mrh] = A;
+      ? A != 200000h -> sfa pack;
+	A = 100000h; [mrh] = A;
+	A = [er]; A + 1; [er] = A;
+
+    "sfa pack"
+      ? [er] <= 0 -> sfa zero;
+      ? [er] >= 7FFh -> sfa zero;
+	A = [mrl];					[rLo] = A;
+	A = [mrh]; A & FFFFFh;
+	B = [er]; B < 20; A | B;
+	B = [sr]; B < 31; A | B;			[rHi] = A;
+	end;
+    "sfa zero"
+	[rLo] = 0; [rHi] = 0;
+	end;
+
+( -------------------------------------------------------------------- )
+
+"SFQuo"
+    ( aLo,aHi over bLo,bHi -> rLo,rHi, round-nearest-even. )
+    ( Restoring division, one quotient bit per iteration - the shape a )
+    ( port gets without a 64/32 divide primitive.                      )
+
+	=> Unpack;
+      ? [sfrej] != 0 -> sfq zero;
+
+	A = [sa]; B = [sb]; A # B;	[sr] = A;
+	A = [ea]; A - [eb]; A + 1023;	[er] = A;
+
+	A = [mah]; [rh] = A;
+	A = [mal]; [rl] = A;
+	[qh] = 0; [ql] = 0;
+	[iter] = 0;
+
+	( Restoring division needs R < B at the top of every iteration, and
+	  ma >= mb whenever the quotient reaches one. That leading bit is
+	  taken out here; without it R runs away and Q saturates.          )
+	A = [rh];
+      ? A '> [mbh] -> sfq pre;
+      ? A '< [mbh] -> sfq loop;
+	A = [rl];
+      ? A '< [mbl] -> sfq loop;
+    "sfq pre"
+	A = [rl]; E = 0;
+      ? A '>= [mbl] -> sfq preb;
+	E = 1;
+    "sfq preb"
+	A = [rl]; A - [mbl]; [rl] = A;
+	A = [rh]; A - [mbh]; A - E; [rh] = A;
+	[ql] = 1;
+
+    "sfq loop"
+	( R <<= 1 )
+	A = [rh]; A < 1; B = [rl]; B > 31; A | B; [rh] = A;
+	A = [rl]; A < 1; [rl] = A;
+	( Q <<= 1 )
+	A = [qh]; A < 1; B = [ql]; B > 31; A | B; [qh] = A;
+	A = [ql]; A < 1; [ql] = A;
+	( if R >= B then R -= B, Q |= 1 )
+	A = [rh];
+      ? A '> [mbh] -> sfq sub;
+      ? A '< [mbh] -> sfq next;
+	A = [rl];
+      ? A '< [mbl] -> sfq next;
+    "sfq sub"
+	A = [rl]; E = 0;
+      ? A '>= [mbl] -> sfq nob;
+	E = 1;
+    "sfq nob"
+	A = [rl]; A - [mbl]; [rl] = A;
+	A = [rh]; A - [mbh]; A - E; [rh] = A;
+	A = [ql]; A | 1; [ql] = A;
+    "sfq next"
+	[iter]+;
+      ? [iter] < 55 -> sfq loop;
+
+	( q has 55 bits of a/b * 2^54; a/b lies between 0.5 and 2 )
+	A = [qh];
+      ? A '>= 800000h -> sfq big;
+	( quotient < 1: bit 54 is the top, take bits 54..2 )
+	A = [ql]; A > 2; B = [qh]; B < 30; A | B; [mrl] = A;
+	A = [qh]; A > 2; [mrh] = A;
+	A = [ql]; A > 1; A & 1; [rbit] = A;
+	A = [ql]; A & 1; B = [rh]; A | B; B = [rl]; A | B; [sbit] = A;
+	A = [er]; A - 1; [er] = A;
+	-> sfq round;
+    "sfq big"
+	A = [ql]; A > 3; B = [qh]; B < 29; A | B; [mrl] = A;
+	A = [qh]; A > 3; [mrh] = A;
+	A = [ql]; A > 2; A & 1; [rbit] = A;
+	A = [ql]; A & 3; B = [rh]; A | B; B = [rl]; A | B; [sbit] = A;
+
+    "sfq round"
+      ? [rbit] = 0 -> sfq pack;
+      ? [sbit] != 0 -> sfq inc;
+	A = [mrl]; A & 1;
+      ? A = 0 -> sfq pack;
+    "sfq inc"
+	A = [mrl]; A + 1; [mrl] = A;
+      ? A != 0 -> sfq pack;
+	A = [mrh]; A + 1; [mrh] = A;
+      ? A != 200000h -> sfq pack;
+	A = 100000h; [mrh] = A;
+	A = [er]; A + 1; [er] = A;
+
+    "sfq pack"
+      ? [er] <= 0 -> sfq zero;
+      ? [er] >= 7FFh -> sfq zero;
+	A = [mrl];					[rLo] = A;
+	A = [mrh]; A & FFFFFh;
+	B = [er]; B < 20; A | B;
+	B = [sr]; B < 31; A | B;			[rHi] = A;
+	end;
+    "sfq zero"
+	[rLo] = 0; [rHi] = 0;
+	end;
+
+( -------------------------------------------------------------------- )
+
+"XMul"
+    ( 64-BIT-MANTISSA multiply core - what an 80-bit x87 emulation needs. )
+    ( In:  mah:mal and mbh:mbl, both with bit 63 set.                    )
+    ( Out: mrh:mrl rounded to 64 bits nearest-even, xdel = 0 or 1        )
+    (      exponent adjustment.                                          )
+
+	=> Mul128;
+
+	A = [p3]; A > 31;		[xdel] = A;
+      ? [xdel] = 0 -> xm sh63;
+
+	( product in 2^127 .. 2^128: take bits 127..64 )
+	A = [p2];			[mrl] = A;
+	A = [p3];			[mrh] = A;
+	A = [p1]; A > 31;		[rbit] = A;
+	A = [p1]; A & 7FFFFFFFh; B = [p0]; A | B;	[sbit] = A;
+	-> xm round;
+
+    "xm sh63"
+	( product in 2^126 .. 2^127: take bits 126..63 )
+	A = [p1]; A > 31; B = [p2]; B < 1; A | B;	[mrl] = A;
+	A = [p2]; A > 31; B = [p3]; B < 1; A | B;	[mrh] = A;
+	A = [p1]; A > 30; A & 1;			[rbit] = A;
+	A = [p1]; A & 3FFFFFFFh; B = [p0]; A | B;	[sbit] = A;
+
+    "xm round"
+      ? [rbit] = 0 -> xm done;
+      ? [sbit] != 0 -> xm inc;
+	A = [mrl]; A & 1;
+      ? A = 0 -> xm done;
+    "xm inc"
+	A = [mrl]; A + 1; [mrl] = A;
+      ? A != 0 -> xm done;
+	A = [mrh]; A + 1; [mrh] = A;
+      ? A != 0 -> xm done;
+	A = 80000000h; [mrh] = A;
+	[mrl] = 0;
+	A = [xdel]; A + 1; [xdel] = A;
+    "xm done"
+	end;

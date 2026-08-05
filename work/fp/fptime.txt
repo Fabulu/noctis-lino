@@ -1,0 +1,254 @@
+      ( *** fptime - what the three backends cost, measured ***
+
+	The same expression - NOCTIS-0.CPP:4078, five operations - run
+	REPS times over the same 4194 real star coordinates by each of
+	the three backends, timed with the high performance counter.
+
+	AN EMPTY-LOOP CONTROL IS SUBTRACTED.  The loop that walks the
+	coordinate array and stores a result is timed on its own with no
+	arithmetic in it at all, and that time comes off every figure.
+	What is left is the arithmetic and the operand transit, which is
+	the number an implementer actually gets, not an estimate.
+
+	All three are linked into ONE binary and run back to back in one
+	process, so they see the same cache state, the same scheduler and
+	the same machine.  Timing them in separate runs would compare
+	three different machines an hour apart.
+
+	  0  empty control      the loop only
+	  1  X87 CHAIN          fpchains NsIdentity, one fragment
+	  2  X87 SCALAR         fpx87 + fpconv, five routines, five stores
+	  3  NATIVE             L.in.oleum's own float instructions
+	  4  SOFT               fpsoft, 64-bit mantissa, no FPU at all
+
+	REQUIRES THE EXTENDED TOOLCHAIN for fpsoft's *%'.
+
+	Writes fptimeout.bin: counts per millisecond, then one count per
+	battery, then the sink.                                        )
+
+"libraries"
+
+	fpabi;
+	fpctl;
+	fpx87;
+	fpconv;
+	fpchains;
+	fpsoft;
+
+"directors"
+
+	program name = { fptime };
+	unit = 32;
+
+"constants"
+
+	NSTAR	= 4194;
+	REPS	= 400;
+	NBAT	= 5;
+	HDR	= 16;
+
+"variables"
+
+	fptiname = { fpstarin.bin };
+	fptoname = { fptimeout.bin };
+
+	fzptr = 0;
+	fzns = 0;
+	fzrep = 0;
+	fzbat = 0;
+	fzc0 = 0;
+	fzsink = 0;
+	fzK = 100000;
+	fzKF = 0;
+	fzsave0 = 0;
+	fzsave1 = 0;
+
+"workspace"
+
+	fzhead = HDR;
+	fzins  = 12582;
+	fzcnt  = 8;
+
+"programme"
+
+	[File Name]	= fptiname;
+	[File Position]	= 0;
+	[File Command]	= READ;
+	[Block Pointer]	= fzins;
+	[Block Size]	= 12582;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	( (float)100000 for the native battery )
+	A = [fzK]; [FI] = A;
+	=> IntToF;
+	=> FStoreF32;
+	A = [FS0]; [fzKF] = A;
+
+	[fzsink] = 0;
+	[fzbat] = 0;
+
+    "fztbattery"
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; [fzc0] = A;
+	[fzrep] = 0;
+
+    "fztrep"
+	A = fzins; [fzptr] = A;
+	[fzns] = 0;
+
+    "fztone"
+	E = [fzptr];
+	A = [E];		[FJ0] = A;
+	A = [E plus 1];		[FJ1] = A;
+	A = [E plus 2];		[FJ2] = A;
+
+	=> fztrun;
+
+	( A SINK, so a battery that silently computed nothing shows up.
+
+	  It ADDS rather than XORs, and that is not cosmetic: the first
+	  version of this used XOR, and XOR of the same 4194 values an
+	  even number of times is exactly zero.  The sink read 00000000
+	  for every battery including the empty control, so it proved
+	  nothing at all while looking like it did.  Addition does not
+	  cancel over repeats. )
+	A = [fzsink]; B = [FA0]; A + B; [fzsink] = A;
+
+	A = [fzptr]; A + 3; [fzptr] = A;
+	[fzns]+;
+      ? [fzns] < NSTAR -> fztone;
+	[fzrep]+;
+      ? [fzrep] < REPS -> fztrep;
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [fzc0];
+	E = fzcnt; B = [fzbat]; E + B;
+	[E] = A;
+
+	[fzbat]+;
+      ? [fzbat] < NBAT -> fztbattery;
+
+	[fzhead plus 0] = [Counts Per Millisecond];
+	[fzhead plus 1] = NSTAR;
+	[fzhead plus 2] = REPS;
+	[fzhead plus 3] = NBAT;
+	A = [fzsink]; [fzhead plus 4] = A;
+	[fzhead plus 5] = 0DEFACEDh;
+	A = [fzcnt plus 0]; [fzhead plus 6] = A;
+	A = [fzcnt plus 1]; [fzhead plus 7] = A;
+	A = [fzcnt plus 2]; [fzhead plus 8] = A;
+	A = [fzcnt plus 3]; [fzhead plus 9] = A;
+	A = [fzcnt plus 4]; [fzhead plus 10] = A;
+	[fzhead plus 11] = 0;
+	[fzhead plus 12] = 0;
+	[fzhead plus 13] = 0;
+	[fzhead plus 14] = 0;
+	[fzhead plus 15] = 5A5A5A5Ah;
+
+	=> FLeave;
+
+	[File Name]	= fptoname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= fzhead;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= fptoname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= HDR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+( ==================================================================== )
+
+"fztrun"
+      ? [fzbat] = 1 -> fzr chain;
+      ? [fzbat] = 2 -> fzr scalar;
+      ? [fzbat] = 3 -> fzr native;
+      ? [fzbat] = 4 -> fzr soft;
+	( battery 0: the empty control.  It still touches FA so the sink
+	  and the loop cost are the same shape as the real batteries. )
+	A = [FJ0]; [FA0] = A;
+	end;
+    "fzr chain"
+	=> NsIdentity;
+	end;
+    "fzr scalar"
+	=> fzscalar;
+	end;
+    "fzr native"
+	=> fznative;
+	end;
+    "fzr soft"
+	=> fzsoft;
+	end;
+
+( -------------------------------------------------------------------- )
+
+"fzscalar"
+	A = [FJ0]; [FI] = A;
+	=> IntToF;
+	=> fzquoE5;
+	A = [FJ1]; [FI] = A;
+	=> fzmulint;
+	=> fzquoE5;
+	A = [FJ2]; [FI] = A;
+	=> fzmulint;
+	=> fzquoE5;
+	end;
+
+"fzquoE5"
+	[FB0] = 0;
+	[FB1] = 40F86A00h;
+	=> FQuo;
+	end;
+
+"fzmulint"
+	A = [FA0]; [fzsave0] = A;
+	A = [FA1]; [fzsave1] = A;
+	=> IntToF;
+	A = [FA0]; [FB0] = A;
+	A = [FA1]; [FB1] = A;
+	A = [fzsave0]; [FA0] = A;
+	A = [fzsave1]; [FA1] = A;
+	=> FMul;
+	end;
+
+( -------------------------------------------------------------------- )
+
+"fznative"
+	[FA0] ,= [FJ0];
+	A = [fzKF]; [FB0] = A;
+	[FA0] // [FB0];
+	[FC0] ,= [FJ1];
+	[FA0] ** [FC0];
+	[FA0] // [FB0];
+	[FC0] ,= [FJ2];
+	[FA0] ** [FC0];
+	[FA0] // [FB0];
+	end;
+
+( -------------------------------------------------------------------- )
+
+"fzsoft"
+	=> XReset;
+	A = [FJ0]; [XIN] = A;	=> XFild;
+	A = [fzK]; [XIN] = A;	=> XFiquo;
+	A = [FJ1]; [XIN] = A;	=> XFild;
+				=> XFmulp;
+	A = [fzK]; [XIN] = A;	=> XFiquo;
+	A = [FJ2]; [XIN] = A;	=> XFild;
+				=> XFmulp;
+	A = [fzK]; [XIN] = A;	=> XFiquo;
+				=> XFstpQ;
+	end;

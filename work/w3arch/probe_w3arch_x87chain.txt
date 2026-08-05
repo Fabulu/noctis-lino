@@ -1,0 +1,241 @@
+      ( *** Wave 3 ARCHITECT probe - can lino hold an x87 chain? ***
+
+        Recon A proved ML fragments can emit x87 and that a control word
+        loaded from a fragment persists, including across an isocall.
+        Recon C proved what the arithmetic has to be.  NOBODY measured the
+        thing the whole engine choice turns on:
+
+            can a fragment keep an intermediate ON THE x87 STACK across
+            several operations, at 64-bit mantissa, and land the STARMAP
+            oracle from inside a lino programme?
+
+        lino's own instructions cannot: every one of them is fld dword /
+        op dword / fstp dword, so every intermediate is crushed to 24
+        bits.  A fragment is under no such constraint - fild m32int,
+        fidiv m32int, fmulp and fstp m64fp are all just bytes.
+
+        The chain transcribed here is NOCTIS-0.CPP:4078,
+
+            nearstar_identity = x/100000*y/100000*z/100000
+
+        left-associated exactly as C requires, five operations, ONE store:
+
+            fild  x           st0 = (double) x            exact
+            fidiv 1e5         st0 = x/1e5                 round 1
+            fild  y
+            fmulp             st0 = (x/1e5)*y             round 2
+            fidiv 1e5         st0 = ((x/1e5)*y)/1e5       round 3
+            fild  z
+            fmulp             st0 = ...*z                 round 4
+            fidiv 1e5         st0 = .../1e5               round 5
+            fstp  qword       the only store in the whole expression
+
+        THE SAME BYTES are run three times under three control words.
+        Batteries 1 and 2 are the deliberately broken controls: identical
+        code, wrong FPU mode, and they MUST fail.  Recon C measured on
+        real hardware what they have to score, so this is graded against
+        an externally fixed expectation, not against itself:
+
+            battery 0   CW 133Fh   PC=64 RC=nearest   must be 4194/4194
+            battery 1   CW 123Fh   PC=53              must be 2315/4194
+            battery 2   CW 103Fh   PC=24              must be   66/4194
+
+        Two structural checks ride along, because both are ways the
+        experiment could be silently meaningless:
+
+          slot 0,1  fld1 then fstp qword, to prove the two result units
+                    really are low-half-then-high-half of a binary64.  If
+                    the layout were reversed this reads 3FF00000 00000000
+                    instead of 00000000 3FF00000 and every score below is
+                    garbage for a reason that has nothing to do with x87.
+          slot 3    the status word after 12582 chained pushes and pops.
+                    Its TOP field must be back where it started, or the
+                    fragment leaks a register per star and the engine is
+                    unusable however good the numbers look.
+
+        Reads  w3x-in.bin    3 units per star, x y z as int32
+        Writes w3x-out.bin   4 header units, then 3 batteries of
+                             4194 stars of 2 units each                 )
+
+"directors"
+
+	program name = { w3archx87 };
+	unit = 32;
+
+"constants"
+
+	NSTAR	= 4194;
+	HDR	= 4;
+
+"variables"
+
+	input file name  = { w3x-in.bin };
+	result file name = { w3x-out.bin };
+
+	( the fragment addresses these by static displacement, so they
+	  have to be plain variables, not workspace )
+
+	sx	= 0;
+	sy	= 0;
+	sz	= 0;
+	c1e5	= 100000;
+
+	( rLo and rHi MUST stay adjacent and in this order - fstp qword
+	  writes eight bytes starting at rLo.  Slot 0,1 checks it. )
+
+	rLo	= 0;
+	rHi	= 0;
+
+	cwset	= 0;
+	cwbuf	= 0;
+	swbuf	= 0;
+
+	iptr	= 0;
+	optr	= 0;
+	ns	= 0;
+	bat	= 0;
+
+"workspace"
+
+	head	= HDR;
+	ins	= 12582;		( NSTAR multiplied 3 )
+	outs	= 25164;		( NSTAR multiplied 3 multiplied 2 )
+
+"programme"
+
+	( ---------------- load the coordinates ---------------- )
+
+	[File Name]	= input file name;
+	[File Position]	= 0;
+	[File Command]	= READ;
+	[Block Pointer]	= ins;
+	[Block Size]	= 12582;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	( ---------------- slot 0,1: prove the qword layout ----------------
+
+	  fld1 pushes exactly 1.0, whose binary64 image is
+	  3FF0000000000000h.  Little-endian, the low unit is 00000000h and
+	  the high unit is 3FF00000h.  Anything else and the store order is
+	  not what the rest of this probe assumes.                        )
+
+	[rLo] = 0; [rHi] = 0;
+	{
+	    D9 E8				(fld1)
+	    DD 9F <drLo mtp bytesperunit>	(fstp qword [edi+rLo*4])
+	}
+	A = [rLo]; [head plus 0] = A;
+	A = [rHi]; [head plus 1] = A;
+
+	( ---------------- three batteries, same bytes ---------------- )
+
+	A = outs; [optr] = A;
+	[bat] = 0;
+
+    "battery"
+
+	( pick the control word for this battery )
+
+      ? [bat] = 0 -> pick ext;
+      ? [bat] = 1 -> pick dbl;
+	[cwset] = 103Fh;			( PC=24  - broken control )
+	-> pick done;
+    "pick ext"
+	[cwset] = 133Fh;			( PC=64  - the original's )
+	-> pick done;
+    "pick dbl"
+	[cwset] = 123Fh;			( PC=53  - broken control )
+    "pick done"
+
+	{
+	    D9 AF <dcwset mtp bytesperunit>	(fldcw [edi+cwset*4])
+	}
+
+	A = ins; [iptr] = A;
+	[ns] = 0;
+
+    "one star"
+
+	E = [iptr];
+	A = [E];		[sx] = A;
+	A = [E plus 1];		[sy] = A;
+	A = [E plus 2];		[sz] = A;
+
+	( ---- the whole expression, never leaving the x87 stack ---- )
+
+	{
+	    DB 87 <dsx   mtp bytesperunit>	(fild  dword [edi+sx*4])
+	    DA B7 <dc1e5 mtp bytesperunit>	(fidiv dword [edi+c1e5*4])
+	    DB 87 <dsy   mtp bytesperunit>	(fild  dword [edi+sy*4])
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dc1e5 mtp bytesperunit>	(fidiv dword [edi+c1e5*4])
+	    DB 87 <dsz   mtp bytesperunit>	(fild  dword [edi+sz*4])
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dc1e5 mtp bytesperunit>	(fidiv dword [edi+c1e5*4])
+	    DD 9F <drLo  mtp bytesperunit>	(fstp  qword [edi+rLo*4])
+	}
+
+	E = [optr];
+	A = [rLo];		[E] = A;
+	A = [rHi];		[E plus 1] = A;
+	A = [optr]; A + 2;	[optr] = A;
+
+	A = [iptr]; A + 3;	[iptr] = A;
+	[ns]+;
+      ? [ns] < NSTAR -> one star;
+
+	[bat]+;
+      ? [bat] < 3 -> battery;
+
+	( ---------------- slot 2: control word after everything,
+	     including the batteries and the loops.  Recon A showed a
+	     loaded word survives an isocall; this shows it survives
+	     12582 chained fragments as well. ---------------- )
+
+	[cwbuf] = 0;
+	{
+	    9B					(fwait)
+	    D9 BF <dcwbuf mtp bytesperunit>	(fnstcw [edi+cwbuf*4])
+	}
+	A = [cwbuf]; [head plus 2] = A;
+
+	( ---------------- slot 3: the status word.  TOP is bits 11..13.
+	     If every chain balanced, this is the same as it was before
+	     any of them ran. ---------------- )
+
+	[swbuf] = 0;
+	{
+	    9B					(fwait)
+	    DD BF <dswbuf mtp bytesperunit>	(fnstsw [edi+swbuf*4])
+	}
+	A = [swbuf]; [head plus 3] = A;
+
+	( ---------------- write ---------------- )
+
+	[File Name]	= result file name;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= head;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position]	= HDR;
+	[File Position] * BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer]	= outs;
+	[Block Size]	= 25164;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 25164;
+	[File Size]	+ HDR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

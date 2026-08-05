@@ -1,0 +1,193 @@
+      ( *** Wave 3 ARCHITECT probe - what does an x87 chain COST? ***
+
+        The companion probe proved the chain is CORRECT: 4194/4194 on the
+        STARMAP oracle, with the two wrong control words scoring exactly
+        what real hardware scored.  This one prices it, so the engine
+        choice rests on a measurement rather than on an estimate.
+
+        Three routes over the SAME 4194 real star coordinates, each
+        repeated REPS times and timed on the high performance timer:
+
+          route 0  the x87 fragment chain, CW 133Fh - the candidate
+          route 1  the loop with the fragment removed - the overhead
+                   floor, i.e. what the driver costs on its own.  Route 0
+                   minus route 1 is the arithmetic's true price and
+                   nothing else.  Without this control the number would
+                   be the loop, not the FPU.
+          route 2  lino's own native float instructions doing the same
+                   five operations.  It is the WRONG answer numerically
+                   (24 bits per op, scores 66/4194) but it is the price
+                   floor any lino-native route could ever have, so it
+                   says how much the fidelity actually costs.
+
+        Writes w3t-out.bin: counts per millisecond, then one count total
+        per route, then a sink so no route can be optimised away.       )
+
+"directors"
+
+	program name = { w3archtime };
+	unit = 32;
+
+"constants"
+
+	NSTAR	= 4194;
+	REPS	= 64;
+	HDR	= 8;
+
+"variables"
+
+	input file name  = { w3x-in.bin };
+	result file name = { w3t-out.bin };
+
+	sx	= 0;
+	sy	= 0;
+	sz	= 0;
+	c1e5	= 100000;
+	rLo	= 0;
+	rHi	= 0;
+
+	( native-float route needs float-shaped copies )
+	fx	= 0;
+	fy	= 0;
+	fz	= 0;
+	f1e5	= 47C35000h;		( 100000.0 as binary32, exact )
+
+	cwset	= 0;
+	iptr	= 0;
+	ns	= 0;
+	rep	= 0;
+	c0	= 0;
+	cFrag	= 0;
+	cBare	= 0;
+	cNat	= 0;
+	sink	= 0;
+
+"workspace"
+
+	head	= HDR;
+	ins	= 12582;
+
+"programme"
+
+	[File Name]	= input file name;
+	[File Position]	= 0;
+	[File Command]	= READ;
+	[Block Pointer]	= ins;
+	[Block Size]	= 12582;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[cwset] = 133Fh;
+	{
+	    D9 AF <dcwset mtp bytesperunit>	(fldcw [edi+cwset*4])
+	}
+
+	( ---------------- route 0: the x87 fragment chain ---------------- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; [c0] = A;
+	[rep] = 0;
+    "frag rep"
+	A = ins; [iptr] = A;
+	[ns] = 0;
+    "frag one"
+	E = [iptr];
+	A = [E];		[sx] = A;
+	A = [E plus 1];		[sy] = A;
+	A = [E plus 2];		[sz] = A;
+	{
+	    DB 87 <dsx   mtp bytesperunit>	(fild  dword [edi+sx*4])
+	    DA B7 <dc1e5 mtp bytesperunit>	(fidiv dword [edi+c1e5*4])
+	    DB 87 <dsy   mtp bytesperunit>	(fild  dword [edi+sy*4])
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dc1e5 mtp bytesperunit>	(fidiv dword [edi+c1e5*4])
+	    DB 87 <dsz   mtp bytesperunit>	(fild  dword [edi+sz*4])
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dc1e5 mtp bytesperunit>	(fidiv dword [edi+c1e5*4])
+	    DD 9F <drLo  mtp bytesperunit>	(fstp  qword [edi+rLo*4])
+	}
+	A = [sink]; B = [rLo]; A # B; [sink] = A;
+	A = [iptr]; A + 3;	[iptr] = A;
+	[ns]+;
+      ? [ns] < NSTAR -> frag one;
+	[rep]+;
+      ? [rep] < REPS -> frag rep;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [cFrag] = A;
+
+	( ---------------- route 1: the same loop, no arithmetic ---------------- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; [c0] = A;
+	[rep] = 0;
+    "bare rep"
+	A = ins; [iptr] = A;
+	[ns] = 0;
+    "bare one"
+	E = [iptr];
+	A = [E];		[sx] = A;
+	A = [E plus 1];		[sy] = A;
+	A = [E plus 2];		[sz] = A;
+	A = [sink]; B = [sx]; A # B; [sink] = A;
+	A = [iptr]; A + 3;	[iptr] = A;
+	[ns]+;
+      ? [ns] < NSTAR -> bare one;
+	[rep]+;
+      ? [rep] < REPS -> bare rep;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [cBare] = A;
+
+	( ---------------- route 2: lino's own float instructions ---------------- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; [c0] = A;
+	[rep] = 0;
+    "nat rep"
+	A = ins; [iptr] = A;
+	[ns] = 0;
+    "nat one"
+	E = [iptr];
+	A = [E];        [fx] = A;  [fx] ,= [fx];
+	A = [E plus 1]; [fy] = A;  [fy] ,= [fy];
+	A = [E plus 2]; [fz] = A;  [fz] ,= [fz];
+	[fx] // [f1e5];
+	[fx] ** [fy];
+	[fx] // [f1e5];
+	[fx] ** [fz];
+	[fx] // [f1e5];
+	A = [sink]; B = [fx]; A # B; [sink] = A;
+	A = [iptr]; A + 3;	[iptr] = A;
+	[ns]+;
+      ? [ns] < NSTAR -> nat one;
+	[rep]+;
+      ? [rep] < REPS -> nat rep;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [cNat] = A;
+
+	( ---------------- report ---------------- )
+
+	[head plus 0] = [Counts Per Millisecond];
+	A = NSTAR;    [head plus 1] = A;
+	A = REPS;     [head plus 2] = A;
+	A = [cFrag];  [head plus 3] = A;
+	A = [cBare];  [head plus 4] = A;
+	A = [cNat];   [head plus 5] = A;
+	A = [sink];   [head plus 6] = A;
+	A = 0DEFACEDh; [head plus 7] = A;
+
+	[File Name]	= result file name;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= head;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= HDR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

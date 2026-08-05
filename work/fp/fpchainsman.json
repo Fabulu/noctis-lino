@@ -1,0 +1,181 @@
+[
+  {
+    "id": 1,
+    "name": "NsIdentity",
+    "exact": true,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 1,
+    "ints": [
+      "x",
+      "y",
+      "z"
+    ],
+    "f64s": [],
+    "notes": [
+      "NOCTIS-0.CPP:4078 nearstar_identity = x/100000*y/100000*z/100000",
+      "left associated exactly as C requires: five operations, ONE store"
+    ]
+  },
+  {
+    "id": 2,
+    "name": "NsIdentityPermuted",
+    "exact": true,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 1,
+    "ints": [
+      "x",
+      "y",
+      "z"
+    ],
+    "f64s": [],
+    "notes": [
+      "z,y,x instead of x,y,z - multiplication is commutative and the",
+      "divisions are by the same constant, so the value is unchanged"
+    ]
+  },
+  {
+    "id": 3,
+    "name": "NsIdentitySpill1",
+    "exact": false,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 2,
+    "ints": [
+      "x",
+      "y",
+      "z"
+    ],
+    "f64s": [],
+    "notes": [
+      "spill after op 1: x/1e5 narrowed to binary64"
+    ]
+  },
+  {
+    "id": 4,
+    "name": "NsIdentitySpill2",
+    "exact": false,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 2,
+    "ints": [
+      "x",
+      "y",
+      "z"
+    ],
+    "f64s": [],
+    "notes": [
+      "spill after op 2: *y narrowed"
+    ]
+  },
+  {
+    "id": 5,
+    "name": "NsIdentitySpill3",
+    "exact": false,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 2,
+    "ints": [
+      "x",
+      "y",
+      "z"
+    ],
+    "f64s": [],
+    "notes": [
+      "spill after op 3: /1e5 narrowed - the classic",
+      "\"evaluate left to right but store the running value\" backend"
+    ]
+  },
+  {
+    "id": 6,
+    "name": "NsIdentitySpill4",
+    "exact": false,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 2,
+    "ints": [
+      "x",
+      "y",
+      "z"
+    ],
+    "f64s": [],
+    "notes": [
+      "spill after op 4"
+    ]
+  },
+  {
+    "id": 7,
+    "name": "NsIdentitySpillAll",
+    "exact": false,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 5,
+    "ints": [
+      "x",
+      "y",
+      "z"
+    ],
+    "f64s": [],
+    "notes": [
+      "a store after EVERY operation - what a naive \"compile the",
+      "expression with a double temporary\" backend produces"
+    ]
+  },
+  {
+    "id": 8,
+    "name": "IsThereIdentity",
+    "exact": false,
+    "cw": 4927,
+    "peak": 3,
+    "stores": 1,
+    "ints": [
+      "x",
+      "y",
+      "z"
+    ],
+    "f64s": [],
+    "notes": [
+      "*"
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Prod4",
+    "exact": true,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 1,
+    "ints": [],
+    "f64s": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "notes": [
+      "FA*FB*FC*FD left associated, four doubles, three multiplies,",
+      "ONE store. The scalar route would round three extra times."
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Prod4Spilled",
+    "exact": false,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 3,
+    "ints": [],
+    "f64s": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "notes": [
+      "the same product with a store after every multiply - this is",
+      "what calling the scalar FMul three times does, and the gap",
+      "between Prod4 and this one IS the reason chains exist"
+    ]
+  }
+]

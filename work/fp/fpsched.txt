@@ -1,0 +1,255 @@
+( *** fpsched - x87 SCHEDULES AS DATA ***
+
+  One mnemonic per line, in the order the binary has them.  This file is
+  the input to tools/genfp.py, which emits fpchains.txt.
+
+  WHY THIS FILE EXISTS AT ALL.  The thing that has to be transcribed from
+  NOCTIS.EXE is not the C expression, it is the INSTRUCTION SCHEDULE.  One
+  spilled intermediate costs about a quarter of the STARMAP records, so
+  where Borland did and did not store is semantics, not an optimisation
+  detail.  In a schedule the absence of an fstp is the absence of an fstp -
+  there is nothing to re-derive and therefore nothing to get wrong.  An
+  fstp followed by an fld of the same slot is how a DELIBERATE spill is
+  written down, so a transcription that finds one in the binary can say so.
+
+  Slot mapping, applied in declaration order:
+      in int32 ...   -> FJ0 FJ1 FJ2 FJ3
+      in f64   ...   -> FA  FB  FC  FD
+      out f64  ...   -> FA          (every chain leaves its result in FA)
+      const          -> a generated variable, one unit for int32,
+                        an adjacent pair for f64 (low half first)
+      temp           -> a generated adjacent pair, the spill slot
+
+  Directives: chain, cw, in, out, const, temp, exact, note.
+)
+
+( ==================================================================== )
+( THE ONE THE ORACLE GRADES                                             )
+( ==================================================================== )
+
+chain NsIdentity
+  exact
+  cw    133F
+  note  NOCTIS-0.CPP:4078  nearstar_identity = x/100000*y/100000*z/100000
+  note  left associated exactly as C requires: five operations, ONE store
+  in    int32 x, y, z
+  out   f64   id
+  const K100000 = int32 100000
+  fild  x
+  fidiv K100000
+  fild  y
+  fmulp
+  fidiv K100000
+  fild  z
+  fmulp
+  fidiv K100000
+  fstp  id
+end
+
+( ==================================================================== )
+( CONTROL: same arithmetic, operands permuted.  MUST STILL SCORE 4194.  )
+( A test that keys on operand order rather than on arithmetic passes    )
+( the four breaks below and fails this one.                             )
+( ==================================================================== )
+
+chain NsIdentityPermuted
+  exact
+  cw    133F
+  note  z,y,x instead of x,y,z - multiplication is commutative and the
+  note  divisions are by the same constant, so the value is unchanged
+  in    int32 x, y, z
+  out   f64   id
+  const K100000 = int32 100000
+  fild  z
+  fidiv K100000
+  fild  y
+  fmulp
+  fidiv K100000
+  fild  x
+  fmulp
+  fidiv K100000
+  fstp  id
+end
+
+( ==================================================================== )
+( BREAKS.  Four spill points, one per intermediate.  Each is the same   )
+( arithmetic in the same order with ONE extra round trip to memory.     )
+( ==================================================================== )
+
+chain NsIdentitySpill1
+  cw    133F
+  note  spill after op 1: x/1e5 narrowed to binary64
+  in    int32 x, y, z
+  out   f64   id
+  const K100000 = int32 100000
+  temp  t
+  fild  x
+  fidiv K100000
+  fstp  t
+  fld   t
+  fild  y
+  fmulp
+  fidiv K100000
+  fild  z
+  fmulp
+  fidiv K100000
+  fstp  id
+end
+
+chain NsIdentitySpill2
+  cw    133F
+  note  spill after op 2: (x/1e5)*y narrowed
+  in    int32 x, y, z
+  out   f64   id
+  const K100000 = int32 100000
+  temp  t
+  fild  x
+  fidiv K100000
+  fild  y
+  fmulp
+  fstp  t
+  fld   t
+  fidiv K100000
+  fild  z
+  fmulp
+  fidiv K100000
+  fstp  id
+end
+
+chain NsIdentitySpill3
+  cw    133F
+  note  spill after op 3: ((x/1e5)*y)/1e5 narrowed - the classic
+  note  "evaluate left to right but store the running value" backend
+  in    int32 x, y, z
+  out   f64   id
+  const K100000 = int32 100000
+  temp  t
+  fild  x
+  fidiv K100000
+  fild  y
+  fmulp
+  fidiv K100000
+  fstp  t
+  fld   t
+  fild  z
+  fmulp
+  fidiv K100000
+  fstp  id
+end
+
+chain NsIdentitySpill4
+  cw    133F
+  note  spill after op 4
+  in    int32 x, y, z
+  out   f64   id
+  const K100000 = int32 100000
+  temp  t
+  fild  x
+  fidiv K100000
+  fild  y
+  fmulp
+  fidiv K100000
+  fild  z
+  fmulp
+  fstp  t
+  fld   t
+  fidiv K100000
+  fstp  id
+end
+
+chain NsIdentitySpillAll
+  cw    133F
+  note  a store after EVERY operation - what a naive "compile the
+  note  expression with a double temporary" backend produces
+  in    int32 x, y, z
+  out   f64   id
+  const K100000 = int32 100000
+  temp  t
+  fild  x
+  fidiv K100000
+  fstp  t
+  fld   t
+  fild  y
+  fmulp
+  fstp  t
+  fld   t
+  fidiv K100000
+  fstp  t
+  fld   t
+  fild  z
+  fmulp
+  fstp  t
+  fld   t
+  fidiv K100000
+  fstp  id
+end
+
+( ==================================================================== )
+( BREAK: the isthere() LOOKUP formula.  This is a real formula in the   )
+( game, but it is not the one that WROTE starmap.bin.  It multiplies    )
+( by 1e-5 instead of dividing by 1e5 and it re-associates.  Required    )
+( score: 0/4194.  Anything above 0 means the grader is not grading.     )
+( ==================================================================== )
+
+chain IsThereIdentity
+  cw    133F
+  note  (x*1e-5) * ((y*1e-5) * (z*1e-5))
+  in    int32 x, y, z
+  out   f64   id
+  const K1EM5 = f64 3EE4F8B588E368F1
+  fild  x
+  fmul  K1EM5
+  fild  y
+  fmul  K1EM5
+  fild  z
+  fmul  K1EM5
+  fmulp
+  fmulp
+  fstp  id
+end
+
+( ==================================================================== )
+( A SECOND, DIFFERENT-SHAPED CHAIN, to prove the generator is a         )
+( generator and not one hard-coded routine wearing a costume.  This is  )
+( the shape a seedval product has: repeated multiply of doubles that    )
+( are already on the stack, with no store until the end.                )
+( ==================================================================== )
+
+chain Prod4
+  exact
+  cw    133F
+  note  FA*FB*FC*FD left associated, four doubles, three multiplies,
+  note  ONE store.  The scalar route would round three extra times.
+  in    f64 a, b, c, d
+  out   f64 p
+  fld   a
+  fld   b
+  fmulp
+  fld   c
+  fmulp
+  fld   d
+  fmulp
+  fstp  p
+end
+
+chain Prod4Spilled
+  cw    133F
+  note  the same product with a store after every multiply - this is
+  note  what calling the scalar FMul three times does, and the gap
+  note  between Prod4 and this one IS the reason chains exist
+  in    f64 a, b, c, d
+  out   f64 p
+  temp  t
+  fld   a
+  fld   b
+  fmulp
+  fstp  t
+  fld   t
+  fld   c
+  fmulp
+  fstp  t
+  fld   t
+  fld   d
+  fmulp
+  fstp  p
+end

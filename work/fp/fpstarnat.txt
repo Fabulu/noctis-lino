@@ -1,0 +1,208 @@
+      ( *** fpstarnat - the SAME oracle, through the NATIVE backend ***
+
+	fpstar.exe links fpx87.  This programme links fpnative and changes
+	nothing else: same fpabi register file, same period names, same
+	input file, same output format.  Swapping one library is the whole
+	"backend selection is a generation-step choice" claim, tested.
+
+	It is here to measure two things that nobody has measured, and
+	both of them are predictions that can be wrong:
+
+	  PREDICTION 1.  Battery 0 - L.in.oleum's own float instructions
+	  at RC=nearest - is BIT FOR BIT IDENTICAL to fpstar's battery 2,
+	  which is the x87 at PC=24.  If that holds, then "L.in.oleum is
+	  24 bits per operation" stops being an inference from a pack
+	  census and becomes a measurement against an independent
+	  implementation of the same rounding.
+
+	  PREDICTION 2.  Battery 2 - the same native instructions with the
+	  precision control set to 64 bits - is IDENTICAL to battery 0 and
+	  therefore still scores whatever 24-bit scores.  Setting PC=64
+	  does NOTHING for L.in.oleum's own instructions, because each one
+	  ends in fstp dword and the narrowing happens at the store, not
+	  at the rounding control.  This is the measurement that closes
+	  off the obvious cheap idea - "just raise the precision control
+	  and keep using the normal instructions" - and it is why chains
+	  have to exist.
+
+	Battery 1 is the shipped condition: RC=chop, which is what the
+	win32 runtime stub forces on every L.in.oleum program at entry.
+
+	   0  CW 103F   PC=24 RC=nearest   predict == fpstar battery 2
+	   1  CW 1C3F   PC=24 RC=chop      the shipped rounding
+	   2  CW 133F   PC=64 RC=nearest   predict == battery 0
+
+	Reads  fpstarin.bin
+	Writes fpstarnatout.bin, same layout as fpstarout.bin           )
+
+"libraries"
+
+	fpabi;
+	fpctl;
+	fpnative;
+
+"directors"
+
+	program name = { fpstarnat };
+	unit = 32;
+
+"constants"
+
+	NSTAR	= 4194;
+	NBAT	= 3;
+	HDR	= 8;
+
+"variables"
+
+	fpnstarinput  = { fpstarin.bin };
+	fpnstarresult = { fpstarnatout.bin };
+
+	fpniptr	= 0;
+	fpnoptr	= 0;
+	fpnns	= 0;
+	fpnbat	= 0;
+	fpnE5	= 100000;	( the int the native path converts )
+	fpnKE5	= 0;		( (float)100000, built once per battery )
+
+"workspace"
+
+	fpnhead	= HDR;
+	fpnins	= 12582;
+	fpnouts	= 25164;	( NSTAR multiplied 2 multiplied NBAT )
+
+"programme"
+
+	[File Name]	= fpnstarinput;
+	[File Position]	= 0;
+	[File Command]	= READ;
+	[Block Pointer]	= fpnins;
+	[Block Size]	= 12582;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	( the same qword layout sentinel, so this file can be compared
+	  against fpstarout.bin without assuming they agree about it )
+
+	[FA0] = 0; [FA1] = 0;
+	{
+	    D9 E8				(fld1)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
+	}
+	A = [FA0]; [fpnhead plus 0] = A;
+	A = [FA1]; [fpnhead plus 1] = A;
+
+	A = fpnouts; [fpnoptr] = A;
+	[fpnbat] = 0;
+
+    "fpnbattery"
+
+	[FCW] = FCWSGL;				( 103Fh  PC=24 RC=nearest )
+      ? [fpnbat] = 1 -> fpncw chop;
+      ? [fpnbat] = 2 -> fpncw ext;
+	-> fpncw done;
+    "fpncw chop"
+	[FCW] = 1C3Fh;				( PC=24 RC=chop )
+	-> fpncw done;
+    "fpncw ext"
+	[FCW] = FCWEXT;				( 133Fh  PC=64 RC=nearest )
+    "fpncw done"
+	=> FLoadCW;
+
+	( (float)100000 is built INSIDE the battery, under that battery's
+	  rounding control.  100000 is exactly representable in binary32
+	  so it cannot actually differ, but building it outside would be
+	  assuming that rather than letting it be true. )
+
+	A = [fpnE5]; [FI] = A;
+	=> IntToF;
+	A = [FA0]; [fpnKE5] = A;
+
+	A = fpnins; [fpniptr] = A;
+	[fpnns] = 0;
+
+    "fpnonestar"
+
+	E = [fpniptr];
+	A = [E];		[FJ0] = A;
+	A = [E plus 1];		[FJ1] = A;
+	A = [E plus 2];		[FJ2] = A;
+
+	=> fpnidentity;
+	=> FWiden;
+
+	E = [fpnoptr];
+	A = [FA0];		[E] = A;
+	A = [FA1];		[E plus 1] = A;
+	A = [fpnoptr]; A + 2;	[fpnoptr] = A;
+
+	A = [fpniptr]; A + 3;	[fpniptr] = A;
+	[fpnns]+;
+      ? [fpnns] < NSTAR -> fpnonestar;
+
+	[fpnbat]+;
+      ? [fpnbat] < NBAT -> fpnbattery;
+
+	=> FCWRead;
+	A = [FI]; [fpnhead plus 2] = A;
+	=> FStackOK;
+	A = [FI]; [fpnhead plus 3] = A;
+	A = [FFLG]; [fpnhead plus 4] = A;
+	[fpnhead plus 5] = NBAT;
+	[fpnhead plus 6] = NSTAR;
+	[fpnhead plus 7] = 0DEFACEDh;
+
+	=> FLeave;
+
+	[File Name]	= fpnstarresult;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= fpnhead;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= fpnstarresult;
+	[File Position]	= HDR;
+	[File Position] * BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer]	= fpnouts;
+	[Block Size]	= 25164;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= fpnstarresult;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 25164;
+	[File Size]	+ HDR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+( ==================================================================== )
+
+      ( fpnidentity - x/100000*y/100000*z/100000 in L.in.oleum's own
+	float instructions, left associated exactly as C requires.
+
+	Nine instructions, and every single one of them ends in fstp
+	dword.  There is no arrangement of these that keeps an
+	intermediate wide, which is the entire argument of Wave 3 in one
+	subroutine. )
+
+"fpnidentity"
+	[FA0] ,= [FJ0];			( (float)x )
+	A = [fpnKE5]; [FB0] = A;
+	[FA0] // [FB0];			( x / 1e5 )
+
+	[FC0] ,= [FJ1];			( (float)y )
+	[FA0] ** [FC0];
+	[FA0] // [FB0];
+
+	[FC0] ,= [FJ2];			( (float)z )
+	[FA0] ** [FC0];
+	[FA0] // [FB0];
+	end;

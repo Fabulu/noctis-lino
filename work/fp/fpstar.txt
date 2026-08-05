@@ -1,0 +1,309 @@
+      ( *** fpstar - the killer oracle, run through the fp* engine ***
+
+	STARMAP.BIN was written in 1996 by Borland C++ code running on a
+	387 with the control word at 133Fh.  Every one of the 37578
+	records holds a binary64 whose bits are the value of
+
+	    nearstar_identity = x/100000*y/100000*z/100000
+
+	for that star.  4194 of those are decodable from coordinates we
+	have.  I checked, independently of any file this project has ever
+	produced, that all 4194 expected bit patterns in fpstarexp.txt
+	occur verbatim as stored ids inside STARMAP.BIN.  So this is not
+	grading against a table we made earlier: it is grading against
+	the shipped artifact.
+
+	ELEVEN BATTERIES.  The first is the engine as it is meant to be
+	used.  The rest are deliberate breaks and controls, and the point
+	of each is that its expected score was fixed by something other
+	than this programme:
+
+	   0  NsIdentity          CW 133F   must be 4194 - the answer
+	   1  NsIdentity          CW 123F   must be 2315 - PC=53, measured
+	   2  NsIdentity          CW 103F   must be   66 - PC=24, measured
+	   3  NsIdentityPermuted  CW 133F   must be 4194 - CONTROL.  Same
+	      arithmetic, operands in the other order.  A test that keys
+	      on operand order rather than on arithmetic passes every
+	      break below and fails this one.
+	   4  spill after op 1              must be < 4194
+	   5  spill after op 2              must be < 4194
+	   6  spill after op 3              must be < 4194
+	   7  spill after op 4              must be < 4194
+	   8  store after EVERY op          must be < 4194
+	   9  IsThereIdentity     CW 133F   must be 0 - the game's LOOKUP
+	      formula, which multiplies by 1e-5 and re-associates.  It is
+	      a real formula; it is not the one that wrote the file.
+	  10  the SCALAR route through fpx87 + fpconv - IntToF, FDiv,
+	      FMul, one memory round trip per operation.  This must equal
+	      battery 8 BIT FOR BIT: a hand-written path and a generated
+	      path agreeing is the internal check that neither has a bug.
+	      It must also score well below 4194, which is the whole
+	      argument for chains existing at all.
+
+	Two structural checks ride along because both are ways the whole
+	experiment could be silently meaningless:
+
+	  slot 0,1  fld1 then fstp qword.  Proves the two units really
+	            are low-half-then-high-half of a binary64.  Reversed,
+	            this reads 3FF00000 00000000 and every score is
+	            garbage for a reason unrelated to floating point.
+	  slot 3    the status word at the end.  TOP must be back at 0
+	            after 46134 chained fragments or the engine leaks an
+	            x87 register per star.
+
+	Reads  fpstarin.bin   3 units per star, x y z as int32
+	Writes fpstarout.bin  8 header units, then NBAT batteries of
+	                      NSTAR stars of 2 units each                 )
+
+"libraries"
+
+	fpabi;
+	fpctl;
+	fpx87;
+	fpconv;
+	fpchains;
+
+"directors"
+
+	program name = { fpstar };
+	unit = 32;
+
+"constants"
+
+	NSTAR	= 4194;
+	NBAT	= 11;
+	HDR	= 8;
+
+"variables"
+
+	fpstarinput  = { fpstarin.bin };
+	fpstarresult = { fpstarout.bin };
+
+	fpsiptr	= 0;
+	fpsoptr	= 0;
+	fpsns	= 0;
+	fpsbat	= 0;
+	fpssave0 = 0;
+	fpssave1 = 0;
+
+"workspace"
+
+	fpshead	= HDR;
+	fpsins	= 12582;		( NSTAR multiplied 3 )
+	fpsouts	= 92268;		( NSTAR multiplied 2 multiplied NBAT )
+
+"programme"
+
+	( ---------------- load the coordinates ---------------- )
+
+	[File Name]	= fpstarinput;
+	[File Position]	= 0;
+	[File Command]	= READ;
+	[Block Pointer]	= fpsins;
+	[Block Size]	= 12582;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	( ---------------- bracket the ambient control word ----------------
+
+	  The win32 runtime hands over RC=chop on purpose and the linux
+	  runtime hands over whatever was there.  Neither is what this
+	  code needs, and neither is inherited: FEnter states the word
+	  and FLeave puts back exactly what it found. )
+
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	( ---------------- slot 0,1: prove the qword layout ----------------
+
+	  1.0 is 3FF0000000000000h.  Little-endian, the low unit reads
+	  00000000h and the high unit reads 3FF00000h. )
+
+	[FA0] = 0; [FA1] = 0;
+	{
+	    D9 E8				(fld1)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
+	}
+	A = [FA0]; [fpshead plus 0] = A;
+	A = [FA1]; [fpshead plus 1] = A;
+
+	( ---------------- the batteries ---------------- )
+
+	A = fpsouts; [fpsoptr] = A;
+	[fpsbat] = 0;
+
+    "fpsbattery"
+
+	( control word for this battery.  FLoadCW, not FEnter: a second
+	  FEnter would make FLeave restore battery 0's word. )
+
+	[FCW] = FCWEXT;
+      ? [fpsbat] = 1 -> fpscw dbl;
+      ? [fpsbat] = 2 -> fpscw sgl;
+	-> fpscw done;
+    "fpscw dbl"
+	[FCW] = FCWDBL;
+	-> fpscw done;
+    "fpscw sgl"
+	[FCW] = FCWSGL;
+    "fpscw done"
+	=> FLoadCW;
+
+	A = fpsins; [fpsiptr] = A;
+	[fpsns] = 0;
+
+    "fpsonestar"
+
+	E = [fpsiptr];
+	A = [E];		[FJ0] = A;
+	A = [E plus 1];		[FJ1] = A;
+	A = [E plus 2];		[FJ2] = A;
+
+	=> fpsdispatch;
+
+	E = [fpsoptr];
+	A = [FA0];		[E] = A;
+	A = [FA1];		[E plus 1] = A;
+	A = [fpsoptr]; A + 2;	[fpsoptr] = A;
+
+	A = [fpsiptr]; A + 3;	[fpsiptr] = A;
+	[fpsns]+;
+      ? [fpsns] < NSTAR -> fpsonestar;
+
+	[fpsbat]+;
+      ? [fpsbat] < NBAT -> fpsbattery;
+
+	( ---------------- structural readbacks ---------------- )
+
+	=> FCWRead;
+	A = [FI]; [fpshead plus 2] = A;
+
+	=> FStackOK;
+	A = [FI]; [fpshead plus 3] = A;
+
+	A = [FFLG]; [fpshead plus 4] = A;
+	[fpshead plus 5] = NBAT;
+	[fpshead plus 6] = NSTAR;
+	[fpshead plus 7] = 0DEFACEDh;
+
+	=> FLeave;
+
+	( ---------------- write ---------------- )
+
+	[File Name]	= fpstarresult;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= fpshead;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= fpstarresult;
+	[File Position]	= HDR;
+	[File Position] * BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer]	= fpsouts;
+	[Block Size]	= 92268;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= fpstarresult;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 92268;
+	[File Size]	+ HDR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+( ==================================================================== )
+
+      ( fpsdispatch - pick the routine for this battery.  Batteries 0,1,2
+	are the SAME BYTES under three different control words; only the
+	word changes, so a difference between them cannot be a difference
+	of code. )
+
+"fpsdispatch"
+      ? [fpsbat] = 3  -> fpsd perm;
+      ? [fpsbat] = 4  -> fpsd sp1;
+      ? [fpsbat] = 5  -> fpsd sp2;
+      ? [fpsbat] = 6  -> fpsd sp3;
+      ? [fpsbat] = 7  -> fpsd sp4;
+      ? [fpsbat] = 8  -> fpsd spall;
+      ? [fpsbat] = 9  -> fpsd isthere;
+      ? [fpsbat] = 10 -> fpsd scalar;
+	=> NsIdentity;
+	end;
+    "fpsd perm"
+	=> NsIdentityPermuted;
+	end;
+    "fpsd sp1"
+	=> NsIdentitySpill1;
+	end;
+    "fpsd sp2"
+	=> NsIdentitySpill2;
+	end;
+    "fpsd sp3"
+	=> NsIdentitySpill3;
+	end;
+    "fpsd sp4"
+	=> NsIdentitySpill4;
+	end;
+    "fpsd spall"
+	=> NsIdentitySpillAll;
+	end;
+    "fpsd isthere"
+	=> IsThereIdentity;
+	end;
+    "fpsd scalar"
+	=> fpsscalarid;
+	end;
+
+( -------------------------------------------------------------------- )
+
+      ( fpsscalarid - the same identity computed through the Level 2
+	SCALAR interface: IntToF, FDiv, FMul, one memory round trip per
+	operation, exactly as a port would get it by compiling the C
+	expression with a double temporary.
+
+	Every routine it calls is hand written in fpx87 and fpconv.  The
+	generated chain NsIdentitySpillAll performs the same five
+	operations with the same five stores.  If the two disagree by a
+	single bit, one of them has a bug - and that is the only thing
+	this battery is a test OF.  It is NOT evidence about the
+	schedule, because both sides implement the same schedule. )
+
+"fpsscalarid"
+	A = [FJ0]; [FI] = A;
+	=> IntToF;			( FA = (double)x, exact )
+	=> fpsquoE5;			( FA = FA / 1e5 )
+	A = [FJ1]; [FI] = A;
+	=> fpsmulint;			( FA = FA * (double)y )
+	=> fpsquoE5;
+	A = [FJ2]; [FI] = A;
+	=> fpsmulint;
+	=> fpsquoE5;
+	end;
+
+      ( FA <- FA / 100000.0.  100000 is exactly representable, so this
+	divides by the same value fidiv does. )
+
+"fpsquoE5"
+	[FB0] = 0;
+	[FB1] = 40F86A00h;		( 40F86A0000000000h = 1e5 )
+	=> FQuo;
+	end;
+
+      ( FA <- FA * (double)FI.  FA has to be parked while IntToF uses it. )
+
+"fpsmulint"
+	A = [FA0]; [fpssave0] = A;
+	A = [FA1]; [fpssave1] = A;
+	=> IntToF;
+	A = [FA0]; [FB0] = A;
+	A = [FA1]; [FB1] = A;
+	A = [fpssave0]; [FA0] = A;
+	A = [fpssave1]; [FA1] = A;
+	=> FMul;
+	end;

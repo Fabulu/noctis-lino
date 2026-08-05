@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "name": "NsIdentity",
+    "exact": true,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 1,
+    "ints": [
+      "x",
+      "y",
+      "z"
+    ],
+    "f64s": [],
+    "notes": [
+      "NOCTIS-0.CPP:4078 nearstar_identity = x/100000*y/100000*z/100000",
+      "left associated exactly as C requires: five operations, ONE store"
+    ]
+  },
+  {
+    "id": 2,
+    "name": "NsIdentityPermuted",
+    "exact": true,
+    "cw": 4927,
+    "peak": 2,
+    "stores": 1,
+    "ints": [
+      "x",
+      "y",
+      "z"
+    ],
+    "f64s": [],
+    "notes": [
+      "z,y,x instead of x,y,z - multiplication is commutative and the",
+      "divisions are by the same constant, so the value is unchanged"
+    ]
+  }
+]

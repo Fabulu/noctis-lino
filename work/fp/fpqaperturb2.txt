@@ -1,0 +1,210 @@
+      ( *** fpqaperturb2 - QA perturbation probe, second scale ***
+
+	fpqaperturb showed that flipping the LEAST significant bit of a
+	64-bit extended intermediate is invisible to the STARMAP oracle:
+	the graded quantity is a binary64, so a 2^-63 relative nudge
+	survives the final rounding in 4112 of 4113 records.  That is a
+	statement about the resolution of the oracle and it has to be
+	measured at the scales that matter.
+
+	Four batteries, all at CW 133F, same 4113 unambiguous stars:
+
+	  0  NsIdentity, clean.  Must score 4113/4113.
+	  1  bit 11 of the extended significand flipped after operation
+	     1.  Bit 11 is the LAST bit a binary64 keeps, so this is a
+	     ONE-ULP-OF-THE-RESULT perturbation of an intermediate.
+	  2  the same flip after operation 4.
+	  3  the LSB of the FINAL binary64 flipped after the chain has
+	     stored it.  One ULP of the graded quantity itself: this
+	     MUST score 0/4113 or the oracle is not an oracle.
+
+	Writes fpqaout2.bin, 8 header units then 4 batteries.           )
+
+"libraries"
+
+	fpabi;
+	fpctl;
+	fpchains;
+
+"directors"
+
+	program name = { fpqaperturb2 };
+	unit = 32;
+
+"constants"
+
+	NSTAR	= 4113;
+	NBAT	= 4;
+	HDR	= 8;
+
+"variables"
+
+	fpqa2input  = { fpqain.bin };
+	fpqa2result = { fpqaout2.bin };
+
+	qa2iptr	= 0;
+	qa2optr	= 0;
+	qa2ns	= 0;
+	qa2bat	= 0;
+
+	QA2K100000 = 100000;
+	QA2T0	= 0;
+	QA2T1	= 0;
+	QA2T2	= 0;
+
+"workspace"
+
+	qa2head	= HDR;
+	qa2ins	= 12339;
+	qa2outs	= 32904;		( NSTAR multiplied 2 multiplied NBAT )
+
+"programme"
+
+	[File Name]	= fpqa2input;
+	[File Position]	= 0;
+	[File Command]	= READ;
+	[Block Pointer]	= qa2ins;
+	[Block Size]	= 12339;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	[FA0] = 0; [FA1] = 0;
+	{
+	    D9 E8				(fld1)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
+	}
+	A = [FA0]; [qa2head plus 0] = A;
+	A = [FA1]; [qa2head plus 1] = A;
+
+	A = qa2outs; [qa2optr] = A;
+	[qa2bat] = 0;
+
+    "qa2battery"
+
+	A = qa2ins; [qa2iptr] = A;
+	[qa2ns] = 0;
+
+    "qa2onestar"
+
+	E = [qa2iptr];
+	A = [E];		[FJ0] = A;
+	A = [E plus 1];		[FJ1] = A;
+	A = [E plus 2];		[FJ2] = A;
+
+	=> qa2dispatch;
+
+	E = [qa2optr];
+	A = [FA0];		[E] = A;
+	A = [FA1];		[E plus 1] = A;
+	A = [qa2optr]; A + 2;	[qa2optr] = A;
+
+	A = [qa2iptr]; A + 3;	[qa2iptr] = A;
+	[qa2ns]+;
+      ? [qa2ns] < NSTAR -> qa2onestar;
+
+	[qa2bat]+;
+      ? [qa2bat] < NBAT -> qa2battery;
+
+	=> FStackOK;
+	A = [FI]; [qa2head plus 2] = A;
+	=> FCWRead;
+	A = [FI]; [qa2head plus 3] = A;
+	A = [FFLG]; [qa2head plus 4] = A;
+	[qa2head plus 5] = NBAT;
+	[qa2head plus 6] = NSTAR;
+	[qa2head plus 7] = 0DEFACEDh;
+
+	=> FLeave;
+
+	[File Name]	= fpqa2result;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= qa2head;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= fpqa2result;
+	[File Position]	= HDR;
+	[File Position] * BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer]	= qa2outs;
+	[Block Size]	= 32904;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= fpqa2result;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 32904;
+	[File Size]	+ HDR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+( ==================================================================== )
+
+"qa2dispatch"
+      ? [qa2bat] = 1 -> qa2d b11a;
+      ? [qa2bat] = 2 -> qa2d b11b;
+      ? [qa2bat] = 3 -> qa2d fin;
+	=> NsIdentity;
+	end;
+    "qa2d b11a"
+	=> QABit11Op1;
+	end;
+    "qa2d b11b"
+	=> QABit11Op4;
+	end;
+    "qa2d fin"
+	=> QAFinalUlp;
+	end;
+
+( -------------------------------------------------------------------- )
+
+"QABit11Op1"
+	{
+	    DB 87 <dFJ0 mtp bytesperunit>	(fild  x)
+	    DA B7 <dQA2K100000 mtp bytesperunit>(fidiv K100000)
+	    DB BF <dQA2T0 mtp bytesperunit>	(fstp  tbyte)
+	    81 B7 <dQA2T0 mtp bytesperunit> 00 08 00 00	(xor dword [edi+T0],800h)
+	    DB AF <dQA2T0 mtp bytesperunit>	(fld   tbyte)
+	    DB 87 <dFJ1 mtp bytesperunit>	(fild  y)
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dQA2K100000 mtp bytesperunit>(fidiv K100000)
+	    DB 87 <dFJ2 mtp bytesperunit>	(fild  z)
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dQA2K100000 mtp bytesperunit>(fidiv K100000)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword id)
+	}
+	end;
+
+"QABit11Op4"
+	{
+	    DB 87 <dFJ0 mtp bytesperunit>	(fild  x)
+	    DA B7 <dQA2K100000 mtp bytesperunit>(fidiv K100000)
+	    DB 87 <dFJ1 mtp bytesperunit>	(fild  y)
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dQA2K100000 mtp bytesperunit>(fidiv K100000)
+	    DB 87 <dFJ2 mtp bytesperunit>	(fild  z)
+	    DE C9				(fmulp st1,st0)
+	    DB BF <dQA2T0 mtp bytesperunit>	(fstp  tbyte)
+	    81 B7 <dQA2T0 mtp bytesperunit> 00 08 00 00	(xor dword [edi+T0],800h)
+	    DB AF <dQA2T0 mtp bytesperunit>	(fld   tbyte)
+	    DA B7 <dQA2K100000 mtp bytesperunit>(fidiv K100000)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword id)
+	}
+	end;
+
+      ( QAFinalUlp - the clean chain, then one ULP flipped in the stored
+	binary64 itself.  The graded quantity is perturbed by exactly one
+	unit in the last place. )
+
+"QAFinalUlp"
+	=> NsIdentity;
+	A = [FA0]; A # 1; [FA0] = A;
+	end;

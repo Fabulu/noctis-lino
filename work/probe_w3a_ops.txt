@@ -1,0 +1,110 @@
+      ( *** Wave 3 recon A - one use of every floating-point instruction ***
+
+        This nails the instruction-to-opcode mapping without trusting the
+        pack index arithmetic.  Every L.in.oleum floating-point
+        instruction appears EXACTLY ONCE, with [VAR],[VAR] operands.
+        Counting x87 opcodes in the produced .exe therefore gives a
+        bijection: if ** really is fmul, D8 8F must appear exactly once,
+        and if it were anything else the count would be zero.
+
+        The program also stores every result so the arithmetic can be
+        checked, but the mapping proof is in the opcode counts alone.  )
+
+"directors"
+
+	program name = { p3aops };
+	unit = 32;
+
+"variables"
+
+	fa	= 0;
+	fb	= 0;
+	iv	= 0;
+
+	result file name = { p3a-ops.bin };
+
+"workspace"
+
+	results = 16;
+
+"programme"
+
+	( ++ addition )
+	[fa] = 3F800000h; [fb] = 40400000h; [fa] ++ [fb];
+	A = [fa]; [results plus 0] = A;
+
+	( -- subtraction )
+	[fa] = 3F800000h; [fb] = 40400000h; [fa] -- [fb];
+	A = [fa]; [results plus 1] = A;
+
+	( ** multiplication )
+	[fa] = 3F800000h; [fb] = 40400000h; [fa] ** [fb];
+	A = [fa]; [results plus 2] = A;
+
+	( // division )
+	[fa] = 3F800000h; [fb] = 40400000h; [fa] // [fb];
+	A = [fa]; [results plus 3] = A;
+
+	( %% partial remainder )
+	[fa] = 40E00000h; [fb] = 40200000h; [fa] %% [fb];
+	A = [fa]; [results plus 4] = A;
+
+	( =, float to integer )
+	[fa] = 40600000h; [iv] =, [fa];
+	A = [iv]; [results plus 5] = A;
+
+	( ,= integer to float )
+	[iv] = 3; [fa] ,= [iv];
+	A = [fa]; [results plus 6] = A;
+
+	( ~ sine )
+	[fa] = 3F800000h; ~ [fa];
+	A = [fa]; [results plus 7] = A;
+
+	( ~~ cosine )
+	[fa] = 3F800000h; ~~ [fa];
+	A = [fa]; [results plus 8] = A;
+
+	( /~ square root )
+	[fa] = 40000000h; /~ [fa];
+	A = [fa]; [results plus 9] = A;
+
+	( ^/ arctangent )
+	[fa] = 3F800000h; [fb] = 40000000h; [fa] ^/ [fb];
+	A = [fa]; [results plus 10] = A;
+
+	( ++-- floating-point negation )
+	[fa] = 3F800000h; ++-- [fa];
+	A = [fa]; [results plus 11] = A;
+
+	( |||| floating-point absolute value )
+	[fa] = 0BF800000h; ||[fa]||;
+	A = [fa]; [results plus 12] = A;
+
+	( ?? floating-point comparison )
+	[fa] = 3F800000h; [fb] = 40000000h;
+	A = 0;
+     ?? [fa] < [fb] -> fp less;
+	A = 1;
+    "fp less"
+	[results plus 13] = A;
+
+	A = 0DEFACEDh;
+	[results plus 14] = A;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 16;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 16;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

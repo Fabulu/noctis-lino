@@ -1,0 +1,269 @@
+      ( *** fpqaperturb - QA one-ULP perturbation and control-word
+	persistence probe ***
+
+	Written by the independent QA pass, not by the implementers.
+
+	Input : fpqain.bin, 4113 UNAMBIGUOUS star coordinate triples -
+		catalogue records for which the galaxy sweep produced
+		exactly ONE candidate, so no candidate can have been
+		chosen for matching.
+
+	Five batteries, all at CW 133F:
+
+	  0  NsIdentity, straight from the fpchains library.
+	     Must score 4113/4113.
+
+	  1  CONTROL.  The same chain with the intermediate after
+	     operation 1 stored to a 10-byte TBYTE and reloaded.  An
+	     extended-precision round trip is lossless, so this must
+	     ALSO score 4113/4113.  Without this control, battery 2's
+	     collapse could be blamed on the store rather than the bit.
+
+	  2  BREAK.  Identical to battery 1 except that one byte of the
+	     stored tbyte is XORed with 1 - the least significant bit of
+	     the 64-bit significand, exactly one ULP at extended
+	     precision, in an intermediate that never reaches memory in
+	     the real chain.  The oracle must catch it.
+
+	  3  BREAK.  The same one-ULP flip applied after operation 4
+	     (the second multiply) instead of operation 1.
+
+	  4  PERSISTENCE.  NsIdentity again, but run AFTER an isocall
+	     file write has happened inside the FEnter bracket.  If the
+	     runtime resets the x87 control word across an isocall, this
+	     scores like PC=24 and every measurement taken in isolation
+	     is misleading.  Header slots 2 and 3 hold the control word
+	     read back immediately before and immediately after that
+	     isocall.
+
+	Writes fpqaout.bin: 8 header units then 5 batteries of 4113
+	       stars of 2 units each.                                   )
+
+"libraries"
+
+	fpabi;
+	fpctl;
+	fpchains;
+
+"directors"
+
+	program name = { fpqaperturb };
+	unit = 32;
+
+"constants"
+
+	NSTAR	= 4113;
+	NBAT	= 5;
+	HDR	= 8;
+
+"variables"
+
+	fpqainput  = { fpqain.bin };
+	fpqaresult = { fpqaout.bin };
+
+	qaiptr	= 0;
+	qaoptr	= 0;
+	qans	= 0;
+	qabat	= 0;
+
+	QAK100000 = 100000;
+	QAT0	= 0;		( tbyte scratch, 10 bytes over 3 units )
+	QAT1	= 0;
+	QAT2	= 0;
+
+"workspace"
+
+	qahead	= HDR;
+	qains	= 12339;		( NSTAR multiplied 3 )
+	qaouts	= 41130;		( NSTAR multiplied 2 multiplied NBAT )
+
+"programme"
+
+	[File Name]	= fpqainput;
+	[File Position]	= 0;
+	[File Command]	= READ;
+	[Block Pointer]	= qains;
+	[Block Size]	= 12339;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	[FA0] = 0; [FA1] = 0;
+	{
+	    D9 E8				(fld1)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
+	}
+	A = [FA0]; [qahead plus 0] = A;
+	A = [FA1]; [qahead plus 1] = A;
+
+	[qahead plus 2] = 0;
+	[qahead plus 3] = 0;
+
+	A = qaouts; [qaoptr] = A;
+	[qabat] = 0;
+
+    "qabattery"
+
+      ? [qabat] = 4 -> qadoiso;
+	-> qanoiso;
+
+    "qadoiso"
+
+	( control word immediately before the isocall )
+	=> FCWRead;
+	A = [FI]; [qahead plus 2] = A;
+
+	( an isocall - a real file write - inside the FEnter bracket )
+	[File Name]	= fpqaresult;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= qahead;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	( control word immediately after it )
+	=> FCWRead;
+	A = [FI]; [qahead plus 3] = A;
+
+    "qanoiso"
+
+	A = qains; [qaiptr] = A;
+	[qans] = 0;
+
+    "qaonestar"
+
+	E = [qaiptr];
+	A = [E];		[FJ0] = A;
+	A = [E plus 1];		[FJ1] = A;
+	A = [E plus 2];		[FJ2] = A;
+
+	=> qadispatch;
+
+	E = [qaoptr];
+	A = [FA0];		[E] = A;
+	A = [FA1];		[E plus 1] = A;
+	A = [qaoptr]; A + 2;	[qaoptr] = A;
+
+	A = [qaiptr]; A + 3;	[qaiptr] = A;
+	[qans]+;
+      ? [qans] < NSTAR -> qaonestar;
+
+	[qabat]+;
+      ? [qabat] < NBAT -> qabattery;
+
+	=> FStackOK;
+	A = [FI]; [qahead plus 4] = A;
+
+	A = [FFLG]; [qahead plus 5] = A;
+	[qahead plus 6] = NSTAR;
+	[qahead plus 7] = 0DEFACEDh;
+
+	=> FLeave;
+
+	[File Name]	= fpqaresult;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= qahead;
+	[Block Size]	= HDR;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= fpqaresult;
+	[File Position]	= HDR;
+	[File Position] * BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer]	= qaouts;
+	[Block Size]	= 41130;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= fpqaresult;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 41130;
+	[File Size]	+ HDR;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+( ==================================================================== )
+
+"qadispatch"
+      ? [qabat] = 1 -> qad rt;
+      ? [qabat] = 2 -> qad p1;
+      ? [qabat] = 3 -> qad p4;
+	=> NsIdentity;
+	end;
+    "qad rt"
+	=> QARoundTrip;
+	end;
+    "qad p1"
+	=> QAPerturb1;
+	end;
+    "qad p4"
+	=> QAPerturb4;
+	end;
+
+( -------------------------------------------------------------------- )
+
+      ( QARoundTrip - NsIdentity with the intermediate after operation 1
+	pushed through a 10-byte tbyte and pulled back.  Lossless. )
+
+"QARoundTrip"
+	{
+	    DB 87 <dFJ0 mtp bytesperunit>	(fild  x)
+	    DA B7 <dQAK100000 mtp bytesperunit>	(fidiv K100000)
+	    DB BF <dQAT0 mtp bytesperunit>	(fstp  tbyte [edi+QAT0*4])
+	    DB AF <dQAT0 mtp bytesperunit>	(fld   tbyte [edi+QAT0*4])
+	    DB 87 <dFJ1 mtp bytesperunit>	(fild  y)
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dQAK100000 mtp bytesperunit>	(fidiv K100000)
+	    DB 87 <dFJ2 mtp bytesperunit>	(fild  z)
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dQAK100000 mtp bytesperunit>	(fidiv K100000)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword id)
+	}
+	end;
+
+      ( QAPerturb1 - the same, with the least significant bit of the
+	64-bit significand flipped while the value sits in memory. )
+
+"QAPerturb1"
+	{
+	    DB 87 <dFJ0 mtp bytesperunit>	(fild  x)
+	    DA B7 <dQAK100000 mtp bytesperunit>	(fidiv K100000)
+	    DB BF <dQAT0 mtp bytesperunit>	(fstp  tbyte [edi+QAT0*4])
+	    80 B7 <dQAT0 mtp bytesperunit> 01	(xor byte [edi+QAT0*4],1)
+	    DB AF <dQAT0 mtp bytesperunit>	(fld   tbyte [edi+QAT0*4])
+	    DB 87 <dFJ1 mtp bytesperunit>	(fild  y)
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dQAK100000 mtp bytesperunit>	(fidiv K100000)
+	    DB 87 <dFJ2 mtp bytesperunit>	(fild  z)
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dQAK100000 mtp bytesperunit>	(fidiv K100000)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword id)
+	}
+	end;
+
+      ( QAPerturb4 - one ULP flipped after operation 4 instead. )
+
+"QAPerturb4"
+	{
+	    DB 87 <dFJ0 mtp bytesperunit>	(fild  x)
+	    DA B7 <dQAK100000 mtp bytesperunit>	(fidiv K100000)
+	    DB 87 <dFJ1 mtp bytesperunit>	(fild  y)
+	    DE C9				(fmulp st1,st0)
+	    DA B7 <dQAK100000 mtp bytesperunit>	(fidiv K100000)
+	    DB 87 <dFJ2 mtp bytesperunit>	(fild  z)
+	    DE C9				(fmulp st1,st0)
+	    DB BF <dQAT0 mtp bytesperunit>	(fstp  tbyte [edi+QAT0*4])
+	    80 B7 <dQAT0 mtp bytesperunit> 01	(xor byte [edi+QAT0*4],1)
+	    DB AF <dQAT0 mtp bytesperunit>	(fld   tbyte [edi+QAT0*4])
+	    DA B7 <dQAK100000 mtp bytesperunit>	(fidiv K100000)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword id)
+	}
+	end;

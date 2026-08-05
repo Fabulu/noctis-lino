@@ -28,7 +28,7 @@ first â€” a broken foundation makes every later result meaningless.
 - `lino_build.ps1` drives the GUI-subsystem compiler non-interactively:
   launches, polls for artifacts, kills. Classifies warnings vs errors, and
   refuses paths containing `--` (see bug 1).
-- Regression suite: `tests/run_all.py`, 12 tests, 313 checks, ~176 s. Nothing
+- Regression suite: `tests/run_all.py`, 14 tests, ~240 s. Nothing
   is graded against a stored binary; every side is rebuilt each run, and each
   test builds a deliberately broken version of its subject and requires that
   to fail.

@@ -1,0 +1,250 @@
+      ( *** fpnative - the NATIVE backend, for RENDERING ONLY ***
+
+	One of three interchangeable backends.  It exports the same period
+	names as fpx87 and reads the same fpabi register file, so a call
+	site does not change - but it is NOT interchangeable in what it
+	computes, and the difference is the whole architecture:
+
+	    L.in.oleum's float instructions are fld dword / op dword /
+	    fstp dword.  EVERY intermediate is narrowed to binary32 the
+	    instant it is produced.  24 bits per operation, no exceptions,
+	    no way round it from inside the instruction set.
+
+	That is fine for a pixel and fatal for a seed.  A generation seed
+	is a float truncated to an integer; one ULP is a DIFFERENT PLANET,
+	not a nearby one.  A quarter pixel is invisible.  So this backend
+	is for the renderer and genfp.py REFUSES to compile a chain marked
+	`exact` through it, on the grounds that a plausible wrong answer is
+	worse than an error.
+
+	REPRESENTATION.  The ABI slots are binary64 pairs.  This backend
+	holds the live value as a binary32 in the LOW unit and keeps the
+	high unit as the widened partner, converted by FWiden - which is
+	pure integer bit shuffling, not arithmetic, and is exact because
+	every binary32 is a binary64.  So a native result can be compared
+	bit for bit against an x87 result without either side moving.
+
+	ROUNDING.  These instructions obey the FPU rounding control like
+	any other, so this backend calls FEnter too.  At RC=nearest
+	L.in.oleum is bit-exact correctly-rounded binary32 on all eight
+	operations; at the shipped chop it is one ulp low on a third to a
+	half of them and is specifiable by nothing at all.  RC=nearest is
+	chosen because it makes the renderer a machine with a written-down
+	definition, and only secondarily because it is closer to 1996. )
+
+"variables"
+
+	FNW	= 0;		( scratch for the widen/narrow bit shuffling )
+	FNE	= 0;
+	FNM	= 0;
+	FNS	= 0;
+	FNC0	= 0;		( FCmp parks FA here )
+
+	( private to this backend, as in fpconv: sharing FCWSAV with
+	  FEnter/FLeave would make a cast between them replace the
+	  ambient word FLeave is supposed to put back )
+	FCWCSAV	= 0;
+	FCWCHOP	= 0;
+
+"programme"
+
+( ==================================================================== )
+( Level 2 - the SCALAR interface, in L.in.oleum's own float ops         )
+( ==================================================================== )
+
+"FLoad"
+	A = [FB0]; [FA0] = A;
+	A = [FB1]; [FA1] = A;
+	end;
+
+"FAdd"
+	[FA0] ++ [FB0];
+	end;
+
+"FSub"
+	[FA0] -- [FB0];
+	end;
+
+"FMul"
+	[FA0] ** [FB0];
+	end;
+
+"FQuo"
+	[FA0] // [FB0];
+	end;
+
+"FSqrt"
+	/~ [FA0];
+	end;
+
+"FNeg"
+	[FA0]++--;
+	end;
+
+"FAbs"
+	||[FA0]||;
+	end;
+
+"FSin"
+	~ [FA0];
+	end;
+
+"FCos"
+	~~ [FA0];
+	end;
+
+"FAtan2"
+	[FA0] ^/ [FB0];
+	end;
+
+      ( FCmp - by SUBTRACTION, not by comparing the bit patterns.
+
+	Comparing binary32 images as integers is right for two positives
+	and backwards for two negatives, and L.in.oleum's ' prefix means
+	unsigned, not floating point.  Subtracting and testing the sign
+	is correct across signs.  The difference is exact enough to
+	decide a sign even when it underflows, because underflow only
+	happens when the two are already equal to within an ulp and the
+	sign of the tiny result is still the right sign. )
+
+"FCmp"
+	A = [FA0]; [FNC0] = A;
+	[FA0] -- [FB0];
+	A = [FA0]; A & 7FFFFFFFh;
+	[FI] = 0;
+      ? A = 0 -> FNC done;
+	[FI] = 1;
+	A = [FA0]; A & 80000000h;
+      ? A = 0 -> FNC done;
+	A = 0; A - 1; [FI] = A;
+    "FNC done"
+	A = [FNC0]; [FA0] = A;
+	end;
+
+( ==================================================================== )
+( conversions                                                           )
+( ==================================================================== )
+
+      ( IntToF - FA <- (float)FI.  NOT exact past 2^24: this is the
+	instruction that makes 16777219 come back as 16777220. )
+
+"IntToF"
+	[FA0] ,= [FI];
+	end;
+
+      ( FToIntNear - under RC=nearest, =, IS fistp with the rounding
+	control at 00, which is the 37 hand-written sites. )
+
+"FToIntNear"
+	[FI] =, [FA0];
+	end;
+
+      ( FToIntChop - C cast semantics.  =, cannot be used here: it
+	follows the live rounding control, which is nearest.  The chop
+	has to be forced, which is exactly what Borland's __ftol does. )
+
+"FToIntChop"
+	[FCWCSAV] = 0;
+	{
+	    9B					(fwait)
+	    D9 BF <dFCWCSAV mtp bytesperunit>	(fnstcw [edi+FCWCSAV*4])
+	}
+	A = [FCWCSAV]; A & 0F3FFh; A | 0C00h; [FCWCHOP] = A;
+	{
+	    D9 AF <dFCWCHOP mtp bytesperunit>	(fldcw [edi+FCWCHOP*4])
+	}
+	[FI] =, [FA0];
+	{
+	    D9 AF <dFCWCSAV mtp bytesperunit>	(fldcw [edi+FCWCSAV*4])
+	}
+	end;
+
+"FToInt16Chop"
+	=> FToIntChop;
+	=> FNarrow16;
+	end;
+
+"FToInt16Near"
+	=> FToIntNear;
+	=> FNarrow16;
+	end;
+
+"FNarrow16"
+	A = [FI]; A & 0FFFFh; [FI] = A;
+      ? [FI] '< 8000h -> FNN16 done;
+	A = [FI]; A - 65536; [FI] = A;
+    "FNN16 done"
+	end;
+
+      ( F32Narrow - a no-op here, and saying so is the point.  On this
+	backend every value is ALREADY binary32, so the deliberate
+	narrowing the original does when it saves the ship position into
+	float locals is invisible - there is nothing wider to narrow
+	from.  That is precisely why the ship's state is carried on the
+	x87 backend and not this one. )
+
+"F32Narrow"
+	end;
+
+( ==================================================================== )
+( representation - exact, integer only, no arithmetic                   )
+( ==================================================================== )
+
+      ( FWiden - FA0/FA1 <- the binary64 image of the binary32 in FA0.
+
+	    s eeeeeeee mmmmmmmmmmmmmmmmmmmmmmm      binary32
+	    s eeeeeeeeeee mmmm...52 bits...         binary64
+
+	exponent rebias 127 -> 1023, mantissa left-justified.  Exact for
+	every normal and for zero.  Denormals and infinities are not
+	produced by the render path and are not handled; FFLG records it
+	if one turns up rather than quietly emitting a wrong number. )
+
+"FWiden"
+	A = [FA0]; A > 31;		[FNS] = A;
+	A = [FA0]; A > 23; A & 0FFh;	[FNE] = A;
+	A = [FA0]; A & 7FFFFFh;		[FNM] = A;
+
+      ? [FNE] = 0    -> FW special;
+      ? [FNE] = 0FFh -> FW special;
+
+	A = [FNM]; A < 29;		[FA0] = A;
+	A = [FNE]; A + 896;		[FNW] = A;	( 1023 minus 127 )
+	A = [FNM]; A > 3;
+	B = [FNW]; B < 20; A | B;
+	B = [FNS]; B < 31; A | B;	[FA1] = A;
+	end;
+
+    "FW special"
+      ? [FNE] != 0 -> FW nonzero;
+      ? [FNM] != 0 -> FW nonzero;
+	( true zero, sign preserved )
+	[FA0] = 0;
+	A = [FNS]; A < 31;		[FA1] = A;
+	end;
+    "FW nonzero"
+	A = [FFLG]; A | FFLGUNORD;	[FFLG] = A;
+	[FA0] = 0; [FA1] = 0;
+	end;
+
+      ( FShrink - FA0 <- the binary32 image of the binary64 pair, when
+	the pair is known to have come from FWiden.  Exact by
+	construction - such a pair has 29 zero mantissa bits - so no
+	rounding decision arises and none is made. )
+
+"FShrink"
+	A = [FA1]; A > 31;		[FNS] = A;
+	A = [FA1]; A > 20; A & 7FFh;	[FNE] = A;
+	A = [FA1]; A & 0FFFFFh; A < 3;
+	B = [FA0]; B > 29; A | B;	[FNM] = A;
+
+      ? [FNE] = 0 -> FS zero;
+
+	A = [FNE]; A - 896;		[FNE] = A;
+	A = [FNE]; A < 23;
+	B = [FNM]; A | B;
+	B = [FNS]; B < 31; A | B;	[FA0] = A;
+	end;
+    "FS zero"
+	A = [FNS]; A < 31;		[FA0] = A;
+	end;

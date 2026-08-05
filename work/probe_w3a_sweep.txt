@@ -1,0 +1,147 @@
+      ( *** Wave 3 recon A - bulk sweep, chop versus nearest ***
+
+        The battery probe measured single values.  This one measures
+        8192 pseudo-random operand pairs through six floating-point
+        instructions, twice: once under the control word the L.in.oleum
+        runtime installs (00E7Fh, chop) and once under 0027Fh, which is
+        what Windows hands the process before the runtime touches it.
+
+        Pass 2 regenerates exactly the same inputs from the same seed, so
+        the two passes can be compared operand-for-operand, and both can
+        be compared against correctly-rounded IEEE-754 binary32 computed
+        outside this program.  If lino were not doing binary32 arithmetic
+        at all, pass 2 would not match a binary32 reference either, and
+        the whole reading would collapse - so the comparison is a test of
+        the model, not just of the rounding mode.
+
+        Operands are built from an LCG so that the exponent field lands
+        in 7Ch..83h, i.e. magnitudes between 1/8 and 16, sign always
+        positive: /~ needs a non-negative argument and this keeps every
+        result finite and normal.
+
+        Record layout, 10 units per iteration:
+
+          0 a          1 b
+          2 a ++ b     3 a -- b     4 a ** b     5 a // b
+          6 /~ a       7 ~ a        8 ~~ a       9 a ^/ b
+
+        Pass 1 occupies units 0..81919, pass 2 units 81920..163839.    )
+
+"directors"
+
+	program name = { p3aswp };
+	unit = 32;
+
+"constants"
+
+	niter	= 8192;
+	reclen	= 10;
+
+"variables"
+
+	seed	= 0;
+	optr	= 0;
+	count	= 0;
+	cwset	= 0;
+	fa	= 0;
+	fb	= 0;
+	t	= 0;
+	expo	= 0;
+
+	result file name = { p3a-sweep.bin };
+
+"workspace"
+
+	out = 163840;
+
+"programme"
+
+	( ---- pass 1: the control word the runtime installed ---- )
+
+	[optr] = out;
+	[seed] = 1;
+	=> sweep;
+
+	( ---- pass 2: 0027Fh, round to nearest, 53-bit precision ---- )
+
+	[cwset] = 027Fh;
+	{
+	    D9 AF <dcwset mtp bytesperunit>	(fldcw [edi+cwset*4])
+	}
+	[optr] = out; [optr] + 81920;
+	[seed] = 1;
+	=> sweep;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = out;
+	[Block Size]	= 163840;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 163840;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+
+
+    ( ==================================================================
+      sweep: N records starting at [optr], driven by [seed].
+      ================================================================== )
+
+    "sweep"
+
+	[count] = 0;
+
+    "sweep loop"
+
+	( next LCG state, then a positive float with exponent 3Ch..43h )
+
+	[seed] * 1103515245;
+	[seed] + 12345;
+
+	A = [seed]; A > 9;		( 23-bit mantissa )
+	[t] = A;
+	A = [seed]; A > 4; A & 7; A + 7Ch;
+	A < 23;
+	[expo] = A;
+	A = [t]; A | [expo];
+	[fa] = A;
+
+	[seed] * 1103515245;
+	[seed] + 12345;
+
+	A = [seed]; A > 9;
+	[t] = A;
+	A = [seed]; A > 4; A & 7; A + 7Ch;
+	A < 23;
+	[expo] = A;
+	A = [t]; A | [expo];
+	[fb] = A;
+
+	B = [optr];
+
+	C = [fa]; [B] = C; B+;
+	C = [fb]; [B] = C; B+;
+
+	[t] = [fa]; [t] ++ [fb]; C = [t]; [B] = C; B+;
+	[t] = [fa]; [t] -- [fb]; C = [t]; [B] = C; B+;
+	[t] = [fa]; [t] ** [fb]; C = [t]; [B] = C; B+;
+	[t] = [fa]; [t] // [fb]; C = [t]; [B] = C; B+;
+	[t] = [fa]; /~ [t];      C = [t]; [B] = C; B+;
+	[t] = [fa]; ~ [t];       C = [t]; [B] = C; B+;
+	[t] = [fa]; ~~ [t];      C = [t]; [B] = C; B+;
+	[t] = [fa]; [t] ^/ [fb]; C = [t]; [B] = C; B+;
+
+	[optr] = B;
+
+	[count]+;
+      ? [count] < niter -> sweep loop;
+
+	end;

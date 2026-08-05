@@ -1,0 +1,175 @@
+
+# ---------------------------------------------------------------------------
+# THE chain.  NOCTIS-0.CPP:4078
+#     nearstar_identity = star_x / 100000 * star_y / 100000 * star_z / 100000;
+# Left-associative, every intermediate resident in st(0), one store at the end.
+# ---------------------------------------------------------------------------
+chain NsIdentity
+  sid   1
+  cw    133F
+  exact
+  in    int32 x, y, z
+  out   f64   id
+  const K100000 = int32 100000
+  fild  x
+  fidiv K100000
+  fild  y
+  fmulp
+  fidiv K100000
+  fild  z
+  fmulp
+  fidiv K100000
+  fstp  id
+
+# ---------------------------------------------------------------------------
+# NEGATIVE CONTROL - one intermediate spilled to a double and reloaded.  This
+# is the transcription error a port makes by accident.  Expected 3139/4194.
+# ---------------------------------------------------------------------------
+chain NsIdentitySpill
+  sid   2
+  cw    133F
+  in    int32 x, y, z
+  out   f64   id
+  var   f64   mid
+  const K100000 = int32 100000
+  fild  x
+  fidiv K100000
+  fild  y
+  fmulp
+  fidiv K100000
+  fstp  mid
+  fld   mid
+  fild  z
+  fmulp
+  fidiv K100000
+  fstp  id
+
+# ---------------------------------------------------------------------------
+# NEGATIVE CONTROL - the isthere() LOOKUP formula, (x*is)*((y*is)*(z*is)) with
+# is = the double nearest 1e-5.  Same mathematical value, different schedule
+# and a different divisor representation.  Expected 0/4194.
+# ---------------------------------------------------------------------------
+chain NsIdentityIsThere
+  sid   3
+  cw    133F
+  in    int32 x, y, z
+  out   f64   id
+  const KIS = f64 1e-05
+  fild  x
+  fmul  KIS
+  fild  y
+  fmul  KIS
+  fild  z
+  fmul  KIS
+  fmulp
+  fmulp
+  fstp  id
+
+# ---------------------------------------------------------------------------
+# NEGATIVE CONTROL that MUST STILL PASS - operands permuted z,y,x.  Same value,
+# same schedule shape.  Expected 4194/4194.  A test that fails this one is
+# keying on operand order instead of on arithmetic.
+# ---------------------------------------------------------------------------
+chain NsIdentityPermuted
+  sid   4
+  cw    133F
+  in    int32 x, y, z
+  out   f64   id
+  const K100000 = int32 100000
+  fild  z
+  fidiv K100000
+  fild  y
+  fmulp
+  fidiv K100000
+  fild  x
+  fmulp
+  fidiv K100000
+  fstp  id
+
+# ---------------------------------------------------------------------------
+# NEGATIVE CONTROL - the same chain narrowed through a 32-bit float at the end.
+# This is what F32Narrow does, applied where it does not belong.
+# ---------------------------------------------------------------------------
+chain NsIdentityF32
+  sid   5
+  cw    133F
+  in    int32 x, y, z
+  out   f64   id
+  var   f32   nar
+  const K100000 = int32 100000
+  fild  x
+  fidiv K100000
+  fild  y
+  fmulp
+  fidiv K100000
+  fild  z
+  fmulp
+  fidiv K100000
+  fstps nar
+  flds  nar
+  fstp  id
+
+# ---------------------------------------------------------------------------
+# Level-2 SCALAR exercisers.  These are the shapes where the original also
+# stored to a declared variable, so a per-operation routine is faithful.
+# ---------------------------------------------------------------------------
+chain ScalarAdd
+  sid   10
+  cw    133F
+  in    f64 a, b
+  out   f64 r
+  fld   a
+  fadd  b
+  fstp  r
+
+chain ScalarSub
+  sid   11
+  cw    133F
+  in    f64 a, b
+  out   f64 r
+  fld   a
+  fsub  b
+  fstp  r
+
+chain ScalarMul
+  sid   12
+  cw    133F
+  in    f64 a, b
+  out   f64 r
+  fld   a
+  fmul  b
+  fstp  r
+
+chain ScalarDiv
+  sid   13
+  cw    133F
+  in    f64 a, b
+  out   f64 r
+  fld   a
+  fdiv  b
+  fstp  r
+
+chain ScalarSqrt
+  sid   14
+  cw    133F
+  in    f64 a
+  out   f64 r
+  fld   a
+  fsqrt
+  fstp  r
+
+# A three-deep register chain with no store in the middle: (a+b)*(a-b).
+# The point is that a backend which spills either half still gets the right
+# answer most of the time, so this one is a WEAK test on purpose - it exists
+# to show that only the identity chain has the resolving power.
+chain ScalarDiffSq
+  sid   15
+  cw    133F
+  in    f64 a, b
+  out   f64 r
+  fld   a
+  fadd  b
+  fld   a
+  fsub  b
+  fmulp
+  fstp  r

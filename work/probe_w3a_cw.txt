@@ -1,0 +1,249 @@
+      ( *** Wave 3 recon A - the x87 control word under L.in.oleum ***
+
+        The claim under test is that L.in.oleum "holds 24 bits per
+        operation".  The CPU pack says every floating-point pattern is
+        fld dword / <op> dword / fstp dword, so the STORAGE is binary32.
+        What the pack does NOT say is what rounding and what precision
+        control the FPU is running under, because the pack contains no
+        FLDCW and no FNSTCW anywhere.  The runtime module does: at
+        win32.bin offset 250Dh the entry stub reads the control word,
+        ANDs it with 0F3FFh, ORs 0C00h, and loads it back.  Bits 10 and
+        11 are the rounding-control field, and 11b means chop.
+
+        This probe measures the control word directly and then runs the
+        SAME battery of floating-point instructions four times under four
+        different control words, loaded by ML fragments.  Identical code,
+        only the FPU mode differs: any difference in the recorded bits is
+        caused by the control word and by nothing else.  If the ML FLDCW
+        did not take, or did not persist, batteries 2..4 would be
+        identical to battery 1 - so this design carries its own negative
+        control.
+
+        Slots written to p3a-cw.bin, 96 units.  Battery layout, 15 slots:
+
+          +0  =, of 1.5        chop 1     nearest 2
+          +1  =, of 2.5        chop 2     nearest 2
+          +2  =, of 3.5        chop 3     nearest 4
+          +3  =, of -1.5       chop -1    nearest -2
+          +4  =, of -3.5       chop -3    nearest -4
+          +5  1.0 // 3.0       chop 3EAAAAAA  nearest 3EAAAAAB
+          +6  /~ 2.0           chop 3FB504F2  nearest 3FB504F3
+          +7  0.1 ++ 0.2
+          +8  ~ 1.0            sine
+          +9  ~~ 1.0           cosine
+          +10 1.0 ^/ 2.0       arctangent
+          +11 7.0 %% 2.5       partial remainder - exact, must not move
+          +12 ,= of 16777219   chop 4B800001  nearest 4B800002
+                               either way it proves a 24-bit mantissa,
+                               because 16777219 is not representable
+          +13 (1.0 ++ 2 to the minus 30) -- 1.0
+                               0 if every operation narrows to binary32,
+                               30800000h if any wider value survives the
+                               instruction boundary
+          +14 the control word as read at the END of the battery, which
+              is what tests whether a loaded control word persists across
+              lino floating-point instructions
+
+        Slot map:
+
+           0        control word at program entry, before ANY float work
+           1        status word at program entry
+           2..16    battery 1 - as shipped
+          17        0037Fh, the value about to be loaded
+          18..32    battery 2 - RC nearest, PC 64-bit extended
+          33        0027Fh
+          34..48    battery 3 - RC nearest, PC 53-bit double
+          49        0007Fh
+          50..64    battery 4 - RC nearest, PC 24-bit single
+          65        control word after an isocall, to see if the kernel
+                    restores it behind our back
+          66        1.0 // 3.0 after reloading the shipped 00E7Fh
+          67        0DEFACEDh sentinel                                  )
+
+"directors"
+
+	program name = { p3acw };
+	unit = 32;
+
+"constants"
+
+	f1half	= 3FC00000h;	( 1.5   )
+	f2half	= 40200000h;	( 2.5   )
+	f3half	= 40600000h;	( 3.5   )
+	fm1half = 0BFC00000h;	( -1.5  )
+	fm3half = 0C0600000h;	( -3.5  )
+	fone	= 3F800000h;	( 1.0   )
+	ftwo	= 40000000h;	( 2.0   )
+	fthree	= 40400000h;	( 3.0   )
+	fpone	= 3DCCCCCDh;	( 0.1   )
+	fptwo	= 3E4CCCCDh;	( 0.2   )
+	fseven	= 40E00000h;	( 7.0   )
+	ftiny	= 30800000h;	( 2 to the minus 30 )
+
+"variables"
+
+	cwbuf	= 0;
+	swbuf	= 0;
+	cwset	= 0;
+	optr	= 0;
+	fa	= 0;
+	fb	= 0;
+	iv	= 0;
+	tmp	= 0;
+
+	result file name = { p3a-cw.bin };
+
+"workspace"
+
+	results = 96;
+
+"programme"
+
+	( ---- slot 0: the control word before a single float instruction ---- )
+
+	[cwbuf] = 0;
+	{
+	    9B					(fwait)
+	    D9 BF <dcwbuf mtp bytesperunit>	(fnstcw [edi+cwbuf*4])
+	}
+	A = [cwbuf]; [results plus 0] = A;
+
+	[swbuf] = 0;
+	{
+	    9B					(fwait)
+	    DD BF <dswbuf mtp bytesperunit>	(fnstsw [edi+swbuf*4])
+	}
+	A = [swbuf]; [results plus 1] = A;
+
+	( ---- battery 1: exactly as the runtime left the FPU ---- )
+
+	[optr] = results; [optr] + 2;
+	=> battery;
+
+	( ---- battery 2: RC nearest, PC 64-bit extended ---- )
+
+	[cwset] = 037Fh;
+	A = [cwset]; [results plus 17] = A;
+	{
+	    D9 AF <dcwset mtp bytesperunit>	(fldcw [edi+cwset*4])
+	}
+	[optr] = results; [optr] + 18;
+	=> battery;
+
+	( ---- battery 3: RC nearest, PC 53-bit double ---- )
+
+	[cwset] = 027Fh;
+	A = [cwset]; [results plus 33] = A;
+	{
+	    D9 AF <dcwset mtp bytesperunit>	(fldcw [edi+cwset*4])
+	}
+	[optr] = results; [optr] + 34;
+	=> battery;
+
+	( ---- battery 4: RC nearest, PC 24-bit single ---- )
+
+	[cwset] = 07Fh;
+	A = [cwset]; [results plus 49] = A;
+	{
+	    D9 AF <dcwset mtp bytesperunit>	(fldcw [edi+cwset*4])
+	}
+	[optr] = results; [optr] + 50;
+	=> battery;
+
+	( ---- slot 65: does an isocall restore the control word?
+	       write the file once here purely to make a real kernel
+	       transition happen, then read the control word again ---- )
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 96;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[cwbuf] = 0;
+	{
+	    9B					(fwait)
+	    D9 BF <dcwbuf mtp bytesperunit>	(fnstcw [edi+cwbuf*4])
+	}
+	A = [cwbuf]; [results plus 65] = A;
+
+	( ---- slot 66: put the shipped control word back and check that
+	       the shipped behaviour comes back with it ---- )
+
+	[cwset] = 0E7Fh;
+	{
+	    D9 AF <dcwset mtp bytesperunit>	(fldcw [edi+cwset*4])
+	}
+	[fa] = fone;
+	[fb] = fthree;
+	[fa] // [fb];
+	A = [fa]; [results plus 66] = A;
+
+	A = 0DEFACEDh;
+	[results plus 67] = A;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 96;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 96;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+
+
+    ( ==================================================================
+      battery: 15 measurements starting at the unit indexed by [optr].
+      The floating-point patterns for [VAR] operands touch no integer
+      register, so B can be carried through as the output pointer.
+      ================================================================== )
+
+    "battery"
+
+	B = [optr];
+
+	[fa] = f1half;  [iv] =, [fa];  C = [iv]; [B] = C; B+;
+	[fa] = f2half;  [iv] =, [fa];  C = [iv]; [B] = C; B+;
+	[fa] = f3half;  [iv] =, [fa];  C = [iv]; [B] = C; B+;
+	[fa] = fm1half; [iv] =, [fa];  C = [iv]; [B] = C; B+;
+	[fa] = fm3half; [iv] =, [fa];  C = [iv]; [B] = C; B+;
+
+	[fa] = fone;  [fb] = fthree; [fa] // [fb]; C = [fa]; [B] = C; B+;
+
+	[fa] = ftwo;  /~ [fa];                     C = [fa]; [B] = C; B+;
+
+	[fa] = fpone; [fb] = fptwo;  [fa] ++ [fb]; C = [fa]; [B] = C; B+;
+
+	[fa] = fone;  ~ [fa];                      C = [fa]; [B] = C; B+;
+	[fa] = fone;  ~~ [fa];                     C = [fa]; [B] = C; B+;
+
+	[fa] = fone;  [fb] = ftwo;   [fa] ^/ [fb]; C = [fa]; [B] = C; B+;
+
+	[fa] = fseven; [fb] = f2half; [fa] %% [fb]; C = [fa]; [B] = C; B+;
+
+	[iv] = 16777219; [fa] ,= [iv];             C = [fa]; [B] = C; B+;
+
+	[fa] = fone; [fb] = ftiny;
+	[fa] ++ [fb];
+	[fb] = fone;
+	[fa] -- [fb];                              C = [fa]; [B] = C; B+;
+
+	[cwbuf] = 0;
+	{
+	    9B					(fwait)
+	    D9 BF <dcwbuf mtp bytesperunit>	(fnstcw [edi+cwbuf*4])
+	}
+	C = [cwbuf]; [B] = C; B+;
+
+	end;

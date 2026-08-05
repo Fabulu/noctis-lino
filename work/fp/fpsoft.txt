@@ -1,0 +1,528 @@
+      ( *** fpsoft - the SOFT backend: an x87 in software ***
+
+	The third backend.  It touches no FPU at all: no x87 instruction,
+	no control word, no rounding mode.  Every value is carried as a
+	sign, a 15-bit-biased exponent and a 64-BIT mantissa held in two
+	units - which is the x87 extended format, not binary64 - and every
+	rounding decision is made explicitly in integer code.
+
+	WHY IT EXISTS, given that fpx87 is both faster and exact.
+	Two reasons, and the first is the weaker one:
+
+	  1. Two implementations that agree are evidence; one agreeing
+	     with itself is not.  fpx87 and fpsoft consume the same
+	     schedule and must produce the same bits.  That is circular
+	     with respect to the SCHEDULE - both are told the same
+	     sequence - and NOT circular with respect to the ARITHMETIC,
+	     which is done by completely different machinery.  Say that
+	     boundary out loud, because it is easy to mistake this for
+	     schedule validation, and it is not.
+
+	  2. Determinism across machines.  fpx87 is right because Intel's
+	     FPU is right; fpsoft is right because the integer code says
+	     what right is.  Nothing here depends on a control word
+	     surviving an isocall, on a runtime stub's startup behaviour,
+	     or on a platform having an x87 at all.  fpstarsoft proves
+	     this by running the same battery under PC=64 and PC=24 and
+	     requiring IDENTICAL results: the precision control cannot
+	     reach this code.
+
+	THE STACK MODEL is explicit and is a real 8-entry ring with a TOP
+	that decrements on push, because that is what the thing being
+	modelled is.  A chain that leaves the stack unbalanced does so
+	here too, visibly, instead of quietly working.
+
+	REPRESENTATION.  value = (M / 2^63) * 2^(E - 16383), M in
+	2^63 upto 2^64, exactly the x87 extended significand convention.
+	Zero is E=0, M=0.  Denormals, infinities and NaNs are REJECTED,
+	not handled: they do not occur in Noctis's generation path and
+	pretending to support them would be untested code.  XREJ counts
+	any that turn up so a vector set that trips one is visible rather
+	than silently wrong.
+
+	REQUIRES THE EXTENDED TOOLCHAIN for the *%' 32x32->64 multiply:
+	    -Compiler main\lib\gen\compiler114m.exe  -Cpu i386m
+	Mul128 is lifted from work/probe_w3c_sf.txt, where it was already
+	measured correct; only the exponent handling around it is new.  )
+
+"constants"
+
+	XBIAS	= 16383;
+
+"variables"
+
+	( st0 image )
+	XS = 0; XE = 0; XMH = 0; XML = 0;
+	( st1 / second operand image )
+	YS = 0; YE = 0; YMH = 0; YML = 0;
+
+	XTOP = 0;			( 0..7, decrements on push )
+	XIN  = 0;			( int32 input to XFild / XFiquo )
+	XREJ = 0;
+	XDEPTH = 0;			( how many pushes are live )
+
+	( 128-bit product limbs )
+	xa0 = 0; xa1 = 0; xb0 = 0; xb1 = 0;
+	xc0 = 0; xc1 = 0; xd0 = 0; xd1 = 0;
+	xp0 = 0; xp1 = 0; xp2 = 0; xp3 = 0;
+	xcy = 0;
+
+	( division state: R is 65 bits, Q is 66 bits )
+	rc = 0; rh = 0; rl = 0;
+	qc = 0; qh = 0; ql = 0;
+	xiter = 0; xbrw = 0;
+	xrbit = 0; xsbit = 0; xdel = 0;
+	xtmp = 0; xadr = 0;
+
+"workspace"
+
+	XSTK = 32;			( 8 entries of 4 units: s e mh ml )
+
+"programme"
+
+( ==================================================================== )
+( the stack                                                             )
+( ==================================================================== )
+
+      ( XAddr0 / XAddr1 - E <- the address of st(0) / st(1).
+	x87 numbering: st(0) is at TOP, st(1) at TOP+1, modulo 8. )
+
+"XAddr0"
+	A = [XTOP]; A & 7; A * 4; B = XSTK; A + B; E = A;
+	end;
+
+"XAddr1"
+	A = [XTOP]; A + 1; A & 7; A * 4; B = XSTK; A + B; E = A;
+	end;
+
+      ( XPush - TOP-- then store the X registers into the new st(0). )
+
+"XPush"
+	A = [XTOP]; A - 1; A & 7; [XTOP] = A;
+	=> XAddr0;
+	A = [XS];  [E] = A;
+	A = [XE];  [E plus 1] = A;
+	A = [XMH]; [E plus 2] = A;
+	A = [XML]; [E plus 3] = A;
+	[XDEPTH]+;
+	end;
+
+      ( XPop - load st(0) into the X registers, then TOP++. )
+
+"XPop"
+	=> XAddr0;
+	A = [E];		[XS]  = A;
+	A = [E plus 1];		[XE]  = A;
+	A = [E plus 2];		[XMH] = A;
+	A = [E plus 3];		[XML] = A;
+	A = [XTOP]; A + 1; A & 7; [XTOP] = A;
+	A = [XDEPTH]; A - 1; [XDEPTH] = A;
+	end;
+
+      ( XLoad0 / XLoad1 - read without popping. )
+
+"XLoad0"
+	=> XAddr0;
+	A = [E];		[XS]  = A;
+	A = [E plus 1];		[XE]  = A;
+	A = [E plus 2];		[XMH] = A;
+	A = [E plus 3];		[XML] = A;
+	end;
+
+"XLoad1"
+	=> XAddr1;
+	A = [E];		[YS]  = A;
+	A = [E plus 1];		[YE]  = A;
+	A = [E plus 2];		[YMH] = A;
+	A = [E plus 3];		[YML] = A;
+	end;
+
+"XStore0"
+	=> XAddr0;
+	A = [XS];  [E] = A;
+	A = [XE];  [E plus 1] = A;
+	A = [XMH]; [E plus 2] = A;
+	A = [XML]; [E plus 3] = A;
+	end;
+
+"XStore1"
+	=> XAddr1;
+	A = [XS];  [E] = A;
+	A = [XE];  [E plus 1] = A;
+	A = [XMH]; [E plus 2] = A;
+	A = [XML]; [E plus 3] = A;
+	end;
+
+      ( XReset - empty stack.  Call once before a chain. )
+
+"XReset"
+	[XTOP] = 0;
+	[XDEPTH] = 0;
+	end;
+
+( ==================================================================== )
+( int32 -> extended, exact for every int32                              )
+( ==================================================================== )
+
+      ( XFromInt - [XIN] -> X registers.
+
+	fild of a dword cannot round at any precision control, because
+	every int32 fits in 64 bits of mantissa.  So this is a sign,
+	an absolute value and a normalising shift, and nothing else. )
+
+"XFromInt"
+	[XS] = 0;
+	A = [XIN];
+      ? A != 0 -> XFI nonzero;
+	[XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+    "XFI nonzero"
+	A = [XIN]; A & 80000000h;
+      ? A = 0 -> XFI pos;
+	[XS] = 1;
+	A = 0; A - [XIN]; [xtmp] = A;		( two's complement negate )
+	-> XFI norm;
+    "XFI pos"
+	A = [XIN]; [xtmp] = A;
+    "XFI norm"
+	( shift left until bit 31 is set; count the shifts.
+
+	  -2147483648 negates to itself, which already has bit 31 set,
+	  so it takes zero shifts and lands correctly - the one input
+	  where a naive abs() would loop forever or overflow. )
+	[xiter] = 0;
+    "XFI shl"
+	A = [xtmp]; A & 80000000h;
+      ? A != 0 -> XFI done;
+	A = [xtmp]; A < 1; [xtmp] = A;
+	[xiter]+;
+	-> XFI shl;
+    "XFI done"
+	A = [xtmp]; [XMH] = A;
+	[XML] = 0;
+	( value = xtmp * 2^(iter-31) and xtmp/2^31 is in 1 upto 2,
+	  so the exponent is 16383 + 31 - iter )
+	A = XBIAS; A + 31; A - [xiter]; [XE] = A;
+	end;
+
+( ==================================================================== )
+( multiply, 64-bit mantissa                                             )
+( ==================================================================== )
+
+      ( Mul128 - XMH:XML times YMH:YML -> xp3:xp2:xp1:xp0, exact.
+	Lifted from work/probe_w3c_sf.txt. )
+
+"Mul128"
+	A = [XML]; B = [YML]; A *%' B;	[xa0] = A; [xa1] = B;
+	A = [XML]; B = [YMH]; A *%' B;	[xb0] = A; [xb1] = B;
+	A = [XMH]; B = [YML]; A *%' B;	[xc0] = A; [xc1] = B;
+	A = [XMH]; B = [YMH]; A *%' B;	[xd0] = A; [xd1] = B;
+
+	A = [xa0];			[xp0] = A;
+
+	A = [xa1]; B = [xb0]; A + B; E = 0;
+      ? A '>= B -> m128 c1a;
+	E = 1;
+    "m128 c1a"
+	B = [xc0]; A + B;
+      ? A '>= B -> m128 c1b;
+	E + 1;
+    "m128 c1b"
+	[xp1] = A;
+	[xcy] = E;
+
+	A = [xb1]; B = [xc1]; A + B; D = 0;
+      ? A '>= B -> m128 c2a;
+	D = 1;
+    "m128 c2a"
+	B = [xd0]; A + B;
+      ? A '>= B -> m128 c2b;
+	D + 1;
+    "m128 c2b"
+	B = [xcy]; A + B;
+      ? A '>= B -> m128 c2c;
+	D + 1;
+    "m128 c2c"
+	[xp2] = A;
+
+	A = [xd1]; A + D;		[xp3] = A;
+	end;
+
+      ( XMulCore - the 64-bit-mantissa multiply of X by Y.
+
+	The product of two normalised 64-bit mantissas lies in
+	2^126 upto 2^128.  If it reached 2^127 the top 64 bits are the
+	answer and the exponent gains one; otherwise bits 126..63 are,
+	and it does not.  Everything below the kept 64 bits is a round
+	bit and a sticky. )
+
+"XMulCore"
+	=> Mul128;
+
+	A = [xp3]; A > 31;		[xdel] = A;
+      ? [xdel] = 0 -> xm sh63;
+
+	( product in 2^127 upto 2^128: the answer is bits 127..64 )
+	A = [xp2];			[XML] = A;
+	A = [xp3];			[XMH] = A;
+	A = [xp1]; A > 31;		[xrbit] = A;
+	A = [xp1]; A & 7FFFFFFFh; B = [xp0]; A | B;	[xsbit] = A;
+	-> xm round;
+
+    "xm sh63"
+	A = [xp1]; A > 31; B = [xp2]; B < 1; A | B;	[XML] = A;
+	A = [xp2]; A > 31; B = [xp3]; B < 1; A | B;	[XMH] = A;
+	A = [xp1]; A > 30; A & 1;			[xrbit] = A;
+	A = [xp1]; A & 3FFFFFFFh; B = [xp0]; A | B;	[xsbit] = A;
+
+    "xm round"
+      ? [xrbit] = 0 -> xm exp;
+      ? [xsbit] != 0 -> xm inc;
+	A = [XML]; A & 1;
+      ? A = 0 -> xm exp;
+    "xm inc"
+	A = [XML]; A + 1; [XML] = A;
+      ? A != 0 -> xm exp;
+	A = [XMH]; A + 1; [XMH] = A;
+      ? A != 0 -> xm exp;
+	( the mantissa wrapped past 2^64: it is now exactly 1.0 x 2^1 )
+	A = 80000000h; [XMH] = A;
+	[XML] = 0;
+	A = [xdel]; A + 1; [xdel] = A;
+
+    "xm exp"
+	A = [XE]; A + [YE]; A - XBIAS; A + [xdel];	[XE] = A;
+	A = [XS]; B = [YS]; A # B;			[XS] = A;
+	end;
+
+( ==================================================================== )
+( divide, 64-bit mantissa                                               )
+( ==================================================================== )
+
+      ( XQuoCore - X <- X / Y at 64 bits of mantissa, nearest-even.
+
+	Restoring division, one quotient bit per iteration, which is the
+	shape a port gets without a 64/32 divide primitive.
+
+	Both mantissas are normalised, so the quotient lies in above 0.5 and below 2
+	and 65 iterations from R = MX give
+	    Q = floor(MX * 2^65 / MY)  in above 2^64 and below 2^66,
+	65 or 66 bits.  Which of the two it is IS the exponent decision,
+	so it is read off the top bits rather than being guessed:
+
+	  Q >= 2^65   quotient >= 1   keep Q>>2, round bit is bit 1,
+	                              exponent is EX-EY+bias
+	  Q <  2^65   quotient < 1    keep Q>>1, round bit is bit 0,
+	                              exponent is EX-EY+bias-1
+
+	R needs a 65th bit because R doubles before every comparison;
+	that is `rc`, and forgetting it is the classic way this loop
+	silently produces a quotient that saturates. )
+
+"XQuoCore"
+	A = [XS]; B = [YS]; A # B;	[XS] = A;
+	A = [XE]; A - [YE]; A + XBIAS;	[xtmp] = A;
+
+	[rc] = 0;
+	A = [XMH]; [rh] = A;
+	A = [XML]; [rl] = A;
+	[qc] = 0; [qh] = 0; [ql] = 0;
+	[xiter] = 0;
+
+	( THE PRE-SUBTRACT, and it is not an optimisation.
+
+	  Restoring division needs R < Y at the top of every iteration.
+	  Both mantissas are normalised, so MX can be up to almost twice
+	  MY and the invariant does not hold to start with.  Without this
+	  step the very first doubling can leave R above 2Y, one
+	  subtraction is not enough, and the quotient saturates - which
+	  looks like a plausible number, not like a crash.
+
+	  MY >= 2^63 and MX < 2^64 give MX - MY < MY, so one conditional
+	  subtraction is exactly enough and the invariant then holds for
+	  the whole loop. )
+
+	A = [XMH];
+      ? A '> [YMH] -> xq pre;
+      ? A '< [YMH] -> xq loop;
+	A = [XML];
+      ? A '< [YML] -> xq loop;
+    "xq pre"
+	A = [rl]; E = 0;
+      ? A '>= [YML] -> xq preb;
+	E = 1;
+    "xq preb"
+	A = [rl]; A - [YML]; [rl] = A;
+	A = [rh]; A - [YMH]; A - E; [rh] = A;
+	[ql] = 1;
+
+    "xq loop"
+	( Q <<= 1 )
+	A = [qc]; A < 1; B = [qh]; B > 31; A | B; [qc] = A;
+	A = [qh]; A < 1; B = [ql]; B > 31; A | B; [qh] = A;
+	A = [ql]; A < 1; [ql] = A;
+	( R <<= 1 )
+	A = [rh]; A > 31;			[rc] = A;
+	A = [rh]; A < 1; B = [rl]; B > 31; A | B; [rh] = A;
+	A = [rl]; A < 1; [rl] = A;
+	( if R >= Y then R -= Y, Q |= 1 )
+      ? [rc] != 0 -> xq sub;
+	A = [rh];
+      ? A '> [YMH] -> xq sub;
+      ? A '< [YMH] -> xq next;
+	A = [rl];
+      ? A '< [YML] -> xq next;
+    "xq sub"
+	A = [rl]; E = 0;
+      ? A '>= [YML] -> xq nob;
+	E = 1;
+    "xq nob"
+	A = [rl]; A - [YML]; [rl] = A;
+	A = [rh]; A - [YMH]; A - E; [rh] = A;
+	[rc] = 0;
+	A = [ql]; A | 1; [ql] = A;
+    "xq next"
+	[xiter]+;
+      ? [xiter] < 65 -> xq loop;
+
+	( which side of 2^65 did the quotient land? )
+	A = [qc]; A & 2;
+      ? A = 0 -> xq small;
+
+	( Q in 2^65 upto 2^66: mantissa is Q>>2 )
+	A = [qh]; A > 2; B = [qc]; B < 30; A | B;	[XMH] = A;
+	A = [ql]; A > 2; B = [qh]; B < 30; A | B;	[XML] = A;
+	A = [ql]; A > 1; A & 1;				[xrbit] = A;
+	A = [ql]; A & 1; B = [rh]; A | B; B = [rl]; A | B; [xsbit] = A;
+	A = [xtmp];					[XE] = A;
+	-> xq round;
+
+    "xq small"
+	( Q in 2^64 upto 2^65: mantissa is Q>>1 )
+	A = [qh]; A > 1; B = [qc]; B < 31; A | B;	[XMH] = A;
+	A = [ql]; A > 1; B = [qh]; B < 31; A | B;	[XML] = A;
+	A = [ql]; A & 1;				[xrbit] = A;
+	A = [rh]; B = [rl]; A | B;			[xsbit] = A;
+	A = [xtmp]; A - 1;				[XE] = A;
+
+    "xq round"
+      ? [xrbit] = 0 -> xq done;
+      ? [xsbit] != 0 -> xq inc;
+	A = [XML]; A & 1;
+      ? A = 0 -> xq done;
+    "xq inc"
+	A = [XML]; A + 1; [XML] = A;
+      ? A != 0 -> xq done;
+	A = [XMH]; A + 1; [XMH] = A;
+      ? A != 0 -> xq done;
+	A = 80000000h; [XMH] = A;
+	[XML] = 0;
+	A = [XE]; A + 1; [XE] = A;
+    "xq done"
+	end;
+
+( ==================================================================== )
+( extended -> binary64, the ONE store at the end of a chain              )
+( ==================================================================== )
+
+      ( XToF64 - X registers -> FA0/FA1, round to nearest even.
+
+	This is the SECOND rounding in the pair that makes an 80-bit
+	chain differ from a 53-bit one: the arithmetic happened at 64
+	bits of mantissa and only here does it become 53.  Take that
+	away - round every operation to 53 as it is produced - and the
+	STARMAP score falls from 4194 to 2315.
+
+	    M bits 63     the implicit leading one
+	    M bits 62..11 the 52 stored fraction bits
+	    M bit  10     the round bit
+	    M bits 9..0   the sticky
+	    exponent field = E - 16383 + 1023 = E - 15360             )
+
+"XToF64"
+      ? [XE] = 0 -> xf zero;
+
+	A = [XMH]; A > 11; A & 0FFFFFh;			[xa0] = A;  ( frac hi )
+	A = [XMH]; A & 7FFh; A < 21;
+	B = [XML]; B > 11; A | B;			[xa1] = A;  ( frac lo )
+	A = [XML]; A > 10; A & 1;			[xrbit] = A;
+	A = [XML]; A & 3FFh;				[xsbit] = A;
+	A = [XE]; A - 15360;				[xtmp] = A;
+
+      ? [xrbit] = 0 -> xf pack;
+      ? [xsbit] != 0 -> xf inc;
+	A = [xa1]; A & 1;
+      ? A = 0 -> xf pack;
+    "xf inc"
+	A = [xa1]; A + 1; [xa1] = A;
+      ? A != 0 -> xf pack;
+	A = [xa0]; A + 1; [xa0] = A;
+      ? A != 100000h -> xf pack;
+	[xa0] = 0;
+	A = [xtmp]; A + 1; [xtmp] = A;
+
+    "xf pack"
+      ? [xtmp] <= 0    -> xf reject;
+      ? [xtmp] >= 7FFh -> xf reject;
+	A = [xa1];					[FA0] = A;
+	A = [xa0];
+	B = [xtmp]; B < 20; A | B;
+	B = [XS];   B < 31; A | B;			[FA1] = A;
+	end;
+
+    "xf zero"
+	[FA0] = 0;
+	A = [XS]; A < 31; [FA1] = A;
+	end;
+
+    "xf reject"
+	[XREJ]+;
+	[FA0] = 0; [FA1] = 0;
+	end;
+
+( ==================================================================== )
+( the schedule primitives - one per x87 mnemonic                        )
+( ==================================================================== )
+
+      ( XFild - push (extended)[XIN] )
+
+"XFild"
+	=> XFromInt;
+	=> XPush;
+	end;
+
+      ( XFiquo - st0 = st0 / (extended)[XIN] )
+
+"XFiquo"
+	=> XFromInt;
+	A = [XS];  [YS]  = A;
+	A = [XE];  [YE]  = A;
+	A = [XMH]; [YMH] = A;
+	A = [XML]; [YML] = A;
+	=> XLoad0;
+	=> XQuoCore;
+	=> XStore0;
+	end;
+
+      ( XFmulp - st1 = st1 * st0, then pop.  The operand order matters
+	for the sign and for nothing else, but it is written the way the
+	instruction is defined anyway. )
+
+"XFmulp"
+	=> XLoad0;
+	A = [XS];  [YS]  = A;
+	A = [XE];  [YE]  = A;
+	A = [XMH]; [YMH] = A;
+	A = [XML]; [YML] = A;
+	=> XPop;			( discard st0, X now holds it )
+	=> XLoad0;			( X <- the old st1, now st0 )
+	=> XMulCore;
+	=> XStore0;
+	end;
+
+      ( XFstpQ - pop st0 and store it as a binary64 in FA. )
+
+"XFstpQ"
+	=> XPop;
+	=> XToF64;
+	end;

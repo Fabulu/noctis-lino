@@ -1,0 +1,145 @@
+      ( *** fpconv - float to int, int to float, and the deliberate
+	    narrowings ***
+
+	THE ONE RULE IN THIS FILE.
+	The original has TWO float-to-int behaviours and they are not
+	interchangeable:
+
+	  CAST SITES.  A C cast truncates.  Borland implements that in
+	  __ftol, which flips the rounding control to chop, does the
+	  fistp, and flips it back.  These are the SEED sites -
+	  nearstar_identity, global_surface_seed, seedval.  One ULP here
+	  is a DIFFERENT PLANET.  FToIntChop reproduces the flip.
+
+	  HAND-WRITTEN SITES.  37 of them (36 fistp and 1 fist) in the
+	  inline assembly of the projector and the texture mapper.  The
+	  rounding control is left at 00 there, so they round to nearest
+	  even.  FToIntNear is those.  A quarter pixel is invisible.
+
+	THE FAIL-SAFE, stated as a rule for generated code:
+	NEVER emit a bare =, and never call FToIntNear by default.  Emit
+	FToIntChop unless the site registry names the site as one of the
+	37.  The asymmetry is deliberate - a wrong chop site is CRITICAL
+	because it is a seed, a wrong near site is COSMETIC because it is
+	a pixel.  Default to the direction whose failure is cheap.
+
+	INT16.  Borland large model makes int 16 bits.  The 32-bit fistp
+	runs first and the low 16 bits are then taken and sign extended,
+	because that is what the original's register usage does.  Doing
+	it with fistp m16int instead would be WRONG: m16int traps as an
+	invalid operation on overflow and, masked, stores 8000h for every
+	one of them.  The wrap is not an edge case - star classes 1, 3, 4
+	and 9 overflow by up to 6.7x as the NORMAL path.
+
+	FCWCSAV is private to this file on purpose.  Sharing FCWSAV with
+	FEnter/FLeave would mean a FToIntChop between them silently
+	replaced the ambient word FLeave is supposed to put back.       )
+
+"variables"
+
+	FCWCSAV	= 0;		( private: __ftol's own save slot )
+	FCWCHOP	= 0;		( private: the chop word it builds )
+
+"programme"
+
+( ==================================================================== )
+
+      ( FToIntChop - FI <- (long)FA.  C cast semantics, __ftol. )
+
+"FToIntChop"
+	[FCWCSAV] = 0;
+	{
+	    9B					(fwait)
+	    D9 BF <dFCWCSAV mtp bytesperunit>	(fnstcw [edi+FCWCSAV*4])
+	}
+	A = [FCWCSAV]; A & 0F3FFh; A | 0C00h; [FCWCHOP] = A;
+	{
+	    D9 AF <dFCWCHOP mtp bytesperunit>	(fldcw [edi+FCWCHOP*4])
+	    DD 87 <dFA0 mtp bytesperunit>	(fld   qword [edi+FA0*4])
+	    DB 9F <dFI  mtp bytesperunit>	(fistp dword [edi+FI*4])
+	    D9 AF <dFCWCSAV mtp bytesperunit>	(fldcw [edi+FCWCSAV*4])
+	}
+	end;
+
+      ( FToIntNear - FI <- fistp(FA) under the AMBIENT control word.
+	Under FEnter's 133Fh that is round to nearest even, which is the
+	37 hand-written sites, for free. )
+
+"FToIntNear"
+	{
+	    DD 87 <dFA0 mtp bytesperunit>	(fld   qword [edi+FA0*4])
+	    DB 9F <dFI  mtp bytesperunit>	(fistp dword [edi+FI*4])
+	}
+	end;
+
+      ( FToInt16Chop / FToInt16Near - the same, then Borland's 16-bit
+	int.  Low 16 bits, sign extended back into the unit. )
+
+"FToInt16Chop"
+	=> FToIntChop;
+	=> FNarrow16;
+	end;
+
+"FToInt16Near"
+	=> FToIntNear;
+	=> FNarrow16;
+	end;
+
+"FNarrow16"
+	A = [FI]; A & 0FFFFh; [FI] = A;
+      ? [FI] '< 8000h -> FN16 done;
+	A = [FI]; A - 65536; [FI] = A;
+    "FN16 done"
+	end;
+
+      ( IntToF - FA <- (double)FI.  fild of a dword is exact for every
+	int32, at every precision control, so this one cannot round. )
+
+"IntToF"
+	{
+	    DB 87 <dFI  mtp bytesperunit>	(fild dword [edi+FI*4])
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword  [edi+FA0*4])
+	}
+	end;
+
+      ( F32Narrow - FA <- (double)(float)FA.
+
+	This is not a workaround, it is BEHAVIOUR TO REPRODUCE.
+	NOCTIS-1.CPP:3411-3413 saves dzat_x/y/z into float locals and
+	restores them at :4633 and :5025.  Those coordinates sit around
+	3.8e6, where a binary32 ULP is 0.25, so landing quantises the
+	ship's position to 24 bits observably, in the original.  You can
+	only narrow FROM something wider, which is why the ship's state
+	is carried as a double and narrowed here rather than being kept
+	in lino's native 24-bit floats throughout.
+
+	fstp m32fp rounds with the live RC, so under FEnter this is
+	round-to-nearest-even to binary32 - exactly a C store to float. )
+
+"F32Narrow"
+	{
+	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
+	    D9 9F <dFS0 mtp bytesperunit>	(fstp dword [edi+FS0*4])
+	    D9 87 <dFS0 mtp bytesperunit>	(fld  dword [edi+FS0*4])
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
+	}
+	end;
+
+      ( FStoreF32 - FS0 <- (float)FA, as a bit image, without widening
+	back.  This is what writing a float to a file has to do. )
+
+"FStoreF32"
+	{
+	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
+	    D9 9F <dFS0 mtp bytesperunit>	(fstp dword [edi+FS0*4])
+	}
+	end;
+
+      ( FLoadF32 - FA <- (double)the binary32 in FS0.  Always exact. )
+
+"FLoadF32"
+	{
+	    D9 87 <dFS0 mtp bytesperunit>	(fld  dword [edi+FS0*4])
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
+	}
+	end;
