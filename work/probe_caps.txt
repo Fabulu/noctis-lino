@@ -1,0 +1,201 @@
+      ( PROBE: what does the L.in.oleum Win32 IsoKernel actually provide?
+        Dumps physical display geometry, high-performance-timer resolution
+        and cost, audio configuration, RAMTop growth limits and SLEEP
+        accuracy to probe_caps.bin as 32 little-endian units. )
+
+"directors"
+
+	program name = { probe_caps };
+	modular extensions = audio playback;
+	unit = 32;
+	display width = 0;
+	display height = 0;
+
+"constants"
+
+	SPINS		= 100000;
+	RESTRIES	= 200;
+	SLEEPS		= 20;
+	RAM64M		= 67108864;
+	RAM256M 	= 268435456;
+
+"variables"
+
+	result file name = { probe_caps.bin };
+
+	rt0 = 0; rt1 = 0; rt2 = 0; rt3 = 0;
+	t0c = 0; t1c = 0;
+	w0 = 0; w1 = 0;
+	iters = 0;
+	mind = 0;
+	minms = 0;
+	tmp = 0;
+	sleepms = 0;
+
+"workspace"
+
+	results = 32;
+
+"programme"
+
+	( ---------- RAMTop growth ---------- )
+
+	[rt0] = [RAMTop];
+
+	A = 0; A + RAM64M;
+	[RAMTop] = A;
+	isocall;
+	[rt1] = [RAMTop];
+
+	A = [rt0];
+	[RAMTop] = A;
+	isocall;
+
+	A = 0; A + RAM256M;
+	[RAMTop] = A;
+	isocall;
+	[rt2] = [RAMTop];
+
+	A = [rt0];
+	[RAMTop] = A;
+	isocall;
+	[rt3] = [RAMTop];
+
+	( ---------- cost of an isocall, in HPT counts and in wall ms ---------- )
+
+	=> Read wall ms;
+	[w0] = [tmp];
+
+	[Timer Command] = READ COUNTS; isocall;
+	[t0c] = [Counts];
+
+	[iters] = 0;
+    "spin"
+	[Timer Command] = READ COUNTS; isocall;
+	[iters]+;
+	A = [iters];
+	B = 0; B + SPINS;
+	? A < B -> spin;
+
+	[Timer Command] = READ COUNTS; isocall;
+	[t1c] = [Counts];
+
+	=> Read wall ms;
+	[w1] = [tmp];
+
+	( ---------- smallest observable non-zero HPT step ---------- )
+
+	[mind] = 0; ! [mind];
+	B = 0; B + RESTRIES;
+    "res outer"
+	--> B;
+	[Timer Command] = READ COUNTS; isocall;
+	[t0c] = [Counts];
+    "res inner"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [t0c];
+	? A = 0 -> res inner;
+	? A '>= [mind] -> res keep;
+	[mind] = A;
+    "res keep"
+	<-- B;
+	B ^ res outer;
+
+	( ---------- smallest observable non-zero [Milliseconds] step ---------- )
+
+	[minms] = 0; ! [minms];
+	B = 0; B + RESTRIES;
+    "ms outer"
+	--> B;
+	=> Read wall ms;
+	[t0c] = [tmp];
+    "ms inner"
+	=> Read wall ms;
+	A = [tmp];
+	A - [t0c];
+	? A = 0 -> ms inner;
+	? A '>= [minms] -> ms keep;
+	[minms] = A;
+    "ms keep"
+	<-- B;
+	B ^ ms outer;
+
+	( ---------- accuracy of SLEEP 55 ms, 20 times ---------- )
+
+	=> Read wall ms;
+	[w0] = [tmp];
+	B = 0; B + SLEEPS;
+    "sleep loop"
+	--> B;
+	[Sleep Timeout] = 55;
+	[Process Command] = SLEEP;
+	isocall;
+	<-- B;
+	B ^ sleep loop;
+	=> Read wall ms;
+	[sleepms] = [tmp];
+	[sleepms] - [w0];
+
+	( ---------- dump ---------- )
+
+	B = results;
+
+	C = [Display Physical Width];		[B] = C; B+;
+	C = [Display Physical Height];		[B] = C; B+;
+	C = [Counts Per Millisecond];		[B] = C; B+;
+	C = [PCM data Status];			[B] = C; B+;
+	C = [PCM data Channels];		[B] = C; B+;
+	C = [PCM data Bits Per Sample]; 	[B] = C; B+;
+	C = [PCM data Samples Per Sec]; 	[B] = C; B+;
+	C = [PCM data Silence Threshold];	[B] = C; B+;
+
+	C = [rt0];				[B] = C; B+;
+	C = [rt1];				[B] = C; B+;
+	C = [rt2];				[B] = C; B+;
+	C = [rt3];				[B] = C; B+;
+
+	C = [t0c];				[B] = C; B+;
+	C = [t1c];				[B] = C; B+;
+	C = [iters];				[B] = C; B+;
+	C = [w1]; C - [w0];			[B] = C; B+;
+
+	C = [mind];				[B] = C; B+;
+	C = [minms];				[B] = C; B+;
+	C = [sleepms];				[B] = C; B+;
+
+	C = [Pointer Status];			[B] = C; B+;
+	C = [Display Status];			[B] = C; B+;
+	C = [Priority];				[B] = C; B+;
+	C = [Display Width];			[B] = C; B+;
+	C = [Display Height];			[B] = C; B+;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 32;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 32;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+"Read wall ms"
+    ( returns minute*60000 + second*1000 + milliseconds in [tmp] )
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Minute];
+	A * 60000;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

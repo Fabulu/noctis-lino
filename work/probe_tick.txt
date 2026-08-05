@@ -1,0 +1,180 @@
+      ( PROBE: can a lino program hold Noctis IV's 18.2 Hz / 55 ms tick?
+        Two tick disciplines are measured over 120 ticks each, with a
+        realistic per-frame load (clear a 64000-index buffer, expand it
+        through a 256-entry palette into the 32bpp display, RETRACE):
+
+          phase A - pure busy-wait on the high performance timer
+          phase B - SLEEP down to a 16 ms margin, then busy-wait
+
+        Every individual tick period is recorded in HPT counts. )
+
+"directors"
+
+	program name = { probe_tick };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	W	= 320;
+	H	= 200;
+	NPIX	= 64000;
+	TICKS	= 120;
+	TICKMS	= 55;
+
+"variables"
+
+	result file name = { probe_tick.bin };
+
+	c0 = 0;
+	tgt = 0;
+	tick = 0;
+	wall0 = 0; wallA = 0; wallB = 0; tmp = 0;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;
+	fb	= 320 mtp 200;
+	arrA	= 120;
+	arrB	= 120;
+	head	= 8;
+
+"programme"
+
+	[Display Origin] = fb;
+
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	A = [Counts Per Millisecond];
+	A * TICKMS;
+	[tgt] = A;
+
+	( ================= phase A : pure busy-wait ================= )
+
+	=> Read wall ms; [wall0] = [tmp];
+	[tick] = 0;
+    "A loop"
+	=> T0;
+	=> Frame;
+    "A wait"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [c0];
+	? A '< [tgt] -> A wait;
+	B = [tick]; B + arrA; [B] = A;
+	[tick]+;
+	A = [tick]; ? A < TICKS -> A loop;
+	=> Read wall ms; [wallA] = [tmp]; [wallA] - [wall0];
+
+	( ============ phase B : SLEEP to a 16 ms margin ============= )
+
+	=> Read wall ms; [wall0] = [tmp];
+	[tick] = 0;
+    "B loop"
+	=> T0;
+	=> Frame;
+    "B wait"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [c0];
+	? A '>= [tgt] -> B done;
+	B = [tgt]; B - A;
+	B / [Counts Per Millisecond];
+	? B < 20 -> B wait;
+	B - 16;
+	[Sleep Timeout] = B;
+	[Process Command] = SLEEP; isocall;
+	-> B wait;
+    "B done"
+	B = [tick]; B + arrB; [B] = A;
+	[tick]+;
+	A = [tick]; ? A < TICKS -> B loop;
+	=> Read wall ms; [wallB] = [tmp]; [wallB] - [wall0];
+
+	( ========================= dump ========================= )
+
+	[head plus 0] = [Counts Per Millisecond];
+	[head plus 1] = TICKS;
+	[head plus 2] = TICKMS;
+	[head plus 3] = [tgt];
+	[head plus 4] = [wallA];
+	[head plus 5] = [wallB];
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 8;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 8 mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = arrA;
+	[Block Size]	= TICKS;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 128 mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = arrB;
+	[Block Size]	= TICKS;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 248 mtp BYTESPERUNIT;
+	isocall;
+
+	end;
+
+"Frame"
+    ( a representative Noctis-shaped frame: wipe the index buffer,
+      expand it through the palette, push it to the display )
+	A = adapted;
+	B = 0; B + NPIX;
+	C = 0;
+    "f clear"
+	[A] = C; A+;
+	B ^ f clear;
+
+	D = adapted;
+	E = fb;
+	A = 0; A + NPIX;
+    "f expand"
+	C = [D];
+	C + pal;
+	C = [C];
+	[E] = C;
+	D+; E+;
+	A ^ f expand;
+
+	[Display Command] = RETRACE; isocall;
+	end;
+
+"T0"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	end;
+
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Minute];
+	A * 60000;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

@@ -1,0 +1,220 @@
+      ( PROBE: how fast can a lino program push a 320x200 palette-indexed
+        image through the 32-bit display?  Measures, in HPT counts:
+          - clearing a 64000-unit 8-bit-index buffer
+          - expanding it through a 256-entry palette into the 32bpp display
+          - RETRACE alone at 320x200
+          - expand + RETRACE at 320x200
+          - RETRACE alone at 640x400
+          - 2x upscale expand + RETRACE at 640x400
+        Answers: is RETRACE vsync-locked, and is 18.2 Hz reachable? )
+
+"directors"
+
+	program name = { probe_fb };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	W	= 320;
+	H	= 200;
+	NPIX	= 64000;
+	W2	= 640;
+	H2	= 400;
+	FRAMES	= 60;
+
+"variables"
+
+	result file name = { probe_fb.bin };
+
+	c0 = 0;
+	tdelta = 0;
+	fcount = 0;
+	srcp = 0; dp0 = 0; dp1 = 0; cx = 0; dsty = 0;
+	wall0 = 0; wall1 = 0; tmp = 0;
+
+"workspace"
+
+	pal	= 256;
+	adapted = 64000;
+	fb	= 320 mtp 200;
+	fb2	= 640 mtp 400;
+	results = 24;
+
+"programme"
+
+	[Display Origin] = fb;
+
+	( ---- build a greyscale palette ---- )
+	A = pal; B = 0;
+    "palfill"
+	C = B; C * 65793;
+	[A] = C; A+; B+;
+	? B < 256 -> palfill;
+
+	( ---- fill the index buffer with a pattern ---- )
+	A = adapted; B = 0;
+    "adfill"
+	C = B; C % 256;
+	[A] = C; A+; B+;
+	? B < NPIX -> adfill;
+
+	=> Read wall ms; [wall0] = [tmp];
+
+	( ---- 1: clear the index buffer ---- )
+	=> T0;
+	[fcount] = 0;
+    "b1"
+	=> Clear adapted;
+	[fcount]+; A = [fcount]; ? A < FRAMES -> b1;
+	=> T1;
+	[results plus 0] = [tdelta];
+
+	( ---- 2: palette expand, no retrace ---- )
+	=> T0;
+	[fcount] = 0;
+    "b2"
+	=> Expand;
+	[fcount]+; A = [fcount]; ? A < FRAMES -> b2;
+	=> T1;
+	[results plus 1] = [tdelta];
+
+	( ---- 3: RETRACE alone, 320x200 ---- )
+	=> T0;
+	[fcount] = 0;
+    "b3"
+	[Display Command] = RETRACE; isocall;
+	[fcount]+; A = [fcount]; ? A < FRAMES -> b3;
+	=> T1;
+	[results plus 2] = [tdelta];
+
+	( ---- 4: expand + RETRACE, 320x200 ---- )
+	=> T0;
+	[fcount] = 0;
+    "b4"
+	=> Expand;
+	[Display Command] = RETRACE; isocall;
+	[fcount]+; A = [fcount]; ? A < FRAMES -> b4;
+	=> T1;
+	[results plus 3] = [tdelta];
+
+	( ---- switch to 640x400 ---- )
+	[Display Origin] = fb2;
+	[Display Width] = W2; isocall;
+	[Display Height] = H2; isocall;
+
+	( ---- 5: RETRACE alone, 640x400 ---- )
+	=> T0;
+	[fcount] = 0;
+    "b5"
+	[Display Command] = RETRACE; isocall;
+	[fcount]+; A = [fcount]; ? A < FRAMES -> b5;
+	=> T1;
+	[results plus 4] = [tdelta];
+
+	( ---- 6: 2x upscale expand + RETRACE, 640x400 ---- )
+	=> T0;
+	[fcount] = 0;
+    "b6"
+	=> Expand 2x;
+	[Display Command] = RETRACE; isocall;
+	[fcount]+; A = [fcount]; ? A < FRAMES -> b6;
+	=> T1;
+	[results plus 5] = [tdelta];
+
+	=> Read wall ms; [wall1] = [tmp];
+
+	[results plus 6] = FRAMES;
+	[results plus 7] = [Counts Per Millisecond];
+	[results plus 8] = [Display Width];
+	[results plus 9] = [Display Height];
+	A = [wall1]; A - [wall0]; [results plus 10] = A;
+	[results plus 11] = [Display Status];
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 24;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 24;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+"Clear adapted"
+	A = adapted;
+	B = 0; B + NPIX;
+	C = 0;
+    "ca loop"
+	[A] = C; A+;
+	B ^ ca loop;
+	end;
+
+"Expand"
+    ( 64000 palette lookups into the 32bpp display buffer )
+	D = adapted;
+	E = fb;
+	A = 0; A + NPIX;
+    "ex loop"
+	C = [D];
+	C + pal;
+	C = [C];
+	[E] = C;
+	D+; E+;
+	A ^ ex loop;
+	end;
+
+"Expand 2x"
+    ( 320x200 indices -> 640x400 32bpp, doubling in both axes )
+	[srcp] = adapted;
+	[dsty] = 0;
+    "e2 row"
+	A = [dsty]; A * 2; A * W2; A + fb2;
+	[dp0] = A;
+	A + W2;
+	[dp1] = A;
+	[cx] = 0;
+    "e2 pix"
+	D = [srcp];
+	C = [D];
+	C + pal;
+	C = [C];
+	A = [dp0]; [A] = C; A+; [A] = C;
+	B = [dp1]; [B] = C; B+; [B] = C;
+	[dp0] + 2; [dp1] + 2;
+	[srcp]+;
+	[cx]+; A = [cx]; ? A < W -> e2 pix;
+	[dsty]+; A = [dsty]; ? A < H -> e2 row;
+	end;
+
+"T0"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	end;
+
+"T1"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [c0];
+	[tdelta] = A;
+	end;
+
+"Read wall ms"
+	[Timer Command] = READ TIME;
+	isocall;
+	A = [Minute];
+	A * 60000;
+	B = [Second];
+	B * 1000;
+	A + B;
+	A + [Milliseconds];
+	[tmp] = A;
+	end;

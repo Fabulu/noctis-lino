@@ -1,0 +1,132 @@
+      ( PROBE: does the Win32 audio interface actually stream?
+        Fills a 2-second audio workspace with pure silence (so nothing is
+        heard), starts PLAY CONTINUOUSLY, then samples [PCM data Offset]
+        against the high performance timer to prove the DAC is really
+        consuming the buffer and at what rate. This is the property Noctis
+        needs in order to software-mix VOC effects into a single buffer. )
+
+"directors"
+
+	program name = { probe_audio };
+	modular extensions = audio playback;
+	unit = 32;
+	display width = 0;
+	display height = 0;
+
+"constants"
+
+	ASIZE	= 88200;
+	SAMPLES = 60;
+
+"variables"
+
+	result file name = { probe_audio.bin };
+
+	c0 = 0;
+	n = 0;
+
+"workspace"
+
+	audio	= 88200;
+	offs	= 60;
+	cnts	= 60;
+	head	= 16;
+
+"programme"
+
+	[head plus 0] = [PCM data Status];
+	[head plus 1] = [PCM data Channels];
+	[head plus 2] = [PCM data Bits Per Sample];
+	[head plus 3] = [PCM data Samples Per Sec];
+	[head plus 4] = [PCM data Silence Threshold];
+	[head plus 5] = [Counts Per Millisecond];
+	[head plus 6] = SAMPLES;
+	[head plus 7] = ASIZE;
+
+	? [PCM data Status] - READY -> no audio;
+
+	( fill the audio workspace with the silence level )
+	A = audio;
+	B = 0; B + ASIZE;
+	C = [PCM data Silence Threshold];
+	D = C; D <@ 16; C + D;		( same level in both 16-bit halves )
+    "silence"
+	[A] = C; A+;
+	B ^ silence;
+
+	[PCM data Origin] = audio;
+	[PCM data Size]   = ASIZE;
+
+	[PCM data Command] = PLAY CONTINUOUSLY;
+	isocall;
+	? failed -> play failed;
+	[head plus 8] = 1;
+	-> sample loop start;
+
+    "play failed"
+	[head plus 8] = 0;
+	-> dump;
+
+    "no audio"
+	[head plus 8] = 0;
+	[head plus 9] = 1;
+	-> dump;
+
+    "sample loop start"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	[n] = 0;
+    "sample loop"
+	[PCM data Command] = GET DATA OFFSET; isocall;
+	B = [n]; B + offs;
+	C = [PCM data Offset];
+	[B] = C;
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0];
+	B = [n]; B + cnts;
+	[B] = A;
+	( ~8 ms between samples )
+	[Sleep Timeout] = 8;
+	[Process Command] = SLEEP; isocall;
+	[n]+;
+	A = [n]; ? A < SAMPLES -> sample loop;
+
+	[head plus 10] = [PCM data Status];
+
+	[PCM data Command] = STOP;
+	isocall;
+
+	[head plus 11] = [PCM data Status];
+
+    "dump"
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 16;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 16 mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = offs;
+	[Block Size]	= SAMPLES;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 76 mtp BYTESPERUNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = cnts;
+	[Block Size]	= SAMPLES;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 136 mtp BYTESPERUNIT;
+	isocall;
+
+	end;

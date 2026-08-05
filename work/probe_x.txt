@@ -1,0 +1,179 @@
+      ( PROBE: exclusive (fullscreen) display mode, live-region clipping,
+        pointer BY DELTA, and the LUCK held-key table.
+        Exclusive mode is entered and left immediately, with no RETRACE
+        in between, so the screen is disturbed for well under a millisecond. )
+
+"directors"
+
+	program name = { probe_x };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"constants"
+
+	FRAMES = 60;
+
+"variables"
+
+	result file name = { probe_x.bin };
+
+	c0 = 0; tdelta = 0; fcount = 0;
+
+ vector live = 0; 0; 159; 99;
+
+"workspace"
+
+	fb	= 1024 mtp 768;
+	results = 40;
+
+"programme"
+
+	[Display Origin] = fb;
+
+	B = results;
+
+	( ---- 0..1 : physical screen as seen from cooperative mode ---- )
+	C = [Display Physical Width];	[B] = C; B+;
+	C = [Display Physical Height];	[B] = C; B+;
+
+	( ---- 2..6 : try EXCLUSIVE 320x200 ---- )
+	[Display Width] = 320;  isocall;
+	[Display Height] = 200; isocall;
+	[Display Command] = SET EXCLUSIVE MODE;
+	isocall;
+	? failed -> x320 failed;
+	C = 1; -> x320 record;
+    "x320 failed"
+	C = 0;
+    "x320 record"
+	[B] = C; B+;
+	C = [Display Status];		[B] = C; B+;
+	C = [Display Width];		[B] = C; B+;
+	C = [Display Height];		[B] = C; B+;
+	C = [Display Physical Width];	[B] = C; B+;
+	C = [Display Physical Height];	[B] = C; B+;
+
+	[Display Command] = SET COOPERATIVE MODE;
+	isocall;
+
+	( ---- 8..13 : try EXCLUSIVE 640x480 ---- )
+	[Display Width] = 640;  isocall;
+	[Display Height] = 480; isocall;
+	[Display Command] = SET EXCLUSIVE MODE;
+	isocall;
+	? failed -> x640 failed;
+	C = 1; -> x640 record;
+    "x640 failed"
+	C = 0;
+    "x640 record"
+	[B] = C; B+;
+	C = [Display Status];		[B] = C; B+;
+	C = [Display Width];		[B] = C; B+;
+	C = [Display Height];		[B] = C; B+;
+	C = [Display Physical Width];	[B] = C; B+;
+	C = [Display Physical Height];	[B] = C; B+;
+
+	[Display Command] = SET COOPERATIVE MODE;
+	isocall;
+
+	( ---- back to a small cooperative display ---- )
+	[Display Width] = 320;  isocall;
+	[Display Height] = 200; isocall;
+
+	( ---- 14 : RETRACE cost with a 160x100 live region ---- )
+	[Display Live Region] = vector live;
+	=> T0;
+	[fcount] = 0;
+    "lr loop"
+	[Display Command] = RETRACE; isocall;
+	[fcount]+; A = [fcount]; ? A < FRAMES -> lr loop;
+	=> T1;
+	[B] = [tdelta]; B+;
+
+	( ---- 15 : RETRACE cost with the whole display ---- )
+	[Display Live Region] = WHOLE DISPLAY;
+	=> T0;
+	[fcount] = 0;
+    "wd loop"
+	[Display Command] = RETRACE; isocall;
+	[fcount]+; A = [fcount]; ? A < FRAMES -> wd loop;
+	=> T1;
+	[B] = [tdelta]; B+;
+
+	( ---- 16 : VOID REGION - RETRACE must become a no-op ---- )
+	[Display Live Region] = VOID REGION;
+	=> T0;
+	[fcount] = 0;
+    "vr loop"
+	[Display Command] = RETRACE; isocall;
+	[fcount]+; A = [fcount]; ? A < FRAMES -> vr loop;
+	=> T1;
+	[B] = [tdelta]; B+;
+	[Display Live Region] = WHOLE DISPLAY;
+
+	( ---- 17..19 : pointer, BY COORDINATE then BY DELTA ---- )
+	[Pointer Command] = READ POINTER; isocall;
+	C = [Pointer Status];		[B] = C; B+;
+
+	[Pointer Mode] = BY DELTA; isocall;
+	? failed -> pd failed;
+	C = 1; -> pd record;
+    "pd failed"
+	C = 0;
+    "pd record"
+	[B] = C; B+;
+	[Pointer Command] = READ POINTER; isocall;
+	C = [Pointer Status];		[B] = C; B+;
+	[Pointer Mode] = BY COORDINATE; isocall;
+
+	( ---- 20..24 : LUCK held-key table reads ---- )
+	C = [KEYW];			[B] = C; B+;
+	C = [KEYSHIFT]; 		[B] = C; B+;
+	C = [KEYUP];			[B] = C; B+;
+	C = [KEYESCAPE];		[B] = C; B+;
+	C = [KEYCONTROL];		[B] = C; B+;
+
+	( ---- 25..26 : does GET CONSOLE INPUT fail on an empty buffer ---- )
+	[Console Command] = CLEAR CONSOLE BUFFER; isocall;
+	[Console Command] = GET CONSOLE INPUT; isocall;
+	? failed -> ci failed;
+	C = 1; -> ci record;
+    "ci failed"
+	C = 0;
+    "ci record"
+	[B] = C; B+;
+	C = [Console Input];		[B] = C; B+;
+
+	( ---- 27 : counts per ms, for scaling ---- )
+	C = [Counts Per Millisecond];	[B] = C; B+;
+	[B] = FRAMES; B+;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 40;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 40;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+"T0"
+	[Timer Command] = READ COUNTS; isocall;
+	[c0] = [Counts];
+	end;
+
+"T1"
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts];
+	A - [c0];
+	[tdelta] = A;
+	end;
