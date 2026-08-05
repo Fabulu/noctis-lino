@@ -1,0 +1,147 @@
+      ( *** brtl rnd - WAVE 1 LANE 3: random(n) for ALL 65536 int16 n ***
+
+        random's argument enters the DOS function sign-extended from 16
+        bits, so its domain is exactly 65536 values wide and this lane
+        covers every one of them - including 0, 1, minus 1, minus 32768
+        and 32767 - at four seeds, two draws each.
+
+            for k = 0 .. 65535:
+                n = int16 (k)
+                for seed in 0, 1, 12345, 65535:
+                    srand (seed)
+                    two random (n) draws
+
+            524,288 records x 2 units + 8 header = 4,194,336 bytes
+            record index = k*8 + si*2 + d
+
+        Why this lane is the strongest single check in the wave: because
+        the STATE is recorded next to each value, lane3[k*8+si*2+d].state
+        must equal lane1[seed[si]*16+d].state for every one of the 65536
+        n values.  That proves random(n) consumes EXACTLY ONE DRAW for
+        every possible n, including n = 0 and every negative n, which is
+        the failure that silently desynchronises an entire universe.
+
+        And it is where a shift-instead-of-divide dies: idiv truncates
+        toward zero, >>15 floors, and they disagree on every negative
+        product that is not a multiple of 32768.  Every negative n is
+        here, so that error cannot hide.                                )
+
+"libraries"
+
+	brtl;
+
+"directors"
+
+	program name = { brtlrnd };
+	unit = 32;
+
+"constants"
+
+	LANE	 = 3;
+	N1	 = 65536;		( n values )
+	N2	 = 8;			( 4 seeds x 2 draws )
+	RECORDS  = 65536 multiplied 8;
+	PERREC	 = 2;
+	PAYLOAD  = 65536 multiplied 8 multiplied 2;
+	MAGIC	 = 42525431h;
+	SENTINEL = 0DEFACEDh;
+
+"variables"
+
+	kdx	= 0;
+	nval	= 0;
+	sidx	= 0;
+	drawn	= 0;
+	optr	= 0;
+
+ vector seedtab = 0; 1; 12345; 65535;
+
+	result file name = { brtl-rnd.bin };
+
+"workspace"
+
+	head	= 8;
+	results = PAYLOAD;
+
+"programme"
+
+	[kdx] = 0;
+	A = results; [optr] = A;
+
+    "rnd k loop"
+
+	( n = int16 (k) - the same narrowing zrandom's call boundary needs )
+
+	A = [kdx];
+	=> BrtlToInt16;
+	[nval] = A;
+
+	[sidx] = 0;
+
+    "rnd seed loop"
+
+	B = vector seedtab; B + [sidx];
+	A = [B];
+	=> BrtlSrand;
+
+	[drawn] = 0;
+
+    "rnd draw loop"
+
+	A = [nval];
+	=> BrtlRandom;
+	B = [optr];
+	[B] = A;
+	B +;
+	A = [brtlseed];
+	[B] = A;
+	B +;
+	[optr] = B;
+
+	[drawn] +;
+      ? [drawn] < 2 -> rnd draw loop;
+
+	[sidx] +;
+      ? [sidx] < 4 -> rnd seed loop;
+
+	[kdx] +;
+      ? [kdx] < N1 -> rnd k loop;
+
+	( ---- payload first ---- )
+
+	[File Name]	= result file name;
+	[File Position] = 8 multiplied BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= PAYLOAD;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= PAYLOAD;
+	[File Size]	+ 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	( ---- header last ---- )
+
+	[head]		= MAGIC;
+	[head plus 1]	= LANE;
+	[head plus 2]	= N1;
+	[head plus 3]	= N2;
+	[head plus 4]	= RECORDS;
+	[head plus 5]	= PERREC;
+	[head plus 6]	= PAYLOAD;
+	[head plus 7]	= SENTINEL;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

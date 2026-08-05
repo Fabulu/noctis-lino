@@ -1,0 +1,141 @@
+      ( *** brtl step - WAVE 1 LANE 2: one rand() step from 655,360
+            directly-set states, in ten families ***
+
+        Lane 1 can only reach states an srand argument can produce.  This
+        lane sets brtlseed DIRECTLY - which L.in.oleum permits, because a
+        library's variables are public like everything else - and so
+        reaches states srand can never name.
+
+            f = 0..4 : state = (j << 16) | L[f]     L = 0, 1, 7FFF, 8000, FFFF
+            f = 5..9 : state = (H[f-5] << 16) | j   H = 0, 1, 7FFF, 8000, FFFF
+
+        Families 0..4 sweep ALL 65536 high halves against five adversarial
+        low halves.  rand()'s return depends only on the high half, so
+        that is a COMPLETE proof of the shift-and-mask over all 2^32
+        states, not a sample.  Families 5..9 sweep all 65536 low halves,
+        exercising the low-32 multiply wrap and the +1 carry across every
+        low-half bit pattern.
+
+            655,360 records x 2 units + 8 header = 5,242,912 bytes
+            record index = f*65536 + j                                 )
+
+"libraries"
+
+	brtl;
+
+"directors"
+
+	program name = { brtlstep };
+	unit = 32;
+
+"constants"
+
+	LANE	 = 2;
+	N1	 = 10;			( families )
+	N2	 = 65536;		( j )
+	RECORDS  = 10 multiplied 65536;
+	PERREC	 = 2;
+	PAYLOAD  = 10 multiplied 65536 multiplied 2;
+	MAGIC	 = 42525431h;
+	SENTINEL = 0DEFACEDh;
+
+"variables"
+
+	fam	= 0;
+	jdx	= 0;
+	optr	= 0;
+
+	( the five adversarial half-words, used as L when it is the low
+	  half that is fixed and as H when it is the high half )
+
+ vector patterns = 0; 1; 7FFFh; 8000h; FFFFh;
+
+	result file name = { brtl-step.bin };
+
+"workspace"
+
+	head	= 8;
+	results = PAYLOAD;
+
+"programme"
+
+	[fam] = 0;
+	A = results; [optr] = A;
+
+    "step fam loop"
+
+	[jdx] = 0;
+
+    "step j loop"
+
+      ? [fam] >= 5 -> step high family;
+
+	( low half fixed by the table, high half swept by j )
+
+	B = vector patterns; B + [fam];
+	A = [jdx]; A < 16; A | [B];
+	-> step have state;
+
+    "step high family"
+
+	( high half fixed by the table, low half swept by j )
+
+	B = vector patterns; B + [fam]; B - 5;
+	A = [B]; A < 16; A | [jdx];
+
+    "step have state"
+
+	[brtlseed] = A;
+	=> BrtlRand;
+	B = [optr];
+	[B] = A;
+	B +;
+	A = [brtlseed];
+	[B] = A;
+	B +;
+	[optr] = B;
+
+	[jdx] +;
+      ? [jdx] < N2 -> step j loop;
+
+	[fam] +;
+      ? [fam] < N1 -> step fam loop;
+
+	( ---- payload first ---- )
+
+	[File Name]	= result file name;
+	[File Position] = 8 multiplied BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= PAYLOAD;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= PAYLOAD;
+	[File Size]	+ 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	( ---- header last ---- )
+
+	[head]		= MAGIC;
+	[head plus 1]	= LANE;
+	[head plus 2]	= N1;
+	[head plus 3]	= N2;
+	[head plus 4]	= RECORDS;
+	[head plus 5]	= PERREC;
+	[head plus 6]	= PAYLOAD;
+	[head plus 7]	= SENTINEL;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

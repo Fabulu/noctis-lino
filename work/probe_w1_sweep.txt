@@ -1,0 +1,133 @@
+      ( *** probe w1 sweep - how long does the exhaustive Wave 1 sweep take,
+            and does the whole thing fit one workspace and one file write? ***
+
+        All 65536 srand seeds, DRAWS draws each, written as one contiguous
+        32-bit block.  The program times ITSELF with the high performance
+        timer, so the measurement is not polluted by process startup, the
+        1.1s pre-sleep in linorun.ps1 or the 500ms poll granularity.
+
+        Three intervals are recorded, in HPT counts:
+          loop   - the LCG sweep alone
+          write  - the two isocalls that put 1 MB on disk
+          total  - both
+
+        The arithmetic here is deliberately written the plain way an
+        implementer would write it, variables and all, so the number
+        measured is the number they will get.                            )
+
+"directors"
+
+	program name = { probew1sweep };
+	unit = 32;
+
+"constants"
+
+	SEEDS	= 65536;
+	DRAWS	= 4;
+	NOUT	= 65536 multiplied 4;
+
+"variables"
+
+	result file name = { probew1sweep.bin };
+
+	seed	= 0;
+	sidx	= 0;
+	drawn	= 0;
+	optr	= 0;
+
+	c0	= 0;
+	cLoop	= 0;
+	cWrite	= 0;
+	cTotal	= 0;
+
+"workspace"
+
+	head	= 8;
+	results = NOUT;
+
+"programme"
+
+	( ---------------- t0 ---------------- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; [c0] = A;
+
+	( ---------------- the sweep ---------------- )
+
+	[sidx] = 0;
+	A = results; [optr] = A;
+
+    "seed loop"
+
+	( srand truncates its argument to 16 bits )
+	A = [sidx]; A & FFFFh;	[seed] = A;
+	[drawn] = 0;
+
+    "draw loop"
+
+	( seed = seed * 015A4E35 + 1;  return (seed >> 16) & 7FFF )
+	A = [seed];
+	B = 15A4E35h;
+	A * B;
+	A + 1;
+	[seed] = A;
+	A > 16;
+	A & 7FFFh;
+
+	B = [optr]; [B] = A; B+; [optr] = B;
+
+	[drawn]+;
+      ? [drawn] < DRAWS -> draw loop;
+
+	[sidx]+;
+      ? [sidx] < SEEDS -> seed loop;
+
+	( ---------------- t1 ---------------- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [cLoop] = A;
+
+	( ---------------- one block write ---------------- )
+
+	[File Name]	= result file name;
+	[File Position] = 8 multiplied BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= NOUT;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= NOUT;
+	[File Size]	+ 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	( ---------------- t2 ---------------- )
+
+	[Timer Command] = READ COUNTS; isocall;
+	A = [Counts]; A - [c0]; [cTotal] = A;
+	A = [cTotal]; A - [cLoop]; [cWrite] = A;
+
+	( ---------------- header, written last ---------------- )
+
+	[head plus 0] = [Counts Per Millisecond];
+	[head plus 1] = SEEDS;
+	[head plus 2] = DRAWS;
+	[head plus 3] = [cLoop];
+	[head plus 4] = [cWrite];
+	[head plus 5] = [cTotal];
+	[head plus 6] = NOUT;
+	[head plus 7] = 0;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

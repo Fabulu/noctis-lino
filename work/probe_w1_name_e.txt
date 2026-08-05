@@ -1,0 +1,18 @@
+"directors"
+	program name = { probew1name };
+	unit = 32;
+"variables"
+	result file name = { probew1name.bin };
+	e = 0;
+"workspace"
+	results = 4;
+"programme"
+	A = 0; A + 1; C = results; [C] = A;
+	[File Name] = result file name;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	[Block Pointer] = results;
+	[Block Size] = 4;
+	[Block Size] * BYTES PER UNIT;
+	isocall;
+	end;

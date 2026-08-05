@@ -54,6 +54,34 @@ first — a broken foundation makes every later result meaningless.
   rather than assumed away, and signal is measured against an unsigned-and-decoy
   control rather than a bare chance floor.
 
+### Wave 1 — Borland's LCG, exhaustive (DONE)
+
+`srand` / `rand` / `random` ported and proven across the **entire seed space**:
+65,536 seeds x 16 draws = 1,048,576 draws, plus the full `random()` argument
+domain (all int16 values x 4 seeds x 2 draws). Three independent
+implementations — lino, C, and an arbitrary-precision Python written from the
+algorithm rather than transcribed. Registered as `tests/test_brtlrand.py`.
+
+Anchored on the shipped binary, not on anyone's transcription: Borland's
+`rand()` sits at file offset 15979 of `NOCTIS.EXE`, and the multiplier's low
+half `35 4E` occurs exactly once in 215 KB, so the location is unambiguous.
+
+Builds with the **stock compiler and stock pack** — the multiply is 32x32 into
+32 low half only, so no `*%` is involved.
+
+**The finding that propagates: `int` is 16 bits in the DOS build.** A
+`random(n)` call with n above 32767 wraps negative — `random(40000)` passes
+−25536 and returns a negative result. Reproducing this needs explicit narrowing
+at the call site (`BrtlToInt16` then `BrtlRandom`); calling `BrtlRandom`
+directly with a large argument diverges from the game. **Every call site in
+later waves must be checked for arguments above 32767.**
+
+**Recorded so it is not re-litigated:** replacing the logical shift with an
+arithmetic one in `(seed >> 16) & 0x7FFF` is **semantically neutral** — the
+mask keeps bits 16..30 and sign-fill only touches bits it discards (verified
+over 200,000 random seeds, zero differences). No behavioural test can catch
+that mutation; the byte-template check is the only way to pin it, and it does.
+
 ### Census
 Noctis IV has 20 multiply sites, 5 that matter, and only 2 distinct algorithms
 need a full 64-bit product — both now ported. Six of nine builds use the stock

@@ -1,0 +1,134 @@
+      ( *** brtl srand - WAVE 1 LANE 4: the srand mask, exhaustively ***
+
+        This lane exists because the wave's headline premise - "srand
+        truncates to 16 bits, so all 65536 seeds is a complete proof" -
+        is blind to the truncation itself.  A sweep whose arguments are
+        already inside 0..65535 cannot tell whether the implementation
+        masks or not.  So here every argument carries a high half:
+
+        NOTE ON COMMENTS: lino comments NEST, so a balanced pair inside
+        prose is harmless - but a lone closing parenthesis, as in the
+        half-open interval this paragraph originally wrote, ENDS the
+        comment there and the rest of the prose is parsed as code.  It
+        fails with "emission to unknown period" pointing at the line
+        with the stray bracket, which is at least honest.
+
+            for j = 0 .. 65535:
+                for h in 0000h, FFFFh, 8000h, C5A1h:
+                    srand ((h << 16) | j)
+                    one rand ()
+
+        FFFFh and 8000h put the sign bit up, which is where a
+        sign-extending srand would part company with the zero-extending
+        one the DOS binary actually has (c7 06 5c 39 00 00 - it stores an
+        explicit zero into the seed's high word).
+
+        All four h must give IDENTICAL records for the same j, and each
+        must equal lane 1's record at index j*16+0.
+
+            262,144 records x 2 units + 8 header = 2,097,184 bytes
+            record index = j*4 + h                                     )
+
+"libraries"
+
+	brtl;
+
+"directors"
+
+	program name = { brtlsrand };
+	unit = 32;
+
+"constants"
+
+	LANE	 = 4;
+	N1	 = 65536;		( low halves )
+	N2	 = 4;			( high-half patterns )
+	RECORDS  = 65536 multiplied 4;
+	PERREC	 = 2;
+	PAYLOAD  = 65536 multiplied 4 multiplied 2;
+	MAGIC	 = 42525431h;
+	SENTINEL = 0DEFACEDh;
+
+"variables"
+
+	jdx	= 0;
+	hdx	= 0;
+	optr	= 0;
+
+ vector hipat = 0; FFFFh; 8000h; C5A1h;
+
+	result file name = { brtl-srand.bin };
+
+"workspace"
+
+	head	= 8;
+	results = PAYLOAD;
+
+"programme"
+
+	[jdx] = 0;
+	A = results; [optr] = A;
+
+    "srand j loop"
+
+	[hdx] = 0;
+
+    "srand h loop"
+
+	B = vector hipat; B + [hdx];
+	A = [B]; A < 16; A | [jdx];
+	=> BrtlSrand;
+
+	=> BrtlRand;
+	B = [optr];
+	[B] = A;
+	B +;
+	A = [brtlseed];
+	[B] = A;
+	B +;
+	[optr] = B;
+
+	[hdx] +;
+      ? [hdx] < N2 -> srand h loop;
+
+	[jdx] +;
+      ? [jdx] < N1 -> srand j loop;
+
+	( ---- payload first ---- )
+
+	[File Name]	= result file name;
+	[File Position] = 8 multiplied BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= PAYLOAD;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= PAYLOAD;
+	[File Size]	+ 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	( ---- header last ---- )
+
+	[head]		= MAGIC;
+	[head plus 1]	= LANE;
+	[head plus 2]	= N1;
+	[head plus 3]	= N2;
+	[head plus 4]	= RECORDS;
+	[head plus 5]	= PERREC;
+	[head plus 6]	= PAYLOAD;
+	[head plus 7]	= SENTINEL;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

@@ -1,0 +1,164 @@
+      ( *** brtl bad shift - NEGATIVE CONTROL 1 ***
+
+        Identical to brtlrnd.txt in every respect except one: random's
+        final scaling is written  A >> 15  instead of  A / 8000h.
+
+        This is the single easiest place in the whole wave to be
+        silently wrong.  SAR by 15 FLOORS; the DOS idiv TRUNCATES TOWARD
+        ZERO.  They agree on every non-negative product, and 325 of the
+        381 source-level random call sites take a constant argument,
+        none of them negative - so a port with this bug looks entirely
+        correct right up until planet orbital elements drift, because
+        negative arguments only arrive through zrandom's int16
+        wraparound.
+
+        Lane 3 is exhaustive in n, so this cannot hide here.  This file
+        exists to MEASURE that: if a diff of brtl-bad-shift.bin against
+        brtl-rnd.bin ever comes back clean, the lane is not testing what
+        it claims to test.
+
+        Deliberately does NOT include the brtl library - it carries its
+        own mutated copy, so the control can never be confused with the
+        real thing and the library file is never edited to break it.
+
+        Emits lane id 3 into brtl-bad-shift.bin.                       )
+
+"directors"
+
+	program name = { brtlbadshift };
+	unit = 32;
+
+"constants"
+
+	LANE	 = 3;
+	N1	 = 65536;
+	N2	 = 8;
+	RECORDS  = 65536 multiplied 8;
+	PERREC	 = 2;
+	PAYLOAD  = 65536 multiplied 8 multiplied 2;
+	MAGIC	 = 42525431h;
+	SENTINEL = 0DEFACEDh;
+
+"variables"
+
+	badseed = 1;
+	badn	= 0;
+
+	kdx	= 0;
+	nval	= 0;
+	sidx	= 0;
+	drawn	= 0;
+	optr	= 0;
+
+ vector seedtab = 0; 1; 12345; 65535;
+
+	result file name = { brtl-bad-shift.bin };
+
+"workspace"
+
+	head	= 8;
+	results = PAYLOAD;
+
+"programme"
+
+	[kdx] = 0;
+	A = results; [optr] = A;
+
+    "bs k loop"
+
+	A = [kdx];
+	=> BadToInt16;
+	[nval] = A;
+
+	[sidx] = 0;
+
+    "bs seed loop"
+
+	B = vector seedtab; B + [sidx];
+	A = [B];
+	=> BadSrand;
+
+	[drawn] = 0;
+
+    "bs draw loop"
+
+	A = [nval];
+	=> BadRandom;
+	B = [optr];
+	[B] = A;
+	B +;
+	A = [badseed];
+	[B] = A;
+	B +;
+	[optr] = B;
+
+	[drawn] +;
+      ? [drawn] < 2 -> bs draw loop;
+
+	[sidx] +;
+      ? [sidx] < 4 -> bs seed loop;
+
+	[kdx] +;
+      ? [kdx] < N1 -> bs k loop;
+
+	[File Name]	= result file name;
+	[File Position] = 8 multiplied BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= PAYLOAD;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= PAYLOAD;
+	[File Size]	+ 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	[head]		= MAGIC;
+	[head plus 1]	= LANE;
+	[head plus 2]	= N1;
+	[head plus 3]	= N2;
+	[head plus 4]	= RECORDS;
+	[head plus 5]	= PERREC;
+	[head plus 6]	= PAYLOAD;
+	[head plus 7]	= SENTINEL;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+"BadSrand"
+	A & FFFFh;
+	[badseed] = A;
+	leave;
+
+"BadRand"
+	A = [badseed];
+	A * 15A4E35h;
+	A + 1;
+	[badseed] = A;
+	A > 16;
+	A & 7FFFh;
+	leave;
+
+"BadRandom"
+	[badn] = A;
+	=> BadRand;
+	A * [badn];
+	A >> 15;		( THE BUG: floors instead of truncating )
+	leave;
+
+"BadToInt16"
+	A & FFFFh;
+	A # 8000h;
+	A - 8000h;
+	leave;

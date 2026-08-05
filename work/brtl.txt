@@ -1,0 +1,139 @@
+      ( *** brtl - Borland C++ 3.1's rand / srand / random, in L.in.oleum ***
+
+        This is a LIBRARY, not a program.  Include it with
+
+            "libraries"
+                brtl;
+
+        from a source file sitting in this same folder.  It declares no
+        "directors" period, so the including program keeps its own
+        program name and unit size.
+
+        ----------------------------------------------------------------
+        THE ALGORITHM, and where every bit of it comes from
+        ----------------------------------------------------------------
+
+        Read out of the shipped DOS binary, niv-plus/modules/NOCTIS.EXE
+        (215,744 bytes, not overlaid).  rand() begins at file offset
+        15970 = 3E62h:
+
+            8b 0e 5c 39     mov  cx, [395C]     seed, high word
+            8b 1e 5a 39     mov  bx, [395A]     seed, low  word
+            ba 5a 01        mov  dx, 015A       multiplier, high half
+            b8 35 4e        mov  ax, 4E35       multiplier, low  half
+            e8 a6 ff        call 3E19           long-multiply helper
+            05 01 00        add  ax, 1
+            83 d2 00        adc  dx, 0
+            89 16 5c 39     mov  [395C], dx     store new seed, high
+            a3 5a 39        mov  [395A], ax     store new seed, low
+            a1 5c 39        mov  ax, [395C]     read back the HIGH word
+            99              cwd                 (dead - ax is masked next)
+            25 ff 7f        and  ax, 7FFF
+            cb              retf
+
+        The bytes 35 4E occur exactly once in the whole file, so this
+        location is unique, not a guess.  The helper at 3E19 drops the
+        high*high cross term, so the product is 32x32 -> LOW 32 BITS
+        ONLY: no split multiply is needed and this library builds with
+        the STOCK compiler and the STOCK i386 pack.
+
+        The seed lives at DS:395A/395C, which is file offset 196826 in
+        the load image; those four bytes read 01 00 00 00.  The initial
+        state is therefore 1, proved from the shipped image, not assumed.
+
+        srand stores an explicit zero into the seed's high word
+        (c7 06 5c 39 00 00), so its argument is ZERO-extended from 16
+        bits.  The mask below is load-bearing, not cosmetic.
+
+        random(n) is a real out-of-line function here (at 14237h), not
+        an inlined macro: it far-calls rand, sign-extends both operands
+        from 16 bits, imuls, and idivs by 8000h.  idiv truncates toward
+        ZERO, so a shift by 15 is WRONG for negative n - and negative n
+        is reachable through zrandom's int16 wraparound.  Hence "/",
+        never ">" or ">>".
+
+        ----------------------------------------------------------------
+        CALLING CONVENTION
+        ----------------------------------------------------------------
+
+        Every routine here takes its argument in A and returns in A.
+        Every routine here DESTROYS A AND NOTHING ELSE: B, C, D and E
+        all survive, including across the divide in BrtlRandom.  That
+        is checked by disassembly in the wave's tests, not assumed.
+
+            BrtlSrand     in  A = raw srand argument (any 32 bits)
+                          out -                       state = A & FFFF
+
+            BrtlRand      in  -
+                          out A = rand()  in [0, 32767]
+
+            BrtlRandom    in  A = n
+                          out A = random(n)
+                          always draws, even when n is 0
+
+            BrtlToInt16   in  A = any 32-bit value
+                          out A = it, narrowed to a signed 16-bit int
+                          the int16-with-wraparound idiom needed at
+                          zrandom's float->int call boundary
+
+        The state itself is the variable brtlseed, and it is public
+        like everything else in L.in.oleum: a driver may set it
+        directly to reach states no srand argument can produce.      )
+
+"constants"
+
+	( Naming trap, learned the hard way: the compiler rejects any symbol
+	  whose normalised name CONTAINS one of the linear-expression tags -
+	  "div", "plus", "minus", "multiplied", "pragma", "mtp", "relating",
+	  "asbytesize".  "BRTL DIVISOR" normalises to "brtldivisor", which
+	  contains "div", and fails with "illegal compound or symbol name".
+	  Hence "BRTL SCALE" for the 8000h divisor.                        )
+
+	BRTL MULTIPLIER = 15A4E35h;
+	BRTL SCALE	= 8000h;
+	BRTL OUTMASK	= 7FFFh;
+	BRTL SEEDMASK	= FFFFh;
+
+"variables"
+
+	( initial state 1, read out of NOCTIS.EXE at file offset 196826 )
+
+	brtlseed = 1;
+
+	( scratch for random's multiplicand - a variable, not a register,
+	  so that the clobber contract holds )
+
+	brtln	 = 0;
+
+"programme"
+
+"BrtlSrand"
+
+	A & BRTL SEEDMASK;
+	[brtlseed] = A;
+	leave;
+
+"BrtlRand"
+
+	A = [brtlseed];
+	A * BRTL MULTIPLIER;
+	A + 1;
+	[brtlseed] = A;
+	A > 16;
+	A & BRTL OUTMASK;
+	leave;
+
+"BrtlRandom"
+
+	[brtln] = A;
+	=> BrtlRand;
+	A * [brtln];
+	A / BRTL SCALE;
+	leave;
+
+"BrtlToInt16"
+
+	A & BRTL SEEDMASK;
+	A # 8000h;
+	A - 8000h;
+	leave;

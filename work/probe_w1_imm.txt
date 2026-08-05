@@ -1,0 +1,84 @@
+      ( *** probe w1 imm - does the LCG work with immediate operands? ***
+
+        The natural way to write the port is  A * 15A4E35h;  and  A / 32768;
+        with the constants as immediates rather than parked in B.  This
+        checks that the immediate forms give the same answers as the
+        register forms already proven in probe w1 arith, and lets the
+        emitted opcodes be read out of the .exe.
+
+        Slots:
+          0  FFFFFFFF *  15A4E35h   signed   ( expect FEA5B1CB )
+          1  FFFFFFFF '* 15A4E35h   unsigned ( expect FEA5B1CB )
+          2  minus 12345000 /  32768  signed   ( expect minus 376 )
+          3  minus 12345000 '/ 32768  unsigned ( expect 130695 )
+          4  minus 12345000 %  32768  signed remainder
+          5  minus 12345000 '% 32768  unsigned remainder
+          6  full LCG step from seed 1, immediate form
+          7  full LCG step from seed 1, register form                 )
+
+"directors"
+
+	program name = { probew1imm };
+	unit = 32;
+
+"variables"
+
+	t	= 0;
+	result file name = { probew1imm.bin };
+
+"workspace"
+
+	results = 8;
+
+"programme"
+
+	A = 0; A - 1;
+	A * 15A4E35h;
+	[t] = A; A = results; A + 0; C = [t]; [A] = C;
+
+	A = 0; A - 1;
+	A '* 15A4E35h;
+	[t] = A; A = results; A + 1; C = [t]; [A] = C;
+
+	A = 0; A - 12345000;
+	A / 32768;
+	[t] = A; A = results; A + 2; C = [t]; [A] = C;
+
+	A = 0; A - 12345000;
+	A '/ 32768;
+	[t] = A; A = results; A + 3; C = [t]; [A] = C;
+
+	A = 0; A - 12345000;
+	A % 32768;
+	[t] = A; A = results; A + 4; C = [t]; [A] = C;
+
+	A = 0; A - 12345000;
+	A '% 32768;
+	[t] = A; A = results; A + 5; C = [t]; [A] = C;
+
+	A = 1;
+	A * 15A4E35h; A + 1;
+	A > 16; A & 7FFFh;
+	[t] = A; A = results; A + 6; C = [t]; [A] = C;
+
+	A = 1;
+	B = 15A4E35h; A * B; A + 1;
+	A > 16; A & 7FFFh;
+	[t] = A; A = results; A + 7; C = [t]; [A] = C;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

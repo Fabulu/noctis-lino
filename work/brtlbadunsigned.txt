@@ -1,0 +1,157 @@
+      ( *** brtl bad unsigned - NEGATIVE CONTROL 3 ***
+
+        Identical to brtlrnd.txt except that random's scaling uses the
+        UNSIGNED divide  A '/ 8000h  instead of the signed  A / 8000h.
+
+        Subtle in exactly the same way as control 1 and for the same
+        reason: for every non-negative product the two are the same
+        instruction as far as the result is concerned.  It parts company
+        only where the product goes negative - n < 0 with a non-zero
+        draw - where the unsigned divide reads the sign bit as value and
+        returns something near 131071 instead of a small negative
+        number.
+
+        Carries its own mutated copy of the routines; does not include
+        the brtl library.
+
+        Emits lane id 3 into brtl-bad-unsigned.bin.                    )
+
+"directors"
+
+	program name = { brtlbadunsigned };
+	unit = 32;
+
+"constants"
+
+	LANE	 = 3;
+	N1	 = 65536;
+	N2	 = 8;
+	RECORDS  = 65536 multiplied 8;
+	PERREC	 = 2;
+	PAYLOAD  = 65536 multiplied 8 multiplied 2;
+	MAGIC	 = 42525431h;
+	SENTINEL = 0DEFACEDh;
+
+"variables"
+
+	badseed = 1;
+	badn	= 0;
+
+	kdx	= 0;
+	nval	= 0;
+	sidx	= 0;
+	drawn	= 0;
+	optr	= 0;
+
+ vector seedtab = 0; 1; 12345; 65535;
+
+	result file name = { brtl-bad-unsigned.bin };
+
+"workspace"
+
+	head	= 8;
+	results = PAYLOAD;
+
+"programme"
+
+	[kdx] = 0;
+	A = results; [optr] = A;
+
+    "bs k loop"
+
+	A = [kdx];
+	=> BadToInt16;
+	[nval] = A;
+
+	[sidx] = 0;
+
+    "bs seed loop"
+
+	B = vector seedtab; B + [sidx];
+	A = [B];
+	=> BadSrand;
+
+	[drawn] = 0;
+
+    "bs draw loop"
+
+	A = [nval];
+	=> BadRandom;
+	B = [optr];
+	[B] = A;
+	B +;
+	A = [badseed];
+	[B] = A;
+	B +;
+	[optr] = B;
+
+	[drawn] +;
+      ? [drawn] < 2 -> bs draw loop;
+
+	[sidx] +;
+      ? [sidx] < 4 -> bs seed loop;
+
+	[kdx] +;
+      ? [kdx] < N1 -> bs k loop;
+
+	[File Name]	= result file name;
+	[File Position] = 8 multiplied BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= PAYLOAD;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= PAYLOAD;
+	[File Size]	+ 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	[head]		= MAGIC;
+	[head plus 1]	= LANE;
+	[head plus 2]	= N1;
+	[head plus 3]	= N2;
+	[head plus 4]	= RECORDS;
+	[head plus 5]	= PERREC;
+	[head plus 6]	= PAYLOAD;
+	[head plus 7]	= SENTINEL;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+"BadSrand"
+	A & FFFFh;
+	[badseed] = A;
+	leave;
+
+"BadRand"
+	A = [badseed];
+	A * 15A4E35h;
+	A + 1;
+	[badseed] = A;
+	A > 16;
+	A & 7FFFh;
+	leave;
+
+"BadRandom"
+	[badn] = A;
+	=> BadRand;
+	A * [badn];
+	A '/ 8000h;		( THE BUG: unsigned divide of a signed product )
+	leave;
+
+"BadToInt16"
+	A & FFFFh;
+	A # 8000h;
+	A - 8000h;
+	leave;

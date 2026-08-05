@@ -1,9 +1,10 @@
-"""Run the 64-bit-multiply regression suite.
+"""Run the Noctis IV port's regression suite.
 
     python tests/run_all.py            everything
     python tests/run_all.py galaxy     only tests whose name contains "galaxy"
     python tests/run_all.py site       only the site-census tests (no builds)
     python tests/run_all.py star       only the Tier 2 catalogue tests
+    python tests/run_all.py brtl       only the Wave 1 LCG test
 
 Each test is a standalone program - `python tests/test_galaxy.py` works on its
 own and prints the same output - so this driver only sequences them and sums up
@@ -45,7 +46,12 @@ TESTS = [
     ("test_starcatalogue.py", "the sweep's hit set against the real STARMAP.BIN"),
     ("test_starwindow.py", "the 1e10 acceptance window and the outward scan"),
     ("test_staranchor.py", "the author's three hard-coded stars, uniquely"),
+    ("test_brtlrand.py", "Borland's rand/srand/random over all 65,536 seeds"),
 ]
+
+# Tests that have a slower, more complete mode of their own. run_all always
+# takes the fast path; the flag is for when you are about to trust the result.
+DEEPER = {"test_brtlrand.py": "--exhaustive"}
 
 
 def main():
@@ -70,6 +76,11 @@ def main():
     for name, blurb, rc, secs in results:
         print("  %-4s %-24s %5.1fs  %s" % ("PASS" if rc == 0 else "FAIL", name, secs, blurb))
         failed += (rc != 0)
+    print()
+    for name, flag in sorted(DEEPER.items()):
+        if any(r[0] == name for r in results):
+            print("  note: %s has a slower complete mode: python tests/%s %s"
+                  % (name, name, flag))
     print()
     print("%d passed, %d failed, %.1fs total" % (len(results) - failed, failed, time.time() - t0))
     return 1 if failed else 0

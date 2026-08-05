@@ -1,0 +1,124 @@
+      ( *** brtl bad mask - NEGATIVE CONTROL 2 ***
+
+        Identical to brtlsweep.txt except that rand omits the final
+        A & 7FFFh.
+
+        Why the mask is load-bearing even though the shift is already a
+        logical SHR: the DOS code reads the seed's HIGH WORD and masks
+        it, so the result is a 15-bit value.  A 32-bit SHR by 16 leaves
+        all sixteen high bits, and 89ABCDEF > 16 is 89ABh, not 09ABh.
+        Every state whose bit 31 is set therefore returns a value the
+        original never could.
+
+        Carries its own mutated copy of the routines; does not include
+        the brtl library.
+
+        Emits lane id 1 into brtl-bad-mask.bin.                        )
+
+"directors"
+
+	program name = { brtlbadmask };
+	unit = 32;
+
+"constants"
+
+	LANE	 = 1;
+	N1	 = 65536;
+	N2	 = 16;
+	RECORDS  = 65536 multiplied 16;
+	PERREC	 = 2;
+	PAYLOAD  = 65536 multiplied 16 multiplied 2;
+	MAGIC	 = 42525431h;
+	SENTINEL = 0DEFACEDh;
+
+"variables"
+
+	badseed = 1;
+
+	sidx	= 0;
+	drawn	= 0;
+	optr	= 0;
+
+	result file name = { brtl-bad-mask.bin };
+
+"workspace"
+
+	head	= 8;
+	results = PAYLOAD;
+
+"programme"
+
+	[sidx] = 0;
+	A = results; [optr] = A;
+
+    "bm seed loop"
+
+	A = [sidx];
+	=> BadSrand;
+	[drawn] = 0;
+
+    "bm draw loop"
+
+	=> BadRand;
+	B = [optr];
+	[B] = A;
+	B +;
+	A = [badseed];
+	[B] = A;
+	B +;
+	[optr] = B;
+
+	[drawn] +;
+      ? [drawn] < N2 -> bm draw loop;
+
+	[sidx] +;
+      ? [sidx] < N1 -> bm seed loop;
+
+	[File Name]	= result file name;
+	[File Position] = 8 multiplied BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= PAYLOAD;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= PAYLOAD;
+	[File Size]	+ 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	[head]		= MAGIC;
+	[head plus 1]	= LANE;
+	[head plus 2]	= N1;
+	[head plus 3]	= N2;
+	[head plus 4]	= RECORDS;
+	[head plus 5]	= PERREC;
+	[head plus 6]	= PAYLOAD;
+	[head plus 7]	= SENTINEL;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+"BadSrand"
+	A & FFFFh;
+	[badseed] = A;
+	leave;
+
+"BadRand"
+	A = [badseed];
+	A * 15A4E35h;
+	A + 1;
+	[badseed] = A;
+	A > 16;
+	( THE BUG: no A & 7FFFh here )
+	leave;

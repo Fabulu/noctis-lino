@@ -1,0 +1,93 @@
+      ( *** QA probe: does BrtlRandom match the DOS routine for arguments
+            outside the int16 range? ***
+
+        The DOS random() at file offset 82487 reads its argument with
+
+            66 0f bf 56 06     movsx edx, word [bp+6]
+
+        - a WORD load.  Every argument is therefore narrowed to a signed
+        16-bit value in hardware before the multiply.  BrtlRandom does no
+        such narrowing.  This probe calls it both ways on five arguments
+        that lie outside int16 and writes both answers, so the divergence
+        is measured on real hardware rather than argued on paper.
+
+        Slots, all after srand(1) so rand() is 346 every time:
+
+            0..4    BrtlRandom (arg)              as the library stands
+            5..9    BrtlRandom (BrtlToInt16 arg)  what the DOS code does
+            10      0DEFACEDh sentinel                                )
+
+"libraries"
+
+	brtl;
+
+"directors"
+
+	program name = { qabigarg };
+	unit = 32;
+
+"variables"
+
+	i	= 0;
+	t	= 0;
+	optr	= 0;
+
+ vector args = 100000; 65536; 65538; 40000; minus 100000;
+
+	result file name = { qabigarg.bin };
+
+"workspace"
+
+	results = 11;
+
+"programme"
+
+	A = results; [optr] = A;
+	[i] = 0;
+
+    "raw loop"
+
+	A = 1; => BrtlSrand;
+	B = vector args; B + [i];
+	A = [B];
+	=> BrtlRandom;
+	[t] = A;
+	B = [optr]; C = [t]; [B] = C; B +; [optr] = B;
+
+	[i] +;
+      ? [i] < 5 -> raw loop;
+
+	[i] = 0;
+
+    "narrowed loop"
+
+	A = 1; => BrtlSrand;
+	B = vector args; B + [i];
+	A = [B];
+	=> BrtlToInt16;
+	=> BrtlRandom;
+	[t] = A;
+	B = [optr]; C = [t]; [B] = C; B +; [optr] = B;
+
+	[i] +;
+      ? [i] < 5 -> narrowed loop;
+
+	A = 0DEFACEDh;
+	[t] = A; B = [optr]; C = [t]; [B] = C;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 11;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 11;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

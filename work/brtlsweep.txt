@@ -1,0 +1,130 @@
+      ( *** brtl sweep - WAVE 1 LANE 1: all 65536 srand seeds, 16 draws each ***
+
+        srand truncates its argument to 16 bits, so these 65536 seeds are
+        EVERY state an srand call can ever produce.  Sixteen draws deep,
+        because after one step the state spans the full 32 bits and a
+        depth of one never exercises a high half with bit 31 set.
+
+            1,048,576 records x 2 units + 8 header units
+            = 8,388,640 bytes to brtl-sweep.bin
+
+        Record i = ( value, state ), i = seed*16 + draw.
+        Storing the state as well as the value is not decoration: it is
+        the only thing that catches "right number, wrong stream".
+
+        Interchange format, per the wave architecture, binding:
+
+            u0 = 42525431h   MAGIC
+            u1 = lane id
+            u2 = N1
+            u3 = N2
+            u4 = RECORDS
+            u5 = 2           units per record
+            u6 = RECORDS*2   payload units
+            u7 = 0DEFACEDh   completion sentinel
+
+        The payload is written FIRST, at file position 8 units, then the
+        size is set, then the 8-unit header goes down at position 0.  So
+        a file whose header reads back correctly is a file whose payload
+        was already complete - the mtime-graded runner cannot catch a
+        half-written sweep and call it a result.                        )
+
+"libraries"
+
+	brtl;
+
+"directors"
+
+	program name = { brtlsweep };
+	unit = 32;
+
+"constants"
+
+	LANE	 = 1;
+	N1	 = 65536;		( seeds )
+	N2	 = 16;			( draws per seed )
+	RECORDS  = 65536 multiplied 16;
+	PERREC	 = 2;
+	PAYLOAD  = 65536 multiplied 16 multiplied 2;
+	MAGIC	 = 42525431h;
+	SENTINEL = 0DEFACEDh;
+
+"variables"
+
+	sidx	= 0;
+	drawn	= 0;
+	optr	= 0;
+
+	result file name = { brtl-sweep.bin };
+
+"workspace"
+
+	head	= 8;
+	results = PAYLOAD;
+
+"programme"
+
+	[sidx] = 0;
+	A = results; [optr] = A;
+
+    "sweep seed loop"
+
+	A = [sidx];
+	=> BrtlSrand;
+	[drawn] = 0;
+
+    "sweep draw loop"
+
+	=> BrtlRand;
+	B = [optr];
+	[B] = A;
+	B +;
+	A = [brtlseed];
+	[B] = A;
+	B +;
+	[optr] = B;
+
+	[drawn] +;
+      ? [drawn] < N2 -> sweep draw loop;
+
+	[sidx] +;
+      ? [sidx] < N1 -> sweep seed loop;
+
+	( ---- payload first ---- )
+
+	[File Name]	= result file name;
+	[File Position] = 8 multiplied BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= PAYLOAD;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= PAYLOAD;
+	[File Size]	+ 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	( ---- header last ---- )
+
+	[head]		= MAGIC;
+	[head plus 1]	= LANE;
+	[head plus 2]	= N1;
+	[head plus 3]	= N2;
+	[head plus 4]	= RECORDS;
+	[head plus 5]	= PERREC;
+	[head plus 6]	= PAYLOAD;
+	[head plus 7]	= SENTINEL;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;

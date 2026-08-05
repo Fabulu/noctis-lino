@@ -1,0 +1,132 @@
+      ( *** brtl bad srand - NEGATIVE CONTROL 4 ***
+
+        Identical to brtlsrand.txt except that srand stores its argument
+        whole, with no A & FFFFh.
+
+        This is the control that justifies lane 4 existing at all.  A
+        sweep whose srand arguments are all inside 0..65535 CANNOT
+        distinguish this mutant from the real thing: it is only visible
+        once an argument carries a high half, which is precisely what
+        lane 4 does and what the headline "all 65536 seeds" sweep does
+        not.
+
+        The DOS srand writes an explicit zero into the seed's high word
+        - c7 06 5c 39 00 00 - so zero-extension is observed, not
+        inferred.
+
+        Carries its own mutated copy of the routines; does not include
+        the brtl library.
+
+        Emits lane id 4 into brtl-bad-srand.bin.                       )
+
+"directors"
+
+	program name = { brtlbadsrand };
+	unit = 32;
+
+"constants"
+
+	LANE	 = 4;
+	N1	 = 65536;
+	N2	 = 4;
+	RECORDS  = 65536 multiplied 4;
+	PERREC	 = 2;
+	PAYLOAD  = 65536 multiplied 4 multiplied 2;
+	MAGIC	 = 42525431h;
+	SENTINEL = 0DEFACEDh;
+
+"variables"
+
+	badseed = 1;
+
+	jdx	= 0;
+	hdx	= 0;
+	optr	= 0;
+
+ vector hipat = 0; FFFFh; 8000h; C5A1h;
+
+	result file name = { brtl-bad-srand.bin };
+
+"workspace"
+
+	head	= 8;
+	results = PAYLOAD;
+
+"programme"
+
+	[jdx] = 0;
+	A = results; [optr] = A;
+
+    "bsr j loop"
+
+	[hdx] = 0;
+
+    "bsr h loop"
+
+	B = vector hipat; B + [hdx];
+	A = [B]; A < 16; A | [jdx];
+	=> BadSrand;
+
+	=> BadRand;
+	B = [optr];
+	[B] = A;
+	B +;
+	A = [badseed];
+	[B] = A;
+	B +;
+	[optr] = B;
+
+	[hdx] +;
+      ? [hdx] < N2 -> bsr h loop;
+
+	[jdx] +;
+      ? [jdx] < N1 -> bsr j loop;
+
+	[File Name]	= result file name;
+	[File Position] = 8 multiplied BYTES PER UNIT;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= PAYLOAD;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= PAYLOAD;
+	[File Size]	+ 8;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	[head]		= MAGIC;
+	[head plus 1]	= LANE;
+	[head plus 2]	= N1;
+	[head plus 3]	= N2;
+	[head plus 4]	= RECORDS;
+	[head plus 5]	= PERREC;
+	[head plus 6]	= PAYLOAD;
+	[head plus 7]	= SENTINEL;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = head;
+	[Block Size]	= 8;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
+
+"BadSrand"
+	( THE BUG: no A & FFFFh here )
+	[badseed] = A;
+	leave;
+
+"BadRand"
+	A = [badseed];
+	A * 15A4E35h;
+	A + 1;
+	[badseed] = A;
+	A > 16;
+	A & 7FFFh;
+	leave;

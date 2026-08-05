@@ -1,0 +1,121 @@
+      ( *** brtl probe - does the "libraries" period work, and does the
+            library keep its clobber contract? ***
+
+        Written before any of the four sweep lanes, deliberately: if
+        library inclusion does not work with lino_build.ps1 it has to be
+        discovered here, not at lane 4.
+
+        Slots written to brtl-probe.bin, 20 units:
+
+          0      [brtlseed] before anything is called   expect 1
+          1..10  srand(1) then ten rand() draws
+                 expect 346 130 10982 1090 11656 7117 17595 6415
+                        22948 31126
+          11     [brtlseed] after those ten draws
+          12..15 B, C, D, E after a BrtlRandom call, having been
+                 loaded with 11111111h 22222222h 33333333h 44444444h
+                 - the clobber contract says all four survive
+          16     random(100) from srand(12345)
+          17     BrtlToInt16 (0001FFFFh)   expect minus 1
+          18     BrtlToInt16 (00008000h)   expect minus 32768
+          19     0DEFACEDh sentinel, so a short or stale file is
+                 obvious rather than plausible                        )
+
+"libraries"
+
+	brtl;
+
+"directors"
+
+	program name = { brtlprobe };
+	unit = 32;
+
+"variables"
+
+	t	= 0;
+	i	= 0;
+	optr	= 0;
+	rb	= 0;
+	rc	= 0;
+	rd	= 0;
+	re	= 0;
+
+	result file name = { brtl-probe.bin };
+
+"workspace"
+
+	results = 20;
+
+"programme"
+
+	( slot 0 - the library's initial state, before any call )
+
+	A = [brtlseed];
+	[t] = A; A = results; A + 0; C = [t]; [A] = C;
+
+	( slots 1..10 - srand(1) then ten draws )
+
+	A = 1; => BrtlSrand;
+	[i] = 0;
+	A = results; A + 1; [optr] = A;
+
+    "probe draw loop"
+
+	=> BrtlRand;
+	B = [optr]; [B] = A; B+; [optr] = B;
+	[i]+;
+      ? [i] < 10 -> probe draw loop;
+
+	( slot 11 - the full 32-bit state after those ten draws )
+
+	A = [brtlseed];
+	[t] = A; A = results; A + 11; C = [t]; [A] = C;
+
+	( slots 12..15 - the clobber contract )
+
+	A = 12345; => BrtlSrand;
+	B = 11111111h;
+	C = 22222222h;
+	D = 33333333h;
+	E = 44444444h;
+	A = 100; => BrtlRandom;
+	[t]  = A;
+	[rb] = B;
+	[rc] = C;
+	[rd] = D;
+	[re] = E;
+	A = results; A + 12; C = [rb]; [A] = C;
+	A = results; A + 13; C = [rc]; [A] = C;
+	A = results; A + 14; C = [rd]; [A] = C;
+	A = results; A + 15; C = [re]; [A] = C;
+	A = results; A + 16; C = [t];  [A] = C;
+
+	( slots 17, 18 - the int16 narrowing helper )
+
+	A = 1FFFFh; => BrtlToInt16;
+	[t] = A; A = results; A + 17; C = [t]; [A] = C;
+
+	A = 8000h; => BrtlToInt16;
+	[t] = A; A = results; A + 18; C = [t]; [A] = C;
+
+	( slot 19 - completion sentinel )
+
+	A = 0DEFACEDh;
+	[t] = A; A = results; A + 19; C = [t]; [A] = C;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= WRITE;
+	[Block Pointer] = results;
+	[Block Size]	= 20;
+	[Block Size]	* BYTES PER UNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Position] = 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 20;
+	[File Size]	* BYTES PER UNIT;
+	isocall;
+
+	end;
