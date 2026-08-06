@@ -827,3 +827,68 @@ self-graded from raw logs (drift ≤ 1 ms over 400 ticks — recon C measured
    §7) — `init_texture_mapping` is never called, so `txtr` is *only* ever an
    alias. Do not port them. `GFX.H`/`FAST3D.H`/`TEXT3D.H`/`PITAGORA.H` are not
    in the build set at all.
+
+---
+
+## 10. Wave 5c — §7's rule, made executable
+
+§7 states the rule this project works by: *nothing is graded against a stored
+artifact this project produced, and every test builds a broken subject and
+requires the catch.* The rule was stated in §7, restated in
+`fb_ledger.py`'s docstring, and restated again in `fb_lint.py` — and the wave
+that wrote those three statements shipped two more checks that could not fail.
+
+`tests/w5audit.py` executes it. It runs inside `tests/test_wave5.py`, costs
+2.4 s, and fails the suite when a check that cannot fail is added anywhere in
+`noctis-harness/fb_*.py`, `fbx_*.py` or `tests/`.
+
+### 10.1 What it adds to the three evidence levels
+
+The levels in §7 say what a *sound* comparison looks like. The audit says what
+an *unsound* one looks like, mechanically, and the two are now cross-checked:
+
+* **The level named in a check id is a claim, and it is recomputed.** A cid
+  beginning `T2` claims the second level — "exact, two independent
+  implementations" — so its two `fb_ledger` sides must carry two **distinct**
+  owners, neither of them `external`. A parsed 1996 source, a DOSBox capture or
+  an exact rational is evidence, but it is not a second implementation. Eight
+  rows currently fail that recomputation and are pinned with a budget that may
+  fall and may not rise; they are listed in `HARNESSAUDIT.md` §8.5.
+* **`fb_compare.TIER_TABLE` is graded the same way.** Four elements claim the
+  two-implementation level while every supporting row has one producer, and
+  they are listed in `HARNESSAUDIT.md` §8.6.
+* **The prose in this file is pinned.** The three headings below in §7 are
+  registered in `w5audit.TIER_CLAIMS` together with the ledger rows that
+  support them. If a heading's text drifts, or the rows behind it stop
+  supporting the level it names, the suite fails — and any *new* line in this
+  file that names a level and is not registered also fails the suite. That last
+  gate fired on its first execution, against the paragraph being written to
+  satisfy the other two.
+
+### 10.2 The two rules, and why a name-based lint is not enough
+
+`fb_lint.py` looks for a local called `want` and a local called `got`. Rename
+them and it goes silent; that is measured every run and printed. `w5audit`
+never reads a name — it inlines the locals into the condition, turns the
+remainder into atoms keyed by source text (so two spellings of one call become
+one atom taking one value), and executes:
+
+* **rule A** — the condition is true under every random assignment. It cannot
+  fail. `req(True, ...)`, `x or True`, two literals compared.
+* **rule B** — one side is *derived from* the other and the predicate ignores
+  every atom the two sides do not share. The 65,536-origin ring sweep in
+  `fb_tick.py` is the standing instance, and its origin axis is re-measured
+  every run at **one distinct outcome per window length**.
+* **rule C** — a tally, `if <pred>: fails += 1`, whose predicate is false for
+  every case the sweep enumerates. It exists because rule B is evadable by
+  spelling the truth as a literal rather than as a shared variable; that
+  evasion was written, run against the analyser, and escaped before rule C
+  was added.
+
+### 10.3 The interchange format is unchanged
+
+No record kind, tag, header word or file name in §6 changes. The audit reads
+source, not dumps; it writes nothing; and `test_wave5.py` now re-hashes every
+`noctis-harness/fb_*.py` it read and fails if one moved, for the same reason it
+re-hashes `work/`: a grader that edits its subject is the stored-artifact defect
+in its most direct form.

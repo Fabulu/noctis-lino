@@ -225,7 +225,12 @@ def compare_records(check, sets, label="implementations"):
     if len(set(sizes.values())) != 1:
         check.ok(False, "%s agree on record count" % label, repr(sizes))
         return False
-    check.ok(True, "all %d %s produced %d records" % (len(names), label, sizes[names[0]]))
+    # NOT ok(True): agreeing on zero records is agreement about nothing, and a
+    # producer that emits nothing agrees with every other producer that emits
+    # nothing. tests/w5audit.py rule A flagged the unconditional form.
+    check.ok(sizes[names[0]] > 0,
+             "all %d %s produced %d records, and the record set is not empty"
+             % (len(names), label, sizes[names[0]]))
     all_ok = True
     for a, b in itertools.combinations(names, 2):
         bad = [i for i in range(sizes[a]) if sets[a][i] != sets[b][i]]

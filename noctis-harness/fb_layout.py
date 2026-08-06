@@ -68,19 +68,24 @@ SUPPORTS = os.path.join(DATA, "SUPPORTS.NCT")
 # Borland's far-heap block header.  16 units, split 8 + 8.
 PAD = 16
 ZONE = PAD // 2
+# The canary probe sweeps mod 12, not mod PAD.  BUFFERMODEL 4.2, normative:
+# units +12..+15 are SUB+4..+7, a standing allowance that cannot fire.
+PROBEMOD = 12
 # A second pad below the first region, so digit_at's txtr[-6..-1] underflow has
 # somewhere to land when txtr is based at the very first buffer.
 LOWPAD = 16
 
 # Borland's far-heap block header sits immediately below the block, and the
-# pointer farmalloc hands back has offset 4 inside its own segment.  This is
-# INFERRED, not measured -- see `open item 1` -- but it now has four
-# independent source-level witnesses, three of which this file can check:
-#   (a) Stick/Segmento's `mov byte ptr es:[di+4], 255`   TDPOLYGS.H:250-258
-#   (b) sc_bytes == 65540 == 65536 + 4                   NOCTIS-D.H:47
-#   (c) wave()'s `add ax, 4`                             NOCTIS-0.CPP:4583-4588
-#   (d) polymap's `mov es:[0xFA00], al` into a 65540-byte page  TDPOLYGS.H:2684
-SEG_OFFSET = 4          # farmalloc'd blocks
+# pointer farmalloc hands back has offset K inside its own segment.
+#
+# WAVE 5c: K IS NO LONGER A LITERAL HERE.  It was `SEG_OFFSET = 4` in this file
+# and `#define SEG_OFFSET 4` in fb_ref.c -- the same unparsed number in both
+# "independent" producers, which is why the alias-8 PREMISE graded nothing: the
+# two sides agreed because they had been told the same answer.  `solve_seg_offset()`
+# below treats it as an unknown and solves it from four parsed source
+# constraints; `SEG_OFFSET` is whatever that solve returns.  A source edit that
+# moves any one constraint makes the solver return a different K or refuse.
+SEG_OFFSET = None       # farmalloc'd blocks -- filled in below, by the solver
 ADAPTOR_SEG_OFFSET = 0  # adaptor is A000:0000
 
 PGUARD = 0xA5A5A5A5   # poison for a TAIL zone: a write here is a VIOLATION
@@ -129,9 +134,18 @@ WORKSPACE_BREAKS = {
 # --------------------------------------------------------------- source parsing
 
 
+_TEXT_CACHE = {}
+
+
 def read_text(path):
-    with open(path, "r", encoding="latin-1") as fh:
-        return fh.read()
+    """Cached: the solver and every Layout() re-read the same four 1996 files,
+    and mutation coverage constructs dozens of Layouts per run."""
+    t = _TEXT_CACHE.get(path)
+    if t is None:
+        with open(path, "r", encoding="latin-1") as fh:
+            t = fh.read()
+        _TEXT_CACHE[path] = t
+    return t
 
 
 def parse_defines(text):
@@ -189,6 +203,76 @@ def parse_farmalloc_order(text, defines):
     return order
 
 
+def parse_farmalloc_names_independent(text):
+    """A SECOND, structurally different parse of the same call sequence, for L1.
+
+    L1 used to read `want == got` where `got` was built by iterating `want`:
+    the layout constructor consumes `parse_farmalloc_order()`'s list and L1 then
+    compared the constructor's output back against its own input.  That row read
+    PASS whatever the constructor did with the order.
+
+    This parser shares no code with `parse_farmalloc_order`: it strips comments,
+    splits the translation unit into `;`-terminated statements, keeps the ones
+    that mention farmalloc, and takes the identifier immediately left of the
+    first `=`.  Two parses, one claim -- and if the constructor reorders the
+    regions, L1 now fails.
+    """
+    src = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
+    src = re.sub(r"//[^\n]*", " ", src)
+    stmts = src.split(";")
+    hits = []                       # (statement index, pointer name)
+    for si, stmt in enumerate(stmts):
+        if "farmalloc" not in stmt:
+            continue
+        head = stmt.split("=", 1)[0]
+        ids = re.findall(r"[A-Za-z_]\w*", head)
+        if ids:
+            hits.append((si, ids[-1]))
+    # `solong:` (NOCTIS.CPP:501) re-allocates `adapted` after the GOES-net
+    # shell-out and is not part of the initial heap.  It is ISOLATED: the run
+    # that builds the heap is a block of farmalloc statements separated by at
+    # most one other statement (the `ruinschart` alias sits inside it).  Group
+    # on statement adjacency -- the other parser groups on source-line gaps, so
+    # a source edit that defeats one does not automatically defeat the other.
+    runs, cur = [], []
+    for si, name in hits:
+        if cur and si - cur[-1][0] > 2:
+            runs.append(cur)
+            cur = []
+        cur.append((si, name))
+    if cur:
+        runs.append(cur)
+    run = max(runs, key=len)
+    names = [n for _si, n in run]
+    if len(set(names)) != len(names):
+        raise SystemExit("independent farmalloc parse: repeated pointer %s" % names)
+    return names
+
+
+def parse_snapshot_row_loop(text):
+    """snapshot()'s row loop, NOCTIS-0.CPP.
+
+        for (ptr=63680; ptr<64000; ptr-=320) _write (ih, adapted+ptr, 320);
+
+    Returns (var, start, bound, step, line).  L14 used to assert a bare Python
+    fact -- `((0-320) & 0xFFFFFFFF) >= 64000` -- which is true of Python and
+    says nothing about Noctis.  With the three loop constants PARSED, a source
+    edit to the page size moves the row.
+    """
+    m = re.search(r"for\s*\(\s*(\w+)\s*=\s*(\d+)\s*;\s*\1\s*<\s*(\d+)\s*;\s*\1\s*-=\s*(\d+)\s*\)",
+                  text)
+    if not m:
+        raise SystemExit("snapshot()'s descending row loop not found in NOCTIS-0.CPP")
+    return (m.group(1), int(m.group(2)), int(m.group(3)), int(m.group(4)),
+            _find_line(text, m.start()))
+
+
+def parse_unsigned_decl(text, name):
+    """Is `name` declared `unsigned` (16-bit in DOS, so 32-bit unsigned in the
+    port) at file scope?  TDPOLYGS.H:150 for `ptr`."""
+    return bool(re.search(r"^\s*unsigned\s+%s\s*;" % re.escape(name), text, re.M))
+
+
 def parse_adaptor(text):
     """adaptor's literal far pointer, from NOCTIS-0.CPP."""
     m = re.search(
@@ -197,6 +281,297 @@ def parse_adaptor(text):
     if not m:
         raise SystemExit("adaptor's far-pointer declaration not found")
     return int(m.group(1), 16)
+
+
+# ===================================================== THE FIXTURE INTERPRETER
+#
+# WAVE 5c, plan 3.  Until now the Python producer ran `scenario_page`, a
+# scenario written in this file, and fb_ref.c ran one written in that file, and
+# the lino build ran a third.  They were three DIFFERENT SCENARIOS, each
+# internally correct, and the grader printed their difference as a red row --
+# 63,988 of 64,000 units -- when NOT GRADED was the truth.
+#
+# docs-notes/FIXTURE1.txt is the one stimulus.  It is ARCHITECT-OWNED and
+# read-only to both implementers, for a reason that is this wave's whole
+# subject: an implementer who can edit the stimulus can make any comparison
+# pass.  This module reads it, hashes it, runs its own forbidden-numeral lint
+# over it, and INTERPRETS it.  Every mechanism under test -- the texel address,
+# the base-4 fold, the 16-bit masks, alias 8's index, QUADWORDS's values, every
+# region base -- stays here.  The script carries only stimulus.
+
+FIXTURE_PATH = os.path.abspath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "docs-notes", "FIXTURE1.txt"))
+PALETTE_COLOURS = 256          # `n=all`
+
+
+class FixtureError(SystemExit):
+    pass
+
+
+def fixture_load(path=None):
+    """Read, hash and LINT the fixture.  Returns a dict, or raises.
+
+    The lint is not decoration.  If a mechanism's answer -- an address, an
+    extent, a stride, a magic -- can be written into the stimulus, then a
+    producer can transcribe it instead of computing it, and the comparison
+    between two such producers measures the script.  So the fixture declares
+    the quantities that may not appear, and every producer enforces it before
+    executing a single op.
+    """
+    import hashlib
+    path = path or FIXTURE_PATH
+    if not os.path.exists(path):
+        return None
+    with open(path, "rb") as fh:
+        raw = fh.read()
+    text = raw.decode("utf-8", "replace")
+    sha = hashlib.sha256(raw).hexdigest()
+
+    def split(line):
+        toks = line.split()
+        if not toks:
+            return None
+        op, kv = toks[0], {}
+        for t in toks[1:]:
+            if "=" in t:
+                k, v = t.split("=", 1)
+                kv[k] = v
+        return op, kv
+
+    version, forbid = None, []
+    exec_lines = []
+    for lineno, raw_line in enumerate(text.splitlines(), 1):
+        s = raw_line.strip()
+        if not s or s.startswith("#"):
+            continue
+        got = split(s)
+        if not got:
+            continue
+        op, kv = got
+        if op == "FIXTURE1":
+            version = s.split()[1] if len(s.split()) > 1 else "?"
+            continue
+        if op == "LINT":
+            forbid = [t for t in kv.get("forbid", "").split(",") if t]
+            continue
+        exec_lines.append((lineno, op, kv))
+    if version is None:
+        raise FixtureError("%s carries no FIXTURE1 version line" % path)
+    if not forbid:
+        raise FixtureError("%s carries no LINT forbid= list" % path)
+
+    hits = []
+    fset = set(forbid)
+    for lineno, op, kv in exec_lines:
+        for k, v in kv.items():
+            for piece in v.split(","):
+                if piece in fset:
+                    hits.append((lineno, op, k, piece))
+    if hits:
+        raise FixtureError(
+            "%s: the fixture carries %d quantity(ies) its own lint forbids -- %s.  A "
+            "producer that can read a mechanism's answer off the stimulus is being "
+            "handed the answer." % (path, len(hits), hits[:4]))
+
+    sections, cur = {}, None
+    for lineno, op, kv in exec_lines:
+        if op == "SECTION":
+            cur = s_name = list(kv.keys())[0] if kv else None
+            # `SECTION page` has no key=value, so recover the bare token
+            cur = None
+            continue
+        if op == "END":
+            cur = None
+            continue
+        if cur is not None:
+            sections.setdefault(cur, []).append((lineno, op, kv))
+    # re-scan for the bare `SECTION <name>` form
+    sections, cur = {}, None
+    for raw_line in text.splitlines():
+        s = raw_line.strip()
+        if not s or s.startswith("#"):
+            continue
+        toks = s.split()
+        if toks[0] == "SECTION":
+            cur = toks[1]
+            sections.setdefault(cur, [])
+            continue
+        if toks[0] == "END":
+            cur = None
+            continue
+        if cur is None or toks[0] in ("FIXTURE1", "LINT"):
+            continue
+        kv = {}
+        for t in toks[1:]:
+            if "=" in t:
+                k, v = t.split("=", 1)
+                kv[k] = v
+        sections[cur].append((toks[0], kv))
+    return {"path": path, "text": text, "sha256": sha, "len": len(raw),
+            "version": version, "forbid": forbid, "sections": sections,
+            "lint_hits": hits}
+
+
+def fx_int(kv, key, default=None):
+    v = kv.get(key)
+    if v is None:
+        if default is None:
+            raise FixtureError("fixture op is missing the key %r" % key)
+        return default
+    if v == "all":
+        return PALETTE_COLOURS
+    return int(v, 0)
+
+
+def fx_float(kv, key):
+    v = kv.get(key)
+    if v is None:
+        raise FixtureError("fixture op is missing the key %r" % key)
+    return float(v)
+
+
+# ------------------------------------------------- the farmalloc offset solver
+#
+# WAVE 5c, disposition REFOUND (plan 1.5, "the alias-8 raise").
+#
+# The premise `farmalloc returns a pointer whose offset inside its own segment
+# is 4` was, until this wave, the literal `4` written into fb_layout.py:83 and
+# into fb_ref.c:68.  Both producers then "independently" derived alias 8 at
+# adapted[63996] -- from the same number, handed to both.  That is Tier 0: an
+# assertion with two transcribers, not two witnesses.
+#
+# Here K is an UNKNOWN.  Four constraints are parsed out of the 1996 sources and
+# intersected; the premise is graded iff exactly one K survives.  Nothing below
+# may contain the digit 4 as an answer.
+
+
+class SegOffsetSolution(dict):
+    pass
+
+
+def _find_line(text, idx):
+    return text.count("\n", 0, idx) + 1
+
+
+def seg_offset_constraints(zero_text=None, d_h_text=None, tdp_text=None):
+    """Return [(name, citation, set-of-admissible-K, evidence-string)].
+
+    C1  sc_bytes == 65536 + K                       NOCTIS-D.H
+        `adapted` is a full 64 KiB video page plus the pointer's own offset;
+        the four extra bytes exist for nothing else.
+    C2  Stick's TWO branches address the same pixel two different ways
+        NOCTIS-0.CPP.  The vertical branch does `les si, dword ptr adapted`
+        and stores at `es:[si]` -- the offset arrives in SI at run time.  The
+        general branch rebuilds DI from `riga[bx]` and `global_x[2]`, so the
+        pointer's own offset is NOT in DI, and the code makes it up with a
+        LITERAL DISPLACEMENT `es:[di+D]`.  Two spellings of one address, so
+        K == D.  This is the only constraint that is a genuine cross-check
+        rather than a transcription, and it is the one a sandbox edit moves.
+    C3  wave()'s `add ax, D2` before `mov di, ax` / `es:[di]`   NOCTIS-0.CPP.
+        Same argument, second site: K == D2.
+    C4  polymap's `mov es:[0xFA00], al` must land on the visible page
+        TDPOLYGS.H.  A BOUND, not an equality -- stated as one so the report
+        does not claim more than it has.
+    """
+    zero_text = read_text(ZERO_CPP) if zero_text is None else zero_text
+    d_h_text = read_text(D_H) if d_h_text is None else d_h_text
+    tdp_text = read_text(TDP_H) if tdp_text is None else tdp_text
+    universe = set(range(0, 65536))
+    out = []
+
+    d = parse_defines(d_h_text)
+    if "sc_bytes" not in d:
+        raise SystemExit("seg-offset C1: sc_bytes not declared in NOCTIS-D.H")
+    k1 = d["sc_bytes"] - 65536
+    out.append(("C1 sc_bytes", "NOCTIS-D.H `#define sc_bytes %d`" % d["sc_bytes"],
+                {k1} & universe if k1 >= 0 else set(),
+                "sc_bytes %d - 65536 = %d" % (d["sc_bytes"], k1)))
+
+    # -- C2, Stick's two branches ------------------------------------------
+    m_les = re.search(r"les\s+si\s*,\s*dword\s+ptr\s+adapted", zero_text)
+    if not m_les:
+        raise SystemExit("seg-offset C2: Stick's `les si, dword ptr adapted` not found")
+    # the vertical branch's store must carry NO displacement: the run-time
+    # offset is already in SI.
+    tail = zero_text[m_les.end():m_les.end() + 4000]
+    m_nodisp = re.search(r"mov\s+word\s+ptr\s+es:\[\s*si\s*\]\s*,", tail)
+    m_disp_si = re.search(r"es:\[\s*si\s*\+\s*(\d+)\s*\]", tail)
+    if not m_nodisp:
+        raise SystemExit("seg-offset C2: the vertical branch's `es:[si]` store not found")
+    si_disp = int(m_disp_si.group(1)) if m_disp_si else 0
+    # the general branch: DI is rebuilt, so the displacement stands in for K
+    m_gen = re.search(
+        r"mov\s+di\s*,\s*word\s+ptr\s+global_x\[2\](?P<body>.{0,600}?)"
+        r"mov\s+word\s+ptr\s+es:\[\s*di\s*(?:\+\s*(?P<disp>\d+))?\s*\]",
+        zero_text, re.S)
+    if not m_gen:
+        raise SystemExit("seg-offset C2: Stick's general branch `es:[di+D]` store not found")
+    if "riga[bx]" not in m_gen.group("body").replace(" ", ""):
+        raise SystemExit("seg-offset C2: the general branch does not build DI from riga[]; "
+                         "the two branches are not addressing the same pixel")
+    if re.search(r"les\s+di\s*,", m_gen.group("body")):
+        raise SystemExit("seg-offset C2: the general branch reloads DI from a far pointer, "
+                         "so its displacement does not stand in for the offset")
+    disp = int(m_gen.group("disp") or 0)
+    out.append(("C2 Stick two branches",
+                "NOCTIS-0.CPP:%d `es:[si%s]` (offset in SI) vs :%d `es:[di+%d]` (offset as a literal)"
+                % (_find_line(zero_text, m_les.start()),
+                   "+%d" % si_disp if si_disp else "",
+                   _find_line(zero_text, m_gen.start()), disp),
+                {disp - si_disp} & universe if disp - si_disp >= 0 else set(),
+                "literal displacement %d minus the SI-branch displacement %d" % (disp, si_disp)))
+
+    # -- C3, wave() ---------------------------------------------------------
+    m_w = re.search(r"add\s+ax\s*,\s*(\d+)\s*\n\s*mov\s+di\s*,\s*ax"
+                    r"(?P<body>.{0,300}?)mov\s+byte\s+ptr\s+es:\[\s*di\s*\]", zero_text, re.S)
+    if not m_w:
+        raise SystemExit("seg-offset C3: wave()'s `add ax,D / mov di,ax / es:[di]` not found")
+    out.append(("C3 wave()", "NOCTIS-0.CPP:%d `add ax, %s`"
+                % (_find_line(zero_text, m_w.start()), m_w.group(1)),
+                {int(m_w.group(1))} & universe,
+                "the literal added to the row address before the es:[di] store"))
+
+    # -- C4, polymap's stash must land on the visible page -------------------
+    m_p = re.search(r"mov\s+es:\[\s*(0x[0-9A-Fa-f]+)\s*\]\s*,\s*al", tdp_text)
+    if not m_p:
+        raise SystemExit("seg-offset C4: polymap's `mov es:[0x....], al` not found")
+    seg = int(m_p.group(1), 16)
+    lo = max(0, seg + 2 - 64000)      # both bytes on the 320x200 page
+    hi = seg
+    out.append(("C4 polymap bound", "TDPOLYGS.H `mov es:[0x%04X], al` into a 320x200 page" % seg,
+                set(range(lo, hi + 1)) & universe,
+                "0x%04X - K and +1 must both lie in [0,64000): K in [%d,%d]" % (seg, lo, hi)))
+    return out
+
+
+def solve_seg_offset(zero_text=None, d_h_text=None, tdp_text=None):
+    """Intersect the constraints.  Returns a dict with `K` set iff exactly one
+    value survives; otherwise `K` is None and `why` says which pair collided.
+
+    This is the whole of the alias-8 premise's evidence.  It is DERIVED FROM
+    SOURCE, and still NOT MEASURED -- only DOSBox-X + NOCTIS.SYM measures it --
+    so the premise moves from Tier 0 to Tier 3, never to Tier 1.
+    """
+    cons = seg_offset_constraints(zero_text, d_h_text, tdp_text)
+    sol = set(range(0, 65536))
+    for _n, _c, ks, _e in cons:
+        sol &= ks
+    out = SegOffsetSolution(constraints=cons, solutions=sorted(sol)[:8], n=len(sol))
+    if len(sol) == 1:
+        out["K"] = sorted(sol)[0]
+        out["why"] = "unique"
+    else:
+        out["K"] = None
+        pins = [(n, sorted(ks)[:4]) for n, _c, ks, _e in cons if len(ks) <= 4]
+        out["why"] = ("%d values survive; the equality constraints disagree: %s"
+                      % (len(sol), pins))
+    return out
+
+
+_SEG = solve_seg_offset()
+if _SEG["K"] is None:
+    raise SystemExit("fb_layout.py: the farmalloc offset does not solve -- %s" % _SEG["why"])
+SEG_OFFSET = _SEG["K"]
 
 
 def parse_quadwords(zero_text, main_text):
@@ -413,6 +788,24 @@ class Layout(object):
 
         self.by_name = {r.name: r for r in self.regions}
         self._build_zones()
+        self._constructor_invariants()
+
+    def _constructor_invariants(self):
+        """WAVE 5c: what L2 used to be.
+
+        L2 emitted 16 graded rows of `b.base - a.end == self.pad`, which is the
+        line of the constructor two statements up (`cur += pad; base = cur`)
+        read back out.  Under NOPAD it read `0 == 0` and still passed.  A
+        constructor invariant is an ASSERTION -- it protects the constructor
+        from itself -- and it is never evidence about a port, so it does not
+        get a row in a grading suite.  Assert it here; delete the rows there.
+        """
+        for a, b in zip(self.regions, self.regions[1:]):
+            assert b.base - a.end == self.pad, \
+                "constructor invariant: gap %s..%s is %d, not PAD=%d" % (
+                    a.name, b.name, b.base - a.end, self.pad)
+            assert a.end <= b.padbase, "constructor invariant: %s overruns %s's pad" % (
+                a.name, b.name)
 
     # -- pads and zones -----------------------------------------------------
 
@@ -558,15 +951,19 @@ class Layout(object):
                 ok = False
                 msg.append("  FAIL  " + text)
 
-        # L1 -- farmalloc order, taken from the source, is the layout order
-        want = [n for (n, _, _) in self.alloc] + ["adaptor"]
+        # L1 -- the layout's region order is the farmalloc call order.
+        # REFOUND (wave 5c): `got` is the order the CONSTRUCTOR produced;
+        # `want` is a SECOND, independent parse of NOCTIS.CPP that shares no
+        # code with the one the constructor consumed.  Before this, `want` was
+        # the constructor's own input list and the row could not fail.
+        want = parse_farmalloc_names_independent(read_text(MAIN_CPP)) + ["adaptor"]
         got = [r.name for r in self.regions]
-        req(want == got, "L1 layout order == farmalloc order %s" % (want,))
+        req(want == got,
+            "L1 layout order == a SECOND parse of NOCTIS.CPP's farmalloc sequence %s" % (want,))
 
-        # L2 -- no region overlaps another, and pads separate them
-        for a, b in zip(self.regions, self.regions[1:]):
-            req(a.end <= b.padbase, "L2 %s ends %d <= %s pad %d" % (a.name, a.end, b.name, b.padbase))
-            req(b.base - a.end == self.pad, "L2 gap %s..%s == PAD" % (a.name, b.name))
+        # L2 is gone.  It compared `b.base - a.end` against the PAD the
+        # constructor had just used to compute `b.base`, sixteen times, and read
+        # `0 == 0` under NOPAD.  It is now an assert in _constructor_invariants.
 
         # L3 -- every txtr base has a full 64 KiB readable window inside NW
         for name, base in self.txtr_bases:
@@ -672,9 +1069,20 @@ class Layout(object):
             "(niv-lr relocated it to %d)"
             % (a8["segoff"], self.by_name["adapted"].segoff, a8["index"],
                a8["row"], a8["col"], a8["lr_index"]))
-        req(a8["nw"] == self.seg_index("adapted", self.alias8_segoff),
-            "L12 alias 8 resolves through the SAME seg_index primitive as every other "
-            "class-A site -- it is not a special case")
+        # L12b is gone.  It read `a8["nw"] == self.seg_index("adapted",
+        # self.alias8_segoff)` -- and `alias8()`'s first statement IS
+        # `nw = self.seg_index("adapted", self.alias8_segoff)`.  x == x.
+
+        # L12c -- the PREMISE, no longer a literal.  K is solved from four
+        # parsed constraints (`solve_seg_offset`); the row states the solve and
+        # fails if the constraints ever stop agreeing.
+        seg = solve_seg_offset()
+        req(seg["K"] == SEG_OFFSET and seg["n"] == 1,
+            "L12c the farmalloc segment offset SOLVES to a unique K = %s from %d parsed "
+            "constraints (%s) -- it is not a literal in this file, and fb_ref.c's copy of "
+            "the same literal is no longer what makes the two sides agree"
+            % (seg["K"], len(seg["constraints"]),
+               "; ".join(n for n, _c, _k, _e in seg["constraints"])))
 
         # L13 -- A1's bbox proof.  poly3d clamps min/max x,y to the visible
         # area BEFORE mp[] is indexed, so Segmento's riga[] index cannot leave
@@ -689,14 +1097,45 @@ class Layout(object):
             "L13 the highest address Segmento can form is riga[%d]+%d+%d = %d, far under "
             "65536" % (uby, ubx, SEG_OFFSET, 320 * uby + ubx + SEG_OFFSET))
 
-        # L14 -- A7's typing requirement.  TDPOLYGS.H:150's `ptr` runs
-        # 63680 -> 0 -> "-320"; at 32-bit UNSIGNED that is 4294966976 >= 64000
-        # so the loop exits after exactly 200 iterations, identical to DOS.
-        # At 32-bit SIGNED it is -320 < 64000 and the loop never ends.
-        req(((0 - 320) & 0xFFFFFFFF) >= 64000,
-            "L14 A7 reclassified: `ptr` must be UNSIGNED (0-320 = %d >= 64000 -> exits); "
-            "signed would loop forever.  One assertion, zero cost."
-            % ((0 - 320) & 0xFFFFFFFF))
+        # L14 -- A7's typing requirement.  REFOUND (wave 5c).
+        #
+        # The old row was `((0 - 320) & 0xFFFFFFFF) >= 64000`: a fact about
+        # Python's `&`, with no subject.  It could not fail, it named no source
+        # line, and no mutation in the set could move it.
+        #
+        # The claim it was trying to make is about snapshot()'s row loop, and
+        # every constant in that loop is now PARSED.  The loop is executed
+        # twice here -- once with 32-bit unsigned semantics, once signed -- and
+        # the row asserts the ITERATION COUNT and the terminating index.  A
+        # source edit to the page size, the row stride or the start row moves
+        # every number in the message.
+        var, lstart, lbound, lstep, lline = parse_snapshot_row_loop(read_text(ZERO_CPP))
+        unsigned_decl = parse_unsigned_decl(read_text(TDP_H), var)
+
+        def run_rows(mask):
+            p, rows = lstart, []
+            for _ in range(4096):
+                if not (p < lbound):
+                    break
+                rows.append(p)
+                p = (p - lstep) & mask if mask else p - lstep
+            return rows, p
+
+        u_rows, u_last = run_rows(0xFFFFFFFF)
+        s_rows, _ = run_rows(0)
+        want_rows = lstart // lstep + 1
+        req(unsigned_decl and len(u_rows) == want_rows and len(s_rows) == 4096
+            and u_last >= lbound and u_rows[-1] == 0,
+            "L14 A7 reclassified, from the parsed loop at NOCTIS-0.CPP:%d "
+            "`for (%s=%d; %s<%d; %s-=%d)`: `%s` is declared `unsigned` in TDPOLYGS.H (%s), "
+            "so it writes exactly %d rows ending at %d and then steps to %d >= %d and "
+            "EXITS.  Signed, the same parsed loop does not terminate (%d+ iterations)."
+            % (lline, var, lstart, var, lbound, var, lstep, var, unsigned_decl,
+               len(u_rows), u_rows[-1], u_last, lbound, len(s_rows)))
+        req(want_rows * lstep == lbound,
+            "L14b the three parsed constants agree with each other: (%d/%d + 1) rows x %d "
+            "bytes = %d == the parsed bound %d.  Edit any one of the three in the source "
+            "and this row fails." % (lstart, lstep, lstep, want_rows * lstep, lbound))
 
         return ok, msg
 
@@ -1108,10 +1547,21 @@ class Workspace(object):
         for a perfectly good walker.  Deriving the slot from the allowance
         table means an implementation with the WRONG table probes a different
         address and the `at` field moves: one more thing this record catches.
+
+        WAVE 5c, disposition REFOUND.  The sweep is `mod PROBEMOD == 12`, which
+        is what BUFFERMODEL 4.2 has said since it was written.  This file swept
+        `mod PAD == 16`, which put three pads on slot 0 and diverged from BOTH
+        lino walks from i = 2 onwards -- pad 3 read A5A5A5A5 here and 5A5A5A5A
+        there.  A canary record cannot be a cross-implementation check while the
+        two sides probe different addresses, so the disagreement was not a
+        finding about the port: it was this rule.  Units +12..+15 are SUB+4..+7,
+        a standing allowance that cannot fire by design; probing them would be
+        asserting the guard model is wrong.
         """
         pb = self.lay.padbases[i]
-        for k in range(PAD):
-            s = ((i * 7) + 1 + k) % PAD
+        mod = min(PROBEMOD, self.lay.pad) or self.lay.pad or PROBEMOD
+        for k in range(mod):
+            s = ((i * 7) + 1 + k) % mod
             z = self.lay.zone_of(pb + s)
             if z is None:
                 continue
@@ -1120,8 +1570,24 @@ class Workspace(object):
         return 0
 
     @staticmethod
-    def witness(i):
-        return 0xC0DE0000 | i
+    def witness(i, clean):
+        """WAVE 5c, disposition REFOUND.  This returned the bare literal
+        `0xC0DE0000 | i`, and the grader's expected side read that same literal
+        by construction -- Wave 5's deleted kind-6 canary, reincarnated on the
+        harness side.  Under CANSTUBPOISON, unit 1 did not move.
+
+        BUFFERMODEL 4.2 publishes the rule this should always have been:
+
+            WITNESS(i) = 0xB0B32000 + 17*i + (clean & 255)
+
+        `clean` is the value the walker's own poison left at the probe address,
+        so unit 1 now DEPENDS on the poison and a build that never poisons
+        writes a different witness.  The published limit stands and is repeated
+        here: a saboteur who reads the rule can recompute it instead of loading
+        it, and would produce an identical unit 1.  Units 0, 2 and 3 are the
+        load-bearing ones.
+        """
+        return (0xB0B32000 + 17 * i + (clean & 255)) & 0xFFFFFFFF
 
     def canary_v2(self):
         """Returns 44 units: per pad (clean_read, dirty_read, fired, at)."""
@@ -1133,7 +1599,7 @@ class Workspace(object):
             if "CANSTUBPOISON" in self.breaks:
                 self.zero_pads()
             clean = self.nw[off]
-            self.nw[off] = self.witness(i)
+            self.nw[off] = self.witness(i, clean)
             if "CANSTUBCHECK" in self.breaks:
                 viol, _exp, first = [], 0, None
             else:
@@ -1219,11 +1685,100 @@ class Workspace(object):
 
     # -- the pinned page scenario -------------------------------------------
 
-    def scenario_page(self):
-        """LINOBUF 6.1 SCENARIO "page".  A TEST FIXTURE, not a claim about the
-        game.  Every step exists to separate one implementation choice; see
-        fb_compare.py --scenario-spec for the normative text.
+    # -- the fixture, INTERPRETED --------------------------------------------
+
+    PAGE_ALIAS = {"visible": "adaptor", "hidden": "adapted"}
+
+    def run_fixture(self, fx, section="page"):
+        """Execute one section of docs-notes/FIXTURE1.txt.
+
+        Every constant below comes from the script.  Every ADDRESS, EXTENT,
+        STRIDE and MAGIC is computed here and appears nowhere in the script --
+        that separation is what makes a comparison between this producer and
+        fb_ref.c mean anything, and the fixture's own lint enforces it.
+
+        An unknown op is a HARD ERROR, never a skipped line: a producer that
+        silently ignores a step it has not implemented agrees with a producer
+        that implements it wrongly.
         """
+        L = self.lay
+        ops = fx["sections"].get(section)
+        if ops is None:
+            raise FixtureError("the fixture has no SECTION %r" % section)
+        n = 0
+        for op, kv in ops:
+            n += 1
+            if op == "pads_release":
+                self.zero_pads()
+            elif op == "quadwords":
+                phase = kv.get("phase")
+                if phase == "declared":
+                    self.QUADWORDS = L.qw_declared
+                elif phase == "steady":
+                    self.QUADWORDS = L.qw_steady
+                else:
+                    raise FixtureError("quadwords phase=%r is not declared|steady" % phase)
+            elif op == "pclear":
+                self.pclear(L.base(self.PAGE_ALIAS[kv["page"]]), fx_int(kv, "pattern"))
+            elif op == "pcopy":
+                self.pcopy(L.base(self.PAGE_ALIAS[kv["dst"]]),
+                           L.base(self.PAGE_ALIAS[kv["src"]]))
+            elif op == "srand":
+                self.srand(fx_int(kv, "seed"))
+            elif op == "fill_rand":
+                base = L.base(kv["region"])
+                mask, bias = fx_int(kv, "mask"), fx_int(kv, "bias")
+                for i in range(fx_int(kv, "count")):
+                    self.put(base + i, bias + (self.rand() & mask))
+            elif op == "sea_texture":
+                dst = L.base(self.PAGE_ALIAS[kv["dst"]])
+                src = L.base(kv["src"])
+                us, vs = fx_int(kv, "ustride"), fx_int(kv, "vstride")
+                for i in range(fx_int(kv, "count")):
+                    u = (i * us) & 0xFFFF
+                    v = (i * vs) & 0xFFFF
+                    self.put(dst + i, self.get(src + self.texel_addr(u, v)))
+            elif op == "digit_at":
+                self.digit_at(kv["digit"], fx_int(kv, "color"), fx_int(kv, "shader"))
+            elif op == "copy_glyph":
+                dst = L.base(self.PAGE_ALIAS[kv["dst"]]) + fx_int(kv, "dst_off")
+                src = L.base("p_surfacemap") - 5      # the underflow window: OURS
+                for i in range(fx_int(kv, "count")):
+                    self.put(dst + i, self.get(src + i))
+            elif op == "poke_alias8":
+                segoff = fx_int(kv, "segoff")
+                a8 = self.alias8_index()              # the INDEX is computed here
+                if "TINTA64000" in self.breaks:
+                    a8 = L.base("adapted") + 64000
+                self.put(a8, fx_int(kv, "b0"))
+                self.put(a8 + 1, fx_int(kv, "b1"))
+                if segoff != L.alias8_segoff:
+                    raise FixtureError("the fixture's alias-8 segment literal 0x%04X is not "
+                                       "the one parsed out of TDPOLYGS.H (0x%04X)"
+                                       % (segoff, L.alias8_segoff))
+            elif op == "wrap_battery":
+                self.wrap_battery(rows=fx_int(kv, "rows"), rowstep=fx_int(kv, "rowstep"),
+                                  spot_negk=fx_int(kv, "spot_negk"),
+                                  cirrus_negk=fx_int(kv, "cirrus_negk"),
+                                  ctrl=[int(t, 0) for t in kv["ctrl"].split(",")])
+            elif op == "areaclear":
+                self.areaclear(L.base(self.PAGE_ALIAS[kv["page"]]),
+                               fx_int(kv, "x"), fx_int(kv, "y"), fx_int(kv, "l"),
+                               fx_int(kv, "a"), fx_int(kv, "color"))
+            else:
+                raise FixtureError("unknown fixture op %r in SECTION %s" % (op, section))
+        return n
+
+    def scenario_page(self, fx=None):
+        """The page scenario.  If the pinned fixture is on disk this is a thin
+        wrapper over `run_fixture` -- one stimulus, several interpreters.  The
+        hard-coded body below is what ran before FIXTURE1.txt existed and is
+        kept ONLY as the fallback, so a missing fixture is a NOT GRADED row
+        rather than a crash.
+        """
+        if fx is not None:
+            self.fixture_ops = self.run_fixture(fx, "page")
+            return
         L = self.lay
         adapted, adaptor = L.base("adapted"), L.base("adaptor")
         globes, sbg = L.base("n_globes_map"), L.base("s_background")
@@ -1285,7 +1840,8 @@ class Workspace(object):
         # 9 -- vanilla's areaclear writes the VISIBLE page, after the flip
         self.areaclear(adaptor, 2, 191, 316, 7, 64 + 63)
 
-    def wrap_battery(self):
+    def wrap_battery(self, rows=180, rowstep=12, spot_negk=32, cirrus_negk=16,
+                     ctrl=(0, 1, 179, 359)):
         """The synthetic class-A battery.  Replays the exact `spot` and
         `cirrus` index expressions over a pinned corpus that straddles the
         wrap, on all sides, comparing masked index, naive index and landing
@@ -1296,18 +1852,22 @@ class Workspace(object):
         generator: px just below zero (stored to an `unsigned`, so 65536-k)
         with py = 360*row.
         """
-        for row in range(0, 180, 12):
-            py = u16(360 * row)
-            for k in range(1, 33):
+        # 360 is the orbital map's column stride -- a MECHANISM, computed here
+        # and deliberately absent from the fixture (which supplies only the row
+        # count, the row step and the two negative-px bounds).
+        stride = 360
+        for row in range(0, rows, rowstep):
+            py = u16(stride * row)
+            for k in range(1, spot_negk + 1):
                 px = u16(-k)             # cx + g*cos(a) with cx < g
                 self.put(self.spot_index(px, py), 0x3E)
-            for k in range(1, 17):
+            for k in range(1, cirrus_negk + 1):
                 px = u16(-k)
                 self.put(self.cirrus_index(px, py), 0x1F)
         # and the in-range control, which must NOT wrap
-        for row in range(0, 180, 12):
-            py = u16(360 * row)
-            for px in (0, 1, 179, 359):
+        for row in range(0, rows, rowstep):
+            py = u16(stride * row)
+            for px in ctrl:
                 self.put(self.spot_index(px, py), 0x3E)
                 self.put(self.cirrus_index(px, py), 0x1F)
 
@@ -1353,16 +1913,25 @@ class Workspace(object):
 
     # -- how many sea texels actually left n_globes_map ---------------------
 
-    def overrun_census(self):
+    def overrun_census(self, count=32000, ustride=517, vstride=1031):
+        """How many of the sea texture's reads leave n_globes_map, and how many
+        of those land in the PAD immediately above it.
+
+        WAVE 5c: the pad test read the module constant `PAD` and not the
+        LAYOUT'S pad, so under NOPAD -- a layout with no pads at all -- it went
+        on reporting pad hits, and the suite row that consumes it could not be
+        falsified by any mutation in the set.  It reads `self.lay.pad` now, so a
+        padless layout reports zero and the row FAILS, which is the truth.
+        """
         gsize = self.lay.by_name["n_globes_map"].size
         out = pad = 0
-        for i in range(32000):
-            u = (i * 517) & 0xFFFF
-            v = (i * 1031) & 0xFFFF
+        for i in range(count):
+            u = (i * ustride) & 0xFFFF
+            v = (i * vstride) & 0xFFFF
             t = self.texel_addr(u, v)
             if t >= gsize:
                 out += 1
-                if t < gsize + PAD:
+                if t < gsize + self.lay.pad:
                     pad += 1
         return out, pad
 

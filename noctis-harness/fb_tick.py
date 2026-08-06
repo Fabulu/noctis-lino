@@ -54,6 +54,13 @@ BREAKS = {
     "SRVTRUNC": "the servo divide truncates instead of rounding  [S-SRV-TRUNC]",
     "SRVCLAMPFLOOR": "the +-1% clamp step has no floor of 1  [S-SRV-CLAMPFLOOR]",
     "WALLNOFOLD": "the wall clock is used raw, so midnight is a discontinuity  [S-WALL-NOFOLD]",
+    # -- wave 5c: three GRADER CONTROLS.  These exist so that checks which
+    #    grade the servo can be shown to fail on a servo that does not work.
+    #    T8a and T8f seeded the estimator AT the true rate, so a do-nothing
+    #    estimator passed both; DONOTHING is now a declared falsifier of each.
+    "DONOTHING": "the estimator returns its seed and never updates  [grader control]",
+    "NOCLAMP": "the +-1% clamp is removed entirely  [grader control]",
+    "NOREBASE": "the reference is never re-based, so windows accumulate  [grader control]",
 }
 
 M32 = 0xFFFFFFFF
@@ -177,9 +184,36 @@ def wrap_sweep(breaks=(), verbose=False):
 # Everything below is measured by `--servo-evidence`, not quoted.
 
 SRVMIN = 4000        # ms; a window shorter than this is refused (why = 3)
-SRVMAX = 60000       # ms; a window longer than this is refused (why = 4).
-                     # 2^32 / 8999 cpms = 477271 ms, so this is 7.95x under the
-                     # counter's own aliasing limit -- measured, see ring_sweep.
+
+# WAVE 5c, disposition REFOUND.  SRVMAX was the literal 60000, and the row that
+# claimed it was "MEASURED, not asserted" cited `ring_sweep`, which could not
+# fail (see below).  A literal is wrong here for a reason the harness can state
+# exactly: the counter aliases at 2^32 / cpms ms, so the safe window SHRINKS as
+# the machine gets faster, and a fixed 60000 ms stops being safe above
+# 2^32/60000 = 71583 cpms.  The guard is therefore DERIVED from the calibrated
+# cpms at run time, capped by a policy maximum:
+#
+#     srvmax_for(cpms) = min(SRVMAX_CAP, (2^32-1)//cpms // SRVMAX_MARGIN)
+#
+# SRVMAX_CAP is a policy choice (how stale a sample may be); the other term is
+# arithmetic, and it is what makes the guard correct at any cpms.
+SRVMAX_CAP = 60000
+SRVMAX_MARGIN = 4
+
+
+def srvmax_for(cpms):
+    if not cpms:
+        return SRVMAX_CAP
+    return min(SRVMAX_CAP, (M32 // cpms) // SRVMAX_MARGIN)
+
+
+def alias_limit_ms(cpms):
+    """The largest window whose count delta still fits a 32-bit counter.
+    `ring_sweep` measures this; nothing here may assert it."""
+    return M32 // cpms
+
+
+SRVMAX = SRVMAX_CAP  # kept for callers that want the policy cap by name
 
 WHY = {0: "applied", 1: "clamped-lo", 2: "clamped-hi",
        3: "rejected-short", 4: "rejected-long"}
@@ -222,12 +256,15 @@ class Servo(object):
          cpms 100, which is what turns a collapse into an ABSORBING STATE.
     """
 
-    def __init__(self, cpms, breaks=(), srvmin=SRVMIN, srvmax=SRVMAX):
+    def __init__(self, cpms, breaks=(), srvmin=SRVMIN, srvmax=None):
         self.cpms = cpms
         self.seed = cpms
         self.breaks = set(breaks)
         self.srvmin = srvmin
-        self.srvmax = 600000 if "SRVWIDEMAX" in self.breaks else srvmax
+        # DERIVED from the rate in force, not a literal.  SRVWIDEMAX is the
+        # sabotage that puts it past the counter's own aliasing limit.
+        self.srvmax = (600000 if "SRVWIDEMAX" in self.breaks
+                       else (srvmax if srvmax is not None else srvmax_for(cpms)))
         self.ref_counts = None
         self.ref_wall = None
         self.run_counts = None      # only used by the SRVRUNSTART sabotage
@@ -252,8 +289,14 @@ class Servo(object):
             cnt = (counts - self.ref_counts) & M32     # correct across the wrap
             ms = (wall - self.ref_wall) & M32
         # RE-BASE FIRST, unconditionally -- before any test can bail out
-        self.ref_counts = counts
-        self.ref_wall = wall
+        if "NOREBASE" not in self.breaks:
+            self.ref_counts = counts
+            self.ref_wall = wall
+
+        if "DONOTHING" in self.breaks:
+            # the grader control: a servo that samples, logs, and never learns.
+            self._log(tick, 0)
+            return self.cpms, 0
 
         if "SRVUNSIGNEDBAND" in self.breaks:
             short, long_ = ms < 500, False
@@ -275,7 +318,9 @@ class Servo(object):
         if "SRVCLAMPFLOOR" not in self.breaks:
             step = max(1, step)
         why = 0
-        if new < self.cpms - step:
+        if "NOCLAMP" in self.breaks:
+            pass
+        elif new < self.cpms - step:
             new, why = self.cpms - step, 1
         elif new > self.cpms + step:
             new, why = self.cpms + step, 2
@@ -329,8 +374,26 @@ def ring_sweep(cpms=8999, lengths=(500, 4000, 14061, 60000, 120000, 240000,
     stride, for each window length.  The truth is the unbounded-integer
     product cpms*ms; the subject is the 32-bit unsigned difference.
 
-    This is what makes SRVMAX a MEASURED limit rather than an asserted one:
-    the sweep is exact at 470000 ms and fails on every origin at 500000 ms.
+    WAVE 5c, disposition REFOUND -- one token, and it is the whole defect.
+
+    The comparison used to read
+
+        got = (end - start) & M32          # start was (end - want) & M32
+        if got != (want & M32) or want > M32:
+
+    `got` is algebraically `want & M32`, so the first clause compared
+    `want & M32` against `want & M32` and could not fire on any input.  The
+    only thing that ever failed a case was the second clause, `want > M32` --
+    an inequality between two literals, evaluated identically for all 65,536
+    origins.  589,824 "cases" were nine inequalities wearing a sweep.
+
+    The truth is the UNBOUNDED product, so that is what the recovered value is
+    now compared against.  At 470,000 ms every origin passes; at 500,000 ms
+    every origin fails, because the recovered value is congruent to `want`
+    modulo 2^32 but is not `want`.  That is the aliasing, measured.
+
+    Report the origin axis honestly: 65,536 origins AGREE with each other, which
+    is a uniformity claim.  The discriminating axis is the LENGTH.
     """
     out = []
     for L in lengths:
@@ -340,15 +403,36 @@ def ring_sweep(cpms=8999, lengths=(500, 4000, 14061, 60000, 120000, 240000,
             end = (i * stride) & M32
             start = (end - want) & M32
             got = (end - start) & M32
-            if got != (want & M32) or want > M32:
+            if got != want:                       # unbounded truth, not want & M32
                 fails += 1
         out.append({"ms": L, "exact_counts": want, "cases": origins,
-                    "fails": fails, "fits_32": want <= M32})
+                    "fails": fails, "fits_32": want <= M32,
+                    # how much of the true delta the 32-bit path threw away
+                    "lost": want - ((want) & M32)})
     return out
 
 
+def ring_limit(cpms, lo=1, hi=2000000):
+    """The largest window length, in ms, for which `ring_sweep` reports zero
+    failures.  Bisected, so SRVMAX's justification is a MEASUREMENT of this
+    function rather than a sentence about it.  Cheap: one origin decides a
+    length, because the origins are uniform -- which `ring_sweep` proves
+    separately over all 65,536 of them."""
+    def clean(L):
+        return ring_sweep(cpms, (L,), origins=1)[0]["fails"] == 0
+    if not clean(lo):
+        return 0
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if clean(mid):
+            lo = mid
+        else:
+            hi = mid - 1
+    return lo
+
+
 def servo_replay(true_cpms=8999, minutes=20, period_s=14.0, breaks=(),
-                 wall0=0, counts0=0):
+                 wall0=0, counts0=0, seed_cpms=None):
     """Replay a windowed servo against a PERFECTLY CONSTANT true rate, over a
     session long enough for the 32-bit counter to wrap several times, and
     report the worst cpms error and the implied drift.
@@ -357,12 +441,17 @@ def servo_replay(true_cpms=8999, minutes=20, period_s=14.0, breaks=(),
     Wave 5 bracket ALIASES, so it reports a rate that is not there.
     """
     n = int(minutes * 60 / period_s)
-    s = Servo(true_cpms, breaks)
+    # WAVE 5c: the seed is a PARAMETER and the battery seeds it WRONG.  Seeded
+    # at the true rate, a do-nothing estimator produced a perfect replay.
+    s = Servo(true_cpms if seed_cpms is None else seed_cpms, breaks)
+    s.srvmax = srvmax_for(true_cpms)
     s.capacity = 1 << 30          # keep the whole replay for the report
     fold = WallFold(breaks)
     s.start(counts0, fold.fold(wall0))
     worst = 0.0
     seen = set()
+    settle = None                 # first firing after which cpms stays within 1
+    trace = []
     raw = []                      # the UNCLAMPED ratio the bracket computes
     for k in range(1, n + 1):
         wall_ms = wall0 + int(k * period_s * 1000)
@@ -374,12 +463,24 @@ def servo_replay(true_cpms=8999, minutes=20, period_s=14.0, breaks=(),
             raw.append((int(k * period_s), dn // dm if dm else 0))
         c, _why = s.fire(k, counts, fold.fold(wall_ms))
         seen.add(c)
+        trace.append(c)
         worst = max(worst, abs(c - true_cpms) / float(true_cpms))
+    for k in range(len(trace) - 1, -1, -1):
+        if abs(trace[k] - true_cpms) > 1:
+            settle = k + 2          # 1-based firing after which it holds
+            break
+    else:
+        settle = 1
     # drift a game would accumulate at the final cpms, per hour of wall clock
     drift_s_per_hour = 3600.0 * (s.cpms - true_cpms) / float(true_cpms)
+    # the error AFTER the estimator has had a chance to converge; the pre-
+    # convergence error is the seed offset, which is an input, not a verdict.
+    tail = trace[min(len(trace) - 1, 32):] or trace
+    worst_tail = max(abs(c - true_cpms) / float(true_cpms) for c in tail)
     return {"firings": n, "final_cpms": s.cpms, "distinct_cpms": len(seen),
-            "min_cpms": min(seen), "max_cpms": max(seen),
-            "worst_rel_err": worst, "drift_s_per_hour": drift_s_per_hour,
+            "min_cpms": min(seen), "max_cpms": max(seen), "seed_cpms": s.seed,
+            "worst_rel_err": worst, "worst_rel_err_after_32": worst_tail,
+            "settled_after": settle, "drift_s_per_hour": drift_s_per_hour,
             "why_hist": _why_hist(s.log), "raw_ratio": raw}
 
 
@@ -613,6 +714,34 @@ def grade_ticklog(path, cpms=None, max_drift_ms=1.0, ticks_expected=None):
     req(spread <= 0.01, "K3b cpms recalibration stayed within 1%% (%s, spread %.4f%%)"
         % ("->".join(str(c) for c in cpms_seen), spread * 100))
 
+    # K6 -- THE HEADER AND THE LOG MUST DESCRIBE THE SAME RATE.
+    #
+    # WAVE 5c.  This is the one defect on the list that would have let a WRONG
+    # PORT SHIP GREEN.  K2 and K3 recover `icpms` from the deadline steps and
+    # then grade the log against ITSELF: every step is a whole number of "the
+    # period in force", and the period in force is whatever the steps say it
+    # is.  A port whose timer runs 10% fast emits a perfectly self-consistent
+    # log -- constant period, one count of drift, no skips -- and passes K1..K5
+    # while its header says 9000 and its clock says 9900.  Measured: it did.
+    #
+    # The header's cpms is an INDEPENDENT statement by the producer about the
+    # rate it calibrated.  Comparing the recovered rate against it is the only
+    # cross-check in this grader that is not the log talking to itself.
+    implied = [s["cpms"] for s in seg_report]
+    if implied:
+        closest = min(implied, key=lambda c: abs(c - cpms))
+        req(abs(closest - cpms) <= 1,
+            "K6 the rate recovered from the deadline steps matches the rate the header "
+            "DECLARES, within 1 count: header %d, recovered %s (closest %d, off by %d).  "
+            "K2/K3 grade the log against a period recovered from the log; only this row "
+            "compares it to something the log did not produce."
+            % (cpms, "->".join(str(c) for c in implied), closest, abs(closest - cpms)))
+        far = [c for c in implied if abs(c - cpms) > max(1, cpms // 100)]
+        req(not far,
+            "K6b and no segment is more than 1%% from the declared rate (%d outside "
+            "[%d,%d]%s)" % (len(far), cpms - max(1, cpms // 100), cpms + max(1, cpms // 100),
+                            ": %s" % far[:4] if far else ""))
+
     # K4 -- skip-to-grid, stated as the property it actually is.
     #
     # NOT "every fire-to-fire gap is at least one period": after a frame that
@@ -690,6 +819,59 @@ def grade_ticklog(path, cpms=None, max_drift_ms=1.0, ticks_expected=None):
 def write_ticklog(path, payload, cpms, ticks):
     from fb_layout import fbdump_write
     fbdump_write(path, KIND_TICKLOG, payload, cpms=cpms, ticks=ticks)
+
+
+def rate_probe(true_cpms=9000, headers=(9000, 9900, 4500, 18000), path=None):
+    """K6's falsification, run every time.
+
+    Generate ONE log at a known true rate, stamp it with each of four header
+    rates, and grade it.  Exactly one header -- the true one -- may pass.  A
+    grader that passes two of them is not comparing the header to anything.
+
+    Returns [(header, ok, failing check ids)].
+    """
+    import os
+    import tempfile
+    exact = float(Fraction(true_cpms) * PERIOD_MS)
+    work = [int(exact * 0.04)] * 400
+    work[100] = int(exact * 1.4)
+    pay = run_loop(true_cpms, work)
+    out = []
+    tmp = path or os.path.join(tempfile.gettempdir(), "fb_rate_probe.bin")
+    for h in headers:
+        write_ticklog(tmp, pay, h, len(pay) // 3)
+        ok, msg, _ = grade_ticklog(tmp)
+        out.append((h, ok, [m.split()[1] for m in msg if m.startswith("  FAIL")]))
+    return out
+
+
+def servolog_discrimination(true_cpms=8999):
+    """What `grade_servolog` can and cannot catch, MEASURED.
+
+    T8h graded `grade_servolog(Servo.payload())` -- S4/S5/S6 are Servo's own
+    clamp rules, applied to Servo's own output, so the row could not fail on
+    any Servo.  Its replacement is this: drive four MUTANT servos, grade each
+    one's log, and report the partition.  The blind half is printed by name,
+    because a record of (tick, cpms, why) carries no counts and therefore
+    cannot, even in principle, distinguish an estimator that never learned from
+    one that was right the first time.  That is a property of the RECORD, and
+    saying so is the honest form of the claim.
+    """
+    seed = int(true_cpms * 0.96)
+    rejected, blind = [], []
+    for name in ("DONOTHING", "NOCLAMP", "NOREBASE", "SRVCLAMPFLOOR"):
+        s = Servo(seed, [name])
+        f = WallFold([name])
+        s.start(0, f.fold(0))
+        wall, counts = 0, 0
+        for k in range(12):
+            wall += 300 if k % 4 == 0 else 5000
+            counts = (counts + true_cpms * (300 if k % 4 == 0 else 5000)) & M32
+            s.fire(k, counts, f.fold(wall))
+        ok, msg, _ = grade_servolog(s.payload(), seed)
+        (blind if ok else rejected).append(
+            (name, [m.split()[1] for m in msg if m.startswith("  FAIL")]))
+    return rejected, blind
 
 
 # -------------------------------------------------------------------- main
@@ -780,6 +962,19 @@ def main(argv=None):
     print("\n".join(msg))
     print()
 
+    # A6 -- K6's falsification, run every time.  One log, four headers; exactly
+    # one may pass.  Before K6 existed all four passed, which is to say
+    # grade_ticklog never looked at the header at all.
+    probe = rate_probe()
+    passing = [h for h, pok, _ in probe if pok]
+    req(passing == [9000],
+        "A6 one 9000-cpms log stamped with headers %s: exactly the true one passes "
+        "grade_ticklog (%s).  A 9900-cpms log under a 9000 header is a port whose clock "
+        "runs 10%% fast, and it used to pass every check in this file."
+        % ([h for h, _o, _f in probe],
+           ", ".join("%d:%s" % (h, "PASS" if pok else "FAIL " + ",".join(f))
+                     for h, pok, f in probe)))
+
     if args.wrap_sweep:
         cases, fails, first = wrap_sweep(brk)
         print("wrap / sign-boundary sweep:")
@@ -802,43 +997,81 @@ def main(argv=None):
             smsg.append(("  PASS  " if cond else "  FAIL  ") + text)
 
         TRUE = 8999
+        # WAVE 5c: the estimator is seeded 4% LOW everywhere in this battery.
+        # Seeded AT the true rate -- which is what it did -- a do-nothing
+        # estimator satisfied T8a, T8f and T8h, because the answer was already
+        # in the box.  DONOTHING is a declared falsifier of all three now.
+        SEED = int(TRUE * 0.96)
+        SMAX = srvmax_for(TRUE)
 
         # -- T8a the window-length battery.  CASES ARE WINDOW LENGTHS, not
-        # elapsed-since-start, and each fires THREE consecutive times with the
-        # synthetic clock advanced by the window.  A single firing cannot
-        # detect a missing re-base; three can.
-        for L, expect_why in ((500, 3), (4000, 0), (14061, 0), (60000, 0),
-                              (470000, 4), (500000, 4)):
-            s = Servo(TRUE, brk)
+        # elapsed-since-start, and each fires repeatedly with the synthetic
+        # clock advanced by the window.  A single firing cannot detect a
+        # missing re-base; several can.  The accepted lengths must also CLOSE
+        # the 4% seed error, which is what makes the row a test of the
+        # estimator rather than of the band.
+        for L, expect_why in ((500, 3), (4000, 0), (14061, 0), (SMAX, 0),
+                              (SMAX + 1, 4), (470000, 4), (500000, 4)):
+            s = Servo(SEED, brk)
             f = WallFold(brk)
             wall, counts = 0, 0x12345678
             s.start(counts, f.fold(wall))
             whys, cps = [], []
-            for k in range(3):
+            for k in range(8):
                 wall += L
                 counts = (counts + TRUE * L) & M32
                 c, w = s.fire(k, counts, f.fold(wall))
                 whys.append(w)
                 cps.append(c)
-            good = (whys == [expect_why] * 3
-                    and (expect_why != 0 or all(abs(c - TRUE) <= 1 for c in cps)))
-            sreq(good, "T8a window %6d ms -> why %s cpms %s (want why %d%s)"
-                 % (L, whys, cps, expect_why,
-                    ", cpms within 1 of %d" % TRUE if expect_why == 0 else ""))
+            if expect_why == 0:
+                # accepted: every firing applies or clamps toward the truth,
+                # the first firing MOVES, and the run ends at the true rate
+                good = (all(w in (0, 1, 2) for w in whys)
+                        and cps[0] != SEED and abs(cps[-1] - TRUE) <= 1)
+            else:
+                # refused: every firing refuses, and cpms never moves at all
+                good = whys == [expect_why] * 8 and set(cps) == {SEED}
+            sreq(good, "T8a window %6d ms seeded %d (4%% low) -> why %s cpms %d..%d end %d "
+                       "(want why %d%s)"
+                 % (L, SEED, sorted(set(whys)), min(cps), max(cps), cps[-1], expect_why,
+                    ", and the seed error CLOSED to within 1 of %d" % TRUE
+                    if expect_why == 0 else ", and cpms unmoved"))
 
-        # -- T8b the ring sweep.  SRVMAX is MEASURED here, not asserted.
+        # -- T8b the ring sweep, and SRVMAX DERIVED from it.
+        #
+        # The old T8b printed "SRVMAX is MEASURED here, not asserted" every run,
+        # and it was false: `ring_sweep`'s comparison could not fail (see the
+        # function), so 0 of 65,536 origins ever discriminated, and SRVMAX was
+        # the literal 60000.  Now the limit is BISECTED out of the corrected
+        # sweep and the guard is derived from it.
         sw = ring_sweep(TRUE)
-        exact = [r for r in sw if r["fails"] == 0]
-        broken = [r for r in sw if r["fails"] == r["cases"]]
-        sreq(all(r["fails"] == 0 for r in sw if r["ms"] <= 470000),
-             "T8b unsigned subtraction across the wrap is EXACT for every window up to "
-             "470000 ms, on all %d ring origins (%d lengths x %d origins)"
-             % (sw[0]["cases"], len(sw), sw[0]["cases"]))
-        sreq(any(r["ms"] == 500000 and r["fails"] == r["cases"] for r in sw),
-             "T8b and it fails on %d of %d origins at 500000 ms -- so SRVMAX = %d is "
-             "%.2fx under the counter's own aliasing limit 2^32/%d = %d ms"
-             % (sw[-1]["fails"], sw[-1]["cases"], SRVMAX,
-                (M32 + 1) / TRUE / SRVMAX, TRUE, int((M32 + 1) / TRUE)))
+        limit = ring_limit(TRUE)
+        sreq(all(r["fails"] == 0 for r in sw if r["exact_counts"] <= M32)
+             and all(r["fails"] == r["cases"] for r in sw if r["exact_counts"] > M32),
+             "T8b the recovered window length equals the UNBOUNDED truth on all %d ring "
+             "origins for every length that fits 32 bits, and on NONE of them for a length "
+             "that does not: %s"
+             % (sw[0]["cases"],
+                " ".join("%d:%s" % (r["ms"], "ok" if r["fails"] == 0 else
+                                    "all %d fail, losing %d counts" % (r["fails"], r["lost"]))
+                         for r in sw)))
+        sreq(limit == alias_limit_ms(TRUE),
+             "T8b the largest clean window, BISECTED out of the sweep, is %d ms, and that "
+             "equals 2^32-1 / %d = %d exactly.  The limit is measured; nothing here asserts "
+             "it." % (limit, TRUE, alias_limit_ms(TRUE)))
+        sreq(srvmax_for(TRUE) <= limit // SRVMAX_MARGIN,
+             "T8b the shipped guard srvmax_for(%d) = %d is at or under the measured limit "
+             "%d divided by the margin %d (= %d)"
+             % (TRUE, srvmax_for(TRUE), limit, SRVMAX_MARGIN, limit // SRVMAX_MARGIN))
+        # and the guard TRACKS cpms -- which is the whole reason it stopped
+        # being a literal.  XFAIL X1's arithmetic, executed.
+        fast = 200000
+        sreq(srvmax_for(fast) < SRVMAX_CAP and srvmax_for(fast) <= ring_limit(fast) // SRVMAX_MARGIN,
+             "T8b and the guard TRACKS the rate: at %d cpms the counter aliases after %d ms, "
+             "so the guard shrinks to %d -- a fixed 60000 ms literal (which is what "
+             "work/fbtick.txt:141 still holds, XFAIL X1) would be %.1fx PAST the aliasing "
+             "limit there" % (fast, ring_limit(fast), srvmax_for(fast),
+                              SRVMAX_CAP / float(ring_limit(fast))))
 
         # -- T8c the midnight case, against the fold
         s = Servo(TRUE, brk)
@@ -890,18 +1123,24 @@ def main(argv=None):
 
         # -- T8f the run-start bracket, replayed.  This is CRITICAL 1 itself,
         # measured rather than quoted.
-        good = servo_replay(TRUE, minutes=20, breaks=brk)
+        good = servo_replay(TRUE, minutes=20, breaks=brk, seed_cpms=SEED)
         # THE SHIPPED SERVO: run-start bracket plus the unsigned `'< 500` band
         # and no upper limit at all.  Those three go together -- the band is
         # what would otherwise refuse the aliased window, which is precisely
         # why the fix needs all of them.
         shipped = set(brk) | {"SRVRUNSTART", "SRVUNSIGNEDBAND"}
-        bad = servo_replay(TRUE, minutes=20, breaks=shipped)
-        sreq(abs(good["drift_s_per_hour"]) <= 1.0 and good["worst_rel_err"] <= 0.001,
-             "T8f windowed servo over 20 min at a PERFECTLY CONSTANT %d cpms: "
-             "%d firings, cpms %d..%d, worst error %.4f%%, %.2f s/hour"
-             % (TRUE, good["firings"], good["min_cpms"], good["max_cpms"],
-                100 * good["worst_rel_err"], good["drift_s_per_hour"]))
+        bad = servo_replay(TRUE, minutes=20, breaks=shipped, seed_cpms=SEED)
+        sreq(abs(good["drift_s_per_hour"]) <= 1.0
+             and good["worst_rel_err_after_32"] <= 0.001
+             and good["settled_after"] <= 32
+             and good["final_cpms"] != good["seed_cpms"],
+             "T8f windowed servo over 20 min at a PERFECTLY CONSTANT %d cpms, SEEDED %d "
+             "(4%% low): %d firings, cpms %d..%d, settles to within 1 count after firing "
+             "%d, worst error thereafter %.4f%%, %.2f s/hour.  A do-nothing estimator "
+             "sits at the seed and fails every clause of this row."
+             % (TRUE, good["seed_cpms"], good["firings"], good["min_cpms"], good["max_cpms"],
+                good["settled_after"], 100 * good["worst_rel_err_after_32"],
+                good["drift_s_per_hour"]))
         r600 = next((r for t, r in bad["raw_ratio"] if t >= 600), None)
         r900 = next((r for t, r in bad["raw_ratio"] if t >= 900), None)
         sreq(bad["worst_rel_err"] > 0.05,
@@ -927,8 +1166,14 @@ def main(argv=None):
              "T8g a bracket that computes cpms = 0 is REFUSED and the seed is kept "
              "(cpms %d, why %d)" % (c_zero, why_zero))
 
-        # -- T8h the servolog is gradeable and logs rejections
-        s = Servo(TRUE, brk)
+        # -- T8h.  NOT GRADED, and it says so.
+        #
+        # `grade_servolog(Servo.payload())` applies S4/S5/S6 -- which ARE
+        # Servo's clamp rules -- to Servo's own output.  It cannot fail for any
+        # Servo, working or not, so it carries no evidence about any port.  It
+        # is kept because a grader that crashes on its own producer is worth
+        # knowing about; it is no longer counted as a pass.
+        s = Servo(SEED, brk)
         f = WallFold(brk)
         s.start(0, f.fold(0))
         wall, counts = 0, 0
@@ -937,13 +1182,29 @@ def main(argv=None):
             wall += step
             counts = (counts + TRUE * step) & M32
             s.fire(k, counts, f.fold(wall))
-        gok, gmsg, gst = grade_servolog(s.payload(), TRUE)
-        sreq(gok and 3 in gst["why"],
-             "T8h the servolog grades clean and CONTAINS rejections (why histogram %s) "
-             "-- a value derived from what the program did" % gst["why"])
+        gok, gmsg, gst = grade_servolog(s.payload(), SEED)
+        smsg.append("  NOT GRADED  T8h grade_servolog on this module's own Servo output "
+                    "(why histogram %s, verdict %s) -- GRADER SELF-TEST, applies Servo's "
+                    "clamp rules to Servo's own log.  It carries no evidence about any "
+                    "port.  The sound instance of this check is fb_compare.py's lino "
+                    "SERVOLOG row." % (gst["why"], "clean" if gok else "FAILS"))
         for m in gmsg:
             if m.startswith("  FAIL"):
                 smsg.append("    " + m)
+
+        # -- T8i the replacement: what grade_servolog can actually catch,
+        # measured against four mutant servos rather than asserted.
+        rejected, blind = servolog_discrimination(TRUE)
+        rnames = sorted(n for n, _ in rejected)
+        bnames = sorted(n for n, _ in blind)
+        sreq("NOCLAMP" in rnames and bnames == ["DONOTHING", "NOREBASE", "SRVCLAMPFLOOR"],
+             "T8i grade_servolog REJECTS %s (by %s) and is BLIND to %s.  The blind half is "
+             "not a bug in the grader: SERVOLOG is (tick, cpms, why) and carries no counts, "
+             "so no grader of it can distinguish an estimator that never learned from one "
+             "that was seeded right.  Naming the blind spot is the check; a change in "
+             "EITHER direction trips this row."
+             % (rnames, ",".join(sorted(set(sum((c for _n, c in rejected), [])))) or "-",
+                bnames))
 
         print("servo:")
         print("\n".join(smsg))

@@ -701,3 +701,45 @@ an edit to this list:
     part of the display chain that Wave 5 can grade against the 1996 binary,
     and `test_wave5.py` grades the framebuffer only as an exact transformation
     of an index page it built itself. Nothing is eyeballed as a pass criterion.
+
+---
+
+## 11. Wave 5c — how the model's own evidence is now policed
+
+Nothing in sections 1–9 changes. This section records the one mechanism added
+around them, because a buffer model is only worth what its graders are worth,
+and this project has now shipped a check that could not fail three times.
+
+**`tests/w5audit.py`, run inside `tests/test_wave5.py` (entry 17 of
+`run_all.py`).** It reads every check condition in `noctis-harness/fb_*.py`,
+`fbx_*.py` and `tests/`, inlines the locals and module functions feeding it,
+replaces what is left with opaque atoms keyed by source text, and **executes**
+the condition over 300 random assignments. A condition that comes out true
+under every one of them cannot fail, and the run fails. A comparison one of
+whose sides is *derived from the other* — its atom set strictly containing the
+other's — and whose truth never changes when the non-shared atoms vary is the
+second rule: that is a sweep whose axis carries no information.
+
+Why this belongs in the buffer model's own document: the two rules are exactly
+the two ways this model has been mis-graded.
+
+* **One item per unit (§2)** is what makes a canary readable at all, and Wave 5's
+  kind-6 canary compared `0xA5A5A5A5` against `0xA5A5A5A5` — both written by
+  construction. Rule A.
+* **The 32-bit counter ring (§8)** is what the tick servo has to survive, and
+  the sweep that was supposed to prove it recovers `want` from
+  `(end - ((end - want) & M32)) & M32`. Rule B. It is still in the tree,
+  recorded OPEN, and re-measured every run: 65,536 origins, **one** distinct
+  outcome per window length.
+
+Four checks were **deleted as void** from `tests/` during this wave, all found
+by the analyser on its first run over its own author's files. They are
+enumerated with their reasoning in `HARNESSAUDIT.md` §8.4, which is the
+list a future wave should read before writing a check.
+
+**What did NOT change.** The one-item-per-unit rule, the flat 402,196-unit
+workspace in `farmalloc` order, the three overrun classes, the alias register,
+the palette pipeline, the framebuffer and the corrected tick servo are all
+untouched. `test_wave5.py`'s own canary replacement and its 23-sabotage battery
+are untouched. The open items in §10 are unchanged and both XFAILs remain open:
+`SRVMAX` is still a literal, and no game call site drives the class-A mask.

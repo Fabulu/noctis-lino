@@ -1,0 +1,188 @@
+# FIXTURE1 -- the pinned stimulus for the Noctis IV port harness.
+#
+# =========================================================================
+# OWNERSHIP.  This file is ARCHITECT-OWNED and READ-ONLY to every
+# implementer.  The reason is not procedural: an implementer who can edit
+# the stimulus can make any comparison pass, which is the un-failable check
+# in its purest form.  It sits in docs-notes/ precisely because that
+# directory is outside both implementer namespaces (fb_*.py on one side,
+# fb_ref.c / fbx_* on the other).
+#
+# PROVENANCE OF THIS DRAFT, stated rather than left to be discovered.
+# Written by implementer 2 during Wave 5c, because the file the plan
+# requires did not exist and neither producer could be re-derived without
+# it.  That is an authorship hazard of exactly the kind this wave exists to
+# kill, and it is only tolerable because (a) this file contains no
+# mechanism, only stimulus, (b) the FORBIDDEN-NUMERAL lint below is
+# executed by every producer on every run, and (c) it is flagged for the
+# architect to review and freeze.  Until it is frozen, the build-identity
+# row grades "both producers ran the same script", not "the script is
+# right".
+# =========================================================================
+#
+# WHAT IT IS.  One stimulus, several interpreters.  Every producer -- the C
+# reference, the Python model, the lino build -- executes THIS script and
+# nothing else, then dumps its records.  Producers that ran different
+# scenarios cannot be compared at all, and Wave 5b's ADAPTED row differed
+# in 63,988 of 64,000 units for exactly that reason: two fixtures, no
+# oracle, and a red row printed where NOT GRADED was the truth.
+#
+# WHAT IT IS NOT.  It is not a shared IMPLEMENTATION.  Each line must pass
+# BOTH tests before it ships:
+#
+#   1. change this line  ->  every correct implementation's output changes
+#      (otherwise the line is inert and should be deleted);
+#   2. break the port's implementation of this step  ->  the output changes
+#      (otherwise the step is not under test).
+#
+# The dividing line, stated so it can be enforced rather than remembered:
+#
+#   GOES IN  (free authorial choices, no correct answer)
+#     the seed; the strides; the counts; the clear patterns; the QUADWORDS
+#     PHASE NAMES; the digit, its colour and its shader flag; the alias-8
+#     payload bytes and the 1996 segment literal 0xFA00; the areaclear
+#     rectangle; the wrap-battery bounds; the filter and shade arguments.
+#
+#   MUST NOT GO IN  (the mechanisms under test -- a producer that reads
+#   these off the script is being handed the answer)
+#     riga[] and its 320-byte row stride; texel_addr's wrap into the
+#     class-C read-past; seg_index's base-4 fold and its 16-bit mask;
+#     alias 8's resulting index; QUADWORDS's VALUES and the resulting byte
+#     extent of pclear/pcopy; every region base, pad base and zone
+#     boundary; the pad magics; the 8-bit store truncation; digit_at's
+#     txtr[-6..-1] underflow and its 256-byte row stride; the 360-column
+#     stride of the orbital map.
+#
+# ENFORCED, not left to discipline.  Every producer runs the LINT line
+# below over this file's EXECUTABLE lines before executing them, and
+# refuses to run if any listed quantity appears as a whole token.  Comment
+# lines and the LINT line itself are exempt, for the obvious reason.
+#
+# Scope of the list, stated so the next reader does not "tighten" it into
+# uselessness: it names ADDRESSES, EXTENTS, STRIDES and MAGICS -- the
+# quantities a producer must compute.  It deliberately does NOT name small
+# design constants such as the pad width or the palette size: no op in this
+# vocabulary can leak them, and forbidding them would collide with legal
+# filter and colour arguments.  Where a palette-wide count was needed the
+# script says `n=all`, which is symbolic and cannot be transcribed.
+#
+# FORMAT.  Blank lines and lines whose first non-blank character is '#' are
+# ignored.  Every other line is
+#     <op> [key=value]...
+# Keys are unordered.  Integers are decimal or 0x-hex.  Floats are decimal
+# and may be negative.  `n=all` means the whole palette.  Sections are
+# delimited by SECTION <name> ... END.  An unknown op is a hard error, not
+# a skipped line: a producer that silently ignores a step it does not
+# implement would agree with a producer that implements it wrongly.
+#
+# BUILD IDENTITY.  Each producer hashes this file with SHA-256 and puts the
+# hash in its KSELF record.  The grader requires the hashes to be equal
+# before it compares any content record.  This replaces the LINOBUF 6.1
+# "scenario markers" check, which hunted bare integers in a prose section
+# and flipped its own verdict when an unrelated heading took the number.
+
+FIXTURE1 1
+
+LINT forbid=255,256,320,360,7372,7388,14560,16000,22586,40156,40172,58240,63996,64000,64002,65535,65536,65540,65552,104972,104988,170540,170556,210556,210572,250572,250588,271068,271084,336624,336640,402180,402196,0xFF,0xFFFF,0xA5A5A5A5,0x5A5A5A5A
+
+# =====================================================================
+# SECTION surface -- the palette pipeline.
+#
+# Eight recorded states.  The shade at step 3 separates truncation from
+# rounding at the first entry it touches; step 4 is the self-copy form;
+# step 5 exercises the upload extent; step 6 drives the clamp from both
+# ends; step 7 is the signed-char filter trap; step 8 is the 6->8
+# expansion.
+# =====================================================================
+SECTION surface
+reset_palettes
+load_range8088
+mark
+tavola_colori src=range8088 first=0 n=64 fr=16 fg=32 fb=63
+mark
+shade dst=tmppal first=0 n=64 sr=0 sg=0 sb=0 fr=63 fg=63 fb=63
+mark
+tavola_colori src=self first=192 n=64 fr=50 fg=50 fb=50
+mark
+tavola_colori src=range8088 first=64 n=64 fr=60 fg=55 fb=50
+mark
+shade dst=tmppal first=160 n=16 sr=19.50 sg=24.75 sb=33.00 fr=66.25 fg=-2.50 fb=48.125
+mark
+tavola_colori src=self first=0 n=all fr=200 fg=64 fb=64
+mark
+lut_rebuild
+mark
+END
+
+# =====================================================================
+# SECTION compound -- what surface_palette is FOR.
+#
+# Nine shade rungs into the surface buffer, a snapshot, then two
+# successive fades from that same unfiltered source.  A port whose shade
+# cannot express a destination writes the rungs into tmppal, the fades
+# then read zeros, and the result is a black palette; a port whose fade is
+# self-sourced compounds the two filters instead of replacing.
+# =====================================================================
+SECTION compound
+reset_palettes
+shade dst=surface first=64  n=64 sr=0  sg=0  sb=0  fr=60 fg=62 fb=64
+shade dst=surface first=0   n=44 sr=0  sg=0  sb=0  fr=40 fg=30 fb=20
+shade dst=surface first=44  n=20 sr=40 sg=30 sb=20 fr=55 fg=48 fb=41
+shade dst=surface first=128 n=10 sr=0  sg=0  sb=0  fr=40 fg=30 fb=20
+shade dst=surface first=138 n=44 sr=40 sg=30 sb=20 fr=22 fg=33 fb=44
+shade dst=surface first=182 n=10 sr=22 sg=33 sb=44 fr=55 fg=48 fb=41
+shade dst=surface first=192 n=10 sr=0  sg=0  sb=0  fr=40 fg=30 fb=20
+shade dst=surface first=202 n=44 sr=40 sg=30 sb=20 fr=12 fg=50 fb=18
+shade dst=surface first=246 n=10 sr=12 sg=50 sb=18 fr=55 fg=48 fb=41
+snapshot_surface
+fade_from src=surface first=0 n=all fr=48 fg=48 fb=48
+fade_from src=surface first=0 n=all fr=24 fg=24 fb=24
+END
+
+# =====================================================================
+# SECTION page -- the index page.
+#
+# What each step is for, and what breaking it moves:
+#   pads_release     the RELEASE pad state.  Poison left in place changes
+#                    the page, because some of the sea texture's reads
+#                    land in a pad.
+#   quadwords/pclear the two page operations run at DIFFERENT phases, so a
+#                    port that hard-codes one extent gets a visible band
+#                    wrong.  The clear pattern is non-zero so the extent
+#                    is observable at all.
+#   srand/fill_rand  a deterministic source with no correct answer of its
+#                    own, seeded once and consumed in a fixed order.
+#   sea_texture      the class-C read past the end of n_globes_map,
+#                    reached by odd strides through the texture unit's own
+#                    addressing.  Half the reads land past the buffer.
+#   digit_at         the underflow below p_surfacemap, and the glyph.
+#   copy_glyph       reads the glyph back through the window digit_at
+#                    wrote, so a port that "fixed" the loop start loses a
+#                    scanline here as well as in the glyph record.
+#   poke_alias8      the 1996 segment literal.  The INDEX it lands on is
+#                    the thing under test and is not in this file.
+#   wrap_battery     the class-A masks, at both sites, on their real
+#                    destinations.
+#   pcopy/areaclear  the flip, then the HUD band on the VISIBLE page -- in
+#                    that order, because the reverse makes the visible
+#                    record bit-identical to the hidden one and grades
+#                    nothing.
+# =====================================================================
+SECTION page
+pads_release
+quadwords phase=declared
+pclear page=visible pattern=0
+quadwords phase=steady
+pclear page=hidden pattern=7
+srand seed=1996
+fill_rand region=n_globes_map count=32768 mask=63 bias=0
+fill_rand region=s_background count=4096 mask=63 bias=128
+sea_texture dst=hidden src=n_globes_map count=32000 ustride=517 vstride=1031
+digit_at digit=A color=104 shader=1
+copy_glyph dst=hidden dst_off=32000 count=9216
+poke_alias8 segoff=0xFA00 b0=0x37 b1=0x5B
+wrap_battery rows=180 rowstep=12 spot_negk=32 cirrus_negk=16 ctrl=0,1,179,359
+quadwords phase=declared
+pcopy dst=visible src=hidden
+areaclear page=visible x=2 y=191 l=316 a=7 color=127
+END

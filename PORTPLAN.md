@@ -232,6 +232,48 @@ fix the pattern. The next wave that touches the harness must re-audit every
 comparison for "could this record differ between a working and a broken
 mechanism?"
 
+### Wave 5c — harness audit (INSTRUMENT BUILT, HARNESS NOT CLEANED)
+
+**The class is now measurable rather than eliminated, and that is the honest
+summary.** `tests/w5audit.py` runs inside the suite and does not read variable
+names: it inlines single-assignment locals and module constants, atomises the
+remainder keyed by source text — so two spellings of the same call become one
+atom — then **executes** each check condition over 300 random assignments drawn
+from a spread containing every integer literal in the condition ±1.
+
+Three rules: always-true; one side's atoms strictly containing the other's with
+the predicate insensitive to the rest; and a tally never incremented. **Rule C
+exists because rule B was evadable by spelling** — the wave wrote the evasion,
+ran it, watched it escape, and closed the hole.
+
+It found **four void checks in the wave's own test files**, including one in the
+very file criticising the pattern. `fb_lint` — name-based — returns zero
+findings on all four.
+
+**STILL LIVE, and pinned so they cannot be silently dropped:**
+
+- `fb_tick.py:406` ring sweep — **instance 3 of the original brief, unfixed**.
+  `start = (end-want)&M32` then `got = (end-start)&M32` recovers `want` for
+  every origin. The audit detects it every run; nobody repaired it.
+- `T2.LINO.MATRIX.NULL` passes vacuously — its `gradeable` set is empty.
+- `fb_ref.c`'s E1 pair cannot distinguish a working expander from a deleted
+  one — proven by gutting `present_expand` in a sandbox. **The audit reads
+  Python only, so the whole C side is outside its reach.**
+- the `inrow:` escape hatch is unverified and load-bearing: 78 of 127 GRADED
+  entries rely on it alone.
+
+`OPEN_BUDGET = 4` may fall and may never rise, and each open item is asserted
+**still present**, so a silent deletion fails the suite too. Tier pinning caught
+**4 over-claims** and 8 ledger violations.
+
+**Decision: stop here and proceed to Wave 6.** Three waves on the buffer model
+is enough — its core decisions (one byte per unit, one flat workspace) have
+never been in dispute and are triple-corroborated. What remains contested is
+*grading confidence in the harness*, which is now quantified and ratcheted
+rather than unknown. Wave 6 builds its own grading and is subject to
+`w5audit.py`, so the instrument travels forward even though the harness is
+imperfect.
+
 ### Census
 Noctis IV has 20 multiply sites, 5 that matter, and only 2 distinct algorithms
 need a full 64-bit product â€” both now ported. Six of nine builds use the stock

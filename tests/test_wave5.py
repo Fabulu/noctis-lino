@@ -38,7 +38,7 @@ WHAT THE SIX DEFECTS COST, AND WHERE EACH IS NOW GRADED
 CRITICAL 1  the servo wrapped .............. H1 H2 H3 H4 T4, xfail X1
 CRITICAL 2  class A could not wrap ......... M1 M2 M3 M4 M5, xfail X2
 MAJOR 3     the pads had two jobs .......... Z1 Z2 C2 C3 O2 O3 O3b
-MAJOR 4     tier 2 for palette/LUT/page .... P1 P2 P3 F1 F2 F3 (see note)
+MAJOR 4     tier 2 for palette and LUT ..... P1 P2 P3 F1 F2 F3 (see note)
 MAJOR 5     the canary passed regardless ... C1 C2 C3
 MAJOR 6     shade hard-coded its buffer .... P7
 
@@ -82,9 +82,16 @@ WHAT IS NOT COVERED - stated plainly, not implied
     fb_ref.c's are different scenarios, and LINOBUF has no section
     reconciling them. F1/F2/F3 grade the port against a Python model of
     the SAME fixture, which is Tier 2 for the palette and the LUT (three
-    producers: this model, fb_pal.py and the lino) and Tier 1 for the
-    page. fb_compare.py --suite is the place that disagreement lives and
-    it is not silenced here.
+    producers: this model, fb_pal.py and the lino) and UNGRADED for the
+    page. It used to say "Tier 1 for the page", which was an over-claim
+    on two counts: there is no external artifact for the page (that is
+    what tier 1 MEANS), and the two producers use different fixtures, so
+    the cross-comparison is NOT GRADED - fb_ledger's own
+    T2.LINO.ADAPTED.CROSSFIXTURE and fb_compare's TIER_TABLE both say
+    ev0 / one producer per fixture. tests/w5audit.py pins this sentence
+    against the ledger and fails if the two drift apart again.
+    fb_compare.py --suite is the place that disagreement lives and it is
+    not silenced here.
   * "LOOKS RIGHT". Nothing here is eyeballed.
   * LONG SESSIONS. The longest real soak is 200 ticks, 11 seconds. The
     19.9 simulated minutes of the servo replay are synthetic and say
@@ -151,10 +158,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import linoharness as lh          # noqa: E402
+import w5audit                    # noqa: E402
 import w5spec as S                # noqa: E402
 
 SAND = os.path.join(lh.GEN, "w5")
 WORK = lh.WORK
+HARNESS_DIR = w5audit.HARNESS
 
 LIBS = ("fbmem.txt", "fbpal.txt", "fbtick.txt")
 FPLIBS = ("fpabi.txt", "fpctl.txt", "fpx87.txt", "fpconv.txt")
@@ -383,8 +392,14 @@ def source_hashes():
         out["work/" + n] = sha(os.path.join(WORK, n))
     for n in FPLIBS:
         out["work/fp/" + n] = sha(os.path.join(WORK, "fp", n))
-    for n in ("w5probe.txt", "w5shade.txt", "w5spec.py"):
+    for n in ("w5probe.txt", "w5shade.txt", "w5spec.py", "w5audit.py"):
         out["tests/" + n] = sha(os.path.join(HERE, n))
+    # The audit reads every fb_*.py in noctis-harness and must not write one.
+    # Re-hashed here for the same reason work/ is: a grader that edits its
+    # subject is the stored-artifact defect in its most direct form.
+    for n in sorted(os.listdir(HARNESS_DIR)):
+        if (n.startswith("fb_") or n.startswith("fbx_")) and n.endswith(".py"):
+            out["noctis-harness/" + n] = sha(os.path.join(HARNESS_DIR, n))
     return out
 
 
@@ -1215,6 +1230,16 @@ def main():
     nodisp = "--nodisp" in sys.argv
     chk = lh.Check("WAVE 5b - the CORRECTED buffer model, framebuffer and tick")
 
+    # ---------------------------------------------- the mechanical audit
+    # Runs FIRST, needs nothing built, and takes about two seconds. Wave 5
+    # shipped a check that could not fail; Wave 5b was told to remove it and
+    # reproduced it three times; Wave 5c stated the rule in three documents
+    # and shipped two more. This is the rule executed rather than stated: it
+    # inlines every check condition in noctis-harness/ and tests/, evaluates
+    # it over random assignments, and fails when one of them cannot come out
+    # false. See tests/w5audit.py.
+    w5audit.run(chk)
+
     if not os.path.isdir(S.NOCTIS_SRC):
         chk.ok(False, "the 1996 source clone is present",
                "%s is missing; the layout is derived from it, so this test "
@@ -1235,10 +1260,11 @@ def main():
     # ------------------------------------------------ the reference build
     path = write_variant("w5probe", [])
     blob, note = build_and_run(path, "w5probe", timeout=180)
-    if blob is None:
-        chk.ok(False, "reference probe builds and runs", note)
+    # ONE call, with the real condition in it. This used to be an ok(False)
+    # early-out followed by an ok(True), and the ok(True) was an unconditional
+    # pass -- tests/w5audit.py rule A, the same shape as fb_stick.py:352.
+    if not chk.ok(blob is not None, "reference probe builds and runs", note):
         return chk.done()
-    chk.ok(True, "reference probe builds and runs", note)
 
     results = grade(blob)
     results.append(shade_probe())
@@ -1274,10 +1300,7 @@ def main():
         subs = [(k, v) for k, v in DISPLAY.items()] + [(k, v) for k, v in SHORT.items()]
         dpath = write_variant("w5disp", subs)
         dblob, dnote = build_and_run(dpath, "w5disp", timeout=120)
-        if dblob is None:
-            chk.ok(False, "display probe builds and runs", dnote)
-        else:
-            chk.ok(True, "display probe builds and runs", dnote)
+        if chk.ok(dblob is not None, "display probe builds and runs", dnote):
             for name, ok, detail in grade(dblob):
                 if name.startswith(("D3", "D4", "F3")):
                     chk.ok(ok, "display: " + name, detail)
@@ -1309,20 +1332,22 @@ def main():
                                   + list(SHORT.items()))
         blob, note = build_and_run(spath, "w5" + tag.lower(), timeout=120)
         label = "%s caught by [%s]" % (tag, want)
+        # ONE verdict per sabotage, computed. The three branches used to end in
+        # ok(True) / ok(False) / ok(not ok), and the first of those was an
+        # unconditional pass in the count (w5audit rule A).
         if blob is None:
-            chk.ok(True, label, "%s -- did not even produce a dump (%s)"
-                   % (what, note.split(":")[0]))
-            continue
-        res = dict((n, (ok, d)) for n, ok, d in grade(blob))
-        if want not in res:
-            chk.ok(False, label, "%s -- the grader never reached [%s]" % (what, want))
-            continue
-        ok, detail = res[want]
-        also = [n for n, (o, _) in res.items()
-                if not o and n != want and n not in KNOWN_OPEN]
-        chk.ok(not ok, label,
-               "%s -- %s%s" % (what, detail,
-                               ("; also caught by %s" % also) if also else ""))
+            caught, detail = True, "%s -- did not even produce a dump (%s)" % (
+                what, note.split(":")[0])
+        elif want not in (res := dict((n, (ok, d)) for n, ok, d in grade(blob))):
+            caught, detail = False, "%s -- the grader never reached [%s]" % (what, want)
+        else:
+            ok, why = res[want]
+            also = [n for n, (o, _) in res.items()
+                    if not o and n != want and n not in KNOWN_OPEN]
+            caught = not ok
+            detail = "%s -- %s%s" % (what, why,
+                                     ("; also caught by %s" % also) if also else "")
+        chk.ok(caught, label, detail)
 
     return finish(chk, before, pri)
 
