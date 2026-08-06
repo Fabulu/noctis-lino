@@ -15,7 +15,7 @@ this file. Update it when a wave completes; do not let it drift.
 ## Gate before any new wave
 
 ```powershell
-python tests\run_all.py          # must be all-pass (14 tests)
+python tests\run_all.py          # must end "N passed, 0 failed"
 ```
 plus every `PRISTINE.sha256` hash still matching. If either fails, fix that
 first â€” a broken foundation makes every later result meaningless.
@@ -28,10 +28,15 @@ first â€” a broken foundation makes every later result meaningless.
 - `lino_build.ps1` drives the GUI-subsystem compiler non-interactively:
   launches, polls for artifacts, kills. Classifies warnings vs errors, and
   refuses paths containing `--` (see bug 1).
-- Regression suite: `tests/run_all.py`, 14 tests, ~240 s. Nothing
-  is graded against a stored binary; every side is rebuilt each run, and each
-  test builds a deliberately broken version of its subject and requires that
-  to fail.
+- Regression suite: `tests/run_all.py`. One test per wave-ish; the count grows
+  every wave, so **no document states a number** — `run_all.py` prints its own
+  and refuses to run if a `test_*.py` exists that is not registered in `TESTS`.
+  Expect roughly 40 s per test on the full suite. Nothing is graded against a
+  stored binary; every side is rebuilt each run, and each test builds a
+  deliberately broken version of its subject and requires that to fail.
+- `tests/` holds more files than tests — shared oracles, sandbox builders and
+  the Wave 5 audit tool live there too. Counting files overstates the suite;
+  `TESTS` in `run_all.py` is the only real list.
 
 ### Language extension (optional, not load-bearing)
 - `*%` / `*%'` split-multiply added: 242 patterns, all semantically verified on

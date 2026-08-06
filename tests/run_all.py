@@ -9,6 +9,14 @@
     python tests/run_all.py float      only the Wave 3 float contract
     python tests/run_all.py nearstar   only the Wave 4 generation test
     python tests/run_all.py wave5      only the Wave 5 buffer model / framebuffer
+    python tests/run_all.py geometry   only the cast-boundary / geometry test
+    python tests/run_all.py raster     only the Wave 6a rasteriser
+    python tests/run_all.py spheres    only the Wave 6b spheres and .NCC loading
+
+A full run (no argument) additionally refuses to start if tests/ contains a
+test_*.py that TESTS does not list - see unregistered(). There is deliberately
+no test count in any document; this file is the authority on both the roster
+and the total, and it prints the total as its last line.
 
 Each test is a standalone program - `python tests/test_galaxy.py` works on its
 own and prints the same output - so this driver only sequences them and sums up
@@ -89,12 +97,40 @@ FASTER = {"test_nearstar.py": "--quick  (skips the sabotages - not a pass)",
                            "--nodisp skips the one probe that opens a window"}
 
 
+def unregistered():
+    """test_*.py files on disk that TESTS does not list.
+
+    A wave that writes a test but forgets to register it would otherwise leave
+    a suite that passes without ever running it - which looks exactly like a
+    suite that passes. Counting files in tests/ is not a substitute: this
+    directory also holds shared oracles and sandbox builders.
+    """
+    known = set(t[0] for t in TESTS)
+    found = set(f for f in os.listdir(HERE)
+                if f.startswith("test_") and f.endswith(".py"))
+    return sorted(found - known)
+
+
 def main():
     which = sys.argv[1] if len(sys.argv) > 1 else ""
     selected = [t for t in TESTS if which in t[0]]
     if not selected:
         print("no test matches %r; known: %s" % (which, ", ".join(t[0] for t in TESTS)))
         return 2
+
+    # Only on a full run. A selector means you are debugging one thing.
+    if not which:
+        orphans = unregistered()
+        if orphans:
+            print("REFUSING TO RUN: %d test file(s) in tests/ are not in TESTS:"
+                  % len(orphans))
+            for f in orphans:
+                print("    %s" % f)
+            print()
+            print("Add them to TESTS in this file (with a one-line blurb) so the")
+            print("suite total means what it says. The count is not written down")
+            print("in any document precisely so that this list stays the truth.")
+            return 2
 
     results = []
     t0 = time.time()

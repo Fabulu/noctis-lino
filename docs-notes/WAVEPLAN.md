@@ -24,8 +24,10 @@ during planning is written down here, not remembered.
   a lino program that fails still exits 0 — grade output files by mtime, never
   by exit code; delete the target file before every run.
 
-**Gate before any wave:** `python tests\run_all.py` must pass 12/12 and every
-`PRISTINE.sha256` hash must match. After any wave: same again.
+**Gate before any wave:** `python tests\run_all.py` must end `0 failed`, and
+every `PRISTINE.sha256` hash must match. After any wave: same again. The test
+count is deliberately not written down anywhere — it grows every wave, and
+`run_all.py` is the authority on both the count and the roster.
 
 **Pipeline shape per wave:** 3+ recons (parallel, read-only), 1 architect,
 2+ implementers on disjoint file namespaces, 1 reviewer (adversarial, reads
