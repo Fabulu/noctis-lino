@@ -1,0 +1,644 @@
+      ( SABOTAGE IPARTPROD - S4 truncated product.  ONE edit against work/pgtex.txt. )
+
+      ( *** pgtex - polymap: the ipart/fpart edge walk and the span
+	    engine, all five combine variants, culling and halfscan ***
+
+	TWO SURFACES, GRADED SEPARATELY, AND DELIBERATELY NOT GRADED AS A
+	COMPOSITION.
+
+	S4, the edge walk, is float-driven and yet EXACT.  The accumulator
+	bndx is a live x87 register in the original, never stored; kx IS a
+	"float" and is narrowed.  Carrying bndx at binary64 instead of the
+	original's 80 bits leaves the "fist bndx" result identical, because
+	the second rounding is at 2^-53 against tie windows that are exact
+	or far.  Carrying it at binary32 does not: that changes 3.6e-3 of
+	span limits.  So the port keeps kx narrow and bndx wide, and the
+	binary32 schedule is the ready-made negative control.
+
+	S5, the span engine, is 16-bit modular integer arithmetic on
+	pinned (u,v) block samples plus a texture lookup, and is exact by
+	inspection.
+
+	Their COMPOSITION is not separately graded: one differing ipart
+	shifts an entire scanline's texel walk, so if S4 measures zero
+	differences the composition is exact AS A CONSEQUENCE, and that is
+	how it should be reported.
+
+	FIVE THINGS THE DE-ASSEMBLED C GETS WRONG AND THIS FILE DOES NOT.
+
+	1.  "fist bndx" rounds to NEAREST EVEN.  It does not truncate.
+	2.  The top clip rounds the SUM  x1 + (lbyl-y1)*kx , not the
+	    product.  "fild x1 / fild lbyl / fisub y1 / fmul kx / faddp /
+	    fistp x1" - one fistp, at the end.
+	3.  "cmp di,cx / jnl noifor" makes the scanline loop run only when
+	    ity < jty.  A one-scanline edge contributes NOTHING, however
+	    much the source comment says h<=jty.
+	4.  halfscan reads element i-1, at BYTE offset si-2, and the
+	    source pixel is [di-316] - which is  di - 320 + 4 .  Both the
+	    index and the offset matter.
+	5.  The tinta/escrescenze scratch pair lives at es:[0xFA00] and
+	    es:[0xFA01], which are page bytes 63996 and 63997 - VISIBLE
+	    pixels on row 199.  They are re-read on EVERY pixel, so they
+	    are not decoration: a polymap that did not touch them did not
+	    run, and moving them (as niv-lr does) changes the picture.
+
+	AND ONE INCONSISTENCY THAT IS REPRODUCED RATHER THAN REPAIRED:
+	in the culling variants c_bright and c_merger both pixels of the
+	pair are written with the value that inherited the LEFT pixel's
+	top two bits.  The non-culling versions do not do that.  It is
+	asymmetric in the original.                                      )
+
+"constants"
+
+	SPLOW	= 10000;		( i_low_lim is -10000 )
+	SPHIGH	= 10000;
+
+	UVMAX	= 4096;			( pinned (u,v) samples per case )
+
+"variables"
+
+	( ---- edge walk ---- )
+	EWvr22	= 0;
+	EWminy	= 0;
+	EWmaxy	= 0;
+	EWx1	= 0;
+	EWy1	= 0;
+	EWx2	= 0;
+	EWy2	= 0;
+	EWity	= 0;
+	EWjty	= 0;
+	EWh	= 0;
+	EWcx	= 0;
+	EWsi	= 0;
+	EWax	= 0;
+	EWnarrow = 0;		( 1 = carry bndx through binary32: the
+				  negative control, must FAIL )
+
+	( ---- span engine ---- )
+	SPi	= 0;
+	SPsec	= 0;
+	SPdi	= 0;
+	SPcl	= 0;
+	SPax	= 0;			( u, 16-bit modular )
+	SPdx	= 0;			( v, 16-bit modular )
+	SPbp	= 0;			( step u, 16-bit    )
+	SPsi	= 0;			( step v, 16-bit    )
+	SPu	= 0;			( u, the 32-bit sample )
+	SPv	= 0;
+	SPun	= 0;
+	SPvn	= 0;
+	SPflar	= 0;
+	SPcull	= 0;
+	SPhalf	= 0;
+	SPtinta	= 0;
+	SPescr	= 0;
+	SPsrc	= 0;			( 0 pinned samples, 1 float chain )
+	SPuvi	= 0;
+	SPuvn	= 0;
+	SPch	= 0;
+	SPbx	= 0;
+	SPt	= 0;
+	SPn	= 0;
+	SPsave	= 0;
+
+"workspace"
+
+	ipart	= 200;
+	fpart	= 200;
+	uvlist	= 8192;			( pinned (u,v) samples, interleaved )
+
+"programme"
+
+( ==================================================================== )
+( S4 - the horizontal-limit matrices                                    )
+( ==================================================================== )
+
+      ( PG ol init : fpart[i] = lbxl, ipart[i] = ubxl for i in
+	[min_y, max_y].
+
+	Outside that interval the original's arrays are UNINITIALISED
+	stack, and the edge loop CAN write there (h runs over
+	[max(y1,lbyl), min(y2,ubyl)], which is not contained in
+	[min_y,max_y]).  Nothing ever reads those entries - the trace
+	loop walks min_y..max_y and halfscan reads i-1 >= min_y - so the
+	page does not depend on them.  This port fills the whole 0..198
+	range with the same two constants, states that it is a CHOICE,
+	and grades only [min_y, max_y]. )
+
+"PG ol init"
+	[PGi] = 0;
+    "PG ol i0"
+	A = [PGi]; C = fpart; C + A; [C] = PGLBX;
+	C = ipart; C + A; [C] = PGUBX;
+	[PGi]+;
+	A = [PGi]; ? A '< 200 -> PG ol i0;
+	end;
+
+      ( PG edges : the whole "Calcolo confini orizzontali" block.
+	in   mp[0..2*EWvr22-1] as integers, [EWvr22] = 2*nv, [EWminy],
+	     [EWmaxy] already clamped to [lbyl, ubyl]
+	out  ipart[], fpart[] )
+
+"PG edges"
+	=> PG ol init;
+
+	( mp[vr22] = mp[0] ; mp[vr22+1] = mp[1] - the closing edge )
+	A = [EWvr22]; C = mp; C + A;
+	D = mp;
+	[C] = [D]; [C plus 1] = [D plus 1];
+
+	[EWsi] = 0;			( vertex-pair index, 2 per edge )
+	[PGj] = [EWvr22]; A = [PGj]; A > 1; [PGj] = A;	( edge count )
+    "PG ew edge"
+	A = [EWsi]; C = mp; C + A;
+	D = [C plus 0];			( ax = x1 )
+	B = [C plus 1];			( bx = y1 )
+	E = [C plus 2];			( cx = x2 )
+	A = [C plus 3];			( dx = y2 )
+
+	( if (y2 < y1) swap the two ends so y1 <= y2 )
+	? A >= B -> PG ew noex;
+	[EWx1] = E; [EWy1] = A; [EWx2] = D; [EWy2] = B;
+	-> PG ew exch;
+    "PG ew noex"
+	[EWx1] = D; [EWy1] = B; [EWx2] = E; [EWy2] = A;
+    "PG ew exch"
+	( the flags tested by "jne ol" are still those of "cmp dx,bx",
+	  so the test is y2 != y1 - a HORIZONTAL edge is skipped. )
+	A = [EWy2]; ? A = [EWy1] -> PG ew next;
+
+	( kx = (float)(x2-x1) / (float)(y2-y1).
+	  fild/fisub: the subtraction is done in INTEGERS and converted
+	  ONCE.  kx is a float variable and is narrowed. )
+	A = [EWx2]; C = [EWx1]; A - C; [FI] = A; => IntToF;
+	[FT0] = [FA0]; [FT1] = [FA1];
+	A = [EWy2]; C = [EWy1]; A - C; [FI] = A; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1];
+	=> FQuo;
+	[PGFi] = FSKX; => PGF sa; => PGF narrow;
+
+	( if (y1 < lbyl) { ity = lbyl; x1 = round(x1 + (lbyl-y1)*kx) } )
+	A = [EWy1]; ? A >= PGLBY -> PG ew nocr;
+	[EWity] = PGLBY;
+	[FI] = [EWx1]; => IntToF;
+	[FT0] = [FA0]; [FT1] = [FA1];
+	A = PGLBY; C = [EWy1]; A - C; [FI] = A; => IntToF;
+	[PGFi] = FSKX; => PGF mul;
+	=> FToIntChop; => IntToF;
+	[FB0] = [FT0]; [FB1] = [FT1];
+	=> FAdd;
+	=> PGF int;
+	[EWx1] = [FI];
+	-> PG ew crct;
+    "PG ew nocr"
+	[EWity] = [EWy1];
+    "PG ew crct"
+	A = [EWy2]; ? A <= PGUBY -> PG ew nocr2;
+	[EWjty] = PGUBY;
+	-> PG ew crct2;
+    "PG ew nocr2"
+	[EWjty] = [EWy2];
+    "PG ew crct2"
+
+	( bndx = (float)x1, and it stays in a REGISTER from here on )
+	[FI] = [EWx1]; => IntToF;
+	[PGFi] = FSBNDX; => PGF sa;
+
+	( "cmp di,cx / jnl noifor" - the loop runs only when ity < jty.
+	  A one-scanline edge contributes NOTHING. )
+	A = [EWity]; ? A >= [EWjty] -> PG ew next;
+	C = [EWjty]; C - [EWity]; C+; [EWcx] = C;
+	[EWh] = [EWity];
+    "PG ew intfor"
+	( fist bndx - NO POP.  The accumulator keeps running. )
+	[PGFi] = FSBNDX; => PGF a;
+	=> PGF int;
+	[EWax] = [FI];
+
+	A = [EWax]; C = 0; C - SPLOW;
+	? A >= C -> PG ew ct01;
+	[EWax] = C;
+    "PG ew ct01"
+	A = [EWax]; ? A <= SPHIGH -> PG ew ct02;
+	[EWax] = SPHIGH;
+    "PG ew ct02"
+	A = [EWh]; C = fpart; C + A; [SPt] = C;
+	A = [EWax]; ? A <= [C] -> PG ew ct1n;
+	? A >= PGUBX -> PG ew ct2n;
+	C = [SPt]; [C] = A;
+	-> PG ew ct1n;
+    "PG ew ct2n"
+	C = [SPt]; [C] = PGUBX;
+    "PG ew ct1n"
+	A = [EWh]; C = ipart; C + A; [SPt] = C;
+	A = [EWax]; ? A >= [C] -> PG ew ct3n;
+	? A <= PGLBX -> PG ew ct4n;
+	C = [SPt]; [C] = A;
+	-> PG ew ct3n;
+    "PG ew ct4n"
+	C = [SPt]; [C] = PGLBX;
+    "PG ew ct3n"
+	( bndx += kx.  The accumulator is WIDE; kx is NARROW. )
+	[PGFi] = FSBNDX; => PGF a;
+	[PGFi] = FSKX; => PGF add;
+	A = [EWnarrow]; ? A = 0 -> PG ew wide;
+	( SABOTAGE HOOK, off by default: quantise the accumulator to
+	  binary32 every iteration.  This is the schedule the naive
+	  "lino floats are 24-bit" reading produces, and it MUST fail. )
+	=> F32Narrow;
+    "PG ew wide"
+	[PGFi] = FSBNDX; => PGF sa;
+	[EWh]+;
+	[EWcx]-;
+	? [EWcx] != 0 -> PG ew intfor;
+    "PG ew next"
+	A = [EWsi]; A + 2; [EWsi] = A;		( +8 BYTES = one vertex )
+	[PGj]-;
+	A = [PGj]; ? A != 0 -> PG ew edge;
+	end;
+
+( ==================================================================== )
+( S5 - the span engine                                                  )
+( ==================================================================== )
+
+      ( PG uv next : [SPun],[SPvn] <- the next (u,v) sample.
+
+	src 0 - PINNED: the ordered per-block pairs come straight out of
+		the corpus.  This is how S5 is graded in isolation, with
+		no float in the loop at all.
+	src 1 - the live float chain, for the composed run.            )
+
+"PG uv next"
+	A = [SPsrc]; ? A != 0 -> PG uv float;
+	A = [SPuvi]; A + A; C = uvlist; C + A;
+	[SPun] = [C]; [SPvn] = [C plus 1];
+	A = [SPuvi]; A+; [SPuvi] = A;
+	end;
+    "PG uv float"
+	( _z += k3 ; _x += k1 ; _y += k2 ; k4 = 1/_z ;
+	  u = (_x * tempXsize) * k4 ; v = (_y * tempYsize) * k4.
+	  fst _z / fst _x / fst _y are stores to FLOAT locals, so each
+	  is narrowed; k4 is a float too.  The two fistp are nearest. )
+	( wz = _z + k3 stays WIDE for the reciprocal; the memory _z the
+	  NEXT block reloads is the narrowed one.  "fst" leaves both. )
+	[PGFi] = FSZ; => PGF a; [PGFi] = FSK3; => PGF add;
+	[PGFi] = FSW0; => PGF sa;			( wide z )
+	[PGFi] = FSZ;  => PGF sa; => PGF narrow;	( float _z )
+
+	[PGFi] = FSX; => PGF a; [PGFi] = FSK1; => PGF add;
+	[PGFi] = FSW1; => PGF sa;			( wide x )
+	[PGFi] = FSX; => PGF sa; => PGF narrow;
+
+	[PGFi] = FSY; => PGF a; [PGFi] = FSK2; => PGF add;
+	[PGFi] = FSW2; => PGF sa;			( wide y )
+	[PGFi] = FSY; => PGF sa; => PGF narrow;
+
+	( k4 = 1/wide_z, then STORED to a float and reloaded narrow )
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSUNO; => PGF rquo;
+	[PGFi] = FSK4; => PGF sa; => PGF narrow;
+
+	( u and v are built from the WIDE x and y and the NARROW k4 )
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSTX; => PGF mul;
+	[PGFi] = FSK4; => PGF mul; => PGF int; [SPun] = [FI];
+	[PGFi] = FSW2; => PGF a; [PGFi] = FSTY; => PGF mul;
+	[PGFi] = FSK4; => PGF mul; => PGF int; [SPvn] = [FI];
+	end;
+
+      ( PG texel : [PGtexv] <- txtr[ (v_hi << 8) | u_hi ].
+	bh = dh and bl = ah, so the index is exactly the two HIGH bytes
+	of the two 16-bit accumulators, and the whole 64 KiB window
+	wraps rather than clamping. )
+
+"PG texel"
+	A = [SPdx]; A > 8; A & 255; A < 8;
+	C = [SPax]; C > 8; C & 255;
+	A | C;
+	[PGtexi] = A;
+	=> PG tex;
+	end;
+
+      ( PG scrtinta / PG screscr : ds:[0xFA00] and ds:[0xFA01].  RE-READ from
+	the page on every pixel, exactly as the assembly does. )
+
+"PG scrtinta"
+	A = PGSCRT; A + PGDOFF; [PGdi] = A; => PG load; end;
+
+"PG screscr"
+	A = PGSCRE; A + PGDOFF; [PGdi] = A; => PG load; end;
+
+      ( PG row : the non-culling scanline.  Blocks of at most 16. )
+
+"PG row"
+	? [SPsec] <= 0 -> PG row end;
+	A = [SPsec]; ? A > 16 -> PG row cmpl;
+	A & 255; [SPcl] = A;
+	-> PG row unf;
+    "PG row cmpl"
+	[SPcl] = 16;
+    "PG row unf"
+	A = [SPsec]; A - 16; [SPsec] = A;
+	A = [SPcl]; ? A = 0 -> PG row;
+
+	=> PG uv next;
+	( si = (v_new - v_old) >> 4 ; bp = (u_new - u_old) >> 4,
+	  both SIGNED 32-bit arithmetic shifts, then used 16-bit. )
+	A = [SPvn]; C = [SPv]; A - C; A >> 4; A & 65535; [SPsi] = A;
+	A = [SPun]; C = [SPu]; A - C; A >> 4; A & 65535; [SPbp] = A;
+	A = [SPu]; A & 65535; [SPax] = A;
+	A = [SPv]; A & 65535; [SPdx] = A;
+	[SPu] = [SPun]; [SPv] = [SPvn];
+
+	A = [SPflar]; A & 15;
+	? A = 0 -> PG px internal;
+	A = [SPflar]; A & 1;  ? A != 0 -> PG px transp;
+	A = [SPflar]; A & 2;  ? A != 0 -> PG px bright;
+	A = [SPflar]; A & 4;  ? A != 0 -> PG px merger;
+	-> PG px bumper;
+
+    "PG px internal"
+	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
+	=> PG scrtinta; A = [PGval]; [SPch] = A;
+	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG px internal;
+	-> PG row;
+
+    "PG px transp"
+	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A; => PG load;
+	A = [PGval]; [SPch] = A;
+	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG px transp;
+	-> PG row;
+
+    "PG px bright"
+	( mov ch,[di+4] happens BEFORE inc di, so it is the very pixel
+	  about to be written. )
+	A = [SPdi]; A + 4; A & 65535; [PGdi] = A; => PG load;
+	A = [PGval]; A & 63; [SPch] = A;
+	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
+	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	( ANTIBLOOMING CLAMPS AT 0x3E, NOT 0x3F. )
+	A = [SPch]; ? A '<= 62 -> PG px bl;
+	[SPch] = 62;
+    "PG px bl"
+	A = [SPdi]; A + 3; A & 65535; [SPt] = A;
+	[PGdi] = [SPt]; => PG load;
+	A = [PGval]; A & 192; A | [SPch]; A & 255;
+	[PGval] = A; [PGdi] = [SPt]; => PG store; [CSpix]+;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG px bright;
+	-> PG row;
+
+    "PG px merger"
+	A = [SPdi]; A + 4; A & 65535; [PGdi] = A; => PG load;
+	A = [PGval]; A & 63; [SPch] = A;
+	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
+	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	=> PG scrtinta; A = [SPch]; A + [PGval]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	( shr ch,1 - an 8-BIT shift, so the result can reach 127 and the
+	  following "or" bleeds it into the destination's top two bits. )
+	A = [SPch]; A > 1; [SPch] = A;
+	A = [SPdi]; A + 3; A & 65535; [SPt] = A;
+	[PGdi] = [SPt]; => PG load;
+	A = [PGval]; A & 192; A | [SPch]; A & 255;
+	[PGval] = A; [PGdi] = [SPt]; => PG store; [CSpix]+;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG px merger;
+	-> PG row;
+
+    "PG px bumper"
+	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
+	=> PG scrtinta; A = [PGval]; [SPch] = A;
+	=> PG texel; [SPbx] = [PGtexv];
+	A = [SPch]; A + [SPbx]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	( push di / push cx / and ch,7 : the loop runs n+1 times, so DI
+	  moves up by 320*(n+1) and the second write lands at
+	  di + 320*(1-n).  n = 0 writes one row BELOW, n = 1 the same
+	  row, n = 2 one row above.
+
+	  BX IS NOT RECOMPUTED for the second "add ch, fs:[bx]".  It was
+	  formed from the OLD ah, and "add ax,bp" has already advanced
+	  the accumulator - so the two texel fetches read the SAME texel.
+	  Recomputing it from the advanced accumulator is a one-texel
+	  skew that only shows up in the bump row. )
+	A = [SPdi]; [SPsave] = A;
+	A = [SPch]; A & 7; [SPn] = A;
+	A = [SPn]; A+; [SPt] = A;
+    "PG px bm320"
+	A = [SPdi]; A - 320; A & 65535; [SPdi] = A;
+	[SPt]-;
+	? [SPt] != 0 -> PG px bm320;
+	( ch is restored by "pop cx" to the TEXEL-PLUS-TINTA value, not
+	  to the masked n. )
+	=> PG scrtinta; A = [SPch]; C = [PGval]; A - C; A & 255; [SPch] = A;
+	=> PG screscr; A = [SPch]; C = [PGval]; A + C; A & 255; [SPch] = A;
+	A = [SPch]; A + [SPbx]; A & 255; [SPch] = A;
+	A = [SPdi]; A + 643; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	A = [SPsave]; [SPdi] = A;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG px bumper;
+	-> PG row;
+
+    "PG row end"
+	end;
+
+      ( PG crow : the culling scanline.  Blocks of at most 32 pixels
+	written as 16 PAIRS, and DI advances by exactly 32 per block
+	whatever the count - which is where the overdraw comes from. )
+
+"PG crow"
+	? [SPsec] <= 0 -> PG crow end;
+	A = [SPsec]; ? A > 32 -> PG crow cmpl;
+	A + 2; A & 255; [SPcl] = A;
+	-> PG crow unf;
+    "PG crow cmpl"
+	[SPcl] = 32;
+    "PG crow unf"
+	A = [SPsec]; A - 32; [SPsec] = A;
+	A = [SPcl]; ? A < 2 -> PG crow;
+	A > 1; [SPcl] = A;
+
+	=> PG uv next;
+	A = [SPvn]; C = [SPv]; A - C; A >> 4; A & 65535; [SPsi] = A;
+	A = [SPun]; C = [SPu]; A - C; A >> 4; A & 65535; [SPbp] = A;
+	A = [SPu]; A & 65535; [SPax] = A;
+	A = [SPv]; A & 65535; [SPdx] = A;
+	[SPu] = [SPun]; [SPv] = [SPvn];
+	A = [SPdi]; [SPsave] = A;
+
+	A = [SPflar]; A & 15;
+	? A = 0 -> PG cpx internal;
+	A = [SPflar]; A & 1;  ? A != 0 -> PG cpx transp;
+	A = [SPflar]; A & 2;  ? A != 0 -> PG cpx bright;
+	A = [SPflar]; A & 4;  ? A != 0 -> PG cpx merger;
+	-> PG cpx bumper;
+
+    "PG cpx internal"
+	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
+	=> PG scrtinta; A = [PGval]; [SPch] = A;
+	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	A = [SPdi]; A + 2; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG cpx internal;
+	-> PG crow tail;
+
+    "PG cpx transp"
+	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A; => PG load;
+	A = [PGval]; [SPch] = A;
+	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	A = [SPdi]; A + 2; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG cpx transp;
+	-> PG crow tail;
+
+    "PG cpx bright"
+	A = [SPdi]; A + 4; A & 65535; [PGdi] = A; => PG load;
+	A = [PGval]; A & 63; [SPch] = A;
+	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
+	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	A = [SPch]; ? A '<= 62 -> PG cpx bl;
+	[SPch] = 62;
+    "PG cpx bl"
+	( "and byte [di+2],0xC0 / or ch,[di+2]" then BOTH pixels get ch.
+	  So the right pixel inherits the LEFT pixel's top two bits.
+	  That is inconsistent with the non-culling version and it is
+	  reproduced, not repaired. )
+	A = [SPdi]; A + 2; A & 65535; [SPt] = A;
+	[PGdi] = [SPt]; => PG load;
+	A = [PGval]; A & 192; A | [SPch]; A & 255; [SPch] = A;
+	[PGval] = [SPch]; [PGdi] = [SPt]; => PG store; [CSpix]+;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG cpx bright;
+	-> PG crow tail;
+
+    "PG cpx merger"
+	A = [SPdi]; A + 4; A & 65535; [PGdi] = A; => PG load;
+	A = [PGval]; A & 63; [SPch] = A;
+	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
+	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	=> PG scrtinta; A = [SPch]; A + [PGval]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	A = [SPch]; A > 1; [SPch] = A;
+	A = [SPdi]; A + 2; A & 65535; [SPt] = A;
+	[PGdi] = [SPt]; => PG load;
+	A = [PGval]; A & 192; A | [SPch]; A & 255; [SPch] = A;
+	[PGval] = [SPch]; [PGdi] = [SPt]; => PG store; [CSpix]+;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG cpx merger;
+	-> PG crow tail;
+
+    "PG cpx bumper"
+	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
+	=> PG scrtinta; A = [PGval]; [SPch] = A;
+	=> PG texel; [SPbx] = [PGtexv];
+	A = [SPch]; A + [SPbx]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	A = [SPdi]; A + 2; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	A = [SPdi]; [SPt] = A;
+	A = [SPch]; A & 7; A+; [SPn] = A;
+    "PG cpx bm320"
+	A = [SPdi]; A - 320; A & 65535; [SPdi] = A;
+	[SPn]-;
+	? [SPn] != 0 -> PG cpx bm320;
+	=> PG scrtinta; A = [SPch]; C = [PGval]; A - C; A & 255; [SPch] = A;
+	=> PG screscr; A = [SPch]; C = [PGval]; A + C; A & 255; [SPch] = A;
+	A = [SPch]; A + [SPbx]; A & 255; [SPch] = A;
+	A = [SPdi]; A + 642; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	A = [SPdi]; A + 643; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	A = [SPt]; [SPdi] = A;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG cpx bumper;
+	-> PG crow tail;
+
+    "PG crow tail"
+	( c_common: pop di / pop bp / add di,32 - DI is RESTORED to the
+	  block start and then advanced by exactly 32, whatever cl was. )
+	A = [SPsave]; A + 32; A & 65535; [SPdi] = A;
+	-> PG crow;
+    "PG crow end"
+	end;
+
+      ( PG scanline : one row of the trace loop, from ipart[i] to
+	fpart[i].  Assumes [SPu]/[SPv] already hold the row's first
+	sample and [SPdi] the row's starting offset. )
+
+"PG scanline"
+	A = [SPcull]; A & 1;
+	? A != 0 -> PG sl cull;
+	=> PG row;
+	end;
+    "PG sl cull"
+	=> PG crow;
+	end;
+
+      ( PG halfscan : the inter-scanline duplication.
+	Reads element i-1 and the pixel at [di-316]; writes rows i and
+	i+1.  [di-316] is di-320+4, so the source is the row ABOVE at
+	the SAME column - the +4 is adapted's offset and dropping it is
+	sabotage HALFSKEW. )
+
+"PG halfscan"
+	A = [SPi]; A-; C = ipart; C + A; D = [C];
+	A = [SPi]; A-; C = fpart; C + A; E = [C];
+	[SPt] = D;
+	A = E; C = D; A - C;
+	? A < 0 -> PG hs done;
+	? A = 0 -> PG hs done;
+	[SPn] = A;
+	C = [SPi]; => PG riga; C + [SPt]; C & 65535; [SPdi] = C;
+    "PG hs dup"
+	A = [SPdi]; A - 316; A & 65535; [PGdi] = A; => PG load;
+	A = [PGval]; [SPch] = A;
+	A = [SPdi]; A + 4; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	A = [SPdi]; A + 324; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
+	[SPn]-;
+	? [SPn] != 0 -> PG hs dup;
+    "PG hs done"
+	end;

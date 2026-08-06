@@ -1,0 +1,995 @@
+      ( SABOTAGE NEARSTRICT - S6 P1 - the near-plane test becomes Zc > uneg.
+	ONE edit against work/pgproj.txt.  Must move: S6 P1 - the near-plane test becomes Zc > uneg )
+
+      ( *** pgproj - the two projection nuclei, the near-plane clip, the
+	    four 2-D clip stages, getcoords and facing ***
+
+	THE TWO NUCLEI ARE KEPT SEPARATE ON PURPOSE.
+
+	  poly3d   folds dpp INTO the rotation (opt_pcosbeta = cos*dpp,
+		   opt_psinalfa = sin*dpp) and then divides by  1/Zc .
+	  polymap  rotates with a UNIT matrix (opt_tcos*, opt_tsin*) and
+		   divides by  dpp/Zc .
+
+	Algebraically the same; numerically not, and they do not share a
+	rounding schedule.  Factoring them into one routine would be the
+	single most tempting and most wrong simplification in this wave.
+
+	THE FST ASYMMETRY IS REPRODUCED BY CONSTRUCTION, NOT BY CHOICE.
+	At "fst zz / fmul opt_psinbeta" the value that continues into the
+	multiply is the WIDE one still in st(0); the value the later
+	"fld zz" reloads is the NARROW one in memory.  This port keeps
+	the wide value in FA and calls PGF narrow on the slot, so both
+	happen.  The four sites are zz/xx/z2/yy, rzf[si], zk, and
+	video_x0/video_y0.  There is no flag to pick a side because the
+	original does not pick a side.
+
+	THE NEAR-PLANE TEST TREATS UNORDERED AS "BEHIND".  "fcomp uneg /
+	fstsw / sahf / jb" takes CF, which is C0, and a NaN sets
+	C3:C2:C0 = 111.  FCmp returns 2 for unordered; 2 and -1 both map
+	to rwf = 0.
+
+	THE EQUALITY BRANCHES ARE UNREACHABLE FOR ORDERED INPUT, AND THAT
+	IS WORTH SAYING OUT LOUD.  Every "fcomp ... / jne interpolate /
+	jmp copy" pair in the near-plane walk and in the four 2-D stages
+	compares the OUTSIDE vertex against an INSIDE one.  Outside means
+	strictly beyond the bound and inside means not beyond it, so the
+	two can never be equal.  The copy branch is reachable only
+	through a NaN, which is also the only way "fcomp" reports
+	unordered.  This port implements the copy branch as written.
+
+	ONE THING THIS PORT DOES NOT REPRODUCE, AND SAYS SO.
+	TDPOLYGS.H:906 reads  "jne if25 / jmp else35" - a jump into the
+	NEXT clip stage's code, which would then run stage 3's copy on
+	video_x1/video_x2 and exit through STOP3 with vr3 unset.  It is
+	the else25 label that was meant; else25 is unreachable because
+	if25 ends in "jmp JMPR21".  Since the branch is taken only on an
+	unordered compare, the divergence is unobservable for every
+	ordered input.  It is recorded as an OPEN ITEM, not silently
+	normalised.                                                      )
+
+"constants"
+
+	P3MAXV	= 4;			( VERTICI_PER_POLIGONO )
+
+"variables"
+
+	( ---- rotation / near-plane ---- )
+	PJnrv	= 0;
+	PJdoflag = 0;
+	PJvr	= 0;
+	PJvr2	= 0;
+	PJvr22	= 0;
+	PJvr3	= 0;
+	PJvr4	= 0;
+	PJvr5	= 0;
+	PJvr6	= 0;
+	PJdi	= 0;
+	PJpv	= 0;
+	PJnv	= 0;
+	PJvv	= 0;
+	PJdx	= 0;
+	PJbx	= 0;
+	PJgate	= 0;			( which clip stage returned early )
+	PJ8n	= 0;
+	PJmode	= 0;			( 0 = poly3d nucleus, 1 = polymap )
+
+	( ---- generic 2-D clip stage ---- )
+	CLxi	= 0;
+	CLyi	= 0;
+	CLxo	= 0;
+	CLyo	= 0;
+	CLn	= 0;
+	CLbnd	= 0;
+	CLdir	= 0;			( 0 outside if <, 1 outside if > )
+	CLint	= 0;			( 1 = stage 5, emit into mp[] )
+	CLout	= 0;
+	CLi	= 0;
+	CLo	= 0;
+	CLbxs	= 0;
+	CLt	= 0;
+
+	( ---- getcoords ---- )
+	GCx	= 0;
+	GCy	= 0;
+	GCret	= 0;
+
+	FCret	= 0;			( facing )
+
+"workspace"
+
+	rwf	= 4;
+
+"programme"
+
+( ==================================================================== )
+( helpers                                                               )
+( ==================================================================== )
+
+( ==================================================================== )
+( the rotation nucleus and the near-plane flags                         )
+( ==================================================================== )
+
+      ( PJ rotate : for each of [PJnrv] vertices, rotate into rxf/ryf/rzf
+	and set rwf[] and doflag.
+
+	[PJmode] 0 - poly3d: dpp is FUSED into the matrix, so rxf and ryf
+		     come out pre-scaled and the projector divides 1/Zc.
+	[PJmode] 1 - polymap: a UNIT matrix, and the projector divides
+		     dpp/Zc.
+
+	With alfa = beta = 0 the two matrices are
+	    poly3d   rxf = dpp*(zz*0 + xx*1),  ryf = dpp*(yy*1 - z2*0)
+	    polymap  rxf =      zz*0 + xx*1 ,  ryf =      yy*1 - z2*0
+	but the CODE is written out in full, because a port that special-
+	cases the identity cannot be run at any other camera angle and
+	cannot be checked against one. )
+
+"PJ rotate"
+	[PJdoflag] = 0;
+	[PJvr] = 0;
+    "PJ rot v"
+	( zz = z[i] - cam_z ; the WIDE value continues, the NARROW one
+	  is what "fld zz" reloads two instructions later. )
+	A = [PJvr]; A + FSINZ; [PGFi] = A; => PGF a;
+	[PGFi] = FSCAMZ; => PGF sub;
+	[PGFi] = FSZZ; => PGF sa; => PGF narrow;
+
+	A = [PJvr]; A + FSINX; [PGFi] = A; => PGF a;
+	[PGFi] = FSCAMX; => PGF sub;
+	[PGFi] = FSXX; => PGF sa; => PGF narrow;
+
+	A = [PJvr]; A + FSINY; [PGFi] = A; => PGF a;
+	[PGFi] = FSCAMY; => PGF sub;
+	[PGFi] = FSYY; => PGF sa; => PGF narrow;
+
+	( rxf = zz*sinbeta + xx*cosbeta, with the p- or t- table )
+	[PGFi] = FSZZ; => PGF a;
+	A = FSPSB; C = [PJmode]; ? C = 0 -> PJ rot b1; A = FSTSB;
+    "PJ rot b1"
+	[PGFi] = A; => PGF mul;
+	[PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSXX; => PGF a;
+	A = FSPCB; C = [PJmode]; ? C = 0 -> PJ rot b2; A = FSTCB;
+    "PJ rot b2"
+	[PGFi] = A; => PGF mul;
+	[PGFi] = FSW0; => PGF add;
+	A = [PJvr]; A + FSRXF; [PGFi] = A; => PGF sa; => PGF narrow;
+
+	( z2 = zz*cosbeta - xx*sinbeta, ALWAYS the t- table )
+	[PGFi] = FSZZ; => PGF a; [PGFi] = FSTCB; => PGF mul;
+	[PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSXX; => PGF a; [PGFi] = FSTSB; => PGF mul;
+	[PGFi] = FSW0; => PGF rsub;
+	[PGFi] = FSZ2; => PGF sa; => PGF narrow;
+
+	( rzf = z2*cosalfa + yy*sinalfa, t- table in BOTH nuclei )
+	[PGFi] = FSZ2; => PGF a; [PGFi] = FSTCA; => PGF mul;
+	[PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSYY; => PGF a; [PGFi] = FSTSA; => PGF mul;
+	[PGFi] = FSW0; => PGF add;
+	( "fst rzf[si] / fcomp uneg" - the STORE is narrow, the COMPARE
+	  is on the wide value still in st(0). )
+	[PGFi] = FSW1; => PGF sa;
+	A = [PJvr]; A + FSRZF; [PGFi] = A; => PGF sa; => PGF narrow;
+	[PGFi] = FSW1; => PGF a;
+	[PGFi] = FSUNEG; => PGF b;
+	=> FCmp;
+	C = 0;
+	A = [FI]; ? A = 2 -> PJ rot behind;	( unordered = behind )
+	A = [FI]; ? A <= 0 -> PJ rot behind;
+	C = 1;
+	[PJdoflag]+;
+    "PJ rot behind"
+	A = rwf; A + [PJvr]; [A] = C;
+
+	( ryf = yy*cosalfa - z2*sinalfa, p- or t- table )
+	[PGFi] = FSYY; => PGF a;
+	A = FSPCA; C = [PJmode]; ? C = 0 -> PJ rot a1; A = FSTCA;
+    "PJ rot a1"
+	[PGFi] = A; => PGF mul;
+	[PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSZ2; => PGF a;
+	A = FSPSA; C = [PJmode]; ? C = 0 -> PJ rot a2; A = FSTSA;
+    "PJ rot a2"
+	[PGFi] = A; => PGF mul;
+	[PGFi] = FSW0; => PGF rsub;
+	A = [PJvr]; A + FSRYF; [PGFi] = A; => PGF sa; => PGF narrow;
+
+	[PJvr]+;
+	A = [PJvr]; ? A '< [PJnrv] -> PJ rot v;
+	end;
+
+( ==================================================================== )
+( the near-plane walk - Sutherland-Hodgman against z == uneg            )
+( ==================================================================== )
+
+      ( PJ zemit : emit ONE interpolated vertex from the outside vertex
+	[PJbx] towards the visible vertex [PJvv], into ultima_*[[PJdi]].
+
+	    zk = (uneg - Z_o) / (Z_v - Z_o)
+	    X  = X_o + zk*(X_v - X_o)
+	    Y  = Y_o + zk*(Y_v - Y_o)
+	    Z  = uneg, copied as a BIT PATTERN
+
+	zk is a "float" and is narrowed; the multiply that consumes it
+	uses the value still in st(0), which is wide.  Both, again.
+
+	THE GUARD IS EXACT FLOAT EQUALITY, NOT AN EPSILON.  When the
+	denominator is one ULP the quotient is around 1e7 and the emitted
+	vertex lands arbitrarily far off screen, which then changes WHICH
+	2-D clip cases fire - so topology itself diverges and no envelope
+	is coherent.  Those cases are counted and reported, never graded.
+	An epsilon here is sabotage ZKEPS. )
+
+"PJ zemit"
+	A = [PJbx]; A + FSRZF; [PGFi] = A; => PGF a;
+	A = [PJvv]; A + FSRZF; [PGFi] = A; => PGF b;
+	=> FCmp;
+	A = [FI]; ? A = 0 -> PJ ze copy;
+
+	( zk = (uneg - Z_v) / (Z_o - Z_v)  -  read the assembly, not the
+	  comment: "fld uneg / fsub rzf[vv] / fld rzf[vv] / fsubr
+	  rzf[bx] / fdivp".  st1 = uneg - Z_vv, st0 = Z_bx - Z_vv. )
+	[PGFi] = FSUNEG; => PGF a;
+	A = [PJvv]; A + FSRZF; [PGFi] = A; => PGF sub;
+	[PGFi] = FSW0; => PGF sa;
+	A = [PJvv]; A + FSRZF; [PGFi] = A; => PGF a;
+	A = [PJbx]; A + FSRZF; [PGFi] = A; => PGF rsub;
+	[PGFi] = FSW1; => PGF sa;
+	[PGFi] = FSW0; => PGF a;
+	[PGFi] = FSW1; => PGF quo;
+	[PGFi] = FSZK; => PGF sa; => PGF narrow;
+
+	( X = zk*(X_bx - X_vv) + X_vv, with zk still WIDE in st(0) )
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF quo;
+	[PGFi] = FSW2; => PGF sa;
+	A = [PJbx]; A + FSRXF; [PGFi] = A; => PGF a;
+	A = [PJvv]; A + FSRXF; [PGFi] = A; => PGF sub;
+	[PGFi] = FSW2; => PGF mul;
+	A = [PJvv]; A + FSRXF; [PGFi] = A; => PGF add;
+	A = [PJdi]; A + FSUX; [PGFi] = A; => PGF sa; => PGF narrow;
+
+	( Y likewise, and this one reloads zk from MEMORY: "fld zk". )
+	[PGFi] = FSZK; => PGF a;
+	[PGFi] = FSW2; => PGF sa;
+	A = [PJbx]; A + FSRYF; [PGFi] = A; => PGF a;
+	A = [PJvv]; A + FSRYF; [PGFi] = A; => PGF sub;
+	[PGFi] = FSW2; => PGF mul;
+	A = [PJvv]; A + FSRYF; [PGFi] = A; => PGF add;
+	A = [PJdi]; A + FSUY; [PGFi] = A; => PGF sa; => PGF narrow;
+	-> PJ ze z;
+    "PJ ze copy"
+	( the degenerate guard: copy the outside vertex's x and y as BIT
+	  PATTERNS.  Reachable only through an unordered compare. )
+	A = [PJbx]; A + FSRXF; [PGFi] = A;
+	A = [PJdi]; A + FSUX;  [PGFj] = A; => PGF mov;
+	A = [PJbx]; A + FSRYF; [PGFi] = A;
+	A = [PJdi]; A + FSUY;  [PGFj] = A; => PGF mov;
+    "PJ ze z"
+	[PGFi] = FSUNEG; A = [PJdi]; A + FSUZ; [PGFj] = A; => PGF mov;
+	end;
+
+      ( PJ zclip : the whole "Conversione punti alle spalle
+	dell'osservatore" loop.  Produces ultima_*[0..PJvr2-1]. )
+
+"PJ zclip"
+	[PJvr] = 0; [PJdi] = 0;
+	A = [PJnrv]; A-; [PJdx] = A;
+    "PJ zc for"
+	A = rwf; A + [PJvr]; A = [A];
+	? A != 0 -> PJ zc bypass;
+
+	A = [PJvr]; A-;
+	? A >= 0 -> PJ zc pv;
+	A = [PJdx];
+    "PJ zc pv"
+	[PJpv] = A;
+	A = [PJvr]; A+;
+	? A '<= [PJdx] -> PJ zc nv;
+	A = 0;
+    "PJ zc nv"
+	[PJnv] = A;
+
+	( if BOTH neighbours are also behind, this vertex emits nothing )
+	A = rwf; A + [PJpv]; A = [A];
+	? A != 0 -> PJ zc jmpr;
+	A = rwf; A + [PJnv]; A = [A];
+	? A != 0 -> PJ zc jmpr;
+	-> PJ zc stop;
+    "PJ zc jmpr"
+	[PJbx] = [PJvr];
+	A = rwf; A + [PJpv]; C = [A];
+	A = rwf; A + [PJnv]; A = [A]; C + A;
+	? C != 2 -> PJ zc else11;
+
+	( both neighbours visible: TWO emitted vertices )
+	A = [PJpv]; [PJvv] = A; => PJ zemit;
+	A = [PJdi]; A+; [PJdi] = A;
+	A = [PJnv]; [PJvv] = A; => PJ zemit;
+	A = [PJdi]; A+; [PJdi] = A;
+	-> PJ zc stop;
+    "PJ zc else11"
+	( exactly one visible: ONE emitted vertex )
+	A = rwf; A + [PJpv]; A = [A];
+	C = [PJnv];
+	? A = 0 -> PJ zc vset;
+	C = [PJpv];
+    "PJ zc vset"
+	[PJvv] = C;
+	=> PJ zemit;
+	A = [PJdi]; A+; [PJdi] = A;
+	-> PJ zc stop;
+    "PJ zc bypass"
+	A = [PJvr]; A + FSRXF; [PGFi] = A;
+	A = [PJdi]; A + FSUX;  [PGFj] = A; => PGF mov;
+	A = [PJvr]; A + FSRYF; [PGFi] = A;
+	A = [PJdi]; A + FSUY;  [PGFj] = A; => PGF mov;
+	A = [PJvr]; A + FSRZF; [PGFi] = A;
+	A = [PJdi]; A + FSUZ;  [PGFj] = A; => PGF mov;
+	A = [PJdi]; A+; [PJdi] = A;
+    "PJ zc stop"
+	[PJvr]+;
+	A = [PJvr]; ? A '< [PJnrv] -> PJ zc for;
+	A = [PJdi]; [PJvr2] = A;
+	A = [PJdi]; A + A; [PJvr22] = A;
+	end;
+
+      ( PJ zload : the fast path.  doflag == nrv means no vertex is
+	behind the near plane, so ultima_* is a straight copy of rxf/
+	ryf/rzf - BIT PATTERNS, no arithmetic, no rounding. )
+
+"PJ zload"
+	[PJvr] = 0;
+    "PJ zl v"
+	A = [PJvr]; A + FSRXF; [PGFi] = A;
+	A = [PJvr]; A + FSUX;  [PGFj] = A; => PGF mov;
+	A = [PJvr]; A + FSRYF; [PGFi] = A;
+	A = [PJvr]; A + FSUY;  [PGFj] = A; => PGF mov;
+	A = [PJvr]; A + FSRZF; [PGFi] = A;
+	A = [PJvr]; A + FSUZ;  [PGFj] = A; => PGF mov;
+	[PJvr]+;
+	A = [PJvr]; ? A '< [PJnrv] -> PJ zl v;
+	A = [PJnrv]; [PJvr2] = A;
+	A + A; [PJvr22] = A;
+	end;
+
+( ==================================================================== )
+( the two projectors                                                    )
+( ==================================================================== )
+
+      ( PJ project3d : poly3d's.  w = 1/Zc, screen = w*Xc + x_centro,
+	and video_x0/video_y0 receive the NARROW value while mp[] gets
+	the WIDE one rounded to nearest even. )
+
+"PJ project3d"
+	[PJvr] = 0;
+    "PJ p3 v"
+	[PGFi] = FSUNO; => PGF a;
+	A = [PJvr]; A + FSUZ; [PGFi] = A; => PGF quo;
+	[PGFi] = FSW3; => PGF sa;			( w = 1/Zc, kept )
+
+	A = [PJvr]; A + FSUX; [PGFi] = A; => PGF mul;
+	[PGFi] = FSXC; => PGF add;
+	[PGFi] = FSW0; => PGF sa;			( the WIDE value )
+	A = [PJvr]; A + FSVX0; [PGFi] = A; => PGF sa; => PGF narrow;
+	[PGFi] = FSW0; => PGF a; => PGF int;
+	A = [PJvr]; A + A; C = mp; C + A; [C] = [FI];
+
+	[PGFi] = FSW3; => PGF a;
+	A = [PJvr]; A + FSUY; [PGFi] = A; => PGF mul;
+	[PGFi] = FSYC; => PGF add;
+	[PGFi] = FSW0; => PGF sa;
+	A = [PJvr]; A + FSVY0; [PGFi] = A; => PGF sa; => PGF narrow;
+	[PGFi] = FSW0; => PGF a; => PGF int;
+	A = [PJvr]; A + A; C = mp; C + A; [C plus 1] = [FI];
+
+	[PJvr]+;
+	A = [PJvr]; ? A '< [PJvr2] -> PJ p3 v;
+
+	( the min/max search is FUSED into this loop in the original.
+	  It is the same four seeded accumulators and the same four
+	  gates that "PG bbox" implements, so it is called rather than
+	  written twice - one implementation, graded once, used twice. )
+	[BXn] = [PJvr2];
+	=> PG bbox;
+	end;
+
+      ( PJ projectmap : polymap's.  w = dpp/Zc, NO video_* store at all
+	- polymap has no 2-D clipper to feed - and the min/max search
+	covers only Y.  A different schedule from poly3d's, and it stays
+	different. )
+
+"PJ projectmap"
+	[PJvr] = 0;
+	[BXminy] = PGUBY;
+	[BXmaxy] = PGLBY;
+    "PJ pm v"
+	[PGFi] = FSDPP; => PGF a;
+	A = [PJvr]; A + FSUZ; [PGFi] = A; => PGF quo;
+	[PGFi] = FSW3; => PGF sa;
+
+	A = [PJvr]; A + FSUX; [PGFi] = A; => PGF mul;
+	[PGFi] = FSXC; => PGF add;
+	=> PGF int;
+	A = [PJvr]; A + A; C = mp; C + A; [C] = [FI];
+
+	[PGFi] = FSW3; => PGF a;
+	A = [PJvr]; A + FSUY; [PGFi] = A; => PGF mul;
+	[PGFi] = FSYC; => PGF add;
+	=> PGF int;
+	A = [PJvr]; A + A; C = mp; C + A; [C plus 1] = [FI];
+
+	A = [FI];
+	? A >= [BXminy] -> PJ pm y1;
+	[BXminy] = A;
+    "PJ pm y1"
+	? A <= [BXmaxy] -> PJ pm y2;
+	[BXmaxy] = A;
+    "PJ pm y2"
+	[PJvr]+;
+	A = [PJvr]; ? A '< [PJvr2] -> PJ pm v;
+	end;
+
+( ==================================================================== )
+( the four 2-D clip stages, written ONCE                                )
+( ==================================================================== )
+
+      ( Stages 2..5 are the same Sutherland-Hodgman step against four
+	different half-planes.  Naming the compared coordinate P and the
+	interpolated one Q:
+
+	    stage 2   P = video_y0, Q = video_x0, bound lbyf, outside <
+	    stage 3   P = video_y1, Q = video_x1, bound ubyf, outside >
+	    stage 4   P = video_x2, Q = video_y2, bound lbxf, outside <
+	    stage 5   P = video_x3, Q = video_y3, bound ubxf, outside >
+
+	and in every one of them
+	    t = (bound - P_vv) / (P_bx - P_vv)
+	    Q = Q_vv + t*(Q_bx - Q_vv)
+	    P = bound
+
+	Stage 5 is the ONLY one that converts: it writes mp[] with
+	"fistp", which is the last of the 16 nearest-even sites in the
+	clipped path.  Everything before it stays in floats.
+
+	[CLxi]/[CLyi] are the P and Q INPUT slot bases, [CLxo]/[CLyo]
+	the outputs.  For stages 4 and 5 the caller passes x as P. )
+
+"PJ emit1"
+	( emit one interpolated vertex from [PJbx] towards [PJvv] )
+	A = [PJbx]; A + [CLxi]; [PGFi] = A; => PGF a;
+	A = [PJvv]; A + [CLxi]; [PGFi] = A; => PGF b;
+	=> FCmp;
+	A = [FI]; ? A = 0 -> PJ e1 copy;
+
+	[PGFi] = [CLbnd]; => PGF a;
+	A = [PJvv]; A + [CLxi]; [PGFi] = A; => PGF sub;
+	[PGFi] = FSW0; => PGF sa;
+	A = [PJvv]; A + [CLxi]; [PGFi] = A; => PGF a;
+	A = [PJbx]; A + [CLxi]; [PGFi] = A; => PGF rsub;
+	[PGFi] = FSW1; => PGF sa;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF quo;
+	[PGFi] = FSW2; => PGF sa;
+	A = [PJbx]; A + [CLyi]; [PGFi] = A; => PGF a;
+	A = [PJvv]; A + [CLyi]; [PGFi] = A; => PGF sub;
+	[PGFi] = FSW2; => PGF mul;
+	A = [PJvv]; A + [CLyi]; [PGFi] = A; => PGF add;
+	-> PJ e1 store;
+    "PJ e1 copy"
+	A = [PJbx]; A + [CLyi]; [PGFi] = A; => PGF a;
+    "PJ e1 store"
+	A = [CLint]; ? A != 0 -> PJ e1 int;
+	A = [CLo]; A + [CLyo]; [PGFi] = A; => PGF sa;
+	[PGFi] = [CLbnd]; A = [CLo]; A + [CLxo]; [PGFj] = A; => PGF mov;
+	end;
+    "PJ e1 int"
+	( stage 5: mp[2k+1] = fistp(Q) and mp[2k] = ubx as a 16-bit
+	  immediate with the high word zeroed. )
+	=> PGF int;
+	A = [CLo]; A + A; C = mp; C + A; [C plus 1] = [FI];
+	C = mp; A = [CLo]; A + A; C + A; [C] = PGUBX;
+	end;
+
+"PJ clip"
+	[CLo] = 0;
+	[CLi] = 0;
+	A = [CLn]; A-; [PJdx] = A;
+    "PJ cl for"
+	A = [CLi]; A + [CLxi]; [PGFi] = A;
+	=> PJ clip out;
+	A = [PGFj]; ? A = 0 -> PJ cl inside;
+
+	[PJbx] = [CLi];
+	A = [CLi]; A-;
+	? A >= 0 -> PJ cl pv;
+	A = [PJdx];
+    "PJ cl pv"
+	[PJpv] = A;
+	A = [CLi]; A+;
+	? A '<= [PJdx] -> PJ cl nv;
+	A = 0;
+    "PJ cl nv"
+	[PJnv] = A;
+
+	A = [PJpv]; A + [CLxi]; [PGFi] = A; => PJ clip out;
+	A = [PGFj]; [CLt] = A;
+	A = [PJnv]; A + [CLxi]; [PGFi] = A; => PJ clip out;
+	A = [PGFj]; C = [CLt]; A + C;
+	? A = 2 -> PJ cl stop;			( both neighbours outside )
+	? A = 0 -> PJ cl two;			( both neighbours inside  )
+
+	( exactly one inside )
+	A = [PJpv]; A + [CLxi]; [PGFi] = A; => PJ clip out;
+	A = [PGFj]; C = [PJnv];
+	? A != 0 -> PJ cl vset;
+	C = [PJpv];
+    "PJ cl vset"
+	[PJvv] = C;
+	=> PJ emit1;
+	[CLo]+;
+	-> PJ cl stop;
+    "PJ cl two"
+	A = [PJpv]; [PJvv] = A; => PJ emit1; [CLo]+;
+	A = [PJnv]; [PJvv] = A; => PJ emit1; [CLo]+;
+	-> PJ cl stop;
+    "PJ cl inside"
+	A = [CLint]; ? A != 0 -> PJ cl inside i;
+	A = [CLi]; A + [CLxi]; [PGFi] = A;
+	A = [CLo]; A + [CLxo]; [PGFj] = A; => PGF mov;
+	A = [CLi]; A + [CLyi]; [PGFi] = A;
+	A = [CLo]; A + [CLyo]; [PGFj] = A; => PGF mov;
+	[CLo]+;
+	-> PJ cl stop;
+    "PJ cl inside i"
+	A = [CLi]; A + [CLxi]; [PGFi] = A; => PGF a; => PGF int;
+	A = [CLo]; A + A; C = mp; C + A; [C] = [FI];
+	A = [CLi]; A + [CLyi]; [PGFi] = A; => PGF a; => PGF int;
+	A = [CLo]; A + A; C = mp; C + A; [C plus 1] = [FI];
+	[CLo]+;
+    "PJ cl stop"
+	[CLi]+;
+	A = [CLi]; ? A '< [CLn] -> PJ cl for;
+	[CLout] = [CLo];
+	end;
+
+      ( PJ clip out : [PGFj] <- 1 if slot [PGFi] lies OUTSIDE the bound
+	in direction [CLdir]. )
+
+"PJ clip out"
+	=> PGF a;
+	[PGFi] = [CLbnd]; => PGF b;
+	=> FCmp;
+	[PGFj] = 0;
+	A = [CLdir]; ? A != 0 -> PJ co hi;
+	A = [FI]; ? A = 2 -> PJ co yes;		( "jb" takes CF, and a
+						  NaN sets it )
+	A = [FI]; ? A < 0 -> PJ co yes;
+	end;
+    "PJ co hi"
+	A = [FI]; ? A = 2 -> PJ co done;	( "ja" needs CF=0 and
+						  ZF=0; a NaN sets both )
+	A = [FI]; ? A > 0 -> PJ co yes;
+	end;
+    "PJ co yes"
+	[PGFj] = 1;
+    "PJ co done"
+	end;
+
+( ==================================================================== )
+( getcoords - TDPOLYGS.H:3086-3200                                      )
+( ==================================================================== )
+
+      ( The ONE site in this wave where the returned value is graded
+	100% exact: the four bounds are compared with STRICT < and >
+	against the LONG limits, so a point landing on exactly 5, 311,
+	10 or 190 returns 0, not 1.  Sabotage GETCOORDINCL. )
+
+"PG getcoords"
+	[PJnrv] = 1;
+	[PJmode] = 1;			( the t- table: getcoords is
+					  polymap's nucleus, not poly3d's )
+	=> PJ rotate;
+	[GCret] = 0;
+	A = rwf; A = [A];
+	? A = 0 -> PG gc done;
+
+	( my = dpp / rz ; _x_ = my*rx + x_centro ; _y_ = my*ry + y_centro )
+	[PGFi] = FSDPP; => PGF a;
+	[PGFi] = FSRZF; => PGF quo;
+	[PGFi] = FSW3; => PGF sa;
+	[PGFi] = FSRXF; => PGF mul;
+	[PGFi] = FSXC; => PGF add;
+	=> PGF int; [GCx] = [FI];
+	[PGFi] = FSW3; => PGF a;
+	[PGFi] = FSRYF; => PGF mul;
+	[PGFi] = FSYC; => PGF add;
+	=> PGF int; [GCy] = [FI];
+
+	A = [GCx]; ? A <= PGLBX -> PG gc done;
+	A = [GCx]; ? A >= PGUBX -> PG gc done;
+	A = [GCy]; ? A <= PGLBY -> PG gc done;
+	A = [GCy]; ? A >= PGUBY -> PG gc done;
+	[GCret] = 1;
+    "PG gc done"
+	end;
+
+( ==================================================================== )
+( poly3d - the whole pipeline                                           )
+( ==================================================================== )
+
+      ( [PJgate] records WHERE the routine left, which is topology and
+	is graded exactly:
+	  0  drew
+	  1  doflag == 0, every vertex behind the near plane
+	  2  vr2 < 3 after the near-plane walk
+	  3..6  vr3/vr4/vr5/vr6 < 3 after 2-D clip stage 2/3/4/5        )
+
+"PG poly3d"
+	[PJmode] = 0;
+	=> PJ rotate;
+	[PJgate] = 1;
+	A = [PJdoflag]; ? A = 0 -> PG p3 out;
+
+	A = [PJdoflag];
+	? A != [PJnrv] -> PG p3 clip;
+	=> PJ zload;
+	-> PG p3 2d;
+    "PG p3 clip"
+	=> PJ zclip;
+	[PJgate] = 2;
+	A = [PJvr2]; ? A < 3 -> PG p3 out;
+    "PG p3 2d"
+	=> PJ project3d;
+	[PJgate] = 0;
+	A = [BXsi]; ? A = 0 -> PG p3 draw;
+
+	( stage 2 - the top edge.  P = y, Q = x, bound lbyf, outside <  )
+	[CLxi] = FSVY0; [CLyi] = FSVX0;
+	[CLxo] = FSVY1; [CLyo] = FSVX1;
+	[CLn] = [PJvr2]; [CLbnd] = FSLBYF; [CLdir] = 0; [CLint] = 0;
+	=> PJ clip;
+	[PJvr3] = [CLout];
+	[PJgate] = 3;
+	A = [PJvr3]; ? A < 3 -> PG p3 out;
+
+	( stage 3 - the bottom edge.  bound ubyf, outside > )
+	[CLxi] = FSVY1; [CLyi] = FSVX1;
+	[CLxo] = FSVY2; [CLyo] = FSVX2;
+	[CLn] = [PJvr3]; [CLbnd] = FSUBYF; [CLdir] = 1; [CLint] = 0;
+	=> PJ clip;
+	[PJvr4] = [CLout];
+	[PJgate] = 4;
+	A = [PJvr4]; ? A < 3 -> PG p3 out;
+
+	( stage 4 - the left edge.  P = x, Q = y, bound lbxf, outside < )
+	[CLxi] = FSVX2; [CLyi] = FSVY2;
+	[CLxo] = FSVX3; [CLyo] = FSVY3;
+	[CLn] = [PJvr4]; [CLbnd] = FSLBXF; [CLdir] = 0; [CLint] = 0;
+	=> PJ clip;
+	[PJvr5] = [CLout];
+	[PJgate] = 5;
+	A = [PJvr5]; ? A < 3 -> PG p3 out;
+
+	( stage 5 - the right edge, and the ONLY float-to-int in the
+	  clipped path. )
+	[CLxi] = FSVX3; [CLyi] = FSVY3;
+	[CLxo] = 0; [CLyo] = 0;
+	[CLn] = [PJvr5]; [CLbnd] = FSUBXF; [CLdir] = 1; [CLint] = 1;
+	=> PJ clip;
+	[PJvr6] = [CLout];
+	[PJgate] = 6;
+	A = [PJvr6]; ? A < 3 -> PG p3 out;
+	[PJvr2] = [PJvr6];
+	[PJgate] = 0;
+    "PG p3 draw"
+	( THE BOX IS NOT RECOMPUTED.  It came from the PRE-clip vertices
+	  and stays that way, so for a clipped polygon the box and mp[]
+	  are inconsistent by construction.  That is the original. )
+	[DBn] = [PJvr2];
+	=> PG drawb;
+    "PG p3 out"
+	end;
+
+( ==================================================================== )
+( polymap's texture-gradient basis - the "vectors" block                )
+( ==================================================================== )
+
+      ( midpoint, antialias expansion, then the nine gradients.
+	Every one of hx..oz is a "float" local, so every one is narrowed
+	on store.  x/y/z_antialias are 1.125 and the expansion pushes
+	the sampled quad OUTWARD, which is why texels at a shared edge
+	line up between two polygons. )
+
+"PJ vectors"
+	( midx/midy/midz - the divisor is a DOUBLE literal, 0.3333333 for
+	  three vertices and 0.25 for four. )
+	A = [PJnrv]; C = 3; ? A = 3 -> PJ vc n3; C = 4;
+    "PJ vc n3"
+	[PJdx] = C;
+
+	[PGFi] = FSRXF; => PGF a;
+	A = FSRXF; A + 1; [PGFi] = A; => PGF add;
+	A = FSRXF; A + 2; [PGFi] = A; => PGF add;
+	A = [PJdx]; ? A = 3 -> PJ vc mx3;
+	A = FSRXF; A + 3; [PGFi] = A; => PGF add;
+    "PJ vc mx3"
+	=> PJ vc scale;
+	[PGFi] = FSMIDX; => PGF sa; => PGF narrow;
+
+	[PGFi] = FSRYF; => PGF a;
+	A = FSRYF; A + 1; [PGFi] = A; => PGF add;
+	A = FSRYF; A + 2; [PGFi] = A; => PGF add;
+	A = [PJdx]; ? A = 3 -> PJ vc my3;
+	A = FSRYF; A + 3; [PGFi] = A; => PGF add;
+    "PJ vc my3"
+	=> PJ vc scale;
+	[PGFi] = FSMIDY; => PGF sa; => PGF narrow;
+
+	[PGFi] = FSRZF; => PGF a;
+	A = FSRZF; A + 1; [PGFi] = A; => PGF add;
+	A = FSRZF; A + 2; [PGFi] = A; => PGF add;
+	A = [PJdx]; ? A = 3 -> PJ vc mz3;
+	A = FSRZF; A + 3; [PGFi] = A; => PGF add;
+    "PJ vc mz3"
+	=> PJ vc scale;
+	[PGFi] = FSMIDZ; => PGF sa; => PGF narrow;
+
+	( trxf[v] = (rxf[v] - midx)*x_antialias + midx, and likewise )
+	[PJvr] = 0;
+    "PJ vc v"
+	A = [PJvr]; A + FSRXF; [PGFi] = A; => PGF a;
+	[PGFi] = FSMIDX; => PGF sub;
+	[PGFi] = FSAAX; => PGF mul;
+	[PGFi] = FSMIDX; => PGF add;
+	A = [PJvr]; A + FSTRX; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJvr]; A + FSRYF; [PGFi] = A; => PGF a;
+	[PGFi] = FSMIDY; => PGF sub;
+	[PGFi] = FSAAY; => PGF mul;
+	[PGFi] = FSMIDY; => PGF add;
+	A = [PJvr]; A + FSTRY; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJvr]; A + FSRZF; [PGFi] = A; => PGF a;
+	[PGFi] = FSMIDZ; => PGF sub;
+	[PGFi] = FSAAZ; => PGF mul;
+	[PGFi] = FSMIDZ; => PGF add;
+	A = [PJvr]; A + FSTRZ; [PGFi] = A; => PGF sa; => PGF narrow;
+	[PJvr]+;
+	A = [PJvr]; ? A '< [PJdx] -> PJ vc v;
+
+	( _SI = 8 for three vertices, 12 for four: the "n" vectors are
+	  taken against trxf[2] or trxf[3] accordingly. )
+	A = [PJdx]; C = 2; ? A = 3 -> PJ vc si3; C = 3;
+    "PJ vc si3"
+	[PJvv] = C;
+
+	[PGFi] = FSTRX; => PGF a; [PGFi] = FSRX; => PGF sa; => PGF narrow;
+	[PGFi] = FSTRY; => PGF a; [PGFi] = FSRY; => PGF sa; => PGF narrow;
+	[PGFi] = FSTRZ; => PGF a; [PGFi] = FSRZ; => PGF sa; => PGF narrow;
+
+	A = FSTRX; A + 1; [PGFi] = A; => PGF a;
+	[PGFi] = FSRX; => PGF sub; [PGFi] = FSMX; => PGF sa; => PGF narrow;
+	A = FSTRY; A + 1; [PGFi] = A; => PGF a;
+	[PGFi] = FSRY; => PGF sub; [PGFi] = FSMY; => PGF sa; => PGF narrow;
+	A = FSTRZ; A + 1; [PGFi] = A; => PGF a;
+	[PGFi] = FSRZ; => PGF sub; [PGFi] = FSMZ; => PGF sa; => PGF narrow;
+
+	[PGFi] = FSRX; => PGF a;
+	A = [PJvv]; A + FSTRX; [PGFi] = A; => PGF sub;
+	[PGFi] = FSNX; => PGF sa; => PGF narrow;
+	[PGFi] = FSRY; => PGF a;
+	A = [PJvv]; A + FSTRY; [PGFi] = A; => PGF sub;
+	[PGFi] = FSNY; => PGF sa; => PGF narrow;
+	[PGFi] = FSRZ; => PGF a;
+	A = [PJvv]; A + FSTRZ; [PGFi] = A; => PGF sub;
+	[PGFi] = FSNZ; => PGF sa; => PGF narrow;
+
+	( hx = (rx*mz - rz*mx)*YCOEFF, and its eight siblings.  Every one
+	  is "fld a / fmul b / fld c / fmul d / fsubp / fmul k / fstp s",
+	  so the subtraction is st(1) - st(0) = a*b - c*d and the scale
+	  is applied BEFORE the narrowing store. )
+	[CLxi] = FSRX; [CLyi] = FSMZ; [CLxo] = FSRZ; [CLyo] = FSMX;
+	[CLbnd] = FSYCO; [CLt] = FSHX; => PJ vc cross;
+	[CLxi] = FSRX; [CLyi] = FSNZ; [CLxo] = FSRZ; [CLyo] = FSNX;
+	[CLbnd] = FSYCO; [CLt] = FSHY; => PJ vc cross;
+	[CLxi] = FSNX; [CLyi] = FSMZ; [CLxo] = FSNZ; [CLyo] = FSMX;
+	[CLbnd] = FSINVD; [CLt] = FSHZ; => PJ vc cross;
+	[CLxi] = FSRZ; [CLyi] = FSMY; [CLxo] = FSRY; [CLyo] = FSMZ;
+	[CLbnd] = FSXCO; [CLt] = FSVX; => PJ vc cross;
+	[CLxi] = FSRZ; [CLyi] = FSNY; [CLxo] = FSRY; [CLyo] = FSNZ;
+	[CLbnd] = FSXCO; [CLt] = FSVY; => PJ vc cross;
+	[CLxi] = FSNZ; [CLyi] = FSMY; [CLxo] = FSNY; [CLyo] = FSMZ;
+	[CLbnd] = FSINVD; [CLt] = FSVZ; => PJ vc cross;
+	[CLxi] = FSRY; [CLyi] = FSMX; [CLxo] = FSRX; [CLyo] = FSMY;
+	[CLbnd] = FSEMUK; [CLt] = FSOX; => PJ vc cross;
+	[CLxi] = FSRY; [CLyi] = FSNX; [CLxo] = FSRX; [CLyo] = FSNY;
+	[CLbnd] = FSEMUK; [CLt] = FSOY; => PJ vc cross;
+	( oz has NO scale factor at all - "fsubp / fstp oz". )
+	[CLxi] = FSNY; [CLyi] = FSMX; [CLxo] = FSNX; [CLyo] = FSMY;
+	[CLbnd] = FSUNO; [CLt] = FSOZ; => PJ vc cross;
+	end;
+
+    "PJ vc scale"
+	A = [PJdx]; ? A = 3 -> PJ vc s3;
+	[PGFt] = D64QLO;  [PGFu] = D64QHI;  -> PJ vc s;
+    "PJ vc s3"
+	[PGFt] = D64THLO; [PGFu] = D64THHI;
+    "PJ vc s"
+	[FT0] = [FA0]; [FT1] = [FA1];
+	=> PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1];
+	=> FMul;
+	end;
+
+    "PJ vc cross"
+	[PGFi] = [CLxi]; => PGF a;
+	[PGFi] = [CLyi]; => PGF mul;
+	[PGFi] = FSW3;   => PGF sa;
+	[PGFi] = [CLxo]; => PGF a;
+	[PGFi] = [CLyo]; => PGF mul;
+	[PGFi] = FSW3;   => PGF rsub;
+	[PGFi] = [CLbnd];=> PGF mul;
+	[PGFi] = [CLt];  => PGF sa; => PGF narrow;
+	end;
+
+( ==================================================================== )
+( polymap's trace loop                                                  )
+( ==================================================================== )
+
+      ( PG trace : one scanline per iteration from [BXminy] to [BXmaxy].
+
+	The row setup computes the shared factor (ipart[i] - x_centro + 1)
+	ONCE and uses it three times - the original duplicates st(0)
+	twice for exactly that.  _z stays WIDE for the reciprocal and
+	NARROW in memory; _x and _y are fstp'd (narrow) and RELOADED for
+	u and v, which is a different schedule from the per-block one and
+	is not merged with it. )
+
+"PG trace"
+	A = PGSCRT; A + PGDOFF; [PGdi] = A; [PGval] = [SPtinta]; => PG store;
+	A = PGSCRE; A + PGDOFF; [PGdi] = A; [PGval] = [SPescr];  => PG store;
+	[SPi] = [BXminy];
+    "PG tr row"
+	( the shared factor, WIDE )
+	A = [SPi]; C = ipart; C + A; [FI] = [C]; => IntToF;
+	[PGFi] = FSXC; => PGF sub;
+	[PGFi] = FSUNO; => PGF add;
+	[PGFi] = FSW3; => PGF sa;
+
+	( _z = oz + hz*(i - y_centro) + vz*factor )
+	[PGFi] = FSVZ; => PGF mul;
+	[PGFi] = FSW0; => PGF sa;
+	[FI] = [SPi]; => IntToF;
+	[PGFi] = FSYC; => PGF sub;
+	[PGFi] = FSHZ; => PGF mul;
+	[PGFi] = FSW0; => PGF add;
+	[PGFi] = FSOZ; => PGF add;
+	[PGFi] = FSW1; => PGF sa;
+	[PGFi] = FSZ;  => PGF sa; => PGF narrow;
+
+	( k4 = 1/wide_z, then narrowed by "fstp k4" )
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSUNO; => PGF rquo;
+	[PGFi] = FSK4; => PGF sa; => PGF narrow;
+
+	( _x = ox + hx*(i - y_centro) + vx*factor, fstp -> NARROW )
+	[PGFi] = FSW3; => PGF a;
+	[PGFi] = FSVX; => PGF mul;
+	[PGFi] = FSW0; => PGF sa;
+	[FI] = [SPi]; => IntToF;
+	[PGFi] = FSYC; => PGF sub;
+	[PGFi] = FSHX; => PGF mul;
+	[PGFi] = FSW0; => PGF add;
+	[PGFi] = FSOX; => PGF add;
+	[PGFi] = FSX; => PGF sa; => PGF narrow;
+
+	[PGFi] = FSW3; => PGF a;
+	[PGFi] = FSVY; => PGF mul;
+	[PGFi] = FSW0; => PGF sa;
+	[FI] = [SPi]; => IntToF;
+	[PGFi] = FSYC; => PGF sub;
+	[PGFi] = FSHY; => PGF mul;
+	[PGFi] = FSW0; => PGF add;
+	[PGFi] = FSOY; => PGF add;
+	[PGFi] = FSY; => PGF sa; => PGF narrow;
+
+	( u and v from the RELOADED narrow _x and _y )
+	[PGFi] = FSX; => PGF a; [PGFi] = FSTX; => PGF mul;
+	[PGFi] = FSK4; => PGF mul; => PGF int; [SPu] = [FI];
+	[PGFi] = FSY; => PGF a; [PGFi] = FSTY; => PGF mul;
+	[PGFi] = FSK4; => PGF mul; => PGF int; [SPv] = [FI];
+
+	A = [SPi]; C = fpart; C + A; D = [C];
+	A = [SPi]; C = ipart; C + A; E = [C];
+	D - E; [SPsec] = D;
+	C = [SPi]; => PG riga; C + E; C & 65535; [SPdi] = C;
+	=> PG scanline;
+
+	( row_end: halfscan writes rows i and i+1 from row i-1, then
+	  BOTH paths increment i again.  So a halfscan run traces every
+	  second row and duplicates the one between. )
+	A = [SPhalf]; A & 1;
+	? A = 0 -> PG tr single;
+	[SPi]+;
+	A = [BXmaxy]; ? A < [SPi] -> PG tr end;
+	=> PG halfscan;
+    "PG tr single"
+	[SPi]+;
+	A = [BXmaxy]; ? A < [SPi] -> PG tr end;
+	-> PG tr row;
+    "PG tr end"
+	end;
+
+( ==================================================================== )
+( polymap - the whole pipeline                                          )
+( ==================================================================== )
+
+"PG polymap"
+	( nv == 3 duplicates the LAST vertex into slot 3, and it does so
+	  in the CALLER's arrays - polymap really does write x[3].  The
+	  caller zeroes slot 3 before the call; polymap then overwrites
+	  it from slot 2, and the order matters. )
+	[PJgate] = 0;
+	A = [PJnrv]; ? A != 3 -> PG pm r;
+	A = FSINX; A + 2; [PGFi] = A; A = FSINX; A + 3; [PGFj] = A; => PGF mov;
+	A = FSINY; A + 2; [PGFi] = A; A = FSINY; A + 3; [PGFj] = A; => PGF mov;
+	A = FSINZ; A + 2; [PGFi] = A; A = FSINZ; A + 3; [PGFj] = A; => PGF mov;
+    "PG pm r"
+	[PJmode] = 1;
+	[PJdx] = [PJnrv];
+	[PJnrv] = 4;
+	=> PJ rotate;
+	[PJgate] = 1;
+	A = [PJdoflag]; ? A = 0 -> PG pm out;
+
+	A = [PJdx]; [PJnrv] = A;
+	=> PJ vectors;
+	[PJnrv] = 4;
+
+	A = [PJdoflag];
+	? A != 4 -> PG pm clip;
+	=> PJ zload;
+	-> PG pm 2d;
+    "PG pm clip"
+	=> PJ zclip;
+	[PJgate] = 2;
+	A = [PJvr2]; ? A < 3 -> PG pm out;
+    "PG pm 2d"
+	=> PJ projectmap;
+
+	[PJgate] = 7;
+	A = [BXminy]; ? A > PGUBY -> PG pm out;
+	A = [BXmaxy]; ? A < PGLBY -> PG pm out;
+	A = [BXminy]; ? A >= PGLBY -> PG pm s1;
+	[BXminy] = PGLBY;
+    "PG pm s1"
+	A = [BXmaxy]; ? A <= PGUBY -> PG pm s2;
+	[BXmaxy] = PGUBY;
+    "PG pm s2"
+	[PJgate] = 8;
+	A = [BXminy]; ? A > [BXmaxy] -> PG pm out;
+
+	( k1/k2/k3 = 16*vx/vy/vz, doubled when culling halves the
+	  horizontal sampling rate. )
+	[PGFi] = FSVX; => PGF a; [PGFi] = FS16; => PGF mul;
+	[PGFi] = FSK1; => PGF sa; => PGF narrow;
+	[PGFi] = FSVY; => PGF a; [PGFi] = FS16; => PGF mul;
+	[PGFi] = FSK2; => PGF sa; => PGF narrow;
+	[PGFi] = FSVZ; => PGF a; [PGFi] = FS16; => PGF mul;
+	[PGFi] = FSK3; => PGF sa; => PGF narrow;
+	A = [SPcull]; ? A = 0 -> PG pm k;
+	[PGFi] = FSK1; => PGF a; [PGFi] = FSK1; => PGF add;
+	[PGFi] = FSK1; => PGF sa; => PGF narrow;
+	[PGFi] = FSK2; => PGF a; [PGFi] = FSK2; => PGF add;
+	[PGFi] = FSK2; => PGF sa; => PGF narrow;
+	[PGFi] = FSK3; => PGF a; [PGFi] = FSK3; => PGF add;
+	[PGFi] = FSK3; => PGF sa; => PGF narrow;
+    "PG pm k"
+	[EWvr22] = [PJvr22];
+	[EWminy] = [BXminy];
+	[EWmaxy] = [BXmaxy];
+	=> PG edges;
+	[SPsrc] = 1;
+	=> PG trace;
+	[PJgate] = 0;
+    "PG pm out"
+	end;

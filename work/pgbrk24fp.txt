@@ -1,0 +1,314 @@
+      ( SABOTAGE CHOP - S6 P2 - chop at all 16 hand-written sites.
+	ONE edit against work/pgfp.txt.  Must move: S6 P2 - chop at all 16 hand-written sites )
+
+      ( *** pgfp - the named float slots of TDPOLYGS, and the two rules
+	    that make the port's arithmetic the original's ***
+
+	RULE 1.  THE CHAIN IS CARRIED AT BINARY64, NOT AT LINO'S NATIVE
+	BINARY32.  Wave 3 shipped a binary64 register file (fp/fpabi
+	declares FA0/FA1 as the halves of a qword; fp/fpx87 implements
+	every op as fld qword / op qword / fstp qword under FEnter's
+	133Fh).  lino's own "=" floats are 24-bit mantissa; the engine's
+	are 53.  The original's are 64.  Carrying at 53 instead of 64
+	costs nothing measurable on polymap's span limits; carrying at 24
+	costs 3.6e-3 of them.  So every value the original leaves LIVE in
+	st(0) lives here in a binary64 slot.
+
+	RULE 2.  A VALUE THE ORIGINAL STORES TO A "float" VARIABLE IS
+	NARROWED, AND ONLY THEN.  fp/fpconv's FStoreF32 / FLoadF32 are
+	that narrowing.  The four asymmetry sites - fst zz/xx/z2/yy, fst
+	rzf[si], fst zk, fst video_x0/video_y0 - are exactly the places
+	where BOTH happen: the wide value goes to the immediate consumer
+	and the narrow slot to the later reload.  The port takes both
+	sides because the original takes both sides.
+
+	RULE 3.  EVERY float->int IS FToIntNear, NEVER a bare "=," AND
+	NEVER FToIntChop.  All 16 conversion sites in this wave are
+	hand-written fistp/fist in the original, and the rounding control
+	stays at 00 there, so they round to NEAREST EVEN.  fp/fpconv's
+	house rule forbids emitting a bare "=,"; the ambient control word
+	at lino entry is 0E7Fh, RC=chop, so a bare "=," would chop.
+	FToIntNear runs under FEnter's 133Fh and rounds correctly.  The
+	control word is READ BACK at the census so a missing FEnter
+	bracket is visible rather than silent.
+
+	SLOTS.  L.in.oleum variables cannot be indexed, so the named
+	floats of TDPOLYGS live as adjacent PAIRS in the workspace "fw",
+	slot k occupying fw[2k] and fw[2k+1].  "PGF a", "PGF b", "PGF sa"
+	move a slot to FA, to FB, and back.                              )
+
+"constants"
+
+	( gradient basis and per-row constants )
+	FSHX	= 0;	FSHY	= 1;	FSHZ	= 2;
+	FSVX	= 3;	FSVY	= 4;	FSVZ	= 5;
+	FSOX	= 6;	FSOY	= 7;	FSOZ	= 8;
+	FSK1	= 9;	FSK2	= 10;	FSK3	= 11;	FSK4	= 12;
+	FSX	= 13;	FSY	= 14;	FSZ	= 15;
+	FSTX	= 16;	FSTY	= 17;
+
+	( constants )
+	FSUNO	= 18;	FSXC	= 19;	FSYC	= 20;
+	FSKX	= 21;	FSBNDX	= 22;	FST0	= 23;	FST1	= 24;
+	FSDPP	= 25;	FSINVD	= 26;	FSUNEG	= 27;
+	FSLBXF	= 28;	FSUBXF	= 29;	FSLBYF	= 30;	FSUBYF	= 31;
+
+	( rotated vertices )
+	FSRXF	= 32;	FSRYF	= 36;	FSRZF	= 40;
+
+	( ultima_* [8] )
+	FSUX	= 48;	FSUY	= 56;	FSUZ	= 64;
+
+	( the 2-D clip ladder )
+	FSVX0	= 72;	FSVY0	= 80;
+	FSVX1	= 88;	FSVY1	= 100;
+	FSVX2	= 112;	FSVY2	= 128;
+	FSVX3	= 144;	FSVY3	= 168;
+
+	( polymap's antialias-expanded copies )
+	FSTRX	= 192;	FSTRY	= 196;	FSTRZ	= 200;
+	FSMIDX	= 204;	FSMIDY	= 205;	FSMIDZ	= 206;
+	FSAAX	= 208;	FSAAY	= 209;	FSAAZ	= 210;
+
+	( camera )
+	FSPCB	= 212;	FSPSB	= 213;	FSTCB	= 214;	FSTSB	= 215;
+	FSPCA	= 216;	FSPSA	= 217;	FSTCA	= 218;	FSTSA	= 219;
+	FSTCG	= 220;	FSTSG	= 221;
+	FSCAMX	= 224;	FSCAMY	= 225;	FSCAMZ	= 226;
+
+	( scratch named in the original )
+	FSZK	= 228;
+	FSMX	= 229;	FSMY	= 230;	FSMZ	= 231;
+	FSNX	= 232;	FSNY	= 233;	FSNZ	= 234;
+	FSRX	= 235;	FSRY	= 236;	FSRZ	= 237;
+	FSXX	= 238;	FSYY	= 239;	FSZZ	= 240;	FSZ2	= 241;
+	FS16	= 242;	FSZERO	= 243;	FSEMUK	= 244;
+	FSXCO	= 245;	FSYCO	= 246;	FSGAM	= 247;
+	( wide carriers: values the original leaves live in st(0) while
+	  ALSO storing a narrowed copy to a float variable. )
+	FSW0	= 248;	FSW1	= 249;	FSW2	= 250;	FSW3	= 251;
+
+	( the caller's x[]/y[]/z[] - VERTICI_PER_POLIGONO of each )
+	FSINX	= 252;	FSINY	= 256;	FSINZ	= 260;
+
+	FWSLOTS	= 384;
+
+	( binary32 bit patterns, decimal, of the pinned constants.
+	  Stated as PATTERNS so no decimal float parser exists anywhere
+	  in this port - a shared decimal parser would be a shared
+	  divergence. )
+
+	B32ONE	= 1065353216;		( 1.0f      )
+	B32UNEG	= 1120403456;		( 100.0f    )
+	B32DPP	= 1129447424;		( 210.0f    - NOCTIS.CPP:2214 )
+	B32XC	= 1126039552;		( 158.0f    )
+	B32YC	= 1120403456;		( 100.0f    )
+	B32LBX	= 1084227584;		( 5.0f      )
+	B32UBX	= 1134264320;		( 311.0f    )
+	B32LBY	= 1092616192;		( 10.0f     )
+	B32UBY	= 1128136704;		( 190.0f    )
+	B32SIXT	= 1098907648;		( 16.0f     )
+	B32AA	= 1066401792;		( 1.125f    )
+	B32ZERO	= 0;			( 0.0f      )
+
+	( 0.3333333 and 0.25 are DOUBLE literals in polymap's midpoint
+	  expression, so they are given as binary64 halves. )
+	D64THLO	= 831175815;	D64THHI	= 1070945621;	( 0.3333333 )
+	D64QLO	= 0;		D64QHI	= 1070596096;	( 0.25      )
+
+"variables"
+
+	PGFi	= 0;
+	PGFj	= 0;
+	PGFt	= 0;
+	PGFu	= 0;
+
+"workspace"
+
+	fw	= 768;			( 384 binary64 slots )
+
+"programme"
+
+( ==================================================================== )
+( slot movement                                                         )
+( ==================================================================== )
+
+"PGF a"					( FA <- fw[[PGFi]] )
+	A = [PGFi]; A + A; A + fw;
+	[FA0] = [A]; [FA1] = [A plus 1];
+	end;
+
+"PGF b"					( FB <- fw[[PGFi]] )
+	A = [PGFi]; A + A; A + fw;
+	[FB0] = [A]; [FB1] = [A plus 1];
+	end;
+
+"PGF sa"				( fw[[PGFi]] <- FA )
+	A = [PGFi]; A + A; A + fw;
+	[A] = [FA0]; [A plus 1] = [FA1];
+	end;
+
+"PGF mov"				( fw[[PGFj]] <- fw[[PGFi]] )
+	A = [PGFi]; A + A; A + fw;
+	C = [PGFj]; C + C; C + fw;
+	[C] = [A]; [C plus 1] = [A plus 1];
+	end;
+
+      ( PGF ldf32 : FA <- the binary32 whose bit pattern is [PGFt].
+	Always exact - every binary32 is a binary64. )
+
+"PGF ldf32"
+	[FS0] = [PGFt];
+	=> FLoadF32;
+	end;
+
+      ( PGF ldf64 : FA <- the binary64 whose halves are [PGFt] (low) and
+	[PGFu] (high).  A C double literal is not a float literal and
+	must not be routed through the binary32 path. )
+
+"PGF ldf64"
+	[FA0] = [PGFt]; [FA1] = [PGFu];
+	end;
+
+      ( PGF stf32 : [PGFt] <- (float)FA, the bit image, WITHOUT widening
+	back.  This is a C store to a "float" variable and nothing else. )
+
+"PGF stf32"
+	=> FStoreF32;
+	[PGFt] = [FS0];
+	end;
+
+      ( PGF setf32 : fw[[PGFi]] <- (double) the binary32 pattern [PGFt]. )
+
+"PGF setf32"
+	=> PGF ldf32;
+	=> PGF sa;
+	end;
+
+      ( PGF narrow : fw[[PGFi]] <- (double)(float) fw[[PGFi]].
+	The port's model of "the original stored this to a float". )
+
+"PGF narrow"
+	=> PGF a;
+	=> F32Narrow;
+	=> PGF sa;
+	end;
+
+( ==================================================================== )
+( arithmetic on slots.  FA is the accumulator throughout.               )
+( ==================================================================== )
+
+"PGF add"				( FA += fw[[PGFi]] )
+	=> PGF b; => FAdd; end;
+
+"PGF sub"				( FA -= fw[[PGFi]] )
+	=> PGF b; => FSub; end;
+
+"PGF mul"				( FA *= fw[[PGFi]] )
+	=> PGF b; => FMul; end;
+
+"PGF quo"				( FA /= fw[[PGFi]] )
+	=> PGF b; => FQuo; end;
+
+      ( PGF rsub : FA <- fw[[PGFi]] - FA.  fsubr, and the original uses
+	it: "fsubr dword ptr rzf[si]" in every near-plane branch. )
+
+"PGF rsub"
+	[FT0] = [FA0]; [FT1] = [FA1];
+	=> PGF a;
+	[FB0] = [FT0]; [FB1] = [FT1];
+	=> FSub;
+	end;
+
+      ( PGF rquo : FA <- fw[[PGFi]] / FA.  fdivr; the span setup's
+	"fdivr _uno" is 1/_z and nothing else. )
+
+"PGF rquo"
+	[FT0] = [FA0]; [FT1] = [FA1];
+	=> PGF a;
+	[FB0] = [FT0]; [FB1] = [FT1];
+	=> FQuo;
+	end;
+
+      ( PGF int : [FI] <- fistp(FA), NEAREST EVEN, under the live
+	control word.  Rule 3.  Never a bare "=,". )
+
+"PGF int"
+	=> FToIntChop;
+	end;
+
+      ( PGF fromint : FA <- (double)[FI].  fild of a dword is exact for
+	every int32, so the subtraction MUST be done in integers and
+	converted once - "fild x2 / fisub x1" - not converted twice and
+	subtracted in floats.  That is what keeps kx right when a blown-up
+	near-plane interpolation puts mp[] above 2^24. )
+
+"PGF fromint"
+	=> IntToF;
+	end;
+
+( ==================================================================== )
+( the pinned constants                                                  )
+( ==================================================================== )
+
+"PGF constants"
+	[PGFi] = FSUNO;  [PGFt] = B32ONE;  => PGF setf32;
+	[PGFi] = FSUNEG; [PGFt] = B32UNEG; => PGF setf32;
+	[PGFi] = FSDPP;  [PGFt] = B32DPP;  => PGF setf32;
+	[PGFi] = FSXC;   [PGFt] = B32XC;   => PGF setf32;
+	[PGFi] = FSYC;   [PGFt] = B32YC;   => PGF setf32;
+	[PGFi] = FSLBXF; [PGFt] = B32LBX;  => PGF setf32;
+	[PGFi] = FSUBXF; [PGFt] = B32UBX;  => PGF setf32;
+	[PGFi] = FSLBYF; [PGFt] = B32LBY;  => PGF setf32;
+	[PGFi] = FSUBYF; [PGFt] = B32UBY;  => PGF setf32;
+	[PGFi] = FS16;   [PGFt] = B32SIXT;  => PGF setf32;
+	[PGFi] = FSZERO; [PGFt] = B32ZERO; => PGF setf32;
+	[PGFi] = FSAAX;  [PGFt] = B32AA;   => PGF setf32;
+	[PGFi] = FSAAY;  [PGFt] = B32AA;   => PGF setf32;
+	[PGFi] = FSAAZ;  [PGFt] = B32AA;   => PGF setf32;
+	[PGFi] = FSGAM;  [PGFt] = B32ZERO; => PGF setf32;
+	[PGFi] = FSCAMX; [PGFt] = B32ZERO; => PGF setf32;
+	[PGFi] = FSCAMY; [PGFt] = B32ZERO; => PGF setf32;
+	[PGFi] = FSCAMZ; [PGFt] = B32ZERO; => PGF setf32;
+
+	( EMU_K = 16 ; inv_dpp = 1/dpp ; XCOEFF = YCOEFF = EMU_K/dpp.
+	  change_camera_lens() computes these as FLOATS, so each is
+	  narrowed after the divide - that is a store to a float
+	  variable, not an accumulator. )
+
+	[PGFi] = FS16; => PGF a; [PGFi] = FSEMUK; => PGF sa;
+
+	[PGFi] = FSUNO; => PGF a; [PGFi] = FSDPP; => PGF quo;
+	[PGFi] = FSINVD; => PGF sa; => PGF narrow;
+
+	[PGFi] = FSEMUK; => PGF a; [PGFi] = FSDPP; => PGF quo;
+	[PGFi] = FSXCO; => PGF sa; => PGF narrow;
+	[PGFi] = FSXCO; => PGF a; [PGFi] = FSYCO; => PGF sa;
+
+	( alfa = beta = gamma = 0, so change_angle_of_view() leaves the
+	  optimised table at its declared value: cos 0 = 1, sin 0 = 0,
+	  and the two "p" entries are dpp and 0.
+
+	  gamma IS ZERO AND STAYS ZERO.  TDPOLYGS.H:92 declares it 0;
+	  NOCTIS-0.H:36 externs it; no assignment exists in NOCTIS.CPP,
+	  NOCTIS-0.CPP or NOCTIS-1.CPP.  The t_axis roll branches in
+	  polymap and getcoords are therefore DEAD CODE and are not
+	  implemented.  The port asserts gamma == 0 instead, and the
+	  assertion is breakable: set it non-zero and the flag fires. )
+
+	[PGFi] = FSDPP;  => PGF a; [PGFi] = FSPCB; => PGF sa;
+	[PGFi] = FSZERO; => PGF a; [PGFi] = FSPSB; => PGF sa;
+	[PGFi] = FSUNO;  => PGF a; [PGFi] = FSTCB; => PGF sa;
+	[PGFi] = FSZERO; => PGF a; [PGFi] = FSTSB; => PGF sa;
+	[PGFi] = FSDPP;  => PGF a; [PGFi] = FSPCA; => PGF sa;
+	[PGFi] = FSZERO; => PGF a; [PGFi] = FSPSA; => PGF sa;
+	[PGFi] = FSUNO;  => PGF a; [PGFi] = FSTCA; => PGF sa;
+	[PGFi] = FSZERO; => PGF a; [PGFi] = FSTSA; => PGF sa;
+	[PGFi] = FSUNO;  => PGF a; [PGFi] = FSTCG; => PGF sa;
+	[PGFi] = FSZERO; => PGF a; [PGFi] = FSTSG; => PGF sa;
+
+	( tempXsize = XSIZE = 256*16 = 4096, tempYsize likewise.
+	  Built by integer conversion, which is exact. )
+	[FI] = 4096; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = 4096; => IntToF; [PGFi] = FSTY; => PGF sa;
+	end;

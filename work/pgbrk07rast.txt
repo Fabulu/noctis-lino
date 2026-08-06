@@ -1,0 +1,652 @@
+      ( SABOTAGE NOFASTROW - S3 ROWWIDE and DEGEN - sole catcher.
+	ONE edit against work/pgrast.txt.  Must move: S3 ROWWIDE and DEGEN - sole catcher )
+
+      ( *** pgrast - Segmento, the bounding-box gate and poly3d's
+	    "drawb" fill ***
+
+	TDPOLYGS.H:155-259 (Segmento) and :1444-1770 (drawb) contain NO
+	floating-point instruction.  Every value here is a 16- or 32-bit
+	integer, so given pinned integer vertices this file is EXACT and
+	is graded by byte-comparing the emitted page.  That is the whole
+	reason the wave is scoped this way.
+
+	THREE THINGS THAT LOOK LIKE TRANSCRIPTION SLIPS AND ARE NOT.
+
+	1.  Segmento's vertical branch computes  pf = riga[max+1]  with
+	    NO  + xp.  pi carries the column, pf does not.  The loop
+	    still terminates correctly and still paints at least one
+	    pixel, for every xp in 0..319; see the comment at "PG seg v".
+
+	2.  The general branch's DDA never paints the greater-x endpoint.
+	    The loop tests AFTER the store, so the run is half-open in x.
+	    At a local x-maximum vertex NEITHER incident edge paints that
+	    pixel.  A port that closes the interval is sabotage SEGCLOSED.
+
+	3.  poly3d's flares==2 samples [di-321] and [di-642] - one row up
+	    AND one column left.  That is what the assembly says.
+
+	AND ONE THING THAT IS AN ARTIFACT OF THE COMPILER, NOT THE
+	ALGORITHM: in case 0 and case 4 the dword store's EAX is built
+	as  al=colore / ah=colore / shl eax,16 / mov ah,colore  - which
+	leaves AL ZERO.  AL is completed to colore only by the "mov al,
+	colore" inside the row loop, after the sentinel scan has finished
+	using AL as the search byte.  Reading the setup alone gives a
+	dword of 00 cc cc cc.  Reading the loop gives cc cc cc cc.  The
+	loop is right.                                                   )
+
+"constants"
+
+	MPMAX	= 24;			( long mp[6*VERTICI_PER_POLIGONO] )
+
+"variables"
+
+	( ---- Segmento ---- )
+	SGxp	= 0;
+	SGyp	= 0;
+	SGxa	= 0;
+	SGya	= 0;
+	SGa	= 0;
+	SGb	= 0;
+	SGL	= 0;
+	SGch	= 0;
+	SGgx	= 0;
+	SGgy	= 0;
+	SGpi	= 0;
+	SGpf	= 0;
+	SGt	= 0;
+
+	( ---- string primitives ---- )
+	SCdi	= 0;
+	SCcx	= 0;
+	SCal	= 0;
+	SCzf	= 0;
+
+	( ---- the bounding box ---- )
+	BXn	= 0;			( vertices )
+	BXminx	= 0;
+	BXmaxx	= 0;
+	BXminy	= 0;
+	BXmaxy	= 0;
+	BXsi	= 0;			( how many of the four gates fired )
+
+	( ---- drawb ---- )
+	DBn	= 0;			( vertices in mp )
+	DB8n	= 0;
+	DBcol	= 0;
+	DBflar	= 0;
+	DBent	= 0;
+	DBseg	= 0;
+	DBlimy	= 0;
+	DBlimx	= 0;
+	DBbytes	= 0;
+	DBdi	= 0;
+	DBdi0	= 0;
+	DBsi	= 0;
+	DBbx	= 0;
+	DBdx	= 0;
+	DBcx	= 0;
+	DBal	= 0;
+	DBah	= 0;
+	DBdl	= 0;
+	DBtmp	= 0;
+	DBmode	= 0;			( 0 no sentinel, 1 two runs, 2 fb1 )
+
+"workspace"
+
+	mp	= 24;			( x0,y0,x1,y1, ... )
+
+"programme"
+
+( ==================================================================== )
+( riga[] - the scanline table, 320*c                                    )
+( ==================================================================== )
+
+      ( PG riga : C <- riga[C].  initscanlines fills a 200-entry table
+	with 320*c; there is nothing to store. )
+
+"PG riga"
+	C '* 320;
+	C & 65535;
+	end;
+
+( ==================================================================== )
+( repne scasb / repe scasb                                              )
+( ==================================================================== )
+
+      ( The rep prefix with CX==0 executes NOTHING and leaves the flags
+	as it found them.  That is not pedantry here: it is the only way
+	the second "repe scasb" can be reached with CX already exhausted,
+	which is exactly what happens on a polygon touching ubx.  Both
+	routines therefore take [SCzf] as an IN/OUT. )
+
+"PG repne"
+	? [SCcx] = 0 -> PG rep done;
+    "PG repne l"
+	[SCcx]-;
+	[PGdi] = [SCdi]; => PG load;
+	C = 0;
+	A = [PGval]; ? A != [SCal] -> PG repne nz;
+	C = 1;
+    "PG repne nz"
+	[SCzf] = C;
+	A = [SCdi]; A + 1; A & 65535; [SCdi] = A;
+	? [SCzf] != 0 -> PG rep done;
+	? [SCcx] != 0 -> PG repne l;
+	-> PG rep done;
+
+"PG repe"
+	? [SCcx] = 0 -> PG rep done;
+    "PG repe l"
+	[SCcx]-;
+	[PGdi] = [SCdi]; => PG load;
+	C = 0;
+	A = [PGval]; ? A != [SCal] -> PG repe nz;
+	C = 1;
+    "PG repe nz"
+	[SCzf] = C;
+	A = [SCdi]; A + 1; A & 65535; [SCdi] = A;
+	? [SCzf] = 0 -> PG rep done;
+	? [SCcx] != 0 -> PG repe l;
+    "PG rep done"
+	end;
+
+      ( PG stosb : write [DBal] to [SCcx] consecutive bytes from [SCdi].
+	rep stosb with CX==0 writes nothing. )
+
+"PG stosb"
+	? [SCcx] = 0 -> PG stosb done;
+    "PG stosb l"
+	[PGdi] = [SCdi]; [PGval] = [DBal]; => PG store;
+	[CSbyte]+;
+	A = [SCdi]; A + 1; A & 65535; [SCdi] = A;
+	[SCcx]-;
+	? [SCcx] != 0 -> PG stosb l;
+    "PG stosb done"
+	end;
+
+( ==================================================================== )
+( Segmento - TDPOLYGS.H:155-259                                         )
+( ==================================================================== )
+
+"PG segmento"
+	[CSseg]+;
+	A = [SGxp]; ? A != [SGxa] -> PG seg g;
+
+      ( ---- vertical branch, convention (a): es:[si] with si already
+	carrying adapted's offset of 4.
+
+	pi = riga[lo] + xp + 4,  pf = riga[hi+1] + 4,  both 16 bits.
+	pf carries NO column.  It still terminates one pixel past the
+	last row because pi = pf - 320*(hi-lo+1) + xp and 0 <= xp < 320:
+	the last si strictly below pf is riga[hi]+xp+4.  Exactly
+	hi-lo+1 pixels, never zero.                                     )
+
+    "PG seg v"
+	A = [SGya];
+	? A '>= [SGyp] -> PG seg v1;
+	C = [SGya]; => PG riga; C + [SGxp]; C & 65535; [SGpi] = C;
+	C = [SGyp]; C + 1; => PG riga;      C & 65535; [SGpf] = C;
+	-> PG seg v2;
+    "PG seg v1"
+	C = [SGyp]; => PG riga; C + [SGxp]; C & 65535; [SGpi] = C;
+	C = [SGya]; C + 1; => PG riga;      C & 65535; [SGpf] = C;
+    "PG seg v2"
+	C = [SGpi]; C + PGDOFF; C & 65535; [SGpi] = C;
+	C = [SGpf]; C + PGDOFF; C & 65535; [SGpf] = C;
+    "PG seg v loop"
+	[PGdi] = [SGpi]; [PGval] = 255; => PG store;
+	C = [SGpi]; C + 320; C & 65535; [SGpi] = C;
+	? C '< [SGpf] -> PG seg v loop;
+	end;
+
+      ( ---- general branch, convention (b): es:[di+4] ---- )
+
+    "PG seg g"
+	( si = xa - xp; if it borrowed, swap the endpoints and negate.
+	  WINDING IS THEREFORE IRRELEVANT: Segmento(A,B) == Segmento(B,A). )
+	C = [SGxa]; ? C '>= [SGxp] -> PG seg apos;
+	A = [SGxp]; [SGt] = A; A = [SGxa]; [SGxp] = A; A = [SGt]; [SGxa] = A;
+	A = [SGyp]; [SGt] = A; A = [SGya]; [SGyp] = A; A = [SGt]; [SGya] = A;
+    "PG seg apos"
+	C = [SGxa]; C - [SGxp];
+	[SGa] = C; [SGL] = C;
+	[SGch] = 0;
+
+	( jnc b_posit is a BORROW test, not a sign test: ya < yp UNSIGNED )
+	C = [SGya]; C - [SGyp];
+	? [SGya] '>= [SGyp] -> PG seg bpos;
+	[SGch] = 255;
+	C+-;
+    "PG seg bpos"
+	[SGb] = C;
+	? C '< [SGL] -> PG seg blow;
+	[SGL] = C;
+    "PG seg blow"
+	[SGL]+;
+
+	( global_x = xp<<16, global_y = yp<<16 )
+	C = [SGxp]; C < 16; [SGgx] = C;
+	C = [SGyp]; C < 16; [SGgy] = C;
+
+	( a <<= 16 then a /= L as a 16-bit DIVIDE: dividend DX:AX,
+	  divisor the LOW WORD of L, quotient TRUNCATED into AX.
+	  L = max(dx,dy)+1 > dx, so the quotient always fits. )
+	C = [SGa]; C < 16; D = [SGL]; D & 65535; C '/ D; C & 65535; [SGa] = C;
+	C = [SGb]; C < 16; D = [SGL]; D & 65535; C '/ D; C & 65535; [SGb] = C;
+	A = [SGch]; ? A = 0 -> PG seg trace;
+	C = [SGb]; C+-; [SGb] = C;
+
+    "PG seg trace"
+	( the loop limit is xa<<16, compared UNSIGNED against global_x )
+	C = [SGxa]; C < 16; [SGt] = C;
+    "PG seg do"
+	C = [SGgy]; C > 16; C & 65535;		( bx = global_y[2] )
+	=> PG riga;				( riga[bx], 16-bit )
+	D = [SGgx]; D > 16; D & 65535;		( di = global_x[2] )
+	C + D; C & 65535;			( add di, riga[bx] )
+	C + PGDOFF;				( es:[di+4] )
+	[PGdi] = C; [PGval] = 255; => PG store;
+	C = [SGgx]; C + [SGa]; [SGgx] = C;
+	D = [SGgy]; D + [SGb]; [SGgy] = D;
+	? C '< [SGt] -> PG seg do;
+	end;
+
+( ==================================================================== )
+( the bounding-box gate - TDPOLYGS.H:749-762                            )
+( ==================================================================== )
+
+      ( PG bbox : from mp[0..2n-1] and [BXn], produce min/max and the
+	gate count [BXsi].
+
+	THE ASYMMETRY IS REAL AND IT IS THE POINT.  The upper gates test
+	>= (jl skips, so equality FIRES); the lower gates test < (jnl
+	skips, so equality does NOT fire).  A vertex at exactly x=311
+	sets the clip flag; a vertex at exactly x=5 does not.
+
+	The accumulators are SEEDED AT THE OPPOSITE BOUND, so the box can
+	never shrink inside the clip rectangle: min_x <= ubxl and
+	max_x >= lbxl hold whatever the vertices are.                   )
+
+"PG bbox"
+	A = PGLBX; [BXmaxx] = A;		( ax, seeded lbxl )
+	A = PGLBY; [BXmaxy] = A;		( bx, seeded lbyl )
+	A = PGUBX; [BXminx] = A;		( cx, seeded ubxl )
+	A = PGUBY; [BXminy] = A;		( dx, seeded ubyl )
+
+	( the original walks the vertices BACKWARDS, from vr2-1 to 0.
+	  min and max do not care, but the order is stated so a reader
+	  does not have to guess. )
+	A = [BXn]; A-; [PGi] = A;
+    "PG bx v"
+	A = [PGi]; A + A; C = mp; C + A;
+	D = [C];				( x )
+	? D >= [BXminx] -> PG bx x1;
+	[BXminx] = D;
+    "PG bx x1"
+	? D <= [BXmaxx] -> PG bx x2;
+	[BXmaxx] = D;
+    "PG bx x2"
+	D = [C plus 1];				( y )
+	? D >= [BXminy] -> PG bx y1;
+	[BXminy] = D;
+    "PG bx y1"
+	? D <= [BXmaxy] -> PG bx y2;
+	[BXmaxy] = D;
+    "PG bx y2"
+	[PGi]-;
+	A = [PGi]; ? A >= 0 -> PG bx v;
+
+	[BXsi] = 0;
+	A = [BXmaxx]; ? A < PGUBX -> PG bx r1;
+	[BXsi]+; A = PGUBX; [BXmaxx] = A;
+    "PG bx r1"
+	A = [BXmaxy]; ? A < PGUBY -> PG bx r2;
+	[BXsi]+; A = PGUBY; [BXmaxy] = A;
+    "PG bx r2"
+	A = [BXminx]; ? A >= PGLBX -> PG bx r3;
+	[BXsi]+; A = PGLBX; [BXminx] = A;
+    "PG bx r3"
+	A = [BXminy]; ? A >= PGLBY -> PG bx r4;
+	[BXsi]+; A = PGLBY; [BXminy] = A;
+    "PG bx r4"
+	( the four are stored through 16-bit "unsigned" globals )
+	A = [BXmaxx]; A & 65535; [BXmaxx] = A;
+	A = [BXmaxy]; A & 65535; [BXmaxy] = A;
+	A = [BXminx]; A & 65535; [BXminx] = A;
+	A = [BXminy]; A & 65535; [BXminy] = A;
+	end;
+
+( ==================================================================== )
+( drawb - TDPOLYGS.H:1444-1770                                          )
+( ==================================================================== )
+
+      ( PG drawb : inputs mp[], [DBn], the bbox in [BXmin*]/[BXmax*],
+	[DBcol], [DBflar], [DBent], and the incoming page.
+
+	THE BOX IS AN INPUT, NOT A DERIVED VALUE.  poly3d computes it
+	from the PRE-clip vertices and never recomputes it after the 2-D
+	clipper has run, so for any clipped polygon the box and the drawn
+	mp[] are inconsistent BY CONSTRUCTION.  Recomputing it here would
+	be wrong for every clipped case and would also make the fixture
+	self-derived.  So it arrives from outside. )
+
+"PG drawb"
+	A = [DBn]; A-; A + A; A + A; A + A;	( _8n = (n-1)*8, in BYTES )
+	[DB8n] = A;
+
+	A = [DBflar]; ? A != 0 -> PG db complex;
+	-> PG db complex;
+
+      ( ---- the degenerate fast path: one row, no Segmento at all ---- )
+	A = [BXminx]; ? A != [BXmaxx] -> PG db row;
+	C = [BXminy]; => PG riga; C + [BXminx]; C & 65535; C + PGDOFF;
+	[PGdi] = C; [PGval] = [DBcol]; => PG store;
+	[CSbyte]+;
+	end;
+    "PG db row"
+	C = [BXminy]; => PG riga; C + [BXmaxx]; C & 65535; [DBtmp] = C;
+    "PG db row l"
+	A = [BXmaxx]; ? A '< [BXminx] -> PG db row done;
+	C = [DBtmp]; C + PGDOFF; C & 65535;
+	[PGdi] = C; [PGval] = [DBcol]; => PG store;
+	[CSbyte]+;
+	A = [BXmaxx]; A-; A & 65535; [BXmaxx] = A;
+	C = [DBtmp]; C-; C & 65535; [DBtmp] = C;
+	-> PG db row l;
+    "PG db row done"
+	end;
+
+    "PG db complex"
+
+      ( ---- edge stroking.  n-1 edges from consecutive mp pairs, then
+	the closing edge mp[n-1] -> mp[0]. ---- )
+
+	[PGj] = 0;
+    "PG db edge"
+	A = [PGj]; A + A; C = mp; C + A;
+	[SGxp] = [C plus 0]; [SGyp] = [C plus 1];
+	[SGxa] = [C plus 2]; [SGya] = [C plus 3];
+	=> PG segmento;
+	A = [PGj]; A+; [PGj] = A; A + A; A + A; A + A;
+	? A '< [DB8n] -> PG db edge;
+	A = [PGj]; A + A; C = mp; C + A;
+	[SGxp] = [C plus 0]; [SGyp] = [C plus 1];
+	C = mp;
+	[SGxa] = [C plus 0]; [SGya] = [C plus 1];
+	=> PG segmento;
+
+      ( ---- the four scan limits.  All 16-bit. ---- )
+
+	C = [BXminy]; => PG riga; C + [BXminx]; C & 65535; [DBseg] = C;
+	C = [BXmaxy]; => PG riga; C + [BXminx]; C & 65535; [DBlimy] = C;
+	C = [DBseg]; C + [BXmaxx]; C - [BXminx]; C & 65535; [DBlimx] = C;
+	C = [DBlimx]; C - [DBseg]; C + 2; C & 65535; [DBbytes] = C;
+
+	A = [DBflar];
+	? A = 0 -> PG db c0;
+	? A = 1 -> PG db c1;
+	? A = 2 -> PG db c2;
+	? A = 4 -> PG db c4;
+	( NO CASE MATCHES.  The switch has no default, so nothing is
+	  filled and the polygon is left as the bare 255 wireframe
+	  Segmento drew.  That is behaviour, not an omission. )
+	end;
+
+( -------------------------------------------------------------------- )
+( flares == 0 : the dword fill                                          )
+( -------------------------------------------------------------------- )
+
+    "PG db c0"
+	C = [DBlimy]; C + PGDOFF; C & 65535; [DBlimy] = C;
+	C = [DBseg];  C + PGDOFF; C & 65535; [DBdi] = C;
+    "PG db c0 row"
+	[CSrows]+;
+	A = [DBdi]; [DBdi0] = A;
+	=> PG db scan;
+	A = [DBmode]; ? A = 0 -> PG db c0 next;	( no sentinel at all )
+	A = [DBmode]; ? A = 2 -> PG db c0 fb1;
+
+	( dec di, dec si; dx = di - si; di = si )
+	A = [DBdi]; A-; A & 65535; [DBdi] = A;
+	A = [DBsi]; A-; A & 65535; [DBsi] = A;
+	C = [DBdi]; C - [DBsi]; C & 65535; [DBdx] = C;
+	A = [DBsi]; [SCdi] = A;
+	[DBal] = [DBcol];
+	C = [DBdx]; C > 2; [SCcx] = C;
+	? C = 0 -> PG db c0 tail;
+    "PG db c0 dw"
+	( db 0x26,0x66,0x89,0x05 : mov es:[di], eax - FOUR bytes of
+	  colore.  AL is colore here because the row loop set it after
+	  the scan; the setup block alone would leave AL zero. )
+	[PGdi] = [SCdi];         [PGval] = [DBcol]; => PG store;
+	A = [SCdi]; A + 1; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
+	A = [SCdi]; A + 2; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
+	A = [SCdi]; A + 3; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
+	A = [CSbyte]; A + 4; [CSbyte] = A;
+	A = [SCdi]; A + 4; A & 65535; [SCdi] = A;
+	[SCcx]-;
+	? [SCcx] != 0 -> PG db c0 dw;
+    "PG db c0 tail"
+	C = [DBdx]; C & 3; [SCcx] = C;
+	=> PG stosb;
+	-> PG db c0 next;
+    "PG db c0 fb1"
+	[CSfb1]+;
+	A = [DBsi]; A-; A & 65535; [DBsi] = A;
+	A = [DBbx]; A-; A & 65535; [DBbx] = A;
+	C = [DBbx]; C - [DBsi]; C & 65535; [SCcx] = C;
+	A = [DBsi]; [SCdi] = A;
+	[DBal] = [DBcol];
+	=> PG stosb;
+    "PG db c0 next"
+	C = [DBdi0]; C + 320; C & 65535; [DBdi] = C;
+	? C '<= [DBlimy] -> PG db c0 row;
+	end;
+
+( -------------------------------------------------------------------- )
+( flares == 1 : additive, clamped at 62                                 )
+( -------------------------------------------------------------------- )
+
+    "PG db c1"
+	C = [DBlimy]; C + PGDOFF; C & 65535; [DBlimy] = C;
+	C = [DBseg];  C + PGDOFF; C & 65535; [DBdi] = C;
+	C = [DBcol]; C & 63; [DBcol] = C;	( colore &= 0x3F, in place )
+    "PG db c1 row"
+	[CSrows]+;
+	A = [DBdi]; [DBdi0] = A;
+	=> PG db scan;
+	A = [DBmode]; ? A = 0 -> PG db c1 next;
+	A = [DBmode]; ? A = 2 -> PG db c1 fb2;
+	A = [DBdi]; A-; A & 65535; [DBdi] = A;
+	A = [DBsi]; A-; A & 65535; [DBsi] = A;
+	C = [DBdi]; C - [DBsi]; C & 65535; [DBcx] = C;
+	A = [DBsi]; [DBdi] = A;
+	[DBdl] = [DBcol];
+	-> PG db c1 fill;
+    "PG db c1 fb2"
+	[CSfb1]+;
+	A = [DBsi]; A-; A & 65535; [DBsi] = A;
+	A = [DBbx]; A-; A & 65535; [DBbx] = A;
+	C = [DBbx]; C - [DBsi]; C & 65535; [DBcx] = C;
+	A = [DBsi]; [DBdi] = A;
+	C = [DBcol]; C & 255; C > 1; [DBdl] = C;	( shr dl,1 )
+    "PG db c1 fill"
+	? [DBcx] = 0 -> PG db c1 next;
+	A = [DBdi]; A - 1; A & 65535; [PGdi] = A; => PG load;
+	C = [PGval]; C & 63; C + [DBdl]; C & 255;
+	? C '< 62 -> PG db c1 flow;
+	C = 62;
+    "PG db c1 flow"
+	[PGval] = C; [PGdi] = [DBdi]; => PG store;
+	[CSbyte]+;
+	A = [DBdi]; A + 1; A & 65535; [DBdi] = A;
+	[DBcx]-;
+	? [DBcx] != 0 -> PG db c1 fill;
+    "PG db c1 next"
+	C = [DBdi0]; C + 320; C & 65535; [DBdi] = C;
+	? C '<= [DBlimy] -> PG db c1 row;
+	end;
+
+( -------------------------------------------------------------------- )
+( flares == 2 : the neighbour-sampling halo                             )
+( -------------------------------------------------------------------- )
+
+    "PG db c2"
+	C = [DBlimy]; C + PGDOFF; C & 65535; [DBlimy] = C;
+	C = [DBseg];  C + PGDOFF; C & 65535; [DBdi] = C;
+    "PG db c2 row"
+	[CSrows]+;
+	A = [DBdi]; [DBdi0] = A;
+	=> PG db scan;
+	A = [DBmode]; ? A = 0 -> PG db c2 next;
+	A = [DBmode]; ? A = 2 -> PG db c2 fb3;
+	A = [DBdi]; A-; A & 65535; [DBdi] = A;
+	A = [DBsi]; A-; A & 65535; [DBsi] = A;
+	C = [DBdi]; C - [DBsi]; C & 65535; [DBcx] = C;
+	A = [DBsi]; [DBdi] = A;
+    "PG db c2 fill"
+	? [DBcx] = 0 -> PG db c2 next;
+	[PGdi] = [DBdi]; => PG load;
+	A = [PGval]; ? A != 255 -> PG db c2 tsnob;
+	( the pixel is still a sentinel: take the neighbour one row up
+	  AND one column left, [di-321]. )
+	A = [DBdi]; A - 321; A & 65535; [PGdi] = A; => PG load;
+	C = [PGval]; C & 63; C | 64;
+	[PGval] = C; [PGdi] = [DBdi]; => PG store;
+	[CSbyte]+;
+	-> PG db c2 under;
+    "PG db c2 tsnob"
+	( and ax,0x3F clears AH, so the following add ax,cx is a clean
+	  16-bit add of the REMAINING PIXEL COUNT.  Yes, the count. )
+	C = [PGval]; C & 63; C | 64;
+	C + [DBcx]; C & 65535;
+	? C '< 128 -> PG db c2 dnorm;
+	C = 127;
+    "PG db c2 dnorm"
+	C & 255;
+	[PGval] = C; [PGdi] = [DBdi]; => PG store;
+	[CSbyte]+;
+    "PG db c2 under"
+	A = [DBdi]; A + 1; A & 65535; [DBdi] = A;
+	[DBcx]-;
+	? [DBcx] != 0 -> PG db c2 fill;
+	-> PG db c2 next;
+    "PG db c2 fb3"
+	[CSfb1]+;
+	A = [DBsi]; A-; A & 65535; [DBsi] = A;
+	A = [DBbx]; A-; A & 65535; [DBbx] = A;
+	C = [DBbx]; C - [DBsi]; C & 65535; [DBcx] = C;
+	A = [DBsi]; [DBdi] = A;
+    "PG db c2 fb3a"
+	? [DBcx] = 0 -> PG db c2 next;
+	A = [DBdi]; A - 321; A & 65535; [PGdi] = A; => PG load;
+	A = [PGval]; ? A != 255 -> PG db c2 tsnoby;
+	A = [DBdi]; A - 642; A & 65535; [PGdi] = A; => PG load;
+    "PG db c2 tsnoby"
+	C = [PGval]; C & 63; C | 64;
+	[PGval] = C; [PGdi] = [DBdi]; => PG store;
+	[CSbyte]+;
+	A = [DBdi]; A + 1; A & 65535; [DBdi] = A;
+	[DBcx]-;
+	? [DBcx] != 0 -> PG db c2 fb3a;
+    "PG db c2 next"
+	C = [DBdi0]; C + 320; C & 65535; [DBdi] = C;
+	? C '<= [DBlimy] -> PG db c2 row;
+	end;
+
+( -------------------------------------------------------------------- )
+( flares == 4 : the dword fill with a per-row colour ramp               )
+( -------------------------------------------------------------------- )
+
+    "PG db c4"
+	C = [DBlimy]; C + PGDOFF; C & 65535; [DBlimy] = C;
+	C = [DBseg];  C + PGDOFF; C & 65535; [DBdi] = C;
+    "PG db c4 row"
+	[CSrows]+;
+	A = [DBdi]; [DBdi0] = A;
+	=> PG db scan;
+	A = [DBmode]; ? A = 0 -> PG db c4 ramp;
+	A = [DBmode]; ? A = 2 -> PG db c4 fb;
+	A = [DBdi]; A-; A & 65535; [DBdi] = A;
+	A = [DBsi]; A-; A & 65535; [DBsi] = A;
+	C = [DBdi]; C - [DBsi]; C & 65535; [DBdx] = C;
+	A = [DBsi]; [SCdi] = A;
+	[DBal] = [DBcol];
+	C = [DBdx]; C > 2; [SCcx] = C;
+	? C = 0 -> PG db c4 tail;
+    "PG db c4 dw"
+	[PGdi] = [SCdi];         [PGval] = [DBcol]; => PG store;
+	A = [SCdi]; A + 1; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
+	A = [SCdi]; A + 2; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
+	A = [SCdi]; A + 3; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
+	A = [CSbyte]; A + 4; [CSbyte] = A;
+	A = [SCdi]; A + 4; A & 65535; [SCdi] = A;
+	[SCcx]-;
+	? [SCcx] != 0 -> PG db c4 dw;
+    "PG db c4 tail"
+	C = [DBdx]; C & 3; [SCcx] = C;
+	=> PG stosb;
+	-> PG db c4 ramp;
+    "PG db c4 fb"
+	[CSfb1]+;
+	A = [DBsi]; A-; A & 65535; [DBsi] = A;
+	A = [DBbx]; A-; A & 65535; [DBbx] = A;
+	C = [DBbx]; C - [DBsi]; C & 65535; [SCcx] = C;
+	A = [DBsi]; [SCdi] = A;
+	[DBal] = [DBcol];
+	=> PG stosb;
+    "PG db c4 ramp"
+	( al = colore & 0x3F ; ah = colore & 0xC0 ; al += ent ;
+	  if (al > 0x3F) { al = 0x3F; if (ent & 0x80) al = 0; } )
+	C = [DBcol]; C & 63; [DBal] = C;
+	C = [DBcol]; C & 192; [DBah] = C;
+	C = [DBal]; C + [DBent]; C & 255; [DBal] = C;
+	? C '<= 63 -> PG db c4 f;
+	[DBal] = 63;
+	A = [DBent]; A & 128;
+	? A = 0 -> PG db c4 f;
+	[DBal] = 0;
+    "PG db c4 f"
+	C = [DBal]; C | [DBah]; C & 255; [DBcol] = C;
+	C = [DBdi0]; C + 320; C & 65535; [DBdi] = C;
+	? C '<= [DBlimy] -> PG db c4 row;
+	end;
+
+( -------------------------------------------------------------------- )
+( the sentinel scan, shared by all four cases                          )
+( -------------------------------------------------------------------- )
+
+      ( PG db scan : from [DBdi], scan [DBbytes] bytes for colour 255.
+
+	out  [SCzf] = 0   no sentinel at all in the window -> skip the row
+	     [DBsi] < 0   ONE run only -> the fb1 fallback; [DBsi] and
+			  [DBbx] then hold si and bx one PAST the run
+	     otherwise    [DBsi], [DBdi] bracket the fill
+
+	The single-run fallback is not an edge case: a 1-pixel-wide
+	vertical sliver takes it on 121 rows of 121, and deleting it
+	renders nothing at all.  Sabotage NOFB1. )
+
+"PG db scan"
+	A = [DBdi]; [SCdi] = A;
+	[SCcx] = [DBbytes];
+	[SCal] = 255;
+	[SCzf] = 0;
+	[DBmode] = 0;
+	=> PG repne;
+	A = [SCzf]; ? A = 0 -> PG db scan none;
+	A = [SCdi]; [DBsi] = A;
+	=> PG repe;
+	A = [SCdi]; [DBbx] = A;
+	=> PG repne;
+	A = [SCzf]; ? A = 0 -> PG db scan one;
+	=> PG repe;
+	A = [SCdi]; [DBdi] = A;
+	[DBmode] = 1;
+	end;
+    "PG db scan one"
+	[DBmode] = 2;
+	end;
+    "PG db scan none"
+	[DBmode] = 0;
+	end;

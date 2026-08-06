@@ -1,0 +1,440 @@
+      ( *** pgmain - the Wave 6a driver ***
+
+	Four lines of programme.  Everything else is in the libraries,
+	which is the point: each work/pgbreakNN.txt is this same driver
+	with ONE library replaced by a copy of itself carrying ONE edit,
+	so a sabotage cannot accidentally also change the harness.
+
+	The driver READS work/pg-corpus.txt, runs the cases IN FILE
+	ORDER, and writes work/pg-out.bin.  It contains no vertex, no
+	colour and no bound of its own: every number comes from the
+	corpus text, which both sides parse with the same grammar.  A
+	case that ran and a case that did not are distinguishable in the
+	output because the census is DERIVED from the page after the
+	fact, never written by construction.
+
+	ORDER IS PART OF THE FIXTURE.  Pre-state 3 means "carry", and the
+	SHARED and CARRY classes use it to hand one case's output page to
+	the next as its input - which is what the game does every frame
+	and is the class most likely to be missing from a corpus written
+	by hand.
+
+	Build: powershell -File lino_build.ps1 -Src work\pgmain.txt
+	Run:   the poll-and-kill pattern, collecting work\pg-out.bin.   )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+
+	pgfp;
+	pgmem;
+	pgbrk05rast;
+	pgtex;
+	pgproj;
+
+"directors"
+
+	program name = { pgbrk05main };
+	unit = 32;
+
+"variables"
+
+	MNop	= 0;
+	MNn	= 0;
+	MNi	= 0;
+	MNcases	= 0;
+	MNbad	= 0;
+
+"programme"
+
+	=> PG run;
+	end;
+
+( ==================================================================== )
+
+"PG run"
+	=> FEnter;
+	=> PGF constants;
+	=> PDMP reset;
+	=> CR load;
+	A = [CRbad]; ? A != 0 -> PG run io;
+	=> CR tokenise;
+	[CRti] = 0;
+	[MNcases] = 0;
+	[MNbad] = 0;
+
+    "PG run case"
+	=> CR next;
+	[MNop] = C;
+	A = [MNop];
+	? A = 0 -> PG run done;
+	? A = 1 -> PG do seg;
+	? A = 2 -> PG do bbox;
+	? A = 3 -> PG do fill;
+	? A = 4 -> PG do edge;
+	? A = 5 -> PG do span;
+	? A = 6 -> PG do proj;
+	? A = 7 -> PG do pmap;
+	? A = 8 -> PG do gcoord;
+	[MNbad]+;
+	-> PG run done;
+
+    "PG run done"
+	=> PG trailer;
+	=> FLeave;
+	=> PDMP write;
+	end;
+    "PG run io"
+	[MNbad] = 99;
+	=> PG trailer;
+	=> FLeave;
+	=> PDMP write;
+	end;
+
+      ( PG case head : caseid and pre-state, common to every opcode. )
+
+"PG case head"
+	=> CR next; [CScase] = C;
+	=> CR next; [PGpstate] = C;
+	=> PG census reset;
+	=> PG pre;
+	end;
+
+      ( PG case tail : the census is DERIVED from the page, then the
+	page itself is emitted packed.  Both, every case, no exceptions -
+	a record that exists only for the cases that worked would be
+	worth nothing. )
+
+"PG case tail"
+	=> PDMP census;
+	=> PDMP page;
+	[MNcases]+;
+	end;
+
+( -------------------------------------------------------------------- )
+( 1 SEG : caseid pre xp yp xa ya                                        )
+( -------------------------------------------------------------------- )
+
+"PG do seg"
+	=> PG case head;
+	=> CR next; [SGxp] = C;
+	=> CR next; [SGyp] = C;
+	=> CR next; [SGxa] = C;
+	=> CR next; [SGya] = C;
+	=> PG segmento;
+	=> PG case tail;
+	-> PG run case;
+
+( -------------------------------------------------------------------- )
+( 2 BBOX : caseid pre n  x0 y0 ... x(n-1) y(n-1)                        )
+( -------------------------------------------------------------------- )
+
+"PG do bbox"
+	=> PG case head;
+	=> CR next; [BXn] = C; [MNn] = C;
+	=> PG read mp;
+	=> PG bbox;
+	=> PG emit bbox;
+	=> PG case tail;
+	-> PG run case;
+
+( -------------------------------------------------------------------- )
+( 3 FILL : caseid pre n (2n coords) minx maxx miny maxy col flares ent  )
+( -------------------------------------------------------------------- )
+
+"PG do fill"
+	=> PG case head;
+	=> CR next; [DBn] = C; [MNn] = C;
+	=> PG read mp;
+	=> CR next; [BXminx] = C;
+	=> CR next; [BXmaxx] = C;
+	=> CR next; [BXminy] = C;
+	=> CR next; [BXmaxy] = C;
+	=> CR next; [DBcol] = C;
+	=> CR next; [DBflar] = C;
+	=> CR next; [DBent] = C;
+	=> PG drawb;
+	=> PG emit bbox;
+	=> PG case tail;
+	-> PG run case;
+
+( -------------------------------------------------------------------- )
+( 4 EDGE : caseid pre vr22 (vr22 coords) miny maxy                      )
+( -------------------------------------------------------------------- )
+
+"PG do edge"
+	=> PG case head;
+	=> CR next; [EWvr22] = C;
+	A = [EWvr22]; A > 1; [MNn] = A;
+	=> PG read mp;
+	=> CR next; [EWminy] = C; [BXminy] = C;
+	=> CR next; [EWmaxy] = C; [BXmaxy] = C;
+	=> PG edges;
+	=> PG emit span;
+	=> PG case tail;
+	-> PG run case;
+
+( -------------------------------------------------------------------- )
+( 5 SPAN : caseid pre tex i ipart fpart tinta escr flares cull half     )
+(          nblk  then nblk+1 (u,v) pairs                                )
+( -------------------------------------------------------------------- )
+
+"PG do span"
+	=> PG case head;
+	=> CR next; [PGtexf] = C;
+	=> CR next; [SPi] = C;
+	=> CR next; [MNi] = C;			( ipart[i] )
+	=> CR next; [MNn] = C;			( fpart[i] )
+	=> CR next; [SPtinta] = C;
+	=> CR next; [SPescr] = C;
+	=> CR next; [SPflar] = C;
+	=> CR next; [SPcull] = C;
+	=> CR next; [SPhalf] = C;
+	=> CR next; [BXmaxy] = C;
+	=> CR next; [SPuvn] = C;
+
+	A = [SPi]; C = ipart; C + A; [C] = [MNi];
+	A = [SPi]; C = fpart; C + A; [C] = [MNn];
+
+	( the (u,v) samples, pinned: pair 0 is the row's first sample,
+	  pairs 1..nblk are what each block's fistp would have produced. )
+	[PGi] = 0;
+	A = [SPuvn]; A+; [PGj] = A;
+    "PG sp uv"
+	=> CR next; A = [PGi]; A + A; D = uvlist; D + A; [D] = C;
+	=> CR next; A = [PGi]; A + A; D = uvlist; D + A; [D plus 1] = C;
+	[PGi]+;
+	A = [PGi]; ? A '< [PGj] -> PG sp uv;
+
+	( ol_end writes the tinta / escrescenze scratch pair into the
+	  page at es:[0xFA00] and es:[0xFA01].  The span loops RE-READ
+	  those bytes on every pixel, so this is not setup, it is state. )
+	A = PGSCRT; A + PGDOFF; [PGdi] = A; [PGval] = [SPtinta]; => PG store;
+	A = PGSCRE; A + PGDOFF; [PGdi] = A; [PGval] = [SPescr];  => PG store;
+
+	D = uvlist;
+	[SPu] = [D]; [SPv] = [D plus 1];
+	[SPuvi] = 1;
+	[SPsrc] = 0;
+	A = [MNn]; C = [MNi]; A - C; [SPsec] = A;
+	C = [SPi]; => PG riga; C + [MNi]; C & 65535; [SPdi] = C;
+	=> PG scanline;
+
+	( row_end increments i and RETURNS if it has passed max_y, BEFORE
+	  the duplication runs.  The isolated span case has to carry that
+	  guard too, or a row at max_y duplicates itself into rows that
+	  the real trace loop would never have reached. )
+	A = [SPhalf]; A & 1;
+	? A = 0 -> PG sp nohalf;
+	[SPi]+;
+	A = [BXmaxy]; ? A < [SPi] -> PG sp nohalf;
+	=> PG halfscan;
+    "PG sp nohalf"
+	=> PG emit span;
+	=> PG case tail;
+	-> PG run case;
+
+( -------------------------------------------------------------------- )
+( 6 PROJ : caseid pre n col flares ent  then 3n binary32 patterns       )
+( -------------------------------------------------------------------- )
+
+"PG do proj"
+	=> PG case head;
+	=> CR next; [PJnrv] = C; [MNn] = C;
+	=> CR next; [DBcol] = C;
+	=> CR next; [DBflar] = C;
+	=> CR next; [DBent] = C;
+	=> PG read verts;
+	=> PG poly3d;
+	=> PG emit topo;
+	=> PG case tail;
+	-> PG run case;
+
+( -------------------------------------------------------------------- )
+( 7 PMAP : caseid pre tex nv tinta escr flares cull half + 3nv patterns )
+( -------------------------------------------------------------------- )
+
+"PG do pmap"
+	=> PG case head;
+	=> CR next; [PGtexf] = C;
+	=> CR next; [PJnrv] = C; [MNn] = C;
+	=> CR next; [SPtinta] = C;
+	=> CR next; [SPescr] = C;
+	=> CR next; [SPflar] = C;
+	=> CR next; [SPcull] = C;
+	=> CR next; [SPhalf] = C;
+	=> PG read verts;
+	=> PG polymap;
+	=> PG emit topo;
+	=> PG emit span;
+	=> PG case tail;
+	-> PG run case;
+
+( -------------------------------------------------------------------- )
+( 8 GCOORD : caseid pre n  then 3n binary32 patterns                    )
+( -------------------------------------------------------------------- )
+
+      ( getcoords is the wave's only FLOATSITES-MAJOR site: the RETURNED
+	CHAR is graded 100% exact, because the four bounds are compared
+	with STRICT < and >.  A point landing on exactly 5, 311, 10 or
+	190 returns 0.  Nothing about this is inside a tolerance. )
+
+      ( The points are read and consumed ONE AT A TIME, straight into
+	slot 0.  Reading n of them into the x[]/y[]/z[] arrays first
+	would overrun: those hold VERTICI_PER_POLIGONO = 4 entries and
+	nothing more, and the overrun is silent because the three arrays
+	are adjacent. )
+
+"PG do gcoord"
+	=> PG case head;
+	=> CR next; [MNn] = C;
+	[PGi] = 0;
+    "PG gc v"
+	=> CR next; [PGFt] = C; [PGFi] = FSINX; => PGF setf32;
+	=> CR next; [PGFt] = C; [PGFi] = FSINY; => PGF setf32;
+	=> CR next; [PGFt] = C; [PGFi] = FSINZ; => PGF setf32;
+	=> PG getcoords;
+	A = [PGi]; A '* 3; C = pgpack; C + A;
+	[C plus 0] = [GCret];
+	[C plus 1] = [GCx];
+	[C plus 2] = [GCy];
+	[PGi]+;
+	A = [PGi]; ? A '< [MNn] -> PG gc v;
+	[PKind] = K24; [PTag] = 7; [PW] = 3; [PH] = [MNn];
+	[PBptr] = pgpack; A = [MNn]; A '* 3; [PBcnt] = A;
+	=> PDMP rec;
+	=> PG case tail;
+	-> PG run case;
+
+( ==================================================================== )
+( readers                                                               )
+( ==================================================================== )
+
+      ( PG read mp : [MNn] vertices, x then y, into mp[]. )
+
+"PG read mp"
+	[PGi] = 0;
+    "PG rm v"
+	=> CR next; A = [PGi]; A + A; D = mp; D + A; [D] = C;
+	=> CR next; A = [PGi]; A + A; D = mp; D + A; [D plus 1] = C;
+	[PGi]+;
+	A = [PGi]; ? A '< [MNn] -> PG rm v;
+	end;
+
+      ( PG read verts : [MNn] vertices as binary32 BIT PATTERNS.  Slot 3
+	is zeroed first, so polymap's "x[3] = x[2]" for nv == 3 is a
+	visible mutation of the caller's array and not a coincidence. )
+
+"PG read verts"
+	A = FSINX; A + 3; [PGFi] = A; [PGFt] = 0; => PGF setf32;
+	A = FSINY; A + 3; [PGFi] = A; [PGFt] = 0; => PGF setf32;
+	A = FSINZ; A + 3; [PGFi] = A; [PGFt] = 0; => PGF setf32;
+	[PGi] = 0;
+    "PG rv v"
+	=> CR next; [PGFt] = C; A = [PGi]; A + FSINX; [PGFi] = A; => PGF setf32;
+	=> CR next; [PGFt] = C; A = [PGi]; A + FSINY; [PGFi] = A; => PGF setf32;
+	=> CR next; [PGFt] = C; A = [PGi]; A + FSINZ; [PGFi] = A; => PGF setf32;
+	[PGi]+;
+	A = [PGi]; ? A '< [MNn] -> PG rv v;
+	end;
+
+( ==================================================================== )
+( record emitters                                                       )
+( ==================================================================== )
+
+"PG emit bbox"
+	A = pgpack;
+	[A plus 0] = [BXminx];
+	[A plus 1] = [BXmaxx];
+	[A plus 2] = [BXminy];
+	[A plus 3] = [BXmaxy];
+	[A plus 4] = [BXsi];
+	[A plus 5] = [DBn];
+	[A plus 6] = [DBbytes];
+	[A plus 7] = [DBseg];
+	[PKind] = K22; [PTag] = 3; [PW] = 8; [PH] = 1;
+	[PBptr] = pgpack; [PBcnt] = 8;
+	=> PDMP rec;
+	end;
+
+      ( ipart[] and fpart[] over the graded interval, plus the interval
+	itself so the reader does not have to guess it. )
+
+"PG emit span"
+	A = pgpack;
+	[A plus 0] = [BXminy];
+	[A plus 1] = [BXmaxy];
+	[PGi] = 0;
+    "PG es i"
+	A = [PGi]; C = ipart; C + A; D = [C];
+	A = [PGi]; A + A; A + 2; C = pgpack; C + A; [C] = D;
+	A = [PGi]; C = fpart; C + A; D = [C];
+	A = [PGi]; A + A; A + 3; C = pgpack; C + A; [C] = D;
+	[PGi]+;
+	A = [PGi]; ? A '< 200 -> PG es i;
+	[PKind] = K23; [PTag] = 4; [PW] = 200; [PH] = 2;
+	[PBptr] = pgpack; [PBcnt] = 402;
+	=> PDMP rec;
+	end;
+
+      ( topology: the gate, the vertex counts at every stage, the four
+	near-plane flags, and the resulting mp[].  All EXACT, all
+	integer, none of it inside a tolerance. )
+
+"PG emit topo"
+	A = pgpack;
+	[A plus 0]  = [PJgate];
+	[A plus 1]  = [PJdoflag];
+	[A plus 2]  = [PJvr2];
+	[A plus 3]  = [PJvr3];
+	[A plus 4]  = [PJvr4];
+	[A plus 5]  = [PJvr5];
+	[A plus 6]  = [PJvr6];
+	[A plus 7]  = [BXsi];
+	C = rwf;
+	[A plus 8]  = [C plus 0];
+	[A plus 9]  = [C plus 1];
+	[A plus 10] = [C plus 2];
+	[A plus 11] = [C plus 3];
+	[A plus 12] = [BXminx];
+	[A plus 13] = [BXmaxx];
+	[A plus 14] = [BXminy];
+	[A plus 15] = [BXmaxy];
+	[PGi] = 0;
+    "PG et i"
+	A = [PGi]; C = mp; C + A; D = [C];
+	A = [PGi]; A + 16; C = pgpack; C + A; [C] = D;
+	[PGi]+;
+	A = [PGi]; ? A '< MPMAX -> PG et i;
+	[PKind] = K24; [PTag] = 5; [PW] = 16; [PH] = MPMAX;
+	[PBptr] = pgpack; [PBcnt] = 40;
+	=> PDMP rec;
+	end;
+
+      ( the trailer.  [MNcases] is COUNTED, the control word is READ
+	BACK from the FPU, and the token count comes from the parser -
+	so a driver that silently stopped early, a build with no FEnter
+	bracket, and a corpus that failed to load are three different
+	visible failures rather than one silent one. )
+
+"PG trailer"
+	=> FCWRead;   [MNi] = [FI];
+	=> FStackOK;  [MNn] = [FI];
+	A = pgpack;
+	[A plus 0] = [MNcases];
+	[A plus 1] = [MNbad];
+	[A plus 2] = [CRtokn];
+	[A plus 3] = [CRbytes];
+	[A plus 4] = [CRti];
+	[A plus 5] = [MNi];
+	[A plus 6] = [FFLG];
+	[A plus 7] = [MNn];
+	[PKind] = K25; [PTag] = 6; [PW] = 8; [PH] = 1;
+	[PBptr] = pgpack; [PBcnt] = 8;
+	=> PDMP rec;
+	end;

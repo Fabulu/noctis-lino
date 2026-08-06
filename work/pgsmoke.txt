@@ -1,0 +1,79 @@
+      ( pgsmoke - syntax + linkage smoke test for Wave 6a.
+	Confirms: fbmem links read-only, the fp engine links, nw is
+	addressable at RADPT, and a private dump writer can emit
+	work/pg-smoke.bin without touching fb-out.bin. )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+
+"directors"
+
+	program name = { pgsmoke };
+	unit = 32;
+
+"variables"
+
+	pgsmokename = { pg-smoke.bin };
+	SMi = 0;
+
+"workspace"
+
+	sm = 64;
+
+"programme"
+
+	=> FEnter;
+
+	( 0: the control word actually installed )
+	=> FCWRead;
+	A = sm; [A] = [FI];
+
+	( 1: nearest-even at a hand-written site.  2.5 -> 2, not 3. )
+	[FI] = 5; => IntToF;
+	[FB0] = 0; [FB1] = 1073741824;		( 2.0 )
+	=> FQuo;
+	=> FToIntNear;
+	A = sm; [A plus 1] = [FI];
+
+	( 2: 3.5 -> 4 )
+	[FI] = 7; => IntToF;
+	[FB0] = 0; [FB1] = 1073741824;
+	=> FQuo;
+	=> FToIntNear;
+	A = sm; [A plus 2] = [FI];
+
+	( 3: nw is writable at the page base )
+	[MBptr] = RADPT; [MBval] = 300; => MEM put byte;
+	[MBptr] = RADPT; => MEM get byte;
+	A = sm; [A plus 3] = [MBval];
+
+	( 4: the 16-bit segment mask, adapted, offset 65540 wraps to 4 )
+	[SAseg] = SADPT; [SAoff] = 65540; => MEM seg addr;
+	A = sm; [A plus 4] = [SAnw];
+
+	( 5: RADPT itself, for scale )
+	A = sm; [A plus 5] = RADPT;
+
+	=> FLeave;
+
+	[File Name]	= pgsmokename;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= sm;
+	[Block Size]	= 6;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= pgsmokename;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 6;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;

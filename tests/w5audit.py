@@ -1242,7 +1242,8 @@ def scope_files():
         if (f.startswith("fb_") or f.startswith("fbx_")) and f.endswith(".py"):
             out.append(os.path.join(HARNESS, f))
     for f in sorted(os.listdir(HERE)):
-        if f.endswith(".py") and (f.startswith(("test_wave5", "w5", "lino"))):
+        if f.endswith(".py") and (f.startswith(("test_wave5", "test_raster",
+                                                "w5", "lino"))):
             out.append(os.path.join(HERE, f))
     return out
 

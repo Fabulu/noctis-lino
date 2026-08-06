@@ -1,0 +1,545 @@
+      ( *** pgmem - Wave 6a page access, texture formulas, the corpus
+	    tokeniser and the PGDUMP writer ***
+
+	ADDITIVE ONLY.  work/fbmem.txt is LINKED, never edited and never
+	forked.  Everything here is something fbmem does not have.
+
+	THE ADDRESS CONVENTION, stated once and obeyed everywhere.
+
+	TDPOLYGS reaches the hidden page through a 16-bit DI and a
+	displacement of +4:
+
+	    Segmento vertical    les si,adapted / add pi,si / es:[si]
+	    Segmento general     di = global_x[2] + riga[bx] / es:[di+4]
+	    poly3d fill          les di,adapted / add di,segmptr / es:[di]
+	    polymap span         di = riga[i]+ipart[i] / inc di / [di+3]
+
+	In every one of them the byte finally touched is at SEGMENT
+	OFFSET  p + 4  where p is the page-relative pixel offset,
+	because farmalloc handed adapted an offset of 4.  BUFFERMAP 4.1
+	settled that; this file simply obeys it.  So the routines below
+	take a DOS OFFSET (already including the +4) in [PGdi] and the
+	mask is applied to that offset, against adapted's SEGMENT ORIGIN
+	SADPT, which is RADPT-4.  Consequence: offset 4 IS nw[RADPT], the
+	top-left pixel, and there is NO four-pixel skew anywhere.
+
+	Everything that walks a scanline therefore carries DI exactly as
+	the assembly does, and "PG store" is the single truncation point.
+
+	TEXTURES AND PRE-STATES ARE FORMULAS, NEVER BLOBS.  A checked-in
+	binary the port itself produced would be a stored reference; a
+	formula parsed out of the corpus header is not.  Both sides
+	evaluate the same four lines of arithmetic.
+
+	FILENAME TRAP: underscores in lino string literals become spaces.
+	Every name here uses hyphens.                                    )
+
+"constants"
+
+	( ---------------- the clip rectangle ----------------
+	  NOCTIS-D.H:122-127 gives larghezza 306 / altezza 180 /
+	  x_centro 158 / y_centro 100, and TDPOLYGS.H:49-69 is entirely
+	  #ifndef-guarded, so those win.  lbx = -306/2+158 = 5,
+	  ubx = 306/2+158 = 311, lby = -180/2+100 = 10, uby = 190. )
+
+	PGLBX	= 5;
+	PGUBX	= 311;
+	PGLBY	= 10;
+	PGUBY	= 190;
+	PGXC	= 158;
+	PGYC	= 100;
+
+	PGW	= 320;
+	PGH	= 200;
+	PGNPIX	= 64000;
+
+	( adapted[63996] / adapted[63997]  ==  es:[0xFA00] / es:[0xFA01].
+	  VANILLA placement.  niv-lr moved this pair to 64000; we do not.
+	  They are visible pixels on row 199 and they are a free canary:
+	  a polymap that did not touch them did not run. )
+
+	PGSCRT	= 63996;		( tinta       )
+	PGSCRE	= 63997;		( escrescenze )
+
+	PGDOFF	= 4;			( farmalloc's offset for adapted )
+
+	( ---------------- PGDUMP record kinds ---------------- )
+
+	K20	= 20;			( PGPAGE   - 16000 packed units   )
+	K21	= 21;			( PGCENSUS - 16 units             )
+	K22	= 22;			( PGMP     - 2*n units            )
+	K23	= 23;			( PGSPAN   - ipart/fpart          )
+	K24	= 24;			( PGTOPO   - projection topology   )
+	K25	= 25;			( PGCW     - control word readback )
+
+	PGMAGIC	= 1346720577;		( 'PGD1' little-endian 32-bit )
+	PGVER	= 1;
+	PGHDRU	= 16;
+
+	( ---------------- corpus opcodes ---------------- )
+
+	OPSEG	= 1;
+	OPBBOX	= 2;
+	OPFILL	= 3;
+	OPEDGE	= 4;
+	OPSPAN	= 5;
+	OPPROJ	= 6;
+	OPEND	= 0;
+
+	CORPUSMAX = 200000;		( units of raw text, 4 chars each )
+	TOKMAX	= 60000;
+
+"variables"
+
+	pgoutname	= { pg-out.bin };
+	pgcorpname	= { pg-corpus.txt };
+
+	PGdi	= 0;			( DOS segment offset, pre-mask )
+	PGval	= 0;
+	PGnw	= 0;
+
+	PGtexf	= 0;			( texture formula id )
+	PGtexi	= 0;
+	PGtexv	= 0;
+
+	PGpstate = 0;			( pre-state formula id )
+
+	( census, one case )
+	CSnz	= 0;			( non-zero pixels        )
+	CS255	= 0;			( pixels equal to 255    )
+	CSseg	= 0;			( Segmento calls         )
+	CSrows	= 0;			( fill rows scanned      )
+	CSfb1	= 0;			( rows taking fb1        )
+	CSbyte	= 0;			( bytes written by fill  )
+	CSpix	= 0;			( span pixels written    )
+	CScase	= 0;			( case id                )
+
+	( dump staging )
+	PDptr	= 0;
+	PDcnt	= 0;
+	PKind	= 0;
+	PTag	= 0;
+	PW	= 0;
+	PH	= 0;
+	PBptr	= 0;
+	PBcnt	= 0;
+
+	( corpus reader )
+	CRbytes	= 0;
+	CRpos	= 0;
+	CRtokn	= 0;
+	CRti	= 0;
+	CRch	= 0;
+	CRacc	= 0;
+	CRneg	= 0;
+	CRbad	= 0;
+
+	PGtmp	= 0;
+	PGi	= 0;
+	PGj	= 0;
+
+"workspace"
+
+	pgdump	= 2400000;		( PGDUMP staging )
+	pgpack	= 16000;		( one page, 4 pixels per unit )
+	corpus	= 200000;		( raw corpus text, packed )
+	tok	= 60000;		( decoded integer tokens )
+
+"programme"
+
+( ==================================================================== )
+( page access - the ONE truncation point                                )
+( ==================================================================== )
+
+      ( PG store : the byte at DOS offset [PGdi] <- [PGval] AND 255.
+	nw = SADPT + ([PGdi] AND 65535).  This is fbmem's class-A
+	mechanism, called at the point where the DOS code truncates DI. )
+
+"PG store"
+	[SAseg] = SADPT;
+	[SAoff] = [PGdi];
+	=> MEM seg addr;
+	A = nw; A + [SAnw];
+	C = [PGval]; C & 255;
+	[A] = C;
+	end;
+
+      ( PG load : [PGval] <- the byte at DOS offset [PGdi], unsigned. )
+
+"PG load"
+	[SAseg] = SADPT;
+	[SAoff] = [PGdi];
+	=> MEM seg addr;
+	A = nw; A + [SAnw];
+	C = [A]; C & 255;
+	[PGval] = C;
+	end;
+
+      ( PG dput / PG dget : DIRECT page-relative access, nw[RADPT+i].
+	These are FIXTURE and OBSERVER routines - laying a pre-state,
+	counting the census, packing the dump.  They deliberately do NOT
+	go through the 16-bit mask, because a fixture is not a DOS store
+	and masking it would fold the last four units of the 65,540-unit
+	page onto the pad below the buffer instead of writing them.
+
+	The distinction is the point: every rasteriser store goes through
+	"PG store" and truncates; nothing else does. )
+
+"PG dput"
+	A = nw; A + RADPT; A + [PGdi];
+	C = [PGval]; C & 255;
+	[A] = C;
+	end;
+
+"PG dget"
+	A = nw; A + RADPT; A + [PGdi];
+	C = [A]; C & 255;
+	[PGval] = C;
+	end;
+
+( ==================================================================== )
+( pre-states and textures - formulas, not blobs                         )
+( ==================================================================== )
+
+      ( PG pre : lay down pre-state [PGpstate] over the whole 65,540-unit
+	page.  PRE3 = carry means "leave whatever is there", which is
+	how the SHARED / CARRY class hands one case's output to the next
+	as its input. )
+
+"PG pre"
+	A = [PGpstate]; ? A = 3 -> PG pre done;
+	[PGi] = 0;
+    "PG pre unit"
+	A = [PGpstate];
+	? A = 0 -> PG pre p0;
+	? A = 1 -> PG pre p1;
+	? A = 2 -> PG pre p2;
+	[PGval] = 0; -> PG pre st;
+    "PG pre p0"
+	[PGval] = 0; -> PG pre st;
+    "PG pre p1"
+	( PRE1: page[j] = (j*101) AND 255 where j is the index from the
+	  SEGMENT ORIGIN.  adapted[i] is j = i+4, so page-relative i
+	  carries ((i+4)*101) AND 255.  The frozen fixture defines this
+	  over j, not over i, and the four units below adapted[0] are
+	  part of it. )
+	A = [PGi]; A + PGDOFF; A '* 101; A & 255; [PGval] = A; -> PG pre st;
+    "PG pre p2"
+	( PRE2: hand-placed sentinels.  adapted[k] = 255 for the ten
+	  listed k, everything else zero.  These are the addresses the
+	  fill's sentinel scan has to see as pre-existing state. )
+	C = 0;
+	A = [PGi];
+	? A = 32040 -> PG pre p2h;
+	? A = 32041 -> PG pre p2h;
+	? A = 32042 -> PG pre p2h;
+	? A = 32043 -> PG pre p2h;
+	? A = 32044 -> PG pre p2h;
+	? A = 32060 -> PG pre p2h;
+	? A = 32360 -> PG pre p2h;
+	? A = 48005 -> PG pre p2h;
+	? A = 48311 -> PG pre p2h;
+	? A = 60999 -> PG pre p2h;
+	-> PG pre p2s;
+    "PG pre p2h"
+	C = 255;
+    "PG pre p2s"
+	[PGval] = C;
+    "PG pre st"
+	[PGdi] = [PGi]; => PG dput;
+	[PGi]+;
+	A = [PGi]; ? A '< 65536 -> PG pre unit;
+    "PG pre done"
+	end;
+
+      ( PG tex : [PGtexv] <- texture byte [PGtexi] under formula
+	[PGtexf].  The window is the 65,536 bytes a 16-bit BX can reach,
+	which is exactly what fs:[bx] addresses. )
+
+"PG tex"
+	A = [PGtexi]; A & 65535; [PGtmp] = A;
+	A = [PGtexf];
+	? A = 1 -> PG tex 1;
+	? A = 2 -> PG tex 2;
+	? A = 3 -> PG tex 3;
+	( TEX0: t[i] = (i*37 + 11) AND 255 )
+	A = [PGtmp]; A '* 37; A + 11; A & 255; [PGtexv] = A; end;
+    "PG tex 1"
+	( TEX1: t[i] = ((i>>8) XOR (i AND 255)) AND 255 - separable )
+	A = [PGtmp]; A > 8; C = [PGtmp]; C & 255; A # C; A & 255;
+	[PGtexv] = A; end;
+    "PG tex 2"
+	( TEX2: every texel 1 )
+	[PGtexv] = 1; end;
+    "PG tex 3"
+	( TEX3: 0 except three wrap probes )
+	[PGtexv] = 0;
+	A = [PGtmp]; ? A = 0     -> PG tex 3h;
+	A = [PGtmp]; ? A = 32768 -> PG tex 3h;
+	A = [PGtmp]; ? A = 65535 -> PG tex 3h;
+	end;
+    "PG tex 3h"
+	[PGtexv] = 255; end;
+
+( ==================================================================== )
+( census - a value DERIVED from what the programme did                  )
+( ==================================================================== )
+
+"PG census reset"
+	[CSnz] = 0; [CS255] = 0; [CSseg] = 0; [CSrows] = 0;
+	[CSfb1] = 0; [CSbyte] = 0; [CSpix] = 0;
+	end;
+
+      ( PG census page : count non-zero and 255 pixels over the 64,000
+	VISIBLE pixels.  Counted after the fact, from the page, so it
+	cannot agree with a rasteriser that never ran. )
+
+"PG census page"
+	[CSnz] = 0; [CS255] = 0;
+	[PGi] = 0;
+    "PG cen unit"
+	[PGdi] = [PGi]; => PG dget;
+	A = [PGval];
+	? A = 0 -> PG cen next;
+	[CSnz]+;
+	? A != 255 -> PG cen next;
+	[CS255]+;
+    "PG cen next"
+	[PGi]+;
+	A = [PGi]; ? A '< PGNPIX -> PG cen unit;
+	end;
+
+( ==================================================================== )
+( packing - 4 pixels per 32-bit unit, little-endian                     )
+( ==================================================================== )
+
+      ( THE POINTER IS RECOMPUTED AFTER THE LOADS, not before.
+	"PG dget" uses A, and L.in.oleum subroutines do not preserve
+	registers - the stock library convention.  Holding a workspace
+	pointer in A across a call silently writes the result somewhere
+	else, which is a bug this port had and which the census caught
+	because the census is derived from the page rather than asserted. )
+
+"PG packpage"
+	[PGi] = 0; [PGj] = 0;
+    "PG pk unit"
+	[PGdi] = [PGi];			=> PG dget; D = [PGval];
+	[PGi]+;
+	[PGdi] = [PGi];			=> PG dget; C = [PGval]; C < 8;  D | C;
+	[PGi]+;
+	[PGdi] = [PGi];			=> PG dget; C = [PGval]; C < 16; D | C;
+	[PGi]+;
+	[PGdi] = [PGi];			=> PG dget; C = [PGval]; C < 24; D | C;
+	[PGi]+;
+	A = pgpack; A + [PGj];
+	[A] = D;
+	[PGj]+;
+	A = [PGj]; ? A '< 16000 -> PG pk unit;
+	end;
+
+( ==================================================================== )
+( PGDUMP - the same record shape as FBDUMP v2, fresh kinds             )
+( ==================================================================== )
+
+"PDMP reset"
+	[PDptr] = pgdump;
+	[PDcnt] = 0;
+	end;
+
+"PDMP rec"
+	A = [PDptr];
+	[A plus 0]  = PGMAGIC;
+	[A plus 1]  = PGVER;
+	[A plus 2]  = [PKind];
+	[A plus 3]  = [PW];
+	[A plus 4]  = [PH];
+	[A plus 5]  = [PBcnt];
+	[A plus 6]  = [CScase];
+	[A plus 7]  = 0;
+	[A plus 8]  = [PTag];
+	[A plus 9]  = 0;
+	[A plus 10] = 0;
+	[A plus 11] = 0;
+	[A plus 12] = 0;
+	[A plus 13] = 0;
+	[A plus 14] = 0;
+	[A plus 15] = 0;
+	A + PGHDRU;
+	C = [PDcnt]; C + PGHDRU; [PDcnt] = C;
+
+	D = [PBptr];
+	B = [PBcnt];
+	? B = 0 -> PDMP rec tail;
+    "PDMP rec unit"
+	C = [D]; [A] = C; A+; D+;
+	B ^ PDMP rec unit;
+	C = [PDcnt]; C + [PBcnt]; [PDcnt] = C;
+    "PDMP rec tail"
+	[PDptr] = A;
+	end;
+
+      ( PDMP page : pack the live page and append it as one K20 record. )
+
+"PDMP page"
+	=> PG packpage;
+	[PKind] = K20; [PTag] = 1;
+	[PW] = PGW; [PH] = PGH;
+	[PBptr] = pgpack; [PBcnt] = 16000;
+	=> PDMP rec;
+	end;
+
+      ( PDMP census : 16 units of counters DERIVED from the run. )
+
+"PDMP census"
+	=> PG census page;
+	[PGdi] = PGSCRT; => PG dget; [PGi] = [PGval];
+	[PGdi] = PGSCRE; => PG dget; [PGj] = [PGval];
+	=> FCWRead;
+	[PGtmp] = [FI];
+	A = pgpack;
+	[A plus 0] = [CScase];
+	[A plus 1] = [CSnz];
+	[A plus 2] = [CS255];
+	[A plus 3] = [CSseg];
+	[A plus 4] = [CSrows];
+	[A plus 5] = [CSfb1];
+	[A plus 6] = [CSbyte];
+	[A plus 7] = [CSpix];
+	[A plus 8] = [PGi];
+	[A plus 9] = [PGj];
+	[A plus 10] = [PGtmp];
+	[A plus 11] = [FFLG];
+	[A plus 12] = 0; [A plus 13] = 0; [A plus 14] = 0; [A plus 15] = 0;
+	[PKind] = K21; [PTag] = 2;
+	[PW] = 16; [PH] = 1;
+	[PBptr] = pgpack; [PBcnt] = 16;
+	=> PDMP rec;
+	end;
+
+"PDMP write"
+	[File Name]	= pgoutname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= pgdump;
+	[Block Size]	= [PDcnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= pgoutname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= [PDcnt];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+( ==================================================================== )
+( the corpus tokeniser                                                  )
+( ==================================================================== )
+
+      ( The corpus is a flat stream of signed decimal integers.  '#'
+	starts a comment that runs to the end of the line.  Anything
+	that is not a digit, a minus sign or a comment is a separator.
+
+	Both sides parse THE SAME TEXT with THE SAME GRAMMAR, and no
+	corpus value is ever recovered from either side's output.  A
+	decimal integer is the only lexeme, so a shared decimal FLOAT
+	parser - which would be a shared divergence - does not exist:
+	float inputs are given as the signed decimal value of their
+	binary32 BIT PATTERN.                                            )
+
+"CR load"
+	[CRbad] = 0;
+	[File Name]	= pgcorpname;
+	[File Command]	= READ;
+	[File Position] = 0;
+	[Block Pointer] = corpus;
+	[Block Size]	= CORPUSMAX;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	A = [Block Size];
+	[CRbytes] = A;
+	? A '> 0 -> CR load ok;
+	[CRbad] = 1;
+    "CR load ok"
+	end;
+
+      ( CR getch : [CRch] <- the byte at text position [CRpos], or -1 at
+	end of text. )
+
+"CR getch"
+	A = [CRpos];
+	? A '>= [CRbytes] -> CR getch eof;
+	C = A; C > 2; D = corpus; D + C;
+	C = [D];
+	A = [CRpos]; A & 3; A '* 8;
+	C > A; C & 255;
+	[CRch] = C;
+	end;
+    "CR getch eof"
+	A = 0; A - 1; [CRch] = A;
+	end;
+
+      ( CR tokenise : decode the whole corpus into tok[0..CRtokn-1]. )
+
+"CR tokenise"
+	[CRpos] = 0; [CRtokn] = 0;
+    "CR tk scan"
+	=> CR getch;
+	A = [CRch];
+	? A < 0 -> CR tk done;
+	? A = 35 -> CR tk comment;		( '#' )
+	? A = 45 -> CR tk number;		( '-' )
+	? A '< 48 -> CR tk skip;
+	? A '> 57 -> CR tk skip;
+	-> CR tk number;
+    "CR tk skip"
+	[CRpos]+;
+	-> CR tk scan;
+    "CR tk comment"
+	[CRpos]+;
+	=> CR getch;
+	A = [CRch];
+	? A < 0 -> CR tk done;
+	? A != 10 -> CR tk comment;
+	[CRpos]+;
+	-> CR tk scan;
+    "CR tk number"
+	[CRneg] = 0; [CRacc] = 0;
+	A = [CRch];
+	? A != 45 -> CR tk digits;
+	[CRneg] = 1;
+	[CRpos]+;
+    "CR tk digits"
+	=> CR getch;
+	A = [CRch];
+	? A '< 48 -> CR tk emit;
+	? A '> 57 -> CR tk emit;
+	C = [CRacc]; C '* 10; A - 48; C + A; [CRacc] = C;
+	[CRpos]+;
+	-> CR tk digits;
+    "CR tk emit"
+	A = [CRneg]; ? A = 0 -> CR tk pos;
+	C = [CRacc]; C+-; [CRacc] = C;
+    "CR tk pos"
+	A = [CRtokn];
+	? A '>= TOKMAX -> CR tk done;
+	C = tok; C + A; [C] = [CRacc];
+	[CRtokn]+;
+	-> CR tk scan;
+    "CR tk done"
+	end;
+
+      ( CR next : C <- tok[[CRti]], [CRti]+.  Reading past the end
+	yields OPEND so a truncated corpus terminates rather than
+	looping. )
+
+"CR next"
+	A = [CRti];
+	? A '>= [CRtokn] -> CR next eof;
+	C = tok; C + A; C = [C];
+	[CRti]+;
+	end;
+    "CR next eof"
+	C = OPEND;
+	end;
