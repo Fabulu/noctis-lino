@@ -624,8 +624,27 @@ The constants are round numbers â€” `Fy ~ 200` is the engine's own focal le
 original derivation recovered, not a curve fit. A port may regenerate the table
 rather than ship it, though shipping is safer for bit-exactness.
 
-Total advance is exactly 43,200 = 360 x 120, so `globe()` only ever displays
-**latitudes -60 to +59** â€” 60 rows of the 360x180 texture are never shown.
+**CORRECTED by Wave 6b — the earlier "correction" was wrong.** Total advance is
+**42,845**, not 43,200: 10,780 draws plus 513 skips, decoded twice and
+cross-checked. The data-formats recon originally reported 42,845; the renderer
+recon "corrected" it to 43,200 and I propagated that into this file. The
+original was right. The latitude-range consequence survives — only about 120 of
+the 180 texture rows are ever displayed.
+
+**Also corrected:** `pixels + skip == 360` is **NOT an invariant** of
+OFFSETS.MAP — it holds for 39 of 48 bands. What *is* invariant, and is checked
+instead: band k starts on source row k+2, and the widths and phases are
+palindromic.
+
+**And the fit is looser than recorded.** "RMS 0.47 px" does not reproduce. This
+file's constants measure **0.7647** per record; an independent re-fit gives
+0.5054. The test pins both and states the bound it actually requires.
+
+**The Wave 6a cross-validation came out NEGATIVE, and that is a real finding.**
+Substituting the projection's dpp = 210 collapses the fit from 10,780 records
+to 176. The sphere table's focal length is a **baked asset constant, not the
+camera's** — the two subsystems do not share a projection. Now a standing
+check.
 
 **Traps:**
 

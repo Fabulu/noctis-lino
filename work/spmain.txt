@@ -1,0 +1,536 @@
+      ( *** spmain - the Wave 6b driver ***
+
+	Four lines of programme.  Everything else is in the libraries,
+	which is the point: each work/spbrkNN*.txt is this same driver
+	with ONE library replaced by a copy of itself carrying ONE edit,
+	so a sabotage cannot accidentally also change the harness.
+
+	The driver READS work/sp-corpus.txt, runs the cases IN FILE ORDER
+	and writes work/sp-out.bin.  It contains no magnification, no
+	centre, no colour and no bound of its own: every number comes from
+	the corpus text, which both sides parse with the same grammar - a
+	signed decimal integer is the only lexeme, so no shared decimal
+	float parser exists and float inputs arrive as the signed decimal
+	value of their bit PATTERN.
+
+	ORDER IS PART OF THE FIXTURE.  Pre-state 2 means "carry", and the
+	.NCC cases depend on it absolutely: pv_dep_i is persistent state
+	and a DRAW case's answer is a function of every DRAW case before
+	it on the same handle.  A corpus reordered is a different fixture.
+
+	Build: powershell -File lino_build.ps1 -Src work\spmain.txt
+	Run:   the poll-and-kill pattern, collecting work\sp-out.bin.   )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	pgfp;
+
+	spmem;
+	spscale;
+	spmap;
+	spglobe;
+	spglow;
+	spbg;
+	spwhite;
+	spdark;
+	spncc;
+
+"directors"
+
+	program name = { spmain };
+	unit = 32;
+
+"variables"
+
+	MNop	= 0;
+	MNcases	= 0;
+	MNbad	= 0;
+	MNpre	= 0;
+	MNpres	= 0;
+	MNsreg	= 0;
+	MNi	= 0;
+	MNn	= 0;
+
+"programme"
+
+	=> SP run;
+	end;
+
+( ==================================================================== )
+
+"SP run"
+	=> FEnter;
+	=> PGF constants;
+	=> SP build rgt;
+	=> SP riga init;
+	=> SP gman init;
+	=> SDMP reset;
+	=> SP load maps;
+	=> SP ncc load;
+	=> SP unloadallpv;
+	=> CR load;
+	A = [CRbad]; ? A != 0 -> SP run io;
+	=> CR tokenise;
+	[CRti] = 0;
+	[MNcases] = 0;
+	[MNbad] = 0;
+
+    "SP run case"
+	=> CR next;
+	[MNop] = C;
+	A = [MNop];
+	? A = 0  -> SP run done;
+	? A = 1  -> SP do gras;
+	? A = 2  -> SP do glow;
+	? A = 3  -> SP do bg;
+	? A = 4  -> SP do dark;
+	? A = 5  -> SP do wglb;
+	? A = 6  -> SP do wsun;
+	? A = 7  -> SP do scal;
+	? A = 8  -> SP do mapd;
+	? A = 9  -> SP do offd;
+	? A = 10 -> SP do load;
+	? A = 11 -> SP do draw;
+	? A = 12 -> SP do copy;
+	? A = 13 -> SP do mod;
+	? A = 14 -> SP do setu;
+	? A = 15 -> SP do unld;
+	? A = 16 -> SP do dump;
+	[MNbad]+;
+	-> SP run done;
+
+    "SP run done"
+	=> SP trailer;
+	=> FLeave;
+	=> SDMP write;
+	end;
+    "SP run io"
+	[MNbad] = 99;
+	=> SP trailer;
+	=> FLeave;
+	=> SDMP write;
+	end;
+
+( -------------------------------------------------------------------- )
+( case head and tail                                                    )
+( -------------------------------------------------------------------- )
+
+      ( SP case head : caseid, the DESTINATION pre-state and the SOURCE
+	pre-state.  Both are FORMULAS - zero, a ramp, carry, or a flat
+	fill - never blobs, so neither side ever compares against a
+	checked-in binary that the port itself produced. )
+
+"SP case head"
+	=> CR next; [CScase] = C;
+	=> CR next; [MNpre] = C;
+	=> CR next; [MNpres] = C;
+	=> SP census reset;
+	end;
+
+      ( SP lay dst : apply [MNpre] to region [SPpreg] over [SPpn] bytes. )
+
+"SP lay dst"
+	A = [MNpre];
+	? A = 2 -> SP ld done;
+	? A = 1 -> SP ld ramp;
+	? A = 3 -> SP ld fill;
+	[SPval] = 0; => SP fill page; -> SP ld done;
+    "SP ld ramp"
+	=> SP ramp page; -> SP ld done;
+    "SP ld fill"
+	[SPval] = 200; => SP fill page;
+    "SP ld done"
+	end;
+
+      ( SP lay src : the same for the SOURCE region [MNsreg].  A
+	tapestry of zeroes makes globe's saturation floor invisible, so
+	the corpus can and does ask for a ramp. )
+
+"SP lay src"
+	A = [MNpres];
+	? A = 2 -> SP ls done;
+	[SPreg] = [MNsreg];
+	=> SP base; [SPtmp] = C;
+	A = [MNsreg]; A '* 4; A + rgt; [MNn] = [A plus 2];
+	[SPi] = 0;
+    "SP ls u"
+	C = 0;
+	A = [MNpres];
+	? A = 0 -> SP ls st;
+	? A = 3 -> SP ls f200;
+	C = [SPi]; C '* 101; C + 7; C & 255; -> SP ls st;
+    "SP ls f200"
+	C = 200;
+    "SP ls st"
+	A = nw; A + [SPtmp]; A + [SPi];
+	[A] = C;
+	[SPi]+;
+	A = [SPi]; ? A '< [MNn] -> SP ls u;
+    "SP ls done"
+	end;
+
+"SP case tail"
+	=> SDMP census;
+	=> SDMP surround;
+	=> SDMP page;
+	[MNcases]+;
+	end;
+
+( -------------------------------------------------------------------- )
+( 1 GRAS : caseid pre pres magpat cx cy gman start cmask sat tapreg bub )
+( -------------------------------------------------------------------- )
+
+"SP do gras"
+	=> SP case head;
+	=> CR next; [GBmag] = C;
+	=> CR next; [GBcx] = C;
+	=> CR next; [GBcy] = C;
+	=> CR next; [GBgman] = C;
+	=> CR next; [GBstart] = C;
+	=> CR next; [GBcmask] = C;
+	=> CR next; [GBsat] = C;
+	=> CR next; [GBtapreg] = C;
+	=> CR next; [GBbubble] = C;
+
+	[GBtabreg] = RGGLB;
+	[GBdstreg] = RGADP;
+	[GBbytes] = GLBYTES;
+	[SPpreg] = RGADP; [SPpn] = NPIX;
+	=> SP lay dst;
+	[MNsreg] = [GBtapreg];
+	=> SP lay src;
+
+	=> SP globe raster;
+	=> SP glass bubble;
+	=> SP globe emit;
+	=> SP case tail;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 2 GLOW : caseid pre pres magpat cx cy start arc color                 )
+( -------------------------------------------------------------------- )
+
+"SP do glow"
+	=> SP case head;
+	=> CR next; [GLmag] = C;
+	=> CR next; [GLcx] = C;
+	=> CR next; [GLcy] = C;
+	=> CR next; [GLstart] = C;
+	=> CR next; [GLarc] = C;
+	=> CR next; [GLcol] = C;
+
+	[GLtabreg] = RGGLB;
+	[GLdstreg] = RGADP;
+	[GLnb] = GLBYTES;
+	[SPpreg] = RGADP; [SPpn] = NPIX;
+	=> SP lay dst;
+
+	=> SP glow raster;
+	=> SP glow emit;
+	=> SP case tail;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 3 BG : caseid pre pres start shift invert                             )
+( -------------------------------------------------------------------- )
+
+"SP do bg"
+	=> SP case head;
+	=> CR next; [BGstart] = C;
+	=> CR next; [BGshift] = C;
+	=> CR next; [MNi] = C;
+
+	[BGtabreg] = RGOFF;
+	[BGsrcreg] = RGSBG;
+	[BGdstreg] = RGADP;
+	[BGbytes] = OMBYTES;
+	[SPpreg] = RGADP; [SPpn] = NPIX;
+	=> SP lay dst;
+	[MNsreg] = RGSBG;
+	=> SP lay src;
+
+	A = [MNi]; ? A = 0 -> SP bg noinv;
+	=> SP bg invert;
+    "SP bg noinv"
+	=> SP background;
+	=> SP bg emit;
+	=> SP case tail;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 4 DARK : caseid pre pres view rot                                     )
+( -------------------------------------------------------------------- )
+
+"SP do dark"
+	=> SP case head;
+	=> CR next; [DKview] = C;
+	=> CR next; [DKrot] = C;
+
+	[DKreg] = RGPBG;
+	[SPpreg] = RGPBG; [SPpn] = 64800;
+	=> SP lay dst;
+
+	=> SP term derive;
+	=> SP dark band;
+	=> SP dark emit;
+	=> SP case tail;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 5 WGLB / 6 WSUN : caseid pre pres magpat fgmpat xxlo xxhi yylo yyhi   )
+(                   zzlo zzhi                                           )
+( -------------------------------------------------------------------- )
+
+"SP do wglb"
+	[WHshape] = 2; [WHsun] = 0;
+	-> SP do white;
+"SP do wsun"
+	[WHshape] = 1; [WHsun] = 1;
+    "SP do white"
+	=> SP case head;
+	=> CR next; [WHmag] = C;
+	=> CR next; [WHfgm] = C;
+	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> PGF ldf64; [PGFi] = SFXX; => PGF sa;
+	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> PGF ldf64; [PGFi] = SFYY; => PGF sa;
+	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> PGF ldf64; [PGFi] = SFZZ; => PGF sa;
+
+	[WHdstreg] = RGADP;
+	[SPpreg] = RGADP; [SPpn] = NPIX;
+	=> SP lay dst;
+
+	=> SP white;
+	=> SP white emit;
+	=> SP case tail;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 7 SCAL : caseid magpat                                                )
+( -------------------------------------------------------------------- )
+
+      ( The exact integer scale, enumerated over the FULL signed 9-bit
+	range the x byte can carry, not over the range the shipped table
+	happens to use.  The enumeration is the proof; a proof over the
+	used subset would prove less. )
+
+"SP do scal"
+	=> CR next; [CScase] = C;
+	=> CR next; [SCmag] = C;
+	=> SP scale sweep;
+	A = sphdr; [A plus 0] = [SCmag];
+	[SKind] = K39; [STag] = 1;
+	[SW] = 1; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 1;
+	=> SDMP rec;
+	[SKind] = K39; [STag] = 2;
+	[SW] = 212; [SH] = 1;
+	[SBptr] = sppack; [SBcnt] = 212;
+	=> SDMP rec;
+	[MNcases]+;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 8 MAPD : caseid reg bytes    /    9 OFFD : caseid reg bytes           )
+( -------------------------------------------------------------------- )
+
+"SP do mapd"
+	=> CR next; [CScase] = C;
+	=> CR next; [MPreg] = C;
+	=> CR next; [MPbytes] = C;
+	=> SP map walk;
+	=> SP map emit;
+	[MNcases]+;
+	-> SP run case;
+
+"SP do offd"
+	=> CR next; [CScase] = C;
+	=> CR next; [MPreg] = C;
+	=> CR next; [MPbytes] = C;
+	=> SP off walk;
+	=> SP off emit;
+	[MNcases]+;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 10 LOAD : caseid handle model xs ys zs xm ym zm color ds              )
+( -------------------------------------------------------------------- )
+
+"SP do load"
+	=> CR next; [CScase] = C;
+	=> CR next; [PVh] = C;
+	=> CR next; [PVmodel] = C;
+	=> CR next; [PVxs] = C;
+	=> CR next; [PVys] = C;
+	=> CR next; [PVzs] = C;
+	=> CR next; [PVxm] = C;
+	=> CR next; [PVym] = C;
+	=> CR next; [PVzm] = C;
+	=> CR next; [PVcol] = C;
+	=> CR next; [PVreq] = C;
+	=> SP loadpv;
+	=> SP arena emit;
+	[MNcases]+;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 11 DRAW : caseid handle mode uds cx cy cz camx camy camz              )
+( -------------------------------------------------------------------- )
+
+"SP do draw"
+	=> CR next; [CScase] = C;
+	=> CR next; [PVh] = C;
+	=> CR next; [DWmode] = C;
+	=> CR next; [DWuds] = C;
+	=> CR next; [DWcx] = C;
+	=> CR next; [DWcy] = C;
+	=> CR next; [DWcz] = C;
+	=> CR next; [DWcamx] = C;
+	=> CR next; [DWcamy] = C;
+	=> CR next; [DWcamz] = C;
+	=> SP drawpv;
+	=> SP call emit;
+	=> SP depi emit;
+	[MNcases]+;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 12 COPY : caseid dest src    /    15 UNLD : caseid                    )
+( -------------------------------------------------------------------- )
+
+"SP do copy"
+	=> CR next; [CScase] = C;
+	=> CR next; [PVh] = C;
+	=> CR next; [PVk] = C;
+	=> SP copypv;
+	=> SP arena emit;
+	[MNcases]+;
+	-> SP run case;
+
+"SP do unld"
+	=> CR next; [CScase] = C;
+	=> SP unloadallpv;
+	=> SP arena emit;
+	[MNcases]+;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 13 MOD : caseid handle pid vid xs ys zs xa ya za nlist [words]        )
+( -------------------------------------------------------------------- )
+
+"SP do mod"
+	=> CR next; [CScase] = C;
+	=> CR next; [PVh] = C;
+	=> CR next; [MOpid] = C;
+	=> CR next; [MOvid] = C;
+	=> CR next; [MOxs] = C;
+	=> CR next; [MOys] = C;
+	=> CR next; [MOzs] = C;
+	=> CR next; [MOxa] = C;
+	=> CR next; [MOya] = C;
+	=> CR next; [MOza] = C;
+	=> CR next; [MNn] = C;
+	[MOlist] = 0;
+	A = [MNn]; ? A = 0 -> SP dm run;
+	[MOlist] = 1;
+	[MNi] = 0;
+    "SP dm w"
+	=> CR next;
+	A = pvlst; A + [MNi]; [A] = C;
+	[MNi]+;
+	A = [MNi]; ? A '< [MNn] -> SP dm w;
+    "SP dm run"
+	=> SP modpv;
+	=> SP arena emit;
+	[MNcases]+;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 14 SETU : caseid which magpat xxlo xxhi yylo yyhi zzlo zzhi           )
+( -------------------------------------------------------------------- )
+
+      ( which: 0 = globe's preamble, 1 = glowinglobe's.  The two share a
+	rotation nucleus and differ in the clamp order and the reject
+	window; running both from the same inputs is what makes the
+	difference a measured number. )
+
+"SP do setu"
+	=> CR next; [CScase] = C;
+	=> CR next; [MNi] = C;
+	=> CR next; [MNn] = C;
+	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> PGF ldf64; [PGFi] = SFXX; => PGF sa;
+	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> PGF ldf64; [PGFi] = SFYY; => PGF sa;
+	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> PGF ldf64; [PGFi] = SFZZ; => PGF sa;
+
+	A = [MNi]; ? A != 0 -> SP ds glow;
+	[GBmag] = [MNn];
+	=> SP globe setup;
+	=> SP setup emit;
+	-> SP ds done;
+    "SP ds glow"
+	[GLmag] = [MNn];
+	=> SP glow setup;
+	[GBmag] = [GLmag];
+	[GBcx] = [GLcx];
+	[GBcy] = [GLcy];
+	[GBgman] = 0;
+	=> SP setup emit;
+    "SP ds done"
+	[MNcases]+;
+	-> SP run case;
+
+( -------------------------------------------------------------------- )
+( 16 DUMP : caseid handle - the arena, the geometry and pv_dep_i        )
+( -------------------------------------------------------------------- )
+
+"SP do dump"
+	=> CR next; [CScase] = C;
+	=> CR next; [PVh] = C;
+	=> SP arena emit;
+	=> SP f32 emit;
+	=> SP depi emit;
+	[MNcases]+;
+	-> SP run case;
+
+( ==================================================================== )
+( the trailer                                                           )
+( ==================================================================== )
+
+      ( [MNcases] is COUNTED, the control word is READ BACK from the FPU
+	and the token count comes from the parser - so a driver that
+	stopped early, a build with no FEnter bracket and a corpus that
+	failed to load are three different visible failures rather than
+	one silent one.  [SPload] carries the asset-length checks. )
+
+"SP trailer"
+	=> FCWRead;  [MNi] = [FI];
+	=> FStackOK; [MNn] = [FI];
+	A = sphdr;
+	[A plus 0]  = [MNcases];
+	[A plus 1]  = [MNbad];
+	[A plus 2]  = [CRtokn];
+	[A plus 3]  = [CRbytes];
+	[A plus 4]  = [CRti];
+	[A plus 5]  = [MNi];
+	[A plus 6]  = [FFLG];
+	[A plus 7]  = [MNn];
+	[A plus 8]  = [SPload];
+	[A plus 9]  = [NCtop];
+	[A plus 10] = [PVtop];
+	[A plus 11] = [MCoob];
+	[A plus 12] = 0; [A plus 13] = 0; [A plus 14] = 0; [A plus 15] = 0;
+	[SKind] = K3B; [STag] = 1;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+	end;

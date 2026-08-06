@@ -1,0 +1,708 @@
+      ( *** spglobe - globe(): the float preamble, the INTEGER raster,
+	    the four fill managers, smootharound_64 and the glass bubble ***
+
+	THE STRUCTURAL DECISION OF THIS WAVE.  globe() is split into a
+	float "setup" and an integer "raster" with an explicit pinned-input
+	entry to the raster.  That is what makes the page byte-exact
+	rather than envelope-bounded, and it is the same move Wave 6a made
+	when it fed pinned vertices to poly3d.
+
+	  SP globe setup   x/y/z, mag_factor  ->  center_x, center_y,
+	                   the CLAMPED mag_factor as a binary32 pattern,
+	                   and the gman selection.  FLOAT.  Bounded.
+	  SP globe raster  those, plus start / colormask / saturation /
+	                   the two region ids  ->  the page.  INTEGER.
+	                   Byte-exact, zero tolerance.
+
+	THE PARAMETER NAMED offsetsmap IS THE GLOBES MAP.  Every caller of
+	globe() passes n_globes_map into a parameter called "offsetsmap"
+	(NOCTIS.CPP:2588 and :2593, NOCTIS-0.CPP:5565).  The offsets map
+	goes only to background().  The raster entry therefore names its
+	two region ids [GBtabreg] (the GLOBES table) and [GBtapreg] (the
+	tapestry that is SAMPLED), and they are separate arguments so
+	wiring them backwards is a corpus error, not a silent one.
+
+	THE FOUR CLIP ARMS ARE COUNTED SEPARATELY.  "cmp di,6 / jb" and
+	"cmp di,191 / jnb" are UNSIGNED, and so are the two X arms against
+	6 and 311.  niv-lr writes "pos > 6" and "offset > 6", which is off
+	by one on both low bounds; that is a single-arm error a page
+	compare can miss whenever the pixel would be overpainted anyway,
+	so the four rejection counts are emitted as four separate integers.
+
+	THE CURSOR ADVANCES ON CLIPPED RECORDS.  clipout is "add bx,1",
+	reached from every one of the four rejections.  Over the shipped
+	table the pass ends at start + 42,845 - not start + 43,200; the
+	total advance is 10,780 draws plus 32,065 units of skip, measured,
+	and the round number is a property of the intended 120-arc
+	structure rather than of the shipped bytes.
+
+	riga IS NOT REACHED OUT OF RANGE HERE.  globe clips Y to 6..190
+	BEFORE the "add di,di", so the doubled index is 12..380 and always
+	lands inside the 400-byte table.  glowinglobe does not, which is
+	why spglow carries an OOB census and this file does not.        )
+
+"constants"
+
+	GBRIGAN	= 200;			( unsigned riga[200] )
+
+"variables"
+
+	( ---- pinned raster inputs ---- )
+	GBmag	= 0;		( binary32 pattern, ALREADY clamped )
+	GBcx	= 0;
+	GBcy	= 0;
+	GBgman	= 0;		( 1..4 )
+	GBstart	= 0;
+	GBcmask	= 0;
+	GBsat	= 0;
+	GBtabreg = 0;		( the GLOBES table          )
+	GBtapreg = 0;		( the tapestry that is READ )
+	GBdstreg = 0;		( the page that is WRITTEN  )
+	GBbytes	= 0;
+
+	( ---- setup outputs ---- )
+	GBbubble = 0;		( glass_bubble flag )
+	GBok	= 0;		( 0 = the setup returned early )
+
+	( ---- derived census ---- )
+	GBry0	= 0;		( Y low  arm, di < 6      )
+	GBry1	= 0;		( Y high arm, di >= 191   )
+	GBrx0	= 0;		( X low  arm, ax < 6      )
+	GBrx1	= 0;		( X high arm, ax >= 311   )
+	GBpaint	= 0;		( records that reached a gman )
+	GBcur	= 0;		( bx at pass end )
+	GBg1	= 0;
+	GBg2	= 0;
+	GBg3	= 0;
+	GBg4	= 0;
+
+	( ---- loop state ---- )
+	GBsi	= 0;
+	GBbx	= 0;
+	GBcxr	= 0;		( the record loop counter )
+	GBdi	= 0;
+	GBax	= 0;
+	GBdl	= 0;
+	GBy	= 0;
+	GBx	= 0;
+
+	( ---- smootharound_64 ---- )
+	SAtcx	= 0;	SAtcy	= 0;	SAr	= 0;	SAdif	= 0;
+	SAx1	= 0;	SAy1	= 0;	SAx2	= 0;	SAy2	= 0;
+	SApx	= 0;	SApy	= 0;	SArs	= 0;	SAcp	= 0;
+	SAp0	= 0;	SAp1	= 0;	SAp2	= 0;	SAp3	= 0;
+	SAavg	= 0;
+
+	GBt	= 0;
+	GBi	= 0;
+	GBj	= 0;
+
+"workspace"
+
+	sprg	= 200;			( riga[] )
+	spgmt	= 32;			( gman byte-delta table  )
+	spgmi	= 10;			( per-gman (offset, count) )
+
+"programme"
+
+( ==================================================================== )
+( tables                                                                )
+( ==================================================================== )
+
+      ( SP riga init : riga[c] = 320*c, TDPOLYGS.H:137.  There is nothing
+	to store beyond that; the table is written once by initscanlines. )
+
+"SP riga init"
+	[GBi] = 0;
+    "SP ri c"
+	A = sprg; A + [GBi];
+	C = [GBi]; C '* 320;
+	[A] = C;
+	[GBi]+;
+	A = [GBi]; ? A '< GBRIGAN -> SP ri c;
+	end;
+
+      ( SP riga at : C <- the WORD at byte offset [GBt] of riga[].
+
+	[GBt] is already 16-bit truncated by the caller, and it is always
+	even because the only producer is "add di,di".  The element index
+	is therefore GBt/2, which for GBt >= 65536-... cannot arise; what
+	CAN arise in glowinglobe is an index at or beyond 200, and that
+	reads DGROUP bytes past the table.
+
+	THE VALUE OF SUCH A READ IS NOT GRADED.  Reproducing it needs the
+	loaded DGROUP image around DS:0x435C, which is not recoverable
+	statically with confidence.  The INDEX SEQUENCE is exact and is
+	emitted; the value is a documented stand-in of zero and every
+	access is counted in [CSoob], so a case that took this path is
+	visible and its page can be excluded rather than silently graded. )
+
+"SP riga at"
+	A = [GBt]; A > 1;
+	? A '>= GBRIGAN -> SP ra oob;
+	C = sprg; C + A; C = [C];
+	end;
+    "SP ra oob"
+	[CSoob]+;
+	C = 0;
+	end;
+
+      ( SP gman init : the four fill managers' byte-delta sets, RELATIVE
+	TO di+4.  Read straight out of NOCTIS-0.CPP:3007-3040:
+
+	  gman1x1  mov es:[di+4],dl                       {0}
+	  gman2x2  word [di+4]      word [di+324]         {0,1, 320,321}
+	  gman3x3  word [di+4] byte [di+6]  word [di+324]
+	           byte [di+326] word [di+644] byte [di+646]
+	                                                  {0,1,2, 320..322, 640..642}
+	  gman4x4  word [di+4] word [di+6]  word [di+324]
+	           word [di+326] word [di+644] word [di+646]
+	           word [di+964] word [di+966]
+	                                                  {0..3, 320..323, 640..643, 960..963}
+
+	Every byte carries the SAME value: the assembly does "mov dh,dl"
+	first, so the word stores write dl twice.  Each byte's effective
+	address is formed as a 16-bit sum, so each is masked separately -
+	a word store at offset 65535 puts its second byte at offset 0. )
+
+"SP gman init"
+	[GBi] = 0; [GBj] = 0;
+    "SP gm n"
+	( n = GBi+1 rows and columns )
+	A = [GBi]; A '* 2; C = spgmi; C + A;
+	[C plus 0] = [GBj];
+	A = [GBi]; A+; C = A; A '* C; D = spgmi; C = [GBi]; C '* 2; D + C;
+	[D plus 1] = A;
+	[GBt] = 0;
+    "SP gm r"
+	[SPk] = 0;
+    "SP gm c"
+	A = spgmt; A + [GBj];
+	C = [GBt]; C '* 320; C + [SPk];
+	[A] = C;
+	[GBj]+;
+	[SPk]+;
+	A = [SPk]; C = [GBi]; C+; ? A '< C -> SP gm c;
+	[GBt]+;
+	A = [GBt]; C = [GBi]; C+; ? A '< C -> SP gm r;
+	[GBi]+;
+	A = [GBi]; ? A '< 4 -> SP gm n;
+	end;
+
+      ( SP gman : write [GBdl] into the [GBgman] block at DOS offset
+	[GBdi] + 4 + delta, each byte masked on its own. )
+
+"SP gman"
+	A = [GBgman]; A - 1; A '* 2; C = spgmi; C + A;
+	[GBi] = [C plus 0];
+	[GBj] = [C plus 1];
+	[SPreg] = [GBdstreg];
+	[SPval] = [GBdl];
+	[SPk] = 0;
+    "SP gmn b"
+	A = spgmt; A + [GBi]; A + [SPk];
+	C = [GBdi]; C + 4; C + [A];
+	[SPoff] = C;
+	=> SP put;
+	[SPk]+;
+	A = [SPk]; ? A '< [GBj] -> SP gmn b;
+	end;
+
+( ==================================================================== )
+( globe() - the INTEGER raster                                          )
+( ==================================================================== )
+
+"SP globe raster"
+	[GBry0] = 0; [GBry1] = 0; [GBrx0] = 0; [GBrx1] = 0;
+	[GBpaint] = 0;
+	[CSdraw] = 0; [CSskip] = 0;
+
+	( les ax,tapestry / add start,ax / mov bx,start : the SOURCE index
+	  carries farmalloc's offset of 4.  les ax,target discards its
+	  offset, and every gman supplies it as the +4 displacement. )
+	A = [GBstart]; A + 4; A & 65535; [GBbx] = A;
+	[GBsi] = 0;
+	A = [GBbytes]; A > 1; [GBcxr] = A;
+	A = [GBcxr]; ? A = 0 -> SP gr done;
+
+    "SP gr rec"
+	( cmp byte ptr [si],100 - the sentinel is the EVEN byte and only
+	  the even byte.  32 DRAW records of the shipped table carry an x
+	  byte of exactly 100 and a parity-blind scan corrupts them. )
+	[SPreg] = [GBtabreg];
+	A = [GBsi]; A + 4; [SPoff] = A; => SP get; [GBy] = [SPval];
+	A = [GBsi]; A + 5; [SPoff] = A; => SP get; [GBx] = [SPval];
+
+	A = [GBy]; ? A = 100 -> SP gr blanket;
+
+	( ---- the Y component ---- )
+	[CSdraw]+;
+	C = [GBy]; => SP sx8;
+	[SCdy] = C; [SCmag] = [GBmag]; => SP scale;
+	A = [SCout]; A + [GBcy]; A & 65535; [GBdi] = A;
+	A = [GBdi]; ? A '< 6 -> SP gr ry0;
+	A = [GBdi]; ? A '>= 191 -> SP gr ry1;
+
+	( ---- the X component.  al = [si+1] is loaded BEFORE "add di,di"
+	  and the cbw happens AFTER it, which is why the x byte is read
+	  once and used twice in the original and once here. ---- )
+	A = [GBdi]; A + A; A & 65535; [GBt] = A;
+	=> SP riga at;
+	[GBdi] = C;
+
+	C = [GBx]; => SP sx8;
+	[SCdy] = C; [SCmag] = [GBmag]; => SP scale;
+	A = [SCout]; A + [GBcx]; A & 65535; [GBax] = A;
+	A = [GBax]; ? A '< 6 -> SP gr rx0;
+	A = [GBax]; ? A '>= 311 -> SP gr rx1;
+
+	A = [GBdi]; A + [GBax]; A & 65535; [GBdi] = A;
+
+	( ---- the tapestry sample and the saturation floor ----
+	  "cmp dl,globe_saturation / jnb asis / mov dl,globe_saturation"
+	  is an UNSIGNED compare on the byte, and the OR with colormask
+	  happens AFTER the floor, so the order is observable. )
+	[SPreg] = [GBtapreg];
+	[SPoff] = [GBbx];
+	=> SP get;
+	[GBdl] = [SPval];
+	A = [GBsat]; A & 255; [GBt] = A;
+	A = [GBdl]; ? A '>= [GBt] -> SP gr asis;
+	[GBdl] = [GBt];
+    "SP gr asis"
+	A = [GBcmask]; A & 255; C = [GBdl]; C | A; [GBdl] = C;
+
+	=> SP gman;
+	[GBpaint]+;
+	A = [GBgman];
+	? A = 1 -> SP gr g1;
+	? A = 2 -> SP gr g2;
+	? A = 3 -> SP gr g3;
+	[GBg4]+; -> SP gr clipout;
+    "SP gr g1"
+	[GBg1]+; -> SP gr clipout;
+    "SP gr g2"
+	[GBg2]+; -> SP gr clipout;
+    "SP gr g3"
+	[GBg3]+; -> SP gr clipout;
+
+    "SP gr ry0"
+	[GBry0]+; -> SP gr clipout;
+    "SP gr ry1"
+	[GBry1]+; -> SP gr clipout;
+    "SP gr rx0"
+	[GBrx0]+; -> SP gr clipout;
+    "SP gr rx1"
+	[GBrx1]+;
+
+    "SP gr clipout"
+	( clipout: add bx,1 - the cursor advances on CLIPPED records too. )
+	A = [GBbx]; A + 1; A & 65535; [GBbx] = A;
+	-> SP gr next;
+
+    "SP gr blanket"
+	( blanket: mov al,[si+1] / xor ah,ah / add bx,ax.  UNSIGNED.
+	  Not gradeable against the shipped table - every skip byte there
+	  is <= 100 - and deliberately not claimed to be. )
+	[CSskip]+;
+	A = [GBbx]; A + [GBx]; A & 65535; [GBbx] = A;
+
+    "SP gr next"
+	A = [GBsi]; A + 2; [GBsi] = A;
+	A = [GBcxr]; A - 1; [GBcxr] = A;
+	? A != 0 -> SP gr rec;
+
+    "SP gr done"
+	[GBcur] = [GBbx];
+	[CScur] = [GBbx];
+	end;
+
+      ( SP globe emit : the clip and cursor census. )
+
+"SP globe emit"
+	A = sphdr;
+	[A plus 0]  = [GBry0];
+	[A plus 1]  = [GBry1];
+	[A plus 2]  = [GBrx0];
+	[A plus 3]  = [GBrx1];
+	[A plus 4]  = [GBpaint];
+	[A plus 5]  = [GBcur];
+	[A plus 6]  = [CSdraw];
+	[A plus 7]  = [CSskip];
+	[A plus 8]  = [GBgman];
+	[A plus 9]  = [GBmag];
+	[A plus 10] = [GBcx];
+	[A plus 11] = [GBcy];
+	[A plus 12] = [GBg1];
+	[A plus 13] = [GBg2];
+	[A plus 14] = [GBg3];
+	[A plus 15] = [GBg4];
+	[SKind] = K33; [STag] = 1;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+	end;
+
+( ==================================================================== )
+( globe() - the FLOAT preamble                                          )
+( ==================================================================== )
+
+      ( SP globe setup : the rotation nucleus, the reject tests, the
+	clamp ladder and the two centres.
+
+	THE ROTATION NUCLEUS IS CHARACTER FOR CHARACTER project3d's:
+
+	    rx = xx*opt_pcosbeta + zz*opt_psinbeta
+	    z2 = zz*opt_tcosbeta - xx*opt_tsinbeta
+	    rz = z2*opt_tcosalfa + yy*opt_tsinalfa
+	    ry = yy*opt_pcosalfa - z2*opt_psinalfa
+
+	so globe's centre IS project3d's projection of the body centre and
+	shares dpp - while the GLOBES table's own focal length is a baked
+	asset constant that must NOT be derived from dpp.  The two cameras
+	are different: the runtime one is isotropic at dpp = 210, the
+	table's is anisotropic with Fx/Fy = 1.25.  Deriving one from the
+	other is a real and available wrong answer.
+
+	THE CENTRES ARE __ftol CHOP, NOT fistp.  "center_x = rx +
+	x_centro_f" is a C cast to int, which Borland implements by
+	flipping the rounding control to chop.  project3d ends on fistp
+	and whiteglobe adds +0.5 before its (absent) cast: three different
+	roundings across four functions, each one a falsifier.
+
+	THE CLAMP LADDER'S ORDER IS OBSERVABLE.  The 0.001 floor comes
+	FIRST, the gman thresholds are read off the possibly-floored
+	value, and the 1.32 ceiling comes LAST - so mag > 1.32 selects
+	gman4x4 AND clamps.  glowinglobe uses the opposite order and that
+	difference is checked separately in spglow.
+
+	The inputs arrive as binary64 halves in the slots SFXX..SFZZ,
+	already reduced by dzat: this entry takes xx/yy/zz, not x/y/z,
+	because the subtraction is the caller's and pinning it here would
+	make the corpus carry the camera twice. )
+
+"SP globe setup"
+	[GBok] = 0;
+
+	( rx = xx*pcb + zz*psb )
+	[PGFi] = SFXX; => PGF a; [PGFi] = FSPCB; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZZ; => PGF a; [PGFi] = FSPSB; => PGF mul;
+	[PGFi] = SFT0; => PGF add; [PGFi] = SFRX; => PGF sa;
+
+	( z2 = zz*tcb - xx*tsb )
+	[PGFi] = SFZZ; => PGF a; [PGFi] = FSTCB; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFXX; => PGF a; [PGFi] = FSTSB; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFZ2; => PGF sa;
+
+	( rz = z2*tca + yy*tsa )
+	[PGFi] = SFZ2; => PGF a; [PGFi] = FSTCA; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFYY; => PGF a; [PGFi] = FSTSA; => PGF mul;
+	[PGFi] = SFT0; => PGF add; [PGFi] = SFRZ; => PGF sa;
+
+	( ry = yy*pca - z2*psa )
+	[PGFi] = SFYY; => PGF a; [PGFi] = FSPCA; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZ2; => PGF a; [PGFi] = FSPSA; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFRY; => PGF sa;
+
+	( if (rz < 0.001) return )
+	[PGFi] = SFRZ; => PGF a;
+	[PGFt] = D001L; [PGFu] = D001H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRZ; => PGF a;
+	=> FCmp;
+	A = [FI]; ? A < 0 -> SP gs out;
+
+	( mag_factor /= rz.  mag_factor IS A FLOAT VARIABLE, so the
+	  quotient is narrowed on the way back into it - and that narrowed
+	  binary32 is what the fmul in the raster reads. )
+	[PGFt] = [GBmag]; => PGF ldf32;
+	[PGFi] = SFRZ; => PGF quo;
+	=> F32Narrow;
+	[PGFi] = SFMAG; => PGF sa;
+
+	( gman = gman1x1 )
+	[GBgman] = 1;
+
+	( if (mag_factor < 0.01) mag_factor = 0.001 )
+	[PGFt] = D01L; [PGFu] = D01H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFMAG; => PGF a;
+	=> FCmp;
+	A = [FI]; ? A >= 0 -> SP gs c33;
+	[PGFt] = F001; => PGF ldf32; [PGFi] = SFMAG; => PGF sa;
+
+    "SP gs c33"
+	[PGFt] = D33L; [PGFu] = D33H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFMAG; => PGF a;
+	=> FCmp;
+	A = [FI]; ? A != 1 -> SP gs c66;
+	[GBgman] = 2;
+    "SP gs c66"
+	[PGFt] = D66L; [PGFu] = D66H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFMAG; => PGF a;
+	=> FCmp;
+	A = [FI]; ? A != 1 -> SP gs c99;
+	[GBgman] = 3;
+    "SP gs c99"
+	[PGFt] = D99L; [PGFu] = D99H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFMAG; => PGF a;
+	=> FCmp;
+	A = [FI]; ? A != 1 -> SP gs c132;
+	[GBgman] = 4;
+    "SP gs c132"
+	[PGFt] = D132L; [PGFu] = D132H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFMAG; => PGF a;
+	=> FCmp;
+	A = [FI]; ? A != 1 -> SP gs rxy;
+	[PGFt] = F132; => PGF ldf32; [PGFi] = SFMAG; => PGF sa;
+
+    "SP gs rxy"
+	( rx /= rz ; ry /= rz )
+	[PGFi] = SFRX; => PGF a; [PGFi] = SFRZ; => PGF quo;
+	[PGFi] = SFRX; => PGF sa;
+	[PGFi] = SFRY; => PGF a; [PGFi] = SFRZ; => PGF quo;
+	[PGFi] = SFRY; => PGF sa;
+
+	( if (rx < -292 || rx > 292) return ; likewise ry against 232 )
+	[PGFi] = SFRX; => PGF a; => FAbs;
+	[PGFt] = D292L; [PGFu] = D292H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRX; => PGF a; => FAbs;
+	=> FCmp;
+	A = [FI]; ? A = 1 -> SP gs out;
+	[PGFt] = D232L; [PGFu] = D232H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRY; => PGF a; => FAbs;
+	=> FCmp;
+	A = [FI]; ? A = 1 -> SP gs out;
+
+	( center_x = (int)(rx + x_centro_f), __ftol CHOP on the live
+	  extended value - NOT a fistp. )
+	[PGFi] = SFRX; => PGF a;
+	[PGFt] = F32XC; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRX; => PGF a; => FAdd;
+	=> FToIntChop; => FNarrow16;
+	[GBcx] = [FI];
+
+	[PGFi] = SFRY; => PGF a;
+	[PGFt] = F32YC; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRY; => PGF a; => FAdd;
+	=> FToIntChop; => FNarrow16;
+	[GBcy] = [FI];
+
+	( the clamped mag_factor, as the binary32 pattern the raster reads )
+	[PGFi] = SFMAG; => PGF a; => PGF stf32;
+	[GBmag] = [PGFt];
+
+	[GBok] = 1;
+    "SP gs out"
+	end;
+
+      ( SP setup emit : what the preamble produced.  The two centres are
+	the BOUNDED quantities of this wave and are emitted as integers
+	so they can be compared exactly rather than inside an envelope. )
+
+"SP setup emit"
+	A = sphdr;
+	[A plus 0]  = [GBok];
+	[A plus 1]  = [GBcx];
+	[A plus 2]  = [GBcy];
+	[A plus 3]  = [GBmag];
+	[A plus 4]  = [GBgman];
+	[A plus 5]  = 0; [A plus 6] = 0; [A plus 7] = 0;
+	[A plus 8]  = 0; [A plus 9] = 0; [A plus 10] = 0; [A plus 11] = 0;
+	[A plus 12] = 0; [A plus 13] = 0; [A plus 14] = 0; [A plus 15] = 0;
+	[SKind] = K3D; [STag] = 1;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+	end;
+
+( ==================================================================== )
+( smootharound_64 - integer, and the glass bubble's only painter        )
+( ==================================================================== )
+
+      ( NOCTIS-0.CPP:607-682.  "les di,target / add di,cp" carries
+	farmalloc's offset of 4 inside DI, so the byte touched is page
+	byte cp, with no skew.
+
+	THE DIFFUSE BRANCH averages FOUR pixels and preserves each one's
+	own top two bits:
+
+	    avg = ((p0&3F)+(p1&3F)+(p2&3F)+(p3&3F)) >> 2
+	    [cp]     = avg | (p0 & C0)      [cp+1]   = avg | (p1 & C0)
+	    [cp+320] = avg | (p2 & C0)      [cp+321] = avg | (p3 & C0)
+
+	The 16-bit "add ax,bx" cannot carry out of the low byte because
+	each masked component is at most 3Fh, which is why the assembly
+	can get away with it and why writing it as two byte adds is
+	faithful rather than a simplification. )
+
+"SP smooth64"
+	A = [SAr]; ? A <= 0 -> SP sm out;
+
+	C = [SAtcx]; C - [SAr]; [SAx1] = C;
+	C = [SAtcy]; C - [SAr]; [SAy1] = C;
+	C = [SAtcx]; C + [SAr]; [SAx2] = C;
+	C = [SAtcy]; C + [SAr]; [SAy2] = C;
+
+	A = [SAx1]; ? A > 318 -> SP sm out;
+	A = [SAy1]; ? A > 198 -> SP sm out;
+	A = [SAy1]; ? A >= 0 -> SP sm y1ok;
+	[SAy1] = 0;
+    "SP sm y1ok"
+	A = [SAx2]; ? A < 0 -> SP sm out;
+	A = [SAx2]; ? A <= 318 -> SP sm x2ok;
+	[SAx2] = 318;
+    "SP sm x2ok"
+	A = [SAy2]; ? A < 0 -> SP sm out;
+	A = [SAy2]; ? A <= 198 -> SP sm y2ok;
+	[SAy2] = 198;
+    "SP sm y2ok"
+	A = [SAr]; C = A; A * C; [SArs] = A;
+	A = 0; A - [SAr]; [SApy] = A;
+
+    "SP sm row"
+	A = 0; A - [SAr]; [SApx] = A;
+	C = [SAtcx]; C - [SAr]; [SAx1] = C;
+	A = [SAx1]; ? A >= 0 -> SP sm xok;
+	C = [SApx]; C - [SAx1]; [SApx] = C;
+	[SAx1] = 0;
+    "SP sm xok"
+	C = [SAy1]; C '* 320; C + [SAx1]; C & 65535; [SAcp] = C;
+
+    "SP sm col"
+	A = [SAx1]; ? A > [SAx2] -> SP sm rownext;
+	A = [SApx]; C = A; A * C; [GBt] = A;
+	A = [SApy]; C = A; A * C; C = [GBt]; A + C;
+	? A >= [SArs] -> SP sm skip;
+
+	[SPreg] = [GBdstreg];
+	A = [SAcp]; A + 4; [SPoff] = A; => SP get; [SAp0] = [SPval];
+	A = [SAcp]; A + 5; [SPoff] = A; => SP get; [SAp1] = [SPval];
+	A = [SAcp]; A + 324; [SPoff] = A; => SP get; [SAp2] = [SPval];
+	A = [SAcp]; A + 325; [SPoff] = A; => SP get; [SAp3] = [SPval];
+
+	A = [SAp0]; A & 63;
+	C = [SAp1]; C & 63; A + C;
+	C = [SAp2]; C & 63; A + C;
+	C = [SAp3]; C & 63; A + C;
+	A > 2; [SAavg] = A;
+
+	A = [SAdif]; ? A = 0 -> SP sm flat;
+
+	C = [SAp0]; C & 192; C | [SAavg]; [SPval] = C;
+	A = [SAcp]; A + 4; [SPoff] = A; => SP put;
+	C = [SAp1]; C & 192; C | [SAavg]; [SPval] = C;
+	A = [SAcp]; A + 5; [SPoff] = A; => SP put;
+	C = [SAp2]; C & 192; C | [SAavg]; [SPval] = C;
+	A = [SAcp]; A + 324; [SPoff] = A; => SP put;
+	C = [SAp3]; C & 192; C | [SAavg]; [SPval] = C;
+	A = [SAcp]; A + 325; [SPoff] = A; => SP put;
+	-> SP sm skip;
+
+    "SP sm flat"
+	( the non-diffuse branch writes ONE byte and takes its top two
+	  bits from p0 only - "mov cl,al / and cl,0C0h / or al,cl". )
+	C = [SAp0]; C & 192; C | [SAavg]; [SPval] = C;
+	A = [SAcp]; A + 4; [SPoff] = A; => SP put;
+
+    "SP sm skip"
+	[SAcp]+;
+	[SApx]+;
+	[SAx1]+;
+	-> SP sm col;
+
+    "SP sm rownext"
+	[SApy]+;
+	[SAy1]+;
+	A = [SAy1]; ? A <= [SAy2] -> SP sm row;
+    "SP sm out"
+	end;
+
+      ( SP glass bubble : globe()'s tail.
+
+	    temp = mag_factor * 7.25          (int) - __ftol CHOP
+	    if (!temp) return
+	    rx = mag_factor * 110
+	    ry = (1.2 * deg) / mag_factor
+	    rz = 0.5 * ry
+	    z2 = 0.833 * rx
+	    while (rz < 2*M_PI)
+	        smootharound_64 (target, center_x + rx*cos(rz),
+	                                 center_y + z2*sin(rz), temp, 1)
+	        rz += ry
+
+	The two coordinates are longs, so they are casts and therefore
+	chops as well.  mag_factor here is the CLAMPED binary32 the raster
+	used, not the pre-clamp value. )
+
+"SP glass bubble"
+	A = [GBbubble]; ? A = 0 -> SP gb out;
+
+	[PGFt] = [GBmag]; => PGF ldf32; [PGFi] = SFMAG; => PGF sa;
+
+	[PGFi] = SFMAG; => PGF a;
+	[PGFt] = D725L; [PGFu] = D725H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFMAG; => PGF a; => FMul;
+	=> FToIntChop; => FNarrow16;
+	[SAr] = [FI];
+	A = [SAr]; ? A = 0 -> SP gb out;
+
+	( rx = mag*110 )
+	[PGFt] = D110L; [PGFu] = D110H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFMAG; => PGF a; => FMul; [PGFi] = SFRX; => PGF sa;
+
+	( ry = (1.2*deg)/mag )
+	[PGFt] = DDEGL; [PGFu] = DDEGH; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFt] = D12L; [PGFu] = D12H; => PGF ldf64; => FMul;
+	[PGFi] = SFMAG; => PGF quo; [PGFi] = SFRY; => PGF sa;
+
+	( rz = 0.5*ry )
+	[PGFi] = SFRY; => PGF a;
+	[PGFt] = D05L; [PGFu] = D05H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRY; => PGF a; => FMul; [PGFi] = SFRZ; => PGF sa;
+
+	( z2 = 0.833*rx )
+	[PGFt] = D833L; [PGFu] = D833H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRX; => PGF a; => FMul; [PGFi] = SFZ2; => PGF sa;
+
+    "SP gb step"
+	[PGFt] = D2PIL; [PGFu] = D2PIH; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRZ; => PGF a;
+	=> FCmp;
+	A = [FI]; ? A >= 0 -> SP gb out;
+
+	[PGFi] = SFRZ; => PGF a; => FCos;
+	[PGFi] = SFRX; => PGF mul;
+	=> FToIntChop;
+	A = [FI]; A + [GBcx]; [SAtcx] = A;
+
+	[PGFi] = SFRZ; => PGF a; => FSin;
+	[PGFi] = SFZ2; => PGF mul;
+	=> FToIntChop;
+	A = [FI]; A + [GBcy]; [SAtcy] = A;
+
+	[SAdif] = 1;
+	=> SP smooth64;
+
+	[PGFi] = SFRZ; => PGF a; [PGFi] = SFRY; => PGF add;
+	[PGFi] = SFRZ; => PGF sa;
+	-> SP gb step;
+
+    "SP gb out"
+	end;

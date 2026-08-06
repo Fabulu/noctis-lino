@@ -1,0 +1,172 @@
+      ( *** spdark - surface()'s day/night terminator band, and the
+	    derivation glowinglobe re-does at draw time ***
+
+	THE LIGHTING IS BAKED INTO THE TEXTURE.  There is no N-dot-L
+	anywhere in the planet path.  surface() darkens a fixed band of
+	the 360-wide panorama once, at generation time, and glowinglobe
+	re-derives the SAME two constants at draw time so the crescent
+	lines up with the texture.  A port that computes lighting per
+	pixel is a different program that happens to look similar.
+
+	NOCTIS-0.CPP:5111-5124, verbatim:
+
+	    les di, dword ptr p_background
+	    add di, plwp
+	    add di, 35
+	    mov cx, 179
+	  darkside:  push cx / mov cx, 130
+	  darkline:  shr byte ptr es:[di], 2
+	             inc di / dec cx / jnz darkline
+	             pop cx / add di, 230 / dec cx / jnz darkside
+
+	Five facts, each a single character from a wrong answer:
+
+	  the shift is >> 2, not >> 1;
+	  the band is 179 rows, not 180 - row 179 of the 180-row panorama
+	    is NEVER darkened;
+	  the band is 130 columns wide;
+	  130 + 230 = 360, which is the panorama stride, so the band is a
+	    straight vertical strip and not a diagonal;
+	  "add di,plwp / add di,35" is NOT reduced modulo 360, so at
+	    plwp = 359 the strip starts 394 bytes in - a row and a bit -
+	    and the top-left corner of the band is on panorama row 1.
+
+	The highest byte touched is therefore 359 + 35 + 178*360 + 129 =
+	64,603, page-relative, inside p_background's 64,800 visible bytes
+	and well inside its 65,552-byte allocation.
+
+	THE DERIVATION, and why it is checked rather than restated.
+	surface computes
+
+	    plwp        = 89 - cplx_planet_viewpoint (id)
+	    plwp       += nearstar_p_rotation [id]
+	    plwp       %= 360 ;  if (plwp < 0) plwp += 360
+	    term_start  = plwp + 35 ;   if (>= 360) -= 360
+	    term_end    = term_start + 130 ; if (>= 360) -= 360
+
+	and the glowinglobe call site computes
+
+	    ts = (89+35) - cplx_planet_viewpoint (id)
+	    if (ts <   0) ts += 360
+	    if (ts > 359) ts -= 360
+
+	The 89 and the 35 appear in both, and the arc 130 appears as
+	surface's column count and as glowinglobe's terminator_arc.  That
+	is the join: change either number in one place and the crescent
+	stops matching the texture.  Note the two are NOT the same
+	expression - surface adds the planet's rotation and the draw-time
+	one does not - so this is a real agreement between two
+	independently written lines, not one line read twice.
+
+	C's % TRUNCATES TOWARD ZERO, so a negative plwp keeps its sign and
+	the explicit "if (plwp < 0)" is doing real work.  Writing it as a
+	Euclidean modulo removes the second correction and produces the
+	same answer, which is exactly why the intermediate is emitted and
+	not only the final value.                                        )
+
+"constants"
+
+	DKROWS	= 179;
+	DKCOLS	= 130;
+	DKGAP	= 230;
+	DKPHASE	= 35;
+	DKBASE	= 89;
+	DKARC	= 130;
+
+"variables"
+
+	DKreg	= 0;		( p_background )
+	DKplwp	= 0;
+	DKdi	= 0;
+	DKr	= 0;
+	DKc	= 0;
+	DKn	= 0;		( bytes actually shifted )
+	DKmax	= 0;		( highest DOS offset touched )
+
+	DKview	= 0;		( cplx_planet_viewpoint    )
+	DKrot	= 0;		( nearstar_p_rotation      )
+	DKpre	= 0;		( plwp before the sign fix )
+	DKts	= 0;
+	DKtstart = 0;
+	DKtend	= 0;
+
+"programme"
+
+( ==================================================================== )
+
+"SP dark band"
+	[DKn] = 0; [DKmax] = 0;
+	[SPreg] = [DKreg];
+
+	( les di,p_background carries farmalloc's offset of 4 into DI )
+	A = [DKplwp]; A + 4; A + DKPHASE; A & 65535; [DKdi] = A;
+	[DKr] = 0;
+    "SP db row"
+	[DKc] = 0;
+    "SP db col"
+	[SPoff] = [DKdi];
+	=> SP get;
+	C = [SPval]; C > 2; [SPval] = C;
+	[SPoff] = [DKdi];
+	=> SP put;
+	[DKn]+;
+	A = [DKdi]; ? A '<= [DKmax] -> SP db nomax;
+	[DKmax] = A;
+    "SP db nomax"
+	A = [DKdi]; A + 1; A & 65535; [DKdi] = A;
+	[DKc]+;
+	A = [DKc]; ? A '< DKCOLS -> SP db col;
+
+	A = [DKdi]; A + DKGAP; A & 65535; [DKdi] = A;
+	[DKr]+;
+	A = [DKr]; ? A '< DKROWS -> SP db row;
+	end;
+
+      ( SP term derive : both derivations, from the same two inputs. )
+
+"SP term derive"
+	A = DKBASE; A - [DKview]; A + [DKrot]; [DKpre] = A;
+	A = [DKpre]; A % 360; [DKplwp] = A;
+	A = [DKplwp]; ? A >= 0 -> SP td pos;
+	A + 360; [DKplwp] = A;
+    "SP td pos"
+	A = [DKplwp]; A + DKPHASE; [DKtstart] = A;
+	A = [DKtstart]; ? A < 360 -> SP td s ok;
+	A - 360; [DKtstart] = A;
+    "SP td s ok"
+	A = [DKtstart]; A + DKARC; [DKtend] = A;
+	A = [DKtend]; ? A < 360 -> SP td e ok;
+	A - 360; [DKtend] = A;
+    "SP td e ok"
+
+	( the draw-time one: ts = (89+35) - viewpoint, no rotation term )
+	A = DKBASE; A + DKPHASE; A - [DKview]; [DKts] = A;
+	A = [DKts]; ? A >= 0 -> SP td t1;
+	A + 360; [DKts] = A;
+    "SP td t1"
+	A = [DKts]; ? A <= 359 -> SP td t2;
+	A - 360; [DKts] = A;
+    "SP td t2"
+	end;
+
+"SP dark emit"
+	A = sphdr;
+	[A plus 0]  = [DKplwp];
+	[A plus 1]  = [DKn];
+	[A plus 2]  = [DKmax];
+	[A plus 3]  = DKROWS;
+	[A plus 4]  = DKCOLS;
+	[A plus 5]  = DKGAP;
+	[A plus 6]  = [DKview];
+	[A plus 7]  = [DKrot];
+	[A plus 8]  = [DKpre];
+	[A plus 9]  = [DKtstart];
+	[A plus 10] = [DKtend];
+	[A plus 11] = [DKts];
+	[A plus 12] = DKARC;
+	[A plus 13] = 0; [A plus 14] = 0; [A plus 15] = 0;
+	[SKind] = K3B; [STag] = 2;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+	end;

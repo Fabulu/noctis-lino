@@ -1,0 +1,1082 @@
+      ( *** spncc - the .NCC arena: loadpv, unloadallpv, copypv, modpv,
+	    the pvlist walk, QuickSort and drawpv's dispatch ***
+
+	THE FILE FORMAT is 2 + 50n bytes: a uint16 polygon count, then n
+	bytes of vertices-per-polygon, then X, Y and Z as float32 arrays
+	of 4n each, then n colour bytes.  ONLY THREE MODELS ARE EVER
+	LOADED - VEHICLE, MAMMAL and BIRDY - and the other four .NCC files
+	in the distribution are never touched by the game.
+
+	THE TRAP.  For a triangle the fourth vertex slot holds
+	UNINITIALISED GARBAGE.  Measured over the shipped VEHICLE: 150 of
+	the 156 triangle slot-3 components are non-zero, 26 exceed 1e6 in
+	magnitude, 2 are not finite at all, and the largest finite one is
+	2.99e38 - one multiply away from infinity.  loadpv ZEROES THOSE
+	SLOTS BEFORE the scale-and-move pass; reorder the two and the
+	transform produces infinities and NaNs that then propagate through
+	the midpoints and the depth sort.
+
+	BIRDY CANNOT SEE THIS.  Its 55 non-zero slot-3 components max out
+	at 20.0, so a corpus containing only BIRDY grades the zeroing pass
+	VACUOUSLY: with or without it, nothing overflows.  VEHICLE has to
+	be in the corpus for the check to mean anything.
+
+	THE ARENA LAYOUT TRANSFERS VERBATIM, one Noctis byte per unit.
+	BUFFERMODEL 5 alias 9 directs a re-layout so every float sub-array
+	is unit aligned; that is OVERRULED (see spmem's header) and the
+	float sub-arrays are read through spmem's 4-unit assemble pair
+	instead.  The consequence that matters here: pvfile_c is n bytes
+	long and the colour loop runs to 4n, so it writes 3n bytes past
+	the end - and with the DOS offsets intact those 3n bytes land
+	inside pv_mid_x, which is zeroed before anything reads it.  The
+	overrun is FAITHFULLY DEAD rather than conditionally dead, and it
+	is graded by an ADDRESS CENSUS only.  A check of the form "the
+	drawn model matches" cannot fail on it and is not filed as
+	covering it.
+
+	pv_mid_x[handle] == 0 IS A SENTINEL AND OFFSET 0 IS A LEGAL ARENA
+	OFFSET.  In the shipped load order mamm_base is loaded first and
+	therefore sits at arena offset 0, so porting the null-pointer
+	trick would make the first handle loaded believe it has no depth
+	sort.  This port carries a separate per-handle boolean.  That is a
+	real collision, not a hypothetical one.
+
+	pv_dep_i IS PERSISTENT STATE.  It is set to the identity ONCE, in
+	loadpv, and every frame's QuickSort permutes the previous frame's
+	array.  copypv resets the two animal handles each frame because it
+	copies the WHOLE block including pv_dep_i; vehicle_handle is never
+	copypv'd and therefore sorts incrementally across the entire
+	session.  "Any correct sort" is a different program - the array is
+	reproduced as state and the swap sequence is emitted.
+
+	unloadpv IS NOT IMPLEMENTED.  Every loadpv sequence in the shipped
+	game is preceded by unloadallpv, so unloadpv is unreachable.  Not
+	implemented, not graded, and said so here rather than left to be
+	inferred from an absent check.
+
+	drawpv MODE 2 (randomic_mapper) IS OUT OF SCOPE, and so - as a
+	declared deviation from the wave plan - are modes 0 and 1's
+	PIXELS.  This file emits the DISPATCH: the polygon order, the
+	vertex base index, the vertex count, the colour and, for mode 1,
+	the mangled colour.  Routing the dispatch into Wave 6a's poly3d
+	and polymap would make the graded artifact a joint product of two
+	waves, so that a page difference could not be attributed.  The
+	dispatch is the part Wave 6b owns and it is graded exactly.      )
+
+"constants"
+
+	PVHN	= 16;			( #define handles 16 )
+	PVBYTES	= 20480;		( #define pv_bytes 20480 )
+	PVSLOT	= 8;			( units per handle in pvh )
+	PVLTERM	= 4095;			( 0xFFF, the pvlist terminator )
+	NCCMAX	= 20000;		( units of raw .NCC bytes )
+	QSTKMAX	= 64;			( QuickSort's explicit stack )
+	CALLMAX	= 4000;			( emitted dispatch records )
+
+"variables"
+
+	NCn	= 0;			( model byte counts )
+	NCbase	= 0;
+	NCtop	= 0;
+
+	PVtop	= 0;			( pvfile_datatop )
+	PVh	= 0;
+	PVn	= 0;
+	PVptr	= 0;
+	PVds	= 0;		( the STORED per-handle flag    )
+	PVreq	= 0;		( loadpv's depth_sort ARGUMENT  )
+	PVret	= 0;
+
+	PVmodel	= 0;
+	PVxs	= 0;	PVys	= 0;	PVzs	= 0;
+	PVxm	= 0;	PVym	= 0;	PVzm	= 0;
+	PVcol	= 0;
+
+	PVax	= 0;	PVay	= 0;	PVaz	= 0;	PVac	= 0;
+	PVamx	= 0;	PVamy	= 0;	PVamz	= 0;
+	PVamd	= 0;	PVadi	= 0;
+
+	PVp	= 0;	PVc	= 0;	PVv	= 0;	PVi	= 0;
+	PVnv	= 0;	PVj	= 0;	PVk	= 0;
+
+	PVovn	= 0;			( colour-overrun address census )
+	PVovlo	= 0;
+	PVovhi	= 0;
+
+	( QuickSort )
+	QSiq	= 0;	QSjq	= 0;	QSs	= 0;	QSe	= 0;
+	QSsp	= 0;	QStmp	= 0;	QSswap	= 0;
+	QSidx	= 0;			( byte base of pv_dep_i )
+	QSdst	= 0;			( byte base of pv_mid_d )
+
+	( drawpv )
+	DWmode	= 0;	DWuds	= 0;	DWactive = 0;
+	DWcx	= 0;	DWcy	= 0;	DWcz	= 0;
+	DWcamx	= 0;	DWcamy	= 0;	DWcamz	= 0;
+	DWn	= 0;
+
+	( modpv )
+	MOpid	= 0;	MOvid	= 0;	MOlist	= 0;
+	MOxa	= 0;	MOya	= 0;	MOza	= 0;
+	MOxs	= 0;	MOys	= 0;	MOzs	= 0;
+	MOnv	= 0;	MOwalk	= 0;
+
+"workspace"
+
+	pvhtab	= 128;			( 16 handles x 8 units )
+	nccraw	= 20000;		( the three .NCC files, one byte per unit )
+	nccidx	= 12;			( 3 models x (base, bytes, npolygs)      )
+	qstk	= 128;			( QuickSort's explicit stack )
+	pvcall	= 16000;		( the dispatch record buffer )
+	pvswap	= 8000;			( the swap sequence          )
+	pvlst	= 256;			( a pvlist, one uint16 per entry )
+
+"programme"
+
+( ==================================================================== )
+( model staging                                                         )
+( ==================================================================== )
+
+      ( SP ncc load : read the three .NCC files into nccraw, one byte per
+	unit, and record base / length / polygon count for each.  The
+	polygon count is READ from the file's first two bytes and the
+	2 + 50n identity is CHECKED, not assumed. )
+
+"SP ncc load"
+	[NCtop] = 0;
+	[PVmodel] = 0;
+    "SP nl m"
+	A = [PVmodel];
+	? A = MDVEH -> SP nl veh;
+	? A = MDMAM -> SP nl mam;
+	[File Name] = spbrdname; -> SP nl rd;
+    "SP nl veh"
+	[File Name] = spvehname; -> SP nl rd;
+    "SP nl mam"
+	[File Name] = spmamname;
+    "SP nl rd"
+	[File Position]	= 0;
+	[File Command]	= READ;
+	[Block Pointer]	= stage;
+	[Block Size]	= STAGEMAX;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	A = [Block Size]; [SPfbytes] = A;
+	? A '> 0 -> SP nl ok;
+	C = [SPload]; C | 4; [SPload] = C;
+	-> SP nl next;
+    "SP nl ok"
+	( spread into nccraw )
+	[SPi] = 0;
+    "SP nl b"
+	A = [SPi]; C = A; C > 2; D = stage; D + C;
+	C = [D];
+	A = [SPi]; A & 3; A '* 8;
+	C > A; C & 255;
+	A = nccraw; A + [NCtop]; A + [SPi];
+	[A] = C;
+	[SPi]+;
+	A = [SPi]; ? A '< [SPfbytes] -> SP nl b;
+
+	A = [PVmodel]; A '* 4; C = nccidx; C + A;
+	[C plus 0] = [NCtop];
+	[C plus 1] = [SPfbytes];
+	A = nccraw; A + [NCtop];
+	D = [A plus 1]; D & 255; D < 8;
+	E = [A plus 0]; E & 255; D + E;
+	A = [PVmodel]; A '* 4; C = nccidx; C + A;
+	[C plus 2] = D;
+	( 2 + 50n identity )
+	A = D; A '* 50; A + 2;
+	? A = [SPfbytes] -> SP nl sz;
+	C = [SPload]; C | 8; [SPload] = C;
+    "SP nl sz"
+	A = [NCtop]; A + [SPfbytes]; [NCtop] = A;
+
+    "SP nl next"
+	[PVmodel]+;
+	A = [PVmodel]; ? A '< NMODEL -> SP nl m;
+	end;
+
+( ==================================================================== )
+( per-handle bookkeeping                                                )
+( ==================================================================== )
+
+      ( SP pvh at : A <- the pvh slot base of handle [PVh]. )
+
+"SP pvh at"
+	A = [PVh]; A '* PVSLOT; A + pvhtab;
+	end;
+
+"SP unloadallpv"
+	[PVtop] = 0;
+	[SPi] = 0;
+    "SP ua h"
+	A = [SPi]; A '* PVSLOT; A + pvhtab;
+	[A plus 2] = 0;
+	[SPi]+;
+	A = [SPi]; ? A '< PVHN -> SP ua h;
+	end;
+
+      ( the sub-array byte offsets, all derived from dataptr and n.
+	These ARE the DOS numbers: +0, +n, +17n, +33n, +49n, +50n, +54n,
+	+58n, +62n, +66n.  A re-laid-out arena fails on every one. )
+
+"SP pv addrs"
+	=> SP pvh at;
+	[PVn]   = [A plus 0];
+	[PVptr] = [A plus 1];
+	[PVds]  = [A plus 3];
+	A = [PVptr];                    [PVac] = A;	( n_vtx )
+	A = [PVptr]; C = [PVn];         A + C; [PVax] = A;
+	A = [PVptr]; C = [PVn]; C '* 17; A + C; [PVay] = A;
+	A = [PVptr]; C = [PVn]; C '* 33; A + C; [PVaz] = A;
+	A = [PVptr]; C = [PVn]; C '* 49; A + C; [PVj] = A;
+	A = [PVptr]; C = [PVn]; C '* 50; A + C; [PVamx] = A;
+	A = [PVptr]; C = [PVn]; C '* 54; A + C; [PVamy] = A;
+	A = [PVptr]; C = [PVn]; C '* 58; A + C; [PVamz] = A;
+	A = [PVptr]; C = [PVn]; C '* 62; A + C; [PVamd] = A;
+	A = [PVptr]; C = [PVn]; C '* 66; A + C; [PVadi] = A;
+	end;
+
+( ==================================================================== )
+( loadpv                                                                )
+( ==================================================================== )
+
+"SP loadpv"
+	[PVret] = 0;
+	A = [PVh]; ? A '>= PVHN -> SP lp out;
+
+	=> SP pvh at;
+	[A plus 2] = 0;			( datalen = 0 )
+	[A plus 1] = [PVtop];		( dataptr = datatop )
+	[A plus 3] = 0;			( the depth-sort flag, NOT a null pointer )
+
+	A = [PVmodel]; A '* 4; C = nccidx; C + A;
+	[NCbase] = [C plus 0];
+	[NCn]    = [C plus 2];
+
+	=> SP pvh at;
+	[A plus 0] = [NCn];
+	[PVn] = [NCn];
+
+	( datatop += 50n, in the same five steps the original takes )
+	A = [PVtop]; C = [PVn]; C '* 50; A + C; [PVtop] = A;
+
+	( memory check BEFORE reading )
+	A = [PVtop]; ? A '<= PVBYTES -> SP lp room;
+	=> SP pvh at;
+	[PVtop] = [A plus 1];
+	-> SP lp out;
+    "SP lp room"
+
+	( one _read of datatop - dataptr bytes, straight into the arena )
+	=> SP pv addrs;
+	[SPreg] = RGPVF;
+	[SPi] = 0;
+	A = [PVn]; A '* 50; [SPk] = A;
+    "SP lp rd"
+	A = nccraw; A + [NCbase]; A + 2; A + [SPi];
+	[SPval] = [A];
+	A = [PVptr]; A + [SPi]; [SPidx] = A;
+	=> SP dput;
+	[SPi]+;
+	A = [SPi]; ? A '< [SPk] -> SP lp rd;
+
+	( ZERO THE UNUSED VERTEX SLOTS - and this happens HERE, before the
+	  scale pass, which is the whole trap. )
+	[PVp] = 0;
+	A = [PVn]; ? A = 0 -> SP lp ds;
+    "SP lp z"
+	[SPreg] = RGPVF;
+	A = [PVac]; A + [PVp]; [SPidx] = A; => SP dget;
+	A = [SPval]; ? A != 3 -> SP lp zn;
+	A = [PVp]; A '* 16; A + 12; [SPk] = A;
+	[SPf] = 0;
+	A = [PVax]; A + [SPk]; [SPidx] = A; => SP putf32;
+	[SPf] = 0;
+	A = [PVay]; A + [SPk]; [SPidx] = A; => SP putf32;
+	[SPf] = 0;
+	A = [PVaz]; A + [SPk]; [SPidx] = A; => SP putf32;
+    "SP lp zn"
+	[PVp]+;
+	A = [PVp]; ? A '< [PVn] -> SP lp z;
+
+    "SP lp ds"
+	A = [PVreq]; ? A = 0 -> SP lp xf;
+	A = [PVtop]; C = [PVn]; C '* 18; A + C; [PVtop] = A;
+	A = [PVtop]; ? A '<= PVBYTES -> SP lp dsok;
+	=> SP pvh at;
+	[PVtop] = [A plus 1];
+	-> SP lp out;
+    "SP lp dsok"
+	=> SP pvh at;
+	[A plus 3] = 1;
+	=> SP pv addrs;
+
+    "SP lp xf"
+	( the scale / move / colour pass, c = 0 .. 4n-1.
+
+	  Each component is  float *= float  then  float += float, so
+	  each of the six operations narrows to binary32 on the way back
+	  into the array.  Doing the whole thing at double and narrowing
+	  once is a different answer.
+
+	  The colour add runs to 4n over an n-byte array.  That is the
+	  overrun; it is counted, not clamped. )
+	[PVovn] = 0; [PVovlo] = 0; [PVovhi] = 0;
+	[SPreg] = RGPVF;
+	[PVc] = 0;
+	A = [PVn]; A '* 4; [SPk] = A;
+	A = [SPk]; ? A = 0 -> SP lp mid;
+    "SP lp c"
+	A = [PVc]; A '* 4; [PVi] = A;
+
+	A = [PVax]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [PVxs]; => SP fb32;
+	[PGFt] = [SPf]; => PGF ldf32; => FMul; => F32Narrow;
+	[PGFt] = [PVxm]; => SP fb32;
+	=> FAdd; => F32Narrow; => PGF stf32;
+	[SPf] = [PGFt];
+	A = [PVax]; A + [PVi]; [SPidx] = A; => SP putf32;
+
+	A = [PVay]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [PVys]; => SP fb32;
+	[PGFt] = [SPf]; => PGF ldf32; => FMul; => F32Narrow;
+	[PGFt] = [PVym]; => SP fb32;
+	=> FAdd; => F32Narrow; => PGF stf32;
+	[SPf] = [PGFt];
+	A = [PVay]; A + [PVi]; [SPidx] = A; => SP putf32;
+
+	A = [PVaz]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [PVzs]; => SP fb32;
+	[PGFt] = [SPf]; => PGF ldf32; => FMul; => F32Narrow;
+	[PGFt] = [PVzm]; => SP fb32;
+	=> FAdd; => F32Narrow; => PGF stf32;
+	[SPf] = [PGFt];
+	A = [PVaz]; A + [PVi]; [SPidx] = A; => SP putf32;
+
+	( pvfile_c[handle][c] += base_color, for c up to 4n )
+	A = [PVptr]; C = [PVn]; C '* 49; A + C; A + [PVc]; [SPidx] = A;
+	=> SP dget;
+	C = [SPval]; C + [PVcol]; C & 255; [SPval] = C;
+	A = [PVptr]; C = [PVn]; C '* 49; A + C; A + [PVc]; [SPidx] = A;
+	=> SP dput;
+	A = [PVc]; ? A '< [PVn] -> SP lp cn;
+	[PVovn]+;
+	A = [PVovn]; ? A != 1 -> SP lp ovc;
+	[PVovlo] = [SPidx]; [PVovhi] = [SPidx];
+	-> SP lp cn;
+    "SP lp ovc"
+	A = [SPidx]; ? A '>= [PVovlo] -> SP lp ovh;
+	[PVovlo] = A;
+    "SP lp ovh"
+	A = [SPidx]; ? A '<= [PVovhi] -> SP lp cn;
+	[PVovhi] = A;
+    "SP lp cn"
+	[PVc]+;
+	A = [PVc]; ? A '< [SPk] -> SP lp c;
+
+    "SP lp mid"
+	A = [PVds]; ? A = 0 -> SP lp fin;
+	=> SP pv midpoints;
+	( the identity permutation, written ONCE - every later frame
+	  permutes this array rather than rebuilding it )
+	[PVp] = 0;
+	A = [PVn]; ? A = 0 -> SP lp fin;
+    "SP lp di"
+	[SPreg] = RGPVF;
+	[SPf] = [PVp];
+	A = [PVadi]; C = [PVp]; C + C; A + C; [SPidx] = A;
+	=> SP putu16;
+	[PVp]+;
+	A = [PVp]; ? A '< [PVn] -> SP lp di;
+
+    "SP lp fin"
+	=> SP pvh at;
+	C = [PVtop]; D = [A plus 1]; C - D;
+	[A plus 2] = C;
+	[PVret] = 1;
+    "SP lp out"
+	end;
+
+      ( SP pv midpoints : the arithmetic mean of the USED vertices, and
+	the divisor is the loop variable c left over from the inner loop -
+	which is exactly nv, but is written that way in the original and
+	is therefore written that way here. )
+
+"SP pv midpoints"
+	=> SP pv addrs;
+	[SPreg] = RGPVF;
+	[PVp] = 0;
+	A = [PVn]; ? A = 0 -> SP pm done;
+    "SP pm p"
+	[SPf] = 0; A = [PVp]; C = A; C + C; C + C;
+	A = [PVamd]; A + C; [SPidx] = A; => SP putf32;
+	[SPf] = 0; A = [PVp]; C = A; C + C; C + C;
+	A = [PVamx]; A + C; [SPidx] = A; => SP putf32;
+	[SPf] = 0; A = [PVp]; C = A; C + C; C + C;
+	A = [PVamy]; A + C; [SPidx] = A; => SP putf32;
+	[SPf] = 0; A = [PVp]; C = A; C + C; C + C;
+	A = [PVamz]; A + C; [SPidx] = A; => SP putf32;
+
+	A = [PVac]; A + [PVp]; [SPidx] = A; => SP dget;
+	[PVnv] = [SPval];
+	A = [PVnv]; ? A = 0 -> SP pm next;
+
+	[PGFt] = 0; => PGF ldf32; [PGFi] = SFV0; => PGF sa;
+	[PGFt] = 0; => PGF ldf32; [PGFi] = SFV1; => PGF sa;
+	[PGFt] = 0; => PGF ldf32; [PGFi] = SFV2; => PGF sa;
+	[PVv] = 0;
+    "SP pm v"
+	A = [PVp]; A '* 16; C = [PVv]; C + C; C + C; A + C; [PVi] = A;
+	A = [PVax]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFV0; => PGF a; => FAdd; => F32Narrow; [PGFi] = SFV0; => PGF sa;
+	A = [PVay]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFV1; => PGF a; => FAdd; => F32Narrow; [PGFi] = SFV1; => PGF sa;
+	A = [PVaz]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFV2; => PGF a; => FAdd; => F32Narrow; [PGFi] = SFV2; => PGF sa;
+	[PVv]+;
+	A = [PVv]; ? A '< [PVnv] -> SP pm v;
+
+	[FI] = [PVnv]; => IntToF; [PGFi] = SFV3; => PGF sa;
+	[PGFi] = SFV0; => PGF a; [PGFi] = SFV3; => PGF quo; => F32Narrow;
+	=> PGF stf32; [SPf] = [PGFt];
+	A = [PVp]; C = A; C + C; C + C; A = [PVamx]; A + C; [SPidx] = A;
+	=> SP putf32;
+	[PGFi] = SFV1; => PGF a; [PGFi] = SFV3; => PGF quo; => F32Narrow;
+	=> PGF stf32; [SPf] = [PGFt];
+	A = [PVp]; C = A; C + C; C + C; A = [PVamy]; A + C; [SPidx] = A;
+	=> SP putf32;
+	[PGFi] = SFV2; => PGF a; [PGFi] = SFV3; => PGF quo; => F32Narrow;
+	=> PGF stf32; [SPf] = [PGFt];
+	A = [PVp]; C = A; C + C; C + C; A = [PVamz]; A + C; [SPidx] = A;
+	=> SP putf32;
+
+    "SP pm next"
+	[PVp]+;
+	A = [PVp]; ? A '< [PVn] -> SP pm p;
+    "SP pm done"
+	end;
+
+( ==================================================================== )
+( copypv                                                                )
+( ==================================================================== )
+
+      ( _fmemmove of the WHOLE block - geometry, colours, midpoints AND
+	pv_dep_i.  That last one is why the animals restart from the
+	identity every frame while the vehicle sorts incrementally: the
+	vehicle is never copypv'd. )
+
+"SP copypv"
+	[PVret] = 0;
+	A = [PVh]; ? A '>= PVHN -> SP cp out;
+	A = [PVk]; ? A '>= PVHN -> SP cp out;
+
+	A = [PVk]; A '* PVSLOT; A + pvhtab; [PVj] = [A plus 2];
+	A = [PVj]; ? A = 0 -> SP cp out;
+	A = [PVh]; A '* PVSLOT; A + pvhtab;
+	C = [A plus 2]; ? C != [PVj] -> SP cp out;
+
+	A = [PVk]; A '* PVSLOT; A + pvhtab; [PVi] = [A plus 1];
+	A = [PVh]; A '* PVSLOT; A + pvhtab; [PVc] = [A plus 1];
+
+	[SPreg] = RGPVF;
+	[SPi] = 0;
+    "SP cp b"
+	A = [PVi]; A + [SPi]; [SPidx] = A; => SP dget;
+	A = [PVc]; A + [SPi]; [SPidx] = A; => SP dput;
+	[SPi]+;
+	A = [SPi]; ? A '< [PVj] -> SP cp b;
+	[PVret] = 1;
+    "SP cp out"
+	end;
+
+( ==================================================================== )
+( QuickSort - the exact partition, with an explicit stack               )
+( ==================================================================== )
+
+      ( The original recurses.  L.in.oleum's subroutine stack is not a
+	place to put an unbounded recursion, so the two calls are pushed
+	onto an explicit LIFO in the order that makes them POP in the
+	original's order: (iq,end) first, then (start,jq).  The partition
+	itself is untouched, and the SWAP SEQUENCE is emitted, so "any
+	correct sort" does not pass.
+
+	The pivot is mdist[index[(start+end)/2]] and it is read ONCE, as
+	a float, before the partition begins - so a later swap that moves
+	the pivot element does not change the pivot value. )
+
+      ( SP qs load : FA <- mdist[index[[QStmp]]] )
+
+"SP qs key"
+	[SPreg] = RGPVF;
+	A = [QSidx]; C = [QStmp]; C + C; A + C; [SPidx] = A;
+	=> SP getu16;
+	A = [QSdst]; C = [SPf]; C + C; C + C; A + C; [SPidx] = A;
+	=> SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32;
+	end;
+
+"SP quicksort"
+	[QSswap] = 0;
+	A = [PVn]; ? A '< 2 -> SP qs done;
+	[QSsp] = 0;
+	A = qstk;
+	[A plus 0] = 0;
+	C = [PVn]; C - 1; [A plus 1] = C;
+	[QSsp] = 1;
+
+    "SP qs pop"
+	A = [QSsp]; ? A = 0 -> SP qs done;
+	A - 1; [QSsp] = A;
+	A '* 2; C = qstk; C + A;
+	[QSs] = [C plus 0];
+	[QSe] = [C plus 1];
+
+	[QSiq] = [QSs];
+	[QSjq] = [QSe];
+	A = [QSs]; C = [QSe]; A + C; A / 2; [QStmp] = A;
+	=> SP qs key; [PGFi] = SFT2; => PGF sa;		( xq )
+
+    "SP qs outer"
+	A = [QSiq]; ? A > [QSjq] -> SP qs part done;
+    "SP qs adv i"
+	[QStmp] = [QSiq]; => SP qs key;
+	[PGFi] = SFT2; => PGF b; => FCmp;
+	A = [FI]; ? A != 1 -> SP qs adv j;
+	[QSiq]+;
+	-> SP qs adv i;
+    "SP qs adv j"
+	[QStmp] = [QSjq]; => SP qs key;
+	[PGFi] = SFT2; => PGF b; => FCmp;
+	A = [FI]; ? A >= 0 -> SP qs test;
+	A = [QSjq]; A - 1; [QSjq] = A;
+	-> SP qs adv j;
+    "SP qs test"
+	A = [QSiq]; ? A > [QSjq] -> SP qs part done;
+
+	( swap index[iq] and index[jq], and record the pair )
+	[SPreg] = RGPVF;
+	A = [QSidx]; C = [QSiq]; C + C; A + C; [SPidx] = A; => SP getu16;
+	[PVi] = [SPf];
+	A = [QSidx]; C = [QSjq]; C + C; A + C; [SPidx] = A; => SP getu16;
+	[PVj] = [SPf];
+	[SPf] = [PVj];
+	A = [QSidx]; C = [QSiq]; C + C; A + C; [SPidx] = A; => SP putu16;
+	[SPf] = [PVi];
+	A = [QSidx]; C = [QSjq]; C + C; A + C; [SPidx] = A; => SP putu16;
+
+	A = [QSswap]; ? A '>= 3999 -> SP qs noswaprec;
+	A = [QSswap]; A + A; C = pvswap; C + A;
+	[C plus 0] = [QSiq];
+	[C plus 1] = [QSjq];
+    "SP qs noswaprec"
+	[QSswap]+;
+
+	[QSiq]+;
+	A = [QSjq]; A - 1; [QSjq] = A;
+	-> SP qs outer;
+
+    "SP qs part done"
+	( push (iq,end) first so that (start,jq) is processed first )
+	A = [QSiq]; ? A >= [QSe] -> SP qs p2;
+	A = [QSsp]; A '* 2; C = qstk; C + A;
+	[C plus 0] = [QSiq];
+	[C plus 1] = [QSe];
+	[QSsp]+;
+    "SP qs p2"
+	A = [QSs]; ? A >= [QSjq] -> SP qs pop;
+	A = [QSsp]; A '* 2; C = qstk; C + A;
+	[C plus 0] = [QSs];
+	[C plus 1] = [QSjq];
+	[QSsp]+;
+	-> SP qs pop;
+
+    "SP qs done"
+	end;
+
+( ==================================================================== )
+( drawpv - the dispatch                                                 )
+( ==================================================================== )
+
+"SP drawpv"
+	[DWn] = 0; [DWactive] = 0;
+	A = [PVh]; ? A '>= PVHN -> SP dw out;
+	=> SP pvh at;
+	A = [A plus 2]; ? A = 0 -> SP dw out;
+	=> SP pv addrs;
+	[QSidx] = [PVadi];
+	[QSdst] = [PVamd];
+
+	( cam -= center, as FLOAT subtractions )
+	[PGFt] = [DWcamx]; => PGF ldf32;
+	[PGFt] = [DWcx]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFt] = [DWcamx]; => PGF ldf32; => FSub; => F32Narrow;
+	[PGFi] = SFDX; => PGF sa;
+	[PGFt] = [DWcy]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFt] = [DWcamy]; => PGF ldf32; => FSub; => F32Narrow;
+	[PGFi] = SFDY; => PGF sa;
+	[PGFt] = [DWcz]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFt] = [DWcamz]; => PGF ldf32; => FSub; => F32Narrow;
+	[PGFi] = SFDZ; => PGF sa;
+
+	A = [DWuds]; ? A = 0 -> SP dw plain;
+	A = [PVds]; ? A = 0 -> SP dw plain;
+	[DWactive] = 1;
+
+	( phase 1: the squared distance of every midpoint )
+	[PVp] = 0;
+	A = [PVn]; ? A = 0 -> SP dw sorted;
+    "SP dw d"
+	[SPreg] = RGPVF;
+	A = [PVp]; C = A; C + C; C + C; [PVi] = C;
+	A = [PVamx]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [PGFi] = SFDX; => PGF sub;
+	=> F32Narrow; [PGFi] = SFV0; => PGF sa;
+	A = [PVamy]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [PGFi] = SFDY; => PGF sub;
+	=> F32Narrow; [PGFi] = SFV1; => PGF sa;
+	A = [PVamz]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [PGFi] = SFDZ; => PGF sub;
+	=> F32Narrow; [PGFi] = SFV2; => PGF sa;
+
+	[PGFi] = SFV0; => PGF a; [PGFi] = SFV0; => PGF mul; [PGFi] = SFV3; => PGF sa;
+	[PGFi] = SFV1; => PGF a; [PGFi] = SFV1; => PGF mul;
+	[PGFi] = SFV3; => PGF add; [PGFi] = SFV3; => PGF sa;
+	[PGFi] = SFV2; => PGF a; [PGFi] = SFV2; => PGF mul;
+	[PGFi] = SFV3; => PGF add; => F32Narrow;
+	=> PGF stf32; [SPf] = [PGFt];
+	A = [PVamd]; A + [PVi]; [SPidx] = A; => SP putf32;
+	[PVp]+;
+	A = [PVp]; ? A '< [PVn] -> SP dw d;
+
+	( phase 2 )
+	=> SP quicksort;
+
+    "SP dw sorted"
+	( phase 3: emit in the sorted order )
+	[PVp] = 0;
+	A = [PVn]; ? A = 0 -> SP dw out;
+    "SP dw e1"
+	[SPreg] = RGPVF;
+	A = [PVadi]; C = [PVp]; C + C; A + C; [SPidx] = A; => SP getu16;
+	[PVc] = [SPf];
+	=> SP dw emit one;
+	[PVp]+;
+	A = [PVp]; ? A '< [PVn] -> SP dw e1;
+	-> SP dw out;
+
+    "SP dw plain"
+	[PVp] = 0;
+	A = [PVn]; ? A = 0 -> SP dw out;
+    "SP dw e0"
+	[PVc] = [PVp];
+	=> SP dw emit one;
+	[PVp]+;
+	A = [PVp]; ? A '< [PVn] -> SP dw e0;
+
+    "SP dw out"
+	end;
+
+      ( SP dw emit one : one dispatch record.
+
+	    unit 0  the draw ORDER index p
+	    unit 1  the polygon id c that p selects
+	    unit 2  the vertex base i = 4c
+	    unit 3  pv_n_vtx[c]
+	    unit 4  pvfile_c[c]
+	    unit 5  the mode-1 mangled colour
+
+	MODE 1's MANGLE is  k = (k & 0xC0) | ((k & 0x3F) >> 1)  and it is
+	written out for every mode, because it is a pure function of the
+	colour and grading it only on the mode-1 cases would leave it
+	unexercised whenever the corpus happens to carry none.
+
+	MODE 2's p-versus-c DEFECT is reproduced in unit 6:  the sorted
+	branch reads "pv_n_vtx[handle][p] == 4" where every other read in
+	the same expression uses c.  With the three shipped models it is
+	unobservable - BIRDY is 20 triangles and VEHICLE's mode-2 calls
+	pass use_depth_sort = 0, so p and c coincide - and it is graded
+	only against a synthetic mixed-nv model. )
+
+"SP dw emit one"
+	[SPreg] = RGPVF;
+	A = [PVac]; A + [PVc]; [SPidx] = A; => SP dget;
+	[PVnv] = [SPval];
+	A = [PVptr]; C = [PVn]; C '* 49; A + C; A + [PVc]; [SPidx] = A;
+	=> SP dget;
+	[PVk] = [SPval];
+
+	A = [DWn]; ? A '>= CALLMAX -> SP de skip;
+	A = [DWn]; A '* 8; C = pvcall; C + A;
+	[C plus 0] = [PVp];
+	[C plus 1] = [PVc];
+	D = [PVc]; D + D; D + D;
+	[C plus 2] = D;
+	[C plus 3] = [PVnv];
+	[C plus 4] = [PVk];
+	A = [PVk]; A & 192; D = [PVk]; D & 63; D > 1; A | D;
+	[C plus 5] = A;
+	( the mode-2 read that uses p where the rest of the line uses c )
+	A = [PVac]; A + [PVp]; [SPidx] = A; => SP dget;
+	A = [DWn]; A '* 8; C = pvcall; C + A;
+	[C plus 6] = [SPval];
+	[C plus 7] = [DWmode];
+    "SP de skip"
+	[DWn]+;
+	end;
+
+( ==================================================================== )
+( modpv                                                                 )
+( ==================================================================== )
+
+      ( ROTATION ORDER Y, then X, then Z, and the two scales are applied
+	ON THE STORE rather than as a clean R.S composition:
+
+	    x1 = (x-cx)*cos_y + (z-cz)*sin_y
+	    z1 = (z-cz)*cos_y - (x-cx)*sin_y
+	    z  = z_scale * (z1*cos_x + (y-cy)*sin_x) + cz
+	    y1 = (y-cy)*cos_x - z1*sin_x
+	    x  = x_scale * (x1*cos_z + y1*sin_z) + cx
+	    y  = y_scale * (y1*cos_z - x1*sin_z) + cy
+
+	Note that Z is STORED BACK before y1 is computed, and y1 uses the
+	ORIGINAL y - so the order of the six lines is load bearing.  The
+	six sines and cosines are FLOATS, computed once from the degree
+	angles through deg = M_PI/180.
+
+	THE pvlist WALK IS A do{}while, so it executes ONCE even when
+	pv_n_vtx[c] is zero, and the four flags are Borland bitfields
+	packed LOW BITS FIRST: polygon_id in bits 0..11, then vtxflag_0
+	at bit 12 through vtxflag_3 at bit 15.  The list terminates on
+	polygon_id == 0xFFF. )
+
+"SP modpv"
+	A = [PVh]; ? A '>= PVHN -> SP mo out;
+	=> SP pvh at;
+	A = [A plus 2]; ? A = 0 -> SP mo out;
+	=> SP pv addrs;
+	[MOwalk] = 0;
+
+	( the six trig values, each narrowed to a float as the C declares )
+	[PGFt] = [MOxa]; => PGF ldf32;
+	[PGFt] = DDEGL; [PGFu] = DDEGH; => PGF ldf64; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFt] = [MOxa]; => PGF ldf32; => FMul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFT0; => PGF a; => FSin; => F32Narrow; [PGFi] = SFSNX; => PGF sa;
+	[PGFi] = SFT0; => PGF a; => FCos; => F32Narrow; [PGFi] = SFCSX; => PGF sa;
+
+	[PGFt] = DDEGL; [PGFu] = DDEGH; => PGF ldf64; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFt] = [MOya]; => PGF ldf32; => FMul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFT0; => PGF a; => FSin; => F32Narrow; [PGFi] = SFSNY; => PGF sa;
+	[PGFi] = SFT0; => PGF a; => FCos; => F32Narrow; [PGFi] = SFCSY; => PGF sa;
+
+	[PGFt] = DDEGL; [PGFu] = DDEGH; => PGF ldf64; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFt] = [MOza]; => PGF ldf32; => FMul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFT0; => PGF a; => FSin; => F32Narrow; [PGFi] = SFSNZ; => PGF sa;
+	[PGFi] = SFT0; => PGF a; => FCos; => F32Narrow; [PGFi] = SFCSZ; => PGF sa;
+
+	[PGFt] = [MOxs]; => PGF ldf32; [PGFi] = SFSCX; => PGF sa;
+	[PGFt] = [MOys]; => PGF ldf32; [PGFi] = SFSCY; => PGF sa;
+	[PGFt] = [MOzs]; => PGF ldf32; [PGFi] = SFSCZ; => PGF sa;
+
+	( the rotation centre )
+	A = [MOpid]; ? A < 0 -> SP mo zero;
+	A = [MOvid]; ? A < 0 -> SP mo zero;
+	[SPreg] = RGPVF;
+	A = [MOpid]; A '* 4; A + [MOvid]; A '* 4; [PVi] = A;
+	A = [PVax]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [PGFi] = SFMCX; => PGF sa;
+	A = [PVay]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [PGFi] = SFMCY; => PGF sa;
+	A = [PVaz]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [PGFi] = SFMCZ; => PGF sa;
+	-> SP mo body;
+    "SP mo zero"
+	[PGFt] = 0; => PGF ldf32; [PGFi] = SFMCX; => PGF sa;
+	[PGFt] = 0; => PGF ldf32; [PGFi] = SFMCY; => PGF sa;
+	[PGFt] = 0; => PGF ldf32; [PGFi] = SFMCZ; => PGF sa;
+
+    "SP mo body"
+	A = [MOlist]; ? A != 0 -> SP mo list;
+
+	( vertexs_to_affect == NULL : every used vertex )
+	[PVp] = 0;
+	A = [PVn]; ? A = 0 -> SP mo mid;
+    "SP mo p"
+	[SPreg] = RGPVF;
+	A = [PVac]; A + [PVp]; [SPidx] = A; => SP dget; [MOnv] = [SPval];
+	[PVv] = 0;
+	A = [MOnv]; ? A = 0 -> SP mo pn;
+    "SP mo v"
+	A = [PVp]; A '* 4; A + [PVv]; A '* 4; [PVi] = A;
+	=> SP mo vertex;
+	[MOwalk]+;
+	[PVv]+;
+	A = [PVv]; ? A '< [MOnv] -> SP mo v;
+    "SP mo pn"
+	[PVp]+;
+	A = [PVp]; ? A '< [PVn] -> SP mo p;
+	-> SP mo mid;
+
+    "SP mo list"
+	[PVp] = 0;
+    "SP mo lp"
+	A = pvlst; A + [PVp]; A = [A];
+	[PVk] = A;
+	C = [PVk]; C & 4095;
+	? C = PVLTERM -> SP mo mid;
+	[PVc] = C;
+	[SPreg] = RGPVF;
+	A = [PVac]; A + [PVc]; [SPidx] = A; => SP dget; [MOnv] = [SPval];
+	[PVv] = 0;
+    "SP mo lv"
+	( a do{}while: it runs ONCE even at nv == 0 )
+	A = [PVv]; ? A '>= 4 -> SP mo lnext;
+	C = 1; A = [PVv]; A + 12; C < A;
+	D = [PVk]; D & C;
+	? D = 0 -> SP mo lnext;
+	A = [PVc]; A '* 4; A + [PVv]; A '* 4; [PVi] = A;
+	=> SP mo vertex;
+	[MOwalk]+;
+    "SP mo lnext"
+	[PVv]+;
+	A = [PVv]; ? A '< [MOnv] -> SP mo lv;
+	[PVp]+;
+	A = [PVp]; ? A '< 250 -> SP mo lp;
+
+    "SP mo mid"
+	A = [PVds]; ? A = 0 -> SP mo out;
+	=> SP pv midpoints2;
+    "SP mo out"
+	end;
+
+      ( SP mo vertex : the six lines, on the vertex at byte index [PVi]. )
+
+"SP mo vertex"
+	[SPreg] = RGPVF;
+	A = [PVax]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [PGFi] = SFMCX; => PGF sub;
+	[PGFi] = SFV0; => PGF sa;			( x - cx )
+	A = [PVay]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [PGFi] = SFMCY; => PGF sub;
+	[PGFi] = SFV1; => PGF sa;			( y - cy )
+	A = [PVaz]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [PGFi] = SFMCZ; => PGF sub;
+	[PGFi] = SFV2; => PGF sa;			( z - cz )
+
+	( x1 = (x-cx)*cos_y + (z-cz)*sin_y )
+	[PGFi] = SFV0; => PGF a; [PGFi] = SFCSY; => PGF mul; [PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFV2; => PGF a; [PGFi] = SFSNY; => PGF mul;
+	[PGFi] = SFT0; => PGF add; => F32Narrow; [PGFi] = SFX1; => PGF sa;
+
+	( z1 = (z-cz)*cos_y - (x-cx)*sin_y )
+	[PGFi] = SFV2; => PGF a; [PGFi] = SFCSY; => PGF mul; [PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFV0; => PGF a; [PGFi] = SFSNY; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; => F32Narrow; [PGFi] = SFZ1; => PGF sa;
+
+	( z = z_scale * (z1*cos_x + (y-cy)*sin_x) + cz )
+	[PGFi] = SFZ1; => PGF a; [PGFi] = SFCSX; => PGF mul; [PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFV1; => PGF a; [PGFi] = SFSNX; => PGF mul;
+	[PGFi] = SFT0; => PGF add;
+	[PGFi] = SFSCZ; => PGF mul;
+	[PGFi] = SFMCZ; => PGF add;
+	=> F32Narrow; => PGF stf32; [SPf] = [PGFt];
+	A = [PVaz]; A + [PVi]; [SPidx] = A; => SP putf32;
+
+	( y1 = (y-cy)*cos_x - z1*sin_x - and it uses the ORIGINAL y )
+	[PGFi] = SFV1; => PGF a; [PGFi] = SFCSX; => PGF mul; [PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZ1; => PGF a; [PGFi] = SFSNX; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; => F32Narrow; [PGFi] = SFY1; => PGF sa;
+
+	( x = x_scale * (x1*cos_z + y1*sin_z) + cx )
+	[PGFi] = SFX1; => PGF a; [PGFi] = SFCSZ; => PGF mul; [PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFY1; => PGF a; [PGFi] = SFSNZ; => PGF mul;
+	[PGFi] = SFT0; => PGF add;
+	[PGFi] = SFSCX; => PGF mul;
+	[PGFi] = SFMCX; => PGF add;
+	=> F32Narrow; => PGF stf32; [SPf] = [PGFt];
+	A = [PVax]; A + [PVi]; [SPidx] = A; => SP putf32;
+
+	( y = y_scale * (y1*cos_z - x1*sin_z) + cy )
+	[PGFi] = SFY1; => PGF a; [PGFi] = SFCSZ; => PGF mul; [PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFX1; => PGF a; [PGFi] = SFSNZ; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub;
+	[PGFi] = SFSCY; => PGF mul;
+	[PGFi] = SFMCY; => PGF add;
+	=> F32Narrow; => PGF stf32; [SPf] = [PGFt];
+	A = [PVay]; A + [PVi]; [SPidx] = A; => SP putf32;
+	end;
+
+      ( modpv's midpoint pass differs from loadpv's: it does NOT zero
+	pv_mid_d and it does NOT rewrite pv_dep_i.  Two routines, because
+	they are two routines in the original. )
+
+"SP pv midpoints2"
+	=> SP pv addrs;
+	[SPreg] = RGPVF;
+	[PVp] = 0;
+	A = [PVn]; ? A = 0 -> SP pm2 done;
+    "SP pm2 p"
+	A = [PVac]; A + [PVp]; [SPidx] = A; => SP dget;
+	[PVnv] = [SPval];
+	[PGFt] = 0; => PGF ldf32; [PGFi] = SFV0; => PGF sa;
+	[PGFt] = 0; => PGF ldf32; [PGFi] = SFV1; => PGF sa;
+	[PGFt] = 0; => PGF ldf32; [PGFi] = SFV2; => PGF sa;
+	[PVv] = 0;
+	A = [PVnv]; ? A = 0 -> SP pm2 st;
+    "SP pm2 v"
+	A = [PVp]; A '* 16; C = [PVv]; C + C; C + C; A + C; [PVi] = A;
+	A = [PVax]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFV0; => PGF a; => FAdd; => F32Narrow; [PGFi] = SFV0; => PGF sa;
+	A = [PVay]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFV1; => PGF a; => FAdd; => F32Narrow; [PGFi] = SFV1; => PGF sa;
+	A = [PVaz]; A + [PVi]; [SPidx] = A; => SP getf32;
+	[PGFt] = [SPf]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFV2; => PGF a; => FAdd; => F32Narrow; [PGFi] = SFV2; => PGF sa;
+	[PVv]+;
+	A = [PVv]; ? A '< [PVnv] -> SP pm2 v;
+    "SP pm2 st"
+	[FI] = [PVnv]; => IntToF; [PGFi] = SFV3; => PGF sa;
+	[PGFi] = SFV0; => PGF a; [PGFi] = SFV3; => PGF quo; => F32Narrow;
+	=> PGF stf32; [SPf] = [PGFt];
+	A = [PVp]; C = A; C + C; C + C; A = [PVamx]; A + C; [SPidx] = A;
+	=> SP putf32;
+	[PGFi] = SFV1; => PGF a; [PGFi] = SFV3; => PGF quo; => F32Narrow;
+	=> PGF stf32; [SPf] = [PGFt];
+	A = [PVp]; C = A; C + C; C + C; A = [PVamy]; A + C; [SPidx] = A;
+	=> SP putf32;
+	[PGFi] = SFV2; => PGF a; [PGFi] = SFV3; => PGF quo; => F32Narrow;
+	=> PGF stf32; [SPf] = [PGFt];
+	A = [PVp]; C = A; C + C; C + C; A = [PVamz]; A + C; [SPidx] = A;
+	=> SP putf32;
+	[PVp]+;
+	A = [PVp]; ? A '< [PVn] -> SP pm2 p;
+    "SP pm2 done"
+	end;
+
+( ==================================================================== )
+( emitters                                                              )
+( ==================================================================== )
+
+      ( the arena, per handle: exactly the DOS byte offsets. )
+
+"SP arena emit"
+	[PVj] = [PVh];
+	[SPi] = 0;
+    "SP ae h"
+	A = [SPi]; A '* 16; C = sppack; C + A; [SPk] = C;
+	[PVh] = [SPi];
+	=> SP pvh at;
+	C = [SPk];
+	[C plus 0] = [SPi];
+	[C plus 1] = [A plus 0];
+	[C plus 2] = [A plus 1];
+	[C plus 3] = [A plus 2];
+	[C plus 4] = [A plus 3];
+	D = [A plus 0];			( n )
+	E = [A plus 1];			( dataptr )
+	[C plus 5] = E;
+	A = D; A + E;                     [C plus 6] = A;
+	A = D; A '* 17; A + E;            [C plus 7] = A;
+	A = D; A '* 33; A + E;            [C plus 8] = A;
+	A = D; A '* 49; A + E;            [C plus 9] = A;
+	A = D; A '* 50; A + E;            [C plus 10] = A;
+	A = D; A '* 54; A + E;            [C plus 11] = A;
+	A = D; A '* 58; A + E;            [C plus 12] = A;
+	A = D; A '* 62; A + E;            [C plus 13] = A;
+	A = D; A '* 66; A + E;            [C plus 14] = A;
+	[C plus 15] = [PVtop];
+	[SPi]+;
+	A = [SPi]; ? A '< PVHN -> SP ae h;
+	[PVh] = [PVj];
+	[SKind] = K36; [STag] = 1;
+	[SW] = 16; [SH] = PVHN;
+	[SBptr] = sppack; A = PVHN; A '* 16; [SBcnt] = A;
+	=> SDMP rec;
+
+	A = sphdr;
+	[A plus 0] = [PVtop];
+	[A plus 1] = [PVovn];
+	[A plus 2] = [PVovlo];
+	[A plus 3] = [PVovhi];
+	[A plus 4] = [PVret];
+	[A plus 5] = [QSswap];
+	[A plus 6] = [DWn];
+	[A plus 7] = [DWactive];
+	[A plus 8] = [MOwalk];
+	[A plus 9] = [SPload];
+	[A plus 10] = 0; [A plus 11] = 0; [A plus 12] = 0;
+	[A plus 13] = 0; [A plus 14] = 0; [A plus 15] = 0;
+	[SKind] = K36; [STag] = 2;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+	end;
+
+      ( pv_dep_i as it stands NOW - persistent state, emitted whole. )
+
+"SP depi emit"
+	=> SP pv addrs;
+	[SPreg] = RGPVF;
+	[SPi] = 0;
+	A = [PVn]; ? A = 0 -> SP de none;
+    "SP de i"
+	A = [PVadi]; C = [SPi]; C + C; A + C; [SPidx] = A; => SP getu16;
+	A = sppack; A + [SPi]; [A] = [SPf];
+	[SPi]+;
+	A = [SPi]; ? A '< [PVn] -> SP de i;
+    "SP de none"
+	[SKind] = K37; [STag] = [PVh];
+	[SW] = [PVn]; [SH] = 1;
+	[SBptr] = sppack; [SBcnt] = [PVn];
+	=> SDMP rec;
+
+	[SKind] = K37; [STag] = 100;
+	[SW] = 2; [SH] = [QSswap];
+	[SBptr] = pvswap; A = [QSswap]; A + A; [SBcnt] = A;
+	=> SDMP rec;
+	end;
+
+      ( every float32 pattern of a handle's geometry, in arena order.
+	This is where the slot-3 zeroing is visible: for a triangle the
+	fourth X, Y and Z must all read 00000000 and no component of the
+	whole block may be non-finite. )
+
+"SP f32 emit"
+	=> SP pv addrs;
+	[SPreg] = RGPVF;
+	[SPi] = 0;
+	A = [PVn]; A '* 4; [SPk] = A;
+	A = [SPk]; ? A = 0 -> SP fe none;
+    "SP fe i"
+	A = [SPi]; C = A; C + C; C + C; [SPj] = C;
+	A = [PVax]; A + [SPj]; [SPidx] = A; => SP getf32;
+	A = [SPi]; A '* 3; C = sppack; C + A; [C plus 0] = [SPf];
+	A = [PVay]; A + [SPj]; [SPidx] = A; => SP getf32;
+	A = [SPi]; A '* 3; C = sppack; C + A; [C plus 1] = [SPf];
+	A = [PVaz]; A + [SPj]; [SPidx] = A; => SP getf32;
+	A = [SPi]; A '* 3; C = sppack; C + A; [C plus 2] = [SPf];
+	[SPi]+;
+	A = [SPi]; ? A '< [SPk] -> SP fe i;
+    "SP fe none"
+	[SKind] = K38; [STag] = [PVh];
+	[SW] = 3; [SH] = [SPk];
+	[SBptr] = sppack; A = [SPk]; A '* 3; [SBcnt] = A;
+	=> SDMP rec;
+	end;
+
+"SP call emit"
+	[SKind] = K3A; [STag] = [PVh];
+	[SW] = 8; [SH] = [DWn];
+	[SBptr] = pvcall; A = [DWn]; A '* 8; [SBcnt] = A;
+	=> SDMP rec;
+	end;

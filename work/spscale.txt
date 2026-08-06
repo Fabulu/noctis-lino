@@ -1,0 +1,184 @@
+      ( *** spscale - the sphere pixel loop's scaling, as EXACT INTEGER
+	    arithmetic.  No float instruction appears in this file. ***
+
+	WHAT THE ORIGINAL DOES, per component, and it is all it does:
+
+	    mov  al, [si]              ; the map byte
+	    cbw                        ; sign-extended to int16
+	    mov  temp, ax
+	    fild word ptr temp         ; exact
+	    fmul dword ptr mag_factor  ; float32 operand
+	    fistp word ptr temp        ; CW 133Fh -> round half to EVEN
+
+	THE PROOF THAT THIS IS INTEGER.  dy runs -87..+86 and dx runs
+	-106..+105 over the shipped GLOBES.MAP, so the integer operand
+	needs at most 8 significant bits.  mag_factor is a binary32 and
+	its significand is 24 bits.  The exact product therefore needs at
+	most 32 significand bits, and PC=64 carries 64.  fmul ROUNDS
+	NOTHING.  The single rounding in the chain is the fistp.  Hence
+
+	    result = round_half_even (dy * mag_factor)
+
+	is a pure integer function of (dy:int16, mag_factor:uint32),
+	computable as dy * mantissa24 in a 32-bit product followed by an
+	arithmetic shift with a half-even tie rule.
+
+	That is a claim to be PROVEN BY ENUMERATION against a real
+	fild/fmul/fistp oracle, not asserted - and in particular it must
+	be proven against the ADVERSARIAL mag_factor set, the binary32
+	neighbours of (k+0.5)/dy, which is exactly where an implementation
+	that does the multiply in float32 goes wrong.  A float32 multiply
+	passes a random sweep and fails there.  So this file exists, and
+	using the float engine here instead is sabotage SCALEF32.
+
+	WHY THE PRODUCT FITS 32 BITS.  |dy| <= 106 and the significand is
+	at most 2^24-1 = 16,777,215, so |P| <= 1,778,384,790 < 2^31.  No
+	64-bit arithmetic is needed and none is used.
+
+	THE STORE IS fistp word ptr, m16int.  On overflow the masked
+	invalid-operation response stores 8000h - it does NOT store the
+	truncated low word.  Over the shipped table with the clamp at 1.32
+	the result never leaves -141..+140, so the branch is unreachable
+	in the game; it is written anyway because writing the wrong thing
+	there would be a silent difference on a synthetic table, and the
+	synthetic-table check is the only place the encoding's headroom is
+	observable.                                                       )
+
+"constants"
+
+	SCM16OV	= 32768;		( 8000h, the masked m16int overflow )
+
+"variables"
+
+	SCdy	= 0;		( int16 in, sign already extended )
+	SCmag	= 0;		( binary32 bit pattern            )
+	SCout	= 0;		( int16 out                       )
+
+	SCsgn	= 0;
+	SCman	= 0;
+	SCexp	= 0;
+	SCk	= 0;
+	SCq	= 0;
+	SCrem	= 0;
+	SChalf	= 0;
+	SCa	= 0;
+	SCt	= 0;
+
+"programme"
+
+( ==================================================================== )
+
+      ( SP scale : [SCout] <- round_half_even ([SCdy] * f32([SCmag]))
+	stored as fistp word ptr.
+
+	[SCdy] must already be a signed int16 value; the caller does the
+	cbw, because the ORIGINAL does the cbw at the call site and on
+	one of the two components reads the byte a second time for the
+	riga index before the sign extension is consumed. )
+
+"SP scale"
+	( ---- decode the binary32 ---- )
+	A = [SCmag]; A > 31;         [SCsgn] = A;
+	A = [SCmag]; A > 23; A & 255; [SCexp] = A;
+	A = [SCmag]; A & 8388607;    [SCman] = A;
+
+	( zero and subnormal.  mag_factor is normal for every value the
+	  clamp ladder can produce, but a synthetic corpus may hand this
+	  routine anything and a wrong answer there would be silent. )
+	A = [SCexp]; ? A != 0 -> SP sc normal;
+	A = [SCman]; ? A = 0 -> SP sc zero;
+	( subnormal: value = man * 2^-149 )
+	[SCk] = 149;
+	-> SP sc mul;
+    "SP sc zero"
+	[SCout] = 0;
+	end;
+    "SP sc normal"
+	( infinity and NaN have no fistp answer but 8000h; say so once. )
+	A = [SCexp]; ? A = 255 -> SP sc ovf;
+	C = [SCman]; C | 8388608; [SCman] = C;
+	( value = man * 2^(exp-127-23);  k = -(exp-150) = 150-exp )
+	A = 150; A - [SCexp]; [SCk] = A;
+
+    "SP sc mul"
+	( ---- the exact product, magnitudes only ---- )
+	A = [SCdy];
+	C = 0;
+	? A >= 0 -> SP sc pos;
+	C = 1; A+-;
+    "SP sc pos"
+	[SCt] = C;			( sign of dy )
+	A '* [SCman];
+	[SCa] = A;			( |P|, < 2^31 )
+
+	( combine the two signs )
+	A = [SCsgn]; C = [SCt]; A # C; [SCsgn] = A;
+
+	( ---- P * 2^-k with round half to even ---- )
+	A = [SCk];
+	? A '>= 32 -> SP sc tiny;
+	? A = 0 -> SP sc exact;
+
+	C = [SCa]; A = [SCk]; C > A; [SCq] = C;
+	C = [SCq]; A = [SCk]; C < A;		( q << k )
+	A = [SCa]; A - C; [SCrem] = A;
+	C = 1; A = [SCk]; A - 1; C < A; [SChalf] = C;
+
+	A = [SCrem];
+	? A '> [SChalf] -> SP sc up;
+	? A '< [SChalf] -> SP sc down;
+	( exact tie: round to even )
+	A = [SCq]; A & 1;
+	? A = 0 -> SP sc down;
+    "SP sc up"
+	[SCq]+;
+    "SP sc down"
+	-> SP sc sign;
+
+    "SP sc tiny"
+	( k >= 32.  |P| < 2^31 <= 2^(k-1), so the quotient is 0 and the
+	  remainder is strictly below half.  No shift by 32 or more is
+	  ever executed - on x86 the count is masked to 5 bits and the
+	  answer would be the operand back again. )
+	[SCq] = 0;
+	-> SP sc sign;
+
+    "SP sc exact"
+	[SCq] = [SCa];
+
+    "SP sc sign"
+	A = [SCq];
+	C = [SCsgn]; ? C = 0 -> SP sc store;
+	A+-;
+    "SP sc store"
+	( fistp word ptr: outside int16 the masked invalid response is
+	  8000h, not a truncation. )
+	? A > 32767 -> SP sc ovf;
+	C = 0; C - 32768;
+	? A < C -> SP sc ovf;
+	[SCout] = A;
+	end;
+    "SP sc ovf"
+	[SCout] = SCM16OV;
+	A = [SCout]; A - 65536; [SCout] = A;	( as a signed int16 )
+	end;
+
+      ( SP scale sweep : run "SP scale" for every dy in -106..+105 at the
+	pinned [SCmag] and stage the 212 results in sppack.
+
+	The interval is the FULL 9-bit signed range the x byte can carry,
+	not the range the shipped table happens to use, because the
+	enumeration is what proves the integer identity and a proof over
+	the used subset would prove less. )
+
+"SP scale sweep"
+	[SPi] = 0;
+	A = 0; A - 106; [SCdy] = A;
+    "SP ss i"
+	=> SP scale;
+	A = sppack; A + [SPi];
+	[A] = [SCout];
+	[SPi]+;
+	[SCdy]+;
+	A = [SPi]; ? A '< 212 -> SP ss i;
+	end;

@@ -1,0 +1,308 @@
+      ( *** spmap - standalone walkers for GLOBES.MAP and OFFSETS.MAP ***
+
+	These are OBSERVERS.  globe, glowinglobe and background each walk
+	their own map inline, exactly as the assembly does; this file
+	walks the same bytes a second time to produce a decode census that
+	can be joined against a decoder written from the asset bytes
+	alone.  The two walks are deliberately separate code: if the
+	rasteriser's walk and the census walk were the same routine, a
+	decode error would move both sides together and the census would
+	be worth nothing.
+
+	GLOBES.MAP IS PAIRS OF int8, NOT int16.
+
+	    cmp byte ptr [si], 100      ; the sentinel is the LOW byte
+	    jne pixel
+	  pixel:  mov al,[si] / cbw     ; y, SIGN extended
+	          mov al,[si+1] / cbw   ; x, SIGN extended
+	  blanket: mov al,[si+1]
+	           xor ah, ah           ; the skip advance is UNSIGNED
+	           add bx, ax
+
+	The int16 reading is an artifact of a constant y byte sitting in
+	the high position.  Two things follow and both are load-bearing:
+
+	  1. THE SENTINEL IS SCANNED BY POSITION, NOT BY VALUE.  Only the
+	     EVEN byte of a pair is ever compared against 100.  Over the
+	     shipped file 32 DRAW records carry an x byte of exactly 100,
+	     and a decoder that scans the byte stream for 100 without
+	     tracking parity corrupts precisely those 32 and nothing else.
+
+	  2. THE SKIP ADVANCE IS UNSIGNED, AND THAT IS NOT GRADEABLE
+	     AGAINST THIS FILE.  Every one of the 513 skip bytes is <= 100,
+	     so a signed read and an unsigned read agree on all 513.  A
+	     check of the form "the shipped map decodes correctly with an
+	     unsigned advance" CANNOT FAIL and is REFUSED here.  The
+	     unsigned read is gradeable in exactly two places: against
+	     NOCTIS.EXE's "30 E4" (xor ah,ah) at file offset 54190, and
+	     against a SYNTHETIC table carrying a skip byte >= 128.  This
+	     walker takes its table from a region id, so the synthetic
+	     table is fed through the same code.
+
+	OFFSETS.MAP IS 3,670 uint16 LITTLE-ENDIAN.  A word below 64,000
+	paints a 5x5 block at that framebuffer offset and advances the
+	SOURCE cursor by one.  A word at or above 64,000 advances the
+	SOURCE cursor by (word - 64000) and paints nothing.  The skip is
+	in the source panorama; it is NOT a screen wrap.  Reading it as a
+	screen advance would leave the source cursor at 3,620 - about ten
+	panorama rows - and could not produce 48 bands.
+
+	WHAT IS NOT SHIPPED AS AN INVARIANT: "pixels + skip == 360 per
+	band".  Measured on the shipped bytes it FAILS on 11 of the 50
+	segments (991, 346, 351, 358, 361, 359, 362, 369, 374, 1564,
+	1535), so it is not an invariant and shipping it would be
+	shipping a false claim.  The structural facts that DO hold are
+	emitted instead: the band count, the source row of each band, and
+	the width and phase sequences, which a reader can test for the
+	palindrome without this file asserting it.                        )
+
+"constants"
+
+	GLSENT	= 100;		( the y-byte sentinel )
+	OMPAINT	= 64000;	( below this a word paints )
+
+	MAPRECU	= 3;		( units per emitted GLOBES record )
+	MAPRECN	= 11293;	( records in the shipped table    )
+
+"variables"
+
+	MPreg	= 0;		( region holding the table )
+	MPbytes	= 0;		( total_map_bytes          )
+	MPn	= 0;		( records = bytes >> 1     )
+
+	MPsi	= 0;		( byte cursor into the table   )
+	MPbx	= 0;		( the tapestry / source cursor )
+	MPdraw	= 0;
+	MPskip	= 0;
+	MPx100	= 0;		( draw records whose x byte is 100 )
+	MPmaxdy	= 0;
+	MPmaxdx	= 0;
+	MPmaxsk	= 0;
+	MPy	= 0;
+	MPx	= 0;
+
+	( OFFSETS )
+	OFn	= 0;
+	OFpaint	= 0;
+	OFskip	= 0;
+	OFsrc	= 0;
+	OFbands	= 0;
+	OFmaxw	= 0;
+	OFmaxt	= 0;
+	OFinband = 0;
+	OFwidth	= 0;
+	OFw	= 0;
+
+	MPtmp	= 0;
+	MPi	= 0;
+
+"programme"
+
+( ==================================================================== )
+( GLOBES.MAP                                                            )
+( ==================================================================== )
+
+      ( SP map walk : decode the whole table in region [MPreg], length
+	[MPbytes], and stage MAPRECU units per record in sppack:
+
+	    unit 0   the cursor value BEFORE this record
+	    unit 1   dx  (draw) or the unsigned advance (skip)
+	    unit 2   dy  (draw) or 100 (skip)
+
+	so the record kind is recoverable from unit 2 and the whole
+	(cursor, dx, dy) stream joins field by field.  The counters are
+	DERIVED from the walk, never written by construction. )
+
+"SP map walk"
+	A = [MPbytes]; A > 1; [MPn] = A;
+	[MPsi] = 0; [MPbx] = 0;
+	[MPdraw] = 0; [MPskip] = 0; [MPx100] = 0;
+	[MPmaxdy] = 0; [MPmaxdx] = 0; [MPmaxsk] = 0;
+	[MPi] = 0;
+	A = [MPn]; ? A = 0 -> SP mw done;
+    "SP mw rec"
+	[SPreg] = [MPreg];
+
+	( the sentinel test is on the EVEN byte and on nothing else )
+	[SPidx] = [MPsi]; => SP dget; [MPy] = [SPval];
+	A = [MPsi]; A + 1; [SPidx] = A; => SP dget; [MPx] = [SPval];
+
+	A = [MPi]; A '* MAPRECU; C = sppack; C + A; [MPtmp] = C;
+	A = [MPtmp]; [A plus 0] = [MPbx];
+
+	A = [MPy]; ? A = GLSENT -> SP mw skip;
+
+	( DRAW: both bytes sign extended with cbw )
+	C = [MPy]; => SP sx8; [MPy] = C;
+	C = [MPx]; => SP sx8; [MPx] = C;
+	A = [MPtmp]; [A plus 1] = [MPx]; [A plus 2] = [MPy];
+	[MPdraw]+;
+	A = [MPx]; ? A != 100 -> SP mw nx100;
+	[MPx100]+;
+    "SP mw nx100"
+	A = [MPy]; ? A >= 0 -> SP mw dyp;
+	A+-;
+    "SP mw dyp"
+	? A '<= [MPmaxdy] -> SP mw dxa;
+	[MPmaxdy] = A;
+    "SP mw dxa"
+	A = [MPx]; ? A >= 0 -> SP mw dxp;
+	A+-;
+    "SP mw dxp"
+	? A '<= [MPmaxdx] -> SP mw adv1;
+	[MPmaxdx] = A;
+    "SP mw adv1"
+	[MPbx]+;
+	-> SP mw next;
+
+    "SP mw skip"
+	( SKIP: the x byte is an UNSIGNED advance - xor ah,ah, not cbw )
+	A = [MPtmp]; [A plus 1] = [MPx]; [A plus 2] = GLSENT;
+	[MPskip]+;
+	A = [MPx]; ? A '<= [MPmaxsk] -> SP mw adv2;
+	[MPmaxsk] = A;
+    "SP mw adv2"
+	A = [MPbx]; A + [MPx]; [MPbx] = A;
+
+    "SP mw next"
+	A = [MPsi]; A + 2; [MPsi] = A;
+	[MPi]+;
+	A = [MPi]; ? A '< [MPn] -> SP mw rec;
+    "SP mw done"
+	[CSdraw] = [MPdraw];
+	[CSskip] = [MPskip];
+	[CScur]  = [MPbx];
+	end;
+
+      ( SP map emit : the decode census, then the whole record stream. )
+
+"SP map emit"
+	A = sphdr;
+	[A plus 0] = [MPn];
+	[A plus 1] = [MPdraw];
+	[A plus 2] = [MPskip];
+	[A plus 3] = [MPbx];
+	[A plus 4] = [MPx100];
+	[A plus 5] = [MPmaxdy];
+	[A plus 6] = [MPmaxdx];
+	[A plus 7] = [MPmaxsk];
+	[A plus 8] = [MPbytes];
+	[A plus 9] = [MPreg];
+	[A plus 10] = 0; [A plus 11] = 0;
+	[A plus 12] = 0; [A plus 13] = 0;
+	[A plus 14] = 0; [A plus 15] = 0;
+	[SKind] = K32; [STag] = 1;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+
+	[SKind] = K32; [STag] = 2;
+	[SW] = MAPRECU; [SH] = [MPn];
+	[SBptr] = sppack;
+	A = [MPn]; A '* MAPRECU; [SBcnt] = A;
+	=> SDMP rec;
+	end;
+
+( ==================================================================== )
+( OFFSETS.MAP                                                           )
+( ==================================================================== )
+
+      ( SP off walk : decode the whole offsets table in region [MPreg],
+	length [MPbytes], and stage 4 units per BAND in sppack:
+
+	    unit 0   band index
+	    unit 1   source cursor at the band's first paint
+	    unit 2   band width in paints
+	    unit 3   the band's first paint word
+
+	The source row and the column phase are then unit1/360 and
+	unit1%360, computed by the reader; this file emits the raw
+	cursor so no derived quantity is asserted here twice. )
+
+"SP off walk"
+	A = [MPbytes]; A > 1; [OFn] = A;
+	[MPsi] = 0;
+	[OFpaint] = 0; [OFskip] = 0; [OFsrc] = 0; [OFbands] = 0;
+	[OFmaxw] = 0; [OFmaxt] = 0; [OFinband] = 0; [OFwidth] = 0;
+	[MPi] = 0;
+	A = [OFn]; ? A = 0 -> SP ow done;
+    "SP ow rec"
+	[SPreg] = [MPreg];
+	[SPidx] = [MPsi]; => SP dget; [MPy] = [SPval];
+	A = [MPsi]; A + 1; [SPidx] = A; => SP dget; [MPx] = [SPval];
+	C = [MPx]; C < 8; A = [MPy]; C + A; [OFw] = C;
+
+	A = [OFw]; ? A '>= OMPAINT -> SP ow skip;
+
+	( PAINT )
+	[OFpaint]+;
+	A = [OFw]; ? A '<= [OFmaxw] -> SP ow mw;
+	[OFmaxw] = A;
+    "SP ow mw"
+	A = [OFw]; A + 1284;
+	? A '<= [OFmaxt] -> SP ow band;
+	[OFmaxt] = A;
+    "SP ow band"
+	A = [OFinband]; ? A != 0 -> SP ow grow;
+	( a band opens here )
+	[OFinband] = 1; [OFwidth] = 0;
+	A = [OFbands]; A '* 4; C = sppack; C + A; [MPtmp] = C;
+	A = [MPtmp];
+	[A plus 0] = [OFbands];
+	[A plus 1] = [OFsrc];
+	[A plus 3] = [OFw];
+    "SP ow grow"
+	[OFwidth]+;
+	[OFsrc]+;
+	-> SP ow next;
+
+    "SP ow skip"
+	[OFskip]+;
+	A = [OFinband]; ? A = 0 -> SP ow sadv;
+	( close the open band )
+	A = [OFbands]; A '* 4; C = sppack; C + A;
+	[C plus 2] = [OFwidth];
+	[OFbands]+;
+	[OFinband] = 0;
+    "SP ow sadv"
+	A = [OFw]; A - OMPAINT; C = [OFsrc]; C + A; [OFsrc] = C;
+
+    "SP ow next"
+	A = [MPsi]; A + 2; [MPsi] = A;
+	[MPi]+;
+	A = [MPi]; ? A '< [OFn] -> SP ow rec;
+
+	A = [OFinband]; ? A = 0 -> SP ow done;
+	A = [OFbands]; A '* 4; C = sppack; C + A;
+	[C plus 2] = [OFwidth];
+	[OFbands]+;
+	[OFinband] = 0;
+    "SP ow done"
+	[CSdraw] = [OFpaint];
+	[CSskip] = [OFskip];
+	[CScur]  = [OFsrc];
+	end;
+
+"SP off emit"
+	A = sphdr;
+	[A plus 0] = [OFn];
+	[A plus 1] = [OFpaint];
+	[A plus 2] = [OFskip];
+	[A plus 3] = [OFsrc];
+	[A plus 4] = [OFbands];
+	[A plus 5] = [OFmaxw];
+	[A plus 6] = [OFmaxt];
+	[A plus 7] = [MPbytes];
+	[A plus 8] = 0; [A plus 9] = 0; [A plus 10] = 0; [A plus 11] = 0;
+	[A plus 12] = 0; [A plus 13] = 0; [A plus 14] = 0; [A plus 15] = 0;
+	[SKind] = K3C; [STag] = 1;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+
+	[SKind] = K3C; [STag] = 2;
+	[SW] = 4; [SH] = [OFbands];
+	[SBptr] = sppack;
+	A = [OFbands]; A '* 4; [SBcnt] = A;
+	=> SDMP rec;
+	end;

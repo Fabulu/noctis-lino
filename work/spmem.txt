@@ -1,0 +1,902 @@
+      ( *** spmem - Wave 6b region access, asset unpacking, the 4-unit
+	    float view, the corpus tokeniser and the SPDUMP writer ***
+
+	ADDITIVE ONLY.  work/fbmem.txt is LINKED, never edited and never
+	forked; every base, segment origin and mask primitive comes from
+	there.  Nothing in this file restates a layout number.
+
+	THE ADDRESS CONVENTION, stated once and obeyed everywhere.
+
+	Wave 6b's four DOS routines reach their buffers like this, and in
+	EVERY one of them farmalloc's offset of 4 is either carried in the
+	index or supplied by the instruction's displacement - never both,
+	and never neither:
+
+	  globe      les ax,tapestry / add start,ax / mov bx,start
+	             -> SOURCE index carries the +4;  fs:[bx]
+	             les ax,target                (offset DISCARDED)
+	             -> DEST supplies it: es:[di+4] in every gman
+	  glowinglobe les ax,target               (offset DISCARDED)
+	             -> es:[di+4]
+	  background les ax,target / add screenshift,ax
+	             -> DEST index carries the +4;  es:[di], es:[di+4], ...
+	             les bx,background / mov bx,es (offset DISCARDED)
+	             mov bp,start / add bp,4
+	             -> SOURCE index carries the +4;  fs:[bp]
+	  surface    les di,p_background / add di,plwp / add di,35
+	             -> es:[di], the +4 arriving inside DI from les
+
+	So every one of them collapses to  base + index  in the flat
+	workspace, and there is NO "+4" to add on top.  Adding one is the
+	SCRATCHOFF-class defect Wave 6a measured at 23 moved pages.
+	niv-lr's commented-out /*+4*/ at noctis-0.cpp:2280 is a bug in
+	LR's model, where the offset was never included to begin with.
+
+	THE ROUTINES BELOW THEREFORE TAKE A DOS SEGMENT OFFSET - one that
+	already includes the 4 - and mask it against the region's SEGMENT
+	ORIGIN, which is base-4.  Consequence: DOS offset 4 IS region
+	byte 0 and there is no four-byte skew anywhere.
+
+	background()'s DI is the first GAME call site of fbmem's class-A
+	16-bit mask.  At the shipped screenshift of -643 the smallest
+	paint word already exceeds 65535 and folds; without the mask the
+	write lands 65,536 units past the page.  BUFFERMODEL 10.6 is an
+	XFAIL because "the class-A mask has no game call site" - it has
+	one now, and it is masked at the SEGMENT ORIGIN, not at the buffer
+	base.  The two differ only when the truncated offset lands in
+	0..3; that four-value boundary is the falsifier.
+
+	PVFILE STAYS ONE BYTE PER UNIT.  BUFFERMODEL 5 alias 9 directs a
+	re-layout of the pvfile arena so every float sub-array is unit
+	aligned.  That is OVERRULED here: the arena obeys Decision 1 like
+	every other region and the float sub-arrays are read and written
+	through the 4-unit assemble/disassemble pair below, exactly as
+	alias 7 already does for the STARMAP doubles.  Every DOS byte
+	offset then transfers verbatim, and the 4n-into-n colour overrun
+	lands exactly where DOS put it - inside pv_mid_x, which is zeroed
+	before any read - so it is faithfully dead rather than
+	conditionally dead.  docs-notes owner: record this overrule.
+
+	FILENAME TRAP: underscores in lino string literals become spaces.
+	Every name here uses hyphens or a dot.                            )
+
+"constants"
+
+	( ---------------- region ids ----------------
+	  Indices into rgt, built in "SP build rgt" from fbmem's own
+	  constants.  Nothing here is a literal address. )
+
+	RGOFF	= 0;		( n_offsets_map )
+	RGGLB	= 1;		( n_globes_map  )
+	RGSBG	= 2;		( s_background  )
+	RGPBG	= 3;		( p_background  )
+	RGPVF	= 4;		( pvfile arena  )
+	RGADP	= 5;		( adapted       )
+	NRG	= 6;
+
+	( ---------------- the shipped asset sizes ----------------
+	  NOCTIS-D.H:27 gl_bytes 22586, om_bytes 7340.  The three .NCC
+	  files are 2 + 50n and their lengths are READ from disk, never
+	  assumed. )
+
+	GLBYTES	= 22586;
+	OMBYTES	= 7340;
+
+	MDVEH	= 0;
+	MDMAM	= 1;
+	MDBRD	= 2;
+	NMODEL	= 3;
+
+	( ---------------- SPDUMP record kinds ---------------- )
+
+	K30	= 48;		( SPPAGE   - packed page                  )
+	K31	= 49;		( SPCEN    - per-case census              )
+	K32	= 50;		( SPMAP    - GLOBES.MAP decode stream      )
+	K33	= 51;		( SPCLIP   - globe clip / cursor census    )
+	K34	= 52;		( SPGLOW   - glowinglobe census + OOB list )
+	K35	= 53;		( SPBG     - background cursors            )
+	K36	= 54;		( SPARENA  - pvfile arena offsets          )
+	K37	= 55;		( SPDEPI   - pv_dep_i permutation          )
+	K38	= 56;		( SPF32    - binary32 pattern block        )
+	K39	= 57;		( SPSCALE  - exact integer scale results   )
+	K3A	= 58;		( SPCALL   - drawpv dispatch sequence      )
+	K3B	= 59;		( SPTRL    - trailer                       )
+	K3C	= 60;		( SPOFF    - OFFSETS.MAP structure         )
+	K3D	= 61;		( SPSETUP  - globe/glow float preamble     )
+
+	SPMAGIC	= 826622291;		( 'SPD1' little-endian 32-bit )
+	SPVER	= 1;
+	SPHDRU	= 16;
+
+	( ---------------- corpus opcodes ---------------- )
+
+	OPEND	= 0;
+	OPGRAS	= 1;		( globe_raster                  )
+	OPGLOW	= 2;		( glowinglobe_raster            )
+	OPBG	= 3;		( background                    )
+	OPDARK	= 4;		( surface's darkening band      )
+	OPWGLB	= 5;		( whiteglobe                    )
+	OPWSUN	= 6;		( whitesun                      )
+	OPSCAL	= 7;		( the exact integer scale sweep )
+	OPMAPD	= 8;		( GLOBES.MAP decode             )
+	OPOFFD	= 9;		( OFFSETS.MAP structure         )
+	OPLOAD	= 10;		( loadpv                        )
+	OPDRAW	= 11;		( drawpv dispatch               )
+	OPCOPY	= 12;		( copypv                        )
+	OPMOD	= 13;		( modpv                         )
+	OPSETU	= 14;		( globe / glow float preamble   )
+	OPUNLD	= 15;		( unloadallpv                   )
+
+	( ---------------- binary64 float slots ----------------
+
+	  pgfp is LINKED, not forked: it owns the fw workspace, the slot
+	  movement routines and the camera, and its highest allocated slot
+	  is FSINZ+3 = 263 of FWSLOTS = 384.  Wave 6b's own slots start at
+	  264 and are declared here, in the memory module, so spglobe,
+	  spwhite and spncc cannot each invent an overlapping map. )
+
+	SFXX	= 264;	SFYY	= 265;	SFZZ	= 266;	SFZ2	= 267;
+	SFRX	= 268;	SFRY	= 269;	SFRZ	= 270;
+	SFMAG	= 271;	SFT0	= 272;	SFT1	= 273;	SFT2	= 274;
+	SFCX	= 275;	SFCY	= 276;
+
+	SFMG	= 287;	SFFGM	= 288;	SFSHE	= 289;	SFISE	= 290;
+	SFMSQ	= 291;	SFFSQ	= 292;
+	SFXA	= 293;	SFYA	= 294;	SFXB	= 295;	SFYB	= 296;
+	SFXP	= 297;	SFYP	= 298;	SFZW	= 299;
+	SFDX	= 300;	SFDY	= 301;	SFDZ	= 302;
+	SFTMP	= 303;	SFTM2	= 304;
+
+	SFSNX	= 305;	SFCSX	= 306;	SFSNY	= 307;	SFCSY	= 308;
+	SFSNZ	= 309;	SFCSZ	= 310;
+	SFMCX	= 311;	SFMCY	= 312;	SFMCZ	= 313;
+	SFX1	= 314;	SFY1	= 315;	SFZ1	= 316;
+	SFSCX	= 317;	SFSCY	= 318;	SFSCZ	= 319;
+	SFV0	= 320;	SFV1	= 321;	SFV2	= 322;	SFV3	= 323;
+
+	( binary64 halves of the double literals Wave 6b needs.  Given as
+	  PATTERNS so no decimal float parser exists anywhere in the port;
+	  a shared decimal parser would be a shared divergence. )
+
+	D001L	= 0D2F1A9FCh;	D001H	= 3F50624Dh;	( 0.001    )
+	D01L	= 47AE147Bh;	D01H	= 3F847AE1h;	( 0.01     )
+	D33L	= 51EB851Fh;	D33H	= 3FD51EB8h;	( 0.33     )
+	D66L	= 51EB851Fh;	D66H	= 3FE51EB8h;	( 0.66     )
+	D99L	= 7AE147AEh;	D99H	= 3FEFAE14h;	( 0.99     )
+	D132L	= 51EB851Fh;	D132H	= 3FF51EB8h;	( 1.32     )
+	D299L	= 1EB851ECh;	D299H	= 4007EB85h;	( 2.99     )
+	D725L	= 0h;		D725H	= 401D0000h;	( 7.25     )
+	D110L	= 0h;		D110H	= 405B8000h;	( 110.0    )
+	D12L	= 33333333h;	D12H	= 3FF33333h;	( 1.2      )
+	D05L	= 0h;		D05H	= 3FE00000h;	( 0.5      )
+	D833L	= 9DB22D0Eh;	D833H	= 3FEAA7EFh;	( 0.833    )
+	D2PIL	= 54442D18h;	D2PIH	= 401921FBh;	( 2*M_PI   )
+	DDEGL	= 0A2529D39h;	DDEGH	= 3F91DF46h;	( M_PI/180 )
+	D100L	= 0h;		D100H	= 40590000h;	( 100.0    )
+	D15L	= 0h;		D15H	= 3FF80000h;	( 1.5      )
+	D63L	= 0h;		D63H	= 404F8000h;	( 63.0     )
+	D1L	= 0h;		D1H	= 3FF00000h;	( 1.0      )
+	D2L	= 0h;		D2H	= 40000000h;	( 2.0      )
+	D24L	= 33333333h;	D24H	= 40033333h;	( 2.4      )
+	D9L	= 0h;		D9H	= 40220000h;	( 9.0      )
+	D313L	= 0h;		D313H	= 40739000h;	( 313.0    )
+	D190L	= 0h;		D190H	= 4067C000h;	( 190.0    )
+	D460L	= 0h;		D460H	= 407CC000h;	( 460.0    )
+	D400L	= 0h;		D400H	= 40790000h;	( 400.0    )
+	D292L	= 0h;		D292H	= 40724000h;	( 292.0    )
+	D232L	= 0h;		D232H	= 406D0000h;	( 232.0    )
+	D226L	= 0h;		D226H	= 406C4000h;	( 226.0    )
+	D166L	= 0h;		D166H	= 4064C000h;	( 166.0    )
+	DZEROL	= 0h;		DZEROH	= 0h;		( 0.0      )
+
+	( the binary32 patterns the clamp LADDER ASSIGNS.  "mag_factor =
+	  0.001" stores a double literal into a float variable, so what
+	  the fmul later reads is f32(0.001), not 0.001. )
+
+	F001	= 981668463;		( (float)0.001 )
+	F132	= 1068037571;		( (float)1.32  )
+	F066	= 1059648963;		( (float)0.66  )
+	F01	= 1008981770;		( (float)0.01  )
+	F299	= 1077894185;		( (float)2.99  )
+
+	( x_centro 158 / y_centro 100 - NOCTIS-D.H:122-127, which wins
+	  because TDPOLYGS.H:49-69 is entirely #ifndef-guarded. )
+
+	F32XC	= 1126039552;		( 158.0f )
+	F32YC	= 1120403456;		( 100.0f )
+
+	CORPUSMAX = 120000;		( units of raw text, 4 chars each )
+	TOKMAX	= 400000;
+
+	STAGEMAX = 8192;		( units of packed asset bytes     )
+
+	SPDUMPU	= 1600000;		( SPDUMP staging, units           )
+	SPPACKU	= 48000;		( one packed page, or the whole
+					  GLOBES record stream at 3 units
+					  per record - 33,879 of them      )
+
+"variables"
+
+	spoutname	= { sp-out.bin };
+	spcorpname	= { sp-corpus.txt };
+	spglbname	= { globes.map };
+	spoffname	= { offsets.map };
+	spvehname	= { vehicle.ncc };
+	spmamname	= { mammal.ncc };
+	spbrdname	= { birdy.ncc };
+
+	( region access )
+	SPreg	= 0;
+	SPoff	= 0;			( DOS segment offset, pre-mask )
+	SPval	= 0;
+	SPidx	= 0;			( region-relative byte index   )
+
+	( asset loading )
+	SPfbytes = 0;
+	SPload	= 0;			( 0 = clean, else the failing asset id )
+	SPnvtx	= 0;
+
+	( float view )
+	SPf	= 0;			( assembled / disassembled binary32 )
+
+	( census, one case )
+	CScase	= 0;
+	CSnz	= 0;
+	CS255	= 0;
+	CSdraw	= 0;
+	CSskip	= 0;
+	CScur	= 0;
+	CSwr	= 0;
+	CSoob	= 0;
+
+	( dump staging )
+	SDptr	= 0;
+	SDcnt	= 0;
+	SKind	= 0;
+	STag	= 0;
+	SW	= 0;
+	SH	= 0;
+	SBptr	= 0;
+	SBcnt	= 0;
+
+	( corpus reader )
+	CRbytes	= 0;
+	CRpos	= 0;
+	CRtokn	= 0;
+	CRti	= 0;
+	CRch	= 0;
+	CRacc	= 0;
+	CRneg	= 0;
+	CRbad	= 0;
+
+	( page staging )
+	SPpreg	= 0;
+	SPpn	= 0;
+
+	SPtmp	= 0;
+	SPi	= 0;
+	SPj	= 0;
+	SPk	= 0;
+
+"workspace"
+
+	rgt	= 24;			( 6 regions x (base, segorigin, size, id) )
+	spdump	= 1600000;		( SPDUMP staging )
+	sppack	= 48000;		( packing scratch )
+	sphdr	= 16;			( one 16-unit record header block )
+	stage	= 8192;			( raw asset bytes, packed 4/unit )
+	scorpus	= 120000;		( raw corpus text, packed )
+	stok	= 400000;		( decoded integer tokens )
+
+"programme"
+
+( ==================================================================== )
+( the region table - derived from fbmem, never restated                 )
+( ==================================================================== )
+
+"SP build rgt"
+	A = rgt;
+	[A plus 0] = RNOFF; [A plus 1] = SNOFF; [A plus 2] = ZNOFF; [A plus 3] = RGOFF;
+	A + 4;
+	[A plus 0] = RNGLB; [A plus 1] = SNGLB; [A plus 2] = ZNGLB; [A plus 3] = RGGLB;
+	A + 4;
+	[A plus 0] = RSBG;  [A plus 1] = SSBG;  [A plus 2] = ZSBG;  [A plus 3] = RGSBG;
+	A + 4;
+	[A plus 0] = RPBG;  [A plus 1] = SPBG;  [A plus 2] = ZPBG;  [A plus 3] = RGPBG;
+	A + 4;
+	[A plus 0] = RPVF;  [A plus 1] = SPVF;  [A plus 2] = ZPVF;  [A plus 3] = RGPVF;
+	A + 4;
+	[A plus 0] = RADPT; [A plus 1] = SADPT; [A plus 2] = ZADPT; [A plus 3] = RGADP;
+	end;
+
+      ( SP base : C <- base of region [SPreg]. )
+
+"SP base"
+	A = [SPreg]; A '* 4; A + rgt;
+	C = [A plus 0];
+	end;
+
+      ( SP seg : C <- segment origin of region [SPreg]. )
+
+"SP seg"
+	A = [SPreg]; A '* 4; A + rgt;
+	C = [A plus 1];
+	end;
+
+( ==================================================================== )
+( the ONE truncation point                                              )
+( ==================================================================== )
+
+      ( SP put : the byte at DOS offset [SPoff] of region [SPreg]
+	<- [SPval] AND 255.
+
+	nw = SEG(reg) + ([SPoff] AND 65535), fbmem's class-A mechanism,
+	called at the point where the DOS code truncates DI.  The wrap is
+	COUNTED in [CSwr] so a build with the mask removed shows a zero
+	counter as well as a changed page - two independent falsifiers
+	for one defect. )
+
+"SP put"
+	A = [SPoff];
+	? A '<= WINDOW -> SP put nowrap;
+	[CSwr]+;
+    "SP put nowrap"
+	=> SP seg;
+	[SAseg] = C;
+	[SAoff] = [SPoff];
+	=> MEM seg addr;
+	A = nw; A + [SAnw];
+	C = [SPval]; C & 255;
+	[A] = C;
+	end;
+
+      ( SP get : [SPval] <- the byte at DOS offset [SPoff], unsigned. )
+
+"SP get"
+	A = [SPoff];
+	? A '<= WINDOW -> SP get nowrap;
+	[CSwr]+;
+    "SP get nowrap"
+	=> SP seg;
+	[SAseg] = C;
+	[SAoff] = [SPoff];
+	=> MEM seg addr;
+	A = nw; A + [SAnw];
+	C = [A]; C & 255;
+	[SPval] = C;
+	end;
+
+      ( SP dput / SP dget : DIRECT region-relative access, base + index.
+
+	FIXTURE and OBSERVER routines only - laying a pre-state, reading
+	an asset back, packing a page.  They deliberately do NOT truncate,
+	because a fixture is not a DOS store.  The distinction is the
+	point: every rasteriser store goes through "SP put". )
+
+"SP dput"
+	=> SP base;
+	A = nw; A + C; A + [SPidx];
+	C = [SPval]; C & 255;
+	[A] = C;
+	end;
+
+"SP dget"
+	=> SP base;
+	A = nw; A + C; A + [SPidx];
+	C = [A]; C & 255;
+	[SPval] = C;
+	end;
+
+      ( SP sx8 : C <- sign extension of C's low 8 bits.  cbw, which is
+	what globe and glowinglobe do to BOTH map bytes on the draw path.
+	The SKIP byte is read with "xor ah,ah" instead and must NOT come
+	through here. )
+
+"SP sx8"
+	C & 255;
+	A = C; A & 128;
+	? A = 0 -> SP sx8 done;
+	C - 256;
+    "SP sx8 done"
+	end;
+
+      ( SP s16 : C <- sign extension of C's low 16 bits.  Borland large
+	model int. )
+
+"SP s16"
+	C & 65535;
+	A = C; A & 32768;
+	? A = 0 -> SP s16 done;
+	C - 65536;
+    "SP s16 done"
+	end;
+
+( ==================================================================== )
+( the 4-unit binary32 view - the alias-9 overrule made mechanical       )
+( ==================================================================== )
+
+      ( SP getf32 : [SPf] <- the little-endian binary32 held in the four
+	byte units at region [SPreg], index [SPidx]. )
+
+"SP getf32"
+	=> SP base;
+	A = nw; A + C; A + [SPidx];
+	C = [A plus 3]; C & 255; C < 8;
+	D = [A plus 2]; D & 255; C + D; C < 8;
+	D = [A plus 1]; D & 255; C + D; C < 8;
+	D = [A plus 0]; D & 255; C + D;
+	[SPf] = C;
+	end;
+
+      ( SP putf32 : the four byte units at region [SPreg], index [SPidx]
+	<- the little-endian binary32 pattern [SPf]. )
+
+"SP putf32"
+	=> SP base;
+	A = nw; A + C; A + [SPidx];
+	C = [SPf]; C & 255;         [A plus 0] = C;
+	C = [SPf]; C > 8;  C & 255; [A plus 1] = C;
+	C = [SPf]; C > 16; C & 255; [A plus 2] = C;
+	C = [SPf]; C > 24; C & 255; [A plus 3] = C;
+	end;
+
+      ( SP getu16 / SP putu16 : the same for a little-endian uint16.
+	pv_dep_i is an int far * and its entries are Borland 16-bit ints. )
+
+"SP getu16"
+	=> SP base;
+	A = nw; A + C; A + [SPidx];
+	C = [A plus 1]; C & 255; C < 8;
+	D = [A plus 0]; D & 255; C + D;
+	[SPf] = C;
+	end;
+
+"SP putu16"
+	=> SP base;
+	A = nw; A + C; A + [SPidx];
+	C = [SPf]; C & 255;        [A plus 0] = C;
+	C = [SPf]; C > 8; C & 255; [A plus 1] = C;
+	end;
+
+( ==================================================================== )
+( loading the OPERAND register without disturbing the accumulator       )
+( ==================================================================== )
+
+      ( pgfp's "PGF ldf32" and "PGF ldf64" both land in FA, so the
+	sequence
+
+	    ... FA now holds a partial result ...
+	    [PGFt] = k; => PGF ldf64; [FB0] = [FA0]; [FB1] = [FA1];
+	    => FAdd;
+
+	computes k + k and throws the partial result away.  It reads as
+	"put k in the operand register" and is not.  This was a live
+	defect in this port: whiteglobe's "mag = mag_factor*100 + 1.5"
+	came out as 1.5 + 1.5 = 3, which is a plausible-looking radius and
+	produced a plausible-looking disc.  It was caught because the
+	emitted row and column counts are DERIVED from the loops rather
+	than asserted - 3 rows where the geometry says 8.
+
+	These two put the constant where it belongs and leave FA alone. )
+
+"SP fb64"				( FB <- binary64 [PGFt],[PGFu] )
+	[FB0] = [PGFt]; [FB1] = [PGFu];
+	end;
+
+"SP fb32"				( FB <- (double) binary32 [PGFt] )
+	[FT0] = [FA0]; [FT1] = [FA1];
+	=> PGF ldf32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1];
+	end;
+
+( ==================================================================== )
+( asset loading - disk bytes to one byte per unit                       )
+( ==================================================================== )
+
+      ( SP unpack : stage[] holds [SPfbytes] bytes packed four to a unit;
+	spread them one per unit into region [SPreg] from index 0. )
+
+"SP unpack"
+	=> SP base;
+	[SPtmp] = C;
+	[SPi] = 0;
+    "SP up byte"
+	A = [SPi]; C = A; C > 2; D = stage; D + C;
+	C = [D];
+	A = [SPi]; A & 3; A '* 8;
+	C > A; C & 255;
+	A = nw; A + [SPtmp]; A + [SPi];
+	[A] = C;
+	[SPi]+;
+	A = [SPi]; ? A '< [SPfbytes] -> SP up byte;
+	end;
+
+      ( SP read asset : read the file named by [File Name] into stage[]
+	and spread it into region [SPreg].  [SPfbytes] is the length the
+	FILE reported, never a constant - a truncated or absent asset is
+	then visible as a wrong length rather than as a wrong page. )
+
+"SP read asset"
+	[File Position]	= 0;
+	[File Command]	= READ;
+	[Block Pointer]	= stage;
+	[Block Size]	= STAGEMAX;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	A = [Block Size];
+	[SPfbytes] = A;
+	? A '> 0 -> SP ra ok;
+	end;
+    "SP ra ok"
+	=> SP unpack;
+	end;
+
+      ( SP load maps : GLOBES.MAP into n_globes_map, OFFSETS.MAP into
+	n_offsets_map.  The lengths are CHECKED against the header
+	constants and a mismatch is recorded in [SPload], not ignored. )
+
+"SP load maps"
+	[SPload] = 0;
+
+	[File Name] = spglbname;
+	[SPreg] = RGGLB;
+	=> SP read asset;
+	A = [SPfbytes]; ? A = GLBYTES -> SP lm g ok;
+	C = [SPload]; C | 1; [SPload] = C;
+    "SP lm g ok"
+
+	[File Name] = spoffname;
+	[SPreg] = RGOFF;
+	=> SP read asset;
+	A = [SPfbytes]; ? A = OMBYTES -> SP lm o ok;
+	C = [SPload]; C | 2; [SPload] = C;
+    "SP lm o ok"
+	end;
+
+( ==================================================================== )
+( census                                                                )
+( ==================================================================== )
+
+"SP census reset"
+	[CSnz] = 0; [CS255] = 0; [CSdraw] = 0; [CSskip] = 0;
+	[CScur] = 0; [CSwr] = 0; [CSoob] = 0;
+	end;
+
+      ( SP census page : count non-zero and 255 bytes over the first
+	[SPpn] bytes of region [SPpreg].  Counted AFTER the fact, from
+	the page, so it cannot agree with a rasteriser that never ran. )
+
+"SP census page"
+	[CSnz] = 0; [CS255] = 0;
+	[SPreg] = [SPpreg];
+	=> SP base;
+	[SPtmp] = C;
+	[SPi] = 0;
+    "SP cen unit"
+	A = nw; A + [SPtmp]; A + [SPi];
+	C = [A]; C & 255;
+	? C = 0 -> SP cen next;
+	[CSnz]+;
+	? C != 255 -> SP cen next;
+	[CS255]+;
+    "SP cen next"
+	[SPi]+;
+	A = [SPi]; ? A '< [SPpn] -> SP cen unit;
+	end;
+
+( ==================================================================== )
+( packing - 4 bytes per 32-bit unit, little-endian                      )
+( ==================================================================== )
+
+"SP packpage"
+	[SPreg] = [SPpreg];
+	=> SP base;
+	[SPtmp] = C;
+	[SPi] = 0; [SPj] = 0;
+    "SP pk unit"
+	A = nw; A + [SPtmp]; A + [SPi];
+	D = [A plus 0]; D & 255;
+	C = [A plus 1]; C & 255; C < 8;  D | C;
+	C = [A plus 2]; C & 255; C < 16; D | C;
+	C = [A plus 3]; C & 255; C < 24; D | C;
+	A = sppack; A + [SPj];
+	[A] = D;
+	[SPi] + 4;
+	[SPj]+;
+	A = [SPi]; ? A '< [SPpn] -> SP pk unit;
+	end;
+
+      ( SP fill page : region [SPpreg] bytes 0..[SPpn]-1 <- [SPval]. )
+
+"SP fill page"
+	[SPreg] = [SPpreg];
+	=> SP base;
+	[SPtmp] = C;
+	C = [SPval]; C & 255; [SPk] = C;
+	[SPi] = 0;
+    "SP fp unit"
+	A = nw; A + [SPtmp]; A + [SPi];
+	[A] = [SPk];
+	[SPi]+;
+	A = [SPi]; ? A '< [SPpn] -> SP fp unit;
+	end;
+
+      ( SP ramp page : region [SPpreg] byte i <- (i*101+7) AND 255.
+	A FORMULA, not a blob: both sides evaluate the same one line, and
+	no checked-in binary stands in for a pre-state. )
+
+"SP ramp page"
+	[SPreg] = [SPpreg];
+	=> SP base;
+	[SPtmp] = C;
+	[SPi] = 0;
+    "SP rp unit"
+	C = [SPi]; C '* 101; C + 7; C & 255;
+	A = nw; A + [SPtmp]; A + [SPi];
+	[A] = C;
+	[SPi]+;
+	A = [SPi]; ? A '< [SPpn] -> SP rp unit;
+	end;
+
+( ==================================================================== )
+( SPDUMP                                                                )
+( ==================================================================== )
+
+"SDMP reset"
+	[SDptr] = spdump;
+	[SDcnt] = 0;
+	end;
+
+"SDMP rec"
+	A = [SDptr];
+	[A plus 0]  = SPMAGIC;
+	[A plus 1]  = SPVER;
+	[A plus 2]  = [SKind];
+	[A plus 3]  = [SW];
+	[A plus 4]  = [SH];
+	[A plus 5]  = [SBcnt];
+	[A plus 6]  = [CScase];
+	[A plus 7]  = 0;
+	[A plus 8]  = [STag];
+	[A plus 9]  = 0;
+	[A plus 10] = 0;
+	[A plus 11] = 0;
+	[A plus 12] = 0;
+	[A plus 13] = 0;
+	[A plus 14] = 0;
+	[A plus 15] = 0;
+	A + SPHDRU;
+	C = [SDcnt]; C + SPHDRU; [SDcnt] = C;
+
+	D = [SBptr];
+	B = [SBcnt];
+	? B = 0 -> SDMP rec tail;
+    "SDMP rec unit"
+	C = [D]; [A] = C; A+; D+;
+	B ^ SDMP rec unit;
+	C = [SDcnt]; C + [SBcnt]; [SDcnt] = C;
+    "SDMP rec tail"
+	[SDptr] = A;
+	end;
+
+      ( SDMP page : pack the live page and append it as one K30 record.
+	[SPpreg] and [SPpn] select which region and how much. )
+
+"SDMP page"
+	=> SP packpage;
+	[SKind] = K30; [STag] = [SPpreg];
+	A = [SPpn]; A > 2; [SBcnt] = A;
+	[SW] = [SPpn]; [SH] = 1;
+	[SBptr] = sppack;
+	=> SDMP rec;
+	end;
+
+      ( SDMP census : counters DERIVED from the run. )
+
+"SDMP census"
+	=> SP census page;
+	=> FCWRead;
+	[SPtmp] = [FI];
+	A = sphdr;
+	[A plus 0]  = [CScase];
+	[A plus 1]  = [CSnz];
+	[A plus 2]  = [CS255];
+	[A plus 3]  = [CSdraw];
+	[A plus 4]  = [CSskip];
+	[A plus 5]  = [CScur];
+	[A plus 6]  = [CSwr];
+	[A plus 7]  = [CSoob];
+	[A plus 8]  = [SPpreg];
+	[A plus 9]  = [SPpn];
+	[A plus 10] = [SPtmp];
+	[A plus 11] = [FFLG];
+	[A plus 12] = [SPload];
+	[A plus 13] = 0; [A plus 14] = 0; [A plus 15] = 0;
+	[SKind] = K31; [STag] = 1;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+	end;
+
+      ( SDMP surround : the eight units the PAGE record cannot see, and
+	the only place the two candidate class-A rules disagree.
+
+	adapted's DOS segment runs from its base MINUS FOUR - Borland's
+	far heap gave the block an offset of 4 - so a 16-bit index that
+	folds to 0..3 lands on the four far-heap header units BELOW the
+	buffer.  Masking at the buffer base instead sends the same write
+	to base + 65532, four units above the visible page.  Neither
+	address is inside the 64,000 pixels the PAGE record carries, so
+	without this record the two rules produce identical dumps and the
+	sabotage that tells them apart reads as NOT CAUGHT.
+
+	Emitted every case, so the "class-A mask has no game call site"
+	XFAIL in BUFFERMODEL 10.6 can be closed with a number rather than
+	an argument:
+
+	    0..3   nw[SADPT+0 .. SADPT+3]   the segment's offsets 0..3
+	    4..7   adapted[65536 .. 65539]  the four units sc_bytes exists for
+	    8      non-zero units in adapted[64000..65535]
+	    9      the first such index, or -1                          )
+
+"SDMP surround"
+	[SPreg] = RGADP;
+	=> SP seg;
+	D = nw; D + C;
+	A = sphdr;
+	[A plus 0] = [D plus 0];
+	[A plus 1] = [D plus 1];
+	[A plus 2] = [D plus 2];
+	[A plus 3] = [D plus 3];
+	[SPreg] = RGADP;
+	=> SP base;
+	[SPtmp] = C;
+	D = nw; D + C; D + 65536;
+	A = sphdr;
+	[A plus 4] = [D plus 0];
+	[A plus 5] = [D plus 1];
+	[A plus 6] = [D plus 2];
+	[A plus 7] = [D plus 3];
+	[SPi] = NPIX;
+	[SPj] = 0;
+	[SPk] = 0; [SPk]-;
+    "SDMP sr u"
+	A = nw; A + [SPtmp]; A + [SPi];
+	C = [A];
+	? C = 0 -> SDMP sr n;
+	[SPj]+;
+	A = [SPk]; ? A >= 0 -> SDMP sr n;
+	[SPk] = [SPi];
+    "SDMP sr n"
+	[SPi]+;
+	A = [SPi]; ? A '< 65536 -> SDMP sr u;
+	A = sphdr;
+	[A plus 8]  = [SPj];
+	[A plus 9]  = [SPk];
+	[A plus 10] = 0; [A plus 11] = 0;
+	[A plus 12] = 0; [A plus 13] = 0; [A plus 14] = 0; [A plus 15] = 0;
+	[SKind] = K31; [STag] = 2;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+	end;
+
+"SDMP write"
+	[File Name]	= spoutname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= spdump;
+	[Block Size]	= [SDcnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= spoutname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= [SDcnt];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+( ==================================================================== )
+( the corpus tokeniser                                                  )
+( ==================================================================== )
+
+      ( A flat stream of signed decimal integers.  '#' starts a comment
+	that runs to end of line.  Anything else is a separator.  A
+	decimal integer is the ONLY lexeme, so no shared decimal float
+	parser - which would be a shared divergence - exists anywhere:
+	float inputs are given as the signed decimal value of their
+	binary32 BIT PATTERN.                                            )
+
+"CR load"
+	[CRbad] = 0;
+	[File Name]	= spcorpname;
+	[File Command]	= READ;
+	[File Position] = 0;
+	[Block Pointer] = scorpus;
+	[Block Size]	= CORPUSMAX;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	A = [Block Size];
+	[CRbytes] = A;
+	? A '> 0 -> CR load ok;
+	[CRbad] = 1;
+    "CR load ok"
+	end;
+
+"CR getch"
+	A = [CRpos];
+	? A '>= [CRbytes] -> CR getch eof;
+	C = A; C > 2; D = scorpus; D + C;
+	C = [D];
+	A = [CRpos]; A & 3; A '* 8;
+	C > A; C & 255;
+	[CRch] = C;
+	end;
+    "CR getch eof"
+	A = 0; A - 1; [CRch] = A;
+	end;
+
+"CR tokenise"
+	[CRpos] = 0; [CRtokn] = 0;
+    "CR tk scan"
+	=> CR getch;
+	A = [CRch];
+	? A < 0 -> CR tk done;
+	? A = 35 -> CR tk comment;		( '#' )
+	? A = 45 -> CR tk number;		( '-' )
+	? A '< 48 -> CR tk skip;
+	? A '> 57 -> CR tk skip;
+	-> CR tk number;
+    "CR tk skip"
+	[CRpos]+;
+	-> CR tk scan;
+    "CR tk comment"
+	[CRpos]+;
+	=> CR getch;
+	A = [CRch];
+	? A < 0 -> CR tk done;
+	? A != 10 -> CR tk comment;
+	[CRpos]+;
+	-> CR tk scan;
+    "CR tk number"
+	[CRneg] = 0; [CRacc] = 0;
+	A = [CRch];
+	? A != 45 -> CR tk digits;
+	[CRneg] = 1;
+	[CRpos]+;
+    "CR tk digits"
+	=> CR getch;
+	A = [CRch];
+	? A '< 48 -> CR tk emit;
+	? A '> 57 -> CR tk emit;
+	C = [CRacc]; C '* 10; A - 48; C + A; [CRacc] = C;
+	[CRpos]+;
+	-> CR tk digits;
+    "CR tk emit"
+	A = [CRneg]; ? A = 0 -> CR tk pos;
+	C = [CRacc]; C+-; [CRacc] = C;
+    "CR tk pos"
+	A = [CRtokn];
+	? A '>= TOKMAX -> CR tk done;
+	C = stok; C + A; [C] = [CRacc];
+	[CRtokn]+;
+	-> CR tk scan;
+    "CR tk done"
+	end;
+
+      ( CR next : C <- tok[[CRti]], [CRti]+.  Reading past the end
+	yields OPEND, so a truncated corpus terminates rather than
+	looping. )
+
+"CR next"
+	A = [CRti];
+	? A '>= [CRtokn] -> CR next eof;
+	C = stok; C + A; C = [C];
+	[CRti]+;
+	end;
+    "CR next eof"
+	C = OPEND;
+	end;

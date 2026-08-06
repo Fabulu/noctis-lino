@@ -1,0 +1,213 @@
+      ( *** spbg - background(), the QuickTime-VR panorama blitter ***
+
+	NOCTIS-0.CPP:2697-2751.  Integer throughout; there is not one
+	floating-point instruction in the routine.
+
+	THE FIVE-BY-FIVE BLOCK.  The loop builds EAX as four copies of the
+	source byte - "mov al,p / mov ah,al / shl eax,8 / mov al,ah /
+	shl eax,8 / mov al,ah" leaves 0xpppppppp - and then writes, per
+	row, a DWORD at di+320r and a BYTE at di+320r+4.  Five rows at
+	+0, +320, +640, +960 and +1280.  Twenty-five bytes, all the same
+	value.  A 4x4 or a 6x6 is a one-character edit and moves the page.
+
+	THE +4 IS NOT AN ADDITIVE CONSTANT, IT IS farmalloc's OFFSET, AND
+	IT CANCELS.  The prologue is
+
+	    les ax, target / add screenshift, ax / mov dx, screenshift
+	    les bx, background / mov bx, es          (offset DISCARDED)
+	    mov bp, start / add bp, 4
+
+	so the destination index carries the offset because it came out of
+	"les ax,target", and the source index carries it because it is
+	added by hand.  Under BUFFERMAP 4.1's settled offset == 4 both
+	collapse to base + index in the flat workspace.  niv-lr drops the
+	source one at noctis-0.cpp:2280 - that is a bug in LR's model,
+	where the offset was never included to begin with, and copying it
+	here would shift the whole panorama by one byte.
+
+	THIS IS THE FIRST GAME CALL SITE OF THE CLASS-A 16-BIT MASK.
+	DI = (word + screenshift + offset) truncated to 16 bits.  At the
+	shipped screenshift of -643 - which is 64893 as an unsigned word -
+	the smallest paint word in OFFSETS.MAP, 2258, already gives
+	2258 + 4 + 64893 = 67155, which folds to 1619.  Without the mask
+	that write lands 65,536 units past the page.  BUFFERMODEL 10 item
+	6 is an XFAIL precisely because "the class-A mask has no game call
+	site"; it has one now.
+
+	AND THE MASK IS TAKEN AT THE SEGMENT ORIGIN, NOT AT THE BUFFER
+	BASE.  The two agree except when the truncated offset lands in
+	0..3, where the segment-origin rule reaches the four far-heap
+	header units below the buffer and the base rule reaches four units
+	above it.  That four-value boundary is the falsifier that says
+	which rule is implemented, and the corpus reaches it deliberately.
+
+	EACH OF THE TWENTY-FIVE STORES IS MASKED SEPARATELY.  In 16-bit
+	real mode the effective address is (DI + disp) mod 65536, so the
+	dword at di+1280 with di near the top of the segment wraps
+	mid-block.  Masking the block base once and then adding the
+	displacements is a different program.
+
+	THE SKIP IS IN THE SOURCE, NOT ON THE SCREEN.  "sub bx,64000 /
+	add bp,bx" advances the panorama cursor and paints nothing.  Read
+	as a screen advance the source cursor would finish at 3,620 -
+	about ten panorama rows - and could not produce 48 bands.        )
+
+"constants"
+
+	BGTHR	= 64000;		( cmp word ptr [si],64000 / jnb )
+
+"variables"
+
+	BGstart	= 0;
+	BGshift	= 0;		( screenshift, as an unsigned 16-bit word )
+	BGtabreg = 0;		( n_offsets_map )
+	BGsrcreg = 0;		( the panorama that is READ    )
+	BGdstreg = 0;		( the page that is WRITTEN     )
+	BGbytes	= 0;
+
+	BGsi	= 0;
+	BGbp	= 0;
+	BGdx	= 0;
+	BGcxr	= 0;
+	BGdi	= 0;
+	BGw	= 0;
+	BGpx	= 0;
+
+	BGpaint	= 0;
+	BGskip	= 0;
+	BGdimin	= 0;		( smallest destination index actually used )
+	BGdimax	= 0;		( largest  destination index actually used )
+	BGfold	= 0;		( paints whose pre-mask index exceeded 65535 )
+	BGlow	= 0;		( paints whose masked index landed in 0..3   )
+
+	BGi	= 0;
+
+"programme"
+
+( ==================================================================== )
+
+"SP background"
+	[BGpaint] = 0; [BGskip] = 0; [BGfold] = 0; [BGlow] = 0;
+	[BGdimin] = 0; [BGdimax] = 0;
+	[CSdraw] = 0; [CSskip] = 0; [CSwr] = 0;
+
+	( add screenshift, ax  with ax = offset(target) = 4 )
+	A = [BGshift]; A + 4; A & 65535; [BGdx] = A;
+	( mov bp, start / add bp, 4 )
+	A = [BGstart]; A + 4; A & 65535; [BGbp] = A;
+	[BGsi] = 0;
+	A = [BGbytes]; A > 1; [BGcxr] = A;
+	A = [BGcxr]; ? A = 0 -> SP bg done;
+
+    "SP bg rec"
+	[SPreg] = [BGtabreg];
+	A = [BGsi]; A + 4; [SPoff] = A; => SP get; [BGw] = [SPval];
+	A = [BGsi]; A + 5; [SPoff] = A; => SP get;
+	C = [SPval]; C < 8; A = [BGw]; C + A; [BGw] = C;
+
+	A = [BGw]; ? A '>= BGTHR -> SP bg blanket;
+
+	( ---- paint ---- )
+	[BGpaint]+; [CSdraw]+;
+
+	A = [BGw]; A + [BGdx];
+	? A '<= WINDOW -> SP bg nofold;
+	[BGfold]+;
+    "SP bg nofold"
+	A & 65535; [BGdi] = A;
+	? A '> 3 -> SP bg nolow;
+	[BGlow]+;
+    "SP bg nolow"
+
+	A = [BGpaint]; ? A != 1 -> SP bg mm;
+	[BGdimin] = [BGdi]; [BGdimax] = [BGdi];
+	-> SP bg mmdone;
+    "SP bg mm"
+	A = [BGdi]; ? A '>= [BGdimin] -> SP bg mmhi;
+	[BGdimin] = A;
+    "SP bg mmhi"
+	A = [BGdi]; ? A '<= [BGdimax] -> SP bg mmdone;
+	[BGdimax] = A;
+    "SP bg mmdone"
+
+	( mov al, fs:[bp] - the panorama sample )
+	[SPreg] = [BGsrcreg];
+	[SPoff] = [BGbp];
+	=> SP get;
+	[BGpx] = [SPval];
+
+	( the 5x5 block, each byte's effective address formed as its own
+	  16-bit sum )
+	[SPreg] = [BGdstreg];
+	[SPval] = [BGpx];
+	[BGi] = 0;
+    "SP bg blk"
+	A = [BGi]; C = A; C '/ 5; C '* 320;	( the row displacement )
+	D = [BGi]; D '% 5; C + D;		( the column           )
+	A = [BGdi]; A + C; [SPoff] = A;
+	=> SP put;
+	[BGi]+;
+	A = [BGi]; ? A '< 25 -> SP bg blk;
+
+	( add bp,1 )
+	A = [BGbp]; A + 1; A & 65535; [BGbp] = A;
+	-> SP bg next;
+
+    "SP bg blanket"
+	( sub bx,64000 / add bp,bx - the SOURCE cursor moves )
+	[BGskip]+; [CSskip]+;
+	A = [BGw]; A - BGTHR; C = [BGbp]; C + A; C & 65535; [BGbp] = C;
+
+    "SP bg next"
+	A = [BGsi]; A + 2; [BGsi] = A;
+	A = [BGcxr]; A - 1; [BGcxr] = A;
+	? A != 0 -> SP bg rec;
+
+    "SP bg done"
+	[CScur] = [BGbp];
+	end;
+
+      ( SP bg invert : the lightning backup at NOCTIS-1.CPP:3946-3952.
+
+	    ptr = 40000; while (ptr) { s_background[ptr] = 63 - ...; ptr--; }
+
+	It runs on s_background - the PANORAMA - and not on the
+	framebuffer, and index 0 is never touched because the loop tests
+	before the store.  Both facts are one character from being wrong
+	and both are visible in the emitted page. )
+
+"SP bg invert"
+	[SPreg] = [BGsrcreg];
+	[BGi] = 40000;
+    "SP bi u"
+	A = [BGi]; ? A = 0 -> SP bi done;
+	[SPidx] = [BGi];
+	=> SP dget;
+	C = 63; C - [SPval]; [SPval] = C;
+	[SPidx] = [BGi];
+	=> SP dput;
+	A = [BGi]; A - 1; [BGi] = A;
+	-> SP bi u;
+    "SP bi done"
+	end;
+
+"SP bg emit"
+	A = sphdr;
+	[A plus 0]  = [BGpaint];
+	[A plus 1]  = [BGskip];
+	[A plus 2]  = [BGbp];
+	[A plus 3]  = [BGdx];
+	[A plus 4]  = [BGdimin];
+	[A plus 5]  = [BGdimax];
+	[A plus 6]  = [BGfold];
+	[A plus 7]  = [BGlow];
+	[A plus 8]  = [CSwr];
+	[A plus 9]  = [BGstart];
+	[A plus 10] = [BGshift];
+	[A plus 11] = [BGbytes];
+	[A plus 12] = 0; [A plus 13] = 0; [A plus 14] = 0; [A plus 15] = 0;
+	[SKind] = K35; [STag] = 1;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+	end;

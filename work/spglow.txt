@@ -1,0 +1,335 @@
+      ( *** spglow - glowinglobe(): the crescent renderer ***
+
+	Same table, same cursor discipline, four differences from globe()
+	and every one of them is a place a port can quietly go wrong.
+
+	1. THE VERTICAL CLIP IS A DISJUNCTION THAT NEVER REJECTS.
+
+	       cmp di, 10
+	       jnb y_ok          ; di >= 10  -> accept
+	       cmp di, 190
+	       jb  y_ok          ; di <  190 -> accept
+	       jmp clipout       ; UNREACHABLE
+
+	   Both compares are unsigned, so the second arm is reached only
+	   when di < 10, and then di < 190 always holds.  Every di is
+	   accepted and the jmp is dead code.  niv-lr writes
+	   "pos > 10 && pos < 190" - an AND where vanilla has an OR - and
+	   that is a KNOWN WRONG ANSWER.  It is reproduced here as
+	   written, and the number of records that LR's clip WOULD have
+	   rejected is counted in [GLylo] and [GLyhi] so the difference is
+	   a measured integer rather than a claim.
+
+	2. riga IS THEREFORE INDEXED OUT OF RANGE.  "add di,di" then
+	   "mov di, gs:riga[di]" with an unclipped di reads past the
+	   400-byte table.  The INDEX SEQUENCE is exact and is emitted;
+	   the VALUE read is NOT GRADED, because reproducing it needs the
+	   loaded DGROUP image around DS:0x435C which is not recoverable
+	   statically with confidence.  spmem's riga reader counts every
+	   such access in [CSoob]; a case with a non-zero count has an
+	   UNGRADEABLE page and must be excluded, not quietly compared.
+
+	3. EVERY FOURTH RECORD ONLY.  "test dx,3 / jz doit" decimates on
+	   the LONGITUDE COUNTER, not on the record index, and the counter
+	   advances on skips as well - so the decimation phase is a
+	   property of the map's skip structure.
+
+	4. THE COUNTER WRAPS BY SUBTRACTION ON THE SKIP PATH.  clipout
+	   does "add dx,1 / cmp dx,360 / jb / xor dx,dx", which is a
+	   reset, not a modulo; blanket does "add dx,ax" then a REPEATED
+	   "sub dx,360" loop.  Writing either as "%" is a different
+	   program whenever the advance exceeds 360 - which it cannot on
+	   the shipped table, since every skip byte is at most 100, so the
+	   loop body runs at most once.  The trace is emitted either way.
+
+	THE TWO COLOURS come from one byte and the derivation is order
+	sensitive:
+
+	    bl = color                                   the lit side
+	    bh = ((color & 0x3F) >> 2) | (color & 0xC0)  the dark side
+
+	At the shipped color of 127 that is 127 and 79.  A ">> 1" gives
+	95 and dropping the 0xC0 preservation gives 15; both are single
+	characters away and both are wrong.
+
+	THE CLAMP LADDER RUNS IN THE OPPOSITE ORDER TO globe()'s: the 0.66
+	ceiling FIRST, then the 0.01 floor.  Swapping them changes the
+	answer for every mag_factor above 0.66 whose reciprocal-scaled
+	value is below 0.01, and the X window is 9..309 rather than
+	globe's 6..310.                                                   )
+
+"variables"
+
+	GLmag	= 0;		( binary32 pattern, ALREADY clamped )
+	GLcx	= 0;
+	GLcy	= 0;
+	GLstart	= 0;		( the longitude counter's entry value )
+	GLarc	= 0;		( terminator_arc )
+	GLcol	= 0;		( color )
+	GLtabreg = 0;
+	GLdstreg = 0;
+	GLnb	= 0;
+
+	GLbl	= 0;		( the lit byte  )
+	GLbh	= 0;		( the dark byte )
+
+	GLsi	= 0;
+	GLdx	= 0;
+	GLcxr	= 0;
+	GLdi	= 0;
+	GLax	= 0;
+	GLy	= 0;
+	GLx	= 0;
+
+	GLdec	= 0;		( records skipped by "test dx,3"    )
+	GLylo	= 0;		( records with di <  10, unsigned   )
+	GLyhi	= 0;		( records with di >= 190, unsigned  )
+	GLrx0	= 0;		( X low  arm, ax <  9   )
+	GLrx1	= 0;		( X high arm, ax >= 310 )
+	GLlit	= 0;
+	GLdark	= 0;
+	GLoobmn	= 0;		( smallest OOB riga byte offset )
+	GLoobmx	= 0;		( largest  OOB riga byte offset )
+	GLoobn	= 0;
+	GLwrap	= 0;		( times the blanket path subtracted 360 )
+
+"programme"
+
+( ==================================================================== )
+
+"SP glow raster"
+	[GLdec] = 0; [GLylo] = 0; [GLyhi] = 0;
+	[GLrx0] = 0; [GLrx1] = 0; [GLlit] = 0; [GLdark] = 0;
+	[GLoobn] = 0; [GLoobmn] = 0; [GLoobmx] = 0; [GLwrap] = 0;
+	[CSdraw] = 0; [CSskip] = 0; [CSoob] = 0;
+
+	( the two colours, derived once outside the loop exactly as the
+	  prologue does )
+	A = [GLcol]; A & 255; [GLbl] = A;
+	A = [GLcol]; A & 63; A > 2; C = [GLcol]; C & 192; A | C; [GLbh] = A;
+
+	[GLsi] = 0;
+	A = [GLstart]; [GLdx] = A;
+	A = [GLnb]; A > 1; [GLcxr] = A;
+	A = [GLcxr]; ? A = 0 -> SP gl done;
+
+    "SP gl rec"
+	[SPreg] = [GLtabreg];
+	A = [GLsi]; A + 4; [SPoff] = A; => SP get; [GLy] = [SPval];
+	A = [GLsi]; A + 5; [SPoff] = A; => SP get; [GLx] = [SPval];
+
+	A = [GLy]; ? A = 100 -> SP gl blanket;
+	[CSdraw]+;
+
+	( test dx,3 / jz doit - the decimation is on the LONGITUDE )
+	A = [GLdx]; A & 3;
+	? A = 0 -> SP gl doit;
+	[GLdec]+;
+	-> SP gl clipout;
+
+    "SP gl doit"
+	C = [GLy]; => SP sx8;
+	[SCdy] = C; [SCmag] = [GLmag]; => SP scale;
+	A = [SCout]; A + [GLcy]; A & 65535; [GLdi] = A;
+
+	( the vacuous disjunction, reproduced.  Nothing is rejected here;
+	  the two counters record what LR's fabricated AND-clip would
+	  have thrown away. )
+	A = [GLdi]; ? A '>= 10 -> SP gl yhi;
+	[GLylo]+;
+	-> SP gl yok;
+    "SP gl yhi"
+	A = [GLdi]; ? A '< 190 -> SP gl yok;
+	[GLyhi]+;
+    "SP gl yok"
+
+	A = [GLdi]; A + A; A & 65535; [GBt] = A;
+	[SPk] = [CSoob];
+	=> SP riga at;
+	[GLdi] = C;
+	A = [CSoob]; ? A = [SPk] -> SP gl noob;
+	( an out-of-range riga index: record the extremes of the INDEX,
+	  which is exact, and never the value, which is not graded )
+	[GLoobn]+;
+	A = [GLoobn]; ? A != 1 -> SP gl oobcmp;
+	[GLoobmn] = [GBt]; [GLoobmx] = [GBt];
+	-> SP gl noob;
+    "SP gl oobcmp"
+	A = [GBt]; ? A '>= [GLoobmn] -> SP gl oobhi;
+	[GLoobmn] = A;
+    "SP gl oobhi"
+	A = [GBt]; ? A '<= [GLoobmx] -> SP gl noob;
+	[GLoobmx] = A;
+    "SP gl noob"
+
+	C = [GLx]; => SP sx8;
+	[SCdy] = C; [SCmag] = [GLmag]; => SP scale;
+	A = [SCout]; A + [GLcx]; A & 65535; [GLax] = A;
+	A = [GLax]; ? A '< 9 -> SP gl rx0;
+	A = [GLax]; ? A '>= 310 -> SP gl rx1;
+
+	A = [GLdi]; A + [GLax]; A & 65535; [GLdi] = A;
+
+	[SPreg] = [GLdstreg];
+	A = [GLdi]; A + 4; [SPoff] = A;
+	A = [GLdx]; ? A '< [GLarc] -> SP gl dark;
+	[SPval] = [GLbl]; => SP put; [GLlit]+;
+	-> SP gl clipout;
+    "SP gl dark"
+	[SPval] = [GLbh]; => SP put; [GLdark]+;
+	-> SP gl clipout;
+
+    "SP gl rx0"
+	[GLrx0]+; -> SP gl clipout;
+    "SP gl rx1"
+	[GLrx1]+;
+
+    "SP gl clipout"
+	( add dx,1 / cmp dx,360 / jb rtn_ok / xor dx,dx - a RESET )
+	A = [GLdx]; A + 1;
+	? A '< 360 -> SP gl cset;
+	A = 0;
+    "SP gl cset"
+	[GLdx] = A;
+	-> SP gl next;
+
+    "SP gl blanket"
+	( mov al,[si+1] / xor ah,ah / add dx,ax, then a REPEATED
+	  "sub dx,360" - subtraction, not modulo. )
+	[CSskip]+;
+	A = [GLdx]; A + [GLx]; [GLdx] = A;
+    "SP gl bwrap"
+	A = [GLdx]; ? A '< 360 -> SP gl next;
+	A - 360; [GLdx] = A;
+	[GLwrap]+;
+	-> SP gl bwrap;
+
+    "SP gl next"
+	A = [GLsi]; A + 2; [GLsi] = A;
+	A = [GLcxr]; A - 1; [GLcxr] = A;
+	? A != 0 -> SP gl rec;
+
+    "SP gl done"
+	[CScur] = [GLdx];
+	end;
+
+      ( SP glow setup : the float preamble.  Identical rotation nucleus
+	to globe's; three differences, all deliberate:
+
+	  the clamp ladder is 0.66 FIRST then 0.01 -> 0.001,
+	  the reject window is 226 / 166 rather than 292 / 232,
+	  and there is no gman selection at all.
+
+	center_x and center_y are declared UNSIGNED here and int in globe;
+	both are produced by the same __ftol chop, and the difference is
+	only in how the later 16-bit adds are read - which is why both are
+	masked to 16 bits at the point of use rather than at the point of
+	production. )
+
+"SP glow setup"
+	[GBok] = 0;
+
+	[PGFi] = SFXX; => PGF a; [PGFi] = FSPCB; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZZ; => PGF a; [PGFi] = FSPSB; => PGF mul;
+	[PGFi] = SFT0; => PGF add; [PGFi] = SFRX; => PGF sa;
+
+	[PGFi] = SFZZ; => PGF a; [PGFi] = FSTCB; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFXX; => PGF a; [PGFi] = FSTSB; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFZ2; => PGF sa;
+
+	[PGFi] = SFZ2; => PGF a; [PGFi] = FSTCA; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFYY; => PGF a; [PGFi] = FSTSA; => PGF mul;
+	[PGFi] = SFT0; => PGF add; [PGFi] = SFRZ; => PGF sa;
+
+	[PGFi] = SFYY; => PGF a; [PGFi] = FSPCA; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZ2; => PGF a; [PGFi] = FSPSA; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFRY; => PGF sa;
+
+	[PGFt] = D001L; [PGFu] = D001H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRZ; => PGF a;
+	=> FCmp;
+	A = [FI]; ? A < 0 -> SP gw out;
+
+	[PGFt] = [GLmag]; => PGF ldf32;
+	[PGFi] = SFRZ; => PGF quo;
+	=> F32Narrow;
+	[PGFi] = SFMAG; => PGF sa;
+
+	( 0.66 FIRST )
+	[PGFt] = D66L; [PGFu] = D66H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFMAG; => PGF a;
+	=> FCmp;
+	A = [FI]; ? A != 1 -> SP gw lo;
+	[PGFt] = F066; => PGF ldf32; [PGFi] = SFMAG; => PGF sa;
+    "SP gw lo"
+	( then 0.01 -> 0.001 )
+	[PGFt] = D01L; [PGFu] = D01H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFMAG; => PGF a;
+	=> FCmp;
+	A = [FI]; ? A >= 0 -> SP gw rxy;
+	[PGFt] = F001; => PGF ldf32; [PGFi] = SFMAG; => PGF sa;
+
+    "SP gw rxy"
+	[PGFi] = SFRX; => PGF a; [PGFi] = SFRZ; => PGF quo;
+	[PGFi] = SFRX; => PGF sa;
+	[PGFi] = SFRY; => PGF a; [PGFi] = SFRZ; => PGF quo;
+	[PGFi] = SFRY; => PGF sa;
+
+	[PGFt] = D226L; [PGFu] = D226H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRX; => PGF a; => FAbs;
+	=> FCmp;
+	A = [FI]; ? A = 1 -> SP gw out;
+	[PGFt] = D166L; [PGFu] = D166H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRY; => PGF a; => FAbs;
+	=> FCmp;
+	A = [FI]; ? A = 1 -> SP gw out;
+
+	[PGFt] = F32XC; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRX; => PGF a; => FAdd;
+	=> FToIntChop;
+	A = [FI]; A & 65535; [GLcx] = A;
+
+	[PGFt] = F32YC; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRY; => PGF a; => FAdd;
+	=> FToIntChop;
+	A = [FI]; A & 65535; [GLcy] = A;
+
+	[PGFi] = SFMAG; => PGF a; => PGF stf32;
+	[GLmag] = [PGFt];
+
+	[GBok] = 1;
+    "SP gw out"
+	end;
+
+"SP glow emit"
+	A = sphdr;
+	[A plus 0]  = [GLdec];
+	[A plus 1]  = [GLylo];
+	[A plus 2]  = [GLyhi];
+	[A plus 3]  = [GLrx0];
+	[A plus 4]  = [GLrx1];
+	[A plus 5]  = [GLlit];
+	[A plus 6]  = [GLdark];
+	[A plus 7]  = [GLoobn];
+	[A plus 8]  = [GLoobmn];
+	[A plus 9]  = [GLoobmx];
+	[A plus 10] = [GLwrap];
+	[A plus 11] = [GLdx];
+	[A plus 12] = [GLbl];
+	[A plus 13] = [GLbh];
+	[A plus 14] = [CSdraw];
+	[A plus 15] = [CSskip];
+	[SKind] = K34; [STag] = 1;
+	[SW] = 16; [SH] = 1;
+	[SBptr] = sphdr; [SBcnt] = 16;
+	=> SDMP rec;
+	end;
