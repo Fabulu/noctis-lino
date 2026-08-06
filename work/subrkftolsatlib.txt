@@ -1,0 +1,568 @@
+      ( *** suseed - Wave 7a float primitives, __ftol, the two fast_srand
+	    bridges and the secs arithmetic ***
+
+	This is a LIBRARY.  It owns every floating-point operation that
+	surface() performs, and it owns them as WHOLE EXPRESSIONS rather
+	than as a sequence of scalar operations, because Borland's 8087
+	code stores an intermediate only where the C declares a variable.
+	Wave 3 measured what a single spurious store costs: 1,050 of 4,113
+	catalogue records.  fp/fpx87's FAdd/FMul are correct for a site
+	where the original also stored; they are wrong for a generation
+	expression, and every expression below is a generation expression.
+
+	THE CONTROL WORD is fp/fpabi's FCWEXT, 133Fh: PC = 64 bits, RC =
+	round to nearest.  FEnter installs it.  Two places need something
+	else and both build it explicitly:
+
+	  __ftol.  A C cast truncates.  Borland flips RC to chop, does the
+	  fistp, flips back.  [SUcwc] is 1F3Fh and [SUcwn] is 133Fh, and
+	  the pair is loaded around the store.
+
+	  fistp qword, NOT fistp dword.  NOCTIS-0.CPP:4890 computes
+	  (long)(10*secs) where secs is around 5.05e8, so the value is
+	  5.05e9 and does NOT fit in an int32.  Borland's __ftol stores 64
+	  bits and returns the low 32, wrapping silently.  fistp dword
+	  would raise a masked invalid-operation and store 80000000h for
+	  every one of them, which is not the same universe.  That is why
+	  "SU chop32" ends in DF BF (fistp qword) and reads back only the
+	  low unit.
+
+	  Measured consequence, so the wrap is not theoretical: with the
+	  guest clock pinned to 2000-01-01 12:00:00, secs is about
+	  504,964,800.  10*secs = 5,049,648,000 wraps to 754,680,704 and
+	  60*secs = 30,297,888,000 wraps to 233,116,928.  Types 2, 5 and 6
+	  divide those wrapped values.
+
+	THE FLOAT-32 GLOBAL.  NOCTIS-0.CPP:4443 declares "float a", and
+	four painters loop "for (a=0; a<2*M_PI; a+=4*deg)".  That loop
+	runs NINETY times, not ninety-one, and the only reason is that "a"
+	is a binary32 in memory and is round-tripped through it on every
+	iteration.  [SFa] is therefore a 32-bit unit holding a binary32
+	BIT PATTERN, every read of it is "fld dword", and every write is
+	"fstp dword".  Keeping the angle in a double or in an x87 register
+	produces 91 iterations and a different planet.
+
+	COMPARISONS ARE DONE IN BINARY32, ON PURPOSE.  "a < 2*M_PI"
+	compares a binary32 against a binary64.  There is no binary32
+	strictly between 2*M_PI and (float)2*M_PI, so comparing against
+	(float)2*M_PI gives the same answer for every possible "a",
+	including equality.  The same argument settles 359, 0, 63 and 179
+	exactly, since all four are representable.  So L.in.oleum's own
+	"??" directives - which are fld dword / fcom - are used, and no
+	fragment is needed for a comparison.
+
+	NAMING: no symbol here may contain div, plus, minus, multiplied,
+	pragma, mtp, relating or asbytesize.  "K4DEG0" is a slot, not a
+	number: the PATTERNS are constants and "SU fp init" copies them
+	into variables, because an ML fragment can only address a variable
+	and a constant has no address.                                    )
+
+"constants"
+
+	( ---- binary64 patterns.  deg = M_PI/180, PITAGORA.H:136. ---- )
+
+	P4DEGL	= 0A2529D39h;	P4DEGH	= 3FB1DF46h;	( 4*deg    )
+	P6DEGL	= 0F37BEBD6h;	P6DEGH	= 3FBACEE9h;	( 6*deg    )
+	PDEGL	= 0A2529D39h;	PDEGH	= 3F91DF46h;	( deg      )
+	P10L	= 0h;		P10H	= 40240000h;	( 10.0     )
+	P60L	= 0h;		P60H	= 404E0000h;	( 60.0     )
+	P4112L	= 0h;		P4112H	= 40B01000h;	( 4112.0   )
+	P900L	= 0h;		P900H	= 408C2000h;	( 900.0    )
+	P100L	= 0h;		P100H	= 40590000h;	( 100.0    )
+	P30L	= 0h;		P30H	= 403E0000h;	( 30.0     )
+	P06L	= 33333333h;	P06H	= 3FE33333h;	( 0.6      )
+	P40L	= 0h;		P40H	= 40100000h;	( 4.0      )
+	P025L	= 0h;		P025H	= 3FD00000h;	( 0.25     )
+	P075L	= 0h;		P075H	= 3FE80000h;	( 0.75     )
+	P125L	= 0h;		P125H	= 3FF40000h;	( 1.25     )
+	P1L	= 0h;		P1H	= 3FF00000h;	( 1.0      )
+
+	( ---- binary32 patterns ---- )
+
+	Q2PI	= 40C90FDBh;	( (float) 2*M_PI  )
+	Q360	= 43B40000h;
+	Q359	= 43B38000h;
+	Q63	= 427C0000h;
+	Q64	= 42800000h;
+	Q179	= 43330000h;	( max_latitude - 1, max_latitude = 180 )
+	Q180	= 43340000h;
+	QKF	= 40000000h;	( kfract = 2, NOCTIS-0.CPP:4443 )
+
+	( ---- control words ---- )
+
+	CWCHOP	= 1F3Fh;	( PC=64  RC=chop    - __ftol's word  )
+	CWNEAR	= 133Fh;	( PC=64  RC=nearest - the ambient one )
+
+"variables"
+
+	( ---------- binary64 constant slots.  ADJACENT PAIRS, low half
+	  first: "fld qword" reads eight bytes from the first unit. ---- )
+
+	K4DEG0	= 0;	K4DEG1	= 0;
+	K6DEG0	= 0;	K6DEG1	= 0;
+	KDEG0	= 0;	KDEG1	= 0;
+	K10A	= 0;	K10B	= 0;
+	K60A	= 0;	K60B	= 0;
+	K4112A	= 0;	K4112B	= 0;
+	K900A	= 0;	K900B	= 0;
+	K100A	= 0;	K100B	= 0;
+	K30A	= 0;	K30B	= 0;
+	K06A	= 0;	K06B	= 0;
+	K40A	= 0;	K40B	= 0;
+	K025A	= 0;	K025B	= 0;
+	K075A	= 0;	K075B	= 0;
+	K125A	= 0;	K125B	= 0;
+	K1A	= 0;	K1B	= 0;
+
+	( ---------- binary32 constant slots ---------- )
+
+	KF2PI	= 0;
+	KF360	= 0;
+	KF359	= 0;
+	KF63	= 0;
+	KF64	= 0;
+	KF179	= 0;
+	KF180	= 0;
+	KFKF	= 0;		( kfract )
+	KFZERO	= 0;
+
+	( ---------- control-word slots ---------- )
+
+	SUcwc	= 0;
+	SUcwn	= 0;
+
+	( ---------- the qword landing pad for fistp.  ADJACENT. ------- )
+
+	SUq0	= 0;	SUq1	= 0;
+
+	( ---------- the run's two binary64 inputs.  ADJACENT PAIRS. --- )
+
+	SUsec0	= 0;	SUsec1	= 0;	( secs    )
+	SUsv0	= 0;	SUsv1	= 0;	( seedval )
+
+	( ---------- scratch ---------- )
+
+	SUti	= 0;		( last integer conversion, 32 bits )
+	SUt2	= 0;
+	SUscr0	= 0;	SUscr1	= 0;	( a binary64 scratch pair )
+
+	( ---------- the painters' float state ---------- )
+
+	SFa	= 0;		( the global "float a"      )
+	SFpx	= 0;		( fracture's LOCAL float px )
+	SFpy	= 0;		( fracture's LOCAL float py )
+	SFkt	= 0;		( contrast's kt      )
+	SFkq	= 0;		( contrast's kq      )
+	SFth	= 0;		( contrast's thrshld )
+	SFtmp	= 0;
+
+	( integer operands the fragments read )
+
+	SUmi	= 0;		( the int multiplier in cx + mi*cos(a) )
+	SUia	= 0;		( a general int operand for fild       )
+
+	( ---------- surface()'s parameter globals ----------
+
+	  NOCTIS-0.CPP:4443-4446 declares them at file scope:
+
+	      int      c, gr, r, g, b, cr, cx, cy;
+	      float    a, kfract = 2;
+	      char     lave, crays;
+	      unsigned px, py;
+	  and :850  unsigned vptr;
+
+	  They are GLOBALS and the painters CLOBBER them - volcano
+	  destroys b and g, storm and permanent_storm destroy g, crater
+	  destroys gr and vptr and (when a ray fires) b, fracture destroys
+	  gr and a, wave leaves px at zero.  contrast() and randoface()
+	  are the only two that declare a LOCAL c, shadowing the global.
+	  A port that makes any of the rest local, or those two global,
+	  diverges.  They live here rather than in supaint because the ML
+	  fragments above address them and a fragment can only reach a
+	  variable.
+
+	  Every one of them is a Borland 16-bit quantity.  The unit holds
+	  the value already narrowed: the int ones sign-extended, px, py
+	  and vptr masked to 0..65535, lave and crays to 0..255. )
+
+	SUc	= 0;
+	SUgr	= 0;
+	SUr	= 0;
+	SUg	= 0;
+	SUb	= 0;
+	SUcr	= 0;
+	SUcxi	= 0;		( the global "cx" )
+	SUcyi	= 0;		( the global "cy" )
+	SUpx	= 0;
+	SUpy	= 0;
+	SUlave	= 0;
+	SUcrays	= 0;
+	SUvptr	= 0;
+	SUknot1	= 0;
+
+"programme"
+
+( ==================================================================== )
+( initialisation                                                        )
+( ==================================================================== )
+
+"SU fp init"
+	[K4DEG0] = P4DEGL;	[K4DEG1] = P4DEGH;
+	[K6DEG0] = P6DEGL;	[K6DEG1] = P6DEGH;
+	[KDEG0]  = PDEGL;	[KDEG1]  = PDEGH;
+	[K10A]   = P10L;	[K10B]   = P10H;
+	[K60A]   = P60L;	[K60B]   = P60H;
+	[K4112A] = P4112L;	[K4112B] = P4112H;
+	[K900A]  = P900L;	[K900B]  = P900H;
+	[K100A]  = P100L;	[K100B]  = P100H;
+	[K30A]   = P30L;	[K30B]   = P30H;
+	[K06A]   = P06L;	[K06B]   = P06H;
+	[K40A]   = P40L;	[K40B]   = P40H;
+	[K025A]  = P025L;	[K025B]  = P025H;
+	[K075A]  = P075L;	[K075B]  = P075H;
+	[K125A]  = P125L;	[K125B]  = P125H;
+	[K1A]    = P1L;		[K1B]    = P1H;
+
+	[KF2PI]  = Q2PI;
+	[KF360]  = Q360;
+	[KF359]  = Q359;
+	[KF63]   = Q63;
+	[KF64]   = Q64;
+	[KF179]  = Q179;
+	[KF180]  = Q180;
+	[KFKF]   = QKF;
+	[KFZERO] = 0;
+
+	[SUcwc]  = CWCHOP;
+	[SUcwn]  = CWNEAR;
+	end;
+
+( ==================================================================== )
+( the two conversions                                                   )
+( ==================================================================== )
+
+      ( SU chop32 - [SUti] <- the low 32 bits of trunc(st0), popping it.
+
+	This IS __ftol.  fistp QWORD, not dword: the value can exceed
+	int32 and the original wraps rather than saturating.  RC is
+	flipped to chop for the store and flipped straight back. )
+
+"SU chop32"
+	{
+	    D9 AF <dSUcwc mtp bytesperunit>	(fldcw [edi+SUcwc*4])
+	    DF BF <dSUq0  mtp bytesperunit>	(fistp qword [edi+SUq0*4])
+	    D9 AF <dSUcwn mtp bytesperunit>	(fldcw [edi+SUcwn*4])
+	}
+	A = [SUq1]; C = [SUq0]; C >> 31;
+	? A = C -> SU chop32 ok;
+	[SUti] = 7FFFFFFFh;
+	end;
+    "SU chop32 ok"
+	[SUti] = [SUq0];
+	end;
+
+      ( SU near32 - the same under the AMBIENT control word, i.e. round
+	to nearest even.  wave()'s "fistp py" (NOCTIS-0.CPP:4589) is a
+	hand-written fistp with RC left alone, and it is the ONLY such
+	site inside surface(). )
+
+"SU near32"
+	{
+	    DF BF <dSUq0  mtp bytesperunit>	(fistp qword [edi+SUq0*4])
+	}
+	[SUti] = [SUq0];
+	end;
+
+      ( SU i16 - narrow [SUti] to Borland's 16-bit signed int. )
+
+"SU i16"
+	A = [SUti]; A & 0FFFFh; [SUti] = A;
+	? A '< 8000h -> SU i16 done;
+	A - 65536; [SUti] = A;
+    "SU i16 done"
+	end;
+
+( ==================================================================== )
+( the seedval bridges - NOCTIS-0.CPP:4784 and :4811                     )
+( ==================================================================== )
+
+      ( SU seed a - [SUti] <- (long)(seedval + 4112).
+
+	Recon A's divergence #5: the +4112 happens IN DOUBLE, BEFORE the
+	truncation.  niv-lr truncates first.  With a negative fractional
+	seedval the two differ by one, and one differs the whole planet.
+	No store between the fadd and the fistp. )
+
+"SU seed a"
+	{
+	    DD 87 <dSUsv0  mtp bytesperunit>	(fld  qword [edi+SUsv0*4])
+	    DC 87 <dK4112A mtp bytesperunit>	(fadd qword [edi+K4112A*4])
+	}
+	=> SU chop32;
+	end;
+
+      ( SU seed b - [SUti] <- (long)(seedval * 10). )
+
+"SU seed b"
+	{
+	    DD 87 <dSUsv0 mtp bytesperunit>	(fld  qword [edi+SUsv0*4])
+	    DC 8F <dK10A  mtp bytesperunit>	(fmul qword [edi+K10A*4])
+	}
+	=> SU chop32;
+	end;
+
+( ==================================================================== )
+( secs                                                                  )
+( ==================================================================== )
+
+      ( SU secs rot - [SUti] <- (int)(secs / [SUia]), Borland 16-bit int.
+	NOCTIS-0.CPP:4795.  rtperiod is an int; C widens it to double. )
+
+"SU secs rot"
+	{
+	    DD 87 <dSUsec0 mtp bytesperunit>	(fld  qword [edi+SUsec0*4])
+	    DB 87 <dSUia   mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    DE F9				(fdivp st(1),st(0))
+	}
+	=> SU chop32;
+	=> SU i16;
+	end;
+
+      ( SU secs 1 / SU secs 10 / SU secs 60 - [SUti] <- (long)(k*secs),
+	the low 32 bits.  :4933, :4890, :5000 and :5047 respectively. )
+
+"SU secs 1"
+	{
+	    DD 87 <dSUsec0 mtp bytesperunit>	(fld qword [edi+SUsec0*4])
+	}
+	=> SU chop32;
+	end;
+
+"SU secs 10"
+	{
+	    DD 87 <dSUsec0 mtp bytesperunit>	(fld  qword [edi+SUsec0*4])
+	    DC 8F <dK10A   mtp bytesperunit>	(fmul qword [edi+K10A*4])
+	}
+	=> SU chop32;
+	end;
+
+"SU secs 60"
+	{
+	    DD 87 <dSUsec0 mtp bytesperunit>	(fld  qword [edi+SUsec0*4])
+	    DC 8F <dK60A   mtp bytesperunit>	(fmul qword [edi+K60A*4])
+	}
+	=> SU chop32;
+	end;
+
+( ==================================================================== )
+( the angle                                                             )
+( ==================================================================== )
+
+      ( SU a zero / SU a step4 / SU a step6 - "a = 0", "a += 4*deg",
+	"a += 6*deg".  The store is fstp DWORD: that is the round-trip
+	through binary32 that makes the loop run 90 times. )
+
+"SU a zero"
+	[SFa] = 0;
+	end;
+
+"SU a step4"
+	{
+	    D9 87 <dSFa    mtp bytesperunit>	(fld  dword [edi+SFa*4])
+	    DC 87 <dK4DEG0 mtp bytesperunit>	(fadd qword [edi+K4DEG0*4])
+	    D9 9F <dSFa    mtp bytesperunit>	(fstp dword [edi+SFa*4])
+	}
+	end;
+
+"SU a step6"
+	{
+	    D9 87 <dSFa    mtp bytesperunit>	(fld  dword [edi+SFa*4])
+	    DC 87 <dK6DEG0 mtp bytesperunit>	(fadd qword [edi+K6DEG0*4])
+	    D9 9F <dSFa    mtp bytesperunit>	(fstp dword [edi+SFa*4])
+	}
+	end;
+
+      ( SU a of deg - "a = [SUia] * deg", the float32 store included.
+	:4586 (fracture) and :4936 (case 3). )
+
+"SU a of deg"
+	{
+	    DB 87 <dSUia  mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    DC 8F <dKDEG0 mtp bytesperunit>	(fmul qword [edi+KDEG0*4])
+	    D9 9F <dSFa   mtp bytesperunit>	(fstp dword [edi+SFa*4])
+	}
+	end;
+
+      ( SU a add deg - "a += [SUia] * deg", fracture's :4598. )
+
+"SU a add deg"
+	{
+	    DB 87 <dSUia  mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    DC 8F <dKDEG0 mtp bytesperunit>	(fmul qword [edi+KDEG0*4])
+	    D8 87 <dSFa   mtp bytesperunit>	(fadd dword [edi+SFa*4])
+	    D9 9F <dSFa   mtp bytesperunit>	(fstp dword [edi+SFa*4])
+	}
+	end;
+
+      ( SU a over 30 - "a = (float)[SUia] / 30", case 6's :5027. )
+
+"SU a over 30"
+	{
+	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    DC B7 <dK30A mtp bytesperunit>	(fdiv qword [edi+K30A*4])
+	    D9 9F <dSFa  mtp bytesperunit>	(fstp dword [edi+SFa*4])
+	}
+	end;
+
+( ==================================================================== )
+( the three trigonometric expressions                                   )
+( ==================================================================== )
+
+      ( SU cos term - st0 <- [SUmi] * cos(a), left on the stack.
+	SU sin term - st0 <- [SUmi] * sin(a).
+
+	"cx + g*cos(a)" and "cx + cos(a)*gr" are the same expression:
+	the product is correctly rounded and commutative at one
+	precision, and there is only one precision here because nothing
+	between the fcos and the final fistp stores. )
+
+"SU cos term"
+	{
+	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
+	    D9 FF				(fcos)
+	    DB 87 <dSUmi mtp bytesperunit>	(fild dword [edi+SUmi*4])
+	    DE C9				(fmulp st(1),st(0))
+	}
+	end;
+
+"SU sin term"
+	{
+	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
+	    D9 FE				(fsin)
+	    DB 87 <dSUmi mtp bytesperunit>	(fild dword [edi+SUmi*4])
+	    DE C9				(fmulp st(1),st(0))
+	}
+	end;
+
+      ( SU add ia - st0 += (double)[SUia]. )
+
+"SU add ia"
+	{
+	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    DE C1				(faddp st(1),st(0))
+	}
+	end;
+
+( ==================================================================== )
+( fracture's two LOCAL floats                                           )
+( ==================================================================== )
+
+      ( fracture declares "float px" and "float py" INSIDE itself,
+	shadowing the unsigned globals of the same name.  Every += below
+	therefore rounds to binary32, and the walk is a binary32 walk.
+	Making them doubles is a different curve. )
+
+"SU frx step"				( px += kfract * cos(a) )
+	{
+	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
+	    D9 FF				(fcos)
+	    D8 8F <dKFKF mtp bytesperunit>	(fmul dword [edi+KFKF*4])
+	    D8 87 <dSFpx mtp bytesperunit>	(fadd dword [edi+SFpx*4])
+	    D9 9F <dSFpx mtp bytesperunit>	(fstp dword [edi+SFpx*4])
+	}
+	end;
+
+"SU fry step"				( py += kfract * sin(a) )
+	{
+	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
+	    D9 FE				(fsin)
+	    D8 8F <dKFKF mtp bytesperunit>	(fmul dword [edi+KFKF*4])
+	    D8 87 <dSFpy mtp bytesperunit>	(fadd dword [edi+SFpy*4])
+	    D9 9F <dSFpy mtp bytesperunit>	(fstp dword [edi+SFpy*4])
+	}
+	end;
+
+      ( SU fr load - the two locals from the two int globals. )
+
+"SU fr load"
+	{
+	    DB 87 <dSUcxi mtp bytesperunit>	(fild dword [edi+SUcxi*4])
+	    D9 9F <dSFpx  mtp bytesperunit>	(fstp dword [edi+SFpx*4])
+	    DB 87 <dSUcyi mtp bytesperunit>	(fild dword [edi+SUcyi*4])
+	    D9 9F <dSFpy  mtp bytesperunit>	(fstp dword [edi+SFpy*4])
+	}
+	end;
+
+      ( SU fr vptr - [SUti] <- (unsigned)(px + 360*(unsigned)py).
+
+	TWO truncations and they are not the same one.  (unsigned)py is
+	a 16-bit cast of the float; 360* that wraps at 16 bits; and the
+	sum with px is a double truncated to a long and then narrowed to
+	16 bits again. )
+
+"SU fr vptr"
+	{
+	    D9 87 <dSFpy mtp bytesperunit>	(fld dword [edi+SFpy*4])
+	}
+	=> SU chop32;
+	A = [SUti]; A & 0FFFFh; A '* 360; A & 0FFFFh; [SUia] = A;
+	{
+	    D9 87 <dSFpx mtp bytesperunit>	(fld dword [edi+SFpx*4])
+	}
+	=> SU add ia;
+	=> SU chop32;
+	A = [SUti]; A & 0FFFFh; [SUti] = A;
+	end;
+
+( ==================================================================== )
+( contrast's float chain - NOCTIS-0.CPP:4638-4652                       )
+( ==================================================================== )
+
+      ( kt = (float)rfr(200)/900 + 0.6
+	kq = (float)rfr(350)/100 + 4.0
+	The intermediate quotient is NOT stored, so it is not rounded to
+	binary32 before the addition; only the parameter push rounds. )
+
+"SU kt of"
+	{
+	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    DC B7 <dK900A mtp bytesperunit>	(fdiv qword [edi+K900A*4])
+	    DC 87 <dK06A  mtp bytesperunit>	(fadd qword [edi+K06A*4])
+	    D9 9F <dSFkt  mtp bytesperunit>	(fstp dword [edi+SFkt*4])
+	}
+	end;
+
+"SU kq of"
+	{
+	    DB 87 <dSUia  mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    DC B7 <dK100A mtp bytesperunit>	(fdiv qword [edi+K100A*4])
+	    DC 87 <dK40A  mtp bytesperunit>	(fadd qword [edi+K40A*4])
+	    D9 9F <dSFkq  mtp bytesperunit>	(fstp dword [edi+SFkq*4])
+	}
+	end;
+
+"SU th of"				( thrshld = 25 + rfr(3), an int )
+	{
+	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    D9 9F <dSFth mtp bytesperunit>	(fstp dword [edi+SFth*4])
+	}
+	end;
+
+      ( SU a of int - "a = (float)[SUia]".  contrast's
+	"a = p_background[c]". )
+
+"SU a of int"
+	{
+	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    D9 9F <dSFa  mtp bytesperunit>	(fstp dword [edi+SFa*4])
+	}
+	end;
+
+      ( SU a to int - [SUti] <- (unsigned char)a, i.e. truncate. )
+
+"SU a to int"
+	{
+	    D9 87 <dSFa mtp bytesperunit>	(fld dword [edi+SFa*4])
+	}
+	=> SU chop32;
+	end;

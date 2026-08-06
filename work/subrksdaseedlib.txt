@@ -1,0 +1,928 @@
+      ( *** sucase - surface()'s prologue, its ten-way switch, the
+	    renormalisation, the merge, the terminator and the retouches ***
+
+	NOCTIS-0.CPP:4766-5152.  Everything below the switch runs for
+	every type, and three of the four post-switch stages are
+	type-conditional in ways that are easy to get subtly wrong, so
+	they are written out in source order rather than regrouped.
+
+	THE PROLOGUE'S TWO CROSS-SEEDING BRIDGES.  The whole function is
+	seeded twice from the same double and the two seedings are NOT the
+	same arithmetic:
+
+	    fast_srand (seedval + 4112);   :4784  <- the +4112 is added in
+	                                             DOUBLE, before the
+	                                             truncation
+	    fast_srand (seedval * 10);     :4811
+	    seed = fast_random (0xFFFF);   :4812  <- FAST feeds BRTL
+	    srand (seed);                  :4817
+	    ...
+	    srand (seed);                  :4844  <- the same value again
+
+	Three fast draws happen between them, for the rotation period, and
+	they are the reason a wrong seedval shows up as a wrong rtperiod
+	long before it shows up as a wrong pixel.
+
+	THE SECOND srand IS UNGRADED, DELIBERATELY.  Nothing between the
+	two calls draws from the brtl stream and Borland's srand is
+	idempotent, so deleting the second call cannot change any output.
+	It is implemented because the source has it.  No check in this
+	wave claims to catch its removal, and the sabotage that deletes it
+	is expected to be caught by NOTHING - that measurement is the
+	evidence, not a pass.
+
+	plwp IS AN INPUT HERE, NOT A RESULT.  :4798 computes it as
+	89 - cplx_planet_viewpoint(id) + rotation, and
+	cplx_planet_viewpoint is Wave 8.  The corpus supplies plwp
+	directly (recon C recovers it from the capture's band as
+	term_start - 35 mod 360).  So the terminator's SHAPE is predicted
+	and graded; its POSITION is supplied, and the exit report says so.
+
+	THE SWITCH'S TWO SECRET SHARERS.  Cases 2, 3, 5 and 6 read the
+	global "secs", so their maps are functions of WHEN the frame ran.
+	Cases 2 and 3 additionally consume the brtl stream from inside the
+	switch - switch(random(2)) at :4889 chooses which fast draws
+	happen next, which is the one coupling that runs FAST-from-BRTL
+	rather than the other way round.
+
+	COUNTING RULE, applied everywhere below: a ranged_fast_random
+	ALWAYS draws, and the operands of + and - are evaluated LEFT to
+	RIGHT, so in
+
+	    g  = 26 + ranged_fast_random(3) - ranged_fast_random(5);
+	    gr = ranged_fast_random (cr/2) + cr/2 + 2;
+
+	the rfr(3) precedes the rfr(5), and in the second line the single
+	draw precedes both constants.  Function ARGUMENTS go the other
+	way - right to left - which matters at exactly two sites, the
+	contrast and randoface calls in case 5.                          )
+
+"constants"
+
+	NPIXM	= 64800;
+	NOVLM	= 32400;
+	SDACNTM	= 64000;
+
+"variables"
+
+	SUtype	= 0;
+	SUid	= 0;
+	SUcbase	= 0;		( colorbase: 192 planet, 128 moon )
+	SUplwp	= 0;
+	SUowner	= 0;
+	SUseed	= 0;		( the 16-bit "seed" the two srands take )
+	SUrtp	= 0;
+	SUrot	= 0;
+	SUts	= 0;
+	SUte	= 0;
+
+	SUnsr	= 0;		( nearstar_r )
+	SUnsg	= 0;
+	SUnsb	= 0;
+
+	( ledger )
+	SUledon	= 1;		( 0 in scan mode: only the scalars are kept )
+	SUph	= 0;
+	SUphtag	= 0;
+	SUledh	= 0;
+	SUmh	= 0;
+	SUoh	= 0;
+
+	SCi	= 0;
+	SCj	= 0;
+	SCt	= 0;
+	SCu	= 0;
+
+"programme"
+
+( ==================================================================== )
+( the ledger                                                            )
+( ==================================================================== )
+
+      ( SU map hash / SU ovl hash - FNV-1a over the live buffers.  These
+	are DERIVED from what the programme did; nothing writes an
+	expected value on both sides. )
+
+"SU map hash"
+	A = nw; A + [SUpbase];
+	D = FNVOFF;
+	B = NPIXM;
+    "SU mh u"
+	C = [A]; C & 0FFh;
+	D # C; D '* FNVPR;
+	A+;
+	B ^ SU mh u;
+	[SUmh] = D;
+	end;
+
+"SU ovl hash"
+	A = nw; A + [SUobase];
+	D = FNVOFF;
+	B = NOVLM;
+    "SU oh u"
+	C = [A]; C & 0FFh;
+	D # C; D '* FNVPR;
+	A+;
+	B ^ SU oh u;
+	[SUoh] = D;
+	end;
+
+      ( SU led - one phase record.  [SUledh] non-zero also hashes the two
+	buffers, which costs 97,200 byte reads and is therefore done at
+	phase boundaries but not inside the hot loops. )
+
+"SU led"
+	A = [SUledon]; ? A = 0 -> SU led off;
+	A = [SUledh];
+	? A = 0 -> SU led nobuf;
+	=> SU map hash;
+	=> SU ovl hash;
+	-> SU led fill;
+    "SU led nobuf"
+	[SUmh] = 0; [SUoh] = 0;
+    "SU led fill"
+	A = sulrec;
+	[A plus 0] = [SUph];
+	[A plus 1] = [SUphtag];
+	[A plus 2] = [SUfn];
+	[A plus 3] = [SUbn];
+	[A plus 4] = [SUfh];
+	[A plus 5] = [SUbh];
+	[A plus 6] = [SUmh];
+	[A plus 7] = [SUoh];
+	=> SUDM led;
+	end;
+    "SU led off"
+	end;
+
+      ( SU led it - a per-iteration record: counts and stream hashes
+	only.  These are what localise a desynchronisation to one
+	iteration of one loop instead of to a whole case. )
+
+"SU led it"
+	[SUledh] = 0;
+	[SUph] = PHCASE;
+	[SUphtag] = [SUc];
+	=> SU led;
+	end;
+
+( ==================================================================== )
+( the prologue - NOCTIS-0.CPP:4776-4846                                 )
+( ==================================================================== )
+
+"SU prologue"
+	=> SU ledger reset;
+	[SUledh] = 1; [SUph] = PHENTRY; [SUphtag] = [SUtype];
+	=> SU led;
+
+	( fast_srand (seedval + 4112) )
+	=> SU seed a;
+	A = [SUti];
+	=> SU fast srand;
+
+	( rtperiod = 10*(rfr(50)+1) + 10*rfr(25) + rfr(250) + 41 )
+	C = 50;  => SU rfr; A = C; A + 1; A '* 10; [SCt] = A;
+	C = 25;  => SU rfr; A = C; A '* 10; C = [SCt]; A + C; [SCt] = A;
+	C = 250; => SU rfr; A = C; C = [SCt]; A + C; A + 41; [SUrtp] = A;
+
+	( rotation = (int)(secs / rtperiod); rotation %= 360 )
+	[SUia] = [SUrtp];
+	=> SU secs rot;
+	A = [SUti]; A % 360; [SUrot] = A;
+
+	[SUledh] = 1; [SUph] = PHPRO; [SUphtag] = [SUrtp];
+	=> SU led;
+
+	( fast_srand (seedval * 10);  seed = fast_random (0xFFFF) )
+	=> SU seed b;
+	A = [SUti];
+	=> SU fast srand;
+	[SUfmask] = 0FFFFh;
+	=> SU frnd;
+	A = [SUfval]; A & 0FFFFh; [SUseed] = A;
+
+	( srand (seed) - the FAST stream handing the BRTL stream its
+	  table.  :4817 )
+	A = [SUseed];
+	=> SU srand;
+
+	[SUledh] = 1; [SUph] = PHSEED; [SUphtag] = [SUseed];
+	=> SU led;
+
+	( rndpat: the 64,800-byte self-squaring pattern )
+	A = [SUseed]; [SUnax] = A;
+	=> SU rndpat;
+
+	( _fmemset (overlay, 0, 32400) )
+	=> SU wipe ovl;
+
+	( srand (seed) AGAIN, :4844.  Provably indistinguishable from not
+	  doing it; done because the source does it. )
+	A = [SUseed];
+	=> SU srand;
+
+	[SUledh] = 1; [SUph] = PHRND; [SUphtag] = 0;
+	=> SU led;
+	end;
+
+( ==================================================================== )
+( shared helpers for the switch                                         )
+( ==================================================================== )
+
+      ( SU nssmooth - "for (c=0; c<r; c++) ssmooth (p_background);"
+	using the GLOBAL c, because the game does and because the loop
+	variable's final value is observable through crater_juice. )
+
+"SU nssmooth"
+	[SUc] = 0;
+    "SU ns u"
+	A = [SUc]; ? A >= [SUr] -> SU ns done;
+	=> SU ssmooth;
+	[SUc]+;
+	-> SU ns u;
+    "SU ns done"
+	end;
+
+"SU nlssmooth"
+	[SUc] = 0;
+    "SU nl u"
+	A = [SUc]; ? A >= [SUr] -> SU nl done;
+	=> SU lssmooth;
+	[SUc]+;
+	-> SU nl u;
+    "SU nl done"
+	end;
+
+      ( SU cy mid - "cy = ranged_fast_random (178 - 2*cr) + cr", the
+	shape five of the ten cases use.  The argument is computed from
+	the ALREADY normalised cr. )
+
+"SU cy mid"
+	A = 178; C = [SUcr]; C '* 2; A - C; C = A;
+	=> SU rfr; A = C; A + [SUcr]; [SUcyi] = A;
+	end;
+
+( ==================================================================== )
+( case 0 - rock with volcanoes and fractures                            )
+( ==================================================================== )
+
+"SU case 0"
+	C = 3; => SU rfr; A = C; A + 5; [SUr] = A;
+	=> SU nssmooth;
+
+	( the "sep" loop: everything at or above 28 goes to full white )
+	A = nw; A + [SUpbase];
+	B = NPIXM;
+    "SU c0 sep"
+	C = [A]; C & 0FFh;
+	? C '< 28 -> SU c0 seplow;
+	[A] = 62;
+    "SU c0 seplow"
+	A+;
+	B ^ SU c0 sep;
+
+	C = 5; => SU rfr; A = C; A + 5; [SUr] = A;
+	=> SU nssmooth;
+
+	C = 26; => SU rfr; A = C; A + 5; [SUr] = A;
+	[SUc] = 0;
+    "SU c0 vol"
+	A = [SUc]; ? A >= [SUr] -> SU c0 volend;
+	C = 20;  => SU rfr; A = C; A + 5; [SUcr] = A;
+	C = 360; => SU rfr; [SUcxi] = C;
+	C = 130; => SU rfr; A = C; A + 25; [SUcyi] = A;
+	A = [SUcr]; A / 2; [SCt] = A;
+	C = [SCt]; => SU rfr; A = C; A + [SCt]; A + 2; [SUgr] = A;
+	=> SU volcano;
+	=> SU led it;
+	[SUc]+;
+	-> SU c0 vol;
+    "SU c0 volend"
+
+	C = 100; => SU rfr; A = C; A + 100; [SUr] = A;
+	C = 3;   => SU rfr; A = C; A + 1;   [SUb] = A;
+	[SUg] = 360;
+	[SUc] = 0;
+    "SU c0 fr"
+	A = [SUc]; ? A >= [SUr] -> SU c0 frend;
+	C = 360; => SU rfr; [SUcxi] = C;
+	C = 180; => SU rfr; [SUcyi] = C;
+	C = 100; => SU rfr; [SUgr] = C;
+	=> SU fracture;
+	=> SU led it;
+	[SUc]+;
+	-> SU c0 fr;
+    "SU c0 frend"
+
+	=> SU lssmooth;
+	end;
+
+( ==================================================================== )
+( case 1 - cratered moonscape                                           )
+( ==================================================================== )
+
+"SU case 1"
+	C = 2; => SU rfr; A = C;
+	? A = 0 -> SU c1 nosm;
+	=> SU ssmooth;
+    "SU c1 nosm"
+	C = 41; => SU rfr; A = C; A + 10; [SUr] = A;
+	=> SU crater juice;
+	=> SU lssmooth;
+	C = 5; => SU rfr; A = C;
+	? A != 0 -> SU c1 noneg;
+	=> SU negate;
+    "SU c1 noneg"
+	end;
+
+( ==================================================================== )
+( case 2 - venusian: storms and bands, chosen by the BRTL stream        )
+( ==================================================================== )
+
+      ( switch (random(2)) is the one place a brtl draw decides which
+	FAST draws happen next.  Case 0 of it spends four fast draws and
+	reads secs; case 1 spends three and does not.  Get the brtl count
+	wrong here and the fast stream desynchronises immediately. )
+
+"SU case 2"
+	C = 25; => SU rfr; A = C; A + 5; [SUr] = A;
+	[SUc] = 0;
+    "SU c2 u"
+	A = [SUc]; ? A >= [SUr] -> SU c2 end;
+	C = 20; => SU rfr; A = C; A + 1; [SUcr] = A;
+	=> SU cy mid;
+	C = 2; => SU rnd;
+	A = C; ? A != 0 -> SU c2 band;
+
+	( case 0: cx = ((long)(10*secs) / (rfr(3600)+180)) % 360 )
+	=> SU secs 10;
+	[SCt] = [SUti];
+	C = 3600; => SU rfr; A = C; A + 180; [SCu] = A;
+	A = [SCt]; A / [SCu]; A % 360; [SUti] = A;
+	=> SU i16;
+	[SUcxi] = [SUti];
+	C = 12; => SU rfr; A = C; A + 2; [SUgr] = A;
+	=> SU storm;
+	-> SU c2 next;
+
+    "SU c2 band"
+	C = 15; => SU rfr; A = C; A + 3; [SUgr] = A;
+	A = [SUcyi]; A '* 360; A & 0FFFFh; [SUpy] = A;
+	A = [SUcr]; A '* 360; [SUcr] = A;
+	C = [SUgr]; => SU rfr; A = C; A + 1; [SUg] = A;
+	=> SU band;
+
+    "SU c2 next"
+	=> SU led it;
+	[SUc]+;
+	-> SU c2 u;
+    "SU c2 end"
+	C = 3; => SU rfr; A = C;
+	? A != 0 -> SU c2 noneg;
+	=> SU negate;
+    "SU c2 noneg"
+	end;
+
+( ==================================================================== )
+( case 3 - felisian: land, sea and weather                              )
+( ==================================================================== )
+
+      ( THE function's most consequential loop.  "add es:[di], bl" adds
+	the noise to terrain that four ssmooth passes have already
+	shaped, so the clamp at 0x3E is REACHABLE and the word store that
+	zeroes the next pixel actually fires.  niv-lr assigns instead, and
+	the difference lands in the albedo at the landing site, which
+	selects the ground scenario, which is every pixel of Wave 7b.
+	The captures for this type are what judge it. )
+
+"SU case 3"
+	C = 3; => SU rfr; A = C; A + 4; [SUr] = A;
+	C = 3; => SU rfr; [SCt] = C;
+	C = 5; => SU rfr; A = 26; A + [SCt]; A - C; [SUg] = A;
+	=> SU nssmooth;
+
+	( "mov ax, seed" - the sda block RE-SEEDS the 16-bit noise
+	  accumulator from the same value rndpat started at, so the second
+	  walk repeats the first walk's sequence against a different
+	  counter phase (64,000 down to 1 instead of 64,800 down to 1).
+	  Leaving ax where rndpat left it produces a perfectly plausible
+	  and entirely different continent map. )
+	=> SU sda;
+	[SUledh] = 1; [SUph] = PHSDA; [SUphtag] = [SUg];
+	=> SU led;
+
+	C = 40; => SU rfr; A = C; A + 20; [SUr] = A;
+	[SUc] = 0;
+    "SU c3 u"
+	A = [SUc]; ? A >= [SUr] -> SU c3 end;
+	C = 5;  => SU rfr; A = C; A + 1;  [SUgr] = A;
+	C = 10; => SU rfr; A = C; A + 10; [SUcr] = A;
+	C = 3;  => SU rfr; A = C;
+	? A = 0 -> SU c3 eq;
+	A = 172; C = [SUcr]; C '* 2; A - C; C = A;
+	=> SU rfr; A = C; A + [SUcr]; A + 2; [SUcyi] = A;
+	-> SU c3 cx;
+    "SU c3 eq"
+	C = 10; => SU rfr; [SCt] = C;
+	C = 10; => SU rfr; A = 60; A + [SCt]; A - C; [SUcyi] = A;
+    "SU c3 cx"
+	=> SU secs 1;
+	[SCt] = [SUti];
+	C = 360; => SU rfr; A = C; A + 180; [SCu] = A;
+	A = [SCt]; A / [SCu]; A % 360; [SUti] = A;
+	=> SU i16;
+	[SUcxi] = [SUti];
+	C = 5;   => SU rfr; A = C; A + 7; [SUg] = A;
+	C = 360; => SU rfr; [SUia] = C;
+	=> SU a of deg;
+	=> SU atm cyclon;
+	=> SU led it;
+	[SUc]+;
+	-> SU c3 u;
+    "SU c3 end"
+	end;
+
+( ==================================================================== )
+( case 4 - ice: the lmrip vein loop, fractures and craters              )
+( ==================================================================== )
+
+      ( "mov word ptr es:[di], 0x3E01" is little-endian, so it writes 01h
+	at di and 3Eh at di+1 - the bright vein is on the RIGHT of the
+	dark one, not the left - and then a third store puts 01h a whole
+	row below.  Three bytes from one comparison. )
+
+"SU case 4"
+	=> SU ssmooth;
+	C = 2; => SU rfr; A = C;
+	? A = 0 -> SU c4 nosm;
+	=> SU ssmooth;
+    "SU c4 nosm"
+
+	A = nw; A + [SUpbase];
+	B = SDACNTM;
+    "SU c4 rip"
+	C = [A]; C & 0FFh;
+	? C != 32 -> SU c4 ripn;
+	[A plus 0] = 1;
+	[A plus 1] = 3Eh;
+	[A plus 360] = 1;
+    "SU c4 ripn"
+	A+;
+	B ^ SU c4 rip;
+
+	C = 30; => SU rfr; A = C; [SUr] = A;
+	? A <= 20 -> SU c4 rok;
+	A '* 10; [SUr] = A;
+    "SU c4 rok"
+	C = 3;   => SU rfr; A = C; A + 1;   [SUb] = A;
+	C = 300; => SU rfr; A = C; A + 200; [SUg] = A;
+	[SUc] = 0;
+    "SU c4 fr"
+	A = [SUc]; ? A >= [SUr] -> SU c4 frend;
+	C = 360; => SU rfr; [SUcxi] = C;
+	C = 180; => SU rfr; [SUcyi] = C;
+	C = 100; => SU rfr; A = C; A + 50; [SUgr] = A;
+	=> SU fracture;
+	=> SU led it;
+	[SUc]+;
+	-> SU c4 fr;
+    "SU c4 frend"
+
+	C = 25; => SU rfr; A = C; A + 1; [SUr] = A;
+	=> SU crater juice;
+	=> SU lssmooth;
+	C = 2; => SU rfr; A = C;
+	? A = 0 -> SU c4 nols;
+	=> SU lssmooth;
+    "SU c4 nols"
+	end;
+
+( ==================================================================== )
+( case 5 - martian: contrast, grain, volcanoes, polar frost             )
+( ==================================================================== )
+
+      ( TWO CALLS WITH RIGHT-TO-LEFT ARGUMENTS.  contrast's three
+	arguments draw in the order thrshld, kq, kt, and randoface's two
+	draw upon before range.  Swapping either pair leaves the draw
+	COUNT identical and changes which value lands in which parameter -
+	so the totals agree, the ledger's value hashes agree, and only
+	the pixels disagree.  That is what sabotage ARGORDER tests. )
+
+"SU case 5"
+	C = 3; => SU rfr; A = C; A + 4; [SUr] = A;
+	=> SU nssmooth;
+
+	( contrast (kt, kq, thrshld) - arguments right to left )
+	C = 3;   => SU rfr; A = C; A + 25; [SUia] = A; => SU th of;
+	C = 350; => SU rfr; [SUia] = C; => SU kq of;
+	C = 200; => SU rfr; [SUia] = C; => SU kt of;
+	=> SU contrast;
+
+	( randoface (range, upon) - arguments right to left )
+	C = 3; => SU rfr; A = C; A + 1; A '* 20; A+-; [SPu] = A;
+	C = 3; => SU rfr; A = C; A + 5; [SPt] = A;
+	=> SU randoface;
+
+	C = 5; => SU rfr; A = C; A + 5; [SUr] = A;
+	[SUc] = 0;
+    "SU c5 vol"
+	A = [SUc]; ? A >= [SUr] -> SU c5 volend;
+	C = 10;  => SU rfr; A = C; A + 5; [SUcr] = A;
+	C = 360; => SU rfr; [SUcxi] = C;
+	C = 145; => SU rfr; A = C; A + 15; [SUcyi] = A;
+	A = [SUcr]; A / 2; C = A;
+	=> SU rfr; A = C; A + 2; [SUgr] = A;
+	=> SU volcano;
+	=> SU led it;
+	[SUc]+;
+	-> SU c5 vol;
+    "SU c5 volend"
+
+	C = 5; => SU rfr; A = C; A + 5; [SUr] = A;
+	[SUc] = 0;
+    "SU c5 ps"
+	A = [SUc]; ? A >= [SUr] -> SU c5 psend;
+	C = 30; => SU rfr; A = C; A + 1; [SUcr] = A;
+	=> SU cy mid;
+	=> SU secs 60;
+	[SCt] = [SUti];
+	C = 3600; => SU rfr; A = C; A + 360; [SCu] = A;
+	A = [SCt]; A / [SCu]; A % 360; [SUti] = A;
+	=> SU i16;
+	[SUcxi] = [SUti];
+	C = 2; => SU rfr; A = C; A + 1; [SUgr] = A;
+	=> SU permanent storm;
+	=> SU led it;
+	[SUc]+;
+	-> SU c5 ps;
+    "SU c5 psend"
+
+	( the two polar frost bands: 20,000 spots and 80,000 fast draws )
+	[SUc] = 0;
+    "SU c5 fr"
+	A = [SUc]; ? A >= 10000 -> SU c5 frend;
+	C = 10;  => SU rfr; A = C; A + 10; [SUgr] = A;
+	C = 360; => SU rfr; [SUpx] = C;
+	C = 10;  => SU rfr; [SUpy] = C;
+	=> SU py row;
+	=> SU spot;
+	C = 360; => SU rfr; [SUpx] = C;
+	C = 10;  => SU rfr; A = 125; A - C; A & 0FFFFh; [SUpy] = A;
+	=> SU py row;
+	=> SU spot;
+	[SUc]+;
+	-> SU c5 fr;
+    "SU c5 frend"
+
+	C = 2; => SU rfr; A = C;
+	? A = 0 -> SU c5 ls;
+	=> SU ssmooth;
+	end;
+    "SU c5 ls"
+	=> SU lssmooth;
+	end;
+
+( ==================================================================== )
+( case 6 - gas giant: bands, waves and storms                           )
+( ==================================================================== )
+
+"SU case 6"
+	C = 5; => SU rfr; A = C; A + 3; [SUr] = A;
+	=> SU nssmooth;
+
+	C = 100; => SU rfr; A = C; A + 50; [SUr] = A;
+	[SUc] = 0;
+    "SU c6 b"
+	A = [SUc]; ? A >= [SUr] -> SU c6 bend;
+	C = 10; => SU rfr; A = C; A + 1; [SUcr] = A;
+	=> SU cy mid;
+	C = 8; => SU rfr; A = C;
+	? A = 0 -> SU c6 wave;
+	C = 5; => SU rfr; A = C; A + 2; [SUgr] = A;
+	C = [SUgr]; => SU rfr; A = C; A + 1; [SUg] = A;
+	A = [SUcyi]; A '* 360; A & 0FFFFh; [SUpy] = A;
+	A = [SUcr]; A '* 360; [SUcr] = A;
+	=> SU band;
+	-> SU c6 bnext;
+    "SU c6 wave"
+	C = 10; => SU rfr; A = C; A + 5; [SUia] = A;
+	=> SU a over 30;
+	A = [SUcr]; A / 4; A + 1; [SUcr] = A;
+	=> SU wave;
+    "SU c6 bnext"
+	=> SU led it;
+	[SUc]+;
+	-> SU c6 b;
+    "SU c6 bend"
+
+	C = 100; => SU rfr; A = C; A + 50; [SUr] = A;
+	[SUc] = 0;
+    "SU c6 s"
+	A = [SUc]; ? A >= [SUr] -> SU c6 send;
+	C = 15; => SU rfr; A = C; A + 1; [SUcr] = A;
+	=> SU cy mid;
+	=> SU secs 60;
+	[SCt] = [SUti];
+	C = 8000; => SU rfr; A = C; A + 360; [SCu] = A;
+	A = [SCt]; A / [SCu]; A % 360; [SUti] = A;
+	=> SU i16;
+	[SUcxi] = [SUti];
+	C = 2; => SU rfr; A = C; A + 1; [SUgr] = A;
+	C = 10; => SU rfr; A = C;
+	? A = 0 -> SU c6 fat;
+	A = [SUcr]; A / 2; A + 1; [SUcr] = A;
+	-> SU c6 sdraw;
+    "SU c6 fat"
+	A = [SUgr]; A '* 3; [SUgr] = A;
+    "SU c6 sdraw"
+	=> SU storm;
+	=> SU led it;
+	[SUc]+;
+	-> SU c6 s;
+    "SU c6 send"
+
+	=> SU lssmooth;
+	C = 3; => SU rfr; A = C;
+	? A != 0 -> SU c6 noneg;
+	=> SU negate;
+    "SU c6 noneg"
+	end;
+
+( ==================================================================== )
+( case 7 - quartz: long fractures and grain                             )
+( ==================================================================== )
+
+"SU case 7"
+	C = 5; => SU rfr; A = C; A + 5; [SUr] = A;
+	=> SU nssmooth;
+
+	C = 50; => SU rfr; A = C; A + 10; [SUr] = A;
+	C = 20; => SU rfr; A = C; A + 5;  [SUg] = A;
+	C = 2;  => SU rfr; A = C; A + 1;  [SUb] = A;
+	[SUc] = 0;
+    "SU c7 fr"
+	A = [SUc]; ? A >= [SUr] -> SU c7 frend;
+	C = 360; => SU rfr; [SUcxi] = C;
+	C = 180; => SU rfr; [SUcyi] = C;
+	C = 300; => SU rfr; [SUgr] = C;
+	=> SU fracture;
+	=> SU led it;
+	[SUc]+;
+	-> SU c7 fr;
+    "SU c7 frend"
+
+	C = 2; => SU rfr; A = C;
+	? A = 0 -> SU c7 nols;
+	=> SU lssmooth;
+    "SU c7 nols"
+	C = 10; => SU rfr; A = C; A + 1; [SPt] = A;
+	[SPu] = 1;
+	=> SU randoface;
+	C = 2; => SU rfr; A = C;
+	? A = 0 -> SU c7 noneg;
+	=> SU negate;
+    "SU c7 noneg"
+	end;
+
+( ==================================================================== )
+( case 8 - dust: many small permanent storms                            )
+( ==================================================================== )
+
+"SU case 8"
+	C = 10; => SU rfr; A = C; A + 1; [SUr] = A;
+	=> SU nlssmooth;
+
+	C = 50; => SU rfr; A = C; A + 100; [SUr] = A;
+	[SUc] = 0;
+    "SU c8 u"
+	A = [SUc]; ? A >= [SUr] -> SU c8 end;
+	C = 5;   => SU rfr; A = C; A + 1; [SUcr] = A;
+	C = 5;   => SU rfr; A = C; A + 1; [SUgr] = A;
+	C = 360; => SU rfr; [SUcxi] = C;
+	=> SU cy mid;
+	=> SU permanent storm;
+	=> SU led it;
+	[SUc]+;
+	-> SU c8 u;
+    "SU c8 end"
+	C = 2; => SU rfr; A = C;
+	? A = 0 -> SU c8 noneg;
+	=> SU negate;
+    "SU c8 noneg"
+	end;
+
+( ==================================================================== )
+( case 9 - substellar object: flat, then smoothed six times             )
+( ==================================================================== )
+
+      ( No draws at all inside the switch.  pclear fills the SURFACE
+	buffer - recon C's capture settles that against niv-lr, whose
+	type 9 writes the offscreen video page instead: the DOS binary's
+	p_background for a type 9 comes back fully populated, min 15 max
+	62, and its objectschart holds exactly 32,400 non-zero bytes. )
+
+"SU case 9"
+	[SUval] = 1Fh;
+	=> SU pclear;
+	A = nw; A + [SUobase];
+	B = NOVLM;
+    "SU c9 u"
+	[A] = 1Fh; A+;
+	B ^ SU c9 u;
+	end;
+
+( ==================================================================== )
+( the tail - everything after the switch                                )
+( ==================================================================== )
+
+"SU tail"
+	[SUledh] = 1; [SUph] = PHSWEND; [SUphtag] = [SUr];
+	=> SU led;
+
+	( renormalisation to 00..1F, felisian and martian only )
+	A = [SUtype];
+	? A = 3 -> SU tl half;
+	? A = 5 -> SU tl half;
+	-> SU tl nohalf;
+    "SU tl half"
+	A = nw; A + [SUpbase];
+	B = NPIXM;
+    "SU tl hu"
+	C = [A]; C & 0FFh; C > 1;
+	[A] = C; A+;
+	B ^ SU tl hu;
+    "SU tl nohalf"
+
+	( felisian final retouch )
+	A = [SUtype];
+	? A != 3 -> SU tl no3;
+	C = 2; => SU rfr; A = C;
+	? A = 0 -> SU tl 3ss;
+	=> SU lssmooth;
+	-> SU tl no3;
+    "SU tl 3ss"
+	=> SU ssmooth;
+    "SU tl no3"
+
+	[SUledh] = 1; [SUph] = PHNORM; [SUphtag] = 0;
+	=> SU led;
+
+	( the merge: two surface bytes per overlay byte, each clamped )
+	[SCi] = 0; [SCj] = 0;
+    "SU tl mg"
+	[SUidx] = [SCi];
+	=> SU odget;
+	[SCt] = [SUval];
+
+	A = nw; A + [SUpbase]; A + [SCj];
+	C = [A]; C & 0FFh; C + [SCt]; C & 0FFh;
+	? C '<= 3Eh -> SU tl mg1;
+	C = 3Eh;
+    "SU tl mg1"
+	[A] = C;
+	C = [A plus 1]; C & 0FFh; C + [SCt]; C & 0FFh;
+	? C '<= 3Eh -> SU tl mg2;
+	C = 3Eh;
+    "SU tl mg2"
+	[A plus 1] = C;
+
+	A = [SCj]; A + 2; [SCj] = A;
+	[SCi]+;
+	A = [SCi]; ? A '< NOVLM -> SU tl mg;
+
+	[SUledh] = 1; [SUph] = PHMERGE; [SUphtag] = 0;
+	=> SU led;
+
+	( venusian pre-terminator retouch - a BRTL draw, the only one
+	  outside the switch apart from the palette's eighteen )
+	[SUknot1] = 0;
+	A = [SUtype];
+	? A != 2 -> SU tl no2a;
+	C = 3; => SU rnd; A = C;
+	? A != 0 -> SU tl no2a;
+	=> SU psmooth grays;
+	[SUknot1] = 1;
+    "SU tl no2a"
+
+	( the day/night terminator )
+	A = [SUplwp]; A + 35; [SUts] = A;
+	A = [SUts]; ? A < 360 -> SU tl ts;
+	A - 360; [SUts] = A;
+    "SU tl ts"
+	A = [SUts]; A + 130; [SUte] = A;
+	A = [SUte]; ? A < 360 -> SU tl te;
+	A - 360; [SUte] = A;
+    "SU tl te"
+
+	( "add di, plwp / add di, 35" is NOT reduced modulo 360, so the
+	  strip's own start is plwp+35 and not term_start.  At plwp = 359
+	  it begins 394 bytes in - one row and a bit - and the top-left
+	  corner of the band lies on panorama row 1.  130 + 230 = 360, so
+	  the strip is vertical and not diagonal, and cx = 179 leaves row
+	  179 alone. )
+	A = 4; A + [SUplwp]; A + 35; A & 0FFFFh; [SUoff] = A;
+	[SCi] = 0;
+    "SU tl row"
+	[SCj] = 0;
+    "SU tl col"
+	=> SU get;
+	A = [SUval]; A > 2; [SUval] = A;
+	=> SU put;
+	A = [SUoff]; A + 1; A & 0FFFFh; [SUoff] = A;
+	[SCj]+;
+	A = [SCj]; ? A '< 130 -> SU tl col;
+	A = [SUoff]; A + 230; A & 0FFFFh; [SUoff] = A;
+	[SCi]+;
+	A = [SCi]; ? A '< 179 -> SU tl row;
+
+	[SUledh] = 1; [SUph] = PHTERM; [SUphtag] = [SUts];
+	=> SU led;
+
+	( post-terminator retouches )
+	A = [SUtype];
+	? A != 2 -> SU tl no2b;
+	A = [SUknot1]; ? A = 0 -> SU tl 2many;
+	=> SU ssmooth;
+	-> SU tl no2b;
+    "SU tl 2many"
+	C = 5; => SU rfr; A = C; A + 3; [SUr] = A;
+	=> SU nssmooth;
+    "SU tl no2b"
+
+	A = [SUtype];
+	? A != 6 -> SU tl no6;
+	[SUc] = 0;
+    "SU tl 6u"
+	A = [SUc]; ? A >= 3 -> SU tl no6;
+	C = 2; => SU rfr; A = C;
+	? A = 0 -> SU tl 6n;
+	=> SU ssmooth;
+    "SU tl 6n"
+	[SUc]+;
+	-> SU tl 6u;
+    "SU tl no6"
+
+	A = [SUtype];
+	? A != 9 -> SU tl no9;
+	[SUc] = 0;
+    "SU tl 9u"
+	A = [SUc]; ? A >= 6 -> SU tl no9;
+	=> SU ssmooth;
+	[SUc]+;
+	-> SU tl 9u;
+    "SU tl no9"
+
+	[SUledh] = 1; [SUph] = PHPOST; [SUphtag] = 0;
+	=> SU led;
+	end;
+
+( ==================================================================== )
+( the switch                                                            )
+( ==================================================================== )
+
+"SU switch"
+	A = [SUtype];
+	? A = 0 -> SU sw 0;
+	? A = 1 -> SU sw 1;
+	? A = 2 -> SU sw 2;
+	? A = 3 -> SU sw 3;
+	? A = 4 -> SU sw 4;
+	? A = 5 -> SU sw 5;
+	? A = 6 -> SU sw 6;
+	? A = 7 -> SU sw 7;
+	? A = 8 -> SU sw 8;
+	? A = 9 -> SU sw 9;
+	end;
+    "SU sw 0" => SU case 0; end;
+    "SU sw 1" => SU case 1; end;
+    "SU sw 2" => SU case 2; end;
+    "SU sw 3" => SU case 3; end;
+    "SU sw 4" => SU case 4; end;
+    "SU sw 5" => SU case 5; end;
+    "SU sw 6" => SU case 6; end;
+    "SU sw 7" => SU case 7; end;
+    "SU sw 8" => SU case 8; end;
+    "SU sw 9" => SU case 9; end;
+
+( ==================================================================== )
+( surface() itself                                                      )
+( ==================================================================== )
+
+      ( "if (type == 10) return;" at :4776 is UNREACHABLE from the two
+	live call sites - :5341 skips a type 10 with a goto before it can
+	get here - and so is the "colorbase == 255" early return at
+	:5153, because the only callers pass 128 or 192 and TGTPVIEW.CPP
+	is not in NOCTIS.MAK.  Both are implemented and neither is
+	claimed. )
+
+"SU surface"
+	A = [SUtype]; ? A = 10 -> SU sf out;
+	=> SU prologue;
+	=> SU switch;
+	=> SU tail;
+	A = [SUcbase]; ? A = 255 -> SU sf out;
+	=> SU palette;
+    "SU sf out"
+	[SUledh] = 1; [SUph] = PHDONE; [SUphtag] = [SUtype];
+	=> SU led;
+	end;

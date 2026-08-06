@@ -1,0 +1,233 @@
+      ( *** sumain - the Wave 7a driver ***
+
+	Five lines of programme.  Everything else is in the libraries,
+	which is the point: work/subrkNN*.txt is this same driver with ONE
+	library replaced by a copy of itself carrying ONE edit, so a
+	sabotage cannot accidentally also change the harness.
+
+	It reads work/su-corpus.txt, runs the cases IN FILE ORDER and
+	writes work/su-out.bin.  It contains no seed, no type, no time and
+	no colour of its own: every number comes from the corpus text,
+	which is a flat stream of signed decimal integers - the only
+	lexeme the tokeniser knows, so no decimal float parser exists
+	anywhere in this port and the two binary64 inputs, seedval and
+	secs, arrive as the signed decimal values of their two halves.
+
+	ORDER IS PART OF THE FIXTURE only in one respect here: the brtl
+	and fast generators are both re-seeded from scratch inside
+	surface(), so a case's map does NOT depend on the cases before
+	it.  That is asserted rather than assumed - the corpus contains a
+	repeat of one earlier case at the end, and its records must be
+	identical to the first run's.
+
+	Build: powershell -ExecutionPolicy Bypass -File lino_build.ps1 -Src work\sumain.txt
+	Run:   the poll-and-kill pattern, collecting work\su-out.bin.    )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	brtl;
+	mul64frag;
+
+	suseed;
+	surng;
+	subuf;
+	subrkpsgdeadlib;
+	supaint;
+	supal;
+	sucase;
+
+"directors"
+
+	program name = { subrkpsgdead };
+	unit = 32;
+
+"variables"
+
+	MNop	= 0;
+	SUemit	= 1;		( 1 = dump the buffers, 0 = scalars only )
+	MNcases	= 0;
+	MNbad	= 0;
+
+"programme"
+
+	=> SU run;
+	end;
+
+( ==================================================================== )
+
+"SU run"
+	=> FEnter;
+	=> SU fp init;
+	=> SU pal init;
+	=> SU select ovl;
+	=> SUDM reset;
+	=> CR load;
+	A = [CRbad]; ? A != 0 -> SU run io;
+	=> CR tokenise;
+	[CRti] = 0;
+	[MNcases] = 0;
+	[MNbad] = 0;
+
+    "SU run case"
+	=> CR next;
+	[MNop] = C;
+	A = [MNop];
+	? A = 0 -> SU run done;
+	? A = 1 -> SU do surface;
+	[MNbad]+;
+	-> SU run done;
+
+    "SU run done"
+	=> SU trailer;
+	=> FLeave;
+	=> SUDM write;
+	end;
+
+    "SU run io"
+	[MNbad] = 99;
+	=> SU trailer;
+	=> FLeave;
+	=> SUDM write;
+	end;
+
+( -------------------------------------------------------------------- )
+
+      ( One case.  Fourteen integers after the opcode:
+
+	  logical_id  type  colorbase  is_moon  plwp  owner
+	  nearstar_r  nearstar_g  nearstar_b
+	  seedval.low  seedval.high  secs.low  secs.high  emit
+
+	emit = 0 keeps only the sixteen scalars - including the map and
+	overlay FNV-1a hashes, which are what a scan compares - so a
+	corpus of several thousand cases fits in the dump arena.  It
+	changes NOTHING about what surface() computes.
+
+	plwp is SUPPLIED, not computed: cplx_planet_viewpoint is Wave 8.
+	Recon C recovers it from the capture's own band as
+	term_start - 35 (mod 360), so the terminator's shape is predicted
+	and graded while its position is given. )
+
+"SU do surface"
+	=> CR next; [SUid]    = C;
+	=> CR next; [SUtype]  = C;
+	=> CR next; [SUcbase] = C;
+	=> CR next; [SUmoon]  = C;
+	=> CR next; [SUplwp]  = C;
+	=> CR next; [SUowner] = C;
+	=> CR next; [SUnsr]   = C;
+	=> CR next; [SUnsg]   = C;
+	=> CR next; [SUnsb]   = C;
+	=> CR next; [SUsv0]   = C;
+	=> CR next; [SUsv1]   = C;
+	=> CR next; [SUsec0]  = C;
+	=> CR next; [SUsec1]  = C;
+	=> CR next; [SUemit]  = C;
+	[SUledon] = [SUemit];
+
+	A = [SUmoon];
+	? A = 0 -> SU ds planet;
+	=> SU select moon;
+	-> SU ds sel;
+    "SU ds planet"
+	=> SU select planet;
+    "SU ds sel"
+	=> SU select ovl;
+
+	( the workspace is laid out as DOS laid it out, but its contents
+	  before surface() runs are this port's business, not DOS's:
+	  rndpat overwrites all 64,800 bytes and _fmemset clears the
+	  overlay, so the only thing a stale buffer could leak into the
+	  result is lssmooth's 41-byte overrun on a moon.  Wiping makes
+	  that leak DETERMINISTIC - zero - rather than order-dependent,
+	  and the exit report says so. )
+	=> SU wipe;
+	=> SU wipe ovl;
+	=> SU wipe pal;
+
+	[SDcase] = [MNcases];
+	=> SU surface;
+
+	A = [SUemit]; ? A = 0 -> SU ds scalonly;
+	=> SUDM map;
+	=> SUDM tail;
+	=> SUDM ovl;
+	A = [SUcbase]; A '* 3; [SUb1] = A;
+	=> SUDM pal;
+    "SU ds scalonly"
+	=> SU scal;
+
+	[MNcases]+;
+	-> SU run case;
+
+( -------------------------------------------------------------------- )
+
+"SU wipe pal"
+	A = sutmppal;
+	B = 768;
+	C = 0;
+    "SU wp u"
+	[A] = C; A+;
+	B ^ SU wp u;
+	end;
+
+( -------------------------------------------------------------------- )
+
+      ( The sixteen scalars a capture can be graded against directly:
+	the four DGROUP arrays surface() writes, the seed it handed the
+	brtl stream, the two final draw counts and the four hashes. )
+
+"SU scal"
+	=> SU map hash;
+	=> SU ovl hash;
+	A = suhdr;
+	[A plus 0]  = [SUid];
+	[A plus 1]  = [SUtype];
+	[A plus 2]  = [SUcbase];
+	[A plus 3]  = [SUrtp];
+	[A plus 4]  = [SUrot];
+	[A plus 5]  = [SUplwp];
+	[A plus 6]  = [SUts];
+	[A plus 7]  = [SUte];
+	[A plus 8]  = [SUseed];
+	[A plus 9]  = [SUfn];
+	[A plus 10] = [SUbn];
+	[A plus 11] = [SUfh];
+	[A plus 12] = [SUbh];
+	[A plus 13] = [SUmh];
+	[A plus 14] = [SUoh];
+	[A plus 15] = [SUbrt];
+	[SDkind] = KSCAL; [SDtag] = [SUmoon];
+	[SDw] = 16; [SDh] = 1;
+	[SDbp] = suhdr; [SDbc] = 16;
+	=> SUDM rec;
+	end;
+
+( -------------------------------------------------------------------- )
+
+"SU trailer"
+	=> FCWRead;
+	A = suhdr;
+	[A plus 0]  = [MNcases];
+	[A plus 1]  = [MNbad];
+	[A plus 2]  = [CRbad];
+	[A plus 3]  = [CRtokn];
+	[A plus 4]  = [FI];
+	[A plus 5]  = [FFLG];
+	[A plus 6]  = 0;  [A plus 7]  = 0;
+	[A plus 8]  = 0;  [A plus 9]  = 0;
+	[A plus 10] = 0;  [A plus 11] = 0;
+	[A plus 12] = 0;  [A plus 13] = 0;
+	[A plus 14] = 0;  [A plus 15] = 0;
+	[SDcase] = 0;
+	[SDkind] = KTRL; [SDtag] = 0;
+	[SDw] = 16; [SDh] = 1;
+	[SDbp] = suhdr; [SDbc] = 16;
+	=> SUDM rec;
+	end;

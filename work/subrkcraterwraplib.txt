@@ -1,0 +1,625 @@
+      ( *** supaint - the fourteen modular painters, NOCTIS-0.CPP:4485-4762
+
+	They are called ONLY from surface() and they take their arguments
+	in GLOBALS: c, gr, r, g, b, cr, cx, cy, lave, crays, px, py, a.
+	That is not a stylistic detail, it is the interface, and it leaks:
+
+	    volcano          destroys b and g
+	    storm            destroys g
+	    permanent_storm  destroys g
+	    crater           destroys gr and vptr, and b when a ray fires
+	    fracture         destroys gr and a
+	    atm_cyclon       destroys b, and drives cr down to 0
+	    wave             leaves px at 0
+	    crater_juice     destroys lave, crays, c, cx, cy, cr and gr
+
+	and every case in the switch relies on some of that.  contrast()
+	and randoface() are the ONLY two that declare a local "unsigned c"
+	shadowing the global; a port that makes those two global, or any
+	of the rest local, computes a different planet.
+
+	THE NINETY-ITERATION LOOP.  Four painters run
+
+	    for (a = 0; a < 2*M_PI; a += 4*deg)
+
+	and it iterates NINETY times, not ninety-one, because "a" is a
+	binary32 global that is round-tripped through memory each time.
+	suseed's "SU a step4" is fld dword / fadd qword / fstp dword for
+	exactly that reason.  90 * 4 * (M_PI/180) = 6.28318..., and the
+	binary32 accumulation lands just above 2*M_PI on the ninety-first
+	test rather than just below.
+
+	THE THREE ADDRESSING SHAPES, all from fbmem's rule that the
+	offsets already carry farmalloc's 4:
+
+	    spot     off = (4 + py + px)                 AND 65535
+	    cirrus   off = ((((py + px) AND 65535) >> 1) + 4) AND 65535
+	    crater   off = (4 + vptr)                    AND 65535
+	             vptr = (px + 360*py)                AND 65535
+
+	cirrus shifts AFTER the 16-bit add, so its failure delta is
+	32,768 and spot's is 65,536.  One helper for both would be wrong
+	in one of them and look right.
+
+	EVALUATION ORDER, settled from the binary and not re-litigated
+	here: function ARGUMENTS right to left - so in
+	contrast(kt, kq, thrshld) the rfr(3) inside thrshld draws FIRST -
+	while binary + and - evaluate their operands LEFT to right, so in
+	"gr += random(range); gr -= random(range)" and in
+	"26 + rfr(3) - rfr(5)" the added draw precedes the subtracted
+	one.                                                             )
+
+"constants"
+
+	CRSTEP	= 360;
+
+"variables"
+
+	( per-painter scratch that is NOT one of the game's globals )
+
+	SPi	= 0;
+	SPj	= 0;
+	SPk	= 0;
+	SPt	= 0;
+	SPu	= 0;
+	SPsave	= 0;
+	SPb2	= 0;
+
+"programme"
+
+( ==================================================================== )
+( the two shared geometry steps                                         )
+( ==================================================================== )
+
+      ( SU calc px / SU calc py - px = cx + [SUmi]*cos(a),
+	py = cy + [SUmi]*sin(a), each truncated toward zero and then
+	narrowed to Borland's 16-bit unsigned.  A negative sum wraps to
+	the top of the segment, which is exactly how spot() writes
+	outside the visible panorama in the original. )
+
+"SU calc px"
+	=> SU cos term;
+	[SUia] = [SUcxi];
+	=> SU add ia;
+	=> SU chop32;
+	A = [SUti]; A & 0FFFFh; [SUpx] = A;
+	end;
+
+"SU calc py"
+	=> SU sin term;
+	[SUia] = [SUcyi];
+	=> SU add ia;
+	=> SU chop32;
+	A = [SUti]; A & 0FFFFh; [SUpy] = A;
+	end;
+
+      ( SU py row - "py *= 360", 16 bits wide. )
+
+"SU py row"
+	A = [SUpy]; A '* CRSTEP; A & 0FFFFh; [SUpy] = A;
+	end;
+
+( ==================================================================== )
+( spot - NOCTIS-0.CPP:4485                                              )
+( ==================================================================== )
+
+"SU spot"
+	A = 4; A + [SUpy]; A + [SUpx]; [SUoff] = A;
+	=> SU get;
+	A = [SUval];
+	C = [SUgr]; C & 0FFh;
+	A + C; A & 0FFh;		( add al, byte ptr gr - EIGHT bits )
+	? A '< 3Eh -> SU spot lo;
+	A = 3Eh;
+    "SU spot lo"
+	[SUval] = A;
+	=> SU put;
+	end;
+
+( ==================================================================== )
+( cirrus - NOCTIS-0.CPP:4715.  Ceiling 0x1F, not 0x3E.                  )
+( ==================================================================== )
+
+      ( The cloud albedo range is HALF the surface range on purpose:
+	NOCTIS-0.CPP's own comment says the landing-site albedo is
+	recovered by SUBTRACTING the cloud value from the merged one, and
+	letting a cloud move a land pixel by more than half the range
+	would turn land into sea under a passing cloud. )
+
+"SU cirrus"
+	A = [SUpy]; A + [SUpx]; A & 0FFFFh;
+	A > 1;
+	A + 4; [SUoff] = A;
+	=> SU oget;
+	A = [SUval];
+	C = [SUgr]; C & 0FFh;
+	A + C; A & 0FFh;
+	? A '< 1Fh -> SU cirrus lo;
+	A = 1Fh;
+    "SU cirrus lo"
+	[SUval] = A;
+	=> SU oput;
+	end;
+
+( ==================================================================== )
+( permanent_storm - :4496 - and storm - :4746                           )
+( ==================================================================== )
+
+      ( Identical geometry, different target buffer and different
+	ceiling.  "a" is reset to zero for EVERY g, so the outer loop
+	does not accumulate the angle. )
+
+"SU permanent storm"
+	[SUg] = 1;
+    "SU ps g"
+	A = [SUg]; ? A >= [SUcr] -> SU ps done;
+	=> SU a zero;
+    "SU ps a"
+	?? [SFa] >= [KF2PI] -> SU ps aend;
+	[SUmi] = [SUg];
+	=> SU calc px;
+	=> SU calc py;
+	=> SU py row;
+	=> SU spot;
+	=> SU a step4;
+	-> SU ps a;
+    "SU ps aend"
+	[SUg]+;
+	-> SU ps g;
+    "SU ps done"
+	end;
+
+"SU storm"
+	[SUg] = 1;
+    "SU st g"
+	A = [SUg]; ? A >= [SUcr] -> SU st done;
+	=> SU a zero;
+    "SU st a"
+	?? [SFa] >= [KF2PI] -> SU st aend;
+	[SUmi] = [SUg];
+	=> SU calc px;
+	=> SU calc py;
+	=> SU py row;
+	=> SU cirrus;
+	=> SU a step4;
+	-> SU st a;
+    "SU st aend"
+	[SUg]+;
+	-> SU st g;
+    "SU st done"
+	end;
+
+( ==================================================================== )
+( volcano - :4620                                                       )
+( ==================================================================== )
+
+      ( gr decays across the whole ring and is restored from b at the
+	end of every angle, so the cone darkens outwards but each spoke
+	starts from the same height.  "if (gr<0) gr = 0" clamps it, and
+	it is the reason b is destroyed. )
+
+"SU volcano"
+	=> SU a zero;
+    "SU vo a"
+	?? [SFa] >= [KF2PI] -> SU vo done;
+	[SUb] = [SUgr];
+	A = [SUcr]; A / 2; [SUg] = A;
+    "SU vo g"
+	A = [SUg]; ? A >= [SUcr] -> SU vo gend;
+	[SUmi] = [SUg];
+	=> SU calc px;
+	=> SU calc py;
+	=> SU py row;
+	=> SU spot;
+	A = [SUgr]; A - 1;
+	? A >= 0 -> SU vo grok;
+	A = 0;
+    "SU vo grok"
+	[SUgr] = A;
+	[SUg]+;
+	-> SU vo g;
+    "SU vo gend"
+	[SUgr] = [SUb];
+	=> SU a step4;
+	-> SU vo a;
+    "SU vo done"
+	end;
+
+( ==================================================================== )
+( band - :4557                                                          )
+( ==================================================================== )
+
+      ( A horizontal run of cr bytes starting at py, each darkened by g
+	with a saturating subtract.  DI increments SIXTEEN BITS wide, and
+	case 2 reaches it with cr = 20*360 = 7,200 and py up to
+	177*360 = 63,720, so the run can and does run off the end of the
+	panorama and wrap inside the segment. )
+
+"SU band"
+	A = 4; A + [SUpy]; A & 0FFFFh; [SUoff] = A;
+	( "mov cx, cr" then "dec cx / jnz": cr is taken sixteen bits wide
+	  and a zero count means SIXTY-FIVE THOUSAND FIVE HUNDRED AND
+	  THIRTY-SIX iterations, not none.  Unreachable from the two call
+	  sites, both of which multiply cr by 360 first, but spelling it
+	  the other way would be a silent difference if it ever became
+	  reachable. )
+	B = [SUcr]; B & 0FFFFh;
+	? B != 0 -> SU band cnt;
+	B = 65536;
+    "SU band cnt"
+	C = [SUg]; C & 0FFh; [SPt] = C;
+    "SU band u"
+	=> SU get;
+	A = [SUval];
+	C = [SPt];
+	? A '< C -> SU band zero;
+	A - C;
+	-> SU band st;
+    "SU band zero"
+	A = 0;
+    "SU band st"
+	[SUval] = A;
+	=> SU put;
+	A = [SUoff]; A + 1; A & 0FFFFh; [SUoff] = A;
+	B ^ SU band u;
+	end;
+
+( ==================================================================== )
+( wave - :4576                                                          )
+( ==================================================================== )
+
+      ( A sinusoidal one-pixel-wide black line.  Two things:
+
+	  the fistp is the ONLY hand-written float-to-int inside
+	  surface() and its rounding control is left at nearest, so it
+	  ROUNDS where every other conversion in this function chops;
+
+	  "mul dx / add ax, 4" - that 4 is farmalloc's offset, settled by
+	  BUFFERMAP section 4.1 and by recon C's live heap walk from the
+	  other direction.  Treating it as a four-pixel skew shifts the
+	  whole band and is sabotage WAVEPLUS4.
+
+	px is left at zero on exit; case 6 does not care and the next
+	painter reassigns it, but the ledger records it. )
+
+"SU wave"
+	[SUpx] = CRSTEP;
+    "SU wave u"
+	{
+	    DB 87 <dSUpx mtp bytesperunit>	(fild dword [edi+SUpx*4])
+	    D8 8F <dSFa  mtp bytesperunit>	(fmul dword [edi+SFa*4])
+	    D9 FE				(fsin)
+	    DB 87 <dSUcr mtp bytesperunit>	(fild dword [edi+SUcr*4])
+	    DE C9				(fmulp st(1),st(0))
+	}
+	=> SU near32;
+	A = [SUti]; A & 0FFFFh; [SUpy] = A;
+	A = [SUpy]; A + [SUcyi]; A & 0FFFFh; [SUpy] = A;
+	A = [SUpy]; A '* CRSTEP; A & 0FFFFh;
+	A + 4; A & 0FFFFh;
+	A + [SUpx]; A & 0FFFFh; [SUoff] = A;
+	[SUval] = 0;
+	=> SU put;
+	A = [SUpx]; A - 1; A & 0FFFFh; [SUpx] = A;
+	? A != 0 -> SU wave u;
+	end;
+
+( ==================================================================== )
+( fracture - :4592                                                      )
+( ==================================================================== )
+
+      ( A random walk that shifts pixels DARKER by a right shift rather
+	than painting them, so it engraves rather than draws.  px and py
+	here are LOCAL binary32 floats shadowing the unsigned globals -
+	the walk is a float walk and the wrap tests are float tests.
+
+	The do-while runs gr+1 times, because "gr++" precedes it and
+	"gr--" is the last thing in the body.  Two random() draws per
+	step, both from the BRTL stream, while everything that set up the
+	call came from the FAST one. )
+
+"SU fracture"
+	C = 360;
+	=> SU rnd;
+	[SUia] = C;
+	=> SU a of deg;
+	[SUgr]+;
+
+	=> SU fr load;
+
+    "SU fr step"
+	C = [SUg]; => SU rnd; [SPt] = C;
+	C = [SUg]; => SU rnd;
+	A = [SPt]; A - C; [SUia] = A;
+	=> SU a add deg;
+
+	=> SU frx step;
+	?? [SFpx] <= [KF359] -> SU fr xa;
+	[SFpx] -- [KF360];
+    "SU fr xa"
+	?? [SFpx] >= [KFZERO] -> SU fr xb;
+	[SFpx] ++ [KF360];
+    "SU fr xb"
+
+	=> SU fry step;
+	?? [SFpy] <= [KF179] -> SU fr ya;
+	[SFpy] -- [KF180];
+    "SU fr ya"
+	?? [SFpy] >= [KFZERO] -> SU fr yb;
+	[SFpy] ++ [KF180];
+    "SU fr yb"
+
+	=> SU fr vptr;
+	A = [SUti]; [SUvptr] = A;
+	A + 4; A & 0FFFFh; [SUoff] = A;
+	=> SU get;
+	A = [SUval];
+	C = [SUb]; C & 0FFh;
+	A > C; A & 0FFh;
+	[SUval] = A;
+	=> SU put;
+
+	A = [SUgr]; A - 1; [SUgr] = A;
+	? A != 0 -> SU fr step;
+	end;
+
+( ==================================================================== )
+( contrast - :4638                                                      )
+( ==================================================================== )
+
+      ( An S-curve applied to all 64,800 bytes with the GLOBAL float a as
+	the working register, so contrast leaves "a" holding the last
+	pixel's value - and case 5 calls randoface next, which does not
+	read a, and then volcano, which resets it.  The local "unsigned c"
+	shadows the global c, which case 5's own loop is using. )
+
+"SU contrast"
+	[SPi] = 0;
+    "SU co u"
+	[SUidx] = [SPi];
+	=> SU dget;
+	[SUia] = [SUval];
+	=> SU a of int;
+	[SFa] -- [SFth];
+	?? [SFa] > [KFZERO] -> SU co hi;
+	[SFa] ** [SFkq];
+	-> SU co add;
+    "SU co hi"
+	[SFa] ** [SFkt];
+    "SU co add"
+	[SFa] ++ [SFth];
+	?? [SFa] >= [KFZERO] -> SU co p1;
+	[SFa] = 0;
+    "SU co p1"
+	?? [SFa] <= [KF63] -> SU co p2;
+	[SFa] = [KF63];
+    "SU co p2"
+	=> SU a to int;
+	[SUval] = [SUti];
+	[SUidx] = [SPi];
+	=> SU dput;
+	[SPi]+;
+	A = [SPi]; ? A '< 64800 -> SU co u;
+	end;
+
+( ==================================================================== )
+( randoface - :4655                                                     )
+( ==================================================================== )
+
+      ( Two draws per QUALIFYING pixel and none per rejected one, so the
+	brtl stream's consumption depends on the image the fast stream
+	built.  That is coupling shape V6 and it is why totals cannot
+	localise a fault here. )
+
+"SU randoface"
+	[SPi] = 0;
+    "SU rf u"
+	[SUidx] = [SPi];
+	=> SU dget;
+	[SUgr] = [SUval];
+
+	A = [SPu];			( upon )
+	? A <= 0 -> SU rf neg;
+	C = [SUgr]; ? C >= A -> SU rf hit;
+	-> SU rf next;
+    "SU rf neg"
+	? A >= 0 -> SU rf next;
+	C = A; C+-;			( -upon )
+	A = [SUgr]; ? A <= C -> SU rf hit;
+	-> SU rf next;
+
+    "SU rf hit"
+	C = [SPt]; => SU rnd;
+	A = [SUgr]; A + C; [SUgr] = A;
+	C = [SPt]; => SU rnd;
+	A = [SUgr]; A - C; [SUgr] = A;
+	? A <= 63 -> SU rf c1;
+	A = 63; [SUgr] = A;
+    "SU rf c1"
+	A = [SUgr]; ? A >= 0 -> SU rf c2;
+	[SUgr] = 0;
+    "SU rf c2"
+	[SUval] = [SUgr];
+	[SUidx] = [SPi];
+	=> SU dput;
+
+    "SU rf next"
+	[SPi]+;
+	A = [SPi]; ? A '< 64800 -> SU rf u;
+	end;
+
+( ==================================================================== )
+( crater - :4508                                                        )
+( ==================================================================== )
+
+      ( One ring of spokes.  Three separate stores:
+
+	  the spoke itself, a saturating SUBTRACT of gr >> lave;
+	  the rim, "mov ax, 0x013E / mov es:[di], ax" - a WORD, so it
+	    writes 3Eh at vptr and 01h at vptr+1, and vptr is whatever
+	    the last inner iteration left;
+	  the ray, a saturating ADD of cr, painted only when crays is
+	    non-zero AND random(crays) comes up zero.
+
+	"crays && !random(crays)" short-circuits: when crays is 0 - which
+	is one of its three possible values, since crays = random(3)*2 -
+	NO draw happens.  Evaluating the random first would consume the
+	brtl stream 90 times per crater that should not have touched it. )
+
+"SU crater"
+	=> SU a zero;
+    "SU cr a"
+	?? [SFa] >= [KF2PI] -> SU cr done;
+
+	[SUgr] = 0;
+    "SU cr g"
+	A = [SUgr]; ? A >= [SUcr] -> SU cr gend;
+	[SUmi] = [SUgr];
+	=> SU calc px;
+	=> SU calc py;
+	A = [SUpy]; A '* CRSTEP; C = [SUpx]; A + C;
+	[SUvptr] = A;
+	A + 4; A & 0FFFFh; [SUoff] = A;
+	=> SU get;
+	A = [SUval];
+	C = [SUgr]; C & 0FFh;
+	D = [SUlave]; D & 0FFh;
+	C > D; C & 0FFh;		( shr ah, cl )
+	? A '< C -> SU cr zero;
+	A - C;
+	-> SU cr st;
+    "SU cr zero"
+	A = 0;
+    "SU cr st"
+	[SUval] = A;
+	=> SU put;
+	[SUgr]+;
+	-> SU cr g;
+    "SU cr gend"
+
+	( the rim: a 16-bit store of 013Eh at the LAST vptr )
+	A = [SUvptr]; A + 4; A & 0FFFFh; [SUoff] = A;
+	[SUval] = 3Eh; => SU put;
+	A = [SUoff]; A + 1; A & 0FFFFh; [SUoff] = A;
+	[SUval] = 1;   => SU put;
+
+	( the rays )
+	A = [SUcrays]; ? A = 0 -> SU cr nray;
+	C = [SUcrays]; => SU rnd;
+	A = C; ? A != 0 -> SU cr nray;
+
+	C = 2; => SU rnd;
+	A = C; A + 2; A * [SUcr]; [SUb] = A;
+	A = [SUcyi]; C = [SUb]; A - C; ? A <= 0 -> SU cr nray;
+	A = [SUcyi]; A + C; ? A >= 179 -> SU cr nray;
+
+	A = [SUcr]; A + 1; [SUgr] = A;
+    "SU cr ray"
+	A = [SUgr]; ? A >= [SUb] -> SU cr nray;
+	[SUmi] = [SUgr];
+	=> SU calc px;
+	=> SU calc py;
+	A = [SUpy]; A '* CRSTEP; C = [SUpx]; A + C;
+	[SUvptr] = A;
+	A + 4; A & 0FFFFh; [SUoff] = A;
+	=> SU get;
+	A = [SUval];
+	C = [SUcr]; C & 0FFh;
+	A + C; A & 0FFh;
+	? A '< 3Eh -> SU cr rst;
+	A = 3Eh;
+    "SU cr rst"
+	[SUval] = A;
+	=> SU put;
+	[SUgr]+;
+	-> SU cr ray;
+
+    "SU cr nray"
+	=> SU a step4;
+	-> SU cr a;
+    "SU cr done"
+	end;
+
+( ==================================================================== )
+( crater_juice - :4677                                                  )
+( ==================================================================== )
+
+      ( "while (cr>20) cr -= 10" is a NORMALISATION and it runs BEFORE
+	random(178 - 2*cr).  Computing the 178-2*cr argument from the
+	un-normalised radius moves the draw and every draw after it. )
+
+"SU crater juice"
+	C = 3; => SU rnd; [SUlave] = C;
+	C = 3; => SU rnd; A = C; A '* 2; [SUcrays] = A;
+	[SUc] = 0;
+    "SU cj c"
+	A = [SUc]; ? A >= [SUr] -> SU cj done;
+
+	C = 360; => SU rnd; [SUcxi] = C;
+	A = [SUr]; A - [SUc]; A + 1; C = A;
+	=> SU rnd; A = C; A + 2; [SUcr] = A;
+    "SU cj norm"
+	A = [SUcr]; ? A <= 20 -> SU cj normed;
+	A - 10; [SUcr] = A;
+	-> SU cj norm;
+    "SU cj normed"
+	A = 178; C = [SUcr]; C '* 2; A - C; C = A;
+	=> SU rnd; A = C; A + [SUcr]; [SUcyi] = A;
+
+	=> SU crater;
+
+	A = [SUcr]; ? A <= 15 -> SU cj nosm;
+	=> SU lssmooth;
+    "SU cj nosm"
+	[SUc]+;
+	-> SU cj c;
+    "SU cj done"
+	end;
+
+( ==================================================================== )
+( atm_cyclon - :4726                                                    )
+( ==================================================================== )
+
+      ( A spiral of six cirrus blobs per step, three of which shift px by
+	a fresh random(4) and two of which shift py by a constant.  The
+	spiral tightens only when b wraps modulo g, so g controls how many
+	steps each radius gets.  cr is driven to zero: the caller cannot
+	reuse it. )
+
+"SU atm cyclon"
+	[SUb] = 0;
+    "SU ac u"
+	A = [SUcr]; ? A <= 0 -> SU ac done;
+
+	[SUmi] = [SUcr];
+	=> SU calc px;
+	=> SU calc py;
+	=> SU py row;
+	=> SU cirrus;
+
+	C = 4; => SU rnd;
+	A = [SUpx]; A + C; A & 0FFFFh; [SUpx] = A;
+	=> SU cirrus;
+
+	A = [SUpy]; A + 359; A & 0FFFFh; [SUpy] = A;
+	=> SU cirrus;
+
+	C = 4; => SU rnd;
+	A = [SUpx]; A - C; A & 0FFFFh; [SUpx] = A;
+	=> SU cirrus;
+
+	A = [SUpy]; A + 361; A & 0FFFFh; [SUpy] = A;
+	=> SU cirrus;
+
+	C = 4; => SU rnd;
+	A = [SUpx]; A + C; A & 0FFFFh; [SUpx] = A;
+	=> SU cirrus;
+
+	A = [SUb]; A + 1; A % [SUg]; [SUb] = A;
+	? A != 0 -> SU ac ang;
+	A = [SUcr]; A - 1; [SUcr] = A;
+    "SU ac ang"
+	=> SU a step6;
+	-> SU ac u;
+    "SU ac done"
+	end;

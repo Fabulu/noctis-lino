@@ -1,0 +1,395 @@
+      ( *** supal - the 64-entry colour gradient surface() rebuilds ***
+
+	NOCTIS-0.CPP:5155-5188, plus shade (:1151) and tavola_colori
+	(:179).  This is the LAST thing surface() does and it is the only
+	part of it a screenshot can show directly: the game's own gallery
+	BMP writes tmppal[c]*4 into its palette, so BMP entries 192..255
+	are a readout of the eighteen random() draws below.
+
+	WHY THAT MATTERS OUT OF ALL PROPORTION TO ITS SIZE.  Those draws
+	come from the BRTL stream, at the very end, after every other brtl
+	draw the function makes.  They land where they land only if EVERY
+	earlier brtl draw count in the whole function was right - and they
+	are completely independent of the fast stream, so they survive a
+	wholly wrong fast_random and still catch a miscount in the
+	painters.  It is the one capture-anchored observation aimed
+	squarely at the interleaving risk, which is why it is not
+	optional.
+
+	THE EIGHTEEN DRAWS, in source order, two per line:
+
+	    r1 = r + random(c) - random(c);      g1, b1
+	    r2 = ...                             g2, b2
+	    r3 = ...                             g3, b3
+
+	Binary + and - evaluate LEFT to RIGHT, so the added draw precedes
+	the subtracted one on every line.  Swapping them within a line
+	leaves the count at eighteen and changes the colour, which is why
+	sabotage SUBORDER is caught by this file and not by the counters.
+
+	r, g, b and c here are the SAME GLOBALS the painters spent the
+	whole function clobbering; the four values are re-read from
+	planet_rgb_and_var immediately above, so nothing survives, but
+	"type <<= 2" and "type >>= 2" around the table lookup do modify
+	the local parameter and put it back - and the "type >>= 2" happens
+	BEFORE the shade calls, so a port that forgets to restore it picks
+	the wrong owner branch later.
+
+	shade() TAKES ITS ENDPOINTS BY VALUE AND WALKS THEM.  start_r is a
+	float PARAMETER that the loop increments sixteen times, so each
+	step rounds to binary32; k is 1/16, exact; delta is
+	(finish - start) * k computed with ONE rounding, not two.  The
+	assignment into the byte truncates, and the three-way range test
+
+	    if (start_r >= 0 && start_r < 64) ... else if (start_r > 0) 63
+	                                           else 0
+
+	is asymmetric: a value at exactly 64 becomes 63, a value at
+	exactly 0 is truncated to 0 by the first branch.
+
+	tavola_colori's FIRST loop copies tmppal[3*colorbase + cc] onto
+	itself - nuova_tavolozza IS tmppal + 3*colorbase - so it is a
+	no-op, and it is written out below anyway because "it is a no-op"
+	is a claim about the arguments, not about the function.
+
+	Its second loop multiplies each 6-bit component by the brightness
+	filter in SIXTEEN-BIT UNSIGNED arithmetic ("unsigned temp"), so a
+	negative filter - reachable at brt > 20, i.e. the twenty-first
+	body of a system - wraps rather than clamping.                   )
+
+"constants"
+
+	( planet_rgb_and_var, NOCTIS-0.CPP:964.  Four bytes per type:
+	  red, green, blue, variance. )
+
+	PRGB0	= 60;	PRGB1	= 30;	PRGB2	= 15;	PRGB3	= 20;
+	PRGB4	= 40;	PRGB5	= 50;	PRGB6	= 40;	PRGB7	= 25;
+	PRGB8	= 32;	PRGB9	= 32;	PRGB10	= 32;	PRGB11	= 32;
+	PRGB12	= 16;	PRGB13	= 32;	PRGB14	= 48;	PRGB15	= 40;
+	PRGB16	= 32;	PRGB17	= 40;	PRGB18	= 32;	PRGB19	= 20;
+	PRGB20	= 32;	PRGB21	= 32;	PRGB22	= 32;	PRGB23	= 32;
+	PRGB24	= 32;	PRGB25	= 32;	PRGB26	= 32;	PRGB27	= 32;
+	PRGB28	= 32;	PRGB29	= 40;	PRGB30	= 48;	PRGB31	= 24;
+	PRGB32	= 40;	PRGB33	= 40;	PRGB34	= 40;	PRGB35	= 30;
+	PRGB36	= 50;	PRGB37	= 25;	PRGB38	= 10;	PRGB39	= 20;
+	PRGB40	= 40;	PRGB41	= 40;	PRGB42	= 40;	PRGB43	= 40;
+
+"variables"
+
+	( the nine endpoint components, binary32 )
+
+	SFr1	= 0;	SFg1	= 0;	SFb1	= 0;
+	SFr2	= 0;	SFg2	= 0;	SFb2	= 0;
+	SFr3	= 0;	SFg3	= 0;	SFb3	= 0;
+
+	( shade's own state )
+
+	SFsr	= 0;	SFsg	= 0;	SFsb	= 0;
+	SFfr	= 0;	SFfg	= 0;	SFfb	= 0;
+	SFdr	= 0;	SFdg	= 0;	SFdb	= 0;
+	SFk	= 0;
+
+	SHfirst	= 0;
+	SHn	= 0;
+	SHcnt	= 0;
+
+	SUbrt	= 0;
+	SPt2	= 0;
+	SPt3	= 0;
+
+"workspace"
+
+	prgb	= 44;
+
+"programme"
+
+( ==================================================================== )
+( the table                                                            )
+( ==================================================================== )
+
+"SU pal init"
+	A = prgb;
+	[A plus 0]  = PRGB0;  [A plus 1]  = PRGB1;  [A plus 2]  = PRGB2;  [A plus 3]  = PRGB3;
+	[A plus 4]  = PRGB4;  [A plus 5]  = PRGB5;  [A plus 6]  = PRGB6;  [A plus 7]  = PRGB7;
+	[A plus 8]  = PRGB8;  [A plus 9]  = PRGB9;  [A plus 10] = PRGB10; [A plus 11] = PRGB11;
+	[A plus 12] = PRGB12; [A plus 13] = PRGB13; [A plus 14] = PRGB14; [A plus 15] = PRGB15;
+	[A plus 16] = PRGB16; [A plus 17] = PRGB17; [A plus 18] = PRGB18; [A plus 19] = PRGB19;
+	[A plus 20] = PRGB20; [A plus 21] = PRGB21; [A plus 22] = PRGB22; [A plus 23] = PRGB23;
+	[A plus 24] = PRGB24; [A plus 25] = PRGB25; [A plus 26] = PRGB26; [A plus 27] = PRGB27;
+	[A plus 28] = PRGB28; [A plus 29] = PRGB29; [A plus 30] = PRGB30; [A plus 31] = PRGB31;
+	[A plus 32] = PRGB32; [A plus 33] = PRGB33; [A plus 34] = PRGB34; [A plus 35] = PRGB35;
+	[A plus 36] = PRGB36; [A plus 37] = PRGB37; [A plus 38] = PRGB38; [A plus 39] = PRGB39;
+	[A plus 40] = PRGB40; [A plus 41] = PRGB41; [A plus 42] = PRGB42; [A plus 43] = PRGB43;
+	end;
+
+( ==================================================================== )
+( float helpers                                                        )
+( ==================================================================== )
+
+      ( SU f of ia - [SFtmp] <- (float)[SUia]. )
+
+"SU f of ia"
+	{
+	    DB 87 <dSUia  mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    D9 9F <dSFtmp mtp bytesperunit>	(fstp dword [edi+SFtmp*4])
+	}
+	end;
+
+      ( The three scalings.  A float TIMES a double literal: the float
+	widens, the product is formed at extended precision and only the
+	store back into the float rounds. )
+
+"SU f q25"
+	{
+	    D9 87 <dSFtmp mtp bytesperunit>	(fld  dword [edi+SFtmp*4])
+	    DC 8F <dK025A mtp bytesperunit>	(fmul qword [edi+K025A*4])
+	    D9 9F <dSFtmp mtp bytesperunit>	(fstp dword [edi+SFtmp*4])
+	}
+	end;
+
+"SU f q75"
+	{
+	    D9 87 <dSFtmp mtp bytesperunit>	(fld  dword [edi+SFtmp*4])
+	    DC 8F <dK075A mtp bytesperunit>	(fmul qword [edi+K075A*4])
+	    D9 9F <dSFtmp mtp bytesperunit>	(fstp dword [edi+SFtmp*4])
+	}
+	end;
+
+"SU f q125"
+	{
+	    D9 87 <dSFtmp mtp bytesperunit>	(fld  dword [edi+SFtmp*4])
+	    DC 8F <dK125A mtp bytesperunit>	(fmul qword [edi+K125A*4])
+	    D9 9F <dSFtmp mtp bytesperunit>	(fstp dword [edi+SFtmp*4])
+	}
+	end;
+
+( ==================================================================== )
+( shade - NOCTIS-0.CPP:1151                                            )
+( ==================================================================== )
+
+      ( SU shade k - k = 1.00 / (float)[SHn].  A double divided by a
+	float, stored into a float.  With sixteen colours it is 0.0625
+	and exact; it is computed rather than written down because the
+	call site's 16 is an argument, not a property of shade. )
+
+"SU shade k"
+	{
+	    DD 87 <dK1A  mtp bytesperunit>	(fld  qword [edi+K1A*4])
+	    DB 87 <dSHn  mtp bytesperunit>	(fild dword [edi+SHn*4])
+	    DE F9				(fdivp st(1),st(0))
+	    D9 9F <dSFk  mtp bytesperunit>	(fstp dword [edi+SFk*4])
+	}
+	end;
+
+      ( the three deltas: (finish - start) * k, ONE rounding.  Writing
+	this as two L.in.oleum float instructions would round the
+	difference to binary32 before the multiply, which Borland does
+	not do. )
+
+"SU shade d"
+	{
+	    D9 87 <dSFfr mtp bytesperunit>	(fld  dword [edi+SFfr*4])
+	    D8 A7 <dSFsr mtp bytesperunit>	(fsub dword [edi+SFsr*4])
+	    D8 8F <dSFk  mtp bytesperunit>	(fmul dword [edi+SFk*4])
+	    D9 9F <dSFdr mtp bytesperunit>	(fstp dword [edi+SFdr*4])
+
+	    D9 87 <dSFfg mtp bytesperunit>	(fld  dword [edi+SFfg*4])
+	    D8 A7 <dSFsg mtp bytesperunit>	(fsub dword [edi+SFsg*4])
+	    D8 8F <dSFk  mtp bytesperunit>	(fmul dword [edi+SFk*4])
+	    D9 9F <dSFdg mtp bytesperunit>	(fstp dword [edi+SFdg*4])
+
+	    D9 87 <dSFfb mtp bytesperunit>	(fld  dword [edi+SFfb*4])
+	    D8 A7 <dSFsb mtp bytesperunit>	(fsub dword [edi+SFsb*4])
+	    D8 8F <dSFk  mtp bytesperunit>	(fmul dword [edi+SFk*4])
+	    D9 9F <dSFdb mtp bytesperunit>	(fstp dword [edi+SFdb*4])
+	}
+	end;
+
+      ( SU shade byte - [SUti] <- the byte shade stores for [SFtmp]. )
+
+"SU shade byte"
+	?? [SFtmp] < [KFZERO] -> SU sb zero;
+	?? [SFtmp] >= [KF64] -> SU sb full;
+	{
+	    D9 87 <dSFtmp mtp bytesperunit>	(fld dword [edi+SFtmp*4])
+	}
+	=> SU chop32;
+	end;
+    "SU sb full"
+	[SUti] = 63;
+	end;
+    "SU sb zero"
+	[SUti] = 0;
+	end;
+
+      ( SU shade - the loop.  In: [SHfirst] = first_color, [SHn] = the
+	colour count, SFsr/sg/sb and SFfr/fg/fb the two endpoints. )
+
+"SU shade"
+	=> SU shade k;
+	=> SU shade d;
+	A = [SHfirst]; A '* 3; [SHfirst] = A;
+	[SHcnt] = [SHn];
+    "SU sh u"
+	A = [SHcnt]; ? A = 0 -> SU sh done;
+
+	[SFtmp] = [SFsr]; => SU shade byte;
+	A = sutmppal; A + [SHfirst]; [A plus 0] = [SUti];
+	[SFtmp] = [SFsg]; => SU shade byte;
+	A = sutmppal; A + [SHfirst]; [A plus 1] = [SUti];
+	[SFtmp] = [SFsb]; => SU shade byte;
+	A = sutmppal; A + [SHfirst]; [A plus 2] = [SUti];
+
+	[SFsr] ++ [SFdr];
+	[SFsg] ++ [SFdg];
+	[SFsb] ++ [SFdb];
+
+	A = [SHfirst]; A + 3; [SHfirst] = A;
+	A = [SHcnt]; A - 1; [SHcnt] = A;
+	-> SU sh u;
+    "SU sh done"
+	end;
+
+( ==================================================================== )
+( tavola_colori - NOCTIS-0.CPP:179                                     )
+( ==================================================================== )
+
+      ( In: [SUcbase] = colore_di_partenza (and, through
+	nuova_tavolozza = tmppal + 3*colorbase, also the source), 64
+	colours, [SUbrt] the filter for all three channels. )
+
+"SU tavola"
+	( the first loop: tmppal[3*cb + cc] = nuova_tavolozza[cc], and
+	  nuova_tavolozza IS tmppal + 3*cb, so every store writes a byte
+	  onto itself.  Written out because the no-op is a property of
+	  THESE arguments and not of the function. )
+	A = [SUcbase]; A '* 3; [SPt2] = A;
+	B = 192;
+	A = sutmppal; A + [SPt2];
+    "SU tv copy"
+	C = [A]; [A] = C; A+;
+	B ^ SU tv copy;
+
+	( the second loop: three components per colour, sixteen-bit
+	  unsigned throughout. )
+	A = [SUbrt]; A & 0FFFFh; [SPt3] = A;
+	A = sutmppal; A + [SPt2];
+	B = 192;
+    "SU tv filt"
+	C = [A]; C & 0FFh;
+	C '* [SPt3]; C & 0FFFFh;
+	C '/ 63;
+	? C '<= 63 -> SU tv ok;
+	C = 63;
+    "SU tv ok"
+	[A] = C; A+;
+	B ^ SU tv filt;
+	end;
+
+( ==================================================================== )
+( the palette section of surface() - :5150-5188                        )
+( ==================================================================== )
+
+"SU palette"
+	A = [SUtype]; A < 2; [SUtype] = A;
+
+	A = prgb; A + [SUtype];
+	[SUr] = [A plus 0];
+	[SUg] = [A plus 1];
+	[SUb] = [A plus 2];
+	[SUc] = [A plus 3];
+
+	A = [SUr]; A < 1; A + [SUnsr]; A >> 1; [SUr] = A;
+	A = [SUg]; A < 1; A + [SUnsg]; A >> 1; [SUg] = A;
+	A = [SUb]; A < 1; A + [SUnsb]; A >> 1; [SUb] = A;
+
+	( eighteen draws, left operand of each - and - first )
+	[SUia] = [SUr]; => SU pal draw; [SFr1] = [SFtmp];
+	[SUia] = [SUg]; => SU pal draw; [SFg1] = [SFtmp];
+	[SUia] = [SUb]; => SU pal draw; [SFb1] = [SFtmp];
+	[SUia] = [SUr]; => SU pal draw; [SFr2] = [SFtmp];
+	[SUia] = [SUg]; => SU pal draw; [SFg2] = [SFtmp];
+	[SUia] = [SUb]; => SU pal draw; [SFb2] = [SFtmp];
+	[SUia] = [SUr]; => SU pal draw; [SFr3] = [SFtmp];
+	[SUia] = [SUg]; => SU pal draw; [SFg3] = [SFtmp];
+	[SUia] = [SUb]; => SU pal draw; [SFb3] = [SFtmp];
+
+	[SFtmp] = [SFr1]; => SU f q25; [SFr1] = [SFtmp];
+	[SFtmp] = [SFg1]; => SU f q25; [SFg1] = [SFtmp];
+	[SFtmp] = [SFb1]; => SU f q25; [SFb1] = [SFtmp];
+	[SFtmp] = [SFr2]; => SU f q75; [SFr2] = [SFtmp];
+	[SFtmp] = [SFg2]; => SU f q75; [SFg2] = [SFtmp];
+	[SFtmp] = [SFb2]; => SU f q75; [SFb2] = [SFtmp];
+	[SFtmp] = [SFr3]; => SU f q125; [SFr3] = [SFtmp];
+	[SFtmp] = [SFg3]; => SU f q125; [SFg3] = [SFtmp];
+	[SFtmp] = [SFb3]; => SU f q125; [SFb3] = [SFtmp];
+
+	A = [SUtype]; A >> 2; [SUtype] = A;
+
+	( shade (tmppal, colorbase + 0, 16, 0,0,0, r1,g1,b1) )
+	A = [SUcbase]; [SHfirst] = A; [SHn] = 16;
+	[SFsr] = 0; [SFsg] = 0; [SFsb] = 0;
+	[SFfr] = [SFr1]; [SFfg] = [SFg1]; [SFfb] = [SFb1];
+	=> SU shade;
+
+	A = [SUcbase]; A + 16; [SHfirst] = A; [SHn] = 16;
+	[SFsr] = [SFr1]; [SFsg] = [SFg1]; [SFsb] = [SFb1];
+	[SFfr] = [SFr2]; [SFfg] = [SFg2]; [SFfb] = [SFb2];
+	=> SU shade;
+
+	A = [SUcbase]; A + 32; [SHfirst] = A; [SHn] = 16;
+	[SFsr] = [SFr2]; [SFsg] = [SFg2]; [SFsb] = [SFb2];
+	[SFfr] = [SFr3]; [SFfg] = [SFg3]; [SFfb] = [SFb3];
+	=> SU shade;
+
+	A = [SUcbase]; A + 48; [SHfirst] = A; [SHn] = 16;
+	[SFsr] = [SFr3]; [SFsg] = [SFg3]; [SFsb] = [SFb3];
+	[SFfr] = [KF64]; [SFfg] = [KF64]; [SFfb] = [KF64];
+	=> SU shade;
+
+	( brt = nearstar_p_owner[id]; if -1 then the id itself.  A char:
+	  the 64 - 4*(brt-4) branch goes negative past body 20 and the
+	  filter is then read as an unsigned 16-bit multiplier. )
+	A = [SUowner];
+	C = 0; C - 1;
+	? A != C -> SU pl brt;
+	A = [SUid];
+    "SU pl brt"
+	( "char brt" - the int owner is narrowed to eight bits on the way
+	  in, before either branch tests it. )
+	A & 0FFh;
+	? A '< 80h -> SU pl bp;
+	A - 256;
+    "SU pl bp"
+	? A > 4 -> SU pl dim;
+	A = 64;
+	-> SU pl set;
+    "SU pl dim"
+	A - 4; A '* 4; C = 64; C - A; A = C;
+    "SU pl set"
+	A & 0FFh;
+	? A '< 80h -> SU pl pos;
+	A - 256;
+    "SU pl pos"
+	[SUbrt] = A;
+
+	=> SU tavola;
+
+	[SUledh] = 0; [SUph] = PHPAL; [SUphtag] = [SUbrt];
+	=> SU led;
+	end;
+
+      ( SU pal draw - [SFtmp] <- (float)([SUia] + random(c) - random(c)).
+	The intermediate is a 16-bit int, so it is narrowed before the
+	conversion. )
+
+"SU pal draw"
+	[SPt2] = [SUia];
+	C = [SUc]; => SU rnd;
+	A = [SPt2]; A - C; [SPt2] = A;
+	C = [SUc]; => SU rnd;
+	A = [SPt2]; A + C; [SUti] = A;
+	=> SU i16;
+	[SUia] = [SUti];
+	=> SU f of ia;
+	end;

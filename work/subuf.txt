@@ -1,0 +1,584 @@
+      ( *** subuf - the buffer model, the corpus reader and the SUDUMP
+	    writer for Wave 7a ***
+
+	work/fbmem.txt is LINKED, never edited and never forked.  Every
+	base, segment origin and size below is one of ITS constants;
+	nothing here restates a layout number.
+
+	ONE NOCTIS BYTE PER 32-BIT UNIT, ONE FLAT WORKSPACE IN FARMALLOC
+	ORDER.  That is Wave 5's Decision 1 and Decision 2 and it is
+	load-bearing here rather than decorative, for one reason:
+
+	    lssmooth (NOCTIS-0.CPP:4417) runs QUADWORDS-80 quadwords, i.e.
+	    64,480 iterations, and its last iteration reads es:[di+361]
+	    at di = 64,479, i.e. buffer byte 64,840 - FORTY-ONE BYTES PAST
+	    the 64,800 it is smoothing.
+
+	On a PLANET that read is harmless: p_background's farmalloc block
+	is 65,552 bytes.  On a MOON p_background has been swapped for
+	s_background (NOCTIS-0.CPP:5326), whose block is 64,800 bytes
+	EXACTLY, so the read lands in the neighbouring block - and in the
+	farmalloc order that neighbour is p_background, because
+	NOCTIS.CPP:2165-2166 allocates s_background then p_background back
+	to back.  This workspace puts them back to back too, with fbmem's
+	16-unit PADU between them, which is exactly the 12 bytes of
+	paragraph slack plus the 4-byte far-heap header DOS had:
+	64,800 + 4 = 64,804 rounds up to 4,051 paragraphs = 64,816.
+
+	WHAT THAT PAD CANNOT REPRODUCE, stated rather than glossed: the
+	12 slack bytes are uninitialised DOS heap and the 4 header bytes
+	are a block size and a previous-segment selector.  This port
+	zeroes all 16.  The consequence is bounded and is written down in
+	the exit report: on a MOON only, lssmooth's last 41 written bytes
+	- s_background[64,439..64,479] - may differ from the capture.
+	Nothing else in surface() reads past 64,800.
+
+	THE ADDRESS CONVENTION is spmem's, and it is stated once here so
+	no routine below has to think about it again.  Every DOS site
+	reaches p_background through "les di, dword ptr p_background",
+	which loads DI with farmalloc's offset of FOUR.  So the offsets
+	the routines below take ALREADY INCLUDE THE 4, and they are
+	masked against the region's SEGMENT ORIGIN, which fbmem defines as
+	base - 4.  DOS offset 4 is region byte 0 and there is no four-byte
+	skew anywhere.  Adding a +4 on top is the SCRATCHOFF-class defect
+	Wave 6a measured at 23 moved pages.
+
+	wave() (NOCTIS-0.CPP:4576) is the site that made this ambiguous:
+	its inner loop computes "mul dx / add ax, 4 / mov di, ax" and
+	discards the DI that les gave it.  BUFFERMAP section 4.1 settled
+	that the mysterious "add ax, 4" IS farmalloc's offset and not a
+	pixel skew, so wave uses the same rule as everything else and its
+	band is not shifted four columns.
+
+	THE MASK GOES WHERE THE DOS CODE TRUNCATES.  spot adds py and px
+	into DI and stores; cirrus adds them into BX and then SHIFTS.
+	((py+px) mod 65536) >> 1 is not ((py+px) >> 1) mod 65536, so the
+	two have different helpers and the difference is 32,768.
+
+	FILENAME TRAP: underscores in L.in.oleum string literals become
+	spaces.  Both names here use a hyphen.                           )
+
+"constants"
+
+	( ---- SUDUMP record kinds ---- )
+
+	KMAP	= 1;		( the 64,800-byte albedo map, packed )
+	KOVL	= 2;		( the 32,400-byte cloud overlay      )
+	KPAL	= 3;		( tmppal[3*colorbase .. +191]        )
+	KSCAL	= 4;		( the scalar results of one case     )
+	KLED	= 5;		( one ledger phase                   )
+	KTAIL	= 6;		( the 752 bytes past the map         )
+	KTRL	= 7;		( trailer                            )
+
+	SUMAGIC	= 826622293;	( 'SUD1' little-endian )
+	SUVER	= 1;
+	SUHDRU	= 16;
+
+	( ---- corpus opcodes ---- )
+
+	OPEND	= 0;
+	OPSURF	= 1;
+
+	( ---- sizes ---- )
+
+	MAPB	= 64800;	( bytes surface() writes         )
+	MAPU	= 16200;	( ... packed four to a unit      )
+	OVLB	= 32400;
+	OVLU	= 8100;
+	TAILB	= 752;		( 65552 - 64800, planet only     )
+	TAILU	= 188;
+
+	SUDUMPU	= 2400000;
+	SUPACKU	= 16200;
+	SUCORPU	= 60000;
+	SUTOKU	= 40000;
+
+	( ---- ledger phase ids ---- )
+
+	PHENTRY	= 0;
+	PHPRO	= 1;		( after the three rtperiod draws  )
+	PHSEED	= 2;		( after fast_srand/fast_random/srand )
+	PHRND	= 3;		( after rndpat + the overlay clear )
+	PHCASE	= 4;		( one outer-loop iteration        )
+	PHSDA	= 5;
+	PHSWEND	= 6;		( end of the switch               )
+	PHNORM	= 7;
+	PHMERGE	= 8;
+	PHTERM	= 9;
+	PHPOST	= 10;
+	PHPAL	= 11;
+	PHDONE	= 12;
+
+"variables"
+
+	suoutname	= { su-out.bin };
+	sucorpname	= { su-corpus.txt };
+
+	( ---- the live surface buffer.  p_background for a planet,
+	  s_background for a moon: NOCTIS-0.CPP:5326-5331 swaps the
+	  pointer, it does not copy the pixels. ---- )
+
+	SUpbase	= 0;
+	SUpseg	= 0;
+	SUobase	= 0;
+	SUoseg	= 0;
+	SUmoon	= 0;
+
+	( ---- access ---- )
+
+	SUoff	= 0;		( a DOS segment offset, the 4 included )
+	SUval	= 0;
+	SUidx	= 0;		( a region-relative byte index         )
+
+	( ---- dump staging ---- )
+
+	SDptr	= 0;
+	SDcnt	= 0;
+	SDkind	= 0;
+	SDtag	= 0;
+	SDw	= 0;
+	SDh	= 0;
+	SDbp	= 0;
+	SDbc	= 0;
+	SDcase	= 0;
+
+	( ---- corpus ---- )
+
+	CRbytes	= 0;
+	CRpos	= 0;
+	CRtokn	= 0;
+	CRti	= 0;
+	CRch	= 0;
+	CRacc	= 0;
+	CRneg	= 0;
+	CRbad	= 0;
+
+	( ---- scratch ---- )
+
+	SUb0	= 0;
+	SUb1	= 0;
+	SUb2	= 0;
+	SUb3	= 0;
+
+"workspace"
+
+	sudump	= 2400000;
+	supack	= 16200;
+	suhdr	= 16;
+	sucorpus = 60000;
+	sutok	= 40000;
+	sutmppal = 768;		( NOCTIS-0.CPP:56, "unsigned char tmppal[768]" )
+	sulrec	= 8;
+
+"programme"
+
+( ==================================================================== )
+( selecting the surface buffer                                          )
+( ==================================================================== )
+
+      ( SU select planet / SU select moon - point the live surface at
+	fbmem's p_background or s_background region.  A moon is not a
+	copy: colorbase 128 and p_background = s_background come from the
+	same branch at NOCTIS-0.CPP:5326. )
+
+"SU select planet"
+	[SUpbase] = RPBG; [SUpseg] = SPBG; [SUmoon] = 0;
+	end;
+
+"SU select moon"
+	[SUpbase] = RSBG; [SUpseg] = SSBG; [SUmoon] = 1;
+	end;
+
+"SU select ovl"
+	[SUobase] = ROBJ; [SUoseg] = SOBJ;
+	end;
+
+( ==================================================================== )
+( the truncating accessors - one per DOS addressing shape               )
+( ==================================================================== )
+
+      ( SU put / SU get - p_background at DOS offset [SUoff].
+	nw = SEG + (offset AND 65535). )
+
+"SU put"
+	A = [SUoff]; A & 0FFFFh; A + [SUpseg];
+	C = nw; A + C;
+	C = [SUval]; C & 0FFh;
+	[A] = C;
+	end;
+
+"SU get"
+	A = [SUoff]; A & 0FFFFh; A + [SUpseg];
+	C = nw; A + C;
+	C = [A]; C & 0FFh;
+	[SUval] = C;
+	end;
+
+      ( SU oput / SU oget - objectschart, same shape.  cirrus does its
+	own shift BEFORE calling these, which is the whole point. )
+
+"SU oput"
+	A = [SUoff]; A & 0FFFFh; A + [SUoseg];
+	C = nw; A + C;
+	C = [SUval]; C & 0FFh;
+	[A] = C;
+	end;
+
+"SU oget"
+	A = [SUoff]; A & 0FFFFh; A + [SUoseg];
+	C = nw; A + C;
+	C = [A]; C & 0FFh;
+	[SUval] = C;
+	end;
+
+( ==================================================================== )
+( the direct accessors - base + index, NO truncation                    )
+( ==================================================================== )
+
+      ( These are for loops the DOS code drives with a counter that
+	provably cannot wrap - rndpat's 64,800, the merge's 32,400,
+	contrast's 64,800 - and for fixtures and observers.  Keeping them
+	separate from "SU put" is the point: every painter store goes
+	through the truncating path, and a reviewer can tell which is
+	which by the name. )
+
+"SU dput"
+	A = nw; A + [SUpbase]; A + [SUidx];
+	C = [SUval]; C & 0FFh;
+	[A] = C;
+	end;
+
+"SU dget"
+	A = nw; A + [SUpbase]; A + [SUidx];
+	C = [A]; C & 0FFh;
+	[SUval] = C;
+	end;
+
+"SU odput"
+	A = nw; A + [SUobase]; A + [SUidx];
+	C = [SUval]; C & 0FFh;
+	[A] = C;
+	end;
+
+"SU odget"
+	A = nw; A + [SUobase]; A + [SUidx];
+	C = [A]; C & 0FFh;
+	[SUval] = C;
+	end;
+
+      ( SU addr - C <- the workspace address of surface byte [SUidx]. )
+
+"SU addr"
+	C = nw; C + [SUpbase]; C + [SUidx];
+	end;
+
+      ( SU dword - [SUval] <- the little-endian 32-bit value formed by
+	the four surface bytes at [SUidx].  This is the "db 0x66; mov dx,
+	es:[di]" of ssmooth and psmooth_grays: a 32-bit read of four
+	adjacent PIXELS. )
+
+"SU dword"
+	=> SU addr;
+	D = [C plus 3]; D & 0FFh; D < 8;
+	A = [C plus 2]; A & 0FFh; D + A; D < 8;
+	A = [C plus 1]; A & 0FFh; D + A; D < 8;
+	A = [C plus 0]; A & 0FFh; D + A;
+	[SUval] = D;
+	end;
+
+      ( SU word - the same for two bytes.  lssmooth's "mov dx, es:[di]". )
+
+"SU word"
+	=> SU addr;
+	D = [C plus 1]; D & 0FFh; D < 8;
+	A = [C plus 0]; A & 0FFh; D + A;
+	[SUval] = D;
+	end;
+
+( ==================================================================== )
+( bulk operations on the surface region                                 )
+( ==================================================================== )
+
+      ( SU wipe - zero s_background, p_background and the pad between
+	them, so one case's leftovers cannot be read by the next case's
+	lssmooth overrun.  Both are wiped whichever one is selected,
+	because on a moon the overrun crosses from one into the other.
+	A fixture routine: it is not a DOS store, and it does not
+	truncate. )
+
+"SU wipe"
+	A = nw; A + RSBG;
+	B = ZSBG; B + PADU; B + ZPBG; B + PADU;
+	C = 0;
+    "SU wipe u"
+	[A] = C; A+;
+	B ^ SU wipe u;
+	end;
+
+"SU wipe ovl"
+	A = nw; A + [SUobase];
+	B = ZOBJ;
+	C = 0;
+    "SU wipe ovl u"
+	[A] = C; A+;
+	B ^ SU wipe ovl u;
+	end;
+
+( ==================================================================== )
+( SUDUMP                                                                )
+( ==================================================================== )
+
+"SUDM reset"
+	[SDptr] = sudump;
+	[SDcnt] = 0;
+	end;
+
+"SUDM rec"
+	A = [SDptr];
+	[A plus 0]  = SUMAGIC;
+	[A plus 1]  = SUVER;
+	[A plus 2]  = [SDkind];
+	[A plus 3]  = [SDw];
+	[A plus 4]  = [SDh];
+	[A plus 5]  = [SDbc];
+	[A plus 6]  = [SDcase];
+	[A plus 7]  = [SDtag];
+	[A plus 8]  = 0;  [A plus 9]  = 0;
+	[A plus 10] = 0;  [A plus 11] = 0;
+	[A plus 12] = 0;  [A plus 13] = 0;
+	[A plus 14] = 0;  [A plus 15] = 0;
+	A + SUHDRU;
+	C = [SDcnt]; C + SUHDRU; [SDcnt] = C;
+
+	D = [SDbp];
+	B = [SDbc];
+	? B = 0 -> SUDM rec tail;
+    "SUDM rec unit"
+	C = [D]; [A] = C; A+; D+;
+	B ^ SUDM rec unit;
+	C = [SDcnt]; C + [SDbc]; [SDcnt] = C;
+    "SUDM rec tail"
+	[SDptr] = A;
+	end;
+
+      ( SUDM pack surf - pack [SUb0] surface bytes from index [SUb1]
+	into supack, four to a unit, little-endian. )
+
+"SUDM pack surf"
+	A = nw; A + [SUpbase]; A + [SUb1];
+	D = supack;
+	B = [SUb0]; B > 2;
+    "SUDM ps unit"
+	C = [A plus 0]; C & 0FFh;              E = C;
+	C = [A plus 1]; C & 0FFh; C < 8;  E | C;
+	C = [A plus 2]; C & 0FFh; C < 16; E | C;
+	C = [A plus 3]; C & 0FFh; C < 24; E | C;
+	[D] = E;
+	A + 4; D+;
+	B ^ SUDM ps unit;
+	end;
+
+"SUDM pack ovl"
+	A = nw; A + [SUobase];
+	D = supack;
+	B = OVLU;
+    "SUDM po unit"
+	C = [A plus 0]; C & 0FFh;              E = C;
+	C = [A plus 1]; C & 0FFh; C < 8;  E | C;
+	C = [A plus 2]; C & 0FFh; C < 16; E | C;
+	C = [A plus 3]; C & 0FFh; C < 24; E | C;
+	[D] = E;
+	A + 4; D+;
+	B ^ SUDM po unit;
+	end;
+
+"SUDM pack pal"
+	A = sutmppal; A + [SUb1];
+	D = supack;
+	B = [SUb0]; B > 2;
+    "SUDM pp unit"
+	C = [A plus 0]; C & 0FFh;              E = C;
+	C = [A plus 1]; C & 0FFh; C < 8;  E | C;
+	C = [A plus 2]; C & 0FFh; C < 16; E | C;
+	C = [A plus 3]; C & 0FFh; C < 24; E | C;
+	[D] = E;
+	A + 4; D+;
+	B ^ SUDM pp unit;
+	end;
+
+"SUDM map"
+	[SUb0] = MAPB; [SUb1] = 0;
+	=> SUDM pack surf;
+	[SDkind] = KMAP; [SDtag] = [SUmoon];
+	[SDw] = 360; [SDh] = 180;
+	[SDbp] = supack; [SDbc] = MAPU;
+	=> SUDM rec;
+	end;
+
+      ( SUDM tail - the 752 bytes between the map and the end of
+	p_background's farmalloc block.  They must still be zero: a write
+	that escapes the map - crater()'s vptr widened from 16 bits to 32
+	is the canonical way - shows up here and nowhere in the map. )
+
+"SUDM tail"
+	A = [SUmoon]; ? A != 0 -> SUDM tail skip;
+	[SUb0] = TAILB; [SUb1] = MAPB;
+	=> SUDM pack surf;
+	[SDkind] = KTAIL; [SDtag] = 0;
+	[SDw] = TAILB; [SDh] = 1;
+	[SDbp] = supack; [SDbc] = TAILU;
+	=> SUDM rec;
+	end;
+    "SUDM tail skip"
+	end;
+
+"SUDM ovl"
+	=> SUDM pack ovl;
+	[SDkind] = KOVL; [SDtag] = 0;
+	[SDw] = 180; [SDh] = 180;
+	[SDbp] = supack; [SDbc] = OVLU;
+	=> SUDM rec;
+	end;
+
+      ( SUDM pal - the 192 bytes tmppal[3*colorbase .. 3*colorbase+191],
+	which is the 64-entry gradient surface() rebuilds.  [SUb1] is
+	3*colorbase. )
+
+"SUDM pal"
+	[SUb0] = 192;
+	=> SUDM pack pal;
+	[SDkind] = KPAL; [SDtag] = [SUb1];
+	[SDw] = 64; [SDh] = 3;
+	[SDbp] = supack; [SDbc] = 48;
+	=> SUDM rec;
+	end;
+
+      ( SUDM led - one ledger phase.  Eight units: phase id, a tag, the
+	two cumulative draw counts, the two stream value-hashes, and the
+	two buffer hashes.  Counts and value-hashes are SEPARATE on
+	purpose: equal counts with a differing value hash localises an
+	arithmetic error, differing counts localises a desynchronisation,
+	and a differing buffer hash with both streams identical localises
+	a painting or indexing bug with no RNG in it. )
+
+"SUDM led"
+	[SDkind] = KLED; [SDtag] = 0;
+	[SDw] = 8; [SDh] = 1;
+	[SDbp] = sulrec; [SDbc] = 8;
+	=> SUDM rec;
+	end;
+
+"SUDM write"
+	[File Name]	= suoutname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= sudump;
+	[Block Size]	= [SDcnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= suoutname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= [SDcnt];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+( ==================================================================== )
+( the corpus tokeniser                                                  )
+( ==================================================================== )
+
+      ( A flat stream of signed decimal integers; '#' comments to end of
+	line; anything else separates.  A decimal integer is the ONLY
+	lexeme, so no decimal float parser exists anywhere in this port -
+	a shared one would be a shared divergence.  Both binary64 inputs,
+	seedval and secs, arrive as the signed decimal values of their two
+	32-bit halves. )
+
+"CR load"
+	[CRbad] = 0;
+	[File Name]	= sucorpname;
+	[File Command]	= READ;
+	[File Position] = 0;
+	[Block Pointer] = sucorpus;
+	[Block Size]	= SUCORPU;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	A = [Block Size];
+	[CRbytes] = A;
+	? A '> 0 -> CR load ok;
+	[CRbad] = 1;
+    "CR load ok"
+	end;
+
+"CR getch"
+	A = [CRpos];
+	? A '>= [CRbytes] -> CR getch eof;
+	C = A; C > 2; D = sucorpus; D + C;
+	C = [D];
+	A = [CRpos]; A & 3; A '* 8;
+	C > A; C & 0FFh;
+	[CRch] = C;
+	end;
+    "CR getch eof"
+	A = 0; A - 1; [CRch] = A;
+	end;
+
+"CR tokenise"
+	[CRpos] = 0; [CRtokn] = 0;
+    "CR tk scan"
+	=> CR getch;
+	A = [CRch];
+	? A < 0 -> CR tk done;
+	? A = 35 -> CR tk comment;
+	? A = 45 -> CR tk number;
+	? A '< 48 -> CR tk skip;
+	? A '> 57 -> CR tk skip;
+	-> CR tk number;
+    "CR tk skip"
+	[CRpos]+;
+	-> CR tk scan;
+    "CR tk comment"
+	[CRpos]+;
+	=> CR getch;
+	A = [CRch];
+	? A < 0 -> CR tk done;
+	? A != 10 -> CR tk comment;
+	[CRpos]+;
+	-> CR tk scan;
+    "CR tk number"
+	[CRneg] = 0; [CRacc] = 0;
+	A = [CRch];
+	? A != 45 -> CR tk digits;
+	[CRneg] = 1;
+	[CRpos]+;
+    "CR tk digits"
+	=> CR getch;
+	A = [CRch];
+	? A '< 48 -> CR tk emit;
+	? A '> 57 -> CR tk emit;
+	C = [CRacc]; C '* 10; A - 48; C + A; [CRacc] = C;
+	[CRpos]+;
+	-> CR tk digits;
+    "CR tk emit"
+	A = [CRneg]; ? A = 0 -> CR tk pos;
+	C = [CRacc]; C+-; [CRacc] = C;
+    "CR tk pos"
+	A = [CRtokn];
+	? A '>= SUTOKU -> CR tk done;
+	C = sutok; C + A; [C] = [CRacc];
+	[CRtokn]+;
+	-> CR tk scan;
+    "CR tk done"
+	end;
+
+"CR next"
+	A = [CRti];
+	? A '>= [CRtokn] -> CR next eof;
+	C = sutok; C + A; C = [C];
+	[CRti]+;
+	end;
+    "CR next eof"
+	C = OPEND;
+	end;

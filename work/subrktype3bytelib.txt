@@ -1,0 +1,307 @@
+      ( *** susm - the four bulk operators surface() drives, plus the two
+	    self-squaring noise walks ***
+
+	QUADWORDS is a GLOBAL and surface() sets it to 16,200 on entry
+	(NOCTIS-0.CPP:4845) and restores the caller's value on every exit
+	(:5148 and :5188).  16,200 quadwords is 64,800 bytes, which is
+	exactly the 360x180 panorama - so inside surface() and ONLY inside
+	surface() these operators run over the whole map.  The counts
+	below are that arithmetic, written out, not magic numbers:
+
+	  ssmooth        QUADWORDS*4 - 360*4 = 63,360 bytes, from 360
+	  lssmooth      (QUADWORDS - 80)*4   = 64,480 bytes, from 0
+	  psmooth_grays  QUADWORDS*4 - 320*4 = 63,520 bytes, from 320
+	  pclear         QUADWORDS dwords    = 64,800 bytes, from 0
+
+	FOUR THINGS THAT LOOK LIKE DETAILS AND ARE NOT.
+
+	1.  THEY ARE IN PLACE AND SEQUENTIAL.  ssmooth reads [di-360],
+	    which it WROTE 360 iterations ago.  A port that computes into
+	    a second buffer and copies back produces a different, cleaner
+	    image.  Every loop below writes as it goes.
+
+	2.  THE 32-BIT ADDS CARRY ACROSS LANE BOUNDARIES.  ssmooth and
+	    psmooth_grays add four dwords BEFORE masking with FCFCFCFCh,
+	    so a lane that overflows spills into the next pixel.  That is
+	    the original's arithmetic and it is why the mask cannot be
+	    hoisted before the adds.
+
+	3.  psmooth_grays HAS STRIDE 320, NOT 360.  It is a video-page
+	    smoother (NOCTIS-0.CPP:480) applied to a 360-wide panorama,
+	    so its "vertical" neighbours are 40 bytes off per row and its
+	    output is a diagonal smear.  That is what type 2 gets when
+	    random(3) comes up zero (:5098), and it is canonical.
+
+	4.  lssmooth READS 41 BYTES PAST THE MAP.  At di = 64,479 it
+	    reads es:[di+361] = byte 64,840.  niv-lr changed the count to
+	    smooth one pixel fewer, to silence a memory checker; that is a
+	    behavioural change and it is not reproduced here.
+
+	THE NOISE.  Both walks share one 16-bit self-squaring fold, which
+	surng owns ("SU noise step"), and they differ in three ways that
+	each change every pixel:
+
+	  rndpat  (:4820)  walks 64,800 bytes and ASSIGNS al AND 3Eh.
+	  sda     (:4908)  walks 64,000 bytes, ADDS the noise byte to the
+	                   already-smoothed terrain, and advances the
+	                   noise ONLY on the land branch.
+
+	The sda loop is the one place niv-lr is documented to diverge:
+	LR assigns where the DOS source has "add es:[di], bl", which makes
+	LR's clamp unreachable and loses the word store's side effect on
+	the neighbouring pixel.  Both are reproduced here:
+
+	    add es:[di], bl                 a BYTE add, mod 256
+	    cmp byte ptr es:[di], 0x3E      UNSIGNED
+	    jb mare
+	    mov word ptr es:[di], 0x3E      writes 3Eh at di AND 00h at di+1
+
+	and the sea branch stores 16 without touching the noise at all. )
+
+"constants"
+
+	QW	= 16200;		( QUADWORDS inside surface )
+
+	NSS	= 63360;		( QW*4 - 1440 )
+	NLSS	= 64480;		( (QW-80)*4   )
+	NPSG	= 63520;		( QW*4 - 1280 )
+	NPCL	= 64800;		( QW*4        )
+
+	SSFROM	= 360;
+	PSGFROM	= 320;
+
+	SDACNT	= 64000;
+
+"variables"
+
+	SUsp	= 0;			( workspace address of surface byte 0 )
+	SUsi	= 0;			( the byte index the loop is at       )
+	SUsn	= 0;
+
+"programme"
+
+( ==================================================================== )
+( two little readers - four and two adjacent PIXELS as one integer      )
+( ==================================================================== )
+
+      ( SU dw at : in C = a workspace address.  Out D = the four bytes
+	there as a little-endian 32-bit value.  Destroys A and D; leaves
+	B, C and E alone, which is what lets the callers keep their
+	accumulator in E and their counter in B. )
+
+"SU dw at"
+	D = [C plus 3]; D & 0FFh; D < 8;
+	A = [C plus 2]; A & 0FFh; D + A; D < 8;
+	A = [C plus 1]; A & 0FFh; D + A; D < 8;
+	A = [C plus 0]; A & 0FFh; D + A;
+	end;
+
+"SU w at"
+	D = [C plus 1]; D & 0FFh; D < 8;
+	A = [C plus 0]; A & 0FFh; D + A;
+	end;
+
+( ==================================================================== )
+( ssmooth - NOCTIS-0.CPP:4380                                           )
+( ==================================================================== )
+
+"SU ssmooth"
+	A = nw; A + [SUpbase]; [SUsp] = A;
+	[SUsi] = SSFROM;
+	B = NSS;
+    "SU ss u"
+	C = [SUsp]; C + [SUsi]; C - 360;
+	=> SU dw at; E = D;
+	C + 360; => SU dw at; E + D;
+	C + 360; => SU dw at; E + D;
+	C + 360; => SU dw at; E + D;
+
+	E & 0FCFCFCFCh;
+	E > 2;
+	A = E; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	E > 16;
+	D = E; D & 0FFh; A + D; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	A > 2;
+
+	C = [SUsp]; C + [SUsi];
+	[C] = A;
+	[SUsi]+;
+	B ^ SU ss u;
+	end;
+
+( ==================================================================== )
+( lssmooth - NOCTIS-0.CPP:4417                                          )
+( ==================================================================== )
+
+      ( The 2x2 average that KEEPS the top two bits of the pixel it
+	overwrites: "and al, 11000000b" then "or al, dl".  Bits 7 and 6
+	of a surface byte are outside the 0..62 albedo range, so this
+	preserves a flag the rest of the code never sets - but it also
+	means the operator is NOT idempotent on values above 63, which is
+	reachable through the merge's clamp at 0x3E. )
+
+"SU lssmooth"
+	A = nw; A + [SUpbase]; [SUsp] = A;
+	[SUsi] = 0;
+	B = NLSS;
+    "SU ls u"
+	C = [SUsp]; C + [SUsi];
+	=> SU w at;
+	A = D; A & 0FFh;		( al = dl, BEFORE the mask )
+	[SUsn] = A;
+	D & 3F3Fh;
+	E = D;				( E = dx, masked )
+
+	C = [SUsp]; C + [SUsi]; C + 360;
+	=> SU w at;
+	D & 3F3Fh;			( D = bx, masked )
+
+	A = E; A & 0FFh;		( dl )
+	C = E; C > 8; C & 0FFh;		( dh )
+	A + C; A & 0FFh;		( add dl, dh )
+	C = D; C & 0FFh;		( bl )
+	A + C; A & 0FFh;		( add dl, bl )
+	C = D; C > 8; C & 0FFh;		( bh )
+	A + C; A & 0FFh;		( add dl, bh )
+	A > 2;				( shr dl, 2 )
+
+	C = [SUsn]; C & 0C0h;		( and al, 11000000b )
+	A | C;				( or al, dl )
+
+	C = [SUsp]; C + [SUsi];
+	[C] = A;
+	[SUsi]+;
+	B ^ SU ls u;
+	end;
+
+( ==================================================================== )
+( psmooth_grays - NOCTIS-0.CPP:480, stride 320                          )
+( ==================================================================== )
+
+"SU psmooth grays"
+	A = nw; A + [SUpbase]; [SUsp] = A;
+	[SUsi] = PSGFROM;
+	B = NPSG;
+    "SU pg u"
+	C = [SUsp]; C + [SUsi]; C - 320;
+	=> SU dw at; E = D;
+	C + 320; => SU dw at; E + D;
+	C + 320; => SU dw at; E + D;
+	C + 320; => SU dw at; E + D;
+
+	E & 0FCFCFCFCh;
+	E > 2;
+	A = E; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	E > 16;
+	D = E; D & 0FFh; A + D; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	A > 2;
+
+	C = [SUsp]; C + [SUsi];
+	[C] = A;
+	[SUsi]+;
+	B ^ SU pg u;
+	end;
+
+( ==================================================================== )
+( pclear and negate                                                     )
+( ==================================================================== )
+
+      ( pclear writes QUADWORDS DWORDS of a replicated byte, i.e. 64,800
+	bytes.  Type 9 calls it with 0x1F (:5143).  The capture settles
+	that the DOS binary fills the SURFACE buffer here and not the
+	offscreen video page - jrot-b02-t9's p_background is fully
+	populated - so niv-lr's target is LR's bug. )
+
+"SU pclear"
+	A = nw; A + [SUpbase];
+	C = [SUval]; C & 0FFh;
+	B = NPCL;
+    "SU pc u"
+	[A] = C; A+;
+	B ^ SU pc u;
+	end;
+
+"SU negate"
+	A = nw; A + [SUpbase];
+	B = NPCL;
+    "SU ng u"
+	C = 3Eh; D = [A]; D & 0FFh; C - D; C & 0FFh;
+	[A] = C; A+;
+	B ^ SU ng u;
+	end;
+
+( ==================================================================== )
+( rndpat - NOCTIS-0.CPP:4818-4831                                       )
+( ==================================================================== )
+
+      ( ax starts at "seed", the 16-bit value fast_random(0xFFFF)
+	returned, and cx starts at 64,800 and counts DOWN - so the first
+	fold is seed + 64800, not seed + 0. )
+
+      ( The caller has already put "seed" in [SUnax]. )
+
+"SU rndpat"
+	A = nw; A + [SUpbase]; [SUsp] = A;
+	[SUsi] = 0;
+	[SUncx] = NPCL;
+    "SU rp u"
+	=> SU noise step;
+	C = [SUsp]; C + [SUsi];
+	A = [SUnbl];
+	[C] = A;
+	[SUsi]+;
+	A = [SUncx]; A - 1; [SUncx] = A;
+	? A != 0 -> SU rp u;
+	end;
+
+( ==================================================================== )
+( the type-3 sda loop - NOCTIS-0.CPP:4906-4923                          )
+( ==================================================================== )
+
+      ( cx = 64,000, not 64,800: the last 800 bytes - the bottom two and
+	a bit rows of the panorama - are left as raw rndpat noise smoothed
+	by the ssmooth passes above, and never see the land/sea split.
+
+	The threshold is the GLOBAL g, which case 3 set to
+	26 + rfr(3) - rfr(5) two lines earlier, taken as a BYTE
+	("mov dl, byte ptr g") and compared UNSIGNED.
+
+	The noise advances only down the land branch.  Advancing it on
+	the sea branch too - which reads as the obvious tidy-up - changes
+	every land pixel after the first sea pixel. )
+
+"SU sda"
+	A = nw; A + [SUpbase]; [SUsp] = A;
+	[SUsi] = 0;
+	[SUncx] = SDACNT;
+    "SU sda u"
+	C = [SUsp]; C + [SUsi];
+	D = [C]; D & 0FFh;
+	A = [SUg]; A & 0FFh;		( mov dl, byte ptr g )
+	? D '>= A -> SU sda land;
+
+	( mare: the sea floor, a flat 16 )
+	C = [SUsp]; C + [SUsi];
+	[C] = 16;
+	-> SU sda next;
+
+    "SU sda land"
+	=> SU noise step;
+	C = [SUsp]; C + [SUsi];
+	D = [C]; D & 0FFh;
+	A = [SUnbl];
+	D + A; D & 0FFh;		( add es:[di], bl - a BYTE add )
+	[C] = D;
+	? D '< 3Eh -> SU sda next;
+	( mov word ptr es:[di], 0x3E - TWO bytes, and the second is zero )
+	[C plus 0] = 3Eh;
+
+    "SU sda next"
+	[SUsi]+;
+	A = [SUncx]; A - 1; [SUncx] = A;
+	? A != 0 -> SU sda u;
+	end;

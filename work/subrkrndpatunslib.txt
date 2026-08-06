@@ -1,0 +1,250 @@
+      ( *** surng - the two interleaved generators, and the draw ledger ***
+
+	surface() is the only function in Noctis IV that runs BOTH
+	pseudo-random generators at once.  fast_random owns the type
+	switch (102 ranged_fast_random sites, NOCTIS-0.CPP:4848-5140, and
+	ranged_fast_random exists nowhere else in the game); Borland's
+	rand/random owns the modular painters called from inside it -
+	crater :4532, fracture :4598, randoface :4658, crater_juice
+	:4681, atm_cyclon :4736 - plus switch(random(2)) at :4889 and
+	if(!random(3)) at :5098.
+
+	Getting either stream's draw COUNT wrong moves the OTHER stream's
+	consumption point, so a miscount in one corrupts the visible
+	output of both, and the map alone cannot say which.  Hence: every
+	draw goes through one of the four entry points below, each of
+	which increments a per-stream counter and folds the drawn value
+	into a per-stream FNV-1a hash.  Counts and value-hashes are then
+	separable evidence - equal counts with a differing value hash is
+	an arithmetic error, differing counts is a desynchronisation.
+
+	THE TWO CROSS-SEEDING BRIDGES, which are the reason the streams
+	are coupled at all:
+
+	    fast_srand (seedval * 10);          :4811
+	    seed = fast_random (0xFFFF);        :4812
+	    srand (seed);                       :4817   <- FAST feeds BRTL
+	    srand (seed);                       :4844   <- again, same value
+
+	The second srand is graded by NOTHING in this wave and that is
+	deliberate: nothing between the two calls draws, and Borland's
+	srand is idempotent, so no observation can distinguish two calls
+	from one.  It is implemented because the source has it; no check
+	may claim to catch its removal.
+
+	fast_random itself is NOT re-derived here.  It is the routine
+	work/sitecount_rnd.txt shipped and Wave 1 graded over 393,216
+	cases, transcribed unchanged, resting on mul64frag's Mul64u for
+	the 32x32 -> 64 unsigned product.  Two details carry it:
+
+	    the multiply is MUL, not IMUL;
+	    "add al, dl" is EIGHT bits wide and drops its carry, so only
+	    bits 32..39 of the product are ever consumed.
+
+	ranged_fast_random is new - it exists in no earlier wave:
+
+	    int ranged_fast_random (int range)
+	    { if (range<=0) range = 1;
+	      return (fast_random(0x7FFF) % range); }        :1103
+
+	It ALWAYS draws, including when the caller passes 0 or a negative
+	range (rfr(cr/2) with cr < 2 reaches range 0).  A port that
+	short-circuits the range<=0 case without drawing desynchronises
+	the fast stream and, through it, the brtl one.
+
+	Borland's random(n) likewise always draws, even at n = 0 - the
+	library's random is an out-of-line function that calls rand
+	unconditionally.  work/brtl.txt owns that and is linked, not
+	copied.                                                          )
+
+"constants"
+
+	FNVOFF	= 2166136261;	( FNV-1a 32-bit offset basis )
+	FNVPR	= 16777619;	( FNV-1a 32-bit prime        )
+
+"variables"
+
+	( ---- fast_random's state, NOCTIS-0.CPP:1075 "long flat_rnd_seed" )
+
+	SUfseed	= 0;
+	SUfmask	= 0;
+	SUfval	= 0;
+	SUfeax	= 0;
+
+	( ---- the ledger ---- )
+
+	SUfn	= 0;		( cumulative fast_random draws )
+	SUbn	= 0;		( cumulative rand() draws      )
+	SUfh	= 0;		( FNV-1a over the fast values  )
+	SUbh	= 0;		( FNV-1a over the brtl values  )
+
+	SUhx	= 0;		( scratch for the hash step    )
+	SUhv	= 0;
+
+	( ---- the noise hash's 16-bit accumulator ---- )
+
+	SUnax	= 0;
+	SUncx	= 0;		( the descending loop counter it folds in )
+	SUnbl	= 0;		( the masked byte it produces            )
+
+"programme"
+
+( ==================================================================== )
+( FNV-1a, one 32-bit value at a time, low byte first                    )
+( ==================================================================== )
+
+      ( SU hash - [SUhx] <- FNV-1a([SUhx], the four bytes of [SUhv]).
+	Little-endian byte order, so the hash of a value and the hash of
+	its bytes agree with the oracle side without a convention having
+	to be remembered. )
+
+"SU hash"
+	B = 4;
+	C = [SUhv];
+    "SU hash byte"
+	A = C; A & 0FFh;
+	D = [SUhx]; D # A; D '* FNVPR; [SUhx] = D;
+	C > 8;
+	B ^ SU hash byte;
+	end;
+
+"SU ledger reset"
+	[SUfn] = 0; [SUbn] = 0;
+	[SUfh] = FNVOFF; [SUbh] = FNVOFF;
+	end;
+
+( ==================================================================== )
+( fast_random - NOCTIS-0.CPP:1075-1101                                  )
+( ==================================================================== )
+
+      ( SU fast srand - "or word ptr seed, 3", then store all 32 bits.
+	In: A.  The OR is written against the low 16 bits in the original
+	but 3 fits there, so the 32-bit form is identical. )
+
+"SU fast srand"
+	A | 3;
+	[SUfseed] = A;
+	end;
+
+      ( SU fast raw - [SUfval] <- fast_random([SUfmask]).  NOT counted:
+	this is the primitive.  Destroys A, B, C, D. )
+
+"SU fast raw"
+	A = [SUfseed];
+	[m64a] = A;
+	[m64b] = A;
+	=> Mul64u;			( UNSIGNED - the original is mul )
+
+	A = [m64lo]; A & 0FFh;		( al )
+	B = [m64hi]; B & 0FFh;		( dl )
+	A + B;       A & 0FFh;		( add al, dl - 8 bits, carry lost )
+
+	B = [m64lo]; B & 0FFFFFF00h;
+	A | B;
+	[SUfeax] = A;
+
+	B = [SUfseed]; B + A;		[SUfseed] = B;
+
+	A = [SUfeax]; A & [SUfmask];	[SUfval] = A;
+	end;
+
+      ( SU frnd - a COUNTED fast_random.  In: [SUfmask].  Out: C and
+	[SUfval]. )
+
+"SU frnd"
+	=> SU fast raw;
+	[SUfn]+;
+	[SUhx] = [SUfh]; [SUhv] = [SUfval];
+	=> SU hash;
+	[SUfh] = [SUhx];
+	C = [SUfval];
+	end;
+
+      ( SU rfr - ranged_fast_random.  In: C = range.  Out: C = result.
+
+	The clamp is on the RANGE, not on the draw: range<=0 becomes 1
+	and the draw still happens. )
+
+"SU rfr"
+	A = C;
+	? A > 0 -> SU rfr ok;
+	A = 1;
+    "SU rfr ok"
+	[SUt2] = A;
+	[SUfmask] = 7FFFh;
+	=> SU frnd;
+	C = [SUfval];
+	C % [SUt2];
+	end;
+
+( ==================================================================== )
+( Borland's random - work/brtl.txt, linked                              )
+( ==================================================================== )
+
+      ( SU srand - srand(A). )
+
+"SU srand"
+	=> BrtlSrand;
+	end;
+
+      ( SU rnd - a COUNTED random(n).  In: C = n.  Out: C = result.
+	Always draws. )
+
+      ( THE RESULT IS CARRIED IN MEMORY ACROSS THE HASH, not in A.
+	"SU hash" destroys all four registers, and an earlier version of
+	this routine read the draw back out of A afterwards - which
+	returned the top byte of the value, i.e. ZERO for every draw the
+	game makes.  It was caught because case 8's map, the only one of
+	the ten that spends no brtl draw on a pixel, was byte-exact while
+	its palette - eighteen brtl draws and nothing else - was not.
+	A ledger that counted draws would have said 18 either way. )
+
+"SU rnd"
+	A = C;
+	=> BrtlRandom;
+	[SUbn]+;
+	[SUhv] = A;
+	[SUhx] = [SUbh];
+	=> SU hash;
+	[SUbh] = [SUhx];
+	C = [SUhv];
+	end;
+
+( ==================================================================== )
+( the self-squaring 16-bit surface noise                                )
+( ==================================================================== )
+
+      ( The pattern both rndpat (:4820-4831) and the type-3 sda loop
+	(:4908-4923) walk:
+
+	    add ax, cx        16-bit
+	    xor dx, dx        DEAD - imul ax overwrites dx
+	    imul ax           SIGNED 16x16 -> dx:ax
+	    add ax, dx        16-bit
+	    mov bl, al
+	    and bl, 0x3E
+
+	docs-notes/sitecount.md already proved the identical fold at 16
+	bits reproducible with a native signed multiply plus a shift, 0
+	mismatches over 393,216 cases; that proof is reused, not redone.
+	The product of two sign-extended 16-bit values never exceeds 2^30
+	so it fits a single 32-bit signed multiply with no split.
+
+	SU noise step: in [SUncx] = cx, the descending loop counter.
+	Advances [SUnax] and leaves the masked byte in [SUnbl].
+	It takes its input and leaves its output in memory rather than in
+	a register because it destroys all four, and both call sites are
+	inside a loop whose counter would otherwise be the casualty. )
+
+"SU noise step"
+	A = [SUnax]; A + [SUncx]; A & 0FFFFh;
+	( sign-extend to 16 bits, which is what imul reads )
+    "SU ns pos"
+	B = A;
+	A * B;				( SIGNED 16x16 -> 32, exact )
+	D = A; D & 0FFFFh;		( ax )
+	A > 16; A & 0FFFFh;		( dx )
+	D + A; D & 0FFFFh;		( add ax, dx )
+	[SUnax] = D;
+	D & 3Eh; [SUnbl] = D;
+	end;

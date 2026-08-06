@@ -1239,11 +1239,12 @@ SCOPE_DIRS = (HARNESS, HERE)
 def scope_files():
     out = []
     for f in sorted(os.listdir(HARNESS)):
-        if (f.startswith("fb_") or f.startswith("fbx_")) and f.endswith(".py"):
+        if (f.startswith("fb_") or f.startswith("fbx_") or
+                f.startswith("su_")) and f.endswith(".py"):
             out.append(os.path.join(HARNESS, f))
     for f in sorted(os.listdir(HERE)):
         if f.endswith(".py") and (f.startswith(("test_wave5", "test_raster",
-                                                "test_spheres",
+                                                "test_spheres", "test_surface",
                                                 "w5", "lino"))):
             out.append(os.path.join(HERE, f))
     return out
