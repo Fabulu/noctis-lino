@@ -66,6 +66,10 @@
 	WOPHP	= 1;		( corpus opcode: hpoint case )
 	WOPFR	= 2;		( corpus opcode: fragment vertex+c1+depth case )
 	WOPFW	= 5;		( corpus opcode: p_Forward walking-physics case )
+	WOPCAV	= 6;		( corpus opcode: change_angle_of_view case )
+
+	CDEGHI	= 3F91DF46h;	( high 32 of double pi/180 )
+	CDEGLO	= 0A2529D39h;	( low 32 -- bit pattern, do not sign-interpret )
 
 	WFRSHF	= 11;		( height shift: surf<<11 )
 
@@ -146,6 +150,13 @@
 	PFnpx	= 0;		( new pos_x bits )
 	PFnpz	= 0;		( new pos_z bits )
 
+	( ---- change_angle_of_view state (NOCTIS-0.CPP: from_user per-frame) ---- )
+	CAValfa	= 0;		( binary32 bit patterns: alfa, beta, dpp inputs )
+	CAVbeta	= 0;
+	CAVdpp	= 0;
+	CAVpcosbeta	= 0; CAVpsinbeta = 0; CAVtcosbeta = 0; CAVtsinbeta = 0;
+	CAVpcosalfa	= 0; CAVpsinalfa = 0; CAVtcosalfa = 0; CAVtsinalfa = 0;
+
 "workspace"
 
 	wcorpv	= WCORPUS;
@@ -178,6 +189,7 @@
 	A = [Wop]; ? A = WOPHP -> W do hp;
 	A = [Wop]; ? A = WOPFR -> W do frag;
 	A = [Wop]; ? A = WOPFW -> W do fwd;
+	A = [Wop]; ? A = WOPCAV -> W do cav;
 	-> W run done;
 
     "W do hp"
@@ -193,6 +205,25 @@
 	C = WOPHP; => W emit; C = [HPpy]; => W emit;
 	C = 0; => W emit; C = 0; => W emit; C = 0; => W emit; C = 0; => W emit;
 	C = 0; => W emit; C = 0; => W emit; C = 0; => W emit;
+	[Wn]+;
+	-> W run case;
+
+    "W do cav"
+	( 3 tokens: alfa beta dpp -- binary32 bit patterns )
+	A = [Wcti]; A + 3; ? A '> [Wctokn] -> W run done;
+	=> W next; [CAValfa] = C;
+	=> W next; [CAVbeta] = C;
+	=> W next; [CAVdpp] = C;
+	=> CAV;
+	C = WOPCAV; => W emit;
+	C = [CAVpcosbeta]; => W emit;
+	C = [CAVpsinbeta]; => W emit;
+	C = [CAVtcosbeta]; => W emit;
+	C = [CAVtsinbeta]; => W emit;
+	C = [CAVpcosalfa]; => W emit;
+	C = [CAVpsinalfa]; => W emit;
+	C = [CAVtcosalfa]; => W emit;
+	C = [CAVtsinalfa]; => W emit;
 	[Wn]+;
 	-> W run case;
 
@@ -421,6 +452,55 @@
 	[FB0]=[FT0]; [FB1]=[FT1];				( FB = prod_z )
 	=> FAdd;						( FA = pos_z + prod_z )
 	=> F32Narrow; => FStoreF32; [PFnpz] = [FS0];
+	end;
+
+( ==================================================================== )
+( CAV - change_angle_of_view (NOCTIS-0.CPP:1285, TDPOLYGS.H:365).        )
+(   opt_pcosbeta = cos(b*deg)*dpp ; opt_psinbeta = sin(b*deg)*dpp        )
+(   opt_tcosbeta = cos(b*deg)        ; opt_tsinbeta = sin(b*deg)         )
+(   (and the same for alfa)                                              )
+(   sin/cos via fsin/fcos under FEnter; the float32 store (fstp dword)   )
+(   is the only narrowing.  gamma == 0 so its table is constant.         )
+( ==================================================================== )
+
+"CAV"
+	( ---- beta tables ---- )
+	[FS0] = [CAVbeta]; => FLoadF32;
+	[FB0] = CDEGLO; [FB1] = CDEGHI; => FMul;
+	=> FSin;
+	=> FStoreF32; [CAVtsinbeta] = [FS0];
+	[FT0]=[FA0]; [FT1]=[FA1];
+	[FS0] = [CAVdpp]; => FLoadF32; => HP fb fa;
+	[FA0]=[FT0]; [FA1]=[FT1]; => FMul;
+	=> FStoreF32; [CAVpsinbeta] = [FS0];
+
+	[FS0] = [CAVbeta]; => FLoadF32;
+	[FB0] = CDEGLO; [FB1] = CDEGHI; => FMul;
+	=> FCos;
+	=> FStoreF32; [CAVtcosbeta] = [FS0];
+	[FT0]=[FA0]; [FT1]=[FA1];
+	[FS0] = [CAVdpp]; => FLoadF32; => HP fb fa;
+	[FA0]=[FT0]; [FA1]=[FT1]; => FMul;
+	=> FStoreF32; [CAVpcosbeta] = [FS0];
+
+	( ---- alfa tables ---- )
+	[FS0] = [CAValfa]; => FLoadF32;
+	[FB0] = CDEGLO; [FB1] = CDEGHI; => FMul;
+	=> FSin;
+	=> FStoreF32; [CAVtsinalfa] = [FS0];
+	[FT0]=[FA0]; [FT1]=[FA1];
+	[FS0] = [CAVdpp]; => FLoadF32; => HP fb fa;
+	[FA0]=[FT0]; [FA1]=[FT1]; => FMul;
+	=> FStoreF32; [CAVpsinalfa] = [FS0];
+
+	[FS0] = [CAValfa]; => FLoadF32;
+	[FB0] = CDEGLO; [FB1] = CDEGHI; => FMul;
+	=> FCos;
+	=> FStoreF32; [CAVtcosalfa] = [FS0];
+	[FT0]=[FA0]; [FT1]=[FA1];
+	[FS0] = [CAVdpp]; => FLoadF32; => HP fb fa;
+	[FA0]=[FT0]; [FA1]=[FT1]; => FMul;
+	=> FStoreF32; [CAVpcosalfa] = [FS0];
 	end;
 
 ( ==================================================================== )

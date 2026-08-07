@@ -212,6 +212,35 @@ int main(int argc, char **argv)
                 memcpy(&npx, &nx, 4); memcpy(&npz, &nz, 4);
             }
             { i32 rec[9] = {5, npx, npz, 0, 0, 0, 0, 0, 0}; fwrite(rec, 4, 9, fo); }
+        } else if (op == 6) {
+            /* change_angle_of_view: alfa beta dpp -- binary32 bit patterns.
+             * Emits pcosbeta, psinbeta, tcosbeta, tsinbeta, pcosalfa, psinalfa,
+             * tcosalfa, tsinalfa.  The C source computes the angle beta*deg in
+             * DOUBLE (float promoted * double deg), so the arg is the binary64
+             * product; sin/cos then run at extended. */
+            static const double DDEG = 3.14159265358979323846 / 180.0;
+            unsigned int ab, bb, db;
+            float alfa, beta, dpp;
+            i32 outv[8];
+            sscanf(line, "%*ld %u %u %u", &ab, &bb, &db);
+            memcpy(&alfa, &ab, 4); memcpy(&beta, &bb, 4); memcpy(&dpp, &db, 4);
+            {
+                double barg = (double)beta * DDEG, aarg = (double)alfa * DDEG;
+                ld sb = sinl((ld)barg), cb = cosl((ld)barg);
+                ld sa = sinl((ld)aarg), ca = cosl((ld)aarg);
+                float f;
+                f = (float)(cb * (ld)dpp); memcpy(&outv[0], &f, 4);
+                f = (float)(sb * (ld)dpp); memcpy(&outv[1], &f, 4);
+                f = (float)cb;             memcpy(&outv[2], &f, 4);
+                f = (float)sb;             memcpy(&outv[3], &f, 4);
+                f = (float)(ca * (ld)dpp); memcpy(&outv[4], &f, 4);
+                f = (float)(sa * (ld)dpp); memcpy(&outv[5], &f, 4);
+                f = (float)ca;             memcpy(&outv[6], &f, 4);
+                f = (float)sa;             memcpy(&outv[7], &f, 4);
+            }
+            { i32 rec[9] = {6, outv[0], outv[1], outv[2], outv[3],
+                            outv[4], outv[5], outv[6], outv[7]};
+              fwrite(rec, 4, 9, fo); }
         }
     }
     fclose(fi); fclose(fo);

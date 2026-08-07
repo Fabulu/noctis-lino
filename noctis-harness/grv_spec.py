@@ -33,7 +33,7 @@ import struct
 from decimal import Decimal, getcontext
 from fractions import Fraction
 
-from su_fp import ext, f32, fr, ftol32, round_to_bits
+from su_fp import ext, f32, f64, fr, ftol32, round_to_bits
 
 QID = Fraction(1, 16384)                     # double qid = 1.0/16384
 getcontext().prec = 80                       # ample for an 80-bit fsqrt
@@ -151,6 +151,9 @@ def run_corpus(path):
             elif op == 5 and len(t) == 7:
                 vals = p_forward_case(*t[1:])
                 yield (5, tuple(t[1:]), vals)
+            elif op == 6 and len(t) == 4:
+                vals = change_angle_of_view_case(*t[1:])
+                yield (6, tuple(t[1:]), vals)
 
 
 def fragment_case(x, z, posx_bits, posz_bits,
@@ -225,6 +228,48 @@ def p_forward_case(delta_bits, sbn_bits, cbn_bits, calf_bits, px_bits, pz_bits):
     npx = f32(fr(px) - prodx)
     npz = f32(fr(pz) + prodz)
     return [_i32_bits(npx), _i32_bits(npz)]
+
+
+# change_angle_of_view: sin/cos modelled at extended (x87 fsin/fcos).
+import math as _math
+_DEG64 = _math.pi / 180.0
+
+
+def _fsin_ext(v):
+    """x87 fsin at extended (64-bit mantissa): compute sin via binary64 then
+    round to 64 significand bits.  For |arg| < 2*pi the binary64 libm and the
+    80-bit fsin agree well inside a float32 ULP, so the float32 store matches."""
+    return round_to_bits(_math.sin(float(v)), 64)
+
+
+def _fcos_ext(v):
+    return round_to_bits(_math.cos(float(v)), 64)
+
+
+def change_angle_of_view_case(alfa_bits, beta_bits, dpp_bits):
+    """NOCTIS-0.CPP:1285 from_user -> change_angle_of_view.  Returns the 8
+    angle-table binary32 bit patterns: [pcosbeta, psinbeta, tcosbeta, tsinbeta,
+    pcosalfa, psinalfa, tcosalfa, tsinalfa].  gamma==0 so its table is constant
+    and not emitted.  opt_p* = cos/sin * dpp; opt_t* = cos/sin.  The only
+    narrowing is the float32 store (fstp dword)."""
+    def ld(b):
+        return fr(struct.unpack("<f", struct.pack("<i", b))[0])
+    alfa, beta, dpp = ld(alfa_bits), ld(beta_bits), ld(dpp_bits)
+    DEG = fr(_DEG64)
+
+    def table(angle):
+        # the C source computes angle*deg in DOUBLE (binary64), then sin/cos
+        arad = f64(angle * DEG)
+        s = _fsin_ext(fr(arad))
+        c = _fcos_ext(fr(arad))
+        tsin = f32(s)
+        psin = f32(s * dpp)
+        tcos = f32(c)
+        pcos = f32(c * dpp)
+        return _i32_bits(pcos), _i32_bits(psin), _i32_bits(tcos), _i32_bits(tsin)
+    pcosb, psinb, tcosb, tsinb = table(beta)
+    pcosa, psina, tcosa, tsina = table(alfa)
+    return [pcosb, psinb, tcosb, tsinb, pcosa, psina, tcosa, tsina]
 
 
 if __name__ == "__main__":
