@@ -393,6 +393,7 @@ class BuildSurface(object):
                     groundflares = 8
 
         self.groundflares = groundflares
+        self.liquid_water = 0
         self.mark("PROLOGUE")
         return dict(groundflares=groundflares)
 
@@ -590,6 +591,18 @@ class BuildSurface(object):
         # Type switch (the rockyground/round_hill/etc. calls)
         self._switch(ip_type, sctype, albedo)
 
+        # Post-switch: felisian crevasses + smoothing (:2583-2599)
+        self._post_switch()
+
+        # Objectschart inclination pass (:2606-2615)
+        self._objects_inclination()
+
+        # Liquid water check (:2620-2625)
+        if self.liquid_water:
+            for i in range(OC_BYTES):
+                if not self.smap[i]:
+                    self.objs[i] = self.objs[i] & 0xFC  # nr_of_objects = 0
+
         # Optional plains noise add (test harness feature for the ADD-vs-ASSIGN check)
         if plains_noise:
             self.plains_noise_add()
@@ -702,12 +715,18 @@ class BuildSurface(object):
         self.smoothterrain(passes)
 
     def asterism(self, mapbuf, x, y, base, variation, density, size, align):
-        """NOCTIS-1.CPP:1635-1670.  Grass tuft painter — uses cos, sin."""
+        """NOCTIS-1.CPP:1635-1670.  Grass tuft painter — uses cos, sin.
+
+        CRITICAL: ang and ad are float32 in the C source. The accumulation
+        ang += ad rounds to float32 each step. Using Python doubles here
+        changes the iteration count (the LOOP91 hazard), which cascades
+        through all subsequent brtl draws.
+        """
         if density <= 0:
             return
         B = self.B
-        ad = M_PI * 2.0 / float(density)
-        ang = 0.0
+        ad = _f32(M_PI * 2.0 / float(density))
+        ang = _f32(0.0)
         while ang < M_PI * 2.0:
             shift_d = float(B.random(1000, 1652)) / 1000.0
             shift_d *= float(size)
@@ -724,16 +743,156 @@ class BuildSurface(object):
                             mapbuf[shift_p] = c & 0xFF
                     color += var
                     shift_d -= 1
-            ang += ad
+            ang = _f32(ang + ad)
 
-    def _plains_terrain(self):
+    def _post_switch(self):
+        """Post-switch code at :2583-2599 — felisian crevasses + smoothing."""
+        B = self.B
+        n = B.random(5, 2583)
+        if n:
+            while n:
+                length = B.random(500, 2586)
+                self.felisian_srf_darkline(self.smap, length, -1, -1, 200)
+                n -= 1
+            sm = self.smap
+            for i in range(200, 38800):
+                v = sm[i] + sm[i-1] + sm[i+1] + sm[i-200] + sm[i+200]
+                sm[i] = (v // 5) & 0xFF
+
+    def _objects_inclination(self):
+        """Objectschart inclination pass at :2606-2615."""
+        B = self.B
+        sm = self.smap
+        for i in range(OC_BYTES):
+            v1 = sm[i + 1] if i + 1 < PS_BYTES else 0
+            v2 = sm[i + 200] if i + 200 < PS_BYTES else 0
+            incl = abs(sm[i] - v1) + abs(sm[i] - v2)
+            nr = 0
+            if incl < 20:
+                nr = B.random(2, 2610)
+            if incl < 15:
+                nr = B.random(3, 2612)
+            if incl < 10:
+                nr = B.random(4, 2614)
+            self.objs[i] = (self.objs[i] & 0xFC) | (nr & 3)
+
+    def _ocean_terrain(self, albedo):
+        """NOCTIS-1.CPP:2151-2204.  The OCEAN sub-case of type 3.
+
+        For albedo > 20: goto revert (PLAINS terrain with waswet=1).
+        For albedo <= 20: island/shore code, possibly goto addtrees.
+        """
+        B = self.B
+        waswet = False
+
+        if albedo > 20:
+            # goto revert — PLAINS terrain with waswet=1
+            waswet = True
+            self._plains_terrain(waswet=True)
+            return
+
+        # albedo <= 20
+        if albedo > 16:
+            # rockyground check
+            if B.random(2, 2167):
+                _rnd = B.random(2, 2168)
+                self.rockyground(10, _rnd, -5)
+
+        # Island check
+        if not B.random(3, 2174):
+            # Island code — two round_hills + goto addtrees
+            cx = B.random(100, 2175) + 50
+            cz = B.random(100, 2176) + 50
+            # First round_hill — right-to-left:
+            # round_hill(cx+random(15), cz+random(15), random(100)+25, random(10)+1, 0, 1)
+            _h1 = float(B.random(10, 2180) + 1)
+            _r1 = B.random(100, 2179) + 25
+            _czoff1 = B.random(15, 2178)
+            _cxoff1 = B.random(15, 2177)
+            self.round_hill(cx + _cxoff1, cz + _czoff1, _r1, _h1, 0.0, True)
+            # Second round_hill — right-to-left:
+            # round_hill(cx, cz, random(100)+25, random(100)+1, 0, 1)
+            _h2 = float(B.random(100, 2183) + 1)
+            _r2 = B.random(100, 2182) + 25
+            self.round_hill(cx, cz, _r2, _h2, 0.0, True)
+            waswet = True
+            # goto addtrees
+            self._addtrees_and_texture(waswet)
+            return
+
+        # Full ocean: sandy texture, rock params, liquid_water=1
+        # (not reached for the capture, but implemented for completeness)
+        n = B.random(30, 2189) + 2
+        ptr = 65535
+        while ptr:
+            self.txtr[ptr] = B.random(n, 2192) & 0xFF
+            ptr -= 1
+        _ = B.random(75, 2196); _ = B.random(25, 2197)
+        if B.random(3, 2198):
+            pass  # rockdensity = 31
+        self.liquid_water = 1
+
+    def _addtrees_and_texture(self, waswet):
+        """NOCTIS-1.CPP:2235-2294.  Shared addtrees+texture+noise code."""
+        B = self.B
+        F = self.F
+        # Vegetation assignment
+        n = B.random(6, 2237)
+        for i in range(OC_BYTES):
+            h = self.smap[i]
+            cls = h // 25
+            byte = self.objs[i]
+            nr = byte & 0x03
+            obj0 = (byte >> 2) & 3
+            if cls == 0:
+                self.objs[i] = nr | (obj0 << 2) | (VEGET << 4) | (VEGET << 6)
+            elif cls == 1:
+                self.objs[i] = nr | (obj0 << 2) | (VEGET << 4) | (TREES << 6)
+            elif cls == 2:
+                self.objs[i] = nr | (obj0 << 2) | (TREES << 4) | (TREES << 6)
+            else:
+                self.objs[i] = nr | (TREES << 2) | (TREES << 4) | (TREES << 6)
+        # Grass texture
+        n = B.random(15, 2256) + 2
+        ptr = 65535
+        while ptr:
+            self.txtr[ptr] = B.random(n, 2259) & 0xFF
+            ptr -= 1
+        # Asterism grass tufts
+        n = 100 + B.random(500, 2262)
+        while n:
+            _sz = B.random(15, 2266) + 6
+            _dn = B.random(25, 2265) + 6
+            _var = B.random(16, 2265)
+            _base = B.random(16, 2264)
+            _y = B.random(256, 2264)
+            _x = B.random(256, 2264)
+            self.asterism(self.txtr, _x, _y, _base, _var, _dn, _sz, 256)
+            n -= 1
+        # Noise add — LR ASSIGN-vs-ADD defect
+        # if (!waswet || (waswet && !random(5)))
+        do_noise = False
+        if not waswet:
+            do_noise = True
+        else:
+            if not B.random(5, 2281):
+                do_noise = True
+        if do_noise:
+            for i in range(OC_BYTES):
+                v = self.smap[i] + F.raw(3, 2282)
+                if v > 255:
+                    v = 255
+                self.smap[i] = v & 0xFF
+        # Rock params
+        _ = B.random(200, 2285); _ = B.random(200, 2286)
+        _ = B.random(2, 2287)
+
+    def _plains_terrain(self, waswet=False):
         """NOCTIS-1.CPP:2207-2294.  The PLAINS sub-case of type 3."""
         B = self.B
-        # Terrain: plains or mountains
         if B.random(2, 2213):
             ptr = B.random(50, 2215) + 5
             while ptr:
-                # right-to-left: random(30)+1, random(200)+1, random(200), random(200)
                 _h = float(B.random(30, 2219) + 1)
                 _r = B.random(200, 2219) + 1
                 _cz = B.random(200, 2218)
@@ -749,59 +908,7 @@ class BuildSurface(object):
                 _cx = B.random(200, 2228)
                 self.round_hill(_cx, _cz, _r, _h, 0.0, True)
                 ptr -= 1
-        # Vegetation assignment (addtrees label) — NOCTIS-1.CPP:2238-2253
-        # Modifies object1_class (bits 4-5) and object2_class (bits 6-7),
-        # preserving nr_of_objects (bits 0-1) and sometimes object0_class (bits 2-3).
-        n = B.random(6, 2237)
-        for i in range(OC_BYTES):
-            h = self.smap[i]
-            cls = h // 25
-            byte = self.objs[i]
-            nr = byte & 0x03      # preserve nr_of_objects
-            obj0 = (byte >> 2) & 3  # preserve object0_class
-            if cls == 0:
-                # obj1=VEGET(1), obj2=VEGET(1)
-                self.objs[i] = nr | (obj0 << 2) | (VEGET << 4) | (VEGET << 6)
-            elif cls == 1:
-                # obj1=VEGET(1), obj2=TREES(2)
-                self.objs[i] = nr | (obj0 << 2) | (VEGET << 4) | (TREES << 6)
-            elif cls == 2:
-                # obj1=TREES(2), obj2=TREES(2)
-                self.objs[i] = nr | (obj0 << 2) | (TREES << 4) | (TREES << 6)
-            else:
-                # obj0=TREES(2), obj1=TREES(2), obj2=TREES(2)
-                self.objs[i] = nr | (TREES << 2) | (TREES << 4) | (TREES << 6)
-        # Grass texture
-        n = B.random(15, 2256) + 2
-        ptr = 65535
-        while ptr:
-            self.txtr[ptr] = B.random(n, 2259) & 0xFF
-            ptr -= 1
-        # Asterism grass tufts
-        n = 100 + B.random(500, 2262)
-        while n:
-            # right-to-left arg order for asterism:
-            # asterism(txtr, random(256), random(256), random(16), random(16), random(25)+6, random(15)+6, 256)
-            _sz = B.random(15, 2266) + 6
-            _dn = B.random(25, 2265) + 6
-            _var = B.random(16, 2265)
-            _base = B.random(16, 2264)
-            _y = B.random(256, 2264)
-            _x = B.random(256, 2264)
-            self.asterism(self.txtr, _x, _y, _base, _var, _dn, _sz, 256)
-            n -= 1
-        # Plains noise add — the LR ASSIGN-vs-ADD defect
-        # if (!waswet || (waswet && !random(5)))
-        # For fresh PLAINS, waswet=0, so the condition is true
-        F = self.F
-        for i in range(OC_BYTES):
-            v = self.smap[i] + F.raw(3, 2282)
-            if v > 255:
-                v = 255
-            self.smap[i] = v & 0xFF
-        # Rock params (draws only)
-        _ = B.random(200, 2285); _ = B.random(200, 2286)
-        _ = B.random(2, 2287)
+        self._addtrees_and_texture(waswet)
 
     # ------------------------------------------------------------------
     # THE TYPE SWITCH — NOCTIS-1.CPP:2054-2581
@@ -854,8 +961,16 @@ class BuildSurface(object):
 
         elif ip_type == 3:
             # Habitable — sub-switch on sctype (OCEAN/PLAINS/DESERT/ICY)
-            # For now, only PLAINS is implemented. Other sctypes fall through.
-            if sctype == 2:
+            # The sctype is determined by cplx_planet_viewpoint (:3634-3646)
+            # which runs BEFORE build_surface and draws from brtl.
+            # For the capture site (srand(0)): random(100)=0 <= 5, so
+            # sctype = random(4)+1 = 0+1 = 1 = OCEAN.
+            # Then if albedo < 25: sctype stays OCEAN.
+            # In build_surface's switch, OCEAN with albedo <= 20 runs the
+            # island code path (two round_hills + goto addtrees).
+            if sctype == 1:
+                self._ocean_terrain(albedo)
+            elif sctype == 2:
                 self._plains_terrain()
 
         elif ip_type == 2:

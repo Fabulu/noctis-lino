@@ -498,6 +498,43 @@ static void the_switch(int type, int sctype, int albedo)
     }
 }
 
+/* ---- post-switch :2583-2599 — felisian crevasses + smoothing ------- */
+
+static int g_liquid_water = 0;
+
+static void post_switch(void)
+{
+    int n = brandom_led(5);
+    if (n) {
+        while (n) {
+            felisian_srf_darkline(smap, brandom_led(500), -1, -1, 200);
+            n--;
+        }
+        { i32 i;
+          for (i = 200; i < 38800; i++) {
+              int v = smap[i] + smap[i-1] + smap[i+1] + smap[i-200] + smap[i+200];
+              smap[i] = (unsigned char)(v / 5);
+          }}
+    }
+}
+
+/* ---- objectschart inclination :2606-2615 --------------------------- */
+
+static void objects_inclination(void)
+{
+    i32 i;
+    for (i = 0; i < OC_BYTES; i++) {
+        int v1 = (i+1 < PS_BYTES) ? smap[i+1] : 0;
+        int v2 = (i+200 < PS_BYTES) ? smap[i+200] : 0;
+        int incl = abs((int)smap[i] - v1) + abs((int)smap[i] - v2);
+        unsigned nr = 0;
+        if (incl < 20) nr = (unsigned)brandom_led(2);
+        if (incl < 15) nr = (unsigned)brandom_led(3);
+        if (incl < 10) nr = (unsigned)brandom_led(4);
+        objs[i] = (objs[i] & 0xFC) | (nr & 3);
+    }
+}
+
 /* ---- the build_surface prologue :1974-2053 -------------------------- */
 
 static int build_prologue(i32 gseed, int ip_type, int sctype,
@@ -658,6 +695,16 @@ int main(int argc, char **argv)
             bsrand((u16)(gseed & 0xFFFF));
 
             the_switch(ip_type, sctype, albedo);
+
+            /* post-switch: felisian crevasses + smoothing + inclination */
+            g_liquid_water = 0;
+            post_switch();
+            objects_inclination();
+            if (g_liquid_water) {
+                i32 i;
+                for (i = 0; i < OC_BYTES; i++)
+                    if (!smap[i]) objs[i] &= 0xFC;
+            }
 
             if (plains_noise)
                 plains_noise_add();
