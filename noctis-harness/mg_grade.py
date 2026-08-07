@@ -196,8 +196,8 @@ def main():
         "drift is L.in.oleum's scalar x87 double-rounding, which matches "
         "the shipped Borland build (cref uses SSE2)" % b1_match_frames)
     add("B1d", "BOUNDED", b1_reached_flips,
-        "0, or confined to the threshold-crossing frames",
-        b1_reached_flips <= b1_frames,
+        "0 (no spurious reached-flag disagreements; F1 inverted-ip_reached fixed)",
+        b1_reached_flips == 0,
         "ap_reached/ip_reached flag differences; these flip the frame dzat "
         "crosses ras (vimana) or 2*ray (approach), where a 1-ULP drift moves "
         "the crossing by one frame.  The post-crossing dzat offset is then "

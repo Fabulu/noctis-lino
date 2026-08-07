@@ -386,7 +386,7 @@
 	=> MG CR next; [MgPray] = C;
 	=> MG CR next; [MgPwr] = C;
 	=> MG CR next; [MgIpreaching] = C;
-	[MgIpreached] = 0; A = [MgIpreaching]; ? A = 0 -> MG approach ipr1; [MgIpreached] = 1;
+	[MgIpreached] = 1; A = [MgIpreaching]; ? A = 0 -> MG approach ipr1; [MgIpreached] = 0;
     "MG approach ipr1"
 	[MgStatus] = 0;
 
