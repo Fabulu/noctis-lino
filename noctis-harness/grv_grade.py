@@ -100,6 +100,8 @@ def parse_corpus(path):
                 rows.append((1, tuple(int(x) for x in t[1:])))
             elif op == 2 and len(t) == 13:
                 rows.append((2, tuple(int(x) for x in t[1:])))
+            elif op == 5 and len(t) == 7:
+                rows.append((5, tuple(int(x) for x in t[1:])))
     return rows
 
 
@@ -160,9 +162,12 @@ def main(argv=None):
         if op == 1:
             v = [grv_spec.hpoint_bits(*payload)]
             S.append([1] + v + [0] * 7)
-        else:
+        elif op == 2:
             v = grv_spec.fragment_case(*payload)
             S.append([2] + v)
+        else:  # op 5: p_Forward -> [npx_bits, npz_bits]
+            v = grv_spec.p_forward_case(*payload)
+            S.append([5] + v + [0] * 6)
 
     n = min(len(L), len(C), len(S), len(rows))
     ok("N0", "EXACT", len(L) == len(C) == len(S) == len(rows),

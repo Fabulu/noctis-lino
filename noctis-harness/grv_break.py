@@ -57,6 +57,8 @@ def parse_corpus(path):
                 rows.append((1, tuple(int(x) for x in t[1:])))
             elif op == 2 and len(t) == 13:
                 rows.append((2, tuple(int(x) for x in t[1:])))
+            elif op == 5 and len(t) == 7:
+                rows.append((5, tuple(int(x) for x in t[1:])))
     return rows
 
 
@@ -68,8 +70,10 @@ def spec_records():
     for op, payload in ROWS:
         if op == 1:
             out.append([1, grv_spec.hpoint_bits(*payload)] + [0] * 7)
-        else:
+        elif op == 2:
             out.append([2] + grv_spec.fragment_case(*payload))
+        else:  # op 5
+            out.append([5] + grv_spec.p_forward_case(*payload) + [0] * 6)
     return out
 
 
@@ -136,6 +140,16 @@ MUTS = [
      "A = [FRc1]; A - 33; A > 31;", "A = [FRc1]; A - 9999; A > 31;", False,
      "drop the c1>32 clamp - bright slopes keep their full surf-byte diff "
      "instead of being clamped to the 0..32 shade range"),
+    ("FWZSIGN",
+     "=> FAdd;\t\t\t\t\t\t( FA = pos_z + prod_z )",
+     "=> FSub;\t\t\t\t\t\t( FA = pos_z + prod_z )", False,
+     "p_Forward pos_z -= prod_z instead of += (walks backward in z) - the "
+     "z-axis movement inverts on every p_Forward case"),
+    ("FWSWAPSB",
+     "[FS0] = [PFsbn];    => FLoadF32; => HP fb fa;\t( FB = sinbeta )",
+     "[FS0] = [PFcbn];    => FLoadF32; => HP fb fa;\t( FB = sinbeta )", False,
+     "p_Forward uses cosbeta where it should use sinbeta for the x product - "
+     "x-axis movement follows the wrong trig function"),
     ("NOFENTER",
      "=> FEnter;\n", "", False,
      "MEASURED VOID (like su_break's SRANDONCE): skip FEnter/FLeave.  The "

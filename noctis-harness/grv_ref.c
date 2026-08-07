@@ -193,6 +193,25 @@ int main(int argc, char **argv)
             { i32 rec[9] = {2, outv[0], outv[1], outv[2], outv[3],
                             outv[4], outv[5], outv[6], outv[7]};
               fwrite(rec, 4, 9, fo); }
+        } else if (op == 5) {
+            /* p_Forward: delta sbn cbn calf px pz -- binary32 bit patterns */
+            unsigned int db, sb, cb, ca, pxb, pzb;
+            i32 npx, npz;
+            float delta, sbn, cbn, calf, px, pz;
+            sscanf(line, "%*ld %u %u %u %u %u %u",
+                   &db, &sb, &cb, &ca, &pxb, &pzb);
+            memcpy(&delta, &db, 4); memcpy(&sbn, &sb, 4);
+            memcpy(&cbn, &cb, 4); memcpy(&calf, &ca, 4);
+            memcpy(&px, &pxb, 4); memcpy(&pz, &pzb, 4);
+            {   ld prodx = (ld)delta * (ld)sbn;      /* left-assoc, as C does */
+                prodx = prodx * (ld)calf;
+                ld prodz = (ld)delta * (ld)cbn;
+                prodz = prodz * (ld)calf;
+                float nx = (float)((ld)px - prodx);
+                float nz = (float)((ld)pz + prodz);
+                memcpy(&npx, &nx, 4); memcpy(&npz, &nz, 4);
+            }
+            { i32 rec[9] = {5, npx, npz, 0, 0, 0, 0, 0, 0}; fwrite(rec, 4, 9, fo); }
         }
     }
     fclose(fi); fclose(fo);

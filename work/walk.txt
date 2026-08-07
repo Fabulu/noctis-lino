@@ -65,6 +65,7 @@
 
 	WOPHP	= 1;		( corpus opcode: hpoint case )
 	WOPFR	= 2;		( corpus opcode: fragment vertex+c1+depth case )
+	WOPFW	= 5;		( corpus opcode: p_Forward walking-physics case )
 
 	WFRSHF	= 11;		( height shift: surf<<11 )
 
@@ -135,6 +136,16 @@
 	FRmid	= 0; FRlo = 0; FRhi = 0;
 	FRmask	= 0; FReax = 0; Fredx = 0; FRtmp = 0;
 
+	( ---- p_Forward state (NOCTIS-0.CPP:1388 walking physics) ---- )
+	PFdelta	= 0;		( binary32 bit patterns: delta, angle tables, pos )
+	PFsbn	= 0;		( opt_tsinbeta )
+	PFcbn	= 0;		( opt_tcosbeta )
+	PFcalfa	= 0;		( opt_tcosalfa )
+	PFpx	= 0;		( pos_x )
+	PFpz	= 0;		( pos_z )
+	PFnpx	= 0;		( new pos_x bits )
+	PFnpz	= 0;		( new pos_z bits )
+
 "workspace"
 
 	wcorpv	= WCORPUS;
@@ -166,6 +177,7 @@
 	=> W next; [Wop] = C;
 	A = [Wop]; ? A = WOPHP -> W do hp;
 	A = [Wop]; ? A = WOPFR -> W do frag;
+	A = [Wop]; ? A = WOPFW -> W do fwd;
 	-> W run done;
 
     "W do hp"
@@ -206,6 +218,24 @@
 	C = [FRvy10]; => W emit; C = [FRvy11]; => W emit; C = [FRvy12]; => W emit;
 	C = [FRvy20]; => W emit; C = [FRvy21]; => W emit; C = [FRvy22]; => W emit;
 	C = [FRc1]; => W emit;
+	[Wn]+;
+	-> W run case;
+
+    "W do fwd"
+	( 6 tokens: delta sbn cbn calf px pz -- all binary32 bit patterns )
+	A = [Wcti]; A + 6; ? A '> [Wctokn] -> W run done;
+	=> W next; [PFdelta] = C;
+	=> W next; [PFsbn] = C;
+	=> W next; [PFcbn] = C;
+	=> W next; [PFcalfa] = C;
+	=> W next; [PFpx] = C;
+	=> W next; [PFpz] = C;
+	=> P FORWARD;
+	C = WOPFW; => W emit;
+	C = [PFnpx]; => W emit;
+	C = [PFnpz]; => W emit;
+	C = 0; => W emit; C = 0; => W emit; C = 0; => W emit; C = 0; => W emit;
+	C = 0; => W emit; C = 0; => W emit;
 	[Wn]+;
 	-> W run case;
 
@@ -350,6 +380,47 @@
 	( if c1 > 32 c1 = 32  <=>  if (c1 - 33) >= 0  <=>  ((c1-33)>>31) == 0 )
 	A = [FRc1]; A - 33; A > 31; ? A != 0 -> FR c1 cap; [FRc1] = 32;
     "FR c1 cap"
+	end;
+
+( ==================================================================== )
+( P FORWARD - NOCTIS-0.CPP:1388-1392  walking physics                    )
+(   pos_x -= delta * opt_tsinbeta * opt_tcosalfa                        )
+(   pos_z += delta * opt_tcosbeta * opt_tcosalfa                        )
+(   The multiply chain runs at extended precision; the only narrowing    )
+(   is the store to pos_x / pos_z (float).  delta and the angle tables   )
+(   are the binary32 inputs (pinned).                                    )
+( ==================================================================== )
+
+"P FORWARD"
+	( prod_x = delta * sinbeta * cosalfa ; pos_x -= prod_x.
+	  FLoadF32 always loads to FA, so each operand is staged to FB by loading
+	  it to FA then copying FA->FB, saving the running product to FT first. )
+	[FS0] = [PFsbn];    => FLoadF32; => HP fb fa;	( FB = sinbeta )
+	[FS0] = [PFdelta];  => FLoadF32;			( FA = delta )
+	=> FMul;						( FA = delta*sinbeta )
+	[FT0]=[FA0]; [FT1]=[FA1];				( FT = delta*sinbeta )
+	[FS0] = [PFcalfa];  => FLoadF32; => HP fb fa;	( FB = cosalfa )
+	[FA0]=[FT0]; [FA1]=[FT1];				( FA = delta*sinbeta )
+	=> FMul;						( FA = prod_x )
+	[FT0]=[FA0]; [FT1]=[FA1];				( FT = prod_x )
+	[FS0] = [PFpx];     => FLoadF32;			( FA = pos_x )
+	[FB0]=[FT0]; [FB1]=[FT1];				( FB = prod_x )
+	=> FSub;						( FA = pos_x - prod_x )
+	=> F32Narrow; => FStoreF32; [PFnpx] = [FS0];
+
+	( prod_z = delta * cosbeta * cosalfa ; pos_z += prod_z )
+	[FS0] = [PFcbn];    => FLoadF32; => HP fb fa;	( FB = cosbeta )
+	[FS0] = [PFdelta];  => FLoadF32;			( FA = delta )
+	=> FMul;
+	[FT0]=[FA0]; [FT1]=[FA1];
+	[FS0] = [PFcalfa];  => FLoadF32; => HP fb fa;	( FB = cosalfa )
+	[FA0]=[FT0]; [FA1]=[FT1];
+	=> FMul;						( FA = prod_z )
+	[FT0]=[FA0]; [FT1]=[FA1];
+	[FS0] = [PFpz];     => FLoadF32;			( FA = pos_z )
+	[FB0]=[FT0]; [FB1]=[FT1];				( FB = prod_z )
+	=> FAdd;						( FA = pos_z + prod_z )
+	=> F32Narrow; => FStoreF32; [PFnpz] = [FS0];
 	end;
 
 ( ==================================================================== )

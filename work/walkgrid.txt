@@ -1,0 +1,354 @@
+      ( *** walkgrid - Wave 7b iperificie grid-walk proof ***
+
+	Walks the 200x200 ground grid in back-to-front paint order (NOCTIS-1.CPP:
+	iperificie, :1393-1471) and emits the ordered (x,z) fragment-call
+	sequence, packed one per unit (x | z<<16), prefixed by the count.
+
+	Verbatim source quirks reproduced: single `if (b<0) b+=360` (no mod 360);
+	quadrant 4 line 1452 uses ipfz (not ipfx) as the x-loop bound.
+
+	Corpus: ipfx ipfz beta add  (four signed decimals per case).
+	Output: per case, [count, call0, call1, ...] as int32 units.  Graded
+	three-way vs grv_walk_spec.py and grv_walk_ref.c.
+
+	COMPARISON NOTE: lino's '-comparisons are UNSIGNED, so the beta<0
+	normalize uses a sign-bit test (arithmetic shift-right-31).  The loop
+	bounds are kept non-negative by the corpus (ipfx,ipfz in 50..150, add in
+	0..40), so the unsigned loop comparisons agree with signed there.  The
+	negative-bound path (walker near the grid edge) is out of scope here. )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+"directors"
+
+	program name = { walkgrid };
+	unit = 32;
+
+"constants"
+
+	WGCORPUS	= 8192;
+	WGTOKMAX	= 4096;
+	WGDUMPMAX	= 600000;	( ALL cases' records, accumulated )
+
+	WGLEFT	= 0;
+	WGRIGHT	= 199;
+
+"variables"
+
+	wgcorpname	= { grv-walk-corpus.txt };
+	wgoutname	= { grv-walk.bin };
+
+	( corpus reader )
+	Wcbytes	= 0; Wcpos = 0; Wctokn = 0; Wcti = 0;
+	Wch	= 0; Wcacc = 0; Wcneg = 0; Wcbad = 0;
+
+	( iperificie state )
+	IGipfx	= 0; IGipfz = 0; IGbeta = 0; IGadd = 0;
+	IGb	= 0; IGx = 0; IGz = 0;
+	IGcnt	= 0;
+	IGbase	= 0;
+	IGi	= 0;
+	IGbound	= 0;
+	IGtmp	= 0;
+
+	( dump: Wdcnt is the running unit offset into wgdump across all cases )
+	Wdcnt	= 0; Wn = 0;
+
+"workspace"
+
+	wgcorp	= WGCORPUS;
+	wgtok	= WGTOKMAX;
+	wgdump	= WGDUMPMAX;
+
+"programme"
+
+	=> W run;
+	end;
+
+( ==================================================================== )
+"W run"
+	=> W load;
+	A = [Wcbad]; ? A != 0 -> W run io;
+	=> W tokenise;
+	[Wcti] = 0; [Wn] = 0; [Wdcnt] = 0;
+    "W run case"
+	A = [Wcti]; A + 4; ? A '> [Wctokn] -> W run done;
+	=> W next; [IGipfx] = C;
+	=> W next; [IGipfz] = C;
+	=> W next; [IGbeta] = C;
+	=> W next; [IGadd] = C;
+	=> IPERIFICIE;
+	[Wn]+;
+	-> W run case;
+    "W run done"
+	=> WG write all;
+	end;
+    "W run io"
+	end;
+
+( ==================================================================== )
+( IPERIFICIE - NOCTIS-1.CPP:1393-1471.  Fills wgdump[1..cnt] with packed )
+( (x,z) calls; wgdump[0] = cnt.                                        )
+( ==================================================================== )
+"IPERIFICIE"
+	( reserve a count slot at wgdump[Wdcnt], save its offset in IGbase )
+	[IGbase] = [Wdcnt];
+	A = wgdump; A + [Wdcnt]; [A] = 0;
+	[Wdcnt]+;
+	( b = beta; if (b<0) b += 360  [SIGNED test] )
+	[IGb] = [IGbeta];
+	A = [IGb]; A > 31; ? A = 0 -> IG bpos;
+	A = [IGb]; A + 360; [IGb] = A;
+    "IG bpos"
+	[IGcnt] = 0;
+
+	( q1: b<45 || b>=315 )
+	A = [IGb]; ? A '< 45 -> IG dq1;
+	A = [IGb]; ? A '>= 315 -> IG dq1;
+	( q2: b>=135 && b<225 )
+	A = [IGb]; ? A '< 135 -> IG dq3;
+	A = [IGb]; ? A '>= 225 -> IG dq3;
+	-> IG dq2;
+    "IG dq1"
+	=> IG Q1; -> IG done;
+    "IG dq2"
+	=> IG Q2; -> IG done;
+    "IG dq3"
+	( q3: b>=45 && b<135 ; q4: b>=225 && b<315 )
+	A = [IGb]; ? A '< 45 -> IG ddone;	( neither: falls through )
+	A = [IGb]; ? A '< 135 -> IG dq3b;
+	A = [IGb]; ? A '< 225 -> IG ddone;
+	-> IG dq4;
+    "IG dq3b"
+	=> IG Q3; -> IG done;
+    "IG dq4"
+	=> IG Q4;
+    "IG ddone"
+	( fall-through: no quadrant (e.g. b in a gap) )
+    "IG done"
+	( fill the reserved count slot with this case's call count )
+	A = wgdump; A + [IGbase]; [A] = [IGcnt];
+	end;
+
+( --- emit x,z packed into wgdump[Wdcnt], Wdcnt++ and cnt++ --- )
+"IG emit"
+	A = [IGz]; A < 16; B = [IGx]; B | A;
+	C = wgdump; C + [Wdcnt]; [C] = B;
+	[Wdcnt]+; [IGcnt]+;
+	end;
+
+( --- Q1: z from 199 down to ipfz-add ; per z, x 0..ipfx-1 then 199..ipfx --- )
+"IG Q1"
+	A = [IGipfz]; A - [IGadd]; [IGbound] = A;
+	[IGz] = WGRIGHT;
+    "IG Q1 z"
+	A = [IGz]; ? A '< [IGbound] -> IG Q1 end;
+	( x = 0..ipfx-1 )
+	[IGx] = WGLEFT;
+    "IG Q1 xa"
+	A = [IGx]; ? A '>= [IGipfx] -> IG Q1 xb;
+	=> IG emit;
+	[IGx]+;
+	-> IG Q1 xa;
+    "IG Q1 xb"
+	[IGx] = WGRIGHT;
+    "IG Q1 xb loop"
+	A = [IGx]; ? A '< [IGipfx] -> IG Q1 zdec;
+	=> IG emit;
+	[IGx]-;
+	-> IG Q1 xb loop;
+    "IG Q1 zdec"
+	[IGz]-;
+	-> IG Q1 z;
+    "IG Q1 end"
+	end;
+
+( --- Q2: z from 0 up to ipfz+add ; per z, x 0..ipfx-1 then 199..ipfx --- )
+"IG Q2"
+	A = [IGipfz]; A + [IGadd]; [IGbound] = A;
+	[IGz] = WGLEFT;
+    "IG Q2 z"
+	A = [IGz]; ? A '> [IGbound] -> IG Q2 end;
+	[IGx] = WGLEFT;
+    "IG Q2 xa"
+	A = [IGx]; ? A '>= [IGipfx] -> IG Q2 xb;
+	=> IG emit;
+	[IGx]+;
+	-> IG Q2 xa;
+    "IG Q2 xb"
+	[IGx] = WGRIGHT;
+    "IG Q2 xb loop"
+	A = [IGx]; ? A '< [IGipfx] -> IG Q2 zc;
+	=> IG emit;
+	[IGx]-;
+	-> IG Q2 xb loop;
+    "IG Q2 zc"
+	[IGz]+;
+	-> IG Q2 z;
+    "IG Q2 end"
+	end;
+
+( --- Q3: x from 0 up to ipfx+add ; per x, z 199..ipfz+1 then 0..ipfz --- )
+"IG Q3"
+	A = [IGipfx]; A + [IGadd]; [IGbound] = A;
+	[IGx] = WGLEFT;
+    "IG Q3 x"
+	A = [IGx]; ? A '> [IGbound] -> IG Q3 end;
+	[IGz] = WGRIGHT;
+    "IG Q3 za"
+	A = [IGz]; ? A '<= [IGipfz] -> IG Q3 zb;
+	=> IG emit;
+	[IGz]-;
+	-> IG Q3 za;
+    "IG Q3 zb"
+	[IGz] = WGLEFT;
+    "IG Q3 zb loop"
+	A = [IGz]; ? A '> [IGipfz] -> IG Q3 xc;
+	=> IG emit;
+	[IGz]+;
+	-> IG Q3 zb loop;
+    "IG Q3 xc"
+	[IGx]+;
+	-> IG Q3 x;
+    "IG Q3 end"
+	end;
+
+( --- Q4: x from 199 down to ipfz-add (SOURCE BUG: ipfz not ipfx) ;      )
+( --- per x, z 199..ipfz+1 then 0..ipfz ---                              )
+"IG Q4"
+	A = [IGipfz]; A - [IGadd]; [IGbound] = A;	( bug: ipfz )
+	[IGx] = WGRIGHT;
+    "IG Q4 x"
+	A = [IGx]; ? A '< [IGbound] -> IG Q4 end;
+	[IGz] = WGRIGHT;
+    "IG Q4 za"
+	A = [IGz]; ? A '<= [IGipfz] -> IG Q4 zb;
+	=> IG emit;
+	[IGz]-;
+	-> IG Q4 za;
+    "IG Q4 zb"
+	[IGz] = WGLEFT;
+    "IG Q4 zb loop"
+	A = [IGz]; ? A '> [IGipfz] -> IG Q4 xc;
+	=> IG emit;
+	[IGz]+;
+	-> IG Q4 zb loop;
+    "IG Q4 xc"
+	[IGx]-;
+	-> IG Q4 x;
+    "IG Q4 end"
+	end;
+
+( ==================================================================== )
+( WG write all - write wgdump[0..Wdcnt-1] to grv-walk.bin in one shot    )
+( ==================================================================== )
+"WG write all"
+	[File Name]	= wgoutname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= wgdump;
+	[Block Size]	= [Wdcnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	[File Name]	= wgoutname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= [Wdcnt];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;
+
+( ==================================================================== )
+( corpus reader - decimal integers (adapted from walk.txt)               )
+( ==================================================================== )
+"W load"
+	[Wcbad] = 0;
+	[File Name]	= wgcorpname;
+	[File Command]	= READ;
+	[File Position]	= 0;
+	[Block Pointer]	= wgcorp;
+	[Block Size]	= WGCORPUS;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	A = [Block Size];
+	[Wcbytes] = A;
+	? A '> 0 -> W load ok;
+	[Wcbad] = 1;
+    "W load ok"
+	end;
+
+"W getch"
+	A = [Wcpos];
+	? A '>= [Wcbytes] -> W getch eof;
+	C = A; C > 2; D = wgcorp; D + C;
+	C = [D];
+	A = [Wcpos]; A & 3; A '* 8;
+	C > A; C & 255;
+	[Wch] = C;
+	end;
+    "W getch eof"
+	A = 0; A - 1; [Wch] = A;
+	end;
+
+"W tokenise"
+	[Wcpos] = 0; [Wctokn] = 0;
+    "W tk scan"
+	=> W getch;
+	A = [Wch];
+	? A < 0 -> W tk done;
+	? A = 35 -> W tk comment;
+	? A = 45 -> W tk number;
+	? A '< 48 -> W tk skip;
+	? A '> 57 -> W tk skip;
+	-> W tk number;
+    "W tk skip"
+	[Wcpos]+;
+	-> W tk scan;
+    "W tk comment"
+	[Wcpos]+;
+	=> W getch;
+	A = [Wch];
+	? A < 0 -> W tk done;
+	? A != 10 -> W tk comment;
+	[Wcpos]+;
+	-> W tk scan;
+    "W tk number"
+	[Wcneg] = 0; [Wcacc] = 0;
+	A = [Wch];
+	? A != 45 -> W tk digits;
+	[Wcneg] = 1;
+	[Wcpos]+;
+    "W tk digits"
+	=> W getch;
+	A = [Wch];
+	? A '< 48 -> W tk emit;
+	? A '> 57 -> W tk emit;
+	C = [Wcacc]; C '* 10; A - 48; C + A; [Wcacc] = C;
+	[Wcpos]+;
+	-> W tk digits;
+    "W tk emit"
+	A = [Wcneg]; ? A = 0 -> W tk pos;
+	C = [Wcacc]; C+-; [Wcacc] = C;
+    "W tk pos"
+	A = [Wctokn];
+	? A '>= WGTOKMAX -> W tk done;
+	C = wgtok; C + A; [C] = [Wcacc];
+	[Wctokn]+;
+	-> W tk scan;
+    "W tk done"
+	end;
+
+"W next"
+	A = [Wcti];
+	? A '>= [Wctokn] -> W next eof;
+	C = wgtok; C + A; C = [C];
+	[Wcti]+;
+	end;
+    "W next eof"
+	C = 0;
+	end;

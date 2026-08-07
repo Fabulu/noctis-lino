@@ -148,6 +148,9 @@ def run_corpus(path):
             elif op == 2 and len(t) == 13:
                 vals = fragment_case(*t[1:])
                 yield (2, tuple(t[1:]), vals)
+            elif op == 5 and len(t) == 7:
+                vals = p_forward_case(*t[1:])
+                yield (5, tuple(t[1:]), vals)
 
 
 def fragment_case(x, z, posx_bits, posz_bits,
@@ -206,6 +209,22 @@ def fragment_case(x, z, posx_bits, posz_bits,
         c1 = 32
 
     return [depth] + vy + [c1]
+
+
+def p_forward_case(delta_bits, sbn_bits, cbn_bits, calf_bits, px_bits, pz_bits):
+    """NOCTIS-0.CPP:1388-1392 p_Forward.  Returns [new_pos_x_bits, new_pos_z_bits].
+    pos_x -= delta*opt_tsinbeta*opt_tcosalfa; pos_z += delta*opt_tcosbeta*opt_tcosalfa.
+    The multiply chain is float-typed (extended eval); narrowing to float32
+    happens ONLY at the pos_x/pos_z stores."""
+    def ld(b):
+        return fr(struct.unpack("<f", struct.pack("<i", b))[0])
+    delta, sbn, cbn, calf, px, pz = (ld(delta_bits), ld(sbn_bits), ld(cbn_bits),
+                                     ld(calf_bits), ld(px_bits), ld(pz_bits))
+    prodx = ext(ext(delta * sbn) * calf)
+    prodz = ext(ext(delta * cbn) * calf)
+    npx = f32(fr(px) - prodx)
+    npz = f32(fr(pz) + prodz)
+    return [_i32_bits(npx), _i32_bits(npz)]
 
 
 if __name__ == "__main__":
