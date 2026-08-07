@@ -62,7 +62,7 @@
 	SCrem	= 0;
 	SChalf	= 0;
 	SCa	= 0;
-	SCt	= 0;
+	SCtmp	= 0;
 
 "programme"
 
@@ -107,12 +107,12 @@
 	? A >= 0 -> SP sc pos;
 	C = 1; A+-;
     "SP sc pos"
-	[SCt] = C;			( sign of dy )
+	[SCtmp] = C;			( sign of dy )
 	A '* [SCman];
 	[SCa] = A;			( |P|, < 2^31 )
 
 	( combine the two signs )
-	A = [SCsgn]; C = [SCt]; A # C; [SCsgn] = A;
+	A = [SCsgn]; C = [SCtmp]; A # C; [SCsgn] = A;
 
 	( ---- P * 2^-k with round half to even ---- )
 	A = [SCk];
@@ -172,13 +172,13 @@
 	the used subset would prove less. )
 
 "SP scale sweep"
-	[SPi] = 0;
+	[SPMi] = 0;
 	A = 0; A - 106; [SCdy] = A;
     "SP ss i"
 	=> SP scale;
-	A = sppack; A + [SPi];
+	A = sppack; A + [SPMi];
 	[A] = [SCout];
-	[SPi]+;
+	[SPMi]+;
 	[SCdy]+;
-	A = [SPi]; ? A '< 212 -> SP ss i;
+	A = [SPMi]; ? A '< 212 -> SP ss i;
 	end;

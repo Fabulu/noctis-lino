@@ -95,7 +95,7 @@
 	( append draw counts at SADPR + 40000 )
 	A = SADPR; A + 40000;
 	[A] = [SUfn]; A+;
-	[A] = [SUbn]; A+;
+	[A] = [SUbnc]; A+;
 	[A] = [SUfh]; A+;
 	[A] = [SUbh];
 

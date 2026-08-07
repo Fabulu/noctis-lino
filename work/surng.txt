@@ -74,7 +74,7 @@
 	( ---- the ledger ---- )
 
 	SUfn	= 0;		( cumulative fast_random draws )
-	SUbn	= 0;		( cumulative rand() draws      )
+	SUbnc	= 0;		( cumulative rand() draws      )
 	SUfh	= 0;		( FNV-1a over the fast values  )
 	SUbh	= 0;		( FNV-1a over the brtl values  )
 
@@ -109,7 +109,7 @@
 	end;
 
 "SU ledger reset"
-	[SUfn] = 0; [SUbn] = 0;
+	[SUfn] = 0; [SUbnc] = 0;
 	[SUfh] = FNVOFF; [SUbh] = FNVOFF;
 	end;
 
@@ -202,7 +202,7 @@
 "SU rnd"
 	A = C;
 	=> BrtlRandom;
-	[SUbn]+;
+	[SUbnc]+;
 	[SUhv] = A;
 	[SUhx] = [SUbh];
 	=> SU hash;

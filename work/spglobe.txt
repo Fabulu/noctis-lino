@@ -175,14 +175,14 @@
 	[D plus 1] = A;
 	[GBt] = 0;
     "SP gm r"
-	[SPk] = 0;
+	[SPMk] = 0;
     "SP gm c"
 	A = spgmt; A + [GBj];
-	C = [GBt]; C '* 320; C + [SPk];
+	C = [GBt]; C '* 320; C + [SPMk];
 	[A] = C;
 	[GBj]+;
-	[SPk]+;
-	A = [SPk]; C = [GBi]; C+; ? A '< C -> SP gm c;
+	[SPMk]+;
+	A = [SPMk]; C = [GBi]; C+; ? A '< C -> SP gm c;
 	[GBt]+;
 	A = [GBt]; C = [GBi]; C+; ? A '< C -> SP gm r;
 	[GBi]+;
@@ -198,14 +198,14 @@
 	[GBj] = [C plus 1];
 	[SPreg] = [GBdstreg];
 	[SPval] = [GBdl];
-	[SPk] = 0;
+	[SPMk] = 0;
     "SP gmn b"
-	A = spgmt; A + [GBi]; A + [SPk];
+	A = spgmt; A + [GBi]; A + [SPMk];
 	C = [GBdi]; C + 4; C + [A];
 	[SPoff] = C;
 	=> SP put;
-	[SPk]+;
-	A = [SPk]; ? A '< [GBj] -> SP gmn b;
+	[SPMk]+;
+	A = [SPMk]; ? A '< [GBj] -> SP gmn b;
 	end;
 
 ( ==================================================================== )

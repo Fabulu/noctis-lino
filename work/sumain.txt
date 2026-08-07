@@ -197,7 +197,7 @@
 	[A plus 7]  = [SUte];
 	[A plus 8]  = [SUseed];
 	[A plus 9]  = [SUfn];
-	[A plus 10] = [SUbn];
+	[A plus 10] = [SUbnc];
 	[A plus 11] = [SUfh];
 	[A plus 12] = [SUbh];
 	[A plus 13] = [SUmh];

@@ -158,20 +158,20 @@
 	[SPreg] = [MNsreg];
 	=> SP base; [SPtmp] = C;
 	A = [MNsreg]; A '* 4; A + rgt; [MNn] = [A plus 2];
-	[SPi] = 0;
+	[SPMi] = 0;
     "SP ls u"
 	C = 0;
 	A = [MNpres];
 	? A = 0 -> SP ls st;
 	? A = 3 -> SP ls f200;
-	C = [SPi]; C '* 101; C + 7; C & 255; -> SP ls st;
+	C = [SPMi]; C '* 101; C + 7; C & 255; -> SP ls st;
     "SP ls f200"
 	C = 200;
     "SP ls st"
-	A = nw; A + [SPtmp]; A + [SPi];
+	A = nw; A + [SPtmp]; A + [SPMi];
 	[A] = C;
-	[SPi]+;
-	A = [SPi]; ? A '< [MNn] -> SP ls u;
+	[SPMi]+;
+	A = [SPMi]; ? A '< [MNn] -> SP ls u;
     "SP ls done"
 	end;
 

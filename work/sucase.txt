@@ -145,7 +145,7 @@
 	[A plus 0] = [SUph];
 	[A plus 1] = [SUphtag];
 	[A plus 2] = [SUfn];
-	[A plus 3] = [SUbn];
+	[A plus 3] = [SUbnc];
 	[A plus 4] = [SUfh];
 	[A plus 5] = [SUbh];
 	[A plus 6] = [SUmh];
@@ -520,8 +520,8 @@
 	=> SU contrast;
 
 	( randoface (range, upon) - arguments right to left )
-	C = 3; => SU rfr; A = C; A + 1; A '* 20; A+-; [SPu] = A;
-	C = 3; => SU rfr; A = C; A + 5; [SPt] = A;
+	C = 3; => SU rfr; A = C; A + 1; A '* 20; A+-; [SUPu] = A;
+	C = 3; => SU rfr; A = C; A + 5; [SUPt] = A;
 	=> SU randoface;
 
 	C = 5; => SU rfr; A = C; A + 5; [SUr] = A;
@@ -676,8 +676,8 @@
 	? A = 0 -> SU c7 nols;
 	=> SU lssmooth;
     "SU c7 nols"
-	C = 10; => SU rfr; A = C; A + 1; [SPt] = A;
-	[SPu] = 1;
+	C = 10; => SU rfr; A = C; A + 1; [SUPt] = A;
+	[SUPu] = 1;
 	=> SU randoface;
 	C = 2; => SU rfr; A = C;
 	? A = 0 -> SU c7 noneg;

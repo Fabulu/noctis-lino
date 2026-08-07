@@ -81,7 +81,7 @@
 
 	PVtop	= 0;			( pvfile_datatop )
 	PVh	= 0;
-	PVn	= 0;
+	PVcnt	= 0;
 	PVptr	= 0;
 	PVds	= 0;		( the STORED per-handle flag    )
 	PVreq	= 0;		( loadpv's depth_sort ARGUMENT  )
@@ -167,16 +167,16 @@
 	-> SP nl next;
     "SP nl ok"
 	( spread into nccraw )
-	[SPi] = 0;
+	[SPMi] = 0;
     "SP nl b"
-	A = [SPi]; C = A; C > 2; D = stage; D + C;
+	A = [SPMi]; C = A; C > 2; D = stage; D + C;
 	C = [D];
-	A = [SPi]; A & 3; A '* 8;
+	A = [SPMi]; A & 3; A '* 8;
 	C > A; C & 255;
-	A = nccraw; A + [NCtop]; A + [SPi];
+	A = nccraw; A + [NCtop]; A + [SPMi];
 	[A] = C;
-	[SPi]+;
-	A = [SPi]; ? A '< [SPfbytes] -> SP nl b;
+	[SPMi]+;
+	A = [SPMi]; ? A '< [SPfbytes] -> SP nl b;
 
 	A = [PVmodel]; A '* 4; C = nccidx; C + A;
 	[C plus 0] = [NCtop];
@@ -210,12 +210,12 @@
 
 "SP unloadallpv"
 	[PVtop] = 0;
-	[SPi] = 0;
+	[SPMi] = 0;
     "SP ua h"
-	A = [SPi]; A '* PVSLOT; A + pvhtab;
+	A = [SPMi]; A '* PVSLOT; A + pvhtab;
 	[A plus 2] = 0;
-	[SPi]+;
-	A = [SPi]; ? A '< PVHN -> SP ua h;
+	[SPMi]+;
+	A = [SPMi]; ? A '< PVHN -> SP ua h;
 	end;
 
       ( the sub-array byte offsets, all derived from dataptr and n.
@@ -224,19 +224,19 @@
 
 "SP pv addrs"
 	=> SP pvh at;
-	[PVn]   = [A plus 0];
+	[PVcnt]   = [A plus 0];
 	[PVptr] = [A plus 1];
 	[PVds]  = [A plus 3];
 	A = [PVptr];                    [PVac] = A;	( n_vtx )
-	A = [PVptr]; C = [PVn];         A + C; [PVax] = A;
-	A = [PVptr]; C = [PVn]; C '* 17; A + C; [PVay] = A;
-	A = [PVptr]; C = [PVn]; C '* 33; A + C; [PVaz] = A;
-	A = [PVptr]; C = [PVn]; C '* 49; A + C; [PVj] = A;
-	A = [PVptr]; C = [PVn]; C '* 50; A + C; [PVamx] = A;
-	A = [PVptr]; C = [PVn]; C '* 54; A + C; [PVamy] = A;
-	A = [PVptr]; C = [PVn]; C '* 58; A + C; [PVamz] = A;
-	A = [PVptr]; C = [PVn]; C '* 62; A + C; [PVamd] = A;
-	A = [PVptr]; C = [PVn]; C '* 66; A + C; [PVadi] = A;
+	A = [PVptr]; C = [PVcnt];         A + C; [PVax] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 17; A + C; [PVay] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 33; A + C; [PVaz] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 49; A + C; [PVj] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 50; A + C; [PVamx] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 54; A + C; [PVamy] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 58; A + C; [PVamz] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 62; A + C; [PVamd] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 66; A + C; [PVadi] = A;
 	end;
 
 ( ==================================================================== )
@@ -258,10 +258,10 @@
 
 	=> SP pvh at;
 	[A plus 0] = [NCn];
-	[PVn] = [NCn];
+	[PVcnt] = [NCn];
 
 	( datatop += 50n, in the same five steps the original takes )
-	A = [PVtop]; C = [PVn]; C '* 50; A + C; [PVtop] = A;
+	A = [PVtop]; C = [PVcnt]; C '* 50; A + C; [PVtop] = A;
 
 	( memory check BEFORE reading )
 	A = [PVtop]; ? A '<= PVBYTES -> SP lp room;
@@ -273,38 +273,38 @@
 	( one _read of datatop - dataptr bytes, straight into the arena )
 	=> SP pv addrs;
 	[SPreg] = RGPVF;
-	[SPi] = 0;
-	A = [PVn]; A '* 50; [SPk] = A;
+	[SPMi] = 0;
+	A = [PVcnt]; A '* 50; [SPMk] = A;
     "SP lp rd"
-	A = nccraw; A + [NCbase]; A + 2; A + [SPi];
+	A = nccraw; A + [NCbase]; A + 2; A + [SPMi];
 	[SPval] = [A];
-	A = [PVptr]; A + [SPi]; [SPidx] = A;
+	A = [PVptr]; A + [SPMi]; [SPidx] = A;
 	=> SP dput;
-	[SPi]+;
-	A = [SPi]; ? A '< [SPk] -> SP lp rd;
+	[SPMi]+;
+	A = [SPMi]; ? A '< [SPMk] -> SP lp rd;
 
 	( ZERO THE UNUSED VERTEX SLOTS - and this happens HERE, before the
 	  scale pass, which is the whole trap. )
 	[PVp] = 0;
-	A = [PVn]; ? A = 0 -> SP lp ds;
+	A = [PVcnt]; ? A = 0 -> SP lp ds;
     "SP lp z"
 	[SPreg] = RGPVF;
 	A = [PVac]; A + [PVp]; [SPidx] = A; => SP dget;
 	A = [SPval]; ? A != 3 -> SP lp zn;
-	A = [PVp]; A '* 16; A + 12; [SPk] = A;
+	A = [PVp]; A '* 16; A + 12; [SPMk] = A;
 	[SPf] = 0;
-	A = [PVax]; A + [SPk]; [SPidx] = A; => SP putf32;
+	A = [PVax]; A + [SPMk]; [SPidx] = A; => SP putf32;
 	[SPf] = 0;
-	A = [PVay]; A + [SPk]; [SPidx] = A; => SP putf32;
+	A = [PVay]; A + [SPMk]; [SPidx] = A; => SP putf32;
 	[SPf] = 0;
-	A = [PVaz]; A + [SPk]; [SPidx] = A; => SP putf32;
+	A = [PVaz]; A + [SPMk]; [SPidx] = A; => SP putf32;
     "SP lp zn"
 	[PVp]+;
-	A = [PVp]; ? A '< [PVn] -> SP lp z;
+	A = [PVp]; ? A '< [PVcnt] -> SP lp z;
 
     "SP lp ds"
 	A = [PVreq]; ? A = 0 -> SP lp xf;
-	A = [PVtop]; C = [PVn]; C '* 18; A + C; [PVtop] = A;
+	A = [PVtop]; C = [PVcnt]; C '* 18; A + C; [PVtop] = A;
 	A = [PVtop]; ? A '<= PVBYTES -> SP lp dsok;
 	=> SP pvh at;
 	[PVtop] = [A plus 1];
@@ -327,8 +327,8 @@
 	[PVovn] = 0; [PVovlo] = 0; [PVovhi] = 0;
 	[SPreg] = RGPVF;
 	[PVc] = 0;
-	A = [PVn]; A '* 4; [SPk] = A;
-	A = [SPk]; ? A = 0 -> SP lp mid;
+	A = [PVcnt]; A '* 4; [SPMk] = A;
+	A = [SPMk]; ? A = 0 -> SP lp mid;
     "SP lp c"
 	A = [PVc]; A '* 4; [PVi] = A;
 
@@ -357,12 +357,12 @@
 	A = [PVaz]; A + [PVi]; [SPidx] = A; => SP putf32;
 
 	( pvfile_c[handle][c] += base_color, for c up to 4n )
-	A = [PVptr]; C = [PVn]; C '* 49; A + C; A + [PVc]; [SPidx] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 49; A + C; A + [PVc]; [SPidx] = A;
 	=> SP dget;
 	C = [SPval]; C + [PVcol]; C & 255; [SPval] = C;
-	A = [PVptr]; C = [PVn]; C '* 49; A + C; A + [PVc]; [SPidx] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 49; A + C; A + [PVc]; [SPidx] = A;
 	=> SP dput;
-	A = [PVc]; ? A '< [PVn] -> SP lp cn;
+	A = [PVc]; ? A '< [PVcnt] -> SP lp cn;
 	[PVovn]+;
 	A = [PVovn]; ? A != 1 -> SP lp ovc;
 	[PVovlo] = [SPidx]; [PVovhi] = [SPidx];
@@ -375,7 +375,7 @@
 	[PVovhi] = A;
     "SP lp cn"
 	[PVc]+;
-	A = [PVc]; ? A '< [SPk] -> SP lp c;
+	A = [PVc]; ? A '< [SPMk] -> SP lp c;
 
     "SP lp mid"
 	A = [PVds]; ? A = 0 -> SP lp fin;
@@ -383,14 +383,14 @@
 	( the identity permutation, written ONCE - every later frame
 	  permutes this array rather than rebuilding it )
 	[PVp] = 0;
-	A = [PVn]; ? A = 0 -> SP lp fin;
+	A = [PVcnt]; ? A = 0 -> SP lp fin;
     "SP lp di"
 	[SPreg] = RGPVF;
 	[SPf] = [PVp];
 	A = [PVadi]; C = [PVp]; C + C; A + C; [SPidx] = A;
 	=> SP putu16;
 	[PVp]+;
-	A = [PVp]; ? A '< [PVn] -> SP lp di;
+	A = [PVp]; ? A '< [PVcnt] -> SP lp di;
 
     "SP lp fin"
 	=> SP pvh at;
@@ -409,7 +409,7 @@
 	=> SP pv addrs;
 	[SPreg] = RGPVF;
 	[PVp] = 0;
-	A = [PVn]; ? A = 0 -> SP pm done;
+	A = [PVcnt]; ? A = 0 -> SP pm done;
     "SP pm p"
 	[SPf] = 0; A = [PVp]; C = A; C + C; C + C;
 	A = [PVamd]; A + C; [SPidx] = A; => SP putf32;
@@ -458,7 +458,7 @@
 
     "SP pm next"
 	[PVp]+;
-	A = [PVp]; ? A '< [PVn] -> SP pm p;
+	A = [PVp]; ? A '< [PVcnt] -> SP pm p;
     "SP pm done"
 	end;
 
@@ -485,12 +485,12 @@
 	A = [PVh]; A '* PVSLOT; A + pvhtab; [PVc] = [A plus 1];
 
 	[SPreg] = RGPVF;
-	[SPi] = 0;
+	[SPMi] = 0;
     "SP cp b"
-	A = [PVi]; A + [SPi]; [SPidx] = A; => SP dget;
-	A = [PVc]; A + [SPi]; [SPidx] = A; => SP dput;
-	[SPi]+;
-	A = [SPi]; ? A '< [PVj] -> SP cp b;
+	A = [PVi]; A + [SPMi]; [SPidx] = A; => SP dget;
+	A = [PVc]; A + [SPMi]; [SPidx] = A; => SP dput;
+	[SPMi]+;
+	A = [SPMi]; ? A '< [PVj] -> SP cp b;
 	[PVret] = 1;
     "SP cp out"
 	end;
@@ -523,11 +523,11 @@
 
 "SP quicksort"
 	[QSswap] = 0;
-	A = [PVn]; ? A '< 2 -> SP qs done;
+	A = [PVcnt]; ? A '< 2 -> SP qs done;
 	[QSsp] = 0;
 	A = qstk;
 	[A plus 0] = 0;
-	C = [PVn]; C - 1; [A plus 1] = C;
+	C = [PVcnt]; C - 1; [A plus 1] = C;
 	[QSsp] = 1;
 
     "SP qs pop"
@@ -630,7 +630,7 @@
 
 	( phase 1: the squared distance of every midpoint )
 	[PVp] = 0;
-	A = [PVn]; ? A = 0 -> SP dw sorted;
+	A = [PVcnt]; ? A = 0 -> SP dw sorted;
     "SP dw d"
 	[SPreg] = RGPVF;
 	A = [PVp]; C = A; C + C; C + C; [PVi] = C;
@@ -652,7 +652,7 @@
 	=> PGF stf32; [SPf] = [PGFt];
 	A = [PVamd]; A + [PVi]; [SPidx] = A; => SP putf32;
 	[PVp]+;
-	A = [PVp]; ? A '< [PVn] -> SP dw d;
+	A = [PVp]; ? A '< [PVcnt] -> SP dw d;
 
 	( phase 2 )
 	=> SP quicksort;
@@ -660,24 +660,24 @@
     "SP dw sorted"
 	( phase 3: emit in the sorted order )
 	[PVp] = 0;
-	A = [PVn]; ? A = 0 -> SP dw out;
+	A = [PVcnt]; ? A = 0 -> SP dw out;
     "SP dw e1"
 	[SPreg] = RGPVF;
 	A = [PVadi]; C = [PVp]; C + C; A + C; [SPidx] = A; => SP getu16;
 	[PVc] = [SPf];
 	=> SP dw emit one;
 	[PVp]+;
-	A = [PVp]; ? A '< [PVn] -> SP dw e1;
+	A = [PVp]; ? A '< [PVcnt] -> SP dw e1;
 	-> SP dw out;
 
     "SP dw plain"
 	[PVp] = 0;
-	A = [PVn]; ? A = 0 -> SP dw out;
+	A = [PVcnt]; ? A = 0 -> SP dw out;
     "SP dw e0"
 	[PVc] = [PVp];
 	=> SP dw emit one;
 	[PVp]+;
-	A = [PVp]; ? A '< [PVn] -> SP dw e0;
+	A = [PVp]; ? A '< [PVcnt] -> SP dw e0;
 
     "SP dw out"
 	end;
@@ -707,7 +707,7 @@
 	[SPreg] = RGPVF;
 	A = [PVac]; A + [PVc]; [SPidx] = A; => SP dget;
 	[PVnv] = [SPval];
-	A = [PVptr]; C = [PVn]; C '* 49; A + C; A + [PVc]; [SPidx] = A;
+	A = [PVptr]; C = [PVcnt]; C '* 49; A + C; A + [PVc]; [SPidx] = A;
 	=> SP dget;
 	[PVk] = [SPval];
 
@@ -808,7 +808,7 @@
 
 	( vertexs_to_affect == NULL : every used vertex )
 	[PVp] = 0;
-	A = [PVn]; ? A = 0 -> SP mo mid;
+	A = [PVcnt]; ? A = 0 -> SP mo mid;
     "SP mo p"
 	[SPreg] = RGPVF;
 	A = [PVac]; A + [PVp]; [SPidx] = A; => SP dget; [MOnv] = [SPval];
@@ -822,7 +822,7 @@
 	A = [PVv]; ? A '< [MOnv] -> SP mo v;
     "SP mo pn"
 	[PVp]+;
-	A = [PVp]; ? A '< [PVn] -> SP mo p;
+	A = [PVp]; ? A '< [PVcnt] -> SP mo p;
 	-> SP mo mid;
 
     "SP mo list"
@@ -922,7 +922,7 @@
 	=> SP pv addrs;
 	[SPreg] = RGPVF;
 	[PVp] = 0;
-	A = [PVn]; ? A = 0 -> SP pm2 done;
+	A = [PVcnt]; ? A = 0 -> SP pm2 done;
     "SP pm2 p"
 	A = [PVac]; A + [PVp]; [SPidx] = A; => SP dget;
 	[PVnv] = [SPval];
@@ -959,7 +959,7 @@
 	A = [PVp]; C = A; C + C; C + C; A = [PVamz]; A + C; [SPidx] = A;
 	=> SP putf32;
 	[PVp]+;
-	A = [PVp]; ? A '< [PVn] -> SP pm2 p;
+	A = [PVp]; ? A '< [PVcnt] -> SP pm2 p;
     "SP pm2 done"
 	end;
 
@@ -971,13 +971,13 @@
 
 "SP arena emit"
 	[PVj] = [PVh];
-	[SPi] = 0;
+	[SPMi] = 0;
     "SP ae h"
-	A = [SPi]; A '* 16; C = sppack; C + A; [SPk] = C;
-	[PVh] = [SPi];
+	A = [SPMi]; A '* 16; C = sppack; C + A; [SPMk] = C;
+	[PVh] = [SPMi];
 	=> SP pvh at;
-	C = [SPk];
-	[C plus 0] = [SPi];
+	C = [SPMk];
+	[C plus 0] = [SPMi];
 	[C plus 1] = [A plus 0];
 	[C plus 2] = [A plus 1];
 	[C plus 3] = [A plus 2];
@@ -995,8 +995,8 @@
 	A = D; A '* 62; A + E;            [C plus 13] = A;
 	A = D; A '* 66; A + E;            [C plus 14] = A;
 	[C plus 15] = [PVtop];
-	[SPi]+;
-	A = [SPi]; ? A '< PVHN -> SP ae h;
+	[SPMi]+;
+	A = [SPMi]; ? A '< PVHN -> SP ae h;
 	[PVh] = [PVj];
 	[SKind] = K36; [STag] = 1;
 	[SW] = 16; [SH] = PVHN;
@@ -1027,17 +1027,17 @@
 "SP depi emit"
 	=> SP pv addrs;
 	[SPreg] = RGPVF;
-	[SPi] = 0;
-	A = [PVn]; ? A = 0 -> SP de none;
+	[SPMi] = 0;
+	A = [PVcnt]; ? A = 0 -> SP de none;
     "SP de i"
-	A = [PVadi]; C = [SPi]; C + C; A + C; [SPidx] = A; => SP getu16;
-	A = sppack; A + [SPi]; [A] = [SPf];
-	[SPi]+;
-	A = [SPi]; ? A '< [PVn] -> SP de i;
+	A = [PVadi]; C = [SPMi]; C + C; A + C; [SPidx] = A; => SP getu16;
+	A = sppack; A + [SPMi]; [A] = [SPf];
+	[SPMi]+;
+	A = [SPMi]; ? A '< [PVcnt] -> SP de i;
     "SP de none"
 	[SKind] = K37; [STag] = [PVh];
-	[SW] = [PVn]; [SH] = 1;
-	[SBptr] = sppack; [SBcnt] = [PVn];
+	[SW] = [PVcnt]; [SH] = 1;
+	[SBptr] = sppack; [SBcnt] = [PVcnt];
 	=> SDMP rec;
 
 	[SKind] = K37; [STag] = 100;
@@ -1054,23 +1054,23 @@
 "SP f32 emit"
 	=> SP pv addrs;
 	[SPreg] = RGPVF;
-	[SPi] = 0;
-	A = [PVn]; A '* 4; [SPk] = A;
-	A = [SPk]; ? A = 0 -> SP fe none;
+	[SPMi] = 0;
+	A = [PVcnt]; A '* 4; [SPMk] = A;
+	A = [SPMk]; ? A = 0 -> SP fe none;
     "SP fe i"
-	A = [SPi]; C = A; C + C; C + C; [SPj] = C;
-	A = [PVax]; A + [SPj]; [SPidx] = A; => SP getf32;
-	A = [SPi]; A '* 3; C = sppack; C + A; [C plus 0] = [SPf];
-	A = [PVay]; A + [SPj]; [SPidx] = A; => SP getf32;
-	A = [SPi]; A '* 3; C = sppack; C + A; [C plus 1] = [SPf];
-	A = [PVaz]; A + [SPj]; [SPidx] = A; => SP getf32;
-	A = [SPi]; A '* 3; C = sppack; C + A; [C plus 2] = [SPf];
-	[SPi]+;
-	A = [SPi]; ? A '< [SPk] -> SP fe i;
+	A = [SPMi]; C = A; C + C; C + C; [SPMj] = C;
+	A = [PVax]; A + [SPMj]; [SPidx] = A; => SP getf32;
+	A = [SPMi]; A '* 3; C = sppack; C + A; [C plus 0] = [SPf];
+	A = [PVay]; A + [SPMj]; [SPidx] = A; => SP getf32;
+	A = [SPMi]; A '* 3; C = sppack; C + A; [C plus 1] = [SPf];
+	A = [PVaz]; A + [SPMj]; [SPidx] = A; => SP getf32;
+	A = [SPMi]; A '* 3; C = sppack; C + A; [C plus 2] = [SPf];
+	[SPMi]+;
+	A = [SPMi]; ? A '< [SPMk] -> SP fe i;
     "SP fe none"
 	[SKind] = K38; [STag] = [PVh];
-	[SW] = 3; [SH] = [SPk];
-	[SBptr] = sppack; A = [SPk]; A '* 3; [SBcnt] = A;
+	[SW] = 3; [SH] = [SPMk];
+	[SBptr] = sppack; A = [SPMk]; A '* 3; [SBcnt] = A;
 	=> SDMP rec;
 	end;
 

@@ -57,13 +57,13 @@
 
 	( per-painter scratch that is NOT one of the game's globals )
 
-	SPi	= 0;
-	SPj	= 0;
-	SPk	= 0;
-	SPt	= 0;
-	SPu	= 0;
-	SPsave	= 0;
-	SPb2	= 0;
+	SUPi	= 0;
+	SUPj	= 0;
+	SUPk	= 0;
+	SUPt	= 0;
+	SUPu	= 0;
+	SUPsave	= 0;
+	SUPb2	= 0;
 
 "programme"
 
@@ -247,11 +247,11 @@
 	? B != 0 -> SU band cnt;
 	B = 65536;
     "SU band cnt"
-	C = [SUg]; C & 0FFh; [SPt] = C;
+	C = [SUg]; C & 0FFh; [SUPt] = C;
     "SU band u"
 	=> SU get;
 	A = [SUval];
-	C = [SPt];
+	C = [SUPt];
 	? A '< C -> SU band zero;
 	A - C;
 	-> SU band st;
@@ -328,9 +328,9 @@
 	=> SU fr load;
 
     "SU fr step"
-	C = [SUg]; => SU rnd; [SPt] = C;
+	C = [SUg]; => SU rnd; [SUPt] = C;
 	C = [SUg]; => SU rnd;
-	A = [SPt]; A - C; [SUia] = A;
+	A = [SUPt]; A - C; [SUia] = A;
 	=> SU a add deg;
 
 	=> SU frx step;
@@ -374,9 +374,9 @@
 	shadows the global c, which case 5's own loop is using. )
 
 "SU contrast"
-	[SPi] = 0;
+	[SUPi] = 0;
     "SU co u"
-	[SUidx] = [SPi];
+	[SUidx] = [SUPi];
 	=> SU dget;
 	[SUia] = [SUval];
 	=> SU a of int;
@@ -396,10 +396,10 @@
     "SU co p2"
 	=> SU a to int;
 	[SUval] = [SUti];
-	[SUidx] = [SPi];
+	[SUidx] = [SUPi];
 	=> SU dput;
-	[SPi]+;
-	A = [SPi]; ? A '< 64800 -> SU co u;
+	[SUPi]+;
+	A = [SUPi]; ? A '< 64800 -> SU co u;
 	end;
 
 ( ==================================================================== )
@@ -412,13 +412,13 @@
 	localise a fault here. )
 
 "SU randoface"
-	[SPi] = 0;
+	[SUPi] = 0;
     "SU rf u"
-	[SUidx] = [SPi];
+	[SUidx] = [SUPi];
 	=> SU dget;
 	[SUgr] = [SUval];
 
-	A = [SPu];			( upon )
+	A = [SUPu];			( upon )
 	? A <= 0 -> SU rf neg;
 	C = [SUgr]; ? C >= A -> SU rf hit;
 	-> SU rf next;
@@ -429,9 +429,9 @@
 	-> SU rf next;
 
     "SU rf hit"
-	C = [SPt]; => SU rnd;
+	C = [SUPt]; => SU rnd;
 	A = [SUgr]; A + C; [SUgr] = A;
-	C = [SPt]; => SU rnd;
+	C = [SUPt]; => SU rnd;
 	A = [SUgr]; A - C; [SUgr] = A;
 	? A <= 63 -> SU rf c1;
 	A = 63; [SUgr] = A;
@@ -440,12 +440,12 @@
 	[SUgr] = 0;
     "SU rf c2"
 	[SUval] = [SUgr];
-	[SUidx] = [SPi];
+	[SUidx] = [SUPi];
 	=> SU dput;
 
     "SU rf next"
-	[SPi]+;
-	A = [SPi]; ? A '< 64800 -> SU rf u;
+	[SUPi]+;
+	A = [SUPi]; ? A '< 64800 -> SU rf u;
 	end;
 
 ( ==================================================================== )

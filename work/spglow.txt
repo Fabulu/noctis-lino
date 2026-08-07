@@ -144,10 +144,10 @@
     "SP gl yok"
 
 	A = [GLdi]; A + A; A & 65535; [GBt] = A;
-	[SPk] = [CSoob];
+	[SPMk] = [CSoob];
 	=> SP riga at;
 	[GLdi] = C;
-	A = [CSoob]; ? A = [SPk] -> SP gl noob;
+	A = [CSoob]; ? A = [SPMk] -> SP gl noob;
 	( an out-of-range riga index: record the extremes of the INDEX,
 	  which is exact, and never the value, which is not graded )
 	[GLoobn]+;

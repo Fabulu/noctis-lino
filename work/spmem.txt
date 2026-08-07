@@ -145,7 +145,7 @@
 	SFXA	= 293;	SFYA	= 294;	SFXB	= 295;	SFYB	= 296;
 	SFXP	= 297;	SFYP	= 298;	SFZW	= 299;
 	SFDX	= 300;	SFDY	= 301;	SFDZ	= 302;
-	SFTMP	= 303;	SFTM2	= 304;
+	SFTMPR	= 303;	SFTM2	= 304;
 
 	SFSNX	= 305;	SFCSX	= 306;	SFSNY	= 307;	SFCSY	= 308;
 	SFSNZ	= 309;	SFCSZ	= 310;
@@ -274,9 +274,9 @@
 	SPpn	= 0;
 
 	SPtmp	= 0;
-	SPi	= 0;
-	SPj	= 0;
-	SPk	= 0;
+	SPMi	= 0;
+	SPMj	= 0;
+	SPMk	= 0;
 
 "workspace"
 
@@ -500,16 +500,16 @@
 "SP unpack"
 	=> SP base;
 	[SPtmp] = C;
-	[SPi] = 0;
+	[SPMi] = 0;
     "SP up byte"
-	A = [SPi]; C = A; C > 2; D = stage; D + C;
+	A = [SPMi]; C = A; C > 2; D = stage; D + C;
 	C = [D];
-	A = [SPi]; A & 3; A '* 8;
+	A = [SPMi]; A & 3; A '* 8;
 	C > A; C & 255;
-	A = nw; A + [SPtmp]; A + [SPi];
+	A = nw; A + [SPtmp]; A + [SPMi];
 	[A] = C;
-	[SPi]+;
-	A = [SPi]; ? A '< [SPfbytes] -> SP up byte;
+	[SPMi]+;
+	A = [SPMi]; ? A '< [SPfbytes] -> SP up byte;
 	end;
 
       ( SP read asset : read the file named by [File Name] into stage[]
@@ -572,17 +572,17 @@
 	[SPreg] = [SPpreg];
 	=> SP base;
 	[SPtmp] = C;
-	[SPi] = 0;
+	[SPMi] = 0;
     "SP cen unit"
-	A = nw; A + [SPtmp]; A + [SPi];
+	A = nw; A + [SPtmp]; A + [SPMi];
 	C = [A]; C & 255;
 	? C = 0 -> SP cen next;
 	[SPCSnz]+;
 	? C != 255 -> SP cen next;
 	[SPCS255]+;
     "SP cen next"
-	[SPi]+;
-	A = [SPi]; ? A '< [SPpn] -> SP cen unit;
+	[SPMi]+;
+	A = [SPMi]; ? A '< [SPpn] -> SP cen unit;
 	end;
 
 ( ==================================================================== )
@@ -593,18 +593,18 @@
 	[SPreg] = [SPpreg];
 	=> SP base;
 	[SPtmp] = C;
-	[SPi] = 0; [SPj] = 0;
+	[SPMi] = 0; [SPMj] = 0;
     "SP pk unit"
-	A = nw; A + [SPtmp]; A + [SPi];
+	A = nw; A + [SPtmp]; A + [SPMi];
 	D = [A plus 0]; D & 255;
 	C = [A plus 1]; C & 255; C < 8;  D | C;
 	C = [A plus 2]; C & 255; C < 16; D | C;
 	C = [A plus 3]; C & 255; C < 24; D | C;
-	A = sppack; A + [SPj];
+	A = sppack; A + [SPMj];
 	[A] = D;
-	[SPi] + 4;
-	[SPj]+;
-	A = [SPi]; ? A '< [SPpn] -> SP pk unit;
+	[SPMi] + 4;
+	[SPMj]+;
+	A = [SPMi]; ? A '< [SPpn] -> SP pk unit;
 	end;
 
       ( SP fill page : region [SPpreg] bytes 0..[SPpn]-1 <- [SPval]. )
@@ -613,13 +613,13 @@
 	[SPreg] = [SPpreg];
 	=> SP base;
 	[SPtmp] = C;
-	C = [SPval]; C & 255; [SPk] = C;
-	[SPi] = 0;
+	C = [SPval]; C & 255; [SPMk] = C;
+	[SPMi] = 0;
     "SP fp unit"
-	A = nw; A + [SPtmp]; A + [SPi];
-	[A] = [SPk];
-	[SPi]+;
-	A = [SPi]; ? A '< [SPpn] -> SP fp unit;
+	A = nw; A + [SPtmp]; A + [SPMi];
+	[A] = [SPMk];
+	[SPMi]+;
+	A = [SPMi]; ? A '< [SPpn] -> SP fp unit;
 	end;
 
       ( SP ramp page : region [SPpreg] byte i <- (i*101+7) AND 255.
@@ -630,13 +630,13 @@
 	[SPreg] = [SPpreg];
 	=> SP base;
 	[SPtmp] = C;
-	[SPi] = 0;
+	[SPMi] = 0;
     "SP rp unit"
-	C = [SPi]; C '* 101; C + 7; C & 255;
-	A = nw; A + [SPtmp]; A + [SPi];
+	C = [SPMi]; C '* 101; C + 7; C & 255;
+	A = nw; A + [SPtmp]; A + [SPMi];
 	[A] = C;
-	[SPi]+;
-	A = [SPi]; ? A '< [SPpn] -> SP rp unit;
+	[SPMi]+;
+	A = [SPMi]; ? A '< [SPpn] -> SP rp unit;
 	end;
 
 ( ==================================================================== )
@@ -758,22 +758,22 @@
 	[A plus 5] = [D plus 1];
 	[A plus 6] = [D plus 2];
 	[A plus 7] = [D plus 3];
-	[SPi] = NPIX;
-	[SPj] = 0;
-	[SPk] = 0; [SPk]-;
+	[SPMi] = NPIX;
+	[SPMj] = 0;
+	[SPMk] = 0; [SPMk]-;
     "SDMP sr u"
-	A = nw; A + [SPtmp]; A + [SPi];
+	A = nw; A + [SPtmp]; A + [SPMi];
 	C = [A];
 	? C = 0 -> SDMP sr n;
-	[SPj]+;
-	A = [SPk]; ? A >= 0 -> SDMP sr n;
-	[SPk] = [SPi];
+	[SPMj]+;
+	A = [SPMk]; ? A >= 0 -> SDMP sr n;
+	[SPMk] = [SPMi];
     "SDMP sr n"
-	[SPi]+;
-	A = [SPi]; ? A '< 65536 -> SDMP sr u;
+	[SPMi]+;
+	A = [SPMi]; ? A '< 65536 -> SDMP sr u;
 	A = sphdr;
-	[A plus 8]  = [SPj];
-	[A plus 9]  = [SPk];
+	[A plus 8]  = [SPMj];
+	[A plus 9]  = [SPMk];
 	[A plus 10] = 0; [A plus 11] = 0;
 	[A plus 12] = 0; [A plus 13] = 0; [A plus 14] = 0; [A plus 15] = 0;
 	[SKind] = K31; [STag] = 2;
