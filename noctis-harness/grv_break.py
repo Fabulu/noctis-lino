@@ -36,9 +36,10 @@ def run(cmd, **kw):
                           encoding="utf-8", errors="replace", **kw)
 
 
-def bits_list(blob):
-    return [struct.unpack_from("<i", blob, i * 4)[0]
-            for i in range(len(blob) // 4)]
+def recs_list(blob):
+    """9-word records -> list of [op, v0..v7]."""
+    n = len(blob) // 4
+    return [list(struct.unpack_from("<9i", blob, i * 4)) for i in range(0, n, 9)]
 
 
 def parse_corpus(path):
@@ -49,32 +50,48 @@ def parse_corpus(path):
             if not s or s[0] == "#":
                 continue
             t = s.replace(",", " ").split()
-            if len(t) == 6:
-                rows.append(tuple(int(x) for x in t))
+            if not t:
+                continue
+            op = int(t[0])
+            if op == 1 and len(t) == 7:
+                rows.append((1, tuple(int(x) for x in t[1:])))
+            elif op == 2 and len(t) == 13:
+                rows.append((2, tuple(int(x) for x in t[1:])))
     return rows
 
 
 ROWS = parse_corpus(CORPUS)
-SPEC = [grv_spec.hpoint_bits(*r) for r in ROWS]
 
 
-def cref_bits():
-    """Build (if needed) and run grv_ref, returning the bit list."""
+def spec_records():
+    out = []
+    for op, payload in ROWS:
+        if op == 1:
+            out.append([1, grv_spec.hpoint_bits(*payload)] + [0] * 7)
+        else:
+            out.append([2] + grv_spec.fragment_case(*payload))
+    return out
+
+
+SPEC = spec_records()
+
+
+def cref_records():
     exe = os.path.join(HERE, "grv_ref.exe")
     binf = os.path.join(HERE, "grv_ref.bin")
     if not os.path.exists(exe) or os.path.getmtime(CORPUS) > os.path.getmtime(exe):
         p = run(["gcc", "-O2", "-fno-fast-math", "-o", exe,
-                 os.path.join(HERE, "grv_ref.c")])
+                 os.path.join(HERE, "grv_ref.c"), "-lm"])
         if p.returncode != 0:
             raise SystemExit("gcc failed: " + p.stdout + p.stderr)
     p = run([exe, CORPUS, binf])
     if p.returncode != 0:
         raise SystemExit("grv_ref run failed")
     with open(binf, "rb") as fh:
-        return bits_list(fh.read())
+        return recs_list(fh.read())
 
 
-CREF = cref_bits()
+CREF = cref_records()
 
 
 # name -> (anchor, replacement, replace_all, what it models)
@@ -101,6 +118,24 @@ MUTS = [
      "C & 255; C < 11;", "C & 255; C < 10;", True,
      "shift surf<<10 instead of <<11 - the height scale is halved, py is "
      "halved on every non-flat case"),
+    ("DEPTHCHOP",
+     "=> FToIntChop;", "=> FToIntNear;", False,
+     "fragment's depth cast rounds-to-nearest instead of chopping - the "
+     "EXACT-REQUIRED chop #1 (WAVE7B_PLAN); moves depth whenever hpdep's "
+     "fraction is >= 0.5"),
+    ("DXHALF",
+     "WHALFHI\t= 3FE00000h;", "WHALFHI\t= 3FF00000h;", False,
+     "use 1.0 instead of 0.5 in dx/dz centering - fragment distances the "
+     "tile from the wrong centre, depth diverges on every off-centre tile"),
+    ("FASTSEED",
+     "A = [FRh1]; A + [FRseed]; [FRfrs] = A;",
+     "A = [FRseed]; [FRfrs] = A;", False,
+     "fast_srand(seed) instead of fast_srand(h1+seed) - the diffuse c1 LCG "
+     "seed misses the per-tile h1 term, every diffuse case diverges"),
+    ("C1NOSHR",
+     "A = [FRc1]; A - 33; A > 31;", "A = [FRc1]; A - 9999; A > 31;", False,
+     "drop the c1>32 clamp - bright slopes keep their full surf-byte diff "
+     "instead of being clamped to the 0..32 shade range"),
     ("NOFENTER",
      "=> FEnter;\n", "", False,
      "MEASURED VOID (like su_break's SRANDONCE): skip FEnter/FLeave.  The "
@@ -147,7 +182,7 @@ def build_mut(name, anchor, new, all_):
     if p.returncode != 0 or not os.path.exists(out):
         return None, "run failed: " + (p.stdout + p.stderr).strip()[:120], tmp
     with open(out, "rb") as fh:
-        return bits_list(fh.read()), "built+ran", tmp
+        return recs_list(fh.read()), "built+ran", tmp
 
 
 def verdict(L):

@@ -3,27 +3,33 @@
  * PROVENANCE
  * ----------
  * Transliterated from C:\programmieren\noctis\niv-plus\source\NOCTIS-1.CPP
- * (hpoint :63-93).  NOT derived from work/walk.txt (the lino port) and NOT
- * from grv_spec.py (the Python spec): both are written from the same DOS
- * text in separate passes and compared, never merged.
+ *   hpoint   :63-93
+ *   fragment :1028-1142  (the ground-tile vertex + depth + c1 path)
+ * and NOCTIS-0.CPP:1075-1107 (fast_srand/fast_random), NOCTIS-0.CPP:1029/1042
+ * (m200, qid).  NOT derived from work/walk.txt or grv_spec.py: separate
+ * transliterations, compared and never merged.
  *
  * FLOAT MODEL
  * -----------
- * long double is the 80-bit x87 format on x86-64 MinGW, so every live value
- * is rounded to a 64-bit significand by hardware - exactly what Borland's
- * x87 does.  The original narrows to float32 ONLY on assignment to a `float`
- * variable (h1..h4, icx, icz, py); those casts are written explicitly here as
- * (float).  The integer->float conversions of `-((long)s<<11)` are exact for
- * every surf byte (<= 522240, well inside float32's 24-bit range), so the
- * narrow points that matter are the two stores to `py`.
+ * long double is the 80-bit x87 format; every live value is rounded to a
+ * 64-bit significand by hardware, exactly what Borland's x87 does under
+ * FEnter's 133Fh.  Narrowing to float32 happens ONLY on assignment to a
+ * `float` variable (h1..h4 in hpoint; dx/dz/hpdep in fragment); those casts
+ * are written explicitly as (float).  fragment's depth is the EXACT-REQUIRED
+ * chop `depth = (long)(hpdep) >> 14` (WAVE7B_PLAN float site #1) - modelled
+ * here by the C (long) cast, which truncates toward zero, then >>14.
  *
- * m200[k] = k*200 (NOCTIS-0.CPP:1029, "numeri da 0 a 199, moltiplicati per
- * 200").  qid = 1.0/16384 (NOCTIS-0.CPP:1042, a DOUBLE).
+ * fragment's six vy corner heights and c1 are INTEGER outputs (-(surf<<11)
+ * is exact in float32; c1 is integer shade), so they are graded as integers.
+ * The float computation lives in depth (sqrt + chop), which both sides model.
  *
- * Build:  gcc -O2 -fno-fast-math -o grv_ref.exe grv_ref.c
- * Usage:  grv_ref.exe corpus.txt out.bin
- *   corpus line:  px pz s1 s2 s3 s4      (six signed decimals)
- *   out record :  one int32 per case = the binary32 bit pattern of py
+ * OUTPUT: each corpus row carries an opcode:
+ *   op 1 (hpoint):    px pz s1 s2 s3 s4                 -> py binary32 bits
+ *   op 2 (fragment):  x z posx posz s1 s2 s3 s4 shd ssh seed branch
+ *                     -> 8 ints: depth, vy0..vy5, c1
+ * The dump is opcode-prefixed (9 words/case): [op, v0..v7] (hpoint pads).
+ *
+ * Build:  gcc -O2 -fno-fast-math -o grv_ref.exe grv_ref.c -lm
  */
 
 #include <stdio.h>
@@ -36,62 +42,116 @@ typedef int16_t  i16;
 typedef uint16_t u16;
 typedef int32_t  i32;
 typedef uint32_t u32;
+typedef uint64_t u64;
 typedef long double ld;
 
-/* m200[k] = k*200, k = 0..199 (NOCTIS-0.CPP:1029). */
 static u32 m200[200];
 static void init_m200(void) { int k; for (k = 0; k < 200; k++) m200[k] = (u32)(k * 200); }
-
-/* qid = 1.0/16384, declared DOUBLE in the original. */
 static const ld QID = 1.0L / 16384.0L;
 
-/* The 200x200 altimetry.  Exactly 40,000 bytes (WAVE7B_PLAN).  hpoint reads
- * four bytes per call: cpos, cpos+1, cpos+200, cpos+201.  Row/col are pinned
- * to 0..198 in the corpus so all four corners stay in-bounds - the honest,
- * in-game-reachable subset (iperifie never walks the far edge under feet). */
 #define SURF_BYTES 40000
 static unsigned char surf[SURF_BYTES];
 
-static i32 surf_at(long o) { return (long)surf[(u32)o]; }
+/* ---- fast_random LCG (NOCTIS-0.CPP:1075-1107) ---- */
+static u32 flat_rnd_seed;
+static void fast_srand(i32 seed) {
+    u32 s = (u32)seed;
+    flat_rnd_seed = (s & 0xFFFF0000u) | ((s & 0xFFFFu) | 3u);
+}
+static u32 fast_random(u32 mask) {
+    u64 p = (u64)flat_rnd_seed * (u64)flat_rnd_seed;
+    u32 eax = (u32)p, edx = (u32)(p >> 32);
+    unsigned char al = (unsigned char)((eax & 0xFF) + (edx & 0xFF));
+    eax = (eax & 0xFFFFFF00u) | al;
+    flat_rnd_seed += eax;
+    return eax & mask;
+}
 
-/* hpoint - NOCTIS-1.CPP:63-93.  Returns py's binary32 bit pattern as i32. */
 static i32 hpoint_bits(long px, long pz)
 {
-    long cpos;
+    long cpos = (long)m200[(u32)(pz >> 14)] + (long)(px >> 14);
     ld h1, h2, h3, h4, icx, icz, py;
     i32 out;
-
-    cpos = (long)m200[(u32)(pz >> 14) & 0xFFFFu] + (long)(px >> 14);
-
-    /* h1..h4 are float in the source; the (long)<<11 is exact, and the
-     * negation is exact, so the (float) cast loses nothing for surf<=255.
-     * Modelled as (float) then widened back to ld for the chain. */
-    h1 = (ld)(float)(-((long)surf_at(cpos)     << 11));
-    h2 = (ld)(float)(-((long)surf_at(cpos + 1) << 11));
-    h3 = (ld)(float)(-((long)surf_at(cpos + 201) << 11));
-    h4 = (ld)(float)(-((long)surf_at(cpos + 200) << 11));
-
-    /* icx,icz are float (assigned from `px & 16383`, a long). */
+    h1 = (ld)(float)(-((long)surf[cpos]       << 11));
+    h2 = (ld)(float)(-((long)surf[cpos + 1]   << 11));
+    h3 = (ld)(float)(-((long)surf[cpos + 201] << 11));
+    h4 = (ld)(float)(-((long)surf[cpos + 200] << 11));
     icx = (ld)(float)(px & 16383);
     icz = (ld)(float)(pz & 16383);
-
-    /* The branch test `icx+icz<16384` is float+float compared to int; both
-     * operands are integers < 16384 so the sum is exact and the decision is
-     * deterministic - no float tolerance touches it. */
     if (icx + icz < 16384.0L) {
-        /* py = h1 + (h2-h1)*(icx*qid);  py += (h4-h1)*(icz*qid);
-         * icx*qid is double (float promoted to double); the whole RHS is
-         * double; narrowing to float happens ONLY at the py store. */
         py = h1 + (h2 - h1) * (icx * QID);
-        py = (ld)(float)py + (h4 - h1) * (icz * QID);   /* py += ... */
+        py = (ld)(float)py + (h4 - h1) * (icz * QID);
     } else {
         py = h3 + (h4 - h3) * ((16384.0L - icx) * QID);
         py = (ld)(float)py + (h2 - h3) * ((16384.0L - icz) * QID);
     }
-    {   float f = (float)py;
-        memcpy(&out, &f, 4);
-    }
+    { float f = (float)py; memcpy(&out, &f, 4); }
     return out;
+}
+
+/* fragment: grades depth (exact chop), six vy corner heights (int), c1 (int).
+ * FAITHFUL surf reads: vy and c1 read p_surfacemap at h1, h1+1, h1+200,
+ * h1+201, h1+sh_delta.  The caller has already placed s1..s4 + ssh into surf
+ * (ssh LAST, so it overwrites a corner when sh_delta coincides with one -
+ * exactly what the real fragment sees).  out[0]=depth, out[1..6]=vy, out[7]=c1. */
+static void fragment_case(long x, long z, i32 posx_bits, i32 posz_bits,
+                          long shd, long seed, long branch, i32 *out)
+{
+    float posx, posz;
+    float dx, dz, hpdep;
+    long vx0, vx1, vz0, vz2;
+    float fvx0, fvx1, fvz0, fvz2;
+    long depth, h1, c1;
+    long b1, b2, b3, b4, bsh;
+    memcpy(&posx, &posx_bits, 4);
+    memcpy(&posz, &posz_bits, 4);
+
+    vx0 = x << 14; vx1 = (x + 1) << 14; vz0 = z << 14; vz2 = (z + 1) << 14;
+    fvx0 = (float)vx0; fvx1 = (float)vx1; fvz0 = (float)vz0; fvz2 = (float)vz2;
+
+    {   ld half = ((ld)fvx0 + (ld)fvx1) * 0.5L;
+        dx = (float)((ld)posx - half);
+    }
+    {   ld half = ((ld)fvz0 + (ld)fvz2) * 0.5L;
+        dz = (float)((ld)posz - half);
+    }
+    {   ld dd = (ld)dx * (ld)dx + (ld)dz * (ld)dz;
+        hpdep = (float)sqrtl(dd);
+    }
+    depth = ((long)hpdep) >> 14;
+    depth -= 1; if (depth < 0) depth = 0;
+
+    h1 = x + z * 200;
+    b1  = (long)surf[(u32)(h1)];
+    b2  = (long)surf[(u32)(h1 + 1)];
+    b4  = (long)surf[(u32)(h1 + 200)];
+    b3  = (long)surf[(u32)(h1 + 201)];
+    bsh = (long)surf[(u32)(h1 + shd)];
+    out[1] = -(b1 << 11);   /* vy1[0] = h1   */
+    out[2] = -(b2 << 11);   /* vy1[1] = h1+1 */
+    out[3] = -(b4 << 11);   /* vy1[2] = h4   */
+    out[4] = -(b2 << 11);   /* vy2[0] = h2   */
+    out[5] = -(b3 << 11);   /* vy2[1] = h3   */
+    out[6] = -(b4 << 11);   /* vy2[2] = h4   */
+
+    if (branch == 0) { fast_srand((i32)(h1 + seed)); c1 = 8 + (long)fast_random(7); }
+    else             { c1 = b1 - bsh; }
+    if (c1 < 0) c1 = 0;
+    c1 += depth >> 1;
+    if (c1 > 32) c1 = 32;
+
+    out[0] = (i32)depth;
+    out[7] = (i32)c1;
+}
+
+static void place(long cpos, long s1, long s2, long s3, long s4)
+{
+    long o;
+    memset(surf, 0, sizeof surf);
+    if ((u32)cpos < SURF_BYTES) surf[(u32)cpos] = (unsigned char)s1;
+    o = cpos + 1;   if ((u32)o < SURF_BYTES) surf[(u32)o] = (unsigned char)s2;
+    o = cpos + 201; if ((u32)o < SURF_BYTES) surf[(u32)o] = (unsigned char)s3;
+    o = cpos + 200; if ((u32)o < SURF_BYTES) surf[(u32)o] = (unsigned char)s4;
 }
 
 int main(int argc, char **argv)
@@ -104,21 +164,36 @@ int main(int argc, char **argv)
     fo = fopen(argv[2], "wb");
     if (!fi || !fo) { perror("open"); return 2; }
     while (fgets(line, sizeof line, fi)) {
-        long px, pz, s1, s2, s3, s4;
-        i32 bits;
+        long op;
         if (line[0] == '#' || line[0] == '\n') continue;
-        if (sscanf(line, "%ld %ld %ld %ld %ld %ld",
-                   &px, &pz, &s1, &s2, &s3, &s4) != 6) continue;
-        memset(surf, 0, sizeof surf);
-        {   long cpos = (long)m200[(u32)(pz >> 14) & 0xFFFFu] + (long)(px >> 14);
-            long o;
-            if ((u32)cpos < SURF_BYTES) surf[(u32)cpos] = (unsigned char)s1;
-            o = cpos + 1;   if ((u32)o < SURF_BYTES) surf[(u32)o] = (unsigned char)s2;
-            o = cpos + 201; if ((u32)o < SURF_BYTES) surf[(u32)o] = (unsigned char)s3;
-            o = cpos + 200; if ((u32)o < SURF_BYTES) surf[(u32)o] = (unsigned char)s4;
+        if (sscanf(line, "%ld", &op) != 1) continue;
+        if (op == 1) {
+            long px, pz, s1, s2, s3, s4, cpos;
+            i32 b;
+            sscanf(line, "%*ld %ld %ld %ld %ld %ld %ld",
+                   &px, &pz, &s1, &s2, &s3, &s4);
+            cpos = (long)m200[(u32)(pz >> 14)] + (long)(px >> 14);
+            place(cpos, s1, s2, s3, s4);
+            b = hpoint_bits(px, pz);
+            { i32 rec[9] = {1, b, 0, 0, 0, 0, 0, 0, 0}; fwrite(rec, 4, 9, fo); }
+        } else if (op == 2) {
+            long x, z, s1, s2, s3, s4, shd, ssh, seed, branch;
+            i32 posx = 0, posz = 0, outv[8];
+            unsigned int posxi, poszi;
+            sscanf(line, "%*ld %ld %ld %u %u %ld %ld %ld %ld %ld %ld %ld %ld",
+                   &x, &z, &posxi, &poszi, &s1, &s2, &s3, &s4,
+                   &shd, &ssh, &seed, &branch);
+            posx = (i32)posxi; posz = (i32)poszi;
+            {   long cpos = x + z * 200;
+                long o;
+                place(cpos, s1, s2, s3, s4);
+                o = cpos + shd; if ((u32)o < SURF_BYTES) surf[(u32)o] = (unsigned char)ssh;
+            }
+            fragment_case(x, z, posx, posz, shd, seed, branch, outv);
+            { i32 rec[9] = {2, outv[0], outv[1], outv[2], outv[3],
+                            outv[4], outv[5], outv[6], outv[7]};
+              fwrite(rec, 4, 9, fo); }
         }
-        bits = hpoint_bits(px, pz);
-        fwrite(&bits, 4, 1, fo);
     }
     fclose(fi); fclose(fo);
     return 0;

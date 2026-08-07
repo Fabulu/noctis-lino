@@ -58,7 +58,15 @@
 	WQIDHI	= 3F100000h;	( high 32 bits of double 1/16384 = 2^-14 )
 	WQIDLO	= 0;		( low 32 bits )
 
+	WHALFHI	= 3FE00000h;	( high 32 bits of double 0.5 )
+	WHALFLO	= 0;
+
 	W16384	= 16384;
+
+	WOPHP	= 1;		( corpus opcode: hpoint case )
+	WOPFR	= 2;		( corpus opcode: fragment vertex+c1+depth case )
+
+	WFRSHF	= 11;		( height shift: surf<<11 )
 
 "variables"
 
@@ -98,6 +106,35 @@
 	Wt	= 0;
 	Ws1	= 0; Ws2 = 0; Ws3 = 0; Ws4 = 0;
 
+	( dispatch + dump-emit scratch )
+	Wop	= 0;
+	Wk	= 0;
+
+	( ---- fragment state (NOCTIS-1.CPP:1028 fragment vertex/depth/c1) ---- )
+	FRx	= 0;		( tile col argument )
+	FRz	= 0;		( tile row argument )
+	FRposx	= 0;		( walker pos_x, binary32 bits )
+	FRposz	= 0;		( walker pos_z, binary32 bits )
+	FRshd	= 0;		( sh_delta )
+	FRssh	= 0;		( surf byte at h1 + sh_delta )
+	FRseed	= 0;		( global_surface_seed )
+	FRbranch= 0;		( 0 = diffuse (fast_random), 1 = sh_delta slope )
+	FRh1	= 0;		( = x + z*200, the m200 corner index )
+	FRvx0	= 0; FRvx1 = 0; FRvz0 = 0; FRvz2 = 0;
+	FRdx	= 0; FRdz = 0; FRhpdep = 0;
+	FRdepth	= 0;		( = ((long)hpdep) >> 14, then -1 clamped at 0 )
+	FRvy10	= 0; FRvy11 = 0; FRvy12 = 0; FRvy20 = 0; FRvy21 = 0; FRvy22 = 0;
+	FRc1	= 0;
+	Fs1	= 0; Fs2 = 0; Fs3 = 0; Fs4 = 0;
+
+	( ---- fast_random LCG state + 32x32->64 mul temps ---- )
+	FRfrs	= 0;		( flat_rnd_seed )
+	FRa	= 0; FRb = 0;
+	FRalo	= 0; FRahi = 0; FRblo = 0; FRbhi = 0;
+	FRll	= 0; FRlh = 0; FRhl = 0; FRhh = 0;
+	FRmid	= 0; FRlo = 0; FRhi = 0;
+	FRmask	= 0; FReax = 0; Fredx = 0; FRtmp = 0;
+
 "workspace"
 
 	wcorpv	= WCORPUS;
@@ -124,7 +161,14 @@
 	[Wn] = 0;
 
     "W run case"
-	( stop when fewer than 6 tokens remain for a full row )
+	( need at least an opcode token )
+	A = [Wcti]; A + 1; ? A '> [Wctokn] -> W run done;
+	=> W next; [Wop] = C;
+	A = [Wop]; ? A = WOPHP -> W do hp;
+	A = [Wop]; ? A = WOPFR -> W do frag;
+	-> W run done;
+
+    "W do hp"
 	A = [Wcti]; A + 6; ? A '> [Wctokn] -> W run done;
 	=> W next; [HPpx] = C;
 	=> W next; [HPpz] = C;
@@ -134,9 +178,34 @@
 	=> W next; [Ws4] = C;
 	=> W place surf;
 	=> HPOINT;
-	( append HPpy (the float32 bits) to the dump )
-	A = wdumpv; A + [Wdcnt]; [A] = [HPpy];
-	[Wdcnt]+;
+	C = WOPHP; => W emit; C = [HPpy]; => W emit;
+	C = 0; => W emit; C = 0; => W emit; C = 0; => W emit; C = 0; => W emit;
+	C = 0; => W emit; C = 0; => W emit; C = 0; => W emit;
+	[Wn]+;
+	-> W run case;
+
+    "W do frag"
+	( 12 tokens: x z posx posz s1 s2 s3 s4 shd ssh seed branch )
+	A = [Wcti]; A + 12; ? A '> [Wctokn] -> W run done;
+	=> W next; [FRx] = C;
+	=> W next; [FRz] = C;
+	=> W next; [FRposx] = C;
+	=> W next; [FRposz] = C;
+	=> W next; [Fs1] = C;
+	=> W next; [Fs2] = C;
+	=> W next; [Fs3] = C;
+	=> W next; [Fs4] = C;
+	=> W next; [FRshd] = C;
+	=> W next; [FRssh] = C;
+	=> W next; [FRseed] = C;
+	=> W next; [FRbranch] = C;
+	=> W frag place;
+	=> FRAGMENT;
+	C = WOPFR; => W emit;
+	C = [FRdepth]; => W emit;
+	C = [FRvy10]; => W emit; C = [FRvy11]; => W emit; C = [FRvy12]; => W emit;
+	C = [FRvy20]; => W emit; C = [FRvy21]; => W emit; C = [FRvy22]; => W emit;
+	C = [FRc1]; => W emit;
 	[Wn]+;
 	-> W run case;
 
@@ -165,6 +234,177 @@
 	A = [HPcpos]; A + 201; A + wsurfv; C = [Ws3]; C & 255; [A] = C;
 	( s4 -> wsurfv[cpos+200]  (h4) )
 	A = [HPcpos]; A + 200; A + wsurfv; C = [Ws4]; C & 255; [A] = C;
+	end;
+
+( ==================================================================== )
+( W emit - append C to wdumpv[[Wdcnt]], [Wdcnt]+                         )
+( ==================================================================== )
+
+"W emit"
+	A = wdumpv; A + [Wdcnt]; [A] = C;
+	[Wdcnt]+;
+	end;
+
+( ==================================================================== )
+( W frag place - write the 5 corner bytes into wsurfv for fragment       )
+(   h1 = x + z*200;  s1->h1  s2->h1+1  s3->h1+201  s4->h1+200            )
+(   ssh -> h1 + sh_delta                                                 )
+( ==================================================================== )
+
+"W frag place"
+	A = [FRz]; A '* 200; A + [FRx]; [FRh1] = A;
+	A = wsurfv; A + [FRh1];            C = [Fs1]; C & 255; [A] = C;
+	A = [FRh1]; A + 1;   A + wsurfv;   C = [Fs2]; C & 255; [A] = C;
+	A = [FRh1]; A + 201; A + wsurfv;   C = [Fs3]; C & 255; [A] = C;
+	A = [FRh1]; A + 200; A + wsurfv;   C = [Fs4]; C & 255; [A] = C;
+	A = [FRh1]; A + [FRshd]; A + wsurfv; C = [FRssh]; C & 255; [A] = C;
+	end;
+
+( ==================================================================== )
+( FRAGMENT - NOCTIS-1.CPP:1028-1142 (the ground vertex + depth + c1 path))
+(   grades depth (the exact-required chop #1), the six vy corner heights, )
+(   and c1 (both sh_delta and diffuse branches).  vx/vz are trivial       )
+(   integer shifts and are not emitted.                                   )
+( ==================================================================== )
+
+"FRAGMENT"
+	( vx1[0]=x<<14, vx1[1]=(x+1)<<14, vz1[0]=z<<14, vz1[2]=(z+1)<<14 )
+	A = [FRx]; A < 14; [FRvx0] = A;
+	A = [FRx]; A + 1; A < 14; [FRvx1] = A;
+	A = [FRz]; A < 14; [FRvz0] = A;
+	A = [FRz]; A + 1; A < 14; [FRvz2] = A;
+
+	( dx = pos_x - 0.5*(vx1[0]+vx1[1])  [float] )
+	[FI] = [FRvx0]; => IntToF; [FT0]=[FA0]; [FT1]=[FA1];
+	[FI] = [FRvx1]; => IntToF;
+	[FB0]=[FT0]; [FB1]=[FT1]; => FAdd;		( FA = vx0+vx1 )
+	[FB0] = WHALFLO; [FB1] = WHALFHI; => FMul;	( FA = sum*0.5 )
+	[FT0]=[FA0]; [FT1]=[FA1];			( FT = half-sum )
+	[FS0] = [FRposx]; => FLoadF32;			( FA = (double)pos_x )
+	[FB0]=[FT0]; [FB1]=[FT1]; => FSub;		( FA = pos_x - half-sum )
+	=> F32Narrow; => FStoreF32; [FRdx] = [FS0];
+
+	( dz = pos_z - 0.5*(vz1[0]+vz1[2]) )
+	[FI] = [FRvz0]; => IntToF; [FT0]=[FA0]; [FT1]=[FA1];
+	[FI] = [FRvz2]; => IntToF;
+	[FB0]=[FT0]; [FB1]=[FT1]; => FAdd;
+	[FB0] = WHALFLO; [FB1] = WHALFHI; => FMul;
+	[FT0]=[FA0]; [FT1]=[FA1];
+	[FS0] = [FRposz]; => FLoadF32;
+	[FB0]=[FT0]; [FB1]=[FT1]; => FSub;
+	=> F32Narrow; => FStoreF32; [FRdz] = [FS0];
+
+	( hpdep = sqrt(dx*dx + dz*dz) ; depth = ((long)hpdep) >> 14 )
+	[FS0]=[FRdx]; => FLoadF32; => HP fb fa; => FMul; => HP ft fa; ( FT = dx*dx )
+	[FS0]=[FRdz]; => FLoadF32; => HP fb fa; => FMul;		( FA = dz*dz )
+	[FB0]=[FT0]; [FB1]=[FT1]; => FAdd;			( FA = dx*dx+dz*dz )
+	=> FSqrt;
+	=> F32Narrow; => FStoreF32; [FRhpdep] = [FS0];
+	[FS0]=[FRhpdep]; => FLoadF32; => FToIntChop;		( FI = (long)hpdep )
+	A = [FI]; A > 14; [FRdepth] = A;			( depth = (long)hpdep >> 14 )
+
+	( cull: if depth > 64 the tile is offscreen; still emit, depth carries it )
+	( depth -= 1 ; if depth < 0 depth = 0  [happens before c1's depth>>1]
+	  the test is sign-bit driven: '>=' is UNSIGNED in lino, so a negative
+	  depth would read as a huge positive and skip the clamp. )
+	A = [FRdepth]; A - 1; [FRdepth] = A;
+	A = [FRdepth]; A > 31;			( 0 if depth>=0, nonzero if <0 )
+	? A = 0 -> FR depth ok; [FRdepth] = 0;
+    "FR depth ok"
+
+	( vy corner heights = -(surf<<11) ; surf at h1, h1+1, h1+200, h1+201
+	  vy1[0]=h1, vy1[1]=h1+1, vy1[2]=h1+200(h4), vy2[0]=h1+1(h2),
+	  vy2[1]=h1+201(h3), vy2[2]=h1+200(h4)                            )
+	A = wsurfv; A + [FRh1];             C = [A]; C & 255; C < WFRSHF;
+	A = 0; A - C; [FRvy10] = A;
+	A = [FRh1]; A + 1; A + wsurfv;      C = [A]; C & 255; C < WFRSHF;
+	A = 0; A - C; [FRvy11] = A;
+	A = [FRh1]; A + 200; A + wsurfv;    C = [A]; C & 255; C < WFRSHF;
+	A = 0; A - C; [FRvy12] = A;
+	( vy20 = vy11 (h2), vy22 = vy12 (h4) )
+	[FRvy20] = [FRvy11]; [FRvy22] = [FRvy12];
+	A = [FRh1]; A + 201; A + wsurfv;    C = [A]; C & 255; C < WFRSHF;
+	A = 0; A - C; [FRvy21] = A;
+
+	( c1 shading: sh_delta slope vs diffuse fast_random )
+	A = [FRbranch]; ? A = 0 -> FR c1 diffuse;
+	( sh_delta branch: c1 = surf[h1] - surf[h1+sh_delta] )
+	A = wsurfv; A + [FRh1]; C = [A]; C & 255; [FRtmp] = C;
+	A = [FRh1]; A + [FRshd]; A + wsurfv; C = [A]; C & 255;
+	A = [FRtmp]; A - C; [FRc1] = A;
+	-> FR c1 merge;
+    "FR c1 diffuse"
+	( fast_srand(h1 + seed) ; c1 = 8 + fast_random(7) )
+	A = [FRh1]; A + [FRseed]; [FRfrs] = A;		( arg to fast_srand )
+	=> FAST SRAND;
+	[FRmask] = 7; => FAST RANDOM;			( FReax = fast_random(7) )
+	A = 8; A + [FReax]; [FRc1] = A;
+    "FR c1 merge"
+	( if c1 < 0 c1 = 0 ; c1 += depth >> 1 ; if c1 > 32 c1 = 32.
+	  All signed: lino's '-comparisons are UNSIGNED, so the sign tests are
+	  done via arithmetic shift-right-31 (0 iff >=0). )
+	A = [FRc1]; A > 31; ? A = 0 -> FR c1 pos; [FRc1] = 0;
+    "FR c1 pos"
+	A = [FRdepth]; A > 1; [FRtmp] = A;
+	A = [FRc1]; A + [FRtmp]; [FRc1] = A;
+	( if c1 > 32 c1 = 32  <=>  if (c1 - 33) >= 0  <=>  ((c1-33)>>31) == 0 )
+	A = [FRc1]; A - 33; A > 31; ? A != 0 -> FR c1 cap; [FRc1] = 32;
+    "FR c1 cap"
+	end;
+
+( ==================================================================== )
+( FAST SRAND / FAST RANDOM - NOCTIS-0.CPP:1075-1107                      )
+(   fast_srand: flat_rnd_seed = (s & 0xFFFF0000) | ((s & 0xFFFF) | 3)    )
+(   fast_random(mask): p=s*s (u64); eax=lo, edx=hi; al fold; s += eax    )
+( ==================================================================== )
+
+"FAST SRAND"
+	A = [FRfrs]; A & 65535; A | 3; [FRalo] = A;
+	A = [FRfrs]; A > 16; A < 16; [FRahi] = A;
+	A = [FRahi]; A | [FRalo]; [FRfrs] = A;
+	end;
+
+"FAST RANDOM"
+	( p = s*s unsigned 64-bit via 16x16 partials )
+	[FRa] = [FRfrs]; [FRb] = [FRfrs]; => FR MUL64;
+	( eax = FRlo, edx = FRhi ; al = (eax + edx) & 255 ; eax = (eax&FFFFFF00)|al )
+	A = [FRlo]; [FReax] = A;
+	A = [FRlo]; A & 255; [FRtmp] = A;
+	A = [FRhi]; A & 255; A + [FRtmp]; A & 255; [FRtmp] = A;
+	A = [FReax]; A & 0FFFFFF00h; A | [FRtmp]; [FReax] = A;
+	( flat_rnd_seed += eax )
+	A = [FRfrs]; A + [FReax]; [FRfrs] = A;
+	( return eax & mask )
+	A = [FReax]; A & [FRmask]; [FReax] = A;
+	end;
+
+( ==================================================================== )
+( FR MUL64 - [FRhi]:[FRlo] <- unsigned [FRa] * [FRb], 32x32 -> 64.        )
+(   16x16 partial products; high halves taken via (s>>16)&0xFFFF so the  )
+(   decomposition is UNSIGNED even when bit 31 is set.                   )
+( ==================================================================== )
+
+"FR MUL64"
+	A = [FRa]; A > 16; A & 65535; [FRahi] = A;
+	A = [FRa]; A & 65535;        [FRalo] = A;
+	A = [FRb]; A > 16; A & 65535; [FRbhi] = A;
+	A = [FRb]; A & 65535;        [FRblo] = A;
+	A = [FRalo]; A '* [FRblo]; [FRll] = A;
+	A = [FRalo]; A '* [FRbhi]; [FRlh] = A;
+	A = [FRahi]; A '* [FRblo]; [FRhl] = A;
+	A = [FRahi]; A '* [FRbhi]; [FRhh] = A;
+	( mid = (ll>>16) + (lh&FFFF) + (hl&FFFF) )
+	A = [FRll]; A > 16;           [FRmid] = A;
+	A = [FRlh]; A & 65535; A + [FRmid]; [FRmid] = A;
+	A = [FRhl]; A & 65535; A + [FRmid]; [FRmid] = A;
+	( lo = (ll & FFFF) | (mid << 16) )
+	A = [FRll]; A & 65535; [FRlo] = A;
+	A = [FRmid]; A < 16; A | [FRlo]; [FRlo] = A;
+	( hi = hh + (lh>>16) + (hl>>16) + (mid>>16) )
+	A = [FRhh]; A + 0; [FRhi] = A;
+	A = [FRlh]; A > 16; A + [FRhi]; [FRhi] = A;
+	A = [FRhl]; A > 16; A + [FRhi]; [FRhi] = A;
+	A = [FRmid]; A > 16; A + [FRhi]; [FRhi] = A;
 	end;
 
 ( ==================================================================== )
@@ -290,6 +530,16 @@
 "HP fb fa"
 	[FB0] = [FA0];
 	[FB1] = [FA1];
+	end;
+
+"HP ft fa"
+	[FT0] = [FA0];
+	[FT1] = [FA1];
+	end;
+
+"HP fa ft"
+	[FA0] = [FT0];
+	[FA1] = [FT1];
 	end;
 
 ( ==================================================================== )

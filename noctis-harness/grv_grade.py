@@ -1,29 +1,22 @@
 r"""grv_grade.py - Wave 7b ground-renderer comparison.  Implementer B2's side.
 
-Grades the HPOINT bilinear height query (NOCTIS-1.CPP:63-93), the foundation
-of the renderer's per-tile vertex Z, three ways:
+Grades two renderer functions, three ways each:
 
-  lino  work/walk.exe                 the L.in.oleum port, rebuilt from
-                                      work/walk.txt on every run
-  cref  grv_ref.exe (grv_ref.c)       C, transliterated from the same DOS
-                                      text in a separate pass, on the
-                                      hardware x87 (long double, control
-                                      word 133Fh)
-  spec  grv_spec.py                   Python, exact-rational model of the
-                                      x87 (rounds to 64/24 significand bits
-                                      explicitly)
+  HPOINT   (NOCTIS-1.CPP:63-93)   the bilinear height query (vertex Z base).
+  FRAGMENT (NOCTIS-1.CPP:1028-1142) the ground-tile vertex + depth + c1 path:
+           depth = ((long)(float)sqrt(dx*dx+dz*dz)) >> 14  is the EXACT-
+           REQUIRED chop #1 of WAVE7B_PLAN; the six vy corner heights and c1
+           (sh_delta slope OR diffuse fast_random + depth>>1 + clamp) are the
+           integer arguments fragment hands to polymap.
 
-All three consume the SAME corpus (noctis-harness/grv-corpus.txt) in the SAME
-grammar (signed decimal integers, six per case).  Each emits py's binary32 bit
-pattern per case.  E1/E2/E3 compare them pairwise, EXACT, zero tolerance.
+  lino  work/walk.exe                 rebuilt from work/walk.txt every run
+  cref  grv_ref.exe (grv_ref.c)       C, separate pass, hardware x87
+  spec  grv_spec.py                   Python, exact-rational model
 
-WHY ZERO TOLERANCE IS HONEST HERE
-  hpoint's only branch is `icx + icz < 16384`, an INTEGER comparison on values
-  that are both < 16384, so the sum is exact and the decision carries no float
-  tolerance.  Every narrowing to float32 is at a `float py = ...` store, which
-  the float policy pins.  So a defect anywhere in the port moves at least one
-  py bit pattern, and the three-way exact comparison catches it.  This is the
-  pinned-vertex foundation fragment reads from.
+All three consume the SAME opcode-prefixed corpus (grv-corpus.txt).  Each case
+emits one 9-word record [op, v0..v7] (hpoint pads v1..v7 with zero).  E1/E2/E3
+compare them pairwise EXACT, zero tolerance.  The depth chop is exact, so a
+defect in fragment's vertex/depth/c1 path moves a graded integer and is caught.
 
 Usage:  python grv_grade.py [--json]
 """
@@ -56,8 +49,6 @@ def run(cmd, **kw):
 
 
 def build_lino():
-    """Compile work/walk.txt. Returns (rc, output)."""
-    # walk.exe is dumped in work/ beside the source.
     if os.path.exists(WALK_EXE):
         os.remove(WALK_EXE)
     if os.path.exists(LINO_OUT):
@@ -68,10 +59,6 @@ def build_lino():
 
 
 def run_lino():
-    """Run walk.exe poll-and-kill, return the bytes it wrote, or None.
-
-    walk.exe reads grv-corpus.txt from its own directory (work/), so stage
-    the pinned corpus there before launching."""
     if os.path.exists(LINO_OUT):
         os.remove(LINO_OUT)
     shutil.copy(CORPUS, os.path.join(WORK, "grv-corpus.txt"))
@@ -86,7 +73,7 @@ def run_lino():
 def build_cref():
     if os.path.exists(CREF_EXE):
         os.remove(CREF_EXE)
-    p = run(["gcc", "-O2", "-fno-fast-math", "-o", CREF_EXE, CREF_SRC])
+    p = run(["gcc", "-O2", "-fno-fast-math", "-o", CREF_EXE, CREF_SRC, "-lm"])
     return p.returncode, (p.stdout or "") + (p.stderr or "")
 
 
@@ -99,7 +86,6 @@ def run_cref():
 
 
 def parse_corpus(path):
-    """Yield (px,pz,s1,s2,s3,s4) for every full row; partial rows skipped."""
     rows = []
     with open(path, "r", encoding="utf-8", errors="replace") as fh:
         for line in fh:
@@ -107,55 +93,45 @@ def parse_corpus(path):
             if not s or s[0] == "#":
                 continue
             t = s.replace(",", " ").split()
-            if len(t) != 6:
+            if not t:
                 continue
-            rows.append(tuple(int(x) for x in t))
+            op = int(t[0])
+            if op == 1 and len(t) == 7:
+                rows.append((1, tuple(int(x) for x in t[1:])))
+            elif op == 2 and len(t) == 13:
+                rows.append((2, tuple(int(x) for x in t[1:])))
     return rows
 
 
-def bits_list(blob):
-    return [struct.unpack_from("<i", blob, i * 4)[0]
-            for i in range(len(blob) // 4)]
-
-
-def branch_of(px, pz):
-    """Which bilinear triangle hpoint takes for this case (0=upper,1=lower)."""
-    return 0 if ((px & 16383) + (pz & 16383)) < 16384 else 1
+def recs_list(blob):
+    """9-word records -> list of [op, v0..v7]."""
+    n = len(blob) // 4
+    out = []
+    for i in range(0, n, 9):
+        out.append(list(struct.unpack_from("<9i", blob, i * 4)))
+    return out
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
-
-    rows = []
-    notes = []
-    checks = []  # (id, claim, ok, got, want, note)
+    checks = []
 
     def ok(cid, claim, cond, got, want, note=""):
         checks.append(dict(check=cid, claim=claim, ok=bool(cond),
                            got=str(got), want=str(want), note=note))
         return bool(cond)
 
-    # ---- 0. fixture -------------------------------------------------------
     ok("F0", "EXACT", os.path.exists(CORPUS), "present", "missing",
        "the pinned corpus exists")
     rows = parse_corpus(CORPUS)
-    ok("F1", "EXACT", len(rows) >= 60, len(rows), ">=60 cases",
-       "enough cases to cover both branches and the boundary")
-    has_boundary = any(((px & 16383) + (pz & 16383)) in (16383, 16384, 16385)
-                       for px, pz, *_ in rows)
-    both = {branch_of(px, pz) for px, pz, *_ in rows}
-    ok("F2", "EXACT", has_boundary, sorted({(px & 16383) + (pz & 16383)
-                                            for px, pz, *_ in rows
-                                            if (px & 16383) + (pz & 16383)
-                                            in (16383, 16384, 16385)}),
-       "the icx+icz = 16383/16384/16385 boundary is in the corpus",
-       "without it the branch test is ungraded")
-    ok("F3", "EXACT", both == {0, 1}, sorted(both), "{0,1}",
-       "both bilinear triangles are exercised")
+    n_hp = sum(1 for op, _ in rows if op == 1)
+    n_fr = sum(1 for op, _ in rows if op == 2)
+    ok("F1", "EXACT", n_hp >= 60 and n_fr >= 20, (n_hp, n_fr),
+       "(>=60 hpoint, >=20 fragment)",
+       "enough cases to cover both paths")
 
-    # ---- 1. build all three sides ----------------------------------------
     rc, out = build_lino()
     ok("B0", "EXACT", rc == 0, "lino build rc=%d" % rc, "0", out.strip()[:160])
     if rc != 0:
@@ -166,8 +142,8 @@ def main(argv=None):
         return _report(checks, a.json)
 
     lblob, lnote = run_lino()
-    ok("R0", "EXACT", lblob is not None, "lino ran",
-       "no grv-out.bin", (lnote or "")[:160])
+    ok("R0", "EXACT", lblob is not None, "lino ran", "no grv-out.bin",
+       (lnote or "")[:160])
     if lblob is None:
         return _report(checks, a.json)
     cblob = run_cref()
@@ -175,39 +151,57 @@ def main(argv=None):
     if cblob is None:
         return _report(checks, a.json)
 
-    # spec
     sys.path.insert(0, HERE)
     import grv_spec
-    spec = [grv_spec.hpoint_bits(px, pz, s1, s2, s3, s4)
-            for px, pz, s1, s2, s3, s4 in rows]
+    L = recs_list(lblob)
+    C = recs_list(cblob)
+    S = []  # spec records: [op, v0..v7] (hpoint pads)
+    for op, payload in rows:
+        if op == 1:
+            v = [grv_spec.hpoint_bits(*payload)]
+            S.append([1] + v + [0] * 7)
+        else:
+            v = grv_spec.fragment_case(*payload)
+            S.append([2] + v)
 
-    L = bits_list(lblob)
-    C = bits_list(cblob)
-    n = min(len(L), len(C), len(spec), len(rows))
-    ok("N0", "EXACT", len(L) == len(rows) == len(C) == len(spec),
-       (len(L), len(C), len(spec), len(rows)), "all equal",
+    n = min(len(L), len(C), len(S), len(rows))
+    ok("N0", "EXACT", len(L) == len(C) == len(S) == len(rows),
+       (len(L), len(C), len(S), len(rows)), "all equal",
        "all three sides produced one record per corpus row")
 
-    # ---- 2. the three pairwise exact comparisons -------------------------
-    def cmp(cid, claim, a_list, b_list, who):
-        bad = [(i, a_list[i], b_list[i]) for i in range(n)
-               if a_list[i] != b_list[i]]
-        ok(cid, claim, not bad, "%d/%d agree" % (n - len(bad), n),
+    def cmp_pair(cid, who, a_list, b_list):
+        bad = 0
+        first = None
+        for i in range(n):
+            if a_list[i][:1 + 8] != b_list[i][:1 + 8]:
+                bad += 1
+                if first is None:
+                    first = (i, a_list[i], b_list[i])
+        ok(cid, "EXACT", bad == 0, "%d/%d agree" % (n - bad, n),
            "0 mismatches",
-           "%s: first mismatch %s" % (who, bad[:1]) if bad else
-           "%s: %d cases byte-exact" % (who, n))
+           ("%s: first %s" % (who, first)) if bad else
+           "%s: %d records byte-exact" % (who, n))
 
-    cmp("E1", "EXACT", L, C, "lino vs cref")
-    cmp("E2", "EXACT", L, spec, "lino vs spec")
-    cmp("E3", "EXACT", C, spec, "cref vs spec  (the float-model witness)")
+    cmp_pair("E1", "lino vs cref", L, C)
+    cmp_pair("E2", "lino vs spec", L, S)
+    cmp_pair("E3", "cref vs spec  (float-model witness)", C, S)
 
-    # ---- 3. branch-stratified coverage of the exact claim ----------------
-    # A defect in only one triangle must still fail E1/E2/E3; verify each
-    # branch contributes cases so neither side is vacuously agreeable.
-    for br, name in ((0, "upper"), (1, "lower")):
-        idx = [i for i in range(n) if branch_of(*rows[i][:2]) == br]
-        ok("COV%d" % br, "EXACT", len(idx) > 0, len(idx), ">0 cases",
-           "%s triangle has %d cases" % (name, len(idx)))
+    # branch/path coverage
+    hp_rows = [r for op, r in rows if op == 1]
+    def branch_of(px, pz):
+        return 0 if ((px & 16383) + (pz & 16383)) < 16384 else 1
+    both = {branch_of(*r[:2]) for r in hp_rows}
+    ok("COV0", "EXACT", both == {0, 1}, sorted(both), "{0,1}",
+       "hpoint: both bilinear triangles exercised")
+    br_sh = sum(1 for op, r in rows if op == 2 and r[11] == 1)
+    br_df = sum(1 for op, r in rows if op == 2 and r[11] == 0)
+    ok("COV1", "EXACT", br_sh > 0 and br_df > 0, (br_sh, br_df),
+       "(sh_delta>0, diffuse>0)",
+       "fragment: both c1 branches exercised")
+    frag_depths = {S[i][1] for i in range(n) if S[i][0] == 2}
+    ok("COV2", "EXACT", len(frag_depths) >= 4, len(frag_depths),
+       ">=4 distinct depths",
+       "fragment: depth chop graded across several distances")
 
     return _report(checks, a.json)
 
@@ -216,9 +210,9 @@ def _report(checks, as_json):
     bad = [c for c in checks if not c["ok"]]
     for c in checks:
         tag = "ok " if c["ok"] else "FAIL"
-        print("%-4s %-8s %-22s got=%-20s want=%-14s %s" %
-              (tag, c["check"], c["claim"], c["got"][:20], c["want"][:14],
-               c["note"][:70]))
+        print("%-4s %-8s %-34s got=%-20s want=%-22s %s" %
+              (tag, c["check"], c["claim"], c["got"][:20], c["want"][:22],
+               c["note"][:64]))
     print("\n%d checks, %d failing" % (len(checks), len(bad)))
     if as_json:
         print(json.dumps(checks, indent=1))

@@ -1,85 +1,123 @@
-r"""grv_mkcorpus.py - generate the pinned hpoint corpus for Wave 7b.
+r"""grv_mkcorpus.py - generate the pinned renderer corpus for Wave 7b.
 
-Each row is:  px pz s1 s2 s3 s4
-where s1..s4 are the surfacemap bytes hpoint reads at
-    cpos    (h1, row z,   col x  )
-    cpos+1  (h2, row z,   col x+1)
-    cpos+201(h3, row z+1, col x+1)
-    cpos+200(h4, row z+1, col x  )
-and cpos = (pz>>14)*200 + (px>>14).
+Two opcodes, one file:
+  op 1 (hpoint):    1 px pz s1 s2 s3 s4
+  op 2 (fragment):  2 x z posx posz s1 s2 s3 s4 shd ssh seed branch
+    posx/posz are the SIGNED DECIMAL of pos_x/pos_z's binary32 BIT PATTERN
+    (the convention all three sides share so no decimal float parser is).
 
-The corpus is DETERMINISTIC and covers:
-  * several tile rows/cols (exercises m200 indexing on both axes);
-  * sub-tile positions across the 0..16383 icx/icz range, INCLUDING the
-    icx+icz = 16383 / 16384 / 16385 boundary that selects the bilinear
-    triangle - the one branch hpoint has, and the one a float tolerance
-    cannot touch;
-  * the corners of surf-byte space (0, 1, 127, 128, 200, 255) and mixed
-    slopes, so the height interpolation is exercised both near sea level
-    and at full relief.
+DETERMINISTIC.  Covers:
+  hpoint: the icx+icz = 16383/16384/16385 boundary, both bilinear triangles,
+         m200 indexing across the grid, surf-byte corners.
+  fragment: tiles at several depths around the walker (depth 0..~10), the
+         exact-required depth chop (sqrt + (long)>>14), both c1 branches
+         (sh_delta slope and diffuse fast_random), surf-byte corners,
+         positive/negative sh_delta, and the depth>64 far cull.
 
-row = pz>>14 and col = px>>14 are kept in 0..198 so all four corners stay
-inside the 40,000-byte p_surfacemap - the honest, in-game-reachable subset
-(iperficie never walks a tile whose corners fall off the grid edge).
-
-Writes noctis-harness/grv-corpus.txt.  Re-run freely; output is byte-stable.
+Writes noctis-harness/grv-corpus.txt.  Re-run freely; byte-stable.
 """
 
 import os
+import struct
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-def tile(px14, pz14, sub=0, s=None):
-    """Build one (px,pz,s1,s2,s3,s4) row for tile (col=px14,row=pz14)
-    at sub-tile offset `sub` (applied to both axes)."""
-    if s is None:
-        s = (0, 0, 0, 0)
-    px = (px14 << 14) | (sub & 16383)
-    pz = (pz14 << 14) | (sub & 16383)
-    return (px, pz, s[0], s[1], s[2], s[3])
+def bits(f):
+    u = struct.unpack("<I", struct.pack("<f", float(f)))[0]
+    return u - 0x100000000 if u & 0x80000000 else u
 
 
-def rows():
+def hp_rows():
     out = []
-    # 1. the icx+icz boundary at three tiles, flat & sloped.
-    #    sub=8191 -> icx+icz = 16382 (upper triangle)
-    #    sub=8192 -> icx+icz = 16384 (ELSE branch, == is not <)
-    #    sub=8193 -> icx+icz = 16386 (else)
+    def tile(px14, pz14, sub=0, s=None):
+        if s is None:
+            s = (0, 0, 0, 0)
+        px = (px14 << 14) | (sub & 16383)
+        pz = (pz14 << 14) | (sub & 16383)
+        out.append((1, px, pz, s[0], s[1], s[2], s[3]))
     for sub in (0, 1, 8191, 8192, 8193, 16383):
-        out.append(tile(10, 10, sub, (30, 60, 90, 0)))
-    # 2. asymmetric icx/icz: drive one axis to the limit, the other to zero,
-    #    on both branches.
+        tile(10, 10, sub, (30, 60, 90, 0))
     for (sx, sz) in [(16383, 0), (0, 16383), (16384, 0), (0, 16384),
                      (100, 16284), (16284, 100)]:
-        out.append(((10 << 14) | sx, (10 << 14) | sz, 200, 10, 120, 240))
-    # 3. surf-byte corners at the tile centre, both branches.
+        out.append((1, (10 << 14) | sx, (10 << 14) | sz, 200, 10, 120, 240))
     for s in [(0, 0, 0, 0), (255, 255, 255, 255), (128, 128, 128, 128),
               (1, 255, 1, 255), (255, 1, 255, 1), (127, 128, 129, 200)]:
-        out.append(tile(50, 77, 4096, s))      # icx+icz = 8192 < 16384
-        out.append(tile(51, 77, 12288, s))     # icx+icz = 24576 >= 16384
-    # 4. m200 indexing across the grid: vary col and row widely.
+        tile(50, 77, 4096, s)
+        tile(51, 77, 12288, s)
     for (c, r) in [(0, 0), (1, 1), (99, 99), (198, 198), (197, 0),
                    (0, 197), (198, 1), (123, 45)]:
-        out.append(tile(c, r, 5000, (80, 100, 120, 90)))
-    # 5. one exact-relief case per row 0..49 (varied seed bytes), centre sub.
+        tile(c, r, 5000, (80, 100, 120, 90))
     for r in range(0, 50):
         s1 = (r * 7) & 255
-        out.append(((13 << 14) | 7000, (r << 14) | 7000,
+        out.append((1, (13 << 14) | 7000, (r << 14) | 7000,
                     s1, (s1 * 3) & 255, (s1 ^ 0x5A) & 255, (255 - s1) & 255))
+    return out
+
+
+def frag_rows():
+    """fragment cases.  Walker stands at tile (100,100), sub-position 8192."""
+    out = []
+    ipfx = ipfz = 100
+    pos = float((ipfx << 14) + 8192)      # walker X = Z = 1646592.0
+    pb = bits(pos)
+    # 1. tiles at depths 0..9 around the walker, varied heights, diffuse.
+    for (dx, dz) in [(0, 0), (1, 0), (0, 1), (1, 1), (-1, 0), (0, -1),
+                     (2, 0), (0, 2), (2, 2), (-2, -2), (3, 1), (1, 3),
+                     (5, 0), (0, 5), (5, 5), (-3, 4), (4, -3), (7, 7),
+                     (9, 0), (0, 9), (6, 6), (-7, 2)]:
+        x = ipfx + dx
+        z = ipfz + dz
+        s1 = (dx * 13 + 40) & 255
+        s2 = (dz * 17 + 50) & 255
+        s3 = (dx * dz + 120) & 255
+        s4 = (s1 ^ s2) & 255
+        out.append((2, x, z, pb, pb, s1, s2, s3, s4,
+                    1, (s4 + 1) & 255, 1234567, 0))
+    # 2. same tiles, sh_delta slope branch (positive and negative delta).
+    for (dx, dz, shd) in [(1, 0, 1), (0, 1, 200), (2, 2, -1), (-2, -2, -200),
+                          (4, 0, 1), (0, 4, 200), (3, 3, -1), (5, 5, 1)]:
+        x = ipfx + dx
+        z = ipfz + dz
+        s1 = (dx * 19 + 30) & 255
+        s2 = (dz * 23 + 60) & 255
+        s3 = 200
+        s4 = 100
+        out.append((2, x, z, pb, pb, s1, s2, s3, s4,
+                    shd, (s1 + 17) & 255, 9876543, 1))
+    # 3. far tiles to drive depth toward the >64 cull (depth carries it).
+    for (dx, dz) in [(20, 0), (0, 20), (30, 30), (40, 0), (50, 10), (63, 63),
+                     (64, 0), (65, 5)]:
+        out.append((2, ipfx + dx, ipfz + dz, pb, pb,
+                    80, 90, 100, 110, 1, 85, 5555555, 0))
+    # 4. diffuse branch with several seeds (exercises the LCG fold).
+    for seed in [0, 1, 42, 100000, 2147483647, -1, 7777, 123123]:
+        out.append((2, 102, 102, pb, pb, 64, 128, 192, 200, 1, 70, seed, 0))
+    # 5. DEPTH-BOUNDARY cases: walker nudged 0.4 above the tile centre so
+    #    hpdep lands at k*16384 - 0.4 (just UNDER the k-th boundary).  There
+    #    chop(hpdep) = k*16384-1 but near(hpdep) = k*16384, so depth (>>14)
+    #    flips by one - the only place the EXACT-REQUIRED depth chop is
+    #    observable.  Without these the chop is invisible to >>14.
+    pb_b = bits(float((ipfx << 14) + 8192) + 0.4)          # walker X = 1646592.4
+    pb_z = bits(float((ipfz << 14) + 8192))                # walker Z = 1646592.0
+    for k in (1, 2, 3, 4, 5):                              # tiles at distance k
+        out.append((2, ipfx + k, ipfz, pb_b, pb_z,
+                    70, 80, 90, 100, 1, 75, 24680, 0))
     return out
 
 
 def main():
     path = os.path.join(HERE, "grv-corpus.txt")
     with open(path, "w", newline="\n") as fh:
-        fh.write("# grv-corpus.txt - pinned hpoint cases (Wave 7b).\n")
-        fh.write("# row format: px pz s1 s2 s3 s4  (six signed decimals)\n")
-        fh.write("# s1=h1,cpos  s2=h2,cpos+1  s3=h3,cpos+201  s4=h4,cpos+200\n")
+        fh.write("# grv-corpus.txt - pinned renderer cases (Wave 7b).\n")
+        fh.write("# op 1: px pz s1 s2 s3 s4                 (hpoint)\n")
+        fh.write("# op 2: x z posx posz s1 s2 s3 s4 shd ssh seed branch\n")
+        fh.write("#       (posx/posz = signed decimal of the binary32 bits)\n")
         fh.write("# generated by grv_mkcorpus.py - byte-stable.\n")
-        for px, pz, s1, s2, s3, s4 in rows():
-            fh.write("%d %d %d %d %d %d\n" % (px, pz, s1, s2, s3, s4))
-    print("wrote %s (%d cases)" % (path, len(rows())))
+        for row in hp_rows() + frag_rows():
+            fh.write(" ".join(str(v) for v in row) + "\n")
+    print("wrote %s (%d hpoint + %d fragment)"
+          % (path, len(hp_rows()), len(frag_rows())))
 
 
 if __name__ == "__main__":

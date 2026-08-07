@@ -30,11 +30,42 @@ float tolerance.  This is what makes hpoint three-way byte-exact.
 """
 
 import struct
+from decimal import Decimal, getcontext
 from fractions import Fraction
 
-from su_fp import ext, f32, fr
+from su_fp import ext, f32, fr, ftol32, round_to_bits
 
 QID = Fraction(1, 16384)                     # double qid = 1.0/16384
+getcontext().prec = 80                       # ample for an 80-bit fsqrt
+
+
+def _sqrt_ext(v):
+    """sqrt at extended (64-bit significand), mirroring the x87 fsqrt under
+    PC=64.  Computed via Decimal at high precision then rounded to 64 bits."""
+    d = Decimal(v.numerator) / Decimal(v.denominator)
+    return round_to_bits(Fraction(d.sqrt()), 64)
+
+
+# ---- fast_random LCG (NOCTIS-0.CPP:1075-1107), exact unsigned model -------
+_flat_seed = 0
+
+
+def fast_srand(seed):
+    global _flat_seed
+    s = seed & 0xFFFFFFFF
+    _flat_seed = (s & 0xFFFF0000) | ((s & 0xFFFF) | 3)
+
+
+def fast_random(mask):
+    global _flat_seed
+    s = _flat_seed
+    p = s * s
+    eax = p & 0xFFFFFFFF
+    edx = (p >> 32) & 0xFFFFFFFF
+    al = (eax + edx) & 0xFF
+    eax = (eax & 0xFFFFFF00) | al
+    _flat_seed = (s + eax) & 0xFFFFFFFF
+    return eax & mask
 
 M16 = 0xFFFF
 
@@ -95,25 +126,94 @@ def hpoint_bits(px, pz, s1, s2, s3, s4):
 
 
 def run_corpus(path):
-    """Yield (px,pz,s1,s2,s3,s4,bits) for every case in the corpus text."""
+    """Yield (opcode, payload_tuple, values_list) for every case.
+
+    opcode 1 (hpoint): payload (px,pz,s1,s2,s3,s4), values [py_bits].
+    opcode 2 (fragment): payload (x,z,posx,posz,s1..s4,shd,ssh,seed,branch),
+                         values [depth, vy0..vy5, c1].
+    """
     with open(path, "r", encoding="utf-8", errors="replace") as fh:
         for line in fh:
             s = line.strip()
             if not s or s[0] == "#":
                 continue
             t = [int(x) for x in s.replace(",", " ").split()]
-            if len(t) != 6:
+            if not t:
                 continue
-            px, pz, s1, s2, s3, s4 = t
-            yield px, pz, s1, s2, s3, s4, hpoint_bits(px, pz, s1, s2, s3, s4)
+            op = t[0]
+            if op == 1 and len(t) == 7:
+                _px, _pz, _s1, _s2, _s3, _s4 = t[1], t[2], t[3], t[4], t[5], t[6]
+                yield (1, (_px, _pz, _s1, _s2, _s3, _s4),
+                       [hpoint_bits(_px, _pz, _s1, _s2, _s3, _s4)])
+            elif op == 2 and len(t) == 13:
+                vals = fragment_case(*t[1:])
+                yield (2, tuple(t[1:]), vals)
+
+
+def fragment_case(x, z, posx_bits, posz_bits,
+                  s1, s2, s3, s4, shd, ssh, seed, branch):
+    """Return [depth, vy0..vy5, c1] as integers.
+
+    FAITHFUL surf model: s1..s4 are placed at cpos, cpos+1, cpos+201, cpos+200
+    (in that order), then ssh at cpos+sh_delta (LAST, so it overwrites a corner
+    when sh_delta coincides - exactly what the real fragment sees).  vy and c1
+    read back from this placement.  depth is the exact-required chop.
+    """
+    posx = fr(struct.unpack("<f", struct.pack("<i", posx_bits))[0])
+    posz = fr(struct.unpack("<f", struct.pack("<i", posz_bits))[0])
+
+    fvx0 = f32(x << 14)
+    fvx1 = f32((x + 1) << 14)
+    fvz0 = f32(z << 14)
+    fvz2 = f32((z + 1) << 14)
+
+    half_x = ext(ext(fr(fvx0) + fr(fvx1)) * fr(0.5))
+    dx = f32(fr(posx) - half_x)
+    half_z = ext(ext(fr(fvz0) + fr(fvz2)) * fr(0.5))
+    dz = f32(fr(posz) - half_z)
+
+    dd = ext(fr(dx) * fr(dx)) + ext(fr(dz) * fr(dz))
+    hpdep = f32(_sqrt_ext(dd))
+    depth = (ftol32(hpdep) >> 14)
+    depth -= 1
+    if depth < 0:
+        depth = 0
+
+    h1 = x + z * 200
+    surf = {}                       # last-write-wins placement
+    surf[h1] = s1 & 255
+    surf[h1 + 1] = s2 & 255
+    surf[h1 + 201] = s3 & 255
+    surf[h1 + 200] = s4 & 255
+    surf[h1 + shd] = ssh & 255
+    b1 = surf[h1]
+    b2 = surf[h1 + 1]
+    b3 = surf[h1 + 201]
+    b4 = surf[h1 + 200]
+    bsh = surf[h1 + shd]
+    vy = [-(b1 << 11), -(b2 << 11), -(b4 << 11),
+          -(b2 << 11), -(b3 << 11), -(b4 << 11)]
+
+    if branch == 0:
+        fast_srand(h1 + seed)
+        c1 = 8 + fast_random(7)
+    else:
+        c1 = b1 - bsh
+    if c1 < 0:
+        c1 = 0
+    c1 += depth >> 1
+    if c1 > 32:
+        c1 = 32
+
+    return [depth] + vy + [c1]
 
 
 if __name__ == "__main__":
+    import os
     import sys
     path = sys.argv[1] if len(sys.argv) > 1 else "grv-corpus.txt"
     n = 0
-    for _px, _pz, _s1, _s2, _s3, _s4, bits in run_corpus(path):
-        print(bits)
+    for op, _payload, vals in run_corpus(path):
+        print(op, " ".join(str(v) for v in vals))
         n += 1
-    import os
     sys.stderr.write("grv_spec: %d cases from %s\n" % (n, os.path.basename(path)))
