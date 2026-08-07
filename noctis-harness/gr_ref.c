@@ -376,6 +376,97 @@ static void the_switch(int type, int sctype, int albedo)
         }
         brandom_led(500); brandom_led(2); brandom_led(150);
         break; }
+    case 3: {
+        /* Habitable — sub-switch on sctype.  Only DESERT (3) and ICY (4)
+         * are ported here; OCEAN (1) and PLAINS (2) are not yet modelled
+         * in this oracle (no painter runs for those sub-cases yet). */
+        switch (sctype) {
+        case 3: {  /* DESERT :2296-2316 */
+            long ptr;
+            n = brandom_led(100);
+            rockyground(50 + n, 5 + (n >> 4), 0);
+            /* T_SCALE = 128 (rendering param); coarse sand texture fill */
+            ptr = 65535;
+            while (ptr) { txtr[ptr] = (unsigned char)brandom_led(32); ptr--; }
+            /* rockdensity = 0, gtx = 1: flags, no draws */
+            break; }
+        case 4: {  /* ICY :2318-2380 */
+            int snowy = 0, frosty = 0;
+            long ptr;
+            switch (brandom_led(4)) {
+            case 0:
+                rockyground(15, 5, 0);
+                snowy = 1;
+                break;
+            case 1: {  /* rockyground(10+random(10), 1+random(2), 0)
+                        Borland R-to-L: random(2) then random(10) */
+                i16 t_rnd = (i16)(1 + brandom_led(2));
+                int t_rgh = 10 + brandom_led(10);
+                rockyground(t_rgh, t_rnd, 0); }
+                frosty = 1;
+                break;
+            case 2: {
+                long hp = (long)brandom_led(50) + 50;
+                while (hp) {
+                    /* round_hill(rand(200), rand(200), rand(200)+1,
+                     *            rand(75)+1, 0, 1) — Borland R-to-L draws:
+                     * random(75)[h], random(200)[r], rand(200)[cz], rand(200)[cx] */
+                    float t_h = (float)(brandom_led(75) + 1);
+                    int t_r = brandom_led(200) + 1;
+                    int t_cz = brandom_led(200);
+                    int t_cx = brandom_led(200);
+                    round_hill(t_cx, t_cz, (unsigned)t_r, t_h, 0.0f, 1);
+                    hp--;
+                }
+                snowy = 1;
+                break; }
+            case 3: {  /* rockyground(50+random(50), 3+random(3),
+                          -(random(40)+20)) — Borland R-to-L: random(40)
+                          [level], random(3) [round], random(50) [rough] */
+                i16 t_lvl = (i16)(-(brandom_led(40) + 20));
+                int t_rnd = 3 + brandom_led(3);
+                int t_rgh = 50 + brandom_led(50);
+                rockyground(t_rgh, t_rnd, t_lvl); }
+                frosty = 1;
+                break;
+            }
+            /* rock params (draws only) :2350-2352 */
+            brandom_led(500);   /* rockscaling = 200 + random(500) */
+            brandom_led(250);   /* rockpeaking = 150 + random(250) */
+            brandom_led(2);     /* rockdensity = 2 * random(2) */
+            /* similar: label — shared texture code (:2353-2379), also
+             * reached by type 8 via `goto similar` (:2579). */
+            if (snowy || frosty) {
+                /* T_SCALE = 32 */
+                n = brandom_led(16) + 16;
+                ptr = 65535;
+                while (ptr) { txtr[ptr] = (unsigned char)brandom_led(n); ptr--; }
+                n = 1 + brandom_led(3);
+                while (n) {
+                    long p = 65535 - 257;   /* reads up to txtr[p+257]=txtr[65535] */
+                    while (p) {
+                        int acc = txtr[p] + txtr[p+1] + txtr[p+256] + txtr[p+257];
+                        txtr[p] = (unsigned char)(acc >> 2);
+                        p--;
+                    }
+                    n--;
+                }
+            }
+            if (frosty) {
+                /* T_SCALE = 16 + random(48) */
+                n = brandom_led(250);
+                while (n) {
+                    /* srf_darkline(txtr, 100+random(200), -random(2), 0, 256)
+                     * Borland R-to-L: random(2)[x_trend] then random(200)[length] */
+                    int t_xt = -brandom_led(2);
+                    int t_len = 100 + brandom_led(200);
+                    srf_darkline(txtr, t_len, t_xt, 0, 256);
+                    n--;
+                }
+            }
+            break; }
+        }
+        break; }
     case 4: {
         { i16 t_lvl = (i16)(-brandom_led(5));
           int t_rnd = 3 + brandom_led(3);

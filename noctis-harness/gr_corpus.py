@@ -90,6 +90,14 @@ BUILD_CASES = [
     ("build_t2_venus",   555555, 2, 0,  80,   0,  10, 1,  0, 0),
     ("build_t3_plains",  777777, 3, 2,  30,  20,  50, 0,  0, 1),
     ("build_t3_ocean",   333333, 3, 1,  15,  10,  10, 2, -5, 0),
+    ("build_t3_desert",  555555, 3, 3,  30,  20,  50, 0,  0, 0),
+    # ICY (sctype=4): one case per switch(random(4)) sub-case.  The sub-case
+    # is selected by the FIRST brtl draw after the painter re-seed, i.e.
+    # brandom(4) under srand(gseed & 0xFFFF); seeds below force each arm.
+    ("build_t3_icy_s0",   65536, 3, 4,  15,  10,   0, 0,  0, 0),  # flat snowfield
+    ("build_t3_icy_s1",      24, 3, 4,  15,  10,   0, 0,  0, 0),  # permanent ice
+    ("build_t3_icy_s2",      48, 3, 4,  15,  10,   0, 0,  0, 0),  # snow hills
+    ("build_t3_icy_s3",      71, 3, 4,  15,  10,   0, 0,  0, 0),  # icebergs
     ("build_t4_boulder",  11111, 4, 0,  40,  60,  15, 3, -2, 0),
     ("build_t5_mars",    888888, 5, 0,  45,  35,  10, 1, -10, 0),
     ("build_t7_frozen",  444444, 7, 0,  60,  80,  10, 0, 20, 0),

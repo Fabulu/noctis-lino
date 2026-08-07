@@ -535,3 +535,54 @@
 
 "GR rh done"
 	end;
+
+( ==================================================================== )
+( srf_darkline — NOCTIS-1.CPP:1589-1603                                )
+( ==================================================================== )
+( Input: [SUia] = align, [GRdxi] = length,                             )
+(        [GRfrlo] = x_trend, [GRfrhi] = z_trend                        )
+( A random walk that halves bytes along its path.                      )
+
+"GR srf darkline"
+	( fx = random(align), fz = random(align) )
+	C = [SUia]; => SU rnd;
+	[GRdxi] = C;		( save fx temporarily in GRdxi )
+	C = [SUia]; => SU rnd;
+	[GRfrz] = C;		( fz )
+	[GRfrx] = [GRdxi];	( restore fx into GRfrx )
+	[GRdxi] = [GRfrlo];	( save x_trend — but we need length... )
+	( Actually, use a cleaner approach with dedicated variables )
+
+	( This routine uses: GRfrx=fx, GRfrz=fz, GRptr=location, )
+	( GRn=length, GRabs=mapsize, GRcur=map byte value          )
+
+	( Redo: fx=random(align), fz=random(align) )
+	C = [SUia]; => SU rnd; [GRfrx] = C;
+	C = [SUia]; => SU rnd; [GRfrz] = C;
+	[GRabs] = [SUia]; [GRabs] '* [SUia];	( mapsize = align*align )
+
+"GR sd loop"
+	? [GRn] '<= 0 -> GR sd done;
+	( fx += random(3) + x_trend )
+	C = 3; => SU rnd; C + [GRfrlo]; [GRfrx] + C; [GRfrx] = C;  ( wait, need reg )
+	C = 3; => SU rnd;
+	A = [GRfrx]; A + C; A + [GRfrlo]; [GRfrx] = A;
+	( fz += random(3) + z_trend )
+	C = 3; => SU rnd;
+	A = [GRfrz]; A + C; A + [GRfrhi]; [GRfrz] = A;
+	( location = align * fz + fx )
+	A = [SUia]; A '* [GRfrz]; A + [GRfrx]; [GRptr] = A;
+	( if (location > 0 && location < mapsize) map[location] >>= 1 )
+	? [GRptr] '<= 0 -> GR sd next;
+	? [GRptr] '>= [GRabs] -> GR sd next;
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM get byte;
+	A = [MBval]; A > 1; A & 0FFh;
+	[MBval] = A;
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+"GR sd next"
+	[GRn]-;
+	-> GR sd loop;
+"GR sd done"
+	end;

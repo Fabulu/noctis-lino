@@ -917,6 +917,131 @@ class BuildSurface(object):
         self._addtrees_and_texture(waswet)
 
     # ------------------------------------------------------------------
+    # DESERT — NOCTIS-1.CPP:2296-2316 (sctype=3)
+    # ------------------------------------------------------------------
+
+    def _desert_terrain(self):
+        """The DESERT sub-case of type 3 (sctype=3), :2296-2316.
+
+        One rockyground tuned for dunes (higher relief + more smoothing
+        yields wind-rounded shapes), then a coarse-grained sand texture.
+        Sets rockdensity=0, gtx=1 (flags, no draws).  NO quartz check and
+        NO goto similar: the DESERT arm breaks directly out of the inner
+        switch.  (The shared quartz check at :2385 is not modelled here,
+        matching the existing OCEAN/PLAINS handling.)
+        """
+        B = self.B
+        n = B.random(100, 2304)
+        self.rockyground(50 + n, 5 + (n >> 4), 0)
+        # T_SCALE = 128 (rendering param, not byte-graded)
+        ptr = 65535
+        while ptr:
+            self.txtr[ptr] = B.random(32, 2310) & 0xFF
+            ptr -= 1
+        # rockdensity = 0; gtx = 1  (flags, no draws)
+
+    # ------------------------------------------------------------------
+    # ICY — NOCTIS-1.CPP:2318-2380 (sctype=4)
+    # ------------------------------------------------------------------
+
+    def _icy_terrain(self):
+        """The ICY sub-case of type 3 (sctype=4), :2318-2380.
+
+        Four orography variants via switch(random(4)) — flat snowfield,
+        bare permanent ice, snow hills, or icebergs — setting snowy/frosty
+        accordingly.  Then three rock-param draws (:2350-2352) and the
+        shared texture processing at the `similar:` label (:2353-2379),
+        which is also reached by type 8 via `goto similar` (:2579).
+        """
+        B = self.B
+        snowy = False
+        frosty = False
+        sel = B.random(4, 2322)
+        if sel == 0:
+            # praticamente piana, distesa nevosa
+            self.rockyground(15, 5, 0)
+            snowy = True
+        elif sel == 1:
+            # brulla distesa di ghiaccio permanente
+            # rockyground(10+random(10), 1+random(2), 0)
+            # Borland R-to-L: arg2=1+random(2) drawn BEFORE arg1=10+random(10)
+            _rounding = 1 + B.random(2, 2330)
+            _roughness = 10 + B.random(10, 2330)
+            self.rockyground(_roughness, _rounding, 0)
+            frosty = True
+        elif sel == 2:
+            # colline di neve
+            ptr = B.random(50, 2334) + 50
+            while ptr:
+                # round_hill(random(200), random(200), random(200)+1, random(75)+1, 0, 1)
+                # Borland R-to-L draws: h=random(75), r=random(200), cz=random(200), cx=random(200)
+                _h = float(B.random(75, 2339) + 1)
+                _r = B.random(200, 2338) + 1
+                _cz = B.random(200, 2337)
+                _cx = B.random(200, 2336)
+                self.round_hill(_cx, _cz, _r, _h, 0.0, True)
+                ptr -= 1
+            snowy = True
+        else:  # sel == 3 — e anche icebergs
+            # rockyground(50+random(50), 3+random(3), -(random(40)+20))
+            # Borland R-to-L: level arg=-(random(40)+20), then rounding=3+random(3),
+            # then roughness=50+random(50)
+            _level = -(B.random(40, 2345) + 20)
+            _rounding = 3 + B.random(3, 2345)
+            _roughness = 50 + B.random(50, 2345)
+            self.rockyground(_roughness, _rounding, _level)
+            frosty = True
+        # qualche sasso? raro e grosso. (rock params — draws only, not byte-graded)
+        _ = B.random(500, 2350)   # rockscaling = 200 + random(500)
+        _ = B.random(250, 2351)   # rockpeaking = 150 + random(250)
+        _ = B.random(2, 2352)     # rockdensity = 2 * random(2)
+        # shared texture code at the `similar:` label
+        self._similar_texture(snowy, frosty)
+
+    # ------------------------------------------------------------------
+    # similar: label — NOCTIS-1.CPP:2353-2379 (shared texture code)
+    # ------------------------------------------------------------------
+    # Reached by ICY (sctype=4) falling through past the rock-param draws,
+    # and by type 8 via `goto similar` at :2579 (which sets snowy/frosty at
+    # :2574-2578 first).  Kept as a helper so both callers run the same code.
+
+    def _similar_texture(self, snowy, frosty):
+        """The `similar:` label, :2353-2379.
+
+        If snowy or frosty: fill txtr with random(16+random(16)), then run
+        1+random(3) box-blur passes over it (a 2D averaging filter).  If
+        frosty: additionally set T_SCALE and draw random(250) srf_darkline
+        darkening walks across the texture.
+        """
+        B = self.B
+        if snowy or frosty:
+            # T_SCALE = 32 (rendering param, not byte-graded)
+            n = B.random(16, 2355) + 16
+            ptr = 65535
+            while ptr:
+                self.txtr[ptr] = B.random(n, 2358) & 0xFF
+                ptr -= 1
+            n = 1 + B.random(3, 2361)
+            while n:
+                ptr = 65535 - 257     # = 65278; reads up to txtr[65278+257]=txtr[65535]
+                while ptr:
+                    acc = (self.txtr[ptr] + self.txtr[ptr + 1]
+                           + self.txtr[ptr + 256] + self.txtr[ptr + 257])
+                    self.txtr[ptr] = (acc >> 2) & 0xFF
+                    ptr -= 1
+                n -= 1
+        if frosty:
+            # T_SCALE = 16 + random(48) (rendering param, not byte-graded)
+            n = B.random(250, 2374)
+            while n:
+                # srf_darkline(txtr, 100+random(200), -random(2), 0, 256)
+                # Borland R-to-L: x_trend=-random(2) drawn BEFORE length=100+random(200)
+                _x_trend = -B.random(2, 2376)
+                _length = 100 + B.random(200, 2376)
+                self.srf_darkline(self.txtr, _length, _x_trend, 0, 256)
+                n -= 1
+
+    # ------------------------------------------------------------------
     # THE TYPE SWITCH — NOCTIS-1.CPP:2054-2581
     # ------------------------------------------------------------------
     # Each arm models the random draws in EXACT source order, then calls
@@ -978,6 +1103,10 @@ class BuildSurface(object):
                 self._ocean_terrain(albedo)
             elif sctype == 2:
                 self._plains_terrain()
+            elif sctype == 3:
+                self._desert_terrain()
+            elif sctype == 4:
+                self._icy_terrain()
 
         elif ip_type == 2:
             self.rockyground(10, 1, 0)
