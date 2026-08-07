@@ -1,0 +1,294 @@
+      ( *** clconsole - GOES console CLR + COMM.BIN protocol, namespace CL ***
+
+	This ports the GOES Net command dispatch (NOCTIS.CPP:469-560) and
+	the COMM.BIN protocol (NOCTIS.CPP:517-555).
+
+	In the original, run_goesnet_module() handles CLR resident (inline:
+	delete goesoutputfile), then falls through to system() for other
+	commands (DL, ST, PAR, SL).  Since L.in.oleum cannot exec DOS
+	modules, this port handles CLR natively and demonstrates the
+	COMM.BIN protocol (2-byte local target, 24-byte remote target).
+
+	COMM.BIN protocol (NOCTIS.CPP:517-555):
+	  - 2-byte file: ip_targetted (int16, decremented on read)
+	    -> triggers local (inter-planetary) travel
+	  - 24-byte file: ap_target_x/y/z (three doubles)
+	    -> triggers remote (vimana) travel
+	  - After read, COMM.BIN is removed
+
+	CLR (NOCTIS.CPP:482-485):
+	  if command starts with "CLR", delete GOESfile.TXT, skip system()	    )
+
+"directors"
+
+	program name = { clconsole };
+	unit = 32;
+
+"constants"
+
+	SZOUT	= 64;
+	SZBUF	= 32;
+
+	CLMAGIC	= 434C4F53h;  ( "CLOS" in LE — "CL" console		    )
+
+	COMMSIZE2  = 2;
+	COMMSIZE24 = 24;
+
+	( "CLR" as a little-endian unit: 'C'=43h 'L'=4Ch 'R'=52h	    )
+	CLR0	= 00524C43h;
+
+"variables"
+
+	goesfname	= { GOESFILE.TXT };
+	commname	= { COMM.BIN };
+	outname		= { CLCON.OUT };
+
+	clstat		= 0;
+	clflags		= 0;
+	svfsize		= 0;
+
+	( COMM.BIN 2-byte test: ip_targetted value			    )
+	commval		= 5;	( test value: planet index 5		    )
+
+	( COMM.BIN 24-byte test: three doubles as lo/hi pairs		    )
+	( 100.0 as double = 0x4059000000000000				    )
+	aplo1	= 0;
+	aphi1	= 40590000h;
+	( 200.0 as double = 0x4069000000000000				    )
+	aplo2	= 0;
+	aphi2	= 40690000h;
+	( 300.0 as double = 0x4072C00000000000				    )
+	aplo3	= 0;
+	aphi3	= 4072C000h;
+
+	( readback values )
+	rbval	= 0;
+	rblo1	= 0; rbhi1	= 0;
+	rblo2	= 0; rbhi2	= 0;
+	rblo3	= 0; rbhi3	= 0;
+
+"workspace"
+
+	cmbuf	= SZBUF;
+	outbuf	= SZOUT;
+
+"programme"
+
+( ==================================================================== )
+( 1. CLR: create a dummy GOESFILE.TXT, then delete it (CLR command)     )
+( ==================================================================== )
+
+	( Create GOESFILE.TXT so CLR has something to delete		    )
+	E = cmbuf;
+	A = 4F4E4B55h;	[E] = A;  ( "UNKN"				    )
+	A = 4E574E55h;	[E plus 1] = A;  ( "OWNN"			    )
+	[File Name]	= goesfname;
+	[File Command]	= WRITE;
+	[File Position]	= 0;
+	[Block Pointer]	= cmbuf;
+	[Block Size]	= 8;
+	isocall;
+	[File Name]	= goesfname;
+	[File Command]	= SET SIZE;
+	[File Size]	= 8;
+	isocall;
+
+	( Now execute CLR: delete GOESFILE.TXT by setting size to 0	    )
+	( In the C source: remove(goesoutputfile).  In lino, SET SIZE 0	    )
+	( truncates the file.  A TEST after should find size 0 or ERROR.	    )
+
+	[File Name]	= goesfname;
+	[File Command]	= SET SIZE;
+	[File Size]	= 0;
+	isocall;
+
+	( verify CLR worked: file should be gone or empty		    )
+	[File Name]	= goesfname;
+	[File Command]	= TEST;
+	isocall;
+      ? [File Status] + ERROR -> clr ok;
+      ? [File Size] = 0 -> clr ok;
+	( file still exists with nonzero size — CLR failed		    )
+	A = 0; [clstat] = A;
+	-> clr done;
+    "clr ok"
+	A = 1; [clstat] = A;
+    "clr done"
+	A = [clflags]; A | 1; [clflags] = A;
+
+( ==================================================================== )
+( 2. COMM.BIN 2-byte protocol: write ip_targetted, read it back         )
+( ==================================================================== )
+
+	( Write 2-byte COMM.BIN: commval as int16 LE			    )
+	E = cmbuf;
+	A = [commval]; [E] = A;  ( low byte in bits 0-7, high in 8-15	    )
+
+	[File Name]	= commname;
+	[File Command]	= WRITE;
+	[File Position]	= 0;
+	[Block Pointer]	= cmbuf;
+	[Block Size]	= COMMSIZE2;
+	isocall;
+
+	[File Name]	= commname;
+	[File Command]	= SET SIZE;
+	[File Size]	= COMMSIZE2;
+	isocall;
+
+	( Read it back (simulating what NOCTIS.EXE does after a GOES module) )
+	[File Name]	= commname;
+	[File Command]	= READ;
+	[File Position]	= 0;
+	[Block Pointer]	= cmbuf;
+	[Block Size]	= COMMSIZE2;
+	isocall;
+      ? [File Status] + ERROR -> comm2 fail;
+      ? [Block Size] != COMMSIZE2 -> comm2 fail;
+
+	( In the C source: ip_targetted is read as a 2-byte value, then )
+	( decremented: ip_targetted--; before use.			    )
+
+	A = [cmbuf]; A & FFFFh; [rbval] = A;
+
+      ? [rbval] = [commval] -> comm2 ok;
+	A = [clflags]; A | 0; [clflags] = A;  ( bit 1 stays clear on fail )
+	-> comm2 done;
+    "comm2 fail"
+	A = 0; [rbval] = A;
+	-> comm2 done;
+    "comm2 ok"
+	A = [clflags]; B = 2; A | B; [clflags] = A;
+    "comm2 done"
+
+	( Delete COMM.BIN as the C source does: remove(comm)		    )
+	[File Name]	= commname;
+	[File Command]	= SET SIZE;
+	[File Size]	= 0;
+	isocall;
+
+( ==================================================================== )
+( 3. COMM.BIN 24-byte protocol: write three doubles, read back          )
+( ==================================================================== )
+
+	( Write 24-byte COMM.BIN: ap_target_x/y/z as three doubles	    )
+	E = cmbuf;
+	A = [aplo1]; [E] = A; E + 1;
+	A = [aphi1]; [E] = A; E + 1;
+	A = [aplo2]; [E] = A; E + 1;
+	A = [aphi2]; [E] = A; E + 1;
+	A = [aplo3]; [E] = A; E + 1;
+	A = [aphi3]; [E] = A;
+
+	[File Name]	= commname;
+	[File Command]	= WRITE;
+	[File Position]	= 0;
+	[Block Pointer]	= cmbuf;
+	[Block Size]	= COMMSIZE24;
+	isocall;
+
+	[File Name]	= commname;
+	[File Command]	= SET SIZE;
+	[File Size]	= COMMSIZE24;
+	isocall;
+
+	( Read it back )
+	[File Name]	= commname;
+	[File Command]	= READ;
+	[File Position]	= 0;
+	[Block Pointer]	= cmbuf;
+	[Block Size]	= COMMSIZE24;
+	isocall;
+      ? [File Status] + ERROR -> comm24 fail;
+      ? [Block Size] != COMMSIZE24 -> comm24 fail;
+
+	E = cmbuf;
+	A = [E]; [rblo1] = A; E + 1;
+	A = [E]; [rbhi1] = A; E + 1;
+	A = [E]; [rblo2] = A; E + 1;
+	A = [E]; [rbhi2] = A; E + 1;
+	A = [E]; [rblo3] = A; E + 1;
+	A = [E]; [rbhi3] = A;
+
+      ? [rblo1] != [aplo1] -> comm24 fail;
+      ? [rbhi1] != [aphi1] -> comm24 fail;
+      ? [rblo2] != [aplo2] -> comm24 fail;
+      ? [rbhi2] != [aphi2] -> comm24 fail;
+      ? [rblo3] != [aplo3] -> comm24 fail;
+      ? [rbhi3] != [aphi3] -> comm24 fail;
+
+	A = [clflags]; B = 4; A | B; [clflags] = A;
+	-> comm24 done;
+
+    "comm24 fail"
+	A = 0;
+	[rblo1] = A; [rbhi1] = A;
+	[rblo2] = A; [rbhi2] = A;
+	[rblo3] = A; [rbhi3] = A;
+
+    "comm24 done"
+
+	( Delete COMM.BIN )
+	[File Name]	= commname;
+	[File Command]	= SET SIZE;
+	[File Size]	= 0;
+	isocall;
+
+( ==================================================================== )
+( 4. GOES command parser: parse "CLR" from a command buffer             )
+( ==================================================================== )
+
+	( Simulate goesnet_command = "CLR" (3 chars)			    )
+	( In the game, goesnet_command[0]='C', [1]='L', [2]='R'		    )
+	( The C source: if (!memcmp(goesnet_command, "CLR", 3)) ...	    )
+
+	( Build "CLR\0" in cmbuf					    )
+	E = cmbuf;
+	A = CLR0; [E] = A;  ( "CLR\0" as LE: 43 4C 52 00		    )
+
+	( Extract first 3 chars and compare to "CLR"			    )
+	A = [cmbuf]; A & FFFFFFh;  ( keep only first 3 bytes		    )
+      ? A = 524C43h -> clr parse ok;  ( "CLR" = 43 4C 52 LE = 0x524C43	    )
+
+	( not CLR — would fall through to system() in original		    )
+	A = [clflags]; A | 0; [clflags] = A;
+	-> clr parse done;
+
+    "clr parse ok"
+	A = [clflags]; B = 8; A | B; [clflags] = A;
+
+    "clr parse done"
+
+( ==================================================================== )
+( 5. Write output                                                       )
+( ==================================================================== )
+
+	D = outbuf;
+	A = CLMAGIC;		[D] = A; D + 1;
+	A = [clflags];		[D] = A; D + 1;
+	A = [clstat];		[D] = A; D + 1;
+	A = [rbval];		[D] = A; D + 1;
+	A = [rblo1];		[D] = A; D + 1;
+	A = [rbhi1];		[D] = A; D + 1;
+	A = [rblo2];		[D] = A; D + 1;
+	A = [rbhi2];		[D] = A; D + 1;
+	A = [rblo3];		[D] = A; D + 1;
+	A = [rbhi3];		[D] = A; D + 1;
+
+	A = D; A - outbuf; [svfsize] = A;
+
+	[File Name]	= outname;
+	[File Command]	= WRITE;
+	[File Position]	= 0;
+	[Block Pointer]	= outbuf;
+	[Block Size]	= [svfsize];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= outname;
+	[File Command]	= SET SIZE;
+	[File Size]	= [svfsize];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;

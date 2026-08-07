@@ -1,0 +1,453 @@
+      ( *** svsave - CURRENT.BIN + SURFACE.BIN freeze/unfreeze, namespace SV ***
+
+	This is a TEST PROGRAM proving the 381-byte NIV+ R2.3 CURRENT.BIN
+	layout and the 40-byte SURFACE.BIN layout.  It ports the freeze /
+	unfreeze logic of NOCTIS.CPP:450 (freeze) and :1995 (unfreeze),
+	including the hidden evolution (:2023-2081).
+
+	CURRENT.BIN layout (381 bytes = 245-byte stock prefix + 136-byte
+	NIV+ extension).  Field offsets verified byte-exact against real
+	CURRENT.BIN files from recon captures.
+
+	  STOCK PREFIX (245 bytes, the and-sync block, NO struct padding):
+	    off  field             type     off  field             type
+	     0   sync              char      25  sys              int16
+	     1   anti_rad          char      27  pwr              int16
+	     2   pl_search         char      29  dev_page         int16
+	     3   field_amplificr   char      31  ap_target_class  int16
+	     4   ilight            char      33  f_ray_elapsed    int16
+	     5   ilightv           char      35  nearstar_class   int16
+	     6   charge            char      37  nearstar_nop     int16
+	     7   revcontrols       char      39  pos_x            float32
+	     8   ap_targetting     char      43  pos_y            float32
+	     9   ap_targetted      char      47  pos_z            float32
+	    10   ip_targetting     char      51  user_alfa        float32
+	    11   ip_targetted      char      55  user_beta        float32
+	    12   ip_reaching       char      59  navigation_beta  float32
+	    13   ip_reached        char      63  ap_target_ray    float32
+	    14   ap_target_spin    char      67  nearstar_ray     float32
+	    15-21 ap_t/nearstar RGB char     71  dzat_x           double
+	    22   gburst            char      79  dzat_y           double
+	    23   menusalwayson     char      87  dzat_z           double
+	    24   depolarize        char      95-230 (8 doubles + 2 ints + char)
+	   ...                                 235 secs             double
+	   ...                                 243 data             char
+	   ...                                 244 surlight         char
+	  NIV+ EXTENSION (136 bytes):
+	   245  gnc_pos          char       370  lastSnapshot     dword
+	   246  goesfile_pos     long       374  option_mouseLook char
+	   250  goesnet_command  char[120]  375  roofspeed        int16
+	                                    377  hud_closed       char
+	                                    378  draw_hud         char
+	                                    379  lens_flare_mode  char
+	                                    380  seamless_border  char
+
+	PROOF:
+	  1. CURRENT.BIN byte-exact round-trip (read then write SVSAVE.RT).
+	  2. Extract fields via byte access then SVSAVE.OUT (layout proof).
+	  3. Hidden evolution on a synthetic state then SVSAVE.OUT.
+	  4. SURFACE.BIN byte-exact round-trip (read then write SVSAVE.SRT).   )
+
+"directors"
+
+	program name = { svsave };
+	unit = 32;
+
+"constants"
+
+	SVBUFMAX	= 100;
+	SVOUTMAX	= 64;
+	SVSRFMAX	= 12;
+
+	SVMAGIC		= 56535653h;
+
+	OFFSYNC		= 0;
+	OFFCHARGE	= 6;
+	OFFILIGHTV	= 5;
+	OFFPLSRCH	= 2;
+	OFFFIELDAMP	= 3;
+	OFFSYS		= 25;
+	OFFPWR		= 27;
+	OFFIPTGT	= 11;
+	OFFIPRCH	= 13;
+	OFFMENUSALW	= 23;
+	OFFDEPOL	= 24;
+	OFFNEARNOP	= 37;
+	OFFDZATX	= 71;
+	OFFDZATY	= 79;
+	OFFDZATZ	= 87;
+	OFFHELPTIME	= 143;
+	OFFLITHIUM	= 230;
+	OFFSECS		= 235;
+	OFFDATA		= 243;
+	OFFSURLIGHT	= 244;
+	OFFGNCPOS	= 245;
+	OFFGOESFPOS	= 246;
+	OFFLASTSNAP	= 370;
+	OFFMOUSELOOK	= 374;
+	OFFHUDCLOSED	= 377;
+
+"variables"
+
+	curname		= { CURRENT.BIN };
+	surfname	= { SURFACE.BIN };
+	rtname		= { SVSAVE.RT };
+	srtname		= { SVSAVE.SRT };
+	outname		= { SVSAVE.OUT };
+
+	svfsize		= 0;
+	svflags		= 0;
+
+	svboff		= 0;
+	svtmp		= 0;
+	svb0		= 0;
+	svb1		= 0;
+	svb2		= 0;
+	svb3		= 0;
+	svdw		= 0;
+
+	fxsync		= 0;
+	fxcharge	= 0;
+	fxilightv	= 0;
+	fxplsrch	= 0;
+	fxfieldamp	= 0;
+	fxsys		= 0;
+	fxpwr		= 0;
+	fxiptgt		= 0;
+	fxiprch		= 0;
+	fxmenusalw	= 0;
+	fxdepol		= 0;
+	fxnearnop	= 0;
+	fxlithium	= 0;
+	fxdata		= 0;
+	fxsurlight	= 0;
+	fxgncpos	= 0;
+	fxmouselook	= 0;
+	fxhudclosed	= 0;
+	fxlastsnap	= 0;
+	fxgoesfpos	= 0;
+
+	fxdzatxlo	= 0;
+	fxdzatxhi	= 0;
+	fxdzatylo	= 0;
+	fxdzatyhi	= 0;
+	fxdzatzlo	= 0;
+	fxdzatzhi	= 0;
+	fxsecslo	= 0;
+	fxsecshi	= 0;
+	fxhelptimelo	= 0;
+	fxhelptimehi	= 0;
+
+	evoid		= 0;
+	evopwrin	= 0;
+	evochgin	= 0;
+	evopwrout	= 0;
+	evochgout	= 0;
+	evdpwr		= 0;
+
+	sflon		= 0;
+	sflat		= 0;
+	sfatlx		= 0;
+	sfatlz		= 0;
+	sfatlx2		= 0;
+	sfatlz2		= 0;
+	sfposx		= 0;
+	sfposy		= 0;
+	sfposz		= 0;
+	sfunit0		= 0;
+
+"workspace"
+
+	curbuf		= SVBUFMAX;
+	srfbuf		= SVSRFMAX;
+	outbuf		= SVOUTMAX;
+
+"programme"
+
+( ==================================================================== )
+( 1. CURRENT.BIN byte-exact round-trip                                  )
+( ==================================================================== )
+
+	[File Name]	= curname;
+	[File Command]	= TEST;
+	isocall;
+      ? [File Status] + ERROR -> currtskip;
+	[svfsize] = [File Size];
+      ? [svfsize] '> 400 -> currtskip;
+
+	[File Name]	= curname;
+	[File Command]	= READ;
+	[File Position]	= 0;
+	[Block Pointer]	= curbuf;
+	[Block Size]	= [svfsize];
+	isocall;
+      ? [File Status] + ERROR -> currtskip;
+      ? [Block Size] != [svfsize] -> currtskip;
+
+	[File Name]	= rtname;
+	[File Command]	= WRITE;
+	[File Position]	= 0;
+	[Block Pointer]	= curbuf;
+	[Block Size]	= [svfsize];
+	isocall;
+      ? [File Status] + ERROR -> currtskip;
+
+	[File Name]	= rtname;
+	[File Command]	= SET SIZE;
+	[File Size]	= [svfsize];
+	isocall;
+
+	A = [svflags]; A | 1; [svflags] = A;
+
+    "currtskip"
+
+( ==================================================================== )
+( 2. Extract key fields from CURRENT.BIN buffer                         )
+( ==================================================================== )
+
+	[svboff] = OFFSYNC;	    => sv get byte; [fxsync]	= A;
+	[svboff] = OFFCHARGE;	    => sv get byte; [fxcharge]	= A;
+	[svboff] = OFFILIGHTV;	    => sv get byte; [fxilightv]	= A;
+	[svboff] = OFFPLSRCH;	    => sv get byte; [fxplsrch]	= A;
+	[svboff] = OFFFIELDAMP;	    => sv get byte; [fxfieldamp]	= A;
+	[svboff] = OFFMENUSALW;	    => sv get byte; [fxmenusalw]	= A;
+	[svboff] = OFFDEPOL;	    => sv get byte; [fxdepol]	= A;
+	[svboff] = OFFLITHIUM;	    => sv get byte; [fxlithium]	= A;
+	[svboff] = OFFDATA;	    => sv get byte; [fxdata]	= A;
+	[svboff] = OFFSURLIGHT;	    => sv get byte; [fxsurlight]	= A;
+	[svboff] = OFFGNCPOS;	    => sv get byte; [fxgncpos]	= A;
+	[svboff] = OFFMOUSELOOK;    => sv get byte; [fxmouselook]	= A;
+	[svboff] = OFFHUDCLOSED;    => sv get byte; [fxhudclosed]	= A;
+
+	[svboff] = OFFSYS;	    => sv get word; [fxsys]	= A;
+	[svboff] = OFFPWR;	    => sv get word; [fxpwr]	= A;
+	[svboff] = OFFNEARNOP;	    => sv get word; [fxnearnop]	= A;
+
+	[svboff] = OFFIPTGT;	    => sv get byte; [fxiptgt]	= A;
+	[svboff] = OFFIPRCH;	    => sv get byte; [fxiprch]	= A;
+
+	[svboff] = OFFLASTSNAP;	    => sv get dword; [fxlastsnap]	= A;
+	[svboff] = OFFGOESFPOS;	    => sv get dword; [fxgoesfpos]	= A;
+
+	[svboff] = OFFDZATX;	    => sv get dword; [fxdzatxlo]	= A;
+	A = [svboff]; A + 4; [svboff] = A;
+				    => sv get dword; [fxdzatxhi]	= A;
+
+	[svboff] = OFFDZATY;	    => sv get dword; [fxdzatylo]	= A;
+	A = [svboff]; A + 4; [svboff] = A;
+				    => sv get dword; [fxdzatyhi]	= A;
+
+	[svboff] = OFFDZATZ;	    => sv get dword; [fxdzatzlo]	= A;
+	A = [svboff]; A + 4; [svboff] = A;
+				    => sv get dword; [fxdzatzhi]	= A;
+
+	[svboff] = OFFSECS;	    => sv get dword; [fxsecslo]	= A;
+	A = [svboff]; A + 4; [svboff] = A;
+				    => sv get dword; [fxsecshi]	= A;
+
+	[svboff] = OFFHELPTIME;	    => sv get dword; [fxhelptimelo]	= A;
+	A = [svboff]; A + 4; [svboff] = A;
+				    => sv get dword; [fxhelptimehi]	= A;
+
+( ==================================================================== )
+( 3. Hidden evolution test (integer-only, elapsed=0)                    )
+( ==================================================================== )
+
+	( Scenario: pwr=12000, charge=2, ilightv=1, lithium_collector=0,
+	  ip_targetted=-1, elapsed=0.
+	  NOCTIS.CPP:2051-2081 verbatim:
+	    dpwr = pwr;                          12000
+	    if ilightv==1 then dpwr -= elapsed/84;  12000 - 0 = 12000
+	    while dpwr < 15000 do                yes
+	      if charge then dpwr += 5000; charge--
+	    pwr = dpwr                           17000
+	  Expected: pwr=17000, charge=1					    )
+
+	[evoid]		= 1;
+	[evopwrin]	= 12000;
+	[evochgin]	= 2;
+	[evdpwr]	= 12000;
+
+    "evo loop"
+      ? [evdpwr] >= 15000 -> evo done;
+      ? [evochgin] = 0 -> evo done;
+	A = [evdpwr]; A + 5000; [evdpwr] = A;
+	A = [evochgin]; A - 1; [evochgin] = A;
+	-> evo loop;
+    "evo done"
+	[evopwrout] = [evdpwr];
+	[evochgout] = [evochgin];
+
+	A = [svflags]; A | 4; [svflags] = A;
+
+( ==================================================================== )
+( 4. SURFACE.BIN byte-exact round-trip + field extraction               )
+( ==================================================================== )
+
+	[File Name]	= surfname;
+	[File Command]	= TEST;
+	isocall;
+      ? [File Status] + ERROR -> surfskip;
+      ? [File Size] != 40 -> surfskip;
+
+	[File Name]	= surfname;
+	[File Command]	= READ;
+	[File Position]	= 0;
+	[Block Pointer]	= srfbuf;
+	[Block Size]	= 40;
+	isocall;
+      ? [File Status] + ERROR -> surfskip;
+      ? [Block Size] != 40 -> surfskip;
+
+	[File Name]	= srtname;
+	[File Command]	= WRITE;
+	[File Position]	= 0;
+	[Block Pointer]	= srfbuf;
+	[Block Size]	= 40;
+	isocall;
+      ? [File Status] + ERROR -> surfskip;
+
+	[File Name]	= srtname;
+	[File Command]	= SET SIZE;
+	[File Size]	= 40;
+	isocall;
+
+	A = [svflags]; A | 2; [svflags] = A;
+
+	E = srfbuf;
+	A = [E]; A & FFFFh;		[sflon] = A;
+	A = [E]; A > 16; A & FFFFh;	[sflat] = A;
+	A = [E plus 1];			[sfatlx]  = A;
+	A = [E plus 2];			[sfatlz]  = A;
+	A = [E plus 3];			[sfatlx2] = A;
+	A = [E plus 4];			[sfatlz2] = A;
+	A = [E plus 5];			[sfposx]  = A;
+	A = [E plus 6];			[sfposy]  = A;
+	A = [E plus 7];			[sfposz]  = A;
+	A = [E];			[sfunit0] = A;
+
+    "surfskip"
+
+( ==================================================================== )
+( 5. Write results to SVSAVE.OUT                                        )
+( ==================================================================== )
+
+	D = outbuf;
+	A = SVMAGIC;			[D] = A; D + 1;
+	A = [svflags];			[D] = A; D + 1;
+	A = [svfsize];			[D] = A; D + 1;
+	A = 0;				[D] = A; D + 1;
+
+	A = [fxsync];			[D] = A; D + 1;
+	A = [fxcharge];			[D] = A; D + 1;
+	A = [fxilightv];			[D] = A; D + 1;
+	A = [fxplsrch];			[D] = A; D + 1;
+	A = [fxfieldamp];		[D] = A; D + 1;
+	A = [fxsys];			[D] = A; D + 1;
+	A = [fxpwr];			[D] = A; D + 1;
+	A = [fxiptgt];			[D] = A; D + 1;
+	A = [fxiprch];			[D] = A; D + 1;
+	A = [fxmenusalw];		[D] = A; D + 1;
+	A = [fxdepol];			[D] = A; D + 1;
+	A = [fxnearnop];			[D] = A; D + 1;
+	A = [fxlithium];			[D] = A; D + 1;
+	A = [fxdata];			[D] = A; D + 1;
+	A = [fxsurlight];			[D] = A; D + 1;
+	A = [fxgncpos];			[D] = A; D + 1;
+	A = [fxmouselook];		[D] = A; D + 1;
+	A = [fxhudclosed];			[D] = A; D + 1;
+	A = [fxlastsnap];			[D] = A; D + 1;
+	A = [fxgoesfpos];			[D] = A; D + 1;
+
+	A = [fxdzatxlo];			[D] = A; D + 1;
+	A = [fxdzatxhi];			[D] = A; D + 1;
+	A = [fxdzatylo];			[D] = A; D + 1;
+	A = [fxdzatyhi];			[D] = A; D + 1;
+	A = [fxdzatzlo];			[D] = A; D + 1;
+	A = [fxdzatzhi];			[D] = A; D + 1;
+	A = [fxsecslo];			[D] = A; D + 1;
+	A = [fxsecshi];			[D] = A; D + 1;
+	A = [fxhelptimelo];		[D] = A; D + 1;
+	A = [fxhelptimehi];		[D] = A; D + 1;
+
+	A = [evoid];			[D] = A; D + 1;
+	A = [evopwrin];			[D] = A; D + 1;
+	A = [evochgin];			[D] = A; D + 1;
+	A = [evopwrout];			[D] = A; D + 1;
+	A = [evochgout];			[D] = A; D + 1;
+
+	A = [sflon];			[D] = A; D + 1;
+	A = [sflat];			[D] = A; D + 1;
+	A = [sfatlx];			[D] = A; D + 1;
+	A = [sfatlz];			[D] = A; D + 1;
+	A = [sfatlx2];			[D] = A; D + 1;
+	A = [sfatlz2];			[D] = A; D + 1;
+	A = [sfposx];			[D] = A; D + 1;
+	A = [sfposy];			[D] = A; D + 1;
+	A = [sfposz];			[D] = A; D + 1;
+	A = [sfunit0];			[D] = A; D + 1;
+
+	[File Name]	= outname;
+	[File Command]	= WRITE;
+	[File Position]	= 0;
+	[Block Pointer]	= outbuf;
+	[Block Size]	= SVOUTMAX;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= outname;
+	[File Command]	= SET SIZE;
+	[File Size]	= SVOUTMAX;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;
+
+( ==================================================================== )
+( byte-level access subroutines for the CURRENT.BIN buffer              )
+( ==================================================================== )
+
+      ( sv get byte: read one byte at offset svboff from curbuf.
+	Result in A.  Preserves svboff, clobbers B and E.		    )
+
+"sv get byte"
+	E = curbuf;
+	A = [svboff]; A > 2; E + A;
+	A = [svboff]; A & 3; A < 3; B = A;
+	A = [E]; A > B; A & FFh;
+	end;
+
+      ( sv get word: read 16-bit LE at svboff from curbuf.
+	Result in A.  Preserves svboff.
+	Clobbers B, E, svb0, svb1, svtmp.				    )
+
+"sv get word"
+	[svtmp] = [svboff];
+	=> sv get byte;
+	[svb0] = A;
+	A = [svboff]; A + 1; [svboff] = A;
+	=> sv get byte;
+	[svb1] = A;
+	[svboff] = [svtmp];
+	A = [svb1]; A < 8; A | [svb0];
+	end;
+
+      ( sv get dword: read 32-bit LE at svboff from curbuf.
+	Result in A and svdw.  Preserves svboff.
+	Clobbers B, E, svb0..svb3, svtmp.				    )
+
+"sv get dword"
+	[svtmp] = [svboff];
+	=> sv get byte; [svb0] = A;
+	A = [svboff]; A + 1; [svboff] = A;
+	=> sv get byte; [svb1] = A;
+	A = [svboff]; A + 1; [svboff] = A;
+	=> sv get byte; [svb2] = A;
+	A = [svboff]; A + 1; [svboff] = A;
+	=> sv get byte; [svb3] = A;
+	[svboff] = [svtmp];
+	A = [svb1]; A < 8; A | [svb0]; B = A;
+	A = [svb2]; A < 16; A | B; B = A;
+	A = [svb3]; A < 24; A | B;
+	[svdw] = A;
+	end;
