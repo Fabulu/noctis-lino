@@ -73,6 +73,19 @@ result). The new test registers as `tests/test_ground.py`.
 
 ## The oracle that gates everything: the landed-view capture
 
+**✅ DONE (2026-08-07): rig built (`tests/gen/recon_w7b/`) and WORKS.** The
+single-key AUTOTYPE (`b`) is reliable headlessly — **the human DOSBox-X session
+is NOT required** (7b's biggest unknown, resolved). Two captures of the type-3
+equator site (lon 0 / lat 60) are **byte-identical** on `p_surfacemap` (40000 B),
+`p_background` (65552 B), `objectschart` (40000 B), `s_background` (64800 B) —
+the static tier-1 oracle, now binary-anchored vs NIV+ R2.3. Only `shot.BMP`
+varies 642 B (sky/horizon atmospheric noise — tier-3 ±1-texel). Two rig flags:
+`landed` is at `atl_x-1` (Borland packs char before long, no padding); `pos_y=1.0`
+(descent skipped → snaps to ground frame 1). The **'type-3 ground terrain
+unvalidated' flag is liftable**; extend the rig to other types for full coverage.
+Deliverables: `mksurface.py` (40-byte Surface.BIN), `capture_w7b.ps1`,
+`godos_w7b.ps1`, `certify_w7b.py`, extended `memfind.py`.
+
 **Feasible via the resume-from-save shortcut** (the recon's find): NOCTIS.CPP:2231-2255 —
 if `Surface.BIN` exists at startup, NOCTIS regenerates `surface()`, sets `entryflag=1`,
 calls `planetary_main()`, which reads the 40-byte save and starts `landed=1`. **The descent

@@ -39,11 +39,25 @@ but their float outputs are not byte-exact-graded in this tier.
 
 import struct
 import sys
+import math
 from fractions import Fraction
 
 import numpy as np
 
 from su_fp import ext, f32, ftol32
+
+M_PI = math.pi
+M_PI_2 = math.pi / 2
+
+# Fast float32 rounder — uses struct pack/unpack instead of Fraction arithmetic.
+# This is ~100x faster than su_fp.f32() and produces the same result for
+# all values that don't overflow/underflow float32.
+def _f32(x):
+    return struct.unpack('<f', struct.pack('<f', float(x)))[0]
+
+# Float-to-byte truncation (chop toward zero, keep low 8 bits)
+def _ftob(y):
+    return int(y) & 0xFF
 
 M16 = 0xFFFF
 M32 = 0xFFFFFFFF
@@ -558,8 +572,13 @@ class BuildSurface(object):
         self.B = Brt(self.B.keep)
         self.smap = bytearray(PS_BYTES)
         self.objs = bytearray(OC_BYTES)
+        self.txtr = bytearray(TXTR_BYTES)
         self.rec = []
         self.gates = {}
+
+        # _fmemset (txtr, 16, 65535) :1968 — fills 65535 bytes, NOT 65536
+        for i in range(65535):
+            self.txtr[i] = 16
 
         # Prologue
         out = self.prologue(gseed, ip_type, sctype, albedo, latitude)
@@ -568,10 +587,10 @@ class BuildSurface(object):
         self.F.srand(gseed)
         self.B.srand(gseed & M16)
 
-        # Rockyground
-        self.rockyground(roughness, rounding, level)
+        # Type switch (the rockyground/round_hill/etc. calls)
+        self._switch(ip_type, sctype, albedo)
 
-        # Optional plains noise add
+        # Optional plains noise add (test harness feature for the ADD-vs-ASSIGN check)
         if plains_noise:
             self.plains_noise_add()
 
@@ -580,3 +599,303 @@ class BuildSurface(object):
         out["fast_h"] = self.F.h
         out["brtl_h"] = self.B.h
         return out
+
+    # ------------------------------------------------------------------
+    # FLOAT PAINTERS — NOCTIS-1.CPP:1494-1670
+    # ------------------------------------------------------------------
+    # All float vars (dx, dz, d, y, v) are float32: every assignment
+    # rounds to 24-bit significand via f32().  Intermediate arithmetic
+    # is in extended (64-bit) via ext().  Transcendental functions use
+    # Python math (double, 53-bit) — close enough for most inputs; any
+    # divergence from the hardware x87 is at sub-ULP-of-double level and
+    # usually rounds to the same float32/byte.
+    # The final byte store is ftol32 (chop) then & 0xFF.
+
+    def round_hill(self, cx, cz, r, h, hmax, allowcanyons):
+        """NOCTIS-1.CPP:1494-1528.  Canyon mirror at :1517 is VANILLA."""
+        r = abs(int(r))
+        h_f = _f32(h)
+        hmax_f = _f32(hmax)
+        v = _f32(float(r) / M_PI_2)
+        for x in range(cx - r, cx + r):
+            for z in range(cz - r, cz + r):
+                if -1 < x < 200 and -1 < z < 200:
+                    dx = _f32(float(x - cx))
+                    dz = _f32(float(z - cz))
+                    d = _f32(math.sqrt(dx * dx + dz * dz))
+                    y = _f32(math.cos(d / v) * h_f)
+                    if y >= 0:
+                        idx = 200 * z + x
+                        y = _f32(y + float(self.smap[idx]))
+                        if allowcanyons:
+                            if y > 127:
+                                y = _f32(254.0 - y)    # LR-REJECTED canyon mirror
+                        else:
+                            if y > hmax_f:
+                                y = hmax_f
+                        self.smap[idx] = _ftob(y)
+
+    def std_crater(self, mapbuf, cx, cz, r, lim_h, h_factor, h_raiser, align):
+        """NOCTIS-1.CPP:1561-1587.  Uses sqrt, sin, pow."""
+        h = float(r) * float(h_factor)
+        r = abs(r)
+        fr = float(r)
+        for x in range(cx - r, cx + r):
+            for z in range(cz - r, cz + r):
+                if -1 < x < align and -1 < z < align:
+                    dx = float(x - cx)
+                    dz = float(z - cz)
+                    d = math.sqrt(dx * dx + dz * dz)
+                    if d <= fr:
+                        y = math.sin(M_PI * (d / fr)) * h
+                        if h_raiser != 1.0:
+                            y = math.pow(y, float(h_raiser)) if y > 0 else 0.0
+                        idx = align * z + x
+                        y += mapbuf[idx]
+                        if y < 0:
+                            y = 0
+                        if y > lim_h:
+                            y = lim_h
+                        mapbuf[idx] = int(y) & 0xFF
+
+    def srf_darkline(self, mapbuf, length, x_trend, z_trend, align):
+        """NOCTIS-1.CPP:1589-1603.  Pure integer random walk."""
+        B = self.B
+        fx = B.random(align, 1592)
+        fz = B.random(align, 1592)
+        mapsize = align * align
+        while length:
+            fx += B.random(3, 1597) + x_trend
+            fz += B.random(3, 1598) + z_trend
+            location = align * fz + fx
+            if 0 < location < mapsize:
+                mapbuf[location] >>= 1
+            length -= 1
+
+    def felisian_srf_darkline(self, mapbuf, length, x_trend, z_trend, align):
+        """NOCTIS-1.CPP:1605-1633."""
+        B = self.B
+        fx = B.random(align, 1608)
+        fz = B.random(align, 1608)
+        mapsize = align * align
+        deviation = B.random(25, 1613) - 50
+        variability = 2 + B.random(10, 1614)
+        while length:
+            fx += B.random(3, 1616) + x_trend
+            fz += B.random(3, 1617) + z_trend
+            deviation += B.random(variability, 1618) - (variability >> 1)
+            location = align * fz + fx
+            if 0 < location < mapsize:
+                peak = mapbuf[location] + deviation
+                if peak < 0:
+                    peak = 0
+                if peak > 127:
+                    peak = 127
+                for off in (0, 1, -1, align, -align):
+                    p = location + off
+                    if 0 <= p < len(mapbuf):
+                        mapbuf[p] = peak & 0xFF
+            length -= 1
+
+    def smoothterrain_n(self, passes):
+        """Wrapper to call smoothterrain from type-switch context."""
+        self.smoothterrain(passes)
+
+    # ------------------------------------------------------------------
+    # THE TYPE SWITCH — NOCTIS-1.CPP:2054-2581
+    # ------------------------------------------------------------------
+    # Each arm models the random draws in EXACT source order, then calls
+    # the painters.  p_surfacemap ops are byte-graded; txtr ops keep the
+    # draw streams synchronized.  After _fmemset(txtr, 16, 65535) at
+    # :1968, txtr[0..65534]=16, txtr[65535]=0.
+
+    def _switch(self, ip_type, sctype, albedo):
+        F, B = self.F, self.B
+        if ip_type == 1:
+            n = B.random(5, 2062)
+            if n <= 2:
+                self.rockyground(25, 4 + B.random(4, 2063), 0)
+            if n == 3:
+                self.rockyground(5 + B.random(5, 2064), 1, 1)
+            if n == 4:
+                self.rockyground(10, 2, -B.random(5, 2065))
+            n = B.random(48, 2067) + 32 - albedo
+            if n > 30: n = 30
+            if n < 0: n = 0
+            while n:
+                hf = float(B.random(32, 2073)) * 0.01
+                hr = float(B.random(20, 2073) + 5) * 0.075
+                _r = B.random(50, 2074) + 5
+                _cz = B.random(200, 2074)
+                _cx = B.random(200, 2074)
+                self.std_crater(self.smap, _cx, _cz, _r, 127, hf, hr, 200)
+                n -= 1
+            n = B.random(48, 2078) + 64 - albedo
+            if n < 0: n = 0
+            hf = 0.35
+            while n:
+                cx = B.random(200, 2082)
+                cz = B.random(200, 2083)
+                cr = B.random(32, 2084) + 10
+                self.std_crater(self.txtr, cx, cz, cr, 31, hf, 1.0, 256)
+                if cr % 2:
+                    self.std_crater(self.txtr, cx + cr // 3, cz + cr // 3,
+                                    -cr, 31, hf, 1.0, 256)
+                n -= 1
+            n = B.random(100, 2089)
+            while n:
+                self.srf_darkline(self.txtr, B.random(1000, 2091), -1, -1, 256)
+                n -= 1
+            # rock params (draws only, not byte-graded)
+            _ = B.random(2, 2095); _ = B.random(2, 2095)
+            _ = B.random(500, 2096); _ = B.random(300, 2097)
+
+        elif ip_type == 2:
+            self.rockyground(10, 1, 0)
+            n = albedo + B.random(100, 2102)
+            while n:
+                _h = float(B.random(50, 2108) + 10)
+                _r = B.random(100, 2107) + 50
+                _cz = B.random(200, 2106)
+                _cx = B.random(200, 2105)
+                self.round_hill(_cx, _cz, _r, _h, 0.0, True)
+                n -= 1
+            br = B.random(2, 2112)
+            if br == 0:
+                n = albedo + B.random(200, 2114) - B.random(100, 2114)
+                hf = float(B.random(10, 2115)) * 0.02
+                if n < 0: n = 0
+                while n:
+                    cx = B.random(256, 2118)
+                    cz = B.random(256, 2119)
+                    cr = B.random(8, 2120) + 8
+                    if B.random(2, 2121):
+                        self.std_crater(self.txtr, cx, cz, -cr, 31, hf, 1.0, 256)
+                    else:
+                        self.std_crater(self.txtr, cx, cz, cr, 31, hf, 1.0, 256)
+                    n -= 1
+            else:
+                n = albedo + B.random(500, 2129)
+                ptr = B.random(2000, 2130)
+                while n:
+                    self.srf_darkline(self.txtr, B.random(ptr, 2132), -1, -1, 256)
+                    n -= 1
+            _ = B.random(500, 2137); _ = B.random(2, 2138)
+            _ = B.random(150, 2139)
+
+        elif ip_type == 4:
+            _level = -B.random(5, 2401)
+            _rounding = 3 + B.random(3, 2401)
+            self.rockyground(15, _rounding, _level)
+            n = B.random(15, 2405)
+            while n:
+                hf = float(B.random(15, 2407) + 7)
+                # hr = hf * (flandom()*3.5+3.5)
+                hr = hf * (float(B.random(32767, 2408)) * 0.000030518 * 3.5 + 3.5)
+                ht = hr * (float(B.random(32767, 2409)) * 0.000030518 * 0.2 + 0.3)
+                if ht > 127: ht = 127
+                _cz = B.random(200, 2412)
+                _cx = B.random(200, 2411)
+                self.round_hill(_cx, _cz, int(hf), hr, ht, False)
+                n -= 1
+            self.smoothterrain(1 + B.random(2, 2419))
+            n = 64 - albedo
+            hf = 0.25
+            while n:
+                cx = B.random(150, 2430) + 25
+                cz = B.random(150, 2431) + 25
+                cr = B.random(10, 2432) + 15
+                self.std_crater(self.txtr, cx, cz, -cr, 31, hf, 1.0, 256)
+                n -= 1
+            _ = B.random(200, 2439); _ = B.random(2, 2440)
+            _ = B.random(200, 2441)
+
+        elif ip_type == 5:
+            if B.random(2, 2451):
+                n = 5 + B.random(10, 2452)
+                if albedo > 48: n //= 2
+                self.rockyground(n, 1, 0)
+            else:
+                n = 15 + B.random(32, 2457)
+                if albedo > 48: n //= 2
+                self.rockyground(n, 1, -B.random(24, 2459))
+            n = B.random(68, 2462) - albedo
+            if n > 10: n = 10
+            if n < 1: n = 1
+            while n:
+                hf = float(B.random(5, 2466)) * 0.015
+                hr = float(B.random(10, 2466) + 10) * 0.27
+                _r = B.random(35, 2469) + 5
+                _cz = B.random(200, 2469)
+                _cx = B.random(200, 2468)
+                self.std_crater(self.smap, _cx, _cz, _r, 127, hf, hr, 200)
+                n -= 1
+            _ = B.random(400, 2476); _ = B.random(250, 2477)
+            _ = B.random(2, 2478)
+            if albedo > 40 and albedo <= 50:
+                _ = B.random(2, 2489); _ = B.random(5, 2490)
+                _ = B.random(5, 2490)
+                hf = float(B.random(5, 2490)) * 0.01
+                hr = float(B.random(5, 2491) + 5) * 0.5
+                _r = 100 + B.random(10, 2494)
+                _cz = 90 + B.random(20, 2493)
+                _cx = 90 + B.random(20, 2493)
+                self.std_crater(self.smap, _cx, _cz, _r, 127, hf, hr, 200)
+            ptr = B.random(1500, 2498) + 500
+            n = albedo * 5
+            while n:
+                self.srf_darkline(self.txtr, B.random(ptr, 2501), -1, -1, 256)
+                n -= 1
+
+        elif ip_type == 7:
+            self.rockyground(10 - (albedo // 8), 0, 20 + B.random(100, 2507))
+            n = albedo - B.random(albedo, 2508) + 10
+            while n:
+                self.felisian_srf_darkline(self.smap, B.random(500, 2510),
+                                           -1, -1, 200)
+                n -= 1
+            n = albedo + B.random(200, 2513) - B.random(100, 2513)
+            if n < 0: n = 0
+            while n:
+                cx = B.random(192, 2515) + 32
+                cz = B.random(192, 2516) + 32
+                cr = B.random(16, 2517) + 16
+                self.std_crater(self.txtr, cx, cz, -cr, 31, 0.15, 1.0, 256)
+                n -= 1
+            n = (albedo + B.random(100, 2521) - B.random(50, 2521)) // 2
+            if n < 0: n = 0
+            while n:
+                _z_trend = -B.random(2, 2523)
+                _x_trend = -B.random(2, 2523)
+                _length = B.random(100, 2523)
+                self.srf_darkline(self.txtr, _length, _x_trend, _z_trend, 256)
+                n -= 1
+            _ = B.random(400, 2527); _ = B.random(200, 2528)
+            _ = B.random(2, 2529)
+
+        elif ip_type == 8:
+            if albedo < 20:
+                ptr = 100 - albedo
+                while ptr:
+                    hr = float(B.random(300, 2538))
+                    _r = B.random(5, 2541) + 2
+                    _cz = B.random(150, 2540) + 25
+                    _cx = B.random(150, 2539) + 25
+                    self.round_hill(_cx, _cz, _r, hr + 1, 127, False)
+                    ptr -= 1
+                self.smoothterrain(2 + B.random(3, 2545))
+            ptr = (100 - albedo) * 2
+            while ptr:
+                _h = float(B.random(25, 2553) + 1)
+                _r = B.random(25, 2553) + 1
+                _cz = B.random(200, 2552)
+                _cx = B.random(200, 2551)
+                self.round_hill(_cx, _cz, _r, _h, 0.0, True)
+                ptr -= 1
+            _ = B.random(300, 2560); _ = B.random(300, 2561)
+            _ = B.random(2, 2562)
+            if albedo > 40:
+                _ = B.random(2, 2569)
+                self.smoothterrain(1 + B.random(10, 2570))
+
+

@@ -43,6 +43,7 @@ typedef long double ld;
 #define PS_BYTES   40000
 #define OC_BYTES   40000
 #define ROCS_BYTE  0x00          /* ROCKS=0, nr_of_objects=0 -> all zero */
+#define M_PI_D     3.14159265358979323846
 
 /* ---- x87 ------------------------------------------------------------- */
 
@@ -133,11 +134,14 @@ static i16 brandom_led(i16 n)
 
 static unsigned char smap[PS_BYTES];
 static unsigned char objs[OC_BYTES];
+static unsigned char txtr[65536];
 
 static void reset_buffers(void)
 {
     memset(smap, 0, PS_BYTES);
     memset(objs, 0, OC_BYTES);
+    memset(txtr, 16, 65535);          /* _fmemset (txtr, 16, 65535) :1968 */
+    txtr[65535] = 0;
 }
 
 /* ---- fnv-1a over a byte buffer ---- */
@@ -165,6 +169,92 @@ static void smoothterrain(int rounding)
     }
 }
 
+/* ---- x87 transcendental wrappers (match Borland's x87 usage) -------- */
+
+static ld x_sqrt(ld x) { ld r; __asm__("fsqrt" : "=t"(r) : "0"(x)); return r; }
+static ld x_sin(ld x)  { ld r; __asm__("fsin"  : "=t"(r) : "0"(x)); return r; }
+static ld x_cos(ld x)  { ld r; __asm__("fcos"  : "=t"(r) : "0"(x)); return r; }
+
+/* ---- round_hill :1494 ----------------------------------------------- */
+
+static void round_hill(int cx, int cz, unsigned ur, float h, float hmax,
+                       signed char allowcanyons)
+{
+    int x, z;
+    int r = (int)ur;
+    if (r < 0) r = -r;                 /* abs(r) for range bounds */
+    /* v = (float)r / M_PI_2 -> float32 store */
+    float v = (float)((ld)(float)r / (M_PI_D / 2));
+    for (x = cx - r; x < cx + r; x++)
+        for (z = cz - r; z < cz + r; z++) {
+            if (x > -1 && z > -1 && x < 200 && z < 200) {
+                float dx = (float)(x - cx);
+                float dz = (float)(z - cz);
+                /* d = sqrt(dx*dx + dz*dz) -> float32 */
+                float d = (float)x_sqrt((ld)dx * (ld)dx + (ld)dz * (ld)dz);
+                /* y = cos(d / v) * h -> float32 */
+                float y = (float)(x_cos((ld)d / (ld)v) * (ld)h);
+                if (y >= 0) {
+                    int idx = 200 * z + x;
+                    /* y += surfacemap[idx] -> float32 */
+                    y = (float)((ld)y + (ld)smap[idx]);
+                    if (allowcanyons) {
+                        if (y > 127)
+                            y = (float)(254 - (ld)y);   /* LR-REJECTED canyon mirror */
+                    } else {
+                        if (y > hmax) y = hmax;
+                    }
+                    smap[idx] = (unsigned char)ftol32((ld)y);
+                }
+            }
+        }
+}
+
+/* ---- std_crater :1561 ----------------------------------------------- */
+
+static void std_crater(unsigned char *map, int cx, int cz, int r,
+                       int lim_h, float h_factor, float h_raiser, long align)
+{
+    int x, z;
+    ld h = (ld)r * (ld)h_factor;
+    r = abs(r);
+    { ld fr = (ld)r;
+    for (x = cx - r; x < cx + r; x++)
+        for (z = cz - r; z < cz + r; z++) {
+            if (x > -1 && z > -1 && x < align && z < align) {
+                ld dx = (ld)(x - cx), dz = (ld)(z - cz);
+                ld d = x_sqrt(dx * dx + dz * dz);
+                if (d <= fr) {
+                    ld y = x_sin(M_PI_D * (d / fr)) * h;
+                    if (h_raiser != 1.0f)
+                        y = (y > 0) ? powl(y, (ld)h_raiser) : (ld)0;
+                    { long idx = align * (long)z + x;
+                      y += (ld)map[idx];
+                      if (y < 0) y = 0;
+                      if (y > lim_h) y = lim_h;
+                      map[idx] = (unsigned char)(long long)y;
+                    }
+                }
+            }
+        }}
+}
+
+/* ---- srf_darkline :1589 --------------------------------------------- */
+
+static void srf_darkline(unsigned char *map, int length,
+                         int x_trend, int z_trend, long align)
+{
+    int fx = brandom_led((i16)align), fz = brandom_led((i16)align);
+    long mapsize = align * align;
+    while (length) {
+        fx += brandom_led(3) + x_trend;
+        fz += brandom_led(3) + z_trend;
+        { long location = align * (long)fz + fx;
+          if (location > 0 && location < mapsize) map[location] >>= 1; }
+        length--;
+    }
+}
+
 /* ---- rockyground :1545 ---------------------------------------------- */
 
 static void rockyground(int roughness, int rounding, i16 level)
@@ -186,6 +276,225 @@ static void rockyground(int roughness, int rounding, i16 level)
         } else {
             smap[i] = 0;
         }
+    }
+}
+
+/* ---- felisian_srf_darkline :1605 ----------------------------------- */
+
+static void felisian_srf_darkline(unsigned char *map, int length,
+                                  int x_trend, int z_trend, long align)
+{
+    int fx = brandom_led((i16)align), fz = brandom_led((i16)align);
+    int deviation = brandom_led(25) - 50;
+    int variability = 2 + brandom_led(10);
+    long mapsize = align * align;
+    while (length) {
+        fx += brandom_led(3) + x_trend;
+        fz += brandom_led(3) + z_trend;
+        deviation += brandom_led((i16)variability) - (variability >> 1);
+        { long location = align * (long)fz + fx;
+          if (location > 0 && location < mapsize) {
+              int peak = (int)map[location] + deviation;
+              if (peak < 0) peak = 0;
+              if (peak > 127) peak = 127;
+              map[location] = (unsigned char)peak;
+              if (location+1 < mapsize) map[location+1] = (unsigned char)peak;
+              if (location-1 > 0) map[location-1] = (unsigned char)peak;
+              if (location+align < mapsize) map[location+align] = (unsigned char)peak;
+              if (location-align > 0) map[location-align] = (unsigned char)peak;
+          }}
+        length--;
+    }
+}
+
+/* ---- the type switch :2054-2581 ------------------------------------ */
+
+static void the_switch(int type, int sctype, int albedo)
+{
+    int n, cx, cz, cr;
+    float hf, hr, ht;
+
+    switch (type) {
+    case 1: {
+        n = brandom_led(5);
+        if (n <= 2) rockyground(25, 4 + brandom_led(4), 0);
+        if (n == 3) rockyground(5 + brandom_led(5), 1, 1);
+        if (n == 4) rockyground(10, 2, (i16)(-brandom_led(5)));
+        n = brandom_led(48) + 32 - albedo;
+        if (n > 30) n = 30;
+        if (n < 0) n = 0;
+        while (n) {
+            hf = (float)((ld)brandom_led(32) * 0.01);
+            hr = (float)((ld)(brandom_led(20) + 5) * 0.075);
+            { int t_r = brandom_led(50) + 5;
+              int t_cz = brandom_led(200);
+              int t_cx = brandom_led(200);
+              std_crater(smap, t_cx, t_cz, t_r, 127, hf, hr, 200); }
+            n--;
+        }
+        n = brandom_led(48) + 64 - albedo;
+        if (n < 0) n = 0;
+        hf = 0.35f;
+        while (n) {
+            cx = brandom_led(200); cz = brandom_led(200);
+            cr = brandom_led(32) + 10;
+            std_crater(txtr, cx, cz, cr, 31, hf, 1.0f, 256);
+            if (cr % 2) std_crater(txtr, cx+cr/3, cz+cr/3, -cr, 31, hf, 1.0f, 256);
+            n--;
+        }
+        n = brandom_led(100);
+        while (n) { srf_darkline(txtr, brandom_led(1000), -1, -1, 256); n--; }
+        brandom_led(2); brandom_led(2);
+        brandom_led(500); brandom_led(300);
+        break; }
+    case 2: {
+        rockyground(10, 1, 0);
+        n = albedo + brandom_led(100);
+        while (n) {
+            { float t_h = (float)(brandom_led(50) + 10);
+              int t_r = brandom_led(100) + 50;
+              int t_cz = brandom_led(200);
+              int t_cx = brandom_led(200);
+              round_hill(t_cx, t_cz, t_r, t_h, 0.0f, 1); }
+            n--;
+        }
+        if (brandom_led(2) == 0) {
+            n = albedo + brandom_led(200) - brandom_led(100);
+            hf = (float)((ld)brandom_led(10) * 0.02);
+            if (n < 0) n = 0;
+            while (n) {
+                cx = brandom_led(256); cz = brandom_led(256);
+                cr = brandom_led(8) + 8;
+                if (brandom_led(2)) std_crater(txtr, cx, cz, -cr, 31, hf, 1.0f, 256);
+                else std_crater(txtr, cx, cz, cr, 31, hf, 1.0f, 256);
+                n--;
+            }
+        } else {
+            n = albedo + brandom_led(500);
+            { int ptr = brandom_led(2000);
+              while (n) { srf_darkline(txtr, brandom_led(ptr), -1, -1, 256); n--; } }
+        }
+        brandom_led(500); brandom_led(2); brandom_led(150);
+        break; }
+    case 4: {
+        { i16 t_lvl = (i16)(-brandom_led(5));
+          int t_rnd = 3 + brandom_led(3);
+          rockyground(15, t_rnd, t_lvl); }
+        n = brandom_led(15);
+        while (n) {
+            float fl1, fl2;
+            hf = (float)(brandom_led(15) + 7);
+            fl1 = (float)((ld)(float)brandom_led(32767) * 0.000030518);
+            hr = (float)((ld)hf * ((ld)fl1 * 3.5 + 3.5));
+            fl2 = (float)((ld)(float)brandom_led(32767) * 0.000030518);
+            ht = (float)((ld)hr * ((ld)fl2 * 0.2 + 0.3));
+            if (ht > 127) ht = 127;
+            { int t_cz = brandom_led(200);
+              int t_cx = brandom_led(200);
+              round_hill(t_cx, t_cz, (unsigned)ftol32((ld)hf), hr, ht, 0); }
+            n--;
+        }
+        smoothterrain(1 + brandom_led(2));
+        n = 64 - albedo;
+        hf = 0.25f;
+        while (n) {
+            cx = brandom_led(150) + 25; cz = brandom_led(150) + 25;
+            cr = brandom_led(10) + 15;
+            std_crater(txtr, cx, cz, -cr, 31, hf, 1.0f, 256);
+            n--;
+        }
+        brandom_led(200); brandom_led(2); brandom_led(200);
+        break; }
+    case 5: {
+        if (brandom_led(2)) {
+            n = 5 + brandom_led(10);
+            if (albedo > 48) n /= 2;
+            rockyground(n, 1, 0);
+        } else {
+            n = 15 + brandom_led(32);
+            if (albedo > 48) n /= 2;
+            rockyground(n, 1, (i16)(-brandom_led(24)));
+        }
+        n = brandom_led(68) - albedo;
+        if (n > 10) n = 10;
+        if (n < 1) n = 1;
+        while (n) {
+            hf = (float)((ld)brandom_led(5) * 0.015);
+            hr = (float)((ld)(brandom_led(10) + 10) * 0.27);
+            { int t_r = brandom_led(35) + 5;
+              int t_cz = brandom_led(200);
+              int t_cx = brandom_led(200);
+              std_crater(smap, t_cx, t_cz, t_r, 127, hf, hr, 200); }
+            n--;
+        }
+        brandom_led(400); brandom_led(250); brandom_led(2);
+        if (albedo > 40 && albedo <= 50) {
+            brandom_led(2); brandom_led(5); brandom_led(5);
+            hf = (float)((ld)brandom_led(5) * 0.01);
+            hr = (float)((ld)(brandom_led(5) + 5) * 0.5);
+            { int t_r = 100 + brandom_led(10);
+              int t_cz = 90 + brandom_led(20);
+              int t_cx = 90 + brandom_led(20);
+              std_crater(smap, t_cx, t_cz, t_r, 127, hf, hr, 200); }
+        }
+        { int ptr = brandom_led(1500) + 500;
+          n = albedo * 5;
+          while (n) { srf_darkline(txtr, brandom_led(ptr), -1, -1, 256); n--; } }
+        break; }
+    case 7: {
+        rockyground(10 - (albedo / 8), 0, (i16)(20 + brandom_led(100)));
+        n = albedo - brandom_led(albedo) + 10;
+        while (n) {
+            felisian_srf_darkline(smap, brandom_led(500), -1, -1, 200);
+            n--;
+        }
+        n = albedo + brandom_led(200) - brandom_led(100);
+        if (n < 0) n = 0;
+        while (n) {
+            cx = brandom_led(192) + 32; cz = brandom_led(192) + 32;
+            cr = brandom_led(16) + 16;
+            std_crater(txtr, cx, cz, -cr, 31, 0.15f, 1.0f, 256);
+            n--;
+        }
+        n = (albedo + brandom_led(100) - brandom_led(50)) / 2;
+        if (n < 0) n = 0;
+        while (n) {
+            { int t_zt = -brandom_led(2);
+              int t_xt = -brandom_led(2);
+              int t_len = brandom_led(100);
+              srf_darkline(txtr, t_len, t_xt, t_zt, 256); }
+            n--;
+        }
+        brandom_led(400); brandom_led(200); brandom_led(2);
+        break; }
+    case 8: {
+        if (albedo < 20) {
+            int ptr = 100 - albedo;
+            while (ptr) {
+                hr = (float)brandom_led(300);
+                { int t_r = brandom_led(5) + 2;
+                  int t_cz = brandom_led(150) + 25;
+                  int t_cx = brandom_led(150) + 25;
+                  round_hill(t_cx, t_cz, t_r, hr + 1, 127, 0); }
+                ptr--;
+            }
+            smoothterrain(2 + brandom_led(3));
+        }
+        { int ptr = (100 - albedo) * 2;
+          while (ptr) {
+              { float t_h = (float)(brandom_led(25) + 1);
+                int t_r = brandom_led(25) + 1;
+                int t_cz = brandom_led(200);
+                int t_cx = brandom_led(200);
+                round_hill(t_cx, t_cz, t_r, t_h, 0.0f, 1); }
+              ptr--;
+          }}
+        brandom_led(300); brandom_led(300); brandom_led(2);
+        if (albedo > 40) {
+            brandom_led(2);
+            smoothterrain(1 + brandom_led(10));
+        }
+        break; }
     }
 }
 
@@ -339,18 +648,16 @@ int main(int argc, char **argv)
 
             fast_n = brtl_n = 0;
             fast_h = brtl_h = FNV_OFF;
+            fast_h = brtl_h = FNV_OFF;
             reset_buffers();
 
             build_prologue(gseed, ip_type, sctype, albedo, latitude);
 
-            /* Re-seed for the painters.  In the real game this is
-               landing_pt_lat * landing_pt_lon (:2051-2052); here we re-seed
-               from gseed to keep the corpus self-contained — the painter
-               algorithm is what is under test, not the seed derivation. */
+            /* Re-seed for the painters. */
             fast_srand(gseed);
             bsrand((u16)(gseed & 0xFFFF));
 
-            rockyground(roughness, rounding, (i16)level);
+            the_switch(ip_type, sctype, albedo);
 
             if (plains_noise)
                 plains_noise_add();
