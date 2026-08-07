@@ -307,6 +307,90 @@ static void felisian_srf_darkline(unsigned char *map, int length,
     }
 }
 
+/* ---- asterism :1635 ------------------------------------------------- */
+
+static void asterism(unsigned char *map, int x, int y,
+                     int base, int variation, int density,
+                     int size, long align)
+{
+    if (density <= 0) return;
+    {
+        float ad = (float)(M_PI_D * 2.0 / (double)(float)density);
+        float ang = 0.0f;
+        while ((double)ang < M_PI_D * 2.0) {
+            float shift_d = (float)((double)(float)brandom_led(1000) / 1000.0);
+            shift_d = (float)((double)shift_d * (double)size);
+            if (shift_d >= 1.0f) {
+                float var = (float)((double)variation / (double)shift_d);
+                float color = (float)base;
+                while (shift_d > 0) {
+                    long sx = (long)(x_cos((ld)ang) * (ld)shift_d + x);
+                    long sy = (long)(x_sin((ld)ang) * (ld)shift_d + y);
+                    if (sx > 0 && sy > 0 && sx < align && sy < align) {
+                        long sp = sy * align + sx;
+                        map[sp] = (unsigned char)(long)(double)color;
+                    }
+                    color = (float)((double)color + (double)var);
+                    shift_d = (float)((double)shift_d - 1.0);
+                }
+            }
+            ang = (float)((double)ang + (double)ad);
+        }
+    }
+}
+
+/* ---- addtrees_and_texture (shared :2235-2294) ----------------------- */
+
+static int g_waswet = 0;
+static int g_liquid_water = 0;
+
+static void addtrees_and_texture(int waswet)
+{
+    i32 i;
+    long ptr;
+    int n, nn;
+
+    /* vegetation assignment :2238-2253 */
+    nn = brandom_led(6);
+    for (i = 0; i < OC_BYTES; i++) {
+        int cls = smap[i] / 25;
+        unsigned nr = objs[i] & 3;
+        unsigned obj0 = (objs[i] >> 2) & 3;
+        switch (cls) {
+        case 0: objs[i] = (unsigned char)(nr | (obj0<<2) | (1<<4) | (1<<6)); break;
+        case 1: objs[i] = (unsigned char)(nr | (obj0<<2) | (1<<4) | (2<<6)); break;
+        case 2: objs[i] = (unsigned char)(nr | (obj0<<2) | (2<<4) | (2<<6)); break;
+        default: objs[i] = (unsigned char)(nr | (2<<2) | (2<<4) | (2<<6)); break;
+        }
+    }
+    /* grass texture :2255-2261 */
+    nn = brandom_led(15) + 2;
+    ptr = 65535;
+    while (ptr) { txtr[ptr] = (unsigned char)brandom_led(nn); ptr--; }
+    /* asterism :2262-2268 */
+    nn = 100 + brandom_led(500);
+    while (nn) {
+        int t_sz = brandom_led(15) + 6;
+        int t_dn = brandom_led(25) + 6;
+        int t_var = brandom_led(16);
+        int t_base = brandom_led(16);
+        int t_y = brandom_led(256);
+        int t_x = brandom_led(256);
+        asterism(txtr, t_x, t_y, t_base, t_var, t_dn, t_sz, 256);
+        nn--;
+    }
+    /* noise add :2280-2283 — the LR ADD-vs-ASSIGN defect */
+    if (!waswet || (waswet && !brandom_led(5))) {
+        for (i = 0; i < OC_BYTES; i++) {
+            int v = smap[i] + (int)(fast_raw(3) & 0xFF);
+            if (v > 255) v = 255;
+            smap[i] = (unsigned char)v;
+        }
+    }
+    /* rock params :2285-2287 */
+    brandom_led(200); brandom_led(200); brandom_led(2);
+}
+
 /* ---- the type switch :2054-2581 ------------------------------------ */
 
 static void the_switch(int type, int sctype, int albedo)
@@ -377,10 +461,115 @@ static void the_switch(int type, int sctype, int albedo)
         brandom_led(500); brandom_led(2); brandom_led(150);
         break; }
     case 3: {
-        /* Habitable — sub-switch on sctype.  Only DESERT (3) and ICY (4)
-         * are ported here; OCEAN (1) and PLAINS (2) are not yet modelled
-         * in this oracle (no painter runs for those sub-cases yet). */
+        /* Habitable — sub-switch on sctype */
         switch (sctype) {
+        case 1: {  /* OCEAN :2151-2204 */
+            if (albedo > 20) {
+                /* goto revert → PLAINS terrain with waswet=1 */
+                g_waswet = 1;
+                /* revert label: terrain + addtrees */
+                if (brandom_led(2)) { /* plains */
+                    long hp = (long)brandom_led(50) + 5;
+                    while (hp) {
+                        float t_h = (float)(brandom_led(30) + 1);
+                        int t_r = brandom_led(200) + 1;
+                        int t_cz = brandom_led(200);
+                        int t_cx = brandom_led(200);
+                        round_hill(t_cx, t_cz, (unsigned)t_r, t_h, 0.0f, 1);
+                        hp--;
+                    }
+                } else { /* mountains */
+                    long hp = (long)brandom_led(25) + 10;
+                    while (hp) {
+                        float t_h = (float)(brandom_led(100) + 1);
+                        int t_r = brandom_led(200) + 1;
+                        int t_cz = brandom_led(200);
+                        int t_cx = brandom_led(200);
+                        round_hill(t_cx, t_cz, (unsigned)t_r, t_h, 0.0f, 1);
+                        hp--;
+                    }
+                }
+                addtrees_and_texture(1);
+            } else if (albedo > 16) {
+                if (brandom_led(2)) {
+                    i16 t_rnd = (i16)brandom_led(2);
+                    rockyground(10, t_rnd, -5);
+                }
+                if (!brandom_led(3)) {
+                    /* island */
+                    int icx = brandom_led(100) + 50;
+                    int icz = brandom_led(100) + 50;
+                    float t_h1 = (float)(brandom_led(10) + 1);
+                    int t_r1 = brandom_led(100) + 25;
+                    int t_czo = brandom_led(15);
+                    int t_cxo = brandom_led(15);
+                    round_hill(icx+t_cxo, icz+t_czo, (unsigned)t_r1, t_h1, 0.0f, 1);
+                    float t_h2 = (float)(brandom_led(100) + 1);
+                    int t_r2 = brandom_led(100) + 25;
+                    round_hill(icx, icz, (unsigned)t_r2, t_h2, 0.0f, 1);
+                    g_waswet = 1;
+                    addtrees_and_texture(1);
+                } else {
+                    /* full ocean: sandy texture */
+                    long ptr;
+                    int nn = brandom_led(30) + 2;
+                    ptr = 65535;
+                    while (ptr) { txtr[ptr] = (unsigned char)brandom_led(nn); ptr--; }
+                    brandom_led(75); brandom_led(25);
+                    brandom_led(3);
+                    g_liquid_water = 1;
+                }
+            } else {
+                /* albedo <= 16: open ocean, check island */
+                if (!brandom_led(3)) {
+                    int icx = brandom_led(100) + 50;
+                    int icz = brandom_led(100) + 50;
+                    float t_h1 = (float)(brandom_led(10) + 1);
+                    int t_r1 = brandom_led(100) + 25;
+                    int t_czo = brandom_led(15);
+                    int t_cxo = brandom_led(15);
+                    round_hill(icx+t_cxo, icz+t_czo, (unsigned)t_r1, t_h1, 0.0f, 1);
+                    float t_h2 = (float)(brandom_led(100) + 1);
+                    int t_r2 = brandom_led(100) + 25;
+                    round_hill(icx, icz, (unsigned)t_r2, t_h2, 0.0f, 1);
+                    g_waswet = 1;
+                    addtrees_and_texture(1);
+                } else {
+                    long ptr;
+                    int nn = brandom_led(30) + 2;
+                    ptr = 65535;
+                    while (ptr) { txtr[ptr] = (unsigned char)brandom_led(nn); ptr--; }
+                    brandom_led(75); brandom_led(25);
+                    brandom_led(3);
+                    g_liquid_water = 1;
+                }
+            }
+            break; }
+        case 2: {  /* PLAINS :2207-2294 */
+            g_waswet = 0;
+            if (brandom_led(2)) { /* plains */
+                long hp = (long)brandom_led(50) + 5;
+                while (hp) {
+                    float t_h = (float)(brandom_led(30) + 1);
+                    int t_r = brandom_led(200) + 1;
+                    int t_cz = brandom_led(200);
+                    int t_cx = brandom_led(200);
+                    round_hill(t_cx, t_cz, (unsigned)t_r, t_h, 0.0f, 1);
+                    hp--;
+                }
+            } else { /* mountains */
+                long hp = (long)brandom_led(25) + 10;
+                while (hp) {
+                    float t_h = (float)(brandom_led(100) + 1);
+                    int t_r = brandom_led(200) + 1;
+                    int t_cz = brandom_led(200);
+                    int t_cx = brandom_led(200);
+                    round_hill(t_cx, t_cz, (unsigned)t_r, t_h, 0.0f, 1);
+                    hp--;
+                }
+            }
+            addtrees_and_texture(0);
+            break; }
         case 3: {  /* DESERT :2296-2316 */
             long ptr;
             n = brandom_led(100);
@@ -590,8 +779,7 @@ static void the_switch(int type, int sctype, int albedo)
 }
 
 /* ---- post-switch :2583-2599 — felisian crevasses + smoothing ------- */
-
-static int g_liquid_water = 0;
+/* g_liquid_water declared above with g_waswet */
 
 static void post_switch(void)
 {
@@ -785,10 +973,10 @@ int main(int argc, char **argv)
             fast_srand(gseed);
             bsrand((u16)(gseed & 0xFFFF));
 
+            g_liquid_water = 0;  /* reset before switch (:1993 in source) */
             the_switch(ip_type, sctype, albedo);
 
             /* post-switch: felisian crevasses + smoothing + inclination */
-            g_liquid_water = 0;
             post_switch();
             objects_inclination();
             if (g_liquid_water) {

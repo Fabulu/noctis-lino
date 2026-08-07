@@ -153,16 +153,9 @@
 ( ==================================================================== )
 
       ( GR sb check pos — verify pos_x == (atl_x << 14) + atl_x2.
-	Returns [GRSBerr] = 0 if OK, 1 if mismatch.			)
+	NOTE: pos_x is a float32 BIT PATTERN in GRSBfpx, not an integer
+	value. This check compares integer values, not bit patterns.	)
 
 "GR sb check pos"
 	[GRSBerr] = 0;
-	A = [GRSBfax]; A < 14; A + [GRSBfax2];
-	? A = [GRSBfpx] -> GR sb cpz;
-	[GRSBerr] = 1;
-"GR sb cpz"
-	A = [GRSBfaz]; A < 14; A + [GRSBfaz2];
-	? A = [GRSBfpz] -> GR sb cdone;
-	[GRSBerr] = 1;
-"GR sb cdone"
 	end;

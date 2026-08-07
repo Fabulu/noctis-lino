@@ -69,7 +69,8 @@ MUTATIONS = [
     ("BUILD_ASSIGN", "gr_spec.py",
      "v = self.smap[i] + F.raw(3, 2282)",
      "v = F.raw(3, 2282)",
-     "ASSIGN the plains noise instead of ADDing it (niv-lr's bug at :2280)"),
+     "ASSIGN the plains noise instead of ADDing it (niv-lr's bug at :2280) — "
+     "catches BOTH occurrences (plains_noise_add AND _addtrees_and_texture)"),
 
     ("BUILD_SKIPPROL", "gr_spec.py",
      "_ = B.random(32767, 2005)   # flandom() for treepeaking",
@@ -168,7 +169,7 @@ def main():
                 if old not in s:
                     print("%-20s %-30s %s" % (name, "EDIT DID NOT APPLY", why))
                     continue
-                s = s.replace(old, new, 1)
+                s = s.replace(old, new)
                 open(p, "w", encoding="utf-8").write(s)
                 sys.path.insert(0, tmp)
                 for m in ("gr_spec", "su_fp"):

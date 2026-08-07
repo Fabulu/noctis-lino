@@ -146,7 +146,7 @@ def main(argv=None):
     rows = gr_corpus.all_cases()
     spc = os.path.join(SAND, "gr_corpus.spc")
     gr_corpus.write_spc(spc, rows)
-    chk.ok(len(rows) == 29, "R0 fixture: %d cases" % len(rows),
+    chk.ok(len(rows) >= 29, "R0 fixture: %d cases" % len(rows),
            "types " + ",".join(str(r.get("ip_type", r.get("type", "?"))) for r in rows if r["kind"] == "build"))
 
     # ---- build + run cref ----
@@ -204,9 +204,8 @@ def main(argv=None):
            "B1 spec==cref on SURFACE.BIN (%d/%d) + seed chop (%d/%d)"
            % (sbbin_n, sbbin_n, seed_n, seed_n),
            ", ".join(bad[:3]) if bad else "all ok")
-    chk.ok(b_map + b_obj >= 2 * build_n - 6,
-           "B2 spec==cref on build map (%d/%d) + objects (%d/%d)  "
-           "[type-3 failures expected: cref lacks type-3 code]"
+    chk.ok(b_map + b_obj >= 2 * build_n,
+           "B2 spec==cref on build map (%d/%d) + objects (%d/%d)"
            % (b_map, build_n, b_obj, build_n),
            ", ".join(bad[:3]) if bad else "all ok")
 
@@ -268,8 +267,10 @@ def main(argv=None):
                  "with shifted brtl params) — same seed-flow gap" % row0_spec_nz)
         chk.ok(False,
                "C2 type-3 p_surfacemap byte-exact vs NIV+ capture — XFAIL "
-               "(seed-flow gap: intervening draw shifts brtl, making peak=125 + "
-               "row 0 zeros impossible from srand(0))",
+               "(spec and cref AGREE on the OCEAN path but both disagree with "
+               "the binary; either a shared transliteration error or a "
+               "binary-vs-source difference; needs brtl state dump from the "
+               "recon rig to resolve)",
                "%d bytes differ" % diff)
     else:
         chk.note("C1/C2 type-3 capture not available (no tests/gen/recon_w7b/out/)")
@@ -290,8 +291,9 @@ def main(argv=None):
 
     # ---- hygiene ----
     chk.note("Build via lino_build.ps1; run via w7arun.ps1.")
-    chk.note("Type-3 XFAIL evidence: peak=125 + row0=zeros paradox-proven "
-             "impossible from srand(0) without intervening draw.")
+    chk.note("Type-3 XFAIL: spec==cref agree but both differ from capture. "
+             "Either shared transliteration error or binary-vs-source difference. "
+             "Resolution needs brtl state dump from recon rig.")
 
     return chk.done()
 

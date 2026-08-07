@@ -545,18 +545,6 @@
 
 "GR srf darkline"
 	( fx = random(align), fz = random(align) )
-	C = [SUia]; => SU rnd;
-	[GRdxi] = C;		( save fx temporarily in GRdxi )
-	C = [SUia]; => SU rnd;
-	[GRfrz] = C;		( fz )
-	[GRfrx] = [GRdxi];	( restore fx into GRfrx )
-	[GRdxi] = [GRfrlo];	( save x_trend — but we need length... )
-	( Actually, use a cleaner approach with dedicated variables )
-
-	( This routine uses: GRfrx=fx, GRfrz=fz, GRptr=location, )
-	( GRn=length, GRabs=mapsize, GRcur=map byte value          )
-
-	( Redo: fx=random(align), fz=random(align) )
 	C = [SUia]; => SU rnd; [GRfrx] = C;
 	C = [SUia]; => SU rnd; [GRfrz] = C;
 	[GRabs] = [SUia]; [GRabs] '* [SUia];	( mapsize = align*align )
