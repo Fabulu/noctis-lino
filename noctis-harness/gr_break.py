@@ -140,13 +140,61 @@ def compare(base, mut, rows):
     return dict(sbbin=sbbin, seed=seed, build=build)
 
 
+def run_cref_all(rows, sandbox):
+    """Build + run cref, return per-case results in the same format as run_spec_all."""
+    import gr_grade
+    shutil.copy(os.path.join(HERE, "gr_ref.c"),
+                os.path.join(sandbox, "gr_ref.c"))
+    cexe, _ = gr_grade.build_cref(os.path.join(sandbox, "gr_ref.c"),
+                                  "grbrk_base.exe", sandbox)
+    spc = os.path.join(sandbox, "gr_corpus.spc")
+    gr_corpus.write_spc(spc, rows)
+    blob, _ = gr_grade.run_cref(cexe, spc, "grbrk_base.bin", sandbox)
+    out = []
+    coff = 0
+    for r in rows:
+        if r["kind"] == "sbbin":
+            out.append(("sbbin", r["tag"], blob[coff:coff+40])); coff += 40
+        elif r["kind"] == "seed":
+            out.append(("seed", r["tag"], blob[coff:coff+4])); coff += 4
+        elif r["kind"] == "build":
+            cmap = blob[coff:coff+PS_BYTES]
+            cobj = blob[coff+PS_BYTES:coff+PS_BYTES+OC_BYTES]
+            ccnt = struct.unpack_from("<4I", blob, coff+PS_BYTES+OC_BYTES)
+            coff += PS_BYTES + OC_BYTES + 16
+            out.append(("build", r["tag"], dict(
+                map=cmap, obj=cobj,
+                fast_n=ccnt[0], brtl_n=ccnt[1],
+                fast_h=ccnt[2], brtl_h=ccnt[3])))
+    return out
+
+
+def compare_cref(cref_results, mut_results, rows):
+    """Compare mutated spec results against cref — the independent witness.
+    A mutation that doesn't change the spec-vs-cref comparison is invisible."""
+    sbbin = seed = build = 0
+    for i, r in enumerate(rows):
+        if r["kind"] == "sbbin":
+            sbbin += (cref_results[i][2] != mut_results[i][2])
+        elif r["kind"] == "seed":
+            seed += (cref_results[i][2] != mut_results[i][2])
+        elif r["kind"] == "build":
+            c, m = cref_results[i][2], mut_results[i][2]
+            if (c["map"] != m["map"] or c["obj"] != m["obj"]
+                    or c["fast_n"] != m["fast_n"] or c["brtl_n"] != m["brtl_n"]):
+                build += 1
+    return dict(sbbin=sbbin, seed=seed, build=build)
+
+
 def main():
     rows = gr_corpus.all_cases()
     os.makedirs(SAND, exist_ok=True)
-    spc = os.path.join(SAND, "gr_corpus.spc")
-    gr_corpus.write_spc(spc, rows)
 
-    # Baseline spec results
+    # Build cref (the independent witness) once
+    spc = os.path.join(SAND, "gr_corpus.spc")
+    cref_results = run_cref_all(rows, SAND)
+
+    # Baseline spec results (for reference)
     base_spec = run_spec_all(rows)
 
     print("%-20s %-30s %s" % ("sabotage", "caught by", "modelled defect"))
@@ -192,7 +240,7 @@ def main():
                                 map=S.map_bytes(), obj=S.obj_bytes(),
                                 fast_n=o["fast_n"], brtl_n=o["brtl_n"],
                                 fast_h=o["fast_h"], brtl_h=o["brtl_h"])))
-                    hit = compare(base_spec, mut_spec, rows)
+                    hit = compare_cref(cref_results, mut_spec, rows)
                     fired = ", ".join("%s %d/%d" % (k, v, sum(1 for r in rows if r["kind"] == k))
                                       for k, v in sorted(hit.items()) if v)
                 except Exception as exc:

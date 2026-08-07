@@ -67,7 +67,12 @@
 	GRfd		= 0;	( float32 d = sqrt(dx*dx+dz*dz)	)
 	GRfy		= 0;	( float32 y				)
 	GRfht		= 0;	( float32 h parameter			)
-	GRfhmt		= 0;	( float32 hmax parameter		)
+	GRfhmt		= 0;	( float32 hmax / h_raiser parameter	)
+	GRfsch		= 0;	( float32 h value (std_crater)		)
+	GRfscr		= 0;	( float32 fr (std_crater radius)	)
+	GRfsca		= 0;	( int align for std_crater map access	)
+	GRfscl		= 0;	( int lim_h for std_crater		)
+	GRscmap		= 0;	( map base address for std_crater	)
 	GRdxi		= 0;	( int (x - cx) for fild			)
 	GRdzi		= 0;	( int (z - cz) for fild			)
 	GRsval		= 0;	( surfacemap byte value as int32	)
@@ -573,4 +578,173 @@
 	[GRn]-;
 	-> GR sd loop;
 "GR sd done"
+	end;
+
+( ==================================================================== )
+( std_crater — NOCTIS-1.CPP:1561-1587                                  )
+( ==================================================================== )
+( Input: [SUcxi]=cx, [SUcyi]=cz, [SUia]=r (signed int)                 )
+(        [GRfht]=h_factor (float32), [GRfhmt]=h_raiser (float32)      )
+(        [GRfscl]=lim_h (int), [GRfsca]=align (int, 200 or 256)       )
+(        map base in [GRpksrc] (RPSM for smap, RPBG for txtr)         )
+( h_raiser=1.0: pow is identity (skip). h_raiser!=1.0: FLAGGED GAP    )
+( — needs fyl2x/f2xm1 fragment, not yet implemented.                  )
+
+"GR std crater"
+
+	( h = (float)r * h_factor — fild r; fmul h_factor; fstp dword h )
+	{
+	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    D8 8F <dGRfht mtp bytesperunit>	(fmul dword [edi+GRfht*4])
+	    D9 9F <dGRfsch mtp bytesperunit>	(fstp dword [edi+GRfsch*4])
+	}
+
+	( r = abs(r) )
+	A = [SUia];
+	? A '>= 0 -> GR sc absok;
+	B = 0; B - A; A = B;
+"GR sc absok"
+	[SUia] = A;
+
+	( fr = (float)r — fild abs(r); fstp dword fr )
+	{
+	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    D9 9F <dGRfscr mtp bytesperunit>	(fstp dword [edi+GRfscr*4])
+	}
+
+	( check h_raiser: if not 1.0, FLAG GAP — skip pow, use y directly )
+	( 1.0f bit pattern = 3F800000h )
+	[GRfht] = [GRfhmt];	( save h_raiser for comparison )
+	A = [GRfht]; A & 0FFFFFFFFh;
+	? A = 3F800000h -> GR sc hrais1;
+	( h_raiser != 1.0: FLAGGED — pow not implemented, use y^1=y )
+	( This produces WRONG output for type 1/5 sm crater calls )
+"GR sc hrais1"
+	[GRfht] = [GRfsch];	( restore h value into GRfht for the sin*h )
+
+	( loop bounds: x from cx-r to cx+r-1, z from cz-r to cz+r-1 )
+	A = [SUia];
+	B = [SUcxi];
+	[GRfrlo] = B; [GRfrlo] - A;
+	C = B; C + A;
+	[GRfrhi] = C;
+	[GRfrx] = [GRfrlo];
+
+"GR sc xloop"
+	A = [GRfrx];
+	? A '>= [GRfrhi] -> GR sc done;
+
+	( z loop bounds )
+	A = [SUia];
+	B = [SUcyi];
+	D = B; D - A; [GRfrz] = D;
+
+"GR sc zloop"
+	A = [GRfrx];
+	? A '< 0 -> GR sc znext;
+	? A '>= [GRfsca] -> GR sc znext;
+	A = [GRfrz];
+	? A '< 0 -> GR sc znext;
+	? A '>= [GRfsca] -> GR sc znext;
+
+	( dx = (float)(x - cx) )
+	B = [GRfrx]; B - [SUcxi]; [GRdxi] = B;
+	{
+	    DB 87 <dGRdxi mtp bytesperunit>	(fild dword [edi+GRdxi*4])
+	    D9 9F <dGRfdx mtp bytesperunit>	(fstp dword [edi+GRfdx*4])
+	}
+
+	( dz = (float)(z - cz) )
+	B = [GRfrz]; B - [SUcyi]; [GRdzi] = B;
+	{
+	    DB 87 <dGRdzi mtp bytesperunit>	(fild dword [edi+GRdzi*4])
+	    D9 9F <dGRfdz mtp bytesperunit>	(fstp dword [edi+GRfdz*4])
+	}
+
+	( d = sqrt(dx*dx + dz*dz) )
+	{
+	    D9 87 <dGRfdx mtp bytesperunit>	(fld dword [edi+GRfdx*4])
+	    D8 8F <dGRfdx mtp bytesperunit>	(fmul dword [edi+GRfdx*4])
+	    D9 87 <dGRfdz mtp bytesperunit>	(fld dword [edi+GRfdz*4])
+	    D8 8F <dGRfdz mtp bytesperunit>	(fmul dword [edi+GRfdz*4])
+	    DE C1				(faddp st1,st0)
+	    D9 FA				(fsqrt)
+	    D9 9F <dGRfd mtp bytesperunit>	(fstp dword [edi+GRfd*4])
+	}
+
+	( if (d > fr) skip — compute d - fr, check sign bit )
+	{
+	    D9 87 <dGRfd  mtp bytesperunit>	(fld dword [edi+GRfd*4])
+	    D8 A7 <dGRfscr mtp bytesperunit>	(fsub dword [edi+GRfscr*4])
+	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
+	}
+	A = [GRfs1]; A & 80000000h;
+	? A = 0 -> GR sc znext;	( d - fr >= 0 → d > fr → skip )
+
+	( d <= fr: compute y = sin(M_PI * d / fr) * h )
+	{
+	    DC 87 <dGRKPIL mtp bytesperunit>	(fld qword [edi+GRKPIL*4])
+	    D9 87 <dGRfd  mtp bytesperunit>	(fld dword [edi+GRfd*4])
+	    D9 87 <dGRfscr mtp bytesperunit>	(fld dword [edi+GRfscr*4])
+	    DE F9				(fdivp st1,st0 : d/fr)
+	    DE C9				(fmulp st1,st0 : M_PI*(d/fr))
+	    D9 FE				(fsin)
+	    D8 8F <dGRfsch mtp bytesperunit>	(fmul dword [edi+GRfsch*4] : sin*h)
+	    D9 9F <dGRfy  mtp bytesperunit>	(fstp dword [edi+GRfy*4])
+	}
+
+	( y += map[align*z + x] )
+	A = [GRfrz]; A '* [GRfsca]; A + [GRfrx]; [GRptr] = A;
+	A = [GRscmap]; A + [GRptr]; [MBptr] = A;
+	=> MEM get byte;
+	[GRsval] = [MBval];
+	{
+	    D9 87 <dGRfy   mtp bytesperunit>	(fld dword [edi+GRfy*4])
+	    DB 87 <dGRsval mtp bytesperunit>	(fild dword [edi+GRsval*4])
+	    DE C1				(faddp st1,st0)
+	    D9 9F <dGRfy   mtp bytesperunit>	(fstp dword [edi+GRfy*4])
+	}
+
+	( if (y < 0) y = 0 )
+	A = [GRfy]; A & 80000000h;
+	? A = 0 -> GR sc clamphi;
+	[GRfy] = 0;
+
+"GR sc clamphi"
+	( if (y > lim_h) y = lim_h — compute y - lim_h, check sign )
+	{
+	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
+	    DA A7 <dGRfscl mtp bytesperunit>	(fisub dword [edi+GRfscl*4])
+	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
+	}
+	A = [GRfs1]; A & 80000000h;
+	? A != 0 -> GR sc store;	( y - lim_h < 0 → y < lim_h, no clamp )
+	( y >= lim_h: clamp to lim_h )
+	{
+	    DB 87 <dGRfscl mtp bytesperunit>	(fild dword [edi+GRfscl*4])
+	    D9 9F <dGRfy mtp bytesperunit>	(fstp dword [edi+GRfy*4])
+	}
+
+"GR sc store"
+	( map[idx] = (unsigned char)y — chop )
+	{
+	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
+	    D9 AF <dGRcwc mtp bytesperunit>	(fldcw [edi+GRcwc*4])
+	    DB 9F <dGRfti mtp bytesperunit>	(fistp dword [edi+GRfti*4])
+	    D9 AF <dGRcwn mtp bytesperunit>	(fldcw [edi+GRcwn*4])
+	}
+	A = [GRfti]; A & 0FFh;
+	[MBval] = A;
+	A = [GRscmap]; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+
+"GR sc znext"
+	[GRfrz]+;
+	A = [GRfrz];
+	B = [SUcyi]; B + [SUia];
+	? A '< B -> GR sc zloop;
+	[GRfrx]+;
+	-> GR sc xloop;
+
+"GR sc done"
 	end;
