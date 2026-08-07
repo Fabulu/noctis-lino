@@ -106,8 +106,16 @@ def main():
     pct = 100.0 * agree / n
     ok("X0", diff == 0, "%d/%d pixels agree (%.2f%%)" % (agree, n, pct),
        "100%% (byte-exact)",
-       "OPEN ITEM: the residual is the alfa!=0 projection path Wave 6a never "
-       "graded - a projection-tier gap, not a wiring bug")
+       "OPEN ITEM, re-localised: the lino is CORRECT and the C oracle is the "
+       "broken party.  Pinning tile 100,100 and dumping the projected mp[], "
+       "the lino gives [170,88,167,109,152,106] which matches the hand "
+       "computation (mp_x = dpp*(x-cam_x)/rzf+xc = 210*8192/180576+158 ~ "
+       "167.5 -> 167); pg_ref's polymap_project gives [188,121,120580,...] "
+       "(rzf collapses to ~14 instead of ~180576).  pg_ref's polymap_project "
+       "has an alfa!=0 bug Wave 6a never graded (it only graded alfa=beta=0). "
+       "Closing byte-exact needs a correct polymap oracle at alfa!=0 - fix "
+       "pg_ref or write a fresh one - independent of the framebuffer wiring, "
+       "which is proven and correct")
 
     for cid, cond, got, want, note in checks:
         print("%-4s %-30s got=%-34s want=%s" %

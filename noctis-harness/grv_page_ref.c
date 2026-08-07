@@ -51,6 +51,9 @@ static void set_angle_tables(void)
     opt_tcosgamma = 1.0f; opt_tsingamma = 0.0f;
 }
 
+static int last_mp[6];
+static int have_last_mp = 0;
+
 static void render_triangle(float vx[4], float vy[4], float vz[4], int c1)
 {
     TOPO T;
@@ -58,6 +61,11 @@ static void render_triangle(float vx[4], float vy[4], float vz[4], int c1)
     /* ol_end writes SPtinta (=c1) to the tinta scratch before the span */
     wr8(SCR_TINTA, (unsigned char)c1);
     polymap_project(vx, vy, vz, 3, &T);
+    if (T.ret == 0 && T.nmp >= 3) {
+        int k;
+        for (k = 0; k < 6 && k < 2 * T.nmp; k++) last_mp[k] = T.mp[k];
+        have_last_mp = 1;
+    }
     if (T.ret != 0 || T.nmp < 3) return;
     polymap_edges(T.mp, T.nmp, (int32_t)T.min_y, (int32_t)T.max_y);
     for (i = (int)T.min_y; i <= (int)T.max_y; i++) {
@@ -130,6 +138,11 @@ int main(void)
     if (!fo) { perror("open"); return 2; }
     for (i = 0; i < 64000; i++) {
         int32_t v = P[4 + i];
+        fwrite(&v, 4, 1, fo);
+    }
+    /* debug: append the last triangle's projected mp[0..5] at units 64000..64005 */
+    for (i = 0; i < 6; i++) {
+        int32_t v = have_last_mp ? last_mp[i] : 0;
         fwrite(&v, 4, 1, fo);
     }
     fclose(fo);
