@@ -717,10 +717,10 @@ class BuildSurface(object):
     def asterism(self, mapbuf, x, y, base, variation, density, size, align):
         """NOCTIS-1.CPP:1635-1670.  Grass tuft painter — uses cos, sin.
 
-        CRITICAL: ang and ad are float32 in the C source. The accumulation
-        ang += ad rounds to float32 each step. Using Python doubles here
-        changes the iteration count (the LOOP91 hazard), which cascades
-        through all subsequent brtl draws.
+        EVERY float variable (ad, ang, shift_d, var, color) is stored as
+        float32 in the C source. Each assignment rounds to 24-bit significand.
+        Missing any of these float32 stores changes loop iteration counts
+        (the LOOP91 hazard), cascading through all subsequent brtl draws.
         """
         if density <= 0:
             return
@@ -728,21 +728,27 @@ class BuildSurface(object):
         ad = _f32(M_PI * 2.0 / float(density))
         ang = _f32(0.0)
         while ang < M_PI * 2.0:
-            shift_d = float(B.random(1000, 1652)) / 1000.0
-            shift_d *= float(size)
-            if shift_d >= 1.0:
-                var = float(variation) / shift_d
-                color = float(base)
-                while shift_d > 0:
-                    shift_x = int(math.cos(ang) * shift_d + x)
-                    shift_y = int(math.sin(ang) * shift_d + y)
+            # shift_d = (float)random(1000) / 1000  →  float32 store
+            # shift_d *= size  →  float32 store
+            sd = _f32(_f32(float(B.random(1000, 1652)) / 1000.0) * float(size))
+            if sd >= 1.0:
+                # var = (float)variation / shift_d  →  float32 store
+                var = _f32(float(variation) / sd)
+                # color = base  (float)
+                color = _f32(float(base))
+                while sd > 0:
+                    shift_x = int(math.cos(ang) * sd + x)
+                    shift_y = int(math.sin(ang) * sd + y)
                     if shift_x > 0 and shift_y > 0 and shift_x < align and shift_y < align:
                         shift_p = shift_y * align + shift_x
                         c = int(color)
                         if 0 <= shift_p < len(mapbuf):
                             mapbuf[shift_p] = c & 0xFF
-                    color += var
-                    shift_d -= 1
+                    # color += var  →  float32 store
+                    color = _f32(color + var)
+                    # shift_d--  →  float32 store
+                    sd = _f32(sd - 1.0)
+            # ang += ad  →  float32 store
             ang = _f32(ang + ad)
 
     def _post_switch(self):
