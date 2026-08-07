@@ -1,0 +1,234 @@
+      ( *** fragpage - Wave 7b ground-view framebuffer proof B2 ***
+
+	Links the Wave 6 stack: fbmem + pgfp + pgmem + pgrast + pgtex + pgproj.
+	Renders a grid of ground tiles via fragment then PG polymap, and dumps
+	the adapted framebuffer page.  This is the actual rendered ground view:
+	the wiring the composition argument assumes, exercised for real.
+
+	PINNED SCENE, hardcoded - both sides render identically:
+	  walker at tile 100,100; cam_x = cam_z = 100<<14 + 8192 = 1646592;
+	  cam_y = -300000 eye height; alfa = beta = 0 the PGF constants default.
+	  A 9x9 grid of tiles 95..103 in x and z is rendered.
+
+	TEXTURE: PGtexf = 2 i.e. TEX2 uniform texel 1, so each tile footprint
+	  fills flat at c1+1 - no p_background window is needed.  flares 0,
+	  cull 0, half 0.  c1 = surf[h1] & 31 deterministic per-tile shade; the
+	  full c1 path is graded separately in walk.txt.
+
+	OUTPUT: grv-page.bin = 64000 int32 units, unit i = adapted[i] the
+	  rendered byte.  Graded byte-exact vs grv_page_ref.c, which drives
+	  pg_ref.c polymap_project + polymap_edges and flat-fills each row's
+	  ipart..fpart span with c1+1 - matching polymap's footprint under TEX2.
+)
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	pgfp;
+	pgmem;
+	pgrast;
+	pgtex;
+	pgproj;
+
+"directors"
+
+	program name = { fragpage };
+	unit = 32;
+
+"constants"
+
+	WLIPFX	= 100;
+	WLIPFZ	= 100;
+	WLCAMX	= 1646592;
+	WLCAMZ	= 1646592;
+
+	WGLO	= 95;
+	WGHI	= 103;
+
+	WFRSHF	= 11;		( height shift: surf<<11 )
+	WF11	= 11;
+
+"variables"
+
+	wpoutname	= { grv-page.bin };
+
+	FGx	= 0;
+	FGz	= 0;
+	FGh1	= 0;
+	FGc1	= 0;
+	FGb	= 0;
+	FGs1	= 0; FGs2 = 0; FGs3 = 0; FGs4 = 0;
+	FGvi	= 0;
+	FGvv	= 0;
+	FGvslot	= 0;
+	FGi	= 0;
+
+"workspace"
+
+	( fbmem provides nw. )
+
+"programme"
+
+	=> FP run;
+	end;
+
+( ==================================================================== )
+( FP run                                                                )
+( ==================================================================== )
+
+"FP run"
+	=> FEnter;
+	=> PGF constants;
+	( override camera to walker position; alfa/beta stay 0 )
+	[FI] = WLCAMX; => IntToF; [PGFi] = FSCAMX; => PGF sa;
+	A = 0; A - 100000; [FI] = A; => IntToF; [PGFi] = FSCAMY; => PGF sa;
+	[FI] = WLCAMZ; => IntToF; [PGFi] = FSCAMZ; => PGF sa;
+
+	( top-down view: alfa = -90 deg (cos=0, sin=-1, exact in float32), beta=0.
+	  Avoids angle-ULP drift so the projection is bit-identical lino vs cref. )
+	[PGFi] = FSPCA; [PGFt] = 0; => PGF setf32;
+	[PGFi] = FSPSA; [PGFt] = C3520000h; => PGF setf32;
+	[PGFi] = FSTCA; [PGFt] = 0; => PGF setf32;
+	[PGFi] = FSTSA; [PGFt] = BF800000h; => PGF setf32;
+
+	=> FP clear page;
+	=> FP place surf grid;
+
+	[PGtexf] = 2;
+	[SPflar] = 0; [SPcull] = 0; [SPhalf] = 0;
+
+	[FGx] = WGLO;
+    "FP grid x"
+	[FGz] = WGLO;
+    "FP grid z"
+	=> FP fragment tile;
+	[FGz]+; A = [FGz]; ? A '<= WGHI -> FP grid z;
+	[FGx]+; A = [FGx]; ? A '<= WGHI -> FP grid x;
+
+	=> FP dump page;
+	end;
+	=> FLeave;
+	end;
+
+( ==================================================================== )
+( FP clear page - zero adapted[0..63999]                                 )
+( ==================================================================== )
+
+"FP clear page"
+	[FGi] = 0;
+    "FP cp loop"
+	A = RADPT; A + [FGi]; [MBptr] = A; [MBval] = 0; => MEM put byte;
+	[FGi]+; A = [FGi]; ? A '< 64000 -> FP cp loop;
+	end;
+
+( ==================================================================== )
+( FP place surf grid - deterministic surf bytes at p_surfacemap           )
+( ==================================================================== )
+
+"FP place surf grid"
+	[FGx] = WGLO;
+    "FP sg x"
+	[FGz] = WGLO;
+    "FP sg z"
+	A = [FGz]; A '* 200; A + [FGx]; [FGh1] = A;
+	A = [FGx]; A '* 5; A + [FGz]; A '* 7; A & 255; [FGb] = A;
+	A = RPSM; A + [FGh1]; [MBptr] = A; [MBval] = [FGb]; => MEM put byte;
+	A = RPSM; A + [FGh1]; A + 1; [MBptr] = A; A = [FGb]; A + 17; A & 255; [MBval] = A; => MEM put byte;
+	A = RPSM; A + [FGh1]; A + 201; [MBptr] = A; A = [FGb]; A + 43; A & 255; [MBval] = A; => MEM put byte;
+	A = RPSM; A + [FGh1]; A + 200; [MBptr] = A; A = [FGb]; A + 91; A & 255; [MBval] = A; => MEM put byte;
+	[FGz]+; A = [FGz]; ? A '<= WGHI -> FP sg z;
+	[FGx]+; A = [FGx]; ? A '<= WGHI -> FP sg x;
+	end;
+
+( ==================================================================== )
+( FP fragment tile - load triangle 1 + 2 vertices into FSINX/Y/Z,        )
+(   set tinta scratch = c1, call PG polymap for each triangle             )
+( ==================================================================== )
+
+"FP fragment tile"
+	A = [FGz]; A '* 200; A + [FGx]; [FGh1] = A;
+
+	( read the four corner surf bytes )
+	A = RPSM; A + [FGh1];            [MBptr] = A; => MEM get byte; [FGs1] = [MBval];
+	A = RPSM; A + [FGh1]; A + 1;     [MBptr] = A; => MEM get byte; [FGs2] = [MBval];
+	A = RPSM; A + [FGh1]; A + 200;   [MBptr] = A; => MEM get byte; [FGs4] = [MBval];
+	A = RPSM; A + [FGh1]; A + 201;   [MBptr] = A; => MEM get byte; [FGs3] = [MBval];
+
+	( c1 = surf[h1] & 31 )
+	A = [FGs1]; A & 31; [FGc1] = A;
+	( PG polymap's ol_end writes [SPtinta] to the scratch itself (pgproj:846),
+	  so set SPtinta = c1 - do NOT write the scratch directly. )
+	[SPtinta] = [FGc1]; [SPescr] = 0;
+
+	( --- triangle 1: v0=(x,h1,z) v1=(x+1,h2,z) v2=(x,h4,z+1) --- )
+	[FGvi] = 0;
+	A = [FGx]; A < 14; [FGvv] = A;  [FGvslot] = FSINX; => FP vload;
+	A = [FGz]; A < 14; [FGvv] = A;  [FGvslot] = FSINZ; => FP vload;
+	( vy[0] = -(surf[h1]<<11) )
+	A = [FGs1]; A & 255; C = A; C < WFRSHF; A = 0; A - C; [FGvv] = A; [FGvslot] = FSINY; => FP vload;
+	[FGvi]+;
+	A = [FGx]; A + 1; A < 14; [FGvv] = A; [FGvslot] = FSINX; => FP vload;
+	A = [FGz]; A < 14; [FGvv] = A; [FGvslot] = FSINZ; => FP vload;
+	A = [FGs2]; A & 255; C = A; C < WFRSHF; A = 0; A - C; [FGvv] = A; [FGvslot] = FSINY; => FP vload;
+	[FGvi]+;
+	A = [FGx]; A < 14; [FGvv] = A; [FGvslot] = FSINX; => FP vload;
+	A = [FGz]; A + 1; A < 14; [FGvv] = A; [FGvslot] = FSINZ; => FP vload;
+	A = [FGs4]; A & 255; C = A; C < WFRSHF; A = 0; A - C; [FGvv] = A; [FGvslot] = FSINY; => FP vload;
+	[PJnrv] = 3; => PG polymap;
+
+	( --- triangle 2: v0=(x+1,h2,z) v1=(x+1,h3,z+1) v2=(x,h4,z+1) --- )
+	[FGvi] = 0;
+	A = [FGx]; A + 1; A < 14; [FGvv] = A; [FGvslot] = FSINX; => FP vload;
+	A = [FGz]; A < 14; [FGvv] = A; [FGvslot] = FSINZ; => FP vload;
+	A = [FGs2]; A & 255; C = A; C < WFRSHF; A = 0; A - C; [FGvv] = A; [FGvslot] = FSINY; => FP vload;
+	[FGvi]+;
+	A = [FGx]; A + 1; A < 14; [FGvv] = A; [FGvslot] = FSINX; => FP vload;
+	A = [FGz]; A + 1; A < 14; [FGvv] = A; [FGvslot] = FSINZ; => FP vload;
+	A = [FGs3]; A & 255; C = A; C < WFRSHF; A = 0; A - C; [FGvv] = A; [FGvslot] = FSINY; => FP vload;
+	[FGvi]+;
+	A = [FGx]; A < 14; [FGvv] = A; [FGvslot] = FSINX; => FP vload;
+	A = [FGz]; A + 1; A < 14; [FGvv] = A; [FGvslot] = FSINZ; => FP vload;
+	A = [FGs4]; A & 255; C = A; C < WFRSHF; A = 0; A - C; [FGvv] = A; [FGvslot] = FSINY; => FP vload;
+	[PJnrv] = 3; => PG polymap;
+	end;
+
+( FP vload - store FGvv (an integer) as a binary64 float into the named
+  pg slot at index (FGvslot + FGvi), via IntToF + PGF sa.  Integer-valued
+  vertices are exact in float32, so binary64 storage loses nothing. )
+
+"FP vload"
+	[FI] = [FGvv];
+	=> IntToF;
+	A = [FGvslot]; A + [FGvi]; [PGFi] = A;
+	=> PGF sa;
+	end;
+
+( ==================================================================== )
+( FP dump page - write adapted[0..63999] as 64000 int32 units            )
+( ==================================================================== )
+
+"FP dump page"
+	[FGi] = 0;
+    "FP dp loop"
+	C = RADPT; C + [FGi]; [MBptr] = C; => MEM get byte;
+	A = dump; A + [FGi]; [A] = [MBval];
+	[FGi]+; A = [FGi]; ? A '< 64000 -> FP dp loop;
+	[File Name]	= wpoutname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= dump;
+	[Block Size]	= 64000;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	[File Name]	= wpoutname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= 64000;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;
