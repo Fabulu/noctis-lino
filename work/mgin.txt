@@ -1,0 +1,126 @@
+      ( *** mgin - the input FIFO and the keyboard switch, state subset ***
+
+	A LIBRARY.  Needs mgmain   linked before it.
+
+	The input is an ASCII FIFO  : a NUL byte means
+	"extended code follows", mirroring linos two-code extended-key
+	convention.  This models the keys that change navigational / device
+	state on the active_screen==-1 path.  The big switchs other arms
+	  are documented out of scope
+	in mg_grade.py - they are Impl Bs console or are display-bound.
+
+	dlt_nav_beta is carried scaled by 10 (so PITCH - Rs +1.5 deg is
+	+15 here) to stay in integers; the grader sees the same scale.     )
+
+"variables"
+
+	MgKnkeys	= 0;
+	MgSys	= 0;
+	MgDevpage	= 0;
+	MgScommand	= 0;
+	MgAbout	= 0;
+	MgGms	= 0;
+	MgMlook	= 0;
+	MgSurlight	= 0;
+	MgRev	= 0;
+	MgDltnav	= 0;
+	MgLifter	= 0;
+	MgCode	= 0;
+
+"programme"
+
+"MG key switch"
+	=> MG CR next; [MgKnkeys] = C;
+	=> MG CR next; [MgSys] = C;
+	=> MG CR next; [MgDevpage] = C;
+	=> MG CR next; [MgScommand] = C;
+	=> MG CR next; [MgAbout] = C;
+	=> MG CR next; [MgGms] = C;
+	=> MG CR next; [MgMlook] = C;
+	=> MG CR next; [MgSurlight] = C;
+	=> MG CR next; [MgRev] = C;
+	[MgDltnav] = 0; [MgLifter] = 0;
+
+    "MG keys loop"
+	A = [MgKnkeys]; ? A <= 0 -> MG keys done;
+	[MgKnkeys]-;
+	=> MG CR next; [MgCode] = C;
+	A = [MgCode]; ? A != 0 -> MG keys normal;
+
+	=> MG CR next; [MgCode] = C;
+	-> MG keys ext;
+	end;
+
+    "MG keys normal"
+	A = [MgCode];
+	C = A;
+	 	C - 53; ? C = 0 -> MG keys k5;
+	C = A; C - 114;	? C = 0 -> MG keys kr;
+	C = A; C - 100;	? C = 0 -> MG keys kd;
+	C = A; C - 120;	? C = 0 -> MG keys kx;
+	C = A; C - 54;	? C = 0 -> MG keys k6;
+	C = A; C - 55;	? C = 0 -> MG keys k7;
+	C = A; C - 56;	? C = 0 -> MG keys k8;
+	C = A; C - 57;	? C = 0 -> MG keys k9;
+	C = A; C - 43;	? C = 0 -> MGksu;
+	C = A; C - 45;	? C = 0 -> MGksd;
+	-> MG keys emit;
+
+    "MG keys k5"	[MgSys] = 1; [MgDevpage] = 0; -> MG keys emit;
+    "MG keys kr"	[MgSys] = 2; [MgDevpage] = 0; -> MG keys emit;
+    "MG keys kd"	[MgSys] = 3; [MgDevpage] = 0; -> MG keys emit;
+    "MG keys kx"	[MgSys] = 4; [MgDevpage] = 0; -> MG keys emit;
+    "MG keys k6"	[MgScommand] = 1; -> MG keys emit;
+    "MG keys k7"	[MgScommand] = 2; -> MG keys emit;
+    "MG keys k8"	[MgScommand] = 3; -> MG keys emit;
+    "MG keys k9"	[MgScommand] = 4; -> MG keys emit;
+    "MGksu"
+	A = [MgSurlight]; ? A >= 63 -> MG keys emit;
+	A = [MgSurlight]; A + 1; [MgSurlight] = A; -> MG keys emit;
+    "MGksd"
+	A = [MgSurlight]; ? A < 11 -> MG keys emit;
+	A = [MgSurlight]; A - 1; [MgSurlight] = A; -> MG keys emit;
+
+    "MG keys ext"
+	A = [MgCode];
+	C = A; C - 59;	? C = 0 -> MG keys F1;
+	C = A; C - 60;	? C = 0 -> MG keys F2;
+	C = A; C - 75;	? C = 0 -> MG keys pitchR;
+	C = A; C - 77;	? C = 0 -> MG keys pitchL;
+	C = A; C - 72;	? C = 0 -> MG keys lifter;
+	C = A; C - 80;	? C = 0 -> MG keys mlook;
+	-> MG keys emit;
+    "MG keys F1"
+	A = [MgAbout]; ? A = 0 -> MG keys F1 on;
+	[MgAbout] = 0; -> MG keys emit;
+    "MG keys F1 on"
+	[MgAbout] = 1; [MgGms] = 0; -> MG keys emit;
+    "MG keys F2"
+	A = [MgGms]; ? A = 0 -> MG keys F2 on;
+	[MgGms] = 0; -> MG keys emit;
+    "MG keys F2 on"
+	[MgGms] = 1; [MgAbout] = 0; -> MG keys emit;
+    "MG keys pitchR"
+	A = [MgDltnav]; A + 15; [MgDltnav] = A; -> MG keys emit;
+    "MG keys pitchL"
+	A = [MgDltnav]; A - 15; [MgDltnav] = A; -> MG keys emit;
+    "MG keys lifter"
+	A = 0; A - 100; [MgLifter] = A; -> MG keys emit;
+    "MG keys mlook"
+	A = [MgMlook]; A + 1; B = A; B '% 3; [MgMlook] = B; -> MG keys emit;
+
+    "MG keys emit"
+	C = [MgSys];      => MGD i;
+	C = [MgDevpage];  => MGD i;
+	C = [MgScommand]; => MGD i;
+	C = [MgAbout];    => MGD i;
+	C = [MgGms];      => MGD i;
+	C = [MgMlook];    => MGD i;
+	C = [MgSurlight]; => MGD i;
+	C = [MgDltnav];   => MGD i;
+	C = [MgLifter];   => MGD i;
+	C = 0;            => MGD i;
+	-> MG keys loop;
+
+    "MG keys done"
+	end;

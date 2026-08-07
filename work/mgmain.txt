@@ -1,0 +1,283 @@
+      ( *** mgmain - the Wave 8 Impl A driver ***
+
+	The game loop's numerical kernels: flight integrators (vimana +
+	approach), lithium consumes, the exact float sites that survive
+	into the loop, and the keyboard switch.  Everything display- or
+	mouse-bound (the globe, lens flares, vehicle, HUD, starfield) is
+	documented out of scope in mg_grade.py: those call into the
+	already-proven Wave 6/7 libraries and are not headlessly gradeable.
+
+	This is a PROGRAMME.  It lists its libraries once, in dependency
+	order.  It reads work/mg-corpus.txt, runs the cases IN FILE ORDER
+	and writes work/mg-out.bin.  The corpus is a flat stream of signed
+	decimal integers - the only lexeme the tokeniser knows, so no
+	decimal-float parser exists anywhere in this port: every binary64
+	input arrives as the signed decimal values of its two 32-bit halves.
+
+	Build: powershell -ExecutionPolicy Bypass -File lino_build.ps1 -Src work\mgmain.txt
+	Run:   the poll-and-kill pattern, collecting work\mg-out.bin.       )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+
+	nsident;
+
+	mgnav;
+	mgloop;
+	mgin;
+
+"directors"
+
+	program name = { mgmain };
+	unit = 32;
+
+"constants"
+
+	( ---- MGDUMP record kinds (informational; the stream is flat) ---- )
+
+	( ---- corpus opcodes ---- )
+
+	MGOPEND	= 0;
+	OPVIMANA	= 1;
+	OPAPPROACH	= 2;
+	OPCONSUMES	= 3;
+	OPSECTOR	= 4;
+	OPIDENT		= 5;
+	OPIDCMP		= 6;
+	OPLANDING	= 7;
+	OPKEYS		= 8;
+
+	MGCORPU	= 80000;
+	MGTOKU	= 80000;
+	MGDUMPU	= 200000;
+
+"variables"
+
+	mgoutname	= { mg-out.bin };
+	mgcorpname	= { mg-corpus.txt };
+
+	( ---- corpus tokeniser state ---- )
+
+	MGCRbytes	= 0;
+	MGCRpos	= 0;
+	MGCRtokn	= 0;
+	MGCRti	= 0;
+	MGCRch	= 0;
+	MGCRacc	= 0;
+	MGCRneg	= 0;
+	MGCRbad	= 0;
+
+	( ---- dump staging ---- )
+
+	MGDptr	= 0;
+	MGDcnt	= 0;
+
+	( ---- shared kernel inputs (filled from the corpus) ---- )
+
+	MGop	= 0;
+
+	( scratch used by several kernels )
+	MGa	= 0;
+	MGb	= 0;
+	MGc	= 0;
+
+"workspace"
+
+	mgcorpus = 80000;
+	mgtok	= 80000;
+	mgdump	= 200000;
+	mgk100000 = 100000;		( the fidiv constant for the identity chain )
+
+"programme"
+
+	=> FEnter;
+	=> MG CR load;
+	A = [MGCRbad]; ? A != 0 -> MG run done;
+	=> MG CR tokenise;
+	[MGCRti] = 0;
+	=> MGD reset;
+	=> MG run cases;
+	=> MGD write;
+    "MG run done"
+	=> FLeave;
+	end;
+
+( -------------------------------------------------------------------- )
+
+      ( MG run cases - read opcodes and dispatch until the corpus ends.
+	Each kernel consumes its own inputs from the corpus and emits its
+	results directly into the dump via MGD i / MGD d FA.  )
+
+"MG run cases"
+    "MG rc loop"
+	=> MG CR next;
+	[MGop] = C;
+	A = [MGop];
+	? A = OPVIMANA	-> MG rc vimana;
+	? A = OPAPPROACH	-> MG rc approach;
+	? A = OPCONSUMES	-> MG rc consumes;
+	? A = OPSECTOR	-> MG rc sector;
+	? A = OPIDENT	-> MG rc ident;
+	? A = OPIDCMP	-> MG rc idcmp;
+	? A = OPLANDING	-> MG rc landing;
+	? A = OPKEYS	-> MG rc keys;
+	-> MG run done;		( OPEND (0) or unknown -> stop            )
+    "MG rc vimana"	=> MG vimana; -> MG rc loop;
+    "MG rc approach"	=> MG approach; -> MG rc loop;
+    "MG rc consumes"	=> MG consumes; -> MG rc loop;
+    "MG rc sector"	=> MG sector; -> MG rc loop;
+    "MG rc ident"	=> MG identity; -> MG rc loop;
+    "MG rc idcmp"	=> MG idcmp; -> MG rc loop;
+    "MG rc landing"	=> MG landing roundtrip; -> MG rc loop;
+    "MG rc keys"	=> MG key switch; -> MG rc loop;
+
+( ==================================================================== )
+( the corpus tokeniser - flat signed decimals, '#' comments to EOL      )
+( ==================================================================== )
+
+      ( MG CR load - read the whole corpus text into the workspace buffer. )
+
+"MG CR load"
+	[MGCRbad] = 0;
+	[File Name]	= mgcorpname;
+	[File Command]	= READ;
+	[File Position] = 0;
+	[Block Pointer] = mgcorpus;
+	[Block Size]	= MGCORPU;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	A = [Block Size];
+	[MGCRbytes] = A;
+	? A '> 0 -> MG CR load ok;
+	[MGCRbad] = 1;
+    "MG CR load ok"
+	end;
+
+"MG CR getch"
+	A = [MGCRpos];
+	? A '>= [MGCRbytes] -> MG CR getch eof;
+	C = A; C > 2; D = mgcorpus; D + C;
+	C = [D];
+	A = [MGCRpos]; A & 3; A '* 8;
+	C > A; C & 0FFh;
+	[MGCRch] = C;
+	end;
+    "MG CR getch eof"
+	A = 0; A - 1; [MGCRch] = A;
+	end;
+
+"MG CR tokenise"
+	[MGCRpos] = 0; [MGCRtokn] = 0;
+    "MG CR tk scan"
+	=> MG CR getch;
+	A = [MGCRch];
+	? A < 0 -> MG CR tk done;
+	? A = 35 -> MG CR tk comment;
+	? A = 45 -> MG CR tk number;
+	? A '< 48 -> MG CR tk skip;
+	? A '> 57 -> MG CR tk skip;
+	-> MG CR tk number;
+    "MG CR tk skip"
+	[MGCRpos]+;
+	-> MG CR tk scan;
+    "MG CR tk comment"
+	[MGCRpos]+;
+	=> MG CR getch;
+	A = [MGCRch];
+	? A < 0 -> MG CR tk done;
+	? A != 10 -> MG CR tk comment;
+	[MGCRpos]+;
+	-> MG CR tk scan;
+    "MG CR tk number"
+	[MGCRneg] = 0; [MGCRacc] = 0;
+	A = [MGCRch];
+	? A != 45 -> MG CR tk digits;
+	[MGCRneg] = 1;
+	[MGCRpos]+;
+    "MG CR tk digits"
+	=> MG CR getch;
+	A = [MGCRch];
+	? A '< 48 -> MG CR tk emit;
+	? A '> 57 -> MG CR tk emit;
+	C = [MGCRacc]; C '* 10; A - 48; C + A; [MGCRacc] = C;
+	[MGCRpos]+;
+	-> MG CR tk digits;
+    "MG CR tk emit"
+	A = [MGCRneg]; ? A = 0 -> MG CR tk pos;
+	C = [MGCRacc]; C+-; [MGCRacc] = C;
+    "MG CR tk pos"
+	A = [MGCRtokn];
+	? A '>= MGTOKU -> MG CR tk done;
+	C = mgtok; C + A; [C] = [MGCRacc];
+	[MGCRtokn]+;
+	-> MG CR tk scan;
+    "MG CR tk done"
+	end;
+
+      ( MG CR next - C <- the next token, or OPEND (0) at EOF. )
+
+"MG CR next"
+	A = [MGCRti];
+	? A '>= [MGCRtokn] -> MG CR next eof;
+	C = mgtok; C + A; C = [C];
+	[MGCRti]+;
+	end;
+    "MG CR next eof"
+	C = MGOPEND;
+	end;
+
+( ==================================================================== )
+( MGDUMP - a flat little-endian int32 stream                           )
+( ==================================================================== )
+
+      ( MGD reset - point the write cursor at the start of the dump. )
+
+"MGD reset"
+	A = mgdump; [MGDptr] = A;
+	[MGDcnt] = 0;
+	end;
+
+      ( MGD i - emit the int32 in C. )
+"MGD i"
+	A = [MGDptr]; [A] = C; A+; [MGDptr] = A;
+	A = [MGDcnt]; A+; [MGDcnt] = A;
+	end;
+
+      ( MGD d FA - emit the double in the FA accumulator (FA0 low, FA1 high). )
+"MGD d FA"
+	A = [MGDptr]; B = [FA0]; [A] = B; A+;
+	B = [FA1]; [A] = B; A+;
+	[MGDptr] = A;
+	A = [MGDcnt]; A + 2; [MGDcnt] = A;
+	end;
+
+      ( MGD d FB - emit the double in FB. )
+"MGD d FB"
+	A = [MGDptr]; B = [FB0]; [A] = B; A+;
+	B = [FB1]; [A] = B; A+;
+	[MGDptr] = A;
+	A = [MGDcnt]; A + 2; [MGDcnt] = A;
+	end;
+
+      ( MGD write - write the staged dump to mg-out.bin. )
+"MGD write"
+	[File Name]	= mgoutname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= mgdump;
+	[Block Size]	= [MGDcnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= mgoutname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= [MGDcnt];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;

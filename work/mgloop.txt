@@ -1,0 +1,602 @@
+      ( *** mgloop - the flight dynamics: vimana + approach integrators,
+	                lithium consumes, and the landing roundtrip ***
+
+	A LIBRARY.  Needs fpabi/fpctl/fpx87/fpconv (linked before it) and
+	mgmain (the driver, for the corpus reader and dump).  nsident is
+	not required here.
+
+	These are the per-frame numerical kernels of the 22-phase do-while
+	(NOCTIS.CPP:2268-4485).  Everything display- or mouse-bound is out
+	of scope for headless grading and is documented in mg_grade.py.
+
+	dzat / ap_target / dxx / l_dsd / coefficients are all DOUBLE; pwr
+	is a 16-bit signed int (chop-then-wrap on every store); charge is
+	a signed byte.  The low-pass filter
+	    cur += (req - cur) * rt
+	is the vimana/approach drive (NOCTIS.CPP:3217-3363).  The landing
+	roundtrip is the DELIBERATE double->float->double loss
+	(NOCTIS-1.CPP:3411-3413) reproduced via F32Narrow.
+
+	Double constants arrive as their binary64 bit halves because
+	L.in.oleum has no decimal float literal: the values were emitted by
+	mg_spec's dhalves() and are not hand-transcribed.                     )
+
+"variables"
+
+	( double constants as binary64 halves )
+	MgK1em50 = 088E368F1h;
+	MgK1em51 = 03EE4F8B5h;
+	MgK05em50 = 088E368F1h;
+	MgK05em51 = 03ED4F8B5h;
+	MgK0p99990 = 048E8A71Eh;
+	MgK0p99991 = 03FEFFF2Eh;
+	MgK0p9990 = 0D916872Bh;
+	MgK0p9991 = 03FEFF7CEh;
+	MgK0p999990 = 074A771Dh;
+	MgK0p999991 = 03FEFFFEBh;
+	MgK0p9950 = 03D70A3D7h;
+	MgK0p9951 = 03FEFD70Ah;
+	MgK1p50 = 00000000h;
+	MgK1p51 = 03FF80000h;
+	MgK440 = 00000000h;
+	MgK441 = 040460000h;
+	MgK0p50 = 00000000h;
+	MgK0p51 = 03FE00000h;
+	MgK20 = 00000000h;
+	MgK21 = 040000000h;
+	MgK250000 = 00000000h;
+	MgK250001 = 040D86A00h;
+	MgK75000 = 00000000h;
+	MgK75001 = 040BD4C00h;
+	MgK150000 = 00000000h;
+	MgK150001 = 040CD4C00h;
+	MgK250 = 00000000h;
+	MgK251 = 040390000h;
+	MgK1000 = 00000000h;
+	MgK1001 = 040590000h;
+	MgK5000 = 00000000h;
+	MgK5001 = 0407F4000h;
+	MgK100 = 00000000h;
+	MgK101 = 040240000h;
+	MgK200000 = 00000000h;
+	MgK200001 = 040D38800h;
+	MgKrtCharg0 = 09999999Ah;
+	MgKrtCharg1 = 03FB99999h;
+	MgKrtPark0 = 047AE147Bh;
+	MgKrtPark1 = 03F847AE1h;
+	MgKrtLink0 = 047AE147Bh;
+	MgKrtLink1 = 03F647AE1h;
+	MgKrtDrive0 = 09999999Ah;
+	MgKrtDrive1 = 03FA99999h;
+	MgKrtIgn0 = 047AE147Bh;
+	MgKrtIgn1 = 03FB47AE1h;
+	MgKrtWarm0 = 0D2F1A9FCh;
+	MgKrtWarm1 = 03F50624Dh;
+	MgKrtRef0 = 0EB1C432Dh;
+	MgKrtRef1 = 03F2A36E2h;
+	MgKrtBrk0 = 030553261h;
+	MgKrtBrk1 = 03F33A92Ah;
+	MgKrtAppr0 = 09999999Ah;
+	MgKrtAppr1 = 03F999999h;
+	MgKreqC10 = 0D2F1A9FCh;
+	MgKreqC11 = 03F50624Dh;
+	MgKreqC20 = 047AE147Bh;
+	MgKreqC21 = 03F747AE1h;
+	MgKreqC30 = 088E368F1h;
+	MgKreqC31 = 03EE4F8B5h;
+	MgKreqC40 = 0EB1C432Dh;
+	MgKreqC41 = 03F2A36E2h;
+	MgKreqA10 = 00000000h;
+	MgKreqA11 = 040390000h;
+	MgKreqA20 = 00000000h;
+	MgKreqA21 = 040490000h;
+	MgKreqA30 = 00000000h;
+	MgKreqA31 = 0402E0000h;
+	MgKreqA40 = 09999999Ah;
+	MgKreqA41 = 03FA99999h;
+	MgKreqA50 = 00000000h;
+	MgKreqA51 = 03FF80000h;
+
+	( ---- shared kernel state ---- )
+	MgNframes	= 0;
+	MgPwr	= 0;
+	MgApreached	= 0;
+	MgStspeed	= 0;
+	MgIpreached	= 0;
+	MgIpreaching	= 0;
+	MgStatus	= 0;	( status id for the current frame )
+	MgVrt	= 0;	( vimana_reaction_time persist flag, in float halves )
+
+	( ---- scratch double pairs ---- )
+	MgDzatX0 = 0;
+	MgDzatX1 = 0;
+	MgDzatY0 = 0;
+	MgDzatY1 = 0;
+	MgDzatZ0 = 0;
+	MgDzatZ1 = 0;
+	MgApX0 = 0;
+	MgApX1 = 0;
+	MgApY0 = 0;
+	MgApY1 = 0;
+	MgApZ0 = 0;
+	MgApZ1 = 0;
+	MgInitD0 = 0;
+	MgInitD1 = 0;
+	MgCur0 = 0;
+	MgCur1 = 0;
+	MgDxx0 = 0;
+	MgDxx1 = 0;
+	MgDyy0 = 0;
+	MgDyy1 = 0;
+	MgDzz0 = 0;
+	MgDzz1 = 0;
+	MgLdsd0 = 0;
+	MgLdsd1 = 0;
+	MgAcc0 = 0;
+	MgAcc1 = 0;
+	MgT00 = 0;
+	MgT01 = 0;
+	MgT10 = 0;
+	MgT11 = 0;
+	MgRas0 = 0;
+	MgRas1 = 0;
+	MgReq0 = 0;
+	MgReq1 = 0;
+	MgRt0 = 0;
+	MgRt1 = 0;
+	MgPlX0 = 0;
+	MgPlX1 = 0;
+	MgPlY0 = 0;
+	MgPlY1 = 0;
+	MgPlZ0 = 0;
+	MgPlZ1 = 0;
+	MgPray = 0;	( nearstar_p_ray float bits, approach )
+
+	MgAnti	= 0;
+	MgAptgt	= 0;
+	MgTmp	= 0;
+
+	( consumes state )
+	MgIqsecs	= 0;
+	MgIpt	= 0;
+	MgSync	= 0;
+	MgIpr	= 0;
+	MgPls	= 0;
+	MgIlv	= 0;
+	MgFa	= 0;
+	MgCharge	= 0;
+	MgSecsInt	= 0;
+
+"programme"
+
+( ==================================================================== )
+( helpers                                                              )
+( ==================================================================== )
+
+      ( MG i16 C - wrap C (a chopped long) into the signed 16-bit range,
+	matching the DOS `int pwr` store. )
+"MG i16 C"
+	A = C; A & 0FFFFh; C = A;
+	A = C; ? A '< 8000h -> MG i16 done;
+	A = C; A - 65536; C = A;
+    "MG i16 done"
+	end;
+
+      ( MG widen f32 FA from C - C holds a binary32 bit pattern; FA <- the
+	value widened to double.  fld dword / fstp qword. )
+"MG widen f32 FA from C"
+	[FS0] = C;
+	{
+	    D9 87 <dFS0 mtp bytesperunit>	(fld  dword [edi+FS0*4])
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
+	}
+	end;
+
+      ( MG vimana emit - dump one frame: dzat(3d) pwr cur ap_reached status )
+"MG vimana emit"
+	[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1]; => MGD d FA;
+	[FA0] = [MgDzatY0]; [FA1] = [MgDzatY1]; => MGD d FA;
+	[FA0] = [MgDzatZ0]; [FA1] = [MgDzatZ1]; => MGD d FA;
+	C = [MgPwr]; => MGD i;
+	[FA0] = [MgCur0];  [FA1] = [MgCur1];  => MGD d FA;
+	C = [MgApreached]; => MGD i;
+	C = [MgStatus];    => MGD i;
+	end;
+
+( ==================================================================== )
+( MG vimana - opcode 1                                                 )
+( ==================================================================== )
+
+"MG vimana"
+	( read inputs )
+	=> MG CR next; [MgNframes] = C;
+	=> MG CR next; [MgDzatX0] = C; => MG CR next; [MgDzatX1] = C;
+	=> MG CR next; [MgDzatY0] = C; => MG CR next; [MgDzatY1] = C;
+	=> MG CR next; [MgDzatZ0] = C; => MG CR next; [MgDzatZ1] = C;
+	=> MG CR next; [MgApX0] = C;    => MG CR next; [MgApX1] = C;
+	=> MG CR next; [MgApY0] = C;    => MG CR next; [MgApY1] = C;
+	=> MG CR next; [MgApZ0] = C;    => MG CR next; [MgApZ1] = C;
+	=> MG CR next; [MgInitD0] = C;  => MG CR next; [MgInitD1] = C;
+	=> MG CR next; [MgCur0] = C;    => MG CR next; [MgCur1] = C;
+	=> MG CR next; [MgTmp] = C;	( ap_target_ray float bits )
+	=> MG CR next; [MgAnti] = C;
+	=> MG CR next; [MgAptgt] = C;
+	=> MG CR next; [MgPwr] = C;
+	[MgApreached] = 0; [MgStspeed] = 1; [MgStatus] = 0;
+	( materialise ray as a double into MgT0/1 for ras )
+	C = [MgTmp]; => MG widen f32 FA from C;
+	[MgT00] = [FA0]; [MgT01] = [FA1];
+
+    "MG vimana loop"
+	A = [MgNframes]; ? A <= 0 -> MG vimana done;
+	[MgNframes]-;
+
+	( if drive gated off, emit a static frame )
+	A = [MgAptgt]; ? A = 0 -> MG vimana static;
+	A = [MgStspeed]; ? A = 0 -> MG vimana static;
+	-> MG vimana drive;
+    "MG vimana static"
+	[MgStatus] = 0;
+	=> MG vimana emit;
+	-> MG vimana loop;
+
+    "MG vimana drive"
+	( dxx = dzat_x - ap_x ; dyy ; dzz )
+	[FA0]=[MgDzatX0];[FA1]=[MgDzatX1]; [FB0]=[MgApX0];[FB1]=[MgApX1]; => FSub;
+	[MgDxx0]=[FA0];[MgDxx1]=[FA1];
+	[FA0]=[MgDzatY0];[FA1]=[MgDzatY1]; [FB0]=[MgApY0];[FB1]=[MgApY1]; => FSub;
+	[MgDyy0]=[FA0];[MgDyy1]=[FA1];
+	[FA0]=[MgDzatZ0];[FA1]=[MgDzatZ1]; [FB0]=[MgApZ0];[FB1]=[MgApZ1]; => FSub;
+	[MgDzz0]=[FA0];[MgDzz1]=[FA1];
+
+	( l_dsd = sqrt(dxx^2+dyy^2+dzz^2) )
+	[FA0]=[MgDxx0];[FA1]=[MgDxx1]; [FB0]=[MgDxx0];[FB1]=[MgDxx1]; => FMul;
+	[MgAcc0]=[FA0];[MgAcc1]=[FA1];
+	[FA0]=[MgDyy0];[FA1]=[MgDyy1]; [FB0]=[MgDyy0];[FB1]=[MgDyy1]; => FMul;
+	[FB0]=[MgAcc0];[FB1]=[MgAcc1]; => FAdd;
+	[MgAcc0]=[FA0];[MgAcc1]=[FA1];
+	[FA0]=[MgDzz0];[FA1]=[MgDzz1]; [FB0]=[MgDzz0];[FB1]=[MgDzz1]; => FMul;
+	[FB0]=[MgAcc0];[FB1]=[MgAcc1]; => FAdd;
+	=> FSqrt;
+	[MgLdsd0]=[FA0];[MgLdsd1]=[FA1];
+
+	( ras = ap_targetted==-1 ? 25000 : anti_rad ? 44*ray : 1.5*ray )
+	A = [MgAptgt]; A + 1; ? A = 0 -> MG vimana ras apm1;
+	( ap_targetted is 1 in the corpus: compute 44*ray or 1.5*ray )
+	A = [MgAnti]; ? A = 0 -> MG vimana ras 15;
+	[FA0]=[MgK440];[FA1]=[MgK441]; [FB0]=[MgT00];[FB1]=[MgT01]; => FMul;
+	-> MG vimana ras save;
+    "MG vimana ras 15"
+	[FA0]=[MgK1p50];[FA1]=[MgK1p51]; [FB0]=[MgT00];[FB1]=[MgT01]; => FMul;
+	-> MG vimana ras save;
+    "MG vimana ras apm1"
+	[FA0]=[MgK250000];[FA1]=[MgK250001];
+    "MG vimana ras save"
+	[MgRas0]=[FA0];[MgRas1]=[FA1];
+
+	( thresholds )
+	[FA0]=[MgK0p99990];[FA1]=[MgK0p99991]; [FB0]=[MgInitD0];[FB1]=[MgInitD1]; => FMul;
+	[MgT10]=[FA0];[MgT11]=[FA1];			( t_charge = 0.9999*init_d )
+	[FA0]=[MgK75000];[FA1]=[MgK75001]; [FB0]=[MgRas0];[FB1]=[MgRas1]; => FAdd;
+	[MgReq0]=[FA0];[MgReq1]=[FA1];			( borrow Req as t_park )
+	[FA0]=[MgK150000];[FA1]=[MgK150001]; [FB0]=[MgRas0];[FB1]=[MgRas1]; => FAdd;
+	[MgRt0]=[FA0];[MgRt1]=[FA1];			( borrow Rt as t_link )
+	[FA0]=[MgK0p9990];[FA1]=[MgK0p9991]; [FB0]=[MgInitD0];[FB1]=[MgInitD1]; => FMul;
+	[MgAcc0]=[FA0];[MgAcc1]=[FA1];			( borrow Acc as t_drive )
+
+	( if l_dsd < ras -> CALIBRATED, terminal )
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgRas0];[FB1]=[MgRas1]; => FCmp;
+	A = [FI]; ? A < 0 -> MG vimana calibrated;
+
+	( elif l_dsd > t_charge -> CHARGING )
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgT10];[FB1]=[MgT11]; => FCmp;
+	A = [FI]; ? A > 0 -> MG vimana charging;
+	( elif l_dsd < t_park -> PARKING )
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgReq0];[FB1]=[MgReq1]; => FCmp;
+	A = [FI]; ? A < 0 -> MG vimana parking;
+	( elif l_dsd < t_link -> LINKING )
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgRt0];[FB1]=[MgRt1]; => FCmp;
+	A = [FI]; ? A < 0 -> MG vimana linking;
+	( elif l_dsd < t_drive -> DRIVING )
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgAcc0];[FB1]=[MgAcc1]; => FCmp;
+	A = [FI]; ? A < 0 -> MG vimana driving;
+	-> MG vimana ignition;
+
+    "MG vimana calibrated"
+	[MgStatus] = 6; [MgApreached] = 1; [MgStspeed] = 0;
+	=> MG vimana emit;
+	-> MG vimana loop;
+
+    "MG vimana charging"
+	[FA0]=[MgKreqC10];[FA1]=[MgKreqC11]; [FB0]=[MgLdsd0];[FB1]=[MgLdsd1]; => FMul;
+	[MgReq0]=[FA0];[MgReq1]=[FA1];
+	[MgRt0]=[MgKrtCharg0];[MgRt1]=[MgKrtCharg1]; [MgStatus]=1;
+	-> MG vimana integrate;
+    "MG vimana parking"
+	[FA0]=[MgKreqC20];[FA1]=[MgKreqC21]; [FB0]=[MgLdsd0];[FB1]=[MgLdsd1]; => FMul;
+	[MgReq0]=[FA0];[MgReq1]=[FA1];
+	[MgRt0]=[MgKrtPark0];[MgRt1]=[MgKrtPark1]; [MgStatus]=2;
+	-> MG vimana integrate;
+    "MG vimana linking"
+	[FA0]=[MgKreqC20];[FA1]=[MgKreqC21]; [FB0]=[MgLdsd0];[FB1]=[MgLdsd1]; => FMul;
+	[MgReq0]=[FA0];[MgReq1]=[FA1];
+	[MgRt0]=[MgKrtLink0];[MgRt1]=[MgKrtLink1]; [MgStatus]=3;
+	-> MG vimana integrate;
+    "MG vimana driving"
+	[FA0]=[MgKreqC30];[FA1]=[MgKreqC31]; [FB0]=[MgLdsd0];[FB1]=[MgLdsd1]; => FMul;
+	[MgReq0]=[FA0];[MgReq1]=[FA1];
+	[MgRt0]=[MgKrtDrive0];[MgRt1]=[MgKrtDrive1]; [MgStatus]=4;
+	-> MG vimana integrate;
+    "MG vimana ignition"
+	[FA0]=[MgKreqC40];[FA1]=[MgKreqC41]; [FB0]=[MgLdsd0];[FB1]=[MgLdsd1]; => FMul;
+	[MgReq0]=[FA0];[MgReq1]=[FA1];
+	[MgRt0]=[MgKrtIgn0];[MgRt1]=[MgKrtIgn1]; [MgStatus]=5;
+	( -> fall through to integrate )
+
+    "MG vimana integrate"
+	( cur += (req-cur)*rt )
+	[FA0]=[MgReq0];[FA1]=[MgReq1]; [FB0]=[MgCur0];[FB1]=[MgCur1]; => FSub;
+	[FB0]=[MgRt0];[FB1]=[MgRt1]; => FMul;
+	[FB0]=[MgCur0];[FB1]=[MgCur1]; => FAdd;
+	[MgCur0]=[FA0];[MgCur1]=[FA1];
+	( if cur < 10 -> cur = 10 )
+	[FB0]=[MgK100];[FB1]=[MgK101]; => FCmp;
+	A = [FI]; ? A >= 0 -> MG vimana cur ok;
+	[FA0]=[MgK100];[FA1]=[MgK101]; [MgCur0]=[FA0];[MgCur1]=[FA1];
+    "MG vimana cur ok"
+	( dzat_x -= dxx/cur )
+	[FA0]=[MgDxx0];[FA1]=[MgDxx1]; [FB0]=[MgCur0];[FB1]=[MgCur1]; => FQuo;
+	[MgT00]=[FA0];[MgT01]=[FA1];
+	[FA0]=[MgDzatX0];[FA1]=[MgDzatX1]; [FB0]=[MgT00];[FB1]=[MgT01]; => FSub;
+	[MgDzatX0]=[FA0];[MgDzatX1]=[FA1];
+	[FA0]=[MgDyy0];[FA1]=[MgDyy1]; [FB0]=[MgCur0];[FB1]=[MgCur1]; => FQuo;
+	[MgT00]=[FA0];[MgT01]=[FA1];
+	[FA0]=[MgDzatY0];[FA1]=[MgDzatY1]; [FB0]=[MgT00];[FB1]=[MgT01]; => FSub;
+	[MgDzatY0]=[FA0];[MgDzatY1]=[FA1];
+	[FA0]=[MgDzz0];[FA1]=[MgDzz1]; [FB0]=[MgCur0];[FB1]=[MgCur1]; => FQuo;
+	[MgT00]=[FA0];[MgT01]=[FA1];
+	[FA0]=[MgDzatZ0];[FA1]=[MgDzatZ1]; [FB0]=[MgT00];[FB1]=[MgT01]; => FSub;
+	[MgDzatZ0]=[FA0];[MgDzatZ1]=[FA1];
+	( pwr -= l_dsd*1e-5, i16 )
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgK1em50];[FB1]=[MgK1em51]; => FMul;
+	[MgT00]=[FA0];[MgT01]=[FA1];
+	[FI]=[MgPwr]; => IntToF;
+	[FB0]=[MgT00];[FB1]=[MgT01]; => FSub;
+	=> FToIntChop; C = [FI]; => MG i16 C; [MgPwr] = C;
+	=> MG vimana emit;
+	-> MG vimana loop;
+
+    "MG vimana done"
+	end;
+
+( ==================================================================== )
+( MG approach - opcode 2                                               )
+( ==================================================================== )
+
+"MG approach"
+	=> MG CR next; [MgNframes] = C;
+	=> MG CR next; [MgDzatX0] = C; => MG CR next; [MgDzatX1] = C;
+	=> MG CR next; [MgDzatY0] = C; => MG CR next; [MgDzatY1] = C;
+	=> MG CR next; [MgDzatZ0] = C; => MG CR next; [MgDzatZ1] = C;
+	=> MG CR next; [MgPlX0] = C;    => MG CR next; [MgPlX1] = C;
+	=> MG CR next; [MgPlY0] = C;    => MG CR next; [MgPlY1] = C;
+	=> MG CR next; [MgPlZ0] = C;    => MG CR next; [MgPlZ1] = C;
+	=> MG CR next; [MgInitD0] = C;  => MG CR next; [MgInitD1] = C;
+	=> MG CR next; [MgCur0] = C;    => MG CR next; [MgCur1] = C;
+	=> MG CR next; [MgPray] = C;
+	=> MG CR next; [MgPwr] = C;
+	=> MG CR next; [MgIpreaching] = C;
+	[MgIpreached] = 0; A = [MgIpreaching]; ? A = 0 -> MG approach ipr1; [MgIpreached] = 1;
+    "MG approach ipr1"
+	[MgStatus] = 0;
+
+    "MG approach loop"
+	A = [MgNframes]; ? A <= 0 -> MG approach done;
+	[MgNframes]-;
+	A = [MgIpreaching]; ? A = 0 -> MG approach static;
+	-> MG approach drive;
+    "MG approach static"
+	[MgStatus] = 0;
+	[FA0]=[MgDzatX0];[FA1]=[MgDzatX1]; => MGD d FA;
+	[FA0]=[MgDzatY0];[FA1]=[MgDzatY1]; => MGD d FA;
+	[FA0]=[MgDzatZ0];[FA1]=[MgDzatZ1]; => MGD d FA;
+	C=[MgPwr]; => MGD i;
+	[FA0]=[MgCur0];[FA1]=[MgCur1]; => MGD d FA;
+	C=[MgIpreached]; => MGD i;
+	C=[MgStatus]; => MGD i;
+	-> MG approach loop;
+
+    "MG approach drive"
+	[FA0]=[MgDzatX0];[FA1]=[MgDzatX1]; [FB0]=[MgPlX0];[FB1]=[MgPlX1]; => FSub;
+	[MgDxx0]=[FA0];[MgDxx1]=[FA1];
+	[FA0]=[MgDzatY0];[FA1]=[MgDzatY1]; [FB0]=[MgPlY0];[FB1]=[MgPlY1]; => FSub;
+	[MgDyy0]=[FA0];[MgDyy1]=[FA1];
+	[FA0]=[MgDzatZ0];[FA1]=[MgDzatZ1]; [FB0]=[MgPlZ0];[FB1]=[MgPlZ1]; => FSub;
+	[MgDzz0]=[FA0];[MgDzz1]=[FA1];
+	[FA0]=[MgDxx0];[FA1]=[MgDxx1]; [FB0]=[MgDxx0];[FB1]=[MgDxx1]; => FMul;
+	[MgAcc0]=[FA0];[MgAcc1]=[FA1];
+	[FA0]=[MgDyy0];[FA1]=[MgDyy1]; [FB0]=[MgDyy0];[FB1]=[MgDyy1]; => FMul;
+	[FB0]=[MgAcc0];[FB1]=[MgAcc1]; => FAdd;
+	[MgAcc0]=[FA0];[MgAcc1]=[FA1];
+	[FA0]=[MgDzz0];[FA1]=[MgDzz1]; [FB0]=[MgDzz0];[FB1]=[MgDzz1]; => FMul;
+	[FB0]=[MgAcc0];[FB1]=[MgAcc1]; => FAdd;
+	=> FSqrt;
+	[MgLdsd0]=[FA0];[MgLdsd1]=[FA1];
+
+	( thresholds for the approach cascade )
+	[FA0]=[MgK0p999990];[FA1]=[MgK0p999991]; [FB0]=[MgInitD0];[FB1]=[MgInitD1]; => FMul;
+	[MgT10]=[FA0];[MgT11]=[FA1];			( 0.99999*init_d )
+	( if l_dsd > 0.99999*init_d -> WARMING )
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgT10];[FB1]=[MgT11]; => FCmp;
+	A = [FI]; ? A > 0 -> MG approach warming;
+	( elif l_dsd<25 and init_d>500 -> REFINING )
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgK250];[FB1]=[MgK251]; => FCmp;
+	A = [FI]; ? A >= 0 -> MG approach notref;
+	[FA0]=[MgK5000];[FA1]=[MgK5001]; [FB0]=[MgInitD0];[FB1]=[MgInitD1]; => FCmp;
+	A = [FI]; ? A <= 0 -> MG approach notref;
+	-> MG approach refining;
+    "MG approach notref"
+	( elif l_dsd<100 and init_d>500 -> BREAKING )
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgK1000];[FB1]=[MgK1001]; => FCmp;
+	A = [FI]; ? A >= 0 -> MG approach notbrk;
+	[FA0]=[MgK5000];[FA1]=[MgK5001]; [FB0]=[MgInitD0];[FB1]=[MgInitD1]; => FCmp;
+	A = [FI]; ? A <= 0 -> MG approach notbrk;
+	-> MG approach breaking;
+    "MG approach notbrk"
+	( elif l_dsd < 0.995*init_d -> APPROACH )
+	[FA0]=[MgK0p9950];[FA1]=[MgK0p9951]; [FB0]=[MgInitD0];[FB1]=[MgInitD1]; => FMul;
+	[MgT00]=[FA0];[MgT01]=[FA1];
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgT00];[FB1]=[MgT01]; => FCmp;
+	A = [FI]; ? A < 0 -> MG approach approaching;
+	-> MG approach ignition;
+
+    "MG approach warming"
+	[FA0]=[MgKreqA10];[FA1]=[MgKreqA11]; [FB0]=[MgLdsd0];[FB1]=[MgLdsd1]; => FMul;
+	[MgReq0]=[FA0];[MgReq1]=[FA1]; [MgRt0]=[MgKrtWarm0];[MgRt1]=[MgKrtWarm1]; [MgStatus]=8;
+	-> MG approach integrate;
+    "MG approach refining"
+	[FA0]=[MgKreqA20];[FA1]=[MgKreqA21]; [FB0]=[MgLdsd0];[FB1]=[MgLdsd1]; => FMul;
+	[MgReq0]=[FA0];[MgReq1]=[FA1]; [MgRt0]=[MgKrtRef0];[MgRt1]=[MgKrtRef1]; [MgStatus]=9;
+	-> MG approach integrate;
+    "MG approach breaking"
+	[FA0]=[MgKreqA30];[FA1]=[MgKreqA31]; [FB0]=[MgLdsd0];[FB1]=[MgLdsd1]; => FMul;
+	[MgReq0]=[FA0];[MgReq1]=[FA1]; [MgRt0]=[MgKrtBrk0];[MgRt1]=[MgKrtBrk1]; [MgStatus]=10;
+	-> MG approach integrate;
+    "MG approach approaching"
+	[FA0]=[MgKreqA40];[FA1]=[MgKreqA41]; [FB0]=[MgLdsd0];[FB1]=[MgLdsd1]; => FMul;
+	[MgReq0]=[FA0];[MgReq1]=[FA1]; [MgRt0]=[MgKrtAppr0];[MgRt1]=[MgKrtAppr1]; [MgStatus]=11;
+	-> MG approach integrate;
+    "MG approach ignition"
+	[FA0]=[MgKreqA50];[FA1]=[MgKreqA51]; [FB0]=[MgLdsd0];[FB1]=[MgLdsd1]; => FMul;
+	[MgReq0]=[FA0];[MgReq1]=[FA1]; [MgRt0]=[MgKrtDrive0];[MgRt1]=[MgKrtDrive1]; [MgStatus]=5;
+
+    "MG approach integrate"
+	[FA0]=[MgReq0];[FA1]=[MgReq1]; [FB0]=[MgCur0];[FB1]=[MgCur1]; => FSub;
+	[FB0]=[MgRt0];[FB1]=[MgRt1]; => FMul;
+	[FB0]=[MgCur0];[FB1]=[MgCur1]; => FAdd;
+	[MgCur0]=[FA0];[MgCur1]=[FA1];
+	[FB0]=[MgK100];[FB1]=[MgK101]; => FCmp;
+	A = [FI]; ? A >= 0 -> MG approach cur ok;
+	[FA0]=[MgK100];[FA1]=[MgK101]; [MgCur0]=[FA0];[MgCur1]=[FA1];
+    "MG approach cur ok"
+	( dzat_x -= dxx/cur ; dzat_z -= dzz/cur ; dzat_y -= dyy/(0.5*cur) )
+	[FA0]=[MgDxx0];[FA1]=[MgDxx1]; [FB0]=[MgCur0];[FB1]=[MgCur1]; => FQuo;
+	[MgT00]=[FA0];[MgT01]=[FA1];
+	[FA0]=[MgDzatX0];[FA1]=[MgDzatX1]; [FB0]=[MgT00];[FB1]=[MgT01]; => FSub;
+	[MgDzatX0]=[FA0];[MgDzatX1]=[FA1];
+	[FA0]=[MgDzz0];[FA1]=[MgDzz1]; [FB0]=[MgCur0];[FB1]=[MgCur1]; => FQuo;
+	[MgT00]=[FA0];[MgT01]=[FA1];
+	[FA0]=[MgDzatZ0];[FA1]=[MgDzatZ1]; [FB0]=[MgT00];[FB1]=[MgT01]; => FSub;
+	[MgDzatZ0]=[FA0];[MgDzatZ1]=[FA1];
+	( 0.5*cur )
+	[FA0]=[MgK0p50];[FA1]=[MgK0p51]; [FB0]=[MgCur0];[FB1]=[MgCur1]; => FMul;
+	[MgT10]=[FA0];[MgT11]=[FA1];
+	[FA0]=[MgDyy0];[FA1]=[MgDyy1]; [FB0]=[MgT10];[FB1]=[MgT11]; => FQuo;
+	[MgT00]=[FA0];[MgT01]=[FA1];
+	[FA0]=[MgDzatY0];[FA1]=[MgDzatY1]; [FB0]=[MgT00];[FB1]=[MgT01]; => FSub;
+	[MgDzatY0]=[FA0];[MgDzatY1]=[FA1];
+	( pwr -= l_dsd*0.5e-5, i16 )
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgK05em50];[FB1]=[MgK05em51]; => FMul;
+	[MgT00]=[FA0];[MgT01]=[FA1];
+	[FI]=[MgPwr]; => IntToF;
+	[FB0]=[MgT00];[FB1]=[MgT01]; => FSub;
+	=> FToIntChop; C = [FI]; => MG i16 C; [MgPwr] = C;
+	( if l_dsd < 2*ray -> STANDBY, reached )
+	C = [MgPray]; => MG widen f32 FA from C;	( FA = ray )
+	[MgT00]=[FA0];[MgT01]=[FA1];			( stash ray )
+	[FB0]=[MgT00];[FB1]=[MgT01]; => FAdd;		( FA = 2*ray )
+	[MgT10]=[FA0];[MgT11]=[FA1];
+	[FA0]=[MgLdsd0];[FA1]=[MgLdsd1]; [FB0]=[MgT10];[FB1]=[MgT11]; => FCmp;
+	A = [FI]; ? A >= 0 -> MG approach emit;
+	[MgStatus] = 12; [MgIpreaching] = 0; [MgIpreached] = 1;
+    "MG approach emit"
+	[FA0]=[MgDzatX0];[FA1]=[MgDzatX1]; => MGD d FA;
+	[FA0]=[MgDzatY0];[FA1]=[MgDzatY1]; => MGD d FA;
+	[FA0]=[MgDzatZ0];[FA1]=[MgDzatZ1]; => MGD d FA;
+	C=[MgPwr]; => MGD i;
+	[FA0]=[MgCur0];[FA1]=[MgCur1]; => MGD d FA;
+	C=[MgIpreached]; => MGD i;
+	C=[MgStatus]; => MGD i;
+	-> MG approach loop;
+
+    "MG approach done"
+	end;
+
+( ==================================================================== )
+( MG consumes - opcode 3 (NOCTIS-0.CPP:6443-6486), pure integer        )
+( ==================================================================== )
+
+"MG consumes"
+	=> MG CR next; [MgNframes] = C;	( nticks )
+	=> MG CR next; [MgIqsecs] = C;
+	=> MG CR next; [MgT00] = C; => MG CR next; [MgT01] = C;	( secs double )
+	=> MG CR next; [MgIpt] = C;
+	=> MG CR next; [MgSync] = C;
+	=> MG CR next; [MgIpr] = C;
+	=> MG CR next; [MgPls] = C;
+	=> MG CR next; [MgIlv] = C;
+	=> MG CR next; [MgFa] = C;
+	=> MG CR next; [MgPwr] = C;
+	=> MG CR next; [MgCharge] = C;
+	( MgSecsInt = (long)secs )
+	[FA0]=[MgT00];[FA1]=[MgT01]; => FToIntChop; [MgSecsInt] = [FI];
+
+    "MG consumes loop"
+	A = [MgNframes]; ? A <= 0 -> MG consumes done;
+	[MgNframes]-;
+	[MgSecsInt]+;
+	A = [MgSecsInt]; B = [MgIqsecs]; ? A <= B -> MG consumes dr;
+	[MgIqsecs] = A;
+    "MG consumes dr"
+	( sync drains, gated by ip_targetted>-1, pwr>15000, ip_reached, sync )
+	A = [MgIpt]; ? A < 0 -> MG consumes extra;
+	A = [MgPwr]; ? A < 15001 -> MG consumes extra;
+	A = [MgIpr]; ? A = 0 -> MG consumes extra;
+	A = [MgSync]; B = A;
+	A = [MgIqsecs];
+	C = A; C '% 29; ? B != 1 -> MG consumes s2; ? C != 0 -> MG consumes s2; [MgPwr]-; [MgIqsecs]+;
+    "MG consumes s2"
+	A = [MgIqsecs]; C = A; C '% 18; ? B != 2 -> MG consumes s3; ? C != 0 -> MG consumes s3; [MgPwr]-; [MgIqsecs]+;
+    "MG consumes s3"
+	A = [MgIqsecs]; C = A; C '% 58; ? B != 3 -> MG consumes s4; ? C != 0 -> MG consumes s4; [MgPwr]-; [MgIqsecs]+;
+    "MG consumes s4"
+	A = [MgIqsecs]; C = A; C '% 7;  ? B != 4 -> MG consumes s5; ? C != 0 -> MG consumes s5; [MgPwr]-; [MgIqsecs]+;
+    "MG consumes s5"
+	A = [MgIqsecs]; C = A; C '% 33; ? B != 5 -> MG consumes extra; ? C != 0 -> MG consumes extra; [MgPwr]-; [MgIqsecs]+;
+    "MG consumes extra"
+	A = [MgPls]; ? A = 0 -> MG consumes e2; A = [MgIqsecs]; C = A; C '% 155; ? C != 0 -> MG consumes e2; [MgPwr]-; [MgIqsecs]+;
+    "MG consumes e2"
+	A = [MgIlv]; ? A != 1 -> MG consumes e3; A = [MgIqsecs]; C = A; C '% 84; ? C != 0 -> MG consumes e3; [MgPwr]-; [MgIqsecs]+;
+    "MG consumes e3"
+	A = [MgFa]; ? A = 0 -> MG consumes reserve; A = [MgIqsecs]; C = A; C '% 41; ? C != 0 -> MG consumes reserve; [MgPwr]-; [MgIqsecs]+;
+    "MG consumes reserve"
+	A = [MgPwr]; ? A > 15000 -> MG consumes emit;
+	A = [MgCharge]; ? A > 0 -> MG consumes crecharge;
+	? A < 0 -> MG consumes omega;
+	[MgPwr] = 15000; -> MG consumes emit;
+    "MG consumes crecharge"
+	[MgCharge]-; [MgPwr] = 20000; -> MG consumes emit;
+    "MG consumes omega"
+	[MgPwr] = 20000;
+    "MG consumes emit"
+	C = [MgPwr]; => MG i16 C; => MGD i;
+	C = [MgCharge]; => MGD i;
+	C = [MgIqsecs]; => MGD i;
+	-> MG consumes loop;
+
+    "MG consumes done"
+	end;
+
+( ==================================================================== )
+( MG landing roundtrip - opcode 7 (NOCTIS-1.CPP:3411-3413)             )
+(   float backup = dzat; dzat = backup;  -> F32Narrow per axis.        )
+( ==================================================================== )
+
+"MG landing roundtrip"
+	=> MG CR next; [MgDzatX0] = C; => MG CR next; [MgDzatX1] = C;
+	=> MG CR next; [MgDzatY0] = C; => MG CR next; [MgDzatY1] = C;
+	=> MG CR next; [MgDzatZ0] = C; => MG CR next; [MgDzatZ1] = C;
+	[FA0]=[MgDzatX0];[FA1]=[MgDzatX1]; => F32Narrow; => MGD d FA;
+	[FA0]=[MgDzatY0];[FA1]=[MgDzatY1]; => F32Narrow; => MGD d FA;
+	[FA0]=[MgDzatZ0];[FA1]=[MgDzatZ1]; => F32Narrow; => MGD d FA;
+	end;

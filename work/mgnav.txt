@@ -1,0 +1,132 @@
+      ( *** mgnav - navigation: the exact float sites of the main loop ***
+
+	A LIBRARY.  Needs fpabi/fpctl/fpx87/fpconv/fpchains (linked before
+	it) and nsident (which owns the NsIdentity chain Wave 4 pinned
+	4113/4113 against STARMAP.BIN).  mgmain (the driver) is also linked
+	before it, so the corpus reader and the dump are visible.
+
+	THIS FILE OWNS THREE OF THE FIVE EXACT-REQUIRED FLOAT SITES:
+
+	  MG identity      nearstar_identity = x/100000*y/100000*z/100000
+	                   (NOCTIS-0.CPP:4078) -- calls NsIdentityD, the
+	                   5-op left-associated x87 chain, ONE store to
+	                   binary64.  Do NOT re-derive: each scalar fpx87
+	                   routine stores, and that costs 2239/4113 stars.
+
+	  MG idcmp         ap_target_id == nearstar_identity
+	                   (NOCTIS.CPP:2842) -- two identities, then a
+	                   bit-exact double equality.
+
+	  MG sector        the sector-crossing chop
+	                   (NOCTIS-0.CPP:5649-5651, sky:2808-2810)
+		   sect = (long)((dzat - vs*50000) / 100000); sect *= 100000;
+	                   __ftol chops toward zero.  Three axes.           )
+
+"variables"
+
+	( identity / idcmp scratch )
+	MGx	= 0;
+	MGy	= 0;
+	MGz	= 0;
+	MGap0	= 0;
+	MGap1	= 0;
+	MGns0	= 0;
+	MGns1	= 0;
+
+	( sector chop scratch )
+	MGsvs	= 0;
+	MgsvsfA	= 0;
+	MgsvsfB	= 0;
+	MgskA	= 0;
+	MgskB	= 0;
+
+	( sector chop axis double halves )
+	MGdx0	= 0; MGdx1	= 0;
+	MGdy0	= 0; MGdy1	= 0;
+	MGdz0	= 0; MGdz1	= 0;
+
+"programme"
+
+( ==================================================================== )
+( MG identity - opcode 5: x y z (int32) -> the binary64 identity        )
+( ==================================================================== )
+
+"MG identity"
+	=> MG CR next; [MGx] = C;
+	=> MG CR next; [MGy] = C;
+	=> MG CR next; [MGz] = C;
+	[FJ0] = [MGx]; [FJ1] = [MGy]; [FJ2] = [MGz];
+	=> NsIdentityD;
+	=> MGD d FA;
+	end;
+
+( ==================================================================== )
+( MG idcmp - opcode 6: ap(x,y,z) ns(x,y,z) -> ap_id, ns_id, equal      )
+( ==================================================================== )
+
+"MG idcmp"
+	=> MG CR next; [FJ0] = C;
+	=> MG CR next; [FJ1] = C;
+	=> MG CR next; [FJ2] = C;
+	=> NsIdentityD;
+	[MGap0] = [nsid0]; [MGap1] = [nsid1];
+
+	=> MG CR next; [FJ0] = C;
+	=> MG CR next; [FJ1] = C;
+	=> MG CR next; [FJ2] = C;
+	=> NsIdentityD;
+	[MGns0] = [nsid0]; [MGns1] = [nsid1];
+
+	( emit ap_id, then ns_id )
+	[FA0] = [MGap0]; [FA1] = [MGap1]; => MGD d FA;
+	[FA0] = [MGns0]; [FA1] = [MGns1]; => MGD d FA;
+
+	( bit-exact equality: both halves must match )
+	A = [MGap0]; B = [MGns0]; ? A != B -> MG idcmp ne;
+	A = [MGap1]; B = [MGns1]; ? A != B -> MG idcmp ne;
+	C = 1; -> MG idcmp emit;
+    "MG idcmp ne"
+	C = 0;
+    "MG idcmp emit"
+	=> MGD i;
+	end;
+
+( ==================================================================== )
+( MG sector - opcode 4: dzat(3 doubles) visible_sectors                 )
+(   per axis:  sect = __ftol( (dzat - vs*50000) / 100000 ) * 100000      )
+( ==================================================================== )
+
+"MG sector"
+	( read 6 halves + visible_sectors )
+	=> MG CR next; [MGdx0] = C;
+	=> MG CR next; [MGdx1] = C;
+	=> MG CR next; [MGdy0] = C;
+	=> MG CR next; [MGdy1] = C;
+	=> MG CR next; [MGdz0] = C;
+	=> MG CR next; [MGdz1] = C;
+	=> MG CR next; [MGsvs] = C;
+
+	( (double)(vs*50000) and 100000.0, stashed once )
+	A = [MGsvs]; A '* 50000; [FI] = A; => IntToF;
+	[MgsvsfA] = [FA0]; [MgsvsfB] = [FA1];
+	[FI] = 100000; => IntToF;
+	[MgskA] = [FA0]; [MgskB] = [FA1];
+
+	( axis x )
+	[FA0] = [MGdx0]; [FA1] = [MGdx1];
+	[FB0] = [MgsvsfA]; [FB1] = [MgsvsfB]; => FSub;
+	[FB0] = [MgskA]; [FB1] = [MgskB]; => FQuo;
+	=> FToIntChop; C = [FI]; C '* 100000; => MGD i;
+
+	( axis y )
+	[FA0] = [MGdy0]; [FA1] = [MGdy1];
+	[FB0] = [MgsvsfA]; [FB1] = [MgsvsfB]; => FSub;
+	[FB0] = [MgskA]; [FB1] = [MgskB]; => FQuo;
+	=> FToIntChop; C = [FI]; C '* 100000; => MGD i;
+
+	( axis z )
+	[FA0] = [MGdz0]; [FA1] = [MGdz1];
+	[FB0] = [MgsvsfA]; [FB1] = [MgsvsfB]; => FSub;
+	[FB0] = [MgskA]; [FB1] = [MgskB]; => FQuo;
+	=> FToIntChop; C = [FI]; C '* 100000; => MGD i;
+	end;
