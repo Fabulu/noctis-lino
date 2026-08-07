@@ -1,0 +1,407 @@
+      ( *** walk - the Wave 7b ground renderer (B2) ***
+
+	Programme 1 of this file: HPOINT, the bilinear height query
+	(NOCTIS-1.CPP:63-93).  Self-contained: it brings its own corpus
+	reader and dump writer so it can be graded in isolation, and
+	links ONLY the Wave 3 float engine (fp/fpabi..fp/fpconv).  No
+	fbmem, no pgmem: the workspace and the byte/IO primitives live
+	here, so this file owns a disjoint namespace and cannot collide
+	with B1's grnd.txt or Wave 6a's pg*.txt when the full renderer
+	is linked later.
+
+	WHAT IS GRADED (tier 2 of WAVE7B_PLAN): the binary32 of py,
+	case for case, against grv_ref.c (a separate C transliteration
+	on the hardware x87) and grv_spec.py (an exact-rational model).
+	The branch test `icx+icz < 16384` is integer and deterministic,
+	so hpoint is three-way BYTE-EXACT with zero float tolerance -
+	this is the foundation fragment/hpoint feeds fragment from.
+
+	CORPUS: one signed decimal integer per token, six per case:
+	    px pz s1 s2 s3 s4
+	where s1..s4 are the surfacemap bytes at cpos, cpos+1,
+	cpos+201, cpos+200 (h1,h2,h3,h4).  cpos = (pz>>14)*200 + (px>>14).
+	row/col pinned to 0..198 so all four corners stay in-bounds.
+
+	OUTPUT: one int32 per case = py's binary32 bit pattern, written
+	to grv-out.bin (lino writes units little-endian, matching the C
+	side's memcpy+fwrite).
+
+	FLOAT MODEL: the chain runs at extended precision (PC=64, RC=-
+	nearest, set by FEnter's 133Fh).  Narrowing to float32 happens
+	ONLY at the two stores to py, via F32Narrow - exactly the C
+	`float py = ...` / `py += ...` semantics.  h1..h4, icx, icz are
+	integer->float conversions of values that fit in 24 bits, so
+	they are carried as exact integer doubles (IntToF) and never
+	narrowed.  qid = 1/16384 is assembled as its binary64 bit
+	pattern (3F100000h:00000000h) so no decimal parser is shared
+	with the other side.                                         )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+"directors"
+
+	program name = { walk };
+	unit = 32;
+
+"constants"
+
+	WCORPUS	= 16384;	( raw text buffer, units )
+	WTOKMAX	= 20000;	( decoded integer tokens )
+	WDUMPMAX= 40000;	( one int32 per case )
+	WSURF	= 40000;	( the 200x200 altimetry, 1 byte/unit )
+
+	WQIDHI	= 3F100000h;	( high 32 bits of double 1/16384 = 2^-14 )
+	WQIDLO	= 0;		( low 32 bits )
+
+	W16384	= 16384;
+
+"variables"
+
+	wcorpname	= { grv-corpus.txt };
+	woutname	= { grv-out.bin };
+
+	( corpus reader state )
+	Wcbytes	= 0;
+	Wcpos	= 0;
+	Wctokn	= 0;
+	Wcti	= 0;
+	Wch	= 0;
+	Wcacc	= 0;
+	Wcneg	= 0;
+	Wcbad	= 0;
+
+	( dump state )
+	Wdcnt	= 0;
+	Wi	= 0;
+	Wn	= 0;
+
+	( hpoint integer state )
+	HPpx	= 0;
+	HPpz	= 0;
+	HProw	= 0;
+	HPcol	= 0;
+	HPcpos	= 0;
+	HPh1i	= 0;		( = -(s1<<11), exact int32 )
+	HPh2i	= 0;
+	HPh3i	= 0;
+	HPh4i	= 0;
+	HPicx	= 0;		( = px & 16383 )
+	HPicz	= 0;		( = pz & 16383 )
+	HPpy	= 0;		( float32 bit pattern of py )
+
+	( file-io / loop scratch )
+	Wt	= 0;
+	Ws1	= 0; Ws2 = 0; Ws3 = 0; Ws4 = 0;
+
+"workspace"
+
+	wcorpv	= WCORPUS;
+	wtokv	= WTOKMAX;
+	wdumpv	= WDUMPMAX;
+	wsurfv	= WSURF;
+
+"programme"
+
+	=> W run;
+	end;
+
+( ==================================================================== )
+( W run - load corpus, decode, loop cases, write dump                    )
+( ==================================================================== )
+
+"W run"
+	=> FEnter;
+	=> W load;
+	A = [Wcbad]; ? A != 0 -> W run io;
+	=> W tokenise;
+	[Wcti] = 0;
+	[Wdcnt] = 0;
+	[Wn] = 0;
+
+    "W run case"
+	( stop when fewer than 6 tokens remain for a full row )
+	A = [Wcti]; A + 6; ? A '> [Wctokn] -> W run done;
+	=> W next; [HPpx] = C;
+	=> W next; [HPpz] = C;
+	=> W next; [Ws1] = C;
+	=> W next; [Ws2] = C;
+	=> W next; [Ws3] = C;
+	=> W next; [Ws4] = C;
+	=> W place surf;
+	=> HPOINT;
+	( append HPpy (the float32 bits) to the dump )
+	A = wdumpv; A + [Wdcnt]; [A] = [HPpy];
+	[Wdcnt]+;
+	[Wn]+;
+	-> W run case;
+
+    "W run done"
+	=> W write;
+	=> FLeave;
+	end;
+
+    "W run io"
+	end;
+
+( ==================================================================== )
+( W place surf - write the four corner bytes into wsurfv at cpos offsets  )
+( ==================================================================== )
+
+"W place surf"
+	( cpos = (pz>>14)*200 + (px>>14) ; m200[k]=k*200 inlined )
+	A = [HPpz]; A > 14; A '* 200; [HProw] = A;
+	A = [HPpx]; A > 14; [HPcol] = A;
+	A = [HProw]; A + [HPcol]; [HPcpos] = A;
+	( s1 -> wsurfv[cpos]  (h1) )
+	A = wsurfv; A + [HPcpos]; C = [Ws1]; C & 255; [A] = C;
+	( s2 -> wsurfv[cpos+1]  (h2) )
+	A = [HPcpos]; A + 1; A + wsurfv; C = [Ws2]; C & 255; [A] = C;
+	( s3 -> wsurfv[cpos+201]  (h3) )
+	A = [HPcpos]; A + 201; A + wsurfv; C = [Ws3]; C & 255; [A] = C;
+	( s4 -> wsurfv[cpos+200]  (h4) )
+	A = [HPcpos]; A + 200; A + wsurfv; C = [Ws4]; C & 255; [A] = C;
+	end;
+
+( ==================================================================== )
+( HPOINT - NOCTIS-1.CPP:63-93                                            )
+(   py is float; the two stores to py narrow to float32.  Everything     )
+(   else runs at extended precision.  h1..h4/icx/icz are exact integer  )
+(   doubles.                                                             )
+( ==================================================================== )
+
+"HPOINT"
+	( h1..h4 integer values = -(s<<11) ; surf byte is at wsurfv[cpos+...]
+	  but we already know s1..s4 from the caller's placement, so read
+	  them back the same way hpoint reads p_surfacemap.  Faithful: this
+	  exercises the cpos indexing. )
+	A = wsurfv; A + [HPcpos]; C = [A]; C & 255; C < 11;
+	A = 0; A - C; [HPh1i] = A;
+	A = [HPcpos]; A + 1; A + wsurfv; C = [A]; C & 255; C < 11;
+	A = 0; A - C; [HPh2i] = A;
+	A = [HPcpos]; A + 201; A + wsurfv; C = [A]; C & 255; C < 11;
+	A = 0; A - C; [HPh3i] = A;
+	A = [HPcpos]; A + 200; A + wsurfv; C = [A]; C & 255; C < 11;
+	A = 0; A - C; [HPh4i] = A;
+
+	( icx = px & 16383 ; icz = pz & 16383 )
+	A = [HPpx]; A & 16383; [HPicx] = A;
+	A = [HPpz]; A & 16383; [HPicz] = A;
+
+	( branch: icx + icz < 16384  [integer, exact] )
+	A = [HPicx]; A + [HPicz]; ? A '< W16384 -> HP upper;
+	=> HPOINT lower;
+	-> HP done;
+    "HP upper"
+	=> HPOINT upper;
+	-> HP done;
+    "HP done"
+	end;
+
+( --- upper triangle: py = h1 + (h2-h1)*(icx*qid); py += (h4-h1)*(icz*qid) --- )
+
+"HPOINT upper"
+	( FT <- icx * qid )
+	[FI] = [HPicx]; => IntToF;
+	[FB0] = WQIDLO; [FB1] = WQIDHI; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1];
+
+	( FA <- h2 - h1 )
+	[FI] = [HPh1i]; => IntToF; => HP fb fa;   ( FB <- h1 )
+	[FI] = [HPh2i]; => IntToF;               ( FA <- h2 )
+	=> FSub;                                  ( FA <- h2 - h1 )
+
+	( FA <- (h2-h1) * (icx*qid) )
+	[FB0] = [FT0]; [FB1] = [FT1]; => FMul;
+
+	( FA <- h1 + that )
+	[FT0] = [FA0]; [FT1] = [FA1];             ( FT <- product )
+	[FI] = [HPh1i]; => IntToF; => HP fb fa;   ( FB <- h1 )
+	[FA0] = [FT0]; [FA1] = [FT1]; => FAdd;    ( FA <- product + h1 )
+
+	( py = (float) FA ; store its bits )
+	=> F32Narrow; => FStoreF32; [HPpy] = [FS0];
+
+	( FT <- icz * qid )
+	[FI] = [HPicz]; => IntToF;
+	[FB0] = WQIDLO; [FB1] = WQIDHI; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1];
+
+	( FA <- h4 - h1 )
+	[FI] = [HPh1i]; => IntToF; => HP fb fa;
+	[FI] = [HPh4i]; => IntToF; => FSub;
+
+	( FA <- (h4-h1) * (icz*qid) )
+	[FB0] = [FT0]; [FB1] = [FT1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1];             ( FT <- product )
+
+	( FA <- (float)py + product ; py reloaded from its narrowed bits )
+	[FS0] = [HPpy]; => FLoadF32; => HP fb fa; ( FB <- (double)py )
+	[FA0] = [FT0]; [FA1] = [FT1]; => FAdd;
+
+	=> F32Narrow; => FStoreF32; [HPpy] = [FS0];
+	end;
+
+( --- lower triangle: py = h3 + (h4-h3)*((16384-icx)*qid);
+                      py += (h2-h3)*((16384-icz)*qid)               --- )
+
+"HPOINT lower"
+	( FT <- (16384 - icx) * qid )
+	A = W16384; A - [HPicx]; [FI] = A; => IntToF;
+	[FB0] = WQIDLO; [FB1] = WQIDHI; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1];
+
+	( FA <- h4 - h3 )
+	[FI] = [HPh3i]; => IntToF; => HP fb fa;
+	[FI] = [HPh4i]; => IntToF; => FSub;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1];
+
+	( FA <- h3 + product )
+	[FI] = [HPh3i]; => IntToF; => HP fb fa;
+	[FA0] = [FT0]; [FA1] = [FT1]; => FAdd;
+
+	=> F32Narrow; => FStoreF32; [HPpy] = [FS0];
+
+	( FT <- (16384 - icz) * qid )
+	A = W16384; A - [HPicz]; [FI] = A; => IntToF;
+	[FB0] = WQIDLO; [FB1] = WQIDHI; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1];
+
+	( FA <- h2 - h3 )
+	[FI] = [HPh3i]; => IntToF; => HP fb fa;
+	[FI] = [HPh2i]; => IntToF; => FSub;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1];
+
+	( FA <- (float)py + product )
+	[FS0] = [HPpy]; => FLoadF32; => HP fb fa;
+	[FA0] = [FT0]; [FA1] = [FT1]; => FAdd;
+
+	=> F32Narrow; => FStoreF32; [HPpy] = [FS0];
+	end;
+
+( --- HP fb fa : FB <- FA (the fp engine has FLoad for FA<-FB only) --- )
+
+"HP fb fa"
+	[FB0] = [FA0];
+	[FB1] = [FA1];
+	end;
+
+( ==================================================================== )
+( corpus reader - decimal integers, '#' comment to EOL.  Modelled on    )
+( pgmem's CR but standalone; names prefixed W to keep the namespace.    )
+( ==================================================================== )
+
+"W load"
+	[Wcbad] = 0;
+	[File Name]	= wcorpname;
+	[File Command]	= READ;
+	[File Position]	= 0;
+	[Block Pointer]	= wcorpv;
+	[Block Size]	= WCORPUS;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	A = [Block Size];
+	[Wcbytes] = A;
+	? A '> 0 -> W load ok;
+	[Wcbad] = 1;
+    "W load ok"
+	end;
+
+"W getch"
+	A = [Wcpos];
+	? A '>= [Wcbytes] -> W getch eof;
+	C = A; C > 2; D = wcorpv; D + C;
+	C = [D];
+	A = [Wcpos]; A & 3; A '* 8;
+	C > A; C & 255;
+	[Wch] = C;
+	end;
+    "W getch eof"
+	A = 0; A - 1; [Wch] = A;
+	end;
+
+"W tokenise"
+	[Wcpos] = 0; [Wctokn] = 0;
+    "W tk scan"
+	=> W getch;
+	A = [Wch];
+	? A < 0 -> W tk done;
+	? A = 35 -> W tk comment;		( '#' )
+	? A = 45 -> W tk number;		( '-' )
+	? A '< 48 -> W tk skip;
+	? A '> 57 -> W tk skip;
+	-> W tk number;
+    "W tk skip"
+	[Wcpos]+;
+	-> W tk scan;
+    "W tk comment"
+	[Wcpos]+;
+	=> W getch;
+	A = [Wch];
+	? A < 0 -> W tk done;
+	? A != 10 -> W tk comment;
+	[Wcpos]+;
+	-> W tk scan;
+    "W tk number"
+	[Wcneg] = 0; [Wcacc] = 0;
+	A = [Wch];
+	? A != 45 -> W tk digits;
+	[Wcneg] = 1;
+	[Wcpos]+;
+    "W tk digits"
+	=> W getch;
+	A = [Wch];
+	? A '< 48 -> W tk emit;
+	? A '> 57 -> W tk emit;
+	C = [Wcacc]; C '* 10; A - 48; C + A; [Wcacc] = C;
+	[Wcpos]+;
+	-> W tk digits;
+    "W tk emit"
+	A = [Wcneg]; ? A = 0 -> W tk pos;
+	C = [Wcacc]; C+-; [Wcacc] = C;
+    "W tk pos"
+	A = [Wctokn];
+	? A '>= WTOKMAX -> W tk done;
+	C = wtokv; C + A; [C] = [Wcacc];
+	[Wctokn]+;
+	-> W tk scan;
+    "W tk done"
+	end;
+
+( W next - C <- wtokv[[Wcti]], [Wcti]+.  Past end yields 0. )
+
+"W next"
+	A = [Wcti];
+	? A '>= [Wctokn] -> W next eof;
+	C = wtokv; C + A; C = [C];
+	[Wcti]+;
+	end;
+    "W next eof"
+	C = 0;
+	end;
+
+( ==================================================================== )
+( dump writer - WDUMPMAX int32 units to grv-out.bin                     )
+( ==================================================================== )
+
+"W write"
+	[File Name]	= woutname;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= wdumpv;
+	[Block Size]	= [Wdcnt];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+	[File Name]	= woutname;
+	[File Position]	= 0;
+	[File Command]	= SET SIZE;
+	[File Size]	= [Wdcnt];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;
