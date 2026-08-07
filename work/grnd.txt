@@ -1,0 +1,325 @@
+      ( *** grnd - Wave 7b build_surface() painters, namespace GR ***
+
+	This is a LIBRARY.  It owns the integer/random-driven parts of
+	NOCTIS-1.CPP's build_surface() (:1948-2731), transliterated from
+	the DOS source.  The float-driven painters (round_hill, std_crater,
+	asterism) are deferred — only the seed chop and the integer painters
+	are byte-exact-graded in this tier.
+
+	PROVENANCE:
+	  rockyground           NOCTIS-1.CPP:1545-1559
+	  smoothterrain         NOCTIS-1.CPP:1530-1543
+	  plains noise add      NOCTIS-1.CPP:2280-2283  (the ADD, not ASSIGN)
+	  objectschart fill     NOCTIS-1.CPP:1994-1998
+	  objects inclination   NOCTIS-1.CPP:2606-2615
+
+	LR-DIVERGENCE (REJECT):
+	  p_surfacemap[ptr] += fast_random(3) at :2280 is an ADD.  niv-lr
+	  ASSIGNS it (p_surfacemap[ptr] = fast_random(3)), which is the
+	  ground-path analogue of 7a's type-3 defect.  This port ADDs.
+
+	DEPENDENCIES (linked, not edited):
+	  fbmem    — workspace, MEM put/get byte, RPSM/ROBJ constants
+	  brtl     — Borland random()
+	  mul64frag — 64-bit multiply for fast_random
+	  surng    — SU fast srand/raw/frnd, SU srand/rnd wrappers
+
+	VARIABLE NAMING: all GR-prefixed, disjoint from su/walk/sky/grv.    )
+
+"variables"
+
+	( ---- painter parameters ---- )
+
+	GRrough		= 0;	( rockyground roughness	)
+	GRround		= 0;	( rockyground rounding	)
+	GRlevel		= 0;	( rockyground level (signed char)	)
+
+	( ---- loop state ---- )
+
+	GRptr		= 0;	( generic pointer into p_surfacemap	)
+	GRn		= 0;	( smoothterrain accumulator		)
+	GRsmp		= 0;	( smoothterrain passes remaining	)
+	GRcur		= 0;	( current byte value			)
+	GRabs		= 0;	( abs(level)				)
+	GRcz		= 0;	( prologue cz = random(2)		)
+	GRcx		= 0;	( prologue cx = random(100)		)
+
+	( ---- build_surface prologue globals ---- )
+
+	GRgseed		= 0;	( global_surface_seed			)
+	GRiptype	= 0;	( nearstar_p_type[ip_targetted]	)
+	GRsctype	= 0;	( scenario type (OCEAN/PLAINS/DESERT/ICY) )
+	GRalbedo	= 0;
+	GRlat		= 0;	( latitude				)
+	GRgflares	= 0;	( groundflares result			)
+
+"programme"
+
+( ==================================================================== )
+( rockyground — NOCTIS-1.CPP:1545-1559                                  )
+( ==================================================================== )
+
+      ( GR rockyground — fills p_surfacemap with random(roughness), runs
+	smoothterrain(rounding), then adjusts by level.
+
+	Input:  [GRrough], [GRround], [GRlevel]
+	Output: p_surfacemap[0..39999] modified				)
+
+"GR rockyground"
+
+	( phase 1: fill with random(roughness) )
+	[GRptr] = 0;
+"GR rg fill"
+	C = [GRrough];
+	=> SU rnd;
+	C & 0FFh;
+	[MBval] = C;
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+	[GRptr]+;
+	? [GRptr] '< 40000 -> GR rg fill;
+
+	( phase 2: smooth )
+	C = [GRround];
+	=> GR smoothterrain;
+
+	( phase 3: level adjust )
+	( compute abs(level) )
+	A = [GRlevel];
+	? A '>= 0 -> GR rg absok;
+	B = 0; B - A; A = B;
+"GR rg absok"
+	[GRabs] = A;
+
+	[GRptr] = 0;
+"GR rg level"
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM get byte;
+	A = [MBval];
+	? A '>= [GRabs] -> GR rg add;
+	( else set to 0 )
+	C = 0;
+	[MBval] = C;
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+	-> GR rg next;
+
+"GR rg add"
+	A = [MBval]; A + [GRlevel];
+	? A '<= 127 -> GR rg store;
+	A = 127;
+"GR rg store"
+	C = A; C & 0FFh;
+	[MBval] = C;
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+
+"GR rg next"
+	[GRptr]+;
+	? [GRptr] '< 40000 -> GR rg level;
+	end;
+
+( ==================================================================== )
+( smoothterrain — NOCTIS-1.CPP:1530-1543                                )
+( ==================================================================== )
+
+      ( GR smoothterrain — 2x2 box average, `rounding` passes.
+
+	  while (rounding) {
+	      for (ptr = 0; ptr < 39799; ptr++) {
+		  n  = p_surfacemap[ptr];
+		  n += p_surfacemap[ptr + 1];
+		  n += p_surfacemap[ptr + 200];
+		  n += p_surfacemap[ptr + 201];
+		  p_surfacemap[ptr] = n >> 2;
+	      }
+	      rounding--;
+	  }
+
+	Input: C = passes.  No output regs.				)
+
+"GR smoothterrain"
+	[GRsmp] = C;
+"GR sm outer"
+	? [GRsmp] '<= 0 -> GR sm end;
+	[GRptr] = 0;
+"GR sm loop"
+	? [GRptr] '>= 39799 -> GR sm nextpass;
+
+	( n = smap[ptr] )
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM get byte;
+	A = [MBval]; [GRn] = A;
+
+	( n += smap[ptr+1] )
+	A = RPSM; A + [GRptr]; A + 1; [MBptr] = A;
+	=> MEM get byte;
+	A = [GRn]; A + [MBval]; [GRn] = A;
+
+	( n += smap[ptr+200] )
+	A = 200; A + [GRptr]; A + RPSM; [MBptr] = A;
+	=> MEM get byte;
+	A = [GRn]; A + [MBval]; [GRn] = A;
+
+	( n += smap[ptr+201] )
+	A = 201; A + [GRptr]; A + RPSM; [MBptr] = A;
+	=> MEM get byte;
+	A = [GRn]; A + [MBval]; [GRn] = A;
+
+	( smap[ptr] = n >> 2 )
+	A = [GRn]; A > 2; A & 0FFh;
+	[MBval] = A;
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+
+	[GRptr]+;
+	-> GR sm loop;
+
+"GR sm nextpass"
+	[GRsmp]-;
+	-> GR sm outer;
+"GR sm end"
+	end;
+
+( ==================================================================== )
+( plains noise add — NOCTIS-1.CPP:2280-2283                             )
+( ==================================================================== )
+
+      ( GR plains noise — p_surfacemap[ptr] += fast_random(3).
+
+	LR-DIVERGENCE: vanilla ADDs (the += below).  niv-lr ASSIGNS
+	(p_surfacemap[ptr] = fast_random(3)), which is the falsifier
+	GR_PLASSIGN in gr_break.py.  This routine ADDs.
+
+	  for (ptr = 0; ptr < oc_bytes; ptr++)
+	      p_surfacemap[ptr] += fast_random(3);
+
+	oc_bytes == ps_bytes == 40000.					)
+
+"GR plains noise"
+	[GRptr] = 0;
+"GR pn loop"
+	( read current value )
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM get byte;
+	A = [MBval]; [GRcur] = A;
+
+	( fast_random(3) )
+	[SUfmask] = 3;
+	=> SU fast raw;
+	A = [SUfval]; A & 0FFh;
+	A + [GRcur];
+	? A '<= 255 -> GR pn store;
+	A = 255;
+"GR pn store"
+	C = A; C & 0FFh;
+	[MBval] = C;
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+
+	[GRptr]+;
+	? [GRptr] '< 40000 -> GR pn loop;
+	end;
+
+( ==================================================================== )
+( objectschart ROCKS fill — NOCTIS-1.CPP:1994-1998                      )
+( ==================================================================== )
+
+      ( GR fill rocks — fills objectschart with ROCKS for all three class
+	fields.  ROCKS=0, nr_of_objects=0 (cleared by _fmemset), so the
+	byte is 0x00.  No draws.						)
+
+"GR fill rocks"
+	[GRptr] = 0;
+"GR fr loop"
+	C = 0;
+	[MBval] = C;
+	A = ROBJ; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+	[GRptr]+;
+	? [GRptr] '< 40000 -> GR fr loop;
+	end;
+
+( ==================================================================== )
+( build_surface prologue — NOCTIS-1.CPP:1974-2053                       )
+( ==================================================================== )
+
+      ( GR prologue — seeds both generators from global_surface_seed and
+	runs the initial random draws for groundflares, tree parameters,
+	and the type-3 groundflares bump.
+
+	Input:  [GRgseed], [GRiptype], [GRsctype], [GRalbedo], [GRlat]
+	Output: [GRgflares], objectschart filled with ROCKS		)
+
+"GR prologue"
+
+	( fast_srand(global_surface_seed) :1974 )
+	A = [GRgseed];
+	=> SU fast srand;
+
+	( srand(global_surface_seed) :1975 — Borland srand takes int16 )
+	A = [GRgseed]; A & 0FFFFh;
+	=> SU srand;
+
+	( objectschart ROCKS fill :1994-1998 )
+	=> GR fill rocks;
+
+	( cz = random(2), cx = random(100) :1983-1984 )
+	C = 2;
+	=> SU rnd;
+	[GRcz] = C;
+	C = 100;
+	=> SU rnd;
+	[GRcx] = C;
+
+	( groundflares logic :1985-1990 )
+	[GRgflares] = 0;
+	A = [GRcx];
+	? A '<= 97 -> GR prol gf2;
+	C = 2; C '* [GRcz]; C + 2;	( 2 + (2 * cz) )
+	[GRgflares] = C;
+"GR prol gf2"
+	A = [GRcx];
+	? A '<= 45 -> GR prol gf3;
+	? A '>= 55 -> GR prol gf3;
+	( cx > 45 && cx < 55 )
+	A = [GRiptype];
+	? A = 3 -> GR prol gflat;
+	-> GR prol gf3;
+"GR prol gflat"
+	A = [GRlat];
+	? A '<= 75 -> GR prol gf3;
+	C = 2; C '* [GRcz]; C + 2;
+	[GRgflares] = C;
+"GR prol gf3"
+
+	( tree parameters: flandom() draws from the brtl stream.
+	  The float values are rendering params; only the draws matter
+	  for stream synchronization. :2004-2034 )
+	A = [GRlat];
+	? A '<= 45 -> GR prol tree2;
+	C = 32767; => SU rnd;		( flandom() for treepeaking :2005 )
+	-> GR prol tree3;
+"GR prol tree2"
+	C = 32767; => SU rnd;		( flandom() for treepeaking :2007 )
+"GR prol tree3"
+	C = 3;    => SU rnd;		( switch(random(3)) rootshade :2010 )
+	C = 30;   => SU rnd;		( switch(random(30)) treeflares :2017 )
+	C = 15;   => SU rnd;		( switch(random(15)) leafflares :2024 )
+	C = 32767; => SU rnd;		( treescaling flandom 1 :2031 )
+	C = 32767; => SU rnd;		( treescaling flandom 2 :2031 )
+	C = 32767; => SU rnd;		( treespreads flandom 1 :2032 )
+	C = 32767; => SU rnd;		( treespreads flandom 2 :2032 )
+	C = 32767; => SU rnd;		( branchwidth flandom :2033 )
+	C = 32767; => SU rnd;		( rootheight flandom :2034 )
+
+	( type-3 groundflares bump :2042-2047 )
+	A = [GRiptype]; ? A != 3 -> GR prol done;
+	A = [GRsctype]; ? A = 3 -> GR prol done;	( DESERT )
+	A = [GRsctype]; ? A = 4 -> GR prol done;	( ICY )
+	C = 4; => SU rnd;				( if(random(4)) :2044 )
+	A = C; ? A = 0 -> GR prol done;
+	[GRgflares] = 8;
+
+"GR prol done"
+	end;

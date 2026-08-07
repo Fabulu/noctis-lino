@@ -1,0 +1,124 @@
+      ( *** grmain - the Wave 7b driver, namespace GR ***
+
+	Writes p_surfacemap (40000 units) + objectschart (40000 units) +
+	4 counter units directly to gr-out.bin.  Each unit holds one byte
+	value (0-255) as a 32-bit integer (Wave 5 Decision 1).  The grader
+	extracts the low byte of each unit.
+
+	Output: 20004 units = 80016 bytes.
+
+	Build: powershell -NoProfile -ExecutionPolicy Bypass
+	       -File C:\programmieren\linoleum\lino_build.ps1
+	       -Src C:\programmieren\linoleum\work\grmain.txt	)
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	brtl;
+	mul64frag;
+
+	surng;
+	suseed;
+	grnd;
+
+"directors"
+
+	program name = { grmain };
+	unit = 32;
+
+"variables"
+
+	groutname	= { gr-out.bin };
+
+"programme"
+
+	=> FEnter;
+	=> SU ledger reset;
+
+	( wipe p_surfacemap )
+	[GRptr] = 0;
+"GR wipe sm"
+	C = 0; [MBval] = C;
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+	[GRptr]+;
+	? [GRptr] '< 40000 -> GR wipe sm;
+
+	( wipe objectschart )
+	[GRptr] = 0;
+"GR wipe ob"
+	C = 0; [MBval] = C;
+	A = ROBJ; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+	[GRptr]+;
+	? [GRptr] '< 40000 -> GR wipe ob;
+
+	( test case: build_t1_moon )
+	[GRgseed]  = 123456;
+	[GRiptype] = 1;
+	[GRsctype] = 0;
+	[GRalbedo] = 20;
+	[GRlat]    = 30;
+
+	=> GR prologue;
+
+	A = [GRgseed];
+	=> SU fast srand;
+	A = [GRgseed]; A & 0FFFFh;
+	=> SU srand;
+
+	[GRrough] = 25;
+	[GRround] = 4;
+	[GRlevel] = 0;
+	=> GR rockyground;
+
+	( copy p_surfacemap to output arena at SADPR, one byte per unit )
+	[GRptr] = 0;
+"GR cp map"
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM get byte;
+	A = SADPR; A + [GRptr];
+	C = [MBval]; C & 0FFh; [A] = C;
+	[GRptr]+;
+	? [GRptr] '< 40000 -> GR cp map;
+
+	( copy objectschart to SADPR + 40000 )
+	[GRptr] = 0;
+"GR cp obj"
+	A = ROBJ; A + [GRptr]; [MBptr] = A;
+	=> MEM get byte;
+	B = SADPR; B + 40000; B + [GRptr];
+	C = [MBval]; C & 0FFh; [B] = C;
+	[GRptr]+;
+	? [GRptr] '< 40000 -> GR cp obj;
+
+	( append draw counts at SADPR + 80000 )
+	A = SADPR; A + 80000;
+	[A] = [SUfn]; A+;
+	[A] = [SUbn]; A+;
+	[A] = [SUfh]; A+;
+	[A] = [SUbh];
+
+	( write 80004 units to file )
+	[File Name] = groutname;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	[Block Pointer] = SADPR;
+	[Block Size] = 80004;
+	[Block Size] * BYTESPERUNIT;
+	isocall;
+
+	[File Name] = groutname;
+	[File Position] = 0;
+	[File Command] = SET SIZE;
+	[File Size] = 80004;
+	[File Size] * BYTESPERUNIT;
+	isocall;
+
+	=> FLeave;
+	end;

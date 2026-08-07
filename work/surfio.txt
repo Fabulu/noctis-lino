@@ -1,0 +1,168 @@
+      ( *** surfio - SURFACE.BIN 40-byte NIV+ R2.3 read/write, namespace GR ***
+
+	This is a LIBRARY.  It owns the packing and unpacking of the 40-byte
+	SURFACE.BIN save file, transliterated from the DOS source:
+
+	  NOCTIS-1.CPP:3722-3735   _read sequence (entryflag path)
+	  NOCTIS-1.CPP:4992-5002   _write sequence (ESC && landed)
+
+	The 40-byte layout (11 fields, little-endian):
+
+	  off 0  landing_pt_lon  int16        off 20 pos_x      float32
+	  off 2  landing_pt_lat  int16        off 24 pos_y      float32
+	  off 4  atl_x           int32 quot   off 28 pos_z      float32
+	  off 8  atl_z           int32 quot   off 32 user_alfa  float32
+	  off 12 atl_x2          int32 rem    off 36 user_beta  float32
+	  off 16 atl_z2          int32 rem    total 40
+
+	In the L.in.oleum workspace, each unit is 32 bits (4 bytes).  The
+	40-byte record occupies 10 consecutive units.  The two int16 fields
+	(landing_pt_lon, landing_pt_lat) share unit 0: lon in bits 0-15,
+	lat in bits 16-31.  The int32 fields each occupy one full unit.
+	The float32 fields each occupy one full unit holding the IEEE-754
+	binary32 bit pattern.
+
+	WRITE-ONCE REMAINDER: on fresh landing atl_x2==atl_z2==8192, and
+	these remainders are FROZEN — they are NOT re-derived from pos as
+	the walker moves.  pos_x == (atl_x<<14)+atl_x2 is an identity at
+	write time, not a re-derivation.
+
+	STOCK/LR TRAP: the stock/LR build writes 5 trailing bytes
+	(openhuddelta/openhudcount/hud_rtl_closed) which NIV+ dropped.
+	This port writes 40 bytes, NEVER 45.
+
+	FILENAME TRAP: underscores in lino string literals become spaces,
+	so the filename "SURFACE.BIN" is fine (no underscores), but any
+	path containing them must use a hyphen or \us.			)
+
+"constants"
+
+	GRSBUNITS	= 10;	( 40 bytes / 4 bytes-per-unit		)
+	GRSB8192	= 8192;	( fresh-landing remainder			)
+
+"variables"
+
+	( ---- the 40-byte record buffer, 10 consecutive units ---- )
+
+	GRSB0	= 0;	( unit 0: lon[0:15] | lat[16:31]	)
+	GRSB1	= 0;	( unit 1: atl_x				)
+	GRSB2	= 0;	( unit 2: atl_z				)
+	GRSB3	= 0;	( unit 3: atl_x2			)
+	GRSB4	= 0;	( unit 4: atl_z2			)
+	GRSB5	= 0;	( unit 5: pos_x (float32 bits)		)
+	GRSB6	= 0;	( unit 6: pos_y (float32 bits)		)
+	GRSB7	= 0;	( unit 7: pos_z (float32 bits)		)
+	GRSB8	= 0;	( unit 8: user_alfa (float32 bits)	)
+	GRSB9	= 0;	( unit 9: user_beta (float32 bits)	)
+
+	( ---- field scratch ---- )
+
+	GRSBtmp	= 0;
+	GRSBi	= 0;
+	GRSBerr	= 0;	( 0 = OK, 1 = identity mismatch		)
+
+	( ---- unpacked field values ---- )
+
+	GRSBflon	= 0;
+	GRSBflat	= 0;
+	GRSBfax		= 0;
+	GRSBfaz		= 0;
+	GRSBfax2	= 0;
+	GRSBfaz2	= 0;
+	GRSBfpx		= 0;
+	GRSBfpy		= 0;
+	GRSBfpz		= 0;
+	GRSBfua		= 0;
+	GRSBfub		= 0;
+
+"programme"
+
+( ==================================================================== )
+( pack SURFACE.BIN into 10 units                                        )
+( ==================================================================== )
+
+      ( GR sb pack — given the 11 field values in the GRSBf* variables,
+	pack them into GRSB0..GRSB9.
+
+	Input variables:
+	  GRSBflon   landing_pt_lon  (int16)
+	  GRSBflat   landing_pt_lat  (int16)
+	  GRSBfax    atl_x           (int32)
+	  GRSBfaz    atl_z           (int32)
+	  GRSBfax2   atl_x2          (int32)
+	  GRSBfaz2   atl_z2          (int32)
+	  GRSBfpx    pos_x           (float32 bit pattern)
+	  GRSBfpy    pos_y           (float32 bit pattern)
+	  GRSBfpz    pos_z           (float32 bit pattern)
+	  GRSBfua    user_alfa       (float32 bit pattern)
+	  GRSBfub    user_beta       (float32 bit pattern)
+
+	Output: GRSB0..GRSB9 hold the 40-byte packed record.		)
+
+"GR sb pack"
+
+	( unit 0: lon in low 16, lat in high 16 )
+	A = [GRSBflat]; A < 16;		( shift lat left 16 bits )
+	A | [GRSBflon];
+	GRSB0 = A;
+
+	( units 1-4: straight copies )
+	GRSB1 = [GRSBfax];
+	GRSB2 = [GRSBfaz];
+	GRSB3 = [GRSBfax2];
+	GRSB4 = [GRSBfaz2];
+
+	( units 5-9: float32 bit patterns )
+	GRSB5 = [GRSBfpx];
+	GRSB6 = [GRSBfpy];
+	GRSB7 = [GRSBfpz];
+	GRSB8 = [GRSBfua];
+	GRSB9 = [GRSBfub];
+	end;
+
+( ==================================================================== )
+( unpack SURFACE.BIN from 10 units                                      )
+( ==================================================================== )
+
+      ( GR sb unpack — given GRSB0..GRSB9, extract the 11 fields.
+
+	The inverse of GR sb pack.					)
+
+"GR sb unpack"
+
+	( lon = GRSB0 & 0xFFFF, lat = (GRSB0 >> 16) & 0xFFFF )
+	A = GRSB0; A & 0FFFFh; [GRSBflon] = A;
+	A = GRSB0; A > 16; A & 0FFFFh; [GRSBflat] = A;
+
+	( atl fields )
+	[GRSBfax]  = GRSB1;
+	[GRSBfaz]  = GRSB2;
+	[GRSBfax2] = GRSB3;
+	[GRSBfaz2] = GRSB4;
+
+	( float fields )
+	[GRSBfpx] = GRSB5;
+	[GRSBfpy] = GRSB6;
+	[GRSBfpz] = GRSB7;
+	[GRSBfua] = GRSB8;
+	[GRSBfub] = GRSB9;
+	end;
+
+( ==================================================================== )
+( verify the write-once remainder identity                              )
+( ==================================================================== )
+
+      ( GR sb check pos — verify pos_x == (atl_x << 14) + atl_x2.
+	Returns [GRSBerr] = 0 if OK, 1 if mismatch.			)
+
+"GR sb check pos"
+	[GRSBerr] = 0;
+	A = [GRSBfax]; A < 14; A + [GRSBfax2];
+	? A = [GRSBfpx] -> GR sb cpz;
+	[GRSBerr] = 1;
+"GR sb cpz"
+	A = [GRSBfaz]; A < 14; A + [GRSBfaz2];
+	? A = [GRSBfpz] -> GR sb cdone;
+	[GRSBerr] = 1;
+"GR sb cdone"
+	end;
