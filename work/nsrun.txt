@@ -180,6 +180,8 @@
 	A = [nrhdr plus 2]; [nrn] = A;
       ? [nrn] <= 0 -> nrdie;
       ? [nrn] > NSMAXREC -> nrdie;
+      A = [nrn]; A * 8; A * BYTES PER UNIT; A + 16;
+      ? [nrfilebytes] < A -> nrdie;
 
 	[File Name]	= nsinfile;
 	[File Command]	= READ;
