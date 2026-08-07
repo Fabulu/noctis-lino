@@ -74,15 +74,15 @@
 	=> SP load maps;
 	=> SP ncc load;
 	=> SP unloadallpv;
-	=> CR load;
-	A = [CRbad]; ? A != 0 -> SP run io;
-	=> CR tokenise;
-	[CRti] = 0;
+	=> SP CR load;
+	A = [SPCRbad]; ? A != 0 -> SP run io;
+	=> SP CR tokenise;
+	[SPCRti] = 0;
 	[MNcases] = 0;
 	[MNbad] = 0;
 
     "SP run case"
-	=> CR next;
+	=> SP CR next;
 	[MNop] = C;
 	A = [MNop];
 	? A = 0  -> SP run done;
@@ -127,9 +127,9 @@
 	checked-in binary that the port itself produced. )
 
 "SP case head"
-	=> CR next; [CScase] = C;
-	=> CR next; [MNpre] = C;
-	=> CR next; [MNpres] = C;
+	=> SP CR next; [SPCScase] = C;
+	=> SP CR next; [MNpre] = C;
+	=> SP CR next; [MNpres] = C;
 	=> SP census reset;
 	end;
 
@@ -188,15 +188,15 @@
 
 "SP do gras"
 	=> SP case head;
-	=> CR next; [GBmag] = C;
-	=> CR next; [GBcx] = C;
-	=> CR next; [GBcy] = C;
-	=> CR next; [GBgman] = C;
-	=> CR next; [GBstart] = C;
-	=> CR next; [GBcmask] = C;
-	=> CR next; [GBsat] = C;
-	=> CR next; [GBtapreg] = C;
-	=> CR next; [GBbubble] = C;
+	=> SP CR next; [GBmag] = C;
+	=> SP CR next; [GBcx] = C;
+	=> SP CR next; [GBcy] = C;
+	=> SP CR next; [GBgman] = C;
+	=> SP CR next; [GBstart] = C;
+	=> SP CR next; [GBcmask] = C;
+	=> SP CR next; [GBsat] = C;
+	=> SP CR next; [GBtapreg] = C;
+	=> SP CR next; [GBbubble] = C;
 
 	[GBtabreg] = RGGLB;
 	[GBdstreg] = RGADP;
@@ -218,12 +218,12 @@
 
 "SP do glow"
 	=> SP case head;
-	=> CR next; [GLmag] = C;
-	=> CR next; [GLcx] = C;
-	=> CR next; [GLcy] = C;
-	=> CR next; [GLstart] = C;
-	=> CR next; [GLarc] = C;
-	=> CR next; [GLcol] = C;
+	=> SP CR next; [GLmag] = C;
+	=> SP CR next; [GLcx] = C;
+	=> SP CR next; [GLcy] = C;
+	=> SP CR next; [GLstart] = C;
+	=> SP CR next; [GLarc] = C;
+	=> SP CR next; [GLcol] = C;
 
 	[GLtabreg] = RGGLB;
 	[GLdstreg] = RGADP;
@@ -242,9 +242,9 @@
 
 "SP do bg"
 	=> SP case head;
-	=> CR next; [BGstart] = C;
-	=> CR next; [BGshift] = C;
-	=> CR next; [MNi] = C;
+	=> SP CR next; [BGstart] = C;
+	=> SP CR next; [BGshift] = C;
+	=> SP CR next; [MNi] = C;
 
 	[BGtabreg] = RGOFF;
 	[BGsrcreg] = RGSBG;
@@ -269,8 +269,8 @@
 
 "SP do dark"
 	=> SP case head;
-	=> CR next; [DKview] = C;
-	=> CR next; [DKrot] = C;
+	=> SP CR next; [DKview] = C;
+	=> SP CR next; [DKrot] = C;
 
 	[DKreg] = RGPBG;
 	[SPpreg] = RGPBG; [SPpn] = 64800;
@@ -294,13 +294,13 @@
 	[WHshape] = 1; [WHsun] = 1;
     "SP do white"
 	=> SP case head;
-	=> CR next; [WHmag] = C;
-	=> CR next; [WHfgm] = C;
-	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> SP CR next; [WHmag] = C;
+	=> SP CR next; [WHfgm] = C;
+	=> SP CR next; [PGFt] = C; => SP CR next; [PGFu] = C;
 	=> PGF ldf64; [PGFi] = SFXX; => PGF sa;
-	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> SP CR next; [PGFt] = C; => SP CR next; [PGFu] = C;
 	=> PGF ldf64; [PGFi] = SFYY; => PGF sa;
-	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> SP CR next; [PGFt] = C; => SP CR next; [PGFu] = C;
 	=> PGF ldf64; [PGFi] = SFZZ; => PGF sa;
 
 	[WHdstreg] = RGADP;
@@ -322,8 +322,8 @@
 	used subset would prove less. )
 
 "SP do scal"
-	=> CR next; [CScase] = C;
-	=> CR next; [SCmag] = C;
+	=> SP CR next; [SPCScase] = C;
+	=> SP CR next; [SCmag] = C;
 	=> SP scale sweep;
 	A = sphdr; [A plus 0] = [SCmag];
 	[SKind] = K39; [STag] = 1;
@@ -342,18 +342,18 @@
 ( -------------------------------------------------------------------- )
 
 "SP do mapd"
-	=> CR next; [CScase] = C;
-	=> CR next; [MPreg] = C;
-	=> CR next; [MPbytes] = C;
+	=> SP CR next; [SPCScase] = C;
+	=> SP CR next; [MPreg] = C;
+	=> SP CR next; [MPbytes] = C;
 	=> SP map walk;
 	=> SP map emit;
 	[MNcases]+;
 	-> SP run case;
 
 "SP do offd"
-	=> CR next; [CScase] = C;
-	=> CR next; [MPreg] = C;
-	=> CR next; [MPbytes] = C;
+	=> SP CR next; [SPCScase] = C;
+	=> SP CR next; [MPreg] = C;
+	=> SP CR next; [MPbytes] = C;
 	=> SP off walk;
 	=> SP off emit;
 	[MNcases]+;
@@ -364,17 +364,17 @@
 ( -------------------------------------------------------------------- )
 
 "SP do load"
-	=> CR next; [CScase] = C;
-	=> CR next; [PVh] = C;
-	=> CR next; [PVmodel] = C;
-	=> CR next; [PVxs] = C;
-	=> CR next; [PVys] = C;
-	=> CR next; [PVzs] = C;
-	=> CR next; [PVxm] = C;
-	=> CR next; [PVym] = C;
-	=> CR next; [PVzm] = C;
-	=> CR next; [PVcol] = C;
-	=> CR next; [PVreq] = C;
+	=> SP CR next; [SPCScase] = C;
+	=> SP CR next; [PVh] = C;
+	=> SP CR next; [PVmodel] = C;
+	=> SP CR next; [PVxs] = C;
+	=> SP CR next; [PVys] = C;
+	=> SP CR next; [PVzs] = C;
+	=> SP CR next; [PVxm] = C;
+	=> SP CR next; [PVym] = C;
+	=> SP CR next; [PVzm] = C;
+	=> SP CR next; [PVcol] = C;
+	=> SP CR next; [PVreq] = C;
 	=> SP loadpv;
 	=> SP arena emit;
 	[MNcases]+;
@@ -385,16 +385,16 @@
 ( -------------------------------------------------------------------- )
 
 "SP do draw"
-	=> CR next; [CScase] = C;
-	=> CR next; [PVh] = C;
-	=> CR next; [DWmode] = C;
-	=> CR next; [DWuds] = C;
-	=> CR next; [DWcx] = C;
-	=> CR next; [DWcy] = C;
-	=> CR next; [DWcz] = C;
-	=> CR next; [DWcamx] = C;
-	=> CR next; [DWcamy] = C;
-	=> CR next; [DWcamz] = C;
+	=> SP CR next; [SPCScase] = C;
+	=> SP CR next; [PVh] = C;
+	=> SP CR next; [DWmode] = C;
+	=> SP CR next; [DWuds] = C;
+	=> SP CR next; [DWcx] = C;
+	=> SP CR next; [DWcy] = C;
+	=> SP CR next; [DWcz] = C;
+	=> SP CR next; [DWcamx] = C;
+	=> SP CR next; [DWcamy] = C;
+	=> SP CR next; [DWcamz] = C;
 	=> SP drawpv;
 	=> SP call emit;
 	=> SP depi emit;
@@ -406,16 +406,16 @@
 ( -------------------------------------------------------------------- )
 
 "SP do copy"
-	=> CR next; [CScase] = C;
-	=> CR next; [PVh] = C;
-	=> CR next; [PVk] = C;
+	=> SP CR next; [SPCScase] = C;
+	=> SP CR next; [PVh] = C;
+	=> SP CR next; [PVk] = C;
 	=> SP copypv;
 	=> SP arena emit;
 	[MNcases]+;
 	-> SP run case;
 
 "SP do unld"
-	=> CR next; [CScase] = C;
+	=> SP CR next; [SPCScase] = C;
 	=> SP unloadallpv;
 	=> SP arena emit;
 	[MNcases]+;
@@ -426,23 +426,23 @@
 ( -------------------------------------------------------------------- )
 
 "SP do mod"
-	=> CR next; [CScase] = C;
-	=> CR next; [PVh] = C;
-	=> CR next; [MOpid] = C;
-	=> CR next; [MOvid] = C;
-	=> CR next; [MOxs] = C;
-	=> CR next; [MOys] = C;
-	=> CR next; [MOzs] = C;
-	=> CR next; [MOxa] = C;
-	=> CR next; [MOya] = C;
-	=> CR next; [MOza] = C;
-	=> CR next; [MNn] = C;
+	=> SP CR next; [SPCScase] = C;
+	=> SP CR next; [PVh] = C;
+	=> SP CR next; [MOpid] = C;
+	=> SP CR next; [MOvid] = C;
+	=> SP CR next; [MOxs] = C;
+	=> SP CR next; [MOys] = C;
+	=> SP CR next; [MOzs] = C;
+	=> SP CR next; [MOxa] = C;
+	=> SP CR next; [MOya] = C;
+	=> SP CR next; [MOza] = C;
+	=> SP CR next; [MNn] = C;
 	[MOlist] = 0;
 	A = [MNn]; ? A = 0 -> SP dm run;
 	[MOlist] = 1;
 	[MNi] = 0;
     "SP dm w"
-	=> CR next;
+	=> SP CR next;
 	A = pvlst; A + [MNi]; [A] = C;
 	[MNi]+;
 	A = [MNi]; ? A '< [MNn] -> SP dm w;
@@ -462,14 +462,14 @@
 	difference a measured number. )
 
 "SP do setu"
-	=> CR next; [CScase] = C;
-	=> CR next; [MNi] = C;
-	=> CR next; [MNn] = C;
-	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> SP CR next; [SPCScase] = C;
+	=> SP CR next; [MNi] = C;
+	=> SP CR next; [MNn] = C;
+	=> SP CR next; [PGFt] = C; => SP CR next; [PGFu] = C;
 	=> PGF ldf64; [PGFi] = SFXX; => PGF sa;
-	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> SP CR next; [PGFt] = C; => SP CR next; [PGFu] = C;
 	=> PGF ldf64; [PGFi] = SFYY; => PGF sa;
-	=> CR next; [PGFt] = C; => CR next; [PGFu] = C;
+	=> SP CR next; [PGFt] = C; => SP CR next; [PGFu] = C;
 	=> PGF ldf64; [PGFi] = SFZZ; => PGF sa;
 
 	A = [MNi]; ? A != 0 -> SP ds glow;
@@ -494,8 +494,8 @@
 ( -------------------------------------------------------------------- )
 
 "SP do dump"
-	=> CR next; [CScase] = C;
-	=> CR next; [PVh] = C;
+	=> SP CR next; [SPCScase] = C;
+	=> SP CR next; [PVh] = C;
 	=> SP arena emit;
 	=> SP f32 emit;
 	=> SP depi emit;
@@ -518,9 +518,9 @@
 	A = sphdr;
 	[A plus 0]  = [MNcases];
 	[A plus 1]  = [MNbad];
-	[A plus 2]  = [CRtokn];
-	[A plus 3]  = [CRbytes];
-	[A plus 4]  = [CRti];
+	[A plus 2]  = [SPCRtokn];
+	[A plus 3]  = [SPCRbytes];
+	[A plus 4]  = [SPCRti];
 	[A plus 5]  = [MNi];
 	[A plus 6]  = [FFLG];
 	[A plus 7]  = [MNn];

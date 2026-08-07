@@ -711,19 +711,19 @@
 	=> PAL tavola;
 
 	( P3 )
-	[SHfirst] = 64; [SHn] = 24;
+	[FBSHfirst] = 64; [FBSHn] = 24;
 	[TWt1] = 0;  [TWt2] = 0;  [TWi] = 0;
 	[TWj] = 63;  [TWp] = 40;  [TWq] = 20;
 	=> TW shade i;
 
 	( P4 )
-	[SHfirst] = 88; [SHn] = 40;
+	[FBSHfirst] = 88; [FBSHn] = 40;
 	[TWt1] = 63; [TWt2] = 40; [TWi] = 20;
 	[TWj] = 1;   [TWp] = 2;   [TWq] = 3;
 	=> TW shade i;
 
 	( P5 - the inverted clamp, both ends )
-	[SHfirst] = 128; [SHn] = 16;
+	[FBSHfirst] = 128; [FBSHn] = 16;
 	[TWt1] = 0; [TWt1] - 8;
 	[TWt2] = 0; [TWt2] - 8;
 	[TWi]  = 0; [TWi]  - 8;
@@ -736,7 +736,7 @@
 	=> PAL tavola;
 
 	( P7 - rewrites pal6 192..255 and uploads NOTHING )
-	[SHfirst] = 192; [SHn] = 64;
+	[FBSHfirst] = 192; [FBSHn] = 64;
 	[TWt1] = 0;  [TWt2] = 0;  [TWi] = 0;
 	[TWj] = 63;  [TWp] = 63;  [TWq] = 63;
 	=> TW shade i;
@@ -764,7 +764,7 @@
 	  the parameter is ignored, srfpal6 stays zero AND pal6 is
 	  clobbered, so P1 and P7 both fire. --- )
 	A = srfpal6; [SHdstb] = A;
-	[SHfirst] = 0; [SHn] = 16;
+	[FBSHfirst] = 0; [FBSHn] = 16;
 	[TWt1] = 0;  [TWt2] = 0;  [TWi] = 0;
 	[TWj] = 60;  [TWp] = 40;  [TWq] = 20;
 	=> TW shade i;

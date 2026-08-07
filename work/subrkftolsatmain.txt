@@ -67,15 +67,15 @@
 	=> SU pal init;
 	=> SU select ovl;
 	=> SUDM reset;
-	=> CR load;
-	A = [CRbad]; ? A != 0 -> SU run io;
-	=> CR tokenise;
-	[CRti] = 0;
+	=> SU CR load;
+	A = [SUCRbad]; ? A != 0 -> SU run io;
+	=> SU CR tokenise;
+	[SUCRti] = 0;
 	[MNcases] = 0;
 	[MNbad] = 0;
 
     "SU run case"
-	=> CR next;
+	=> SU CR next;
 	[MNop] = C;
 	A = [MNop];
 	? A = 0 -> SU run done;
@@ -115,20 +115,20 @@
 	and graded while its position is given. )
 
 "SU do surface"
-	=> CR next; [SUid]    = C;
-	=> CR next; [SUtype]  = C;
-	=> CR next; [SUcbase] = C;
-	=> CR next; [SUmoon]  = C;
-	=> CR next; [SUplwp]  = C;
-	=> CR next; [SUowner] = C;
-	=> CR next; [SUnsr]   = C;
-	=> CR next; [SUnsg]   = C;
-	=> CR next; [SUnsb]   = C;
-	=> CR next; [SUsv0]   = C;
-	=> CR next; [SUsv1]   = C;
-	=> CR next; [SUsec0]  = C;
-	=> CR next; [SUsec1]  = C;
-	=> CR next; [SUemit]  = C;
+	=> SU CR next; [SUid]    = C;
+	=> SU CR next; [SUtype]  = C;
+	=> SU CR next; [SUcbase] = C;
+	=> SU CR next; [SUmoon]  = C;
+	=> SU CR next; [SUplwp]  = C;
+	=> SU CR next; [SUowner] = C;
+	=> SU CR next; [SUnsr]   = C;
+	=> SU CR next; [SUnsg]   = C;
+	=> SU CR next; [SUnsb]   = C;
+	=> SU CR next; [SUsv0]   = C;
+	=> SU CR next; [SUsv1]   = C;
+	=> SU CR next; [SUsec0]  = C;
+	=> SU CR next; [SUsec1]  = C;
+	=> SU CR next; [SUemit]  = C;
 	[SUledon] = [SUemit];
 
 	A = [SUmoon];
@@ -216,8 +216,8 @@
 	A = suhdr;
 	[A plus 0]  = [MNcases];
 	[A plus 1]  = [MNbad];
-	[A plus 2]  = [CRbad];
-	[A plus 3]  = [CRtokn];
+	[A plus 2]  = [SUCRbad];
+	[A plus 3]  = [SUCRtokn];
 	[A plus 4]  = [FI];
 	[A plus 5]  = [FFLG];
 	[A plus 6]  = 0;  [A plus 7]  = 0;

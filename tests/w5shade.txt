@@ -62,7 +62,7 @@
 	[pal6 plus 0] = 41; [pal6 plus 1] = 42; [pal6 plus 2] = 43;
 
 	A = srfpal6; [SHdstb] = A;
-	[SHfirst] = 0; [SHn] = 16;
+	[FBSHfirst] = 0; [FBSHn] = 16;
 	[PFden] = 1;
 	[PFnum] = 0;  => PAL f32 make; [SHsr] = [PFbits];
 	[PFnum] = 0;  => PAL f32 make; [SHsg] = [PFbits];

@@ -89,8 +89,8 @@
 	SFdr	= 0;	SFdg	= 0;	SFdb	= 0;
 	SFk	= 0;
 
-	SHfirst	= 0;
-	SHn	= 0;
+	SUSHfirst	= 0;
+	SUSHn	= 0;
 	SHcnt	= 0;
 
 	SUbrt	= 0;
@@ -167,7 +167,7 @@
 ( shade - NOCTIS-0.CPP:1151                                            )
 ( ==================================================================== )
 
-      ( SU shade k - k = 1.00 / (float)[SHn].  A double divided by a
+      ( SU shade k - k = 1.00 / (float)[SUSHn].  A double divided by a
 	float, stored into a float.  With sixteen colours it is 0.0625
 	and exact; it is computed rather than written down because the
 	call site's 16 is an argument, not a property of shade. )
@@ -175,7 +175,7 @@
 "SU shade k"
 	{
 	    DD 87 <dK1A  mtp bytesperunit>	(fld  qword [edi+K1A*4])
-	    DB 87 <dSHn  mtp bytesperunit>	(fild dword [edi+SHn*4])
+	    DB 87 <dSUSHn  mtp bytesperunit>	(fild dword [edi+SUSHn*4])
 	    DE F9				(fdivp st(1),st(0))
 	    D9 9F <dSFk  mtp bytesperunit>	(fstp dword [edi+SFk*4])
 	}
@@ -222,29 +222,29 @@
 	[SUti] = 0;
 	end;
 
-      ( SU shade - the loop.  In: [SHfirst] = first_color, [SHn] = the
+      ( SU shade - the loop.  In: [SUSHfirst] = first_color, [SUSHn] = the
 	colour count, SFsr/sg/sb and SFfr/fg/fb the two endpoints. )
 
 "SU shade"
 	=> SU shade k;
 	=> SU shade d;
-	A = [SHfirst]; A '* 3; [SHfirst] = A;
-	[SHcnt] = [SHn];
+	A = [SUSHfirst]; A '* 3; [SUSHfirst] = A;
+	[SHcnt] = [SUSHn];
     "SU sh u"
 	A = [SHcnt]; ? A = 0 -> SU sh done;
 
 	[SFtmp] = [SFsr]; => SU shade byte;
-	A = sutmppal; A + [SHfirst]; [A plus 0] = [SUti];
+	A = sutmppal; A + [SUSHfirst]; [A plus 0] = [SUti];
 	[SFtmp] = [SFsg]; => SU shade byte;
-	A = sutmppal; A + [SHfirst]; [A plus 1] = [SUti];
+	A = sutmppal; A + [SUSHfirst]; [A plus 1] = [SUti];
 	[SFtmp] = [SFsb]; => SU shade byte;
-	A = sutmppal; A + [SHfirst]; [A plus 2] = [SUti];
+	A = sutmppal; A + [SUSHfirst]; [A plus 2] = [SUti];
 
 	[SFsr] ++ [SFdr];
 	[SFsg] ++ [SFdg];
 	[SFsb] ++ [SFdb];
 
-	A = [SHfirst]; A + 3; [SHfirst] = A;
+	A = [SUSHfirst]; A + 3; [SUSHfirst] = A;
 	A = [SHcnt]; A - 1; [SHcnt] = A;
 	-> SU sh u;
     "SU sh done"
@@ -327,22 +327,22 @@
 	A = [SUtype]; A >> 2; [SUtype] = A;
 
 	( shade (tmppal, colorbase + 0, 16, 0,0,0, r1,g1,b1) )
-	A = [SUcbase]; [SHfirst] = A; [SHn] = 16;
+	A = [SUcbase]; [SUSHfirst] = A; [SUSHn] = 16;
 	[SFsr] = 0; [SFsg] = 0; [SFsb] = 0;
 	[SFfr] = [SFr1]; [SFfg] = [SFg1]; [SFfb] = [SFb1];
 	=> SU shade;
 
-	A = [SUcbase]; A + 16; [SHfirst] = A; [SHn] = 16;
+	A = [SUcbase]; A + 16; [SUSHfirst] = A; [SUSHn] = 16;
 	[SFsr] = [SFr1]; [SFsg] = [SFg1]; [SFsb] = [SFb1];
 	[SFfr] = [SFr2]; [SFfg] = [SFg2]; [SFfb] = [SFb2];
 	=> SU shade;
 
-	A = [SUcbase]; A + 32; [SHfirst] = A; [SHn] = 16;
+	A = [SUcbase]; A + 32; [SUSHfirst] = A; [SUSHn] = 16;
 	[SFsr] = [SFr2]; [SFsg] = [SFg2]; [SFsb] = [SFb2];
 	[SFfr] = [SFr3]; [SFfg] = [SFg3]; [SFfb] = [SFb3];
 	=> SU shade;
 
-	A = [SUcbase]; A + 48; [SHfirst] = A; [SHn] = 16;
+	A = [SUcbase]; A + 48; [SUSHfirst] = A; [SUSHn] = 16;
 	[SFsr] = [SFr3]; [SFsg] = [SFg3]; [SFsb] = [SFb3];
 	[SFfr] = [KF64]; [SFfg] = [KF64]; [SFfb] = [KF64];
 	=> SU shade;

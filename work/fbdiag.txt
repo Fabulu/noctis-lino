@@ -73,7 +73,7 @@
 	[PVfr] = 16; [PVfg] = 32; [PVfb] = 63;
 	=> PAL tavola;
 	[DGstage] = 13; => DG mark;
-	[SHfirst] = 192; [SHn] = 16;
+	[FBSHfirst] = 192; [FBSHn] = 16;
 	[FBsr] = 0;  [FBsg] = 0;  [FBsb] = 0;
 	[FBer] = 4;  [FBeg] = 2;  [FBeb] = 1;
 	=> FB shade i;

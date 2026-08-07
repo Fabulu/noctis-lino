@@ -191,7 +191,7 @@ BOUND_PRESENT_P50_MS = 10.0
 #      converged exactly with worst error 0 -- while the ORIGINAL estimator
 #      on the identical data collapses to 5355.
 #   P7 "shade takes its destination buffer" -> P7 positive. fbpal computes
-#      3*[SHfirst] + [SHdstb]; "PAL zero" defaults it to pal6 so the seven
+#      3*[FBSHfirst] + [SHdstb]; "PAL zero" defaults it to pal6 so the seven
 #      tmppal sites need no change. Sabotage S-SHADE-IGNOREDST proves it.
 #
 # What is left is left because it is NOT fixed, and each says at what
@@ -353,8 +353,8 @@ SABOTAGE = [
      "P1 pal6 is exact",
      "shade()'s inverted clamp inverted the other way"),
     ("S19", "fbpal.txt",
-     "\tA = [SHfirst]; A * 3; A + [SHdstb]; [SHdst] = A;",
-     "\tA = [SHfirst]; A * 3; A + pal6; [SHdst] = A;",
+     "\tA = [FBSHfirst]; A * 3; A + [SHdstb]; [SHdst] = A;",
+     "\tA = [FBSHfirst]; A * 3; A + pal6; [SHdst] = A;",
      "P7 shade writes the buffer it was handed",
      "shade ignoring its destination parameter - MAJOR 6, which made "
      "srfpal6 and retpal6 dead weight no test touched"),

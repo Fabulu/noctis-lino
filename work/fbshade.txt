@@ -11,7 +11,7 @@
 	and 14 of its 21 call sites pass surface_palette, not tmppal -
 	3 in NOCTIS.CPP:3774-3776 and 4 in NOCTIS-0.CPP:5180-5183 pass
 	tmppal, 14 in NOCTIS-1.CPP:3050-3086 pass surface_palette.  The
-	Wave 5 library computed its destination as SHfirst*3 + pal6, a
+	Wave 5 library computed its destination as FBSHfirst*3 + pal6, a
 	literal, so it could not express two thirds of the game's calls -
 	and srfpal6/retpal6, whose whole purpose is to stop fades
 	COMPOUNDING, were dead weight no test touched.
@@ -137,37 +137,37 @@
 	( the no-atmosphere branch: stars always well visible.
 	  100, 110 and 120 are ABOVE 64 and must saturate to 63 through
 	  the original's inverted else branch. )
-	[SHfirst] = 64;  [SHn] = 64;
+	[FBSHfirst] = 64;  [FBSHn] = 64;
 	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
 	[SDer] = 100; [SDeg] = 110; [SDeb] = 120;	=> SD shade;
 
 	( sfumatura per il suolo )
-	[SHfirst] = 0;   [SHn] = 44;
+	[FBSHfirst] = 0;   [FBSHn] = 44;
 	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
 	[SDer] = LFR0; [SDeg] = LFG0; [SDeb] = LFB0;	=> SD shade;
-	[SHfirst] = 44;  [SHn] = 20;
+	[FBSHfirst] = 44;  [FBSHn] = 20;
 	[SDsr] = LFR0; [SDsg] = LFG0; [SDsb] = LFB0;
 	[SDer] = LFR1; [SDeg] = LFG1; [SDeb] = LFB1;	=> SD shade;
 
 	( sfumatura per l'orizzonte )
-	[SHfirst] = 128; [SHn] = 10;
+	[FBSHfirst] = 128; [FBSHn] = 10;
 	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
 	[SDer] = LFR0; [SDeg] = LFG0; [SDeb] = LFB0;	=> SD shade;
-	[SHfirst] = 138; [SHn] = 44;
+	[FBSHfirst] = 138; [FBSHn] = 44;
 	[SDsr] = LFR0; [SDsg] = LFG0; [SDsb] = LFB0;
 	[SDer] = LFR2; [SDeg] = LFG2; [SDeb] = LFB2;	=> SD shade;
-	[SHfirst] = 182; [SHn] = 10;
+	[FBSHfirst] = 182; [FBSHn] = 10;
 	[SDsr] = LFR2; [SDsg] = LFG2; [SDsb] = LFB2;
 	[SDer] = LFR1; [SDeg] = LFG1; [SDeb] = LFB1;	=> SD shade;
 
 	( sfumatura per la vegetazione )
-	[SHfirst] = 192; [SHn] = 10;
+	[FBSHfirst] = 192; [FBSHn] = 10;
 	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
 	[SDer] = LFR0; [SDeg] = LFG0; [SDeb] = LFB0;	=> SD shade;
-	[SHfirst] = 202; [SHn] = 44;
+	[FBSHfirst] = 202; [FBSHn] = 44;
 	[SDsr] = LFR0; [SDsg] = LFG0; [SDsb] = LFB0;
 	[SDer] = LFR3; [SDeg] = LFG3; [SDeb] = LFB3;	=> SD shade;
-	[SHfirst] = 246; [SHn] = 10;
+	[FBSHfirst] = 246; [FBSHn] = 10;
 	[SDsr] = LFR3; [SDsg] = LFG3; [SDsb] = LFB3;
 	[SDer] = LFR1; [SDeg] = LFG1; [SDeb] = LFB1;	=> SD shade;
 	end;

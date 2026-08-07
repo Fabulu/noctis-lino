@@ -696,7 +696,7 @@
 	  delta = 63/64 = 0.984375 exactly, so chop and round disagree at
 	  the very first step. )
 	A = pal6; [SHdstb] = A;
-	[SHfirst] = 0; [SHn] = 64;
+	[FBSHfirst] = 0; [FBSHn] = 64;
 	[FBsr] = 0;  [FBsg] = 0;  [FBsb] = 0;
 	[FBer] = 63; [FBeg] = 63; [FBeb] = 63;  => FB shade i;
 
@@ -717,7 +717,7 @@
 	  - the clamp's saturation values.  66.25 saturates to 63 and -2.5
 	  to 0, through the original's INVERTED else branch. )
 	A = pal6; [SHdstb] = A;
-	[SHfirst] = 160; [SHn] = 16;
+	[FBSHfirst] = 160; [FBSHn] = 16;
 	[PFnum] = 39;  [PFden] = 2; => PAL f32 make; [SHsr] = [PFbits];
 	[PFnum] = 99;  [PFden] = 4; => PAL f32 make; [SHsg] = [PFbits];
 	[PFnum] = 33;  [PFden] = 1; => PAL f32 make; [SHsb] = [PFbits];

@@ -61,15 +61,15 @@
 	=> FEnter;
 	=> PGF constants;
 	=> PDMP reset;
-	=> CR load;
-	A = [CRbad]; ? A != 0 -> PG run io;
-	=> CR tokenise;
-	[CRti] = 0;
+	=> PG CR load;
+	A = [PGCRbad]; ? A != 0 -> PG run io;
+	=> PG CR tokenise;
+	[PGCRti] = 0;
 	[MNcases] = 0;
 	[MNbad] = 0;
 
     "PG run case"
-	=> CR next;
+	=> PG CR next;
 	[MNop] = C;
 	A = [MNop];
 	? A = 0 -> PG run done;
@@ -99,8 +99,8 @@
       ( PG case head : caseid and pre-state, common to every opcode. )
 
 "PG case head"
-	=> CR next; [CScase] = C;
-	=> CR next; [PGpstate] = C;
+	=> PG CR next; [PGCScase] = C;
+	=> PG CR next; [PGpstate] = C;
 	=> PG census reset;
 	=> PG pre;
 	end;
@@ -122,10 +122,10 @@
 
 "PG do seg"
 	=> PG case head;
-	=> CR next; [SGxp] = C;
-	=> CR next; [SGyp] = C;
-	=> CR next; [SGxa] = C;
-	=> CR next; [SGya] = C;
+	=> PG CR next; [SGxp] = C;
+	=> PG CR next; [SGyp] = C;
+	=> PG CR next; [SGxa] = C;
+	=> PG CR next; [SGya] = C;
 	=> PG segmento;
 	=> PG case tail;
 	-> PG run case;
@@ -136,7 +136,7 @@
 
 "PG do bbox"
 	=> PG case head;
-	=> CR next; [BXn] = C; [MNn] = C;
+	=> PG CR next; [BXn] = C; [MNn] = C;
 	=> PG read mp;
 	=> PG bbox;
 	=> PG emit bbox;
@@ -149,15 +149,15 @@
 
 "PG do fill"
 	=> PG case head;
-	=> CR next; [DBn] = C; [MNn] = C;
+	=> PG CR next; [DBn] = C; [MNn] = C;
 	=> PG read mp;
-	=> CR next; [BXminx] = C;
-	=> CR next; [BXmaxx] = C;
-	=> CR next; [BXminy] = C;
-	=> CR next; [BXmaxy] = C;
-	=> CR next; [DBcol] = C;
-	=> CR next; [DBflar] = C;
-	=> CR next; [DBent] = C;
+	=> PG CR next; [BXminx] = C;
+	=> PG CR next; [BXmaxx] = C;
+	=> PG CR next; [BXminy] = C;
+	=> PG CR next; [BXmaxy] = C;
+	=> PG CR next; [DBcol] = C;
+	=> PG CR next; [DBflar] = C;
+	=> PG CR next; [DBent] = C;
 	=> PG drawb;
 	=> PG emit bbox;
 	=> PG case tail;
@@ -169,11 +169,11 @@
 
 "PG do edge"
 	=> PG case head;
-	=> CR next; [EWvr22] = C;
+	=> PG CR next; [EWvr22] = C;
 	A = [EWvr22]; A > 1; [MNn] = A;
 	=> PG read mp;
-	=> CR next; [EWminy] = C; [BXminy] = C;
-	=> CR next; [EWmaxy] = C; [BXmaxy] = C;
+	=> PG CR next; [EWminy] = C; [BXminy] = C;
+	=> PG CR next; [EWmaxy] = C; [BXmaxy] = C;
 	=> PG edges;
 	=> PG emit span;
 	=> PG case tail;
@@ -186,17 +186,17 @@
 
 "PG do span"
 	=> PG case head;
-	=> CR next; [PGtexf] = C;
-	=> CR next; [SPi] = C;
-	=> CR next; [MNi] = C;			( ipart[i] )
-	=> CR next; [MNn] = C;			( fpart[i] )
-	=> CR next; [SPtinta] = C;
-	=> CR next; [SPescr] = C;
-	=> CR next; [SPflar] = C;
-	=> CR next; [SPcull] = C;
-	=> CR next; [SPhalf] = C;
-	=> CR next; [BXmaxy] = C;
-	=> CR next; [SPuvn] = C;
+	=> PG CR next; [PGtexf] = C;
+	=> PG CR next; [SPi] = C;
+	=> PG CR next; [MNi] = C;			( ipart[i] )
+	=> PG CR next; [MNn] = C;			( fpart[i] )
+	=> PG CR next; [SPtinta] = C;
+	=> PG CR next; [SPescr] = C;
+	=> PG CR next; [SPflar] = C;
+	=> PG CR next; [SPcull] = C;
+	=> PG CR next; [SPhalf] = C;
+	=> PG CR next; [BXmaxy] = C;
+	=> PG CR next; [SPuvn] = C;
 
 	A = [SPi]; C = ipart; C + A; [C] = [MNi];
 	A = [SPi]; C = fpart; C + A; [C] = [MNn];
@@ -206,8 +206,8 @@
 	[PGi] = 0;
 	A = [SPuvn]; A+; [PGj] = A;
     "PG sp uv"
-	=> CR next; A = [PGi]; A + A; D = uvlist; D + A; [D] = C;
-	=> CR next; A = [PGi]; A + A; D = uvlist; D + A; [D plus 1] = C;
+	=> PG CR next; A = [PGi]; A + A; D = uvlist; D + A; [D] = C;
+	=> PG CR next; A = [PGi]; A + A; D = uvlist; D + A; [D plus 1] = C;
 	[PGi]+;
 	A = [PGi]; ? A '< [PGj] -> PG sp uv;
 
@@ -245,10 +245,10 @@
 
 "PG do proj"
 	=> PG case head;
-	=> CR next; [PJnrv] = C; [MNn] = C;
-	=> CR next; [DBcol] = C;
-	=> CR next; [DBflar] = C;
-	=> CR next; [DBent] = C;
+	=> PG CR next; [PJnrv] = C; [MNn] = C;
+	=> PG CR next; [DBcol] = C;
+	=> PG CR next; [DBflar] = C;
+	=> PG CR next; [DBent] = C;
 	=> PG read verts;
 	=> PG poly3d;
 	=> PG emit topo;
@@ -261,13 +261,13 @@
 
 "PG do pmap"
 	=> PG case head;
-	=> CR next; [PGtexf] = C;
-	=> CR next; [PJnrv] = C; [MNn] = C;
-	=> CR next; [SPtinta] = C;
-	=> CR next; [SPescr] = C;
-	=> CR next; [SPflar] = C;
-	=> CR next; [SPcull] = C;
-	=> CR next; [SPhalf] = C;
+	=> PG CR next; [PGtexf] = C;
+	=> PG CR next; [PJnrv] = C; [MNn] = C;
+	=> PG CR next; [SPtinta] = C;
+	=> PG CR next; [SPescr] = C;
+	=> PG CR next; [SPflar] = C;
+	=> PG CR next; [SPcull] = C;
+	=> PG CR next; [SPhalf] = C;
 	=> PG read verts;
 	=> PG polymap;
 	=> PG emit topo;
@@ -292,12 +292,12 @@
 
 "PG do gcoord"
 	=> PG case head;
-	=> CR next; [MNn] = C;
+	=> PG CR next; [MNn] = C;
 	[PGi] = 0;
     "PG gc v"
-	=> CR next; [PGFt] = C; [PGFi] = FSINX; => PGF setf32;
-	=> CR next; [PGFt] = C; [PGFi] = FSINY; => PGF setf32;
-	=> CR next; [PGFt] = C; [PGFi] = FSINZ; => PGF setf32;
+	=> PG CR next; [PGFt] = C; [PGFi] = FSINX; => PGF setf32;
+	=> PG CR next; [PGFt] = C; [PGFi] = FSINY; => PGF setf32;
+	=> PG CR next; [PGFt] = C; [PGFi] = FSINZ; => PGF setf32;
 	=> PG getcoords;
 	A = [PGi]; A '* 3; C = pgpack; C + A;
 	[C plus 0] = [GCret];
@@ -320,8 +320,8 @@
 "PG read mp"
 	[PGi] = 0;
     "PG rm v"
-	=> CR next; A = [PGi]; A + A; D = mp; D + A; [D] = C;
-	=> CR next; A = [PGi]; A + A; D = mp; D + A; [D plus 1] = C;
+	=> PG CR next; A = [PGi]; A + A; D = mp; D + A; [D] = C;
+	=> PG CR next; A = [PGi]; A + A; D = mp; D + A; [D plus 1] = C;
 	[PGi]+;
 	A = [PGi]; ? A '< [MNn] -> PG rm v;
 	end;
@@ -336,9 +336,9 @@
 	A = FSINZ; A + 3; [PGFi] = A; [PGFt] = 0; => PGF setf32;
 	[PGi] = 0;
     "PG rv v"
-	=> CR next; [PGFt] = C; A = [PGi]; A + FSINX; [PGFi] = A; => PGF setf32;
-	=> CR next; [PGFt] = C; A = [PGi]; A + FSINY; [PGFi] = A; => PGF setf32;
-	=> CR next; [PGFt] = C; A = [PGi]; A + FSINZ; [PGFi] = A; => PGF setf32;
+	=> PG CR next; [PGFt] = C; A = [PGi]; A + FSINX; [PGFi] = A; => PGF setf32;
+	=> PG CR next; [PGFt] = C; A = [PGi]; A + FSINY; [PGFi] = A; => PGF setf32;
+	=> PG CR next; [PGFt] = C; A = [PGi]; A + FSINZ; [PGFi] = A; => PGF setf32;
 	[PGi]+;
 	A = [PGi]; ? A '< [MNn] -> PG rv v;
 	end;
@@ -428,9 +428,9 @@
 	A = pgpack;
 	[A plus 0] = [MNcases];
 	[A plus 1] = [MNbad];
-	[A plus 2] = [CRtokn];
-	[A plus 3] = [CRbytes];
-	[A plus 4] = [CRti];
+	[A plus 2] = [PGCRtokn];
+	[A plus 3] = [PGCRbytes];
+	[A plus 4] = [PGCRti];
 	[A plus 5] = [MNi];
 	[A plus 6] = [FFLG];
 	[A plus 7] = [MNn];

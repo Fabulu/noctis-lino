@@ -59,8 +59,8 @@
 	PLn	= 0;
 
 	( ---- shade parameters, binary32 bit patterns ---- )
-	SHfirst	= 0;
-	SHn	= 0;
+	FBSHfirst	= 0;
+	FBSHn	= 0;
 	SHsr	= 0;		( start  r,g,b )
 	SHsg	= 0;
 	SHsb	= 0;
@@ -387,14 +387,14 @@
 ( shade - NOCTIS-0.CPP:1151, truncating, binary32 accumulators          )
 ( ==================================================================== )
 
-      ( PAL shade : writes pal6[3*[SHfirst] ..] for [SHn] colours,
+      ( PAL shade : writes pal6[3*[FBSHfirst] ..] for [FBSHn] colours,
 	ramping (SHsr,SHsg,SHsb) towards (SHer,SHeg,SHeb).
 	All six are binary32 BIT PATTERNS, so any float the original
 	could pass can be expressed. )
 
 "PAL shade"
 	( k = 1.00 / (float)n, stored to a float )
-	[PFnum] = 1; [PFden] = [SHn]; => PAL f32 make; [SHk] = [PFbits];
+	[PFnum] = 1; [PFden] = [FBSHn]; => PAL f32 make; [SHk] = [PFbits];
 
 	[shcur plus 0] = [SHsr];
 	[PFbits] = [SHsr]; => PAL fa from f32;
@@ -413,9 +413,9 @@
 
 	( first_color *= 3, into the DESTINATION BUFFER.  This one line is
 	  the whole of defect 6: it used to read "A + pal6". )
-	A = [SHfirst]; A * 3; A + [SHdstb]; [SHdst] = A;
+	A = [FBSHfirst]; A * 3; A + [SHdstb]; [SHdst] = A;
 
-	B = 0; B + [SHn];
+	B = 0; B + [FBSHn];
 	? B = 0 -> PAL sh done;
     "PAL sh loop"
 	A = shcur;     [SHcurp] = A;

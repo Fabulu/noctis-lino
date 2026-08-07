@@ -110,7 +110,7 @@
 
 	( ---------------- corpus opcodes ---------------- )
 
-	OPEND	= 0;
+	SPOPEND	= 0;
 	OPGRAS	= 1;		( globe_raster                  )
 	OPGLOW	= 2;		( glowinglobe_raster            )
 	OPBG	= 3;		( background                    )
@@ -205,8 +205,8 @@
 	F32XC	= 1126039552;		( 158.0f )
 	F32YC	= 1120403456;		( 100.0f )
 
-	CORPUSMAX = 120000;		( units of raw text, 4 chars each )
-	TOKMAX	= 400000;
+	SPCORPUSMAX = 120000;		( units of raw text, 4 chars each )
+	SPTOKMAX	= 400000;
 
 	STAGEMAX = 8192;		( units of packed asset bytes     )
 
@@ -240,9 +240,9 @@
 	SPf	= 0;			( assembled / disassembled binary32 )
 
 	( census, one case )
-	CScase	= 0;
-	CSnz	= 0;
-	CS255	= 0;
+	SPCScase	= 0;
+	SPCSnz	= 0;
+	SPCS255	= 0;
 	CSdraw	= 0;
 	CSskip	= 0;
 	CScur	= 0;
@@ -250,8 +250,8 @@
 	CSoob	= 0;
 
 	( dump staging )
-	SDptr	= 0;
-	SDcnt	= 0;
+	SPSDptr	= 0;
+	SPSDcnt	= 0;
 	SKind	= 0;
 	STag	= 0;
 	SW	= 0;
@@ -260,14 +260,14 @@
 	SBcnt	= 0;
 
 	( corpus reader )
-	CRbytes	= 0;
-	CRpos	= 0;
-	CRtokn	= 0;
-	CRti	= 0;
-	CRch	= 0;
-	CRacc	= 0;
-	CRneg	= 0;
-	CRbad	= 0;
+	SPCRbytes	= 0;
+	SPCRpos	= 0;
+	SPCRtokn	= 0;
+	SPCRti	= 0;
+	SPCRch	= 0;
+	SPCRacc	= 0;
+	SPCRneg	= 0;
+	SPCRbad	= 0;
 
 	( page staging )
 	SPpreg	= 0;
@@ -559,7 +559,7 @@
 ( ==================================================================== )
 
 "SP census reset"
-	[CSnz] = 0; [CS255] = 0; [CSdraw] = 0; [CSskip] = 0;
+	[SPCSnz] = 0; [SPCS255] = 0; [CSdraw] = 0; [CSskip] = 0;
 	[CScur] = 0; [CSwr] = 0; [CSoob] = 0;
 	end;
 
@@ -568,7 +568,7 @@
 	the page, so it cannot agree with a rasteriser that never ran. )
 
 "SP census page"
-	[CSnz] = 0; [CS255] = 0;
+	[SPCSnz] = 0; [SPCS255] = 0;
 	[SPreg] = [SPpreg];
 	=> SP base;
 	[SPtmp] = C;
@@ -577,9 +577,9 @@
 	A = nw; A + [SPtmp]; A + [SPi];
 	C = [A]; C & 255;
 	? C = 0 -> SP cen next;
-	[CSnz]+;
+	[SPCSnz]+;
 	? C != 255 -> SP cen next;
-	[CS255]+;
+	[SPCS255]+;
     "SP cen next"
 	[SPi]+;
 	A = [SPi]; ? A '< [SPpn] -> SP cen unit;
@@ -644,19 +644,19 @@
 ( ==================================================================== )
 
 "SDMP reset"
-	[SDptr] = spdump;
-	[SDcnt] = 0;
+	[SPSDptr] = spdump;
+	[SPSDcnt] = 0;
 	end;
 
 "SDMP rec"
-	A = [SDptr];
+	A = [SPSDptr];
 	[A plus 0]  = SPMAGIC;
 	[A plus 1]  = SPVER;
 	[A plus 2]  = [SKind];
 	[A plus 3]  = [SW];
 	[A plus 4]  = [SH];
 	[A plus 5]  = [SBcnt];
-	[A plus 6]  = [CScase];
+	[A plus 6]  = [SPCScase];
 	[A plus 7]  = 0;
 	[A plus 8]  = [STag];
 	[A plus 9]  = 0;
@@ -667,7 +667,7 @@
 	[A plus 14] = 0;
 	[A plus 15] = 0;
 	A + SPHDRU;
-	C = [SDcnt]; C + SPHDRU; [SDcnt] = C;
+	C = [SPSDcnt]; C + SPHDRU; [SPSDcnt] = C;
 
 	D = [SBptr];
 	B = [SBcnt];
@@ -675,9 +675,9 @@
     "SDMP rec unit"
 	C = [D]; [A] = C; A+; D+;
 	B ^ SDMP rec unit;
-	C = [SDcnt]; C + [SBcnt]; [SDcnt] = C;
+	C = [SPSDcnt]; C + [SBcnt]; [SPSDcnt] = C;
     "SDMP rec tail"
-	[SDptr] = A;
+	[SPSDptr] = A;
 	end;
 
       ( SDMP page : pack the live page and append it as one K30 record.
@@ -699,9 +699,9 @@
 	=> FCWRead;
 	[SPtmp] = [FI];
 	A = sphdr;
-	[A plus 0]  = [CScase];
-	[A plus 1]  = [CSnz];
-	[A plus 2]  = [CS255];
+	[A plus 0]  = [SPCScase];
+	[A plus 1]  = [SPCSnz];
+	[A plus 2]  = [SPCS255];
 	[A plus 3]  = [CSdraw];
 	[A plus 4]  = [CSskip];
 	[A plus 5]  = [CScur];
@@ -787,14 +787,14 @@
 	[File Position]	= 0;
 	[File Command]	= WRITE;
 	[Block Pointer]	= spdump;
-	[Block Size]	= [SDcnt];
+	[Block Size]	= [SPSDcnt];
 	[Block Size]	* BYTESPERUNIT;
 	isocall;
 
 	[File Name]	= spoutname;
 	[File Position]	= 0;
 	[File Command]	= SET SIZE;
-	[File Size]	= [SDcnt];
+	[File Size]	= [SPSDcnt];
 	[File Size]	* BYTESPERUNIT;
 	isocall;
 	end;
@@ -810,93 +810,93 @@
 	float inputs are given as the signed decimal value of their
 	binary32 BIT PATTERN.                                            )
 
-"CR load"
-	[CRbad] = 0;
+"SP CR load"
+	[SPCRbad] = 0;
 	[File Name]	= spcorpname;
 	[File Command]	= READ;
 	[File Position] = 0;
 	[Block Pointer] = scorpus;
-	[Block Size]	= CORPUSMAX;
+	[Block Size]	= SPCORPUSMAX;
 	[Block Size]	* BYTESPERUNIT;
 	isocall;
 	A = [Block Size];
-	[CRbytes] = A;
-	? A '> 0 -> CR load ok;
-	[CRbad] = 1;
-    "CR load ok"
+	[SPCRbytes] = A;
+	? A '> 0 -> SP CR load ok;
+	[SPCRbad] = 1;
+    "SP CR load ok"
 	end;
 
-"CR getch"
-	A = [CRpos];
-	? A '>= [CRbytes] -> CR getch eof;
+"SP CR getch"
+	A = [SPCRpos];
+	? A '>= [SPCRbytes] -> SP CR getch eof;
 	C = A; C > 2; D = scorpus; D + C;
 	C = [D];
-	A = [CRpos]; A & 3; A '* 8;
+	A = [SPCRpos]; A & 3; A '* 8;
 	C > A; C & 255;
-	[CRch] = C;
+	[SPCRch] = C;
 	end;
-    "CR getch eof"
-	A = 0; A - 1; [CRch] = A;
-	end;
-
-"CR tokenise"
-	[CRpos] = 0; [CRtokn] = 0;
-    "CR tk scan"
-	=> CR getch;
-	A = [CRch];
-	? A < 0 -> CR tk done;
-	? A = 35 -> CR tk comment;		( '#' )
-	? A = 45 -> CR tk number;		( '-' )
-	? A '< 48 -> CR tk skip;
-	? A '> 57 -> CR tk skip;
-	-> CR tk number;
-    "CR tk skip"
-	[CRpos]+;
-	-> CR tk scan;
-    "CR tk comment"
-	[CRpos]+;
-	=> CR getch;
-	A = [CRch];
-	? A < 0 -> CR tk done;
-	? A != 10 -> CR tk comment;
-	[CRpos]+;
-	-> CR tk scan;
-    "CR tk number"
-	[CRneg] = 0; [CRacc] = 0;
-	A = [CRch];
-	? A != 45 -> CR tk digits;
-	[CRneg] = 1;
-	[CRpos]+;
-    "CR tk digits"
-	=> CR getch;
-	A = [CRch];
-	? A '< 48 -> CR tk emit;
-	? A '> 57 -> CR tk emit;
-	C = [CRacc]; C '* 10; A - 48; C + A; [CRacc] = C;
-	[CRpos]+;
-	-> CR tk digits;
-    "CR tk emit"
-	A = [CRneg]; ? A = 0 -> CR tk pos;
-	C = [CRacc]; C+-; [CRacc] = C;
-    "CR tk pos"
-	A = [CRtokn];
-	? A '>= TOKMAX -> CR tk done;
-	C = stok; C + A; [C] = [CRacc];
-	[CRtokn]+;
-	-> CR tk scan;
-    "CR tk done"
+    "SP CR getch eof"
+	A = 0; A - 1; [SPCRch] = A;
 	end;
 
-      ( CR next : C <- tok[[CRti]], [CRti]+.  Reading past the end
-	yields OPEND, so a truncated corpus terminates rather than
+"SP CR tokenise"
+	[SPCRpos] = 0; [SPCRtokn] = 0;
+    "SP CR tk scan"
+	=> SP CR getch;
+	A = [SPCRch];
+	? A < 0 -> SP CR tk done;
+	? A = 35 -> SP CR tk comment;		( '#' )
+	? A = 45 -> SP CR tk number;		( '-' )
+	? A '< 48 -> SP CR tk skip;
+	? A '> 57 -> SP CR tk skip;
+	-> SP CR tk number;
+    "SP CR tk skip"
+	[SPCRpos]+;
+	-> SP CR tk scan;
+    "SP CR tk comment"
+	[SPCRpos]+;
+	=> SP CR getch;
+	A = [SPCRch];
+	? A < 0 -> SP CR tk done;
+	? A != 10 -> SP CR tk comment;
+	[SPCRpos]+;
+	-> SP CR tk scan;
+    "SP CR tk number"
+	[SPCRneg] = 0; [SPCRacc] = 0;
+	A = [SPCRch];
+	? A != 45 -> SP CR tk digits;
+	[SPCRneg] = 1;
+	[SPCRpos]+;
+    "SP CR tk digits"
+	=> SP CR getch;
+	A = [SPCRch];
+	? A '< 48 -> SP CR tk emit;
+	? A '> 57 -> SP CR tk emit;
+	C = [SPCRacc]; C '* 10; A - 48; C + A; [SPCRacc] = C;
+	[SPCRpos]+;
+	-> SP CR tk digits;
+    "SP CR tk emit"
+	A = [SPCRneg]; ? A = 0 -> SP CR tk pos;
+	C = [SPCRacc]; C+-; [SPCRacc] = C;
+    "SP CR tk pos"
+	A = [SPCRtokn];
+	? A '>= SPTOKMAX -> SP CR tk done;
+	C = stok; C + A; [C] = [SPCRacc];
+	[SPCRtokn]+;
+	-> SP CR tk scan;
+    "SP CR tk done"
+	end;
+
+      ( SP CR next : C <- tok[[SPCRti]], [SPCRti]+.  Reading past the end
+	yields SPOPEND, so a truncated corpus terminates rather than
 	looping. )
 
-"CR next"
-	A = [CRti];
-	? A '>= [CRtokn] -> CR next eof;
+"SP CR next"
+	A = [SPCRti];
+	? A '>= [SPCRtokn] -> SP CR next eof;
 	C = stok; C + A; C = [C];
-	[CRti]+;
+	[SPCRti]+;
 	end;
-    "CR next eof"
-	C = OPEND;
+    "SP CR next eof"
+	C = SPOPEND;
 	end;

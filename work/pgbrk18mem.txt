@@ -87,10 +87,10 @@
 	OPEDGE	= 4;
 	OPSPAN	= 5;
 	OPPROJ	= 6;
-	OPEND	= 0;
+	PGOPEND	= 0;
 
-	CORPUSMAX = 200000;		( units of raw text, 4 chars each )
-	TOKMAX	= 60000;
+	PGCORPUSMAX = 200000;		( units of raw text, 4 chars each )
+	PGTOKMAX	= 60000;
 
 "variables"
 
@@ -108,14 +108,14 @@
 	PGpstate = 0;			( pre-state formula id )
 
 	( census, one case )
-	CSnz	= 0;			( non-zero pixels        )
-	CS255	= 0;			( pixels equal to 255    )
+	PGCSnz	= 0;			( non-zero pixels        )
+	PGCS255	= 0;			( pixels equal to 255    )
 	CSseg	= 0;			( Segmento calls         )
 	CSrows	= 0;			( fill rows scanned      )
 	CSfb1	= 0;			( rows taking fb1        )
 	CSbyte	= 0;			( bytes written by fill  )
 	CSpix	= 0;			( span pixels written    )
-	CScase	= 0;			( case id                )
+	PGCScase	= 0;			( case id                )
 
 	( dump staging )
 	PDptr	= 0;
@@ -128,14 +128,14 @@
 	PBcnt	= 0;
 
 	( corpus reader )
-	CRbytes	= 0;
-	CRpos	= 0;
-	CRtokn	= 0;
-	CRti	= 0;
-	CRch	= 0;
-	CRacc	= 0;
-	CRneg	= 0;
-	CRbad	= 0;
+	PGCRbytes	= 0;
+	PGCRpos	= 0;
+	PGCRtokn	= 0;
+	PGCRti	= 0;
+	PGCRch	= 0;
+	PGCRacc	= 0;
+	PGCRneg	= 0;
+	PGCRbad	= 0;
 
 	PGtmp	= 0;
 	PGi	= 0;
@@ -289,7 +289,7 @@
 ( ==================================================================== )
 
 "PG census reset"
-	[CSnz] = 0; [CS255] = 0; [CSseg] = 0; [CSrows] = 0;
+	[PGCSnz] = 0; [PGCS255] = 0; [CSseg] = 0; [CSrows] = 0;
 	[CSfb1] = 0; [CSbyte] = 0; [CSpix] = 0;
 	end;
 
@@ -298,15 +298,15 @@
 	cannot agree with a rasteriser that never ran. )
 
 "PG census page"
-	[CSnz] = 0; [CS255] = 0;
+	[PGCSnz] = 0; [PGCS255] = 0;
 	[PGi] = 0;
     "PG cen unit"
 	[PGdi] = [PGi]; => PG dget;
 	A = [PGval];
 	? A = 0 -> PG cen next;
-	[CSnz]+;
+	[PGCSnz]+;
 	? A != 255 -> PG cen next;
-	[CS255]+;
+	[PGCS255]+;
     "PG cen next"
 	[PGi]+;
 	A = [PGi]; ? A '< PGNPIX -> PG cen unit;
@@ -357,7 +357,7 @@
 	[A plus 3]  = [PW];
 	[A plus 4]  = [PH];
 	[A plus 5]  = [PBcnt];
-	[A plus 6]  = [CScase];
+	[A plus 6]  = [PGCScase];
 	[A plus 7]  = 0;
 	[A plus 8]  = [PTag];
 	[A plus 9]  = 0;
@@ -400,9 +400,9 @@
 	=> FCWRead;
 	[PGtmp] = [FI];
 	A = pgpack;
-	[A plus 0] = [CScase];
-	[A plus 1] = [CSnz];
-	[A plus 2] = [CS255];
+	[A plus 0] = [PGCScase];
+	[A plus 1] = [PGCSnz];
+	[A plus 2] = [PGCS255];
 	[A plus 3] = [CSseg];
 	[A plus 4] = [CSrows];
 	[A plus 5] = [CSfb1];
@@ -451,98 +451,98 @@
 	float inputs are given as the signed decimal value of their
 	binary32 BIT PATTERN.                                            )
 
-"CR load"
-	[CRbad] = 0;
+"PG CR load"
+	[PGCRbad] = 0;
 	[File Name]	= pgcorpname;
 	[File Command]	= READ;
 	[File Position] = 0;
 	[Block Pointer] = corpus;
-	[Block Size]	= CORPUSMAX;
+	[Block Size]	= PGCORPUSMAX;
 	[Block Size]	* BYTESPERUNIT;
 	isocall;
 	A = [Block Size];
-	[CRbytes] = A;
-	? A '> 0 -> CR load ok;
-	[CRbad] = 1;
-    "CR load ok"
+	[PGCRbytes] = A;
+	? A '> 0 -> PG CR load ok;
+	[PGCRbad] = 1;
+    "PG CR load ok"
 	end;
 
-      ( CR getch : [CRch] <- the byte at text position [CRpos], or -1 at
+      ( PG CR getch : [PGCRch] <- the byte at text position [PGCRpos], or -1 at
 	end of text. )
 
-"CR getch"
-	A = [CRpos];
-	? A '>= [CRbytes] -> CR getch eof;
+"PG CR getch"
+	A = [PGCRpos];
+	? A '>= [PGCRbytes] -> PG CR getch eof;
 	C = A; C > 2; D = corpus; D + C;
 	C = [D];
-	A = [CRpos]; A & 3; A '* 8;
+	A = [PGCRpos]; A & 3; A '* 8;
 	C > A; C & 255;
-	[CRch] = C;
+	[PGCRch] = C;
 	end;
-    "CR getch eof"
-	A = 0; A - 1; [CRch] = A;
-	end;
-
-      ( CR tokenise : decode the whole corpus into tok[0..CRtokn-1]. )
-
-"CR tokenise"
-	[CRpos] = 0; [CRtokn] = 0;
-    "CR tk scan"
-	=> CR getch;
-	A = [CRch];
-	? A < 0 -> CR tk done;
-	? A = 35 -> CR tk comment;		( '#' )
-	? A = 45 -> CR tk number;		( '-' )
-	? A '< 48 -> CR tk skip;
-	? A '> 57 -> CR tk skip;
-	-> CR tk number;
-    "CR tk skip"
-	[CRpos]+;
-	-> CR tk scan;
-    "CR tk comment"
-	[CRpos]+;
-	=> CR getch;
-	A = [CRch];
-	? A < 0 -> CR tk done;
-	? A != 10 -> CR tk comment;
-	[CRpos]+;
-	-> CR tk scan;
-    "CR tk number"
-	[CRneg] = 0; [CRacc] = 0;
-	A = [CRch];
-	? A != 45 -> CR tk digits;
-	[CRneg] = 1;
-	[CRpos]+;
-    "CR tk digits"
-	=> CR getch;
-	A = [CRch];
-	? A '< 48 -> CR tk emit;
-	? A '> 57 -> CR tk emit;
-	C = [CRacc]; C '* 10; A - 48; C + A; [CRacc] = C;
-	[CRpos]+;
-	-> CR tk digits;
-    "CR tk emit"
-	A = [CRneg]; ? A = 0 -> CR tk pos;
-	C = [CRacc]; C+-; [CRacc] = C;
-    "CR tk pos"
-	A = [CRtokn];
-	? A '>= TOKMAX -> CR tk done;
-	C = tok; C + A; [C] = [CRacc];
-	[CRtokn]+;
-	-> CR tk scan;
-    "CR tk done"
+    "PG CR getch eof"
+	A = 0; A - 1; [PGCRch] = A;
 	end;
 
-      ( CR next : C <- tok[[CRti]], [CRti]+.  Reading past the end
-	yields OPEND so a truncated corpus terminates rather than
+      ( PG CR tokenise : decode the whole corpus into tok[0..PGCRtokn-1]. )
+
+"PG CR tokenise"
+	[PGCRpos] = 0; [PGCRtokn] = 0;
+    "PG CR tk scan"
+	=> PG CR getch;
+	A = [PGCRch];
+	? A < 0 -> PG CR tk done;
+	? A = 35 -> PG CR tk comment;		( '#' )
+	? A = 45 -> PG CR tk number;		( '-' )
+	? A '< 48 -> PG CR tk skip;
+	? A '> 57 -> PG CR tk skip;
+	-> PG CR tk number;
+    "PG CR tk skip"
+	[PGCRpos]+;
+	-> PG CR tk scan;
+    "PG CR tk comment"
+	[PGCRpos]+;
+	=> PG CR getch;
+	A = [PGCRch];
+	? A < 0 -> PG CR tk done;
+	? A != 10 -> PG CR tk comment;
+	[PGCRpos]+;
+	-> PG CR tk scan;
+    "PG CR tk number"
+	[PGCRneg] = 0; [PGCRacc] = 0;
+	A = [PGCRch];
+	? A != 45 -> PG CR tk digits;
+	[PGCRneg] = 1;
+	[PGCRpos]+;
+    "PG CR tk digits"
+	=> PG CR getch;
+	A = [PGCRch];
+	? A '< 48 -> PG CR tk emit;
+	? A '> 57 -> PG CR tk emit;
+	C = [PGCRacc]; C '* 10; A - 48; C + A; [PGCRacc] = C;
+	[PGCRpos]+;
+	-> PG CR tk digits;
+    "PG CR tk emit"
+	A = [PGCRneg]; ? A = 0 -> PG CR tk pos;
+	C = [PGCRacc]; C+-; [PGCRacc] = C;
+    "PG CR tk pos"
+	A = [PGCRtokn];
+	? A '>= PGTOKMAX -> PG CR tk done;
+	C = tok; C + A; [C] = [PGCRacc];
+	[PGCRtokn]+;
+	-> PG CR tk scan;
+    "PG CR tk done"
+	end;
+
+      ( PG CR next : C <- tok[[PGCRti]], [PGCRti]+.  Reading past the end
+	yields PGOPEND so a truncated corpus terminates rather than
 	looping. )
 
-"CR next"
-	A = [CRti];
-	? A '>= [CRtokn] -> CR next eof;
+"PG CR next"
+	A = [PGCRti];
+	? A '>= [PGCRtokn] -> PG CR next eof;
 	C = tok; C + A; C = [C];
-	[CRti]+;
+	[PGCRti]+;
 	end;
-    "CR next eof"
-	C = OPEND;
+    "PG CR next eof"
+	C = PGOPEND;
 	end;

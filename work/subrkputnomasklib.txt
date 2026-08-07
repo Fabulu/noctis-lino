@@ -76,7 +76,7 @@
 
 	( ---- corpus opcodes ---- )
 
-	OPEND	= 0;
+	SUOPEND	= 0;
 	OPSURF	= 1;
 
 	( ---- sizes ---- )
@@ -132,8 +132,8 @@
 
 	( ---- dump staging ---- )
 
-	SDptr	= 0;
-	SDcnt	= 0;
+	SUSDptr	= 0;
+	SUSDcnt	= 0;
 	SDkind	= 0;
 	SDtag	= 0;
 	SDw	= 0;
@@ -144,14 +144,14 @@
 
 	( ---- corpus ---- )
 
-	CRbytes	= 0;
-	CRpos	= 0;
-	CRtokn	= 0;
-	CRti	= 0;
-	CRch	= 0;
-	CRacc	= 0;
-	CRneg	= 0;
-	CRbad	= 0;
+	SUCRbytes	= 0;
+	SUCRpos	= 0;
+	SUCRtokn	= 0;
+	SUCRti	= 0;
+	SUCRch	= 0;
+	SUCRacc	= 0;
+	SUCRneg	= 0;
+	SUCRbad	= 0;
 
 	( ---- scratch ---- )
 
@@ -329,12 +329,12 @@
 ( ==================================================================== )
 
 "SUDM reset"
-	[SDptr] = sudump;
-	[SDcnt] = 0;
+	[SUSDptr] = sudump;
+	[SUSDcnt] = 0;
 	end;
 
 "SUDM rec"
-	A = [SDptr];
+	A = [SUSDptr];
 	[A plus 0]  = SUMAGIC;
 	[A plus 1]  = SUVER;
 	[A plus 2]  = [SDkind];
@@ -348,7 +348,7 @@
 	[A plus 12] = 0;  [A plus 13] = 0;
 	[A plus 14] = 0;  [A plus 15] = 0;
 	A + SUHDRU;
-	C = [SDcnt]; C + SUHDRU; [SDcnt] = C;
+	C = [SUSDcnt]; C + SUHDRU; [SUSDcnt] = C;
 
 	D = [SDbp];
 	B = [SDbc];
@@ -356,9 +356,9 @@
     "SUDM rec unit"
 	C = [D]; [A] = C; A+; D+;
 	B ^ SUDM rec unit;
-	C = [SDcnt]; C + [SDbc]; [SDcnt] = C;
+	C = [SUSDcnt]; C + [SDbc]; [SUSDcnt] = C;
     "SUDM rec tail"
-	[SDptr] = A;
+	[SUSDptr] = A;
 	end;
 
       ( SUDM pack surf - pack [SUb0] surface bytes from index [SUb1]
@@ -473,14 +473,14 @@
 	[File Position]	= 0;
 	[File Command]	= WRITE;
 	[Block Pointer]	= sudump;
-	[Block Size]	= [SDcnt];
+	[Block Size]	= [SUSDcnt];
 	[Block Size]	* BYTESPERUNIT;
 	isocall;
 
 	[File Name]	= suoutname;
 	[File Position]	= 0;
 	[File Command]	= SET SIZE;
-	[File Size]	= [SDcnt];
+	[File Size]	= [SUSDcnt];
 	[File Size]	* BYTESPERUNIT;
 	isocall;
 	end;
@@ -496,8 +496,8 @@
 	seedval and secs, arrive as the signed decimal values of their two
 	32-bit halves. )
 
-"CR load"
-	[CRbad] = 0;
+"SU CR load"
+	[SUCRbad] = 0;
 	[File Name]	= sucorpname;
 	[File Command]	= READ;
 	[File Position] = 0;
@@ -506,79 +506,79 @@
 	[Block Size]	* BYTESPERUNIT;
 	isocall;
 	A = [Block Size];
-	[CRbytes] = A;
-	? A '> 0 -> CR load ok;
-	[CRbad] = 1;
-    "CR load ok"
+	[SUCRbytes] = A;
+	? A '> 0 -> SU CR load ok;
+	[SUCRbad] = 1;
+    "SU CR load ok"
 	end;
 
-"CR getch"
-	A = [CRpos];
-	? A '>= [CRbytes] -> CR getch eof;
+"SU CR getch"
+	A = [SUCRpos];
+	? A '>= [SUCRbytes] -> SU CR getch eof;
 	C = A; C > 2; D = sucorpus; D + C;
 	C = [D];
-	A = [CRpos]; A & 3; A '* 8;
+	A = [SUCRpos]; A & 3; A '* 8;
 	C > A; C & 0FFh;
-	[CRch] = C;
+	[SUCRch] = C;
 	end;
-    "CR getch eof"
-	A = 0; A - 1; [CRch] = A;
-	end;
-
-"CR tokenise"
-	[CRpos] = 0; [CRtokn] = 0;
-    "CR tk scan"
-	=> CR getch;
-	A = [CRch];
-	? A < 0 -> CR tk done;
-	? A = 35 -> CR tk comment;
-	? A = 45 -> CR tk number;
-	? A '< 48 -> CR tk skip;
-	? A '> 57 -> CR tk skip;
-	-> CR tk number;
-    "CR tk skip"
-	[CRpos]+;
-	-> CR tk scan;
-    "CR tk comment"
-	[CRpos]+;
-	=> CR getch;
-	A = [CRch];
-	? A < 0 -> CR tk done;
-	? A != 10 -> CR tk comment;
-	[CRpos]+;
-	-> CR tk scan;
-    "CR tk number"
-	[CRneg] = 0; [CRacc] = 0;
-	A = [CRch];
-	? A != 45 -> CR tk digits;
-	[CRneg] = 1;
-	[CRpos]+;
-    "CR tk digits"
-	=> CR getch;
-	A = [CRch];
-	? A '< 48 -> CR tk emit;
-	? A '> 57 -> CR tk emit;
-	C = [CRacc]; C '* 10; A - 48; C + A; [CRacc] = C;
-	[CRpos]+;
-	-> CR tk digits;
-    "CR tk emit"
-	A = [CRneg]; ? A = 0 -> CR tk pos;
-	C = [CRacc]; C+-; [CRacc] = C;
-    "CR tk pos"
-	A = [CRtokn];
-	? A '>= SUTOKU -> CR tk done;
-	C = sutok; C + A; [C] = [CRacc];
-	[CRtokn]+;
-	-> CR tk scan;
-    "CR tk done"
+    "SU CR getch eof"
+	A = 0; A - 1; [SUCRch] = A;
 	end;
 
-"CR next"
-	A = [CRti];
-	? A '>= [CRtokn] -> CR next eof;
+"SU CR tokenise"
+	[SUCRpos] = 0; [SUCRtokn] = 0;
+    "SU CR tk scan"
+	=> SU CR getch;
+	A = [SUCRch];
+	? A < 0 -> SU CR tk done;
+	? A = 35 -> SU CR tk comment;
+	? A = 45 -> SU CR tk number;
+	? A '< 48 -> SU CR tk skip;
+	? A '> 57 -> SU CR tk skip;
+	-> SU CR tk number;
+    "SU CR tk skip"
+	[SUCRpos]+;
+	-> SU CR tk scan;
+    "SU CR tk comment"
+	[SUCRpos]+;
+	=> SU CR getch;
+	A = [SUCRch];
+	? A < 0 -> SU CR tk done;
+	? A != 10 -> SU CR tk comment;
+	[SUCRpos]+;
+	-> SU CR tk scan;
+    "SU CR tk number"
+	[SUCRneg] = 0; [SUCRacc] = 0;
+	A = [SUCRch];
+	? A != 45 -> SU CR tk digits;
+	[SUCRneg] = 1;
+	[SUCRpos]+;
+    "SU CR tk digits"
+	=> SU CR getch;
+	A = [SUCRch];
+	? A '< 48 -> SU CR tk emit;
+	? A '> 57 -> SU CR tk emit;
+	C = [SUCRacc]; C '* 10; A - 48; C + A; [SUCRacc] = C;
+	[SUCRpos]+;
+	-> SU CR tk digits;
+    "SU CR tk emit"
+	A = [SUCRneg]; ? A = 0 -> SU CR tk pos;
+	C = [SUCRacc]; C+-; [SUCRacc] = C;
+    "SU CR tk pos"
+	A = [SUCRtokn];
+	? A '>= SUTOKU -> SU CR tk done;
+	C = sutok; C + A; [C] = [SUCRacc];
+	[SUCRtokn]+;
+	-> SU CR tk scan;
+    "SU CR tk done"
+	end;
+
+"SU CR next"
+	A = [SUCRti];
+	? A '>= [SUCRtokn] -> SU CR next eof;
 	C = sutok; C + A; C = [C];
-	[CRti]+;
+	[SUCRti]+;
 	end;
-    "CR next eof"
-	C = OPEND;
+    "SU CR next eof"
+	C = SUOPEND;
 	end;

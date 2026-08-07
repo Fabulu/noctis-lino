@@ -244,8 +244,8 @@ BREAKS = [
 
     # ---------------- shade, defect 6 ----------------
     ("fbshdst", "fbshade", "fbpal",
-     "	A = [SHfirst]; A * 3; A + [SHdstb]; [SHdst] = A;",
-     "	A = [SHfirst]; A * 3; A + pal6; [SHdst] = A;",
+     "	A = [FBSHfirst]; A * 3; A + [SHdstb]; [SHdst] = A;",
+     "	A = [FBSHfirst]; A * 3; A + pal6; [SHdst] = A;",
      "SH-IGNOREDST: shade ignores its destination parameter",
      "fbshade: srfpal6 must stay zero and pal6's sentinel must be destroyed - "
      "a RUNNING check, because this one still compiles"),

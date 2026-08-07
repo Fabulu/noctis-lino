@@ -80,8 +80,8 @@
 	PLn	= 0;
 
 	( ---- shade parameters, binary32 bit patterns ---- )
-	SHfirst	= 0;
-	SHn	= 0;
+	FBSHfirst	= 0;
+	FBSHn	= 0;
 	SHsr	= 0;		( start  r,g,b )
 	SHsg	= 0;
 	SHsb	= 0;
@@ -197,37 +197,37 @@
 	( the no-atmosphere branch: stars always well visible.
 	  100, 110 and 120 are ABOVE 64 and must saturate to 63 through
 	  the original's inverted else branch. )
-	[SHfirst] = 64;  [SHn] = 64;
+	[FBSHfirst] = 64;  [FBSHn] = 64;
 	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
 	[SDer] = 100; [SDeg] = 110; [SDeb] = 120;	=> SD shade;
 
 	( sfumatura per il suolo )
-	[SHfirst] = 0;   [SHn] = 44;
+	[FBSHfirst] = 0;   [FBSHn] = 44;
 	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
 	[SDer] = LFR0; [SDeg] = LFG0; [SDeb] = LFB0;	=> SD shade;
-	[SHfirst] = 44;  [SHn] = 20;
+	[FBSHfirst] = 44;  [FBSHn] = 20;
 	[SDsr] = LFR0; [SDsg] = LFG0; [SDsb] = LFB0;
 	[SDer] = LFR1; [SDeg] = LFG1; [SDeb] = LFB1;	=> SD shade;
 
 	( sfumatura per l'orizzonte )
-	[SHfirst] = 128; [SHn] = 10;
+	[FBSHfirst] = 128; [FBSHn] = 10;
 	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
 	[SDer] = LFR0; [SDeg] = LFG0; [SDeb] = LFB0;	=> SD shade;
-	[SHfirst] = 138; [SHn] = 44;
+	[FBSHfirst] = 138; [FBSHn] = 44;
 	[SDsr] = LFR0; [SDsg] = LFG0; [SDsb] = LFB0;
 	[SDer] = LFR2; [SDeg] = LFG2; [SDeb] = LFB2;	=> SD shade;
-	[SHfirst] = 182; [SHn] = 10;
+	[FBSHfirst] = 182; [FBSHn] = 10;
 	[SDsr] = LFR2; [SDsg] = LFG2; [SDsb] = LFB2;
 	[SDer] = LFR1; [SDeg] = LFG1; [SDeb] = LFB1;	=> SD shade;
 
 	( sfumatura per la vegetazione )
-	[SHfirst] = 192; [SHn] = 10;
+	[FBSHfirst] = 192; [FBSHn] = 10;
 	[SDsr] = 0; [SDsg] = 0; [SDsb] = 0;
 	[SDer] = LFR0; [SDeg] = LFG0; [SDeb] = LFB0;	=> SD shade;
-	[SHfirst] = 202; [SHn] = 44;
+	[FBSHfirst] = 202; [FBSHn] = 44;
 	[SDsr] = LFR0; [SDsg] = LFG0; [SDsb] = LFB0;
 	[SDer] = LFR3; [SDeg] = LFG3; [SDeb] = LFB3;	=> SD shade;
-	[SHfirst] = 246; [SHn] = 10;
+	[FBSHfirst] = 246; [FBSHn] = 10;
 	[SDsr] = LFR3; [SDsg] = LFG3; [SDsb] = LFB3;
 	[SDer] = LFR1; [SDeg] = LFG1; [SDeb] = LFB1;	=> SD shade;
 	end;
@@ -606,14 +606,14 @@
 ( shade - NOCTIS-0.CPP:1151, truncating, binary32 accumulators          )
 ( ==================================================================== )
 
-      ( PAL shade : writes pal6[3*[SHfirst] ..] for [SHn] colours,
+      ( PAL shade : writes pal6[3*[FBSHfirst] ..] for [FBSHn] colours,
 	ramping (SHsr,SHsg,SHsb) towards (SHer,SHeg,SHeb).
 	All six are binary32 BIT PATTERNS, so any float the original
 	could pass can be expressed. )
 
 "PAL shade"
 	( k = 1.00 / (float)n, stored to a float )
-	[PFnum] = 1; [PFden] = [SHn]; => PAL f32 make; [SHk] = [PFbits];
+	[PFnum] = 1; [PFden] = [FBSHn]; => PAL f32 make; [SHk] = [PFbits];
 
 	[shcur plus 0] = [SHsr];
 	[PFbits] = [SHsr]; => PAL fa from f32;
@@ -632,9 +632,9 @@
 
 	( first_color *= 3, into the DESTINATION BUFFER.  This one line is
 	  the whole of defect 6: it used to read "A + pal6". )
-	A = [SHfirst]; A * 3; A + pal6; [SHdst] = A;
+	A = [FBSHfirst]; A * 3; A + pal6; [SHdst] = A;
 
-	B = 0; B + [SHn];
+	B = 0; B + [FBSHn];
 	? B = 0 -> PAL sh done;
     "PAL sh loop"
 	A = shcur;     [SHcurp] = A;

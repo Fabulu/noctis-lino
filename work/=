@@ -1,0 +1,10 @@
+209:	TOKMAX	= 400000;
+265:	CRtokn	= 0;
+289:	stok	= 400000;		( decoded integer tokens )
+843:	[CRpos] = 0; [CRtokn] = 0;
+882:	A = [CRtokn];
+883:	? A '>= TOKMAX -> CR tk done;
+884:	C = stok; C + A; [C] = [CRacc];
+885:	[CRtokn]+;
+896:	? A '>= [CRtokn] -> CR next eof;
+897:	C = stok; C + A; C = [C];
