@@ -254,11 +254,11 @@
 	=> MEM get byte;
 	A = [MBval]; [GRcur] = A;
 
-	( fast_random(3) )
+	( fast_random(3) — COUNTED via SU frnd )
 	[SUfmask] = 3;
-	=> SU fast raw;
-	A = [SUfval]; A & 0FFh;
-	A + [GRcur];
+	=> SU frnd;
+	C & 0FFh;
+	A = [GRcur]; A + C;
 	? A '<= 255 -> GR pn store;
 	A = 255;
 "GR pn store"

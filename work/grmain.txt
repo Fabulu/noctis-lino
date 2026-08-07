@@ -1,13 +1,13 @@
-      ( *** grmain - the Wave 7b driver, namespace GR ***
+      ( *** grmain - Wave 7b multi-painter lino driver ***
 
-	Tests round_hill (the float painter).  Wipes p_surfacemap, calls
-	round_hill(cx=100,cz=100,r=50,h=30,hmax=0,allowcanyons=1), then
-	writes the 40000-byte map + 4 counter units to gr-out.bin.
+	Exercises: GR prologue + GR rockyground + GR plains noise.
+	These cover the integer painters: rockyground (fill + smoothterrain
+	+ level adjust), plains noise (the ADD-vs-ADD fast_random path).
+	Output: 40000-byte smap (one byte per unit) + 4 counter units.
 
-	NOTE: use constants (RPSM, SADPR) directly as workspace addresses.
-	`A = nw` from this compilation unit gives the wrong value; the
-	fbmem routines that use `A = nw` work because they're in fbmem's
-	own compilation unit.						)
+	Build: powershell -NoProfile -ExecutionPolicy Bypass
+	       -File C:\programmieren\linoleum\lino_build.ps1
+	       -Src C:\programmieren\linoleum\work\grmain.txt	)
 
 "libraries"
 
@@ -15,22 +15,23 @@
 	fp/fpctl;
 	fp/fpx87;
 	fp/fpconv;
+
 	fbmem;
 	brtl;
 	mul64frag;
+
 	surng;
 	suseed;
 	grnd;
 
 "directors"
+
 	program name = { grmain };
 	unit = 32;
 
 "variables"
+
 	groutname	= { gr-out.bin };
-	GRpki	= 0;
-	GRpkb	= 0;
-	GRtmpa	= 0;
 
 "programme"
 
@@ -38,7 +39,7 @@
 	=> SU ledger reset;
 	=> GR float init;
 
-	( wipe p_surfacemap via MEM put byte )
+	( wipe p_surfacemap )
 	[GRptr] = 0;
 "GR wipe sm"
 	C = 0; [MBval] = C;
@@ -47,16 +48,41 @@
 	[GRptr]+;
 	? [GRptr] '< 40000 -> GR wipe sm;
 
-	( round_hill: cx=100, cz=100, r=50, h=30.0, hmax=0, allowcanyons=1 )
-	[SUcxi] = 100;
-	[SUcyi] = 100;
-	[SUia] = 50;
-	[GRfht] = 41F00000h;	( 30.0f )
-	[GRfhmt] = 0;		( 0.0f )
-	[GRfcanyon] = 1;
-	=> GR round hill;
+	( wipe objectschart )
+	[GRptr] = 0;
+"GR wipe ob"
+	C = 0; [MBval] = C;
+	A = ROBJ; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+	[GRptr]+;
+	? [GRptr] '< 40000 -> GR wipe ob;
 
-	( copy p_surfacemap to SADPR, one byte per unit )
+	( test case: gseed=123456, type=1, sctype=0, albedo=20, lat=30 )
+	[GRgseed]  = 123456;
+	[GRiptype] = 1;
+	[GRsctype] = 0;
+	[GRalbedo] = 20;
+	[GRlat]    = 30;
+
+	( 1. prologue — 12 brtl draws for type 1 )
+	=> GR prologue;
+
+	( 2. re-seed for painters )
+	A = [GRgseed];
+	=> SU fast srand;
+	A = [GRgseed]; A & 0FFFFh;
+	=> SU srand;
+
+	( 3. rockyground(25, 4, 0) )
+	[GRrough] = 25;
+	[GRround] = 4;
+	[GRlevel] = 0;
+	=> GR rockyground;
+
+	( 4. plains noise — p_surfacemap[ptr] += fast_random(3) )
+	=> GR plains noise;
+
+	( copy p_surfacemap to SADPR )
 	[GRptr] = 0;
 "GR cp map"
 	A = RPSM; A + [GRptr]; [MBptr] = A;
@@ -73,7 +99,7 @@
 	[A] = [SUfh]; A+;
 	[A] = [SUbh];
 
-	( write 40004 units to file )
+	( write 40004 units = 160016 bytes )
 	[File Name] = groutname;
 	[File Position] = 0;
 	[File Command] = WRITE;

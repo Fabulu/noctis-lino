@@ -228,16 +228,27 @@ def main(argv=None):
             raw = open(dump, "rb").read()
             units = struct.unpack("<%dI" % (len(raw) // 4), raw)
             lino_map = bytes((u & 255) for u in units[0:PS_BYTES])
-            # Compare to spec round_hill output (from grmain's hardcoded test case)
+            lino_cnt = units[PS_BYTES:PS_BYTES + 4]
+            # Spec: prologue + re-seed + rockyground(25,4,0) + plains_noise
             S = gr_spec.BuildSurface(ledger=False)
             S.smap = bytearray(PS_BYTES)
-            S.round_hill(100, 100, 50, 30.0, 0.0, True)
-            spec_rh = S.map_bytes()
-            rh_diff = nd(spec_rh, lino_map)
-            chk.ok(rh_diff == 0,
-                   "B3 lino round_hill byte-exact (%d float pixels, 0 diff)"
-                   % sum(1 for x in spec_rh if x),
-                   "%d bytes differ" % rh_diff if rh_diff else "exact")
+            S.objs = bytearray(OC_BYTES)
+            S.txtr = bytearray(gr_spec.TXTR_BYTES)
+            for i in range(65535):
+                S.txtr[i] = 16
+            S.prologue(123456, 1, 0, 20, 30)
+            S.F.srand(123456)
+            S.B.srand(123456 & 0xFFFF)
+            S.rockyground(25, 4, 0)
+            S.plains_noise_add()
+            spec_map = S.map_bytes()
+            map_diff = nd(spec_map, lino_map)
+            draw_ok = (S.F.n == lino_cnt[0] and S.B.n == lino_cnt[1]
+                       and S.F.h == lino_cnt[2] and S.B.h == lino_cnt[3])
+            chk.ok(map_diff == 0 and draw_ok,
+                   "B3 lino multi-painter byte-exact: prologue + rockyground "
+                   "+ smoothterrain + plains noise (40000 B map + draws + hashes)",
+                   "map %d diff, draws %s" % (map_diff, "ok" if draw_ok else "FAIL"))
     else:
         chk.note("R3 lino SKIPPED (--no-lino)")
 
