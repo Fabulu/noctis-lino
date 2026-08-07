@@ -26,6 +26,20 @@
 
 	VARIABLE NAMING: all GR-prefixed, disjoint from su/walk/sky/grv.    )
 
+"constants"
+
+	( ---- binary64 constant patterns ---- )
+
+	GRPi2L	= 54442D18h;	GRPi2H	= 3FF921FBh;	( M_PI/2	)
+	GRPIL	= 54442D18h;	GRPIH	= 400921FBh;	( M_PI		)
+	GR127L	= 0;		GR127H	= 405FE000h;	( 127.0		)
+	GR254L	= 0;		GR254H	= 406FE000h;	( 254.0		)
+
+	( ---- control words ---- )
+
+	GRCWCHOP = 1F3Fh;	( PC=64 RC=chop				)
+	GRCWNEAR = 133Fh;	( PC=64 RC=nearest			)
+
 "variables"
 
 	( ---- painter parameters ---- )
@@ -43,6 +57,42 @@
 	GRabs		= 0;	( abs(level)				)
 	GRcz		= 0;	( prologue cz = random(2)		)
 	GRcx		= 0;	( prologue cx = random(100)		)
+
+	( ---- float painter state (round_hill, std_crater) ---- )
+	( float32 values stored as IEEE-754 binary32 bit patterns  )
+
+	GRfv		= 0;	( float32 v = (float)r / M_PI_2	)
+	GRfdx		= 0;	( float32 dx				)
+	GRfdz		= 0;	( float32 dz				)
+	GRfd		= 0;	( float32 d = sqrt(dx*dx+dz*dz)	)
+	GRfy		= 0;	( float32 y				)
+	GRfht		= 0;	( float32 h parameter			)
+	GRfhmt		= 0;	( float32 hmax parameter		)
+	GRdxi		= 0;	( int (x - cx) for fild			)
+	GRdzi		= 0;	( int (z - cz) for fild			)
+	GRsval		= 0;	( surfacemap byte value as int32	)
+	GRfti		= 0;	( fistp result (chop)			)
+	GRfrx		= 0;	( loop x				)
+	GRfrz		= 0;	( loop z				)
+	GRfrlo		= 0;	( loop lower bound (cx - r)		)
+	GRfrhi		= 0;	( loop upper bound (cx + r)		)
+	GRfcanyon	= 0;	( allowcanyons flag			)
+
+	( ---- float scratch (binary64, adjacent pairs) ---- )
+
+	GRfs0		= 0;	GRfs1	= 0;	( scratch double			)
+
+	( ---- control word slots ---- )
+
+	GRcwc	= 0;	( PC=64 RC=chop for fistp		)
+	GRcwn	= 0;	( PC=64 RC=nearest (ambient)		)
+
+	( ---- binary64 constants (adjacent pairs, low first) ---- )
+
+	GRKPI2L	= 0;	GRKPI2H	= 0;	( M_PI/2 = 1.5707963...			)
+	GRK127L	= 0;	GRK127H	= 0;	( 127.0					)
+	GRK254L	= 0;	GRK254H	= 0;	( 254.0					)
+	GRKPIL	= 0;	GRKPIH	= 0;	( M_PI = 3.14159265...			)
 
 	( ---- build_surface prologue globals ---- )
 
@@ -322,4 +372,166 @@
 	[GRgflares] = 8;
 
 "GR prol done"
+	end;
+
+( ==================================================================== )
+( float init — copy constants to variable slots                        )
+( ==================================================================== )
+
+"GR float init"
+	[GRKPI2L] = GRPi2L;	[GRKPI2H] = GRPi2H;
+	[GRKPIL]  = GRPIL;	[GRKPIH]  = GRPIH;
+	[GRK127L] = GR127L;	[GRK127H] = GR127H;
+	[GRK254L] = GR254L;	[GRK254H] = GR254H;
+	[GRcwc] = GRCWCHOP;
+	[GRcwn] = GRCWNEAR;
+	end;
+
+( ==================================================================== )
+( round_hill — NOCTIS-1.CPP:1494-1528                                  )
+( ==================================================================== )
+( Input: [SUcxi] = cx, [SUcyi] = cz, [SUia] = r (unsigned int)        )
+(        [GRfht] = h (float32 bits), [GRfhmt] = hmax (float32 bits)   )
+(        [GRfcanyon] = allowcanyons (0 or 1)                          )
+(                                                                     )
+( The x87 ML fragments keep intermediates on the stack and only store  )
+( to float32 where the C code stores, matching Borland's codegen.     )
+
+"GR round hill"
+
+	( v = (float)r / M_PI_2 — fild r; fdiv M_PI_2; fstp dword v )
+	{
+	    DB 87 <dSUia   mtp bytesperunit>	(fild dword [edi+SUia*4])
+	    DC B7 <dGRKPI2L mtp bytesperunit>	(fdiv qword [edi+GRKPI2L*4])
+	    D9 9F <dGRfv   mtp bytesperunit>	(fstp dword [edi+GRfv*4])
+	}
+
+	( loop bounds: x from cx-r to cx+r-1, z from cz-r to cz+r-1 )
+	A = [SUia];			( r )
+	B = [SUcxi];			( cx )
+	[GRfrlo] = B; [GRfrlo] - A;	( cx - r )
+	C = B; C + A;
+	[GRfrhi] = C;			( cx + r )
+	[GRfrx] = [GRfrlo];
+
+"GR rh xloop"
+	A = [GRfrx];
+	? A '>= [GRfrhi] -> GR rh done;
+
+	( z loop bounds )
+	A = [SUia];
+	B = [SUcyi];
+	D = B; D - A; [GRfrz] = D;
+
+"GR rh zloop"
+	A = [GRfrx];
+	? A '< 0 -> GR rh znext;
+	? A '>= 200 -> GR rh znext;
+	A = [GRfrz];
+	? A '< 0 -> GR rh znext;
+	? A '>= 200 -> GR rh znext;
+
+	( dx = (float)(x - cx) )
+	B = [GRfrx]; B - [SUcxi]; [GRdxi] = B;
+	{
+	    DB 87 <dGRdxi mtp bytesperunit>	(fild dword [edi+GRdxi*4])
+	    D9 9F <dGRfdx mtp bytesperunit>	(fstp dword [edi+GRfdx*4])
+	}
+
+	( dz = (float)(z - cz) )
+	B = [GRfrz]; B - [SUcyi]; [GRdzi] = B;
+	{
+	    DB 87 <dGRdzi mtp bytesperunit>	(fild dword [edi+GRdzi*4])
+	    D9 9F <dGRfdz mtp bytesperunit>	(fstp dword [edi+GRfdz*4])
+	}
+
+	( d = sqrt(dx*dx + dz*dz) )
+	{
+	    D9 87 <dGRfdx mtp bytesperunit>	(fld dword [edi+GRfdx*4])
+	    D8 8F <dGRfdx mtp bytesperunit>	(fmul dword [edi+GRfdx*4])
+	    D9 87 <dGRfdz mtp bytesperunit>	(fld dword [edi+GRfdz*4])
+	    D8 8F <dGRfdz mtp bytesperunit>	(fmul dword [edi+GRfdz*4])
+	    DE C1				(faddp st1,st0)
+	    D9 FA				(fsqrt)
+	    D9 9F <dGRfd mtp bytesperunit>	(fstp dword [edi+GRfd*4])
+	}
+
+	( y = cos(d / v) * h )
+	{
+	    D9 87 <dGRfd  mtp bytesperunit>	(fld dword [edi+GRfd*4])
+	    D8 B7 <dGRfv  mtp bytesperunit>	(fdiv dword [edi+GRfv*4])
+	    D9 FF				(fcos)
+	    D8 8F <dGRfht mtp bytesperunit>	(fmul dword [edi+GRfht*4])
+	    D9 9F <dGRfy  mtp bytesperunit>	(fstp dword [edi+GRfy*4])
+	}
+
+	( if (y >= 0) — check sign bit of float32 )
+	A = [GRfy]; A & 80000000h;
+	? A != 0 -> GR rh znext;
+
+	( y += surfacemap[200*z + x] )
+	A = [GRfrz]; A '* 200; A + [GRfrx]; [GRptr] = A;
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM get byte;
+	[GRsval] = [MBval];
+	{
+	    D9 87 <dGRfy   mtp bytesperunit>	(fld dword [edi+GRfy*4])
+	    DB 87 <dGRsval mtp bytesperunit>	(fild dword [edi+GRsval*4])
+	    DE C1				(faddp st1,st0)
+	    D9 9F <dGRfy   mtp bytesperunit>	(fstp dword [edi+GRfy*4])
+	}
+
+	( canyon mirror or hmax clamp )
+	A = [GRfcanyon];
+	? A = 0 -> GR rh clamp;
+
+	( if (y > 127) y = 254 - y — compute y - 127.0, check sign )
+	{
+	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
+	    DC A7 <dGRK127L mtp bytesperunit>	(fsub qword [edi+GRK127L*4])
+	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
+	}
+	A = [GRfs1]; A & 80000000h;
+	? A != 0 -> GR rh store;		( y - 127 < 0 → y <= 127, skip )
+	( y > 127: canyon mirror )
+	{
+	    DC 87 <dGRK254L mtp bytesperunit>	(fld qword [edi+GRK254L*4])
+	    D8 87 <dGRfy  mtp bytesperunit>	(fsub dword [edi+GRfy*4])
+	    D9 9F <dGRfy  mtp bytesperunit>	(fstp dword [edi+GRfy*4])
+	}
+	-> GR rh store;
+
+"GR rh clamp"
+	( if (y > hmax) y = hmax — compute y - hmax, check sign )
+	{
+	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
+	    D8 A7 <dGRfhmt mtp bytesperunit>	(fsub dword [edi+GRfhmt*4])
+	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
+	}
+	A = [GRfs1]; A & 80000000h;
+	? A != 0 -> GR rh store;		( y - hmax < 0 → skip )
+	[GRfy] = [GRfhmt];			( y = hmax )
+
+"GR rh store"
+	( surfacemap[idx] = (unsigned char)y — chop )
+	{
+	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
+	    D9 AF <dGRcwc mtp bytesperunit>	(fldcw [edi+GRcwc*4])
+	    DB 9F <dGRfti mtp bytesperunit>	(fistp dword [edi+GRfti*4])
+	    D9 AF <dGRcwn mtp bytesperunit>	(fldcw [edi+GRcwn*4])
+	}
+	A = [GRfti]; A & 0FFh;
+	[MBval] = A;
+	A = RPSM; A + [GRptr]; [MBptr] = A;
+	=> MEM put byte;
+
+"GR rh znext"
+	[GRfrz]+;
+	A = [GRfrz];
+	B = [SUcyi]; B + [SUia];	( cz + r )
+	? A '< B -> GR rh zloop;
+	[GRfrx]+;
+	-> GR rh xloop;
+
+"GR rh done"
 	end;
