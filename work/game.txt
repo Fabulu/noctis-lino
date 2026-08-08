@@ -163,8 +163,8 @@
 	GMSHIFT = 11;		( height shift: surf<<11                      )
 	GMCAMZ  = 1646592;	( cam_z = 100<<14 + 8192 (surface center)     )
 	GMCAMY  = 50000;	( eye height magnitude above the low terrain  )
-	GMHALF  = 8;		( grid half-width: (2*GMHALF+1)^2 tiles       )
-	GMZLO   = 92; GMZHI = 108;  ( Z grid range around center tile 100    )
+	GMHALF  = 6;		( grid half-width: (2*GMHALF+1)^2 tiles       )
+	GMZLO   = 94; GMZHI = 106;  ( Z grid range around center tile 100    )
 	GMCOSA0 = 0;		( cos(alfa)=0, sin(alfa) for top-down view    )
 	GMSINA0 = 0C3520000h;	( fragpage's FPSA literal (graded)            )
 	GMSINZ  = 0BF800000h;	( -1.0f (FSTSA)                                )
@@ -540,7 +540,9 @@
 (   view:   alfa = -90 deg top-down (fragpage's exact, bit-pinned angle   )
 (           constants), so the projection is the graded one.              )
 (   grid:   viewtile +/- GMHALF x 100 +/- GMHALF, two triangles per tile, )
-(           shade c1 = surf[h1] & 31, flat-filled (PGtexf = 2).           )
+(           shade c1 = surf[h1] & 31, TEXTURED via PGtexf = 1 + SPsrc = 1 )
+(           (the live float chain derives per-pixel (u,v) from the        )
+(           projected position; TEX1 is the procedural formula).          )
 ( ==================================================================== )
 
 "GM render ground"
@@ -568,7 +570,11 @@
 	[PGFi] = FSTCA; [PGFt] = GMCOSA0; => PGF setf32;
 	[PGFi] = FSTSA; [PGFt] = GMSINZ;  => PGF setf32;
 
-	[PGtexf] = 2;  [SPflar] = 0;  [SPcull] = 0;  [SPhalf] = 0;
+	( textured path: SPsrc=1 makes the span engine derive (u,v) per pixel from
+	  the projected position (the live float chain - PJ vectors sets FSK1/2/3),
+	  and PGtexf=1 is the procedural TEX1 formula, so each pixel's shade varies
+	  across the tile face instead of the flat TEX2 fill. )
+	[PGtexf] = 1;  [SPsrc] = 1;  [SPflar] = 0;  [SPcull] = 0;  [SPhalf] = 0;
 
 	( grid X: viewtile-GMHALF .. viewtile+GMHALF )
 	A = [GMtile]; A - GMHALF; [GMxlo] = A;
