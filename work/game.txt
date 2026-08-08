@@ -156,14 +156,15 @@
 	GMRAYF	= 1176256512;	( 10000.0f bits (ap_target_ray)             )
 	GMSTARTPWR = 30000;	( lithium charge at launch                  )
 	GMVIS	= 80;		( visible_sectors for the sector chop       )
-	GMSENTFRAME = 5;	( write telemetry after this many frames    )
+	GMSENTFRAME = 3;	( write telemetry after this many frames    )
 	GMNFRAMES = 60;	( frames to evolve in the isocall-free phase )
 
 	( ---- 3D ground render constants (fragpage-proven top-down view) ---- )
 	GMSHIFT = 11;		( height shift: surf<<11                      )
 	GMCAMZ  = 1646592;	( cam_z = 100<<14 + 8192 (surface center)     )
-	GMCAMY  = 100000;	( eye height magnitude (fragpage's value)      )
-	GMZLO   = 95; GMZHI = 103;  ( Z grid range around center tile 100    )
+	GMCAMY  = 50000;	( eye height magnitude above the low terrain  )
+	GMHALF  = 8;		( grid half-width: (2*GMHALF+1)^2 tiles       )
+	GMZLO   = 92; GMZHI = 108;  ( Z grid range around center tile 100    )
 	GMCOSA0 = 0;		( cos(alfa)=0, sin(alfa) for top-down view    )
 	GMSINA0 = 0C3520000h;	( fragpage's FPSA literal (graded)            )
 	GMSINZ  = 0BF800000h;	( -1.0f (FSTSA)                                )
@@ -187,7 +188,7 @@
 
 	( ---- 3D ground render (pg polymap, from live camera + live p_surfacemap) ---- )
 	GMtile  = 0;		( live camera X tile, derived from dzat_x      )
-	GMcamx  = 0;
+	GMcamx  = 0; GMtmp2 = 0;
 	GMx     = 0; GMz = 0;	( grid cursor                                  )
 	GMxlo   = 0; GMxhi = 0;
 	GMh1    = 0;		( surface corner index = z*200 + x             )
@@ -232,28 +233,27 @@
 ( spmain / pgmain / mgmain), so the composition is what is new - the     )
 ( kernels are the byte-exact ones.                                       )
 (                                                                        )
-(   P0    workspace + palette + tick init                                )
-(   P1    clear the visible page                                         )
-(   P2    ground: generate the planetary surface (grnd, once)            )
-(   P3    blit the surface texture into the visible page (once)          )
-(   Pflight seed live flight state, snapshot frame-0 dzat/pwr            )
-(   ---- EVOLUTION: a tight isocall-free loop (the mgmain regime) ----   )
-(   PF1   flight dynamics: ONE ap_drive_mode frame via MG vimana loop    )
-(         (5-window coefficient cascade; updates dzat,pwr,cur,reached,   )
-(          stspeed,status - the graded per-frame kernel, no corpus)      )
-(   PF2   nav: sector chop + nearstar_identity via NsIdentityD           )
-(   ---- the loop runs GMNFRAMES, then hands off to render + input ----  )
-(   PF3   HUD: pwr/status bar onto adaptor                               )
-(   PF4   present: expand adaptor->fb through pal + RETRACE              )
-(   PF5   telemetry sentinel (frame-0 vs live dzat/pwr)                  )
-(   PF6   ESC loop: present + GET CONSOLE INPUT + KEY ESCAPE             )
+(   P0     workspace + palette + tick init                               )
+(   P2     ground: generate the planetary surface (grnd, once)           )
+(   Pfl    seed live flight state, snapshot frame-0 dzat/pwr             )
+(   ---- PER-FRAME continuation (one iteration = one game frame) ----    )
+(   PF1    flight dynamics: ONE ap_drive_mode frame via MG vimana loop   )
+(          (5-window coefficient cascade; updates dzat,pwr,cur,reached,  )
+(           stspeed,status - the graded per-frame kernel, no corpus)     )
+(   PF2    nav: sector chop + nearstar_identity via NsIdentityD          )
+(   P3     3D render: clear, polymap the live surface from the live      )
+(          camera (viewtile pans with dzat), pcopy ADAPTED->ADAPTOR, HUD )
+(   PF4    present: expand ADAPTOR->fb through pal + RETRACE             )
+(   PF5    telemetry sentinel (written once, early)                      )
+(   PF6    input: GET CONSOLE INPUT + KEY ESCAPE (every frame -> ESC is  )
+(          responsive within one frame)                                  )
 (                                                                        )
-( Why the evolution is isocall-free: the win32 stub re-mounts the x87    )
-( control word AND leaves operands on the x87 stack across every isocall )
-( (RETRACE / GET CONSOLE INPUT / timer), so an FP op immediately after   )
-( an isocall faults.  The mgmain grader never interleaves them; the game )
-( keeps the same discipline - all GMNFRAMES flight frames run pure-FP,   )
-( then the isocall-bound render/input phase runs with no FP needs.       )
+( Why GM fpu clean leads every iteration: the win32 stub re-mounts the   )
+( x87 control word AND leaves operands on the x87 stack across every     )
+( isocall (RETRACE / GET CONSOLE INPUT), so an FP op after an isocall    )
+( faults.  fninit + fldcw at the top re-empties the stack and restores   )
+( [FCW]=133Fh, so this frame's flight + polymap FP runs clean; the       )
+( present/input isocalls are at the bottom, after all FP.                )
 ( ==================================================================== )
 
 "GM run"
@@ -281,12 +281,11 @@
 	[GMframe] = 0; [GMsent] = 0; [GMesc] = 0;
 
     "GM loop"
-	( The vimana cascade and the NsIdentity chain are pure x87; the win32
-	  stub re-mounts the x87 control word AND leaves junk on the x87 stack
-	  across every isocall (RETRACE / GET CONSOLE INPUT / tick), so an FP
-	  op immediately after an isocall faults.  The evolution therefore
-	  runs as a TIGHT isocall-free loop - the same regime the mgmain
-	  grader runs in - and only the render/ESC phase mixes in isocalls. )
+	( PER-FRAME interleave: one FP frame, then one render+present+input.
+	  GM fpu clean at the top re-empties the x87 stack and re-installs
+	  [FCW]=133Fh after the PREVIOUS iteration's isocalls (present/input),
+	  so this iteration's FP (flight + polymap) runs clean.  Input is
+	  drained every frame, so ESC is responsive within one frame. )
 	=> GM fpu clean;
 	( ---- PF1: one graded ap_drive_mode frame ---- )
 	=> GM flight step;
@@ -294,24 +293,21 @@
 	=> GM sector step;
 	=> GM identity step;
 	[GMframe]+;
-	A = [GMframe]; ? A '< GMNFRAMES -> GM loop;
-
-	( ---- state has now evolved GMNFRAMES frames.  Clear the page and render
-	  the 3D ground view from the LIVE camera (derived from dzat) over the
-	  LIVE p_surfacemap (grnd-generated) via the fragpage-proven polymap
-	  wiring.  This is pure FP + integer raster - no isocall - so it stays
-	  on the clean side of the present/RETRACE boundary just below. )
+	( ---- render the 3D ground view from the live camera + live surface ---- )
 	=> GM clear page;
 	=> GM render ground;
 	=> GM copy page;
 	=> GM draw hud;
 	=> FB present;
+	( ---- telemetry sentinel: written once, early, then the loop continues )
+	A = [GMsent]; ? A != 0 -> GM after sent;
+	A = [GMframe]; ? A '< GMSENTFRAME -> GM after sent;
 	=> GM write sentinel;
-    "GM esc loop"
-	( ---- present + input continuation; no FP here, so isocalls are safe )
-	=> FB present;
+	[GMsent] = 1;
+    "GM after sent"
+	( ---- PF5/PF6: input + the ESC-to-quit continuation (every frame) ---- )
 	=> GM input;
-	A = [GMesc]; ? A = 0 -> GM esc loop;
+	A = [GMesc]; ? A = 0 -> GM loop;
 
 	[Display Live Region] = VOID REGION;
 	=> FLeave;
@@ -433,16 +429,16 @@
 	[A plus 8]  = [GMsecxi];   [A plus 9]  = [GMnsid0]; [A plus 10] = [GMnsid1];
 	[A plus 11] = [MgCur0];    [A plus 12] = [MgCur1];
 	[A plus 13] = [MgApreached]; [A plus 14] = [MgStspeed]; [A plus 15] = 0;
-	( framebuffer samples after the 3D polymap present - non-zero values prove
-	  the ground view reached the screen.  A = gmtele; address math in B. )
-	B = fb; B + 32160; [A plus 16] = [B];   ( fb centre       )
-	B = fb; B + 3205;  [A plus 17] = [B];   ( fb row 10        )
-	B = fb; B + 16000; [A plus 18] = [B];   ( fb row 50        )
-	B = fb; B + 48000; [A plus 19] = [B];   ( fb row 150       )
-	B = nw; B + RADPT; B + 32160; [A plus 20] = [B];   ( ADAPTED centre )
-	B = nw; B + RADPT; B + 3205;  [A plus 21] = [B];   ( ADAPTED row 10 )
-	B = nw; B + RPSM;  B + 20100; [A plus 22] = [B];   ( surf tile 100,100 )
-	B = nw; B + RPSM;  B + 19500; [A plus 23] = [B];
+	( fb coverage survey: 8 points spread across the 320x200 screen.  Count
+	  non-zero to measure how much of the window the polymap fills. )
+	B = fb; B + 32160; [A plus 16] = [B];   ( row 100 col 160 - centre )
+	B = fb; B + 32050; [A plus 17] = [B];   ( row 100 col  50          )
+	B = fb; B + 32270; [A plus 18] = [B];   ( row 100 col 270          )
+	B = fb; B + 9760;  [A plus 19] = [B];   ( row  30 col 160          )
+	B = fb; B + 54560; [A plus 20] = [B];   ( row 170 col 160          )
+	B = fb; B + 19280; [A plus 21] = [B];   ( row  60 col  80          )
+	B = fb; B + 45040; [A plus 22] = [B];   ( row 140 col 240          )
+	B = fb; B + 4960;  [A plus 23] = [B];   ( row  15 col 160          )
 	[File Name]     = gmoutname;
 	[File Position] = 0;
 	[File Command]  = WRITE;
@@ -543,7 +539,7 @@
 (           depth-culled); cam_z = surface center (tile 100).             )
 (   view:   alfa = -90 deg top-down (fragpage's exact, bit-pinned angle   )
 (           constants), so the projection is the graded one.              )
-(   grid:   viewtile-4 .. viewtile+4  x  96..104, two triangles per tile, )
+(   grid:   viewtile +/- GMHALF x 100 +/- GMHALF, two triangles per tile, )
 (           shade c1 = surf[h1] & 31, flat-filled (PGtexf = 2).           )
 ( ==================================================================== )
 
@@ -551,10 +547,12 @@
 	=> GM fpu clean;
 	=> PGF constants;
 
-	( live camera X from dzat: viewtile = 4 + (chop(dzat_x) >> 14) mod 192 )
+	( live camera X from dzat: viewtile = GMHALF + (chop(dzat_x)>>14) mod
+	  (200-2*GMHALF), so the GMHALF-wide grid always stays inside 0..199. )
 	[FA0]=[MgDzatX0];[FA1]=[MgDzatX1]; => FToIntChop;
 	A = [FI]; A > 14; [GMtile] = A;
-	A = [GMtile]; A '% 192; A + 4; [GMtile] = A;
+	A = 200; A - GMHALF; A - GMHALF; [GMtmp2] = A;	( 200 - 2*GMHALF )
+	A = [GMtile]; A '% [GMtmp2]; A + GMHALF; [GMtile] = A;
 	( cam_x = viewtile<<14 + 8192 )
 	A = [GMtile]; A < 14; A + 8192; [GMcamx] = A;
 	[FI] = [GMcamx];  => IntToF; [PGFi] = FSCAMX; => PGF sa;
@@ -572,9 +570,9 @@
 
 	[PGtexf] = 2;  [SPflar] = 0;  [SPcull] = 0;  [SPhalf] = 0;
 
-	( grid X: viewtile-4 .. viewtile+4 )
-	A = [GMtile]; A - 4; [GMxlo] = A;
-	A = [GMtile]; A + 4; [GMxhi] = A;
+	( grid X: viewtile-GMHALF .. viewtile+GMHALF )
+	A = [GMtile]; A - GMHALF; [GMxlo] = A;
+	A = [GMtile]; A + GMHALF; [GMxhi] = A;
 	[GMx] = [GMxlo];
     "GM rg x"
 	[GMz] = GMZLO;
