@@ -118,10 +118,10 @@ def lift_vertical_trace(start_y: int, lifter: int) -> list[tuple[int, int, bool]
 
 
 def lift_ascent_route(
-    start_z_from_center: int, forward_sign: int
+    start_z_from_center: int, forward_sign: int, impulse: int = 100
 ) -> list[tuple[int, int, int, int]]:
     """Source-order ascent along beta=0, including momentum and restraint."""
-    y, lifter, step = 0, -100, 0
+    y, lifter, step = 0, -impulse, 0
     trace: list[tuple[int, int, int, int]] = []
     while lifter:
         y += lifter
@@ -182,24 +182,47 @@ def main() -> int:
         and abs(ascent_route[-1][2]) > 1100,
         "source-order ascent momentum carries a centered rider clear of automatic return",
     )
+    calibrated_route = lift_ascent_route(0, -1, 70)
+    check(
+        len(calibrated_route) == 12
+        and calibrated_route[-1] == (-750, 0, -1827, 335)
+        and abs(calibrated_route[-1][2]) < abs(lift_ascent_route(0, -1, 75)[-1][2]),
+        "calibrated ascent slows the opening without adding the nearby impulse's roof overshoot",
+    )
 
     lift = section(game, '"VHG lift tick"', '"VHG lift move"')
     check(
         all(token in lift for token in (
-            "0FFFFFEBBh", "0FFFFFD12h", "0FFFFFE0Ch",
+            "? A > 0 -> VHG lift descending;",
+            "? A <= 0FFFFFEBBh -> VHG lift rise middle;",
+            "? A <= 0FFFFFD35h -> VHG lift hold centre;",
+            "? A >= 0FFFFFEBBh -> VHG lift hold centre;",
+            "? A <= 0 -> VHG lift upper ok;",
+            "? A >= 0FFFFFD12h -> VHG lift roof flag;",
+            "? A >= 0FFFFFE0Ch -> VHG lift done;",
+            "A = [VHGalpha]; A - 40; A * 12; A / 100;",
+        )) and all(token not in lift for token in (
+            "? A '>", "? A '<", " A '*", " A '/",
         )),
-        "live lift retains its -325/-750/-500 camera and roof boundaries",
+        "live lift uses signed original camera and roof boundaries",
     )
     check(
         lift.count("=> VHG lift move;") == 1
         and "0FFFFFD35h" in lift
-        and "A = [VHGlifter]; A '/ 2; [VHGliftstep] = A;" in lift
+        and "A = [VHGlifter]; A / 2; [VHGliftstep] = A;" in lift
         and "A = [VHGliftstep]; A * 4; A / 5;" in lift
         and lift.index("[VHGonroof] = 1;") < lift.index("=> VHG lift move;")
-        and lift.index("A = [VHGlifter]; ? A = 0 -> VHG lift tick done;") < lift.index("A = [VHGx]; A * 3;")
-        and "A = [VHGx]; A * 3; A / 4; [VHGx] = A;" in lift
-        and "A = [VHGz]; A + 3100; A / 4;" in lift,
-        "lift preserves source momentum and skips centre restraint at a reached endpoint",
+        and "A = [VHGdist]; A + [VHGliftstep]; ? A >= 1100" in lift
+        and "[VHGlifter] = 75;" in lift
+        and "=> VHG lift distance;" in lift
+        and '"VHG lift postrender"' in game
+        and "=> VHG fpu clean; => VHG lift postrender; => VHG input;" in game
+        and "A = [VHGdosim]; ? A = 0 -> VHG lift postrender done;" in game
+        and "=> VHG lift tick;\n\t( p_Forward(step) is clamped" in game
+        and "=> VHG clamp position;\n    \"VHG skip ship ticks\"" in game
+        and "A = [VHGx]; A * 3; A / 4; [VHGx] = A;" in game
+        and "A = [VHGz]; A + 3100; A / 4;" in game,
+        "lift preserves source trigger, movement, clamp, render, and restraint ordering",
     )
     platform = section(game, '"VHG platform"', '"VHG lift tick"')
     ship_input = section(game, '"VHG normal input"', '"VHG surface input"')
@@ -209,15 +232,20 @@ def main() -> int:
         and "A = [VHGalpha]; A - 2;" in ship_input
         and "[VHGupheld]" in ship_input
         and "[VHGuprequest] = 1;" in ship_input
-        and "? A < 1210000 -> VHG platform go roof;" in platform
         and "[VHGuprequest]" in platform
-        and "A - 100; [VHGlifter] = A;" in platform
-        and "[VHGlifter] = 75;" in platform
-        and "[VHGnoticeptr] = VHGliftfindtext;" in platform
+        and "A - 70; [VHGlifter] = A;" in platform
+        and "1210000" not in platform
+        and "[VHGlifter] = 75;" not in platform
         and "[VHGnoticeptr] = VHGliftdecktext;" in lift
         and "[VHGnoticeptr] = VHGliftrooftext;" in lift
         and "[VHGuprequest] = 0;" in platform,
-        "E starts ascent only in the centre, Up looks up, and roof entry automatically descends",
+        "E maps the original direct ascent event, Up looks up, and roof return is not a second key state machine",
+    )
+    walk_input = section(game, '"VHG look input"', '"VHG landing selector input"')
+    check(
+        "[VHGlifter]; ? A != 0 -> VHG input done;" not in walk_input
+        and "The source continues sampling player movement during a lift" in walk_input,
+        "ship movement remains controllable during the source-shaped lift restraint",
     )
 
     lift_move = section(game, '"VHG lift move"', '"VHG land"')
@@ -259,8 +287,21 @@ def main() -> int:
     check(
         "A = 1000; A - [FI]" in roof
         and "[VHCdd] = 600" in roof
+        and "? A >= 0 -> VHC roof dd nonnegative;" in roof
+        and "? A >= 0 -> VHC capsule dd nonnegative;" in roof
         and "A = [VHCcamybase]; A + [VHCdd]" in roof,
         "port applies the same local 1000-radius/600-clamp displacement",
+    )
+    roof_midpoints = section(cupola, '"VHC roof view"', '"VHC capsule view"')
+    capsule_midpoints = section(cupola, '"VHC capsule view"', '"VHC generate"')
+    check(
+        roof_midpoints.count("[PGFi] = FSW3; [PGFt] = VHCHALF; => PGF setf32;") == 1
+        and capsule_midpoints.count("[PGFi] = FSW3; [PGFt] = VHCHALF; => PGF setf32;") == 1
+        and roof_midpoints.count("=> PGF add;\n\t[PGFi] = FSW3; => PGF mul;") == 2
+        and capsule_midpoints.count("=> PGF add;\n\t[PGFi] = FSW3; => PGF mul;") == 3
+        and "=> PGF add;\n\t[PGFi] = FSW1; [PGFt] = VHCHALF" not in roof
+        and "=> PGF add;\n\t[PGFi] = FSW2; [PGFt] = VHCHALF" not in roof,
+        "cupola midpoint sums survive the 0.5 load and track each real panel",
     )
     check(
         [cupola_panel_drop(distance) for distance in (0, 399, 400, 401, 999, 1000, 1200)]
@@ -326,7 +367,7 @@ def main() -> int:
         and "A # 80000000h" in cupola
         and '"VHC capsule view"' in cupola
         and "A = 500; A - [FI]" in cupola
-        and "A < 2; A '* [VHCyor]" in cupola,
+        and "A < 2; A * [VHCyor]" in cupola,
         "landed view keeps both capsule support grids, detailed moving panels, and beacon",
     )
     check(

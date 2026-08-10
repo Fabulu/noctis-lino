@@ -135,7 +135,6 @@
 	VHGtargettext = { VIMANA TARGET SET };
 	VHGtargetfailedtext = { NO TARGET AVAILABLE };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
-	VHGliftfindtext = { LIFT: STAND IN CENTER APERTURE };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
 	VHGreturnfartext = { RETURN TO CAPSULE };
@@ -604,6 +603,8 @@
 	=> VHG navigation step;
 	=> VHG power reserve;
 	=> VHG lift tick;
+	( p_Forward(step) is clamped before vehicle() in the source loop. )
+	=> VHG clamp position;
     "VHG skip ship ticks"
 		A = [VHGdosim]; ? A = 0 -> VHG ticks done;
 		A = [VHGmode]; ? A = 0 -> VHG ticks done;
@@ -623,7 +624,7 @@
 		  Rendering uses the same shared stack, so give input a clean ABI boundary;
 		  without it the first walking sample after capsule settlement could return
 		  through a corrupted floating-point helper frame. )
-		=> VHG fpu clean; => VHG input;
+		=> VHG fpu clean; => VHG lift postrender; => VHG input;
 	[VHGframe]+;
 	end;
 
@@ -1342,7 +1343,8 @@
 	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
 	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
 
-	A = [VHGlifter]; ? A != 0 -> VHG input done;
+	( The source continues sampling player movement during a lift.  The later
+	  centre restraint influences the route but does not lock out controls. )
 	A = [KEY W]; ? A = OFF -> VHG no W; [VHGstepv] = VHGSTEP; => VHG forward;
     "VHG no W"
 	A = [KEY S]; ? A = OFF -> VHG no S; A = 0; A - VHGSTEP; [VHGstepv] = A; => VHG forward;
@@ -1673,48 +1675,28 @@
 	end;
 
 "VHG platform"
-	( NOCTIS.CPP:2275-2307, 4106-4108.  A deliberate E substitutes for the
-	  original DOS Up scan code because arrows are look controls in this port.
-	  The ride itself stays source-shaped: it may start anywhere inside, pulls
-	  the rider toward x=0,z=-3100, and stops at y=-750.  On the roof there is
-	  no return key: walking into the 1100-unit cupola opening automatically
-	  starts the +75 descent, exactly like DfCoS + step < 1100. )
-	[VHGdx] = [VHGx]; A = [VHGz]; A + 3100; [VHGdz] = A;
-	A = [VHGdx]; A '* [VHGdx]; C = A;
-	A = [VHGdz]; A '* [VHGdz]; A + C; [VHGdist] = A;
+	( NOCTIS.CPP:4106-4108 starts the ascent directly from the key event.
+	  E deliberately substitutes for DOS Up because all four arrows look in
+	  this port.  The live renderer uses -70 so the opening gets enough
+	  visible approach time instead of crossing the glass
+	  in two displayed frames.  This discrete value also avoids the extra
+	  forward-carry frame produced by nearby slower impulses.  Roof return
+	  remains the source's +75. )
 	A = [VHGlifter]; ? A != 0 -> VHG platform done;
-	A = [VHGonroof]; ? A != 0 -> VHG platform roof;
+	A = [VHGonroof]; ? A != 0 -> VHG platform done;
 	A = [VHGuprequest]; ? A = 0 -> VHG platform done;
-	A = [VHGdist]; ? A < 1210000 -> VHG platform go roof;
-	[VHGnoticeptr] = VHGliftfindtext; [VHGnoticeframes] = 75;
-	-> VHG platform done;
-    "VHG platform go roof"
-	A = 0; A - 100; [VHGlifter] = A; [VHGliftstep] = 0;
-	-> VHG platform done;
-	"VHG platform roof"
-	( With no inertial walking accumulator, held ship movement is the source's
-	  current 80-unit step; use its 1020-unit effective entry radius. )
-	A = [KEY W]; ? A != OFF -> VHG platform roof moving;
-	A = [KEY S]; ? A != OFF -> VHG platform roof moving;
-	A = [KEY A]; ? A != OFF -> VHG platform roof moving;
-	A = [KEY D]; ? A != OFF -> VHG platform roof moving;
-	A = [VHGdist]; ? A >= 1210000 -> VHG platform done;
-	-> VHG platform go inside;
-	"VHG platform roof moving"
-	A = [VHGdist]; ? A >= 1040400 -> VHG platform done;
-    "VHG platform go inside"
-	[VHGlifter] = 75;
+	A = 0; A - 70; [VHGlifter] = A; [VHGliftstep] = 0;
     "VHG platform done"
 	[VHGuprequest] = 0;
 	end;
 
 "VHG lift tick"
-	A = [VHGlifter]; ? A = 0 -> VHG lift coast;
+	A = [VHGlifter]; ? A = 0 -> VHG lift hold centre;
 	A = [VHGy]; A + [VHGlifter]; [VHGy] = A;
 	A = [VHGlifter]; ? A > 0 -> VHG lift descending;
 	[VHGlifter]+;
 	A = [VHGy]; ? A <= 0FFFFFEBBh -> VHG lift rise middle; ( pos_y <= -325 )
-	A = [VHGalpha]; A - 40; A '* 12; A '/ 100;
+	A = [VHGalpha]; A - 40; A * 12; A / 100;
 	C = [VHGalpha]; C + A; [VHGalpha] = C;
     "VHG lift rise middle"
 	( The source pushes forward by -pos_y only through the middle of the
@@ -1727,12 +1709,12 @@
     "VHG lift descending"
 	[VHGlifter]-;
 	A = [VHGlifter]; ? A <= 65 -> VHG lift level look;
-	A = 40; A - [VHGalpha]; A '* 11; A '/ 100;
+	A = 40; A - [VHGalpha]; A * 11; A / 100;
 	C = [VHGalpha]; C + A; [VHGalpha] = C; -> VHG lift descent move;
     "VHG lift level look"
-	A = [VHGalpha]; A '/ 4; C = [VHGalpha]; C - A; [VHGalpha] = C;
+	A = [VHGalpha]; A / 4; C = [VHGalpha]; C - A; [VHGalpha] = C;
     "VHG lift descent move"
-	A = [VHGlifter]; A '/ 2; [VHGliftstep] = A;
+	A = [VHGlifter]; A / 2; [VHGliftstep] = A;
     "VHG lift hold centre"
 	( NOCTIS.CPP clamps the vertical endpoint before its ordinary forward
 	  movement and the later hold-to-middle pass.  In particular, the final
@@ -1748,21 +1730,45 @@
 	[VHGonroof] = 0; A = [VHGy]; ? A >= 0FFFFFE0Ch -> VHG lift done;
 	[VHGonroof] = 1;
     "VHG lift done"
+	( NOCTIS.CPP:2303-2306: once on the roof and not already riding,
+	  entering the spatial aperture automatically begins the +75 descent.
+	  Use the retained source step, including its coast, in distance+step. )
+	A = [VHGlifter]; ? A != 0 -> VHG lift motion;
+	A = [VHGonroof]; ? A = 0 -> VHG lift motion;
+	=> VHG lift distance;
+	A = [VHGdist]; A + [VHGliftstep]; ? A >= 1100 -> VHG lift motion;
+	[VHGlifter] = 75;
 	-> VHG lift motion;
-    "VHG lift coast"
-	A = [VHGliftstep]; ? A = 0 -> VHG lift tick done;
+
+"VHG lift distance"
+	( DfCoS = sqrt(pos_x^2 + (pos_z+3100)^2). )
+	[FI] = [VHGx]; => IntToF; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW0; => PGF mul; [PGFi] = FSW2; => PGF sa;
+	A = [VHGz]; A + 3100; [FI] = A; => IntToF; [PGFi] = FSW1; => PGF sa;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW2; => PGF add;
+	=> FSqrt; => FToIntNear; [VHGdist] = [FI];
+	end;
+
     "VHG lift motion"
-	A = [VHGliftstep]; ? A = 0 -> VHG lift restrain;
+	A = [VHGliftstep]; ? A = 0 -> VHG lift tick done;
 	[VHGstepv] = A; => VHG lift move;
 	( Source friction is step /= 1.25 after movement.  Retaining that value is
 	  what carries the rider clear of the aperture on the final roof frame. )
 	A = [VHGliftstep]; A * 4; A / 5; [VHGliftstep] = A;
-    "VHG lift restrain"
-	A = [VHGlifter]; ? A = 0 -> VHG lift tick done;
-	( NOCTIS.CPP:3583-3587 applies this only while lifter remains active. )
+    "VHG lift tick done"
+	end;
+
+"VHG lift postrender"
+	( NOCTIS.CPP:3583-3587 restrains the player after vehicle() has rendered
+	  and before keyboard input.  Keeping that order is necessary because the
+	  roof aperture is spatial and follows the pre-restraint camera position. )
+	( In 60-Hz presentation mode this source-loop operation still runs only
+	  on an 18.206-Hz simulation tick. )
+	A = [VHGdosim]; ? A = 0 -> VHG lift postrender done;
+	A = [VHGlifter]; ? A = 0 -> VHG lift postrender done;
 	A = [VHGx]; A * 3; A / 4; [VHGx] = A;
 	A = [VHGz]; A + 3100; A / 4; C = [VHGz]; C - A; [VHGz] = C;
-    "VHG lift tick done"
+    "VHG lift postrender done"
 	end;
 
 "VHG lift move"

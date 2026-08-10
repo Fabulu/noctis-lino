@@ -20,8 +20,9 @@ W/A/S/D           walk or strafe
 Ctrl + W/A/S/D    stalk slowly near surface birds
 J / hold Space    jump / use the surface jetpack; C cancels thrust
 Right mouse drag  look around inside the game view
-Arrow keys        look; Up operates the lift while centered in its aperture;
-                  release and press Up again at a stop to reverse it
+Arrow keys        look in all four directions
+E                 start the roof lift from inside the Stardrifter;
+                  walk into the roof cupola opening to return automatically
 G or Enter        open GOES; Tab or Enter submits a command
 NEXT              target and fly to a nearby generated star
 STAR X Y Z        target exact galactic coordinates

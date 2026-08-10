@@ -91,9 +91,9 @@ Controls:
   surface modes; F9 is the layout-independent fallback because the Windows
   iGUI host does not expose a distinct F1 state)
 - Left/right/down arrows: look around
-- E: operate the Stardrifter roof lift while centered inside its aperture;
-  walk clear after arrival, then step back into the roof opening to trigger the
-  original automatic return. Pressing E elsewhere explains where to stand
+- E: start the Stardrifter roof lift from inside the ship; walk clear after
+  arrival, then step into the roof cupola opening to trigger the original
+  automatic return
 - W/S: forward/back
 - A/D: strafe left/right
 - Ctrl + W/A/S/D: stalk slowly on habitable surfaces. Birds take off when
@@ -559,3 +559,22 @@ upper cupola panels displaced while its support grid remains fixed, matching
 `polycupola(+1, 1)`. The independent route check pins a centered ascent 1,711
 units from the cupola center, outside its 1,100-unit automatic-return radius;
 the roof-center checkpoint still descends to `y=0`.
+
+### Unreleased Stardrifter source-equivalence correction
+
+The follow-up pass compared the complete lift and upper-cupola path with
+`NOCTIS.CPP` and `NOCTIS-0.CPP`, including input, vertical state, forward
+motion, boundary clamps, vehicle draw order, local panel displacement,
+post-render center restraint, and automatic return. It supersedes the older
+RC24 and RC27 lift conclusions above where they describe a center activation
+gate or a port-specific return threshold.
+
+Concrete corrections are: direct E activation as the desktop mapping of DOS
+Up; a calibrated `lifter=-70` ascent with twelve visible rise frames; source
+`distance + step < 1100` roof descent; movement kept
+available during the ride; clamping before vehicle rendering; centering after
+rendering and only on simulation ticks; signed negative-coordinate and pitch
+arithmetic; and signed local cupola clamps so only nearby glass panels rise
+while support lines remain fixed. `python tests/test_vhgame.py` passes and the
+production source builds to a Windows PE. The lift, cupola, ascent, and descent
+were then confirmed interactively before this checkpoint.

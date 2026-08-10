@@ -75,18 +75,22 @@ first -- a broken foundation makes every later result meaningless.
   Coarse triangles are flat shaded, texture mapping is limited to the nearest
   two depth bands, and the settled capsule retains both structural grids while
   its costly translucent fill remains on the animated descent/ascent pod.
-- E now operates the Stardrifter lift while the player is inside its center
-  aperture, leaving all four arrows available for looking. The ascent and
-  descent retain the original `-100`/`+75` velocity ramps, pitch changes,
-  middle-ascent push, and center restraint. The roof return is source-shaped:
-  walking into the cupola opening starts descent automatically. Pressing E
-  elsewhere gives a visible aperture-location hint.
-- The source's middle-ride `step=-pos_y` and descending half-velocity motion
-  are retained, but their yaw removes the port hull model's 180-degree render
-  offset before using the movement basis. Feeding the render-offset yaw into
-  that source motion pushed the rider inward and triggered an immediate return.
-  The focused regression pins the offset, vertical endpoints, roof threshold,
-  center gate, and automatic roof-entry descent.
+- E maps the original DOS Up lift event while leaving all four arrows available
+  for looking. Like the source event, it starts directly from inside the ship
+  rather than passing through a port-invented center gate. The ascent and
+  descent retain the source velocity ramps, pitch changes, middle-ascent push,
+  and center restraint. The desktop ascent begins at a calibrated `-70`, which
+  exposes twelve rise frames without the extra forward-carry frame caused by
+  nearby slower values; roof descent retains the source `+75`. The return is:
+  `distance + step < 1100` starts descent automatically when the player enters
+  the cupola opening. The port-specific second-key and movement-threshold return
+  state machine has been removed.
+- The source's middle-ride `step=-pos_y`, descending half-velocity motion,
+  endpoint clamps, movement friction, player controls, and movement/render/
+  center-restraint order are retained. Signed arithmetic now follows the actual
+  Linoleum operator rules; apostrophe-prefixed unsigned operators are not used
+  for negative lift coordinates or pitch deltas. In 60-Hz presentation mode,
+  the restraint still runs only on an 18.206-Hz simulation tick.
 - The native iGUI GAME menu now exposes Controls, GOES, checkpoint save/load,
   FPS, 60/18-Hz presentation, soundtrack, and clean save-and-quit actions.
   Its F10/Up/Down/Enter path is fully keyboard-accessible; a production GUI
@@ -1249,4 +1253,3 @@ to exact is a measurement rather than a leap of faith.
    Fixed in the patched compiler: `+` left alone, `-` now adds.
 4. Application-name field not cleared before writing, leaving a shard of the
    runtime template string in every executable.
-

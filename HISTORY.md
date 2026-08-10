@@ -181,14 +181,23 @@ Symptom: pressing Up could pull the player toward the lift center from outside
 the aperture, trap them there, and oscillate instead of delivering them cleanly
 to the deck or roof.
 
-Resolution: lift activation is gated to the centered aperture and moved to E,
-leaving all four arrows available for looking. The source ascent/descent ramps,
-camera pitch, center restraint, and local cupola-panel displacement are retained
-with one player heading shared by the view and forward motion. The ascent also
-retains the source's forward step and 1.25 friction through its final frame,
-when center restraint has already ended. The roof releases the player beyond
-the return aperture; walking back into its opening triggers the original
-automatic descent.
+Resolution: E maps the original DOS Up event while leaving all four arrows
+available for looking. A later source-equivalence pass removed the invented
+center activation gate and roof-return state machine. The original direct
+lift event, automatic `distance + step < 1100` descent, velocity ramps, camera
+pitch, player movement, endpoint clamps, forward friction, and movement/render/
+restraint order now form one path. The desktop ascent impulse is calibrated to
+`-70`: twelve visible rise steps give the panels time to clear and finish 1,827
+units from the aperture center, while the adjacent slower impulses add another
+source carry frame and overshoot farther. Roof descent retains the source `+75`.
+
+The pass also found that an attempted signedness fix had interpreted Linoleum's
+operators backward. Apostrophe-prefixed operators are unsigned. Restoring the
+signed comparisons and signed pitch arithmetic prevented negative lift state
+from taking unsigned branches. The cupola keeps its fixed support grid and
+raises only glass panels within the original 1,000-unit local radius, capped at
+600 units. The 60-Hz presenter applies center restraint only on simulation
+ticks, matching the original 18.206-Hz loop.
 
 ### Incorrect 60 FPS mode
 

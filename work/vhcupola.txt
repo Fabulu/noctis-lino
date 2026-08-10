@@ -95,7 +95,7 @@
 	  for its lower hemisphere.  Cache the +1 dome once and mirror only
 	  its four Y coordinates here; the Stardrifter's y_or=0/+1 paths are
 	  unchanged. )
-	A = [VHCyor]; ? A '>= 0 -> VHC render mirror done;
+	A = [VHCyor]; ? A >= 0 -> VHC render mirror done;
 	A = [vhcpoly plus 1]; A # 80000000h; [vhcpoly plus 1] = A;
 	A = [vhcpoly plus 4]; A # 80000000h; [vhcpoly plus 4] = A;
 	A = [vhcpoly plus 7]; A # 80000000h; [vhcpoly plus 7] = A;
@@ -118,21 +118,23 @@
 "VHC roof view"
 	A = [VHCroof]; ? A = 0 -> VHC roof view done;
 	A = [VHCyor]; ? A != 1 -> VHC roof view done;
+	( Load the midpoint factor before beginning either live sum.  PGF setf32
+	  writes through FA, so loading it between add and mul would destroy the
+	  sum and make every panel appear to be centred at the dome origin. )
+	[PGFi] = FSW3; [PGFt] = VHCHALF; => PGF setf32;
 
 	( d1 = .5*(x0+x1)-cam_x )
 	[PGFi] = FSW0; [PGFt] = [vhcpoly plus 0]; => PGF setf32;
 	[PGFi] = FSW1; [PGFt] = [vhcpoly plus 3]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
-	[PGFi] = FSW1; [PGFt] = VHCHALF; => PGF setf32;
-	[PGFi] = FSW1; => PGF mul; [PGFi] = FSCAMX; => PGF sub;
+	[PGFi] = FSW3; => PGF mul; [PGFi] = FSCAMX; => PGF sub;
 	[PGFi] = FSW0; => PGF sa;
 
 	( d2 = .5*(z0+z1)-cam_z )
 	[PGFi] = FSW1; [PGFt] = [vhcpoly plus 2]; => PGF setf32;
 	[PGFi] = FSW2; [PGFt] = [vhcpoly plus 5]; => PGF setf32;
 	[PGFi] = FSW1; => PGF a; [PGFi] = FSW2; => PGF add;
-	[PGFi] = FSW2; [PGFt] = VHCHALF; => PGF setf32;
-	[PGFi] = FSW2; => PGF mul; [PGFi] = FSCAMZ; => PGF sub;
+	[PGFi] = FSW3; => PGF mul; [PGFi] = FSCAMZ; => PGF sub;
 	[PGFi] = FSW1; => PGF sa;
 
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW0; => PGF mul; [PGFi] = FSW2; => PGF sa;
@@ -143,6 +145,7 @@
     "VHC roof dd nonnegative"
 	A = [VHCdd]; ? A <= 600 -> VHC roof dd ready; [VHCdd] = 600;
     "VHC roof dd ready"
+	( Exact source operation around this panel's poly3d call: cam_y += dd. )
 	A = [VHCcamybase]; A + [VHCdd]; [FI] = A; => IntToF; => F32Narrow;
 	[PGFi] = FSCAMY; => PGF sa;
     "VHC roof view done"
@@ -153,21 +156,20 @@
 	  5996-6010.  Panels within 500 units move by 4*dd*y_or; the fixed
 	  support grid does not move. )
 	A = [VHCcapsule]; ? A = 0 -> VHC capsule view done;
+	[PGFi] = FSW3; [PGFt] = VHCHALF; => PGF setf32;
 
 	( d1 = .5*(x0+x1)-cam_x; accumulator = d1*d1 )
 	[PGFi] = FSW0; [PGFt] = [vhcpoly plus 0]; => PGF setf32;
 	[PGFi] = FSW1; [PGFt] = [vhcpoly plus 3]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
-	[PGFi] = FSW1; [PGFt] = VHCHALF; => PGF setf32;
-	[PGFi] = FSW1; => PGF mul; [PGFi] = FSCAMX; => PGF sub;
+	[PGFi] = FSW3; => PGF mul; [PGFi] = FSCAMX; => PGF sub;
 	[PGFi] = FSW0; => PGF sa; [PGFi] = FSW0; => PGF mul; [PGFi] = FSW2; => PGF sa;
 
 	( d2 = .5*(y0+y2)-cam_y; accumulator += d2*d2 )
 	[PGFi] = FSW0; [PGFt] = [vhcpoly plus 1]; => PGF setf32;
 	[PGFi] = FSW1; [PGFt] = [vhcpoly plus 7]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
-	[PGFi] = FSW1; [PGFt] = VHCHALF; => PGF setf32;
-	[PGFi] = FSW1; => PGF mul; [PGFi] = FSCAMY; => PGF sub;
+	[PGFi] = FSW3; => PGF mul; [PGFi] = FSCAMY; => PGF sub;
 	[PGFi] = FSW0; => PGF sa; [PGFi] = FSW0; => PGF mul; [PGFi] = FSW2; => PGF add;
 	[PGFi] = FSW2; => PGF sa;
 
@@ -175,8 +177,7 @@
 	[PGFi] = FSW0; [PGFt] = [vhcpoly plus 2]; => PGF setf32;
 	[PGFi] = FSW1; [PGFt] = [vhcpoly plus 5]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
-	[PGFi] = FSW1; [PGFt] = VHCHALF; => PGF setf32;
-	[PGFi] = FSW1; => PGF mul; [PGFi] = FSCAMZ; => PGF sub;
+	[PGFi] = FSW3; => PGF mul; [PGFi] = FSCAMZ; => PGF sub;
 	[PGFi] = FSW0; => PGF sa; [PGFi] = FSW0; => PGF mul; [PGFi] = FSW2; => PGF add;
 	=> FSqrt; => PGF int;
 	A = 500; A - [FI]; [VHCdd] = A;
@@ -184,7 +185,7 @@
     "VHC capsule dd nonnegative"
 	A = [VHCdd]; ? A <= 500 -> VHC capsule dd ready; [VHCdd] = 500;
     "VHC capsule dd ready"
-	A = [VHCdd]; A < 2; A '* [VHCyor]; A + [VHCcamybase]; [FI] = A;
+	A = [VHCdd]; A < 2; A * [VHCyor]; A + [VHCcamybase]; [FI] = A;
 	=> IntToF; => F32Narrow; [PGFi] = FSCAMY; => PGF sa;
     "VHC capsule view done"
 	end;

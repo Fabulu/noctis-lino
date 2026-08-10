@@ -14,10 +14,16 @@
 	VHSerr = 0; VHSe2 = 0;
 	VHSdrawn = 0;
 	VHScolor = 62;
+	VHSnearbase = 0;
 
 "programme"
 
 "VH stick3d"
+	( NOCTIS-0.CPP stick3d() owns a fixed 200-unit near plane, separate
+	  from poly3d's live plane.  Preserve the caller's plane while the
+	  segment is rotated, clipped, and projected. )
+	[PGFi] = FSUNEG; => PGF a; => FStoreF32; [VHSnearbase] = [FS0];
+	[PGFi] = FSUNEG; [PGFt] = 43480000h; => PGF setf32;
 	( load the two float endpoints )
 	[PGFi] = FSINX;     [PGFt] = [VHSx0]; => PGF setf32;
 	[PGFi] = FSINY;     [PGFt] = [VHSy0]; => PGF setf32;
@@ -28,8 +34,25 @@
 
 	[PJnrv] = 2; [PJmode] = 0;
 	=> PJ rotate;
-	A = [PJdoflag]; ? A != 2 -> VHS done;
+	A = [PJdoflag]; ? A = 0 -> VHS done;
+	? A = 2 -> VHS zload;
+	( The source clips a segment with one endpoint behind stick_uneg rather
+	  than discarding it.  PJ zemit performs the same float interpolation;
+	  unlike the polygon walk, this line path emits exactly one intersection
+	  and one surviving endpoint. )
+	A = [rwf plus 0]; ? A != 0 -> VHS first visible;
+	[PJbx] = 0; [PJvv] = 1; -> VHS zemit;
+    "VHS first visible"
+	[PJbx] = 1; [PJvv] = 0;
+    "VHS zemit"
+	[PJdi] = 0; => PJ zemit;
+	A = [PJvv]; A + FSRXF; [PGFi] = A; A = FSUX; A+; [PGFj] = A; => PGF mov;
+	A = [PJvv]; A + FSRYF; [PGFi] = A; A = FSUY; A+; [PGFj] = A; => PGF mov;
+	A = [PJvv]; A + FSRZF; [PGFi] = A; A = FSUZ; A+; [PGFj] = A; => PGF mov;
+	[PJvr2] = 2; -> VHS project;
+    "VHS zload"
 	=> PJ zload;
+    "VHS project"
 	=> PJ project3d;
 	[VHSpx0] = [mp plus 0]; [VHSpy0] = [mp plus 1];
 	[VHSpx1] = [mp plus 2]; [VHSpy1] = [mp plus 3];
@@ -97,4 +120,5 @@
 	-> VHS line loop;
 
     "VHS done"
+	[PGFi] = FSUNEG; [PGFt] = [VHSnearbase]; => PGF setf32;
 	end;

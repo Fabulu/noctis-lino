@@ -33,7 +33,7 @@ the game automatically when the executable is absent; pass `-Build` to force a
 fresh production build. Clean saves also retain the current validated window
 dimensions, so a resized game reopens at the same size.
 
-Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E operates the Stardrifter lift while standing in its center aperture, G or Enter opens GOES,
+Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E starts the Stardrifter roof lift from inside the ship, and walking into the roof cupola opening starts the automatic return. G or Enter opens GOES,
 `NEXT` selects and flies toward a nearby generated star, L approaches and opens
 the landing-site selector at standby, arrows choose coordinates, L/Enter descends,
 R returns from the capsule, F5 opts into 60 FPS presentation (the original
