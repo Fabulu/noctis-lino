@@ -271,7 +271,7 @@ would have shown.
 
 ---
 
-## 10. Historical backlog — resolved/reconciled
+## 10. Historical backlog -- resolved/reconciled
 
 These findings were the handoff backlog. They are retained as historical evidence and were
 resolved or reconciled by the later remediation; **none changes this wave's result**.

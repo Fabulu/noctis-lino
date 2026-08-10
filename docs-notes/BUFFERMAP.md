@@ -1,15 +1,15 @@
-# BUFFERMAP — the complete aliasing and overrun map of Noctis IV
+# BUFFERMAP -- the complete aliasing and overrun map of Noctis IV
 
 **Wave 5, Recon A. Read-only analysis. No implementation.**
 
-Sources analysed (the actual build set — `NOCTIS.MAK` links exactly three objects):
+Sources analysed (the actual build set -- `NOCTIS.MAK` links exactly three objects):
 
 | file | role |
 |---|---|
 | `C:\programmieren\noctis\niv-plus\source\NOCTIS.CPP` | module 3: main, cockpit, GOES net, allocation |
 | `C:\programmieren\noctis\niv-plus\source\NOCTIS-0.CPP` | module 1: base library, page ops, globes, star/planet surfaces |
 | `C:\programmieren\noctis\niv-plus\source\NOCTIS-1.CPP` | module 2: planetary surface, sea, animals |
-| `C:\programmieren\noctis\niv-plus\source\TDPOLYGS.H` | included by NOCTIS-0.CPP:720 — the 3D/texture engine |
+| `C:\programmieren\noctis\niv-plus\source\TDPOLYGS.H` | included by NOCTIS-0.CPP:720 -- the 3D/texture engine |
 | `C:\programmieren\noctis\niv-plus\source\NOCTIS-D.H` | buffer size constants |
 | `C:\programmieren\noctis\niv-plus\source\NOCTIS-0.H` | shared externs |
 | `C:\programmieren\noctis\niv-plus\source\NOCTIS-2.H`, `defs.h` | small shared externs |
@@ -20,11 +20,11 @@ Cross-checked against the modernised clone
 **`GFX.H`, `FAST3D.H`, `TEXT3D.H`, `PITAGORA.H`, `ASSEMBLY.H` are NOT in the Noctis
 build.** They belong to the older standalone tools (`DL.CPP`, `ST.CPP`, …). Several
 `extern` declarations in `NOCTIS-0.H` are leftovers from them and have no definition
-anywhere in the build — see §7 (dead declarations). Do not port them.
+anywhere in the build -- see §7 (dead declarations). Do not port them.
 
 ---
 
-## 0. Executive summary — what the buffer model has to survive
+## 0. Executive summary -- what the buffer model has to survive
 
 1. **Eight heap buffers, 336,480 bytes total.** All eight are aliased by at least one
    other name; three are aliased by three or more.
@@ -42,7 +42,7 @@ anywhere in the build — see §7 (dead declarations). Do not port them.
    because `poly3d`'s scanline filler computes its destination through a 16-bit `DI`
    that can be fed a garbage row address (`riga[]` indexed out of range).
 5. **Borland `farmalloc` returns far pointers with offset 4**, and every hard-coded
-   `es:[di+4]` in the assembly *is that offset* — it is not a 4-pixel skew. Proof in
+   `es:[di+4]` in the assembly *is that offset* -- it is not a 4-pixel skew. Proof in
    §4.1. Getting this wrong shifts every polygon 4 pixels relative to every HUD glyph.
 6. **The DOS frame period is confirmed from source**: `sync_start`/`sync_stop`
    (`NOCTIS-0.CPP:6025-6038`) busy-wait for exactly one `clock()` tick, i.e.
@@ -50,7 +50,7 @@ anywhere in the build — see §7 (dead declarations). Do not port them.
    rounding, not the original.
 7. **Recommended model (the answer this map feeds into decision A): one flat
    byte-per-unit workspace with integer base offsets, not separate arrays.** Cost
-   ≈ 484,000 units ≈ 1.85 MiB against the measured 1 GB ceiling — 0.18%. See §8.
+   ≈ 484,000 units ≈ 1.85 MiB against the measured 1 GB ceiling -- 0.18%. See §8.
 
 ---
 
@@ -60,7 +60,7 @@ All allocated once in `main()`, `NOCTIS.CPP:2163-2173`. Sizes from `NOCTIS-D.H:2
 
 | # | name | decl type | bytes | alloc site | what it holds |
 |---|---|---|---|---|---|
-| 1 | `n_offsets_map` | `unsigned char far *` | 7,340 (`om_bytes`) | `NOCTIS.CPP:2163` | `offsets.map` — concave (sky) QT-VR sphere |
+| 1 | `n_offsets_map` | `unsigned char far *` | 7,340 (`om_bytes`) | `NOCTIS.CPP:2163` | `offsets.map` -- concave (sky) QT-VR sphere |
 | 2 | `n_globes_map` | `char far *` **(signed!)** | 32,768 (`gl_bytes` 22,586 + `gl_brest` 10,182) | `NOCTIS.CPP:2164` | `globes.map` convex sphere / sea texture / pilot font |
 | 3 | `s_background` | `unsigned char far *` | 64,800 (`st_bytes`) | `NOCTIS.CPP:2165` | star surface map / moon surface map / sky map / shading |
 | 4 | `p_background` | `unsigned char far *` | 65,552 (`pl_bytes`) | `NOCTIS.CPP:2166` | 360×180 planetary map from orbit; ground texture |
@@ -71,15 +71,15 @@ All allocated once in `main()`, `NOCTIS.CPP:2163-2173`. Sizes from `NOCTIS-D.H:2
 
 **Total: 336,480 bytes.**
 
-> `NOCTIS-D.H:58` claims `totale bytes 334941`. That figure is stale — it is short by
+> `NOCTIS-D.H:58` claims `totale bytes 334941`. That figure is stale -- it is short by
 > 1,539. Recompute, do not copy.
 
 `adaptor` (`NOCTIS-0.CPP:53`) is not a buffer: it is the literal far pointer
 `0xA0000000` = VGA `A000:0000`. It is only ever the *destination* of
 `pcopy`/`pclear`/`areaclear`. Nothing draws to it directly.
 
-`sizeof(quadrant) == 1`. This is not obvious — the bitfields are declared `unsigned`
-(`NOCTIS-D.H:171-176`), which normally implies a 2-byte storage unit — but it is
+`sizeof(quadrant) == 1`. This is not obvious -- the bitfields are declared `unsigned`
+(`NOCTIS-D.H:171-176`), which normally implies a 2-byte storage unit -- but it is
 forced by the code: `NOCTIS-1.CPP:1177-1180` reads `ruinschart[h1]` and
 `NOCTIS-1.CPP:1324` reads `objectschart[h1].nr_of_objects` **with the same index
 `h1`**. If the struct were 2 bytes, the `for (ptr = 0; ptr < oc_bytes; ptr++)` loops
@@ -113,7 +113,7 @@ packed `_read`** (`NOCTIS-0.CPP:2350`). See §6.1 for why this breaks unit addre
 
 ## 2. The alias map
 
-### 2.1 `n_globes_map` — triple-purposed, 32,768 bytes
+### 2.1 `n_globes_map` -- triple-purposed, 32,768 bytes
 
 | span (bytes) | alias | set at | contents |
 |---|---|---|---|
@@ -128,7 +128,7 @@ QUADWORDS = 256;
 for (ptr = 0; ptr < 32; ptr++) pclear (&n_globes_map[ptr<<10], ptr >> 1);
 ```
 
-32 × 1,024 = 32,768 — the sea gradient destroys `globes.map` **and** `digimap2`.
+32 × 1,024 = 32,768 -- the sea gradient destroys `globes.map` **and** `digimap2`.
 Further writes: `NOCTIS-1.CPP:4086` (`n_globes_map[fast_random(32767)]`),
 `NOCTIS-1.CPP:4096`, `NOCTIS-1.CPP:4241` and `4364` (the wave scroll
 `n_globes_map[ptr] = n_globes_map[ptr-256] >> 1` for `ptr` 20,736…32,767),
@@ -152,7 +152,7 @@ a 2-mod-4 dword load.
 0…63 in practice so it does not bite, but the port must not silently switch to
 unsigned and call it equivalent without checking the loaded `globes.map` bytes.
 
-### 2.2 `objectschart` — three names, one byte, two of them sub-byte
+### 2.2 `objectschart` -- three names, one byte, two of them sub-byte
 
 ```c
 objectschart  = (quadrant far *) farmalloc (oc_bytes);   // NOCTIS.CPP:2168
@@ -175,7 +175,7 @@ bits 6-7  object2_class
 
 `ruinschart[pt] = AF1` where `AF1 = 0x40`, `AF2 = 0x80`, `AF3 = 0xC0`
 (`NOCTIS-D.H:155-157`). **The ruin style is stored in the `object2_class` bitfield.**
-`ruinschart` and `objectschart` are not merely two views of the same array — they are
+`ruinschart` and `objectschart` are not merely two views of the same array -- they are
 two views of the same *byte*, and the ruins writer clobbers an object slot. Sites:
 `NOCTIS-1.CPP:1813, 1827, 1831, 1837, 1841, 1863, 1866, 1874, 1877, 1899, 1904, 1919,
 1935, 1937, 2703, 2707`; readers `NOCTIS-1.CPP:1177-1180, 1251-1254`.
@@ -187,8 +187,8 @@ two views of the same *byte*, and the ruins writer clobbers an object slot. Site
 | in orbit | `atmosphere` / `overlay` | bytes 0 … 32,399 | one byte per **two** cells of the 360×180 orbital map: index `(360*lat + lon) >> 1` |
 | landed | `objectschart` / `ruinschart` | bytes 0 … 39,999 | one byte per cell of the 200×200 surface grid |
 
-The orbital atmosphere is written by `cirrus()` (`NOCTIS-0.CPP:4716-4727`) —
-inline asm, `bx = (py + px) >> 1`, 16-bit — and by
+The orbital atmosphere is written by `cirrus()` (`NOCTIS-0.CPP:4716-4727`) --
+inline asm, `bx = (py + px) >> 1`, 16-bit -- and by
 `atm_cyclon`/`storm`/`permanent_storm`. It is consumed at
 `NOCTIS-0.CPP:5089-5092` (merged into `p_background`) and read back at
 `NOCTIS-0.CPP:5501, 5508, 5513` as `atmosphere[ptr>>1]` to recover the true ground
@@ -196,10 +196,10 @@ albedo before landing. The landed object chart is built by `NOCTIS-1.CPP:1970`
 (`_fmemset(objectschart, 0, oc_bytes)`) onward, destroying the atmosphere overlay.
 
 Naming trap: `create_sky(char atmosphere)` (`NOCTIS-1.CPP:2736`) has a **parameter**
-named `atmosphere` that shadows nothing (the alias is a local in `planets`) — it is a
+named `atmosphere` that shadows nothing (the alias is a local in `planets`) -- it is a
 boolean, not the buffer. Do not conflate.
 
-### 2.3 `p_background` ⟷ `s_background` — a *runtime pointer swap*
+### 2.3 `p_background` ⟷ `s_background` -- a *runtime pointer swap*
 
 This is the alias the task brief did not list and it is the most dangerous one,
 because the identity of `p_background` changes mid-frame.
@@ -229,7 +229,7 @@ track which two bodies are cached; `npcs` invalidates the cache.
 (`NOCTIS-1.CPP:3683-3694`) and a shading buffer, and is the `tapestry` argument to
 `globe()` for the star (`NOCTIS.CPP:2588`).
 
-### 2.4 `p_surfacemap` — triple-punned, and the only `huge` pointer
+### 2.4 `p_surfacemap` -- triple-punned, and the only `huge` pointer
 
 | use | alias / cast | site | extent |
 |---|---|---|---|
@@ -246,16 +246,16 @@ double far *buffer_double = (double far *)p_surfacemap;
 if (buffer_ascii[ptr + 29] == type)                 // byte 29 of a 32-byte record
     if (buffer_double[index] > id_low && ...)       // index = ptr/4 → the double at byte ptr
 ```
-`ptr += 32; index += 4;` — 32-byte records, an 8-byte `double` at record offset 0 and
+`ptr += 32; index += 4;` -- 32-byte records, an 8-byte `double` at record offset 0 and
 a type byte at record offset 29. `NOCTIS-0.CPP:4020-4030` and `5768-5790`.
 
-`p_surfacemap` is the only buffer declared `huge` (`NOCTIS-0.CPP:998`) — because it is
+`p_surfacemap` is the only buffer declared `huge` (`NOCTIS-0.CPP:998`) -- because it is
 the only one indexed with a `long` (`p_surfacemap[200*(long)z+x]`,
 `NOCTIS-1.CPP:1515,1524`) and the only one with a **negative** index (§4.2).
 
-### 2.5 `txtr` — a roving base pointer, not a buffer
+### 2.5 `txtr` -- a roving base pointer, not a buffer
 
-`unsigned char huge *txtr` — declared `TDPOLYGS.H:1775`, never allocated in Noctis
+`unsigned char huge *txtr` -- declared `TDPOLYGS.H:1775`, never allocated in Noctis
 (`init_texture_mapping`, `TDPOLYGS.H:1778`, is **never called**; `load_texture` and
 `fast_load_texture` are dead too). It is only ever an alias. Complete list of bases:
 
@@ -271,25 +271,25 @@ the only one indexed with a `long` (`p_surfacemap[200*(long)z+x]`,
 The last row is the killer for unit addressing: `txtr += 48` and `txtr += x*8` shift
 the texture window by a number of bytes that is not a multiple of 4 in general
 (`x<<3` is, `48` is, but the *base* `p_surfacemap + 2064` combined with `−4` in the
-fetch is not — see §3).
+fetch is not -- see §3).
 
-### 2.6 `adapted` — the page, plus two scratch bytes inside it
+### 2.6 `adapted` -- the page, plus two scratch bytes inside it
 
 `adapted[0xFA00]` and `adapted[0xFA01]` (segment-relative 64,000/64,001) are used by
 `polymap` as scratch registers for the fill colour `tinta` and the bump colour
 `escrescenze` (`TDPOLYGS.H:2684-2687`, read back at `2701, 2733, 2861, 2869`).
 `niv-lr` reproduces this at `tdpolygs.h:938-939`. In pointer terms (offset 4, §4.1)
-those are `adapted[63996]` and `adapted[63997]` — **inside the visible page**, row
+those are `adapted[63996]` and `adapted[63997]` -- **inside the visible page**, row
 199, columns 316-317. Falsifiable prediction for a later wave: those two pixels
 carry polygon fill colour in real Noctis whenever `polymap` has run.
 
 `adapted` is also a general-purpose 1 KiB I/O scratch in the BMP writer
-(`NOCTIS-1.CPP:4693-4714`: `_read (i9997, adapted, 1024)` etc.) — which runs *after*
+(`NOCTIS-1.CPP:4693-4714`: `_read (i9997, adapted, 1024)` etc.) -- which runs *after*
 the frame has been copied out.
 
 `adapted` is **freed and reallocated** at runtime: `farfree(adapted)`
 (`NOCTIS.CPP:479`) before launching a GOES Net module, `farmalloc` again at
-`NOCTIS.CPP:501`. `seg_adapted` (`NOCTIS-0.CPP:1006`) is *not* recomputed —
+`NOCTIS.CPP:501`. `seg_adapted` (`NOCTIS-0.CPP:1006`) is *not* recomputed --
 `init_FP_segments()` (`NOCTIS-0.CPP:5610`) is called exactly once, at
 `NOCTIS.CPP:2200`. The code silently depends on `farmalloc` returning the same
 address. Port note: keep the framebuffer address fixed and this problem disappears.
@@ -311,7 +311,7 @@ address. Port note: keep the framebuffer address fixed and this problem disappea
 
 ---
 
-## 3. How the texture unit addresses `txtr` — the 64 KiB window
+## 3. How the texture unit addresses `txtr` -- the 64 KiB window
 
 `polymap`'s inner fill (`TDPOLYGS.H:2821-2825`) builds the texel address like this:
 
@@ -324,7 +324,7 @@ db 0x64, 0x02, 0x2F ; add ch, fs:[bx]      ; FS = segment of txtr
 `BX` is a 16-bit register. **The texel index is `((V>>8)&0xFF)*256 + ((U>>8)&0xFF)`,
 always in 0…65535, always wrapping, never clipped.** `FS` is built at
 `TDPOLYGS.H:2677-2681` by folding the far pointer's offset into the segment
-(`shr dx,4; add ax,dx`) — so the window really is `txtr[0 .. 65535]`.
+(`shr dx,4; add ax,dx`) -- so the window really is `txtr[0 .. 65535]`.
 
 `niv-lr` translates this literally at `tdpolygs.h:1013-1015`:
 ```cpp
@@ -346,7 +346,7 @@ its `txtr` base.** Current sizes:
 `niv-lr` papers over exactly the last two with
 `malloc(ps_bytes | 65536)` = 105,536 bytes (`noctis.cpp:2605`, with the comment
 "polymap keeps running over the end … The bug is present in the original source").
-They did **not** pad `n_globes_map` or `s_background` — those are still live
+They did **not** pad `n_globes_map` or `s_background` -- those are still live
 out-of-bounds reads in `niv-lr`.
 
 `H_MATRIXS`/`V_MATRIXS` change `XSIZE`/`YSIZE` (`TDPOLYGS.H:121-124`,
@@ -394,10 +394,10 @@ reachable write range is exactly segment offsets 4 … 65,539.
 **Port consequences.**
 * `adapted[0]` is the top-left pixel. There is **no** 4-pixel skew to reproduce.
 * Convention (c) *is* skewed by 4 bytes relative to the pixel grid. It only ever runs
-  a whole-page fade/smooth, so the skew is invisible — reproduce it or don't, but know
+  a whole-page fade/smooth, so the skew is invisible -- reproduce it or don't, but know
   it is there before you "fix" a 4-byte offset in a fade.
 * The `tinta`/`escrescenze` scratch at segment 0xFA00 lands at `adapted[63996..63997]`
-  — a visible pixel pair. `niv-lr` relocated it to `adapted[64000]`
+  -- a visible pixel pair. `niv-lr` relocated it to `adapted[64000]`
   (`tdpolygs.h:938`). Relocating is the sane choice; record that it is a deliberate
   divergence.
 * Residual uncertainty: this is inferred, not measured on hardware. **Decisive
@@ -418,13 +418,13 @@ for (n = 0; n < 36; n++) {
 }
 ```
 
-At `n == 0`, `i == -5`, so `txtr[-6] … txtr[-1]` are written — **6 bytes before the
+At `n == 0`, `i == -5`, so `txtr[-6] … txtr[-1]` are written -- **6 bytes before the
 allocation**. `txtr` is `huge`, so the index sign-extends and the segment normalises
 down; the writes land in the far-heap block header region.
 
-Independently confirmed by `niv-lr`: `noctis.cpp:643-646` —
+Independently confirmed by `niv-lr`: `noctis.cpp:643-646` --
 "Valgrind said there was a big bad invalid write happening here, so I just blindly
-changed this loop to start at one. It probably breaks things..." — and it does: their
+changed this loop to start at one. It probably breaks things..." -- and it does: their
 `for (n = 1; ...)` drops the top scanline of every cockpit glyph. **The port must
 allocate 6 bytes (2 units) of headroom below `p_surfacemap`, not truncate the loop.**
 
@@ -449,8 +449,8 @@ None of these leave the 64 KiB segment; all of them *depend* on the truncation.
 |---|---|
 | `NOCTIS-0.CPP:4716-4727` (`cirrus`) | `bx = (py + px) >> 1` with `py = 360*lat` possibly negative or > 180 (`atm_cyclon` at `:4735-4740` freely adds `±359`, `±361`). `bx` wraps mod 65536 before the `>>1`, landing anywhere in `objectschart[0..32767]`. |
 | `NOCTIS-0.CPP:4485-4496` (`spot`) | `di = offset(p_background) + py + px`, 16-bit, `unsigned px, py` (`NOCTIS-0.CPP:4446`). Negative `cy` wraps to the tail of the buffer. |
-| `NOCTIS-0.CPP:5069-5071` | `for (px = 0; px < 64800; px++)` with `unsigned px` — relies on 16-bit unsigned counting. |
-| `NOCTIS-0.CPP:6423` | `for (ptr = 63680; ptr < 64000; ptr -= 320)` — terminates only because `ptr` is `unsigned` and wraps to 65,216 after 0. |
+| `NOCTIS-0.CPP:5069-5071` | `for (px = 0; px < 64800; px++)` with `unsigned px` -- relies on 16-bit unsigned counting. |
+| `NOCTIS-0.CPP:6423` | `for (ptr = 63680; ptr < 64000; ptr -= 320)` -- terminates only because `ptr` is `unsigned` and wraps to 65,216 after 0. |
 | `NOCTIS-0.CPP:691-710` (`mask_pixels`) | `add di, 4` × `QUADWORDS` from `adapted+2880`; with `QUADWORDS = 16000` the 16-bit `DI` wraps past 65,535 back through 0. Call sites `NOCTIS-1.CPP:3998, 4450`, `NOCTIS.CPP:2577`. |
 
 ### 4.5 The one that forced `sc_bytes = 65540`
@@ -466,7 +466,7 @@ mov byte ptr es:[di+4], 255
 
 `riga[]` has 200 entries. Nothing bounds `global_y`'s integer part to 0…199. Whenever
 it strays, `riga[bx]` reads adjacent data-segment globals and `DI` becomes arbitrary
-— the write then lands anywhere in `adapted`'s 64 KiB segment. That is precisely the
+-- the write then lands anywhere in `adapted`'s 64 KiB segment. That is precisely the
 "funzione difettosa … che non ho né tempo né voglia di modificare" of
 `NOCTIS-D.H:50-54`, and precisely why the page is a full segment plus 4.
 
@@ -492,7 +492,7 @@ for (c = 0; c < 4*pvfile_npolygs[handle]; c++) {
 `pvfile_c[h]` was sized `1 * npolygs` (`NOCTIS-0.CPP:2334-2335`). The loop writes
 `4 * npolygs`. With `depth_sort` the extra 3 × npolygs bytes land in the
 `pv_mid_*` region, which is fully initialised immediately afterwards
-(`NOCTIS-0.CPP:2394-2412`) — self-repairing. **Without** `depth_sort` they land in
+(`NOCTIS-0.CPP:2394-2412`) -- self-repairing. **Without** `depth_sort` they land in
 unallocated arena, and if `datatop` is near `pv_bytes` they leave the 20,480-byte
 buffer entirely. Load order therefore matters. `unloadpv`
 (`NOCTIS-0.CPP:2226-2271`) compacts the arena with `_fmemmove` and rebases every
@@ -501,7 +501,7 @@ handle's pointers by `-datalen`, so any corruption migrates.
 ### 4.7 Small static-buffer overruns (Noctis-IV-Plus era, not 1996)
 
 * `snapfilename[24]` (`NOCTIS-0.CPP:6291`) vs
-  `sprintf(snapfilename, "..\\MOVIES\\%03i\\%08d.BMP", ...)` (`NOCTIS-0.CPP:6343`) —
+  `sprintf(snapfilename, "..\\MOVIES\\%03i\\%08d.BMP", ...)` (`NOCTIS-0.CPP:6343`) --
   26 chars + NUL = **27 bytes into 24**. The gallery path (`:6345`) fits exactly at 24.
 * `ctb[512]` (`NOCTIS-0.CPP:840`) is written by `cline`/`other`
   (`NOCTIS.CPP:291-320`) with `movsb` until NUL and **no length check**; overflow
@@ -511,7 +511,7 @@ handle's pointers by `-datalen`, so any corruption migrates.
 
 ---
 
-## 5. `QUADWORDS` — the mutable page-length global
+## 5. `QUADWORDS` -- the mutable page-length global
 
 `int QUADWORDS = 16000;` (`NOCTIS-0.CPP:51`). It is the dword count for `pcopy`,
 `pclear`, `pfade`, `psmooth_grays`, `psmooth_64`, `ssmooth`, `lssmooth`,
@@ -521,12 +521,12 @@ reinterprets its operand size.**
 | value | bytes | set at | meaning |
 |---|---|---|---|
 | 16,000 | 64,000 | default; `NOCTIS.CPP:2261, 3635`; `NOCTIS-1.CPP:4578` | full 320×200 page |
-| 14,560 | 58,240 | `NOCTIS.CPP:2206` (`QUADWORDS -= 1440`), then `pqw` | 182 rows — the steady-state value for the whole session |
+| 14,560 | 58,240 | `NOCTIS.CPP:2206` (`QUADWORDS -= 1440`), then `pqw` | 182 rows -- the steady-state value for the whole session |
 | 16,200 | 64,800 | `NOCTIS-0.CPP:4845` (inside `surface`) | the 360×180 planetary map |
 | 16,200 | 64,800 | `NOCTIS-1.CPP:1679, 1709` (`st_bytes/4`) | the sky map in `s_background` |
 | 256 | 1,024 | `NOCTIS-1.CPP:4000` | one 1 KiB slab of the sea gradient |
 | 800 / 15,040 | 3,200 / 60,160 | `NOCTIS.CPP:511, 513` | GOES module screen restore |
-| 160 + 80·`openhudcount` | — | `NOCTIS-1.CPP:4525`, `NOCTIS.CPP:2970` | HUD visor animation |
+| 160 + 80·`openhudcount` | -- | `NOCTIS-1.CPP:4525`, `NOCTIS.CPP:2970` | HUD visor animation |
 
 Any port that hard-codes 64,000 into its page operations will get the HUD-open/closed
 animation and the surface-map generation wrong.
@@ -553,14 +553,14 @@ sub-array units, not bytes.
 ### 6.2 `digimap2` at byte offset 22,586 inside a byte array
 
 2 mod 4. A `uint32` view of `n_globes_map[22586 …]`. Under unit addressing the font
-must be a separate unit array (it is logically separate anyway) — but then the
+must be a separate unit array (it is logically separate anyway) -- but then the
 "sea texture destroys the font" behaviour at `NOCTIS-1.CPP:4000-4003` must be
 reproduced deliberately, or the font must be reloaded on the same schedule.
 
 ### 6.3 Sub-byte fields (`quadrant` / `ruinschart`)
 
 Four 2-bit fields in one byte, written through two different names (§2.2). Under one
-byte per unit this is a shift/mask on a unit — cheap and exact. Under 4-bytes-per-unit
+byte per unit this is a shift/mask on a unit -- cheap and exact. Under 4-bytes-per-unit
 packing it is a shift/mask *inside* a shift/mask.
 
 ### 6.4 Half-resolution index aliasing
@@ -571,32 +571,32 @@ applied to the *wrapped 16-bit* value, not to the wide value.
 
 ### 6.5 Odd strides
 
-* 200 and 201 — `p_surfacemap[cpos]`, `[cpos+1]`, `[cpos+200]`, `[cpos+201]`
+* 200 and 201 -- `p_surfacemap[cpos]`, `[cpos+1]`, `[cpos+200]`, `[cpos+201]`
   (`NOCTIS-1.CPP:75-78`, `3277-3280`); `m200[]` is the ×200 lookup
   (`NOCTIS-0.CPP:1029`).
-* 360 — the orbital map (`NOCTIS-0.CPP:5111-5124`, the day/night terminator asm:
+* 360 -- the orbital map (`NOCTIS-0.CPP:5111-5124`, the day/night terminator asm:
   130 bytes then `add di, 230`).
-* 256 — the texture and cockpit-screen stride, on buffers whose natural width is 200
+* 256 -- the texture and cockpit-screen stride, on buffers whose natural width is 200
   or 360.
-* 320 — every `adapted` write; `riga[c] = 320*c` (`TDPOLYGS.H:132-137`).
+* 320 -- every `adapted` write; `riga[c] = 320*c` (`TDPOLYGS.H:132-137`).
 * 5 bytes per glyph in `digimap`, 3 bits used per byte (`NOCTIS-0.CPP:6128-6132`).
 
 ### 6.6 Packed reads and writes from disk
 
 | site | shape |
 |---|---|
-| `NOCTIS-0.CPP:2323` | `_read(fh, &pvfile_npolygs[handle], 2)` — 16-bit LE count |
+| `NOCTIS-0.CPP:2323` | `_read(fh, &pvfile_npolygs[handle], 2)` -- 16-bit LE count |
 | `NOCTIS-0.CPP:2350` | one `_read` of `50*npolygs` bytes: `char[n]`, `float[4n]`×3, `char[n]` |
 | `NOCTIS-0.CPP:6083, 6089, 6100` | raw map/font blobs straight into the heap buffers |
 | `NOCTIS-0.CPP:4017, 5759` | STARMAP.BIN read into `p_surfacemap`, then punned char/double |
-| `NOCTIS.CPP:453` (`freeze`) | `_write(fh, &sync, 245)` — **a byte-exact dump of 40+ consecutive globals** |
+| `NOCTIS.CPP:453` (`freeze`) | `_write(fh, &sync, 245)` -- **a byte-exact dump of 40+ consecutive globals** |
 | `NOCTIS-0.CPP:6305, 6416-6423` | 54-byte BMP header + palette + bottom-up scanlines |
 
 The `freeze`/`unfreeze` block is the nastiest of these: `NOCTIS-0.CPP:739-820` declares
 `char`, `int`, `float`, `double` and `char[11]` in a fixed order and the code writes
 245 raw bytes starting at `&sync`. The documented offsets in the comments
 (`// 0`, `// 25`, `// 39`, `// 71`, `// 183`, `// 244`) confirm **byte packing with no
-alignment padding** — 8-byte doubles at offsets 71, 79, 87, 95, … and 4-byte floats at
+alignment padding** -- 8-byte doubles at offsets 71, 79, 87, 95, … and 4-byte floats at
 39, 43, 47. Any port must build this record explicitly, field by field; it cannot come
 out of a struct.
 
@@ -605,7 +605,7 @@ out of a struct.
 * `char far *n_globes_map` is signed (`NOCTIS-0.CPP:1004`) and is right-shifted
   (`NOCTIS-1.CPP:4241, 4364`).
 * `n_globes_map` is passed to functions expecting `unsigned char far *` without a
-  cast (`NOCTIS.CPP:2588`, `NOCTIS-0.CPP:5592`) — legal-with-warning in Borland.
+  cast (`NOCTIS.CPP:2588`, `NOCTIS-0.CPP:5592`) -- legal-with-warning in Borland.
 * `digimap2` is `unsigned long`.
 * `objectschart`'s bitfields are `unsigned`.
 * `p_surfacemap` values are used as `- ((long)v << 11)` (`NOCTIS-1.CPP:75-78`), so
@@ -613,7 +613,7 @@ out of a struct.
 
 ---
 
-## 7. Dead declarations — do not port
+## 7. Dead declarations -- do not port
 
 Declared `extern` in `NOCTIS-0.H` but **never defined anywhere in the build set**
 (verified by grep over `NOCTIS-0.CPP`, `NOCTIS-1.CPP`, `NOCTIS.CPP`, `TDPOLYGS.H`):
@@ -624,7 +624,7 @@ Declared `extern` in `NOCTIS-0.H` but **never defined anywhere in the build set*
 `alpha_z` (`:265-276`).
 
 Dead **code** in `TDPOLYGS.H`: `init_texture_mapping` (`:1778`), `load_texture`
-(`:1791`), `fast_load_texture` (`:1823`) — `txtr` is overwritten by the alias at
+(`:1791`), `fast_load_texture` (`:1823`) -- `txtr` is overwritten by the alias at
 `NOCTIS.CPP:2172` and none of these is ever called. The `farmalloc` at
 `TDPOLYGS.H:1783` never runs.
 
@@ -663,7 +663,7 @@ Dead **code** in `TDPOLYGS.H`: `init_texture_mapping` (`:1778`), `load_texture`
 | `p_surfacemap` padded to 67,600 above + 8 below | +27,608 | +110,432 |
 | `s_background` padded to 65,552 | +752 | +3,008 |
 | static buffers | ≈22,000 | ≈88,000 |
-| index page `adapted` — already counted (65,540) | — | — |
+| index page `adapted` -- already counted (65,540) | -- | -- |
 | 320×200 `00RRGGBB` display buffer | 64,000 | 256,000 |
 | 256-entry expanded palette | 256 | 1,024 |
 | **total** | **≈483,900** | **≈1,935,600 (1.85 MiB)** |
@@ -672,7 +672,7 @@ Against the **measured 1 GB workspace ceiling** (≈268 M units): **0.18%**. Pad
 every buffer to a full 64 KiB `txtr` window and giving `adapted` its complete 64 KiB
 segment costs nothing we can measure.
 
-The alternative — packing 4 Noctis bytes per unit, 84,120 units, 336 KB — saves
+The alternative -- packing 4 Noctis bytes per unit, 84,120 units, 336 KB -- saves
 1.5 MB and buys a shift+mask on **every** access in `fragment`/`hpoint`, which the
 source itself says run 160,000 times per frame (`NOCTIS-1.CPP:17-26`). Not worth it.
 
@@ -701,15 +701,15 @@ address space, not code.
    not measured. Decisive experiment: DOSBox-X + `NOCTIS.SYM`, read the offset word of
    `adapted` after `init_FP_segments`. Cheap; do it before Wave 6 draws anything.
 2. **`adapted[63996..63997]`** carry `polymap`'s `tinta`/`escrescenze` scratch under
-   the offset-4 reading. That is a visible, falsifiable prediction — check it in the
+   the offset-4 reading. That is a visible, falsifiable prediction -- check it in the
    same DOSBox-X session.
 3. **Clamp vs. faithful scribble** for `Segmento`/`Stick`'s `riga[]` overrun (§4.5).
    Recommendation: faithful, 65,540-unit page.
 4. **`pvfile` re-layout** (§6.1) changes the arena's internal byte offsets. Confirm by
-   inspection that nothing outside `loadpv`/`unloadpv` reads `pvfile` as raw bytes —
+   inspection that nothing outside `loadpv`/`unloadpv` reads `pvfile` as raw bytes --
    this map found no such site, but the claim should be re-grepped when the arena is
    written.
-5. **`niv-lr` divergences already identified** — record these so they are never used
+5. **`niv-lr` divergences already identified** -- record these so they are never used
    as a reference oracle: `p_surfacemap` inflated to 105,536 (`noctis.cpp:2605`);
    `digit_at` loop truncated to `n = 1` (`noctis.cpp:645`), dropping a scanline;
    `sc_bytes` set to 640×480 (`noctis-d.h:47`); `Stick` clamped

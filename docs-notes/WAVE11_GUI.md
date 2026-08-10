@@ -1,4 +1,4 @@
-# Wave 11 — Stardrifter in an iGUI window
+# Wave 11 -- Stardrifter in an iGUI window
 
 This is a later wave. It starts only after the authentic renderer and game loop
 are stable and Wave 10 has joined the vehicle renderer to the rasteriser. The

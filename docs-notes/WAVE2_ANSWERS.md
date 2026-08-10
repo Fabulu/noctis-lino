@@ -1,14 +1,14 @@
-# Wave 2 — the two unknowns, settled from the shipped binary
+# Wave 2 -- the two unknowns, settled from the shipped binary
 
 Both questions that gated planetary geometry are answered. Neither could be
 answered by reading C source, because both depend on what Borland's compiler
 actually emitted; both are now read directly out of `NOCTIS.EXE`.
 
-**UNKNOWN 1 — the type of a `random()` argument. SETTLED: the double does not
+**UNKNOWN 1 -- the type of a `random()` argument. SETTLED: the double does not
 survive.** It is chopped by Borland's `__ftol` and narrowed to `int16` at the
 call boundary, with a genuine wrap.
 
-**UNKNOWN 2 — operand order in `zrandom`. SETTLED: first draw minus second
+**UNKNOWN 2 -- operand order in `zrandom`. SETTLED: first draw minus second
 draw.** There is no sign flip. The shipped binary agrees with `noctis-iv-lr`.
 
 Everything below is recomputed from the bytes on every test run by three
@@ -74,20 +74,20 @@ offset **15970** with no guesswork and no remembered address:
 
 The last four instructions are the reason `random()`'s divisor is `0x8000` and
 not something else. Both delivered decoders re-derive rand's *multiply* and
-neither checks its *return*, so the suite's own route checks it — mutating the
+neither checks its *return*, so the suite's own route checks it -- mutating the
 mask, or returning the low seed word instead, changes the generator completely
 and was invisible to the delivered pair.
 
-### 2. rand has exactly ONE caller — so `random()` is not a macro
+### 2. rand has exactly ONE caller -- so `random()` is not a macro
 
 Borland's `random(num)` is a textual macro, and a macro would inline
 `call rand` at every one of the 375 use sites. A raw scan of the image over
-both call encodings — `9A off16 seg16` resolved through the load-time segment
-arithmetic, and `0E E8 rel16` resolved modulo 2**16 inside the segment frame —
+both call encodings -- `9A off16 seg16` resolved through the load-time segment
+arithmetic, and `0E E8 rel16` resolved modulo 2**16 inside the segment frame --
 finds **one** call to rand in the entire file. This build compiled `random()`
 out of line, which is what forces its argument through a 16-bit stack slot.
 
-### 3. `random` — the answer to UNKNOWN 1
+### 3. `random` -- the answer to UNKNOWN 1
 
 That single caller's function, at file offset **82487**:
 
@@ -110,7 +110,7 @@ the return segment, `[bp+6]` the first argument. The callee reads it with
 double is gone before `random` is entered, and the multiply and divide inside
 are pure signed 32-bit integer arithmetic with divisor **32768**.
 
-### 4. `__ftol` — how the double gets there
+### 4. `__ftol` -- how the double gets there
 
 At the disputed line-4089 site the chain is:
 
@@ -123,8 +123,8 @@ At the disputed line-4089 site the chain is:
 61563  e8 b9 51         call -> 82487 = random
 ```
 
-`__ftol` at **14437** is `fnstcw [bp-2]`, `or byte [bp-1],0x0C` — rounding
-control `11`, **truncate toward zero** — `fldcw`, `fistp qword [bp-10]`,
+`__ftol` at **14437** is `fnstcw [bp-2]`, `or byte [bp-1],0x0C` -- rounding
+control `11`, **truncate toward zero** -- `fldcw`, `fistp qword [bp-10]`,
 restore the control word, then `mov ax,[bp-10]; mov dx,[bp-8]`, returning a
 32-bit long in `dx:ax`. **Only `ax` is pushed.** So the value is chopped, then
 truncated again to 16 bits, and only then does `random` see it.
@@ -138,10 +138,10 @@ No float reaches either function by any other route.
 argument is `10*nearstar_p_orb_seed[n]`, and `orb_seed = 3*(n*n+1)*nearstar_ray`
 with `nearstar_ray` up to about 35. `10*orb_seed` passes 32767 for roughly
 n >= 8 on most star classes, so most planets past index 7 draw their tilt from
-a wrapped — often negative — range. A port that keeps the argument wide builds
+a wrapped -- often negative -- range. A port that keeps the argument wide builds
 a different solar system.
 
-### 5. `zrandom` — the answer to UNKNOWN 2
+### 5. `zrandom` -- the answer to UNKNOWN 2
 
 All 36 bytes at file offset **60750**, with nothing omitted:
 
@@ -178,7 +178,7 @@ pushed at 60765, which is the **first** draw. The subtract at **60774** is
 left-to-right compiler rule. What is observed here is the dataflow of one
 compiled function body, and the label "left to right" is an inference on top of
 it. Line 4094's `zrandom(p_ray) * (1 + random(1000)/100)` is a different
-operator with a different shape and was not decoded by this wave — its draw
+operator with a different shape and was not decoded by this wave -- its draw
 order remains open.
 
 The 16-bit store cannot itself wrap: `random(num)` always returns a value with
@@ -193,7 +193,7 @@ Traced through every `zrandom` use in NOCTIS-0.CPP (4090, 4091, 4094, 4195,
 4196, 4197, 4308, 4310, 4331, 4333):
 
 * **Draw counts are unaffected.** Every conditional that gates a further
-  `random()` call keys on constants, planet index, star class or planet type —
+  `random()` call keys on constants, planet index, star class or planet type --
   never on a `zrandom` result. Planet count is drawn before any `zrandom`.
   Planet types and counts would have survived; geometry would not.
 * Planet tilt and orbital tilt (4090/4091) would be pure sign flips.
@@ -204,7 +204,7 @@ Traced through every `zrandom` use in NOCTIS-0.CPP (4090, 4091, 4094, 4195,
   bodies would get entirely different values rather than negated ones.
 * **Not affected at all:** planet orbital eccentricity at 4092, because the
   author wrote `fabs()` around the tilt, absorbing the sign inside the
-  argument; and `nearstar_p_ring`, because line 4094's value is dead — 4348
+  argument; and `nearstar_p_ring`, because line 4094's value is dead -- 4348
   unconditionally overwrites it for every planet and 4200 zeroes it for every
   moon. Only 4094's three RNG draws matter, not its result.
 
@@ -231,18 +231,18 @@ run time and requiring the battery to catch it on every mutant.
 Three mutants are caught only by the suite's own route, and are recorded as
 such rather than asserted of the delivered pair:
 
-* `T_RANDMASK` — rand's `0x7FFF` narrowed to `0x3FFF`
-* `T_RANDLOW` — rand returns the low seed word
-* `P_FWAITFLOAT` — x87 code planted before an argument push behind an `0x9B`,
+* `T_RANDMASK` -- rand's `0x7FFF` narrowed to `0x3FFF`
+* `T_RANDLOW` -- rand returns the low seed word
+* `P_FWAITFLOAT` -- x87 code planted before an argument push behind an `0x9B`,
   which is where 49 of the 385 call sites hide from both delivered decoders
 
-`Z_CALL_REPOINT` — aiming `zrandom`'s second draw one byte into `random`'s
-prologue — is caught by capstone and by the byte-template route, but not by the
+`Z_CALL_REPOINT` -- aiming `zrandom`'s second draw one byte into `random`'s
+prologue -- is caught by capstone and by the byte-template route, but not by the
 signature-transfer route, which wildcards call slots.
 
 ---
 
-## Still open — must not be assumed settled
+## Still open -- must not be assumed settled
 
 * Line 4094 `zrandom(p_ray) * (1 + random(1000)/100)`: which subexpression
   advances the RNG first. Different operator, different shape, never decoded.

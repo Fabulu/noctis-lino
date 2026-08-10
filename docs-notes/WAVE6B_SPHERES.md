@@ -1,9 +1,9 @@
-# WAVE 6b — what is exact, what is bounded, what is ungraded
+# WAVE 6b -- what is exact, what is bounded, what is ungraded
 
 **Scope.** `globe()`, `glowinglobe()`, `white_globe()`, `white_sun()`,
 `background()`, `surface()`'s day/night band, the sphere pixel scaler, and
 `.NCC` model loading (`loadpv` / `copypv` / `modpv` / `drawpv`'s dispatch).
-Not `poly3d`, not `polymap`, not `project3d` — those are Wave 6a and are not
+Not `poly3d`, not `polymap`, not `project3d` -- those are Wave 6a and are not
 restated here.
 
 **Executable form.** `tests/test_spheres.py`. Every number below is produced on
@@ -17,7 +17,7 @@ particular **nothing is graded against `work/sp-out.bin`**, which is a file the
 code under test wrote.
 
 **Result: 93 checks, PASS, about 52 seconds.** Eight deliberately broken lino
-builds — one edit each, one per surface the checks claim to cover — every one
+builds -- one edit each, one per surface the checks claim to cover -- every one
 caught. Thirteen record and asset perturbations, every one caught. Zero
 `tests/w5audit.py` findings.
 
@@ -39,15 +39,15 @@ still `9d642d8f…c111`, and `C:\programmieren\noctis` is read-only to this file
 The Wave 6b QA pass reported, correctly, that **the port and the oracles had
 never been joined**. The two sides consume incompatible fixtures: `sp_ref.c`
 and `sp_spec.py` read `noctis-harness/sp_corpus.spc` (`CASE id KIND k=v`),
-while the lino tokeniser understands exactly one lexeme — a signed decimal
-integer — and reads `work/sp-corpus.txt`. The two dump formats are equally
+while the lino tokeniser understands exactly one lexeme -- a signed decimal
+integer -- and reads `work/sp-corpus.txt`. The two dump formats are equally
 incompatible: a 64-byte 16-`int32` binary record stream on one side, a
 whitespace text grammar on the other. Nothing in the repository read the
 binary stream.
 
 `tests/test_spheres.py` closes that. It parses the `SPD1` stream directly,
-replays the lino corpus in `sp_spec`'s model *in file order* — order is part of
-the fixture, because pre-state 2 means "carry" — and compares pages byte for
+replays the lino corpus in `sp_spec`'s model *in file order* -- order is part of
+the fixture, because pre-state 2 means "carry" -- and compares pages byte for
 byte and censuses field for field.
 
 | | claim | strength | measured |
@@ -69,7 +69,7 @@ byte and censuses field for field.
 
 Three surfaces are graded here that no producer graded before:
 
-* **`white_globe()` and `white_sun()`** — 9 pages and their census. The QA pass
+* **`white_globe()` and `white_sun()`** -- 9 pages and their census. The QA pass
   found `sp_ref.c` and `sp_spec.py` compared to each other on `WHITE` cases fed
   *pre-computed centres*; the lino computes the centre itself and its pages
   were joined to nothing. Here the preamble is run at `variant` 2/3 and its
@@ -107,7 +107,7 @@ saying so in code is better than widening the check.
 `GLOBES.MAP` is **shipped** and compared byte-exactly. The recovered
 projective model is the test's *independent predictor*, and it is bounded, not
 exact. The constants are PORTPLAN.md:611–620's, pinned as source text and
-never refitted at test time — a refit would be table-versus-table and would
+never refitted at test time -- a refit would be table-versus-table and would
 prove nothing.
 
 ```
@@ -154,7 +154,7 @@ collapse GP1 below half:
 **G9 is the cross-validation the mandate asked for, and it comes out
 negative.** Wave 6a measured `project3d`'s focal length at `dpp = 210.0f`;
 substituting it into the sphere model collapses GP1 from 10,780 to 176. The
-sphere table's focal length is a **baked asset constant**, not the camera's —
+sphere table's focal length is a **baked asset constant**, not the camera's --
 `Fy ≈ 200.68` with `Fx/Fy = 1.2500` (G5, the 320×200-on-4:3 pixel aspect).
 The two must not be derived from each other, and now there is a check that
 fails if somebody tries.
@@ -166,23 +166,23 @@ fails if somebody tries.
 Both were stated in the mandate as settled and both are wrong on the shipped
 bytes. Both are now pinned by a check, so neither can drift back.
 
-**C1 — the total advance is 42,845, not 43,200.** Decoded twice (this file's
+**C1 -- the total advance is 42,845, not 43,200.** Decoded twice (this file's
 own decoder and `sp_spec`'s, compared record by record in T4), `GLOBES.MAP`
 holds 11,293 records: 10,780 draws advancing the cursor by 1 each, and 513 RLE
 skips whose bytes sum to 32,065. `10,780 + 32,065 = 42,845`, which is 355 short
-of `360 × 120` — 119 full texture rows and a partial 120th. T3 pins it. The
-*consequence* the mandate draws — that only latitudes −60 to +59 are ever
-displayed — is unaffected: `round(42,844 − 5.5)/360) = 119`.
+of `360 × 120` -- 119 full texture rows and a partial 120th. T3 pins it. The
+*consequence* the mandate draws -- that only latitudes −60 to +59 are ever
+displayed -- is unaffected: `round(42,844 − 5.5)/360) = 119`.
 
-**C2 — `pixels + skip == 360` is not an invariant of `OFFSETS.MAP`.** It holds
+**C2 -- `pixels + skip == 360` is not an invariant of `OFFSETS.MAP`.** It holds
 in **39 of the 48 bands**; the other nine measure 346, 351, 358, 359, 361, 362,
 369, 374 and 1564 (the last band absorbs a trailing pad). T7f pins that with
 the deviations printed. What *is* true of every band, and is now checked:
 
-* T7b — 1 lead-in skip of 991, 48 scan bands, two trailing pads of 1,535;
+* T7b -- 1 lead-in skip of 991, 48 scan bands, two trailing pads of 1,535;
   3,620 painting words and 50 skipping words (T7c).
-* T7d — band *k* starts on source row *k+2*, for all 48.
-* T7e — the band widths and the band source phases are palindromic, so the
+* T7d -- band *k* starts on source row *k+2*, for all 48.
+* T7e -- the band widths and the band source phases are palindromic, so the
   panorama is symmetric about its middle band.
 
 ---
@@ -203,7 +203,7 @@ pass; skip that and the transform produces infinities.
 | N4 | BIRDY's un-zeroed garbage is **55 small finite numbers**, max &#124;v&#124; 2000 |
 
 **N4 is the argument for exactness.** BIRDY's garbage surfaces as −10.0, 12.0,
-6.25 — entirely plausible geometry. No tolerance and no eyeball catches it;
+6.25 -- entirely plausible geometry. No tolerance and no eyeball catches it;
 only bit-exact equality does. That is why nothing in this file uses a
 tolerance, and why L13 requires **VEHICLE specifically** to be in the graded
 set rather than "some model": VEHICLE is the only shipped model whose garbage
@@ -219,12 +219,12 @@ not the file format.
 
 ## 5. Every check broken, by breaking it
 
-**Record and asset perturbations** — each moves exactly what it should:
+**Record and asset perturbations** -- each moves exactly what it should:
 
 | | perturbation | effect |
 |---|---|---|
 | B1 | one bit of one page byte | exactly 1 of 40 pages fails |
-| B2 | one bit of **every** page | all 40 fail — no page passes for a reason other than its own content |
+| B2 | one bit of **every** page | all 40 fail -- no page passes for a reason other than its own content |
 | B3 | +1 on one `globe` clip field | 1 field fails |
 | B4 | +1 on one preamble centre | 1 field fails |
 | B5 | +1 on one `loadpv` binary32 word | 1 field fails |
@@ -250,7 +250,7 @@ B12 is worth reading twice. It is the mandate's "single corrupted table
 record", and it needs **two** detectors to be honest: the rendered page (which
 reacts because the oracle reads the corrupted table too) and the formula
 predictor (which reacts because the record no longer sits where the model says
-it should). B12d records the limit explicitly: **GP1 alone is too coarse** —
+it should). B12d records the limit explicitly: **GP1 alone is too coarse** --
 it moves only 10,780 → 10,779 on a three-unit corruption and does not move at
 all on a one-unit one. GP3 and RMS are the statistics that carry it, and the
 document says so rather than letting a reader assume GP1 covers everything.
@@ -273,7 +273,7 @@ fails loudly instead of reporting "not caught".
 | `NCCZERO` | `spncc.txt` | `loadpv` never zeroes the slot-3 garbage | 355 fields |
 | `WHITEUNS` | `spwhite.txt` | `white`'s `pix += target[pixptr]` treated as **unsigned** char | 2 pages, 4 fields |
 
-`DARKSHIFT` and `SATFLOOR` move **pages only** — no counter sees them, and the
+`DARKSHIFT` and `SATFLOOR` move **pages only** -- no counter sees them, and the
 byte-exact page is the only thing that does. `NCCZERO` moves **fields only**.
 That asymmetry is the argument for carrying both kinds of check, and it is
 measured here rather than assumed.
@@ -281,11 +281,11 @@ measured here rather than assumed.
 Two candidate sabotages were **rejected during development and are recorded so
 nobody re-proposes them**:
 
-* `SATSIGNED` — making the saturation compare signed instead of unsigned. In
+* `SATSIGNED` -- making the saturation compare signed instead of unsigned. In
   the port both operands are already masked to `0..255` and held in 32-bit
   units, so signed and unsigned are the *same comparison*. It is a genuine
   no-op, not an uncaught defect.
-* `GLOWX9` — `glowinglobe`'s X low bound 9 → 10. No corpus case produces an X
+* `GLOWX9` -- `glowinglobe`'s X low bound 9 → 10. No corpus case produces an X
   of exactly 9, so the edit is unreachable. It would have reported "not
   caught" and blamed the checks for a corpus gap. Widening the GLOW corpus is
   a fixture change and therefore a coordinator commit.
@@ -300,7 +300,7 @@ cases, so a case cannot fall out of both sets silently.
 
 1. **`glass_bubble()` and `smootharound_64()`.** 176 lines of
    `work/spglobe.txt:531-708`, reached by GRAS case 130 (`bubble=1`). Neither
-   `sp_spec.py` nor `sp_ref.c` implements either — both merely *name*
+   `sp_spec.py` nor `sp_ref.c` implements either -- both merely *name*
    `smootharound_64` in a header comment. That page is produced by code no
    second implementation covers. **This file refuses to grade it and says so
    (U1a); it does not pass it silently.** Closing this needs an oracle, not a
@@ -316,12 +316,12 @@ cases, so a case cannot fall out of both sets silently.
    wrap normalisation.** It appears 3 times in `sp_ref.c` and twice in
    `sp_spec.py` and **nowhere in the port**; the lino GLOW opcode carries no
    `terminator_start` field, so no corpus case can reach it. U3 pins that
-   absence and will fail the day somebody implements it — which is the point:
+   absence and will fail the day somebody implements it -- which is the point:
    the claim then gets re-checked instead of quietly staying wrong.
    **`work/spglow.txt` should grow the parameter, and its corpus a case that
    wraps; this file cannot and does not edit `work/`.**
 4. **`drawpv()`'s actual rendering.** U2 measures, by census in both oracles,
-   that neither calls `poly3d`, `polymap` or `randomic_mapper` — 0 occurrences
+   that neither calls `poly3d`, `polymap` or `randomic_mapper` -- 0 occurrences
    each. Only `loadpv` / `copypv` / `modpv` / `QuickSort` / `pv_dep_i` and the
    mode dispatch are delivered. Wave 6a grades `poly3d` and `polymap` on their
    own corpus; this file does not restate it. Joining the two is a wave of its
@@ -329,7 +329,7 @@ cases, so a case cannot fall out of both sets silently.
 5. **`copypv` and `modpv` against an oracle.** `sp_spec.py` implements
    neither, so handles 1, 2 and 3 carry state the oracle never applied and
    their `F32` dumps (cases 1020, 1031, 1041, 1060) are excluded, counted by
-   U1b. Only VEHICLE on handle 0 — which is never copied or modified — is
+   U1b. Only VEHICLE on handle 0 -- which is never copied or modified -- is
    graded.
 6. **The unsigned skip advance against the shipped table.** T5 measures that
    the largest skip byte is 100, so signed and unsigned agree on **all 513** of
@@ -353,22 +353,22 @@ cases, so a case cannot fall out of both sets silently.
 The mandate pinned six live defects and forbade a seventh. None is on a path
 this file uses:
 
-* `fb_tick.py`'s tautological ring sweep — not used.
-* `T2.LINO.MATRIX.NULL` — not used.
-* `fb_ref.c`'s E1 pair — not used.
-* the `inrow:` escape hatch — not used; every check here names a falsifier that
+* `fb_tick.py`'s tautological ring sweep -- not used.
+* `T2.LINO.MATRIX.NULL` -- not used.
+* `fb_ref.c`'s E1 pair -- not used.
+* the `inrow:` escape hatch -- not used; every check here names a falsifier that
   is executed in the same run.
-* `pg_grade.py`'s two void `PASS-if-tally-nonzero` rows — not used; this file
+* `pg_grade.py`'s two void `PASS-if-tally-nonzero` rows -- not used; this file
   does not read any `pg_*` grader.
-* `work/sp-break.py:281`'s `compare(clean, clean)` — not used. This file builds
+* `work/sp-break.py:281`'s `compare(clean, clean)` -- not used. This file builds
   its own eight sabotages and never runs that battery, which also means it
   never leaves `work/sp-out.bin` holding a sabotage's bytes (the QA pass's N2).
 
 Two more of the QA pass's findings are answered rather than inherited:
 
-* **`sp_compare`'s deletion blindness** (findings 4 and N4) — superseded by
+* **`sp_compare`'s deletion blindness** (findings 4 and N4) -- superseded by
   `compare_dumps`, and B9/B10 demonstrate the difference.
-* **`sp_compare`'s permanently-empty `SCALE` row** (finding 2c) — superseded by
+* **`sp_compare`'s permanently-empty `SCALE` row** (finding 2c) -- superseded by
   `join_scale`, which compares 17,808 real integers and is broken by B7.
 
 `tests/test_spheres.py` uses `linoharness.Check.ok`, which `w5audit.py` does
@@ -384,35 +384,35 @@ form the analyser can watch change.
 
 ## 8. Open items
 
-**O1 — `work/spglow.txt` has no `terminator_start`.** Section 6 item 3. Both
+**O1 -- `work/spglow.txt` has no `terminator_start`.** Section 6 item 3. Both
 oracles implement the wrap normalisation and the port does not. This is a
 `work/` change and a corpus change, so it is a coordinator commit, not a test
 change. Until then U3 keeps the absence visible.
 
-**O2 — `glass_bubble` / `smootharound_64` has no oracle at all.** Section 6
+**O2 -- `glass_bubble` / `smootharound_64` has no oracle at all.** Section 6
 item 1. 176 lines of shipped port code with no second implementation. Either
-`sp_spec.py` grows one — it is integer code and cheap — or the wave ships with
+`sp_spec.py` grows one -- it is integer code and cheap -- or the wave ships with
 a named hole. Right now it ships with a named hole.
 
-**O3 — the GLOW corpus does not reach the X clip boundary.** `GLOWX9` (X low
+**O3 -- the GLOW corpus does not reach the X clip boundary.** `GLOWX9` (X low
 bound 9 → 10) is uncatchable because no case produces an X of exactly 9. A
 handful of GLOW cases with centres near the left edge would close it; it is a
 fixture change.
 
-**O4 — `sp_ex1.py` prints `CONTROL: MUST be non-zero` on rows whose exit code
+**O4 -- `sp_ex1.py` prints `CONTROL: MUST be non-zero` on rows whose exit code
 does not enforce it**, and under `--quick` the random/f32 control legitimately
 measures 0. A test writer copying the printed label would ship an assertion
 that fails on correct code. `test_spheres.py` does not use `sp_ex1.py`; the
 exactness of the scaler is graded here by L12 (17,808 integers, cross-owner)
 and B7. The label in `sp_ex1.py` should still be corrected by its owner.
 
-**O5 — `noctis-harness/spwork/` is untracked but not ignored.** `.gitignore`
+**O5 -- `noctis-harness/spwork/` is untracked but not ignored.** `.gitignore`
 has `noctis-harness/*.exe` and `noctis-harness/*.bin`, neither of which matches
-a subdirectory or a `.dump`/`.page`. `test_spheres.py` writes nothing there —
+a subdirectory or a `.dump`/`.page`. `test_spheres.py` writes nothing there --
 its C-oracle build, dumps and page dirs all live in `tests/gen/w6b`, which *is*
-ignored — but the directory should be either ignored or cleaned.
+ignored -- but the directory should be either ignored or cleaned.
 
-**O6 — the two projective models should be reconciled.** PORTPLAN.md prints one
+**O6 -- the two projective models should be reconciled.** PORTPLAN.md prints one
 set of constants and `sp_spec.py` ships a re-fitted one; they differ by about
 0.5 % in `Fy`, 0.2 degrees in `lat0` and 0.235 in `i0`, and they score GP3 4038
 versus 7614 on the same table. Both satisfy GP1 completely, so nothing is

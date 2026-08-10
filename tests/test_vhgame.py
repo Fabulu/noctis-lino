@@ -98,6 +98,25 @@ def surface_arc(gravity_mfg: int, thrust_ticks: int = 0) -> tuple[int, int, int]
     raise AssertionError("surface arc did not return to terrain")
 
 
+def cupola_panel_drop(horizontal_distance: int) -> int:
+    """Independent model of NOCTIS-0.CPP's roof-panel displacement."""
+    return min(600, max(0, 1000 - horizontal_distance))
+
+
+def lift_vertical_trace(start_y: int, lifter: int) -> list[tuple[int, int, bool]]:
+    """Independent model of the original lift's vertical state transitions."""
+    trace: list[tuple[int, int, bool]] = []
+    while lifter:
+        start_y += lifter
+        lifter += -1 if lifter > 0 else 1
+        if start_y > 0:
+            start_y, lifter = 0, 0
+        if start_y < -750:
+            start_y, lifter = -750, 0
+        trace.append((start_y, lifter, start_y < -500))
+    return trace
+
+
 def main() -> int:
     game = GAME.read_text(encoding="utf-8")
     ground = GROUND.read_text(encoding="utf-8")
@@ -121,8 +140,19 @@ def main() -> int:
         all(token in original_lift for token in (
             "if (pos_y < -500)", "if (pos_y < -750)",
             "if (pos_y < -325 && pos_y > -715)", "lifter = + 75",
+            "step = - pos_y", "step = 0.5 * lifter",
+            "DfCoS + step < 1100",
         )),
-        "original lift thresholds remain pinned",
+        "original lift motion, thresholds, and automatic return remain pinned",
+    )
+
+    ascent = lift_vertical_trace(0, -100)
+    descent = lift_vertical_trace(-750, 75)
+    check(
+        [state[0] for state in ascent] == [-100, -199, -297, -394, -490, -585, -679, -750]
+        and ascent[-1] == (-750, 0, True)
+        and descent[-1] == (0, 0, False),
+        "independent lift model reaches both exact endpoints and flips roof state below -500",
     )
 
     lift = section(game, '"VHG lift tick"', '"VHG lift move"')
@@ -133,27 +163,37 @@ def main() -> int:
         "live lift retains its -325/-750/-500 camera and roof boundaries",
     )
     check(
-        "=> VHG lift move;" not in lift
+        lift.count("=> VHG lift move;") == 2
+        and "0FFFFFD35h" in lift
+        and "A = [VHGlifter]; A '/ 2;" in lift
         and "A = [VHGx]; A * 3; A / 4; [VHGx] = A;" in lift
         and "A = [VHGz]; A + 3100; A / 4;" in lift,
-        "lift restraint centers monotonically without camera-relative walking",
+        "ascent/descent motion precedes the original centre restraint",
     )
     platform = section(game, '"VHG platform"', '"VHG lift tick"')
     ship_input = section(game, '"VHG normal input"', '"VHG surface input"')
     check(
-        "[KEY UP]" in ship_input
+        "E = KEY A; E + 4; A = [E];" in ship_input
+        and "A = [KEY UP]" in ship_input
+        and "A = [VHGalpha]; A - 2;" in ship_input
         and "[VHGupheld]" in ship_input
         and "[VHGuprequest] = 1;" in ship_input
-        and "? A < 1210000 -> VHG platform inside;" in platform
+        and "? A < 1210000 -> VHG platform go roof;" in platform
         and "[VHGuprequest]" in platform
         and "A - 100; [VHGlifter] = A;" in platform
         and "[VHGlifter] = 75;" in platform
-        and "[VHGridearmed]" not in platform
         and "[VHGnoticeptr] = VHGliftfindtext;" in platform
         and "[VHGnoticeptr] = VHGliftdecktext;" in lift
         and "[VHGnoticeptr] = VHGliftrooftext;" in lift
         and "[VHGuprequest] = 0;" in platform,
-        "one Up edge toggles the lift with aperture guidance and release feedback",
+        "E starts ascent only in the centre, Up looks up, and roof entry automatically descends",
+    )
+
+    lift_move = section(game, '"VHG lift move"', '"VHG land"')
+    check(
+        "A = [VHGbeta]; A - 180;" in lift_move
+        and "[VHVbeta] = A; => VH set view;" in lift_move,
+        "source lift push removes the port hull's 180-degree yaw offset",
     )
     mouse_look = section(game, '"VHG mouse look"', '"VHG return key"')
     check(
@@ -188,6 +228,11 @@ def main() -> int:
         and "[VHCdd] = 600" in roof
         and "A = [VHCcamybase]; A + [VHCdd]" in roof,
         "port applies the same local 1000-radius/600-clamp displacement",
+    )
+    check(
+        [cupola_panel_drop(distance) for distance in (0, 399, 400, 401, 999, 1000, 1200)]
+        == [600, 600, 600, 599, 1, 0, 0],
+        "cupola aperture model pins the capped, sloped, and closed distance regions",
     )
     grid = section(cupola, '"VHC render grid"', '"VHC render next"')
     check(

@@ -171,7 +171,7 @@
 	VHGhelpmenu = { F10:GAME-MENU / ARROWS+ENTER };
 	VHGhelpmove = { RMB/ARROWS:LOOK / WASD / CTRL:STALK };
 	VHGhelpjump = { SURFACE:J JUMP / HOLD SPACE JETPACK };
-	VHGhelplift = { UP@CENTER:LIFT / PRESS AGAIN:RETURN };
+	VHGhelplift = { E:LIFT / STEP INTO CUPOLA:RETURN };
 	VHGhelpgoes = { G/ENTER:GOES / TAB:RUN };
 	VHGhelpnav = { GOES:NEXT/NEW / STAR X Y Z };
 	VHGhelpname = { GOES:NAME STAR/PLANET LABEL };
@@ -1317,13 +1317,16 @@
     "VHG no left"
 	A = [KEY RIGHT]; ? A = OFF -> VHG no right; A = [VHGbeta]; A - 2; [VHGbeta] = A;
     "VHG no right"
-	( Treat Up as an edge.  A held key used to restart the short lift as soon
-	  as it arrived, which looked like suction and never released the rider. )
-	[VHGuprequest] = 0; A = [KEY UP]; ? A = OFF -> VHG up released;
-	A = [VHGupheld]; ? A != 0 -> VHG no up; [VHGupheld] = 1; [VHGuprequest] = 1;
-	-> VHG no up;
-    "VHG up released"
+	( The desktop port promises four-arrow look.  Preserve the source lift
+	  sequence on E instead of stealing Up: Noctis IV used mouse look, so its
+	  otherwise-free DOS Up scan code could start the lift without a conflict. )
+	[VHGuprequest] = 0; E = KEY A; E + 4; A = [E]; ? A = OFF -> VHG lift released;
+	A = [VHGupheld]; ? A != 0 -> VHG lift key done;
+	[VHGupheld] = 1; [VHGuprequest] = 1; -> VHG lift key done;
+    "VHG lift released"
 	[VHGupheld] = 0;
+    "VHG lift key done"
+	A = [KEY UP]; ? A = OFF -> VHG no up; A = [VHGalpha]; A - 2; [VHGalpha] = A;
     "VHG no up"
 	A = [KEY DOWN]; ? A = OFF -> VHG no down; A = [VHGalpha]; A + 2; [VHGalpha] = A;
     "VHG no down"
@@ -1670,26 +1673,35 @@
 	end;
 
 "VHG platform"
-	( The lift is centred at x=0,z=-3100 with radius 1100.  One Up edge
-	  explicitly starts either direction.  Arrival leaves the player free;
-	  there is no automatic recapture and no need to step off/on to descend. )
+	( NOCTIS.CPP:2275-2307, 4106-4108.  A deliberate E substitutes for the
+	  original DOS Up scan code because arrows are look controls in this port.
+	  The ride itself stays source-shaped: it may start anywhere inside, pulls
+	  the rider toward x=0,z=-3100, and stops at y=-750.  On the roof there is
+	  no return key: walking into the 1100-unit cupola opening automatically
+	  starts the +75 descent, exactly like DfCoS + step < 1100. )
 	[VHGdx] = [VHGx]; A = [VHGz]; A + 3100; [VHGdz] = A;
 	A = [VHGdx]; A '* [VHGdx]; C = A;
 	A = [VHGdz]; A '* [VHGdz]; A + C; [VHGdist] = A;
-	? A < 1210000 -> VHG platform inside;
-	A = [VHGuprequest]; ? A = 0 -> VHG platform outside done;
-	[VHGnoticeptr] = VHGliftfindtext; [VHGnoticeframes] = 75;
-    "VHG platform outside done"
-	[VHGuprequest] = 0; end;
-    "VHG platform inside"
-	A = [VHGuprequest]; ? A = 0 -> VHG platform done;
 	A = [VHGlifter]; ? A != 0 -> VHG platform done;
-	A = [VHGy]; ? A = 0 -> VHG platform go roof;
-	? A = 0FFFFFD12h -> VHG platform go inside;
+	A = [VHGonroof]; ? A != 0 -> VHG platform roof;
+	A = [VHGuprequest]; ? A = 0 -> VHG platform done;
+	A = [VHGdist]; ? A < 1210000 -> VHG platform go roof;
+	[VHGnoticeptr] = VHGliftfindtext; [VHGnoticeframes] = 75;
 	-> VHG platform done;
     "VHG platform go roof"
 	A = 0; A - 100; [VHGlifter] = A;
 	-> VHG platform done;
+	"VHG platform roof"
+	( With no inertial walking accumulator, held ship movement is the source's
+	  current 80-unit step; use its 1020-unit effective entry radius. )
+	A = [KEY W]; ? A != OFF -> VHG platform roof moving;
+	A = [KEY S]; ? A != OFF -> VHG platform roof moving;
+	A = [KEY A]; ? A != OFF -> VHG platform roof moving;
+	A = [KEY D]; ? A != OFF -> VHG platform roof moving;
+	A = [VHGdist]; ? A >= 1210000 -> VHG platform done;
+	-> VHG platform go inside;
+	"VHG platform roof moving"
+	A = [VHGdist]; ? A >= 1040400 -> VHG platform done;
     "VHG platform go inside"
 	[VHGlifter] = 75;
     "VHG platform done"
@@ -1705,20 +1717,24 @@
 	A = [VHGalpha]; A - 40; A '* 12; A '/ 100;
 	C = [VHGalpha]; C + A; [VHGalpha] = C;
     "VHG lift rise middle"
+	( The source pushes forward by -pos_y only through the middle of the
+	  ascent, after changing pitch and before the centre restraint.  This is
+	  the visible approach through the opening, not ordinary player input. )
+	A = [VHGy]; ? A <= 0FFFFFD35h -> VHG lift hold centre; ( pos_y <= -715 )
+	? A >= 0FFFFFEBBh -> VHG lift hold centre; ( pos_y >= -325 )
+	C = 0; C - A; [VHGstepv] = C; => VHG lift move;
 	-> VHG lift hold centre;
     "VHG lift descending"
 	[VHGlifter]-;
 	A = [VHGlifter]; ? A <= 65 -> VHG lift level look;
 	A = 40; A - [VHGalpha]; A '* 11; A '/ 100;
-	C = [VHGalpha]; C + A; [VHGalpha] = C; -> VHG lift hold centre;
+	C = [VHGalpha]; C + A; [VHGalpha] = C; -> VHG lift descent move;
     "VHG lift level look"
 	A = [VHGalpha]; A '/ 4; C = [VHGalpha]; C - A; [VHGalpha] = C;
+    "VHG lift descent move"
+	A = [VHGlifter]; A '/ 2; [VHGstepv] = A; => VHG lift move;
     "VHG lift hold centre"
-	( Keep the rider over the platform with one monotonic positional restraint.
-	  The source also wrote a large camera-relative walking step during the
-	  middle of the ride.  Feeding that through the port's normal movement path
-	  shot the player past the centre before this restraint pulled them back,
-	  producing the visible suction/wobble regression. )
+	( NOCTIS.CPP:4541-4545 applies this after the ride's camera-relative step. )
 	A = [VHGx]; A * 3; A / 4; [VHGx] = A;
 	A = [VHGz]; A + 3100; A / 4; C = [VHGz]; C - A; [VHGz] = C;
     "VHG lift bounds"
@@ -1737,7 +1753,12 @@
 
 "VHG lift move"
 	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
-	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
+	( VHGbeta includes the port hull's 180-degree model offset; the source's
+	  forced lift step uses user_beta without that offset. )
+	[VHValpha] = [VHGalpha]; A = [VHGbeta]; A - 180;
+	? A >= VHGN180 -> VHG lift beta ready; A + 360;
+    "VHG lift beta ready"
+	[VHVbeta] = A; => VH set view;
 	=> VHG forward;
 	end;
 

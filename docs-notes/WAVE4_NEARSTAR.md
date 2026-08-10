@@ -1,4 +1,4 @@
-# WAVE4_NEARSTAR — star identity and planetary system generation
+# WAVE4_NEARSTAR -- star identity and planetary system generation
 
 Wave 4's settled answer, written down 2026-08-05 after the implementers, the
 adversarial review, the QA pass and the regression test.
@@ -25,7 +25,7 @@ references on all 100 fields of 5,540 systems, reproduces the star class of
 every player-named record in the 1996 catalogue, reproduces the stored
 identity double bit for bit, never generates fewer bodies than players have
 named, and reproduces all 4,365 owner/moon-id constraints the 1996 executable
-itself printed. **Geometry is not ported and is not graded** — the wave scoped
+itself printed. **Geometry is not ported and is not graded** -- the wave scoped
 it out deliberately, and section 6 says exactly what that costs.
 
 ---
@@ -38,7 +38,7 @@ srand ((long)star_x%10000 * (long)star_y%10000 * (long)star_z%10000); // :4080
 ```
 
 **The identity** is `double` arithmetic on the x87 at control word 133Fh, five
-operations with ONE store and nothing spilled in between — Wave 3's contract,
+operations with ONE store and nothing spilled in between -- Wave 3's contract,
 `docs-notes/FLOATPOLICY.md`. It is a *chain*: `x`, divide, multiply by `y`,
 divide, multiply by `z`, divide. Graded against the binary64 the 1996 file
 stores: **exact on every record**.
@@ -51,13 +51,13 @@ is
 ((((x % 10000) * y) % 10000) * z) % 10000
 ```
 
-— a *chain of remainders*, not a product of three remainders. The running
+-- a *chain of remainders*, not a product of three remainders. The running
 value is a 32-bit `long` and it **overflows on most real stars**; that wrap is
 part of the answer, not an accident, and the reference is compiled `-fwrapv`
 for that reason. C's `%` truncates toward zero, which matters because the
 normal case here is negative coordinates.
 
-The natural misreading — `(x%10000) * (y%10000) * (z%10000)` — is a different
+The natural misreading -- `(x%10000) * (y%10000) * (z%10000)` -- is a different
 number on essentially every star. Both readings are scored in
 `noctis-harness/ns_catalogue.py` (run by `ns_grade.py`, not by the suite): the
 left-to-right one is never refuted and the flat product is refuted on 73 of
@@ -81,7 +81,7 @@ Site ids are NOCTIS-0.CPP line numbers.
 | phase | lines | draws | shape |
 |---|---|---|---|
 | prelude | 4082 | **1** | `random(class_planets[class]+1)` → `nop` |
-| **A** | 4086-4107 | **12 per planet**, 13 on class 8's else branch | 4088, 4089, 4090×2, 4091×2, 4092, 4093, 4094×2, 4094(1000), then the type draw: `random(planet_types)` at 4096, or at 4098 `random(2)` and — when that came out 0 — a 13th at 4103 |
+| **A** | 4086-4107 | **12 per planet**, 13 on class 8's else branch | 4088, 4089, 4090×2, 4091×2, 4092, 4093, 4094×2, 4094(1000), then the type draw: `random(planet_types)` at 4096, or at 4098 `random(2)` and -- when that came out 0 -- a 13th at 4103 |
 | **B** | 4111-4115 | **3 iff class == 0**, else 0 | three `random(4)`; nothing short-circuits, and the writes to `p_type[2..4]` happen whether or not `nop` reaches them |
 | **C** | 4120-4139 | **unbounded**, and only for classes 2, 5, 9, 11 | `while` loops re-rolling `random(10)`; class 7 assigns type 9 and draws nothing. The port's own source header records maxima of 109 (class 9) and 78 (class 11) iterations on one star; the graded corpus below reaches 66 |
 | **D** | 4145-4168 | **0..2 per planet** | 4148 `random(8)` for type 0; for type 3, 4152 `random(4)` fires only when `2<=n<=6` **and** class != 0 (`&&` short-circuits), then 4153 `random(2)` only if the whole guard came out true; 4161 `random(2)` for type 7 with `n<7` |
@@ -91,7 +91,7 @@ Site ids are NOCTIS-0.CPP line numbers.
 | **H** | 4363-4369 | **0** | `search_id_code` over STARMAP.BIN; reads an external file, draws nothing |
 
 **42 distinct draw sites.** The test replays the class-override block through
-the C reference's per-draw ledger — 360,734 draws over 1,440 systems — and
+the C reference's per-draw ledger -- 360,734 draws over 1,440 systems -- and
 requires every one of the 42 to be reached and no site outside the list to
 appear. A comparison that never reaches a site proves nothing about it.
 
@@ -129,7 +129,7 @@ run and prints it as "the draw table".
 
 The draw budget is 100,000 per system; the worst system used 1,357 of it,
 1.36%. 1,455 of the 5,540 systems take no draws past the prelude, because
-`nop` came out 0 — always for a class-6 star, which has no planets by table,
+`nop` came out 0 -- always for a class-6 star, which has no planets by table,
 and sometimes for any other class. The 80-body clamp fires on 119 systems.
 
 ---
@@ -139,7 +139,7 @@ and sometimes for any other class. The 80-body clamp fires on 119 systems.
 Everything is recomputed each run. The corpus is re-swept from the galaxy hash
 over DL.EXE's own 100³-sector box and re-paired against STARMAP.BIN under the
 single-candidate rule (a record matched by more than one sector, or a sector
-matching more than one record, is **discarded unexamined** — 42 of them), so
+matching more than one record, is **discarded unexamined** -- 42 of them), so
 the grader can never be measuring its own chooser.
 
 | leg | oracle | result |
@@ -166,8 +166,8 @@ Every leg carries a control that must fail, and does:
 | a hand-built record satisfying all ten audit invariants, then one deliberate violation of each | the base passes; all ten violations are flagged **by name** |
 
 One caveat on the PHASE H leg, because it is easy to overread. It recounts
-using the port's **own** `nob`, so it grades the port's `search_id_code` — the
-binary64 add, the ±1e-5 window, the key map, the two malformed records — over
+using the port's **own** `nob`, so it grades the port's `search_id_code` -- the
+binary64 add, the ±1e-5 window, the key map, the two malformed records -- over
 16,307 real bodies, and it does **not** independently constrain `nob`. That
 job belongs to the NOB leg above, which is an external bound, and to the
 three-way comparison.
@@ -178,12 +178,12 @@ three-way comparison.
 
 Seven single-edit sabotages of the port's own draw sequence, each built with
 the real compiler, run over the real corpus and graded by every leg. All seven
-compile — they are wrong, not broken.
+compile -- they are wrong, not broken.
 
 | break | phase | edit | counts moved | records changed | DL score | caught by |
 |---|---|---|---|---|---|---|
 | `adrop` | A | the `random(1000)` at :4094 removed | 3,837 | 4,085 | 1,354 / 4,365 | refs, audit, catalogue, dl |
-| `bclip` | B | phase B skipped when `nop <= 4` | 561 | 561 | 4,365 / 4,365 | refs, audit, catalogue — **and `dl` since Wave 6**, 4,597 / 4,707 on the extended capture set |
+| `bclip` | B | phase B skipped when `nop <= 4` | 561 | 561 | 4,365 / 4,365 | refs, audit, catalogue -- **and `dl` since Wave 6**, 4,597 / 4,707 on the extended capture set |
 | `cadd` | C | one spurious draw per class-9 re-roll | 242 | 243 | 3,663 / 4,365 | refs, catalogue, dl |
 | `d4152` | D | the short-circuited `random(4)` at :4152 removed | 280 | 345 | 3,894 / 4,365 | refs, catalogue, dl |
 | `e4213` | E | `random(c)` at :4213 skipped when `c == 0` | 1,030 | 1,040 | 3,970 / 4,365 | refs, catalogue, dl |
@@ -195,7 +195,7 @@ STARMAP.BIN alone catches six of the seven; DL.EXE alone catches five; `refs`
 catches all seven. Three rows of that table are worth reading carefully.
 
 **`eorder` takes the same number of draws at the site it moves, and the counts
-still move** — on 594 systems. That is not a bug in the classification: the
+still move** -- on 594 systems. That is not a bug in the classification: the
 draws at :4238 and :4255 are conditional on the type value that :4201 lands
 on, so a pure reordering propagates into a count change downstream. It is a
 useful demonstration that "the counters agree" is a weaker statement than "the
@@ -228,7 +228,7 @@ rather than demanding DL catch everything.
 > `tests/test_geometry.py` section 7 rebuilds both ports with the real
 > compiler and re-grades both sets on every run: it requires `bclip` to be
 > still invisible to the 122 and caught by the 210, so neither half of the
-> statement can rot. **`gadd` is unaffected** — it remains invisible to both
+> statement can rot. **`gadd` is unaffected** -- it remains invisible to both
 > 1996 artifacts for the structural reason given above, and Wave 6's coverage
 > sweep confirms it moves 0 charted bodies in either capture set.
 
@@ -251,15 +251,15 @@ least five of the seven and DL.EXE alone catches at least five.
   times respectively out of 176 class-2/7 systems, against a random-seed
   control that is refuted about 82 times. (Those four figures are
   `ns_catalogue.py`'s, via `ns_grade.py`; the suite's own SEED evidence is
-  indirect — a wrong seed gives a wrong `nop`, which the NOB and DL legs
+  indirect -- a wrong seed gives a wrong `nop`, which the NOB and DL legs
   catch.)
 * The **identity** reproduces the stored 1996 double bit for bit on every
   record in the corpus, computed at 64-bit precision on an unspilled x87
   chain. A one-ULP flip of the result scores zero.
 * **Draw accounting is externally constrained, phase by phase**, and the
-  strength differs by phase — demonstrated, not asserted:
+  strength differs by phase -- demonstrated, not asserted:
   phases **A, C, D and E** by *both* 1996 artifacts, in count and in order;
-  phase **B** by STARMAP.BIN alone at the time of this wave — by DL.EXE too
+  phase **B** by STARMAP.BIN alone at the time of this wave -- by DL.EXE too
   since Wave 6 extended the capture set to 210 (section 4);
   phase **G** by neither (section 4), only by the counters and the references.
   All seven sabotages disagree with the references.
@@ -269,15 +269,15 @@ least five of the seven and DL.EXE alone catches at least five.
   audit invariant is checked on every record of every run.)
 * **Five of the eight phases have an exact closed form** and all five hold on
   every record: prelude 1, A 12 (13) per planet, B 3-or-0, **F exactly 4 per
-  body**, **G exactly 2 per planet**. C, D and E do not — unbounded
-  while-loops and short-circuits — and only range invariants exist there.
+  body**, **G exactly 2 per planet**. C, D and E do not -- unbounded
+  while-loops and short-circuits -- and only range invariants exist there.
 * Every coordinate in the corpus is an exact integer inside int32, so :4080's
   three `(long)` chops are the identity function and the seed never goes
   through `__ftol`. Checked, not assumed, at corpus-build time.
 
 ---
 
-## 6. What is NOT covered — say this out loud
+## 6. What is NOT covered -- say this out loud
 
 * **GEOMETRY IS OUT OF SCOPE.** The wave scoped it out. What is ported is the
   **topology**: `nop`, `nob`, and every body's type, owner and moon id, plus
@@ -292,16 +292,16 @@ least five of the seven and DL.EXE alone catches at least five.
   This is *licensed*, not merely tolerated: every draw whose result selects a
   branch, a count or a type takes an **integer** argument, and `random(n)`
   consumes exactly one `rand()` for every `n`. So the topology is provably
-  independent of every float value in the routine —
+  independent of every float value in the routine --
   `ns_diff.py --jitter` perturbs `nearstar_ray` by 1e-7 and requires the
   topology, the draw counts and the identity not to move.
 
   > **Wave 6 status, 2026-08-05.** Still true of *this port*: the eleven sites
   > still discard their values and `tests/test_geometry.py` section 6 keeps
   > the registry pinned at eleven sites / 17 draws in `work/nstopo.txt`. What
-  > changed is that the values now exist in two independent **references** —
+  > changed is that the values now exist in two independent **references** --
   > `noctis-harness/geo_ref.c` (80-bit x87) and `geo_spec.py` (exact
-  > rationals) — which agree bit for bit on 22,768 values over 200 systems.
+  > rationals) -- which agree bit for bit on 22,768 values over 200 systems.
   > Read that as transcription evidence and nothing more: **planetary
   > geometry is still UNGRADED against the 1996 machine**, because no 1996
   > artifact contains a radius, orbital radius, tilt, eccentricity or ring
@@ -309,10 +309,10 @@ least five of the seven and DL.EXE alone catches at least five.
 
 * **The float-to-int cast boundary was UNSETTLED here; Wave 6 settled it, and
   `NsIdentChop16` turns out to have been right.** What this wave could say
-  was only this: the catalogue **cannot** separate the two candidates —
+  was only this: the catalogue **cannot** separate the two candidates --
   chopping the live extended value and chopping its binary64 rounding give a
   **different** seed on **0 of 4,099** records (measured by
-  `ns_catalogue.py`, not by the suite) — and the CLASS leg ranks chop against
+  `ns_catalogue.py`, not by the suite) -- and the CLASS leg ranks chop against
   floor, ceil and nearest and nothing finer. So the boundary was closed here
   by construction and by measurement, not by an oracle, which is a different
   and weaker thing.
@@ -331,7 +331,7 @@ least five of the seven and DL.EXE alone catches at least five.
 
   Additionally, the catalogue's `S` tail was written by NOCTIS.CPP:1244-1257,
   which assigns the expression into the `double ap_target_id` **first** and
-  only then calls `srand` — a chop of a *stored* binary64. So the leg cannot
+  only then calls `srand` -- a chop of a *stored* binary64. So the leg cannot
   even be said to grade the live-extended site directly.
 
 * **Phase G's draw count is invisible to every 1996 artifact** (section 4).
@@ -346,8 +346,8 @@ least five of the seven and DL.EXE alone catches at least five.
 
 * **Rare branches on override rows are graded by transcription, not by an
   oracle.** The class-override block reaches the branches real coordinates
-  rarely produce — the 80-body clamp (119 systems in the graded corpus),
-  class 8's type-10 else branch, class 9's long phase C — but those rows have
+  rarely produce -- the 80-body clamp (119 systems in the graded corpus),
+  class 8's type-10 else branch, class 9's long phase C -- but those rows have
   no catalogue record and no DL capture behind them, so what grades them is
   the C and Python references agreeing with the port. That is evidence about
   transcription. The 4,100 real rows are what the 1996 artifacts grade.
@@ -356,7 +356,7 @@ least five of the seven and DL.EXE alone catches at least five.
   is off the table (above), the sweep varies the class over 120 real
   coordinates rather than over all 65,536 seeds. The harness's
   `ns_corpus.py --synthetic` does sweep seeds and `ns_grade.py` runs it across
-  12 classes × 4,096 of them — but only between the two references, for the
+  12 classes × 4,096 of them -- but only between the two references, for the
   same reason.
 
 * **`nsrun` validates the NSIN payload length against its header.** The
@@ -369,7 +369,7 @@ least five of the seven and DL.EXE alone catches at least five.
   stdout, taken under DOSBox-X and reproduced byte-identical in a second
   session, and they are read-only. Re-capturing them requires opening a
   DOSBox-X window, which a routine regression run must not do. They are an
-  oracle of the same kind as STARMAP.BIN — an artifact of the 1996 program —
+  oracle of the same kind as STARMAP.BIN -- an artifact of the 1996 program --
   and not a stored expectation of ours.
 
 ---
@@ -387,6 +387,6 @@ least five of the seven and DL.EXE alone catches at least five.
 | `noctis-harness/ns_ref.c` | reference A: source-ordered C, real x87, build `-fwrapv` |
 | `noctis-harness/ns_spec.py` | reference B: draw-table-ordered Python, exact Fractions |
 | `noctis-harness/ns_grade.py` | the reference-side grading run, end to end |
-| `tests/test_nearstar.py` | suite entry 16 — the regression test this file describes |
+| `tests/test_nearstar.py` | suite entry 16 -- the regression test this file describes |
 | `tests/nsdrive.py` | its sandbox, corpus and the seven sabotages |
 | `tests/nsspec.py` | its catalogue referee and the draw-audit invariants |

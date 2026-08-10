@@ -1,4 +1,4 @@
-# Noctis IV L.in.oleum port — development history
+# Noctis IV L.in.oleum port -- development history
 
 This document is the public, chronological account of how the playable port
 was built, what each major phase established, which regressions were found in
@@ -20,7 +20,7 @@ deterministic integer and floating-point streams. The first half of the port
 therefore concentrated on proving those streams before they were connected to
 a player-facing game.
 
-## 2026-08-04 to 2026-08-06 — deterministic foundation
+## 2026-08-04 to 2026-08-06 -- deterministic foundation
 
 ### Wave 1: integer runtime and galaxy generation
 
@@ -62,7 +62,7 @@ a player-facing game.
 - Kept simulation time separate from presentation time, which later made the
   optional 60 FPS presenter possible without speeding up gameplay.
 
-## 2026-08-06 to 2026-08-08 — rendering and flight
+## 2026-08-06 to 2026-08-08 -- rendering and flight
 
 ### Wave 6: polygon pipeline
 
@@ -97,7 +97,7 @@ a player-facing game.
 - Added per-frame interleaving and wider terrain presentation so the game
   remained responsive while rendering.
 
-## 2026-08-08 to 2026-08-09 — the Stardrifter and native GUI
+## 2026-08-08 to 2026-08-09 -- the Stardrifter and native GUI
 
 ### Wave 10: walkable Stardrifter
 
@@ -120,7 +120,7 @@ a player-facing game.
 - Made Esc, the red close button, and Alt+F4 converge on the same checkpoint
   and audio cleanup path.
 
-## 2026-08-09 to 2026-08-10 — playable journey completion
+## 2026-08-09 to 2026-08-10 -- playable journey completion
 
 ### Navigation and planetary systems
 
@@ -181,10 +181,12 @@ Symptom: pressing Up could pull the player toward the lift center from outside
 the aperture, trap them there, and oscillate instead of delivering them cleanly
 to the deck or roof.
 
-Resolution: lift activation is gated to the centered aperture, movement is
-latched for one trip, and the player is released at each stop. Pressing Up away
-from the aperture now displays `LIFT: STAND IN CENTER APERTURE`; arrivals say to
-walk clear, and a released second press is required to reverse direction.
+Resolution: lift activation is gated to the centered aperture and moved to E,
+leaving all four arrows available for looking. The source ascent/descent ramps,
+camera pitch, center restraint, and local cupola-panel displacement are retained
+with the port's 180-degree hull render offset removed from the special ride
+motion. The roof releases the player; walking back into its opening triggers the
+original automatic descent.
 
 ### Incorrect 60 FPS mode
 

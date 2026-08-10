@@ -1,4 +1,4 @@
-﻿# Port plan: Noctis IV in L.in.oleum
+# Port plan -- Noctis IV in L.in.oleum
 
 Source of truth for what is done and what is next. The hourly heartbeat reads
 this file. Update it when a wave completes; do not let it drift.
@@ -29,7 +29,7 @@ python tests\run_all.py          # optional --deep release/historical audit
 Routine work needs only the focused regression relevant to the change (with a verification
 budget of about 10% of implementation effort), plus the relevant `PRISTINE.sha256` check.
 Use the full roster as an explicit release/deep audit; if that audit fails, fix that
-first â€” a broken foundation makes every later result meaningless.
+first -- a broken foundation makes every later result meaningless.
 
 ---
 
@@ -75,17 +75,18 @@ first â€” a broken foundation makes every later result meaningless.
   Coarse triangles are flat shaded, texture mapping is limited to the nearest
   two depth bands, and the settled capsule retains both structural grids while
   its costly translucent fill remains on the animated descent/ascent pod.
-- Up now explicitly operates the Stardrifter lift as in `NOCTIS.CPP`; only a
-  player standing inside the roof aperture can start it. A held key cannot
-  reverse the lift or trap the player at its centre; each endpoint releases the
-  rider, reports that it is safe to walk clear, and accepts a fresh Up press to
-  reverse. Pressing Up elsewhere gives a visible aperture-location hint.
-- The lift no longer routes Noctis's large middle-ride `step=-pos_y` through
-  camera-relative walking. That combination overshot the platform centre and
-  was the visible suction/wobble reported in the integrated GUI. The current
-  direct restraint moved a real-input run monotonically from `z=-2340` to
-  `z=-3023`, stopped at `y=-750`, released walking to `z=-4821`, and returned
-  cleanly to `y=0` with both lift flags clear.
+- E now operates the Stardrifter lift while the player is inside its center
+  aperture, leaving all four arrows available for looking. The ascent and
+  descent retain the original `-100`/`+75` velocity ramps, pitch changes,
+  middle-ascent push, and center restraint. The roof return is source-shaped:
+  walking into the cupola opening starts descent automatically. Pressing E
+  elsewhere gives a visible aperture-location hint.
+- The source's middle-ride `step=-pos_y` and descending half-velocity motion
+  are retained, but their yaw removes the port hull model's 180-degree render
+  offset before using the movement basis. Feeding the render-offset yaw into
+  that source motion pushed the rider inward and triggered an immediate return.
+  The focused regression pins the offset, vertical endpoints, roof threshold,
+  center gate, and automatic roof-entry descent.
 - The native iGUI GAME menu now exposes Controls, GOES, checkpoint save/load,
   FPS, 60/18-Hz presentation, soundtrack, and clean save-and-quit actions.
   Its F10/Up/Down/Enter path is fully keyboard-accessible; a production GUI
@@ -482,12 +483,12 @@ first â€” a broken foundation makes every later result meaningless.
   whole-display retrace; the outer control-loop pass adds the cursor. A 60-frame
   production sentinel measured 1,012 ms / 59.29 FPS at the default 2x host.
 - Regression suite: `tests/run_all.py`. One test per wave-ish; the count grows
-  every wave, so **no document states a number** — `run_all.py` prints its own
+  every wave, so **no document states a number** -- `run_all.py` prints its own
   and refuses to run if a `test_*.py` exists that is not registered in `TESTS`.
   Expect roughly 40 s per test on the full suite. Nothing is graded against a
   stored binary; every side is rebuilt each run, and each test builds a
   deliberately broken version of its subject and requires that to fail.
-- `tests/` holds more files than tests — shared oracles, sandbox builders and
+- `tests/` holds more files than tests -- shared oracles, sandbox builders and
   the Wave 5 audit tool live there too. Counting files overstates the suite;
   `TESTS` in `run_all.py` is the only real list.
 
@@ -516,57 +517,57 @@ first â€” a broken foundation makes every later result meaningless.
 ### Language extension (optional, not load-bearing)
 - `*%` / `*%'` split-multiply added: 242 patterns, all semantically verified on
   real hardware. Needs `main/lib/gen/compiler114m.exe` with `-Cpu i386m`.
-- Patched compiler passes the fixpoint test â€” recompiles itself byte-identically.
+- Patched compiler passes the fixpoint test -- recompiles itself byte-identically.
 - `main/lib/gen/compiler.txt` is NOT modified; `tools/patchcompiler.py` produces
   a copy. Reversible by deleting one file.
 
 ### Ported and verified
-- **Galaxy hash** â€” `work/galaxy.txt` (ML fragment) and `work/galaxy2.txt`
+- **Galaxy hash** -- `work/galaxy.txt` (ML fragment) and `work/galaxy2.txt`
   (`*%`). Bit-exact against a C oracle lifted from `noctis-iv-lr` and an
   independent arbitrary-precision Python implementation, across 343 sectors
   spanning the galactic origin. The signed multiply is load-bearing: unsigned
   builds a plausible galaxy that matches nothing.
-- **`fast_random`** â€” the second of only two algorithms needing a full 64-bit
+- **`fast_random`** -- the second of only two algorithms needing a full 64-bit
   product. Bit-exact on all three backends.
-- **Star catalogue validation** â€” generated positions checked against the real
+- **Star catalogue validation** -- generated positions checked against the real
   `STARMAP.BIN`, 37,578 records charted by players over twenty years, including
   the author's own hard-coded stars matched uniquely. Collisions are quantified
   rather than assumed away, and signal is measured against an unsigned-and-decoy
   control rather than a bare chance floor.
 
-### Wave 1 â€” Borland's LCG, exhaustive (DONE)
+### Wave 1 -- Borland's LCG, exhaustive (DONE)
 
 `srand` / `rand` / `random` ported and proven across the **entire seed space**:
 65,536 seeds x 16 draws = 1,048,576 draws, plus the full `random()` argument
 domain (all int16 values x 4 seeds x 2 draws). Three independent
-implementations â€” lino, C, and an arbitrary-precision Python written from the
+implementations -- lino, C, and an arbitrary-precision Python written from the
 algorithm rather than transcribed. Registered as `tests/test_brtlrand.py`.
 
 Anchored on the shipped binary, not on anyone's transcription: Borland's
 `rand()` sits at file offset 15979 of `NOCTIS.EXE`, and the multiplier's low
 half `35 4E` occurs exactly once in 215 KB, so the location is unambiguous.
 
-Builds with the **stock compiler and stock pack** â€” the multiply is 32x32 into
+Builds with the **stock compiler and stock pack** -- the multiply is 32x32 into
 32 low half only, so no `*%` is involved.
 
 **The finding that propagates: `int` is 16 bits in the DOS build.** A
-`random(n)` call with n above 32767 wraps negative â€” `random(40000)` passes
-âˆ’25536 and returns a negative result. Reproducing this needs explicit narrowing
+`random(n)` call with n above 32767 wraps negative -- `random(40000)` passes
+-25536 and returns a negative result. Reproducing this needs explicit narrowing
 at the call site (`BrtlToInt16` then `BrtlRandom`); calling `BrtlRandom`
 directly with a large argument diverges from the game. **Every call site in
 later waves must be checked for arguments above 32767.**
 
 **Recorded so it is not re-litigated:** replacing the logical shift with an
-arithmetic one in `(seed >> 16) & 0x7FFF` is **semantically neutral** â€” the
+arithmetic one in `(seed >> 16) & 0x7FFF` is **semantically neutral** -- the
 mask keeps bits 16..30 and sign-fill only touches bits it discards (verified
 over 200,000 random seeds, zero differences). No behavioural test can catch
 that mutation; the byte-template check is the only way to pin it, and it does.
 
-### Wave 3 — the float engine (DONE)
+### Wave 3 -- the float engine (DONE)
 
 **Extended precision works in L.in.oleum.** The x87 control word can be set to
 `133Fh` (64-bit precision, round-to-nearest-even, exceptions masked) from a
-machine-language fragment — which modifies nothing and needs no permission —
+machine-language fragment -- which modifies nothing and needs no permission --
 and the 1996 catalogue then decodes exactly.
 
 ```
@@ -597,7 +598,7 @@ the real resolution; and a gcc-built hardware witness caught a genuine
 round-to-nearest bug in the Python referee that a self-agreeing referee would
 have shipped.
 
-### Wave 4 — star identity and system generation (DONE)
+### Wave 4 -- star identity and system generation (DONE)
 
 The port turns a star's coordinates into its planetary system, and **the 1996
 binary agrees**.
@@ -608,14 +609,14 @@ CLASS      4099/4099                PHASE H  4100/4100 (16,307 bodies)
 DL.EXE     4365/4365                3-way    bit-exact, all 100 fields
 ```
 
-`DL.EXE` is the first *dynamic* oracle in the project — the real game executing
+`DL.EXE` is the first *dynamic* oracle in the project -- the real game executing
 under DOSBox-X rather than a static file. Proven by breaking: seven single-edit
 sabotages, one per generation phase, each built and run. A dropped phase-A draw
 moves 3,837 of 5,540 systems.
 
 **Two sabotages are invisible to the 1996 oracles, recorded as measurements
 rather than worked around.** Adding a draw in phase G is undetectable by
-anything — structurally, phase G is last and every later `rand()` consumer
+anything -- structurally, phase G is last and every later `rand()` consumer
 re-seeds. The class-0 clip is invisible to DL because the capture set has no
 class-0 star with few enough planets. The test requires 5 of 7 caught per
 oracle rather than implying all seven.
@@ -628,7 +629,7 @@ float-site registry pinned at 11 sites / 17 draws so geometry's arrival fails
 that test first rather than slipping in ungraded. Detail in
 `docs-notes/WAVE4_NEARSTAR.md`.
 
-### Wave 5 — buffer model and framebuffer (REVIEWER REJECTED — corrective wave required)
+### Wave 5 -- buffer model and framebuffer (REVIEWER REJECTED -- corrective wave required)
 
 **Do not treat this wave as done.** The suite passes 17/17, but the tests were
 written around a model the adversarial reviewer rejected. Green tests over a
@@ -636,19 +637,19 @@ wrong model is exactly the failure the separate review/QA/test roles exist to
 catch, and here they caught it.
 
 **Sound, keep:** Decision 1 (one Noctis byte per 32-bit unit) and Decision 2
-(one flat 402,196-unit workspace in `farmalloc` order) — triple-corroborated
+(one flat 402,196-unit workspace in `farmalloc` order) -- triple-corroborated
 across all 27 layout units. The tick's period arithmetic, accumulation,
 skip-to-grid and signed-difference predicate are correct and cross-graded.
 `docs-notes/BUFFERMAP.md` (718 lines) stands and is the wave's durable value.
 
-**CRITICAL 1 — the tick servo wraps.** `TK servo` divides counts-since-start by
+**CRITICAL 1 -- the tick servo wraps.** `TK servo` divides counts-since-start by
 wall-ms-since-start. `[Counts]` is 32 bits and wraps every 477.3 s; the
-denominator grows without bound. From ~8 minutes in the ratio is nonsense —
-1840 cpms at t=600 s against a true 8999, 4226 at t=900 s — and the ±1% clamp
+denominator grows without bound. From ~8 minutes in the ratio is nonsense --
+1840 cpms at t=600 s against a true 8999, 4226 at t=900 s -- and the ±1% clamp
 turns a one-shot collapse into a **permanent 1%-per-14-s ratchet**. The period
 is proportional to cpms, so the whole tick degrades. Reproduced arithmetically.
 
-**CRITICAL 2 — class A does not reproduce a 16-bit wrap.** Decision 3 treats
+**CRITICAL 2 -- class A does not reproduce a 16-bit wrap.** Decision 3 treats
 "write contained by 16-bit wrap inside the buffer's own segment" by allocating
 the full segment. **Allocation size cannot reproduce a wrap.** Under DOS the
 write folded to offset 0; under 32-bit unit addressing it walks linearly past
@@ -664,10 +665,10 @@ destination while 17 of 24 original call sites pass a different buffer.
 
 **Honestly recorded by the wave itself:** three XFAILs asserting things are
 still broken (so a silent fix fails the test), and the 16-bit index wrap is
-**not expressible in the delivered model** — `BUFFERMODEL.md` open item 6, and
+**not expressible in the delivered model** -- `BUFFERMODEL.md` open item 6, and
 Wave 6's first job.
 
-### Wave 5b — corrections (PARTIAL: tests fixed, harness still defective)
+### Wave 5b -- corrections (PARTIAL: tests fixed, harness still defective)
 
 **Fixed and verified by the reviewer in the source:** the tick servo. Sampler
 and estimator are split, both anchors re-base unconditionally before a SIGNED
@@ -684,16 +685,16 @@ repaired; and three sabotages that revealed *real* holes were closed rather
 than dropped (a clamp floor nothing drove, a band nothing drove negative, and a
 mask double-applied so its deletion was invisible).
 
-**STILL DEFECTIVE — the same pattern recurred in a different file.** This wave
+**STILL DEFECTIVE -- the same pattern recurred in a different file.** This wave
 existed because a canary compared a constant against itself. `tests/` was
 fixed; `noctis-harness/` now carries three fresh instances:
 
 - `lino_break_matrix` grades each sabotage against stored references and all 19
-  rows read identically — **passes regardless**.
+  rows read identically -- **passes regardless**.
 - `fb_layout.py`'s replacement canary returns a bare literal, then compares
   against that same literal by construction.
 - the ring sweep computes `start` from `end` and `want`, then recovers `want`
-  from `start` and `end` — tautological in **both** implementations.
+  from `start` and `end` -- tautological in **both** implementations.
 
 `fb_compare.py --suite` reports **FAIL**: 117 checks, 6 failed, 3 NOT GRADED.
 The index page differs in 63,988 of 64,000 units because `w5probe` and
@@ -701,7 +702,7 @@ The index page differs in 63,988 of 64,000 units because `w5probe` and
 
 **Grading tiers, stated precisely rather than claimed:** palette and LUT reach
 Tier 2 (three producers, three sabotages caught). The index page is **Tier 1**.
-Alias 8's premise — that `farmalloc` returns offset 4 — is **Tier 0**.
+Alias 8's premise -- that `farmalloc` returns offset 4 -- is **Tier 0**.
 
 **Two new XFAILs, both genuinely open:** `SRVMAX` is a literal, so above
 ~71,583 cpms the estimator still ratchets; and no game call site drives the
@@ -712,32 +713,32 @@ fix the pattern. The next wave that touches the harness must re-audit every
 comparison for "could this record differ between a working and a broken
 mechanism?"
 
-### Wave 5c — harness audit (INSTRUMENT BUILT, HARNESS NOT CLEANED)
+### Wave 5c -- harness audit (INSTRUMENT BUILT, HARNESS NOT CLEANED)
 
 **The class is now measurable rather than eliminated, and that is the honest
 summary.** `tests/w5audit.py` runs inside the suite and does not read variable
 names: it inlines single-assignment locals and module constants, atomises the
-remainder keyed by source text — so two spellings of the same call become one
-atom — then **executes** each check condition over 300 random assignments drawn
+remainder keyed by source text -- so two spellings of the same call become one
+atom -- then **executes** each check condition over 300 random assignments drawn
 from a spread containing every integer literal in the condition ±1.
 
 Three rules: always-true; one side's atoms strictly containing the other's with
 the predicate insensitive to the rest; and a tally never incremented. **Rule C
-exists because rule B was evadable by spelling** — the wave wrote the evasion,
+exists because rule B was evadable by spelling** -- the wave wrote the evasion,
 ran it, watched it escape, and closed the hole.
 
 It found **four void checks in the wave's own test files**, including one in the
-very file criticising the pattern. `fb_lint` — name-based — returns zero
+very file criticising the pattern. `fb_lint` -- name-based -- returns zero
 findings on all four.
 
 **STILL LIVE, and pinned so they cannot be silently dropped:**
 
-- `fb_tick.py:406` ring sweep — **instance 3 of the original brief, unfixed**.
+- `fb_tick.py:406` ring sweep -- **instance 3 of the original brief, unfixed**.
   `start = (end-want)&M32` then `got = (end-start)&M32` recovers `want` for
   every origin. The audit detects it every run; nobody repaired it.
-- `T2.LINO.MATRIX.NULL` passes vacuously — its `gradeable` set is empty.
+- `T2.LINO.MATRIX.NULL` passes vacuously -- its `gradeable` set is empty.
 - `fb_ref.c`'s E1 pair cannot distinguish a working expander from a deleted
-  one — proven by gutting `present_expand` in a sandbox. **The audit reads
+  one -- proven by gutting `present_expand` in a sandbox. **The audit reads
   Python only, so the whole C side is outside its reach.**
 - the `inrow:` escape hatch is unverified and load-bearing: 78 of 127 GRADED
   entries rely on it alone.
@@ -747,7 +748,7 @@ findings on all four.
 **4 over-claims** and 8 ledger violations.
 
 **Decision: stop here and proceed to Wave 6.** Three waves on the buffer model
-is enough — its core decisions (one byte per unit, one flat workspace) have
+is enough -- its core decisions (one byte per unit, one flat workspace) have
 never been in dispute and are triple-corroborated. What remains contested is
 *grading confidence in the harness*, which is now quantified and ratcheted
 rather than unknown. Wave 6 builds its own grading and is subject to
@@ -756,7 +757,7 @@ imperfect.
 
 ### Census
 Noctis IV has 20 multiply sites, 5 that matter, and only 2 distinct algorithms
-need a full 64-bit product â€” both now ported. Six of nine builds use the stock
+need a full 64-bit product -- both now ported. Six of nine builds use the stock
 compiler and stock pack. **`*%` is a contribution, not a dependency.**
 
 ---
@@ -778,11 +779,11 @@ campaigns, and the full suite are optional deep/release work, never prerequisite
 for ordinary progress. The active target is a playable port in roughly half a
 working week, so testing and process together stay near 10% of elapsed effort.
 
-## Oracle trust â€” read before using any reference
+## Oracle trust -- read before using any reference
 
 **`noctis-iv-lr` is NOT ground truth everywhere.** Its README lists planetary
 surface generation as unfinished, and its changelog deliberately excludes
-assembly-to-C++ translation artifacts â€” so its silence never implied
+assembly-to-C++ translation artifacts -- so its silence never implied
 correctness. Confirmed divergences from vanilla:
 
 | Where | Divergence | Consequence |
@@ -799,7 +800,7 @@ valid stand-in *for generation*. Do not assume that holds elsewhere.
 **Where neither is trustworthy, the DOS binary under DOSBox is the only
 reference.**
 
-## Wave 2 â€” the two geometry unknowns (SETTLED)
+## Wave 2 -- the two geometry unknowns (SETTLED)
 
 Both answered by static analysis of the shipped `NOCTIS.EXE`. Full evidence
 chain in `docs-notes/WAVE2_ANSWERS.md`; pinned by `tests/test_wave2.py`.
@@ -831,12 +832,12 @@ answer rests on **two** genuinely independent routes, not three. The asymmetry
 is encoded in the test rather than hidden.
 
 Note: `NOCTIS.EXE` is a **large-model** build using far calls. Any independent
-re-derivation needs the segment mapping â€” near-call assumptions find nothing.
+re-derivation needs the segment mapping -- near-call assumptions find nothing.
 
-## Floating point â€” sharper than first framed
+## Floating point -- sharper than first framed
 
 The earlier rule (make quantisation points exact, tolerate the rest) holds, but
-the worst cases are not comparisons â€” **they are seeds**. `global_surface_seed`
+the worst cases are not comparisons -- **they are seeds**. `global_surface_seed`
 is a double sum times 4112 truncated to long; `seedval` is a product of up to
 six doubles. One ULP changes the truncated seed and you do not get a slightly
 different planet, you get a **different planet**. No tolerance exists there.
@@ -844,20 +845,20 @@ different planet, you get a **different planet**. No tolerance exists there.
 Vanilla was built `-f287`: x87 with 80-bit intermediates. Whether lino can be
 made to match that is the single highest-leverage open question.
 
-## Floating point â€” the precision ladder, and why lino loses
+## Floating point -- the precision ladder, and why lino loses
 
 **The original's FPU state is known exactly.** Control word `0x133F`, read out of
 the shipped `NOCTIS.EXE` by parsing the MZ header and the Borland C0 startup:
 precision control = **64-bit extended (80-bit)**, rounding = **nearest-even**,
-all exceptions masked. It links `fp87.lib`, not the emulator â€” hardware FPU.
+all exceptions masked. It links `fp87.lib`, not the emulator -- hardware FPU.
 
 **The ladder, worst news first:**
 
 | | precision held |
 |---|---|
-| original (DOS, x87) | **80 bits across whole expressions** â€” asm chains keep values on the x87 stack over many operations with no store |
+| original (DOS, x87) | **80 bits across whole expressions** -- asm chains keep values on the x87 stack over many operations with no store |
 | noctis-iv-lr (SSE2) | 53 bits per operation |
-| **L.in.oleum** | **24 bits per operation** â€” narrows after *every single instruction* |
+| **L.in.oleum** | **24 bits per operation** -- narrows after *every single instruction* |
 
 The earlier hypothesis that lino might sit closer to the original than LR does
 is not merely wrong, it is wrong by the largest possible margin. lino's native
@@ -870,12 +871,12 @@ planet*, not a nearby one. At 24 bits versus 80, divergence is certain, not
 possible. There is no tolerance to set.
 
 **Therefore, for generation code: integer reduction first, soft-float second.**
-Do not attempt to emulate the original's float chains â€” reduce the arithmetic
+Do not attempt to emulate the original's float chains -- reduce the arithmetic
 to exact integer operations wherever the algebra permits, and fall back to a
 soft-float double only where it does not. Rendering keeps native floats; a
 quarter-pixel is invisible.
 
-**One piece of free good news.** The original has *two* floatâ†’int behaviours:
+**One piece of free good news.** The original has *two* float->int behaviours:
 C casts truncate (Borland's `__ftol` flips to chop and back), but **38
 hand-written `fistp` sites round to nearest-even** because the rounding control
 stays at 00. Those are the projection and texture-mapper sites. Under a
@@ -884,7 +885,7 @@ explicit correction helper is needed only at the C-cast sites. That also means
 LR's half-away-from-zero `round()` is LR's bug, not something we inherit.
 
 **A decoy that will mislead any audit.** `PITAGORA.H` contains a
-`_control87(RC_CHOP, MCW_RC)` call that **never executes** â€” Noctis includes
+`_control87(RC_CHOP, MCW_RC)` call that **never executes** -- Noctis includes
 `tdpolygs.h` and never `pitagora.h`. The same trap is preserved in LR's `Old/`
 tree. Anyone checking for control-word handling finds it first and concludes
 the original ran in chop mode. It did not.
@@ -895,11 +896,11 @@ deliberately narrowed mid-expression (`nearstar_ray` is `float` but feeds
 `double` math). Preserve the narrowings; do not optimise them away.
 
 **Outstanding:** the full quantisation-site registry was produced by the recon
-but survives only in its transcript. Rebuilding it â€” every floatâ†’int cast and
-every float comparison that selects a branch, with file:line â€” is a task for
+but survives only in its transcript. Rebuilding it -- every float->int cast and
+every float comparison that selects a branch, with file:line -- is a task for
 the float wave, not something to reconstruct from memory.
 
-## x87 is not optional â€” settled by the data
+## x87 is not optional -- settled by the data
 
 The starmap harness proved the catalogue's stored doubles decode bit-exactly
 **only under 80-bit x87**: 4194/4194 records, against 2315/4194 with IEEE
@@ -908,17 +909,17 @@ writer, and it matches the shipped compiler config `-ml -3 -f287`.
 
 So extended precision is required to read the shipped data correctly, not
 merely to match the original's flavour. Whether lino can be made to run at
-64-bit precision â€” via the x87 control word, legally settable from an ML
-fragment â€” is the highest-leverage open question in the project.
+64-bit precision -- via the x87 control word, legally settable from an ML
+fragment -- is the highest-leverage open question in the project.
 
 Two catalogue records are malformed and must be **rejected, not zeroed**:
-`#3876 WESTOS` is âˆ’0.0, `#34754 MDIR 17` is a byte-reversed NaN.
+`#3876 WESTOS` is -0.0, `#34754 MDIR 17` is a byte-reversed NaN.
 
-## Corrections to earlier claims â€” do not re-introduce
+## Corrections to earlier claims -- do not re-introduce
 
 | Claimed | Actually |
 |---|---|
-| `GLOBES.MAP` is int16 records | **int8 (y,x) pairs.** The int16 reading is an artifact of a constant y byte in the high position; the code sign-extends 8â†’16. Texture stride 360, not 256. |
+| `GLOBES.MAP` is int16 records | **int8 (y,x) pairs.** The int16 reading is an artifact of a constant y byte in the high position; the code sign-extends 8->16. Texture stride 360, not 256. |
 | `CURRENT.BIN` is 245 bytes | 245 is only the documented first block. Real size **370** (stock/LR), **381** (NIV+). |
 | `SURFACE.BIN` is 45 bytes | 45 stock/LR, **40** in NIV+. Not interchangeable. |
 | the `pwr` +15000 bias is a harmless legacy | **Live threshold in ~12 places.** Store power unbiased and the ship reads as permanently dead. |
@@ -930,16 +931,16 @@ Two catalogue records are malformed and must be **rejected, not zeroed**:
 - **No `SEEK_END`.** `[File Position]` is absolute-from-start only; negative is
   a hard error. Noctis seeks from the end throughout, so every such read needs
   `TEST` first to learn the size, then an explicit subtraction.
-- **Short reads are silent.** A partial read is not an error â€” `[Block Size]`
+- **Short reads are silent.** A partial read is not an error -- `[Block Size]`
   is quietly corrected to what was actually read, and does not survive the
   isocall. Check it after every read.
 - **CWD is not the executable's directory.** The runtime passes names straight
   to `open()`. Noctis handles this by parsing `argv[0]` and `chdir`-ing; do the
   equivalent with `SET DIR` before touching any asset.
-- **No open/close** â€” each I/O is a complete transaction.
+- **No open/close** -- each I/O is a complete transaction.
 
 **Ship assets as plain files, not via the stockfile.** The stockfile is
-read-only, cannot report a member's size at runtime, forces â‰¤8-character
+read-only, cannot report a member's size at runtime, forces <=8-character
 lowercase names, and requires a recompile per asset edit. The plain-file path
 is needed anyway for saves and catalogue appends, and one I/O path beats two.
 Both reference ports moved assets out of the executable independently.
@@ -958,46 +959,46 @@ integrated executable, so neither is a runtime-bundle dependency.
 
 Do **not** port: the seven `.VOC` files (zero references in either tree),
 `ALPHABET.NCC` / `EXT-VHCL.NCC` / `FACE.NCC` / `PARATIE.NCC` (never loaded),
-`TEXT3D.H` (not in the build). Only three models are ever loaded â€” VEHICLE (the
+`TEXT3D.H` (not in the build). Only three models are ever loaded -- VEHICLE (the
 stardrifter), MAMMAL, BIRDY.
 
 **`.NCC` trap:** triangles carry uninitialised garbage in their unused fourth
 vertex slot, some decoding near 1e38. The loader zeroes it *before* the
 transform pass; skip that and the transform produces infinities.
 
-## Runtime feasibility â€” measured, not estimated
+## Runtime feasibility -- measured, not estimated
 
 The platform is not the constraint. All figures below were measured with probe
 programs built and run on this machine.
 
 | Facility | Result |
 |---|---|
-| clear + palette-expand + RETRACE, 320Ã—200 | **0.799 ms â€” 1.5% of a 55 ms tick** |
+| clear + palette-expand + RETRACE, 320x200 | **0.799 ms -- 1.5% of a 55 ms tick** |
 | unthrottled frame rate | 785 fps (RETRACE does not block on vsync) |
-| median tick, busy-wait on the HPT | **55.0000 ms**; p90 within 0.1 Âµs |
+| median tick, busy-wait on the HPT | **55.0000 ms**; p90 within 0.1 us |
 | timer resolution | 111 ns (TSC/256, ~9000 counts/ms) |
-| `SLEEP` as a tick source | **useless** â€” 62.75 ms for a 55 ms request |
+| `SLEEP` as a tick source | **useless** -- 62.75 ms for a 55 ms request |
 | workspace growth | 1 GB allocation succeeded |
-| exclusive 320Ã—200 | real mode switch, closest thing to mode 13h |
+| exclusive 320x200 | real mode switch, closest thing to mode 13h |
 
 **Implications.** ~54 ms of every tick is free for the renderer. Palette
 animation costs a full re-expand each time (0.10 ms) since there is no palette
-hardware â€” affordable hundreds of times per tick. Memory is a non-issue: the
+hardware -- affordable hundreds of times per tick. Memory is a non-issue: the
 entire working set is ~643 KB, ~2.5 MB even at one byte per 32-bit unit.
 
 Two refinements to build in from the start: target the true DOS period of
 **54.9254 ms** (65536/1193182 s), not 55; and accumulate the deadline rather
 than re-basing each tick, which removes a measured +0.057 ms/tick drift.
 
-**Input is better than LR's.** The LUCK table gives true held-key state â€” 1
-while physically down, 0 on release â€” which is the direct equivalent of the DOS
+**Input is better than LR's.** The LUCK table gives true held-key state -- 1
+while physically down, 0 on release -- which is the direct equivalent of the DOS
 BIOS key-down table Noctis used and which LR had to reconstruct from polling.
 98 keys, arbitrary combinations, no repeat. `GET CONSOLE INPUT` is a separate
 ASCII FIFO, right for command letters and name entry, useless for flight.
 Events are drained at the top of every isocall, so a frame that makes no
 isocall stops responding.
 
-**MIDI: SETTLED â€” the game never played music.** The soundtrack is the
+**MIDI: SETTLED -- the game never played music.** The soundtrack is the
 background music of the HTML *manual*, via a `<bgsound>` tag that only Internet
 Explorer honoured. Ryan Bury's credit enumerates it among manual assets ("this
 manual, its non-screenshot graphics, and *its* soundtrack"), and NIV+ 2.4
@@ -1008,7 +1009,7 @@ Noctis IV CE, NIV+ 2.3 and 2.4): **none ever set a `mididevice`, and none ever
 placed a MIDI file near `modules/` or `data/`.** `NOCTIS.EXE` has no sound-card
 port I/O and no audio filenames; `GO!.EXE` is a 4.6 KB ShellExecute shim; the
 PC-speaker routines live only in a header included solely by the model editor
-and are never called. `niv-lr` did not drop audio â€” across 302 commits it never
+and are never called. `niv-lr` did not drop audio -- across 302 commits it never
 mentions it. There was never any to drop.
 
 The VOGONS thread that suggested otherwise says the opposite on a closer read:
@@ -1016,7 +1017,7 @@ the same poster wrote "there is no sound, so I didn't worry about those
 settings". The Linux crash is a DOSBox ALSA bug independent of the guest.
 
 **Consequence for fidelity:** silence remains the faithful original ship state
-â€” it is what the original, every distribution, `niv-lr` and the Windows port
+-- it is what the original, every distribution, `niv-lr` and the Windows port
 all shipped. The completed port keeps that state available through a music off
 control.
 
@@ -1026,12 +1027,12 @@ it offline, ship as PCM, and loop it through the working audio path. A free win:
 lino's stereo-16 packing (channel 1 low half, channel 2 high half of one unit)
 is bit-identical to interleaved S16LE, so a headerless 44100/16/stereo render
 loads straight into the workspace with no conversion. Full track ~24.6 MB,
-2.4% of the demonstrated ceiling, fits in memory â€” no disk streaming needed.
+2.4% of the demonstrated ceiling, fits in memory -- no disk streaming needed.
 Unverified: that lino assembles file bytes into units little-endian. Probe it;
 if wrong, fix it in the offline baker, not in lino.
 
-**A wavetable synth is UNNECESSARY, not infeasible** â€” correcting the earlier
-claim in both directions. ~800â€“1,200 lines of lino for output worse than a
+**A wavetable synth is UNNECESSARY, not infeasible** -- correcting the earlier
+claim in both directions. ~800-1,200 lines of lino for output worse than a
 fluidsynth render, on content that never responds to game state. Justified only
 if someone later wants music that reacts to gameplay, which is a new feature
 rather than a port requirement.
@@ -1043,11 +1044,11 @@ not an invented licence text; preserve the original credit and source asset in
 any distributable manifest.
 
 **VOC effects.** One loop buffer with a live playback cursor
-â€” write ahead of the cursor each tick with all effects summed. A software
-mixer, ~300â€“500 lines, ordinary work. There is no MIDI interface in the comm
+-- write ahead of the cursor each tick with all effects summed. A software
+mixer, ~300-500 lines, ordinary work. There is no MIDI interface in the comm
 area at all; the soundtrack would require writing a General-MIDI softsynth.
 **MIDI is the only genuinely infeasible item in the entire port.** Audio is
-also Win32-only â€” the Linux runtime's PCM layer is a stub.
+also Win32-only -- the Linux runtime's PCM layer is a stub.
 
 **Window close is reconciled.** ESC, iGUI's red close button, and Alt+F4 all
 return from `Enter Integrated GUI`, then write the versioned checkpoint and
@@ -1065,12 +1066,12 @@ because neighbouring bytes were harmless. LR had to inflate two buffers purely
 as guard bands for out-of-bounds writes present in the original source.
 
 None of this translates mechanically. **Every buffer needs an explicit
-decision** â€” one item per unit (4Ã— memory, simple, fast, and now trivially
+decision** -- one item per unit (4x memory, simple, fast, and now trivially
 affordable) or packed four-per-unit with shift/mask on every access. Every
 aliasing relationship and every out-of-bounds write the DOS layout silently
 absorbed must be found and made explicit.
 
-Laborious, not infeasible â€” but it touches essentially every rendering
+Laborious, not infeasible -- but it touches essentially every rendering
 function, and it is where the bugs will live. **Default to one item per unit**
 unless a specific buffer proves it needs packing; memory is free here and
 correctness is not.
@@ -1083,7 +1084,7 @@ correctness is not.
 - `[Counts]` wraps every ~477 s, but unsigned subtraction across the wrap still
   gives the correct delta.
 
-## Sphere rendering â€” the table is a formula
+## Sphere rendering -- the table is a formula
 
 `GLOBES.MAP` is not opaque data. Its geometry was recovered by fitting, with
 **RMS residual 0.47 px over all 10,780 records**:
@@ -1097,20 +1098,20 @@ dx = 250.84 * cos(psi)*sin(lambda) / (D - cos(psi)*cos(lambda))
 dy = 200.68 * sin(psi)             / (D - cos(psi)*cos(lambda))
 ```
 
-The constants are round numbers â€” `Fy ~ 200` is the engine's own focal length,
+The constants are round numbers -- `Fy ~ 200` is the engine's own focal length,
 `Fx/Fy = 1.250` is the 320x200-on-4:3 pixel aspect, `D = 2.5`. This is the
 original derivation recovered, not a curve fit. A port may regenerate the table
 rather than ship it, though shipping is safer for bit-exactness.
 
-**CORRECTED by Wave 6b — the earlier "correction" was wrong.** Total advance is
+**CORRECTED by Wave 6b -- the earlier "correction" was wrong.** Total advance is
 **42,845**, not 43,200: 10,780 draws plus 513 skips, decoded twice and
 cross-checked. The data-formats recon originally reported 42,845; the renderer
 recon "corrected" it to 43,200 and I propagated that into this file. The
-original was right. The latitude-range consequence survives — only about 120 of
+original was right. The latitude-range consequence survives -- only about 120 of
 the 180 texture rows are ever displayed.
 
 **Also corrected:** `pixels + skip == 360` is **NOT an invariant** of
-OFFSETS.MAP — it holds for 39 of 48 bands. What *is* invariant, and is checked
+OFFSETS.MAP -- it holds for 39 of 48 bands. What *is* invariant, and is checked
 instead: band k starts on source row k+2, and the widths and phases are
 palindromic.
 
@@ -1121,7 +1122,7 @@ file's constants measure **0.7647** per record; an independent re-fit gives
 **The Wave 6a cross-validation came out NEGATIVE, and that is a real finding.**
 Substituting the projection's dpp = 210 collapses the fit from 10,780 records
 to 176. The sphere table's focal length is a **baked asset constant, not the
-camera's** — the two subsystems do not share a projection. Now a standing
+camera's** -- the two subsystems do not share a projection. Now a standing
 check.
 
 **Traps:**
@@ -1135,7 +1136,7 @@ check.
 - **`globe()`'s parameter is named `offsetsmap`, but every caller passes the
   globes map.** The offsets map goes only to `background()`. Easy to wire a
   port backwards.
-- **The 32,768-byte buffer is triple-purposed** â€” globe table, sea/horizon
+- **The 32,768-byte buffer is triple-purposed** -- globe table, sea/horizon
   texture, and the 32x36 pilot font aliased at its tail. The ground renderer
   overwrites it, which is why the maps are reloaded on leaving a planet. **Use
   separate buffers.**
@@ -1149,17 +1150,17 @@ Populated by the architect once the five recons report.
 
 Strong candidate for **Wave 1**, from the planet-generation recon: port
 `brtl_rand` / `brtl_random` / `brtl_srand`, Borland's LCG, and prove it
-**exhaustively** â€” `brtl_srand` takes a `uint16_t`, so all 65,536 seeds at a
+**exhaustively** -- `brtl_srand` takes a `uint16_t`, so all 65,536 seeds at a
 fixed draw depth is a complete proof rather than a sample. Zero floating point,
-needs no `*%` (the multiply is 32Ã—32â†’32 low half only), and it gates 346
+needs no `*%` (the multiply is 32x32->32 low half only), and it gates 346
 `random()` call sites. Nothing downstream can be verified until it is exact.
 
 Then, before any geometry: the **DOSBox evaluation-order experiment** to settle
 the two unknowns above.
 
-- [ ] **Wave 1** â€” pending architect
-- [ ] **Wave 2** â€” pending architect
-- [ ] **Wave 3** â€” pending architect
+- [ ] **Wave 1** -- pending architect
+- [ ] **Wave 2** -- pending architect
+- [ ] **Wave 3** -- pending architect
 
 ### Reconnaissance in flight
 
@@ -1169,7 +1170,7 @@ the two unknowns above.
 | Planet generation | `prepare_nearstar`, the Borland LCG, surface terrain, where LR is an unreliable oracle |
 | Floating point | what lino's float support actually is, and where bit-exactness is achievable |
 | Data formats | `SUPPORTS.NCT`, `.NCC` models, the map tables, saves, and how they map onto lino's stockfile |
-| Runtime gaps | framebuffer, 18.2 Hz tick, input, audio, memory â€” can this be a playable game at all |
+| Runtime gaps | framebuffer, 18.2 Hz tick, input, audio, memory -- can this be a playable game at all |
 
 ---
 
@@ -1190,9 +1191,9 @@ Soft-float is the escape hatch that makes this safe to defer: exact 64-bit
 integer arithmetic in lino is already proven, so a deterministic double is
 buildable whenever we need one.
 
-**The rule that actually matters.** Smooth float differences are cosmetic â€” a
+**The rule that actually matters.** Smooth float differences are cosmetic -- a
 planet a hair's width off looks identical. The failures that matter are where a
-float is **truncated or compared into a discrete decision**: floatâ†’int casts,
+float is **truncated or compared into a discrete decision**: float->int casts,
 comparisons that select a branch, anything feeding an array index or a shift
 count. The known example is `rarity_factor`, where `sqrt` feeds a truncation to
 `int16` that becomes a shift count and flips a star in or out of existence.
@@ -1211,7 +1212,7 @@ quantisation -> ALWAYS exact, whichever policy is active
 ```
 
 **The registry.** `FLOATPOLICY.md` (to be written from the float recon) lists
-every float site with its classification â€” exact-required or tolerant â€” so
+every float site with its classification -- exact-required or tolerant -- so
 "what matters" is version-controlled rather than remembered. Changing a
 classification and rebuilding is the intended edit; the harness then reports
 whether it changed any output.
@@ -1222,18 +1223,18 @@ to exact is a measurement rather than a leap of faith.
 
 ## Known hazards
 
-- **`"variables"` vs `"workspace"`** â€” in `variables`, `name = N;` initialises a
+- **`"variables"` vs `"workspace"`** -- in `variables`, `name = N;` initialises a
   variable to N; in `workspace` it allocates an *uninitialised vector of N units*
   and the name is its address. `foo = 0;` in `workspace` allocates nothing, top of
   workspace never advances, and every symbol collapses onto the same cell. No
   error, no warning, uniformly wrong values.
-- **Self-hosting trap** â€” `lino_build.ps1` clears the output path before
+- **Self-hosting trap** -- `lino_build.ps1` clears the output path before
   building. Compiling a compiler with itself deletes the compiler mid-build.
   Build under a different name.
 - **Floating point is the next real unknown.** The original ran x87 with 80-bit
   intermediates; LR uses SSE2 doubles; lino has its own float instructions.
   Bit-exactness will not be available everywhere. The hazards are not smooth
-  differences â€” they are float results that get truncated or compared into
+  differences -- they are float results that get truncated or compared into
   discrete decisions, such as `sqrt` feeding a truncation that becomes a shift
   count and makes a star blink in or out.
 - **LR is not a trustworthy oracle everywhere.** Planetary surface generation is

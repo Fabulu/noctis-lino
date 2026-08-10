@@ -11,7 +11,8 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  test:
+    name: Gameplay regression
     runs-on: windows-latest
 
     steps:
@@ -52,6 +53,15 @@ jobs:
         env:
           NOCTIS_REFERENCE_ROOT: ${{ github.workspace }}\_reference\noctis-plus\source
         run: python tests\test_vhgame.py
+
+  package:
+    name: Windows package
+    needs: test
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out the port
+        uses: actions/checkout@v4
 
       # The historical GUI-subsystem compiler exits in GitHub's noninteractive
       # Windows service session. Source is built locally before committing the

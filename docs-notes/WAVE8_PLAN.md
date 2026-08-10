@@ -1,4 +1,4 @@
-# Wave 8 — the game: main loop, navigation, saves, console
+# Wave 8 -- the game: main loop, navigation, saves, console
 
 Architect's consolidation of the three Wave 8 recons (main loop + flight; saves + starmap;
 console + namespace). Written 2026-08-07. The recon transcripts are gone; the load-bearing
@@ -13,30 +13,30 @@ save. One do-while main loop (NOCTIS.CPP:2268-4485), 22 phases per iteration. ES
 gated by 4-clause continuation. Navigation via `isthere` (80-bit x87 window match). Saves via
 CURRENT.BIN (381-byte NIV+) round-trip. Console via native GOES commands (CLR/DL/ST/PAR/naming).
 
-## Task 0 — namespace refactor (FIRST, unblocks composition)
+## Task 0 -- namespace refactor (FIRST, unblocks composition)
 
 L.in.oleum has no linker namespacing. Today each wave links one collider per family; Wave 8
 links them ALL. The exact collisions (verified by identifier-intersection):
 
-**Family 1 — `SHfirst`/`SHn` (fbpal vs supal):** ONLY these 2 collide (supal already prefixes
+**Family 1 -- `SHfirst`/`SHn` (fbpal vs supal):** ONLY these 2 collide (supal already prefixes
 its shade state SF*; shade() routines are already PAL shade / SU shade). Fix: fbpal→FBSHfirst/
 FBSHn; supal→SUSHfirst/SUSHn.
 
-**Family 2 — `OPEND`+`CR*` corpus-reader (subuf vs spmem vs pgmem — 3-way):** Each ships an
+**Family 2 -- `OPEND`+`CR*` corpus-reader (subuf vs spmem vs pgmem -- 3-way):** Each ships an
 identical-shape reader. Fix: subuf→SU (SUOPEND/SUCR*/"SU CR *"); spmem→SP; pgmem→PG.
 
-**Family 3 — `SD*`/`CS*`/`CORPUSMAX`/`TOKMAX` (cross-library):** The DANGEROUS one — CORPUSMAX
+**Family 3 -- `SD*`/`CS*`/`CORPUSMAX`/`TOKMAX` (cross-library):** The DANGEROUS one -- CORPUSMAX
 and TOKMAX have DIFFERENT VALUES in spmem vs pgmem (120000 vs 200000; 400000 vs 60000). This is
 silent link-order-dependent corruption. Fix: prefix per library (SPCORPUSMAX/PGCORPUSMAX etc.).
 
 Callers to update: ~50 files (fbpal-family, sumain+subrk*main, spmain, pgmain+pgbrk*main+
 fragpage). The build LOUDLY catches any missed reference (unlike the silent CORPUSMAX/TOKMAX bug).
 
-## Task 1 — main loop + flight + nav + input (impl A)
+## Task 1 -- main loop + flight + nav + input (impl A)
 
 The 22-phase do-while. Key elements:
 - `dzat_x/y/z` as **double** (24-bit float can't represent ~3.8e6; ULP=0.25). Plus the
-  landing roundtrip degradation (float backup_dzat_x, deliberate — preserve not optimise).
+  landing roundtrip degradation (float backup_dzat_x, deliberate -- preserve not optimise).
 - Vimana/approach coefficient integrator (low-pass filter on l_dsd, 5 phases each).
 - `pwr` signed 16-bit with +15000 bias (live threshold ~15 sites). `charge` signed (<0=OMEGA).
 - Input: ASCII FIFO + extended codes mapped to lino's LUCK held-key table.
@@ -45,11 +45,11 @@ The 22-phase do-while. Key elements:
   `search_id_code`'s window, `nearstar_identity`, `ap_target_id == nearstar_identity`.
 - Smooth motion (vimana integrator) tolerant vs C oracle. **No LR divergence in flight** (confirmed).
 
-## Task 2 — saves + starmap + console (impl B)
+## Task 2 -- saves + starmap + console (impl B)
 
 - **CURRENT.BIN 381-byte NIV+ R2.3**: 245-byte stock prefix (the `&sync` block, field-by-field
   in recon #2) + 136-byte NIV+ extension. `freeze()`/`unfreeze()` with **hidden evolution**
-  (lithium recharge, consumi supplementari, OMEGA-in-recharge trap — replicate verbatim).
+  (lithium recharge, consumi supplementari, OMEGA-in-recharge trap -- replicate verbatim).
 - **SURFACE.BIN 40-byte** (the >>14 atl_x/z quotient + remainders, write-once 8192).
 - **STARMAP.BIN**: 1,202,500 bytes, 37,578 × 32-byte records. Append (seek END, tombstones
   skipped). The two malformed records (#3876 WESTOS=-0.0, #34754 MDIR 17=byte-reversed NaN)

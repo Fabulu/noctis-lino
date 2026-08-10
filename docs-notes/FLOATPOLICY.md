@@ -1,4 +1,4 @@
-# FLOATPOLICY — how floating point is done, per subsystem
+# FLOATPOLICY -- how floating point is done, per subsystem
 
 Wave 3's settled answer, written down 2026-08-05 after the implementers, the
 adversarial review and the QA pass. Everything below is a decision plus the
@@ -14,15 +14,15 @@ that test fails and names the battery.
 
 ## 0. The one-paragraph version
 
-Generation arithmetic — anything that becomes a seed — is done on the x87
+Generation arithmetic -- anything that becomes a seed -- is done on the x87
 register stack at **control word 133Fh** (64-bit precision, round to nearest
 even, all exceptions masked), with the intermediates **never stored** across
 an expression. The control word is **stated at every boundary**, never
 inherited. Rendering is not held to that: it goes through the same engine but
 its errors are cosmetic and it is graded against a hardware reference rather
 than against the 1996 catalogue. At the **float-to-int cast boundary** the
-original **chops the live 80-bit `st(0)`** — settled by Wave 6 out of the
-shipped `NOCTIS.EXE` (§3.3), after Wave 3 left it open — but the code
+original **chops the live 80-bit `st(0)`** -- settled by Wave 6 out of the
+shipped `NOCTIS.EXE` (§3.3), after Wave 3 left it open -- but the code
 generator still cannot express that, so a conversion must be a hand-checked
 fragment and never a generated chain.
 
@@ -32,9 +32,9 @@ fragment and never a generated chain.
 
 | engine | significand per operation | held across an expression? |
 |---|---|---|
-| original, DOS x87, `fp87.lib` | 64 bits (PC=64) | **yes** — asm chains keep values in `st(0)` over many ops with no intervening store |
-| noctis-iv-lr, SSE2 | 53 bits | no — every op narrows |
-| L.in.oleum native `++ -- ** //` | 24 bits | no — narrows after **every** instruction |
+| original, DOS x87, `fp87.lib` | 64 bits (PC=64) | **yes** -- asm chains keep values in `st(0)` over many ops with no intervening store |
+| noctis-iv-lr, SSE2 | 53 bits | no -- every op narrows |
+| L.in.oleum native `++ -- ** //` | 24 bits | no -- narrows after **every** instruction |
 
 Noctis's star identity is not a number, it is a seed:
 
@@ -51,7 +51,7 @@ count and never a distance.
 
 | how the chain is evaluated | reproduces the 1996 bits |
 |---|---|
-| 64 bits, unspilled, RC=nearest — **the policy** | **4113 / 4113** |
+| 64 bits, unspilled, RC=nearest -- **the policy** | **4113 / 4113** |
 | 53 bits (any IEEE-double engine) | 2239 / 4113 = 54.4% |
 | 24 bits (L.in.oleum's own float instructions) | **4 / 4113 = 0.10%** |
 | 64 bits but RC=chop | 2048 / 4113 |
@@ -73,10 +73,10 @@ place in this port where "did we get the floating point right" has an answer
 that predates the question, produced by a machine we do not have and a
 compiler we are not running.
 
-**Why 4113 and not 4194 — rule 1, no choice.** A galaxy sweep at K=64 matches
+**Why 4113 and not 4194 -- rule 1, no choice.** A galaxy sweep at K=64 matches
 4194 catalogue records inside the ±1e-5 acceptance window. 81 of those have
 **more than one** candidate coordinate triple. A record with two candidates can
-be scored by whichever candidate happens to reproduce it — which measures the
+be scored by whichever candidate happens to reproduce it -- which measures the
 chooser, not the arithmetic. The QA pass found exactly that had happened: six
 rows of `work/fp/fpstarin.bin` had been substituted from
 `starmap_verify.py`, whose selection rule is literally "keep the candidate
@@ -92,8 +92,8 @@ binary64 of the same exact integer product, so its residue `|P − N| / |P|` is
 a few double ULPs. Measured over the believed population: **median 2⁻⁵⁴·⁵,
 worst 2⁻⁴²·⁶, and then nothing.**
 
-At K=64 nothing exceeds that. At K=96 exactly one record does — **#25015
-'L4 LEG 5A', residue 2⁻²⁹·⁴**, thirteen binades outside the population — and
+At K=64 nothing exceeds that. At K=96 exactly one record does -- **#25015
+'L4 LEG 5A', residue 2⁻²⁹·⁴**, thirteen binades outside the population -- and
 no hypothesis in the whole ladder reproduces it: not 64, 53 or 24 bits,
 neither rounding mode, no spill point, not the lookup formula. It is a
 different star that landed inside the window. The test therefore pairs on the
@@ -117,13 +117,13 @@ unexamined, and reads the expected bits out of the catalogue.
 
 **What the oracle can and cannot resolve.** Measured, not assumed:
 
-* precision class — 64 vs 53 vs 24 bits: **decisive** (4113 vs 2239 vs 4).
+* precision class -- 64 vs 53 vs 24 bits: **decisive** (4113 vs 2239 vs 4).
 * spilled vs unspilled: **decisive** (4113 vs 3043).
 * one ULP of the **final binary64**: **decisive** (0 / 4113, and none of those
   values occurs anywhere in the catalogue).
 * one binary64 ULP (extended significand bit 11) in an **intermediate**:
   caught, 341 / 4113 survive.
-* one **extended** ULP (bit 0, 2⁻⁶³) in an intermediate: **NOT caught** —
+* one **extended** ULP (bit 0, 2⁻⁶³) in an intermediate: **NOT caught** --
   4113 / 4113 survive. The graded quantity is a binary64, so a 2⁻⁶³ nudge is
   absorbed by the final rounding roughly 999 times in 1000.
 
@@ -135,7 +135,7 @@ cite "4113/4113" as bit-exactness of the intermediates.
 
 ## 3. Per-subsystem decisions
 
-### 3.1 Generation arithmetic — SETTLED, PROVEN
+### 3.1 Generation arithmetic -- SETTLED, PROVEN
 
 **Decision.** Seeds and everything feeding them are evaluated as *instruction
 schedules*, not as expressions: the schedule is transcribed from `NOCTIS.EXE`
@@ -144,7 +144,7 @@ ML fragment per chain. The running value stays in `st(0)`; the only `fstp` is
 the last one. Control word 133Fh.
 
 **Why a schedule and not an expression.** In a schedule the absence of an
-`fstp` is the absence of an `fstp` — there is nothing to re-derive. One
+`fstp` is the absence of an `fstp` -- there is nothing to re-derive. One
 spilled intermediate costs about a quarter of the catalogue, so where Borland
 did and did not store is semantics, not an optimisation detail.
 
@@ -158,7 +158,7 @@ produces a plausible wrong answer, which is worse than an error.
 **Do not** call the scalar `fpx87` routines in sequence to evaluate a
 generation expression. Each of them stores. That is battery 7 above: 2239.
 
-### 3.2 The control word — SETTLED, and it is not decoration
+### 3.2 The control word -- SETTLED, and it is not decoration
 
 **Decision.** Every boundary calls `FEnter` (save ambient, install `[FCW]`)
 and `FLeave` (put back exactly what was found). `[FCW]` defaults to
@@ -168,7 +168,7 @@ bracket; calling `FEnter` twice would make `FLeave` restore the wrong word.
 **Why it is mandatory.** Measured on this machine, reported by the probe's own
 header rather than taken from documentation:
 
-* ambient control word at programme entry on win32: **0E7Fh** — the C
+* ambient control word at programme entry on win32: **0E7Fh** -- the C
   runtime's 027Fh with **0C00h ORed in**, i.e. 53-bit precision *and rounding
   toward zero*.
 * `main/sys/win32.bin` contains exactly 8 copies of
@@ -187,19 +187,19 @@ been tested. Graphics, sound, timer and memory isocalls are untested, and
 given the 8 chop-forcing sites in `win32.bin` the question is not academic.
 
 **The decoy that misleads audits.** `PITAGORA.H` contains a
-`_control87(RC_CHOP, MCW_RC)` call that **never executes** — Noctis includes
+`_control87(RC_CHOP, MCW_RC)` call that **never executes** -- Noctis includes
 `tdpolygs.h` and never `pitagora.h`. The same trap is preserved in
 `niv-lr/src/Old/`. Anyone checking control-word handling finds it first and
 concludes the original ran in chop mode. It did not: the shipped `NOCTIS.EXE`
 carries 133Fh, read out of the MZ image and the Borland C0 startup.
 
-### 3.3 Float to int — **the ORIGINAL's behaviour is SETTLED (Wave 6); the
+### 3.3 Float to int -- **the ORIGINAL's behaviour is SETTLED (Wave 6); the
 ### ENGINE still cannot reproduce it in general**
 
 > **Changed 2026-08-05 by Wave 6.** This section previously read "UNSETTLED"
 > in both halves. One half is now closed. What the 1996 program does at a
-> cast site was read out of the shipped `NOCTIS.EXE` — see "What Wave 6
-> settled" below — and it is **chop applied to the live 80-bit `st(0)`**.
+> cast site was read out of the shipped `NOCTIS.EXE` -- see "What Wave 6
+> settled" below -- and it is **chop applied to the live 80-bit `st(0)`**.
 > What the delivered L.in.oleum engine can *express* is unchanged, so the
 > interim policy at the end of this section still stands, but it now stands
 > for a different reason: a limitation of our engine, not an unknown about
@@ -222,7 +222,7 @@ interchangeable:
 a wrong chop site is critical and a wrong near site is cosmetic.
 
 **What Wave 6 settled, and how.** Not by argument from Borland's calling
-convention — by decoding the shipped `NOCTIS.EXE`. The MZ header gives the
+convention -- by decoding the shipped `NOCTIS.EXE`. The MZ header gives the
 image base (608 paragraphs → file 9728), so `__ftol` at image `1265h` is file
 14437, and its whole body decodes to 21 instructions:
 
@@ -262,14 +262,14 @@ binary64-first moves **0.28%**.
 Nothing here changes the **37 hand-written `fistp` sites**. They inherit
 133Fh and round to nearest even; that was never the open half.
 
-**What is still not settled — and it is about our engine, not the original.**
+**What is still not settled -- and it is about our engine, not the original.**
 The engine has **no way to truncate an unstored extended value** in general.
 `FToIntChop` begins `fld qword [FA0]`, so the 80-bit intermediate is narrowed
 to binary64 *before* the truncation; and `genfp`'s `out` directive accepts
 only `f64`, so a generated chain must end in an `fstp` before any conversion.
-Wave 6's `work/geoconv.txt` closes this **per expression shape** — one
+Wave 6's `work/geoconv.txt` closes this **per expression shape** -- one
 fragment per shape that builds its value and chops it without ever storing it,
-covering the seven geometry shapes that can differ — but a general
+covering the seven geometry shapes that can differ -- but a general
 `FToIntChopExt` still cannot exist, because a value in `st(0)` cannot be
 handed between two L.in.oleum routines. On hardware the two readings differ:
 `(long)(1.0/41.0*41.0)` is **0** with the chain kept in `st(0)` and **1** with
@@ -294,7 +294,7 @@ in reason. Until `genfp` can end a chain on a live `st(0)` and refuses a bare
 refuses a non-`f64` output, and the generated `fpchains.txt` contains no
 `fistp` encoding at all. Note what that rule is now *for*: it is a guard on
 the code generator, **not** an admission that we do not know what the
-original does. We do — see above — and the two hand-written places that need
+original does. We do -- see above -- and the two hand-written places that need
 it (`nsident.txt`'s `NsIdentChop16`, Wave 4, and `work/geoconv.txt`'s
 per-shape fragments, Wave 6) implement the settled reading, chop on the live
 value. `test_geometry.py` is what keeps the settled reading honest.
@@ -304,12 +304,12 @@ is about 1e-7 per site at these magnitudes, and it does not bite at any of the
 three landmark sites on either input set (0 differences measured). It is real
 on hardware; it is simply not exercised yet.
 
-### 3.4 Rendering, projection, `F32Narrow` — PLAUSIBLE, cosmetic exposure
+### 3.4 Rendering, projection, `F32Narrow` -- PLAUSIBLE, cosmetic exposure
 
 The 16 scalar and conversion schedules match a gcc-built hardware x87
 reference on 4096/4096 vectors across all six graded columns
-(`work/fp/fprun.ps1`). Nothing external grades them — there is no 1996
-artifact for a pixel — and both references model `FToIntNear` as *forced*
+(`work/fp/fprun.ps1`). Nothing external grades them -- there is no 1996
+artifact for a pixel -- and both references model `FToIntNear` as *forced*
 nearest rather than *ambient-inherited*, so a non-nearest ambient word would
 go undetected there. The stated cost of being wrong is a quarter of a pixel.
 
@@ -319,23 +319,23 @@ around 3.8e6 a binary32 ULP is 0.25, so landing quantises the ship's position
 observably in the original. That is why ship state is carried as a double and
 narrowed at those points rather than kept in lino's native 24-bit floats.
 
-### 3.5 Backends — interchangeable through `fpabi`, with one known hole
+### 3.5 Backends -- interchangeable through `fpabi`, with one known hole
 
 `fpabi.txt` declares the register file and nothing else; `fpx87`, `fpsoft` and
 `fpnative` are compiled against it alone, so a call site never knows which is
 linked. Measured cross-checks: X87 == SOFT at 133Fh on 4194/4194 (hardware vs
 an integer soft-float that never touches the FPU); SOFT PC=64 == SOFT PC=24;
-NATIVE at RC=nearest == x87 held at PC=24 on 4194/4194 — so "24 bits per
+NATIVE at RC=nearest == x87 held at PC=24 on 4194/4194 -- so "24 bits per
 operation" is a *measurement*; and NATIVE PC=64 == NATIVE PC=24, which closes
 off "just raise the precision control" as a shortcut.
 
 **Known hole:** in `fpnative`, `FAdd/FSub/FMul/FQuo/FSqrt/FNeg/FAbs/FSin/
-FCos/FAtan2` write `FA0` only and leave `FA1` stale — only `FLoad` and
+FCos/FAtan2` write `FA0` only and leave `FA1` stale -- only `FLoad` and
 `FWiden` update it. A call site written against `fpx87` gets a garbage high
 half when relinked. Nothing currently miscomputes because `fpstarnat` calls
 `FWiden` before every store, but the ABI does not hold as written.
 
-### 3.6 Register-file layout — pinned, because it fails silently
+### 3.6 Register-file layout -- pinned, because it fails silently
 
 `fstp qword` writes eight bytes from the first unit of a pair, so `FA0/FA1`
 (and FB/FC/FD) must stay adjacent and low-half-first. Every probe checks this
@@ -350,12 +350,12 @@ check fails loudly instead of every score below becoming quietly meaningless.
 | symbol | file | contract |
 |---|---|---|
 | `FEnter` / `FLeave` | `fpctl` | save ambient CW, install `[FCW]`; restore. Mandatory at every boundary. |
-| `FLoadCW` | `fpctl` | install `[FCW]` **without** saving — for a second change inside an existing bracket. |
+| `FLoadCW` | `fpctl` | install `[FCW]` **without** saving -- for a second change inside an existing bracket. |
 | `FCWRead` / `FSWRead` / `FStackOK` | `fpctl` | read back, masked with 0F3Fh. `fnstcw` returns bit 6 set whatever was loaded, so every comparison must mask. |
 | `FCWEXT`=133Fh, `FCWDBL`=123Fh, `FCWSGL`=103Fh, `FCWEXTCHOP`=1F3Fh | `fpabi` | the four words. Only the first is the original's. |
 | `FA0/FA1 … FD0/FD1`, `FJ0..FJ3`, `FI`, `FS0` | `fpabi` | the register file. **Order is load-bearing.** |
-| generated chains (`NsIdentity`, `Prod4`, …) | `fpchains` (from `fpsched`) | one fragment each, result in `FA`, no intermediate reaches memory, control word NOT set — call `FEnter` first. |
-| `FToIntChop` / `FToIntNear` / `FToInt16*` | `fpconv` | cast sites vs the 37 hand-written sites. **See §3.3 — the original chops the LIVE 80-bit value; `FToIntChop` chops a stored binary64, so it is the right answer only where the two coincide.** |
+| generated chains (`NsIdentity`, `Prod4`, …) | `fpchains` (from `fpsched`) | one fragment each, result in `FA`, no intermediate reaches memory, control word NOT set -- call `FEnter` first. |
+| `FToIntChop` / `FToIntNear` / `FToInt16*` | `fpconv` | cast sites vs the 37 hand-written sites. **See §3.3 -- the original chops the LIVE 80-bit value; `FToIntChop` chops a stored binary64, so it is the right answer only where the two coincide.** |
 | `F32Narrow`, `FStoreF32`, `FLoadF32` | `fpconv` | the deliberate binary32 quantisations. |
 
 ---
@@ -375,13 +375,13 @@ Every run, from scratch:
    hypotheses, and reads the expected bits out of `STARMAP.BIN`. **It never
    opens `fpstarin.bin`, `fpstarexp.txt` or `fpstarout.bin`;**
 3. builds one L.in.oleum probe carrying **14 batteries** and compares every
-   value against `fpspec.py` — an exact-integer x87 sharing no arithmetic with
-   the engine — and three of them additionally against a gcc-built hardware
+   value against `fpspec.py` -- an exact-integer x87 sharing no arithmetic with
+   the engine -- and three of them additionally against a gcc-built hardware
    x87 compiled during the run;
 4. requires the exact chain to score N/N and every wrong variant to score less:
    ambient word, PC=53, PC=24, RC=chop, one spill, all spills, the lookup
    formula, a bit-11 flip, a final-ULP flip;
-5. records — and does not assert as policy — that a one-**extended**-ULP flip
+5. records -- and does not assert as policy -- that a one-**extended**-ULP flip
    is *not* caught, and that a bit-11 flip *is*, which locates the oracle's
    resolution;
 6. builds the same probe twice more against **deliberately broken engine
@@ -391,7 +391,7 @@ Every run, from scratch:
 
 Proven by breaking it: nine mutations were applied one at a time, each
 restored afterwards with its SHA-256 confirmed back, and each failed the test
-with attributable messages —
+with attributable messages --
 
 | mutation | what failed |
 |---|---|
@@ -417,7 +417,7 @@ about it.
 
 ## 6. What remains open
 
-1. **The cast boundary (§3.3) — half closed by Wave 6.** *What the original
+1. **The cast boundary (§3.3) -- half closed by Wave 6.** *What the original
    does* is settled: chop on the live 80-bit `st(0)`, read out of
    `NOCTIS.EXE` and re-derived by `tests/test_geometry.py` section 1 on every
    run. *What `genfp` can emit* is not: a generated chain still ends in an
@@ -437,5 +437,5 @@ about it.
    the grader. `fpall.ps1` also ignores the exit status of `fpgrade.py`,
    `fpbackends.py`, `fprun.ps1` and `fpbreakrun.ps1`.
 5. **Rendering has no external grader (§3.4).** Accepted: the exposure is a
-   quarter of a pixel. If that ever stops being true — a projection feeding a
-   seed, say — it needs an oracle of its own.
+   quarter of a pixel. If that ever stops being true -- a projection feeding a
+   seed, say -- it needs an oracle of its own.

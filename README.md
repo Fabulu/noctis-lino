@@ -33,7 +33,7 @@ the game automatically when the executable is absent; pass `-Build` to force a
 fresh production build. Clean saves also retain the current validated window
 dimensions, so a resized game reopens at the same size.
 
-Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, G or Enter opens GOES,
+Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E operates the Stardrifter lift while standing in its center aperture, G or Enter opens GOES,
 `NEXT` selects and flies toward a nearby generated star, L approaches and opens
 the landing-site selector at standby, arrows choose coordinates, L/Enter descends,
 R returns from the capsule, F5 opts into 60 FPS presentation (the original
@@ -64,6 +64,12 @@ The historical GUI-subsystem compiler cannot run in GitHub's noninteractive
 Windows service session, so production source builds remain a local release
 step; the exact resulting `work\vhgame.exe` is versioned for reproducible CI/CD.
 
+## Screenshots
+
+| Stardrifter interior | Planetary surface |
+|---|---|
+| ![Inside the Stardrifter](docs/screenshots/stardrifter-interior.png) | ![Exploring a generated planetary surface](docs/screenshots/planet-surface.png) |
+
 ## Project documentation
 
 - [`HISTORY.md`](HISTORY.md) is the chronological development and release story,
@@ -77,12 +83,12 @@ step; the exact resulting `work\vhgame.exe` is versioned for reproducible CI/CD.
 ## Provenance
 
 The base of this repository is an unmodified clone of
-[8l/linoleum](https://github.com/8l/linoleum) — commits `eb25dcb` and `9559333`.
+[8l/linoleum](https://github.com/8l/linoleum) -- commits `eb25dcb` and `9559333`.
 
 **No upstream file has been modified.** Every commit after `9559333` only *adds*
 files. This is deliberate: `main/lib/gen/compiler.txt` is licensed under the WTOF
 Public License, which permits consulting, keeping and freely redistributing the
-source but forbids changing it — for personal use as well as redistribution —
+source but forbids changing it -- for personal use as well as redistribution --
 without the author's authorisation. To see exactly what is ours:
 
 ```
@@ -94,7 +100,7 @@ git diff 9559333..HEAD --stat
 L.in.oleum can reproduce Noctis IV's galaxy, bit for bit.
 
 The Feltyrion galaxy has no star table. Every one of its ~78 billion stars is a
-pure hash of its sector's integer coordinates — the universe *is* that function.
+pure hash of its sector's integer coordinates -- the universe *is* that function.
 `work/galaxy.txt` ports it, and its output is byte-identical to both a C
 reference extracted from `noctis-iv-lr` and an independent arbitrary-precision
 Python implementation, across 343 sectors spanning the galactic origin.
@@ -103,7 +109,7 @@ Two details turned out to be load-bearing:
 
 - **The multiply must be signed.** Sector coordinates go negative either side of
   the centre; an unsigned product yields a different high word and therefore a
-  different galaxy — one that generates perfectly happily and matches nothing.
+  different galaxy -- one that generates perfectly happily and matches nothing.
   The fragment is `IMUL` (`F7 EB`), not `MUL` (`F7 E3`).
 - **L.in.oleum has no 64-bit multiply.** The original folds `edx:eax` back
   together (`edx += eax`) after an `imul`, and the language exposes only the low
@@ -149,7 +155,7 @@ python oracle.py                                 # independent Python, cross-che
 python compare3.py
 ```
 
-Those two repositories are deliberately **not** vendored here — they are separate
+Those two repositories are deliberately **not** vendored here -- they are separate
 upstream projects with their own licensing.
 
 ### Regression suite
@@ -169,11 +175,11 @@ what it guards and how it would fail:
 | Test | Guards |
 |---|---|
 | `test_toolchain.py` | the extended toolchain is installed, the two copies of `i386m.bin` agree, `main/` is pristine, and every wrong compiler/pack pairing refuses to build |
-| `test_galaxy.py` | `work/galaxy2.txt` (the `*%` rewrite) is bit-exact with the `{ F7 EB }` version, a freshly compiled C oracle, and two bignum Python references — plus signedness at the opcode level |
+| `test_galaxy.py` | `work/galaxy2.txt` (the `*%` rewrite) is bit-exact with the `{ F7 EB }` version, a freshly compiled C oracle, and two bignum Python references -- plus signedness at the opcode level |
 | `test_galaxy_stress.py` | the same arithmetic on coordinates the 343-sector sweep cannot reach, including the ones that make all three cutoff branches fire |
 | `test_mulsplit.py` | the `*%` contract `galaxy2.txt` cannot self-test: which half lands in which operand, signed vs unsigned, and which registers survive |
 
-Nothing is graded against a stored `.bin` — every side is rebuilt and re-run on
+Nothing is graded against a stored `.bin` -- every side is rebuilt and re-run on
 each invocation, because a stored `.bin` is exactly what goes stale unnoticed.
 Each test also builds a deliberately wrong version of its subject and requires
 it to *fail*, so a check that has quietly stopped discriminating shows up as a
@@ -188,7 +194,7 @@ Hard-won; all of these cost real debugging time.
   `name = N;` allocates an *uninitialised vector of N units* and the name is its
   **address**. So `foo = 0;` in `workspace` allocates nothing, top-of-workspace
   never advances, and every symbol silently collapses onto the same cell. No
-  error, no warning — just uniformly wrong values.
+  error, no warning -- just uniformly wrong values.
 - **Do not launch the compiler with PowerShell's `Start-Process`.** It appends a
   trailing space to the argument string, which the compiler folds into the output
   filename, giving `prog.txt .exe`. Use `ProcessStartInfo.Arguments`, which is
@@ -200,11 +206,11 @@ Hard-won; all of these cost real debugging time.
 1. **Command-line parser truncates on `--` anywhere.** `copy option` ends a
    value at any two consecutive hyphens, including inside a filesystem path,
    with no check that an option name follows. A path containing `--` silently
-   truncates and the build dies reporting `error reading cpu pack` — pointing at
+   truncates and the build dies reporting `error reading cpu pack` -- pointing at
    a component that is perfectly fine. `lino_build.ps1` refuses such paths rather
    than let you chase the phantom.
 2. **`main/linux_compiler.bin` is dead on modern systems.** Segfaults at startup,
-   before parsing arguments, in every configuration — including with no arguments
+   before parsing arguments, in every configuration -- including with no arguments
    at all.
 3. **The relative-address modifier is documented backwards.** For `<+N label>` in
    machine-language fragments the manual gives `label - pc + N`; the compiler
@@ -212,7 +218,7 @@ Hard-won; all of these cost real debugging time.
    The manual's own worked example proves the manual wrong.
 4. **The application-name field is not cleared before writing.** The compiler
    writes `strlen+1` bytes over the 40-byte field in the runtime template, so a
-   program named `mul64` ships with `mul64\0leum runtime` embedded — a shard of
+   program named `mul64` ships with `mul64\0leum runtime` embedded -- a shard of
    the template string `L.in.oleum runtime`.
 
 Documentation drift worth knowing: `readme.htm` says the CPU pack holds 6616

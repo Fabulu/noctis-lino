@@ -1,4 +1,4 @@
-# Noctis IV L.in.oleum port — 0.1.0 beta 1
+# Noctis IV L.in.oleum port -- 0.1.0 beta 1
 
 This is the first public playable Windows build of the Noctis IV L.in.oleum
 port. It is a beta: the complete core journey is playable, while extended
@@ -30,8 +30,9 @@ multi-hour hardening and some historical screens remain future work.
   either presentation mode.
 - The Stardrifter is visible from the initial frame and remains stable during
   movement.
-- The lift activates only while centered in its aperture, releases at the roof
-  and deck, and gives visible guidance when Up is pressed elsewhere.
+- The lift activates with E only while centered in its aperture. Up remains a
+  look control; walking into the roof opening starts the original automatic
+  return, and pressing E elsewhere gives visible guidance.
 - Version 11 saves retain settled capsule coordinates, and older landed saves
   migrate without stranding the player away from the pod.
 
@@ -44,7 +45,8 @@ the mutable `STARMAP.BIN`, and diagnostics in the extracted game folder.
 Useful controls:
 
 - W/A/S/D: move; right-drag or arrows: look
-- Up while centered in the Stardrifter aperture: operate lift
+- E while centered in the Stardrifter aperture: ascend; walk into the roof
+  opening to return
 - G or Enter: GOES; `NEXT`: choose/fly to a nearby star
 - L: approach, choose landing site, and descend
 - R: device back/close aboard ship; return in capsule on a surface

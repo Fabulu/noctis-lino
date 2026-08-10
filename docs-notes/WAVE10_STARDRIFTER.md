@@ -1,9 +1,9 @@
-# Wave 10 — the Stardrifter interior, the game's first screen
+# Wave 10 -- the Stardrifter interior, the game's first screen
 
 **Goal:** when the port starts, you are standing inside the Stardrifter, looking at what a
-1996 player saw. Not a planet surface, not a heightmap flyover — the actual opening view.
+1996 player saw. Not a planet surface, not a heightmap flyover -- the actual opening view.
 
-## Architect correction — read before the original brief below
+## Architect correction -- read before the original brief below
 
 The three Wave 10 recons found four load-bearing errors/omissions in the initial brief:
 
@@ -34,7 +34,7 @@ project. Part 2 is the wave.
 
 ---
 
-# PART 1 — THE PROJECT
+# PART 1 -- THE PROJECT
 
 ## What this is
 
@@ -63,7 +63,7 @@ C:\programmieren\noctis\niv-plus       reference clone: DOS sources + data - REA
 C:\programmieren\noctis\niv-lr         reference clone: the C++ de-assembly - READ ONLY
 ```
 
-`niv-plus\source\*.CPP` is the 1996 code. It is the specification — there is no other.
+`niv-plus\source\*.CPP` is the 1996 code. It is the specification -- there is no other.
 
 ## L.in.oleum in ninety seconds
 
@@ -83,14 +83,14 @@ Traps that have each cost real time:
 - **Underscores in string literals become spaces.** Use `\us`.
 - **A failing lino programme still exits 0.** Grade output files by mtime, never by exit
   code, and delete the target before every run.
-- **No path may contain `--`** — the argument parser truncates on it and then reports
+- **No path may contain `--`** -- the argument parser truncates on it and then reports
   `internal problem: invalid cpu pack`, blaming a file that is perfectly intact.
 - **A short read is not an error.** `[Block Size]` is silently corrected to what was
   actually read. Every read needs an explicit check.
 
 `docs-notes/LINOBUGS.md` has the full list, with what was fixed and what was not.
 
-## How to build and run — the only supported way
+## How to build and run -- the only supported way
 
 ```powershell
 powershell -File C:\programmieren\linoleum\lino_build.ps1 `
@@ -105,16 +105,16 @@ powershell -File C:\programmieren\linoleum\tests\w7arun.ps1 `
 
 `compiler.exe` and `compiler114m.exe` are **GUI-subsystem binaries**. Launched directly they
 open a window over the user's terminal and wait for a human. `lino_build.ps1` drives them
-non-interactively — launch, poll for artifacts, kill. Use `w7arun.ps1` rather than
+non-interactively -- launch, poll for artifacts, kill. Use `w7arun.ps1` rather than
 `linorun.ps1` for anything with a large dump: it waits for the output size to *settle*.
 
-## The verification philosophy — this is the important part
+## The verification philosophy -- this is the important part
 
 The project's standard is not "the code looks right". It is:
 
 1. **Rebuild every side, every run.** Nothing is graded against a stored `.bin`, because a
    stored `.bin` is exactly the thing that goes stale without anyone noticing.
-2. **Three-way where possible** — lino == Python spec == C reference. Two independent
+2. **Three-way where possible** -- lino == Python spec == C reference. Two independent
    transliterations plus the port.
 3. **Every check must be provably able to fail.** Each test builds deliberately broken
    variants of its own subject and requires them to fail. A check that has never been seen
@@ -124,7 +124,7 @@ The project's standard is not "the code looks right". It is:
 
 ### The failure mode this project keeps hitting
 
-**The tautological check** — a check that passes regardless of input, because it compares a
+**The tautological check** -- a check that passes regardless of input, because it compares a
 value to itself, hardcodes its own verdict, or is never folded into the result. It has
 recurred in Waves 5, 5b, 5c and 7a. The Wave 7a instance is instructive: a grader row passed
 `True` as its literal verdict while the computed comparison went only into a note string,
@@ -132,7 +132,7 @@ and the row was not ANDed into the total. It printed `10 ok 0 fail` while three 
 rows disagreed.
 
 `tests/w5audit.py` detects this mechanically by executing check conditions over 300 random
-assignments. **Its default scope does not yet include `noctis-harness/su_*.py`** — extending
+assignments. **Its default scope does not yet include `noctis-harness/su_*.py`** -- extending
 it is open work (`docs-notes/WAVE7A_REMEDIATION.md` section B).
 
 ### Oracles, and why they are scarce
@@ -144,15 +144,15 @@ translation choices. So the strongest available oracle differs per subsystem, an
 
 | wave | oracle | strength |
 |---|---|---|
-| 3, 4 | `STARMAP.BIN`, `DL.EXE` captures | strong — 1996 artifacts |
-| 7a, 7b | NIV+ Release 2.3 guest RAM captures | weaker — a fork, not 1996 |
-| 6a, 6b | three-way internal consistency | weakest — no external artifact |
+| 3, 4 | `STARMAP.BIN`, `DL.EXE` captures | strong -- 1996 artifacts |
+| 7a, 7b | NIV+ Release 2.3 guest RAM captures | weaker -- a fork, not 1996 |
+| 6a, 6b | three-way internal consistency | weakest -- no external artifact |
 
-There is **no stock 1996 `NOCTIS.EXE` on this machine** — all three copies hash
+There is **no stock 1996 `NOCTIS.EXE` on this machine** -- all three copies hash
 `5E64D532091C9BE1…`, 215,744 bytes, NIV+ Release 2.3. Never write "byte-exact" without
 saying byte-exact *against what*.
 
-## Standing rules — restate these in every prompt
+## Standing rules -- restate these in every prompt
 
 - Never launch `compiler.exe` or `compiler114m.exe` directly. Build only via `lino_build.ps1`.
 - To run a compiled lino programme, use the poll-and-kill pattern (`w7arun.ps1`).
@@ -161,7 +161,7 @@ saying byte-exact *against what*.
   License, which forbids modification without the author's authorisation. Every fix lives in
   a *copy* produced by `tools/patchcompiler.py`.
 - **Never modify the reference clones** under `C:\programmieren\noctis`.
-- **Never run git — not even `git status`.** Committing and pushing is the coordinator's job,
+- **Never run git -- not even `git status`.** Committing and pushing is the coordinator's job,
   after independent verification.
 - **Publication terms.** The repository may be published under the original WPL with
   the author's authorisation, while preserving Noctis IV's original gameplay and credits.
@@ -175,12 +175,12 @@ saying byte-exact *against what*.
 | 3 | the float engine (x87, 133Fh control word, 64-bit extended) | graded by `STARMAP.BIN` |
 | 4 | `nearstar` generation, draw accounting | graded by `DL.EXE`, 4,365 records |
 | 5 | buffer model, framebuffer, the 54.9254 ms tick | 188 checks |
-| 6a | projection, `poly3d`, `polymap` — the rasteriser | byte-exact over 64,000 pixels |
+| 6a | projection, `poly3d`, `polymap` -- the rasteriser | byte-exact over 64,000 pixels |
 | 6b | spheres, starfield, `.NCC` loading, `loadpv`, `drawpv` **dispatch** | byte-exact; **pixels deliberately out of scope** |
-| 7a | `surface()` — the orbital globe texture | three-way, 10 captures + 14 synthetics |
+| 7a | `surface()` -- the orbital globe texture | three-way, 10 captures + 14 synthetics |
 | 7b | `build_surface()`, `SURFACE.BIN`, ground terrain | 604/604 three-way |
 | 8 | the 22-phase main loop, flight, nav, saves | `CURRENT.BIN` round-trip byte-exact |
-| 9 | full-game integration driver — `work/game.txt` | runs, flies, renders |
+| 9 | full-game integration driver -- `work/game.txt` | runs, flies, renders |
 
 The suite is `python tests\run_all.py`; treat it as an explicit deep or release audit, not a
 routine gate. Ordinary Stardrifter work uses one focused smoke/regression check and a lean
@@ -192,24 +192,24 @@ registration current as a coordination convention.
 Two things a new agent will otherwise waste time rediscovering:
 
 1. **The "freeze" is not a bug.** `GM flight init` seeds the approach target to the origin,
-   so the vimana cascade flies the ship there and parks it — `MgStatus` 4 → 2, power draw
+   so the vimana cascade flies the ship there and parks it -- `MgStatus` 4 → 2, power draw
    collapses, `dzat_x` decays exponentially. Since the camera is `viewtile = dzat>>14`, a
    parked ship means a static picture. Measured: 30 fps throughout, 97% CPU, flat memory,
    ESC responsive. Nothing is hung.
 2. **The terrain texture is a procedural formula, not the planet.** `PGtexf = 1` with
    `SPsrc = 1` derives per-pixel UV from projected position; it does not sample
-   `p_surfacemap`. The *previous* commit was more faithful — `shade = surf[h1] & 31` reads
-   the real heightmap — and had a wider 17×17 grid.
+   `p_surfacemap`. The *previous* commit was more faithful -- `shade = surf[h1] & 31` reads
+   the real heightmap -- and had a wider 17×17 grid.
 
 ---
 
-# PART 2 — THE WAVE
+# PART 2 -- THE WAVE
 
 ## The target
 
-`void vehicle (float opencapcount)` — **`NOCTIS.CPP:753-1139`**, about 390 lines. This is
+`void vehicle (float opencapcount)` -- **`NOCTIS.CPP:753-1139`**, about 390 lines. This is
 the first screen. The main loop opens on its state (`NOCTIS.CPP:2268`): `pos_y`, `lifter`,
-`ontheroof`, `user_alfa`, `step` — the "terrazza panoramica", the roof of the Stardrifter.
+`ontheroof`, `user_alfa`, `step` -- the "terrazza panoramica", the roof of the Stardrifter.
 
 Player state lives in `NOCTIS-0.H:124-128`: `pos_x`, `pos_y`, `pos_z`, `user_alfa`,
 `user_beta`.
@@ -218,16 +218,16 @@ Player state lives in `NOCTIS-0.H:124-128`: `pos_x`, `pos_y`, `pos_z`, `user_alf
 
 The Stardrifter model is **not** a separate asset to hunt down:
 
-- `loadpv(vehicle_handle, vehicle_ncc, 15,15,15, 0,0,0, 0, 1)` — `NOCTIS.CPP:2180`
+- `loadpv(vehicle_handle, vehicle_ncc, 15,15,15, 0,0,0, 0, 1)` -- `NOCTIS.CPP:2180`
 - `vehicle_ncc = -35782` (`NOCTIS-D.H:107`) is a virtual position counted **back from the
   end** of `SUPPORTS.NCT`, whose length is 60,776 bytes (`off_digimap2 = -60776`). So the
-  model sits at offset **24,994**, and runs to 30,796 — **5,802 bytes**.
+  model sits at offset **24,994**, and runs to 30,796 -- **5,802 bytes**.
 - Already extracted to **`work/vehicle.ncc`**.
 - Already loaded by the port's `loadpv` and graded **bit for bit**: `tests/test_spheres.py`
   L13, "loadpv's post-scale binary32 arrays for VEHICLE".
 
 **Keep VEHICLE in any corpus you build.** Its triangles carry uninitialised garbage in the
-fourth vertex slot — 150 of 156 components non-zero, 26 exceeding 1e6, two not finite, the
+fourth vertex slot -- 150 of 156 components non-zero, 26 exceeding 1e6, two not finite, the
 largest finite one 2.99e38, one multiply from infinity. `loadpv` zeroes those slots *before*
 the scale-and-move pass; swap the order and infinities propagate through the midpoints and
 the depth sort. BIRDY cannot expose this (its garbage maxes at 20.0), so a corpus without
@@ -240,25 +240,25 @@ Counted over `NOCTIS.CPP:753-1139`:
 | dependency | calls | state |
 |---|---|---|
 | `poly3d` | 6 | ✅ Wave 6a, byte-exact |
-| `polymap` | — | ✅ Wave 6a, byte-exact |
+| `polymap` | -- | ✅ Wave 6a, byte-exact |
 | `digit_at` | 3 | ✅ Wave 5 |
 | `change_angle_of_view` | 2 | ✅ Wave 7b, graded |
-| `drawpv` | 2 | ⚠️ **dispatch only — no pixels** |
+| `drawpv` | 2 | ⚠️ **dispatch only -- no pixels** |
 | `polycupola` | 5 | ❌ not ported |
 | `cupola` | 5 | ❌ not ported |
 | `stick3d` | 4 | ❌ not ported |
 | 2-D `Stick` + `fline` | opening path | ❌ not ported |
 | `randomic_mapper` | hull, mode 2 | ❌ not ported; deterministic recursion |
 | `alogena` + `lens_flares_for` | 1 + startup flare | ❌ not ported; startup-reachable |
-| `setfx` / `resetfx` | 7 / 7 | ❌ not ported (small — swaps a control variable, `NOCTIS-0.CPP:1541-1543`) |
+| `setfx` / `resetfx` | 7 / 7 | ❌ not ported (small -- swaps a control variable, `NOCTIS-0.CPP:1541-1543`) |
 | `change_txm_repeating_mode` | 2 | ❌ not ported |
 
 ## The one genuinely hard part
 
 Wave 6b stopped `drawpv` deliberately, and said so in `work/spncc.txt`:
 
-> *"drawpv MODE 2 (randomic_mapper) IS OUT OF SCOPE, and so — as a declared deviation from
-> the wave plan — are modes 0 and 1's PIXELS. This file emits the DISPATCH: the polygon
+> *"drawpv MODE 2 (randomic_mapper) IS OUT OF SCOPE, and so -- as a declared deviation from
+> the wave plan -- are modes 0 and 1's PIXELS. This file emits the DISPATCH: the polygon
 > order, the vertex base index, the vertex count, the colour and, for mode 1, the mangled
 > colour. Routing the dispatch into Wave 6a's poly3d and polymap would make the graded
 > artifact a joint product of two waves, so that a page difference could not be attributed."*
@@ -271,7 +271,7 @@ exact attribution problem 6b was avoiding: once pixels are involved, a wrong pag
 come from dispatch, raster replay, or shared join state.
 
 **Solve attribution before writing the join, not after.** The suggested approach: grade the
-dispatch and the pixels *separately* — assert the dispatch list still matches 6b's graded
+dispatch and the pixels *separately* -- assert the dispatch list still matches 6b's graded
 output exactly (it must not change), then grade the page given that dispatch as input. If
 both hold, a page difference is attributable to the join alone. Do not proceed by rendering
 and eyeballing.
@@ -283,29 +283,29 @@ triangle subdivision with fixed colour offsets; it is required Wave 10 scope.
 
 ## Proposed phases
 
-**Phase 0 — the cheap probe, do this first.** First establish the D/R/J attribution gates,
+**Phase 0 -- the cheap probe, do this first.** First establish the D/R/J attribution gates,
 then wire mode-0 dispatch to the rasteriser for a single static frame of the hull from
 *outside*, no camera trace, no loop, and dump raw page + PNG. The fixed fixture loads
 VEHICLE at scale `(15,15,15)`, moves it to `z=12000`, uses identity camera/angles, and
 expects 116 dispatch rows. The raw 64,000-byte page is graded; recognisability and PNG are
 demonstration only. Phase 0 proves the join seam, not the opening renderer.
 
-**Phase 1 — mode 2 and missing primitives.** `randomic_mapper`, the complete 2-D `Stick`,
+**Phase 1 -- mode 2 and missing primitives.** `randomic_mapper`, the complete 2-D `Stick`,
 `stick3d`, `fline`, `cupola`, `polycupola`, `setfx`/`resetfx`,
 `change_txm_repeating_mode`, `alogena`, and the startup `lens_flares_for` path. Each gets
 call/leaf traces before pixels and three-way treatment: lino == Python spec == C reference,
 with deliberately broken variants that must fail. VEHICLE must emit exactly 720 leaves at
 iteration 2 and 2,880 at iteration 3.
 
-**Phase 2 — the interior camera.** Trace `pos_x/y/z`, `user_alfa/beta`, `lifter`,
+**Phase 2 -- the interior camera.** Trace `pos_x/y/z`, `user_alfa/beta`, `lifter`,
 `ontheroof` to their startup values and reproduce the opening eye position. The fixed offsets
 in `vehicle()` (`cam_x -= 3395`, `cam_y += 480`, `cam_z += 200`, `cam_z -= 2*54*15`,
 `cam_z += 3100`) are part of this and are exact constants, not tuning knobs.
 
-**Phase 3 — assemble `vehicle()`** in its real order, including the `opencapcount` branch
+**Phase 3 -- assemble `vehicle()`** in its real order, including the `opencapcount` branch
 and the `ontheroof` branch.
 
-**Phase 4 — drive it from the game loop**, replacing `GM render ground` in a *copy* of
+**Phase 4 -- drive it from the game loop**, replacing `GM render ground` in a *copy* of
 `game.txt`. Do not edit `work/game.txt` until a picture is worth showing.
 
 ## Frozen execution contract
@@ -332,9 +332,9 @@ calls inside `SP drawpv`.
 
 Disjoint implementer ownership after the Wave 9 gate:
 
-- **J — join/attribution:** `vhjoin.txt`, `vhprobe.txt`, `vh-corpus.txt`.
-- **M — mode 2:** `vhrmap.txt`, `vh-mode2-corpus.txt`.
-- **I — primitives/interior:** `vhstick.txt`, `vhcupola.txt`, `vhlight.txt`,
+- **J -- join/attribution:** `vhjoin.txt`, `vhprobe.txt`, `vh-corpus.txt`.
+- **M -- mode 2:** `vhrmap.txt`, `vh-mode2-corpus.txt`.
+- **I -- primitives/interior:** `vhstick.txt`, `vhcupola.txt`, `vhlight.txt`,
   `vhvehicle.txt`, `vh-primitive-corpus.txt`.
 
 No package edits SP/PG libraries or another package's VH files. Phase 0 proceeds when the
@@ -351,7 +351,7 @@ There is no standing recon/architect/reviewer/QA/test-writer pipeline.
 
 Namespace convention is a two-letter prefix per wave: `pg` rasterisers, `sp` spheres, `fb`
 framebuffer, `ns` star systems, `su` surfaces, `gr` ground, `mg` main loop. **Wave 10 owns
-`vh`** — `work/vh*.txt`, `noctis-harness/vh_*.py`, `tests/test_vehicle.py`.
+`vh`** -- `work/vh*.txt`, `noctis-harness/vh_*.py`, `tests/test_vehicle.py`.
 
 Keep `tests/run_all.py` registration coordinated when adding a test. Routine work does not
 need to run or modify the full roster; use it for explicit deep/release audits.

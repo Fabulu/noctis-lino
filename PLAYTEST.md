@@ -53,8 +53,8 @@ The playable build opens in iGUI under its `Noctis IV` title at 642x426, with
 an exact 640x400 work area presenting the authentic 320x200 framebuffer at 2x.
 New games and capsule returns face into the illuminated Stardrifter interior
 instead of outward through the open nose into empty space.
-Dragging iGUI's size control scales the completed logical frame—including the
-HUD, notices, GOES prompt, FPS counter, and control card—and adds centered
+Dragging iGUI's size control scales the completed logical frame--including the
+HUD, notices, GOES prompt, FPS counter, and control card--and adds centered
 black bars when the window is not 8:5. The authentic indexed renderer remains
 320x200. The build keeps unmodified
 local copies of iGUI and its `.tga` chrome assets under `work/` because this
@@ -91,9 +91,9 @@ Controls:
   surface modes; F9 is the layout-independent fallback because the Windows
   iGUI host does not expose a distinct F1 state)
 - Left/right/down arrows: look around
-- Up arrow: operate the Stardrifter roof lift while centered inside its
-  aperture; release and press Up again at either stop to reverse it, or walk
-  clear freely after arrival. Pressing Up elsewhere explains where to stand
+- E: operate the Stardrifter roof lift while centered inside its aperture;
+  walk clear after arrival, then step back into the roof opening to trigger the
+  original automatic return. Pressing E elsewhere explains where to stand
 - W/S: forward/back
 - A/D: strafe left/right
 - Ctrl + W/A/S/D: stalk slowly on habitable surfaces. Birds take off when
@@ -262,16 +262,16 @@ The rebuilt run approached at `(0,0,-2340)`, reached and released at
 `(0,-750,-3023)` with `lifter=0,onroof=1` and no centre overshoot, walked off
 to `z=-4821` without recapture, then returned and descended to
 `(0,0,-2491)` with `lifter=0,onroof=0`. Esc exited naturally with code 0.
-Up away from the aperture cannot start motion, and a held key cannot reverse
-the lift at either endpoint. The current build reports where to stand when Up
-is pressed elsewhere and announces both deck arrivals as walk-clear states. A
-fresh Up press at either endpoint reverses it without a step-off/re-entry cycle.
+E away from the aperture cannot start motion, and a held key cannot restart
+the lift. The current build reports where to stand when E is pressed elsewhere.
+The roof endpoint releases the player cleanly; walking back into the opening
+starts the original automatic descent.
 
 The RC24 lift-guidance smoke exercised that complete path through the real GUI.
-Up at the opening position displayed `LIFT: STAND IN CENTER APERTURE`; after W
-reached `z=-2420`, one Up arrived and released at
+E at the opening position displayed `LIFT: STAND IN CENTER APERTURE`; after W
+reached `z=-2420`, one E arrived and released at
 `(0,-750,-3031)` with `lifter=0,onroof=1` and displayed
-`LIFT: ROOF LEVEL - WALK CLEAR`. A fresh Up returned to
+`LIFT: ROOF LEVEL - WALK CLEAR`. Walking back into the opening returned to
 `(0,0,-3095)` with `lifter=0,onroof=0`, and Esc exited with code 0.
 `work/vhgame-rc24-lift-hint.png` and
 `work/vhgame-rc24-lift-roof-arrived.png` are the corresponding PrintWindow

@@ -40,7 +40,7 @@ and interactive playtest are product feedback rather than oracle construction.
 | 6 | w5audit budget (4 voids) + fb_compare suite FAIL | Optional harness cleanup |
 | 7 | Planetary geometry ungraded vs 1996 | Cannot close - no oracle; restate bound |
 | 8 | genfp bare-fistp rule | Post-port; not Wave 9 |
-| 9 | Doc typos (FLOATSITES label, GUIDE.BIN precondition) | **RESOLVED** — FLOATSITES now names `SURFACE.BIN` for `NOCTIS-1.CPP:4179/4180`; recon README records that GUIDE.BIN must be absent for both the baseline and `w6c_redo.py` recapture/comparison |
+| 9 | Doc typos (FLOATSITES label, GUIDE.BIN precondition) | **RESOLVED** -- FLOATSITES now names `SURFACE.BIN` for `NOCTIS-1.CPP:4179/4180`; recon README records that GUIDE.BIN must be absent for both the baseline and `w6c_redo.py` recapture/comparison |
 
 Historical Wave-9 limit: `GMHALF=6` made that driver a 13x13 grid and its
 texture was a procedural formula. The later iGUI game now uses generated
