@@ -1,8 +1,9 @@
-# Noctis IV L.in.oleum port -- 0.1.0 beta 1
+# Noctis IV L.in.oleum port -- 0.1.0 beta 2
 
-This is the first public playable Windows build of the Noctis IV L.in.oleum
-port. It is a beta: the complete core journey is playable, while extended
-multi-hour hardening and some historical screens remain future work.
+This beta supersedes beta 1 with the corrected Stardrifter roof exit, visible
+cupola transition, source-ordered lift momentum, and matching view/movement
+heading. The complete core journey is playable, while extended multi-hour
+hardening and some historical screens remain future work.
 
 ## What is playable
 
