@@ -53,9 +53,13 @@ jobs:
           NOCTIS_REFERENCE_ROOT: ${{ github.workspace }}\_reference\noctis-plus\source
         run: python tests\test_vhgame.py
 
-      - name: Build the standalone Windows package
+      # The historical GUI-subsystem compiler exits in GitHub's noninteractive
+      # Windows service session. Source is built locally before committing the
+      # versioned payload; CI validates source behavior and packages that exact
+      # PE rather than claiming a headless compiler run occurred here.
+      - name: Assemble the standalone Windows package
         shell: pwsh
-        run: .\package_noctis.ps1 -OutputDirectory dist\Noctis-IV
+        run: .\package_noctis.ps1 -OutputDirectory dist\Noctis-IV -SkipBuild
 
       - name: Create release archive and checksum
         shell: pwsh

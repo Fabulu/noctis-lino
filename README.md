@@ -56,10 +56,13 @@ Inside the bundle, double-click `Play Noctis IV.cmd`. The relocatable launcher
 anchors all relative asset, checkpoint, catalogue, and diagnostic paths to the
 bundle even when it is started from an unrelated working directory.
 
-Version tags matching `v*` run the same Windows package build in GitHub Actions
-and publish the ZIP plus its SHA-256 checksum as a prerelease. Ordinary pushes
-and pull requests run the protected-source check, integrated-game regression,
-and package build without creating a release.
+Version tags matching `v*` assemble the checked production payload and runtime
+assets in GitHub Actions, then publish the ZIP plus its SHA-256 checksum as a
+prerelease. Ordinary pushes and pull requests run the protected-source check,
+integrated-game regression, and package assembly without creating a release.
+The historical GUI-subsystem compiler cannot run in GitHub's noninteractive
+Windows service session, so production source builds remain a local release
+step; the exact resulting `work\vhgame.exe` is versioned for reproducible CI/CD.
 
 ## Project documentation
 

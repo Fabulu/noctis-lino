@@ -1,6 +1,7 @@
 # Build artifacts produced by the L.in.oleum compiler.
 # Everything here is reproducible from source via lino_build.ps1.
 work/*.exe
+!work/vhgame.exe
 work/*.bin
 !work/STARMAP.BIN
 work/errorlog.txt

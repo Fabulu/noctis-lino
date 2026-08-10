@@ -228,9 +228,13 @@ default, and F5 explicitly opts into the higher presentation rate.
   package without a second private source tree.
 - Local saves, diagnostics, screenshots, and historical release-candidate
   folders are deliberately excluded from version control.
-- GitHub Actions performs the Windows build and focused regression on normal
-  changes. Version tags additionally produce a ZIP, checksum, and GitHub
-  Release.
+- GitHub Actions verifies the protected source, runs the focused integrated
+  regression, and assembles the versioned production payload and assets.
+  Version tags additionally produce a ZIP, checksum, and GitHub Release. The
+  historical GUI-subsystem compiler exits in GitHub's noninteractive Windows
+  service session, so the production PE is built locally with the pinned
+  compiler and committed; CI does not misrepresent package assembly as a
+  headless source build.
 
 ## Current state
 
@@ -260,4 +264,3 @@ Ghignola's authorization for this port to proceed and to include the manual
 soundtrack, with the original gameplay preserved. The repository and release
 retain Alessandro Ghignola's and Ryan J. Bury's original credits and do not
 replace either copyright notice with an invented licence.
-
