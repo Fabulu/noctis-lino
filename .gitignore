@@ -4,6 +4,7 @@ work/*.exe
 !work/vhgame.exe
 work/*.bin
 !work/STARMAP.BIN
+!work/digimap2.bin
 work/errorlog.txt
 work/smblsmap.txt
 work/gamediag.txt
