@@ -1,4 +1,4 @@
-﻿# Port plan â€” Noctis IV in L.in.oleum
+﻿# Port plan: Noctis IV in L.in.oleum
 
 Source of truth for what is done and what is next. The hourly heartbeat reads
 this file. Update it when a wave completes; do not let it drift.
