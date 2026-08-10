@@ -1,0 +1,115 @@
+      ( *** vhprobe - Wave 10 Phase 0 static Stardrifter frame ***
+
+	Loads VEHICLE at scale 15, moves it to z=12000, emits the unchanged
+	mode-0 depth-sorted dispatch, joins it to poly3d, and writes one
+	framed SPD1 artifact containing dispatch + 64,000-byte page.
+
+	Build only with lino_build.ps1; run only with tests/w7arun.ps1. )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	pgfp;
+	pgmem;
+	pgrast;
+	pgtex;
+	pgproj;
+
+	spmem;
+	spscale;
+	spncc;
+	vhjoin;
+	vhrmap;
+
+"directors"
+
+	program name = { vhprobe };
+	unit = 32;
+
+"constants"
+
+	VH15F = 1097859072;		( 15.0f )
+	VH12000F = 1178304512;		( 12000.0f )
+
+"variables"
+
+	vhoutname = { vh-out.bin };
+
+"programme"
+
+	=> SP build rgt;
+	=> SP ncc load;
+	=> SP unloadallpv;
+
+	=> FEnter;
+	=> PGF constants;
+	=> SDMP reset;
+
+	( clear the visible adapted page )
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0;
+	=> SP fill page;
+
+	( load VEHICLE, scale 15, translate to z=12000, depth table present )
+	[PVh] = 0; [PVmodel] = MDVEH;
+	[PVxs] = VH15F; [PVys] = VH15F; [PVzs] = VH15F;
+	[PVxm] = 0; [PVym] = 0; [PVzm] = VH12000F;
+	[PVcol] = 0; [PVreq] = 1;
+	=> SP loadpv;
+
+	( identity camera at the origin; authentic vehicle mode 2 )
+	[PVh] = 0; [DWmode] = 2; [DWuds] = 0;
+	[DWcx] = 0; [DWcy] = 0; [DWcz] = 0;
+	[DWcamx] = 0; [DWcamy] = 0; [DWcamz] = 0;
+	=> SP drawpv;
+	=> SP call emit;
+
+	( normal vehicle: four leaves per source triangle )
+	[SPCScase] = 2; [VHRiters] = 2;
+	=> VH join mode2;
+	=> VH probe mode record;
+	[SPpreg] = RGADP; [SPpn] = NPIX;
+	=> SDMP page;
+	=> SDMP census;
+
+	( depolarized vehicle: sixteen leaves per source triangle )
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0;
+	=> SP fill page;
+	[SPCScase] = 3; [VHRiters] = 3;
+	=> VH join mode2;
+	=> VH probe mode record;
+	[SPpreg] = RGADP; [SPpn] = NPIX;
+	=> SDMP page;
+	=> SDMP census;
+
+	=> FLeave;
+	=> VH probe write;
+	end;
+
+"VH probe write"
+	[File Name] = vhoutname;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	[Block Pointer] = spdump;
+	[Block Size] = [SPSDcnt]; [Block Size] * BYTESPERUNIT;
+	isocall;
+	[File Name] = vhoutname;
+	[File Position] = 0;
+	[File Command] = SET SIZE;
+	[File Size] = [SPSDcnt]; [File Size] * BYTESPERUNIT;
+	isocall;
+	end;
+
+"VH probe mode record"
+	[sppack plus 0] = [VHRdrawn];
+	[sppack plus 1] = [VHRbad];
+	[sppack plus 2] = [DWn];
+	[SKind] = 62; [STag] = [VHRiters];
+	[SW] = 3; [SH] = 1;
+	[SBptr] = sppack; [SBcnt] = 3;
+	=> SDMP rec;
+	end;

@@ -1,0 +1,41 @@
+      ( Focused, self-terminating production soundtrack loader smoke. )
+
+"libraries"
+
+	vhaudio;
+
+"directors"
+
+	program name = { vhaudioprobe };
+	modular extensions = audio playback;
+	unit = 32;
+	display width = 0;
+	display height = 0;
+
+"variables"
+
+	VHAprobeout = { vhaudio-out.bin };
+
+"workspace"
+
+	VHAproberesult = 8;
+
+"programme"
+
+	=> VHA init;
+	[VHAproberesult plus 0] = [VHAavailable];
+	[VHAproberesult plus 1] = [VHAplaying];
+	[VHAproberesult plus 2] = [VHAbytes];
+	[VHAproberesult plus 3] = [VHAunits];
+	[VHAproberesult plus 4] = [PCM data Status];
+	[VHAproberesult plus 5] = [PCM data Channels];
+	[VHAproberesult plus 6] = [PCM data Bits Per Sample];
+	[VHAproberesult plus 7] = [PCM data Samples Per Sec];
+	=> VHA stop;
+
+	[File Name] = VHAprobeout; [File Position] = 0;
+	[File Command] = WRITE; [Block Pointer] = VHAproberesult;
+	[Block Size] = 32; isocall;
+	[File Name] = VHAprobeout; [File Position] = 0;
+	[File Command] = SET SIZE; [File Size] = 32; isocall;
+	end;

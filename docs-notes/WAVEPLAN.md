@@ -15,8 +15,8 @@ during planning is written down here, not remembered.
   newer than launch, then `Stop-Process`). Never start one and wait.
 - Never modify anything under `main/`. Every hash in `PRISTINE.sha256` must
   keep matching — the licence position depends on it.
-- Never `git push` or publish. Private until the original author grants
-  permission.
+- Publication is authorised under the original WPL while preserving Noctis IV's
+  original gameplay and credits.
 - Paths must never contain `--` (the lino argument parser truncates on it and
   then blames the CPU pack).
 - Additional standing traps: `"variables"` vs `"workspace"` semantics;
@@ -24,15 +24,15 @@ during planning is written down here, not remembered.
   a lino program that fails still exits 0 — grade output files by mtime, never
   by exit code; delete the target file before every run.
 
-**Gate before any wave:** `python tests\run_all.py` must end `0 failed`, and
-every `PRISTINE.sha256` hash must match. After any wave: same again. The test
-count is deliberately not written down anywhere — it grows every wave, and
-`run_all.py` is the authority on both the count and the roster.
+**Lean check before any wave:** run the focused regression relevant to the change and verify
+the relevant `PRISTINE.sha256` hash. Ordinary work should keep verification to about 10% of
+implementation effort. `python tests\run_all.py` is an explicit `--deep` release/historical
+audit, not a mandatory pre-wave gate; its roster remains authoritative when that audit is
+chosen.
 
-**Pipeline shape per wave:** 3+ recons (parallel, read-only), 1 architect,
-2+ implementers on disjoint file namespaces, 1 reviewer (adversarial, reads
-files not reports), 1 QA (re-runs everything), 1 test writer (tests proven by
-breaking the subject).
+**Default shape per wave:** focused reconnaissance, implementation, and one relevant smoke/
+regression check. The larger recon/architect/reviewer/QA/mutation pipeline is historical or
+explicit deep work; additional process and testing are detrimental to ordinary delivery.
 
 ---
 

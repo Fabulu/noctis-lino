@@ -1,0 +1,199 @@
+      ( *** vhground - live first-person planetary surface adapter ***
+
+	This is a production library.  It joins the already-ported grnd
+	p_surfacemap generator to the already-ported PG polygon path, without
+	linking either standalone Wave-7b corpus programme. )
+
+"constants"
+
+	VHGNDMAP = 200;
+	VHGNDTS = 16384;
+	VHGNDHS = 11;
+	VHGNDHALF = 4;
+	VHGNDSTEP = 600;
+	VHGNDLO = 122880;		( 7.5 tiles: keep the local grid in-map )
+	VHGNDHI = 3145728;		( 192 tiles )
+
+"variables"
+
+	VHGNDcamx = 0; VHGNDcamy = 0; VHGNDcamz = 0;
+	VHGNDalpha = 0; VHGNDbeta = 0;
+	VHGNDx = 0; VHGNDz = 0; VHGNDxlo = 0; VHGNDxhi = 0;
+	VHGNDzlo = 0; VHGNDzhi = 0; VHGNDptr = 0;
+	VHGNDh1 = 0; VHGNDs1 = 0; VHGNDs2 = 0;
+	VHGNDs3 = 0; VHGNDs4 = 0; VHGNDshade = 0;
+	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
+	VHGNDtilex = 0; VHGNDtilez = 0; VHGNDfx = 0; VHGNDfz = 0;
+	VHGNDheight = 0; VHGNDtmp = 0;
+	VHGNDseed = 236744; VHGNDatmosphere = 1;
+	VHGNDdiagcount = 0;
+
+"programme"
+
+"VHGND generate"
+	( A deterministic, complete terrain page.  The selected body's type is
+	  retained in GRiptype; the currently ported painter tier supplies the
+	  rocky/plains body used for the first live landing. )
+	[VHGNDptr] = 0;
+    "VHGND wipe surface"
+	A = RPSM; A + [VHGNDptr]; [MBptr] = A; [MBval] = 0; => MEM put byte;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A '< 40000 -> VHGND wipe surface;
+	[VHGNDptr] = 0;
+    "VHGND wipe objects"
+	A = ROBJ; A + [VHGNDptr]; [MBptr] = A; [MBval] = 0; => MEM put byte;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A '< 40000 -> VHGND wipe objects;
+
+	=> SU ledger reset; => GR float init;
+	[GRgseed] = [VHGNDseed]; [GRsctype] = 0; [GRalbedo] = 24; [GRlat] = 0;
+	=> GR prologue;
+	A = [GRgseed]; => SU fast srand;
+	A = [GRgseed]; A & 0FFFFh; => SU srand;
+	[GRrough] = 28; [GRround] = 4; [GRlevel] = 0;
+	=> GR rockyground; => GR plains noise;
+
+	end;
+
+"VHGND palette"
+	( Stable, deliberately bounded landed-view palette.  The full source
+	  create_sky palette stays out of the live handoff until its long-running
+	  painter can be scheduled without freezing the GUI. )
+	=> PAL zero; => PAL range;
+	[PVsrc] = range8088; [PVself] = 0; [PVfirst] = 0; [PVn] = 64;
+	[PVfr] = 38; [PVfg] = 42; [PVfb] = 48; => PAL tavola;
+	[PVsrc] = range8088; [PVself] = 0; [PVfirst] = 64; [PVn] = 64;
+	[PVfr] = 22; [PVfg] = 34; [PVfb] = 54; => PAL tavola;
+	[PVsrc] = range8088; [PVself] = 0; [PVfirst] = 128; [PVn] = 128;
+	[PVfr] = 52; [PVfg] = 47; [PVfb] = 39; => PAL tavola;
+	end;
+
+"VHGND eye height"
+	( HPOINT's two-triangle interpolation expressed on byte heights first;
+	  shifting after interpolation avoids 32-bit overflow and keeps the eye
+	  locked to the exact rendered mesh. )
+	A = [VHGNDcamx]; A > 14; [VHGNDtilex] = A;
+	A = [VHGNDcamz]; A > 14; [VHGNDtilez] = A;
+	A = [VHGNDcamx]; A & 16383; [VHGNDfx] = A;
+	A = [VHGNDcamz]; A & 16383; [VHGNDfz] = A;
+	A = [VHGNDtilez]; A '* VHGNDMAP; A + [VHGNDtilex]; [VHGNDh1] = A;
+	A = RPSM; A + [VHGNDh1]; [MBptr] = A; => MEM get byte; [VHGNDs1] = [MBval];
+	A = RPSM; A + [VHGNDh1]; A + 1; [MBptr] = A; => MEM get byte; [VHGNDs2] = [MBval];
+	A = RPSM; A + [VHGNDh1]; A + 201; [MBptr] = A; => MEM get byte; [VHGNDs3] = [MBval];
+	A = RPSM; A + [VHGNDh1]; A + 200; [MBptr] = A; => MEM get byte; [VHGNDs4] = [MBval];
+	A = [VHGframe]; ? A = 0 -> VHGND no read diag;
+	[VHLphase] = 1050; => VHL write phase; => VHG fpu clean;
+    "VHGND no read diag"
+	A = [VHGNDfx]; A + [VHGNDfz]; ? A '< VHGNDTS -> VHGND height upper;
+	A = VHGNDTS; A - [VHGNDfx]; [VHGNDtmp] = A;
+	A = [VHGNDs4]; A - [VHGNDs3]; A '* [VHGNDtmp]; A / VHGNDTS; C = A;
+	A = VHGNDTS; A - [VHGNDfz]; [VHGNDtmp] = A;
+	A = [VHGNDs2]; A - [VHGNDs3]; A '* [VHGNDtmp]; A / VHGNDTS;
+	A + C; A + [VHGNDs3]; -> VHGND height finish;
+    "VHGND height upper"
+	A = [VHGNDs2]; A - [VHGNDs1]; A '* [VHGNDfx]; A / VHGNDTS; C = A;
+	A = [VHGNDs4]; A - [VHGNDs1]; A '* [VHGNDfz]; A / VHGNDTS;
+	A + C; A + [VHGNDs1];
+    "VHGND height finish"
+	A < VHGNDHS; C = A; A = 0; A - C; A - 600; [VHGNDheight] = A;
+	end;
+
+"VHGND render"
+	( Sky first, then a bounded local mesh around the walking camera. )
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 88; => SP fill page;
+	=> PGF constants;
+	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32; ( 100.0f )
+	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
+	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
+	( The generated height page is valid here, but a landed texture page is
+	  not joined yet.  Use the source polygon rasterizer directly; sending
+	  these triangles through polymap reads unrelated texture state and was
+	  the green-frame-then-fault landing path. )
+	[PGtexf] = 0; [SPsrc] = 1; [SPflar] = 0; [SPcull] = 0; [SPhalf] = 0;
+	A = [VHGNDcamx]; A > 14; A - VHGNDHALF; [VHGNDxlo] = A;
+	A = [VHGNDxlo]; A + VHGNDHALF; A + VHGNDHALF; [VHGNDxhi] = A;
+	A = [VHGNDcamz]; A > 14; A - VHGNDHALF; [VHGNDzlo] = A;
+	A = [VHGNDzlo]; A + VHGNDHALF; A + VHGNDHALF; [VHGNDzhi] = A;
+	[VHGNDz] = [VHGNDzhi];
+	[VHGNDdiagcount] = 0;
+    "VHGND render z"
+	[VHGNDx] = [VHGNDxlo];
+    "VHGND render x"
+	A = [VHGframe]; ? A = 0 -> VHGND no prediag;
+	A = [VHGNDdiagcount]; A + 1000; [VHLphase] = A; => VHL write phase; => VHG fpu clean;
+    "VHGND no prediag"
+	=> VHGND tile;
+	A = [VHGframe]; ? A = 0 -> VHGND no postdiag;
+	A = [VHGNDdiagcount]; A + 2000; [VHLphase] = A; => VHL write phase; => VHG fpu clean;
+    "VHGND no postdiag"
+	[VHGNDdiagcount]+;
+	[VHGNDx]+; A = [VHGNDx]; ? A '<= [VHGNDxhi] -> VHGND render x;
+	[VHGNDz]-; A = [VHGNDz]; ? A '>= [VHGNDzlo] -> VHGND render z;
+	end;
+
+"VHGND tile"
+	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
+	A = [VHGframe]; ? A = 0 -> VHGND no index diag;
+	[vhlanddiag plus 2] = [VHGNDx]; [vhlanddiag plus 3] = [VHGNDz];
+	[vhlanddiag plus 4] = [VHGNDh1];
+	[VHLphase] = 1040; => VHL write phase; => VHG fpu clean;
+    "VHGND no index diag"
+	A = RPSM; A + [VHGNDh1]; [MBptr] = A; => MEM get byte; [VHGNDs1] = [MBval];
+	A = RPSM; A + [VHGNDh1]; A + 1; [MBptr] = A; => MEM get byte; [VHGNDs2] = [MBval];
+	A = RPSM; A + [VHGNDh1]; A + 201; [MBptr] = A; => MEM get byte; [VHGNDs3] = [MBval];
+	A = RPSM; A + [VHGNDh1]; A + 200; [MBptr] = A; => MEM get byte; [VHGNDs4] = [MBval];
+	A = [VHGNDs1]; A & 31; A + 128; [SPtinta] = A; [DBcol] = A;
+	[SPescr] = 0; [DBflar] = 0; [DBent] = 0;
+
+	[VHGNDvi] = 0;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs1]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGframe]; ? A = 0 -> VHGND no v0diag;
+	[VHLphase] = 1060; => VHL write phase; => VHG fpu clean;
+    "VHGND no v0diag"
+	[VHGNDvi]+;
+	A = [VHGNDx]; A + 1; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGframe]; ? A = 0 -> VHGND no v1diag;
+	[VHLphase] = 1070; => VHL write phase; => VHG fpu clean;
+    "VHGND no v1diag"
+	[VHGNDvi]+;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A + 1; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGframe]; ? A = 0 -> VHGND no v2diag;
+	[VHLphase] = 1080; => VHL write phase; => VHG fpu clean;
+    "VHGND no v2diag"
+	A = [VHGframe]; ? A = 0 -> VHGND no tri1pre;
+	[VHLphase] = 1100; => VHL write phase; => VHG fpu clean;
+    "VHGND no tri1pre"
+	[PJnrv] = 3; => PG poly3d;
+	A = [VHGframe]; ? A = 0 -> VHGND no tri1post;
+	[VHLphase] = 1200; => VHL write phase; => VHG fpu clean;
+    "VHGND no tri1post"
+
+	[VHGNDvi] = 0;
+	A = [VHGNDx]; A + 1; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A + 1; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A + 1; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs3]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A + 1; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGframe]; ? A = 0 -> VHGND no tri2pre;
+	[VHLphase] = 1300; => VHL write phase; => VHG fpu clean;
+    "VHGND no tri2pre"
+	[PJnrv] = 3; => PG poly3d;
+	A = [VHGframe]; ? A = 0 -> VHGND no tri2post;
+	[VHLphase] = 1400; => VHL write phase; => VHG fpu clean;
+    "VHGND no tri2post"
+	end;
+
+"VHGND vload"
+	[FI] = [VHGNDvv]; => IntToF;
+	A = [VHGNDvslot]; A + [VHGNDvi]; [PGFi] = A; => PGF sa;
+	end;

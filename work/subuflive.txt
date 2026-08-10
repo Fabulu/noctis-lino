@@ -1,0 +1,127 @@
+      ( *** subuflive - production surface-buffer accessors ***
+
+	The verified surface corpus uses subuf.txt, whose 2.5-million-unit
+	dump/corpus workspace is intentionally large enough for an entire test
+	run.  The game needs the exact same buffer addressing but never emits
+	those records (SUledon is zero).  Keeping that standalone workspace in
+	the GUI executable pushes its logical composition page beyond the range
+	the legacy iGUI effects can address and leaves the client transparent.
+
+	This production library therefore retains the load-bearing DOS buffer
+	model and the 768-byte temporary palette, while making the disabled
+	ledger sink explicit.  The painters, smoothing, palette and switch code
+	remain the same verified implementations. )
+
+"constants"
+
+	PHENTRY = 0; PHPRO = 1; PHSEED = 2; PHRND = 3; PHCASE = 4;
+	PHSDA = 5; PHSWEND = 6; PHNORM = 7; PHMERGE = 8;
+	PHTERM = 9; PHPOST = 10; PHPAL = 11; PHDONE = 12;
+
+"variables"
+
+	SUpbase = 0; SUpseg = 0; SUobase = 0; SUoseg = 0; SUmoon = 0;
+	SUoff = 0; SUval = 0; SUidx = 0;
+
+"workspace"
+
+	sutmppal = 768;
+	sulrec = 8;
+
+"programme"
+
+"SU select planet"
+	[SUpbase] = RPBG; [SUpseg] = SPBG; [SUmoon] = 0;
+	end;
+
+"SU select moon"
+	[SUpbase] = RSBG; [SUpseg] = SSBG; [SUmoon] = 1;
+	end;
+
+"SU select ovl"
+	[SUobase] = ROBJ; [SUoseg] = SOBJ;
+	end;
+
+"SU put"
+	A = [SUoff]; A & 0FFFFh; A + [SUpseg];
+	C = nw; A + C;
+	C = [SUval]; C & 0FFh; [A] = C;
+	end;
+
+"SU get"
+	A = [SUoff]; A & 0FFFFh; A + [SUpseg];
+	C = nw; A + C;
+	C = [A]; C & 0FFh; [SUval] = C;
+	end;
+
+"SU oput"
+	A = [SUoff]; A & 0FFFFh; A + [SUoseg];
+	C = nw; A + C;
+	C = [SUval]; C & 0FFh; [A] = C;
+	end;
+
+"SU oget"
+	A = [SUoff]; A & 0FFFFh; A + [SUoseg];
+	C = nw; A + C;
+	C = [A]; C & 0FFh; [SUval] = C;
+	end;
+
+"SU dput"
+	A = nw; A + [SUpbase]; A + [SUidx];
+	C = [SUval]; C & 0FFh; [A] = C;
+	end;
+
+"SU dget"
+	A = nw; A + [SUpbase]; A + [SUidx];
+	C = [A]; C & 0FFh; [SUval] = C;
+	end;
+
+"SU odput"
+	A = nw; A + [SUobase]; A + [SUidx];
+	C = [SUval]; C & 0FFh; [A] = C;
+	end;
+
+"SU odget"
+	A = nw; A + [SUobase]; A + [SUidx];
+	C = [A]; C & 0FFh; [SUval] = C;
+	end;
+
+"SU addr"
+	C = nw; C + [SUpbase]; C + [SUidx];
+	end;
+
+"SU dword"
+	=> SU addr;
+	D = [C plus 3]; D & 0FFh; D < 8;
+	A = [C plus 2]; A & 0FFh; D + A; D < 8;
+	A = [C plus 1]; A & 0FFh; D + A; D < 8;
+	A = [C plus 0]; A & 0FFh; D + A;
+	[SUval] = D;
+	end;
+
+"SU word"
+	=> SU addr;
+	D = [C plus 1]; D & 0FFh; D < 8;
+	A = [C plus 0]; A & 0FFh; D + A;
+	[SUval] = D;
+	end;
+
+"SU wipe"
+	A = nw; A + RSBG;
+	B = ZSBG; B + PADU; B + ZPBG; B + PADU;
+	C = 0;
+    "SU wipe u"
+	[A] = C; A+;
+	B ^ SU wipe u;
+	end;
+
+"SU wipe ovl"
+	A = nw; A + [SUobase]; B = ZOBJ; C = 0;
+    "SU wipe ovl u"
+	[A] = C; A+;
+	B ^ SU wipe ovl u;
+	end;
+
+"SUDM led"
+	( Production sets SUledon to zero, so this sink is linked but unreachable. )
+	end;

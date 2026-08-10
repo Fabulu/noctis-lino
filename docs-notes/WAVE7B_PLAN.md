@@ -1,5 +1,24 @@
 # Wave 7b — ground renderer, sky, SURFACE.BIN, walking
 
+## Final sky closeout (2026-08-08)
+
+The sky portion is verified and closed: `tests/test_sky.py` is **16/16 PASS**
+(1999 s). Canonical Python/C/Lino agree on **27/27 cases and 408 records**;
+first launch is exact, malformed inputs are **7/7**, binary anchors are exact,
+C mutants are **26/26**, static and dynamic Lino mutants are **27/27**, and H1
+source/work immutability passes. Replay SHA-256:
+`a68a5775f2ad05d04cdd6c399b42f06a5d2a24cd555e81348ef7e47f70ecf421`.
+
+This is historical closeout evidence, not a standing workload. Routine changes use one
+focused smoke/regression check for the changed path. The 27-case/26C+27Lino mutation matrix
+is optional `--deep` evidence for high-risk oracle changes; requiring it for every fix adds
+detrimental process and testing overhead. Screenshots and playtest are product feedback,
+not another oracle-construction obligation.
+
+Screenshots remain ungraded. The original type-3 `p_surfacemap` discrepancy
+has been reduced from 39,710 to a measured **post-landing XFAIL of 1,752
+bytes** after reproducing Borland's unsigned 16-bit `round_hill` bounds.
+
 Architect's consolidation of the three 7b recons (ground renderer, build_surface +
 SURFACE.BIN, sky + reuse + oracles). Written 2026-08-07, after Wave 7a landed (committed
 aabfd0f). The recon transcripts are gone; everything load-bearing is here or in the
@@ -81,8 +100,10 @@ equator site (lon 0 / lat 60) are **byte-identical** on `p_surfacemap` (40000 B)
 the static tier-1 oracle, now binary-anchored vs NIV+ R2.3. Only `shot.BMP`
 varies 642 B (sky/horizon atmospheric noise — tier-3 ±1-texel). Two rig flags:
 `landed` is at `atl_x-1` (Borland packs char before long, no padding); `pos_y=1.0`
-(descent skipped → snaps to ground frame 1). The **'type-3 ground terrain
-unvalidated' flag is liftable**; extend the rig to other types for full coverage.
+(descent skipped → snaps to ground frame 1). The capture lifts the lack-of-oracle
+flag, but the **type-3 heightmap is not yet byte-exact**; the 2026-08-08 audit
+below separates the validated texture/RNG path from the remaining map-only gap.
+Extend the rig to other types for full coverage.
 Deliverables: `mksurface.py` (40-byte Surface.BIN), `capture_w7b.ps1`,
 `godos_w7b.ps1`, `certify_w7b.py`, extended `memfind.py`.
 
@@ -106,9 +127,50 @@ snapshot key (not a full descent), so it is far more tractable than WAVEPLAN §7
 the human 10-minute session is the fallback only if that single-key AUTOTYPE fails. **One
 capture per planet type (10); per (type, sctype) for type-3.**
 
-Until a capture exists, 7b grades on tiers 1–2 (C-from-source three-way) and carries the
-**"type-3 ground terrain unvalidated against hardware" flag** (WAVEPLAN §7 stall mode) —
-which now covers all ten types, not just type-3.
+Before this capture existed, 7b graded only tiers 1–2 (C-from-source three-way)
+and carried the **"type-3 ground terrain unvalidated against hardware" flag**
+(WAVEPLAN §7 stall mode).  The capture now provides the binary oracle; the
+remaining limitation is the measured heightmap mismatch below, not a missing
+oracle or an unknown RNG seed.
+
+### 2026-08-08 correction: type-3 fixture and exact remaining bound
+
+The first `test_ground.py` capture fixture used `sctype=OCEAN, albedo=17` and
+attributed its mismatch to an intervening Borland `random()` draw between
+`srand(landing_pt_lat * landing_pt_lon)` at :2052 and the type switch at :2054.
+That explanation is false:
+
+- A preserved 16 MiB DOSBox-X guest-RAM image, decoded by
+  `tests/gen/recon_w7b/diag_ground_state.py`, uniquely pins the shipped NIV+
+  state at `sctype=OCEAN`, `albedo=40`, `rainy=3.75`, `latitude=0`, and
+  `global_surface_seed=1029155`.
+- The landing site is lon 0 / lat 60, so :2051-2052 re-seed both generators
+  with `0`.  The source contains no call between that `srand(0)` and the switch.
+- Because `albedo > 20`, OCEAN immediately takes `goto revert` into the shared
+  PLAINS terrain with `waswet=1`.  The corrected source model matches all
+  **65,536/65,536 ground-texture bytes** from NIV+; the old albedo-17 fixture
+  differs in **42,277 bytes**.  This exact long random-driven texture agreement
+  rules out the proposed one-draw shift.
+- The first corrected model still differed in **39,710/40,000 bytes**. All
+  24 possible evaluation orders for the four random `round_hill` arguments
+  were tried; none matched. Later disassembly of `NOCTIS.EXE` proved the
+  missing rule: DOS `unsigned` is 16-bit, so a negative `cx-r` or `cz-r`
+  wraps and the original unsigned loop comparison skips that hill instead of
+  clipping it at the map edge. Reproducing those exact bounds closes 37,958
+  bytes and leaves **1,752/40,000** different.
+- That residual is not safely attributable to `build_surface`: the available
+  RAM oracle is captured after `planetary_main` has begun and the original
+  reuses `p_surfacemap` as scratch. An earlier 15-second certified capture is
+  byte-identical, confirming stability but not restoring the missing
+  return-boundary image. The residual is therefore kept as a post-landing
+  capture XFAIL, not as a claim that `round_hill` is still unknown.
+
+The durable test now asserts the exact texture positively, rejects the old
+fixture as a broken control, and carries the post-landing heightmap residual as
+`diff == 1752`. It also changes one byte that currently agrees and requires
+the boundary to change to 1,753, proving the check can fail. A pristine
+return-boundary capture may replace this residual with byte equality; it must
+not silently update the stored difference count.
 
 ## Float sites (exact-required)
 

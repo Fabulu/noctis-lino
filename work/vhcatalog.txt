@@ -1,0 +1,260 @@
+      ( *** vhcatalog - live Noctis STARMAP naming ***
+
+	The shipped STARMAP.BIN is the real 32-byte Noctis catalogue:
+	4-byte file-size header, binary64 identity, 20-byte padded name,
+	then " Snn" or " Pnn".  Search uses the original strict
+	identity +/- 0.00001 window.  New records are appended in place and
+	the header is advanced, so names survive ordinary checkpoint loads. )
+
+"constants"
+
+	VHCATRECBYTES = 32;
+	VHCATHDRBYTES = 4;
+	VHCATMAXRECS = 40000;
+	VHCATMAXBYTES = 1280004;
+	VHCATIDSC0 = 88E368F1h;
+	VHCATIDSC1 = 3EE4F8B5h;
+	VHCATEMAX = 1068;
+	VHCATTOMB0 = 6F6D6552h;
+	VHCATTOMB1 = 3A646576h;
+	VHCATS = 53h;
+	VHCATP = 50h;
+
+"variables"
+
+	vhcatfile = { STARMAP.BIN };
+	VHCATloaded = 0; VHCATok = 0; VHCATstatus = 0;
+	VHCATbytes = 0; VHCATrecs = 0; VHCATrecno = 0;
+	VHCATid0 = 0; VHCATid1 = 0; VHCATtype = 0; VHCATcode = 0;
+	VHCATlowhi = 0; VHCATlowlo = 0; VHCAT highhi = 0; VHCAT highlo = 0;
+	VHCATkeyhi = 0; VHCATkeylo = 0;
+	VHCATvalid = 0;
+	VHCATi = 0; VHCATlen = 0; VHCATshift = 0; VHCATchar = 0;
+	VHCATptr = 0; VHCATfoundptr = 0;
+
+"workspace"
+
+	vhcatraw = 320001;
+	vhcatname = 20;
+	vhcatstarlabel = 21;
+	vhcatbodylabel = 21;
+
+"programme"
+
+"VHCAT load"
+	[VHCATloaded] = 0; [VHCATbytes] = 0; [VHCATrecs] = 0;
+	[File Name] = vhcatfile; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHCAT load missing;
+	A = [File Size]; ? A < VHCATHDRBYTES -> VHCAT load done;
+	? A > VHCATMAXBYTES -> VHCAT load done;
+	[VHCATbytes] = A; A - VHCATHDRBYTES; C = A; A '% VHCATRECBYTES;
+	? A != 0 -> VHCAT load bad; C / VHCATRECBYTES; [VHCATrecs] = C;
+	[File Name] = vhcatfile; [File Position] = 0; [File Command] = READ;
+	[Block Pointer] = vhcatraw; [Block Size] = [VHCATbytes]; isocall;
+	A = [Block Size]; ? A != [VHCATbytes] -> VHCAT load bad;
+	A = [vhcatraw]; ? A != [VHCATbytes] -> VHCAT load bad;
+	[VHCATloaded] = 1;
+	-> VHCAT load done;
+    "VHCAT load missing"
+	( A new local catalogue starts with the same four-byte total-size
+	  header as the shipped STARMAP.BIN.  The first record begins at byte 4. )
+	[VHCATbytes] = VHCATHDRBYTES; [vhcatraw] = VHCATHDRBYTES;
+	-> VHCAT load done;
+    "VHCAT load bad"
+	[VHCATbytes] = 0; [VHCATrecs] = 0;
+    "VHCAT load done"
+	=> VHCAT default labels;
+	end;
+
+"VHCAT default labels"
+	[VHCATi] = 0;
+    "VHCAT clear labels"
+	E = vhcatstarlabel; E + [VHCATi]; [E] = 32;
+	E = vhcatbodylabel; E + [VHCATi]; [E] = 32;
+	[VHCATi]+; A = [VHCATi]; ? A < 21 -> VHCAT clear labels;
+	[vhcatstarlabel plus 0] = VHCATS;
+	[vhcatstarlabel plus 1] = 85; [vhcatstarlabel plus 2] = 78;
+	[vhcatstarlabel plus 3] = 67; [vhcatstarlabel plus 4] = 72;
+	[vhcatstarlabel plus 5] = 65; [vhcatstarlabel plus 6] = 82;
+	[vhcatstarlabel plus 7] = 84; [vhcatstarlabel plus 8] = 69;
+	[vhcatstarlabel plus 9] = 68; [vhcatstarlabel plus 10] = 32;
+	[vhcatstarlabel plus 11] = 83; [vhcatstarlabel plus 12] = 84;
+	[vhcatstarlabel plus 13] = 65; [vhcatstarlabel plus 14] = 82;
+	[vhcatbodylabel plus 0] = VHCATP;
+	[vhcatbodylabel plus 1] = 85; [vhcatbodylabel plus 2] = 78;
+	[vhcatbodylabel plus 3] = 67; [vhcatbodylabel plus 4] = 72;
+	[vhcatbodylabel plus 5] = 65; [vhcatbodylabel plus 6] = 82;
+	[vhcatbodylabel plus 7] = 84; [vhcatbodylabel plus 8] = 69;
+	[vhcatbodylabel plus 9] = 68; [vhcatbodylabel plus 10] = 32;
+	[vhcatbodylabel plus 11] = 66; [vhcatbodylabel plus 12] = 79;
+	[vhcatbodylabel plus 13] = 68; [vhcatbodylabel plus 14] = 89;
+	end;
+
+      ( Match the proven catalogue decoder's usable identity domain without
+	modifying the raw file.  Exponent zero catches both the shipped -0.0
+	WESTOS record and the byte-reversed MDIR 17 NaN; ordinary Inf/NaN and
+	values too large for the 96-bit identity key are rejected explicitly.
+	Deleted records begin with the literal eight bytes "Removed:". )
+"VHCAT identity valid"
+	[VHCATvalid] = 0;
+	A = [VHCATid0]; ? A != VHCATTOMB0 -> VHCAT identity exponent;
+	A = [VHCATid1]; ? A = VHCATTOMB1 -> VHCAT identity valid done;
+    "VHCAT identity exponent"
+	A = [VHCATid1]; A > 20; A & 7FFh;
+	? A = 0 -> VHCAT identity valid done;
+	? A = 7FFh -> VHCAT identity valid done;
+	? A >= VHCATEMAX -> VHCAT identity valid done;
+	[VHCATvalid] = 1;
+    "VHCAT identity valid done"
+	end;
+
+      ( Map a finite binary64 to a monotonically ordered unsigned key. )
+"VHCAT key"
+	A = [VHCATid1]; B = [VHCATid0];
+	? A != 80000000h -> VHCAT key sign; ? B != 0 -> VHCAT key sign; A = 0;
+    "VHCAT key sign"
+	? A + 80000000h -> VHCAT key negative;
+	A | 80000000h; [VHCATkeyhi] = A; [VHCATkeylo] = B; end;
+    "VHCAT key negative"
+	! A; [VHCATkeyhi] = A; ! B; [VHCATkeylo] = B; end;
+
+"VHCAT bounds"
+	[FA0] = [VHCATid0]; [FA1] = [VHCATid1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FSub;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHCATlowhi] = [VHCATkeyhi]; [VHCATlowlo] = [VHCATkeylo];
+	[FA0] = [VHCATfoundptr]; [FA1] = [VHCATptr];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FAdd;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHCAT highhi] = [VHCATkeyhi]; [VHCAT highlo] = [VHCATkeylo];
+	end;
+
+      ( In: identity, type. Out: ok and found record pointer. )
+"VHCAT find"
+	[VHCATok] = 0; [VHCATfoundptr] = 0;
+	A = [VHCATid0]; [VHCATfoundptr] = A;
+	A = [VHCATid1]; [VHCATptr] = A;
+	=> VHCAT bounds;
+	[VHCATrecno] = 0;
+    "VHCAT find loop"
+	A = [VHCATrecno]; ? A >= [VHCATrecs] -> VHCAT find done;
+	A '* 8; E = vhcatraw; E + 1; E + A;
+	A = [E plus 7]; A > 8; A & FFh; ? A != [VHCATtype] -> VHCAT find next;
+	A = [E]; [VHCATid0] = A; A = [E plus 1]; [VHCATid1] = A;
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHCAT find next;
+	=> VHCAT key;
+	A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHCATlowhi] -> VHCAT find above low;
+	? A '< [VHCATlowhi] -> VHCAT find next;
+	? B '> [VHCATlowlo] -> VHCAT find above low; -> VHCAT find next;
+    "VHCAT find above low"
+	? A '< [VHCAT highhi] -> VHCAT find hit;
+	? A '> [VHCAT highhi] -> VHCAT find next;
+	? B '< [VHCAT highlo] -> VHCAT find hit; -> VHCAT find next;
+    "VHCAT find hit"
+	[VHCATfoundptr] = E; [VHCATOk] = 1; -> VHCAT find done;
+    "VHCAT find next"
+	[VHCATrecno]+; -> VHCAT find loop;
+    "VHCAT find done"
+	end;
+
+      ( Copy all twenty packed name bytes into the selected 21-column row. )
+"VHCAT copy label"
+	A = [VHCATtype]; E = vhcatstarlabel; ? A = VHCATS -> VHCAT label selected;
+	E = vhcatbodylabel;
+    "VHCAT label selected"
+	[E] = [VHCATtype]; [VHCATptr] = E; [VHCATi] = 0;
+    "VHCAT label copy loop"
+	A = [VHCATi]; B = A; A / 4; C = [VHCATfoundptr]; C + 2; C + A;
+	A = [C]; B & 3; B * 8; A > B; A & FFh;
+	E = [VHCATptr]; E + 1; E + [VHCATi]; [E] = A;
+	[VHCATi]+; A = [VHCATi]; ? A < 20 -> VHCAT label copy loop;
+	end;
+
+"VHCAT sync panel"
+	[VHCATi] = 0;
+    "VHCAT sync loop"
+	E = vhcatstarlabel; E + [VHCATi]; A = [E]; C = vhptext; C + [VHCATi]; [C] = A;
+	E = vhcatbodylabel; E + [VHCATi]; A = [E]; C = vhptext; C + 21; C + [VHCATi]; [C] = A;
+	[VHCATi]+; A = [VHCATi]; ? A < 21 -> VHCAT sync loop;
+	end;
+
+"VHCAT show star"
+	[VHCATtype] = VHCATS; [VHCATcode] = [VHTclass];
+	[VHCATid0] = [VHTid0]; [VHCATid1] = [VHTid1]; => VHCAT find;
+	A = [VHCATok]; ? A = 0 -> VHCAT show star done; => VHCAT copy label;
+    "VHCAT show star done"
+	end;
+
+"VHCAT show body"
+	[VHCATtype] = VHCATP; A = [VHGplanet]; A + 1; [VHCATcode] = A;
+	[nsid0] = [VHTid0]; [nsid1] = [VHTid1]; [FI] = A; => NsIdentAddInt;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT find;
+	A = [VHCATOk]; ? A = 0 -> VHCAT show body done; => VHCAT copy label;
+    "VHCAT show body done"
+	end;
+
+"VHCAT refresh"
+	=> VHCAT default labels; => VHCAT show star; => VHCAT show body; => VHCAT sync panel;
+	end;
+
+      ( Pack vhcatname, reject duplicate identities/names, append one record.
+	status: 1 added, 2 identity already charted, 3 duplicate name, 0 I/O. )
+"VHCAT add"
+	[VHCATstatus] = 0;
+	( Zero means an existing malformed catalogue; refuse to replace it. )
+	A = [VHCATbytes]; ? A < VHCATHDRBYTES -> VHCAT add done;
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHCAT add done;
+	A = [VHCATid0]; [VHCATfoundptr] = A; A = [VHCATid1]; [VHCATptr] = A;
+	=> VHCAT find; A = [VHCATok]; ? A != 0 -> VHCAT add charted;
+	A = [VHCATfoundptr]; [VHCATid0] = A; A = [VHCATptr]; [VHCATid1] = A;
+	A = [VHCATrecs]; ? A >= VHCATMAXRECS -> VHCAT add done;
+	A '* 8; E = vhcatraw; E + 1; E + A; [VHCATfoundptr] = E;
+	[E] = [VHCATid0]; [E plus 1] = [VHCATid1];
+	[E plus 2] = 20202020h; [E plus 3] = 20202020h; [E plus 4] = 20202020h;
+	[E plus 5] = 20202020h; [E plus 6] = 20202020h;
+	[VHCATi] = 0;
+    "VHCAT pack loop"
+	A = [VHCATi]; ? A >= [VHCATlen] -> VHCAT pack done;
+	C = vhcatname; C + A; B = [C]; C = A; C / 4; E = [VHCATfoundptr]; E + 2; E + C;
+	A & 3; A * 8; B < A; A = [E]; A | B; [E] = A;
+	[VHCATi]+; -> VHCAT pack loop;
+    "VHCAT pack done"
+	A = [VHCATcode]; B = A; A / 10; A + 48; A < 16; B '% 10; B + 48; B < 24;
+	C = [VHCATtype]; C < 8; A | B; A | C; A | 32; E = [VHCATfoundptr]; [E plus 7] = A;
+	[VHCATrecno] = 0;
+"VHCAT duplicate loop"
+	A = [VHCATrecno]; ? A >= [VHCATrecs] -> VHCAT write record;
+	A '* 8; E = vhcatraw; E + 1; E + A; C = [VHCATfoundptr];
+	A = [E]; [VHCATid0] = A; A = [E plus 1]; [VHCATid1] = A;
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHCAT duplicate next;
+	A = [E plus 2]; ? A != [C plus 2] -> VHCAT duplicate next;
+	A = [E plus 3]; ? A != [C plus 3] -> VHCAT duplicate next;
+	A = [E plus 4]; ? A != [C plus 4] -> VHCAT duplicate next;
+	A = [E plus 5]; ? A != [C plus 5] -> VHCAT duplicate next;
+	A = [E plus 6]; ? A != [C plus 6] -> VHCAT duplicate next;
+	[VHCATstatus] = 3; -> VHCAT add done;
+    "VHCAT duplicate next"
+	[VHCATrecno]+; -> VHCAT duplicate loop;
+    "VHCAT write record"
+	( Materialize a missing catalogue before seeking to its first record. )
+	A = [VHCATbytes]; ? A != VHCATHDRBYTES -> VHCAT write record ready;
+	[File Name] = vhcatfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhcatraw; [Block Size] = VHCATHDRBYTES; isocall;
+	? [File Status] + ERROR -> VHCAT add done;
+    "VHCAT write record ready"
+	[File Name] = vhcatfile; [File Position] = [VHCATbytes]; [File Command] = WRITE;
+	[Block Pointer] = [VHCATfoundptr]; [Block Size] = VHCATRECBYTES; isocall;
+	? [File Status] + ERROR -> VHCAT add done; A = [Block Size]; ? A != VHCATRECBYTES -> VHCAT add done;
+	A = [VHCATbytes]; A + VHCATRECBYTES; [VHCATbytes] = A; [vhcatraw] = A;
+	[File Name] = vhcatfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhcatraw; [Block Size] = 4; isocall;
+	? [File Status] + ERROR -> VHCAT add done;
+	[File Name] = vhcatfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHCATbytes]; isocall;
+	[VHCATrecs]+; [VHCATloaded] = 1; [VHCATstatus] = 1;
+	-> VHCAT add done;
+    "VHCAT add charted"
+	[VHCATstatus] = 2;
+    "VHCAT add done"
+	end;

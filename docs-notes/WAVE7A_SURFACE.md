@@ -271,10 +271,10 @@ would have shown.
 
 ---
 
-## 10. Open items for the coordinator
+## 10. Historical backlog — resolved/reconciled
 
-Found while writing the test; **none of them changes this wave's result**, and none is in
-this test's namespace to fix.
+These findings were the handoff backlog. They are retained as historical evidence and were
+resolved or reconciled by the later remediation; **none changes this wave's result**.
 
 1. **`su_grade.py`'s `C6m` cannot fail.** Its `ok` argument is the literal `True` and it is
    not folded into `all_ok`. In the clean run 3 of its 10 rows already disagree
@@ -361,3 +361,12 @@ real    4m35.756s
 with `PRISTINE.sha256 6 ok 0 bad`, `G2 all unchanged` over the 58 files it reads, `G3 0
 w5audit findings` in this file, and all seventeen sabotages caught by the check each was
 aimed at.
+
+### Reconciliation note (post-remediation)
+
+The former section 10 backlog is historical, not an open handoff: A1/A2/A3/A4 and B were
+implemented in the remediation-owned grader, break harness, checker, ledger, and audit;
+C1/C2 remain documented limitations. `su_grade.py` now reports 237 rows with 0 failures,
+and `tests/w5audit.py` passes 32 checks. The aggregate `su_break.py` mutation report was
+given a 15-minute bound but timed out without flushed output, so that one runtime result is
+explicitly NOT-GRADED. See `WAVE7A_REMEDIATION.md` for mutation evidence.

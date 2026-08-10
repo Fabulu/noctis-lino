@@ -1,0 +1,66 @@
+      ( *** vhtreeprobe - focused production tree geometry smoke *** )
+
+"libraries"
+
+	defstyle;
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal; fbtick; fbshell;
+	pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhcatalog; vhspace; vhstar; vhground;
+
+"directors"
+
+	program name = { vhtreeprobe };
+	unit = 32;
+
+"constants"
+
+	NTICK = 400; NFRAME = 100; HITCHMOD = 37; CALMS = 3000; SERVON = 96;
+	INITIAL WIDTH = 322; INITIAL HEIGHT = 226;
+	MINIMUM WIDTH = 272; MINIMUM HEIGHT = 120;
+	MAXIMUM WIDTH = 962; MAXIMUM HEIGHT = 626;
+	MAX MENU OPTIONS = 8; MAX ONSCREEN OPTIONS = 8; MAX LEVELS IN SHOW = 1;
+	MAX FILES IN SELECTOR = 8; MAX FILES IN SHOW = 4;
+	MAX OPTIONS IN QUESTION = 2; MAX FIELDS IN QUESTION = 0;
+
+"variables"
+
+	VHGlanded = 1; VHGframe = 0; VHGplanet = 0;
+	VHTRp = 0; VHTRlit = 0; VHTRname = { vhtree-out.bin };
+
+"workspace"
+
+	vhtrout = 8;
+
+"programme"
+
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
+	=> PGF constants;
+	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32;
+	[VHVcamxi] = 0; A = 0; A - 2000; [VHVcamyi] = A;
+	A = 0; A - 12000; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	[PGtexf] = 0; [SPsrc] = 1; [SPflar] = 0; [SPcull] = 0; [SPhalf] = 0;
+	A = 17391; => SU fast srand;
+	[VHGNDoox] = 0; [VHGNDooy] = 0; [VHGNDooz] = 0; [VHGNDdepth] = 0;
+	=> VHGND tree;
+
+	[VHTRp] = 0; [VHTRlit] = 0;
+    "VHTR scan"
+	D = nw; D + RADPT; D + [VHTRp]; A = [D]; ? A = 0 -> VHTR scan next; [VHTRlit]+;
+    "VHTR scan next"
+	[VHTRp]+; A = [VHTRp]; ? A < 64000 -> VHTR scan;
+	[vhtrout plus 0] = [VHGNDtreescale]; [vhtrout plus 1] = [VHGNDtreebranches];
+	[vhtrout plus 2] = [VHGNDtreebranch]; [vhtrout plus 3] = [VHGNDtreeside];
+	[vhtrout plus 4] = [VHGNDtreeorient]; [vhtrout plus 5] = [VHGNDtreecol];
+	[vhtrout plus 6] = [VHGNDtreetop]; [vhtrout plus 7] = [VHTRlit];
+	[File Name] = VHTRname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhtrout; [Block Size] = 32; isocall;
+	[File Name] = VHTRname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 32; isocall;
+	end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;

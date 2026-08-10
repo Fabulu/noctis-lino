@@ -11,37 +11,33 @@
 	WHAT IS IN AND WHAT IS OUT
 	----------------------------------------------------------------
 
-	IN:   nop, nob, and every body's p_type, p_owner and p_moonid -
-	      the complete topology of the system - plus every draw, in
-	      the right order and the right number of times.
+	IN:   nearstar class, seed and binary32 stellar radius.
 
-	OUT:  every VALUE phases A, E, F and G compute: p_orb_seed,
-	      p_tilt, p_orb_tilt, p_orb_ecc, p_ray, p_orb_ray,
-	      p_orb_orient, p_ring and key_radius.  The draws at those
-	      sites are taken; the results are discarded.
+	OUT:  nop, nob, every body's p_type/p_owner/p_moonid, phase-A
+	      p_orb_seed/p_tilt/p_orb_tilt/p_orb_ecc/initial p_ray, exact
+	      radian and integer-degree orientation, and phase-F final
+	      p_ray/p_orb_ray.
 
 	That line is not a convenience.  Every draw in prepare_nearstar
 	whose value selects a branch, a count or a type takes an INTEGER
 	argument - all of :4082, :4096, :4098, :4103, :4112-4114, :4123,
 	:4127, :4134, :4138, :4148, :4152, :4153, :4161, :4183, :4186,
 	:4201, :4213, :4214, :4238, :4255, :4348, :4354, :4358.  The
-	eleven float-argument sites feed nothing but geometry, and
-	geometry is read back by nothing on this path.  Since rand has
+	eleven float-argument sites feed the retained landing/orbit geometry.
+	Since rand has
 	exactly ONE caller in NOCTIS.EXE - random() is a real out-of-line
 	function, not a macro, and the call to rand is not predicated -
-	one rand() is consumed per random() for every n.  So the whole
-	topology is computable with ZERO floating-point arithmetic
-	downstream of the seed, and the RNG stream is provably identical
-	rather than approximately identical.
+	one rand() is consumed per random() for every n.  Phase F already
+	used real NsZRandom calls; their returned values now also feed the
+	source radius formulas without changing that RNG stream.
 
 	----------------------------------------------------------------
-	THE SITE REGISTRY - exactly ELEVEN discarded-value sites
+	THE SITE REGISTRY - exactly ELEVEN live geometry sites
 	----------------------------------------------------------------
 
-	Each row is ONE call site in the code below, marked "SITE nn".
-	A site that draws twice is a zrandom and uses NsZDrawOnly.
-	A twelfth site, or one of these computed for real, is a Wave 4b
-	change and must fail this wave's test.
+	Each row is ONE call site in the code below, marked "LIVE SITE nn".
+	A site that draws twice is a real NsZRandom.  The live x87 cast and
+	assignment boundaries preserve the original RNG schedule and geometry.
 
 	 nn  line   draws  expression
 	 --  -----  -----  --------------------------------------------
@@ -152,6 +148,15 @@
 	nsptype 	= 0 *** 80;
 	nspowner	= 0 *** 80;
 	nspmoonid	= 0 *** 80;
+	( Retained geometry needed by landing identity: binary64 low/high pairs. )
+	nspray		= 0 *** 160;
+	nsporbray	= 0 *** 160;
+	nsporideg	= 0 *** 80;
+	nspororient	= 0 *** 160;
+	nsporbseed	= 0 *** 160;
+	nsptilt		= 0 *** 160;
+	nsporbtlt	= 0 *** 160;
+	nsporbecc	= 0 *** 160;
 
 	( state )
 
@@ -167,8 +172,28 @@
 	nsc		= 0;
 	nsq		= 0;
 	nsr		= 0;
-	nss		= 0;
+	nstypehold	= 0;
 	nst		= 0;
+	nsstarray	= 0;		( nearstar_ray, binary32 bits from VHTRay )
+	nsgeo0		= 0; nsgeo1 = 0;
+	nsavg0		= 0; nsavg1 = 0;
+	nskey0		= 0; nskey1 = 0;
+	nsweight0	= 0; nsweight1 = 0;
+	nszgeom		= 0;
+	nsgeoi		= 0; nsdrawvalue = 0;
+
+	( avg_planet_ray[0..10], binary64 low/high pairs. )
+	nsavgray	= 3126E979h; no label = 3F7CAC08h;
+	no label = BC6A7EFAh; no label = 3F689374h;
+	no label = 47AE147Bh; no label = 3F847AE1h;
+	no label = 020C49BAh; no label = 3F86872Bh;
+	no label = 47AE147Bh; no label = 3F847AE1h;
+	no label = D2F1A9FCh; no label = 3F80624Dh;
+	no label = D2F1A9FCh; no label = 3FB0624Dh;
+	no label = 8D4FDF3Bh; no label = 3F826E97h;
+	no label = BC6A7EFAh; no label = 3F889374h;
+	no label = 00000000h; no label = 3FC00000h;
+	no label = 00000000h; no label = 40140000h;
 
 "programme"
 
@@ -233,12 +258,49 @@
 	B = NSNEG1; E = nspowner; E + [nsn]; [E] = B;
 
 	A = 360; => NsRandom;		( :4088 orb_orient, int arg     )
-	=> NsDrawOnly;			( SITE 1  :4089                 )
-	=> NsZDrawOnly;			( SITE 2  :4090                 )
-	=> NsZDrawOnly;			( SITE 3  :4091                 )
-	=> NsDrawOnly;			( SITE 4  :4092                 )
-	=> NsDrawOnly;			( SITE 5  :4093                 )
-	=> NsZDrawOnly;			( SITE 6  :4094 zrandom(p_ray)  )
+	[nsdrawvalue] = A; B = A; E = nsporideg; E + [nsn]; [E] = B;
+	[FI] = [nsdrawvalue]; => IntToF;
+	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
+	[nsgeoi] = [nsn]; => Ns geo store orientation;
+
+	( LIVE SITE 1 :4089, p_orb_seed.  Keep nearstar_ray's binary32
+	  storage, the explicit random-result float cast, and the live-extended
+	  float-to-int call boundary. )
+	[FS0] = [nsstarray]; => FLoadF32; => GeoStoreFAtoFB;
+	A = [nsn]; A '* [nsn]; A + 1; A '* 3; [FI] = A; => IntToF;
+	[FC0] = [FA0]; [FC1] = [FA1];
+	A = 1; => GeoSetK; => GeoKMulChopLive; => GeoChop16;
+	A = [FI]; => NsRandom; [nsdrawvalue] = A;
+	[FI] = [nsdrawvalue]; => GeoSeedStore100;
+	[nsgeoi] = [nsn]; => Ns geo store seed;
+
+	( LIVE SITE 2 :4090, p_tilt = zrandom(10*seed)/500. )
+	[nsgeoi] = [nsn]; => Ns geo load seed;
+	A = 0; => GeoSetK; => GeoKMulChopLive; => GeoChop16;
+	A = [FI]; => NsZRandom; [FI] = A; => GeoRatioStore500;
+	=> Ns geo store tilt;
+
+	( LIVE SITE 3 :4091, p_orb_tilt = zrandom(10*seed)/5000. )
+	[nsgeoi] = [nsn]; => Ns geo load seed;
+	A = 0; => GeoSetK; => GeoKMulChopLive; => GeoChop16;
+	A = [FI]; => NsZRandom; [FI] = A; => GeoRatioStore5000;
+	=> Ns geo store orb tilt;
+
+	( LIVE SITE 4 :4092, eccentricity. )
+	[nsgeoi] = [nsn]; => Ns geo load seed; => Ns geo load orb tilt;
+	=> GeoSeedTiltChopLive; => GeoChop16;
+	A = [FI]; => NsRandom; [FI] = A; => GeoEccStore2000;
+	=> Ns geo store eccentricity;
+
+	( LIVE SITE 5 :4093, initial p_ray. )
+	[nsgeoi] = [nsn]; => Ns geo load seed; => GeoPlainChop; => GeoChop16;
+	A = [FI]; => NsRandom; [FI] = A; => GeoPlanetRayStore;
+	=> Ns geo store ray indexed;
+
+	( LIVE SITE 6 :4094.  Ring is overwritten in phase G, but the two
+	  zrandom draws and following random(1000) remain in source order. )
+	[nsgeoi] = [nsn]; => Ns geo load ray; => GeoPlainChop; => GeoChop16;
+	A = [FI]; => NsZRandom;
 	A = 1000; => NsRandom;		( :4094 random(1000), int arg   )
 
       ? [nsclass] != 8 -> nsaplain;
@@ -254,10 +316,19 @@
     "nsaplain"
 	A = NSPLTYPES; => NsRandom;	( :4096 )
     "nsasettype"
-	B = A; E = nsptype; E + [nsn]; [E] = B;
-
-	( :4105-4106  orb_seed *= 10 for classes 2, 7, 15 - geometry,
-	  no draw, deliberately not carried )
+	[nstypehold] = A; B = A; E = nsptype; E + [nsn]; [E] = B;
+	A = [nsclass]; ? A != 8 -> nsa tilt scaled;
+	A = [nstypehold]; ? A != 10 -> nsa tilt scaled;
+	[nsgeoi] = [nsn]; => Ns geo load orb tilt;
+	[FB0] = [FC0]; [FB1] = [FC1]; [FI] = 100; => IntToF; => FMul;
+	=> Ns geo store orb tilt;
+    "nsa tilt scaled"
+	A = [nsclass]; ? A = 2 -> nsa seed scale; ? A = 7 -> nsa seed scale;
+	? A != 15 -> nsa seed scaled;
+    "nsa seed scale"
+	[nsgeoi] = [nsn]; => Ns geo load seed;
+	[FI] = 10; => IntToF; => FMul; => Ns geo store seed;
+    "nsa seed scaled"
 
 	A = [nsn]; A + 1; [nsn] = A;
       ? [nsn] < [nsnop] -> nsaloop;
@@ -430,15 +501,15 @@
 	[nsn] = 0;
 
     "nseloop"
-	E = nsptype; E + [nsn]; A = [E]; [nss] = A;	( s = p_type[n] )
+	E = nsptype; E + [nsn]; A = [E]; [nstypehold] = A;	( s = p_type[n] )
 
       ? [nsn] >= 2 -> nseelse;
 	[nst] = 0;					( :4180 t = 0 )
-      ? [nss] != 10 -> nseclamp;
+      ? [nstypehold] != 10 -> nseclamp;
 	A = 3; => NsRandom; [nst] = A;			( :4183 )
 	-> nseclamp;
     "nseelse"
-	E = nsmoontab; E + [nss]; A = [E]; A + 1;
+	E = nsmoontab; E + [nstypehold]; A = [E]; A + 1;
 	=> NsRandom; [nst] = A;				( :4186 )
 
     "nseclamp"
@@ -457,13 +528,41 @@
 	B = [nsc]; E = nspmoonid; E + [nsq]; [E] = B;	( :4193 )
 
 	A = 360; => NsRandom;		( :4194 orb_orient, int arg )
-	=> NsZDrawOnly;			( SITE 7  :4195 )
-	=> NsZDrawOnly;			( SITE 8  :4196 )
-	=> NsZDrawOnly;			( SITE 9  :4197 )
-	=> NsDrawOnly;			( SITE 10 :4198 )
-	=> NsDrawOnly;			( SITE 11 :4199 - p_orb_seed[n],
-					  the PARENT index.  The value is
-					  dead; the draw is live. )
+	[nsdrawvalue] = A; B = A; E = nsporideg; E + [nsq]; [E] = B;
+	[FI] = [nsdrawvalue]; => IntToF;
+	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
+	[nsgeoi] = [nsq]; => Ns geo store orientation;
+
+	( LIVE SITE 7 :4195, moon p_orb_seed from the parent's initial ray. )
+	[nsgeoi] = [nsn]; => Ns geo load ray;
+	A = [nsc]; A '* [nsc]; A + 4; [FI] = A; => IntToF;
+	[FC0] = [FA0]; [FC1] = [FA1]; A = 1; => GeoSetK;
+	=> GeoKMulChopLive; => GeoChop16; A = [FI]; => NsZRandom;
+	[FI] = A; => GeoSeedStore100;
+	[nsgeoi] = [nsq]; => Ns geo store seed;
+
+	( LIVE SITE 8 :4196, moon p_tilt. )
+	[nsgeoi] = [nsq]; => Ns geo load seed;
+	A = 0; => GeoSetK; => GeoKMulChopLive; => GeoChop16;
+	A = [FI]; => NsZRandom; [FI] = A; => GeoRatioStore50;
+	=> Ns geo store tilt;
+
+	( LIVE SITE 9 :4197, moon p_orb_tilt. )
+	[nsgeoi] = [nsq]; => Ns geo load seed;
+	A = 0; => GeoSetK; => GeoKMulChopLive; => GeoChop16;
+	A = [FI]; => NsZRandom; [FI] = A; => GeoRatioStore500;
+	=> Ns geo store orb tilt;
+
+	( LIVE SITE 10 :4198, moon eccentricity. )
+	[nsgeoi] = [nsq]; => Ns geo load seed; => Ns geo load orb tilt;
+	=> GeoSeedTiltChopLive; => GeoChop16;
+	A = [FI]; => NsRandom; [FI] = A; => GeoEccStore2000;
+	=> Ns geo store eccentricity;
+
+	( LIVE SITE 11 :4199 deliberately reads the PARENT seed. )
+	[nsgeoi] = [nsn]; => Ns geo load seed; => GeoPlainChop; => GeoChop16;
+	A = [FI]; => NsRandom; [FI] = A; => GeoMoonRayStore;
+	[nsgeoi] = [nsq]; => Ns geo store ray indexed;
 
 	A = NSPLTYPES; => NsRandom;			( :4201 )
 	B = A; E = nsptype; E + [nsq]; [E] = B;
@@ -471,12 +570,12 @@
 
 	( :4206  if (r==9 && s != 10) r = 2 )
       ? [nsr] != 9 -> nser6;
-      ? [nss] = 10 -> nser6;
+      ? [nstypehold] = 10 -> nser6;
 	[nsr] = 2;
     "nser6"
 	( :4210  if (r==6 && s < 9) r = 5 )
       ? [nsr] != 6 -> nsecool1;
-      ? [nss] >= 9 -> nsecool1;
+      ? [nstypehold] >= 9 -> nsecool1;
 	[nsr] = 5;
     "nsecool1"
 	( :4213  if (n > 7 && random(c)) r = 7.  c is 0 on the first
@@ -499,14 +598,14 @@
       ? [nsr] = 8 -> nsebigy;
 	-> nsehab;
     "nsebigy"
-      ? [nss] = 6 -> nsehab;
-      ? [nss] >= 9 -> nsehab;
+      ? [nstypehold] = 6 -> nsehab;
+      ? [nstypehold] >= 9 -> nsehab;
 	[nsr] = 1;
     "nsehab"
 	( :4235-4243  if (r==3 && s < 9) { ... }.  Reaching here needs
 	  s == 6 exactly - see the header note. )
       ? [nsr] != 3 -> nseice;
-      ? [nss] >= 9 -> nseice;
+      ? [nstypehold] >= 9 -> nseice;
       ? [nsn] <= 7 -> nsehab2;
 	[nsr] = 7;			( :4237 - can be overwritten below )
     "nsehab2"
@@ -559,11 +658,51 @@
 
     "nsfstart"
 	A = 6; => NsSetPhase;
+	( key_radius = nearstar_ray * 5, followed by the class multiplier. )
+	[FS0] = [nsstarray]; => FLoadF32;
+	[FB0] = 00000000h; [FB1] = 40140000h; => FMul;
+	[nskey0] = [FA0]; [nskey1] = [FA1];
+	[nst] = 1; A = [nsclass]; ? A = 8 -> nsf key class8;
+	? A = 2 -> nsf key class2; ? A = 7 -> nsf key class7; ? A = 11 -> nsf key class11;
+	-> nsf key ready;
+    "nsf key class8"
+	[nst] = 2; -> nsf key scale;
+    "nsf key class2"
+	[nst] = 16; -> nsf key scale;
+    "nsf key class7"
+	[nst] = 18; -> nsf key scale;
+    "nsf key class11"
+	[nst] = 20;
+    "nsf key scale"
+	[FI] = [nst]; => IntToF; [FB0] = [nskey0]; [FB1] = [nskey1]; => FMul;
+	[nskey0] = [FA0]; [nskey1] = [FA1];
+    "nsf key ready"
       ? [nsnop] <= 0 -> nsfmoons;
 	[nsn] = 0;
     "nsfploop"
-	A = 100; => NsZRandom;		( :4308 p_ray            )
-	A = 100; => NsZRandom;		( :4310 p_orb_ray        )
+	E = nsptype; E + [nsn]; [nstypehold] = [E]; => Ns geo average;
+	A = 100; => NsZRandom; [nszgeom] = A;	( :4308 p_ray )
+	[FI] = [nszgeom]; => IntToF; [FB0] = [nsavg0]; [FB1] = [nsavg1]; => FMul;
+	[FB0] = 00000000h; [FB1] = 40690000h; => FQuo;	( /200 )
+	[FB0] = [nsavg0]; [FB1] = [nsavg1]; => FAdd;
+	[FB0] = 33333333h; [FB1] = 40033333h; => FMul;	( *2.4 )
+	=> Ns geo store ray;
+
+	A = 100; => NsZRandom; [nszgeom] = A;	( :4310 p_orb_ray )
+	[FI] = [nszgeom]; => IntToF; [FB0] = [nskey0]; [FB1] = [nskey1]; => FMul;
+	[FB0] = 00000000h; [FB1] = 407F4000h; => FQuo;	( /500 )
+	[FB0] = [nskey0]; [FB1] = [nskey1]; => FAdd;
+	[nsgeo0] = [FA0]; [nsgeo1] = [FA1];
+	[FA0] = [nskey0]; [FA1] = [nskey1]; [FB0] = [nsavg0]; [FB1] = [nsavg1]; => FMul;
+	[FB0] = [nsgeo0]; [FB1] = [nsgeo1]; => FAdd; => Ns geo store orbit;
+
+	[nsweight0] = 00000000h; [nsweight1] = 3FF00000h;
+	A = [nsn]; ? A < 8 -> nsf planet advance;
+	[nsweight0] = C28F5C29h; [nsweight1] = 3FCC28F5h;
+    "nsf planet advance"
+	[FB0] = [nsweight0]; [FB1] = [nsweight1]; => FMul;
+	[FB0] = [nskey0]; [FB1] = [nskey1]; => FAdd;
+	[nskey0] = [FA0]; [nskey1] = [FA1];
 	A = [nsn]; A + 1; [nsn] = A;
       ? [nsn] < [nsnop] -> nsfploop;
 
@@ -572,12 +711,40 @@
     "nsfouter"
       ? [nsn] >= [nsnob] -> nsfdone;
 	E = nspowner; E + [nsn]; A = [E]; [nsc] = A;	( :4328 )
+	A = [nsc]; A < 1; E = nspray; E + A;
+	[FA0] = [E plus 0]; [FA1] = [E plus 1];
+	[FB0] = 9999999Ah; [FB1] = 40299999h; => FMul;	( *12.8 )
+	[nskey0] = [FA0]; [nskey1] = [FA1]; [nsq] = 0;
     "nsfinner"
       ? [nsn] >= [nsnob] -> nsfouter;
 	E = nspowner; E + [nsn]; A = [E];
       ? A != [nsc] -> nsfouter;
-	A = 100; => NsZRandom;		( :4331 p_ray            )
-	A = 100; => NsZRandom;		( :4333 p_orb_ray        )
+	E = nsptype; E + [nsn]; [nstypehold] = [E]; => Ns geo average;
+	A = 100; => NsZRandom; [nszgeom] = A;	( :4331 p_ray )
+	[FI] = [nszgeom]; => IntToF; [FB0] = [nsavg0]; [FB1] = [nsavg1]; => FMul;
+	[FB0] = 00000000h; [FB1] = 40690000h; => FQuo;
+	[FB0] = [nsavg0]; [FB1] = [nsavg1]; => FAdd;
+	[FB0] = CCCCCCCDh; [FB1] = 3FFCCCCCh; => FMul;	( *1.8 )
+	=> Ns geo store ray;
+
+	A = 100; => NsZRandom; [nszgeom] = A;	( :4333 p_orb_ray )
+	[FI] = [nszgeom]; => IntToF; [FB0] = [nskey0]; [FB1] = [nskey1]; => FMul;
+	[FB0] = 00000000h; [FB1] = 406F4000h; => FQuo;	( /250 )
+	[FB0] = [nskey0]; [FB1] = [nskey1]; => FAdd;
+	[nsgeo0] = [FA0]; [nsgeo1] = [FA1];
+	[FA0] = [nskey0]; [FA1] = [nskey1]; [FB0] = [nsavg0]; [FB1] = [nsavg1]; => FMul;
+	[FB0] = [nsgeo0]; [FB1] = [nsgeo1]; => FAdd; => Ns geo store orbit;
+
+	[nsweight0] = 00000000h; [nsweight1] = 3FF00000h;
+	A = [nsq]; ? A < 2 -> nsf moon advance; ? A '>= 8 -> nsf moon outer weight;
+	[nsweight0] = EB851EB8h; [nsweight1] = 3FBEB851h; -> nsf moon advance;
+    "nsf moon outer weight"
+	[nsweight0] = 9999999Ah; [nsweight1] = 3F999999h;
+    "nsf moon advance"
+	[FB0] = [nsweight0]; [FB1] = [nsweight1]; => FMul;
+	[FB0] = [nskey0]; [FB1] = [nskey1]; => FAdd;
+	[nskey0] = [FA0]; [nskey1] = [FA1];
+	[nsq]+;
 	A = [nsn]; A + 1; [nsn] = A;
 	-> nsfinner;
     "nsfdone"
@@ -589,9 +756,9 @@
 	[nsn] = 0;
     "nsgloop"
 	A = 3; => NsRandom;		( :4348 ring radius, int arg )
-	E = nsptype; E + [nsn]; A = [E]; [nss] = A;
-      ? [nss] = 6 -> nsggas;
-      ? [nss] = 9 -> nsggas;
+	E = nsptype; E + [nsn]; A = [E]; [nstypehold] = A;
+      ? [nstypehold] = 6 -> nsggas;
+      ? [nstypehold] = 9 -> nsggas;
 	A = 5; => NsRandom;		( :4354 )
 	-> nsgnext;
     "nsggas"
@@ -601,4 +768,64 @@
       ? [nsn] < [nsnop] -> nsgloop;
     "nsgdone"
 
+	end;
+
+"Ns geo average"
+	A = [nstypehold]; A < 1; E = nsavgray; E + A;
+	[nsavg0] = [E plus 0]; [nsavg1] = [E plus 1];
+	end;
+
+"Ns geo load seed"
+	A = [nsgeoi]; A < 1; E = nsporbseed; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1];
+	end;
+
+"Ns geo store seed"
+	A = [nsgeoi]; A < 1; E = nsporbseed; E + A;
+	[E plus 0] = [FA0]; [E plus 1] = [FA1];
+	end;
+
+"Ns geo store orientation"
+	A = [nsgeoi]; A < 1; E = nspororient; E + A;
+	[E plus 0] = [FA0]; [E plus 1] = [FA1];
+	end;
+
+"Ns geo store tilt"
+	A = [nsgeoi]; A < 1; E = nsptilt; E + A;
+	[E plus 0] = [FA0]; [E plus 1] = [FA1];
+	end;
+
+"Ns geo load orb tilt"
+	A = [nsgeoi]; A < 1; E = nsporbtlt; E + A;
+	[FC0] = [E plus 0]; [FC1] = [E plus 1];
+	end;
+
+"Ns geo store orb tilt"
+	A = [nsgeoi]; A < 1; E = nsporbtlt; E + A;
+	[E plus 0] = [FA0]; [E plus 1] = [FA1];
+	end;
+
+"Ns geo store eccentricity"
+	A = [nsgeoi]; A < 1; E = nsporbecc; E + A;
+	[E plus 0] = [FA0]; [E plus 1] = [FA1];
+	end;
+
+"Ns geo load ray"
+	A = [nsgeoi]; A < 1; E = nspray; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1];
+	end;
+
+"Ns geo store ray indexed"
+	A = [nsgeoi]; A < 1; E = nspray; E + A;
+	[E plus 0] = [FA0]; [E plus 1] = [FA1];
+	end;
+
+"Ns geo store ray"
+	A = [nsn]; A < 1; E = nspray; E + A;
+	[E plus 0] = [FA0]; [E plus 1] = [FA1];
+	end;
+
+"Ns geo store orbit"
+	A = [nsn]; A < 1; E = nsporbray; E + A;
+	[E plus 0] = [FA0]; [E plus 1] = [FA1];
 	end;

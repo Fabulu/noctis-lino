@@ -1,0 +1,77 @@
+      ( *** vhplanetprobe - focused remaining-landable-types smoke *** )
+
+"libraries"
+
+	defstyle;
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal; fbtick; fbshell;
+	pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhcatalog; vhspace; vhstar; vhground;
+
+"directors"
+
+	program name = { vhplanetprobe };
+	unit = 32;
+
+"constants"
+
+	NTICK = 400; NFRAME = 100; HITCHMOD = 37; CALMS = 3000; SERVON = 96;
+	INITIAL WIDTH = 322; INITIAL HEIGHT = 226;
+	MINIMUM WIDTH = 272; MINIMUM HEIGHT = 120;
+	MAXIMUM WIDTH = 962; MAXIMUM HEIGHT = 626;
+	MAX MENU OPTIONS = 8; MAX ONSCREEN OPTIONS = 8; MAX LEVELS IN SHOW = 1;
+	MAX FILES IN SELECTOR = 8; MAX FILES IN SHOW = 4;
+	MAX OPTIONS IN QUESTION = 2; MAX FIELDS IN QUESTION = 0;
+
+"variables"
+
+	VHGlanded = 1; VHGframe = 0; VHGplanet = 0;
+	VHPPp = 0; VHPPmin = 0; VHPPmax = 0; VHPPsum = 0; VHPPtexsum = 0;
+	VHPPslot = 0; VHPPname = { vhplanet-out.bin };
+
+"workspace"
+
+	vhppout = 18;
+
+"programme"
+
+	=> PGF constants; => GR float init;
+	[VHTid0] = 0; [VHTid1] = 0; [VHGNDplanet] = 0; [VHGNDseed] = 149130;
+
+	[GRiptype] = 1; => VHGND generate; [VHPPslot] = 0; => VHPP record;
+	[VHGNDseed] = 149131; [GRiptype] = 5; => VHGND generate; [VHPPslot] = 6; => VHPP record;
+	[VHGNDseed] = 149130; [GRiptype] = 7; => VHGND generate; [VHPPslot] = 12; => VHPP record;
+
+	[File Name] = VHPPname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhppout; [Block Size] = 72; isocall;
+	[File Name] = VHPPname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 72; isocall;
+	end;
+
+"VHPP record"
+	[VHPPp] = 0; [VHPPmin] = 255; [VHPPmax] = 0; [VHPPsum] = 0;
+    "VHPP terrain pixel"
+	A = RPSM; A + [VHPPp]; [MBptr] = A; => MEM get byte; A = [MBval];
+	? A '>= [VHPPmin] -> VHPP terrain max; [VHPPmin] = A;
+    "VHPP terrain max"
+	A = [MBval]; ? A '<= [VHPPmax] -> VHPP terrain sum; [VHPPmax] = A;
+    "VHPP terrain sum"
+	A = [VHPPsum]; A + [MBval]; [VHPPsum] = A;
+	[VHPPp]+; A = [VHPPp]; ? A < 40000 -> VHPP terrain pixel;
+
+	[VHPPp] = 0; [VHPPtexsum] = 0;
+    "VHPP texture pixel"
+	A = RPBG; A + [VHPPp]; [MBptr] = A; => MEM get byte;
+	A = [VHPPtexsum]; A + [MBval]; [VHPPtexsum] = A;
+	[VHPPp]+; A = [VHPPp]; ? A < 65536 -> VHPP texture pixel;
+
+	A = vhppout; A + [VHPPslot]; E = A;
+	[E plus 0] = [VHPPmin]; [E plus 1] = [VHPPmax]; [E plus 2] = [VHPPsum];
+	[E plus 3] = [VHPPtexsum]; [E plus 4] = [VHGNDrockdensity]; [E plus 5] = [VHGNDrockscale];
+	end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;

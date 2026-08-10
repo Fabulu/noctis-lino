@@ -1,0 +1,500 @@
+      ( *** vhpanels - Stardrifter GOES/map console faces *** )
+
+"constants"
+
+	VHPX = 1163739136;		( +236*15 = 3540 )
+	VHPY0 = 3281387520;		( -20*15 = -300 )
+	VHPY1 = 1129447424;		( +14*15 = +210 )
+	VHPZ0 = 3301113856;		( -104*15 = -1560 )
+	VHPZ1 = 3306184704;		( -154*15 = -2310 )
+	VHPGL = 3238264832;		( -8.25f glyph left )
+	VHPGR = 1102053376;		( +22.0f glyph right )
+	VHPQTR = 1048576000;		( 0.25f )
+	VHPTX = 512; VHPTY = 576;
+
+"variables"
+
+	VHPcol = 0; VHPi = 0;
+	VHPcamx = 0; VHPcamy = 0; VHPcamz = 0;
+	VHPalpha = 0; VHPbeta = 0;
+	VHPfontok = 0; VHPfi = 0; VHPchar = 0; VHPline = 0;
+	VHPkey = 0; VHPcmdpos = 0; VHPsubmitted = 0; VHPactive = 0;
+	VHPfcsstatus = 0; VHPstatbase = 0; VHPstatlen = 0;
+	VHPcx4 = 0; VHPxbase4 = 0;
+	VHPsysn = 0; VHPdotx = 0; VHPdoty = 0; VHPdotz = 0;
+	VHPselected = 0; VHPsysphase = 0; VHPangle = 0; VHPradius = 0; VHPdotsize = 0;
+	VHPorbitn = 0; VHPorbitseg = 0; VHPprevy = 0; VHPprevz = 0; VHPowner = 0;
+	VHPscoreindex = 0; VHPscore = 0; VHPcurrent = 0;
+	VHPminscore = 0; VHPmaxscore = 0; VHPscorespan = 0; VHPscan = 0;
+	VHPsx0 = 0; VHPsy0 = 0; VHPsz0 = 0;
+	VHPsx1 = 0; VHPsy1 = 0; VHPsz1 = 0;
+	vhpfontname = { digimap2.bin };
+
+"workspace"
+
+	vhptext = 126;			( two headers + four 21-column command rows )
+	vhpstatus = 54;
+	VHPbodyy = 80; VHPbodyz = 80;
+
+"programme"
+
+"VH panels init"
+	( digimap2 is the authoritative first 9,360 bytes of SUPPORTS.NCT:
+	  2,340 little-endian 32-bit glyph scanlines. )
+	[File Name] = vhpfontname; [File Position] = 0; [File Command] = READ;
+	[Block Pointer] = stage; [Block Size] = 9360; isocall;
+	A = [Block Size]; ? A != 9360 -> VHP font done;
+	[VHPfi] = 0;
+    "VHP font copy"
+	A = stage; A + [VHPfi]; C = digimap2; C + [VHPfi]; [C] = [A];
+	[VHPfi]+; A = [VHPfi]; ? A < 2340 -> VHP font copy;
+	[VHPfontok] = 1;
+	( Startup rows written by reset_signal in the original. )
+	[vhptext plus 0] = 71; [vhptext plus 1] = 46; [vhptext plus 2] = 79;
+	[vhptext plus 3] = 46; [vhptext plus 4] = 69; [vhptext plus 5] = 46;
+	[vhptext plus 6] = 83; [vhptext plus 7] = 46; [vhptext plus 8] = 32;
+	[vhptext plus 9] = 67; [vhptext plus 10] = 79; [vhptext plus 11] = 77;
+	[vhptext plus 12] = 77; [vhptext plus 13] = 65; [vhptext plus 14] = 78;
+	[vhptext plus 15] = 68; [vhptext plus 16] = 32; [vhptext plus 17] = 78;
+	[vhptext plus 18] = 69; [vhptext plus 19] = 84; [vhptext plus 20] = 58;
+	[vhptext plus 21] = 82; [vhptext plus 22] = 69; [vhptext plus 23] = 86;
+	[vhptext plus 24] = 73; [vhptext plus 25] = 83; [vhptext plus 26] = 73;
+	[vhptext plus 27] = 79; [vhptext plus 28] = 78; [vhptext plus 29] = 32;
+	[vhptext plus 30] = 73; [vhptext plus 31] = 68; [vhptext plus 32] = 32;
+	[vhptext plus 33] = 54; [vhptext plus 34] = 48; [vhptext plus 35] = 49;
+	[vhptext plus 36] = 49; [vhptext plus 37] = 47; [vhptext plus 38] = 48;
+	[vhptext plus 39] = 50; [vhptext plus 40] = 48; [vhptext plus 41] = 48;
+	[vhptext plus 42] = 95;
+	( FCS messages written by status() in the original main loop. )
+	[vhpstatus plus 0] = 67; [vhpstatus plus 1] = 72; [vhpstatus plus 2] = 65; [vhpstatus plus 3] = 82;
+	[vhpstatus plus 4] = 71; [vhpstatus plus 5] = 73; [vhpstatus plus 6] = 78; [vhpstatus plus 7] = 71;
+	[vhpstatus plus 8] = 80; [vhpstatus plus 9] = 65; [vhpstatus plus 10] = 82; [vhpstatus plus 11] = 75;
+	[vhpstatus plus 12] = 73; [vhpstatus plus 13] = 78; [vhpstatus plus 14] = 71;
+	[vhpstatus plus 15] = 76; [vhpstatus plus 16] = 73; [vhpstatus plus 17] = 78; [vhpstatus plus 18] = 75;
+	[vhpstatus plus 19] = 73; [vhpstatus plus 20] = 78; [vhpstatus plus 21] = 71;
+	[vhpstatus plus 22] = 68; [vhpstatus plus 23] = 82; [vhpstatus plus 24] = 73; [vhpstatus plus 25] = 86;
+	[vhpstatus plus 26] = 73; [vhpstatus plus 27] = 78; [vhpstatus plus 28] = 71;
+	[vhpstatus plus 29] = 73; [vhpstatus plus 30] = 71; [vhpstatus plus 31] = 78; [vhpstatus plus 32] = 73;
+	[vhpstatus plus 33] = 84; [vhpstatus plus 34] = 73; [vhpstatus plus 35] = 79; [vhpstatus plus 36] = 78;
+	[vhpstatus plus 37] = 67; [vhpstatus plus 38] = 65; [vhpstatus plus 39] = 76; [vhpstatus plus 40] = 73;
+	[vhpstatus plus 41] = 66; [vhpstatus plus 42] = 82; [vhpstatus plus 43] = 65; [vhpstatus plus 44] = 84;
+	[vhpstatus plus 45] = 69; [vhpstatus plus 46] = 68;
+	[vhpstatus plus 47] = 83; [vhpstatus plus 48] = 84; [vhpstatus plus 49] = 65; [vhpstatus plus 50] = 78;
+	[vhpstatus plus 51] = 68; [vhpstatus plus 52] = 66; [vhpstatus plus 53] = 89;
+    "VHP font done"
+	end;
+
+"VH screens"
+	( shared right-wall quadrilateral )
+	[vhcpoly plus 0] = VHPX; [vhcpoly plus 1] = VHPY0; [vhcpoly plus 2] = VHPZ0;
+	[vhcpoly plus 3] = VHPX; [vhcpoly plus 4] = VHPY1; [vhcpoly plus 5] = VHPZ0;
+	[vhcpoly plus 6] = VHPX; [vhcpoly plus 7] = VHPY1; [vhcpoly plus 8] = VHPZ1;
+	[vhcpoly plus 9] = VHPX; [vhcpoly plus 10] = VHPY0; [vhcpoly plus 11] = VHPZ1;
+
+	( GOES command screen )
+	[VHVcamxi] = [VHPcamx]; [VHVcamyi] = [VHPcamy]; [VHVcamzi] = [VHPcamz];
+	[VHValpha] = [VHPalpha]; [VHVbeta] = [VHPbeta]; => VH set view;
+	[VHPcol] = 68; => VHP draw quad;
+
+	( STARMAP TREE screen, one 54*15 station farther down the wall )
+	A = [VHPcamz]; A + 810; [VHVcamzi] = A; => VH set view;
+	[VHPcol] = 68; => VHP draw quad;
+
+	( planetary map station )
+	A = [VHPcamz]; A + 1620; [VHVcamzi] = A; => VH set view;
+	[VHPcol] = 4; => VHP draw quad;
+	=> VHP planet crosshair;
+	=> VHP system dots;
+	( Text uses the same vertex workspace, so it follows all three faces. )
+	=> VHP GOES text;
+	=> VHP GOES selector;
+	end;
+
+"VHP GOES selector"
+	( vehicle()'s narrow active-screen marker beneath the GOES face. )
+	[vhcpoly plus 0] = VHPX; [vhcpoly plus 1] = 3282370560; [vhcpoly plus 2] = VHPZ0;
+	[vhcpoly plus 3] = VHPX; [vhcpoly plus 4] = 3282862080; [vhcpoly plus 5] = VHPZ0;
+	[vhcpoly plus 6] = VHPX; [vhcpoly plus 7] = 3282862080; [vhcpoly plus 8] = 3301605376;
+	[vhcpoly plus 9] = VHPX; [vhcpoly plus 10] = 3282370560; [vhcpoly plus 11] = 3301605376;
+	[VHVcamxi] = [VHPcamx]; [VHVcamyi] = [VHPcamy]; [VHVcamzi] = [VHPcamz];
+	[VHValpha] = [VHPalpha]; [VHVbeta] = [VHPbeta]; => VH set view;
+	[VHPcol] = 0; A = [VHPactive]; ? A = 0 -> VHP selector draw;
+	[VHPcol] = 63;
+    "VHP selector draw"
+	=> VHP draw quad;
+	end;
+
+"VHP planet crosshair"
+	( Four rails around the landing-site cursor, NOCTIS.CPP:1080-1091. )
+	[VHSx0] = VHPX; [VHSy0] = VHPY0; [VHSz0] = 3304316928;
+	[VHSx1] = VHPX; [VHSy1] = VHPY1; [VHSz1] = 3304316928; => VH stick3d;
+	[VHSx0] = VHPX; [VHSy0] = VHPY0; [VHSz0] = 3304136704;
+	[VHSx1] = VHPX; [VHSy1] = VHPY1; [VHSz1] = 3304136704; => VH stick3d;
+	[VHSx0] = VHPX; [VHSy0] = 3263299584; [VHSz0] = VHPZ0;
+	[VHSx1] = VHPX; [VHSy1] = 3263299584; [VHSz1] = VHPZ1; => VH stick3d;
+	[VHSx0] = VHPX; [VHSy0] = 3258187776; [VHSz0] = VHPZ0;
+	[VHSx1] = VHPX; [VHSy1] = 3258187776; [VHSz1] = VHPZ1; => VH stick3d;
+	end;
+
+"VHP system dots"
+	( Live planetary console for the generated target system.  Retained
+	  prepare_nearstar radii are logarithmically compressed into the small
+	  physical screen face; retained orientations seed the animated phase. )
+	A = [VHPcamx]; ? A < 2000 -> VHP system orbit detail done;
+	=> VHP system orbits;
+    "VHP system orbit detail done"
+	( Central star marker. )
+	[VHPdotx] = 3520; A = 0; A - 45; [VHPdoty] = A; A = 0; A - 1935; [VHPdotz] = A;
+	[VHPdotsize] = 30; [VHScolor] = 62; => VHP draw marker;
+	[VHPsysn] = 0;
+    "VHP system dot loop"
+	A = [VHPsysn]; ? A >= [nsnop] -> VHP system dots done;
+	=> VHP orbit values;
+	A = [VHPsysphase]; A '/ 2; A + [VHPangle]; [VHPangle] = A;
+	=> VHP orbit project;
+	[VHPdotx] = 3520;
+	E = VHPbodyy; E + [VHPsysn]; [E] = [VHPdoty];
+	E = VHPbodyz; E + [VHPsysn]; [E] = [VHPdotz];
+	[VHPdotsize] = 22;
+	[VHScolor] = 70;
+	A = [VHPsysn]; ? A != [VHPselected] -> VHP dot size ready;
+	[VHPdotsize] = 45; [VHScolor] = 63;
+    "VHP dot size ready"
+	=> VHP draw marker;
+	[VHPsysn]+; -> VHP system dot loop;
+    "VHP system dots done"
+	=> VHP moon dots; [VHScolor] = 62;
+	end;
+
+"VHP orbit values"
+	E = nsporideg; E + [VHPsysn]; [VHPangle] = [E];
+	( A lone planet sits halfway across the display. )
+	A = [nsnop]; ? A != 1 -> VHP orbit values many;
+	[VHPradius] = 155; -> VHP orbit values ready;
+    "VHP orbit values many"
+	( The exponent and top eight mantissa bits form a cheap monotonic log2
+	  score.  Normalizing the first/last generated planet to 55..260 keeps
+	  compact and very wide systems readable without inventing body order. )
+	[VHPscoreindex] = 0; => VHP orbit score; [VHPminscore] = [VHPscore];
+	A = [nsnop]; A - 1; [VHPscoreindex] = A; => VHP orbit score;
+	[VHPmaxscore] = [VHPscore]; A = [VHPscore]; A - [VHPminscore]; [VHPscorespan] = A;
+	[VHPscoreindex] = [VHPsysn]; => VHP orbit score;
+	A = [VHPscorespan]; ? A <= 0 -> VHP orbit values middle;
+	A = [VHPscore]; A - [VHPminscore]; A '* 205; A '/ [VHPscorespan]; A + 55;
+	[VHPradius] = A; -> VHP orbit values ready;
+    "VHP orbit values middle"
+	[VHPradius] = 155;
+    "VHP orbit values ready"
+	end;
+
+"VHP orbit score"
+	( nsporbray is an array of binary64 pairs.  Positive finite orbital
+	  radii let us read an ordered fixed-point logarithmic score directly
+	  from the IEEE exponent and leading mantissa without a costly log. )
+	A = [VHPscoreindex]; A < 1; E = nsporbray; E + A;
+	A = [E plus 1]; A > 20; A & 7FFh; A - 1023; A '* 256; [VHPscore] = A;
+	A = [E plus 1]; A > 12; A & 255; A + [VHPscore]; [VHPscore] = A;
+	end;
+
+"VHP system orbits"
+	( Twenty-four projected segments make each generated planet's scaled
+	  orbital radius readable without turning the small console into a grid. )
+	[VHScolor] = 66; [VHPorbitn] = 0;
+    "VHP orbit loop"
+	A = [VHPorbitn]; ? A >= [nsnop] -> VHP orbit done;
+	[VHPsysn] = A; => VHP orbit values;
+	[VHPangle] = 0; => VHP orbit project;
+	[VHPprevy] = [VHPdoty]; [VHPprevz] = [VHPdotz]; [VHPorbitseg] = 1;
+    "VHP orbit segment"
+	A = [VHPorbitseg]; A '* 15; [VHPangle] = A; => VHP orbit project;
+	[VHPsx0] = 3520; [VHPsy0] = [VHPprevy]; [VHPsz0] = [VHPprevz];
+	[VHPsx1] = 3520; [VHPsy1] = [VHPdoty]; [VHPsz1] = [VHPdotz];
+	=> VHP integer stick;
+	[VHPprevy] = [VHPdoty]; [VHPprevz] = [VHPdotz];
+	[VHPorbitseg]+; A = [VHPorbitseg]; ? A <= 24 -> VHP orbit segment;
+	[VHPorbitn]+; -> VHP orbit loop;
+    "VHP orbit done"
+	end;
+
+"VHP moon dots"
+	( nspowner supplies the actual parent.  Each parent's retained moon
+	  radii are independently compressed so even wide satellite systems
+	  remain legible beside their generated planet. )
+	[VHPsysn] = [nsnop];
+    "VHP moon loop"
+	A = [VHPsysn]; ? A >= [nsnob] -> VHP moon done;
+	E = nspowner; E + A; [VHPowner] = [E];
+	E = nsporideg; E + A; [VHPangle] = [E];
+	[VHPscoreindex] = [VHPsysn]; => VHP orbit score; [VHPcurrent] = [VHPscore];
+	[VHPminscore] = [VHPscore]; [VHPmaxscore] = [VHPscore]; [VHPscan] = [nsnop];
+    "VHP moon score scan"
+	A = [VHPscan]; ? A >= [nsnob] -> VHP moon score ready;
+	E = nspowner; E + A; A = [E]; ? A != [VHPowner] -> VHP moon score next;
+	[VHPscoreindex] = [VHPscan]; => VHP orbit score;
+	A = [VHPscore]; ? A >= [VHPminscore] -> VHP moon score not min; [VHPminscore] = A;
+    "VHP moon score not min"
+	A = [VHPscore]; ? A <= [VHPmaxscore] -> VHP moon score next; [VHPmaxscore] = A;
+    "VHP moon score next"
+	[VHPscan]+; -> VHP moon score scan;
+    "VHP moon score ready"
+	A = [VHPmaxscore]; A - [VHPminscore]; [VHPscorespan] = A;
+	? A <= 0 -> VHP moon values middle;
+	A = [VHPcurrent]; A - [VHPminscore]; A '* 26; A '/ [VHPscorespan]; A + 14;
+	[VHPradius] = A; -> VHP moon values ready;
+    "VHP moon values middle"
+	[VHPradius] = 24;
+    "VHP moon values ready"
+	A = [VHPsysphase]; A '* 2; A + [VHPangle]; [VHPangle] = A;
+	=> VHP moon project;
+	[VHPdotx] = 3520; [VHPdotsize] = 12; [VHScolor] = 68;
+	A = [VHPsysn]; ? A != [VHPselected] -> VHP moon marker ready;
+	[VHPdotsize] = 24; [VHScolor] = 63;
+    "VHP moon marker ready"
+	=> VHP draw marker;
+	[VHPsysn]+; -> VHP moon loop;
+    "VHP moon done"
+	end;
+
+"VHP draw marker"
+	[VHPsx0] = [VHPdotx]; A = [VHPdoty]; A - [VHPdotsize]; [VHPsy0] = A; [VHPsz0] = [VHPdotz];
+	[VHPsx1] = [VHPdotx]; A = [VHPdoty]; A + [VHPdotsize]; [VHPsy1] = A; [VHPsz1] = [VHPdotz];
+	=> VHP integer stick;
+	[VHPsx0] = [VHPdotx]; [VHPsy0] = [VHPdoty]; A = [VHPdotz]; A - [VHPdotsize]; [VHPsz0] = A;
+	[VHPsx1] = [VHPdotx]; [VHPsy1] = [VHPdoty]; A = [VHPdotz]; A + [VHPdotsize]; [VHPsz1] = A;
+	=> VHP integer stick;
+	end;
+
+"VHP orbit project"
+	[VHVangle] = [VHPangle]; => VHV sincos;
+	[FS0] = [VHVsin]; => FLoadF32; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHPradius]; => IntToF; [FB0] = [FT0]; [FB1] = [FT1]; => FMul; => FToIntNear;
+	A = [FI]; A - 45; [VHPdoty] = A;
+	[FS0] = [VHVcos]; => FLoadF32; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHPradius]; => IntToF; [FB0] = [FT0]; [FB1] = [FT1]; => FMul; => FToIntNear;
+	A = 0; A - 1935; A + [FI]; [VHPdotz] = A;
+	end;
+
+"VHP moon project"
+	[VHVangle] = [VHPangle]; => VHV sincos;
+	[FS0] = [VHVsin]; => FLoadF32; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHPradius]; => IntToF; [FB0] = [FT0]; [FB1] = [FT1]; => FMul; => FToIntNear;
+	E = VHPbodyy; E + [VHPowner]; A = [E]; A + [FI]; [VHPdoty] = A;
+	[FS0] = [VHVcos]; => FLoadF32; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHPradius]; => IntToF; [FB0] = [FT0]; [FB1] = [FT1]; => FMul; => FToIntNear;
+	E = VHPbodyz; E + [VHPowner]; A = [E]; A + [FI]; [VHPdotz] = A;
+	end;
+
+"VHP integer stick"
+	[FI] = [VHPsx0]; => IntToF; => F32Narrow; [VHSx0] = [FS0];
+	[FI] = [VHPsy0]; => IntToF; => F32Narrow; [VHSy0] = [FS0];
+	[FI] = [VHPsz0]; => IntToF; => F32Narrow; [VHSz0] = [FS0];
+	[FI] = [VHPsx1]; => IntToF; => F32Narrow; [VHSx1] = [FS0];
+	[FI] = [VHPsy1]; => IntToF; => F32Narrow; [VHSy1] = [FS0];
+	[FI] = [VHPsz1]; => IntToF; => F32Narrow; [VHSz1] = [FS0];
+	=> VH stick3d;
+	end;
+
+"VHP GOES text"
+	A = [VHPfontok]; ? A = 0 -> VHP text done;
+	( Rotate the camera onto the right wall exactly as vehicle(). )
+	A = 0; A - [VHPcamz]; A - 1575; A '* 4; [VHPxbase4] = A;
+	[VHVcamxi] = 0; [VHVcamyi] = [VHPcamy];
+	A = [VHPcamx]; A - 3540; [VHVcamzi] = A;
+	[VHValpha] = [VHPalpha]; A = [VHPbeta]; A + 90; [VHVbeta] = A;
+	=> VH set view;
+
+	( row 0: G.O.E.S. COMMAND NET: )
+	[VHPline] = 0; [VHPfi] = 0; [VHPcx4] = [VHPxbase4];
+    "VHP text row0"
+	A = vhptext; A + [VHPfi]; [VHPchar] = [A]; => VHP digit row0;
+	=> VHP text advance; [VHPfi]+; A = [VHPfi]; ? A < 21 -> VHP text row0;
+
+	( row 1: REVISION ID 6011/0200 )
+	[VHPline] = 1; [VHPfi] = 21; [VHPcx4] = [VHPxbase4];
+    "VHP text row1"
+	A = vhptext; A + [VHPfi]; [VHPchar] = [A]; => VHP digit row1;
+	=> VHP text advance; [VHPfi]+; A = [VHPfi]; ? A < 42 -> VHP text row1;
+
+	( command cursor on source row 3 )
+	[VHPfi] = 42; [VHPline] = 3; [VHPcx4] = [VHPxbase4];
+    "VHP command text loop"
+	A = vhptext; A + [VHPfi]; [VHPchar] = [A];
+	A = [VHPline]; ? A = 3 -> VHP command row3;
+	? A = 4 -> VHP command row4;
+	? A = 5 -> VHP command row5;
+	=> VHP digit row6; -> VHP command drawn;
+    "VHP command row3"
+	=> VHP digit row3; -> VHP command drawn;
+    "VHP command row4"
+	=> VHP digit row4; -> VHP command drawn;
+    "VHP command row5"
+	=> VHP digit row5;
+    "VHP command drawn"
+	=> VHP text advance; [VHPfi]+;
+	A = [VHPfi]; A - 42; A '% 21; ? A != 0 -> VHP command same row;
+	[VHPline]+; [VHPcx4] = [VHPxbase4];
+    "VHP command same row"
+	A = [VHPfi]; ? A < 126 -> VHP command text loop;
+	[SPflar] = 0; [PGtexf] = 0;
+    "VHP text done"
+	end;
+
+"VHP text advance"
+	A = [VHPcx4]; A - 141; [VHPcx4] = A;	( 2.35*15 = 35.25 )
+	end;
+
+"VHP digit row0"
+	[vhcpoly plus 1] = 3280764928; [vhcpoly plus 4] = 3280764928;
+	[vhcpoly plus 7] = 3277979648; [vhcpoly plus 10] = 3277979648;
+	=> VHP digit; end;
+"VHP digit row1"
+	[vhcpoly plus 1] = 3277160448; [vhcpoly plus 4] = 3277160448;
+	[vhcpoly plus 7] = 3273555968; [vhcpoly plus 10] = 3273555968;
+	=> VHP digit; end;
+"VHP digit row3"
+	[vhcpoly plus 1] = 3265069056; [vhcpoly plus 4] = 3265069056;
+	[vhcpoly plus 7] = 3250323456; [vhcpoly plus 10] = 3250323456;
+	=> VHP digit; end;
+"VHP digit row4"
+	[vhcpoly plus 1] = 3241148416; [vhcpoly plus 4] = 3241148416;
+	[vhcpoly plus 7] = 1110441984; [vhcpoly plus 10] = 1110441984;
+	=> VHP digit; end;
+"VHP digit row5"
+	[vhcpoly plus 1] = 1113718784; [vhcpoly plus 4] = 1113718784;
+	[vhcpoly plus 7] = 1121910784; [vhcpoly plus 10] = 1121910784;
+	=> VHP digit; end;
+"VHP digit row6"
+	[vhcpoly plus 1] = 1123549184; [vhcpoly plus 4] = 1123549184;
+	[vhcpoly plus 7] = 1127415808; [vhcpoly plus 10] = 1127415808;
+	=> VHP digit; end;
+
+"VH GOES key"
+	( ASCII editor from vehicle(): uppercase conversion, Backspace, and the
+	  same 83-character limit followed by a visible underscore cursor. )
+	[VHPsubmitted] = 0; A = [VHPkey];
+	? A = 8 -> VHP key backspace;
+	? A = 13 -> VHP key enter;
+	? A < 32 -> VHP key done;
+	? A > 122 -> VHP key done;
+	? A < 97 -> VHP key upper done;
+	A - 32; [VHPkey] = A;
+    "VHP key upper done"
+	A = [VHPkey]; ? A > 90 -> VHP key underscore;
+	? A = 36 -> VHP key done; ? A = 38 -> VHP key done;
+	? A = 60 -> VHP key done; ? A = 62 -> VHP key done;
+	-> VHP key append;
+    "VHP key underscore"
+	? A != 95 -> VHP key done;
+    "VHP key append"
+	A = [VHPcmdpos]; ? A '>= 83 -> VHP key done;
+	C = vhptext; C + 42; C + A; [C] = [VHPkey];
+	[VHPcmdpos]+; A = [VHPcmdpos]; C = vhptext; C + 42; C + A; [C] = 95;
+	A + 1; C = vhptext; C + 42; C + A; [C] = 0;
+	end;
+    "VHP key backspace"
+	A = [VHPcmdpos]; ? A = 0 -> VHP key done;
+	[VHPcmdpos]-; A = [VHPcmdpos]; C = vhptext; C + 42; C + A; [C] = 95;
+	A + 1; C = vhptext; C + 42; C + A; [C] = 0;
+	end;
+    "VHP key enter"
+	[VHPsubmitted] = 1;
+    "VHP key done"
+	end;
+
+"VH GOES clear"
+	[VHPcmdpos] = 0; [VHPsubmitted] = 0;
+	[vhptext plus 42] = 95; [vhptext plus 43] = 0;
+	end;
+
+"VHP digit"
+	A = [VHPchar]; ? A '<= 32 -> VHP digit done;
+	? A '> 96 -> VHP digit done;
+	[DGdigit] = [VHPchar]; [DGcolor] = 152; [DGshader] = 0; => FB digit at;
+	( local glyph quad, z=0 )
+	[vhcpoly plus 0] = VHPGR; [vhcpoly plus 3] = VHPGR;
+	[vhcpoly plus 6] = VHPGL; [vhcpoly plus 9] = VHPGL;
+	[vhcpoly plus 2] = 0; [vhcpoly plus 5] = 0;
+	[vhcpoly plus 8] = 0; [vhcpoly plus 11] = 0;
+	( camera x is kept in quarter-units to preserve the source's 35.25 step )
+	[FI] = [VHPcx4]; => IntToF; [PGFi] = FSW0; => PGF sa;
+	[PGFt] = VHPQTR; => PGF ldf32; [PGFi] = FSW0; => PGF mul;
+	=> F32Narrow; [PGFi] = FSCAMX; => PGF sa;
+	[FI] = VHPTX; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = VHPTY; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 4; [SPsrc] = 1; [SPtinta] = 128; [SPescr] = 0;
+	[SPflar] = 2; [SPcull] = 0; [SPhalf] = 0;
+	[VHPcol] = 128; => VHP draw mapped quad;
+	"VHP digit done"
+	end;
+
+"VHP draw mapped quad"
+	[VHPi] = 0;
+    "VHP mapped vertex"
+	A = [VHPi]; A '* 3; C = vhcpoly; C + A;
+	A = FSINX; A + [VHPi]; [PGFi] = A; [PGFt] = [C plus 0]; => PGF setf32;
+	A = FSINY; A + [VHPi]; [PGFi] = A; [PGFt] = [C plus 1]; => PGF setf32;
+	A = FSINZ; A + [VHPi]; [PGFi] = A; [PGFt] = [C plus 2]; => PGF setf32;
+	[VHPi]+; A = [VHPi]; ? A < 4 -> VHP mapped vertex;
+	[PJnrv] = 4; [DBcol] = [VHPcol]; [DBflar] = 2; [DBent] = 0;
+	=> PG polymap;
+	end;
+
+"VH HUD FCS"
+	( Source outer HUD: the current FCS status at cam=(-512,-275,-750),
+	  rendered right-to-left in colour 120. )
+	[VHPstatbase] = 47; [VHPstatlen] = 7;
+	A = [VHPfcsstatus]; ? A = 1 -> VHP status charging;
+	? A = 2 -> VHP status parking; ? A = 3 -> VHP status linking;
+	? A = 4 -> VHP status driving; ? A = 5 -> VHP status ignition;
+	? A = 6 -> VHP status calibrated; -> VHP status ready;
+    "VHP status charging"
+	[VHPstatbase] = 0; [VHPstatlen] = 8; -> VHP status ready;
+    "VHP status parking"
+	[VHPstatbase] = 8; [VHPstatlen] = 7; -> VHP status ready;
+    "VHP status linking"
+	[VHPstatbase] = 15; [VHPstatlen] = 7; -> VHP status ready;
+    "VHP status driving"
+	[VHPstatbase] = 22; [VHPstatlen] = 7; -> VHP status ready;
+    "VHP status ignition"
+	[VHPstatbase] = 29; [VHPstatlen] = 8; -> VHP status ready;
+    "VHP status calibrated"
+	[VHPstatbase] = 37; [VHPstatlen] = 10;
+    "VHP status ready"
+	[VHVcamxi] = 0; A = 0; A - 512; [VHVcamxi] = A;
+	A = 0; A - 275; [VHVcamyi] = A; A = 0; A - 750; [VHVcamzi] = A;
+	[VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	A = [VHPstatlen]; A - 1; [VHPfi] = A;
+    "VHP HUD status loop"
+	A = vhpstatus; A + [VHPstatbase]; A + [VHPfi]; [VHPchar] = [A];
+	=> VHP HUD digit;
+	A = [VHVcamxi]; A + 45; [VHVcamxi] = A; => VH set view;
+	[VHPfi]-; A = [VHPfi]; ? A >= 0 -> VHP HUD status loop;
+	[SPflar] = 0; [PGtexf] = 0;
+	end;
+
+"VHP HUD digit"
+	[DGdigit] = [VHPchar]; [DGcolor] = 120; [DGshader] = 1; => FB digit at;
+	[vhcpoly plus 0] = 1103101952; [vhcpoly plus 1] = 3252158464; [vhcpoly plus 2] = 0;
+	[vhcpoly plus 3] = 1103101952; [vhcpoly plus 4] = 1107558400; [vhcpoly plus 5] = 0;
+	[vhcpoly plus 6] = 3239051264; [vhcpoly plus 7] = 1107558400; [vhcpoly plus 8] = 0;
+	[vhcpoly plus 9] = 3239051264; [vhcpoly plus 10] = 3252158464; [vhcpoly plus 11] = 0;
+	[FI] = VHPTX; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = VHPTY; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 4; [SPsrc] = 1; [SPtinta] = 64; [SPescr] = 0;
+	[SPflar] = 2; [SPcull] = 0; [SPhalf] = 0; [VHPcol] = 64;
+	=> VHP draw mapped quad;
+	end;
+
+"VHP draw quad"
+	[VHPi] = 0;
+    "VHP quad vertex"
+	A = [VHPi]; A '* 3; C = vhcpoly; C + A;
+	A = FSINX; A + [VHPi]; [PGFi] = A; [PGFt] = [C plus 0]; => PGF setf32;
+	A = [VHPi]; A '* 3; C = vhcpoly; C + A;
+	A = FSINY; A + [VHPi]; [PGFi] = A; [PGFt] = [C plus 1]; => PGF setf32;
+	A = [VHPi]; A '* 3; C = vhcpoly; C + A;
+	A = FSINZ; A + [VHPi]; [PGFi] = A; [PGFt] = [C plus 2]; => PGF setf32;
+	[VHPi]+; A = [VHPi]; ? A < 4 -> VHP quad vertex;
+	[PJnrv] = 4; [DBcol] = [VHPcol]; [DBflar] = 0; [DBent] = 0;
+	=> PG poly3d;
+	end;

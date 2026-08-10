@@ -8,8 +8,8 @@ that produced it, the test that keeps it honest, and — for anything still
 open — the route to closing it.
 
 The house rule this file is written under: an honestly open item is worth
-more than a manufactured answer. Two of the entries are settled. Two are not,
-and are not dressed up.
+more than a manufactured answer. Three of the entries are settled. Two are
+not, and are not dressed up.
 
 The regression test for everything here is `tests/test_geometry.py`
 (standalone: `python tests/test_geometry.py`, about 70 seconds, needs gcc and
@@ -170,24 +170,21 @@ GUIDE.BIN precondition in `tests/gen/recon_c/README.md` and in
 
 ---
 
-## 4. `nsrun` does not validate its NSIN payload length — **STILL OPEN**
+## 4. `nsrun` validates its NSIN payload length — **SETTLED**
 
-**Status.** Open. Small, real, and not fixed by this wave.
+**Status.** Settled by the delivered `nrfilebytes` guard.
 
 **Evidence — behavioural, not a text search.** `tests/test_geometry.py`
-section 8 builds the delivered port and feeds it a file whose header claims
-**8** records while the payload holds **5**. The port does not refuse it: it
-emits 8 records and generates the last three from **zeroed coordinates**
-(x = y = z = 0, i.e. a plausible, entirely fictitious star system). The
-intact 8-record run is the control and must produce 8 real records.
+section 8 builds the delivered port and feeds it an intact file whose header
+claims **8** records, then a file whose header still claims **8** while the
+payload holds **5**. The intact control emits 8 records; the truncated input
+is refused and leaves no `nstopo.bin`, including no stale output.
 
-`work/nsrun.txt:166` reads the file size into `nrfilebytes` and it surfaces
-only in the failure path's diag block; it is never compared against
-`16 + nrn * 8 * BYTES PER UNIT`. Of the three NSIN readers, only
-`noctis-harness/geo_spec.py` (`read_nsin`) validates; `geo_ref.c` detects a
-short record on read but does not validate the header.
+`work/nsrun.txt:166` reads the file size into `nrfilebytes` and compares it
+against `16 + nrn * 8 * BYTES PER UNIT` before processing records. The Python
+reference (`geo_spec.py`) independently validates the same bound.
 
-**Route — and it was measured, not estimated.** Two lines after
+**Evidence — the guard and its behavioural result.** Two lines after
 `A = [nrhdr plus 2]; [nrn] = A;`:
 
 ```
@@ -195,13 +192,9 @@ short record on read but does not validate the header.
       ? [nrfilebytes] < A -> nrdie;
 ```
 
-That was applied temporarily, compiled, and run: the truncated file is then
-refused (no `nstopo.bin`, which is the programme's own failure path) and the
-intact 8-record control still produces 8 records. It was **reverted** — the
-Wave 6 test writer's namespace is `tests/`, and `work/nsrun.txt` is a
-delivered Wave 4 artifact. The fix belongs to whoever next owns `work/`, and
-`test_geometry.py`'s XFAIL will fail the moment it lands, which is the
-signal to delete the XFAIL and this entry.
+`tests/test_geometry.py` section 8 compiles the delivered port and confirms
+that the truncated file is refused (no `nstopo.bin`, including no stale
+output) while the intact 8-record control still produces 8 records.
 
 ---
 

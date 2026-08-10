@@ -262,6 +262,8 @@
 	? A = 1 -> PG tex 1;
 	? A = 2 -> PG tex 2;
 	? A = 3 -> PG tex 3;
+	? A = 4 -> PG tex 4;
+	? A = 5 -> PG tex 5;
 	( TEX0: t[i] = (i*37 + 11) AND 255 )
 	A = [PGtmp]; A '* 37; A + 11; A & 255; [PGtexv] = A; end;
     "PG tex 1"
@@ -280,6 +282,15 @@
 	end;
     "PG tex 3h"
 	[PGtexv] = 255; end;
+    "PG tex 4"
+	( TEX4: the live Noctis texture window, based at p_surfacemap. )
+	A = RPSM; A + [PGtmp]; [MBptr] = A; => MEM get byte;
+	[PGtexv] = [MBval]; end;
+    "PG tex 5"
+	( TEX5: the live Noctis planetary-ground texture window, based at
+	  p_background exactly as fragment() selects it. )
+	A = RPBG; A + [PGtmp]; [MBptr] = A; => MEM get byte;
+	[PGtexv] = [MBval]; end;
 
 ( ==================================================================== )
 ( census - a value DERIVED from what the programme did                  )

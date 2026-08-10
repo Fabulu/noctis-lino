@@ -139,9 +139,10 @@
 	=> GR smoothterrain;
 
 	( phase 3: level adjust )
-	( compute abs(level) )
+	( Positive levels lift every point. Negative levels cut values below
+	  abs(level) to zero before subtracting, matching rockyground(). )
 	A = [GRlevel];
-	? A '>= 0 -> GR rg absok;
+	? A '>= 0 -> GR rg positive start;
 	B = 0; B - A; A = B;
 "GR rg absok"
 	[GRabs] = A;
@@ -172,6 +173,16 @@
 "GR rg next"
 	[GRptr]+;
 	? [GRptr] '< 40000 -> GR rg level;
+	end;
+
+"GR rg positive start"
+	[GRptr] = 0;
+"GR rg positive loop"
+	A = RPSM; A + [GRptr]; [MBptr] = A; => MEM get byte;
+	A = [MBval]; A + [GRlevel]; ? A '<= 127 -> GR rg positive store; A = 127;
+"GR rg positive store"
+	[MBval] = A; A = RPSM; A + [GRptr]; [MBptr] = A; => MEM put byte;
+	[GRptr]+; ? [GRptr] '< 40000 -> GR rg positive loop;
 	end;
 
 ( ==================================================================== )
@@ -411,11 +422,13 @@
 	    D9 9F <dGRfv   mtp bytesperunit>	(fstp dword [edi+GRfv*4])
 	}
 
-	( loop bounds: x from cx-r to cx+r-1, z from cz-r to cz+r-1 )
-	A = [SUia];			( r )
+	( Borland compares the int16 x/z locals against cx+r/cz+r as
+	  uint16 because source r is unsigned.  A wrapped negative start
+	  therefore skips the whole loop instead of clipping at zero. )
+	A = [SUia]; A & 0FFFFh; [SUia] = A;	( uint16 r )
 	B = [SUcxi];			( cx )
-	[GRfrlo] = B; [GRfrlo] - A;	( cx - r )
-	C = B; C + A;
+	[GRfrlo] = B; [GRfrlo] - A; C = [GRfrlo]; C & 0FFFFh; [GRfrlo] = C;
+	C = B; C + A; C & 0FFFFh;
 	[GRfrhi] = C;			( cx + r )
 	[GRfrx] = [GRfrlo];
 
@@ -426,15 +439,15 @@
 	( z loop bounds )
 	A = [SUia];
 	B = [SUcyi];
-	D = B; D - A; [GRfrz] = D;
+	D = B; D - A; D & 0FFFFh; [GRfrz] = D;
 
 "GR rh zloop"
 	A = [GRfrx];
-	? A '< 0 -> GR rh znext;
-	? A '>= 200 -> GR rh znext;
+	? A < 0 -> GR rh znext;
+	? A >= 200 -> GR rh znext;
 	A = [GRfrz];
-	? A '< 0 -> GR rh znext;
-	? A '>= 200 -> GR rh znext;
+	? A < 0 -> GR rh znext;
+	? A >= 200 -> GR rh znext;
 
 	( dx = (float)(x - cx) )
 	B = [GRfrx]; B - [SUcxi]; [GRdxi] = B;
@@ -557,14 +570,13 @@
 "GR sd loop"
 	? [GRn] '<= 0 -> GR sd done;
 	( fx += random(3) + x_trend )
-	C = 3; => SU rnd; C + [GRfrlo]; [GRfrx] + C; [GRfrx] = C;  ( wait, need reg )
 	C = 3; => SU rnd;
 	A = [GRfrx]; A + C; A + [GRfrlo]; [GRfrx] = A;
 	( fz += random(3) + z_trend )
 	C = 3; => SU rnd;
 	A = [GRfrz]; A + C; A + [GRfrhi]; [GRfrz] = A;
 	( location = align * fz + fx )
-	A = [SUia]; A '* [GRfrz]; A + [GRfrx]; [GRptr] = A;
+	A = [SUia]; A '* [GRfrz]; A + [GRfrx]; A & 0FFFFh; [GRptr] = A;
 	( if (location > 0 && location < mapsize) map[location] >>= 1 )
 	? [GRptr] '<= 0 -> GR sd next;
 	? [GRptr] '>= [GRabs] -> GR sd next;
@@ -587,8 +599,8 @@
 (        [GRfht]=h_factor (float32), [GRfhmt]=h_raiser (float32)      )
 (        [GRfscl]=lim_h (int), [GRfsca]=align (int, 200 or 256)       )
 (        map base in [GRpksrc] (RPSM for smap, RPBG for txtr)         )
-( h_raiser=1.0: pow is identity (skip). h_raiser!=1.0: FLAGGED GAP    )
-( — needs fyl2x/f2xm1 fragment, not yet implemented.                  )
+( h_raiser=1.0: pow is identity. Other positive profiles use the x87 )
+( fyl2x/frndint/f2xm1/fscale sequence, preserving the live float32 y. )
 
 "GR std crater"
 
@@ -611,16 +623,6 @@
 	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
 	    D9 9F <dGRfscr mtp bytesperunit>	(fstp dword [edi+GRfscr*4])
 	}
-
-	( check h_raiser: if not 1.0, FLAG GAP — skip pow, use y directly )
-	( 1.0f bit pattern = 3F800000h )
-	[GRfht] = [GRfhmt];	( save h_raiser for comparison )
-	A = [GRfht]; A & 0FFFFFFFFh;
-	? A = 3F800000h -> GR sc hrais1;
-	( h_raiser != 1.0: FLAGGED — pow not implemented, use y^1=y )
-	( This produces WRONG output for type 1/5 sm crater calls )
-"GR sc hrais1"
-	[GRfht] = [GRfsch];	( restore h value into GRfht for the sin*h )
 
 	( loop bounds: x from cx-r to cx+r-1, z from cz-r to cz+r-1 )
 	A = [SUia];
@@ -693,6 +695,27 @@
 	    D9 9F <dGRfy  mtp bytesperunit>	(fstp dword [edi+GRfy*4])
 	}
 
+	( y = pow(y,h_raiser). Non-unit raisers are used only by positive
+	  type-1/type-5 terrain craters; zero stays zero without log2(0). )
+	A = [GRfhmt]; A & 0FFFFFFFFh; ? A = 3F800000h -> GR sc power done;
+	A = [GRfy]; A & 7FFFFFFFh; ? A = 0 -> GR sc power done;
+	{
+	    D9 87 <dGRfhmt mtp bytesperunit>	(fld dword [edi+GRfhmt*4] : exponent)
+	    D9 87 <dGRfy   mtp bytesperunit>	(fld dword [edi+GRfy*4] : y)
+	    D9 F1				(fyl2x : t=exponent*log2(y))
+	    D9 C0				(fld st0)
+	    D9 FC				(frndint : integral power)
+	    DC E9				(fsub st1,st0 : fractional power)
+	    D9 C9				(fxch st1)
+	    D9 F0				(f2xm1)
+	    D9 E8				(fld1)
+	    DE C1				(faddp st1,st0)
+	    D9 FD				(fscale)
+	    DD D9				(fstp st1)
+	    D9 9F <dGRfy mtp bytesperunit>	(fstp dword [edi+GRfy*4])
+	}
+"GR sc power done"
+
 	( y += map[align*z + x] )
 	A = [GRfrz]; A '* [GRfsca]; A + [GRfrx]; [GRptr] = A;
 	A = [GRscmap]; A + [GRptr]; [MBptr] = A;
@@ -741,7 +764,7 @@
 "GR sc znext"
 	[GRfrz]+;
 	A = [GRfrz];
-	B = [SUcyi]; B + [SUia];
+	B = [SUcyi]; B + [SUia]; B & 0FFFFh;
 	? A '< B -> GR sc zloop;
 	[GRfrx]+;
 	-> GR sc xloop;

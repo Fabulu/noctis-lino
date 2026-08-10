@@ -1,0 +1,92 @@
+name: Windows build and release
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out the port
+        uses: actions/checkout@v4
+
+      - name: Check out the Noctis IV reference source
+        uses: actions/checkout@v4
+        with:
+          repository: jorisvddonk/Noctis-IV-Plus
+          path: _reference/noctis-plus
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify the protected L.in.oleum files
+        shell: pwsh
+        run: |
+          $bad = @()
+          foreach ($line in Get-Content PRISTINE.sha256) {
+            if (-not $line.Trim()) { continue }
+            $want, $size, $path = $line -split '\s+', 3
+            if (-not (Test-Path -LiteralPath $path)) {
+              $bad += "missing: $path"
+              continue
+            }
+            $actual = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+            if ($actual -ne $want -or (Get-Item -LiteralPath $path).Length -ne [int64]$size) {
+              $bad += "changed: $path"
+            }
+          }
+          if ($bad.Count) { throw ($bad -join "`n") }
+
+      - name: Run the focused integrated-game regression
+        shell: pwsh
+        env:
+          NOCTIS_REFERENCE_ROOT: ${{ github.workspace }}\_reference\noctis-plus\source
+        run: python tests\test_vhgame.py
+
+      - name: Build the standalone Windows package
+        shell: pwsh
+        run: .\package_noctis.ps1 -OutputDirectory dist\Noctis-IV
+
+      - name: Create release archive and checksum
+        shell: pwsh
+        run: |
+          Compress-Archive -LiteralPath dist\Noctis-IV -DestinationPath dist\Noctis-IV-windows-x86.zip
+          $zip = Get-Item dist\Noctis-IV-windows-x86.zip
+          $hash = (Get-FileHash -LiteralPath $zip.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash *$($zip.Name)" | Set-Content -LiteralPath dist\Noctis-IV-windows-x86.zip.sha256 -Encoding ascii
+
+      - name: Upload the package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Noctis-IV-windows-x86
+          path: |
+            dist/Noctis-IV-windows-x86.zip
+            dist/Noctis-IV-windows-x86.zip.sha256
+          if-no-files-found: error
+
+      - name: Publish tagged GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $files = @(
+            'dist\Noctis-IV-windows-x86.zip',
+            'dist\Noctis-IV-windows-x86.zip.sha256'
+          )
+          if (gh release view $tag 2>$null) {
+            gh release upload $tag @files --clobber
+          } else {
+            gh release create $tag @files --verify-tag --notes-file RELEASE_NOTES.md --prerelease --title "Noctis IV L.in.oleum port $tag"
+          }

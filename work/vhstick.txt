@@ -1,0 +1,100 @@
+      ( *** vhstick - Stardrifter 3-D frame lines ***
+
+	Uses the already-delivered projector nucleus for the two endpoints,
+	then draws the visible segment into adapted.  This is the solid
+	Stick mode used by the clean-start cupola frame.  The additive flare
+	mode is added with the alogena layer. )
+
+"variables"
+
+	VHSx0 = 0; VHSy0 = 0; VHSz0 = 0;
+	VHSx1 = 0; VHSy1 = 0; VHSz1 = 0;
+	VHSpx0 = 0; VHSpy0 = 0; VHSpx1 = 0; VHSpy1 = 0;
+	VHSdx = 0; VHSdy = 0; VHSsx = 0; VHSsy = 0;
+	VHSerr = 0; VHSe2 = 0;
+	VHSdrawn = 0;
+	VHScolor = 62;
+
+"programme"
+
+"VH stick3d"
+	( load the two float endpoints )
+	[PGFi] = FSINX;     [PGFt] = [VHSx0]; => PGF setf32;
+	[PGFi] = FSINY;     [PGFt] = [VHSy0]; => PGF setf32;
+	[PGFi] = FSINZ;     [PGFt] = [VHSz0]; => PGF setf32;
+	A = FSINX; A+; [PGFi] = A; [PGFt] = [VHSx1]; => PGF setf32;
+	A = FSINY; A+; [PGFi] = A; [PGFt] = [VHSy1]; => PGF setf32;
+	A = FSINZ; A+; [PGFi] = A; [PGFt] = [VHSz1]; => PGF setf32;
+
+	[PJnrv] = 2; [PJmode] = 0;
+	=> PJ rotate;
+	A = [PJdoflag]; ? A != 2 -> VHS done;
+	=> PJ zload;
+	=> PJ project3d;
+	[VHSpx0] = [mp plus 0]; [VHSpy0] = [mp plus 1];
+	[VHSpx1] = [mp plus 2]; [VHSpy1] = [mp plus 3];
+
+	( reject segments wholly outside one edge, then clamp the endpoints;
+	   cupola's clean visible lines are already inside these bounds )
+	A = [VHSpx0]; ? A >= PGLBX -> VHS not left; A = [VHSpx1]; ? A < PGLBX -> VHS done;
+    "VHS not left"
+	A = [VHSpx0]; ? A <= PGUBX -> VHS not right; A = [VHSpx1]; ? A > PGUBX -> VHS done;
+    "VHS not right"
+	A = [VHSpy0]; ? A >= PGLBY -> VHS not top; A = [VHSpy1]; ? A < PGLBY -> VHS done;
+    "VHS not top"
+	A = [VHSpy0]; ? A <= PGUBY -> VHS not bottom; A = [VHSpy1]; ? A > PGUBY -> VHS done;
+    "VHS not bottom"
+
+	A = [VHSpx0]; ? A >= PGLBX -> VHS x0 hi; [VHSpx0] = PGLBX;
+    "VHS x0 hi"
+	A = [VHSpx0]; ? A <= PGUBX -> VHS x0 ok; [VHSpx0] = PGUBX;
+    "VHS x0 ok"
+	A = [VHSpx1]; ? A >= PGLBX -> VHS x1 hi; [VHSpx1] = PGLBX;
+    "VHS x1 hi"
+	A = [VHSpx1]; ? A <= PGUBX -> VHS x1 ok; [VHSpx1] = PGUBX;
+    "VHS x1 ok"
+	A = [VHSpy0]; ? A >= PGLBY -> VHS y0 hi; [VHSpy0] = PGLBY;
+    "VHS y0 hi"
+	A = [VHSpy0]; ? A <= PGUBY -> VHS y0 ok; [VHSpy0] = PGUBY;
+    "VHS y0 ok"
+	A = [VHSpy1]; ? A >= PGLBY -> VHS y1 hi; [VHSpy1] = PGLBY;
+    "VHS y1 hi"
+	A = [VHSpy1]; ? A <= PGUBY -> VHS y1 ok; [VHSpy1] = PGUBY;
+    "VHS y1 ok"
+
+	( integer Bresenham )
+	A = [VHSpx1]; A - [VHSpx0]; [VHSsx] = 1;
+	? A >= 0 -> VHS dx positive;
+	A = 0; A - 1; [VHSsx] = A;
+	A = 0; A - [VHSpx1]; A + [VHSpx0];
+    "VHS dx positive"
+	[VHSdx] = A;
+	A = [VHSpy1]; A - [VHSpy0]; [VHSsy] = 1;
+	? A >= 0 -> VHS dy positive;
+	C = A; A = 0; A - 1; [VHSsy] = A; [VHSdy] = C; -> VHS dy ready;
+    "VHS dy positive"
+	C = 0; C - A; [VHSdy] = C;
+    "VHS dy ready"
+	A = [VHSdx]; A + [VHSdy]; [VHSerr] = A;
+
+    "VHS line loop"
+	[SPreg] = RGADP;
+	A = [VHSpy0]; A '* 320; A + [VHSpx0]; [SPoff] = A; [SPval] = [VHScolor];
+	=> SP put;
+	[VHSdrawn]+;
+	A = [VHSpx0]; ? A != [VHSpx1] -> VHS line step;
+	A = [VHSpy0]; ? A = [VHSpy1] -> VHS done;
+    "VHS line step"
+	A = [VHSerr]; A + A; [VHSe2] = A;
+	A = [VHSe2]; ? A < [VHSdy] -> VHS skip x;
+	A = [VHSerr]; A + [VHSdy]; [VHSerr] = A;
+	A = [VHSpx0]; A + [VHSsx]; [VHSpx0] = A;
+    "VHS skip x"
+	A = [VHSe2]; ? A > [VHSdx] -> VHS skip y;
+	A = [VHSerr]; A + [VHSdx]; [VHSerr] = A;
+	A = [VHSpy0]; A + [VHSsy]; [VHSpy0] = A;
+    "VHS skip y"
+	-> VHS line loop;
+
+    "VHS done"
+	end;

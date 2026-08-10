@@ -104,6 +104,7 @@
 	fp/fpx87;
 	fp/fpconv;
 	fp/fpchains;
+	geoconv;
 
 	nsident;
 	nslabel;

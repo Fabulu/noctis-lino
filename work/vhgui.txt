@@ -1,0 +1,104 @@
+      ( *** vhgui - aspect-fit presenter for the Noctis 320x200 frame ***
+
+	iGUI owns the physical display and resizable custom window.  The game
+	continues to render its exact 320x200 indexed framebuffer.  This adapter
+	palette-expands one logical RGB page, lets the game compose HUD/help text
+	there, then nearest-neighbour scales the completed page into both iGUI
+	layers so every visible element follows the same aspect-fit transform. )
+
+"variables"
+
+	VHGUIaw = 0; VHGUIah = 0; VHGUIdw = 0; VHGUIdh = 0;
+	VHGUIleft = 0; VHGUItop = 0;
+	VHGUIx = 0; VHGUIy = 0; VHGUIsx = 0; VHGUIsy = 0;
+	VHGUIsrc = 0; VHGUIdst = 0;
+	VHGUIxacc = 0; VHGUIyacc = 0;
+	VHGUIprevaw = 0; VHGUIprevah = 0;
+	vector VHGUIregion = 0; 0; 319; 199;
+
+"workspace"
+
+	VHGUIframe = 64000;
+
+"programme"
+
+"VHGUI prepare"
+	A = [vector Work Area plus 2]; A - [vector Work Area plus 0]; A+; [VHGUIaw] = A;
+	A = [vector Work Area plus 3]; A - [vector Work Area plus 1]; A+; [VHGUIah] = A;
+	( fit width first: h=w*5/8; if too tall, fit height instead )
+	[VHGUIdw] = [VHGUIaw]; A = [VHGUIdw]; A '* 5; A '/ 8; [VHGUIdh] = A;
+	A = [VHGUIdh]; ? A '<= [VHGUIah] -> VHGUI fit ready;
+	[VHGUIdh] = [VHGUIah]; A = [VHGUIdh]; A '* 8; A '/ 5; [VHGUIdw] = A;
+    "VHGUI fit ready"
+	A = [VHGUIaw]; A - [VHGUIdw]; A '/ 2; A + [vector Work Area plus 0]; [VHGUIleft] = A;
+	A = [VHGUIah]; A - [VHGUIdh]; A '/ 2; A + [vector Work Area plus 1]; [VHGUItop] = A;
+	( Clear bars once per geometry change, not once per game frame. )
+	A = [VHGUIaw]; ? A != [VHGUIprevaw] -> VHGUI geometry changed;
+	A = [VHGUIah]; ? A = [VHGUIprevah] -> VHGUI geometry ready;
+    "VHGUI geometry changed"
+	[VHGUIprevaw] = [VHGUIaw]; [VHGUIprevah] = [VHGUIah];
+	[Destination Layer] = Backdrop Layer; [L2L Region] = vector Work Area;
+	[L2L Region Color] = 0; => Clear L2L Region;
+	[Destination Layer] = Primary Display; [L2L Region] = vector Work Area;
+	[L2L Region Color] = 0; => Clear L2L Region;
+    "VHGUI geometry ready"
+	( Compose one logical RGB page from the authentic indexed framebuffer.
+	  HUD/help text is added to this page before presentation, so it follows
+	  the same nearest-neighbour scaling as the rendered scene. )
+	[VHGUIy] = 0;
+    "VHGUI compose row"
+	A = [VHGUIy]; A '* 320; C = A; C + nw; C + RADPT;
+	D = A; D + VHGUIframe; [VHGUIx] = 80;
+    "VHGUI compose pixel"
+	A = [C]; A + pal; [D] = [A];
+	A = [C plus 1]; A + pal; [D plus 1] = [A];
+	A = [C plus 2]; A + pal; [D plus 2] = [A];
+	A = [C plus 3]; A + pal; [D plus 3] = [A];
+	C + 4; D + 4; [VHGUIx]-;
+	A = [VHGUIx]; ? A != 0 -> VHGUI compose pixel;
+	[VHGUIy]+; A = [VHGUIy]; ? A < 200 -> VHGUI compose row;
+	end;
+
+"VHGUI present"
+	( The 1x path copies four composed RGB pixels per loop.  Only Backdrop is
+	  written here: Update Area performs the one authoritative copy into
+	  Primary Display immediately afterward. )
+	A = [VHGUIdw]; ? A != 320 -> VHGUI scaled;
+	A = [VHGUIdh]; ? A != 200 -> VHGUI scaled;
+	[VHGUIy] = 0;
+    "VHGUI 1x row"
+	A = [VHGUIy]; A '* 320; C = A; C + VHGUIframe;
+	A = [VHGUIy]; A + [VHGUItop]; A '* [Display Width];
+	A + [VHGUIleft]; D = A; D + Backdrop Layer;
+	[VHGUIx] = 80;
+    "VHGUI 1x pixel"
+	A = [C]; [D] = A;
+	A = [C plus 1]; [D plus 1] = A;
+	A = [C plus 2]; [D plus 2] = A;
+	A = [C plus 3]; [D plus 3] = A;
+	C + 4; D + 4; [VHGUIx]-;
+	A = [VHGUIx]; ? A != 0 -> VHGUI 1x pixel;
+	[VHGUIy]+; A = [VHGUIy]; ? A < 200 -> VHGUI 1x row;
+	end;
+    "VHGUI scaled"
+	[VHGUIy] = 0; [VHGUIsy] = 0; [VHGUIyacc] = 0;
+    "VHGUI row"
+	A = [VHGUIsy]; A '* 320; A + VHGUIframe; [VHGUIsrc] = A;
+	A = [VHGUIy]; A + [VHGUItop]; A '* [Display Width]; A + [VHGUIleft]; A + Backdrop Layer; [VHGUIdst] = A;
+	[VHGUIx] = 0; [VHGUIsx] = 0; [VHGUIxacc] = 0;
+    "VHGUI pixel"
+	C = [VHGUIsrc]; C + [VHGUIsx]; A = [C];
+	D = [VHGUIdst]; D + [VHGUIx]; [D] = A;
+	A = [VHGUIxacc]; A + 320; [VHGUIxacc] = A;
+    "VHGUI x advance"
+	A = [VHGUIxacc]; ? A '< [VHGUIdw] -> VHGUI x ready;
+	A - [VHGUIdw]; [VHGUIxacc] = A; [VHGUIsx]+; -> VHGUI x advance;
+    "VHGUI x ready"
+	[VHGUIx]+; A = [VHGUIx]; ? A '< [VHGUIdw] -> VHGUI pixel;
+	A = [VHGUIyacc]; A + 200; [VHGUIyacc] = A;
+    "VHGUI y advance"
+	A = [VHGUIyacc]; ? A '< [VHGUIdh] -> VHGUI y ready;
+	A - [VHGUIdh]; [VHGUIyacc] = A; [VHGUIsy]+; -> VHGUI y advance;
+    "VHGUI y ready"
+	[VHGUIy]+; A = [VHGUIy]; ? A '< [VHGUIdh] -> VHGUI row;
+	end;

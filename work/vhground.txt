@@ -1,0 +1,3426 @@
+      ( *** vhground - live first-person planetary surface adapter ***
+
+	This is a production library.  It joins the already-ported grnd
+	p_surfacemap generator to the already-ported PG polygon path, without
+	linking either standalone Wave-7b corpus programme. )
+
+"constants"
+
+	VHGNDMAP = 200;
+	VHGNDTS = 16384;
+	VHGNDHS = 11;
+	VHGNDHALF = 4;
+	VHGNDMID = 24;
+	VHGNDABOVE = 32;
+	VHGNDFAR = 64;
+	VHGNDSTEP = 600;
+	VHGNDSTALK = 80;		( below the source bird-reaction thresholds )
+	VHGNDLO = 122880;		( 7.5 tiles: keep the local grid in-map )
+	VHGNDHI = 3145728;		( 192 tiles )
+	VHGNDQIDLO = 0; VHGNDQIDHI = 3F100000h; ( binary64 1/16384 )
+
+"variables"
+
+	VHGNDcamx = 0; VHGNDcamy = 0; VHGNDcamz = 0;
+	VHGNDalpha = 0; VHGNDbeta = 0;
+	VHGNDx = 0; VHGNDz = 0; VHGNDxlo = 0; VHGNDxhi = 0;
+	VHGNDzlo = 0; VHGNDzhi = 0; VHGNDptr = 0;
+	VHGNDh1 = 0; VHGNDs1 = 0; VHGNDs2 = 0;
+	VHGNDs3 = 0; VHGNDs4 = 0; VHGNDshade = 0;
+	VHGNDdepth = 0; VHGNDdx = 0; VHGNDdz = 0;
+	VHGNDlodstep = 1; VHGNDlodradius = 4;
+	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
+	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
+	VHGNDtilex = 0; VHGNDtilez = 0; VHGNDfx = 0; VHGNDfz = 0;
+	VHGNDheight = 0; VHGNDtmp = 0;
+	VHGNDgeni = 0; VHGNDgenn = 0; VHGNDtexn = 0;
+	VHGNDtexpasses = 0; VHGNDfrosty = 0; VHGNDtscale = 32;
+	VHGNDwaswet = 0; VHGNDwavescalm = 0;
+	VHGNDislandx = 0; VHGNDislandz = 0;
+	VHGNDastarx = 0; VHGNDastary = 0; VHGNDastarbase = 0;
+	VHGNDastarvariation = 0; VHGNDastardensity = 0; VHGNDastarsize = 0;
+	VHGNDastarad = 0; VHGNDastarang = 0; VHGNDastard = 0;
+	VHGNDastarvar = 0; VHGNDastarcolor = 0;
+	VHGNDastarpx = 0; VHGNDastarpy = 0;
+	VHGNDlinex = 0; VHGNDlinez = 0; VHGNDlinelen = 0;
+	VHGNDlinetrendx = 0; VHGNDlinetrendz = 0;
+	VHGNDhr = 0;
+	VHGNDrockscale = 0; VHGNDrockpeak = 0; VHGNDrockdensity = 0;
+	VHGNDpostn = 0; VHGNDdeviation = 0; VHGNDvariability = 0;
+	VHGNDincl = 0; VHGNDoval = 0;
+	VHGNDh1i = 0; VHGNDh2i = 0; VHGNDh3i = 0; VHGNDh4i = 0;
+	VHGNDpy = 0;
+	VHGNDdropx = 1646592; VHGNDdropy = 0; VHGNDdropz = 1646592;
+	VHGNDviewx = 0; VHGNDviewz = 0;
+	VHGNDocount = 0; VHGNDicx = 0; VHGNDicz = 0;
+	VHGNDoox = 0; VHGNDooy = 0; VHGNDooz = 0;
+	VHGNDrox = 0; VHGNDroy = 0; VHGNDroz = 0;
+	VHGNDcdown = 0; VHGNDrcolor = 0;
+	VHGNDsctype = 0; VHGNDobjbyte = 0; VHGNDobjclass = 0; VHGNDobjid = 0;
+	VHGNDtreescale = 0; VHGNDtreetop = 0; VHGNDtreeapex = 0; VHGNDtreerad = 0; VHGNDtreecol = 0;
+	VHGNDtreebx = 0; VHGNDtreeby = 0; VHGNDtreebz = 0;
+	VHGNDtreeex = 0; VHGNDtreeey = 0; VHGNDtreeez = 0;
+	VHGNDtreebr = 0; VHGNDtreeer = 0; VHGNDtreeside = 0;
+	VHGNDtreepoint = 0; VHGNDtreecx = 0; VHGNDtreecy = 0; VHGNDtreecz = 0;
+	VHGNDtreepx = 0; VHGNDtreepz = 0; VHGNDtreeorient = 0;
+	VHGNDtreebranch = 0; VHGNDtreebranches = 0; VHGNDtreerange = 0;
+	VHGNDrx0 = 0; VHGNDry0 = 0; VHGNDrz0 = 0;
+	VHGNDrx1 = 0; VHGNDry1 = 0; VHGNDrz1 = 0;
+	VHGNDrx2 = 0; VHGNDry2 = 0; VHGNDrz2 = 0;
+	VHGNDrtop = 0; VHGNDrcol0 = 0; VHGNDrcol1 = 0; VHGNDrcol2 = 0;
+	VHGNDanimals = 0; VHGNDanii = 0; VHGNDanip = 0;
+	VHGNDbirds = 0; VHGNDbirdflap = 0; VHGNDbirdquote = 0;
+	VHGNDbirdtarget = 0; VHGNDbirdlcount = 0; VHGNDbirdspeed = 0;
+	VHGNDgroundbirds = 0; VHGNDcaptures = 0; VHGNDplayerstep = 0;
+	VHGNDanix = 0; VHGNDaniy = 0; VHGNDaniz = 0;
+	VHGNDanidir = 0; VHGNDaniphase = 0; VHGNDanihop = 0;
+	VHGNDanimtype = 0; VHGNDanispeed = 0; VHGNDaniperiod = 0;
+	VHGNDaniincl = 0; VHGNDaniground = 0; VHGNDanimorphs = 0;
+	VHGNDanidx = 0; VHGNDanidz = 0; VHGNDanidist = 0; VHGNDaniscale = 0;
+	VHGNDanifx = 0; VHGNDanify = 0; VHGNDanifz = 0;
+	VHGNDanicamx = 0; VHGNDanicamy = 0; VHGNDanicamz = 0;
+	VHGNDwaterglaze = 0; VHGNDwaterphase = 0; VHGNDwatery = 0;
+	VHGNDmirror = 0; VHGNDwavesin = 0; VHGNDreflected = 0;
+	VHGNDruined = 0; VHGNDruindrawn = 0; VHGNDruinbuildings = 0;
+	VHGNDruinanchor = 0; VHGNDruinmarks = 0; VHGNDruinpass = 0;
+	VHGNDruindensity = 0; VHGNDruinstyle = 0;
+	VHGNDruinstyle0 = 0; VHGNDruinstyle1 = 0; VHGNDruinstyle2 = 0;
+	VHGNDruinstyle3 = 0; VHGNDruinstyle4 = 0;
+	VHGNDruincx = 0; VHGNDruincz = 0; VHGNDruinrad = 0;
+	VHGNDruinheight = 0; VHGNDruinbase = 0; VHGNDruinx = 0; VHGNDruinz = 0;
+	VHGNDruinxlo = 0; VHGNDruinxhi = 0; VHGNDruinzlo = 0; VHGNDruinzhi = 0;
+	VHGNDruindx = 0; VHGNDruindz = 0; VHGNDruindist = 0;
+	VHGNDruinvalue = 0; VHGNDruinmark = 0; VHGNDruinspacing = 0;
+	VHGNDwavei = 0; VHGNDwavep = 0; VHGNDwaveout = 0; VHGNDwaveseg = 0;
+	VHGNDwaveangle = 0; VHGNDwaveradius = 0; VHGNDwaveinner = 0;
+	VHGNDwaveheight = 0; VHGNDwavewidth = 0; VHGNDwavedelta = 0;
+	VHGNDwaveblur = 0; VHGNDwavehits = 0; VHGNDwavehitcx = 0;
+	VHGNDwavehitcz = 0; VHGNDwavehitdelta = 0;
+	VHGNDimpactx = 0; VHGNDimpactz = 0; VHGNDimpacttilt = 0;
+	VHGNDblurp = 0; VHGNDblurpasses = 0; VHGNDblurval = 0;
+	VHGNDwavecx = 0; VHGNDwavecy = 0; VHGNDwavecz = 0;
+	VHGNDwavepx = 0; VHGNDwavepz = 0; VHGNDwavepr = 0;
+	VHGNDwavep0x = 0; VHGNDwavep0z = 0; VHGNDwavep1x = 0; VHGNDwavep1z = 0;
+	VHGNDwavep2x = 0; VHGNDwavep2z = 0; VHGNDwavep3x = 0; VHGNDwavep3z = 0;
+	VHGNDwavedx = 0; VHGNDwavedz = 0; VHGNDwavedist = 0; VHGNDwavewet = 0;
+	VHGNDwavelastx = 0; VHGNDwavelastz = 0; VHGNDwavemove = 0; VHGNDwavelw = 10;
+	VHGNDseed = 149130; VHGNDatmosphere = 1; VHGNDplanet = 0;
+	VHGNDlon = 0; VHGNDlat = 60; VHGNDlocseed = 0;
+	VHGNDsurfaceok = 0; VHGNDsample = 0; VHGNDcloud = 0; VHGNDcbase = 192;
+	VHGNDcloudrain = 0; VHGNDsrf = 0; VHGNDsgf = 0; VHGNDsbf = 0;
+	VHGNDgrf = 0; VHGNDggf = 0; VHGNDgbf = 0;
+	VHGNDtick = 0; VHGNDdosim = 1;
+	VHGNDrainseed = 0; VHGNDrainrnd = 0; VHGNDraincount = 0; VHGNDrainindex = 0;
+	VHGNDrainx = 0; VHGNDrainy = 0; VHGNDrainz = 0;
+	VHGNDrainx2 = 0; VHGNDrainy2 = 0; VHGNDrainz2 = 0;
+	VHGNDrainwindx = 0; VHGNDrainwindz = 0; VHGNDrainphase = 0;
+	VHGNDrainstreaks = 0; VHGNDstormflashes = 0;
+	VHGNDflashactive = 0; VHGNDflashlast = 0;
+	VHGNDflashtries = 0; VHGNDflashden = 0;
+	VHGNDflashpalp = 0; VHGNDflashpalq = 0; VHGNDflashpaln = 0;
+	VHGNDskyfill = 0; VHGNDskycount = 0; VHGNDpalcount = 0;
+	VHGNDdays = 0; VHGNDsecs = 0; VHGNDmonthbase = 0;
+	VHGNDphaseindex = 0; VHGNDphase = 0; VHGNDrotation = 0; VHGNDperiod = 0;
+	VHGNDowner = 0; VHGNDmoonmass = 0; VHGNDplwp = 0;
+	VHGNDtermstart = 0; VHGNDtermend = 0; VHGNDcrep = 0; VHGNDdist = 0;
+	VHGNDmass0 = 0; VHGNDmass1 = 0; VHGNDorbit0 = 0; VHGNDorbit1 = 0;
+	VHGNDvecindex = 0; VHGNDvecowner = 0;
+	VHGNDangle0 = 0; VHGNDangle1 = 0;
+	VHGNDvecx0 = 0; VHGNDvecx1 = 0; VHGNDvecz0 = 0; VHGNDvecz1 = 0;
+	VHGNDownx0 = 0; VHGNDownx1 = 0; VHGNDownz0 = 0; VHGNDownz1 = 0;
+	VHGNDsin0 = 0; VHGNDsin1 = 0; VHGNDcos0 = 0; VHGNDcos1 = 0;
+	VHGNDct0 = 0; VHGNDct1 = 0; VHGNDxx0 = 0; VHGNDxx1 = 0;
+	VHGNDzz0 = 0; VHGNDzz1 = 0; VHGNDso0 = 0; VHGNDso1 = 0;
+	VHGNDco0 = 0; VHGNDco1 = 0;
+	VHGNDseedval0 = 0; VHGNDseedval1 = 0;
+	VHGNDsf00 = 0; VHGNDsf01 = 3FF00000h;
+	VHGNDsf10 = 0; VHGNDsf11 = 3FF00000h;
+	VHGNDsf20 = 0; VHGNDsf21 = 3FF00000h;
+	VHGNDsf30 = 0; VHGNDsf31 = 3FF00000h;
+	VHGNDsf40 = 0; VHGNDsf41 = 3FF00000h;
+	VHGNDsf50 = 0; VHGNDsf51 = 3FF00000h;
+	VHGNDbgstart = 0; VHGNDbgshift = 0;
+	VHGNDbgrowbase = 0; VHGNDbgcol = 0;
+	VHGNDbgcacheok = 0; VHGNDbgcachealpha = 0; VHGNDbgcachebeta = 0;
+	VHGNDbgcachep = 0; VHGNDbgcacheq = 0; VHGNDbgcachecount = 0;
+
+"workspace"
+
+	( Four mammal records: x, z, heading, phase, movement type, speed.
+	  Three bird records: x, z, heading, phase, altitude, target, capture count. )
+	VHGNDanidata = 24;
+	VHGNDbirddata = 21;
+	( Twenty-five source wave records: x, y, z, radius, height, width, delta. )
+	VHGNDwavedata = 175;
+	( ruinschart: one source marker per 200x200 height-map point. )
+	VHGNDruins = 40000;
+	VHGNDskycache = 64000;
+
+"programme"
+
+"VHGND generate"
+	( Generate the two landable bodies in the opening system through their
+	  real build_surface switch arms: type 8 milky/quartz and type 4 rocky.
+	  Body 2 is type 6 and is rejected by VHG land. )
+	[VHGNDtick] = 0; [VHGNDptr] = 0; [VHGNDplayerstep] = 0;
+	[VHGNDwaswet] = 0; [VHGNDwavescalm] = 0;
+	[VHGNDstormflashes] = 0; [VHGNDflashactive] = 0; [VHGNDflashlast] = 0;
+	A = [VHGNDlat]; A '* [VHGNDlon]; [VHGNDlocseed] = A;
+	[GRgseed] = [VHGNDseed]; [GRsctype] = 0; [GRalbedo] = 32;
+	=> VHGND landing identity;
+    "VHGND wipe surface"
+	A = RPSM; A + [VHGNDptr]; [MBptr] = A; [MBval] = 0; => MEM put byte;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A '< 40000 -> VHGND wipe surface;
+	[VHGNDptr] = 0;
+    "VHGND wipe objects"
+	A = ROBJ; A + [VHGNDptr]; [MBptr] = A; [MBval] = 0; => MEM put byte;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A '< 40000 -> VHGND wipe objects;
+	[VHGNDptr] = 0;
+    "VHGND wipe ruins"
+	A = VHGNDruins; A + [VHGNDptr]; [A] = 0;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A '< 40000 -> VHGND wipe ruins;
+	( _fmemset(txtr,16,65535): RPBG[0..65534]=16, slot 65535 remains 0. )
+	[VHGNDptr] = 0;
+    "VHGND wipe texture"
+	A = RPBG; A + [VHGNDptr]; [MBptr] = A; [MBval] = 16; => MEM put byte;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A '< 65535 -> VHGND wipe texture;
+	A = RPBG; A + 65535; [MBptr] = A; [MBval] = 0; => MEM put byte;
+
+	=> SU ledger reset; => GR float init;
+	[VHGNDrockscale] = 500; [VHGNDrockpeak] = 250; [VHGNDrockdensity] = 15;
+	A = [VHGNDlat]; A - 60; ? A >= 0 -> VHGND latitude absolute; A +-;
+    "VHGND latitude absolute"
+	A '* 3; A '/ 2; [GRlat] = A;
+	[VHGNDsctype] = 0; A = [GRiptype]; ? A != 3 -> VHGND scenario ready;
+	( NIV+ planetary_main: most sites derive their biome from orbital
+	  orientation; a five-percent branch is locally random.  Low sampled
+	  albedo forces ocean and high latitude forces ice. )
+	A = [VHGNDlocseed]; A & 0FFFFh; => SU srand;
+	C = 100; => SU rnd; A = C; ? A '<= 5 -> VHGND scenario local;
+	A = [VHGNDplanet]; A < 1; E = nspororient; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1]; A = 3; => GeoSetK;
+	=> GeoKMulChopLive; A = [FI]; A % 4; A + 1; [VHGNDsctype] = A;
+	-> VHGND scenario albedo;
+    "VHGND scenario local"
+	C = 4; => SU rnd; C + 1; [VHGNDsctype] = C;
+    "VHGND scenario albedo"
+	A = [GRalbedo]; ? A '>= 25 -> VHGND scenario polar; [VHGNDsctype] = 1;
+    "VHGND scenario polar"
+	A = [GRlat]; ? A '<= 75 -> VHGND scenario near polar; [VHGNDsctype] = 4;
+    "VHGND scenario near polar"
+	A = [GRlat]; ? A '<= 60 -> VHGND scenario rain; C = 3; => SU rnd;
+	? C = 0 -> VHGND scenario rain; [VHGNDsctype] = 4;
+    "VHGND scenario rain"
+	( Dry and icy biomes reduce the sampled cloud load using the same BRTL
+	  stream that selected the scenario. )
+	A = [VHGNDsctype]; ? A = 3 -> VHGND scenario desert rain;
+	? A = 4 -> VHGND scenario icy rain; -> VHGND scenario ready;
+    "VHGND scenario desert rain"
+	C = 4; => SU rnd; C + 1; -> VHGND scenario scale rain;
+    "VHGND scenario icy rain"
+	C = 3; => SU rnd; C + 2;
+    "VHGND scenario scale rain"
+	[FS0] = [VHGNDcloudrain]; => FLoadF32; [VHGNDtmp] = C; [FI] = C; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FS0] = [VHGNDcloudrain]; => FLoadF32;
+	=> FQuo; => F32Narrow; => FStoreF32; [VHGNDcloudrain] = [FS0];
+    "VHGND scenario ready"
+	[GRsctype] = [VHGNDsctype];
+	=> GR prologue;
+	( build_surface resets both random streams from landing_pt_lat*landing_pt_lon
+	  immediately before the type-specific terrain switch. )
+	A = [VHGNDlocseed]; => SU fast srand;
+	A = [VHGNDlocseed]; A & 0FFFFh; => SU srand;
+	[VHGNDtscale] = 32;
+	A = [GRiptype]; ? A = 8 -> VHGND generate type8;
+	? A = 1 -> VHGND generate type1;
+	? A = 2 -> VHGND generate type2;
+	? A = 3 -> VHGND generate type3;
+	? A = 4 -> VHGND generate type4;
+	? A = 5 -> VHGND generate type5;
+	? A = 7 -> VHGND generate type7;
+
+	( Defensive fallback for an unexpected type; every accepted landable
+	  class has a dedicated arm above. )
+	A = [GRgseed]; => SU fast srand;
+	A = [GRgseed]; A & 0FFFFh; => SU srand;
+	[GRrough] = 28; [GRround] = 4; [GRlevel] = 0;
+	=> GR rockyground; => GR plains noise;
+	-> VHGND generate done;
+
+    "VHGND generate type1"
+	( Airless lunar rock: rounded ground, raised rim craters, mottled
+	  texture and either many sharp stones or a completely bare field. )
+	C = 5; => SU rnd; [VHGNDtmp] = C; A = C;
+	? A '<= 2 -> VHGND type1 smooth; ? A = 3 -> VHGND type1 rough;
+	[GRrough] = 10; [GRround] = 2; C = 5; => SU rnd; A = 0; A - C; [GRlevel] = A;
+	=> GR rockyground; -> VHGND type1 craters;
+    "VHGND type1 smooth"
+	[GRrough] = 25; C = 4; => SU rnd; C + 4; [GRround] = C; [GRlevel] = 0;
+	=> GR rockyground; -> VHGND type1 craters;
+    "VHGND type1 rough"
+	C = 5; => SU rnd; C + 5; [GRrough] = C; [GRround] = 1; [GRlevel] = 1;
+	=> GR rockyground;
+    "VHGND type1 craters"
+	C = 48; => SU rnd; A = C; A + 32; A - [GRalbedo];
+	? A >= 0 -> VHGND type1 crater nonnegative; A = 0;
+    "VHGND type1 crater nonnegative"
+	? A '<= 12 -> VHGND type1 crater count ready; A = 12;
+    "VHGND type1 crater count ready"
+	[VHGNDgenn] = A;
+    "VHGND type1 crater loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND type1 texture craters;
+	C = 32; => SU rnd; [FI] = C; => IntToF;
+	[FB0] = 7AE147AEh; [FB1] = 3F847AE1h; => FMul; => F32Narrow; => FStoreF32; [GRfht] = [FS0];
+	C = 20; => SU rnd; C + 5; [FI] = C; => IntToF;
+	[FB0] = 33333333h; [FB1] = 3FB33333h; => FMul; => F32Narrow; => FStoreF32; [GRfhmt] = [FS0];
+	C = 50; => SU rnd; C + 5; [SUia] = C;
+	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
+	[GRfscl] = 127; [GRfsca] = 200; [GRscmap] = RPSM; => GR std crater;
+	[VHGNDgenn]-; -> VHGND type1 crater loop;
+    "VHGND type1 texture craters"
+	C = 48; => SU rnd; A = C; A + 64; A - [GRalbedo];
+	? A >= 0 -> VHGND type1 texture nonnegative; A = 0;
+    "VHGND type1 texture nonnegative"
+	? A '<= 24 -> VHGND type1 texture count ready; A = 24;
+    "VHGND type1 texture count ready"
+	[VHGNDgenn] = A;
+    "VHGND type1 texture crater loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND type1 texture lines;
+	C = 200; => SU rnd; [SUcxi] = C; C = 200; => SU rnd; [SUcyi] = C;
+	C = 32; => SU rnd; C + 10; [VHGNDgeni] = C; [SUia] = C;
+	[GRfht] = 3EB33333h; [GRfhmt] = 3F800000h;
+	[GRfscl] = 31; [GRfsca] = 256; [GRscmap] = RPBG; => GR std crater;
+	A = [VHGNDgeni]; A & 1; ? A = 0 -> VHGND type1 texture crater next;
+	A = [VHGNDgeni]; A / 3; C = [SUcxi]; C + A; [SUcxi] = C;
+	C = [SUcyi]; C + A; [SUcyi] = C; A = 0; A - [VHGNDgeni]; [SUia] = A;
+	=> GR std crater;
+    "VHGND type1 texture crater next"
+	[VHGNDgenn]-; -> VHGND type1 texture crater loop;
+    "VHGND type1 texture lines"
+	C = 100; => SU rnd; ? C '<= 32 -> VHGND type1 line count ready; C = 32;
+    "VHGND type1 line count ready"
+	[VHGNDgenn] = C;
+    "VHGND type1 line loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND type1 rocks;
+	C = 1000; => SU rnd; [VHGNDlinelen] = C;
+	[VHGNDlinetrendx] = 0FFFFFFFFh; [VHGNDlinetrendz] = 0FFFFFFFFh; => VHGND texture darkline;
+	[VHGNDgenn]-; -> VHGND type1 line loop;
+    "VHGND type1 rocks"
+	C = 2; => SU rnd; [VHGNDtmp] = C; C = 2; => SU rnd; C '* 16; C + 15;
+	A = C; A '* [VHGNDtmp]; [VHGNDrockdensity] = A;
+	C = 500; => SU rnd; C + 150; [VHGNDrockscale] = C;
+	C = 300; => SU rnd; C + 100; [VHGNDrockpeak] = C;
+	-> VHGND generate done;
+
+    "VHGND generate type8"
+	( NOCTIS-1.CPP:2532-2580.  Albedo 32 skips the dark-zone dome arm.
+	  Borland evaluates the four random call arguments right-to-left. )
+	A = 100; A - [GRalbedo]; A '* 2; [VHGNDgenn] = A;
+    "VHGND type8 hill loop"
+	C = 25; => SU rnd; C + 1; [VHGNDhr] = C;       ( h )
+	C = 25; => SU rnd; C + 1; [VHGNDgeni] = C;     ( radius )
+	C = 200; => SU rnd; [SUcyi] = C;
+	C = 200; => SU rnd; [SUcxi] = C;
+	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
+	[SUia] = [VHGNDgeni]; => GR round hill;
+	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type8 hill loop;
+	( rockscaling, rockpeaking, rockdensity draws )
+	C = 300; => SU rnd; C + 50; [VHGNDrockscale] = C;
+	C = 300; => SU rnd; C + 50; [VHGNDrockpeak] = C;
+	C = 2; => SU rnd; C '* 8; C + 7; [VHGNDrockdensity] = C;
+	( snowy/frosty branch before goto similar )
+	C = 2; => SU rnd; [VHGNDfrosty] = 0; ? C != 0 -> VHGND type8 texture;
+	[VHGNDfrosty] = 1;
+    "VHGND type8 texture"
+	=> VHGND similar texture;
+	-> VHGND generate done;
+
+    "VHGND generate type2"
+	( NOCTIS-1.CPP:2100-2140, the thick-atmosphere/Venusian arm used
+	  by both moons of the opening gas giant. )
+	[GRrough] = 10; [GRround] = 1; [GRlevel] = 0; => GR rockyground;
+	C = 100; => SU rnd; C + [GRalbedo]; [VHGNDgenn] = C;
+    "VHGND type2 hill loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND type2 hills done;
+	( round_hill(random(200),random(200),random(100)+50,
+	  random(50)+10,0,1): Borland evaluates arguments right-to-left. )
+	C = 50; => SU rnd; C + 10; [VHGNDhr] = C;
+	C = 100; => SU rnd; C + 50; [VHGNDgeni] = C;
+	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
+	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
+	[SUia] = [VHGNDgeni]; => GR round hill;
+	[VHGNDgenn]-; -> VHGND type2 hill loop;
+    "VHGND type2 hills done"
+	C = 2; => SU rnd; ? C != 0 -> VHGND type2 lines;
+	( Nebulous texture: mixed positive/negative shallow craters. )
+	C = 200; => SU rnd; [VHGNDtmp] = C;
+	C = 100; => SU rnd; A = [GRalbedo]; A + [VHGNDtmp]; A - C; [VHGNDgenn] = A;
+	C = 10; => SU rnd; [FI] = C; => IntToF;
+	[FB0] = 47AE147Bh; [FB1] = 3F947AE1h; => FMul;
+	=> F32Narrow; => FStoreF32; [GRfht] = [FS0];
+	A = [VHGNDgenn]; ? A < 0 -> VHGND type2 crater none;
+    "VHGND type2 crater loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND type2 crater none;
+	C = 256; => SU rnd; [SUcxi] = C; C = 256; => SU rnd; [SUcyi] = C;
+	C = 8; => SU rnd; C + 8; [VHGNDgeni] = C;
+	C = 2; => SU rnd; A = [VHGNDgeni]; ? C = 0 -> VHGND type2 crater sign;
+	C = 0; C - A; A = C;
+    "VHGND type2 crater sign"
+	[SUia] = A; [GRfhmt] = 3F800000h; [GRfscl] = 31; [GRfsca] = 256; [GRscmap] = RPBG;
+	=> GR std crater; [VHGNDgenn]-; -> VHGND type2 crater loop;
+    "VHGND type2 crater none"
+	-> VHGND type2 rocks;
+    "VHGND type2 lines"
+	C = 500; => SU rnd; C + [GRalbedo]; [VHGNDgenn] = C;
+	C = 2000; => SU rnd; [VHGNDtmp] = C;
+    "VHGND type2 line loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND type2 rocks;
+	C = [VHGNDtmp]; => SU rnd; [VHGNDlinelen] = C;
+	[VHGNDlinetrendx] = 0FFFFFFFFh; [VHGNDlinetrendz] = 0FFFFFFFFh;
+	=> VHGND texture darkline; [VHGNDgenn]-; -> VHGND type2 line loop;
+    "VHGND type2 rocks"
+	C = 500; => SU rnd; C + 500; [VHGNDrockscale] = C;
+	C = 2; => SU rnd; C '* 8; C + 7; [VHGNDrockdensity] = C;
+	C = 150; => SU rnd; C + 50; [VHGNDrockpeak] = C;
+	-> VHGND generate done;
+
+    "VHGND generate type3"
+	( NOCTIS-1.CPP:2151-2294.  GR prologue and the switch preamble have
+	  already seeded both streams from landing_pt_lat*landing_pt_lon. )
+	A = [VHGNDsctype]; ? A = 1 -> VHGND generate ocean;
+	? A = 3 -> VHGND generate desert; ? A = 4 -> VHGND generate icy;
+	-> VHGND type3 plains;
+
+    "VHGND type3 plains"
+	( `revert:`: source PLAINS chooses either 5..54 low hills or 10..34
+	  mountains.  Borland evaluates each round_hill call right-to-left. )
+	C = 2; => SU rnd; ? C = 0 -> VHGND type3 mountains;
+	C = 50; => SU rnd; C + 5; [VHGNDgenn] = C;
+    "VHGND type3 low hill loop"
+	C = 30; => SU rnd; C + 1; [VHGNDhr] = C;
+	C = 200; => SU rnd; C + 1; [VHGNDgeni] = C;
+	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
+	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
+	[SUia] = [VHGNDgeni]; => GR round hill;
+	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type3 low hill loop;
+	-> VHGND type3 addtrees;
+    "VHGND type3 mountains"
+	C = 25; => SU rnd; C + 10; [VHGNDgenn] = C;
+    "VHGND type3 mountain loop"
+	C = 100; => SU rnd; C + 1; [VHGNDhr] = C;
+	C = 200; => SU rnd; C + 1; [VHGNDgeni] = C;
+	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
+	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
+	[SUia] = [VHGNDgeni]; => GR round hill;
+	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type3 mountain loop;
+	-> VHGND type3 addtrees;
+    "VHGND generate ocean"
+	( A bright OCEAN site is the source's shoreline case: retain water,
+	  suppress incoming swell, and generate the same PLAINS hill field. )
+	[VHGNDwaswet] = 1;
+	A = [GRalbedo]; ? A '<= 20 -> VHGND type3 open ocean;
+	[VHGNDwavescalm] = 1; -> VHGND type3 plains;
+    "VHGND type3 open ocean"
+	[VHGNDwaswet] = 0;
+	( Scattered rocks at albedo 17..20 make a calm sea. )
+	A = [GRalbedo]; ? A '<= 16 -> VHGND type3 island test;
+	C = 2; => SU rnd; ? C = 0 -> VHGND type3 island test;
+	C = 2; => SU rnd; [GRround] = C; [GRrough] = 10; [GRlevel] = 0FFFFFFFBh;
+	=> GR rockyground; [VHGNDwavescalm] = 1;
+    "VHGND type3 island test"
+	C = 3; => SU rnd; ? C != 0 -> VHGND type3 full ocean;
+	C = 100; => SU rnd; C + 50; [VHGNDislandx] = C;
+	C = 100; => SU rnd; C + 50; [VHGNDislandz] = C;
+	( round_hill(cx+random(15),cz+random(15),random(100)+25,
+	  random(10)+1,0,1), evaluated right-to-left. )
+	C = 10; => SU rnd; C + 1; [VHGNDhr] = C;
+	C = 100; => SU rnd; C + 25; [VHGNDgeni] = C;
+	C = 15; => SU rnd; C + [VHGNDislandz]; [SUcyi] = C;
+	C = 15; => SU rnd; C + [VHGNDislandx]; [SUcxi] = C;
+	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
+	[SUia] = [VHGNDgeni]; => GR round hill;
+	( round_hill(cx,cz,random(100)+25,random(100)+1,0,1). )
+	C = 100; => SU rnd; C + 1; [VHGNDhr] = C;
+	C = 100; => SU rnd; C + 25; [VHGNDgeni] = C;
+	[SUcxi] = [VHGNDislandx]; [SUcyi] = [VHGNDislandz];
+	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
+	[SUia] = [VHGNDgeni]; => GR round hill;
+	[VHGNDwaswet] = 1; -> VHGND type3 addtrees;
+    "VHGND type3 full ocean"
+	[VHGNDtscale] = 128; C = 30; => SU rnd; C + 2; [VHGNDtexn] = C;
+	=> VHGND texture random;
+	C = 75; => SU rnd; C + 50; [VHGNDrockscale] = C;
+	C = 25; => SU rnd; C + 30; [VHGNDrockpeak] = C;
+	C = 3; => SU rnd; [VHGNDrockdensity] = 0; ? C = 0 -> VHGND generate done;
+	[VHGNDrockdensity] = 31; -> VHGND generate done;
+
+    "VHGND type3 addtrees"
+	( `addtrees:`: preserve the otherwise-unused random(6), assign the
+	  three packed vegetation classes, then paint source grass. )
+	C = 6; => SU rnd;
+	=> VHGND type3 object classes;
+	[VHGNDtscale] = 128; C = 15; => SU rnd; C + 2; [VHGNDtexn] = C;
+	=> VHGND texture random;
+	C = 500; => SU rnd; C + 100; [VHGNDgenn] = C;
+    "VHGND type3 asterism loop"
+	C = 15; => SU rnd; C + 6; [VHGNDastarsize] = C;
+	C = 25; => SU rnd; C + 6; [VHGNDastardensity] = C;
+	C = 16; => SU rnd; [VHGNDastarvariation] = C;
+	C = 16; => SU rnd; [VHGNDastarbase] = C;
+	C = 256; => SU rnd; [VHGNDastary] = C;
+	C = 256; => SU rnd; [VHGNDastarx] = C;
+	=> VHGND asterism;
+	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type3 asterism loop;
+	( Non-wet plains always receive fast noise; a shoreline does one time
+	  in five.  This is an ADD, matching the observed original binary. )
+	A = [VHGNDwaswet]; ? A = 0 -> VHGND type3 add noise;
+	C = 5; => SU rnd; ? C != 0 -> VHGND type3 rocks;
+    "VHGND type3 add noise"
+	=> GR plains noise;
+    "VHGND type3 rocks"
+	C = 200; => SU rnd; C + 100; [VHGNDrockscale] = C;
+	C = 200; => SU rnd; C + 100; [VHGNDrockpeak] = C;
+	C = 2; => SU rnd; C '* 4; C + 3; [VHGNDrockdensity] = C;
+	-> VHGND generate done;
+
+    "VHGND generate desert"
+	( DESERT: source dune rule, with greater random relief receiving more
+	  smoothing; coarse 128x sand and no scattered rocks. )
+	C = 100; => SU rnd; [VHGNDtmp] = C;
+	A = C; A + 50; [GRrough] = A;
+	A = [VHGNDtmp]; A > 4; A + 5; [GRround] = A; [GRlevel] = 0;
+	=> GR rockyground;
+	[VHGNDtscale] = 128; [VHGNDtexn] = 32; => VHGND texture random;
+	[VHGNDrockscale] = 0; [VHGNDrockpeak] = 0; [VHGNDrockdensity] = 0;
+	-> VHGND generate done;
+
+    "VHGND generate icy"
+	( ICY: the four original orography classes: snowfield, bare ice,
+	  rounded snow hills, or broken iceberg relief. )
+	[VHGNDfrosty] = 0; C = 4; => SU rnd; A = C;
+	? A = 0 -> VHGND icy snowfield; ? A = 1 -> VHGND icy bare;
+	? A = 2 -> VHGND icy hills; -> VHGND icy bergs;
+    "VHGND icy snowfield"
+	[GRrough] = 15; [GRround] = 5; [GRlevel] = 0; => GR rockyground;
+	-> VHGND icy terrain done;
+    "VHGND icy bare"
+	C = 2; => SU rnd; C + 1; [GRround] = C;
+	C = 10; => SU rnd; C + 10; [GRrough] = C; [GRlevel] = 0;
+	[VHGNDfrosty] = 1; => GR rockyground; -> VHGND icy terrain done;
+    "VHGND icy hills"
+	C = 50; => SU rnd; C + 50; [VHGNDgenn] = C;
+	( Keep live landing latency bounded while retaining the dense source
+	  field; the nearest twenty-four overlapping hills define its silhouette. )
+	A = [VHGNDgenn]; ? A '<= 24 -> VHGND icy hill loop; [VHGNDgenn] = 24;
+    "VHGND icy hill loop"
+	C = 75; => SU rnd; C + 1; [VHGNDhr] = C;
+	C = 200; => SU rnd; C + 1; [VHGNDgeni] = C;
+	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
+	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1; [SUia] = [VHGNDgeni];
+	=> GR round hill; [VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND icy hill loop;
+	-> VHGND icy terrain done;
+    "VHGND icy bergs"
+	C = 40; => SU rnd; C + 20; A = 0; A - C; [GRlevel] = A;
+	C = 3; => SU rnd; C + 3; [GRround] = C;
+	C = 50; => SU rnd; C + 50; [GRrough] = C;
+	[VHGNDfrosty] = 1; => GR rockyground;
+    "VHGND icy terrain done"
+	C = 500; => SU rnd; C + 200; [VHGNDrockscale] = C;
+	C = 250; => SU rnd; C + 150; [VHGNDrockpeak] = C;
+	C = 2; => SU rnd; C '* 2; [VHGNDrockdensity] = C;
+	=> VHGND similar texture;
+	-> VHGND generate done;
+
+    "VHGND generate type4"
+	( NOCTIS-1.CPP:2389-2443.  Preserve the right-to-left random order
+	  of rockyground's arguments and the binary32 hr/ht stores. )
+	C = 5; => SU rnd; A = 0; A - C; [GRlevel] = A;
+	C = 3; => SU rnd; C + 3; [GRround] = C; [GRrough] = 15;
+	=> GR rockyground;
+	C = 15; => SU rnd; [VHGNDgenn] = C;
+    "VHGND type4 hill loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND type4 hills done;
+	C = 15; => SU rnd; C + 7; [VHGNDgeni] = C;     ( hf / radius )
+	=> VHGND flandom;
+	[FB0] = 0; [FB1] = 400C0000h; => FMul;
+	[FB0] = 0; [FB1] = 400C0000h; => FAdd;
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHGNDgeni]; => IntToF;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FMul;
+	=> F32Narrow; => FStoreF32; [GRfht] = [FS0];
+	=> VHGND flandom;
+	[FB0] = 9999999Ah; [FB1] = 3FC99999h; => FMul;
+	[FB0] = 33333333h; [FB1] = 3FD33333h; => FAdd;
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FS0] = [GRfht]; => FLoadF32;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FMul;
+	=> F32Narrow; => FStoreF32; [GRfhmt] = [FS0];
+	C = 200; => SU rnd; [SUcyi] = C;
+	C = 200; => SU rnd; [SUcxi] = C;
+	[SUia] = [VHGNDgeni]; [GRfcanyon] = 0; => GR round hill;
+	[VHGNDgenn]-; -> VHGND type4 hill loop;
+    "VHGND type4 hills done"
+	C = 2; => SU rnd; C + 1; => GR smoothterrain;
+	A = 64; A - [GRalbedo]; [VHGNDgenn] = A;
+    "VHGND type4 crater loop"
+	C = 150; => SU rnd; C + 25; [SUcxi] = C;
+	C = 150; => SU rnd; C + 25; [SUcyi] = C;
+	C = 10; => SU rnd; C + 15; A = 0; A - C; [SUia] = A;
+	[GRfht] = 3E800000h; [GRfhmt] = 3F800000h;
+	[GRfscl] = 31; [GRfsca] = 256; [GRscmap] = RPBG;
+	=> GR std crater;
+	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type4 crater loop;
+	( remaining rock-parameter draws )
+	C = 200; => SU rnd; C + 100; [VHGNDrockscale] = C;
+	C = 2; => SU rnd; C '* 4; C + 3; [VHGNDrockdensity] = C;
+	C = 200; => SU rnd; C + 100; [VHGNDrockpeak] = C;
+	-> VHGND generate done;
+
+    "VHGND generate type5"
+	( Thin-atmosphere worlds: Martian plains or broken permafrost, eroded
+	  profile craters, dense texture fissures, and sparse-or-dense stones. )
+	C = 2; => SU rnd; ? C = 0 -> VHGND type5 broken;
+	C = 10; => SU rnd; C + 5; [GRrough] = C; [GRround] = 1; [GRlevel] = 0;
+	=> GR rockyground; -> VHGND type5 craters;
+    "VHGND type5 broken"
+	C = 24; => SU rnd; A = 0; A - C; [GRlevel] = A;
+	C = 32; => SU rnd; C + 15; [GRrough] = C; [GRround] = 1; => GR rockyground;
+    "VHGND type5 craters"
+	C = 68; => SU rnd; A = C; A - [GRalbedo]; ? A >= 1 -> VHGND type5 crater low; A = 1;
+    "VHGND type5 crater low"
+	? A '<= 10 -> VHGND type5 crater count ready; A = 10;
+    "VHGND type5 crater count ready"
+	[VHGNDgenn] = A;
+    "VHGND type5 crater loop"
+	C = 5; => SU rnd; [FI] = C; => IntToF;
+	[FB0] = 0EB851EB8h; [FB1] = 3F8EB851h; => FMul; => F32Narrow; => FStoreF32; [GRfht] = [FS0];
+	C = 10; => SU rnd; C + 10; [FI] = C; => IntToF;
+	[FB0] = 147AE148h; [FB1] = 3FD147AEh; => FMul; => F32Narrow; => FStoreF32; [GRfhmt] = [FS0];
+	C = 35; => SU rnd; C + 5; [SUia] = C;
+	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
+	[GRfscl] = 127; [GRfsca] = 200; [GRscmap] = RPSM; => GR std crater;
+	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type5 crater loop;
+	C = 400; => SU rnd; C + 50; [VHGNDrockscale] = C;
+	C = 250; => SU rnd; C + 50; [VHGNDrockpeak] = C;
+	C = 2; => SU rnd; C '* 30; C + 1; [VHGNDrockdensity] = C;
+	C = 1500; => SU rnd; C + 500; [VHGNDtmp] = C;
+	A = [GRalbedo]; A '* 5; [VHGNDgenn] = A;
+    "VHGND type5 line loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND generate done;
+	C = [VHGNDtmp]; => SU rnd; [VHGNDlinelen] = C;
+	[VHGNDlinetrendx] = 0FFFFFFFFh; [VHGNDlinetrendz] = 0FFFFFFFFh; => VHGND texture darkline;
+	[VHGNDgenn]-; -> VHGND type5 line loop;
+
+    "VHGND generate type7"
+	( Frozen striated world: high base shelf, long surface crevasses,
+	  dark texture pits and short wandering cracks. )
+	C = 100; => SU rnd; C + 20; [GRlevel] = C;
+	A = [GRalbedo]; A / 8; C = 10; C - A; [GRrough] = C; [GRround] = 0;
+	=> GR rockyground;
+	C = [GRalbedo]; => SU rnd; A = [GRalbedo]; A - C; A + 10; [VHGNDgenn] = A;
+    "VHGND type7 surface line loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND type7 texture craters;
+	C = 500; => SU rnd; [GRn] = C; [SUia] = 200;
+	[GRfrlo] = 0FFFFFFFFh; [GRfrhi] = 0FFFFFFFFh; => GR srf darkline;
+	[VHGNDgenn]-; -> VHGND type7 surface line loop;
+    "VHGND type7 texture craters"
+	C = 100; => SU rnd; [VHGNDtmp] = C; C = 200; => SU rnd;
+	A = [GRalbedo]; A + C; A - [VHGNDtmp]; ? A >= 0 -> VHGND type7 texture nonnegative; A = 0;
+    "VHGND type7 texture nonnegative"
+	? A '<= 32 -> VHGND type7 texture count ready; A = 32;
+    "VHGND type7 texture count ready"
+	[VHGNDgenn] = A;
+    "VHGND type7 texture crater loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND type7 small lines;
+	C = 192; => SU rnd; C + 32; [SUcxi] = C; C = 192; => SU rnd; C + 32; [SUcyi] = C;
+	C = 16; => SU rnd; C + 16; A = 0; A - C; [SUia] = A;
+	[GRfht] = 3E19999Ah; [GRfhmt] = 3F800000h;
+	[GRfscl] = 31; [GRfsca] = 256; [GRscmap] = RPBG; => GR std crater;
+	[VHGNDgenn]-; -> VHGND type7 texture crater loop;
+    "VHGND type7 small lines"
+	C = 50; => SU rnd; [VHGNDtmp] = C; C = 100; => SU rnd;
+	A = [GRalbedo]; A + C; A - [VHGNDtmp]; ? A >= 0 -> VHGND type7 small nonnegative; A = 0;
+    "VHGND type7 small nonnegative"
+	A / 2; ? A '<= 32 -> VHGND type7 small count ready; A = 32;
+    "VHGND type7 small count ready"
+	[VHGNDgenn] = A;
+    "VHGND type7 small line loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND type7 rocks;
+	C = 100; => SU rnd; [VHGNDlinelen] = C;
+	C = 2; => SU rnd; A = 0; A - C; [VHGNDlinetrendx] = A;
+	C = 2; => SU rnd; A = 0; A - C; [VHGNDlinetrendz] = A; => VHGND texture darkline;
+	[VHGNDgenn]-; -> VHGND type7 small line loop;
+    "VHGND type7 rocks"
+	C = 400; => SU rnd; C + 50; [VHGNDrockscale] = C;
+	C = 200; => SU rnd; C + 50; [VHGNDrockpeak] = C;
+	C = 2; => SU rnd; C '* 4; C + 3; [VHGNDrockdensity] = C;
+    "VHGND generate done"
+	=> VHGND post surface;
+	=> VHGND historical ruins;
+	A = [GRiptype]; ? A != 3 -> VHGND water objects done;
+	A = [VHGNDsctype]; ? A != 1 -> VHGND water objects done;
+	=> VHGND water clear objects;
+    "VHGND water objects done"
+	( Choose deterministic local high points for the two steep type-2 maps.
+	  Their complete 11x11 walking neighborhoods sit at or below the centre,
+	  so the eye near plane cannot begin inside a neighboring hill. )
+	[VHGNDdropx] = 1646592; [VHGNDdropz] = 1646592;
+	A = [VHGNDplanet]; ? A = 3 -> VHGND drop moon3;
+	? A = 4 -> VHGND drop moon4; -> VHGND drop site ready;
+    "VHGND drop moon3"
+	[VHGNDdropx] = 909312; [VHGNDdropz] = 1597440; -> VHGND drop site ready;
+    "VHGND drop moon4"
+	[VHGNDdropx] = 1155072; [VHGNDdropz] = 188416;
+    "VHGND drop site ready"
+	( Cache the selected site's exact HPOINT for descent and the persistent
+	  capsule mesh. )
+	[VHGNDcamx] = [VHGNDdropx]; [VHGNDcamz] = [VHGNDdropz];
+	=> VHGND eye height; A = [VHGNDheight]; A + 600; [VHGNDdropy] = A;
+	=> VHGND animals setup;
+	=> VHGND birds setup;
+	=> VHGND waves init;
+
+	end;
+
+"VHGND water clear objects"
+	( liquid_water: zero the packed object count wherever height is sea level. )
+	[VHGNDptr] = 0;
+    "VHGND water object loop"
+	A = RPSM; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
+	A = [MBval]; ? A != 0 -> VHGND water object next;
+	A = ROBJ; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
+	A = [MBval]; A & 0FCh; [MBval] = A;
+	A = ROBJ; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+    "VHGND water object next"
+	[VHGNDptr]+; A = [VHGNDptr]; ? A < 40000 -> VHGND water object loop;
+	end;
+
+"VHGND animals setup"
+	( setup_animals() permits life only on type-3 worlds.  Mammal odds are
+	  zero in OCEAN and strongest in PLAINS; keep a lean local subset of the
+	  source population while the other animal classes are joined. )
+	[VHGNDanimals] = 0;
+	A = [GRiptype]; ? A != 3 -> VHGND animals setup done;
+	A = [VHGNDsctype]; ? A = 1 -> VHGND animals setup done;
+	[VHGNDanimals] = 1; ? A = 4 -> VHGND animals setup fill;
+	[VHGNDanimals] = 2; ? A = 3 -> VHGND animals setup fill;
+	[VHGNDanimals] = 4;
+    "VHGND animals setup fill"
+	[VHGNDanii] = 0;
+    "VHGND animals setup one"
+	A = [VHGNDanii]; A '* 6; A + VHGNDanidata; [VHGNDanip] = A;
+	A = [VHGNDdropx]; A - 60000; C = [VHGNDanii]; C '* 40000; A + C;
+	C = [VHGNDanip]; [C plus 0] = A;
+	A = [VHGNDanii]; A & 1; ? A = 0 -> VHGND animals setup north;
+	A = [VHGNDdropz]; A - 50000; -> VHGND animals setup zready;
+    "VHGND animals setup north"
+	A = [VHGNDdropz]; A + 50000;
+    "VHGND animals setup zready"
+	C = [VHGNDanip]; [C plus 1] = A;
+	[C plus 2] = [VHGNDanii];
+	A = [VHGNDanii]; A '* 17; [C plus 3] = A;
+	A = [VHGNDanii]; A '% 3; [C plus 4] = A;
+	A = 350; ? [C plus 4] = 0 -> VHGND animals setup speed;
+	A = 240; ? [C plus 4] = 1 -> VHGND animals setup speed; A = 450;
+    "VHGND animals setup speed"
+	[C plus 5] = A;
+	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDanimals] -> VHGND animals setup one;
+    "VHGND animals setup done"
+	end;
+
+"VHGND birds setup"
+	( Birds occur in every type-3 scenario in setup_animals(). )
+	[VHGNDbirds] = 0; [VHGNDcaptures] = 0; [VHGNDgroundbirds] = 0;
+	A = [GRiptype]; ? A != 3 -> VHGND birds setup done;
+	[VHGNDbirds] = 1;
+	A = [VHGNDsctype]; ? A = 3 -> VHGND birds setup fill; ? A = 4 -> VHGND birds setup fill;
+	[VHGNDbirds] = 3;
+    "VHGND birds setup fill"
+	[VHGNDanii] = 0;
+    "VHGND birds setup one"
+	A = [VHGNDanii]; A '* 7; A + VHGNDbirddata; [VHGNDanip] = A;
+	A = [VHGNDdropx]; A - 80000; C = [VHGNDanii]; C '* 65000; A + C;
+	? [VHGNDanii] != 0 -> VHGND birds setup xready;
+	A = [VHGNDdropx]; A + 12000;
+    "VHGND birds setup xready"
+	C = [VHGNDanip]; [C plus 0] = A;
+	A = [VHGNDdropz]; A + 70000; C = [VHGNDanii]; C '* 45000; A - C;
+	? [VHGNDanii] != 0 -> VHGND birds setup zready;
+	A = [VHGNDdropz]; A + 8000;
+    "VHGND birds setup zready"
+	C = [VHGNDanip]; [C plus 1] = A;
+	A = [VHGNDanii]; A + 1; A & 3; [C plus 2] = A;
+	A = [VHGNDanii]; A '* 11; [C plus 3] = A;
+	A = 0; ? [VHGNDanii] = 0 -> VHGND birds setup quote;
+	A = 1200; ? [VHGNDanii] = 1 -> VHGND birds setup quote; A = 8000;
+    "VHGND birds setup quote"
+	[C plus 4] = A; [C plus 5] = A; [C plus 6] = 0;
+	A = [VHGNDanii]; ? A != 1 -> VHGND birds setup state ready; [C plus 5] = 0;
+    "VHGND birds setup state ready"
+	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDbirds] -> VHGND birds setup one;
+    "VHGND birds setup done"
+	end;
+
+"VHGND restore captures"
+	( Checkpoints store the source-shaped capture count, not transient animal
+	  records.  Reapply that progress after deterministic fauna generation so
+	  loading cannot resurrect and recapture the same birds. )
+	A = [VHGNDcaptures]; ? A '<= [VHGNDbirds] -> VHGND restore count ready;
+	[VHGNDcaptures] = [VHGNDbirds];
+    "VHGND restore count ready"
+	A = [VHGNDcaptures]; ? A '<= 0 -> VHGND restore captures done;
+	[VHGNDanii] = 0;
+    "VHGND restore capture one"
+	A = [VHGNDanii]; A '* 7; A + VHGNDbirddata; [VHGNDanip] = A;
+	A = 0; A - 1; C = [VHGNDanip]; [C plus 6] = A;
+	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDcaptures] -> VHGND restore capture one;
+    "VHGND restore captures done"
+	end;
+
+"VHGND post surface"
+	( NOCTIS-1.CPP:2583-2615.  These shared post-switch crevasses and
+	  inclination-weighted object counts apply to every planet type. )
+	C = 5; => SU rnd; [VHGNDpostn] = C;
+	A = C; ? A = 0 -> VHGND post objects;
+    "VHGND post crack loop"
+	C = 500; => SU rnd; [VHGNDlinelen] = C;
+	=> VHGND felisian line;
+	[VHGNDpostn]-; A = [VHGNDpostn]; ? A != 0 -> VHGND post crack loop;
+
+	( One in-place five-neighbour smoothing sweep, exactly ptr 200..38799. )
+	[VHGNDptr] = 200;
+    "VHGND post smooth loop"
+	A = RPSM; A + [VHGNDptr]; [MBptr] = A; => MEM get byte; [VHGNDtmp] = [MBval];
+	A = RPSM; A + [VHGNDptr]; A - 1; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
+	A = RPSM; A + [VHGNDptr]; A + 1; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
+	A = RPSM; A + [VHGNDptr]; A - 200; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
+	A = RPSM; A + [VHGNDptr]; A + 200; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtmp]; A + [MBval]; A '/ 5; [MBval] = A;
+	A = RPSM; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A < 38800 -> VHGND post smooth loop;
+
+    "VHGND post objects"
+	[VHGNDptr] = 0;
+    "VHGND post object loop"
+	A = RPSM; A + [VHGNDptr]; [MBptr] = A; => MEM get byte; [VHGNDs1] = [MBval];
+	A = RPSM; A + [VHGNDptr]; A + 1; [MBptr] = A; => MEM get byte; [VHGNDs2] = [MBval];
+	A = [VHGNDs1]; A - [VHGNDs2]; ? A >= 0 -> VHGND post abs1; C = 0; C - A; A = C;
+    "VHGND post abs1"
+	[VHGNDincl] = A;
+	A = RPSM; A + [VHGNDptr]; A + 200; [MBptr] = A; => MEM get byte; [VHGNDs2] = [MBval];
+	A = [VHGNDs1]; A - [VHGNDs2]; ? A >= 0 -> VHGND post abs2; C = 0; C - A; A = C;
+    "VHGND post abs2"
+	A + [VHGNDincl]; [VHGNDincl] = A; [VHGNDoval] = 0;
+	A = [VHGNDincl]; ? A '>= 20 -> VHGND post object store;
+	C = 2; => SU rnd; [VHGNDoval] = C;
+	A = [VHGNDincl]; ? A '>= 15 -> VHGND post object store;
+	C = 3; => SU rnd; [VHGNDoval] = C;
+	A = [VHGNDincl]; ? A '>= 10 -> VHGND post object store;
+	C = 4; => SU rnd; [VHGNDoval] = C;
+    "VHGND post object store"
+	A = ROBJ; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
+	A = [MBval]; A & 0FCh; A | [VHGNDoval]; [MBval] = A;
+	A = ROBJ; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A < 40000 -> VHGND post object loop;
+	end;
+
+"VHGND historical ruins"
+	( NIV+ recognises these three named systems by quantised nearstar_identity.
+	  Preserve those gates and their body/style tables; ordinary procedural
+	  systems remain untouched. )
+	[VHGNDruinanchor] = 0; [VHGNDruinmarks] = 0;
+	[FI] = 1000000; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FMul; => FToIntChop;
+	A = [FI]; ? A = 0FFFF6C3Ch -> VHGND ruins Balas;
+	[FI] = 100000; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FMul; => FToIntChop;
+	A = [FI]; ? A = 5F5739F0h -> VHGND ruins Fenia;
+	[FI] = 100000000; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FMul; => FToIntChop;
+	A = [FI]; ? A = 0FF4FDBAEh -> VHGND ruins Ylas;
+	end;
+    "VHGND ruins Balas"
+	[VHGNDruinanchor] = 1;
+	A = [VHGNDplanet]; ? A != 3 -> VHGND ruins Balas moons;
+	[VHGNDruinstyle0] = 0; [VHGNDruinstyle1] = 1; [VHGNDruinstyle2] = 1;
+	[VHGNDruinstyle3] = 2; [VHGNDruinstyle4] = 2; [VHGNDruindensity] = 3;
+	=> VHGND make ruins; end;
+    "VHGND ruins Balas moons"
+	A = [GRiptype]; ? A != 3 -> VHGND historical ruins done;
+	[VHGNDruinstyle0] = 3; [VHGNDruinstyle1] = 3; [VHGNDruinstyle2] = 3;
+	[VHGNDruinstyle3] = 1; [VHGNDruinstyle4] = 4; [VHGNDruindensity] = 1;
+	=> VHGND make ruins; end;
+    "VHGND ruins Fenia"
+	[VHGNDruinanchor] = 2;
+	A = [VHGNDplanet]; ? A = 2 -> VHGND ruins Fenia Peach;
+	? A = 3 -> VHGND ruins Fenia Pleasance; ? A = 6 -> VHGND ruins Fenia Wetwick;
+	end;
+    "VHGND ruins Fenia Peach"
+	[VHGNDruinstyle0] = 0; [VHGNDruinstyle1] = 0; [VHGNDruinstyle2] = 0;
+	[VHGNDruinstyle3] = 1; [VHGNDruinstyle4] = 1; [VHGNDruindensity] = 2;
+	=> VHGND make ruins; end;
+    "VHGND ruins Fenia Pleasance"
+	[VHGNDruinstyle0] = 2; [VHGNDruinstyle1] = 2; [VHGNDruinstyle2] = 3;
+	[VHGNDruinstyle3] = 3; [VHGNDruinstyle4] = 4; [VHGNDruindensity] = 2;
+	=> VHGND make ruins; end;
+    "VHGND ruins Fenia Wetwick"
+	[VHGNDruinstyle0] = 3; [VHGNDruinstyle1] = 4; [VHGNDruinstyle2] = 4;
+	[VHGNDruinstyle3] = 4; [VHGNDruinstyle4] = 4; [VHGNDruindensity] = 1;
+	=> VHGND make ruins; end;
+    "VHGND ruins Ylas"
+	[VHGNDruinanchor] = 3;
+	A = [VHGNDplanet]; ? A != 3 -> VHGND historical ruins done;
+	[VHGNDruinstyle0] = 2; [VHGNDruinstyle1] = 4; [VHGNDruinstyle2] = 5;
+	[VHGNDruinstyle3] = 5; [VHGNDruinstyle4] = 5; [VHGNDruindensity] = 2;
+	=> VHGND make ruins;
+    "VHGND historical ruins done"
+	end;
+
+"VHGND make ruins"
+	( make_ruins(): scenario-weighted building count after the source resets
+	  both random streams from landing_pt_lat*landing_pt_lon. )
+	A = [VHGNDlocseed]; => SU fast srand;
+	A = [VHGNDlocseed]; A & 0FFFFh; => SU srand;
+	[VHGNDruinbuildings] = 0; A = [VHGNDsctype];
+	? A = 1 -> VHGND ruins count ocean; ? A = 2 -> VHGND ruins count plains;
+	? A = 3 -> VHGND ruins count desert; ? A = 4 -> VHGND ruins count icy;
+	end;
+    "VHGND ruins count ocean"
+	C = 4; => SU rnd; [VHGNDruinbuildings] = C;
+	C = 10; => SU rnd; ? C != 0 -> VHGND ruins count ready;
+	C = 2; => SU rnd; C + 2; A = [VHGNDruinbuildings]; A '* C; [VHGNDruinbuildings] = A;
+	-> VHGND ruins count ready;
+    "VHGND ruins count plains"
+	C = 8; => SU rnd; [VHGNDruinbuildings] = C;
+	C = 5; => SU rnd; ? C != 0 -> VHGND ruins count ready;
+	C = 2; => SU rnd; C + 3; A = [VHGNDruinbuildings]; A '* C; [VHGNDruinbuildings] = A;
+	-> VHGND ruins count ready;
+    "VHGND ruins count desert"
+	C = 3; => SU rnd; [VHGNDruinbuildings] = C; -> VHGND ruins count ready;
+    "VHGND ruins count icy"
+	C = 2; => SU rnd; [VHGNDruinbuildings] = C;
+    "VHGND ruins count ready"
+	A = [VHGNDruinbuildings]; A '* [VHGNDruindensity]; [VHGNDruinbuildings] = A;
+    "VHGND ruins building loop"
+	A = [VHGNDruinbuildings]; ? A = 0 -> VHGND make ruins done;
+	C = 5; => SU rnd; A = C; ? A = 0 -> VHGND ruins style zero;
+	? A = 1 -> VHGND ruins style one; ? A = 2 -> VHGND ruins style two;
+	? A = 3 -> VHGND ruins style three; [VHGNDruinstyle] = [VHGNDruinstyle4];
+	-> VHGND ruins style ready;
+    "VHGND ruins style zero"
+	[VHGNDruinstyle] = [VHGNDruinstyle0]; -> VHGND ruins style ready;
+    "VHGND ruins style one"
+	[VHGNDruinstyle] = [VHGNDruinstyle1]; -> VHGND ruins style ready;
+    "VHGND ruins style two"
+	[VHGNDruinstyle] = [VHGNDruinstyle2]; -> VHGND ruins style ready;
+    "VHGND ruins style three"
+	[VHGNDruinstyle] = [VHGNDruinstyle3];
+    "VHGND ruins style ready"
+	=> VHGND build ruin;
+	[VHGNDruinbuildings]-; -> VHGND ruins building loop;
+    "VHGND make ruins done"
+	end;
+
+"VHGND build ruin"
+	A = [VHGNDruinstyle]; ? A = 0 -> VHGND ruin tower;
+	? A = 1 -> VHGND ruin walls; ? A = 2 -> VHGND ruin plaza;
+	? A = 3 -> VHGND ruin palace; ? A = 4 -> VHGND ruin cross;
+	=> VHGND ruin dome; end;
+    "VHGND ruin tower"
+	C = 25; => SU rnd; C + 10; [VHGNDruinheight] = C;
+	C = 160; => SU rnd; C + 20; [VHGNDruincx] = C;
+	C = 160; => SU rnd; C + 20; [VHGNDruincz] = C;
+	C = 3; => SU rnd; C + 1; [VHGNDruinrad] = C;
+	=> VHGND ruin solid; end;
+    "VHGND ruin palace"
+	C = 10; => SU rnd; C + 10; [VHGNDruinheight] = C;
+	C = 160; => SU rnd; C + 20; [VHGNDruincx] = C;
+	C = 160; => SU rnd; C + 20; [VHGNDruincz] = C;
+	C = 2; => SU rnd; C + 1; [VHGNDruinrad] = C;
+	=> VHGND ruin solid; end;
+
+"VHGND ruin solid"
+	=> VHGND ruin centre height;
+	A = [VHGNDruincx]; A - [VHGNDruinrad]; [VHGNDruinxlo] = A; [VHGNDruinx] = A;
+	A = [VHGNDruincx]; A + [VHGNDruinrad]; [VHGNDruinxhi] = A;
+	A = [VHGNDruincz]; A - [VHGNDruinrad]; [VHGNDruinzlo] = A; [VHGNDruinz] = A;
+	A = [VHGNDruincz]; A + [VHGNDruinrad]; [VHGNDruinzhi] = A;
+    "VHGND ruin solid z"
+	[VHGNDruinx] = [VHGNDruinxlo];
+    "VHGND ruin solid x"
+	A = [VHGNDruinbase]; A + [VHGNDruinheight]; [VHGNDruinvalue] = A;
+	C = 5; => SU rnd; ? C != 0 -> VHGND ruin solid value; [VHGNDruinvalue]-;
+    "VHGND ruin solid value"
+	[VHGNDruinmark] = 1; => VHGND ruin set;
+	[VHGNDruinx]+; A = [VHGNDruinx]; ? A '< [VHGNDruinxhi] -> VHGND ruin solid x;
+	[VHGNDruinz]+; A = [VHGNDruinz]; ? A '< [VHGNDruinzhi] -> VHGND ruin solid z;
+	end;
+
+"VHGND ruin walls"
+	C = 8; => SU rnd; [VHGNDruinheight] = C;
+	C = 160; => SU rnd; C + 20; [VHGNDruincx] = C;
+	C = 160; => SU rnd; C + 20; [VHGNDruincz] = C;
+	C = 5; => SU rnd; C + 3; [VHGNDruinrad] = C;
+	A = [VHGNDruincx]; A - [VHGNDruinrad]; [VHGNDruinxlo] = A; [VHGNDruinx] = A;
+	A = [VHGNDruincx]; A + [VHGNDruinrad]; [VHGNDruinxhi] = A;
+	A = [VHGNDruincz]; A - [VHGNDruinrad]; [VHGNDruinzlo] = A;
+	A = [VHGNDruincz]; A + [VHGNDruinrad]; [VHGNDruinzhi] = A;
+    "VHGND ruin wall x"
+	[VHGNDruinz] = [VHGNDruinzlo]; C = 2; => SU rnd; C + [VHGNDruinheight]; [VHGNDtmp] = C; => VHGND ruin add marked;
+	[VHGNDruinz] = [VHGNDruinzhi]; C = 3; => SU rnd; C + [VHGNDruinheight]; [VHGNDtmp] = C; => VHGND ruin add marked;
+	[VHGNDruinx]+; A = [VHGNDruinx]; ? A '< [VHGNDruinxhi] -> VHGND ruin wall x;
+	[VHGNDruinz] = [VHGNDruinzlo];
+    "VHGND ruin wall z"
+	[VHGNDruinx] = [VHGNDruinxlo]; C = 2; => SU rnd; C + [VHGNDruinheight]; [VHGNDtmp] = C; => VHGND ruin add marked;
+	[VHGNDruinx] = [VHGNDruinxhi]; C = 3; => SU rnd; C + [VHGNDruinheight]; [VHGNDtmp] = C; => VHGND ruin add marked;
+	[VHGNDruinz]+; A = [VHGNDruinz]; ? A '< [VHGNDruinzhi] -> VHGND ruin wall z;
+	end;
+
+"VHGND ruin plaza"
+	C = 10; => SU rnd; C + 5; [VHGNDruinheight] = C;
+	C = 140; => SU rnd; C + 30; [VHGNDruincx] = C;
+	C = 140; => SU rnd; C + 30; [VHGNDruincz] = C;
+	C = 15; => SU rnd; C + 15; [VHGNDruinrad] = C;
+	=> VHGND ruin centre height;
+	A = [VHGNDruincx]; A - [VHGNDruinrad]; [VHGNDruinxlo] = A; [VHGNDruinx] = A;
+	A = [VHGNDruincx]; A + [VHGNDruinrad]; [VHGNDruinxhi] = A;
+	A = [VHGNDruincz]; A - [VHGNDruinrad]; [VHGNDruinzlo] = A; [VHGNDruinz] = A;
+	A = [VHGNDruincz]; A + [VHGNDruinrad]; [VHGNDruinzhi] = A;
+    "VHGND ruin plaza z"
+	[VHGNDruinx] = [VHGNDruinxlo];
+    "VHGND ruin plaza x"
+	[VHGNDruinvalue] = [VHGNDruinbase]; [VHGNDruinmark] = 0; => VHGND ruin set;
+	[VHGNDruinx]+; A = [VHGNDruinx]; ? A '< [VHGNDruinxhi] -> VHGND ruin plaza x;
+	[VHGNDruinz]+; A = [VHGNDruinz]; ? A '< [VHGNDruinzhi] -> VHGND ruin plaza z;
+	A = [VHGNDruinrad]; A / 2; [VHGNDruinrad] = A;
+	C = 3; => SU rnd; ? C != 0 -> VHGND ruin plaza z columns;
+	C = 3; => SU rnd; C + 2; [VHGNDruinspacing] = C;
+	A = [VHGNDruincx]; A - [VHGNDruinrad]; [VHGNDruinx] = A;
+	A = [VHGNDruincx]; A + [VHGNDruinrad]; [VHGNDruinxhi] = A;
+    "VHGND ruin plaza x columns"
+	A = [VHGNDruincz]; A - [VHGNDruinrad]; [VHGNDruinz] = A; C = 2; => SU rnd; C + [VHGNDruinheight]; C + [VHGNDruinbase]; [VHGNDruinvalue] = C; [VHGNDruinmark] = 1; => VHGND ruin set;
+	A = [VHGNDruincz]; A + [VHGNDruinrad]; [VHGNDruinz] = A; C = 3; => SU rnd; C + [VHGNDruinheight]; C + [VHGNDruinbase]; [VHGNDruinvalue] = C; [VHGNDruinmark] = 1; => VHGND ruin set;
+	A = [VHGNDruinx]; A + [VHGNDruinspacing]; [VHGNDruinx] = A; ? A '< [VHGNDruinxhi] -> VHGND ruin plaza x columns;
+    "VHGND ruin plaza z columns"
+	C = 3; => SU rnd; ? C != 0 -> VHGND ruin plaza done;
+	C = 3; => SU rnd; C + 2; [VHGNDruinspacing] = C;
+	A = [VHGNDruincz]; A - [VHGNDruinrad]; [VHGNDruinz] = A;
+	A = [VHGNDruincz]; A + [VHGNDruinrad]; [VHGNDruinzhi] = A;
+    "VHGND ruin plaza z column loop"
+	A = [VHGNDruincx]; A - [VHGNDruinrad]; [VHGNDruinx] = A; C = 2; => SU rnd; C + [VHGNDruinheight]; C + [VHGNDruinbase]; [VHGNDruinvalue] = C; [VHGNDruinmark] = 1; => VHGND ruin set;
+	A = [VHGNDruincx]; A + [VHGNDruinrad]; [VHGNDruinx] = A; C = 3; => SU rnd; C + [VHGNDruinheight]; C + [VHGNDruinbase]; [VHGNDruinvalue] = C; [VHGNDruinmark] = 1; => VHGND ruin set;
+	A = [VHGNDruinz]; A + [VHGNDruinspacing]; [VHGNDruinz] = A; ? A '< [VHGNDruinzhi] -> VHGND ruin plaza z column loop;
+    "VHGND ruin plaza done"
+	end;
+
+"VHGND ruin cross"
+	C = 3; => SU rnd; C + 1; [VHGNDruinheight] = C;
+	C = 150; => SU rnd; C + 25; [VHGNDruincx] = C;
+	C = 150; => SU rnd; C + 25; [VHGNDruincz] = C;
+	C = 5; => SU rnd; C + 5; [VHGNDruinrad] = C;
+	C = 5; => SU rnd; ? C != 0 -> VHGND ruin cross size ready;
+	A = [VHGNDruinrad]; A '* 2; [VHGNDruinrad] = A;
+    "VHGND ruin cross size ready"
+	A = [VHGNDruincx]; A - [VHGNDruinrad]; [VHGNDruinx] = A;
+	A = [VHGNDruincx]; A + [VHGNDruinrad]; [VHGNDruinxhi] = A;
+    "VHGND ruin cross x"
+	[VHGNDruinz] = [VHGNDruincz]; A = [VHGNDruinx]; A - [VHGNDruincx]; ? A >= 0 -> VHGND ruin cross absx; C = 0; C - A; A = C;
+    "VHGND ruin cross absx"
+	C = [VHGNDruinrad]; C - A; C + 1; C '* [VHGNDruinheight]; [VHGNDtmp] = C; => VHGND ruin add marked;
+	[VHGNDruinx]+; A = [VHGNDruinx]; ? A '< [VHGNDruinxhi] -> VHGND ruin cross x;
+	A = [VHGNDruincz]; A - [VHGNDruinrad]; [VHGNDruinz] = A;
+	A = [VHGNDruincz]; A + [VHGNDruinrad]; [VHGNDruinzhi] = A;
+    "VHGND ruin cross z"
+	[VHGNDruinx] = [VHGNDruincx]; A = [VHGNDruinz]; A - [VHGNDruincz]; ? A >= 0 -> VHGND ruin cross absz; C = 0; C - A; A = C;
+    "VHGND ruin cross absz"
+	C = [VHGNDruinrad]; C - A; C + 1; C '* [VHGNDruinheight]; [VHGNDtmp] = C; => VHGND ruin add marked;
+	[VHGNDruinz]+; A = [VHGNDruinz]; ? A '< [VHGNDruinzhi] -> VHGND ruin cross z;
+	end;
+
+"VHGND ruin dome"
+	C = 10; => SU rnd; C + 10; [VHGNDruinheight] = C;
+	C = 160; => SU rnd; C + 20; [VHGNDruincx] = C;
+	C = 160; => SU rnd; C + 20; [VHGNDruincz] = C;
+	C = 8; => SU rnd; C + 12; [VHGNDruinrad] = C;
+	=> VHGND ruin centre height;
+	A = [VHGNDruincx]; A - [VHGNDruinrad]; [VHGNDruinxlo] = A; [VHGNDruinx] = A;
+	A = [VHGNDruincx]; A + [VHGNDruinrad]; [VHGNDruinxhi] = A;
+	A = [VHGNDruincz]; A - [VHGNDruinrad]; [VHGNDruinzlo] = A; [VHGNDruinz] = A;
+	A = [VHGNDruincz]; A + [VHGNDruinrad]; [VHGNDruinzhi] = A;
+    "VHGND ruin dome block z"
+	[VHGNDruinx] = [VHGNDruinxlo];
+    "VHGND ruin dome block x"
+	A = [VHGNDruinbase]; A + [VHGNDruinheight]; [VHGNDruinvalue] = A; [VHGNDruinmark] = 1; => VHGND ruin set;
+	[VHGNDruinx]+; A = [VHGNDruinx]; ? A '< [VHGNDruinxhi] -> VHGND ruin dome block x;
+	[VHGNDruinz]+; A = [VHGNDruinz]; ? A '< [VHGNDruinzhi] -> VHGND ruin dome block z;
+	A = [VHGNDruinrad]; A '* 2; A / 3; [VHGNDruinrad] = A;
+	C = 2; => SU rnd; [VHGNDruinmark] = C;
+	A = [VHGNDruincx]; A - [VHGNDruinrad]; [VHGNDruinxlo] = A;
+	A = [VHGNDruincx]; A + [VHGNDruinrad]; [VHGNDruinxhi] = A;
+	A = [VHGNDruincz]; A - [VHGNDruinrad]; [VHGNDruinzlo] = A; [VHGNDruinz] = A;
+	A = [VHGNDruincz]; A + [VHGNDruinrad]; [VHGNDruinzhi] = A;
+    "VHGND ruin dome z"
+	[VHGNDruinx] = [VHGNDruinxlo];
+    "VHGND ruin dome x"
+	A = [VHGNDruinx]; A - [VHGNDruincx]; ? A >= 0 -> VHGND ruin dome absx; C = 0; C - A; A = C;
+    "VHGND ruin dome absx"
+	[VHGNDruindx] = A; A = [VHGNDruinz]; A - [VHGNDruincz]; ? A >= 0 -> VHGND ruin dome absz; C = 0; C - A; A = C;
+    "VHGND ruin dome absz"
+	C = [VHGNDruindx]; ? A '<= C -> VHGND ruin dome dist ready; A = C;
+    "VHGND ruin dome dist ready"
+	[VHGNDruindist] = A; ? A '>= [VHGNDruinrad] -> VHGND ruin dome next;
+	C = [VHGNDruinrad]; C - A; C '* 3; C '* [VHGNDruinheight]; C / [VHGNDruinrad];
+	C + [VHGNDruinbase]; C + 1; [VHGNDruinvalue] = C; => VHGND ruin set;
+    "VHGND ruin dome next"
+	[VHGNDruinx]+; A = [VHGNDruinx]; ? A '< [VHGNDruinxhi] -> VHGND ruin dome x;
+	[VHGNDruinz]+; A = [VHGNDruinz]; ? A '< [VHGNDruinzhi] -> VHGND ruin dome z;
+	end;
+
+"VHGND ruin centre height"
+	[VHGNDruinx] = [VHGNDruincx]; [VHGNDruinz] = [VHGNDruincz]; => VHGND ruin get;
+	end;
+
+"VHGND ruin get"
+	A = [VHGNDruinz]; A '* VHGNDMAP; A + [VHGNDruinx]; [VHGNDptr] = A;
+	A + RPSM; [MBptr] = A; => MEM get byte; [VHGNDruinbase] = [MBval];
+	end;
+
+"VHGND ruin add marked"
+	A = [VHGNDtmp]; ? A = 0 -> VHGND ruin add done;
+	=> VHGND ruin get; A = [VHGNDruinbase]; A + [VHGNDtmp]; [VHGNDruinvalue] = A;
+	[VHGNDruinmark] = 1; => VHGND ruin set;
+    "VHGND ruin add done"
+	end;
+
+"VHGND ruin set"
+	A = [VHGNDruinvalue]; ? A >= 0 -> VHGND ruin set low; A = 0;
+    "VHGND ruin set low"
+	? A '<= 127 -> VHGND ruin set value; A = 127;
+    "VHGND ruin set value"
+	[MBval] = A; A = [VHGNDruinz]; A '* VHGNDMAP; A + [VHGNDruinx]; [VHGNDptr] = A;
+	A + RPSM; [MBptr] = A; => MEM put byte;
+	A = VHGNDruins; A + [VHGNDptr]; [A] = [VHGNDruinmark];
+	A = [VHGNDruinmark]; ? A = 0 -> VHGND ruin set done; [VHGNDruinmarks]+;
+    "VHGND ruin set done"
+	end;
+
+"VHGND type3 object classes"
+	( NOCTIS-1.CPP:2238-2252, packed quadrant class bits. )
+	[VHGNDptr] = 0;
+    "VHGND type3 class loop"
+	A = RPSM; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
+	A = [MBval]; A / 25; ? A = 0 -> VHGND type3 class low;
+	? A = 1 -> VHGND type3 class mid; ? A = 2 -> VHGND type3 class high;
+	A = 168; -> VHGND type3 class store;
+    "VHGND type3 class low"
+	A = 80; -> VHGND type3 class store;
+    "VHGND type3 class mid"
+	A = 144; -> VHGND type3 class store;
+    "VHGND type3 class high"
+	A = 160;
+    "VHGND type3 class store"
+	[MBval] = A; A = ROBJ; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A < 40000 -> VHGND type3 class loop;
+	end;
+
+"VHGND asterism"
+	( NOCTIS-1.CPP:1635-1670.  The five locals are binary32 in the
+	  original.  Narrow every assignment so the occasional density+1 ray
+	  and all following RNG consumption remain faithful. )
+	[FI] = [VHGNDastardensity]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = 54442D18h; [FA1] = 401921FBh; => FQuo;
+	=> F32Narrow; => FStoreF32; [VHGNDastarad] = [FS0];
+	[VHGNDastarang] = 0;
+    "VHGND asterism ray"
+	[FS0] = [VHGNDastarang]; => FLoadF32;
+	[FB0] = 54442D18h; [FB1] = 401921FBh; => FCmp;
+	A = [FI]; ? A >= 0 -> VHGND asterism done;
+	( shift_d = (float)random(1000)/1000; shift_d *= size; )
+	C = 1000; => SU rnd; [FI] = C; => IntToF;
+	[FB0] = 0; [FB1] = 408F4000h; => FQuo;
+	=> F32Narrow; => FStoreF32; [VHGNDastard] = [FS0];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHGNDastarsize]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FT0]; [FA1] = [FT1];
+	=> FMul; => F32Narrow; => FStoreF32; [VHGNDastard] = [FS0];
+	A = [VHGNDastard]; ? A '< 3F800000h -> VHGND asterism next ray;
+	( var=(float)variation/shift_d; color=(float)base. )
+	[FI] = [VHGNDastarvariation]; => IntToF; [FT0] = [FA0]; [FT1] = [FA1];
+	[FS0] = [VHGNDastard]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1]; => FQuo;
+	=> F32Narrow; => FStoreF32; [VHGNDastarvar] = [FS0];
+	[FI] = [VHGNDastarbase]; => IntToF;
+	=> F32Narrow; => FStoreF32; [VHGNDastarcolor] = [FS0];
+    "VHGND asterism pixel"
+	A = [VHGNDastard]; A & 7FFFFFFFh; ? A = 0 -> VHGND asterism next ray;
+	A = [VHGNDastard]; A & 80000000h; ? A != 0 -> VHGND asterism next ray;
+	( shift_x = chop(cos(ang)*shift_d+x). )
+	[FS0] = [VHGNDastard]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
+	[FS0] = [VHGNDastarang]; => FLoadF32; => FCos; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDastarx]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FT0]; [FA1] = [FT1];
+	=> FAdd; => FToIntChop; [VHGNDastarpx] = [FI];
+	( shift_y = chop(sin(ang)*shift_d+y). )
+	[FS0] = [VHGNDastard]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
+	[FS0] = [VHGNDastarang]; => FLoadF32; => FSin; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDastary]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FT0]; [FA1] = [FT1];
+	=> FAdd; => FToIntChop; [VHGNDastarpy] = [FI];
+	A = [VHGNDastarpx]; ? A <= 0 -> VHGND asterism advance;
+	? A >= 256 -> VHGND asterism advance;
+	A = [VHGNDastarpy]; ? A <= 0 -> VHGND asterism advance;
+	? A >= 256 -> VHGND asterism advance;
+	[FS0] = [VHGNDastarcolor]; => FLoadF32; => FToIntChop;
+	[MBval] = [FI]; A = [VHGNDastarpy]; A '* 256; A + [VHGNDastarpx];
+	A + RPBG; [MBptr] = A; => MEM put byte;
+    "VHGND asterism advance"
+	( color += var; shift_d -= 1; both stores narrow to float. )
+	[FS0] = [VHGNDastarvar]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
+	[FS0] = [VHGNDastarcolor]; => FLoadF32; => FAdd;
+	=> F32Narrow; => FStoreF32; [VHGNDastarcolor] = [FS0];
+	[FS0] = [VHGNDastard]; => FLoadF32;
+	[FB0] = 0; [FB1] = 3FF00000h; => FSub;
+	=> F32Narrow; => FStoreF32; [VHGNDastard] = [FS0];
+	-> VHGND asterism pixel;
+    "VHGND asterism next ray"
+	( ang += ad, stored as binary32. )
+	[FS0] = [VHGNDastarad]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
+	[FS0] = [VHGNDastarang]; => FLoadF32; => FAdd;
+	=> F32Narrow; => FStoreF32; [VHGNDastarang] = [FS0];
+	-> VHGND asterism ray;
+    "VHGND asterism done"
+	end;
+
+"VHGND felisian line"
+	( felisian_srf_darkline over the 200x200 height map. )
+	C = 200; => SU rnd; [VHGNDlinex] = C;
+	C = 200; => SU rnd; [VHGNDlinez] = C;
+	C = 25; => SU rnd; C - 50; [VHGNDdeviation] = C;
+	C = 10; => SU rnd; C + 2; [VHGNDvariability] = C;
+    "VHGND felisian pixel"
+	A = [VHGNDlinelen]; ? A = 0 -> VHGND felisian done;
+	C = 3; => SU rnd; A = [VHGNDlinex]; A + C; A - 1; [VHGNDlinex] = A;
+	C = 3; => SU rnd; A = [VHGNDlinez]; A + C; A - 1; [VHGNDlinez] = A;
+	C = [VHGNDvariability]; => SU rnd;
+	A = [VHGNDvariability]; A > 1; C - A; A = [VHGNDdeviation]; A + C; [VHGNDdeviation] = A;
+	A = [VHGNDlinez]; A '* 200; A + [VHGNDlinex]; A & 0FFFFh; [VHGNDptr] = A;
+	? A '<= 0 -> VHGND felisian next; ? A '>= 40000 -> VHGND felisian next;
+	A = RPSM; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
+	A = [MBval]; A + [VHGNDdeviation]; ? A >= 0 -> VHGND felisian low; A = 0;
+    "VHGND felisian low"
+	? A '<= 127 -> VHGND felisian peak; A = 127;
+    "VHGND felisian peak"
+	[VHGNDtmp] = A; [MBval] = A;
+	A = RPSM; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+	A = [VHGNDptr]; A + 1; ? A '>= 40000 -> VHGND felisian left; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+    "VHGND felisian left"
+	A = [VHGNDptr]; A - 1; ? A '<= 0 -> VHGND felisian down; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+    "VHGND felisian down"
+	A = [VHGNDptr]; A + 200; ? A '>= 40000 -> VHGND felisian up; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+    "VHGND felisian up"
+	A = [VHGNDptr]; A - 200; ? A '<= 0 -> VHGND felisian next; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+    "VHGND felisian next"
+	[VHGNDlinelen]-; -> VHGND felisian pixel;
+    "VHGND felisian done"
+	end;
+
+"VHGND flandom"
+	( Borland helper: random(32767) * 0.000030518, kept wide until
+	  the caller's float store. )
+	C = 32767; => SU rnd; [FI] = C; => IntToF;
+	[FB0] = 7EDA0BE1h; [FB1] = 3F00000Eh; => FMul;
+	end;
+
+"VHGND similar texture"
+	( Shared `similar:` texture body at NOCTIS-1.CPP:2353-2379. )
+	[VHGNDtscale] = 32;
+	C = 16; => SU rnd; C + 16; [VHGNDtexn] = C;
+	[VHGNDptr] = 65535;
+    "VHGND texture fill"
+	C = [VHGNDtexn]; => SU rnd;
+	A = RPBG; A + [VHGNDptr]; [MBptr] = A; [MBval] = C; => MEM put byte;
+	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture fill;
+	C = 3; => SU rnd; C + 1; [VHGNDtexpasses] = C;
+    "VHGND texture smooth pass"
+	[VHGNDptr] = 65278;
+    "VHGND texture smooth pixel"
+	A = RPBG; A + [VHGNDptr]; [MBptr] = A; => MEM get byte; [VHGNDtmp] = [MBval];
+	A = RPBG; A + [VHGNDptr]; A + 1; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
+	A = RPBG; A + [VHGNDptr]; A + 256; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
+	A = RPBG; A + [VHGNDptr]; A + 257; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtmp]; A + [MBval]; A > 2; [MBval] = A;
+	A = RPBG; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture smooth pixel;
+	[VHGNDtexpasses]-; A = [VHGNDtexpasses]; ? A != 0 -> VHGND texture smooth pass;
+	A = [VHGNDfrosty]; ? A = 0 -> VHGND similar done;
+	C = 48; => SU rnd; C + 16; [VHGNDtscale] = C;
+	C = 250; => SU rnd; [VHGNDgenn] = C;
+    "VHGND frost line loop"
+	A = [VHGNDgenn]; ? A = 0 -> VHGND similar done;
+	C = 2; => SU rnd; A = 0; A - C; [VHGNDlinetrendx] = A;
+	C = 200; => SU rnd; C + 100; [VHGNDlinelen] = C;
+	[VHGNDlinetrendz] = 0; => VHGND texture darkline;
+	[VHGNDgenn]-; -> VHGND frost line loop;
+    "VHGND similar done"
+	end;
+
+"VHGND texture random"
+	( Source texture fill: slot zero retains its cleared value. )
+	[VHGNDptr] = 65535;
+    "VHGND texture random pixel"
+	C = [VHGNDtexn]; => SU rnd;
+	A = RPBG; A + [VHGNDptr]; [MBptr] = A; [MBval] = C; => MEM put byte;
+	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture random pixel;
+	end;
+
+"VHGND texture darkline"
+	( srf_darkline over the real 256x256 p_background texture. )
+	C = 256; => SU rnd; [VHGNDlinex] = C;
+	C = 256; => SU rnd; [VHGNDlinez] = C;
+    "VHGND darkline pixel"
+	A = [VHGNDlinelen]; ? A = 0 -> VHGND darkline done;
+	C = 3; => SU rnd; A = [VHGNDlinex]; A + C; A + [VHGNDlinetrendx]; [VHGNDlinex] = A;
+	C = 3; => SU rnd; A = [VHGNDlinez]; A + C; A + [VHGNDlinetrendz]; [VHGNDlinez] = A;
+	A = [VHGNDlinez]; A '* 256; A + [VHGNDlinex]; A & 0FFFFh; [VHGNDptr] = A;
+	? A '<= 0 -> VHGND darkline next; ? A '>= 65536 -> VHGND darkline next;
+	A = RPBG; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
+	A = [MBval]; A > 1; [MBval] = A;
+	A = RPBG; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+    "VHGND darkline next"
+	[VHGNDlinelen]-; -> VHGND darkline pixel;
+    "VHGND darkline done"
+	end;
+
+"VHGND palette"
+	( Stable, deliberately bounded landed-view palette.  The full source
+	  create_sky palette stays out of the live handoff until its long-running
+	  painter can be scheduled without freezing the GUI. )
+	=> PAL zero; => PAL range;
+	[PVsrc] = range8088; [PVself] = 0; [PVfirst] = 0; [PVn] = 64;
+	[PVfr] = 38; [PVfg] = 42; [PVfb] = 48; => PAL tavola;
+	[PVsrc] = range8088; [PVself] = 0; [PVfirst] = 64; [PVn] = 64;
+	[PVfr] = 22; [PVfg] = 34; [PVfb] = 54; => PAL tavola;
+	[PVsrc] = range8088; [PVself] = 0; [PVfirst] = 128; [PVn] = 128;
+	[PVfr] = 52; [PVfg] = 47; [PVfb] = 39; => PAL tavola;
+	end;
+
+( ==================================================================== )
+( selected globe pixel -> live landing identity                         )
+( ==================================================================== )
+
+"VHGND landing identity"
+	( The opening 000:060 site remains pinned to its measured reference
+	  values.  Every other site runs the already-verified surface() port,
+	  samples exactly p_background[360*lat+lon] and its paired atmosphere
+	  byte, then releases those buffers to the terrain generator. )
+	[VHGNDsurfaceok] = 0; [VHGNDcloudrain] = 0; [GRalbedo] = 32;
+	A = [VHTtx]; ? A != 3979984 -> VHGND identity general;
+	A = [VHTty]; ? A != 0FFFF5671h -> VHGND identity general;
+	A = [VHTtz]; ? A != 0FFFF5430h -> VHGND identity general;
+	A = [VHGNDlon]; ? A != 0 -> VHGND identity general;
+	A = [VHGNDlat]; ? A != 60 -> VHGND identity general;
+	A = [VHGNDplanet]; ? A = 0 -> VHGND identity done;
+	[GRalbedo] = 20; ? A = 1 -> VHGND identity done;
+	? A != 3 -> VHGND identity opening outer; [VHGNDcloudrain] = 40A00000h;
+	-> VHGND identity done;
+    "VHGND identity opening outer"
+	? A != 4 -> VHGND identity done; [GRalbedo] = 4;
+	-> VHGND identity done;
+
+    "VHGND identity general"
+	=> VHGND general phase setup;
+	=> VHG fpu clean; => SU fp init; => SU pal init;
+	[SUid] = [VHGNDplanet]; [SUtype] = [GRiptype]; [SUplwp] = [VHGNDplwp];
+	[SUowner] = [VHGNDowner]; [SUnsr] = [VHTred]; [SUnsg] = [VHTgreen]; [SUnsb] = [VHTblue];
+	[SUsv0] = [VHGNDseedval0]; [SUsv1] = [VHGNDseedval1]; [SUledon] = 0;
+	A = [VHGNDowner]; ? A >= 0 -> VHGND identity moon;
+	[SUcbase] = 192; [VHGNDcbase] = 192; => SU select planet; -> VHGND identity selected;
+    "VHGND identity moon"
+	[SUcbase] = 128; [VHGNDcbase] = 128; => SU select moon;
+    "VHGND identity selected"
+	=> SU select ovl; => SU wipe; => SU wipe ovl; => SU surface;
+
+	A = [VHGNDlat]; A '* 360; A + [VHGNDlon]; [VHGNDptr] = A;
+	A = [SUpbase]; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
+	[VHGNDsample] = [MBval];
+	A = [VHGNDptr]; A > 1; A + ROBJ; [MBptr] = A; => MEM get byte;
+	[VHGNDcloud] = [MBval];
+
+	( The ground filters are the selected merged globe colour, followed by
+	  the independent source tint stream below. )
+	A = [VHGNDsample]; A + [VHGNDcbase]; A '* 3; A + sutmppal;
+	[VHGNDgrf] = [A plus 0]; [VHGNDggf] = [A plus 1]; [VHGNDgbf] = [A plus 2];
+
+	( Recover underlying landing albedo.  The night branch first reverses
+	  surface()'s two-bit terminator shift; atmospheric types then subtract
+	  their cloud overlay before quantising to multiples of four. )
+	A = [VHGNDsample]; C = [GRSKnightzone]; ? C = 0 -> VHGND identity albedo atmosphere;
+	A '* 4;
+    "VHGND identity albedo atmosphere"
+	C = [GRiptype]; ? C = 3 -> VHGND identity albedo subtract;
+	? C = 5 -> VHGND identity albedo subtract; -> VHGND identity albedo quantise;
+    "VHGND identity albedo subtract"
+	A - [VHGNDcloud];
+    "VHGND identity albedo quantise"
+	A '/ 4; A '* 4; C = [GRiptype]; ? C = 3 -> VHGND identity albedo double;
+	? C = 5 -> VHGND identity albedo double; -> VHGND identity albedo ready;
+    "VHGND identity albedo double"
+	A '* 2;
+    "VHGND identity albedo ready"
+	[GRalbedo] = A;
+
+	( rainy = min(atmosphere/4, 5), retained as binary32 for create_sky and
+	  the foreground storm renderer. )
+	A = [VHGNDcloud]; ? A '<= 20 -> VHGND identity cloud capped; A = 20;
+    "VHGND identity cloud capped"
+	[FI] = A; => IntToF; [FB0] = 0; [FB1] = 3FD00000h; => FMul;
+	=> F32Narrow; => FStoreF32; [VHGNDcloudrain] = [FS0];
+
+	( fast_srand(p_orb_seed * p_orb_ecc * 12345), followed by the exact
+	  fast_random masks used for sky and ground tinting. )
+	A = [VHGNDplanet]; A < 1; E = nsporbseed; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1]; E = nsporbecc; E + A;
+	[FC0] = [E plus 0]; [FC1] = [E plus 1]; A = 4; => GeoSetK;
+	=> GeoTwoMulKChopLive; A = [FI]; => SU fast srand;
+	[SUfmask] = 31; => SU frnd; C + 32; [VHGNDsrf] = C;
+	[SUfmask] = 15; => SU frnd; C + 48; [VHGNDsgf] = C;
+	[SUfmask] = 15; => SU frnd; C + 48; [VHGNDsbf] = C;
+	[SUfmask] = 15; => SU frnd; C + [VHGNDgrf]; [VHGNDgrf] = C;
+	[SUfmask] = 15; => SU frnd; C + [VHGNDggf]; [VHGNDggf] = C;
+	[SUfmask] = 15; => SU frnd; C + [VHGNDgbf]; [VHGNDgbf] = C;
+	[VHGNDsurfaceok] = 1;
+    "VHGND identity done"
+	end;
+
+"VHGND general phase setup"
+	[VHGNDphaseindex] = [VHGNDplanet]; [VHGNDmoonmass] = 0;
+	E = nspowner; E + [VHGNDplanet]; A = [E]; [VHGNDowner] = A;
+	? A < 0 -> VHGND phase owner ready;
+	E = nsptype; E + A; A = [E]; ? A = 10 -> VHGND phase companion moon;
+	[VHGNDphaseindex] = [VHGNDowner]; -> VHGND phase owner ready;
+    "VHGND phase companion moon"
+	[VHGNDmoonmass] = 1;
+    "VHGND phase owner ready"
+	=> VHGND UTC seconds; => VHGND orbital phase; => VHGND terminator;
+	end;
+
+"VHGND sky"
+	( The default landing point is longitude 0, latitude 60.  Its opening-system
+	  colours were derived through
+	  the delivered topology/surface references for the actual class-0 star
+	  at (3979984,-43407,-43984), at source time zero/plwp zero.  Planet 0 is
+	  type 8; planet 1 is type 4.  The exact create_sky path is cheap for both
+	  types and produces the source surface palette as well as atmosphere. )
+	[GRSKptype] = [GRiptype]; [GRSKsctype] = [VHGNDsctype];
+	[GRSKatmosphere] = [VHGNDatmosphere]; [GRSKnightzone] = 0;
+	[GRSKtarget] = [VHGNDplanet]; [GRSKowner] = 0FFFFFFFFh;
+	[GRSKstarclass] = 0; [GRSKlat] = [VHGNDlat]; [GRSKquadwords] = 16000;
+	[GRSKexposure] = 41DB20C5h; ( 27.391f, source 35-degree day exposure )
+
+	( Preserve the measured opening landing exactly.  Every other selected
+	  star takes the generated UTC/orbit/terminator path below. )
+	A = [VHTtx]; ? A != 3979984 -> VHGND general sky;
+	A = [VHTty]; ? A != 0FFFF5671h -> VHGND general sky;
+	A = [VHTtz]; ? A != 0FFFF5430h -> VHGND general sky;
+	A = [VHGNDlon]; ? A != 0 -> VHGND general sky;
+	A = [VHGNDlat]; ? A != 60 -> VHGND general sky;
+
+	( planet 0, type 8 milky/quartz )
+	[GRSKseed] = 149130; [GRSKalbedo] = 32; [GRSKrainy] = 0;
+	[GRSKbrightness] = 48;
+	[GRSKsrf] = 53; [GRSKsgf] = 58; [GRSKsbf] = 53;
+	[GRSKgrf] = 75; [GRSKggf] = 63; [GRSKgbf] = 52;
+	[GRSKdsd1] = 42066738h; ( 33.6007996f )
+	A = [VHGNDplanet]; ? A = 0 -> VHGND sky inputs ready;
+
+	( planet 1, type 4 rocky/airless )
+	[GRSKseed] = 293154; [GRSKalbedo] = 20; [GRSKrainy] = 0;
+	[GRSKbrightness] = 0;
+	[GRSKsrf] = 46; [GRSKsgf] = 57; [GRSKsbf] = 52;
+	[GRSKgrf] = 24; [GRSKggf] = 44; [GRSKgbf] = 29;
+	[GRSKdsd1] = 428BC1D5h; ( 69.8785782f )
+	A = [VHGNDplanet]; ? A = 1 -> VHGND sky inputs ready;
+
+	( body 3, type-2 inner moon of the gas giant )
+	[GRSKowner] = 2; [GRSKseed] = 19668; [GRSKalbedo] = 20;
+	[GRSKrainy] = 40A00000h; [GRSKbrightness] = 63;
+	[GRSKsrf] = 49; [GRSKsgf] = 55; [GRSKsbf] = 48;
+	[GRSKgrf] = 31; [GRSKggf] = 37; [GRSKgbf] = 32;
+	[GRSKdsd1] = 43045180h; ( owner orbit 132.31836f )
+	A = [VHGNDplanet]; ? A = 3 -> VHGND sky inputs ready;
+
+	( body 4, type-2 outer moon )
+	[GRSKseed] = 31169; [GRSKalbedo] = 4; [GRSKrainy] = 0;
+	[GRSKbrightness] = 63;
+	[GRSKsrf] = 57; [GRSKsgf] = 55; [GRSKsbf] = 56;
+	[GRSKgrf] = 10; [GRSKggf] = 17; [GRSKgbf] = 16;
+    "VHGND sky opening ready"
+	-> VHGND sky inputs ready;
+
+"VHGND general sky"
+	( Source planets() derives the live landing light from UTC seconds, the
+	  body's rotation period and its orbital viewpoint.  nstopo retains the
+	  complete phase-A geometry used below, including eccentricity and tilt;
+	  ordinary moons compose their parent planet's solar vector and moons of a
+	  companion star use that owner as the viewpoint. )
+	[GRSKtarget] = [VHGNDplanet]; [GRSKstarclass] = [nsclass];
+	[GRSKseed] = [VHGNDseed]; [GRSKalbedo] = [GRalbedo]; [GRSKowner] = [VHGNDowner];
+	A = [VHGNDsurfaceok]; ? A != 0 -> VHGND general phase ready;
+	=> VHGND general phase setup; [GRSKowner] = [VHGNDowner];
+    "VHGND general phase ready"
+
+	( dsd1 is the active sun distance: the parent planet's star orbit for
+	  ordinary moons, or the body's own orbit otherwise. )
+	A = [VHGNDphaseindex]; A < 1; E = nsporbray; E + A;
+	[FA0] = [E plus 0]; [FA1] = [E plus 1]; => F32Narrow; => FStoreF32;
+	[GRSKdsd1] = [FS0];
+
+	( The live landing generator retains the selected surface palette colour,
+	  cloud load and exact tint stream.  Keep the old deterministic fallback
+	  only for standalone callers that invoke sky without first generating a
+	  surface. )
+	A = [VHGNDsurfaceok]; ? A = 0 -> VHGND general filters fallback;
+	[GRSKsrf] = [VHGNDsrf]; [GRSKsgf] = [VHGNDsgf]; [GRSKsbf] = [VHGNDsbf];
+	[GRSKgrf] = [VHGNDgrf]; [GRSKggf] = [VHGNDggf]; [GRSKgbf] = [VHGNDgbf];
+	[GRSKrainy] = [VHGNDcloudrain]; -> VHGND general filters ready;
+    "VHGND general filters fallback"
+	A = [VHGNDseed]; A '* 12345; => SU fast srand;
+	C = 31; => SU rfr; C + 32; [GRSKsrf] = C;
+	C = 15; => SU rfr; C + 48; [GRSKsgf] = C;
+	C = 15; => SU rfr; C + 48; [GRSKsbf] = C;
+	A = [GRalbedo]; A '/ 2; A + 32; [VHGNDtmp] = A;
+	C = 15; => SU rfr; C + [VHGNDtmp]; [GRSKgrf] = C;
+	A = [GRalbedo]; A '/ 3; A + 32; [VHGNDtmp] = A;
+	C = 15; => SU rfr; C + [VHGNDtmp]; [GRSKggf] = C;
+	A = [GRalbedo]; A '/ 4; A + 32; [VHGNDtmp] = A;
+	C = 15; => SU rfr; C + [VHGNDtmp]; [GRSKgbf] = C;
+
+	( Retained surface identity also supplies a stable 0..3.75 cloud load,
+	  in the source quarter-step domain. )
+	A = [VHGNDseed]; A & 15; [FI] = A; => IntToF;
+	[FB0] = 0; [FB1] = 3FD00000h; => FMul; => F32Narrow; => FStoreF32;
+	[GRSKrainy] = [FS0];
+    "VHGND general filters ready"
+
+	A = [VHGNDatmosphere]; ? A = 0 -> VHGND general airless;
+	A = [GRSKnightzone]; ? A = 0 -> VHGND general daylight;
+	A = [GRSKsgf]; A '/ 2; [GRSKsgf] = A;
+	A = [GRSKsbf]; A '/ 2; [GRSKsbf] = A;
+	[GRSKbrightness] = 32; A = [VHGNDcrep]; ? A <= 5 -> VHGND sky inputs ready;
+	A = [GRSKsrf]; A '/ 2; [GRSKsrf] = A; [GRSKbrightness] = 8;
+	-> VHGND sky inputs ready;
+    "VHGND general daylight"
+	[GRSKbrightness] = 48; A = [VHGNDcrep]; ? A > 5 -> VHGND sky inputs ready;
+	A = [GRSKsgf]; A '/ 2; [GRSKsgf] = A;
+	A = [GRSKsbf]; A '/ 3; [GRSKsbf] = A; [GRSKbrightness] = 40;
+	-> VHGND sky inputs ready;
+    "VHGND general airless"
+	[GRSKbrightness] = 0; [GRSKrainy] = 0;
+    "VHGND sky general ready"
+ 	-> VHGND sky inputs ready;
+
+"VHGND UTC seconds"
+	( NIV+ clock basis: elapsed UTC seconds since 1984-01-01, including its
+	  original every-four-years leap rule.  The 32-bit value remains in range
+	  through the dates supported by this port. )
+	[Timer Command] = READ UTC TIME; isocall;
+	( The win32 runtime does not preserve x87 state across isocalls. )
+	=> VHG fpu clean; => SU fp init;
+	A = [Year]; A - 1984; [VHGNDdays] = A; A '* 365; [VHGNDsecs] = A;
+	A = [VHGNDdays]; A '/ 4; A + [VHGNDsecs]; [VHGNDdays] = A;
+	[VHGNDmonthbase] = 0; A = [Month]; ? A <= 1 -> VHGND month ready;
+	[VHGNDmonthbase] = 31; ? A = 2 -> VHGND month ready;
+	[VHGNDmonthbase] = 59; ? A = 3 -> VHGND month ready;
+	[VHGNDmonthbase] = 90; ? A = 4 -> VHGND month ready;
+	[VHGNDmonthbase] = 120; ? A = 5 -> VHGND month ready;
+	[VHGNDmonthbase] = 151; ? A = 6 -> VHGND month ready;
+	[VHGNDmonthbase] = 181; ? A = 7 -> VHGND month ready;
+	[VHGNDmonthbase] = 212; ? A = 8 -> VHGND month ready;
+	[VHGNDmonthbase] = 243; ? A = 9 -> VHGND month ready;
+	[VHGNDmonthbase] = 273; ? A = 10 -> VHGND month ready;
+	[VHGNDmonthbase] = 304; ? A = 11 -> VHGND month ready;
+	[VHGNDmonthbase] = 334;
+    "VHGND month ready"
+	A = [VHGNDdays]; A + [VHGNDmonthbase]; [VHGNDdays] = A;
+	A = [Month]; ? A <= 2 -> VHGND leap ready;
+	A = [Year]; A '% 4; ? A != 0 -> VHGND leap ready; [VHGNDdays]+;
+    "VHGND leap ready"
+	A = [Day]; A - 1; A + [VHGNDdays]; A '* 86400; [VHGNDsecs] = A;
+	A = [Hour]; A '* 3600; A + [VHGNDsecs]; [VHGNDsecs] = A;
+	A = [Minute]; A '* 60; A + [VHGNDsecs]; A + [Second]; [VHGNDsecs] = A;
+	[FI] = A; => IntToF; [SUsec0] = [FA0]; [SUsec1] = [FA1];
+	end;
+
+"VHGND orbital phase"
+	( p_riv = sqrt(star_mass / orbit_radius^2); orbital phase in source
+	  degrees is secs*p_riv.  Companion-owned moons use the owner's body
+	  mass constant, matching planet_xyz's alternate branch. )
+	=> VHG fpu clean;
+	A = [VHGNDmoonmass]; ? A != 0 -> VHGND orbital moon mass;
+	[FS0] = [nsstarray]; => FLoadF32; -> VHGND orbital mass loaded;
+    "VHGND orbital moon mass"
+	A = [VHGNDowner]; A < 1; E = nspray; E + A;
+	[FA0] = [E plus 0]; [FA1] = [E plus 1];
+    "VHGND orbital mass loaded"
+	[VHGNDmass0] = [FA0]; [VHGNDmass1] = [FA1];
+	[FB0] = [VHGNDmass0]; [FB1] = [VHGNDmass1]; => FMul;
+	[FB0] = [VHGNDmass0]; [FB1] = [VHGNDmass1]; => FMul;
+	A = [VHGNDmoonmass]; ? A != 0 -> VHGND orbital moon constant;
+	[FB0] = 0A01627EEh; [FB1] = 3E31FD9Fh; -> VHGND orbital mass scale;
+    "VHGND orbital moon constant"
+	[FB0] = 1735C01Dh; [FB1] = 3F28284Fh;
+    "VHGND orbital mass scale"
+	=> FMul; [VHGNDmass0] = [FA0]; [VHGNDmass1] = [FA1];
+	A = [VHGNDphaseindex]; A < 1; E = nsporbray; E + A;
+	[FA0] = [E plus 0]; [FA1] = [E plus 1];
+	[VHGNDorbit0] = [FA0]; [VHGNDorbit1] = [FA1];
+	[FB0] = [VHGNDorbit0]; [FB1] = [VHGNDorbit1]; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHGNDmass0]; [FA1] = [VHGNDmass1];
+	=> FQuo; => FSqrt;
+	[FB0] = [SUsec0]; [FB1] = [SUsec1]; => FMul; => FToIntNear;
+	A = [FI]; A % 360; ? A >= 0 -> VHGND orbital phase ready; A + 360;
+    "VHGND orbital phase ready"
+	[VHGNDphase] = A;
+
+	( surface() seeds the rotation-period stream from its original live
+	  body expression, independent of global_surface_seed. )
+	=> VHGND rotation seed;
+	[FB0] = [VHGNDseedval0]; [FB1] = [VHGNDseedval1];
+	=> GeoAdd4112ChopLive; A = [FI]; => SU fast srand;
+	C = 50; => SU rfr; A = C; A + 1; A '* 10; [VHGNDperiod] = A;
+	C = 25; => SU rfr; A = C; A '* 10; A + [VHGNDperiod]; [VHGNDperiod] = A;
+	C = 250; => SU rfr; A = C; A + [VHGNDperiod]; A + 41; [VHGNDperiod] = A;
+	[SUia] = A; => SU secs rot; A = [SUti]; A % 360;
+	? A >= 0 -> VHGND rotation ready; A + 360;
+    "VHGND rotation ready"
+	[VHGNDrotation] = A;
+	end;
+
+"VHGND rotation seed"
+	( Reset all factors to 1.0, then spell the source's separate planet and
+	  moon seedval expressions in left-to-right x87 order. )
+	A = 0; [VHGNDsf00] = A; [VHGNDsf10] = A; [VHGNDsf20] = A;
+	[VHGNDsf30] = A; [VHGNDsf40] = A; [VHGNDsf50] = A;
+	A = 3FF00000h; [VHGNDsf01] = A; [VHGNDsf11] = A; [VHGNDsf21] = A;
+	[VHGNDsf31] = A; [VHGNDsf41] = A; [VHGNDsf51] = A;
+	A = [VHGNDplanet]; A < 1; E = nspororient; E + A;
+	[VHGNDsf50] = [E plus 0]; [VHGNDsf51] = [E plus 1];
+	E = nspowner; E + [VHGNDplanet]; A = [E]; ? A >= 0 -> VHGND rotation moon seed;
+	( planet: 1e6*type*seed*tilt*ecc*orient, with the type-zero n variant )
+	[VHGNDsf00] = 0; [VHGNDsf01] = 412E8480h;
+	E = nsptype; E + [VHGNDplanet]; A = [E];
+	? A != 0 -> VHGND rotation planet typed;
+	[VHGNDsf01] = 413E8480h; [FI] = [VHGNDplanet]; => IntToF;
+	[VHGNDsf10] = [FA0]; [VHGNDsf11] = [FA1]; -> VHGND rotation planet fields;
+    "VHGND rotation planet typed"
+	[FI] = A; => IntToF; [VHGNDsf10] = [FA0]; [VHGNDsf11] = [FA1];
+    "VHGND rotation planet fields"
+	A = [VHGNDplanet]; A < 1; E = nsporbseed; E + A;
+	[VHGNDsf20] = [E plus 0]; [VHGNDsf21] = [E plus 1];
+	E = nsptilt; E + A; [VHGNDsf30] = [E plus 0]; [VHGNDsf31] = [E plus 1];
+	E = nsporbecc; E + A; [VHGNDsf40] = [E plus 0]; [VHGNDsf41] = [E plus 1];
+	-> VHGND rotation seed calculate;
+    "VHGND rotation moon seed"
+	( moon: 1e6*nearstar_ray*type*orient, with the type-zero n variant )
+	[VHGNDsf00] = 0; [VHGNDsf01] = 412E8480h;
+	[FS0] = [nsstarray]; => FLoadF32;
+	[VHGNDsf10] = [FA0]; [VHGNDsf11] = [FA1];
+	E = nsptype; E + [VHGNDplanet]; A = [E]; ? A != 0 -> VHGND rotation moon typed;
+	[VHGNDsf01] = 413E8480h; [FI] = [VHGNDplanet]; => IntToF;
+	[VHGNDsf20] = [FA0]; [VHGNDsf21] = [FA1]; -> VHGND rotation seed calculate;
+    "VHGND rotation moon typed"
+	[FI] = A; => IntToF; [VHGNDsf20] = [FA0]; [VHGNDsf21] = [FA1];
+"VHGND rotation seed calculate"
+	{
+	    DD 87 <dVHGNDsf00 mtp bytesperunit>	(fld qword [edi+VHGNDsf00*4])
+	    DC 8F <dVHGNDsf10 mtp bytesperunit>	(fmul qword [edi+VHGNDsf10*4])
+	    DC 8F <dVHGNDsf20 mtp bytesperunit>	(fmul qword [edi+VHGNDsf20*4])
+	    DC 8F <dVHGNDsf30 mtp bytesperunit>	(fmul qword [edi+VHGNDsf30*4])
+	    DC 8F <dVHGNDsf40 mtp bytesperunit>	(fmul qword [edi+VHGNDsf40*4])
+	    DC 8F <dVHGNDsf50 mtp bytesperunit>	(fmul qword [edi+VHGNDsf50*4])
+	    DD 9F <dVHGNDseedval0 mtp bytesperunit>	(fstp qword [edi+VHGNDseedval0*4])
+	}
+	end;
+
+"VHGND orbit angle"
+	( Input VHGNDvecindex; output VHGNDangle in radians.  This is the
+	  planet_xyz p_riv branch, including a moon's parent-body mass. )
+	E = nspowner; E + [VHGNDvecindex]; A = [E]; [VHGNDvecowner] = A;
+	? A >= 0 -> VHGND orbit body mass;
+	[FS0] = [nsstarray]; => FLoadF32; -> VHGND orbit radius mass;
+    "VHGND orbit body mass"
+	A < 1; E = nspray; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
+    "VHGND orbit radius mass"
+	[VHGNDmass0] = [FA0]; [VHGNDmass1] = [FA1];
+	[FB0] = [VHGNDmass0]; [FB1] = [VHGNDmass1]; => FMul;
+	[FB0] = [VHGNDmass0]; [FB1] = [VHGNDmass1]; => FMul;
+	A = [VHGNDvecowner]; ? A >= 0 -> VHGND orbit body constant;
+	[FB0] = 0A01627EEh; [FB1] = 3E31FD9Fh; -> VHGND orbit mass ready;
+    "VHGND orbit body constant"
+	[FB0] = 1735C01Dh; [FB1] = 3F28284Fh;
+    "VHGND orbit mass ready"
+	=> FMul; [VHGNDmass0] = [FA0]; [VHGNDmass1] = [FA1];
+	A = [VHGNDvecindex]; A < 1; E = nsporbray; E + A;
+	[FA0] = [E plus 0]; [FA1] = [E plus 1];
+	[VHGNDorbit0] = [FA0]; [VHGNDorbit1] = [FA1];
+	[FB0] = [VHGNDorbit0]; [FB1] = [VHGNDorbit1]; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGNDmass0]; [FA1] = [VHGNDmass1]; => FQuo; => FSqrt;
+	[FB0] = [SUsec0]; [FB1] = [SUsec1]; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FMul;
+	[FB0] = 0; [FB1] = 40668000h; => FQuo;
+	[VHGNDangle0] = [FA0]; [VHGNDangle1] = [FA1];
+	end;
+
+"VHGND body vector"
+	( Input VHGNDvecindex; output x/z relative to this body's primary. )
+	=> VHGND orbit angle;
+	[FA0] = [VHGNDangle0]; [FA1] = [VHGNDangle1]; => FSin;
+	[VHGNDsin0] = [FA0]; [VHGNDsin1] = [FA1];
+	[FA0] = [VHGNDangle0]; [FA1] = [VHGNDangle1]; => FCos;
+	[VHGNDcos0] = [FA0]; [VHGNDcos1] = [FA1];
+	A = [VHGNDvecindex]; A < 1; E = nsporbtlt; E + A;
+	[FA0] = [E plus 0]; [FA1] = [E plus 1];
+	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul; => FCos;
+	[VHGNDct0] = [FA0]; [VHGNDct1] = [FA1];
+	E = nsporbray; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
+	[FB0] = [VHGNDsin0]; [FB1] = [VHGNDsin1]; => FMul;
+	[FB0] = [VHGNDct0]; [FB1] = [VHGNDct1]; => FMul; => FNeg;
+	[VHGNDxx0] = [FA0]; [VHGNDxx1] = [FA1];
+	E = nsporbray; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
+	[FB0] = [VHGNDcos0]; [FB1] = [VHGNDcos1]; => FMul;
+	[FB0] = [VHGNDct0]; [FB1] = [VHGNDct1]; => FMul;
+	E = nsporbecc; E + A; [FB0] = [E plus 0]; [FB1] = [E plus 1]; => FMul;
+	[VHGNDzz0] = [FA0]; [VHGNDzz1] = [FA1];
+	E = nspororient; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1]; => FSin;
+	[VHGNDso0] = [FA0]; [VHGNDso1] = [FA1];
+	E = nspororient; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1]; => FCos;
+	[VHGNDco0] = [FA0]; [VHGNDco1] = [FA1];
+	[FA0] = [VHGNDxx0]; [FA1] = [VHGNDxx1];
+	[FB0] = [VHGNDco0]; [FB1] = [VHGNDco1]; => FMul;
+	[VHGNDvecx0] = [FA0]; [VHGNDvecx1] = [FA1];
+	[FA0] = [VHGNDzz0]; [FA1] = [VHGNDzz1];
+	[FB0] = [VHGNDso0]; [FB1] = [VHGNDso1]; => FMul;
+	[FB0] = [VHGNDvecx0]; [FB1] = [VHGNDvecx1]; => FAdd;
+	[VHGNDvecx0] = [FA0]; [VHGNDvecx1] = [FA1];
+	[FA0] = [VHGNDzz0]; [FA1] = [VHGNDzz1];
+	[FB0] = [VHGNDco0]; [FB1] = [VHGNDco1]; => FMul;
+	[VHGNDvecz0] = [FA0]; [VHGNDvecz1] = [FA1];
+	[FA0] = [VHGNDxx0]; [FA1] = [VHGNDxx1];
+	[FB0] = [VHGNDso0]; [FB1] = [VHGNDso1]; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGNDvecz0]; [FA1] = [VHGNDvecz1]; => FSub;
+	[VHGNDvecz0] = [FA0]; [VHGNDvecz1] = [FA1];
+	end;
+
+"VHGND exact viewpoint"
+	( Analytic equivalent of planet_viewpoint's 360-point nearest search. )
+	[VHGNDvecindex] = [VHGNDplanet]; => VHGND body vector;
+	[VHGNDownx0] = [VHGNDvecx0]; [VHGNDownx1] = [VHGNDvecx1];
+	[VHGNDownz0] = [VHGNDvecz0]; [VHGNDownz1] = [VHGNDvecz1];
+	E = nspowner; E + [VHGNDplanet]; A = [E]; ? A < 0 -> VHGND viewpoint vector ready;
+	E = nsptype; E + A; C = [E]; ? C = 10 -> VHGND viewpoint vector ready;
+	[VHGNDvecindex] = A; => VHGND body vector;
+	[FA0] = [VHGNDownx0]; [FA1] = [VHGNDownx1];
+	[FB0] = [VHGNDvecx0]; [FB1] = [VHGNDvecx1]; => FAdd;
+	[VHGNDownx0] = [FA0]; [VHGNDownx1] = [FA1];
+	[FA0] = [VHGNDownz0]; [FA1] = [VHGNDownz1];
+	[FB0] = [VHGNDvecz0]; [FB1] = [VHGNDvecz1]; => FAdd;
+	[VHGNDownz0] = [FA0]; [VHGNDownz1] = [FA1];
+    "VHGND viewpoint vector ready"
+	[FA0] = [VHGNDownz0]; [FA1] = [VHGNDownz1]; => FNeg;
+	[FB0] = [VHGNDownx0]; [FB1] = [VHGNDownx1];
+	A = [FB0]; [VHGNDxx0] = A; A = [FB1]; [VHGNDxx1] = A;
+	[FA0] = [VHGNDxx0]; [FA1] = [VHGNDxx1]; => FNeg;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGNDownz0]; [FA1] = [VHGNDownz1]; => FNeg; => FAtan2;
+	[FB0] = 0; [FB1] = 40668000h; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
+	A = [FI]; A % 360; ? A >= 0 -> VHGND viewpoint normalized; A + 360;
+    "VHGND viewpoint normalized"
+	[FI] = A;
+	end;
+
+"VHGND terminator"
+	=> VHG fpu clean;
+	=> VHGND exact viewpoint;
+	A = 89; A - [FI]; A + [VHGNDrotation]; A % 360;
+	? A >= 0 -> VHGND plwp ready; A + 360;
+    "VHGND plwp ready"
+	[VHGNDplwp] = A; A + 35; ? A < 360 -> VHGND term start ready; A - 360;
+    "VHGND term start ready"
+	[VHGNDtermstart] = A; A + 130; ? A < 360 -> VHGND term end ready; A - 360;
+    "VHGND term end ready"
+	[VHGNDtermend] = A; [GRSKnightzone] = 0;
+	A = [VHGNDtermstart]; ? A <= [VHGNDtermend] -> VHGND night straight;
+	A = [VHGNDlon]; ? A >= [VHGNDtermstart] -> VHGND night set;
+	? A < [VHGNDtermend] -> VHGND night set; -> VHGND night ready;
+    "VHGND night straight"
+	A = [VHGNDlon]; ? A < [VHGNDtermstart] -> VHGND night ready;
+	? A >= [VHGNDtermend] -> VHGND night ready;
+    "VHGND night set"
+	[GRSKnightzone] = 1;
+    "VHGND night ready"
+	A = [VHGNDtermstart]; A - [VHGNDlon]; A % 360; ? A >= 0 -> VHGND start normalized; A + 360;
+    "VHGND start normalized"
+	? A <= 180 -> VHGND start distance ready; C = 360; C - A; A = C;
+    "VHGND start distance ready"
+	[VHGNDcrep] = A;
+	A = [VHGNDtermend]; A - [VHGNDlon]; A % 360; ? A >= 0 -> VHGND end normalized; A + 360;
+    "VHGND end normalized"
+	? A <= 180 -> VHGND end distance ready; C = 360; C - A; A = C;
+    "VHGND end distance ready"
+	? A >= [VHGNDcrep] -> VHGND exposure ready; [VHGNDcrep] = A;
+    "VHGND exposure ready"
+	[FI] = [VHGNDcrep]; => IntToF;
+	[FB0] = 27BB2FECh; [FB1] = 3FE90B0Fh; => FMul; => F32Narrow; => FStoreF32;
+	[GRSKexposure] = [FS0];
+	end;
+    "VHGND sky inputs ready"
+
+	A = nw; A + RSBG; [VHGNDskyfill] = A; [VHGNDskycount] = 64864;
+	C = [GRSKbrightness]; C & 255;
+    "VHGND fill sky loop"
+	A = [VHGNDskyfill]; [A] = C; [VHGNDskyfill]+;
+	[VHGNDskycount]-; A = [VHGNDskycount]; ? A != 0 -> VHGND fill sky loop;
+	=> SU ledger reset; => GRSK create; => GRSK horizon;
+
+	( planetary_main fades to the complete surface_palette.  The GUI uses
+	  the same uploaded palette through its indexed-to-RGB presenter. )
+	A = srfpal6; D = pal6; [VHGNDpalcount] = 768;
+    "VHGND sky palette copy"
+	C = [A]; [D] = C; A+; D+; [VHGNDpalcount]-;
+	C = [VHGNDpalcount]; ? C != 0 -> VHGND sky palette copy;
+	[PUn] = 256; => PAL upload;
+	[VHGNDbgcacheok] = 0;
+	end;
+
+"VHGND background"
+	( NOCTIS-1.CPP:3939-3942, with this port's yaw in beta and pitch in
+	  alpha.  The original offset-map panorama is regenerated when the view
+	  changes, then cached as a complete 320x200 indexed sky.  Steady walking
+	  restores that cache at the same cost as the former flat page clear. )
+	A = [VHGNDbeta]; A + 51; A % 360; C = [VHGNDalpha]; C % 360;
+	A - C; [VHGNDbgstart] = A;
+	A = 0; A - 4; C = [VHGNDalpha]; C '/ 72; C '* 320; A - C;
+	[VHGNDbgshift] = A;
+	[BGstart] = [VHGNDbgstart]; [BGshift] = [VHGNDbgshift];
+	[BGbytes] = OMBYTES; [BGtabreg] = RGOFF; [BGsrcreg] = RGSBG;
+	[BGdstreg] = RGADP;
+	A = [VHGNDbgcacheok]; ? A = 0 -> VHGND background regenerate;
+	A = [VHGNDalpha]; ? A != [VHGNDbgcachealpha] -> VHGND background regenerate;
+	A = [VHGNDbeta]; ? A != [VHGNDbgcachebeta] -> VHGND background regenerate;
+	=> VHGND background cache restore;
+	end;
+    "VHGND background regenerate"
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = [GRSKbrightness]; => SP fill page;
+	=> VHGND background direct;
+	=> VHGND background cache save;
+	[VHGNDbgcachealpha] = [VHGNDalpha]; [VHGNDbgcachebeta] = [VHGNDbeta];
+	[VHGNDbgcacheok] = 1;
+	end;
+
+"VHGND background cache save"
+	[VHGNDbgcachep] = VHGNDskycache; A = nw; A + RADPT; [VHGNDbgcacheq] = A;
+	[VHGNDbgcachecount] = NPIX;
+    "VHGND bg cache save loop"
+	A = [VHGNDbgcacheq]; C = [A]; D = [VHGNDbgcachep]; [D] = C;
+	[VHGNDbgcachep]+; [VHGNDbgcacheq]+; [VHGNDbgcachecount]-;
+	A = [VHGNDbgcachecount]; ? A != 0 -> VHGND bg cache save loop;
+	end;
+
+"VHGND background cache restore"
+	[VHGNDbgcachep] = VHGNDskycache; A = nw; A + RADPT; [VHGNDbgcacheq] = A;
+	[VHGNDbgcachecount] = NPIX;
+    "VHGND bg cache restore loop"
+	A = [VHGNDbgcachep]; C = [A]; D = [VHGNDbgcacheq]; [D] = C;
+	[VHGNDbgcachep]+; [VHGNDbgcacheq]+; [VHGNDbgcachecount]-;
+	A = [VHGNDbgcachecount]; ? A != 0 -> VHGND bg cache restore loop;
+	end;
+
+"VHGND background direct"
+	( Direct specialization of SP background for the fixed Noctis buffers.
+	  Region offsets cancel against their -4 segment origins exactly as in
+	  spbg; every destination row and source cursor still wraps at 16 bits. )
+	A = [BGshift]; A + 4; A & 65535; [BGdx] = A;
+	A = [BGstart]; A + 4; A & 65535; [BGbp] = A;
+	[BGsi] = 0; A = OMBYTES; A > 1; [BGcxr] = A;
+    "VHGND bg record"
+	A = nw; A + RNOFF; A + [BGsi];
+	C = [A]; C & 255; D = [A plus 1]; D & 255; D < 8; C + D; [BGw] = C;
+	A = [BGw]; ? A '>= 64000 -> VHGND bg skip;
+	A + [BGdx]; A & 65535; [BGdi] = A;
+	A = [BGbp]; A & 65535; A + SSBG; A + nw; C = [A]; C & 255; [BGpx] = C;
+	[BGi] = 0;
+    "VHGND bg row"
+	A = [BGi]; A '* 320; A + [BGdi]; A & 65535; [VHGNDbgrowbase] = A;
+	? A '<= 65531 -> VHGND bg row contiguous;
+	[VHGNDbgcol] = 0;
+    "VHGND bg row wrapped"
+	A = [VHGNDbgrowbase]; A + [VHGNDbgcol]; A & 65535; A + SADPT; A + nw;
+	C = [BGpx]; [A] = C; [VHGNDbgcol]+;
+	A = [VHGNDbgcol]; ? A < 5 -> VHGND bg row wrapped;
+	-> VHGND bg row done;
+    "VHGND bg row contiguous"
+	D = nw; D + SADPT; D + [VHGNDbgrowbase]; C = [BGpx];
+	[D plus 0] = C; [D plus 1] = C; [D plus 2] = C; [D plus 3] = C; [D plus 4] = C;
+    "VHGND bg row done"
+	[BGi]+; A = [BGi]; ? A < 5 -> VHGND bg row;
+    "VHGND bg consume"
+	A = [BGbp]; A + 1; A & 65535; [BGbp] = A;
+	-> VHGND bg next;
+    "VHGND bg skip"
+	A = [BGw]; A - 64000; A + [BGbp]; A & 65535; [BGbp] = A;
+    "VHGND bg next"
+	A = [BGsi]; A + 2; [BGsi] = A;
+	[BGcxr]-; A = [BGcxr]; ? A != 0 -> VHGND bg record;
+	end;
+
+"VHGND eye height"
+	( Exact HPOINT float path.  Interpolating byte heights as integers can
+	  lose almost two full height units (4096 world units), enough to put the
+	  600-unit eye below the triangles.  Preserve both source float stores. )
+	A = [VHGNDcamx]; A > 14; [VHGNDtilex] = A;
+	A = [VHGNDcamz]; A > 14; [VHGNDtilez] = A;
+	A = [VHGNDcamx]; A & 16383; [VHGNDfx] = A;
+	A = [VHGNDcamz]; A & 16383; [VHGNDfz] = A;
+	A = [VHGNDtilez]; A '* VHGNDMAP; A + [VHGNDtilex]; [VHGNDh1] = A;
+	A = RPSM; A + [VHGNDh1]; [MBptr] = A; => MEM get byte; [VHGNDs1] = [MBval];
+	A = RPSM; A + [VHGNDh1]; A + 1; [MBptr] = A; => MEM get byte; [VHGNDs2] = [MBval];
+	A = RPSM; A + [VHGNDh1]; A + 201; [MBptr] = A; => MEM get byte; [VHGNDs3] = [MBval];
+	A = RPSM; A + [VHGNDh1]; A + 200; [MBptr] = A; => MEM get byte; [VHGNDs4] = [MBval];
+	A = [VHGNDs1]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDh1i] = A;
+	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDh2i] = A;
+	A = [VHGNDs3]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDh3i] = A;
+	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDh4i] = A;
+	A = [VHGNDfx]; A + [VHGNDfz]; ? A '< VHGNDTS -> VHGND height upper;
+	( lower triangle: h3+(h4-h3)*(1-fx/TS), then +(h2-h3)*(1-fz/TS) )
+	A = VHGNDTS; A - [VHGNDfx]; [FI] = A; => IntToF;
+	[FB0] = VHGNDQIDLO; [FB1] = VHGNDQIDHI; => FMul; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHGNDh3i]; => IntToF; => VHGND fb fa;
+	[FI] = [VHGNDh4i]; => IntToF; => FSub; [FB0] = [FT0]; [FB1] = [FT1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDh3i]; => IntToF;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => F32Narrow; => FStoreF32; [VHGNDpy] = [FS0];
+	A = VHGNDTS; A - [VHGNDfz]; [FI] = A; => IntToF;
+	[FB0] = VHGNDQIDLO; [FB1] = VHGNDQIDHI; => FMul; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHGNDh3i]; => IntToF; => VHGND fb fa;
+	[FI] = [VHGNDh2i]; => IntToF; => FSub; [FB0] = [FT0]; [FB1] = [FT1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FS0] = [VHGNDpy]; => FLoadF32;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => F32Narrow; => FStoreF32; [VHGNDpy] = [FS0];
+	-> VHGND height finish;
+    "VHGND height upper"
+	( upper triangle: h1+(h2-h1)*fx/TS, then +(h4-h1)*fz/TS )
+	[FI] = [VHGNDfx]; => IntToF; [FB0] = VHGNDQIDLO; [FB1] = VHGNDQIDHI;
+	=> FMul; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHGNDh1i]; => IntToF; => VHGND fb fa;
+	[FI] = [VHGNDh2i]; => IntToF; => FSub; [FB0] = [FT0]; [FB1] = [FT1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDh1i]; => IntToF;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => F32Narrow; => FStoreF32; [VHGNDpy] = [FS0];
+	[FI] = [VHGNDfz]; => IntToF; [FB0] = VHGNDQIDLO; [FB1] = VHGNDQIDHI;
+	=> FMul; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHGNDh1i]; => IntToF; => VHGND fb fa;
+	[FI] = [VHGNDh4i]; => IntToF; => FSub; [FB0] = [FT0]; [FB1] = [FT1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FS0] = [VHGNDpy]; => FLoadF32;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => F32Narrow; => FStoreF32; [VHGNDpy] = [FS0];
+    "VHGND height finish"
+	[FS0] = [VHGNDpy]; => FLoadF32; => FToIntChop;
+	A = [FI]; A - 600; [VHGNDheight] = A;
+	end;
+
+"VHGND fb fa"
+	[FB0] = [FA0]; [FB1] = [FA1];
+	end;
+
+"VHGND render"
+	( Sky first, then the source 64-tile circular visibility range.  The
+	  original submits every full-detail tile; this unit-addressed port keeps
+	  that range playable with three concentric resolutions: 32-tile far,
+	  8-tile middle, exact 1-tile near.  The exact mesh covers a three-tile
+	  walking radius; all rings use fragment()'s Euclidean depth gate and
+	  draw far-to-near. )
+	A = [VHGNDdosim]; ? A = 0 -> VHGND render tick ready; [VHGNDtick]+;
+    "VHGND render tick ready"
+	=> VHGND wave impact tick;
+	[VHGNDruindrawn] = 0; => VHGND background;
+	=> PGF constants;
+	[VHGNDviewx] = [VHGNDcamx]; [VHGNDviewz] = [VHGNDcamz];
+	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32; ( 100.0f )
+	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
+	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
+	( Source fragment() maps p_background across every ground triangle. )
+	[FI] = [VHGNDtscale]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;
+	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 5; [SPsrc] = 1; [SPflar] = 0; [SPcull] = 0; [SPhalf] = 0;
+	A = [GRiptype]; ? A != 3 -> VHGND water render done;
+	A = [VHGNDsctype]; ? A = 1 -> VHGND water render;
+	? A != 4 -> VHGND water render done;
+    "VHGND water render"
+	=> VHGND water;
+    "VHGND water render done"
+	A = [VHGlanded]; ? A = 0 -> VHGND render descent;
+
+	[VHGNDlodstep] = 32; [VHGNDlodradius] = VHGNDFAR;
+	[VHGNDmindepth] = VHGNDMID; [VHGNDmaxdepth] = VHGNDFAR;
+	=> VHGND traverse;
+	[VHGNDlodstep] = 8; [VHGNDlodradius] = VHGNDMID;
+	[VHGNDmindepth] = 3; [VHGNDmaxdepth] = VHGNDMID;
+	=> VHGND traverse;
+	[VHGNDlodstep] = 1; [VHGNDlodradius] = 3;
+	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = 3;
+	=> VHGND traverse;
+	-> VHGND render terrain done;
+    "VHGND render descent"
+	( From the airborne pod, one broad coarse pass covers the visible landing
+	  patch at a fraction of the cost of the walking mesh. )
+	[VHGNDlodstep] = 16; [VHGNDlodradius] = VHGNDABOVE;
+	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = VHGNDABOVE;
+	=> VHGND traverse;
+    "VHGND render terrain done"
+	=> VHGND render ruins;
+	=> VHGND capsule;
+	=> VHGND render animals;
+	=> VHGND render birds;
+	A = [GRiptype]; ? A != 2 -> VHGND render weather ready;
+	=> VHGND dense atmosphere; end;
+    "VHGND render weather ready"
+	=> VHGND render weather;
+	end;
+
+"VHGND dense atmosphere"
+	( NOCTIS-1.CPP:4449-4452.  Venusian/type-2 views discard palette-band
+	  identity, then run psmooth_grays over adapted+2880.  The live steady
+	  page uses 14,560 dwords, so the shifted mask spans 58,240 bytes and
+	  the four-row smoothing kernel writes 56,960 safely bounded bytes. )
+	D = nw; D + RADPT; D + 2880; B = 58240;
+    "VHGND dense mask"
+	C = [D]; C & 63; [D] = C; D+;
+	B ^ VHGND dense mask;
+
+	A = nw; A + RADPT; A + 2880; [SUsp] = A;
+	[SUsi] = 320; B = 56960;
+    "VHGND dense smooth"
+	C = [SUsp]; C + [SUsi]; C - 320;
+	=> SU dw at; E = D;
+	C + 320; => SU dw at; E + D;
+	C + 320; => SU dw at; E + D;
+	C + 320; => SU dw at; E + D;
+	E & 0FCFCFCFCh; E > 2;
+	A = E; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	E > 16;
+	D = E; D & 0FFh; A + D; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	A > 2;
+	C = [SUsp]; C + [SUsi]; [C] = A;
+	[SUsi]+;
+	B ^ VHGND dense smooth;
+	end;
+
+"VHGND render weather"
+	( NOCTIS-1.CPP planetary_main weather gate.  Lightning begins at rainy
+	  2.0 on habitable type-3 worlds; rain sticks begin above 3.0.  Cadence
+	  state advances only on the source-rate simulation tick, while the drop
+	  field uses the presentation frame so 60 Hz mode remains visually fluid. )
+	[VHGNDrainstreaks] = 0;
+	A = [VHGNDatmosphere]; ? A = 0 -> VHGND weather dry;
+	A = [GRiptype]; ? A != 3 -> VHGND weather dry;
+	A = [GRSKrainy]; ? A '< 40000000h -> VHGND weather dry;
+
+	A = [VHGNDdosim]; ? A = 0 -> VHGND weather palette;
+	[VHGNDflashactive] = 0;
+	( rainy is a non-negative binary32.  Its integer bit order is monotonic,
+	  so these source thresholds need no floating compare. )
+	[VHGNDflashden] = 75;
+	A = [GRSKrainy]; ? A '< 40200000h -> VHGND weather denominator ready;
+	[VHGNDflashden] = 60;
+	? A '< 40400000h -> VHGND weather denominator ready;
+	[VHGNDflashden] = 50;
+    "VHGND weather denominator ready"
+	A = [VHGNDseed]; A + [VHGNDtick]; A '* 1664525; A + 1013904223; [VHGNDrainseed] = A;
+	=> VHGND weather random; A = [VHGNDrainrnd]; A & 3; A + 1; [VHGNDflashtries] = A;
+    "VHGND weather flash roll"
+	=> VHGND weather random; A = [VHGNDrainrnd]; A & 7FFFFFFFh; A % [VHGNDflashden];
+	[VHGNDflashactive] = 0; ? A != 0 -> VHGND weather flash roll next;
+	[VHGNDflashactive] = 1;
+    "VHGND weather flash roll next"
+	[VHGNDflashtries]-; A = [VHGNDflashtries]; ? A != 0 -> VHGND weather flash roll;
+	A = [VHGNDflashactive]; ? A = 0 -> VHGND weather palette;
+	[VHGNDstormflashes]+; A = [VHGNDstormflashes]; ? A '<= 30 -> VHGND weather palette;
+	[VHGNDstormflashes] = 30;
+
+    "VHGND weather palette"
+	=> VHGND weather flash palette;
+	A = [GRSKrainy]; ? A '<= 40400000h -> VHGND weather done;
+
+	( Source density is random(25*flashes)+50.  Keep its 50-stick floor and
+	  growth, but cap the extra range at five flashes (174 sticks maximum):
+	  the indexed software renderer must not reintroduce the reported 60 Hz
+	  hitching after a long storm. )
+	A = [VHGNDstormflashes]; ? A '<= 5 -> VHGND weather density ready; A = 5;
+    "VHGND weather density ready"
+	A '* 25; [VHGNDflashtries] = A;
+	A = [VHGNDseed]; A + [VHGframe]; A '* 7919; A + [VHGNDtick]; [VHGNDrainseed] = A;
+	[VHGNDraincount] = 50; A = [VHGNDflashtries]; ? A = 0 -> VHGND weather count ready;
+	=> VHGND weather random; A = [VHGNDrainrnd]; A & 7FFFFFFFh; A % [VHGNDflashtries];
+	A + 50; [VHGNDraincount] = A;
+    "VHGND weather count ready"
+
+	( wdircos/wp and wdirsin/wp, narrowed to integer world units once for
+	  the whole field.  The pod owns the live source wind state. )
+	A = [VHGCwindangle]; A + 8; A / 16; [VHVangle] = A; => VHV sincos;
+	[FI] = [VHGCwindpower]; => IntToF; [PGFi] = FSW1; => PGF sa;
+	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
+	A = [FI]; A / 10; [VHGNDrainwindx] = A;
+	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
+	A = [FI]; A / 10; [VHGNDrainwindz] = A;
+	A = [VHGframe]; A % 18; A '* 100; [VHGNDrainphase] = A;
+	[VHGNDrainindex] = 0; [VHScolor] = 63;
+    "VHGND weather rain one"
+	=> VHGND weather random; A = [VHGNDrainrnd]; A & 1023; C = [VHGNDcamx]; C + A; [VHGNDrainx] = C;
+	=> VHGND weather random; A = [VHGNDrainrnd]; A & 1023; C = [VHGNDrainx]; C - A; [VHGNDrainx] = C;
+	=> VHGND weather random; A = [VHGNDrainrnd]; A & 1023; C = [VHGNDcamz]; C + A; [VHGNDrainz] = C;
+	=> VHGND weather random; A = [VHGNDrainrnd]; A & 1023; C = [VHGNDrainz]; C - A; [VHGNDrainz] = C;
+	=> VHGND weather random; A = [VHGNDrainrnd]; A & 2047; C = [VHGNDcamy]; C - A;
+	C + [VHGNDrainphase]; [VHGNDrainy] = C;
+	A = [VHGNDrainx]; A + [VHGNDrainwindx]; [VHGNDrainx2] = A;
+	A = [VHGNDrainy]; A + 100; [VHGNDrainy2] = A;
+	A = [VHGNDrainz]; A + [VHGNDrainwindz]; [VHGNDrainz2] = A;
+
+	[FI] = [VHGNDrainx]; => IntToF; => F32Narrow; => FStoreF32; [VHSx0] = [FS0];
+	[FI] = [VHGNDrainy]; => IntToF; => F32Narrow; => FStoreF32; [VHSy0] = [FS0];
+	[FI] = [VHGNDrainz]; => IntToF; => F32Narrow; => FStoreF32; [VHSz0] = [FS0];
+	[FI] = [VHGNDrainx2]; => IntToF; => F32Narrow; => FStoreF32; [VHSx1] = [FS0];
+	[FI] = [VHGNDrainy2]; => IntToF; => F32Narrow; => FStoreF32; [VHSy1] = [FS0];
+	[FI] = [VHGNDrainz2]; => IntToF; => F32Narrow; => FStoreF32; [VHSz1] = [FS0];
+	=> VH stick3d; [VHGNDrainstreaks]+;
+	[VHGNDrainindex]+; A = [VHGNDrainindex]; ? A '< [VHGNDraincount] -> VHGND weather rain one;
+	-> VHGND weather done;
+
+    "VHGND weather dry"
+	[VHGNDflashactive] = 0; => VHGND weather flash palette;
+    "VHGND weather done"
+	end;
+
+"VHGND weather random"
+	( Weather-local LCG: clock-seeded source randomness without disturbing
+	  either terrain's fast_random stream or the live Borland wind stream. )
+	A = [VHGNDrainseed]; A '* 1664525; A + 1013904223; [VHGNDrainseed] = A;
+	[VHGNDrainrnd] = A;
+	end;
+
+"VHGND weather flash palette"
+	A = [VHGNDflashactive]; ? A != [VHGNDflashlast] -> VHGND weather palette changed;
+	end;
+    "VHGND weather palette changed"
+	[VHGNDflashlast] = A;
+	[VHGNDflashpalp] = srfpal6; [VHGNDflashpalq] = pal6; [VHGNDflashpaln] = 768;
+	? A = 0 -> VHGND weather palette restore;
+    "VHGND weather palette brighten"
+	C = [VHGNDflashpalp]; C = [C]; C + 63; C '/ 2;
+	D = [VHGNDflashpalq]; [D] = C;
+	[VHGNDflashpalp]+; [VHGNDflashpalq]+; [VHGNDflashpaln]-;
+	A = [VHGNDflashpaln]; ? A != 0 -> VHGND weather palette brighten;
+	-> VHGND weather palette upload;
+    "VHGND weather palette restore"
+	C = [VHGNDflashpalp]; C = [C]; D = [VHGNDflashpalq]; [D] = C;
+	[VHGNDflashpalp]+; [VHGNDflashpalq]+; [VHGNDflashpaln]-;
+	A = [VHGNDflashpaln]; ? A != 0 -> VHGND weather palette restore;
+    "VHGND weather palette upload"
+	[PUn] = 256; => PAL upload;
+	end;
+
+"VHGND water"
+	( Ocean/ice plane: source 128x texture scale and ocean palette band. )
+	=> VHGND water quad;
+
+	[FI] = 32768; => IntToF; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 5; [SPsrc] = 1; [SPtinta] = 128; [SPescr] = 0;
+	[SPflar] = 0; [DBflar] = 0; [DBent] = 0; [SPcull] = 0; [PJnrv] = 4;
+	=> PG polymap;
+
+	( The source reflects landscape only when the sea has no incoming wind
+	  waves, and always on the frozen ICY scenario. )
+	=> VHGND reflection;
+	=> VHGND water quad;
+
+	( Second transparent pass supplies the moving glints normally written
+	  into n_globes_map.  Frozen glints stay spatially stable. )
+	A = [VHGframe]; A & 31; [VHGNDwaterphase] = A;
+	A = [VHGNDsctype]; ? A != 4 -> VHGND water phase moving;
+	A = [VHGNDcamx]; A > 10; C = [VHGNDcamz]; C > 10; A + C; A & 15;
+	[VHGNDwaterphase] = A; -> VHGND water phase ready;
+    "VHGND water phase moving"
+	A = [VHGNDwaterphase]; ? A '<= 15 -> VHGND water phase ready;
+	C = 31; C - A; [VHGNDwaterphase] = C;
+    "VHGND water phase ready"
+	A = [VHGNDwaterphase]; A '* 256; A + 32768; [FI] = A; => IntToF;
+	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	[SPflar] = 1; [DBflar] = 1; [SPtinta] = 128; [PJnrv] = 4;
+	=> PG polymap;
+	A = [VHGNDsctype]; ? A != 1 -> VHGND water waves done; => VHGND waves;
+    "VHGND water waves done"
+
+	( Restore fragment()'s ground texture scale and normal polygon mode. )
+	[FI] = [VHGNDtscale]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;
+	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	[SPflar] = 0; [DBflar] = 0; [SPhalf] = 0;
+	end;
+
+"VHGND water quad"
+	A = [VHGNDcamx]; A - 1048576; [VHGNDxlo] = A;
+	? A >= 0 -> VHGND water xlo ready; [VHGNDxlo] = 0;
+    "VHGND water xlo ready"
+	A = [VHGNDcamx]; A + 1048576; [VHGNDxhi] = A;
+	? A '<= 3276800 -> VHGND water xhi ready; [VHGNDxhi] = 3276800;
+    "VHGND water xhi ready"
+	A = [VHGNDcamz]; A - 1048576; [VHGNDzlo] = A;
+	? A >= 0 -> VHGND water zlo ready; [VHGNDzlo] = 0;
+    "VHGND water zlo ready"
+	A = [VHGNDcamz]; A + 1048576; [VHGNDzhi] = A;
+	? A '<= 3276800 -> VHGND water zhi ready; [VHGNDzhi] = 3276800;
+    "VHGND water zhi ready"
+
+	[VHGNDvi] = 0;
+	[VHGNDvv] = [VHGNDxlo]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = 0; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDzlo]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDxhi]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = 0; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDzlo]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDxhi]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = 0; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDzhi]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDxlo]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = 0; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDzhi]; [VHGNDvslot] = FSINZ; => VHGND vload;
+	end;
+
+"VHGND reflection"
+	[VHGNDreflected] = 0;
+	A = [VHGlanded]; ? A = 0 -> VHGND reflection done;
+	A = [VHGNDsctype]; ? A = 4 -> VHGND reflection active;
+	A = [VHGNDwavesin]; ? A != 0 -> VHGND reflection done;
+    "VHGND reflection active"
+	[VHGNDmirror] = 1; [SPhalf] = 1; [SPflar] = 0; [DBflar] = 0;
+	[FI] = [VHGNDtscale]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;
+	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	[VHGNDlodstep] = 16; [VHGNDlodradius] = VHGNDFAR;
+	[VHGNDmindepth] = VHGNDMID; [VHGNDmaxdepth] = VHGNDFAR; => VHGND traverse;
+	[VHGNDlodstep] = 8; [VHGNDlodradius] = VHGNDMID;
+	[VHGNDmindepth] = VHGNDHALF; [VHGNDmaxdepth] = VHGNDMID; => VHGND traverse;
+	[VHGNDlodstep] = 1; [VHGNDlodradius] = VHGNDHALF;
+	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = VHGNDHALF; => VHGND traverse;
+	=> VHGND render ruins;
+	[VHGNDmirror] = 0; [SPhalf] = 0;
+    "VHGND reflection done"
+	end;
+
+"VHGND waves init"
+	( planetary_main seeds ten incoming wind waves around (1E6,1E6), then
+	  reserves records 10..24 for ripples made by the swimmer.  Keep those
+	  source counts, ranges and record roles; the fast RNG leaves the terrain
+	  generator's Borland stream untouched. )
+	[VHGNDwavei] = 0; [VHGNDwavelw] = 10; [VHGNDwavesin] = 0;
+	[VHGNDwaveblur] = 0; [VHGNDwavehits] = 0;
+	[VHGNDimpactx] = 0; [VHGNDimpactz] = 0; [VHGNDimpacttilt] = 0;
+	[VHGNDwavelastx] = [VHGNDdropx]; [VHGNDwavelastz] = [VHGNDdropz];
+	A = [GRiptype]; ? A != 3 -> VHGND waves wipe all;
+	A = [VHGNDsctype]; ? A != 1 -> VHGND waves wipe all;
+	A = [VHGNDwavescalm]; ? A != 0 -> VHGND waves wipe all;
+	( Open sea carries incoming swell.  At albedo 20 the source's random(2)
+	  sometimes makes a calm rocky ocean; use a stable seed bit for that
+	  surface-local choice. )
+	[VHGNDwavesin] = 1; A = [GRalbedo]; ? A '<= 16 -> VHGND waves seed incoming;
+	A = [VHGNDseed]; A > 7; A & 1; ? A = 0 -> VHGND waves seed incoming;
+	[VHGNDwavesin] = 0; -> VHGND waves wipe all;
+    "VHGND waves seed incoming"
+	A = [VHGNDseed]; A + 5741; => SU fast srand;
+    "VHGND wave init incoming"
+	A = [VHGNDwavei]; A '* 7; A + VHGNDwavedata; [VHGNDwavep] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '% 30000; A + 1000000; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '% 30000; C = [VHGNDtmp]; C - A; [VHGNDtmp] = C;
+	A = [VHGNDwavep]; [A plus 0] = [VHGNDtmp]; [A plus 1] = 50;
+	[SUfmask] = 32767; => SU frnd; A = C; A '% 30000; A + 1000000; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '% 30000; C = [VHGNDtmp]; C - A; [VHGNDtmp] = C;
+	A = [VHGNDwavep]; [A plus 2] = [VHGNDtmp];
+	[SUfmask] = 32767; => SU frnd; C '% 2500; C '* 1000; A = 2500000; A - C; C = [VHGNDwavep]; [C plus 3] = A;
+	[SUfmask] = 2047; => SU frnd; A = C; A '% 1500; ? A != 0 -> VHGND wave init height; A = 100;
+    "VHGND wave init height"
+	C = [VHGNDwavep]; [C plus 4] = A;
+	[SUfmask] = 8191; => SU frnd; A = C; A '% 5000; A + 1000; C = [VHGNDwavep]; [C plus 5] = A;
+	[SUfmask] = 511; => SU frnd; A = C; A '% 500; A + 500; C = 0; C - A; A = [VHGNDwavep]; [A plus 6] = C;
+	[VHGNDwavei]+; A = [VHGNDwavei]; ? A < 10 -> VHGND wave init incoming;
+	-> VHGND waves wipe outgoing;
+    "VHGND waves wipe all"
+	[VHGNDwavei] = 0; -> VHGND wave init outgoing;
+    "VHGND waves wipe outgoing"
+	( Non-ocean calls also clear every outgoing slot, preventing old ripples
+	  from surviving a checkpoint load or a later landing. )
+	[VHGNDwavei] = 10;
+    "VHGND wave init outgoing"
+	A = [VHGNDwavei]; A '* 7; A + VHGNDwavedata; [A plus 3] = 0;
+	[VHGNDwavei]+; A = [VHGNDwavei]; ? A < 25 -> VHGND wave init outgoing;
+	end;
+
+"VHGND waves"
+	( NOCTIS-1.CPP incoming/outgoing wave rings.  Ten wind rings contract
+	  toward their source centre; fifteen wake slots expand from the player
+	  and flatten until they disappear. )
+	A = [VHGlanded]; ? A = 0 -> VHGND waves done;
+	=> VHGND wave spawn;
+	[FI] = 8192; => IntToF; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 5; [SPsrc] = 1; [SPtinta] = 128; [SPescr] = 0;
+	[SPflar] = 1; [DBflar] = 1; [SPcull] = 1; [SPhalf] = 0;
+	[VHGNDwavei] = 0;
+    "VHGND wave one"
+	A = [VHGNDwavei]; A '* 7; A + VHGNDwavedata; [VHGNDwavep] = A;
+	A = [VHGNDwavesin]; ? A != 0 -> VHGND wave record ready;
+	A = [VHGNDwavei]; ? A < 10 -> VHGND wave next;
+    "VHGND wave record ready"
+	C = [VHGNDwavep]; [VHGNDwavecx] = [C plus 0]; [VHGNDwavecy] = [C plus 1];
+	[VHGNDwavecz] = [C plus 2]; [VHGNDwaveradius] = [C plus 3];
+	[VHGNDwaveheight] = [C plus 4]; [VHGNDwavewidth] = [C plus 5];
+	[VHGNDwavedelta] = [C plus 6];
+	A = [VHGNDwaveradius]; ? A <= 0 -> VHGND wave next;
+	[VHGNDwaveout] = 0; A = [VHGNDwavei]; ? A < 10 -> VHGND wave incoming;
+	[VHGNDwaveout] = 1; -> VHGND wave range;
+    "VHGND wave incoming"
+	A = [VHGNDdosim]; ? A = 0 -> VHGND wave incoming live;
+	A = [VHGNDwaveradius]; A + [VHGNDwavedelta]; [VHGNDwaveradius] = A;
+	? A > 0 -> VHGND wave incoming live;
+	( Source reset after an incoming crest reaches the centre. )
+	[VHGNDwaveradius] = 1500000;
+	A = [VHGNDtick]; C = [VHGNDwavei]; C '* 137; A + C; A & 1023; A + 500; [VHGNDwaveheight] = A;
+	A = [VHGNDtick]; A & 255; A + 500; C = 0; C - A; [VHGNDwavedelta] = C;
+    "VHGND wave incoming live"
+	C = [VHGNDwavep]; [C plus 3] = [VHGNDwaveradius]; [C plus 4] = [VHGNDwaveheight]; [C plus 6] = [VHGNDwavedelta];
+    "VHGND wave range"
+	A = [VHGNDwavecx]; A - [VHGNDcamx]; ? A >= 0 -> VHGND wave absx; C = 0; C - A; A = C;
+    "VHGND wave absx"
+	[VHGNDwavedx] = A;
+	A = [VHGNDwavecz]; A - [VHGNDcamz]; ? A >= 0 -> VHGND wave absz; C = 0; C - A; A = C;
+    "VHGND wave absz"
+	[VHGNDwavedz] = A;
+	C = [VHGNDwavedx]; ? A '<= C -> VHGND wave dist zmax;
+	A = C; C = [VHGNDwavedz]; C / 2; A + C; [VHGNDwavedist] = A; -> VHGND wave dist ready;
+    "VHGND wave dist zmax"
+	C = [VHGNDwavedx]; C / 2; A + C; [VHGNDwavedist] = A;
+    "VHGND wave dist ready"
+	=> VHGND wave impact check;
+	A = [VHGNDwaveout]; ? A != 0 -> VHGND wave outgoing range;
+	A = [VHGNDwavedist]; A - [VHGNDwaveradius]; ? A >= 0 -> VHGND wave radial abs; C = 0; C - A; A = C;
+    "VHGND wave radial abs"
+	C = [VHGNDwaveradius]; C / 2; C + 131072; ? A > C -> VHGND wave stored;
+	-> VHGND wave draw;
+    "VHGND wave outgoing range"
+	A = [VHGNDwaveradius]; A + 262144; ? [VHGNDwavedist] > A -> VHGND wave stored;
+    "VHGND wave draw"
+	A = [VHGNDwaveradius]; C = [VHGNDwavewidth];
+	? [VHGNDwaveout] != 0 -> VHGND wave outer width; A - C; -> VHGND wave inner ready;
+    "VHGND wave outer width"
+	A + C;
+    "VHGND wave inner ready"
+	[VHGNDwaveinner] = A; [VHGNDwaveseg] = 0;
+    "VHGND wave segment"
+	A = [VHGNDwaveseg]; A '* 18; [VHGNDwaveangle] = A;
+	A = [VHGNDwaveout]; ? A != 0 -> VHGND wave segment outgoing;
+	[VHGNDwavepr] = [VHGNDwaveinner]; => VHGND wave point; [VHGNDwavep0x] = [VHGNDwavepx]; [VHGNDwavep0z] = [VHGNDwavepz];
+	[VHGNDwavepr] = [VHGNDwaveradius]; => VHGND wave point; [VHGNDwavep1x] = [VHGNDwavepx]; [VHGNDwavep1z] = [VHGNDwavepz];
+	A = [VHGNDwaveangle]; A + 18; [VHGNDwaveangle] = A;
+	[VHGNDwavepr] = [VHGNDwaveradius]; => VHGND wave point; [VHGNDwavep2x] = [VHGNDwavepx]; [VHGNDwavep2z] = [VHGNDwavepz];
+	[VHGNDwavepr] = [VHGNDwaveinner]; => VHGND wave point; [VHGNDwavep3x] = [VHGNDwavepx]; [VHGNDwavep3z] = [VHGNDwavepz];
+	-> VHGND wave segment submit;
+    "VHGND wave segment outgoing"
+	[VHGNDwavepr] = [VHGNDwaveinner]; => VHGND wave point; [VHGNDwavep0x] = [VHGNDwavepx]; [VHGNDwavep0z] = [VHGNDwavepz];
+	[VHGNDwavepr] = [VHGNDwaveradius]; => VHGND wave point; [VHGNDwavep1x] = [VHGNDwavepx]; [VHGNDwavep1z] = [VHGNDwavepz];
+	A = [VHGNDwaveangle]; A + 18; [VHGNDwaveangle] = A;
+	[VHGNDwavepr] = [VHGNDwaveradius]; => VHGND wave point; [VHGNDwavep2x] = [VHGNDwavepx]; [VHGNDwavep2z] = [VHGNDwavepz];
+	[VHGNDwavepr] = [VHGNDwaveinner]; => VHGND wave point; [VHGNDwavep3x] = [VHGNDwavepx]; [VHGNDwavep3z] = [VHGNDwavepz];
+	=> VHGND wave water point; A = [VHGNDwavewet]; ? A = 0 -> VHGND wave segment next;
+    "VHGND wave segment submit"
+	[VHGNDvi] = 0; [VHGNDvv] = [VHGNDwavep0x]; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDwavecy]; A - [VHGNDwaveheight]; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDwavep0z]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDwavep1x]; [VHGNDvslot] = FSINX; => VHGND vload; [VHGNDvv] = [VHGNDwavecy]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDwavep1z]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDwavep2x]; [VHGNDvslot] = FSINX; => VHGND vload; [VHGNDvv] = [VHGNDwavecy]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDwavep2z]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDwavep3x]; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDwavecy]; A - [VHGNDwaveheight]; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDwavep3z]; [VHGNDvslot] = FSINZ; => VHGND vload;
+	[PJnrv] = 4; => PG polymap;
+    "VHGND wave segment next"
+	[VHGNDwaveseg]+; A = [VHGNDwaveseg]; ? A < 20 -> VHGND wave segment;
+    "VHGND wave stored"
+	A = [VHGNDwaveout]; ? A = 0 -> VHGND wave next;
+	A = [VHGNDdosim]; ? A = 0 -> VHGND wave next;
+	A = [VHGNDwaveradius]; A + [VHGNDwavedelta]; [VHGNDwaveradius] = A;
+	A = [VHGNDwaveheight]; A '* 40; A / 41; [VHGNDwaveheight] = A;
+	? A < 8 -> VHGND wave expire; C '* 100; ? [VHGNDwaveradius] > C -> VHGND wave expire;
+	C = [VHGNDwavep]; [C plus 3] = [VHGNDwaveradius]; [C plus 4] = [VHGNDwaveheight]; -> VHGND wave next;
+    "VHGND wave expire"
+	C = [VHGNDwavep]; [C plus 3] = 0;
+    "VHGND wave next"
+	[VHGNDwavei]+; A = [VHGNDwavei]; ? A < 25 -> VHGND wave one;
+    "VHGND waves done"
+	end;
+
+"VHGND wave impact tick"
+	( While the wet-lens state lives, the ring pushes radially toward its
+	  centre.  Updating only on simulation ticks keeps F5 presentation from
+	  multiplying either the shove or the view disturbance. )
+	[VHGNDimpactx] = 0; [VHGNDimpactz] = 0; [VHGNDimpacttilt] = 0;
+	A = [VHGNDwaveblur]; ? A <= 0 -> VHGND wave impact tick done;
+	A = [VHGNDdosim]; ? A = 0 -> VHGND wave impact tick done;
+	A = [VHGNDcamx]; A - [VHGNDwavehitcx]; A / 200;
+	A '* [VHGNDwavehitdelta]; A / 10000; [VHGNDimpactx] = A;
+	A = [VHGNDcamz]; A - [VHGNDwavehitcz]; A / 200;
+	A '* [VHGNDwavehitdelta]; A / 10000; [VHGNDimpactz] = A;
+	A = [VHGNDtick]; A + [VHGNDwavehitdelta]; A & 3; A - 1; [VHGNDimpacttilt] = A;
+    "VHGND wave impact tick done"
+	end;
+
+"VHGND wave impact check"
+	( A crest crossing the player starts the source's one-to-three tick
+	  wet-lens blur and retains this ring for its radial shove. )
+	A = [VHGNDwaveout]; ? A != 0 -> VHGND wave impact checked;
+	A = [VHGNDdosim]; ? A = 0 -> VHGND wave impact checked;
+	A = [VHGNDcamy]; C = 0; C - 1250; ? A > C -> VHGND wave impact height;
+	A = [VHGNDwaveblur]; ? A = 0 -> VHGND wave impact checked;
+    "VHGND wave impact height"
+	A = [VHGNDwavedist]; A - [VHGNDwaveradius]; ? A >= 0 -> VHGND wave impact radial; C = 0; C - A; A = C;
+    "VHGND wave impact radial"
+	C = [VHGNDwavewidth]; C '* 3; A - C; [VHGNDtmp] = A;
+	A = [VHGNDwavedelta]; ? A >= 0 -> VHGND wave impact delta; C = 0; C - A; A = C;
+    "VHGND wave impact delta"
+	A + A; ? [VHGNDtmp] > A -> VHGND wave impact checked;
+	A = [VHGNDtick]; A + [VHGNDwavei]; A '% 3; A + 1; [VHGNDwaveblur] = A;
+	[VHGNDwavehitcx] = [VHGNDwavecx]; [VHGNDwavehitcz] = [VHGNDwavecz];
+	[VHGNDwavehitdelta] = [VHGNDwavedelta]; [VHGNDwavehits]+;
+    "VHGND wave impact checked"
+	end;
+
+"VHGND wave impact finish"
+	( psmooth_64(adapted,160): exact central-page bounds and the original
+	  two-by-two, low-six-bit colour average.  Direct page units keep this
+	  rare one-to-three pass effect fast enough for interactive use. )
+	A = [VHGNDwaveblur]; ? A <= 0 -> VHGND wave impact finish done;
+	[VHGNDblurpasses] = A;
+    "VHGND wave blur pass"
+	[VHGNDblurp] = 2560;
+    "VHGND wave blur pixel"
+	D = nw; D + RADPT; D + [VHGNDblurp]; E = D; E + 320;
+	A = [E]; [VHGNDblurval] = A; A & 63;
+	C = E; C + 1; C = [C]; C & 63; A + C;
+	C = E; C + 320; C = [C]; C & 63; A + C;
+	C = E; C + 321; C = [C]; C & 63; A + C;
+	A > 2; C = [VHGNDblurval]; C & 192; A | C; [D] = A;
+	[VHGNDblurp]+; A = [VHGNDblurp]; ? A < 60480 -> VHGND wave blur pixel;
+	[VHGNDblurpasses]-; A = [VHGNDblurpasses]; ? A > 0 -> VHGND wave blur pass;
+	A = [VHGNDdosim]; ? A = 0 -> VHGND wave impact finish done; [VHGNDwaveblur]-;
+    "VHGND wave impact finish done"
+	end;
+
+"VHGND wave spawn"
+	( Source wakes are emitted while swimming.  A ripple is produced every
+	  ten frames on sea-level terrain; movement makes it taller, wider and
+	  faster, retaining the original step-dependent behavior. )
+	A = [VHGNDdosim]; ? A = 0 -> VHGND wave spawn done;
+	A = [VHGNDcamx]; A - [VHGNDwavelastx]; ? A >= 0 -> VHGND wave move x; C = 0; C - A; A = C;
+    "VHGND wave move x"
+	[VHGNDwavemove] = A;
+	A = [VHGNDcamz]; A - [VHGNDwavelastz]; ? A >= 0 -> VHGND wave move z; C = 0; C - A; A = C;
+    "VHGND wave move z"
+	A + [VHGNDwavemove]; [VHGNDwavemove] = A;
+	[VHGNDwavelastx] = [VHGNDcamx]; [VHGNDwavelastz] = [VHGNDcamz];
+	A = [VHGNDtick]; A '% 10; ? A != 0 -> VHGND wave spawn done;
+	[VHGNDwavep0x] = [VHGNDcamx]; [VHGNDwavep0z] = [VHGNDcamz]; => VHGND wave water point;
+	A = [VHGNDwavewet]; ? A = 0 -> VHGND wave spawn done;
+	A = [VHGNDwavelw]; A '* 7; A + VHGNDwavedata; [VHGNDwavep] = A;
+	C = A; [C plus 0] = [VHGNDcamx]; [C plus 1] = 50; [C plus 2] = [VHGNDcamz]; [C plus 3] = 200;
+	A = [VHGNDwavemove]; A '* 3; A + 100; ? A <= 2000 -> VHGND wave spawn height; A = 2000;
+    "VHGND wave spawn height"
+	[C plus 4] = A;
+	A = [VHGNDwavemove]; A '* 2; A + 50; ? A <= 1500 -> VHGND wave spawn width; A = 1500;
+    "VHGND wave spawn width"
+	[C plus 5] = A;
+	A = [VHGNDwavemove]; A '* 2; A + 12; ? A <= 1500 -> VHGND wave spawn delta; A = 1500;
+    "VHGND wave spawn delta"
+	[C plus 6] = A;
+	[VHGNDwavelw]+; A = [VHGNDwavelw]; ? A < 25 -> VHGND wave spawn done; [VHGNDwavelw] = 10;
+    "VHGND wave spawn done"
+	end;
+
+"VHGND wave point"
+	[VHVangle] = [VHGNDwaveangle]; => VHV sincos;
+	[FI] = [VHGNDwavepr]; => IntToF; [PGFi] = FSW1; => PGF sa;
+	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
+	A = [FI]; A + [VHGNDwavecx]; [VHGNDwavepx] = A;
+	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
+	A = [FI]; A + [VHGNDwavecz]; [VHGNDwavepz] = A;
+	end;
+
+"VHGND wave water point"
+	[VHGNDwavewet] = 0; A = [VHGNDwavep0x]; ? A < 0 -> VHGND wave water done;
+	? A '>= 3276800 -> VHGND wave water done; A > 14; [VHGNDx] = A;
+	A = [VHGNDwavep0z]; ? A < 0 -> VHGND wave water done;
+	? A '>= 3276800 -> VHGND wave water done; A > 14; A '* VHGNDMAP; A + [VHGNDx]; A + RPSM;
+	[MBptr] = A; => MEM get byte; A = [MBval]; ? A != 0 -> VHGND wave water done;
+	[VHGNDwavewet] = 1;
+    "VHGND wave water done"
+	end;
+
+"VHGND mamm rear list"
+	( Exact mamm_reartoto masks from NOCTIS-1.CPP. )
+	A = pvlst;
+	[A plus 0] = 0C007h; [A plus 1] = 0F008h; [A plus 2] = 0F009h;
+	[A plus 3] = 0F00Eh; [A plus 4] = 6012h; [A plus 5] = 0F00Ch;
+	[A plus 6] = 9013h; [A plus 7] = 0C015h; [A plus 8] = 0F00Ah;
+	[A plus 9] = 0F00Fh; [A plus 10] = 0F00Dh; [A plus 11] = 0F00Bh;
+	[A plus 12] = 0F02Eh; [A plus 13] = 0F02Fh; [A plus 14] = 0F032h;
+	[A plus 15] = 0F033h; [A plus 16] = 7030h; [A plus 17] = 7031h;
+	[A plus 18] = 0FFFh;
+	end;
+
+"VHGND mamm tail list"
+	A = pvlst;
+	[A plus 0] = 0F02Eh; [A plus 1] = 0F02Fh; [A plus 2] = 0F032h;
+	[A plus 3] = 0F033h; [A plus 4] = 7030h; [A plus 5] = 7031h;
+	[A plus 6] = 0FFFh;
+	end;
+
+"VHGND bird legs list"
+	A = pvlst; [A plus 0] = 4012h; [A plus 1] = 2013h; [A plus 2] = 0FFFh;
+	end;
+
+"VHGND bird wing one list"
+	A = pvlst; [A plus 0] = 7000h; [A plus 1] = 7001h; [A plus 2] = 0FFFh;
+	end;
+
+"VHGND bird wing two list"
+	A = pvlst; [A plus 0] = 7002h; [A plus 1] = 7003h; [A plus 2] = 0FFFh;
+	end;
+
+"VHGND render animals"
+	( live_animal() mammals: persistent motion plus the shipped model's
+	  feline, rabbit and kangaroo body-part deformation. )
+	[VHGNDanimorphs] = 0;
+	A = [VHGlanded]; ? A = 0 -> VHGND animals done;
+	A = [GRiptype]; ? A != 3 -> VHGND animals done;
+	A = [VHGNDanimals]; ? A = 0 -> VHGND animals done;
+	[VHGNDanii] = 0;
+    "VHGND animal one"
+	A = [VHGNDanii]; A '* 6; A + VHGNDanidata; [VHGNDanip] = A;
+	C = [VHGNDanip];
+	[VHGNDanix] = [C plus 0]; [VHGNDaniz] = [C plus 1];
+	[VHGNDanidir] = [C plus 2]; [VHGNDaniphase] = [C plus 3];
+	[VHGNDanimtype] = [C plus 4]; [VHGNDanispeed] = [C plus 5];
+
+	A = [VHGNDdosim]; ? A = 0 -> VHGND animal moved;
+	A = [VHGNDtick]; A + [VHGNDaniphase]; A & 255;
+	? A '< 224 -> VHGND animal moving; [VHGNDanispeed] = 0;
+	-> VHGND animal heading;
+    "VHGND animal moving"
+	A = 350; ? [VHGNDanimtype] = 0 -> VHGND animal speed ready;
+	A = 240; ? [VHGNDanimtype] = 1 -> VHGND animal speed ready; A = 450;
+    "VHGND animal speed ready"
+	[VHGNDanispeed] = A;
+    "VHGND animal heading"
+	A = [VHGNDtick]; A + [VHGNDaniphase]; A & 127;
+	? A != 0 -> VHGND animal heading ready;
+	A = [VHGNDanidir]; A + 1; A & 3; [VHGNDanidir] = A;
+    "VHGND animal heading ready"
+	A = [VHGNDanispeed]; ? A = 0 -> VHGND animal moved;
+	A = [VHGNDanidir]; ? A = 0 -> VHGND animal east;
+	? A = 1 -> VHGND animal south; ? A = 2 -> VHGND animal west;
+	A = [VHGNDaniz]; A - [VHGNDanispeed]; [VHGNDaniz] = A; -> VHGND animal moved;
+    "VHGND animal east"
+	A = [VHGNDanix]; A + [VHGNDanispeed]; [VHGNDanix] = A; -> VHGND animal moved;
+    "VHGND animal south"
+	A = [VHGNDaniz]; A + [VHGNDanispeed]; [VHGNDaniz] = A; -> VHGND animal moved;
+    "VHGND animal west"
+	A = [VHGNDanix]; A - [VHGNDanispeed]; [VHGNDanix] = A;
+    "VHGND animal moved"
+
+	A = [VHGNDanix]; A - [VHGNDcamx]; [VHGNDanidx] = A;
+	? A >= 0 -> VHGND animal absx; C = 0; C - A; [VHGNDanidx] = C;
+    "VHGND animal absx"
+	A = [VHGNDaniz]; A - [VHGNDcamz]; [VHGNDanidz] = A;
+	? A >= 0 -> VHGND animal absz; C = 0; C - A; [VHGNDanidz] = C;
+    "VHGND animal absz"
+	A = [VHGNDanidx]; A + [VHGNDanidz]; [VHGNDanidist] = A;
+	? A '<= 250000 -> VHGND animal ranged;
+	A = [VHGNDcamx]; A - 60000; C = [VHGNDanii]; C '* 40000; A + C; [VHGNDanix] = A;
+	A = [VHGNDanii]; A & 1; ? A = 0 -> VHGND animal respawn north;
+	A = [VHGNDcamz]; A - 50000; [VHGNDaniz] = A; -> VHGND animal respawned;
+    "VHGND animal respawn north"
+	A = [VHGNDcamz]; A + 50000; [VHGNDaniz] = A;
+    "VHGND animal respawned"
+	[VHGNDanidist] = 110000;
+    "VHGND animal ranged"
+	C = [VHGNDanip];
+	[C plus 0] = [VHGNDanix]; [C plus 1] = [VHGNDaniz];
+	[C plus 2] = [VHGNDanidir]; [C plus 5] = [VHGNDanispeed];
+	A = [VHGNDanidist]; ? A > 150000 -> VHGND animal next;
+
+	( Sample the ground ahead and bend the body around the source wrap joint. )
+	[VHGNDrox] = [VHGNDanix]; [VHGNDroz] = [VHGNDaniz]; => VHGND rock height;
+	[VHGNDaniground] = [VHGNDroy];
+	[VHGNDrox] = [VHGNDanix]; [VHGNDroz] = [VHGNDaniz];
+	A = [VHGNDanidir]; ? A = 0 -> VHGND animal ahead east;
+	? A = 1 -> VHGND animal ahead south; ? A = 2 -> VHGND animal ahead west;
+	A = [VHGNDroz]; A - 4096; [VHGNDroz] = A; -> VHGND animal ahead ready;
+    "VHGND animal ahead east"
+	A = [VHGNDrox]; A + 4096; [VHGNDrox] = A; -> VHGND animal ahead ready;
+    "VHGND animal ahead south"
+	A = [VHGNDroz]; A + 4096; [VHGNDroz] = A; -> VHGND animal ahead ready;
+    "VHGND animal ahead west"
+	A = [VHGNDrox]; A - 4096; [VHGNDrox] = A;
+    "VHGND animal ahead ready"
+	=> VHGND rock height;
+	A = [VHGNDaniground]; A - [VHGNDroy]; A '/ 256;
+	? A >= 0 -> VHGND animal incl low;
+	? A <= 20 -> VHGND animal incl ready; A = 20; -> VHGND animal incl ready;
+    "VHGND animal incl low"
+	C = 0; C - 20; ? A >= C -> VHGND animal incl ready; A = C;
+    "VHGND animal incl ready"
+	[VHGNDaniincl] = A;
+
+	A = [VHGNDtick]; A + [VHGNDaniphase]; A & 31; C = 16; C - A;
+	? C >= 0 -> VHGND animal phase ready; A = 0; A - C; C = A;
+    "VHGND animal phase ready"
+	[VHGNDanihop] = C;
+	A = [VHGNDanii]; A '* 2; A + 5; [VHGNDaniscale] = A;
+	A = [VHGNDaniground];
+	C = [VHGNDaniscale]; C '* 16; ? [VHGNDanimtype] = 0 -> VHGND animal clearance;
+	C = [VHGNDaniscale]; C '* 48; ? [VHGNDanimtype] = 1 -> VHGND animal clearance;
+	C = [VHGNDaniscale]; C '* 115;
+    "VHGND animal clearance"
+	A - C; [VHGNDaniy] = A;
+
+	[PVh] = 3; [PVk] = 2; => SP copypv;
+	[FI] = [VHGNDaniscale]; => IntToF; => F32Narrow; => FStoreF32;
+	[MOxs] = [FS0]; [MOys] = [FS0]; [MOzs] = [FS0];
+	[MOxa] = 0; [MOya] = 0; [MOza] = 0; A = 0; A - 1; [MOpid] = A; [MOvid] = A; [MOlist] = 0;
+	[PVh] = 3; => SP modpv;
+
+	A = [VHGNDanimtype]; ? A = 0 -> VHGND animal shaped;
+	[MOxs] = 40000000h; [MOys] = 40000000h; [MOzs] = 3F400000h;
+	[MOxa] = 0; [MOya] = 0; [MOza] = 0; A = 0; A - 1; [MOpid] = A; [MOvid] = A;
+	=> VHGND mamm rear list; [MOlist] = pvlst; [PVh] = 3; => SP modpv;
+	[MOxs] = 3F800000h; [MOys] = 3F800000h; [MOzs] = 3F800000h;
+	[FI] = 60; => IntToF; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
+	[MOya] = 0; [MOza] = 0; [MOlist] = 0; A = 0; A - 1; [MOpid] = A; [MOvid] = A;
+	[PVh] = 3; => SP modpv;
+	A = 0; A - 100; [FI] = A; => IntToF; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
+	[MOya] = 0; [MOza] = 0; [MOpid] = 46; [MOvid] = 1;
+	=> VHGND mamm tail list; [MOlist] = pvlst; [PVh] = 3; => SP modpv;
+	A = [VHGNDanimtype]; ? A = 2 -> VHGND animal shaped;
+	[MOxs] = 3EA8F5C3h; [MOys] = 3EA8F5C3h; [MOzs] = 3EA8F5C3h;
+	[MOxa] = 0; [MOya] = 0; [MOza] = 0; [MOlist] = 0; A = 0; A - 1; [MOpid] = A; [MOvid] = A;
+	[PVh] = 3; => SP modpv;
+    "VHGND animal shaped"
+
+	[MOxs] = 3F800000h; [MOys] = 3F800000h; [MOzs] = 3F800000h;
+	[FI] = [VHGNDaniincl]; => IntToF; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
+	[MOya] = 0; [MOza] = 0; [MOpid] = 16; [MOvid] = 2; [MOlist] = 0;
+	[PVh] = 3; => SP modpv;
+
+	A = [VHGNDanispeed]; ? A '< 50 -> VHGND animal tail wag;
+	A = 45; ? [VHGNDanimtype] = 0 -> VHGND animal gait base;
+	A = 60; ? [VHGNDanimtype] = 1 -> VHGND animal gait base; A = 22;
+    "VHGND animal gait base"
+	A '* [VHGNDanihop]; A '* 50;
+	C = [VHGNDaniscale]; C '* 32; [VHGNDtmp] = C; A / [VHGNDtmp]; [VHGNDaniperiod] = A;
+	A = 35; ? [VHGNDanimtype] = 0 -> VHGND animal bounce base;
+	A = 50; ? [VHGNDanimtype] = 1 -> VHGND animal bounce base; A = 300;
+    "VHGND animal bounce base"
+	C = [VHGNDaniperiod]; C '* [VHGNDaniscale]; C '* A;
+	A = [VHGNDaniy]; A - C; [VHGNDaniy] = A;
+	A = 0; A - [VHGNDaniperiod]; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	[MOxa] = [FS0]; [MOya] = 0; [MOza] = 0; [MOpid] = 16; [MOvid] = 2; [MOlist] = 0;
+	[PVh] = 3; => SP modpv;
+	A = [VHGNDaniperiod]; A + A; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	[MOxa] = [FS0]; => VHGND mamm rear list; [MOlist] = pvlst; [PVh] = 3; => SP modpv;
+	-> VHGND animal animated;
+    "VHGND animal tail wag"
+	A = [VHGNDanihop]; A '* 8; A - 60; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	[MOxa] = 0; [MOya] = [FS0]; [MOza] = 0; [MOpid] = 46; [MOvid] = 1;
+	=> VHGND mamm tail list; [MOlist] = pvlst; [PVh] = 3; => SP modpv;
+    "VHGND animal animated"
+	[VHGNDanimorphs]+;
+
+	A = [VHGNDanidir]; A '* 90; A + 180; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	[MOya] = [FS0]; [MOxa] = 0; [MOza] = 0; [MOlist] = 0; [MOpid] = 16; [MOvid] = 2;
+	[PVh] = 3; => SP modpv;
+
+	[FI] = [VHGNDanix]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanifx] = [FS0];
+	[FI] = [VHGNDaniy]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanify] = [FS0];
+	[FI] = [VHGNDaniz]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanifz] = [FS0];
+	[FI] = [VHGNDcamx]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamx] = [FS0];
+	[FI] = [VHGNDcamy]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamy] = [FS0];
+	[FI] = [VHGNDcamz]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamz] = [FS0];
+	[PVh] = 3; [DWmode] = 0; [DWuds] = 1;
+	[DWcx] = [VHGNDanifx]; [DWcy] = [VHGNDanify]; [DWcz] = [VHGNDanifz];
+	[DWcamx] = [VHGNDanicamx]; [DWcamy] = [VHGNDanicamy]; [DWcamz] = [VHGNDanicamz];
+	=> SP drawpv;
+	[SPcull] = 0; [SPflar] = 0; [SPhalf] = 0; [PGtexf] = 0; => VH join mode0;
+    "VHGND animal next"
+	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDanimals] -> VHGND animal one;
+    "VHGND animals done"
+	end;
+
+
+"VHGND render birds"
+	( Birds retain altitude and capture state.  One starts on land near the
+	  capsule; the others descend, cruise and take off. )
+	[VHGNDgroundbirds] = 0;
+	A = [VHGlanded]; ? A = 0 -> VHGND birds done;
+	A = [GRiptype]; ? A != 3 -> VHGND birds done;
+	A = [VHGNDbirds]; ? A = 0 -> VHGND birds done;
+	[VHGNDanii] = 0;
+    "VHGND bird one"
+	A = [VHGNDanii]; A '* 7; A + VHGNDbirddata; [VHGNDanip] = A;
+	C = [VHGNDanip];
+	[VHGNDanix] = [C plus 0]; [VHGNDaniz] = [C plus 1];
+	[VHGNDanidir] = [C plus 2]; [VHGNDaniphase] = [C plus 3];
+	[VHGNDbirdquote] = [C plus 4]; [VHGNDbirdtarget] = [C plus 5];
+	[VHGNDbirdlcount] = [C plus 6];
+
+	A = [VHGNDanix]; A - [VHGNDcamx]; [VHGNDanidx] = A;
+	? A >= 0 -> VHGND bird absx; C = 0; C - A; [VHGNDanidx] = C;
+    "VHGND bird absx"
+	A = [VHGNDaniz]; A - [VHGNDcamz]; [VHGNDanidz] = A;
+	? A >= 0 -> VHGND bird absz; C = 0; C - A; [VHGNDanidz] = C;
+    "VHGND bird absz"
+	A = [VHGNDanidx]; A + [VHGNDanidz]; [VHGNDanidist] = A;
+	A = [VHGNDdosim]; ? A = 0 -> VHGND bird state frozen;
+
+	A = [VHGNDbirdlcount]; ? A < 0 -> VHGND bird captured;
+	( Preserve live_animal's cautious-approach game: ordinary walking makes a
+	  nearby ground bird take off, while Ctrl-stalking stays below both source
+	  step thresholds.  A sufficiently close rush can still spring the original
+	  difficult ambush before the bird escapes. )
+	A = [VHGNDanidist]; ? A '>= 5000 -> VHGND bird near 3000;
+	A = [VHGNDplayerstep]; ? A '<= 250 -> VHGND bird near 3000;
+	A = [VHGNDbirdtarget]; ? A '>= 2500 -> VHGND bird near 3000;
+	[VHGNDbirdtarget] = 2500;
+    "VHGND bird near 3000"
+	A = [VHGNDanidist]; ? A '>= 3000 -> VHGND bird catch range;
+	A = [VHGNDplayerstep]; ? A '<= 100 -> VHGND bird catch range;
+	A = [VHGNDbirdtarget]; ? A '>= 2000 -> VHGND bird catch range;
+	[VHGNDbirdtarget] = 2000;
+    "VHGND bird catch range"
+	A = [VHGNDanidist]; ? A '>= 1000 -> VHGND bird habits;
+	( live_animal uses 250*reaction altitude and 500*reaction speed,
+	  with reaction=0.5/scale.  Keep the integer port's size response so
+	  the deliberately slow 80-unit stalk can actually close the gap. )
+	A = [VHGNDanii]; A '* 2; A + 8; [VHGNDtmp] = A;
+	A = 125; A '/ [VHGNDtmp]; [VHGNDbirdtarget] = A;
+	A = [VHGNDanidist]; ? A '>= 500 -> VHGND bird habits;
+	A = 0; A - 25; [VHGNDbirdlcount] = A;
+	[VHGNDbirdtarget] = 0; [VHGNDcaptures]+; -> VHGND bird captured;
+    "VHGND bird habits"
+	A = [VHGNDtick]; A + [VHGNDaniphase]; A & 511;
+	? A != 256 -> VHGND bird land cycle; A = [VHGNDbirdquote]; ? A '>= 50 -> VHGND bird land cycle;
+	[VHGNDbirdtarget] = 2000;
+    "VHGND bird land cycle"
+	A = [VHGNDtick]; A + [VHGNDaniphase]; A & 511;
+	? A != 384 -> VHGND bird ease; A = [VHGNDbirdquote]; ? A '< 1500 -> VHGND bird ease;
+	[VHGNDbirdtarget] = 0;
+    "VHGND bird ease"
+	A = [VHGNDbirdtarget]; A - [VHGNDbirdquote]; ? A = 0 -> VHGND bird velocity;
+	? A < 0 -> VHGND bird ease down;
+	A = [VHGNDbirdquote]; A + 50; ? A '<= [VHGNDbirdtarget] -> VHGND bird quote store;
+	A = [VHGNDbirdtarget]; -> VHGND bird quote store;
+    "VHGND bird ease down"
+	A = [VHGNDbirdquote]; A - 50; ? A '>= [VHGNDbirdtarget] -> VHGND bird quote store;
+	A = [VHGNDbirdtarget];
+    "VHGND bird quote store"
+	[VHGNDbirdquote] = A;
+    "VHGND bird velocity"
+	[VHGNDbirdspeed] = 0; A = [VHGNDbirdquote]; ? A '< 50 -> VHGND bird reaction speed;
+	[VHGNDbirdspeed] = 100; ? A '< 750 -> VHGND bird reaction speed;
+	[VHGNDbirdspeed] = 400; ? A '< 1500 -> VHGND bird reaction speed;
+	[VHGNDbirdspeed] = 800;
+    "VHGND bird reaction speed"
+	A = [VHGNDanidist]; ? A '>= 1000 -> VHGND bird heading;
+	A = [VHGNDanii]; A '* 2; A + 8; [VHGNDtmp] = A;
+	A = 250; A '/ [VHGNDtmp]; [VHGNDbirdspeed] = A; -> VHGND bird heading;
+
+    "VHGND bird captured"
+	A = [VHGNDbirdlcount]; ? A '>= 0 -> VHGND bird heading;
+	C = 0; C - A; [VHGNDtmp] = C;
+	A = [VHGNDcamx]; A - [VHGNDanix]; A '/ [VHGNDtmp]; A + [VHGNDanix]; [VHGNDanix] = A;
+	A = [VHGNDcamz]; A - [VHGNDaniz]; A '/ [VHGNDtmp]; A + [VHGNDaniz]; [VHGNDaniz] = A;
+	A = [VHGNDbirdquote]; A / [VHGNDtmp]; C = [VHGNDbirdquote]; C - A; [VHGNDbirdquote] = C;
+	A = [VHGNDbirdlcount]; A + 1; ? A = 0 -> VHGND bird caught still;
+	[VHGNDbirdlcount]+;
+    "VHGND bird caught still"
+	[VHGNDbirdspeed] = 0;
+
+    "VHGND bird heading"
+	A = [VHGNDtick]; A + [VHGNDaniphase]; A & 255;
+	? A != 0 -> VHGND bird heading ready;
+	A = [VHGNDanidir]; A + 1; A & 3; [VHGNDanidir] = A;
+    "VHGND bird heading ready"
+	A = [VHGNDbirdspeed]; ? A = 0 -> VHGND bird moved;
+	A = [VHGNDanidir]; ? A = 0 -> VHGND bird east;
+	? A = 1 -> VHGND bird south; ? A = 2 -> VHGND bird west;
+	A = [VHGNDaniz]; A - [VHGNDbirdspeed]; [VHGNDaniz] = A; -> VHGND bird moved;
+    "VHGND bird east"
+	A = [VHGNDanix]; A + [VHGNDbirdspeed]; [VHGNDanix] = A; -> VHGND bird moved;
+    "VHGND bird south"
+	A = [VHGNDaniz]; A + [VHGNDbirdspeed]; [VHGNDaniz] = A; -> VHGND bird moved;
+    "VHGND bird west"
+	A = [VHGNDanix]; A - [VHGNDbirdspeed]; [VHGNDanix] = A;
+    "VHGND bird moved"
+
+	"VHGND bird state frozen"
+	A = [VHGNDanix]; A - [VHGNDcamx]; [VHGNDanidx] = A;
+	? A >= 0 -> VHGND bird range absx; C = 0; C - A; [VHGNDanidx] = C;
+    "VHGND bird range absx"
+	A = [VHGNDaniz]; A - [VHGNDcamz]; [VHGNDanidz] = A;
+	? A >= 0 -> VHGND bird range absz; C = 0; C - A; [VHGNDanidz] = C;
+    "VHGND bird range absz"
+	A = [VHGNDanidx]; A + [VHGNDanidz]; [VHGNDanidist] = A;
+	A = [VHGNDbirdlcount]; ? A < 0 -> VHGND bird ranged;
+	A = [VHGNDanidist]; ? A '<= 250000 -> VHGND bird ranged;
+	A = [VHGNDcamx]; A - 80000; C = [VHGNDanii]; C '* 65000; A + C; [VHGNDanix] = A;
+	A = [VHGNDcamz]; A + 70000; C = [VHGNDanii]; C '* 45000; A - C; [VHGNDaniz] = A;
+	A = [VHGNDanii]; A + 1; A '* 2500; [VHGNDbirdquote] = A; [VHGNDbirdtarget] = A;
+	[VHGNDanidist] = 150000;
+    "VHGND bird ranged"
+	C = [VHGNDanip]; [C plus 0] = [VHGNDanix]; [C plus 1] = [VHGNDaniz];
+	[C plus 2] = [VHGNDanidir]; [C plus 4] = [VHGNDbirdquote];
+	[C plus 5] = [VHGNDbirdtarget]; [C plus 6] = [VHGNDbirdlcount];
+	A = [VHGNDanidist]; ? A > 150000 -> VHGND bird next;
+
+	[VHGNDrox] = [VHGNDanix]; [VHGNDroz] = [VHGNDaniz]; => VHGND rock height;
+	A = [VHGNDanii]; A '* 2; A + 8; [VHGNDaniscale] = A;
+	C = A; C '* 9; A = [VHGNDroy]; A - C; A - [VHGNDbirdquote]; [VHGNDaniy] = A;
+
+	[PVh] = 5; [PVk] = 4; => SP copypv;
+	[FI] = [VHGNDaniscale]; => IntToF; => F32Narrow; => FStoreF32;
+	[MOxs] = [FS0]; [MOys] = [FS0]; [MOzs] = [FS0];
+	[MOxa] = 0; [MOya] = 0; [MOza] = 0; A = 0; A - 1; [MOpid] = A; [MOvid] = A; [MOlist] = 0;
+	[PVh] = 5; => SP modpv;
+
+	A = [VHGNDbirdlcount]; ? A < 0 -> VHGND bird caught pose;
+	A = [VHGNDbirdquote]; ? A '>= 50 -> VHGND bird flight pose;
+	A = [VHGNDsctype]; ? A = 1 -> VHGND bird flight pose;
+	( Ground birds close their wings around the source wing joint. )
+	[VHGNDgroundbirds]+;
+	A = 50; A - [VHGNDbirdquote]; C = A; A '* 45; A / 50; [VHGNDaniperiod] = A;
+	C '* 75; C / 50; [VHGNDbirdflap] = C;
+	[MOxs] = 3F800000h; [MOys] = 3F800000h; [MOzs] = 3F800000h;
+	[MOpid] = 1; [MOvid] = 0; [MOxa] = 0;
+	[FI] = [VHGNDaniperiod]; => IntToF; => F32Narrow; => FStoreF32; [MOya] = [FS0];
+	[FI] = [VHGNDbirdflap]; => IntToF; => F32Narrow; => FStoreF32; [MOza] = [FS0];
+	=> VHGND bird wing one list; [MOlist] = pvlst; [PVh] = 5; => SP modpv;
+	A = 0; A - [VHGNDaniperiod]; [FI] = A; => IntToF; => F32Narrow; => FStoreF32; [MOya] = [FS0];
+	A = 0; A - [VHGNDbirdflap]; [FI] = A; => IntToF; => F32Narrow; => FStoreF32; [MOza] = [FS0];
+	=> VHGND bird wing two list; [MOlist] = pvlst; [PVh] = 5; => SP modpv;
+	-> VHGND bird approach pose;
+
+    "VHGND bird flight pose"
+	[MOxs] = 3F800000h; [MOys] = 3F800000h; [MOzs] = 3F800000h;
+	[MOpid] = 18; [MOvid] = 1; [MOya] = 0; [MOza] = 0;
+	A = 0; A - 75; [FI] = A; => IntToF; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
+	=> VHGND bird legs list; [MOlist] = pvlst; [PVh] = 5; => SP modpv;
+	A = [VHGNDaniscale]; ? A > 10 -> VHGND bird big flap;
+	( Small-bird source flap: abs(3 - tick%6) * 15 degrees. )
+	A = [VHGNDtick]; A + [VHGNDaniphase]; A '% 6; C = 3; C - A;
+	? C >= 0 -> VHGND bird flap ready; A = 0; A - C; C = A;
+    "VHGND bird flap ready"
+	C '* 15; [VHGNDbirdflap] = C; -> VHGND bird flap apply;
+    "VHGND bird big flap"
+	A = [VHGNDtick]; A + [VHGNDaniphase]; A '% 20; C = 10; C - A;
+	? C >= 0 -> VHGND bird big flap ready; A = 0; A - C; C = A;
+    "VHGND bird big flap ready"
+	C '* 9; C / 2; [VHGNDbirdflap] = C;
+    "VHGND bird flap apply"
+	[MOpid] = 1; [MOvid] = 0; [MOxa] = 0; [MOya] = 0;
+	A = 0; A - [VHGNDbirdflap]; [FI] = A; => IntToF; => F32Narrow; => FStoreF32; [MOza] = [FS0];
+	=> VHGND bird wing one list; [MOlist] = pvlst; [PVh] = 5; => SP modpv;
+	[FI] = [VHGNDbirdflap]; => IntToF; => F32Narrow; => FStoreF32; [MOza] = [FS0];
+	=> VHGND bird wing two list; [MOlist] = pvlst; [PVh] = 5; => SP modpv;
+	-> VHGND bird approach pose;
+
+    "VHGND bird caught pose"
+	A = 180; A '/ [VHGNDbirdlcount]; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	[MOxa] = [FS0]; [MOya] = 0; [MOza] = 0; [MOpid] = 1; [MOvid] = 0; [MOlist] = 0;
+	[PVh] = 5; => SP modpv;
+	-> VHGND bird heading pose;
+
+    "VHGND bird approach pose"
+	A = [VHGNDbirdquote]; ? A '>= 500 -> VHGND bird heading pose;
+	A = 250; A - [VHGNDbirdquote]; ? A >= 0 -> VHGND bird approach abs; C = 0; C - A; A = C;
+    "VHGND bird approach abs"
+	A '/ 10; C = 0; C - A; [FI] = C; => IntToF; => F32Narrow; => FStoreF32;
+	[MOxa] = [FS0]; [MOya] = 0; [MOza] = 0; [MOpid] = 1; [MOvid] = 0; [MOlist] = 0;
+	[PVh] = 5; => SP modpv;
+
+    "VHGND bird heading pose"
+	A = [VHGNDanidir]; A '* 90; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	[MOya] = [FS0]; [MOxa] = 0; [MOza] = 0; [MOlist] = 0; [MOpid] = 1; [MOvid] = 0;
+	[PVh] = 5; => SP modpv;
+
+	[FI] = [VHGNDanix]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanifx] = [FS0];
+	[FI] = [VHGNDaniy]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanify] = [FS0];
+	[FI] = [VHGNDaniz]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanifz] = [FS0];
+	[FI] = [VHGNDcamx]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamx] = [FS0];
+	[FI] = [VHGNDcamy]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamy] = [FS0];
+	[FI] = [VHGNDcamz]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamz] = [FS0];
+	[PVh] = 5; [DWmode] = 0; [DWuds] = 1;
+	[DWcx] = [VHGNDanifx]; [DWcy] = [VHGNDanify]; [DWcz] = [VHGNDanifz];
+	[DWcamx] = [VHGNDanicamx]; [DWcamy] = [VHGNDanicamy]; [DWcamz] = [VHGNDanicamz];
+	=> SP drawpv; [SPcull] = 0; [SPflar] = 0; [SPhalf] = 0; [PGtexf] = 0; => VH join mode0;
+
+	A = [VHGNDbirdlcount]; ? A '>= 0 -> VHGND bird next;
+	C = 0; C - 10; ? A <= C -> VHGND bird next;
+	[VHSx0] = [VHGNDanifx]; [VHSy0] = [VHGNDanify]; [VHSz0] = [VHGNDanifz];
+	[VHSx1] = [VHGNDanicamx]; [VHSz1] = [VHGNDanicamz];
+	A = [VHGNDcamy]; A - 50; [FI] = A; => IntToF; => F32Narrow; => FStoreF32; [VHSy1] = [FS0];
+	[VHScolor] = 62; => VH stick3d;
+    "VHGND bird next"
+	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDbirds] -> VHGND bird one;
+    "VHGND birds done"
+	end;
+
+
+"VHGND capsule"
+	( NOCTIS-1.CPP:1200-1221.  The settled drop capsule keeps both signed
+	  structural cupola grids, centred 900 units above the landing point,
+	  plus the three nested beacon rays.  Its translucent panel fill is kept
+	  for the animated pod below but omitted while walking: that fill repeats
+	  the aperture distance solve for 280 panels every frame and obscures no
+	  opaque surface detail. )
+	A = [VHGlanded]; ? A = 0 -> VHGND capsule done;
+	A = [VHGNDcamx]; A - [VHGNDdropx]; ? A >= 0 -> VHGND capsule absx; C = 0; C - A; A = C;
+    "VHGND capsule absx"
+	? A > 1064960 -> VHGND capsule done;
+	A = [VHGNDcamz]; A - [VHGNDdropz]; ? A >= 0 -> VHGND capsule absz; C = 0; C - A; A = C;
+    "VHGND capsule absz"
+	? A > 1064960 -> VHGND capsule done;
+
+	[VHCroof] = 0; [VHCcapsule] = 1; [SPcull] = 0; [SPflar] = 0; [SPhalf] = 0;
+	A = [VHGNDcamx]; A - [VHGNDdropx]; [VHVcamxi] = A;
+	A = [VHGNDcamz]; A - [VHGNDdropz]; [VHVcamzi] = A;
+	A = [VHGNDcamy]; A - [VHGNDdropy]; A + 1415; [VHVcamyi] = A;
+	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
+	[VHCyor] = 0FFFFFFFFh; => VH cupola grid;
+
+	A = [VHGNDcamy]; A - [VHGNDdropy]; A + 385; [VHVcamyi] = A;
+	=> VH set view; [VHCyor] = 1; => VH cupola grid;
+
+	( Beacon coordinates are relative to the capsule seam, matching the
+	  source's 2 km / 500 m / 100 m nested sticks. )
+	A = [VHGNDcamy]; A - [VHGNDdropy]; A + 900; [VHVcamyi] = A;
+	=> VH set view;
+	[VHSx0] = 0; [VHSy0] = 3304718336; [VHSz0] = 0;
+	[VHSx1] = 1120403456; [VHSy1] = 3388228608; [VHSz1] = 0; => VH stick3d;
+	[VHSx0] = 0; [VHSy0] = 3305127936; [VHSz0] = 0;
+	[VHSx1] = 0; [VHSy1] = 3379831808; [VHSz1] = 0; => VH stick3d;
+	[VHSx0] = 0; [VHSy0] = 3305324544; [VHSz0] = 0;
+	[VHSx1] = 0; [VHSy1] = 3371443200; [VHSz1] = 1120403456; => VH stick3d;
+	[VHCcapsule] = 0;
+
+	( Restore the landed camera for any caller-side overlays. )
+	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
+	=> VH set view;
+    "VHGND capsule done"
+	end;
+
+"VHGND moving capsule"
+	( NOCTIS-1.CPP:4317-4337.  During descent and ascent the pod is
+	  camera-relative; the terrain moves below it while both hemispheres
+	  retain polycupola's local opening aperture. )
+	[VHCroof] = 0; [VHCcapsule] = 1; [SPcull] = 0; [SPflar] = 0; [SPhalf] = 0;
+	[VHVcamxi] = 0; [VHVcamyi] = 1030; [VHVcamzi] = 0;
+	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
+	[VHCyor] = 0FFFFFFFFh; => VH polycupola; => VH cupola grid;
+	[VHVcamyi] = 0; => VH set view;
+	[VHCyor] = 1; => VH polycupola; => VH cupola grid;
+	[VHCcapsule] = 0;
+	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
+	=> VH set view;
+	end;
+
+"VHGND render ruins"
+	( The normal landed renderer groups distant ground into 8/16-tile quads.
+	  Historical walls are often only one map point thick, so overlay just the
+	  marked unit tiles instead of making the entire landscape full-detail. )
+	[VHGNDruinpass] = 0; A = [VHGlanded]; ? A = 0 -> VHGND render ruins done;
+	A = [VHGNDruinanchor]; ? A = 0 -> VHGND render ruins done;
+	[VHGNDruinpass] = 1; [VHGNDlodstep] = 1; [VHGNDlodradius] = VHGNDFAR;
+	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = VHGNDFAR;
+	A = [VHGNDcamx]; A > 14; A - VHGNDFAR; [VHGNDxlo] = A;
+	? A >= 0 -> VHGND ruins render xlo ready; [VHGNDxlo] = 0;
+    "VHGND ruins render xlo ready"
+	A = [VHGNDcamx]; A > 14; A + VHGNDFAR; [VHGNDxhi] = A;
+	? A '<= 198 -> VHGND ruins render xhi ready; [VHGNDxhi] = 198;
+    "VHGND ruins render xhi ready"
+	A = [VHGNDcamz]; A > 14; A - VHGNDFAR; [VHGNDzlo] = A;
+	? A >= 0 -> VHGND ruins render zlo ready; [VHGNDzlo] = 0;
+    "VHGND ruins render zlo ready"
+	A = [VHGNDcamz]; A > 14; A + VHGNDFAR; [VHGNDzhi] = A;
+	? A '<= 198 -> VHGND ruins render zhi ready; [VHGNDzhi] = 198;
+    "VHGND ruins render zhi ready"
+	[VHGNDz] = [VHGNDzhi];
+    "VHGND ruins render z"
+	[VHGNDx] = [VHGNDxlo];
+    "VHGND ruins render x"
+	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
+	A = VHGNDruins; A + [VHGNDh1]; A = [A]; ? A != 0 -> VHGND ruins render tile;
+	A = VHGNDruins; A + [VHGNDh1]; A + 1; A = [A]; ? A != 0 -> VHGND ruins render tile;
+	A = VHGNDruins; A + [VHGNDh1]; A + 201; A = [A]; ? A != 0 -> VHGND ruins render tile;
+	A = VHGNDruins; A + [VHGNDh1]; A + 200; A = [A]; ? A = 0 -> VHGND ruins render next x;
+    "VHGND ruins render tile"
+	=> VHGND tile;
+    "VHGND ruins render next x"
+	[VHGNDx]+; A = [VHGNDx]; ? A '<= [VHGNDxhi] -> VHGND ruins render x;
+	[VHGNDz]-; A = [VHGNDz]; ? A '>= [VHGNDzlo] -> VHGND ruins render z;
+	[VHGNDruinpass] = 0;
+    "VHGND render ruins done"
+	end;
+
+"VHGND traverse"
+	A = [VHGNDcamx]; A > 14; A - [VHGNDlodradius]; [VHGNDxlo] = A;
+	? A >= 0 -> VHGND traverse xlo ready; [VHGNDxlo] = 0;
+    "VHGND traverse xlo ready"
+	A = [VHGNDcamx]; A > 14; A + [VHGNDlodradius]; [VHGNDxhi] = A;
+	C = 199; C - [VHGNDlodstep]; ? A '<= C -> VHGND traverse xhi ready; [VHGNDxhi] = C;
+    "VHGND traverse xhi ready"
+	A = [VHGNDcamz]; A > 14; A - [VHGNDlodradius]; [VHGNDzlo] = A;
+	? A >= 0 -> VHGND traverse zlo ready; [VHGNDzlo] = 0;
+    "VHGND traverse zlo ready"
+	A = [VHGNDcamz]; A > 14; A + [VHGNDlodradius]; [VHGNDzhi] = A;
+	C = 199; C - [VHGNDlodstep]; ? A '<= C -> VHGND traverse zhi ready; [VHGNDzhi] = C;
+    "VHGND traverse zhi ready"
+	[VHGNDz] = [VHGNDzhi];
+    "VHGND render z"
+	[VHGNDx] = [VHGNDxlo];
+    "VHGND render x"
+	=> VHGND tile;
+	A = [VHGNDx]; A + [VHGNDlodstep]; [VHGNDx] = A;
+	? A '<= [VHGNDxhi] -> VHGND render x;
+	A = [VHGNDz]; A - [VHGNDlodstep]; [VHGNDz] = A;
+	? A '>= [VHGNDzlo] -> VHGND render z;
+	end;
+
+"VHGND tile"
+	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
+	=> VHGND tile shade;
+	A = [VHGNDdepth]; ? A > [VHGNDmaxdepth] -> VHGND tile done;
+	A = [VHGNDmindepth]; ? A < 0 -> VHGND tile depth accepted;
+	A = [VHGNDdepth]; ? A '<= [VHGNDmindepth] -> VHGND tile done;
+    "VHGND tile depth accepted"
+	A = RPSM; A + [VHGNDh1]; [MBptr] = A; => MEM get byte; [VHGNDs1] = [MBval];
+	A = RPSM; A + [VHGNDh1]; A + [VHGNDlodstep]; [MBptr] = A; => MEM get byte; [VHGNDs2] = [MBval];
+	A = [VHGNDlodstep]; A '* VHGNDMAP; A + [VHGNDlodstep]; A + RPSM; A + [VHGNDh1];
+	[MBptr] = A; => MEM get byte; [VHGNDs3] = [MBval];
+	A = [VHGNDlodstep]; A '* VHGNDMAP; A + RPSM; A + [VHGNDh1];
+	[MBptr] = A; => MEM get byte; [VHGNDs4] = [MBval];
+	A = [GRiptype]; ? A != 3 -> VHGND tile ground present;
+	A = [VHGNDsctype]; ? A != 1 -> VHGND tile ground present;
+	A = [VHGNDs1]; A + [VHGNDs2]; A + [VHGNDs3]; A + [VHGNDs4];
+	? A = 0 -> VHGND tile done;
+    "VHGND tile ground present"
+	[VHGNDruined] = 0;
+	A = VHGNDruins; A + [VHGNDh1]; A = [A]; ? A != 0 -> VHGND tile ruined;
+	A = VHGNDruins; A + [VHGNDh1]; A + [VHGNDlodstep]; A = [A]; ? A != 0 -> VHGND tile ruined;
+	A = [VHGNDlodstep]; A '* VHGNDMAP; A + [VHGNDlodstep]; A + VHGNDruins; A + [VHGNDh1]; A = [A]; ? A != 0 -> VHGND tile ruined;
+	A = [VHGNDlodstep]; A '* VHGNDMAP; A + VHGNDruins; A + [VHGNDh1]; A = [A]; ? A = 0 -> VHGND tile ruin ready;
+    "VHGND tile ruined"
+	[VHGNDruined] = 1;
+    "VHGND tile ruin ready"
+	( fragment() mirrors terrain heights about sea level.  The reflected pass
+	  deliberately stops before the near-detail object path below. )
+	A = [VHGNDmirror]; ? A = 0 -> VHGND tile heights ready;
+	A = 0; A - [VHGNDs1]; [VHGNDs1] = A;
+	A = 0; A - [VHGNDs2]; [VHGNDs2] = A;
+	A = 0; A - [VHGNDs3]; [VHGNDs3] = A;
+	A = 0; A - [VHGNDs4]; [VHGNDs4] = A;
+	[VHGNDreflected]+;
+    "VHGND tile heights ready"
+	A = [VHGNDshade]; [SPtinta] = A; [DBcol] = A;
+	A = [VHGNDruined]; ? A = 0 -> VHGND tile texture ready;
+	A = [VHGNDshade]; A & 63; A + 64; [SPtinta] = A; [DBcol] = A;
+	[FI] = 512; => IntToF; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	A = [VHGNDmirror]; ? A != 0 -> VHGND tile texture ready; [VHGNDruindrawn]+;
+    "VHGND tile texture ready"
+	[SPescr] = 0; [DBflar] = 0; [DBent] = 0;
+	[SPcull] = 0; A = [VHGNDdepth]; ? A < 4 -> VHGND tile cull ready; [SPcull] = 1;
+    "VHGND tile cull ready"
+	A = [VHGNDmirror]; ? A = 0 -> VHGND tile mirror cull ready; [SPcull] = 0;
+    "VHGND tile mirror cull ready"
+
+	[VHGNDvi] = 0;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs1]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile first flat;
+	A = [VHGNDdepth]; ? A '<= 1 -> VHGND tile first textured;
+    "VHGND tile first flat"
+	[PGtexf] = 0; [PJnrv] = 3; => PG poly3d; -> VHGND tile first done;
+    "VHGND tile first textured"
+	[PGtexf] = 5; [PJnrv] = 3; => PG polymap;
+    "VHGND tile first done"
+
+	[VHGNDvi] = 0;
+	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs3]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile second flat;
+	A = [VHGNDdepth]; ? A '<= 1 -> VHGND tile second textured;
+    "VHGND tile second flat"
+	[PGtexf] = 0; [PJnrv] = 3; => PG poly3d; -> VHGND tile second done;
+    "VHGND tile second textured"
+	[PGtexf] = 5; [PJnrv] = 3; => PG polymap;
+    "VHGND tile second done"
+
+	A = [VHGNDruined]; ? A = 0 -> VHGND tile texture restored;
+	[FI] = [VHGNDtscale]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;
+	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+    "VHGND tile texture restored"
+	A = [VHGNDruinpass]; ? A != 0 -> VHGND tile done;
+	A = [VHGNDmirror]; ? A != 0 -> VHGND tile done;
+	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile done;
+	A = [VHGNDdepth]; ? A '>= 4 -> VHGND tile done;
+	=> VHGND tile objects;
+	"VHGND tile done"
+	end;
+
+"VHGND tile objects"
+	( Packed source quadrant: low two bits count, then three 2-bit classes. )
+	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
+	A = ROBJ; A + [VHGNDh1]; [MBptr] = A; => MEM get byte;
+	[VHGNDobjbyte] = [MBval]; A = [MBval]; A & 3; [VHGNDocount] = A;
+	[VHGNDobjid] = 0;
+    "VHGND object loop"
+	A = [VHGNDocount]; ? A = 0 -> VHGND objects done;
+	A = [VHGNDobjbyte]; C = [VHGNDobjid]; C + 1; C < 1; A > C; A & 3;
+	[VHGNDobjclass] = A;
+	A = [VHGNDx]; A '* [VHGNDz]; A '* [VHGNDocount]; => SU fast srand;
+	[SUfmask] = 16383; => SU frnd; [VHGNDicx] = C;
+	[SUfmask] = 16383; => SU frnd; [VHGNDicz] = C;
+	A = [VHGNDx]; A < 14; A + [VHGNDicx]; [VHGNDoox] = A;
+	A = [VHGNDz]; A < 14; A + [VHGNDicz]; [VHGNDooz] = A;
+	[VHGNDrox] = [VHGNDoox]; [VHGNDroz] = [VHGNDooz]; => VHGND rock height;
+	[VHGNDooy] = [VHGNDroy];
+	A = [VHGNDobjclass]; ? A = 0 -> VHGND object rock;
+	? A = 1 -> VHGND object veget; ? A = 2 -> VHGND object tree;
+	-> VHGND object next;
+    "VHGND object rock"
+	=> VHGND rock; -> VHGND object next;
+    "VHGND object veget"
+	=> VHGND veget; -> VHGND object next;
+    "VHGND object tree"
+	=> VHGND tree;
+    "VHGND object next"
+	[VHGNDobjid]+; [VHGNDocount]-; -> VHGND object loop;
+    "VHGND objects done"
+	end;
+
+"VHGND veget"
+	( ciuffo(): a cheap crossed grass tuft at the source's 1 km scale. )
+	[SUfmask] = 1023; => SU frnd; C + 700; [VHGNDtreescale] = C;
+	[SUfmask] = 255; => SU frnd; C + 180; [VHGNDtreerad] = C;
+	[SUfmask] = 31; => SU frnd; C + 192; [VHGNDtreecol] = C;
+	A = [VHGNDooy]; A - [VHGNDtreescale]; [VHGNDtreeapex] = A;
+	[SPcull] = 0; [DBflar] = 0; [DBent] = 0; [DBcol] = [VHGNDtreecol];
+
+	[VHGNDvi] = 0; A = [VHGNDoox]; A - [VHGNDtreerad]; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDooy]; [VHGNDvslot] = FSINY; => VHGND vload; [VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	A = [VHGNDoox]; A + [VHGNDtreerad]; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDooy]; [VHGNDvslot] = FSINY; => VHGND vload; [VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload; [VHGNDvv] = [VHGNDtreeapex]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload; [PJnrv] = 3; => PG poly3d;
+
+	[VHGNDvi] = 0; [VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDooy]; [VHGNDvslot] = FSINY; => VHGND vload; A = [VHGNDooz]; A - [VHGNDtreerad]; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload; [VHGNDvv] = [VHGNDooy]; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGNDooz]; A + [VHGNDtreerad]; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload; [VHGNDvv] = [VHGNDtreeapex]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload; [PJnrv] = 3; => PG poly3d;
+	end;
+
+"VHGND tree"
+	( albero()/build_fractal_tree(): the source varies scale from roughly
+	  1.5--6 km, uses three 120-degree faces per tapered limb, then ends
+	  its common two-layer trees in triangular leaf fans.  This live path
+	  keeps that geometry but bounds the recursion to one three-way split. )
+	[SUfmask] = 2999; => SU frnd; C + 3000; [VHGNDtmp] = C;
+	[SUfmask] = 1499; => SU frnd; A = [VHGNDtmp]; A - C; [VHGNDtreescale] = A;
+	[SUfmask] = 3; => SU frnd; [VHGNDtreeorient] = C;
+	[SUfmask] = 63; => SU frnd; A = C; ? A = 22 -> VHGND tree conifer;
+	[SUfmask] = 31; => SU frnd; C + 192; [VHGNDtreecol] = C; -> VHGND tree colour ready;
+    "VHGND tree conifer"
+	[SUfmask] = 31; => SU frnd; C + 64; [VHGNDtreecol] = C;
+    "VHGND tree colour ready"
+	[SPcull] = 0; [DBflar] = 0; [DBent] = 0; [DBcol] = 72;
+
+	( Root node: source rootheight averages about one third of scaling. )
+	[VHGNDtreebx] = [VHGNDoox]; [VHGNDtreeby] = [VHGNDooy]; [VHGNDtreebz] = [VHGNDooz];
+	[VHGNDtreeex] = [VHGNDoox]; [VHGNDtreeez] = [VHGNDooz];
+	A = [VHGNDtreescale]; A '* 7; A / 20; C = [VHGNDooy]; C - A;
+	[VHGNDtreeey] = C; [VHGNDtreetop] = C;
+	A = [VHGNDtreescale]; A '* 3; A / 20; [VHGNDtreebr] = A;
+	A '* 3; A / 4; [VHGNDtreeer] = A; => VHGND tree limb;
+
+	( The first non-root split is one or three in Noctis.  Three nearby
+	  branches preserve the characteristic broad silhouette; depth 3 uses
+	  the legal one-branch outcome as a cheap last-distance representation. )
+	[VHGNDtreebranches] = 3; A = [VHGNDdepth]; ? A < 3 -> VHGND tree split ready;
+	[VHGNDtreebranches] = 1;
+    "VHGND tree split ready"
+	A = [VHGNDtreescale]; A '* 3; A / 8; [VHGNDtreerange] = A;
+	[VHGNDtreebranch] = 0;
+    "VHGND tree branch loop"
+	A = [VHGNDtreebranch]; ? A '>= [VHGNDtreebranches] -> VHGND tree done;
+	[VHGNDtreebx] = [VHGNDoox]; [VHGNDtreeby] = [VHGNDtreetop]; [VHGNDtreebz] = [VHGNDooz];
+	=> VHGND tree direction;
+	A = [VHGNDtreepx]; A + [VHGNDoox]; [VHGNDtreeex] = A;
+	A = [VHGNDtreepz]; A + [VHGNDooz]; [VHGNDtreeez] = A;
+	A = [VHGNDtreescale]; A '* 3; A / 16; C = [VHGNDtreetop]; C - A; [VHGNDtreeey] = C;
+	A = [VHGNDtreescale]; A '* 9; A / 80; [VHGNDtreebr] = A;
+	A '* 3; A / 4; [VHGNDtreeer] = A; [DBcol] = 81; => VHGND tree limb;
+	=> VHGND tree leaves;
+	[VHGNDtreebranch]+; -> VHGND tree branch loop;
+    "VHGND tree done"
+	end;
+
+"VHGND tree direction"
+	( Three directions at 120-degree intervals, rotated per chart object. )
+	A = [VHGNDtreebranch]; ? A = 0 -> VHGND tree direction zero;
+	? A = 1 -> VHGND tree direction one;
+	A = [VHGNDtreerange]; C = A; C / 2; A = 0; A - C; [VHGNDtreepx] = A;
+	A = [VHGNDtreerange]; A '* 7; A / 8; C = A; A = 0; A - C; [VHGNDtreepz] = A; -> VHGND tree direction rotate;
+    "VHGND tree direction one"
+	A = [VHGNDtreerange]; C = A; C / 2; A = 0; A - C; [VHGNDtreepx] = A;
+	A = [VHGNDtreerange]; A '* 7; A / 8; [VHGNDtreepz] = A; -> VHGND tree direction rotate;
+    "VHGND tree direction zero"
+	[VHGNDtreepx] = [VHGNDtreerange]; [VHGNDtreepz] = 0;
+    "VHGND tree direction rotate"
+	A = [VHGNDtreeorient]; ? A = 0 -> VHGND tree direction done;
+	? A = 1 -> VHGND tree rotate one; ? A = 2 -> VHGND tree rotate two;
+	A = [VHGNDtreepz]; C = A; A = 0; A - C; [VHGNDtmp] = A;
+	[VHGNDtreepz] = [VHGNDtreepx]; [VHGNDtreepx] = [VHGNDtmp]; -> VHGND tree direction done;
+    "VHGND tree rotate one"
+	[VHGNDtmp] = [VHGNDtreepx]; [VHGNDtreepx] = [VHGNDtreepz];
+	A = [VHGNDtmp]; C = A; A = 0; A - C; [VHGNDtreepz] = A; -> VHGND tree direction done;
+    "VHGND tree rotate two"
+	A = [VHGNDtreepx]; C = A; A = 0; A - C; [VHGNDtreepx] = A;
+	A = [VHGNDtreepz]; C = A; A = 0; A - C; [VHGNDtreepz] = A;
+    "VHGND tree direction done"
+	end;
+
+"VHGND tree limb"
+	( Tapered triangular prism: branchdetail=120 in the source. )
+	[VHGNDtreeside] = 0;
+    "VHGND tree limb face"
+	A = [VHGNDtreeside]; ? A '>= 3 -> VHGND tree limb done;
+	[VHGNDvi] = 0;
+	[VHGNDtreecx] = [VHGNDtreebx]; [VHGNDtreecy] = [VHGNDtreeby]; [VHGNDtreecz] = [VHGNDtreebz];
+	[VHGNDtreerad] = [VHGNDtreebr]; [VHGNDtreepoint] = [VHGNDtreeside]; => VHGND tree vertex;
+	[VHGNDtreepoint]+; A = [VHGNDtreepoint]; ? A < 3 -> VHGND tree limb base next; [VHGNDtreepoint] = 0;
+    "VHGND tree limb base next"
+	=> VHGND tree vertex;
+	[VHGNDtreecx] = [VHGNDtreeex]; [VHGNDtreecy] = [VHGNDtreeey]; [VHGNDtreecz] = [VHGNDtreeez]; [VHGNDtreerad] = [VHGNDtreeer];
+	=> VHGND tree vertex;
+	[VHGNDtreepoint] = [VHGNDtreeside]; => VHGND tree vertex;
+	[PJnrv] = 4; => PG poly3d;
+	[VHGNDtreeside]+; -> VHGND tree limb face;
+    "VHGND tree limb done"
+	end;
+
+"VHGND tree leaves"
+	( Terminal three-face fan, matching the source's 120-degree leaf pass. )
+	[DBcol] = [VHGNDtreecol]; A = [VHGNDtreescale]; A / 5; [VHGNDtreerad] = A;
+	[VHGNDtreeside] = 0;
+    "VHGND tree leaf face"
+	A = [VHGNDtreeside]; ? A '>= 3 -> VHGND tree leaves done;
+	[VHGNDvi] = 0; [VHGNDtreecx] = [VHGNDtreeex]; [VHGNDtreecy] = [VHGNDtreeey]; [VHGNDtreecz] = [VHGNDtreeez];
+	[VHGNDtreepoint] = [VHGNDtreeside]; => VHGND tree vertex;
+	[VHGNDtreepoint]+; A = [VHGNDtreepoint]; ? A < 3 -> VHGND tree leaf next; [VHGNDtreepoint] = 0;
+    "VHGND tree leaf next"
+	=> VHGND tree vertex;
+	[VHGNDtreepx] = [VHGNDtreeex]; A = [VHGNDtreeey]; A - [VHGNDtreerad]; [VHGNDtreecy] = A;
+	[VHGNDtreepz] = [VHGNDtreeez]; => VHGND tree vertex load;
+	[PJnrv] = 3; => PG poly3d;
+	[VHGNDtreeside]+; -> VHGND tree leaf face;
+    "VHGND tree leaves done"
+	end;
+
+"VHGND tree vertex"
+	A = [VHGNDtreepoint]; ? A = 0 -> VHGND tree point zero;
+	? A = 1 -> VHGND tree point one;
+	A = [VHGNDtreerad]; C = A; C / 2; A = [VHGNDtreecx]; A - C; [VHGNDtreepx] = A;
+	A = [VHGNDtreerad]; A '* 7; A / 8; C = [VHGNDtreecz]; C - A; [VHGNDtreepz] = C; -> VHGND tree vertex load;
+    "VHGND tree point one"
+	A = [VHGNDtreerad]; C = A; C / 2; A = [VHGNDtreecx]; A - C; [VHGNDtreepx] = A;
+	A = [VHGNDtreerad]; A '* 7; A / 8; C = [VHGNDtreecz]; C + A; [VHGNDtreepz] = C; -> VHGND tree vertex load;
+    "VHGND tree point zero"
+	A = [VHGNDtreecx]; A + [VHGNDtreerad]; [VHGNDtreepx] = A; [VHGNDtreepz] = [VHGNDtreecz];
+    "VHGND tree vertex load"
+	[VHGNDvv] = [VHGNDtreepx]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDtreecy]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDtreepz]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	end;
+
+"VHGND rock"
+	( roccia(): deterministic tetrahedral stones.  The original repeats
+	  several close tetrahedra at depth 0..2; this live path retains its
+	  shape, seeded placement, scale, peak and distance LOD while limiting
+	  each chart object to one tetrahedron for GUI frame time. )
+	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; => SU fast srand;
+	[SUfmask] = [VHGNDrockdensity]; => SU frnd; [VHGNDcdown] = C;
+	A = C; ? A = 0 -> VHGND rock done;
+
+	( apex height = ground - 100 - fast_flandom()*rockpeaking )
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockpeak]; A '/ 32767;
+	C = [VHGNDooy]; C - 100; C - A; [VHGNDrtop] = C;
+
+	( base point 0: x-rand(scale), z-rand(scale) )
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockscale]; A '/ 32767;
+	C = [VHGNDoox]; C - A; [VHGNDrx0] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockscale]; A '/ 32767;
+	C = [VHGNDooz]; C - A; [VHGNDrz0] = C;
+	[VHGNDrox] = [VHGNDrx0]; [VHGNDroz] = [VHGNDrz0]; => VHGND rock height; [VHGNDry0] = [VHGNDroy];
+
+	( base point 1: centre x, z+rand(scale) )
+	[VHGNDrx1] = [VHGNDoox];
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockscale]; A '/ 32767;
+	C = [VHGNDooz]; C + A; [VHGNDrz1] = C;
+	[VHGNDrox] = [VHGNDrx1]; [VHGNDroz] = [VHGNDrz1]; => VHGND rock height; [VHGNDry1] = [VHGNDroy];
+
+	( base point 2: x+rand(scale), z-rand(scale) )
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockscale]; A '/ 32767;
+	C = [VHGNDoox]; C + A; [VHGNDrx2] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockscale]; A '/ 32767;
+	C = [VHGNDooz]; C - A; [VHGNDrz2] = C;
+	[VHGNDrox] = [VHGNDrx2]; [VHGNDroz] = [VHGNDrz2]; => VHGND rock height; [VHGNDry2] = [VHGNDroy];
+
+	[SUfmask] = 63; => SU frnd; [VHGNDrcolor] = C;
+	[SUfmask] = 7; => SU frnd; C + [VHGNDrcolor]; [VHGNDrcol0] = C;
+	[SUfmask] = 15; => SU frnd; C + [VHGNDrcolor]; [VHGNDrcol1] = C;
+	[SUfmask] = 31; => SU frnd; C + [VHGNDrcolor]; [VHGNDrcol2] = C;
+	[SPcull] = 0; [DBflar] = 0; [DBent] = 0;
+
+	( face 0: base0, base1, apex )
+	[VHGNDvi] = 0; [VHGNDvv] = [VHGNDrx0]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDry0]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDrz0]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDrx1]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDry1]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDrz1]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDrtop]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload;
+	[PJnrv] = 3; [DBcol] = [VHGNDrcol0]; => PG poly3d;
+	A = [VHGNDdepth]; ? A > 2 -> VHGND rock done;
+
+	( face 1: base1, base2, apex )
+	[VHGNDvi] = 0; [VHGNDvv] = [VHGNDrx1]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDry1]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDrz1]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDrx2]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDry2]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDrz2]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDrtop]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload;
+	[PJnrv] = 3; [DBcol] = [VHGNDrcol1]; => PG poly3d;
+
+	( face 2: base2, base0, apex )
+	[VHGNDvi] = 0; [VHGNDvv] = [VHGNDrx2]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDry2]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDrz2]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDrx0]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDry0]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDrz0]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDrtop]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload;
+	[PJnrv] = 3; [DBcol] = [VHGNDrcol2]; => PG poly3d;
+    "VHGND rock done"
+	end;
+
+"VHGND rock height"
+	[VHGNDcamx] = [VHGNDrox]; [VHGNDcamz] = [VHGNDroz]; => VHGND eye height;
+	A = [VHGNDheight]; A + 600; [VHGNDroy] = A;
+	[VHGNDcamx] = [VHGNDviewx]; [VHGNDcamz] = [VHGNDviewz];
+	end;
+
+"VHGND tile shade"
+	( NOCTIS-1.CPP:1125-1150, diffuse-light arm (sh_delta == 0).
+	  Each tile gets the original deterministic 8..15 base shade from
+	  fast_random(7), followed by the source distance haze.  The live
+	  landing fixtures are close to a perpendicular sun, so this is the
+	  active source path and selects surface_palette's ground band 0..63. )
+	A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;
+	[SUfmask] = 7; => SU frnd;
+	C + 8; [VHGNDshade] = C;
+
+	( hpdep = sqrt((pos_x-tile_centre_x)^2 +
+	               (pos_z-tile_centre_z)^2), then depth=(hpdep>>14)-1. )
+	A = [VHGNDx]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
+	C = [VHGNDcamx]; C - A;
+	[VHGNDdx] = C; [FI] = C; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1];
+	A = [VHGNDz]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
+	C = [VHGNDcamz]; C - A;
+	[VHGNDdz] = C; [FI] = C; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => FSqrt; => FToIntChop;
+	A = [FI]; A > 14; A - 1; ? A >= 0 -> VHGND tile depth ready; A = 0;
+    "VHGND tile depth ready"
+	[VHGNDdepth] = A; A > 1; C = [VHGNDshade]; C + A;
+	? C '<= 32 -> VHGND tile shade ready; C = 32;
+    "VHGND tile shade ready"
+	[VHGNDshade] = C;
+	end;
+
+"VHGND vload"
+	[FI] = [VHGNDvv]; => IntToF;
+	A = [VHGNDvslot]; A + [VHGNDvi]; [PGFi] = A; => PGF sa;
+	end;

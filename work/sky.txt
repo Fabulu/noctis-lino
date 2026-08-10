@@ -1,0 +1,896 @@
+      ( *** sky - NIV+ planetary sky production library ***
+
+	Source: NOCTIS-1.CPP:1674-1736, :2736-3139 and the caller-side
+	horizon pass at :3683-3697.  The caller fills RSBG before GRSK create.
+	GRSK create deliberately stops before the horizon pass; GRSK horizon is
+	the separate source-order operation used by planetary_main and by J.
+
+	All caller-visible state is in the exclusive GRSK namespace.  The two
+	random streams and the delivered smoothers/palette code remain owned by
+	SU and PAL.  GRSKquadwords models the historical global solely so it can
+	be saved and restored around both painters.  SU's delivered smoothers
+	already carry the exact 16,200-qword bounds and the 41-byte readable tail.
+
+	Float globals and locals below are binary32 bit images.  Helpers widen
+	them through fp/fpconv, perform an expression in the delivered x87
+	binary64 register ABI, and narrow only at C float assignment boundaries.
+	This library contains no corpus, file, dump, fixture, or display code. )
+
+"constants"
+
+	GRSKSTB = 64800;
+	GRSKHOR = 120;
+	GRSKQW  = 16200;
+
+	GRSKOCEAN  = 1;
+	GRSKPLAINS = 2;
+	GRSKDESERT = 3;
+	GRSKICY    = 4;
+
+	( binary32 constants used as exact assigned float values )
+	GRSKF0    = 00000000h;
+	GRSKF01   = 3DCCCCCDh;
+	GRSKF02   = 3E4CCCCDh;
+	GRSKF025  = 3E800000h;
+	GRSKF03   = 3E99999Ah;
+	GRSKF033  = 3EA8F5C3h;
+	GRSKF04   = 3ECCCCCDh;
+	GRSKF044  = 3EE147AEh;
+	GRSKF045  = 3EE66666h;
+	GRSKF05   = 3F000000h;
+	GRSKF055  = 3F0CCCCDh;
+	GRSKF06   = 3F19999Ah;
+	GRSKF065  = 3F266666h;
+	GRSKF08   = 3F4CCCCDh;
+	GRSKF09   = 3F666666h;
+	GRSKF095  = 3F733333h;
+	GRSKF1    = 3F800000h;
+	GRSKF12   = 3F99999Ah;
+	GRSKF13   = 3FA66666h;
+	GRSKF14   = 3FB33333h;
+	GRSKF15   = 3FC00000h;
+	GRSKF2    = 40000000h;
+	GRSKF4    = 40800000h;
+	GRSKF5    = 40A00000h;
+	GRSKF10   = 41200000h;
+	GRSKF20   = 41A00000h;
+	GRSKF24   = 41C00000h;
+	GRSKF45   = 42340000h;
+	GRSKF60   = 42700000h;
+	GRSKF63   = 427C0000h;
+	GRSKF64   = 42800000h;
+	GRSKF80   = 42A00000h;
+	GRSKF90   = 42B40000h;
+	GRSKF120  = 42F00000h;
+	GRSKF150  = 43160000h;
+	GRSKF269  = 43868000h;
+
+"variables"
+
+	( caller state, one canonical case )
+	GRSKptype       = 0;
+	GRSKsctype      = 0;
+	GRSKatmosphere  = 0;
+	GRSKnightzone   = 0;
+	GRSKtarget      = 0;
+	GRSKowner       = 0;
+	GRSKstarclass   = 0;
+	GRSKseed        = 0;
+	GRSKalbedo      = 0;
+	GRSKrainy       = 0;       ( binary32 )
+	GRSKbrightness  = 0;
+	GRSKsrf          = 0;
+	GRSKsgf          = 0;
+	GRSKsbf          = 0;
+	GRSKgrf          = 0;
+	GRSKggf          = 0;
+	GRSKgbf          = 0;
+	GRSKdsd1         = 0;       ( binary32 )
+	GRSKexposure     = 0;       ( binary32 )
+	GRSKlat          = 0;
+	GRSKquadwords    = 0;
+
+	( outputs )
+	GRSKpressure     = 0;       ( binary32 )
+	GRSKtemp         = 0;       ( binary32 )
+	GRSKbasepressure = 0;       ( binary32 )
+	GRSKbasetemp     = 0;       ( binary32 )
+	GRSKpaletteok    = 0;
+	GRSKphase        = 0;
+
+	( saved global and source locals )
+	GRSKqsave = 0;
+	GRSKbr = 0; GRSKbg = 0; GRSKbb = 0;
+	GRSKtr = 0; GRSKtg = 0; GRSKtb = 0;
+	GRSKal = 0; GRSKsb = 0; GRSKdfs = 0; GRSKsat = 0;
+	( three deliberately adjacent four-element binary32 arrays )
+	GRSKfr = 0; GRSKfr1 = 0; GRSKfr2 = 0; GRSKfr3 = 0;
+	GRSKfg = 0; GRSKfg1 = 0; GRSKfg2 = 0; GRSKfg3 = 0;
+	GRSKfb = 0; GRSKfb1 = 0; GRSKfb2 = 0; GRSKfb3 = 0;
+
+	( generic binary32 expression operands/result )
+	GRSKx = 0; GRSKy = 0; GRSKz = 0; GRSKo = 0;
+	GRSKiv = 0;
+	GRSKk0 = 0; GRSKk1 = 0;     ( dynamic binary64 literal )
+	GRSKa0 = 0; GRSKa1 = 0;     ( second binary64 literal )
+	GRSKret = 0;
+
+	( cloudy/nebular/horizon integer state )
+	GRSKdensity = 0; GRSKsmoothing = 0;
+	GRSKn = 0; GRSKcx = 0; GRSKcy = 0; GRSKr = 0;
+	GRSKxi = 0; GRSKyi = 0; GRSKp = 0; GRSKi = 0;
+	GRSKcxf = 0; GRSKcyf = 0; GRSKrf = 0; GRSKxf = 0; GRSKyf = 0;
+	GRSKax = 0; GRSKcnt = 0; GRSKbl = 0;
+	GRSKshade = 0; GRSKptr = 0; GRSKtmp = 0;
+	GRSKlatabs = 0;
+	GRSKwaddr = 0; GRSKwbyte = 0;
+	GRSKwmin = 0; GRSKwmax = 0; GRSKwrites = 0; GRSKoob = 0;
+
+"programme"
+
+( ==================================================================== )
+( binary32 expression nucleus                                           )
+( ==================================================================== )
+
+"GRSK fa x"
+	[FS0] = [GRSKx]; => FLoadF32;
+	end;
+
+"GRSK fb y"
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FS0] = [GRSKy]; => FLoadF32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1];
+	end;
+
+"GRSK store o"
+	=> FStoreF32; [GRSKo] = [FS0];
+	end;
+
+"GRSK x assign"
+	=> GRSK fa x; => GRSK store o;
+	end;
+
+"GRSK int fa"
+	[FI] = [GRSKiv]; => IntToF;
+	end;
+
+"GRSK x add y"
+	=> GRSK fa x; => GRSK fb y; => FAdd;
+	end;
+
+"GRSK x sub y"
+	=> GRSK fa x; => GRSK fb y; => FSub;
+	end;
+
+"GRSK x mul y"
+	=> GRSK fa x; => GRSK fb y; => FMul;
+	end;
+
+"GRSK x quo y"
+	=> GRSK fa x; => GRSK fb y; => FQuo;
+	end;
+
+"GRSK x mul k"
+	=> GRSK fa x;
+	[FB0] = [GRSKk0]; [FB1] = [GRSKk1];
+	=> FMul;
+	end;
+
+"GRSK x quo k"
+	=> GRSK fa x;
+	[FB0] = [GRSKk0]; [FB1] = [GRSKk1];
+	=> FQuo;
+	end;
+
+"GRSK fa mul k"
+	[FB0] = [GRSKk0]; [FB1] = [GRSKk1]; => FMul;
+	end;
+
+"GRSK fa add y"
+	[FT0]=[FA0]; [FT1]=[FA1]; [FS0]=[GRSKy]; => FLoadF32;
+	[FB0]=[FT0]; [FB1]=[FT1]; => FAdd;
+	end;
+
+"GRSK fa mul y"
+	[FT0]=[FA0]; [FT1]=[FA1]; [FS0]=[GRSKy]; => FLoadF32;
+	[FB0]=[FT0]; [FB1]=[FT1]; => FMul;
+	end;
+
+      ( Safe linear form: o = y + x*k. )
+"GRSK linear"
+	=> GRSK fa x;
+	[FB0] = [GRSKk0]; [FB1] = [GRSKk1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FS0] = [GRSKy]; => FLoadF32;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd;
+	end;
+
+"GRSK linear a"
+	=> GRSK fa x; [FB0]=[GRSKk0]; [FB1]=[GRSKk1]; => FMul;
+	[FB0]=[GRSKa0]; [FB1]=[GRSKa1]; => FAdd;
+	end;
+
+      ( Source-width expression fragments.  Each returns binary64 in FA;
+	the caller performs the one and only FStoreF32 for the C assignment. )
+"GRSK random linear"
+	=> GRSK flandom; [GRSKx]=[GRSKret]; => GRSK linear;
+	end;
+
+"GRSK random linear a"
+	=> GRSK flandom; [GRSKx]=[GRSKret]; => GRSK linear a;
+	end;
+
+"GRSK a sub x"
+	=> GRSK fa x; [FT0]=[FA0]; [FT1]=[FA1];
+	[FA0]=[GRSKa0]; [FA1]=[GRSKa1]; [FB0]=[FT0]; [FB1]=[FT1]; => FSub;
+	end;
+
+"GRSK random symmetric"
+	=> GRSK flandom; [GRSKx]=[GRSKret]; => GRSK x mul k;
+	[FT0]=[FA0]; [FT1]=[FA1];
+	=> GRSK flandom; [GRSKx]=[GRSKret]; => GRSK x mul k;
+	[FB0]=[FA0]; [FB1]=[FA1]; [FA0]=[FT0]; [FA1]=[FT1]; => FSub;
+	=> GRSK fa add y; [FB0]=[GRSKa0]; [FB1]=[GRSKa1]; => FAdd;
+	end;
+
+"GRSK half x half random"
+	=> GRSK fa x; => GRSK k05; => GRSK fa mul k;
+	[FT0]=[FA0]; [FT1]=[FA1];
+	=> GRSK flandom; [GRSKx]=[GRSKret]; => GRSK x mul k;
+	[FB0]=[FT0]; [FB1]=[FT1]; => FAdd;
+	end;
+
+"GRSK random k add x k03"
+	=> GRSK flandom; [GRSKz]=[GRSKret];
+	[GRSKx]=[GRSKz]; => GRSK x mul k; [FT0]=[FA0]; [FT1]=[FA1];
+	[GRSKx]=[GRSKy]; => GRSK fa x; => GRSK k03; => GRSK fa mul k;
+	[FB0]=[FT0]; [FB1]=[FT1]; => FAdd;
+	end;
+
+"GRSK random k mul al add y"
+	=> GRSK flandom; [GRSKx]=[GRSKret]; => GRSK x mul k;
+	[GRSKy]=[GRSKal]; => GRSK fa mul y; [GRSKy]=[GRSKz]; => GRSK fa add y;
+	end;
+
+"GRSK base k08 add random k02 al"
+	[GRSKz]=[GRSKx]; => GRSK flandom; [GRSKx]=[GRSKret]; => GRSK k02; => GRSK x mul k;
+	[GRSKy]=[GRSKal]; => GRSK fa mul y; [FT0]=[FA0]; [FT1]=[FA1];
+	[GRSKx]=[GRSKz]; => GRSK fa x; => GRSK k08; => GRSK fa mul k;
+	[FB0]=[FT0]; [FB1]=[FT1]; => FAdd;
+	end;
+
+"GRSK half add x half al"
+	=> GRSK fa x; => GRSK k05; => GRSK fa mul k; [GRSKy]=[GRSKal]; => GRSK fa mul y;
+	[GRSKy]=GRSKF05; => GRSK fa add y;
+	end;
+
+"GRSK random mul al add y"
+	=> GRSK flandom; [GRSKx]=[GRSKret]; => GRSK fa x;
+	[GRSKy]=[GRSKal]; => GRSK fa mul y; [GRSKy]=[GRSKz]; => GRSK fa add y;
+	end;
+
+"GRSK saturate x"
+	=> GRSK fa x; [GRSKy]=GRSKF05; => GRSK fb y; => FSub;
+	[GRSKy]=[GRSKsat]; => GRSK fa mul y;
+	[GRSKy]=GRSKF05; => GRSK fa add y;
+	end;
+
+"GRSK scale x"
+	[GRSKx]=[GRSKz]; => GRSK fa x;
+	[GRSKy]=GRSKF64; => GRSK fa mul y; => F32Narrow;
+	[GRSKy]=[GRSKdfs]; => GRSK fa mul y; => F32Narrow;
+	end;
+
+"GRSK scale sky x"
+	[GRSKx]=[GRSKz]; => GRSK fa x;
+	[GRSKy]=GRSKF64; => GRSK fa mul y; => F32Narrow;
+	[GRSKy]=[GRSKdfs]; => GRSK fa mul y; => F32Narrow;
+	[GRSKy]=[GRSKsb]; => GRSK fa mul y; => F32Narrow;
+	end;
+
+"GRSK compare"
+	=> GRSK fa x; [FT0] = [FA0]; [FT1] = [FA1];
+	[FS0] = [GRSKy]; => FLoadF32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1];
+	=> FCmp;
+	end;
+
+"GRSK compare a"
+	=> GRSK fa x; [FB0]=[GRSKa0]; [FB1]=[GRSKa1]; => FCmp;
+	end;
+
+      ( k setters for source double literals. )
+"GRSK k000030518" [GRSKk0]=7EDA0BE1h; [GRSKk1]=3F00000Eh; end;
+"GRSK k005" [GRSKk0]=9999999Ah; [GRSKk1]=3FA99999h; end;
+"GRSK k002" [GRSKk0]=47AE147Bh; [GRSKk1]=3F947AE1h; end;
+"GRSK k00077" [GRSKk0]=02DE00D2h; [GRSKk1]=3F7F8A09h; end;
+"GRSK k00044" [GRSKk0]=01A36E2Fh; [GRSKk1]=3F7205BCh; end;
+"GRSK k01"  [GRSKk0]=9999999Ah; [GRSKk1]=3FB99999h; end;
+"GRSK k012" [GRSKk0]=0EB851EB8h; [GRSKk1]=3FBEB851h; end;
+"GRSK k015" [GRSKk0]=33333333h; [GRSKk1]=3FC33333h; end;
+"GRSK k02"  [GRSKk0]=9999999Ah; [GRSKk1]=3FC99999h; end;
+"GRSK k025" [GRSKk0]=00000000h; [GRSKk1]=3FD00000h; end;
+"GRSK k03"  [GRSKk0]=33333333h; [GRSKk1]=3FD33333h; end;
+"GRSK k033" [GRSKk0]=51EB851Fh; [GRSKk1]=3FD51EB8h; end;
+"GRSK k04"  [GRSKk0]=9999999Ah; [GRSKk1]=3FD99999h; end;
+"GRSK k044" [GRSKk0]=0C28F5C29h; [GRSKk1]=3FDC28F5h; end;
+"GRSK k045" [GRSKk0]=0CCCCCCCDh; [GRSKk1]=3FDCCCCCh; end;
+"GRSK k05"  [GRSKk0]=00000000h; [GRSKk1]=3FE00000h; end;
+"GRSK k055" [GRSKk0]=9999999Ah; [GRSKk1]=3FE19999h; end;
+"GRSK k06"  [GRSKk0]=33333333h; [GRSKk1]=3FE33333h; end;
+"GRSK k065" [GRSKk0]=0CCCCCCCDh; [GRSKk1]=3FE4CCCCh; end;
+"GRSK k07"  [GRSKk0]=66666666h; [GRSKk1]=3FE66666h; end;
+"GRSK k08"  [GRSKk0]=9999999Ah; [GRSKk1]=3FE99999h; end;
+"GRSK k09"  [GRSKk0]=0CCCCCCCDh; [GRSKk1]=3FECCCCCh; end;
+"GRSK k095" [GRSKk0]=66666666h; [GRSKk1]=3FEE6666h; end;
+"GRSK set one" [GRSKk0]=00000000h; [GRSKk1]=3FF00000h; end;
+"GRSK k12"  [GRSKk0]=33333333h; [GRSKk1]=3FF33333h; end;
+"GRSK k13"  [GRSKk0]=0CCCCCCCDh; [GRSKk1]=3FF4CCCCh; end;
+"GRSK k14142" [GRSKk0]=2DE00D1Bh; [GRSKk1]=3FF6A090h; end;
+"GRSK k15"  [GRSKk0]=00000000h; [GRSKk1]=3FF80000h; end;
+"GRSK k2"   [GRSKk0]=00000000h; [GRSKk1]=40000000h; end;
+"GRSK k4"   [GRSKk0]=00000000h; [GRSKk1]=40100000h; end;
+"GRSK k5"   [GRSKk0]=00000000h; [GRSKk1]=40140000h; end;
+"GRSK k20"  [GRSKk0]=00000000h; [GRSKk1]=40340000h; end;
+"GRSK k24"  [GRSKk0]=00000000h; [GRSKk1]=40380000h; end;
+"GRSK k64"  [GRSKk0]=00000000h; [GRSKk1]=40500000h; end;
+"GRSK k90"  [GRSKk0]=00000000h; [GRSKk1]=40568000h; end;
+"GRSK k150" [GRSKk0]=00000000h; [GRSKk1]=4062C000h; end;
+"GRSK a001" [GRSKa0]=47AE147Bh; [GRSKa1]=3F847AE1h; end;
+"GRSK a01"  [GRSKa0]=9999999Ah; [GRSKa1]=3FB99999h; end;
+"GRSK a02"  [GRSKa0]=9999999Ah; [GRSKa1]=3FC99999h; end;
+"GRSK a025" [GRSKa0]=00000000h; [GRSKa1]=3FD00000h; end;
+"GRSK a03"  [GRSKa0]=33333333h; [GRSKa1]=3FD33333h; end;
+"GRSK a04"  [GRSKa0]=9999999Ah; [GRSKa1]=3FD99999h; end;
+"GRSK a045" [GRSKa0]=0CCCCCCCDh; [GRSKa1]=3FDCCCCCh; end;
+"GRSK a05"  [GRSKa0]=00000000h; [GRSKa1]=3FE00000h; end;
+"GRSK a055" [GRSKa0]=9999999Ah; [GRSKa1]=3FE19999h; end;
+"GRSK a06"  [GRSKa0]=33333333h; [GRSKa1]=3FE33333h; end;
+"GRSK a065" [GRSKa0]=0CCCCCCCDh; [GRSKa1]=3FE4CCCCh; end;
+"GRSK abase one" [GRSKa0]=00000000h; [GRSKa1]=3FF00000h; end;
+"GRSK a12"  [GRSKa0]=33333333h; [GRSKa1]=3FF33333h; end;
+
+( ==================================================================== )
+( counted random float wrappers                                         )
+( ==================================================================== )
+
+"GRSK flandom"
+	C = 32767; => SU rnd; [GRSKiv] = C;
+	[FI] = [GRSKiv]; => IntToF;
+	[FB0] = 7EDA0BE1h; [FB1] = 3F00000Eh; => FMul;
+	=> FStoreF32; [GRSKret] = [FS0];
+	end;
+
+"GRSK fast flandom"
+	[SUfmask] = 32767; => SU frnd; [GRSKiv] = C;
+	[FI] = [GRSKiv]; => IntToF;
+	[FB0] = 7EDA0BE1h; [FB1] = 3F00000Eh; => FMul;
+	=> FStoreF32; [GRSKret] = [FS0];
+	end;
+
+( ==================================================================== )
+( painters                                                              )
+( ==================================================================== )
+
+      ( Every semantic byte write performed directly by this library
+	passes through this gate.  Bounds are derived solely from the requested
+	relative address, before the effective pointer is formed; address mutants
+	therefore cannot forge the ledger by changing a neighbouring counter.
+	Delivered SU smoothers remain separately witnessed whole-buffer kernels:
+	lssmooth writes 64,480 bytes, ssmooth 63,360, psmooth 63,520. )
+"GRSK write sbg"
+	[GRSKwrites]+;
+	A=[GRSKwaddr]; ? A < 0 -> GR sky write sbg oob; ? A '>= GRSKSTB -> GR sky write sbg oob;
+	C=[GRSKwmin]; ? C != 0FFFFFFFFh -> GR sky write sbg min; [GRSKwmin]=A; -> GR sky write sbg max;
+    "GR sky write sbg min" ? A '>= C -> GR sky write sbg max; [GRSKwmin]=A;
+    "GR sky write sbg max"
+	C=[GRSKwmax]; ? C != 0FFFFFFFFh -> GR sky write sbg max compare; [GRSKwmax]=A; -> GR sky write sbg store;
+    "GR sky write sbg max compare" ? A '<= C -> GR sky write sbg store; [GRSKwmax]=A;
+    "GR sky write sbg store"
+	A=nw; A+RSBG; A+[GRSKwaddr]; [A]=[GRSKwbyte]; end;
+    "GR sky write sbg oob" [GRSKoob]+; end;
+
+"GRSK nebular sky"
+	[GRSKqsave] = [GRSKquadwords]; [GRSKquadwords] = GRSKQW;
+	C = 10000; => SU rnd; [GRSKax] = C;
+	[GRSKcnt] = GRSKSTB; [GRSKi] = 0;
+    "GR sky nebular noise"
+	A = [GRSKax]; A + [GRSKcnt]; A & 0FFFFh;
+	D = A; D & 8000h; ? D = 0 -> GR sky nebular positive;
+	A - 65536;
+    "GR sky nebular positive"
+	B = A; A * B;
+	D = A; D & 0FFFFh;
+	A > 16; A & 0FFFFh; D + A; D & 0FFFFh; [GRSKax] = D;
+	D & 3Fh; [GRSKbl] = D;
+	[GRSKwaddr]=[GRSKi]; [GRSKwbyte]=[GRSKbl]; => GRSK write sbg;
+	[GRSKi]+; A = [GRSKcnt]; A - 1; [GRSKcnt] = A;
+	? A != 0 -> GR sky nebular noise;
+	[SUpbase] = RSBG; => SU lssmooth;
+	[GRSKwrites]+64480;
+	C = 2; => SU rnd; A = C; ? A = 0 -> GR sky nebular no ss;
+	[SUpbase] = RSBG; => SU ssmooth;
+	[GRSKwrites]+63360;
+    "GR sky nebular no ss"
+	C = 3; => SU rnd; A = C; ? A = 0 -> GR sky nebular no ps;
+	[SUpbase] = RSBG; => SU psmooth grays;
+	[GRSKwrites]+63520;
+    "GR sky nebular no ps"
+	[GRSKquadwords] = [GRSKqsave];
+	end;
+
+"GRSK cloudy sky"
+	[GRSKqsave] = [GRSKquadwords]; [GRSKquadwords] = GRSKQW;
+	C = [GRSKdensity]; C + [GRSKalbedo]; => SU rnd; [GRSKn] = C;
+    "GR sky cloud next"
+	A = [GRSKn]; ? A '<= 0 -> GR sky cloud smooth;
+	C = 360; => SU rnd; [GRSKcx] = C;
+	[GRSKiv]=[GRSKcx]; => GRSK int fa; => GRSK store o; [GRSKcxf]=[GRSKo];
+	C = 25; => SU rnd; C + 5; [GRSKr] = C; [GRSKiv]=C; => GRSK int fa; => GRSK store o; [GRSKrf]=[GRSKo];
+	C = 50; => SU rnd; C + 25; C + [GRSKr]; [GRSKcy] = C; [GRSKiv]=C; => GRSK int fa; => GRSK store o; [GRSKcyf]=[GRSKo];
+	A = 0; A - [GRSKr]; [GRSKyi] = A; [GRSKiv]=A; => GRSK int fa; => GRSK store o; [GRSKyf]=[GRSKo];
+    "GR sky cloud y"
+	A = [GRSKr]; A + A; A+-; [GRSKxi] = A; [GRSKiv]=A; => GRSK int fa; => GRSK store o; [GRSKxf]=[GRSKo];
+    "GR sky cloud x"
+	( q = sqrt(x*x*0.2 + y*y), kept in FA )
+	[FI] = [GRSKxi]; => IntToF; [FB0]=[FA0]; [FB1]=[FA1]; => FMul;
+	[FB0]=9999999Ah; [FB1]=3FC99999h; => FMul;
+	[FT0]=[FA0]; [FT1]=[FA1];
+	[FI] = [GRSKyi]; => IntToF; [FB0]=[FA0]; [FB1]=[FA1]; => FMul;
+	[FB0]=[FT0]; [FB1]=[FT1]; => FAdd; => FSqrt;
+	[FT0]=[FA0]; [FT1]=[FA1];
+	[FI] = [GRSKr]; => IntToF; [FB0]=[FA0]; [FB1]=[FA1];
+	[FA0]=[FT0]; [FA1]=[FT1]; => FCmp;
+	A = [FI]; ? A >= 0 -> GR sky cloud xnext;
+
+	A = [GRSKyi]; A + [GRSKcy]; A '* 360;
+	A + [GRSKxi]; A + [GRSKcx]; A & 0FFFFh; [GRSKp] = A;
+	? A '>= GRSKSTB -> GR sky cloud xnext;
+
+	( b = 1.4142 / sqrt((x+r)^2+(y+r)^2), a float assignment )
+	A = [GRSKxi]; A + [GRSKr]; [FI] = A; => IntToF;
+	[FB0]=[FA0]; [FB1]=[FA1]; => FMul; [FT0]=[FA0]; [FT1]=[FA1];
+	A = [GRSKyi]; A + [GRSKr]; [FI] = A; => IntToF;
+	[FB0]=[FA0]; [FB1]=[FA1]; => FMul;
+	[FB0]=[FT0]; [FB1]=[FT1]; => FAdd; => FSqrt;
+	[FB0]=[FA0]; [FB1]=[FA1];
+	[FA0]=2DE00D1Bh; [FA1]=3FF6A090h; => FQuo;
+	=> FStoreF32; [GRSKx]=[FS0];
+	=> GRSK k64; => GRSK x mul k; => GRSK store o; [GRSKx]=[GRSKo];
+	A = nw; A + RSBG; A + [GRSKp]; C = [A]; C & 255;
+	[GRSKiv]=C; => GRSK int fa; [FT0]=[FA0]; [FT1]=[FA1];
+	=> GRSK fa x; [FB0]=[FT0]; [FB1]=[FT1]; => FAdd; => GRSK store o; [GRSKx]=[GRSKo];
+	[GRSKy]=GRSKF63; => GRSK compare;
+	A = [FI]; ? A <= 0 -> GR sky cloud store;
+	[FS0]=GRSKF63; => FLoadF32; => GRSK store o; [GRSKx]=[GRSKo];
+    "GR sky cloud store"
+	[FS0]=[GRSKx]; => FLoadF32; => FToIntChop;
+	[GRSKwaddr]=[GRSKp]; C=[FI]; C&255; [GRSKwbyte]=C; => GRSK write sbg;
+
+    "GR sky cloud xnext"
+	[GRSKxi]+; [GRSKiv]=[GRSKxi]; => GRSK int fa; => GRSK store o; [GRSKxf]=[GRSKo]; A=[GRSKr]; A+A; ? [GRSKxi] < A -> GR sky cloud x;
+	[GRSKyi]+; [GRSKiv]=[GRSKyi]; => GRSK int fa; => GRSK store o; [GRSKyf]=[GRSKo]; A=[GRSKr]; ? [GRSKyi] < A -> GR sky cloud y;
+	[GRSKn]-; -> GR sky cloud next;
+
+    "GR sky cloud smooth"
+	A=[GRSKsmoothing]; ? A = 0 -> GR sky cloud done;
+    "GR sky cloud smooth one"
+	[SUpbase]=RSBG; => SU ssmooth;
+	[GRSKwrites]+63360; A=[GRSKwmin]; ? A '<= 360 -> GR sky cloud sm min; [GRSKwmin]=360;
+    "GR sky cloud sm min" A=[GRSKwmax]; ? A '>= 63719 -> GR sky cloud sm max; [GRSKwmax]=63719;
+    "GR sky cloud sm max"
+	[GRSKsmoothing]-; A=[GRSKsmoothing]; ? A != 0 -> GR sky cloud smooth one;
+    "GR sky cloud done"
+	[GRSKquadwords]=[GRSKqsave];
+	end;
+
+( ==================================================================== )
+( create_sky, kept in attributable source phases                        )
+( ==================================================================== )
+
+      ( Binary32 assignment audit.  "store o" is the sole FStoreF32 at
+	each listed C assignment boundary.  Helpers contain no memory store:
+	double-literal expression chains retain binary64 intermediates, while
+	pure float/integer operators use F32Narrow where C produces a float
+	result.  x assign is the same one store for an already-binary32 copy.
+
+	C lines       destination(s)                 producer -> sole store
+	1712-1716     cx,r,cy,y,x and x++/y++         int fa -> store o (float shadows)
+	1720          b                              quotient chain -> explicit FStore
+	1721          b*=64; b+=pixel                mul / add chains -> store o each
+	1722          b=63                           x assign
+	2740-2746     br,bg,bb,tr,tg,tb              int fa /64 -> store o each
+	2749          al                             integer quotient -> store o
+	2758-2760     dfs                            full 1-index*.05 chain -> store o
+	2763-2766     sb; dfs*=.5                    full expression -> store o
+	2769-2772     sb*=dfs*dfs; dfs=1             full chain / x assign
+	2775-2786     dfs*=class factor              full chain -> store o
+	2792          saturation                     full 1-.15*rainy chain -> store o
+	2804-2854     type 1/2 colours and pressure  one store per array/pressure assignment
+	2861-2939     type 3 colours and pressure    one store per source assignment;
+	                                             PLAINS deliberately writes fr[2] 3x
+	2944-3018     type 4/5/7/8 values            purpose-built full chains -> store o
+	3027-3029     negative clamps                x assign only on the taken branch
+	3035-3037     saturation array assignments   saturate x -> store o
+	3042-3045     scale assignments              scale x/scale sky x -> store o;
+	                                             slot 1 is excluded from plain loop
+	3060-3068     night compound assignments     mul chain -> store o
+	3092-3115     pp_temp statements              one full chain -> store o each
+	3120-3133     bounded pp_temp +=/-= loops     one full chain -> store o each
+	3137-3138     base temp/pressure copies       x assign -> store o each
+
+	nebular_sky has no float assignment.  Its integers and byte writes do
+	not pass through the floating ABI. )
+
+"GRSK create"
+	=> GRSK entry;
+	=> GRSK seed streams;
+	=> GRSK colours painter;
+	=> GRSK painter;
+	=> GRSK palette;
+	=> GRSK thermo;
+	[GRSKphase] = 7;
+	end;
+
+"GRSK entry"
+	[GRSKphase] = 0;
+	[GRSKpressure]=0; [GRSKtemp]=0;
+	[GRSKbasepressure]=0; [GRSKbasetemp]=0;
+	[GRSKpaletteok]=1;
+	( tested operation includes planetary_main's immediately preceding memset )
+	[GRSKwmin]=0; [GRSKwmax]=64799; [GRSKwrites]=64800; [GRSKoob]=0;
+	( deterministic poison for C's undefined local palette branches )
+	A=GRSKfr; B=12; C=0;
+    "GR sky clear colours"
+	[A]=C; A+; B ^ GR sky clear colours;
+
+	[GRSKiv]=[GRSKsrf]; => GRSK int fa; => GRSK k64; [FB0]=[GRSKk0]; [FB1]=[GRSKk1]; => FQuo; => GRSK store o; [GRSKbr]=[GRSKo];
+	[GRSKiv]=[GRSKsgf]; => GRSK int fa; => GRSK k64; [FB0]=[GRSKk0]; [FB1]=[GRSKk1]; => FQuo; => GRSK store o; [GRSKbg]=[GRSKo];
+	[GRSKiv]=[GRSKsbf]; => GRSK int fa; => GRSK k64; [FB0]=[GRSKk0]; [FB1]=[GRSKk1]; => FQuo; => GRSK store o; [GRSKbb]=[GRSKo];
+	[GRSKiv]=[GRSKgrf]; => GRSK int fa; => GRSK k64; [FB0]=[GRSKk0]; [FB1]=[GRSKk1]; => FQuo; => GRSK store o; [GRSKtr]=[GRSKo];
+	[GRSKiv]=[GRSKggf]; => GRSK int fa; => GRSK k64; [FB0]=[GRSKk0]; [FB1]=[GRSKk1]; => FQuo; => GRSK store o; [GRSKtg]=[GRSKo];
+	[GRSKiv]=[GRSKgbf]; => GRSK int fa; => GRSK k64; [FB0]=[GRSKk0]; [FB1]=[GRSKk1]; => FQuo; => GRSK store o; [GRSKtb]=[GRSKo];
+
+	A=[GRSKalbedo]; A '/ 64; [GRSKiv]=A; => GRSK int fa; => GRSK store o; [GRSKal]=[GRSKo];
+	[GRSKx]=GRSKF1; => GRSK x assign; [GRSKdfs]=[GRSKo];
+	A=[GRSKowner]; A+; ? A != 0 -> GR sky dfs owner;
+	A=[GRSKtarget]; -> GR sky dfs selected;
+    "GR sky dfs owner" A=[GRSKowner];
+    "GR sky dfs selected"
+	[GRSKiv]=A; => GRSK int fa; => GRSK k005; => GRSK fa mul k;
+	[FT0]=[FA0]; [FT1]=[FA1]; [GRSKx]=GRSKF1; => GRSK fa x; [FB0]=[FT0]; [FB1]=[FT1]; => FSub; => GRSK store o; [GRSKdfs]=[GRSKo];
+
+	A=[GRSKatmosphere]; ? A != 0 -> GR sky sb air;
+	[GRSKx]=GRSKF1; => GRSK x assign; [GRSKsb]=[GRSKo]; -> GR sky sb owner;
+    "GR sky sb air"
+	[GRSKiv]=[GRSKbrightness]; => GRSK int fa; => GRSK k24; [FB0]=[GRSKk0]; [FB1]=[GRSKk1]; => FQuo; => GRSK store o; [GRSKsb]=[GRSKo];
+	A=[GRSKnightzone]; ? A=0 -> GR sky sb owner;
+	[GRSKx]=[GRSKdfs]; [GRSKy]=GRSKF05; => GRSK x mul y; => GRSK store o; [GRSKdfs]=[GRSKo];
+    "GR sky sb owner"
+	A=[GRSKowner]; ? A <= 2 -> GR sky dfs reset;
+	[GRSKx]=[GRSKdfs]; [GRSKy]=[GRSKdfs]; => GRSK x mul y; => F32Narrow; [FT0]=[FA0]; [FT1]=[FA1];
+	[GRSKx]=[GRSKsb]; => GRSK fa x; [FB0]=[FT0]; [FB1]=[FT1]; => FMul; => GRSK store o; [GRSKsb]=[GRSKo];
+	-> GR sky class factor;
+    "GR sky dfs reset" [GRSKx]=GRSKF1; => GRSK x assign; [GRSKdfs]=[GRSKo];
+    "GR sky class factor"
+	( exact class factors )
+	A=[GRSKstarclass];
+	? A=0 -> GR sky cf1; ? A=1 -> GR sky cf15; ? A=2 -> GR sky cf05; ? A=3 -> GR sky cf08;
+	? A=4 -> GR sky cf12; ? A=5 -> GR sky cf01; ? A=6 -> GR sky cf01;
+	? A=7 -> GR sky cf04; ? A=8 -> GR sky cf09; ? A=9 -> GR sky cf13;
+	? A=10 -> GR sky cf05; ? A=11 -> GR sky cf02; -> GR sky cf done;
+    "GR sky cf1" => GRSK set one; -> GR sky cf apply;
+    "GR sky cf15" => GRSK k15; -> GR sky cf apply;
+    "GR sky cf05" => GRSK k05; -> GR sky cf apply;
+    "GR sky cf08" => GRSK k08; -> GR sky cf apply;
+    "GR sky cf12" => GRSK k12; -> GR sky cf apply;
+    "GR sky cf01" => GRSK k01; -> GR sky cf apply;
+    "GR sky cf04" => GRSK k04; -> GR sky cf apply;
+    "GR sky cf09" => GRSK k09; -> GR sky cf apply;
+    "GR sky cf13" => GRSK k13; -> GR sky cf apply;
+    "GR sky cf02" => GRSK k02;
+    "GR sky cf apply" [GRSKx]=[GRSKdfs]; => GRSK x mul k; => GRSK store o; [GRSKdfs]=[GRSKo];
+    "GR sky cf done"
+	[GRSKx]=[GRSKrainy]; => GRSK k015; => GRSK x mul k; [FT0]=[FA0]; [FT1]=[FA1];
+	[GRSKx]=GRSKF1; => GRSK fa x; [FB0]=[FT0]; [FB1]=[FT1]; => FSub; => GRSK store o; [GRSKsat]=[GRSKo];
+	end;
+
+"GRSK seed streams"
+	A=[GRSKseed]; => SU fast srand;
+	A=[GRSKseed]; A & 0FFFFh; => SU srand;
+	[GRSKphase]=1;
+	end;
+
+"GRSK colours painter"
+	[GRSKtmp]=0;             ( pending painter: 0 none, 1 nebular, 2 cloudy )
+	A=[GRSKptype];
+	? A=1 -> GR sky type1;
+	? A=2 -> GR sky type2;
+	? A=3 -> GR sky type3;
+	? A=4 -> GR sky type4;
+	? A=5 -> GR sky type5;
+	? A=7 -> GR sky type7;
+	? A=8 -> GR sky type8;
+	[GRSKpaletteok]=0; -> GR sky colours done;
+
+    "GR sky type1"
+	[GRSKx]=GRSKF0; => GRSK x assign; [GRSKpressure]=[GRSKo]; -> GR sky like1;
+    "GR sky type4"
+	=> GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK k01; => GRSK x mul k; => GRSK store o; [GRSKpressure]=[GRSKo];
+    "GR sky like1"
+	[GRSKx]=[GRSKtr]; => GRSK x assign; [GRSKfr plus 0]=[GRSKo]; [GRSKx]=[GRSKtg]; => GRSK x assign; [GRSKfg plus 0]=[GRSKo]; [GRSKx]=[GRSKtb]; => GRSK x assign; [GRSKfb plus 0]=[GRSKo];
+	[GRSKx]=GRSKF15; => GRSK x assign; [GRSKfr plus 1]=[GRSKo]; => GRSK x assign; [GRSKfg plus 1]=[GRSKo]; => GRSK x assign; [GRSKfb plus 1]=[GRSKo];
+	[GRSKx]=[GRSKfr plus 0]; [GRSKy]=GRSKF2; => GRSK x mul y; => GRSK store o; [GRSKfr plus 2]=[GRSKo];
+	[GRSKx]=[GRSKfg plus 0]; [GRSKy]=GRSKF2; => GRSK x mul y; => GRSK store o; [GRSKfg plus 2]=[GRSKo];
+	[GRSKx]=[GRSKfb plus 0]; [GRSKy]=GRSKF2; => GRSK x mul y; => GRSK store o; [GRSKfb plus 2]=[GRSKo];
+	[GRSKx]=GRSKF0; => GRSK x assign; [GRSKfr plus 3]=[GRSKo]; => GRSK x assign; [GRSKfg plus 3]=[GRSKo]; => GRSK x assign; [GRSKfb plus 3]=[GRSKo];
+	-> GR sky colours done;
+
+    "GR sky type2"
+	=> GRSK a12; [GRSKx]=[GRSKtr]; => GRSK a sub x; => GRSK store o; [GRSKfr plus 0]=[GRSKo];
+	[GRSKx]=[GRSKtg]; => GRSK a sub x; => GRSK store o; [GRSKfg plus 0]=[GRSKo];
+	[GRSKx]=[GRSKtb]; => GRSK a sub x; => GRSK store o; [GRSKfb plus 0]=[GRSKo];
+	( six draws per component for slots 1..3 )
+	[GRSKi]=1;
+    "GR sky t2 component"
+	A=GRSKfr; A+[GRSKi]; [GRSKptr]=A;
+	A=[GRSKi]; A '% 4; ? A=1 -> GR sky t2 k15; ? A=2 -> GR sky t2 k30; => GRSK k045; => GRSK a01; -> GR sky t2 pair;
+    "GR sky t2 k15" => GRSK k015; => GRSK a03; -> GR sky t2 pair;
+    "GR sky t2 k30" => GRSK k03; => GRSK a02;
+    "GR sky t2 pair"
+	A=[GRSKi]; A '/ 4; ? A=0 -> GR sky t2 add tr; ? A=1 -> GR sky t2 add tg; [GRSKy]=[GRSKtb]; -> GR sky t2 add base;
+    "GR sky t2 add tr" [GRSKy]=[GRSKtr]; -> GR sky t2 add base;
+    "GR sky t2 add tg" [GRSKy]=[GRSKtg];
+    "GR sky t2 add base" => GRSK random symmetric; => GRSK store o;
+	A=[GRSKptr]; [A]=[GRSKo];
+	[GRSKi]+; A=[GRSKi]; A '% 4; ? A != 0 -> GR sky t2 no skip; [GRSKi]+;
+    "GR sky t2 no skip" A=[GRSKi]; ? A '< 12 -> GR sky t2 component;
+	[GRSKtmp]=1;
+	-> GR sky colours done;
+
+    "GR sky type3"
+	[GRSKx]=[GRSKbr]; => GRSK half x half random; => GRSK store o; [GRSKfr plus 1]=[GRSKo];
+	[GRSKx]=[GRSKbg]; => GRSK half x half random; => GRSK store o; [GRSKfg plus 1]=[GRSKo];
+	[GRSKx]=[GRSKbb]; => GRSK half x half random; => GRSK store o; [GRSKfb plus 1]=[GRSKo];
+	A=[GRSKsctype]; ? A=GRSKOCEAN -> GR sky ocean; ? A=GRSKPLAINS -> GR sky plains; ? A=GRSKDESERT -> GR sky desert; ? A=GRSKICY -> GR sky icy;
+	[GRSKpaletteok]=0; -> GR sky t3 pressure;
+    "GR sky ocean"
+	=> GRSK a065; => GRSK k05; => GRSK random linear a; => GRSK store o; [GRSKfr plus 0]=[GRSKo];
+	=> GRSK a045; => GRSK k04; => GRSK random linear a; => GRSK store o; [GRSKfg plus 0]=[GRSKo];
+	=> GRSK a025; => GRSK k03; => GRSK random linear a; => GRSK store o; [GRSKfb plus 0]=[GRSKo];
+	[GRSKx]=[GRSKfg plus 0]; => GRSK a06; => GRSK compare a; A=[FI]; ? A >= 0 -> GR sky ocean fgok;
+	[GRSKx]=[GRSKfg plus 0]; [GRSKy]=GRSKF2; => GRSK x mul y; => GRSK store o; [GRSKfg plus 0]=[GRSKo];
+    "GR sky ocean fgok"
+	[GRSKy]=GRSKF0; => GRSK k08; => GRSK random linear; => GRSK store o; [GRSKfr plus 2]=[GRSKo];
+	[GRSKy]=GRSKF0; => GRSK k08; => GRSK random linear; => GRSK store o; [GRSKfg plus 2]=[GRSKo];
+	[GRSKx]=[GRSKfb plus 0]; [GRSKy]=GRSKF2; => GRSK x mul y; => GRSK a04; [FB0]=[GRSKa0]; [FB1]=[GRSKa1]; => FAdd; => GRSK store o; [GRSKfb plus 2]=[GRSKo];
+	=> GRSK a02; => GRSK set one; => GRSK random linear a; => GRSK store o; [GRSKfr plus 3]=[GRSKo];
+	=> GRSK a04; => GRSK set one; => GRSK random linear a; => GRSK store o; [GRSKfg plus 3]=[GRSKo];
+	[GRSKy]=GRSKF0; => GRSK k06; => GRSK random linear; => GRSK store o; [GRSKfb plus 3]=[GRSKo];
+	[GRSKdensity]=50; [GRSKsmoothing]=1; -> GR sky t3 pressure;
+    "GR sky plains"
+	[GRSKpaletteok]=0;
+	=> GRSK a025; => GRSK k05; => GRSK random linear a; => GRSK store o; [GRSKfr plus 0]=[GRSKo];
+	=> GRSK a05; => GRSK k04; => GRSK random linear a; => GRSK store o; [GRSKfg plus 0]=[GRSKo];
+	=> GRSK a025; => GRSK k03; => GRSK random linear a; => GRSK store o; [GRSKfb plus 0]=[GRSKo];
+	[GRSKx]=[GRSKfg plus 0]; [GRSKy]=3F400000h; => GRSK compare; A=[FI]; ? A >= 0 -> GR sky plains fgok;
+	[GRSKx]=[GRSKfg plus 0]; [GRSKy]=GRSKF15; => GRSK x mul y; => GRSK store o; [GRSKfg plus 0]=[GRSKo];
+    "GR sky plains fgok"
+	[GRSKy]=[GRSKfr plus 0]; => GRSK k04; => GRSK random k add x k03; => GRSK store o; [GRSKfr plus 2]=[GRSKo];
+	[GRSKy]=[GRSKfg plus 0]; => GRSK k07; => GRSK random k add x k03; => GRSK store o; [GRSKfr plus 2]=[GRSKo];
+	[GRSKy]=[GRSKfb plus 0]; => GRSK k02; => GRSK random k add x k03; => GRSK store o; [GRSKfr plus 2]=[GRSKo];
+	=> GRSK flandom; [GRSKfr plus 3]=[GRSKret]; => GRSK flandom; [GRSKfg plus 3]=[GRSKret]; => GRSK flandom; [GRSKfb plus 3]=[GRSKret];
+	[GRSKdensity]=33; [GRSKsmoothing]=1; -> GR sky t3 pressure;
+    "GR sky desert"
+	[GRSKy]=[GRSKtr]; => GRSK k033; => GRSK random linear; => GRSK store o; [GRSKfr plus 0]=[GRSKo];
+	[GRSKy]=[GRSKtg]; => GRSK k025; => GRSK random linear; => GRSK store o; [GRSKfg plus 0]=[GRSKo];
+	[GRSKy]=[GRSKtb]; => GRSK k012; => GRSK random linear; => GRSK store o; [GRSKfb plus 0]=[GRSKo];
+	[GRSKx]=[GRSKtr]; => GRSK x assign; [GRSKfr plus 2]=[GRSKo]; [GRSKx]=[GRSKtg]; => GRSK x assign; [GRSKfg plus 2]=[GRSKo]; [GRSKx]=[GRSKtb]; => GRSK x assign; [GRSKfb plus 2]=[GRSKo];
+	[GRSKy]=GRSKF0; => GRSK k05; => GRSK random linear; => GRSK store o; [GRSKfr plus 3]=[GRSKo];
+	[GRSKy]=GRSKF0; => GRSK k09; => GRSK random linear; => GRSK store o; [GRSKfg plus 3]=[GRSKo];
+	[GRSKy]=GRSKF0; => GRSK k04; => GRSK random linear; => GRSK store o; [GRSKfb plus 3]=[GRSKo];
+	[GRSKdensity]=10; [GRSKsmoothing]=1; -> GR sky t3 pressure;
+    "GR sky icy"
+	=> GRSK a025; => GRSK set one; => GRSK random linear a; => GRSK store o; [GRSKfr plus 0]=[GRSKo];
+	=> GRSK a055; => GRSK set one; => GRSK random linear a; => GRSK store o; [GRSKfg plus 0]=[GRSKo];
+	=> GRSK abase one; => GRSK set one; => GRSK random linear a; => GRSK store o; [GRSKfb plus 0]=[GRSKo];
+	[GRSKx]=[GRSKfr plus 0]; => GRSK k06; => GRSK x mul k; => GRSK store o; [GRSKfr plus 2]=[GRSKo];
+	[GRSKx]=[GRSKfg plus 0]; => GRSK k08; => GRSK x mul k; => GRSK store o; [GRSKfg plus 2]=[GRSKo];
+	[GRSKx]=[GRSKfb plus 0]; => GRSK x assign; [GRSKfb plus 2]=[GRSKo];
+	[GRSKy]=GRSKF0; => GRSK k095; => GRSK random linear; => GRSK store o; [GRSKfr plus 3]=[GRSKo];
+	[GRSKy]=GRSKF0; => GRSK k095; => GRSK random linear; => GRSK store o; [GRSKfg plus 3]=[GRSKo];
+	[GRSKy]=GRSKF0; => GRSK k095; => GRSK random linear; => GRSK store o; [GRSKfb plus 3]=[GRSKo];
+	[GRSKdensity]=15; [GRSKsmoothing]=1;
+    "GR sky t3 pressure"
+	[GRSKtmp]=2;
+	-> GR sky colours done;
+
+    "GR sky type5"
+	( six flandom draws: three land and three sky; horizon derives from land )
+	[GRSKz]=[GRSKtr]; => GRSK k033; => GRSK random k mul al add y; => GRSK store o; [GRSKfr plus 0]=[GRSKo];
+	[GRSKz]=[GRSKtg]; => GRSK k033; => GRSK random k mul al add y; => GRSK store o; [GRSKfg plus 0]=[GRSKo];
+	[GRSKz]=[GRSKtb]; => GRSK k033; => GRSK random k mul al add y; => GRSK store o; [GRSKfb plus 0]=[GRSKo];
+	[GRSKx]=[GRSKtb]; => GRSK base k08 add random k02 al; => GRSK store o; [GRSKfr plus 1]=[GRSKo];
+	[GRSKx]=[GRSKtg]; => GRSK base k08 add random k02 al; => GRSK store o; [GRSKfg plus 1]=[GRSKo];
+	[GRSKx]=[GRSKtr]; => GRSK base k08 add random k02 al; => GRSK store o; [GRSKfb plus 1]=[GRSKo];
+	[GRSKx]=[GRSKfr plus 0]; => GRSK half add x half al; => GRSK store o; [GRSKfr plus 2]=[GRSKo];
+	[GRSKx]=[GRSKfg plus 0]; => GRSK half add x half al; => GRSK store o; [GRSKfg plus 2]=[GRSKo];
+	[GRSKx]=[GRSKfb plus 0]; => GRSK half add x half al; => GRSK store o; [GRSKfb plus 2]=[GRSKo];
+	[GRSKx]=GRSKF0; => GRSK x assign; [GRSKfr plus 3]=[GRSKo]; => GRSK x assign; [GRSKfg plus 3]=[GRSKo]; => GRSK x assign; [GRSKfb plus 3]=[GRSKo];
+	[GRSKbrightness]=[GRSKbrightness]; A=[GRSKbrightness]; A '* 65; A '/ 100; [GRSKbrightness]=A;
+	[GRSKdensity]=10; [GRSKsmoothing]=2; [GRSKtmp]=2;
+	-> GR sky colours done;
+
+    "GR sky type7"
+	=> GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK k002; => GRSK x mul k; => GRSK store o; [GRSKpressure]=[GRSKo]; -> GR sky like7;
+    "GR sky type8"
+	=> GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK fa x; => GRSK a02; [FB0]=[GRSKa0]; [FB1]=[GRSKa1]; => FAdd; => GRSK store o; [GRSKpressure]=[GRSKo];
+    "GR sky like7"
+	[GRSKz]=[GRSKtr]; => GRSK random mul al add y; => GRSK store o; [GRSKfr plus 0]=[GRSKo];
+	[GRSKz]=[GRSKtg]; => GRSK random mul al add y; => GRSK store o; [GRSKfg plus 0]=[GRSKo];
+	[GRSKz]=[GRSKtb]; => GRSK random mul al add y; => GRSK store o; [GRSKfb plus 0]=[GRSKo];
+	[GRSKx]=GRSKF13; => GRSK x assign; [GRSKfr plus 1]=[GRSKo]; [GRSKx]=GRSKF14; => GRSK x assign; [GRSKfg plus 1]=[GRSKo]; [GRSKx]=GRSKF15; => GRSK x assign; [GRSKfb plus 1]=[GRSKo];
+	[GRSKx]=GRSKF05; [GRSKy]=[GRSKfr plus 0]; => GRSK x add y; => GRSK store o; [GRSKfr plus 2]=[GRSKo];
+	[GRSKx]=GRSKF05; [GRSKy]=[GRSKfg plus 0]; => GRSK x add y; => GRSK store o; [GRSKfg plus 2]=[GRSKo];
+	[GRSKx]=GRSKF05; [GRSKy]=[GRSKfb plus 0]; => GRSK x add y; => GRSK store o; [GRSKfb plus 2]=[GRSKo];
+	[GRSKx]=GRSKF0; => GRSK x assign; [GRSKfr plus 3]=[GRSKo]; => GRSK x assign; [GRSKfg plus 3]=[GRSKo]; => GRSK x assign; [GRSKfb plus 3]=[GRSKo];
+
+    "GR sky colours done"
+	[GRSKphase]=2;
+	end;
+
+"GRSK painter"
+	A=[GRSKtmp]; ? A=1 -> GR sky painter nebular; ? A=2 -> GR sky painter cloudy; -> GR sky painter pressure;
+    "GR sky painter nebular" => GRSK nebular sky; -> GR sky painter pressure;
+    "GR sky painter cloudy" => GRSK cloudy sky;
+    "GR sky painter pressure"
+	A=[GRSKptype]; ? A=2 -> GR sky pressure t2; ? A=3 -> GR sky pressure t3; ? A=5 -> GR sky pressure t5; -> GR sky painter done;
+    "GR sky pressure t2"
+	=> GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK k20; => GRSK x mul k; [FT0]=[FA0]; [FT1]=[FA1];
+	[GRSKiv]=[GRSKalbedo]; A=[GRSKiv]; A+; [GRSKiv]=A; => GRSK int fa; [FB0]=[FT0]; [FB1]=[FT1]; => FAdd; => GRSK store o; [GRSKpressure]=[GRSKo]; -> GR sky painter done;
+    "GR sky pressure t3"
+	=> GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK k08; => GRSK a06; => GRSK linear a; => GRSK store o; [GRSKpressure]=[GRSKo]; -> GR sky painter done;
+    "GR sky pressure t5"
+	=> GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK k005; => GRSK a001; => GRSK linear a; => GRSK store o; [GRSKpressure]=[GRSKo];
+    "GR sky painter done"
+	[GRSKphase]=3;
+	end;
+
+      ( Colour clamp, rain saturation, scaling, and source shade calls. )
+"GRSK palette"
+	[GRSKi]=0;
+    "GR sky clamp colours"
+	A=GRSKfr; A+[GRSKi]; [GRSKptr]=A; [GRSKx]=[A]; [GRSKy]=GRSKF0; => GRSK compare; A=[FI]; ? A >= 0 -> GR sky clamp fg;
+	[GRSKx]=GRSKF0; => GRSK x assign; A=[GRSKptr]; [A]=[GRSKo];
+    "GR sky clamp fg"
+	A=GRSKfg; A+[GRSKi]; [GRSKptr]=A; [GRSKx]=[A]; [GRSKy]=GRSKF0; => GRSK compare; A=[FI]; ? A >= 0 -> GR sky clamp fb;
+	[GRSKx]=GRSKF0; => GRSK x assign; A=[GRSKptr]; [A]=[GRSKo];
+    "GR sky clamp fb"
+	A=GRSKfb; A+[GRSKi]; [GRSKptr]=A; [GRSKx]=[A]; [GRSKy]=GRSKF0; => GRSK compare; A=[FI]; ? A >= 0 -> GR sky clamp next;
+	[GRSKx]=GRSKF0; => GRSK x assign; A=[GRSKptr]; [A]=[GRSKo];
+    "GR sky clamp next"
+	[GRSKi]+; A=[GRSKi]; ? A '< 4 -> GR sky clamp colours;
+
+	A=[GRSKptype]; ? A=3 -> GR sky saturate; ? A=5 -> GR sky saturate; -> GR sky scaled;
+    "GR sky saturate"
+	[GRSKi]=0;
+    "GR sky sat loop"
+	A=GRSKfr; A+[GRSKi]; [GRSKptr]=A; [GRSKx]=[A]; => GRSK saturate x; => GRSK store o; A=[GRSKptr]; [A]=[GRSKo];
+	A=GRSKfg; A+[GRSKi]; [GRSKptr]=A; [GRSKx]=[A]; => GRSK saturate x; => GRSK store o; A=[GRSKptr]; [A]=[GRSKo];
+	A=GRSKfb; A+[GRSKi]; [GRSKptr]=A; [GRSKx]=[A]; => GRSK saturate x; => GRSK store o; A=[GRSKptr]; [A]=[GRSKo];
+	[GRSKi]+; A=[GRSKi]; ? A '< 4 -> GR sky sat loop;
+
+    "GR sky scaled"
+	[GRSKi]=0;
+    "GR sky scale loop"
+	A=GRSKfr; A+[GRSKi]; [GRSKptr]=A; [GRSKz]=[A]; => GRSK scale x; => GRSK store o; A=[GRSKptr]; [A]=[GRSKo];
+	A=GRSKfg; A+[GRSKi]; [GRSKptr]=A; [GRSKz]=[A]; => GRSK scale x; => GRSK store o; A=[GRSKptr]; [A]=[GRSKo];
+	A=GRSKfb; A+[GRSKi]; [GRSKptr]=A; [GRSKz]=[A]; => GRSK scale x; => GRSK store o; A=[GRSKptr]; [A]=[GRSKo];
+	[GRSKi]+; A=[GRSKi]; ? A=1 -> GR sky scale skip1; ? A '< 4 -> GR sky scale loop; -> GR sky scale slot1;
+    "GR sky scale skip1" [GRSKi]=2; -> GR sky scale loop;
+	"GR sky scale slot1"
+	( slot 1 source assignment has the extra sb in the same expression. )
+	[GRSKz]=[GRSKfr plus 1]; => GRSK scale sky x; => GRSK store o; [GRSKfr plus 1]=[GRSKo];
+	[GRSKz]=[GRSKfg plus 1]; => GRSK scale sky x; => GRSK store o; [GRSKfg plus 1]=[GRSKo];
+	[GRSKz]=[GRSKfb plus 1]; => GRSK scale sky x; => GRSK store o; [GRSKfb plus 1]=[GRSKo];
+
+	[SHdstb]=srfpal6;
+	A=[GRSKatmosphere]; ? A != 0 -> GR sky pal atmosphere;
+	[FBSHfirst]=64; [FBSHn]=64; [SHsr]=0; [SHsg]=0; [SHsb]=0; [SHer]=42C80000h; [SHeg]=42DC0000h; [SHeb]=42F00000h; => PAL shade;
+	-> GR sky pal normal;
+    "GR sky pal atmosphere"
+	A=[GRSKnightzone]; ? A=0 -> GR sky pal day;
+	[FBSHfirst]=64; [FBSHn]=64; [SHsr]=0; [SHsg]=0; [SHsb]=0; [SHer]=42700000h; [SHeg]=42780000h; [SHeb]=42800000h; => PAL shade;
+	A=[GRSKptype]; ? A != 3 -> GR sky pal nightdim;
+	[FBSHfirst]=0; [FBSHn]=64; [SHsr]=0; [SHsg]=0; [SHsb]=0; [SHer]=42800000h; [SHeg]=42780000h; [SHeb]=42700000h; => PAL shade;
+	[FBSHfirst]=128; [FBSHn]=64; [SHsr]=0; [SHsg]=0; [SHsb]=0; [SHer]=42800000h; [SHeg]=42800000h; [SHeb]=42800000h; => PAL shade;
+	[FBSHfirst]=192; [FBSHn]=64; [SHsr]=41000000h; [SHsg]=41400000h; [SHsb]=41800000h; [SHer]=42600000h; [SHeg]=42700000h; [SHeb]=42800000h; => PAL shade;
+	-> GR sky pal done;
+    "GR sky pal nightdim"
+	( land/horizon/vegetation filters are reduced before normal ramps )
+	[GRSKi]=0;
+    "GR sky night dim loop"
+	A=GRSKfr; A+[GRSKi]; [GRSKptr]=A; [GRSKx]=[A]; => GRSK k033; => GRSK x mul k; => GRSK store o; A=[GRSKptr]; [A]=[GRSKo];
+	A=GRSKfg; A+[GRSKi]; [GRSKptr]=A; [GRSKx]=[A]; => GRSK k044; => GRSK x mul k; => GRSK store o; A=[GRSKptr]; [A]=[GRSKo];
+	A=GRSKfb; A+[GRSKi]; [GRSKptr]=A; [GRSKx]=[A]; => GRSK k055; => GRSK x mul k; => GRSK store o; A=[GRSKptr]; [A]=[GRSKo];
+	[GRSKi]+; A=[GRSKi]; ? A=1 -> GR sky night skip1; ? A '< 4 -> GR sky night dim loop; -> GR sky pal normal;
+    "GR sky night skip1" [GRSKi]=2; -> GR sky night dim loop;
+    "GR sky pal day"
+	[FBSHfirst]=64; [FBSHn]=64; [SHsr]=0; [SHsg]=0; [SHsb]=0; [SHer]=[GRSKfr plus 1]; [SHeg]=[GRSKfg plus 1]; [SHeb]=[GRSKfb plus 1]; => PAL shade;
+    "GR sky pal normal"
+	[FBSHfirst]=0; [FBSHn]=44; [SHsr]=0; [SHsg]=0; [SHsb]=0; [SHer]=[GRSKfr plus 0]; [SHeg]=[GRSKfg plus 0]; [SHeb]=[GRSKfb plus 0]; => PAL shade;
+	[FBSHfirst]=44; [FBSHn]=20; [SHsr]=[GRSKfr plus 0]; [SHsg]=[GRSKfg plus 0]; [SHsb]=[GRSKfb plus 0]; [SHer]=[GRSKfr plus 1]; [SHeg]=[GRSKfg plus 1]; [SHeb]=[GRSKfb plus 1]; => PAL shade;
+	[FBSHfirst]=128; [FBSHn]=10; [SHsr]=0; [SHsg]=0; [SHsb]=0; [SHer]=[GRSKfr plus 0]; [SHeg]=[GRSKfg plus 0]; [SHeb]=[GRSKfb plus 0]; => PAL shade;
+	[FBSHfirst]=138; [FBSHn]=44; [SHsr]=[GRSKfr plus 0]; [SHsg]=[GRSKfg plus 0]; [SHsb]=[GRSKfb plus 0]; [SHer]=[GRSKfr plus 2]; [SHeg]=[GRSKfg plus 2]; [SHeb]=[GRSKfb plus 2]; => PAL shade;
+	[FBSHfirst]=182; [FBSHn]=10; [SHsr]=[GRSKfr plus 2]; [SHsg]=[GRSKfg plus 2]; [SHsb]=[GRSKfb plus 2]; [SHer]=[GRSKfr plus 1]; [SHeg]=[GRSKfg plus 1]; [SHeb]=[GRSKfb plus 1]; => PAL shade;
+	[FBSHfirst]=192; [FBSHn]=10; [SHsr]=0; [SHsg]=0; [SHsb]=0; [SHer]=[GRSKfr plus 0]; [SHeg]=[GRSKfg plus 0]; [SHeb]=[GRSKfb plus 0]; => PAL shade;
+	[FBSHfirst]=202; [FBSHn]=44; [SHsr]=[GRSKfr plus 0]; [SHsg]=[GRSKfg plus 0]; [SHsb]=[GRSKfb plus 0]; [SHer]=[GRSKfr plus 3]; [SHeg]=[GRSKfg plus 3]; [SHeb]=[GRSKfb plus 3]; => PAL shade;
+	[FBSHfirst]=246; [FBSHn]=10; [SHsr]=[GRSKfr plus 3]; [SHsg]=[GRSKfg plus 3]; [SHsb]=[GRSKfb plus 3]; [SHer]=[GRSKfr plus 1]; [SHeg]=[GRSKfg plus 1]; [SHeb]=[GRSKfb plus 1]; => PAL shade;
+    "GR sky pal done"
+	[GRSKphase]=4;
+	end;
+
+"GRSK thermo"
+	( pp_temp = 90 - dsd1*.33 )
+	[GRSKx]=[GRSKdsd1]; => GRSK k033; => GRSK x mul k; [FT0]=[FA0]; [FT1]=[FA1];
+	[GRSKx]=GRSKF90; => GRSK fa x; [FB0]=[FT0]; [FB1]=[FT1]; => FSub; => GRSK store o; [GRSKtemp]=[GRSKo];
+	A=[GRSKatmosphere]; ? A != 0 -> GR sky thermo air;
+	[GRSKx]=[GRSKtemp]; [GRSKy]=42300000h; => GRSK x sub y; => GRSK store o; [GRSKtemp]=[GRSKo];
+	[GRSKx]=[GRSKtemp]; => GRSK k044; => GRSK x mul k; => FAbs; [FT0]=[FA0]; [FT1]=[FA1];
+	[GRSKx]=[GRSKtemp]; => GRSK fa x; [FB0]=[FT0]; [FB1]=[FT1]; => FMul; => GRSK store o; [GRSKtemp]=[GRSKo];
+	A=[GRSKnightzone]; ? A=0 -> GR sky thermo noair day; => GRSK a03; -> GR sky thermo literal factor;
+    "GR sky thermo noair day"
+	[GRSKx]=[GRSKexposure]; => GRSK k00077; => GRSK a03; => GRSK linear a; [FT0]=[FA0]; [FT1]=[FA1]; -> GR sky thermo computed factor;
+    "GR sky thermo air"
+	A=[GRSKnightzone]; ? A=0 -> GR sky thermo air day; => GRSK a06; -> GR sky thermo literal factor;
+    "GR sky thermo air day"
+	[GRSKx]=[GRSKexposure]; => GRSK k00044; => GRSK a06; => GRSK linear a; [FT0]=[FA0]; [FT1]=[FA1]; -> GR sky thermo computed factor;
+    "GR sky thermo literal factor"
+	[FA0]=[GRSKa0]; [FA1]=[GRSKa1]; [FT0]=[FA0]; [FT1]=[FA1];
+    "GR sky thermo computed factor"
+	[GRSKx]=[GRSKtemp]; => GRSK fa x; [FB0]=[FT0]; [FB1]=[FT1]; => FMul; => GRSK store o; [GRSKtemp]=[GRSKo];
+
+	A=[GRSKlat]; A-60; ? A >= 0 -> GR sky lat abs; A=0; A-[GRSKlat]; A+60;
+    "GR sky lat abs" [GRSKlatabs]=A;
+	=> GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK k05; [GRSKy]=GRSKF05; => GRSK linear;
+	[FT0]=[FA0]; [FT1]=[FA1]; [GRSKiv]=[GRSKlatabs]; => GRSK int fa; [FB0]=[FT0]; [FB1]=[FT1]; => FMul; [FT0]=[FA0]; [FT1]=[FA1];
+	[GRSKx]=[GRSKtemp]; => GRSK fa x; [FB0]=[FT0]; [FB1]=[FT1]; => FSub; => GRSK store o; [GRSKtemp]=[GRSKo];
+
+	[GRSKx]=[GRSKtemp]; [GRSKy]=0C3868000h; => GRSK compare; A=[FI]; ? A >= 0 -> GR sky thermo type;
+	=> GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK k4; [GRSKy]=0C3868000h; => GRSK linear; => GRSK store o; [GRSKtemp]=[GRSKo];
+    "GR sky thermo type"
+	A=[GRSKptype]; ? A != 2 -> GR sky thermo t3;
+	=> GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK k150; [GRSKy]=[GRSKtemp]; => GRSK linear; => GRSK store o; [GRSKtemp]=[GRSKo];
+    "GR sky thermo t3"
+	A=[GRSKptype]; ? A != 3 -> GR sky thermo done;
+	( bounded type-3 correction loops, each update narrows to float )
+    "GR sky thermo bounds"
+	A=[GRSKsctype]; ? A=GRSKOCEAN -> GR sky bound ocean; ? A=GRSKPLAINS -> GR sky bound plains; ? A=GRSKDESERT -> GR sky bound desert; ? A=GRSKICY -> GR sky bound icy; -> GR sky thermo done;
+    "GR sky bound ocean" [GRSKx]=[GRSKtemp]; [GRSKy]=GRSKF10; => GRSK compare; A=[FI]; ? A < 0 -> GR sky add5; [GRSKx]=[GRSKtemp]; [GRSKy]=GRSKF60; => GRSK compare; A=[FI]; ? A > 0 -> GR sky sub5; -> GR sky thermo done;
+    "GR sky bound plains" [GRSKx]=[GRSKtemp]; [GRSKy]=0C1200000h; => GRSK compare; A=[FI]; ? A < 0 -> GR sky add5; [GRSKx]=[GRSKtemp]; [GRSKy]=42340000h; => GRSK compare; A=[FI]; ? A > 0 -> GR sky sub5; -> GR sky thermo done;
+    "GR sky bound desert" [GRSKx]=[GRSKtemp]; [GRSKy]=GRSKF20; => GRSK compare; A=[FI]; ? A < 0 -> GR sky add5; [GRSKx]=[GRSKtemp]; [GRSKy]=GRSKF80; => GRSK compare; A=[FI]; ? A > 0 -> GR sky sub5; -> GR sky thermo done;
+    "GR sky bound icy" [GRSKx]=[GRSKtemp]; [GRSKy]=0C2F00000h; => GRSK compare; A=[FI]; ? A < 0 -> GR sky add5; [GRSKx]=[GRSKtemp]; [GRSKy]=GRSKF4; => GRSK compare; A=[FI]; ? A > 0 -> GR sky sub5; -> GR sky thermo done;
+    "GR sky add5" => GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK k5; [GRSKy]=[GRSKtemp]; => GRSK linear; => GRSK store o; [GRSKtemp]=[GRSKo]; -> GR sky thermo bounds;
+    "GR sky sub5" => GRSK fast flandom; [GRSKx]=[GRSKret]; => GRSK k5; => GRSK x mul k; [FT0]=[FA0]; [FT1]=[FA1]; [GRSKx]=[GRSKtemp]; => GRSK fa x; [FB0]=[FT0]; [FB1]=[FT1]; => FSub; => GRSK store o; [GRSKtemp]=[GRSKo]; -> GR sky thermo bounds;
+    "GR sky thermo done"
+	[GRSKx]=[GRSKtemp]; => GRSK x assign; [GRSKbasetemp]=[GRSKo];
+	[GRSKx]=[GRSKpressure]; => GRSK x assign; [GRSKbasepressure]=[GRSKo]; [GRSKphase]=5;
+	end;
+
+      ( Caller-side, deliberately not folded into create_sky. )
+"GRSK horizon"
+	[GRSKptr]=0; [GRSKshade]=0;
+    "GR sky horizon row"
+	[GRSKi]=0;
+    "GR sky horizon col"
+	A=nw; A+RSBG; A+[GRSKptr]; C=[A]; C&255;
+	C '* [GRSKshade]; C '/ GRSKHOR;
+	D=[GRSKnightzone]; ? D=0 -> GR sky horizon store; C '/ 2;
+    "GR sky horizon store"
+	[GRSKwaddr]=[GRSKptr]; [GRSKwbyte]=C; => GRSK write sbg;
+	[GRSKptr]+; [GRSKi]+; A=[GRSKi]; ? A '< 360 -> GR sky horizon col;
+	[GRSKshade]+; A=[GRSKshade]; ? A '< GRSKHOR -> GR sky horizon row;
+	[GRSKphase]=6;
+	end;

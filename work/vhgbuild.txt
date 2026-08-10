@@ -1,0 +1,633 @@
+      ( *** game-vh - live walkable Stardrifter ***
+
+	Clean-source position (0,0,-500), live look controls, and movement
+	inside the real VEHICLE + cupola geometry.  Arrow keys look, WASD
+	moves, ESC exits.  This is the direct interactive integration of the
+	Wave-10 renderer; the remaining ship consoles/light and wider game
+	state are added here rather than in another standalone harness. )
+
+"libraries"
+
+	defstyle;
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal; fbtick; fbshell;
+	pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhspace; vhstar; vhground; vhsave; vhgui;
+
+"directors"
+
+	program name = { vhgame };
+	unit = 32;
+
+"constants"
+
+	NTICK = 400; NFRAME = 100; HITCHMOD = 37; CALMS = 3000; SERVON = 96;
+	VHG15F = 1097859072;
+	VHGNEAR = 1112014848;		( 50.0f: live interior near plane )
+	VHGSTEP = 80;
+	VHGN44 = 0FFFFFFD4h;
+	VHGN45 = 0FFFFFFD3h;
+	VHGN90 = 0FFFFFFA6h;
+	VHGN20 = 0FFFFFFECh;
+	VHGN180 = 0FFFFFF4Ch;
+	VHGINITLO = 0584FBE5h;		( sqrt(100^2+100^2+100^2) )
+	VHGINITHI = 4065A690h;
+	VHGFCH = 1076101120;		( 10.0 binary64 high )
+
+	( iGUI chrome leaves an exact 320x200 work area at 322x226. )
+	INITIAL WIDTH = 322; INITIAL HEIGHT = 226;
+	MINIMUM WIDTH = 272; MINIMUM HEIGHT = 120;
+	MAXIMUM WIDTH = 962; MAXIMUM HEIGHT = 626;
+	MAX MENU OPTIONS = 8; MAX ONSCREEN OPTIONS = 8; MAX LEVELS IN SHOW = 1;
+	MAX FILES IN SELECTOR = 8; MAX FILES IN SHOW = 4;
+	MAX OPTIONS IN QUESTION = 2; MAX FIELDS IN QUESTION = 0;
+
+"variables"
+
+	VHGx = 0; VHGy = 0; VHGz = 0;
+	VHGalpha = 0; VHGbeta = 0; VHGabs = 0;
+	VHGlifter = 0; VHGonroof = 0; VHGridearmed = 1;
+	VHGdx = 0; VHGdz = 0; VHGdist = 0;
+	VHGesc = 0; VHGframe = 0; VHGsent = 0;
+	VHGconsole = 0; VHGascii = 0;
+	VHGi = 0; VHGptr = 0; VHGseed = 0; VHGstepv = 0;
+	VHGflightx = 0; VHGsecx = 0;
+	VHGmode = 0; VHGlanded = 0;
+	VHGplanet = 0; VHGptype = 0;
+	VHGshipx = 0; VHGshipy = 0; VHGshipz = 0;
+	vhgoutname = { game-vh-out.bin };
+	VHGcaption = { Noctis_IV };
+	VHGfps = 0; VHGfpsframes = 0; VHGfpslast = 0; VHGfpsnow = 0;
+	VHGfpsdelta = 0;
+
+"workspace"
+
+	vhgstate = 18;
+	VHGfpstext = 7;
+
+"programme"
+
+	=> VHG run;
+	end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;
+
+"VHG run"
+	=> Initialize Integrated GUI;
+	=> FEnter;
+	=> MEM build rtab; => MEM build ztab; => MEM wrap reset;
+	=> PAL float init; => VHG palette;
+	=> SP build rgt; => SP riga init; => SP gman init; => SP load maps;
+	=> SP ncc load; => SP unloadallpv;
+	=> PGF constants;
+	A = 0; A - 500; [VHGz] = A;
+	=> VH cupola build;
+	=> VH panels init;
+
+	[PVh] = 0; [PVmodel] = MDVEH;
+	[PVxs] = VHG15F; [PVys] = VHG15F; [PVzs] = VHG15F;
+	[PVxm] = 0; [PVym] = 0; [PVzm] = 0; [PVcol] = 0; [PVreq] = 0;
+	=> SP loadpv;
+	( cache the 720 camera-independent normal mode-2 leaves once )
+	[PVh] = 0; [DWmode] = 2; [DWuds] = 0;
+	[DWcx] = 0; [DWcy] = 0; [DWcz] = 0;
+	[DWcamx] = 0; [DWcamy] = 0; [DWcamz] = 0;
+	=> SP drawpv; [VHRiters] = 2; => VH build mode2 cache;
+	[VHTtx] = 3979984; A = 0; A - 43407; [VHTty] = A;
+	A = 0; A - 43984; [VHTtz] = A;
+	=> VHT extract; => VHT load face; => VHG star palette;
+	[nsx] = [VHTtx]; [nsy] = [VHTty]; [nsz] = [VHTtz]; => NsSeedFromXYZ;
+	[nsseedin] = A; [nsclass] = [VHTclass]; => NsResetAll; => NsPrepare;
+	=> VHG flight init;
+	=> TK seed; => TK start;
+	=> VHG fps init;
+	[Always Clear Work Area] = NO;
+	[Control Loop Idle Slice] = 0;
+	[Small Caption] = VHGcaption;
+	[Work Area Manager] = service VHG repaint;
+	[Control Loop] = service VHG GUI loop;
+	[Sleepy Control Loop] = service VHG GUI sleepy;
+	=> Enter Integrated GUI;
+	=> VHSV save;
+	[Display Live Region] = VOID REGION;
+	=> FLeave;
+	end;
+
+"service VHG repaint"
+	=> VHGUI present;
+	=> VHG fps overlay;
+	end;
+
+"service VHG GUI loop"
+	A = [Fold Is Active]; ? A != NO -> VHG GUI loop done;
+	=> VHG one frame;
+	=> FB expand;
+	=> VHGUI present;
+	=> VHG fps overlay;
+	[L2L Region] = vector Work Area; => Update Area;
+	=> TK step;
+	=> VHG fps tick;
+	A = [VHGesc]; ? A = 0 -> VHG GUI loop done;
+	[Quit Now] = YES;
+    "VHG GUI loop done"
+	end;
+
+"service VHG GUI sleepy"
+	end;
+
+"VHG one frame"
+	=> VHG fpu clean;
+	A = [VHGmode]; ? A != 0 -> VHG skip ship ticks;
+	=> VHG flight step;
+	=> VHG lift tick;
+    "VHG skip ship ticks"
+	=> VHG render;
+	=> VHG copy page;
+	A = [VHGsent]; ? A != 0 -> VHG no sentinel;
+	A = [VHGframe]; ? A < 60 -> VHG no sentinel;
+	=> VHG write sentinel; [VHGsent] = 1;
+    "VHG no sentinel"
+	=> VHG input;
+	[VHGframe]+;
+	end;
+
+"VHG flight init"
+	( Live approach from the Wave 9 integrator, aimed at the nearest
+	  generated star with a non-empty planetary system. )
+	A = [VHTtx]; A + 100; [FI] = A; => IntToF;
+	[MgDzatX0] = [FA0]; [MgDzatX1] = [FA1];
+	A = [VHTty]; A + 100; [FI] = A; => IntToF;
+	[MgDzatY0] = [FA0]; [MgDzatY1] = [FA1];
+	A = [VHTtz]; A + 100; [FI] = A; => IntToF;
+	[MgDzatZ0] = [FA0]; [MgDzatZ1] = [FA1];
+	[FI] = [VHTtx]; => IntToF;
+	[MgApX0] = [FA0]; [MgApX1] = [FA1];
+	[FI] = [VHTty]; => IntToF;
+	[MgApY0] = [FA0]; [MgApY1] = [FA1];
+	[FI] = [VHTtz]; => IntToF;
+	[MgApZ0] = [FA0]; [MgApZ1] = [FA1];
+	[MgInitD0] = VHGINITLO; [MgInitD1] = VHGINITHI;
+	[MgCur0] = 0; [MgCur1] = VHGFCH;
+	[MgTmp] = [VHTRay]; C = [MgTmp]; => MG widen f32 FA from C;
+	[MgT00] = [FA0]; [MgT01] = [FA1];
+	[MgAnti] = 0; [MgAptgt] = 1; [MgPwr] = 30000;
+	[MgApreached] = 0; [MgStspeed] = 1; [MgStatus] = 0;
+	[FI] = 100000; => IntToF; [MgskA] = [FA0]; [MgskB] = [FA1];
+	end;
+
+"VHG flight step"
+	( mgloop's corpus entry seeds MgT0 with ap_target_ray, then uses the same
+	  pair as per-axis integration scratch.  A live one-frame caller must
+	  restore that boundary input before every continuation frame. )
+	C = [MgTmp]; => MG widen f32 FA from C;
+	[MgT00] = [FA0]; [MgT01] = [FA1];
+	=> MGD reset; [MgNframes] = 1; => MG vimana loop;
+	[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1]; => FToIntChop;
+	[VHGflightx] = [FI];
+	[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1];
+	[FB0] = [MgskA]; [FB1] = [MgskB]; => FQuo; => FToIntChop;
+	[VHGsecx] = [FI];
+	end;
+
+"VHG palette"
+	( The game's opening vehicle palette: cobalt-blue hull band. )
+	=> PAL zero; => PAL range;
+	[PVsrc] = range8088; [PVself] = 0;
+	[PVfirst] = 0; [PVn] = 64;
+	[PVfr] = 16; [PVfg] = 32; [PVfb] = 63; => PAL tavola;
+
+	( Temporary live-space bands until the sector/star palette joins this
+	  executable.  Keep their source ordering: blue-white cosmos, warm stars,
+	  and cool planet/UI colours. )
+	[PVsrc] = range8088; [PVself] = 0;
+	[PVfirst] = 64; [PVn] = 64;
+	[PVfr] = 32; [PVfg] = 48; [PVfb] = 63; => PAL tavola;
+	[PVsrc] = range8088; [PVself] = 0;
+	[PVfirst] = 128; [PVn] = 64;
+	[PVfr] = 63; [PVfg] = 56; [PVfb] = 48; => PAL tavola;
+	[PVsrc] = range8088; [PVself] = 0;
+	[PVfirst] = 192; [PVn] = 64;
+	[PVfr] = 40; [PVfg] = 52; [PVfb] = 63; => PAL tavola;
+	end;
+
+"VHG star palette"
+	( The selected star owns palette band 64..127, as the source does. )
+	[PVsrc] = range8088; [PVself] = 0;
+	[PVfirst] = 64; [PVn] = 64;
+	[PVfr] = [VHTred]; [PVfg] = [VHTgreen]; [PVfb] = [VHTblue]; => PAL tavola;
+	end;
+
+"VHG render"
+	A = [VHGmode]; ? A != 0 -> VHG render surface;
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
+	=> PGF constants;
+	( The source renderer's 100-unit plane is safe for exterior views, but
+	  from inside the hull a fast turn can put every subdivided leaf of a
+	  nearby wall/cupola behind it for one frame.  Keep the shared renderer
+	  exact and narrow only this live interior view to 50 units. )
+	[PGFi] = FSUNEG; [PGFt] = VHGNEAR; => PGF setf32;
+	[VHSdx0] = [MgDzatX0]; [VHSdx1] = [MgDzatX1];
+	[VHSdy0] = [MgDzatY0]; [VHSdy1] = [MgDzatY1];
+	[VHSdz0] = [MgDzatZ0]; [VHSdz1] = [MgDzatZ1];
+	[VHSalpha] = [VHGalpha];
+	A = [VHGbeta]; A + 180; ? A <= 180 -> VHG external beta ok; A - 360;
+    "VHG external beta ok"
+	[VHSbeta] = A; => VHS stars;
+	[VHTphase] = [VHGframe]; => VHT render;
+
+	( Source vehicle() always submits both cupolas.  Their wide dome can
+	  remain partly visible far outside a centre-angle reject, so clipping
+	  belongs to the polygon/line paths rather than a camera shortcut. )
+	( lower cupola: vehicle() camera offset z+3100,y-550 )
+	[VHCroof] = 0;
+	[VHVcamxi] = [VHGx]; A = [VHGy]; A - 550; [VHVcamyi] = A;
+	A = [VHGz]; A + 3100; [VHVcamzi] = A;
+	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
+	[VHCyor] = 0; => VH polycupola; => VH cupola grid;
+
+	( The local roof facets must begin moving before the rising camera meets
+	  the dome.  The original changes to its roof rendering during the lift;
+	  in this discrete live loop we arm it at the middle ascent boundary so
+	  the player passes through the aperture instead of appearing on top of
+	  an intact cupola. )
+	A = [VHGonroof]; ? A != 0 -> VHG upper after hull;
+	A = [VHGlifter]; ? A >= 0 -> VHG upper before hull now;
+	A = [VHGy]; ? A >= 0FFFFFEBBh -> VHG upper before hull now;
+	-> VHG upper after hull;
+    "VHG upper before hull now"
+	[VHCroof] = 0;
+	[VHVcamyi] = [VHGy]; => VH set view;
+	[VHCyor] = 1; => VH polycupola; => VH cupola grid;
+	-> VHG upper before hull done;
+    "VHG upper after hull"
+    "VHG upper before hull done"
+
+	( hull at the player's clean/live camera )
+	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
+	=> VH set view;
+	=> VH draw mode2 cache;
+
+	A = [VHGonroof]; ? A != 0 -> VHG draw roof aperture;
+	A = [VHGlifter]; ? A >= 0 -> VHG interior details;
+	A = [VHGy]; ? A >= 0FFFFFEBBh -> VHG interior details;
+    "VHG draw roof aperture"
+	[VHCroof] = 1;
+	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy];
+	A = [VHGz]; A + 3100; [VHVcamzi] = A;
+	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
+	[VHCyor] = 1; => VH polycupola; => VH cupola grid;
+	end;
+
+    "VHG interior details"
+
+	( three right-wall console faces from vehicle() )
+	[VHPcamx] = [VHGx]; [VHPcamy] = [VHGy]; [VHPcamz] = [VHGz];
+	[VHPalpha] = [VHGalpha]; [VHPbeta] = [VHGbeta];
+	[VHPactive] = [VHGconsole]; [VHPselected] = [VHGplanet]; [VHPsysphase] = [VHGframe]; => VH screens;
+
+	( interior halogen fixture: vehicle() camera x-3395,y+480,z+200 )
+	A = [VHGx]; A - 3395; [VHVcamxi] = A;
+	A = [VHGy]; A + 480; [VHVcamyi] = A;
+	A = [VHGz]; A + 200; [VHVcamzi] = A;
+	=> VH set view; => VH alogena;
+	[VHPfcsstatus] = [MgStatus];
+	A = [MgApreached]; ? A = 0 -> VHG FCS status ready; [VHPfcsstatus] = 6;
+    "VHG FCS status ready"
+	=> VH HUD FCS;
+	end;
+
+    "VHG render surface"
+	[VHGNDcamx] = [VHGx]; [VHGNDcamy] = [VHGy]; [VHGNDcamz] = [VHGz];
+	[VHGNDalpha] = [VHGalpha]; [VHGNDbeta] = [VHGbeta]; => VHGND render;
+	end;
+
+"VHG copy page"
+	[VHGptr] = 0;
+    "VHG copy loop"
+	D = nw; D + RADPT; D + [VHGptr]; E = nw; E + RADPR; E + [VHGptr];
+	C = [D]; [E] = C; [VHGptr]+;
+	A = [VHGptr]; ? A < NPIX -> VHG copy loop;
+	end;
+
+"VHG input"
+	A = [Client Owns Text Cursor]; ? A = NO -> VHG input done;
+	[Console Command] = GET CONSOLE INPUT; isocall;
+	[VHGascii] = [Console Input];
+	A = [KEY ESCAPE]; ? A = ON -> VHG quit;
+	A = [VHGmode]; ? A != 0 -> VHG surface input;
+	A = [VHGconsole]; ? A != 0 -> VHG console input;
+	A = [VHGascii]; ? A != 13 -> VHG normal input;
+	[VHGconsole] = 1; -> VHG input done;
+    "VHG console input"
+	A = [VHGascii]; ? A = 0 -> VHG input done;
+	[VHPkey] = A; => VH GOES key;
+	A = [VHPsubmitted]; ? A = 0 -> VHG input done;
+	=> VHG command; [VHGconsole] = 0; -> VHG input done;
+    "VHG normal input"
+	A = [VHGascii]; ? A = 49 -> VHG select planet 1; ? A = 50 -> VHG select planet 2;
+	? A = 51 -> VHG select planet 3; -> VHG selection done;
+    "VHG select planet 1"
+	[VHGplanet] = 0; -> VHG selection done;
+    "VHG select planet 2"
+	A = [nsnop]; ? A '< 2 -> VHG selection done; [VHGplanet] = 1; -> VHG selection done;
+    "VHG select planet 3"
+	A = [nsnop]; ? A '< 3 -> VHG selection done; [VHGplanet] = 2;
+    "VHG selection done"
+	( L lands on the first planet after calibration. )
+	A = [VHGascii]; ? A = 76 -> VHG request landing; ? A = 108 -> VHG request landing;
+	-> VHG look input;
+    "VHG request landing"
+	A = [MgApreached]; ? A = 0 -> VHG look input;
+	=> VHG land; -> VHG input done;
+    "VHG look input"
+	A = [KEY LEFT]; ? A = OFF -> VHG no left; A = [VHGbeta]; A + 2; [VHGbeta] = A;
+    "VHG no left"
+	A = [KEY RIGHT]; ? A = OFF -> VHG no right; A = [VHGbeta]; A - 2; [VHGbeta] = A;
+    "VHG no right"
+	A = [KEY UP]; ? A = OFF -> VHG no up; A = [VHGalpha]; A - 2; [VHGalpha] = A;
+    "VHG no up"
+	A = [KEY DOWN]; ? A = OFF -> VHG no down; A = [VHGalpha]; A + 2; [VHGalpha] = A;
+    "VHG no down"
+	A = [VHGalpha]; ? A <= 44 -> VHG alpha high ok; [VHGalpha] = 44;
+    "VHG alpha high ok"
+	A = [VHGalpha]; ? A >= VHGN44 -> VHG alpha low ok; [VHGalpha] = VHGN44;
+    "VHG alpha low ok"
+	A = [VHGbeta]; ? A <= 180 -> VHG beta high ok; A = [VHGbeta]; A - 360; [VHGbeta] = A;
+    "VHG beta high ok"
+	A = [VHGbeta]; ? A >= VHGN180 -> VHG beta low ok; A = [VHGbeta]; A + 360; [VHGbeta] = A;
+    "VHG beta low ok"
+	( Refresh the movement basis after input changed the view angles. )
+	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
+	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
+
+	A = [VHGlifter]; ? A != 0 -> VHG input done;
+	A = [KEY W]; ? A = OFF -> VHG no W; [VHGstepv] = VHGSTEP; => VHG forward;
+    "VHG no W"
+	A = [KEY S]; ? A = OFF -> VHG no S; A = 0; A - VHGSTEP; [VHGstepv] = A; => VHG forward;
+    "VHG no S"
+	A = [KEY A]; ? A = OFF -> VHG no A; A = 0; A - VHGSTEP; [VHGstepv] = A; => VHG strafe;
+    "VHG no A"
+	A = [KEY D]; ? A = OFF -> VHG input done; [VHGstepv] = VHGSTEP; => VHG strafe;
+    "VHG input done"
+	=> VHG clamp position;
+	=> VHG platform;
+	end;
+
+    "VHG surface input"
+	( R returns to the Stardrifter; the same standard WASD/arrows remain
+	  active while walking. )
+	A = [VHGascii]; ? A = 82 -> VHG request return; ? A = 114 -> VHG request return;
+	-> VHG surface look;
+    "VHG request return"
+	=> VHG return ship; -> VHG input done;
+    "VHG surface look"
+	A = [KEY LEFT]; ? A = OFF -> VHG surface no left; A = [VHGbeta]; A + 2; [VHGbeta] = A;
+    "VHG surface no left"
+	A = [KEY RIGHT]; ? A = OFF -> VHG surface no right; A = [VHGbeta]; A - 2; [VHGbeta] = A;
+    "VHG surface no right"
+	A = [KEY UP]; ? A = OFF -> VHG surface no up; A = [VHGalpha]; A - 2; [VHGalpha] = A;
+    "VHG surface no up"
+	A = [KEY DOWN]; ? A = OFF -> VHG surface no down; A = [VHGalpha]; A + 2; [VHGalpha] = A;
+    "VHG surface no down"
+	A = [VHGalpha]; ? A <= 44 -> VHG surface alpha high; [VHGalpha] = 44;
+    "VHG surface alpha high"
+	A = [VHGalpha]; ? A >= VHGN44 -> VHG surface alpha low; [VHGalpha] = VHGN44;
+    "VHG surface alpha low"
+	A = [VHGbeta]; ? A <= 180 -> VHG surface beta high; A - 360; [VHGbeta] = A;
+    "VHG surface beta high"
+	A = [VHGbeta]; ? A >= VHGN180 -> VHG surface beta low; A + 360; [VHGbeta] = A;
+    "VHG surface beta low"
+	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
+	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
+	A = [KEY W]; ? A = OFF -> VHG surface no W; [VHGstepv] = VHGNDSTEP; => VHG forward;
+    "VHG surface no W"
+	A = [KEY S]; ? A = OFF -> VHG surface no S; A = 0; A - VHGNDSTEP; [VHGstepv] = A; => VHG forward;
+    "VHG surface no S"
+	A = [KEY A]; ? A = OFF -> VHG surface no A; A = 0; A - VHGNDSTEP; [VHGstepv] = A; => VHG strafe;
+    "VHG surface no A"
+	A = [KEY D]; ? A = OFF -> VHG surface moved; [VHGstepv] = VHGNDSTEP; => VHG strafe;
+    "VHG surface moved"
+	=> VHG surface clamp;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGy] = [VHGNDheight];
+	end;
+    "VHG quit"
+	[VHGesc] = 1;
+	end;
+
+"VHG forward"
+	[FI] = [VHGstepv]; => IntToF; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSTSB; => PGF a; [PGFi] = FSW0; => PGF mul;
+	[PGFi] = FSTCA; => PGF mul; => FToIntNear;
+	A = [VHGx]; A - [FI]; [VHGx] = A;
+	[PGFi] = FSTCB; => PGF a; [PGFi] = FSW0; => PGF mul;
+	[PGFi] = FSTCA; => PGF mul; => FToIntNear;
+	A = [VHGz]; A + [FI]; [VHGz] = A;
+	end;
+
+"VHG strafe"
+	[FI] = [VHGstepv]; => IntToF; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSTCB; => PGF a; [PGFi] = FSW0; => PGF mul;
+	[PGFi] = FSTCA; => PGF mul; => FToIntNear;
+	A = [VHGx]; A + [FI]; [VHGx] = A;
+	[PGFi] = FSTSB; => PGF a; [PGFi] = FSW0; => PGF mul;
+	[PGFi] = FSTCA; => PGF mul; => FToIntNear;
+	A = [VHGz]; A + [FI]; [VHGz] = A;
+	end;
+
+"VHG clamp position"
+	( vehicle main-loop interior bounds, NOCTIS.CPP:2507-2510 )
+	A = [VHGx]; ? A >= 0FFFFF3E4h -> VHG x low ok; [VHGx] = 0FFFFF3E4h;
+    "VHG x low ok"
+	A = [VHGx]; ? A <= 3100 -> VHG x high ok; [VHGx] = 3100;
+    "VHG x high ok"
+	A = [VHGz]; ? A <= 0FFFFFED4h -> VHG z near ok; [VHGz] = 0FFFFFED4h;
+    "VHG z near ok"
+	A = [VHGz]; ? A >= 0FFFFE958h -> VHG z far ok; [VHGz] = 0FFFFE958h;
+    "VHG z far ok"
+	end;
+
+"VHG platform"
+	( The lift platform is centred at x=0,z=-3100 with radius 1100. )
+	[VHGdx] = [VHGx]; A = [VHGz]; A + 3100; [VHGdz] = A;
+	A = [VHGdx]; A '* [VHGdx]; C = A;
+	A = [VHGdz]; A '* [VHGdz]; A + C; [VHGdist] = A;
+	? A < 1210000 -> VHG platform inside;
+	[VHGridearmed] = 1; end;
+    "VHG platform inside"
+	A = [VHGridearmed]; ? A = 0 -> VHG platform done;
+	A = [VHGlifter]; ? A != 0 -> VHG platform done;
+	A = [VHGy]; ? A = 0 -> VHG platform go roof;
+	? A = 0FFFFFD12h -> VHG platform go inside;
+	-> VHG platform done;
+    "VHG platform go roof"
+	A = 0; A - 100; [VHGlifter] = A; [VHGridearmed] = 0; end;
+    "VHG platform go inside"
+	[VHGlifter] = 75; [VHGridearmed] = 0;
+    "VHG platform done"
+	end;
+
+"VHG lift tick"
+	A = [VHGlifter]; ? A = 0 -> VHG lift roof flag;
+	A = [VHGy]; A + [VHGlifter]; [VHGy] = A;
+	A = [VHGlifter]; ? A > 0 -> VHG lift descending;
+	[VHGlifter]+;
+	A = [VHGy]; ? A <= 0FFFFFEBBh -> VHG lift rise middle; ( pos_y <= -325 )
+	A = [VHGalpha]; A - 40; A '* 12; A '/ 100;
+	C = [VHGalpha]; C + A; [VHGalpha] = C;
+    "VHG lift rise middle"
+	A = [VHGy]; ? A <= 0FFFFFD35h -> VHG lift hold centre; ( -715 )
+	A = 0; A - [VHGy]; [VHGstepv] = A; => VHG lift move;
+	-> VHG lift hold centre;
+    "VHG lift descending"
+	[VHGlifter]-;
+	A = [VHGlifter]; ? A <= 65 -> VHG lift level look;
+	A = 40; A - [VHGalpha]; A '* 11; A '/ 100;
+	C = [VHGalpha]; C + A; [VHGalpha] = C; -> VHG lift down move;
+    "VHG lift level look"
+	A = [VHGalpha]; A '/ 4; C = [VHGalpha]; C - A; [VHGalpha] = C;
+    "VHG lift down move"
+	A = [VHGlifter]; A '/ 2; [VHGstepv] = A; => VHG lift move;
+    "VHG lift hold centre"
+	( Original holdtomiddle/lifter restraint: remain over the platform
+	  while the opening moves around the player. )
+	A = [VHGx]; A * 3; A / 4; [VHGx] = A;
+	A = [VHGz]; A + 3100; A / 4; C = [VHGz]; C - A; [VHGz] = C;
+    "VHG lift bounds"
+	A = [VHGy]; ? A <= 0 -> VHG lift upper ok;
+	[VHGy] = 0; [VHGlifter] = 0;
+    "VHG lift upper ok"
+	A = [VHGy]; ? A >= 0FFFFFD12h -> VHG lift roof flag;
+	[VHGy] = 0FFFFFD12h; [VHGlifter] = 0;
+    "VHG lift roof flag"
+	[VHGonroof] = 0; A = [VHGy]; ? A >= 0FFFFFE0Ch -> VHG lift done;
+	[VHGonroof] = 1;
+    "VHG lift done"
+	end;
+
+"VHG lift move"
+	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
+	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
+	=> VHG forward;
+	end;
+
+"VHG land"
+	A = nsptype; A + [VHGplanet]; [VHGptype] = [A];
+	A = [VHGptype]; ? A = 0 -> VHG land rejected; ? A = 6 -> VHG land rejected;
+	? A = 9 -> VHG land rejected; ? A = 10 -> VHG land rejected;
+	[VHGshipx] = [VHGx]; [VHGshipy] = [VHGy]; [VHGshipz] = [VHGz];
+	=> VHG prepare planet;
+	=> VHGND generate; => VHGND palette;
+	[VHGx] = 1646592; [VHGz] = 1646592; [VHGalpha] = 0; [VHGbeta] = 0;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGy] = [VHGNDheight]; [VHGmode] = 1; [VHGlanded] = 1;
+    "VHG land rejected"
+	end;
+
+"VHG prepare planet"
+	A = nsptype; A + [VHGplanet]; [VHGptype] = [A];
+	[GRiptype] = [VHGptype]; [VHGNDseed] = 149130;
+	A = [VHGplanet]; ? A = 0 -> VHG land seed ready; [VHGNDseed] = 293154;
+	? A = 1 -> VHG land seed ready; [VHGNDseed] = 569446;
+	? A = 2 -> VHG land seed ready; [VHGNDseed] = 19668;
+	? A = 3 -> VHG land seed ready; [VHGNDseed] = 31169;
+    "VHG land seed ready"
+	[VHGNDatmosphere] = 1;
+	A = [VHGptype]; ? A = 1 -> VHG land airless; ? A = 4 -> VHG land airless; ? A = 7 -> VHG land airless;
+	-> VHG land atmosphere ready;
+    "VHG land airless"
+	[VHGNDatmosphere] = 0;
+    "VHG land atmosphere ready"
+	end;
+
+"VHG command"
+	A = [vhptext plus 42]; ? A = 83 -> VHG command maybe save;
+	? A = 76 -> VHG command maybe load; end;
+    "VHG command maybe save"
+	A = [vhptext plus 43]; ? A != 65 -> VHG command done;
+	A = [vhptext plus 44]; ? A != 86 -> VHG command done;
+	A = [vhptext plus 45]; ? A != 69 -> VHG command done;
+	=> VHSV save; -> VHG command done;
+    "VHG command maybe load"
+	A = [vhptext plus 43]; ? A != 79 -> VHG command done;
+	A = [vhptext plus 44]; ? A != 65 -> VHG command done;
+	A = [vhptext plus 45]; ? A != 68 -> VHG command done;
+	=> VHSV load; A = [VHSVok]; ? A = 0 -> VHG command done;
+	A = [VHGmode]; ? A = 0 -> VHG command load ship;
+	=> VHG prepare planet; => VHGND generate; => VHGND palette; -> VHG command done;
+    "VHG command load ship"
+	=> VHG palette; => VHG star palette;
+    "VHG command done"
+	end;
+
+"VHG return ship"
+	[VHGx] = [VHGshipx]; [VHGy] = [VHGshipy]; [VHGz] = [VHGshipz];
+	[VHGalpha] = 0; [VHGbeta] = 0; [VHGmode] = 0;
+	=> VHG palette; => VHG star palette;
+	end;
+
+"VHG surface clamp"
+	A = [VHGx]; ? A '>= VHGNDLO -> VHG surface x low; [VHGx] = VHGNDLO;
+    "VHG surface x low"
+	A = [VHGx]; ? A '<= VHGNDHI -> VHG surface x high; [VHGx] = VHGNDHI;
+    "VHG surface x high"
+	A = [VHGz]; ? A '>= VHGNDLO -> VHG surface z low; [VHGz] = VHGNDLO;
+    "VHG surface z low"
+	A = [VHGz]; ? A '<= VHGNDHI -> VHG surface z high; [VHGz] = VHGNDHI;
+    "VHG surface z high"
+	end;
+
+"VHG fps init"
+	[Timer Command] = READ COUNTS; isocall;
+	[VHGfpslast] = [Counts]; [VHGfpsframes] = 0; [VHGfps] = 0;
+	[VHGfpstext plus 0] = 70; [VHGfpstext plus 1] = 80;
+	[VHGfpstext plus 2] = 83; [VHGfpstext plus 3] = 32;
+	[VHGfpstext plus 4] = 48; [VHGfpstext plus 5] = 48;
+	[VHGfpstext plus 6] = 0;
+	end;
+
+"VHG fps tick"
+	[VHGfpsframes]+; A = [VHGfpsframes]; ? A < 12 -> VHG fps tick done;
+	[Timer Command] = READ COUNTS; isocall; [VHGfpsnow] = [Counts];
+	A = [VHGfpsnow]; A - [VHGfpslast]; [VHGfpsdelta] = A;
+	? A = 0 -> VHG fps tick reset;
+	C = [TKcpms]; C '* 1000; C '* [VHGfpsframes];
+	A = [VHGfpsdelta]; A '/ 2; C + A; C '/ [VHGfpsdelta]; [VHGfps] = C;
+    "VHG fps tick reset"
+	[VHGfpslast] = [VHGfpsnow]; [VHGfpsframes] = 0;
+    "VHG fps tick done"
+	end;
+
+"VHG fps overlay"
+	( Reuse iGUI's already-linked font on the scaled RGB backdrop. )
+	A = [VHGfps]; ? A <= 99 -> VHG fps bounded; A = 99;
+    "VHG fps bounded"
+	C = A; A '/ 10; A + 48; [VHGfpstext plus 4] = A;
+	A = C; A '% 10; A + 48; [VHGfpstext plus 5] = A;
+	[String] = VHGfpstext; [Ink] = FFFFFFh;
+	A = [vector Work Area plus 0]; A + 3; [Text X] = A;
+	A = [vector Work Area plus 1]; A + 3; [Text Y] = A;
+	[Text Display Width] = [Display Width]; [Text Display Height] = [Display Height];
+	[Text Display Origin] = Backdrop Layer; [Text Region] = vector Work Area;
+	[Text Window] = NULL; [Text Word Wrap] = OFF; [Text Ghost Mode] = OFF;
+	=> STD Write;
+	end;
+
+"VHG write sentinel"
+	[vhgstate plus 0] = [VHGx]; [vhgstate plus 1] = [VHGy]; [vhgstate plus 2] = [VHGz];
+	[vhgstate plus 3] = [VHGalpha]; [vhgstate plus 4] = [VHGbeta];
+	[vhgstate plus 5] = [VHRdrawn]; [vhgstate plus 6] = [VHRbad]; [vhgstate plus 7] = [VHCpanels];
+	[vhgstate plus 8] = [MgDzatX0]; [vhgstate plus 9] = [MgDzatX1];
+	[vhgstate plus 10] = [MgPwr]; [vhgstate plus 11] = [MgStatus];
+	[vhgstate plus 12] = [VHTclass]; [vhgstate plus 13] = [VHTRay];
+	[vhgstate plus 14] = [nsnop]; [vhgstate plus 15] = [nsnob];
+	[vhgstate plus 16] = [MgApreached]; [vhgstate plus 17] = [SPload];
+	[File Name] = vhgoutname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhgstate; [Block Size] = 72; isocall;
+	[File Name] = vhgoutname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 72; isocall;
+	end;

@@ -125,7 +125,19 @@
 	  GeoChop16            FI <- low 16 bits of FI, SIGN extended.
 		       random() takes an `int`, and Borland large-model
 		       int is 16 bits.  srand()'s is zero extended - that
-		       asymmetry is nsident.txt's, not this file's.       )
+		       asymmetry is nsident.txt's, not this file's.
+
+	  GeoSeedStore100      FA <- FC*FB + FI/100, one live expression
+	  GeoRatioStore50      FA <- FI/50, one live expression
+	  GeoRatioStore500     FA <- FI/500, one live expression
+	  GeoRatioStore5000    FA <- FI/5000, one live expression
+	  GeoEccStore2000      FA <- 1 - FI/2000, one live expression
+	  GeoPlanetRayStore    FA <- FI*0.001 + 0.01, one live expression
+	  GeoMoonRayStore      FA <- FI*0.05 + 0.1, one live expression
+
+	The Store routines reproduce the x87 statement boundary as well as
+	the live argument boundary: their only narrowing store is the final
+	assignment to binary64 FA.                                             )
 
 "variables"
 
@@ -169,6 +181,39 @@
 	gcThr0	= 0;
 	gcThr1	= 4072C000h;		( 300.0 = 4072C00000000000h )
 
+	gcFif0	= 0;
+	gcFif1	= 40490000h;		( 50.0 )
+
+	gcFiv0	= 0;
+	gcFiv1	= 407F4000h;		( 500.0 )
+
+	gcFvt0	= 0;
+	gcFvt1	= 40B38800h;		( 5000.0 )
+
+	gcTwo0	= 0;
+	gcTwo1	= 409F4000h;		( 2000.0 )
+
+	gcMil0	= D2F1A9FCh;
+	gcMil1	= 3F50624Dh;		( 0.001 )
+
+	gcCen0	= 47AE147Bh;
+	gcCen1	= 3F847AE1h;		( 0.01 )
+
+	gcFivp0 = 9999999Ah;
+	gcFivp1 = 3FA99999h;		( 0.05 )
+
+	gcTent0 = 9999999Ah;
+	gcTent1 = 3FB99999h;		( 0.1 )
+
+	gc41120 = 0;
+	gc41121 = 40B01000h;		( 4112.0 )
+
+	gc5550 = 0;
+	gc5551 = 40815800h;		( 555.0 )
+
+	gc123450 = 0;
+	gc123451 = 40C81C80h;		( 12345.0 )
+
 "programme"
 
 ( ==================================================================== )
@@ -191,6 +236,8 @@
 "GeoSetK"
       ? A = 1 -> gcsk300;
       ? A = 2 -> gcsk100;
+	? A = 3 -> gcsk555;
+	? A = 4 -> gcsk12345;
 	A = [gcTen0]; [gcK0] = A;
 	A = [gcTen1]; [gcK1] = A;
 	end;
@@ -201,6 +248,14 @@
     "gcsk100"
 	A = [gcHun0]; [gcK0] = A;
 	A = [gcHun1]; [gcK1] = A;
+	end;
+    "gcsk555"
+	A = [gc5550]; [gcK0] = A;
+	A = [gc5551]; [gcK1] = A;
+	end;
+    "gcsk12345"
+	A = [gc123450]; [gcK0] = A;
+	A = [gc123451]; [gcK1] = A;
 	end;
 
 ( ==================================================================== )
@@ -227,6 +282,23 @@
 	    DC 8F <dgcK0 mtp bytesperunit>	(fmul  qword [edi+gcK0*4])
 	    DD 9F <dgcT0 mtp bytesperunit>	(fstp  qword [edi+gcT0*4])
 	    DD 87 <dgcT0 mtp bytesperunit>	(fld   qword [edi+gcT0*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
+	end;
+
+      ( Two stored doubles multiplied by the selected K and converted at the
+	original live __ftol boundary.  The landing filter stream uses
+	p_orb_seed * p_orb_ecc * 12345. )
+
+"GeoTwoMulKChopLive"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    DC 8F <dFC0 mtp bytesperunit>	(fmul  qword [edi+FC0*4])
+	    DC 8F <dgcK0 mtp bytesperunit>	(fmul  qword [edi+gcK0*4])
 	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
 	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
 	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
@@ -397,4 +469,104 @@
 "GeoStoreFAtoFC"
 	A = [FA0]; [FC0] = A;
 	A = [FA1]; [FC1] = A;
+	end;
+
+( ==================================================================== )
+( RESULT SHAPES - retain the live x87 expression until its C assignment )
+( ==================================================================== )
+
+      ( FC*FB + FI/100.  FC is the integer coefficient already converted
+	to an exact double; FB is the stored star/parent ray; FI is the
+	random result.  Used by :4089 and :4195. )
+
+"GeoSeedStore100"
+	{
+	    DD 87 <dFC0 mtp bytesperunit>	(fld   qword [edi+FC0*4])
+	    DC 8F <dFB0 mtp bytesperunit>	(fmul  qword [edi+FB0*4])
+	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
+	    DC B7 <dgcHun0 mtp bytesperunit>	(fdiv  qword [edi+gcHun0*4])
+	    DE C1				(faddp st1,st0)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
+	}
+	end;
+
+"GeoRatioStore50"
+	{
+	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
+	    DC B7 <dgcFif0 mtp bytesperunit>	(fdiv  qword [edi+gcFif0*4])
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
+	}
+	end;
+
+"GeoRatioStore500"
+	{
+	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
+	    DC B7 <dgcFiv0 mtp bytesperunit>	(fdiv  qword [edi+gcFiv0*4])
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
+	}
+	end;
+
+"GeoRatioStore5000"
+	{
+	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
+	    DC B7 <dgcFvt0 mtp bytesperunit>	(fdiv  qword [edi+gcFvt0*4])
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
+	}
+	end;
+
+"GeoEccStore2000"
+	{
+	    D9 E8				(fld1)
+	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
+	    DC B7 <dgcTwo0 mtp bytesperunit>	(fdiv  qword [edi+gcTwo0*4])
+	    DE E9				(fsubp st1,st0)
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
+	}
+	end;
+
+"GeoPlanetRayStore"
+	{
+	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
+	    DC 8F <dgcMil0 mtp bytesperunit>	(fmul  qword [edi+gcMil0*4])
+	    DC 87 <dgcCen0 mtp bytesperunit>	(fadd  qword [edi+gcCen0*4])
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
+	}
+	end;
+
+"GeoMoonRayStore"
+	{
+	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
+	    DC 8F <dgcFivp0 mtp bytesperunit>	(fmul  qword [edi+gcFivp0*4])
+	    DC 87 <dgcTent0 mtp bytesperunit>	(fadd  qword [edi+gcTent0*4])
+	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
+	}
+	end;
+
+      ( global_surface_seed = (FB + FC + FA) * 4112, converted by the
+	original live __ftol call.  FA=orientation, FB=ray, FC=orbit ray. )
+
+"GeoSurfaceSeedChop"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    DC 87 <dFC0 mtp bytesperunit>	(fadd  qword [edi+FC0*4])
+	    DC 87 <dFA0 mtp bytesperunit>	(fadd  qword [edi+FA0*4])
+	    DC 8F <dgc41120 mtp bytesperunit>	(fmul  qword [edi+gc41120*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
+	end;
+
+"GeoAdd4112ChopLive"
+	=> GeoChopEnter;
+	{
+	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
+	    DC 87 <dgc41120 mtp bytesperunit>	(fadd  qword [edi+gc41120*4])
+	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
+	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
+	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
+	}
+	A = [gcQ0]; [FI] = A;
 	end;

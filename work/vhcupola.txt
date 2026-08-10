@@ -1,0 +1,307 @@
+      ( *** vhcupola - Stardrifter panoramic dome panels ***
+
+	The clean opening draws two untextured cupola layers before the hull:
+	a flat lower ring (y_or=0) and the upper dome (y_or=+1).  Geometry
+	is generated at the original 18-degree longitude and 9-degree
+	latitude spacing and sent directly to the existing poly3d rasterizer.
+	The roof-only distance lift and textured capsule branch are separate
+	states and do not run at clean startup. )
+
+"constants"
+
+	VHCDLATLO = 1989996768;		( binary64 pi/20, low half )
+	VHCDLATHI = 1069816623;		( binary64 pi/20, high half )
+	VHCCUPSIZE = 1155596288;		( 1800.0f )
+	VHCCUPHEIGHT = 1154506752;	( 1667.0f )
+	VHCHALF = 1056964608;		( 0.5f )
+
+"variables"
+
+	VHCyor = 0;
+	VHClon = 0;
+	VHClat = 0;
+	VHCangleN = 0;
+	VHCsin = 0;
+	VHCcos = 0;
+	VHCslon = 0;
+	VHCclon = 0;
+	VHCsk = 0;
+	VHCck = 0;
+	VHCslat = 0;
+	VHCclat = 0;
+	VHCsnext = 0;
+	VHCcnext = 0;
+	VHCxx = 0;
+	VHCzz = 0;
+	VHCyy0 = 0;
+	VHCyy1 = 0;
+	VHCa = 0;
+	VHCb = 0;
+	VHCm = 0;
+	VHCi = 0;
+	VHCpanels = 0;
+	VHCgrid = 0;
+	VHCready = 0; VHCbuilding = 0; VHCsaveyor = 0;
+	VHCcachep = 0; VHCcachebase = 0; VHCcopy = 0;
+	VHCroof = 0; VHCcapsule = 0; VHCcamybase = 0; VHCdd = 0;
+
+"workspace"
+
+	vhcpoly = 12;			( four interleaved xyz vertices )
+	vhccache = 3360;		( 2 layers x 140 panels x 12 patterns )
+
+"programme"
+
+"VH polycupola"
+	=> VHC ensure cache;
+	[VHCgrid] = 0;
+	=> VHC render cache;
+	end;
+
+"VH cupola grid"
+	=> VHC ensure cache;
+	[VHCgrid] = 1;
+	=> VHC render cache;
+	end;
+
+"VH cupola build"
+	=> VHC ensure cache;
+	end;
+
+"VHC ensure cache"
+	A = [VHCready]; ? A != 0 -> VHC ensure done;
+	[VHCsaveyor] = [VHCyor]; [VHCbuilding] = 1; [VHCcachep] = 0;
+	[VHCyor] = 0; => VHC generate;
+	[VHCyor] = 1; => VHC generate;
+	[VHCbuilding] = 0; [VHCready] = 1; [VHCyor] = [VHCsaveyor];
+    "VHC ensure done"
+	end;
+
+"VHC render cache"
+	[VHCcamybase] = [VHVcamyi];
+	[VHCcachebase] = vhccache;
+	A = [VHCyor]; ? A = 0 -> VHC render base;
+	A = [VHCcachebase]; A + 1680; [VHCcachebase] = A;
+    "VHC render base"
+	[VHCpanels] = 0;
+    "VHC render panel"
+	A = [VHCpanels]; A '* 12; A + [VHCcachebase]; [VHCcachep] = A;
+	[VHCcopy] = 0;
+    "VHC render copy"
+	A = [VHCcachep]; A + [VHCcopy]; C = [A];
+	A = vhcpoly; A + [VHCcopy]; [A] = C;
+	[VHCcopy]+; A = [VHCcopy]; ? A < 12 -> VHC render copy;
+	( The landing capsule uses the same source cupola mesh with y_or=-1
+	  for its lower hemisphere.  Cache the +1 dome once and mirror only
+	  its four Y coordinates here; the Stardrifter's y_or=0/+1 paths are
+	  unchanged. )
+	A = [VHCyor]; ? A '>= 0 -> VHC render mirror done;
+	A = [vhcpoly plus 1]; A # 80000000h; [vhcpoly plus 1] = A;
+	A = [vhcpoly plus 4]; A # 80000000h; [vhcpoly plus 4] = A;
+	A = [vhcpoly plus 7]; A # 80000000h; [vhcpoly plus 7] = A;
+	A = [vhcpoly plus 10]; A # 80000000h; [vhcpoly plus 10] = A;
+    "VHC render mirror done"
+	A = [VHCgrid]; ? A != 0 -> VHC render grid;
+	=> VHC roof view;
+	=> VHC capsule view;
+	=> VHC draw panel; -> VHC render next;
+    "VHC render grid"
+	( Original cupola() keeps its support lines fixed; only polycupola() moves
+	  the nearby glass panels while on the roof. )
+	=> VHC draw grid;
+    "VHC render next"
+	[VHCpanels]+; A = [VHCpanels]; ? A < 140 -> VHC render panel;
+	[FI] = [VHCcamybase]; => IntToF; => F32Narrow;
+	[PGFi] = FSCAMY; => PGF sa;
+	end;
+
+"VHC roof view"
+	A = [VHCroof]; ? A = 0 -> VHC roof view done;
+	A = [VHCyor]; ? A != 1 -> VHC roof view done;
+
+	( d1 = .5*(x0+x1)-cam_x )
+	[PGFi] = FSW0; [PGFt] = [vhcpoly plus 0]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [vhcpoly plus 3]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
+	[PGFi] = FSW1; [PGFt] = VHCHALF; => PGF setf32;
+	[PGFi] = FSW1; => PGF mul; [PGFi] = FSCAMX; => PGF sub;
+	[PGFi] = FSW0; => PGF sa;
+
+	( d2 = .5*(z0+z1)-cam_z )
+	[PGFi] = FSW1; [PGFt] = [vhcpoly plus 2]; => PGF setf32;
+	[PGFi] = FSW2; [PGFt] = [vhcpoly plus 5]; => PGF setf32;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW2; => PGF add;
+	[PGFi] = FSW2; [PGFt] = VHCHALF; => PGF setf32;
+	[PGFi] = FSW2; => PGF mul; [PGFi] = FSCAMZ; => PGF sub;
+	[PGFi] = FSW1; => PGF sa;
+
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW0; => PGF mul; [PGFi] = FSW2; => PGF sa;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW2; => PGF add;
+	=> FSqrt; => PGF int;
+	A = 1000; A - [FI]; [VHCdd] = A;
+	? A >= 0 -> VHC roof dd nonnegative; [VHCdd] = 0;
+    "VHC roof dd nonnegative"
+	A = [VHCdd]; ? A <= 600 -> VHC roof dd ready; [VHCdd] = 600;
+    "VHC roof dd ready"
+	A = [VHCcamybase]; A + [VHCdd]; [FI] = A; => IntToF; => F32Narrow;
+	[PGFi] = FSCAMY; => PGF sa;
+    "VHC roof view done"
+	end;
+
+"VHC capsule view"
+	( Textured polycupola()'s landing-pod aperture at NOCTIS-0.CPP:
+	  5996-6010.  Panels within 500 units move by 4*dd*y_or; the fixed
+	  support grid does not move. )
+	A = [VHCcapsule]; ? A = 0 -> VHC capsule view done;
+
+	( d1 = .5*(x0+x1)-cam_x; accumulator = d1*d1 )
+	[PGFi] = FSW0; [PGFt] = [vhcpoly plus 0]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [vhcpoly plus 3]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
+	[PGFi] = FSW1; [PGFt] = VHCHALF; => PGF setf32;
+	[PGFi] = FSW1; => PGF mul; [PGFi] = FSCAMX; => PGF sub;
+	[PGFi] = FSW0; => PGF sa; [PGFi] = FSW0; => PGF mul; [PGFi] = FSW2; => PGF sa;
+
+	( d2 = .5*(y0+y2)-cam_y; accumulator += d2*d2 )
+	[PGFi] = FSW0; [PGFt] = [vhcpoly plus 1]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [vhcpoly plus 7]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
+	[PGFi] = FSW1; [PGFt] = VHCHALF; => PGF setf32;
+	[PGFi] = FSW1; => PGF mul; [PGFi] = FSCAMY; => PGF sub;
+	[PGFi] = FSW0; => PGF sa; [PGFi] = FSW0; => PGF mul; [PGFi] = FSW2; => PGF add;
+	[PGFi] = FSW2; => PGF sa;
+
+	( d3 = .5*(z0+z1)-cam_z; sqrt accumulated distance )
+	[PGFi] = FSW0; [PGFt] = [vhcpoly plus 2]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [vhcpoly plus 5]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
+	[PGFi] = FSW1; [PGFt] = VHCHALF; => PGF setf32;
+	[PGFi] = FSW1; => PGF mul; [PGFi] = FSCAMZ; => PGF sub;
+	[PGFi] = FSW0; => PGF sa; [PGFi] = FSW0; => PGF mul; [PGFi] = FSW2; => PGF add;
+	=> FSqrt; => PGF int;
+	A = 500; A - [FI]; [VHCdd] = A;
+	? A >= 0 -> VHC capsule dd nonnegative; [VHCdd] = 0;
+    "VHC capsule dd nonnegative"
+	A = [VHCdd]; ? A <= 500 -> VHC capsule dd ready; [VHCdd] = 500;
+    "VHC capsule dd ready"
+	A = [VHCdd]; A < 2; A '* [VHCyor]; A + [VHCcamybase]; [FI] = A;
+	=> IntToF; => F32Narrow; [PGFi] = FSCAMY; => PGF sa;
+    "VHC capsule view done"
+	end;
+
+"VHC generate"
+	[VHCpanels] = 0;
+	[VHClon] = 0;
+
+    "VHC longitude"
+	A = [VHClon]; A + A; [VHCangleN] = A; => VHC angle;
+	[VHCslon] = [VHCsin]; [VHCclon] = [VHCcos];
+	A = [VHClon]; A + 1; A + A; [VHCangleN] = A; => VHC angle;
+	[VHCsk] = [VHCsin]; [VHCck] = [VHCcos];
+
+	[VHClat] = 1;
+    "VHC latitude"
+	[VHCangleN] = [VHClat]; => VHC angle;
+	[VHCslat] = [VHCsin]; [VHCclat] = [VHCcos];
+	A = [VHClat]; A + 1; [VHCangleN] = A; => VHC angle;
+	[VHCsnext] = [VHCsin]; [VHCcnext] = [VHCcos];
+
+	[VHCa] = VHCCUPSIZE; [VHCb] = [VHCsnext]; => VHC multiply;
+	[VHCxx] = [VHCm];
+	[VHCa] = VHCCUPSIZE; [VHCb] = [VHCslat]; => VHC multiply;
+	[VHCzz] = [VHCm];
+
+	A = [VHCyor]; ? A = 0 -> VHC flat y;
+	[VHCa] = VHCCUPHEIGHT; [VHCb] = [VHCclat]; => VHC multiply;
+	[PGFt] = [VHCm]; => PGF ldf32; => FNeg; => F32Narrow; => PGF stf32;
+	[VHCyy0] = [PGFt];
+	[VHCa] = VHCCUPHEIGHT; [VHCb] = [VHCcnext]; => VHC multiply;
+	[PGFt] = [VHCm]; => PGF ldf32; => FNeg; => F32Narrow; => PGF stf32;
+	[VHCyy1] = [PGFt];
+	-> VHC have y;
+    "VHC flat y"
+	[VHCyy0] = 0; [VHCyy1] = 0;
+    "VHC have y"
+
+	( v0 = zz*lon, yy0, zz*sinlon )
+	[VHCa] = [VHCzz]; [VHCb] = [VHCclon]; => VHC multiply; [vhcpoly plus 0] = [VHCm];
+	[vhcpoly plus 1] = [VHCyy0];
+	[VHCa] = [VHCzz]; [VHCb] = [VHCslon]; => VHC multiply; [vhcpoly plus 2] = [VHCm];
+	( v1 = zz*k, yy0, zz*sink )
+	[VHCa] = [VHCzz]; [VHCb] = [VHCck]; => VHC multiply; [vhcpoly plus 3] = [VHCm];
+	[vhcpoly plus 4] = [VHCyy0];
+	[VHCa] = [VHCzz]; [VHCb] = [VHCsk]; => VHC multiply; [vhcpoly plus 5] = [VHCm];
+	( v2 = xx*k, yy1, xx*sink )
+	[VHCa] = [VHCxx]; [VHCb] = [VHCck]; => VHC multiply; [vhcpoly plus 6] = [VHCm];
+	[vhcpoly plus 7] = [VHCyy1];
+	[VHCa] = [VHCxx]; [VHCb] = [VHCsk]; => VHC multiply; [vhcpoly plus 8] = [VHCm];
+	( v3 = xx*lon, yy1, xx*sinlon )
+	[VHCa] = [VHCxx]; [VHCb] = [VHCclon]; => VHC multiply; [vhcpoly plus 9] = [VHCm];
+	[vhcpoly plus 10] = [VHCyy1];
+	[VHCa] = [VHCxx]; [VHCb] = [VHCslon]; => VHC multiply; [vhcpoly plus 11] = [VHCm];
+
+	A = [VHCbuilding]; ? A != 0 -> VHC cache panel;
+	A = [VHCgrid]; ? A != 0 -> VHC grid panel;
+	=> VHC draw panel;
+	-> VHC panel done;
+    "VHC grid panel"
+	=> VHC draw grid;
+	-> VHC panel done;
+    "VHC cache panel"
+	A = vhccache; A + [VHCcachep]; C = A;
+	[VHCcopy] = 0;
+    "VHC cache copy"
+	A = vhcpoly; A + [VHCcopy]; D = [A]; [C] = D;
+	C+; [VHCcopy]+; A = [VHCcopy]; ? A < 12 -> VHC cache copy;
+	A = [VHCcachep]; A + 12; [VHCcachep] = A;
+    "VHC panel done"
+	[VHCpanels]+;
+	[VHClat]+;
+	A = [VHClat]; ? A < 8 -> VHC latitude;
+
+	[VHClon]+;
+	A = [VHClon]; ? A < 20 -> VHC longitude;
+	end;
+
+      ( sin/cos of VHCangleN * pi/20, each stored as a source float. )
+
+"VHC angle"
+	[FI] = [VHCangleN]; => IntToF; [PGFi] = FSW0; => PGF sa;
+	[PGFt] = VHCDLATLO; [PGFu] = VHCDLATHI; => PGF ldf64;
+	[PGFi] = FSW0; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	=> FSin; => F32Narrow; => PGF stf32; [VHCsin] = [PGFt];
+	[PGFi] = FSW0; => PGF a; => FCos; => F32Narrow; => PGF stf32;
+	[VHCcos] = [PGFt];
+	end;
+
+"VHC multiply"
+	[PGFt] = [VHCa]; => PGF ldf32; [PGFi] = FSW1; => PGF sa;
+	[PGFt] = [VHCb]; => PGF ldf32; [PGFi] = FSW1; => PGF mul;
+	=> F32Narrow; => PGF stf32; [VHCm] = [PGFt];
+	end;
+
+"VHC draw panel"
+	[VHCi] = 0;
+    "VHC panel vertex"
+	A = [VHCi]; A '* 3; C = vhcpoly; C + A;
+	A = FSINX; A + [VHCi]; [PGFi] = A; [PGFt] = [C plus 0]; => PGF setf32;
+	A = [VHCi]; A '* 3; C = vhcpoly; C + A;
+	A = FSINY; A + [VHCi]; [PGFi] = A; [PGFt] = [C plus 1]; => PGF setf32;
+	A = [VHCi]; A '* 3; C = vhcpoly; C + A;
+	A = FSINZ; A + [VHCi]; [PGFi] = A; [PGFt] = [C plus 2]; => PGF setf32;
+	[VHCi]+;
+	A = [VHCi]; ? A < 4 -> VHC panel vertex;
+	[PJnrv] = 4; [DBcol] = 64; [DBflar] = 2; [DBent] = 0;
+	=> PG poly3d;
+	end;
+
+"VHC draw grid"
+	( radial v0 -> v3 )
+	[VHSx0] = [vhcpoly plus 0]; [VHSy0] = [vhcpoly plus 1]; [VHSz0] = [vhcpoly plus 2];
+	[VHSx1] = [vhcpoly plus 9]; [VHSy1] = [vhcpoly plus 10]; [VHSz1] = [vhcpoly plus 11];
+	=> VH stick3d;
+	( circumferential v0 -> v1 )
+	[VHSx0] = [vhcpoly plus 0]; [VHSy0] = [vhcpoly plus 1]; [VHSz0] = [vhcpoly plus 2];
+	[VHSx1] = [vhcpoly plus 3]; [VHSy1] = [vhcpoly plus 4]; [VHSz1] = [vhcpoly plus 5];
+	=> VH stick3d;
+	end;

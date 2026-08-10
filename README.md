@@ -1,11 +1,75 @@
 # Noctis IV in L.in.oleum
 
+[![Windows build and release](https://github.com/Fabulu/noctis-lino/actions/workflows/windows-release.yml/badge.svg)](https://github.com/Fabulu/noctis-lino/actions/workflows/windows-release.yml)
+
 An attempt to port [Noctis IV](https://en.wikipedia.org/wiki/Noctis_(video_game))
 to **L.in.oleum**, the cross-platform assembly language its own author wrote.
 
 Alessandro Ghignola wrote both. He built L.in.oleum specifically to write
 Noctis V in it, then abandoned both projects. This repository is an attempt to
 finish what the language was made for.
+
+## Play the game
+
+The current Windows build is a playable first-person port: walk through the
+Stardrifter, use its GOES console, fly to generated star systems, approach and
+land on planets, explore their surfaces, return in the capsule, and save your
+journey. It opens in a practical 2x window while retaining Noctis's authentic
+320x200 software framebuffer; iGUI's size and full-view controls can resize it
+without changing simulation or rendering coordinates. From PowerShell in the
+repository root, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\play_noctis.ps1
+```
+
+Landing coordinates use the generated globe's local albedo, atmosphere,
+weather, and scenario data, so different sites on the same world are visibly
+distinct.
+
+The launcher keeps the working directory fixed so the GUI assets, soundtrack,
+starmap, and `work\CURRENT.LIN` checkpoint are found consistently. It builds
+the game automatically when the executable is absent; pass `-Build` to force a
+fresh production build. Clean saves also retain the current validated window
+dimensions, so a resized game reopens at the same size.
+
+Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, G or Enter opens GOES,
+`NEXT` selects and flies toward a nearby generated star, L approaches and opens
+the landing-site selector at standby, arrows choose coordinates, L/Enter descends,
+R returns from the capsule, F5 opts into 60 FPS presentation (the original
+18.2 FPS mode is the default), F6/F7 save and load, F8 toggles music, `?` or F9 displays
+the complete in-game control card, and Esc saves and quits. A valid checkpoint
+resumes automatically; verified saves maintain `CURRENT.BAK`, and a damaged
+primary recovers visibly from that last-known-good copy. Enter `NEW` in GOES
+to start over.
+
+To build a clean, self-contained redistributable play folder with every runtime
+asset and a SHA-256 manifest:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\package_noctis.ps1
+```
+
+The default output is `dist\Noctis-IV`; the command refuses to merge
+with an existing directory so stale files cannot masquerade as bundle content.
+Inside the bundle, double-click `Play Noctis IV.cmd`. The relocatable launcher
+anchors all relative asset, checkpoint, catalogue, and diagnostic paths to the
+bundle even when it is started from an unrelated working directory.
+
+Version tags matching `v*` run the same Windows package build in GitHub Actions
+and publish the ZIP plus its SHA-256 checksum as a prerelease. Ordinary pushes
+and pull requests run the protected-source check, integrated-game regression,
+and package build without creating a release.
+
+## Project documentation
+
+- [`HISTORY.md`](HISTORY.md) is the chronological development and release story,
+  including the recent Stardrifter, lift, frame-rate, and checkpoint fixes.
+- [`PLAYTEST.md`](PLAYTEST.md) is the detailed capability and verification log.
+- [`PORTPLAN.md`](PORTPLAN.md) is the technical source of truth and remaining-work
+  ledger.
+- [`RELEASE_NOTES.md`](RELEASE_NOTES.md) describes the current public beta and
+  its known limitations.
 
 ## Provenance
 
@@ -88,9 +152,13 @@ upstream projects with their own licensing.
 ### Regression suite
 
 ```powershell
-python tests\run_all.py           # everything, about 80 seconds
+python tests\run_all.py           # optional --deep historical/release audit
 python tests\run_all.py galaxy    # just the tests matching "galaxy"
 ```
+
+Routine work uses the smallest relevant regression or smoke check (normally within 10% of
+the change's implementation effort). Run the full roster explicitly for a release or deep
+audit; the historical timing above is not a standing delivery promise.
 
 Four tests, each also runnable on its own and each carrying a header that says
 what it guards and how it would fail:
@@ -151,10 +219,19 @@ calls the program counter `bcodesize`; it is `bpos`.
 
 ## Licence
 
-Upstream content is under the WTOF Public License — see `wpl.htm`. Redistribution
-is permitted; selling for profit and modification are not.
-`src/linoleum_linux32/` is GPLv2 (Peterpaul Klein Haneveld).
+Noctis IV and the Noctis-derived parts of this port are distributed under the
+original WTOF Public License (WPL); the verbatim Noctis licence and credits are
+in [`LICENSE.htm`](LICENSE.htm). The WPL permits free redistribution,
+forbids charging for the covered work, and does not generally permit modified
+versions without the copyright holder's express authorisation. Alessandro
+Ghignola authorised this port to proceed on the condition that the original
+gameplay is preserved; this repository is published on that basis.
 
-Files added by this project are our own work. Noctis IV itself is
-Copyright © 1996–2002 Alessandro Ghignola, also under WPL, and distributing
-modified versions requires his authorisation.
+The upstream L.in.oleum compiler has its own WPL notice in [`wpl.htm`](wpl.htm).
+`src/linoleum_linux32/` is separately GPLv2 (Peterpaul Klein Haneveld). Those
+notices remain scoped to their respective material; no single licence is
+claimed for unrelated third-party components.
+
+Noctis IV is Copyright © 1996–2002 Alessandro Ghignola. Portions of the manual
+and soundtrack are Copyright © 2001–2002 Ryan J. Bury. See the licence files
+before copying or redistributing the project or a packaged build.

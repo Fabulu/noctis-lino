@@ -1,0 +1,72 @@
+      ( *** vhwaveprobe - focused live wave-impact smoke *** )
+
+"libraries"
+
+	defstyle;
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal; fbtick; fbshell;
+	pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhcatalog; vhspace; vhstar; vhground;
+
+"directors"
+
+	program name = { vhwaveprobe };
+	unit = 32;
+
+"constants"
+
+	NTICK = 400; NFRAME = 100; HITCHMOD = 37; CALMS = 3000; SERVON = 96;
+	INITIAL WIDTH = 322; INITIAL HEIGHT = 226;
+	MINIMUM WIDTH = 272; MINIMUM HEIGHT = 120;
+	MAXIMUM WIDTH = 962; MAXIMUM HEIGHT = 626;
+	MAX MENU OPTIONS = 8; MAX ONSCREEN OPTIONS = 8; MAX LEVELS IN SHOW = 1;
+	MAX FILES IN SELECTOR = 8; MAX FILES IN SHOW = 4;
+	MAX OPTIONS IN QUESTION = 2; MAX FIELDS IN QUESTION = 0;
+
+"variables"
+
+	VHGlanded = 1; VHGframe = 0; VHGplanet = 0;
+	VHWp = 0; VHWsum = 0; VHWbefore = 0;
+	VHWname = { vhwave-out.bin };
+
+"workspace"
+
+	vhwout = 10;
+
+"programme"
+
+	( A non-flat deterministic page proves that the production smoother
+	  actually rewrites pixels rather than merely decrementing its state. )
+	[VHWp] = 0;
+    "VHW fill"
+	D = nw; D + RADPT; D + [VHWp]; A = [VHWp]; A & 63; [D] = A;
+	[VHWp]+; A = [VHWp]; ? A < 64000 -> VHW fill;
+	D = nw; D + RADPT; D + 60479; [VHWbefore] = [D];
+
+	[VHGNDwaveout] = 0; [VHGNDdosim] = 1; A = 0; A - 600; [VHGNDcamy] = A;
+	[VHGNDwavedist] = 500000; [VHGNDwaveradius] = 500000;
+	[VHGNDwavewidth] = 1000; A = 0; A - 500; [VHGNDwavedelta] = A;
+	[VHGNDtick] = 7; [VHGNDwavei] = 0;
+	[VHGNDwavecx] = 900000; [VHGNDwavecz] = 950000;
+	[VHGNDcamx] = 1000000; [VHGNDcamz] = 1050000;
+	=> VHGND wave impact check;
+	[vhwout plus 0] = [VHGNDwavehits]; [vhwout plus 1] = [VHGNDwaveblur];
+	=> VHGND wave impact tick;
+	[vhwout plus 2] = [VHGNDimpactx]; [vhwout plus 3] = [VHGNDimpactz];
+	[vhwout plus 4] = [VHGNDimpacttilt]; [vhwout plus 5] = [VHWbefore];
+	=> VHGND wave impact finish;
+	[vhwout plus 6] = [VHGNDwaveblur];
+	D = nw; D + RADPT; D + 30000; [vhwout plus 7] = [D];
+	D = nw; D + RADPT; D + 2560; [vhwout plus 8] = [D];
+	D = nw; D + RADPT; D + 60479; [vhwout plus 9] = [D];
+	[File Name] = VHWname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhwout; [Block Size] = 40; isocall;
+	[File Name] = VHWname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 40; isocall;
+	end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;

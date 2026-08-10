@@ -181,12 +181,19 @@ static void round_hill(int cx, int cz, unsigned ur, float h, float hmax,
                        signed char allowcanyons)
 {
     int x, z;
-    int r = (int)ur;
-    if (r < 0) r = -r;                 /* abs(r) for range bounds */
+    uint16_t ux, uz;
+    uint16_t r = (uint16_t)ur;
+    uint16_t x_end = (uint16_t)(cx + r);
+    uint16_t z_end = (uint16_t)(cz + r);
     /* v = (float)r / M_PI_2 -> float32 store */
     float v = (float)((ld)(float)r / (M_PI_D / 2));
-    for (x = cx - r; x < cx + r; x++)
-        for (z = cz - r; z < cz + r; z++) {
+    /* `r` is unsigned in the DOS source.  Borland therefore emits unsigned
+       JNA bounds for both int16 loop variables; a wrapped negative start
+       skips the loop rather than clipping the hill at the map edge. */
+    for (ux = (uint16_t)(cx - r); ux < x_end; ux++) {
+        x = (int16_t)ux;
+        for (uz = (uint16_t)(cz - r); uz < z_end; uz++) {
+            z = (int16_t)uz;
             if (x > -1 && z > -1 && x < 200 && z < 200) {
                 float dx = (float)(x - cx);
                 float dz = (float)(z - cz);
@@ -208,6 +215,7 @@ static void round_hill(int cx, int cz, unsigned ur, float h, float hmax,
                 }
             }
         }
+    }
 }
 
 /* ---- std_crater :1561 ----------------------------------------------- */
@@ -249,7 +257,7 @@ static void srf_darkline(unsigned char *map, int length,
     while (length) {
         fx += brandom_led(3) + x_trend;
         fz += brandom_led(3) + z_trend;
-        { long location = align * (long)fz + fx;
+        { u16 location = (u16)(align * (long)fz + fx);
           if (location > 0 && location < mapsize) map[location] >>= 1; }
         length--;
     }
@@ -292,7 +300,7 @@ static void felisian_srf_darkline(unsigned char *map, int length,
         fx += brandom_led(3) + x_trend;
         fz += brandom_led(3) + z_trend;
         deviation += brandom_led((i16)variability) - (variability >> 1);
-        { long location = align * (long)fz + fx;
+        { u16 location = (u16)(align * (long)fz + fx);
           if (location > 0 && location < mapsize) {
               int peak = (int)map[location] + deviation;
               if (peak < 0) peak = 0;

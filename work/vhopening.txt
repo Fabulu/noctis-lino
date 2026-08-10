@@ -1,0 +1,100 @@
+      ( *** vhopening - clean-start Stardrifter view ***
+
+	This is the product-facing opening renderer as it grows.  It starts
+	at the original fresh-state camera (0,0,-500), loads the real VEHICLE
+	at scale 15 with no staging translation, and draws the authentic
+	mode-2 hull.  Cupola and light layers are linked into this programme
+	as they land. )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	pgfp;
+	pgmem;
+	pgrast;
+	pgtex;
+	pgproj;
+
+	spmem;
+	spscale;
+	spncc;
+	vhjoin;
+	vhrmap;
+	vhstick;
+	vhcupola;
+
+"directors"
+
+	program name = { vhopening };
+	unit = 32;
+
+"constants"
+
+	VHO15F = 1097859072;		( 15.0f )
+	VHOM500F = 3287941120;		( -500.0f )
+	VHOM550F = 3288956928;		( -550.0f )
+	VHO2600F = 1159888896;		( 2600.0f )
+
+"variables"
+
+	vhooutname = { vh-opening.bin };
+
+"programme"
+
+	=> SP build rgt;
+	=> SP ncc load;
+	=> SP unloadallpv;
+	=> FEnter;
+	=> PGF constants;
+	=> SDMP reset;
+
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0;
+	=> SP fill page;
+
+	[PVh] = 0; [PVmodel] = MDVEH;
+	[PVxs] = VHO15F; [PVys] = VHO15F; [PVzs] = VHO15F;
+	[PVxm] = 0; [PVym] = 0; [PVzm] = 0;
+	[PVcol] = 0; [PVreq] = 0;
+	=> SP loadpv;
+
+	( vehicle(): cam_z += 3100; cam_y -= 550; lower ring, then dome )
+	[PGFi] = FSCAMX; [PGFt] = 0; => PGF setf32;
+	[PGFi] = FSCAMY; [PGFt] = VHOM550F; => PGF setf32;
+	[PGFi] = FSCAMZ; [PGFt] = VHO2600F; => PGF setf32;
+	[VHCyor] = 0; => VH polycupola; => VH cupola grid;
+	[PGFi] = FSCAMY; [PGFt] = 0; => PGF setf32;
+	[VHCyor] = 1; => VH polycupola; => VH cupola grid;
+
+	[PVh] = 0; [DWmode] = 2; [DWuds] = 0;
+	[DWcx] = 0; [DWcy] = 0; [DWcz] = 0;
+	[DWcamx] = 0; [DWcamy] = 0; [DWcamz] = VHOM500F;
+	=> SP drawpv;
+	[VHRiters] = 2;
+	=> VH join mode2;
+
+	[SPCScase] = 1;
+	[SPpreg] = RGADP; [SPpn] = NPIX;
+	=> SDMP page;
+
+	=> FLeave;
+	=> VH opening write;
+	end;
+
+"VH opening write"
+	[File Name] = vhooutname;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	[Block Pointer] = spdump;
+	[Block Size] = [SPSDcnt]; [Block Size] * BYTESPERUNIT;
+	isocall;
+	[File Name] = vhooutname;
+	[File Position] = 0;
+	[File Command] = SET SIZE;
+	[File Size] = [SPSDcnt]; [File Size] * BYTESPERUNIT;
+	isocall;
+	end;

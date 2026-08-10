@@ -1,0 +1,77 @@
+      ( *** vhbiomeprobe - focused desert/ice production generator smoke *** )
+
+"libraries"
+
+	defstyle;
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal; fbtick; fbshell;
+	pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhcatalog; vhspace; vhstar; vhground;
+
+"directors"
+
+	program name = { vhbiomeprobe };
+	unit = 32;
+
+"constants"
+
+	NTICK = 400; NFRAME = 100; HITCHMOD = 37; CALMS = 3000; SERVON = 96;
+	INITIAL WIDTH = 322; INITIAL HEIGHT = 226;
+	MINIMUM WIDTH = 272; MINIMUM HEIGHT = 120;
+	MAXIMUM WIDTH = 962; MAXIMUM HEIGHT = 626;
+	MAX MENU OPTIONS = 8; MAX ONSCREEN OPTIONS = 8; MAX LEVELS IN SHOW = 1;
+	MAX FILES IN SELECTOR = 8; MAX FILES IN SHOW = 4;
+	MAX OPTIONS IN QUESTION = 2; MAX FIELDS IN QUESTION = 0;
+
+"variables"
+
+	VHGlanded = 1; VHGframe = 0; VHGplanet = 0;
+	VHBp = 0; VHBmin = 0; VHBmax = 0; VHBsum = 0;
+	VHBname = { vhbiome-out.bin };
+
+"workspace"
+
+	vhbout = 16;
+
+"programme"
+
+	=> PGF constants; => GR float init;
+	[VHTid0] = 0; [VHTid1] = 0; [GRiptype] = 3; [VHGNDplanet] = 0;
+
+	( Low seed bits 2 select DESERT. )
+	[VHGNDseed] = 149130; => VHGND generate; => VHB scan;
+	[vhbout plus 0] = [VHGNDsctype]; [vhbout plus 1] = [VHGNDrockdensity];
+	[vhbout plus 2] = [VHGNDtscale]; [vhbout plus 3] = [VHBmin];
+	[vhbout plus 4] = [VHBmax]; [vhbout plus 5] = [VHBsum];
+
+	( Low seed bits 3 select ICY. )
+	[VHGNDseed] = 149131; => VHGND generate; => VHB scan;
+	[vhbout plus 6] = [VHGNDsctype]; [vhbout plus 7] = [VHGNDrockdensity];
+	[vhbout plus 8] = [VHGNDtscale]; [vhbout plus 9] = [VHBmin];
+	[vhbout plus 10] = [VHBmax]; [vhbout plus 11] = [VHBsum];
+	[vhbout plus 12] = [VHGNDfrosty]; [vhbout plus 13] = [VHGNDrockscale];
+	[vhbout plus 14] = [VHGNDrockpeak]; [vhbout plus 15] = [VHGNDwavesin];
+
+	[File Name] = VHBname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhbout; [Block Size] = 64; isocall;
+	[File Name] = VHBname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 64; isocall;
+	end;
+
+"VHB scan"
+	[VHBp] = 0; [VHBmin] = 255; [VHBmax] = 0; [VHBsum] = 0;
+    "VHB scan pixel"
+	A = RPSM; A + [VHBp]; [MBptr] = A; => MEM get byte; A = [MBval];
+	? A '>= [VHBmin] -> VHB scan max; [VHBmin] = A;
+    "VHB scan max"
+	A = [MBval]; ? A '<= [VHBmax] -> VHB scan sum; [VHBmax] = A;
+    "VHB scan sum"
+	A = [VHBsum]; A + [MBval]; [VHBsum] = A;
+	[VHBp]+; A = [VHBp]; ? A < 40000 -> VHB scan pixel;
+	end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;

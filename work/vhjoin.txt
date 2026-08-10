@@ -1,0 +1,77 @@
+      ( *** vhjoin - Wave 10 drawpv dispatch -> Wave 6a raster join ***
+
+	Consumes the unchanged eight-unit SP drawpv dispatch rows and the
+	post-load pvfile arena.  It does not alter spncc or the pg renderer.
+	The first delivery slice implements mode 0 only; mode 2 is added by
+	vhrmap once this seam produces a visible VEHICLE page.              )
+
+"variables"
+
+	VHJrow = 0;
+	VHJptr = 0;
+	VHJbase = 0;
+	VHJnrv = 0;
+	VHJv = 0;
+	VHJbi = 0;
+	VHJdrawn = 0;
+	VHJbad = 0;
+
+"programme"
+
+      ( VH join mode0
+
+	SP drawpv already computed the translated camera as SFDX/Y/Z and
+	emitted pvcall rows.  Copy that exact camera into PG, transfer each
+	binary32 vertex pattern without arithmetic, then invoke poly3d. )
+
+"VH join mode0"
+	[VHJrow] = 0;
+	[VHJdrawn] = 0;
+	[VHJbad] = 0;
+
+	[PGFi] = SFDX; [PGFj] = FSCAMX; => PGF mov;
+	[PGFi] = SFDY; [PGFj] = FSCAMY; => PGF mov;
+	[PGFi] = SFDZ; [PGFj] = FSCAMZ; => PGF mov;
+
+	A = [DWn]; ? A = 0 -> VH jm done;
+
+    "VH jm row"
+	A = [VHJrow]; A '* 8; C = pvcall; C + A; [VHJptr] = C;
+	A = [C plus 7]; ? A != 0 -> VH jm badrow;
+	[VHJbase] = [C plus 2];
+	[VHJnrv] = [C plus 3];
+	A = [VHJnrv]; ? A < 3 -> VH jm badrow;
+	? A > 4 -> VH jm badrow;
+
+	[VHJv] = 0;
+    "VH jm vertex"
+	A = [VHJbase]; A + [VHJv]; A '* 4; [VHJbi] = A;
+	[SPreg] = RGPVF;
+
+	A = [PVax]; A + [VHJbi]; [SPidx] = A; => SP getf32;
+	A = FSINX; A + [VHJv]; [PGFi] = A; [PGFt] = [SPf]; => PGF setf32;
+
+	A = [PVay]; A + [VHJbi]; [SPidx] = A; => SP getf32;
+	A = FSINY; A + [VHJv]; [PGFi] = A; [PGFt] = [SPf]; => PGF setf32;
+
+	A = [PVaz]; A + [VHJbi]; [SPidx] = A; => SP getf32;
+	A = FSINZ; A + [VHJv]; [PGFi] = A; [PGFt] = [SPf]; => PGF setf32;
+
+	[VHJv]+;
+	A = [VHJv]; ? A '< [VHJnrv] -> VH jm vertex;
+
+	[PJnrv] = [VHJnrv];
+	C = [VHJptr]; [DBcol] = [C plus 4];
+	[DBflar] = 0; [DBent] = 0;
+	=> PG poly3d;
+	[VHJdrawn]+;
+	-> VH jm next;
+
+    "VH jm badrow"
+	[VHJbad]+;
+    "VH jm next"
+	[VHJrow]+;
+	A = [VHJrow]; ? A '< [DWn] -> VH jm row;
+
+    "VH jm done"
+	end;

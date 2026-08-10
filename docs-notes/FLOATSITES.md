@@ -350,7 +350,7 @@ float→integer casts are:
 | `NOCTIS-1.CPP:4063`, `4064`, `4311`, `4312` | `ipfx = ((long)(cam_x)) >> 14` | which surface quadrant the camera is in | MAJOR |
 | `NOCTIS-1.CPP:4078` | `((long)(pos_x)>>10) + ((long)(pos_z)>>10)` | §1.5 | MAJOR |
 | `NOCTIS-1.CPP:4176`, `4177` | `pos_x = ((((long)pos_x) >> 14) << 14) + 8192` | **snaps the walker to a quadrant centre** | MAJOR |
-| `NOCTIS-1.CPP:4179`, `4180` | `atl_x = ((long)pos_x) >> 14` | the saved atlas coordinate (`Surface.BIN`) | MAJOR |
+| `NOCTIS-1.CPP:4179`, `4180` | `atl_x = ((long)pos_x) >> 14` | the saved atlas coordinate (`SURFACE.BIN`) | MAJOR |
 | `NOCTIS.CPP:265` | `_SI = 320*(int)ry + rx` | pixel address | COSMETIC |
 | `NOCTIS.CPP:1616`, `1618` | `(int)(sin(deg*navigation_beta)*+100)` | heading readout | COSMETIC |
 | `NOCTIS.CPP:2999` | `(long)ap_target_x%32000` | §1.5 | COSMETIC |

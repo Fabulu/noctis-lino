@@ -1,0 +1,59 @@
+      ( *** vhorbitprobe - inspect live opening-system approach scales *** )
+"libraries"
+	defstyle;
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal; fbtick; fbshell; pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhcatalog; vhspace; vhstar; vhground;
+"directors"
+	program name = { vhorbitprobe }; unit = 32;
+"constants"
+	NTICK=400; NFRAME=100; HITCHMOD=37; CALMS=3000; SERVON=96;
+	INITIAL WIDTH=322; INITIAL HEIGHT=226; MINIMUM WIDTH=272; MINIMUM HEIGHT=120;
+	MAXIMUM WIDTH=962; MAXIMUM HEIGHT=626; MAX MENU OPTIONS=8; MAX ONSCREEN OPTIONS=8;
+	MAX LEVELS IN SHOW=1; MAX FILES IN SELECTOR=8; MAX FILES IN SHOW=4;
+	MAX OPTIONS IN QUESTION=2; MAX FIELDS IN QUESTION=0;
+"variables"
+	VHGlanded=0; VHGframe=0; VHGplanet=0; VHOPi=0; VHOPp=0; VHOPframes=0;
+	VHGCwindangle=0; VHGCwindpower=0;
+	VHOPname={ vhorbit-out.bin };
+"workspace"
+	vhopout=68;
+"programme"
+	=> FEnter; => PGF constants; => GR float init;
+	[VHTtx]=3979984; [VHTty]=0FFFF5671h; [VHTtz]=0FFFF5430h; => VHT extract;
+	[nsx]=[VHTtx]; [nsy]=[VHTty]; [nsz]=[VHTtz]; => NsSeedFromXYZ;
+	[nsseedin]=A; [nsclass]=[VHTclass]; [nsstarray]=[VHTRay]; => NsResetAll; => NsPrepare;
+	[vhopout plus 0]=[nsnop]; [vhopout plus 1]=[nsnob]; [vhopout plus 2]=[VHTclass]; [vhopout plus 3]=[VHTRay];
+	[VHOPi]=0;
+    "VHOP copy"
+	A=[VHOPi]; A<1; [VHOPp]=A; E=nsporbray; E+A; C=vhopout; C+[VHOPp]; C+4; [C plus 0]=[E plus 0]; [C plus 1]=[E plus 1];
+	E=nspray; E+[VHOPp]; C=vhopout; C+[VHOPp]; C+14; [C plus 0]=[E plus 0]; [C plus 1]=[E plus 1];
+	E=nsporbseed; E+[VHOPp]; C=vhopout; C+[VHOPp]; C+28; [C plus 0]=[E plus 0]; [C plus 1]=[E plus 1];
+	E=nsptilt; E+[VHOPp]; C=vhopout; C+[VHOPp]; C+38; [C plus 0]=[E plus 0]; [C plus 1]=[E plus 1];
+	E=nsporbtlt; E+[VHOPp]; C=vhopout; C+[VHOPp]; C+48; [C plus 0]=[E plus 0]; [C plus 1]=[E plus 1];
+	E=nsporbecc; E+[VHOPp]; C=vhopout; C+[VHOPp]; C+58; [C plus 0]=[E plus 0]; [C plus 1]=[E plus 1];
+	[VHOPi]+; A=[VHOPi]; ? A<5 -> VHOP copy;
+
+	( Drive body zero from its real retained orbital radius to 2*ray. )
+	E=nsporbray; [MgDzatX0]=[E plus 0]; [MgDzatX1]=[E plus 1];
+	[MgDzatY0]=0; [MgDzatY1]=0; [MgDzatZ0]=0; [MgDzatZ1]=0;
+	[MgInitD0]=[E plus 0]; [MgInitD1]=[E plus 1];
+	[FA0]=[MgInitD0]; [FA1]=[MgInitD1]; [FB0]=[MgK1000]; [FB1]=[MgK1001]; => FMul;
+	[MgCur0]=[FA0]; [MgCur1]=[FA1]; E=nspray; [FA0]=[E plus 0]; [FA1]=[E plus 1]; => F32Narrow; [MgPray]=[FS0];
+	[MgPlX0]=0; [MgPlX1]=0; [MgPlY0]=0; [MgPlY1]=0; [MgPlZ0]=0; [MgPlZ1]=0;
+	[MgPwr]=30000; [MgIpreaching]=1; [MgIpreached]=0; [VHOPframes]=0;
+    "VHOP approach"
+	=> MGD reset; [MgNframes]=1; => MG approach loop; [VHOPframes]+;
+	A=[MgIpreached]; ? A!=0 -> VHOP approach done; A=[VHOPframes]; ? A<10000 -> VHOP approach;
+    "VHOP approach done"
+	[vhopout plus 24]=[VHOPframes]; [vhopout plus 25]=[MgIpreached];
+	[vhopout plus 26]=[MgStatus]; [vhopout plus 27]=[MgPwr];
+	[File Name]=VHOPname; [File Position]=0; [File Command]=WRITE; [Block Pointer]=vhopout; [Block Size]=272; isocall;
+	[File Name]=VHOPname; [File Position]=0; [File Command]=SET SIZE; [File Size]=272; isocall;
+	end;
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;

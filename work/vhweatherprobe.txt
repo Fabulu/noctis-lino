@@ -1,0 +1,100 @@
+      ( Focused headless smoke for the production atmospheric weather layer. )
+
+"libraries"
+
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal;
+	pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	nsident; nsrng; nsseed; nstopo;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhground; vhcapsule;
+
+"directors"
+
+	program name = { vhweatherprobe };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"variables"
+
+	VHGx = 0; VHGy = 0; VHGz = 0;
+	VHGalpha = 0; VHGbeta = 0; VHGmode = 1; VHGlanded = 1;
+	VHGplanet = 0; VHGframe = 1;
+	VHTid0 = 0; VHTid1 = 0; VHTtx = 0; VHTty = 0; VHTtz = 0;
+	VHWPindex = 0; VHWPnonzero = 0;
+	VHWPbright = 0; VHWPrestored = 0;
+	VHWPtop = 0; VHWPinner = 0; VHWPbottom = 0;
+	vhwpname = { vhweather-out.bin };
+
+"workspace"
+
+	vhwpout = 20;
+
+"programme"
+
+	=> FEnter;
+	=> MEM build rtab; => MEM build ztab; => MEM wrap reset;
+	=> PAL float init; => PAL zero; => PAL range;
+	=> SP build rgt; => PGF constants; => VH view init;
+	[SPpreg] = RGADP; [SPpn] = 64000; [SPval] = 0; => SP fill page;
+
+	[GRiptype] = 3; [GRSKrainy] = 40700000h;
+	[VHGNDatmosphere] = 1; [VHGNDseed] = 149135;
+	[VHGNDdosim] = 0; [VHGNDtick] = 17; [VHGNDstormflashes] = 5;
+	[VHGNDcamx] = 1646592; [VHGNDcamy] = 0; [VHGNDcamz] = 1646592;
+	[VHGNDalpha] = 0; [VHGNDbeta] = 0;
+	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
+	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
+	[VHGCwindangle] = 1440; [VHGCwindpower] = 500;
+	[VHSdrawn] = 0; => VHGND render weather;
+
+	[VHWPindex] = 0; [VHWPnonzero] = 0;
+    "VHWP scan"
+	[SPreg] = RGADP; [SPidx] = [VHWPindex]; => SP dget;
+	A = [SPval]; ? A = 0 -> VHWP scan next; [VHWPnonzero]+;
+    "VHWP scan next"
+	[VHWPindex]+; A = [VHWPindex]; ? A < 64000 -> VHWP scan;
+	[VHGNDflashactive] = 1; => VHGND weather flash palette; [VHWPbright] = [pal6];
+	[VHGNDflashactive] = 0; => VHGND weather flash palette; [VHWPrestored] = [pal6];
+	[SPpreg] = RGADP; [SPpn] = 64000; [SPval] = 200; => SP fill page;
+	=> VHGND dense atmosphere;
+	[SPreg] = RGADP; [SPidx] = 0; => SP dget; [VHWPtop] = [SPval];
+	[SPidx] = 32000; => SP dget; [VHWPinner] = [SPval];
+	[SPidx] = 63999; => SP dget; [VHWPbottom] = [SPval];
+
+	[vhwpout plus 0] = 1464356948; ( 'TWAW' sentinel )
+	[vhwpout plus 1] = [VHGNDrainstreaks];
+	[vhwpout plus 2] = [VHGNDraincount];
+	[vhwpout plus 3] = [VHSdrawn];
+	[vhwpout plus 4] = [VHWPnonzero];
+	[vhwpout plus 5] = [VHGNDrainwindx];
+	[vhwpout plus 6] = [VHGNDrainwindz];
+	[vhwpout plus 7] = [VHGNDstormflashes];
+	[vhwpout plus 8] = [VHGNDflashactive];
+	[vhwpout plus 9] = [VHGNDrainphase];
+	[vhwpout plus 10] = [VHGNDrainseed];
+	[vhwpout plus 11] = [VHWPbright];
+	[vhwpout plus 12] = [VHWPrestored];
+	[vhwpout plus 13] = [VHGNDflashlast];
+	[vhwpout plus 14] = [srfpal6];
+	[vhwpout plus 15] = [VHWPtop];
+	[vhwpout plus 16] = [VHWPinner];
+	[vhwpout plus 17] = [VHWPbottom];
+	[vhwpout plus 18] = 56960;
+	[vhwpout plus 19] = 324508639;
+	[File Name] = vhwpname; [File Position] = 0;
+	[File Command] = WRITE; [Block Pointer] = vhwpout;
+	[Block Size] = 20; [Block Size] * BYTESPERUNIT; isocall;
+	[File Name] = vhwpname; [File Position] = 0;
+	[File Command] = SET SIZE; [File Size] = 20; [File Size] * BYTESPERUNIT; isocall;
+	=> FLeave;
+	end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;
+
+"VHG return ship"
+	end;

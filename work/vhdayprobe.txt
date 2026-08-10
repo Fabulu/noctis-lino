@@ -1,0 +1,75 @@
+      ( Focused headless smoke for retained general landing geometry. )
+
+"libraries"
+
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal; pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhstar; vhground; vhcapsule;
+
+"directors"
+
+	program name = { vhdayprobe };
+	unit = 32;
+	display width = 320;
+	display height = 200;
+
+"variables"
+
+	VHGx = 0; VHGy = 0; VHGz = 0;
+	VHGalpha = 0; VHGbeta = 0; VHGmode = 1; VHGlanded = 1;
+	VHGplanet = 3; VHGframe = 1;
+	vhdptype = 0; vhdname = { vhday-out.bin };
+
+"workspace"
+
+	vhdout = 20;
+
+"programme"
+
+	=> FEnter; => PGF constants; => GR float init;
+	A = 0; A - 18928; [VHTtx] = A;
+	A = 0; A - 29680; [VHTty] = A;
+	A = 0; A - 67336; [VHTtz] = A;
+	=> VHT extract;
+	[nsx] = [VHTtx]; [nsy] = [VHTty]; [nsz] = [VHTtz]; => NsSeedFromXYZ;
+	[nsseedin] = A; [nsclass] = [VHTclass]; [nsstarray] = [VHTRay];
+	=> NsResetAll; => NsPrepare;
+	E = nsptype; E + [VHGplanet]; A = [E]; [vhdptype] = A; [GRiptype] = A;
+	[VHGNDplanet] = [VHGplanet]; [VHGNDatmosphere] = 1;
+	A = [vhdptype]; ? A = 1 -> VHD airless; ? A = 4 -> VHD airless;
+	? A = 7 -> VHD airless; -> VHD air ready;
+    "VHD airless"
+	[VHGNDatmosphere] = 0;
+    "VHD air ready"
+	A = [VHGplanet]; A < 1; E = nspray; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1];
+	E = nsporbray; E + A; [FC0] = [E plus 0]; [FC1] = [E plus 1];
+	E = nspororient; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
+	=> GeoSurfaceSeedChop; [VHGNDseed] = [FI];
+	=> VHGND UTC seconds; => VHGND orbital phase; => VHGND terminator;
+	[vhdout plus 0] = 1497646166; ( 'VYAD' sentinel )
+	[vhdout plus 1] = [VHTclass]; [vhdout plus 2] = [nsnop];
+	[vhdout plus 3] = [nsnob]; [vhdout plus 4] = [vhdptype];
+	[vhdout plus 5] = [VHGNDseed]; [vhdout plus 6] = [VHGNDrotation];
+	[vhdout plus 7] = [VHGNDplwp]; [vhdout plus 8] = [VHGNDtermstart];
+	[vhdout plus 9] = [VHGNDtermend]; [vhdout plus 10] = [GRSKnightzone];
+	[vhdout plus 11] = [VHGNDcrep]; [vhdout plus 12] = [GRSKexposure];
+	[vhdout plus 13] = [VHGNDseedval0]; [vhdout plus 14] = [VHGNDseedval1];
+	[vhdout plus 15] = [VHGNDvecx0]; [vhdout plus 16] = [VHGNDvecx1];
+	[vhdout plus 17] = [VHGNDvecz0]; [vhdout plus 18] = [VHGNDvecz1];
+	[vhdout plus 19] = 324508639;
+	[File Name] = vhdname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhdout; [Block Size] = 80; isocall;
+	[File Name] = vhdname; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 80; isocall; => FLeave;
+	end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;
+
+"VHG return ship"
+	end;

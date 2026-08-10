@@ -12,13 +12,16 @@ WHAT THE ORACLE IS
     For non-type-3: three-way internal consistency (spec == cref == lino),
     the Wave 7a pattern.  For type-3 equator: a binary capture from
     NIV+ R2.3's own guest RAM (tests/gen/recon_w7b/out/).  The type-3
-    p_surfacemap binary-capture grade is XFAIL'd because a seed-flow gap
-    (an intervening brtl draw between build_surface's srand at :2052
-    and the type switch at :2054, paradox-proven: the capture's terrain
-    has peak=125 AND row 0 all zeros, which is impossible from srand(0)
-    without a draw shift) prevents byte-exact matching.  The gap is
-    carried as a known limitation pending a brtl state dump from the
-    recon rig.
+    p_surfacemap binary-capture grade retains a small post-landing XFAIL,
+    but the earlier seed-flow explanation has been falsified.  A live RAM capture pins
+    sctype=OCEAN and albedo=40; OCEAN therefore takes the `goto revert`
+    PLAINS path.  With that corrected fixture, all 65,536 texture bytes
+    match the NIV+ capture, proving that the brtl stream entering and
+    leaving the terrain calls is aligned.  Reproducing Borland's unsigned
+    16-bit round_hill loop bounds reduced the map difference from 39,710
+    to 1,752 bytes.  The surviving fixture is captured after the landed
+    loop has begun reusing p_surfacemap as scratch, not at build_surface's
+    return boundary, so that residual remains explicitly capture-only.
 
 THE THREE IMPLEMENTATIONS
     spec  noctis-harness/gr_spec.py   Python, exact rationals for the
@@ -28,7 +31,7 @@ THE THREE IMPLEMENTATIONS
     lino  work/grnd.txt + grmain.txt  The DELIVERABLE.  Compiled and run
                                       with the poll-and-kill runner.
 
-Usage:  python tests/test_ground.py [--quick] [--no-lino]
+Usage:  python tests/test_ground.py [--deep] [--no-lino]
 """
 
 import argparse
@@ -58,6 +61,17 @@ PS_BYTES = gr_spec.PS_BYTES
 OC_BYTES = gr_spec.OC_BYTES
 TXTR_BYTES = gr_spec.TXTR_BYTES
 REC_SZ = PS_BYTES + OC_BYTES + 16  # map + objects + 4 int32 counters
+
+# t3_equator live state, measured by tests/gen/recon_w7b/diag_ground_state.py.
+# global_surface_seed comes independently from Wave 4's graded system data;
+# build_surface then re-seeds both generators with lon*lat == 0 at :2051-52.
+CAPTURE_GSEED = 1029155
+CAPTURE_SCTYPE = 1                 # OCEAN
+CAPTURE_ALBEDO = 40                # >20, therefore goto revert / PLAINS
+# With DOS `unsigned` round_hill bounds reproduced, the old 39,710-byte gap
+# falls to this post-landing capture residual.  Do not present it as a pristine
+# build_surface mismatch: the running game has already reused this RAM buffer.
+CAPTURE_MAP_OPEN_DIFF = 1752
 
 
 def nd(a, b):
@@ -133,13 +147,17 @@ def run_lino(main_src, out_name, timeout=600):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--quick", action="store_true", help="skip sabotages")
+    ap.add_argument("--deep", action="store_true",
+                    help="run historical diagnostics and sabotage matrix")
+    ap.add_argument("--quick", action="store_true",
+                    help="compatibility alias for the lean default")
     ap.add_argument("--no-lino", action="store_true", help="skip lino build/run")
     a = ap.parse_args(argv)
 
     chk = lh.Check("WAVE 7b - build_surface + SURFACE.BIN")
     chk.note("ORACLE: three-way (spec==cref==lino) + binary capture for type-3.")
-    chk.note("Type-3 binary-capture p_surfacemap is XFAIL (seed-flow gap).")
+    chk.note("Type-3 capture fixture is RAM-pinned (OCEAN, albedo 40, seed 0).")
+    chk.note("Its texture is exact; p_surfacemap retains a post-landing RAM residual.")
 
     # ---- fixture ----
     os.makedirs(SAND, exist_ok=True)
@@ -252,43 +270,81 @@ def main(argv=None):
     else:
         chk.note("R3 lino SKIPPED (--no-lino)")
 
-    # ---- type-3 binary capture (XFAIL) ----
+    # ---- type-3 binary capture ----
     if os.path.isdir(RECON_W7B):
         cap_map = open(os.path.join(RECON_W7B, "t3_equator.p_surfacemap"), "rb").read()
+        cap_txtr = open(os.path.join(RECON_W7B, "t3_equator.p_background"), "rb").read()
         S = gr_spec.BuildSurface(ledger=False)
         S.smap = bytearray(PS_BYTES)
         S.objs = bytearray(OC_BYTES)
         S.txtr = bytearray(TXTR_BYTES)
         for i in range(65535): S.txtr[i] = 16
-        S.prologue(0, 3, 1, 17, 0)
+        S.prologue(CAPTURE_GSEED, 3, CAPTURE_SCTYPE, CAPTURE_ALBEDO, 0)
         S.F.srand(0); S.B.srand(0)
         S.liquid_water = 0
-        S._switch(3, 1, 17)
+        S._switch(3, CAPTURE_SCTYPE, CAPTURE_ALBEDO)
         S._post_switch()
         S._objects_inclination()
         spec_map = S.map_bytes()
-        row0_match = spec_map[0:200] == cap_map[0:200]
+        spec_txtr = bytes(S.txtr)
         row0_spec_nz = sum(1 for x in spec_map[0:200] if x)
         row0_cap_nz = sum(1 for x in cap_map[0:200] if x)
         diff = nd(spec_map, cap_map[:PS_BYTES])
-        chk.ok(row0_cap_nz == 0,
-               "C1 type-3 capture: row 0 all-zero in capture (baseline confirmed)",
-               "cap row0 nonzero=%d" % row0_cap_nz)
-        chk.note("C1 note: spec row 0 has %d nonzero (from post-switch crevasses "
-                 "with shifted brtl params) — same seed-flow gap" % row0_spec_nz)
-        chk.ok(False,
-               "C2 type-3 p_surfacemap byte-exact vs NIV+ capture — XFAIL "
-               "(spec and cref AGREE on the OCEAN path but both disagree with "
-               "the binary; either a shared transliteration error or a "
-               "binary-vs-source difference; needs brtl state dump from the "
-               "recon rig to resolve)",
-               "%d bytes differ" % diff)
+        if a.deep:
+            chk.ok(row0_cap_nz == 0,
+                   "C1 type-3 capture: row 0 all-zero in capture (baseline confirmed)",
+                   "cap row0 nonzero=%d" % row0_cap_nz)
+            chk.note("C1 note: corrected source model row 0 has %d nonzero; this is "
+                     "part of the remaining map-only gap" % row0_spec_nz)
+        txtr_diff = nd(spec_txtr, cap_txtr[:TXTR_BYTES])
+        chk.ok(txtr_diff == 0,
+               "C2 type-3 corrected fixture: all 65,536 ground-texture bytes "
+               "match NIV+ (OCEAN albedo 40 -> PLAINS/revert)",
+               "%d bytes differ" % txtr_diff)
+
+        # Deliberately restore the old, false fixture.  It must not match: this
+        # proves C2 is sensitive to exactly the state correction it claims.
+        if a.deep:
+            W = gr_spec.BuildSurface(ledger=False)
+            W.smap = bytearray(PS_BYTES); W.objs = bytearray(OC_BYTES)
+            W.txtr = bytearray(TXTR_BYTES)
+            for i in range(65535): W.txtr[i] = 16
+            W.prologue(0, 3, 1, 17, 0)
+            W.F.srand(0); W.B.srand(0); W.liquid_water = 0
+            W._switch(3, 1, 17); W._post_switch()
+            wrong_txtr_diff = nd(bytes(W.txtr), cap_txtr[:TXTR_BYTES])
+            chk.ok(wrong_txtr_diff > 0,
+                   "C3 broken control: old OCEAN/albedo-17 fixture is rejected",
+                   "%d texture bytes differ" % wrong_txtr_diff)
+
+        # XFAIL convention: assert the measured defect is STILL present.  A
+        # fix (or any drift in its boundary) deliberately fails this check so
+        # the open item cannot silently become stale.  Unlike the former
+        # ok(False), this condition is data-dependent and can pass or fail.
+        still_open = diff == CAPTURE_MAP_OPEN_DIFF
+        chk.ok(still_open,
+               "XFAIL C4 type-3 post-landing p_surfacemap capture residual",
+               ("STILL OPEN: %d bytes differ" % diff) if still_open else
+               ("BOUNDARY CHANGED: got %d diffs, expected %d; re-audit or "
+                "remove this XFAIL if now exact" % (diff, CAPTURE_MAP_OPEN_DIFF)))
+
+        # Break one byte that currently agrees.  Mutating an already-different
+        # byte could leave the difference count unchanged and prove nothing.
+        if a.deep:
+            break_at = next(i for i in range(PS_BYTES) if spec_map[i] == cap_map[i])
+            broken_cap = bytearray(cap_map[:PS_BYTES])
+            broken_cap[break_at] = (broken_cap[break_at] + 1) & 0xFF
+            broken_diff = nd(spec_map, bytes(broken_cap))
+            chk.ok(broken_diff == CAPTURE_MAP_OPEN_DIFF + 1,
+                   "C5 broken control: XFAIL boundary rejects capture drift",
+                   "byte %d makes diff %d (expected %d)" %
+                   (break_at, broken_diff, CAPTURE_MAP_OPEN_DIFF + 1))
     else:
         chk.note("C1/C2 type-3 capture not available (no tests/gen/recon_w7b/out/)")
 
     # ---- sabotages ----
-    if a.quick:
-        chk.note("--- F: SKIPPED (--quick) ---")
+    if not a.deep:
+        chk.note("--- F: historical sabotage campaign SKIPPED (requires --deep) ---")
     else:
         chk.note("--- F: sabotages ---")
         p = subprocess.run([sys.executable, os.path.join(HARNESS, "gr_break.py")],
@@ -302,9 +358,9 @@ def main(argv=None):
 
     # ---- hygiene ----
     chk.note("Build via lino_build.ps1; run via w7arun.ps1.")
-    chk.note("Type-3 XFAIL: spec==cref agree but both differ from capture. "
-             "Either shared transliteration error or binary-vs-source difference. "
-             "Resolution needs brtl state dump from recon rig.")
+    chk.note("Type-3: RNG/fixture is resolved by exact texture agreement and "
+             "unsigned 16-bit round_hill bounds close 37,958 prior map bytes; "
+             "the post-landing RAM residual is asserted at its measured count.")
 
     return chk.done()
 

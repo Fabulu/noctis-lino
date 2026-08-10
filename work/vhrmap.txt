@@ -1,0 +1,288 @@
+      ( *** vhrmap - deterministic Stardrifter mode-2 mapper ***
+
+	NOCTIS calls this randomic_mapper, but it contains no random input.
+	Each triangle is quartered recursively and the four leaves use the
+	polygon colours c, c-2, c-1, c+1.  vehicle() requests divisions 2
+	(normally: four leaves) or 3 (depolarized: sixteen leaves).
+
+	The original recursive call order is preserved with a small LIFO
+	stack.  All vertices in the stack are binary32 patterns; every
+	midpoint is narrowed at the source float assignment boundary. )
+
+"constants"
+
+	VHRHALF = 1056964608;		( 0.5f )
+	VHRSTACKN = 64;
+	VHRCCAP = 720;
+
+"variables"
+
+	VHRiters = 2;
+	VHRrow = 0;
+	VHRptr = 0;
+	VHRbase = 0;
+	VHRvid = 0;
+	VHRdst = 0;
+	VHRbi = 0;
+	VHRsp = 0;
+	VHRi = 0;
+	VHRchildd = 0;
+	VHRa = 0;
+	VHRb = 0;
+	VHRm = 0;
+	VHRcol = 0;
+	VHRca = 0;
+	VHRcb = 0;
+	VHRcc = 0;
+	VHRcd = 0;
+	VHRdrawn = 0;
+	VHRbad = 0;
+	VHRcacheon = 0; VHRcached = 0; VHRcachecount = 0;
+	VHRcachep = 0;
+
+"workspace"
+
+	vhrcur = 10;			( x0 y0 z0 x1 y1 z1 x2 y2 z2 depth )
+	vhrmid = 9;			( e0/f0/g0 e1/f1/g1 e2/f2/g2 )
+	vhrleaf = 9;
+	vhrstack = 640;			( 64 records x 10 units )
+	vhrcache = 7200;			( normal VEHICLE: 720 x xyz9+colour )
+
+"programme"
+
+      ( Join every mode-2 dispatch row to the rasterizer. )
+
+"VH join mode2"
+	[VHRrow] = 0;
+	[VHRdrawn] = 0;
+	[VHRbad] = 0;
+
+	[PGFi] = SFDX; [PGFj] = FSCAMX; => PGF mov;
+	[PGFi] = SFDY; [PGFj] = FSCAMY; => PGF mov;
+	[PGFi] = SFDZ; [PGFj] = FSCAMZ; => PGF mov;
+
+	A = [DWn]; ? A = 0 -> VHR join done;
+
+    "VHR join row"
+	A = [VHRrow]; A '* 8; C = pvcall; C + A; [VHRptr] = C;
+	A = [C plus 7]; ? A != 2 -> VHR join bad;
+	[VHRbase] = [C plus 2];
+	A = [C plus 3]; ? A < 3 -> VHR join bad;
+	? A > 4 -> VHR join bad;
+	A = [VHRiters]; ? A < 2 -> VHR join bad;
+	? A > 3 -> VHR join bad;
+
+	A = [C plus 4]; A & 255; [VHRca] = A;
+	A = [VHRca]; A - 2; A & 255; [VHRcb] = A;
+	A = [VHRca]; A - 1; A & 255; [VHRcc] = A;
+	A = [VHRca]; A + 1; A & 255; [VHRcd] = A;
+
+	( first source triangle: 0,1,2 )
+	[VHRdst] = 0; [VHRvid] = 0; => VHR load vertex;
+	[VHRdst] = 3; [VHRvid] = 1; => VHR load vertex;
+	[VHRdst] = 6; [VHRvid] = 2; => VHR load vertex;
+	=> VHR map current;
+
+	( a quad is the second source triangle: 2,3,0.  Unit 6 keeps
+	   drawpv's original p-versus-c choice in the sorted branch. )
+	C = [VHRptr]; A = [C plus 6]; ? A != 4 -> VHR join next;
+	[VHRdst] = 0; [VHRvid] = 2; => VHR load vertex;
+	[VHRdst] = 3; [VHRvid] = 3; => VHR load vertex;
+	[VHRdst] = 6; [VHRvid] = 0; => VHR load vertex;
+	=> VHR map current;
+	-> VHR join next;
+
+    "VHR join bad"
+	[VHRbad]+;
+    "VHR join next"
+	[VHRrow]+;
+	A = [VHRrow]; ? A '< [DWn] -> VHR join row;
+    "VHR join done"
+	end;
+
+      ( Build/draw the fixed normal VEHICLE leaf cache.  vehicle() does
+	no modpv and uses center=(0,0,0), so subdivision results are camera-
+	independent and only projection/rasterisation belongs per frame. )
+
+"VH build mode2 cache"
+	[VHRcacheon] = 1; [VHRcachecount] = 0; [VHRcached] = 0;
+	=> VH join mode2;
+	[VHRcacheon] = 0;
+	A = [VHRcachecount]; ? A != VHRCCAP -> VHR cache build bad;
+	[VHRcached] = 1; end;
+    "VHR cache build bad"
+	[VHRbad]+; end;
+
+"VH draw mode2 cache"
+	[VHRdrawn] = 0;
+	A = [VHRcached]; ? A = 0 -> VHR cache draw done;
+	[VHRcachep] = 0;
+    "VHR cache draw loop"
+	A = [VHRcachep]; A '* 10; C = vhrcache; C + A;
+	[VHRi] = 0;
+    "VHR cache load leaf"
+	A = [VHRi]; D = vhrleaf; D + A; A = [C]; [D] = A;
+	C+; [VHRi]+; A = [VHRi]; ? A < 9 -> VHR cache load leaf;
+	[VHRcol] = [C];
+	=> VHR raster leaf;
+	[VHRcachep]+; A = [VHRcachep]; ? A < [VHRcachecount] -> VHR cache draw loop;
+    "VHR cache draw done"
+	end;
+
+      ( Load source vertex VHRvid into vhrcur[VHRdst..+2]. )
+
+"VHR load vertex"
+	A = [VHRbase]; A + [VHRvid]; A '* 4; [VHRbi] = A;
+	[SPreg] = RGPVF;
+	A = [PVax]; A + [VHRbi]; [SPidx] = A; => SP getf32;
+	A = vhrcur; A + [VHRdst]; [A plus 0] = [SPf];
+	A = [PVay]; A + [VHRbi]; [SPidx] = A; => SP getf32;
+	A = vhrcur; A + [VHRdst]; [A plus 1] = [SPf];
+	A = [PVaz]; A + [VHRbi]; [SPidx] = A; => SP getf32;
+	A = vhrcur; A + [VHRdst]; [A plus 2] = [SPf];
+	end;
+
+      ( Map one current source triangle. )
+
+"VHR map current"
+	[VHRsp] = 0;
+	A = [VHRiters]; A - 1; [vhrcur plus 9] = A;
+	=> VHR push current;
+
+    "VHR map loop"
+	A = [VHRsp]; ? A = 0 -> VHR map done;
+	[VHRsp]-;
+	A = [VHRsp]; A '* 10; C = vhrstack; C + A;
+	[VHRi] = 0;
+    "VHR pop copy"
+	A = [VHRi]; D = vhrcur; D + A; A = [C]; [D] = A;
+	C+; [VHRi]+;
+	A = [VHRi]; ? A < 10 -> VHR pop copy;
+
+	( e0=(v0+v1)/2, e1=(v1+v2)/2, e2=(v0+v2)/2 )
+	[VHRa] = [vhrcur plus 0]; [VHRb] = [vhrcur plus 3]; => VHR midpoint; [vhrmid plus 0] = [VHRm];
+	[VHRa] = [vhrcur plus 1]; [VHRb] = [vhrcur plus 4]; => VHR midpoint; [vhrmid plus 1] = [VHRm];
+	[VHRa] = [vhrcur plus 2]; [VHRb] = [vhrcur plus 5]; => VHR midpoint; [vhrmid plus 2] = [VHRm];
+	[VHRa] = [vhrcur plus 3]; [VHRb] = [vhrcur plus 6]; => VHR midpoint; [vhrmid plus 3] = [VHRm];
+	[VHRa] = [vhrcur plus 4]; [VHRb] = [vhrcur plus 7]; => VHR midpoint; [vhrmid plus 4] = [VHRm];
+	[VHRa] = [vhrcur plus 5]; [VHRb] = [vhrcur plus 8]; => VHR midpoint; [vhrmid plus 5] = [VHRm];
+	[VHRa] = [vhrcur plus 0]; [VHRb] = [vhrcur plus 6]; => VHR midpoint; [vhrmid plus 6] = [VHRm];
+	[VHRa] = [vhrcur plus 1]; [VHRb] = [vhrcur plus 7]; => VHR midpoint; [vhrmid plus 7] = [VHRm];
+	[VHRa] = [vhrcur plus 2]; [VHRb] = [vhrcur plus 8]; => VHR midpoint; [vhrmid plus 8] = [VHRm];
+
+	A = [vhrcur plus 9]; ? A = 1 -> VHR draw children;
+	A - 1; [VHRchildd] = A;
+
+	( push reverse D,C,B,A so the source recursion draws A first )
+	=> VHR make D; => VHR push leaf;
+	=> VHR make C; => VHR push leaf;
+	=> VHR make B; => VHR push leaf;
+	=> VHR make A; => VHR push leaf;
+	-> VHR map loop;
+
+    "VHR draw children"
+	=> VHR make A; [VHRcol] = [VHRca]; => VHR draw leaf;
+	=> VHR make B; [VHRcol] = [VHRcb]; => VHR draw leaf;
+	=> VHR make C; [VHRcol] = [VHRcc]; => VHR draw leaf;
+	=> VHR make D; [VHRcol] = [VHRcd]; => VHR draw leaf;
+	-> VHR map loop;
+
+    "VHR map done"
+	end;
+
+      ( Midpoint of two binary32 inputs, narrowed at the float store. )
+
+"VHR midpoint"
+	[PGFt] = [VHRa]; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
+	[PGFt] = [VHRb]; => PGF ldf32; [PGFi] = FSW0; => PGF add;
+	[PGFi] = FSW0; => PGF sa;
+	[PGFt] = VHRHALF; => PGF ldf32; [PGFi] = FSW0; => PGF mul;
+	=> F32Narrow; => PGF stf32; [VHRm] = [PGFt];
+	end;
+
+      ( Four child layouts. )
+
+"VHR make A"
+	[vhrleaf plus 0] = [vhrcur plus 0]; [vhrleaf plus 1] = [vhrcur plus 1]; [vhrleaf plus 2] = [vhrcur plus 2];
+	[vhrleaf plus 3] = [vhrmid plus 0]; [vhrleaf plus 4] = [vhrmid plus 1]; [vhrleaf plus 5] = [vhrmid plus 2];
+	[vhrleaf plus 6] = [vhrmid plus 6]; [vhrleaf plus 7] = [vhrmid plus 7]; [vhrleaf plus 8] = [vhrmid plus 8];
+	end;
+
+"VHR make B"
+	[vhrleaf plus 0] = [vhrmid plus 3]; [vhrleaf plus 1] = [vhrmid plus 4]; [vhrleaf plus 2] = [vhrmid plus 5];
+	[vhrleaf plus 3] = [vhrmid plus 0]; [vhrleaf plus 4] = [vhrmid plus 1]; [vhrleaf plus 5] = [vhrmid plus 2];
+	[vhrleaf plus 6] = [vhrmid plus 6]; [vhrleaf plus 7] = [vhrmid plus 7]; [vhrleaf plus 8] = [vhrmid plus 8];
+	end;
+
+"VHR make C"
+	[vhrleaf plus 0] = [vhrmid plus 3]; [vhrleaf plus 1] = [vhrmid plus 4]; [vhrleaf plus 2] = [vhrmid plus 5];
+	[vhrleaf plus 3] = [vhrcur plus 6]; [vhrleaf plus 4] = [vhrcur plus 7]; [vhrleaf plus 5] = [vhrcur plus 8];
+	[vhrleaf plus 6] = [vhrmid plus 6]; [vhrleaf plus 7] = [vhrmid plus 7]; [vhrleaf plus 8] = [vhrmid plus 8];
+	end;
+
+"VHR make D"
+	[vhrleaf plus 0] = [vhrmid plus 3]; [vhrleaf plus 1] = [vhrmid plus 4]; [vhrleaf plus 2] = [vhrmid plus 5];
+	[vhrleaf plus 3] = [vhrmid plus 0]; [vhrleaf plus 4] = [vhrmid plus 1]; [vhrleaf plus 5] = [vhrmid plus 2];
+	[vhrleaf plus 6] = [vhrcur plus 3]; [vhrleaf plus 7] = [vhrcur plus 4]; [vhrleaf plus 8] = [vhrcur plus 5];
+	end;
+
+      ( Push vhrleaf as a child node. )
+
+"VHR push leaf"
+	A = [VHRsp]; ? A '>= VHRSTACKN -> VHR push overflow;
+	A '* 10; C = vhrstack; C + A;
+	[VHRi] = 0;
+    "VHR push leaf copy"
+	A = [VHRi]; D = vhrleaf; D + A; A = [D]; [C] = A;
+	C+; [VHRi]+;
+	A = [VHRi]; ? A < 9 -> VHR push leaf copy;
+	[C] = [VHRchildd]; [VHRsp]+;
+	end;
+
+"VHR push overflow"
+	[VHRbad]+;
+	end;
+
+      ( Initial triangle push. )
+
+"VHR push current"
+	A = [VHRsp]; A '* 10; C = vhrstack; C + A;
+	[VHRi] = 0;
+    "VHR push current copy"
+	A = [VHRi]; D = vhrcur; D + A; A = [D]; [C] = A;
+	C+; [VHRi]+;
+	A = [VHRi]; ? A < 10 -> VHR push current copy;
+	[VHRsp]+;
+	end;
+
+      ( Transfer one leaf to PG's three input vertices and rasterize it. )
+
+"VHR draw leaf"
+	A = [VHRcacheon]; ? A != 0 -> VHR cache leaf;
+	=> VHR raster leaf;
+	end;
+
+"VHR cache leaf"
+	A = [VHRcachecount]; ? A '>= VHRCCAP -> VHR cache leaf bad;
+	A '* 10; C = vhrcache; C + A; [VHRi] = 0;
+    "VHR cache leaf copy"
+	A = [VHRi]; D = vhrleaf; D + A; A = [D]; [C] = A;
+	C+; [VHRi]+; A = [VHRi]; ? A < 9 -> VHR cache leaf copy;
+	[C] = [VHRcol]; [VHRcachecount]+;
+	end;
+    "VHR cache leaf bad"
+	[VHRbad]+; end;
+
+"VHR raster leaf"
+	[VHRi] = 0;
+    "VHR draw vertex"
+	A = [VHRi]; A '* 3; C = vhrleaf; C + A;
+	A = FSINX; A + [VHRi]; [PGFi] = A; [PGFt] = [C plus 0]; => PGF setf32;
+	A = FSINY; A + [VHRi]; [PGFi] = A; [PGFt] = [C plus 1]; => PGF setf32;
+	A = FSINZ; A + [VHRi]; [PGFi] = A; [PGFt] = [C plus 2]; => PGF setf32;
+	[VHRi]+;
+	A = [VHRi]; ? A < 3 -> VHR draw vertex;
+	[PJnrv] = 3; [DBcol] = [VHRcol]; [DBflar] = 0; [DBent] = 0;
+	=> PG poly3d;
+	[VHRdrawn]+;
+	end;

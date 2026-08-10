@@ -1,0 +1,217 @@
+      ( *** vhspace - live source-derived Feltyrion galaxy stars ***
+
+	A production library for the Stardrifter game.  Noctis does not keep
+	a star catalogue: sky() hashes every 100000-unit sector into at most
+	one star.  This is the original signed 32x32->64 folded hash and the
+	normal nine-sector viewing cube.
+
+	Inputs before VHS stars:
+	  VHSdx0/1, VHSdy0/1, VHSdz0/1  live dzat binary64 halves
+	  VHSalpha, VHSbeta              player's integer look angles
+
+	The cached values are global integer star coordinates.  Projection
+	first subtracts the live binary64 dzat value and only then narrows to
+	float, matching sky()'s fild/sub/fst sequence.                         )
+
+"constants"
+
+	VHSNORMAL = 9;
+	VHSAMPLIFIED = 14;
+	VHSMAXCOUNT = 2744;
+	VHSENTRY = 4;
+	VHSSECTOR = 100000;
+	VHSNORMALHALF = 450000;
+	VHSAMPHALF = 700000;
+	VHSCUTOFF = 50000;
+
+"variables"
+
+	VHSdx0 = 0; VHSdx1 = 0;
+	VHSdy0 = 0; VHSdy1 = 0;
+	VHSdz0 = 0; VHSdz1 = 0;
+	VHSalpha = 0; VHSbeta = 0;
+	VHSamp = 0; VHSvisible = VHSNORMAL; VHScount = 729; VHShalfspan = VHSNORMALHALF;
+
+	VHSready = 0; VHSbuiltvisible = 0;
+	VHSbasex = 0; VHSbasey = 0; VHSbasez = 0;
+	VHSnewx = 0; VHSnewy = 0; VHSnewz = 0;
+	VHSix = 0; VHSiy = 0; VHSiz = 0;
+	VHSsectx = 0; VHSsecty = 0; VHSsectz = 0;
+	VHSstar = 0; VHSstarptr = 0;
+
+	VHSsumxz = 0; VHStempx = 0; VHStempy = 0; VHStempz = 0;
+	VHSaccum = 0; VHSidk = 0;
+	VHSfmA = 0; VHSfmB = 0; VHSfmResult = 0;
+
+	VHSaxis0 = 0; VHSaxis1 = 0; VHSbaseout = 0;
+	VHSnum0 = 0; VHSnum1 = 0;
+	VHScoord = 0; VHSd0 = 0; VHSd1 = 0; VHSslot = 0;
+	VHSdepth = 0; VHScolour = 0; VHSscreeny = 0;
+	VHSdrawready = 0; VHSdrawcount = 0; VHSdrawi = 0; VHSdrawptr = 0;
+	VHSdrawalpha = 0; VHSdrawbeta = 0; VHSdrawage = 0; VHSviewkey = 0;
+
+"workspace"
+
+	vhsstarcache = 10976;		( 2744 * x,y,z,present )
+	vhsscreencache = 5488;		( at most 2744 visible offset,color pairs )
+
+"programme"
+
+      ( ---------------------------------------------------------------- )
+      ( Public entry: refresh sector cache when its origin changes, then  )
+      ( project the exact stars through the live player view.              )
+      ( ---------------------------------------------------------------- )
+
+"VHS stars"
+	[VHSvisible] = VHSNORMAL; [VHScount] = 729; [VHShalfspan] = VHSNORMALHALF;
+	A = [VHSamp]; ? A = 0 -> VHS amplification ready;
+	[VHSvisible] = VHSAMPLIFIED; [VHScount] = VHSMAXCOUNT; [VHShalfspan] = VHSAMPHALF;
+    "VHS amplification ready"
+	[VHSaxis0] = [VHSdx0]; [VHSaxis1] = [VHSdx1]; => VHS sector base;
+	[VHSnewx] = [VHSbaseout];
+	[VHSaxis0] = [VHSdy0]; [VHSaxis1] = [VHSdy1]; => VHS sector base;
+	[VHSnewy] = [VHSbaseout];
+	[VHSaxis0] = [VHSdz0]; [VHSaxis1] = [VHSdz1]; => VHS sector base;
+	[VHSnewz] = [VHSbaseout];
+
+	A = [VHSready]; ? A = 0 -> VHS refresh;
+	A = [VHSvisible]; ? A != [VHSbuiltvisible] -> VHS refresh;
+	A = [VHSnewx]; ? A != [VHSbasex] -> VHS refresh;
+	A = [VHSnewy]; ? A != [VHSbasey] -> VHS refresh;
+	A = [VHSnewz]; ? A != [VHSbasez] -> VHS refresh;
+	-> VHS cache ready;
+    "VHS refresh"
+	[VHSbasex] = [VHSnewx]; [VHSbasey] = [VHSnewy]; [VHSbasez] = [VHSnewz];
+	=> VHS build cache; [VHSready] = 1; [VHSbuiltvisible] = [VHSvisible]; [VHSdrawready] = 0;
+    "VHS cache ready"
+	( Projecting all 729 source sectors dominates the native game frame.  Cache
+	  the resulting visible pixels for eight frames, invalidating immediately
+	  on a sector change or each four-degree view bucket.  The catalogue and
+	  projection remain source-derived; only imperceptible sub-sector parallax
+	  is batched between refreshes. )
+	A = [VHSalpha]; A / 4; [VHSviewkey] = A;
+	A = [VHSdrawready]; ? A = 0 -> VHS rebuild draw cache;
+	A = [VHSviewkey]; ? A != [VHSdrawalpha] -> VHS rebuild draw cache;
+	A = [VHSbeta]; A / 4; ? A != [VHSdrawbeta] -> VHS rebuild draw cache;
+	C = 8; A = [VHSamp]; ? A = 0 -> VHS draw age limit ready; C = 30;
+    "VHS draw age limit ready"
+	A = [VHSdrawage]; ? A >= C -> VHS rebuild draw cache;
+	[VHSdrawage]+; => VHS replay draw cache; end;
+
+    "VHS rebuild draw cache"
+	[VHSdrawalpha] = [VHSviewkey]; A = [VHSbeta]; A / 4; [VHSdrawbeta] = A;
+	[VHSdrawcount] = 0; [VHSdrawage] = 0;
+
+	[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;
+	[VHValpha] = [VHSalpha]; [VHVbeta] = [VHSbeta]; => VH set view;
+	[VHSstar] = 0;
+    "VHS draw loop"
+	A = [VHSstar]; A '* VHSENTRY; A + vhsstarcache; [VHSstarptr] = A;
+	A = [A plus 3]; ? A = 0 -> VHS draw next;
+
+	A = [VHSstarptr]; [VHScoord] = [A plus 0];
+	[VHSd0] = [VHSdx0]; [VHSd1] = [VHSdx1]; [VHSslot] = FSINX;
+	=> VHS relative f32;
+	A = [VHSstarptr]; [VHScoord] = [A plus 1];
+	[VHSd0] = [VHSdy0]; [VHSd1] = [VHSdy1]; [VHSslot] = FSINY;
+	=> VHS relative f32;
+	A = [VHSstarptr]; [VHScoord] = [A plus 2];
+	[VHSd0] = [VHSdz0]; [VHSd1] = [VHSdz1]; [VHSslot] = FSINZ;
+	=> VHS relative f32;
+
+	=> PG getcoords; A = [GCret]; ? A = 0 -> VHS draw next;
+	[PGFi] = FSRZF; => PGF a; => PGF int; [VHSdepth] = [FI];
+	A = [VHSdepth]; ? A < 10000 -> VHS draw next;
+	C = [VHSamp]; ? C != 0 -> VHS amplified depth; A > 13; -> VHS depth ready;
+    "VHS amplified depth"
+	A > 14;
+    "VHS depth ready"
+	? A > 63 -> VHS draw next;
+	C = 63; C - A; [VHScolour] = C;
+
+	A = [GCx]; ? A <= 10 -> VHS draw next; ? A >= 310 -> VHS draw next;
+	C = [GCy]; C - 2; [VHSscreeny] = C;
+	? C <= 10 -> VHS draw next; ? C >= 190 -> VHS draw next;
+	C '* 320; C + A; [SPoff] = C;
+	[SPval] = [VHScolour]; [SPreg] = RGADP; => SP put;
+	A = [VHSdrawcount]; A '* 2; A + vhsscreencache; [VHSdrawptr] = A;
+	[A plus 0] = [SPoff]; [A plus 1] = [VHScolour]; [VHSdrawcount]+;
+    "VHS draw next"
+	[VHSstar]+; A = [VHSstar]; ? A < [VHScount] -> VHS draw loop;
+	[VHSdrawready] = 1;
+	end;
+
+    "VHS replay draw cache"
+	[VHSdrawi] = 0; A = [VHSdrawcount]; ? A = 0 -> VHS replay done;
+    "VHS replay loop"
+	A = [VHSdrawi]; A '* 2; A + vhsscreencache;
+	[SPoff] = [A plus 0]; [SPval] = [A plus 1]; [SPreg] = RGADP; => SP put;
+	[VHSdrawi]+; A = [VHSdrawi]; ? A < [VHSdrawcount] -> VHS replay loop;
+    "VHS replay done"
+	end;
+
+      ( sect = chop((dzat - 450000) / 100000) * 100000 )
+"VHS sector base"
+	[FI] = [VHShalfspan]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHSaxis0]; [FA1] = [VHSaxis1]; => FSub;
+	[VHSnum0] = [FA0]; [VHSnum1] = [FA1];
+	[FA0] = [VHSnum0]; [FA1] = [VHSnum1];
+	[FB0] = [MgskA]; [FB1] = [MgskB]; => FQuo; => FToIntChop;
+	A = [FI]; A '* VHSSECTOR; [VHSbaseout] = A;
+	end;
+
+"VHS build cache"
+	[VHSstar] = 0; [VHSix] = 0;
+    "VHS build x"
+	[VHSiy] = 0;
+    "VHS build y"
+	[VHSiz] = 0;
+    "VHS build z"
+	A = [VHSstar]; A '* VHSENTRY; A + vhsstarcache; [VHSstarptr] = A;
+	[A plus 3] = 0;
+	A = [VHSix]; A '* VHSSECTOR; A + [VHSbasex]; [VHSsectx] = A;
+	A = [VHSiy]; A '* VHSSECTOR; A + [VHSbasey]; [VHSsecty] = A;
+	A = [VHSiz]; A '* VHSSECTOR; A + [VHSbasez]; [VHSsectz] = A;
+
+	A = [VHSsectx]; A + [VHSsectz]; [VHSsumxz] = A;
+	A & 1FFFFh; A + [VHSsectx];
+	? A = VHSCUTOFF -> VHS absent;
+	A - VHSCUTOFF; [VHStempx] = A;
+	[VHSfmA] = A; [VHSfmB] = [VHSsumxz]; => VHS foldmul;
+	[VHSaccum] = [VHSfmResult];
+	A = [VHSsumxz]; A + [VHSaccum]; [VHSidk] = A;
+
+	A = [VHSaccum]; A & 1FFFFh; A + [VHSsecty];
+	? A = VHSCUTOFF -> VHS absent;
+	A - VHSCUTOFF; [VHStempy] = A;
+	[VHSfmA] = A; [VHSfmB] = [VHSidk]; => VHS foldmul;
+	[VHSaccum] = [VHSfmResult];
+
+	A = [VHSaccum]; A & 1FFFFh; A + [VHSsectz];
+	? A = VHSCUTOFF -> VHS absent;
+	A - VHSCUTOFF; [VHStempz] = A;
+
+	A = [VHSstarptr]; C = [VHStempx]; [A plus 0] = C;
+	C = [VHStempy]; [A plus 1] = C;
+	C = [VHStempz]; [A plus 2] = C;
+	[A plus 3] = 1;
+    "VHS absent"
+	[VHSstar]+;
+	[VHSiz]+; A = [VHSiz]; ? A < [VHSvisible] -> VHS build z;
+	[VHSiy]+; A = [VHSiy]; ? A < [VHSvisible] -> VHS build y;
+	[VHSix]+; A = [VHSix]; ? A < [VHSvisible] -> VHS build x;
+	end;
+
+"VHS relative f32"
+	[FI] = [VHScoord]; => IntToF;
+	[FB0] = [VHSd0]; [FB1] = [VHSd1]; => FSub;
+	=> F32Narrow; => PGF stf32;
+	[PGFi] = [VHSslot]; => PGF setf32;
+	end;
+
+"VHS foldmul"
+	A = [VHSfmA]; B = [VHSfmB];
+	{ F7 EB }		( signed imul ebx -> edx:eax )
+	A + D; [VHSfmResult] = A;
+	end;

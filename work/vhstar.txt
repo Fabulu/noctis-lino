@@ -1,0 +1,123 @@
+      ( *** vhstar - selected/near star production path ***
+
+	Extracts the selected star's class, radius and colour from the same
+	Borland RNG sequence as extract_ap_target_infos(), generates the exact
+	load_starface() tapestry, and draws the resolved star once Vimana has
+	reached it.  Inputs VHTtx/y/z are exact galaxy-hash integer positions. )
+
+"variables"
+
+	VHTtx = 0; VHTty = 0; VHTtz = 0;
+	VHTclass = 0; VHTRay = 0; VHTred = 0; VHTgreen = 0; VHTblue = 0;
+	VHTphase = 0;
+	VHTid0 = 0; VHTid1 = 0; VHTtmp0 = 0; VHTtmp1 = 0;
+	VHTseed = 0; VHTsum = 0; VHTsmooth = 0;
+	VHTcoord = 0; VHTd0 = 0; VHTd1 = 0; VHTslot = 0;
+
+	VHTclassrgb = 63;
+	no label = 58; no label = 40;
+	no label = 30; no label = 50; no label = 63;
+	no label = 63; no label = 63; no label = 63;
+	no label = 63; no label = 30; no label = 20;
+	no label = 63; no label = 55; no label = 32;
+	no label = 32; no label = 16; no label = 10;
+	no label = 32; no label = 28; no label = 24;
+	no label = 10; no label = 20; no label = 63;
+	no label = 63; no label = 32; no label = 16;
+	no label = 48; no label = 32; no label = 63;
+	no label = 40; no label = 10; no label = 10;
+	no label = 0;  no label = 63; no label = 63;
+
+	VHTclassray = 5000;
+	no label = 15000; no label = 300; no label = 20000;
+	no label = 15000; no label = 1000; no label = 3000;
+	no label = 2000; no label = 4000; no label = 1500;
+	no label = 30000; no label = 250;
+
+	VHTclassvar = 2000;
+	no label = 10000; no label = 200; no label = 15000;
+	no label = 5000; no label = 1000; no label = 3000;
+	no label = 500; no label = 5000; no label = 10000;
+	no label = 1000; no label = 10;
+
+"programme"
+
+"VHT extract"
+	[FJ0] = [VHTtx]; [FJ1] = [VHTty]; [FJ2] = [VHTtz]; => NsIdentityD;
+	[VHTid0] = [nsid0]; [VHTid1] = [nsid1];
+
+	( srand(ap_target_id), then class and radius draws )
+	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FToIntChop;
+	A = [FI]; => BrtlSrand;
+	A = 12; => BrtlRandom; [VHTclass] = A;
+	E = VHTclassvar; E + A; A = [E]; => BrtlRandom;
+	[VHTsum] = A;
+	E = VHTclassray; E + [VHTclass]; A = [E]; A + [VHTsum]; [VHTsum] = A;
+	[FI] = A; => IntToF; [VHTtmp0] = [FA0]; [VHTtmp1] = [FA1];
+	[PGFt] = D001L; [PGFu] = D001H; => PGF ldf64;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTtmp0]; [FA1] = [VHTtmp1]; => FMul;
+	=> F32Narrow; [VHTRay] = [FS0];
+
+	A = [VHTclass]; A '* 3; A + VHTclassrgb;
+	[VHTred] = [A plus 0]; [VHTgreen] = [A plus 1]; [VHTblue] = [A plus 2];
+	end;
+
+"VHT load face"
+	( unsigned seed = nearstar_identity * 12345 )
+	[FI] = 12345; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FMul; => FToIntChop;
+	A = [FI]; A & 0FFFFh; [VHTseed] = A;
+
+	[SUpbase] = RSBG; [SUnax] = A; => SU rndpat;
+	A = [VHTseed]; => SU fast srand;
+	[SUfmask] = 3; => SU fast raw; [VHTsmooth] = [SUfval];
+	A = [VHTclass]; ? A = 11 -> VHT extra smooth;
+	? A = 7 -> VHT extra smooth; ? A = 2 -> VHT extra smooth;
+	-> VHT smooth loop;
+    "VHT extra smooth"
+	[SUfmask] = 3; => SU fast raw;
+	A = [VHTsmooth]; A + [SUfval]; A + 2; [VHTsmooth] = A;
+    "VHT smooth loop"
+	A = [VHTsmooth]; ? A <= 0 -> VHT face done;
+	=> SU ssmooth; [VHTsmooth]-; -> VHT smooth loop;
+    "VHT face done"
+	end;
+
+      ( Draw the close star only after the flight integrator reaches its
+	terminal radius.  Before that, VHS stars supplies the same body as the
+	ordinary hashed galaxy point. )
+"VHT render"
+	A = [MgApreached]; ? A = 0 -> VHT render done;
+
+	[VHTcoord] = [VHTtx]; [VHTd0] = [MgDzatX0]; [VHTd1] = [MgDzatX1];
+	[VHTslot] = SFXX; => VHT relative;
+	[VHTcoord] = [VHTty]; [VHTd0] = [MgDzatY0]; [VHTd1] = [MgDzatY1];
+	[VHTslot] = SFYY; => VHT relative;
+	[VHTcoord] = [VHTtz]; [VHTd0] = [MgDzatZ0]; [VHTd1] = [MgDzatZ1];
+	[VHTslot] = SFZZ; => VHT relative;
+
+	( whiteglobe(..., 3*nearstar_ray, 0.3) )
+	[PGFt] = [VHTRay]; => PGF ldf32; [VHTtmp0] = [FA0]; [VHTtmp1] = [FA1];
+	[FI] = 3; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTtmp0]; [FA1] = [VHTtmp1]; => FMul;
+	=> F32Narrow; [WHmag] = [FS0];
+	[WHfgm] = 3E99999Ah; [WHshape] = 2; [WHsun] = 0; [WHdstreg] = RGADP;
+	=> SP white;
+
+	( globe(... nearstar_ray, colormask 64, saturation 40) )
+	[GBmag] = [VHTRay]; => SP globe setup;
+	A = [GBok]; ? A = 0 -> VHT render done;
+	A = [VHTphase]; A '% 360; [GBstart] = A;
+	[GBcmask] = 64; [GBsat] = 40;
+	[GBtabreg] = RGGLB; [GBtapreg] = RGSBG; [GBdstreg] = RGADP;
+	[GBbytes] = GLBYTES; [GBbubble] = 0;
+	=> SP globe raster;
+    "VHT render done"
+	end;
+
+"VHT relative"
+	[FI] = [VHTcoord]; => IntToF;
+	[FB0] = [VHTd0]; [FB1] = [VHTd1]; => FSub;
+	[PGFi] = [VHTslot]; => PGF sa;
+	end;

@@ -626,19 +626,30 @@ class BuildSurface(object):
 
     def round_hill(self, cx, cz, r, h, hmax, allowcanyons):
         """NOCTIS-1.CPP:1494-1528.  Canyon mirror at :1517 is VANILLA."""
-        r = abs(int(r))
+        # Borland's `unsigned r` participates in both loop conditions before
+        # x/z are converted back to signed int16 locals.  Thus a negative
+        # cx-r or cz-r is a large uint16 and skips that loop wholesale; the
+        # original does not clip such a hill against the top/left edges.
+        # NOCTIS.EXE 0180DB..018293 confirms `jna` for both bounds.
+        r = int(r) & 0xFFFF
         h_f = _f32(h)
         hmax_f = _f32(hmax)
         v = _f32(float(r) / M_PI_2)
-        for x in range(cx - r, cx + r):
-            for z in range(cz - r, cz + r):
-                if -1 < x < 200 and -1 < z < 200:
-                    dx = _f32(float(x - cx))
-                    dz = _f32(float(z - cz))
+        x = (int(cx) - r) & 0xFFFF
+        x_end = (int(cx) + r) & 0xFFFF
+        while x < x_end:
+            sx = x if x < 0x8000 else x - 0x10000
+            z = (int(cz) - r) & 0xFFFF
+            z_end = (int(cz) + r) & 0xFFFF
+            while z < z_end:
+                sz = z if z < 0x8000 else z - 0x10000
+                if -1 < sx < 200 and -1 < sz < 200:
+                    dx = _f32(float(sx - cx))
+                    dz = _f32(float(sz - cz))
                     d = _f32(math.sqrt(dx * dx + dz * dz))
                     y = _f32(math.cos(d / v) * h_f)
                     if y >= 0:
-                        idx = 200 * z + x
+                        idx = 200 * sz + sx
                         y = _f32(y + float(self.smap[idx]))
                         if allowcanyons:
                             if y > 127:
@@ -647,6 +658,8 @@ class BuildSurface(object):
                             if y > hmax_f:
                                 y = hmax_f
                         self.smap[idx] = _ftob(y)
+                z = (z + 1) & 0xFFFF
+            x = (x + 1) & 0xFFFF
 
     def std_crater(self, mapbuf, cx, cz, r, lim_h, h_factor, h_raiser, align):
         """NOCTIS-1.CPP:1561-1587.  Uses sqrt, sin, pow."""
@@ -680,7 +693,9 @@ class BuildSurface(object):
         while length:
             fx += B.random(3, 1597) + x_trend
             fz += B.random(3, 1598) + z_trend
-            location = align * fz + fx
+            # DOS `unsigned` is 16-bit.  The long expression is narrowed on
+            # assignment, so a wandering line wraps through the 64 KiB map.
+            location = (align * fz + fx) & 0xFFFF
             if 0 < location < mapsize:
                 mapbuf[location] >>= 1
             length -= 1
@@ -697,7 +712,7 @@ class BuildSurface(object):
             fx += B.random(3, 1616) + x_trend
             fz += B.random(3, 1617) + z_trend
             deviation += B.random(variability, 1618) - (variability >> 1)
-            location = align * fz + fx
+            location = (align * fz + fx) & 0xFFFF
             if 0 < location < mapsize:
                 peak = mapbuf[location] + deviation
                 if peak < 0:
@@ -1096,9 +1111,10 @@ class BuildSurface(object):
             # which runs BEFORE build_surface and draws from brtl.
             # For the capture site (srand(0)): random(100)=0 <= 5, so
             # sctype = random(4)+1 = 0+1 = 1 = OCEAN.
-            # Then if albedo < 25: sctype stays OCEAN.
-            # In build_surface's switch, OCEAN with albedo <= 20 runs the
-            # island code path (two round_hills + goto addtrees).
+            # Live RAM pins albedo at 40, so build_surface's OCEAN case takes
+            # `goto revert` into the shared PLAINS terrain with waswet=1.
+            # The resulting texture is byte-exact against all 65,536 captured
+            # NIV+ bytes.
             if sctype == 1:
                 self._ocean_terrain(albedo)
             elif sctype == 2:
@@ -1255,5 +1271,3 @@ class BuildSurface(object):
             if albedo > 40:
                 _ = B.random(2, 2569)
                 self.smoothterrain(1 + B.random(10, 2570))
-
-

@@ -1,0 +1,91 @@
+      ( *** vhcapsuleprobe - bounded live atmospheric capsule smoke ***
+
+	Runs the production vhcapsule library over flat terrain without the GUI.
+	It records the evolving wind state, lateral landing displacement, bounded
+	touchdown and complete seal/ascent path in vhcapsule-out.bin. )
+
+"libraries"
+
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains;
+	pgfp; brtl; vhview; vhcapsule;
+
+"directors"
+
+	program name = { vhcapsuleprobe };
+	unit = 32;
+
+"variables"
+
+	VHGx = 0; VHGy = 0; VHGz = 0; VHGalpha = 0; VHGbeta = 0;
+	VHGmode = 0; VHGlanded = 0; VHGplanet = 3;
+	VHGNDdropx = 1646592; VHGNDdropy = 0; VHGNDdropz = 1646592;
+	VHGNDcamx = 0; VHGNDcamz = 0; VHGNDheight = 0;
+	VHGNDatmosphere = 1; VHGNDseed = 31169; GRalbedo = 20;
+	VHCPcalls = 0; VHCPreturns = 0; VHCPstartx = 0; VHCPstartz = 0;
+	VHCPlandx = 0; VHCPlandz = 0; VHCPinitialangle = 0;
+	VHCPinitialideal = 0; VHCPseedafter = 0; VHCPmaxx = 0; VHCPmaxz = 0;
+	vhcpoutname = { vhcapsule-out.bin };
+
+"workspace"
+
+	vhcpout = 24;
+
+"programme"
+
+	=> FEnter; => PGF constants; => VH view init;
+	[brtlseed] = 12345;
+	=> VHGC start descent;
+	[VHCPstartx] = [VHGx]; [VHCPstartz] = [VHGz];
+	[VHCPinitialangle] = [VHGCwindangle]; [VHCPinitialideal] = [VHGCwindideal];
+    "VHCP descent loop"
+	[VHCPcalls]+; => VHGC tick;
+	A = [VHGx]; A - [VHCPstartx]; ? A >= 0 -> VHCP drift x positive; C = 0; C - A; A = C;
+    "VHCP drift x positive"
+	? A <= [VHCPmaxx] -> VHCP drift z; [VHCPmaxx] = A;
+    "VHCP drift z"
+	A = [VHGz]; A - [VHCPstartz]; ? A >= 0 -> VHCP drift z positive; C = 0; C - A; A = C;
+    "VHCP drift z positive"
+	? A <= [VHCPmaxz] -> VHCP drift sampled; [VHCPmaxz] = A;
+    "VHCP drift sampled"
+	A = [VHGlanded]; ? A != 0 -> VHCP landed;
+	A = [VHCPcalls]; ? A < 100 -> VHCP descent loop; -> VHCP write;
+    "VHCP landed"
+	[VHCPlandx] = [VHGx]; [VHCPlandz] = [VHGz];
+	=> VHGC start return;
+    "VHCP return loop"
+	[VHCPreturns]+; => VHGC tick;
+	A = [VHGmode]; ? A = 0 -> VHCP write;
+	A = [VHCPreturns]; ? A < 30 -> VHCP return loop;
+    "VHCP write"
+	[vhcpout plus 0] = 56484350h; [vhcpout plus 1] = [VHCPcalls];
+	[vhcpout plus 2] = [VHGlanded]; [vhcpout plus 3] = [VHGmode];
+	[vhcpout plus 4] = [VHCPstartx]; [vhcpout plus 5] = [VHCPstartz];
+	[vhcpout plus 6] = [VHCPlandx]; [vhcpout plus 7] = [VHCPlandz];
+	A = [VHCPlandx]; A - [VHCPstartx]; [vhcpout plus 8] = A;
+	A = [VHCPlandz]; A - [VHCPstartz]; [vhcpout plus 9] = A;
+	[vhcpout plus 10] = [VHGCbounces];
+	[vhcpout plus 11] = [VHCPinitialangle]; [vhcpout plus 12] = [VHGCwindangle];
+	[vhcpout plus 13] = [VHCPinitialideal]; [vhcpout plus 14] = [VHGCwindideal];
+	[vhcpout plus 15] = [VHGCwindrequired]; [vhcpout plus 16] = [VHGCwindpower];
+	[vhcpout plus 17] = [VHGCwindtarget]; [vhcpout plus 18] = [VHCPmaxx];
+	[vhcpout plus 19] = [VHCPreturns]; [vhcpout plus 20] = [VHCPmaxz];
+	[vhcpout plus 21] = [VHGCstate]; [vhcpout plus 22] = [VHGy];
+	[vhcpout plus 23] = 13579BDFh;
+	[File Name] = vhcpoutname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhcpout; [Block Size] = 96; isocall;
+	[File Name] = vhcpoutname; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 96; isocall;
+	=> FLeave;
+	end;
+
+"VHGND eye height"
+	[VHGNDheight] = 0; end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;
+
+"VHG return ship"
+	[VHGmode] = 0; [VHGlanded] = 0; [VHGx] = 0; [VHGy] = 0;
+	A = 0; A - 500; [VHGz] = A;
+	end;

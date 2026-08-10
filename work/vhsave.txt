@@ -1,0 +1,264 @@
+      ( *** vhsave - live port checkpoint persistence *** )
+
+"constants"
+
+	VHSVMAGIC = 56485356h;
+	VHSVVERSION = 11;
+	VHSVUNITS = 45;
+
+"variables"
+
+	vhsvname = { CURRENT.LIN };
+	vhsvbackup = { CURRENT.BAK };
+	VHSVok = 0;
+	VHSVsize = 0;
+	VHSVusebackup = 0; VHSVrecovered = 0; VHSVofflinestored = 0;
+	VHSVmusic = 0; VHSVcaptures = 0;
+	VHSVwindoww = 0; VHSVwindowh = 0;
+	VHSVdropstored = 0;
+	VHSVdropx = 0; VHSVdropy = 0; VHSVdropz = 0;
+
+"workspace"
+
+	vhsvbuf = VHSVUNITS;
+
+"programme"
+
+"VHSV save"
+	[VHSVok] = 0;
+	=> VHG UTC timestamp;
+	[vhsvbuf plus 0] = VHSVMAGIC; [vhsvbuf plus 1] = VHSVVERSION;
+	[vhsvbuf plus 2] = [VHGmode]; [vhsvbuf plus 3] = [VHGplanet];
+	[vhsvbuf plus 4] = [VHGx]; [vhsvbuf plus 5] = [VHGy]; [vhsvbuf plus 6] = [VHGz];
+	[vhsvbuf plus 7] = [VHGalpha]; [vhsvbuf plus 8] = [VHGbeta];
+	[vhsvbuf plus 9] = [VHGshipx]; [vhsvbuf plus 10] = [VHGshipy]; [vhsvbuf plus 11] = [VHGshipz];
+	[vhsvbuf plus 12] = [MgDzatX0]; [vhsvbuf plus 13] = [MgDzatX1];
+	[vhsvbuf plus 14] = [MgDzatY0]; [vhsvbuf plus 15] = [MgDzatY1];
+	[vhsvbuf plus 16] = [MgDzatZ0]; [vhsvbuf plus 17] = [MgDzatZ1];
+	[vhsvbuf plus 18] = [MgPwr]; [vhsvbuf plus 19] = [MgApreached];
+	[vhsvbuf plus 20] = [VHGlifter]; [vhsvbuf plus 21] = [VHGonroof];
+	[vhsvbuf plus 22] = [VHGlanded]; [vhsvbuf plus 23] = [VHGframe];
+	[vhsvbuf plus 24] = [VHTtx]; [vhsvbuf plus 25] = [VHTty]; [vhsvbuf plus 26] = [VHTtz];
+	[vhsvbuf plus 27] = [VHGfast]; [vhsvbuf plus 28] = [VHGfpsshow];
+	[vhsvbuf plus 29] = [VHAwanted]; [vhsvbuf plus 30] = [VHGNDcaptures];
+	[vhsvbuf plus 31] = [MgCharge]; [vhsvbuf plus 32] = [VHGcollector];
+	[vhsvbuf plus 33] = [VHGrescueactive]; [vhsvbuf plus 34] = [VHGrescuetick];
+	[vhsvbuf plus 35] = [VHGutcsecs];
+	A = [Display Status]; ? A - EXCLUSIVE -> VHSV save windowed width;
+	A = [Unfull display width]; -> VHSV save width ready;
+    "VHSV save windowed width"
+	A = [Display Width]; ? A >= MINIMUM WIDTH -> VHSV save width ready;
+	A = [Previous display width];
+    "VHSV save width ready"
+	[vhsvbuf plus 36] = A;
+	A = [Display Status]; ? A - EXCLUSIVE -> VHSV save windowed height;
+	A = [Unfull display height]; -> VHSV save height ready;
+    "VHSV save windowed height"
+	A = [Display Height]; ? A >= MINIMUM HEIGHT -> VHSV save height ready;
+	A = [Previous display height];
+    "VHSV save height ready"
+	[vhsvbuf plus 37] = A;
+	[vhsvbuf plus 38] = [VHGilight];
+	A = [VHGsync]; A '* 8; C = A;
+	A = [VHGamp]; C + A;
+	A = [VHGfinder]; A '* 2; C + A;
+	A = [VHGantirad]; A '* 4; C + A; [vhsvbuf plus 39] = C;
+	[vhsvbuf plus 40] = [VHGlandinglon]; [vhsvbuf plus 41] = [VHGlandinglat];
+	[vhsvbuf plus 42] = [VHGNDdropx]; [vhsvbuf plus 43] = [VHGNDdropy];
+	[vhsvbuf plus 44] = [VHGNDdropz];
+	[File Name] = vhsvname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhsvbuf; [Block Size] = 180; isocall;
+	[File Name] = vhsvname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 180; isocall;
+	[File Name] = vhsvname; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHSV save done; ? [File Size] != 180 -> VHSV save done;
+	[VHSVok] = 1;
+	( Refresh the last-known-good copy only after the primary is complete.
+	  A crash during the primary write therefore leaves the previous backup;
+	  a crash during this best-effort copy still leaves a valid primary. )
+	[File Name] = vhsvbackup; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhsvbuf; [Block Size] = 180; isocall;
+	[File Name] = vhsvbackup; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 180; isocall;
+    "VHSV save done"
+	end;
+
+"VHSV load"
+	[VHSVusebackup] = 0; [VHSVrecovered] = 0;
+	=> VHSV load one; A = [VHSVok]; ? A != 0 -> VHSV load wrapper done;
+	( A deliberately missing primary starts a clean game even if an old backup
+	  was left behind. Only a present-but-invalid primary triggers recovery. )
+	[File Name] = vhsvname; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHSV load wrapper done;
+	[VHSVusebackup] = 1; => VHSV load one;
+	A = [VHSVok]; ? A = 0 -> VHSV load wrapper done; [VHSVrecovered] = 1;
+    "VHSV load wrapper done"
+	end;
+
+"VHSV select load file"
+	A = [VHSVusebackup]; ? A = 0 -> VHSV select primary;
+	[File Name] = vhsvbackup; end;
+    "VHSV select primary"
+	[File Name] = vhsvname;
+	end;
+
+"VHSV load one"
+	[VHSVok] = 0; [VHSVmusic] = [VHAwanted]; [VHSVcaptures] = 0; [VHGilight] = 1;
+	[VHSVofflinestored] = 0;
+	[VHGamp] = 0; [VHGfinder] = 0; [VHGsync] = 1; [VHGantirad] = 1;
+	[VHGlandinglon] = 0; [VHGlandinglat] = 60;
+	[VHSVdropstored] = 0; [VHSVdropx] = 0; [VHSVdropy] = 0; [VHSVdropz] = 0;
+	[VHSVwindoww] = [Display Width]; [VHSVwindowh] = [Display Height];
+	=> VHSV select load file; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHSV load done;
+	[VHSVsize] = [File Size]; A = [VHSVsize]; ? A = 96 -> VHSV load size ok;
+	? A = 108 -> VHSV load size ok; ? A = 124 -> VHSV load size ok;
+	? A = 132 -> VHSV load size ok; ? A = 140 -> VHSV load size ok;
+	? A = 144 -> VHSV load size ok; ? A = 152 -> VHSV load size ok;
+	? A = 156 -> VHSV load size ok; ? A = 160 -> VHSV load size ok;
+	? A = 168 -> VHSV load size ok; ? A != 180 -> VHSV load done;
+    "VHSV load size ok"
+	=> VHSV select load file; [File Position] = 0; [File Command] = READ;
+	[Block Pointer] = vhsvbuf; [Block Size] = [VHSVsize]; isocall;
+	A = [Block Size]; ? A != [VHSVsize] -> VHSV load done;
+	A = [vhsvbuf plus 0]; ? A != VHSVMAGIC -> VHSV load done;
+	A = [VHSVsize]; ? A = 96 -> VHSV load version one;
+	? A = 108 -> VHSV load version two;
+	? A = 124 -> VHSV load version three;
+	? A = 132 -> VHSV load version four;
+	? A = 140 -> VHSV load version five;
+	? A = 144 -> VHSV load version six; ? A = 152 -> VHSV load version seven;
+	? A = 156 -> VHSV load version eight; ? A = 160 -> VHSV load version nine;
+	? A = 168 -> VHSV load version ten;
+	A = [vhsvbuf plus 1]; ? A != VHSVVERSION -> VHSV load done; -> VHSV load version ok;
+    "VHSV load version one"
+	A = [vhsvbuf plus 1]; ? A != 1 -> VHSV load done;
+	-> VHSV load version ok;
+    "VHSV load version two"
+	A = [vhsvbuf plus 1]; ? A != 2 -> VHSV load done;
+	-> VHSV load version ok;
+    "VHSV load version three"
+	A = [vhsvbuf plus 1]; ? A != 3 -> VHSV load done;
+	-> VHSV load version ok;
+    "VHSV load version four"
+	A = [vhsvbuf plus 1]; ? A != 4 -> VHSV load done;
+	-> VHSV load version ok;
+    "VHSV load version five"
+	A = [vhsvbuf plus 1]; ? A != 5 -> VHSV load done;
+	-> VHSV load version ok;
+    "VHSV load version six"
+	A = [vhsvbuf plus 1]; ? A != 6 -> VHSV load done;
+	-> VHSV load version ok;
+    "VHSV load version seven"
+	A = [vhsvbuf plus 1]; ? A != 7 -> VHSV load done;
+	-> VHSV load version ok;
+    "VHSV load version eight"
+	A = [vhsvbuf plus 1]; ? A != 8 -> VHSV load done;
+	-> VHSV load version ok;
+    "VHSV load version nine"
+	A = [vhsvbuf plus 1]; ? A != 9 -> VHSV load done;
+	-> VHSV load version ok;
+    "VHSV load version ten"
+	A = [vhsvbuf plus 1]; ? A != 10 -> VHSV load done;
+    "VHSV load version ok"
+	A = [vhsvbuf plus 2]; ? A '> 1 -> VHSV load done;
+	A = [vhsvbuf plus 3]; ? A '< 0 -> VHSV load done; ? A '>= 16 -> VHSV load done;
+	[VHGmode] = [vhsvbuf plus 2]; [VHGplanet] = [vhsvbuf plus 3];
+	[VHGx] = [vhsvbuf plus 4]; [VHGy] = [vhsvbuf plus 5]; [VHGz] = [vhsvbuf plus 6];
+	[VHGalpha] = [vhsvbuf plus 7]; [VHGbeta] = [vhsvbuf plus 8];
+	[VHGshipx] = [vhsvbuf plus 9]; [VHGshipy] = [vhsvbuf plus 10]; [VHGshipz] = [vhsvbuf plus 11];
+	[MgDzatX0] = [vhsvbuf plus 12]; [MgDzatX1] = [vhsvbuf plus 13];
+	[MgDzatY0] = [vhsvbuf plus 14]; [MgDzatY1] = [vhsvbuf plus 15];
+	[MgDzatZ0] = [vhsvbuf plus 16]; [MgDzatZ1] = [vhsvbuf plus 17];
+	[MgPwr] = [vhsvbuf plus 18]; [MgApreached] = [vhsvbuf plus 19];
+	[VHGlifter] = [vhsvbuf plus 20]; [VHGonroof] = [vhsvbuf plus 21];
+	[VHGlanded] = [vhsvbuf plus 22]; [VHGframe] = [vhsvbuf plus 23];
+	A = [VHSVsize]; ? A = 96 -> VHSV load target done;
+	[VHTtx] = [vhsvbuf plus 24]; [VHTty] = [vhsvbuf plus 25]; [VHTtz] = [vhsvbuf plus 26];
+    "VHSV load target done"
+	A = [VHSVsize]; ? A = 96 -> VHSV load energy defaults; ? A = 108 -> VHSV load energy defaults;
+	A = [vhsvbuf plus 27]; ? A '> 1 -> VHSV load done; [VHGfast] = A;
+	A = [vhsvbuf plus 28]; ? A '> 1 -> VHSV load done; [VHGfpsshow] = A;
+	A = [vhsvbuf plus 29]; ? A '> 1 -> VHSV load done; [VHSVmusic] = A;
+	A = [vhsvbuf plus 30]; ? A '< 0 -> VHSV load done; ? A '<= 3 -> VHSV load captures ready; A = 3;
+    "VHSV load captures ready"
+	[VHSVcaptures] = A;
+    "VHSV load settings done"
+	A = [VHSVsize]; ? A = 132 -> VHSV load energy stored; ? A = 140 -> VHSV load energy stored;
+	? A = 144 -> VHSV load energy stored; ? A = 152 -> VHSV load energy stored;
+	? A = 156 -> VHSV load energy stored; ? A = 160 -> VHSV load energy stored;
+	? A = 168 -> VHSV load energy stored; ? A != 180 -> VHSV load energy defaults;
+    "VHSV load energy stored"
+	A = [vhsvbuf plus 31]; ? A > 120 -> VHSV load done; [MgCharge] = A;
+	A = [vhsvbuf plus 32]; ? A '> 1 -> VHSV load done; [VHGcollector] = A;
+	-> VHSV load energy done;
+    "VHSV load energy defaults"
+	[MgCharge] = 3; [VHGcollector] = 0;
+    "VHSV load energy done"
+	A = [VHSVsize]; ? A = 140 -> VHSV load rescue stored; ? A = 144 -> VHSV load rescue stored;
+	? A = 152 -> VHSV load rescue stored; ? A = 156 -> VHSV load rescue stored;
+	? A = 160 -> VHSV load rescue stored; ? A = 168 -> VHSV load rescue stored;
+	? A != 180 -> VHSV load rescue defaults;
+    "VHSV load rescue stored"
+	A = [vhsvbuf plus 33]; ? A '> 1 -> VHSV load done; [VHGrescueactive] = A;
+	A = [vhsvbuf plus 34]; ? A '< 0 -> VHSV load done; ? A > 180 -> VHSV load done;
+	[VHGrescuetick] = A; -> VHSV load rescue done;
+    "VHSV load rescue defaults"
+	[VHGrescueactive] = 0; [VHGrescuetick] = 0;
+    "VHSV load rescue done"
+	A = [VHSVsize]; ? A = 144 -> VHSV load offline stored; ? A = 152 -> VHSV load offline stored;
+	? A = 156 -> VHSV load offline stored; ? A = 160 -> VHSV load offline stored;
+	? A = 168 -> VHSV load offline stored; ? A != 180 -> VHSV load offline done;
+    "VHSV load offline stored"
+	A = [vhsvbuf plus 35]; ? A '< 0 -> VHSV load done; [VHGsavedsecs] = A;
+	[VHSVofflinestored] = 1;
+    "VHSV load offline done"
+	A = [VHSVsize]; ? A = 152 -> VHSV load window stored; ? A = 156 -> VHSV load window stored;
+	? A = 160 -> VHSV load window stored; ? A = 168 -> VHSV load window stored;
+	? A != 180 -> VHSV load window done;
+    "VHSV load window stored"
+	A = [vhsvbuf plus 36]; ? A < MINIMUM WIDTH -> VHSV load done;
+	? A > MAXIMUM WIDTH -> VHSV load done; [VHSVwindoww] = A;
+	A = [vhsvbuf plus 37]; ? A < MINIMUM HEIGHT -> VHSV load done;
+	? A > MAXIMUM HEIGHT -> VHSV load done; [VHSVwindowh] = A;
+    "VHSV load window done"
+	A = [VHSVsize]; ? A = 156 -> VHSV load light stored size;
+	? A = 160 -> VHSV load light stored size; ? A = 168 -> VHSV load light stored size;
+	? A != 180 -> VHSV load light done;
+    "VHSV load light stored size"
+	A = [vhsvbuf plus 38]; ? A = 1 -> VHSV load light stored;
+	? A != 0FFFFFFFFh -> VHSV load done;
+    "VHSV load light stored"
+	[VHGilight] = A;
+    "VHSV load light done"
+	A = [VHSVsize]; ? A = 160 -> VHSV load navigation stored;
+	? A = 168 -> VHSV load navigation stored; ? A != 180 -> VHSV load navigation done;
+    "VHSV load navigation stored"
+	A = [vhsvbuf plus 39]; ? A '< 0 -> VHSV load done; ? A > 47 -> VHSV load done;
+	C = A; A / 8; ? A > 5 -> VHSV load done; [VHGsync] = A;
+	A = C; A & 1; [VHGamp] = A;
+	A = C; A / 2; A & 1; [VHGfinder] = A;
+	A = C; A / 4; A & 1; [VHGantirad] = A;
+    "VHSV load navigation done"
+	A = [VHSVsize]; ? A = 168 -> VHSV load landing stored;
+	? A != 180 -> VHSV load landing done;
+    "VHSV load landing stored"
+	A = [vhsvbuf plus 40]; ? A '< 0 -> VHSV load done; ? A >= 360 -> VHSV load done;
+	[VHGlandinglon] = A;
+	A = [vhsvbuf plus 41]; ? A < 1 -> VHSV load done; ? A > 119 -> VHSV load done;
+	[VHGlandinglat] = A;
+    "VHSV load landing done"
+	A = [VHSVsize]; ? A != 180 -> VHSV load capsule done;
+	A = [vhsvbuf plus 42]; ? A '< VHGNDLO -> VHSV load done;
+	? A '> VHGNDHI -> VHSV load done; [VHSVdropx] = A;
+	A = [vhsvbuf plus 43]; ? A '>= 1000000 -> VHSV load done; [VHSVdropy] = A;
+	A = [vhsvbuf plus 44]; ? A '< VHGNDLO -> VHSV load done;
+	? A '> VHGNDHI -> VHSV load done; [VHSVdropz] = A;
+	[VHSVdropstored] = 1;
+    "VHSV load capsule done"
+	A = [VHSVofflinestored]; ? A = 0 -> VHSV load offline apply done;
+	=> VHG offline restore;
+    "VHSV load offline apply done"
+	[VHAwanted] = [VHSVmusic];
+	[VHSVok] = 1;
+    "VHSV load done"
+	end;

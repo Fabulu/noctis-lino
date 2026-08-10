@@ -2,11 +2,20 @@
 # Everything here is reproducible from source via lino_build.ps1.
 work/*.exe
 work/*.bin
+!work/STARMAP.BIN
 work/errorlog.txt
 work/smblsmap.txt
+work/gamediag.txt
+work/*.png
+work/*.lin
+work/*.wavebuild.txt
+work/rc*-smoke*/
+work/rc*-journey*/
 
-# Bootstrapped compiler (rebuild from main/lib/gen/compiler.txt if wanted)
+# The stock library compiler outputs are reproducible. The extended compiler is
+# versioned so a clean checkout can build and play immediately.
 main/lib/gen/*.exe
+!main/lib/gen/compiler114m.exe
 
 # The compiler emits "<name>.txt .exe" if the argument string picks up a
 # trailing space - see README, "Toolchain gotchas".
@@ -31,12 +40,19 @@ tools/*.bin
 
 # bootstrap intermediates
 main/lib/gen/compiler114*.exe
+!main/lib/gen/compiler114m.exe
 main/lib/gen/compiler114n.txt
-main/cpu/i386m.bin
 
 COMMITMSG.tmp
 
+# Local saves, release builds, capture evidence, and media-player diagnostics.
+# STARMAP.BIN is intentionally versioned: it is an original runtime asset used
+# by clean checkouts and distributable bundles.
+CURRENT.LIN
+dist/
+vlc-help.txt
+vlc-log.txt
+
 # stray copies of reference data pulled in by test sandboxes
-work/STARMAP.BIN
 work/hits.tsv
 work/*.tmp

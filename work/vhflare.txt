@@ -1,0 +1,126 @@
+      ( *** vhflare - startup Stardrifter halogen flare ***
+
+	Alogena calls lens_flares_for unconditionally at clean startup when
+	ilightv=1 and elight=0.  This is its primary 90-spoke path: project the
+	fixture point, derive k=-step/rz for step=-50000, and draw through the
+	original flares=1 low-six-bit additive rule. )
+
+"constants"
+
+	VHFF1 = 1065353216;		( 1.0f )
+	VHFF15 = 1069547520;		( 1.5f )
+	VHFF3 = 1077936128;		( 3.0f )
+	VHFF23 = 1059760811;		( 2/3f )
+	VHFM10 = 3240099840;		( -10.0f )
+	VHFP10 = 1092616192;		( +10.0f )
+
+"variables"
+
+	VHFcx = 0; VHFcy = 0; VHFk = 0; VHFl = 0; VHFu = 0; VHFang = 0;
+	VHFdx = 0; VHFdy = 0;
+	VHFx0 = 0; VHFy0 = 0; VHFx1 = 0; VHFy1 = 0;
+	VHFldx = 0; VHFldy = 0; VHFlsx = 0; VHFlsy = 0;
+	VHFerr = 0; VHFe2 = 0;
+
+"programme"
+
+"VH halogen flare"
+	[PGFi] = FSINX; [PGFt] = VHFM10; => PGF setf32;
+	[PGFi] = FSINY; [PGFt] = VHFP10; => PGF setf32;
+	[PGFi] = FSINZ; [PGFt] = VHFM10; => PGF setf32;
+	=> PG getcoords;
+	A = rwf; A = [A]; ? A = 0 -> VHF done;
+	A = [GCx]; A+; [VHFcx] = A;
+	A = [GCy]; A+; [VHFcy] = A;
+	A = [VHFcx]; ? A < 10 -> VHF done; ? A > 310 -> VHF done;
+	A = [VHFcy]; ? A < 10 -> VHF done; ? A > 190 -> VHF done;
+
+	[FI] = 50000; => IntToF; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSRZF; => PGF quo;
+	=> F32Narrow; => PGF stf32; [VHFk] = [PGFt];
+	[VHFl] = VHFF1; [VHFu] = VHFF15; [VHFang] = 0;
+
+    "VHF spoke"
+	[VHVangle] = [VHFang]; => VHV sincos;
+	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHFk]; => PGF setf32;
+	[PGFi] = FSW2; [PGFt] = [VHFl]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW2; => PGF mul;
+	=> PGF int; [VHFdx] = [FI];
+	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW2; => PGF mul;
+	=> PGF int; [VHFdy] = [FI];
+
+	A = [VHFcx]; A - [VHFdx]; [VHFx0] = A;
+	A = [VHFcy]; A - [VHFdy]; [VHFy0] = A;
+	A = [VHFcx]; A + [VHFdx]; [VHFx1] = A;
+	A = [VHFcy]; A + [VHFdy]; [VHFy1] = A;
+	=> VHF clamp; => VHF additive line;
+
+	[PGFi] = FSW0; [PGFt] = [VHFl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHFu]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
+	=> F32Narrow; => PGF stf32; [VHFl] = [PGFt];
+	A = [VHFl]; ? A > VHFF3 -> VHF flip; ? A < VHFF1 -> VHF flip;
+	-> VHF scale ready;
+    "VHF flip"
+	A = [VHFu]; ? A = VHFF15 -> VHF scale down;
+	[VHFu] = VHFF15; -> VHF scale ready;
+    "VHF scale down"
+	[VHFu] = VHFF23;
+    "VHF scale ready"
+	A = [VHFang]; A + 2; [VHFang] = A; ? A < 180 -> VHF spoke;
+    "VHF done"
+	end;
+
+"VHF clamp"
+	A = [VHFx0]; ? A >= 10 -> VHF cx0u; [VHFx0] = 10;
+    "VHF cx0u"
+	A = [VHFx0]; ? A <= 310 -> VHF cy0l; [VHFx0] = 310;
+    "VHF cy0l"
+	A = [VHFy0]; ? A >= 10 -> VHF cy0u; [VHFy0] = 10;
+    "VHF cy0u"
+	A = [VHFy0]; ? A <= 190 -> VHF cx1l; [VHFy0] = 190;
+    "VHF cx1l"
+	A = [VHFx1]; ? A >= 10 -> VHF cx1u; [VHFx1] = 10;
+    "VHF cx1u"
+	A = [VHFx1]; ? A <= 310 -> VHF cy1l; [VHFx1] = 310;
+    "VHF cy1l"
+	A = [VHFy1]; ? A >= 10 -> VHF cy1u; [VHFy1] = 10;
+    "VHF cy1u"
+	A = [VHFy1]; ? A <= 190 -> VHF clamp done; [VHFy1] = 190;
+    "VHF clamp done"
+	end;
+
+"VHF additive line"
+	A = [VHFx1]; A - [VHFx0]; [VHFlsx] = 1; ? A >= 0 -> VHF dx positive;
+	C = 0; C - A; A = C; C = 0; C - 1; [VHFlsx] = C;
+    "VHF dx positive"
+	[VHFldx] = A;
+	A = [VHFy1]; A - [VHFy0]; [VHFlsy] = 1; ? A >= 0 -> VHF dy positive;
+	C = 0; C - 1; [VHFlsy] = C; C = 0; C - A; A = C;
+    "VHF dy positive"
+	C = 0; C - A; [VHFldy] = C;
+	A = [VHFldx]; A + [VHFldy]; [VHFerr] = A;
+
+    "VHF line loop"
+	A = [VHFy0]; A '* 320; A + [VHFx0]; [SPoff] = A; [SPreg] = RGADP; => SP get;
+	C = [SPval]; D = C; D & 192; C & 63; C + 8;
+	? C <= 62 -> VHF pixel ready; C = 62;
+    "VHF pixel ready"
+	C | D; [SPval] = C; => SP put;
+	A = [VHFx0]; ? A != [VHFx1] -> VHF line step;
+	A = [VHFy0]; ? A = [VHFy1] -> VHF line done;
+    "VHF line step"
+	A = [VHFerr]; A + A; [VHFe2] = A;
+	A = [VHFe2]; ? A < [VHFldy] -> VHF skip x;
+	A = [VHFerr]; A + [VHFldy]; [VHFerr] = A;
+	A = [VHFx0]; A + [VHFlsx]; [VHFx0] = A;
+    "VHF skip x"
+	A = [VHFe2]; ? A > [VHFldx] -> VHF skip y;
+	A = [VHFerr]; A + [VHFldx]; [VHFerr] = A;
+	A = [VHFy0]; A + [VHFlsy]; [VHFy0] = A;
+    "VHF skip y"
+	-> VHF line loop;
+    "VHF line done"
+	end;

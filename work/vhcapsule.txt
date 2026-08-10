@@ -1,0 +1,281 @@
+      ( *** vhcapsule - live Noctis planetary drop/recovery physics ***
+
+	Shared by the playable GUI game and its bounded landed probe.  This
+	restores NOCTIS-1.CPP:3741-3747, 4149-4193 and 4581-4603: a pod
+	starts 320000 world units above the terrain, accelerates, drifts with
+	atmospheric wind, bounces at -0.32 of its impact speed, settles below
+	the 250-unit threshold on safe ground, then uses the original 32-frame
+	seal and 250-frame ascent cutoff. )
+
+"variables"
+
+	VHGCstate = 0;		( 0 walking/ship, 1 descent, 2 recovery/ascent )
+	VHGCgravity = 0;		( tenths of a world unit per frame )
+	VHGCaccel = 0;		( tenths of a world unit per frame squared )
+	VHGCsubsteps = 0;		( physics ticks per presented GUI frame )
+	VHGCground = 0; VHGCsample = 0; VHGCslope = 0;
+	VHGCbasex = 0; VHGCbasez = 0;
+	VHGCslopet = 0; VHGCslopedir = 0;
+	VHGCbounces = 0; VHGCcapcount = 0; VHGCrecover = 0;
+	VHGCwindangle = 0; VHGCwindtarget = 0; VHGCwindpower = 0;
+	VHGCwinddiff = 0; VHGCwindideal = 0; VHGCwindrequired = 0;
+	VHGCwindrngsave = 0; VHGCwinddraw1 = 0; VHGCwinddraw2 = 0;
+
+"programme"
+
+"VHGC start descent"
+	( The opening system's exact p_ray values are 0.03096 and 0.01752.
+	  Keep gravity in tenths so ray*10000 and ray*2000*0.16 retain the
+	  source fixture's sub-unit acceleration without a second float state. )
+	[VHGx] = [VHGNDdropx]; [VHGz] = [VHGNDdropz];
+	[VHGalpha] = 0; [VHGbeta] = 0;
+	[VHGCground] = [VHGNDdropy];
+	A = [VHGCground]; A - 320000; [VHGy] = A;
+	[VHGmode] = 1; [VHGlanded] = 0; [VHGCstate] = 1;
+	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
+	[VHGCcapcount] = 0; [VHGCbounces] = 0; [VHGCrecover] = 0;
+	[VHGCgravity] = 2500; [VHGCaccel] = 80;
+	A = [VHGplanet]; ? A = 0 -> VHGC gravity type8;
+	? A = 1 -> VHGC gravity type4; ? A = 3 -> VHGC gravity moon3;
+	? A = 4 -> VHGC gravity moon4; -> VHGC start done;
+    "VHGC gravity type8"
+	[VHGCgravity] = 3096; [VHGCaccel] = 99; -> VHGC start done;
+    "VHGC gravity type4"
+	[VHGCgravity] = 1752; [VHGCaccel] = 56;
+	-> VHGC start done;
+    "VHGC gravity moon3"
+	[VHGCgravity] = 2016; [VHGCaccel] = 65; -> VHGC start done;
+    "VHGC gravity moon4"
+	[VHGCgravity] = 1548; [VHGCaccel] = 50;
+    "VHGC start done"
+	=> VHGC wind init;
+	end;
+
+"VHGC wind init"
+	( planetary_main draws wdir, iwp and rwp before it reseeds and builds the
+	  surface.  That incoming RNG state is not retained here, so replay the
+	  same five-draw shape from the retained surface seed without disturbing
+	  the post-surface Borland stream used by the live weather evolution.
+	  angle is degrees*16, ideal is iwp*1024, required is rwp*10, and power
+	  is wp*10 so the source lateral formula is an integer world-unit step. )
+	[VHGCwindpower] = 0; [VHGCwindtarget] = 0; [VHGCwindangle] = 0;
+	[VHGCwindideal] = 0; [VHGCwindrequired] = 0;
+	A = [VHGNDatmosphere]; ? A = 0 -> VHGC wind init done;
+	[VHGCwindrngsave] = [brtlseed]; A = [VHGNDseed]; => BrtlSrand;
+	A = 32767; => BrtlRandom; A '* 5760; A / 32767; [VHGCwindangle] = A;
+	A = 32767; => BrtlRandom; [VHGCwinddraw1] = A;
+	A = 32767; => BrtlRandom; [VHGCwinddraw2] = A;
+	A = [VHGCwinddraw1]; A - [VHGCwinddraw2]; A '* 512; A / 32767;
+	[VHGCwindideal] = A;
+	A = 32767; => BrtlRandom; [VHGCwinddraw1] = A;
+	A = 32767; => BrtlRandom; [VHGCwinddraw2] = A;
+	A = [VHGCwinddraw1]; A - [VHGCwinddraw2]; A '* 500; A / 32767;
+	[VHGCwindrequired] = A; [brtlseed] = [VHGCwindrngsave];
+	=> VHGC wind target calc;
+    "VHGC wind init done"
+	end;
+
+"VHGC start return"
+	A = [VHGlanded]; ? A = 0 -> VHGC start return done;
+	A = [VHGCstate]; ? A != 0 -> VHGC start return done;
+	[VHGCstate] = 2; [VHGCcapcount] = 1; [VHGCrecover] = 1;
+    "VHGC start return done"
+	end;
+
+"VHGC tick"
+	( The original loop advanced physics much faster than this GUI can paint
+	  the full landscape.  Keep the source equations and batch 32 fixed
+	  simulation ticks per presented frame so descent does not masquerade as
+	  a frozen white or black screen on atmospheric and airless worlds. )
+	[VHGCsubsteps] = 32;
+    "VHGC tick loop"
+	A = [VHGCstate]; ? A = 0 -> VHGC tick idle; ? A = 1 -> VHGC tick descent;
+	? A = 2 -> VHGC tick ascent; end;
+	"VHGC tick idle"
+	=> VHGC wind evolve; end;
+    "VHGC tick descent"
+	=> VHGC descent; -> VHGC tick next;
+    "VHGC tick ascent"
+	=> VHGC ascent; => VHGC wind evolve;
+    "VHGC tick next"
+	( HPOINT's chained x87 helpers are balanced at the GUI boundary; reset
+	  between batched simulation samples as well. )
+	=> VHG fpu clean;
+	[VHGCsubsteps]-; A = [VHGCsubsteps]; ? A != 0 -> VHGC tick loop;
+	end;
+
+"VHGC descent"
+	A = [VHGCgravity]; A / 10; A + [VHGy]; [VHGy] = A;
+	? A '> [VHGCground] -> VHGC impact;
+	A = [VHGCgravity]; A + [VHGCaccel]; [VHGCgravity] = A;
+	=> VHGC wind step; => VHGC wind evolve;
+	end;
+
+"VHGC wind step"
+	A = [VHGNDatmosphere]; ? A = 0 -> VHGC wind done;
+	A = [VHGCwindangle]; A + 8; A / 16; [VHVangle] = A; => VHV sincos;
+	[FI] = [VHGCwindpower]; => IntToF; [PGFi] = FSW1; => PGF sa;
+	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
+	A = [VHGx]; A - [FI]; [VHGx] = A;
+	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
+	A = [VHGz]; A + [FI]; [VHGz] = A;
+	( Wind can integrate thousands of lateral steps during descent.  Keep the
+	  capsule inside the same terrain-safe range used by settled walking before
+	  sampling the height map; VHGND eye height assumes an in-map coordinate. )
+	A = [VHGx]; ? A '>= VHGNDLO -> VHGC wind x low; [VHGx] = VHGNDLO;
+    "VHGC wind x low"
+	A = [VHGx]; ? A '<= VHGNDHI -> VHGC wind x ready; [VHGx] = VHGNDHI;
+    "VHGC wind x ready"
+	A = [VHGz]; ? A '>= VHGNDLO -> VHGC wind z low; [VHGz] = VHGNDLO;
+    "VHGC wind z low"
+	A = [VHGz]; ? A '<= VHGNDHI -> VHGC wind z ready; [VHGz] = VHGNDHI;
+    "VHGC wind z ready"
+	( Lateral motion changes both the impact height and the safe-slope scan. )
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	A = [VHGNDheight]; A + 600; [VHGCground] = A;
+    "VHGC wind done"
+	end;
+
+"VHGC wind evolve"
+	( NOCTIS-1.CPP atmospheric loop: perturb and clamp iwp, ease wp five
+	  percent toward iwp*rwp, then let two flandom draws turn wdir.  The
+	  evolution consumes the live post-surface Borland stream just as the
+	  original loop does. )
+	A = [VHGNDatmosphere]; ? A = 0 -> VHGC wind evolve done;
+	A = [GRalbedo]; => BrtlRandom; [VHGCwinddraw1] = A;
+	A = [GRalbedo]; => BrtlRandom; [VHGCwinddraw2] = A;
+	A = [VHGCwinddraw1]; A - [VHGCwinddraw2]; A '* 512; A / 25;
+	A + [VHGCwindideal]; ? A >= 0FFFFFC00h -> VHGC wind ideal upper; A = 0FFFFFC00h;
+    "VHGC wind ideal upper"
+	? A <= 1024 -> VHGC wind ideal ready; A = 1024;
+    "VHGC wind ideal ready"
+	[VHGCwindideal] = A; => VHGC wind target calc;
+	( wp += (target - wp) * 0.05, retaining one-unit convergence after
+	  integer quantisation. )
+	A = [VHGCwindtarget]; A - [VHGCwindpower]; [VHGCwinddiff] = A;
+	? A = 0 -> VHGC wind turn; A / 20; ? A != 0 -> VHGC wind ramp;
+	A = [VHGCwinddiff]; ? A < 0 -> VHGC wind ramp negative; A = 1; -> VHGC wind ramp;
+    "VHGC wind ramp negative"
+	A = 0; A - 1;
+    "VHGC wind ramp"
+	C = [VHGCwindpower]; C + A; [VHGCwindpower] = C;
+    "VHGC wind turn"
+	A = 32767; => BrtlRandom; [VHGCwinddraw1] = A;
+	A = 32767; => BrtlRandom; [VHGCwinddraw2] = A;
+	A = [VHGCwinddraw1]; A - [VHGCwinddraw2]; A '* [VHGCwindideal];
+	A / 32767; A '* 917; A / 10240; A + [VHGCwindangle]; A % 5760;
+	? A >= 0 -> VHGC wind angle evolved; A + 5760;
+    "VHGC wind angle evolved"
+	[VHGCwindangle] = A;
+    "VHGC wind evolve done"
+	end;
+
+"VHGC wind target calc"
+	A = [VHGCwindideal]; A '* [VHGCwindrequired]; A / 1024;
+	[VHGCwindtarget] = A;
+	end;
+
+    "VHGC impact"
+	[VHGy] = [VHGCground];
+	=> VHGC wind evolve;
+	( Integer camera coordinates can quantise the last few sub-unit arcs.
+	  Honour NIV+'s ten-bounce escape before testing their rounded speed,
+	  then require the surrounding 1024-unit lip to stay below 512. )
+	A = [VHGCbounces]; ? A > 10 -> VHGC settle;
+	A = [VHGCgravity]; ? A '>= 2500 -> VHGC bounce;
+	=> VHGC slope scan;
+	A = [VHGCslope]; ? A '< 512 -> VHGC settle;
+	-> VHGC bounce;
+    "VHGC bounce"
+	[VHGCbounces]+;
+	A = [VHGCgravity]; A '* 32; A / 100; C = 0; C - A; [VHGCgravity] = C;
+	end;
+
+    "VHGC settle"
+	( Snap to the centre of the touched surface quadrant, as NIV+ does. )
+	A = [VHGx]; A > 14; A < 14; A + 8192; [VHGx] = A;
+	A = [VHGz]; A > 14; A < 14; A + 8192; [VHGz] = A;
+	( Wind may have moved the pod away from the generated drop point; sample
+	  the snapped tile centre used by the persistent capsule mesh. )
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	A = [VHGNDheight]; A + 600; [VHGCground] = A;
+	A = [VHGCground]; A - 600; [VHGy] = A;
+	[VHGNDdropx] = [VHGx]; [VHGNDdropy] = [VHGCground]; [VHGNDdropz] = [VHGz];
+	[VHGlanded] = 1; [VHGCstate] = 0; [VHGCgravity] = 0;
+	[VHGsurfground] = [VHGy]; [VHGsurfvy] = 0;
+	[VHGsurfair] = 0; [VHGsurfjet] = 0;
+	[VHGCrecover] = 0; [VHGCcapcount] = 0;
+	end;
+
+"VHGC slope scan"
+	( The source scans a 1024-unit circle in 0.025-radian increments.
+	  `temp`, `drop_x`, and `drop_z` are floats, so every loop increment
+	  and coordinate assignment narrows to binary32 before hpoint receives
+	  its chopped long arguments.  The loop therefore takes 252 samples. )
+	[VHGCbasex] = [VHGx]; [VHGCbasez] = [VHGz];
+	[VHGCslope] = 0FFF0BDC0h;	( -1000000 )
+	[VHGCslopet] = 0; [VHGCslopedir] = 0;
+    "VHGC slope scan loop"
+	[FS0] = [VHGCslopet]; => FLoadF32;
+	[FB0] = 54442D18h; [FB1] = 401921FBh; => FCmp;
+	A = [FI]; ? A >= 0 -> VHGC slope scan done;
+	( drop_x = (float)(pos_x - 1024*sin(temp)), then implicit long chop. )
+	[FS0] = [VHGCslopet]; => FLoadF32; => FSin; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = 1024; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1]; => FMul; => FNeg;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGCbasex]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FT0]; [FA1] = [FT1];
+	=> FAdd; => F32Narrow; => FToIntChop; [VHGNDcamx] = [FI];
+	( drop_z = (float)(pos_z + 1024*cos(temp)), then implicit long chop. )
+	[FS0] = [VHGCslopet]; => FLoadF32; => FCos; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = 1024; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGCbasez]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FT0]; [FA1] = [FT1];
+	=> FAdd; => F32Narrow; => FToIntChop; [VHGNDcamz] = [FI];
+	=> VHGC slope sample;
+	( temp += 0.025; compound assignment stores back to float. )
+	[FS0] = [VHGCslopet]; => FLoadF32;
+	[FB0] = 9999999Ah; [FB1] = 3F999999h; => FAdd;
+	=> F32Narrow; => FStoreF32; [VHGCslopet] = [FS0];
+	-> VHGC slope scan loop;
+    "VHGC slope scan done"
+	[VHGNDcamx] = [VHGCbasex]; [VHGNDcamz] = [VHGCbasez];
+	( Source assigns the steepest direction to wdir.  Convert radians to
+	  this adapter's degrees*16 wind-angle representation. )
+	[FS0] = [VHGCslopedir]; => FLoadF32;
+	[FB0] = 0; [FB1] = 40A68000h; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntChop;
+	A = [FI]; A % 5760; ? A >= 0 -> VHGC slope direction ready; A + 5760;
+    "VHGC slope direction ready"
+	[VHGCwindangle] = A;
+	end;
+
+"VHGC slope sample"
+	=> VHGND eye height; A = [VHGNDheight]; A + 600; A - [VHGCground]; [VHGCsample] = A;
+	? A '<= [VHGCslope] -> VHGC slope sample clean;
+	[VHGCslope] = A; [VHGCslopedir] = [VHGCslopet];
+    "VHGC slope sample clean"
+	=> VHG fpu clean;
+    "VHGC slope sample done"
+	end;
+
+"VHGC ascent"
+	[VHGCcapcount]+;
+	A = [VHGCcapcount]; ? A '> 32 -> VHGC lift off;
+	( Pull the walker to the pod centre during the 32-frame seal. )
+	A = [VHGx]; A - [VHGNDdropx]; A / 8; C = [VHGx]; C - A; [VHGx] = C;
+	A = [VHGz]; A - [VHGNDdropz]; A / 8; C = [VHGz]; C - A; [VHGz] = C;
+	A = [VHGNDdropy]; A - 600; [VHGy] = A;
+	end;
+
+    "VHGC lift off"
+	[VHGlanded] = 0;
+	A = [VHGCcapcount]; A - 31; A '* 20; C = [VHGy]; C - A; [VHGy] = C;
+	A = [VHGCcapcount]; ? A '<= 250 -> VHGC ascent done;
+	[VHGCstate] = 0; [VHGCcapcount] = 0; [VHGCrecover] = 0;
+	=> VHG return ship;
+    "VHGC ascent done"
+	end;

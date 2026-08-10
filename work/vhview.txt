@@ -1,0 +1,70 @@
+      ( *** vhview - live Stardrifter camera *** )
+
+"constants"
+
+	VHVDEGLO = 2723323193;		( binary64 pi/180, low half )
+	VHVDEGHI = 1066524486;		( binary64 pi/180, high half )
+
+"variables"
+
+	VHVcamxi = 0; VHVcamyi = 0; VHVcamzi = 0;
+	VHValpha = 0; VHVbeta = 0;
+	VHVcamxb = 0; VHVcamyb = 0; VHVcamzb = 0;
+	VHVangle = 0; VHVsin = 0; VHVcos = 0;
+	VHVanglekey = 0; VHVtablep = 0;
+
+"workspace"
+
+	vhvsintab = 360; vhvcostab = 360; vhvtrigvalid = 360;
+
+"programme"
+
+"VH view init"
+	( workspace is not zero-filled.  The validity bytes must be cleared
+	  before the first lazy lookup or arbitrary startup memory can make an
+	  unbuilt sine/cosine entry look valid, corrupting every camera matrix
+	  that happens to use it. )
+	A = vhvtrigvalid; B = 360; C = 0;
+    "VHV init valid"
+	[A] = C; A+; B ^ VHV init valid;
+	end;
+
+"VH set view"
+	( cam_x/y/z are source floats )
+	[FI] = [VHVcamxi]; => IntToF; => F32Narrow; [PGFi] = FSCAMX; => PGF sa; => FStoreF32; [VHVcamxb] = [FS0];
+	[FI] = [VHVcamyi]; => IntToF; => F32Narrow; [PGFi] = FSCAMY; => PGF sa; => FStoreF32; [VHVcamyb] = [FS0];
+	[FI] = [VHVcamzi]; => IntToF; => F32Narrow; [PGFi] = FSCAMZ; => PGF sa; => FStoreF32; [VHVcamzb] = [FS0];
+
+	[VHVangle] = [VHVbeta]; => VHV sincos;
+	[PGFi] = FSTSB; [PGFt] = [VHVsin]; => PGF setf32;
+	[PGFi] = FSTCB; [PGFt] = [VHVcos]; => PGF setf32;
+	[PGFt] = [VHVsin]; => PGF ldf32; [PGFi] = FSDPP; => PGF mul; => F32Narrow; [PGFi] = FSPSB; => PGF sa;
+	[PGFt] = [VHVcos]; => PGF ldf32; [PGFi] = FSDPP; => PGF mul; => F32Narrow; [PGFi] = FSPCB; => PGF sa;
+
+	[VHVangle] = [VHValpha]; => VHV sincos;
+	[PGFi] = FSTSA; [PGFt] = [VHVsin]; => PGF setf32;
+	[PGFi] = FSTCA; [PGFt] = [VHVcos]; => PGF setf32;
+	[PGFt] = [VHVsin]; => PGF ldf32; [PGFi] = FSDPP; => PGF mul; => F32Narrow; [PGFi] = FSPSA; => PGF sa;
+	[PGFt] = [VHVcos]; => PGF ldf32; [PGFi] = FSDPP; => PGF mul; => F32Narrow; [PGFi] = FSPCA; => PGF sa;
+	end;
+
+"VHV sincos"
+	( Noctis angles are integral degrees and recur hundreds of times while
+	  drawing one frame.  Lazily retain each exact x87 result instead of
+	  repeating the conversion, multiply, sin and cos helper chain. )
+	A = [VHVangle]; A % 360; ? A >= 0 -> VHV angle normalized; A + 360;
+    "VHV angle normalized"
+	[VHVanglekey] = A; C = vhvtrigvalid; C + A;
+	A = [C]; ? A = 0 -> VHV trig build;
+	A = vhvsintab; A + [VHVanglekey]; [VHVsin] = [A];
+	A = vhvcostab; A + [VHVanglekey]; [VHVcos] = [A]; end;
+    "VHV trig build"
+	[FI] = [VHVanglekey]; => IntToF; [PGFi] = FSW0; => PGF sa;
+	[PGFt] = VHVDEGLO; [PGFu] = VHVDEGHI; => PGF ldf64;
+	[PGFi] = FSW0; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	=> FSin; => F32Narrow; => PGF stf32; [VHVsin] = [PGFt];
+	[PGFi] = FSW0; => PGF a; => FCos; => F32Narrow; => PGF stf32; [VHVcos] = [PGFt];
+	A = vhvsintab; A + [VHVanglekey]; [A] = [VHVsin];
+	A = vhvcostab; A + [VHVanglekey]; [A] = [VHVcos];
+	A = vhvtrigvalid; A + [VHVanglekey]; [A] = 1;
+	end;

@@ -359,13 +359,11 @@ least five of the seven and DL.EXE alone catches at least five.
   12 classes × 4,096 of them — but only between the two references, for the
   same reason.
 
-* **nsrun does not validate the NSIN payload length against its header.** An
-  NSIN whose header claims more records than the file holds produces a
-  full-length, well-formed NSTOPO built partly from uninitialised workspace,
-  with a valid `DEFACED` diagnostic magic. The failure path that withholds
-  `nstopo.bin` is defeated by that input. The regression test always writes
-  its own NSIN, so it never meets this; it is recorded here as a robustness
-  gap in the driver, not in the model.
+* **`nsrun` validates the NSIN payload length against its header.** The
+  delivered `nrfilebytes` guard rejects an NSIN whose header claims more
+  records than the file holds, before any fictitious records can be emitted.
+  `tests/test_geometry.py` section 8 confirms an intact eight-record control,
+  refusal of a header-8/payload-5 input, and absence of stale `nstopo.bin`.
 
 * **The DL captures are not re-captured on every run.** They are DL.EXE's own
   stdout, taken under DOSBox-X and reproduced byte-identical in a second

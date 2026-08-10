@@ -1,0 +1,65 @@
+      ( *** vhlight - Stardrifter interior halogen fixture *** )
+
+"constants"
+
+	VHLFIFTEEN = 1097859072;	( 15.0f )
+	VHLHALF = 1056964608;		( 0.5f )
+	VHLM10 = 3240099840;		( -10.0f )
+	VHLP10 = 1092616192;		( +10.0f )
+
+"variables"
+
+	VHLpower = 1;			( source ilightv: +1 on, -1 off )
+	VHLseg = 0; VHLcol = 0; VHLi = 0;
+	VHLx0 = 0; VHLy0 = 0; VHLz0 = 0;
+	VHLx1 = 0; VHLy1 = 0; VHLz1 = 0;
+
+"programme"
+
+"VH alogena"
+	[VHLseg] = 0; A = 72; A + [VHLpower]; [VHLcol] = A;
+    "VHL segment"
+	A = [VHLseg]; A '* 36; [VHVangle] = A; => VHV sincos;
+	[VHCa] = VHLFIFTEEN; [VHCb] = [VHVsin]; => VHC multiply; [VHLx0] = [VHCm];
+	[VHCa] = VHLFIFTEEN; [VHCb] = [VHVcos]; => VHC multiply; [VHLy0] = [VHCm];
+	[VHLx1] = [VHLx0]; [VHLy1] = [VHLy0]; => VHL make z; [VHLz0] = [VHLz1];
+
+	A = [VHLseg]; A + 1; A '* 36; [VHVangle] = A; => VHV sincos;
+	[VHCa] = VHLFIFTEEN; [VHCb] = [VHVsin]; => VHC multiply; [VHLx1] = [VHCm];
+	[VHCa] = VHLFIFTEEN; [VHCb] = [VHVcos]; => VHC multiply; [VHLy1] = [VHCm];
+	=> VHL make z;
+
+	[vhcpoly plus 0] = [VHLx0]; [vhcpoly plus 1] = [VHLy0]; [vhcpoly plus 2] = [VHLz0];
+	[vhcpoly plus 3] = [VHLx1]; [vhcpoly plus 4] = [VHLy1]; [vhcpoly plus 5] = [VHLz1];
+	[vhcpoly plus 6] = VHLM10; [vhcpoly plus 7] = VHLP10; [vhcpoly plus 8] = VHLM10;
+	=> VHL draw triangle;
+
+	A = [VHLcol]; A + 2; [VHLcol] = A;
+	[VHLseg]+; A = [VHLseg]; ? A < 10 -> VHL segment;
+	A = [VHLpower]; ? A != 1 -> VHL done;
+	=> VH halogen flare;
+    "VHL done"
+	end;
+
+      ( VHLz1 = (VHLy1 - VHLx1)/2 at the source float store. )
+"VHL make z"
+	[PGFt] = [VHLx1]; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
+	[PGFt] = [VHLy1]; => PGF ldf32; [PGFi] = FSW0; => PGF sub;
+	[PGFi] = FSW0; => PGF sa;
+	[PGFt] = VHLHALF; => PGF ldf32; [PGFi] = FSW0; => PGF mul;
+	=> F32Narrow; => PGF stf32; [VHLz1] = [PGFt];
+	end;
+
+"VHL draw triangle"
+	[VHLi] = 0;
+    "VHL triangle vertex"
+	A = [VHLi]; A '* 3; C = vhcpoly; C + A;
+	A = FSINX; A + [VHLi]; [PGFi] = A; [PGFt] = [C plus 0]; => PGF setf32;
+	A = [VHLi]; A '* 3; C = vhcpoly; C + A;
+	A = FSINY; A + [VHLi]; [PGFi] = A; [PGFt] = [C plus 1]; => PGF setf32;
+	A = [VHLi]; A '* 3; C = vhcpoly; C + A;
+	A = FSINZ; A + [VHLi]; [PGFi] = A; [PGFt] = [C plus 2]; => PGF setf32;
+	[VHLi]+; A = [VHLi]; ? A < 3 -> VHL triangle vertex;
+	[PJnrv] = 3; [DBcol] = [VHLcol]; [DBflar] = 0; [DBent] = 0;
+	=> PG poly3d;
+	end;

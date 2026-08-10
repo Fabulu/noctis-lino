@@ -1,0 +1,472 @@
+      ( *** skymain - strict Wave 7b sky corpus runner ***
+
+	The production algorithm is entirely in sky.txt.  This programme owns
+	the SKY1 text parser, deterministic tail, D/R/J setup and framed writer.
+	A missing corpus produces a valid STREAM_END carrying an error count;
+	it never falls through into a partial case. )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	fbpal;
+
+	pgfp;
+
+	spmem;
+	spbg;
+
+	brtl;
+	mul64frag;
+
+	suseed;
+	surng;
+	subuf;
+	susm;
+
+	sky;
+
+"directors"
+
+	program name = { skymain };
+	unit = 32;
+
+"constants"
+
+	GRSKHMAGIC = 31594B53h;
+	GRSKHVER = 1;
+	GRSKHHDR = 16;
+	GRSKHCASEU = 28;
+	GRSKHMAPU = 16200;
+	GRSKHPALU = 192;
+	GRSKHPAGEU = 16000;
+	GRSKHTAILB = 64;
+	GRSKHDUMPU = 2400000;
+	GRSKHCORPU = 60001;
+	GRSKHCORPB = 240001;
+	GRSKHTOKU = 60000;
+
+	GRSKHKMETA = 1;
+	GRSKHKPRE = 2;
+	GRSKHKFINAL = 3;
+	GRSKHKPAL = 4;
+	GRSKHKSCAL = 5;
+	GRSKHKLED = 6;
+	GRSKHKGUARD = 7;
+	GRSKHKREPLAY = 8;
+	GRSKHKJOIN = 9;
+	GRSKHKEND = 10;
+	GRSKHKSTREAM = 255;
+
+	GRSKHFGPAGE = 8;
+	GRSKHFTAIL = 16;
+	GRSKHFPALUNDEF = 64;
+
+"variables"
+
+	GRSKHcorpname = { sky-corpus.txt };
+	GRSKHoutname = { sky-out.bin };
+	GRSKHreplayname = { sky-replay.bin };
+
+	GRSKHbytes=0; GRSKHpos=0; GRSKHtokn=0; GRSKHti=0;
+	GRSKHch=0; GRSKHacc=0; GRSKHneg=0; GRSKHbad=0;
+	GRSKHdigit=0;
+	GRSKHcases=0; GRSKHrecords=0; GRSKHseq=0;
+	GRSKHvi=0; GRSKHvcases=0;
+	GRSKHdp=0; GRSKHdc=0;
+	GRSKHkind=0; GRSKHw=0; GRSKHh=0; GRSKHbodyu=0;
+	GRSKHbodyb=0; GRSKHphase=0; GRSKHbp=0;
+	GRSKHflags=0; GRSKHid=0; GRSKHop=0;
+	GRSKHi=0; GRSKHj=0; GRSKHv=0; GRSKHtmp=0;
+	GRSKHtailbefore=0; GRSKHtailafter=0;
+	GRSKHouterbefore=0; GRSKHouterafter=0;
+	GRSKHqbefore=0; GRSKHqafter=0;
+	GRSKHreplayok=0;
+	GRSKHledgerhash=0;
+
+"workspace"
+
+	grskhdump = 2400000;
+	grskhpack = 16200;
+	grskhhead = 16;
+	grskhcase = 28;
+	grskhcorpus = 60001;
+	grskhtok = 60000;
+	grskhids = 2069;
+	grskhscalar = 12;
+	grskhledgers = 64;
+	grskhguard = 10;
+	grskhstream = 4;
+	grskhreplay = 16201;
+
+"programme"
+
+	=> GRSKH run;
+	end;
+
+"GRSKH run"
+	=> FEnter;
+	=> SU fp init;
+	=> PGF constants;
+	=> SP build rgt;
+	=> SP load maps;
+	=> PAL float init;
+	=> PAL zero;
+	=> GRSKH dump reset;
+	=> GRSKH corpus load;
+	A=[GRSKHbad]; ? A != 0 -> GR sky harness finish;
+	=> GRSKH tokenise;
+	A=[GRSKHbad]; ? A != 0 -> GR sky harness finish;
+	=> GRSKH validate stream;
+	A=[GRSKHbad]; ? A != 0 -> GR sky harness finish;
+	[GRSKHti]=0;
+    "GR sky harness case loop"
+	=> GRSKH next; [GRSKHop]=C;
+	A=[GRSKHbad]; ? A != 0 -> GR sky harness finish;
+	A=[GRSKHop]; ? A=0 -> GR sky harness terminator;
+	? A=1 -> GRSKH do case;
+	[GRSKHbad]+; -> GR sky harness finish;
+    "GR sky harness terminator"
+	A=[GRSKHti]; ? A=[GRSKHtokn] -> GR sky harness finish;
+	[GRSKHbad]+;
+    "GR sky harness finish"
+	=> GRSKH stream end;
+	=> FLeave;
+	=> GRSKH write;
+	end;
+
+( ==================================================================== )
+( strict signed-decimal corpus reader                                   )
+( ==================================================================== )
+
+"GRSKH corpus load"
+	[File Name]=GRSKHcorpname; [File Position]=0; [File Command]=READ;
+	[Block Pointer]=grskhcorpus; [Block Size]=GRSKHCORPB; isocall;
+	A=[Block Size]; ? A=0 -> GR sky harness load bad;
+	? A '>= GRSKHCORPB -> GR sky harness load bad;
+	[GRSKHbytes]=A; [GRSKHpos]=0; end;
+    "GR sky harness load bad" [GRSKHbad]=1; end;
+
+"GRSKH getch"
+	A=[GRSKHpos]; ? A '>= [GRSKHbytes] -> GR sky harness eof;
+	C=A; C>2; D=grskhcorpus; D+C; C=[D];
+	A=[GRSKHpos]; A&3; A '* 8; C>A; C&255;
+	[GRSKHpos]+; [GRSKHch]=C; end;
+    "GR sky harness eof" A=0; A-1; [GRSKHch]=A; end;
+
+"GRSKH tokenise"
+	[GRSKHtokn]=0; [GRSKHbad]=0; => GRSKH getch;
+    "GR sky harness scan ws"
+	A=[GRSKHch]; A+; ? A=0 -> GR sky harness token done; A-1;
+	? A=32 -> GR sky harness ws next; ? A=9 -> GR sky harness ws next;
+	? A=10 -> GR sky harness ws next; ? A=13 -> GR sky harness ws next;
+	-> GR sky harness token start;
+    "GR sky harness ws next" => GRSKH getch; -> GR sky harness scan ws;
+    "GR sky harness token start"
+	[GRSKHneg]=0; [GRSKHacc]=0;
+	A=[GRSKHch]; ? A != 45 -> GR sky harness first digit;
+	[GRSKHneg]=1; => GRSKH getch;
+    "GR sky harness first digit"
+	A=[GRSKHch]; ? A '< 48 -> GR sky harness token bad; ? A '> 57 -> GR sky harness token bad;
+    "GR sky harness digits"
+	A=[GRSKHch]; ? A '< 48 -> GR sky harness token store; ? A '> 57 -> GR sky harness token store;
+	A-48; [GRSKHdigit]=A; C=[GRSKHacc];
+	? C '> 214748364 -> GR sky harness token bad; ? C '< 214748364 -> GR sky harness digit safe;
+	A=[GRSKHneg]; ? A=0 -> GR sky harness positive last; A=[GRSKHdigit]; ? A '> 8 -> GR sky harness token bad; -> GR sky harness digit safe;
+    "GR sky harness positive last" A=[GRSKHdigit]; ? A '> 7 -> GR sky harness token bad;
+    "GR sky harness digit safe"
+	C=[GRSKHacc]; C '* 10; C+[GRSKHdigit]; [GRSKHacc]=C; => GRSKH getch; -> GR sky harness digits;
+    "GR sky harness token store"
+	A=[GRSKHneg]; ? A=0 -> GR sky harness token positive;
+	C=[GRSKHacc]; C+-; [GRSKHacc]=C;
+    "GR sky harness token positive"
+	A=[GRSKHtokn]; ? A '>= GRSKHTOKU -> GR sky harness token bad;
+	C=grskhtok; C+A; [C]=[GRSKHacc]; [GRSKHtokn]+;
+	-> GR sky harness scan ws;
+    "GR sky harness token bad" [GRSKHbad]=1;
+    "GR sky harness token done" end;
+
+"GRSKH next"
+	A=[GRSKHti]; ? A '< [GRSKHtokn] -> GR sky harness next ok;
+	[GRSKHbad]+; C=0; end;
+    "GR sky harness next ok"
+	C=grskhtok; C+A; C=[C]; [GRSKHti]+; end;
+
+      ( Whole-stream structural preflight.  It runs before META or any D/R/J
+	work, so every malformed corpus yields only the diagnostic STREAM_END. )
+"GRSKH validate stream"
+	[GRSKHvi]=0; [GRSKHvcases]=0;
+    "GR sky harness validate opcode"
+	A=[GRSKHvi]; ? A '>= [GRSKHtokn] -> GR sky harness validate bad;
+	C=grskhtok; C+A; C=[C]; [GRSKHvi]+;
+	A=C; ? A=0 -> GR sky harness validate end; ? A != 1 -> GR sky harness validate bad;
+	A=[GRSKHtokn]; A-[GRSKHvi]; ? A '< GRSKHCASEU -> GR sky harness validate bad;
+	C=grskhtok; C+[GRSKHvi]; [GRSKHtmp]=C;
+	A=[C plus 0]; ? A=0 -> GR sky harness validate bad; [GRSKHid]=A;
+	[GRSKHi]=0;
+    "GR sky harness validate id"
+	A=[GRSKHi]; ? A '>= [GRSKHvcases] -> GR sky harness validate id done;
+	C=grskhids; C+A; A=[C]; ? A=[GRSKHid] -> GR sky harness validate bad;
+	[GRSKHi]+; -> GR sky harness validate id;
+    "GR sky harness validate id done"
+	C=[GRSKHtmp]; A=[C plus 1]; A&0FFFFFF80h; ? A != 0 -> GR sky harness validate bad;
+	A=[C plus 4]; ? A '< 0 -> GR sky harness validate bad; ? A '> 1 -> GR sky harness validate bad;
+	A=[C plus 5]; ? A '< 0 -> GR sky harness validate bad; ? A '> 1 -> GR sky harness validate bad;
+	A=[C plus 1]; A&2; ? A=0 -> GR sky harness validate palette ok; A=[C plus 1]; A&GRSKHFPALUNDEF; ? A != 0 -> GR sky harness validate bad;
+    "GR sky harness validate palette ok"
+	A=[C plus 23]; ? A '< 0 -> GR sky harness validate bad; ? A '> 1 -> GR sky harness validate bad;
+	A=[C plus 1]; A&GRSKHFTAIL; ? A=0 -> GR sky harness validate tail ok; A=[C plus 23]; ? A != 1 -> GR sky harness validate bad;
+    "GR sky harness validate tail ok"
+	A=[C plus 27]; ? A '< 0 -> GR sky harness validate bad; ? A '> OMBYTES -> GR sky harness validate bad;
+	A=[C plus 1]; A&GRSKHFGPAGE; ? A=0 -> GR sky harness validate replay ok;
+	A=[C plus 27]; ? A != OMBYTES -> GR sky harness validate bad;
+	=> GRSKH replay check; A=[GRSKHreplayok]; ? A=0 -> GR sky harness validate bad;
+    "GR sky harness validate replay ok"
+	A=grskhids; A+[GRSKHvcases]; [A]=[GRSKHid]; [GRSKHvcases]+;
+	[GRSKHvi]+GRSKHCASEU; -> GR sky harness validate opcode;
+    "GR sky harness validate end"
+	A=[GRSKHvi]; ? A != [GRSKHtokn] -> GR sky harness validate bad; end;
+    "GR sky harness validate bad" [GRSKHbad]=1; end;
+
+( ==================================================================== )
+( one 29-unit case                                                      )
+( ==================================================================== )
+
+"GRSKH do case"
+	[GRSKHi]=0;
+    "GR sky harness read case"
+	=> GRSKH next; A=[GRSKHbad]; ? A != 0 -> GR sky harness finish;
+	A=grskhcase; A+[GRSKHi]; [A]=C;
+	[GRSKHi]+; A=[GRSKHi]; ? A '< GRSKHCASEU -> GR sky harness read case;
+	[GRSKHid]=[grskhcase plus 0]; [GRSKHflags]=[grskhcase plus 1];
+	A=[GRSKHid]; ? A=0 -> GR sky harness case bad;
+	[GRSKHi]=0;
+    "GR sky harness id unique"
+	A=[GRSKHi]; ? A '>= [GRSKHcases] -> GR sky harness id unique done;
+	C=grskhids; C+A; A=[C]; ? A=[GRSKHid] -> GR sky harness case bad;
+	[GRSKHi]+; -> GR sky harness id unique;
+    "GR sky harness id unique done"
+	A=[GRSKHflags]; A&0FFFFFF80h; ? A != 0 -> GR sky harness case bad;
+	A=[grskhcase plus 4]; ? A '< 0 -> GR sky harness case bad; ? A '> 1 -> GR sky harness case bad;
+	A=[grskhcase plus 5]; ? A '< 0 -> GR sky harness case bad; ? A '> 1 -> GR sky harness case bad;
+	A=[GRSKHflags]; A&2; ? A=0 -> GR sky harness pal flags ok;
+	A=[GRSKHflags]; A&GRSKHFPALUNDEF; ? A != 0 -> GR sky harness case bad;
+    "GR sky harness pal flags ok"
+	A=[grskhcase plus 23]; ? A '< 0 -> GR sky harness case bad; ? A '> 1 -> GR sky harness case bad;
+	A=[GRSKHflags]; A&GRSKHFTAIL; ? A=0 -> GR sky harness tail flags ok;
+	A=[grskhcase plus 23]; ? A != 1 -> GR sky harness case bad;
+    "GR sky harness tail flags ok"
+	A=[grskhcase plus 27]; ? A '< 0 -> GR sky harness case bad; ? A '> OMBYTES -> GR sky harness case bad;
+	A=[GRSKHflags]; A&GRSKHFGPAGE; ? A=0 -> GR sky harness replay validated;
+	A=[grskhcase plus 27]; ? A != OMBYTES -> GR sky harness case bad;
+	=> GRSKH replay check; A=[GRSKHreplayok]; ? A=0 -> GR sky harness case bad;
+    "GR sky harness replay validated"
+	A=grskhids; A+[GRSKHcases]; [A]=[GRSKHid];
+	=> GRSKH meta;
+	=> GRSKH bind;
+	=> GRSKH lay buffers;
+	=> SU ledger reset;
+	[GRSKHqbefore]=[GRSKquadwords];
+
+	=> GRSK entry; [GRSKHphase]=0; => GRSKH emit ledger;
+	=> GRSK seed streams; [GRSKHphase]=1; => GRSKH emit ledger;
+	=> GRSK colours painter; [GRSKHphase]=2; => GRSKH emit ledger;
+	=> GRSK painter; [GRSKHphase]=3; => GRSKH emit ledger;
+	=> GRSKH pre horizon;
+	=> GRSK palette; [GRSKHphase]=4; => GRSKH emit ledger;
+	=> GRSK thermo; [GRSKHphase]=5; => GRSKH emit ledger;
+	=> GRSK horizon; [GRSKHphase]=6; => GRSKH emit ledger;
+	[GRSKHphase]=7; => GRSKH emit ledger;
+	=> GRSKH final sbg;
+	=> GRSKH palette;
+	=> GRSKH emit scalars;
+	=> GRSKH write ledgers;
+	=> GRSKH emit guards;
+	A=[GRSKHflags]; A&GRSKHFGPAGE; ? A=0 -> GR sky harness no pages;
+	=> GRSKH replay page;
+	=> GRSKH join page;
+    "GR sky harness no pages"
+	[GRSKHkind]=GRSKHKEND; [GRSKHw]=0; [GRSKHh]=0; [GRSKHbodyu]=0; [GRSKHbodyb]=0; [GRSKHphase]=0; [GRSKHbp]=0; => GRSKH rec;
+	[GRSKHcases]+; -> GR sky harness case loop;
+	"GR sky harness case bad" [GRSKHbad]+; -> GR sky harness finish;
+
+"GRSKH bind"
+	[GRSKptype]=[grskhcase plus 2]; [GRSKsctype]=[grskhcase plus 3];
+	[GRSKatmosphere]=[grskhcase plus 4]; [GRSKnightzone]=[grskhcase plus 5];
+	[GRSKtarget]=[grskhcase plus 6]; [GRSKowner]=[grskhcase plus 7];
+	[GRSKstarclass]=[grskhcase plus 8]; [GRSKseed]=[grskhcase plus 9];
+	[GRSKalbedo]=[grskhcase plus 10]; [GRSKrainy]=[grskhcase plus 11];
+	[GRSKbrightness]=[grskhcase plus 12]; [GRSKsrf]=[grskhcase plus 13];
+	[GRSKsgf]=[grskhcase plus 14]; [GRSKsbf]=[grskhcase plus 15];
+	[GRSKgrf]=[grskhcase plus 16]; [GRSKggf]=[grskhcase plus 17];
+	[GRSKgbf]=[grskhcase plus 18]; [GRSKdsd1]=[grskhcase plus 19];
+	[GRSKexposure]=[grskhcase plus 20]; [GRSKlat]=[grskhcase plus 21];
+	[GRSKquadwords]=[grskhcase plus 22];
+	end;
+
+"GRSKH lay buffers"
+	( logical map fill )
+	A=nw; A+RSBG; B=GRSKSTB; C=[GRSKbrightness]; C&255;
+    "GR sky harness fill sbg" [A]=C; A+; B ^ GR sky harness fill sbg;
+	( deterministic 64-byte readable tail )
+	[GRSKHi]=0; A=nw; A+RSBG; A+GRSKSTB; [GRSKHtmp]=A;
+    "GR sky harness tail"
+	C=0; A=[grskhcase plus 23]; ? A=0 -> GR sky harness tail store;
+	A=[GRSKHi]; C=A; C '* 73; D=A; D '* A; D>1; C+D; C+[grskhcase plus 24]; C&255;
+    "GR sky harness tail store" A=[GRSKHtmp]; A+[GRSKHi]; [A]=C;
+	[GRSKHi]+; A=[GRSKHi]; ? A '< GRSKHTAILB -> GR sky harness tail;
+	( sixteen deterministic outer-canary bytes, then their FNV witness )
+	A=[GRSKHtmp]; A+GRSKHTAILB;
+	[A plus 0]=0D3h; [A plus 1]=071h; [A plus 2]=04Ah; [A plus 3]=0C9h;
+	[A plus 4]=026h; [A plus 5]=08Eh; [A plus 6]=05Bh; [A plus 7]=0F0h;
+	[A plus 8]=019h; [A plus 9]=0A7h; [A plus 10]=063h; [A plus 11]=0BCh;
+	[A plus 12]=040h; [A plus 13]=02Dh; [A plus 14]=0E1h; [A plus 15]=095h;
+	=> GRSKH canary hash; [GRSKHouterbefore]=[GRSKHv];
+	=> GRSKH tail hash; [GRSKHtailbefore]=[GRSKHv];
+	A=srfpal6; B=768; C=0;
+    "GR sky harness clear pal" [A]=C; A+; B ^ GR sky harness clear pal;
+	end;
+
+( ==================================================================== )
+( SKY1 record writer                                                    )
+( ==================================================================== )
+
+"GRSKH dump reset" [GRSKHdp]=grskhdump; [GRSKHdc]=0; [GRSKHcases]=0; [GRSKHrecords]=0; [GRSKHbad]=0; end;
+
+"GRSKH rec"
+	A=[GRSKHdp];
+	[A plus 0]=GRSKHMAGIC; [A plus 1]=GRSKHVER; [A plus 2]=[GRSKHkind];
+	[A plus 3]=[GRSKHw]; [A plus 4]=[GRSKHh]; [A plus 5]=[GRSKHbodyu];
+	[A plus 6]=[GRSKHid]; [A plus 7]=[GRSKHphase]; [A plus 8]=[GRSKHbodyb];
+	[A plus 9]=[GRSKHseq]; [A plus 10]=[GRSKHflags];
+	[A plus 11]=0; [A plus 12]=0; [A plus 13]=0; [A plus 14]=0; [A plus 15]=0;
+	A+GRSKHHDR; D=[GRSKHbp]; B=[GRSKHbodyu]; ? B=0 -> GR sky harness rec done;
+    "GR sky harness rec body" C=[D]; [A]=C; A+; D+; B ^ GR sky harness rec body;
+    "GR sky harness rec done"
+	C=[GRSKHbodyu]; C+GRSKHHDR; [GRSKHdp]+C; [GRSKHdc]+C; [GRSKHrecords]+; [GRSKHseq]+;
+	end;
+
+"GRSKH meta"
+	[GRSKHseq]=0; [GRSKHkind]=GRSKHKMETA; [GRSKHw]=28; [GRSKHh]=1; [GRSKHbodyu]=28; [GRSKHbodyb]=112; [GRSKHphase]=0; [GRSKHbp]=grskhcase; => GRSKH rec; end;
+
+"GRSKH pack sbg"
+	A=nw; A+RSBG; D=grskhpack; B=GRSKHMAPU;
+    "GR sky harness pack sbg loop"
+	C=[A plus 0]; C&255; E=C; C=[A plus 1]; C&255; C<8; E|C; C=[A plus 2]; C&255; C<16; E|C; C=[A plus 3]; C&255; C<24; E|C; [D]=E; A+4; D+; B ^ GR sky harness pack sbg loop; end;
+
+"GRSKH pack palette"
+	A=srfpal6; D=grskhpack; B=GRSKHPALU;
+    "GR sky harness pack pal loop"
+	C=[A plus 0]; C&255; E=C; C=[A plus 1]; C&255; C<8; E|C; C=[A plus 2]; C&255; C<16; E|C; C=[A plus 3]; C&255; C<24; E|C; [D]=E; A+4; D+; B ^ GR sky harness pack pal loop; end;
+
+"GRSKH pre horizon" => GRSKH pack sbg; [GRSKHkind]=GRSKHKPRE; [GRSKHw]=360; [GRSKHh]=180; [GRSKHbodyu]=GRSKHMAPU; [GRSKHbodyb]=GRSKSTB; [GRSKHphase]=0; [GRSKHbp]=grskhpack; => GRSKH rec; end;
+"GRSKH final sbg" => GRSKH pack sbg; [GRSKHkind]=GRSKHKFINAL; [GRSKHw]=360; [GRSKHh]=180; [GRSKHbodyu]=GRSKHMAPU; [GRSKHbodyb]=GRSKSTB; [GRSKHphase]=0; [GRSKHbp]=grskhpack; => GRSKH rec; end;
+
+"GRSKH palette"
+	A=[GRSKHflags]; A&GRSKHFPALUNDEF; ? A=0 -> GR sky harness pal pack;
+	A=grskhpack; B=GRSKHPALU; C=0; "GR sky harness zero packed pal" [A]=C; A+; B ^ GR sky harness zero packed pal; -> GR sky harness pal emit;
+    "GR sky harness pal pack" => GRSKH pack palette;
+    "GR sky harness pal emit" [GRSKHkind]=GRSKHKPAL; [GRSKHw]=256; [GRSKHh]=1; [GRSKHbodyu]=GRSKHPALU; [GRSKHbodyb]=768; [GRSKHphase]=0; [GRSKHbp]=grskhpack; => GRSKH rec; end;
+
+"GRSKH hash sbg"
+	[SUhx]=2166136261; [GRSKHi]=0;
+    "GR sky harness hash sbg loop"
+	A=nw; A+RSBG; A+[GRSKHi]; C=[A]; C&255; D=[SUhx]; D#C; D '* 16777619; [SUhx]=D; [GRSKHi]+; A=[GRSKHi]; ? A '< GRSKSTB -> GR sky harness hash sbg loop;
+	[GRSKHv]=[SUhx]; end;
+
+"GRSKH emit ledger"
+	( SBG changes only at ENTRY fill, PAINTER and HORIZON.  Reusing the
+	  witnessed hash for seed/colour/palette/thermo/done preserves the
+	  exact ledger while avoiding five redundant 64,800-byte scans. )
+	A=[GRSKHphase]; ? A=0 -> GR sky harness ledger rehash;
+	? A=3 -> GR sky harness ledger rehash;
+	? A=6 -> GR sky harness ledger rehash;
+	[GRSKHv]=[GRSKHledgerhash]; -> GR sky harness ledger store;
+    "GR sky harness ledger rehash"
+	=> GRSKH hash sbg; [GRSKHledgerhash]=[GRSKHv];
+    "GR sky harness ledger store"
+	A=[GRSKHphase]; A '* 8; A+grskhledgers;
+	[A plus 0]=[GRSKHphase]; [A plus 1]=[SUbnc]; [A plus 2]=[SUfn]; [A plus 3]=[SUbh]; [A plus 4]=[SUfh]; [A plus 5]=[brtlseed]; [A plus 6]=[SUfseed]; [A plus 7]=[GRSKHv];
+	end;
+
+"GRSKH write ledgers"
+	[GRSKHphase]=0;
+    "GR sky harness write ledger one"
+	A=[GRSKHphase]; A '* 8; A+grskhledgers; [GRSKHbp]=A;
+	[GRSKHkind]=GRSKHKLED; [GRSKHw]=8; [GRSKHh]=1; [GRSKHbodyu]=8; [GRSKHbodyb]=32; => GRSKH rec;
+	[GRSKHphase]+; A=[GRSKHphase]; ? A '< 8 -> GR sky harness write ledger one;
+	[GRSKHphase]=0; end;
+
+"GRSKH emit scalars"
+	A=grskhscalar; [A plus 0]=[GRSKbrightness]; [A plus 1]=[GRSKpressure]; [A plus 2]=[GRSKtemp]; [A plus 3]=[GRSKbasepressure]; [A plus 4]=[GRSKbasetemp]; [A plus 5]=[brtlseed]; [A plus 6]=[SUfseed]; [A plus 7]=[SUbnc]; [A plus 8]=[SUfn]; [A plus 9]=[SUbh]; [A plus 10]=[SUfh]; [A plus 11]=[GRSKquadwords];
+	[GRSKHkind]=GRSKHKSCAL; [GRSKHw]=12; [GRSKHh]=1; [GRSKHbodyu]=12; [GRSKHbodyb]=48; [GRSKHphase]=0; [GRSKHbp]=grskhscalar; => GRSKH rec; end;
+
+"GRSKH tail hash"
+	[SUhx]=2166136261; [GRSKHi]=0;
+    "GR sky harness hash tail loop"
+	A=nw; A+RSBG; A+GRSKSTB; A+[GRSKHi]; C=[A]; C&255; D=[SUhx]; D#C; D '* 16777619; [SUhx]=D; [GRSKHi]+; A=[GRSKHi]; ? A '< GRSKHTAILB -> GR sky harness hash tail loop;
+	[GRSKHv]=[SUhx]; end;
+
+"GRSKH canary hash"
+	[SUhx]=2166136261; [GRSKHi]=0;
+    "GR sky harness hash canary loop"
+	A=nw; A+RSBG; A+GRSKSTB; A+GRSKHTAILB; A+[GRSKHi]; C=[A]; C&255; D=[SUhx]; D#C; D '* 16777619; [SUhx]=D; [GRSKHi]+; A=[GRSKHi]; ? A '< 16 -> GR sky harness hash canary loop;
+	[GRSKHv]=[SUhx]; end;
+
+"GRSKH emit guards"
+	=> GRSKH tail hash; [GRSKHtailafter]=[GRSKHv]; => GRSKH canary hash; [GRSKHouterafter]=[GRSKHv]; [GRSKHqafter]=[GRSKquadwords];
+	A=grskhguard; [A plus 0]=[GRSKwmin]; [A plus 1]=[GRSKwmax]; [A plus 2]=[GRSKwrites]; [A plus 3]=[GRSKoob]; [A plus 4]=[GRSKHtailbefore]; [A plus 5]=[GRSKHtailafter]; [A plus 6]=[GRSKHouterbefore]; [A plus 7]=[GRSKHouterafter]; [A plus 8]=[GRSKHqbefore]; [A plus 9]=[GRSKHqafter];
+	[GRSKHkind]=GRSKHKGUARD; [GRSKHw]=10; [GRSKHh]=1; [GRSKHbodyu]=10; [GRSKHbodyb]=40; [GRSKHphase]=0; [GRSKHbp]=grskhguard; => GRSKH rec; end;
+
+( ==================================================================== )
+( R and J use the delivered SP background only                          )
+( ==================================================================== )
+
+"GRSKH clear adapted" A=nw; A+RADPT; B=64000; C=0; "GR sky harness clear adapted loop" [A]=C; A+; B ^ GR sky harness clear adapted loop; end;
+
+"GRSKH pack adapted"
+	A=nw; A+RADPT; D=grskhpack; B=GRSKHPAGEU;
+    "GR sky harness pack adapted loop"
+	C=[A plus 0]; C&255; E=C; C=[A plus 1]; C&255; C<8; E|C; C=[A plus 2]; C&255; C<16; E|C; C=[A plus 3]; C&255; C<24; E|C; [D]=E; A+4; D+; B ^ GR sky harness pack adapted loop; end;
+
+"GRSKH compose"
+	( SP background's BGbytes is the offset-table traversal bound.  Page-row
+	  preflight requires the complete delivered offsets.map byte count. )
+	[BGstart]=[grskhcase plus 25]; [BGshift]=[grskhcase plus 26]; [BGbytes]=[grskhcase plus 27]; [BGtabreg]=RGOFF; [BGsrcreg]=RGSBG; [BGdstreg]=RGADP; => SP background; end;
+
+"GRSKH replay page"
+	( exact replay length was validated before META, so malformed input cannot
+	  leave a plausible partial case in the framed stream )
+	=> GRSKH replay unpack;
+	=> GRSKH clear adapted; => GRSKH compose; => GRSKH pack adapted;
+	[GRSKHkind]=GRSKHKREPLAY; [GRSKHw]=320; [GRSKHh]=200; [GRSKHbodyu]=GRSKHPAGEU; [GRSKHbodyb]=64000; [GRSKHphase]=0; [GRSKHbp]=grskhpack; => GRSKH rec; end;
+
+"GRSKH join page"
+	( restore live FINAL_SBG by rerunning D independently from the case state )
+	=> GRSKH bind; => GRSKH lay buffers; => SU ledger reset; => GRSK create; => GRSK horizon;
+	=> GRSKH clear adapted; => GRSKH compose; => GRSKH pack adapted;
+	[GRSKHkind]=GRSKHKJOIN; [GRSKHw]=320; [GRSKHh]=200; [GRSKHbodyu]=GRSKHPAGEU; [GRSKHbodyb]=64000; [GRSKHphase]=0; [GRSKHbp]=grskhpack; => GRSKH rec; end;
+
+"GRSKH replay check"
+	[GRSKHreplayok]=0; [File Name]=GRSKHreplayname; [File Position]=0; [File Command]=READ; [Block Pointer]=grskhreplay; [Block Size]=64801; isocall;
+	A=[Block Size]; ? A != GRSKSTB -> GR sky harness replay done;
+	[GRSKHreplayok]=1;
+    "GR sky harness replay done" end;
+
+"GRSKH replay unpack"
+	A=grskhreplay; D=nw; D+RSBG; B=GRSKHMAPU;
+    "GR sky harness unpack replay"
+	C=[A]; E=C; E&255; [D]=E; D+; E=C; E>8; E&255; [D]=E; D+; E=C; E>16; E&255; [D]=E; D+; C>24; C&255; [D]=C; D+; A+; B ^ GR sky harness unpack replay;
+	end;
+
+"GRSKH stream end"
+	A=grskhstream; [A plus 0]=[GRSKHcases]; [A plus 1]=[GRSKHbad]; [A plus 2]=[GRSKHrecords]; [A plus 3]=0;
+	[GRSKHid]=0; [GRSKHflags]=0; [GRSKHseq]=0; [GRSKHkind]=GRSKHKSTREAM; [GRSKHw]=4; [GRSKHh]=1; [GRSKHbodyu]=4; [GRSKHbodyb]=16; [GRSKHphase]=0; [GRSKHbp]=grskhstream; => GRSKH rec; end;
+
+"GRSKH write"
+	[File Name]=GRSKHoutname; [File Position]=0; [File Command]=WRITE; [Block Pointer]=grskhdump; [Block Size]=[GRSKHdc]; [Block Size]*BYTESPERUNIT; isocall;
+	[File Name]=GRSKHoutname; [File Position]=0; [File Command]=SET SIZE; [File Size]=[GRSKHdc]; [File Size]*BYTESPERUNIT; isocall; end;

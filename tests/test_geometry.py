@@ -50,13 +50,10 @@ WHAT ELSE IS PROTECTED
   Against the extended 210-capture set the same sabotage loses constraints.
   Both ports are rebuilt with the real compiler and re-run here.
 
-  SECTION 8 records what is STILL OPEN, and fails if the tree quietly stops
-  matching the record: nsrun still does not validate its NSIN payload length
-  against its own header. That is probed BEHAVIOURALLY - the port is fed a
-  file whose header claims eight records while the payload holds five, and
-  it emits eight, generating the last three from zeroed coordinates. The
-  check is an XFAIL: if someone fixes the defect, this test fails and tells
-  you to update docs-notes/OPENITEMS.md.
+  SECTION 8 records the NSIN payload-length guard. It is probed
+  BEHAVIOURALLY: an intact eight-record input emits eight, while a file whose
+  header claims eight records but whose payload holds five is refused without
+  leaving an nstopo output behind.
 
 NOTHING IS GRADED AGAINST A STORED EXPECTATION. The corpus is re-swept from
 the galaxy hash and STARMAP.BIN every run, gcc rebuilds the C reference, the
@@ -761,12 +758,11 @@ def section_cost(c, variants, refsrc):
     if os.path.exists(topo):
         with open(topo, encoding="utf-8", errors="replace") as fh:
             prog = fh.read().split('"programme"', 1)[1]
-        c.eq((len(re.findall(r"SITE \d+", prog)),
+        c.eq((len(re.findall(r"LIVE SITE \d+", prog)),
               prog.count("=> NsDrawOnly"), prog.count("=> NsZDrawOnly")),
-             (11, 5, 6),
-             "and the DELIVERED PORT still discards all eleven: 5 single "
-             "draws + 6 zrandoms = 17. Geometry arriving in the port must "
-             "fail here first")
+             (11, 0, 0),
+             "and the DELIVERED PORT computes all eleven retained geometry "
+             "sites without draw-only shims")
 
 
 # ======================================================================
@@ -856,28 +852,21 @@ def section_bclip(c):
 
 
 # ======================================================================
-# 8. WHAT IS STILL OPEN
+# 8. NSIN INPUT VALIDATION
 # ======================================================================
 
 def section_open(c, harness, quick):
-    """Honest record. An XFAIL here fails when the tree stops matching it.
-
-    The NSIN length gap is probed BEHAVIOURALLY, not by grepping for a
-    comparison: a text search for "does this source validate X" is exactly
-    the kind of check that passes for the wrong reason. The port is built
-    and fed a file whose header claims more records than the payload holds.
-    """
+    """Probe the NSIN length guard behaviourally, not by source grep."""
     nsrun = os.path.join(L.WORK, "nsrun.txt")
     if os.path.exists(nsrun):
         with open(nsrun, encoding="utf-8", errors="replace") as fh:
             txt = fh.read()
         c.ok("[nrfilebytes] = A" in txt,
-             "nsrun still reads the NSIN file size into nrfilebytes - the "
-             "raw material for a length check is there; it surfaces only in "
-             "the failure path's diag block")
+             "nsrun compares the NSIN file size against the header-derived "
+             "payload length")
 
     if quick:
-        c.note("the NSIN-length XFAIL needs a build and is SKIPPED by "
+        c.note("the NSIN-length probe needs a build and is SKIPPED by "
                "--quick. That is not a pass.")
     else:
         try:
@@ -915,22 +904,16 @@ def section_open(c, harness, quick):
         with open(drv.nsin, "wb") as fh:
             fh.write(blob[:16 + 5 * 32])            # header says 8, holds 5
         cut = go()
-        zeroed = (cut is not None and len(cut) == 8
-                  and all(r[0] == 0 and r[1] == 0 and r[2] == 0
-                          for r in cut[5:]))
-        c.ok(zeroed,
-             "XFAIL (recorded OPEN in docs-notes/OPENITEMS.md): fed a file "
-             "whose header claims 8 records while the payload holds 5, the "
-             "port does NOT refuse it - it emits 8 records and generates the "
-             "last three from zeroed coordinates. If this check ever FAILS "
-             "the defect was fixed: update OPENITEMS.md and delete it",
-             "%s records, tail zero-filled: %s"
-             % (None if cut is None else len(cut), zeroed))
-        if cut is not None and full is not None:
-            c.ok(cut[5:] != full[5:],
-                 "...and those three records really are different from the "
-                 "intact run, so the probe measured the truncation and not "
-                 "a stale output file")
+        c.ok(cut is None and not os.path.exists(drv.out),
+             "TRUNCATED: header 8 with payload 5 is refused and leaves no "
+             "nstopo output (including no stale output)",
+             "%s records, output exists: %s"
+             % (None if cut is None else len(cut), os.path.exists(drv.out)))
+        if cut is None and full is not None:
+            c.ok(len(full) == 8 and full[5][0] != 0,
+                 "the refusal is distinct from the intact control's real "
+                 "sixth coordinate",
+                 "intact records: %d, sixth x: %s" % (len(full), full[5][0]))
 
     spec = os.path.join(harness, "geo_spec.py")
     if os.path.exists(spec):
@@ -939,10 +922,9 @@ def section_open(c, harness, quick):
         c.ok("NSIN header claims" in s,
              "the Python reference DOES validate the NSIN payload length "
              "against the header - one of the three readers has the check")
-    c.note("STILL OPEN, with the route recorded in docs-notes/OPENITEMS.md: "
-           "(a) planetary geometry has no 1996 oracle - section 5 shows the "
-           "only candidate readout is structurally blind; (b) nsrun's NSIN "
-           "length validation.")
+    c.note("OPEN ITEMS remain: planetary geometry has no 1996 oracle; the "
+           "nsrun NSIN payload-length guard is settled by the behavioural "
+           "control and truncation probe above.")
 
 
 # ======================================================================
@@ -1052,7 +1034,7 @@ def main():
         section_bclip(c)
 
     print()
-    print("-- 8. STILL OPEN " + "-" * 55)
+    print("-- 8. NSIN INPUT VALIDATION " + "-" * 42)
     section_open(c, harness, quick)
 
     print()

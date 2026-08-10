@@ -1,0 +1,88 @@
+      ( *** Stardrifter soundtrack playback ***
+
+	The original DOS executable is silent.  The Ryan J. Bury manual
+	soundtrack is an authorized completion feature in this port.  It is
+	offline-rendered as headerless stereo S16LE/44100 PCM, which matches
+	the Win32 runtime's native one-unit-per-stereo-frame layout.  Failure
+	to find the asset or initialize audio always leaves the game playable. )
+
+"constants"
+
+	VHAMAXBYTES = 26400000;
+	VHAMAXUNITS = 6600000;
+
+"variables"
+
+	VHAmusicname = { noctis\usmusic.pcm };
+	VHAavailable = 0;
+	VHAplaying = 0;
+	VHAwanted = 1;		( persisted player preference, independent of device state )
+	VHAbytes = 0;
+	VHAunits = 0;
+
+"workspace"
+
+	VHAdata = VHAMAXUNITS;
+
+"programme"
+
+	end;
+
+"VHA init"
+	[VHAavailable] = 0; [VHAplaying] = 0;
+	A = [PCM data Status]; ? A != READY -> VHA init done;
+	A = [PCM data Channels]; ? A != 2 -> VHA init done;
+	A = [PCM data Bits Per Sample]; ? A != 16 -> VHA init done;
+	A = [PCM data Samples Per Sec]; ? A != 44100 -> VHA init done;
+
+	[File Name] = VHAmusicname; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHA init done;
+	A = [File Size]; ? A <= 0 -> VHA init done;
+	? A > VHAMAXBYTES -> VHA init done;
+	B = A; B & 3; ? B != 0 -> VHA init done;
+	[VHAbytes] = A; A > 2; [VHAunits] = A;
+
+	[File Name] = VHAmusicname; [File Position] = 0;
+	[File Command] = READ; [Block Pointer] = VHAdata;
+	[Block Size] = [VHAbytes]; isocall;
+	A = [Block Size]; ? A != [VHAbytes] -> VHA init done;
+
+	( Loading proves the asset contract.  Playback is deliberately deferred
+	  until the checkpoint has supplied the user's preference, avoiding an
+	  audible startup burst for saves where music is disabled. )
+	[VHAavailable] = 1;
+    "VHA init done"
+	end;
+
+"VHA apply"
+	A = [VHAavailable]; ? A = 0 -> VHA apply done;
+	A = [VHAwanted]; ? A != 0 -> VHA apply on;
+	A = [VHAplaying]; ? A = 0 -> VHA apply done;
+	[PCM data Command] = STOP; isocall;
+	[VHAplaying] = 0; -> VHA apply done;
+    "VHA apply on"
+	A = [VHAplaying]; ? A != 0 -> VHA apply done;
+	[PCM data Origin] = VHAdata; [PCM data Size] = [VHAunits];
+	[PCM data Command] = PLAY CONTINUOUSLY; isocall;
+	? failed -> VHA apply failed;
+	[VHAplaying] = 1; -> VHA apply done;
+    "VHA apply failed"
+	[VHAavailable] = 0; [VHAplaying] = 0;
+    "VHA apply done"
+	end;
+
+"VHA toggle"
+	A = [VHAavailable]; ? A = 0 -> VHA toggle done;
+	A = [VHAwanted]; ? A = 0 -> VHA toggle on;
+	[VHAwanted] = 0; => VHA apply; -> VHA toggle done;
+    "VHA toggle on"
+	[VHAwanted] = 1; => VHA apply;
+    "VHA toggle done"
+	end;
+
+"VHA stop"
+	A = [VHAplaying]; ? A = 0 -> VHA stop done;
+	[PCM data Command] = STOP; isocall;
+	[VHAplaying] = 0;
+    "VHA stop done"
+	end;

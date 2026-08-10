@@ -172,17 +172,15 @@ def main():
               encoding="utf-8", errors="replace") as fh:
         topo = fh.read()
     prog = topo.split('"programme"', 1)[1]
-    nsite = len(re.findall(r"SITE \d+", prog))
+    nsite = len(re.findall(r"LIVE SITE \d+", prog))
     ndraw = prog.count("=> NsDrawOnly")
     nzdraw = prog.count("=> NsZDrawOnly")
-    c.eq((nsite, ndraw, nzdraw), (11, 5, 6),
-         "the discarded-value site registry is still exactly 11 sites, "
-         "5 single draws and 6 zrandoms = 17 draws. A twelfth site, or one "
-         "of these computed for real, is geometry arriving - which is a "
-         "later wave and must fail here first")
-    c.eq(prog.count("=> NsZRandom"), 4,
-         "phase F still has exactly four zrandom(100) sites: two per planet "
-         "and two per moon")
+    c.eq((nsite, ndraw, nzdraw), (11, 0, 0),
+         "the live-value site registry is exactly 11 sites and no retained "
+         "geometry draw is routed through a draw-only shim")
+    c.eq(prog.count("=> NsZRandom"), 10,
+         "six phase-A zrandom sites plus phase F's four zrandom(100) sites "
+         "remain in source order")
 
     # ==================================== 3. BUILD AND RUN THE PORT
     ok, msg = good.build()
