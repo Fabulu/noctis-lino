@@ -61,7 +61,7 @@ the waves below and must not be re-derived from memory.
    its single compiled body -- it does not vary per call site. Unknown 1 is a
    macro and must be read per call site.
 3. **`seedval` call sites confirmed** (`NOCTIS-0.CPP:5380-5411`): products of
-   4–6 mixed float/double factors (`1000000 * nearstar_ray * type * orient`,
+   4-6 mixed float/double factors (`1000000 * nearstar_ray * type * orient`,
    `2000000 * n * orb_seed * orb_tilt * orb_ecc * ...`), passed as `double`,
    then `fast_srand (seedval + 4112)` / `fast_srand (seedval * 10)` inside
    `surface()` (`:4784`, `:4811`). `global_surface_seed` confirmed at
@@ -333,7 +333,7 @@ implementers split.
 - **Size:** impl A = lino library; impl B = oracles + vectors + the
   NOCTIS.EXE constant extraction. Small, fast wave.
 
-### Wave 2 -- Binary archaeology: run experiments E1 (and E2 step 0–1 if DOSBox-X gets installed)
+### Wave 2 -- Binary archaeology: run experiments E1 (and E2 step 0-1 if DOSBox-X gets installed)
 - **Goal:** settle unknowns 1 and 2; transcribe the x87 schedules at every
   seed-feeding expression; confirm `__ftol` semantics; capture DL.EXE golden
   listings.
@@ -606,5 +606,5 @@ its absence degrades three waves' oracles.
   choice. Claiming fidelity to the pristine 2003 build everywhere would be
   unsupported.
 - Whole-game feel (pacing under exclusive mode, input latency over hours) --
-  measured components all pass; the integrated soak happens in Waves 8–9 and
+  measured components all pass; the integrated soak happens in Waves 8-9 and
   no earlier evidence fully de-risks it.

@@ -131,7 +131,7 @@ truncated again to 16 bits, and only then does `random` see it.
 
 Twelve call sites in the image push a `__ftol` result into `random` or
 `zrandom`, all of them the low half. They are the planet and moon generation
-sites at NOCTIS-0.CPP lines 4089–4094 and 4195–4199 (plus one at 132098).
+sites at NOCTIS-0.CPP lines 4089-4094 and 4195-4199 (plus one at 132098).
 No float reaches either function by any other route.
 
 **The wrap is real and load-bearing, not theoretical.** At lines 4090/4091 the
@@ -197,10 +197,10 @@ Traced through every `zrandom` use in NOCTIS-0.CPP (4090, 4091, 4094, 4195,
   never on a `zrandom` result. Planet count is drawn before any `zrandom`.
   Planet types and counts would have survived; geometry would not.
 * Planet tilt and orbital tilt (4090/4091) would be pure sign flips.
-* Every planet and moon radius and orbit radius (4307–4315, 4330–4337) would
+* Every planet and moon radius and orbit radius (4307-4315, 4330-4337) would
   shift, and `key_radius` accumulates, so the shift cascades down the system.
 * **Not** a pure sign flip for moons: line 4195 puts the result INTO
-  `nearstar_p_orb_seed[q]`, which is then the *argument* of 4196–4198, so those
+  `nearstar_p_orb_seed[q]`, which is then the *argument* of 4196-4198, so those
   bodies would get entirely different values rather than negated ones.
 * **Not affected at all:** planet orbital eccentricity at 4092, because the
   author wrote `fabs()` around the tilt, absorbing the sign inside the

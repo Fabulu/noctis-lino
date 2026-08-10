@@ -175,6 +175,31 @@ and the ship camera/projection cache is synchronized with the visible camera
 state. The initial production frame and subsequent movement retain the complete
 hull instead of alternating between incomplete render states.
 
+### Spatial wall-computer restoration
+
+The first integrated port drew three right-wall computer faces but activated
+GOES through an unrelated full-screen shortcut. A source-equivalence pass found
+the original `active_screen` rule in `NOCTIS.CPP`: x greater than 2,580, z from
+-1,560 through -3,930 in three 810-unit stations, while looking toward the wall
+between -135 and -45 degrees. The production game now uses that geometry,
+illuminates the matching selector below each face, and lets Enter focus physical
+GOES at station zero. G and the GAME menu retain the large accessible console.
+
+A targeted window smoke submitted `NEXT` through the physical station and
+received `VIMANA TARGET SET`. A readable compact prompt was then integrated on
+the physical first face and temporary HUD rows were suppressed while any wall
+station is selected. The third station now starts local approach, opens the
+live landing-coordinate selector over the orbital display at STANDBY, and
+deploys the capsule with Enter. The second GOES output face remains unfinished.
+
+The same session reproduced the reported bright, stair-stepped surface border,
+first from a forced checkpoint and then through a valid physical-console
+landing. The renderer was correct: `TDPOLYGS.H` deliberately clips the world to
+x=5..311 and y=10..190. The port incorrectly prefilled the surrounding guard
+band with `sky_brightness`, which maps near white on this surface palette.
+Restoring a cleared index-zero guard band removed both the white halo and its
+ragged edge without recoloring palette index 255 or changing polygon fill.
+
 ### Lift suction, wobble, and failure to release
 
 Symptom: pressing Up could pull the player toward the lift center from outside

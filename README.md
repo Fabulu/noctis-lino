@@ -11,10 +11,12 @@ finish what the language was made for.
 
 ## Play the game
 
-The current Windows build is a playable first-person port: walk through the
-Stardrifter, use its GOES console, fly to generated star systems, approach and
-land on planets, explore their surfaces, return in the capsule, and save your
-journey. It opens in a practical 2x window while retaining Noctis's authentic
+The current Windows build is a substantial but incomplete playable port. You
+can walk through the Stardrifter, target generated star systems, approach
+planets, enter the landing and surface systems, return in the capsule, and save
+your journey. The complete player-facing route and presentation are still being
+finished and should not yet be mistaken for a final game. It opens in a
+practical 2x window while retaining Noctis's authentic
 320x200 software framebuffer; iGUI's size and full-view controls can resize it
 without changing simulation or rendering coordinates. From PowerShell in the
 repository root, run:
@@ -33,9 +35,8 @@ the game automatically when the executable is absent; pass `-Build` to force a
 fresh production build. Clean saves also retain the current validated window
 dimensions, so a resized game reopens at the same size.
 
-Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E starts the Stardrifter roof lift from inside the ship, and walking into the roof cupola opening starts the automatic return. G or Enter opens GOES,
-`NEXT` selects and flies toward a nearby generated star, L approaches and opens
-the landing-site selector at standby, arrows choose coordinates, L/Enter descends,
+Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E starts the Stardrifter roof lift from inside the ship, and walking into the roof cupola opening starts the automatic return. Face the first computer on the Stardrifter's right wall and press Enter to type directly into GOES; G opens its large accessible view from anywhere in the ship. At the third wall panel, Enter starts planetary approach and, after FCS reports STANDBY, opens the physical landing-site selector.
+`NEXT` selects and flies toward a nearby generated star, L remains the global approach fallback, arrows choose landing coordinates, L/Enter descends,
 R returns from the capsule, F5 opts into 60 FPS presentation (the original
 18.2 FPS mode is the default), F6/F7 save and load, F8 toggles music, `?` or F9 displays
 the complete in-game control card, and Esc saves and quits. A valid checkpoint
@@ -66,9 +67,9 @@ step; the exact resulting `work\vhgame.exe` is versioned for reproducible CI/CD.
 
 ## Screenshots
 
-| Stardrifter interior | Planetary surface |
-|---|---|
-| ![Inside the Stardrifter](docs/screenshots/stardrifter-interior.png) | ![Exploring a generated planetary surface](docs/screenshots/planet-surface.png) |
+| Stardrifter interior | Planetary console | Planetary surface |
+|---|---|---|
+| ![Inside the Stardrifter](screenshots/stardrifter-interior.png) | ![Selecting a landing site on the physical planetary console](screenshots/planetary-console.png) | ![The capsule on a generated planetary surface](screenshots/planet-surface.png) |
 
 ## Project documentation
 
@@ -241,6 +242,6 @@ The upstream L.in.oleum compiler has its own WPL notice in [`wpl.htm`](wpl.htm).
 notices remain scoped to their respective material; no single licence is
 claimed for unrelated third-party components.
 
-Noctis IV is Copyright © 1996–2002 Alessandro Ghignola. Portions of the manual
-and soundtrack are Copyright © 2001–2002 Ryan J. Bury. See the licence files
+Noctis IV is Copyright © 1996-2002 Alessandro Ghignola. Portions of the manual
+and soundtrack are Copyright © 2001-2002 Ryan J. Bury. See the licence files
 before copying or redistributing the project or a packaged build.

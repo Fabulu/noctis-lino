@@ -55,7 +55,7 @@ count and never a distance.
 | 53 bits (any IEEE-double engine) | 2239 / 4113 = 54.4% |
 | 24 bits (L.in.oleum's own float instructions) | **4 / 4113 = 0.10%** |
 | 64 bits but RC=chop | 2048 / 4113 |
-| 64 bits with ONE intermediate stored to a double | 3043–3063 / 4113 |
+| 64 bits with ONE intermediate stored to a double | 3043-3063 / 4113 |
 | 64 bits with a store after every operation | 2239 / 4113 |
 | the game's own `isthere()` lookup formula | **0 / 4113** |
 

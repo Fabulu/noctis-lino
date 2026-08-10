@@ -1,9 +1,10 @@
-# Noctis IV L.in.oleum port -- 0.1.0 beta 2
+# Noctis IV L.in.oleum port -- 0.1.0 beta 3
 
-This beta supersedes beta 1 with the corrected Stardrifter roof exit, visible
-cupola transition, source-ordered lift momentum, and matching view/movement
-heading. The complete core journey is playable, while extended multi-hour
-hardening and some historical screens remain future work.
+This beta restores the source-positioned Stardrifter wall computers, makes the
+physical planetary station usable through landing, corrects the surface guard
+frame, and retains the source-equivalent cupola and lift behavior confirmed in
+beta 2. It is an intermediate milestone toward uncompromised Noctis IV+ feature
+parity, not a claim that parity is complete.
 
 ## What is playable
 
@@ -31,11 +32,17 @@ hardening and some historical screens remain future work.
   either presentation mode.
 - The Stardrifter is visible from the initial frame and remains stable during
   movement.
-- The lift activates with E only while centered in its aperture. Up remains a
-  look control; walking into the roof opening starts the original automatic
-  return, and pressing E elsewhere gives visible guidance. The ascent retains
-  the source's forward momentum through the final roof frame, carries the
-  player clear, and uses the same heading for the view and ride motion.
+- E directly starts the source lift event while inside the Stardrifter. Up
+  remains a look control, and walking into the roof cupola opening starts the
+  original automatic return. The calibrated ascent retains the source's
+  forward momentum through the final roof frame, carries the player clear, and
+  uses the same heading for the view and ride motion.
+- Facing the first right-wall computer and pressing Enter focuses physical
+  GOES. The third station starts planetary approach and, after FCS reaches
+  STANDBY, opens the physical longitude/latitude selector.
+- Planetary views retain the original dark 306x180 guard area. The incorrect
+  bright, jagged border is gone without changing the polygon sentinel or
+  recoloring legitimate bright effects.
 - Version 11 saves retain settled capsule coordinates, and older landed saves
   migrate without stranding the player away from the pod.
 
@@ -48,10 +55,10 @@ the mutable `STARMAP.BIN`, and diagnostics in the extracted game folder.
 Useful controls:
 
 - W/A/S/D: move; right-drag or arrows: look
-- E while centered in the Stardrifter aperture: ascend; walk into the roof
-  opening to return
-- G or Enter: GOES; `NEXT`: choose/fly to a nearby star
-- L: approach, choose landing site, and descend
+- E inside the Stardrifter: ascend; walk into the roof opening to return
+- First wall panel + Enter: physical GOES; `NEXT`: choose/fly to a nearby star
+- Third wall panel + Enter: approach, select a landing site, and descend
+- G and L: accessible GOES and landing fallbacks
 - R: device back/close aboard ship; return in capsule on a surface
 - F4: FPS display; F5: higher presentation rate
 - F6/F7: save/load; F8: music; F9 or `?`: complete control card
@@ -61,10 +68,14 @@ Useful controls:
 
 - Windows is the supported packaged platform. The historical Linux runtime's
   PCM layer is a stub, so soundtrack support is Windows-only.
-- A multi-hour session spanning repeated resize/full-view changes, many
-  landings, and extended audio remains the principal release-hardening gap.
-- This is a faithful playable port in active development, not a claim that
-  every original Noctis IV screen or incidental behavior is complete.
+- The second physical GOES face does not yet present complete source scrollback.
+- The intermittent Stardrifter interior-light flicker reported during playtest
+  remains open.
+- Higher-rate presentation does not yet interpolate the original 18.206 Hz
+  simulation, so it is not expected to feel like a modern native 60 Hz game.
+- Full Noctis IV+ feature parity remains the release criterion. Historical
+  screens, complete GUI behavior, stellar refueling, and presentation details
+  are still being implemented rather than cut from scope.
 
 ## Integrity and licence
 

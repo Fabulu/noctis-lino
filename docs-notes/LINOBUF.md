@@ -305,7 +305,7 @@ depends on the aliasing, where the burden reverses.
 
 | # | alias | verdict | reason |
 |---|---|---|---|
-| 1 | `n_globes_map` ⟷ sea/horizon texture (`txtr`) | **KEEP** | Sequential reuse, never simultaneous. `globe()` is called only from `NOCTIS.CPP:2588, 2592` and `NOCTIS-0.CPP:5564, 5592` -- **none inside `planetary_main()`** (verified by grep over lines 3313–5045). The sea gradient destroys `globes.map` and nothing reads it until `load_QVRmaps()` at `NOCTIS-1.CPP:5039`. Keeping preserves the class-C neighbour relation for free. |
+| 1 | `n_globes_map` ⟷ sea/horizon texture (`txtr`) | **KEEP** | Sequential reuse, never simultaneous. `globe()` is called only from `NOCTIS.CPP:2588, 2592` and `NOCTIS-0.CPP:5564, 5592` -- **none inside `planetary_main()`** (verified by grep over lines 3313-5045). The sea gradient destroys `globes.map` and nothing reads it until `load_QVRmaps()` at `NOCTIS-1.CPP:5039`. Keeping preserves the class-C neighbour relation for free. |
 | 2 | `n_globes_map` ⟷ `digimap2` (+22,586, **2 mod 4**) | **SPLIT** -- 2,340 units, one `uint32` per unit | The only misalignment in the project, and **provably safe to split**: `digimap2` has exactly one reader, `NOCTIS.CPP:621` inside `digit_at`, and `digit_at`'s callers are all in `screen()`, `vehicle()` and `main()` -- **none reachable from `planetary_main()`**, which uses only `wrouthud` (a *static* `digimap[325]`, not `digimap2`). So the font is destroyed by the sea fill and **never read while destroyed**. `load_digimap2()` at `:5041` is pure restoration, not a behaviour dependency. Splitting costs nothing and removes a 2-mod-4 dword-assemble from every glyph row. |
 | 3 | `objectschart` ⟷ `ruinschart` | **KEEP -- mandatory** | Same *byte*, different bitfields. `AF1/AF2/AF3` = 0x40/0x80/0xC0 write the `object2_class` field, and `ruinschart[h1]` (`NOCTIS-1.CPP:1177`) and `objectschart[h1].nr_of_objects` (`:1324`) use the **same index**. The ruins writer clobbering an object slot is observable behaviour. Splitting changes the game. |
 | 4 | `objectschart` ⟷ `atmosphere` / `overlay` | **KEEP** | Sequential reuse with different resolutions -- orbital `[ptr>>1]` over 0..32,399, landed `[ptr]` over 0..39,999. The transition is explicit (`_fmemset(objectschart,0,oc_bytes)`, `NOCTIS-1.CPP:1970`). Free to keep. **Trap:** `create_sky(char atmosphere)` (`NOCTIS-1.CPP:2736`) has a *parameter* of the same name that is a boolean. Do not conflate. |
@@ -346,7 +346,7 @@ not vsync-locked in exclusive either.
 is hereby superseded.** It is a real mode switch; it is not an advantage.
 
 Present 1:1 at 320×200, not upscaled to 640×400. The index buffer is 320×200
-exactly, which is what both visual oracles deliver; 2× costs 1.0–2.5 ms against
+exactly, which is what both visual oracles deliver; 2× costs 1.0-2.5 ms against
 0.56; and upscaling changes nothing upstream, so it is a Wave 9 polish item.
 
 **`[Display Physical Height]` reports 672 on this 720-line desktop** -- it
@@ -391,17 +391,17 @@ The port needs both `pal6` and `curpal6` -- `niv-lr` calls the second `currpal`.
 
 | range | contents | changes |
 |---|---|---|
-| 0–63 | vehicle, computer selections, artefacts | every frame, starlight tint |
-| 64–127 | cosmos, galactic background, clear skies | every frame, sky tint |
-| 128–191 | stars, or moons | on arrival, in `surface()` |
-| 192–255 | planets | on arrival, in `surface()` |
+| 0-63 | vehicle, computer selections, artefacts | every frame, starlight tint |
+| 64-127 | cosmos, galactic background, clear skies | every frame, sky tint |
+| 128-191 | stars, or moons | on arrival, in `surface()` |
+| 192-255 | planets | on arrival, in `surface()` |
 
 **`tavola_colori(src, first, n, fr, fg, fb)` -- three steps, and the third is a
 trap.** Copy `n*3` from `src` into `pal6[first*3…]`; filter in place
 (`v = v*f/63`, clamped to 63, integer throughout); then **upload starting at
 colour 0** and running to `(first+n)*3`. The upload always starts at zero.
-Consequence the port must keep: an update to band 64–127 uploads colours 0–127
-and **leaves 128–255 stale** until something covers them.
+Consequence the port must keep: an update to band 64-127 uploads colours 0-127
+and **leaves 128-255 stale** until something covers them.
 
 **Four traps, all from recon B §3, all under test (§7):**
 
@@ -472,7 +472,7 @@ decomposition `cpms*552086` **overflows 32 bits**; this one does not.
    next *edge* of a free-running counter (`NOCTIS-0.CPP:6025-6038`). So an
    overrunning frame loses a whole tick and re-aligns, and the frame rate is
    18.2065/k and never anything between. Recon C measured the real game at
-   **15–17 fps** with a mean of exactly 1.50 ticks under heavy capture -- the
+   **15-17 fps** with a mean of exactly 1.50 ticks under heavy capture -- the
    signature of a 50/50 mixture of 1- and 2-tick frames, which is what
    quantisation gives and a continuously-variable rate does not.
    **This is a fidelity requirement, not a timing one.** It is also mandatory in
@@ -543,9 +543,9 @@ touched before timing:
 **The expand at the real working set is 0.054 ms** -- the palette probe's figure,
 not the packing probe's. That settles recon B's caveat: budget 0.054, not 0.130.
 
-**A Noctis-shaped frame is 2.7–3.7% of a tick with the whole workspace live.**
+**A Noctis-shaped frame is 2.7-3.7% of a tick with the whole workspace live.**
 Consistent with recon C's independently measured 2.39 ms / 4.36%. The 1996
-binary under DOSBox-X misses its tick 10–20% of the time; the port has ~27×
+binary under DOSBox-X misses its tick 10-20% of the time; the port has ~27×
 headroom. **The platform is not the constraint and will not become one.**
 
 One finding worth carrying: **the paced battery's max was 2.52 ms while the
@@ -729,7 +729,7 @@ arithmetic and the wrap predicate (Python has unbounded integers, so it is a
 genuinely different construction). **Non-circular only because `fb_ref.c` is
 written from `NOCTIS-0.CPP` and the assembly by a different agent than the lino,
 and the reviewer checks the C against the original line by line** -- the same
-construction Waves 1–4 used.
+construction Waves 1-4 used.
 
 ### Tier 3 -- properties that need no oracle
 
@@ -783,7 +783,7 @@ self-graded from raw logs (drift ≤ 1 ms over 400 ticks -- recon C measured
 * **"Looks right."** Nothing is eyeballed as a pass criterion. A human may look;
   the look is not evidence.
 * **Long-session behaviour.** The longest soak on record is 22 s. Multi-hour
-  behaviour belongs to Waves 8–9 and no earlier evidence de-risks it.
+  behaviour belongs to Waves 8-9 and no earlier evidence de-risks it.
 
 ---
 
@@ -798,7 +798,7 @@ self-graded from raw logs (drift ≤ 1 ms over 400 ticks -- recon C measured
 | "exclusive 320×200 -- closest thing to mode 13h" | true and irrelevant. **Cooperative, permanently.** |
 | "a frame that makes no isocall stops responding" | **refuted in both halves.** Pump is on its own thread; the comm area is live without isocalls. |
 | "the entire working set is ~643 KB, ~2.5 MB at one byte per unit" | **1.98 MB**, of which `NW` is 1.61 MB. Heap total is 336,480 bytes; `NOCTIS-D.H:58`'s "334941" is stale by 1,539. |
-| WAVEPLAN §3 "the 32,768-byte triple-purpose buffer → **three separate buffers**" | **overruled in part.** Split `digimap2` only; keep `globes.map` ⟷ sea texture as one region (§4 aliases 1–2). Splitting it discards the class-C neighbour relation for no gain. |
+| WAVEPLAN §3 "the 32,768-byte triple-purpose buffer → **three separate buffers**" | **overruled in part.** Split `digimap2` only; keep `globes.map` ⟷ sea texture as one region (§4 aliases 1-2). Splitting it discards the class-C neighbour relation for no gain. |
 | `[Counts Per Millisecond]` | a per-process **guess**, 0.43% spread across launches, up to +0.26% rate error. **Calibrate.** |
 
 ---

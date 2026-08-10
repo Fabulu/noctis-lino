@@ -23,10 +23,12 @@ Right mouse drag  look around inside the game view
 Arrow keys        look in all four directions
 E                 start the roof lift from inside the Stardrifter;
                   walk into the roof cupola opening to return automatically
-G or Enter        open GOES; Tab or Enter submits a command
+First wall panel   Enter focuses physical GOES; Enter submits a command
+Third wall panel   Enter approaches; at STANDBY, Enter selects a landing site
+G                  open the large GOES view anywhere in the ship
 NEXT              target and fly to a nearby generated star
 STAR X Y Z        target exact galactic coordinates
-L                 approach; at STANDBY open the landing-site selector
+L                 global approach/landing-site fallback
 Site selector     arrows choose longitude/latitude; L/Enter descends; C cancels
 [ and ]           select every generated planet or moon
 R                 ship: onboard devices/back; surface: capsule return
@@ -51,8 +53,8 @@ temperature, atmospheric pressure, and movement-sensitive pulse.
 
 Credits and distribution
 ------------------------
-Noctis IV: Alessandro Ghignola, Copyright 1996–2002.
-L.in.oleum: Alessandro Ghignola, Copyright 2001–2004.
+Noctis IV: Alessandro Ghignola, Copyright 1996-2002.
+L.in.oleum: Alessandro Ghignola, Copyright 2001-2004.
 Manual soundtrack: Ryan J. Bury. The original silent experience remains
 available with F8. This port is distributed under the original WTOF Public
 License with the author's authorisation; see WPL.htm for the full terms and

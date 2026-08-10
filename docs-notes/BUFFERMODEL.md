@@ -392,14 +392,14 @@ been "uploaded"; `pal` is the 256-entry `00RRGGBB` LUT rebuilt from `curpal6`.
 The port needs both `pal6` and `curpal6` because the DAC is now software.
 `retpal6`/`srfpal6` are fade sources so fades do not compound.
 
-**Bands** (`NOCTIS.CPP:2218`): 0–63 vehicle/computer/artefacts; 64–127
-cosmos/galactic background/clear skies; 128–191 stars or moons; 192–255 planets.
+**Bands** (`NOCTIS.CPP:2218`): 0-63 vehicle/computer/artefacts; 64-127
+cosmos/galactic background/clear skies; 128-191 stars or moons; 192-255 planets.
 
 **`tavola_colori(src, first, n, fr, fg, fb)` -- three steps, and the third is a
 trap.** Copy `n*3` from `src` into `pal6[first*3…]`; filter in place
 (`v = v*f/63`, clamped to 63, integer throughout); then **upload starting at
 colour 0** and running to `(first+n)*3`. The upload always starts at zero, so an
-update to band 64–127 uploads colours 0–127 and **leaves 128–255 stale**. That
+update to band 64-127 uploads colours 0-127 and **leaves 128-255 stale**. That
 is behaviour, not an accident, and the test makes it observable inside a single
 run: the pinned sequence ends with a `shade` over 192..255 that uploads nothing,
 so `pal6` and `curpal6` differ over 186 of those 192 components (P4).
@@ -495,7 +495,7 @@ dirty-rectangle tracking:** a 16×16 live region against the whole display saved
 full Noctis-shaped frame at p50 **1.47 / 2.60 / 4.78 ms** across three runs, and
 the palette expand at **0.054 / 0.069 / 0.123 ms**. Two 60-present runs of
 `tests/w5probe.txt` in display mode measured expand+`RETRACE` at
-min 1.05–1.80, p50 **1.60–2.01**, p90 2.04–2.37, max 18.4–35.9 ms -- the max
+min 1.05-1.80, p50 **1.60-2.01**, p90 2.04-2.37, max 18.4-35.9 ms -- the max
 being one `RETRACE` stall, which recon B saw once per ~600 presents in every
 run.
 
@@ -544,7 +544,7 @@ largest intermediate here is `44505*cpms ≈ 4.0e8`.
    deadline at all -- `sync_stop` busy-waits for the next *edge* of a free-running
    counter (`NOCTIS-0.CPP:6025-6038`) -- so an overrunning frame loses a whole
    tick and re-aligns, and the frame rate is 18.2065/k and never anything
-   between. The real game under capture measured 15–17 fps with a mean of
+   between. The real game under capture measured 15-17 fps with a mean of
    exactly 1.50 ticks: a 50/50 mixture of 1- and 2-tick frames, which is what
    quantisation gives and a continuously-variable rate does not.
 3. **The wait predicate is the sign of the difference, never a timestamp
@@ -584,7 +584,7 @@ deadline a tick actually fires -- is a measurement, and only it carries a bound.
 `tests/test_wave5.py`'s header states the four bounds and why each is where it
 is. Measured over 200 ticks under a full page-build + expand load with a 60 ms
 hitch every 37 ticks, over four runs: p50 overshoot 0.000000 ms, p90
-0.000000–0.000111 ms, max 3.10–11.50 ms, total drift 0.00003–0.0105 ms, gaps
+0.000000-0.000111 ms, max 3.10-11.50 ms, total drift 0.00003-0.0105 ms, gaps
 quantised to {1,2} periods with 5 skips.
 
 ---
@@ -602,7 +602,7 @@ quantised to {1,2} periods with 5 skips.
 | FBDUMP kind 6 proves the canary works | LINOBUF §6 | **wrong.** v1 was 18 units of `0xA5A5A5A5` on both sides; a deleted canary produced a bit-identical record. §4.2 |
 | full frame 1.472 ms; expand 0.054 ms | LINOBUF §5.7 | **not reproducible.** 1.47/2.60/4.78 and 0.054/0.069/0.123 across runs. Quote ranges. §7 |
 | re-basing costs +0.057 ms/tick | PORTPLAN | **refuted:** +0.002 to +0.004 ms/tick here. Accumulate anyway, because it recovers. §8 rule 1 |
-| correctly-rounded re-base drifts +0.00071 ms/tick | LINOBUF §8 | **not reproduced:** 3–6× that |
+| correctly-rounded re-base drifts +0.00071 ms/tick | LINOBUF §8 | **not reproduced:** 3-6× that |
 | median tick 55.0000 ms | PORTPLAN | the target is **54.9254 ms** |
 | exclusive 320×200 is the closest thing to mode 13h | PORTPLAN | true and irrelevant. **Cooperative, permanently.** §7 |
 | a frame that makes no isocall stops responding | PORTPLAN | **refuted in both halves.** §7 |
@@ -634,7 +634,7 @@ an edit to this list:
   sampler re-bases both anchors unconditionally *before* the band test, so the
   bracket is one window and never the whole run. Eight synthetic origins × 85
   firings of a 14,061 ms window (19.9 simulated minutes), seeded 4 % low:
-  converged to the true rate in 4 firings and held it exactly across 2–3
+  converged to the true rate in 4 firings and held it exactly across 2-3
   wrap-straddling windows per scenario, worst error 0. The **original**
   estimator on the identical data collapses to 5,355 against a true 8,999 --
   that control is what makes the result a claim rather than a tautology. *Now
@@ -694,7 +694,7 @@ an edit to this list:
    Do not port them. `GFX.H`/`FAST3D.H`/`TEXT3D.H`/`PITAGORA.H` are not in the
    build set at all.
 10. **Long sessions.** The longest soak on record is 22 s; `test_wave5.py`'s is
-    11 s. Multi-hour behaviour belongs to Waves 8–9 and item 2 is the known
+    11 s. Multi-hour behaviour belongs to Waves 8-9 and item 2 is the known
     landmine.
 11. **Everything visual.** No renderer exists, so no frame can be compared
     against DOSBox-X or the game's own BMP; the palette pipeline is the only
@@ -706,7 +706,7 @@ an edit to this list:
 
 ## 11. Wave 5c -- how the model's own evidence is now policed
 
-Nothing in sections 1–9 changes. This section records the one mechanism added
+Nothing in sections 1-9 changes. This section records the one mechanism added
 around them, because a buffer model is only worth what its graders are worth,
 and this project has now shipped a check that could not fail three times.
 

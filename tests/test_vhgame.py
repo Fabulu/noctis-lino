@@ -438,7 +438,9 @@ def main() -> int:
     check(
         "grnd; sky;" in game and "spglobe; spbg;" in game
         and "=> GRSK create; => GRSK horizon;" in ground
-        and "[SPval] = [GRSKbrightness]; => SP fill page;" in ground
+        and "[SPval] = 0; => SP fill page;" in ground
+        and '"VHGND guard band"' in ground
+        and "=> VHGND background direct;\n\t=> VHGND guard band;" in ground
         and "[BGdstreg] = RGADP; => SP background;" not in ground
         and '"VHGND background direct"' in ground
         and '"VHGND background cache save"' in ground
@@ -881,7 +883,7 @@ def main() -> int:
             '"VHG console overlay"', "VHGconsoletitle = { GOES COMMAND CONSOLE };",
             "[VHGascii] = 0; [Console Command] = GET CONSOLE INPUT; isocall;",
             "? failed -> VHG console ring ready;", "CLEAR CONSOLE BUFFER",
-            "? A = 71 -> VHG activate console;",
+            "? A = 71 -> VHG activate console shortcut;",
             "? A != 9 -> VHG console key ready; [VHPkey] = 13;",
             "A = [VHGconsole]; ? A != 0 -> VHG device key done;",
             "A = [VHGconsole]; ? A != 0 -> VHG info key done;",
@@ -895,6 +897,26 @@ def main() -> int:
             '"VHCAT write record ready"', "[Block Size] = VHCATHDRBYTES;",
         )),
         "GOES consumes one character per physical press and creates a valid empty starmap",
+    )
+    check(
+        all(token in game for token in (
+            '"VHG screen poll"', "A = [VHGbeta]; ? A <= VHGN135 -> VHG screen poll changed;",
+            "A = [VHGz]; A + 1560; C = 0; C - 810; A / C; [VHGscreen] = A;",
+            "[VHPactive] = [VHGscreen];", '"VHG activate wall console"',
+            "[VHGconsole] = 1; [VHGconsoleview] = 0;",
+            "A = [VHGscreen]; ? A = 2 -> VHG request landing;",
+            "A = [VHGconsoleview]; ? A = 0 -> VHG physical console overlay;",
+            '"VHG physical console overlay"', "[String] = VHGphysicaltitle;",
+            "A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG energy overlay done;",
+            "A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG FCS overlay done;",
+            "A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG body overlay done;",
+            '"VHG physical landing overlay"', "[VHGlandingview] = 0;",
+        ))
+        and all(token in panels for token in (
+            '"VHP selector zero active"', '"VHP selector one active"',
+            '"VHP selector two active"', "A = [VHPcamz]; A + 1620;",
+        )),
+        "source-positioned wall screens select all three faces and keep physical GOES input in-world",
     )
     check(
         all(token in catalog for token in (
@@ -916,7 +938,7 @@ def main() -> int:
             "[VHGnoticeptr] = VHGapproachtext;", "=> VHG local render;",
             "VHGfcsapproach = { FCS APPROACH };",
             '"VHG landing selector input"', '"VHG landing overlay"',
-            "[VHGlandingselect] = 0; [VHGlandpending] = 1;", '"VHG landing commit done"',
+            "[VHGlandingselect] = 0; [VHGlandingview] = 1; [VHGlandpending] = 1;", '"VHG landing commit done"',
             "[VHGNDlon] = [VHGlandinglon]; [VHGNDlat] = [VHGlandinglat];",
             "=> VHG prepare planet; => VHG fpu clean;",
             "=> VHGND generate; => VHG fpu clean;",

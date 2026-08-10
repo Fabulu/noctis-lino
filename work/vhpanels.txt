@@ -111,16 +111,32 @@
 	end;
 
 "VHP GOES selector"
-	( vehicle()'s narrow active-screen marker beneath the GOES face. )
+	( vehicle()'s narrow active-screen markers beneath all three faces. )
 	[vhcpoly plus 0] = VHPX; [vhcpoly plus 1] = 3282370560; [vhcpoly plus 2] = VHPZ0;
 	[vhcpoly plus 3] = VHPX; [vhcpoly plus 4] = 3282862080; [vhcpoly plus 5] = VHPZ0;
 	[vhcpoly plus 6] = VHPX; [vhcpoly plus 7] = 3282862080; [vhcpoly plus 8] = 3301605376;
 	[vhcpoly plus 9] = VHPX; [vhcpoly plus 10] = 3282370560; [vhcpoly plus 11] = 3301605376;
 	[VHVcamxi] = [VHPcamx]; [VHVcamyi] = [VHPcamy]; [VHVcamzi] = [VHPcamz];
 	[VHValpha] = [VHPalpha]; [VHVbeta] = [VHPbeta]; => VH set view;
-	[VHPcol] = 0; A = [VHPactive]; ? A = 0 -> VHP selector draw;
+	[VHPcol] = 0; A = [VHPactive]; ? A = 0 -> VHP selector zero active;
+	-> VHP selector zero draw;
+    "VHP selector zero active"
 	[VHPcol] = 63;
-    "VHP selector draw"
+    "VHP selector zero draw"
+	=> VHP draw quad;
+	A = [VHPcamz]; A + 810; [VHVcamzi] = A; => VH set view;
+	[VHPcol] = 0; A = [VHPactive]; ? A = 1 -> VHP selector one active;
+	-> VHP selector one draw;
+    "VHP selector one active"
+	[VHPcol] = 63;
+    "VHP selector one draw"
+	=> VHP draw quad;
+	A = [VHPcamz]; A + 1620; [VHVcamzi] = A; => VH set view;
+	[VHPcol] = 0; A = [VHPactive]; ? A = 2 -> VHP selector two active;
+	-> VHP selector two draw;
+    "VHP selector two active"
+	[VHPcol] = 63;
+    "VHP selector two draw"
 	=> VHP draw quad;
 	end;
 

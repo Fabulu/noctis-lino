@@ -21,8 +21,8 @@ void. Line numbers are as of 2026-08-06.
 |---|---|
 | **SOUND** | the two sides are independently produced and the record demonstrably differs between a working and a broken mechanism |
 | **TAUTOLOGICAL** | the two sides reduce to one value, or the assertion is a constant. Includes literal `True` and `x or True` |
-| **CIRCULAR‑STORED** | one side is read from a file the code under test wrote |
-| **CIRCULAR‑SELF** | the "reference" is derived *from the datum being graded*, or is the same implementation invoked twice with a flag |
+| **CIRCULAR-STORED** | one side is read from a file the code under test wrote |
+| **CIRCULAR-SELF** | the "reference" is derived *from the datum being graded*, or is the same implementation invoked twice with a flag |
 | **WEAK** | not void, but falsifiable only by a mutation aimed at the check itself; carries no information about the mechanism it names |
 | **DEAD** | never executed |
 
@@ -40,7 +40,7 @@ Everything below was **measured, not read**. Commands and outputs are quoted in 
 | `fb_ref.c` self-test checks never falsified by any of its 25 sabotages | **17 of 36** |
 | `fb_layout.Layout.check()` checks never falsified by any of its 7 sabotages | **19 of 48** |
 | `canary_v2` fields moved by any *mechanism* sabotage | `dirty_read` (11 of 44 units): **none** |
-| `fb_tick.py --servo` with a do‑nothing estimator | **T8a ×6, T8b ×2, T8c ×2, T8f‑good, T8g ×3, T8h all PASS** |
+| `fb_tick.py --servo` with a do-nothing estimator | **T8a ×6, T8b ×2, T8c ×2, T8f-good, T8g ×3, T8h all PASS** |
 | `ring_sweep`'s identity clause firings, all lengths, all origins | **0** |
 | `grade_ticklog` on a log running 10 % fast with a header claiming 9000 cpms | **PASS** |
 
@@ -52,7 +52,7 @@ anyone thinking to ask again.
 
 ## 2. The three known instances -- confirmed, with evidence
 
-### 2.1 `fb_compare.py:903–957` `lino_break_matrix` -- CIRCULAR‑STORED, criterion independent of the sabotage
+### 2.1 `fb_compare.py:903-957` `lino_break_matrix` -- CIRCULAR-STORED, criterion independent of the sabotage
 
 The row's verdict is `bool(judged)`, and `judged` is built at :934 by comparing
 each sabotaged lino record against `fbout/fb-ref-<name>.bin`. The **clean** lino
@@ -60,7 +60,7 @@ build already disagrees with that reference on `adapted, adaptor, canary, glyph,
 kself, wrapcount` (§3.9). Therefore `judged` is non-empty for **every** input,
 sabotaged or not, and the `PASS` at :946 is a hard-coded literal `True`.
 
-The sound signal is computed and then thrown away: `moved` (:918–925) compares
+The sound signal is computed and then thrown away: `moved` (:918-925) compares
 the sabotage against the *clean lino's own records* and **is** sabotage-dependent
 -- but it is only consulted in the `elif`, i.e. only when `judged` is empty, which
 never happens.
@@ -93,7 +93,7 @@ records the clean lino passes and the sabotage fails -- and `moved` (sabotage vs
 clean lino) must be a catch, not a "blind spot" failure. A row whose catcher set
 equals the clean build's failure set is by definition not a catch.
 
-### 2.2 `fb_layout.py:1122–1124` / `fb_ref.c:384` `witness(i)` -- TAUTOLOGICAL
+### 2.2 `fb_layout.py:1122-1124` / `fb_ref.c:384` `witness(i)` -- TAUTOLOGICAL
 
 `witness(i)` returns the bare literal `0xC0DE0000 | i`. `canary_v2` writes it at
 `off` (`fb_layout.py:1136`, `fb_ref.c:398`), runs the walker -- which never
@@ -123,7 +123,7 @@ code shipped is the bare literal, and the documented `0xB0B32000 + 17i + (clean 
 255)` rule exists nowhere in `fb_layout.py` or `fb_ref.c`. The document describes
 a mechanism the harness does not implement.
 
-### 2.3 `fb_tick.py:325–347` `ring_sweep` -- TAUTOLOGICAL
+### 2.3 `fb_tick.py:325-347` `ring_sweep` -- TAUTOLOGICAL
 
 ```python
 start = (end - want) & M32
@@ -145,7 +145,7 @@ Measured:
   ms= 500000 want=  4499500000 want>M32=True  reported fails= 65536  identity-only fails=0
 ```
 
-Both `T8b` assertions (`fb_tick.py:833–841`) therefore assert
+Both `T8b` assertions (`fb_tick.py:833-841`) therefore assert
 `8999*470000 ≤ 2³²` and `8999*500000 > 2³²`. The claim in the run text --
 *"unsigned subtraction across the wrap is EXACT … on all 65536 ring origins"* --
 is not what was measured, and the sweep is **not** what makes `SRVMAX` a measured
@@ -164,35 +164,35 @@ still graded, and still the stated justification for `SRVMAX`.
 | file:line | what it compares | side A | side B | verdict |
 |---|---|---|---|---|
 | 230,233,236,244 | FBDUMP container magic / version / declared count / trailing bytes | file bytes | format literals | SOUND |
-| 257–260 `diff_payload` | -- | -- | -- | **DEAD** (no caller) |
-| 299–307 | KSELF reads as strictly increasing `(id,value)` pairs | payload | shape rule | SOUND |
-| 309–314 | KSELF/WRAPCOUNT on the intersection of normative keys | impl A record | impl B record | SOUND |
+| 257-260 `diff_payload` | -- | -- | -- | **DEAD** (no caller) |
+| 299-307 | KSELF reads as strictly increasing `(id,value)` pairs | payload | shape rule | SOUND |
+| 309-314 | KSELF/WRAPCOUNT on the intersection of normative keys | impl A record | impl B record | SOUND |
 | 343 / 348 / 350 / 353 | kind, count, geometry, tag agreement | record A | record B | SOUND |
 | 358 | payload equality | record A | record B | SOUND |
 | 486 | `Layout().check()` rolled up as one row | see §3.2 | | SOUND (inherits) |
-| 491–493 ×7 | each `LAYOUT_BREAK` must make `check()` fail | sabotaged model | clean model | SOUND |
+| 491-493 ×7 | each `LAYOUT_BREAK` must make `check()` fail | sabotaged model | clean model | SOUND |
 | 501 | `fb_ref.c` builds with no `-Wall -Wextra` warning | gcc output | literal | SOUND |
 | 505 | `fb_ref.exe` self-test return code | see §3.7 | | SOUND (inherits) |
-| 514–516 ×11 | Python record == C record, exact | `fb_layout/fb_pal` (parses 1996 sources) | `fb_ref.c` (transcribes them) | **SOUND** -- the strongest thing in the harness |
-| 527–530 | alias 8: KSELF 7/8/9 vs `Layout().alias8()` | C transcribes `0xFA00` | Python parses `0xFA00` | SOUND on placement; **premise `SEG_OFFSET==4` is shared by both sides** (Tier 0, declared) |
+| 514-516 ×11 | Python record == C record, exact | `fb_layout/fb_pal` (parses 1996 sources) | `fb_ref.c` (transcribes them) | **SOUND** -- the strongest thing in the harness |
+| 527-530 | alias 8: KSELF 7/8/9 vs `Layout().alias8()` | C transcribes `0xFA00` | Python parses `0xFA00` | SOUND on placement; **premise `SEG_OFFSET==4` is shared by both sides** (Tier 0, declared) |
 | 531 | Tier 0 declaration | -- | -- | NOT GRADED, correctly |
 | 538 | 15 986 of 32 000 sea texels overrun `n_globes_map` | measurement | `> 0` | SOUND |
 | 541 | 5 of those land in a pad | measurement | `> 0` | SOUND |
 | 544 | `(violations, expectations) == (0, 6)` | walker output | literal | SOUND (`DIGITN1` → 0) |
 | 549 | 1 unit past `n_globes_map` → exactly 1 TAIL violation | walker output | literal | SOUND |
-| 556–576 | canary v1 is bit-identical under sabotages v2 catches | v1 record | v2 record, same workspace, same sabotage | SOUND -- a model demonstration |
-| 579–588 ×10 | each `WORKSPACE_BREAK` moves ≥1 graded record | sabotaged Python | clean Python | SOUND (mutation test) |
+| 556-576 | canary v1 is bit-identical under sabotages v2 catches | v1 record | v2 record, same workspace, same sabotage | SOUND -- a model demonstration |
+| 579-588 ×10 | each `WORKSPACE_BREAK` moves ≥1 graded record | sabotaged Python | clean Python | SOUND (mutation test) |
 | 593 | `fb_pal.selftest()` | see §3.4 | | SOUND (inherits) |
 | 598 | `fb_tick --wrap-sweep` | see §3.3 | | SOUND (inherits) |
 | 601 | `fb_wrap.run()` | see §3.5 | | mixed (inherits) |
-| 619–638 ×25 | each `-DBREAK_*` build must move its named target record | sabotaged C, fresh run | clean C, fresh run | **SOUND** -- nothing stored, both sides rebuilt |
+| 619-638 ×25 | each `-DBREAK_*` build must move its named target record | sabotaged C, fresh run | clean C, fresh run | **SOUND** -- nothing stored, both sides rebuilt |
 | **651** | "capture artifacts present (n BMP, m PNG)" | -- | **literal `True`** | **TAUTOLOGICAL** -- cannot fail; the real check is 650 |
-| 663–669 | BMP is ×4-scaled, PNG is shift-or-scaled, mutually exclusive | 1996/DOSBox artifact | arithmetic predicate | **SOUND** -- Tier 1, external |
-| 674–678 | BMP pal6 == PNG pal6 on all 768 components | artifact 1 | artifact 2 | SOUND -- two independent captures |
-| 681–688 | band 0–63 fits `v*f/63`; round-to-nearest and `/64` fit nothing | artifact | falsifiers | SOUND -- falsified both ways |
-| 691–693 | PNG 2×2 doubling, 0 non-uniform subpixels | artifact | literal | SOUND |
-| 695–702 | two snapshots differ in pixels but not in palette | artifact 1 | artifact 2 | SOUND |
-| 724 | clean tick loop passes K1..K5 | `fb_tick.run_loop` | `fb_tick.grade_ticklog` | **CIRCULAR‑SELF** -- simulator and grader are the same module. Valid as a grader self-test, not as evidence about any port; see §3.3 K2/K3 |
+| 663-669 | BMP is ×4-scaled, PNG is shift-or-scaled, mutually exclusive | 1996/DOSBox artifact | arithmetic predicate | **SOUND** -- Tier 1, external |
+| 674-678 | BMP pal6 == PNG pal6 on all 768 components | artifact 1 | artifact 2 | SOUND -- two independent captures |
+| 681-688 | band 0-63 fits `v*f/63`; round-to-nearest and `/64` fit nothing | artifact | falsifiers | SOUND -- falsified both ways |
+| 691-693 | PNG 2×2 doubling, 0 non-uniform subpixels | artifact | literal | SOUND |
+| 695-702 | two snapshots differ in pixels but not in palette | artifact 1 | artifact 2 | SOUND |
+| 724 | clean tick loop passes K1..K5 | `fb_tick.run_loop` | `fb_tick.grade_ticklog` | **CIRCULAR-SELF** -- simulator and grader are the same module. Valid as a grader self-test, not as evidence about any port; see §3.3 K2/K3 |
 | 733 | `NOCARRY` caught in a 400-tick log | sabotaged sim | grader | SOUND |
 | 739 | a legitimate 1-count servo step is accepted | sim | grader | SOUND |
 | 746 | a 5 % cpms lurch is rejected | sim | grader | SOUND |
@@ -202,15 +202,15 @@ still graded, and still the stated justification for `SRVMAX`.
 | 768 ×5 | each `fb_wrap` sabotage is rejected | sabotaged | `run()` | SOUND |
 | 770/772 | `fb_stick` A1 proof and its `CLIPSTAGE` sabotage | model | swept bbox | SOUND |
 | 775 | `fb_stick` A2 corpus | see §3.6 | | mixed |
-| 790–793 | LINOBUF 6.1 "carries every scenario constant" | 20 substrings | a doc section | **WEAK / MIS-TARGETED** -- see §4.6 |
+| 790-793 | LINOBUF 6.1 "carries every scenario constant" | 20 substrings | a doc section | **WEAK / MIS-TARGETED** -- see §4.6 |
 | 806 | lino dump exists | filesystem | -- | SOUND |
 | 816 | lino dump is FBDUMP v2 | header | literal | SOUND |
-| 834–845 ×11 | lino record == C **and** == Python | lino | two references rebuilt this run | SOUND |
+| 834-845 ×11 | lino record == C **and** == Python | lino | two references rebuilt this run | SOUND |
 | 854 | lino TICKLOG passes K1..K5 | lino log | `grade_ticklog` | SOUND *as a cross-implementation check*, but see §3.3 K2/K3 for what it cannot see |
 | 866 | lino SERVOLOG passes S1..S6 | lino log | `grade_servolog` | SOUND cross-implementation |
 | 873 | SERVOLOG missing → NOT GRADED | -- | -- | correct |
 | 888 | undefined kind emitted → NOT GRADED | -- | -- | correct |
-| **903–957** | **the lino sabotage matrix** | sabotaged lino | **`fbout/fb-ref-*.bin`, which the clean lino already fails** | **CIRCULAR‑STORED -- see §2.1** |
+| **903-957** | **the lino sabotage matrix** | sabotaged lino | **`fbout/fb-ref-*.bin`, which the clean lino already fails** | **CIRCULAR-STORED -- see §2.1** |
 | 946 | the matrix's PASS | -- | **literal `True`** | TAUTOLOGICAL |
 
 ### 3.2 `fb_layout.py` -- `Layout.check()`, 48 checks
@@ -218,16 +218,16 @@ still graded, and still the stated justification for `SRVMAX`.
 | file:line | check | verdict |
 |---|---|---|
 | 564 | **L1** `want == got` where `got` is built by iterating `want` (`seq = list(self.alloc)`, :382) | **TAUTOLOGICAL** except under `ORDER`/`SWAPSEA`, which permute `seq` before the copy |
-| 568–569 | **L2** `a.end <= b.padbase` and `b.base - a.end == self.pad`, ×16 | **TAUTOLOGICAL** -- the constructor is `cur += pad; base = cur; cur += size`. Under `NOPAD` it reads `0 == 0` and still passes |
+| 568-569 | **L2** `a.end <= b.padbase` and `b.base - a.end == self.pad`, ×16 | **TAUTOLOGICAL** -- the constructor is `cur += pad; base = cur; cur += size`. Under `NOPAD` it reads `0 == 0` and still passes |
 | 574 ×5 | **L3** 64 KiB readable window fits above each `txtr` base | SOUND (property of parsed sizes) |
-| 580–586 | **L4** `p_surfacemap-6..-1` lie in that region's own SUB zone | WEAK -- construction under no break; falsified by `NOPAD`/`ONEZONE` |
-| 595–599 | **L5** `adapted`/`adaptor`/`p_background` ≥ 65536; `adaptor` segoff 0 | SOUND (parsed sizes vs literal) |
-| 604–606 | **L6** the three class-C neighbour relations | SOUND (falsified by `SWAPSEA`) |
+| 580-586 | **L4** `p_surfacemap-6..-1` lie in that region's own SUB zone | WEAK -- construction under no break; falsified by `NOPAD`/`ONEZONE` |
+| 595-599 | **L5** `adapted`/`adaptor`/`p_background` ≥ 65536; `adaptor` segoff 0 | SOUND (parsed sizes vs literal) |
+| 604-606 | **L6** the three class-C neighbour relations | SOUND (falsified by `SWAPSEA`) |
 | 611 | **L7** `objectschart > 32772` | SOUND |
 | 616 | **L8** heap total == 336 480 | **SOUND** -- parsed sum vs an external literal |
-| 622–636 | **L9** 11 pads / 22 zones / 18 owned / two magics / origins in own SUB | WEAK -- construction counts; falsified by `NOPAD`/`ONEZONE` |
-| 642–650 | **L10** `adapted`'s window ends below its end; `objectschart`'s spans `adapted` | SOUND |
-| 657–666 | **L11** QUADWORDS 16000/14560 parsed; `mask_pixels` DI < 65536 | SOUND (parse vs literal) |
+| 622-636 | **L9** 11 pads / 22 zones / 18 owned / two magics / origins in own SUB | WEAK -- construction counts; falsified by `NOPAD`/`ONEZONE` |
+| 642-650 | **L10** `adapted`'s window ends below its end; `objectschart`'s spans `adapted` | SOUND |
+| 657-666 | **L11** QUADWORDS 16000/14560 parsed; `mask_pixels` DI < 65536 | SOUND (parse vs literal) |
 | 670 | **L12a** alias 8 == `adapted[63996]` row 199 col 316 | SOUND as a pin; rests on the Tier-0 `SEG_OFFSET` |
 | **675** | **L12b** `a8["nw"] == self.seg_index("adapted", self.alias8_segoff)` -- and `alias8()` **returns** exactly `self.seg_index("adapted", self.alias8_segoff)` (:539) | **TAUTOLOGICAL -- `x == x`, unfalsifiable by any edit** |
 | 683 | **L13a** poly3d clamp keeps `y` in 0..199 | SOUND |
@@ -243,26 +243,26 @@ source edit would catch but a sabotage set does not contain.
 
 | file:line | check | verdict |
 |---|---|---|
-| 39–40 | `PERIOD_MS == 32768000/596591` and `55 - 44505/596591 == PERIOD_MS` | SOUND (module-load assertions, exact rationals) |
-| 735–737 | **A1** decomposition tracks the exact rational within 1 count, 7 cpms values | **SOUND** -- 32-bit decomposition vs unbounded `Fraction`, genuinely different constructions |
+| 39-40 | `PERIOD_MS == 32768000/596591` and `55 - 44505/596591 == PERIOD_MS` | SOUND (module-load assertions, exact rationals) |
+| 735-737 | **A1** decomposition tracks the exact rational within 1 count, 7 cpms values | **SOUND** -- 32-bit decomposition vs unbounded `Fraction`, genuinely different constructions |
 | 738 | **A2** largest intermediate fits int32 | SOUND |
 | 741 | **A3** period takes ≤2 adjacent values | SOUND |
 | 750 | **A2b** overflow ceiling is exactly 48239 | SOUND (two-sided) |
 | 759 | **A4** `9000*552086 > 2³¹` | SOUND (states the straw man is real) |
-| 769–776 | **A5** carry bounds the error; without it error grows 3191 → 25533 counts | **SOUND** -- the growth is measured, not asserted |
-| 133–158, 786 | wrap sweep of `expired()` against unbounded-integer truth, 1.5 M cases | **SOUND** -- the truth side is independent |
-| 810–827 | **T8a** window-length battery, 6 rows | **TAUTOLOGICAL on the value axis.** `Servo` is seeded **at** the true rate (`Servo(TRUE)`, and `counts += TRUE*L`), so "cpms within 1 of TRUE" is satisfied by an estimator that returns its seed. Measured: a do-nothing estimator passes all six rows. Only the `why` column carries signal |
-| **833–841** | **T8b** the ring sweep | **TAUTOLOGICAL -- §2.3** |
-| 850–859 | **T8c** midnight refusal + fold monotone (`86399900 → 86400100, Δ200`) | SOUND (falsified by `WALLNOFOLD`) |
-| 872 | **T8d** rounded vs truncated differ by exactly 1 cpms | CIRCULAR‑SELF in form (same function, flag flipped) but the expected pair `(TRUE+1, TRUE)` is independently checkable arithmetic → SOUND in substance |
+| 769-776 | **A5** carry bounds the error; without it error grows 3191 → 25533 counts | **SOUND** -- the growth is measured, not asserted |
+| 133-158, 786 | wrap sweep of `expired()` against unbounded-integer truth, 1.5 M cases | **SOUND** -- the truth side is independent |
+| 810-827 | **T8a** window-length battery, 6 rows | **TAUTOLOGICAL on the value axis.** `Servo` is seeded **at** the true rate (`Servo(TRUE)`, and `counts += TRUE*L`), so "cpms within 1 of TRUE" is satisfied by an estimator that returns its seed. Measured: a do-nothing estimator passes all six rows. Only the `why` column carries signal |
+| **833-841** | **T8b** the ring sweep | **TAUTOLOGICAL -- §2.3** |
+| 850-859 | **T8c** midnight refusal + fold monotone (`86399900 → 86400100, Δ200`) | SOUND (falsified by `WALLNOFOLD`) |
+| 872 | **T8d** rounded vs truncated differ by exactly 1 cpms | CIRCULAR-SELF in form (same function, flag flipped) but the expected pair `(TRUE+1, TRUE)` is independently checkable arithmetic → SOUND in substance |
 | 886 | **T8e** clamp floor: from cpms 99 the servo climbs | SOUND |
-| 900 | **T8f‑good** windowed servo over 20 min, worst error 0.0000 % | **TAUTOLOGICAL** -- `servo_replay` seeds `Servo(true_cpms)` (:360) and feeds it `true_cpms`-derived counts. Measured: a do-nothing estimator scores worst error 0.0000 %, 0.00 s/hour and PASSES. Contrast `tests/w5probe.txt`, which seeds 4 % low precisely so "do nothing" cannot pass -- the harness leg does not do this |
-| 907 | **T8f‑bad** the shipped run-start bracket collapses on the same input | **SOUND -- this is the leg that carries the whole servo claim** |
+| 900 | **T8f-good** windowed servo over 20 min, worst error 0.0000 % | **TAUTOLOGICAL** -- `servo_replay` seeds `Servo(true_cpms)` (:360) and feeds it `true_cpms`-derived counts. Measured: a do-nothing estimator scores worst error 0.0000 %, 0.00 s/hour and PASSES. Contrast `tests/w5probe.txt`, which seeds 4 % low precisely so "do nothing" cannot pass -- the harness leg does not do this |
+| 907 | **T8f-bad** the shipped run-start bracket collapses on the same input | **SOUND -- this is the leg that carries the whole servo claim** |
 | 918/921/926 | **T8g** `cal_end` clean / midnight / zero brackets | SOUND (literal expectations) |
-| 940 | **T8h** `grade_servolog(s.payload())` | **CIRCULAR‑SELF** -- S4's bound `max(1, cpms//100)` is *exactly* `Servo.fire`'s own clamp (:274–281), S5's window is exactly `cal_end`'s, S6 is enforced by the clamp floor. On `Servo` output S1–S6 cannot fail. Measured: passes with a do-nothing estimator. Sound only when `grade_servolog` is pointed at a **lino** SERVOLOG |
-| 413–436 | **S1..S6** as a grader of foreign logs | SOUND in that role |
-| 581–583 | **K1** tick count | SOUND |
-| 590–597 | **K2** every deadline step is a whole period within 1 count | **CIRCULAR‑SELF (partial):** `icpms` is recovered *from* `dgaps` (:548–553) and the reference `exact` is `round(icpms)*PERIOD_MS`. The check therefore asks "is the implied cpms near an integer?", never "is it the right cpms". The header's `cpms` is used only as a divisor for reporting |
+| 940 | **T8h** `grade_servolog(s.payload())` | **CIRCULAR-SELF** -- S4's bound `max(1, cpms//100)` is *exactly* `Servo.fire`'s own clamp (:274-281), S5's window is exactly `cal_end`'s, S6 is enforced by the clamp floor. On `Servo` output S1-S6 cannot fail. Measured: passes with a do-nothing estimator. Sound only when `grade_servolog` is pointed at a **lino** SERVOLOG |
+| 413-436 | **S1..S6** as a grader of foreign logs | SOUND in that role |
+| 581-583 | **K1** tick count | SOUND |
+| 590-597 | **K2** every deadline step is a whole period within 1 count | **CIRCULAR-SELF (partial):** `icpms` is recovered *from* `dgaps` (:548-553) and the reference `exact` is `round(icpms)*PERIOD_MS`. The check therefore asks "is the implied cpms near an integer?", never "is it the right cpms". The header's `cpms` is used only as a divisor for reporting |
 | 603 | **K3** accumulated drift ≤ 1 count per constant-cpms run | same self-derived reference as K2 |
 | 613 | **K3b** cpms spread within 1 % *within one log* | SOUND for its claim |
 | 642 | **K4** next deadline strictly future; skip flag agrees with `k` | SOUND |
@@ -287,19 +287,19 @@ source edit would catch but a sabotage set does not contain.
 | file:line | check | verdict |
 |---|---|---|
 | 543 | **P1** generated `range8088` == the literal parsed out of NOCTIS-0.CPP | **SOUND** -- two constructions of the same table |
-| 549–550 | **P2** upload span is `[0,384)`; 128..255 left stale | SOUND (literal) |
+| 549-550 | **P2** upload span is `[0,384)`; 128..255 left stale | SOUND (literal) |
 | 557 | **P3** self-copy compounds; expected side uses a **clean** `Palette().filter_one` | SOUND (the clean reference is the right call; C's twin is not -- see §3.7 S2) |
-| 563–565 | **P4** shade truncates 62.75→62, −1→0, 64→63 | SOUND (literals) |
+| 563-565 | **P4** shade truncates 62.75→62, −1→0, 64→63 | SOUND (literals) |
 | 570 | **P5** LUT (63,32,0) → `0x00FC8000` | SOUND |
-| 575–583 | **P6** `schar(200) == -56`; the modular-unsigned filter | SOUND |
-| 588–598 | **P7** four filter identities against literals | SOUND |
+| 575-583 | **P6** `schar(200) == -56`; the modular-unsigned filter | SOUND |
+| 588-598 | **P7** four filter identities against literals | SOUND |
 | 602 | **P8** 21 shade sites, 14 `surface_palette`, 7 `tmppal` | **SOUND** -- regex over the 1996 source vs a literal; this is how "17 of 24" was caught as stale |
 | 607/612 | **P8** shade's destination parameter is general | SOUND |
 | 620 | **P9** srfpal6 read unsigned | SOUND |
-| 626–628 | **P10** two fades do not compound; `want` uses a **clean** `filter_one` | SOUND |
-| 633–646 | **P11** three exhaustive proofs (trap 2 unreachable, DOS16 == C32 on 65 536 pairs, PYFILT diverges on exactly 8064) | **SOUND** -- each has a real possible answer other than the asserted one |
-| 470–496 | `fit_filter` / `tier1_palette_audit` against a capture | SOUND (external observed side, falsifiers reported) |
-| 502–529 | `separation_matrix` | reporting, not grading; **honest** -- it prints two of the fixture's own claims that do **not** hold |
+| 626-628 | **P10** two fades do not compound; `want` uses a **clean** `filter_one` | SOUND |
+| 633-646 | **P11** three exhaustive proofs (trap 2 unreachable, DOS16 == C32 on 65 536 pairs, PYFILT diverges on exactly 8064) | **SOUND** -- each has a real possible answer other than the asserted one |
+| 470-496 | `fit_filter` / `tier1_palette_audit` against a capture | SOUND (external observed side, falsifiers reported) |
+| 502-529 | `separation_matrix` | reporting, not grading; **honest** -- it prints two of the fixture's own claims that do **not** hold |
 
 `fb_pal.py` is the cleanest file in the harness. No tautologies found.
 
@@ -310,7 +310,7 @@ source edit would catch but a sabotage set does not contain.
 | 302 | **W1** `spot` naive − masked == 65536 | **WEAK/TAUTOLOGICAL** -- `n − (n mod 65536) == 65536` is an identity for any `n ∈ [65536, 131072)`. The value can never be anything else for any masked implementation; the check reduces to "is a mask present", which `MASKSPOT` already answers |
 | 307 | **W1** `cirrus` delta == 32768 | same shape |
 | 315 | **W1** masking the address ≠ masking the truncation point | SOUND (two branches, real difference) |
-| 325–332 ×2 | **W2** the unmasked index leaves its own buffer | SOUND (layout property) |
+| 325-332 ×2 | **W2** the unmasked index leaves its own buffer | SOUND (layout property) |
 | 339/343 | **W2b** `126739 → NW 231727 = objectschart+21155`, `63911 → NW 274483 = adapted+3399` | **PROVENANCE UNVERIFIED** -- the literals are "the architect's recon" numbers. If that recon derived them from this same layout model, the check is the same implementation invoked twice. It pins the layout either way, so keep it, but the provenance must be established or the row downgraded |
 | 361 | **W3** every masked address is inside its region or its own SUB, 340 cases | **TAUTOLOGICAL over its corpus.** `mask = segbase + u16(x)` spans `[segbase, segbase+65535]`; every region involved is ≥ 65536 with `base = segbase+4`, so containment holds for **every** input, not just the 340. `WAVE5B_CORRECTIONS.md` §CRITICAL 2 admits this for `tests/`' M5 and requires the detail text to say so; **fb_wrap.py's W3 text carries no such disclaimer** and reads as empirical coverage |
 | 376 | **W3b** `px = 65536-k, k=1..4` folds onto segment offsets 3,2,1,0 | **TAUTOLOGICAL** -- computed `segbase + u16(4-k+65536)` vs wanted `segbase + (4-k)`: the same expression. Falsifiable only by `SEGADDRBASE` |
@@ -335,7 +335,7 @@ source edit would catch but a sabotage set does not contain.
 
 | file:line | check | verdict |
 |---|---|---|
-| 1163–1166 | **B1–B3** byte store/mask/sign-extend | SOUND (literals); no sabotage reaches them |
+| 1163-1166 | **B1-B3** byte store/mask/sign-extend | SOUND (literals); no sabotage reaches them |
 | 1173/1176 | **B4** quadrant bitfield | SOUND (literals) |
 | 1182 | **B5** one byte per unit | SOUND (falsified by `PACK4`) |
 | **1193** | **A1 spot** `n - m == 65536 \|\| site_wraps[SITE_SPOT] == 0` | **TAUTOLOGICAL under the sabotage it names.** `BREAK_MASKSPOT` sets `masked = naive`, so `site_wraps == 0` and the escape clause passes the check. Measured, from a real `-DBREAK_MASKSPOT` build: `PASS A1 spot py=61200 px=65535: masked NW 231723, naive NW 231723, delta 0`. The sabotage is caught by A2/A3/E2 instead -- but A1, the check that names the mask, is disarmed by its own `\|\|` |
@@ -354,17 +354,17 @@ source edit would catch but a sabotage set does not contain.
 | 1290 | **C1** `can[3] == padbase[0]+probeslot(0) && can[3] != 0` | WEAK -- identity except that a stubbed walker sends it to 0 |
 | 1310 | **T1** 4096 ticks total vs an exact int64 formula | **SOUND** -- independent construction |
 | 1313 | **T1** ≤2 adjacent period values | SOUND |
-| 1314–1316 | **T2** three wait-predicate literals | SOUND (falsified by `TICKCMP`, except the sign-boundary row) |
+| 1314-1316 | **T2** three wait-predicate literals | SOUND (falsified by `TICKCMP`, except the sign-boundary row) |
 | 1321/1322 | **S1** `schar(200) == -56`; `filter_one(1,-56) == 63` | SOUND. Note: the second **passes under `BREAK_DIV64`** (65480/64 = 1023, still clamped to 63) |
 | 1331 | **S1** trap 2 unreachable | SOUND |
 | 1341/1351 | **S1** shade destination general; srfpal6 read unsigned | SOUND |
-| **1367** | **S2** `cmp_got == cmp_want`, where `cmp_want` at :947 is built with **the same `#ifdef`'d `filter_one`** as the code under test | **CIRCULAR‑SELF on the filter axis.** Under `BREAK_DIV64` both sides use `/64` and S2 passes. Measured: `BREAK_DIV64 caught by curpal6,kself,lut,pal6` -- **no `selftest`**, i.e. the C self-test is completely blind to it. Python's twin (P10, :459) avoids this by building `want` from a *clean* `Palette()` |
+| **1367** | **S2** `cmp_got == cmp_want`, where `cmp_want` at :947 is built with **the same `#ifdef`'d `filter_one`** as the code under test | **CIRCULAR-SELF on the filter axis.** Under `BREAK_DIV64` both sides use `/64` and S2 passes. Measured: `BREAK_DIV64 caught by curpal6,kself,lut,pal6` -- **no `selftest`**, i.e. the C self-test is completely blind to it. Python's twin (P10, :459) avoids this by building `want` from a *clean* `Palette()` |
 | **1383** | **E1** `FB[i] == PAL[nw_get(adaptor+i)]` for all 64 000 | **TAUTOLOGICAL -- `present_expand` (:668) is literally `FB[i] = PAL[nw_get(src+i)]`.** The check re-executes the assignment it is checking. Never falsified by any of the 25 sabotages |
 | 1385 | **E2** the wrap battery actually wrapped | SOUND |
 | 1389 | **E2** containment after the battery | SOUND (falsified by 4 sabotages) |
 
 **Measured mutation coverage: 17 of 36 self-test checks are never falsified by
-any of the 25 sabotages.** Several of those are legitimate literal pins (B1–B4,
+any of the 25 sabotages.** Several of those are legitimate literal pins (B1-B4,
 T1, S1) that a source edit would catch. Four are structurally unable to fail:
 A1×2 (escape clause), P1-poison, E1.
 
@@ -372,10 +372,10 @@ A1×2 (escape clause), P1-poison, E1.
 
 | file:line | check | verdict |
 |---|---|---|
-| 47/52–55 | BMP signature, bpp, planes, compression | SOUND (format validation) |
+| 47/52-55 | BMP signature, bpp, planes, compression | SOUND (format validation) |
 | 160/177/181 | PNG depth/interlace/colour-type/PLTE/geometry | SOUND |
-| 185–193 | every 2×2 block uniform, else "not a raw mode-13h dump" | **SOUND** -- refuses the oracle rather than resampling it |
-| 237–239 | `consistent_with_x4` / `consistent_with_shift_or`, both reported | **SOUND** -- falsifiable in both directions, which is why the Tier 1 row means something |
+| 185-193 | every 2×2 block uniform, else "not a raw mode-13h dump" | **SOUND** -- refuses the oracle rather than resampling it |
+| 237-239 | `consistent_with_x4` / `consistent_with_shift_or`, both reported | **SOUND** -- falsifiable in both directions, which is why the Tier 1 row means something |
 
 No defects. This file is the only genuinely external oracle in the harness and it
 is handled correctly.
@@ -413,24 +413,24 @@ exactly the catcher set every sabotage row reports.
 
 | # | finding | file:line | class |
 |---|---|---|---|
-| 1 | The sabotage matrix's pass criterion does not depend on the sabotage; the clean build is reported CAUGHT | `fb_compare.py:903–957` | CIRCULAR‑STORED |
+| 1 | The sabotage matrix's pass criterion does not depend on the sabotage; the clean build is reported CAUGHT | `fb_compare.py:903-957` | CIRCULAR-STORED |
 | 2 | `witness(i)` is a bare literal; `dirty_read` (11 of 44 canary units) moves under no mechanism sabotage. The documented `0xB0B32000+17i+(clean&255)` rule is not implemented anywhere | `fb_layout.py:1123`, `fb_ref.c:384,1286` | TAUTOLOGICAL |
-| 3 | `ring_sweep`'s identity clause never fires; 589 824 "cases" are 9 evaluations of one inequality; it is the stated basis for `SRVMAX` | `fb_tick.py:325–347, 833–841` | TAUTOLOGICAL |
+| 3 | `ring_sweep`'s identity clause never fires; 589 824 "cases" are 9 evaluations of one inequality; it is the stated basis for `SRVMAX` | `fb_tick.py:325-347, 833-841` | TAUTOLOGICAL |
 | 4 | **`fb_ref.c` A1 is disarmed by its own escape clause under `BREAK_MASKSPOT` -- measured PASS with `delta 0`** | `fb_ref.c:1193,1197` | TAUTOLOGICAL |
 | 5 | **`E1` re-executes the assignment it checks** | `fb_ref.c:1383` vs `:668` | TAUTOLOGICAL |
-| 6 | **`grade_ticklog` recovers cpms from the log and never compares it to the header -- a 10 %-fast tick passes** | `fb_tick.py:548–606` | CIRCULAR‑SELF |
-| 7 | **`T8a` and `T8f-good` seed the servo AT the true rate; a do-nothing estimator passes both** | `fb_tick.py:810–827, 900` | TAUTOLOGICAL |
-| 8 | **`T8h` grades `Servo` output with bounds that are `Servo`'s own clamp rules -- S1..S6 cannot fail on it** | `fb_tick.py:940` | CIRCULAR‑SELF |
-| 9 | **`fb_ref.c` S2 builds its `want` with the sabotaged `filter_one`; the C self-test is blind to `BREAK_DIV64`** | `fb_ref.c:947,1367` | CIRCULAR‑SELF |
+| 6 | **`grade_ticklog` recovers cpms from the log and never compares it to the header -- a 10 %-fast tick passes** | `fb_tick.py:548-606` | CIRCULAR-SELF |
+| 7 | **`T8a` and `T8f-good` seed the servo AT the true rate; a do-nothing estimator passes both** | `fb_tick.py:810-827, 900` | TAUTOLOGICAL |
+| 8 | **`T8h` grades `Servo` output with bounds that are `Servo`'s own clamp rules -- S1..S6 cannot fail on it** | `fb_tick.py:940` | CIRCULAR-SELF |
+| 9 | **`fb_ref.c` S2 builds its `want` with the sabotaged `filter_one`; the C self-test is blind to `BREAK_DIV64`** | `fb_ref.c:947,1367` | CIRCULAR-SELF |
 | 10 | **Four unconditional `True` checks inflate the pass count** | `fb_wrap.py:416`, `fb_stick.py:352,360`, `fb_compare.py:651` | TAUTOLOGICAL |
 | 11 | **`L12b` is `x == x`; `L14` references no subject** | `fb_layout.py:675,696` | TAUTOLOGICAL |
 | 12 | **`W3`/`W3b` are true for every input, not just their 340-case corpus, and say otherwise** | `fb_wrap.py:361,376` | TAUTOLOGICAL |
 | 13 | **`P1`-poison is write-X-check-X** | `fb_ref.c:1252` | TAUTOLOGICAL |
-| 14 | **L1 and L2 are constructor identities** (`got` built by iterating `want`; `gap == PAD` by construction, and `0 == 0` under `NOPAD`) | `fb_layout.py:564,568–569` | TAUTOLOGICAL |
-| 15 | **The LINOBUF 6.1 check now grades the wrong section** | `fb_compare.py:198–199, 790` | see §4.6 |
+| 14 | **L1 and L2 are constructor identities** (`got` built by iterating `want`; `gap == PAD` by construction, and `0 == 0` under `NOPAD`) | `fb_layout.py:564,568-569` | TAUTOLOGICAL |
+| 15 | **The LINOBUF 6.1 check now grades the wrong section** | `fb_compare.py:198-199, 790` | see §4.6 |
 | 16 | `py_never_wraps` samples two `cy` endpoints while the text claims "every one of the … cases" | `fb_wrap.py:225,399` | scope overstated |
 | 17 | `escape_census` counts by closed form, not enumeration -- a closed-form error is unfalsifiable | `fb_wrap.py:210` | unfalsifiable sub-computation |
-| 18 | `W2b`'s "recon cross-check" literals have unverified provenance | `fb_wrap.py:337–346` | provenance |
+| 18 | `W2b`'s "recon cross-check" literals have unverified provenance | `fb_wrap.py:337-346` | provenance |
 
 ### 4.6 The LINOBUF 6.1 check, in detail
 
@@ -463,7 +463,7 @@ currently produced by a mis-targeted documentary check, not by any measurement.
 
 ## 5. The mechanical test -- so a future wave does not have to think of asking
 
-Every finding above except §4.15–4.18 is detectable by **one property**:
+Every finding above except §4.15-4.18 is detectable by **one property**:
 
 > A graded check must be falsified by at least one available mutation.
 > A check that survives every mutation is either a constant pin (declare it) or
@@ -590,7 +590,7 @@ tree. They are the seed of `fb_mutcov.py` in §5.
   the wave brief and nothing here contradicts them.
 * `fb_pal.py` and `fb_bmp.py` are clean. The Tier 1 palette evidence against the
   1996 BMP is the soundest thing in the harness and none of the findings touch it.
-* The 25-sabotage C matrix (`fb_compare.py:610–641`) is **sound** -- both sides
+* The 25-sabotage C matrix (`fb_compare.py:610-641`) is **sound** -- both sides
   rebuilt every run, nothing stored, and the target record must move. It is the
   model the lino matrix should have copied and did not.
 * Finding counts are a floor, not a ceiling. §5 exists because the next one will
@@ -600,7 +600,7 @@ tree. They are the seed of `fb_mutcov.py` in §5.
 
 ## 8. Wave 5c addendum -- the rule, executed (`tests/w5audit.py`)
 
-Sections 5.1–5.3 above propose the mechanical test. This section records what
+Sections 5.1-5.3 above propose the mechanical test. This section records what
 was actually built, what it found on its first run, and what was deleted.
 
 **The rule is no longer a sentence.** `tests/w5audit.py` runs inside

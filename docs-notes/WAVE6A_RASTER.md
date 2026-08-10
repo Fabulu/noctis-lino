@@ -114,7 +114,7 @@ What that grades, that nothing graded before:
 
 * the rotation nucleus and both optimised tables (`p`- and `t`-), through the
   per-vertex near flags `rwf[]` and `doflag`;
-* the near-plane Sutherland–Hodgman walk against `z == uneg`, through `vr2`;
+* the near-plane Sutherland-Hodgman walk against `z == uneg`, through `vr2`;
 * all four 2-D clip stages, through `vr3..vr6` at every stage actually reached;
 * the screen bounding box the clipper does *not* recompute;
 * the two `fistp` sites in `project3d`, through `mp[]`, at round-to-nearest-even;

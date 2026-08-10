@@ -17,7 +17,7 @@ script, and the shipped file is untouched.
 
 **Severity: high.** Silent, and it misdirects the diagnosis.
 
-`copy option` (compiler source, around lines 6217–6239) copies an option's value
+`copy option` (compiler source, around lines 6217-6239) copies an option's value
 until it hits either a character below the blank space, or **two consecutive
 hyphens** -- with no check that what follows the hyphens is actually an option
 name. There is no tokeniser at all; options are located by scanning the whole

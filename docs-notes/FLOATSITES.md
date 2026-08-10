@@ -834,12 +834,12 @@ sites and an implementer reading this registry will be reading that code.
 
 | tier | sites | requirement |
 |---|---|---|
-| exact integer | §3.1 (a)–(h) | no float at all; watch the C precedence in `%`-chains and the 32-bit wrap |
+| exact integer | §3.1 (a)-(h) | no float at all; watch the C precedence in `%`-chains and the 32-bit wrap |
 | small tables | §3.2 | precompute; 360-entry trig and orbit-orientation tables are the big wins |
 | one correctly-rounded op | §3.3 | a two-op soft-float suffices; no chain state |
 | extended-precision chains | §3.4 | 80-bit engine or a soft-float reproducing 64-bit-mantissa intermediates, **plus the Wave 2 spill transcription** at `NOCTIS-0.CPP:4089` and the `key_radius` loop |
 | round-to-nearest converts | §2.4, 37 sites | free under a round-to-nearest policy -- lino `=,` |
-| chop converts | §2.1–2.3 | one explicit helper: `__ftol` toward zero, then truncate to the destination width (16 bits for `int`, 32 for `long`, 8 for `unsigned char`) |
+| chop converts | §2.1-2.3 | one explicit helper: `__ftol` toward zero, then truncate to the destination width (16 bits for `int`, 32 for `long`, 8 for `unsigned char`) |
 
 **The single highest-value observation in this registry:** the star identity
 is a pure function of three exact int32 coordinates through five

@@ -65,7 +65,7 @@ byte and censuses field for field.
 | O1 | the two oracles emit the same record keys | EXACT | 19 kinds, 162 keys |
 | O2 | …and agree field for field | EXACT | 4,238 records, 0 differ |
 | O3/O4 | …and their page images are identical | EXACT | 50 pages, 0 differ |
-| T1–T7 | the two asset censuses, decoded a third time here | EXACT | agrees with `sp_spec` on all 10,780 draws and all 3,670 words |
+| T1-T7 | the two asset censuses, decoded a third time here | EXACT | agrees with `sp_spec` on all 10,780 draws and all 3,670 words |
 
 Three surfaces are graded here that no producer graded before:
 
@@ -106,7 +106,7 @@ saying so in code is better than widening the check.
 
 `GLOBES.MAP` is **shipped** and compared byte-exactly. The recovered
 projective model is the test's *independent predictor*, and it is bounded, not
-exact. The constants are PORTPLAN.md:611–620's, pinned as source text and
+exact. The constants are PORTPLAN.md:611-620's, pinned as source text and
 never refitted at test time -- a refit would be table-versus-table and would
 prove nothing.
 

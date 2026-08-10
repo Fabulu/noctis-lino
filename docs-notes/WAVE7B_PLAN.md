@@ -127,7 +127,7 @@ snapshot key (not a full descent), so it is far more tractable than WAVEPLAN §7
 the human 10-minute session is the fallback only if that single-key AUTOTYPE fails. **One
 capture per planet type (10); per (type, sctype) for type-3.**
 
-Before this capture existed, 7b graded only tiers 1–2 (C-from-source three-way)
+Before this capture existed, 7b graded only tiers 1-2 (C-from-source three-way)
 and carried the **"type-3 ground terrain unvalidated against hardware" flag**
 (WAVEPLAN §7 stall mode).  The capture now provides the binary oracle; the
 remaining limitation is the measured heightmap mismatch below, not a missing

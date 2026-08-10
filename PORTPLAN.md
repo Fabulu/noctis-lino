@@ -657,7 +657,7 @@ is proportional to cpms, so the whole tick degrades. Reproduced arithmetically.
 "write contained by 16-bit wrap inside the buffer's own segment" by allocating
 the full segment. **Allocation size cannot reproduce a wrap.** Under DOS the
 write folded to offset 0; under 32-bit unit addressing it walks linearly past
-the region end. This is the decision Waves 6–9 inherit.
+the region end. This is the decision Waves 6-9 inherit.
 
 **MAJOR:** the 16-unit pads are given two mutually exclusive jobs (guard band
 *and* legitimate destination for `digit_at`'s `txtr[-6..-1]`), so the first
