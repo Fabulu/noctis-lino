@@ -117,6 +117,27 @@ def lift_vertical_trace(start_y: int, lifter: int) -> list[tuple[int, int, bool]
     return trace
 
 
+def lift_ascent_route(
+    start_z_from_center: int, forward_sign: int
+) -> list[tuple[int, int, int, int]]:
+    """Source-order ascent along beta=0, including momentum and restraint."""
+    y, lifter, step = 0, -100, 0
+    trace: list[tuple[int, int, int, int]] = []
+    while lifter:
+        y += lifter
+        lifter += 1
+        if -715 < y < -325:
+            step = -y
+        if y < -750:
+            y, lifter = -750, 0
+        start_z_from_center += forward_sign * step
+        step = step * 4 // 5
+        if lifter:
+            start_z_from_center = int(start_z_from_center * 3 / 4)
+        trace.append((y, lifter, start_z_from_center, step))
+    return trace
+
+
 def main() -> int:
     game = GAME.read_text(encoding="utf-8")
     ground = GROUND.read_text(encoding="utf-8")
@@ -154,6 +175,13 @@ def main() -> int:
         and descent[-1] == (0, 0, False),
         "independent lift model reaches both exact endpoints and flips roof state below -500",
     )
+    ascent_route = lift_ascent_route(0, -1)
+    check(
+        ascent_route[-1] == (-750, 0, -1711, 434)
+        and ascent_route[-2] == (-679, -93, -1168, 543)
+        and abs(ascent_route[-1][2]) > 1100,
+        "source-order ascent momentum carries a centered rider clear of automatic return",
+    )
 
     lift = section(game, '"VHG lift tick"', '"VHG lift move"')
     check(
@@ -163,12 +191,15 @@ def main() -> int:
         "live lift retains its -325/-750/-500 camera and roof boundaries",
     )
     check(
-        lift.count("=> VHG lift move;") == 2
+        lift.count("=> VHG lift move;") == 1
         and "0FFFFFD35h" in lift
-        and "A = [VHGlifter]; A '/ 2;" in lift
+        and "A = [VHGlifter]; A '/ 2; [VHGliftstep] = A;" in lift
+        and "A = [VHGliftstep]; A * 4; A / 5;" in lift
+        and lift.index("[VHGonroof] = 1;") < lift.index("=> VHG lift move;")
+        and lift.index("A = [VHGlifter]; ? A = 0 -> VHG lift tick done;") < lift.index("A = [VHGx]; A * 3;")
         and "A = [VHGx]; A * 3; A / 4; [VHGx] = A;" in lift
         and "A = [VHGz]; A + 3100; A / 4;" in lift,
-        "ascent/descent motion precedes the original centre restraint",
+        "lift preserves source momentum and skips centre restraint at a reached endpoint",
     )
     platform = section(game, '"VHG platform"', '"VHG lift tick"')
     ship_input = section(game, '"VHG normal input"', '"VHG surface input"')
@@ -191,9 +222,11 @@ def main() -> int:
 
     lift_move = section(game, '"VHG lift move"', '"VHG land"')
     check(
-        "A = [VHGbeta]; A - 180;" in lift_move
-        and "[VHVbeta] = A; => VH set view;" in lift_move,
-        "source lift push removes the port hull's 180-degree yaw offset",
+        "[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;" in lift_move
+        and "A - 180" not in lift_move
+        and "beta = user_beta;" in original0
+        and "p_Forward (step);" in original,
+        "lift camera and source forward push share one player heading",
     )
     mouse_look = section(game, '"VHG mouse look"', '"VHG return key"')
     check(

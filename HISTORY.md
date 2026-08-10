@@ -184,9 +184,11 @@ to the deck or roof.
 Resolution: lift activation is gated to the centered aperture and moved to E,
 leaving all four arrows available for looking. The source ascent/descent ramps,
 camera pitch, center restraint, and local cupola-panel displacement are retained
-with the port's 180-degree hull render offset removed from the special ride
-motion. The roof releases the player; walking back into its opening triggers the
-original automatic descent.
+with one player heading shared by the view and forward motion. The ascent also
+retains the source's forward step and 1.25 friction through its final frame,
+when center restraint has already ended. The roof releases the player beyond
+the return aperture; walking back into its opening triggers the original
+automatic descent.
 
 ### Incorrect 60 FPS mode
 

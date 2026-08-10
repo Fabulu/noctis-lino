@@ -1,4 +1,4 @@
-NOCTIS IV — L.in.oleum port
+NOCTIS IV -- L.in.oleum port
 ============================
 
 Windows: keep every bundled file together and double-click

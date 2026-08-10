@@ -32,7 +32,9 @@ multi-hour hardening and some historical screens remain future work.
   movement.
 - The lift activates with E only while centered in its aperture. Up remains a
   look control; walking into the roof opening starts the original automatic
-  return, and pressing E elsewhere gives visible guidance.
+  return, and pressing E elsewhere gives visible guidance. The ascent retains
+  the source's forward momentum through the final roof frame, carries the
+  player clear, and uses the same heading for the view and ride motion.
 - Version 11 saves retain settled capsule coordinates, and older landed saves
   migrate without stranding the player away from the pod.
 

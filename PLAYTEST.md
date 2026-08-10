@@ -545,3 +545,17 @@ version-11 checkpoint stores `fast=0`, the original 18.206-FPS presentation.
 After relaunch, one F5 press stored `fast=1`; both sessions exited with code 0
 and maintained `CURRENT.BAK`. Existing checkpoints continue to retain whichever
 presentation mode their player selected.
+
+The RC27 lift smoke started the production executable from a temporary
+version-11 checkpoint with the player centered and `lifter=-100`, so no desktop
+key injection was involved. Before the fix, the captured sequence reached
+`LIFT: ROOF LEVEL` and then returned to `LIFT: INTERIOR DECK` within one second.
+The source comparison showed that the port had discarded `step` friction,
+continued center restraint on the endpoint frame, and rotated only the movement
+basis by 180 degrees. The rebuilt sequence shares one heading between view and
+motion, preserves `step /= 1.25`, clamps to `y=-750` before restraint, and
+remains under open sky. A same-camera roof comparison also shows only the local
+upper cupola panels displaced while its support grid remains fixed, matching
+`polycupola(+1, 1)`. The independent route check pins a centered ascent 1,711
+units from the cupola center, outside its 1,100-unit automatic-return radius;
+the roof-center checkpoint still descends to `y=0`.

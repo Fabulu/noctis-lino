@@ -52,7 +52,7 @@
 
 	VHGx = 0; VHGy = 0; VHGz = 0;
 	VHGalpha = 0; VHGbeta = 0; VHGnavbeta = 0; VHGabs = 0;
-	VHGlifter = 0; VHGonroof = 0; VHGridearmed = 1; VHGuprequest = 0; VHGupheld = 0;
+	VHGlifter = 0; VHGliftstep = 0; VHGonroof = 0; VHGridearmed = 1; VHGuprequest = 0; VHGupheld = 0;
 	VHGdx = 0; VHGdz = 0; VHGdist = 0;
 	VHGesc = 0; VHGframe = 0; VHGsent = 0;
 	VHGmouseheld = 0; VHGmousex = 0; VHGmousey = 0; VHGmousedx = 0; VHGmousedy = 0;
@@ -1689,7 +1689,7 @@
 	[VHGnoticeptr] = VHGliftfindtext; [VHGnoticeframes] = 75;
 	-> VHG platform done;
     "VHG platform go roof"
-	A = 0; A - 100; [VHGlifter] = A;
+	A = 0; A - 100; [VHGlifter] = A; [VHGliftstep] = 0;
 	-> VHG platform done;
 	"VHG platform roof"
 	( With no inertial walking accumulator, held ship movement is the source's
@@ -1709,7 +1709,7 @@
 	end;
 
 "VHG lift tick"
-	A = [VHGlifter]; ? A = 0 -> VHG lift roof flag;
+	A = [VHGlifter]; ? A = 0 -> VHG lift coast;
 	A = [VHGy]; A + [VHGlifter]; [VHGy] = A;
 	A = [VHGlifter]; ? A > 0 -> VHG lift descending;
 	[VHGlifter]+;
@@ -1722,7 +1722,7 @@
 	  the visible approach through the opening, not ordinary player input. )
 	A = [VHGy]; ? A <= 0FFFFFD35h -> VHG lift hold centre; ( pos_y <= -715 )
 	? A >= 0FFFFFEBBh -> VHG lift hold centre; ( pos_y >= -325 )
-	C = 0; C - A; [VHGstepv] = C; => VHG lift move;
+	C = 0; C - A; [VHGliftstep] = C;
 	-> VHG lift hold centre;
     "VHG lift descending"
 	[VHGlifter]-;
@@ -1732,12 +1732,11 @@
     "VHG lift level look"
 	A = [VHGalpha]; A '/ 4; C = [VHGalpha]; C - A; [VHGalpha] = C;
     "VHG lift descent move"
-	A = [VHGlifter]; A '/ 2; [VHGstepv] = A; => VHG lift move;
+	A = [VHGlifter]; A '/ 2; [VHGliftstep] = A;
     "VHG lift hold centre"
-	( NOCTIS.CPP:4541-4545 applies this after the ride's camera-relative step. )
-	A = [VHGx]; A * 3; A / 4; [VHGx] = A;
-	A = [VHGz]; A + 3100; A / 4; C = [VHGz]; C - A; [VHGz] = C;
-    "VHG lift bounds"
+	( NOCTIS.CPP clamps the vertical endpoint before its ordinary forward
+	  movement and the later hold-to-middle pass.  In particular, the final
+	  ascent frame has lifter=0 and must not be pulled back into the opening. )
 	A = [VHGy]; ? A <= 0 -> VHG lift upper ok;
 	[VHGy] = 0; [VHGlifter] = 0;
 	[VHGnoticeptr] = VHGliftdecktext; [VHGnoticeframes] = 75;
@@ -1749,16 +1748,29 @@
 	[VHGonroof] = 0; A = [VHGy]; ? A >= 0FFFFFE0Ch -> VHG lift done;
 	[VHGonroof] = 1;
     "VHG lift done"
+	-> VHG lift motion;
+    "VHG lift coast"
+	A = [VHGliftstep]; ? A = 0 -> VHG lift tick done;
+    "VHG lift motion"
+	A = [VHGliftstep]; ? A = 0 -> VHG lift restrain;
+	[VHGstepv] = A; => VHG lift move;
+	( Source friction is step /= 1.25 after movement.  Retaining that value is
+	  what carries the rider clear of the aperture on the final roof frame. )
+	A = [VHGliftstep]; A * 4; A / 5; [VHGliftstep] = A;
+    "VHG lift restrain"
+	A = [VHGlifter]; ? A = 0 -> VHG lift tick done;
+	( NOCTIS.CPP:3583-3587 applies this only while lifter remains active. )
+	A = [VHGx]; A * 3; A / 4; [VHGx] = A;
+	A = [VHGz]; A + 3100; A / 4; C = [VHGz]; C - A; [VHGz] = C;
+    "VHG lift tick done"
 	end;
 
 "VHG lift move"
 	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
-	( VHGbeta includes the port hull's 180-degree model offset; the source's
-	  forced lift step uses user_beta without that offset. )
-	[VHValpha] = [VHGalpha]; A = [VHGbeta]; A - 180;
-	? A >= VHGN180 -> VHG lift beta ready; A + 360;
-    "VHG lift beta ready"
-	[VHVbeta] = A; => VH set view;
+	( from_user() and p_Forward(step) share user_beta in NOCTIS.CPP.  Use the
+	  visible camera heading here too, so the ride never moves backward under
+	  a separately rotated basis. )
+	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
 	=> VHG forward;
 	end;
 
@@ -2039,7 +2051,7 @@
 	[VHGalpha] = 0; [VHGbeta] = 180;
 	[VHGshipx] = 0; [VHGshipy] = 0; [VHGshipz] = 0;
 	[VHGplanet] = 0; [VHGframe] = 0; [VHGsent] = 0;
-	[VHGlifter] = 0; [VHGonroof] = 0; [VHGridearmed] = 1; [VHGuprequest] = 0;
+	[VHGlifter] = 0; [VHGliftstep] = 0; [VHGonroof] = 0; [VHGridearmed] = 1; [VHGuprequest] = 0;
 	[VHGCstate] = 0; [VHGCcapcount] = 0; [VHGCrecover] = 0;
 	[VHGrescueactive] = 0; [VHGrescuetick] = 0; [VHGcollector] = 0;
 	[VHGdev] = 0; [VHGinfo] = 0; [VHGilight] = 1; [VHGlighttick] = 0; [VHLpower] = 1;
