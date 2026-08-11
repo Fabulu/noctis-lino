@@ -19,6 +19,8 @@ goal, with an in-game off control preserving the original silent experience.
   keep matching. The licence position depends on it.
 - Publication is authorised under the original WPL while preserving Noctis IV's
   original gameplay and credits. Keep licence scope and provenance explicit.
+- Commit and push coherent playable checkpoints intermittently so substantial
+  delivery work never accumulates only in the local checkout.
 - Verify claims by running things. A wave is not done because an agent said so.
 
 ## Lean check before any new wave
