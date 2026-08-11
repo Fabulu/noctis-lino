@@ -43,6 +43,7 @@ $assets = @(
     @{ Source = (Join-Path $workDir 'birdy.ncc');          Name = 'birdy.ncc';         Size = 1002 },
     @{ Source = (Join-Path $workDir 'digimap2.bin');       Name = 'digimap2.bin';      Size = 9360 },
     @{ Source = (Join-Path $workDir 'STARMAP.BIN');        Name = 'STARMAP.BIN';       Size = -1 },
+    @{ Source = (Join-Path $workDir 'GUIDE.BIN');          Name = 'GUIDE.BIN';         Size = -3 },
     @{ Source = (Join-Path $workDir 'noctis_music.pcm');  Name = 'noctis_music.pcm'; Size = -2 },
     @{ Source = (Join-Path $projectRoot 'Play Noctis IV.cmd'); Name = 'Play Noctis IV.cmd'; Size = 0 },
     @{ Source = (Join-Path $projectRoot 'PLAYER_README.txt'); Name = 'README.txt';     Size = 0 },
@@ -74,6 +75,14 @@ foreach ($asset in $assets) {
     if ($asset.Size -eq -2 -and
         ($length -le 0 -or $length -gt 26400000 -or $length % 4 -ne 0)) {
         throw 'noctis_music.pcm must be non-empty interleaved stereo S16LE data'
+    }
+    if ($asset.Size -eq -3) {
+        $bytes = [IO.File]::ReadAllBytes($asset.Source)
+        if ($bytes.Length -lt 4 -or ($bytes.Length - 4) % 84 -ne 0 -or
+            [BitConverter]::ToInt32($bytes, 0) -ne $bytes.Length -or
+            $bytes.Length -gt 8388608) {
+            throw 'GUIDE.BIN does not satisfy the bounded 4 + 84n record contract'
+        }
     }
 }
 

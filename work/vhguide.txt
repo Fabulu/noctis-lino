@@ -1,0 +1,40 @@
+      ( Noctis IV Galactic Guide database.
+
+	GUIDE.BIN begins with its total byte size, followed by 84-byte records:
+	a binary64 catalogue identity and a zero-padded 76-byte message.  Keep
+	room for CAST additions while rejecting malformed or unbounded files. )
+
+"constants"
+
+	VHGDBHDR = 4;
+	VHGDBREC = 84;
+	VHGDBMAX = 8388608;
+
+"variables"
+
+	VHGDBfile = { GUIDE.BIN };
+	VHGDBloaded = 0; VHGDBbytes = 0; VHGDBrecs = 0;
+
+"workspace"
+
+	vhguidedata = 2097152;
+
+"programme"
+
+"VHGDB load"
+	[VHGDBloaded] = 0; [VHGDBbytes] = 0; [VHGDBrecs] = 0;
+	[File Name] = VHGDBfile; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHGDB load done;
+	A = [File Size]; ? A < VHGDBHDR -> VHGDB load done;
+	? A > VHGDBMAX -> VHGDB load done; [VHGDBbytes] = A;
+	A - VHGDBHDR; C = A; A '% VHGDBREC; ? A != 0 -> VHGDB load bad;
+	C / VHGDBREC; [VHGDBrecs] = C;
+	[File Name] = VHGDBfile; [File Position] = 0; [File Command] = READ;
+	[Block Pointer] = vhguidedata; [Block Size] = [VHGDBbytes]; isocall;
+	A = [Block Size]; ? A != [VHGDBbytes] -> VHGDB load bad;
+	A = [vhguidedata]; ? A != [VHGDBbytes] -> VHGDB load bad;
+	[VHGDBloaded] = 1; -> VHGDB load done;
+    "VHGDB load bad"
+	[VHGDBbytes] = 0; [VHGDBrecs] = 0;
+    "VHGDB load done"
+	end;

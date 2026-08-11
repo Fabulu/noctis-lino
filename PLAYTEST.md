@@ -759,3 +759,14 @@ probe at that reached star, `ST FENHOME:3` resolved its P03 catalogue identity,
 selected zero-based body 2, set local approach active, and emitted the source's
 two local-drive confirmation rows. Both operations completed in one native
 process with exit code 0.
+
+### GOES CAT and Galactic Guide regression
+
+The shipping game loaded the original 4,063,588-byte `GUIDE.BIN`, validated
+its header and all 48,376 fixed records, then ran `CAT SURICRASIA:1..2` in a
+native probe. The retained output identified SURICRASIA as a planet and emitted
+the `(1)` and `(2)` guide records with source-width wrapping, beginning
+`SURICRASIA: ONE OF / THE MOST BEAUTIFUL / PLANETS IN THE WHOLE / GALAXY, AT`
+and `LEAST FROM MY POINT / OF VIEW. NOBODY / SHOULD MISS THE / SURICRASIAN SKY AT`.
+The process exited 0. A disposable package contained the identical 4,063,588
+bytes and SHA-256 `e2d22f76383a8ac254f3bd6dd956faec69a47f080955b332cc0fbf8fb228b3b3`.

@@ -72,6 +72,11 @@ first -- a broken foundation makes every later result meaningless.
   currently reached parent system and immediately start the existing local
   drive. Native probes retargeted ELRAINE and then selected its FENHOME P03,
   leaving body index 2 in active local approach.
+- `CAT <catalogued name>[:X..Y]` now reads the original Galactic Guide rather
+  than placeholder prose. The bounded loader validates all 4,063,588 bytes and
+  48,376 `binary64 + 76-byte message` records. CAT retains exact catalogue
+  identity matching, one-based record ranges, and 21-column word wrapping.
+  A native query of `SURICRASIA:1..2` reproduced the first two source records.
 
 ### Clickable FCS and onboard pages
 
@@ -1090,12 +1095,12 @@ Both reference ports moved assets out of the executable independently.
 The integrated executable's complete runtime read audit requires the extracted
 `globes.map` (22,586), `offsets.map` (7,340), `vehicle.ncc` (5,802),
 `mammal.ncc` (2,752), `birdy.ncc` (1,002), `digimap2.bin` (9,360), the mutable
-`STARMAP.BIN` catalogue, and the authorized `noctis_music.pcm` soundtrack.
+`STARMAP.BIN` catalogue, the original `GUIDE.BIN` Galactic Guide database, and
+the authorized `noctis_music.pcm` soundtrack.
 `package_noctis.ps1` validates and copies those files beside the executable,
 then emits their SHA-256 manifest. `CURRENT.LIN` is generated on first clean
 exit. `SUPPORTS.NCT` is the upstream container from which the map/model/font
-assets were extracted; `GUIDE.BIN` is provenance data but is not opened by the
-integrated executable, so neither is a runtime-bundle dependency.
+assets were extracted and is not a runtime-bundle dependency.
 
 Do **not** port: the seven `.VOC` files (zero references in either tree),
 `ALPHABET.NCC` / `EXT-VHCL.NCC` / `FACE.NCC` / `PARATIE.NCC` (never loaded),

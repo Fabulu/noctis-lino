@@ -5,6 +5,7 @@ work/*.exe
 work/*.bin
 !work/STARMAP.BIN
 !work/digimap2.bin
+!work/GUIDE.BIN
 work/errorlog.txt
 work/smblsmap.txt
 work/gamediag.txt
@@ -48,8 +49,8 @@ main/lib/gen/compiler114n.txt
 COMMITMSG.tmp
 
 # Local saves, release builds, capture evidence, and media-player diagnostics.
-# STARMAP.BIN is intentionally versioned: it is an original runtime asset used
-# by clean checkouts and distributable bundles.
+# STARMAP.BIN and GUIDE.BIN are intentionally versioned original runtime assets
+# used by clean checkouts and distributable bundles.
 CURRENT.LIN
 dist/
 vlc-help.txt

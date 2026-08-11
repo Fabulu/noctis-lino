@@ -15,7 +15,7 @@
 	spmem; spscale; spmap; spglobe; spglow; spbg; spwhite; spncc;
 	mul64frag; brtl; suseed; surng; subuflive; susm; supaint; supal; sucase; grnd; sky;
 	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
-	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhcatalog; vhspace; vhstar; vhground; vhcapsule; vhsave; vhaudio; vhgui;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhcatalog; vhguide; vhspace; vhstar; vhground; vhcapsule; vhsave; vhaudio; vhgui;
 
 "directors"
 
@@ -86,6 +86,10 @@
 	VHGparsectx = 0; VHGparsecty = 0; VHGparsectz = 0;
 	VHGparix = 0; VHGpariy = 0; VHGpariz = 0;
 	VHGparaxischar = 0; VHGparcoord = 0;
+	VHGcatstart = 1; VHGcatend = 32767; VHGcatvalue = 0; VHGcatdigits = 0;
+	VHGcatrecno = 0; VHGcatmatchno = 0; VHGcatfound = 0; VHGcatptr = 0;
+	VHGcatmsgi = 0; VHGcatcol = 0; VHGcatchar = 0;
+	VHGcatreadi = 0; VHGcatlooki = 0; VHGcatwordlen = 0;
 	VHGflightx = 0; VHGsecx = 0;
 	VHGlocalactive = 0; VHGlocaltarget = 0FFFFFFFFh;
 	VHGlocalx0 = 0; VHGlocalx1 = 0; VHGlocaly0 = 0; VHGlocaly1 = 0;
@@ -278,6 +282,14 @@
 	VHGstnotpart2 = { PLEASE_USE_'PAR'_TO };
 	VHGstnotpart3 = { FIND_PARSIS_FOR_THE };
 	VHGstnotpart4 = { CORRESPONDING_STAR. };
+	VHGcathead = { _GOES_GALACTIC_GUIDE_ };
+	VHGcatusage1 = { CAT_OBJECTNAME };
+	VHGcatusage2 = { CAT_OBJECTNAME:X..Y };
+	VHGcatdberror0 = { DATABASE_ERROR. };
+	VHGcatdberror1 = { (ERROR_CODE_1003) };
+	VHGcatnone0 = { THERE_WERE_NO_RECORDS };
+	VHGcatnone1 = { IN_THE_GUIDE_RELATING };
+	VHGcatnone2 = { SPECIFIED_SUBJECT. };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -664,6 +676,7 @@
 	VHGgoesline = 22;
 	VHGwherebar = 22;
 	VHGparline = 22;
+	VHGcatline = 22;
 
 "programme"
 
@@ -764,6 +777,7 @@
 	=> VH cupola build;
 	=> VH panels init;
 	=> VHCAT load;
+	=> VHGDB load;
 
 	[PVh] = 0; [PVmodel] = MDVEH;
 	[PVxs] = VHG15F; [PVys] = VHG15F; [PVzs] = VHG15F;
@@ -3253,12 +3267,58 @@
 	? A = 80 -> VHG command maybe par;
 	? A = 87 -> VHG command maybe where; -> VHG command done;
     "VHG command maybe clear"
-	A = [vhptext plus 43]; ? A != 76 -> VHG command done;
+	A = [vhptext plus 43]; ? A = 65 -> VHG command maybe cat;
+	? A != 76 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 82 -> VHG command done;
 	A = [vhptext plus 45]; ? A = 0 -> VHG command clear ready;
 	? A = 32 -> VHG command clear ready; ? A != 95 -> VHG command done;
     "VHG command clear ready"
 	[VHGcmdsilent] = 1; => VH GOES output clear; -> VHG command done;
+    "VHG command maybe cat"
+	A = [vhptext plus 44]; ? A != 84 -> VHG command done;
+	A = [vhptext plus 45]; ? A = 0 -> VHG command cat parse;
+	? A = 32 -> VHG command cat parse; ? A != 95 -> VHG command done;
+    "VHG command cat parse"
+	[VHGcmdi] = 45; [VHGcatstart] = 1; [VHGcatend] = 32767;
+    "VHG command cat spaces"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 32 -> VHG command cat start;
+	[VHGcmdi]+; -> VHG command cat spaces;
+    "VHG command cat start"
+	[VHGwherequery] = A; [VHGwherelen] = 0;
+    "VHG command cat length"
+	? C = 0 -> VHG command cat trim; ? C = 58 -> VHG command cat range start;
+	? C != 95 -> VHG command cat character;
+	E = A; E + 1; E = [E]; ? E = 0 -> VHG command cat trim;
+    "VHG command cat character"
+	[VHGwherelen]+; [VHGcmdi]+; A = vhptext; A + [VHGcmdi]; C = [A];
+	-> VHG command cat length;
+    "VHG command cat range start"
+	[VHGcmdi]+; [VHGcatvalue] = 0; [VHGcatdigits] = 0;
+    "VHG command cat range first digits"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C < 48 -> VHG command cat range first done;
+	? C > 57 -> VHG command cat range first done;
+	A = [VHGcatdigits]; ? A >= 9 -> VHG command cat range first done;
+	A = [VHGcatvalue]; A '* 10; C - 48; A + C; [VHGcatvalue] = A;
+	[VHGcatdigits]+; [VHGcmdi]+; -> VHG command cat range first digits;
+    "VHG command cat range first done"
+	[VHGcatstart] = [VHGcatvalue];
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 46 -> VHG command cat trim;
+	A + 1; C = [A]; ? C != 46 -> VHG command cat trim;
+	[VHGcmdi] + 2; [VHGcatvalue] = 0; [VHGcatdigits] = 0;
+    "VHG command cat range last digits"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C < 48 -> VHG command cat range last done;
+	? C > 57 -> VHG command cat range last done;
+	A = [VHGcatdigits]; ? A >= 9 -> VHG command cat range last done;
+	A = [VHGcatvalue]; A '* 10; C - 48; A + C; [VHGcatvalue] = A;
+	[VHGcatdigits]+; [VHGcmdi]+; -> VHG command cat range last digits;
+    "VHG command cat range last done"
+	[VHGcatend] = [VHGcatvalue];
+    "VHG command cat trim"
+	A = [VHGwherelen]; ? A = 0 -> VHG command cat ready;
+	A - 1; C = [VHGwherequery]; C + A; A = [C]; ? A != 32 -> VHG command cat ready;
+	[VHGwherelen]-; -> VHG command cat trim;
+    "VHG command cat ready"
+	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1; => VHG CAT; -> VHG command done;
     "VHG command maybe where"
 	A = [vhptext plus 43]; ? A != 72 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 69 -> VHG command done;
@@ -3537,6 +3597,140 @@
     "VHG WHERE output label ready"
 	[VHPoutptr] = VHGgoesline; => VH GOES output line;
 	end;
+
+"VHG CAT"
+	( CAT.CPP reads the original 84-byte Galactic Guide records for a named
+	  catalogue identity, preserving its one-based record ranges and 21-column
+	  word wrapping on the resident GOES output tree. )
+	A = [VHGwherelen]; ? A != 0 -> VHG CAT execute;
+	[VHPoutptr] = VHGparusage0; => VH GOES output line;
+	[VHPoutptr] = VHGcatusage1; => VH GOES output line;
+	[VHPoutptr] = VHGcatusage2; => VH GOES output line;
+	[VHPoutptr] = VHGparusage3; => VH GOES output line;
+	[VHPoutptr] = VHGparusage4; => VH GOES output line; end;
+    "VHG CAT execute"
+	[VHGwherei] = 0;
+    "VHG CAT bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG CAT bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGcathead; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHGwherematches] = 0; [VHGwherefound] = 0; [VHGwhererecno] = 0;
+    "VHG CAT catalogue loop"
+	A = [VHGwhererecno]; ? A >= [VHCATrecs] -> VHG CAT catalogue done;
+	A '* 8; A + vhcatraw; A + 1; [VHGwhererec] = A;
+	=> VHG WHERE record match; A = [VHGwherematch]; ? A = 0 -> VHG CAT catalogue next;
+	[VHGwherematches]+; [VHGwherefound] = [VHGwhererec];
+	A = [VHGwhereexact]; ? A != 0 -> VHG CAT catalogue exact;
+    "VHG CAT catalogue next"
+	[VHGwhererecno]+; -> VHG CAT catalogue loop;
+    "VHG CAT catalogue exact"
+	[VHGwherematches] = 1;
+    "VHG CAT catalogue done"
+	A = [VHGwherematches]; ? A = 0 -> VHG CAT missing result;
+	? A > 1 -> VHG CAT ambiguous result;
+	[VHGwhererec] = [VHGwherefound];
+	A = [VHGwhererec]; C = [A plus 7]; C > 8; C & FFh; [VHGwheretype] = C;
+	? C = VHCATS -> VHG CAT star subject;
+	? C = VHCATP -> VHG CAT planet subject; -> VHG CAT missing result;
+    "VHG CAT missing result"
+	[VHPoutptr] = VHGwherenotfound; => VH GOES output line; end;
+    "VHG CAT ambiguous result"
+	=> VHG WHERE ambiguous; end;
+    "VHG CAT star subject"
+	[VHPoutptr] = VHGparsubjectstar; => VH GOES output line; -> VHG CAT subject label;
+    "VHG CAT planet subject"
+	[VHPoutptr] = VHGparsubjectplanet; => VH GOES output line;
+    "VHG CAT subject label"
+	[VHGwhererec] = [VHGwherefound]; => VHG WHERE output label;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	A = [VHGDBloaded]; ? A = 0 -> VHG CAT database error;
+	A = [VHGwherefound]; [VHGpartarget0] = [A]; [VHGpartarget1] = [A plus 1];
+	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FSub;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparlowhi] = [VHCATkeyhi]; [VHGparlowlo] = [VHCATkeylo];
+	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FAdd;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparhighhi] = [VHCATkeyhi]; [VHGparhighlo] = [VHCATkeylo];
+	[VHGcatrecno] = 0; [VHGcatmatchno] = 0; [VHGcatfound] = 0;
+    "VHG CAT guide loop"
+	A = [VHGcatrecno]; ? A >= [VHGDBrecs] -> VHG CAT guide done;
+	A '* 21; A + vhguidedata; A + 1; [VHGcatptr] = A;
+	[VHCATid0] = [A]; [VHCATid1] = [A plus 1];
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHG CAT guide next;
+	=> VHCAT key; A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHGparlowhi] -> VHG CAT guide above low;
+	? A '< [VHGparlowhi] -> VHG CAT guide next;
+	? B '> [VHGparlowlo] -> VHG CAT guide above low; -> VHG CAT guide next;
+    "VHG CAT guide above low"
+	? A '< [VHGparhighhi] -> VHG CAT guide match;
+	? A '> [VHGparhighhi] -> VHG CAT guide next;
+	? B '< [VHGparhighlo] -> VHG CAT guide match; -> VHG CAT guide next;
+    "VHG CAT guide match"
+	[VHGcatmatchno]+; A = [VHGcatmatchno]; ? A < [VHGcatstart] -> VHG CAT guide next;
+	? A > [VHGcatend] -> VHG CAT guide done;
+	[VHGcatfound] = 1; => VHG CAT output record;
+    "VHG CAT guide next"
+	[VHGcatrecno]+; -> VHG CAT guide loop;
+    "VHG CAT guide done"
+	A = [VHGcatfound]; ? A != 0 -> VHG CAT finished;
+	[VHPoutptr] = VHGcatnone0; => VH GOES output line;
+	[VHPoutptr] = VHGcatnone1; => VH GOES output line;
+	[VHPoutptr] = VHGcatnone2; => VH GOES output line; end;
+    "VHG CAT database error"
+	[VHPoutptr] = VHGcatdberror0; => VH GOES output line;
+	[VHPoutptr] = VHGcatdberror1; => VH GOES output line;
+    "VHG CAT finished"
+	end;
+
+"VHG CAT output record"
+	[VHGonrowdst] = VHGcatline; => VHG onboard row begin;
+	[VHGonrowchar] = 40; => VHG onboard row append char;
+	[VHGonrowvalue] = [VHGcatmatchno]; => VHG onboard row append number;
+	[VHGonrowchar] = 41; => VHG onboard row append char;
+	=> VHG onboard row finish; [VHPoutptr] = VHGcatline; => VH GOES output line;
+	[VHGcatmsgi] = 0; [VHGcatcol] = 0;
+    "VHG CAT message loop"
+	A = [VHGcatmsgi]; ? A >= 76 -> VHG CAT message done;
+	[VHGcatreadi] = A; => VHG CAT read message char; A = [VHGcatchar];
+	? A = 0 -> VHG CAT message done; ? A = 32 -> VHG CAT message space;
+	C = VHGcatline; C + [VHGcatcol]; [C] = A; [VHGcatcol]+; [VHGcatmsgi]+;
+	A = [VHGcatcol]; ? A >= 21 -> VHG CAT message full;
+	-> VHG CAT message loop;
+    "VHG CAT message space"
+	A = [VHGcatcol]; ? A = 0 -> VHG CAT message skip space;
+	A = [VHGcatmsgi]; A + 1; [VHGcatlooki] = A; [VHGcatwordlen] = 0;
+    "VHG CAT message word length"
+	A = [VHGcatlooki]; ? A >= 76 -> VHG CAT message word ready;
+	[VHGcatreadi] = A; => VHG CAT read message char; A = [VHGcatchar];
+	? A = 0 -> VHG CAT message word ready; ? A = 32 -> VHG CAT message word ready;
+	[VHGcatwordlen]+; [VHGcatlooki]+; -> VHG CAT message word length;
+    "VHG CAT message word ready"
+	A = [VHGcatcol]; A + 1; A + [VHGcatwordlen];
+	? A > 21 -> VHG CAT message break space;
+	C = VHGcatline; C + [VHGcatcol]; [C] = 32; [VHGcatcol]+;
+    "VHG CAT message skip space"
+	[VHGcatmsgi]+; -> VHG CAT message loop;
+    "VHG CAT message break space"
+	=> VHG CAT message flush; [VHGcatmsgi]+; -> VHG CAT message loop;
+    "VHG CAT message full"
+	=> VHG CAT message flush; -> VHG CAT message loop;
+    "VHG CAT message done"
+	A = [VHGcatcol]; ? A = 0 -> VHG CAT output record done;
+	=> VHG CAT message flush;
+    "VHG CAT output record done"
+	end;
+
+"VHG CAT message flush"
+	C = VHGcatline; C + [VHGcatcol]; [C] = 0;
+	[VHPoutptr] = VHGcatline; => VH GOES output line; [VHGcatcol] = 0; end;
+
+"VHG CAT read message char"
+	A = [VHGcatreadi]; B = A; A / 4; C = [VHGcatptr]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; [VHGcatchar] = A; end;
 
 "VHG PAR"
 	( PAR.CPP regenerates every procedural star in a centred sector cube and

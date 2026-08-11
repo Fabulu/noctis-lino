@@ -68,7 +68,9 @@ The default output is `dist\Noctis-IV`; the command refuses to merge
 with an existing directory so stale files cannot masquerade as bundle content.
 Inside the bundle, double-click `Play Noctis IV.cmd`. The relocatable launcher
 anchors all relative asset, checkpoint, catalogue, and diagnostic paths to the
-bundle even when it is started from an unrelated working directory.
+bundle even when it is started from an unrelated working directory. The
+bundle includes the original 48,376-record `GUIDE.BIN`; use
+`CAT <catalogued name>[:X..Y]` in GOES to read its ranged entries.
 
 Version tags matching `v*` assemble the checked production payload and runtime
 assets in GitHub Actions, then publish the ZIP plus its SHA-256 checksum as a

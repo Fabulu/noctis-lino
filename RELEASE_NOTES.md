@@ -62,6 +62,8 @@ parity, not a claim that parity is complete.
   shortcut includes the same seven retained output rows as the wall display.
   `ST <catalogued name>[:range]` now sends a resolved star to Vimana or begins
   local drive for a named planet belonging to the currently reached system.
+  `CAT <catalogued name>[:X..Y]` reads the original 48,376-record Galactic
+  Guide with its source one-based ranges and 21-column word wrapping.
   The third station starts planetary approach and,
   after FCS reaches STANDBY, opens the physical longitude/latitude selector.
 - Planetary views finish with the original default `surrounding()` visor
@@ -85,7 +87,8 @@ parity, not a claim that parity is complete.
 
 Extract the ZIP without removing individual files, then double-click
 `Play Noctis IV.cmd`. The launcher keeps assets, `CURRENT.LIN`, `CURRENT.BAK`,
-the mutable `STARMAP.BIN`, and diagnostics in the extracted game folder.
+the mutable `STARMAP.BIN`, read-only `GUIDE.BIN`, and diagnostics in the
+extracted game folder.
 
 Useful controls:
 

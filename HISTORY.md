@@ -498,6 +498,14 @@ native regression targeted ELRAINE, moved Vimana to its exact coordinates,
 then targeted FENHOME P03 in that reached system and entered local drive with
 body index 2.
 
+The original Galactic Guide is now live data rather than dormant provenance.
+The packaged `GUIDE.BIN` contains 48,376 validated 84-byte records. Resident
+`CAT` resolves a starmap subject, accepts its original one-based `X..Y` range,
+matches the guide's binary64 identity, and word-wraps each 76-byte message into
+the physical 21-column output tree. The native probe's `CAT SURICRASIA:1..2`
+result reproduced the first two guide blocks, including their `(1)` and `(2)`
+headers, and the package check retained the source asset's exact SHA-256.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

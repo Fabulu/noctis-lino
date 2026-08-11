@@ -25,6 +25,9 @@ GUI = ROOT / "work" / "vhgui.txt"
 VIEW = ROOT / "work" / "vhview.txt"
 PANELS = ROOT / "work" / "vhpanels.txt"
 CATALOG = ROOT / "work" / "vhcatalog.txt"
+GUIDE_SOURCE = ROOT / "work" / "vhguide.txt"
+GUIDE_DATA = ROOT / "work" / "GUIDE.BIN"
+PACKAGE_SCRIPT = ROOT / "package_noctis.ps1"
 IGUI = ROOT / "work" / "igui.txt"
 STICK = ROOT / "work" / "vhstick.txt"
 SAVE = ROOT / "work" / "vhsave.txt"
@@ -41,6 +44,7 @@ ORIGINAL1 = REFERENCE_ROOT / "NOCTIS-1.CPP"
 ORIGINAL_WHERE = REFERENCE_ROOT / "WHERE.CPP"
 ORIGINAL_PAR = REFERENCE_ROOT / "PAR.CPP"
 ORIGINAL_ST = REFERENCE_ROOT / "ST.CPP"
+ORIGINAL_CAT = REFERENCE_ROOT / "CAT.CPP"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -91,6 +95,21 @@ def par_candidate(sector_x: int, sector_y: int, sector_z: int) -> tuple[int, int
     accumulator = par_foldmul(y, identity_key)
     z = signed32((accumulator & 0x1FFFF) + sector_z - 50000)
     return x, y, z
+
+
+def guide_wrap(message: str, width: int = 21) -> list[str]:
+    lines: list[str] = []
+    line = ""
+    for word in message.split(" "):
+        candidate = word if not line else f"{line} {word}"
+        if line and len(candidate) > width:
+            lines.append(line)
+            line = word
+        else:
+            line = candidate
+    if line:
+        lines.append(line)
+    return lines
 
 
 def pod_hint(dx: int, dz: int, beta: int) -> str:
@@ -205,6 +224,8 @@ def main() -> int:
     view = VIEW.read_text(encoding="utf-8")
     panels = PANELS.read_text(encoding="utf-8")
     catalog = CATALOG.read_text(encoding="utf-8")
+    guide_source = GUIDE_SOURCE.read_text(encoding="utf-8")
+    package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
     igui = IGUI.read_text(encoding="utf-8")
     stick = STICK.read_text(encoding="utf-8")
     save = SAVE.read_text(encoding="utf-8")
@@ -217,6 +238,7 @@ def main() -> int:
     original_where = ORIGINAL_WHERE.read_text(encoding="latin-1")
     original_par = ORIGINAL_PAR.read_text(encoding="latin-1")
     original_st = ORIGINAL_ST.read_text(encoding="latin-1")
+    original_cat = ORIGINAL_CAT.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1691,6 +1713,42 @@ def main() -> int:
         and fenhome[3] == 3
         and abs((fenhome[0] - fenhome[3]) - elraine[0]) < 0.00001,
         "GOES ST targets a named star and starts local drive only for its reached-system planet",
+    )
+    guide = GUIDE_DATA.read_bytes()
+    guide_records = (len(guide) - 4) // 84
+    first_guide_identity = struct.unpack_from("<d", guide, 4)[0]
+    first_guide_message = guide[12:88].split(b"\0", 1)[0].decode("latin-1")
+    second_guide_message = guide[96:172].split(b"\0", 1)[0].decode("latin-1")
+    suricrasia = next(record for record in records if record[1] == "SURICRASIA")
+    check(
+        all(token in original_cat for token in (
+            'msg (" GOES GALACTIC GUIDE ");', 'msg ("CAT OBJECTNAME:X..Y");',
+            "rec_start = atoi (parbuffer + is);", "rec_end = atoi (parbuffer + i + 2);",
+            "if (mblock_subject > subject_id - idscale && mblock_subject < subject_id + idscale)",
+            'sprintf (textbuffer, "(%d)", rec);', "if (pre >= 21)",
+        ))
+        and all(token in guide_source for token in (
+            "VHGDBMAX = 8388608;", 'VHGDBfile = { GUIDE.BIN };',
+            '"VHGDB load"', "A '% VHGDBREC;", "[VHGDBloaded] = 1;",
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe cat"', '"VHG CAT"', '"VHG CAT guide loop"',
+            '"VHG CAT output record"', '"VHG CAT message word length"',
+            "? A > 21 -> VHG CAT message break space;",
+        ))
+        and "Name = 'GUIDE.BIN';         Size = -3" in package_script
+        and len(guide) == 4063588
+        and struct.unpack_from("<I", guide, 0)[0] == len(guide)
+        and guide_records == 48376
+        and suricrasia[1:] == ("SURICRASIA", "P", 4)
+        and abs(first_guide_identity - suricrasia[0]) < 0.00001
+        and guide_wrap(first_guide_message) == [
+            "SURICRASIA: ONE OF", "THE MOST BEAUTIFUL", "PLANETS IN THE WHOLE", "GALAXY, AT",
+        ]
+        and guide_wrap(second_guide_message) == [
+            "LEAST FROM MY POINT", "OF VIEW. NOBODY", "SHOULD MISS THE", "SURICRASIAN SKY AT",
+        ],
+        "GOES CAT reads the original Galactic Guide with ranged 21-column records",
     )
     check(
         all(token in game for token in (
