@@ -279,8 +279,10 @@ which made a correct FPS counter look almost as stepped as original mode. Ship
 position, pitch, and shortest-path yaw now interpolate between committed source
 ticks for rendering only. The authoritative pose is restored before input,
 collision, save, and the next simulation step, so Noctis movement timing is not
-changed. Surface interpolation remains separate because its renderer feeds
-wave impacts back into live movement state.
+changed. Settled surface walking uses the same render-only path; X/Z/pitch wave
+feedback produced by the interpolated render is measured, the live pose is
+restored, and those effects are applied exactly once. Capsule descent and
+ascent remain on authoritative source poses.
 
 ## Packaging and publication
 

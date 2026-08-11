@@ -158,6 +158,8 @@
 	VHGinterpalpha = 0; VHGinterpbeta = 0;
 	VHGinterplivex = 0; VHGinterplivey = 0; VHGinterplivez = 0;
 	VHGinterplivealpha = 0; VHGinterplivebeta = 0; VHGinterpdelta = 0;
+	VHGinterprenderx = 0; VHGinterprenderz = 0; VHGinterprenderalpha = 0;
+	VHGinterpeffectx = 0; VHGinterpeffectz = 0; VHGinterpeffectalpha = 0;
 	VHGsaveheld = 0; VHGloadheld = 0; VHGmusicheld = 0; VHGnoticeptr = 0; VHGnoticeframes = 0;
 	VHGsavedtext = { CHECKPOINT SAVED };
 	VHGloadedtext = { CHECKPOINT LOADED };
@@ -4233,7 +4235,9 @@
 	  commits a new one; intermediate 60-Hz frames advance by the same rational
 	  cadence numerator used by VHG cadence. )
 	A = [VHGfast]; ? A = 0 -> VHG interpolation advance done;
-	A = [VHGmode]; ? A != 0 -> VHG interpolation advance done;
+	A = [VHGmode]; ? A = 0 -> VHG interpolation advance eligible;
+	A = [VHGlanded]; ? A = 0 -> VHG interpolation advance done;
+    "VHG interpolation advance eligible"
 	A = [VHGinterpok]; ? A = 0 -> VHG interpolation advance done;
 	A = [VHGdosim]; ? A != 0 -> VHG interpolation advance finish;
 	A = [VHGinterpacc]; A + VHGSIMADD; ? A <= VHGSIMDEN -> VHG interpolation advance store;
@@ -4247,7 +4251,9 @@
 "VHG interpolation apply"
 	[VHGinterpapplied] = 0;
 	A = [VHGfast]; ? A = 0 -> VHG interpolation apply done;
-	A = [VHGmode]; ? A != 0 -> VHG interpolation apply done;
+	A = [VHGmode]; ? A = 0 -> VHG interpolation apply eligible;
+	A = [VHGlanded]; ? A = 0 -> VHG interpolation apply done;
+    "VHG interpolation apply eligible"
 	A = [VHGinterpok]; ? A != 0 -> VHG interpolation apply ready;
 	=> VHG interpolation reset; -> VHG interpolation apply done;
     "VHG interpolation apply ready"
@@ -4273,19 +4279,36 @@
 	? A >= VHGN180 -> VHG interpolation beta ready; A + 360;
     "VHG interpolation beta ready"
 	[VHGbeta] = A; [VHGinterpapplied] = 1;
+	[VHGinterprenderx] = [VHGx]; [VHGinterprenderz] = [VHGz];
+	[VHGinterprenderalpha] = [VHGalpha];
     "VHG interpolation apply done"
 	end;
 
 "VHG interpolation restore"
 	A = [VHGinterpapplied]; ? A = 0 -> VHG interpolation restore done;
+	A = [VHGmode]; ? A = 0 -> VHG interpolation restore live;
+	A = [VHGx]; A - [VHGinterprenderx]; [VHGinterpeffectx] = A;
+	A = [VHGz]; A - [VHGinterprenderz]; [VHGinterpeffectz] = A;
+	A = [VHGalpha]; A - [VHGinterprenderalpha]; [VHGinterpeffectalpha] = A;
+    "VHG interpolation restore live"
 	[VHGx] = [VHGinterplivex]; [VHGy] = [VHGinterplivey]; [VHGz] = [VHGinterplivez];
 	[VHGalpha] = [VHGinterplivealpha]; [VHGbeta] = [VHGinterplivebeta];
+	A = [VHGmode]; ? A = 0 -> VHG interpolation restore done;
+	A = [VHGx]; A + [VHGinterpeffectx]; [VHGx] = A;
+	A = [VHGz]; A + [VHGinterpeffectz]; [VHGz] = A;
+	A = [VHGalpha]; A + [VHGinterpeffectalpha]; ? A <= 44 -> VHG interpolation restore alpha high; A = 44;
+    "VHG interpolation restore alpha high"
+	? A >= VHGN44 -> VHG interpolation restore alpha ready; A = VHGN44;
+    "VHG interpolation restore alpha ready"
+	[VHGalpha] = A;
     "VHG interpolation restore done"
 	end;
 
 "VHG interpolation snapshot"
 	A = [VHGfast]; ? A = 0 -> VHG interpolation snapshot done;
-	A = [VHGmode]; ? A != 0 -> VHG interpolation snapshot done;
+	A = [VHGmode]; ? A = 0 -> VHG interpolation snapshot eligible;
+	A = [VHGlanded]; ? A = 0 -> VHG interpolation snapshot done;
+    "VHG interpolation snapshot eligible"
 	A = [VHGdosim]; ? A = 0 -> VHG interpolation snapshot done;
 	[VHGinterpx] = [VHGx]; [VHGinterpy] = [VHGy]; [VHGinterpz] = [VHGz];
 	[VHGinterpalpha] = [VHGalpha]; [VHGinterpbeta] = [VHGbeta];

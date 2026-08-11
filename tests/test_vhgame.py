@@ -861,16 +861,21 @@ def main() -> int:
             '"VHG interpolation advance"', '"VHG interpolation apply"',
             '"VHG interpolation restore"', '"VHG interpolation snapshot"',
             '=> VHG interpolation apply; => VHG render; => VHG interpolation restore;',
-            'A = [VHGmode]; ? A != 0 -> VHG interpolation apply done;',
+            'A = [VHGmode]; ? A = 0 -> VHG interpolation apply eligible;',
+            'A = [VHGlanded]; ? A = 0 -> VHG interpolation apply done;',
             'A = [VHGdosim]; ? A != 0 -> VHG interpolation advance finish;',
             "A = [VHGinterpdelta]; A '* [VHGinterpacc]; A / VHGSIMDEN;",
+            'A = [VHGx]; A - [VHGinterprenderx]; [VHGinterpeffectx] = A;',
+            'A = [VHGz]; A - [VHGinterprenderz]; [VHGinterpeffectz] = A;',
+            'A = [VHGalpha]; A - [VHGinterprenderalpha]; [VHGinterpeffectalpha] = A;',
             '[VHGinterpok] = 0; => VHG load success notice;',
         ))
+        and '[VHGinterpok] = 0;' in CAPSULE.read_text(encoding="utf-8")
         and [signed_lerp(0, 80, phase) for phase in (0, 18206, 36412, 54618, 60000)]
         == [0, 24, 48, 72, 80]
         and [signed_lerp(0, -80, phase) for phase in (0, 18206, 36412, 54618, 60000)]
         == [0, -24, -48, -72, -80],
-        "60-Hz ship presentation interpolates render poses without mutating simulation state",
+        "60-Hz ship and settled-surface presentation interpolate without mutating simulation state",
     )
     check(
         (lambda run: (
