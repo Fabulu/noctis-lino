@@ -105,6 +105,12 @@ def sqc_text(longitude: int, latitude: int, x: int, z: int) -> str:
     return f"SQC {longitude}.{latitude}:{x // 16384 - 100}.{z // 16384 - 100}"
 
 
+def epoc_text(seconds: int) -> str:
+    """Noctis EPOC plus its three sub-billion zero-padded triads."""
+    epoc = 6011 + seconds // 1_000_000_000
+    return f"EPOC {epoc} & {seconds // 1_000_000 % 1000:03}.{seconds // 1000 % 1000:03}.{seconds % 1000:03}"
+
+
 def surface_arc(gravity_mfg: int, thrust_ticks: int = 0) -> tuple[int, int, int]:
     """Independent integer model of the port's source-shaped surface arc."""
     ground = 0
@@ -937,6 +943,8 @@ def main() -> int:
         and compass_window(270)[1].startswith("E.........S")
         and all(197 <= compass_window(beta)[0] <= 200 for beta in range(360))
         and sqc_text(8, 54, 122880, 3145728) == "SQC 8.54:-93.92"
+        and epoc_text(1_342_123_456) == "EPOC 6012 & 342.123.456"
+        and "=> VHG UTC timestamp; => VHG visor advance;" in game
         and all(token in ground for token in (
             '"VHGND compass"', "A = [VHGbeta]; A % 360;",
             "A = [VHGNDcompassrem]; A '* 4; A / 9;",
@@ -949,6 +957,9 @@ def main() -> int:
             '"VHGND surface coordinate HUD"', "A = [VHGlandinglon]; => VHGND HUD append number;",
             "A = [VHGx]; A / VHGNDTS; A - 100; => VHGND HUD append number;",
             '"VHGND HUD append number"', '"VHGND HUD row mask"',
+            '"VHGND epoch HUD"', "A = [VHGutcsecs]; A / 1000000000; A + 6011;",
+            "A = [VHGutcsecs]; A / 1000000; A % 1000; => VHGND HUD append triad;",
+            '"VHGND HUD append triad"', "[VHGNDhudsource] = VHGNDepoctext;",
         ))
         and all(token in original0 for token in (
             "cpos = ccom / 9; crem = ccom * 0.44444;",
@@ -956,8 +967,10 @@ def main() -> int:
             "areaclear (adapted, 9, 9, 0, 0, 4, 4, lptr);",
             "strcat (outhudbuffer, alphavalue(landing_pt_lon));",
             "strcat (outhudbuffer, alphavalue((((long)(pos_x)) >> 14) - 100));",
+            'sprintf (outhudbuffer, "EPOC %d & ", epoc);',
+            "epoc = 6011 + secs / 1e9;",
         )),
-        "surface visor restores source SQC coordinates, compass strip, and reactive corner lamps",
+        "visor restores source EPOC/SQC data, compass strip, and reactive corner lamps",
     )
     jump_ticks, jump_apex, jump_ground = surface_arc(118)
     jet_ticks, jet_apex, jet_ground = surface_arc(118, thrust_ticks=12)

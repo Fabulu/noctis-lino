@@ -696,7 +696,8 @@
 		A = [VHGmode]; ? A = 0 -> VHG ticks done;
 		=> VHGC tick;
 		"VHG ticks done"
-		A = [VHGdosim]; ? A = 0 -> VHG visor tick done; => VHG visor advance;
+		A = [VHGdosim]; ? A = 0 -> VHG visor tick done;
+		=> VHG UTC timestamp; => VHG visor advance;
 		"VHG visor tick done"
 		[Timer Command] = READ COUNTS; isocall; [VHGprofstart] = [Counts];
 		=> VHG visor flare mode;

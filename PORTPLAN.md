@@ -318,6 +318,9 @@ first -- a broken foundation makes every later result meaningless.
   from live yaw, including its fractional four-pixel scroll, centre pointer,
   four corner lamps, and the larger bright jetpack flash. Its SQC prefix shows
   selected landing coordinates and the current map-origin-relative square.
+- The shared visor prefix renders the live `EPOC` value plus the three original
+  second triads. Time refresh follows simulation ticks in both presentation
+  modes rather than accelerating at 60 Hz.
 - Loading reconciles the live timer and audio device after validation, then
   restores capture progress after deterministic surface regeneration. The
   reader remains backward-compatible with 96-byte v1, 108-byte v2,

@@ -326,6 +326,10 @@ resting geometry and expand to the bright 5x5 state during jetpack thrust.
 The adjacent SQC line reports the selected landing longitude/latitude and the
 walker's live 16,384-unit terrain square with `alphavalue()`-style unpadded
 signed decimals.
+The shared prefix now also restores `EPOC 6011 + seconds/1e9` and the original
+three zero-padded sub-billion triads. UTC is refreshed once per authentic
+18.206 Hz simulation tick, so the display advances without depending on the
+optional presentation rate.
 Version 13 expands `CURRENT.LIN` to 192 bytes for these preferences while
 retaining explicit readers and defaults for versions 1 through 12.
 

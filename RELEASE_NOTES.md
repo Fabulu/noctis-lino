@@ -37,6 +37,8 @@ parity, not a claim that parity is complete.
   lines per simulation tick; visor-only reflections follow its closed state.
 - Landed views restore the original 3x5 SQC location readout, scrolling compass
   strip, and four corner HUD lamps; jetpack thrust produces the bright flash.
+- Ship and surface visors restore the live Noctis EPOC clock and its three
+  zero-padded sub-billion second triads.
 - The Stardrifter is visible from the initial frame and remains stable during
   movement.
 - E directly starts the source lift event while inside the Stardrifter. Up
