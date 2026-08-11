@@ -265,6 +265,7 @@
 	VHGsnapshotnext = 1; VHGsnapshotnumber = 0; VHGsnapshotvalue = 0;
 	VHGsnapshotden = 0; VHGsnapshotpos = 0; VHGsnapshotrow = 0;
 	VHGsnapshotfilepos = 0; VHGsnapshotsrc = 0; VHGsnapshotready = 0;
+	VHGsnapshotrequest = 0; VHGsnapshotbase = 0;
 	VHGsavedtext = { CHECKPOINT SAVED };
 	VHGloadedtext = { CHECKPOINT LOADED };
 	VHGbackuptext = { CHECKPOINT RECOVERED FROM BACKUP };
@@ -474,7 +475,7 @@
 	VHGhelpbody = { []:SELECT-BODY / L:APPROACH };
 	VHGhelpland = { L@STANDBY:SITE / ARROWS / L:LAND };
 	VHGhelpfuel = { C:COLLECT-LITHIUM / H:RESCUE };
-	VHGhelpsave = { F6:SAVE / F7:LOAD / M:SNAPSHOT };
+	VHGhelpsave = { F6:SAVE F7:LOAD / M:SHOT B:RAW };
 	VHGhelpview = { F4:FPS F5:60HZ F8:MUSIC I:DATA };
 	VHGabouttitle = { NOCTIS_IV_PLUS };
 	VHGaboutauthors = { BY_MEGA,_NEUZD,_SL,_AND_OTHERS };
@@ -1060,6 +1061,7 @@
 		=> VHG one frame;
 		[Timer Command] = READ COUNTS; isocall; [VHGprofstart] = [Counts];
 		=> VHGUI prepare;
+		=> VHG raw snapshot pending;
 		=> VHG fps overlay;
 		=> VHG energy overlay;
 		=> VHG pod overlay;
@@ -2607,6 +2609,7 @@
 	=> VHG checkpoint keys;
 	=> VHG music key;
 	=> VHG snapshot key;
+	=> VHG raw snapshot key;
 	A = [VHGabout]; ? A != 0 -> VHG input done;
 	=> VHG graphics character;
 	A = [VHGgraphicsused]; ? A != 0 -> VHG input done;
@@ -8247,8 +8250,29 @@
 	[VHGascii] = 0; A = [VHGsnapshotready]; ? A != 0 -> VHG snapshot key ready;
 	[VHGnoticeptr] = VHGsnapshotwaittext; [VHGnoticeframes] = 55; -> VHG snapshot key done;
     "VHG snapshot key ready"
+	[VHGsnapshotbase] = VHGUIframe;
 	=> VHG snapshot;
     "VHG snapshot key done"
+	end;
+
+"VHG raw snapshot key"
+	( NOCTIS.CPP binds B to snapshot(0,0) outside the F2 graphics menu.
+	  Queue it until VHGUI prepare has assembled the next current game frame,
+	  then save before the port-only overlays are drawn. )
+	A = [VHGconsole]; ? A != 0 -> VHG raw snapshot key done;
+	A = [VHGgraphics]; ? A != 0 -> VHG raw snapshot key done;
+	A = [VHGascii]; ? A = 66 -> VHG raw snapshot key pressed;
+	? A != 98 -> VHG raw snapshot key done;
+    "VHG raw snapshot key pressed"
+	[VHGascii] = 0; [VHGsnapshotrequest] = 1;
+    "VHG raw snapshot key done"
+	end;
+
+"VHG raw snapshot pending"
+	A = [VHGsnapshotrequest]; ? A = 0 -> VHG raw snapshot pending done;
+	[VHGsnapshotrequest] = 0; [VHGsnapshotbase] = VHGUIframe;
+	=> VHG snapshot;
+    "VHG raw snapshot pending done"
 	end;
 
 "VHG snapshot"
@@ -8294,7 +8318,7 @@
 	A = [Block Size]; ? A != 54 -> VHG snapshot write error;
 	[VHGsnapshotrow] = 0; [VHGsnapshotfilepos] = 54;
     "VHG snapshot row loop"
-	A = 199; A - [VHGsnapshotrow]; A '* 320; A + VHGUIframe; [VHGsnapshotsrc] = A;
+	A = 199; A - [VHGsnapshotrow]; A '* 320; A + [VHGsnapshotbase]; [VHGsnapshotsrc] = A;
 	[File Name] = VHGsnapshotfile; [File Position] = [VHGsnapshotfilepos];
 	[File Command] = WRITE; [Block Pointer] = [VHGsnapshotsrc]; [Block Size] = 1280; isocall;
 	? [File Status] + ERROR -> VHG snapshot write error;

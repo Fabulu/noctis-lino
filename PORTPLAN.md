@@ -60,6 +60,9 @@ first -- a broken foundation makes every later result meaningless.
 - M and `*` restore `snapshot(0,1)` from `NOCTIS.CPP`. The resident game scans
   `GALLERY` for the next free eight-digit filename and never overwrites an
   earlier capture.
+- B restores `snapshot(0,0)` outside the F2 graphics menu. It saves the current
+  game image before the port-only FPS, status, menu, help, and notice overlays;
+  M retains those overlays as the source's data-bearing snapshot choice.
 - Each image is a standard 320x200 uncompressed 32-bit BMP made from the fully
   composed logical game frame, including source HUD and active overlays, before
   nearest-neighbour window scaling. Rows retain the source's bottom-up order.

@@ -101,6 +101,10 @@ separate from its consolidated source boundary, so the original records and
 new player notes can both be read after restarting the game. Back up
 `GUIDE.BIN` together with saves and `STARMAP.BIN` to preserve those notes.
 
+Press M or `*` to save a numbered 320x200 BMP with display overlays in the
+`GALLERY` folder. Press B outside the F2 graphics menu for the original raw
+snapshot variant, captured before the port-only display overlays.
+
 Version tags matching `v*` assemble the checked production payload and runtime
 assets in GitHub Actions, then publish the ZIP plus its SHA-256 checksum as a
 prerelease. Ordinary pushes and pull requests run the protected-source check,

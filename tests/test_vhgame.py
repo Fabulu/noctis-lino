@@ -1873,18 +1873,24 @@ def main() -> int:
         all(token in original0 for token in (
             "void snapshot (int forcenumber, char showdata)",
             'sprintf (snapfilename, "..\\\\GALLERY\\\\%08d.BMP", prog);',
+            "if (showdata) {",
             "_write (ih, t, 54);",
             "for (ptr=63680; ptr<64000; ptr-=320) _write (ih, adapted+ptr, 320);",
         ))
+        and "snapshot (0, 0);" in original
         and all(token in game for token in (
             'VHGsnapshotfile = { GALLERY\\\\00000000.BMP };',
             '"VHG snapshot key"', "? A = 109 -> VHG snapshot key pressed;",
+            '"VHG raw snapshot key"', "? A != 98 -> VHG raw snapshot key done;",
+            "A = [VHGgraphics]; ? A != 0 -> VHG raw snapshot key done;",
+            '"VHG raw snapshot pending"', "[VHGsnapshotbase] = VHGUIframe;",
             "[VHGsnapshotready] = 1;", "[VHGsnapshotheader plus 0] = E8364D42h;",
             "[Block Pointer] = VHGsnapshotheader; [Block Size] = 54; isocall;",
-            "A = 199; A - [VHGsnapshotrow]; A '* 320; A + VHGUIframe;",
+            "A = 199; A - [VHGsnapshotrow]; A '* 320; A + [VHGsnapshotbase];",
             "[Block Size] = 1280; isocall;", "[File Size] = 256054; isocall;",
-        )),
-        "M or * writes a source-numbered bottom-up BMP from the completed logical frame",
+        ))
+        and "=> VHGUI prepare;\n\t\t=> VHG raw snapshot pending;\n\t\t=> VHG fps overlay;" in game,
+        "M or * writes a composed snapshot while B captures before port overlays",
     )
     check(
         all(token in original_cast for token in (
