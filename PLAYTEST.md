@@ -157,10 +157,11 @@ Inf/NaN, over-range, and `Removed:` records without rewriting the player's file.
 
 ## Known limitations (honest)
 
-- **Intermittent interior-light flicker**: a playtest observed the Stardrifter
-  halogen illumination briefly switching state without an intentional light
-  command. It has not yet been reproduced under targeted input and remains an
-  open visual bug for the next interior-render pass.
+- **Interior-light occlusion**: the reported intermittent Stardrifter light
+  pop traced to a missing `condition=1` test in the halogen flare path. The
+  port now performs the original projected center-pixel occlusion check, so
+  opaque hull geometry suppresses the flare instead of letting it leak through
+  walls. The focused gameplay regression and production build pass.
 - **Wall computers**: the original position-and-facing test now selects all
   three right-wall stations, including their individual illuminated selector
   bars. A targeted production-window smoke focused the first station, submitted

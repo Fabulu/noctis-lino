@@ -69,8 +69,9 @@ Useful controls:
 - Windows is the supported packaged platform. The historical Linux runtime's
   PCM layer is a stub, so soundtrack support is Windows-only.
 - The second physical GOES face does not yet present complete source scrollback.
-- The intermittent Stardrifter interior-light flicker reported during playtest
-  remains open.
+- The Stardrifter halogen flare now obeys the original projected center-pixel
+  occlusion test instead of leaking through hull geometry and popping at its
+  edges.
 - Higher-rate presentation does not yet interpolate the original 18.206 Hz
   simulation, so it is not expected to feel like a modern native 60 Hz game.
 - Full Noctis IV+ feature parity remains the release criterion. Historical

@@ -684,7 +684,13 @@ def main() -> int:
             'A <= 1500 -> VHL distance ready;',
             "A '* 36; A / 1500; [VHLstep] = A;",
             'A = 72; A + [VHLpower]; [VHLcol] = A;',
+            '? A <= 100 -> VHL segment; [VHLcol] = 100;',
             'A = [VHLangle]; ? A < [VHLlimit] -> VHL segment;',
+        ))
+        and all(token in VIEW.parent.joinpath("vhflare.txt").read_text(encoding="utf-8") for token in (
+            "A = [VHFcy]; A '* 320; A + [VHFcx];",
+            '[SPoff] = A; [SPreg] = RGADP; => SP get;',
+            'A = [SPval]; ? A < 64 -> VHF done;',
         ))
         and all(token in game for token in (
             '[VHGstarclass] = [VHTclass];', '? A = 8 -> VHG star palette inner8;',

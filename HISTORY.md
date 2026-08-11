@@ -254,6 +254,15 @@ default, and F5 explicitly opts into the higher presentation rate.
   slope scan around the pod footprint.
 - Preserved exact selected landing coordinates through generation and reload.
 
+### Interior halogen occlusion
+
+The Stardrifter lamp flare could appear through opaque hull geometry and pop
+on or off as the camera crossed an occlusion edge. The port had omitted the
+`condition=1` center-pixel test passed by the original `alogena()` call. The
+flare now samples the projected fixture center and stops when palette band 0
+covers it, matching `lens_flares_for()` in `NOCTIS-0.CPP`. The original fixture
+color clamp at index 100 is retained as well.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

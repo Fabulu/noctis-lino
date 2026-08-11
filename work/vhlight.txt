@@ -30,6 +30,7 @@
     "VHL distance ready"
 	A = [VHLstep]; A / 2; C = 360; C - A; [VHLlimit] = C;
 	A = 72; A + [VHLpower]; [VHLcol] = A;
+	? A <= 100 -> VHL segment; [VHLcol] = 100;
     "VHL segment"
 	[VHVangle] = [VHLangle]; => VHV sincos;
 	[VHCa] = VHLFIFTEEN; [VHCb] = [VHVsin]; => VHC multiply; [VHLx0] = [VHCm];

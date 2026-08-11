@@ -34,6 +34,12 @@
 	A = [GCy]; A+; [VHFcy] = A;
 	A = [VHFcx]; ? A < 10 -> VHF done; ? A > 310 -> VHF done;
 	A = [VHFcy]; ? A < 10 -> VHF done; ? A > 190 -> VHF done;
+	( alogena passes condition=1.  The original lens_flares_for samples the
+	  projected light centre after drawing the fixture and rejects the whole
+	  flare when opaque vehicle geometry (palette band 0) covers it.  Without
+	  this gate the flare leaks through walls and pops at occlusion edges. )
+	A = [VHFcy]; A '* 320; A + [VHFcx]; [SPoff] = A; [SPreg] = RGADP; => SP get;
+	A = [SPval]; ? A < 64 -> VHF done;
 
 	[FI] = 50000; => IntToF; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSRZF; => PGF quo;
