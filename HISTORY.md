@@ -383,6 +383,15 @@ In a production-window smoke aimed ten degrees upward from `(0,0,-500)`, that
 frame enclosed command 2 and one left-click changed the root's `miscellaneous`
 slot into the live internal-light and target-data commands.
 
+The flight-control plane now restores the information produced by the original
+`fcs()` routine. Its first row names a selected planet or moon with Noctis's
+ordinal spelling and full planet description, its second row reports the live
+remote star class and full class description, and its third row shows elapsed
+kilodyams and remaining lithium. A production-window smoke opened the physical
+5 page and rendered the opening class-0 yellow-star description directly on the
+world-space plane; the focused integrated regression also pins every live input
+and all three output buffers.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

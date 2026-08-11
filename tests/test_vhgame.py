@@ -391,6 +391,36 @@ def main() -> int:
         and "A = [VHGdevaccess]; ? A = 0 -> VHG FCS menu overlay done;" in game,
         "source z=0 onboard computer uses the original control, command, and information grid",
     )
+    original_fcs = section(original, "void fcs ()", "/* Comandi dell'FCS. */")
+    onboard_fcs = section(
+        game, '"VHG onboard FCS information"', '"VHG onboard prepare"'
+    )
+    check(
+        all(token in original_fcs for token in (
+            'cline (1, "local target: ");', 'other ("moon #");',
+            'other (ord[n + 1]);', 'other (planet_description[nearstar_p_type[ip_targetted]]);',
+            'cline (2, "remote target: class ");', 'other (star_description[ap_target_class]);',
+            'cline (3, "current range: elapsed ");', 'other (alphavalue(charge));',
+        ))
+        and all(token in onboard_fcs for token in (
+            '[VHGonrowdst] = VHGonboardrow0;', '[VHGlocaltarget]',
+            'E = nspowner;', 'E = nspmoonid;', '=> VHG onboard select ordinal;',
+            'E = nsptype;', '=> VHG onboard select planet description;',
+            '[VHGonrowdst] = VHGonboardrow1;', '[MgAptgt]', '[VHTclass]',
+            '=> VHG onboard select star description;',
+            '[VHGonrowdst] = VHGonboardrow2;', '[MgPwr]', '[MgCharge]',
+        ))
+        and all(token in game for token in (
+            'VHGfcslocalprefix = { local target: };',
+            'VHGfcsremoteprefix = { remote target: class };',
+            'VHGfcsrangeprefix = { current range: elapsed };',
+            'VHGstardesc0 = { medium size, yellow star, suitable for planets having indigenous lifeforms. };',
+            'VHGplanetdesc3 = { medium size, felisian, breathable atmosphere, suitable for life. };',
+            '[VHPoninfo0] = VHGonboardrow0;', '[VHPoninfo1] = VHGonboardrow1;',
+            '[VHPoninfo2] = VHGonboardrow2;',
+        )),
+        "physical FCS shows the original live local, remote, range, and lithium rows",
+    )
     check(
         "=> TK seed; => TK start;" in game and "=> TK step;" in game,
         "live loop uses the original 54.925 ms synchronizer",

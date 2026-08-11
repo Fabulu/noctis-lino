@@ -662,3 +662,9 @@ The same slice moved retained output and `LQ %03d:%03d` landing status back to
 their source-shaped render paths instead of covering the ship with host-font
 fallbacks. The production PE rebuilt successfully and the focused
 `python tests/test_vhgame.py` regression passed.
+
+The next physical-FCS smoke loaded a clean ship checkpoint, sent the real 5
+input, and captured the class-0 yellow-star prose on the z=0 computer plane.
+The page now composes the original local-target, remote-target, and
+range/lithium lines from live game state into three bounded 108-character
+buffers. The production build and focused integrated regression both passed.

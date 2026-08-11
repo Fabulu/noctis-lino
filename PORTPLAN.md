@@ -62,6 +62,11 @@ first -- a broken foundation makes every later result meaningless.
   the original 25-unit plane tolerance or 3,000-unit side cutoff, applies the
   exact control and command divisions, frames the selected world-space slot,
   and dispatches one Select action per left-button edge.
+- The physical FCS information area now follows `fcs()` rather than showing a
+  page title. Its three live rows identify the selected planet or moon with the
+  original ordinal and planet description, describe the remote star by class,
+  and report elapsed range plus remaining lithium. All source descriptions fit
+  the original 108-character row without abbreviating them.
 
 ### Native GUI performance, landing safety, and Stardrifter lift
 - Each completed 320x200 indexed render is palette-expanded into a stable

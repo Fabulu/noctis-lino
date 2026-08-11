@@ -62,6 +62,9 @@
 	VHGgazecontrol = 0; VHGgazecommand = 0; VHGgazeheld = 0;
 	VHGgazex = 0; VHGgazey = 0; VHGgazez = 0; VHGgazeabsx = 0; VHGgazeabsz = 0;
 	VHGgazestep = 0; VHGgazeiterations = 0;
+	VHGonrowdst = 0; VHGonrowsrc = 0; VHGonrowpos = 0; VHGonrowi = 0;
+	VHGonrowvalue = 0; VHGonrowden = 0; VHGonrowstarted = 0;
+	VHGonrowdigit = 0; VHGonrowchar = 0; VHGonrowlocal = 0;
 	VHGconsole = 0; VHGconsoleview = 0; VHGascii = 0; VHGasciiheld = 0; VHGasciikey = 0;
 	VHGscreen = 0FFFFFFFFh; VHGscreenprev = 0FFFFFFFFh; VHGfcsopen = 0;
 	VHGscrollheld = 0; VHGscrollused = 0;
@@ -333,6 +336,51 @@
 	VHGfcsmrestart = { 8 SELECT ANOTHER LOCAL TARGET };
 	VHGfcsmcapsule = { 9 DEPLOY SURFACE CAPSULE };
 	VHGfcsmhint = { 5:CLOSE / 6-9:SELECT };
+	( Exact NOCTIS.CPP fcs() information-line vocabulary. These fragments are
+	  assembled into live rows because target and resource values can change
+	  while the physical computer remains in view. )
+	VHGfcslocalprefix = { local target: };
+	VHGfcsmoonprefix = { moon # };
+	VHGfcsof = { of };
+	VHGfcsplanet = { planet. };
+	VHGfcsremoteprefix = { remote target: class };
+	VHGfcsstar = { star; };
+	VHGfcsdirect = { direct parsis target: non-star type. };
+	VHGfcsnoremote = { no remote target selected };
+	VHGfcsrangeprefix = { current range: elapsed };
+	VHGfcskilodyams = { kilodyams, remaining lithium: };
+	VHGfcsgrams = { grams. };
+	VHGord1 = { first }; VHGord2 = { second }; VHGord3 = { third };
+	VHGord4 = { fourth }; VHGord5 = { fifth }; VHGord6 = { sixth };
+	VHGord7 = { seventh }; VHGord8 = { eight }; VHGord9 = { nineth };
+	VHGord10 = { tenth }; VHGord11 = { eleventh }; VHGord12 = { twelveth };
+	VHGord13 = { thiteenth }; VHGord14 = { fourteenth }; VHGord15 = { fifteenth };
+	VHGord16 = { sixteenth }; VHGord17 = { seventeenth };
+	VHGord18 = { eighteenth }; VHGord19 = { nineteenth }; VHGord20 = { twentyth };
+	VHGstardesc0 = { medium size, yellow star, suitable for planets having indigenous lifeforms. };
+	VHGstardesc1 = { very large, blue giant star, high energy radiations around. };
+	VHGstardesc2 = { white dwarf star, possible harmful radiations. };
+	VHGstardesc3 = { very large, ancient, red giant star. };
+	VHGstardesc4 = { large and glowing, orange giant star, high nuclear mass. };
+	VHGstardesc5 = { small, weak, cold, brown dwarf substellar object. };
+	VHGstardesc6 = { large, very weak, very cold, gray giant dead star. };
+	VHGstardesc7 = { very small, blue dwarf star, strong gravity well around. };
+	VHGstardesc8 = { possible MULTIPLE system - planets spread over wide ranges. };
+	VHGstardesc9 = { medium size, surrounded by gas clouds, young star. };
+	VHGstardesc10 = { very large and ancient runaway star, unsuitable for planets. };
+	VHGstardesc11 = { tiny pulsar object, unsafe, high radiation, strong gravity. };
+	VHGplanetdesc0 = { medium size, internally hot, unstable surface, no atmosphere. };
+	VHGplanetdesc1 = { small, solid, dusty, craterized, no atmosphere. };
+	VHGplanetdesc2 = { medium size, solid, thick atmosphere, fully covered by clouds. };
+	VHGplanetdesc3 = { medium size, felisian, breathable atmosphere, suitable for life. };
+	VHGplanetdesc4 = { medium size, rocky, creased, no atmosphere. };
+	VHGplanetdesc5 = { small, solid, thin atmosphere. };
+	VHGplanetdesc6 = { large, not consistent, covered with dense clouds. };
+	VHGplanetdesc7 = { small, solid, icy surface, no atmosphere. };
+	VHGplanetdesc8 = { medium size, surface is mainly native quartz, oxygen atmosphere. };
+	VHGplanetdesc9 = { very large, substellar object, not consistent. };
+	VHGplanetdesc10 = { companion star - not a planet };
+	VHGfcsunknown = { unknown. };
 	VHGflightstarttext = { VIMANA FLIGHT STARTED };
 	VHGflightstoptext = { VIMANA FLIGHT STOPPED };
 	VHGflightconflicttext = { VIMANA CONTROL CONFLICT };
@@ -410,6 +458,9 @@
 	VHGbrowserowx = 13;
 	VHGbrowserowy = 13;
 	VHGbrowserowz = 13;
+	VHGonboardrow0 = 109;
+	VHGonboardrow1 = 109;
+	VHGonboardrow2 = 109;
 
 "programme"
 
@@ -3626,6 +3677,235 @@
 "VHG info overlay done"
 	end;
 
+"VHG onboard row begin"
+	[VHGonrowpos] = 0; E = [VHGonrowdst]; [E] = 0;
+	end;
+
+"VHG onboard row finish"
+	E = [VHGonrowdst]; E + [VHGonrowpos]; [E] = 0;
+	end;
+
+"VHG onboard row append text"
+	[VHGonrowi] = 0;
+    "VHG onboard row append text loop"
+	A = [VHGonrowpos]; ? A >= 108 -> VHG onboard row append text done;
+	E = [VHGonrowsrc]; E + [VHGonrowi]; A = [E];
+	? A = 0 -> VHG onboard row append text done;
+	D = [VHGonrowdst]; D + [VHGonrowpos]; [D] = A;
+	[VHGonrowpos]+; [VHGonrowi]+; -> VHG onboard row append text loop;
+    "VHG onboard row append text done"
+	end;
+
+"VHG onboard row append char"
+	A = [VHGonrowpos]; ? A >= 108 -> VHG onboard row append char done;
+	E = [VHGonrowdst]; E + A; [E] = [VHGonrowchar]; [VHGonrowpos]+;
+    "VHG onboard row append char done"
+	end;
+
+"VHG onboard row append space"
+	[VHGonrowchar] = 32; => VHG onboard row append char;
+	end;
+
+"VHG onboard row append number"
+	( alphavalue() emits ordinary unpadded decimal text for these integer FCS
+	  fields. Keep the sign path for a depleted lithium value. )
+	A = [VHGonrowvalue]; ? A >= 0 -> VHG onboard row number magnitude ready;
+	[VHGonrowchar] = 45; => VHG onboard row append char;
+	A = 0; A - [VHGonrowvalue]; [VHGonrowvalue] = A;
+    "VHG onboard row number magnitude ready"
+	[VHGonrowden] = 1000000000; [VHGonrowstarted] = 0;
+    "VHG onboard row number loop"
+	A = [VHGonrowvalue]; C = A; A '/ [VHGonrowden]; [VHGonrowdigit] = A;
+	A = C; A '% [VHGonrowden]; [VHGonrowvalue] = A;
+	A = [VHGonrowdigit]; ? A != 0 -> VHG onboard row number emit;
+	A = [VHGonrowstarted]; ? A != 0 -> VHG onboard row number emit;
+	A = [VHGonrowden]; ? A = 1 -> VHG onboard row number emit;
+	-> VHG onboard row number next;
+    "VHG onboard row number emit"
+	[VHGonrowstarted] = 1; A = [VHGonrowdigit]; A + 48;
+	[VHGonrowchar] = A; => VHG onboard row append char;
+    "VHG onboard row number next"
+	A = [VHGonrowden]; A '/ 10; [VHGonrowden] = A;
+	? A > 0 -> VHG onboard row number loop;
+	end;
+
+"VHG onboard select ordinal"
+	[VHGonrowsrc] = VHGfcsunknown; A = [VHGonrowvalue];
+	? A = 1 -> VHG onboard ordinal 1; ? A = 2 -> VHG onboard ordinal 2;
+	? A = 3 -> VHG onboard ordinal 3; ? A = 4 -> VHG onboard ordinal 4;
+	? A = 5 -> VHG onboard ordinal 5; ? A = 6 -> VHG onboard ordinal 6;
+	? A = 7 -> VHG onboard ordinal 7; ? A = 8 -> VHG onboard ordinal 8;
+	? A = 9 -> VHG onboard ordinal 9; ? A = 10 -> VHG onboard ordinal 10;
+	? A = 11 -> VHG onboard ordinal 11; ? A = 12 -> VHG onboard ordinal 12;
+	? A = 13 -> VHG onboard ordinal 13; ? A = 14 -> VHG onboard ordinal 14;
+	? A = 15 -> VHG onboard ordinal 15; ? A = 16 -> VHG onboard ordinal 16;
+	? A = 17 -> VHG onboard ordinal 17; ? A = 18 -> VHG onboard ordinal 18;
+	? A = 19 -> VHG onboard ordinal 19; ? A = 20 -> VHG onboard ordinal 20;
+	end;
+    "VHG onboard ordinal 1"
+	[VHGonrowsrc] = VHGord1; end;
+    "VHG onboard ordinal 2"
+	[VHGonrowsrc] = VHGord2; end;
+    "VHG onboard ordinal 3"
+	[VHGonrowsrc] = VHGord3; end;
+    "VHG onboard ordinal 4"
+	[VHGonrowsrc] = VHGord4; end;
+    "VHG onboard ordinal 5"
+	[VHGonrowsrc] = VHGord5; end;
+    "VHG onboard ordinal 6"
+	[VHGonrowsrc] = VHGord6; end;
+    "VHG onboard ordinal 7"
+	[VHGonrowsrc] = VHGord7; end;
+    "VHG onboard ordinal 8"
+	[VHGonrowsrc] = VHGord8; end;
+    "VHG onboard ordinal 9"
+	[VHGonrowsrc] = VHGord9; end;
+    "VHG onboard ordinal 10"
+	[VHGonrowsrc] = VHGord10; end;
+    "VHG onboard ordinal 11"
+	[VHGonrowsrc] = VHGord11; end;
+    "VHG onboard ordinal 12"
+	[VHGonrowsrc] = VHGord12; end;
+    "VHG onboard ordinal 13"
+	[VHGonrowsrc] = VHGord13; end;
+    "VHG onboard ordinal 14"
+	[VHGonrowsrc] = VHGord14; end;
+    "VHG onboard ordinal 15"
+	[VHGonrowsrc] = VHGord15; end;
+    "VHG onboard ordinal 16"
+	[VHGonrowsrc] = VHGord16; end;
+    "VHG onboard ordinal 17"
+	[VHGonrowsrc] = VHGord17; end;
+    "VHG onboard ordinal 18"
+	[VHGonrowsrc] = VHGord18; end;
+    "VHG onboard ordinal 19"
+	[VHGonrowsrc] = VHGord19; end;
+    "VHG onboard ordinal 20"
+	[VHGonrowsrc] = VHGord20; end;
+
+"VHG onboard select star description"
+	[VHGonrowsrc] = VHGfcsunknown; A = [VHTclass];
+	? A = 0 -> VHG onboard star description 0; ? A = 1 -> VHG onboard star description 1;
+	? A = 2 -> VHG onboard star description 2; ? A = 3 -> VHG onboard star description 3;
+	? A = 4 -> VHG onboard star description 4; ? A = 5 -> VHG onboard star description 5;
+	? A = 6 -> VHG onboard star description 6; ? A = 7 -> VHG onboard star description 7;
+	? A = 8 -> VHG onboard star description 8; ? A = 9 -> VHG onboard star description 9;
+	? A = 10 -> VHG onboard star description 10; ? A = 11 -> VHG onboard star description 11;
+	end;
+    "VHG onboard star description 0"
+	[VHGonrowsrc] = VHGstardesc0; end;
+    "VHG onboard star description 1"
+	[VHGonrowsrc] = VHGstardesc1; end;
+    "VHG onboard star description 2"
+	[VHGonrowsrc] = VHGstardesc2; end;
+    "VHG onboard star description 3"
+	[VHGonrowsrc] = VHGstardesc3; end;
+    "VHG onboard star description 4"
+	[VHGonrowsrc] = VHGstardesc4; end;
+    "VHG onboard star description 5"
+	[VHGonrowsrc] = VHGstardesc5; end;
+    "VHG onboard star description 6"
+	[VHGonrowsrc] = VHGstardesc6; end;
+    "VHG onboard star description 7"
+	[VHGonrowsrc] = VHGstardesc7; end;
+    "VHG onboard star description 8"
+	[VHGonrowsrc] = VHGstardesc8; end;
+    "VHG onboard star description 9"
+	[VHGonrowsrc] = VHGstardesc9; end;
+    "VHG onboard star description 10"
+	[VHGonrowsrc] = VHGstardesc10; end;
+    "VHG onboard star description 11"
+	[VHGonrowsrc] = VHGstardesc11; end;
+
+"VHG onboard select planet description"
+	[VHGonrowsrc] = VHGfcsunknown; A = [VHGonrowvalue];
+	? A = 0 -> VHG onboard planet description 0; ? A = 1 -> VHG onboard planet description 1;
+	? A = 2 -> VHG onboard planet description 2; ? A = 3 -> VHG onboard planet description 3;
+	? A = 4 -> VHG onboard planet description 4; ? A = 5 -> VHG onboard planet description 5;
+	? A = 6 -> VHG onboard planet description 6; ? A = 7 -> VHG onboard planet description 7;
+	? A = 8 -> VHG onboard planet description 8; ? A = 9 -> VHG onboard planet description 9;
+	? A = 10 -> VHG onboard planet description 10;
+	end;
+    "VHG onboard planet description 0"
+	[VHGonrowsrc] = VHGplanetdesc0; end;
+    "VHG onboard planet description 1"
+	[VHGonrowsrc] = VHGplanetdesc1; end;
+    "VHG onboard planet description 2"
+	[VHGonrowsrc] = VHGplanetdesc2; end;
+    "VHG onboard planet description 3"
+	[VHGonrowsrc] = VHGplanetdesc3; end;
+    "VHG onboard planet description 4"
+	[VHGonrowsrc] = VHGplanetdesc4; end;
+    "VHG onboard planet description 5"
+	[VHGonrowsrc] = VHGplanetdesc5; end;
+    "VHG onboard planet description 6"
+	[VHGonrowsrc] = VHGplanetdesc6; end;
+    "VHG onboard planet description 7"
+	[VHGonrowsrc] = VHGplanetdesc7; end;
+    "VHG onboard planet description 8"
+	[VHGonrowsrc] = VHGplanetdesc8; end;
+    "VHG onboard planet description 9"
+	[VHGonrowsrc] = VHGplanetdesc9; end;
+    "VHG onboard planet description 10"
+	[VHGonrowsrc] = VHGplanetdesc10; end;
+
+"VHG onboard FCS information"
+	( NOCTIS.CPP:1290-1327, retaining its three source rows and exact prose. )
+	[VHGonrowdst] = VHGonboardrow0; => VHG onboard row begin;
+	A = [VHGlocaltarget]; [VHGonrowlocal] = A;
+	? A = 0FFFFFFFFh -> VHG onboard FCS remote row;
+	? A >= [nsnob] -> VHG onboard FCS remote row;
+	[VHGonrowsrc] = VHGfcslocalprefix; => VHG onboard row append text;
+	=> VHG onboard row append space;
+	E = nspowner; E + [VHGonrowlocal]; A = [E];
+	? A < 0 -> VHG onboard FCS local planet;
+	[VHGonrowsrc] = VHGfcsmoonprefix; => VHG onboard row append text;
+	E = nspmoonid; E + [VHGonrowlocal]; A = [E]; A + 1;
+	[VHGonrowvalue] = A; => VHG onboard row append number;
+	=> VHG onboard row append space; [VHGonrowsrc] = VHGfcsof;
+	=> VHG onboard row append text; => VHG onboard row append space;
+	E = nspowner; E + [VHGonrowlocal]; A = [E]; A + 1;
+	-> VHG onboard FCS local ordinal;
+    "VHG onboard FCS local planet"
+	A = [VHGonrowlocal]; A + 1;
+    "VHG onboard FCS local ordinal"
+	[VHGonrowvalue] = A; => VHG onboard select ordinal;
+	=> VHG onboard row append text; => VHG onboard row append space;
+	[VHGonrowsrc] = VHGfcsplanet; => VHG onboard row append text;
+	=> VHG onboard row append space;
+	E = nsptype; E + [VHGonrowlocal]; A = [E]; [VHGonrowvalue] = A;
+	=> VHG onboard select planet description; => VHG onboard row append text;
+	=> VHG onboard row finish;
+    "VHG onboard FCS remote row"
+	[VHGonrowdst] = VHGonboardrow1; => VHG onboard row begin;
+	A = [MgAptgt]; ? A = 0 -> VHG onboard FCS no remote;
+	? A != 1 -> VHG onboard FCS direct remote;
+	[VHGonrowsrc] = VHGfcsremoteprefix; => VHG onboard row append text;
+	=> VHG onboard row append space; [VHGonrowvalue] = [VHTclass];
+	=> VHG onboard row append number; => VHG onboard row append space;
+	[VHGonrowsrc] = VHGfcsstar; => VHG onboard row append text;
+	=> VHG onboard row append space; => VHG onboard select star description;
+	=> VHG onboard row append text; -> VHG onboard FCS remote finish;
+    "VHG onboard FCS direct remote"
+	[VHGonrowsrc] = VHGfcsdirect; => VHG onboard row append text;
+	-> VHG onboard FCS remote finish;
+    "VHG onboard FCS no remote"
+	[VHGonrowsrc] = VHGfcsnoremote; => VHG onboard row append text;
+    "VHG onboard FCS remote finish"
+	=> VHG onboard row finish;
+	[VHGonrowdst] = VHGonboardrow2; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGfcsrangeprefix; => VHG onboard row append text;
+	=> VHG onboard row append space;
+	A = [MgPwr]; A - 15000; ? A >= 0 -> VHG onboard FCS power ready; A = 0;
+    "VHG onboard FCS power ready"
+	[VHGonrowvalue] = A; => VHG onboard row append number;
+	=> VHG onboard row append space; [VHGonrowsrc] = VHGfcskilodyams;
+	=> VHG onboard row append text; => VHG onboard row append space;
+	[VHGonrowvalue] = [MgCharge]; => VHG onboard row append number;
+	=> VHG onboard row append space; [VHGonrowsrc] = VHGfcsgrams;
+	=> VHG onboard row append text; => VHG onboard row finish;
+	end;
+
 "VHG onboard prepare"
 	( Materialize the live source command set for VH onboard screen. Physical
 	  pages use the original command() wording; the separate accessibility
@@ -3658,7 +3938,9 @@
     "VHG onboard prepare FCS local"
 	A + 2; [VHPoncmd2] = A;
 	A = VHGfcsmcapsule; A + 2; [VHPoncmd3] = A;
-	[VHPoninfo0] = VHGfcsmenutitle; -> VHG onboard prepare done;
+	=> VHG onboard FCS information;
+	[VHPoninfo0] = VHGonboardrow0; [VHPoninfo1] = VHGonboardrow1;
+	[VHPoninfo2] = VHGonboardrow2; -> VHG onboard prepare done;
     "VHG onboard prepare root"
 	[VHPoncmd0] = VHGsrcdevnav; [VHPoncmd1] = VHGsrcdevmisc;
 	[VHPoncmd2] = VHGsrcdevcart; [VHPoncmd3] = VHGsrcdevemergency;
