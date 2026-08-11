@@ -59,7 +59,7 @@
 	VHGmouseheld = 0; VHGmousex = 0; VHGmousey = 0; VHGmousedx = 0; VHGmousedy = 0;
 	VHGmenuheld = 0; VHGmenux = 0; VHGmenuy = 0;
 	VHGmenuhover = 0; VHGmenuhovery = 0; VHGmenukey = 0;
-	VHGgazecontrol = 0; VHGgazecommand = 0; VHGgazeheld = 0;
+	VHGgazecontrol = 0; VHGgazecommand = 0; VHGgazeinfo = 0; VHGgazeheld = 0;
 	VHGgazex = 0; VHGgazey = 0; VHGgazez = 0; VHGgazeabsx = 0; VHGgazeabsz = 0;
 	VHGgazestep = 0; VHGgazeiterations = 0;
 	VHGonrowdst = 0; VHGonrowsrc = 0; VHGonrowpos = 0; VHGonrowi = 0;
@@ -174,8 +174,11 @@
 	VHGinfoperp0 = 0; VHGinfoperp1 = 0; VHGinforas0 = 0; VHGinforas1 = 0;
 	VHGinforap0 = 0; VHGinforap1 = 0; VHGinfodasp0 = 0; VHGinfodasp1 = 0;
 	VHGinfonamesrc = 0; VHGinfosrc = 0; VHGinfodst = 0; VHGinfocount = 0;
-	VHGdev = 0; VHGdevaccess = 0; VHGilight = 1; VHGlighttick = 0;
+	VHGdev = 0; VHGdevaccess = 0; VHGprefs = 0; VHGilight = 1; VHGlighttick = 0;
 	VHGdeviceheld = 0;
+	( Original PFS defaults from NOCTIS-0.CPP. )
+	VHGautoscreenoff = 0; VHGrevcontrols = 0; VHGmenusalwayson = 1; VHGdepolarize = 0;
+	VHGautoscreentick = 100; VHGnavvel = 0; VHGnavfrac = 0;
 	VHGstarclass = 0; VHGstarr = 0; VHGstarg = 0; VHGstarb = 0;
 	VHGstarinnerR = 0; VHGstarinnerG = 0; VHGstarinnerB = 0;
 	( Original navigation-device defaults: normal field, finder off, fixed
@@ -420,6 +423,16 @@
 	VHGsrclithiumon = { stop scoping lithium };
 	VHGsrclithiumoff = { scope for lithium };
 	VHGsrcclear = { clear status };
+	VHGprefautoon = { auto screen sleep on };
+	VHGprefautooff = { auto screen sleep off };
+	VHGprefreverse = { reverse pitch controls };
+	VHGprefnormal = { normal pitch controls };
+	VHGprefalways = { menus always onscreen };
+	VHGprefhidden = { auto-hidden menus };
+	VHGprefpolarize = { polarize };
+	VHGprefdepolarize = { depolarize };
+	VHGprefacquired = { ACQUIRED };
+	VHGprefdisabled = { DISABLED };
 	VHGfcsmenutitle = { FLIGHT CONTROL SYSTEM };
 	VHGfcsmremote = { 6 SET REMOTE TARGET };
 	VHGfcsmstart = { 7 START VIMANA FLIGHT };
@@ -690,7 +703,7 @@
 	[PVh] = 0; [DWmode] = 2; [DWuds] = 0;
 	[DWcx] = 0; [DWcy] = 0; [DWcz] = 0;
 	[DWcamx] = 0; [DWcamy] = 0; [DWcamz] = 0;
-	=> SP drawpv; [VHRiters] = 2; => VH build mode2 cache;
+	=> SP drawpv; [VHRiters] = 2; [VHRcacheexpected] = 720; => VH build mode2 cache;
 	( Keep the shipped mammal twice, exactly as setup_animals(): handle 2 is
 	  the immutable base and handle 3 is reset from it before every animal. )
 	[PVh] = 2; [PVmodel] = MDMAM;
@@ -870,7 +883,7 @@
 	A = [VHGmode]; ? A = 0 -> VHG menu fcs open;
 	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
     "VHG menu fcs open"
-	[VHGfcsopen] = 1; [VHGdevaccess] = 1; [VHGdev] = 0; [VHGinfo] = 0;
+	[VHGfcsopen] = 1; [VHGdevaccess] = 1; [VHGdev] = 0; [VHGprefs] = 0; [VHGinfo] = 0;
 	[VHGhelpshow] = 0; [VHGconsole] = 0;
 	end;
 
@@ -878,7 +891,7 @@
 	A = [VHGmode]; ? A = 0 -> VHG menu devices open;
 	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
     "VHG menu devices open"
-	[VHGdev] = 1; [VHGdevaccess] = 1; [VHGfcsopen] = 0; [VHGinfo] = 0;
+	[VHGdev] = 1; [VHGdevaccess] = 1; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0;
 	[VHGhelpshow] = 0; [VHGconsole] = 0;
 	end;
 
@@ -915,6 +928,7 @@
 	=> VHG rescue advance;
 	=> VHG light step;
 	=> VHG navigation step;
+	=> VHG preference step;
 	=> VHG power reserve;
 	=> VHG lift tick;
 	( p_Forward(step) is clamped before vehicle() in the source loop. )
@@ -1129,6 +1143,26 @@
 	A = [MgIpreached]; ? A = 0 -> VHG navigation tracking off;
 	=> VHG tracking apply;
     "VHG navigation tracking off"
+	end;
+
+"VHG preference step"
+	( NOCTIS.CPP:3555-3562 advances the PFS auto-sleep countdown on the
+	  authentic game loop. Navigation steering keeps the source's 1.5-degree
+	  impulse and 1.1 damping in signed tenths of a degree. )
+	A = [VHGautoscreenoff]; ? A = 0 -> VHG preference steering step;
+	[VHGautoscreentick]-; A = [VHGautoscreentick]; ? A > 0 -> VHG preference steering step;
+	[VHGautoscreentick] = 100; [VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0;
+    "VHG preference steering step"
+	A = [VHGnavfrac]; A + [VHGnavvel]; C = A; A / 10;
+	A + [VHGnavbeta]; A % 360; ? A >= 0 -> VHG preference heading ready; A + 360;
+    "VHG preference heading ready"
+	[VHGnavbeta] = A;
+	A = C; A / 10; A '* 10; C - A; [VHGnavfrac] = C;
+	A = [VHGnavvel]; A '* 10; A / 11; [VHGnavvel] = A;
+	? A >= 0 -> VHG preference steering positive; C = 0; C - A; A = C;
+    "VHG preference steering positive"
+	? A >= 5 -> VHG preference step done; [VHGnavvel] = 0;
+    "VHG preference step done"
 	end;
 
 "VHG tracking apply"
@@ -2263,6 +2297,7 @@
 	A = [VHGgraphicsused]; ? A != 0 -> VHG input done;
 	=> VHG menu mouse;
 	=> VHG onboard select;
+	=> VHG preference key;
 	=> VHG device key;
 	=> VHG FCS menu key;
 	=> VHG info key;
@@ -2277,6 +2312,7 @@
 	  every three keystrokes; only physical look/movement stays sim-paced. )
 	A = [VHGdev]; ? A != 0 -> VHG input done;
 	A = [VHGfcsopen]; ? A != 0 -> VHG input done;
+	A = [VHGprefs]; ? A != 0 -> VHG input done;
 	A = [VHGinfo]; ? A != 0 -> VHG input done;
 	A = [VHGmode]; ? A != 0 -> VHG surface input;
 	A = [VHGconsole]; ? A != 0 -> VHG console input;
@@ -2562,7 +2598,7 @@
 	A = [VHGprefillcount]; C = vhptext; C + 42; C + A; [C] = 32;
 	A + 1; [VHPcmdpos] = A; C = vhptext; C + 42; C + A; [C] = 95;
 	A + 1; C = vhptext; C + 42; C + A; [C] = 0;
-	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0;
 	[VHGconsole] = 1; [VHGconsoleview] = 1; [VHGascii] = 0;
 	end;
 
@@ -2647,12 +2683,16 @@
 	( The original Select action belongs to the centre gaze, not the desktop
 	  pointer position. The accessibility pages consume their own mouse rows;
 	  direct R/5 leave left-click free for the physical z=0 computer. )
+	A = [VHGmode]; ? A != 0 -> VHG onboard select release;
+	A = [VHGconsole]; ? A != 0 -> VHG onboard select release;
 	A = [VHGdevaccess]; ? A != 0 -> VHG onboard select release;
-	A = [VHGdev]; ? A != 0 -> VHG onboard select active;
-	A = [VHGfcsopen]; ? A = 0 -> VHG onboard select release;
     "VHG onboard select active"
 	A = [Client Owns Mouse Pointer]; ? A = NO -> VHG onboard select release;
 	A = [Pointer Status]; ? A - PD LEFT BUTTON DOWN -> VHG onboard select released;
+	[VHGautoscreentick] = 100;
+	A = [VHGgazecontrol]; A | [VHGgazecommand]; ? A != 0 -> VHG onboard select command;
+	=> VHG navigation steering input;
+    "VHG onboard select command"
 	A = [VHGgazeheld]; ? A != 0 -> VHG onboard select done; [VHGgazeheld] = 1;
 	A = [VHGgazecontrol]; ? A = 1 -> VHG onboard select FCS;
 	? A = 2 -> VHG onboard select devices; ? A = 3 -> VHG onboard select prefs;
@@ -2660,14 +2700,14 @@
 	A = [VHGgazecommand]; ? A = 0 -> VHG onboard select done;
 	A + 53; [VHGascii] = A; -> VHG onboard select done;
     "VHG onboard select FCS"
-	[VHGfcsopen] = 1; [VHGdev] = 0; [VHGascii] = 0; -> VHG onboard select done;
+	[VHGfcsopen] = 1; [VHGdev] = 0; [VHGprefs] = 0; [VHGascii] = 0; -> VHG onboard select done;
     "VHG onboard select devices"
-	[VHGdev] = 1; [VHGfcsopen] = 0; [VHGascii] = 0; -> VHG onboard select done;
+	[VHGdev] = 1; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGascii] = 0; -> VHG onboard select done;
     "VHG onboard select prefs"
-	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGascii] = 0; => VHG toggle graphics action;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 1; [VHGascii] = 0;
 	-> VHG onboard select done;
     "VHG onboard select off"
-	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGascii] = 0; -> VHG onboard select done;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGascii] = 0; -> VHG onboard select done;
     "VHG onboard select released"
 	[VHGgazeheld] = 0; -> VHG onboard select done;
     "VHG onboard select release"
@@ -2675,12 +2715,27 @@
     "VHG onboard select done"
 	end;
 
+"VHG navigation steering input"
+	A = [VHGdosim]; ? A = 0 -> VHG navigation steering done;
+	A = [VHGgazex]; ? A > 2500 -> VHG navigation steer right;
+	? A >= 0FFFFF63Ch -> VHG navigation steering done; ( -2500 )
+	A = 15; C = [VHGrevcontrols]; ? C = 0 -> VHG navigation steer add;
+	A = 0; A - 15; -> VHG navigation steer add;
+    "VHG navigation steer right"
+	A = 0; A - 15; C = [VHGrevcontrols]; ? C = 0 -> VHG navigation steer add;
+	A = 15;
+    "VHG navigation steer add"
+	A + [VHGnavvel]; [VHGnavvel] = A;
+    "VHG navigation steering done"
+	end;
+
 "VHG systems reset action"
 	[VHGamp] = 0; [VHGfinder] = 0; [VHGsync] = 1; [VHGantirad] = 1; [MgAnti] = 1;
 	[VHGamptick] = 0; [VHGfindertick] = 0; [VHGsynctick] = 0; [VHGtrackphase] = 0;
 	[VHSamp] = 0; [VHSready] = 0; [VHSdrawready] = 0;
 	[VHGilight] = 1; [VHLpower] = 1; [VHGlighttick] = 0; [VHGcollector] = 0;
-	[VHGdev] = 0; [VHGinfo] = 0; [VHGconsole] = 0; [VHGhelpshow] = 0; [VHGascii] = 0;
+	[VHGautoscreenoff] = 0; [VHGautoscreentick] = 100;
+	[VHGdev] = 0; [VHGprefs] = 0; [VHGinfo] = 0; [VHGconsole] = 0; [VHGhelpshow] = 0; [VHGascii] = 0;
 	[VHGnoticeptr] = VHGresettext; [VHGnoticeframes] = 75;
 	end;
 
@@ -3223,6 +3278,7 @@
 
 "VHG load checkpoint"
 	=> VHSV load; A = [VHSVok]; ? A = 0 -> VHG load checkpoint done;
+	=> VHG hull cache apply;
 	[VHLpower] = [VHGilight]; [VHGlighttick] = 0;
 	[MgAnti] = [VHGantirad]; [VHSamp] = [VHGamp]; [VHSready] = 0; [VHSdrawready] = 0;
 	[VHGamptick] = 0; [VHGfindertick] = 0; [VHGsynctick] = 0;
@@ -3313,7 +3369,7 @@
 	[VHGlifter] = 0; [VHGliftstep] = 0; [VHGonroof] = 0; [VHGridearmed] = 1; [VHGuprequest] = 0;
 	[VHGCstate] = 0; [VHGCcapcount] = 0; [VHGCrecover] = 0;
 	[VHGrescueactive] = 0; [VHGrescuetick] = 0; [VHGrescuedelay] = 0; [VHGrescueacc] = 0; [VHGcollector] = 0;
-	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGilight] = 1; [VHGlighttick] = 0; [VHLpower] = 1;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0; [VHGilight] = 1; [VHGlighttick] = 0; [VHLpower] = 1;
 	[VHGamp] = 0; [VHGfinder] = 0; [VHGsync] = 1; [VHGantirad] = 1;
 	[VHGamptick] = 0; [VHGfindertick] = 0; [VHGsynctick] = 0; [VHGtrackphase] = 0;
 	[VHSamp] = 0; [VHSready] = 0; [VHSdrawready] = 0;
@@ -4281,8 +4337,28 @@
 	[VHPoninfo0] = 0; [VHPoninfo1] = 0; [VHPoninfo2] = 0;
 	=> VHG onboard gaze;
 	[VHPoncontrol] = [VHGgazecontrol]; [VHPoncommand] = [VHGgazecommand];
+	[VHPoninfoarea] = [VHGgazeinfo]; [VHPalwayson] = [VHGmenusalwayson];
 	A = [VHGfcsopen]; ? A != 0 -> VHG onboard prepare FCS;
-	A = [VHGdev]; ? A = 0 -> VHG onboard prepare done;
+	A = [VHGdev]; ? A != 0 -> VHG onboard prepare devices;
+	A = [VHGprefs]; ? A = 0 -> VHG onboard prepare done;
+	[VHPonsys] = 3;
+	A = VHGprefautooff; C = [VHGautoscreenoff]; ? C = 0 -> VHG onboard prepare prefs auto;
+	A = VHGprefautoon;
+    "VHG onboard prepare prefs auto"
+	[VHPoncmd0] = A;
+	A = VHGprefnormal; C = [VHGrevcontrols]; ? C = 0 -> VHG onboard prepare prefs reverse;
+	A = VHGprefreverse;
+    "VHG onboard prepare prefs reverse"
+	[VHPoncmd1] = A;
+	A = VHGprefhidden; C = [VHGmenusalwayson]; ? C = 0 -> VHG onboard prepare prefs menu;
+	A = VHGprefalways;
+    "VHG onboard prepare prefs menu"
+	[VHPoncmd2] = A;
+	A = VHGprefdepolarize; C = [VHGdepolarize]; ? C = 0 -> VHG onboard prepare prefs hull;
+	A = VHGprefpolarize;
+    "VHG onboard prepare prefs hull"
+	[VHPoncmd3] = A; -> VHG onboard prepare done;
+    "VHG onboard prepare devices"
 	[VHPonsys] = 2;
 	? A = 1 -> VHG onboard prepare root;
 	? A = 2 -> VHG onboard prepare nav;
@@ -4370,10 +4446,8 @@
 	( NOCTIS.CPP:2649-2685 repeatedly advances the camera by half of |z|
 	  until its centre ray reaches the z=0 computer plane. Keep that algorithm
 	  and its exact control/command bounds, using integer camera coordinates. )
-	[VHGgazecontrol] = 0; [VHGgazecommand] = 0;
+	[VHGgazecontrol] = 0; [VHGgazecommand] = 0; [VHGgazeinfo] = 0;
 	A = [VHGdevaccess]; ? A != 0 -> VHG onboard gaze done;
-	A = [VHGdev]; ? A != 0 -> VHG onboard gaze active;
-	A = [VHGfcsopen]; ? A = 0 -> VHG onboard gaze done;
     "VHG onboard gaze active"
 	[VHGgazex] = [VHGx]; [VHGgazey] = [VHGy]; [VHGgazez] = [VHGz];
 	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
@@ -4402,7 +4476,7 @@
     "VHG onboard gaze command"
 	( The source boundary is cam_x >= -1320. )
 	A = [VHGgazex]; ? A < 0FFFFFAD8h -> VHG onboard gaze done;
-	A = [VHGgazey]; ? A >= 0FFFFFFCEh -> VHG onboard gaze done;
+	A = [VHGgazey]; ? A >= 0FFFFFFCEh -> VHG onboard gaze information;
 	A = [VHGgazex]; ? A >= 2040 -> VHG onboard gaze done;
 	A + 1320; A / 810; A + 1;
 	? A >= 1 -> VHG onboard gaze command low; A = 1;
@@ -4410,6 +4484,9 @@
 	? A <= 4 -> VHG onboard gaze command ready; A = 4;
     "VHG onboard gaze command ready"
 	[VHGgazecommand] = A;
+	-> VHG onboard gaze done;
+    "VHG onboard gaze information"
+	[VHGgazeinfo] = 1;
     "VHG onboard gaze done"
 	end;
 
@@ -5483,7 +5560,7 @@
 	A = [VHGfcsopen]; ? A = 0 -> VHG FCS menu open;
 	[VHGfcsopen] = 0; [VHGascii] = 0; -> VHG FCS menu key done;
     "VHG FCS menu open"
-	[VHGfcsopen] = 1; [VHGdevaccess] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGascii] = 0;
+	[VHGfcsopen] = 1; [VHGdevaccess] = 0; [VHGprefs] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGascii] = 0;
 	-> VHG FCS menu key done;
     "VHG FCS remote action"
 	A = [MgStspeed]; ? A != 0 -> VHG FCS conflict;
@@ -5528,6 +5605,55 @@
     "VHG FCS needs calibration"
 	[VHGnoticeptr] = VHGcalibratetext; [VHGnoticeframes] = 55; [VHGascii] = 0;
     "VHG FCS menu key done"
+	end;
+
+"VHG preference key"
+	( Original pfs_commands(): physical command rows 1..4 arrive through the
+	  port's shared 6..9 accessibility mapping. )
+	A = [VHGconsole]; ? A != 0 -> VHG preference key done;
+	A = [VHGmode]; ? A != 0 -> VHG preference key done;
+	A = [VHGprefs]; ? A = 0 -> VHG preference key done;
+	A = [VHGascii]; ? A = 54 -> VHG preference auto;
+	? A = 55 -> VHG preference reverse; ? A = 56 -> VHG preference menus;
+	? A = 57 -> VHG preference hull; -> VHG preference key done;
+    "VHG preference auto"
+	A = [VHGautoscreenoff]; A '* 0FFFFFFFFh; A + 1; [VHGautoscreenoff] = A;
+	[VHGautoscreentick] = 100; -> VHG preference notice;
+    "VHG preference reverse"
+	A = [VHGrevcontrols]; A '* 0FFFFFFFFh; A + 1; [VHGrevcontrols] = A;
+	-> VHG preference notice;
+    "VHG preference menus"
+	A = [VHGmenusalwayson]; A '* 0FFFFFFFFh; A + 1; [VHGmenusalwayson] = A;
+	-> VHG preference notice;
+    "VHG preference hull"
+	A = [VHGdepolarize]; A '* 0FFFFFFFFh; A + 1; [VHGdepolarize] = A;
+	=> VHG hull cache apply; A = [VHGdepolarize];
+    "VHG preference notice"
+	[VHGnoticeptr] = VHGprefdisabled; ? A = 0 -> VHG preference notice ready;
+	[VHGnoticeptr] = VHGprefacquired;
+    "VHG preference notice ready"
+	[VHGnoticeframes] = 55; [VHGascii] = 0;
+    "VHG preference key done"
+	end;
+
+"VHG hull cache apply"
+	( vehicle() requests randomic_mapper divisions 2 normally and 3 when the
+	  depolarize preference is active. Rebuild the camera-independent cache
+	  only when that mode changes. )
+	[VHRcacheexpected] = 720; C = 2; A = [VHGdepolarize]; ? A = 0 -> VHG hull cache selected;
+	[VHRcacheexpected] = 2880; C = 3;
+    "VHG hull cache selected"
+	A = [VHRcached]; ? A = 0 -> VHG hull cache rebuild;
+	A = [VHRiters]; ? A = C -> VHG hull cache done;
+    "VHG hull cache rebuild"
+	[PVh] = 0;
+	[PVxs] = VHG15F; [PVys] = VHG15F; [PVzs] = VHG15F;
+	[PVxm] = 0; [PVym] = 0; [PVzm] = 0; [PVcol] = 0; [PVreq] = 0;
+	[PVh] = 0; [DWmode] = 2; [DWuds] = 0;
+	[DWcx] = 0; [DWcy] = 0; [DWcz] = 0;
+	[DWcamx] = 0; [DWcamy] = 0; [DWcamz] = 0;
+	[VHRiters] = C; => SP drawpv; => VH build mode2 cache;
+    "VHG hull cache done"
 	end;
 
 "VHG device key"
@@ -5648,7 +5774,7 @@
     "VHG device close"
 	[VHGdev] = 0; [VHGascii] = 0; -> VHG device key done;
     "VHG device open"
-	[VHGdev] = 1; [VHGdevaccess] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
+	[VHGdev] = 1; [VHGdevaccess] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
     "VHG device key done"
 	end;
 
@@ -5762,7 +5888,7 @@
 	[VHGinfodelta] = 0FFFFFFFCh; ( -4, source datasheetdelta close )
     "VHG info key selected"
 	[VHGinfogeometryvalid] = 0;
-	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
 "VHG info key done"
 	end;
 
@@ -5773,7 +5899,7 @@
 	A = [VHGascii]; ? A = 88 -> VHG screen off key pressed; ? A = 120 -> VHG screen off key pressed;
 	A = [KEY X]; ? A = OFF -> VHG screen off key done;
     "VHG screen off key pressed"
-	[VHGdev] = 0; [VHGfcsopen] = 0;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0;
 	A = [VHGinfo]; ? A = 0 -> VHG screen off no data; [VHGinfodelta] = 0FFFFFFFCh;
     "VHG screen off no data"
 	[VHGgraphics] = 0; [VHGhelpshow] = 0;
@@ -5834,7 +5960,7 @@
 	A = [VHGgraphics]; ? A = 0 -> VHG toggle graphics on;
 	[VHGgraphics] = 0; end;
     "VHG toggle graphics on"
-	[VHGgraphics] = 1; [VHGhelpshow] = 0; [VHGdev] = 0;
+	[VHGgraphics] = 1; [VHGhelpshow] = 0; [VHGdev] = 0; [VHGprefs] = 0;
 	[VHGfcsopen] = 0; [VHGinfo] = 0; [VHGconsole] = 0;
 	end;
 
@@ -5882,7 +6008,7 @@
 	A = [VHGhelpshow]; ? A = 0 -> VHG toggle help on;
 	[VHGhelpshow] = 0; end;
     "VHG toggle help on"
-	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGgraphics] = 0; [VHGhelpshow] = 1;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0; [VHGgraphics] = 0; [VHGhelpshow] = 1;
 	end;
 
 "VHG fps key"

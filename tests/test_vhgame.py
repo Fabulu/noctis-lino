@@ -391,6 +391,42 @@ def main() -> int:
         and "A = [VHGdevaccess]; ? A = 0 -> VHG FCS menu overlay done;" in game,
         "source z=0 onboard computer uses the original control, command, and information grid",
     )
+    original_prefs = section(original, "void prefs ()", "/* Comandi di impostazione")
+    original_pfs = section(original, "void pfs_commands ()", "/* Comandi impartiti")
+    preference_step = section(game, '"VHG preference step"', '"VHG tracking apply"')
+    preference_key = section(game, '"VHG preference key"', '"VHG device key"')
+    check(
+        all(token in original_prefs for token in (
+            'command (1, "auto screen sleep on");',
+            'command (2, "reverse pitch controls");',
+            'command (3, "menus always onscreen");',
+            'command (4, "depolarize");',
+        ))
+        and all(token in original_pfs for token in (
+            "toggle_option (&autoscreenoff);", "toggle_option (&revcontrols);",
+            "toggle_option (&menusalwayson);", "toggle_option (&depolarize);",
+        ))
+        and all(token in onboard_prepare for token in (
+            "[VHPonsys] = 3;", "VHGprefautooff", "VHGprefnormal",
+            "VHGprefhidden", "VHGprefdepolarize",
+        ))
+        and all(token in preference_step for token in (
+            "[VHGautoscreentick]-;", "[VHGautoscreentick] = 100;",
+            "[VHGnavfrac]", "[VHGnavvel]", "A '* 10; A / 11;",
+        ))
+        and all(token in preference_key for token in (
+            '"VHG preference auto"', '"VHG preference reverse"',
+            '"VHG preference menus"', '"VHG preference hull"',
+            "=> VHG hull cache apply;", "[VHRcacheexpected] = 2880; C = 3;",
+        ))
+        and all(token in physical_onboard for token in (
+            "[VHPalwayson]", "[VHPoninfoarea]", '"VHP onboard ctl2 ready"',
+        ))
+        and all(token in (ROOT / "work" / "vhrmap.txt").read_text(encoding="utf-8") for token in (
+            "VHRCCAP = 2880;", "VHRcacheexpected = 720;", "vhrcache = 28800;",
+        )),
+        "physical Preferences restore source toggles, menu sleep, steering, and depolarized hulls",
+    )
     original_fcs = section(original, "void fcs ()", "/* Comandi dell'FCS. */")
     onboard_fcs = section(
         game, '"VHG onboard FCS information"', '"VHG onboard prepare"'
@@ -1346,8 +1382,8 @@ def main() -> int:
             "=> VHG surface motion reset; -> VHG load checkpoint done;",
         ))
         and all(token in save for token in (
-            "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 256;",
-            "[File Command] = TEST;", "? [File Size] != 256 -> VHSV save done;",
+            "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 264;",
+            "[File Command] = TEST;", "? [File Size] != 264 -> VHSV save done;",
             "[VHSVok] = 1;",
         )),
         "startup resume and F6/F7 cover stable ship/surface checkpoints with fallback",
@@ -1460,7 +1496,7 @@ def main() -> int:
             "A = [VHGdrawhud]; ? A != 0 -> VHG FCS source HUD draw;",
             "A = [VHGgraphics]; ? A = 0 -> VHG FCS source HUD done;",
             '"VHG screen off key"', "[KEY X]",
-            "[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0;",
+            "[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0;",
         )),
         "ordinary play uses the indexed/source HUD and X clears onboard overlays",
     )
@@ -1471,7 +1507,7 @@ def main() -> int:
             "[VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;",
         ))
         and all(token in save for token in (
-            "VHSVVERSION = 14;", "[vhsvbuf plus 24] = [VHTtx];",
+            "VHSVVERSION = 15;", "[vhsvbuf plus 24] = [VHTtx];",
             "[VHTtx] = [vhsvbuf plus 24];",
         )),
         "GOES NEXT/STAR retarget real Vimana travel and persist the selected star",
@@ -1647,12 +1683,12 @@ def main() -> int:
             "? A = 156 -> VHSV load size ok; ? A = 160 -> VHSV load size ok;",
             "? A = 168 -> VHSV load size ok; ? A = 180 -> VHSV load size ok;",
             "? A = 188 -> VHSV load size ok; ? A = 192 -> VHSV load size ok;",
-            "? A != 256 -> VHSV load done;",
+            "? A = 256 -> VHSV load size ok; ? A != 264 -> VHSV load done;",
             '"VHSV load version two"', '"VHSV load version three"', '"VHSV load version four"',
             '"VHSV load version five"', '"VHSV load version six"', '"VHSV load version seven"',
             '"VHSV load version eight"', '"VHSV load version nine"', '"VHSV load version ten"',
             '"VHSV load version eleven"', '"VHSV load version twelve"',
-            '"VHSV load version thirteen"',
+            '"VHSV load version thirteen"', '"VHSV load version fourteen"',
             "[vhsvbuf plus 27] = [VHGfast];",
             "[vhsvbuf plus 28] = [VHGfpsshow];", "[vhsvbuf plus 29] = [VHAwanted];",
             "[vhsvbuf plus 30] = [VHGNDcaptures];", "[VHSVcaptures] = A;",
@@ -1664,14 +1700,17 @@ def main() -> int:
             "[vhsvbuf plus 40] = [VHGlandinglon];", "[VHGlandinglat] = A;",
             "[vhsvbuf plus 42] = [VHGNDdropx];", "[vhsvbuf plus 43] = [VHGNDdropy];",
             "[vhsvbuf plus 44] = [VHGNDdropz];", "[VHSVdropstored] = 1;",
-            "[Block Pointer] = vhsvbuf; [Block Size] = 256; isocall;",
+            "[Block Pointer] = vhsvbuf; [Block Size] = 264; isocall;",
             "[vhsvbuf plus 47] = C;", "A = [VHSVsize]; ? A = 192 -> VHSV load graphics stored;",
             "A - 1; [VHGlensmode] = A;", "[VHGdrawhud] = A;", "[VHGseamless] = A;",
             "A = 1; A - [VHGhudclosed]; A '* 16;", "[VHGhudclosed] = 0; [VHGhudcount] = 0;",
             "[vhsvbuf plus 48] = [VHGlocalactive];", "[vhsvbuf plus 49] = [VHGlocaltarget];",
+            "A = [vhsvbuf plus 49]; ? A < 0 -> VHSV load local inactive target;",
             "[vhsvbuf plus 50] = [VHGlocalx0];", "[vhsvbuf plus 61] = [MgIpreached];",
             "[vhsvbuf plus 62] = [VHGlocalacc];", "[vhsvbuf plus 63] = [VHGlocalphasetick];",
             "[VHSVlocalstored] = 1;",
+            "[vhsvbuf plus 64] = C;", "[vhsvbuf plus 65] = [VHGnavbeta];",
+            "[VHGautoscreenoff] = A;", "[VHGdepolarize] = A;", "[VHGnavbeta] = A;",
             "? A < MINIMUM WIDTH -> VHSV load done;", "? A > MAXIMUM HEIGHT -> VHSV load done;",
             "[VHSVmusic] = [VHAwanted];", "[VHAwanted] = [VHSVmusic];",
         ))
@@ -1708,7 +1747,7 @@ def main() -> int:
             < run.index("=> VHA apply;")
             < run.index("=> Enter Integrated GUI;")
         ))(section(game, '"VHG run"', '"service VHG repaint"')),
-        "version-14 checkpoints retain local flight state and safely migrate v1-v13 progress",
+        "version-15 checkpoints retain PFS state and safely migrate v1-v14 progress",
     )
     check(
         all(token in ground for token in (

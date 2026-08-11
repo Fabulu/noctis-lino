@@ -25,7 +25,7 @@
 	VHPcx4 = 0; VHPxbase4 = 0;
 	VHPonsys = 0; VHPoncmd0 = 0; VHPoncmd1 = 0; VHPoncmd2 = 0; VHPoncmd3 = 0;
 	VHPoninfo0 = 0; VHPoninfo1 = 0; VHPoninfo2 = 0;
-	VHPoncontrol = 0; VHPoncommand = 0;
+	VHPoncontrol = 0; VHPoncommand = 0; VHPoninfoarea = 0; VHPalwayson = 1;
 	VHPonptr = 0; VHPonc = 0; VHPonp = 0; VHPonmax = 0; VHPoni = 0;
 	VHPonx0 = 0; VHPonx1 = 0; VHPony0 = 0; VHPony1 = 0;
 	VHPonbright = 0; VHPonglyphbright = 0;
@@ -143,6 +143,9 @@
 	[VHVcamxi] = [VHPcamx]; [VHVcamyi] = [VHPcamy]; [VHVcamzi] = [VHPcamz];
 	[VHValpha] = [VHPalpha]; [VHVbeta] = [VHPbeta]; => VH set view;
 
+	A = [VHPalwayson]; ? A != 0 -> VHP onboard controls begin;
+	A = [VHPoncontrol]; ? A = 0 -> VHP onboard commands gate;
+    "VHP onboard controls begin"
 	[VHPonptr] = vhponctl0; [VHPonc] = 0FFFFFFC0h; [VHPonp] = 0FFFFFFFEh;
 	[VHPonmax] = 20; [VHPonbright] = 0; A = [VHPonsys]; ? A != 1 -> VHP onboard ctl0 ready;
 	[VHPonbright] = 1;
@@ -154,22 +157,34 @@
     "VHP onboard ctl1 ready"
 	=> VHP onboard line;
 	[VHPonptr] = vhponctl2; [VHPonc] = 0FFFFFFC0h; [VHPonp] = 0;
-	[VHPonmax] = 20; [VHPonbright] = 0; => VHP onboard line;
+	[VHPonmax] = 20; [VHPonbright] = 0; A = [VHPonsys]; ? A != 3 -> VHP onboard ctl2 ready;
+	[VHPonbright] = 1;
+    "VHP onboard ctl2 ready"
+	=> VHP onboard line;
 	[VHPonptr] = vhponctl3; [VHPonc] = 0FFFFFFC0h; [VHPonp] = 1;
 	[VHPonmax] = 20; [VHPonbright] = 0; => VHP onboard line;
 
+	"VHP onboard commands gate"
+	A = [VHPalwayson]; ? A != 0 -> VHP onboard commands begin;
+	A = [VHPoncommand]; ? A = 0 -> VHP onboard information gate;
+    "VHP onboard commands begin"
 	[VHPonptr] = [VHPoncmd0]; [VHPonc] = 0FFFFFFD4h; [VHPonp] = 0FFFFFFFEh;
 	[VHPonmax] = 27; [VHPonbright] = 0; => VHP onboard line;
 	[VHPonptr] = [VHPoncmd1]; [VHPonc] = 0FFFFFFEFh; => VHP onboard line;
 	[VHPonptr] = [VHPoncmd2]; [VHPonc] = 10; => VHP onboard line;
 	[VHPonptr] = [VHPoncmd3]; [VHPonc] = 37; => VHP onboard line;
 
+	"VHP onboard information gate"
+	A = [VHPalwayson]; ? A != 0 -> VHP onboard information begin;
+	A = [VHPoninfoarea]; ? A = 0 -> VHP onboard text done;
+    "VHP onboard information begin"
 	[VHPonptr] = [VHPoninfo0]; [VHPonc] = 0FFFFFFD4h; [VHPonp] = 0FFFFFFFFh;
 	[VHPonmax] = 108; => VHP onboard line;
 	[VHPonptr] = [VHPoninfo1]; [VHPonc] = 0FFFFFFD4h; [VHPonp] = 0;
 	=> VHP onboard line;
 	[VHPonptr] = [VHPoninfo2]; [VHPonc] = 0FFFFFFD4h; [VHPonp] = 1;
 	=> VHP onboard line;
+	"VHP onboard text done"
 	[SPflar] = 0; [PGtexf] = 0;
     "VHP onboard screen done"
 	end;

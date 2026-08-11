@@ -338,8 +338,8 @@ temperature, pressure, and pulse are smoothed by the original 0.25, 0.05,
 The former oversized GUI-host telemetry row is gone from ordinary play; the
 same live values remain available on the environment data page.
 The ship side now appends a compact, indexed command strip to EPOC, following
-the source `5\FLIGHTCTR R\DEVICES ... X\SCREEN OFF` layout with F2 substituted
-for the desktop port's preferences key. The temporary host-font power, capsule,
+the source `5\FLIGHTCTR R\DEVICES ... X\SCREEN OFF` layout. F2 remains a separate
+desktop visual-effects card. The temporary host-font power, capsule,
 FCS, and body rows no longer obscure the world. Resource and body details remain
 on explicit data pages, FCS status already uses the original 3D digit path, and
 X now clears onboard pages as advertised by the visor.
@@ -351,6 +351,13 @@ fine-approach integrator and parked-world position. A surface save can now retur
 the capsule to the same waiting Stardrifter after a restart instead of forgetting
 the completed approach. Explicit readers remain available for versions 1 through
 13.
+
+The physical Preferences control now opens Noctis's actual PFS page instead of
+redirecting to the port's F2 visual card. Its four source commands drive the
+18.206 Hz screen-sleep countdown, reversed gaze-side navigation steering,
+auto-hidden menu rows, and the polarized/depolarized Stardrifter subdivision.
+Version 15 expands `CURRENT.LIN` to 264 bytes to retain these four settings and
+the navigation heading, with explicit readers for versions 1 through 14.
 
 ### Clickable onboard controls
 

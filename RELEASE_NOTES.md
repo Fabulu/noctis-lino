@@ -58,9 +58,12 @@ parity, not a claim that parity is complete.
 - Planetary views finish with the original default `surrounding()` visor
   frame. Its stable graded edge replaces both the incorrect bright sawtooth
   and the intermediate plain-black guard without changing polygon clipping.
-- Version 14 saves retain the local fine-approach integrator and parked-world
-  position in addition to settled capsule coordinates and visual preferences;
-  v1 through v13 saves migrate without stranding the player or losing their
+- The Stardrifter's physical Preferences control restores the original PFS page:
+  auto screen sleep, reversed navigation steering, auto-hidden menus, and the
+  polarized/depolarized hull are functional rather than opening the F2 card.
+- Version 15 saves retain those PFS settings and the navigation heading in
+  addition to local flight, settled capsule, and visual preferences; v1 through
+  v14 saves migrate without stranding the player or losing their
   established defaults.
 
 ## Run it

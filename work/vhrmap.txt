@@ -13,7 +13,7 @@
 
 	VHRHALF = 1056964608;		( 0.5f )
 	VHRSTACKN = 64;
-	VHRCCAP = 720;
+	VHRCCAP = 2880;
 
 "variables"
 
@@ -37,7 +37,7 @@
 	VHRcd = 0;
 	VHRdrawn = 0;
 	VHRbad = 0;
-	VHRcacheon = 0; VHRcached = 0; VHRcachecount = 0;
+	VHRcacheon = 0; VHRcached = 0; VHRcachecount = 0; VHRcacheexpected = 720;
 	VHRcachep = 0;
 
 "workspace"
@@ -46,7 +46,7 @@
 	vhrmid = 9;			( e0/f0/g0 e1/f1/g1 e2/f2/g2 )
 	vhrleaf = 9;
 	vhrstack = 640;			( 64 records x 10 units )
-	vhrcache = 7200;			( normal VEHICLE: 720 x xyz9+colour )
+	vhrcache = 28800;			( depolarized VEHICLE: 2880 x xyz9+colour )
 
 "programme"
 
@@ -108,7 +108,7 @@
 	[VHRcacheon] = 1; [VHRcachecount] = 0; [VHRcached] = 0;
 	=> VH join mode2;
 	[VHRcacheon] = 0;
-	A = [VHRcachecount]; ? A != VHRCCAP -> VHR cache build bad;
+	A = [VHRcachecount]; ? A != [VHRcacheexpected] -> VHR cache build bad;
 	[VHRcached] = 1; end;
     "VHR cache build bad"
 	[VHRbad]+; end;
