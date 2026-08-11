@@ -38,7 +38,8 @@ dimensions, so a resized game reopens at the same size.
 
 Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E starts the Stardrifter roof lift from inside the ship, and walking into the roof cupola opening starts the automatic return. Face the first computer on the Stardrifter's right wall and press Enter to type directly into GOES; G opens its large accessible view from anywhere in the ship. At the third wall panel, Enter starts planetary approach and, after FCS reports STANDBY, opens the physical landing-site selector.
 `NEXT` selects and flies toward a nearby generated star, L remains the global approach fallback, arrows choose landing coordinates, L/Enter descends,
-R returns from the capsule, F5 opts into 60 FPS presentation (the original
+R returns from the capsule, F2 opens the original visual-effects settings,
+F5 opts into 60 FPS presentation (the original
 18.2 FPS mode is the default), F6/F7 save and load, F8 toggles music, `?` or F9 displays
 the complete in-game control card, and Esc saves and quits. A valid checkpoint
 resumes automatically; verified saves maintain `CURRENT.BAK`, and a damaged

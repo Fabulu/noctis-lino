@@ -19,6 +19,7 @@
 
 	VHFcx = 0; VHFcy = 0; VHFk = 0; VHFl = 0; VHFu = 0; VHFang = 0;
 	VHFdist = 0; VHFray = 0; VHFstep = 0;
+	VHFghost = 0; VHFgdx = 0; VHFgdy = 0; VHFgx = 0; VHFgy = 0; VHFgr = 0;
 	VHFdx = 0; VHFdy = 0;
 	VHFx0 = 0; VHFy0 = 0; VHFx1 = 0; VHFy1 = 0;
 	VHFldx = 0; VHFldy = 0; VHFlsx = 0; VHFlsy = 0;
@@ -89,7 +90,11 @@
 	A = [VHFcx]; A + [VHFdx]; [VHFx1] = A;
 	A = [VHFcy]; A + [VHFdy]; [VHFy1] = A;
 	=> VHF clamp; => VHF additive line;
+	A = [VHFghost]; ? A = 0 -> VHF spoke scale;
+	A = [VHFang]; A % 8; ? A != 0 -> VHF spoke scale;
+	=> VHF ghost reflections;
 
+	"VHF spoke scale"
 	[PGFi] = FSW0; [PGFt] = [VHFl]; => PGF setf32;
 	[PGFi] = FSW1; [PGFt] = [VHFu]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
@@ -104,6 +109,27 @@
     "VHF scale ready"
 	A = [VHFang]; A + 2; [VHFang] = A; ? A < 180 -> VHF spoke;
     "VHF done"
+	end;
+
+"VHF ghost reflections"
+	( lens_flares_for's three secondary reflections on every eighth spoke.
+	  The menu's ALWAYS ON mode forces this path even with the visor HUD open. )
+	A = [VHFdx]; A / 10; [VHFgdx] = A;
+	A = [VHFdy]; A / 10; [VHFgdy] = A;
+	A = [VHFcx]; A - 160; C = 0; C - A; C / 10; [VHFgx] = C;
+	A = [VHFcy]; A - 100; C = 0; C - A; C / 10; [VHFgy] = C;
+	[VHFgr] = 0;
+    "VHF ghost reflection"
+	A = 160; A + [VHFgx]; A - [VHFgdx]; [VHFx0] = A;
+	A = 100; A + [VHFgy]; A - [VHFgdy]; [VHFy0] = A;
+	A = 160; A + [VHFgx]; A + [VHFgdx]; [VHFx1] = A;
+	A = 100; A + [VHFgy]; A + [VHFgdy]; [VHFy1] = A;
+	=> VHF clamp; => VHF additive line;
+	A = [VHFgdx]; A '* 4; [VHFgdx] = A;
+	A = [VHFgdy]; A '* 4; [VHFgdy] = A;
+	A = [VHFgx]; A '* 3; [VHFgx] = A;
+	A = [VHFgy]; A '* 3; [VHFgy] = A;
+	[VHFgr]+; A = [VHFgr]; ? A < 3 -> VHF ghost reflection;
 	end;
 
 "VHF clamp"

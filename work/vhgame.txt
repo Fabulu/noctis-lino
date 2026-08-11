@@ -116,7 +116,8 @@
 	05000000h; OPTION TYPE NORMAL; { Toggle_FPS_counter }; service VHG menu fps;
 	06000000h; OPTION TYPE NORMAL; { Toggle_60_Hz }; service VHG menu fast;
 	07000000h; OPTION TYPE NORMAL; { Toggle_music }; service VHG menu music;
-	08000000h; OPTION TYPE NORMAL; { Save_and_quit }; service VHG menu quit;
+	08000000h; OPTION TYPE NORMAL; { Visual_effects }; service VHG menu graphics;
+	09000000h; OPTION TYPE NORMAL; { Save_and_quit }; service VHG menu quit;
 	END OF MENU;
 	VHGfps = 0; VHGfpsframes = 0; VHGfpslast = 0; VHGfpsnow = 0;
 	VHGfpsdelta = 0; VHGfpsshow = 0; VHGfpsheld = 0;
@@ -148,6 +149,9 @@
 	VHGbrowsevalid = 0; VHGbrowsex = 0; VHGbrowsey = 0; VHGbrowsez = 0;
 	VHGbrowserowaxis = 0; VHGbrowserowdst = 0; VHGbrowserowvalue = 0; VHGbrowserowi = 0;
 	VHGhelpshow = 0; VHGhelpheld = 0; VHGhelpline = 0; VHGhelpy = 0;
+	VHGgraphics = 0; VHGgraphicsheld = 0; VHGgraphicsused = 0;
+	VHGdrawhud = 1; VHGlensmode = 0; VHGseamless = 0;
+	VHGgraphicsline = 0; VHGgraphicsy = 0;
 	VHGprofstart = 0; VHGprofnow = 0; VHGprofrender = 0; VHGprofpresent = 0;
 	VHGprofpart = 0; VHGprofspace = 0; VHGprofcupola = 0; VHGprofhull = 0; VHGprofdetail = 0;
 	( Present at the original 18.206 Hz by default. F5 opts into the 60-Hz
@@ -217,6 +221,15 @@
 	VHGhelpfuel = { C:COLLECT-LITHIUM / H:RESCUE };
 	VHGhelpsave = { F6:SAVE / F7:LOAD };
 	VHGhelpview = { F4:FPS F5:60HZ F8:MUSIC I:DATA };
+	VHGgraphicstitle = { NOCTIS IV+ VISUAL EFFECTS SETTINGS };
+	VHGgraphicshudon = { HUD TEXT ON                          (T) };
+	VHGgraphicshudoff = { HUD TEXT OFF                         (T) };
+	VHGgraphicsflareon = { LENS FLARES ALWAYS ON                (F) };
+	VHGgraphicsflareoff = { LENS FLARES ALWAYS OFF               (F) };
+	VHGgraphicsflarevisor = { VISOR LENS FLARES ONLY               (F) };
+	VHGgraphicsborderdefault = { DEFAULT BORDER                       (B) };
+	VHGgraphicsborderseamless = { SEAMLESS BORDER                      (B) };
+	vector VHGgraphicsregion = 10; 130; 310; 180;
 	VHGinfotitle1 = { REMOTE TARGET DATA };
 	VHGinfotitle2 = { LOCAL TARGET DATA };
 	VHGinfotitle3 = { EXTERNAL ENVIRONMENT };
@@ -543,6 +556,7 @@
 	=> VHG info overlay;
 	=> VHG FCS menu overlay;
 	=> VHG device overlay;
+	=> VHG graphics overlay;
 	=> VHG help overlay;
 	=> VHGUI present;
 	end;
@@ -574,6 +588,7 @@
 		=> VHG info overlay;
 		=> VHG FCS menu overlay;
 		=> VHG device overlay;
+		=> VHG graphics overlay;
 		=> VHG help overlay;
 		=> VHGUI present;
 		( Publish the completed window explicitly.  Update Area may be disabled
@@ -632,6 +647,10 @@
 
 "service VHG menu music"
 	=> VHG toggle music action;
+	end;
+
+"service VHG menu graphics"
+	=> VHG toggle graphics action;
 	end;
 
 "service VHG menu quit"
@@ -1990,10 +2009,13 @@
     "VHG console ring ready"
 	=> VHG return key;
 	=> VHG fps key;
+	=> VHG graphics key;
 	=> VHG help key;
 	=> VHG fast key;
 	=> VHG checkpoint keys;
 	=> VHG music key;
+	=> VHG graphics character;
+	A = [VHGgraphicsused]; ? A != 0 -> VHG input done;
 	=> VHG device key;
 	=> VHG FCS menu key;
 	=> VHG info key;
@@ -3004,6 +3026,7 @@
 "VHG energy overlay"
 	( Persistent feedback for the source power bias, lithium reserve, and
 	  collector state.  Keep it outside the landed landscape view. )
+	A = [VHGdrawhud]; ? A = 0 -> VHG energy overlay done;
 	A = [VHGmode]; ? A != 0 -> VHG energy overlay done;
 	A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG energy overlay done;
 	A = [MgPwr]; A - 15000; ? A >= 0 -> VHG energy nonnegative; A = 0;
@@ -3044,6 +3067,7 @@
 	  walk.  Range is the larger signed-axis delta in world units, matching
 	  the square proximity guard used by R.  F/L/B/R points toward the pod
 	  relative to the current camera yaw. )
+	A = [VHGdrawhud]; ? A = 0 -> VHG pod overlay done;
 	A = [VHGmode]; ? A = 0 -> VHG pod overlay done;
 	A = [VHGlanded]; ? A = 0 -> VHG pod overlay done;
 	A = [VHGNDdropx]; A - [VHGx]; [VHGpoddx] = A;
@@ -3148,6 +3172,7 @@
 	end;
 
 "VHG surface telemetry overlay"
+	A = [VHGdrawhud]; ? A = 0 -> VHG surface telemetry done;
 	A = [VHGmode]; ? A = 0 -> VHG surface telemetry done;
 	A = [VHGsurfgravm]; ? A >= 0 -> VHG surface gravity nonnegative; A = 0;
     "VHG surface gravity nonnegative"
@@ -3196,6 +3221,7 @@
 	end;
 
 "VHG FCS overlay"
+	A = [VHGdrawhud]; ? A = 0 -> VHG FCS overlay done;
 	A = [VHGmode]; ? A != 0 -> VHG FCS overlay done;
 	A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG FCS overlay done;
 	( MgStatus returns to zero between fine-approach batches.  Do not expose
@@ -3234,6 +3260,7 @@
 	end;
 
 "VHG body overlay"
+	A = [VHGdrawhud]; ? A = 0 -> VHG body overlay done;
 	A = [VHGmode]; ? A != 0 -> VHG body overlay done;
 	A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG body overlay done;
 	( Compact one-row form: P02 T04 LAND ROCKY, or M04 T02 LAND DENSEAIR.
@@ -3766,6 +3793,38 @@
 	A = [VHGinfoy]; A + 22; [VHGinfoy] = A;
 	end;
 
+"VHG graphics overlay"
+	A = [VHGgraphics]; ? A = 0 -> VHG graphics overlay done;
+	( NIV+'s F2 visual-effects card occupies the lower visor without changing
+	  the authentic indexed scene beneath it. )
+	[Rectangle Display Alignment] = 320; [Rectangle Bounds] = vector VHGgraphicsregion;
+	[Rectangle Gradients] = vector Standard Black Gradients; [Rectangle Effect] = service FX Raw;
+	[Rectangle Target Layer] = VHGUIframe; => Rectangle;
+	[VHGgraphicsline] = VHGgraphicstitle; [VHGgraphicsy] = 132; => VHG graphics draw line;
+	[VHGgraphicsline] = VHGgraphicshudoff; A = [VHGdrawhud]; ? A = 0 -> VHG graphics hud ready;
+	[VHGgraphicsline] = VHGgraphicshudon;
+    "VHG graphics hud ready"
+	[VHGgraphicsy] = 141; => VHG graphics draw line;
+	[VHGgraphicsline] = VHGgraphicsflarevisor; A = [VHGlensmode];
+	? A = 0 -> VHG graphics flare ready; [VHGgraphicsline] = VHGgraphicsflareon;
+	? A = 1 -> VHG graphics flare ready; [VHGgraphicsline] = VHGgraphicsflareoff;
+    "VHG graphics flare ready"
+	[VHGgraphicsy] = 148; => VHG graphics draw line;
+	[VHGgraphicsline] = VHGgraphicsborderdefault; A = [VHGseamless];
+	? A = 0 -> VHG graphics border ready; [VHGgraphicsline] = VHGgraphicsborderseamless;
+    "VHG graphics border ready"
+	[VHGgraphicsy] = 155; => VHG graphics draw line;
+    "VHG graphics overlay done"
+	end;
+
+"VHG graphics draw line"
+	[String] = [VHGgraphicsline]; [Ink] = 80FFFFh; [Text Effect] = service FX Raw;
+	[Text X] = 14; [Text Y] = [VHGgraphicsy];
+	[Text Display Width] = 320; [Text Display Height] = 200;
+	[Text Region] = vector VHGUIregion; [Text Window] = NULL;
+	[Text Word Wrap] = OFF; [Text Ghost Mode] = OFF; => VHG text both;
+	end;
+
 "VHG help overlay"
 	A = [VHGhelpshow]; ? A = 0 -> VHG help overlay done;
 	( Match NIV+'s F1 about page: darken the completed frame, then draw the
@@ -4170,7 +4229,50 @@
 	[VHGinfo]+; A = [VHGinfo]; ? A <= 3 -> VHG info key selected; [VHGinfo] = 0;
     "VHG info key selected"
 	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
-    "VHG info key done"
+"VHG info key done"
+	end;
+
+"VHG graphics key"
+	A = [KEY F2]; ? A = OFF -> VHG graphics key released;
+	A = [VHGgraphicsheld]; ? A != 0 -> VHG graphics key done;
+	[VHGgraphicsheld] = 1; => VHG toggle graphics action; -> VHG graphics key done;
+    "VHG graphics key released"
+	[VHGgraphicsheld] = 0;
+    "VHG graphics key done"
+	end;
+
+"VHG toggle graphics action"
+	A = [VHGgraphics]; ? A = 0 -> VHG toggle graphics on;
+	[VHGgraphics] = 0; end;
+    "VHG toggle graphics on"
+	[VHGgraphics] = 1; [VHGhelpshow] = 0; [VHGdev] = 0;
+	[VHGfcsopen] = 0; [VHGinfo] = 0; [VHGconsole] = 0;
+	end;
+
+"VHG graphics character"
+	[VHGgraphicsused] = 0; A = [VHGgraphics]; ? A = 0 -> VHG graphics character done;
+	A = [VHGascii]; ? A = 70 -> VHG graphics flare key; ? A = 102 -> VHG graphics flare key;
+	? A = 84 -> VHG graphics hud key; ? A = 116 -> VHG graphics hud key;
+	? A = 66 -> VHG graphics border key; ? A = 98 -> VHG graphics border key;
+	-> VHG graphics character done;
+    "VHG graphics flare key"
+	[VHGgraphicsused] = 1; A = [VHGlensmode]; ? A = 0 -> VHG graphics flare always;
+	? A = 1 -> VHG graphics choose flare off; [VHGlensmode] = 0; -> VHG graphics character done;
+    "VHG graphics flare always"
+	[VHGlensmode] = 1; -> VHG graphics character done;
+    "VHG graphics choose flare off"
+	A = 0; A - 1; [VHGlensmode] = A; -> VHG graphics character done;
+    "VHG graphics hud key"
+	[VHGgraphicsused] = 1; A = [VHGdrawhud]; ? A = 0 -> VHG graphics enable hud;
+	[VHGdrawhud] = 0; -> VHG graphics character done;
+    "VHG graphics enable hud"
+	[VHGdrawhud] = 1; -> VHG graphics character done;
+    "VHG graphics border key"
+	[VHGgraphicsused] = 1; A = [VHGseamless]; ? A = 0 -> VHG graphics choose seamless;
+	[VHGseamless] = 0; -> VHG graphics character done;
+    "VHG graphics choose seamless"
+	[VHGseamless] = 1;
+    "VHG graphics character done"
 	end;
 
 "VHG help key"
@@ -4191,7 +4293,7 @@
 	A = [VHGhelpshow]; ? A = 0 -> VHG toggle help on;
 	[VHGhelpshow] = 0; end;
     "VHG toggle help on"
-	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGhelpshow] = 1;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGgraphics] = 0; [VHGhelpshow] = 1;
 	end;
 
 "VHG fps key"

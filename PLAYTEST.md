@@ -13,7 +13,7 @@ requirements rather than implied results.
 | Enter a generated planetary system | Source-generated body topology with an animated console map: central star, retained relative orbits/orientations, selected planet, and correctly parented moons; the flight HUD identifies planets versus moons and shows a readable world class plus authoritative landability |
 | Land and walk | Physical capsule descent, gravity, rebounds and settling lead into first-person type-specific terrain, across the source 64-tile view radius with live textures, shading, crevasses, deterministic rocks, historical ruins, open-ocean sea level, calm-water/ice terrain reflections, shimmer, contracting wind crests and expanding swimmer wakes, type-3 vegetation/trees, three mammal gaits, landing/flying/capturable birds, atmospheric skies, type-3 rain/lightning, source-shaped gravity/temperature/pressure/pulse telemetry, low-gravity jumping, hold-to-thrust jetpack flight, and capsule ascent |
 | Resize the game | Live iGUI window with centered 8:5 nearest-neighbour aspect-fit scaling; validated dimensions persist across clean restarts |
-| Save / load | A valid `CURRENT.LIN` resumes automatically at startup; verified saves refresh `CURRENT.BAK`, and a present-but-malformed primary visibly recovers from that last-known-good copy while a deliberately missing primary starts clean. Global F6/F7 checkpoints work in the ship and on settled surfaces, retain target/player state plus landing and settled-capsule coordinates, window dimensions, presentation, diagnostics, soundtrack, internal light, navigation devices, capture progress, power, lithium, collector, pending-rescue state, and a UTC timestamp for closed-game evolution, and show visible success/failure feedback; v1 through v10 port saves remain loadable and the exact original CURRENT.BIN codec remains available as a component |
+| Save / load | A valid `CURRENT.LIN` resumes automatically at startup; verified saves refresh `CURRENT.BAK`, and a present-but-malformed primary visibly recovers from that last-known-good copy while a deliberately missing primary starts clean. Global F6/F7 checkpoints work in the ship and on settled surfaces, retain target/player state plus landing and settled-capsule coordinates, window dimensions, presentation, F2 visual preferences, diagnostics, soundtrack, internal light, navigation devices, capture progress, power, lithium, collector, pending-rescue state, and a UTC timestamp for closed-game evolution, and show visible success/failure feedback; v1 through v12 port saves remain loadable and the exact original CURRENT.BIN codec remains available as a component |
 | Distributable bundle | `package_noctis.ps1` builds an isolated play folder with every linked map/model/font/audio/catalog asset, a relocatable working-directory launcher, player instructions, the Noctis WPL, and a SHA-256 manifest |
 | Quit | Esc, the red iGUI close button, and Alt+F4 all exit through checkpoint/audio cleanup |
 
@@ -129,6 +129,8 @@ Controls:
 - The surface HUD shows approximate `POD` range, an `F/L/B/R` direction toward
   it relative to your current view, captured `BIRDS`, and the `CTRL:STALK` and
   `R@POD` reminders; an out-of-range R press reports `RETURN TO CAPSULE`
+- F2: open visual effects; while open, T toggles passive HUD text, F cycles
+  flare-reflection modes, and B toggles the default/seamless visor border
 - F4: show/hide the measured FPS counter
 - F5: toggle between the default original 18.2 FPS presentation and optional
   60 FPS mode (gameplay simulation always remains 18.2 Hz)

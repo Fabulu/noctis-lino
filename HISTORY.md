@@ -309,6 +309,17 @@ occlusion after terrain. Resolved close stars also advance their globe only by
 the source's class-specific spin; ordinary classes no longer rotate once per
 presentation frame.
 
+### Source visual-effects settings
+
+F2 now restores the original visual-effects card. Its T control hides or shows
+passive HUD text, F cycles visor-only, forced, and disabled lens reflections,
+and B switches between the default rectangular visor frame and the source's
+tapered seamless edge. The flare setting deliberately governs the three
+secondary reflections while retaining the central sunburst, matching
+`lens_flares_for()` rather than treating the menu wording as a new renderer.
+Version 13 expands `CURRENT.LIN` to 192 bytes for these preferences while
+retaining explicit readers and defaults for versions 1 through 12.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

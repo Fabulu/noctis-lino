@@ -30,6 +30,9 @@ parity, not a claim that parity is complete.
 - The authentic 18.206 FPS presentation is the default.
 - F5 opts into the higher presentation rate; simulation remains 18.206 Hz in
   either presentation mode.
+- F2 opens the source-equivalent visual-effects card. T toggles passive HUD
+  text, F cycles visor-only/always-on/always-off flare reflections, and B
+  selects the default or seamless visor border. These choices persist.
 - The Stardrifter is visible from the initial frame and remains stable during
   movement.
 - E directly starts the source lift event while inside the Stardrifter. Up
@@ -43,8 +46,9 @@ parity, not a claim that parity is complete.
 - Planetary views finish with the original default `surrounding()` visor
   frame. Its stable graded edge replaces both the incorrect bright sawtooth
   and the intermediate plain-black guard without changing polygon clipping.
-- Version 11 saves retain settled capsule coordinates, and older landed saves
-  migrate without stranding the player away from the pod.
+- Version 13 saves retain settled capsule coordinates and visual preferences;
+  v1 through v12 saves migrate without stranding the player or losing their
+  established defaults.
 
 ## Run it
 
@@ -60,7 +64,7 @@ Useful controls:
 - Third wall panel + Enter: approach, select a landing site, and descend
 - G and L: accessible GOES and landing fallbacks
 - R: device back/close aboard ship; return in capsule on a surface
-- F4: FPS display; F5: higher presentation rate
+- F2: visual effects; F4: FPS display; F5: higher presentation rate
 - F6/F7: save/load; F8: music; F9 or `?`: complete control card
 - Esc: save and quit
 

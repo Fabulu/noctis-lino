@@ -487,7 +487,9 @@ def main() -> int:
         ))
         and "[GRSKatmosphere] = [VHGNDatmosphere]; [GRSKnightzone] = 0; [VHGNDsunxf] = 1;" in ground
         and "[VHGNDcrep] = A; A = 0; A - 1; [VHGNDsunxf] = A;" in ground
-        and "=> VH set view;\n\t=> VHGND local sun;\n\t( Source fragment()" in traversal
+        and traversal.index("=> VH set view;")
+        < traversal.index("=> VHGND local sun;")
+        < traversal.index("( Source fragment()")
         and all(token in original1 for token in (
             "sun_x = -dsd1 * cos(beta) * sun_x_factor;",
             "sun_y = -dsd1 * sin(beta) * sin(alfa);",
@@ -990,8 +992,8 @@ def main() -> int:
             "=> VHG surface motion reset; -> VHG load checkpoint done;",
         ))
         and all(token in save for token in (
-            "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 188;",
-            "[File Command] = TEST;", "? [File Size] != 188 -> VHSV save done;",
+            "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 192;",
+            "[File Command] = TEST;", "? [File Size] != 192 -> VHSV save done;",
             "[VHSVok] = 1;",
         )),
         "startup resume and F6/F7 cover stable ship/surface checkpoints with fallback",
@@ -1029,6 +1031,7 @@ def main() -> int:
             "{ Toggle_FPS_counter }; service VHG menu fps;",
             "{ Toggle_60_Hz }; service VHG menu fast;",
             "{ Toggle_music }; service VHG menu music;",
+            "{ Visual_effects }; service VHG menu graphics;",
             "{ Save_and_quit }; service VHG menu quit;",
             "[Menu To Install] = VHGmenu; => Install Menu;",
             "=> VHG save checkpoint action;", "=> VHG load checkpoint action;",
@@ -1048,12 +1051,43 @@ def main() -> int:
     )
     check(
         all(token in game for token in (
+            '"VHG graphics overlay"', "[KEY F2]", '"VHG graphics character"',
+            "? A = 70 -> VHG graphics flare key;", "? A = 84 -> VHG graphics hud key;",
+            "? A = 66 -> VHG graphics border key;", "[VHGlensmode] = 1;",
+            "A = 0; A - 1; [VHGlensmode] = A;", "[VHGdrawhud] = 0;",
+            "[VHGseamless] = 1;", "A = [VHGdrawhud]; ? A = 0 -> VHG energy overlay done;",
+            "A = [VHGdrawhud]; ? A = 0 -> VHG surface telemetry done;",
+        ))
+        and all(token in ground for token in (
+            "A = [VHGlensmode]; ? A != 1 -> VHGND flare mode ready;", "[VHFghost] = 1;",
+            "A = [VHGseamless]; ? A != 0 -> VHGND surrounding seamless;",
+            "C = 310; C + [VHGNDframei];", "C = 200; C - A; [VHGNDframecount] = C;",
+        ))
+        and all(token in flare for token in (
+            '"VHF ghost reflections"', "A = [VHFang]; A % 8;",
+            "A = [VHFgdx]; A '* 4;", "A = [VHFgx]; A '* 3;",
+            "[VHFgr]+; A = [VHFgr]; ? A < 3 -> VHF ghost reflection;",
+        ))
+        and all(token in original0 for token in (
+            "lens_flare_mode == 1", "if (on_hud_forced && !(c%8))",
+            "dx *= 4; dy *= 4;", "xr *= 3; yr *= 3;",
+        ))
+        and all(token in original1 for token in (
+            "if (lens_flare_mode == 0) lens_flare_mode = 1;",
+            "else if (lens_flare_mode == 1) lens_flare_mode = -1;",
+            "if (seamless_border == 0) seamless_border = 1;",
+            "if (draw_hud == 0) draw_hud = 1;",
+        )),
+        "F2 restores the original HUD, flare-reflection, and visor-border settings",
+    )
+    check(
+        all(token in game for token in (
             '"VHG next star"', '"VHG flight retarget"', '"VHG parse coordinate"',
             "A '% [VHScount]", "=> VHG target world; => VHG flight retarget;",
             "[VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;",
         ))
         and all(token in save for token in (
-            "VHSVVERSION = 12;", "[vhsvbuf plus 24] = [VHTtx];",
+            "VHSVVERSION = 13;", "[vhsvbuf plus 24] = [VHTtx];",
             "[VHTtx] = [vhsvbuf plus 24];",
         )),
         "GOES NEXT/STAR retarget real Vimana travel and persist the selected star",
@@ -1213,11 +1247,11 @@ def main() -> int:
             "? A = 144 -> VHSV load size ok; ? A = 152 -> VHSV load size ok;",
             "? A = 156 -> VHSV load size ok; ? A = 160 -> VHSV load size ok;",
             "? A = 168 -> VHSV load size ok; ? A = 180 -> VHSV load size ok;",
-            "? A != 188 -> VHSV load done;",
+            "? A = 188 -> VHSV load size ok; ? A != 192 -> VHSV load done;",
             '"VHSV load version two"', '"VHSV load version three"', '"VHSV load version four"',
             '"VHSV load version five"', '"VHSV load version six"', '"VHSV load version seven"',
             '"VHSV load version eight"', '"VHSV load version nine"', '"VHSV load version ten"',
-            '"VHSV load version eleven"',
+            '"VHSV load version eleven"', '"VHSV load version twelve"',
             "[vhsvbuf plus 27] = [VHGfast];",
             "[vhsvbuf plus 28] = [VHGfpsshow];", "[vhsvbuf plus 29] = [VHAwanted];",
             "[vhsvbuf plus 30] = [VHGNDcaptures];", "[VHSVcaptures] = A;",
@@ -1229,7 +1263,9 @@ def main() -> int:
             "[vhsvbuf plus 40] = [VHGlandinglon];", "[VHGlandinglat] = A;",
             "[vhsvbuf plus 42] = [VHGNDdropx];", "[vhsvbuf plus 43] = [VHGNDdropy];",
             "[vhsvbuf plus 44] = [VHGNDdropz];", "[VHSVdropstored] = 1;",
-            "[Block Pointer] = vhsvbuf; [Block Size] = 188; isocall;",
+            "[Block Pointer] = vhsvbuf; [Block Size] = 192; isocall;",
+            "[vhsvbuf plus 47] = C;", "A = [VHSVsize]; ? A != 192 -> VHSV load graphics done;",
+            "A - 1; [VHGlensmode] = A;", "[VHGdrawhud] = A;", "[VHGseamless] = A;",
             "? A < MINIMUM WIDTH -> VHSV load done;", "? A > MAXIMUM HEIGHT -> VHSV load done;",
             "[VHSVmusic] = [VHAwanted];", "[VHAwanted] = [VHSVmusic];",
         ))
@@ -1263,7 +1299,7 @@ def main() -> int:
             < run.index("=> VHA apply;")
             < run.index("=> Enter Integrated GUI;")
         ))(section(game, '"VHG run"', '"service VHG repaint"')),
-        "version-12 checkpoints retain the settled capsule and safely migrate v1-v11 progress",
+        "version-13 checkpoints retain visual settings and safely migrate v1-v12 progress",
     )
     check(
         all(token in ground for token in (

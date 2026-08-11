@@ -299,21 +299,25 @@ first -- a broken foundation makes every later result meaningless.
   Vimana, target, resources, lift/capsule and surface progress to the opening
   flight, preserves presentation/audio preferences and starmap names, and
   immediately replaces the prior checkpoint.
-- `CURRENT.LIN` version 11 is a 180-byte record retaining landing longitude and
+- `CURRENT.LIN` version 13 is a 192-byte record retaining landing longitude and
   latitude, the settled capsule's X/Y/Z coordinates, navigation-device settings,
-  internal-light state, and the last
+  internal-light state, F2 HUD/lens-reflection/visor-border preferences, and
+  the last
   validated iGUI width/height alongside the 60/original
   presentation choice, FPS-overlay visibility, soundtrack state,
   captured-fauna count, lithium reserve, active collector, player, ship,
   target, Vimana, lift, landed state, and pending emergency-rescue phase. Its
   Noctis-epoch UTC timestamp advances an active collector and pending rescue
   across time spent outside the game.
+- Readers remain explicit for versions 1 through 12. Older saves receive the
+  source defaults: HUD text on, visor-only reflections, and the default border.
 - Loading reconciles the live timer and audio device after validation, then
   restores capture progress after deterministic surface regeneration. The
   reader remains backward-compatible with 96-byte v1, 108-byte v2,
   124-byte v3, 132-byte v4, 140-byte v5, 144-byte v6, 152-byte v7, 156-byte v8,
-  160-byte v9, and 168-byte v10 saves; transient capsule integrator state remains
-  intentionally unsavable. Version 11 reapplies the settled capsule only after
+  160-byte v9, 168-byte v10, 180-byte v11, and 188-byte v12 saves; transient
+  capsule integrator state remains intentionally unsavable. Version 11 reapplies
+  the settled capsule only after
   deterministic surface regeneration, preventing wind-displaced landings from
   stranding a resumed player at the generated default pod site. Older landed
   formats perform a one-time safe migration by reconstructing the capsule on

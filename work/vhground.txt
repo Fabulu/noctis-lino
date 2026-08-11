@@ -2057,6 +2057,9 @@
 	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32; ( 100.0f )
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
+	[VHFghost] = 0; A = [VHGlensmode]; ? A != 1 -> VHGND flare mode ready;
+	[VHFghost] = 1;
+    "VHGND flare mode ready"
 	=> VHGND local sun;
 	( Source fragment() maps p_background across every ground triangle. )
 	[FI] = [VHGNDtscale]; => IntToF;
@@ -2486,6 +2489,7 @@
 	A = [VHGNDframecount]; ? A != 0 -> VHGND surrounding bottom row;
 	[VHGNDframei]+; A = [VHGNDframei]; ? A < 10 -> VHGND surrounding horizontal;
 
+	A = [VHGseamless]; ? A != 0 -> VHGND surrounding seamless;
 	[VHGNDframey] = 10;
     "VHGND surrounding side row"
 	[VHGNDframei] = 0;
@@ -2497,6 +2501,26 @@
 	A + RADPT; A + nw; D = A; C = [VHGNDframecol]; [D] = C;
 	[VHGNDframei]+; A = [VHGNDframei]; ? A < 10 -> VHGND surrounding side pixel;
 	[VHGNDframey]+; A = [VHGNDframey]; ? A < 190 -> VHGND surrounding side row;
+	-> VHGND surrounding done;
+
+    "VHGND surrounding seamless"
+	( NIV+ seamless_border=1 tapers each side strip into the already graded
+	  top and bottom rows: outer columns span the full page, inner columns
+	  begin and end progressively nearer the 180-line world opening. )
+	[VHGNDframei] = 0;
+    "VHGND surrounding seamless column"
+	A = 64; A + [VHGNDsurlight]; A - [VHGNDframei]; [VHGNDframecol] = A;
+	A = 9; A - [VHGNDframei]; [VHGNDframey] = A;
+	A + A; C = 200; C - A; [VHGNDframecount] = C;
+    "VHGND surrounding seamless row"
+	A = [VHGNDframey]; A '* 320; C = 9; C - [VHGNDframei]; A + C;
+	A + RADPT; A + nw; D = A; C = [VHGNDframecol]; [D] = C;
+	A = [VHGNDframey]; A '* 320; C = 310; C + [VHGNDframei]; A + C;
+	A + RADPT; A + nw; D = A; C = [VHGNDframecol]; [D] = C;
+	[VHGNDframey]+; [VHGNDframecount]-;
+	A = [VHGNDframecount]; ? A != 0 -> VHGND surrounding seamless row;
+	[VHGNDframei]+; A = [VHGNDframei]; ? A < 10 -> VHGND surrounding seamless column;
+    "VHGND surrounding done"
 	end;
 
 "VHGND dense atmosphere"
