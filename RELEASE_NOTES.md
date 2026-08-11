@@ -35,6 +35,8 @@ parity, not a claim that parity is complete.
   selects the default or seamless visor border. These choices persist.
 - Page Up and Page Down animate the source visor edge at its original five
   lines per simulation tick; visor-only reflections follow its closed state.
+- Landed views restore the original scrolling 3x5 compass strip and its four
+  corner HUD lamps; active jetpack thrust produces the larger bright flash.
 - The Stardrifter is visible from the initial frame and remains stable during
   movement.
 - E directly starts the source lift event while inside the Stardrifter. Up

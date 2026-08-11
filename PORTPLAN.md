@@ -314,6 +314,9 @@ first -- a broken foundation makes every later result meaningless.
 - Page Up/Page Down restore `openhuddelta=-5/+5`, the four-row moving visor
   edge, and the source rule connecting visor-only reflections to `hud_closed`.
   The closed/open state is packed into the existing version-13 preference word.
+- Surface `surrounding(1)` now draws the source 28-character compass window
+  from live yaw, including its fractional four-pixel scroll, centre pointer,
+  four corner lamps, and the larger bright jetpack flash.
 - Loading reconciles the live timer and audio device after validation, then
   restores capture progress after deterministic surface regeneration. The
   reader remains backward-compatible with 96-byte v1, 108-byte v2,

@@ -88,6 +88,18 @@ def pod_hint(dx: int, dz: int, beta: int) -> str:
     return "R"
 
 
+def compass_window(beta: int) -> tuple[int, str]:
+    """Original surrounding() compass window and sub-character x offset."""
+    heading = (360 - beta) % 360
+    position = heading // 9
+    x = 200 - ((heading * 4 // 9) % 4)
+    cardinal = "NESW"
+    chars = []
+    for index in range(position, position + 28):
+        chars.append(cardinal[(index // 10) % 4] if index % 10 == 0 else ".")
+    return x, "".join(chars)
+
+
 def surface_arc(gravity_mfg: int, thrust_ticks: int = 0) -> tuple[int, int, int]:
     """Independent integer model of the port's source-shaped surface arc."""
     ground = 0
@@ -912,6 +924,29 @@ def main() -> int:
         and game.count("=> VHG surface telemetry overlay;") == 2
         and game.count("=> VHG surface telemetry init;") == 2,
         "surface HUD restores live gravity, temperature, pressure, and pulse telemetry",
+    )
+    check(
+        compass_window(0)[1].startswith("N.........E")
+        and compass_window(90)[1].startswith("W.........N")
+        and compass_window(180)[1].startswith("S.........W")
+        and compass_window(270)[1].startswith("E.........S")
+        and all(197 <= compass_window(beta)[0] <= 200 for beta in range(360))
+        and all(token in ground for token in (
+            '"VHGND compass"', "A = [VHGbeta]; A % 360;",
+            "A = [VHGNDcompassrem]; A '* 4; A / 9;",
+            "[VHGNDcompassi]+; A = [VHGNDcompassi]; ? A < 28 -> VHGND compass character;",
+            '"VHGND compass row north"', '"VHGND compass row east"',
+            '"VHGND compass row south"', '"VHGND compass row west"',
+            '"VHGND HUD lamps"', "[VHGNDlampsize] = 4;",
+            "A = [VHGsurfjet]; ? A = 0 -> VHGND HUD lamp positions ready;",
+            "[VHGNDlampsize] = 5; [VHGNDframecol] = 127;",
+        ))
+        and all(token in original0 for token in (
+            "cpos = ccom / 9; crem = ccom * 0.44444;",
+            "wrouthud (200 - (crem % 4), 2, 28, compass + cpos);",
+            "areaclear (adapted, 9, 9, 0, 0, 4, 4, lptr);",
+        )),
+        "surface visor restores the source compass strip and reactive corner lamps",
     )
     jump_ticks, jump_apex, jump_ground = surface_arc(118)
     jet_ticks, jet_apex, jet_ground = surface_arc(118, thrust_ticks=12)

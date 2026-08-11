@@ -110,6 +110,9 @@
 	VHGNDsurfaceok = 0; VHGNDsample = 0; VHGNDcloud = 0; VHGNDcbase = 192;
 	VHGNDsurlight = 16; VHGNDframei = 0; VHGNDframey = 0;
 	VHGNDframeoff = 0; VHGNDframecount = 0; VHGNDframecol = 0;
+	VHGNDlampx = 0; VHGNDlampy = 0; VHGNDlampsize = 0; VHGNDlamprow = 0;
+	VHGNDcompassi = 0; VHGNDcompasspos = 0; VHGNDcompassrem = 0;
+	VHGNDcompassx = 0; VHGNDcompassrow = 0; VHGNDcompassmask = 0; VHGNDcompassdir = 0;
 	VHGNDcloudrain = 0; VHGNDsrf = 0; VHGNDsgf = 0; VHGNDsbf = 0;
 	VHGNDgrf = 0; VHGNDggf = 0; VHGNDgbf = 0;
 	VHGNDtick = 0; VHGNDdosim = 1;
@@ -2526,6 +2529,129 @@
 	A = [VHGNDframecount]; ? A != 0 -> VHGND surrounding seamless row;
 	[VHGNDframei]+; A = [VHGNDframei]; ? A < 10 -> VHGND surrounding seamless column;
     "VHGND surrounding done"
+	=> VHGND HUD lamps;
+	=> VHGND compass;
+	end;
+
+"VHGND HUD lamps"
+	( surrounding()'s four visor lamps. The ordinary 4x4 lights use
+	  min(127,64+3*surlight); active surface jetpack input raises the original
+	  5x5 flash to palette index 127. )
+	A = [VHGdrawhud]; ? A = 0 -> VHGND HUD lamps done;
+	[VHGNDlampsize] = 4; A = 64; C = [VHGNDsurlight]; C '* 3; A + C;
+	? A <= 127 -> VHGND HUD lamp colour ready; A = 127;
+    "VHGND HUD lamp colour ready"
+	[VHGNDframecol] = A; [VHGNDframeoff] = 308; [VHGNDframey] = 188;
+	A = [VHGmode]; ? A = 0 -> VHGND HUD lamp positions ready;
+	A = [VHGsurfjet]; ? A = 0 -> VHGND HUD lamp positions ready;
+	[VHGNDlampsize] = 5; [VHGNDframecol] = 127;
+	[VHGNDframeoff] = 307; [VHGNDframey] = 187;
+    "VHGND HUD lamp positions ready"
+	[VHGNDlampx] = 9; [VHGNDlampy] = 9; => VHGND HUD lamp;
+	[VHGNDlampx] = [VHGNDframeoff]; [VHGNDlampy] = 9; => VHGND HUD lamp;
+	[VHGNDlampx] = 9; [VHGNDlampy] = [VHGNDframey]; => VHGND HUD lamp;
+	[VHGNDlampx] = [VHGNDframeoff]; [VHGNDlampy] = [VHGNDframey]; => VHGND HUD lamp;
+    "VHGND HUD lamps done"
+	end;
+
+"VHGND HUD lamp"
+	[VHGNDlamprow] = 0;
+    "VHGND HUD lamp row"
+	A = [VHGNDlampy]; A + [VHGNDlamprow]; A '* 320; A + [VHGNDlampx];
+	A + RADPT; A + nw; D = A; [VHGNDframecount] = [VHGNDlampsize]; C = [VHGNDframecol];
+    "VHGND HUD lamp pixel"
+	[D] = C; D+; [VHGNDframecount]-;
+	A = [VHGNDframecount]; ? A != 0 -> VHGND HUD lamp pixel;
+	[VHGNDlamprow]+; A = [VHGNDlamprow]; ? A < [VHGNDlampsize] -> VHGND HUD lamp row;
+	end;
+
+"VHGND compass"
+	( Surface surrounding(1): the original 28-character N...E...S...W strip,
+	  scrolled by user_beta in nine-degree cells and rendered through the
+	  retained 3x5 HUD glyph shapes. )
+	A = [VHGdrawhud]; ? A = 0 -> VHGND compass done;
+	A = [VHGmode]; ? A = 0 -> VHGND compass done;
+	A = [VHGbeta]; A % 360; ? A >= 0 -> VHGND compass beta ready; A + 360;
+    "VHGND compass beta ready"
+	C = 360; C - A; A = C; ? A <= 359 -> VHGND compass heading ready; A - 360;
+    "VHGND compass heading ready"
+	[VHGNDcompassrem] = A; A / 9; [VHGNDcompasspos] = A;
+	A = [VHGNDcompassrem]; A '* 4; A / 9; [VHGNDcompassrem] = A;
+	A % 4; C = 200; C - A; [VHGNDcompassx] = C;
+	( Fixed centre pointer from surrounding(). )
+	[VHGNDlampx] = 254; [VHGNDlampy] = 1; [VHGNDlampsize] = 5;
+	[VHGNDframecol] = 64; => VHGND compass marker;
+	A = 8; A '* 320; A + 256; A + RADPT; A + nw; D = A; [D] = 127;
+	[VHGNDcompassi] = 0;
+    "VHGND compass character"
+	A = [VHGNDcompasspos]; A + [VHGNDcompassi]; C = A; A % 10;
+	? A = 0 -> VHGND compass direction; [VHGNDcompassdir] = 4; -> VHGND compass glyph;
+    "VHGND compass direction"
+	A = C; A / 10; A % 4; [VHGNDcompassdir] = A;
+    "VHGND compass glyph"
+	[VHGNDcompassrow] = 0;
+    "VHGND compass glyph row"
+	=> VHGND compass row mask;
+	C = [VHGNDcompassmask]; C & 1; ? C = 0 -> VHGND compass pixel one;
+	[VHGNDframeoff] = [VHGNDcompassx]; => VHGND compass invert;
+    "VHGND compass pixel one"
+	C = [VHGNDcompassmask]; C & 2; ? C = 0 -> VHGND compass pixel two;
+	A = [VHGNDcompassx]; A + 1; [VHGNDframeoff] = A; => VHGND compass invert;
+    "VHGND compass pixel two"
+	C = [VHGNDcompassmask]; C & 4; ? C = 0 -> VHGND compass row done;
+	A = [VHGNDcompassx]; A + 2; [VHGNDframeoff] = A; => VHGND compass invert;
+    "VHGND compass row done"
+	[VHGNDcompassrow]+; A = [VHGNDcompassrow]; ? A < 5 -> VHGND compass glyph row;
+	A = [VHGNDcompassx]; A + 4; [VHGNDcompassx] = A;
+	[VHGNDcompassi]+; A = [VHGNDcompassi]; ? A < 28 -> VHGND compass character;
+    "VHGND compass done"
+	end;
+
+"VHGND compass marker"
+	( 5x7 centre block; reuse the lamp row writer with two extra rows. )
+	[VHGNDlamprow] = 0;
+    "VHGND compass marker row"
+	A = [VHGNDlampy]; A + [VHGNDlamprow]; A '* 320; A + [VHGNDlampx];
+	A + RADPT; A + nw; D = A; [VHGNDframecount] = 5; C = [VHGNDframecol];
+    "VHGND compass marker pixel"
+	[D] = C; D+; [VHGNDframecount]-;
+	A = [VHGNDframecount]; ? A != 0 -> VHGND compass marker pixel;
+	[VHGNDlamprow]+; A = [VHGNDlamprow]; ? A < 7 -> VHGND compass marker row;
+	end;
+
+"VHGND compass row mask"
+	[VHGNDcompassmask] = 0; A = [VHGNDcompassdir];
+	? A = 0 -> VHGND compass row north; ? A = 1 -> VHGND compass row east;
+	? A = 2 -> VHGND compass row south; ? A = 3 -> VHGND compass row west;
+	A = [VHGNDcompassrow]; ? A != 4 -> VHGND compass row mask done;
+	[VHGNDcompassmask] = 2; -> VHGND compass row mask done;
+    "VHGND compass row north"
+	[VHGNDcompassmask] = 5; A = [VHGNDcompassrow]; ? A = 1 -> VHGND compass row seven;
+	? A = 2 -> VHGND compass row seven; -> VHGND compass row mask done;
+    "VHGND compass row east"
+	[VHGNDcompassmask] = 7; A = [VHGNDcompassrow]; ? A = 1 -> VHGND compass row one;
+	? A = 2 -> VHGND compass row three; ? A = 3 -> VHGND compass row one;
+	-> VHGND compass row mask done;
+    "VHGND compass row south"
+	[VHGNDcompassmask] = 7; A = [VHGNDcompassrow]; ? A = 1 -> VHGND compass row one;
+	? A = 3 -> VHGND compass row four; -> VHGND compass row mask done;
+    "VHGND compass row west"
+	[VHGNDcompassmask] = 5; A = [VHGNDcompassrow]; ? A = 2 -> VHGND compass row seven;
+	? A = 3 -> VHGND compass row seven; -> VHGND compass row mask done;
+    "VHGND compass row seven"
+	[VHGNDcompassmask] = 7; -> VHGND compass row mask done;
+    "VHGND compass row one"
+	[VHGNDcompassmask] = 1; -> VHGND compass row mask done;
+    "VHGND compass row three"
+	[VHGNDcompassmask] = 3; -> VHGND compass row mask done;
+    "VHGND compass row four"
+	[VHGNDcompassmask] = 4;
+    "VHGND compass row mask done"
+	end;
+
+"VHGND compass invert"
+	A = [VHGNDcompassrow]; A + 2; A '* 320; A + [VHGNDframeoff];
+	A + RADPT; A + nw; D = A; C = [D]; A = 191; A - C; A & 255; [D] = A;
 	end;
 
 "VHGND dense atmosphere"

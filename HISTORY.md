@@ -320,6 +320,9 @@ secondary reflections while retaining the central sunburst, matching
 Page Up and Page Down now drive the original `-5`/`+5` visor motion across
 both Stardrifter and surface frames. Visor-only reflections follow the saved
 closed state instead of behaving like a second spelling of always-off.
+Surface frames also regain `surrounding()`'s 28-character N/E/S/W strip with
+its nine-degree scroll and four corner lamps. The lamps use the source's 4x4
+resting geometry and expand to the bright 5x5 state during jetpack thrust.
 Version 13 expands `CURRENT.LIN` to 192 bytes for these preferences while
 retaining explicit readers and defaults for versions 1 through 12.
 
