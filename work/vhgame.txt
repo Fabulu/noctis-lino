@@ -1388,14 +1388,14 @@
 	E = nspowner; E + [VHGlocalringbody]; A = [E]; ? A < 0 -> VHG local surface primary;
 	[VHGlocalmask] = 128; [VHGlocaltapreg] = RGSBG;
 	A = [VHGlocalmmapbody]; ? A = [VHGlocalringbody] -> VHG local surface style;
-	[VHGlocalsavedplanet] = [VHGplanet]; [VHGplanet] = [VHGlocalringbody]; [VHGNDtexbase] = RSBG;
-	=> VHG prepare planet; => VHG fpu clean; => VHGND generate; => VHG fpu clean;
+	[VHGlocalsavedplanet] = [VHGplanet]; [VHGplanet] = [VHGlocalringbody];
+	=> VHG prepare planet; => VHG fpu clean; => VHGND globe surface; => VHG fpu clean;
 	[VHGlocalmmapbody] = [VHGlocalringbody]; -> VHG local surface restore;
     "VHG local surface primary"
 	[VHGlocalmask] = 192; [VHGlocaltapreg] = RGPBG;
 	A = [VHGlocalpmapbody]; ? A = [VHGlocalringbody] -> VHG local surface style;
-	[VHGlocalsavedplanet] = [VHGplanet]; [VHGplanet] = [VHGlocalringbody]; [VHGNDtexbase] = RPBG;
-	=> VHG prepare planet; => VHG fpu clean; => VHGND generate; => VHG fpu clean;
+	[VHGlocalsavedplanet] = [VHGplanet]; [VHGplanet] = [VHGlocalringbody];
+	=> VHG prepare planet; => VHG fpu clean; => VHGND globe surface; => VHG fpu clean;
 	[VHGlocalpmapbody] = [VHGlocalringbody];
     "VHG local surface restore"
 	[VHGplanet] = [VHGlocalsavedplanet]; => VHG prepare planet;

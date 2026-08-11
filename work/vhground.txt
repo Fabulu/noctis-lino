@@ -1344,17 +1344,7 @@
 	-> VHGND identity done;
 
     "VHGND identity general"
-	=> VHGND general phase setup;
-	=> VHG fpu clean; => SU fp init; => SU pal init;
-	[SUid] = [VHGNDplanet]; [SUtype] = [GRiptype]; [SUplwp] = [VHGNDplwp];
-	[SUowner] = [VHGNDowner]; [SUnsr] = [VHTred]; [SUnsg] = [VHTgreen]; [SUnsb] = [VHTblue];
-	[SUsv0] = [VHGNDseedval0]; [SUsv1] = [VHGNDseedval1]; [SUledon] = 0;
-	A = [VHGNDowner]; ? A >= 0 -> VHGND identity moon;
-	[SUcbase] = 192; [VHGNDcbase] = 192; => SU select planet; -> VHGND identity selected;
-    "VHGND identity moon"
-	[SUcbase] = 128; [VHGNDcbase] = 128; => SU select moon;
-    "VHGND identity selected"
-	=> SU select ovl; => SU wipe; => SU wipe ovl; => SU surface;
+	=> VHGND globe surface;
 
 	A = [VHGNDlat]; A '* 360; A + [VHGNDlon]; [VHGNDptr] = A;
 	A = [SUpbase]; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
@@ -1406,6 +1396,29 @@
 	[SUfmask] = 15; => SU frnd; C + [VHGNDgbf]; [VHGNDgbf] = C;
 	[VHGNDsurfaceok] = 1;
     "VHGND identity done"
+	end;
+
+"VHGND globe surface"
+	( The close-body renderer needs surface() itself, not build_surface().
+	  Keep the original 360x180 albedo in p_background/s_background and copy
+	  only its generated 64-colour band into the live presenter palette. )
+	=> VHGND general phase setup;
+	=> VHG fpu clean; => SU fp init; => SU pal init;
+	[SUid] = [VHGNDplanet]; [SUtype] = [GRiptype]; [SUplwp] = [VHGNDplwp];
+	[SUowner] = [VHGNDowner]; [SUnsr] = [VHTred]; [SUnsg] = [VHTgreen]; [SUnsb] = [VHTblue];
+	[SUsv0] = [VHGNDseedval0]; [SUsv1] = [VHGNDseedval1]; [SUledon] = 0;
+	A = [VHGNDowner]; ? A >= 0 -> VHGND globe moon;
+	[SUcbase] = 192; [VHGNDcbase] = 192; => SU select planet; -> VHGND globe selected;
+    "VHGND globe moon"
+	[SUcbase] = 128; [VHGNDcbase] = 128; => SU select moon;
+    "VHGND globe selected"
+	=> SU select ovl; => SU wipe; => SU wipe ovl; => SU surface;
+	A = [SUcbase]; A '* 3; C = A;
+	A = sutmppal; A + C; D = pal6; D + C; [VHGNDpalcount] = 192;
+    "VHGND globe palette copy"
+	C = [A]; [D] = C; A+; D+; [VHGNDpalcount]-;
+	C = [VHGNDpalcount]; ? C != 0 -> VHGND globe palette copy;
+	[PUn] = 256; => PAL upload;
 	end;
 
 "VHGND general phase setup"

@@ -347,7 +347,12 @@ def main() -> int:
             '"VHGND generate type8"', '"VHGND generate type4"',
             '"VHGND similar texture"', '"VHGND texture darkline"',
             "[GRscmap] = [VHGNDtexbase]", "[VHGNDtscale] = 32",
-        )),
+            '"VHGND globe surface"', '"VHGND globe palette copy"',
+            "[VHGNDpalcount] = 192;", "[PUn] = 256; => PAL upload;",
+        ))
+        and "=> VHGND generate;" not in section(
+            game, '"VHG local ensure surface"', '"VHG local center coords"'
+        ),
         "live type-8/type-4 branches build their source terrain textures",
     )
     original_capsule = section(original1, "if (landed&&atl_x==x&&atl_z==z)", "else {")
@@ -689,7 +694,7 @@ def main() -> int:
         ))
         and all(token in game for token in (
             '[VHGlocalmask] = 128;', '[VHGlocalbubble] = 1;',
-            '=> VHG prepare planet; => VHG fpu clean; => VHGND generate;',
+            '=> VHG prepare planet; => VHG fpu clean; => VHGND globe surface;',
             '[GBtapreg] = [VHGlocaltapreg];', '[GBcmask] = [VHGlocalmask];',
             '[GBbubble] = [VHGlocalbubble];',
             '=> VHG local resident scan;', '=> VHG local ensure surface;',
