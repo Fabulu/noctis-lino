@@ -726,3 +726,17 @@ environment geometry to follow the live target-relative Stardrifter during fine
 approach. A packaged foreground smoke kept the game responsive and showed the
 environment values changing from the galactic position to the approached body's
 actual local position.
+
+### GOES CLR and WHERE production smoke
+
+A disposable production directory copied the current PE and only its declared
+runtime assets, then started without a checkpoint. Real foreground input opened
+the accessible GOES editor, submitted `WHERE TITANIA`, reopened it, submitted
+`CLR`, and exited naturally through Esc. The process returned code 0 and wrote
+a valid 264-byte version-15 checkpoint. The camera walk used only to frame the
+small physical output face overshot into the hull, so that screenshot is not
+used as visual evidence. Runtime responsiveness is paired with the focused
+catalogue regression: it decodes the production `STARMAP.BIN`, identifies
+TITANIA as planet record `P01`, resolves FAIRY by the source identity rule,
+proves the single-letter prefix `F` is ambiguous, and checks the restored code
+against `WHERE.CPP` plus the resident `CLR` branch in `NOCTIS.CPP`.

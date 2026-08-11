@@ -43,6 +43,23 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### GOES resident command and catalogue query
+
+- The hosted GOES network now implements the original resident `CLR` command
+  by clearing all 32 retained output rows and resetting the source-style scroll
+  cursor. It no longer echoes a synthetic success line into the newly empty
+  tree.
+- `WHERE <catalogued name>` now searches the real mutable `STARMAP.BIN` record
+  names with the source's exact-match preference and ambiguous-prefix report.
+  A star receives the original PAR guidance; a planet's two-digit object code
+  is subtracted from its identity and the parent star is resolved through the
+  existing binary64 catalogue tolerance.
+- A disposable production-window run entered `WHERE TITANIA`, followed it with
+  `CLR`, remained responsive, and exited naturally through Esc with a valid
+  264-byte version-15 save. The focused integration check independently finds
+  TITANIA as `P01`, resolves FAIRY as its parent star, and pins the original
+  `WHERE.CPP` and `run_goesnet_module()` branches.
+
 ### Clickable FCS and onboard pages
 
 - The existing FCS, device, emergency, cartography, and target-browser pages

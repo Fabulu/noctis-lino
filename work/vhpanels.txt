@@ -617,6 +617,17 @@
 	[vhptext plus 42] = 95; [vhptext plus 43] = 0;
 	end;
 
+"VH GOES output clear"
+	( run_goesnet_module() handles CLR as its one resident command by removing
+	  GOESfile.TXT.  The hosted output tree is in memory, so erase all retained
+	  cells and reset both the row count and the scrolling cursor. )
+	[VHPouti] = 0;
+    "VHP output clear loop"
+	A = vhpout; A + [VHPouti]; [A] = 32;
+	[VHPouti]+; A = [VHPouti]; ? A < 672 -> VHP output clear loop;
+	[VHPoutrows] = 0; [VHPoutview] = 0;
+	end;
+
 "VH GOES output line"
 	( GOESfile.TXT is a byte stream in the source. Retain the same fixed-width
 	  21-column flow in a bounded in-memory history for the hosted port. )

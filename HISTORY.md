@@ -460,6 +460,24 @@ nearby-body eclipse to both external temperature and radiation. A packaged
 foreground smoke exercised the galactic and approached-body paths without
 losing responsiveness.
 
+## GOES network restoration
+
+The command face previously accepted only the port's direct flight, naming,
+and checkpoint conveniences. The first original GOES Net slice now restores
+the resident `CLR` branch from `run_goesnet_module()` and the complete lookup
+behavior of `WHERE.CPP`. Queries scan the same 32-byte mutable starmap records
+used by onboard naming, prefer a full name over ambiguous prefixes, list all
+prefix candidates through the retained 21-column output tree, distinguish
+stars and planets, and recover a planet's parent star from its encoded ordinal
+and binary64 system identity. No DOS subprocess or parallel catalogue format
+was introduced.
+
+A disposable production-window run submitted `WHERE TITANIA` and `CLR` through
+the real buffered GOES editor. The game remained responsive and saved a valid
+264-byte version-15 checkpoint on its natural Esc exit. The focused regression
+also decodes the shipped catalogue independently, confirms TITANIA is `P01`
+and FAIRY is its parent, and pins the original source branches.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

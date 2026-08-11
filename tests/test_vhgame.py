@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import re
+import struct
 import sys
 from pathlib import Path
 
@@ -37,6 +38,7 @@ REFERENCE_ROOT = Path(os.environ.get(
 ORIGINAL = REFERENCE_ROOT / "NOCTIS.CPP"
 ORIGINAL0 = REFERENCE_ROOT / "NOCTIS-0.CPP"
 ORIGINAL1 = REFERENCE_ROOT / "NOCTIS-1.CPP"
+ORIGINAL_WHERE = REFERENCE_ROOT / "WHERE.CPP"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -188,6 +190,7 @@ def main() -> int:
     original = ORIGINAL.read_text(encoding="latin-1")
     original0 = ORIGINAL0.read_text(encoding="latin-1")
     original1 = ORIGINAL1.read_text(encoding="latin-1")
+    original_where = ORIGINAL_WHERE.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1516,7 +1519,7 @@ def main() -> int:
         all(token in game for token in (
             '"VHG next star"', '"VHG flight retarget"', '"VHG parse coordinate"',
             "A '% [VHScount]", "=> VHG target world; => VHG flight retarget;",
-            "[VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;",
+            "[VHGcmdsilent] = 0; [VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;",
         ))
         and all(token in save for token in (
             "VHSVVERSION = 15;", "[vhsvbuf plus 24] = [VHTtx];",
@@ -1559,6 +1562,54 @@ def main() -> int:
             '"VHCAT write record ready"', "[Block Size] = VHCATHDRBYTES;",
         )),
         "GOES consumes one character per physical press and creates a valid empty starmap",
+    )
+    starmap = (ROOT / "work" / "STARMAP.BIN").read_bytes()
+    records = []
+    for offset in range(4, len(starmap), 32):
+        identity = struct.unpack_from("<d", starmap, offset)[0]
+        raw_label = starmap[offset + 8:offset + 32]
+        if starmap[offset:offset + 8] == b"Removed:":
+            continue
+        records.append((
+            identity,
+            raw_label[:20].decode("latin-1").rstrip(),
+            chr(raw_label[21]),
+            int(raw_label[22:24]),
+        ))
+    titania = next(record for record in records if record[1] == "TITANIA")
+    titania_parent = next(
+        record for record in records
+        if record[2] == "S" and abs(record[0] - (titania[0] - titania[3])) < 0.00001
+    )
+    check(
+        all(token in original for token in (
+            'if (!memcmp (goesnet_command, "CLR", 3))',
+            "remove (goesoutputfile);",
+        ))
+        and all(token in original_where for token in (
+            'msg ("  GOES GALACTIC MAP  ");',
+            'msg ("AMBIGUOUS SEARCH KEY:");',
+            'msg ("THIS OBJECT IS A STAR");',
+            'msg ("IS PART OF THE");',
+            "subject_id -= (object_label[22]-'0') * 10;",
+            "subject_id -= (object_label[23]-'0');",
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe clear"', "=> VH GOES output clear;",
+            '"VHG command maybe where"', '"VHG WHERE"',
+            '"VHG WHERE record match"', '"VHG WHERE output label"',
+            "[VHGwherematches]+;", "[VHGwhereexact] = 1;",
+            "A = 0; A - [VHGwherecode]; [FI] = A; => NsIdentAddInt;",
+            "[VHCATtype] = VHCATS;", "=> VHCAT find;",
+        ))
+        and all(token in panels for token in (
+            '"VH GOES output clear"', "[VHPouti]+; A = [VHPouti]; ? A < 672",
+            "[VHPoutrows] = 0; [VHPoutview] = 0;",
+        ))
+        and titania[2:] == ("P", 1)
+        and titania_parent[1:3] == ("FAIRY", "S")
+        and sum(name.startswith("F") for _, name, _, _ in records) > 1,
+        "GOES CLR and WHERE restore resident output clearing and real catalogue parent lookup",
     )
     check(
         all(token in game for token in (

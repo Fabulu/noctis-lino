@@ -73,6 +73,10 @@
 	VHGi = 0; VHGptr = 0; VHGseed = 0; VHGstepv = 0;
 	VHGcmdi = 0; VHGcmdvalue = 0; VHGcmdsign = 0; VHGcmddigits = 0; VHGcmdok = 0;
 	VHGcmdx = 0; VHGcmdy = 0; VHGcmdz = 0; VHGstarcursor = 0; VHGstartries = 0;
+	VHGcmdsilent = 0; VHGwherequery = 0; VHGwherelen = 0; VHGwhererec = 0;
+	VHGwhererecno = 0; VHGwherematches = 0; VHGwherefound = 0;
+	VHGwherematch = 0; VHGwhereexact = 0; VHGwherei = 0; VHGwheretype = 0;
+	VHGwherecode = 0;
 	VHGflightx = 0; VHGsecx = 0;
 	VHGlocalactive = 0; VHGlocaltarget = 0FFFFFFFFh;
 	VHGlocalx0 = 0; VHGlocalx1 = 0; VHGlocaly0 = 0; VHGlocaly1 = 0;
@@ -222,6 +226,25 @@
 	VHGtargettext = { VIMANA TARGET SET };
 	VHGtargetfailedtext = { NO TARGET AVAILABLE };
 	VHGunknowntext = { UNKNOWN GOES MODULE };
+	VHGwherehead = {   GOES GALACTIC MAP  };
+	VHGwhereusage0 = { USAGE };
+	VHGwhereusage1 = { WHERE PLANETNAME };
+	VHGwhereusage2 = { PLEASE RUN AGAIN, };
+	VHGwhereusage3 = { SPECIFYING PARAMETERS };
+	VHGwherenotfound = { OBJECT NOT FOUND. };
+	VHGwhereambiguous0 = { AMBIGUOUS SEARCH KEY: };
+	VHGwhereambiguous1 = { PLEASE EXPAND NAME... };
+	VHGwherepossible = { POSSIBLE RESULTS ARE: };
+	VHGwherestar0 = { THIS OBJECT IS A STAR };
+	VHGwherestar1 = { AND ITS POSITION CAN };
+	VHGwherestar2 = { BE DETERMINED USING };
+	VHGwherestar3 = { THE 'PAR' MODULE. };
+	VHGwherepart0 = { IS PART OF THE };
+	VHGwherepart1 = { SYSTEM. };
+	VHGwhereparent0 = { UNABLE TO DETERMINE };
+	VHGwhereparent1 = { THIS PLANET'S PARENT };
+	VHGwhereparent2 = { STAR; PROBABLY, THAT };
+	VHGwhereparent3 = { STAR ISN'T CATALOGUED };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -605,6 +628,8 @@
 	VHGonboardrow0 = 109;
 	VHGonboardrow1 = 109;
 	VHGonboardrow2 = 109;
+	VHGgoesline = 22;
+	VHGwherebar = 22;
 
 "programme"
 
@@ -2390,9 +2415,11 @@
     "VHG console key ready"
 	=> VH GOES key;
 	A = [VHPsubmitted]; ? A = 0 -> VHG input done;
-	[VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;
+	[VHGcmdsilent] = 0; [VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;
+	A = [VHGcmdsilent]; ? A != 0 -> VHG console command handled;
 	A = vhptext; A + 42; [VHPoutptr] = A; => VH GOES output line;
 	[VHPoutptr] = [VHGnoticeptr]; => VH GOES output line;
+	"VHG console command handled"
 	=> VH GOES clear; [VHGconsole] = 0; [VHGconsoleview] = 0; -> VHG input done;
     "VHG normal input"
 	A = [VHGascii]; ? A = 49 -> VHG select planet 1; ? A = 50 -> VHG select planet 2;
@@ -3187,7 +3214,40 @@
 "VHG command"
 	A = [vhptext plus 42]; ? A = 83 -> VHG command starts s;
 	? A = 76 -> VHG command maybe load;
-	? A = 78 -> VHG command starts n; -> VHG command done;
+	? A = 78 -> VHG command starts n;
+	? A = 67 -> VHG command maybe clear;
+	? A = 87 -> VHG command maybe where; -> VHG command done;
+    "VHG command maybe clear"
+	A = [vhptext plus 43]; ? A != 76 -> VHG command done;
+	A = [vhptext plus 44]; ? A != 82 -> VHG command done;
+	A = [vhptext plus 45]; ? A = 0 -> VHG command clear ready;
+	? A = 32 -> VHG command clear ready; ? A != 95 -> VHG command done;
+    "VHG command clear ready"
+	[VHGcmdsilent] = 1; => VH GOES output clear; -> VHG command done;
+    "VHG command maybe where"
+	A = [vhptext plus 43]; ? A != 72 -> VHG command done;
+	A = [vhptext plus 44]; ? A != 69 -> VHG command done;
+	A = [vhptext plus 45]; ? A != 82 -> VHG command done;
+	A = [vhptext plus 46]; ? A != 69 -> VHG command done;
+	A = [vhptext plus 47]; ? A = 0 -> VHG command where parse;
+	? A = 32 -> VHG command where parse; ? A != 95 -> VHG command done;
+    "VHG command where parse"
+	[VHGcmdi] = 47;
+    "VHG command where spaces"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 32 -> VHG command where start;
+	[VHGcmdi]+; -> VHG command where spaces;
+    "VHG command where start"
+	[VHGwherequery] = A; [VHGwherelen] = 0;
+    "VHG command where length"
+	? C = 0 -> VHG command where trim; ? C = 95 -> VHG command where trim;
+	[VHGwherelen]+; [VHGcmdi]+; A = vhptext; A + [VHGcmdi]; C = [A];
+	-> VHG command where length;
+    "VHG command where trim"
+	A = [VHGwherelen]; ? A = 0 -> VHG command where ready;
+	A - 1; C = [VHGwherequery]; C + A; A = [C]; ? A != 32 -> VHG command where ready;
+	[VHGwherelen]-; -> VHG command where trim;
+    "VHG command where ready"
+	[VHGcmdsilent] = 1; => VHG WHERE; -> VHG command done;
     "VHG command starts s"
 	A = [vhptext plus 43]; ? A = 65 -> VHG command maybe save;
 	? A = 84 -> VHG command maybe star; -> VHG command done;
@@ -3271,6 +3331,127 @@
 	A = [VHGmode]; ? A != 0 -> VHG target ship only;
 	[VHTtx] = [VHGcmdx]; [VHTty] = [VHGcmdy]; [VHTtz] = [VHGcmdz];
 	=> VHG activate target; -> VHG command done;
+
+"VHG WHERE"
+	( WHERE.CPP is a bundled GOES Net module.  Search the same persistent
+	  32-byte STARMAP records by their twenty-byte names, retain the source's
+	  exact-match preference over ambiguous prefixes, and write its 21-column
+	  response into the physical output tree. )
+	A = [VHGwherelen]; ? A != 0 -> VHG WHERE execute query;
+	[VHPoutptr] = VHGwhereusage0; => VH GOES output line;
+	[VHPoutptr] = VHGwhereusage1; => VH GOES output line;
+	[VHPoutptr] = VHGwhereusage2; => VH GOES output line;
+	[VHPoutptr] = VHGwhereusage3; => VH GOES output line;
+	end;
+    "VHG WHERE execute query"
+	[VHGwherei] = 0;
+    "VHG WHERE bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG WHERE bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGwherehead; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHGwherematches] = 0; [VHGwherefound] = 0; [VHGwhererecno] = 0;
+    "VHG WHERE query loop"
+	A = [VHGwhererecno]; ? A >= [VHCATrecs] -> VHG WHERE query done;
+	A '* 8; A + vhcatraw; A + 1; [VHGwhererec] = A;
+	=> VHG WHERE record match; A = [VHGwherematch]; ? A = 0 -> VHG WHERE query next;
+	[VHGwherematches]+; [VHGwherefound] = [VHGwhererec];
+	A = [VHGwhereexact]; ? A != 0 -> VHG WHERE exact hit;
+    "VHG WHERE query next"
+	[VHGwhererecno]+; -> VHG WHERE query loop;
+    "VHG WHERE exact hit"
+	[VHGwherematches] = 1;
+    "VHG WHERE query done"
+	A = [VHGwherematches]; ? A = 0 -> VHG WHERE missing result;
+	? A > 1 -> VHG WHERE ambiguous;
+	[VHGwhererec] = [VHGwherefound];
+	A = [VHGwhererec]; C = [A plus 7]; C > 8; C & FFh; [VHGwheretype] = C;
+	? C = VHCATS -> VHG WHERE star;
+	? C = VHCATP -> VHG WHERE planet; -> VHG WHERE missing result;
+    "VHG WHERE missing result"
+	[VHPoutptr] = VHGwherenotfound; => VH GOES output line; end;
+    "VHG WHERE ambiguous"
+	[VHPoutptr] = VHGwhereambiguous0; => VH GOES output line;
+	[VHPoutptr] = VHGwhereambiguous1; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGwherepossible; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHGwhererecno] = 0;
+    "VHG WHERE ambiguous loop"
+	A = [VHGwhererecno]; ? A >= [VHCATrecs] -> VHG WHERE ambiguous done;
+	A '* 8; A + vhcatraw; A + 1; [VHGwhererec] = A;
+	=> VHG WHERE record match; A = [VHGwherematch]; ? A = 0 -> VHG WHERE ambiguous next;
+	=> VHG WHERE output label;
+    "VHG WHERE ambiguous next"
+	[VHGwhererecno]+; -> VHG WHERE ambiguous loop;
+    "VHG WHERE ambiguous done"
+	[VHPoutptr] = VHGwherebar; => VH GOES output line; end;
+    "VHG WHERE star"
+	[VHPoutptr] = VHGwherestar0; => VH GOES output line;
+	[VHPoutptr] = VHGwherestar1; => VH GOES output line;
+	[VHPoutptr] = VHGwherestar2; => VH GOES output line;
+	[VHPoutptr] = VHGwherestar3; => VH GOES output line; end;
+    "VHG WHERE planet"
+	=> VHG WHERE output label;
+	[VHPoutptr] = VHGwherepart0; => VH GOES output line;
+	A = [VHGwherefound]; C = [A plus 7];
+	A = C; A > 16; A & FFh; A - 48; A '* 10; [VHGwherecode] = A;
+	A = C; A > 24; A & FFh; A - 48; A + [VHGwherecode]; [VHGwherecode] = A;
+	A = [VHGwherefound]; [nsid0] = [A]; [nsid1] = [A plus 1];
+	A = 0; A - [VHGwherecode]; [FI] = A; => NsIdentAddInt;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; [VHCATtype] = VHCATS;
+	=> VHCAT find; A = [VHCATok]; ? A = 0 -> VHG WHERE parent missing;
+	[VHGwhererec] = [VHCATfoundptr]; => VHG WHERE output label;
+	[VHPoutptr] = VHGwherepart1; => VH GOES output line; end;
+    "VHG WHERE parent missing"
+	[VHPoutptr] = VHGwhereparent0; => VH GOES output line;
+	[VHPoutptr] = VHGwhereparent1; => VH GOES output line;
+	[VHPoutptr] = VHGwhereparent2; => VH GOES output line;
+	[VHPoutptr] = VHGwhereparent3; => VH GOES output line; end;
+
+"VHG WHERE record match"
+	[VHGwherematch] = 0; [VHGwhereexact] = 0;
+	A = [VHGwherelen]; ? A > 20 -> VHG WHERE record match done;
+	A = [VHGwhererec]; [VHCATid0] = [A]; [VHCATid1] = [A plus 1];
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHG WHERE record match done;
+	A = [VHGwhererec]; A = [A plus 7]; A > 8; A & FFh;
+	? A = VHCATS -> VHG WHERE record type ready;
+	? A != VHCATP -> VHG WHERE record match done;
+    "VHG WHERE record type ready"
+	[VHGwherei] = 0;
+    "VHG WHERE record prefix"
+	A = [VHGwherei]; ? A >= [VHGwherelen] -> VHG WHERE record suffix;
+	B = A; A / 4; C = [VHGwhererec]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; B = A;
+	A = [VHGwherequery]; A + [VHGwherei]; A = [A];
+	? A != B -> VHG WHERE record match done;
+	[VHGwherei]+; -> VHG WHERE record prefix;
+    "VHG WHERE record suffix"
+	[VHGwherematch] = 1;
+	A = [VHGwherei]; ? A >= 20 -> VHG WHERE record exact;
+	B = A; A / 4; C = [VHGwhererec]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; ? A != 32 -> VHG WHERE record match done;
+	[VHGwherei]+; -> VHG WHERE record suffix;
+    "VHG WHERE record exact"
+	[VHGwhereexact] = 1;
+    "VHG WHERE record match done"
+	end;
+
+"VHG WHERE output label"
+	[VHGwherei] = 0;
+    "VHG WHERE output label loop"
+	A = [VHGwherei]; B = A; A / 4; C = [VHGwhererec]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; C = VHGgoesline; C + [VHGwherei]; [C] = A;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 20 -> VHG WHERE output label loop;
+	[VHGgoesline plus 20] = 0;
+    "VHG WHERE output label trim"
+	A = [VHGwherei]; ? A = 0 -> VHG WHERE output label ready;
+	A - 1; [VHGwherei] = A; C = VHGgoesline; C + A; A = [C];
+	? A != 32 -> VHG WHERE output label ready; [C] = 0; -> VHG WHERE output label trim;
+    "VHG WHERE output label ready"
+	[VHPoutptr] = VHGgoesline; => VH GOES output line;
+	end;
 
 "VHG parse coordinate"
 	[VHGcmdok] = 0; [VHGcmdvalue] = 0; [VHGcmdsign] = 0; [VHGcmddigits] = 0;
