@@ -514,6 +514,14 @@ distinguish consolidated source records from bounded local additions. A native
 disposable-package probe cast `CODEX WAS HERE` for SURICRASIA, reloaded the
 84-byte-larger file as 48,377 records, and read the new record back through CAT.
 
+Resident `REP` restores the correction side of that contribution workflow.
+It accepts the source's `OBJECT:RECORD:NOTES` form, counts matching subject
+records from one, and permits replacement only at or after the consolidated
+boundary. A disposable native sequence cast SURICRASIA record 193, corrected
+it to `CORRECTED NOTE`, rejected an attempted correction of protected record 1,
+and read the corrected text back with CAT. The consolidated guide prefix
+remained byte-for-byte identical throughout.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

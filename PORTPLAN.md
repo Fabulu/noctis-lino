@@ -85,6 +85,13 @@ first -- a broken foundation makes every later result meaningless.
   retaining all original entries. A native append, reload, and CAT probe added
   record 48,377, reproduced `CODEX WAS HERE`, and grew only its disposable
   `GUIDE.BIN` by exactly 84 bytes.
+- `REP <catalogued name>:<record>:<notes>` now corrects a one-based subject
+  record with the original transfer and rejection messages. It uses the same
+  binary64 identity window as CAT, rewrites a complete zero-padded 84-byte
+  local record, and refuses every record before the consolidated guide
+  boundary. A native CAST, REP, protected-REP, CAT sequence changed appended
+  SURICRASIA record 193 to `CORRECTED NOTE`, rejected record 1 as protected,
+  and left the original 4,063,588-byte prefix byte-for-byte identical.
 
 ### Clickable FCS and onboard pages
 

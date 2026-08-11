@@ -46,6 +46,7 @@ ORIGINAL_PAR = REFERENCE_ROOT / "PAR.CPP"
 ORIGINAL_ST = REFERENCE_ROOT / "ST.CPP"
 ORIGINAL_CAT = REFERENCE_ROOT / "CAT.CPP"
 ORIGINAL_CAST = REFERENCE_ROOT / "CAST.CPP"
+ORIGINAL_REP = REFERENCE_ROOT / "REP.CPP"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -241,6 +242,7 @@ def main() -> int:
     original_st = ORIGINAL_ST.read_text(encoding="latin-1")
     original_cat = ORIGINAL_CAT.read_text(encoding="latin-1")
     original_cast = ORIGINAL_CAST.read_text(encoding="latin-1")
+    original_rep = ORIGINAL_REP.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1775,6 +1777,28 @@ def main() -> int:
         and "$consolidated -lt 4 -or $consolidated -gt $bytes.Length" in package_script
         and "($consolidated - 4) % 84 -ne 0" in package_script,
         "GOES CAST appends reloadable player notes after the consolidated guide boundary",
+    )
+    check(
+        all(token in original_rep for token in (
+            'msg ("REP OBJNAME:X:NOTES");', 'msg ("CORRECTION SENT;");',
+            "rec == rectorep", "tell(gh) >= guide_consolidated",
+            'msg ("CORRECTION ACCEPTED.");', 'msg ("MESSAGE IS PROTECTED.");',
+            'msg ("NO SUCH RECORD!");',
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe rep"', '"VHG command rep record digits"',
+            '"VHG command rep message length"', '"VHG REP"',
+            '"VHG REP guide loop"', '"VHG REP protected result"',
+            "[VHGDBrecordno] = [VHGcatrecno]",
+            "[VHGDBmsgptr] = [VHGrepmsgptr]; [VHGDBmsglen] = [VHGrepmsglen]; => VHGDB replace;",
+        ))
+        and all(token in guide_source for token in (
+            '"VHGDB replace"', "? A >= [vhguidedata] -> VHGDB replace local;",
+            "[VHGDBstatus] = 2;", "A = [VHGDBrecordno]; A '* VHGDBREC;",
+            "[File Position] = [VHGDBpos]; [File Command] = WRITE;",
+            "[Block Size] = VHGDBREC; isocall;", "[VHGDBstatus] = 1;",
+        )),
+        "GOES REP corrects local guide notes while protecting consolidated records",
     )
     check(
         all(token in game for token in (

@@ -780,3 +780,14 @@ and reloaded its guide, then queried the appended record with CAT. GOES reported
 bytes, exactly one 84-byte record; its four-byte consolidated boundary remained
 4,063,588. Reload reported 48,377 readable records and the native process exited
 0. The tracked original guide was not modified.
+
+### GOES REP correction and protection regression
+
+A disposable production package ran four resident commands in one native
+process: `CAST SURICRASIA:ORIGINAL NOTE`,
+`REP SURICRASIA:193:CORRECTED NOTE`, `REP SURICRASIA:1:BAD`, and
+`CAT SURICRASIA:193..193`. GOES reported `CORRECTION ACCEPTED.` for the local
+record and `MESSAGE IS PROTECTED.` for consolidated record 1, then displayed
+record `(193)` as `CORRECTED NOTE`. The guide grew by exactly one 84-byte CAST
+record, its header stayed 4,063,588, and all 4,063,588 original bytes compared
+identically with the tracked source asset.

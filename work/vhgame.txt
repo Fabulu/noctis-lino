@@ -91,6 +91,7 @@
 	VHGcatmsgi = 0; VHGcatcol = 0; VHGcatchar = 0;
 	VHGcatreadi = 0; VHGcatlooki = 0; VHGcatwordlen = 0;
 	VHGcastmsgptr = 0; VHGcastmsglen = 0;
+	VHGreptarget = 0; VHGrepdigits = 0; VHGrepmsgptr = 0; VHGrepmsglen = 0;
 	VHGflightx = 0; VHGsecx = 0;
 	VHGlocalactive = 0; VHGlocaltarget = 0FFFFFFFFh;
 	VHGlocalx0 = 0; VHGlocalx1 = 0; VHGlocaly0 = 0; VHGlocaly1 = 0;
@@ -303,6 +304,14 @@
 	VHGcastdberror = { DATABASE_ERROR; };
 	VHGcastrejected = { MESSAGE_REJECTED. };
 	VHGcasterror1 = { (ERROR_CODE_1001) };
+	VHGrepusage1 = { REP_OBJNAME:X:NOTES };
+	VHGrepusage2 = { ^^^^^^^^^^^^^^^^^^^^^ };
+	VHGrepsyntax1 = { RECORD_NR._AND_NOTES };
+	VHGrepsent = { CORRECTION_SENT; };
+	VHGrepaccepted = { CORRECTION_ACCEPTED. };
+	VHGreprejected = { CORRECTION_REJECTED: };
+	VHGrepprotected = { MESSAGE_IS_PROTECTED. };
+	VHGrepnosuch = { NO_SUCH_RECORD! };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -3278,7 +3287,61 @@
 	? A = 78 -> VHG command starts n;
 	? A = 67 -> VHG command maybe clear;
 	? A = 80 -> VHG command maybe par;
+	? A = 82 -> VHG command maybe rep;
 	? A = 87 -> VHG command maybe where; -> VHG command done;
+    "VHG command maybe rep"
+	A = [vhptext plus 43]; ? A != 69 -> VHG command done;
+	A = [vhptext plus 44]; ? A != 80 -> VHG command done;
+	A = [vhptext plus 45]; ? A = 0 -> VHG command rep parse;
+	? A = 32 -> VHG command rep parse; ? A != 95 -> VHG command done;
+    "VHG command rep parse"
+	[VHGcmdi] = 45;
+    "VHG command rep spaces"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 32 -> VHG command rep start;
+	[VHGcmdi]+; -> VHG command rep spaces;
+    "VHG command rep start"
+	[VHGwherequery] = A; [VHGwherelen] = 0; [VHGreptarget] = 0; [VHGrepdigits] = 0;
+	[VHGrepmsgptr] = 0; [VHGrepmsglen] = 0;
+    "VHG command rep name"
+	? C = 0 -> VHG command rep no object colon; ? C = 58 -> VHG command rep record start;
+	? C != 95 -> VHG command rep name character;
+	E = A; E + 1; E = [E]; ? E = 0 -> VHG command rep no object colon;
+    "VHG command rep name character"
+	[VHGwherelen]+; [VHGcmdi]+; A = vhptext; A + [VHGcmdi]; C = [A];
+	-> VHG command rep name;
+    "VHG command rep no object colon"
+	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1;
+	A = [VHGwherelen]; ? A = 0 -> VHG command rep usage;
+	=> VHG REP object syntax; -> VHG command done;
+    "VHG command rep usage"
+	=> VHG REP; -> VHG command done;
+    "VHG command rep record start"
+	[VHGcmdi]+;
+    "VHG command rep record digits"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C = 58 -> VHG command rep message start;
+	? C < 48 -> VHG command rep no record colon; ? C > 57 -> VHG command rep no record colon;
+	A = [VHGrepdigits]; ? A >= 9 -> VHG command rep no record colon;
+	A = [VHGreptarget]; A '* 10; C - 48; A + C; [VHGreptarget] = A;
+	[VHGrepdigits]+; [VHGcmdi]+; -> VHG command rep record digits;
+    "VHG command rep no record colon"
+	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1;
+	=> VHG REP record syntax; -> VHG command done;
+    "VHG command rep message start"
+	[VHGcmdi]+; A = vhptext; A + [VHGcmdi]; [VHGrepmsgptr] = A;
+    "VHG command rep message length"
+	C = [A]; ? C = 0 -> VHG command rep message ready;
+	? C != 95 -> VHG command rep message character;
+	E = A; E + 1; E = [E]; ? E = 0 -> VHG command rep message ready;
+    "VHG command rep message character"
+	C = [VHGrepmsglen]; ? C >= 76 -> VHG command rep message ready;
+	[VHGrepmsglen]+; [VHGcmdi]+; A = vhptext; A + [VHGcmdi];
+	-> VHG command rep message length;
+    "VHG command rep message ready"
+	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1;
+	A = [VHGrepmsglen]; ? A = 0 -> VHG command rep void;
+	=> VHG REP; -> VHG command done;
+    "VHG command rep void"
+	=> VHG CAST void result; -> VHG command done;
     "VHG command maybe clear"
 	A = [vhptext plus 43]; ? A = 65 -> VHG command maybe cat;
 	? A != 76 -> VHG command done;
@@ -3716,6 +3779,112 @@
 "VHG CAST void result"
 	[VHPoutptr] = VHGcastvoid0; => VH GOES output line;
 	[VHPoutptr] = VHGcastvoid1; => VH GOES output line; end;
+
+"VHG REP"
+	( REP.CPP corrects a one-based subject record only when that record lies
+	  after GUIDE.BIN's consolidated source boundary.  Resolve the catalogue
+	  and binary64 tolerance exactly as CAT and CAST do. )
+	A = [VHGwherelen]; ? A != 0 -> VHG REP execute;
+	[VHPoutptr] = VHGparusage0; => VH GOES output line;
+	[VHPoutptr] = VHGrepusage1; => VH GOES output line;
+	[VHPoutptr] = VHGrepusage2; => VH GOES output line;
+	[VHPoutptr] = VHGparusage3; => VH GOES output line;
+	[VHPoutptr] = VHGparusage4; => VH GOES output line; end;
+    "VHG REP execute"
+	[VHGwherei] = 0;
+    "VHG REP bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG REP bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGcathead; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHGwherematches] = 0; [VHGwherefound] = 0; [VHGwhererecno] = 0;
+    "VHG REP catalogue loop"
+	A = [VHGwhererecno]; ? A >= [VHCATrecs] -> VHG REP catalogue done;
+	A '* 8; A + vhcatraw; A + 1; [VHGwhererec] = A;
+	=> VHG WHERE record match; A = [VHGwherematch]; ? A = 0 -> VHG REP catalogue next;
+	[VHGwherematches]+; [VHGwherefound] = [VHGwhererec];
+	A = [VHGwhereexact]; ? A != 0 -> VHG REP catalogue exact;
+    "VHG REP catalogue next"
+	[VHGwhererecno]+; -> VHG REP catalogue loop;
+    "VHG REP catalogue exact"
+	[VHGwherematches] = 1;
+    "VHG REP catalogue done"
+	A = [VHGwherematches]; ? A = 0 -> VHG REP missing subject;
+	? A > 1 -> VHG REP ambiguous subject;
+	[VHGwhererec] = [VHGwherefound];
+	A = [VHGwhererec]; C = [A plus 7]; C > 8; C & FFh; [VHGwheretype] = C;
+	? C = VHCATS -> VHG REP star subject;
+	? C = VHCATP -> VHG REP planet subject; -> VHG REP missing subject;
+    "VHG REP missing subject"
+	[VHPoutptr] = VHGwherenotfound; => VH GOES output line; end;
+    "VHG REP ambiguous subject"
+	=> VHG WHERE ambiguous; end;
+    "VHG REP star subject"
+	[VHPoutptr] = VHGcasttransfer; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGparsubjectstar; => VH GOES output line; -> VHG REP subject ready;
+    "VHG REP planet subject"
+	[VHPoutptr] = VHGcasttransfer; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGparsubjectplanet; => VH GOES output line;
+    "VHG REP subject ready"
+	=> VHG PAR output name;
+	[VHPoutptr] = VHGrepsent; => VH GOES output line;
+	A = [VHGDBloaded]; ? A = 0 -> VHG REP database error;
+	A = [VHGwherefound]; [VHGpartarget0] = [A]; [VHGpartarget1] = [A plus 1];
+	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FSub;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparlowhi] = [VHCATkeyhi]; [VHGparlowlo] = [VHCATkeylo];
+	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FAdd;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparhighhi] = [VHCATkeyhi]; [VHGparhighlo] = [VHCATkeylo];
+	[VHGcatrecno] = 0; [VHGcatmatchno] = 0;
+    "VHG REP guide loop"
+	A = [VHGcatrecno]; ? A >= [VHGDBrecs] -> VHG REP no such record;
+	A '* 21; A + vhguidedata; A + 1; [VHGcatptr] = A;
+	[VHCATid0] = [A]; [VHCATid1] = [A plus 1];
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHG REP guide next;
+	=> VHCAT key; A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHGparlowhi] -> VHG REP guide above low;
+	? A '< [VHGparlowhi] -> VHG REP guide next;
+	? B '> [VHGparlowlo] -> VHG REP guide above low; -> VHG REP guide next;
+    "VHG REP guide above low"
+	? A '< [VHGparhighhi] -> VHG REP guide match;
+	? A '> [VHGparhighhi] -> VHG REP guide next;
+	? B '< [VHGparhighlo] -> VHG REP guide match; -> VHG REP guide next;
+    "VHG REP guide match"
+	[VHGcatmatchno]+; A = [VHGcatmatchno]; ? A != [VHGreptarget] -> VHG REP guide next;
+	[VHGDBrecordno] = [VHGcatrecno]; A = [VHGwherefound]; [VHGDBid0] = [A]; [VHGDBid1] = [A plus 1];
+	[VHGDBmsgptr] = [VHGrepmsgptr]; [VHGDBmsglen] = [VHGrepmsglen]; => VHGDB replace;
+	A = [VHGDBstatus]; ? A = 1 -> VHG REP accepted result;
+	? A = 2 -> VHG REP protected result; -> VHG REP database error;
+    "VHG REP guide next"
+	[VHGcatrecno]+; -> VHG REP guide loop;
+    "VHG REP accepted result"
+	[VHPoutptr] = VHGrepaccepted; => VH GOES output line; end;
+    "VHG REP protected result"
+	[VHPoutptr] = VHGreprejected; => VH GOES output line;
+	[VHPoutptr] = VHGrepprotected; => VH GOES output line; end;
+    "VHG REP no such record"
+	[VHPoutptr] = VHGreprejected; => VH GOES output line;
+	[VHPoutptr] = VHGrepnosuch; => VH GOES output line; end;
+    "VHG REP database error"
+	[VHPoutptr] = VHGcastdberror; => VH GOES output line;
+	[VHPoutptr] = VHGcastrejected; => VH GOES output line;
+	[VHPoutptr] = VHGcasterror1; => VH GOES output line; end;
+
+"VHG REP object syntax"
+	[VHPoutptr] = VHGcastsyntax0; => VH GOES output line;
+	[VHPoutptr] = VHGcastsyntax1; => VH GOES output line;
+	[VHPoutptr] = VHGcastsyntax2; => VH GOES output line; end;
+
+"VHG REP record syntax"
+	[VHPoutptr] = VHGcastsyntax0; => VH GOES output line;
+	[VHPoutptr] = VHGcastsyntax1; => VH GOES output line;
+	[VHPoutptr] = VHGrepsyntax1; => VH GOES output line; end;
 
 "VHG CAT"
 	( CAT.CPP reads the original 84-byte Galactic Guide records for a named

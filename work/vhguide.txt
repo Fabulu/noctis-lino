@@ -15,7 +15,7 @@
 	VHGDBfile = { GUIDE.BIN };
 	VHGDBloaded = 0; VHGDBbytes = 0; VHGDBrecs = 0; VHGDBstatus = 0;
 	VHGDBid0 = 0; VHGDBid1 = 0; VHGDBmsgptr = 0; VHGDBmsglen = 0;
-	VHGDBptr = 0; VHGDBi = 0; VHGDBshift = 0;
+	VHGDBptr = 0; VHGDBi = 0; VHGDBshift = 0; VHGDBrecordno = 0; VHGDBpos = 0;
 
 "workspace"
 
@@ -75,4 +75,39 @@
 	? [File Status] + ERROR -> VHGDB add done;
 	[VHGDBrecs]+; [VHGDBstatus] = 1;
     "VHGDB add done"
+	end;
+
+      ( Replace one locally contributed source-format record.  REP may read
+	consolidated records but the original module protects every byte before
+	the header boundary from correction.  Status 2 reports that distinction. )
+"VHGDB replace"
+	[VHGDBstatus] = 0; A = [VHGDBloaded]; ? A = 0 -> VHGDB replace done;
+	A = [VHGDBrecordno]; ? A < 0 -> VHGDB replace done;
+	? A >= [VHGDBrecs] -> VHGDB replace done;
+	A = [VHGDBmsglen]; ? A = 0 -> VHGDB replace done; ? A > 76 -> VHGDB replace done;
+	A = [VHGDBrecordno]; A '* VHGDBREC; A + VHGDBHDR; [VHGDBpos] = A;
+	? A >= [vhguidedata] -> VHGDB replace local; [VHGDBstatus] = 2; -> VHGDB replace done;
+    "VHGDB replace local"
+	A = [VHGDBrecordno]; A '* 21; A + vhguidedata; A + 1; [VHGDBptr] = A;
+	[A] = [VHGDBid0]; [A plus 1] = [VHGDBid1];
+	[A plus 2] = 0; [A plus 3] = 0; [A plus 4] = 0; [A plus 5] = 0;
+	[A plus 6] = 0; [A plus 7] = 0; [A plus 8] = 0; [A plus 9] = 0;
+	[A plus 10] = 0; [A plus 11] = 0; [A plus 12] = 0; [A plus 13] = 0;
+	[A plus 14] = 0; [A plus 15] = 0; [A plus 16] = 0; [A plus 17] = 0;
+	[A plus 18] = 0; [A plus 19] = 0; [A plus 20] = 0;
+	[VHGDBi] = 0;
+    "VHGDB replace pack message"
+	A = [VHGDBi]; ? A >= [VHGDBmsglen] -> VHGDB replace write;
+	C = [VHGDBmsgptr]; C + A; B = [C]; ? B != 95 -> VHGDB replace character ready; B = 32;
+    "VHGDB replace character ready"
+	C = A; C / 4; E = [VHGDBptr]; E + 2; E + C;
+	A & 3; A '* 8; B < A; A = [E]; A | B; [E] = A;
+	[VHGDBi]+; -> VHGDB replace pack message;
+    "VHGDB replace write"
+	[File Name] = VHGDBfile; [File Position] = [VHGDBpos]; [File Command] = WRITE;
+	[Block Pointer] = [VHGDBptr]; [Block Size] = VHGDBREC; isocall;
+	? [File Status] + ERROR -> VHGDB replace done;
+	A = [Block Size]; ? A != VHGDBREC -> VHGDB replace done;
+	[VHGDBstatus] = 1;
+    "VHGDB replace done"
 	end;
