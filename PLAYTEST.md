@@ -893,3 +893,12 @@ the five source bounds, palette bands, title and credits, space-key branch,
 release footer, correct orientation, and the previously missing B, J, K, W, X,
 Z, comma, parentheses, asterisk, slash, and question-mark glyph shapes. The
 current-port control card remains separately available on F9 and `?`.
+
+### Surface fixed-step cruise regression
+
+An isolated production package resumed a cloned version-11 landed checkpoint,
+leaving the real save and databases untouched. Sending 9 through the Windows
+character path advanced the player 20,880 world units in 1.6 seconds. Sending
+9 again cancelled the selected source speed; two later F6 checkpoints 1.6
+seconds apart retained identical X/Z coordinates. The process exited and its
+temporary 32 MB package was removed.

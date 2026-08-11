@@ -43,6 +43,13 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Source surface cruise speeds
+
+- Surface digits 1 through 9 now restore `fixed_step`: each selects a persistent
+  forward cruise of 10 through 90 source units per simulation tick, scaled to
+  the port's terrain coordinates. Pressing the selected digit again, or 0,
+  stops cruise. WASD remains additive and each new capsule descent resets it.
+
 ### Original F1 About page
 
 - F1 now restores `ShowAboutPage()` as a distinct screen instead of aliasing

@@ -191,6 +191,7 @@
 	VHGsurfsmoothden = 0;
 	VHGsurfground = 0; VHGsurfvy = 0; VHGsurfaccel = 1;
 	VHGsurfair = 0; VHGsurfjet = 0;
+	VHGsurfacefixed = 0;
 	VHGkindi = 0;
 	VHGinfo = 0; VHGinfoheld = 0; VHGinfoy = 0; VHGinfoline = 0; VHGinfovalue = 0;
 	VHGinfoscroll = 0; VHGinfodelta = 0; VHGinfowidth = 0; VHGinfomax = 0;
@@ -466,8 +467,8 @@
 	VHGhelptitle = { NOCTIS-IV:CONTROLS };
 	VHGhelpclose = { ?/F9:CLOSE / ESC:QUIT };
 	VHGhelpmenu = { F10:MENU / F1:ORIGINAL-ABOUT };
-	VHGhelpmove = { RMB/ARROWS:LOOK / WASD / CTRL:STALK };
-	VHGhelpjump = { SURFACE:J JUMP / HOLD SPACE JETPACK };
+	VHGhelpmove = { RMB/ARROWS:LOOK / WASD / 0-9:CRUISE };
+	VHGhelpjump = { SURFACE:CTRL:STALK / J:JUMP / SPACE:JET };
 	VHGhelplift = { E:LIFT / STEP INTO CUPOLA:RETURN };
 	VHGhelpgoes = { G/ENTER:GOES / TAB:RUN };
 	VHGhelpnav = { 5:FCS / R:DEVICES / G:GOES };
@@ -3137,8 +3138,10 @@
 
     "VHG surface input"
 	( R returns to the Stardrifter; the same standard WASD/arrows remain
-	  active while walking. )
+	  active while walking. The source's digit-selected fixed advancement is
+	  additive, so it can cruise while manual forward/backward input continues. )
 	A = [VHGlanded]; ? A = 0 -> VHG input done;
+	=> VHG surface pace key;
 	A = [VHGascii]; ? A = 82 -> VHG request return; ? A = 114 -> VHG request return;
 	? A = 74 -> VHG surface jump request; ? A = 106 -> VHG surface jump request;
 	? A = 32 -> VHG surface jet request;
@@ -3202,14 +3205,18 @@
 	A = [VHGlanded]; ? A = 0 -> VHG surface input done;
 	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
 	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
-	[VHGNDplayerstep] = 0; [VHGstepv] = VHGNDSTEP;
+	[VHGNDplayerstep] = [VHGsurfacefixed]; [VHGstepv] = [VHGsurfacefixed];
+	A = [VHGstepv]; ? A = 0 -> VHG surface cruise moved; => VHG forward;
+    "VHG surface cruise moved"
+	[VHGstepv] = VHGNDSTEP;
 	A = [KEY CONTROL]; ? A = OFF -> VHG surface pace ready; [VHGstepv] = VHGNDSTALK;
     "VHG surface pace ready"
 	A = [KEY W]; ? A = OFF -> VHG surface no W;
-	[VHGNDplayerstep] = [VHGstepv]; => VHG forward;
+	A = [VHGNDplayerstep]; A + [VHGstepv]; [VHGNDplayerstep] = A; => VHG forward;
     "VHG surface no W"
 	A = [KEY S]; ? A = OFF -> VHG surface no S;
-	[VHGNDplayerstep] = [VHGstepv]; A = 0; A - [VHGstepv]; [VHGstepv] = A; => VHG forward;
+	A = [VHGNDplayerstep]; A - [VHGstepv]; [VHGNDplayerstep] = A;
+	A = 0; A - [VHGstepv]; [VHGstepv] = A; => VHG forward;
     "VHG surface no S"
 	A = [KEY A]; ? A = OFF -> VHG surface no A;
 	A = [VHGstepv]; ? A >= 0 -> VHG surface A pace ready; C = 0; C - A; A = C;
@@ -3221,10 +3228,28 @@
     "VHG surface D pace ready"
 	[VHGNDplayerstep] = A; [VHGstepv] = A; => VHG strafe;
     "VHG surface moved"
+	A = [VHGNDplayerstep]; ? A >= 0 -> VHG surface speed absolute;
+	C = 0; C - A; A = C;
+    "VHG surface speed absolute"
+	[VHGNDplayerstep] = A;
 	=> VHG surface clamp;
 	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
 	[VHGsurfground] = [VHGNDheight]; => VHG surface vertical;
     "VHG surface input done"
+	end;
+
+"VHG surface pace key"
+	( NOCTIS-1.CPP adds digit*10 to forward motion on every surface tick and
+	  pressing the selected digit again cancels it. Port world units are eight
+	  times that source step, the same scale as CTRL stalking speed. )
+	A = [VHGascii]; ? A < 48 -> VHG surface pace key done;
+	? A > 57 -> VHG surface pace key done;
+	[VHGascii] = 0; A - 48; A '* VHGNDSTALK; C = A;
+	A = [VHGsurfacefixed]; ? A = C -> VHG surface pace cancel;
+	[VHGsurfacefixed] = C; -> VHG surface pace key done;
+    "VHG surface pace cancel"
+	[VHGsurfacefixed] = 0;
+    "VHG surface pace key done"
 	end;
 
 "VHG surface vertical"

@@ -618,7 +618,15 @@ eight-digit name in `GALLERY`, captures the fully composed 320x200 logical game
 page before host scaling, and writes an uncompressed 32-bit BMP in the source's
 bottom-up row order. Existing captures are not overwritten. A readiness guard
 also rejects input queued before the first complete frame instead of saving a
-black startup page.
+black startup page. B now restores the original raw variant by capturing the
+current game image before the port-only overlays while sharing the same safe
+numbering sequence.
+
+Surface digits now restore the original `fixed_step` cruise control. Digits 1
+through 9 select 10 through 90 source units of automatic forward movement per
+simulation tick, mapped into the port's terrain scale; the active digit or 0
+stops it. Manual WASD movement remains additive and a new descent resets the
+setting as a fresh original planetary session did.
 
 ## Current state
 

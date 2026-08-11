@@ -183,6 +183,11 @@ def surface_arc(gravity_mfg: int, thrust_ticks: int = 0) -> tuple[int, int, int]
     raise AssertionError("surface arc did not return to terrain")
 
 
+def surface_cruise(current: int, digit: int) -> int:
+    selected = digit * 80
+    return 0 if current == selected else selected
+
+
 def cupola_panel_drop(horizontal_distance: int) -> int:
     """Independent model of NOCTIS-0.CPP's roof-panel displacement."""
     return min(600, max(0, 1000 - horizontal_distance))
@@ -965,6 +970,25 @@ def main() -> int:
         and "[VHGnoticeptr] = VHGreturnfartext;" in surface_input,
         "surface return requires the visible capsule and explains an out-of-range refusal",
     )
+    check(
+        all(token in original1 for token in (
+            "step += fixed_step;", "if (w >= 48 && w <= 57)",
+            "if (fixed_step == (w * 10))", "fixed_step = (w * 10);",
+        ))
+        and all(token in surface_input for token in (
+            '"VHG surface pace key"', "A - 48; A '* VHGNDSTALK; C = A;",
+            "A = [VHGsurfacefixed]; ? A = C -> VHG surface pace cancel;",
+            "[VHGNDplayerstep] = [VHGsurfacefixed]; [VHGstepv] = [VHGsurfacefixed];",
+            '"VHG surface cruise moved"', "A + [VHGstepv]; [VHGNDplayerstep] = A;",
+            "A - [VHGstepv]; [VHGNDplayerstep] = A;",
+            '"VHG surface speed absolute"', "[VHGNDplayerstep] = A;",
+        ))
+        and "[VHGsurfacefixed] = 0;" in capsule_physics
+        and [surface_cruise(0, digit) for digit in range(10)]
+        == [0, 80, 160, 240, 320, 400, 480, 560, 640, 720]
+        and surface_cruise(720, 9) == 0,
+        "surface digits restore source fixed-step cruise with additive manual movement",
+    )
 
     check(
         "INITIAL WIDTH = 642; INITIAL HEIGHT = 426;" in game
@@ -1421,7 +1445,7 @@ def main() -> int:
             "[VHGy] = [VHGsurfground]; [VHGsurfvy] = 0;",
         ))
         and "A = [VHGsurfgravm]; A '* 2000; A '/ 38260;" in surface_telemetry
-        and "VHGhelpjump = { SURFACE:J JUMP / HOLD SPACE JETPACK };" in game
+        and "VHGhelpjump = { SURFACE:CTRL:STALK / J:JUMP / SPACE:JET };" in game
         and "[VHGhelpline] = VHGhelpjump;" in game
         and jump_ticks > 1 and jump_apex < jump_ground
         and jet_ticks > jump_ticks and jet_apex < jump_apex and jet_ground == jump_ground,
@@ -2481,8 +2505,8 @@ def main() -> int:
         ))
         and all(token in game for token in (
             "[KEY CONTROL]", "[VHGstepv] = VHGNDSTALK;",
-            "[VHGNDplayerstep] = [VHGstepv];",
-            "CTRL:STALK", "RMB/ARROWS:LOOK / WASD / CTRL:STALK",
+            "A + [VHGstepv]; [VHGNDplayerstep] = A;",
+            "CTRL:STALK", "RMB/ARROWS:LOOK / WASD / 0-9:CRUISE",
             "[VHGNDcaptures] = [VHSVcaptures];", "=> VHGND restore captures;",
         )),
         "habitable birds react to speed and support discoverable close stalking/capture",
