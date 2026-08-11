@@ -346,6 +346,12 @@ X now clears onboard pages as advertised by the visor.
 Version 13 expands `CURRENT.LIN` to 192 bytes for these preferences while
 retaining explicit readers and defaults for versions 1 through 12.
 
+Version 14 expands the record to 256 bytes and preserves the separate local
+fine-approach integrator and parked-world position. A surface save can now return
+the capsule to the same waiting Stardrifter after a restart instead of forgetting
+the completed approach. Explicit readers remain available for versions 1 through
+13.
+
 ### Clickable onboard controls
 
 The complete FCS and onboard-device pages no longer require memorizing their

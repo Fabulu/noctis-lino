@@ -3234,9 +3234,14 @@
     "VHG load cadence ready"
 	=> VHG timing rebase;
 	=> VHA apply;
-	=> VHG target world; => VHG local reset;
+	=> VHG target world;
 	A = [VHGplanet]; ? A '< [nsnob] -> VHG load target valid; [VHGplanet] = 0;
     "VHG load target valid"
+	A = [VHSVlocalstored]; ? A = 0 -> VHG load legacy local;
+	=> VHG restore local checkpoint; -> VHG load local ready;
+    "VHG load legacy local"
+	=> VHG local reset;
+    "VHG load local ready"
 	[VHGCstate] = 0; [VHGCcapcount] = 0; [VHGCrecover] = 0;
 	A = [VHGmode]; ? A = 0 -> VHG command load ship;
 	[VHGNDlon] = [VHGlandinglon]; [VHGNDlat] = [VHGlandinglat];
@@ -3263,6 +3268,31 @@
     "VHG command load ship"
 	=> VHG palette; => VHG star palette;
     "VHG load checkpoint done"
+	end;
+
+"VHG restore local checkpoint"
+	( Version-14 saves carry the fine-approach integrator separately from galactic
+	  dzat. Rebuild only its generated-system caches and MG boundary inputs; the
+	  persisted position, distance and current coefficient remain authoritative. )
+	A = [VHGlocalactive]; ? A = 0 -> VHG restore local inactive;
+	A = [VHGlocaltarget]; ? A < 0 -> VHG restore local invalid;
+	? A '>= [nsnob] -> VHG restore local invalid;
+	[VHGplanet] = A;
+	[VHGlocalresident1] = 0FFFFFFFFh; [VHGlocalresident2] = 0FFFFFFFFh;
+	[VHGlocalpmapbody] = 0FFFFFFFFh; [VHGlocalmmapbody] = 0FFFFFFFFh;
+	[VHGlocalsurfaceok] = 0;
+	[VHGNDplanet] = [VHGlocaltarget]; => VHGND general phase setup; => VHG fpu clean;
+	A = [VHGlocaltarget]; A < 1; E = nspray; E + A;
+	[FA0] = [E plus 0]; [FA1] = [E plus 1]; => F32Narrow; [MgPray] = [FS0];
+	[MgPlX0] = 0; [MgPlX1] = 0; [MgPlY0] = 0; [MgPlY1] = 0; [MgPlZ0] = 0; [MgPlZ1] = 0;
+	[MgStatus] = 5; A = [MgIpreached]; ? A = 0 -> VHG restore local done; [MgStatus] = 12;
+	-> VHG restore local done;
+    "VHG restore local inactive"
+	=> VHG local reset; -> VHG restore local done;
+    "VHG restore local invalid"
+	=> VHG local reset;
+    "VHG restore local done"
+	=> VHG fpu clean;
 	end;
 
     "VHG command done"

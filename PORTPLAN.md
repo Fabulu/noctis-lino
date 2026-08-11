@@ -354,21 +354,22 @@ first -- a broken foundation makes every later result meaningless.
   Vimana, target, resources, lift/capsule and surface progress to the opening
   flight, preserves presentation/audio preferences and starmap names, and
   immediately replaces the prior checkpoint.
-- `CURRENT.LIN` version 13 is a 192-byte record retaining landing longitude and
-  latitude, the settled capsule's X/Y/Z coordinates, navigation-device settings,
-  internal-light state, F2 HUD/lens-reflection/visor-border preferences, and
-  the last
+- `CURRENT.LIN` version 14 is a 256-byte record retaining the local fine-approach
+  integrator and parked-world position, landing longitude and latitude, the
+  settled capsule's X/Y/Z coordinates, navigation-device settings,
+  internal-light state, F2 HUD/lens-reflection/visor-border preferences, and the last
   validated iGUI width/height alongside the 60/original
   presentation choice, FPS-overlay visibility, soundtrack state,
   captured-fauna count, lithium reserve, active collector, player, ship,
   target, Vimana, lift, landed state, and pending emergency-rescue phase. Its
   Noctis-epoch UTC timestamp advances an active collector and pending rescue
   across time spent outside the game.
-- Readers remain explicit for versions 1 through 12. Older saves receive the
+- Readers remain explicit for versions 1 through 13. Older saves receive the
   source defaults: HUD text on, visor-only reflections, and the default border.
 - Page Up/Page Down restore `openhuddelta=-5/+5`, the four-row moving visor
   edge, and the source rule connecting visor-only reflections to `hud_closed`.
-  The closed/open state is packed into the existing version-13 preference word.
+  The closed/open state remains packed into the visual-preference word introduced
+  by version 13.
 - Surface `surrounding(1)` now draws the source 28-character compass window
   from live yaw, including its fractional four-pixel scroll, centre pointer,
   four corner lamps, and the larger bright jetpack flash. Its SQC prefix shows

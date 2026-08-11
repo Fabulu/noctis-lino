@@ -1346,8 +1346,8 @@ def main() -> int:
             "=> VHG surface motion reset; -> VHG load checkpoint done;",
         ))
         and all(token in save for token in (
-            "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 192;",
-            "[File Command] = TEST;", "? [File Size] != 192 -> VHSV save done;",
+            "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 256;",
+            "[File Command] = TEST;", "? [File Size] != 256 -> VHSV save done;",
             "[VHSVok] = 1;",
         )),
         "startup resume and F6/F7 cover stable ship/surface checkpoints with fallback",
@@ -1471,7 +1471,7 @@ def main() -> int:
             "[VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;",
         ))
         and all(token in save for token in (
-            "VHSVVERSION = 13;", "[vhsvbuf plus 24] = [VHTtx];",
+            "VHSVVERSION = 14;", "[vhsvbuf plus 24] = [VHTtx];",
             "[VHTtx] = [vhsvbuf plus 24];",
         )),
         "GOES NEXT/STAR retarget real Vimana travel and persist the selected star",
@@ -1646,11 +1646,13 @@ def main() -> int:
             "? A = 144 -> VHSV load size ok; ? A = 152 -> VHSV load size ok;",
             "? A = 156 -> VHSV load size ok; ? A = 160 -> VHSV load size ok;",
             "? A = 168 -> VHSV load size ok; ? A = 180 -> VHSV load size ok;",
-            "? A = 188 -> VHSV load size ok; ? A != 192 -> VHSV load done;",
+            "? A = 188 -> VHSV load size ok; ? A = 192 -> VHSV load size ok;",
+            "? A != 256 -> VHSV load done;",
             '"VHSV load version two"', '"VHSV load version three"', '"VHSV load version four"',
             '"VHSV load version five"', '"VHSV load version six"', '"VHSV load version seven"',
             '"VHSV load version eight"', '"VHSV load version nine"', '"VHSV load version ten"',
             '"VHSV load version eleven"', '"VHSV load version twelve"',
+            '"VHSV load version thirteen"',
             "[vhsvbuf plus 27] = [VHGfast];",
             "[vhsvbuf plus 28] = [VHGfpsshow];", "[vhsvbuf plus 29] = [VHAwanted];",
             "[vhsvbuf plus 30] = [VHGNDcaptures];", "[VHSVcaptures] = A;",
@@ -1662,10 +1664,14 @@ def main() -> int:
             "[vhsvbuf plus 40] = [VHGlandinglon];", "[VHGlandinglat] = A;",
             "[vhsvbuf plus 42] = [VHGNDdropx];", "[vhsvbuf plus 43] = [VHGNDdropy];",
             "[vhsvbuf plus 44] = [VHGNDdropz];", "[VHSVdropstored] = 1;",
-            "[Block Pointer] = vhsvbuf; [Block Size] = 192; isocall;",
-            "[vhsvbuf plus 47] = C;", "A = [VHSVsize]; ? A != 192 -> VHSV load graphics done;",
+            "[Block Pointer] = vhsvbuf; [Block Size] = 256; isocall;",
+            "[vhsvbuf plus 47] = C;", "A = [VHSVsize]; ? A = 192 -> VHSV load graphics stored;",
             "A - 1; [VHGlensmode] = A;", "[VHGdrawhud] = A;", "[VHGseamless] = A;",
             "A = 1; A - [VHGhudclosed]; A '* 16;", "[VHGhudclosed] = 0; [VHGhudcount] = 0;",
+            "[vhsvbuf plus 48] = [VHGlocalactive];", "[vhsvbuf plus 49] = [VHGlocaltarget];",
+            "[vhsvbuf plus 50] = [VHGlocalx0];", "[vhsvbuf plus 61] = [MgIpreached];",
+            "[vhsvbuf plus 62] = [VHGlocalacc];", "[vhsvbuf plus 63] = [VHGlocalphasetick];",
+            "[VHSVlocalstored] = 1;",
             "? A < MINIMUM WIDTH -> VHSV load done;", "? A > MAXIMUM HEIGHT -> VHSV load done;",
             "[VHSVmusic] = [VHAwanted];", "[VHAwanted] = [VHSVmusic];",
         ))
@@ -1677,6 +1683,9 @@ def main() -> int:
             "[VHGNDdropz] = [VHSVdropz];",
             '"VHG restore window"', "[New Display Width] = [VHSVwindoww];",
             "=> Resize Display;", "=> VHG restore window;", "=> VHA apply;",
+            '"VHG restore local checkpoint"', "A = [VHSVlocalstored]; ? A = 0 -> VHG load legacy local;",
+            "A = [VHGlocaltarget]; ? A < 0 -> VHG restore local invalid;",
+            "[VHGplanet] = A;", "[MgStatus] = 5;",
         ))
         and all(token in igui for token in (
             "Unfull display width", "Unfull display height",
@@ -1699,7 +1708,7 @@ def main() -> int:
             < run.index("=> VHA apply;")
             < run.index("=> Enter Integrated GUI;")
         ))(section(game, '"VHG run"', '"service VHG repaint"')),
-        "version-13 checkpoints retain visual settings and safely migrate v1-v12 progress",
+        "version-14 checkpoints retain local flight state and safely migrate v1-v13 progress",
     )
     check(
         all(token in ground for token in (
