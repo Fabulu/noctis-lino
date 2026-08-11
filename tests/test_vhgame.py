@@ -960,6 +960,8 @@ def main() -> int:
             '"VHGND epoch HUD"', "A = [VHGutcsecs]; A / 1000000000; A + 6011;",
             "A = [VHGutcsecs]; A / 1000000; A % 1000; => VHGND HUD append triad;",
             '"VHGND HUD append triad"', "[VHGNDhudsource] = VHGNDepoctext;",
+            "? A < 1000 -> VHGND HUD number hundreds;",
+            "A / 1000; A + 48; => VHGND HUD append;",
         ))
         and all(token in original0 for token in (
             "cpos = ccom / 9; crem = ccom * 0.44444;",

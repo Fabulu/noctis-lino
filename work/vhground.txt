@@ -2737,6 +2737,12 @@
 	[VHGNDhudvalue] = A; ? A >= 0 -> VHGND HUD number magnitude;
 	A = 45; => VHGND HUD append; A = 0; A - [VHGNDhudvalue]; [VHGNDhudvalue] = A;
     "VHGND HUD number magnitude"
+	A = [VHGNDhudvalue]; ? A < 1000 -> VHGND HUD number hundreds;
+	A / 1000; A + 48; => VHGND HUD append;
+	A = [VHGNDhudvalue]; A / 100; A % 10; A + 48; => VHGND HUD append;
+	A = [VHGNDhudvalue]; A / 10; A % 10; A + 48; => VHGND HUD append;
+	-> VHGND HUD number ones;
+    "VHGND HUD number hundreds"
 	A = [VHGNDhudvalue]; ? A < 100 -> VHGND HUD number tens;
 	A / 100; A + 48; => VHGND HUD append;
 	A = [VHGNDhudvalue]; A / 10; A % 10; A + 48; => VHGND HUD append;
