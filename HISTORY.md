@@ -650,6 +650,16 @@ their physical keys so Ctrl deck selection remains reliable in the Windows
 host. A native session recorded 50 complete consecutive BMPs, paused and
 resumed at frame 33, and stopped without leaving a partial file.
 
+Surface exploration again accepts the original held left mouse button as a
+forward step, in addition to the port's WASD and fixed-speed controls. The hit
+path is limited to the aspect-fitted game image and yields to chrome and active
+overlays. Physical Delete also restores the source raw-snapshot alias on a
+settled surface. During its native smoke the older Gallery writer exposed a
+multi-second stall from 200 row-sized file calls, so numbered 320x200 captures
+now assemble the identical bottom-up pixel block in memory and submit one
+256,000-byte write. The final production run moved by held left-click and
+completed the Delete capture in 514 ms.
+
 ## Current state
 
 The project is a playable Windows beta, not a claim of exact feature parity

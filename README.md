@@ -36,14 +36,15 @@ the game automatically when the executable is absent; pass `-Build` to force a
 fresh production build. Clean saves also retain the current validated window
 dimensions, so a resized game reopens at the same size.
 
-Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E starts the Stardrifter roof lift from inside the ship, and walking into the roof cupola opening starts the automatic return. Face the first computer on the Stardrifter's right wall and press Enter to type directly into GOES; G opens its large accessible view from anywhere in the ship. At the third wall panel, Enter starts planetary approach and, after FCS reports STANDBY, opens the physical landing-site selector. R and 5 activate the original world-space onboard-device and flight-control screens at the Stardrifter's z=0 forward plane; turn toward the forward windows, aim at a framed control or command, and left-click it. The third physical control opens the original Preferences page. Keys 6-9 remain direct shortcuts for the four command slots.
+Essential controls: F10 opens the native GAME menu, W/A/S/D move, held left-click walks forward on a surface, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E starts the Stardrifter roof lift from inside the ship, and walking into the roof cupola opening starts the automatic return. Face the first computer on the Stardrifter's right wall and press Enter to type directly into GOES; G opens its large accessible view from anywhere in the ship. At the third wall panel, Enter starts planetary approach and, after FCS reports STANDBY, opens the physical landing-site selector. R and 5 activate the original world-space onboard-device and flight-control screens at the Stardrifter's z=0 forward plane; turn toward the forward windows, aim at a framed control or command, and left-click it. The third physical control opens the original Preferences page. Keys 6-9 remain direct shortcuts for the four command slots.
 `NEXT` selects and flies toward a nearby generated star, L remains the global approach fallback, arrows choose landing coordinates, L/Enter descends,
 R returns from the capsule, surface digits 1-9 toggle source-style forward
 cruise speeds and 0 stops cruise, F2 opens the original visual-effects settings,
 Page Up/Page Down open and close the visor, F5 opts into 60 FPS presentation (the original
 18.2 FPS mode is the default), `+`/`-` adjust the source HUD brightness,
 F6/F7 save and load, F8 toggles music, M or `*`
-saves the next numbered 320x200 BMP under `work\GALLERY`, and on a settled
+saves the next numbered 320x200 BMP under `work\GALLERY`; B, or Delete on a
+surface, saves the raw pre-overlay variant. On a settled
 surface N or `/` saves the original three-panel panorama while V or `.` saves
 its raw variant. `?` or F9 displays
 the complete current control card, F1 opens the original Noctis IV+ About page,

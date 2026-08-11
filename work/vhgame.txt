@@ -272,9 +272,9 @@
 	VHGinterpeffectx = 0; VHGinterpeffectz = 0; VHGinterpeffectalpha = 0;
 	VHGsaveheld = 0; VHGloadheld = 0; VHGmusicheld = 0; VHGnoticeptr = 0; VHGnoticeframes = 0;
 	VHGsnapshotnext = 1; VHGsnapshotnumber = 0; VHGsnapshotvalue = 0;
-	VHGsnapshotden = 0; VHGsnapshotpos = 0; VHGsnapshotrow = 0;
-	VHGsnapshotfilepos = 0; VHGsnapshotsrc = 0; VHGsnapshotready = 0;
-	VHGsnapshotrequest = 0; VHGsnapshotbase = 0;
+	VHGsnapshotden = 0; VHGsnapshotpos = 0; VHGsnapshotrow = 0; VHGsnapshotcol = 0;
+	VHGsnapshotfilepos = 0; VHGsnapshotsrc = 0; VHGsnapshotdst = 0; VHGsnapshotready = 0;
+	VHGsnapshotrequest = 0; VHGsnapshotbase = 0; VHGdeleteheld = 0;
 	VHGwidephase = 0; VHGwideraw = 0; VHGwidecaptured = 0;
 	VHGwideoriginalbeta = 0; VHGwidecopyi = 0; VHGwidecopybase = 0;
 	VHGwiderow = 0; VHGwidecol = 0;
@@ -3276,6 +3276,20 @@
 	[VHGNDplayerstep] = [VHGsurfacefixed]; [VHGstepv] = [VHGsurfacefixed];
 	A = [VHGstepv]; ? A = 0 -> VHG surface cruise moved; => VHG forward;
     "VHG surface cruise moved"
+	( NOCTIS-1.CPP adds 75 source units while the left mouse button is held
+	  during ordinary surface walking. Keep the port's established eightfold
+	  terrain scale and leave clicks over chrome or an open overlay untouched. )
+	A = [Client Owns Mouse Pointer]; ? A = NO -> VHG surface mouse moved;
+	A = [VHGgraphics]; A | [VHGmovieview]; A | [VHGhelpshow];
+	? A != 0 -> VHG surface mouse moved;
+	A = [Pointer X Coordinate]; ? A < [VHGUIleft] -> VHG surface mouse moved;
+	C = [VHGUIleft]; C + [VHGUIdw]; ? A '>= C -> VHG surface mouse moved;
+	A = [Pointer Y Coordinate]; ? A < [VHGUItop] -> VHG surface mouse moved;
+	C = [VHGUItop]; C + [VHGUIdh]; ? A '>= C -> VHG surface mouse moved;
+	A = [Pointer Status]; ? A - PD LEFT BUTTON DOWN -> VHG surface mouse moved;
+	[VHGstepv] = VHGNDSTEP;
+	A = [VHGNDplayerstep]; A + [VHGstepv]; [VHGNDplayerstep] = A; => VHG forward;
+    "VHG surface mouse moved"
 	[VHGstepv] = VHGNDSTEP;
 	A = [KEY CONTROL]; ? A = OFF -> VHG surface pace ready; [VHGstepv] = VHGNDSTALK;
     "VHG surface pace ready"
@@ -8523,12 +8537,20 @@
 	end;
 
 "VHG raw snapshot key"
-	( NOCTIS.CPP binds B to snapshot(0,0) outside the F2 graphics menu.
+	( NOCTIS.CPP binds B to snapshot(0,0) outside the F2 graphics menu;
+	  NOCTIS-1.CPP gives settled surfaces the same action on physical Delete.
 	  Queue it until VHGUI prepare has assembled the next current game frame,
 	  then save before the port-only overlays are drawn. )
 	A = [VHGconsole]; ? A != 0 -> VHG raw snapshot key done;
 	A = [VHGwidephase]; ? A != 0 -> VHG raw snapshot key done;
 	A = [VHGgraphics]; ? A != 0 -> VHG raw snapshot key done;
+	A = [KEY DELETE]; ? A = OFF -> VHG raw snapshot delete released;
+	A = [VHGdeleteheld]; ? A != 0 -> VHG raw snapshot character;
+	[VHGdeleteheld] = 1; A = [VHGmode]; ? A != 0 -> VHG raw snapshot key pressed;
+	-> VHG raw snapshot character;
+    "VHG raw snapshot delete released"
+	[VHGdeleteheld] = 0;
+    "VHG raw snapshot character"
 	A = [VHGascii]; ? A = 66 -> VHG raw snapshot key pressed;
 	? A != 98 -> VHG raw snapshot key done;
     "VHG raw snapshot key pressed"
@@ -8643,6 +8665,19 @@
 	? [File Status] + ERROR -> VHG snapshot free;
 	[VHGsnapshotnext]+; -> VHG snapshot scan;
     "VHG snapshot free"
+	( Assemble the bottom-up pixel block in memory and submit it once. The
+	  historical 200-row writer preserved the bytes but could stall the GUI
+	  for several seconds through IsoKernel's file isocall boundary. )
+	[VHGsnapshotrow] = 0;
+    "VHG snapshot assemble row"
+	A = [VHGsnapshotrow]; A '* 320; A + VHGmovieoutput; [VHGsnapshotdst] = A;
+	A = 199; A - [VHGsnapshotrow]; A '* 320; A + [VHGsnapshotbase]; [VHGsnapshotsrc] = A;
+	[VHGsnapshotcol] = 0;
+    "VHG snapshot assemble pixel"
+	E = [VHGsnapshotsrc]; E + [VHGsnapshotcol]; D = [VHGsnapshotdst]; D + [VHGsnapshotcol];
+	A = [E]; [D] = A; [VHGsnapshotcol]+;
+	A = [VHGsnapshotcol]; ? A < 320 -> VHG snapshot assemble pixel;
+	[VHGsnapshotrow]+; A = [VHGsnapshotrow]; ? A < 200 -> VHG snapshot assemble row;
 	( BITMAPFILEHEADER and BITMAPINFOHEADER, 54 bytes. Fields straddle the
 	  host's 32-bit units because the file header is only 14 bytes long. )
 	[VHGsnapshotheader plus 0] = E8364D42h;
@@ -8661,15 +8696,10 @@
 	[Block Pointer] = VHGsnapshotheader; [Block Size] = 54; isocall;
 	? [File Status] + ERROR -> VHG snapshot write error;
 	A = [Block Size]; ? A != 54 -> VHG snapshot write error;
-	[VHGsnapshotrow] = 0; [VHGsnapshotfilepos] = 54;
-    "VHG snapshot row loop"
-	A = 199; A - [VHGsnapshotrow]; A '* 320; A + [VHGsnapshotbase]; [VHGsnapshotsrc] = A;
-	[File Name] = VHGsnapshotfile; [File Position] = [VHGsnapshotfilepos];
-	[File Command] = WRITE; [Block Pointer] = [VHGsnapshotsrc]; [Block Size] = 1280; isocall;
+	[File Name] = VHGsnapshotfile; [File Position] = 54; [File Command] = WRITE;
+	[Block Pointer] = VHGmovieoutput; [Block Size] = 256000; isocall;
 	? [File Status] + ERROR -> VHG snapshot write error;
-	A = [Block Size]; ? A != 1280 -> VHG snapshot write error;
-	[VHGsnapshotfilepos] + 1280; [VHGsnapshotrow]+;
-	A = [VHGsnapshotrow]; ? A < 200 -> VHG snapshot row loop;
+	A = [Block Size]; ? A != 256000 -> VHG snapshot write error;
 	[File Name] = VHGsnapshotfile; [File Position] = 0; [File Command] = SET SIZE;
 	[File Size] = 256054; isocall; ? [File Status] + ERROR -> VHG snapshot write error;
 	A = [VHGsnapshotnumber]; A + 1; [VHGsnapshotnext] = A;

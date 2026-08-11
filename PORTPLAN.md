@@ -43,6 +43,22 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Original surface mouse walk and raw-snapshot alias
+
+- Holding the left mouse button inside the aspect-fitted game view now adds
+  the original surface forward step. WASD and fixed-speed cruise remain
+  additive, while chrome, visual menus, help, and the moviemaker retain mouse
+  ownership and cannot move the player underneath an overlay.
+- Physical Delete on a settled surface now restores the original raw-snapshot
+  alias alongside B. Its held edge produces one capture rather than repeating
+  at presentation rate.
+- Numbered Gallery snapshots now assemble their bottom-up 256,000-byte pixel
+  block in memory and write it once. This preserves the source image and BMP
+  layout while removing the several-second freeze caused by 200 file calls.
+- A native surface run moved the checkpoint by 5,844/-2,364 terrain units from
+  a 650 ms held left-click. Delete completed one valid 256,054-byte raw BMP in
+  514 ms through the real Windows/iGUI input path.
+
 ### Original F3 moviemaker
 
 - F3 restores `ShowMovieSetup()` on the lower Stardrifter visor with the

@@ -989,6 +989,24 @@ def main() -> int:
         and surface_cruise(720, 9) == 0,
         "surface digits restore source fixed-step cruise with additive manual movement",
     )
+    check(
+        all(token in original1 for token in (
+            "mouse_input ();", "if (mpul&1) step += 75 * landed;",
+            "if (w == 83)", "snapshot (0, 0);",
+        ))
+        and all(token in surface_input for token in (
+            "A = [Client Owns Mouse Pointer]; ? A = NO -> VHG surface mouse moved;",
+            "A = [Pointer Status]; ? A - PD LEFT BUTTON DOWN -> VHG surface mouse moved;",
+            "[VHGstepv] = VHGNDSTEP;",
+            "A + [VHGstepv]; [VHGNDplayerstep] = A; => VHG forward;",
+        ))
+        and all(token in game for token in (
+            "A = [KEY DELETE]; ? A = OFF -> VHG raw snapshot delete released;",
+            "[VHGdeleteheld] = 1; A = [VHGmode]; ? A != 0 -> VHG raw snapshot key pressed;",
+            '"VHG raw snapshot delete released"', "[VHGdeleteheld] = 0;",
+        )),
+        "surface left-click walking and Delete raw snapshots restore the source aliases",
+    )
 
     brightness = section(game, '"VHG HUD brightness key"', '"VHG surface input"')
     check(
@@ -1927,10 +1945,13 @@ def main() -> int:
             "[VHGsnapshotready] = 1;", "[VHGsnapshotheader plus 0] = E8364D42h;",
             "[Block Pointer] = VHGsnapshotheader; [Block Size] = 54; isocall;",
             "A = 199; A - [VHGsnapshotrow]; A '* 320; A + [VHGsnapshotbase];",
-            "[Block Size] = 1280; isocall;", "[File Size] = 256054; isocall;",
+            '"VHG snapshot assemble pixel"',
+            "[Block Pointer] = VHGmovieoutput; [Block Size] = 256000; isocall;",
+            "[File Size] = 256054; isocall;",
         ))
+        and '"VHG snapshot row loop"' not in game
         and "=> VHGUI prepare;\n\t\t=> VHG raw snapshot pending;\n\t\t=> VHG wide raw pending;\n\t\t=> VHG movie capture pending;\n\t\t=> VHG fps overlay;" in game,
-        "M or * writes a composed snapshot while B captures before port overlays",
+        "M or * writes a composed snapshot while B or surface Delete captures before port overlays",
     )
     movie = section(game, '"VHG movie capture pending"', '"VHG snapshot key"')
     movie_input = section(game, '"VHG movie key"', '"VHG visor keys"')

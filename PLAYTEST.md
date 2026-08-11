@@ -930,3 +930,13 @@ stopped after 50 frames. Files `00000001.BMP` through `00000050.BMP` were all
 exactly 256,054 bytes; no incomplete file remained. A second physical-key run
 held Ctrl with numeric-keypad plus and visibly selected movie deck 002,
 covering the host path that does not reliably emit an ASCII plus character.
+
+### Surface mouse walk and Delete snapshot regression
+
+A disposable version-11 surface checkpoint was loaded by the production iGUI
+executable. Holding the real left mouse button over the game image for 650 ms,
+then sending F6, changed the persisted X/Z position by 5,844/-2,364 terrain
+units while retaining settled surface mode. Physical Delete then wrote exactly
+one raw `00000001.BMP` at 256,054 bytes. Replacing the former 200 row writes
+with one in-memory pixel-block write reduced measured Delete-to-complete time
+from several seconds to 514 ms. The process and isolated package were removed.

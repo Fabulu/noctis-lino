@@ -129,7 +129,7 @@ extracted game folder.
 
 Useful controls:
 
-- W/A/S/D: move; right-drag or arrows: look
+- W/A/S/D: move; held left-click also walks forward on surfaces; right-drag or arrows: look
 - E inside the Stardrifter: ascend; walk into the roof opening to return
 - First wall panel + Enter: physical GOES; `NEXT`: choose/fly to a nearby star
 - `SL` lists all known stars; `SL <range>` scans locally; Escape stops a scan
@@ -141,6 +141,7 @@ Useful controls:
 - R: device back/close aboard ship; return in capsule on a surface
 - F2: visual effects; Page Up/Down: visor; F4: FPS display; F5: higher presentation rate
 - F6/F7: save/load; F8: music; M or `*`: numbered Gallery snapshot
+- B, or surface Delete: raw Gallery snapshot without port display overlays
 - F3: moviemaker; +/-: interval; Ctrl +/-: deck; F: flash; Enter/P: record/pause
 - Surface N or `/`: 916x200 panorama; V or `.`: raw panorama
 - Plus/minus: adjust the original HUD and visor-frame brightness

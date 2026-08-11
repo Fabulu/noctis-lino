@@ -17,6 +17,7 @@ Essential controls
 ------------------
 F10               native GAME menu (Up/Down and Enter)
 W/A/S/D           walk or strafe
+Left mouse hold   surface: walk forward using the original mouse control
 Ctrl + W/A/S/D    stalk slowly near surface birds
 0-9               select/cancel automatic surface cruise speed; 0 stops
 J / hold Space    jump / use the surface jetpack; C cancels thrust
@@ -65,7 +66,8 @@ F3                original moviemaker panel
   Enter / P       start or stop recording / pause or resume
                   raw frames are saved under MOVIES\DDD\########.BMP
 M or *            save the next numbered 320x200 BMP in GALLERY
-B                 save a raw 320x200 BMP without port display overlays
+B or Delete       save a raw 320x200 BMP without port display overlays;
+                  Delete is the original surface alias
 N or /            surface: save a three-panel 916x200 panorama
 V or .            surface: save the raw panorama variant
 I                 cycle remote, local, and environment data sheets
