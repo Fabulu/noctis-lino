@@ -72,6 +72,9 @@ first -- a broken foundation makes every later result meaningless.
   tracking mode, and the range-gated planet-finder report. Existing body labels
   are counted from the real catalogue when a system or catalogue changes, so
   its `labeled out of` value follows persistent starmap data.
+- The physical galactic-cartography page now uses the remaining three source
+  rows for live EPOC and zero-padded time triads, rounded X/-Y/Z Parsis
+  coordinates, and the navigation heading/pitch sine-cosine pair.
 
 ### Native GUI performance, landing safety, and Stardrifter lift
 - Each completed 320x200 indexed render is palette-expanded into a stable

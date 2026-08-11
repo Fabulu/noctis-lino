@@ -676,3 +676,9 @@ row through its distance calculation and showed the generated planet/minor-body
 report. The 1.2 MB starmap's persistent system-label count completed before the
 window appeared; measured startup-to-window time was 1,417 ms. The focused
 regression and production build passed.
+
+The physical cartography smoke used real foreground R and 8 key edges from the
+same deterministic cabin position. The live rounded Parsis coordinate row
+appeared on the z=0 plane. The page also composes the current EPOC with three
+zero-padded triads and the source navigation sine/cosine heading pair; the
+production build and focused regression passed.

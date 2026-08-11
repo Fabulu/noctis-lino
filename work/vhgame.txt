@@ -335,6 +335,10 @@
 	VHGnavfindernobodies = { planet finder report: there are no major bodies in this system. };
 	VHGnavfinderfar = { planet finder report: no stellar systems within remote sensors range. };
 	VHGnavperiod = { . };
+	VHGcartepoc = { epoc };
+	VHGcarttriads = { triads };
+	VHGcartparsis = { parsis universal coordinates: };
+	VHGcartheading = { heading pitch: };
 	VHGsrclighton = { internal light on };
 	VHGsrclightoff = { internal light off };
 	VHGsrcremote = { remote target data };
@@ -3752,6 +3756,16 @@
 	? A > 0 -> VHG onboard row number loop;
 	end;
 
+"VHG onboard row append triad"
+	( formatTriad(): always three decimal positions, including leading zeroes. )
+	A = [VHGonrowvalue]; A '/ 100; A '% 10; A + 48;
+	[VHGonrowchar] = A; => VHG onboard row append char;
+	A = [VHGonrowvalue]; A '/ 10; A '% 10; A + 48;
+	[VHGonrowchar] = A; => VHG onboard row append char;
+	A = [VHGonrowvalue]; A '% 10; A + 48;
+	[VHGonrowchar] = A; => VHG onboard row append char;
+	end;
+
 "VHG onboard select ordinal"
 	[VHGonrowsrc] = VHGfcsunknown; A = [VHGonrowvalue];
 	? A = 1 -> VHG onboard ordinal 1; ? A = 2 -> VHG onboard ordinal 2;
@@ -3871,6 +3885,52 @@
 	[VHGonrowsrc] = VHGplanetdesc9; end;
     "VHG onboard planet description 10"
 	[VHGonrowsrc] = VHGplanetdesc10; end;
+
+"VHG onboard cartography information"
+	( NOCTIS.CPP devices() cartography page: EPOC/triads, rounded Parsis
+	  coordinates, and navigation heading/pitch. )
+	[VHGonrowdst] = VHGonboardrow0; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGcartepoc; => VHG onboard row append text;
+	=> VHG onboard row append space; A = [VHGutcsecs]; A '/ 1000000000; A + 6011;
+	[VHGonrowvalue] = A; => VHG onboard row append number;
+	=> VHG onboard row append space; [VHGonrowsrc] = VHGcarttriads;
+	=> VHG onboard row append text; => VHG onboard row append space;
+	A = [VHGutcsecs]; A '/ 1000000; A '% 1000; [VHGonrowvalue] = A;
+	=> VHG onboard row append triad; [VHGonrowchar] = 44; => VHG onboard row append char;
+	A = [VHGutcsecs]; A '/ 1000; A '% 1000; [VHGonrowvalue] = A;
+	=> VHG onboard row append triad; [VHGonrowchar] = 44; => VHG onboard row append char;
+	A = [VHGutcsecs]; A '% 1000; [VHGonrowvalue] = A;
+	=> VHG onboard row append triad; => VHG onboard row finish;
+
+	=> VHG fpu clean;
+	[VHGonrowdst] = VHGonboardrow1; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGcartparsis; => VHG onboard row append text;
+	=> VHG onboard row append space;
+	[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1]; => FToIntNear;
+	[VHGonrowvalue] = [FI]; => VHG onboard row append number;
+	[VHGonrowchar] = 59; => VHG onboard row append char;
+	[FA0] = [MgDzatY0]; [FA1] = [MgDzatY1]; => FToIntNear;
+	A = 0; A - [FI]; [VHGonrowvalue] = A; => VHG onboard row append number;
+	[VHGonrowchar] = 59; => VHG onboard row append char;
+	[FA0] = [MgDzatZ0]; [FA1] = [MgDzatZ1]; => FToIntNear;
+	[VHGonrowvalue] = [FI]; => VHG onboard row append number;
+	=> VHG onboard row finish;
+
+	[VHGonrowdst] = VHGonboardrow2; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGcartheading; => VHG onboard row append text;
+	=> VHG onboard row append space;
+	[VHVangle] = [VHGnavbeta]; => VHV sincos;
+	[FS0] = [VHVsin]; => FLoadF32; [VHGonrowfp0] = [FA0]; [VHGonrowfp1] = [FA1];
+	[FI] = 100; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGonrowfp0]; [FA1] = [VHGonrowfp1]; => FMul; => FToIntChop;
+	[VHGonrowvalue] = [FI]; => VHG onboard row append number;
+	[VHGonrowchar] = 59; => VHG onboard row append char;
+	[FS0] = [VHVcos]; => FLoadF32; [VHGonrowfp0] = [FA0]; [VHGonrowfp1] = [FA1];
+	A = 0; A - 100; [FI] = A; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGonrowfp0]; [FA1] = [VHGonrowfp1]; => FMul; => FToIntChop;
+	[VHGonrowvalue] = [FI]; => VHG onboard row append number;
+	=> VHG onboard row finish;
+	end;
 
 "VHG onboard navigation information"
 	( NOCTIS.CPP devices() navigation page: live amplification/radiation,
@@ -4086,7 +4146,9 @@
     "VHG onboard prepare cart"
 	[VHPoncmd0] = VHGsrccartstar; [VHPoncmd1] = VHGsrccartplanet;
 	[VHPoncmd2] = VHGsrccarttargets; [VHPoncmd3] = VHGsrccartparsis;
-	[VHPoninfo0] = VHGcarttitle; -> VHG onboard prepare done;
+	=> VHG onboard cartography information;
+	[VHPoninfo0] = VHGonboardrow0; [VHPoninfo1] = VHGonboardrow1;
+	[VHPoninfo2] = VHGonboardrow2; -> VHG onboard prepare done;
     "VHG onboard prepare emergency"
 	[VHPoncmd0] = VHGsrcreset; [VHPoncmd1] = VHGsrchelp;
 	A = VHGsrclithiumoff; C = [VHGcollector]; ? C = 0 -> VHG onboard prepare collector;

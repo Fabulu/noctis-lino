@@ -457,6 +457,34 @@ def main() -> int:
         and '=> VHCAT count system bodies; => VHCAT refresh;' in game,
         "physical navigation page restores live source status and finder rows",
     )
+    onboard_cart = section(
+        game, '"VHG onboard cartography information"',
+        '"VHG onboard navigation information"',
+    )
+    check(
+        all(token in original_devices for token in (
+            'cline (1, "epoc ");', 'other (" triads ");',
+            'other (formatTriad(lsecs));',
+            'cline (2, "parsis universal coordinates: ");',
+            'fld dzat_x', 'fld dzat_y', 'fld dzat_z', 'frndint',
+            'cline (3, "heading pitch: ");',
+            'sin(deg*navigation_beta)*+100', 'cos(deg*navigation_beta)*-100',
+        ))
+        and all(token in onboard_cart for token in (
+            '[VHGutcsecs]', 'A + 6011;', '=> VHG onboard row append triad;',
+            '[MgDzatX0]', '[MgDzatY0]', '[MgDzatZ0]', '=> FToIntNear;',
+            '[VHVangle] = [VHGnavbeta]; => VHV sincos;',
+            '[FS0] = [VHVsin];', '[FS0] = [VHVcos];',
+            '[FI] = 100;', 'A - 100;', '=> FToIntChop;',
+        ))
+        and '=> VHG onboard cartography information;' in onboard_prepare
+        and all(token in game for token in (
+            '[VHPoninfo0] = VHGonboardrow0;',
+            '[VHPoninfo1] = VHGonboardrow1;',
+            '[VHPoninfo2] = VHGonboardrow2;',
+        )),
+        "physical cartography page restores live EPOC, Parsis, and heading rows",
+    )
     check(
         "=> TK seed; => TK start;" in game and "=> TK step;" in game,
         "live loop uses the original 54.925 ms synchronizer",

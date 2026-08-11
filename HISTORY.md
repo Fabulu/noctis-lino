@@ -402,6 +402,13 @@ disconnected-tracking rows; a finder-enabled checkpoint also displayed the
 system body report. Startup still reached the production window in 1.4 seconds
 with the 1.2 MB working catalogue.
 
+The physical galactic-cartography page no longer spends its information area
+on a static title. It now assembles the original EPOC and three comma-separated
+time triads, rounded X/-Y/Z Parsis coordinates, and navigation heading/pitch
+pair from live state. Real foreground R then 8 input displayed the changing
+coordinate row on the source plane, and the production build plus focused
+regression passed.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime
