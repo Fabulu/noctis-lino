@@ -546,6 +546,16 @@ interruption behavior. Unlike the DOS module's blocking loop, the hosted scan
 advances a measured candidate batch per frame, preserving resize and repaint
 responsiveness while Escape returns to play instead of closing the game.
 
+The companion `DL` module now rebuilds a charted star's dependency tree from
+the same procedural system generator used by flight. Named stars and planets,
+or the current remote target with bare `DL`, receive the original planet/moon
+branch characters and Galactic Guide note counts. Its potentially large range
+scan advances in bounded frame batches and Escape cancels it without quitting.
+The temporary system generation then restores the player's prior target and
+selected body. A native range-14 query reproduced ELRAINE's charted P03
+FENHOME tree exactly and exposed a first-command divider initialization defect,
+which was corrected before publication.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

@@ -829,3 +829,16 @@ ONIMACMAROOS at `3973200,721255,-448030`, `$D=39.47 L.Y.`. Headers, per-hit
 dividers, coordinates, rounded distances, closing divider, and end marker all
 matched an independent `SL.CPP` sector model. Production uses a larger measured
 65,536-candidate frame batch while retaining the same results and Escape path.
+
+### GOES DL dependency-tree regression
+
+A production-derived native probe submitted `DL ELRAINE:14` from the opening
+galactic position. Its exact nine retained rows were `DEPENDENCIES LISTING:`,
+the source divider, `SUBJECT: STAR;`, `NAME: ELRAINE`, another divider,
+`*ELRAINE`, the last-child tree row `[03&FENHOME`, a closing divider, and
+`PLANETS LISTING END.`. The process exited 0 after restoring target
+`(3979984,-43407,-43984)` and selected body index 1. The first run caught that
+DL's shared divider workspace was uninitialized when DL was the first GOES
+command; the corrected run proves all three required divider rows. The focused
+integration check pins `DL.CPP`'s generator, planet/moon ordering, note-count,
+range, and restore paths.

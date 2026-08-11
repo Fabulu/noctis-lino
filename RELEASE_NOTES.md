@@ -68,6 +68,10 @@ parity, not a claim that parity is complete.
   shortcut includes the same seven retained output rows as the wall display.
   `ST <catalogued name>[:range]` now sends a resolved star to Vimana or begins
   local drive for a named planet belonging to the currently reached system.
+  `DL <catalogued name>[:range]` now regenerates the requested system and lists
+  its charted planets, moons, and Guide note counts in the original dependency
+  tree. Bare `DL` examines the current remote target, and every query restores
+  the player's prior generated system and selected body.
   `CAT <catalogued name>[:X..Y]` reads the original 48,376-record Galactic
   Guide with its source one-based ranges and 21-column word wrapping.
   `CAST <catalogued name>:<notes>` appends a source-compatible 84-byte record

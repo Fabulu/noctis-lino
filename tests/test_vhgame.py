@@ -43,6 +43,7 @@ ORIGINAL0 = REFERENCE_ROOT / "NOCTIS-0.CPP"
 ORIGINAL1 = REFERENCE_ROOT / "NOCTIS-1.CPP"
 ORIGINAL_WHERE = REFERENCE_ROOT / "WHERE.CPP"
 ORIGINAL_SL = REFERENCE_ROOT / "SL.CPP"
+ORIGINAL_DL = REFERENCE_ROOT / "DL.CPP"
 ORIGINAL_PAR = REFERENCE_ROOT / "PAR.CPP"
 ORIGINAL_ST = REFERENCE_ROOT / "ST.CPP"
 ORIGINAL_CAT = REFERENCE_ROOT / "CAT.CPP"
@@ -242,6 +243,7 @@ def main() -> int:
     original1 = ORIGINAL1.read_text(encoding="latin-1")
     original_where = ORIGINAL_WHERE.read_text(encoding="latin-1")
     original_sl = ORIGINAL_SL.read_text(encoding="latin-1")
+    original_dl = ORIGINAL_DL.read_text(encoding="latin-1")
     original_par = ORIGINAL_PAR.read_text(encoding="latin-1")
     original_st = ORIGINAL_ST.read_text(encoding="latin-1")
     original_cat = ORIGINAL_CAT.read_text(encoding="latin-1")
@@ -1694,7 +1696,7 @@ def main() -> int:
             "[VHGslline plus 0] = 42;", "? A < 20 -> VHG SL label copy;",
             '"VHG SL ranged start"', '"VHG SL advance"', "[VHGslbudget] = 65536;",
             '"VHG SL scan candidate"', '"VHG SL output distance"', '"VHG SL cancel"',
-            "[VHGslcancelheld] = 1;", "=> VHG SL advance; => VHG fpu clean;",
+            "[VHGslcancelheld] = 1;", "=> VHG SL advance; => VHG DL advance; => VHG fpu clean;",
         ))
         and "=> VHCAT identity valid;" not in sl_section
         and "? A = 95" not in output_line
@@ -1743,6 +1745,30 @@ def main() -> int:
         "GOES PAR regenerates a catalogued star and reports source-convention coordinates",
     )
     fenhome = next(record for record in records if record[1] == "FENHOME" and record[2] == "P")
+    check(
+        all(token in original_dl for token in (
+            'msg ("DEPENDENCIES LISTING:");', "if (!isthere (star_id))",
+            "prepare_nearstar ();", 'sprintf (textbuffer, "*%s", subjectname);',
+            'sprintf (textbuffer, "$%02d&%s", planet_nr, object_label);',
+            'sprintf (textbuffer, "[%02d&%s", planet_nr, object_label);',
+            "nearstar_p_owner[planet_nr - 1]", "nearstar_p_moonid[planet_nr - 1]",
+            "notesabout (object_id)", 'msg ("PLANETS LISTING END.");',
+            'msg ("MOONS LISTING END.");',
+        ))
+        and all(token in game for token in (
+            '"VHG command dl parse"', '"VHG DL"', '"VHG DL bar fill"',
+            '"VHG DL advance"', "[VHGdlbudget] = 65536;", '"VHG DL output tree"',
+            "[VHTtx] = [VHStempx]; [VHTty] = [VHStempy]; [VHTtz] = [VHStempz];",
+            "[VHTtx] = [VHGdlsavex]; [VHTty] = [VHGdlsavey]; [VHTtz] = [VHGdlsavez];",
+            "VHGdlfindindex = 0;", "[VHGdlfindindex] = [VHGdlmoon];",
+            "E = nspowner;", "E = nspmoonid;", '"VHG DL output notes"',
+            'VHGdlplanetsend = { PLANETS_LISTING_END. };',
+            'VHGdlmoonsend = { MOONS_LISTING_END. };',
+        ))
+        and fenhome[3] == 3
+        and abs((fenhome[0] - fenhome[3]) - elraine[0]) < 0.00001,
+        "GOES DL regenerates and restores a source-ordered planet and moon dependency tree",
+    )
     check(
         all(token in original_st for token in (
             'msg ("LOOKING FOR TARGET...");', "void settarget ()",

@@ -55,7 +55,11 @@ name>[:range]` performs the original procedural sector
 search and reports the star coordinates as X, -Y, Z; underscores stand for
 spaces in multi-word names. `ST <catalogued name>[:range]` sends a named star
 to Vimana, or starts local drive to a named planet when its system has already
-been reached. `CAT <catalogued name>[:X..Y]` reads ranged Galactic Guide
+been reached. `DL <catalogued name>[:range]` regenerates the named system and
+prints its charted planet and moon dependency tree, including Galactic Guide
+note counts; bare `DL` uses the current remote target. The temporary query
+restores the player's current generated system and selected body afterward.
+`CAT <catalogued name>[:X..Y]` reads ranged Galactic Guide
 entries, and `CAST <catalogued name>:<notes>` appends a persistent player note
 of up to 76 characters. `REP <catalogued name>:<record>:<notes>` corrects one
 of those local notes; consolidated records supplied with the game remain

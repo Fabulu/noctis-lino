@@ -82,6 +82,12 @@
 	VHGslactive = 0; VHGslphase = 0; VHGslbudget = 0; VHGslcancelheld = 0;
 	VHGslgalx0 = 0; VHGslgalx1 = 0; VHGslgaly0 = 0; VHGslgaly1 = 0;
 	VHGslgalz0 = 0; VHGslgalz1 = 0;
+	VHGdlactive = 0; VHGdlbudget = 0; VHGdlsubjecttype = 0; VHGdlsubjectptr = 0;
+	VHGdlstarid0 = 0; VHGdlstarid1 = 0; VHGdlbody = 0; VHGdlbodycount = 0;
+	VHGdlfindindex = 0;
+	VHGdlmoon = 0; VHGdlmooncount = 0; VHGdlparent = 0; VHGdlnotes = 0;
+	VHGdlnoteprefix = 0; VHGdlrecno = 0; VHGdlrecptr = 0;
+	VHGdlsavex = 0; VHGdlsavey = 0; VHGdlsavez = 0; VHGdlsaveplanet = 0;
 	VHGparrange = 100; VHGparvalue = 0; VHGpardigits = 0; VHGparaction = 0;
 	VHGpartarget0 = 0; VHGpartarget1 = 0;
 	VHGparlowhi = 0; VHGparlowlo = 0; VHGparhighhi = 0; VHGparhighlo = 0;
@@ -346,6 +352,26 @@
 	VHGslly = { _L.Y. };
 	VHGslbusytext = { SL_SCAN_ACTIVE:_ESC_TO_STOP };
 	VHGslcompletetext = { SL_SCAN_COMPLETE };
+	VHGdlusage1 = { DL_OBJECTNAME };
+	VHGdlusage2 = { DL_OBJECTNAME:RANGE };
+	VHGdlrevision = { (DL_REVISION_6011/29) };
+	VHGdlhead = { DEPENDENCIES_LISTING: };
+	VHGdlcurrentmissing0 = { CURRENT_REMOTE_TARGET };
+	VHGdlcurrentmissing1 = { CANNOT_BE_FOUND. };
+	VHGdloutofrange = { IS_OUT_OF_RANGE };
+	VHGdlplanetsend = { PLANETS_LISTING_END. };
+	VHGdlplanetsnone = { NO_KNOWN_PLANETS. };
+	VHGdlmoonsend = { MOONS_LISTING_END. };
+	VHGdlmoonsnone = { NO_KNOWN_MOONS. };
+	VHGdlbusytext = { DL_SCAN_ACTIVE:_ESC_TO_STOP };
+	VHGdlcompletetext = { DL_SCAN_COMPLETE };
+	VHGdlnote0 = { ]___( };
+	VHGdlnote1 = { ____( };
+	VHGdlnote2 = { ]_]___( };
+	VHGdlnote3 = { ]_____( };
+	VHGdlnote4 = { __]___( };
+	VHGdlnote5 = { ______( };
+	VHGdlnotesuffix = { _NOTES) };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -734,6 +760,7 @@
 	VHGparline = 22;
 	VHGcatline = 22;
 	VHGslline = 22;
+	VHGdlline = 22;
 
 "programme"
 
@@ -1055,7 +1082,7 @@
 	=> VHG cadence;
 	=> VHG interpolation advance;
 	=> VHG fpu clean;
-	=> VHG SL advance; => VHG fpu clean;
+	=> VHG SL advance; => VHG DL advance; => VHG fpu clean;
 	( Commit a landing at a clean frame boundary.  The accepted L event is
 	  discovered after the ship and close-approach globe have rendered; doing
 	  terrain/sky construction in that same renderer frame can carry stale
@@ -2637,7 +2664,10 @@
 	A = [KEY D]; ? A = OFF -> VHG input done; [VHGstepv] = VHGSTEP; => VHG strafe;
 	-> VHG input done;
     "VHG input escape"
-	A = [VHGslactive]; ? A = 0 -> VHG quit;
+	A = [VHGslactive]; ? A != 0 -> VHG input escape sl;
+	A = [VHGdlactive]; ? A = 0 -> VHG quit;
+	=> VHG DL cancel; -> VHG input done;
+    "VHG input escape sl"
 	=> VHG SL cancel; -> VHG input done;
     "VHG input done"
 	=> VHG clamp position;
@@ -3329,6 +3359,9 @@
 	A = [VHGslactive]; ? A = 0 -> VHG command ready;
 	[VHGnoticeptr] = VHGslbusytext; [VHGnoticeframes] = 75; end;
     "VHG command ready"
+	A = [VHGdlactive]; ? A = 0 -> VHG command parse;
+	[VHGnoticeptr] = VHGdlbusytext; [VHGnoticeframes] = 75; end;
+    "VHG command parse"
 	A = [vhptext plus 42]; ? A = 83 -> VHG command starts s;
 	? A = 76 -> VHG command maybe load;
 	? A = 78 -> VHG command starts n;
@@ -3338,7 +3371,8 @@
 	? A = 82 -> VHG command maybe rep;
 	? A = 87 -> VHG command maybe where; -> VHG command done;
     "VHG command maybe dele"
-	A = [vhptext plus 43]; ? A != 69 -> VHG command done;
+	A = [vhptext plus 43]; ? A = 76 -> VHG command dl parse;
+	? A != 69 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 76 -> VHG command done;
 	A = [vhptext plus 45]; ? A != 69 -> VHG command done;
 	A = [vhptext plus 46]; ? A = 0 -> VHG command dele parse;
@@ -3384,6 +3418,9 @@
 	[VHGwherelen]-; -> VHG command dele trim;
     "VHG command dele ready"
 	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1; => VHG DELE; -> VHG command done;
+    "VHG command dl parse"
+	[VHGcmdi] = 44; [VHGparaction] = 2; [VHGparrange] = 100;
+	-> VHG command par spaces;
     "VHG command maybe rep"
 	A = [vhptext plus 43]; ? A != 69 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 80 -> VHG command done;
@@ -3605,7 +3642,11 @@
 	A - 1; C = [VHGwherequery]; C + A; A = [C]; ? A != 32 -> VHG command par ready;
 	[VHGwherelen]-; -> VHG command par trim;
     "VHG command par ready"
-	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1; => VHG PAR; -> VHG command done;
+	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1;
+	A = [VHGparaction]; ? A = 2 -> VHG command dl ready;
+	=> VHG PAR; -> VHG command done;
+    "VHG command dl ready"
+	=> VHG DL; -> VHG command done;
     "VHG command starts s"
 	A = [vhptext plus 43]; ? A = 65 -> VHG command maybe save;
 	? A = 76 -> VHG command maybe sl;
@@ -3920,6 +3961,363 @@
 	[VHGinfofixedvalue] = [FI]; [VHGinfofixeddigits] = 2; => VHG info append fixed;
 	[VHGonrowsrc] = VHGslly; => VHG onboard row append text;
 	=> VHG onboard row finish; [VHPoutptr] = VHGparline; => VH GOES output line;
+	end;
+
+"VHG DL"
+	( DL.CPP resolves a charted star or planet, confirms that its parent star is
+	  present in the requested procedural cube, then prints only charted planets
+	  and moons in generated dependency order.  The hosted port performs the
+	  range scan incrementally and restores the player's generated target after
+	  temporarily preparing the queried system. )
+	[VHGwherei] = 0;
+    "VHG DL bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG DL bar fill;
+	[VHGwherebar plus 21] = 0;
+	A = [VHGwherelen]; ? A != 0 -> VHG DL heading;
+	A = [MgAptgt]; ? A != 1 -> VHG DL usage;
+    "VHG DL heading"
+	[VHPoutptr] = VHGdlhead; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	A = [VHGwherelen]; ? A = 0 -> VHG DL current subject;
+	[VHGwherematches] = 0; [VHGwherefound] = 0; [VHGwhererecno] = 0;
+    "VHG DL catalogue loop"
+	A = [VHGwhererecno]; ? A >= [VHCATrecs] -> VHG DL catalogue done;
+	A '* 8; A + vhcatraw; A + 1; [VHGwhererec] = A;
+	=> VHG WHERE record match; A = [VHGwherematch]; ? A = 0 -> VHG DL catalogue next;
+	[VHGwherematches]+; [VHGwherefound] = [VHGwhererec];
+	A = [VHGwhereexact]; ? A != 0 -> VHG DL catalogue exact;
+    "VHG DL catalogue next"
+	[VHGwhererecno]+; -> VHG DL catalogue loop;
+    "VHG DL catalogue exact"
+	[VHGwherematches] = 1;
+    "VHG DL catalogue done"
+	A = [VHGwherematches]; ? A = 0 -> VHG DL missing result;
+	? A > 1 -> VHG DL ambiguous result;
+	[VHGdlsubjectptr] = [VHGwherefound]; -> VHG DL subject ready;
+    "VHG DL current subject"
+	A = [MgAptgt]; ? A != 1 -> VHG DL usage;
+	[VHCATid0] = [VHTid0]; [VHCATid1] = [VHTid1]; [VHCATtype] = VHCATS;
+	=> VHCAT find; A = [VHCATok]; ? A = 0 -> VHG DL current missing;
+	[VHGdlsubjectptr] = [VHCATfoundptr]; [VHGwherefound] = [VHCATfoundptr];
+	-> VHG DL subject ready;
+    "VHG DL usage"
+	[VHPoutptr] = VHGparusage0; => VH GOES output line;
+	[VHPoutptr] = VHGdlusage1; => VH GOES output line;
+	[VHPoutptr] = VHGdlusage2; => VH GOES output line;
+	[VHPoutptr] = VHGrepusage2; => VH GOES output line;
+	[VHPoutptr] = VHGparusage3; => VH GOES output line;
+	[VHPoutptr] = VHGparusage4; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGdlrevision; => VH GOES output line; end;
+    "VHG DL current missing"
+	[VHPoutptr] = VHGdlcurrentmissing0; => VH GOES output line;
+	[VHPoutptr] = VHGdlcurrentmissing1; => VH GOES output line; end;
+    "VHG DL missing result"
+	[VHPoutptr] = VHGwherenotfound; => VH GOES output line; end;
+    "VHG DL ambiguous result"
+	=> VHG WHERE ambiguous; end;
+    "VHG DL subject ready"
+	A = [VHGdlsubjectptr]; C = [A plus 7]; C > 8; C & FFh; [VHGdlsubjecttype] = C;
+	? C = VHCATS -> VHG DL star subject; ? C = VHCATP -> VHG DL planet subject;
+	-> VHG DL missing result;
+    "VHG DL star subject"
+	[VHPoutptr] = VHGparsubjectstar; => VH GOES output line;
+	[VHGwherefound] = [VHGdlsubjectptr]; => VHG PAR output name;
+	A = [VHGdlsubjectptr]; [VHGdlstarid0] = [A]; [VHGdlstarid1] = [A plus 1];
+	-> VHG DL scan prepare;
+    "VHG DL planet subject"
+	[VHPoutptr] = VHGparsubjectplanet; => VH GOES output line;
+	[VHGwherefound] = [VHGdlsubjectptr]; => VHG PAR output name;
+	A = [VHGdlsubjectptr]; C = [A plus 7];
+	A = C; A > 16; A & FFh; A - 48; A '* 10; [VHGwherecode] = A;
+	A = C; A > 24; A & FFh; A - 48; A + [VHGwherecode]; [VHGwherecode] = A;
+	A = [VHGdlsubjectptr]; [nsid0] = [A]; [nsid1] = [A plus 1];
+	A = 0; A - [VHGwherecode]; [FI] = A; => NsIdentAddInt;
+	[VHGdlstarid0] = [FA0]; [VHGdlstarid1] = [FA1];
+    "VHG DL scan prepare"
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[FA0] = [VHGdlstarid0]; [FA1] = [VHGdlstarid1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FSub;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparlowhi] = [VHCATkeyhi]; [VHGparlowlo] = [VHCATkeylo];
+	[FA0] = [VHGdlstarid0]; [FA1] = [VHGdlstarid1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FAdd;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparhighhi] = [VHCATkeyhi]; [VHGparhighlo] = [VHCATkeylo];
+	[VHGslgalx0] = [MgDzatX0]; [VHGslgalx1] = [MgDzatX1];
+	[VHGslgaly0] = [MgDzatY0]; [VHGslgaly1] = [MgDzatY1];
+	[VHGslgalz0] = [MgDzatZ0]; [VHGslgalz1] = [MgDzatZ1];
+	A = [VHGparrange]; A '* 50000; [VHGparoffset] = A;
+	[VHGparaxis0] = [VHGslgalx0]; [VHGparaxis1] = [VHGslgalx1]; => VHG PAR sector base;
+	[VHGparbasex] = [VHGparbaseout];
+	[VHGparaxis0] = [VHGslgaly0]; [VHGparaxis1] = [VHGslgaly1]; => VHG PAR sector base;
+	[VHGparbasey] = [VHGparbaseout];
+	[VHGparaxis0] = [VHGslgalz0]; [VHGparaxis1] = [VHGslgalz1]; => VHG PAR sector base;
+	[VHGparbasez] = [VHGparbaseout];
+	[VHGparix] = 0; [VHGpariy] = 0; [VHGpariz] = 0;
+	[VHGparsectx] = [VHGparbasex]; [VHGparsecty] = [VHGparbasey]; [VHGparsectz] = [VHGparbasez];
+	[VHGdlsavex] = [VHTtx]; [VHGdlsavey] = [VHTty]; [VHGdlsavez] = [VHTtz];
+	[VHGdlsaveplanet] = [VHGplanet]; [VHGdlactive] = 1;
+	[VHGnoticeptr] = VHGdlbusytext; [VHGnoticeframes] = 75; end;
+
+"VHG DL advance"
+	A = [VHGdlactive]; ? A = 0 -> VHG DL advance done;
+	[VHGnoticeptr] = VHGdlbusytext; [VHGnoticeframes] = 2; [VHGdlbudget] = 65536;
+    "VHG DL advance loop"
+	A = [VHGdlbudget]; ? A <= 0 -> VHG DL advance done; [VHGdlbudget]-;
+	A = [VHGparsectx]; A + [VHGparsectz]; [VHSsumxz] = A;
+	A & 1FFFFh; A + [VHGparsectx]; ? A = VHSCUTOFF -> VHG DL scan next z;
+	A - VHSCUTOFF; [VHStempx] = A;
+	[VHSfmA] = A; [VHSfmB] = [VHSsumxz]; => VHS foldmul;
+	[VHSaccum] = [VHSfmResult]; A = [VHSsumxz]; A + [VHSaccum]; [VHSidk] = A;
+	A = [VHSaccum]; A & 1FFFFh; A + [VHGparsecty];
+	? A = VHSCUTOFF -> VHG DL scan next z; A - VHSCUTOFF; [VHStempy] = A;
+	[VHSfmA] = A; [VHSfmB] = [VHSidk]; => VHS foldmul;
+	[VHSaccum] = [VHSfmResult]; A = [VHSaccum]; A & 1FFFFh; A + [VHGparsectz];
+	? A = VHSCUTOFF -> VHG DL scan next z; A - VHSCUTOFF; [VHStempz] = A;
+	[FJ0] = [VHStempx]; [FJ1] = [VHStempy]; [FJ2] = [VHStempz]; => NsIdentityD;
+	[VHCATid0] = [nsid0]; [VHCATid1] = [nsid1]; => VHCAT key;
+	A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHGparlowhi] -> VHG DL candidate above low;
+	? A '< [VHGparlowhi] -> VHG DL scan next z;
+	? B '> [VHGparlowlo] -> VHG DL candidate above low; -> VHG DL scan next z;
+    "VHG DL candidate above low"
+	? A '< [VHGparhighhi] -> VHG DL scan hit;
+	? A '> [VHGparhighhi] -> VHG DL scan next z;
+	? B '< [VHGparhighlo] -> VHG DL scan hit;
+    "VHG DL scan next z"
+	[VHGparsectz] + 100000; [VHGpariz]+; A = [VHGpariz];
+	? A < [VHGparrange] -> VHG DL advance loop;
+	[VHGpariz] = 0; [VHGparsectz] = [VHGparbasez];
+	[VHGparsecty] + 100000; [VHGpariy]+; A = [VHGpariy];
+	? A < [VHGparrange] -> VHG DL advance loop;
+	[VHGpariy] = 0; [VHGparsecty] = [VHGparbasey];
+	[VHGparsectx] + 100000; [VHGparix]+; A = [VHGparix];
+	? A < [VHGparrange] -> VHG DL advance loop;
+	=> VHG DL output subject label; [VHPoutptr] = VHGdloutofrange; => VH GOES output line;
+	-> VHG DL finish;
+    "VHG DL scan hit"
+	=> VHG DL output tree;
+    "VHG DL finish"
+	[VHGdlactive] = 0; [VHGslcancelheld] = 1;
+	[VHGnoticeptr] = VHGdlcompletetext; [VHGnoticeframes] = 75;
+    "VHG DL advance done"
+	end;
+
+"VHG DL cancel"
+	A = [VHGdlactive]; ? A = 0 -> VHG DL cancel done;
+	[VHGdlactive] = 0; [VHGslcancelheld] = 1;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGslinterrupted; => VH GOES output line;
+	[VHGnoticeptr] = VHGslinterrupted; [VHGnoticeframes] = 75;
+    "VHG DL cancel done"
+	end;
+
+"VHG DL output subject label"
+	[VHGdlline plus 0] = 42; [VHGsli] = 0;
+    "VHG DL subject label copy"
+	A = [VHGsli]; B = A; A / 4; C = [VHGdlsubjectptr]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; C = VHGdlline; C + 1; C + [VHGsli]; [C] = A;
+	[VHGsli]+; A = [VHGsli]; ? A < 20 -> VHG DL subject label copy;
+	[VHGdlline plus 21] = 0; [VHPoutptr] = VHGdlline; => VH GOES output line; end;
+
+"VHG DL output tree"
+	[VHTtx] = [VHStempx]; [VHTty] = [VHStempy]; [VHTtz] = [VHStempz];
+	[VHGplanet] = 0; => VHG target world; => VHG DL output subject label;
+	A = [VHGdlsubjectptr]; [VHGDBid0] = [A]; [VHGDBid1] = [A plus 1];
+	[VHGdlnoteprefix] = VHGdlnote0; => VHG DL output notes;
+	A = [VHGdlsubjecttype]; ? A = VHCATP -> VHG DL output subject moons;
+	=> VHG DL output planets; -> VHG DL restore target;
+    "VHG DL output subject moons"
+	A = [VHGwherecode]; A - 1; [VHGdlparent] = A;
+	=> VHG DL output moons root;
+    "VHG DL restore target"
+	[VHTtx] = [VHGdlsavex]; [VHTty] = [VHGdlsavey]; [VHTtz] = [VHGdlsavez];
+	[VHGplanet] = 0; => VHG target world; [VHGplanet] = [VHGdlsaveplanet]; => VHCAT refresh;
+	end;
+
+"VHG DL find body"
+	[nsid0] = [VHTid0]; [nsid1] = [VHTid1]; A = [VHGdlfindindex]; A + 1; [FI] = A;
+	=> NsIdentAddInt; [VHCATid0] = [FA0]; [VHCATid1] = [FA1]; [VHCATtype] = VHCATP;
+	=> VHCAT find; [VHGdlrecptr] = [VHCATfoundptr]; end;
+
+"VHG DL output planets"
+	[VHGdlbody] = 0; [VHGdlbodycount] = 0;
+    "VHG DL count planet loop"
+	A = [VHGdlbody]; ? A >= [nsnob] -> VHG DL count planet done;
+	E = nspowner; E + A; A = [E]; ? A >= 0 -> VHG DL count planet next;
+	[VHGdlfindindex] = [VHGdlbody]; => VHG DL find body; A = [VHCATok]; ? A = 0 -> VHG DL count planet next;
+	[VHGdlbodycount]+;
+    "VHG DL count planet next"
+	[VHGdlbody]+; -> VHG DL count planet loop;
+    "VHG DL count planet done"
+	A = [VHGdlbodycount]; ? A = 0 -> VHG DL no planets;
+	[VHGdlbody] = 0;
+    "VHG DL planet output loop"
+	A = [VHGdlbody]; ? A >= [nsnob] -> VHG DL planets complete;
+	E = nspowner; E + A; A = [E]; ? A >= 0 -> VHG DL planet output next;
+	[VHGdlfindindex] = [VHGdlbody]; => VHG DL find body; A = [VHCATok]; ? A = 0 -> VHG DL planet output next;
+	=> VHG DL output planet row; [VHGdlbodycount]-;
+	A = [VHGdlbodycount]; [VHGdlnoteprefix] = VHGdlnote0;
+	? A > 0 -> VHG DL planet note ready; [VHGdlnoteprefix] = VHGdlnote1;
+    "VHG DL planet note ready"
+	A = [VHGdlrecptr]; [VHGDBid0] = [A]; [VHGDBid1] = [A plus 1]; => VHG DL output notes;
+	[VHGdlparent] = [VHGdlbody]; => VHG DL output moons nested;
+    "VHG DL planet output next"
+	[VHGdlbody]+; -> VHG DL planet output loop;
+    "VHG DL planets complete"
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGdlplanetsend; => VH GOES output line; end;
+    "VHG DL no planets"
+	[VHPoutptr] = VHGdlplanetsnone; => VH GOES output line; end;
+
+"VHG DL output planet row"
+	[VHGonrowdst] = VHGdlline; => VHG onboard row begin;
+	[VHGonrowchar] = 36; A = [VHGdlbodycount]; ? A > 1 -> VHG DL planet branch ready;
+	[VHGonrowchar] = 91;
+    "VHG DL planet branch ready"
+	=> VHG onboard row append char; A = [VHGdlbody]; A + 1; [VHGonrowvalue] = A;
+	A '/ 10; A + 48; [VHGonrowchar] = A; => VHG onboard row append char;
+	A = [VHGonrowvalue]; A '% 10; A + 48; [VHGonrowchar] = A; => VHG onboard row append char;
+	[VHGonrowchar] = 38; => VHG onboard row append char; [VHGsli] = 0;
+    "VHG DL planet name copy"
+	A = [VHGsli]; ? A >= 20 -> VHG DL planet row ready;
+	A = [VHGonrowpos]; ? A >= 21 -> VHG DL planet row ready;
+	A = [VHGsli]; B = A; A / 4; C = [VHGdlrecptr]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; [VHGonrowchar] = A; => VHG onboard row append char;
+	[VHGsli]+; -> VHG DL planet name copy;
+    "VHG DL planet row ready"
+	=> VHG onboard row finish; [VHPoutptr] = VHGdlline; => VH GOES output line; end;
+
+"VHG DL count moons"
+	[VHGdlmoon] = 0; [VHGdlmooncount] = 0;
+    "VHG DL count moon loop"
+	A = [VHGdlmoon]; ? A >= [nsnob] -> VHG DL count moons done;
+	E = nspowner; E + A; A = [E]; ? A != [VHGdlparent] -> VHG DL count moon next;
+	[VHGdlfindindex] = [VHGdlmoon]; => VHG DL find body;
+	A = [VHCATok]; ? A = 0 -> VHG DL count moon next; [VHGdlmooncount]+;
+    "VHG DL count moon next"
+	[VHGdlmoon]+; -> VHG DL count moon loop;
+    "VHG DL count moons done"
+	end;
+
+"VHG DL output moons nested"
+	=> VHG DL count moons; A = [VHGdlmooncount]; ? A = 0 -> VHG DL moons nested done;
+	[VHGdlmoon] = 0;
+    "VHG DL nested moon loop"
+	A = [VHGdlmoon]; ? A >= [nsnob] -> VHG DL moons nested done;
+	E = nspowner; E + A; A = [E]; ? A != [VHGdlparent] -> VHG DL nested moon next;
+	[VHGdlfindindex] = [VHGdlmoon]; => VHG DL find body;
+	A = [VHCATok]; ? A = 0 -> VHG DL nested moon next;
+	=> VHG DL output nested moon row; [VHGdlmooncount]-;
+	A = [VHGdlbodycount]; ? A = 0 -> VHG DL nested note last planet;
+	A = [VHGdlmooncount]; [VHGdlnoteprefix] = VHGdlnote2;
+	? A > 0 -> VHG DL nested note ready; [VHGdlnoteprefix] = VHGdlnote3;
+	-> VHG DL nested note ready;
+    "VHG DL nested note last planet"
+	A = [VHGdlmooncount]; [VHGdlnoteprefix] = VHGdlnote4;
+	? A > 0 -> VHG DL nested note ready; [VHGdlnoteprefix] = VHGdlnote5;
+    "VHG DL nested note ready"
+	A = [VHGdlrecptr]; [VHGDBid0] = [A]; [VHGDBid1] = [A plus 1]; => VHG DL output notes;
+    "VHG DL nested moon next"
+	[VHGdlmoon]+; -> VHG DL nested moon loop;
+    "VHG DL moons nested done"
+	end;
+
+"VHG DL output nested moon row"
+	[VHGonrowdst] = VHGdlline; => VHG onboard row begin;
+	[VHGonrowchar] = 32; A = [VHGdlbodycount]; ? A = 0 -> VHG DL nested moon indent second;
+	[VHGonrowchar] = 93;
+    "VHG DL nested moon indent second"
+	=> VHG onboard row append char; [VHGonrowchar] = 32; => VHG onboard row append char;
+	[VHGonrowchar] = 36; A = [VHGdlmooncount]; ? A > 1 -> VHG DL nested moon branch ready;
+	[VHGonrowchar] = 91;
+    "VHG DL nested moon branch ready"
+	=> VHG onboard row append char; E = nspmoonid; E + [VHGdlmoon]; A = [E]; A + 1;
+	[VHGonrowvalue] = A; A '/ 10; A + 48; [VHGonrowchar] = A; => VHG onboard row append char;
+	A = [VHGonrowvalue]; A '% 10; A + 48; [VHGonrowchar] = A; => VHG onboard row append char;
+	[VHGonrowchar] = 38; => VHG onboard row append char; [VHGsli] = 0;
+    "VHG DL nested moon name copy"
+	A = [VHGsli]; ? A >= 20 -> VHG DL nested moon row ready;
+	A = [VHGonrowpos]; ? A >= 21 -> VHG DL nested moon row ready;
+	A = [VHGsli]; B = A; A / 4; C = [VHGdlrecptr]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; [VHGonrowchar] = A; => VHG onboard row append char;
+	[VHGsli]+; -> VHG DL nested moon name copy;
+    "VHG DL nested moon row ready"
+	=> VHG onboard row finish; [VHPoutptr] = VHGdlline; => VH GOES output line; end;
+
+"VHG DL output moons root"
+	=> VHG DL count moons; A = [VHGdlmooncount]; ? A = 0 -> VHG DL no root moons;
+	[VHGdlmoon] = 0;
+    "VHG DL root moon loop"
+	A = [VHGdlmoon]; ? A >= [nsnob] -> VHG DL root moons complete;
+	E = nspowner; E + A; A = [E]; ? A != [VHGdlparent] -> VHG DL root moon next;
+	[VHGdlfindindex] = [VHGdlmoon]; => VHG DL find body;
+	A = [VHCATok]; ? A = 0 -> VHG DL root moon next;
+	[VHGonrowdst] = VHGdlline; => VHG onboard row begin;
+	[VHGonrowchar] = 36; A = [VHGdlmooncount]; ? A > 1 -> VHG DL root moon branch ready;
+	[VHGonrowchar] = 91;
+    "VHG DL root moon branch ready"
+	=> VHG onboard row append char; E = nspmoonid; E + [VHGdlmoon]; A = [E]; A + 1;
+	[VHGonrowvalue] = A; A '/ 10; A + 48; [VHGonrowchar] = A; => VHG onboard row append char;
+	A = [VHGonrowvalue]; A '% 10; A + 48; [VHGonrowchar] = A; => VHG onboard row append char;
+	[VHGonrowchar] = 38; => VHG onboard row append char;
+    "VHG DL moon name copy"
+	[VHGsli] = 0;
+    "VHG DL moon name copy loop"
+	A = [VHGsli]; ? A >= 20 -> VHG DL moon row ready;
+	A = [VHGonrowpos]; ? A >= 21 -> VHG DL moon row ready;
+	A = [VHGsli]; B = A; A / 4; C = [VHGdlrecptr]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; [VHGonrowchar] = A; => VHG onboard row append char;
+	[VHGsli]+; -> VHG DL moon name copy loop;
+    "VHG DL moon row ready"
+	=> VHG onboard row finish; [VHPoutptr] = VHGdlline; => VH GOES output line;
+	[VHGdlmooncount]-; A = [VHGdlmooncount]; [VHGdlnoteprefix] = VHGdlnote0;
+	? A > 0 -> VHG DL root note ready; [VHGdlnoteprefix] = VHGdlnote1;
+    "VHG DL root note ready"
+	A = [VHGdlrecptr]; [VHGDBid0] = [A]; [VHGDBid1] = [A plus 1]; => VHG DL output notes;
+    "VHG DL root moon next"
+	[VHGdlmoon]+; -> VHG DL root moon loop;
+    "VHG DL root moons complete"
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGdlmoonsend; => VH GOES output line; end;
+    "VHG DL no root moons"
+	[VHPoutptr] = VHGdlmoonsnone; => VH GOES output line; end;
+
+"VHG DL output notes"
+	[VHGdlnotes] = 0; A = [VHGDBloaded]; ? A = 0 -> VHG DL output notes done;
+	[VHCATid0] = [VHGDBid0]; [VHCATid1] = [VHGDBid1];
+	[VHCATfoundptr] = [VHGDBid0]; [VHCATptr] = [VHGDBid1]; => VHCAT bounds;
+	[VHGdlrecno] = 0;
+    "VHG DL note loop"
+	A = [VHGdlrecno]; ? A >= [VHGDBrecs] -> VHG DL note count done;
+	A '* 21; A + vhguidedata; A + 1; [VHGdlrecptr] = A;
+	C = [A]; ? C != VHCATTOMB0 -> VHG DL note live;
+	C = [A plus 1]; ? C = VHCATTOMB1 -> VHG DL note next;
+    "VHG DL note live"
+	[VHCATid0] = [A]; [VHCATid1] = [A plus 1]; => VHCAT identity valid;
+	A = [VHCATvalid]; ? A = 0 -> VHG DL note next; => VHCAT key;
+	A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHCATlowhi] -> VHG DL note above low;
+	? A '< [VHCATlowhi] -> VHG DL note next;
+	? B '< [VHCATlowlo] -> VHG DL note next;
+    "VHG DL note above low"
+	? A '< [VHCAT highhi] -> VHG DL note hit;
+	? A '> [VHCAT highhi] -> VHG DL note next;
+	? B '> [VHCAT highlo] -> VHG DL note next;
+    "VHG DL note hit"
+	[VHGdlnotes]+;
+    "VHG DL note next"
+	[VHGdlrecno]+; -> VHG DL note loop;
+    "VHG DL note count done"
+	A = [VHGdlnotes]; ? A = 0 -> VHG DL output notes done;
+	[VHGonrowdst] = VHGdlline; => VHG onboard row begin;
+	[VHGonrowsrc] = [VHGdlnoteprefix]; => VHG onboard row append text;
+	[VHGonrowvalue] = [VHGdlnotes]; => VHG onboard row append number;
+	[VHGonrowsrc] = VHGdlnotesuffix; => VHG onboard row append text;
+	=> VHG onboard row finish; [VHPoutptr] = VHGdlline; => VH GOES output line;
+    "VHG DL output notes done"
 	end;
 
 "VHG WHERE"

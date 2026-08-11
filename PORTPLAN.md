@@ -61,6 +61,13 @@ first -- a broken foundation makes every later result meaningless.
   the game. Candidate work is frame-batched so the resizable host remains
   responsive. A native range-14 run matched the independent source model's
   ELRAINE and ONIMACMAROOS records and all twelve detail rows exactly.
+- `DL <catalogued name>[:range]` now restores `DL.CPP` dependency listings for
+  charted stars and planets. It frame-batches the source procedural range scan,
+  temporarily generates the matching system, emits charted planets and moons
+  in source tree order with Guide note counts, and restores the player's prior
+  target and selected body. Bare `DL` uses the current remote target. A native
+  range-14 run produced the exact nine-row ELRAINE tree ending in charted P03
+  FENHOME and restored the opening target and body index 1.
 - `WHERE <catalogued name>` now searches the real mutable `STARMAP.BIN` record
   names with the source's exact-match preference and ambiguous-prefix report.
   A star receives the original PAR guidance; a planet's two-digit object code
