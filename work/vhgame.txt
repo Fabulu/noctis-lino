@@ -90,6 +90,7 @@
 	VHGcatrecno = 0; VHGcatmatchno = 0; VHGcatfound = 0; VHGcatptr = 0;
 	VHGcatmsgi = 0; VHGcatcol = 0; VHGcatchar = 0;
 	VHGcatreadi = 0; VHGcatlooki = 0; VHGcatwordlen = 0;
+	VHGcastmsgptr = 0; VHGcastmsglen = 0;
 	VHGflightx = 0; VHGsecx = 0;
 	VHGlocalactive = 0; VHGlocaltarget = 0FFFFFFFFh;
 	VHGlocalx0 = 0; VHGlocalx1 = 0; VHGlocaly0 = 0; VHGlocaly1 = 0;
@@ -290,6 +291,18 @@
 	VHGcatnone0 = { THERE_WERE_NO_RECORDS };
 	VHGcatnone1 = { IN_THE_GUIDE_RELATING };
 	VHGcatnone2 = { SPECIFIED_SUBJECT. };
+	VHGcastusage1 = { CAST_OBJECTNAME:NOTES };
+	VHGcastsyntax0 = { SYNTAX_ERROR: };
+	VHGcastsyntax1 = { MISSING_COLON_BETWEEN };
+	VHGcastsyntax2 = { OBJECT_NAME_AND_NOTES };
+	VHGcastvoid0 = { VOID_MESSAGE: };
+	VHGcastvoid1 = { WAS_NOT_SENT. };
+	VHGcasttransfer = { TRANSFER_SUCCEDED: };
+	VHGcastsent = { MESSAGE_SENT; };
+	VHGcastaccepted = { MESSAGE_ACCEPTED. };
+	VHGcastdberror = { DATABASE_ERROR; };
+	VHGcastrejected = { MESSAGE_REJECTED. };
+	VHGcasterror1 = { (ERROR_CODE_1001) };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -3275,9 +3288,50 @@
     "VHG command clear ready"
 	[VHGcmdsilent] = 1; => VH GOES output clear; -> VHG command done;
     "VHG command maybe cat"
-	A = [vhptext plus 44]; ? A != 84 -> VHG command done;
+	A = [vhptext plus 44]; ? A = 83 -> VHG command maybe cast;
+	? A != 84 -> VHG command done;
 	A = [vhptext plus 45]; ? A = 0 -> VHG command cat parse;
 	? A = 32 -> VHG command cat parse; ? A != 95 -> VHG command done;
+    "VHG command maybe cast"
+	A = [vhptext plus 45]; ? A != 84 -> VHG command done;
+	A = [vhptext plus 46]; ? A = 0 -> VHG command cast parse;
+	? A = 32 -> VHG command cast parse; ? A != 95 -> VHG command done;
+    "VHG command cast parse"
+	[VHGcmdi] = 46;
+    "VHG command cast spaces"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 32 -> VHG command cast start;
+	[VHGcmdi]+; -> VHG command cast spaces;
+    "VHG command cast start"
+	[VHGwherequery] = A; [VHGwherelen] = 0; [VHGcastmsgptr] = 0; [VHGcastmsglen] = 0;
+    "VHG command cast name"
+	? C = 0 -> VHG command cast no colon; ? C = 58 -> VHG command cast message start;
+	? C != 95 -> VHG command cast name character;
+	E = A; E + 1; E = [E]; ? E = 0 -> VHG command cast no colon;
+    "VHG command cast name character"
+	[VHGwherelen]+; [VHGcmdi]+; A = vhptext; A + [VHGcmdi]; C = [A];
+	-> VHG command cast name;
+    "VHG command cast no colon"
+	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1;
+	A = [VHGwherelen]; ? A = 0 -> VHG command cast usage;
+	=> VHG CAST syntax result; -> VHG command done;
+    "VHG command cast usage"
+	=> VHG CAST; -> VHG command done;
+    "VHG command cast message start"
+	[VHGcmdi]+; A = vhptext; A + [VHGcmdi]; [VHGcastmsgptr] = A;
+    "VHG command cast message length"
+	C = [A]; ? C = 0 -> VHG command cast message ready;
+	? C != 95 -> VHG command cast message character;
+	E = A; E + 1; E = [E]; ? E = 0 -> VHG command cast message ready;
+    "VHG command cast message character"
+	C = [VHGcastmsglen]; ? C >= 76 -> VHG command cast message ready;
+	[VHGcastmsglen]+; [VHGcmdi]+; A = vhptext; A + [VHGcmdi];
+	-> VHG command cast message length;
+    "VHG command cast message ready"
+	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1;
+	A = [VHGcastmsglen]; ? A = 0 -> VHG command cast void;
+	=> VHG CAST; -> VHG command done;
+    "VHG command cast void"
+	=> VHG CAST void result; -> VHG command done;
     "VHG command cat parse"
 	[VHGcmdi] = 45; [VHGcatstart] = 1; [VHGcatend] = 32767;
     "VHG command cat spaces"
@@ -3597,6 +3651,71 @@
     "VHG WHERE output label ready"
 	[VHPoutptr] = VHGgoesline; => VH GOES output line;
 	end;
+
+"VHG CAST"
+	A = [VHGwherelen]; ? A != 0 -> VHG CAST execute;
+	[VHPoutptr] = VHGparusage0; => VH GOES output line;
+	[VHPoutptr] = VHGcastusage1; => VH GOES output line;
+	[VHPoutptr] = VHGparusage3; => VH GOES output line;
+	[VHPoutptr] = VHGparusage4; => VH GOES output line; end;
+    "VHG CAST execute"
+	[VHGwherei] = 0;
+    "VHG CAST bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG CAST bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGcathead; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHGwherematches] = 0; [VHGwherefound] = 0; [VHGwhererecno] = 0;
+    "VHG CAST catalogue loop"
+	A = [VHGwhererecno]; ? A >= [VHCATrecs] -> VHG CAST catalogue done;
+	A '* 8; A + vhcatraw; A + 1; [VHGwhererec] = A;
+	=> VHG WHERE record match; A = [VHGwherematch]; ? A = 0 -> VHG CAST catalogue next;
+	[VHGwherematches]+; [VHGwherefound] = [VHGwhererec];
+	A = [VHGwhereexact]; ? A != 0 -> VHG CAST catalogue exact;
+    "VHG CAST catalogue next"
+	[VHGwhererecno]+; -> VHG CAST catalogue loop;
+    "VHG CAST catalogue exact"
+	[VHGwherematches] = 1;
+    "VHG CAST catalogue done"
+	A = [VHGwherematches]; ? A = 0 -> VHG CAST missing result;
+	? A > 1 -> VHG CAST ambiguous result;
+	[VHGwhererec] = [VHGwherefound];
+	A = [VHGwhererec]; C = [A plus 7]; C > 8; C & FFh; [VHGwheretype] = C;
+	? C = VHCATS -> VHG CAST star subject;
+	? C = VHCATP -> VHG CAST planet subject; -> VHG CAST missing result;
+    "VHG CAST missing result"
+	[VHPoutptr] = VHGwherenotfound; => VH GOES output line; end;
+    "VHG CAST ambiguous result"
+	=> VHG WHERE ambiguous; end;
+    "VHG CAST star subject"
+	[VHPoutptr] = VHGcasttransfer; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGparsubjectstar; => VH GOES output line; -> VHG CAST subject ready;
+    "VHG CAST planet subject"
+	[VHPoutptr] = VHGcasttransfer; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGparsubjectplanet; => VH GOES output line;
+    "VHG CAST subject ready"
+	=> VHG PAR output name;
+	[VHPoutptr] = VHGcastsent; => VH GOES output line;
+	A = [VHGwherefound]; [VHGDBid0] = [A]; [VHGDBid1] = [A plus 1];
+	[VHGDBmsgptr] = [VHGcastmsgptr]; [VHGDBmsglen] = [VHGcastmsglen]; => VHGDB add;
+	A = [VHGDBstatus]; ? A = 1 -> VHG CAST accepted result;
+	[VHPoutptr] = VHGcastdberror; => VH GOES output line;
+	[VHPoutptr] = VHGcastrejected; => VH GOES output line;
+	[VHPoutptr] = VHGcasterror1; => VH GOES output line; end;
+    "VHG CAST accepted result"
+	[VHPoutptr] = VHGcastaccepted; => VH GOES output line; end;
+
+"VHG CAST syntax result"
+	[VHPoutptr] = VHGcastsyntax0; => VH GOES output line;
+	[VHPoutptr] = VHGcastsyntax1; => VH GOES output line;
+	[VHPoutptr] = VHGcastsyntax2; => VH GOES output line; end;
+
+"VHG CAST void result"
+	[VHPoutptr] = VHGcastvoid0; => VH GOES output line;
+	[VHPoutptr] = VHGcastvoid1; => VH GOES output line; end;
 
 "VHG CAT"
 	( CAT.CPP reads the original 84-byte Galactic Guide records for a named

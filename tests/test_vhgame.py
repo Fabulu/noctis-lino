@@ -45,6 +45,7 @@ ORIGINAL_WHERE = REFERENCE_ROOT / "WHERE.CPP"
 ORIGINAL_PAR = REFERENCE_ROOT / "PAR.CPP"
 ORIGINAL_ST = REFERENCE_ROOT / "ST.CPP"
 ORIGINAL_CAT = REFERENCE_ROOT / "CAT.CPP"
+ORIGINAL_CAST = REFERENCE_ROOT / "CAST.CPP"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -239,6 +240,7 @@ def main() -> int:
     original_par = ORIGINAL_PAR.read_text(encoding="latin-1")
     original_st = ORIGINAL_ST.read_text(encoding="latin-1")
     original_cat = ORIGINAL_CAT.read_text(encoding="latin-1")
+    original_cast = ORIGINAL_CAST.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1749,6 +1751,30 @@ def main() -> int:
             "LEAST FROM MY POINT", "OF VIEW. NOBODY", "SHOULD MISS THE", "SURICRASIAN SKY AT",
         ],
         "GOES CAT reads the original Galactic Guide with ranged 21-column records",
+    )
+    check(
+        all(token in original_cast for token in (
+            'msg ("CAST OBJECTNAME:NOTES");', 'msg ("MISSING COLON BETWEEN");',
+            'msg ("TRANSFER SUCCEDED:");', 'msg ("MESSAGE SENT;");',
+            "lseek (gh, 0, SEEK_END);", "_write (gh, &subject_id, 8);",
+            "_write (gh, parbuffer + i + 1, mlen);", 'msg ("MESSAGE ACCEPTED.");',
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe cast"', '"VHG command cast message length"',
+            '"VHG CAST"', '"VHG CAST syntax result"', '"VHG CAST void result"',
+            "[VHGDBmsgptr] = [VHGcastmsgptr]; [VHGDBmsglen] = [VHGcastmsglen]; => VHGDB add;",
+        ))
+        and all(token in guide_source for token in (
+            '"VHGDB add"', "? A > 76 -> VHGDB add done;",
+            "? B != 95 -> VHGDB pack character ready; B = 32;",
+            "[File Position] = [VHGDBbytes]; [File Command] = WRITE;",
+            "[VHGDBrecs]+; [VHGDBstatus] = 1;",
+            "A = [vhguidedata]; ? A < VHGDBHDR -> VHGDB load bad;",
+            "? A > [VHGDBbytes] -> VHGDB load bad;",
+        ))
+        and "$consolidated -lt 4 -or $consolidated -gt $bytes.Length" in package_script
+        and "($consolidated - 4) % 84 -ne 0" in package_script,
+        "GOES CAST appends reloadable player notes after the consolidated guide boundary",
     )
     check(
         all(token in game for token in (

@@ -13,7 +13,9 @@
 "variables"
 
 	VHGDBfile = { GUIDE.BIN };
-	VHGDBloaded = 0; VHGDBbytes = 0; VHGDBrecs = 0;
+	VHGDBloaded = 0; VHGDBbytes = 0; VHGDBrecs = 0; VHGDBstatus = 0;
+	VHGDBid0 = 0; VHGDBid1 = 0; VHGDBmsgptr = 0; VHGDBmsglen = 0;
+	VHGDBptr = 0; VHGDBi = 0; VHGDBshift = 0;
 
 "workspace"
 
@@ -32,9 +34,45 @@
 	[File Name] = VHGDBfile; [File Position] = 0; [File Command] = READ;
 	[Block Pointer] = vhguidedata; [Block Size] = [VHGDBbytes]; isocall;
 	A = [Block Size]; ? A != [VHGDBbytes] -> VHGDB load bad;
-	A = [vhguidedata]; ? A != [VHGDBbytes] -> VHGDB load bad;
+	A = [vhguidedata]; ? A < VHGDBHDR -> VHGDB load bad;
+	? A > [VHGDBbytes] -> VHGDB load bad;
+	A - VHGDBHDR; A '% VHGDBREC; ? A != 0 -> VHGDB load bad;
 	[VHGDBloaded] = 1; -> VHGDB load done;
     "VHGDB load bad"
 	[VHGDBbytes] = 0; [VHGDBrecs] = 0;
     "VHGDB load done"
+	end;
+
+      ( Append one source-format guide record. The header is the consolidated
+	upstream boundary and deliberately remains unchanged for local CAST data. )
+"VHGDB add"
+	[VHGDBstatus] = 0; A = [VHGDBloaded]; ? A = 0 -> VHGDB add done;
+	A = [VHGDBmsglen]; ? A = 0 -> VHGDB add done; ? A > 76 -> VHGDB add done;
+	A = [VHGDBbytes]; A + VHGDBREC; ? A > VHGDBMAX -> VHGDB add done;
+	A = [VHGDBbytes]; A / 4; A + vhguidedata; [VHGDBptr] = A;
+	[A] = [VHGDBid0]; [A plus 1] = [VHGDBid1];
+	[A plus 2] = 0; [A plus 3] = 0; [A plus 4] = 0; [A plus 5] = 0;
+	[A plus 6] = 0; [A plus 7] = 0; [A plus 8] = 0; [A plus 9] = 0;
+	[A plus 10] = 0; [A plus 11] = 0; [A plus 12] = 0; [A plus 13] = 0;
+	[A plus 14] = 0; [A plus 15] = 0; [A plus 16] = 0; [A plus 17] = 0;
+	[A plus 18] = 0; [A plus 19] = 0; [A plus 20] = 0;
+	[VHGDBi] = 0;
+    "VHGDB pack message"
+	A = [VHGDBi]; ? A >= [VHGDBmsglen] -> VHGDB write record;
+	C = [VHGDBmsgptr]; C + A; B = [C]; ? B != 95 -> VHGDB pack character ready; B = 32;
+    "VHGDB pack character ready"
+	C = A; C / 4; E = [VHGDBptr]; E + 2; E + C;
+	A & 3; A '* 8; B < A; A = [E]; A | B; [E] = A;
+	[VHGDBi]+; -> VHGDB pack message;
+    "VHGDB write record"
+	[File Name] = VHGDBfile; [File Position] = [VHGDBbytes]; [File Command] = WRITE;
+	[Block Pointer] = [VHGDBptr]; [Block Size] = VHGDBREC; isocall;
+	? [File Status] + ERROR -> VHGDB add done;
+	A = [Block Size]; ? A != VHGDBREC -> VHGDB add done;
+	A = [VHGDBbytes]; A + VHGDBREC; [VHGDBbytes] = A;
+	[File Name] = VHGDBfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGDBbytes]; isocall;
+	? [File Status] + ERROR -> VHGDB add done;
+	[VHGDBrecs]+; [VHGDBstatus] = 1;
+    "VHGDB add done"
 	end;

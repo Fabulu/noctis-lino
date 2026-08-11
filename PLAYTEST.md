@@ -770,3 +770,13 @@ the `(1)` and `(2)` guide records with source-width wrapping, beginning
 and `LEAST FROM MY POINT / OF VIEW. NOBODY / SHOULD MISS THE / SURICRASIAN SKY AT`.
 The process exited 0. A disposable package contained the identical 4,063,588
 bytes and SHA-256 `e2d22f76383a8ac254f3bd6dd956faec69a47f080955b332cc0fbf8fb228b3b3`.
+
+### GOES CAST persistence regression
+
+A disposable production package ran `CAST SURICRASIA:CODEX WAS HERE`, closed
+and reloaded its guide, then queried the appended record with CAT. GOES reported
+`TRANSFER SUCCEDED`, `MESSAGE ACCEPTED`, and record `(48377)` containing
+`CODEX WAS HERE`. The disposable `GUIDE.BIN` grew from 4,063,588 to 4,063,672
+bytes, exactly one 84-byte record; its four-byte consolidated boundary remained
+4,063,588. Reload reported 48,377 readable records and the native process exited
+0. The tracked original guide was not modified.

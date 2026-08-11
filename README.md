@@ -50,7 +50,9 @@ tree. `PAR <catalogued name>[:range]` performs the original procedural sector
 search and reports the star coordinates as X, -Y, Z; underscores stand for
 spaces in multi-word names. `ST <catalogued name>[:range]` sends a named star
 to Vimana, or starts local drive to a named planet when its system has already
-been reached. The accessible G view now includes the same
+been reached. `CAT <catalogued name>[:X..Y]` reads ranged Galactic Guide
+entries, and `CAST <catalogued name>:<notes>` appends a persistent player note
+of up to 76 characters. The accessible G view now includes the same
 seven-line retained result history above its command prompt. The GAME menu's Flight control and Onboard devices entries open
 resize-aware mouse-accessible versions of those physical pages; the hovered
 command turns white and one left click activates it. Both routes remain over
@@ -69,8 +71,10 @@ with an existing directory so stale files cannot masquerade as bundle content.
 Inside the bundle, double-click `Play Noctis IV.cmd`. The relocatable launcher
 anchors all relative asset, checkpoint, catalogue, and diagnostic paths to the
 bundle even when it is started from an unrelated working directory. The
-bundle includes the original 48,376-record `GUIDE.BIN`; use
-`CAT <catalogued name>[:X..Y]` in GOES to read its ranged entries.
+bundle includes the original 48,376-record `GUIDE.BIN`. `CAST` additions remain
+separate from its consolidated source boundary, so the original records and
+new player notes can both be read after restarting the game. Back up
+`GUIDE.BIN` together with saves and `STARMAP.BIN` to preserve those notes.
 
 Version tags matching `v*` assemble the checked production payload and runtime
 assets in GitHub Actions, then publish the ZIP plus its SHA-256 checksum as a

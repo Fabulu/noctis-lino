@@ -6,11 +6,11 @@ Windows: keep every bundled file together and double-click
 program: the launcher is what keeps all relative game files in this folder.
 
 The game creates CURRENT.LIN beside the launcher and may append names to
-STARMAP.BIN. It also keeps diagnostic output here rather than in whichever
+STARMAP.BIN and player notes to GUIDE.BIN. It also keeps diagnostic output here rather than in whichever
 folder happened to start the game. A verified save also refreshes CURRENT.BAK;
 if CURRENT.LIN is present but damaged, the game restores that last-known-good
-copy and says so onscreen. Back up CURRENT.LIN and STARMAP.BIN to preserve a
-journey. A deliberately missing checkpoint starts a clean flight; enter NEW in
+copy and says so onscreen. Back up CURRENT.LIN, STARMAP.BIN, and GUIDE.BIN to
+preserve a journey and its Galactic Guide notes. A deliberately missing checkpoint starts a clean flight; enter NEW in
 GOES to deliberately restart.
 
 Essential controls
@@ -32,6 +32,7 @@ WHERE name        identify a charted star or a planet's parent system
 PAR name[:range]  recover source coordinates; use _ for spaces in names
 ST name[:range]   target a named star or reached-system planet
 CAT name[:X..Y]   read ranged records from the original Galactic Guide
+CAST name:notes    append a persistent Galactic Guide note (76 characters max)
 CLR               clear the retained GOES output tree
 L                 global approach/landing-site fallback
 Site selector     arrows choose longitude/latitude; L/Enter descends; C cancels

@@ -78,8 +78,10 @@ foreach ($asset in $assets) {
     }
     if ($asset.Size -eq -3) {
         $bytes = [IO.File]::ReadAllBytes($asset.Source)
+        $consolidated = if ($bytes.Length -ge 4) { [BitConverter]::ToInt32($bytes, 0) } else { 0 }
         if ($bytes.Length -lt 4 -or ($bytes.Length - 4) % 84 -ne 0 -or
-            [BitConverter]::ToInt32($bytes, 0) -ne $bytes.Length -or
+            $consolidated -lt 4 -or $consolidated -gt $bytes.Length -or
+            ($consolidated - 4) % 84 -ne 0 -or
             $bytes.Length -gt 8388608) {
             throw 'GUIDE.BIN does not satisfy the bounded 4 + 84n record contract'
         }

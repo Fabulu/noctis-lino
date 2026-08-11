@@ -64,6 +64,9 @@ parity, not a claim that parity is complete.
   local drive for a named planet belonging to the currently reached system.
   `CAT <catalogued name>[:X..Y]` reads the original 48,376-record Galactic
   Guide with its source one-based ranges and 21-column word wrapping.
+  `CAST <catalogued name>:<notes>` appends a source-compatible 84-byte record
+  after the consolidated guide boundary. Notes are limited to 76 characters,
+  persist in `GUIDE.BIN`, and are readable by a later `CAT` command.
   The third station starts planetary approach and,
   after FCS reaches STANDBY, opens the physical longitude/latitude selector.
 - Planetary views finish with the original default `surrounding()` visor
@@ -87,7 +90,7 @@ parity, not a claim that parity is complete.
 
 Extract the ZIP without removing individual files, then double-click
 `Play Noctis IV.cmd`. The launcher keeps assets, `CURRENT.LIN`, `CURRENT.BAK`,
-the mutable `STARMAP.BIN`, read-only `GUIDE.BIN`, and diagnostics in the
+the mutable `STARMAP.BIN`, mutable `GUIDE.BIN`, and diagnostics in the
 extracted game folder.
 
 Useful controls:
@@ -95,6 +98,7 @@ Useful controls:
 - W/A/S/D: move; right-drag or arrows: look
 - E inside the Stardrifter: ascend; walk into the roof opening to return
 - First wall panel + Enter: physical GOES; `NEXT`: choose/fly to a nearby star
+- `CAT name[:X..Y]`: read guide entries; `CAST name:notes`: add a guide note
 - Third wall panel + Enter: approach, select a landing site, and descend
 - G and L: accessible GOES and landing fallbacks
 - R: device back/close aboard ship; return in capsule on a surface

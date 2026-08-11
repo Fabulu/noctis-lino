@@ -506,6 +506,14 @@ the physical 21-column output tree. The native probe's `CAT SURICRASIA:1..2`
 result reproduced the first two guide blocks, including their `(1)` and `(2)`
 headers, and the package check retained the source asset's exact SHA-256.
 
+The companion `CAST.CPP` path now contributes persistent player notes to that
+same database. The port keeps the original four-byte consolidated boundary
+untouched and appends each local contribution as the source's binary64 subject
+identity plus a zero-padded 76-byte message. Both the loader and packager
+distinguish consolidated source records from bounded local additions. A native
+disposable-package probe cast `CODEX WAS HERE` for SURICRASIA, reloaded the
+84-byte-larger file as 48,377 records, and read the new record back through CAT.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

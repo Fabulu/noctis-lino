@@ -77,6 +77,14 @@ first -- a broken foundation makes every later result meaningless.
   48,376 `binary64 + 76-byte message` records. CAT retains exact catalogue
   identity matching, one-based record ranges, and 21-column word wrapping.
   A native query of `SURICRASIA:1..2` reproduced the first two source records.
+- `CAST <catalogued name>:<notes>` now performs the original Galactic Guide
+  contribution path. It resolves the same exact or unambiguous starmap subject,
+  packs its binary64 identity and a zero-padded note into one 84-byte record,
+  and appends it without rewriting the guide's four-byte consolidated boundary.
+  The loader and package validator accept those bounded local records while
+  retaining all original entries. A native append, reload, and CAT probe added
+  record 48,377, reproduced `CODEX WAS HERE`, and grew only its disposable
+  `GUIDE.BIN` by exactly 84 bytes.
 
 ### Clickable FCS and onboard pages
 
