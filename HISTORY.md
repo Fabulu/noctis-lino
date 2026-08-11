@@ -421,9 +421,13 @@ path now retains the source card coordinates, palette bands, four-unit slide,
 character reveal, and 3x5 glyph rendering while the Stardrifter remains visible
 around it. A clean packaged run opened remote, local, and environment states
 with real I-key edges, showed the original no-local-target state, slid closed,
-and left the cabin unobstructed. The original remote mass/temperature and
-environment temperature/ion/radiation calculations remain a later fidelity
-checkpoint rather than being represented as complete here.
+and left the cabin unobstructed. A follow-up restored the card contents from
+the same source routines: class-corrected remote mass, radius and temperature;
+local rotation/revolution triads, type and radius; and external temperature,
+lithium ions and radiation. In the opening system the live remote card showed
+radius 6.9280, mass 1.970222 BAL M, and 7757 K / 7484 C / 13503 F, matching the
+source equations. The environment calculation still assumes zero eclipse
+until the source local-body occlusion projection is connected.
 
 ## Packaging and publication
 

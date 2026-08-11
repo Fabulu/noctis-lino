@@ -907,6 +907,7 @@ def main() -> int:
     )
     info_overlay = section(game, '"VHG source info overlay"', '"VHG onboard row begin"')
     info_slide = section(game, '"VHG info slide advance"', '"VHG source info overlay"')
+    info_source_values = section(game, '"VHG info append fixed"', '"VHG info format common"')
     info_format = section(game, '"VHG info format common"', '"VHG graphics overlay"')
     info_key = section(game, '"VHG info key"', '"VHG help key"')
     check(
@@ -921,6 +922,13 @@ def main() -> int:
             'areaclear (adapted, 11, 95, 0, 0, 1 + datasheetscroll, 40, 112);',
             'c = (datasheetscroll / 4) - 1;',
             'datasheetscroll +=',
+            'tmp_float = 1e-3 * qt_M_PI * ap_target_ray * ap_target_ray * ap_target_ray;',
+            'tmp_float /= 0.38e-4 * ap_target_ray;',
+            'wrouthud (14, 97, c, "PERIOD OF ROTATION:");',
+            'tmp_float = rtp (ip_targetted);',
+            'tmp_float = 16 - dsd * 0.044;',
+            'sprintf (outhudbuffer, "LI+ IONS: %ld MTPD EST.", ir);',
+            'sprintf (outhudbuffer, "RADIATION: %1.1f KR", tmp_float);',
         ))
         and all(token in game for token in (
             'VHGinfotitle1 = { REMOTE TARGET DATA };',
@@ -954,7 +962,27 @@ def main() -> int:
             'A = [MgAptgt]; ? A = 0 -> VHG source info no remote;',
             'A = [VHGlocaltarget]; ? A = 0FFFFFFFFh -> VHG source info no local;',
             '[VHGinfodrawsrc] = VHGinfomajor; [VHGinfodrawy] = 129;',
-            '[VHGinfodrawsrc] = VHGsurfacetext;',
+            '[VHGinfodrawsrc] = VHGinforemotevalues; [VHGinfodrawy] = 103;',
+            '[VHGinfodrawsrc] = VHGinforotationvalues; [VHGinfodrawy] = 103;',
+            '[VHGinfodrawsrc] = VHGinforevolutionvalues; [VHGinfodrawy] = 116;',
+            '[VHGinfodrawsrc] = VHGinfoenvtempk; [VHGinfodrawy] = 97;',
+            '[VHGinfodrawsrc] = VHGinfoenvions; [VHGinfodrawy] = 119;',
+            '[VHGinfodrawsrc] = VHGinfoenvradiation; [VHGinfodrawy] = 126;',
+        ))
+        and all(token in info_source_values for token in (
+            '"VHG info format remote source"', 'VHGstarmasscorr',
+            '[FB0] = D2F1A9FCh; [FB1] = 3F50624Dh; => FMul;',
+            '[FB0] = 54442D18h; [FB1] = 400921FBh; => FMul;',
+            '[FA0] = 0ED80A18h; [FA1] = 3F03EC46h;',
+            '"VHG info format local source"', '=> VHGND rotation seed;',
+            'C = 50; => SU rfr;', 'C = 25; => SU rfr;', 'C = 250; => SU rfr;',
+            '[FB0] = E826D695h; [FB1] = 3E112E0Bh; => FMul;',
+            '[FB0] = 7CFA26A2h; [FB1] = 3F071194h; => FMul;',
+            '"VHG info format environment source"',
+            '[FB0] = 020C49BAh; [FB1] = 3FA6872Bh; => FMul;',
+            '[VHGinfoions] = 0; A = [VHTclass];',
+            'A = 10; => BrtlRandom; C = A; A = 10; => BrtlRandom;',
+            'A = [VHGutcsecs]; => BrtlSrand; A = 100; => BrtlRandom;',
         ))
         and all(token in info_format for token in (
             '"VHG info format local"', '"VHG info name copy"',
@@ -984,7 +1012,7 @@ def main() -> int:
             game, '"VHG info overlay"', '"VHG help overlay"'
         )
         and "A = [VHGinfo]; ? A != 0 -> VHG input done;" in game,
-        "I slides source-sized indexed remote, local, and environment data sheets without moving the player",
+        "I slides indexed data sheets with live source remote, local, and environment fields without moving the player",
     )
     device_overlay = section(game, '"VHG device overlay"', '"VHG info format common"')
     device_key = section(game, '"VHG device key"', '"VHG info key"')

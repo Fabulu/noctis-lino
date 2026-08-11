@@ -696,5 +696,13 @@ state displayed `LOCAL TARGET NOT SET`, and the final close animation removed
 the card completely. The card uses the source palette indices, coordinates,
 four-unit slide delta, reveal limit, and indexed 3x5 glyph path. The focused
 integrated regression passed and the production PE rebuilt successfully.
-Exact remote mass/temperature and environment temperature/ion/radiation
-values remain open source-equivalence work.
+
+A second packaged run exercised the restored source contents. The remote card
+showed the opening target's 6.9280 radius, 1.970222 BAL M primary mass, and
+7757 K / 7484 C / 13503 F surface temperatures. A forced reached-star save then
+started a real local approach and displayed rotation triads, revolution EPOCs,
+the generated body type, and radius. The environment card displayed live K/C/F
+temperature plus identity-seeded lithium-ion and time-jittered radiation rows.
+All three states stayed responsive and visible over the cabin. The focused
+regression passed and the production PE rebuilt. The environment path currently
+uses eclipse zero; projected local-body occlusion remains open fidelity work.

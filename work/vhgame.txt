@@ -149,6 +149,22 @@
 	VHGinfodrawsrc = 0; VHGinfodrawx = 0; VHGinfodrawy = 0; VHGinfodrawi = 0;
 	VHGinfofillx = 0; VHGinfofilly = 0; VHGinfofillend = 0; VHGinfofillbottom = 0;
 	VHGinfofillcolour = 0;
+	VHGinfomass0 = 0; VHGinfomass1 = 0; VHGinforay0 = 0; VHGinforay1 = 0;
+	VHGinfotemp0 = 0; VHGinfotemp1 = 0; VHGinfofactor0 = 0; VHGinfofactor1 = 0;
+	VHGinfomasscase = 0;
+	VHGinfomassfactor = 0;
+	VHGinfomassop = 0;
+	VHGinfomassscaled = 0; VHGinforayscaled = 0;
+	VHGinfotempk = 0; VHGinfotempc = 0; VHGinfotempf = 0;
+	VHGinfofixedvalue = 0; VHGinfofixedscale = 0; VHGinfofixedfrac = 0;
+	VHGinfofixedden = 0; VHGinfofixeddigits = 0;
+	VHGinfolocalperiod = 0; VHGinforev0 = 0; VHGinforev1 = 0;
+	VHGinforevepoc = 0; VHGinforevtriad1 = 0; VHGinforevtriad2 = 0; VHGinforevtriad3 = 0;
+	VHGinfolocaltypeptr = 0;
+	VHGinfodistance0 = 0; VHGinfodistance1 = 0;
+	VHGinfoenvironment0 = 0; VHGinfoenvironment1 = 0;
+	VHGinforadiation0 = 0; VHGinforadiation1 = 0;
+	VHGinfoions = 0; VHGinforadiationscaled = 0; VHGinfoindent = 0;
 	VHGinfonamesrc = 0; VHGinfosrc = 0; VHGinfodst = 0; VHGinfocount = 0;
 	VHGdev = 0; VHGdevaccess = 0; VHGilight = 1; VHGlighttick = 0;
 	VHGdeviceheld = 0;
@@ -255,6 +271,39 @@
 	VHGinfonoremote = { REMOTE TARGET NOT SET };
 	VHGinfodirect = { DIRECT PARSIS TARGET };
 	VHGinfonolocal = { LOCAL TARGET NOT SET };
+	VHGinfomasslabel = { PRIMARY MASS:    RADIUS: };
+	VHGinfocentidyams = { CENTIDYAMS };
+	VHGinfosurfacetemp = { SURFACE TEMPERATURE: };
+	VHGinfobalm = {  BAL M };
+	VHGinfokelvin = { @K& };
+	VHGinfocelsius = { @C& };
+	VHGinfofahrenheit = { @F };
+	VHGinforotationlabel = { PERIOD OF ROTATION: };
+	VHGinforevolutionlabel = { PERIOD OF REVOLUTION: };
+	VHGinfotriads = { TRIADS  };
+	VHGinfoepocs = {  EPOCS,  };
+	VHGinfocolon = { : };
+	VHGinfoqtriad = { ??? };
+	VHGinforadiuslabel = { RADIUS: };
+	VHGinfotype0 = { INTERNALLY HOT };
+	VHGinfotype1 = { CRATERIZED NO ATMOSPHERE };
+	VHGinfotype2 = { THICK ATMOSPHERE };
+	VHGinfotype3 = { FELISIAN };
+	VHGinfotype4 = { CREASED NO ATMOSPHERE };
+	VHGinfotype5 = { THIN ATMOSPHERE };
+	VHGinfotype6 = { LARGE NOT CONSISTENT };
+	VHGinfotype7 = { ICY };
+	VHGinfotype8 = { QUARTZ };
+	VHGinfotype9 = { SUBSTELLAR OBJECT };
+	VHGinfotype10 = { COMPANION STAR };
+	VHGinfotempprefix = { TEMP.  };
+	VHGinfokelvinunit = { @K };
+	VHGinfocelsiusunit = { @C };
+	VHGinfofahrenheitunit = { @F };
+	VHGinfoionsprefix = { LI+ IONS:  };
+	VHGinfoionssuffix = {  MTPD EST. };
+	VHGinforadiationprefix = { RADIATION:  };
+	VHGinforadiationsuffix = {  KR };
 	VHGinfoclasst = { CLASS 00 RADIUS 00.000 };
 	VHGinfobodiest = { BODIES 00 PLANETS 00 MOONS 00 };
 	VHGinfomajort = { MAJOR BODIES: 00 EST. };
@@ -478,6 +527,20 @@
 	VHGnamefailtext = { NAME FAILED };
 	VHGnewtext = { NEW FLIGHT STARTED };
 
+	( NOCTIS.CPP starmass_correction[], retained as binary64 low/high pairs. )
+	VHGstarmasscorr = 56041893h; no label = 3FFE2D0Eh;
+	no label = 00000000h; no label = 3FF80000h;
+	no label = 66666666h; no label = 40BF4066h;
+	no label = 9999999Ah; no label = 3FA99999h;
+	no label = B851EB85h; no label = 4003851Eh;
+	no label = CCCCCCCDh; no label = 4008CCCCh;
+	no label = 9999999Ah; no label = 40229999h;
+	no label = 00000000h; no label = 40480000h;
+	no label = 00000000h; no label = 3FF00000h;
+	no label = 00000000h; no label = 3FF00000h;
+	no label = 1EB851ECh; no label = 3FB1EB85h;
+	no label = 00000000h; no label = 40CD4C00h;
+
 "workspace"
 
 	vhgstate = 18;
@@ -493,6 +556,17 @@
 	VHGinfostate = 28;
 	VHGinfomajor = 22;
 	VHGinfodraw = 25;
+	VHGinforemotevalues = 109;
+	VHGinfostarvalues = 109;
+	VHGinforotationvalues = 109;
+	VHGinforevolutionvalues = 109;
+	VHGinfolocaltypeline = 109;
+	VHGinfolocalradiusline = 109;
+	VHGinfoenvtempk = 109;
+	VHGinfoenvtempc = 109;
+	VHGinfoenvtempf = 109;
+	VHGinfoenvions = 109;
+	VHGinfoenvradiation = 109;
 	VHGbrowserowx = 13;
 	VHGbrowserowy = 13;
 	VHGbrowserowz = 13;
@@ -3727,8 +3801,13 @@
 	A = [MgAptgt]; ? A = 0 -> VHG source info no remote;
 	? A != 1 -> VHG source info direct remote;
 	[VHGinfonamesrc] = vhcatstarlabel; => VHG info name copy;
+	=> VHG info format remote source;
 	[VHGinfodrawsrc] = VHGinfoname; [VHGinfodrawx] = 14; [VHGinfodrawy] = 87; => VHG info source draw line;
-	[VHGinfodrawsrc] = VHGinfoclass; [VHGinfodrawy] = 97; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfomasslabel; [VHGinfodrawy] = 97; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinforemotevalues; [VHGinfodrawy] = 103; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfocentidyams; [VHGinfodrawx] = 70; [VHGinfodrawy] = 109; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfosurfacetemp; [VHGinfodrawx] = 14; [VHGinfodrawy] = 116; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfostarvalues; [VHGinfodrawy] = 122; => VHG info source draw line;
 	[VHGinfodrawsrc] = VHGinfomajor; [VHGinfodrawy] = 129; => VHG info source draw line;
 	-> VHG source info overlay done;
     "VHG source info no remote"
@@ -3741,29 +3820,27 @@
     "VHG source info local"
 	A = [VHGlocaltarget]; ? A = 0FFFFFFFFh -> VHG source info no local;
 	? A '>= [nsnob] -> VHG source info no local;
-	=> VHG info format local; [VHGinfonamesrc] = vhcatbodylabel; => VHG info name copy;
+	=> VHG info format local source; [VHGinfonamesrc] = vhcatbodylabel; => VHG info name copy;
 	[VHGinfodrawsrc] = VHGinfoname; [VHGinfodrawx] = 14; [VHGinfodrawy] = 87; => VHG info source draw line;
-	[VHGinfodrawsrc] = VHGinfolocal; [VHGinfodrawy] = 97; => VHG info source draw line;
-	[VHGinfodrawsrc] = VHGinforadius; [VHGinfodrawy] = 110; => VHG info source draw line;
-	[VHGinfodrawsrc] = VHGinfoowner; [VHGinfodrawy] = 123; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinforotationlabel; [VHGinfodrawy] = 97; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinforotationvalues; [VHGinfodrawy] = 103; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinforevolutionlabel; [VHGinfodrawy] = 110; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinforevolutionvalues; [VHGinfodrawy] = 116; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfolocaltypeline; [VHGinfodrawy] = 123; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfolocalradiusline; [VHGinfodrawy] = 129; => VHG info source draw line;
 	-> VHG source info overlay done;
     "VHG source info no local"
 	[VHGinfodrawsrc] = VHGinfonolocal; [VHGinfodrawx] = 14; [VHGinfodrawy] = 87;
 	=> VHG info source draw line;
 	-> VHG source info overlay done;
     "VHG source info environment"
-	=> VHG info format local;
+	=> VHG info format environment source;
 	[VHGinfodrawsrc] = VHGinfotitle3; [VHGinfodrawx] = 14; [VHGinfodrawy] = 87; => VHG info source draw line;
-	[VHGinfodrawsrc] = VHGinfostate; [VHGinfodrawy] = 97; => VHG info source draw line;
-	[VHGinfodrawsrc] = VHGinfoenergy; [VHGinfodrawy] = 103; => VHG info source draw line;
-	A = [VHGmode]; ? A = 0 -> VHG source info environment ship;
-	[VHGinfodrawsrc] = VHGsurfacetext; [VHGinfodrawy] = 110; => VHG info source draw line;
-	[VHGinfonamesrc] = vhcatbodylabel; => VHG info name copy;
-	[VHGinfodrawsrc] = VHGinfoname; [VHGinfodrawy] = 123; => VHG info source draw line;
-	-> VHG source info overlay done;
-    "VHG source info environment ship"
-	[VHGinfodrawsrc] = VHGinfoclass; [VHGinfodrawy] = 110; => VHG info source draw line;
-	[VHGinfodrawsrc] = VHGinfobodies; [VHGinfodrawy] = 123; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfoenvtempk; [VHGinfodrawy] = 97; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfoenvtempc; [VHGinfodrawy] = 103; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfoenvtempf; [VHGinfodrawy] = 109; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfoenvions; [VHGinfodrawy] = 119; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfoenvradiation; [VHGinfodrawy] = 126; => VHG info source draw line;
     "VHG source info overlay done"
 	end;
 
@@ -4441,6 +4518,447 @@
 	A = C; A '% 10; A + 48; E = [VHGbrowserowdst]; E + [VHGbrowserowi]; [E] = A;
 	C '/ 10; [VHGbrowserowi]-; A = [VHGbrowserowi]; ? A >= 3 -> VHG browse digit loop;
 	E = [VHGbrowserowdst]; E + 12; [E] = 0;
+	end;
+
+"VHG info append fixed"
+	( Append a signed scaled integer with an exact number of decimal places to
+	  the shared bounded row builder. This supplies sprintf-like source HUD
+	  fields without routing indexed text through the GUI font. )
+	A = [VHGinfofixedvalue]; ? A >= 0 -> VHG info fixed magnitude ready;
+	[VHGonrowchar] = 45; => VHG onboard row append char;
+	A = 0; A - [VHGinfofixedvalue]; [VHGinfofixedvalue] = A;
+    "VHG info fixed magnitude ready"
+	[VHGinfofixedscale] = 1; [VHGinfocount] = [VHGinfofixeddigits];
+    "VHG info fixed scale loop"
+	A = [VHGinfocount]; ? A <= 0 -> VHG info fixed scale ready;
+	A = [VHGinfofixedscale]; A '* 10; [VHGinfofixedscale] = A;
+	[VHGinfocount]-; -> VHG info fixed scale loop;
+    "VHG info fixed scale ready"
+	A = [VHGinfofixedvalue]; A '/ [VHGinfofixedscale]; [VHGonrowvalue] = A;
+	=> VHG onboard row append number;
+	A = [VHGinfofixeddigits]; ? A <= 0 -> VHG info fixed done;
+	[VHGonrowchar] = 46; => VHG onboard row append char;
+	A = [VHGinfofixedvalue]; A '% [VHGinfofixedscale]; [VHGinfofixedfrac] = A;
+	A = [VHGinfofixedscale]; A '/ 10; [VHGinfofixedden] = A;
+    "VHG info fixed fraction loop"
+	A = [VHGinfofixedfrac]; C = A; A '/ [VHGinfofixedden]; A + 48;
+	[VHGonrowchar] = A; => VHG onboard row append char;
+	A = C; A '% [VHGinfofixedden]; [VHGinfofixedfrac] = A;
+	[VHGinfofixeddigits]-; A = [VHGinfofixeddigits]; ? A <= 0 -> VHG info fixed done;
+	A = [VHGinfofixedden]; A '/ 10; [VHGinfofixedden] = A;
+	-> VHG info fixed fraction loop;
+    "VHG info fixed done"
+	end;
+
+"VHG info format remote source"
+	( NOCTIS.CPP remote target data: 0.001*pi*ray^3 corrected by star
+	  class, including the class-8/9 fast-random mass distortion. )
+	=> VHG fpu clean;
+	[FS0] = [VHTRay]; => FLoadF32;
+	[VHGinforay0] = [FA0]; [VHGinforay1] = [FA1];
+	[FB0] = [VHGinforay0]; [FB1] = [VHGinforay1]; => FMul;
+	[FB0] = [VHGinforay0]; [FB1] = [VHGinforay1]; => FMul;
+	[FB0] = D2F1A9FCh; [FB1] = 3F50624Dh; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FMul;
+	A = [VHTclass]; A < 1; E = VHGstarmasscorr; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1]; => FMul;
+	[VHGinfomass0] = [FA0]; [VHGinfomass1] = [FA1];
+	A = [VHTclass]; ? A = 8 -> VHG info remote mass random;
+	? A != 9 -> VHG info remote mass ready;
+    "VHG info remote mass random"
+	A = [VHTtx]; A % 32000; => SU fast srand;
+	[SUfmask] = 5; => SU fast raw; [VHGinfomasscase] = [SUfval];
+	[VHGinfomassfactor] = 5; [VHGinfomassop] = 1; A = [VHGinfomasscase];
+	? A = 0 -> VHG info remote mass factor;
+	[VHGinfomassfactor] = 1; ? A = 1 -> VHG info remote mass factor;
+	[VHGinfomassop] = 0; ? A = 2 -> VHG info remote mass factor;
+	[VHGinfomassfactor] = 20; ? A = 3 -> VHG info remote mass factor;
+	[VHGinfomassfactor] = 50; ? A = 4 -> VHG info remote mass factor;
+	-> VHG info remote mass ready;
+    "VHG info remote mass factor"
+	[SUfmask] = 7FFFh; => SU fast raw; [FI] = [SUfval]; => IntToF;
+	[FB0] = 7EDA0BE1h; [FB1] = 3F00000Eh; => FMul;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FI] = [VHGinfomassfactor]; => IntToF;
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FMul;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FI] = 1; => IntToF;
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FAdd;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FA0] = [VHGinfomass0]; [FA1] = [VHGinfomass1];
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1];
+	A = [VHGinfomassop]; ? A = 0 -> VHG info remote mass multiply;
+	=> FQuo; -> VHG info remote mass store;
+    "VHG info remote mass multiply"
+	=> FMul;
+    "VHG info remote mass store"
+	[VHGinfomass0] = [FA0]; [VHGinfomass1] = [FA1];
+    "VHG info remote mass ready"
+	( Keep six decimal mass digits where they fit the source's eight-column
+	  field, reducing only enough places for larger values. )
+	[FA0] = [VHGinfomass0]; [FA1] = [VHGinfomass1];
+	[FC0] = [FA0]; [FC1] = [FA1]; [FI] = 1000000; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1];
+	=> FMul; => FToIntNear; [VHGinfomassscaled] = [FI];
+	[FA0] = [VHGinforay0]; [FA1] = [VHGinforay1];
+	[FC0] = [FA0]; [FC1] = [FA1]; [FI] = 10000; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1];
+	=> FMul; => FToIntNear; [VHGinforayscaled] = [FI];
+	[VHGonrowdst] = VHGinforemotevalues; => VHG onboard row begin;
+	[VHGinfofixedvalue] = [VHGinfomassscaled]; [VHGinfofixeddigits] = 6;
+	A = [VHGinfomassscaled]; ? A < 10000000 -> VHG info remote mass text;
+	A '/ 10; [VHGinfofixedvalue] = A; [VHGinfofixeddigits] = 5;
+	A = [VHGinfomassscaled]; ? A < 100000000 -> VHG info remote mass text;
+	A '/ 100; [VHGinfofixedvalue] = A; [VHGinfofixeddigits] = 4;
+	A = [VHGinfomassscaled]; ? A < 1000000000 -> VHG info remote mass text;
+	A '/ 1000; [VHGinfofixedvalue] = A; [VHGinfofixeddigits] = 3;
+    "VHG info remote mass text"
+	=> VHG info append fixed; [VHGonrowsrc] = VHGinfobalm;
+	=> VHG onboard row append text;
+    "VHG info remote radius pad"
+	A = [VHGonrowpos]; ? A >= 16 -> VHG info remote radius field;
+	=> VHG onboard row append space; -> VHG info remote radius pad;
+    "VHG info remote radius field"
+	A = [VHGinforayscaled]; ? A >= 100000 -> VHG info remote radius one pad;
+	=> VHG onboard row append space;
+    "VHG info remote radius one pad"
+	A = [VHGinforayscaled]; ? A >= 1000000 -> VHG info remote radius text;
+	=> VHG onboard row append space;
+    "VHG info remote radius text"
+	[VHGinfofixedvalue] = [VHGinforayscaled]; [VHGinfofixeddigits] = 4;
+	=> VHG info append fixed; => VHG onboard row finish;
+	( Surface temperature is derived from that same corrected primary mass. )
+	[FA0] = 0ED80A18h; [FA1] = 3F03EC46h;
+	[FB0] = [VHGinforay0]; [FB1] = [VHGinforay1]; => FMul;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FA0] = [VHGinfomass0]; [FA1] = [VHGinfomass1];
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FQuo;
+	A = [VHTclass]; ? A != 6 -> VHG info remote temperature ready;
+	[FB0] = 01A36E2Fh; [FB1] = 3F6205BCh; => FMul;
+    "VHG info remote temperature ready"
+	[VHGinfotemp0] = [FA0]; [VHGinfotemp1] = [FA1];
+	[FB0] = 66666666h; [FB1] = 40711266h; => FAdd; => FToIntNear;
+	[VHGinfotempk] = [FI];
+	[FA0] = [VHGinfotemp0]; [FA1] = [VHGinfotemp1]; => FToIntNear;
+	[VHGinfotempc] = [FI];
+	[FA0] = [VHGinfotemp0]; [FA1] = [VHGinfotemp1];
+	[FB0] = CCCCCCCDh; [FB1] = 3FFCCCCCh; => FMul;
+	[FB0] = 00000000h; [FB1] = 40400000h; => FAdd; => FToIntNear;
+	[VHGinfotempf] = [FI];
+	[VHGonrowdst] = VHGinfostarvalues; => VHG onboard row begin;
+	[VHGonrowvalue] = [VHGinfotempk]; => VHG onboard row append number;
+	[VHGonrowsrc] = VHGinfokelvin; => VHG onboard row append text;
+	[VHGonrowvalue] = [VHGinfotempc]; => VHG onboard row append number;
+	[VHGonrowsrc] = VHGinfocelsius; => VHG onboard row append text;
+	[VHGonrowvalue] = [VHGinfotempf]; => VHG onboard row append number;
+	[VHGonrowsrc] = VHGinfofahrenheit; => VHG onboard row append text;
+	=> VHG onboard row finish; => VHG fpu clean;
+	end;
+
+"VHG info format local source"
+	( Recreate the source rotation period stream for the selected local target. )
+	[VHGNDplanet] = [VHGlocaltarget]; => VHGND rotation seed;
+	[FB0] = [VHGNDseedval0]; [FB1] = [VHGNDseedval1];
+	=> GeoAdd4112ChopLive; A = [FI]; => SU fast srand;
+	C = 50; => SU rfr; A = C; A + 1; A '* 10; [VHGNDperiod] = A;
+	C = 25; => SU rfr; A = C; A '* 10; A + [VHGNDperiod]; [VHGNDperiod] = A;
+	C = 250; => SU rfr; A = C; A + [VHGNDperiod]; A + 41;
+	[VHGNDperiod] = A; A '* 360; [VHGinfolocalperiod] = A;
+	[VHGonrowdst] = VHGinforotationvalues; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGinfotriads; => VHG onboard row append text;
+	A = [VHGinfolocalperiod]; A '/ 1000000; [VHGonrowvalue] = A;
+	=> VHG onboard row append triad; [VHGonrowsrc] = VHGinfocolon;
+	=> VHG onboard row append text;
+	A = [VHGinfolocalperiod]; A '/ 1000; A '% 1000; [VHGonrowvalue] = A;
+	=> VHG onboard row append triad; [VHGonrowsrc] = VHGinfocolon;
+	=> VHG onboard row append text;
+	A = [VHGinfolocalperiod]; A '% 1000; [VHGonrowvalue] = A;
+	=> VHG onboard row append triad; => VHG onboard row finish;
+	( rtp(): 360 / sqrt(primary_mass / orbital_radius^2), narrowed
+	  through its float return before the source EPOC/triad decomposition. )
+	=> VHG fpu clean; A = [VHGlocaltarget]; A < 1; E = nsporbray; E + A;
+	[FA0] = [E plus 0]; [FA1] = [E plus 1];
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	E = nspowner; E + [VHGlocaltarget]; A = [E];
+	? A >= 0 -> VHG info local revolution moon mass;
+	[FS0] = [VHTRay]; => FLoadF32;
+	[VHGinfomass0] = [FA0]; [VHGinfomass1] = [FA1];
+	[FB0] = [VHGinfomass0]; [FB1] = [VHGinfomass1]; => FMul;
+	[FB0] = [VHGinfomass0]; [FB1] = [VHGinfomass1]; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FMul;
+	[FB0] = E826D695h; [FB1] = 3E112E0Bh; => FMul;
+	-> VHG info local revolution mass ready;
+    "VHG info local revolution moon mass"
+	A < 1; E = nspray; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
+	[VHGinfomass0] = [FA0]; [VHGinfomass1] = [FA1];
+	[FB0] = [VHGinfomass0]; [FB1] = [VHGinfomass1]; => FMul;
+	[FB0] = [VHGinfomass0]; [FB1] = [VHGinfomass1]; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FMul;
+	[FB0] = 7CFA26A2h; [FB1] = 3F071194h; => FMul;
+    "VHG info local revolution mass ready"
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FQuo; => FSqrt;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FA0] = 00000000h; [FA1] = 40768000h;
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FQuo;
+	=> F32Narrow; => FLoadF32; [VHGinforev0] = [FA0]; [VHGinforev1] = [FA1];
+	[FB0] = E826D695h; [FB1] = 3E112E0Bh; => FMul; => FToIntChop;
+	[VHGinforevepoc] = [FI];
+	[FA0] = [VHGinforev0]; [FA1] = [VHGinforev1];
+	[FB0] = A0B5ED8Dh; [FB1] = 3EB0C6F7h; => FMul; => FToIntChop;
+	A = [FI]; A '% 1000; [VHGinforevtriad1] = A;
+	[FA0] = [VHGinforev0]; [FA1] = [VHGinforev1];
+	[FB0] = D2F1A9FCh; [FB1] = 3F50624Dh; => FMul; => FToIntChop;
+	A = [FI]; A '% 1000; [VHGinforevtriad2] = A;
+	[FA0] = [VHGinforev0]; [FA1] = [VHGinforev1]; => FToIntChop;
+	A = [FI]; A '% 1000; [VHGinforevtriad3] = A;
+	[VHGonrowdst] = VHGinforevolutionvalues; => VHG onboard row begin;
+	[VHGonrowvalue] = [VHGinforevepoc]; => VHG onboard row append number;
+	[VHGonrowsrc] = VHGinfoepocs; => VHG onboard row append text;
+	[VHGonrowvalue] = [VHGinforevtriad1]; => VHG onboard row append triad;
+	[VHGonrowsrc] = VHGinfocolon; => VHG onboard row append text;
+	A = [VHGinforevepoc]; ? A >= 2047 -> VHG info local revolution two unknown;
+	[VHGonrowvalue] = [VHGinforevtriad2]; => VHG onboard row append triad;
+	[VHGonrowsrc] = VHGinfocolon; => VHG onboard row append text;
+	A = [VHGinforevepoc]; ? A >= 2 -> VHG info local revolution one unknown;
+	[VHGonrowvalue] = [VHGinforevtriad3]; => VHG onboard row append triad;
+	-> VHG info local revolution text done;
+    "VHG info local revolution two unknown"
+	[VHGonrowsrc] = VHGinfoqtriad; => VHG onboard row append text;
+	[VHGonrowsrc] = VHGinfocolon; => VHG onboard row append text;
+    "VHG info local revolution one unknown"
+	[VHGonrowsrc] = VHGinfoqtriad; => VHG onboard row append text;
+    "VHG info local revolution text done"
+	=> VHG onboard row finish;
+	( Type and radius share the source's final two rows. )
+	=> VHG info select local type;
+	[VHGonrowdst] = VHGinfolocaltypeline; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGinforadiuslabel; => VHG onboard row append text;
+	[VHGonrowsrc] = [VHGinfolocaltypeptr]; => VHG onboard row append text;
+	=> VHG onboard row finish;
+	A = [VHGlocaltarget]; A < 1; E = nspray; E + A;
+	[FA0] = [E plus 0]; [FA1] = [E plus 1]; [FC0] = [FA0]; [FC1] = [FA1];
+	[FI] = 10000; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FC0]; [FA1] = [FC1]; => FMul; => FToIntNear;
+	[VHGinforayscaled] = [FI]; [VHGonrowdst] = VHGinfolocalradiusline;
+	=> VHG onboard row begin;
+    "VHG info local radius base pad"
+	A = [VHGonrowpos]; ? A >= 16 -> VHG info local radius extra pad;
+	=> VHG onboard row append space; -> VHG info local radius base pad;
+    "VHG info local radius extra pad"
+	A = [VHGinforayscaled]; ? A >= 100000 -> VHG info local radius one pad;
+	=> VHG onboard row append space;
+    "VHG info local radius one pad"
+	A = [VHGinforayscaled]; ? A >= 1000000 -> VHG info local radius text;
+	=> VHG onboard row append space;
+    "VHG info local radius text"
+	[VHGinfofixedvalue] = [VHGinforayscaled]; [VHGinfofixeddigits] = 4;
+	=> VHG info append fixed; => VHG onboard row finish; => VHG fpu clean;
+	end;
+
+"VHG info select local type"
+	[VHGinfolocaltypeptr] = VHGinfotype0; E = nsptype; E + [VHGlocaltarget]; A = [E];
+	? A = 0 -> VHG info select local type done; ? A = 1 -> VHG info local type 1;
+	? A = 2 -> VHG info local type 2; ? A = 3 -> VHG info local type 3;
+	? A = 4 -> VHG info local type 4; ? A = 5 -> VHG info local type 5;
+	? A = 6 -> VHG info local type 6; ? A = 7 -> VHG info local type 7;
+	? A = 8 -> VHG info local type 8; ? A = 9 -> VHG info local type 9;
+	? A = 10 -> VHG info local type 10; -> VHG info select local type done;
+    "VHG info local type 1"
+	[VHGinfolocaltypeptr] = VHGinfotype1; -> VHG info select local type done;
+    "VHG info local type 2"
+	[VHGinfolocaltypeptr] = VHGinfotype2; -> VHG info select local type done;
+    "VHG info local type 3"
+	[VHGinfolocaltypeptr] = VHGinfotype3; -> VHG info select local type done;
+    "VHG info local type 4"
+	[VHGinfolocaltypeptr] = VHGinfotype4; -> VHG info select local type done;
+    "VHG info local type 5"
+	[VHGinfolocaltypeptr] = VHGinfotype5; -> VHG info select local type done;
+    "VHG info local type 6"
+	[VHGinfolocaltypeptr] = VHGinfotype6; -> VHG info select local type done;
+    "VHG info local type 7"
+	[VHGinfolocaltypeptr] = VHGinfotype7; -> VHG info select local type done;
+    "VHG info local type 8"
+	[VHGinfolocaltypeptr] = VHGinfotype8; -> VHG info select local type done;
+    "VHG info local type 9"
+	[VHGinfolocaltypeptr] = VHGinfotype9; -> VHG info select local type done;
+    "VHG info local type 10"
+	[VHGinfolocaltypeptr] = VHGinfotype10;
+    "VHG info select local type done"
+	end;
+
+"VHG info format environment source"
+	( Recreate dsd from the live Stardrifter and current near-star position. )
+	=> VHG fpu clean;
+	[FC0] = [MgDzatX0]; [FC1] = [MgDzatX1]; [FI] = [VHTtx]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FC0] = [MgDzatY0]; [FC1] = [MgDzatY1]; [FI] = [VHTty]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FAdd;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FC0] = [MgDzatZ0]; [FC1] = [MgDzatZ1]; [FI] = [VHTtz]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FAdd; => FSqrt;
+	[VHGinfodistance0] = [FA0]; [VHGinfodistance1] = [FA1]; [FI] = 1; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinfodistance0]; [FA1] = [VHGinfodistance1]; => FAdd;
+	[VHGinfodistance0] = [FA0]; [VHGinfodistance1] = [FA1];
+	( data case 3: fast_srand(secs/2), then (16-dsd*.044)*abs(...). Eclipse
+	  remains zero until the local-body occlusion pass is connected. )
+	A = [VHGutcsecs]; A '/ 2; => SU fast srand;
+	[FA0] = [VHGinfodistance0]; [FA1] = [VHGinfodistance1];
+	[FB0] = 020C49BAh; [FB1] = 3FA6872Bh; => FMul;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FI] = 16; => IntToF; [FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FSub;
+	[VHGinfoenvironment0] = [FA0]; [VHGinfoenvironment1] = [FA1];
+	=> FAbs; [FB0] = [VHGinfoenvironment0]; [FB1] = [VHGinfoenvironment1]; => FMul;
+	[VHGinfoenvironment0] = [FA0]; [VHGinfoenvironment1] = [FA1];
+	A = 0; A - 269; [FI] = A; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinfoenvironment0]; [FA1] = [VHGinfoenvironment1]; => FCmp;
+	A = [FI]; ? A >= 0 -> VHG info environment temperature ready;
+	[SUfmask] = 7FFFh; => SU fast raw; [FI] = [SUfval]; => IntToF;
+	[FB0] = 7EDA0BE1h; [FB1] = 3F00000Eh; => FMul;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1]; [FI] = 269; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinfofactor0]; [FA1] = [VHGinfofactor1]; => FSub;
+	[VHGinfoenvironment0] = [FA0]; [VHGinfoenvironment1] = [FA1];
+    "VHG info environment temperature ready"
+	( Kelvin row. )
+	[FA0] = [VHGinfoenvironment0]; [FA1] = [VHGinfoenvironment1];
+	[FB0] = 66666666h; [FB1] = 40711266h; => FAdd;
+	[FC0] = [FA0]; [FC1] = [FA1]; [FI] = 100; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1];
+	=> FMul; => FToIntNear; [VHGinfofixedvalue] = [FI];
+	[VHGonrowdst] = VHGinfoenvtempk; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGinfotempprefix; => VHG onboard row append text;
+	[VHGinfofixeddigits] = 2; => VHG info append fixed;
+	[VHGonrowsrc] = VHGinfokelvinunit; => VHG onboard row append text; => VHG onboard row finish;
+	( Celsius row. )
+	[FA0] = [VHGinfoenvironment0]; [FA1] = [VHGinfoenvironment1];
+	[FC0] = [FA0]; [FC1] = [FA1]; [FI] = 100; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1];
+	=> FMul; => FToIntNear; [VHGinfofixedvalue] = [FI];
+	[VHGonrowdst] = VHGinfoenvtempc; => VHG onboard row begin; [VHGinfoindent] = 6;
+    "VHG info environment celsius indent"
+	=> VHG onboard row append space; [VHGinfoindent]-; A = [VHGinfoindent];
+	? A > 0 -> VHG info environment celsius indent;
+	[VHGinfofixeddigits] = 2; => VHG info append fixed;
+	[VHGonrowsrc] = VHGinfocelsiusunit; => VHG onboard row append text; => VHG onboard row finish;
+	( Fahrenheit row. )
+	[FA0] = [VHGinfoenvironment0]; [FA1] = [VHGinfoenvironment1];
+	[FB0] = CCCCCCCDh; [FB1] = 3FFCCCCCh; => FMul;
+	[FB0] = 00000000h; [FB1] = 40400000h; => FAdd;
+	[FC0] = [FA0]; [FC1] = [FA1]; [FI] = 100; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1];
+	=> FMul; => FToIntNear; [VHGinfofixedvalue] = [FI];
+	[VHGonrowdst] = VHGinfoenvtempf; => VHG onboard row begin; [VHGinfoindent] = 6;
+    "VHG info environment fahrenheit indent"
+	=> VHG onboard row append space; [VHGinfoindent]-; A = [VHGinfoindent];
+	? A > 0 -> VHG info environment fahrenheit indent;
+	[VHGinfofixeddigits] = 2; => VHG info append fixed;
+	[VHGonrowsrc] = VHGinfofahrenheitunit; => VHG onboard row append text; => VHG onboard row finish;
+	( Lithium ions and radiation share the source's identity-seeded Borland
+	  stream; only class 5/6 consume the ion draw before radiation. )
+	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FToIntChop; A = [FI]; => BrtlSrand;
+	[VHGinfoions] = 0; A = [VHTclass]; ? A = 5 -> VHG info environment ion class5;
+	? A = 6 -> VHG info environment ion class6; -> VHG info environment ions ready;
+    "VHG info environment ion class5"
+	A = 50; => BrtlRandom; [VHGinfoions] = A; [FI] = 125; -> VHG info environment ion penalty;
+    "VHG info environment ion class6"
+	A = 50; => BrtlRandom; [VHGinfoions] = A; [FI] = 25;
+    "VHG info environment ion penalty"
+	=> IntToF; [FB0] = [VHGinfodistance0]; [FB1] = [VHGinfodistance1]; => FQuo;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FI] = [VHGinfoions]; => IntToF;
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FSub; => FToIntChop;
+	[VHGinfoions] = [FI]; A = [VHTclass]; ? A != 5 -> VHG info environment ions ready;
+	A = [VHGinfoions]; ? A > 0 -> VHG info environment ions ready; [VHGinfoions] = 1;
+    "VHG info environment ions ready"
+	[VHGonrowdst] = VHGinfoenvions; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGinfoionsprefix; => VHG onboard row append text;
+	[VHGonrowvalue] = [VHGinfoions]; => VHG onboard row append number;
+	[VHGonrowsrc] = VHGinfoionssuffix; => VHG onboard row append text; => VHG onboard row finish;
+	A = 10; => BrtlRandom; C = A; A = 10; => BrtlRandom;
+	C - A; C + 50; [FI] = C; => IntToF;
+	[VHGinforadiation0] = [FA0]; [VHGinforadiation1] = [FA1];
+	[FI] = 100; => IntToF;
+	[FB0] = [VHGinfodistance0]; [FB1] = [VHGinfodistance1]; => FQuo;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinforadiation0]; [FA1] = [VHGinforadiation1]; => FMul;
+	[VHGinforadiation0] = [FA0]; [VHGinforadiation1] = [FA1];
+	=> VHG info environment radiation class;
+	( Per-second source jitter. )
+	A = [VHGutcsecs]; => BrtlSrand; A = 100; => BrtlRandom; C = A;
+	A = 100; => BrtlRandom; C - A; [FI] = C; => IntToF;
+	[FB0] = D2F1A9FCh; [FB1] = 3F50624Dh; => FMul;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1]; [FI] = 1; => IntToF;
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FAdd;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinforadiation0]; [FA1] = [VHGinforadiation1]; => FMul;
+	[FC0] = [FA0]; [FC1] = [FA1]; [FI] = 10; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1];
+	=> FMul; => FToIntNear; [VHGinforadiationscaled] = [FI];
+	[VHGonrowdst] = VHGinfoenvradiation; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGinforadiationprefix; => VHG onboard row append text;
+	[VHGinfofixedvalue] = [VHGinforadiationscaled]; [VHGinfofixeddigits] = 1;
+	=> VHG info append fixed;
+	[VHGonrowsrc] = VHGinforadiationsuffix; => VHG onboard row append text;
+	=> VHG onboard row finish; => VHG fpu clean;
+	end;
+
+"VHG info environment radiation class"
+	[VHGinfomassfactor] = 1; A = [VHTclass];
+	? A = 11 -> VHG info environment radiation class11;
+	? A = 10 -> VHG info environment radiation quarter;
+	? A = 9 -> VHG info environment radiation class9;
+	? A = 8 -> VHG info environment radiation onehalf;
+	? A = 7 -> VHG info environment radiation class7;
+	? A = 6 -> VHG info environment radiation hundredth;
+	? A = 5 -> VHG info environment radiation tenth;
+	? A = 4 -> VHG info environment radiation class4;
+	? A = 3 -> VHG info environment radiation half;
+	? A = 2 -> VHG info environment radiation class2;
+	? A = 1 -> VHG info environment radiation class1;
+	-> VHG info environment radiation integer;
+    "VHG info environment radiation class11"
+	[VHGinfomassfactor] = 50; A = [VHTphase]; ? A >= 90 -> VHG info environment radiation integer;
+	A = 50; => BrtlRandom; A + 75; [VHGinfomassfactor] = A; -> VHG info environment radiation integer;
+    "VHG info environment radiation class9"
+	[VHGinfomassfactor] = 3; -> VHG info environment radiation integer;
+    "VHG info environment radiation class7"
+	[VHGinfomassfactor] = 25; -> VHG info environment radiation integer;
+    "VHG info environment radiation class4"
+	[VHGinfomassfactor] = 10; -> VHG info environment radiation integer;
+    "VHG info environment radiation class2"
+	[VHGinfomassfactor] = 18; -> VHG info environment radiation integer;
+    "VHG info environment radiation class1"
+	[VHGinfomassfactor] = 5;
+    "VHG info environment radiation integer"
+	[FA0] = [VHGinforadiation0]; [FA1] = [VHGinforadiation1];
+	[FI] = [VHGinfomassfactor]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinforadiation0]; [FA1] = [VHGinforadiation1]; => FMul;
+	-> VHG info environment radiation store;
+    "VHG info environment radiation quarter"
+	[FA0] = [VHGinforadiation0]; [FA1] = [VHGinforadiation1];
+	[FB0] = 00000000h; [FB1] = 3FD00000h; => FMul; -> VHG info environment radiation store;
+    "VHG info environment radiation onehalf"
+	[FA0] = [VHGinforadiation0]; [FA1] = [VHGinforadiation1];
+	[FB0] = 00000000h; [FB1] = 3FF80000h; => FMul; -> VHG info environment radiation store;
+    "VHG info environment radiation hundredth"
+	[FA0] = [VHGinforadiation0]; [FA1] = [VHGinforadiation1];
+	[FB0] = 47AE147Bh; [FB1] = 3F847AE1h; => FMul; -> VHG info environment radiation store;
+    "VHG info environment radiation tenth"
+	[FA0] = [VHGinforadiation0]; [FA1] = [VHGinforadiation1];
+	[FB0] = 9999999Ah; [FB1] = 3FB99999h; => FMul; -> VHG info environment radiation store;
+    "VHG info environment radiation half"
+	[FA0] = [VHGinforadiation0]; [FA1] = [VHGinforadiation1];
+	[FB0] = 00000000h; [FB1] = 3FE00000h; => FMul;
+    "VHG info environment radiation store"
+	[VHGinforadiation0] = [FA0]; [VHGinforadiation1] = [FA1];
 	end;
 
 "VHG info format common"

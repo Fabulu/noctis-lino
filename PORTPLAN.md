@@ -189,10 +189,15 @@ first -- a broken foundation makes every later result meaningless.
   `(scroll/4)-1` text reveal, and 3x5 HUD glyphs. The live Stardrifter remains
   visible around the card, the local sheet reports `LOCAL TARGET NOT SET` when
   appropriate, the remote sheet distinguishes no target and direct Parsis
-  targets, and the fourth I edge slides the card closed. The next data-sheet
-  fidelity slice still needs the original remote mass/temperature and
-  environment temperature/ion/radiation calculations; the current live values
-  are not claimed as exact equivalents of those metrics.
+  targets, and the fourth I edge slides the card closed. The remote sheet now
+  evaluates the class-corrected `0.001*pi*ray^3` primary mass, class-8/9
+  fast-random distortion, radius, surface temperature, and estimated bodies.
+  The local sheet restores the generated rotation triads, `rtp()` revolution
+  EPOCs/triads, source type names, and radius. The environment sheet restores
+  live K/C/F temperature, lithium-ion estimates, and class-scaled radiation
+  with the original identity/time random streams. Environment data currently
+  assumes zero eclipse; connecting the original projected local-body occlusion
+  term is the remaining calculation on these three sheets.
 - Ship-mode R now opens the original miscellaneous-device page with its 6-9
   keyboard commands. Command 6 changes the live halogen fixture between the
   source's +1/-1 color states, suppresses its flare while off, and consumes one
