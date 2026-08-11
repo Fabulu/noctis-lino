@@ -197,7 +197,9 @@
 	VHGsurfsmoothden = 0;
 	VHGsurfground = 0; VHGsurfvy = 0; VHGsurfaccel = 1;
 	VHGsurfair = 0; VHGsurfjet = 0;
-	VHGsurfacefixed = 0;
+	VHGsurfacefixed = 0; VHGsurfstep = 0; VHGsurfshift = 0; VHGsurfbeta = 0;
+	VHGsurfrefx = 0; VHGsurfrefz = 0; VHGsurfoldground = 0; VHGsurfnewground = 0;
+	VHGsurfuphillq = 0; VHGsurftiredr = 0; VHGsurfradius = 0; VHGsurfscale = 0;
 	VHGkindi = 0;
 	VHGinfo = 0; VHGinfoheld = 0; VHGinfoy = 0; VHGinfoline = 0; VHGinfovalue = 0;
 	VHGinfoscroll = 0; VHGinfodelta = 0; VHGinfowidth = 0; VHGinfomax = 0;
@@ -3297,10 +3299,6 @@
 	-> VHG surface look;
 "VHG surface look"
 	A = [VHGdosim]; ? A = 0 -> VHG surface input done;
-	( Original tiredness decays every surface tick and rises with absolute
-	  walking speed. Keep it in Q10000 for the live pulse readout. )
-	A = [VHGsurftiredq]; A '* 9977; A '/ 10000;
-	C = [VHGNDplayerstep]; C '/ 100; A + C; [VHGsurftiredq] = A;
 	A = [KEY LEFT]; ? A = OFF -> VHG surface no left; A = [VHGbeta]; A + 2; [VHGbeta] = A;
     "VHG surface no left"
 	A = [KEY RIGHT]; ? A = OFF -> VHG surface no right; A = [VHGbeta]; A - 2; [VHGbeta] = A;
@@ -3318,10 +3316,10 @@
 	A = [VHGbeta]; ? A >= VHGN180 -> VHG surface beta low; A + 360; [VHGbeta] = A;
     "VHG surface beta low"
 	A = [VHGlanded]; ? A = 0 -> VHG surface input done;
-	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
-	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
-	[VHGNDplayerstep] = [VHGsurfacefixed]; [VHGstepv] = [VHGsurfacefixed];
-	A = [VHGstepv]; ? A = 0 -> VHG surface cruise moved; => VHG forward;
+	( NOCTIS-1.CPP:3783-3900 accumulates input into retained forward and
+	  lateral motion. Movement, friction, slope resistance, and the launch
+	  heading are applied together after all input has been sampled. )
+	A = [VHGsurfstep]; A + [VHGsurfacefixed]; [VHGsurfstep] = A;
     "VHG surface cruise moved"
 	( NOCTIS-1.CPP adds 75 source units while the left mouse button is held
 	  during ordinary surface walking. Keep the port's established eightfold
@@ -3334,34 +3332,24 @@
 	A = [Pointer Y Coordinate]; ? A < [VHGUItop] -> VHG surface mouse moved;
 	C = [VHGUItop]; C + [VHGUIdh]; ? A '>= C -> VHG surface mouse moved;
 	A = [Pointer Status]; ? A - PD LEFT BUTTON DOWN -> VHG surface mouse moved;
-	[VHGstepv] = VHGNDSTEP;
-	A = [VHGNDplayerstep]; A + [VHGstepv]; [VHGNDplayerstep] = A; => VHG forward;
+	A = [VHGsurfstep]; A + VHGNDSTEP; [VHGsurfstep] = A;
     "VHG surface mouse moved"
 	[VHGstepv] = VHGNDSTEP;
 	A = [KEY CONTROL]; ? A = OFF -> VHG surface pace ready; [VHGstepv] = VHGNDSTALK;
     "VHG surface pace ready"
 	A = [KEY W]; ? A = OFF -> VHG surface no W;
-	A = [VHGNDplayerstep]; A + [VHGstepv]; [VHGNDplayerstep] = A; => VHG forward;
+	A = [VHGsurfstep]; A + [VHGstepv]; [VHGsurfstep] = A;
     "VHG surface no W"
 	A = [KEY S]; ? A = OFF -> VHG surface no S;
-	A = [VHGNDplayerstep]; A - [VHGstepv]; [VHGNDplayerstep] = A;
-	A = 0; A - [VHGstepv]; [VHGstepv] = A; => VHG forward;
+	A = [VHGsurfstep]; A - [VHGstepv]; [VHGsurfstep] = A;
     "VHG surface no S"
 	A = [KEY A]; ? A = OFF -> VHG surface no A;
-	A = [VHGstepv]; ? A >= 0 -> VHG surface A pace ready; C = 0; C - A; A = C;
-    "VHG surface A pace ready"
-	[VHGNDplayerstep] = A; C = 0; C - A; [VHGstepv] = C; => VHG strafe;
+	A = [VHGsurfshift]; A - [VHGstepv]; [VHGsurfshift] = A;
     "VHG surface no A"
 	A = [KEY D]; ? A = OFF -> VHG surface moved;
-	A = [VHGstepv]; ? A >= 0 -> VHG surface D pace ready; C = 0; C - A; A = C;
-    "VHG surface D pace ready"
-	[VHGNDplayerstep] = A; [VHGstepv] = A; => VHG strafe;
+	A = [VHGsurfshift]; A + [VHGstepv]; [VHGsurfshift] = A;
     "VHG surface moved"
-	A = [VHGNDplayerstep]; ? A >= 0 -> VHG surface speed absolute;
-	C = 0; C - A; A = C;
-    "VHG surface speed absolute"
-	[VHGNDplayerstep] = A;
-	=> VHG surface clamp;
+	=> VHG surface motion;
 	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
 	[VHGsurfground] = [VHGNDheight]; => VHG surface vertical;
     "VHG surface input done"
@@ -3403,6 +3391,62 @@
     "VHG surface vertical grounded"
 	[VHGy] = [VHGsurfground]; [VHGsurfvy] = 0;
     "VHG surface vertical done"
+	end;
+
+"VHG surface motion"
+	( Exact source ordering: retain the movement heading while airborne,
+	  move with the old velocity, apply ground friction, then undo and replay
+	  a steep uphill step with its reduced velocity. )
+	A = [VHGsurfair]; ? A != 0 -> VHG surface heading ready;
+	[VHGsurfbeta] = [VHGbeta];
+    "VHG surface heading ready"
+	[VHGsurfrefx] = [VHGx]; [VHGsurfrefz] = [VHGz];
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGsurfoldground] = [VHGNDheight];
+	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
+	[VHValpha] = 0; [VHVbeta] = [VHGsurfbeta]; => VH set view;
+	[VHGstepv] = [VHGsurfshift]; => VHG strafe;
+	[VHGstepv] = [VHGsurfstep]; => VHG forward;
+	A = [VHGsurfair]; ? A != 0 -> VHG surface friction done;
+	A = [VHGsurfshift]; A '* 2; A '/ 3; [VHGsurfshift] = A;
+	? A >= 0 -> VHG surface shift absolute; C = 0; C - A; A = C;
+    "VHG surface shift absolute"
+	? A >= 4 -> VHG surface shift retained; [VHGsurfshift] = 0;
+    "VHG surface shift retained"
+	A = [VHGsurfstep]; A '* 4; A '/ 5; [VHGsurfstep] = A;
+	? A >= 0 -> VHG surface step absolute friction; C = 0; C - A; A = C;
+    "VHG surface step absolute friction"
+	? A >= 4 -> VHG surface friction done; [VHGsurfstep] = 0;
+    "VHG surface friction done"
+	A = [VHGsurfair]; ? A != 0 -> VHG surface slope done;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGsurfnewground] = [VHGNDheight];
+	A = [VHGsurfoldground]; A - [VHGsurfnewground];
+	A '* [VHGsurfgravm]; A '* 12; A '/ 100; A - 24000;
+	? A <= 0 -> VHG surface slope done; ? A <= 10000 -> VHG surface slope square; A = 10000;
+	-> VHG surface slope factor ready;
+    "VHG surface slope square"
+	C = A; A '* C; A '/ 10000;
+    "VHG surface slope factor ready"
+	[VHGsurfuphillq] = A; C = 10000; C - A;
+	A = [VHGsurfshift]; A '* C; A '/ 10000; [VHGsurfshift] = A;
+	A = [VHGsurfstep]; A '* C; A '/ 10000; [VHGsurfstep] = A;
+	[VHGx] = [VHGsurfrefx]; [VHGz] = [VHGsurfrefz];
+	[VHGstepv] = [VHGsurfshift]; => VHG strafe;
+	[VHGstepv] = [VHGsurfstep]; => VHG forward;
+    "VHG surface slope done"
+	( Q10000 tiredness uses the source's retained forward step. The remainder
+	  preserves sub-unit rises after converting from the eightfold port scale. )
+	A = [VHGsurftiredq]; A '* 9977; A '/ 10000; [VHGsurftiredq] = A;
+	A = [VHGsurfstep]; ? A >= 0 -> VHG surface speed absolute; C = 0; C - A; A = C;
+    "VHG surface speed absolute"
+	[VHGNDplayerstep] = A; A + [VHGsurftiredr]; C = A; A '/ 800;
+	A + [VHGsurftiredq]; [VHGsurftiredq] = A;
+	A = C; A '% 800; [VHGsurftiredr] = A;
+	=> VHG surface clamp;
+	( Restore the visible camera basis for any input work after this routine. )
+	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
+	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
 	end;
     "VHG quit"
 	[VHGesc] = 1;
@@ -6411,14 +6455,27 @@
 	end;
 
 "VHG surface clamp"
-	A = [VHGx]; ? A '>= VHGNDLO -> VHG surface x low; [VHGx] = VHGNDLO;
-    "VHG surface x low"
-	A = [VHGx]; ? A '<= VHGNDHI -> VHG surface x high; [VHGx] = VHGNDHI;
-    "VHG surface x high"
-	A = [VHGz]; ? A '>= VHGNDLO -> VHG surface z low; [VHGz] = VHGNDLO;
-    "VHG surface z low"
-	A = [VHGz]; ? A '<= VHGNDHI -> VHG surface z high; [VHGz] = VHGNDHI;
-    "VHG surface z high"
+	( NOCTIS-1.CPP:3903-3918 uses a circular boundary centered on the map.
+	  It is wider while walking and contracts during a jump or jetpack flight. )
+	A = [VHGx]; A - 1638400; [VHGdx] = A; [FI] = A; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul; [FT0] = [FA0]; [FT1] = [FA1];
+	A = [VHGz]; A - 1638400; [VHGdz] = A; [FI] = A; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => FSqrt; => FToIntNear;
+	[VHGdist] = [FI]; [VHGsurfradius] = 1500000;
+	A = [VHGsurfair]; ? A = 0 -> VHG surface radius ready; [VHGsurfradius] = 750000;
+    "VHG surface radius ready"
+	A = [VHGdist]; ? A <= [VHGsurfradius] -> VHG surface clamp done;
+	A - [VHGsurfradius]; C = 1000000; C - A; ? C >= 0 -> VHG surface scale ready; C = 0;
+    "VHG surface scale ready"
+	[VHGsurfscale] = C; [FI] = C; => IntToF; [FC0] = [FA0]; [FC1] = [FA1];
+	[FI] = 1000000; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FC0]; [FA1] = [FC1]; => FQuo; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHGdx]; => IntToF; [FB0] = [FT0]; [FB1] = [FT1]; => FMul; => FToIntNear;
+	A = [FI]; A + 1638400; [VHGx] = A;
+	[FI] = [VHGdz]; => IntToF; [FB0] = [FT0]; [FB1] = [FT1]; => FMul; => FToIntNear;
+	A = [FI]; A + 1638400; [VHGz] = A;
+    "VHG surface clamp done"
 	end;
 
 "VHG fps init"
@@ -6594,6 +6651,8 @@
 
 "VHG surface motion reset"
 	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
+	[VHGsurfstep] = 0; [VHGsurfshift] = 0; [VHGsurfbeta] = [VHGbeta];
+	[VHGsurftiredr] = 0; [VHGNDplayerstep] = 0;
 	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
 	[VHGsurfground] = [VHGNDheight]; [VHGy] = [VHGsurfground];
 	end;

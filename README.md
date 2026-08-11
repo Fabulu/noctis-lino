@@ -42,7 +42,11 @@ R returns from the capsule, surface digits 1-9 toggle source-style forward
 cruise speeds and 0 stops cruise, F2 opens the original visual-effects settings,
 Page Up/Page Down open and close the visor, F5 opts into 60 FPS presentation (the original
 18.2 FPS mode is the default); player movement, flight, roof-lift, and capsule
-poses are interpolated without changing the original simulation rate. `+`/`-` adjust the source HUD brightness,
+poses are interpolated without changing the original simulation rate. Surface
+walking retains Noctis IV's forward and lateral momentum, ground friction,
+uphill resistance, tiredness, and circular exploration limits. Capsule
+settlement begins the landed renderer from a clean authoritative camera pose.
+`+`/`-` adjust the source HUD brightness,
 F6/F7 save and load, F8 toggles music, M or `*`
 saves the next numbered 320x200 BMP under `work\GALLERY`; B, or Delete on a
 surface, saves the raw pre-overlay variant. On a settled

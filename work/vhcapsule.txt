@@ -33,7 +33,7 @@
 	A = [VHGCground]; A - 320000; [VHGy] = A;
 	[VHGmode] = 1; [VHGlanded] = 0; [VHGCstate] = 1; [VHGinterpok] = 0;
 	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
-	[VHGsurfacefixed] = 0;
+	[VHGsurfacefixed] = 0; [VHGsurfstep] = 0; [VHGsurfshift] = 0;
 	[VHGwidephase] = 0; [VHGwidecaptured] = 0;
 	[VHGCcapcount] = 0; [VHGCbounces] = 0; [VHGCrecover] = 0;
 	[VHGCgravity] = 2500; [VHGCaccel] = 80;
@@ -206,6 +206,10 @@
 	A = [VHGCground]; A - 600; [VHGy] = A;
 	[VHGNDdropx] = [VHGx]; [VHGNDdropy] = [VHGCground]; [VHGNDdropz] = [VHGz];
 	[VHGlanded] = 1; [VHGCstate] = 0; [VHGCgravity] = 0;
+	( The walking renderer must begin from the authoritative settled pose.
+	  A 60-Hz presentation frame may still hold the last airborne sample,
+	  which is valid for the broad descent mesh but not the landed LOD grid. )
+	[VHGinterpok] = 0;
 	[VHGsurfground] = [VHGy]; [VHGsurfvy] = 0;
 	[VHGsurfair] = 0; [VHGsurfjet] = 0;
 	[VHGCrecover] = 0; [VHGCcapcount] = 0;

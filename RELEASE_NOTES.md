@@ -46,6 +46,13 @@ parity, not a claim that parity is complete.
 - The authentic 18.206 FPS presentation is the default.
 - F5 opts into the higher presentation rate; simulation remains 18.206 Hz in
   either presentation mode.
+- Capsule settlement now resets the final airborne presentation sample before
+  the landed LOD renderer starts. Optional 60-Hz mode no longer crashes on the
+  first walking frame after a live descent.
+- Surface walking now retains the original forward and lateral momentum,
+  asymmetric ground friction, steep-uphill resistance, tiredness input, and
+  circular landed/airborne exploration limits. WASD, held left-click, and digit
+  cruise all feed that same source-ordered motion.
 - F2 opens the source-equivalent visual-effects card. T toggles passive HUD
   text, F cycles visor-only/always-on/always-off flare reflections, and B
   selects the default or seamless visor border. These choices persist.

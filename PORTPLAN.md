@@ -43,6 +43,20 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Restore source surface momentum and harden capsule settlement
+
+- Replaced direct per-key displacement with the original retained forward and
+  lateral velocities, shared movement heading, asymmetric ground friction,
+  steep-uphill reduction and replay, and speed-derived tiredness.
+- Replaced the port's square map clamp with Noctis IV's circular 1,500,000-unit
+  walking boundary and 750,000-unit airborne boundary around map centre.
+- Fixed a pre-existing optional-60-Hz touchdown crash by invalidating the last
+  airborne interpolation sample when the capsule settles and the renderer
+  switches to its tighter walking LOD grid.
+- Replayed a full native approach and descent in the production build, held W
+  for two seconds after touchdown, and confirmed that the process stayed alive.
+- Pinned the source ordering and constants in the focused gameplay regression.
+
 ### Restore the Xnice queue and close IMPORTGD safely
 
 - Recovered `X.CPP` and `importgd.cpp` from the archived NICE Release 9 source

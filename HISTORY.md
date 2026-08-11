@@ -6,6 +6,27 @@ the integrated game, and what remains. It complements `PLAYTEST.md`, which is
 the detailed evidence log, and `PORTPLAN.md`, which is the technical source of
 truth and remaining-work ledger.
 
+## 2026-08-11 -- source-equivalent surface momentum and safe touchdown
+
+Surface WASD, held left-click walking, and digit cruise originally moved the
+player immediately and discarded velocity at the end of each input sample.
+The integrated loop now follows `NOCTIS-1.CPP`'s retained `step`, `shift`, and
+`directional_beta` ordering. It applies lateral and forward movement through a
+shared heading, uses the original 1/1.5 lateral and 1/1.25 forward ground
+friction, replays steep uphill motion after the source gravity-based reduction,
+accumulates tiredness from the retained forward speed, and restores the
+1,500,000-unit landed and 750,000-unit airborne radial exploration bounds.
+
+The first native landing smoke exposed an older transition crash that also
+reproduced from the previous committed executable. In optional 60-Hz mode, a
+single presentation frame could settle the capsule and then interpolate the
+new walking camera from the preceding airborne sample. That sample was valid
+for the broad descent mesh but could address outside the landed LOD grid,
+causing an access violation before the first settled terrain tile. Capsule
+settlement now invalidates the presentation sample, so the first walking frame
+starts at the authoritative tile-centre pose. The same live landing sequence
+then completed, accepted two seconds of forward input, and remained responsive.
+
 ## 2026-08-11 -- source-build CI/CD path
 
 Hosted CI and real releases were separated. Pull requests and master pushes

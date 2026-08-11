@@ -74,6 +74,25 @@ submitted bare `X`. The executable exited normally with `SECOND SIGNAL` promoted
 to `X.TXT` and no remaining `XBUFF.TXT`. The temporary entry point and generated
 files were removed, and the interactive production executable was rebuilt.
 
+### Native touchdown and retained-movement smoke
+
+On 2026-08-11 the production executable resumed the approached opening system
+in optional 60-Hz mode. Four human-cadence L events completed fine approach,
+opened the physical landing selector, confirmed the site, and began the normal
+visible capsule descent. Before the fix, both the current build and the prior
+committed executable exited with `0xc0000005` on the first settled terrain
+frame. A bounded trace localized the failure after background, local sun, and
+water rendering but before the first landed far-terrain tile.
+
+The cause was the presentation-only transition from the last airborne sample
+to the first settled walking pose. Settlement now invalidates that sample. The
+same production sequence completed touchdown, remained alive for twelve
+seconds, accepted a two-second W hold, and stayed responsive for a further five
+seconds. The process was then stopped by the harness, the real version-11 save
+was restored, and all trace code and files were removed. The focused regression
+also pins the original retained forward/lateral motion, friction, slope replay,
+tiredness, and radial surface limits.
+
 The playable build opens in iGUI under its `Noctis IV` title at 642x426, with
 an exact 640x400 work area presenting the authentic 320x200 framebuffer at 2x.
 New games and capsule returns face into the illuminated Stardrifter interior

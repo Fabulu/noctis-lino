@@ -210,6 +210,19 @@ def surface_cruise(current: int, digit: int) -> int:
     return 0 if current == selected else selected
 
 
+def surface_forward_trace(input_step: int, ticks: int) -> tuple[list[int], int]:
+    """Port-scaled model of source input accumulation and 1/1.25 friction."""
+    velocity = 0
+    displacements = []
+    for _ in range(ticks):
+        velocity += input_step
+        displacements.append(velocity)
+        velocity = int(velocity * 4 / 5)
+        if abs(velocity) < 4:
+            velocity = 0
+    return displacements, velocity
+
+
 def cupola_panel_drop(horizontal_distance: int) -> int:
     """Independent model of NOCTIS-0.CPP's roof-panel displacement."""
     return min(600, max(0, 1000 - horizontal_distance))
@@ -1002,16 +1015,16 @@ def main() -> int:
         and all(token in surface_input for token in (
             '"VHG surface pace key"', "A - 48; A '* VHGNDSTALK; C = A;",
             "A = [VHGsurfacefixed]; ? A = C -> VHG surface pace cancel;",
-            "[VHGNDplayerstep] = [VHGsurfacefixed]; [VHGstepv] = [VHGsurfacefixed];",
-            '"VHG surface cruise moved"', "A + [VHGstepv]; [VHGNDplayerstep] = A;",
-            "A - [VHGstepv]; [VHGNDplayerstep] = A;",
+            "A = [VHGsurfstep]; A + [VHGsurfacefixed]; [VHGsurfstep] = A;",
+            '"VHG surface cruise moved"', "A = [VHGsurfstep]; A + [VHGstepv];",
+            "A = [VHGsurfstep]; A - [VHGstepv];",
             '"VHG surface speed absolute"', "[VHGNDplayerstep] = A;",
         ))
-        and "[VHGsurfacefixed] = 0;" in capsule_physics
+        and "[VHGsurfacefixed] = 0; [VHGsurfstep] = 0; [VHGsurfshift] = 0;" in capsule_physics
         and [surface_cruise(0, digit) for digit in range(10)]
         == [0, 80, 160, 240, 320, 400, 480, 560, 640, 720]
         and surface_cruise(720, 9) == 0,
-        "surface digits restore source fixed-step cruise with additive manual movement",
+        "surface digits feed the retained source fixed-step velocity",
     )
     check(
         all(token in original1 for token in (
@@ -1021,8 +1034,8 @@ def main() -> int:
         and all(token in surface_input for token in (
             "A = [Client Owns Mouse Pointer]; ? A = NO -> VHG surface mouse moved;",
             "A = [Pointer Status]; ? A - PD LEFT BUTTON DOWN -> VHG surface mouse moved;",
-            "[VHGstepv] = VHGNDSTEP;",
-            "A + [VHGstepv]; [VHGNDplayerstep] = A; => VHG forward;",
+            "A = [VHGsurfstep]; A + VHGNDSTEP; [VHGsurfstep] = A;",
+            "A = [VHGsurfshift]; A - [VHGstepv]; [VHGsurfshift] = A;",
         ))
         and all(token in game for token in (
             "A = [KEY DELETE]; ? A = OFF -> VHG raw snapshot delete released;",
@@ -1030,6 +1043,38 @@ def main() -> int:
             '"VHG raw snapshot delete released"', "[VHGdeleteheld] = 0;",
         )),
         "surface left-click walking and Delete raw snapshots restore the source aliases",
+    )
+    surface_motion = section(game, '"VHG surface motion"', '"VHG quit"')
+    surface_clamp = section(game, '"VHG surface clamp"', '"VHG fps init"')
+    held_steps, held_velocity = surface_forward_trace(600, 20)
+    check(
+        all(token in original1 for token in (
+            "alfa = 0; beta = directional_beta - 90;", "p_Forward (shift);",
+            "alfa = 0; beta = directional_beta;", "p_Forward (step);",
+            "shift /= 1.5;", "step /= 1.25;",
+            "drop_x *= hpoint (refx, refz) - hpoint (pos_x, pos_z);",
+            "shift *= 1 - drop_x;", "step *= 1 - drop_x;",
+            "drop_x = pos_x - 1.6384E6;", "maxdfc = 1.5000E6;",
+            "maxdfc = 0.7500E6;", "drop_y *= 0.000001;",
+        ))
+        and all(token in surface_motion for token in (
+            "[VHGsurfbeta] = [VHGbeta];", "[VHGstepv] = [VHGsurfshift]; => VHG strafe;",
+            "[VHGstepv] = [VHGsurfstep]; => VHG forward;",
+            "A = [VHGsurfshift]; A '* 2; A '/ 3;",
+            "A = [VHGsurfstep]; A '* 4; A '/ 5;",
+            "[VHGsurfoldground]", "[VHGsurfnewground]", "A - 24000;",
+            "A '* C; A '/ 10000; [VHGsurfshift] = A;",
+            "A '* C; A '/ 10000; [VHGsurfstep] = A;",
+        ))
+        and all(token in surface_clamp for token in (
+            "A - 1638400; [VHGdx] = A;", "[VHGsurfradius] = 1500000;",
+            "[VHGsurfradius] = 750000;", "C = 1000000; C - A;",
+            "=> FQuo;", "A + 1638400; [VHGx] = A;",
+            "A + 1638400; [VHGz] = A;",
+        ))
+        and held_steps[:4] == [600, 1080, 1464, 1771]
+        and 2350 <= held_velocity <= 2400,
+        "surface traversal restores retained momentum, friction, slope resistance, and radial bounds",
     )
 
     brightness = section(game, '"VHG HUD brightness key"', '"VHG surface input"')
@@ -1548,7 +1593,7 @@ def main() -> int:
         < one_frame.index('=> VHG interpolation apply;')
         and one_frame.index('=> VHG interpolation snapshot;')
         < one_frame.index('=> VHGC tick;')
-        and '[VHGinterpok] = 0;' in CAPSULE.read_text(encoding="utf-8")
+        and '[VHGinterpok] = 0;' in section(capsule_physics, '"VHGC settle"', '"VHGC slope scan"')
         and [signed_lerp(0, 80, phase) for phase in (0, 18206, 36412, 54618, 60000)]
         == [0, 24, 48, 72, 80]
         and [signed_lerp(0, -80, phase) for phase in (0, 18206, 36412, 54618, 60000)]
@@ -2716,7 +2761,7 @@ def main() -> int:
         ))
         and all(token in game for token in (
             "[KEY CONTROL]", "[VHGstepv] = VHGNDSTALK;",
-            "A + [VHGstepv]; [VHGNDplayerstep] = A;",
+            "A = [VHGsurfstep]; A + [VHGstepv]; [VHGsurfstep] = A;",
             "CTRL:STALK", "RMB/ARROWS:LOOK / WASD / 0-9:CRUISE",
             "[VHGNDcaptures] = [VHSVcaptures];", "=> VHGND restore captures;",
         )),
