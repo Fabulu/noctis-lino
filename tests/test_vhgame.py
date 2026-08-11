@@ -1849,6 +1849,23 @@ def main() -> int:
         "GOES PRI exports source-ranged Guide text with independent 72-column line packing",
     )
     check(
+        all(token in original0 for token in (
+            "void snapshot (int forcenumber, char showdata)",
+            'sprintf (snapfilename, "..\\\\GALLERY\\\\%08d.BMP", prog);',
+            "_write (ih, t, 54);",
+            "for (ptr=63680; ptr<64000; ptr-=320) _write (ih, adapted+ptr, 320);",
+        ))
+        and all(token in game for token in (
+            'VHGsnapshotfile = { GALLERY\\\\00000000.BMP };',
+            '"VHG snapshot key"', "? A = 109 -> VHG snapshot key pressed;",
+            "[VHGsnapshotready] = 1;", "[VHGsnapshotheader plus 0] = E8364D42h;",
+            "[Block Pointer] = VHGsnapshotheader; [Block Size] = 54; isocall;",
+            "A = 199; A - [VHGsnapshotrow]; A '* 320; A + VHGUIframe;",
+            "[Block Size] = 1280; isocall;", "[File Size] = 256054; isocall;",
+        )),
+        "M or * writes a source-numbered bottom-up BMP from the completed logical frame",
+    )
+    check(
         all(token in original_cast for token in (
             'msg ("CAST OBJECTNAME:NOTES");', 'msg ("MISSING COLON BETWEEN");',
             'msg ("TRANSFER SUCCEDED:");', 'msg ("MESSAGE SENT;");',

@@ -43,6 +43,18 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Numbered in-game Gallery snapshots
+
+- M and `*` restore `snapshot(0,1)` from `NOCTIS.CPP`. The resident game scans
+  `GALLERY` for the next free eight-digit filename and never overwrites an
+  earlier capture.
+- Each image is a standard 320x200 uncompressed 32-bit BMP made from the fully
+  composed logical game frame, including source HUD and active overlays, before
+  nearest-neighbour window scaling. Rows retain the source's bottom-up order.
+- A first-frame readiness guard prevents an input queued during GUI startup
+  from exporting an uninitialized black page. A native production smoke wrote
+  a 256,054-byte image with a valid 54-byte BMP/DIB header and live pixels.
+
 ### GOES resident command and catalogue query
 
 - The hosted GOES network now implements the original resident `CLR` command

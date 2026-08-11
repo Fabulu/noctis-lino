@@ -258,6 +258,9 @@
 	VHGinterprenderx = 0; VHGinterprenderz = 0; VHGinterprenderalpha = 0;
 	VHGinterpeffectx = 0; VHGinterpeffectz = 0; VHGinterpeffectalpha = 0;
 	VHGsaveheld = 0; VHGloadheld = 0; VHGmusicheld = 0; VHGnoticeptr = 0; VHGnoticeframes = 0;
+	VHGsnapshotnext = 1; VHGsnapshotnumber = 0; VHGsnapshotvalue = 0;
+	VHGsnapshotden = 0; VHGsnapshotpos = 0; VHGsnapshotrow = 0;
+	VHGsnapshotfilepos = 0; VHGsnapshotsrc = 0; VHGsnapshotready = 0;
 	VHGsavedtext = { CHECKPOINT SAVED };
 	VHGloadedtext = { CHECKPOINT LOADED };
 	VHGbackuptext = { CHECKPOINT RECOVERED FROM BACKUP };
@@ -266,6 +269,12 @@
 	VHGmusicontext = { MUSIC ON };
 	VHGmusicofftext = { MUSIC OFF };
 	VHGmusicfailedtext = { MUSIC UNAVAILABLE };
+	VHGsnapshotdir = { GALLERY };
+	VHGsnapshotfile = { GALLERY\\00000000.BMP };
+	VHGsnapshotnotice = { SAVED_GALLERY\\00000000.BMP };
+	VHGsnapshoterror = { SNAPSHOT WRITE ERROR };
+	VHGsnapshotlimittext = { SNAPSHOT LIMIT REACHED };
+	VHGsnapshotwaittext = { SNAPSHOT NOT READY };
 	VHGtargettext = { VIMANA TARGET SET };
 	VHGtargetfailedtext = { NO TARGET AVAILABLE };
 	VHGunknowntext = { UNKNOWN GOES MODULE };
@@ -461,7 +470,7 @@
 	VHGhelpbody = { []:SELECT-BODY / L:APPROACH };
 	VHGhelpland = { L@STANDBY:SITE / ARROWS / L:LAND };
 	VHGhelpfuel = { C:COLLECT-LITHIUM / H:RESCUE };
-	VHGhelpsave = { F6:SAVE / F7:LOAD };
+	VHGhelpsave = { F6:SAVE / F7:LOAD / M:SNAPSHOT };
 	VHGhelpview = { F4:FPS F5:60HZ F8:MUSIC I:DATA };
 	VHGgraphicstitle = { NOCTIS IV+ VISUAL EFFECTS SETTINGS };
 	VHGgraphicshudon = { HUD TEXT ON                          (T) };
@@ -813,6 +822,7 @@
 	VHGinheader = 1;
 	VHGpriline = 18;
 	VHGpricrlf = 1;
+	VHGsnapshotheader = 14;
 
 "programme"
 
@@ -1038,6 +1048,7 @@
 		=> VHG device overlay;
 		=> VHG graphics overlay;
 		=> VHG help overlay;
+		[VHGsnapshotready] = 1;
 		=> VHGUI present;
 		( Publish the completed window explicitly.  Update Area may be disabled
 		  while iGUI is inside its own control-loop preparation; in that state it
@@ -2565,6 +2576,7 @@
 	=> VHG fast key;
 	=> VHG checkpoint keys;
 	=> VHG music key;
+	=> VHG snapshot key;
 	=> VHG graphics character;
 	A = [VHGgraphicsused]; ? A != 0 -> VHG input done;
 	=> VHG menu mouse;
@@ -8109,6 +8121,83 @@
 	end;
 "VHG music unavailable"
 	[VHGnoticeptr] = VHGmusicfailedtext; [VHGnoticeframes] = 55;
+	end;
+
+"VHG snapshot key"
+	( NOCTIS.CPP binds M and * to snapshot(0,1). Leave M available to the
+	  GOES command line while it owns text input; everywhere else capture the
+	  last fully composed logical frame, before iGUI presentation scaling. )
+	A = [VHGconsole]; ? A != 0 -> VHG snapshot key done;
+	A = [VHGascii]; ? A = 77 -> VHG snapshot key pressed;
+	? A = 109 -> VHG snapshot key pressed; ? A != 42 -> VHG snapshot key done;
+    "VHG snapshot key pressed"
+	[VHGascii] = 0; A = [VHGsnapshotready]; ? A != 0 -> VHG snapshot key ready;
+	[VHGnoticeptr] = VHGsnapshotwaittext; [VHGnoticeframes] = 55; -> VHG snapshot key done;
+    "VHG snapshot key ready"
+	=> VHG snapshot;
+    "VHG snapshot key done"
+	end;
+
+"VHG snapshot"
+	( snapshot() numbers files in GALLERY and writes the image bottom-up. The
+	  resident renderer already owns a completed 320x200 RGB frame, so retain
+	  that source behavior in a standard uncompressed 32-bit BMP without
+	  quantizing the port's expanded palette and text overlays. )
+	[File Name] = VHGsnapshotdir; [File Command] = MKDIR; isocall;
+	A = [VHGsnapshotnext]; ? A > 0 -> VHG snapshot scan;
+	[VHGsnapshotnext] = 1;
+    "VHG snapshot scan"
+	A = [VHGsnapshotnext]; ? A > 99999999 -> VHG snapshot limit;
+	[VHGsnapshotnumber] = A; [VHGsnapshotvalue] = A;
+	[VHGsnapshotden] = 10000000; [VHGsnapshotpos] = 8;
+    "VHG snapshot digit loop"
+	A = [VHGsnapshotvalue]; C = A; A '/ [VHGsnapshotden]; A + 48;
+	E = VHGsnapshotfile; E + [VHGsnapshotpos]; [E] = A;
+	E = VHGsnapshotnotice; B = [VHGsnapshotpos]; B + 6; E + B; [E] = A;
+	A = C; A '% [VHGsnapshotden]; [VHGsnapshotvalue] = A;
+	A = [VHGsnapshotden]; A '/ 10; [VHGsnapshotden] = A;
+	[VHGsnapshotpos]+; A = [VHGsnapshotpos]; ? A < 16 -> VHG snapshot digit loop;
+	[File Name] = VHGsnapshotfile; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHG snapshot free;
+	[VHGsnapshotnext]+; -> VHG snapshot scan;
+    "VHG snapshot free"
+	( BITMAPFILEHEADER and BITMAPINFOHEADER, 54 bytes. Fields straddle the
+	  host's 32-bit units because the file header is only 14 bytes long. )
+	[VHGsnapshotheader plus 0] = E8364D42h;
+	[VHGsnapshotheader plus 1] = 00000003h;
+	[VHGsnapshotheader plus 2] = 00360000h;
+	[VHGsnapshotheader plus 3] = 00280000h;
+	[VHGsnapshotheader plus 4] = 01400000h;
+	[VHGsnapshotheader plus 5] = 00C80000h;
+	[VHGsnapshotheader plus 6] = 00010000h;
+	[VHGsnapshotheader plus 7] = 00000020h;
+	[VHGsnapshotheader plus 8] = E8000000h;
+	[VHGsnapshotheader plus 9] = 00000003h;
+	[VHGsnapshotheader plus 10] = 0; [VHGsnapshotheader plus 11] = 0;
+	[VHGsnapshotheader plus 12] = 0; [VHGsnapshotheader plus 13] = 0;
+	[File Name] = VHGsnapshotfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = VHGsnapshotheader; [Block Size] = 54; isocall;
+	? [File Status] + ERROR -> VHG snapshot write error;
+	A = [Block Size]; ? A != 54 -> VHG snapshot write error;
+	[VHGsnapshotrow] = 0; [VHGsnapshotfilepos] = 54;
+    "VHG snapshot row loop"
+	A = 199; A - [VHGsnapshotrow]; A '* 320; A + VHGUIframe; [VHGsnapshotsrc] = A;
+	[File Name] = VHGsnapshotfile; [File Position] = [VHGsnapshotfilepos];
+	[File Command] = WRITE; [Block Pointer] = [VHGsnapshotsrc]; [Block Size] = 1280; isocall;
+	? [File Status] + ERROR -> VHG snapshot write error;
+	A = [Block Size]; ? A != 1280 -> VHG snapshot write error;
+	[VHGsnapshotfilepos] + 1280; [VHGsnapshotrow]+;
+	A = [VHGsnapshotrow]; ? A < 200 -> VHG snapshot row loop;
+	[File Name] = VHGsnapshotfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 256054; isocall; ? [File Status] + ERROR -> VHG snapshot write error;
+	A = [VHGsnapshotnumber]; A + 1; [VHGsnapshotnext] = A;
+	[VHGnoticeptr] = VHGsnapshotnotice; [VHGnoticeframes] = 75; end;
+    "VHG snapshot write error"
+	[File Name] = VHGsnapshotfile; [File Position] = 0;
+	[File Command] = SET SIZE; [File Size] = 0; isocall;
+	[VHGnoticeptr] = VHGsnapshoterror; [VHGnoticeframes] = 75; end;
+    "VHG snapshot limit"
+	[VHGnoticeptr] = VHGsnapshotlimittext; [VHGnoticeframes] = 75;
 	end;
 
 "VHG FCS menu key"

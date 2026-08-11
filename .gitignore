@@ -62,3 +62,4 @@ vlc-log.txt
 # stray copies of reference data pulled in by test sandboxes
 work/hits.tsv
 work/*.tmp
+work/GALLERY/

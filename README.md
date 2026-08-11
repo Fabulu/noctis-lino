@@ -40,7 +40,8 @@ Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D
 `NEXT` selects and flies toward a nearby generated star, L remains the global approach fallback, arrows choose landing coordinates, L/Enter descends,
 R returns from the capsule, F2 opens the original visual-effects settings,
 Page Up/Page Down open and close the visor, F5 opts into 60 FPS presentation (the original
-18.2 FPS mode is the default), F6/F7 save and load, F8 toggles music, `?` or F9 displays
+18.2 FPS mode is the default), F6/F7 save and load, F8 toggles music, M or `*`
+saves the next numbered 320x200 BMP under `work\GALLERY`, `?` or F9 displays
 the complete in-game control card, X clears onboard control pages, and Esc saves and quits. A valid checkpoint
 resumes automatically; verified saves maintain `CURRENT.BAK`, and a damaged
 primary recovers visibly from that last-known-good copy. Enter `NEW` in GOES

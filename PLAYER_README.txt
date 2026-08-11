@@ -56,6 +56,7 @@ C / H             lithium collection / depleted-ship rescue
 F4 / F5           FPS display / opt into 60 Hz (18.2 Hz is the default)
 F6 / F7           save / load checkpoint
 F8                soundtrack on/off
+M or *            save the next numbered 320x200 BMP in GALLERY
 I                 cycle remote, local, and environment data sheets
 ? or F9           complete in-game control card
 Esc               save and quit

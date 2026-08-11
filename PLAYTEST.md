@@ -871,3 +871,15 @@ local copies, and retained both unrelated local records after the new
 boundaries. A second process imported the unchanged packet and reported zero
 new records; both file sizes and boundaries remained unchanged. Neither
 tracked production database participated in the run.
+
+### Numbered in-game snapshot regression
+
+The production executable was launched through its real iGUI host, allowed to
+complete a gameplay frame, and sent the original M command. It created
+`GALLERY\00000001.BMP` at exactly 256,054 bytes. Independent header parsing
+reported `BM`, pixel offset 54, a 40-byte DIB, 320x200 dimensions, one plane,
+32 bits per pixel, no compression, and a 256,000-byte pixel block. The captured
+Stardrifter view contained 35 distinct colors and 60,814 non-black pixels, and
+visual inspection confirmed correct orientation, HUD composition, and live
+geometry. The first probe deliberately exposed an input-before-first-frame
+race; the shipping path now guards that state.

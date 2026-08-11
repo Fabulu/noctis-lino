@@ -604,6 +604,15 @@ database, and made a repeated import a zero-change operation.
   compiler and committed; CI does not misrepresent package assembly as a
   headless source build.
 
+## 2026-08-11 -- numbered Gallery snapshots
+
+The original M and `*` snapshot path is resident again. It finds the next free
+eight-digit name in `GALLERY`, captures the fully composed 320x200 logical game
+page before host scaling, and writes an uncompressed 32-bit BMP in the source's
+bottom-up row order. Existing captures are not overwritten. A readiness guard
+also rejects input queued before the first complete frame instead of saving a
+black startup page.
+
 ## Current state
 
 The project is a playable Windows beta, not a claim of exact feature parity
