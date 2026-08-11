@@ -61,6 +61,10 @@ parity, not a claim that parity is complete.
 - The Stardrifter's physical Preferences control restores the original PFS page:
   auto screen sleep, reversed navigation steering, auto-hidden menus, and the
   polarized/depolarized hull are functional rather than opening the F2 card.
+  A resize-aware GAME-menu mirror exposes the same four commands and cleanly
+  returns control to the physical computer when closed.
+- The native GAME dropdown now installs and displays all twelve actions; its
+  former eight-entry capacity silently clipped the final four menu commands.
 - Version 15 saves retain those PFS settings and the navigation heading in
   addition to local flight, settled capsule, and visual preferences; v1 through
   v14 saves migrate without stranding the player or losing their

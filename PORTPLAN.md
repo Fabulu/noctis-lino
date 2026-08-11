@@ -77,6 +77,13 @@ first -- a broken foundation makes every later result meaningless.
   coordinates, and the navigation heading/pitch sine-cosine pair.
 - The physical emergency page restores the source quiet-state report and leaves
   its information rows blank while the visible rescue sequence is active.
+- The GAME menu exposes the same four PFS rows through the resize-aware
+  accessibility path used by Flight control and Onboard devices. Closing any
+  accessibility page now releases its ownership immediately, so the physical
+  world-space computer remains clickable afterward.
+- iGUI's menu storage and visible-option arrays now cover all twelve GAME
+  entries. The former eight-entry capacities truncated every action after
+  Visual effects before those later service routines could ever be selected.
 
 ### Native GUI performance, landing safety, and Stardrifter lift
 - Each completed 320x200 indexed render is palette-expanded into a stable
@@ -247,7 +254,7 @@ first -- a broken foundation makes every later result meaningless.
   original per-tick smoothing factors and the complete indexed 3x5 line at
   `(2,192)`; the temporary oversized host-font row has been removed.
 - Ship `surrounding()` now appends the source-shaped indexed command strip to
-  EPOC, using the port's functional F2 preferences key. The temporary normal-play
+  EPOC while F2 remains the port's separate visual-effects card. The temporary normal-play
   power, pod, duplicate FCS, and body rows have been retired; explicit data pages
   retain their information, the source 3D FCS status remains, and X clears pages.
 - The same final surface pass now restores `surrounding()`'s default graded

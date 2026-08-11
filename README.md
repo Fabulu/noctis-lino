@@ -47,7 +47,8 @@ primary recovers visibly from that last-known-good copy. Enter `NEW` in GOES
 to start over. The GAME menu's Flight control and Onboard devices entries open
 resize-aware mouse-accessible versions of those physical pages; the hovered
 command turns white and one left click activates it. Both routes remain over
-the live Stardrifter instead of opening a black modal page.
+the live Stardrifter instead of opening a black modal page. The GAME menu also
+offers a resize-aware Preferences mirror with the same four live PFS commands.
 
 To build a clean, self-contained redistributable play folder with every runtime
 asset and a SHA-256 manifest:

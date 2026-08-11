@@ -358,6 +358,13 @@ redirecting to the port's F2 visual card. Its four source commands drive the
 auto-hidden menu rows, and the polarized/depolarized Stardrifter subdivision.
 Version 15 expands `CURRENT.LIN` to 264 bytes to retain these four settings and
 the navigation heading, with explicit readers for versions 1 through 14.
+The native GAME menu now mirrors those same four commands in its resize-aware
+accessibility layer. Closing that layer, Flight control, or Onboard devices also
+releases the physical computer immediately instead of leaving its gaze controls
+disabled until another direct keyboard open.
+The host menu's installed and on-screen capacities are now twelve rather than
+eight. The old limit silently discarded Flight control, Onboard devices,
+Preferences, and Save and quit even though their datascript entries existed.
 
 ### Clickable onboard controls
 

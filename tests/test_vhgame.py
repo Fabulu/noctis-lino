@@ -395,6 +395,8 @@ def main() -> int:
     original_pfs = section(original, "void pfs_commands ()", "/* Comandi impartiti")
     preference_step = section(game, '"VHG preference step"', '"VHG tracking apply"')
     preference_key = section(game, '"VHG preference key"', '"VHG device key"')
+    preference_overlay = section(game, '"VHG preferences overlay"', '"VHG browse format rows"')
+    accessibility_release = section(game, '"VHG accessibility release"', '"VHG onboard select"')
     check(
         all(token in original_prefs for token in (
             'command (1, "auto screen sleep on");',
@@ -421,6 +423,14 @@ def main() -> int:
         ))
         and all(token in physical_onboard for token in (
             "[VHPalwayson]", "[VHPoninfoarea]", '"VHP onboard ctl2 ready"',
+        ))
+        and all(token in preference_overlay for token in (
+            "VHGprefmenutitle", "VHGprefmautooff", "VHGprefmreverse",
+            "VHGprefmalways", "VHGprefmpolarize", "VHGprefmenuhint",
+        ))
+        and all(token in accessibility_release for token in (
+            "A = [VHGdev]; A | [VHGfcsopen]; A | [VHGprefs];",
+            "[VHGdevaccess] = 0;",
         ))
         and all(token in (ROOT / "work" / "vhrmap.txt").read_text(encoding="utf-8") for token in (
             "VHRCCAP = 2880;", "VHRcacheexpected = 720;", "vhrcache = 28800;",
@@ -1413,6 +1423,7 @@ def main() -> int:
     )
     check(
         all(token in game for token in (
+            "MAX MENU OPTIONS = 12; MAX ONSCREEN OPTIONS = 12;",
             "VHGmenucaption = { GAME };", "VHGmenu = { NOCTIS_IV };",
             "{ Controls }; service VHG menu controls;",
             "{ GOES_console }; service VHG menu console;",
@@ -1424,6 +1435,7 @@ def main() -> int:
             "{ Visual_effects }; service VHG menu graphics;",
             "{ Flight_control }; service VHG menu fcs;",
             "{ Onboard_devices }; service VHG menu devices;",
+            "{ Preferences }; service VHG menu prefs;",
             "{ Save_and_quit }; service VHG menu quit;",
             "[Menu To Install] = VHGmenu; => Install Menu;",
             "=> VHG save checkpoint action;", "=> VHG load checkpoint action;",

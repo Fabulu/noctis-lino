@@ -45,7 +45,7 @@
 	INITIAL WIDTH = 642; INITIAL HEIGHT = 426;
 	MINIMUM WIDTH = 272; MINIMUM HEIGHT = 120;
 	MAXIMUM WIDTH = 962; MAXIMUM HEIGHT = 626;
-	MAX MENU OPTIONS = 8; MAX ONSCREEN OPTIONS = 8; MAX LEVELS IN SHOW = 1;
+	MAX MENU OPTIONS = 12; MAX ONSCREEN OPTIONS = 12; MAX LEVELS IN SHOW = 1;
 	MAX FILES IN SELECTOR = 8; MAX FILES IN SHOW = 4;
 	MAX OPTIONS IN QUESTION = 2; MAX FIELDS IN QUESTION = 0;
 
@@ -128,7 +128,8 @@
 	08000000h; OPTION TYPE NORMAL; { Visual_effects }; service VHG menu graphics;
 	09000000h; OPTION TYPE NORMAL; { Flight_control }; service VHG menu fcs;
 	0A000000h; OPTION TYPE NORMAL; { Onboard_devices }; service VHG menu devices;
-	0B000000h; OPTION TYPE NORMAL; { Save_and_quit }; service VHG menu quit;
+	0B000000h; OPTION TYPE NORMAL; { Preferences }; service VHG menu prefs;
+	0C000000h; OPTION TYPE NORMAL; { Save_and_quit }; service VHG menu quit;
 	END OF MENU;
 	VHGfps = 0; VHGfpsframes = 0; VHGfpslast = 0; VHGfpsnow = 0;
 	VHGfpsdelta = 0; VHGfpsshow = 0; VHGfpsheld = 0;
@@ -433,6 +434,16 @@
 	VHGprefdepolarize = { depolarize };
 	VHGprefacquired = { ACQUIRED };
 	VHGprefdisabled = { DISABLED };
+	VHGprefmenutitle = { PREFERENCES };
+	VHGprefmautoon = { 6 AUTO SCREEN SLEEP ON };
+	VHGprefmautooff = { 6 AUTO SCREEN SLEEP OFF };
+	VHGprefmreverse = { 7 REVERSE PITCH CONTROLS };
+	VHGprefmnormal = { 7 NORMAL PITCH CONTROLS };
+	VHGprefmalways = { 8 MENUS ALWAYS ONSCREEN };
+	VHGprefmhidden = { 8 AUTO-HIDDEN MENUS };
+	VHGprefmpolarize = { 9 POLARIZE };
+	VHGprefmdepolarize = { 9 DEPOLARIZE };
+	VHGprefmenuhint = { 6-9:SELECT / X:SCREEN OFF };
 	VHGfcsmenutitle = { FLIGHT CONTROL SYSTEM };
 	VHGfcsmremote = { 6 SET REMOTE TARGET };
 	VHGfcsmstart = { 7 START VIMANA FLIGHT };
@@ -781,6 +792,7 @@
 	=> VHG notice overlay;
 	=> VHG info overlay;
 	=> VHG FCS menu overlay;
+	=> VHG preferences overlay;
 	=> VHG device overlay;
 	=> VHG graphics overlay;
 	=> VHG help overlay;
@@ -813,6 +825,7 @@
 		=> VHG notice overlay;
 		=> VHG info overlay;
 		=> VHG FCS menu overlay;
+		=> VHG preferences overlay;
 		=> VHG device overlay;
 		=> VHG graphics overlay;
 		=> VHG help overlay;
@@ -892,6 +905,14 @@
 	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
     "VHG menu devices open"
 	[VHGdev] = 1; [VHGdevaccess] = 1; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0;
+	[VHGhelpshow] = 0; [VHGconsole] = 0;
+	end;
+
+"service VHG menu prefs"
+	A = [VHGmode]; ? A = 0 -> VHG menu prefs open;
+	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
+    "VHG menu prefs open"
+	[VHGprefs] = 1; [VHGdevaccess] = 1; [VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0;
 	[VHGhelpshow] = 0; [VHGconsole] = 0;
 	end;
 
@@ -2302,6 +2323,7 @@
 	=> VHG FCS menu key;
 	=> VHG info key;
 	=> VHG screen off key;
+	=> VHG accessibility release;
 	A = [VHGlandingselect]; ? A != 0 -> VHG landing selector input;
 	=> VHG output scroll; A = [VHGscrollused]; ? A != 0 -> VHG input done;
 	=> VHG visor keys;
@@ -2638,7 +2660,8 @@
 	[VHGmenuhover] = 0; [VHGmenuhovery] = 0; [VHGmenukey] = 0;
 	A = [VHGdevaccess]; ? A = 0 -> VHG menu mouse release;
 	A = [VHGdev]; ? A != 0 -> VHG menu mouse active;
-	A = [VHGfcsopen]; ? A != 0 -> VHG menu mouse active; -> VHG menu mouse release;
+	A = [VHGfcsopen]; ? A != 0 -> VHG menu mouse active;
+	A = [VHGprefs]; ? A != 0 -> VHG menu mouse active; -> VHG menu mouse release;
     "VHG menu mouse active"
 	A = [Client Owns Mouse Pointer]; ? A = NO -> VHG menu mouse release;
 	A = [VHGUIdw]; ? A <= 0 -> VHG menu mouse release;
@@ -2664,9 +2687,15 @@
 	A = C; A + 54; [VHGmenukey] = A; -> VHG menu mouse button;
     "VHG menu mouse back row"
 	A = [VHGmenuy]; ? A < 168 -> VHG menu mouse button;
-	A = [VHGdev]; ? A = 0 -> VHG menu mouse FCS back; [VHGmenukey] = 82; -> VHG menu mouse button;
+	A = [VHGdev]; ? A != 0 -> VHG menu mouse device back;
+	A = [VHGprefs]; ? A != 0 -> VHG menu mouse prefs back;
     "VHG menu mouse FCS back"
 	[VHGmenukey] = 53;
+	-> VHG menu mouse button;
+    "VHG menu mouse device back"
+	[VHGmenukey] = 82; -> VHG menu mouse button;
+    "VHG menu mouse prefs back"
+	[VHGmenukey] = 88;
     "VHG menu mouse button"
 	A = [Pointer Status]; ? A - PD LEFT BUTTON DOWN -> VHG menu mouse release held;
 	A = [VHGmenuheld]; ? A != 0 -> VHG menu mouse done;
@@ -2677,6 +2706,16 @@
     "VHG menu mouse release"
 	[VHGmenuheld] = 0;
 "VHG menu mouse done"
+	end;
+
+"VHG accessibility release"
+	( A GAME-menu page owns physical-computer selection only while one of its
+	  three accessibility mirrors is actually open. Commands that close a page
+	  must not leave the world-space computer disabled. )
+	A = [VHGdevaccess]; ? A = 0 -> VHG accessibility release done;
+	A = [VHGdev]; A | [VHGfcsopen]; A | [VHGprefs]; ? A != 0 -> VHG accessibility release done;
+	[VHGdevaccess] = 0;
+    "VHG accessibility release done"
 	end;
 
 "VHG onboard select"
@@ -4612,6 +4651,32 @@
 	[VHGinfoline] = VHGfcsmcapsule; => VHG info draw line;
 	[VHGinfoy] = 176; [VHGinfoline] = VHGfcsmhint; => VHG info draw line;
     "VHG FCS menu overlay done"
+	end;
+
+"VHG preferences overlay"
+	A = [VHGprefs]; ? A = 0 -> VHG preferences overlay done;
+	A = [VHGdevaccess]; ? A = 0 -> VHG preferences overlay done;
+	( Resize-aware accessibility mirror of the physical prefs() page. The rows
+	  retain the source text and dispatch the same four pfs_commands() slots. )
+	[VHGinfoy] = 14; [VHGinfoline] = VHGprefmenutitle; => VHG info draw line;
+	[VHGinfoline] = VHGprefmautooff; A = [VHGautoscreenoff]; ? A = 0 -> VHG preferences auto selected;
+	[VHGinfoline] = VHGprefmautoon;
+    "VHG preferences auto selected"
+	=> VHG info draw line;
+	[VHGinfoline] = VHGprefmnormal; A = [VHGrevcontrols]; ? A = 0 -> VHG preferences reverse selected;
+	[VHGinfoline] = VHGprefmreverse;
+    "VHG preferences reverse selected"
+	=> VHG info draw line;
+	[VHGinfoline] = VHGprefmhidden; A = [VHGmenusalwayson]; ? A = 0 -> VHG preferences menus selected;
+	[VHGinfoline] = VHGprefmalways;
+    "VHG preferences menus selected"
+	=> VHG info draw line;
+	[VHGinfoline] = VHGprefmdepolarize; A = [VHGdepolarize]; ? A = 0 -> VHG preferences hull selected;
+	[VHGinfoline] = VHGprefmpolarize;
+    "VHG preferences hull selected"
+	=> VHG info draw line;
+	[VHGinfoy] = 176; [VHGinfoline] = VHGprefmenuhint; => VHG info draw line;
+    "VHG preferences overlay done"
 	end;
 
 "VHG browse format rows"

@@ -85,8 +85,9 @@ figures.
 Controls:
 
 - F10: open/close the native GAME menu; Up/Down moves between Controls, GOES,
-  save/load, FPS, presentation rate, music, and clean quit, and Enter activates
-  the selected action
+  save/load, FPS, presentation rate, music, visual effects, Flight control,
+  Onboard devices, Preferences, and clean quit, and Enter activates the selected
+  action
 - Right mouse drag: look around in the ship or on a surface; sensitivity is
   normalized through the current aspect-fit size and ordinary pointer motion
   remains available to the iGUI chrome and GAME menu
@@ -137,8 +138,8 @@ Controls:
 - The third physical control opens Preferences. Its four command slots restore
   auto screen sleep, reversed gaze-side navigation steering, auto-hidden versus
   persistent menu rows, and the source's polarized/depolarized Stardrifter hull
-- The GAME menu's Onboard devices and Flight control entries open the same
-  actions as resize-aware clickable rows. Pointer coordinates are converted
+- The GAME menu's Onboard devices, Flight control, and Preferences entries open
+  the same actions as resize-aware clickable rows. Pointer coordinates are converted
   through the live 320x200 aspect fit, the hovered row turns white, and a held
   button cannot repeat a command across presentation frames. These accessible
   rows remain transparent over the live cabin rather than opening a black page
@@ -340,6 +341,12 @@ option, Enter invoked the same checkpoint action as F6, and `CURRENT.LIN` was
 updated to a valid 152-byte version-7 record before the later clean exit. The
 menu also exposes Controls, GOES, load, FPS, 60/18-Hz presentation, music, and
 save-and-quit without requiring gameplay key knowledge.
+
+The 2026-08-11 follow-up expanded iGUI's installed and visible menu capacities
+from eight to twelve, then drove F10, ten Down keys, Enter, and Preferences row
+6 in the production window. F6 wrote a valid 264-byte version-15 checkpoint with
+PFS bits changed from 4 to 5, proving the formerly clipped Preferences service
+was live through the real keyboard menu path.
 
 Resizable right-drag mouselook was exercised through real Win32 pointer events
 on 2026-08-10. At the default 2x host size, a 90-pixel right/60-pixel upward
