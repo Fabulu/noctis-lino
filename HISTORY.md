@@ -294,6 +294,13 @@ and atmosphere selects the original radius and corona values. Night and rain
 at 2.5 or above suppress it, while worlds owned by a class-10 companion use
 that companion's radius rather than the primary star's.
 
+Multiple systems now also restore the original secondary-sun branch. The port
+selects the class-10 companion nearest the landed world, swaps the primary and
+secondary roles when that world belongs to a companion, derives a separate
+terminator and latitude offset for the second observer, and uses its stricter
+2.0 rain cutoff. Sun angles and coordinates retain the source's binary32
+assignment boundaries before projection.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

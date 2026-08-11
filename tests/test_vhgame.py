@@ -470,14 +470,16 @@ def main() -> int:
         "live landings cache the generated panorama through a direct wrapping mapper",
     )
     local_sun = section(ground, '"VHGND local sun"', '"VHGND surrounding frame"')
+    secondary_sun = section(ground, '"VHGND secondary sun setup"', '"VHGND local sun"')
     check(
         all(token in local_sun for token in (
-            "A = [GRSKnightzone]; ? A != 0 -> VHGND local sun done;",
-            "A = [GRSKrainy]; ? A '>= 40200000h -> VHGND local sun done;",
+            "A = [GRSKnightzone]; ? A != 0 -> VHGND local primary done;",
+            "A = [GRSKrainy]; ? A '>= 40200000h -> VHGND local primary done;",
             "[FS0] = [GRSKdsd1]; => FLoadF32;",
             "A = [VHGNDsunxf]; ? A >= 0 -> VHGND sun x ready; => FNeg;",
             "E = nsptype; E + A; C = [E]; ? C != 10 -> VHGND sun radius ready;",
             "[WHshape] = 1; [WHsun] = 1; [WHdstreg] = RGADP; => SP white;",
+            "=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;",
         ))
         and "[GRSKatmosphere] = [VHGNDatmosphere]; [GRSKnightzone] = 0; [VHGNDsunxf] = 1;" in ground
         and "[VHGNDcrep] = A; A = 0; A - 1; [VHGNDsunxf] = A;" in ground
@@ -489,6 +491,32 @@ def main() -> int:
             "if (!nightzone && rainy < 2.5)",
         )),
         "surface daylight draws the source-positioned active sun before terrain",
+    )
+    check(
+        "=> VHGND secondary sun setup;" in ground
+        and all(token in secondary_sun for token in (
+            "A = [VHGNDseci]; ? A >= [nsnob] -> VHGND secondary scan done;",
+            "E = nsptype; E + A; C = [E]; ? C != 10 -> VHGND secondary scan next;",
+            "E = nspowner; E + [VHGNDplanet]; A = [E];",
+            "[VHGNDsecdist] = [VHGNDsecbest];",
+            "[VHGNDsecray] = [nsstarray];",
+            "=> VHGND secondary latitude;",
+            "[VHGNDsecnight] = 1;",
+            "[VHGNDseccrep] = A; A = 0; A - 1; [VHGNDsecxf] = A;",
+        ))
+        and all(token in local_sun for token in (
+            "=> VHGND secondary sun;",
+            "A = [GRSKrainy]; ? A '>= 40000000h -> VHGND secondary sun done;",
+            "[FS0] = [VHGNDsecray]; => FLoadF32; => FMul; => F32Narrow;",
+        ))
+        and all(token in original1 for token in (
+            "if (nearstar_p_type[w] == 10)",
+            "if (nearstar_p_qsortdist[w] < compdist)",
+            "nray2 = nearstar_p_ray[w];",
+            "if (secondarysun)",
+            "if (!pri_nightzone && rainy < 2.0)",
+        )),
+        "multiple systems restore the source secondary-sun role and terminator path",
     )
     check(
         all(token in original1 for token in (

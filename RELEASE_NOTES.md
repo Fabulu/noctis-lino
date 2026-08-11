@@ -79,7 +79,9 @@ Useful controls:
   animated capsule descent/ascent retains source-tick presentation.
 - Planetary daylight now renders the original active-sun disc and corona with
   latitude/exposure placement, dawn/dusk direction, rain and night gating,
-  and the correct companion-star radius in multiple systems.
+  and the correct companion-star radius in multiple systems. A nearby
+  companion also appears as the original independently positioned secondary
+  sun, including the source's owner-role swap and separate terminator.
 - Full Noctis IV+ feature parity remains the release criterion. Historical
   screens, complete GUI behavior, and presentation details are still being
   implemented rather than cut from scope. Stellar lithium collection and

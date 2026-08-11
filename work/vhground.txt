@@ -126,12 +126,23 @@
 	VHGNDphaseindex = 0; VHGNDphase = 0; VHGNDrotation = 0; VHGNDperiod = 0;
 	VHGNDowner = 0; VHGNDmoonmass = 0; VHGNDplwp = 0; VHGNDviewpoint = 0;
 	VHGNDtermstart = 0; VHGNDtermend = 0; VHGNDcrep = 0; VHGNDdist = 0;
-	VHGNDsunxf = 1; VHGNDsunray = 0;
+	VHGNDsunxf = 1; VHGNDsunray = 0; VHGNDsuncoord = 0;
 	VHGNDsund0 = 0; VHGNDsund1 = 0; VHGNDsuna0 = 0; VHGNDsuna1 = 0;
 	VHGNDsunb0 = 0; VHGNDsunb1 = 0; VHGNDsbs0 = 0; VHGNDsbs1 = 0;
 	VHGNDsas0 = 0; VHGNDsas1 = 0; VHGNDsac0 = 0; VHGNDsac1 = 0;
 	VHGNDsunx0 = 0; VHGNDsunx1 = 0; VHGNDsuny0 = 0; VHGNDsuny1 = 0;
 	VHGNDsunz0 = 0; VHGNDsunz1 = 0;
+	VHGNDsecactive = 0; VHGNDseci = 0; VHGNDsecindex = 0;
+	VHGNDsecnight = 0; VHGNDsecxf = 1; VHGNDsectstart = 0;
+	VHGNDsectend = 0; VHGNDseccrep = 0; VHGNDsecview = 0;
+	VHGNDsecray = 0; VHGNDsecdist = 0; VHGNDsecbest = 0;
+	VHGNDseccdist = 0; VHGNDseclat = 0; VHGNDsecexp = 0;
+	VHGNDsectx0 = 0; VHGNDsectx1 = 0; VHGNDsecty0 = 0; VHGNDsecty1 = 0;
+	VHGNDsectz0 = 0; VHGNDsectz1 = 0;
+	VHGNDsecox0 = 0; VHGNDsecox1 = 0; VHGNDsecoy0 = 0; VHGNDsecoy1 = 0;
+	VHGNDsecoz0 = 0; VHGNDsecoz1 = 0;
+	VHGNDsecx0 = 0; VHGNDsecx1 = 0; VHGNDsecy0 = 0; VHGNDsecy1 = 0;
+	VHGNDsecz0 = 0; VHGNDsecz1 = 0;
 	VHGNDmass0 = 0; VHGNDmass1 = 0; VHGNDorbit0 = 0; VHGNDorbit1 = 0;
 	VHGNDvecindex = 0; VHGNDvecowner = 0;
 	VHGNDangle0 = 0; VHGNDangle1 = 0;
@@ -1847,6 +1858,7 @@
 	[GRSKexposure] = [FS0];
 	end;
     "VHGND sky inputs ready"
+	=> VHGND secondary sun setup;
 
 	A = nw; A + RSBG; [VHGNDskyfill] = A; [VHGNDskycount] = 64864;
 	C = [GRSKbrightness]; C & 255;
@@ -2087,13 +2099,208 @@
 		=> VHGND surrounding frame;
 	end;
 
+"VHGND secondary sun setup"
+	( NOCTIS-1.CPP chooses the class-10 companion nearest the landed world.
+	  When the world belongs to a companion, that owner remains the active
+	  daylight sun and the primary star becomes this secondary observer. )
+	[VHGNDsecactive] = 0; [VHGNDseci] = 0;
+	[VHGNDvecindex] = [VHGNDplanet]; => VHGND absolute body vector;
+	[VHGNDsectx0] = [VHGNDvecx0]; [VHGNDsectx1] = [VHGNDvecx1];
+	[VHGNDsecty0] = [VHGNDvecy0]; [VHGNDsecty1] = [VHGNDvecy1];
+	[VHGNDsectz0] = [VHGNDvecz0]; [VHGNDsectz1] = [VHGNDvecz1];
+    "VHGND secondary scan"
+	A = [VHGNDseci]; ? A >= [nsnob] -> VHGND secondary scan done;
+	E = nsptype; E + A; C = [E]; ? C != 10 -> VHGND secondary scan next;
+	[VHGNDvecindex] = A; => VHGND absolute body vector;
+	[FA0] = [VHGNDsectx0]; [FA1] = [VHGNDsectx1];
+	[FB0] = [VHGNDvecx0]; [FB1] = [VHGNDvecx1]; => FSub;
+	[VHGNDxx0] = [FA0]; [VHGNDxx1] = [FA1];
+	[FA0] = [VHGNDsecty0]; [FA1] = [VHGNDsecty1];
+	[FB0] = [VHGNDvecy0]; [FB1] = [VHGNDvecy1]; => FSub;
+	[VHGNDowny0] = [FA0]; [VHGNDowny1] = [FA1];
+	[FA0] = [VHGNDsectz0]; [FA1] = [VHGNDsectz1];
+	[FB0] = [VHGNDvecz0]; [FB1] = [VHGNDvecz1]; => FSub;
+	[VHGNDzz0] = [FA0]; [VHGNDzz1] = [FA1];
+	[FA0] = [VHGNDxx0]; [FA1] = [VHGNDxx1];
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[VHGNDmass0] = [FA0]; [VHGNDmass1] = [FA1];
+	[FA0] = [VHGNDowny0]; [FA1] = [VHGNDowny1];
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGNDmass0]; [FB1] = [VHGNDmass1]; => FAdd;
+	[VHGNDmass0] = [FA0]; [VHGNDmass1] = [FA1];
+	[FA0] = [VHGNDzz0]; [FA1] = [VHGNDzz1];
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGNDmass0]; [FB1] = [VHGNDmass1]; => FAdd; => FSqrt;
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
+	A = [VHGNDsecactive]; ? A = 0 -> VHGND secondary take;
+	[FS0] = [VHGNDsecbest]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
+	[FS0] = [VHGNDsuncoord]; => FLoadF32; => FCmp;
+	A = [FI]; ? A >= 0 -> VHGND secondary scan next;
+    "VHGND secondary take"
+	[VHGNDsecactive] = 1; [VHGNDsecbest] = [VHGNDsuncoord];
+	[VHGNDsecindex] = [VHGNDseci];
+	[VHGNDsecox0] = [VHGNDvecx0]; [VHGNDsecox1] = [VHGNDvecx1];
+	[VHGNDsecoy0] = [VHGNDvecy0]; [VHGNDsecoy1] = [VHGNDvecy1];
+	[VHGNDsecoz0] = [VHGNDvecz0]; [VHGNDsecoz1] = [VHGNDvecz1];
+	A = [VHGNDseci]; A < 1; E = nspray; E + A;
+	[FA0] = [E plus 0]; [FA1] = [E plus 1]; => F32Narrow;
+	[VHGNDsecray] = [FS0];
+    "VHGND secondary scan next"
+	[VHGNDseci]+; -> VHGND secondary scan;
+    "VHGND secondary scan done"
+	A = [VHGNDsecactive]; ? A = 0 -> VHGND secondary setup done;
+
+	E = nspowner; E + [VHGNDplanet]; A = [E];
+	? A < 0 -> VHGND secondary regular;
+	E = nsptype; E + A; C = [E]; ? C != 10 -> VHGND secondary regular;
+	( Companion-owned world: calculate the owner's latitude from the primary,
+	  then make the primary at the system origin the secondary observer. )
+	[VHGNDvecindex] = A; => VHGND absolute body vector;
+	[VHGNDsecox0] = [VHGNDvecx0]; [VHGNDsecox1] = [VHGNDvecx1];
+	[VHGNDsecoy0] = [VHGNDvecy0]; [VHGNDsecoy1] = [VHGNDvecy1];
+	[VHGNDsecoz0] = [VHGNDvecz0]; [VHGNDsecoz1] = [VHGNDvecz1];
+	=> VHGND secondary companion distance;
+	[VHGNDsecx0] = [VHGNDsecoy0]; [VHGNDsecx1] = [VHGNDsecoy1];
+	=> VHGND secondary latitude;
+	[FA0] = [VHGNDsectx0]; [FA1] = [VHGNDsectx1];
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[VHGNDmass0] = [FA0]; [VHGNDmass1] = [FA1];
+	[FA0] = [VHGNDsecty0]; [FA1] = [VHGNDsecty1];
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGNDmass0]; [FB1] = [VHGNDmass1]; => FAdd;
+	[VHGNDmass0] = [FA0]; [VHGNDmass1] = [FA1];
+	[FA0] = [VHGNDsectz0]; [FA1] = [VHGNDsectz1];
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGNDmass0]; [FB1] = [VHGNDmass1]; => FAdd; => FSqrt;
+	=> F32Narrow; [VHGNDsecdist] = [FS0]; [VHGNDsecray] = [nsstarray];
+	A = 0; [VHGNDsecox0] = A; [VHGNDsecox1] = A;
+	[VHGNDsecoy0] = A; [VHGNDsecoy1] = A; [VHGNDsecoz0] = A; [VHGNDsecoz1] = A;
+	-> VHGND secondary viewpoint;
+
+    "VHGND secondary regular"
+	( Primary-owned world: the closest companion is the secondary observer. )
+	[VHGNDsecdist] = [VHGNDsecbest];
+	=> VHGND secondary companion distance;
+	[FA0] = [VHGNDsecoy0]; [FA1] = [VHGNDsecoy1]; => FNeg;
+	[VHGNDsecx0] = [FA0]; [VHGNDsecx1] = [FA1];
+	=> VHGND secondary latitude;
+
+    "VHGND secondary viewpoint"
+	( Analytic planet_viewpoint(target, secondary observer). )
+	[FA0] = [VHGNDsectx0]; [FA1] = [VHGNDsectx1];
+	[FB0] = [VHGNDsecox0]; [FB1] = [VHGNDsecox1]; => FSub; => FNeg;
+	[VHGNDxx0] = [FA0]; [VHGNDxx1] = [FA1];
+	[FA0] = [VHGNDsectz0]; [FA1] = [VHGNDsectz1];
+	[FB0] = [VHGNDsecoz0]; [FB1] = [VHGNDsecoz1]; => FSub; => FNeg;
+	[FB0] = [VHGNDxx0]; [FB1] = [VHGNDxx1]; => FAtan2;
+	[FB0] = 0; [FB1] = 40668000h; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
+	A = [FI]; A % 360; ? A >= 0 -> VHGND secondary view normalized; A + 360;
+    "VHGND secondary view normalized"
+	[VHGNDsecview] = A; C = 89; C - A; C + [VHGNDrotation]; A = C; A % 360;
+	? A >= 0 -> VHGND secondary phase ready; A + 360;
+    "VHGND secondary phase ready"
+	A + 35; ? A < 360 -> VHGND secondary term start ready; A - 360;
+    "VHGND secondary term start ready"
+	[VHGNDsectstart] = A; A + 130; ? A < 360 -> VHGND secondary term end ready; A - 360;
+    "VHGND secondary term end ready"
+	[VHGNDsectend] = A; [VHGNDsecnight] = 0; [VHGNDsecxf] = 1;
+	A = [VHGNDsectstart]; ? A <= [VHGNDsectend] -> VHGND secondary night straight;
+	A = [VHGNDlon]; ? A >= [VHGNDsectstart] -> VHGND secondary night set;
+	? A < [VHGNDsectend] -> VHGND secondary night set; -> VHGND secondary night ready;
+    "VHGND secondary night straight"
+	A = [VHGNDlon]; ? A < [VHGNDsectstart] -> VHGND secondary night ready;
+	? A >= [VHGNDsectend] -> VHGND secondary night ready;
+    "VHGND secondary night set"
+	[VHGNDsecnight] = 1;
+    "VHGND secondary night ready"
+	A = [VHGNDsectstart]; A - [VHGNDlon]; A % 360;
+	? A >= 0 -> VHGND secondary start normalized; A + 360;
+    "VHGND secondary start normalized"
+	? A <= 180 -> VHGND secondary start distance ready; C = 360; C - A; A = C;
+    "VHGND secondary start distance ready"
+	[VHGNDseccrep] = A;
+	A = [VHGNDsectend]; A - [VHGNDlon]; A % 360;
+	? A >= 0 -> VHGND secondary end normalized; A + 360;
+    "VHGND secondary end normalized"
+	? A <= 180 -> VHGND secondary end distance ready; C = 360; C - A; A = C;
+    "VHGND secondary end distance ready"
+	? A >= [VHGNDseccrep] -> VHGND secondary exposure ready;
+	[VHGNDseccrep] = A; A = 0; A - 1; [VHGNDsecxf] = A;
+    "VHGND secondary exposure ready"
+	[FI] = [VHGNDseccrep]; => IntToF;
+	[FB0] = 27BB2FECh; [FB1] = 3FE90B0Fh; => FMul; => F32Narrow;
+	[VHGNDsecexp] = [FS0];
+
+	( alfa = deg*(90-latitude+pri_latitude), beta = deg*pri_exposure. )
+	A = [VHGNDlat]; A - 60; ? A >= 0 -> VHGND secondary surface latitude;
+	C = 0; C - A; A = C;
+    "VHGND secondary surface latitude"
+	[FI] = A; => IntToF; [FB0] = 0; [FB1] = 3FF80000h; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 90; => IntToF; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FS0] = [VHGNDseclat]; => FLoadF32; => FAdd;
+	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
+	[VHGNDsuna0] = [FA0]; [VHGNDsuna1] = [FA1];
+	[FS0] = [VHGNDsecexp]; => FLoadF32;
+	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
+	[VHGNDsunb0] = [FA0]; [VHGNDsunb1] = [FA1];
+	=> FSin; [VHGNDsbs0] = [FA0]; [VHGNDsbs1] = [FA1];
+	[FA0] = [VHGNDsuna0]; [FA1] = [VHGNDsuna1]; => FSin;
+	[VHGNDsas0] = [FA0]; [VHGNDsas1] = [FA1];
+	[FA0] = [VHGNDsuna0]; [FA1] = [VHGNDsuna1]; => FCos;
+	[VHGNDsac0] = [FA0]; [VHGNDsac1] = [FA1];
+	[FS0] = [VHGNDsecdist]; => FLoadF32;
+	[VHGNDsund0] = [FA0]; [VHGNDsund1] = [FA1];
+	[FA0] = [VHGNDsunb0]; [FA1] = [VHGNDsunb1]; => FCos;
+	[FB0] = [VHGNDsund0]; [FB1] = [VHGNDsund1]; => FMul; => FNeg;
+	A = [VHGNDsecxf]; ? A >= 0 -> VHGND secondary x sign ready; => FNeg;
+    "VHGND secondary x sign ready"
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
+	[VHGNDsecx0] = [FA0]; [VHGNDsecx1] = [FA1];
+	[FA0] = [VHGNDsund0]; [FA1] = [VHGNDsund1];
+	[FB0] = [VHGNDsbs0]; [FB1] = [VHGNDsbs1]; => FMul;
+	[FB0] = [VHGNDsas0]; [FB1] = [VHGNDsas1]; => FMul; => FNeg;
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
+	[VHGNDsecy0] = [FA0]; [VHGNDsecy1] = [FA1];
+	[FA0] = [VHGNDsund0]; [FA1] = [VHGNDsund1];
+	[FB0] = [VHGNDsbs0]; [FB1] = [VHGNDsbs1]; => FMul;
+	[FB0] = [VHGNDsac0]; [FB1] = [VHGNDsac1]; => FMul;
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
+	[VHGNDsecz0] = [FA0]; [VHGNDsecz1] = [FA1];
+    "VHGND secondary setup done"
+	end;
+
+"VHGND secondary companion distance"
+	[FA0] = [VHGNDsecox0]; [FA1] = [VHGNDsecox1];
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[VHGNDmass0] = [FA0]; [VHGNDmass1] = [FA1];
+	[FA0] = [VHGNDsecoy0]; [FA1] = [VHGNDsecoy1];
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGNDmass0]; [FB1] = [VHGNDmass1]; => FAdd;
+	[VHGNDmass0] = [FA0]; [VHGNDmass1] = [FA1];
+	[FA0] = [VHGNDsecoz0]; [FA1] = [VHGNDsecoz1];
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGNDmass0]; [FB1] = [VHGNDmass1]; => FAdd; => FSqrt;
+	=> F32Narrow; [VHGNDseccdist] = [FS0];
+	end;
+
+"VHGND secondary latitude"
+	( VHGNDsecx is the signed vertical star separation. )
+	[FS0] = [VHGNDseccdist]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGNDsecx0]; [FA1] = [VHGNDsecx1]; => FAtan2;
+	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FQuo;
+	=> F32Narrow; [VHGNDseclat] = [FS0];
+	end;
+
 "VHGND local sun"
 	( NOCTIS-1.CPP planetary_main draws the active local sun after the sky
 	  and before terrain.  Its precomputed surface coordinates use the
 	  landing latitude, terminator exposure, and dawn/dusk side exactly;
 	  rain at 2.5 or above and the night zone suppress it. )
-	A = [GRSKnightzone]; ? A != 0 -> VHGND local sun done;
-	A = [GRSKrainy]; ? A '>= 40200000h -> VHGND local sun done;
+	A = [GRSKnightzone]; ? A != 0 -> VHGND local primary done;
+	A = [GRSKrainy]; ? A '>= 40200000h -> VHGND local primary done;
 	=> VHG fpu clean;
 	[FS0] = [GRSKdsd1]; => FLoadF32;
 	[VHGNDsund0] = [FA0]; [VHGNDsund1] = [FA1];
@@ -2105,11 +2312,13 @@
 	[FI] = A; => IntToF; [FB0] = 0; [FB1] = 3FF80000h; => FMul;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 90; => IntToF; => FSub;
 	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
 	[VHGNDsuna0] = [FA0]; [VHGNDsuna1] = [FA1];
 
 	( beta = deg * exposure )
 	[FS0] = [GRSKexposure]; => FLoadF32;
 	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
 	[VHGNDsunb0] = [FA0]; [VHGNDsunb1] = [FA1];
 	=> FSin; [VHGNDsbs0] = [FA0]; [VHGNDsbs1] = [FA1];
 	[FA0] = [VHGNDsuna0]; [FA1] = [VHGNDsuna1]; => FSin;
@@ -2123,14 +2332,17 @@
 	[FB0] = [VHGNDsund0]; [FB1] = [VHGNDsund1]; => FMul; => FNeg;
 	A = [VHGNDsunxf]; ? A >= 0 -> VHGND sun x ready; => FNeg;
     "VHGND sun x ready"
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
 	[VHGNDsunx0] = [FA0]; [VHGNDsunx1] = [FA1];
 	[FA0] = [VHGNDsund0]; [FA1] = [VHGNDsund1];
 	[FB0] = [VHGNDsbs0]; [FB1] = [VHGNDsbs1]; => FMul;
 	[FB0] = [VHGNDsas0]; [FB1] = [VHGNDsas1]; => FMul; => FNeg;
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
 	[VHGNDsuny0] = [FA0]; [VHGNDsuny1] = [FA1];
 	[FA0] = [VHGNDsund0]; [FA1] = [VHGNDsund1];
 	[FB0] = [VHGNDsbs0]; [FB1] = [VHGNDsbs1]; => FMul;
 	[FB0] = [VHGNDsac0]; [FB1] = [VHGNDsac1]; => FMul;
+	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
 	[VHGNDsunz0] = [FA0]; [VHGNDsunz1] = [FA1];
 
 	( A companion-class owner is the active sun; otherwise use the system
@@ -2153,7 +2365,28 @@
 	[FA0] = [VHGNDsuny0]; [FA1] = [VHGNDsuny1]; [PGFi] = SFYY; => PGF sa;
 	[FA0] = [VHGNDsunz0]; [FA1] = [VHGNDsunz1]; [PGFi] = SFZZ; => PGF sa;
 	[WHshape] = 1; [WHsun] = 1; [WHdstreg] = RGADP; => SP white;
+    "VHGND local primary done"
+	=> VHGND secondary sun;
     "VHGND local sun done"
+	end;
+
+"VHGND secondary sun"
+	A = [VHGNDsecactive]; ? A = 0 -> VHGND secondary sun done;
+	A = [VHGNDsecnight]; ? A != 0 -> VHGND secondary sun done;
+	A = [GRSKrainy]; ? A '>= 40000000h -> VHGND secondary sun done;
+	[FA0] = [VHGNDsecx0]; [FA1] = [VHGNDsecx1]; [PGFi] = SFXX; => PGF sa;
+	[FA0] = [VHGNDsecy0]; [FA1] = [VHGNDsecy1]; [PGFi] = SFYY; => PGF sa;
+	[FA0] = [VHGNDsecz0]; [FA1] = [VHGNDsecz1]; [PGFi] = SFZZ; => PGF sa;
+	A = [GRSKatmosphere]; ? A = 0 -> VHGND secondary sun airless;
+	[FI] = 4; [WHfgm] = 0; -> VHGND secondary sun magnitude;
+    "VHGND secondary sun airless"
+	[FI] = 3; [WHfgm] = 3F000000h;
+    "VHGND secondary sun magnitude"
+	=> IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FS0] = [VHGNDsecray]; => FLoadF32; => FMul; => F32Narrow;
+	[WHmag] = [FS0]; [WHshape] = 1; [WHsun] = 1; [WHdstreg] = RGADP;
+	=> SP white;
+    "VHGND secondary sun done"
 	end;
 
 "VHGND surrounding frame"
