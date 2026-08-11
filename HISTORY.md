@@ -263,6 +263,15 @@ flare now samples the projected fixture center and stops when palette band 0
 covers it, matching `lens_flares_for()` in `NOCTIS-0.CPP`. The original fixture
 color clamp at index 100 is retained as well.
 
+### Source surface visor frame
+
+Clearing the planetary guard band removed the reported white sawtooth, but it
+left a plain black rectangle that was only an intermediate repair. The original
+finishes every planetary frame with `surrounding()`. The live port now performs
+its default ten-row and ten-column graded frame after terrain and weather,
+including dense type-2 atmospheres. Later polygon work can no longer dirty the
+edge, and the intended Noctis visor treatment replaces the black workaround.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

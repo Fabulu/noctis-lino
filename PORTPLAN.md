@@ -175,6 +175,10 @@ first -- a broken foundation makes every later result meaningless.
   supplies temperature and atmospheric pressure, altitude adjusts the live
   temperature, and walking raises a decaying pulse. The GUI-scaled line owns a
   lower-HUD row above notices instead of clipping against the 200-line page.
+- The same final surface pass now restores `surrounding()`'s default graded
+  ten-pixel visor frame after terrain and weather. It replaces both the old
+  bright sawtooth and the intermediate plain-black guard on every atmosphere
+  path, including dense type-2 worlds.
 - Surface movement no longer pins the player to the terrain on every tick.
   J restores NIV+'s `-500` jump impulse; held Space supplies repeated `-50`
   jetpack thrust, C cuts thrust, and the selected body's retained radius

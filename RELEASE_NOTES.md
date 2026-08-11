@@ -40,9 +40,9 @@ parity, not a claim that parity is complete.
 - Facing the first right-wall computer and pressing Enter focuses physical
   GOES. The third station starts planetary approach and, after FCS reaches
   STANDBY, opens the physical longitude/latitude selector.
-- Planetary views retain the original dark 306x180 guard area. The incorrect
-  bright, jagged border is gone without changing the polygon sentinel or
-  recoloring legitimate bright effects.
+- Planetary views finish with the original default `surrounding()` visor
+  frame. Its stable graded edge replaces both the incorrect bright sawtooth
+  and the intermediate plain-black guard without changing polygon clipping.
 - Version 11 saves retain settled capsule coordinates, and older landed saves
   migrate without stranding the player away from the pod.
 
@@ -68,15 +68,17 @@ Useful controls:
 
 - Windows is the supported packaged platform. The historical Linux runtime's
   PCM layer is a stub, so soundtrack support is Windows-only.
-- The second physical GOES face does not yet present complete source scrollback.
+- The second physical GOES face retains command output with source-equivalent
+  line, page, and end scrolling.
 - The Stardrifter halogen flare now obeys the original projected center-pixel
   occlusion test instead of leaking through hull geometry and popping at its
   edges.
 - Higher-rate presentation does not yet interpolate the original 18.206 Hz
   simulation, so it is not expected to feel like a modern native 60 Hz game.
 - Full Noctis IV+ feature parity remains the release criterion. Historical
-  screens, complete GUI behavior, stellar refueling, and presentation details
-  are still being implemented rather than cut from scope.
+  screens, complete GUI behavior, and presentation details are still being
+  implemented rather than cut from scope. Stellar lithium collection and
+  emergency depletion recovery are live gameplay systems.
 
 ## Integrity and licence
 

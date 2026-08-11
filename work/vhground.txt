@@ -108,6 +108,8 @@
 	VHGNDtexbase = RPBG;		( p_background or s_background flat base )
 	VHGNDlon = 0; VHGNDlat = 60; VHGNDlocseed = 0;
 	VHGNDsurfaceok = 0; VHGNDsample = 0; VHGNDcloud = 0; VHGNDcbase = 192;
+	VHGNDsurlight = 16; VHGNDframei = 0; VHGNDframey = 0;
+	VHGNDframeoff = 0; VHGNDframecount = 0; VHGNDframecol = 0;
 	VHGNDcloudrain = 0; VHGNDsrf = 0; VHGNDsgf = 0; VHGNDsbf = 0;
 	VHGNDgrf = 0; VHGNDggf = 0; VHGNDgbf = 0;
 	VHGNDtick = 0; VHGNDdosim = 1;
@@ -2070,9 +2072,47 @@
 	=> VHGND render animals;
 	=> VHGND render birds;
 	A = [GRiptype]; ? A != 2 -> VHGND render weather ready;
-	=> VHGND dense atmosphere; end;
+	=> VHGND dense atmosphere; -> VHGND render finish;
     "VHGND render weather ready"
 	=> VHGND render weather;
+	"VHGND render finish"
+		=> VHGND surrounding frame;
+	end;
+
+"VHGND surrounding frame"
+	( NOCTIS-0.CPP surrounding(), default seamless_border=0.  This is the
+	  final surface-page operation: ten graded rows above and below the view,
+	  then ten graded columns at either side.  Applying it after terrain and
+	  weather replaces both the former bright sawtooth and the temporary plain
+	  black guard with the source visor frame. )
+	[VHGNDframei] = 0;
+    "VHGND surrounding horizontal"
+	A = 64; A + [VHGNDsurlight]; A - [VHGNDframei]; [VHGNDframecol] = A;
+	A = 9; A - [VHGNDframei]; A '* 320; [VHGNDframeoff] = A;
+	[VHGNDframecount] = 320;
+    "VHGND surrounding top row"
+	A = nw; A + RADPT; A + [VHGNDframeoff]; D = A; C = [VHGNDframecol]; [D] = C;
+	[VHGNDframeoff]+; [VHGNDframecount]-;
+	A = [VHGNDframecount]; ? A != 0 -> VHGND surrounding top row;
+	A = 190; A + [VHGNDframei]; A '* 320; [VHGNDframeoff] = A;
+	[VHGNDframecount] = 320;
+    "VHGND surrounding bottom row"
+	A = nw; A + RADPT; A + [VHGNDframeoff]; D = A; C = [VHGNDframecol]; [D] = C;
+	[VHGNDframeoff]+; [VHGNDframecount]-;
+	A = [VHGNDframecount]; ? A != 0 -> VHGND surrounding bottom row;
+	[VHGNDframei]+; A = [VHGNDframei]; ? A < 10 -> VHGND surrounding horizontal;
+
+	[VHGNDframey] = 10;
+    "VHGND surrounding side row"
+	[VHGNDframei] = 0;
+    "VHGND surrounding side pixel"
+	A = 64; A + [VHGNDsurlight]; A - [VHGNDframei]; [VHGNDframecol] = A;
+	A = [VHGNDframey]; A '* 320; C = 9; C - [VHGNDframei]; A + C;
+	A + RADPT; A + nw; D = A; C = [VHGNDframecol]; [D] = C;
+	A = [VHGNDframey]; A '* 320; C = 310; C + [VHGNDframei]; A + C;
+	A + RADPT; A + nw; D = A; C = [VHGNDframecol]; [D] = C;
+	[VHGNDframei]+; A = [VHGNDframei]; ? A < 10 -> VHGND surrounding side pixel;
+	[VHGNDframey]+; A = [VHGNDframey]; ? A < 190 -> VHGND surrounding side row;
 	end;
 
 "VHGND dense atmosphere"

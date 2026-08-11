@@ -170,15 +170,17 @@ Inf/NaN, over-range, and `Removed:` records without rewriting the player's file.
   power/FCS/body HUD rows are suppressed around any selected wall computer.
   The third face starts planetary approach, opens the live coordinate selector
   over its generated orbital display at STANDBY, and lands with Enter. The
-  second GOES output face still needs its complete scrollback presentation.
+  second GOES output face retains command output with source-equivalent line,
+  page, and end scrolling.
 - **Surface frame**: a valid cabin-to-console-to-landing run reproduced the
   reported bright stair-stepped perimeter. The source clips its world to a
   306x180 view and leaves the outer DOS page cleared; the port had instead
   filled that guard band with `sky_brightness`, which is nearly white on the
-  opening surface palette. The live background now preserves a clean black
+  opening surface palette. The live background first preserves a clean cleared
   source-sized guard band without changing palette index 255 or the authentic
-  polygon rasterizer. A second complete landing confirmed the white and jagged
-  perimeter is gone.
+  polygon rasterizer, then the completed frame applies the original default
+  `surrounding()` graded visor after terrain and weather. A second complete
+  landing confirmed the white and jagged perimeter is gone.
 - **Surface presentation**: every accepted landable class now has a distinct terrain arm: lunar crater fields (type 1), thick-atmosphere plateaus (2), four habitable biomes (type 3), corrugated boulder worlds (4), thin-atmosphere eroded/permafrost terrain (5), striated frozen shelves (7), and milky quartz worlds (8). These join the generated day/night sky palette, diffuse shading, textures, crevasses, rocks, capsule/beacon, historical ruins, calm-water and ice reflections, wind crests, swimmer wakes, vegetation, trees, mammals, capturable birds, the original type-2 dense-atmosphere grayscale smoothing, and the original type-3 storm gates. Raininess 2+ can flash the surface palette; raininess above 3 submits wind-slanted foreground rain sticks. Storm density retains the source 50-stick floor but caps accumulated extras at 174 sticks to protect 60 Hz presentation. The original offsets-map panorama now runs through a fixed-buffer direct specialization and is cached as a complete 320x200 indexed sky until pitch or yaw changes; this removes the generic per-byte dispatch freeze while restoring generated horizon detail. Wind and fauna state continue at 18.206 Hz in both presentation modes, while rain positions refresh at presentation cadence. Distant terrain uses 8-tile and 32-tile cells around an exact three-tile walking ring; only the nearest two depth bands are texture mapped, historical walls retain their marked unit-tile overlay, and the settled pod keeps both support grids while full translucent panels remain visible during descent/ascent. Reflections retain the source terrain-only half-scan pass and are suppressed during incoming wind waves. Current production load and resize smokes report 60 FPS at native and full-size presentation; movement advances without capsule recentering and persists the changed view angle.
 - **General surface identity**: the measured opening target retains its exact body seeds. Other selected stars now retain `p_orb_seed`, `p_tilt`, `p_orb_tilt`, `p_orb_ecc`, radian orientation, initial/final `p_ray`, and `p_orb_ray` through the original live x87 expression boundaries. The opening orbital probe matches the independent reference bit-for-bit across all checked fields. The original three-term `* 4112` surface seed now uses those retained binary64 fields and the live `__ftol` boundary. Each non-pinned landing coordinate also runs the verified source globe generator and samples its exact location albedo together with its atmosphere, clouds, rain, and scenario output.
 - **Capsule physics**: the source gravity, 0.32 rebound, settle thresholds, 32-frame seal, and 250-frame ascent cutoff are live. Touchdown now executes the original 252-step, 0.025-radian scan around the complete 1,024-unit pod circle, with binary32 angle/coordinate stores, chopped `hpoint` arguments, the 512-unit maximum-lip decision, and steepest-slope direction handed back to atmospheric drift after a rebound. Atmospheric worlds use the source lateral formula after vertical physics and evolve `iwp`, `wp`, and `wdir` every simulation tick through the live Borland stream. The original RNG state entering the five pre-surface initialization draws is not retained, so that initial state remains deterministically surface-seeded rather than claimed bit-exact.
@@ -614,6 +616,7 @@ Two isolated production-window journeys exercised that route without taking
 desktop focus. Both reached the generated surface. The first proved that the
 bright jagged perimeter was present on a valid landing, not only in a forced
 checkpoint. Comparison with `TDPOLYGS.H` and an original Noctis surface frame
-identified the 306x180 cleared guard band. The corrected build retains a clean
-dark frame, leaves the polygon sentinel untouched, and passes
+identified the 306x180 cleared guard band. The corrected build retains the
+clean clipped view, adds the source final graded visor frame, leaves the
+polygon sentinel untouched, and passes
 `python tests/test_vhgame.py` before compiling to the production Windows PE.

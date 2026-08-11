@@ -452,6 +452,11 @@ def main() -> int:
         and '"VHGND background cache restore"' in ground
         and "VHGNDskycache = 64000" in ground
         and "A & 65535; [BGdi] = A;" in ground
+        and '"VHGND surrounding frame"' in ground
+        and "A = 64; A + [VHGNDsurlight]; A - [VHGNDframei];" in ground
+        and "A = 190; A + [VHGNDframei]; A '* 320;" in ground
+        and "C = 310; C + [VHGNDframei];" in ground
+        and "=> VHGND dense atmosphere; -> VHGND render finish;" in ground
         and all(token in ground for token in (
             "[GRSKseed] = 149130", "[GRSKalbedo] = 32",
             "[GRSKseed] = 293154", "[GRSKalbedo] = 20",
