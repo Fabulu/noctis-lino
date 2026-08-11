@@ -11,20 +11,32 @@
 
 	VHLpower = 1;			( source ilightv: +1 on, -1 off )
 	VHLseg = 0; VHLcol = 0; VHLi = 0;
+	VHLangle = 0; VHLstep = 36; VHLlimit = 342; VHLdistance = 0;
 	VHLx0 = 0; VHLy0 = 0; VHLz0 = 0;
 	VHLx1 = 0; VHLy1 = 0; VHLz1 = 0;
 
 "programme"
 
 "VH alogena"
-	[VHLseg] = 0; A = 72; A + [VHLpower]; [VHLcol] = A;
+	( NOCTIS.CPP alogena(): PI/5 at close range, then widen dlon in
+	  proportion to fabs(cam_z)/1500.  The port camera is integral, so retain
+	  the source threshold and use integral degrees for the shared trig table. )
+	[VHLseg] = 0; [VHLangle] = 0; [VHLstep] = 36;
+	A = [VHVcamzi]; [VHLdistance] = A; ? A >= 0 -> VHL distance positive;
+	C = 0; C - A; [VHLdistance] = C;
+    "VHL distance positive"
+	A = [VHLdistance]; ? A <= 1500 -> VHL distance ready;
+	A '* 36; A / 1500; [VHLstep] = A;
+    "VHL distance ready"
+	A = [VHLstep]; A / 2; C = 360; C - A; [VHLlimit] = C;
+	A = 72; A + [VHLpower]; [VHLcol] = A;
     "VHL segment"
-	A = [VHLseg]; A '* 36; [VHVangle] = A; => VHV sincos;
+	[VHVangle] = [VHLangle]; => VHV sincos;
 	[VHCa] = VHLFIFTEEN; [VHCb] = [VHVsin]; => VHC multiply; [VHLx0] = [VHCm];
 	[VHCa] = VHLFIFTEEN; [VHCb] = [VHVcos]; => VHC multiply; [VHLy0] = [VHCm];
 	[VHLx1] = [VHLx0]; [VHLy1] = [VHLy0]; => VHL make z; [VHLz0] = [VHLz1];
 
-	A = [VHLseg]; A + 1; A '* 36; [VHVangle] = A; => VHV sincos;
+	A = [VHLangle]; A + [VHLstep]; [VHLangle] = A; [VHVangle] = A; => VHV sincos;
 	[VHCa] = VHLFIFTEEN; [VHCb] = [VHVsin]; => VHC multiply; [VHLx1] = [VHCm];
 	[VHCa] = VHLFIFTEEN; [VHCb] = [VHVcos]; => VHC multiply; [VHLy1] = [VHCm];
 	=> VHL make z;
@@ -35,7 +47,7 @@
 	=> VHL draw triangle;
 
 	A = [VHLcol]; A + 2; [VHLcol] = A;
-	[VHLseg]+; A = [VHLseg]; ? A < 10 -> VHL segment;
+	[VHLseg]+; A = [VHLangle]; ? A < [VHLlimit] -> VHL segment;
 	A = [VHLpower]; ? A != 1 -> VHL done;
 	=> VH halogen flare;
     "VHL done"

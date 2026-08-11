@@ -19,6 +19,7 @@
 	VHPalpha = 0; VHPbeta = 0;
 	VHPfontok = 0; VHPfi = 0; VHPchar = 0; VHPline = 0;
 	VHPkey = 0; VHPcmdpos = 0; VHPsubmitted = 0; VHPactive = 0;
+	VHPoutptr = 0; VHPoutrows = 0; VHPoutview = 0; VHPouti = 0; VHPoutj = 0;
 	VHPfcsstatus = 0; VHPstatbase = 0; VHPstatlen = 0;
 	VHPcx4 = 0; VHPxbase4 = 0;
 	VHPsysn = 0; VHPdotx = 0; VHPdoty = 0; VHPdotz = 0;
@@ -29,10 +30,15 @@
 	VHPsx0 = 0; VHPsy0 = 0; VHPsz0 = 0;
 	VHPsx1 = 0; VHPsy1 = 0; VHPsz1 = 0;
 	vhpfontname = { digimap2.bin };
+	vhpboot0 = { G.O.E.S. OUTPUT TREE };
+	vhpboot1 = { REVISION ID 6011/0200 };
+	vhpboot2 = { CHANNEL READY };
 
 "workspace"
 
 	vhptext = 126;			( two headers + four 21-column command rows )
+	vhpout = 672;			( thirty-two retained 21-column output rows )
+	vhpoutdisplay = 154;		( seven zero-terminated 21-column display rows )
 	vhpstatus = 54;
 	VHPbodyy = 80; VHPbodyz = 80;
 
@@ -65,6 +71,10 @@
 	[vhptext plus 36] = 49; [vhptext plus 37] = 47; [vhptext plus 38] = 48;
 	[vhptext plus 39] = 50; [vhptext plus 40] = 48; [vhptext plus 41] = 48;
 	[vhptext plus 42] = 95;
+	[VHPoutrows] = 0; [VHPoutview] = 0;
+	[VHPoutptr] = vhpboot0; => VH GOES output line;
+	[VHPoutptr] = vhpboot1; => VH GOES output line;
+	[VHPoutptr] = vhpboot2; => VH GOES output line;
 	( FCS messages written by status() in the original main loop. )
 	[vhpstatus plus 0] = 67; [vhpstatus plus 1] = 72; [vhpstatus plus 2] = 65; [vhpstatus plus 3] = 82;
 	[vhpstatus plus 4] = 71; [vhpstatus plus 5] = 73; [vhpstatus plus 6] = 78; [vhpstatus plus 7] = 71;
@@ -107,6 +117,7 @@
 	=> VHP system dots;
 	( Text uses the same vertex workspace, so it follows all three faces. )
 	=> VHP GOES text;
+	=> VHP GOES output text;
 	=> VHP GOES selector;
 	end;
 
@@ -355,6 +366,44 @@
     "VHP text done"
 	end;
 
+"VHP GOES output text"
+	A = [VHPfontok]; ? A = 0 -> VHP output text done;
+	( vehicle() advances cam_z by 54*15 before drawing the second screen. )
+	A = 0; A - [VHPcamz]; A - 2385; A '* 4; [VHPxbase4] = A;
+	[VHVcamxi] = 0; [VHVcamyi] = [VHPcamy];
+	A = [VHPcamx]; A - 3540; [VHVcamzi] = A;
+	[VHValpha] = [VHPalpha]; A = [VHPbeta]; A + 90; [VHVbeta] = A;
+	=> VH set view;
+	[VHPfi] = 0; [VHPline] = 0; [VHPcx4] = [VHPxbase4];
+    "VHP output text loop"
+	A = [VHPoutview]; A '* 21; A + [VHPfi]; A + vhpout;
+	[VHPchar] = [A];
+	A = [VHPline]; ? A = 0 -> VHP output row0;
+	? A = 1 -> VHP output row1; ? A = 2 -> VHP output row2;
+	? A = 3 -> VHP output row3; ? A = 4 -> VHP output row4;
+	? A = 5 -> VHP output row5; => VHP digit row6; -> VHP output drawn;
+    "VHP output row0"
+	=> VHP digit row0; -> VHP output drawn;
+    "VHP output row1"
+	=> VHP digit row1; -> VHP output drawn;
+    "VHP output row2"
+	=> VHP digit row2; -> VHP output drawn;
+    "VHP output row3"
+	=> VHP digit row3; -> VHP output drawn;
+    "VHP output row4"
+	=> VHP digit row4; -> VHP output drawn;
+    "VHP output row5"
+	=> VHP digit row5;
+    "VHP output drawn"
+	=> VHP text advance; [VHPfi]+;
+	A = [VHPfi]; A '% 21; ? A != 0 -> VHP output same row;
+	[VHPline]+; [VHPcx4] = [VHPxbase4];
+    "VHP output same row"
+	A = [VHPfi]; ? A < 147 -> VHP output text loop;
+	[SPflar] = 0; [PGtexf] = 0;
+    "VHP output text done"
+	end;
+
 "VHP text advance"
 	A = [VHPcx4]; A - 141; [VHPcx4] = A;	( 2.35*15 = 35.25 )
 	end;
@@ -366,6 +415,10 @@
 "VHP digit row1"
 	[vhcpoly plus 1] = 3277160448; [vhcpoly plus 4] = 3277160448;
 	[vhcpoly plus 7] = 3273555968; [vhcpoly plus 10] = 3273555968;
+	=> VHP digit; end;
+"VHP digit row2"
+	[vhcpoly plus 1] = 3272736768; [vhcpoly plus 4] = 3272736768;
+	[vhcpoly plus 7] = 3266707456; [vhcpoly plus 10] = 3266707456;
 	=> VHP digit; end;
 "VHP digit row3"
 	[vhcpoly plus 1] = 3265069056; [vhcpoly plus 4] = 3265069056;
@@ -420,6 +473,52 @@
 "VH GOES clear"
 	[VHPcmdpos] = 0; [VHPsubmitted] = 0;
 	[vhptext plus 42] = 95; [vhptext plus 43] = 0;
+	end;
+
+"VH GOES output line"
+	( GOESfile.TXT is a byte stream in the source. Retain the same fixed-width
+	  21-column flow in a bounded in-memory history for the hosted port. )
+	C = [VHPoutptr]; A = [C]; ? A = 0 -> VHP output line done;
+    "VHP output new row"
+	A = [VHPoutrows]; ? A < 32 -> VHP output row available;
+	[VHPouti] = 0;
+    "VHP output shift"
+	A = vhpout; A + [VHPouti]; C = A; A + 21; [C] = [A];
+	[VHPouti]+; A = [VHPouti]; ? A < 651 -> VHP output shift;
+	[VHPoutrows] = 31;
+    "VHP output row available"
+	A = [VHPoutrows]; A '* 21; A + vhpout; [VHPoutj] = A; [VHPouti] = 0;
+    "VHP output row clear"
+	C = [VHPoutj]; C + [VHPouti]; [C] = 32; [VHPouti]+;
+	A = [VHPouti]; ? A < 21 -> VHP output row clear;
+	[VHPouti] = 0;
+    "VHP output row copy"
+	C = [VHPoutptr]; A = [C]; ? A = 0 -> VHP output row finish;
+	? A = 95 -> VHP output row finish;
+	C = [VHPoutj]; C + [VHPouti]; [C] = A;
+	[VHPoutptr]+; [VHPouti]+; A = [VHPouti]; ? A < 21 -> VHP output row copy;
+    "VHP output row finish"
+	[VHPoutrows]+; A = [VHPoutrows]; A - 7; ? A >= 0 -> VHP output view ready; A = 0;
+    "VHP output view ready"
+	[VHPoutview] = A;
+	C = [VHPoutptr]; A = [C]; ? A = 0 -> VHP output line done;
+	? A = 95 -> VHP output line done; -> VHP output new row;
+    "VHP output line done"
+	end;
+
+"VH GOES output window"
+	( Materialize the selected seven-row slice as individually terminated strings
+	  for the resizable GUI host. The physical 3D font remains authoritative when
+	  visible; this copy makes the same content readable on affected renderers. )
+	[VHPouti] = 0;
+    "VHP output window row"
+	[VHPoutj] = 0;
+    "VHP output window column"
+	A = [VHPoutview]; A + [VHPouti]; A '* 21; A + [VHPoutj]; A + vhpout; C = [A];
+	A = [VHPouti]; A '* 22; A + [VHPoutj]; A + vhpoutdisplay; [A] = C;
+	[VHPoutj]+; A = [VHPoutj]; ? A < 21 -> VHP output window column;
+	A = [VHPouti]; A '* 22; A + 21; A + vhpoutdisplay; [A] = 0;
+	[VHPouti]+; A = [VHPouti]; ? A < 7 -> VHP output window row;
 	end;
 
 "VHP digit"

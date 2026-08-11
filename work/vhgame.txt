@@ -12,7 +12,7 @@
 	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
 	fbmem; fbpal; fbtick; fbshell;
 	pgfp; pgmem; pgrast; pgtex; pgproj;
-	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	spmem; spscale; spmap; spglobe; spglow; spbg; spwhite; spncc;
 	mul64frag; brtl; suseed; surng; subuflive; susm; supaint; supal; sucase; grnd; sky;
 	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
 	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhcatalog; vhspace; vhstar; vhground; vhcapsule; vhsave; vhaudio; vhgui;
@@ -58,7 +58,8 @@
 	VHGesc = 0; VHGframe = 0; VHGsent = 0;
 	VHGmouseheld = 0; VHGmousex = 0; VHGmousey = 0; VHGmousedx = 0; VHGmousedy = 0;
 	VHGconsole = 0; VHGconsoleview = 0; VHGascii = 0; VHGasciiheld = 0; VHGasciikey = 0;
-	VHGscreen = 0FFFFFFFFh; VHGscreenprev = 0FFFFFFFFh;
+	VHGscreen = 0FFFFFFFFh; VHGscreenprev = 0FFFFFFFFh; VHGfcsopen = 0;
+	VHGscrollheld = 0; VHGscrollused = 0;
 	VHGnewasciikey = 0; VHGreturnpending = 0; VHGreturnhookheld = 0;
 	VHGi = 0; VHGptr = 0; VHGseed = 0; VHGstepv = 0;
 	VHGcmdi = 0; VHGcmdvalue = 0; VHGcmdsign = 0; VHGcmddigits = 0; VHGcmdok = 0;
@@ -68,10 +69,35 @@
 	VHGlocalx0 = 0; VHGlocalx1 = 0; VHGlocaly0 = 0; VHGlocaly1 = 0;
 	VHGlocalz0 = 0; VHGlocalz1 = 0; VHGlocalinit0 = 0; VHGlocalinit1 = 0;
 	VHGlocalcur0 = 0; VHGlocalcur1 = 0;
-		VHGlocalbatch = 0; VHGlocalacc = 0;
+	VHGlocalbatch = 0; VHGlocalacc = 0; VHGlocalphasetick = 0;
+	VHGlocalmask = 192; VHGlocalbubble = 0; VHGlocaltapreg = RGPBG;
+	VHGlocalresident1 = 0FFFFFFFFh; VHGlocalresident2 = 0FFFFFFFFh;
+	VHGlocalpmapbody = 0FFFFFFFFh; VHGlocalmmapbody = 0FFFFFFFFh;
+	VHGlocalnear10 = 0; VHGlocalnear11 = 0; VHGlocalnear20 = 0; VHGlocalnear21 = 0;
+	VHGlocalsurfaceok = 0; VHGlocalsavedplanet = 0;
+	VHGlocaltx0 = 0; VHGlocaltx1 = 0; VHGlocalty0 = 0; VHGlocalty1 = 0;
+	VHGlocaltz0 = 0; VHGlocaltz1 = 0;
+	VHGlocalbody = 0; VHGlocalray0 = 0; VHGlocalray1 = 0;
+	VHGlocaldist0 = 0; VHGlocaldist1 = 0; VHGlocallim0 = 0; VHGlocallim1 = 0;
+	VHGlocaltmp0 = 0; VHGlocaltmp1 = 0; VHGlocalcolour = 0; VHGlocaloff = 0;
+	VHGlocalspreads = 1; VHGlocaleffect = 0; VHGlocalmultmask = 64;
+	VHGlocalcentrecolour = 0; VHGlocalband = 0; VHGlocallow = 0;
+	VHGlocalshowrings = 0; VHGlocalshowdisc = 0; VHGlocalringsurface = 0;
+	VHGlocaltermstart = 0;
+	VHGlocalringlayers = 0; VHGlocalringstart = 0; VHGlocalringb = 0;
+	VHGlocalringbody = 0; VHGlocalbodyview = 0;
+	VHGlocalringc = 0; VHGlocalringa = 0; VHGlocalringn = 0; VHGlocalringm = 0;
+	VHGlocalringpart = 0; VHGlocalringparts = 0;
+	VHGlocalringcx0 = 0; VHGlocalringcx1 = 0; VHGlocalringcy0 = 0; VHGlocalringcy1 = 0;
+	VHGlocalringcz0 = 0; VHGlocalringcz1 = 0;
+	VHGlocalringray0 = 0; VHGlocalringray1 = 0;
+	VHGlocalringtilt0 = 0; VHGlocalringtilt1 = 0;
+	VHGlocalringstep0 = 0; VHGlocalringstep1 = 0;
+	VHGlocalringsx0 = 0; VHGlocalringsx1 = 0; VHGlocalringsy0 = 0; VHGlocalringsy1 = 0;
+	VHGlocalringsz0 = 0; VHGlocalringsz1 = 0;
 	VHGgalx0 = 0; VHGgalx1 = 0; VHGgaly0 = 0; VHGgaly1 = 0; VHGgalz0 = 0; VHGgalz1 = 0;
 	VHGcollector = 0; VHGcollectrate = 0; VHGcollectloss = 0;
-	VHGrescueactive = 0; VHGrescuetick = 0; VHGrescuedist = 0;
+	VHGrescueactive = 0; VHGrescuetick = 0; VHGrescuedelay = 0; VHGrescueacc = 0; VHGrescuedist = 0;
 	VHGrescuex = 0; VHGrescuey = 0; VHGrescuez = 0;
 	VHGutcsecs = 0; VHGutcdays = 0; VHGutcmonthbase = 0;
 	VHGsavedsecs = 0; VHGelapsed = 0; VHGofflinegain = 0;
@@ -108,6 +134,8 @@
 	VHGinfonamesrc = 0; VHGinfosrc = 0; VHGinfodst = 0; VHGinfocount = 0;
 	VHGdev = 0; VHGilight = 1; VHGlighttick = 0;
 	VHGdeviceheld = 0;
+	VHGstarclass = 0; VHGstarr = 0; VHGstarg = 0; VHGstarb = 0;
+	VHGstarinnerR = 0; VHGstarinnerG = 0; VHGstarinnerB = 0;
 	( Original navigation-device defaults: normal field, finder off, fixed
 	  tracking, and the radiation stand-off enabled. )
 	VHGamp = 0; VHGfinder = 0; VHGsync = 1; VHGantirad = 1;
@@ -136,6 +164,7 @@
 	VHGmusicfailedtext = { MUSIC UNAVAILABLE };
 	VHGtargettext = { VIMANA TARGET SET };
 	VHGtargetfailedtext = { NO TARGET AVAILABLE };
+	VHGunknowntext = { UNKNOWN GOES MODULE };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -174,7 +203,7 @@
 	VHGhelpjump = { SURFACE:J JUMP / HOLD SPACE JETPACK };
 	VHGhelplift = { E:LIFT / STEP INTO CUPOLA:RETURN };
 	VHGhelpgoes = { G/ENTER:GOES / TAB:RUN };
-	VHGhelpnav = { GOES:NEXT/NEW / STAR X Y Z };
+	VHGhelpnav = { 5:FCS / R:DEVICES / G:GOES };
 	VHGhelpname = { GOES:NAME STAR/PLANET LABEL };
 	VHGhelpbody = { []:SELECT-BODY / L:APPROACH };
 	VHGhelpland = { L@STANDBY:SITE / ARROWS / L:LAND };
@@ -234,6 +263,20 @@
 	VHGdevenvironment = { 9 ENVIRONMENT DATA };
 	VHGdevhint = { R:CLOSE / 6-9:SELECT };
 	VHGdevbackhint = { R:BACK / 6-9:SELECT };
+	VHGfcsmenutitle = { FLIGHT CONTROL SYSTEM };
+	VHGfcsmremote = { 6 SET REMOTE TARGET };
+	VHGfcsmstart = { 7 START VIMANA FLIGHT };
+	VHGfcsmstop = { 7 STOP VIMANA FLIGHT };
+	VHGfcsmlocal = { 8 SET LOCAL TARGET };
+	VHGfcsmcancel = { 8 STOP FINE APPROACH };
+	VHGfcsmrestart = { 8 SELECT ANOTHER LOCAL TARGET };
+	VHGfcsmcapsule = { 9 DEPLOY SURFACE CAPSULE };
+	VHGfcsmhint = { 5:CLOSE / 6-9:SELECT };
+	VHGflightstarttext = { VIMANA FLIGHT STARTED };
+	VHGflightstoptext = { VIMANA FLIGHT STOPPED };
+	VHGflightconflicttext = { VIMANA CONTROL CONFLICT };
+	VHGlocalstoptext = { FINE APPROACH STOPPED };
+	VHGlocalselecttext = { SELECT BODY WITH [ ] THEN PRESS 5,8 };
 	VHGlightontext = { INTERNAL LIGHT ON };
 	VHGlightofftext = { INTERNAL LIGHT OFF };
 	VHGampontext = { FIELD AMPLIFIER ON };
@@ -350,18 +393,22 @@
 	A = [VHGutcsecs]; A - [VHGsavedsecs]; ? A <= 0 -> VHG offline done;
 	[VHGelapsed] = A;
 
-	( A pending compressed rescue advances at the fixed 18.206-Hz gameplay
-	  rate.  Ten or more closed seconds complete the fly-by and preserve the
-	  source minimum of three delivered units. )
+	( unfreeze() resolves a closed-game rescue against helptime. Before arrival
+	  the distance-dependent delay simply counts down; more than twenty seconds
+	  after arrival ends the event and supplies the source's offline four units. )
 	A = [VHGrescueactive]; ? A = 0 -> VHG offline collector;
-	A = [VHGelapsed]; ? A >= 10 -> VHG offline rescue finish;
-	A '* 18; A + [VHGrescuetick]; ? A >= 180 -> VHG offline rescue finish;
-	[VHGrescuetick] = A; ? A < 45 -> VHG offline collector;
-	A = [MgCharge]; ? A >= 3 -> VHG offline collector; [MgCharge] = 3;
-	-> VHG offline collector;
+	A = [VHGelapsed]; C = [VHGrescuedelay]; ? C <= 0 -> VHG offline rescue arrived;
+	? A > C -> VHG offline rescue crosses arrival;
+	C - A; [VHGrescuedelay] = C; -> VHG offline collector;
+    "VHG offline rescue crosses arrival"
+	A - C; [VHGelapsed] = A; [VHGrescuedelay] = 0;
+    "VHG offline rescue arrived"
+	A = [VHGelapsed]; A + [VHGrescuetick]; ? A <= 20 -> VHG offline rescue store;
     "VHG offline rescue finish"
-	[VHGrescueactive] = 0; [VHGrescuetick] = 0;
-	A = [MgCharge]; ? A >= 3 -> VHG offline collector; [MgCharge] = 3;
+	[VHGrescueactive] = 0; [VHGrescuetick] = 0; [VHGrescuedelay] = 0; [VHGrescueacc] = 0;
+	[MgCharge] = 4; -> VHG offline collector;
+    "VHG offline rescue store"
+	[VHGrescuetick] = A; [VHGrescueacc] = 0; -> VHG offline collector;
 
     "VHG offline collector"
 	A = [VHGcollector]; ? A = 0 -> VHG offline done;
@@ -482,10 +529,12 @@
 	=> VHG surface telemetry overlay;
 	=> VHG FCS overlay;
 	=> VHG body overlay;
+	=> VHG output overlay;
 	=> VHG landing overlay;
 	=> VHG console overlay;
 	=> VHG notice overlay;
 	=> VHG info overlay;
+	=> VHG FCS menu overlay;
 	=> VHG device overlay;
 	=> VHG help overlay;
 	=> VHGUI present;
@@ -511,10 +560,12 @@
 		=> VHG surface telemetry overlay;
 		=> VHG FCS overlay;
 		=> VHG body overlay;
+		=> VHG output overlay;
 		=> VHG landing overlay;
 		=> VHG console overlay;
 		=> VHG notice overlay;
 		=> VHG info overlay;
+		=> VHG FCS menu overlay;
 		=> VHG device overlay;
 		=> VHG help overlay;
 		=> VHGUI present;
@@ -654,7 +705,7 @@
 	[MgCur0] = 0; [MgCur1] = VHGFCH;
 	[MgTmp] = [VHTRay]; C = [MgTmp]; => MG widen f32 FA from C;
 	[MgT00] = [FA0]; [MgT01] = [FA1];
-	[MgAnti] = [VHGantirad]; [MgAptgt] = 1; [MgPwr] = 30000; [MgCharge] = 3;
+	[MgAnti] = [VHGantirad]; [MgAptgt] = 1; [MgPwr] = 20000; [MgCharge] = 3;
 	[VHGcollector] = 0;
 	[MgApreached] = 0; [MgStspeed] = 1; [MgStatus] = 0;
 	=> VHG local reset;
@@ -899,39 +950,39 @@
 	end;
 
 "VHG rescue advance"
-	( NOCTIS.CPP:2738-2755 brings another Stardrifter in, holds it nearby
-	  while transferring lithium, then sends it away.  Preserve that visible
-	  three-part event but compress its 120-second fly-by to 180 simulation
-	  ticks (just under ten seconds) for an interactive rescue. )
+	( NOCTIS.CPP:1875-1883 and 2738-2755: a distance-dependent wait followed
+	  by the full 120-second helper fly-by. The rational accumulator turns the
+	  authentic 18.206-Hz simulation cadence back into whole source seconds. )
 	A = [VHGrescueactive]; ? A = 0 -> VHG rescue tick done;
+	A = [VHGrescueacc]; A + 1000; [VHGrescueacc] = A;
+	? A < 18206 -> VHG rescue tick done;
+	A - 18206; [VHGrescueacc] = A;
+	A = [VHGrescuedelay]; ? A <= 0 -> VHG rescue flyby second;
+	A - 1; [VHGrescuedelay] = A; ? A > 0 -> VHG rescue tick done;
+	[VHGnoticeptr] = VHGhelparrivetext; [VHGnoticeframes] = 55;
+	-> VHG rescue tick done;
+    "VHG rescue flyby second"
 	[VHGrescuetick]+; A = [VHGrescuetick];
-	? A < 45 -> VHG rescue en route;
-	? A > 135 -> VHG rescue departing;
-	? A != 45 -> VHG rescue transfer;
-	A = [MgCharge]; ? A >= 3 -> VHG rescue arrived notice; [MgCharge] = 3;
-    "VHG rescue arrived notice"
-	[VHGnoticeptr] = VHGhelparrivetext; [VHGnoticeframes] = 30;
-	-> VHG rescue tick done;
+	? A = 20 -> VHG rescue transfer;
+	? A = 100 -> VHG rescue departing;
+	? A < 120 -> VHG rescue tick done; -> VHG rescue finished;
     "VHG rescue transfer"
-	A = [VHGrescuetick]; ? A <= 55 -> VHG rescue tick done;
-	[VHGnoticeptr] = VHGhelptransfertext; [VHGnoticeframes] = 12;
-	-> VHG rescue tick done;
-    "VHG rescue en route"
-	[VHGnoticeptr] = VHGhelproutetext; [VHGnoticeframes] = 12;
+	A = [MgCharge]; ? A >= 3 -> VHG rescue transfer notice; [MgCharge] = 3;
+    "VHG rescue transfer notice"
+	[VHGnoticeptr] = VHGhelptransfertext; [VHGnoticeframes] = 55;
 	-> VHG rescue tick done;
     "VHG rescue departing"
-	A = [VHGrescuetick]; ? A >= 180 -> VHG rescue finished;
-	[VHGnoticeptr] = VHGhelpdeparttext; [VHGnoticeframes] = 12;
+	[VHGnoticeptr] = VHGhelpdeparttext; [VHGnoticeframes] = 55;
 	-> VHG rescue tick done;
     "VHG rescue finished"
-	[VHGrescueactive] = 0; [VHGrescuetick] = 0;
+	[VHGrescueactive] = 0; [VHGrescuetick] = 0; [VHGrescuedelay] = 0; [VHGrescueacc] = 0;
 	[VHGnoticeptr] = VHGhelpdonetext; [VHGnoticeframes] = 55;
     "VHG rescue tick done"
 	end;
 
 "VHG local reset"
 	[VHGlocalactive] = 0; [VHGlocaltarget] = 0FFFFFFFFh; [VHGlandpending] = 0;
-	[VHGlandingselect] = 0; [VHGlandingview] = 1;
+	[VHGlandingselect] = 0; [VHGlandingview] = 1; [VHGlocalphasetick] = 0;
 	[MgIpreaching] = 0; [MgIpreached] = 0;
 	end;
 
@@ -940,12 +991,45 @@
 	  stays separate from galactic dzat, so later STAR/NEXT travel remains
 	  anchored at the calibrated star. )
 	[VHGcollector] = 0;
-		[VHGlocalactive] = 1; [VHGlocaltarget] = [VHGplanet]; [VHGlocalacc] = 0;
-	A = [VHGplanet]; A < 1; E = nsporbray; E + A;
-	[VHGlocalx0] = [E plus 0]; [VHGlocalx1] = [E plus 1];
-	[VHGlocalinit0] = [E plus 0]; [VHGlocalinit1] = [E plus 1];
-	[VHGlocaly0] = 0; [VHGlocaly1] = 0; [VHGlocalz0] = 0; [VHGlocalz1] = 0;
-	[FA0] = [VHGlocalinit0]; [FA1] = [VHGlocalinit1];
+	[VHGlocalactive] = 1; [VHGlocaltarget] = [VHGplanet]; [VHGlocalacc] = 0;
+	[VHGlocalphasetick] = 0;
+	[VHGlocalresident1] = 0FFFFFFFFh; [VHGlocalresident2] = 0FFFFFFFFh;
+	[VHGlocalpmapbody] = 0FFFFFFFFh; [VHGlocalmmapbody] = 0FFFFFFFFh;
+	( Source planets() waits for the 25-radius surface LOD before building a
+	  resident map.  Orbital phase setup is still needed from approach start. )
+	[VHGNDlon] = [VHGlandinglon]; [VHGNDlat] = [VHGlandinglat];
+	=> VHG prepare planet; => VHG fpu clean;
+	[VHGNDplanet] = [VHGplanet]; => VHGND general phase setup; => VHG fpu clean;
+	( fix_local_target(): planet_xyz, then current Stardrifter minus that
+	  absolute target.  Keeping the integrator in a target-relative frame is
+	  algebraically identical and avoids disturbing galactic navigation. )
+	[VHGNDvecindex] = [VHGplanet]; => VHGND absolute body vector;
+	[VHGlocaltx0] = [VHGNDvecx0]; [VHGlocaltx1] = [VHGNDvecx1];
+	[VHGlocalty0] = [VHGNDvecy0]; [VHGlocalty1] = [VHGNDvecy1];
+	[VHGlocaltz0] = [VHGNDvecz0]; [VHGlocaltz1] = [VHGNDvecz1];
+	[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1]; [FI] = [VHTtx]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [MgDzatX0]; [FA1] = [MgDzatX1]; => FSub;
+	[FB0] = [VHGlocaltx0]; [FB1] = [VHGlocaltx1]; => FSub;
+	[VHGlocalx0] = [FA0]; [VHGlocalx1] = [FA1];
+	[FA0] = [MgDzatY0]; [FA1] = [MgDzatY1]; [FI] = [VHTty]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [MgDzatY0]; [FA1] = [MgDzatY1]; => FSub;
+	[FB0] = [VHGlocalty0]; [FB1] = [VHGlocalty1]; => FSub;
+	[VHGlocaly0] = [FA0]; [VHGlocaly1] = [FA1];
+	[FA0] = [MgDzatZ0]; [FA1] = [MgDzatZ1]; [FI] = [VHTtz]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [MgDzatZ0]; [FA1] = [MgDzatZ1]; => FSub;
+	[FB0] = [VHGlocaltz0]; [FB1] = [VHGlocaltz1]; => FSub;
+	[VHGlocalz0] = [FA0]; [VHGlocalz1] = [FA1];
+	[FA0] = [VHGlocalx0]; [FA1] = [VHGlocalx1];
+	[FB0] = [VHGlocalx0]; [FB1] = [VHGlocalx1]; => FMul;
+	[VHGlocalinit0] = [FA0]; [VHGlocalinit1] = [FA1];
+	[FA0] = [VHGlocaly0]; [FA1] = [VHGlocaly1];
+	[FB0] = [VHGlocaly0]; [FB1] = [VHGlocaly1]; => FMul;
+	[FB0] = [VHGlocalinit0]; [FB1] = [VHGlocalinit1]; => FAdd;
+	[VHGlocalinit0] = [FA0]; [VHGlocalinit1] = [FA1];
+	[FA0] = [VHGlocalz0]; [FA1] = [VHGlocalz1];
+	[FB0] = [VHGlocalz0]; [FB1] = [VHGlocalz1]; => FMul;
+	[FB0] = [VHGlocalinit0]; [FB1] = [VHGlocalinit1]; => FAdd; => FSqrt;
+	[VHGlocalinit0] = [FA0]; [VHGlocalinit1] = [FA1];
 	[FB0] = [MgK1000]; [FB1] = [MgK1001]; => FMul;
 	[VHGlocalcur0] = [FA0]; [VHGlocalcur1] = [FA1];
 	A = [VHGplanet]; A < 1; E = nspray; E + A;
@@ -983,44 +1067,628 @@
 	[MgDzatX0] = [VHGgalx0]; [MgDzatX1] = [VHGgalx1];
 	[MgDzatY0] = [VHGgaly0]; [MgDzatY1] = [VHGgaly1];
 	[MgDzatZ0] = [VHGgalz0]; [MgDzatZ1] = [VHGgalz1];
+	( secs is integral in the source.  One phase refresh per authentic second
+	  keeps the visible orbit and rotation current without redundant UTC calls. )
+	[VHGlocalphasetick]+; A = [VHGlocalphasetick]; ? A < 18 -> VHG local step done;
+	[VHGlocalphasetick] = 0; [VHGNDplanet] = [VHGplanet]; => VHGND general phase setup;
+    "VHG local step done"
 	end;
 
 "VHG local render"
 	A = [VHGlocalactive]; ? A = 0 -> VHG local render done;
-	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocalx0]; [FB1] = [VHGlocalx1]; => FSub; [PGFi] = SFXX; => PGF sa;
-	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocaly0]; [FB1] = [VHGlocaly1]; => FSub; [PGFi] = SFYY; => PGF sa;
-	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocalz0]; [FB1] = [VHGlocalz1]; => FSub; [PGFi] = SFZZ; => PGF sa;
-	[FS0] = [MgPray]; => FLoadF32; [FI] = 3; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
-	[FS0] = [MgPray]; => FLoadF32; => FMul; => F32Narrow; [WHmag] = [FS0];
+	=> VHG local resident scan;
+	( planet_xyz(selected) places the approached world in the generated
+	  system.  The fine-approach integrator stores the Stardrifter relative
+	  to that world, so the primary star is -planet_xyz-ship. )
+	[VHGNDvecindex] = [VHGplanet]; => VHGND absolute body vector;
+	[VHGlocaltx0] = [VHGNDvecx0]; [VHGlocaltx1] = [VHGNDvecx1];
+	[VHGlocalty0] = [VHGNDvecy0]; [VHGlocalty1] = [VHGNDvecy1];
+	[VHGlocaltz0] = [VHGNDvecz0]; [VHGlocaltz1] = [VHGNDvecz1];
+	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocaltx0]; [FB1] = [VHGlocaltx1]; => FSub;
+	[FB0] = [VHGlocalx0]; [FB1] = [VHGlocalx1]; => FSub; [PGFi] = SFXX; => PGF sa;
+	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocalty0]; [FB1] = [VHGlocalty1]; => FSub;
+	[FB0] = [VHGlocaly0]; [FB1] = [VHGlocaly1]; => FSub; [PGFi] = SFYY; => PGF sa;
+	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocaltz0]; [FB1] = [VHGlocaltz1]; => FSub;
+	[FB0] = [VHGlocalz0]; [FB1] = [VHGlocalz1]; => FSub; [PGFi] = SFZZ; => PGF sa;
+	[PGFt] = [VHTRay]; => PGF ldf32; [VHTtmp0] = [FA0]; [VHTtmp1] = [FA1];
+	[FI] = 3; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTtmp0]; [FA1] = [VHTtmp1]; => FMul; => F32Narrow; [WHmag] = [FS0];
 	[WHfgm] = 3E99999Ah; [WHshape] = 2; [WHsun] = 0; [WHdstreg] = RGADP; => SP white;
-	[GBmag] = [MgPray]; => SP globe setup; A = [GBok]; ? A = 0 -> VHG local render done;
-	A = [VHGframe]; A '% 360; [GBstart] = A; [GBcmask] = 192; [GBsat] = 40;
-	[GBtabreg] = RGGLB; [GBtapreg] = RGSBG; [GBdstreg] = RGADP; [GBbytes] = GLBYTES; [GBbubble] = 0;
+	[GBmag] = [VHTRay]; => SP globe setup; A = [GBok]; ? A = 0 -> VHG local planet render;
+	A = [VHGframe]; A % 360; [GBstart] = A; [GBcmask] = 64; [GBsat] = 40;
+	[GBtabreg] = RGGLB; [GBtapreg] = RGSBG; [GBdstreg] = RGADP;
+	[GBbytes] = GLBYTES; [GBbubble] = 0; => SP globe raster;
+    "VHG local planet render"
+	( planets() traverses every generated body.  The selected body retains
+	  the generated surface map below; the rest remain source far-pixels at
+	  their live planet_xyz() positions until their own close-resident pass. )
+	[VHGlocalbody] = 0;
+    "VHG local body loop"
+	A = [VHGlocalbody]; ? A '>= [nsnob] -> VHG local selected render;
+	? A = [VHGplanet] -> VHG local body next;
+	[VHGNDvecindex] = A; => VHGND absolute body vector;
+	=> VHG local body relative;
+	A = [VHGlocalbody]; A < 1; E = nspray; E + A;
+	[VHGlocalray0] = [E plus 0]; [VHGlocalray1] = [E plus 1];
+	E = nsptype; E + [VHGlocalbody]; A = [E]; ? A != 10 -> VHG local ordinary body;
+	( Source companion stars receive whiteglobe before planets() contributes
+	  their far point.  Use the central 0.15 corona branch here; the signed
+	  random variation remains isolated to the later companion-detail pass. )
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1];
+	[FI] = 3; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
+	=> F32Narrow; [WHmag] = [FS0]; [WHfgm] = 3E19999Ah;
+	[WHshape] = 2; [WHsun] = 0; [WHdstreg] = RGADP; => SP white;
+	=> VHG local far pixel; -> VHG local body next;
+    "VHG local ordinary body"
+	( Secondary bodies use the same point/ring/crescent/surface LOD gates and
+	  the source's two physical resident maps. )
+	[VHGlocalringbody] = [VHGlocalbody]; => VHG local body distance;
+	[VHGlocalshowrings] = 0; [VHGlocalshowdisc] = 0; [VHGlocalringsurface] = 0;
+	[FI] = 250; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
+	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG local other disc gate;
+	A = [VHGlocalbody]; A < 1; E = nspring; E + A;
+	A = [E plus 0]; A | [E plus 1]; ? A = 0 -> VHG local other disc gate;
+	[VHGlocalshowrings] = 1; [VHGlocalmultmask] = 64;
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocalray0]; [FB1] = [VHGlocalray1]; => FQuo;
+	[FB0] = 9999999Ah; [FB1] = 3FA99999h; => FMul; => FToIntChop;
+	[VHGlocalringlayers] = [FI];
+    "VHG local other disc gate"
+	[FI] = 100; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
+	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG local other point;
+	[VHGlocalshowdisc] = 1; => VHG local ring viewpoint;
+	[FI] = 25; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
+	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG local other draw back;
+	=> VHG local ensure surface; A = [VHGlocalsurfaceok]; ? A = 0 -> VHG local other draw back;
+	[VHGlocalringsurface] = 1;
+    "VHG local other draw back"
+	A = [VHGlocalshowrings]; ? A = 0 -> VHG local other crescent;
+	[VHGlocalmultmask] = 64; A = [VHGlocalringsurface]; ? A = 0 -> VHG local other back mask ready;
+	[VHGlocalmultmask] = [VHGlocalmask];
+    "VHG local other back mask ready"
+	A = [VHGlocalringstart]; A + 180; ? A '<= 359 -> VHG local other back angle; A - 360;
+    "VHG local other back angle"
+	[VHGlocalringstart] = A; => VHG local ring;
+	A = [VHGlocalringstart]; A - 180; ? A >= 0 -> VHG local other front restored; A + 360;
+    "VHG local other front restored"
+	[VHGlocalringstart] = A;
+    "VHG local other crescent"
+	[VHGNDplanet] = [VHGlocalbody]; => VHGND exact viewpoint;
+	[VHGlocalbodyview] = [VHGNDviewpoint]; [VHGNDplanet] = [VHGplanet];
+	A = [VHGlocalringsurface]; ? A != 0 -> VHG local other surface;
+	=> VHG local ring center coords;
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => F32Narrow; [GLmag] = [FS0];
+	=> SP glow setup; A = [GBok]; ? A = 0 -> VHG local other foreground;
+	A = 124; A - [VHGlocalbodyview]; A % 360;
+	? A >= 0 -> VHG local other terminator; A + 360;
+    "VHG local other terminator"
+	[VHGlocaltermstart] = A;
+	A = [VHGlocalringstart]; A - [VHGlocaltermstart]; A % 360;
+	? A >= 0 -> VHG local other glow angle; A + 360;
+    "VHG local other glow angle"
+	[GLstart] = A; [GLarc] = 130; [GLcol] = 127;
+	[GLtabreg] = RGGLB; [GLdstreg] = RGADP; [GLnb] = GLBYTES; => SP glow raster;
+	-> VHG local other foreground;
+    "VHG local other surface"
+	=> VHG local ring center coords;
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => F32Narrow; [GBmag] = [FS0];
+	=> SP globe setup; A = [GBok]; ? A = 0 -> VHG local other foreground;
+	A = [VHGlocalringstart]; A + [VHGNDrotation]; A % 360;
+	? A >= 0 -> VHG local other rotation ready; A + 360;
+    "VHG local other rotation ready"
+	[GBstart] = A; [GBcmask] = [VHGlocalmask]; [GBsat] = 0;
+	[GBtabreg] = RGGLB; [GBtapreg] = [VHGlocaltapreg]; [GBdstreg] = RGADP; [GBbytes] = GLBYTES;
+	[GBbubble] = [VHGlocalbubble]; => SP globe raster;
+    "VHG local other foreground"
+	A = [VHGlocalshowrings]; ? A = 0 -> VHG local body next;
+	=> VHG local ring; -> VHG local body next;
+    "VHG local other point"
+	=> VHG local ring center coords; => VHG local far pixel;
+	A = [VHGlocalshowrings]; ? A = 0 -> VHG local body next;
+	=> VHG local ring viewpoint;
+	A = [VHGlocalringstart]; A + 180; ? A '<= 359 -> VHG local other point back; A - 360;
+    "VHG local other point back"
+	[VHGlocalringstart] = A; => VHG local ring;
+	A = [VHGlocalringstart]; A - 180; ? A >= 0 -> VHG local other point front; A + 360;
+    "VHG local other point front"
+	[VHGlocalringstart] = A; => VHG local ring;
+	=> VHG local ring center coords; => VHG local far pixel;
+    "VHG local body next"
+	[VHGlocalbody]+; -> VHG local body loop;
+
+    "VHG local selected render"
+	=> VHG local center coords;
+	[VHGlocalringbody] = [VHGplanet];
+	[VHGNDplanet] = [VHGplanet]; => VHGND exact viewpoint;
+	[VHGlocalbodyview] = [VHGNDviewpoint];
+	A = [VHGplanet]; A < 1; E = nspray; E + A;
+	[VHGlocalray0] = [E plus 0]; [VHGlocalray1] = [E plus 1];
+	E = nsptype; E + [VHGplanet]; A = [E]; ? A != 10 -> VHG local selected planet;
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1];
+	[FI] = 3; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
+	=> F32Narrow; [WHmag] = [FS0]; [WHfgm] = 3E19999Ah;
+	[WHshape] = 2; [WHsun] = 0; [WHdstreg] = RGADP; => SP white;
+	=> VHG local far pixel; -> VHG local render done;
+    "VHG local selected planet"
+	=> VHG local body distance; => VHG local ring viewpoint;
+	( Source LOD gates: rings at d < 250*ray, disc at d < 100*ray,
+	  retained surface at d < 25*ray.  Decide all three before drawing so
+	  the back half of a close ring receives the source palette mask. )
+	[VHGlocalshowrings] = 0; [VHGlocalshowdisc] = 0; [VHGlocalringsurface] = 0;
+	[FI] = 250; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
+	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG local selected disc gate;
+	A = [VHGplanet]; A < 1; E = nspring; E + A;
+	A = [E plus 0]; A | [E plus 1]; ? A = 0 -> VHG local selected disc gate;
+	[VHGlocalshowrings] = 1;
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocalray0]; [FB1] = [VHGlocalray1]; => FQuo;
+	[FB0] = 9999999Ah; [FB1] = 3FA99999h; => FMul; => FToIntChop;
+	[VHGlocalringlayers] = [FI];
+    "VHG local selected disc gate"
+	[FI] = 100; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
+	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG local selected point;
+	[VHGlocalshowdisc] = 1;
+	[FI] = 25; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
+	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG local selected draw back;
+	=> VHG local ensure surface; A = [VHGlocalsurfaceok]; ? A = 0 -> VHG local selected draw back;
+	[VHGlocalringsurface] = 1;
+    "VHG local selected draw back"
+	A = [VHGlocalshowrings]; ? A = 0 -> VHG local selected disc;
+	[VHGlocalmultmask] = 64; A = [VHGlocalringsurface]; ? A = 0 -> VHG local selected back mask ready;
+	[VHGlocalmultmask] = [VHGlocalmask];
+    "VHG local selected back mask ready"
+	A = [VHGlocalringstart]; A + 180; ? A '<= 359 -> VHG local selected back angle; A - 360;
+    "VHG local selected back angle"
+	[VHGlocalringstart] = A; => VHG local ring;
+	A = [VHGlocalringstart]; A - 180; ? A >= 0 -> VHG local selected front angle restored; A + 360;
+    "VHG local selected front angle restored"
+	[VHGlocalringstart] = A;
+    "VHG local selected disc"
+	A = [VHGlocalringsurface]; ? A != 0 -> VHG local selected surface;
+	=> VHG local center coords;
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => F32Narrow; [GLmag] = [FS0];
+	=> SP glow setup; A = [GBok]; ? A = 0 -> VHG local selected foreground;
+	( glowinglobe receives start=viewer plwp and the star-facing
+	  terminator_start=(89+35)-cplx_planet_viewpoint. )
+	A = 124; A - [VHGlocalbodyview]; A % 360;
+	? A >= 0 -> VHG local crescent terminator; A + 360;
+    "VHG local crescent terminator"
+	[VHGlocaltermstart] = A;
+	A = [VHGlocalringstart]; A - [VHGlocaltermstart]; A % 360;
+	? A >= 0 -> VHG local crescent angle; A + 360;
+    "VHG local crescent angle"
+	[GLstart] = A; [GLarc] = 130; [GLcol] = 127;
+	[GLtabreg] = RGGLB; [GLdstreg] = RGADP; [GLnb] = GLBYTES;
+	=> SP glow raster; -> VHG local selected foreground;
+    "VHG local selected surface"
+	=> VHG local center coords;
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => F32Narrow; [GBmag] = [FS0];
+	=> SP globe setup; A = [GBok]; ? A = 0 -> VHG local selected foreground;
+	( globe(start) rotates the observer-facing map longitude, not the
+	  independently derived star-lighting longitude. )
+	A = [VHGlocalringstart]; A + [VHGNDrotation]; A % 360;
+	? A >= 0 -> VHG local rotation ready; A + 360;
+    "VHG local rotation ready"
+	[GBstart] = A; [GBcmask] = [VHGlocalmask]; [GBsat] = 0;
+	[GBtabreg] = RGGLB; [GBtapreg] = [VHGlocaltapreg]; [GBdstreg] = RGADP; [GBbytes] = GLBYTES;
+	[GBbubble] = [VHGlocalbubble];
 	=> SP globe raster;
+    "VHG local selected foreground"
+	A = [VHGlocalshowrings]; ? A = 0 -> VHG local render done;
+	=> VHG local ring; -> VHG local render done;
+
+    "VHG local selected point"
+	=> VHG local center coords; => VHG local far pixel;
+	A = [VHGlocalshowrings]; ? A = 0 -> VHG local render done;
+	[VHGlocalmultmask] = 64;
+	A = [VHGlocalringstart]; A + 180; ? A '<= 359 -> VHG local selected point back angle; A - 360;
+    "VHG local selected point back angle"
+	[VHGlocalringstart] = A; => VHG local ring;
+	A = [VHGlocalringstart]; A - 180; ? A >= 0 -> VHG local selected point front angle; A + 360;
+    "VHG local selected point front angle"
+	[VHGlocalringstart] = A; => VHG local ring;
+	=> VHG local center coords; => VHG local far pixel;
 "VHG local render done"
+	end;
+
+"VHG local resident scan"
+	( NOCTIS-0.CPP:5290-5317.  Find the two nearest bodies without changing
+	  their generated order.  When the nearest is a moon, the second resident
+	  is the nearest primary, preserving one useful body for each physical map. )
+	[VHGlocalresident1] = 0FFFFFFFFh; [VHGlocalresident2] = 0FFFFFFFFh;
+	[VHGlocalbody] = 0;
+    "VHG local resident scan body"
+	A = [VHGlocalbody]; ? A '>= [nsnob] -> VHG local resident pair ready;
+	[VHGNDvecindex] = A; => VHGND absolute body vector; => VHG local body relative;
+	=> VHG local body distance;
+	A = [VHGlocalresident1]; ? A != 0FFFFFFFFh -> VHG local resident compare first;
+	[VHGlocalresident1] = [VHGlocalbody];
+	[VHGlocalnear10] = [VHGlocaldist0]; [VHGlocalnear11] = [VHGlocaldist1];
+	-> VHG local resident scan next;
+    "VHG local resident compare first"
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocalnear10]; [FB1] = [VHGlocalnear11]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG local resident compare second;
+	[VHGlocalresident2] = [VHGlocalresident1];
+	[VHGlocalnear20] = [VHGlocalnear10]; [VHGlocalnear21] = [VHGlocalnear11];
+	[VHGlocalresident1] = [VHGlocalbody];
+	[VHGlocalnear10] = [VHGlocaldist0]; [VHGlocalnear11] = [VHGlocaldist1];
+	-> VHG local resident scan next;
+    "VHG local resident compare second"
+	A = [VHGlocalresident2]; ? A != 0FFFFFFFFh -> VHG local resident compare second distance;
+	[VHGlocalresident2] = [VHGlocalbody];
+	[VHGlocalnear20] = [VHGlocaldist0]; [VHGlocalnear21] = [VHGlocaldist1];
+	-> VHG local resident scan next;
+    "VHG local resident compare second distance"
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocalnear20]; [FB1] = [VHGlocalnear21]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG local resident scan next;
+	[VHGlocalresident2] = [VHGlocalbody];
+	[VHGlocalnear20] = [VHGlocaldist0]; [VHGlocalnear21] = [VHGlocaldist1];
+    "VHG local resident scan next"
+	[VHGlocalbody]+; -> VHG local resident scan body;
+    "VHG local resident pair ready"
+	A = [VHGlocalresident1]; ? A = 0FFFFFFFFh -> VHG local resident scan done;
+	E = nspowner; E + A; A = [E]; ? A < 0 -> VHG local resident scan done;
+	( Closest is a moon: replace the generic runner-up with the nearest primary. )
+	[VHGlocalresident2] = 0FFFFFFFFh; [VHGlocalbody] = 0;
+    "VHG local resident primary body"
+	A = [VHGlocalbody]; ? A '>= [nsnob] -> VHG local resident scan done;
+	E = nspowner; E + A; C = [E]; ? C >= 0 -> VHG local resident primary next;
+	[VHGNDvecindex] = A; => VHGND absolute body vector; => VHG local body relative;
+	=> VHG local body distance;
+	A = [VHGlocalresident2]; ? A != 0FFFFFFFFh -> VHG local resident primary compare;
+	[VHGlocalresident2] = [VHGlocalbody];
+	[VHGlocalnear20] = [VHGlocaldist0]; [VHGlocalnear21] = [VHGlocaldist1];
+	-> VHG local resident primary next;
+    "VHG local resident primary compare"
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = [VHGlocalnear20]; [FB1] = [VHGlocalnear21]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG local resident primary next;
+	[VHGlocalresident2] = [VHGlocalbody];
+	[VHGlocalnear20] = [VHGlocaldist0]; [VHGlocalnear21] = [VHGlocaldist1];
+    "VHG local resident primary next"
+	[VHGlocalbody]+; -> VHG local resident primary body;
+    "VHG local resident scan done"
+	end;
+
+"VHG local ensure surface"
+	( resident_map1/2 are generation tickets, while p_background and
+	  s_background remain the two physical caches. )
+	[VHGlocalsurfaceok] = 0;
+	A = [VHGlocalringbody]; ? A = [VHGlocalresident1] -> VHG local surface resident;
+	? A != [VHGlocalresident2] -> VHG local surface done;
+    "VHG local surface resident"
+	E = nspowner; E + [VHGlocalringbody]; A = [E]; ? A < 0 -> VHG local surface primary;
+	[VHGlocalmask] = 128; [VHGlocaltapreg] = RGSBG;
+	A = [VHGlocalmmapbody]; ? A = [VHGlocalringbody] -> VHG local surface style;
+	[VHGlocalsavedplanet] = [VHGplanet]; [VHGplanet] = [VHGlocalringbody]; [VHGNDtexbase] = RSBG;
+	=> VHG prepare planet; => VHG fpu clean; => VHGND generate; => VHG fpu clean;
+	[VHGlocalmmapbody] = [VHGlocalringbody]; -> VHG local surface restore;
+    "VHG local surface primary"
+	[VHGlocalmask] = 192; [VHGlocaltapreg] = RGPBG;
+	A = [VHGlocalpmapbody]; ? A = [VHGlocalringbody] -> VHG local surface style;
+	[VHGlocalsavedplanet] = [VHGplanet]; [VHGplanet] = [VHGlocalringbody]; [VHGNDtexbase] = RPBG;
+	=> VHG prepare planet; => VHG fpu clean; => VHGND generate; => VHG fpu clean;
+	[VHGlocalpmapbody] = [VHGlocalringbody];
+    "VHG local surface restore"
+	[VHGplanet] = [VHGlocalsavedplanet]; => VHG prepare planet;
+	[VHGNDplanet] = [VHGplanet]; => VHGND general phase setup; => VHG fpu clean;
+	"VHG local surface style"
+	[VHGlocalbubble] = 0; E = nsptype; E + [VHGlocalringbody]; A = [E];
+	? A = 2 -> VHG local surface bubble; ? A = 3 -> VHG local surface bubble;
+	? A = 6 -> VHG local surface bubble; ? A = 8 -> VHG local surface bubble;
+	? A != 9 -> VHG local surface styled;
+    "VHG local surface bubble"
+	[VHGlocalbubble] = 1;
+    "VHG local surface styled"
+	[VHGlocalsurfaceok] = 1;
+    "VHG local surface done"
+	end;
+
+"VHG local center coords"
+	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocalx0]; [FB1] = [VHGlocalx1]; => FSub;
+	[VHGlocalringcx0] = [FA0]; [VHGlocalringcx1] = [FA1]; [PGFi] = SFXX; => PGF sa;
+	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocaly0]; [FB1] = [VHGlocaly1]; => FSub;
+	[VHGlocalringcy0] = [FA0]; [VHGlocalringcy1] = [FA1]; [PGFi] = SFYY; => PGF sa;
+	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocalz0]; [FB1] = [VHGlocalz1]; => FSub;
+	[VHGlocalringcz0] = [FA0]; [VHGlocalringcz1] = [FA1]; [PGFi] = SFZZ; => PGF sa;
+	end;
+
+"VHG local ring viewpoint"
+	( planet_viewpoint() selects the integral longitude nearest the observer.
+	  The retained center is body minus observer, so negate its X/Z pair. )
+	[FA0] = [VHGlocalringcz0]; [FA1] = [VHGlocalringcz1]; => FNeg;
+	[VHGlocaltmp0] = [FA0]; [VHGlocaltmp1] = [FA1];
+	[FA0] = [VHGlocalringcx0]; [FA1] = [VHGlocalringcx1]; => FNeg;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGlocaltmp0]; [FA1] = [VHGlocaltmp1]; => FAtan2;
+	[FB0] = 0; [FB1] = 40668000h; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
+	A = [FI]; A % 360; ? A >= 0 -> VHG local ring viewpoint normalized; A + 360;
+    "VHG local ring viewpoint normalized"
+	C = 359; C - A; C % 360; ? C >= 0 -> VHG local ring viewpoint ready; C + 360;
+    "VHG local ring viewpoint ready"
+	[VHGlocalringstart] = C;
+	end;
+
+"VHG local ring"
+	( NOCTIS-0.CPP:5200-5246.  Each call reseeds fast_random from the
+	  retained final ring radius, so the two half-rings share the same
+	  layered particle structure while straddling the planet raster. )
+	A = [VHGlocalringbody]; A < 1; E = nspring; E + A;
+	[VHGlocalringray0] = [E plus 0]; [VHGlocalringray1] = [E plus 1];
+	A = [E plus 0]; A | [E plus 1]; ? A = 0 -> VHG local ring done;
+	[FA0] = [VHGlocalringray0]; [FA1] = [VHGlocalringray1];
+	[FB0] = EB851EB8h; [FB1] = 3F7EB851h; => FMul;
+	[VHGlocalringstep0] = [FA0]; [VHGlocalringstep1] = [FA1];
+	=> VHG local ring tilt;
+	[FA0] = [VHGlocalringray0]; [FA1] = [VHGlocalringray1];
+	[FB0] = 00000000h; [FB1] = 40C38800h; => FMul;
+	[VHGlocaltmp0] = [FA0]; [VHGlocaltmp1] = [FA1];
+	[FI] = [VHGlocalringbody]; => IntToF; [FB0] = [VHGlocaltmp0]; [FB1] = [VHGlocaltmp1]; => FAdd;
+	=> FToIntChop; A = [FI]; => SU fast srand;
+	[SUfmask] = 31; => SU fast raw; A = [SUfval]; A + 1; A - [VHGlocalringlayers];
+	[VHGlocalringb] = A;
+	[SUfmask] = 3; => SU fast raw; A = [SUfval]; A + 1; [VHGlocalringparts] = A;
+    "VHG local ring layer"
+	A = [VHGlocalringb]; ? A <= 0 -> VHG local ring done;
+	[SUfmask] = 7; => SU fast raw; A = [SUfval]; ? A = 0 -> VHG local ring sparse;
+	[VHGlocalspreads] = 1; [SUfmask] = 7; => SU fast raw;
+	A = [SUfval]; A + 1; [VHGlocalringc] = A; -> VHG local ring cadence ready;
+    "VHG local ring sparse"
+	[VHGlocalspreads] = 0; [SUfmask] = 3; => SU fast raw;
+	A = [SUfval]; A + 1; [VHGlocalringc] = A;
+    "VHG local ring cadence ready"
+	A = [VHGlocalringstart]; A % [VHGlocalringc];
+	C = [VHGlocalringstart]; C - A; [VHGlocalringa] = C;
+	[SUfmask] = 1; => SU fast raw; C = [SUfval]; => SU fast raw;
+	C + [SUfval]; [VHGlocaleffect] = C;
+	[VHGlocalringn] = [VHGlocalringc];
+    "VHG local ring arc"
+	A = [VHGlocalringn]; A + [VHGlocalringc]; ? A '>= 180 -> VHG local ring layer advance;
+	[SUfmask] = 1; => SU fast raw;
+	A = [SUfval]; A + [VHGlocalringc]; [VHGlocalringm] = A;
+	C = [VHGlocalringn]; C + A; [VHGlocalringn] = C;
+	C = [VHGlocalringa]; C + A; ? C '<= 360 -> VHG local ring angle ready; C - 360;
+    "VHG local ring angle ready"
+	[VHGlocalringa] = C; [VHVangle] = C; => VHV sincos;
+	( sy = oy - ringtilt*sin(a). )
+	[FS0] = [VHVsin]; => FLoadF32;
+	[FB0] = [VHGlocalringtilt0]; [FB1] = [VHGlocalringtilt1]; => FMul;
+	[VHGlocaltmp0] = [FA0]; [VHGlocaltmp1] = [FA1];
+	[FA0] = [VHGlocalringcy0]; [FA1] = [VHGlocalringcy1];
+	[FB0] = [VHGlocaltmp0]; [FB1] = [VHGlocaltmp1]; => FSub;
+	[VHGlocalringsy0] = [FA0]; [VHGlocalringsy1] = [FA1];
+	( sx = ox + ringray*sin(a). )
+	[FS0] = [VHVsin]; => FLoadF32;
+	[FB0] = [VHGlocalringray0]; [FB1] = [VHGlocalringray1]; => FMul;
+	[FB0] = [VHGlocalringcx0]; [FB1] = [VHGlocalringcx1]; => FAdd;
+	[VHGlocalringsx0] = [FA0]; [VHGlocalringsx1] = [FA1];
+	( sz = oz + ringray*cos(a). )
+	[FS0] = [VHVcos]; => FLoadF32;
+	[FB0] = [VHGlocalringray0]; [FB1] = [VHGlocalringray1]; => FMul;
+	[FB0] = [VHGlocalringcz0]; [FB1] = [VHGlocalringcz1]; => FAdd;
+	[VHGlocalringsz0] = [FA0]; [VHGlocalringsz1] = [FA1];
+	[VHGlocalringpart] = [VHGlocalringparts];
+    "VHG local ring particle"
+	A = [VHGlocalringpart]; ? A <= 0 -> VHG local ring arc;
+	( sz += step - fast_flandom()*step. )
+	=> VHG local fast flandom;
+	[FB0] = [VHGlocalringstep0]; [FB1] = [VHGlocalringstep1]; => FMul;
+	[VHGlocaltmp0] = [FA0]; [VHGlocaltmp1] = [FA1];
+	[FA0] = [VHGlocalringstep0]; [FA1] = [VHGlocalringstep1];
+	[FB0] = [VHGlocaltmp0]; [FB1] = [VHGlocaltmp1]; => FSub;
+	[FB0] = [VHGlocalringsz0]; [FB1] = [VHGlocalringsz1]; => FAdd;
+	[VHGlocalringsz0] = [FA0]; [VHGlocalringsz1] = [FA1];
+	( sx += step - fast_flandom()*step. )
+	=> VHG local fast flandom;
+	[FB0] = [VHGlocalringstep0]; [FB1] = [VHGlocalringstep1]; => FMul;
+	[VHGlocaltmp0] = [FA0]; [VHGlocaltmp1] = [FA1];
+	[FA0] = [VHGlocalringstep0]; [FA1] = [VHGlocalringstep1];
+	[FB0] = [VHGlocaltmp0]; [FB1] = [VHGlocaltmp1]; => FSub;
+	[FB0] = [VHGlocalringsx0]; [FB1] = [VHGlocalringsx1]; => FAdd;
+	[VHGlocalringsx0] = [FA0]; [VHGlocalringsx1] = [FA1];
+	=> VHG local ring point coords;
+	[VHGlocalray0] = 24DD2F1Bh; [VHGlocalray1] = BFA58106h;
+	=> VHG local far pixel;
+	[VHGlocalringpart]-; -> VHG local ring particle;
+    "VHG local ring layer advance"
+	[FA0] = [VHGlocalringray0]; [FA1] = [VHGlocalringray1];
+	[FB0] = [VHGlocalringstep0]; [FB1] = [VHGlocalringstep1]; => FAdd;
+	[VHGlocalringray0] = [FA0]; [VHGlocalringray1] = [FA1];
+	[SUfmask] = 7; => SU fast raw; A = [SUfval]; ? A != 0 -> VHG local ring radius ready;
+	[FI] = 5; => IntToF; [FB0] = [VHGlocalringstep0]; [FB1] = [VHGlocalringstep1]; => FMul;
+	[FB0] = [VHGlocalringray0]; [FB1] = [VHGlocalringray1]; => FAdd;
+	[VHGlocalringray0] = [FA0]; [VHGlocalringray1] = [FA1];
+    "VHG local ring radius ready"
+	=> VHG local ring tilt;
+	[VHGlocalringb]-; -> VHG local ring layer;
+    "VHG local ring done"
+	[VHGlocalspreads] = 1; [VHGlocaleffect] = 0;
+	A = [VHGlocalringbody]; A < 1; E = nspray; E + A;
+	[VHGlocalray0] = [E plus 0]; [VHGlocalray1] = [E plus 1];
+	end;
+
+"VHG local ring tilt"
+	[FA0] = 9999999Ah; [FA1] = 3FB99999h;
+	[FB0] = [VHGlocalringray0]; [FB1] = [VHGlocalringray1]; => FMul;
+	[VHGlocaltmp0] = [FA0]; [VHGlocaltmp1] = [FA1];
+	A = [VHGlocalringbody]; A < 1; E = nsptilt; E + A;
+	[FA0] = [VHGlocaltmp0]; [FA1] = [VHGlocaltmp1];
+	[FB0] = [E plus 0]; [FB1] = [E plus 1]; => FMul;
+	[VHGlocalringtilt0] = [FA0]; [VHGlocalringtilt1] = [FA1];
+	end;
+
+"VHG local fast flandom"
+	[SUfmask] = 7FFFh; => SU fast raw; [FI] = [SUfval]; => IntToF;
+	[FB0] = 7EDA0BE1h; [FB1] = 3F00000Eh; => FMul; => F32Narrow; => FLoadF32;
+	end;
+
+"VHG local ring point coords"
+	[FA0] = [VHGlocalringsx0]; [FA1] = [VHGlocalringsx1]; [PGFi] = SFXX; => PGF sa;
+	[FA0] = [VHGlocalringsy0]; [FA1] = [VHGlocalringsy1]; [PGFi] = SFYY; => PGF sa;
+	[FA0] = [VHGlocalringsz0]; [FA1] = [VHGlocalringsz1]; [PGFi] = SFZZ; => PGF sa;
+	end;
+
+"VHG local ring center coords"
+	[FA0] = [VHGlocalringcx0]; [FA1] = [VHGlocalringcx1]; [PGFi] = SFXX; => PGF sa;
+	[FA0] = [VHGlocalringcy0]; [FA1] = [VHGlocalringcy1]; [PGFi] = SFYY; => PGF sa;
+	[FA0] = [VHGlocalringcz0]; [FA1] = [VHGlocalringcz1]; [PGFi] = SFZZ; => PGF sa;
+	end;
+
+"VHG local body relative"
+	( Current VHGND vector is body-from-star.  Convert it into
+	  body-from-selected-world-from-Stardrifter for the local camera. )
+	[FA0] = [VHGNDvecx0]; [FA1] = [VHGNDvecx1];
+	[FB0] = [VHGlocaltx0]; [FB1] = [VHGlocaltx1]; => FSub;
+	[FB0] = [VHGlocalx0]; [FB1] = [VHGlocalx1]; => FSub;
+	[VHGlocalringcx0] = [FA0]; [VHGlocalringcx1] = [FA1]; [PGFi] = SFXX; => PGF sa;
+	[FA0] = [VHGNDvecy0]; [FA1] = [VHGNDvecy1];
+	[FB0] = [VHGlocalty0]; [FB1] = [VHGlocalty1]; => FSub;
+	[FB0] = [VHGlocaly0]; [FB1] = [VHGlocaly1]; => FSub;
+	[VHGlocalringcy0] = [FA0]; [VHGlocalringcy1] = [FA1]; [PGFi] = SFYY; => PGF sa;
+	[FA0] = [VHGNDvecz0]; [FA1] = [VHGNDvecz1];
+	[FB0] = [VHGlocaltz0]; [FB1] = [VHGlocaltz1]; => FSub;
+	[FB0] = [VHGlocalz0]; [FB1] = [VHGlocalz1]; => FSub;
+	[VHGlocalringcz0] = [FA0]; [VHGlocalringcz1] = [FA1]; [PGFi] = SFZZ; => PGF sa;
+	end;
+
+"VHG local body distance"
+	[PGFi] = SFXX; => PGF a; [PGFi] = SFXX; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = SFYY; => PGF a; [PGFi] = SFYY; => PGF mul; [PGFi] = FSW0; => PGF add;
+	[PGFi] = SFZZ; => PGF a; [PGFi] = SFZZ; => PGF mul; [PGFi] = FSW0; => PGF add;
+	=> FSqrt; [VHGlocaldist0] = [FA0]; [VHGlocaldist1] = [FA1];
+	end;
+
+"VHG local far pixel"
+	( NOCTIS-0.CPP far_pixel_at(): source distance/radius brightness and
+	  all four spread rings.  Ring particles also select the original
+	  emitting, absorbing, or multicolour single-pixel compositor. )
+	=> PG getcoords; A = [GCret]; ? A = 0 -> VHG local far done;
+	A = [GCx]; ? A <= 10 -> VHG local far done; ? A >= 310 -> VHG local far done;
+	A = [GCy]; ? A <= 10 -> VHG local far done; ? A >= 190 -> VHG local far done;
+	[PGFi] = FSRZF; => PGF a; [FB0] = BC6A7EFAh; [FB1] = 3FD89374h; => FMul;
+	[VHGlocaltmp0] = [FA0]; [VHGlocaltmp1] = [FA1];
+	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1];
+	[FB0] = 33333333h; [FB1] = 40933333h; => FMul;
+	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
+	[FI] = 64; => IntToF; [FB0] = [VHGlocaltmp0]; [FB1] = [VHGlocaltmp1]; => FSub;
+	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FAdd; => FToIntChop;
+	A = [FI]; ? A >= 0 -> VHG local far colour low; A = 0;
+    "VHG local far colour low"
+	? A <= 63 -> VHG local far colour ready; A = 63;
+    "VHG local far colour ready"
+	[VHGlocalcentrecolour] = A; [VHGlocalcolour] = A;
+	A = [VHGlocalspreads]; ? A = 0 -> VHG local far unspread;
+	A = [VHGlocalcentrecolour]; ? A <= 7 -> VHG local far done;
+	( edge_color_1: cardinal neighbours. )
+	A > 1; [VHGlocalcolour] = A; ? A <= 7 -> VHG local far edge2;
+	A = [GCy]; A '* 320; A + [GCx]; A - 320; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A + 320; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A - 1; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A + 1; [VHGlocaloff] = A; => VHG local pixel add;
+    "VHG local far edge2"
+	A = [VHGlocalcentrecolour]; A > 2; [VHGlocalcolour] = A; ? A <= 7 -> VHG local far edge3;
+	A = [GCy]; A '* 320; A + [GCx]; A - 321; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A - 319; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A + 321; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A + 319; [VHGlocaloff] = A; => VHG local pixel add;
+    "VHG local far edge3"
+	A = [VHGlocalcentrecolour]; A > 3; [VHGlocalcolour] = A; ? A <= 7 -> VHG local far edge4;
+	A = [GCy]; A '* 320; A + [GCx]; A - 640; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A + 640; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A - 2; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A + 2; [VHGlocaloff] = A; => VHG local pixel add;
+    "VHG local far edge4"
+	A = [VHGlocalcentrecolour]; A > 4; [VHGlocalcolour] = A; ? A <= 7 -> VHG local far centre;
+	A = [GCy]; A '* 320; A + [GCx]; A - 641; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A - 639; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A + 641; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A + 639; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A - 322; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A - 318; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A + 322; [VHGlocaloff] = A; => VHG local pixel add;
+	A = [GCy]; A '* 320; A + [GCx]; A + 318; [VHGlocaloff] = A; => VHG local pixel add;
+    "VHG local far centre"
+	[VHGlocalcolour] = [VHGlocalcentrecolour];
+	A = [GCy]; A '* 320; A + [GCx]; [VHGlocaloff] = A; => VHG local pixel add;
+	-> VHG local far done;
+    "VHG local far unspread"
+	A = [VHGlocalcentrecolour]; ? A = 0 -> VHG local far done;
+	A = [GCy]; A '* 320; A + [GCx]; [VHGlocaloff] = A; => VHG local pixel add;
+    "VHG local far done"
+	end;
+
+"VHG local pixel add"
+	A = [VHGlocaloff]; ? A < 0 -> VHG local pixel done; ? A '>= NPIX -> VHG local pixel done;
+	[SPoff] = A; [SPreg] = RGADP; => SP get;
+	A = [SPval]; ? A < 64 -> VHG local pixel done;
+	C = A; C & 192; [VHGlocalband] = C; A & 63; [VHGlocallow] = A;
+	A = [VHGlocaleffect]; ? A = 1 -> VHG local pixel absorbing;
+	? A = 2 -> VHG local pixel multicolour;
+	A = [VHGlocallow]; A + [VHGlocalcolour]; ? A <= 62 -> VHG local pixel ready; A = 62;
+	-> VHG local pixel ready;
+    "VHG local pixel absorbing"
+	A = [VHGlocallow]; A + [VHGlocalcolour]; A > 1; -> VHG local pixel ready;
+    "VHG local pixel multicolour"
+	A = [VHGlocallow]; A + [VHGlocalcolour]; A > 1;
+	C = [VHGlocalmultmask]; C & 192; [VHGlocalband] = C;
+    "VHG local pixel ready"
+	A | [VHGlocalband]; [SPval] = A; => SP put;
+    "VHG local pixel done"
 	end;
 
 "VHG rescue render"
 	A = [VHGrescueactive]; ? A = 0 -> VHG rescue render done;
+	A = [VHGrescuedelay]; ? A > 0 -> VHG rescue render done;
 	( Source fly-by distance: a squared approach, a 16000-unit close orbit,
 	  and the mirrored squared departure. )
-	A = [VHGrescuetick]; ? A < 45 -> VHG rescue distance approach;
-	? A > 135 -> VHG rescue distance depart;
+	A = [VHGrescuetick]; ? A < 20 -> VHG rescue distance approach;
+	? A > 100 -> VHG rescue distance depart;
 	[VHGrescuedist] = 16000; -> VHG rescue distance ready;
     "VHG rescue distance approach"
-	C = 45; C - A; -> VHG rescue distance square;
+	C = 20; C - A; -> VHG rescue distance square;
     "VHG rescue distance depart"
-	C = A; C - 135;
+	C = A; C - 100;
     "VHG rescue distance square"
-	C '* C; C '* 400; C + 16000; [VHGrescuedist] = C;
+	C '* C; C '* 2000; C + 16000; [VHGrescuedist] = C;
     "VHG rescue distance ready"
 	( Orbit the helper around the Stardrifter like other_vehicle_at(). )
-	A = [VHGrescuetick]; A '* 4; [VHVangle] = A; => VHV sincos;
+	A = [VHGrescuetick]; A '* 6; [VHVangle] = A; => VHV sincos;
 	[FS0] = [VHVcos]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
 	[FI] = [VHGrescuedist]; => IntToF; => FMul; => FToIntChop; [VHGrescuex] = [FI];
 	[FS0] = [VHVsin]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
 	[FI] = [VHGrescuedist]; => IntToF; => FMul; => FToIntChop; [VHGrescuez] = [FI];
-	A = [VHGrescuetick]; A '% 40; A - 20; A '* 80; [VHGrescuey] = A;
+	A = [VHGrescuetick]; A '/ 2; [VHVangle] = A; => VHV sincos;
+	[FS0] = [VHVsin]; => FLoadF32; [FI] = 4000; => IntToF; => FMul; => FToIntChop;
+	[VHGrescuey] = [FI];
 
 	( other_vehicle_at() deliberately submits only the helper's two luminous
 	  cupolas at this close-orbit scale; drawing the full 15x interior hull
@@ -1058,10 +1726,89 @@
 	end;
 
 "VHG star palette"
-	( The selected star owns palette band 64..127, as the source does. )
-	[PVsrc] = range8088; [PVself] = 0;
-	[PVfirst] = 64; [PVn] = 64;
-	[PVfr] = [VHTred]; [PVfg] = [VHTgreen]; [PVfb] = [VHTblue]; => PAL tavola;
+	( NOCTIS.CPP:3666-3777.  A close star owns band 64..127, but that
+	  band is three joined ramps: black to its class-specific convective
+	  colour, through the stellar class colour, then into white saturation. )
+	[VHGstarclass] = [VHTclass]; [VHGstarr] = [VHTred];
+	[VHGstarg] = [VHTgreen]; [VHGstarb] = [VHTblue];
+	A = [VHTclass]; ? A != 8 -> VHG star palette class ready;
+	( Class 8 borrows a deterministic stellar class for its visible colour. )
+	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FToIntChop;
+	A = [FI]; => SU fast srand; [SUfmask] = 7FFFh; => SU fast raw;
+	A = [SUfval]; => BrtlSrand; A = 12; => BrtlRandom; [VHGstarclass] = A;
+	A '* 3; E = VHTclassrgb; E + A;
+	[VHGstarr] = [E plus 0]; [VHGstarg] = [E plus 1]; [VHGstarb] = [E plus 2];
+    "VHG star palette class ready"
+	A = [VHGstarclass]; ? A = 0 -> VHG star palette inner0;
+	? A = 1 -> VHG star palette inner1; ? A = 2 -> VHG star palette inner2;
+	? A = 3 -> VHG star palette inner3; ? A = 4 -> VHG star palette inner4;
+	? A = 5 -> VHG star palette inner5; ? A = 6 -> VHG star palette inner6;
+	? A = 7 -> VHG star palette inner7; ? A = 8 -> VHG star palette inner8;
+	? A = 9 -> VHG star palette inner9; ? A = 10 -> VHG star palette inner10;
+	[VHGstarinnerR] = 36; [VHGstarinnerG] = 48; [VHGstarinnerB] = 64;
+	-> VHG star palette shades;
+    "VHG star palette inner0"
+	[VHGstarinnerR] = 64; [VHGstarinnerG] = 54; [VHGstarinnerB] = 28;
+	-> VHG star palette shades;
+    "VHG star palette inner1"
+	[VHGstarinnerR] = 36; [VHGstarinnerG] = 50; [VHGstarinnerB] = 64;
+	-> VHG star palette shades;
+    "VHG star palette inner2"
+	[VHGstarinnerR] = 24; [VHGstarinnerG] = 32; [VHGstarinnerB] = 48;
+	-> VHG star palette shades;
+    "VHG star palette inner3"
+	[VHGstarinnerR] = 64; [VHGstarinnerG] = 24; [VHGstarinnerB] = 12;
+	-> VHG star palette shades;
+    "VHG star palette inner4"
+	[VHGstarinnerR] = 64; [VHGstarinnerG] = 40; [VHGstarinnerB] = 32;
+	-> VHG star palette shades;
+    "VHG star palette inner5"
+	[VHGstarinnerR] = 28; [VHGstarinnerG] = 20; [VHGstarinnerB] = 12;
+	-> VHG star palette shades;
+    "VHG star palette inner6"
+	[VHGstarinnerR] = 32; [VHGstarinnerG] = 32; [VHGstarinnerB] = 32;
+	-> VHG star palette shades;
+    "VHG star palette inner7"
+	[VHGstarinnerR] = 32; [VHGstarinnerG] = 44; [VHGstarinnerB] = 64;
+	-> VHG star palette shades;
+    "VHG star palette inner8"
+	[VHGstarinnerR] = 64; [VHGstarinnerG] = 60; [VHGstarinnerB] = 32;
+	-> VHG star palette shades;
+    "VHG star palette inner9"
+	( Class 9's inner colour is drawn directly from the identity-seeded
+	  fast generator, exactly like the source palette branch. )
+	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FToIntChop; A = [FI]; => SU fast srand;
+	[SUfmask] = 31; => SU fast raw; A = [SUfval]; A + 32; [VHGstarinnerR] = A;
+	=> SU fast raw; A = [SUfval]; A + 32; [VHGstarinnerG] = A;
+	=> SU fast raw; A = [SUfval]; A + 16; [VHGstarinnerB] = A;
+	-> VHG star palette shades;
+    "VHG star palette inner10"
+	[VHGstarinnerR] = 32; [VHGstarinnerG] = 26; [VHGstarinnerB] = 22;
+    "VHG star palette shades"
+	A = pal6; [SHdstb] = A;
+	[FBSHfirst] = 64; [FBSHn] = 24;
+	[PFnum] = 0; [PFden] = 1; => PAL f32 make;
+	[SHsr] = [PFbits]; [SHsg] = [PFbits]; [SHsb] = [PFbits];
+	[PFnum] = [VHGstarinnerR]; => PAL f32 make; [SHer] = [PFbits];
+	[PFnum] = [VHGstarinnerG]; => PAL f32 make; [SHeg] = [PFbits];
+	[PFnum] = [VHGstarinnerB]; => PAL f32 make; [SHeb] = [PFbits]; => PAL shade;
+
+	[FBSHfirst] = 88; [FBSHn] = 16;
+	[SHsr] = [SHer]; [SHsg] = [SHeg]; [SHsb] = [SHeb];
+	[PFnum] = [VHGstarr]; => PAL f32 make; [SHer] = [PFbits];
+	[PFnum] = [VHGstarg]; => PAL f32 make; [SHeg] = [PFbits];
+	[PFnum] = [VHGstarb]; => PAL f32 make; [SHeb] = [PFbits]; => PAL shade;
+
+	[FBSHfirst] = 104; [FBSHn] = 24;
+	[SHsr] = [SHer]; [SHsg] = [SHeg]; [SHsb] = [SHeb];
+	[PFnum] = 64; => PAL f32 make; [SHer] = [PFbits];
+	[PFnum] = 70; => PAL f32 make; [SHeg] = [PFbits];
+	[PFnum] = 76; => PAL f32 make; [SHeb] = [PFbits]; => PAL shade;
+
+	( tavola_colori(tmppal + 3*64, 64, 64, 63,63,63): self-copy
+	  semantics upload the completed stellar band without replacing it. )
+	[PVself] = 1; [PVfirst] = 64; [PVn] = 64;
+	[PVfr] = 63; [PVfg] = 63; [PVfb] = 63; => PAL tavola;
 	end;
 
 "VHG finder render"
@@ -1111,7 +1858,9 @@
     "VHG external beta ok"
 	[VHSbeta] = A; [VHSamp] = [VHGamp]; => VHS stars;
 	=> VHG finder render;
+	A = [VHGlocalactive]; ? A != 0 -> VHG close star rendered;
 	[VHTphase] = [VHGframe]; => VHT render;
+    "VHG close star rendered"
 	=> VHG local render;
 	=> VHG rescue render;
 	[Timer Command] = READ COUNTS; isocall; A = [Counts]; A - [VHGprofpart];
@@ -1237,14 +1986,17 @@
 	=> VHG checkpoint keys;
 	=> VHG music key;
 	=> VHG device key;
+	=> VHG FCS menu key;
 	=> VHG info key;
 	A = [VHGlandingselect]; ? A != 0 -> VHG landing selector input;
+	=> VHG output scroll; A = [VHGscrollused]; ? A != 0 -> VHG input done;
 	=> VHG mouse look;
 	A = [KEY ESCAPE]; ? A = ON -> VHG quit;
 	( Console characters are edge events, not held state.  Consume them on
 	  every presented frame so the 60-Hz presenter cannot discard two of
 	  every three keystrokes; only physical look/movement stays sim-paced. )
 	A = [VHGdev]; ? A != 0 -> VHG input done;
+	A = [VHGfcsopen]; ? A != 0 -> VHG input done;
 	A = [VHGinfo]; ? A != 0 -> VHG input done;
 	A = [VHGmode]; ? A != 0 -> VHG surface input;
 	A = [VHGconsole]; ? A != 0 -> VHG console input;
@@ -1253,20 +2005,23 @@
     "VHG activate wall console"
 	A = [VHGscreen]; ? A = 2 -> VHG request landing;
 	? A != 0 -> VHG normal input;
-	[VHGconsole] = 1; [VHGconsoleview] = 0; -> VHG input done;
+	[VHGfcsopen] = 0; [VHGconsole] = 1; [VHGconsoleview] = 0; -> VHG input done;
     "VHG activate console shortcut"
-	[VHGconsole] = 1; [VHGconsoleview] = 1; -> VHG input done;
+	[VHGfcsopen] = 0; [VHGconsole] = 1; [VHGconsoleview] = 1; -> VHG input done;
     "VHG console input"
 	A = [VHGascii]; ? A = 0 -> VHG input done;
 	[VHPkey] = A; ? A != 9 -> VHG console key ready; [VHPkey] = 13;
     "VHG console key ready"
 	=> VH GOES key;
 	A = [VHPsubmitted]; ? A = 0 -> VHG input done;
-	=> VHG command; => VH GOES clear; [VHGconsole] = 0; [VHGconsoleview] = 0; -> VHG input done;
+	[VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;
+	A = vhptext; A + 42; [VHPoutptr] = A; => VH GOES output line;
+	[VHPoutptr] = [VHGnoticeptr]; => VH GOES output line;
+	=> VH GOES clear; [VHGconsole] = 0; [VHGconsoleview] = 0; -> VHG input done;
     "VHG normal input"
 	A = [VHGascii]; ? A = 49 -> VHG select planet 1; ? A = 50 -> VHG select planet 2;
 	? A = 51 -> VHG select planet 3; ? A = 52 -> VHG select body 4;
-	? A = 53 -> VHG select body 5; ? A = 91 -> VHG select previous body;
+	? A = 91 -> VHG select previous body;
 	? A = 93 -> VHG select next body; -> VHG selection done;
     "VHG select planet 1"
 	[VHGplanet] = 0; => VHCAT refresh; => VHG local reset; -> VHG selection done;
@@ -1451,14 +2206,65 @@
     "VHG screen poll done"
 	end;
 
+"VHG output scroll"
+	[VHGscrollused] = 0; A = [VHGscreen]; ? A != 1 -> VHG output scroll away;
+	A = [KEY HOME]; ? A = ON -> VHG output scroll pressed;
+	A = [KEY END]; ? A = ON -> VHG output scroll pressed;
+	A = [KEY PGUP]; ? A = ON -> VHG output scroll pressed;
+	A = [KEY PGDN]; ? A = ON -> VHG output scroll pressed;
+	A = [KEY UP]; ? A = ON -> VHG output scroll pressed;
+	A = [KEY DOWN]; ? A = ON -> VHG output scroll pressed;
+	[VHGscrollheld] = 0; end;
+    "VHG output scroll away"
+	[VHGscrollheld] = 0; end;
+    "VHG output scroll pressed"
+	[VHGscrollused] = 1; A = [VHGscrollheld]; ? A != 0 -> VHG output scroll done;
+	[VHGscrollheld] = 1;
+	A = [KEY HOME]; ? A = ON -> VHG output scroll home;
+	A = [KEY END]; ? A = ON -> VHG output scroll end;
+	A = [KEY PGUP]; ? A = ON -> VHG output scroll page up;
+	A = [KEY PGDN]; ? A = ON -> VHG output scroll page down;
+	A = [KEY UP]; ? A = ON -> VHG output scroll up;
+	A = [VHPoutview]; A + 1; -> VHG output scroll clamp;
+    "VHG output scroll home"
+	[VHPoutview] = 0; end;
+    "VHG output scroll end"
+	A = [VHPoutrows]; A - 7; ? A >= 0 -> VHG output scroll store; A = 0; -> VHG output scroll store;
+    "VHG output scroll page up"
+	A = [VHPoutview]; A - 7; ? A >= 0 -> VHG output scroll store; A = 0; -> VHG output scroll store;
+    "VHG output scroll page down"
+	A = [VHPoutview]; A + 7; -> VHG output scroll clamp;
+    "VHG output scroll up"
+	A = [VHPoutview]; A - 1; ? A >= 0 -> VHG output scroll store; A = 0; -> VHG output scroll store;
+    "VHG output scroll clamp"
+	C = [VHPoutrows]; C - 7; ? C >= 0 -> VHG output scroll max ready; C = 0;
+    "VHG output scroll max ready"
+	? A <= C -> VHG output scroll store; A = C;
+    "VHG output scroll store"
+	[VHPoutview] = A;
+    "VHG output scroll done"
+	end;
+
 "VHG help action"
 	( The source emergency service accepts a request only with no usable
-	  power and no lithium.  A pending request runs the visible compressed
-	  rescue fly-by before delivering the three-unit reserve. )
+	  power and no lithium.  NOCTIS seeds fast_random() from clock(), but its
+	  following flandom() call deliberately draws from Borland random() instead.
+	  Preserve that original split RNG behavior and the full delayed fly-by. )
 	A = [VHGrescueactive]; ? A != 0 -> VHG help already pending;
 	A = [MgPwr]; ? A > 15000 -> VHG help not required;
 	A = [MgCharge]; ? A != 0 -> VHG help not required;
-	[VHGrescueactive] = 1; [VHGrescuetick] = 0; [VHGcollector] = 0;
+	=> VHG UTC timestamp;
+	[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1]; [FB0] = [MgDzatY0]; [FB1] = [MgDzatY1]; => FAdd;
+	[FB0] = [MgDzatZ0]; [FB1] = [MgDzatZ1]; => FAdd; => FToIntChop;
+	A = [FI]; C = A; A > 31; ? A = 0 -> VHG help distance positive; A = 0; A - C;
+    "VHG help distance positive"
+	A '/ 10000; ? A <= 1800 -> VHG help distance ready; A = 1800;
+    "VHG help distance ready"
+	[VHGrescuedist] = A;
+	[Timer Command] = READ COUNTS; isocall; A = [Counts]; => SU fast srand;
+	A = 32767; => BrtlRandom; A '* [VHGrescuedist]; A / 32767;
+	A + 60; [VHGrescuedelay] = A;
+	[VHGrescueactive] = 1; [VHGrescuetick] = 0; [VHGrescueacc] = 0; [VHGcollector] = 0;
 	[VHGnoticeptr] = VHGhelpreqtext; [VHGnoticeframes] = 55; end;
     "VHG help already pending"
 	[VHGnoticeptr] = VHGhelppendingtext; [VHGnoticeframes] = 55; end;
@@ -1476,7 +2282,8 @@
 	A = [VHGprefillcount]; C = vhptext; C + 42; C + A; [C] = 32;
 	A + 1; [VHPcmdpos] = A; C = vhptext; C + 42; C + A; [C] = 95;
 	A + 1; C = vhptext; C + 42; C + A; [C] = 0;
-	[VHGdev] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGconsole] = 1; [VHGconsoleview] = 1; [VHGascii] = 0;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0;
+	[VHGconsole] = 1; [VHGconsoleview] = 1; [VHGascii] = 0;
 	end;
 
 "VHG browse open"
@@ -1832,6 +2639,7 @@
 	? A = 9 -> VHG land rejected; ? A '>= 10 -> VHG land rejected;
 		[VHGshipx] = [VHGx]; [VHGshipy] = [VHGy]; [VHGshipz] = [VHGz];
 		[VHGNDlon] = [VHGlandinglon]; [VHGNDlat] = [VHGlandinglat];
+		=> VHG select texture buffer;
 		=> VHG prepare planet; => VHG fpu clean;
 		=> VHGND generate; => VHG fpu clean;
 		=> VHGND sky; => VHG fpu clean; => VHG surface telemetry init;
@@ -1872,6 +2680,15 @@
     "VHG land airless"
 	[VHGNDatmosphere] = 0;
     "VHG land atmosphere ready"
+	end;
+
+"VHG select texture buffer"
+	( planets() routes moons through s_background and primaries through
+	  p_background.  The ground path keeps sampling the same selected base. )
+	[VHGNDtexbase] = RPBG;
+	E = nspowner; E + [VHGplanet]; A = [E]; ? A < 0 -> VHG texture buffer ready;
+	[VHGNDtexbase] = RSBG;
+    "VHG texture buffer ready"
 	end;
 
 "VHG command"
@@ -2061,6 +2878,7 @@
 	[VHGCstate] = 0; [VHGCcapcount] = 0; [VHGCrecover] = 0;
 	A = [VHGmode]; ? A = 0 -> VHG command load ship;
 	[VHGNDlon] = [VHGlandinglon]; [VHGNDlat] = [VHGlandinglat];
+	=> VHG select texture buffer;
 	=> VHG prepare planet; => VHGND generate;
 	( Version-11 checkpoints restore the settled capsule only after terrain
 	  generation, which otherwise recreates the deterministic default site.
@@ -2102,8 +2920,8 @@
 	[VHGplanet] = 0; [VHGframe] = 0; [VHGsent] = 0;
 	[VHGlifter] = 0; [VHGliftstep] = 0; [VHGonroof] = 0; [VHGridearmed] = 1; [VHGuprequest] = 0;
 	[VHGCstate] = 0; [VHGCcapcount] = 0; [VHGCrecover] = 0;
-	[VHGrescueactive] = 0; [VHGrescuetick] = 0; [VHGcollector] = 0;
-	[VHGdev] = 0; [VHGinfo] = 0; [VHGilight] = 1; [VHGlighttick] = 0; [VHLpower] = 1;
+	[VHGrescueactive] = 0; [VHGrescuetick] = 0; [VHGrescuedelay] = 0; [VHGrescueacc] = 0; [VHGcollector] = 0;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGilight] = 1; [VHGlighttick] = 0; [VHLpower] = 1;
 	[VHGamp] = 0; [VHGfinder] = 0; [VHGsync] = 1; [VHGantirad] = 1;
 	[VHGamptick] = 0; [VHGfindertick] = 0; [VHGsynctick] = 0; [VHGtrackphase] = 0;
 	[VHSamp] = 0; [VHSready] = 0; [VHSdrawready] = 0;
@@ -2529,6 +3347,29 @@
     "VHG landing overlay done"
 	end;
 
+"VHG output overlay"
+	A = [VHGmode]; ? A != 0 -> VHG output overlay done;
+	A = [VHGscreen]; ? A != 1 -> VHG output overlay done;
+	A = [VHGconsole]; ? A != 0 -> VHG output overlay done;
+	A = [VHGlandingselect]; ? A != 0 -> VHG output overlay done;
+	A = [VHGdev]; ? A != 0 -> VHG output overlay done;
+	A = [VHGinfo]; ? A != 0 -> VHG output overlay done;
+	A = [VHGhelpshow]; ? A != 0 -> VHG output overlay done;
+	=> VH GOES output window;
+	[Text Display Width] = 320; [Text Display Height] = 200;
+	[Text Region] = vector VHGUIregion; [Text Window] = NULL;
+	[Text Word Wrap] = OFF; [Text Ghost Mode] = OFF; [Text Effect] = service FX Raw;
+	[Ink] = FFB030h; [Text X] = 74; [Text Y] = 66;
+	[String] = vhpoutdisplay; => VHG text both;
+	[Text Y] = 82; [String] = vhpoutdisplay; [String] + 22; => VHG text both;
+	[Text Y] = 98; [String] = vhpoutdisplay; [String] + 44; => VHG text both;
+	[Text Y] = 114; [String] = vhpoutdisplay; [String] + 66; => VHG text both;
+	[Text Y] = 130; [String] = vhpoutdisplay; [String] + 88; => VHG text both;
+	[Text Y] = 146; [String] = vhpoutdisplay; [String] + 110; => VHG text both;
+	[Text Y] = 162; [String] = vhpoutdisplay; [String] + 132; => VHG text both;
+    "VHG output overlay done"
+	end;
+
 "VHG console overlay"
 	A = [VHGconsole]; ? A = 0 -> VHG console overlay done;
 	A = [VHGconsoleview]; ? A = 0 -> VHG physical console overlay;
@@ -2713,6 +3554,30 @@
 	[VHGinfoline] = VHGbrowseback; => VHG info draw line;
 	[VHGinfoy] = 176; [VHGinfoline] = VHGdevbackhint; => VHG info draw line;
     "VHG device overlay done"
+	end;
+
+"VHG FCS menu overlay"
+	A = [VHGfcsopen]; ? A = 0 -> VHG FCS menu overlay done;
+	( NOCTIS.CPP fcs()/fcs_commands(): key 5 selects the flight-control
+	  screen and source command slots 1..4 remain on physical keys 6..9. )
+	[Rectangle Display Alignment] = 320; [Rectangle Bounds] = vector VHGUIregion;
+	[Rectangle Gradients] = vector Standard Black Gradients;
+	[Rectangle Effect] = service FX Raw; [Rectangle Target Layer] = VHGUIframe; => Rectangle;
+	[VHGinfoy] = 14; [VHGinfoline] = VHGfcsmenutitle; => VHG info draw line;
+	[VHGinfoline] = VHGfcsmremote; => VHG info draw line;
+	[VHGinfoline] = VHGfcsmstart; A = [MgStspeed]; ? A = 0 -> VHG FCS menu flight selected;
+	[VHGinfoline] = VHGfcsmstop;
+    "VHG FCS menu flight selected"
+	=> VHG info draw line;
+	[VHGinfoline] = VHGfcsmlocal; A = [VHGlocalactive]; ? A = 0 -> VHG FCS menu local selected;
+	[VHGinfoline] = VHGfcsmrestart; A = [MgIpreached]; ? A != 0 -> VHG FCS menu local selected;
+	[VHGinfoline] = VHGfcsmcancel; A = [MgIpreaching]; ? A != 0 -> VHG FCS menu local selected;
+	[VHGinfoline] = VHGfcsmlocal;
+    "VHG FCS menu local selected"
+	=> VHG info draw line;
+	[VHGinfoline] = VHGfcsmcapsule; => VHG info draw line;
+	[VHGinfoy] = 176; [VHGinfoline] = VHGfcsmhint; => VHG info draw line;
+    "VHG FCS menu overlay done"
 	end;
 
 "VHG browse format rows"
@@ -3008,6 +3873,69 @@
 	[VHGnoticeptr] = VHGmusicfailedtext; [VHGnoticeframes] = 55;
 	end;
 
+"VHG FCS menu key"
+	( Original top-level key 5 selects fcs(); keys 6..9 dispatch its four
+	  commands. The physical-key bridge has already normalized these into
+	  VHGascii before this routine runs. )
+	A = [VHGconsole]; ? A != 0 -> VHG FCS menu key done;
+	A = [VHGmode]; ? A != 0 -> VHG FCS menu key done;
+	A = [VHGdev]; ? A != 0 -> VHG FCS menu key done;
+	A = [VHGascii]; ? A = 53 -> VHG FCS menu toggle;
+	A = [VHGfcsopen]; ? A = 0 -> VHG FCS menu key done;
+	A = [VHGascii]; ? A = 54 -> VHG FCS remote action;
+	? A = 55 -> VHG FCS flight action; ? A = 56 -> VHG FCS local action;
+	? A = 57 -> VHG FCS capsule action; -> VHG FCS menu key done;
+    "VHG FCS menu toggle"
+	A = [VHGfcsopen]; ? A = 0 -> VHG FCS menu open;
+	[VHGfcsopen] = 0; [VHGascii] = 0; -> VHG FCS menu key done;
+    "VHG FCS menu open"
+	[VHGfcsopen] = 1; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGascii] = 0;
+	-> VHG FCS menu key done;
+    "VHG FCS remote action"
+	A = [MgStspeed]; ? A != 0 -> VHG FCS conflict;
+	[VHGfcsopen] = 0; [VHGascii] = 0; => VHG browse open;
+	-> VHG FCS menu key done;
+    "VHG FCS flight action"
+	A = [MgStspeed]; ? A != 0 -> VHG FCS flight stop;
+	A = [VHGcollector]; ? A != 0 -> VHG FCS conflict;
+	A = [MgPwr]; ? A <= 15000 -> VHG FCS no power;
+	[MgStspeed] = 1; A = [MgApreached]; ? A = 0 -> VHG FCS flight started;
+	[MgApreached] = 0; => VHG local reset;
+    "VHG FCS flight started"
+	[VHGnoticeptr] = VHGflightstarttext; [VHGnoticeframes] = 55; [VHGascii] = 0;
+	-> VHG FCS menu key done;
+    "VHG FCS flight stop"
+	[MgStspeed] = 0; [VHGnoticeptr] = VHGflightstoptext; [VHGnoticeframes] = 55;
+	[VHGascii] = 0; -> VHG FCS menu key done;
+    "VHG FCS local action"
+	A = [MgApreached]; ? A = 0 -> VHG FCS needs calibration;
+	A = [VHGlocalactive]; ? A = 0 -> VHG FCS local start;
+	A = [MgIpreaching]; ? A != 0 -> VHG FCS local stop;
+	A = [MgIpreached]; ? A != 0 -> VHG FCS local select;
+	[MgIpreaching] = 1; [VHGnoticeptr] = VHGapproachtext; [VHGnoticeframes] = 55;
+	[VHGascii] = 0; -> VHG FCS menu key done;
+    "VHG FCS local start"
+	=> VHG local start; [VHGascii] = 0; -> VHG FCS menu key done;
+    "VHG FCS local stop"
+	=> VHG local reset; [VHGnoticeptr] = VHGlocalstoptext; [VHGnoticeframes] = 55;
+	[VHGascii] = 0; -> VHG FCS menu key done;
+    "VHG FCS local select"
+	=> VHG local reset; [VHGfcsopen] = 0; [VHGnoticeptr] = VHGlocalselecttext;
+	[VHGnoticeframes] = 75; [VHGascii] = 0; -> VHG FCS menu key done;
+    "VHG FCS capsule action"
+	( Re-enter the existing source-shaped L path after closing the menu. )
+	[VHGfcsopen] = 0; [VHGascii] = 76; -> VHG FCS menu key done;
+    "VHG FCS conflict"
+	[VHGnoticeptr] = VHGflightconflicttext; [VHGnoticeframes] = 55; [VHGascii] = 0;
+	-> VHG FCS menu key done;
+    "VHG FCS no power"
+	[VHGnoticeptr] = VHGhelpbadtext; [VHGnoticeframes] = 55; [VHGascii] = 0;
+	-> VHG FCS menu key done;
+    "VHG FCS needs calibration"
+	[VHGnoticeptr] = VHGcalibratetext; [VHGnoticeframes] = 55; [VHGascii] = 0;
+    "VHG FCS menu key done"
+	end;
+
 "VHG device key"
 	( Original keyboard access: R opens the onboard-device root; R from a
 	  child returns to that root, and R at the root closes it. )
@@ -3125,7 +4053,7 @@
     "VHG device close"
 	[VHGdev] = 0; [VHGascii] = 0; -> VHG device key done;
     "VHG device open"
-	[VHGdev] = 1; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
+	[VHGdev] = 1; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
     "VHG device key done"
 	end;
 
@@ -3231,7 +4159,7 @@
     "VHG info key pressed"
 	[VHGinfo]+; A = [VHGinfo]; ? A <= 3 -> VHG info key selected; [VHGinfo] = 0;
     "VHG info key selected"
-	[VHGdev] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
     "VHG info key done"
 	end;
 
@@ -3253,7 +4181,7 @@
 	A = [VHGhelpshow]; ? A = 0 -> VHG toggle help on;
 	[VHGhelpshow] = 0; end;
     "VHG toggle help on"
-	[VHGdev] = 0; [VHGinfo] = 0; [VHGhelpshow] = 1;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGhelpshow] = 1;
 	end;
 
 "VHG fps key"

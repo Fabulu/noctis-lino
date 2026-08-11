@@ -157,6 +157,7 @@
 	nsptilt		= 0 *** 160;
 	nsporbtlt	= 0 *** 160;
 	nsporbecc	= 0 *** 160;
+	nspring		= 0 *** 160;
 
 	( state )
 
@@ -526,6 +527,9 @@
 	A = [nsnob]; A + [nsc]; [nsq] = A;		( :4191 )
 	B = [nsn]; E = nspowner;  E + [nsq]; [E] = B;	( :4192 )
 	B = [nsc]; E = nspmoonid; E + [nsq]; [E] = B;	( :4193 )
+	( :4200 p_ring[q] = 0.  This must be written on every prepare because
+	  the retained array can contain a primary planet from the prior star. )
+	A = [nsq]; A < 1; E = nspring; E + A; [E plus 0] = 0; [E plus 1] = 0;
 
 	A = 360; => NsRandom;		( :4194 orb_orient, int arg )
 	[nsdrawvalue] = A; B = A; E = nsporideg; E + [nsq]; [E] = B;
@@ -755,14 +759,27 @@
       ? [nsnop] <= 0 -> nsgdone;
 	[nsn] = 0;
     "nsgloop"
+	( ((0.75 * p_ray[n]) * (2 + random(3))), preserving the original
+	  left association and retaining the final binary64 radius. )
 	A = 3; => NsRandom;		( :4348 ring radius, int arg )
+	[nsdrawvalue] = A;
+	[nsgeoi] = [nsn]; => Ns geo load ray;
+	[FA0] = [FB0]; [FA1] = [FB1]; [FB0] = 00000000h; [FB1] = 3FE80000h; => FMul;
+	[nsgeo0] = [FA0]; [nsgeo1] = [FA1];
+	A = [nsdrawvalue]; A + 2; [FI] = A; => IntToF;
+	[FB0] = [nsgeo0]; [FB1] = [nsgeo1]; => FMul;
+	A = [nsn]; A < 1; E = nspring; E + A;
+	[E plus 0] = [FA0]; [E plus 1] = [FA1];
 	E = nsptype; E + [nsn]; A = [E]; [nstypehold] = A;
       ? [nstypehold] = 6 -> nsggas;
       ? [nstypehold] = 9 -> nsggas;
 	A = 5; => NsRandom;		( :4354 )
-	-> nsgnext;
+	? A = 0 -> nsgnext; -> nsgzero;
     "nsggas"
 	A = 2; => NsRandom;		( :4358 )
+	? A = 0 -> nsgnext;
+    "nsgzero"
+	A = [nsn]; A < 1; E = nspring; E + A; [E plus 0] = 0; [E plus 1] = 0;
     "nsgnext"
 	A = [nsn]; A + 1; [nsn] = A;
       ? [nsn] < [nsnop] -> nsgloop;

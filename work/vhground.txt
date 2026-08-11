@@ -105,6 +105,7 @@
 	VHGNDwavedx = 0; VHGNDwavedz = 0; VHGNDwavedist = 0; VHGNDwavewet = 0;
 	VHGNDwavelastx = 0; VHGNDwavelastz = 0; VHGNDwavemove = 0; VHGNDwavelw = 10;
 	VHGNDseed = 149130; VHGNDatmosphere = 1; VHGNDplanet = 0;
+	VHGNDtexbase = RPBG;		( p_background or s_background flat base )
 	VHGNDlon = 0; VHGNDlat = 60; VHGNDlocseed = 0;
 	VHGNDsurfaceok = 0; VHGNDsample = 0; VHGNDcloud = 0; VHGNDcbase = 192;
 	VHGNDcloudrain = 0; VHGNDsrf = 0; VHGNDsgf = 0; VHGNDsbf = 0;
@@ -121,13 +122,15 @@
 	VHGNDskyfill = 0; VHGNDskycount = 0; VHGNDpalcount = 0;
 	VHGNDdays = 0; VHGNDsecs = 0; VHGNDmonthbase = 0;
 	VHGNDphaseindex = 0; VHGNDphase = 0; VHGNDrotation = 0; VHGNDperiod = 0;
-	VHGNDowner = 0; VHGNDmoonmass = 0; VHGNDplwp = 0;
+	VHGNDowner = 0; VHGNDmoonmass = 0; VHGNDplwp = 0; VHGNDviewpoint = 0;
 	VHGNDtermstart = 0; VHGNDtermend = 0; VHGNDcrep = 0; VHGNDdist = 0;
 	VHGNDmass0 = 0; VHGNDmass1 = 0; VHGNDorbit0 = 0; VHGNDorbit1 = 0;
 	VHGNDvecindex = 0; VHGNDvecowner = 0;
 	VHGNDangle0 = 0; VHGNDangle1 = 0;
-	VHGNDvecx0 = 0; VHGNDvecx1 = 0; VHGNDvecz0 = 0; VHGNDvecz1 = 0;
-	VHGNDownx0 = 0; VHGNDownx1 = 0; VHGNDownz0 = 0; VHGNDownz1 = 0;
+	VHGNDvecx0 = 0; VHGNDvecx1 = 0; VHGNDvecy0 = 0; VHGNDvecy1 = 0;
+	VHGNDvecz0 = 0; VHGNDvecz1 = 0;
+	VHGNDownx0 = 0; VHGNDownx1 = 0; VHGNDowny0 = 0; VHGNDowny1 = 0;
+	VHGNDownz0 = 0; VHGNDownz1 = 0;
 	VHGNDsin0 = 0; VHGNDsin1 = 0; VHGNDcos0 = 0; VHGNDcos1 = 0;
 	VHGNDct0 = 0; VHGNDct1 = 0; VHGNDxx0 = 0; VHGNDxx1 = 0;
 	VHGNDzz0 = 0; VHGNDzz1 = 0; VHGNDso0 = 0; VHGNDso1 = 0;
@@ -182,9 +185,9 @@
 	( _fmemset(txtr,16,65535): RPBG[0..65534]=16, slot 65535 remains 0. )
 	[VHGNDptr] = 0;
     "VHGND wipe texture"
-	A = RPBG; A + [VHGNDptr]; [MBptr] = A; [MBval] = 16; => MEM put byte;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; [MBval] = 16; => MEM put byte;
 	[VHGNDptr]+; A = [VHGNDptr]; ? A '< 65535 -> VHGND wipe texture;
-	A = RPBG; A + 65535; [MBptr] = A; [MBval] = 0; => MEM put byte;
+	A = [VHGNDtexbase]; A + 65535; [MBptr] = A; [MBval] = 0; => MEM put byte;
 
 	=> SU ledger reset; => GR float init;
 	[VHGNDrockscale] = 500; [VHGNDrockpeak] = 250; [VHGNDrockdensity] = 15;
@@ -289,7 +292,7 @@
 	C = 200; => SU rnd; [SUcxi] = C; C = 200; => SU rnd; [SUcyi] = C;
 	C = 32; => SU rnd; C + 10; [VHGNDgeni] = C; [SUia] = C;
 	[GRfht] = 3EB33333h; [GRfhmt] = 3F800000h;
-	[GRfscl] = 31; [GRfsca] = 256; [GRscmap] = RPBG; => GR std crater;
+	[GRfscl] = 31; [GRfsca] = 256; [GRscmap] = [VHGNDtexbase]; => GR std crater;
 	A = [VHGNDgeni]; A & 1; ? A = 0 -> VHGND type1 texture crater next;
 	A = [VHGNDgeni]; A / 3; C = [SUcxi]; C + A; [SUcxi] = C;
 	C = [SUcyi]; C + A; [SUcyi] = C; A = 0; A - [VHGNDgeni]; [SUia] = A;
@@ -368,7 +371,7 @@
 	C = 2; => SU rnd; A = [VHGNDgeni]; ? C = 0 -> VHGND type2 crater sign;
 	C = 0; C - A; A = C;
     "VHGND type2 crater sign"
-	[SUia] = A; [GRfhmt] = 3F800000h; [GRfscl] = 31; [GRfsca] = 256; [GRscmap] = RPBG;
+	[SUia] = A; [GRfhmt] = 3F800000h; [GRfscl] = 31; [GRfsca] = 256; [GRscmap] = [VHGNDtexbase];
 	=> GR std crater; [VHGNDgenn]-; -> VHGND type2 crater loop;
     "VHGND type2 crater none"
 	-> VHGND type2 rocks;
@@ -574,7 +577,7 @@
 	C = 150; => SU rnd; C + 25; [SUcyi] = C;
 	C = 10; => SU rnd; C + 15; A = 0; A - C; [SUia] = A;
 	[GRfht] = 3E800000h; [GRfhmt] = 3F800000h;
-	[GRfscl] = 31; [GRfsca] = 256; [GRscmap] = RPBG;
+	[GRfscl] = 31; [GRfsca] = 256; [GRscmap] = [VHGNDtexbase];
 	=> GR std crater;
 	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type4 crater loop;
 	( remaining rock-parameter draws )
@@ -642,7 +645,7 @@
 	C = 192; => SU rnd; C + 32; [SUcxi] = C; C = 192; => SU rnd; C + 32; [SUcyi] = C;
 	C = 16; => SU rnd; C + 16; A = 0; A - C; [SUia] = A;
 	[GRfht] = 3E19999Ah; [GRfhmt] = 3F800000h;
-	[GRfscl] = 31; [GRfsca] = 256; [GRscmap] = RPBG; => GR std crater;
+	[GRfscl] = 31; [GRfsca] = 256; [GRscmap] = [VHGNDtexbase]; => GR std crater;
 	[VHGNDgenn]-; -> VHGND type7 texture crater loop;
     "VHGND type7 small lines"
 	C = 50; => SU rnd; [VHGNDtmp] = C; C = 100; => SU rnd;
@@ -1183,7 +1186,7 @@
 	? A >= 256 -> VHGND asterism advance;
 	[FS0] = [VHGNDastarcolor]; => FLoadF32; => FToIntChop;
 	[MBval] = [FI]; A = [VHGNDastarpy]; A '* 256; A + [VHGNDastarpx];
-	A + RPBG; [MBptr] = A; => MEM put byte;
+	A + [VHGNDtexbase]; [MBptr] = A; => MEM put byte;
     "VHGND asterism advance"
 	( color += var; shift_d -= 1; both stores narrow to float. )
 	[FS0] = [VHGNDastarvar]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
@@ -1249,20 +1252,20 @@
 	[VHGNDptr] = 65535;
     "VHGND texture fill"
 	C = [VHGNDtexn]; => SU rnd;
-	A = RPBG; A + [VHGNDptr]; [MBptr] = A; [MBval] = C; => MEM put byte;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; [MBval] = C; => MEM put byte;
 	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture fill;
 	C = 3; => SU rnd; C + 1; [VHGNDtexpasses] = C;
     "VHGND texture smooth pass"
 	[VHGNDptr] = 65278;
     "VHGND texture smooth pixel"
-	A = RPBG; A + [VHGNDptr]; [MBptr] = A; => MEM get byte; [VHGNDtmp] = [MBval];
-	A = RPBG; A + [VHGNDptr]; A + 1; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; => MEM get byte; [VHGNDtmp] = [MBval];
+	A = [VHGNDtexbase]; A + [VHGNDptr]; A + 1; [MBptr] = A; => MEM get byte;
 	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
-	A = RPBG; A + [VHGNDptr]; A + 256; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; A + 256; [MBptr] = A; => MEM get byte;
 	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
-	A = RPBG; A + [VHGNDptr]; A + 257; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; A + 257; [MBptr] = A; => MEM get byte;
 	A = [VHGNDtmp]; A + [MBval]; A > 2; [MBval] = A;
-	A = RPBG; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
 	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture smooth pixel;
 	[VHGNDtexpasses]-; A = [VHGNDtexpasses]; ? A != 0 -> VHGND texture smooth pass;
 	A = [VHGNDfrosty]; ? A = 0 -> VHGND similar done;
@@ -1282,7 +1285,7 @@
 	[VHGNDptr] = 65535;
     "VHGND texture random pixel"
 	C = [VHGNDtexn]; => SU rnd;
-	A = RPBG; A + [VHGNDptr]; [MBptr] = A; [MBval] = C; => MEM put byte;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; [MBval] = C; => MEM put byte;
 	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture random pixel;
 	end;
 
@@ -1296,9 +1299,9 @@
 	C = 3; => SU rnd; A = [VHGNDlinez]; A + C; A + [VHGNDlinetrendz]; [VHGNDlinez] = A;
 	A = [VHGNDlinez]; A '* 256; A + [VHGNDlinex]; A & 0FFFFh; [VHGNDptr] = A;
 	? A '<= 0 -> VHGND darkline next; ? A '>= 65536 -> VHGND darkline next;
-	A = RPBG; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
 	A = [MBval]; A > 1; [MBval] = A;
-	A = RPBG; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
     "VHGND darkline next"
 	[VHGNDlinelen]-; -> VHGND darkline pixel;
     "VHGND darkline done"
@@ -1686,7 +1689,9 @@
 	end;
 
 "VHGND body vector"
-	( Input VHGNDvecindex; output x/z relative to this body's primary. )
+	( Input VHGNDvecindex; output x/y/z relative to this body's primary.
+	  This is planet_xyz() through its orientation rotation.  The source Y
+	  component depends only on orbital radius and orbital tilt. )
 	=> VHGND orbit angle;
 	[FA0] = [VHGNDangle0]; [FA1] = [VHGNDangle1]; => FSin;
 	[VHGNDsin0] = [FA0]; [VHGNDsin1] = [FA1];
@@ -1694,7 +1699,12 @@
 	[VHGNDcos0] = [FA0]; [VHGNDcos1] = [FA1];
 	A = [VHGNDvecindex]; A < 1; E = nsporbtlt; E + A;
 	[FA0] = [E plus 0]; [FA1] = [E plus 1];
-	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul; => FCos;
+	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
+	[VHGNDct0] = [FA0]; [VHGNDct1] = [FA1]; => FSin;
+	A = [VHGNDvecindex]; A < 1; E = nsporbray; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1]; => FMul;
+	[VHGNDvecy0] = [FA0]; [VHGNDvecy1] = [FA1];
+	[FA0] = [VHGNDct0]; [FA1] = [VHGNDct1]; => FCos;
 	[VHGNDct0] = [FA0]; [VHGNDct1] = [FA1];
 	E = nsporbray; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
 	[FB0] = [VHGNDsin0]; [FB1] = [VHGNDsin1]; => FMul;
@@ -1726,6 +1736,30 @@
 	[VHGNDvecz0] = [FA0]; [VHGNDvecz1] = [FA1];
 	end;
 
+"VHGND absolute body vector"
+	( planet_xyz() result relative to the primary star.  A moon first gets
+	  its own vector and then its owner's moonorigin() vector. )
+	=> VHGND body vector;
+	[VHGNDownx0] = [VHGNDvecx0]; [VHGNDownx1] = [VHGNDvecx1];
+	[VHGNDowny0] = [VHGNDvecy0]; [VHGNDowny1] = [VHGNDvecy1];
+	[VHGNDownz0] = [VHGNDvecz0]; [VHGNDownz1] = [VHGNDvecz1];
+	E = nspowner; E + [VHGNDvecindex]; A = [E]; ? A < 0 -> VHGND absolute body done;
+	[VHGNDvecindex] = A; => VHGND body vector;
+	[FA0] = [VHGNDownx0]; [FA1] = [VHGNDownx1];
+	[FB0] = [VHGNDvecx0]; [FB1] = [VHGNDvecx1]; => FAdd;
+	[VHGNDownx0] = [FA0]; [VHGNDownx1] = [FA1];
+	[FA0] = [VHGNDowny0]; [FA1] = [VHGNDowny1];
+	[FB0] = [VHGNDvecy0]; [FB1] = [VHGNDvecy1]; => FAdd;
+	[VHGNDowny0] = [FA0]; [VHGNDowny1] = [FA1];
+	[FA0] = [VHGNDownz0]; [FA1] = [VHGNDownz1];
+	[FB0] = [VHGNDvecz0]; [FB1] = [VHGNDvecz1]; => FAdd;
+	[VHGNDownz0] = [FA0]; [VHGNDownz1] = [FA1];
+    "VHGND absolute body done"
+	[VHGNDvecx0] = [VHGNDownx0]; [VHGNDvecx1] = [VHGNDownx1];
+	[VHGNDvecy0] = [VHGNDowny0]; [VHGNDvecy1] = [VHGNDowny1];
+	[VHGNDvecz0] = [VHGNDownz0]; [VHGNDvecz1] = [VHGNDownz1];
+	end;
+
 "VHGND exact viewpoint"
 	( Analytic equivalent of planet_viewpoint's 360-point nearest search. )
 	[VHGNDvecindex] = [VHGNDplanet]; => VHGND body vector;
@@ -1751,6 +1785,7 @@
 	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
 	A = [FI]; A % 360; ? A >= 0 -> VHGND viewpoint normalized; A + 360;
     "VHGND viewpoint normalized"
+	[VHGNDviewpoint] = A;
 	[FI] = A;
 	end;
 

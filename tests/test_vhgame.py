@@ -346,7 +346,7 @@ def main() -> int:
         all(token in ground for token in (
             '"VHGND generate type8"', '"VHGND generate type4"',
             '"VHGND similar texture"', '"VHGND texture darkline"',
-            "[GRscmap] = RPBG", "[VHGNDtscale] = 32",
+            "[GRscmap] = [VHGNDtexbase]", "[VHGNDtscale] = 32",
         )),
         "live type-8/type-4 branches build their source terrain textures",
     )
@@ -436,7 +436,7 @@ def main() -> int:
         "landed renderer covers the source 64-tile radius with distance-aware rings",
     )
     check(
-        "grnd; sky;" in game and "spglobe; spbg;" in game
+        "grnd; sky;" in game and "spglobe; spglow; spbg;" in game
         and "=> GRSK create; => GRSK horizon;" in ground
         and "[SPval] = 0; => SP fill page;" in ground
         and '"VHGND guard band"' in ground
@@ -466,7 +466,7 @@ def main() -> int:
             "=> GeoSurfaceSeedChop;",
         ))
         and all(token in (ROOT / "work" / "nstopo.txt").read_text(encoding="utf-8") for token in (
-            "nspray", "nsporbray", "nsporideg", "nspororient", "[nsstarray]",
+            "nspray", "nsporbray", "nsporideg", "nspororient", "nspring", "[nsstarray]",
             '"Ns geo store ray"', '"Ns geo store orbit"',
         ))
         and "[GRSKseed] = 149130" in ground
@@ -674,9 +674,69 @@ def main() -> int:
             '? A < 2822 -> VHG navigation finder off;', '=> VHG tracking apply;',
         ))
         and 'VHGdevtitle = { MISCELLANEOUS DEVICES };' in game
-        and 'A = 72; A + [VHLpower]; [VHLcol] = A;' in VIEW.parent.joinpath("vhlight.txt").read_text(encoding="utf-8")
+        and all(token in VIEW.parent.joinpath("vhlight.txt").read_text(encoding="utf-8") for token in (
+            'A = [VHVcamzi]; [VHLdistance] = A;',
+            'A <= 1500 -> VHL distance ready;',
+            "A '* 36; A / 1500; [VHLstep] = A;",
+            'A = 72; A + [VHLpower]; [VHLcol] = A;',
+            'A = [VHLangle]; ? A < [VHLlimit] -> VHL segment;',
+        ))
+        and all(token in game for token in (
+            '[VHGstarclass] = [VHTclass];', '? A = 8 -> VHG star palette inner8;',
+            '[FBSHfirst] = 64; [FBSHn] = 24;', '[FBSHfirst] = 88; [FBSHn] = 16;',
+            '[FBSHfirst] = 104; [FBSHn] = 24;',
+            '[PVself] = 1; [PVfirst] = 64; [PVn] = 64;',
+        ))
+        and all(token in game for token in (
+            '[VHGlocalmask] = 128;', '[VHGlocalbubble] = 1;',
+            '=> VHG prepare planet; => VHG fpu clean; => VHGND generate;',
+            '[GBtapreg] = [VHGlocaltapreg];', '[GBcmask] = [VHGlocalmask];',
+            '[GBbubble] = [VHGlocalbubble];',
+            '=> VHG local resident scan;', '=> VHG local ensure surface;',
+            '[VHGlocalpmapbody] = [VHGlocalringbody];',
+            '[VHGlocalmmapbody] = [VHGlocalringbody];',
+            '[VHGNDtexbase] = RPBG;', '[VHGNDtexbase] = RSBG;',
+            'A = [VHGlocalringstart]; A + [VHGNDrotation]; A % 360;',
+            'A = 124; A - [VHGlocalbodyview]; A % 360;',
+            '[VHGNDvecindex] = [VHGplanet]; => VHGND absolute body vector;',
+            '[FB0] = [VHGlocalty0]; [FB1] = [VHGlocalty1]; => FSub;',
+            '[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1]; [FI] = [VHTtx]; => IntToF;',
+            '[FB0] = [VHGlocaltz0]; [FB1] = [VHGlocaltz1]; => FSub;',
+            '[FB0] = [MgK1000]; [FB1] = [MgK1001]; => FMul;',
+            'A = [VHGlocalactive]; ? A != 0 -> VHG close star rendered;',
+            "A = [VHGlocalbody]; ? A '>= [nsnob] -> VHG local selected render;",
+            '=> VHG local far pixel;', '[FI] = 250; => IntToF;',
+            'E = nspring;', '=> VHG local ring viewpoint;',
+            '=> VHG local ring;', '[GLarc] = 130; [GLcol] = 127;',
+        ))
         and '[vhsvbuf plus 38] = [VHGilight];' in save,
         "R and 6-9 restore onboard navigation/miscellaneous devices with live powered effects",
+    )
+    fcs_menu_overlay = section(game, '"VHG FCS menu overlay"', '"VHG browse format rows"')
+    fcs_menu_key = section(game, '"VHG FCS menu key"', '"VHG device key"')
+    check(
+        "case '5': sys = 1; dev_page = 0; break;" in original
+        and "case '6': s_command = 1; commands (); break;" in original
+        and "case '9': s_command = 4; commands (); break;" in original
+        and all(token in fcs_menu_overlay for token in (
+            '[VHGinfoline] = VHGfcsmenutitle;', 'VHGfcsmremote',
+            'VHGfcsmstart', 'VHGfcsmstop', 'VHGfcsmlocal',
+            'VHGfcsmcancel', 'VHGfcsmrestart', 'VHGfcsmcapsule',
+            '[Rectangle Bounds] = vector VHGUIregion;',
+        ))
+        and all(token in fcs_menu_key for token in (
+            '? A = 53 -> VHG FCS menu toggle;',
+            '? A = 54 -> VHG FCS remote action;',
+            '? A = 55 -> VHG FCS flight action;',
+            '? A = 56 -> VHG FCS local action;',
+            '? A = 57 -> VHG FCS capsule action;',
+            '[MgStspeed] = 0;', '[MgStspeed] = 1;',
+            '=> VHG browse open;', '=> VHG local start;', '=> VHG local reset;',
+            '[VHGfcsopen] = 0; [VHGascii] = 76;',
+        ))
+        and '? A = 53 -> VHG select body 5;' not in game
+        and 'VHGhelpnav = { 5:FCS / R:DEVICES / G:GOES };' in game,
+        "5 and 6-9 restore the original interactive flight-control computer",
     )
     check(
         all(token in game for token in (
@@ -794,8 +854,8 @@ def main() -> int:
             "=> VHG surface motion reset; -> VHG load checkpoint done;",
         ))
         and all(token in save for token in (
-            "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 180;",
-            "[File Command] = TEST;", "? [File Size] != 180 -> VHSV save done;",
+            "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 188;",
+            "[File Command] = TEST;", "? [File Size] != 188 -> VHSV save done;",
             "[VHSVok] = 1;",
         )),
         "startup resume and F6/F7 cover stable ship/surface checkpoints with fallback",
@@ -854,10 +914,10 @@ def main() -> int:
         all(token in game for token in (
             '"VHG next star"', '"VHG flight retarget"', '"VHG parse coordinate"',
             "A '% [VHScount]", "=> VHG target world; => VHG flight retarget;",
-            "=> VHG command; => VH GOES clear;",
+            "[VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;",
         ))
         and all(token in save for token in (
-            "VHSVVERSION = 11;", "[vhsvbuf plus 24] = [VHTtx];",
+            "VHSVVERSION = 12;", "[vhsvbuf plus 24] = [VHTtx];",
             "[VHTtx] = [vhsvbuf plus 24];",
         )),
         "GOES NEXT/STAR retarget real Vimana travel and persist the selected star",
@@ -867,7 +927,7 @@ def main() -> int:
         all(token in game for token in (
             '"VHG command maybe new"', "? A = 87 -> VHG command maybe new;",
             "=> VHG new game; -> VHG command done;",
-            "VHGhelpnav = { GOES:NEXT/NEW / STAR X Y Z };",
+            "VHGhelpnav = { 5:FCS / R:DEVICES / G:GOES };",
         ))
         and all(token in new_game for token in (
             "[VHGmode] = 0; [VHGlanded] = 0;", "[VHGz] = A;",
@@ -915,8 +975,23 @@ def main() -> int:
         and all(token in panels for token in (
             '"VHP selector zero active"', '"VHP selector one active"',
             '"VHP selector two active"', "A = [VHPcamz]; A + 1620;",
+            '"VHP GOES output text"', "A - 2385; A '* 4; [VHPxbase4] = A;",
+            '"VH GOES output line"', "vhpout = 672;", '"VH GOES output window"',
         )),
         "source-positioned wall screens select all three faces and keep physical GOES input in-world",
+    )
+    check(
+        all(token in game for token in (
+            '"VHG output scroll"', "A = [VHGscreen]; ? A != 1 -> VHG output scroll away;",
+            "A = [KEY HOME]; ? A = ON -> VHG output scroll pressed;",
+            "A = [KEY END]; ? A = ON -> VHG output scroll pressed;",
+            "A = [KEY PGUP]; ? A = ON -> VHG output scroll pressed;",
+            "A = [KEY PGDN]; ? A = ON -> VHG output scroll pressed;",
+            "[VHPoutptr] = [VHGnoticeptr]; => VH GOES output line;",
+            '"VHG output overlay"', "A = [VHGscreen]; ? A != 1 -> VHG output overlay done;",
+            "[String] = vhpoutdisplay; => VHG text both;",
+        )),
+        "second GOES face retains command output and source-equivalent line/page/end scrolling",
     )
     check(
         all(token in catalog for token in (
@@ -960,6 +1035,7 @@ def main() -> int:
             "[MgPwr] = 15001; [MgCharge]+;", "VHGenergytext = { PWR 00000 LI 003 OFF };",
         ))
         and "[MgPwr] = 30000" not in section(game, '"VHG flight retarget"', '"VHG flight step"')
+        and "[MgPwr] = 20000; [MgCharge] = 3;" in section(game, '"VHG flight init"', '"VHG target world"')
         and all(token in original for token in (
             "if (lithium_collector)", "ir = random (50);", "ir -= 125 / dsd;",
             "ir -= 25 / dsd;", "if (charge < 120)", "charge++;",
@@ -981,9 +1057,14 @@ def main() -> int:
             "? A = 72 -> VHG help shortcut;", '"VHG help action"',
             "A = [MgPwr]; ? A > 15000 -> VHG help not required;",
             "A = [MgCharge]; ? A != 0 -> VHG help not required;",
-            "[VHGrescueactive] = 1; [VHGrescuetick] = 0;", '"VHG rescue advance"',
+            "[VHGrescueactive] = 1; [VHGrescuetick] = 0; [VHGrescueacc] = 0;", '"VHG rescue advance"',
+            "A = [VHGrescueacc]; A + 1000;", "? A < 18206 -> VHG rescue tick done;",
+            "A = [VHGrescuedelay]; ? A <= 0 -> VHG rescue flyby second;",
+            "? A = 20 -> VHG rescue transfer;", "? A < 120 -> VHG rescue tick done;",
+            "[Timer Command] = READ COUNTS; isocall; A = [Counts]; => SU fast srand;",
+            "A = 32767; => BrtlRandom; A '* [VHGrescuedist]; A / 32767;",
             "A = [MgCharge]; ? A >= 3", "[MgCharge] = 3;", '"VHG rescue render"',
-            "C '* 400; C + 16000;", "=> VH polycupola; => VH cupola grid;",
+            "C '* 2000; C + 16000;", "=> VH polycupola; => VH cupola grid;",
         ))
         and all(token in original for token in (
             "if (pwr <= 15000 && !charge)", "if (!stz&&charge<3) charge = 3;",
@@ -995,21 +1076,24 @@ def main() -> int:
         all(token in save for token in (
             "? A = 144 -> VHSV load size ok; ? A = 152 -> VHSV load size ok;",
             "? A = 156 -> VHSV load size ok; ? A = 160 -> VHSV load size ok;",
-            "? A = 168 -> VHSV load size ok; ? A != 180 -> VHSV load done;",
+            "? A = 168 -> VHSV load size ok; ? A = 180 -> VHSV load size ok;",
+            "? A != 188 -> VHSV load done;",
             '"VHSV load version two"', '"VHSV load version three"', '"VHSV load version four"',
             '"VHSV load version five"', '"VHSV load version six"', '"VHSV load version seven"',
             '"VHSV load version eight"', '"VHSV load version nine"', '"VHSV load version ten"',
+            '"VHSV load version eleven"',
             "[vhsvbuf plus 27] = [VHGfast];",
             "[vhsvbuf plus 28] = [VHGfpsshow];", "[vhsvbuf plus 29] = [VHAwanted];",
             "[vhsvbuf plus 30] = [VHGNDcaptures];", "[VHSVcaptures] = A;",
             "[vhsvbuf plus 33] = [VHGrescueactive];", "[VHGrescuetick] = A;",
+            "[vhsvbuf plus 45] = [VHGrescuedelay];", "[vhsvbuf plus 46] = [VHGrescueacc];",
             "[vhsvbuf plus 36] = A;", "[vhsvbuf plus 37] = A;",
             "[vhsvbuf plus 38] = [VHGilight];", "[VHGilight] = A;",
             "[vhsvbuf plus 39] = C;", "[VHGsync] = A;", "[VHGantirad] = A;",
             "[vhsvbuf plus 40] = [VHGlandinglon];", "[VHGlandinglat] = A;",
             "[vhsvbuf plus 42] = [VHGNDdropx];", "[vhsvbuf plus 43] = [VHGNDdropy];",
             "[vhsvbuf plus 44] = [VHGNDdropz];", "[VHSVdropstored] = 1;",
-            "[Block Pointer] = vhsvbuf; [Block Size] = 180; isocall;",
+            "[Block Pointer] = vhsvbuf; [Block Size] = 188; isocall;",
             "? A < MINIMUM WIDTH -> VHSV load done;", "? A > MAXIMUM HEIGHT -> VHSV load done;",
             "[VHSVmusic] = [VHAwanted];", "[VHAwanted] = [VHSVmusic];",
         ))
@@ -1043,7 +1127,7 @@ def main() -> int:
             < run.index("=> VHA apply;")
             < run.index("=> Enter Integrated GUI;")
         ))(section(game, '"VHG run"', '"service VHG repaint"')),
-        "version-11 checkpoints retain the settled capsule and safely migrate v1-v10 landed progress",
+        "version-12 checkpoints retain the settled capsule and safely migrate v1-v11 progress",
     )
     check(
         all(token in ground for token in (
