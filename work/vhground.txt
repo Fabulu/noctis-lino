@@ -126,6 +126,12 @@
 	VHGNDphaseindex = 0; VHGNDphase = 0; VHGNDrotation = 0; VHGNDperiod = 0;
 	VHGNDowner = 0; VHGNDmoonmass = 0; VHGNDplwp = 0; VHGNDviewpoint = 0;
 	VHGNDtermstart = 0; VHGNDtermend = 0; VHGNDcrep = 0; VHGNDdist = 0;
+	VHGNDsunxf = 1; VHGNDsunray = 0;
+	VHGNDsund0 = 0; VHGNDsund1 = 0; VHGNDsuna0 = 0; VHGNDsuna1 = 0;
+	VHGNDsunb0 = 0; VHGNDsunb1 = 0; VHGNDsbs0 = 0; VHGNDsbs1 = 0;
+	VHGNDsas0 = 0; VHGNDsas1 = 0; VHGNDsac0 = 0; VHGNDsac1 = 0;
+	VHGNDsunx0 = 0; VHGNDsunx1 = 0; VHGNDsuny0 = 0; VHGNDsuny1 = 0;
+	VHGNDsunz0 = 0; VHGNDsunz1 = 0;
 	VHGNDmass0 = 0; VHGNDmass1 = 0; VHGNDorbit0 = 0; VHGNDorbit1 = 0;
 	VHGNDvecindex = 0; VHGNDvecowner = 0;
 	VHGNDangle0 = 0; VHGNDangle1 = 0;
@@ -1443,7 +1449,7 @@
 	  type 8; planet 1 is type 4.  The exact create_sky path is cheap for both
 	  types and produces the source surface palette as well as atmosphere. )
 	[GRSKptype] = [GRiptype]; [GRSKsctype] = [VHGNDsctype];
-	[GRSKatmosphere] = [VHGNDatmosphere]; [GRSKnightzone] = 0;
+	[GRSKatmosphere] = [VHGNDatmosphere]; [GRSKnightzone] = 0; [VHGNDsunxf] = 1;
 	[GRSKtarget] = [VHGNDplanet]; [GRSKowner] = 0FFFFFFFFh;
 	[GRSKstarclass] = 0; [GRSKlat] = [VHGNDlat]; [GRSKquadwords] = 16000;
 	[GRSKexposure] = 41DB20C5h; ( 27.391f, source 35-degree day exposure )
@@ -1833,7 +1839,8 @@
     "VHGND end normalized"
 	? A <= 180 -> VHGND end distance ready; C = 360; C - A; A = C;
     "VHGND end distance ready"
-	? A >= [VHGNDcrep] -> VHGND exposure ready; [VHGNDcrep] = A;
+	? A >= [VHGNDcrep] -> VHGND exposure ready;
+	[VHGNDcrep] = A; A = 0; A - 1; [VHGNDsunxf] = A;
     "VHGND exposure ready"
 	[FI] = [VHGNDcrep]; => IntToF;
 	[FB0] = 27BB2FECh; [FB1] = 3FE90B0Fh; => FMul; => F32Narrow; => FStoreF32;
@@ -2037,6 +2044,7 @@
 	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32; ( 100.0f )
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
+	=> VHGND local sun;
 	( Source fragment() maps p_background across every ground triangle. )
 	[FI] = [VHGNDtscale]; => IntToF;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;
@@ -2077,6 +2085,75 @@
 	=> VHGND render weather;
 	"VHGND render finish"
 		=> VHGND surrounding frame;
+	end;
+
+"VHGND local sun"
+	( NOCTIS-1.CPP planetary_main draws the active local sun after the sky
+	  and before terrain.  Its precomputed surface coordinates use the
+	  landing latitude, terminator exposure, and dawn/dusk side exactly;
+	  rain at 2.5 or above and the night zone suppress it. )
+	A = [GRSKnightzone]; ? A != 0 -> VHGND local sun done;
+	A = [GRSKrainy]; ? A '>= 40200000h -> VHGND local sun done;
+	=> VHG fpu clean;
+	[FS0] = [GRSKdsd1]; => FLoadF32;
+	[VHGNDsund0] = [FA0]; [VHGNDsund1] = [FA1];
+
+	( alfa = deg * (90 - abs(landing_pt_lat - 60) * 1.5) )
+	A = [VHGNDlat]; A - 60; ? A >= 0 -> VHGND sun latitude absolute;
+	C = 0; C - A; A = C;
+    "VHGND sun latitude absolute"
+	[FI] = A; => IntToF; [FB0] = 0; [FB1] = 3FF80000h; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 90; => IntToF; => FSub;
+	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
+	[VHGNDsuna0] = [FA0]; [VHGNDsuna1] = [FA1];
+
+	( beta = deg * exposure )
+	[FS0] = [GRSKexposure]; => FLoadF32;
+	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
+	[VHGNDsunb0] = [FA0]; [VHGNDsunb1] = [FA1];
+	=> FSin; [VHGNDsbs0] = [FA0]; [VHGNDsbs1] = [FA1];
+	[FA0] = [VHGNDsuna0]; [FA1] = [VHGNDsuna1]; => FSin;
+	[VHGNDsas0] = [FA0]; [VHGNDsas1] = [FA1];
+	[FA0] = [VHGNDsuna0]; [FA1] = [VHGNDsuna1]; => FCos;
+	[VHGNDsac0] = [FA0]; [VHGNDsac1] = [FA1];
+
+	( x = -d*cos(beta)*side; y = -d*sin(beta)*sin(alfa);
+	  z = d*sin(beta)*cos(alfa). )
+	[FA0] = [VHGNDsunb0]; [FA1] = [VHGNDsunb1]; => FCos;
+	[FB0] = [VHGNDsund0]; [FB1] = [VHGNDsund1]; => FMul; => FNeg;
+	A = [VHGNDsunxf]; ? A >= 0 -> VHGND sun x ready; => FNeg;
+    "VHGND sun x ready"
+	[VHGNDsunx0] = [FA0]; [VHGNDsunx1] = [FA1];
+	[FA0] = [VHGNDsund0]; [FA1] = [VHGNDsund1];
+	[FB0] = [VHGNDsbs0]; [FB1] = [VHGNDsbs1]; => FMul;
+	[FB0] = [VHGNDsas0]; [FB1] = [VHGNDsas1]; => FMul; => FNeg;
+	[VHGNDsuny0] = [FA0]; [VHGNDsuny1] = [FA1];
+	[FA0] = [VHGNDsund0]; [FA1] = [VHGNDsund1];
+	[FB0] = [VHGNDsbs0]; [FB1] = [VHGNDsbs1]; => FMul;
+	[FB0] = [VHGNDsac0]; [FB1] = [VHGNDsac1]; => FMul;
+	[VHGNDsunz0] = [FA0]; [VHGNDsunz1] = [FA1];
+
+	( A companion-class owner is the active sun; otherwise use the system
+	  star, matching nray1 in the source. )
+	[VHGNDsunray] = [nsstarray];
+	A = [VHGNDowner]; ? A < 0 -> VHGND sun radius ready;
+	E = nsptype; E + A; C = [E]; ? C != 10 -> VHGND sun radius ready;
+	A < 1; E = nspray; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
+	=> F32Narrow; => FStoreF32; [VHGNDsunray] = [FS0];
+    "VHGND sun radius ready"
+	A = [GRSKatmosphere]; ? A = 0 -> VHGND sun airless;
+	[FI] = 4; [WHfgm] = 0; -> VHGND sun magnitude;
+    "VHGND sun airless"
+	[FI] = 3; [WHfgm] = 3F000000h;
+    "VHGND sun magnitude"
+	=> IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FS0] = [VHGNDsunray]; => FLoadF32; => FMul; => F32Narrow;
+	[WHmag] = [FS0];
+	[FA0] = [VHGNDsunx0]; [FA1] = [VHGNDsunx1]; [PGFi] = SFXX; => PGF sa;
+	[FA0] = [VHGNDsuny0]; [FA1] = [VHGNDsuny1]; [PGFi] = SFYY; => PGF sa;
+	[FA0] = [VHGNDsunz0]; [FA1] = [VHGNDsunz1]; [PGFi] = SFZZ; => PGF sa;
+	[WHshape] = 1; [WHsun] = 1; [WHdstreg] = RGADP; => SP white;
+    "VHGND local sun done"
 	end;
 
 "VHGND surrounding frame"

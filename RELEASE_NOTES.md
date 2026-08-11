@@ -15,8 +15,8 @@ parity, not a claim that parity is complete.
 - Select generated planets and moons, approach them, choose longitude/latitude,
   and land in the physical capsule.
 - Walk generated surfaces with distinct terrain classes, skies, weather,
-  vegetation, animals, capturable birds, ruins, water/ice effects, jump, and
-  jetpack behavior.
+  source-positioned local suns, vegetation, animals, capturable birds, ruins,
+  water/ice effects, jump, and jetpack behavior.
 - Return to the capsule and Stardrifter, manage power and lithium, collect fuel,
   or request the visible rescue sequence.
 - Save and resume versioned checkpoints. Verified saves retain a backup and a
@@ -77,6 +77,9 @@ Useful controls:
   surface movement/look without changing the original 18.206 Hz simulation.
   Surface wave feedback is forwarded once into the restored live pose;
   animated capsule descent/ascent retains source-tick presentation.
+- Planetary daylight now renders the original active-sun disc and corona with
+  latitude/exposure placement, dawn/dusk direction, rain and night gating,
+  and the correct companion-star radius in multiple systems.
 - Full Noctis IV+ feature parity remains the release criterion. Historical
   screens, complete GUI behavior, and presentation details are still being
   implemented rather than cut from scope. Stellar lithium collection and

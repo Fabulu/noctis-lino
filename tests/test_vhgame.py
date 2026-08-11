@@ -469,6 +469,27 @@ def main() -> int:
         )),
         "live landings cache the generated panorama through a direct wrapping mapper",
     )
+    local_sun = section(ground, '"VHGND local sun"', '"VHGND surrounding frame"')
+    check(
+        all(token in local_sun for token in (
+            "A = [GRSKnightzone]; ? A != 0 -> VHGND local sun done;",
+            "A = [GRSKrainy]; ? A '>= 40200000h -> VHGND local sun done;",
+            "[FS0] = [GRSKdsd1]; => FLoadF32;",
+            "A = [VHGNDsunxf]; ? A >= 0 -> VHGND sun x ready; => FNeg;",
+            "E = nsptype; E + A; C = [E]; ? C != 10 -> VHGND sun radius ready;",
+            "[WHshape] = 1; [WHsun] = 1; [WHdstreg] = RGADP; => SP white;",
+        ))
+        and "[GRSKatmosphere] = [VHGNDatmosphere]; [GRSKnightzone] = 0; [VHGNDsunxf] = 1;" in ground
+        and "[VHGNDcrep] = A; A = 0; A - 1; [VHGNDsunxf] = A;" in ground
+        and "=> VH set view;\n\t=> VHGND local sun;\n\t( Source fragment()" in traversal
+        and all(token in original1 for token in (
+            "sun_x = -dsd1 * cos(beta) * sun_x_factor;",
+            "sun_y = -dsd1 * sin(beta) * sin(alfa);",
+            "sun_z = +dsd1 * sin(beta) * cos(alfa);",
+            "if (!nightzone && rainy < 2.5)",
+        )),
+        "surface daylight draws the source-positioned active sun before terrain",
+    )
     check(
         all(token in original1 for token in (
             "global_surface_seed = (nearstar_p_ray[ip_targetted]",

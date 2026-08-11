@@ -13,7 +13,8 @@ finish what the language was made for.
 
 The current Windows build is a substantial but incomplete playable port. You
 can walk through the Stardrifter, target generated star systems, approach
-planets, enter the landing and surface systems, return in the capsule, and save
+planets, enter the landing and surface systems, see source-positioned local
+suns and weather, return in the capsule, and save
 your journey. The complete player-facing route and presentation are still being
 finished and should not yet be mistaken for a final game. It opens in a
 practical 2x window while retaining Noctis's authentic

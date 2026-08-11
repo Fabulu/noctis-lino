@@ -123,6 +123,10 @@ first -- a broken foundation makes every later result meaningless.
   before input and simulation. Settled surfaces use the same path and forward
   only the X/Z/pitch wave deltas from the temporary render to the restored live
   state. Animated capsule descent/ascent remains source-tick presentation.
+- Surface daylight now draws the active local sun through the retained
+  `white_sun` rasterizer before terrain. Its latitude, exposure, dawn/dusk
+  side, weather gate, atmospheric corona, and companion-star radius follow
+  the original `planetary_main` path.
 - Settled surfaces expose an unobtrusive GUI-scaled pod range and captured-bird
   line, keeping the capsule-return condition discoverable after exploration.
   Pressing R outside the original 1,600-unit capsule boundary now reports

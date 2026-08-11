@@ -284,6 +284,16 @@ feedback produced by the interpolated render is measured, the live pose is
 restored, and those effects are applied exactly once. Capsule descent and
 ascent remain on authoritative source poses.
 
+### Source-positioned surface sun
+
+Planetary daylight previously generated the correct sky palette but omitted
+the visible local sun. The surface renderer now restores the original
+`planetary_main` path before terrain: latitude and terminator exposure rotate
+the active sun into view, the nearer dawn or dusk terminator selects its side,
+and atmosphere selects the original radius and corona values. Night and rain
+at 2.5 or above suppress it, while worlds owned by a class-10 companion use
+that companion's radius rather than the primary star's.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime
