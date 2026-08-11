@@ -564,6 +564,16 @@ one disposable Guide note produced the expected 132-byte packet: `STARMAP_`,
 the exact 32-byte label, `GUIDE___`, and the exact 84-byte note. The command
 also reports both exported counts on the physical GOES output tree.
 
+The matching `INBOX` command completes the original Stardrifter archive
+exchange loop. A received packet is fully checked for both framing markers,
+record alignment, and bounded final sizes before either mutable database is
+written. Incoming source duplicates are ignored; accepted records move into
+the consolidated boundary, matching local copies are replaced, and unrelated
+local additions are appended afterward. Unlike the DOS utility, a mid-write
+failure can restore both still-loaded original images. A disposable native
+merge imported one label and one note, kept one unrelated local entry in each
+database, and made a repeated import a zero-change operation.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

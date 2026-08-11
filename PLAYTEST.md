@@ -854,3 +854,17 @@ catalogue record, `GUIDE___`, and the original first 84-byte Guide record used
 as disposable payloads. Both payload comparisons were byte-for-byte equal,
 the process exited 0, and the tracked `STARMAP.BIN` and `GUIDE.BIN` were never
 written.
+
+### GOES INBOX merge and idempotence regression
+
+A native probe ran against disposable copies of both production databases.
+Each copy first received two local records: one matching the incoming packet
+and one unrelated record that had to survive. The 132-byte `INBOX.ZIP` carried
+one label and one Guide note in the exact OUTBOX framing. Resident `INBOX`
+reported one imported label and one imported comment, advanced the consolidated
+boundaries from 1,202,500 to 1,202,532 and from 4,063,588 to 4,063,672, placed
+the incoming records at those former boundaries, discarded their matching
+local copies, and retained both unrelated local records after the new
+boundaries. A second process imported the unchanged packet and reported zero
+new records; both file sizes and boundaries remained unchanged. Neither
+tracked production database participated in the run.

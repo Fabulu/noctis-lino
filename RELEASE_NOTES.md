@@ -86,6 +86,10 @@ parity, not a claim that parity is complete.
   `OUTBOX` exports only those live player additions to `OUTBOX.ZIP` using the
   original `STARMAP_` and `GUIDE___` packet framing, ready to copy to another
   Stardrifter installation.
+  `INBOX` completes that exchange path. It validates a received `INBOX.ZIP`
+  before writing, imports non-duplicate records into the consolidated archives,
+  replaces matching local copies, retains unrelated local additions, and can
+  restore both original database images if a write fails.
   The third station starts planetary approach and,
   after FCS reaches STANDBY, opens the physical longitude/latitude selector.
 - Planetary views finish with the original default `surrounding()` visor
@@ -119,6 +123,7 @@ Useful controls:
 - First wall panel + Enter: physical GOES; `NEXT`: choose/fly to a nearby star
 - `SL` lists all known stars; `SL <range>` scans locally; Escape stops a scan
 - `CAT`: read; `CAST`: add; `REP`: correct; `DELE`: remove; `CLEAN`: compact
+- `OUTBOX`: export player data; `INBOX`: import a received `INBOX.ZIP`
 - Third wall panel + Enter: approach, select a landing site, and descend
 - G and L: accessible GOES and landing fallbacks
 - R: device back/close aboard ship; return in capsule on a surface

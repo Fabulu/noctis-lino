@@ -39,6 +39,7 @@
 	VHGINITLO = 0584FBE5h;		( sqrt(100^2+100^2+100^2) )
 	VHGINITHI = 4065A690h;
 	VHGFCH = 1076101120;		( 10.0 binary64 high )
+	VHGINBOXMAX = 9668628;
 
 	( Open at a practical 2x presentation: iGUI chrome leaves an exact
 	  640x400 work area at 642x426 while the graded framebuffer stays 320x200. )
@@ -107,6 +108,14 @@
 	VHGcleanprefix = 0; VHGcleanvalue = 0;
 	VHGoutboxpos = 0; VHGoutboxi = 0; VHGoutboxptr = 0;
 	VHGoutboxlabels = 0; VHGoutboxcomments = 0;
+	VHGinboxsize = 0; VHGinboxpos = 0; VHGinboxguidepos = 0;
+	VHGinlabelcount = 0; VHGincommentcount = 0;
+	VHGinoldcatbytes = 0; VHGinoldcatboundary = 0; VHGinoldcatrecs = 0;
+	VHGinoldguidebytes = 0; VHGinoldguideboundary = 0; VHGinoldguiderecs = 0;
+	VHGincatsource = 0; VHGinguidesource = 0; VHGincatlive = 0; VHGinguidelive = 0;
+	VHGinoutpos = 0; VHGinnewboundary = 0; VHGinindex = 0; VHGinscan = 0;
+	VHGinptr = 0; VHGincmpptr = 0; VHGinmatch = 0; VHGinword = 0;
+	VHGinlabels = 0; VHGincomments = 0; VHGinmutated = 0;
 	VHGflightx = 0; VHGsecx = 0;
 	VHGlocalactive = 0; VHGlocaltarget = 0FFFFFFFFh;
 	VHGlocalx0 = 0; VHGlocalx1 = 0; VHGlocaly0 = 0; VHGlocaly1 = 0;
@@ -354,6 +363,18 @@
 	VHGoutsend1 = { ANOTHER_STARDRIFTER };
 	VHGoutsend2 = { OR_G.O.E.S._KEEPER. };
 	VHGouterror = { OUTBOX_WRITE_ERROR. };
+	VHGinboxfile = { INBOX.ZIP };
+	VHGinboxtitle = { _____GOES__INBOX_____ };
+	VHGinlabelshead = { IMPORTED_LABELS: };
+	VHGincommentshead = { IMPORTED_COMMENTS: };
+	VHGinmissing0 = { CANNOT_FIND_PACKET: };
+	VHGinmissing1 = { INBOX.ZIP_IS_MISSING };
+	VHGininvalid0 = { ERROR_ACCESSING_INBOX };
+	VHGininvalid1 = { PACKET_IS_CORRUPTED. };
+	VHGinfull = { DATABASE_CAPACITY_HIT };
+	VHGinwriteerror = { IMPORT_WRITE_ERROR. };
+	VHGinrollback = { DATABASES_RESTORED. };
+	VHGincomplete = { ARCHIVES_UPDATED. };
 	VHGslusage1 = { SL_(OPTIONAL_RANGE) };
 	VHGslglobal = { GLOBAL_STARS_LISTING: };
 	VHGslranged = { RANGED_STARS_LISTING: };
@@ -774,6 +795,9 @@
 	VHGslline = 22;
 	VHGdlline = 22;
 	VHGoutboxmarker = 2;
+	VHGinrecord = 21;
+	VHGincompare = 21;
+	VHGinheader = 1;
 
 "programme"
 
@@ -3383,7 +3407,17 @@
 	? A = 80 -> VHG command maybe par;
 	? A = 82 -> VHG command maybe rep;
 	? A = 79 -> VHG command maybe outbox;
+	? A = 73 -> VHG command maybe inbox;
 	? A = 87 -> VHG command maybe where; -> VHG command done;
+    "VHG command maybe inbox"
+	A = [vhptext plus 43]; ? A != 78 -> VHG command done;
+	A = [vhptext plus 44]; ? A != 66 -> VHG command done;
+	A = [vhptext plus 45]; ? A != 79 -> VHG command done;
+	A = [vhptext plus 46]; ? A != 88 -> VHG command done;
+	A = [vhptext plus 47]; ? A = 0 -> VHG command inbox ready;
+	? A = 32 -> VHG command inbox ready; ? A != 95 -> VHG command done;
+    "VHG command inbox ready"
+	[VHGcmdsilent] = 1; => VHG INBOX; -> VHG command done;
     "VHG command maybe outbox"
 	A = [vhptext plus 43]; ? A != 85 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 84 -> VHG command done;
@@ -4742,6 +4776,261 @@
 	=> VHG onboard row append space; [VHGonrowvalue] = [VHGdelevalue];
 	=> VHG onboard row append number; => VHG onboard row finish;
 	[VHPoutptr] = VHGcatline; => VH GOES output line; end;
+
+"VHG INBOX"
+	( INBOX.CPP folds a received OUTBOX packet into the consolidated portions
+	  of STARMAP and GUIDE, then reattaches surviving player-local records.
+	  Preflight the complete packet before either database is touched, and keep
+	  the still-loaded original images available for rollback on a write error. )
+	[VHGwherei] = 0;
+    "VHG INBOX bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG INBOX bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGinboxtitle; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	A = [VHCATloaded]; ? A = 0 -> VHG INBOX starmap unavailable;
+	A = [VHGDBloaded]; ? A = 0 -> VHG INBOX guide unavailable;
+	[VHGinoldcatbytes] = [VHCATbytes]; [VHGinoldcatboundary] = [vhcatraw];
+	[VHGinoldcatrecs] = [VHCATrecs]; [VHGinoldguidebytes] = [VHGDBbytes];
+	[VHGinoldguideboundary] = [vhguidedata]; [VHGinoldguiderecs] = [VHGDBrecs];
+	[VHGinlabels] = 0; [VHGincomments] = 0; [VHGinmutated] = 0;
+	[File Name] = VHGinboxfile; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHG INBOX missing;
+	A = [File Size]; [VHGinboxsize] = A; ? A < 16 -> VHG INBOX invalid;
+	? A > VHGINBOXMAX -> VHG INBOX invalid;
+	[File Name] = VHGinboxfile; [File Position] = 0; [File Command] = READ;
+	[Block Pointer] = VHGinrecord; [Block Size] = 8; isocall;
+	? [File Status] + ERROR -> VHG INBOX invalid;
+	A = [Block Size]; ? A != 8 -> VHG INBOX invalid;
+	A = [VHGinrecord plus 0]; ? A != 52415453h -> VHG INBOX invalid;
+	A = [VHGinrecord plus 1]; ? A != 5F50414Dh -> VHG INBOX invalid;
+	[VHGinboxpos] = 8; [VHGinlabelcount] = 0;
+    "VHG INBOX preflight labels"
+	A = [VHGinboxpos]; A + 8; ? A > [VHGinboxsize] -> VHG INBOX invalid;
+	[File Name] = VHGinboxfile; [File Position] = [VHGinboxpos]; [File Command] = READ;
+	[Block Pointer] = VHGinrecord; [Block Size] = 8; isocall;
+	? [File Status] + ERROR -> VHG INBOX invalid;
+	A = [Block Size]; ? A != 8 -> VHG INBOX invalid;
+	A = [VHGinrecord plus 0]; ? A != 44495547h -> VHG INBOX preflight label record;
+	A = [VHGinrecord plus 1]; ? A = 5F5F5F45h -> VHG INBOX preflight guide;
+    "VHG INBOX preflight label record"
+	A = [VHGinboxpos]; A + VHCATRECBYTES; ? A > [VHGinboxsize] -> VHG INBOX invalid;
+	[VHGinboxpos] + VHCATRECBYTES; [VHGinlabelcount]+;
+	-> VHG INBOX preflight labels;
+    "VHG INBOX preflight guide"
+	A = [VHGinboxpos]; A + 8; [VHGinboxguidepos] = A;
+	A = [VHGinboxsize]; A - [VHGinboxguidepos]; C = A; A '% VHGDBREC;
+	? A != 0 -> VHG INBOX invalid; C / VHGDBREC; [VHGincommentcount] = C;
+	A = [VHGinoldcatboundary]; A - VHCATHDRBYTES; A / VHCATRECBYTES;
+	[VHGincatsource] = A; [VHGinindex] = A; [VHGincatlive] = 0;
+    "VHG INBOX count cat locals"
+	A = [VHGinindex]; ? A >= [VHGinoldcatrecs] -> VHG INBOX count guide locals start;
+	A '* 8; A + vhcatraw; A + 1; C = [A]; ? C != VHCATTOMB0 -> VHG INBOX cat local live;
+	C = [A plus 1]; ? C = VHCATTOMB1 -> VHG INBOX count cat local next;
+    "VHG INBOX cat local live"
+	[VHGincatlive]+;
+    "VHG INBOX count cat local next"
+	[VHGinindex]+; -> VHG INBOX count cat locals;
+    "VHG INBOX count guide locals start"
+	A = [VHGinoldguideboundary]; A - VHGDBHDR; A / VHGDBREC;
+	[VHGinguidesource] = A; [VHGinindex] = A; [VHGinguidelive] = 0;
+    "VHG INBOX count guide locals"
+	A = [VHGinindex]; ? A >= [VHGinoldguiderecs] -> VHG INBOX capacity;
+	A '* 21; A + vhguidedata; A + 1; C = [A]; ? C != VHCATTOMB0 -> VHG INBOX guide local live;
+	C = [A plus 1]; ? C = VHCATTOMB1 -> VHG INBOX count guide local next;
+    "VHG INBOX guide local live"
+	[VHGinguidelive]+;
+    "VHG INBOX count guide local next"
+	[VHGinindex]+; -> VHG INBOX count guide locals;
+    "VHG INBOX capacity"
+	A = [VHGinlabelcount]; A '* VHCATRECBYTES; A + [VHGinoldcatboundary];
+	C = [VHGincatlive]; C '* VHCATRECBYTES; A + C; ? A > VHCATMAXBYTES -> VHG INBOX full;
+	A = [VHGincommentcount]; A '* VHGDBREC; A + [VHGinoldguideboundary];
+	C = [VHGinguidelive]; C '* VHGDBREC; A + C; ? A > VHGDBMAX -> VHG INBOX full;
+	[VHGinmutated] = 1; [VHGinoutpos] = [VHGinoldcatboundary]; [VHGinindex] = 0;
+    "VHG INBOX import labels"
+	A = [VHGinindex]; ? A >= [VHGinlabelcount] -> VHG INBOX cat imports done;
+	A '* VHCATRECBYTES; A + 8; [VHGinboxpos] = A;
+	[File Name] = VHGinboxfile; [File Position] = [VHGinboxpos]; [File Command] = READ;
+	[Block Pointer] = VHGinrecord; [Block Size] = VHCATRECBYTES; isocall;
+	? [File Status] + ERROR -> VHG INBOX invalid after write;
+	A = [Block Size]; ? A != VHCATRECBYTES -> VHG INBOX invalid after write;
+	[VHGinptr] = VHGinrecord; [VHGinscan] = 0;
+    "VHG INBOX scan source label"
+	A = [VHGinscan]; ? A >= [VHGincatsource] -> VHG INBOX accept label;
+	A '* 8; A + vhcatraw; A + 1; [VHGincmpptr] = A; => VHG INBOX identity match;
+	A = [VHGinmatch]; ? A != 0 -> VHG INBOX next import label;
+	[VHGinscan]+; -> VHG INBOX scan source label;
+    "VHG INBOX accept label"
+	[VHGinmutated] = 1; [File Name] = vhcatfile; [File Position] = [VHGinoutpos];
+	[File Command] = WRITE; [Block Pointer] = VHGinrecord; [Block Size] = VHCATRECBYTES; isocall;
+	? [File Status] + ERROR -> VHG INBOX write error;
+	A = [Block Size]; ? A != VHCATRECBYTES -> VHG INBOX write error;
+	[VHGinoutpos] + VHCATRECBYTES; [VHGinlabels]+;
+    "VHG INBOX next import label"
+	[VHGinindex]+; -> VHG INBOX import labels;
+    "VHG INBOX cat imports done"
+	[VHGinnewboundary] = [VHGinoutpos]; [VHGinindex] = [VHGincatsource];
+    "VHG INBOX append cat locals"
+	A = [VHGinindex]; ? A >= [VHGinoldcatrecs] -> VHG INBOX finish cat file;
+	A '* 8; A + vhcatraw; A + 1; [VHGinptr] = A;
+	C = [A]; ? C != VHCATTOMB0 -> VHG INBOX scan imported labels start;
+	C = [A plus 1]; ? C = VHCATTOMB1 -> VHG INBOX next cat local;
+    "VHG INBOX scan imported labels start"
+	[VHGinscan] = [VHGinoldcatboundary];
+    "VHG INBOX scan imported labels"
+	A = [VHGinscan]; ? A >= [VHGinnewboundary] -> VHG INBOX retain cat local;
+	[File Name] = vhcatfile; [File Position] = [VHGinscan]; [File Command] = READ;
+	[Block Pointer] = VHGincompare; [Block Size] = VHCATRECBYTES; isocall;
+	? [File Status] + ERROR -> VHG INBOX write error;
+	A = [Block Size]; ? A != VHCATRECBYTES -> VHG INBOX write error;
+	[VHGincmpptr] = VHGincompare; => VHG INBOX identity match;
+	A = [VHGinmatch]; ? A != 0 -> VHG INBOX next cat local;
+	[VHGinscan] + VHCATRECBYTES; -> VHG INBOX scan imported labels;
+    "VHG INBOX retain cat local"
+	[File Name] = vhcatfile; [File Position] = [VHGinoutpos]; [File Command] = WRITE;
+	[Block Pointer] = [VHGinptr]; [Block Size] = VHCATRECBYTES; isocall;
+	? [File Status] + ERROR -> VHG INBOX write error;
+	A = [Block Size]; ? A != VHCATRECBYTES -> VHG INBOX write error;
+	[VHGinoutpos] + VHCATRECBYTES;
+    "VHG INBOX next cat local"
+	[VHGinindex]+; -> VHG INBOX append cat locals;
+    "VHG INBOX finish cat file"
+	[VHGinheader] = [VHGinnewboundary]; [File Name] = vhcatfile; [File Position] = 0;
+	[File Command] = WRITE; [Block Pointer] = VHGinheader; [Block Size] = 4; isocall;
+	? [File Status] + ERROR -> VHG INBOX write error;
+	A = [Block Size]; ? A != 4 -> VHG INBOX write error;
+	[File Name] = vhcatfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGinoutpos]; isocall;
+	? [File Status] + ERROR -> VHG INBOX write error;
+	[VHGinoutpos] = [VHGinoldguideboundary]; [VHGinindex] = 0;
+    "VHG INBOX import comments"
+	A = [VHGinindex]; ? A >= [VHGincommentcount] -> VHG INBOX guide imports done;
+	A '* VHGDBREC; A + [VHGinboxguidepos]; [VHGinboxpos] = A;
+	[File Name] = VHGinboxfile; [File Position] = [VHGinboxpos]; [File Command] = READ;
+	[Block Pointer] = VHGinrecord; [Block Size] = VHGDBREC; isocall;
+	? [File Status] + ERROR -> VHG INBOX invalid after write;
+	A = [Block Size]; ? A != VHGDBREC -> VHG INBOX invalid after write;
+	[VHGinptr] = VHGinrecord; [VHGinscan] = 0;
+    "VHG INBOX scan source comment"
+	A = [VHGinscan]; ? A >= [VHGinguidesource] -> VHG INBOX accept comment;
+	A '* 21; A + vhguidedata; A + 1; [VHGincmpptr] = A; => VHG INBOX record match;
+	A = [VHGinmatch]; ? A != 0 -> VHG INBOX next import comment;
+	[VHGinscan]+; -> VHG INBOX scan source comment;
+    "VHG INBOX accept comment"
+	[File Name] = VHGDBfile; [File Position] = [VHGinoutpos]; [File Command] = WRITE;
+	[Block Pointer] = VHGinrecord; [Block Size] = VHGDBREC; isocall;
+	? [File Status] + ERROR -> VHG INBOX write error;
+	A = [Block Size]; ? A != VHGDBREC -> VHG INBOX write error;
+	[VHGinoutpos] + VHGDBREC; [VHGincomments]+;
+    "VHG INBOX next import comment"
+	[VHGinindex]+; -> VHG INBOX import comments;
+    "VHG INBOX guide imports done"
+	[VHGinnewboundary] = [VHGinoutpos]; [VHGinindex] = [VHGinguidesource];
+    "VHG INBOX append guide locals"
+	A = [VHGinindex]; ? A >= [VHGinoldguiderecs] -> VHG INBOX finish guide file;
+	A '* 21; A + vhguidedata; A + 1; [VHGinptr] = A;
+	C = [A]; ? C != VHCATTOMB0 -> VHG INBOX scan imported comments start;
+	C = [A plus 1]; ? C = VHCATTOMB1 -> VHG INBOX next guide local;
+    "VHG INBOX scan imported comments start"
+	[VHGinscan] = [VHGinoldguideboundary];
+    "VHG INBOX scan imported comments"
+	A = [VHGinscan]; ? A >= [VHGinnewboundary] -> VHG INBOX retain guide local;
+	[File Name] = VHGDBfile; [File Position] = [VHGinscan]; [File Command] = READ;
+	[Block Pointer] = VHGincompare; [Block Size] = VHGDBREC; isocall;
+	? [File Status] + ERROR -> VHG INBOX write error;
+	A = [Block Size]; ? A != VHGDBREC -> VHG INBOX write error;
+	[VHGincmpptr] = VHGincompare; => VHG INBOX record match;
+	A = [VHGinmatch]; ? A != 0 -> VHG INBOX next guide local;
+	[VHGinscan] + VHGDBREC; -> VHG INBOX scan imported comments;
+    "VHG INBOX retain guide local"
+	[File Name] = VHGDBfile; [File Position] = [VHGinoutpos]; [File Command] = WRITE;
+	[Block Pointer] = [VHGinptr]; [Block Size] = VHGDBREC; isocall;
+	? [File Status] + ERROR -> VHG INBOX write error;
+	A = [Block Size]; ? A != VHGDBREC -> VHG INBOX write error;
+	[VHGinoutpos] + VHGDBREC;
+    "VHG INBOX next guide local"
+	[VHGinindex]+; -> VHG INBOX append guide locals;
+    "VHG INBOX finish guide file"
+	[VHGinheader] = [VHGinnewboundary]; [File Name] = VHGDBfile; [File Position] = 0;
+	[File Command] = WRITE; [Block Pointer] = VHGinheader; [Block Size] = 4; isocall;
+	? [File Status] + ERROR -> VHG INBOX write error;
+	A = [Block Size]; ? A != 4 -> VHG INBOX write error;
+	[File Name] = VHGDBfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGinoutpos]; isocall;
+	? [File Status] + ERROR -> VHG INBOX write error;
+	[VHGinmutated] = 0; => VHCAT load; => VHGDB load;
+	A = [VHCATloaded]; ? A = 0 -> VHG INBOX write error no rollback;
+	A = [VHGDBloaded]; ? A = 0 -> VHG INBOX write error no rollback;
+	=> VHCAT count system bodies; => VHCAT refresh;
+	[VHPoutptr] = VHGinlabelshead; => VH GOES output line;
+	[VHGcleanvalue] = [VHGinlabels]; => VHG OUTBOX output count;
+	[VHPoutptr] = VHGincommentshead; => VH GOES output line;
+	[VHGcleanvalue] = [VHGincomments]; => VHG OUTBOX output count;
+	[VHPoutptr] = VHGincomplete; => VH GOES output line; end;
+    "VHG INBOX identity match"
+	[VHGinmatch] = 0; A = [VHGinptr]; [VHCATid0] = [A]; [VHCATid1] = [A plus 1];
+	[VHCATfoundptr] = [VHCATid0]; [VHCATptr] = [VHCATid1]; => VHCAT bounds;
+	A = [VHGincmpptr]; [VHCATid0] = [A]; [VHCATid1] = [A plus 1]; => VHCAT key;
+	A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHCATlowhi] -> VHG INBOX identity above low;
+	? A '< [VHCATlowhi] -> VHG INBOX identity done;
+	? B '< [VHCATlowlo] -> VHG INBOX identity done;
+    "VHG INBOX identity above low"
+	? A '< [VHCAT highhi] -> VHG INBOX identity hit;
+	? A '> [VHCAT highhi] -> VHG INBOX identity done;
+	? B '> [VHCAT highlo] -> VHG INBOX identity done;
+    "VHG INBOX identity hit"
+	[VHGinmatch] = 1;
+    "VHG INBOX identity done"
+	end;
+    "VHG INBOX record match"
+	=> VHG INBOX identity match; A = [VHGinmatch]; ? A = 0 -> VHG INBOX record match done;
+	[VHGinword] = 2;
+    "VHG INBOX record word"
+	A = [VHGinword]; C = [VHGinptr]; C + A; E = [VHGincmpptr]; E + A;
+	A = [C]; ? A != [E] -> VHG INBOX record mismatch;
+	[VHGinword]+; A = [VHGinword]; ? A < 21 -> VHG INBOX record word;
+	-> VHG INBOX record match done;
+    "VHG INBOX record mismatch"
+	[VHGinmatch] = 0;
+    "VHG INBOX record match done"
+	end;
+    "VHG INBOX missing"
+	[VHPoutptr] = VHGinmissing0; => VH GOES output line;
+	[VHPoutptr] = VHGinmissing1; => VH GOES output line; end;
+    "VHG INBOX invalid after write"
+	=> VHG INBOX rollback;
+	[VHPoutptr] = VHGininvalid0; => VH GOES output line;
+	[VHPoutptr] = VHGininvalid1; => VH GOES output line; end;
+    "VHG INBOX invalid"
+	[VHPoutptr] = VHGininvalid0; => VH GOES output line;
+	[VHPoutptr] = VHGininvalid1; => VH GOES output line; end;
+    "VHG INBOX full"
+	[VHPoutptr] = VHGinfull; => VH GOES output line; end;
+    "VHG INBOX starmap unavailable"
+	[VHPoutptr] = VHGcleanstarmapmissing; => VH GOES output line; end;
+    "VHG INBOX guide unavailable"
+	[VHPoutptr] = VHGcleanguidemissing; => VH GOES output line; end;
+    "VHG INBOX write error"
+	=> VHG INBOX rollback;
+    "VHG INBOX write error no rollback"
+	[VHPoutptr] = VHGinwriteerror; => VH GOES output line; end;
+    "VHG INBOX rollback"
+	A = [VHGinmutated]; ? A = 0 -> VHG INBOX rollback done;
+	[File Name] = vhcatfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhcatraw; [Block Size] = [VHGinoldcatbytes]; isocall;
+	[File Name] = vhcatfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGinoldcatbytes]; isocall;
+	[File Name] = VHGDBfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhguidedata; [Block Size] = [VHGinoldguidebytes]; isocall;
+	[File Name] = VHGDBfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGinoldguidebytes]; isocall;
+	[VHGinmutated] = 0; => VHCAT load; => VHGDB load;
+	[VHPoutptr] = VHGinrollback; => VH GOES output line;
+    "VHG INBOX rollback done"
+	end;
 
 "VHG OUTBOX"
 	( OUTBOX.CPP exports only live player additions beyond each database's

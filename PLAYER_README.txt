@@ -31,11 +31,15 @@ STAR X Y Z        target exact galactic coordinates
 WHERE name        identify a charted star or a planet's parent system
 PAR name[:range]  recover source coordinates; use _ for spaces in names
 ST name[:range]   target a named star or reached-system planet
+SL [range]        list all charted stars or scan the nearby procedural cube
+DL name[:range]   list a charted system's planet/moon dependency tree
 CAT name[:X..Y]   read ranged records from the original Galactic Guide
 CAST name:notes    append a persistent Galactic Guide note (76 characters max)
 REP name:X:notes   correct local guide record X; original records are protected
 DELE name[:X..Y]   remove ranged local guide records; original records are protected
 CLEAN              compact removed local starmap and Galactic Guide records
+OUTBOX             export local labels/notes to OUTBOX.ZIP
+INBOX              import a received packet named INBOX.ZIP
 CLR               clear the retained GOES output tree
 L                 global approach/landing-site fallback
 Site selector     arrows choose longitude/latitude; L/Enter descends; C cancels

@@ -52,6 +52,7 @@ ORIGINAL_REP = REFERENCE_ROOT / "REP.CPP"
 ORIGINAL_DELE = REFERENCE_ROOT / "DELE.CPP"
 ORIGINAL_CLEAN = REFERENCE_ROOT / "CLEAN.CPP"
 ORIGINAL_OUTBOX = REFERENCE_ROOT / "OUTBOX.CPP"
+ORIGINAL_INBOX = REFERENCE_ROOT / "INBOX.CPP"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -253,6 +254,7 @@ def main() -> int:
     original_dele = ORIGINAL_DELE.read_text(encoding="latin-1")
     original_clean = ORIGINAL_CLEAN.read_text(encoding="latin-1")
     original_outbox = ORIGINAL_OUTBOX.read_text(encoding="latin-1")
+    original_inbox = ORIGINAL_INBOX.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1934,6 +1936,29 @@ def main() -> int:
             '"VHG OUTBOX output count"', "[File Size] = [VHGoutboxpos]; isocall;",
         )),
         "GOES OUTBOX exports only live local labels and Guide notes in source packet order",
+    )
+    check(
+        all(token in original_inbox for token in (
+            'memcmp (&object_id, "STARMAP_", 8)', 'memcmp (&object_id, "GUIDE___", 8)',
+            "lseek (fh, starmap_size, SEEK_SET);", "chsize (fh, starmap_size);",
+            "s_object_id >= object_id - idscale", '_write (fh2, "Removed:", 8);',
+            "lseek (gh, guide_size, SEEK_SET);", "chsize (gh, guide_size);",
+            "!strcmp (s_mblock_message, mblock_message)", '_write (gh2, "Removed:", 8);',
+            'msg ("IMPORTED LABELS:");', 'msg ("IMPORTED COMMENTS:");',
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe inbox"', '"VHG INBOX"', '"VHG INBOX preflight labels"',
+            "? A > VHGINBOXMAX -> VHG INBOX invalid;", '"VHG INBOX capacity"',
+            '"VHG INBOX scan source label"', '"VHG INBOX scan imported labels"',
+            '"VHG INBOX scan source comment"', '"VHG INBOX scan imported comments"',
+            '"VHG INBOX identity match"', '"VHG INBOX record match"',
+            "[VHGinheader] = [VHGinnewboundary]; [File Name] = vhcatfile;",
+            "[VHGinheader] = [VHGinnewboundary]; [File Name] = VHGDBfile;",
+            '"VHG INBOX rollback"', "[Block Pointer] = vhcatraw; [Block Size] = [VHGinoldcatbytes];",
+            "[Block Pointer] = vhguidedata; [Block Size] = [VHGinoldguidebytes];",
+            "=> VHCAT load; => VHGDB load;", 'VHGincomplete = { ARCHIVES_UPDATED. };',
+        )),
+        "GOES INBOX validates, merges, deduplicates, and can roll back source-format packets",
     )
     check(
         all(token in game for token in (

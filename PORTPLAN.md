@@ -128,6 +128,14 @@ first -- a broken foundation makes every later result meaningless.
   GUIDE___ + 84-byte records` packet order. A native probe exported one label
   and one Guide note as an exact 132-byte packet without changing either
   tracked database.
+- Resident `INBOX` completes source-format archive exchange. It validates the
+  complete marker/alignment/capacity structure before writing, promotes new
+  packet records into both consolidated boundaries, removes matching local
+  duplicates, retains unrelated local records, and reloads the live catalogue
+  after a bounded rewrite. The loaded pre-import images provide rollback for
+  either database on a write failure. A native disposable merge imported one
+  label and one note, retained one unrelated local record in each database,
+  then accepted the same packet a second time with zero changes.
 
 ### Clickable FCS and onboard pages
 
