@@ -28,7 +28,13 @@
 
 "variables"
 
-	VHGlanded = 1; VHGframe = 0; VHGplanet = 0;
+	VHGlanded = 1; VHGframe = 0; VHGplanet = 0; VHGmode = 1;
+	VHGdrawhud = 0; VHGhudcount = 0; VHGseamless = 0; VHGsurfjet = 0;
+	VHGbeta = 0; VHGlandinglon = 0; VHGlandinglat = 60;
+	VHGx = 0; VHGz = 0;
+	VHGgraphics = 0; VHGutcsecs = 0; VHGonroof = 0;
+	VHGsurfgravdisp = 0; VHGsurftempdisp = 0; VHGsurfpressdisp = 0; VHGsurfpulsedisp = 0;
+	VHGCwindangle = 0; VHGCwindpower = 0;
 	VHTRp = 0; VHTRlit = 0; VHTRname = { vhtree-out.bin };
 
 "workspace"
@@ -40,11 +46,12 @@
 	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
 	=> PGF constants;
 	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32;
-	[VHVcamxi] = 0; A = 0; A - 2000; [VHVcamyi] = A;
+	( x=131293 makes fast_random(511) select source GIANT_TREE 333. )
+	[VHVcamxi] = 131293; A = 0; A - 2000; [VHVcamyi] = A;
 	A = 0; A - 12000; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;
 	[PGtexf] = 0; [SPsrc] = 1; [SPflar] = 0; [SPcull] = 0; [SPhalf] = 0;
 	A = 17391; => SU fast srand;
-	[VHGNDoox] = 0; [VHGNDooy] = 0; [VHGNDooz] = 0; [VHGNDdepth] = 0;
+	[VHGNDoox] = 131293; [VHGNDooy] = 0; [VHGNDooz] = 0; [VHGNDdepth] = 0;
 	=> VHGND tree;
 
 	[VHTRp] = 0; [VHTRlit] = 0;

@@ -3,8 +3,192 @@
 This document is the public, chronological account of how the playable port
 was built, what each major phase established, which regressions were found in
 the integrated game, and what remains. It complements `PLAYTEST.md`, which is
-the detailed evidence log, and `PORTPLAN.md`, which is the technical source of
-truth and remaining-work ledger.
+the detailed evidence log, and `PORTPLAN.md`, which is the technical
+implementation and source-parity ledger.
+
+## 2026-08-12 -- stable map-edge traversal and signed surface motion
+
+A native debugger trace found that the disappearing or black surface frame was
+an access violation in far-terrain traversal, not a capsule or Stardrifter
+colour failure. At a map edge, a descending z loop compared its first negative
+index as unsigned, wrapped past zero, and eventually sampled outside the height
+map. Both descending terrain passes now use signed lower-bound comparisons, and
+the four live eye-height samples use bounded direct map reads.
+
+The same signedness audit fixed surface gravity, backward/lateral friction,
+slope motion, and capsule centring. Linoleum's apostrophe division is unsigned;
+using it on a negative velocity had turned a brief backward step into a
+planet-scale launch. Negative movement now decays in the intended direction,
+ordinary low-gravity jumps remain airborne without corrupting the floor, and
+capsule re-entry pulls toward the pod from every side.
+
+An isolated production run walked away with W, returned with S, completed the
+capsule ascent, and remained alive for 24 seconds. It saved ship mode at
+`(0,0,-300)` and ended on a visible gold Stardrifter frame rather than black.
+The focused integrated gameplay regression passes, and the restored production
+executable is 520,858 bytes.
+
+## 2026-08-11 -- grounded capsule recovery and final surface landmark parity
+
+Surface input had one cross-mode error with outsized consequences: its common
+cleanup path always applied the Stardrifter's interior boundary clamp. During
+capsule descent or an interrupted surface checkpoint this replaced planetary
+x/z coordinates with a ship corner, placing the pod or walker below unrelated
+terrain. Ship-only clamping now runs only in ship mode, and an idle airborne
+surface checkpoint deterministically settles at its persisted pod.
+
+The capsule now retains the source's signed shell placement, mapped transparent
+panels, structural line modes, local aperture and beacon. Walking away arms
+recovery; spherical re-entry opens nearby panels and pulls the player inward.
+Seal/ascent completion is queued to a clean top-level frame, while a wall-clock
+accumulator preserves the original 18.206-Hz timing even when surface rendering
+cannot sustain 60 presentations per second. A DOS scan-code movement smoke
+stayed grounded, and an isolated complete ascent returned to ship mode, saved
+`(0,0,-300)`, and exited cleanly.
+
+The ship visual audit followed `vehicle()` and `polycupola()` through the
+original C++: both cupola passes, flare mode 2, color index 64, and the dynamic
+stellar palette band agree. The tested gold dome is the correct result for the
+nearby warm class-0 star. Native iGUI resizing also scaled a live Stardrifter
+from 642x426 to 962x626; apparent duplicate windows were stale direct-display
+pixels left by force-killed diagnostics, not additional native hosts.
+
+The historical-surface audit found one genuine omission outside the capsule:
+the separate Suricrasian Cube restoration fragment. Suricrasia at LQ 018:060
+now receives the exact 25x25 maximum-height plateau and marked wall rows and
+columns from `NOCTIS-1.CPP`, alongside the six existing ruin styles, trees,
+mammals/hoppers, and birds. That checkpoint built at 515,110 bytes and passed
+the focused integrated gameplay regression.
+
+## 2026-08-11 -- gradual surface leveling and safe capsule exits
+
+F5 presentation now meters its unchanged 18.206-Hz simulation against the
+normalized wall clock. Slow presentation frames therefore carry their elapsed
+time forward instead of making the game simulation run in slow motion, while
+focus and suspend gaps are discarded rather than replayed as a burst.
+
+Surface pulse telemetry now includes the original twice-per-second variation:
+the game reseeds Noctis IV+'s fast generator from secs/2, draws the two
+fast_flandom() terms, and applies their eight-point difference around the
+tiredness-derived heart rate before the source one-percent HUD smoothing.
+
+Close surface rocks no longer stop after one reduced tetrahedron. They now
+restore Noctis IV+'s fivefold near scale, full density-selected group, shrinking
+successive stones, and cdown-weighted centre drift while retaining the distant
+single-triangle level of detail.
+
+Suricrasia's photographed historical Cube is again present specifically at
+LQ 018:060: its 25-by-25 maximum-height plateau and selected northern and side
+ruin faces feed the ordinary close-range ruin renderer.
+
+Tree-class objects on terrain above -15,000 units now take Noctis IV+'s
+cespuglio() path instead of incorrectly becoming full trees. The restored
+bushes collapse to distant foliage at depth three and use the source 3,000-unit
+scale, .75 reduction, .15 width, two-faced limbs, randomized terminal leaves,
+and depth-selected one-to-four-way branching nearby.
+
+Grass no longer uses one identical crossed placeholder at every distance.
+ciuffo() now disappears at depth four, becomes a greenmush-style randomized
+speckle mass at depth three, and restores the source three-, four-, and
+six-face one-to-eight-way blade density at depths two, one, and zero.
+
+Walking within 1,200 vertical units of the ground now restores Noctis IV+'s
+`user_alfa /= 1 + fabs(step) * 0.000064` camera behavior. Because the port's
+surface coordinates are eightfold and its visible pitch is integral, a
+retained remainder carries sub-degree decay between source ticks. Looking up
+or down therefore returns gradually toward the horizon while walking instead
+of staying tilted forever or snapping level one degree per frame.
+
+Every native close path also collapses an active capsule descent or recovery
+to a deterministic settled checkpoint before saving. Esc, Alt+F4, the GAME
+menu, and iGUI's red close button can no longer persist transient capsule state
+that the checkpoint format deliberately does not encode.
+
+Completed ascent now defers the surface-to-Stardrifter renderer switch until
+the next top-level frame boundary. The capsule physics stack therefore finishes
+entirely in surface mode instead of leaving one presentation frame half terrain
+and half ship, which was the transition crash exposed during live testing.
+
+The focused gameplay regression passes and the production executable rebuilds
+successfully at 514,586 bytes.
+
+## 2026-08-11 -- terrain-dependent surface mouse walking
+
+Held left-click walking now follows `NOCTIS-1.CPP`'s terrain-dependent pace
+instead of applying one universal impulse. The original 50, 75, 125, and 150
+source-unit steps become 400, 600, 1000, and 1200 in the port's established
+eightfold surface coordinate scale. Sea-level ocean/desert, ordinary ground,
+non-habitable flats, and habitable ice therefore feel distinct again while
+keyboard walking, cruise, momentum, friction, and capsule recovery keep their
+existing source ordering.
+
+The focused integrated regression pins each source branch and translated
+constant. The 513,938-byte production build completed successfully and stayed
+responsive after loading an isolated landed checkpoint; the real save was not
+used or changed.
+
+The frame boundary also repairs the otherwise impossible state produced by an
+older or interrupted checkpoint that says surface mode but retains neither a
+settled walker nor active capsule physics. Such a resume now settles at the
+saved pod position before input or rendering instead of opening on an idle
+airborne transition.
+
+## 2026-08-11 -- source-equivalent surface air control
+
+Surface movement now distinguishes an ordinary jump from active jetpack
+flight as `NOCTIS-1.CPP` does. A normal jump retains its takeoff heading and
+restores the pre-input forward/lateral velocities, while an armed jetpack
+accepts steering and updates the movement heading from the live view. Fixed
+digit cruise remains additive because the source snapshots velocity after
+adding that automatic step.
+
+The port-specific `-1200` thrust cap and airborne 750,000-unit exploration
+radius are gone. Held Space supplies the original repeated `-50` impulse, L
+adds the original `+400` descent impulse, and the final 300 units above terrain
+use the source near-ground gravity spring. The distinct 200-unit `jumping`
+threshold now controls slope resistance and jetpack shutdown without forcing
+the camera prematurely onto the terrain plane.
+
+The integrated regression passes and the production executable compiles. An
+isolated v15 checkpoint loaded the real generated surface at
+`(1638400, -8792, 1638400)`. The legacy iGUI host rejected both posted and
+hardware-style synthetic keys, so the live jump/jet arc remains a short manual
+confirmation rather than an automated claim.
+
+## 2026-08-11 -- focus-safe native window presentation
+
+The resizable iGUI host no longer advances or publishes a client frame while
+its cooperative display is inactive. Resize callbacks are state-free, and the
+normal presenter hands completed frames to iGUI through `Update Area` instead
+of issuing a competing direct `RETRACE`. This removes the re-entrant raster and
+display-transition path that produced a flat brown client area or an access
+violation when the window lost focus during capsule descent.
+
+The production executable was rebuilt and packaged in isolation. An unchanged
+native smoke moved and resized the window and performed six minimize/restore
+cycles. The earlier executable lost its window before the final capture; the
+rebuilt executable remained alive and its final frame contained 649 distinct
+sampled colours, with the Stardrifter still visibly rendered.
+
+## 2026-08-11 -- source-equivalent capsule aperture and recovery
+
+The settled capsule now makes the same lower and upper `polycupola` calls as
+the moving capsule in `NOCTIS-1.CPP`, with the original globes-map texture
+window and flare 4. Its panels therefore remain visible after touchdown and
+open locally around the walker instead of leaving an inert shell.
+
+Surface recovery now follows the original interaction rather than requiring a
+port-specific key: walking beyond the true three-dimensional 1,600-unit pod
+sphere arms recovery, and walking back inside automatically opens nearby
+panels and pulls each signed position delta inward by one eighth. R remains an
+accessible fallback. The seal and ascent now advance once per original
+18.206-Hz simulation frame, preserving the 32-frame closure and 250-frame
+return cutoff that had been compressed by the port's 32-step batch.
+
+A native production smoke showed the textured shell opening locally and the
+process remaining alive. The legacy iGUI host rejected synthetic movement
+messages, so exact automatic walk-away/re-entry remains a short human
+confirmation rather than an automated visual claim.
 
 ## 2026-08-11 -- source-equivalent surface momentum and safe touchdown
 

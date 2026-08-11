@@ -21,6 +21,7 @@ Left mouse hold   surface: walk forward using the original mouse control
 Ctrl + W/A/S/D    stalk slowly near surface birds
 0-9               select/cancel automatic surface cruise speed; 0 stops
 J / hold Space    jump / use the surface jetpack; C cancels thrust
+L while airborne add the original downward impulse
 Right mouse drag  look around inside the game view
 Arrow keys        look in all four directions
 E                 start the roof lift from inside the Stardrifter;
@@ -49,10 +50,11 @@ X text             send text through the Xnice X.TXT/XBUFF.TXT file queue
 X                  promote the next queued Xnice message when X.TXT is absent
 IMPORTGD           not required: this build already uses native GUIDE.BIN
 CLR               clear the retained GOES output tree
-L                 global approach/landing-site fallback
+L                 ship: approach/site fallback; surface: downward impulse
 Site selector     arrows choose longitude/latitude; L/Enter descends; C cancels
 [ and ]           select every generated planet or moon
-R                 ship: onboard devices/back; surface: capsule return
+R                 ship: onboard devices/back; surface: capsule-return fallback
+Walk out and back automatic capsule return across the 1,600-unit boundary
 6 / 7 / 8 / 9     select a displayed onboard page or command
 Navigation page   amplifier / finder / tracking mode / anti-radiation
 Misc page         internal light / remote / local / environment data

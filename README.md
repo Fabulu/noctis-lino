@@ -11,12 +11,12 @@ finish what the language was made for.
 
 ## Play the game
 
-The current Windows build is a substantial but incomplete playable port. You
+The current Windows build is a complete playable port of the Noctis IV+
+gameplay route implemented in this repository. You
 can walk through the Stardrifter, target generated star systems, approach
 planets, enter the landing and surface systems, see source-positioned local
 suns and weather, read the original EPOC/SQC/compass and environmental visor data, return in the capsule, and save
-your journey. The complete player-facing route and presentation are still being
-finished and should not yet be mistaken for a final game. It opens in a
+your journey. It opens in a
 practical 2x window while retaining Noctis's authentic
 320x200 software framebuffer; iGUI's size and full-view controls can resize it
 without changing simulation or rendering coordinates. From PowerShell in the
@@ -37,15 +37,24 @@ fresh production build. Clean saves also retain the current validated window
 dimensions, so a resized game reopens at the same size.
 
 Essential controls: F10 opens the native GAME menu, W/A/S/D move, held left-click walks forward on a surface, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E starts the Stardrifter roof lift from inside the ship, and walking into the roof cupola opening starts the automatic return. Face the first computer on the Stardrifter's right wall and press Enter to type directly into GOES; G opens its large accessible view from anywhere in the ship. At the third wall panel, Enter starts planetary approach and, after FCS reports STANDBY, opens the physical landing-site selector. R and 5 activate the original world-space onboard-device and flight-control screens at the Stardrifter's z=0 forward plane; turn toward the forward windows, aim at a framed control or command, and left-click it. The third physical control opens the original Preferences page. Keys 6-9 remain direct shortcuts for the four command slots.
-`NEXT` selects and flies toward a nearby generated star, L remains the global approach fallback, arrows choose landing coordinates, L/Enter descends,
-R returns from the capsule, surface digits 1-9 toggle source-style forward
+`NEXT` selects and flies toward a nearby generated star, L remains the global approach fallback, arrows choose landing coordinates, L/Enter descends.
+On a surface, walk outside the capsule's 1,600-unit radius and re-enter it to
+trigger the original automatic return; R remains an accessible fallback while
+inside. J starts an ordinary jump, holding Space provides jetpack thrust, C
+cancels the jetpack, and L adds the original downward impulse while airborne.
+Ordinary jumps retain their takeoff direction; the active jetpack accepts
+W/A/S/D steering. Surface digits 1-9 toggle source-style forward
 cruise speeds and 0 stops cruise, F2 opens the original visual-effects settings,
 Page Up/Page Down open and close the visor, F5 opts into 60 FPS presentation (the original
 18.2 FPS mode is the default); player movement, flight, roof-lift, and capsule
 poses are interpolated without changing the original simulation rate. Surface
 walking retains Noctis IV's forward and lateral momentum, ground friction,
-uphill resistance, tiredness, and circular exploration limits. Capsule
+uphill resistance, tiredness, circular exploration limits, and the original
+terrain-dependent held-mouse pace. Walking near the ground also returns a
+tilted view gradually toward the horizon at the source rate. Capsule
 settlement begins the landed renderer from a clean authoritative camera pose.
+The settled capsule uses its mapped moving shell panels, and return preserves
+the original 32-frame seal and 250-frame ascent timing at 18.206 Hz.
 `+`/`-` adjust the source HUD brightness,
 F6/F7 save and load, F8 toggles music, M or `*`
 saves the next numbered 320x200 BMP under `work\GALLERY`; B, or Delete on a
@@ -165,7 +174,7 @@ for the exact release and provenance boundaries.
 - [`HISTORY.md`](HISTORY.md) is the chronological development and release story,
   including the recent Stardrifter, lift, frame-rate, and checkpoint fixes.
 - [`PLAYTEST.md`](PLAYTEST.md) is the detailed capability and verification log.
-- [`PORTPLAN.md`](PORTPLAN.md) is the technical source of truth and remaining-work
+- [`PORTPLAN.md`](PORTPLAN.md) is the technical implementation and source-parity
   ledger.
 - [`RELEASE_NOTES.md`](RELEASE_NOTES.md) describes the current public beta and
   its known limitations.

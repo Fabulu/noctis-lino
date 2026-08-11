@@ -22,7 +22,7 @@
 
 "programme"
 
-"VHGUI prepare"
+"VHGUI resize"
 	A = [vector Work Area plus 2]; A - [vector Work Area plus 0]; A+; [VHGUIaw] = A;
 	A = [vector Work Area plus 3]; A - [vector Work Area plus 1]; A+; [VHGUIah] = A;
 	( fit width first: h=w*5/8; if too tall, fit height instead )
@@ -42,6 +42,10 @@
 	[Destination Layer] = Primary Display; [L2L Region] = vector Work Area;
 	[L2L Region Color] = 0; => Clear L2L Region;
     "VHGUI geometry ready"
+	end;
+
+"VHGUI prepare"
+	=> VHGUI resize;
 	( Compose one logical RGB page from the authentic indexed framebuffer.
 	  HUD/help text is added to this page before presentation, so it follows
 	  the same nearest-neighbour scaling as the rendered scene. )

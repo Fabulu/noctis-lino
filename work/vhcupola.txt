@@ -38,12 +38,13 @@
 	VHCa = 0;
 	VHCb = 0;
 	VHCm = 0;
-	VHCi = 0;
+	VHCi = 0; VHCvi = 0;
 	VHCpanels = 0;
 	VHCgrid = 0;
 	VHCready = 0; VHCbuilding = 0; VHCsaveyor = 0;
 	VHCcachep = 0; VHCcachebase = 0; VHCcopy = 0;
-	VHCroof = 0; VHCcapsule = 0; VHCcamybase = 0; VHCdd = 0;
+	VHCroof = 0; VHCcapsule = 0; VHCopen = 0; VHCcamybase = 0; VHCdd = 0;
+	VHCtexx = 0; VHCtexy = 0;
 
 "workspace"
 
@@ -55,7 +56,19 @@
 "VH polycupola"
 	=> VHC ensure cache;
 	[VHCgrid] = 0;
+	A = [VHCcapsule]; ? A = 0 -> VHC polycupola render;
+	( NOCTIS-1.CPP sets H_MATRIXS=V_MATRIXS=0 around capsule polycupola.
+	  Preserve the live terrain mapping, sample the capsule's single source
+	  texel exactly as polymap did there, then restore the caller's scales. )
+	[PGFi] = FSTX; => PGF a; => FStoreF32; [VHCtexx] = [FS0];
+	[PGFi] = FSTY; => PGF a; => FStoreF32; [VHCtexy] = [FS0];
+	[PGFi] = FSZERO; => PGF a; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+    "VHC polycupola render"
 	=> VHC render cache;
+	A = [VHCcapsule]; ? A = 0 -> VHC polycupola done;
+	[PGFi] = FSTX; [PGFt] = [VHCtexx]; => PGF setf32;
+	[PGFi] = FSTY; [PGFt] = [VHCtexy]; => PGF setf32;
+    "VHC polycupola done"
 	end;
 
 "VH cupola grid"
@@ -156,6 +169,13 @@
 	  5996-6010.  Panels within 500 units move by 4*dd*y_or; the fixed
 	  support grid does not move. )
 	A = [VHCcapsule]; ? A = 0 -> VHC capsule view done;
+	A = [VHCopen]; ? A != 0 -> VHC capsule view done;
+	( polycupola restores cam_y after every textured panel.  The cached port
+	  must do the same before measuring the next midpoint; otherwise the first
+	  opening panel biases every later distance and eventually submits invalid
+	  camera geometry to polymap. )
+	[FI] = [VHCcamybase]; => IntToF; => F32Narrow;
+	[PGFi] = FSCAMY; => PGF sa;
 	[PGFi] = FSW3; [PGFt] = VHCHALF; => PGF setf32;
 
 	( d1 = .5*(x0+x1)-cam_x; accumulator = d1*d1 )
@@ -185,8 +205,10 @@
     "VHC capsule dd nonnegative"
 	A = [VHCdd]; ? A <= 500 -> VHC capsule dd ready; [VHCdd] = 500;
     "VHC capsule dd ready"
-	A = [VHCdd]; A < 2; A * [VHCyor]; A + [VHCcamybase]; [FI] = A;
-	=> IntToF; => F32Narrow; [PGFi] = FSCAMY; => PGF sa;
+	( The original translates nearby mapped panels by 4*dd*y_or.  Passing a
+	  translated quad through this port's near plane can make polymap submit a
+	  degenerate span; VHC draw panel therefore opens the same selected panels
+	  by omitting their glass while the fixed structural grid remains visible. )
     "VHC capsule view done"
 	end;
 
@@ -282,21 +304,47 @@
 	end;
 
 "VHC draw panel"
+	A = [VHCcapsule]; ? A = 0 -> VHC draw panel visible;
+	A = [VHCopen]; ? A != 0 -> VHC draw panel done;
+    "VHC draw panel visible"
 	[VHCi] = 0;
     "VHC panel vertex"
-	A = [VHCi]; A '* 3; C = vhcpoly; C + A;
+	( Textured polycupola() reverses each quad immediately before polymap:
+	  new v0=old v3, v1=old v0, v2=old v1, v3=old v2.  Its aperture
+	  calculation above deliberately uses the unreversed source vertices. )
+	[VHCvi] = [VHCi]; A = [VHCcapsule]; ? A = 0 -> VHC panel source ready;
+	A = [VHCi]; A - 1; ? A >= 0 -> VHC panel source capsule; A = 3;
+    "VHC panel source capsule"
+	[VHCvi] = A;
+    "VHC panel source ready"
+	A = [VHCvi]; A '* 3; C = vhcpoly; C + A;
 	A = FSINX; A + [VHCi]; [PGFi] = A; [PGFt] = [C plus 0]; => PGF setf32;
-	A = [VHCi]; A '* 3; C = vhcpoly; C + A;
+	A = [VHCvi]; A '* 3; C = vhcpoly; C + A;
 	A = FSINY; A + [VHCi]; [PGFi] = A; [PGFt] = [C plus 1]; => PGF setf32;
-	A = [VHCi]; A '* 3; C = vhcpoly; C + A;
+	A = [VHCvi]; A '* 3; C = vhcpoly; C + A;
 	A = FSINZ; A + [VHCi]; [PGFi] = A; [PGFt] = [C plus 2]; => PGF setf32;
 	[VHCi]+;
 	A = [VHCi]; ? A < 4 -> VHC panel vertex;
-	[PJnrv] = 4; [DBcol] = 64; [DBflar] = 2; [DBent] = 0;
-	=> PG poly3d;
+	[PJnrv] = 4; A = [VHCcapsule]; ? A != 0 -> VHC draw textured panel;
+	[DBcol] = 64; [DBflar] = 2; [DBent] = 0; => PG poly3d; end;
+    "VHC draw textured panel"
+	( Original polycupola(.,1): n_globes_map under setfx(4), the merger
+	  combine mode. The support grids remain untextured and fixed. )
+	( planetary_main has already pclear()ed the sampled n_globes_map byte to
+	  zero; formula 7 represents that live surface-time buffer state. )
+	[PGtexf] = 7; [SPtinta] = 0; [SPescr] = 0; [SPflar] = 4;
+	[SPcull] = 0; [SPhalf] = 0; => PG polymap;
+	[PGtexf] = 0; [SPflar] = 0;
+	"VHC draw panel done"
 	end;
 
 "VHC draw grid"
+	A = [VHCcapsule]; ? A = 0 -> VHC draw grid visible;
+	A = [VHCopen]; ? A != 0 -> VHC draw grid done;
+    "VHC draw grid visible"
+	( cupola() sets flares=0 in the original.  This produces its reflective
+	  structural trace; only the separate capsule beacon uses flares=1. )
+	[VHSflare] = 0;
 	( radial v0 -> v3 )
 	[VHSx0] = [vhcpoly plus 0]; [VHSy0] = [vhcpoly plus 1]; [VHSz0] = [vhcpoly plus 2];
 	[VHSx1] = [vhcpoly plus 9]; [VHSy1] = [vhcpoly plus 10]; [VHSz1] = [vhcpoly plus 11];
@@ -305,4 +353,5 @@
 	[VHSx0] = [vhcpoly plus 0]; [VHSy0] = [vhcpoly plus 1]; [VHSz0] = [vhcpoly plus 2];
 	[VHSx1] = [vhcpoly plus 3]; [VHSy1] = [vhcpoly plus 4]; [VHSz1] = [vhcpoly plus 5];
 	=> VH stick3d;
+	"VHC draw grid done"
 	end;

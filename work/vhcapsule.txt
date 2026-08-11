@@ -35,6 +35,8 @@
 	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
 	[VHGsurfacefixed] = 0; [VHGsurfstep] = 0; [VHGsurfshift] = 0;
 	[VHGwidephase] = 0; [VHGwidecaptured] = 0;
+	[VHGcapsulestartpending] = 0;
+	[VHGcapsulereturnpending] = 0;
 	[VHGCcapcount] = 0; [VHGCbounces] = 0; [VHGCrecover] = 0;
 	[VHGCgravity] = 2500; [VHGCaccel] = 80;
 	A = [VHGplanet]; ? A = 0 -> VHGC gravity type8;
@@ -80,16 +82,17 @@
 "VHGC start return"
 	A = [VHGlanded]; ? A = 0 -> VHGC start return done;
 	A = [VHGCstate]; ? A != 0 -> VHGC start return done;
-	[VHGCstate] = 2; [VHGCcapcount] = 1; [VHGCrecover] = 1;
+	[VHGCstate] = 2; [VHGCcapcount] = 0; [VHGCrecover] = 1;
+	[VHGcapsulestartpending] = 0;
+	[VHGcapsulereturnpending] = 0;
     "VHGC start return done"
 	end;
 
 "VHGC tick"
-	( The original loop advanced physics much faster than this GUI can paint
-	  the full landscape.  Keep the source equations and batch 32 fixed
-	  simulation ticks per presented frame so descent does not masquerade as
-	  a frozen white or black screen on atmospheric and airless worlds. )
-	[VHGCsubsteps] = 32;
+	( planetary_main advances capsule fall, sealing, and ascent once per
+	  original 18.206-Hz game frame. The presenter can interpolate those
+	  authoritative poses, but must not batch away their visible duration. )
+	[VHGCsubsteps] = 1;
     "VHGC tick loop"
 	A = [VHGCstate]; ? A = 0 -> VHGC tick idle; ? A = 1 -> VHGC tick descent;
 	? A = 2 -> VHGC tick ascent; end;
@@ -271,17 +274,23 @@
 "VHGC ascent"
 	[VHGCcapcount]+;
 	A = [VHGCcapcount]; ? A '> 32 -> VHGC lift off;
-	( Pull the walker to the pod centre during the 32-frame seal. )
+	( Pull the walker to the pod centre during the 32-frame seal.  The deltas
+	  are signed, so these divisions must not use Linoleum's unsigned form. )
 	A = [VHGx]; A - [VHGNDdropx]; A / 8; C = [VHGx]; C - A; [VHGx] = C;
+	A = [VHGNDdropy]; A - 600; C = [VHGy]; C - A; C / 8; A = [VHGy]; A - C; [VHGy] = A;
 	A = [VHGz]; A - [VHGNDdropz]; A / 8; C = [VHGz]; C - A; [VHGz] = C;
-	A = [VHGNDdropy]; A - 600; [VHGy] = A;
 	end;
 
     "VHGC lift off"
 	[VHGlanded] = 0;
+	( NOCTIS-1.CPP:4594-4595 accelerates the capsule by subtracting the
+	  increasing opencapcount offset from the live position each tick. )
 	A = [VHGCcapcount]; A - 31; A '* 20; C = [VHGy]; C - A; [VHGy] = C;
 	A = [VHGCcapcount]; ? A '<= 250 -> VHGC ascent done;
 	[VHGCstate] = 0; [VHGCcapcount] = 0; [VHGCrecover] = 0;
-	=> VHG return ship;
+	( Changing world/renderer mode from inside the capsule physics call stack
+	  leaves the same presentation frame half surface and half Stardrifter.
+	  Commit the handoff at the next clean VHG frame boundary. )
+	[VHGcapsulereturnpending] = 1;
     "VHGC ascent done"
 	end;

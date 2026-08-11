@@ -15,7 +15,7 @@
 	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
 	mul64frag; brtl; suseed; surng; subuflive; susm; supaint; supal; sucase; grnd; sky;
 	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
-	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhspace; vhstar; vhground; vhcapsule; vhsave; vhgui;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhlight; vhpanels; vhspace; vhstar; vhground; vhcapsule; vhgui;
 
 "directors"
 
@@ -62,14 +62,23 @@
 	  offline progression or audio, but must still provide the shared state. )
 	VHGfast = 1; VHAwanted = 0; VHGcollector = 0;
 	VHGrescueactive = 0; VHGrescuetick = 0; VHGutcsecs = 0; VHGsavedsecs = 0;
+	VHGrescuedelay = 0; VHGrescueacc = 0;
 	VHGlandinglon = 0; VHGlandinglat = 60;
 	VHGsurfair = 0; VHGsurfjet = 0; VHGsurfvy = 0; VHGsurfground = 0;
+	VHGsurfacefixed = 0; VHGsurfstep = 0; VHGsurfshift = 0;
+	VHGinterpok = 0; VHGwidephase = 0; VHGwidecaptured = 0;
+	VHGcapsulestartpending = 0; VHGcapsulereturnpending = 0;
 	VHGilight = 1; VHGsync = 1; VHGamp = 0; VHGfinder = 0; VHGantirad = 1;
 	vhgoutname = { vhguiland-out.bin };
 	vhgprogressname = { vhguiland-progress.bin };
 	VHGcaption = { Noctis_IV };
+	VHSVok = 0;
 	VHGfps = 0; VHGfpsframes = 0; VHGfpslast = 0; VHGfpsnow = 0;
 	VHGfpsdelta = 0; VHGfpsshow = 0; VHGfpsheld = 0;
+	VHGgraphics = 0; VHGdrawhud = 1; VHGseamless = 0; VHGlensmode = 0;
+	VHGhudcount = 180; VHGhudclosed = 1;
+	VHGsurfgravdisp = 1000; VHGsurftempdisp = 220;
+	VHGsurfpressdisp = 1000; VHGsurfpulsedisp = 118;
 	VHGLPwalkframes = 0;
 	VHGLPtouched = 0; VHGLPreturnstarted = 0; VHGLPreturned = 0; VHGLPphase = 0;
 	VHGLPreflectedmax = 0;
@@ -94,6 +103,13 @@
 	end;
 
 "VHG offline restore"
+	end;
+
+"VHSV save"
+	end;
+
+"VHSV load"
+	[VHSVok] = 0;
 	end;
 
 "VHG run"
@@ -162,6 +178,9 @@
 	end;
 
 "VHG one frame"
+	A = [VHGcapsulereturnpending]; ? A = 0 -> VHGLP return commit done;
+	[VHGcapsulereturnpending] = 0; => VHG return ship; => VHG fpu clean;
+    "VHGLP return commit done"
 	[VHGLPphase] = 0; => VHGLP write progress;
 	=> VHG fpu clean;
 	[VHGLPphase] = 4; => VHGLP write progress;

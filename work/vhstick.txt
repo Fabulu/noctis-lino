@@ -12,7 +12,7 @@
 	VHSpx0 = 0; VHSpy0 = 0; VHSpx1 = 0; VHSpy1 = 0;
 	VHSdx = 0; VHSdy = 0; VHSsx = 0; VHSsy = 0;
 	VHSerr = 0; VHSe2 = 0;
-	VHSdrawn = 0;
+	VHSdrawn = 0; VHSflare = 0; VHSphase = 0;
 	VHScolor = 62;
 	VHSnearbase = 0;
 
@@ -57,6 +57,16 @@
 	[VHSpx0] = [mp plus 0]; [VHSpy0] = [mp plus 1];
 	[VHSpx1] = [mp plus 2]; [VHSpy1] = [mp plus 3];
 
+	( Stick() swaps non-vertical endpoints whenever xa-xp is negative.  This
+	  is visually essential for flare 0: each left-to-right 00/3E pair is
+	  partly overwritten by the following sample, producing the original
+	  dark reflective beads.  Reversed traversal leaves every 3E neighbour
+	  untouched and incorrectly turns the framework into solid white lines. )
+	A = [VHSpx1]; ? A >= [VHSpx0] -> VHS endpoints ordered;
+	C = [VHSpx0]; [VHSpx0] = [VHSpx1]; [VHSpx1] = C;
+	C = [VHSpy0]; [VHSpy0] = [VHSpy1]; [VHSpy1] = C;
+    "VHS endpoints ordered"
+
 	( reject segments wholly outside one edge, then clamp the endpoints;
 	   cupola's clean visible lines are already inside these bounds )
 	A = [VHSpx0]; ? A >= PGLBX -> VHS not left; A = [VHSpx1]; ? A < PGLBX -> VHS done;
@@ -85,7 +95,11 @@
 	A = [VHSpy1]; ? A <= PGUBY -> VHS y1 ok; [VHSpy1] = PGUBY;
     "VHS y1 ok"
 
-	( integer Bresenham )
+	( Integer Bresenham supplies the projected samples.  Source flare 0 writes
+	  the literal little-endian word 0x3E00 at every sample: a dark structural
+	  point followed by its bright reflective neighbour.  Flare 1 advances
+	  through the full segment but paints one point out of two, brightening the
+	  indexed destination without changing its palette band. )
 	A = [VHSpx1]; A - [VHSpx0]; [VHSsx] = 1;
 	? A >= 0 -> VHS dx positive;
 	A = 0; A - 1; [VHSsx] = A;
@@ -99,11 +113,22 @@
 	C = 0; C - A; [VHSdy] = C;
     "VHS dy ready"
 	A = [VHSdx]; A + [VHSdy]; [VHSerr] = A;
+	[VHSphase] = 0;
 
     "VHS line loop"
 	[SPreg] = RGADP;
-	A = [VHSpy0]; A '* 320; A + [VHSpx0]; [SPoff] = A; [SPval] = [VHScolor];
-	=> SP put;
+	A = [VHSpy0]; A '* 320; A + [VHSpx0]; [SPoff] = A;
+	A = [VHSflare]; ? A = 1 -> VHS luminous point;
+	[SPval] = 0; => SP put;
+	[SPoff]+; [SPval] = [VHScolor]; => SP put; -> VHS point done;
+    "VHS luminous point"
+	A = [VHSphase]; A & 1; ? A != 0 -> VHS point done;
+	=> SP get; A = [SPval]; C = A; C & 63; C + 8;
+	? C <= 62 -> VHS luminous level ready; C = 62;
+    "VHS luminous level ready"
+	A & 192; C | A; [SPval] = C; => SP put;
+    "VHS point done"
+	[VHSphase]+;
 	[VHSdrawn]+;
 	A = [VHSpx0]; ? A != [VHSpx1] -> VHS line step;
 	A = [VHSpy0]; ? A = [VHSpy1] -> VHS done;

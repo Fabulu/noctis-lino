@@ -264,6 +264,8 @@
 	? A = 3 -> PG tex 3;
 	? A = 4 -> PG tex 4;
 	? A = 5 -> PG tex 5;
+	? A = 6 -> PG tex 6;
+	? A = 7 -> PG tex 7;
 	( TEX0: t[i] = (i*37 + 11) AND 255 )
 	A = [PGtmp]; A '* 37; A + 11; A & 255; [PGtexv] = A; end;
     "PG tex 1"
@@ -291,6 +293,16 @@
 	  p_background exactly as fragment() selects it. )
 	A = RPBG; A + [PGtmp]; [MBptr] = A; => MEM get byte;
 	[PGtexv] = [MBval]; end;
+    "PG tex 6"
+	( TEX6: polycupola(.,1) points txtr at n_globes_map. Preserve the
+	  original 16-bit texture-window wrap across the adjacent allocation. )
+	A = RNGLB; A + [PGtmp]; [MBptr] = A; => MEM get byte;
+	[PGtexv] = [MBval]; end;
+    "PG tex 7"
+	( planetary_main pclear() overwrites n_globes_map[0..32767] with
+	  32 constant 1-KiB horizon bands before drawing the surface. Capsule
+	  H_MATRIXS=V_MATRIXS=0 pins every sample to byte zero of band zero. )
+	[PGtexv] = 0; end;
 
 ( ==================================================================== )
 ( census - a value DERIVED from what the programme did                  )

@@ -45,12 +45,13 @@
 	VHGNDlinex = 0; VHGNDlinez = 0; VHGNDlinelen = 0;
 	VHGNDlinetrendx = 0; VHGNDlinetrendz = 0;
 	VHGNDhr = 0;
-	VHGNDrockscale = 0; VHGNDrockpeak = 0; VHGNDrockdensity = 0;
+	VHGNDrockscale = 0; VHGNDrockworkscale = 0; VHGNDrockpeak = 0; VHGNDrockdensity = 0;
 	VHGNDpostn = 0; VHGNDdeviation = 0; VHGNDvariability = 0;
 	VHGNDincl = 0; VHGNDoval = 0;
 	VHGNDh1i = 0; VHGNDh2i = 0; VHGNDh3i = 0; VHGNDh4i = 0;
 	VHGNDpy = 0;
 	VHGNDdropx = 1646592; VHGNDdropy = 0; VHGNDdropz = 1646592;
+	VHGNDbeaconpass = 0;
 	VHGNDviewx = 0; VHGNDviewz = 0;
 	VHGNDocount = 0; VHGNDicx = 0; VHGNDicz = 0;
 	VHGNDoox = 0; VHGNDooy = 0; VHGNDooz = 0;
@@ -64,11 +65,29 @@
 	VHGNDtreepoint = 0; VHGNDtreecx = 0; VHGNDtreecy = 0; VHGNDtreecz = 0;
 	VHGNDtreepx = 0; VHGNDtreepz = 0; VHGNDtreeorient = 0;
 	VHGNDtreebranch = 0; VHGNDtreebranches = 0; VHGNDtreerange = 0;
+	VHGNDtreefaces = 3; VHGNDtreeleafrad = 0; VHGNDtreeleafdrop = 0;
+	VHGNDtreeleafx = 0; VHGNDtreeleafz = 0;
+	VHGNDtreelevel = 0; VHGNDtreelayers = 0; VHGNDtreeisroot = 0; VHGNDtreeocc = 0;
+	VHTkind = 0;
+	VHTforks = 0;
+	VHTpeak = 0;
+	VHTwidth = 0;
+	VHTreduc = 0;
+	VHTrootcol = 0; VHTleafcol = 192; VHTlseed = 0;
+	VHTfacebase = 0; VHTfacestep = 0; VHTnextsc = 0;
+	VHGNDgrassgroups = 0; VHGNDgrassfaces = 0; VHGNDgrasstotal = 0;
+	VHGNDgrassdistant = 0; VHGNDgrassrad = 0; VHGNDgrassrange = 0;
+	VHGNDgrassbx = 0; VHGNDgrassby = 0; VHGNDgrassbz = 0;
+	VHGNDgrassax = 0; VHGNDgrassay = 0; VHGNDgrassaz = 0;
 	VHGNDrx0 = 0; VHGNDry0 = 0; VHGNDrz0 = 0;
 	VHGNDrx1 = 0; VHGNDry1 = 0; VHGNDrz1 = 0;
 	VHGNDrx2 = 0; VHGNDry2 = 0; VHGNDrz2 = 0;
 	VHGNDrtop = 0; VHGNDrcol0 = 0; VHGNDrcol1 = 0; VHGNDrcol2 = 0;
 	VHGNDanimals = 0; VHGNDanii = 0; VHGNDanip = 0;
+	VHGNDpopulation = 0; VHGNDfaunabase = 0; VHGNDfaunarange = 0;
+	VHGNDfaunatype = 0; VHGNDfaunachance = 0;
+	VHGNDfaunabirdp = 0; VHGNDfaunareptp = 0; VHGNDfaunamammp = 0;
+	VHGNDfaunaseedsave = 0; VHGNDfaunafastsave = 0;
 	VHGNDbirds = 0; VHGNDbirdflap = 0; VHGNDbirdquote = 0;
 	VHGNDbirdtarget = 0; VHGNDbirdlcount = 0; VHGNDbirdspeed = 0;
 	VHGNDgroundbirds = 0; VHGNDcaptures = 0; VHGNDplayerstep = 0;
@@ -180,10 +199,14 @@
 
 "workspace"
 
-	( Four mammal records: x, z, heading, phase, movement type, speed.
-	  Three bird records: x, z, heading, phase, altitude, target, capture count. )
-	VHGNDanidata = 24;
-	VHGNDbirddata = 21;
+	( setup_animals() has a source maximum of 100 life forms.  Classification
+	  is retained separately, then active mammal and bird records are packed
+	  without truncating that population. )
+	VHGNDfaunatypes = 100;
+	( x, z, heading, phase, movement type, speed, scale. )
+	VHGNDanidata = 700;
+	( x, z, heading, phase, altitude, target, capture count, scale. )
+	VHGNDbirddata = 800;
 	( Twenty-five source wave records: x, y, z, radius, height, width, delta. )
 	VHGNDwavedata = 175;
 	( ruinschart: one source marker per 200x200 height-map point. )
@@ -191,6 +214,10 @@
 	VHGNDskycache = 64000;
 	VHGNDsqc = 32;
 	VHGNDepoctext = 96;
+	( Depth-first build_fractal_tree stack.  Source giant trees need levels 0..4. )
+	VHGNDtsx = 6; VHGNDtsy = 6; VHGNDtsz = 6; VHGNDtsscale = 6;
+	VHGNDtslayers = 6; VHGNDtsroot = 6; VHGNDtsocc = 6;
+	VHGNDtscount = 6; VHGNDtsbranch = 6; VHGNDtslseed = 6; VHGNDtsrange = 6;
 	VHGNDenvtext = 128;
 
 "programme"
@@ -552,9 +579,6 @@
 	[VHGNDfrosty] = 1; => GR rockyground; -> VHGND icy terrain done;
     "VHGND icy hills"
 	C = 50; => SU rnd; C + 50; [VHGNDgenn] = C;
-	( Keep live landing latency bounded while retaining the dense source
-	  field; the nearest twenty-four overlapping hills define its silhouette. )
-	A = [VHGNDgenn]; ? A '<= 24 -> VHGND icy hill loop; [VHGNDgenn] = 24;
     "VHGND icy hill loop"
 	C = 75; => SU rnd; C + 1; [VHGNDhr] = C;
 	C = 200; => SU rnd; C + 1; [VHGNDgeni] = C;
@@ -740,69 +764,115 @@
 	end;
 
 "VHGND animals setup"
-	( setup_animals() permits life only on type-3 worlds.  Mammal odds are
-	  zero in OCEAN and strongest in PLAINS; keep a lean local subset of the
-	  source population while the other animal classes are joined. )
-	[VHGNDanimals] = 0;
+	( NOCTIS-1.CPP:3143-3262 setup_animals().  Preserve the source LFS=100
+	  biome ranges and its repeated random(3)/random(18) class selection.
+	  Reptiles remain classified even though NIV+ has no reptile draw branch. )
+	[VHGNDpopulation] = 0; [VHGNDanimals] = 0; [VHGNDbirds] = 0;
+	[VHGNDcaptures] = 0; [VHGNDgroundbirds] = 0;
 	A = [GRiptype]; ? A != 3 -> VHGND animals setup done;
-	A = [VHGNDsctype]; ? A = 1 -> VHGND animals setup done;
-	[VHGNDanimals] = 1; ? A = 4 -> VHGND animals setup fill;
-	[VHGNDanimals] = 2; ? A = 3 -> VHGND animals setup fill;
-	[VHGNDanimals] = 4;
-    "VHGND animals setup fill"
+	[VHGNDfaunaseedsave] = [brtlseed]; [VHGNDfaunafastsave] = [SUfseed];
+	A = [VHGNDseed]; C = [VHGNDsctype]; A + C; => BrtlSrand;
+	A = [VHGNDsctype]; ? A = 1 -> VHGND fauna count ocean;
+	? A = 3 -> VHGND fauna count plains; ? A = 2 -> VHGND fauna count desert;
+	[VHGNDfaunabase] = 10; [VHGNDfaunarange] = 50; -> VHGND fauna count draw;
+    "VHGND fauna count ocean"
+	[VHGNDfaunabase] = 20; [VHGNDfaunarange] = 80; -> VHGND fauna count draw;
+    "VHGND fauna count plains"
+	[VHGNDfaunabase] = 50; [VHGNDfaunarange] = 50; -> VHGND fauna count draw;
+    "VHGND fauna count desert"
+	[VHGNDfaunabase] = 10; [VHGNDfaunarange] = 20;
+    "VHGND fauna count draw"
+	A = [VHGNDfaunarange]; => BrtlRandom; A + [VHGNDfaunabase]; [VHGNDpopulation] = A;
+
+	( The original reseeds rand(global_surface_seed) before drawing the three
+	  class probabilities and classifying the complete population. )
+	A = [VHGNDseed]; => BrtlSrand;
+	A = [VHGNDsctype]; ? A = 1 -> VHGND fauna probability ocean;
+	? A = 3 -> VHGND fauna probability plains; ? A = 2 -> VHGND fauna probability desert;
+	A = 2; => BrtlRandom; A + 2; [VHGNDfaunabirdp] = A;
+	A = 2; => BrtlRandom; [VHGNDfaunareptp] = A;
+	A = 2; => BrtlRandom; [VHGNDfaunamammp] = A; -> VHGND fauna classify begin;
+    "VHGND fauna probability ocean"
+	A = 9; => BrtlRandom; A + 1; [VHGNDfaunabirdp] = A;
+	[VHGNDfaunareptp] = 0; [VHGNDfaunamammp] = 0; -> VHGND fauna classify begin;
+    "VHGND fauna probability plains"
+	A = 9; => BrtlRandom; A + 5; [VHGNDfaunabirdp] = A;
+	A = 3; => BrtlRandom; A + 3; [VHGNDfaunareptp] = A;
+	A = 4; => BrtlRandom; A + 5; [VHGNDfaunamammp] = A; -> VHGND fauna classify begin;
+    "VHGND fauna probability desert"
+	A = 2; => BrtlRandom; A + 1; [VHGNDfaunabirdp] = A;
+	A = 9; => BrtlRandom; A + 9; [VHGNDfaunareptp] = A;
+	A = 2; => BrtlRandom; A + 1; [VHGNDfaunamammp] = A;
+    "VHGND fauna classify begin"
 	[VHGNDanii] = 0;
-    "VHGND animals setup one"
-	A = [VHGNDanii]; A '* 6; A + VHGNDanidata; [VHGNDanip] = A;
-	A = [VHGNDdropx]; A - 60000; C = [VHGNDanii]; C '* 40000; A + C;
-	C = [VHGNDanip]; [C plus 0] = A;
-	A = [VHGNDanii]; A & 1; ? A = 0 -> VHGND animals setup north;
-	A = [VHGNDdropz]; A - 50000; -> VHGND animals setup zready;
-    "VHGND animals setup north"
-	A = [VHGNDdropz]; A + 50000;
-    "VHGND animals setup zready"
-	C = [VHGNDanip]; [C plus 1] = A;
-	[C plus 2] = [VHGNDanii];
-	A = [VHGNDanii]; A '* 17; [C plus 3] = A;
-	A = [VHGNDanii]; A '% 3; [C plus 4] = A;
-	A = 350; ? [C plus 4] = 0 -> VHGND animals setup speed;
-	A = 240; ? [C plus 4] = 1 -> VHGND animals setup speed; A = 450;
-    "VHGND animals setup speed"
-	[C plus 5] = A;
-	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDanimals] -> VHGND animals setup one;
+    "VHGND fauna classify one"
+	A = [VHGNDanii]; ? A '>= [VHGNDpopulation] -> VHGND fauna records begin;
+    "VHGND fauna classify retry"
+	A = 3; => BrtlRandom; [VHGNDfaunatype] = A;
+	A = 18; => BrtlRandom; [VHGNDfaunachance] = A;
+	A = [VHGNDfaunatype]; ? A = 0 -> VHGND fauna classify bird;
+	? A = 1 -> VHGND fauna classify reptile;
+	A = [VHGNDfaunachance]; ? A '> [VHGNDfaunamammp] -> VHGND fauna classify retry;
+	A = 5; -> VHGND fauna classify store;
+    "VHGND fauna classify bird"
+	A = [VHGNDfaunachance]; ? A '> [VHGNDfaunabirdp] -> VHGND fauna classify retry;
+	A = 1; -> VHGND fauna classify store;
+    "VHGND fauna classify reptile"
+	A = [VHGNDfaunachance]; ? A '> [VHGNDfaunareptp] -> VHGND fauna classify retry;
+	A = 4;
+    "VHGND fauna classify store"
+	C = VHGNDfaunatypes; C + [VHGNDanii]; [C] = A;
+	[VHGNDanii]+; -> VHGND fauna classify one;
+
+    "VHGND fauna records begin"
+	A = [VHGNDseed]; => SU fast srand;
+	A = [VHGNDseed]; A + 12345; => BrtlSrand;
+	[VHGNDanii] = 0;
+    "VHGND fauna record one"
+	A = [VHGNDanii]; ? A '>= [VHGNDpopulation] -> VHGND fauna records done;
+	C = VHGNDfaunatypes; C + A; A = [C]; [VHGNDfaunatype] = A;
+	? A = 1 -> VHGND fauna record bird; ? A = 5 -> VHGND fauna record mammal;
+	-> VHGND fauna record next;
+    "VHGND fauna record bird"
+	=> VHGND fauna record values;
+	A = [VHGNDbirds]; A '* 8; A + VHGNDbirddata; [VHGNDanip] = A; C = A;
+	[C plus 0] = [VHGNDanix]; [C plus 1] = [VHGNDaniz];
+	[C plus 2] = [VHGNDanidir]; [C plus 3] = [VHGNDaniphase];
+	[C plus 4] = [VHGNDbirdquote]; [C plus 5] = [VHGNDbirdquote];
+	[C plus 6] = 0; [C plus 7] = [VHGNDaniscale];
+	[VHGNDbirds]+; -> VHGND fauna record next;
+    "VHGND fauna record mammal"
+	=> VHGND fauna record values;
+	A = [VHGNDanimals]; A '* 7; A + VHGNDanidata; [VHGNDanip] = A; C = A;
+	[C plus 0] = [VHGNDanix]; [C plus 1] = [VHGNDaniz];
+	[C plus 2] = [VHGNDanidir]; [C plus 3] = [VHGNDaniphase];
+	[C plus 4] = [VHGNDanimtype]; [C plus 5] = [VHGNDanispeed];
+	[C plus 6] = [VHGNDaniscale]; [VHGNDanimals]+;
+    "VHGND fauna record next"
+	[VHGNDanii]+; -> VHGND fauna record one;
+    "VHGND fauna records done"
+	[brtlseed] = [VHGNDfaunaseedsave]; [SUfseed] = [VHGNDfaunafastsave];
     "VHGND animals setup done"
 	end;
 
+"VHGND fauna record values"
+	( Source positions cover the complete 200x200 surface.  Split each draw
+	  into tile and within-tile parts to avoid overflowing a 32-bit multiply. )
+	[SUfmask] = 255; => SU frnd; A = C; A '% 200; A '* 16384; [VHGNDanix] = A;
+	[SUfmask] = 16383; => SU frnd; A = C; A + [VHGNDanix]; [VHGNDanix] = A;
+	[SUfmask] = 255; => SU frnd; A = C; A '% 200; A '* 16384; [VHGNDaniz] = A;
+	[SUfmask] = 16383; => SU frnd; A = C; A + [VHGNDaniz]; [VHGNDaniz] = A;
+	A = 4; => BrtlRandom; [VHGNDanidir] = A;
+	A = 360; => BrtlRandom; [VHGNDaniphase] = A;
+	A = 100; => BrtlRandom; [VHGNDanispeed] = A;
+	A = 3; => BrtlRandom; [VHGNDanimtype] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 10; A '/ 32767; A + 5; [VHGNDaniscale] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 25000; A '/ 32767; [VHGNDbirdquote] = A;
+	end;
+
 "VHGND birds setup"
-	( Birds occur in every type-3 scenario in setup_animals(). )
-	[VHGNDbirds] = 0; [VHGNDcaptures] = 0; [VHGNDgroundbirds] = 0;
-	A = [GRiptype]; ? A != 3 -> VHGND birds setup done;
-	[VHGNDbirds] = 1;
-	A = [VHGNDsctype]; ? A = 3 -> VHGND birds setup fill; ? A = 4 -> VHGND birds setup fill;
-	[VHGNDbirds] = 3;
-    "VHGND birds setup fill"
-	[VHGNDanii] = 0;
-    "VHGND birds setup one"
-	A = [VHGNDanii]; A '* 7; A + VHGNDbirddata; [VHGNDanip] = A;
-	A = [VHGNDdropx]; A - 80000; C = [VHGNDanii]; C '* 65000; A + C;
-	? [VHGNDanii] != 0 -> VHGND birds setup xready;
-	A = [VHGNDdropx]; A + 12000;
-    "VHGND birds setup xready"
-	C = [VHGNDanip]; [C plus 0] = A;
-	A = [VHGNDdropz]; A + 70000; C = [VHGNDanii]; C '* 45000; A - C;
-	? [VHGNDanii] != 0 -> VHGND birds setup zready;
-	A = [VHGNDdropz]; A + 8000;
-    "VHGND birds setup zready"
-	C = [VHGNDanip]; [C plus 1] = A;
-	A = [VHGNDanii]; A + 1; A & 3; [C plus 2] = A;
-	A = [VHGNDanii]; A '* 11; [C plus 3] = A;
-	A = 0; ? [VHGNDanii] = 0 -> VHGND birds setup quote;
-	A = 1200; ? [VHGNDanii] = 1 -> VHGND birds setup quote; A = 8000;
-    "VHGND birds setup quote"
-	[C plus 4] = A; [C plus 5] = A; [C plus 6] = 0;
-	A = [VHGNDanii]; ? A != 1 -> VHGND birds setup state ready; [C plus 5] = 0;
-    "VHGND birds setup state ready"
-	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDbirds] -> VHGND birds setup one;
-    "VHGND birds setup done"
+	( Classification and records are built together above so no LFS entry is
+	  lost between separate mammal and bird arrays. )
 	end;
 
 "VHGND restore captures"
@@ -815,7 +885,7 @@
 	A = [VHGNDcaptures]; ? A '<= 0 -> VHGND restore captures done;
 	[VHGNDanii] = 0;
     "VHGND restore capture one"
-	A = [VHGNDanii]; A '* 7; A + VHGNDbirddata; [VHGNDanip] = A;
+	A = [VHGNDanii]; A '* 8; A + VHGNDbirddata; [VHGNDanip] = A;
 	A = 0; A - 1; C = [VHGNDanip]; [C plus 6] = A;
 	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDcaptures] -> VHGND restore capture one;
     "VHGND restore captures done"
@@ -920,6 +990,31 @@
 	[VHGNDruinstyle0] = 2; [VHGNDruinstyle1] = 4; [VHGNDruinstyle2] = 5;
 	[VHGNDruinstyle3] = 5; [VHGNDruinstyle4] = 5; [VHGNDruindensity] = 2;
 	=> VHGND make ruins;
+	( NOCTIS-1.CPP:2690-2709 restores the old photographed Suricrasian
+	  Cube only at LQ 018:060.  It is a 25x25 plateau at maximum terrain
+	  height, with the same two northern rows and four east/west columns
+	  marked as ruin faces so the ordinary close-range ruin pass exposes
+	  its monumental vertical walls. )
+	A = [VHGNDlon]; ? A != 18 -> VHGND historical ruins done;
+	A = [VHGNDlat]; ? A != 60 -> VHGND historical ruins done;
+	[VHGNDruinx] = 112;
+    "VHGND Suricrasian cube x"
+	[VHGNDruinz] = 103;
+    "VHGND Suricrasian cube z"
+	[VHGNDruinvalue] = 127; [VHGNDruinmark] = 0;
+	A = [VHGNDruinz]; ? A = 104 -> VHGND Suricrasian cube marked;
+	? A = 105 -> VHGND Suricrasian cube marked;
+	A = [VHGNDruinx]; ? A = 114 -> VHGND Suricrasian cube marked;
+	? A = 115 -> VHGND Suricrasian cube marked;
+	? A = 131 -> VHGND Suricrasian cube marked;
+	? A = 132 -> VHGND Suricrasian cube marked;
+	-> VHGND Suricrasian cube store;
+    "VHGND Suricrasian cube marked"
+	[VHGNDruinmark] = 1;
+    "VHGND Suricrasian cube store"
+	=> VHGND ruin set;
+	[VHGNDruinz]+; A = [VHGNDruinz]; ? A < 128 -> VHGND Suricrasian cube z;
+	[VHGNDruinx]+; A = [VHGNDruinx]; ? A < 137 -> VHGND Suricrasian cube x;
     "VHGND historical ruins done"
 	end;
 
@@ -2003,16 +2098,29 @@
 "VHGND eye height"
 	( Exact HPOINT float path.  Interpolating byte heights as integers can
 	  lose almost two full height units (4096 world units), enough to put the
-	  600-unit eye below the triangles.  Preserve both source float stores. )
+	  600-unit eye below the triangles.  Preserve both source float stores.
+	  Bound the sampled tile before addressing the 200x200 height map.  Motion
+	  is normally clamped by the caller, but height is sampled before that
+	  clamp while stepping and jumping. )
 	A = [VHGNDcamx]; A > 14; [VHGNDtilex] = A;
 	A = [VHGNDcamz]; A > 14; [VHGNDtilez] = A;
+	A = [VHGNDtilex]; ? A >= 0 -> VHGND height x low; [VHGNDtilex] = 0;
+    "VHGND height x low"
+	A = [VHGNDtilex]; ? A <= 198 -> VHGND height x ready; [VHGNDtilex] = 198;
+    "VHGND height x ready"
+	A = [VHGNDtilez]; ? A >= 0 -> VHGND height z low; [VHGNDtilez] = 0;
+    "VHGND height z low"
+	A = [VHGNDtilez]; ? A <= 198 -> VHGND height z ready; [VHGNDtilez] = 198;
+    "VHGND height z ready"
 	A = [VHGNDcamx]; A & 16383; [VHGNDfx] = A;
 	A = [VHGNDcamz]; A & 16383; [VHGNDfz] = A;
 	A = [VHGNDtilez]; A '* VHGNDMAP; A + [VHGNDtilex]; [VHGNDh1] = A;
-	A = RPSM; A + [VHGNDh1]; [MBptr] = A; => MEM get byte; [VHGNDs1] = [MBval];
-	A = RPSM; A + [VHGNDh1]; A + 1; [MBptr] = A; => MEM get byte; [VHGNDs2] = [MBval];
-	A = RPSM; A + [VHGNDh1]; A + 201; [MBptr] = A; => MEM get byte; [VHGNDs3] = [MBval];
-	A = RPSM; A + [VHGNDh1]; A + 200; [MBptr] = A; => MEM get byte; [VHGNDs4] = [MBval];
+	( Keep the live HPOINT reads self-contained instead of routing collision
+	  sampling through MEM get byte's shared scratch pointer. )
+	A = nw; A + RPSM; A + [VHGNDh1]; A = [A]; A & 255; [VHGNDs1] = A;
+	A = nw; A + RPSM; A + [VHGNDh1]; A + 1; A = [A]; A & 255; [VHGNDs2] = A;
+	A = nw; A + RPSM; A + [VHGNDh1]; A + 201; A = [A]; A & 255; [VHGNDs3] = A;
+	A = nw; A + RPSM; A + [VHGNDh1]; A + 200; A = [A]; A & 255; [VHGNDs4] = A;
 	A = [VHGNDs1]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDh1i] = A;
 	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDh2i] = A;
 	A = [VHGNDs3]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDh3i] = A;
@@ -3033,12 +3141,9 @@
 	=> VHGND weather flash palette;
 	A = [GRSKrainy]; ? A '<= 40400000h -> VHGND weather done;
 
-	( Source density is random(25*flashes)+50.  Keep its 50-stick floor and
-	  growth, but cap the extra range at five flashes (174 sticks maximum):
-	  the indexed software renderer must not reintroduce the reported 60 Hz
-	  hitching after a long storm. )
-	A = [VHGNDstormflashes]; ? A '<= 5 -> VHGND weather density ready; A = 5;
-    "VHGND weather density ready"
+	( Source density is random(25*flashes)+50.  Flashes itself is already
+	  source-capped at 30, so mature storms retain the full 50..799 field. )
+	A = [VHGNDstormflashes];
 	A '* 25; [VHGNDflashtries] = A;
 	A = [VHGNDseed]; A + [VHGframe]; A '* 7919; A + [VHGNDtick]; [VHGNDrainseed] = A;
 	[VHGNDraincount] = 50; A = [VHGNDflashtries]; ? A = 0 -> VHGND weather count ready;
@@ -3488,6 +3593,21 @@
 	A = pvlst; [A plus 0] = 7002h; [A plus 1] = 7003h; [A plus 2] = 0FFFh;
 	end;
 
+"VHGND fauna relocate nearby"
+	( live_animal() relocates an out-of-range record to player position plus
+	  two independent 0..100000 fast_flandom draws on each horizontal axis.
+	  Three world units per 15-bit draw retain that range without overflow. )
+	[VHGNDfaunafastsave] = [SUfseed];
+	A = [VHGNDanii]; A '* 7919; A + [VHGNDseed];
+	C = [VHGNDfaunatype]; C '* 104729; A + C; => SU fast srand;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 3; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 3; C = [VHGNDcamx]; C + [VHGNDtmp]; C - A; [VHGNDanix] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 3; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 3; C = [VHGNDcamz]; C + [VHGNDtmp]; C - A; [VHGNDaniz] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 25000; A '/ 32767; [VHGNDbirdquote] = A;
+	[SUfseed] = [VHGNDfaunafastsave];
+	end;
+
 "VHGND render animals"
 	( live_animal() mammals: persistent motion plus the shipped model's
 	  feline, rabbit and kangaroo body-part deformation. )
@@ -3497,11 +3617,12 @@
 	A = [VHGNDanimals]; ? A = 0 -> VHGND animals done;
 	[VHGNDanii] = 0;
     "VHGND animal one"
-	A = [VHGNDanii]; A '* 6; A + VHGNDanidata; [VHGNDanip] = A;
+	A = [VHGNDanii]; A '* 7; A + VHGNDanidata; [VHGNDanip] = A;
 	C = [VHGNDanip];
 	[VHGNDanix] = [C plus 0]; [VHGNDaniz] = [C plus 1];
 	[VHGNDanidir] = [C plus 2]; [VHGNDaniphase] = [C plus 3];
 	[VHGNDanimtype] = [C plus 4]; [VHGNDanispeed] = [C plus 5];
+	[VHGNDaniscale] = [C plus 6];
 
 	A = [VHGNDdosim]; ? A = 0 -> VHGND animal moved;
 	A = [VHGNDtick]; A + [VHGNDaniphase]; A & 255;
@@ -3537,13 +3658,10 @@
     "VHGND animal absz"
 	A = [VHGNDanidx]; A + [VHGNDanidz]; [VHGNDanidist] = A;
 	? A '<= 250000 -> VHGND animal ranged;
-	A = [VHGNDcamx]; A - 60000; C = [VHGNDanii]; C '* 40000; A + C; [VHGNDanix] = A;
-	A = [VHGNDanii]; A & 1; ? A = 0 -> VHGND animal respawn north;
-	A = [VHGNDcamz]; A - 50000; [VHGNDaniz] = A; -> VHGND animal respawned;
-    "VHGND animal respawn north"
-	A = [VHGNDcamz]; A + 50000; [VHGNDaniz] = A;
-    "VHGND animal respawned"
-	[VHGNDanidist] = 110000;
+	[VHGNDfaunatype] = 5; => VHGND fauna relocate nearby;
+	( live_animal keeps the old distance for this frame and draws the relocated
+	  record on the following frame. )
+	[VHGNDanidist] = 250001;
     "VHGND animal ranged"
 	C = [VHGNDanip];
 	[C plus 0] = [VHGNDanix]; [C plus 1] = [VHGNDaniz];
@@ -3577,7 +3695,6 @@
 	? C >= 0 -> VHGND animal phase ready; A = 0; A - C; C = A;
     "VHGND animal phase ready"
 	[VHGNDanihop] = C;
-	A = [VHGNDanii]; A '* 2; A + 5; [VHGNDaniscale] = A;
 	A = [VHGNDaniground];
 	C = [VHGNDaniscale]; C '* 16; ? [VHGNDanimtype] = 0 -> VHGND animal clearance;
 	C = [VHGNDaniscale]; C '* 48; ? [VHGNDanimtype] = 1 -> VHGND animal clearance;
@@ -3659,20 +3776,21 @@
 
 
 "VHGND render birds"
-	( Birds retain altitude and capture state.  One starts on land near the
-	  capsule; the others descend, cruise and take off. )
+	( Birds retain their source-selected scale, altitude and capture state,
+	  descend, cruise and take off across the full LFS population. )
 	[VHGNDgroundbirds] = 0;
 	A = [VHGlanded]; ? A = 0 -> VHGND birds done;
 	A = [GRiptype]; ? A != 3 -> VHGND birds done;
 	A = [VHGNDbirds]; ? A = 0 -> VHGND birds done;
 	[VHGNDanii] = 0;
     "VHGND bird one"
-	A = [VHGNDanii]; A '* 7; A + VHGNDbirddata; [VHGNDanip] = A;
+	A = [VHGNDanii]; A '* 8; A + VHGNDbirddata; [VHGNDanip] = A;
 	C = [VHGNDanip];
 	[VHGNDanix] = [C plus 0]; [VHGNDaniz] = [C plus 1];
 	[VHGNDanidir] = [C plus 2]; [VHGNDaniphase] = [C plus 3];
 	[VHGNDbirdquote] = [C plus 4]; [VHGNDbirdtarget] = [C plus 5];
 	[VHGNDbirdlcount] = [C plus 6];
+	[VHGNDaniscale] = [C plus 7];
 
 	A = [VHGNDanix]; A - [VHGNDcamx]; [VHGNDanidx] = A;
 	? A >= 0 -> VHGND bird absx; C = 0; C - A; [VHGNDanidx] = C;
@@ -3702,7 +3820,7 @@
 	( live_animal uses 250*reaction altitude and 500*reaction speed,
 	  with reaction=0.5/scale.  Keep the integer port's size response so
 	  the deliberately slow 80-unit stalk can actually close the gap. )
-	A = [VHGNDanii]; A '* 2; A + 8; [VHGNDtmp] = A;
+	[VHGNDtmp] = [VHGNDaniscale];
 	A = 125; A '/ [VHGNDtmp]; [VHGNDbirdtarget] = A;
 	A = [VHGNDanidist]; ? A '>= 500 -> VHGND bird habits;
 	A = 0; A - 25; [VHGNDbirdlcount] = A;
@@ -3732,7 +3850,7 @@
 	[VHGNDbirdspeed] = 800;
     "VHGND bird reaction speed"
 	A = [VHGNDanidist]; ? A '>= 1000 -> VHGND bird heading;
-	A = [VHGNDanii]; A '* 2; A + 8; [VHGNDtmp] = A;
+	[VHGNDtmp] = [VHGNDaniscale];
 	A = 250; A '/ [VHGNDtmp]; [VHGNDbirdspeed] = A; -> VHGND bird heading;
 
     "VHGND bird captured"
@@ -3773,10 +3891,9 @@
 	A = [VHGNDanidx]; A + [VHGNDanidz]; [VHGNDanidist] = A;
 	A = [VHGNDbirdlcount]; ? A < 0 -> VHGND bird ranged;
 	A = [VHGNDanidist]; ? A '<= 250000 -> VHGND bird ranged;
-	A = [VHGNDcamx]; A - 80000; C = [VHGNDanii]; C '* 65000; A + C; [VHGNDanix] = A;
-	A = [VHGNDcamz]; A + 70000; C = [VHGNDanii]; C '* 45000; A - C; [VHGNDaniz] = A;
-	A = [VHGNDanii]; A + 1; A '* 2500; [VHGNDbirdquote] = A; [VHGNDbirdtarget] = A;
-	[VHGNDanidist] = 150000;
+	[VHGNDfaunatype] = 1; => VHGND fauna relocate nearby;
+	[VHGNDbirdtarget] = [VHGNDbirdquote];
+	[VHGNDanidist] = 250001;
     "VHGND bird ranged"
 	C = [VHGNDanip]; [C plus 0] = [VHGNDanix]; [C plus 1] = [VHGNDaniz];
 	[C plus 2] = [VHGNDanidir]; [C plus 4] = [VHGNDbirdquote];
@@ -3784,8 +3901,7 @@
 	A = [VHGNDanidist]; ? A > 150000 -> VHGND bird next;
 
 	[VHGNDrox] = [VHGNDanix]; [VHGNDroz] = [VHGNDaniz]; => VHGND rock height;
-	A = [VHGNDanii]; A '* 2; A + 8; [VHGNDaniscale] = A;
-	C = A; C '* 9; A = [VHGNDroy]; A - C; A - [VHGNDbirdquote]; [VHGNDaniy] = A;
+	A = [VHGNDaniscale]; C = A; C '* 9; A = [VHGNDroy]; A - C; A - [VHGNDbirdquote]; [VHGNDaniy] = A;
 
 	[PVh] = 5; [PVk] = 4; => SP copypv;
 	[FI] = [VHGNDaniscale]; => IntToF; => F32Narrow; => FStoreF32;
@@ -3878,11 +3994,10 @@
 
 "VHGND capsule"
 	( NOCTIS-1.CPP:1200-1221.  The settled drop capsule keeps both signed
-	  structural cupola grids, centred 900 units above the landing point,
-	  plus the three nested beacon rays.  Its translucent panel fill is kept
-	  for the animated pod below but omitted while walking: that fill repeats
-	  the aperture distance solve for 280 panels every frame and obscures no
-	  opaque surface detail. )
+	  textured polycupola shells and structural grids, centred 900 units above
+	  the landing point, plus the three nested beacon rays. polycupola's local
+	  three-dimensional distance solve moves only panels around the walker and
+	  is the original capsule door; omitting it leaves an inert closed cage. )
 	A = [VHGlanded]; ? A = 0 -> VHGND capsule done;
 	A = [VHGNDcamx]; A - [VHGNDdropx]; ? A >= 0 -> VHGND capsule absx; C = 0; C - A; A = C;
     "VHGND capsule absx"
@@ -3890,28 +4005,56 @@
 	A = [VHGNDcamz]; A - [VHGNDdropz]; ? A >= 0 -> VHGND capsule absz; C = 0; C - A; A = C;
     "VHGND capsule absz"
 	? A > 1064960 -> VHGND capsule done;
+	( Keep the source aperture visible without re-entering polymap's unsafe
+	  per-panel near-plane distance path. Inside the entry envelope the complete
+	  shell aperture is absent; do not merely suppress its final spans, because
+	  walking across that boundary would still run the cached near-plane setup. )
+	[VHCopen] = 0;
+	A = [VHGNDcamx]; A - [VHGNDdropx]; ? A >= 0 -> VHGND capsule open absx; C = 0; C - A; A = C;
+    "VHGND capsule open absx"
+	? A > 1600 -> VHGND capsule open ready;
+	A = [VHGNDcamz]; A - [VHGNDdropz]; ? A >= 0 -> VHGND capsule open absz; C = 0; C - A; A = C;
+    "VHGND capsule open absz"
+	? A > 1600 -> VHGND capsule open ready; [VHCopen] = 1;
+    "VHGND capsule open ready"
+	A = [VHGCstate]; ? A = 0 -> VHGND capsule seal ready; [VHCopen] = 0;
+    "VHGND capsule seal ready"
 
 	[VHCroof] = 0; [VHCcapsule] = 1; [SPcull] = 0; [SPflar] = 0; [SPhalf] = 0;
+	A = [VHCopen]; ? A != 0 -> VHGND capsule shell done;
 	A = [VHGNDcamx]; A - [VHGNDdropx]; [VHVcamxi] = A;
 	A = [VHGNDcamz]; A - [VHGNDdropz]; [VHVcamzi] = A;
+	( VHGNDdropy is hpoint, the terrain surface at the capsule.  VHGNDcamy
+	  is the eye coordinate hpoint-600; mirror the source's temporary cam_y
+	  offsets directly rather than adding the eye-height offset twice. )
 	A = [VHGNDcamy]; A - [VHGNDdropy]; A + 1415; [VHVcamyi] = A;
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
-	[VHCyor] = 0FFFFFFFFh; => VH cupola grid;
+	[VHCyor] = 0FFFFFFFFh; => VH polycupola; => VH cupola grid;
 
 	A = [VHGNDcamy]; A - [VHGNDdropy]; A + 385; [VHVcamyi] = A;
-	=> VH set view; [VHCyor] = 1; => VH cupola grid;
+	=> VH set view; [VHCyor] = 1; => VH polycupola; => VH cupola grid;
+	"VHGND capsule shell done"
 
 	( Beacon coordinates are relative to the capsule seam, matching the
-	  source's 2 km / 500 m / 100 m nested sticks. )
+	  source's 2 km / 1 km / 500 m nested intrinsically luminous sticks.
+	  Stick flare mode 1 skips alternating points; repeating the three rays
+	  six times in the night zone is the source's brightness boost. )
 	A = [VHGNDcamy]; A - [VHGNDdropy]; A + 900; [VHVcamyi] = A;
 	=> VH set view;
+	[VHSflare] = 1; [VHGNDbeaconpass] = 0;
+	A = [VHCopen]; ? A != 0 -> VHGND capsule beacon done;
+    "VHGND capsule beacon"
 	[VHSx0] = 0; [VHSy0] = 3304718336; [VHSz0] = 0;
-	[VHSx1] = 1120403456; [VHSy1] = 3388228608; [VHSz1] = 0; => VH stick3d;
-	[VHSx0] = 0; [VHSy0] = 3305127936; [VHSz0] = 0;
+	[VHSx1] = 1120403456; [VHSy1] = 3388220416; [VHSz1] = 0; => VH stick3d;
+	[VHSx0] = 0; [VHSy0] = 3305119744; [VHSz0] = 0;
 	[VHSx1] = 0; [VHSy1] = 3379831808; [VHSz1] = 0; => VH stick3d;
 	[VHSx0] = 0; [VHSy0] = 3305324544; [VHSz0] = 0;
 	[VHSx1] = 0; [VHSy1] = 3371443200; [VHSz1] = 1120403456; => VH stick3d;
-	[VHCcapsule] = 0;
+	[VHGNDbeaconpass]+; A = [GRSKnightzone]; ? A = 0 -> VHGND capsule beacon done;
+	A = [VHGNDbeaconpass]; ? A < 6 -> VHGND capsule beacon;
+    "VHGND capsule beacon done"
+	[VHSflare] = 0;
+	[VHCcapsule] = 0; [VHCopen] = 0;
 
 	( Restore the landed camera for any caller-side overlays. )
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
@@ -3923,7 +4066,7 @@
 	( NOCTIS-1.CPP:4317-4337.  During descent and ascent the pod is
 	  camera-relative; the terrain moves below it while both hemispheres
 	  retain polycupola's local opening aperture. )
-	[VHCroof] = 0; [VHCcapsule] = 1; [SPcull] = 0; [SPflar] = 0; [SPhalf] = 0;
+	[VHCroof] = 0; [VHCcapsule] = 1; [VHCopen] = 0; [SPcull] = 0; [SPflar] = 0; [SPhalf] = 0;
 	[VHVcamxi] = 0; [VHVcamyi] = 1030; [VHVcamzi] = 0;
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
 	[VHCyor] = 0FFFFFFFFh; => VH polycupola; => VH cupola grid;
@@ -3967,7 +4110,7 @@
 	=> VHGND tile;
     "VHGND ruins render next x"
 	[VHGNDx]+; A = [VHGNDx]; ? A '<= [VHGNDxhi] -> VHGND ruins render x;
-	[VHGNDz]-; A = [VHGNDz]; ? A '>= [VHGNDzlo] -> VHGND ruins render z;
+	[VHGNDz]-; A = [VHGNDz]; ? A >= [VHGNDzlo] -> VHGND ruins render z;
 	[VHGNDruinpass] = 0;
     "VHGND render ruins done"
 	end;
@@ -3993,7 +4136,10 @@
 	A = [VHGNDx]; A + [VHGNDlodstep]; [VHGNDx] = A;
 	? A '<= [VHGNDxhi] -> VHGND render x;
 	A = [VHGNDz]; A - [VHGNDlodstep]; [VHGNDz] = A;
-	? A '>= [VHGNDzlo] -> VHGND render z;
+	( zlo may legitimately be zero near the map edge.  This comparison must
+	  be signed so the first step below zero terminates instead of wrapping
+	  into a huge unsigned tile index. )
+	? A >= [VHGNDzlo] -> VHGND render z;
 	end;
 
 "VHGND tile"
@@ -4121,6 +4267,9 @@
     "VHGND object veget"
 	=> VHGND veget; -> VHGND object next;
     "VHGND object tree"
+	A = [VHGNDooy]; C = 0; C - 15000; ? A <= C -> VHGND object tall tree;
+	=> VHGND bush; -> VHGND object next;
+    "VHGND object tall tree"
 	=> VHGND tree;
     "VHGND object next"
 	[VHGNDobjid]+; [VHGNDocount]-; -> VHGND object loop;
@@ -4128,95 +4277,280 @@
 	end;
 
 "VHGND veget"
-	( ciuffo(): a cheap crossed grass tuft at the source's 1 km scale. )
-	[SUfmask] = 1023; => SU frnd; C + 700; [VHGNDtreescale] = C;
-	[SUfmask] = 255; => SU frnd; C + 180; [VHGNDtreerad] = C;
-	[SUfmask] = 31; => SU frnd; C + 192; [VHGNDtreecol] = C;
-	A = [VHGNDooy]; A - [VHGNDtreescale]; [VHGNDtreeapex] = A;
-	[SPcull] = 0; [DBflar] = 0; [DBent] = 0; [DBcol] = [VHGNDtreecol];
-
-	[VHGNDvi] = 0; A = [VHGNDoox]; A - [VHGNDtreerad]; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	[VHGNDvv] = [VHGNDooy]; [VHGNDvslot] = FSINY; => VHGND vload; [VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
-	A = [VHGNDoox]; A + [VHGNDtreerad]; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	[VHGNDvv] = [VHGNDooy]; [VHGNDvslot] = FSINY; => VHGND vload; [VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
-	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload; [VHGNDvv] = [VHGNDtreeapex]; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload; [PJnrv] = 3; => PG poly3d;
-
-	[VHGNDvi] = 0; [VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload;
-	[VHGNDvv] = [VHGNDooy]; [VHGNDvslot] = FSINY; => VHGND vload; A = [VHGNDooz]; A - [VHGNDtreerad]; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
-	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload; [VHGNDvv] = [VHGNDooy]; [VHGNDvslot] = FSINY; => VHGND vload;
-	A = [VHGNDooz]; A + [VHGNDtreerad]; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
-	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload; [VHGNDvv] = [VHGNDtreeapex]; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload; [PJnrv] = 3; => PG poly3d;
+	( ciuffo(): no grass at depth four. Depth three is the source's
+	  greenmush-style 1..4 by 1..8 distant speckle mass. Depths two,
+	  one and zero draw respectively three, four and six faces for each
+	  of the original one or 1..8 terminal subdivisions. )
+	A = [VHGNDdepth]; ? A >= 4 -> VHGND veget done;
+	[VHGNDgrassdistant] = 0; [VHGNDgrassgroups] = 1;
+	[VHGNDgrassfaces] = 3; [VHGNDgrassrad] = 250; [VHGNDgrassrange] = 500;
+	A = [VHGNDdepth]; ? A = 2 -> VHGND veget count ready;
+	? A = 3 -> VHGND veget distant;
+	[SUfmask] = 7; => SU frnd; C + 1; [VHGNDgrassgroups] = C;
+	[VHGNDgrassfaces] = 4; A = [VHGNDdepth]; ? A = 1 -> VHGND veget count ready;
+	[VHGNDgrassfaces] = 6; -> VHGND veget count ready;
+    "VHGND veget distant"
+	[VHGNDgrassdistant] = 1; [VHGNDgrassrad] = 32; [VHGNDgrassrange] = 1023;
+	[SUfmask] = 3; => SU frnd; C + 1; [VHGNDgrassgroups] = C;
+	[SUfmask] = 7; => SU frnd; C + 1; [VHGNDgrassfaces] = C;
+    "VHGND veget count ready"
+	A = [VHGNDgrassgroups]; A '* [VHGNDgrassfaces]; [VHGNDgrasstotal] = A;
+	[SPcull] = 0; [DBflar] = 0; [DBent] = 0;
+    "VHGND veget blade"
+	A = [VHGNDgrasstotal]; ? A <= 0 -> VHGND veget done;
+	[VHGNDgrassbx] = [VHGNDoox]; A = [VHGNDooy]; A + 150; [VHGNDgrassby] = A;
+	[VHGNDgrassbz] = [VHGNDooz];
+	A = [VHGNDgrassdistant]; ? A = 0 -> VHGND veget base ready;
+	( greenmush correction: centre the 1023-unit random cube. )
+	[SUfmask] = 1023; => SU frnd; A = [VHGNDoox]; A + 511; A - C; [VHGNDgrassbx] = A;
+	[SUfmask] = 1023; => SU frnd; A = [VHGNDgrassby]; A + 511; A - C; [VHGNDgrassby] = A;
+	[SUfmask] = 1023; => SU frnd; A = [VHGNDooz]; A + 511; A - C; [VHGNDgrassbz] = A;
+    "VHGND veget base ready"
+	( Terminal endpoint: x/z vary over the source 500-unit range; height
+	  is a full 1000-unit fast_flandom draw, or a tiny distant speckle. )
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDgrassrange]; A '/ 32767; A + [VHGNDgrassbx]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDgrassrange]; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDgrassax] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDgrassrange]; A '/ 32767; A + [VHGNDgrassbz]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDgrassrange]; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDgrassaz] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '/ 32767;
+	C = [VHGNDgrassby]; C - A; [VHGNDgrassay] = C;
+	A = [VHGNDgrassdistant]; ? A = 0 -> VHGND veget colour;
+	A = [VHGNDgrassby]; A - 64; [VHGNDgrassay] = A;
+    "VHGND veget colour"
+	[SUfmask] = 31; => SU frnd; C + 192; [DBcol] = C;
+	A = [VHGNDgrassdistant]; ? A = 0 -> VHGND veget near colour; [DBcol] = C; C + 24; [DBcol] = C;
+    "VHGND veget near colour"
+	[VHGNDvi] = 0;
+	A = [VHGNDgrasstotal]; A & 1; ? A = 0 -> VHGND veget base z;
+	A = [VHGNDgrassbx]; A - [VHGNDgrassrad]; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDgrassby]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDgrassbz]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	A = [VHGNDgrassbx]; A + [VHGNDgrassrad]; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDgrassby]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDgrassbz]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	-> VHGND veget apex;
+    "VHGND veget base z"
+	[VHGNDvv] = [VHGNDgrassbx]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDgrassby]; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGNDgrassbz]; A - [VHGNDgrassrad]; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+	[VHGNDvv] = [VHGNDgrassbx]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDgrassby]; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGNDgrassbz]; A + [VHGNDgrassrad]; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
+    "VHGND veget apex"
+	[VHGNDvv] = [VHGNDgrassax]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDgrassay]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDgrassaz]; [VHGNDvslot] = FSINZ; => VHGND vload;
+	[PJnrv] = 3; => PG poly3d;
+	[VHGNDgrasstotal]-; -> VHGND veget blade;
+    "VHGND veget done"
 	end;
 
 "VHGND tree"
-	( albero()/build_fractal_tree(): the source varies scale from roughly
-	  1.5--6 km, uses three 120-degree faces per tapered limb, then ends
-	  its common two-layer trees in triangular leaf fans.  This live path
-	  keeps that geometry but bounds the recursion to one three-way split. )
-	[SUfmask] = 2999; => SU frnd; C + 3000; [VHGNDtmp] = C;
-	[SUfmask] = 1499; => SU frnd; A = [VHGNDtmp]; A - C; [VHGNDtreescale] = A;
+	( albero()/build_fractal_tree(): retain the world-level parameters from
+	  build_surface, seed each tree from x+y+z+3, and execute the source's
+	  complete depth-first branch structure.  Ordinary trees use two layers;
+	  the rare 333 giant retains all four and its five-sided 72-degree limbs. )
+	A = [VHGNDoox]; A + [VHGNDooy]; A + [VHGNDooz]; A + 3; => SU fast srand;
+	[SUfmask] = 511; => SU frnd; [VHTkind] = C;
+	[VHGNDtreescale] = [GRtreescale]; [VHTreduc] = [GRtreespread];
+	[VHTwidth] = [GRbranchwidth]; [VHGNDtreelayers] = 2;
+	[VHTforks] = 2; [VHTpeak] = [GRtreepeak];
+	[VHTrootcol] = [GRrootshade]; [VHTleafcol] = 192;
+	[VHGNDtreefaces] = 3;
+	A = [VHTkind]; ? A = 333 -> VHGND tree giant;
+	A > 3; ? A = 11 -> VHGND tree forced broadleaf;
+	? A = 22 -> VHGND tree forced conifer; -> VHGND tree configured;
+    "VHGND tree forced broadleaf"
+	[VHTforks] = 3; A = [GRtreepeak]; A '* 2; [VHTpeak] = A;
+	[VHTrootcol] = 128; -> VHGND tree configured;
+    "VHGND tree forced conifer"
+	[VHTforks] = 2; A = [GRtreepeak]; A / 2; [VHTpeak] = A;
+	[VHTrootcol] = 128; [VHTleafcol] = 64; -> VHGND tree configured;
+    "VHGND tree giant"
+	A = [GRtreescale]; A '* 2; [VHGNDtreescale] = A;
+	A = [GRbranchwidth]; A '* 3; A / 2; [VHTwidth] = A;
+	A = [GRtreepeak]; A '* 3; A / 2; [VHTpeak] = A;
+	( GIANT_TREE keeps the source's full four-layer, three-division stack and
+	  five-sided silhouette. )
+	[VHGNDtreelayers] = 4; [VHTforks] = 3; [VHGNDtreefaces] = 5;
+    "VHGND tree configured"
+	[SPcull] = 0; [DBent] = 0; [VHGNDtreelevel] = 0;
+	A = VHGNDtsx; [A] = [VHGNDoox]; A = VHGNDtsy; [A] = [VHGNDooy];
+	A = VHGNDtsz; [A] = [VHGNDooz]; A = VHGNDtsscale; [A] = [VHGNDtreescale];
+	A = VHGNDtslayers; [A] = [VHGNDtreelayers]; A = VHGNDtsroot; [A] = 1;
+	A = VHGNDtsocc; [A] = 0;
+	-> VHGND tree node enter;
+
+    "VHGND tree node enter"
+	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebx] = [A];
+	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreeby] = [A];
+	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebz] = [A];
+	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescale] = [A];
+	A = VHGNDtslayers; A + [VHGNDtreelevel]; [VHGNDtreelayers] = [A];
+	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
+	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
+	[VHGNDtreebranches] = 1; A = [VHGNDtreeisroot]; ? A != 0 -> VHGND tree node count ready;
+	[SUfmask] = [VHTforks]; => SU frnd; C + 1; [VHGNDtreebranches] = C;
+    "VHGND tree node count ready"
+	A = VHGNDtscount; A + [VHGNDtreelevel]; [A] = [VHGNDtreebranches];
+	A = VHGNDtsbranch; A + [VHGNDtreelevel]; [A] = 0;
+	A = [VHGNDtreebx]; A + [VHGNDtreeby]; A + [VHGNDtreebz]; A + [VHGNDh1];
+	C = VHGNDtslseed; C + [VHGNDtreelevel]; [C] = A;
+	A = [VHGNDtreescale]; A '* [VHTpeak];
+	C = [VHGNDtreeisroot]; ? C = 0 -> VHGND tree node nonroot range;
+	A / 5000; -> VHGND tree node range ready;
+    "VHGND tree node nonroot range"
+	A / 2000;
+    "VHGND tree node range ready"
+	[VHGNDtreerange] = A; C = VHGNDtsrange; C + [VHGNDtreelevel]; [C] = A;
+	-> VHGND tree node branch;
+
+    "VHGND tree node branch"
+	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebx] = [A];
+	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreeby] = [A];
+	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebz] = [A];
+	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescale] = [A];
+	A = VHGNDtslayers; A + [VHGNDtreelevel]; [VHGNDtreelayers] = [A];
+	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
+	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
+	A = VHGNDtscount; A + [VHGNDtreelevel]; [VHGNDtreebranches] = [A];
+	A = VHGNDtsbranch; A + [VHGNDtreelevel]; [VHGNDtreebranch] = [A];
+	A = [VHGNDtreebranch]; ? A '>= [VHGNDtreebranches] -> VHGND tree node pop;
+	A = VHGNDtsrange; A + [VHGNDtreelevel]; [VHGNDtreerange] = [A];
+	=> VHGND tree direction;
+	A = VHGNDtslseed; A + [VHGNDtreelevel]; C = [A]; [VHTlseed] = C;
+	C + 3; [A] = C; A = [VHTlseed]; => SU fast srand;
+	A = [VHGNDtreelayers]; ? A = 0 -> VHGND tree terminal;
+
+	A = [VHGNDtreepx]; A + [VHGNDtreebx]; [VHGNDtreeex] = A;
+	A = [VHGNDtreepz]; A + [VHGNDtreebz]; [VHGNDtreeez] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreescale]; A '/ 32767;
+	C = [VHGNDtreeisroot]; ? C = 0 -> VHGND tree child nonroot height;
+	A '* [GRrootheight]; A / 1000; C = [VHGNDtreescale]; C / 10; A + C;
+	-> VHGND tree child height ready;
+    "VHGND tree child nonroot height"
+	A / 4; C = [VHGNDtreescale]; C / 16; A + C;
+    "VHGND tree child height ready"
+	C = [VHGNDtreeby]; C - A; [VHGNDtreeey] = C;
+	A = [VHGNDtreescale]; A '* [VHTreduc]; A / 1000; [VHTnextsc] = A;
+	A = [VHGNDtreescale]; A '* [VHTwidth]; A / 1000; [VHGNDtreebr] = A;
+	A = [VHTnextsc]; A '* [VHTwidth]; A / 1000; [VHGNDtreeer] = A;
+	A = [VHGNDtreeocc]; A '* 9; A + [VHTrootcol]; [VHTfacebase] = A;
+	[VHTfacestep] = 4; [DBflar] = [GRtreeflares]; => VHGND tree limb;
+	A = VHGNDtsbranch; A + [VHGNDtreelevel]; C = [A]; C + 1; [A] = C;
+	[VHGNDtreelevel]+;
+	A = VHGNDtsx; A + [VHGNDtreelevel]; [A] = [VHGNDtreeex];
+	A = VHGNDtsy; A + [VHGNDtreelevel]; [A] = [VHGNDtreeey];
+	A = VHGNDtsz; A + [VHGNDtreelevel]; [A] = [VHGNDtreeez];
+	A = VHGNDtsscale; A + [VHGNDtreelevel]; [A] = [VHTnextsc];
+	A = VHGNDtslayers; A + [VHGNDtreelevel]; C = [VHGNDtreelayers]; C - 1; [A] = C;
+	A = VHGNDtsroot; A + [VHGNDtreelevel]; [A] = 0;
+	A = VHGNDtsocc; A + [VHGNDtreelevel]; C = [VHGNDtreeocc]; C + 1; [A] = C;
+	-> VHGND tree node enter;
+
+    "VHGND tree terminal"
+	( Terminal source node: each subdivision is its own randomized leaf fan. )
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreerange]; A '/ 32767;
+	A + [VHGNDtreebx]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreerange]; A '/ 32767;
+	C = [VHGNDtmp]; C - A; [VHGNDtreeleafx] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreerange]; A '/ 32767;
+	A + [VHGNDtreebz]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreerange]; A '/ 32767;
+	C = [VHGNDtmp]; C - A; [VHGNDtreeleafz] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreescale]; A '/ 32767;
+	[VHGNDtreeleafdrop] = A;
+	A = [VHGNDtreescale]; A '* [VHTwidth]; A / 1000; [VHGNDtreeleafrad] = A;
+	[VHGNDtreeex] = [VHGNDtreebx]; [VHGNDtreeey] = [VHGNDtreeby]; [VHGNDtreeez] = [VHGNDtreebz];
+	[SUfmask] = 31; => SU frnd; C + [VHTleafcol]; [VHGNDtreecol] = C;
+	[VHTfacebase] = C; [VHTfacestep] = 2;
+	[DBflar] = [GRleafflares]; => VHGND tree leaves;
+	A = VHGNDtsbranch; A + [VHGNDtreelevel]; C = [A]; C + 1; [A] = C;
+	-> VHGND tree node branch;
+
+    "VHGND tree node pop"
+	A = [VHGNDtreelevel]; ? A = 0 -> VHGND tree done;
+	[VHGNDtreelevel]-; -> VHGND tree node branch;
+    "VHGND tree done"
+	[DBflar] = 0;
+	end;
+
+"VHGND bush"
+	( cespuglio(): low-ground tree-class objects are bushes. At depth three
+	  the source collapses them to greenmush foliage. Nearer bushes use
+	  scaling 3000, reduction .75, width .15 and one/two/three/four child
+	  branches selected by the original depth-dependent bit mask. )
+	A = [VHGNDdepth]; ? A >= 3 -> VHGND bush distant;
+	[VHGNDtreescale] = 3000; [VHGNDtreerange] = 2250;
+	[VHGNDtreebr] = 450; [VHGNDtreeer] = 337; [VHGNDtreefaces] = 3;
 	[SUfmask] = 3; => SU frnd; [VHGNDtreeorient] = C;
-	[SUfmask] = 63; => SU frnd; A = C; ? A = 22 -> VHGND tree conifer;
-	[SUfmask] = 31; => SU frnd; C + 192; [VHGNDtreecol] = C; -> VHGND tree colour ready;
-    "VHGND tree conifer"
-	[SUfmask] = 31; => SU frnd; C + 64; [VHGNDtreecol] = C;
-    "VHGND tree colour ready"
-	[SPcull] = 0; [DBflar] = 0; [DBent] = 0; [DBcol] = 72;
-
-	( Root node: source rootheight averages about one third of scaling. )
+	[SUfmask] = 31; => SU frnd; C + 192; [VHGNDtreecol] = C;
+	[VHGNDtreebranches] = 1; A = [VHGNDdepth]; ? A = 2 -> VHGND bush mask one;
+	? A = 1 -> VHGND bush mask two; [SUfmask] = 3; -> VHGND bush count;
+    "VHGND bush mask one"
+	[VHGNDtreefaces] = 2; [SUfmask] = 1; -> VHGND bush count;
+    "VHGND bush mask two"
+	[SUfmask] = 2;
+    "VHGND bush count"
+	=> SU frnd; C + 1; [VHGNDtreebranches] = C;
+	[SPcull] = 0; [DBflar] = 0; [DBent] = 0; [VHGNDtreebranch] = 0;
+    "VHGND bush branch loop"
+	A = [VHGNDtreebranch]; ? A '>= [VHGNDtreebranches] -> VHGND bush done;
 	[VHGNDtreebx] = [VHGNDoox]; [VHGNDtreeby] = [VHGNDooy]; [VHGNDtreebz] = [VHGNDooz];
-	[VHGNDtreeex] = [VHGNDoox]; [VHGNDtreeez] = [VHGNDooz];
-	A = [VHGNDtreescale]; A '* 7; A / 20; C = [VHGNDooy]; C - A;
-	[VHGNDtreeey] = C; [VHGNDtreetop] = C;
-	A = [VHGNDtreescale]; A '* 3; A / 20; [VHGNDtreebr] = A;
-	A '* 3; A / 4; [VHGNDtreeer] = A; => VHGND tree limb;
-
-	( The first non-root split is one or three in Noctis.  Three nearby
-	  branches preserve the characteristic broad silhouette; depth 3 uses
-	  the legal one-branch outcome as a cheap last-distance representation. )
-	[VHGNDtreebranches] = 3; A = [VHGNDdepth]; ? A < 3 -> VHGND tree split ready;
-	[VHGNDtreebranches] = 1;
-    "VHGND tree split ready"
-	A = [VHGNDtreescale]; A '* 3; A / 8; [VHGNDtreerange] = A;
-	[VHGNDtreebranch] = 0;
-    "VHGND tree branch loop"
-	A = [VHGNDtreebranch]; ? A '>= [VHGNDtreebranches] -> VHGND tree done;
-	[VHGNDtreebx] = [VHGNDoox]; [VHGNDtreeby] = [VHGNDtreetop]; [VHGNDtreebz] = [VHGNDooz];
 	=> VHGND tree direction;
 	A = [VHGNDtreepx]; A + [VHGNDoox]; [VHGNDtreeex] = A;
 	A = [VHGNDtreepz]; A + [VHGNDooz]; [VHGNDtreeez] = A;
-	A = [VHGNDtreescale]; A '* 3; A / 16; C = [VHGNDtreetop]; C - A; [VHGNDtreeey] = C;
-	A = [VHGNDtreescale]; A '* 9; A / 80; [VHGNDtreebr] = A;
-	A '* 3; A / 4; [VHGNDtreeer] = A; [DBcol] = 81; => VHGND tree limb;
-	=> VHGND tree leaves;
-	[VHGNDtreebranch]+; -> VHGND tree branch loop;
-    "VHGND tree done"
+	( y2 = y - (fast_flandom()+.25)*3000*.25 )
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 750; A '/ 32767; A + 187;
+	C = [VHGNDooy]; C - A; [VHGNDtreeey] = C;
+	[VHTfacebase] = 0; [VHTfacestep] = 4;
+	[DBflar] = [GRtreeflares]; => VHGND tree limb;
+	( Terminal layer: width 2250*.15 and range 2250*1.5*.5. )
+	[VHGNDtreeleafrad] = 337;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 1687; A '/ 32767; A + [VHGNDtreeex]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 1687; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDtreeleafx] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 1687; A '/ 32767; A + [VHGNDtreeez]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 1687; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDtreeleafz] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 2250; A '/ 32767; [VHGNDtreeleafdrop] = A;
+	[SUfmask] = 31; => SU frnd; C + 192; [VHGNDtreecol] = C;
+	[VHTfacebase] = C; [VHTfacestep] = 2;
+	[DBflar] = [GRleafflares]; => VHGND tree leaves;
+	[VHGNDtreebranch]+; -> VHGND bush branch loop;
+    "VHGND bush distant"
+	=> VHGND veget;
+    "VHGND bush done"
 	end;
 
 "VHGND tree direction"
-	( Three directions at 120-degree intervals, rotated per chart object. )
-	A = [VHGNDtreebranch]; ? A = 0 -> VHGND tree direction zero;
-	? A = 1 -> VHGND tree direction one;
-	A = [VHGNDtreerange]; C = A; C / 2; A = 0; A - C; [VHGNDtreepx] = A;
-	A = [VHGNDtreerange]; A '* 7; A / 8; C = A; A = 0; A - C; [VHGNDtreepz] = A; -> VHGND tree direction rotate;
-    "VHGND tree direction one"
-	A = [VHGNDtreerange]; C = A; C / 2; A = 0; A - C; [VHGNDtreepx] = A;
-	A = [VHGNDtreerange]; A '* 7; A / 8; [VHGNDtreepz] = A; -> VHGND tree direction rotate;
-    "VHGND tree direction zero"
-	[VHGNDtreepx] = [VHGNDtreerange]; [VHGNDtreepz] = 0;
-    "VHGND tree direction rotate"
-	A = [VHGNDtreeorient]; ? A = 0 -> VHGND tree direction done;
-	? A = 1 -> VHGND tree rotate one; ? A = 2 -> VHGND tree rotate two;
-	A = [VHGNDtreepz]; C = A; A = 0; A - C; [VHGNDtmp] = A;
-	[VHGNDtreepz] = [VHGNDtreepx]; [VHGNDtreepx] = [VHGNDtmp]; -> VHGND tree direction done;
-    "VHGND tree rotate one"
-	[VHGNDtmp] = [VHGNDtreepx]; [VHGNDtreepx] = [VHGNDtreepz];
-	A = [VHGNDtmp]; C = A; A = 0; A - C; [VHGNDtreepz] = A; -> VHGND tree direction done;
-    "VHGND tree rotate two"
-	A = [VHGNDtreepx]; C = A; A = 0; A - C; [VHGNDtreepx] = A;
-	A = [VHGNDtreepz]; C = A; A = 0; A - C; [VHGNDtreepz] = A;
+	( b_angle starts at half of 2*pi/subdivs in build_fractal_tree. )
+	A = [VHGNDtreebranches]; ? A = 1 -> VHGND tree direction one only;
+	? A = 2 -> VHGND tree direction two; ? A = 3 -> VHGND tree direction three;
+	( Four branches: 45, 135, 225, 315 degrees. )
+	A = [VHGNDtreerange]; A '* 181; A / 256; [VHGNDtmp] = A;
+	A = [VHGNDtreebranch]; ? A = 0 -> VHGND tree direction four ne;
+	? A = 1 -> VHGND tree direction four nw; ? A = 2 -> VHGND tree direction four sw;
+	[VHGNDtreepx] = [VHGNDtmp]; A = 0; A - [VHGNDtmp]; [VHGNDtreepz] = A; -> VHGND tree direction done;
+    "VHGND tree direction four ne"
+	[VHGNDtreepx] = [VHGNDtmp]; [VHGNDtreepz] = [VHGNDtmp]; -> VHGND tree direction done;
+    "VHGND tree direction four nw"
+	A = 0; A - [VHGNDtmp]; [VHGNDtreepx] = A; [VHGNDtreepz] = [VHGNDtmp]; -> VHGND tree direction done;
+    "VHGND tree direction four sw"
+	A = 0; A - [VHGNDtmp]; [VHGNDtreepx] = A; [VHGNDtreepz] = A; -> VHGND tree direction done;
+    "VHGND tree direction one only"
+	A = 0; A - [VHGNDtreerange]; [VHGNDtreepx] = A; [VHGNDtreepz] = 0; -> VHGND tree direction done;
+    "VHGND tree direction two"
+	[VHGNDtreepx] = 0; A = [VHGNDtreebranch]; ? A = 0 -> VHGND tree direction two north;
+	A = 0; A - [VHGNDtreerange]; [VHGNDtreepz] = A; -> VHGND tree direction done;
+    "VHGND tree direction two north"
+	[VHGNDtreepz] = [VHGNDtreerange]; -> VHGND tree direction done;
+    "VHGND tree direction three"
+	A = [VHGNDtreebranch]; ? A = 0 -> VHGND tree direction three ne;
+	? A = 1 -> VHGND tree direction one only;
+	A = [VHGNDtreerange]; A / 2; [VHGNDtreepx] = A;
+	A = [VHGNDtreerange]; A '* 7; A / 8; C = A; A = 0; A - C; [VHGNDtreepz] = A; -> VHGND tree direction done;
+    "VHGND tree direction three ne"
+	A = [VHGNDtreerange]; A / 2; [VHGNDtreepx] = A;
+	A = [VHGNDtreerange]; A '* 7; A / 8; [VHGNDtreepz] = A;
     "VHGND tree direction done"
 	end;
 
@@ -4224,11 +4558,12 @@
 	( Tapered triangular prism: branchdetail=120 in the source. )
 	[VHGNDtreeside] = 0;
     "VHGND tree limb face"
-	A = [VHGNDtreeside]; ? A '>= 3 -> VHGND tree limb done;
+	A = [VHGNDtreeside]; ? A '>= [VHGNDtreefaces] -> VHGND tree limb done;
+	A '* [VHTfacestep]; A + [VHTfacebase]; [DBcol] = A;
 	[VHGNDvi] = 0;
 	[VHGNDtreecx] = [VHGNDtreebx]; [VHGNDtreecy] = [VHGNDtreeby]; [VHGNDtreecz] = [VHGNDtreebz];
 	[VHGNDtreerad] = [VHGNDtreebr]; [VHGNDtreepoint] = [VHGNDtreeside]; => VHGND tree vertex;
-	[VHGNDtreepoint]+; A = [VHGNDtreepoint]; ? A < 3 -> VHGND tree limb base next; [VHGNDtreepoint] = 0;
+	[VHGNDtreepoint]+; A = [VHGNDtreepoint]; ? A < [VHGNDtreefaces] -> VHGND tree limb base next; [VHGNDtreepoint] = 0;
     "VHGND tree limb base next"
 	=> VHGND tree vertex;
 	[VHGNDtreecx] = [VHGNDtreeex]; [VHGNDtreecy] = [VHGNDtreeey]; [VHGNDtreecz] = [VHGNDtreeez]; [VHGNDtreerad] = [VHGNDtreeer];
@@ -4240,24 +4575,27 @@
 	end;
 
 "VHGND tree leaves"
-	( Terminal three-face fan, matching the source's 120-degree leaf pass. )
-	[DBcol] = [VHGNDtreecol]; A = [VHGNDtreescale]; A / 5; [VHGNDtreerad] = A;
+	( Terminal source fan: three faces normally, five for giant trees. )
+	[VHGNDtreerad] = [VHGNDtreeleafrad];
 	[VHGNDtreeside] = 0;
     "VHGND tree leaf face"
-	A = [VHGNDtreeside]; ? A '>= 3 -> VHGND tree leaves done;
+	A = [VHGNDtreeside]; ? A '>= [VHGNDtreefaces] -> VHGND tree leaves done;
+	A '* [VHTfacestep]; A + [VHTfacebase]; [DBcol] = A;
 	[VHGNDvi] = 0; [VHGNDtreecx] = [VHGNDtreeex]; [VHGNDtreecy] = [VHGNDtreeey]; [VHGNDtreecz] = [VHGNDtreeez];
 	[VHGNDtreepoint] = [VHGNDtreeside]; => VHGND tree vertex;
-	[VHGNDtreepoint]+; A = [VHGNDtreepoint]; ? A < 3 -> VHGND tree leaf next; [VHGNDtreepoint] = 0;
+	[VHGNDtreepoint]+; A = [VHGNDtreepoint]; ? A < [VHGNDtreefaces] -> VHGND tree leaf next; [VHGNDtreepoint] = 0;
     "VHGND tree leaf next"
 	=> VHGND tree vertex;
-	[VHGNDtreepx] = [VHGNDtreeex]; A = [VHGNDtreeey]; A - [VHGNDtreerad]; [VHGNDtreecy] = A;
-	[VHGNDtreepz] = [VHGNDtreeez]; => VHGND tree vertex load;
+	[VHGNDtreepx] = [VHGNDtreeleafx]; A = [VHGNDtreeey]; A - [VHGNDtreeleafdrop]; [VHGNDtreecy] = A;
+	[VHGNDtreepz] = [VHGNDtreeleafz]; => VHGND tree vertex load;
 	[PJnrv] = 3; => PG poly3d;
 	[VHGNDtreeside]+; -> VHGND tree leaf face;
     "VHGND tree leaves done"
 	end;
 
 "VHGND tree vertex"
+	A = [VHGNDtreefaces]; ? A = 2 -> VHGND tree vertex two;
+	? A = 5 -> VHGND tree vertex five;
 	A = [VHGNDtreepoint]; ? A = 0 -> VHGND tree point zero;
 	? A = 1 -> VHGND tree point one;
 	A = [VHGNDtreerad]; C = A; C / 2; A = [VHGNDtreecx]; A - C; [VHGNDtreepx] = A;
@@ -4267,6 +4605,30 @@
 	A = [VHGNDtreerad]; A '* 7; A / 8; C = [VHGNDtreecz]; C + A; [VHGNDtreepz] = C; -> VHGND tree vertex load;
     "VHGND tree point zero"
 	A = [VHGNDtreecx]; A + [VHGNDtreerad]; [VHGNDtreepx] = A; [VHGNDtreepz] = [VHGNDtreecz];
+	-> VHGND tree vertex load;
+    "VHGND tree vertex two"
+	A = [VHGNDtreepoint]; ? A = 0 -> VHGND tree point zero;
+	A = [VHGNDtreecx]; A - [VHGNDtreerad]; [VHGNDtreepx] = A; [VHGNDtreepz] = [VHGNDtreecz];
+	-> VHGND tree vertex load;
+    "VHGND tree vertex five"
+	A = [VHGNDtreepoint]; ? A = 0 -> VHGND tree point zero;
+	? A = 1 -> VHGND tree point five one; ? A = 2 -> VHGND tree point five two;
+	? A = 3 -> VHGND tree point five three;
+	( point four: +0.309r, -0.951r )
+	A = [VHGNDtreerad]; A '* 309; A / 1000; A + [VHGNDtreecx]; [VHGNDtreepx] = A;
+	A = [VHGNDtreerad]; A '* 951; A / 1000; C = [VHGNDtreecz]; C - A; [VHGNDtreepz] = C;
+	-> VHGND tree vertex load;
+    "VHGND tree point five one"
+	A = [VHGNDtreerad]; A '* 309; A / 1000; A + [VHGNDtreecx]; [VHGNDtreepx] = A;
+	A = [VHGNDtreerad]; A '* 951; A / 1000; A + [VHGNDtreecz]; [VHGNDtreepz] = A;
+	-> VHGND tree vertex load;
+    "VHGND tree point five two"
+	A = [VHGNDtreerad]; A '* 809; A / 1000; C = [VHGNDtreecx]; C - A; [VHGNDtreepx] = C;
+	A = [VHGNDtreerad]; A '* 588; A / 1000; A + [VHGNDtreecz]; [VHGNDtreepz] = A;
+	-> VHGND tree vertex load;
+    "VHGND tree point five three"
+	A = [VHGNDtreerad]; A '* 809; A / 1000; C = [VHGNDtreecx]; C - A; [VHGNDtreepx] = C;
+	A = [VHGNDtreerad]; A '* 588; A / 1000; C = [VHGNDtreecz]; C - A; [VHGNDtreepz] = C;
     "VHGND tree vertex load"
 	[VHGNDvv] = [VHGNDtreepx]; [VHGNDvslot] = FSINX; => VHGND vload;
 	[VHGNDvv] = [VHGNDtreecy]; [VHGNDvslot] = FSINY; => VHGND vload;
@@ -4274,35 +4636,39 @@
 	end;
 
 "VHGND rock"
-	( roccia(): deterministic tetrahedral stones.  The original repeats
-	  several close tetrahedra at depth 0..2; this live path retains its
-	  shape, seeded placement, scale, peak and distance LOD while limiting
-	  each chart object to one tetrahedron for GUI frame time. )
+	( roccia(): deterministic tetrahedral stones.  Depths above two retain
+	  the source's single-triangle LOD.  Close groups use fivefold scale,
+	  repeat fast_random(rockdensity) times, halve scale after each stone,
+	  and move each following centre by the original cdown-weighted draws. )
 	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; => SU fast srand;
 	[SUfmask] = [VHGNDrockdensity]; => SU frnd; [VHGNDcdown] = C;
 	A = C; ? A = 0 -> VHGND rock done;
+	[VHGNDrockworkscale] = [VHGNDrockscale];
+	A = [VHGNDdepth]; ? A > 2 -> VHGND rock repeat;
+	A = [VHGNDrockworkscale]; A '* 5; [VHGNDrockworkscale] = A;
+    "VHGND rock repeat"
 
 	( apex height = ground - 100 - fast_flandom()*rockpeaking )
 	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockpeak]; A '/ 32767;
 	C = [VHGNDooy]; C - 100; C - A; [VHGNDrtop] = C;
 
 	( base point 0: x-rand(scale), z-rand(scale) )
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockscale]; A '/ 32767;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDoox]; C - A; [VHGNDrx0] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockscale]; A '/ 32767;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDooz]; C - A; [VHGNDrz0] = C;
 	[VHGNDrox] = [VHGNDrx0]; [VHGNDroz] = [VHGNDrz0]; => VHGND rock height; [VHGNDry0] = [VHGNDroy];
 
 	( base point 1: centre x, z+rand(scale) )
 	[VHGNDrx1] = [VHGNDoox];
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockscale]; A '/ 32767;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDooz]; C + A; [VHGNDrz1] = C;
 	[VHGNDrox] = [VHGNDrx1]; [VHGNDroz] = [VHGNDrz1]; => VHGND rock height; [VHGNDry1] = [VHGNDroy];
 
 	( base point 2: x+rand(scale), z-rand(scale) )
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockscale]; A '/ 32767;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDoox]; C + A; [VHGNDrx2] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockscale]; A '/ 32767;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDooz]; C - A; [VHGNDrz2] = C;
 	[VHGNDrox] = [VHGNDrx2]; [VHGNDroz] = [VHGNDrz2]; => VHGND rock height; [VHGNDry2] = [VHGNDroy];
 
@@ -4348,6 +4714,19 @@
 	[VHGNDvv] = [VHGNDrtop]; [VHGNDvslot] = FSINY; => VHGND vload;
 	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload;
 	[PJnrv] = 3; [DBcol] = [VHGNDrcol2]; => PG poly3d;
+	( Source rockrep centre walk and scale decay. )
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
+	A + [VHGNDoox]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
+	C = [VHGNDtmp]; C - A; [VHGNDoox] = C;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
+	A + [VHGNDooz]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
+	C = [VHGNDtmp]; C - A; [VHGNDooz] = C;
+	[VHGNDrox] = [VHGNDoox]; [VHGNDroz] = [VHGNDooz]; => VHGND rock height;
+	[VHGNDooy] = [VHGNDroy];
+	A = [VHGNDrockworkscale]; A '/ 2; [VHGNDrockworkscale] = A;
+	[VHGNDcdown]-; A = [VHGNDcdown]; ? A > 0 -> VHGND rock repeat;
     "VHGND rock done"
 	end;
 

@@ -210,6 +210,18 @@ def surface_cruise(current: int, digit: int) -> int:
     return 0 if current == selected else selected
 
 
+def capsule_recovery_trigger(samples: list[tuple[int, int, int]]) -> int | None:
+    """Independent model of the original walk-away/re-enter recovery gate."""
+    armed = False
+    for index, (dx, dy, dz) in enumerate(samples):
+        if dx * dx + dy * dy + dz * dz < 1600 * 1600:
+            if armed:
+                return index
+        else:
+            armed = True
+    return None
+
+
 def surface_forward_trace(input_step: int, ticks: int) -> tuple[list[int], int]:
     """Port-scaled model of source input accumulation and 1/1.25 friction."""
     velocity = 0
@@ -221,6 +233,24 @@ def surface_forward_trace(input_step: int, ticks: int) -> tuple[list[int], int]:
         if abs(velocity) < 4:
             velocity = 0
     return displacements, velocity
+
+
+def surface_level_trace(alpha: int, port_step: int, ticks: int) -> list[int]:
+    """Quantized port model of NIV+'s walking pitch-to-level recurrence."""
+    error = 0
+    speed = abs(port_step)
+    denominator = 125000 + speed
+    result: list[int] = []
+    for _ in range(ticks):
+        if alpha and speed:
+            error += abs(alpha) * speed
+            drop, error = divmod(error, denominator)
+            if alpha > 0:
+                alpha = max(0, alpha - drop)
+            else:
+                alpha = min(0, alpha + drop)
+        result.append(alpha)
+    return result
 
 
 def cupola_panel_drop(horizontal_distance: int) -> int:
@@ -756,15 +786,36 @@ def main() -> int:
         and original_capsule.count("stick3d") == 3
         and "[VHCyor] = 0FFFFFFFFh" in capsule
         and settled_capsule.count("=> VH cupola grid;") == 2
-        and "=> VH polycupola;" not in settled_capsule
+        and settled_capsule.count("=> VH polycupola; => VH cupola grid;") == 2
         and moving_capsule.count("=> VH polycupola; => VH cupola grid;") == 2
         and "A + 1415" in capsule and "A + 385" in capsule and "A + 900" in capsule
         and capsule.count("=> VH stick3d;") == 3
         and "A # 80000000h" in cupola
         and '"VHC capsule view"' in cupola
         and "A = 500; A - [FI]" in cupola
-        and "A < 2; A * [VHCyor]" in cupola,
-        "landed view keeps both capsule support grids, detailed moving panels, and beacon",
+        and "A = [VHCopen]; ? A != 0 -> VHC capsule view done;" in cupola
+        and '"VHC draw textured panel"' in cupola
+        and all(token in cupola for token in (
+            "[VHCvi] = [VHCi];", "A = [VHCi]; A - 1;",
+            '"VHC panel source capsule"', '"VHC draw grid"',
+            "[VHSflare] = 0;", '"VHC polycupola render"',
+            "[PGFi] = FSZERO;", "[VHCtexx] = [FS0];", "[VHCtexy] = [FS0];",
+        ))
+        and all(token in stick for token in (
+            "VHSflare = 0; VHSphase = 0;", '"VHS luminous point"',
+            "A = [VHSphase]; A & 1;", "C & 63; C + 8;",
+            "[SPval] = 0; => SP put;", "[SPoff]+; [SPval] = [VHScolor]; => SP put;",
+            '"VHS endpoints ordered"', "? A >= [VHSpx0] -> VHS endpoints ordered;",
+        ))
+        and all(token in settled_capsule for token in (
+            '"VHGND capsule beacon"', "[VHSflare] = 1;",
+            "[VHSy1] = 3388220416;", "[VHSy0] = 3305119744;",
+            "? A < 6 -> VHGND capsule beacon;", "[VHSflare] = 0;",
+        ))
+        and "[PGtexf] = 7;" in cupola and "[SPflar] = 4;" in cupola
+        and '"PG tex 7"' in (ROOT / "work" / "pgmem.txt").read_text(encoding="utf-8")
+        and "[PGtexv] = 0;" in (ROOT / "work" / "pgmem.txt").read_text(encoding="utf-8"),
+        "landed and moving capsule views keep both animated shells, support grids, and beacon",
     )
     check(
         all(token in original1 for token in (
@@ -772,6 +823,8 @@ def main() -> int:
             "gravity = - 0.32 * gravity;",
             "gravity < 250", "compdist < 512 || bounces > 10",
             "opencapcount > 32", "opencapcount > 250",
+            "if (sqrt(drop_x*drop_x+drop_y*drop_y+drop_z*drop_z)<1600)",
+            "if (recover)", "recover = 1;",
         )),
         "original capsule fall, settle, seal, and ascent thresholds remain pinned",
     )
@@ -783,7 +836,7 @@ def main() -> int:
             "A '* 32; A / 100", "? A > 10 -> VHGC settle;",
             "? A '>= 2500 -> VHGC bounce;", "=> VHGC slope scan;",
             "? A '< 512 -> VHGC settle;", "? A '> 32 -> VHGC lift off;",
-            "? A '<= 250 -> VHGC ascent done;", "=> VHG return ship;",
+            "? A '<= 250 -> VHGC ascent done;", "[VHGcapsulereturnpending] = 1;",
             '"VHGC wind init"', '"VHGC wind step"',
             "A = [VHGNDatmosphere]; ? A = 0 -> VHGC wind done;",
             "[VHGCwindrngsave] = [brtlseed]", "[brtlseed] = [VHGCwindrngsave]",
@@ -796,6 +849,11 @@ def main() -> int:
             "[FB0] = 9999999Ah; [FB1] = 3F999999h; => FAdd;",
             "=> FSin;", "=> FCos;", "[VHGCslopedir] = [VHGCslopet];",
         ))
+        and "[VHGCsubsteps] = 1;" in capsule_physics
+        and "[VHGCstate] = 2; [VHGCcapcount] = 0;" in capsule_physics
+        and capsule_physics.count("A / 8;") >= 2
+        and "C / 8; A = [VHGy];" in capsule_physics
+        and "=> VHG return ship;" not in capsule_physics
         and "A + 724;" not in capsule_physics
         and "=> VHGC tick;" in game
         and "=> VHGND moving capsule;" in game,
@@ -806,8 +864,8 @@ def main() -> int:
         "? A '< [nsnob] -> VHG land target valid;" in land
         and "[VHGnoticeptr] = VHGdescenttext" in land
         and "[VHGnoticeptr] = VHGlandfailtext" in land
-        and "[VHGCsubsteps] = 32;" in capsule_physics,
-        "landing validates the body, reports rejection, and batches descent visibly",
+        and "[VHGCsubsteps] = 1;" in capsule_physics,
+        "landing validates the body and advances descent at the original visible rate",
     )
     post = section(ground, '"VHGND post surface"', '"VHGND flandom"')
     objects = section(ground, '"VHGND tile objects"', '"VHGND veget"')
@@ -817,8 +875,13 @@ def main() -> int:
         and "A & 0FCh; A | [VHGNDoval]" in post
         and "A = [MBval]; A & 3; [VHGNDocount] = A;" in objects
         and "[SUfmask] = [VHGNDrockdensity]" in rocks
-        and rocks.count("=> PG poly3d;") == 3,
-        "source post-surface counts drive deterministic nearby tetrahedral rocks",
+        and rocks.count("=> PG poly3d;") == 3
+        and all(token in rocks for token in (
+            '"VHGND rock repeat"', "A '* 5; [VHGNDrockworkscale] = A;",
+            "A '* 1000; A '* [VHGNDcdown];", "A '/ 2; [VHGNDrockworkscale] = A;",
+            "[VHGNDcdown]-; A = [VHGNDcdown]; ? A > 0 -> VHGND rock repeat;",
+        )),
+        "source post-surface counts drive complete close tetrahedral rock groups",
     )
     traversal = section(ground, '"VHGND render"', '"VHGND tile"')
     check(
@@ -851,7 +914,10 @@ def main() -> int:
         and all(token in ground for token in (
             "[GRSKseed] = 149130", "[GRSKalbedo] = 32",
             "[GRSKseed] = 293154", "[GRSKalbedo] = 20",
-        )),
+        ))
+        and "A = [VHGNDstormflashes];" in ground
+        and "A '* 25; [VHGNDflashtries] = A;" in ground
+        and "? A '<= 5 -> VHGND weather density ready;" not in ground,
         "live landings cache the generated panorama through a direct wrapping mapper",
     )
     local_sun = section(ground, '"VHGND local sun"', '"VHGND surrounding frame"')
@@ -1004,8 +1070,17 @@ def main() -> int:
     check(
         "[VHGNDdropx]" in surface_input and "[VHGNDdropz]" in surface_input
         and surface_input.count("? A > 1600 -> VHG return too far;") == 2
-        and "[VHGnoticeptr] = VHGreturnfartext;" in surface_input,
-        "surface return requires the visible capsule and explains an out-of-range refusal",
+        and "[VHGnoticeptr] = VHGreturnfartext;" in surface_input
+        and '"VHG surface capsule proximity"' in surface_input
+        and "? A '>= 2560000 -> VHG surface capsule arm;" in surface_input
+        and "[VHGCrecover] = 1;" in surface_input
+        and "A = [VHGx]; A - [VHGNDdropx]; A / 8;" in capsule_physics
+        and "=> VHG surface capsule proximity;" in surface_input
+        and "A = [VHGCstate]; ? A = 0 -> VHG surface motion available;" in surface_input
+        and "[VHGsurfstep] = 0; [VHGsurfshift] = 0;" in surface_input
+        and capsule_recovery_trigger([(0, 0, 0), (1600, 0, 0), (1599, 0, 0)]) == 2
+        and capsule_recovery_trigger([(1200, 0, 1200), (1000, 0, 1000)]) == 1,
+        "surface capsule recovery arms outside and starts automatically on spherical re-entry",
     )
     check(
         all(token in original1 for token in (
@@ -1029,12 +1104,19 @@ def main() -> int:
     check(
         all(token in original1 for token in (
             "mouse_input ();", "if (mpul&1) step += 75 * landed;",
+            "if (sctype == ICY)", "if (mpul&1) step += 150 * landed;",
+            "if (sctype == PLAINS)", "if (mpul&1) step += 50 * landed;",
+            "if (mpul&1) step += 125 * landed;",
             "if (w == 83)", "snapshot (0, 0);",
         ))
         and all(token in surface_input for token in (
             "A = [Client Owns Mouse Pointer]; ? A = NO -> VHG surface mouse moved;",
             "A = [Pointer Status]; ? A - PD LEFT BUTTON DOWN -> VHG surface mouse moved;",
-            "A = [VHGsurfstep]; A + VHGNDSTEP; [VHGsurfstep] = A;",
+            "A = [GRiptype]; ? A = 3 -> VHG surface mouse habitable;",
+            "[VHGstepv] = 1000; -> VHG surface mouse apply;",
+            "A = [VHGNDsctype]; ? A = 4 -> VHG surface mouse ice;",
+            "[VHGstepv] = 400; -> VHG surface mouse apply;",
+            "[VHGstepv] = 1200;", "A = [VHGsurfstep]; A + [VHGstepv];",
             "A = [VHGsurfshift]; A - [VHGstepv]; [VHGsurfshift] = A;",
         ))
         and all(token in game for token in (
@@ -1042,9 +1124,10 @@ def main() -> int:
             "[VHGdeleteheld] = 1; A = [VHGmode]; ? A != 0 -> VHG raw snapshot key pressed;",
             '"VHG raw snapshot delete released"', "[VHGdeleteheld] = 0;",
         )),
-        "surface left-click walking and Delete raw snapshots restore the source aliases",
+        "surface left-click walking restores source terrain pace and Delete raw snapshots",
     )
     surface_motion = section(game, '"VHG surface motion"', '"VHG quit"')
+    surface_level = section(game, '"VHG surface level pitch"', '"VHG quit"')
     surface_clamp = section(game, '"VHG surface clamp"', '"VHG fps init"')
     held_steps, held_velocity = surface_forward_trace(600, 20)
     check(
@@ -1060,21 +1143,42 @@ def main() -> int:
         and all(token in surface_motion for token in (
             "[VHGsurfbeta] = [VHGbeta];", "[VHGstepv] = [VHGsurfshift]; => VHG strafe;",
             "[VHGstepv] = [VHGsurfstep]; => VHG forward;",
-            "A = [VHGsurfshift]; A '* 2; A '/ 3;",
-            "A = [VHGsurfstep]; A '* 4; A '/ 5;",
+            "A = [VHGsurfjet]; ? A = 0 -> VHG surface heading ready;",
+            "A = [VHGsurfshift]; A '* 2; A / 3;",
+            "A = [VHGsurfstep]; A '* 4; A / 5;",
             "[VHGsurfoldground]", "[VHGsurfnewground]", "A - 24000;",
-            "A '* C; A '/ 10000; [VHGsurfshift] = A;",
-            "A '* C; A '/ 10000; [VHGsurfstep] = A;",
+            "A = [VHGsurfjumping]; ? A != 0 -> VHG surface slope done;",
+            "A '* C; A / 10000; [VHGsurfshift] = A;",
+            "A '* C; A / 10000; [VHGsurfstep] = A;",
         ))
         and all(token in surface_clamp for token in (
             "A - 1638400; [VHGdx] = A;", "[VHGsurfradius] = 1500000;",
-            "[VHGsurfradius] = 750000;", "C = 1000000; C - A;",
+            "C = 1000000; C - A;",
             "=> FQuo;", "A + 1638400; [VHGx] = A;",
             "A + 1638400; [VHGz] = A;",
         ))
+        and "[VHGsurfradius] = 750000;" not in surface_clamp
         and held_steps[:4] == [600, 1080, 1464, 1771]
         and 2350 <= held_velocity <= 2400,
         "surface traversal restores retained momentum, friction, slope resistance, and radial bounds",
+    )
+    level_positive = surface_level_trace(40, 600, 182)
+    level_negative = surface_level_trace(-40, 600, 182)
+    check(
+        "user_alfa /= 1 + fabs(step) * 0.000064;" in original1
+        and all(token in surface_level for token in (
+            "A = [VHGsurfground]; A - 1200;",
+            "C = 125000; C + [VHGstepv]; A '/ C;",
+            "A = [VHGsurflevelacc]; A '% C;",
+            "C - A; ? C >= 0 -> VHG surface level store;",
+            "C + A; ? C <= 0 -> VHG surface level store;",
+        ))
+        and "=> VHG surface level pitch;" in surface_motion
+        and level_positive[0] == 40
+        and [level_positive[index] for index in (54, 109, 181)] == [31, 24, 17]
+        and all(value >= following for value, following in zip(level_positive, level_positive[1:]))
+        and level_negative == [-value for value in level_positive],
+        "surface walking gradually levels positive and negative pitch at the source rate",
     )
 
     brightness = section(game, '"VHG HUD brightness key"', '"VHG surface input"')
@@ -1096,7 +1200,11 @@ def main() -> int:
     check(
         "INITIAL WIDTH = 642; INITIAL HEIGHT = 426;" in game
         and "defstyle;" in game
-        and "[Work Area Manager] = service VHG repaint;" in game,
+        and "[Work Area Manager] = service VHG repaint;" in game
+        and '"VHGUI resize"' in gui
+        and "=> VHGUI resize;" not in section(game, '"service VHG repaint"', '"service VHG GUI loop"')
+        and "=> VHGUI prepare;" not in section(game, '"service VHG repaint"', '"service VHG GUI loop"')
+        and "=> VHGUI present;" not in section(game, '"service VHG repaint"', '"service VHG GUI loop"'),
         "iGUI chrome opens with an exact 2x 640x400 initial work area",
     )
     check(
@@ -1105,6 +1213,7 @@ def main() -> int:
         "the first client frame starts unfolded and later fold/unfold restores the live height",
     )
     run = section(game, '"VHG run"', '"service VHG repaint"')
+    capsule_collapse = section(game, '"VHG capsule checkpoint collapse"', '"service VHG menu controls"')
     close_action = section(igui, '"service Exit Button Action"', '"Update Slep Button Appearence"')
     check(
         run.index("=> Enter Integrated GUI;") < run.index("=> VHSV save;") < run.index("=> VHA stop;")
@@ -1113,17 +1222,30 @@ def main() -> int:
         and "? [KEY ALTERNATE] = OFF" in igui
         and "A = [KEY F4]; ? A = OFF -> VHG GUI loop frame;" in game
         and "A = [KEY ALTERNATE]; ? A = OFF -> VHG GUI loop frame;" in game
-        and "[VHGesc] = 1; [Quit Now] = YES; -> VHG GUI loop done;" in game,
+        and "[Client Exit Action] = service VHG GUI exit;" in run
+        and "[VHGesc] = 1; => VHG capsule checkpoint collapse;" in game
+        and all(token in capsule_collapse for token in (
+            "A = [VHGCstate]; A | [VHGcapsulestartpending]; A | [VHGcapsulereturnpending];",
+            "? A = 0 -> VHG capsule checkpoint collapse done;",
+            "[VHGCstate] = 0; [VHGCcapcount] = 0; [VHGCrecover] = 0;",
+            "[VHGcapsulestartpending] = 0;",
+            "[VHGcapsulereturnpending] = 0;",
+            "[VHGmode] = 1; [VHGlanded] = 1;",
+            "[VHGx] = [VHGNDdropx]; [VHGz] = [VHGNDdropz];",
+        )),
         "red close button and Alt+F4 return through checkpoint/audio cleanup",
     )
     gui_loop = section(game, '"service VHG GUI loop"', '"service VHG GUI sleepy"')
     check(
-        "[Source Layer] = Backdrop Layer; [Destination Layer] = Primary Display; => Copy L2L;" in gui_loop
-        and "[Display Command] = RETRACE; [Display Live Region] = WHOLE DISPLAY; isocall;" in gui_loop
-        and "=> Update Area;" not in gui_loop
+        "[L2L Region] = vector Work Area; => Update Area;" in gui_loop
+        and "[Display Command] = RETRACE; [Display Live Region] = WHOLE DISPLAY; isocall;" not in gui_loop
         and "[Do Not Retrace Arrow Region] = YES;" not in gui_loop
         and "=> VHG copy page;" in game,
-        "GUI explicitly publishes the complete 3-D backdrop before the outer cursor pass",
+        "GUI publishes the complete 3-D backdrop through iGUI's focus-safe update path",
+    )
+    check(
+        "A = [Display Status]; ? A - ACTIVE -> VHG GUI loop done;" in gui_loop,
+        "inactive windows retain the last completed client frame until focus returns",
     )
     check(
         "A = 0; A - 500; [VHGz] = A; [VHGbeta] = 180;" in game
@@ -1280,7 +1402,7 @@ def main() -> int:
             '? A >= 3 -> VHG info key close; [VHGinfo]+; [VHGinfodelta] = 0;',
             '[VHGinfodelta] = 0FFFFFFFCh;',
         ))
-        and game.count("=> VHG info overlay;") == 2
+        and game.count("=> VHG info overlay;") == 1
         and game.count("=> VHG source info overlay;") == 1
         and '[Rectangle Bounds] = vector VHGUIregion;' not in section(
             game, '"VHG info overlay"', '"VHG help overlay"'
@@ -1466,13 +1588,16 @@ def main() -> int:
             "E = nspray;", "[FI] = 38260;", "[GRSKbasetemp]",
             "[GRSKbasepressure]", "A = [VHGy]; A / 4000;",
             "[VHGsurftiredq]", "A '* 118; A / 10000; A + 118;",
+            "A = [VHGutcsecs]; A '/ 2; => SU fast srand;",
+            "[SUfmask] = 32767; => SU fast raw;",
+            "A '* 8; A '/ 32768;", "[VHGsurfpulsejitter]",
             '"VHG surface telemetry update"', '"VHG surface smooth field"',
             "D = VHGsurfgravdisp; C = 4;", "D = VHGsurftempdisp; C = 20;",
             "D = VHGsurfpressdisp; C = 50;", "D = VHGsurfpulsedisp; C = 100;",
         ))
         and "=> VHG text both;" not in surface_overlay
         and "=> VHG UTC timestamp; => VHG visor advance; => VHG surface telemetry update;" in game
-        and game.count("=> VHG surface telemetry overlay;") == 2
+        and game.count("=> VHG surface telemetry overlay;") == 1
         and game.count("=> VHG surface telemetry init;") == 2,
         "surface HUD restores live gravity, temperature, pressure, and pulse telemetry",
     )
@@ -1542,11 +1667,17 @@ def main() -> int:
         ))
         and all(token in surface_motion for token in (
             '"VHG surface jump request"', '"VHG surface jet request"',
-            '"VHG surface vertical"', "A = 0; A - 500; [VHGsurfvy] = A;",
+            '"VHG surface descend request"', '"VHG surface vertical"',
+            "A = 0; A - 500; [VHGsurfvy] = A;",
             "E = KEY A; E + 64;", "A = [VHGsurfvy]; A - 50;",
+            "A = [VHGsurfvy]; A + 400; [VHGsurfvy] = A;",
+            "C - [VHGsurfground]; C '* [VHGsurfaccel]; C / 300;",
             "A = [VHGsurfvy]; A + [VHGsurfaccel];",
+            "[VHGsurfbkstep] = [VHGsurfstep]; [VHGsurfbkshift] = [VHGsurfshift];",
+            "[VHGsurfstep] = [VHGsurfbkstep]; [VHGsurfshift] = [VHGsurfbkshift];",
             "[VHGy] = [VHGsurfground]; [VHGsurfvy] = 0;",
         ))
+        and "0FFFFFB50h" not in surface_motion
         and "A = [VHGsurfgravm]; A '* 2000; A '/ 38260;" in surface_telemetry
         and "VHGhelpjump = { SURFACE:CTRL:STALK / J:JUMP / SPACE:JET };" in game
         and "[VHGhelpline] = VHGhelpjump;" in game
@@ -1557,9 +1688,12 @@ def main() -> int:
     check(
         all(token in game for token in (
             '"VHG fast key"', "[KEY F5]", '"VHG cadence"',
-            "VHGSIMADD = 18206", '"VHG timing step"',
+            "VHGSIMADD = 18206", '"VHG timing step"', "=> TK read wall;",
+            "A '* VHGSIMADD; A + [VHGsimacc];", "? A '< 1000000 -> VHG cadence done;",
+            "[VHGsimwallprev] = [TKtmp]; [VHGdosim] = 1;",
         ))
         and "VHGfast = 0; VHGfastheld = 0; VHGsimacc = 0;" in game
+        and game.count("[VHGsimacc] = 1000000;") == 0
         and "A = [VHGfast]; ? A != 0 -> VHG timing fast;" in game
         and "=> TK step;" in section(game, '"VHG timing step"', '"VHG timing rebase"')
         and "[TKdeadline] = [TKnow]; [TKacc] = 0;" in game
@@ -1588,7 +1722,10 @@ def main() -> int:
         ))
         and one_frame.count('=> VHG interpolation snapshot;') == 1
         and one_frame.index('"VHG landing commit done"')
+        < one_frame.index('"VHG capsule return commit done"')
         < one_frame.index('=> VHG interpolation snapshot;')
+        and "[VHGcapsulereturnpending] = 0; => VHG return ship; => VHG fpu clean;" in one_frame
+        and one_frame.index('=> VHG interpolation snapshot;')
         < one_frame.index('=> VHG flight step;')
         < one_frame.index('=> VHG interpolation apply;')
         and one_frame.index('=> VHG interpolation snapshot;')
@@ -1618,6 +1755,11 @@ def main() -> int:
             "=> VHG load checkpoint;", "=> VHG prepare planet; => VHGND generate;",
             "=> VHGND sky; => VHG fpu clean; => VHG surface telemetry init;",
             "=> VHG surface motion reset; -> VHG load checkpoint done;",
+            '"VHG capsule checkpoint ready"',
+            "A = [VHGmode]; ? A = 0 -> VHG capsule checkpoint ready;",
+            "A = [VHGlanded]; ? A != 0 -> VHG capsule checkpoint ready;",
+            "A = [VHGCstate]; ? A != 0 -> VHG capsule checkpoint ready;",
+            "[VHGx] = [VHGNDdropx]; [VHGz] = [VHGNDdropz]; [VHGlanded] = 1;",
         ))
         and all(token in save for token in (
             "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 264;",
@@ -2488,8 +2630,9 @@ def main() -> int:
             '"VHG load original cadence"', "[VHGNDcaptures] = [VHSVcaptures];",
             '"VHG load stored capsule"', "[VHGNDdropx] = [VHGx]; [VHGNDdropz] = [VHGz];",
             "[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;",
-            "[VHGNDdropx] = [VHSVdropx]; [VHGNDdropy] = [VHSVdropy];",
-            "[VHGNDdropz] = [VHSVdropz];",
+            "[VHGNDdropx] = [VHSVdropx]; [VHGNDdropz] = [VHSVdropz];",
+            "[VHGNDcamx] = [VHGNDdropx]; [VHGNDcamz] = [VHGNDdropz]; => VHGND eye height;",
+            "A = [VHGNDheight]; A + 600; [VHGNDdropy] = A;",
             '"VHG restore window"', "[New Display Width] = [VHSVwindoww];",
             "=> Resize Display;", "=> VHG restore window;", "=> VHA apply;",
             '"VHG restore local checkpoint"', "A = [VHSVlocalstored]; ? A = 0 -> VHG load legacy local;",
@@ -2531,16 +2674,66 @@ def main() -> int:
         "general destinations get source-derived surface seeds and live plains vegetation/trees",
     )
     tree = section(ground, '"VHGND tree"', '"VHGND rock"')
+    bush = section(ground, '"VHGND bush"', '"VHGND tree direction"')
+    grass = section(ground, '"VHGND veget"', '"VHGND tree"')
     check(
-        all(token in tree for token in (
-            '"VHGND tree limb"', '"VHGND tree leaves"',
-            "[VHGNDtreebranches] = 3;", "[VHGNDtreeside] = 0;",
+        all(token in original1 for token in (
+            "fast_srand (x+y+z+3);", "int treetype = fast_random(511);",
+            "if (treetype == GIANT_TREE)", "layers - 1, divisions",
+            "fast_srand (lseed);", "lseed += 3;",
+        ))
+        and all(token in grnd for token in (
+            "GRtreepeak", "GRtreescale", "GRtreespread", "GRbranchwidth",
+            "GRrootheight", "GRrootshade", "GRtreeflares", "GRleafflares",
+            '"GR prol tree params done"',
+        ))
+        and all(token in tree for token in (
+            '"VHGND tree node enter"', '"VHGND tree node branch"',
+            '"VHGND tree terminal"', '"VHGND tree node pop"',
+            "[SUfmask] = 511; => SU frnd; [VHTkind] = C;",
+            "A = [VHTkind]; ? A = 333 -> VHGND tree giant;",
+            "[VHGNDtreelayers] = 4; [VHTforks] = 3; [VHGNDtreefaces] = 5;",
+            "A = VHGNDtslseed;", "C + 3; [A] = C;",
+            "[VHGNDtreelevel]+;", "[VHGNDtreelevel]-;",
             "[PJnrv] = 4; => PG poly3d;", "[PJnrv] = 3; => PG poly3d;",
-            "C + 192; [VHGNDtreecol] = C;", "C + 64; [VHGNDtreecol] = C;",
         ))
         and "crossed trunk" not in tree
         and "crossed leafy crown" not in tree,
-        "trees use bounded source-shaped tapered limbs and terminal leaf fans",
+        "trees retain world parameters and execute the full source branch stack",
+    )
+    check(
+        "if (y > -15000)" in original1
+        and "cespuglio (x, y, z, depth);" in original1
+        and all(token in ground for token in (
+            "A = [VHGNDooy]; C = 0; C - 15000;",
+            "? A <= C -> VHGND object tall tree;", "=> VHGND bush;",
+        ))
+        and all(token in bush for token in (
+            "[VHGNDtreescale] = 3000; [VHGNDtreerange] = 2250;",
+            "[VHGNDtreebr] = 450; [VHGNDtreeer] = 337;",
+            '"VHGND bush mask one"', '"VHGND bush mask two"',
+            "A '* 750; A '/ 32767; A + 187;",
+            "[VHGNDtreeleafrad] = 337;", "A '* 1687; A '/ 32767;",
+            "A '* 2250; A '/ 32767; [VHGNDtreeleafdrop] = A;",
+            "[VHGNDtreefaces] = 2;",
+        )),
+        "low-ground tree objects restore source-shaped depth-dependent bushes",
+    )
+    check(
+        all(token in original1 for token in (
+            "if (depth >= 4) return;", "greenmush (x, y, z, 3, 7, 1023, 216, 31, 0);",
+            "1000, 1.00, 0.25, 0, 0, 1.0", "1000, 1.00, 0.25, 0, 7, 1.0",
+        ))
+        and all(token in grass for token in (
+            "A = [VHGNDdepth]; ? A >= 4 -> VHGND veget done;",
+            "[VHGNDgrassfaces] = 3;", "[VHGNDgrassfaces] = 4;",
+            "[VHGNDgrassfaces] = 6;", "[SUfmask] = 7; => SU frnd; C + 1;",
+            '"VHGND veget distant"', "[VHGNDgrassrad] = 32;",
+            "[VHGNDgrassrange] = 1023;", "A + 511; A - C;",
+            "A '* 1000; A '/ 32767;", "[VHGNDgrassby] = A;",
+            "[VHGNDgrasstotal]-; -> VHGND veget blade;",
+        )),
+        "grass tufts restore source depth visibility, density, scale, and distant foliage",
     )
     check(
         all(token in ground for token in (
@@ -2548,11 +2741,15 @@ def main() -> int:
             '"VHGND icy snowfield"', '"VHGND icy bare"',
             '"VHGND icy hills"', '"VHGND icy bergs"',
             '"VHGND texture random"',
+            "C = 50; => SU rnd; C + 50; [VHGNDgenn] = C;",
             "[VHGNDtscale] = 128; [VHGNDtexn] = 32;",
             "[VHGNDrockscale] = 0; [VHGNDrockpeak] = 0; [VHGNDrockdensity] = 0;",
             "C + 200; [VHGNDrockscale] = C;",
             "C + 150; [VHGNDrockpeak] = C;",
-        )),
+        ))
+        and "[VHGNDgenn] = 24;" not in section(
+            ground, '"VHGND icy hills"', '"VHGND icy bergs"'
+        ),
         "desert and icy habitable worlds have distinct source-shaped terrain and textures",
     )
     check(
@@ -2636,18 +2833,22 @@ def main() -> int:
             "-37828", "1599551984L", "-11543634L",
             "make_ruins (0,1,1,2,2, 3);",
             "make_ruins (2,4,5,5,5, 2);",
+            "landing_pt_lon == 18 && landing_pt_lat == 60",
+            "ptr = 112; ptr < 112 + 25", "ptr1 = 103; ptr1 < 103 + 25",
         ))
         and all(token in ruins for token in (
             '"VHGND ruins Balas"', '"VHGND ruins Fenia"', '"VHGND ruins Ylas"',
             '"VHGND ruin tower"', '"VHGND ruin walls"', '"VHGND ruin plaza"',
             '"VHGND ruin palace"', '"VHGND ruin cross"', '"VHGND ruin dome"',
+            '"VHGND Suricrasian cube x"', '"VHGND Suricrasian cube z"',
+            "[VHGNDruinvalue] = 127", "? A = 131 -> VHGND Suricrasian cube marked;",
             "[VHGNDruinmarks]+;",
         ))
         and all(token in ground for token in (
             "VHGNDruins = 40000;", '"VHGND render ruins"', "[FI] = 512; => IntToF;",
             "A = [VHGNDshade]; A & 63; A + 64;",
         )),
-        "the three historical systems carry all six terrain-built ruin styles",
+        "the three historical systems carry all six ruin styles and the restored Cube",
     )
     check(
         all(token in ground for token in (
@@ -2715,12 +2916,12 @@ def main() -> int:
             "[PVcol] = 64; [PVreq] = 1;", "[PVcol] = 128; [PVreq] = 1;",
         ))
         and all(token in ground for token in (
-            '"VHGND animals setup"', "? A = 1 -> VHGND animals setup done;",
+            '"VHGND animals setup"', "? A != 3 -> VHGND animals setup done;",
             "? A > 150000 -> VHGND animal next;", "? A '<= 250000 -> VHGND animal ranged;",
         ))
         and all(token in animals for token in (
             "[PVh] = 3; [PVk] = 2; => SP copypv;", "=> SP modpv;",
-            "A '* 6; A + VHGNDanidata;", "[VHGNDanimtype] = [C plus 4];",
+            "A '* 7; A + VHGNDanidata;", "[VHGNDanimtype] = [C plus 4];",
             "[MOpid] = 16; [MOvid] = 2;", "=> VHGND mamm rear list;",
             "[DWmode] = 0; [DWuds] = 1;", "=> SP drawpv;", "=> VH join mode0;",
         ))
@@ -2740,7 +2941,7 @@ def main() -> int:
         ))
         and all(token in birds for token in (
             "[PVh] = 5; [PVk] = 4; => SP copypv;",
-            "A '* 7; A + VHGNDbirddata;", "[VHGNDbirdlcount] = [C plus 6];",
+            "A '* 8; A + VHGNDbirddata;", "[VHGNDbirdlcount] = [C plus 6];",
             '"VHGND bird near 3000"', '"VHGND bird catch range"',
             "[VHGNDplayerstep]", "? A '<= 250", "? A '<= 100",
             "? A '>= 500 -> VHGND bird habits;",

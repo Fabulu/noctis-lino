@@ -164,6 +164,8 @@
 	VHGutcsecs = 0; VHGutcdays = 0; VHGutcmonthbase = 0;
 	VHGsavedsecs = 0; VHGelapsed = 0; VHGofflinegain = 0;
 	VHGmode = 0; VHGlanded = 0;
+	VHGcapsulestartpending = 0;
+	VHGcapsulereturnpending = 0;
 	VHGplanet = 0; VHGptype = 0; VHGlandpending = 0;
 	VHGlandingselect = 0; VHGlandingview = 1; VHGlandinglon = 0; VHGlandinglat = 60;
 	VHGshipx = 0; VHGshipy = 0; VHGshipz = 0;
@@ -189,17 +191,19 @@
 	VHGwallstart = 0; VHGwallelapsed = 0;
 	VHGloopcalls = 0; VHGtimingcalls = 0;
 	VHGsentframes = 0;
-	VHGpodrange = 0; VHGpoddx = 0; VHGpoddz = 0;
+	VHGpodrange = 0; VHGpoddx = 0; VHGpoddy = 0; VHGpoddz = 0; VHGpodrangesq = 0;
 	VHGpodabsx = 0; VHGpodabsz = 0; VHGpodbearing = 0; VHGpodview = 0; VHGpoddelta = 0;
 	VHGsurfgravm = 0; VHGsurftempt = 0; VHGsurfpressm = 0;
-	VHGsurfpulse = 118; VHGsurftiredq = 0; VHGsurftempnow = 0;
+	VHGsurfpulse = 118; VHGsurfpulsejitter = 0; VHGsurftiredq = 0; VHGsurftempnow = 0;
 	VHGsurfgravdisp = 1000; VHGsurftempdisp = 220; VHGsurfpressdisp = 1000; VHGsurfpulsedisp = 118;
 	VHGsurfsmoothden = 0;
 	VHGsurfground = 0; VHGsurfvy = 0; VHGsurfaccel = 1;
-	VHGsurfair = 0; VHGsurfjet = 0;
+	VHGsurfair = 0; VHGsurfjet = 0; VHGsurfjumping = 0;
 	VHGsurfacefixed = 0; VHGsurfstep = 0; VHGsurfshift = 0; VHGsurfbeta = 0;
+	VHGsurfbkstep = 0; VHGsurfbkshift = 0;
 	VHGsurfrefx = 0; VHGsurfrefz = 0; VHGsurfoldground = 0; VHGsurfnewground = 0;
-	VHGsurfuphillq = 0; VHGsurftiredr = 0; VHGsurfradius = 0; VHGsurfscale = 0;
+	VHGsurfuphillq = 0; VHGsurftiredr = 0; VHGsurflevelacc = 0;
+	VHGsurfradius = 0; VHGsurfscale = 0;
 	VHGkindi = 0;
 	VHGinfo = 0; VHGinfoheld = 0; VHGinfoy = 0; VHGinfoline = 0; VHGinfovalue = 0;
 	VHGinfoscroll = 0; VHGinfodelta = 0; VHGinfowidth = 0; VHGinfomax = 0;
@@ -271,6 +275,7 @@
 	( Present at the original 18.206 Hz by default. F5 opts into the 60-Hz
 	  presenter; gameplay simulation remains 18.206 Hz in either mode. )
 	VHGfast = 0; VHGfastheld = 0; VHGsimacc = 0; VHGdosim = 1;
+	VHGsimwallprev = 0; VHGsimwallelapsed = 0;
 	VHGinterpok = 0; VHGinterpacc = 0; VHGinterpapplied = 0;
 	VHGinterpx = 0; VHGinterpy = 0; VHGinterpz = 0;
 	VHGinterpalpha = 0; VHGinterpbeta = 0;
@@ -279,6 +284,7 @@
 	VHGinterprenderx = 0; VHGinterprenderz = 0; VHGinterprenderalpha = 0;
 	VHGinterpeffectx = 0; VHGinterpeffectz = 0; VHGinterpeffectalpha = 0;
 	VHGsaveheld = 0; VHGloadheld = 0; VHGmusicheld = 0; VHGnoticeptr = 0; VHGnoticeframes = 0;
+	VHGmovew = 0; VHGmovea = 0; VHGmoves = 0; VHGmoved = 0;
 	VHGsnapshotnext = 1; VHGsnapshotnumber = 0; VHGsnapshotvalue = 0;
 	VHGsnapshotden = 0; VHGsnapshotpos = 0; VHGsnapshotrow = 0; VHGsnapshotcol = 0;
 	VHGsnapshotfilepos = 0; VHGsnapshotsrc = 0; VHGsnapshotdst = 0; VHGsnapshotready = 0;
@@ -1101,8 +1107,10 @@
 	[Control Loop] = service VHG GUI loop;
 	[Sleepy Control Loop] = service VHG GUI sleepy;
 	[Client Return Action] = service VHG GUI return;
+	[Client Exit Action] = service VHG GUI exit;
 	=> TK read wall; [VHGwallstart] = [TKtmp];
 	=> Enter Integrated GUI;
+	=> VHG capsule checkpoint collapse;
 	=> VHSV save;
 	=> VHA stop;
 	[Display Live Region] = VOID REGION;
@@ -1110,37 +1118,27 @@
 	end;
 
 "service VHG repaint"
-	=> VHGUI prepare;
-	=> VHG fps overlay;
-	=> VHG energy overlay;
-	=> VHG pod overlay;
-	=> VHG surface telemetry overlay;
-	=> VHG FCS overlay;
-	=> VHG body overlay;
-	=> VHG output overlay;
-	=> VHG landing overlay;
-	=> VHG console overlay;
-	=> VHG notice overlay;
-	=> VHG info overlay;
-	=> VHG FCS menu overlay;
-	=> VHG preferences overlay;
-	=> VHG device overlay;
-	=> VHG movie overlay;
-	=> VHG graphics overlay;
-	=> VHG help overlay;
-	=> VHG about overlay;
-	=> VHGUI present;
+	( Work Area Manager is re-entrant: Windows can invoke it from an isocall
+	  while the normal presenter owns VHGUI's row counters and pointers.  Any
+	  resize, compose, layer copy, or present here corrupts that interrupted
+	  frame.  The ordinary control loop recomputes geometry and publishes the
+	  completed frame continuously, so the only safe callback is state-free. )
 	end;
 
 "service VHG GUI loop"
 	A = [Fold Is Active]; ? A != NO -> VHG GUI loop done;
+	( Do not advance or publish a client frame while the legacy cooperative
+	  display is inactive.  Its iGUI chrome may still repaint, but the complete
+	  game backdrop remains the last active frame until focus returns. )
+	A = [Display Status]; ? A - ACTIVE -> VHG GUI loop done;
 	( Windows converts Alt+F4 into WM_CLOSE before iGUI's enhanced-key
 	  session can serve F4, and this runtime discards that message.  Poll the
 	  live keyboard map here so the standard chord still takes the same clean
 	  save/audio-shutdown path as Esc and the red exit button. )
 	A = [KEY F4]; ? A = OFF -> VHG GUI loop frame;
 	A = [KEY ALTERNATE]; ? A = OFF -> VHG GUI loop frame;
-	[VHGesc] = 1; [Quit Now] = YES; -> VHG GUI loop done;
+	[VHGesc] = 1; => VHG capsule checkpoint collapse;
+	[Quit Now] = YES; -> VHG GUI loop done;
 	"VHG GUI loop frame"
 		[VHGloopcalls]+;
 		=> VHG one frame;
@@ -1171,19 +1169,18 @@
 		=> VHG wide advance;
 		[VHGsnapshotready] = 1;
 		=> VHGUI present;
-		( Publish the completed window explicitly.  Update Area may be disabled
-		  while iGUI is inside its own control-loop preparation; in that state it
-		  silently leaves Primary on the earlier HUD-only page even though the
-		  complete 3-D frame is present in Backdrop.  Copying the two owned layers
-		  here is the authoritative handoff, and the outer End Control Loop adds
-		  the pointer afterward. )
+		( Hand the completed Backdrop page to iGUI through its supported update
+		  path.  Calling RETRACE directly from the client control callback races
+		  the runtime's cooperative-display activation transition and crashes on
+		  an ordinary focus change.  Update Area also preserves iGUI's cursor
+		  save/restore ordering. )
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 		A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofpresent]; [VHGprofpresent] = A;
-		[Source Layer] = Backdrop Layer; [Destination Layer] = Primary Display; => Copy L2L;
-		[Display Command] = RETRACE; [Display Live Region] = WHOLE DISPLAY; isocall;
+		[L2L Region] = vector Work Area; => Update Area;
 		=> VHG timing step;
 	=> VHG fps tick;
 	A = [VHGesc]; ? A = 0 -> VHG GUI loop done;
+	=> VHG capsule checkpoint collapse;
 	[Quit Now] = YES;
     "VHG GUI loop done"
 	end;
@@ -1197,6 +1194,28 @@
 	[VHGreturnpending] = 1;
     "VHG GUI return done"
 	leave;
+
+"service VHG GUI exit"
+	=> VHG capsule checkpoint collapse;
+	leave;
+
+"VHG capsule checkpoint collapse"
+	( Capsule animation state is deliberately transient and F6 refuses to save
+	  it. Collapse a host close/Escape during descent or recovery to the same
+	  deterministic settled checkpoint used by startup repair before iGUI begins
+	  unwinding the cooperative display. )
+	A = [VHGCstate]; A | [VHGcapsulestartpending]; A | [VHGcapsulereturnpending];
+	? A = 0 -> VHG capsule checkpoint collapse done;
+	[VHGCstate] = 0; [VHGCcapcount] = 0; [VHGCrecover] = 0;
+	[VHGcapsulestartpending] = 0;
+	[VHGcapsulereturnpending] = 0;
+	[VHGmode] = 1; [VHGlanded] = 1;
+	[VHGx] = [VHGNDdropx]; [VHGz] = [VHGNDdropz];
+	A = [VHGNDdropy]; A - 600; [VHGy] = A;
+	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfjumping] = 0; [VHGsurfvy] = 0;
+	[VHGsurfstep] = 0; [VHGsurfshift] = 0;
+    "VHG capsule checkpoint collapse done"
+	end;
 
 "service VHG menu controls"
 	=> VHG toggle help action;
@@ -1259,7 +1278,7 @@
 
 "service VHG menu quit"
 	( Enter Integrated GUI returns through the normal save/audio cleanup. )
-	[VHGesc] = 1; [Quit Now] = YES;
+	[VHGesc] = 1; => VHG capsule checkpoint collapse; [Quit Now] = YES;
 	end;
 
 "VHG one frame"
@@ -1267,6 +1286,12 @@
 	=> VHG interpolation advance;
 	=> VHG fpu clean;
 	=> VHG SL advance; => VHG DL advance; => VHG fpu clean;
+	( Automatic walk-in recovery is discovered at the tail of surface input.
+	  Start the sealing state here at the next clean frame boundary so terrain
+	  traversal never observes a half-transitioned input pose. )
+	A = [VHGcapsulestartpending]; ? A = 0 -> VHG capsule start commit done;
+	[VHGcapsulestartpending] = 0; => VHGC start return; => VHG fpu clean;
+    "VHG capsule start commit done"
 	( Commit a landing at a clean frame boundary.  The accepted L event is
 	  discovered after the ship and close-approach globe have rendered; doing
 	  terrain/sky construction in that same renderer frame can carry stale
@@ -1274,6 +1299,20 @@
 	A = [VHGlandpending]; ? A = 0 -> VHG landing commit done;
 	[VHGlandpending] = 0; => VHG land; => VHG fpu clean;
     "VHG landing commit done"
+	A = [VHGcapsulereturnpending]; ? A = 0 -> VHG capsule return commit done;
+	[VHGcapsulereturnpending] = 0; => VHG return ship; => VHG fpu clean;
+    "VHG capsule return commit done"
+	( Checkpoints do not retain VHGCstate.  If a session ended during descent or
+	  recovery, loading necessarily yields the otherwise-impossible combination
+	  surface mode + airborne + idle capsule.  Settle that orphaned transition
+	  before simulation/render/input can observe it.  Active descent/ascent has
+	  state 1/2 and is deliberately untouched. )
+	A = [VHGmode]; ? A = 0 -> VHG capsule checkpoint ready;
+	A = [VHGlanded]; ? A != 0 -> VHG capsule checkpoint ready;
+	A = [VHGCstate]; ? A != 0 -> VHG capsule checkpoint ready;
+	[VHGx] = [VHGNDdropx]; [VHGz] = [VHGNDdropz]; [VHGlanded] = 1;
+	=> VHG surface motion reset;
+    "VHG capsule checkpoint ready"
 		( Capture the last authoritative pose before flight, lift, capsule, and
 		  surface simulation advance it.  The old post-render capture could only
 		  smooth movement applied later by input, leaving every autonomous pose
@@ -2867,8 +2906,15 @@
     "VHG input escape sl"
 	=> VHG SL cancel; -> VHG input done;
     "VHG input done"
+	( The shared early-exit path is also used while a planetary capsule owns
+	  the camera (mode=surface, landed=0).  Ship bounds and the Stardrifter
+	  lift are invalid there: clamping a 1.6-million-unit terrain coordinate
+	  to the interior corner teleports the capsule camera off its terrain tile
+	  and produces an apparent fall through the ground. )
+	A = [VHGmode]; ? A != 0 -> VHG input cleanup done;
 	=> VHG clamp position;
 	=> VHG platform;
+	"VHG input cleanup done"
 	end;
 
 "VHG landing selector input"
@@ -3253,16 +3299,19 @@
 	end;
 
     "VHG surface input"
-	( R returns to the Stardrifter; the same standard WASD/arrows remain
-	  active while walking. The source's digit-selected fixed advancement is
-	  additive, so it can cruise while manual forward/backward input continues. )
+	( Returning to the Stardrifter is automatic, as in NOCTIS-1.CPP. R remains
+	  an accessibility shortcut while the standard WASD/arrows stay active.
+	  The source's digit-selected fixed advancement is additive, so it can
+	  cruise while manual forward/backward input continues. )
 	A = [VHGlanded]; ? A = 0 -> VHG input done;
 	A = [VHGwidephase]; ? A != 0 -> VHG surface input done;
+	=> VHG movement ascii latch;
 	=> VHG surface pace key;
 	A = [VHGascii]; ? A = 82 -> VHG request return; ? A = 114 -> VHG request return;
 	? A = 74 -> VHG surface jump request; ? A = 106 -> VHG surface jump request;
 	? A = 32 -> VHG surface jet request;
 	? A = 67 -> VHG surface jet cancel; ? A = 99 -> VHG surface jet cancel;
+	? A = 76 -> VHG surface descend request; ? A = 108 -> VHG surface descend request;
 	-> VHG surface look;
     "VHG request return"
 	( Like the original recovery sequence, launch is available only after
@@ -3285,17 +3334,28 @@
     "VHG surface jump request"
 	A = [VHGsurfair]; ? A != 0 -> VHG surface look;
 	A = 0; A - 500; [VHGsurfvy] = A;
-	[VHGsurfair] = 1; [VHGsurfjet] = 0;
+	[VHGsurfair] = 1; [VHGsurfjet] = 0; [VHGsurfjumping] = 1;
 	[VHGnoticeptr] = VHGjumptext; [VHGnoticeframes] = 30;
 	-> VHG surface look;
     "VHG surface jet request"
-	A = [VHGsurfair]; ? A != 0 -> VHG surface jet arm;
-	A = 0; A - 500; [VHGsurfvy] = A; [VHGsurfair] = 1;
+	A = [VHGsurfground]; A - 150; C = [VHGy]; ? C '<= A -> VHG surface jet arm;
+	A = 0; A - 500; [VHGsurfvy] = A; [VHGsurfair] = 1; [VHGsurfjumping] = 1;
+	( The source's first ground pulse launches at -500 but does not arm
+	  steering thrust until the walker is at least 150 units above ground. )
+	[VHGsurfjet] = 0; [VHGnoticeptr] = VHGjettext; [VHGnoticeframes] = 30;
+	-> VHG surface look;
     "VHG surface jet arm"
 	[VHGsurfjet] = 1; [VHGnoticeptr] = VHGjettext; [VHGnoticeframes] = 30;
 	-> VHG surface look;
     "VHG surface jet cancel"
 	[VHGsurfjet] = 0; [VHGnoticeptr] = VHGjetofftext; [VHGnoticeframes] = 30;
+	-> VHG surface look;
+    "VHG surface descend request"
+	( NIV+ L adds 400 downward velocity whenever the walker is no more than
+	  ten units below the terrain plane. On the ground the following clamp
+	  absorbs it; in flight it provides the original fast-descent control. )
+	A = [VHGsurfground]; A + 10; C = [VHGy]; ? C '>= A -> VHG surface look;
+	A = [VHGsurfvy]; A + 400; [VHGsurfvy] = A;
 	-> VHG surface look;
 "VHG surface look"
 	A = [VHGdosim]; ? A = 0 -> VHG surface input done;
@@ -3315,15 +3375,24 @@
     "VHG surface beta high"
 	A = [VHGbeta]; ? A >= VHGN180 -> VHG surface beta low; A + 360; [VHGbeta] = A;
     "VHG surface beta low"
+	( opencapdelta freezes autonomous motion while the capsule seals. Keep
+	  looking active, but do not let held walking input fight the 1/8 pull. )
+	A = [VHGCstate]; ? A = 0 -> VHG surface motion available;
+	[VHGsurfstep] = 0; [VHGsurfshift] = 0; -> VHG surface input done;
+    "VHG surface motion available"
 	A = [VHGlanded]; ? A = 0 -> VHG surface input done;
 	( NOCTIS-1.CPP:3783-3900 accumulates input into retained forward and
 	  lateral motion. Movement, friction, slope resistance, and the launch
 	  heading are applied together after all input has been sampled. )
 	A = [VHGsurfstep]; A + [VHGsurfacefixed]; [VHGsurfstep] = A;
+	( Source backups occur after fixed cruise but before mouse/manual input.
+	  An ordinary jump restores them, while an armed jetpack accepts steering. )
+	[VHGsurfbkstep] = [VHGsurfstep]; [VHGsurfbkshift] = [VHGsurfshift];
     "VHG surface cruise moved"
-	( NOCTIS-1.CPP adds 75 source units while the left mouse button is held
-	  during ordinary surface walking. Keep the port's established eightfold
-	  terrain scale and leave clicks over chrome or an open overlay untouched. )
+	( NOCTIS-1.CPP:3798-3832 changes held-left walking by the terrain under
+	  the player. Preserve its 50/75/125/150 source impulses at this port's
+	  established eightfold terrain scale, and leave clicks over chrome or an
+	  open overlay untouched. )
 	A = [Client Owns Mouse Pointer]; ? A = NO -> VHG surface mouse moved;
 	A = [VHGgraphics]; A | [VHGmovieview]; A | [VHGhelpshow];
 	? A != 0 -> VHG surface mouse moved;
@@ -3332,27 +3401,71 @@
 	A = [Pointer Y Coordinate]; ? A < [VHGUItop] -> VHG surface mouse moved;
 	C = [VHGUItop]; C + [VHGUIdh]; ? A '>= C -> VHG surface mouse moved;
 	A = [Pointer Status]; ? A - PD LEFT BUTTON DOWN -> VHG surface mouse moved;
-	A = [VHGsurfstep]; A + VHGNDSTEP; [VHGsurfstep] = A;
+	[VHGstepv] = VHGNDSTEP;
+	A = [VHGy]; ? A != 0 -> VHG surface mouse apply;
+	A = [GRiptype]; ? A = 3 -> VHG surface mouse habitable;
+	[VHGstepv] = 1000; -> VHG surface mouse apply;
+    "VHG surface mouse habitable"
+	A = [VHGNDsctype]; ? A = 4 -> VHG surface mouse ice;
+	? A = 2 -> VHG surface mouse apply;
+	[VHGstepv] = 400; -> VHG surface mouse apply;
+    "VHG surface mouse ice"
+	[VHGstepv] = 1200;
+    "VHG surface mouse apply"
+	A = [VHGsurfstep]; A + [VHGstepv]; [VHGsurfstep] = A;
     "VHG surface mouse moved"
 	[VHGstepv] = VHGNDSTEP;
 	A = [KEY CONTROL]; ? A = OFF -> VHG surface pace ready; [VHGstepv] = VHGNDSTALK;
     "VHG surface pace ready"
-	A = [KEY W]; ? A = OFF -> VHG surface no W;
+	A = [KEY W]; ? A = ON -> VHG surface do W;
+	A = [VHGmovew]; ? A = 0 -> VHG surface no W;
+    "VHG surface do W"
 	A = [VHGsurfstep]; A + [VHGstepv]; [VHGsurfstep] = A;
     "VHG surface no W"
-	A = [KEY S]; ? A = OFF -> VHG surface no S;
+	A = [KEY S]; ? A = ON -> VHG surface do S;
+	A = [VHGmoves]; ? A = 0 -> VHG surface no S;
+    "VHG surface do S"
 	A = [VHGsurfstep]; A - [VHGstepv]; [VHGsurfstep] = A;
     "VHG surface no S"
-	A = [KEY A]; ? A = OFF -> VHG surface no A;
+	A = [KEY A]; ? A = ON -> VHG surface do A;
+	A = [VHGmovea]; ? A = 0 -> VHG surface no A;
+    "VHG surface do A"
 	A = [VHGsurfshift]; A - [VHGstepv]; [VHGsurfshift] = A;
     "VHG surface no A"
-	A = [KEY D]; ? A = OFF -> VHG surface moved;
+	A = [KEY D]; ? A = ON -> VHG surface do D;
+	A = [VHGmoved]; ? A = 0 -> VHG surface moved;
+    "VHG surface do D"
 	A = [VHGsurfshift]; A + [VHGstepv]; [VHGsurfshift] = A;
     "VHG surface moved"
+	[VHGmovew] = 0; [VHGmovea] = 0; [VHGmoves] = 0; [VHGmoved] = 0;
+	A = [VHGsurfair]; ? A = 0 -> VHG surface movement sampled;
+	A = [VHGsurfjet]; ? A != 0 -> VHG surface movement sampled;
+	[VHGsurfstep] = [VHGsurfbkstep]; [VHGsurfshift] = [VHGsurfbkshift];
+    "VHG surface movement sampled"
 	=> VHG surface motion;
 	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
 	[VHGsurfground] = [VHGNDheight]; => VHG surface vertical;
+	=> VHG surface capsule proximity;
     "VHG surface input done"
+	end;
+
+"VHG movement ascii latch"
+	( LUCK supplies true held-key state on supported hosts.  The windowed
+	  runtime also emits ordinary letters through its console ring; retain one
+	  such event until the next 18.206-Hz simulation tick so a character read
+	  on either intervening presentation frame cannot be lost. )
+	A = [VHGascii]; ? A = 87 -> VHG movement ascii W; ? A = 119 -> VHG movement ascii W;
+	? A = 65 -> VHG movement ascii A; ? A = 97 -> VHG movement ascii A;
+	? A = 83 -> VHG movement ascii S; ? A = 115 -> VHG movement ascii S;
+	? A = 68 -> VHG movement ascii D; ? A = 100 -> VHG movement ascii D; end;
+    "VHG movement ascii W"
+	[VHGmovew] = 1; end;
+    "VHG movement ascii A"
+	[VHGmovea] = 1; end;
+    "VHG movement ascii S"
+	[VHGmoves] = 1; end;
+    "VHG movement ascii D"
+	[VHGmoved] = 1;
 	end;
 
 "VHG surface pace key"
@@ -3370,34 +3483,69 @@
 	end;
 
 "VHG surface vertical"
-	( NIV+ starts both J and the first jetpack pulse at -500, then applies
-	  p_ray*2000 gravity.  The telemetry cache holds p_ray*38260, so its
-	  integer ratio supplies the same body-dependent acceleration. )
+	( NIV+ starts J and the first jetpack pulse at -500, applies repeated -50
+	  thrust without a port-specific cap, and uses a 300-unit near-ground
+	  spring before the full p_ray*2000 acceleration. )
 	A = [VHGsurfair]; ? A = 0 -> VHG surface vertical grounded;
-	A = [VHGsurfjet]; ? A = 0 -> VHG surface vertical gravity;
 	( Physical SPACE is KEY A+64, the same mapping used by ASCII debounce.
-	  Holding it supplies the source's repeated -50 jetpack impulses. )
-	E = KEY A; E + 64; A = [E]; ? A = OFF -> VHG surface vertical gravity;
-	A = [VHGsurfvy]; A - 50; ? A >= 0FFFFFB50h -> VHG surface thrust ready;
-	A = 0FFFFFB50h;	( -1200: bound sustained thrust inside renderer range )
-    "VHG surface thrust ready"
-	[VHGsurfvy] = A;
-    "VHG surface vertical gravity"
+	  Once 150 units clear, holding it arms steering and supplies -50. )
+	E = KEY A; E + 64; A = [E]; ? A = OFF -> VHG surface vertical move;
+	A = [VHGy]; C = [VHGsurfground]; C - 150; ? A '> C -> VHG surface vertical move;
+	[VHGsurfjet] = 1; [VHGsurfjumping] = 1;
+	A = [VHGsurfvy]; A - 50; [VHGsurfvy] = A;
+    "VHG surface vertical move"
 	A = [VHGy]; A + [VHGsurfvy]; [VHGy] = A;
+	A = [VHGy]; ? A '< [VHGsurfground] -> VHG surface vertical airborne;
+	[VHGy] = [VHGsurfground]; [VHGsurfvy] = 0;
+	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfjumping] = 0; end;
+    "VHG surface vertical airborne"
+	A = [VHGsurfground]; A - 300; C = [VHGy]; ? C '<= A -> VHG surface vertical full gravity;
+	C - [VHGsurfground]; C '* [VHGsurfaccel]; C / 300;
+	A = [VHGsurfvy]; A + C; [VHGsurfvy] = A; -> VHG surface vertical flight state;
+    "VHG surface vertical full gravity"
 	A = [VHGsurfvy]; A + [VHGsurfaccel]; [VHGsurfvy] = A;
-	A = [VHGy]; ? A '< [VHGsurfground] -> VHG surface vertical done;
-	[VHGy] = [VHGsurfground]; [VHGsurfvy] = 0;
-	[VHGsurfair] = 0; [VHGsurfjet] = 0; end;
+    "VHG surface vertical flight state"
+	A = [VHGsurfground]; A - 200; C = [VHGy]; ? C '> A -> VHG surface vertical near ground;
+	[VHGsurfjumping] = 1; -> VHG surface vertical done;
+    "VHG surface vertical near ground"
+	[VHGsurfjumping] = 0; [VHGsurfjet] = 0; -> VHG surface vertical done;
     "VHG surface vertical grounded"
-	[VHGy] = [VHGsurfground]; [VHGsurfvy] = 0;
+	[VHGy] = [VHGsurfground]; [VHGsurfvy] = 0; [VHGsurfjumping] = 0;
     "VHG surface vertical done"
+	end;
+
+"VHG surface capsule proximity"
+	( NOCTIS-1.CPP:4214-4228. The first excursion outside the pod's
+	  1600-unit sphere arms recovery. Re-entering that sphere then pulls the
+	  player one eighth toward the pod and starts its source-rate closure. )
+	A = [VHGCstate]; ? A != 0 -> VHG surface capsule proximity done;
+	A = [VHGx]; A - [VHGNDdropx]; [VHGpoddx] = A;
+	? A >= 0 -> VHG surface capsule x absolute; C = 0; C - A; A = C;
+    "VHG surface capsule x absolute"
+	? A '>= 1600 -> VHG surface capsule arm; C = A; A '* C; [VHGpodrangesq] = A;
+	A = [VHGNDdropy]; A - 600; C = [VHGy]; C - A; [VHGpoddy] = C; A = C;
+	? A >= 0 -> VHG surface capsule y absolute; C = 0; C - A; A = C;
+    "VHG surface capsule y absolute"
+	? A '>= 1600 -> VHG surface capsule arm; C = A; A '* C; C = [VHGpodrangesq]; C + A; [VHGpodrangesq] = C;
+	A = [VHGz]; A - [VHGNDdropz]; [VHGpoddz] = A;
+	? A >= 0 -> VHG surface capsule z absolute; C = 0; C - A; A = C;
+    "VHG surface capsule z absolute"
+	? A '>= 1600 -> VHG surface capsule arm; C = A; A '* C; A + [VHGpodrangesq];
+	? A '>= 2560000 -> VHG surface capsule arm;
+	A = [VHGCrecover]; ? A = 0 -> VHG surface capsule proximity done;
+	[VHGcapsulestartpending] = 1; -> VHG surface capsule proximity done;
+    "VHG surface capsule arm"
+	[VHGCrecover] = 1;
+    "VHG surface capsule proximity done"
 	end;
 
 "VHG surface motion"
 	( Exact source ordering: retain the movement heading while airborne,
 	  move with the old velocity, apply ground friction, then undo and replay
 	  a steep uphill step with its reduced velocity. )
-	A = [VHGsurfair]; ? A != 0 -> VHG surface heading ready;
+	A = [VHGsurfair]; ? A = 0 -> VHG surface heading update;
+	A = [VHGsurfjet]; ? A = 0 -> VHG surface heading ready;
+    "VHG surface heading update"
 	[VHGsurfbeta] = [VHGbeta];
     "VHG surface heading ready"
 	[VHGsurfrefx] = [VHGx]; [VHGsurfrefz] = [VHGz];
@@ -3408,33 +3556,36 @@
 	[VHGstepv] = [VHGsurfshift]; => VHG strafe;
 	[VHGstepv] = [VHGsurfstep]; => VHG forward;
 	A = [VHGsurfair]; ? A != 0 -> VHG surface friction done;
-	A = [VHGsurfshift]; A '* 2; A '/ 3; [VHGsurfshift] = A;
+	( These retained velocities can be negative.  Linoleum apostrophe division
+	  is unsigned, so ordinary signed division is required here and below. )
+	A = [VHGsurfshift]; A '* 2; A / 3; [VHGsurfshift] = A;
 	? A >= 0 -> VHG surface shift absolute; C = 0; C - A; A = C;
     "VHG surface shift absolute"
 	? A >= 4 -> VHG surface shift retained; [VHGsurfshift] = 0;
     "VHG surface shift retained"
-	A = [VHGsurfstep]; A '* 4; A '/ 5; [VHGsurfstep] = A;
+	A = [VHGsurfstep]; A '* 4; A / 5; [VHGsurfstep] = A;
 	? A >= 0 -> VHG surface step absolute friction; C = 0; C - A; A = C;
     "VHG surface step absolute friction"
 	? A >= 4 -> VHG surface friction done; [VHGsurfstep] = 0;
     "VHG surface friction done"
-	A = [VHGsurfair]; ? A != 0 -> VHG surface slope done;
+	A = [VHGsurfjumping]; ? A != 0 -> VHG surface slope done;
 	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
 	[VHGsurfnewground] = [VHGNDheight];
 	A = [VHGsurfoldground]; A - [VHGsurfnewground];
-	A '* [VHGsurfgravm]; A '* 12; A '/ 100; A - 24000;
+	A '* [VHGsurfgravm]; A '* 12; A / 100; A - 24000;
 	? A <= 0 -> VHG surface slope done; ? A <= 10000 -> VHG surface slope square; A = 10000;
 	-> VHG surface slope factor ready;
     "VHG surface slope square"
 	C = A; A '* C; A '/ 10000;
     "VHG surface slope factor ready"
 	[VHGsurfuphillq] = A; C = 10000; C - A;
-	A = [VHGsurfshift]; A '* C; A '/ 10000; [VHGsurfshift] = A;
-	A = [VHGsurfstep]; A '* C; A '/ 10000; [VHGsurfstep] = A;
+	A = [VHGsurfshift]; A '* C; A / 10000; [VHGsurfshift] = A;
+	A = [VHGsurfstep]; A '* C; A / 10000; [VHGsurfstep] = A;
 	[VHGx] = [VHGsurfrefx]; [VHGz] = [VHGsurfrefz];
 	[VHGstepv] = [VHGsurfshift]; => VHG strafe;
 	[VHGstepv] = [VHGsurfstep]; => VHG forward;
     "VHG surface slope done"
+	=> VHG surface level pitch;
 	( Q10000 tiredness uses the source's retained forward step. The remainder
 	  preserves sub-unit rises after converting from the eightfold port scale. )
 	A = [VHGsurftiredq]; A '* 9977; A '/ 10000; [VHGsurftiredq] = A;
@@ -3448,8 +3599,38 @@
 	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
 	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
 	end;
+
+"VHG surface level pitch"
+	( NOCTIS-1.CPP levels user_alfa by
+	      alfa /= 1 + fabs(step) * 0.000064
+	  while the walker is within 1200 vertical units of the ground. Surface
+	  X/Z motion is eightfold in this adapter, so the same ratio is
+	  125000/(125000+abs(port_step)). Retain the fractional decrement as an
+	  accumulator so the integer camera approaches level gradually instead of
+	  snapping by a whole degree every source tick. )
+	A = [VHGsurfground]; A - 1200; C = [VHGy]; ? C '<= A -> VHG surface level done;
+	A = [VHGsurfstep]; ? A >= 0 -> VHG surface level speed; C = 0; C - A; A = C;
+    "VHG surface level speed"
+	[VHGstepv] = A; ? A = 0 -> VHG surface level done;
+	C = [VHGalpha]; ? C != 0 -> VHG surface level active;
+	[VHGsurflevelacc] = 0; -> VHG surface level done;
+    "VHG surface level active"
+	A = C; ? A >= 0 -> VHG surface level alpha absolute; A +-;
+    "VHG surface level alpha absolute"
+	A '* [VHGstepv]; A + [VHGsurflevelacc]; [VHGsurflevelacc] = A;
+	C = 125000; C + [VHGstepv]; A '/ C; [VHGsurfscale] = A;
+	A = [VHGsurflevelacc]; A '% C; [VHGsurflevelacc] = A;
+	A = [VHGsurfscale]; ? A = 0 -> VHG surface level done;
+	C = [VHGalpha]; ? C < 0 -> VHG surface level negative;
+	C - A; ? C >= 0 -> VHG surface level store; C = 0; -> VHG surface level store;
+    "VHG surface level negative"
+	C + A; ? C <= 0 -> VHG surface level store; C = 0;
+    "VHG surface level store"
+	[VHGalpha] = C;
+    "VHG surface level done"
+	end;
     "VHG quit"
-	[VHGesc] = 1;
+	=> VHG capsule checkpoint collapse; [VHGesc] = 1;
 	end;
 
 "VHG forward"
@@ -6341,9 +6522,9 @@
 	[VHGamptick] = 0; [VHGfindertick] = 0; [VHGsynctick] = 0;
 	( Reconcile persisted user-facing settings with live timer/audio state. )
 	A = [VHGfast]; ? A = 0 -> VHG load original cadence;
-	[VHGsimacc] = VHGSIMDEN; -> VHG load cadence ready;
+	[VHGsimacc] = 0; [VHGsimwallprev] = 0; -> VHG load cadence ready;
     "VHG load original cadence"
-	[VHGsimacc] = 0; => TK period;
+	[VHGsimacc] = 0; [VHGsimwallprev] = 0; => TK period;
     "VHG load cadence ready"
 	=> VHG timing rebase;
 	=> VHA apply;
@@ -6356,6 +6537,8 @@
 	=> VHG local reset;
     "VHG load local ready"
 	[VHGCstate] = 0; [VHGCcapcount] = 0; [VHGCrecover] = 0;
+	[VHGcapsulestartpending] = 0;
+	[VHGcapsulereturnpending] = 0;
 	A = [VHGmode]; ? A = 0 -> VHG command load ship;
 	[VHGNDlon] = [VHGlandinglon]; [VHGNDlat] = [VHGlandinglat];
 	=> VHG select texture buffer;
@@ -6371,9 +6554,21 @@
 	A = [VHGNDheight]; A + 600; [VHGNDdropy] = A;
 	-> VHG load capsule ready;
     "VHG load stored capsule"
-	[VHGNDdropx] = [VHSVdropx]; [VHGNDdropy] = [VHSVdropy];
-	[VHGNDdropz] = [VHSVdropz];
+	[VHGNDdropx] = [VHSVdropx]; [VHGNDdropz] = [VHSVdropz];
+	( A settled capsule rests on deterministic terrain.  Re-sample hpoint at
+	  its persisted X/Z so legacy saves made while drop_y had the wrong
+	  eye-height convention cannot bury or levitate the restored mesh. )
+	[VHGNDcamx] = [VHGNDdropx]; [VHGNDcamz] = [VHGNDdropz]; => VHGND eye height;
+	A = [VHGNDheight]; A + 600; [VHGNDdropy] = A;
     "VHG load capsule ready"
+	( Capsule phase is intentionally transient and is not part of the checkpoint
+	  format.  A save made during descent/recovery therefore cannot resume that
+	  animation faithfully.  Recover it as a settled touchdown at the persisted
+	  pod instead of leaving surface mode permanently control-locked; this also
+	  repairs checkpoints written by the old unconditional ship-bound clamp. )
+	A = [VHGlanded]; ? A != 0 -> VHG load capsule phase ready;
+	[VHGx] = [VHGNDdropx]; [VHGz] = [VHGNDdropz]; [VHGlanded] = 1;
+    "VHG load capsule phase ready"
 	[VHGNDcaptures] = [VHSVcaptures];
 	=> VHGND restore captures;
 	=> VHGND sky; => VHG fpu clean; => VHG surface telemetry init;
@@ -6419,7 +6614,7 @@
 	[VHGmode] = 0; [VHGlanded] = 0; [VHGlandpending] = 0; [VHGinterpok] = 0;
 	[VHGmovie] = 0; [VHGmovieview] = 0; [VHGmoviepaused] = 0; [VHGmovieframe] = 0;
 	[VHGlandingselect] = 0; [VHGlandingview] = 1; [VHGlandinglon] = 0; [VHGlandinglat] = 60;
-	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
+	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfjumping] = 0; [VHGsurfvy] = 0;
 	[VHGx] = 0; [VHGy] = 0; A = 0; A - 500; [VHGz] = A;
 	[VHGalpha] = 0; [VHGbeta] = 180;
 	[VHGshipx] = 0; [VHGshipy] = 0; [VHGshipz] = 0;
@@ -6449,21 +6644,21 @@
 	[VHGx] = [VHGshipx]; [VHGy] = [VHGshipy]; [VHGz] = [VHGshipz];
 	[VHGalpha] = 0; [VHGbeta] = 180; [VHGmode] = 0; [VHGlanded] = 0;
 	[VHGinterpok] = 0;
-	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
+	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfjumping] = 0; [VHGsurfvy] = 0;
 	[VHGCstate] = 0; [VHGCcapcount] = 0;
 	=> VHG palette; => VHG star palette;
 	end;
 
 "VHG surface clamp"
 	( NOCTIS-1.CPP:3903-3918 uses a circular boundary centered on the map.
-	  It is wider while walking and contracts during a jump or jetpack flight. )
+	  The source landed flag remains set for the entire walking session, so
+	  ordinary jumps and jetpack flight retain the full 1,500,000-unit radius. )
 	A = [VHGx]; A - 1638400; [VHGdx] = A; [FI] = A; => IntToF;
 	[FB0] = [FA0]; [FB1] = [FA1]; => FMul; [FT0] = [FA0]; [FT1] = [FA1];
 	A = [VHGz]; A - 1638400; [VHGdz] = A; [FI] = A; => IntToF;
 	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
 	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => FSqrt; => FToIntNear;
 	[VHGdist] = [FI]; [VHGsurfradius] = 1500000;
-	A = [VHGsurfair]; ? A = 0 -> VHG surface radius ready; [VHGsurfradius] = 750000;
     "VHG surface radius ready"
 	A = [VHGdist]; ? A <= [VHGsurfradius] -> VHG surface clamp done;
 	A - [VHGsurfradius]; C = 1000000; C - A; ? C >= 0 -> VHG surface scale ready; C = 0;
@@ -6650,9 +6845,9 @@
 	end;
 
 "VHG surface motion reset"
-	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
+	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfjumping] = 0; [VHGsurfvy] = 0;
 	[VHGsurfstep] = 0; [VHGsurfshift] = 0; [VHGsurfbeta] = [VHGbeta];
-	[VHGsurftiredr] = 0; [VHGNDplayerstep] = 0;
+	[VHGsurftiredr] = 0; [VHGsurflevelacc] = 0; [VHGNDplayerstep] = 0;
 	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
 	[VHGsurfground] = [VHGNDheight]; [VHGy] = [VHGsurfground];
 	end;
@@ -6660,7 +6855,15 @@
 "VHG surface telemetry update"
 	A = [VHGmode]; ? A = 0 -> VHG surface telemetry update done;
 	A = [VHGy]; A / 4000; A + [VHGsurftempt]; [VHGsurftempnow] = A;
-	A = [VHGsurftiredq]; A '* 118; A / 10000; A + 118; [VHGsurfpulse] = A;
+	( NOCTIS.CPP reseeds fast_random from secs/2 and adds two independent
+	  fast_flandom draws scaled by eight to the tiredness-derived pulse. )
+	A = [VHGutcsecs]; A '/ 2; => SU fast srand;
+	[SUfmask] = 32767; => SU fast raw;
+	A = [SUfval]; A '* 8; A '/ 32768; [VHGsurfpulsejitter] = A;
+	[SUfmask] = 32767; => SU fast raw;
+	A = [VHGsurftiredq]; A '* 118; A / 10000; A + 118;
+	A + [VHGsurfpulsejitter]; C = A;
+	A = [SUfval]; A '* 8; A '/ 32768; C - A; [VHGsurfpulse] = C;
 	A = [VHGsurfgravm]; D = VHGsurfgravdisp; C = 4; => VHG surface smooth field;
 	A = [VHGsurftempnow]; D = VHGsurftempdisp; C = 20; => VHG surface smooth field;
 	A = [VHGsurfpressm]; D = VHGsurfpressdisp; C = 50; => VHG surface smooth field;
@@ -9804,10 +10007,12 @@
 
 "VHG toggle fast action"
 	A = [VHGfast]; ? A = 0 -> VHG toggle fast on;
-	[VHGfast] = 0; [VHGsimacc] = 0; [VHGinterpok] = 0; => TK period; => VHG timing rebase;
+	[VHGfast] = 0; [VHGsimacc] = 0; [VHGsimwallprev] = 0;
+	[VHGinterpok] = 0; => TK period; => VHG timing rebase;
 	end;
     "VHG toggle fast on"
-	[VHGfast] = 1; [VHGsimacc] = VHGSIMDEN; [VHGinterpok] = 0; => VHG timing rebase;
+	[VHGfast] = 1; [VHGsimacc] = 0; [VHGsimwallprev] = 0;
+	[VHGinterpok] = 0; => VHG timing rebase;
 	end;
 
 "VHG interpolation advance"
@@ -9909,9 +10114,21 @@
 
 "VHG cadence"
 	[VHGdosim] = 1; A = [VHGfast]; ? A = 0 -> VHG cadence done;
-	[VHGdosim] = 0; A = [VHGsimacc]; A + VHGSIMADD; [VHGsimacc] = A;
-	? A '< VHGSIMDEN -> VHG cadence done;
-	A - VHGSIMDEN; [VHGsimacc] = A; [VHGdosim] = 1;
+	[VHGdosim] = 0; => TK read wall;
+	A = [VHGsimwallprev]; ? A != 0 -> VHG cadence wall ready;
+	[VHGsimwallprev] = [TKtmp]; [VHGdosim] = 1; -> VHG cadence done;
+    "VHG cadence wall ready"
+	A = [TKtmp]; A - [VHGsimwallprev]; [VHGsimwallelapsed] = A;
+	[VHGsimwallprev] = [TKtmp];
+	( Refuse clock discontinuities and large focus/suspend gaps rather than
+	  replaying seconds of simulation in one presentation frame. )
+	A = [VHGsimwallelapsed]; ? A '< 0 -> VHG cadence discontinuity;
+	? A > 250 -> VHG cadence discontinuity;
+	A '* VHGSIMADD; A + [VHGsimacc]; [VHGsimacc] = A;
+	? A '< 1000000 -> VHG cadence done;
+	A - 1000000; [VHGsimacc] = A; [VHGdosim] = 1; -> VHG cadence done;
+    "VHG cadence discontinuity"
+	[VHGsimacc] = 0; [VHGdosim] = 1;
     "VHG cadence done"
 	end;
 

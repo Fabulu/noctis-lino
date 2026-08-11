@@ -23,11 +23,11 @@ goal, with an in-game off control preserving the original silent experience.
   delivery work never accumulates only in the local checkout.
 - Verify claims by running things. A wave is not done because an agent said so.
 
-## Active delivery docket
+## Delivery checkpoint agreement
 
-- [ ] Recurring: commit and push intermittently after coherent, meaningful
-  playable fixes, and before switching feature areas, pausing, or handing off.
-  Leave no finished checkpoint only in the local checkout.
+Commit and push coherent playable checkpoints after their focused regression,
+protected-source check, and package smoke. Do not leave finished release work
+only in a local checkout.
 
 ## Lean check before any new wave
 
@@ -42,6 +42,133 @@ first -- a broken foundation makes every later result meaningless.
 ---
 
 ## Done
+
+### Stop map-edge crashes and preserve signed surface movement
+
+- Native debugging traced the black/disappearing landed frame to a descending
+  terrain z loop crossing zero under an unsigned comparison. Both affected
+  passes now terminate with signed bounds, and eye height uses four bounded
+  direct height-map reads.
+- Surface gravity, retained backward/lateral friction, slope scaling, and the
+  capsule's centre pull now use Linoleum's signed division. Negative motion no
+  longer becomes a huge positive launch.
+- An isolated W-away/S-return production run completed capsule ascent, stayed
+  alive for 24 seconds, saved ship mode at `(0,0,-300)`, and ended with the
+  Stardrifter visibly rendered. The focused regression passes and the current
+  executable builds at 520,858 bytes.
+
+### Repair capsule, surface grounding, ship handoff, and the historical Cube
+
+- Surface input no longer applies the Stardrifter's interior x/z clamp during
+  capsule descent or walking. Interrupted legacy surface checkpoints settle at
+  the persisted pod instead of resuming below terrain or at ship coordinates.
+- The pod uses the original signed panel offsets, mapped transparency, solid
+  structural longitude lines, source-style dotted luminous beacon, local
+  aperture, walk-away arming, spherical re-entry pull, 32-tick seal, and
+  250-tick ascent.
+- Capsule completion is deferred to a clean top-level frame boundary. Real
+  elapsed milliseconds now drive the fixed 18.206-Hz simulation accumulator,
+  so a heavy surface frame cannot stretch a normal return to nearly a minute.
+- A proper DOS scan-code input smoke walked over the generated terrain without
+  leaving its grounded eye height. An isolated full return reached ship mode,
+  saved at `(0,0,-300)`, and exited cleanly.
+- The Stardrifter's two cupola passes, flare-2 sampling, color index 64, and
+  stellar palette band match `NOCTIS.CPP`; the warm gold appearance around the
+  tested planet is its nearby class-0 star, not an arbitrary replacement tint.
+- Ylastravenia/Suricrasia at LQ 018:060 now restores the source's photographed
+  25x25 maximum-height Suricrasian Cube and the exact marked wall rows/columns,
+  alongside all six already-live historical ruin styles.
+- That checkpoint built at 515,110 bytes and passed the focused integrated
+  gameplay regression.
+
+### Restore gradual surface pitch leveling and safe transition exits
+
+- The optional F5 presenter now accumulates real elapsed milliseconds for its
+  fixed 18.206-Hz simulation ticks, preserving game speed when rendering misses
+  60 Hz and discarding focus or suspend discontinuities.
+- Surface pulse telemetry now also applies the original secs/2-seeded pair of
+  eight-point fast_flandom() heartbeat-variation draws.
+- Close rocks now use the original fivefold scale and render the complete
+  density-selected, shrinking and spatially drifting tetrahedron group instead
+  of the former single reduced stone.
+- Ylastravenia's Suricrasia again contains the source's 25-by-25 historical
+  Cube at LQ 018:060, including the exact rows and columns marked as ruin faces.
+- Low-ground tree-class objects now follow the original cespuglio() branch:
+  distant foliage at depth three and source-scaled, depth-dependent one-to-four
+  branch bushes with two-faced limbs and randomized terminal leaves nearby.
+- Grass objects now follow ciuffo()'s full depth ladder: absent beyond depth
+  three, randomized distant foliage at depth three, and the original 3/4/6-face
+  one-to-eight-way blade density at depths two, one, and zero.
+- Near-ground walking now applies the original speed-dependent pitch-to-level
+  ratio, with retained fractional decay for the port's integer camera.
+- Positive and negative pitch converge symmetrically without a whole-degree
+  snap on every 18.206-Hz simulation tick.
+- All native quit paths settle an active capsule transition before checkpoint
+  serialization, preventing an unrepresentable transient state from resuming.
+- Capsule ascent hands control back to the Stardrifter only at the next clean
+  top-level frame boundary, never from inside the surface physics call stack.
+- The focused gameplay regression and production build pass.
+
+### Restore terrain-dependent held-mouse walking
+
+- Held left-click movement now uses the original surface-specific 50, 75, 125,
+  and 150-unit impulses rather than one universal walking step.
+- Those values are translated through the port's existing eightfold terrain
+  scale, preserving the source distinction between sea-level ocean/desert,
+  ordinary ground, non-habitable flats, and habitable ice.
+- The focused integrated regression and production build pass. An isolated
+  landed checkpoint reached a responsive native window without touching the
+  player's real save.
+- An interrupted surface checkpoint with no retained capsule transition state
+  is settled at its pod before simulation and rendering, avoiding the invalid
+  idle-airborne resume state.
+
+### Restore source surface jump and jetpack control
+
+- Ordinary jumps now preserve their takeoff heading and reject new manual
+  steering input, while an armed jetpack accepts live steering exactly where
+  the original updates `directional_beta`.
+- Restored the original Space launch and repeated thrust, C cancellation, and
+  L downward impulse. Removed the port-specific sustained-thrust cap.
+- Restored the 300-unit near-ground gravity spring and separate 200-unit
+  `jumping` threshold so slope handling and jetpack shutdown do not hard-snap
+  the player onto terrain.
+- Kept the original 1,500,000-unit landed exploration radius during jumps and
+  jetpack flight instead of incorrectly applying the capsule's airborne
+  750,000-unit limit.
+- The focused regression and production build pass. A generated-surface native
+  fixture loads correctly; exact motion still needs a human check because the
+  legacy iGUI host rejects synthetic keyboard events.
+
+### Keep native presentation alive across focus and resize
+
+- Removed composition and presentation work from iGUI's re-entrant Work Area
+  Manager callback; the ordinary frame loop remains the sole owner of Noctis
+  raster and GUI composition state.
+- Suppressed client simulation and publication while the cooperative display
+  is inactive, preserving the last complete backdrop until focus returns.
+- Replaced the client loop's direct runtime `RETRACE` with iGUI's supported
+  `Update Area` handoff so cursor and layer ordering remain internal to iGUI.
+- Rebuilt the production executable and repeated six minimize/restore plus
+  resize/move cycles. The prior executable lost its window; the corrected one
+  remained alive with a detailed final Stardrifter frame.
+
+### Restore original capsule aperture and automatic recovery
+
+- Restored the settled capsule's two textured `polycupola` shells around its
+  structural grids, matching `NOCTIS-1.CPP`'s exact lower/upper call order.
+  Capsule panels now use the original globes-map texture window and flare 4
+  instead of disappearing at touchdown or remaining as an inert solid shell.
+- Restored the original recovery gate: walking outside the capsule's true
+  three-dimensional 1,600-unit sphere arms recovery, and re-entering it
+  automatically opens the nearby panels and pulls the walker inward by one
+  eighth of each signed coordinate delta. R remains an accessible fallback.
+- Capsule seal, ascent, and recovery advance once per original 18.206-Hz
+  simulation step. This preserves the 32-frame seal and 250-frame return
+  instead of compressing 32 physics frames into every game tick.
+- A native production smoke showed the mapped shell panels opening locally and
+  the process remaining alive. The legacy iGUI host rejected synthetic key
+  input, so the automatic walk-away/re-entry path remains a short human check.
 
 ### Restore source surface momentum and harden capsule settlement
 
@@ -393,12 +520,12 @@ first -- a broken foundation makes every later result meaningless.
   Timer probes now clean the x87 boundary before each render phase so profiling
   cannot corrupt the floating-point camera state it is measuring.
 - Landing now bounds-checks the selected body, visibly rejects non-landable
-  types, labels accepted descent, and batches 32 unchanged source-physics
-  steps per presented frame. Planetary far/middle terrain keeps the 64-tile
+  types, labels accepted descent, and advances capsule physics once per
+  original simulation frame. Planetary far/middle terrain keeps the 64-tile
   horizon with 32/8-tile LOD while preserving an exact three-tile walking ring.
   Coarse triangles are flat shaded, texture mapping is limited to the nearest
-  two depth bands, and the settled capsule retains both structural grids while
-  its costly translucent fill remains on the animated descent/ascent pod.
+  two depth bands. Both settled and airborne capsules retain the original pair
+  of textured moving shells around their two structural grids.
 - E maps the original DOS Up lift event while leaving all four arrows available
   for looking. Like the source event, it starts directly from inside the ship
   rather than passing through a port-invented center gate. The ascent and
@@ -461,8 +588,9 @@ first -- a broken foundation makes every later result meaningless.
   class-specific spin rather than a universal one degree per rendered frame.
 - Settled surfaces expose an unobtrusive GUI-scaled pod range and captured-bird
   line, keeping the capsule-return condition discoverable after exploration.
-  Pressing R outside the original 1,600-unit capsule boundary now reports
-  `RETURN TO CAPSULE` instead of silently ignoring the request.
+  Walking beyond and then back inside the original three-dimensional
+  1,600-unit boundary automatically begins capsule recovery. Pressing R remains
+  an accessible fallback and reports `RETURN TO CAPSULE` while out of range.
 - I now cycles the source-sized indexed data sheets from the original
   miscellaneous-device display instead of replacing play with a full-screen
   black GUI page. The header and body use the original `(11,85)` and `(11,95)`
@@ -484,7 +612,7 @@ first -- a broken foundation makes every later result meaningless.
   keyboard commands. Command 6 changes the live halogen fixture between the
   source's +1/-1 color states, suppresses its flare while off, and consumes one
   power unit per original 84-second interval; 7-9 select the three data sheets.
-  The same R key retains capsule return on surfaces. Version-8 checkpoints
+  The same R key remains a capsule-return fallback on surfaces. Version-8 checkpoints
   persist the light state, and a production load/save round trip retained OFF
   as signed -1 in the new 156-byte record.
 - Ship-mode R now first opens the complete four-branch onboard root. Navigation
@@ -591,9 +719,11 @@ first -- a broken foundation makes every later result meaningless.
   renderer now follows `build_fractal_tree`'s 120-degree branch detail with
   tapered three-sided limbs, source-scale variation, broadleaf/conifer palette
   classes, a one-or-three-way branch silhouette, and three terminal leaf faces.
-- Recursion is intentionally bounded to one split inside the existing
-  full-detail near-object radius. A focused production-rasterizer smoke drew
-  1,665 non-background pixels and returned with every branch and face complete.
+- The renderer now retains the original per-world scale, spread, width, root
+  height, palette, and flare draws. Per-tree seeding, terminal subdivisions,
+  forced broadleaf/conifer forms, and the rare four-layer giant execute through
+  the complete source-shaped depth-first stack. A focused giant-tree smoke drew
+  5,492 non-background pixels and returned with every five-sided limb complete.
 
 ### Distinct habitable biomes
 - Type-3 desert and icy landings no longer reuse the plains fallback. Deserts
@@ -601,9 +731,9 @@ first -- a broken foundation makes every later result meaningless.
   sand, and no scattered rocks. Icy worlds select snowfield, bare ice, rounded
   snow hills, or broken iceberg relief, followed by smoothed snow or cracked
   frost texture and rare large rocks.
-- The expensive snow-hill outcome is bounded to 24 overlapping hills for live
-  landing latency. A paired production-generator smoke completed both biomes
-  in 5.8 seconds and verified distinct relief, texture scale, and rock state.
+- The snow-hill outcome now executes the original full random 50..99 overlapping
+  hills instead of the former 24-hill latency shortcut. A paired production
+  generator smoke verifies distinct relief, texture scale, and rock state.
 
 ### Complete landable surface-class switch
 - Accepted types 1, 5, and 7 no longer share the generic rocky fallback.
@@ -787,9 +917,8 @@ first -- a broken foundation makes every later result meaningless.
   presentation frame so 60 Hz mode does not repeat a visibly choppy storm.
 - Weather owns an isolated deterministic LCG because the original reseeds both
   rain streams from `clock()`. It therefore cannot perturb terrain's fast RNG
-  or the live Borland stream used by capsule wind. The source 50-stick floor
-  remains; accumulated extra density is capped at 174 submissions to keep a
-  mature storm inside the software renderer's frame budget.
+  or the live Borland stream used by capsule wind. Rain density now uses the
+  complete source random(25*flashes)+50 range, with the original 30-flash cap.
 - The focused production-library smoke submitted 108/108 rain sticks, drew 52
   foreground pixels with a 50-unit wind slant, verified palette 0 -> 31 -> 0
   across flash/restore, and exited cleanly.
@@ -812,6 +941,9 @@ first -- a broken foundation makes every later result meaningless.
   marker map, selecting the source 2x texture scale and palette band 64..127.
   A sparse unit-tile overlay preserves narrow historical walls through the
   normal 8/16-tile distant-terrain LOD without making every surface expensive.
+- Suricrasia's LQ 018:060 site also restores the separate source fragment for
+  the 25x25 Suricrasian Cube, including maximum height and the original marked
+  wall rows and columns.
 - The Felysia GUI probe produced 92 marked points and a peak of 174 visible
   ruin tiles, then landed, walked, ascended, and restored 720/0 ship leaves.
 - The same smoke exposed unsigned comparisons in signed terrain bounds. Map
@@ -1534,25 +1666,12 @@ check.
   `white_globe` and `white_sun` hard-coded, so the four now disagree about the
   clip rectangle. Another entry for the unreliable-oracle list.
 
-## Wave plan
+## Archived initial wave plan
 
-Populated by the architect once the five recons report.
+The original reconnaissance waves are complete. Their questions and findings
+are retained below as project history; they are not an active delivery docket.
 
-Strong candidate for **Wave 1**, from the planet-generation recon: port
-`brtl_rand` / `brtl_random` / `brtl_srand`, Borland's LCG, and prove it
-**exhaustively** -- `brtl_srand` takes a `uint16_t`, so all 65,536 seeds at a
-fixed draw depth is a complete proof rather than a sample. Zero floating point,
-needs no `*%` (the multiply is 32x32->32 low half only), and it gates 346
-`random()` call sites. Nothing downstream can be verified until it is exact.
-
-Then, before any geometry: the **DOSBox evaluation-order experiment** to settle
-the two unknowns above.
-
-- [ ] **Wave 1** -- pending architect
-- [ ] **Wave 2** -- pending architect
-- [ ] **Wave 3** -- pending architect
-
-### Reconnaissance in flight
+### Reconnaissance tracks
 
 | Track | Question |
 |---|---|

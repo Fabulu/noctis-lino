@@ -35,6 +35,22 @@ and other persistent files from being split across whichever directory happened
 to be current in the shell. The bounded timeout harness below remains available
 for automated smoke work; it is not the normal interactive launcher.
 
+### Native map-edge and complete capsule-return regression
+
+On 2026-08-12 a debugger reproduced the black/disappearing surface as an access
+violation in the terrain renderer: a descending z loop crossed map-edge zero
+under an unsigned comparison and formed an invalid height-map index. Signed
+terrain bounds and bounded eye-height reads kept the exact fixture alive for 24
+seconds. A separate input trace exposed unsigned division of negative retained
+velocities; after converting gravity, friction, slope, and capsule pull to
+signed arithmetic, short and sustained S input no longer crossed the planet.
+
+The final isolated production run held W away from the pod, held S back,
+completed automatic sealing and ascent, stayed alive for 24 seconds, and exited
+cleanly. Its checkpoint was in ship mode at `(0,0,-300)`, and the final captured
+frame showed the normal gold Stardrifter interior rather than a black window.
+The focused gameplay regression passed against the restored production source.
+
 For a bounded, self-terminating integrated soak (the checked-in game is
 intentionally long-lived), use the sandbox utility. It copies the source and
 its declared libraries into `tests/gen/game_soak`, builds through
@@ -260,7 +276,7 @@ Inf/NaN, over-range, and `Removed:` records without rewriting the player's file.
   polygon rasterizer, then the completed frame applies the original default
   `surrounding()` graded visor after terrain and weather. A second complete
   landing confirmed the white and jagged perimeter is gone.
-- **Surface presentation**: every accepted landable class now has a distinct terrain arm: lunar crater fields (type 1), thick-atmosphere plateaus (2), four habitable biomes (type 3), corrugated boulder worlds (4), thin-atmosphere eroded/permafrost terrain (5), striated frozen shelves (7), and milky quartz worlds (8). These join the generated day/night sky palette, diffuse shading, textures, crevasses, rocks, capsule/beacon, historical ruins, calm-water and ice reflections, wind crests, swimmer wakes, vegetation, trees, mammals, capturable birds, the original type-2 dense-atmosphere grayscale smoothing, and the original type-3 storm gates. Raininess 2+ can flash the surface palette; raininess above 3 submits wind-slanted foreground rain sticks. Storm density retains the source 50-stick floor but caps accumulated extras at 174 sticks to protect 60 Hz presentation. The original offsets-map panorama now runs through a fixed-buffer direct specialization and is cached as a complete 320x200 indexed sky until pitch or yaw changes; this removes the generic per-byte dispatch freeze while restoring generated horizon detail. Wind and fauna state continue at 18.206 Hz in both presentation modes, while rain positions refresh at presentation cadence. Distant terrain uses 8-tile and 32-tile cells around an exact three-tile walking ring; only the nearest two depth bands are texture mapped, historical walls retain their marked unit-tile overlay, and the settled pod keeps both support grids while full translucent panels remain visible during descent/ascent. Reflections retain the source terrain-only half-scan pass and are suppressed during incoming wind waves. Current production load and resize smokes report 60 FPS at native and full-size presentation; movement advances without capsule recentering and persists the changed view angle.
+- **Surface presentation**: every accepted landable class now has a distinct terrain arm: lunar crater fields (type 1), thick-atmosphere plateaus (2), four habitable biomes (type 3), corrugated boulder worlds (4), thin-atmosphere eroded/permafrost terrain (5), striated frozen shelves (7), and milky quartz worlds (8). These join the generated day/night sky palette, diffuse shading, textures, crevasses, rocks, capsule/beacon, historical ruins, calm-water and ice reflections, wind crests, swimmer wakes, vegetation, trees, mammals, capturable birds, the original type-2 dense-atmosphere grayscale smoothing, and the original type-3 storm gates. Raininess 2+ can flash the surface palette; raininess above 3 submits wind-slanted foreground rain sticks. Storm density retains the source 50-stick floor but caps accumulated extras at 174 sticks to protect 60 Hz presentation. The original offsets-map panorama now runs through a fixed-buffer direct specialization and is cached as a complete 320x200 indexed sky until pitch or yaw changes; this removes the generic per-byte dispatch freeze while restoring generated horizon detail. Wind and fauna state continue at 18.206 Hz in both presentation modes, while rain positions refresh at presentation cadence. Distant terrain uses 8-tile and 32-tile cells around an exact three-tile walking ring; only the nearest two depth bands are texture mapped, historical walls retain their marked unit-tile overlay, and both settled and airborne pods retain their mapped transparent panels and structural grids. Reflections retain the source terrain-only half-scan pass and are suppressed during incoming wind waves. Current production load and resize smokes report 60 FPS at native and full-size presentation; movement advances without capsule recentering and persists the changed view angle.
 - **General surface identity**: the measured opening target retains its exact body seeds. Other selected stars now retain `p_orb_seed`, `p_tilt`, `p_orb_tilt`, `p_orb_ecc`, radian orientation, initial/final `p_ray`, and `p_orb_ray` through the original live x87 expression boundaries. The opening orbital probe matches the independent reference bit-for-bit across all checked fields. The original three-term `* 4112` surface seed now uses those retained binary64 fields and the live `__ftol` boundary. Each non-pinned landing coordinate also runs the verified source globe generator and samples its exact location albedo together with its atmosphere, clouds, rain, and scenario output.
 - **Capsule physics**: the source gravity, 0.32 rebound, settle thresholds, 32-frame seal, and 250-frame ascent cutoff are live. Touchdown now executes the original 252-step, 0.025-radian scan around the complete 1,024-unit pod circle, with binary32 angle/coordinate stores, chopped `hpoint` arguments, the 512-unit maximum-lip decision, and steepest-slope direction handed back to atmospheric drift after a rebound. Atmospheric worlds use the source lateral formula after vertical physics and evolve `iwp`, `wp`, and `wdir` every simulation tick through the live Borland stream. The original RNG state entering the five pre-surface initialization draws is not retained, so that initial state remains deterministically surface-seeded rather than claimed bit-exact.
 - **Landing state**: direct keys select bodies 0..4 and bracket keys wrap through every generated planet and moon; checkpoints retain both the selected body and galactic target. General landings read UTC, reproduce Noctis's seconds-since-1984 clock and rotation-period draw ranges, compose eccentric target/parent orbit vectors, and use the original planet-versus-moon rotation seed expressions, 130-degree night band, and twilight exposure. The opening system remains pinned to its measured sky inputs.
@@ -353,6 +369,12 @@ invalid leaves. The detached GUI probe now explicitly initializes the unfolded
 host state and prepares its scaler before the first repaint, matching production.
 This run also caught and fixed unsigned lower-bound checks that had removed the
 near terrain ring and truncated map-edge traversal.
+
+The 2026-08-11 parity follow-up restored the separate historical fragment that
+recreates the photographed Suricrasian Cube at Ylastravenia body 3, LQ 018:060:
+all 625 height-map points are raised to 127 and the source's two rows plus four
+columns are marked for the close ruin-face pass. The production build and the
+focused integrated-game regression pass with that landmark enabled.
 
 The global checkpoint controls were exercised in the real GUI executable with
 the earlier version-2 codec: F6 produced a validated 108-byte `CURRENT.LIN`, movement changed the live ship

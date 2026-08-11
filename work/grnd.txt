@@ -87,6 +87,19 @@
 
 	GRfs0		= 0;	GRfs1	= 0;	( scratch double			)
 
+	( ---- retained build_surface tree parameters ---- )
+
+	GRtreepeak	= 0;	( distance_from_perfection, thousandths )
+	GRtreescale	= 4096;	( source world tree scale, integer units )
+	GRtreespread	= 750;	( recursive reduction, thousandths )
+	GRbranchwidth	= 150;	( limb width ratio, thousandths )
+	GRrootheight	= 500;	( root height ratio, thousandths )
+	GRrootshade	= 0;	( 00/80/C0 source palette mask )
+	GRtreeflares	= 0;	( source limb translucency mode )
+	GRleafflares	= 0;	( source leaf translucency mode )
+	GRmushscale	= 4095;	( 4095 or 8191 from tree scale )
+	GRtreedraw	= 0;	( fixed-point conversion scratch )
+
 	( ---- control word slots ---- )
 
 	GRcwc	= 0;	( PC=64 RC=chop for fistp		)
@@ -359,25 +372,44 @@
 	[GRgflares] = C;
 "GR prol gf3"
 
-	( tree parameters: flandom() draws from the brtl stream.
-	  The float values are rendering params; only the draws matter
-	  for stream synchronization. :2004-2034 )
+	( Tree parameters, retained as source-shaped fixed-point values for the
+	  live surface renderer.  The calls and their order remain :2004-2034. )
 	A = [GRlat];
 	? A '<= 45 -> GR prol tree2;
-	C = 32767; => SU rnd;		( flandom() for treepeaking :2005 )
+	C = 32767; => SU rnd; A = C; A '* 900; A / 32767; A + 100; [GRtreepeak] = A;
 	-> GR prol tree3;
 "GR prol tree2"
-	C = 32767; => SU rnd;		( flandom() for treepeaking :2007 )
+	C = 32767; => SU rnd; A = C; A '* 1000; A / 32767; A + 750; [GRtreepeak] = A;
 "GR prol tree3"
-	C = 3;    => SU rnd;		( switch(random(3)) rootshade :2010 )
-	C = 30;   => SU rnd;		( switch(random(30)) treeflares :2017 )
-	C = 15;   => SU rnd;		( switch(random(15)) leafflares :2024 )
-	C = 32767; => SU rnd;		( treescaling flandom 1 :2031 )
-	C = 32767; => SU rnd;		( treescaling flandom 2 :2031 )
-	C = 32767; => SU rnd;		( treespreads flandom 1 :2032 )
-	C = 32767; => SU rnd;		( treespreads flandom 2 :2032 )
-	C = 32767; => SU rnd;		( branchwidth flandom :2033 )
-	C = 32767; => SU rnd;		( rootheight flandom :2034 )
+	C = 3; => SU rnd; [GRrootshade] = 0; A = C; ? A = 0 -> GR prol rootshade done;
+	[GRrootshade] = 128; ? A = 1 -> GR prol rootshade done; [GRrootshade] = 192;
+"GR prol rootshade done"
+	C = 30; => SU rnd; [GRtreeflares] = 0; A = C; ? A = 7 -> GR prol treeflare one;
+	? A = 8 -> GR prol treeflare two; ? A = 9 -> GR prol treeflare four; -> GR prol treeflare done;
+"GR prol treeflare one"
+	[GRtreeflares] = 1; -> GR prol treeflare done;
+"GR prol treeflare two"
+	[GRtreeflares] = 2; -> GR prol treeflare done;
+"GR prol treeflare four"
+	[GRtreeflares] = 4;
+"GR prol treeflare done"
+	C = 15; => SU rnd; [GRleafflares] = 0; A = C; ? A = 7 -> GR prol leafflare one;
+	? A = 8 -> GR prol leafflare two; ? A = 9 -> GR prol leafflare four; -> GR prol leafflare done;
+"GR prol leafflare one"
+	[GRleafflares] = 1; -> GR prol leafflare done;
+"GR prol leafflare two"
+	[GRleafflares] = 2; -> GR prol leafflare done;
+"GR prol leafflare four"
+	[GRleafflares] = 4;
+"GR prol leafflare done"
+	C = 32767; => SU rnd; A = C; A '* 3000; A / 32767; A + 3000; [GRtreedraw] = A;
+	C = 32767; => SU rnd; A = C; A '* 1500; A / 32767; C = [GRtreedraw]; C - A; [GRtreescale] = C;
+	C = 32767; => SU rnd; A = C; A '* 500; A / 32767; A + 750; [GRtreedraw] = A;
+	C = 32767; => SU rnd; A = C; A '* 500; A / 32767; C = [GRtreedraw]; C - A; [GRtreespread] = C;
+	C = 32767; => SU rnd; A = C; A '* 150; A / 32767; A + 50; [GRbranchwidth] = A;
+	C = 32767; => SU rnd; A = C; A '* 1000; A / 32767; A + 50; [GRrootheight] = A;
+	[GRmushscale] = 4095; A = [GRtreescale]; ? A '<= 4096 -> GR prol tree params done; [GRmushscale] = 8191;
+"GR prol tree params done"
 
 	( type-3 groundflares bump :2042-2047 )
 	A = [GRiptype]; ? A != 3 -> GR prol done;

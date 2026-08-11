@@ -28,13 +28,19 @@
 
 "variables"
 
-	VHGlanded = 1; VHGframe = 0; VHGplanet = 0;
+	VHGlanded = 1; VHGframe = 0; VHGplanet = 0; VHGmode = 1;
+	VHGdrawhud = 0; VHGhudcount = 0; VHGseamless = 0; VHGsurfjet = 0;
+	VHGbeta = 0; VHGlandinglon = 0; VHGlandinglat = 60;
+	VHGx = 0; VHGz = 0;
+	VHGgraphics = 0; VHGutcsecs = 0; VHGonroof = 0;
+	VHGsurfgravdisp = 0; VHGsurftempdisp = 0; VHGsurfpressdisp = 0; VHGsurfpulsedisp = 0;
+	VHGCwindangle = 0; VHGCwindpower = 0;
 	VHBp = 0; VHBmin = 0; VHBmax = 0; VHBsum = 0;
 	VHBname = { vhbiome-out.bin };
 
 "workspace"
 
-	vhbout = 16;
+	vhbout = 32;
 
 "programme"
 
@@ -47,17 +53,36 @@
 	[vhbout plus 2] = [VHGNDtscale]; [vhbout plus 3] = [VHBmin];
 	[vhbout plus 4] = [VHBmax]; [vhbout plus 5] = [VHBsum];
 
-	( Low seed bits 3 select ICY. )
-	[VHGNDseed] = 149131; => VHGND generate; => VHB scan;
+	( Exercise the complete source ICY snow-hill arm directly on a clean map. )
+	[VHBp] = 0;
+    "VHB clear ice"
+	A = RPSM; A + [VHBp]; [MBptr] = A; [MBval] = 0; => MEM put byte;
+	[VHBp]+; A = [VHBp]; ? A < 40000 -> VHB clear ice;
+	A = 149131; A & 0FFFFh; => SU srand; A = 149131; => SU fast srand;
+	[VHGNDsctype] = 4; [GRalbedo] = 32; [VHGNDfrosty] = 0;
+	=> VHGND icy hills; => VHB scan;
 	[vhbout plus 6] = [VHGNDsctype]; [vhbout plus 7] = [VHGNDrockdensity];
 	[vhbout plus 8] = [VHGNDtscale]; [vhbout plus 9] = [VHBmin];
 	[vhbout plus 10] = [VHBmax]; [vhbout plus 11] = [VHBsum];
 	[vhbout plus 12] = [VHGNDfrosty]; [vhbout plus 13] = [VHGNDrockscale];
 	[vhbout plus 14] = [VHGNDrockpeak]; [vhbout plus 15] = [VHGNDwavesin];
 
+	( Exercise all four setup_animals population ranges and retain the
+	  classified mammal, bird, and original no-draw reptile totals. )
+	[VHGNDsctype] = 1; => VHGND animals setup; [VHBp] = 0; => VHB fauna record;
+	[VHGNDsctype] = 2; => VHGND animals setup; [VHBp] = 4; => VHB fauna record;
+	[VHGNDsctype] = 3; => VHGND animals setup; [VHBp] = 8; => VHB fauna record;
+	[VHGNDsctype] = 4; => VHGND animals setup; [VHBp] = 12; => VHB fauna record;
+
 	[File Name] = VHBname; [File Position] = 0; [File Command] = WRITE;
-	[Block Pointer] = vhbout; [Block Size] = 64; isocall;
-	[File Name] = VHBname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 64; isocall;
+	[Block Pointer] = vhbout; [Block Size] = 128; isocall;
+	[File Name] = VHBname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 128; isocall;
+	end;
+
+"VHB fauna record"
+	A = vhbout; A + 16; A + [VHBp]; C = A;
+	[C plus 0] = [VHGNDpopulation]; [C plus 1] = [VHGNDanimals]; [C plus 2] = [VHGNDbirds];
+	A = [VHGNDpopulation]; A - [VHGNDanimals]; A - [VHGNDbirds]; [C plus 3] = A;
 	end;
 
 "VHB scan"

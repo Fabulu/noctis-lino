@@ -8,7 +8,7 @@
 	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
 	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
 	nsident; nsrng; nsseed; nstopo;
-	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhground; vhcapsule;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhground;
 
 "directors"
 
@@ -22,7 +22,13 @@
 	VHGx = 0; VHGy = 0; VHGz = 0;
 	VHGalpha = 0; VHGbeta = 0; VHGmode = 1; VHGlanded = 1;
 	VHGplanet = 0; VHGframe = 1;
+	VHGdrawhud = 0; VHGhudcount = 0; VHGseamless = 0; VHGsurfjet = 0;
+	VHGlandinglon = 0; VHGlandinglat = 60; VHGgraphics = 0; VHGutcsecs = 0;
+	VHGonroof = 0; VHGsurfgravdisp = 0; VHGsurftempdisp = 0;
+	VHGsurfpressdisp = 0; VHGsurfpulsedisp = 0;
 	VHTid0 = 0; VHTid1 = 0; VHTtx = 0; VHTty = 0; VHTtz = 0;
+	VHTred = 32; VHTgreen = 32; VHTblue = 32; VHTphase = 0;
+	VHGCwindangle = 0; VHGCwindpower = 0;
 	VHWPindex = 0; VHWPnonzero = 0;
 	VHWPbright = 0; VHWPrestored = 0;
 	VHWPtop = 0; VHWPinner = 0; VHWPbottom = 0;
@@ -42,7 +48,7 @@
 
 	[GRiptype] = 3; [GRSKrainy] = 40700000h;
 	[VHGNDatmosphere] = 1; [VHGNDseed] = 149135;
-	[VHGNDdosim] = 0; [VHGNDtick] = 17; [VHGNDstormflashes] = 5;
+	[VHGNDdosim] = 0; [VHGNDtick] = 17; [VHGNDstormflashes] = 30;
 	[VHGNDcamx] = 1646592; [VHGNDcamy] = 0; [VHGNDcamz] = 1646592;
 	[VHGNDalpha] = 0; [VHGNDbeta] = 0;
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];

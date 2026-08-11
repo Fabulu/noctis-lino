@@ -1,11 +1,12 @@
-# Noctis IV L.in.oleum port -- 0.1.0 beta 4
+# Noctis IV L.in.oleum port -- next release
 
-This beta restores the source-positioned Stardrifter wall computers, makes the
-physical planetary station usable through landing, corrects surface momentum
-and the optional 60-Hz touchdown transition, and retains the source-equivalent
-cupola and lift behavior confirmed in earlier betas. It is an intermediate
-milestone toward uncompromised Noctis IV+ feature parity, not a claim that
-parity is complete.
+This release completes the playable Windows route from the Stardrifter through
+galactic flight, local approach, capsule descent, surface exploration, and
+automatic capsule return. It also repairs the final capsule coordinate-space
+and timing failures found during live play, restores the historical
+Suricrasian Cube, and retains the source-equivalent ship, terrain, devices,
+GOES modules, persistence, presentation, and soundtrack systems established in
+the earlier betas.
 
 ## What is playable
 
@@ -43,6 +44,25 @@ parity is complete.
   surface text. F9 or `?` retains the accurate current-port control card.
 
 ## Important behavior in this build
+
+- Descending terrain traversal now stops safely at map-edge zero instead of
+  interpreting a negative tile index as unsigned and clearing or crashing the
+  surface frame.
+- Surface gravity, backward/lateral momentum, slope motion, and capsule
+  centring use signed arithmetic. Backward input no longer launches the player
+  across the planet, and re-entry pulls inward correctly from every side.
+- Surface and capsule coordinates can no longer pass through the ship-interior
+  clamp. Interrupted old checkpoints settle at the persisted pod rather than
+  resuming underground.
+- The settled pod is mapped and transparent, keeps the source structural line
+  modes and sky beacon, opens locally as the player leaves/re-enters, seals for
+  32 original ticks, and returns after the source 250-tick ascent.
+- Capsule simulation now uses elapsed wall time at a fixed 18.206 Hz and hands
+  back to the Stardrifter only at a clean top-level frame boundary.
+- Ylastravenia body 3 at LQ 018:060 restores the source's separate 25x25
+  Suricrasian Cube landmark and marked wall faces.
+- Focus changes no longer let a re-entrant iGUI repaint corrupt the live game
+  frame. The supported iGUI size control scales both ship and surface views.
 
 - This is the first prerelease produced by the automated tagged GitHub path.
   GitHub reran the focused regression, verified the versioned i386 PE, built the
@@ -175,27 +195,9 @@ Useful controls:
 
 - Windows is the supported packaged platform. The historical Linux runtime's
   PCM layer is a stub, so soundtrack support is Windows-only.
-- The second physical GOES face retains command output with source-equivalent
-  line, page, and end scrolling.
-- The Stardrifter halogen follows `alogena()`'s actual non-occluded flare path,
-  removing the dark-hull center test that made it flicker on and off.
-- Higher-rate presentation now interpolates ordinary Stardrifter and settled
-  surface movement/look without changing the original 18.206 Hz simulation.
-  Surface wave feedback is forwarded once into the restored live pose;
-  animated capsule descent/ascent retains source-tick presentation.
-- Planetary daylight now renders the original active-sun disc and corona with
-  latitude/exposure placement, dawn/dusk direction, rain and night gating,
-  and the correct companion-star radius in multiple systems. A nearby
-  companion also appears as the original independently positioned secondary
-  sun, including the source's owner-role swap and separate terminator.
-- Eligible surface suns now carry their original additive lens flares after
-  terrain, including distance, weather, star-class, phase, and center-occlusion
-  gates. Resolved star globes use source-generated class-specific spin instead
-  of rotating every presentation frame.
-- Full Noctis IV+ feature parity remains the release criterion. Historical
-  screens, complete GUI behavior, and presentation details are still being
-  implemented rather than cut from scope. Stellar lithium collection and
-  emergency depletion recovery are live gameplay systems.
+- The native L.in.oleum compiler requires a logged-in Windows desktop. Hosted
+  GitHub Actions validate and package the committed executable; the separate
+  source-build workflow needs a registered interactive `lino-gui` runner.
 
 ## Integrity and licence
 

@@ -530,6 +530,11 @@
      edge to clients such as command consoles instead of dropping it.)
 	Client Return Action = 1;
 
+    (optional service hook: invoked immediately before iGUI accepts a real
+     red-button or Alt+F4 quit. Stateful clients can collapse transient
+     animation state before the cooperative display begins unwinding.)
+	Client Exit Action = 1;
+
     (service subroutine pointer: this is like "Control Loop", but it might
      point to a special version of the above control loop, where the loop
      does never request for display refreshes, or alters the display in any
@@ -1194,6 +1199,9 @@
 		-> skip session 19010003;
 	      "service KD Quit hook"
 	      ? [KEY ALTERNATE] = OFF -> KDQH F4 alone means nothing to me;
+		A = [Client Exit Action]; ? A = NULL -> KDQH client ready;
+		=> [A];
+	      "KDQH client ready"
 		[Quit Now] = YES;
 	      "KDQH F4 alone means nothing to me"
 		leave;
@@ -4555,7 +4563,16 @@
 "service Exit Button Action"
 	[Rectangle Gradients] = NULL;
 	=> Update Exit Button Appearence;
+	( A focus change can release a press latched by the legacy hotspot after
+	  the pointer has moved to another OS window.  Only an active, in-window
+	  release is an exit-button click; otherwise consume the stale edge. )
+	? [Display Status] - ACTIVE -> Exit Button Action done;
+	? [Pointer Status] - PD IN SIGHT -> Exit Button Action done;
+	A = [Client Exit Action]; ? A = NULL -> Exit Button Action client ready;
+	=> [A];
+    "Exit Button Action client ready"
 	[Quit Now] = YES;
+	"Exit Button Action done"
 	leave;
 
 "Update Slep Button Appearence"
