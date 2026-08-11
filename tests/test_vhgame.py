@@ -917,6 +917,7 @@ def main() -> int:
         "landed HUD points toward the capsule across all eight target bearings",
     )
     surface_telemetry = section(game, '"VHG surface telemetry init"', '"VHG FCS overlay"')
+    surface_overlay = section(game, '"VHG surface telemetry overlay"', '"VHG FCS overlay"')
     check(
         all(token in original0 for token in (
             'sprintf (outhudbuffer, "GRAVITY %2.3f FG & TEMPERATURE %+3.1f@C & PRESSURE %2.3f ATM & PULSE %3.0f PPS"',
@@ -928,10 +929,14 @@ def main() -> int:
         and 'VHGsurfacetext = { G 0.000FG T +000.0C P 00.000ATM HR 000 };' in game
         and all(token in surface_telemetry for token in (
             "E = nspray;", "[FI] = 38260;", "[GRSKbasetemp]",
-            "[GRSKbasepressure]", "A = [VHGy]; A '/ 4000;",
-            "[VHGsurftiredq]", "A '* 118; A '/ 10000; A + 118;",
-            "[Text Y] = 160;", "=> VHG text both;",
+            "[GRSKbasepressure]", "A = [VHGy]; A / 4000;",
+            "[VHGsurftiredq]", "A '* 118; A / 10000; A + 118;",
+            '"VHG surface telemetry update"', '"VHG surface smooth field"',
+            "D = VHGsurfgravdisp; C = 4;", "D = VHGsurftempdisp; C = 20;",
+            "D = VHGsurfpressdisp; C = 50;", "D = VHGsurfpulsedisp; C = 100;",
         ))
+        and "=> VHG text both;" not in surface_overlay
+        and "=> VHG UTC timestamp; => VHG visor advance; => VHG surface telemetry update;" in game
         and game.count("=> VHG surface telemetry overlay;") == 2
         and game.count("=> VHG surface telemetry init;") == 2,
         "surface HUD restores live gravity, temperature, pressure, and pulse telemetry",
@@ -962,6 +967,15 @@ def main() -> int:
             '"VHGND HUD append triad"', "[VHGNDhudsource] = VHGNDepoctext;",
             "? A < 1000 -> VHGND HUD number hundreds;",
             "A / 1000; A + 48; => VHGND HUD append;",
+            '"VHGND environment HUD"', "[VHGNDhudy] = 192;",
+            "A = VHGNDenvgravity; => VHGND HUD append text;",
+            "A = [VHGsurfgravdisp]; => VHGND HUD append fixed three;",
+            "A = [VHGsurftempdisp]; => VHGND HUD append signed fixed one;",
+            "A = [VHGsurfpressdisp]; => VHGND HUD append fixed three;",
+            "A = [VHGsurfpulsedisp]; => VHGND HUD append width three;",
+            'VHGNDenvgravity = { GRAVITY };', 'VHGNDenvtemp = {  FG & TEMPERATURE };',
+            'VHGNDenvpress = { @C & PRESSURE };', 'VHGNDenvpulse = {  ATM & PULSE };',
+            'VHGNDenvpps = {  PPS };',
         ))
         and all(token in original0 for token in (
             "cpos = ccom / 9; crem = ccom * 0.44444;",
@@ -1117,7 +1131,6 @@ def main() -> int:
             "? A = 66 -> VHG graphics border key;", "[VHGlensmode] = 1;",
             "A = 0; A - 1; [VHGlensmode] = A;", "[VHGdrawhud] = 0;",
             "[VHGseamless] = 1;", "A = [VHGdrawhud]; ? A = 0 -> VHG energy overlay done;",
-            "A = [VHGdrawhud]; ? A = 0 -> VHG surface telemetry done;",
             '"VHG visor keys"', "[KEY PGUP]", "[KEY PGDN]",
             "A = 0; A - 5; [VHGhuddelta] = A; [VHGhudclosed] = 0;",
             '"VHG visor advance"', "[VHGhudcount] = 180; [VHGhuddelta] = 0; [VHGhudclosed] = 1;",
@@ -1131,6 +1144,7 @@ def main() -> int:
             "C = 310; C + [VHGNDframei];", "C = 200; C - A; [VHGNDframecount] = C;",
             '"VHGND surrounding moving row"', "A = [VHGhudcount]; A + 9; A - [VHGNDframei];",
             "[VHGNDframei]+; A = [VHGNDframei]; ? A < 4 -> VHGND surrounding moving row;",
+            "A = [VHGdrawhud]; ? A = 0 -> VHGND environment HUD done;",
         ))
         and all(token in flare for token in (
             '"VHF ghost reflections"', "A = [VHFang]; A % 8;",

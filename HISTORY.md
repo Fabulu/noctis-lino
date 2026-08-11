@@ -330,6 +330,11 @@ The shared prefix now also restores `EPOC 6011 + seconds/1e9` and the original
 three zero-padded sub-billion triads. UTC is refreshed once per authentic
 18.206 Hz simulation tick, so the display advances without depending on the
 optional presentation rate.
+The lower surface line now follows `surrounding()` as well: gravity,
+temperature, pressure, and pulse are smoothed by the original 0.25, 0.05,
+0.02, and 0.01 factors and rendered through the indexed 3x5 alphabet at y=192.
+The former oversized GUI-host telemetry row is gone from ordinary play; the
+same live values remain available on the environment data page.
 Version 13 expands `CURRENT.LIN` to 192 bytes for these preferences while
 retaining explicit readers and defaults for versions 1 through 12.
 

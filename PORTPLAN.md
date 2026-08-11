@@ -193,8 +193,9 @@ first -- a broken foundation makes every later result meaningless.
 - Landed surfaces again expose the original `surrounding()` environmental
   readout: retained body radius supplies fractional gravity, the generated sky
   supplies temperature and atmospheric pressure, altitude adjusts the live
-  temperature, and walking raises a decaying pulse. The GUI-scaled line owns a
-  lower-HUD row above notices instead of clipping against the 200-line page.
+  temperature, and walking raises a decaying pulse. The values now use the
+  original per-tick smoothing factors and the complete indexed 3x5 line at
+  `(2,192)`; the temporary oversized host-font row has been removed.
 - The same final surface pass now restores `surrounding()`'s default graded
   ten-pixel visor frame after terrain and weather. It replaces both the old
   bright sawtooth and the intermediate plain-black guard on every atmosphere

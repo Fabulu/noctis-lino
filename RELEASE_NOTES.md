@@ -39,6 +39,8 @@ parity, not a claim that parity is complete.
   strip, and four corner HUD lamps; jetpack thrust produces the bright flash.
 - Ship and surface visors restore the live Noctis EPOC clock and its three
   zero-padded sub-billion second triads.
+- Landed gravity, temperature, pressure, and pulse now use the original indexed
+  3x5 lower-visor line and source smoothing rates instead of an oversized host-font row.
 - The Stardrifter is visible from the initial frame and remains stable during
   movement.
 - E directly starts the source lift event while inside the Stardrifter. Up

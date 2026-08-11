@@ -128,6 +128,8 @@
 	VHGpodabsx = 0; VHGpodabsz = 0; VHGpodbearing = 0; VHGpodview = 0; VHGpoddelta = 0;
 	VHGsurfgravm = 0; VHGsurftempt = 0; VHGsurfpressm = 0;
 	VHGsurfpulse = 118; VHGsurftiredq = 0; VHGsurftempnow = 0;
+	VHGsurfgravdisp = 1000; VHGsurftempdisp = 220; VHGsurfpressdisp = 1000; VHGsurfpulsedisp = 118;
+	VHGsurfsmoothden = 0;
 	VHGsurfground = 0; VHGsurfvy = 0; VHGsurfaccel = 1;
 	VHGsurfair = 0; VHGsurfjet = 0;
 	VHGkindi = 0;
@@ -697,7 +699,7 @@
 		=> VHGC tick;
 		"VHG ticks done"
 		A = [VHGdosim]; ? A = 0 -> VHG visor tick done;
-		=> VHG UTC timestamp; => VHG visor advance;
+		=> VHG UTC timestamp; => VHG visor advance; => VHG surface telemetry update;
 		"VHG visor tick done"
 		[Timer Command] = READ COUNTS; isocall; [VHGprofstart] = [Counts];
 		=> VHG visor flare mode;
@@ -3177,10 +3179,15 @@
 	[VHGsurfground] = [VHGNDheight]; [VHGy] = [VHGsurfground];
 	end;
 
-"VHG surface telemetry overlay"
-	A = [VHGdrawhud]; ? A = 0 -> VHG surface telemetry done;
-	A = [VHGmode]; ? A = 0 -> VHG surface telemetry done;
-	A = [VHGsurfgravm]; ? A >= 0 -> VHG surface gravity nonnegative; A = 0;
+"VHG surface telemetry update"
+	A = [VHGmode]; ? A = 0 -> VHG surface telemetry update done;
+	A = [VHGy]; A / 4000; A + [VHGsurftempt]; [VHGsurftempnow] = A;
+	A = [VHGsurftiredq]; A '* 118; A / 10000; A + 118; [VHGsurfpulse] = A;
+	A = [VHGsurfgravm]; D = VHGsurfgravdisp; C = 4; => VHG surface smooth field;
+	A = [VHGsurftempnow]; D = VHGsurftempdisp; C = 20; => VHG surface smooth field;
+	A = [VHGsurfpressm]; D = VHGsurfpressdisp; C = 50; => VHG surface smooth field;
+	A = [VHGsurfpulse]; D = VHGsurfpulsedisp; C = 100; => VHG surface smooth field;
+	A = [VHGsurfgravdisp]; ? A >= 0 -> VHG surface gravity nonnegative; A = 0;
     "VHG surface gravity nonnegative"
 	? A <= 9999 -> VHG surface gravity ready; A = 9999;
     "VHG surface gravity ready"
@@ -3188,7 +3195,7 @@
 	A = C; A '/ 100; A '% 10; A + 48; [VHGsurfacetext plus 4] = A;
 	A = C; A '/ 10; A '% 10; A + 48; [VHGsurfacetext plus 5] = A;
 	A = C; A '% 10; A + 48; [VHGsurfacetext plus 6] = A;
-	A = [VHGy]; A '/ 4000; A + [VHGsurftempt]; [VHGsurftempnow] = A;
+	A = [VHGsurftempdisp];
 	[VHGsurfacetext plus 12] = 43; ? A >= 0 -> VHG surface temp positive;
 	[VHGsurfacetext plus 12] = 45; C = 0; C - A; A = C;
     "VHG surface temp positive"
@@ -3198,7 +3205,7 @@
 	A = C; A '/ 100; A '% 10; A + 48; [VHGsurfacetext plus 14] = A;
 	A = C; A '/ 10; A '% 10; A + 48; [VHGsurfacetext plus 15] = A;
 	A = C; A '% 10; A + 48; [VHGsurfacetext plus 17] = A;
-	A = [VHGsurfpressm]; ? A >= 0 -> VHG surface pressure nonnegative; A = 0;
+	A = [VHGsurfpressdisp]; ? A >= 0 -> VHG surface pressure nonnegative; A = 0;
     "VHG surface pressure nonnegative"
 	? A <= 99999 -> VHG surface pressure ready; A = 99999;
     "VHG surface pressure ready"
@@ -3207,23 +3214,31 @@
 	A = C; A '/ 100; A '% 10; A + 48; [VHGsurfacetext plus 25] = A;
 	A = C; A '/ 10; A '% 10; A + 48; [VHGsurfacetext plus 26] = A;
 	A = C; A '% 10; A + 48; [VHGsurfacetext plus 27] = A;
-	A = [VHGsurftiredq]; A '* 118; A '/ 10000; A + 118;
+	A = [VHGsurfpulsedisp];
 	? A <= 999 -> VHG surface pulse ready; A = 999;
     "VHG surface pulse ready"
-	[VHGsurfpulse] = A; C = A; A '/ 100; A + 48; [VHGsurfacetext plus 35] = A;
+	C = A; A '/ 100; A + 48; [VHGsurfacetext plus 35] = A;
 	A = C; A '/ 10; A '% 10; A + 48; [VHGsurfacetext plus 36] = A;
 	A = C; A '% 10; A + 48; [VHGsurfacetext plus 37] = A;
 	[VHGsurfacetext plus 38] = 0;
-	[String] = VHGsurfacetext; [Ink] = 80FFFFh; [Text Effect] = service FX Raw;
-	( Keep the live surface readout above the shared notice/console row at
-	  Y=176.  The host doubles the eight-pixel logical font, so the former
-	  Y=184 baseline was clipped by the 200-line page and touched notices. )
-	[Text X] = 12; [Text Y] = 160;
-	[Text Display Width] = 320; [Text Display Height] = 200;
-	[Text Region] = vector VHGUIregion;
-	[Text Window] = NULL; [Text Word Wrap] = OFF; [Text Ghost Mode] = OFF;
-	=> VHG text both;
-    "VHG surface telemetry done"
+    "VHG surface telemetry update done"
+	end;
+
+"VHG surface smooth field"
+	[VHGsurfsmoothden] = C;
+	E = [D]; A - E; ? A = 0 -> VHG surface smooth field done;
+	C = A; A / [VHGsurfsmoothden]; ? A != 0 -> VHG surface smooth apply;
+	A = C; ? A > 0 -> VHG surface smooth positive; A = 0; A - 1; -> VHG surface smooth apply;
+    "VHG surface smooth positive"
+	A = 1;
+    "VHG surface smooth apply"
+	C = [D]; C + A; [D] = C;
+    "VHG surface smooth field done"
+	end;
+
+"VHG surface telemetry overlay"
+	( The authentic indexed surrounding() line is already in the rendered page.
+	  Retain this hook so the GUI composition order and data-sheet formatter stay stable. )
 	end;
 
 "VHG FCS overlay"

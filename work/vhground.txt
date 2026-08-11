@@ -114,7 +114,12 @@
 	VHGNDcompassi = 0; VHGNDcompasspos = 0; VHGNDcompassrem = 0;
 	VHGNDcompassx = 0; VHGNDcompassrow = 0; VHGNDcompassmask = 0; VHGNDcompassdir = 0;
 	VHGNDhudptr = 0; VHGNDhudsource = 0; VHGNDhudvalue = 0; VHGNDhudi = 0; VHGNDhudchar = 0;
-	VHGNDhudx = 0; VHGNDhudrow = 0; VHGNDhudpacked = 0; VHGNDhudshift = 0;
+	VHGNDhudx = 0; VHGNDhudy = 2; VHGNDhudrow = 0; VHGNDhudpacked = 0; VHGNDhudshift = 0;
+	VHGNDenvgravity = { GRAVITY };
+	VHGNDenvtemp = {  FG & TEMPERATURE };
+	VHGNDenvpress = { @C & PRESSURE };
+	VHGNDenvpulse = {  ATM & PULSE };
+	VHGNDenvpps = {  PPS };
 	VHGNDcloudrain = 0; VHGNDsrf = 0; VHGNDsgf = 0; VHGNDsbf = 0;
 	VHGNDgrf = 0; VHGNDggf = 0; VHGNDgbf = 0;
 	VHGNDtick = 0; VHGNDdosim = 1;
@@ -185,6 +190,7 @@
 	VHGNDskycache = 64000;
 	VHGNDsqc = 32;
 	VHGNDepoctext = 32;
+	VHGNDenvtext = 128;
 
 "programme"
 
@@ -2537,6 +2543,7 @@
 	=> VHGND epoch HUD;
 	=> VHGND surface coordinate HUD;
 	=> VHGND compass;
+	=> VHGND environment HUD;
 	end;
 
 "VHGND HUD lamps"
@@ -2577,6 +2584,7 @@
 	  retained 3x5 HUD glyph shapes. )
 	A = [VHGdrawhud]; ? A = 0 -> VHGND compass done;
 	A = [VHGmode]; ? A = 0 -> VHGND compass done;
+	[VHGNDhudy] = 2;
 	A = [VHGbeta]; A % 360; ? A >= 0 -> VHGND compass beta ready; A + 360;
     "VHGND compass beta ready"
 	C = 360; C - A; A = C; ? A <= 359 -> VHGND compass heading ready; A - 360;
@@ -2656,7 +2664,7 @@
 	end;
 
 "VHGND compass invert"
-	A = [VHGNDcompassrow]; A + 2; A '* 320; A + [VHGNDframeoff];
+	A = [VHGNDcompassrow]; A + [VHGNDhudy]; A '* 320; A + [VHGNDframeoff];
 	A + RADPT; A + nw; D = A; C = [D]; A = 191; A - C; A & 255; [D] = A;
 	end;
 
@@ -2667,6 +2675,7 @@
 	  variable-width decimal integers, so no port-specific zero padding is used. )
 	A = [VHGdrawhud]; ? A = 0 -> VHGND surface coordinate done;
 	A = [VHGmode]; ? A = 0 -> VHGND surface coordinate done;
+	[VHGNDhudy] = 2;
 	[VHGNDhudptr] = VHGNDsqc;
 	A = 38; => VHGND HUD append; A = 32; => VHGND HUD append;
 	A = 83; => VHGND HUD append; A = 81; => VHGND HUD append;
@@ -2687,6 +2696,7 @@
 	( EPOC and the three zero-padded sub-billion second triads from
 	  surrounding(). VHGutcsecs is refreshed on each original simulation tick. )
 	A = [VHGdrawhud]; ? A = 0 -> VHGND epoch HUD done;
+	[VHGNDhudy] = 2;
 	[VHGNDhudptr] = VHGNDepoctext;
 	A = 69; => VHGND HUD append; A = 80; => VHGND HUD append;
 	A = 79; => VHGND HUD append; A = 67; => VHGND HUD append;
@@ -2702,6 +2712,27 @@
 	A = 0; => VHGND HUD append;
 	[VHGNDhudsource] = VHGNDepoctext; [VHGNDhudx] = 2; => VHGND HUD draw string;
     "VHGND epoch HUD done"
+	end;
+
+"VHGND environment HUD"
+	( surrounding()'s exact lower visor line, driven by the source-rate smoothed
+	  gravity, temperature, pressure and pulse fields maintained on simulation ticks. )
+	A = [VHGdrawhud]; ? A = 0 -> VHGND environment HUD done;
+	A = [VHGmode]; ? A = 0 -> VHGND environment HUD done;
+	[VHGNDhudptr] = VHGNDenvtext;
+	A = VHGNDenvgravity; => VHGND HUD append text;
+	A = [VHGsurfgravdisp]; => VHGND HUD append fixed three;
+	A = VHGNDenvtemp; => VHGND HUD append text;
+	A = [VHGsurftempdisp]; => VHGND HUD append signed fixed one;
+	A = VHGNDenvpress; => VHGND HUD append text;
+	A = [VHGsurfpressdisp]; => VHGND HUD append fixed three;
+	A = VHGNDenvpulse; => VHGND HUD append text;
+	A = [VHGsurfpulsedisp]; => VHGND HUD append width three;
+	A = VHGNDenvpps; => VHGND HUD append text;
+	A = 0; => VHGND HUD append;
+	[VHGNDhudsource] = VHGNDenvtext; [VHGNDhudx] = 2; [VHGNDhudy] = 192;
+	=> VHGND HUD draw string;
+    "VHGND environment HUD done"
 	end;
 
 "VHGND HUD draw string"
@@ -2725,12 +2756,21 @@
     "VHGND HUD draw row done"
 	[VHGNDhudrow]+; A = [VHGNDhudrow]; ? A < 5 -> VHGND HUD draw glyph row;
 	A = [VHGNDhudx]; A + 4; [VHGNDhudx] = A;
-	[VHGNDhudi]+; A = [VHGNDhudi]; ? A < 31 -> VHGND HUD draw character;
+	[VHGNDhudi]+; A = [VHGNDhudi]; ? A < 80 -> VHGND HUD draw character;
     "VHGND HUD draw done"
 	end;
 
 "VHGND HUD append"
 	D = [VHGNDhudptr]; [D] = A; [VHGNDhudptr]+;
+	end;
+
+"VHGND HUD append text"
+	[VHGNDhudsource] = A; [VHGNDhudi] = 0;
+    "VHGND HUD append text character"
+	A = [VHGNDhudsource]; A + [VHGNDhudi]; A = [A];
+	? A = 0 -> VHGND HUD append text done;
+	=> VHGND HUD append; [VHGNDhudi]+; -> VHGND HUD append text character;
+    "VHGND HUD append text done"
 	end;
 
 "VHGND HUD append number"
@@ -2760,6 +2800,33 @@
 	A = [VHGNDhudvalue]; A % 10; A + 48; => VHGND HUD append;
 	end;
 
+"VHGND HUD append fixed three"
+	[VHGNDhudvalue] = A; ? A >= 0 -> VHGND HUD fixed three magnitude; [VHGNDhudvalue] = 0;
+    "VHGND HUD fixed three magnitude"
+	A = [VHGNDhudvalue]; A / 1000; => VHGND HUD append number;
+	A = 46; => VHGND HUD append;
+	A = [VHGNDhudvalue]; A % 1000; => VHGND HUD append triad;
+	end;
+
+"VHGND HUD append signed fixed one"
+	[VHGNDhudvalue] = A; A = 43; C = [VHGNDhudvalue]; ? C >= 0 -> VHGND HUD signed fixed sign;
+	A = 45; C = 0; C - [VHGNDhudvalue]; [VHGNDhudvalue] = C;
+    "VHGND HUD signed fixed sign"
+	=> VHGND HUD append;
+	A = [VHGNDhudvalue]; A / 10; => VHGND HUD append number;
+	A = 46; => VHGND HUD append;
+	A = [VHGNDhudvalue]; A % 10; A + 48; => VHGND HUD append;
+	end;
+
+"VHGND HUD append width three"
+	[VHGNDhudvalue] = A; ? A >= 100 -> VHGND HUD width three number;
+	A = 32; => VHGND HUD append;
+	A = [VHGNDhudvalue]; ? A >= 10 -> VHGND HUD width three number;
+	A = 32; => VHGND HUD append;
+    "VHGND HUD width three number"
+	A = [VHGNDhudvalue]; => VHGND HUD append number;
+	end;
+
 "VHGND HUD row mask"
 	[VHGNDhudpacked] = 0; A = [VHGNDhudchar];
 	? A = 48 -> VHGND HUD glyph zero; ? A = 49 -> VHGND HUD glyph one;
@@ -2772,6 +2839,13 @@
 	? A = 46 -> VHGND HUD glyph dot; ? A = 58 -> VHGND HUD glyph colon;
 	? A = 69 -> VHGND HUD glyph E; ? A = 80 -> VHGND HUD glyph P;
 	? A = 79 -> VHGND HUD glyph zero; ? A = 38 -> VHGND HUD glyph ampersand;
+	? A = 65 -> VHGND HUD glyph letter A; ? A = 70 -> VHGND HUD glyph letter F;
+	? A = 71 -> VHGND HUD glyph letter G; ? A = 73 -> VHGND HUD glyph letter I;
+	? A = 76 -> VHGND HUD glyph letter L; ? A = 77 -> VHGND HUD glyph letter M;
+	? A = 82 -> VHGND HUD glyph letter R; ? A = 84 -> VHGND HUD glyph letter T;
+	? A = 85 -> VHGND HUD glyph letter U; ? A = 86 -> VHGND HUD glyph letter V;
+	? A = 89 -> VHGND HUD glyph letter Y; ? A = 64 -> VHGND HUD glyph at;
+	? A = 43 -> VHGND HUD glyph add sign;
 	-> VHGND HUD glyph selected;
     "VHGND HUD glyph zero"
 	[VHGNDhudpacked] = 31599; -> VHGND HUD glyph selected;
@@ -2809,7 +2883,33 @@
     "VHGND HUD glyph P"
 	[VHGNDhudpacked] = 5103; -> VHGND HUD glyph selected;
     "VHGND HUD glyph ampersand"
-	[VHGNDhudpacked] = 128;
+	[VHGNDhudpacked] = 128; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter A"
+	[VHGNDhudpacked] = 23535; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter F"
+	[VHGNDhudpacked] = 4815; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter G"
+	[VHGNDhudpacked] = 31567; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter I"
+	[VHGNDhudpacked] = 9362; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter L"
+	[VHGNDhudpacked] = 29257; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter M"
+	[VHGNDhudpacked] = 23423; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter R"
+	[VHGNDhudpacked] = 23279; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter T"
+	[VHGNDhudpacked] = 9367; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter U"
+	[VHGNDhudpacked] = 31597; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter V"
+	[VHGNDhudpacked] = 11117; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter Y"
+	[VHGNDhudpacked] = 9709; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph at"
+	[VHGNDhudpacked] = 16; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph add sign"
+	[VHGNDhudpacked] = 1488;
     "VHGND HUD glyph selected"
 	A = [VHGNDhudpacked]; [VHGNDhudshift] = [VHGNDhudrow];
     "VHGND HUD glyph shift"
