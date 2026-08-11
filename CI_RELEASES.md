@@ -1,23 +1,31 @@
-# CI and source-built releases
+# CI and tagged releases
 
-The repository has two deliberately separate GitHub Actions paths.
+The repository has three deliberately separate GitHub Actions paths.
 
 - `.github/workflows/windows-release.yml` runs regression checks and packages
   the committed executable on GitHub-hosted Windows runners. It runs for pull
   requests and master pushes, but it never claims to compile L.in.oleum source
   and it cannot publish a release.
-- `.github/workflows/source-release.yml` first validates the exact revision on
-  hosted Windows, then deletes every stale game artifact, compiles the
-  checked-out `work/vhgame.txt`, verifies the
-  resulting i386 PE, packages it, and records source, compiler, executable, and
-  commit hashes. It runs only for `v*` tags or an authorized manual dispatch.
+- `.github/workflows/tagged-release.yml` runs for every pushed `v*` tag. It
+  validates the exact revision on hosted Windows, packages the versioned i386
+  executable, records hashes and provenance, and publishes a GitHub prerelease.
+- `.github/workflows/source-release.yml` is manually dispatched. It deletes
+  stale game artifacts, compiles the checked-out `work/vhgame.txt` on an
+  interactive Windows runner, verifies the fresh i386 PE, and uploads a
+  source-build artifact with source, compiler, executable, and commit hashes.
 
 The split exists because `compiler114m.exe` accepts unattended build arguments
 but its historical Win32 host runtime still initializes a graphical display and
 remains resident after emitting the artifact. `lino_build.ps1` already supplies
 the arguments, detects a settled artifact and error log, and terminates that
 process. The missing CI requirement is a real logged-in Windows desktop, not UI
-click automation.
+click automation. Hosted GitHub runners can test and package the committed
+product, but they cannot honestly claim to compile it from L.in.oleum source.
+
+The tagged release workflow is therefore automated and usable now. Its
+provenance record says that the executable was compiled locally before the tag,
+then tested and packaged on GitHub-hosted Windows. The manual interactive build
+is the stricter clean-source provenance path when a dedicated runner is online.
 
 ## One-time runner setup
 
@@ -51,24 +59,26 @@ Official references:
 ## Creating a build or release
 
 For an unpublished source-build artifact, start the VM, confirm that `run.cmd`
-reports it is listening, then manually run the `Source build and release`
+reports it is listening, then manually run the `Interactive source build`
 workflow. The compile job produces:
 
 - `Noctis-IV-windows-x86.zip`
 - `Noctis-IV-windows-x86.zip.sha256`
 - `Noctis-IV-windows-x86.source.txt`
 
-For a GitHub prerelease, push a version tag while that runner is online:
+For a GitHub prerelease, first build and commit the current executable locally,
+make sure master CI is green, then push an annotated version tag:
 
 ```powershell
 git tag -a v0.1.0 -m "Noctis IV L.in.oleum port v0.1.0"
 git push origin v0.1.0
 ```
 
-The self-hosted job compiles and uploads the exact tagged revision. Only after
-that succeeds does the hosted publish job create or update the GitHub release.
-If the runner is offline, the compile job waits without publishing anything.
+The tag launches hosted validation, packaging, and publication. If validation
+or packaging fails, no release is created. If the tag already has a release,
+rerunning the workflow replaces its three generated assets. The release remains
+a prerelease while the game is under active parity development.
 
-As of 2026-08-11 no self-hosted runner is registered for this repository. The
-workflow and security boundary are ready, but the first real source-built
-Actions artifact requires completing the one-time runner registration above.
+As of 2026-08-11 no self-hosted runner is registered for this repository. This
+only blocks the optional clean-source rebuild artifact. It does not block
+tests, tagged package builds, or GitHub prerelease publication.

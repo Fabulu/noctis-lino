@@ -1,0 +1,165 @@
+name: Tagged Windows release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tagged-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Test the tagged revision
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out the tagged revision
+        uses: actions/checkout@v7
+
+      - name: Check out the Noctis IV reference source
+        uses: actions/checkout@v7
+        with:
+          repository: jorisvddonk/Noctis-IV-Plus
+          path: _reference/noctis-plus
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Verify the protected L.in.oleum files
+        shell: pwsh
+        run: |
+          $bad = @()
+          foreach ($line in Get-Content PRISTINE.sha256) {
+            if (-not $line.Trim()) { continue }
+            $want, $size, $path = $line -split '\s+', 3
+            if (-not (Test-Path -LiteralPath $path)) {
+              $bad += "missing: $path"
+              continue
+            }
+            $actual = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+            if ($actual -ne $want -or (Get-Item -LiteralPath $path).Length -ne [int64]$size) {
+              $bad += "changed: $path"
+            }
+          }
+          if ($bad.Count) { throw ($bad -join "`n") }
+
+      - name: Run the focused integrated-game regression
+        shell: pwsh
+        env:
+          NOCTIS_REFERENCE_ROOT: ${{ github.workspace }}\_reference\noctis-plus\source
+        run: python tests\test_vhgame.py
+
+  package:
+    name: Build the release package
+    needs: validate
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out the tagged revision
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Verify the versioned Windows executable
+        shell: pwsh
+        run: |
+          $path = 'work\vhgame.exe'
+          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw 'The tagged revision contains no work\vhgame.exe'
+          }
+          $bytes = [IO.File]::ReadAllBytes($path)
+          if ($bytes.Length -lt 1024 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw 'The versioned executable is not a plausible Windows PE'
+          }
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3c)
+          if ($peOffset -lt 0 -or $peOffset + 24 -gt $bytes.Length -or
+              $bytes[$peOffset] -ne 0x50 -or $bytes[$peOffset + 1] -ne 0x45 -or
+              $bytes[$peOffset + 2] -ne 0 -or $bytes[$peOffset + 3] -ne 0) {
+            throw 'The versioned executable has an invalid PE signature'
+          }
+          $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
+          $sections = [BitConverter]::ToUInt16($bytes, $peOffset + 6)
+          if ($machine -ne 0x014c -or $sections -eq 0) {
+            throw ("Expected a sectioned i386 PE, got machine 0x{0:X4} with {1} sections" -f $machine, $sections)
+          }
+
+      - name: Assemble the standalone Windows package
+        shell: pwsh
+        run: .\package_noctis.ps1 -OutputDirectory dist\Noctis-IV -SkipBuild
+
+      - name: Create archive, checksum, and provenance
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -LiteralPath dist\Noctis-IV `
+            -DestinationPath dist\Noctis-IV-windows-x86.zip
+
+          $zip = Get-Item dist\Noctis-IV-windows-x86.zip
+          $zipHash = (Get-FileHash -LiteralPath $zip.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$zipHash *$($zip.Name)" | Set-Content `
+            -LiteralPath dist\Noctis-IV-windows-x86.zip.sha256 `
+            -Encoding ascii
+
+          $sourceHash = (Get-FileHash -LiteralPath work\vhgame.txt -Algorithm SHA256).Hash.ToLowerInvariant()
+          $exeHash = (Get-FileHash -LiteralPath work\vhgame.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $compilerHash = (Get-FileHash -LiteralPath main\lib\gen\compiler114m.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          @(
+            "commit=$env:GITHUB_SHA"
+            "source_sha256=$sourceHash"
+            "executable_sha256=$exeHash"
+            "compiler_sha256=$compilerHash"
+            "target=win32/i386m"
+            "build_provenance=versioned executable compiled locally before tagging; tested and packaged on GitHub-hosted Windows"
+          ) | Set-Content -LiteralPath dist\Noctis-IV-windows-x86.provenance.txt -Encoding ascii
+
+      - name: Upload the tagged package
+        uses: actions/upload-artifact@v7
+        with:
+          name: Noctis-IV-windows-x86-${{ github.ref_name }}
+          path: |
+            dist/Noctis-IV-windows-x86.zip
+            dist/Noctis-IV-windows-x86.zip.sha256
+            dist/Noctis-IV-windows-x86.provenance.txt
+          if-no-files-found: error
+
+  publish:
+    name: Publish the GitHub prerelease
+    needs: package
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out release notes
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Download the tested package
+        uses: actions/download-artifact@v8
+        with:
+          name: Noctis-IV-windows-x86-${{ github.ref_name }}
+          path: dist
+
+      - name: Publish the GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $files = @(
+            'dist\Noctis-IV-windows-x86.zip',
+            'dist\Noctis-IV-windows-x86.zip.sha256',
+            'dist\Noctis-IV-windows-x86.provenance.txt'
+          )
+          if (gh release view $tag 2>$null) {
+            gh release upload $tag @files --clobber
+          } else {
+            gh release create $tag @files --verify-tag --notes-file RELEASE_NOTES.md --prerelease --title "Noctis IV L.in.oleum port $tag"
+          }

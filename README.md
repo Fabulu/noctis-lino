@@ -134,13 +134,15 @@ pauses or resumes it. Raw 320x200 frames are written to `MOVIES\DDD` with
 eight-digit BMP filenames.
 
 Ordinary pushes and pull requests run the protected-source check, integrated
-game regression, and snapshot package assembly on GitHub-hosted Windows.
-Version tags matching `v*` instead route to a dedicated interactive Windows
-runner, delete stale artifacts, compile the tagged source, verify and package
-the fresh i386 PE, then hand it to a GitHub-hosted publishing job. The compiler
-runner has read-only repository access and never handles the release token.
-See [CI_RELEASES.md](CI_RELEASES.md) for setup, security, provenance, and release
-instructions.
+game regression, and snapshot package assembly on GitHub-hosted Windows. A
+version tag matching `v*` now runs the same focused regression, verifies the
+versioned i386 executable, builds the standalone ZIP on GitHub-hosted Windows,
+and publishes a GitHub prerelease with its checksum and provenance record. The
+historical GUI compiler cannot run in a hosted service session, so the tagged
+workflow states plainly that its executable was built locally before tagging.
+An isolated manual workflow can rebuild the exact source on an interactive
+`lino-gui` runner once one is registered. See [CI_RELEASES.md](CI_RELEASES.md)
+for the exact release and provenance boundaries.
 
 ## Screenshots
 

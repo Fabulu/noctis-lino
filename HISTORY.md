@@ -27,6 +27,23 @@ settlement now invalidates the presentation sample, so the first walking frame
 starts at the authoritative tile-centre pose. The same live landing sequence
 then completed, accepted two seconds of forward input, and remained responsive.
 
+## 2026-08-11 -- hosted tagged prereleases
+
+The release path no longer waits indefinitely for hardware that the public
+repository does not have. A pushed `v*` tag now runs the focused integrated
+regression and protected-source check, verifies the checked-in i386 PE, builds
+the standalone ZIP on a GitHub-hosted Windows runner, uploads its checksum and
+explicit provenance record, and publishes a GitHub prerelease. Each downstream
+job depends on the preceding job, so a test, validation, or packaging failure
+prevents publication.
+
+The GUI-subsystem L.in.oleum compiler boundary remains visible rather than
+being papered over: the release provenance says that the versioned executable
+was compiled locally before tagging. Exact clean source rebuilding remains a
+separate manually dispatched workflow for a dedicated logged-in `lino-gui`
+runner. No such runner is currently registered, but that no longer blocks tag
+publication.
+
 ## 2026-08-11 -- source-build CI/CD path
 
 Hosted CI and real releases were separated. Pull requests and master pushes
@@ -713,11 +730,11 @@ database, and made a repeated import a zero-change operation.
   folders are deliberately excluded from version control.
 - GitHub-hosted Actions verifies protected source, runs the focused integrated
   regression, and assembles a non-publishing snapshot from the committed PE.
-  Tags and authorized manual dispatches use `source-release.yml`: an
-  interactive self-hosted `lino-gui` desktop compiles the exact revision, then
-  a downstream hosted job publishes its ZIP, checksum, and source-provenance
-  record. `CI_RELEASES.md` documents the one-time runner setup; the source
-  workflow cannot run until that external runner is registered.
+  Tags use `tagged-release.yml` to repeat validation, package the versioned PE,
+  and publish its ZIP, checksum, and honest provenance record as a prerelease.
+- `source-release.yml` is a separate manual clean-source rebuild. It requires
+  the interactive self-hosted `lino-gui` desktop documented in
+  `CI_RELEASES.md`, and does not block the normal tag publication path.
 
 ## 2026-08-11 -- About screen and numbered Gallery snapshots
 

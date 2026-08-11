@@ -97,18 +97,25 @@ first -- a broken foundation makes every later result meaningless.
   twelve 60-Hz frames, beginning `0, -21, -42, -70`, rather than repeated
   18.206-Hz poses.
 
-### Interactive source-build release workflow
+### Automated tagged releases and interactive source rebuilds
 
 - Hosted Windows CI retains protected-source verification, the focused
   integrated regression, and a non-publishing snapshot package.
-- Tags and manual release requests now compile through `lino_build.ps1` on a
-  logged-in self-hosted runner labelled `lino-gui` after hosted validation of
-  the exact revision, reject Session 0, remove stale artifacts, verify the fresh
-  i386 PE, and publish source provenance.
-- Release-write permission exists only in the downstream GitHub-hosted publish
-  job. Public pull requests have no path to the self-hosted machine.
+- Tags matching `v*` now validate the exact revision, verify and package the
+  versioned i386 PE, and publish a GitHub prerelease entirely on hosted Windows.
+  The ZIP, checksum, and provenance record are release assets. Publication is
+  gated on the regression and package jobs succeeding.
+- The tagged provenance record explicitly says that the PE was compiled
+  locally before tagging. It does not claim a hosted source compilation.
+- A separate manually dispatched workflow compiles through `lino_build.ps1`
+  on a logged-in self-hosted runner labelled `lino-gui`, rejects Session 0,
+  removes stale artifacts, and uploads the exact source-built package and hash
+  record for comparison or later release promotion.
+- Public pull requests have no path to the self-hosted machine. Release-write
+  permission is confined to the hosted tag publication job.
 - The repository currently has no registered runner. `CI_RELEASES.md` records
-  the one-time VM setup required before the first source-build workflow run.
+  the one-time VM setup required before the first interactive source rebuild;
+  this does not block automated tagged releases.
 
 ### Original GOES resident-module help
 
