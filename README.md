@@ -90,7 +90,12 @@ duplicates, and retains unrelated local additions. In a packaged build these
 packet files sit beside `Noctis-IV.exe`; in the source tree they sit under
 `work\`. The accessible G view now includes the same
 seven-line retained result history above its command prompt. `HELP` prints the
-original seven-row resident-module directory exactly. The
+original seven-row resident-module directory exactly. `X <text>` restores the
+Xnice bridge protocol: the active message is written to `X.TXT`, later messages
+queue in `XBUFF.TXT`, and bare `X` promotes the oldest queued line after an
+external consumer removes the active file. `IMPORTGD` is recognized but
+intentionally performs no conversion because this port already uses the old
+84-byte `GUIDE.BIN` format that the NICE-only command treated as its input. The
 GAME menu's Flight control and Onboard devices entries open
 resize-aware mouse-accessible versions of those physical pages; the hovered
 command turns white and one left click activates it. Both routes remain over

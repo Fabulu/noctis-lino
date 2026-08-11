@@ -43,6 +43,20 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Restore the Xnice queue and close IMPORTGD safely
+
+- Recovered `X.CPP` and `importgd.cpp` from the archived NICE Release 9 source
+  rather than inferring either HELP entry from its name.
+- Restored Xnice's active `X.TXT`, FIFO `XBUFF.TXT`, and bare-`X` promotion
+  protocol beside the running game, with source-style collapsed argument gaps.
+- Bounded externally supplied queue input to 64 KiB and leave an oversized file
+  untouched with a visible error instead of risking workspace corruption.
+- Confirmed that IMPORTGD converts this build's native 84-byte `GUIDE.BIN` input
+  into NICE's absent `STARMAP3.GD` format. It now reports that it is unnecessary
+  and makes no database changes.
+- A native parser smoke proved direct delivery, queued delivery, FIFO promotion,
+  exact `SECOND SIGNAL` bytes, and removal of the exhausted queue file.
+
 ### Restore documented GOES PRIF
 
 - Recovered the missing command contract from the historical Noctis IV manual:

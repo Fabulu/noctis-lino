@@ -1995,6 +1995,20 @@ def main() -> int:
         "GOES PRIF shares PRI selection and writes the historical GDOUTPUT.TXT destination",
     )
     check(
+        all(token in game for token in (
+            'VHGxfile = { X.TXT };', 'VHGxbufferfile = { XBUFF.TXT };',
+            '"VHG command x parse"', '=> VHG X queue; -> VHG command done;',
+            '"VHG X queue"', '"VHG X append buffer"', '"VHG X promote"',
+            '[File Name] = VHGxbufferfile; [File Command] = DESTROY; isocall; end;',
+            '"VHG X get byte"', '"VHG X put byte"',
+            'A = FFh; A < B; A !; C = [E]; C & A;',
+            '"VHG command maybe importgd"',
+            'VHGimportold0 = { IMPORTGD_NOT_REQUIRED. };',
+            'VHGimportold1 = { GUIDE.BIN_IS_THE_NATIVE };',
+        )),
+        "GOES X restores the source file queue while IMPORTGD refuses an incompatible conversion",
+    )
+    check(
         all(token in original0 for token in (
             "void snapshot (int forcenumber, char showdata)",
             'sprintf (snapfilename, "..\\\\GALLERY\\\\%08d.BMP", prog);',

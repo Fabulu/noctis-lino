@@ -35,6 +35,29 @@ the real command parser after loading the shipped starmap and guide. The native
 executable exited cleanly and produced a 457-byte `GDOUTPUT.TXT` containing the
 planet heading, exactly the first two Guide records, divider, and end marker.
 
+## 2026-08-11 -- Xnice bridge and IMPORTGD boundary
+
+The preserved [NICE Release 9 source archive](https://mooses.nl/nice/old/nice-src-r9.zip)
+finally identifies the last two unexplained HELP entries. `X.CPP` is the text
+file bridge for the optional Xnice Windows companion: its first message occupies
+`X.TXT`, later messages form a line queue in `XBUFF.TXT`, and bare `X` promotes
+the oldest waiting line when the companion removes the active file. That FIFO
+protocol is now integrated directly into GOES, with a 64 KiB safety bound on an
+externally enlarged buffer.
+
+The same source proves that `IMPORTGD` is not a missing Noctis IV+ database
+feature. It reads the old 84-byte `GUIDE.BIN` format, which this port already
+uses natively, and converts selected records into NICE Release 9's unrelated
+`STARMAP3.GD` format. The NIV+ package ships neither that destination database
+nor the importer module. The resident command now explains this boundary and
+does not risk importing `GUIDE.BIN` into itself.
+
+A native exact-product smoke submitted two X messages through the real command
+parser. The first became `X.TXT`, the second became `XBUFF.TXT`; after removal
+of the active file, bare `X` promoted `SECOND SIGNAL` and removed the exhausted
+buffer. The temporary smoke entry point and generated bridge files were removed
+before rebuilding production.
+
 ## 2026-08-11 -- complete 60-Hz pose interpolation
 
 The optional F5 presenter previously interpolated only motion committed after

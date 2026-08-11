@@ -63,6 +63,17 @@ The output contained the planet subject header and exactly the first two
 SURICRASIA records in the shared 72-column PRI layout. The temporary entry point
 was then removed and the ordinary interactive production executable rebuilt.
 
+### Native GOES X queue smoke
+
+On 2026-08-11 a temporary exact-product entry point submitted `X FIRST SIGNAL`
+and `X SECOND SIGNAL` through the normal GOES parser. The first command created
+`X.TXT` with the exact 12 ASCII bytes `FIRST SIGNAL`; because that active slot
+existed, the second created `XBUFF.TXT` with the exact 13 bytes `SECOND SIGNAL`.
+The smoke then destroyed the active file as an Xnice consumer would and
+submitted bare `X`. The executable exited normally with `SECOND SIGNAL` promoted
+to `X.TXT` and no remaining `XBUFF.TXT`. The temporary entry point and generated
+files were removed, and the interactive production executable was rebuilt.
+
 The playable build opens in iGUI under its `Noctis IV` title at 642x426, with
 an exact 640x400 work area presenting the authentic 320x200 framebuffer at 2x.
 New games and capsule returns face into the illuminated Stardrifter interior

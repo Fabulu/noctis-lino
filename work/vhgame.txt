@@ -40,6 +40,7 @@
 	VHGINITHI = 4065A690h;
 	VHGFCH = 1076101120;		( 10.0 binary64 high )
 	VHGINBOXMAX = 9668628;
+	VHGXMAX = 65536;
 
 	( Open at a practical 2x presentation: iGUI chrome leaves an exact
 	  640x400 work area at 642x426 while the graded framebuffer stays 320x200. )
@@ -106,6 +107,10 @@
 	VHGpristrptr = 0; VHGpristri = 0; VHGprimsgi = 0; VHGprilooki = 0;
 	VHGpriwordlen = 0; VHGprichar = 0; VHGprioutput = 0; VHGpriexportname = 0;
 	VHGpriusageptr1 = 0; VHGpriusageptr2 = 0;
+	VHGxmsgptr = 0; VHGxsrc = 0; VHGxdst = 0; VHGxlen = 0; VHGxlastspace = 0;
+	VHGxbase = 0; VHGxbyte = 0; VHGxbufferexists = 0; VHGxoutputexists = 0;
+	VHGxbuffersize = 0; VHGxoutputsize = 0; VHGxreadpos = 0; VHGxlinestart = 0;
+	VHGxlinelen = 0; VHGxreststart = 0; VHGxrestlen = 0; VHGxcopyi = 0;
 	VHGcastmsgptr = 0; VHGcastmsglen = 0;
 	VHGreptarget = 0; VHGrepdigits = 0; VHGrepmsgptr = 0; VHGrepmsglen = 0;
 	VHGdeletotal = 0; VHGdeledeleted = 0; VHGdelequery = 0;
@@ -387,6 +392,15 @@
 	VHGpriready = { PRINT_DATA_READY. };
 	VHGprierror = { PRINT_EXPORT_ERROR. };
 	VHGpriend = { -_END_OF_DATA_- };
+	VHGxfile = { X.TXT };
+	VHGxbufferfile = { XBUFF.TXT };
+	VHGxwrote0 = { WRITTEN_TO_FILE: };
+	VHGxwrote1 = { WRITTEN_TO_BUFFER: };
+	VHGxerror = { X_QUEUE_FILE_ERROR. };
+	VHGxtoolarge = { XBUFF.TXT_TOO_LARGE. };
+	VHGimportold0 = { IMPORTGD_NOT_REQUIRED. };
+	VHGimportold1 = { GUIDE.BIN_IS_THE_NATIVE };
+	VHGimportold2 = { FORMAT_IN_THIS_BUILD. };
 	VHGcastusage1 = { CAST_OBJECTNAME:NOTES };
 	VHGcastsyntax0 = { SYNTAX_ERROR: };
 	VHGcastsyntax1 = { MISSING_COLON_BETWEEN };
@@ -913,6 +927,8 @@
 	VHGinheader = 1;
 	VHGpriline = 18;
 	VHGpricrlf = 1;
+	VHGxline = 18;
+	VHGxbuffer = 16384;
 	VHGsnapshotheader = 14;
 	VHGmovieoutput = 64000;
 	VHGwideframes = 192000;
@@ -3608,7 +3624,14 @@
 	? A = 79 -> VHG command maybe outbox;
 	? A = 73 -> VHG command maybe inbox;
 	? A = 87 -> VHG command maybe where;
-	? A = 72 -> VHG command maybe help; -> VHG command done;
+	? A = 72 -> VHG command maybe help;
+	? A = 88 -> VHG command x parse; -> VHG command done;
+	"VHG command x parse"
+	A = [vhptext plus 43]; ? A = 0 -> VHG command x ready;
+	? A = 32 -> VHG command x ready; ? A != 95 -> VHG command done;
+	"VHG command x ready"
+	A = vhptext; A + 43; [VHGxmsgptr] = A; [VHGcmdsilent] = 1;
+	=> VHG X queue; -> VHG command done;
     "VHG command maybe help"
 	A = [vhptext plus 43]; ? A != 69 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 76 -> VHG command done;
@@ -3618,7 +3641,8 @@
     "VHG command help ready"
 	[VHGcmdsilent] = 1; => VHG GOES HELP; -> VHG command done;
     "VHG command maybe inbox"
-	A = [vhptext plus 43]; ? A != 78 -> VHG command done;
+	A = [vhptext plus 43]; ? A = 77 -> VHG command maybe importgd;
+	? A != 78 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 66 -> VHG command done;
 	A = [vhptext plus 45]; ? A != 79 -> VHG command done;
 	A = [vhptext plus 46]; ? A != 88 -> VHG command done;
@@ -3626,6 +3650,19 @@
 	? A = 32 -> VHG command inbox ready; ? A != 95 -> VHG command done;
     "VHG command inbox ready"
 	[VHGcmdsilent] = 1; => VHG INBOX; -> VHG command done;
+    "VHG command maybe importgd"
+	A = [vhptext plus 44]; ? A != 80 -> VHG command done;
+	A = [vhptext plus 45]; ? A != 79 -> VHG command done;
+	A = [vhptext plus 46]; ? A != 82 -> VHG command done;
+	A = [vhptext plus 47]; ? A != 84 -> VHG command done;
+	A = [vhptext plus 48]; ? A != 71 -> VHG command done;
+	A = [vhptext plus 49]; ? A != 68 -> VHG command done;
+	A = [vhptext plus 50]; ? A = 0 -> VHG command importgd ready;
+	? A = 32 -> VHG command importgd ready; ? A != 95 -> VHG command done;
+    "VHG command importgd ready"
+	[VHGcmdsilent] = 1; [VHPoutptr] = VHGimportold0; => VH GOES output line;
+	[VHPoutptr] = VHGimportold1; => VH GOES output line;
+	[VHPoutptr] = VHGimportold2; => VH GOES output line; -> VHG command done;
     "VHG command maybe outbox"
 	A = [vhptext plus 43]; ? A != 85 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 84 -> VHG command done;
@@ -5801,6 +5838,157 @@
 	[File Size] = [VHGpripos]; isocall; ? [File Status] + ERROR -> VHG PRI finish error; end;
     "VHG PRI finish error"
 	[VHGpriok] = 0; end;
+
+"VHG X queue"
+	( NICE R9 X.CPP is the file bridge used by Xnice.  A message takes X.TXT
+	  when that slot is free, otherwise it joins the FIFO in XBUFF.TXT.  A bare
+	  X promotes the oldest buffered line after the external consumer removes
+	  X.TXT.  Keep the bridge beside the running game like the other port data. )
+	=> VHG X pack message;
+	A = [VHGxlen]; ? A = 0 -> VHG X promote;
+	[VHGxbufferexists] = 0; [VHGxbuffersize] = 0;
+	[File Name] = VHGxbufferfile; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHG X test output;
+	[VHGxbufferexists] = 1; [VHGxbuffersize] = [File Size];
+    "VHG X test output"
+	[VHGxoutputexists] = 0; [VHGxoutputsize] = 0;
+	[File Name] = VHGxfile; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHG X choose destination;
+	[VHGxoutputexists] = 1; [VHGxoutputsize] = [File Size];
+    "VHG X choose destination"
+	A = [VHGxoutputexists]; ? A != 0 -> VHG X append buffer;
+	A = [VHGxbufferexists]; ? A != 0 -> VHG X append buffer;
+    "VHG X write file"
+	[File Name] = VHGxfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = VHGxline; [Block Size] = [VHGxlen]; isocall;
+	? [File Status] + ERROR -> VHG X failure result;
+	A = [Block Size]; ? A != [VHGxlen] -> VHG X failure result;
+	[File Name] = VHGxfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGxlen]; isocall; ? [File Status] + ERROR -> VHG X failure result;
+	[VHPoutptr] = VHGxwrote0; => VH GOES output line;
+	[VHPoutptr] = VHGxfile; => VH GOES output line; end;
+    "VHG X append buffer"
+	A = [VHGxbuffersize]; ? A = 0 -> VHG X append message;
+	[VHGpricrlf] = 00000A0Dh;
+	[File Name] = VHGxbufferfile; [File Position] = A; [File Command] = WRITE;
+	[Block Pointer] = VHGpricrlf; [Block Size] = 2; isocall;
+	? [File Status] + ERROR -> VHG X failure result;
+	A = [Block Size]; ? A != 2 -> VHG X failure result; [VHGxbuffersize] + 2;
+    "VHG X append message"
+	[File Name] = VHGxbufferfile; [File Position] = [VHGxbuffersize]; [File Command] = WRITE;
+	[Block Pointer] = VHGxline; [Block Size] = [VHGxlen]; isocall;
+	? [File Status] + ERROR -> VHG X failure result;
+	A = [Block Size]; ? A != [VHGxlen] -> VHG X failure result;
+	A = [VHGxbuffersize]; A + [VHGxlen]; [VHGxbuffersize] = A;
+	[File Name] = VHGxbufferfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGxbuffersize]; isocall; ? [File Status] + ERROR -> VHG X failure result;
+	[VHPoutptr] = VHGxwrote1; => VH GOES output line;
+	[VHPoutptr] = VHGxbufferfile; => VH GOES output line; end;
+    "VHG X promote"
+	[File Name] = VHGxfile; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHG X promote test buffer;
+	A = [File Size]; ? A != 0 -> VHG X done;
+    "VHG X promote test buffer"
+	[File Name] = VHGxbufferfile; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHG X done;
+	[VHGxbuffersize] = [File Size]; A = [VHGxbuffersize]; ? A = 0 -> VHG X done;
+	? A > VHGXMAX -> VHG X oversize result;
+	[File Name] = VHGxbufferfile; [File Position] = 0; [File Command] = READ;
+	[Block Pointer] = VHGxbuffer; [Block Size] = [VHGxbuffersize]; isocall;
+	? [File Status] + ERROR -> VHG X failure result;
+	A = [Block Size]; ? A != [VHGxbuffersize] -> VHG X failure result;
+	[VHGxbase] = VHGxbuffer; [VHGxreadpos] = 0;
+    "VHG X promote skip empty"
+	A = [VHGxreadpos]; ? A >= [VHGxbuffersize] -> VHG X promote empty;
+	[VHGxsrc] = A; => VHG X get byte; A = [VHGxbyte];
+	? A = 13 -> VHG X promote skip one; ? A = 10 -> VHG X promote skip one;
+	[VHGxlinestart] = [VHGxreadpos]; -> VHG X promote scan;
+    "VHG X promote skip one"
+	[VHGxreadpos]+; -> VHG X promote skip empty;
+    "VHG X promote scan"
+	A = [VHGxreadpos]; ? A >= [VHGxbuffersize] -> VHG X promote line ready;
+	[VHGxsrc] = A; => VHG X get byte; A = [VHGxbyte];
+	? A = 13 -> VHG X promote line ready; ? A = 10 -> VHG X promote line ready;
+	[VHGxreadpos]+; -> VHG X promote scan;
+    "VHG X promote line ready"
+	A = [VHGxreadpos]; A - [VHGxlinestart]; [VHGxlinelen] = A;
+    "VHG X promote skip delimiter"
+	A = [VHGxreadpos]; ? A >= [VHGxbuffersize] -> VHG X promote rest ready;
+	[VHGxsrc] = A; => VHG X get byte; A = [VHGxbyte];
+	? A = 13 -> VHG X promote delimiter one; ? A = 10 -> VHG X promote delimiter one;
+	-> VHG X promote rest ready;
+    "VHG X promote delimiter one"
+	[VHGxreadpos]+; -> VHG X promote skip delimiter;
+    "VHG X promote rest ready"
+	[VHGxreststart] = [VHGxreadpos]; A = [VHGxbuffersize]; A - [VHGxreststart]; [VHGxrestlen] = A;
+	[VHGxcopyi] = 0;
+    "VHG X promote copy line"
+	A = [VHGxcopyi]; ? A >= [VHGxlinelen] -> VHG X promote write line;
+	A + [VHGxlinestart]; [VHGxsrc] = A; => VHG X get byte;
+	[VHGxdst] = [VHGxcopyi]; => VHG X put byte; [VHGxcopyi]+; -> VHG X promote copy line;
+    "VHG X promote write line"
+	[File Name] = VHGxfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = VHGxbuffer; [Block Size] = [VHGxlinelen]; isocall;
+	? [File Status] + ERROR -> VHG X failure result;
+	A = [Block Size]; ? A != [VHGxlinelen] -> VHG X failure result;
+	[File Name] = VHGxfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGxlinelen]; isocall; ? [File Status] + ERROR -> VHG X failure result;
+	[VHGxcopyi] = 0;
+    "VHG X promote copy rest"
+	A = [VHGxcopyi]; ? A >= [VHGxrestlen] -> VHG X promote write rest;
+	A + [VHGxreststart]; [VHGxsrc] = A; => VHG X get byte;
+	[VHGxdst] = [VHGxcopyi]; => VHG X put byte; [VHGxcopyi]+; -> VHG X promote copy rest;
+    "VHG X promote write rest"
+	A = [VHGxrestlen]; ? A = 0 -> VHG X promote destroy buffer;
+	[File Name] = VHGxbufferfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = VHGxbuffer; [Block Size] = [VHGxrestlen]; isocall;
+	? [File Status] + ERROR -> VHG X failure result;
+	A = [Block Size]; ? A != [VHGxrestlen] -> VHG X failure result;
+	[File Name] = VHGxbufferfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGxrestlen]; isocall; ? [File Status] + ERROR -> VHG X failure result; end;
+    "VHG X promote destroy buffer"
+	[File Name] = VHGxbufferfile; [File Command] = DESTROY; isocall; end;
+    "VHG X promote empty"
+	[File Name] = VHGxbufferfile; [File Command] = DESTROY; isocall; end;
+    "VHG X oversize result"
+	[VHPoutptr] = VHGxtoolarge; => VH GOES output line; end;
+    "VHG X failure result"
+	[VHPoutptr] = VHGxerror; => VH GOES output line;
+    "VHG X done"
+	end;
+
+"VHG X pack message"
+	[VHGxsrc] = 0; [VHGxlen] = 0; [VHGxlastspace] = 0;
+	[VHGxcopyi] = 0;
+    "VHG X clear line"
+	A = VHGxline; A + [VHGxcopyi]; [A] = 0;
+	[VHGxcopyi]+; A = [VHGxcopyi]; ? A < 18 -> VHG X clear line;
+	[VHGxbase] = VHGxline;
+    "VHG X pack loop"
+	A = [VHGxsrc]; ? A >= 68 -> VHG X pack done;
+	C = [VHGxmsgptr]; C + A; A = [C]; A & FFh; ? A = 0 -> VHG X pack done;
+	[VHGxsrc]+; ? A = 32 -> VHG X pack space;
+	[VHGxbyte] = A; [VHGxdst] = [VHGxlen]; => VHG X put byte;
+	[VHGxlen]+; [VHGxlastspace] = 0; -> VHG X pack loop;
+    "VHG X pack space"
+	A = [VHGxlen]; ? A = 0 -> VHG X pack loop;
+	A = [VHGxlastspace]; ? A != 0 -> VHG X pack loop;
+	[VHGxbyte] = 32; [VHGxdst] = [VHGxlen]; => VHG X put byte;
+	[VHGxlen]+; [VHGxlastspace] = 1; -> VHG X pack loop;
+    "VHG X pack done"
+	A = [VHGxlastspace]; ? A = 0 -> VHG X pack end;
+	A = [VHGxlen]; ? A = 0 -> VHG X pack end; [VHGxlen]-;
+    "VHG X pack end"
+	end;
+
+"VHG X get byte"
+	A = [VHGxsrc]; B = A; A / 4; C = [VHGxbase]; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; [VHGxbyte] = A; end;
+
+"VHG X put byte"
+	A = [VHGxdst]; B = A; A / 4; C = [VHGxbase]; C + A; E = C;
+	B & 3; B '* 8; A = FFh; A < B; A !; C = [E]; C & A;
+	A = [VHGxbyte]; A & FFh; A < B; C | A; [E] = C; end;
 
 "VHG PAR"
 	( PAR.CPP regenerates every procedural star in a centred sector cube and

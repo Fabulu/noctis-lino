@@ -29,6 +29,9 @@ parity, not a claim that parity is complete.
   gameplay at the original 18.206-Hz cadence.
 - The documented GOES `PRIF name[:X..Y]` module is live and writes its selected
   72-column Galactic Guide stream to the historical `GDOUTPUT.TXT` file.
+- GOES `X text` restores the Release 9 Xnice file bridge, including active
+  `X.TXT`, FIFO `XBUFF.TXT`, and bare-`X` promotion. `IMPORTGD` now explains why
+  its NICE-only old-to-new database conversion does not apply to this build.
 - Toggle Ryan J. Bury's manual soundtrack with F8; silence remains available.
 - Save the completed 320x200 game view with M or `*`. Numbered BMP files are
   written to `GALLERY` without overwriting earlier captures.

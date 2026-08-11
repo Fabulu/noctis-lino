@@ -45,6 +45,9 @@ REPAIR             mark later duplicate starmap and Guide records as Removed:
 CLEAN              compact removed local starmap and Galactic Guide records
 OUTBOX             export local labels/notes to OUTBOX.ZIP
 INBOX              import a received packet named INBOX.ZIP
+X text             send text through the Xnice X.TXT/XBUFF.TXT file queue
+X                  promote the next queued Xnice message when X.TXT is absent
+IMPORTGD           not required: this build already uses native GUIDE.BIN
 CLR               clear the retained GOES output tree
 L                 global approach/landing-site fallback
 Site selector     arrows choose longitude/latitude; L/Enter descends; C cancels
