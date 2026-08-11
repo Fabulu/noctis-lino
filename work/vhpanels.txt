@@ -25,6 +25,7 @@
 	VHPcx4 = 0; VHPxbase4 = 0;
 	VHPonsys = 0; VHPoncmd0 = 0; VHPoncmd1 = 0; VHPoncmd2 = 0; VHPoncmd3 = 0;
 	VHPoninfo0 = 0; VHPoninfo1 = 0; VHPoninfo2 = 0;
+	VHPoncontrol = 0; VHPoncommand = 0;
 	VHPonptr = 0; VHPonc = 0; VHPonp = 0; VHPonmax = 0; VHPoni = 0;
 	VHPonx0 = 0; VHPonx1 = 0; VHPony0 = 0; VHPony1 = 0;
 	VHPonbright = 0; VHPonglyphbright = 0;
@@ -114,6 +115,7 @@
 	( GOES command screen )
 	[VHVcamxi] = [VHPcamx]; [VHVcamyi] = [VHPcamy]; [VHVcamzi] = [VHPcamz];
 	[VHValpha] = [VHPalpha]; [VHVbeta] = [VHPbeta]; => VH set view;
+	=> VHP onboard selection;
 	[VHPcol] = 68; => VHP draw quad;
 
 	( STARMAP TREE screen, one 54*15 station farther down the wall )
@@ -170,6 +172,32 @@
 	=> VHP onboard line;
 	[SPflar] = 0; [PGtexf] = 0;
     "VHP onboard screen done"
+	end;
+
+"VHP onboard selection"
+	( qsel() expands the gaze-selected rectangle ten units around the source
+	  control or command bounds. A four-stick outline preserves that physical
+	  location without covering the luminous glyph plane. )
+	A = [VHPoncontrol]; ? A = 0 -> VHP onboard command selection;
+	A = 0; A - 2000; [VHPonx0] = A; A = 0; A - 1370; [VHPonx1] = A;
+	A = [VHPoncontrol]; A - 3; A '* 50; A - 40; [VHPony0] = A;
+	A = [VHPoncontrol]; A - 2; A '* 50; A - 15; [VHPony1] = A;
+	-> VHP onboard selection draw;
+    "VHP onboard command selection"
+	A = [VHPoncommand]; ? A = 0 -> VHP onboard selection done;
+	A '* 810; A - 2160; [VHPonx0] = A; A + 810; [VHPonx1] = A;
+	A = 0; A - 140; [VHPony0] = A; A = 0; A - 65; [VHPony1] = A;
+    "VHP onboard selection draw"
+	[VHScolor] = 63;
+	[VHPsx0] = [VHPonx0]; [VHPsy0] = [VHPony0]; [VHPsz0] = 0FFFFFFFEh;
+	[VHPsx1] = [VHPonx1]; [VHPsy1] = [VHPony0]; [VHPsz1] = 0FFFFFFFEh; => VHP integer stick;
+	[VHPsx0] = [VHPonx1]; [VHPsy0] = [VHPony0]; [VHPsz0] = 0FFFFFFFEh;
+	[VHPsx1] = [VHPonx1]; [VHPsy1] = [VHPony1]; [VHPsz1] = 0FFFFFFFEh; => VHP integer stick;
+	[VHPsx0] = [VHPonx1]; [VHPsy0] = [VHPony1]; [VHPsz0] = 0FFFFFFFEh;
+	[VHPsx1] = [VHPonx0]; [VHPsy1] = [VHPony1]; [VHPsz1] = 0FFFFFFFEh; => VHP integer stick;
+	[VHPsx0] = [VHPonx0]; [VHPsy0] = [VHPony1]; [VHPsz0] = 0FFFFFFFEh;
+	[VHPsx1] = [VHPonx0]; [VHPsy1] = [VHPony0]; [VHPsz1] = 0FFFFFFFEh; => VHP integer stick;
+    "VHP onboard selection done"
 	end;
 
 "VHP onboard line"

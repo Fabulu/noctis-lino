@@ -59,6 +59,9 @@
 	VHGmouseheld = 0; VHGmousex = 0; VHGmousey = 0; VHGmousedx = 0; VHGmousedy = 0;
 	VHGmenuheld = 0; VHGmenux = 0; VHGmenuy = 0;
 	VHGmenuhover = 0; VHGmenuhovery = 0; VHGmenukey = 0;
+	VHGgazecontrol = 0; VHGgazecommand = 0; VHGgazeheld = 0;
+	VHGgazex = 0; VHGgazey = 0; VHGgazez = 0; VHGgazeabsx = 0; VHGgazeabsz = 0;
+	VHGgazestep = 0; VHGgazeiterations = 0;
 	VHGconsole = 0; VHGconsoleview = 0; VHGascii = 0; VHGasciiheld = 0; VHGasciikey = 0;
 	VHGscreen = 0FFFFFFFFh; VHGscreenprev = 0FFFFFFFFh; VHGfcsopen = 0;
 	VHGscrollheld = 0; VHGscrollused = 0;
@@ -2086,6 +2089,7 @@
 	=> VHG graphics character;
 	A = [VHGgraphicsused]; ? A != 0 -> VHG input done;
 	=> VHG menu mouse;
+	=> VHG onboard select;
 	=> VHG device key;
 	=> VHG FCS menu key;
 	=> VHG info key;
@@ -2463,7 +2467,39 @@
 	[VHGmenuheld] = 0; -> VHG menu mouse done;
     "VHG menu mouse release"
 	[VHGmenuheld] = 0;
-    "VHG menu mouse done"
+"VHG menu mouse done"
+	end;
+
+"VHG onboard select"
+	( The original Select action belongs to the centre gaze, not the desktop
+	  pointer position. The accessibility pages consume their own mouse rows;
+	  direct R/5 leave left-click free for the physical z=0 computer. )
+	A = [VHGdevaccess]; ? A != 0 -> VHG onboard select release;
+	A = [VHGdev]; ? A != 0 -> VHG onboard select active;
+	A = [VHGfcsopen]; ? A = 0 -> VHG onboard select release;
+    "VHG onboard select active"
+	A = [Client Owns Mouse Pointer]; ? A = NO -> VHG onboard select release;
+	A = [Pointer Status]; ? A - PD LEFT BUTTON DOWN -> VHG onboard select released;
+	A = [VHGgazeheld]; ? A != 0 -> VHG onboard select done; [VHGgazeheld] = 1;
+	A = [VHGgazecontrol]; ? A = 1 -> VHG onboard select FCS;
+	? A = 2 -> VHG onboard select devices; ? A = 3 -> VHG onboard select prefs;
+	? A = 4 -> VHG onboard select off;
+	A = [VHGgazecommand]; ? A = 0 -> VHG onboard select done;
+	A + 53; [VHGascii] = A; -> VHG onboard select done;
+    "VHG onboard select FCS"
+	[VHGfcsopen] = 1; [VHGdev] = 0; [VHGascii] = 0; -> VHG onboard select done;
+    "VHG onboard select devices"
+	[VHGdev] = 1; [VHGfcsopen] = 0; [VHGascii] = 0; -> VHG onboard select done;
+    "VHG onboard select prefs"
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGascii] = 0; => VHG toggle graphics action;
+	-> VHG onboard select done;
+    "VHG onboard select off"
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGascii] = 0; -> VHG onboard select done;
+    "VHG onboard select released"
+	[VHGgazeheld] = 0; -> VHG onboard select done;
+    "VHG onboard select release"
+	[VHGgazeheld] = 0;
+    "VHG onboard select done"
 	end;
 
 "VHG systems reset action"
@@ -3597,6 +3633,8 @@
 	[VHPonsys] = 0; [VHPoncmd0] = 0; [VHPoncmd1] = 0;
 	[VHPoncmd2] = 0; [VHPoncmd3] = 0;
 	[VHPoninfo0] = 0; [VHPoninfo1] = 0; [VHPoninfo2] = 0;
+	=> VHG onboard gaze;
+	[VHPoncontrol] = [VHGgazecontrol]; [VHPoncommand] = [VHGgazecommand];
 	A = [VHGfcsopen]; ? A != 0 -> VHG onboard prepare FCS;
 	A = [VHGdev]; ? A = 0 -> VHG onboard prepare done;
 	[VHPonsys] = 2;
@@ -3672,6 +3710,65 @@
 	A = VHGbrowseback; A + 2; [VHPoncmd3] = A;
 	[VHPoninfo0] = VHGbrowserowx; [VHPoninfo1] = VHGbrowserowy; [VHPoninfo2] = VHGbrowserowz;
     "VHG onboard prepare done"
+	end;
+
+"VHG onboard gaze"
+	( NOCTIS.CPP:2649-2685 repeatedly advances the camera by half of |z|
+	  until its centre ray reaches the z=0 computer plane. Keep that algorithm
+	  and its exact control/command bounds, using integer camera coordinates. )
+	[VHGgazecontrol] = 0; [VHGgazecommand] = 0;
+	A = [VHGdevaccess]; ? A != 0 -> VHG onboard gaze done;
+	A = [VHGdev]; ? A != 0 -> VHG onboard gaze active;
+	A = [VHGfcsopen]; ? A = 0 -> VHG onboard gaze done;
+    "VHG onboard gaze active"
+	[VHGgazex] = [VHGx]; [VHGgazey] = [VHGy]; [VHGgazez] = [VHGz];
+	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
+	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
+	[VHGgazeiterations] = 0;
+    "VHG onboard gaze loop"
+	A = [VHGgazez]; ? A >= 0 -> VHG onboard gaze absz ready; C = 0; C - A; A = C;
+    "VHG onboard gaze absz ready"
+	[VHGgazeabsz] = A;
+	A = [VHGgazex]; ? A >= 0 -> VHG onboard gaze absx ready; C = 0; C - A; A = C;
+    "VHG onboard gaze absx ready"
+	[VHGgazeabsx] = A; A = [VHGgazeabsz]; ? A <= 25 -> VHG onboard gaze hit;
+	A = [VHGgazeabsx]; ? A >= 3000 -> VHG onboard gaze done;
+	A = [VHGgazeabsz]; A / 2; [VHGgazestep] = A; => VHG onboard gaze forward;
+	[VHGgazeiterations]+; A = [VHGgazeiterations]; ? A < 16 -> VHG onboard gaze loop;
+	-> VHG onboard gaze done;
+    "VHG onboard gaze hit"
+	A = [VHGgazex]; ? A >= 0FFFFFAD8h -> VHG onboard gaze command; ( -1320 )
+	? A <= 0FFFFF808h -> VHG onboard gaze done; ( -2040 )
+	A = [VHGgazey]; A + 25; A / 50; A + 3;
+	? A >= 1 -> VHG onboard gaze control low; A = 1;
+    "VHG onboard gaze control low"
+	? A <= 4 -> VHG onboard gaze control ready; A = 4;
+    "VHG onboard gaze control ready"
+	[VHGgazecontrol] = A; -> VHG onboard gaze done;
+    "VHG onboard gaze command"
+	( The source boundary is cam_x >= -1320. )
+	A = [VHGgazex]; ? A < 0FFFFFAD8h -> VHG onboard gaze done;
+	A = [VHGgazey]; ? A >= 0FFFFFFCEh -> VHG onboard gaze done;
+	A = [VHGgazex]; ? A >= 2040 -> VHG onboard gaze done;
+	A + 1320; A / 810; A + 1;
+	? A >= 1 -> VHG onboard gaze command low; A = 1;
+    "VHG onboard gaze command low"
+	? A <= 4 -> VHG onboard gaze command ready; A = 4;
+    "VHG onboard gaze command ready"
+	[VHGgazecommand] = A;
+    "VHG onboard gaze done"
+	end;
+
+"VHG onboard gaze forward"
+	[FI] = [VHGgazestep]; => IntToF; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSTSB; => PGF a; [PGFi] = FSW0; => PGF mul;
+	[PGFi] = FSTCA; => PGF mul; => FToIntNear;
+	A = [VHGgazex]; A - [FI]; [VHGgazex] = A;
+	[PGFi] = FSTCB; => PGF a; [PGFi] = FSW0; => PGF mul;
+	[PGFi] = FSTCA; => PGF mul; => FToIntNear;
+	A = [VHGgazez]; A + [FI]; [VHGgazez] = A;
+	[PGFi] = FSTSA; => PGF a; [PGFi] = FSW0; => PGF mul; => FToIntNear;
+	A = [VHGgazey]; A + [FI]; [VHGgazey] = A;
 	end;
 
 "VHG device overlay"

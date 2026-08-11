@@ -131,7 +131,9 @@ Controls:
   data sheets, starmap naming/targeting, reset, rescue, and lithium collector
 - Direct R and 5 render the source `screen()` geometry at world z=0: four
   controls at c=-64..-45, four 27-character commands across the top row, and
-  three information rows. Turn toward the forward windows to see the plane
+  three information rows. Turn toward the forward windows to see the plane.
+  The centre gaze uses the source half-distance march and exact control/command
+  bounds; the selected slot receives a physical frame and one left-click runs it
 - The GAME menu's Onboard devices and Flight control entries open the same
   actions as resize-aware clickable rows. Pointer coordinates are converted
   through the live 320x200 aspect fit, the hovered row turns white, and a held

@@ -375,6 +375,14 @@ accessibility routes. Those entries retain the previously verified resizable
 click rows and hover feedback; direct source keys no longer cover the physical
 screen with them.
 
+The physical screen is interactive as well. Its centre gaze repeats the
+original half-distance advance toward z=0, including the 25-unit hit tolerance,
+3,000-unit side cutoff, `(-2040,-1320)` control band, 50-unit control rows, and
+810-unit command slots. A four-stick world-space frame marks the selected slot.
+In a production-window smoke aimed ten degrees upward from `(0,0,-500)`, that
+frame enclosed command 2 and one left-click changed the root's `miscellaneous`
+slot into the live internal-light and target-data commands.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

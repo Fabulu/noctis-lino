@@ -58,6 +58,10 @@ first -- a broken foundation makes every later result meaningless.
   information rows are built from the live FCS/device state and projected by
   the Stardrifter camera. GAME-menu Flight control and Onboard devices entries
   retain the transparent, resize-aware clickable view as an accessibility path.
+- The physical path now repeats the source half-|z| centre-ray march, stops at
+  the original 25-unit plane tolerance or 3,000-unit side cutoff, applies the
+  exact control and command divisions, frames the selected world-space slot,
+  and dispatches one Select action per left-button edge.
 
 ### Native GUI performance, landing safety, and Stardrifter lift
 - Each completed 320x200 indexed render is palette-expanded into a stable

@@ -324,7 +324,10 @@ def main() -> int:
     panels = PANELS.read_text(encoding="utf-8")
     physical_onboard = section(panels, '"VH onboard screen"', '"VHP GOES selector"')
     onboard_prepare = section(game, '"VHG onboard prepare"', '"VHG device overlay"')
+    onboard_gaze = section(game, '"VHG onboard gaze"', '"VHG onboard gaze forward"')
+    onboard_select = section(game, '"VHG onboard select"', '"VHG systems reset action"')
     original_screen = section(original, "void screen ()", "/* Disegna la mappa")
+    original_gaze = section(original, "// Controllo gestore", "if (select && pwr")
     check(
         all(token in original_screen for token in (
             "for (p=-2; p<2; p++)", "for (c=-64; c<64; c++)",
@@ -350,6 +353,31 @@ def main() -> int:
             "A = VHGsrctrackoff;", "A = VHGsrcradoff;",
             "[VHPoncmd0] = VHGsrccartstar;", "[VHPoncmd0] = VHGsrcreset;",
             "[VHPoninfo2] = VHGdevselect;", "=> VHG browse format rows;",
+        ))
+        and all(token in original_gaze for token in (
+            "Forward (zz/2);", "while (zz>25&&xx<3000);",
+            "if (cam_x<-44*30)", "if (cam_x>-68*30)",
+            "s_control = (cam_y + 25) / 50 + 3;",
+            "s_command = (cam_x + 44*30) / (27*30) + 1;",
+        ))
+        and all(token in onboard_gaze for token in (
+            "[VHGgazestep] = A; => VHG onboard gaze forward;",
+            "? A <= 25 -> VHG onboard gaze hit;",
+            "? A >= 3000 -> VHG onboard gaze done;",
+            "A >= 0FFFFFAD8h -> VHG onboard gaze command;",
+            "? A <= 0FFFFF808h -> VHG onboard gaze done;",
+            "A = [VHGgazey]; A + 25; A / 50; A + 3;",
+            "A + 1320; A / 810; A + 1;",
+        ))
+        and all(token in onboard_select for token in (
+            "PD LEFT BUTTON DOWN", "[VHGgazeheld] = 1;",
+            '"VHG onboard select FCS"', '"VHG onboard select devices"',
+            '"VHG onboard select prefs"', '"VHG onboard select off"',
+            "A + 53; [VHGascii] = A;",
+        ))
+        and all(token in physical_onboard for token in (
+            '"VHP onboard selection"', "[VHPoncommand]", "A '* 810; A - 2160;",
+            "[VHPsz0] = 0FFFFFFFEh;", "=> VHP integer stick;",
         ))
         and all(token in game for token in (
             "VHGsrcdevnav = { navigation instruments };",
