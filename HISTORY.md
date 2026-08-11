@@ -6,6 +6,18 @@ the integrated game, and what remains. It complements `PLAYTEST.md`, which is
 the detailed evidence log, and `PORTPLAN.md`, which is the technical source of
 truth and remaining-work ledger.
 
+## 2026-08-11 -- source-build CI/CD path
+
+Hosted CI and real releases were separated. Pull requests and master pushes
+continue to verify protected sources, run the focused gameplay regression, and
+assemble a snapshot from the committed PE. A tag or authorized manual dispatch
+now targets an interactive `lino-gui` Windows runner, removes stale outputs,
+compiles the checked-out source, validates the fresh i386 PE, and emits a hash
+provenance record. The source machine has read-only repository access; an
+ephemeral hosted job alone receives permission to publish the tagged release.
+The workflow is checked in, while its first run awaits registration of the
+dedicated desktop runner described in `CI_RELEASES.md`.
+
 ## 2026-08-11 -- resident GOES help
 
 The integrated console gained the original `N_Help_3.asm` seven-row resident

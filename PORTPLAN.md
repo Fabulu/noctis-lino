@@ -43,6 +43,19 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Interactive source-build release workflow
+
+- Hosted Windows CI retains protected-source verification, the focused
+  integrated regression, and a non-publishing snapshot package.
+- Tags and manual release requests now compile through `lino_build.ps1` on a
+  logged-in self-hosted runner labelled `lino-gui` after hosted validation of
+  the exact revision, reject Session 0, remove stale artifacts, verify the fresh
+  i386 PE, and publish source provenance.
+- Release-write permission exists only in the downstream GitHub-hosted publish
+  job. Public pull requests have no path to the self-hosted machine.
+- The repository currently has no registered runner. `CI_RELEASES.md` records
+  the one-time VM setup required before the first source-build workflow run.
+
 ### Original GOES resident-module help
 
 - `HELP` now restores the seven-row directory from the original

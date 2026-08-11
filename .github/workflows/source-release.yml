@@ -1,0 +1,205 @@
+name: Source build and release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate the release revision
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the exact source revision
+        uses: actions/checkout@v7
+
+      - name: Check out the Noctis IV reference source
+        uses: actions/checkout@v7
+        with:
+          repository: jorisvddonk/Noctis-IV-Plus
+          path: _reference/noctis-plus
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Run the focused integrated-game regression
+        shell: pwsh
+        env:
+          NOCTIS_REFERENCE_ROOT: ${{ github.workspace }}\_reference\noctis-plus\source
+        run: python tests\test_vhgame.py
+
+  compile:
+    name: Compile on interactive Windows runner
+    needs: validate
+    runs-on: [self-hosted, Windows, X64, lino-gui]
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the exact source revision
+        uses: actions/checkout@v7
+        with:
+          clean: true
+          persist-credentials: false
+
+      - name: Require an interactive desktop session
+        shell: pwsh
+        run: |
+          $session = (Get-Process -Id $PID).SessionId
+          if (-not [Environment]::UserInteractive -or $session -eq 0) {
+            throw "The L.in.oleum compiler requires run.cmd in a logged-in desktop session, not a Windows service."
+          }
+          "Interactive runner session: $session"
+
+      - name: Verify the protected L.in.oleum files
+        shell: pwsh
+        run: |
+          $bad = @()
+          foreach ($line in Get-Content PRISTINE.sha256) {
+            if (-not $line.Trim()) { continue }
+            $want, $size, $path = $line -split '\s+', 3
+            if (-not (Test-Path -LiteralPath $path)) {
+              $bad += "missing: $path"
+              continue
+            }
+            $actual = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+            if ($actual -ne $want -or (Get-Item -LiteralPath $path).Length -ne [int64]$size) {
+              $bad += "changed: $path"
+            }
+          }
+          if ($bad.Count) { throw ($bad -join "`n") }
+
+      - name: Compile the checked-out game source
+        shell: pwsh
+        run: |
+          $started = [DateTime]::UtcNow
+          $stale = @(
+            'work\vhgame.exe',
+            'work\vhgame.lxe',
+            'work\errorlog.txt'
+          )
+          foreach ($path in $stale) {
+            Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+          }
+
+          & .\lino_build.ps1 `
+            -Src "$PWD\work\vhgame.txt" `
+            -TimeoutSec 240 `
+            -StageExtension .lxe
+          if ($LASTEXITCODE -ne 0) {
+            throw "lino_build.ps1 failed with exit code $LASTEXITCODE"
+          }
+
+          $path = 'work\vhgame.exe'
+          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw 'Compiler produced no work\vhgame.exe'
+          }
+          $file = Get-Item -LiteralPath $path
+          if ($file.Length -lt 1024 -or $file.LastWriteTimeUtc -lt $started.AddSeconds(-2)) {
+            throw 'Compiler output is missing, stale, or implausibly small'
+          }
+
+          $bytes = [IO.File]::ReadAllBytes($file.FullName)
+          if ($bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw 'Compiler output has no MZ header'
+          }
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3c)
+          if ($peOffset -lt 0 -or $peOffset + 24 -gt $bytes.Length) {
+            throw 'Compiler output has an invalid PE offset'
+          }
+          if ($bytes[$peOffset] -ne 0x50 -or $bytes[$peOffset + 1] -ne 0x45 -or
+              $bytes[$peOffset + 2] -ne 0 -or $bytes[$peOffset + 3] -ne 0) {
+            throw 'Compiler output has no PE signature'
+          }
+          $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
+          $sections = [BitConverter]::ToUInt16($bytes, $peOffset + 6)
+          if ($machine -ne 0x014c -or $sections -eq 0) {
+            throw ("Expected a sectioned i386 PE, got machine 0x{0:X4} with {1} sections" -f $machine, $sections)
+          }
+          Get-FileHash -LiteralPath $path -Algorithm SHA256
+
+      - name: Package the freshly compiled executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          .\package_noctis.ps1 -OutputDirectory dist\Noctis-IV -SkipBuild
+          Compress-Archive `
+            -LiteralPath dist\Noctis-IV `
+            -DestinationPath dist\Noctis-IV-windows-x86.zip
+
+          $zip = Get-Item dist\Noctis-IV-windows-x86.zip
+          $zipHash = (Get-FileHash -LiteralPath $zip.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$zipHash *$($zip.Name)" | Set-Content `
+            -LiteralPath dist\Noctis-IV-windows-x86.zip.sha256 `
+            -Encoding ascii
+
+          $sourceHash = (Get-FileHash -LiteralPath work\vhgame.txt -Algorithm SHA256).Hash.ToLowerInvariant()
+          $exeHash = (Get-FileHash -LiteralPath work\vhgame.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $compilerHash = (Get-FileHash -LiteralPath main\lib\gen\compiler114m.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          @(
+            "commit=$env:GITHUB_SHA"
+            "source_sha256=$sourceHash"
+            "executable_sha256=$exeHash"
+            "compiler_sha256=$compilerHash"
+            "target=win32/i386m"
+          ) | Set-Content -LiteralPath dist\Noctis-IV-windows-x86.source.txt -Encoding ascii
+
+      - name: Upload the source-built package
+        uses: actions/upload-artifact@v7
+        with:
+          name: Noctis-IV-windows-x86-source-build
+          path: |
+            dist/Noctis-IV-windows-x86.zip
+            dist/Noctis-IV-windows-x86.zip.sha256
+            dist/Noctis-IV-windows-x86.source.txt
+          if-no-files-found: error
+
+  publish:
+    name: Publish tagged release from hosted runner
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: compile
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out release notes
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Download the source-built package
+        uses: actions/download-artifact@v8
+        with:
+          name: Noctis-IV-windows-x86-source-build
+          path: dist
+
+      - name: Publish the GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $files = @(
+            'dist\Noctis-IV-windows-x86.zip',
+            'dist\Noctis-IV-windows-x86.zip.sha256',
+            'dist\Noctis-IV-windows-x86.source.txt'
+          )
+          if (gh release view $tag 2>$null) {
+            gh release upload $tag @files --clobber
+          } else {
+            gh release create $tag @files --verify-tag --notes-file RELEASE_NOTES.md --prerelease --title "Noctis IV L.in.oleum port $tag"
+          }

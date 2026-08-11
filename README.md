@@ -118,13 +118,14 @@ tracking-line or black-flash treatment, Enter starts or stops recording, and P
 pauses or resumes it. Raw 320x200 frames are written to `MOVIES\DDD` with
 eight-digit BMP filenames.
 
-Version tags matching `v*` assemble the checked production payload and runtime
-assets in GitHub Actions, then publish the ZIP plus its SHA-256 checksum as a
-prerelease. Ordinary pushes and pull requests run the protected-source check,
-integrated-game regression, and package assembly without creating a release.
-The historical GUI-subsystem compiler cannot run in GitHub's noninteractive
-Windows service session, so production source builds remain a local release
-step; the exact resulting `work\vhgame.exe` is versioned for reproducible CI/CD.
+Ordinary pushes and pull requests run the protected-source check, integrated
+game regression, and snapshot package assembly on GitHub-hosted Windows.
+Version tags matching `v*` instead route to a dedicated interactive Windows
+runner, delete stale artifacts, compile the tagged source, verify and package
+the fresh i386 PE, then hand it to a GitHub-hosted publishing job. The compiler
+runner has read-only repository access and never handles the release token.
+See [CI_RELEASES.md](CI_RELEASES.md) for setup, security, provenance, and release
+instructions.
 
 ## Screenshots
 
