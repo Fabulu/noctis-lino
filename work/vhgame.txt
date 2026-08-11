@@ -339,6 +339,8 @@
 	VHGcarttriads = { triads };
 	VHGcartparsis = { parsis universal coordinates: };
 	VHGcartheading = { heading pitch: };
+	VHGemerquiet = { NOTE: there are no emergencies at the moment. };
+	VHGemernotsent = { help request not sent. };
 	VHGsrclighton = { internal light on };
 	VHGsrclightoff = { internal light off };
 	VHGsrcremote = { remote target data };
@@ -3886,6 +3888,21 @@
     "VHG onboard planet description 10"
 	[VHGonrowsrc] = VHGplanetdesc10; end;
 
+"VHG onboard emergency information"
+	( devices(): gburst == -1 is the ordinary no-emergency state. The port's
+	  active rescue sequence is the complementary live state. )
+	[VHGonrowdst] = VHGonboardrow0; => VHG onboard row begin;
+	[VHGonrowdst] = VHGonboardrow1; => VHG onboard row begin;
+	[VHGonrowdst] = VHGonboardrow2; => VHG onboard row begin;
+	A = [VHGrescueactive]; ? A != 0 -> VHG onboard emergency information done;
+	[VHGonrowdst] = VHGonboardrow0; [VHGonrowsrc] = VHGemerquiet;
+	=> VHG onboard row append text; => VHG onboard row finish;
+	[VHGonrowdst] = VHGonboardrow1; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGemernotsent; => VHG onboard row append text;
+	=> VHG onboard row finish;
+    "VHG onboard emergency information done"
+	end;
+
 "VHG onboard cartography information"
 	( NOCTIS.CPP devices() cartography page: EPOC/triads, rounded Parsis
 	  coordinates, and navigation heading/pitch. )
@@ -4155,7 +4172,9 @@
 	A = VHGsrclithiumon;
     "VHG onboard prepare collector"
 	[VHPoncmd2] = A; [VHPoncmd3] = VHGsrcclear;
-	[VHPoninfo0] = VHGemergencytitle; -> VHG onboard prepare done;
+	=> VHG onboard emergency information;
+	[VHPoninfo0] = VHGonboardrow0; [VHPoninfo1] = VHGonboardrow1;
+	[VHPoninfo2] = VHGonboardrow2; -> VHG onboard prepare done;
     "VHG onboard prepare browser"
 	=> VHG browse format rows;
 	A = VHGbrowseprev; A + 2; [VHPoncmd0] = A;

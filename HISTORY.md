@@ -409,6 +409,12 @@ pair from live state. Real foreground R then 8 input displayed the changing
 coordinate row on the source plane, and the production build plus focused
 regression passed.
 
+The emergency branch now completes the physical device tree. In the ordinary
+quiet state it displays Noctis's `NOTE: there are no emergencies at the moment.`
+and `help request not sent.` rows; an active rescue leaves the information area
+blank as the original `gburst` branch does. Real foreground R then 9 input
+rendered the quiet report, and the focused regression passed.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

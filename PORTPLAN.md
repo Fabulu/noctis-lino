@@ -75,6 +75,8 @@ first -- a broken foundation makes every later result meaningless.
 - The physical galactic-cartography page now uses the remaining three source
   rows for live EPOC and zero-padded time triads, rounded X/-Y/Z Parsis
   coordinates, and the navigation heading/pitch sine-cosine pair.
+- The physical emergency page restores the source quiet-state report and leaves
+  its information rows blank while the visible rescue sequence is active.
 
 ### Native GUI performance, landing safety, and Stardrifter lift
 - Each completed 320x200 indexed render is palette-expanded into a stable

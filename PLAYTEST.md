@@ -682,3 +682,8 @@ same deterministic cabin position. The live rounded Parsis coordinate row
 appeared on the z=0 plane. The page also composes the current EPOC with three
 zero-padded triads and the source navigation sine/cosine heading pair; the
 production build and focused regression passed.
+
+The final physical-device smoke used real foreground R and 9 key edges. The
+emergency page rendered the original no-emergency/help-not-sent report on the
+world-space plane. Its active-rescue branch retains blank information rows, as
+in the original. The focused regression and production build passed.

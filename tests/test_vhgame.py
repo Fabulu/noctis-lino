@@ -485,6 +485,26 @@ def main() -> int:
         )),
         "physical cartography page restores live EPOC, Parsis, and heading rows",
     )
+    onboard_emergency = section(
+        game, '"VHG onboard emergency information"',
+        '"VHG onboard cartography information"',
+    )
+    check(
+        all(token in original_devices for token in (
+            'if (gburst == -1)',
+            'cline (1, "NOTE: there are no emergencies at the moment.");',
+            'cline (2, "help request not sent.");',
+        ))
+        and all(token in onboard_emergency for token in (
+            '[VHGonrowdst] = VHGonboardrow0;',
+            '[VHGonrowdst] = VHGonboardrow1;',
+            '[VHGonrowdst] = VHGonboardrow2;',
+            '[VHGrescueactive]', '[VHGonrowsrc] = VHGemerquiet;',
+            '[VHGonrowsrc] = VHGemernotsent;',
+        ))
+        and '=> VHG onboard emergency information;' in onboard_prepare,
+        "physical emergency page restores the original quiet-state report",
+    )
     check(
         "=> TK seed; => TK start;" in game and "=> TK step;" in game,
         "live loop uses the original 54.925 ms synchronizer",
