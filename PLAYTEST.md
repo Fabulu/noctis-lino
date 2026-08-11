@@ -912,3 +912,11 @@ block. Visual inspection confirmed a coherent three-panel planetary horizon
 and the center-panel data treatment. The clean exit checkpoint retained the
 starting heading exactly at zero; the temporary package was removed and the
 captured panorama was promoted to `screenshots/planet-panorama.png`.
+
+### HUD brightness regression
+
+An isolated production package captured the opening frame at default
+`surlight` 16, received six minus characters at human cadence, and captured a
+second complete frame at the source minimum of 10. The same outer-frame pixel
+changed from RGB 124,108,56 to RGB 64,52,28; both BMPs were exactly 256,054
+bytes. The temporary package and process were removed afterward.

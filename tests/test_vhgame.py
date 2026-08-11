@@ -990,6 +990,22 @@ def main() -> int:
         "surface digits restore source fixed-step cruise with additive manual movement",
     )
 
+    brightness = section(game, '"VHG HUD brightness key"', '"VHG surface input"')
+    check(
+        "if (c=='+' && surlight < 63 && !moviestat) surlight++;" in original
+        and "if (c=='-' && surlight > 10 && !moviestat) surlight--;" in original
+        and "A = [VHGascii]; ? A = 43 -> VHG HUD brightness raise;" in brightness
+        and "? A != 45 -> VHG HUD brightness done;" in brightness
+        and "? A <= 10 -> VHG HUD brightness done;" in brightness
+        and "? A >= 63 -> VHG HUD brightness done;" in brightness
+        and "[VHGNDsurlight]-;" in brightness
+        and "[VHGNDsurlight]+;" in brightness
+        and game.index("A = [VHGconsole]; ? A != 0 -> VHG console input;")
+        < game.index("=> VHG HUD brightness key;")
+        < game.index("A = [VHGmode]; ? A != 0 -> VHG surface input;"),
+        "plus and minus restore source-clamped HUD brightness without stealing console input",
+    )
+
     check(
         "INITIAL WIDTH = 642; INITIAL HEIGHT = 426;" in game
         and "defstyle;" in game

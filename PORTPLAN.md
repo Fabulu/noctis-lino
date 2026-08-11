@@ -43,6 +43,13 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Source HUD brightness controls
+
+- Plus and minus now adjust `surlight` by one across the original 10 through
+  63 range in unobstructed ship and surface play. The existing source-derived
+  frame gradients and corner lamps respond immediately, while GOES and onboard
+  pages retain ownership of typed characters.
+
 ### Source surface cruise speeds
 
 - Surface digits 1 through 9 now restore `fixed_step`: each selects a persistent

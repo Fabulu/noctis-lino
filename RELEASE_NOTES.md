@@ -139,6 +139,7 @@ Useful controls:
 - F2: visual effects; Page Up/Down: visor; F4: FPS display; F5: higher presentation rate
 - F6/F7: save/load; F8: music; M or `*`: numbered Gallery snapshot
 - Surface N or `/`: 916x200 panorama; V or `.`: raw panorama
+- Plus/minus: adjust the original HUD and visor-frame brightness
 - F1: original About page; F9 or `?`: complete current-port control card
 - Esc: save and quit
 

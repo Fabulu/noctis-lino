@@ -2644,8 +2644,9 @@
 	A = [VHGfcsopen]; ? A != 0 -> VHG input done;
 	A = [VHGprefs]; ? A != 0 -> VHG input done;
 	A = [VHGinfo]; ? A != 0 -> VHG input done;
-	A = [VHGmode]; ? A != 0 -> VHG surface input;
 	A = [VHGconsole]; ? A != 0 -> VHG console input;
+	=> VHG HUD brightness key;
+	A = [VHGmode]; ? A != 0 -> VHG surface input;
 	A = [VHGascii]; ? A = 13 -> VHG activate wall console;
 	? A = 71 -> VHG activate console shortcut; ? A != 103 -> VHG normal input;
     "VHG activate wall console"
@@ -3144,6 +3145,23 @@
 	[VHGreturnpending] = 0; A = [VHGascii]; ? A != 0 -> VHG return key done;
 	[VHGascii] = 13; -> VHG return key done;
     "VHG return key done"
+	end;
+
+"VHG HUD brightness key"
+	( NOCTIS.CPP:4472-4473.  The source adjusts surrounding()'s surlight
+	  by one for each buffered plus/minus character and clamps it to 10..63.
+	  This runs only in the unobstructed game view, so those characters remain
+	  available to onboard pages and the GOES console when either owns input. )
+	A = [VHGgraphics]; ? A != 0 -> VHG HUD brightness done;
+	A = [VHGhelpshow]; ? A != 0 -> VHG HUD brightness done;
+	A = [VHGascii]; ? A = 43 -> VHG HUD brightness raise;
+	? A != 45 -> VHG HUD brightness done;
+	[VHGascii] = 0; A = [VHGNDsurlight]; ? A <= 10 -> VHG HUD brightness done;
+	[VHGNDsurlight]-; -> VHG HUD brightness done;
+    "VHG HUD brightness raise"
+	[VHGascii] = 0; A = [VHGNDsurlight]; ? A >= 63 -> VHG HUD brightness done;
+	[VHGNDsurlight]+;
+    "VHG HUD brightness done"
 	end;
 
     "VHG surface input"

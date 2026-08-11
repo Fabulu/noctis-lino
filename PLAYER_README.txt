@@ -55,6 +55,7 @@ Target browser    6 previous / 7 next / 8 select / 9 cartography
 Emergency page    reset systems / rescue / lithium collector / clear status
 C / H             lithium collection / depleted-ship rescue
 F4 / F5           FPS display / opt into 60 Hz (18.2 Hz is the default)
++ / -             brighten / dim the source HUD and visor frame
 F6 / F7           save / load checkpoint
 F8                soundtrack on/off
 M or *            save the next numbered 320x200 BMP in GALLERY

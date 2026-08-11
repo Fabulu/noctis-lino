@@ -634,6 +634,12 @@ simulation tick, mapped into the port's terrain scale; the active digit or 0
 stops it. Manual WASD movement remains additive and a new descent resets the
 setting as a fresh original planetary session did.
 
+Plus and minus now restore the original `surlight` control. Each buffered key
+changes the shared ship/surface visor frame by one step within the source's
+10 through 63 bounds. The same source-derived gradients and corner lamps react
+immediately, without consuming those characters while GOES or an onboard page
+owns text input.
+
 ## Current state
 
 The project is a playable Windows beta, not a claim of exact feature parity
