@@ -43,6 +43,20 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Complete optional 60-Hz pose interpolation
+
+- F5 still changes presentation only; the authoritative game simulation remains
+  at the original 18.206 Hz in both modes.
+- The old pose is now captured before simulation-driven flight, roof-lift, and
+  capsule motion. Intermediate frames therefore interpolate those changes
+  instead of discovering them only after their first jumped render.
+- Airborne capsule descent and recovery now participate alongside ship and
+  settled-surface poses. Render-only coordinates are restored before input,
+  collision, saves, and the next simulation step.
+- A native roof-lift trace produced twelve distinct monotonic Y positions over
+  twelve 60-Hz frames, beginning `0, -21, -42, -70`, rather than repeated
+  18.206-Hz poses.
+
 ### Interactive source-build release workflow
 
 - Hosted Windows CI retains protected-source verification, the focused

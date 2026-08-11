@@ -66,6 +66,18 @@ the main-source and library directories. `-StageExtension .lxe` also prevents
 Windows executable scanners from briefly locking the growing PE between iGUI
 stockfile appends; the build driver renames the settled result to `vhgame.exe`.
 
+### Native 60-Hz autonomous-pose trace
+
+The former interpolation boundary was after render, which proved only that
+late player input could be smoothed. A disposable full-game build forced the
+real roof lift in F5 mode and recorded the render-only Y coordinate after
+interpolation on each of twelve native iGUI frames. The result was
+`0, -21, -42, -70, -90, -111, -139, -159, -180, -207, -227, -247`: every frame
+advanced monotonically, including the intermediate positions between source
+simulation ticks. The same pre-simulation capture now admits capsule descent
+and ascent when `landed` is clear but capsule state remains active. The trace
+hook was removed and the normal production executable rebuilt afterward.
+
 The presentation path now palette-expands a stable logical RGB page, composes
 all player-facing overlays there, scales the completed page into the iGUI
 backdrop, and publishes the composed window once. It

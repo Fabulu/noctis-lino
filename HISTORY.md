@@ -18,6 +18,22 @@ ephemeral hosted job alone receives permission to publish the tagged release.
 The workflow is checked in, while its first run awaits registration of the
 dedicated desktop runner described in `CI_RELEASES.md`.
 
+## 2026-08-11 -- complete 60-Hz pose interpolation
+
+The optional F5 presenter previously interpolated only motion committed after
+the render by player input. Flight, roof-lift, and capsule physics had already
+advanced before the old snapshot, so those visible poses still repeated at
+18.206 Hz even while the counter reported 60 FPS. Pose capture now happens
+before every authoritative simulation step and the same presentation-only path
+covers airborne capsule descent and recovery as well as ship and settled
+surface movement. Simulation, persistence, collision, and source cadence remain
+unchanged.
+
+A native instrumented roof-lift run recorded twelve rendered Y positions:
+`0, -21, -42, -70, -90, -111, -139, -159, -180, -207, -227, -247`.
+The former path would have repeated each authoritative position until the next
+18.206-Hz tick. The focused regression and restored production build pass.
+
 ## 2026-08-11 -- original GOES REPAIR utility
 
 The last standalone database-maintenance command in the resident HELP roster

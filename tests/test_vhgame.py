@@ -1522,6 +1522,7 @@ def main() -> int:
         and ground.count("A = [VHGNDdosim]; ? A = 0") >= 3,
         "original presentation is default and F5 opts into 60 FPS without changing simulation cadence",
     )
+    one_frame = section(game, '"VHG one frame"', '"VHG flight init"')
     check(
         all(token in game for token in (
             '"VHG interpolation advance"', '"VHG interpolation apply"',
@@ -1529,7 +1530,10 @@ def main() -> int:
             '=> VHG interpolation apply; => VHG render; => VHGND surrounding frame;',
             '=> VHG source info overlay; => VHG interpolation restore;',
             'A = [VHGmode]; ? A = 0 -> VHG interpolation apply eligible;',
-            'A = [VHGlanded]; ? A = 0 -> VHG interpolation apply done;',
+            'A = [VHGlanded]; ? A != 0 -> VHG interpolation apply eligible;',
+            'A = [VHGCstate]; ? A = 0 -> VHG interpolation apply done;',
+            'A = [VHGCstate]; ? A = 0 -> VHG interpolation advance done;',
+            'A = [VHGCstate]; ? A = 0 -> VHG interpolation snapshot done;',
             'A = [VHGdosim]; ? A != 0 -> VHG interpolation advance finish;',
             "A = [VHGinterpdelta]; A '* [VHGinterpacc]; A / VHGSIMDEN;",
             'A = [VHGx]; A - [VHGinterprenderx]; [VHGinterpeffectx] = A;',
@@ -1537,12 +1541,19 @@ def main() -> int:
             'A = [VHGalpha]; A - [VHGinterprenderalpha]; [VHGinterpeffectalpha] = A;',
             '[VHGinterpok] = 0; => VHG load success notice;',
         ))
+        and one_frame.count('=> VHG interpolation snapshot;') == 1
+        and one_frame.index('"VHG landing commit done"')
+        < one_frame.index('=> VHG interpolation snapshot;')
+        < one_frame.index('=> VHG flight step;')
+        < one_frame.index('=> VHG interpolation apply;')
+        and one_frame.index('=> VHG interpolation snapshot;')
+        < one_frame.index('=> VHGC tick;')
         and '[VHGinterpok] = 0;' in CAPSULE.read_text(encoding="utf-8")
         and [signed_lerp(0, 80, phase) for phase in (0, 18206, 36412, 54618, 60000)]
         == [0, 24, 48, 72, 80]
         and [signed_lerp(0, -80, phase) for phase in (0, 18206, 36412, 54618, 60000)]
         == [0, -24, -48, -72, -80],
-        "60-Hz ship and settled-surface presentation interpolate without mutating simulation state",
+        "60-Hz ship, lift, capsule, and surface poses interpolate without mutating simulation state",
     )
     check(
         (lambda run: (

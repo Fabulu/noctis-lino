@@ -1251,6 +1251,11 @@
 	A = [VHGlandpending]; ? A = 0 -> VHG landing commit done;
 	[VHGlandpending] = 0; => VHG land; => VHG fpu clean;
     "VHG landing commit done"
+		( Capture the last authoritative pose before flight, lift, capsule, and
+		  surface simulation advance it.  The old post-render capture could only
+		  smooth movement applied later by input, leaving every autonomous pose
+		  visibly quantised to 18.206 Hz in the 60-Hz presenter. )
+		=> VHG interpolation snapshot;
 		A = [VHGdosim]; ? A != 0 -> VHG ship ticks due;
 		( Fine approach used to execute all 32 retained movement steps on every
 		  third 60-Hz frame.  The average was correct but those periodic bursts
@@ -1298,7 +1303,6 @@
 		  Rendering uses the same shared stack, so give input a clean ABI boundary;
 		  without it the first walking sample after capsule settlement could return
 		  through a corrupted floating-point helper frame. )
-		=> VHG interpolation snapshot;
 		=> VHG fpu clean; => VHG lift postrender; => VHG input;
 	[VHGframe]+;
 	end;
@@ -9541,13 +9545,15 @@
 	end;
 
 "VHG interpolation advance"
-	( Presentation-only phase between two authoritative 18.206-Hz ship poses.
+	( Presentation-only phase between two authoritative 18.206-Hz poses.
 	  A simulation frame must arrive exactly at its target before the next input
 	  commits a new one; intermediate 60-Hz frames advance by the same rational
-	  cadence numerator used by VHG cadence. )
+	  cadence numerator used by VHG cadence.  Airborne capsule poses participate
+	  even though VHGlanded remains clear during descent and recovery. )
 	A = [VHGfast]; ? A = 0 -> VHG interpolation advance done;
 	A = [VHGmode]; ? A = 0 -> VHG interpolation advance eligible;
-	A = [VHGlanded]; ? A = 0 -> VHG interpolation advance done;
+	A = [VHGlanded]; ? A != 0 -> VHG interpolation advance eligible;
+	A = [VHGCstate]; ? A = 0 -> VHG interpolation advance done;
     "VHG interpolation advance eligible"
 	A = [VHGinterpok]; ? A = 0 -> VHG interpolation advance done;
 	A = [VHGdosim]; ? A != 0 -> VHG interpolation advance finish;
@@ -9563,7 +9569,8 @@
 	[VHGinterpapplied] = 0;
 	A = [VHGfast]; ? A = 0 -> VHG interpolation apply done;
 	A = [VHGmode]; ? A = 0 -> VHG interpolation apply eligible;
-	A = [VHGlanded]; ? A = 0 -> VHG interpolation apply done;
+	A = [VHGlanded]; ? A != 0 -> VHG interpolation apply eligible;
+	A = [VHGCstate]; ? A = 0 -> VHG interpolation apply done;
     "VHG interpolation apply eligible"
 	A = [VHGinterpok]; ? A != 0 -> VHG interpolation apply ready;
 	=> VHG interpolation reset; -> VHG interpolation apply done;
@@ -9618,7 +9625,8 @@
 "VHG interpolation snapshot"
 	A = [VHGfast]; ? A = 0 -> VHG interpolation snapshot done;
 	A = [VHGmode]; ? A = 0 -> VHG interpolation snapshot eligible;
-	A = [VHGlanded]; ? A = 0 -> VHG interpolation snapshot done;
+	A = [VHGlanded]; ? A != 0 -> VHG interpolation snapshot eligible;
+	A = [VHGCstate]; ? A = 0 -> VHG interpolation snapshot done;
     "VHG interpolation snapshot eligible"
 	A = [VHGdosim]; ? A = 0 -> VHG interpolation snapshot done;
 	[VHGinterpx] = [VHGx]; [VHGinterpy] = [VHGy]; [VHGinterpz] = [VHGz];
