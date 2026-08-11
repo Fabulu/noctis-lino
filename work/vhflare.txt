@@ -18,6 +18,7 @@
 "variables"
 
 	VHFcx = 0; VHFcy = 0; VHFk = 0; VHFl = 0; VHFu = 0; VHFang = 0;
+	VHFadd = 2; VHFpx = 0; VHFpy = 0; VHFpz = 0;
 	VHFdist = 0; VHFray = 0; VHFstep = 0;
 	VHFghost = 0; VHFgdx = 0; VHFgdy = 0; VHFgx = 0; VHFgy = 0; VHFgr = 0;
 	VHFdx = 0; VHFdy = 0;
@@ -28,6 +29,7 @@
 "programme"
 
 "VH halogen flare"
+	[VHFadd] = 2;
 	[PGFi] = FSINX; [PGFt] = VHFM10; => PGF setf32;
 	[PGFi] = FSINY; [PGFt] = VHFP10; => PGF setf32;
 	[PGFi] = FSINZ; [PGFt] = VHFM10; => PGF setf32;
@@ -42,9 +44,33 @@
 	=> F32Narrow; => PGF stf32; [VHFk] = [PGFt];
 	-> VHF draw;
 
+"VH rescue flare"
+	( other_vehicle_at() passes a negative 500000-unit step, added=3, and
+	  condition=1 for each of the helper Stardrifter's four hull fixtures. )
+	[VHFadd] = 3;
+	[FI] = [VHFpx]; => IntToF; => F32Narrow; => FStoreF32;
+	[PGFi] = FSINX; [PGFt] = [FS0]; => PGF setf32;
+	[FI] = [VHFpy]; => IntToF; => F32Narrow; => FStoreF32;
+	[PGFi] = FSINY; [PGFt] = [FS0]; => PGF setf32;
+	[FI] = [VHFpz]; => IntToF; => F32Narrow; => FStoreF32;
+	[PGFi] = FSINZ; [PGFt] = [FS0]; => PGF setf32;
+	=> PG getcoords;
+	A = rwf; A = [A]; ? A = 0 -> VHF done;
+	A = [GCx]; A+; [VHFcx] = A;
+	A = [GCy]; A+; [VHFcy] = A;
+	A = [VHFcx]; ? A <= 10 -> VHF done; ? A >= 320 -> VHF done;
+	A = [VHFcy]; ? A <= 10 -> VHF done; ? A >= 190 -> VHF done;
+	A '* 320; A + [VHFcx]; [SPoff] = A; [SPreg] = RGADP; => SP get;
+	A = [SPval]; ? A < 64 -> VHF done;
+	[FI] = 500000; => IntToF; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSRZF; => PGF quo;
+	=> F32Narrow; => PGF stf32; [VHFk] = [PGFt];
+	-> VHF draw;
+
 "VH surface flare"
 	( Surface suns pass condition=1: terrain or another opaque palette-band-0
 	  pixel at the projected centre suppresses the complete flare. )
+	[VHFadd] = 2;
 	A = [VHFcx]; ? A <= 10 -> VHF done; ? A >= 320 -> VHF done;
 	A = [VHFcy]; ? A <= 10 -> VHF done; ? A >= 190 -> VHF done;
 	A '* 320; A + [VHFcx]; [SPoff] = A; [SPreg] = RGADP; => SP get;
@@ -107,7 +133,7 @@
     "VHF scale down"
 	[VHFu] = VHFF23;
     "VHF scale ready"
-	A = [VHFang]; A + 2; [VHFang] = A; ? A < 180 -> VHF spoke;
+	A = [VHFang]; A + [VHFadd]; [VHFang] = A; ? A < 180 -> VHF spoke;
     "VHF done"
 	end;
 

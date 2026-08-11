@@ -18,7 +18,8 @@ parity, not a claim that parity is complete.
   source-positioned local suns, vegetation, animals, capturable birds, ruins,
   water/ice effects, jump, and jetpack behavior.
 - Return to the capsule and Stardrifter, manage power and lithium, collect fuel,
-  or request the visible rescue sequence.
+  or request the complete two-minute rescue fly-by with a second lit
+  Stardrifter.
 - Save and resume versioned checkpoints. Verified saves retain a backup and a
   damaged primary visibly recovers from the last-known-good copy.
 - Resize the native iGUI window while the authentic 320x200 renderer remains

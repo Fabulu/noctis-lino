@@ -1133,7 +1133,7 @@ def main() -> int:
             'A = [VHLangle]; ? A < [VHLlimit] -> VHL segment;',
         ))
         and '[SPreg] = RGADP; => SP get;' not in section(
-            flare, '"VH halogen flare"', '"VH surface flare"'
+            flare, '"VH halogen flare"', '"VH rescue flare"'
         )
         and "-50000, 2, hud_closed, 0, 1, 1" in section(
             original, "void alogena ()", "/* Quadranti"
@@ -1685,14 +1685,23 @@ def main() -> int:
             '"VHG rescue near upper done"', '"VHG rescue near lower done"',
             "[PVh] = 0; [DWmode] = 0; [DWuds] = 1; => SP drawpv;",
             "=> VH join mode0;", '"VHG rescue far upper done"',
-            '"VHG rescue far lower done"',
+            '"VHG rescue far lower done"', "=> VHG visor flare mode;",
+            "[VHFpx] = 3225; [VHFpy] = 0; [VHFpz] = 0; => VH rescue flare;",
+            "A - 6150; [VHFpz] = A; => VH rescue flare;",
+        ))
+        and all(token in flare for token in (
+            '"VH rescue flare"', "[VHFadd] = 3;", "[FI] = 500000; => IntToF;",
+            "[SPoff] = A; [SPreg] = RGADP; => SP get;",
+            "A = [VHFang]; A + [VHFadd];",
         ))
         and all(token in original for token in (
             "if (pwr <= 15000 && !charge)", "if (!stz&&charge<3) charge = 3;",
             "other_vehicle_at ((stz + 16000) * cos (secs / 10)",
             "drawpv (vehicle_handle, 0, 0, ovhx, ovhy, ovhz, 1);",
+            "lens_flares_for (cam_x, cam_y, cam_z, 3225, 0, 0, -5e5, 3, hud_closed, 1, 1, 1);",
+            "lens_flares_for (cam_x, cam_y, cam_z, -3225, 0, -6150, -5e5, 3, hud_closed, 1, 1, 1);",
         )),
-        "depleted ships receive the original three-unit reserve from a visible rescue fly-by",
+        "depleted ships receive the original reserve from a complete lit rescue fly-by",
     )
     check(
         all(token in save for token in (

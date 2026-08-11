@@ -443,8 +443,9 @@ first -- a broken foundation makes every later result meaningless.
   softlock. It uses the source request gate, then renders another Stardrifter
   on the original squared approach/close-orbit/departure path before delivering
   three reserve units. The fly-by runs for the full source 120 seconds, and its
-  near cupola halves, complete external VEHICLE hull, and far cupola halves are
-  submitted in `other_vehicle_at()` order. Pending progress is saved.
+  near cupola halves, complete external VEHICLE hull, far cupola halves, and
+  four source-positioned halogen flares are submitted in `other_vehicle_at()`
+  order. Pending progress is saved.
 
 ### In-game control discovery
 - `?` serves NIV+'s help/about role because this Windows iGUI host does not

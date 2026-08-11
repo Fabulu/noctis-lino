@@ -369,7 +369,9 @@ Preferences, and Save and quit even though their datascript entries existed.
 The emergency helper Stardrifter now renders its complete external VEHICLE hull
 between the source-ordered near and far cupola passes. The earlier port drew two
 cupolas without the ship body even though `other_vehicle_at()` explicitly draws
-the vehicle model during the full two-minute rescue orbit.
+the vehicle model during the full two-minute rescue orbit. Its four exterior
+halogens now follow the same source positions, three-degree spoke cadence,
+hull-occlusion test, and visor reflection preference as the original.
 
 ### Clickable onboard controls
 

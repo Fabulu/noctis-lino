@@ -2044,6 +2044,19 @@
 	A = [VHGrescuey]; C = 0; C - 375; ? A >= C -> VHG rescue far lower done;
 	A = 0; A - 1; [VHCyor] = A; => VH polycupola; => VH cupola grid;
     "VHG rescue far lower done"
+	( other_vehicle_at() finishes with the four source-positioned exterior
+	  halogens.  Restore the helper-relative camera after the cupola's +3100
+	  offset, then share lens_flares_for's projection, occlusion and HUD ghosts. )
+	A = [VHGx]; A - [VHGrescuex]; [VHVcamxi] = A;
+	A = [VHGy]; A - [VHGrescuey]; [VHVcamyi] = A;
+	A = [VHGz]; A - [VHGrescuez]; [VHVcamzi] = A;
+	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
+	=> VHG visor flare mode;
+	[VHFpx] = 3225; [VHFpy] = 0; [VHFpz] = 0; => VH rescue flare;
+	A = 0; A - 3225; [VHFpx] = A; [VHFpz] = 0; => VH rescue flare;
+	[VHFpx] = 3225; A = 0; A - 6150; [VHFpz] = A; => VH rescue flare;
+	A = 0; A - 3225; [VHFpx] = A; A = 0; A - 6150; [VHFpz] = A;
+	=> VH rescue flare;
     "VHG rescue render done"
 	end;
 
