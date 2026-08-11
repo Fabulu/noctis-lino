@@ -57,7 +57,10 @@ parity, not a claim that parity is complete.
   directly on the wall faces. The original resident `CLR` command clears the
   output tree, while `WHERE <catalogued name>` searches the mutable starmap,
   distinguishes stars from planets, reports ambiguous prefixes, and resolves
-  a planet's parent star. The third station starts planetary approach and,
+  a planet's parent star. `PAR <catalogued name>[:range]` now regenerates the
+  original procedural sector cube and reports X, -Y, Z coordinates. The G
+  shortcut includes the same seven retained output rows as the wall display.
+  The third station starts planetary approach and,
   after FCS reaches STANDBY, opens the physical longitude/latitude selector.
 - Planetary views finish with the original default `surrounding()` visor
   frame. Its stable graded edge replaces both the incorrect bright sawtooth

@@ -46,7 +46,10 @@ resumes automatically; verified saves maintain `CURRENT.BAK`, and a damaged
 primary recovers visibly from that last-known-good copy. Enter `NEW` in GOES
 to start over. `WHERE <catalogued name>` identifies a charted star or resolves
 a planet to its parent system on the second GOES face; `CLR` clears that output
-tree. The GAME menu's Flight control and Onboard devices entries open
+tree. `PAR <catalogued name>[:range]` performs the original procedural sector
+search and reports the star coordinates as X, -Y, Z; underscores stand for
+spaces in multi-word names. The accessible G view now includes the same
+seven-line retained result history above its command prompt. The GAME menu's Flight control and Onboard devices entries open
 resize-aware mouse-accessible versions of those physical pages; the hovered
 command turns white and one left click activates it. Both routes remain over
 the live Stardrifter instead of opening a black modal page. The GAME menu also

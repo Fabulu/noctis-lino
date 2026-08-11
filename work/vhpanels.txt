@@ -37,9 +37,9 @@
 	VHPsx0 = 0; VHPsy0 = 0; VHPsz0 = 0;
 	VHPsx1 = 0; VHPsy1 = 0; VHPsz1 = 0;
 	vhpfontname = { digimap2.bin };
-	vhpboot0 = { G.O.E.S. OUTPUT TREE };
-	vhpboot1 = { REVISION ID 6011/0200 };
-	vhpboot2 = { CHANNEL READY };
+	vhpboot0 = { G.O.E.S._OUTPUT_TREE };
+	vhpboot1 = { REVISION_ID_6011/0200 };
+	vhpboot2 = { CHANNEL_READY };
 	vhponctl0 = { flight control drive };
 	vhponctl1 = { onboard devices };
 	vhponctl2 = { preferences };

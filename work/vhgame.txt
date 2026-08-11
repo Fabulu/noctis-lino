@@ -67,6 +67,7 @@
 	VHGonrowdigit = 0; VHGonrowchar = 0; VHGonrowlocal = 0;
 	VHGonrowfp0 = 0; VHGonrowfp1 = 0;
 	VHGconsole = 0; VHGconsoleview = 0; VHGascii = 0; VHGasciiheld = 0; VHGasciikey = 0;
+	VHGconsoleouti = 0; VHGconsoleouty = 0;
 	VHGscreen = 0FFFFFFFFh; VHGscreenprev = 0FFFFFFFFh; VHGfcsopen = 0;
 	VHGscrollheld = 0; VHGscrollused = 0;
 	VHGnewasciikey = 0; VHGreturnpending = 0; VHGreturnhookheld = 0;
@@ -76,7 +77,15 @@
 	VHGcmdsilent = 0; VHGwherequery = 0; VHGwherelen = 0; VHGwhererec = 0;
 	VHGwhererecno = 0; VHGwherematches = 0; VHGwherefound = 0;
 	VHGwherematch = 0; VHGwhereexact = 0; VHGwherei = 0; VHGwheretype = 0;
-	VHGwherecode = 0;
+	VHGwherecode = 0; VHGwhereunderscores = 0;
+	VHGparrange = 100; VHGparvalue = 0; VHGpardigits = 0;
+	VHGpartarget0 = 0; VHGpartarget1 = 0;
+	VHGparlowhi = 0; VHGparlowlo = 0; VHGparhighhi = 0; VHGparhighlo = 0;
+	VHGparaxis0 = 0; VHGparaxis1 = 0; VHGparbaseout = 0; VHGparoffset = 0;
+	VHGparbasex = 0; VHGparbasey = 0; VHGparbasez = 0;
+	VHGparsectx = 0; VHGparsecty = 0; VHGparsectz = 0;
+	VHGparix = 0; VHGpariy = 0; VHGpariz = 0;
+	VHGparaxischar = 0; VHGparcoord = 0;
 	VHGflightx = 0; VHGsecx = 0;
 	VHGlocalactive = 0; VHGlocaltarget = 0FFFFFFFFh;
 	VHGlocalx0 = 0; VHGlocalx1 = 0; VHGlocaly0 = 0; VHGlocaly1 = 0;
@@ -226,25 +235,36 @@
 	VHGtargettext = { VIMANA TARGET SET };
 	VHGtargetfailedtext = { NO TARGET AVAILABLE };
 	VHGunknowntext = { UNKNOWN GOES MODULE };
-	VHGwherehead = {   GOES GALACTIC MAP  };
+	VHGwherehead = { ___GOES_GALACTIC_MAP__ };
 	VHGwhereusage0 = { USAGE };
-	VHGwhereusage1 = { WHERE PLANETNAME };
-	VHGwhereusage2 = { PLEASE RUN AGAIN, };
-	VHGwhereusage3 = { SPECIFYING PARAMETERS };
-	VHGwherenotfound = { OBJECT NOT FOUND. };
-	VHGwhereambiguous0 = { AMBIGUOUS SEARCH KEY: };
-	VHGwhereambiguous1 = { PLEASE EXPAND NAME... };
-	VHGwherepossible = { POSSIBLE RESULTS ARE: };
-	VHGwherestar0 = { THIS OBJECT IS A STAR };
-	VHGwherestar1 = { AND ITS POSITION CAN };
-	VHGwherestar2 = { BE DETERMINED USING };
-	VHGwherestar3 = { THE 'PAR' MODULE. };
-	VHGwherepart0 = { IS PART OF THE };
+	VHGwhereusage1 = { WHERE_PLANETNAME };
+	VHGwhereusage2 = { PLEASE_RUN_AGAIN, };
+	VHGwhereusage3 = { SPECIFYING_PARAMETERS };
+	VHGwherenotfound = { OBJECT_NOT_FOUND. };
+	VHGwhereambiguous0 = { AMBIGUOUS_SEARCH_KEY: };
+	VHGwhereambiguous1 = { PLEASE_EXPAND_NAME... };
+	VHGwherepossible = { POSSIBLE_RESULTS_ARE: };
+	VHGwherestar0 = { THIS_OBJECT_IS_A_STAR };
+	VHGwherestar1 = { AND_ITS_POSITION_CAN };
+	VHGwherestar2 = { BE_DETERMINED_USING };
+	VHGwherestar3 = { THE_'PAR'_MODULE. };
+	VHGwherepart0 = { IS_PART_OF_THE };
 	VHGwherepart1 = { SYSTEM. };
-	VHGwhereparent0 = { UNABLE TO DETERMINE };
-	VHGwhereparent1 = { THIS PLANET'S PARENT };
-	VHGwhereparent2 = { STAR; PROBABLY, THAT };
-	VHGwhereparent3 = { STAR ISN'T CATALOGUED };
+	VHGwhereparent0 = { UNABLE_TO_DETERMINE };
+	VHGwhereparent1 = { THIS_PLANET'S_PARENT };
+	VHGwhereparent2 = { STAR;_PROBABLY,_THAT };
+	VHGwhereparent3 = { STAR_ISN'T_CATALOGUED };
+	VHGparhead = { GOES_STARMAP_ANALYSIS };
+	VHGparusage0 = { USAGE };
+	VHGparusage1 = { PAR_OBJECTNAME };
+	VHGparusage2 = { PAR_OBJECTNAME:RANGE };
+	VHGparusage3 = { PLEASE_RUN_AGAIN, };
+	VHGparusage4 = { SPECIFYING_PARAMETERS };
+	VHGparusage5 = { (PAR_REVISION_6011/2) };
+	VHGparsubjectstar = { SUBJECT:_STAR; };
+	VHGparsubjectplanet = { SUBJECT:_PLANET; };
+	VHGparnameprefix = { NAME: };
+	VHGparoutofrange = { IS_OUT_OF_RANGE };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -545,7 +565,7 @@
 	VHGprefillstar = { NAME STAR };
 	VHGprefillplanet = { NAME PLANET };
 	VHGprefillmanual = { STAR };
-	VHGconsoletitle = { GOES COMMAND CONSOLE };
+	VHGconsoletitle = { GOES_COMMAND_CONSOLE };
 	VHGphysicaltitle = { GOES COMMAND NET };
 	VHGgoesprompt = { GOES> };
 	VHGlandingtitle = { PLANETARY LANDING SITE };
@@ -630,6 +650,7 @@
 	VHGonboardrow2 = 109;
 	VHGgoesline = 22;
 	VHGwherebar = 22;
+	VHGparline = 22;
 
 "programme"
 
@@ -3216,6 +3237,7 @@
 	? A = 76 -> VHG command maybe load;
 	? A = 78 -> VHG command starts n;
 	? A = 67 -> VHG command maybe clear;
+	? A = 80 -> VHG command maybe par;
 	? A = 87 -> VHG command maybe where; -> VHG command done;
     "VHG command maybe clear"
 	A = [vhptext plus 43]; ? A != 76 -> VHG command done;
@@ -3247,7 +3269,47 @@
 	A - 1; C = [VHGwherequery]; C + A; A = [C]; ? A != 32 -> VHG command where ready;
 	[VHGwherelen]-; -> VHG command where trim;
     "VHG command where ready"
-	[VHGcmdsilent] = 1; => VHG WHERE; -> VHG command done;
+	[VHGwhereunderscores] = 0; [VHGcmdsilent] = 1; => VHG WHERE; -> VHG command done;
+    "VHG command maybe par"
+	A = [vhptext plus 43]; ? A != 65 -> VHG command done;
+	A = [vhptext plus 44]; ? A != 82 -> VHG command done;
+	A = [vhptext plus 45]; ? A = 0 -> VHG command par parse;
+	? A = 32 -> VHG command par parse; ? A != 95 -> VHG command done;
+    "VHG command par parse"
+	[VHGcmdi] = 45; [VHGparrange] = 100;
+    "VHG command par spaces"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 32 -> VHG command par start;
+	[VHGcmdi]+; -> VHG command par spaces;
+    "VHG command par start"
+	[VHGwherequery] = A; [VHGwherelen] = 0;
+    "VHG command par length"
+	? C = 0 -> VHG command par trim; ? C = 58 -> VHG command par range start;
+	? C != 95 -> VHG command par character;
+	E = A; E + 1; E = [E]; ? E = 0 -> VHG command par trim;
+    "VHG command par character"
+	[VHGwherelen]+; [VHGcmdi]+; A = vhptext; A + [VHGcmdi]; C = [A];
+	-> VHG command par length;
+    "VHG command par range start"
+	[VHGcmdi]+; [VHGparvalue] = 0; [VHGpardigits] = 0;
+    "VHG command par range digits"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C < 48 -> VHG command par range done;
+	? C > 57 -> VHG command par range done;
+	A = [VHGpardigits]; ? A >= 6 -> VHG command par range default;
+	A = [VHGparvalue]; A '* 10; C - 48; A + C; [VHGparvalue] = A;
+	[VHGpardigits]+; [VHGcmdi]+; -> VHG command par range digits;
+    "VHG command par range done"
+	A = [VHGpardigits]; ? A = 0 -> VHG command par range default;
+	A = [VHGparvalue]; ? A <= 2 -> VHG command par range default;
+	? A > 10000 -> VHG command par range default; [VHGparrange] = A;
+	-> VHG command par trim;
+    "VHG command par range default"
+	[VHGparrange] = 100;
+    "VHG command par trim"
+	A = [VHGwherelen]; ? A = 0 -> VHG command par ready;
+	A - 1; C = [VHGwherequery]; C + A; A = [C]; ? A != 32 -> VHG command par ready;
+	[VHGwherelen]-; -> VHG command par trim;
+    "VHG command par ready"
+	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1; => VHG PAR; -> VHG command done;
     "VHG command starts s"
 	A = [vhptext plus 43]; ? A = 65 -> VHG command maybe save;
 	? A = 84 -> VHG command maybe star; -> VHG command done;
@@ -3425,6 +3487,9 @@
 	B = A; A / 4; C = [VHGwhererec]; C + 2; C + A; A = [C];
 	B & 3; B '* 8; A > B; A & FFh; B = A;
 	A = [VHGwherequery]; A + [VHGwherei]; A = [A];
+	C = [VHGwhereunderscores]; ? C = 0 -> VHG query character ready;
+	? A != 95 -> VHG query character ready; A = 32;
+    "VHG query character ready"
 	? A != B -> VHG WHERE record match done;
 	[VHGwherei]+; -> VHG WHERE record prefix;
     "VHG WHERE record suffix"
@@ -3452,6 +3517,162 @@
     "VHG WHERE output label ready"
 	[VHPoutptr] = VHGgoesline; => VH GOES output line;
 	end;
+
+"VHG PAR"
+	( PAR.CPP regenerates every procedural star in a centred sector cube and
+	  compares the resulting binary64 identity with the selected catalogue
+	  subject. Keep that original search and its X,-Y,Z coordinate convention. )
+	A = [VHGwherelen]; ? A != 0 -> VHG PAR execute;
+	[VHPoutptr] = VHGparusage0; => VH GOES output line;
+	[VHPoutptr] = VHGparusage1; => VH GOES output line;
+	[VHPoutptr] = VHGparusage2; => VH GOES output line;
+	[VHPoutptr] = VHGparusage3; => VH GOES output line;
+	[VHPoutptr] = VHGparusage4; => VH GOES output line;
+	[VHGwherei] = 0;
+    "VHG PAR usage bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG PAR usage bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGparusage5; => VH GOES output line; end;
+    "VHG PAR execute"
+	[VHGwherei] = 0;
+    "VHG PAR bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG PAR bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGparhead; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHGwherematches] = 0; [VHGwherefound] = 0; [VHGwhererecno] = 0;
+    "VHG PAR catalogue loop"
+	A = [VHGwhererecno]; ? A >= [VHCATrecs] -> VHG PAR catalogue done;
+	A '* 8; A + vhcatraw; A + 1; [VHGwhererec] = A;
+	=> VHG WHERE record match; A = [VHGwherematch]; ? A = 0 -> VHG PAR catalogue next;
+	[VHGwherematches]+; [VHGwherefound] = [VHGwhererec];
+	A = [VHGwhereexact]; ? A != 0 -> VHG PAR catalogue exact;
+    "VHG PAR catalogue next"
+	[VHGwhererecno]+; -> VHG PAR catalogue loop;
+    "VHG PAR catalogue exact"
+	[VHGwherematches] = 1;
+    "VHG PAR catalogue done"
+	A = [VHGwherematches]; ? A = 0 -> VHG PAR missing result;
+	? A > 1 -> VHG PAR ambiguous result;
+	[VHGwhererec] = [VHGwherefound];
+	A = [VHGwhererec]; C = [A plus 7]; C > 8; C & FFh; [VHGwheretype] = C;
+	? C = VHCATS -> VHG PAR star subject;
+	? C = VHCATP -> VHG PAR planet subject; -> VHG PAR missing result;
+    "VHG PAR missing result"
+	[VHPoutptr] = VHGwherenotfound; => VH GOES output line; end;
+    "VHG PAR ambiguous result"
+	=> VHG WHERE ambiguous; end;
+    "VHG PAR star subject"
+	[VHPoutptr] = VHGparsubjectstar; => VH GOES output line;
+	=> VHG PAR output name;
+	A = [VHGwherefound]; [VHGpartarget0] = [A]; [VHGpartarget1] = [A plus 1];
+	-> VHG PAR prepare scan;
+    "VHG PAR planet subject"
+	[VHPoutptr] = VHGparsubjectplanet; => VH GOES output line;
+	=> VHG PAR output name;
+	A = [VHGwherefound]; C = [A plus 7];
+	A = C; A > 16; A & FFh; A - 48; A '* 10; [VHGwherecode] = A;
+	A = C; A > 24; A & FFh; A - 48; A + [VHGwherecode]; [VHGwherecode] = A;
+	A = [VHGwherefound]; [nsid0] = [A]; [nsid1] = [A plus 1];
+	A = 0; A - [VHGwherecode]; [FI] = A; => NsIdentAddInt;
+	[VHGpartarget0] = [FA0]; [VHGpartarget1] = [FA1];
+    "VHG PAR prepare scan"
+	( sidlow = star_id-idscale; sidhigh = star_id+idscale.  The ordered
+	  binary64 keys let the integer loop retain the source comparisons exactly. )
+	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FSub;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparlowhi] = [VHCATkeyhi]; [VHGparlowlo] = [VHCATkeylo];
+	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FAdd;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparhighhi] = [VHCATkeyhi]; [VHGparhighlo] = [VHCATkeylo];
+	A = [VHGparrange]; A '* 50000; [VHGparoffset] = A;
+	[VHGparaxis0] = [MgDzatX0]; [VHGparaxis1] = [MgDzatX1]; => VHG PAR sector base;
+	[VHGparbasex] = [VHGparbaseout];
+	[VHGparaxis0] = [MgDzatY0]; [VHGparaxis1] = [MgDzatY1]; => VHG PAR sector base;
+	[VHGparbasey] = [VHGparbaseout];
+	[VHGparaxis0] = [MgDzatZ0]; [VHGparaxis1] = [MgDzatZ1]; => VHG PAR sector base;
+	[VHGparbasez] = [VHGparbaseout];
+	[VHGparix] = 0; [VHGparsectx] = [VHGparbasex];
+    "VHG PAR scan x"
+	[VHGpariy] = 0; [VHGparsecty] = [VHGparbasey];
+    "VHG PAR scan y"
+	[VHGpariz] = 0; [VHGparsectz] = [VHGparbasez];
+    "VHG PAR scan z"
+	( PAR's extended scans are cancellable with Escape, as in the module. )
+	A = [VHGparrange]; ? A <= 100 -> VHG PAR hash candidate;
+	A = [KEY ESCAPE]; ? A = ON -> VHG PAR scan exhausted;
+    "VHG PAR hash candidate"
+	A = [VHGparsectx]; A + [VHGparsectz]; [VHSsumxz] = A;
+	A & 1FFFFh; A + [VHGparsectx];
+	? A = VHSCUTOFF -> VHG PAR scan next z;
+	A - VHSCUTOFF; [VHStempx] = A;
+	[VHSfmA] = A; [VHSfmB] = [VHSsumxz]; => VHS foldmul;
+	[VHSaccum] = [VHSfmResult];
+	A = [VHSsumxz]; A + [VHSaccum]; [VHSidk] = A;
+	A = [VHSaccum]; A & 1FFFFh; A + [VHGparsecty];
+	? A = VHSCUTOFF -> VHG PAR scan next z;
+	A - VHSCUTOFF; [VHStempy] = A;
+	[VHSfmA] = A; [VHSfmB] = [VHSidk]; => VHS foldmul;
+	[VHSaccum] = [VHSfmResult];
+	A = [VHSaccum]; A & 1FFFFh; A + [VHGparsectz];
+	? A = VHSCUTOFF -> VHG PAR scan next z;
+	A - VHSCUTOFF; [VHStempz] = A;
+	[FJ0] = [VHStempx]; [FJ1] = [VHStempy]; [FJ2] = [VHStempz]; => NsIdentityD;
+	[VHCATid0] = [nsid0]; [VHCATid1] = [nsid1]; => VHCAT key;
+	A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHGparlowhi] -> VHG PAR candidate above low;
+	? A '< [VHGparlowhi] -> VHG PAR scan next z;
+	? B '> [VHGparlowlo] -> VHG PAR candidate above low; -> VHG PAR scan next z;
+    "VHG PAR candidate above low"
+	? A '< [VHGparhighhi] -> VHG PAR scan hit;
+	? A '> [VHGparhighhi] -> VHG PAR scan next z;
+	? B '< [VHGparhighlo] -> VHG PAR scan hit; -> VHG PAR scan next z;
+    "VHG PAR scan next z"
+	[VHGparsectz] + 100000; [VHGpariz]+; A = [VHGpariz];
+	? A < [VHGparrange] -> VHG PAR scan z;
+	[VHGparsecty] + 100000; [VHGpariy]+; A = [VHGpariy];
+	? A < [VHGparrange] -> VHG PAR scan y;
+	[VHGparsectx] + 100000; [VHGparix]+; A = [VHGparix];
+	? A < [VHGparrange] -> VHG PAR scan x;
+    "VHG PAR scan exhausted"
+	[VHGwhererec] = [VHGwherefound]; => VHG WHERE output label;
+	[VHPoutptr] = VHGparoutofrange; => VH GOES output line; end;
+    "VHG PAR scan hit"
+	[VHGparaxischar] = 88; [VHGparcoord] = [VHStempx]; => VHG PAR output coordinate;
+	[VHGparaxischar] = 89; A = 0; A - [VHStempy]; [VHGparcoord] = A;
+	=> VHG PAR output coordinate;
+	[VHGparaxischar] = 90; [VHGparcoord] = [VHStempz]; => VHG PAR output coordinate;
+	end;
+
+"VHG PAR sector base"
+	[FI] = [VHGparoffset]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGparaxis0]; [FA1] = [VHGparaxis1]; => FSub;
+	[FB0] = [MgskA]; [FB1] = [MgskB]; => FQuo; => FToIntChop;
+	A = [FI]; A '* VHSSECTOR; [VHGparbaseout] = A; end;
+
+"VHG PAR output name"
+	[VHGonrowdst] = VHGparline; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGparnameprefix; => VHG onboard row append text;
+	=> VHG onboard row append space; [VHGwherei] = 0;
+    "VHG PAR output name loop"
+	A = [VHGwherei]; ? A >= 15 -> VHG PAR output name ready;
+	B = A; A / 4; C = [VHGwherefound]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; [VHGonrowchar] = A;
+	=> VHG onboard row append char; [VHGwherei]+; -> VHG PAR output name loop;
+    "VHG PAR output name ready"
+	=> VHG onboard row finish; [VHPoutptr] = VHGparline; => VH GOES output line; end;
+
+"VHG PAR output coordinate"
+	[VHGonrowdst] = VHGparline; => VHG onboard row begin;
+	[VHGonrowchar] = [VHGparaxischar]; => VHG onboard row append char;
+	[VHGonrowchar] = 61; => VHG onboard row append char;
+	[VHGonrowvalue] = [VHGparcoord]; => VHG onboard row append number;
+	=> VHG onboard row finish; [VHPoutptr] = VHGparline; => VH GOES output line; end;
 
 "VHG parse coordinate"
 	[VHGcmdok] = 0; [VHGcmdvalue] = 0; [VHGcmdsign] = 0; [VHGcmddigits] = 0;
@@ -4068,10 +4289,18 @@
 	[Text Region] = vector VHGUIregion; [Text Window] = NULL;
 	[Text Word Wrap] = OFF; [Text Ghost Mode] = OFF;
 	=> VHG text both;
-	[Text X] = 12; [Text Y] = 42;
+	=> VH GOES output window;
+	[VHGconsoleouti] = 0; [VHGconsoleouty] = 30;
+    "VHG console output row"
+	A = [VHGconsoleouti]; A '* 22; A + vhpoutdisplay; [String] = A;
+	[Text X] = 12; [Text Y] = [VHGconsoleouty]; [Ink] = 00FFFFh;
+	=> VHG text both;
+	[VHGconsoleouty] + 12; [VHGconsoleouti]+; A = [VHGconsoleouti];
+	? A < 7 -> VHG console output row;
+	[Text X] = 12; [Text Y] = 126;
 	[String] = VHGgoesprompt; [Ink] = 80FF80h; [Text Effect] = service FX Raw;
 	=> VHG text both;
-	[Text X] = 60; [String] = vhptext; [String] + 42;
+	[Text X] = 60; [Text Y] = 126; [String] = vhptext; [String] + 42;
 	=> VHG text both;
 	-> VHG console overlay done;
     "VHG physical console overlay"

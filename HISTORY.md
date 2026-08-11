@@ -478,6 +478,17 @@ the real buffered GOES editor. The game remained responsive and saved a valid
 also decodes the shipped catalogue independently, confirms TITANIA is `P01`
 and FAIRY is its parent, and pins the original source branches.
 
+The next GOES slice restores `PAR.CPP`. A catalogue name, with optional
+`:range`, is resolved with the same exact-name preference and planet-parent
+identity rule as WHERE. PAR then centres the source-sized sector cube on the
+live Stardrifter, regenerates candidate stars with Noctis's signed integer hash,
+compares their binary64 identities within the original 0.00001 tolerance, and
+reports X, -Y, Z. A disposable native probe resolved ELRAINE at range 14 to
+`X=3811056`, `Y=707894`, `Z=-212149`, matching an independent implementation.
+The accessible G console now shows its seven retained output rows, and the
+GOES strings use Lino's underscore encoding so their intended spaces survive
+compilation.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

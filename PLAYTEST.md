@@ -740,3 +740,14 @@ catalogue regression: it decodes the production `STARMAP.BIN`, identifies
 TITANIA as planet record `P01`, resolves FAIRY by the source identity rule,
 proves the single-letter prefix `F` is ambiguous, and checks the restored code
 against `WHERE.CPP` plus the resident `CLR` branch in `NOCTIS.CPP`.
+
+### GOES PAR native regression
+
+A disposable probe built from the shipping game source invoked resident PAR
+after the ordinary target, catalogue, panel, and flight initialization. With
+the opening Stardrifter position and `PAR ELRAINE:14`, its real 21-column output
+tree contained `SUBJECT: STAR;`, `NAME: ELRAINE`, `X=3811056`, `Y=707894`, and
+`Z=-212149`, then exited with code 0. An independent Python implementation of
+the source sector base, signed folded multiply, star hash, and identity formula
+found the same catalogue record and coordinates. The focused integrated check
+also pins the relevant `PAR.CPP` branches and the G-overlay output rows.

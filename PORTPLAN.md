@@ -59,6 +59,14 @@ first -- a broken foundation makes every later result meaningless.
   264-byte version-15 save. The focused integration check independently finds
   TITANIA as `P01`, resolves FAIRY as its parent star, and pins the original
   `WHERE.CPP` and `run_goesnet_module()` branches.
+- `PAR <catalogued name>[:range]` now follows `PAR.CPP`: it accepts underscores
+  as spaces, applies the original range fallback, resolves planet identities to
+  their parent star, scans the same centred sector cube with the exact integer
+  star hash, and reports X, -Y, Z through the retained output tree.
+- A native probe of the shipping source resolved ELRAINE at range 14 to
+  `3811056,707894,-212149`, exactly matching an independent catalogue/hash
+  model. The accessible G view now renders the same seven output rows above
+  its command prompt, and GOES strings encode real spaces in Lino literals.
 
 ### Clickable FCS and onboard pages
 

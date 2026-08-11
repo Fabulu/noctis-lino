@@ -39,6 +39,7 @@ ORIGINAL = REFERENCE_ROOT / "NOCTIS.CPP"
 ORIGINAL0 = REFERENCE_ROOT / "NOCTIS-0.CPP"
 ORIGINAL1 = REFERENCE_ROOT / "NOCTIS-1.CPP"
 ORIGINAL_WHERE = REFERENCE_ROOT / "WHERE.CPP"
+ORIGINAL_PAR = REFERENCE_ROOT / "PAR.CPP"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -67,6 +68,28 @@ def signed_lerp(old: int, new: int, phase: int, denominator: int = 60000) -> int
     product = (new - old) * phase
     delta = abs(product) // denominator
     return old - delta if product < 0 else old + delta
+
+
+def signed32(value: int) -> int:
+    value &= 0xFFFFFFFF
+    return value if value < 0x80000000 else value - 0x100000000
+
+
+def par_foldmul(left: int, right: int) -> int:
+    product = signed32(left) * signed32(right)
+    return signed32(signed32(product) + signed32(product >> 32))
+
+
+def par_candidate(sector_x: int, sector_y: int, sector_z: int) -> tuple[int, int, int]:
+    """Independent form of PAR.CPP's procedural sector hash."""
+    sum_xz = signed32(sector_x + sector_z)
+    x = signed32((sum_xz & 0x1FFFF) + sector_x - 50000)
+    accumulator = par_foldmul(x, sum_xz)
+    identity_key = signed32(sum_xz + accumulator)
+    y = signed32((accumulator & 0x1FFFF) + sector_y - 50000)
+    accumulator = par_foldmul(y, identity_key)
+    z = signed32((accumulator & 0x1FFFF) + sector_z - 50000)
+    return x, y, z
 
 
 def pod_hint(dx: int, dz: int, beta: int) -> str:
@@ -191,6 +214,7 @@ def main() -> int:
     original0 = ORIGINAL0.read_text(encoding="latin-1")
     original1 = ORIGINAL1.read_text(encoding="latin-1")
     original_where = ORIGINAL_WHERE.read_text(encoding="latin-1")
+    original_par = ORIGINAL_PAR.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1545,7 +1569,7 @@ def main() -> int:
     )
     check(
         all(token in game for token in (
-            '"VHG console overlay"', "VHGconsoletitle = { GOES COMMAND CONSOLE };",
+            '"VHG console overlay"', "VHGconsoletitle = { GOES_COMMAND_CONSOLE };",
             "[VHGascii] = 0; [Console Command] = GET CONSOLE INPUT; isocall;",
             "? failed -> VHG console ring ready;", "CLEAR CONSOLE BUFFER",
             "? A = 71 -> VHG activate console shortcut;",
@@ -1610,6 +1634,41 @@ def main() -> int:
         and titania_parent[1:3] == ("FAIRY", "S")
         and sum(name.startswith("F") for _, name, _, _ in records) > 1,
         "GOES CLR and WHERE restore resident output clearing and real catalogue parent lookup",
+    )
+    elraine = next(record for record in records if record[1] == "ELRAINE" and record[2] == "S")
+    par_range = 14
+    opening_dzat = (3979984 + 100, -43407 + 100, -43984 + 100)
+    par_base = tuple(
+        int((coordinate - par_range * 50000) / 100000) * 100000
+        for coordinate in opening_dzat
+    )
+    par_xyz = par_candidate(
+        par_base[0] + 6 * 100000,
+        par_base[1],
+        par_base[2] + 5 * 100000,
+    )
+    par_identity = ((par_xyz[0] / 100000) * par_xyz[1] / 100000) * par_xyz[2] / 100000
+    check(
+        all(token in original_par for token in (
+            "sect_x = (dzat_x - visible_sectors_x*50000) / 100000;",
+            "db 0x66; imul dx",
+            "fmul idscale",
+            "if (isthere (star_id))",
+            'sprintf (textbuffer, "Y=%1.0f", -laststar_y);',
+            "if (sts <= 2 || sts > 10000)",
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe par"', '"VHG PAR"', '"VHG PAR sector base"',
+            "A = [VHGparrange]; A '* 50000;", "=> VHS foldmul;",
+            "[FJ0] = [VHStempx]; [FJ1] = [VHStempy]; [FJ2] = [VHStempz]; => NsIdentityD;",
+            "A = 0; A - [VHStempy]; [VHGparcoord] = A;",
+            "VHGparhead = { GOES_STARMAP_ANALYSIS };",
+            "=> VH GOES output window;", '"VHG console output row"',
+        ))
+        and par_base == (3200000, -700000, -700000)
+        and par_xyz == (3811056, -707894, -212149)
+        and abs(par_identity - elraine[0]) < 0.00001,
+        "GOES PAR regenerates a catalogued star and reports source-convention coordinates",
     )
     check(
         all(token in game for token in (
