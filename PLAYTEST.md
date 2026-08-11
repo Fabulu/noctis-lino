@@ -668,3 +668,11 @@ input, and captured the class-0 yellow-star prose on the z=0 computer plane.
 The page now composes the original local-target, remote-target, and
 range/lithium lines from live game state into three bounded 108-character
 buffers. The production build and focused integrated regression both passed.
+
+The physical navigation smoke then used real foreground R and 6 key edges. It
+displayed the source amplification/radiation sentence and disconnected tracking
+state on the world-space plane. A finder-enabled checkpoint exercised the third
+row through its distance calculation and showed the generated planet/minor-body
+report. The 1.2 MB starmap's persistent system-label count completed before the
+window appeared; measured startup-to-window time was 1,417 ms. The focused
+regression and production build passed.

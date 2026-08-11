@@ -65,6 +65,7 @@
 	VHGonrowdst = 0; VHGonrowsrc = 0; VHGonrowpos = 0; VHGonrowi = 0;
 	VHGonrowvalue = 0; VHGonrowden = 0; VHGonrowstarted = 0;
 	VHGonrowdigit = 0; VHGonrowchar = 0; VHGonrowlocal = 0;
+	VHGonrowfp0 = 0; VHGonrowfp1 = 0;
 	VHGconsole = 0; VHGconsoleview = 0; VHGascii = 0; VHGasciiheld = 0; VHGasciikey = 0;
 	VHGscreen = 0FFFFFFFFh; VHGscreenprev = 0FFFFFFFFh; VHGfcsopen = 0;
 	VHGscrollheld = 0; VHGscrollused = 0;
@@ -313,6 +314,27 @@
 	VHGsrctracknear = { near chase };
 	VHGsrcradoff = { force radiations limit };
 	VHGsrcradon = { FORCE RADIATIONS LIMIT };
+	VHGnavampactive = { starfield amplification active, };
+	VHGnavampdisabled = { starfield amplification disabled, };
+	VHGnavradavoided = { high-radiation fields are avoided. };
+	VHGnavradignored = { high-radiation fields are ignored. };
+	VHGnavtrackperforming = { tracking status: performing };
+	VHGnavtrackdisconnected = { tracking status: disconnected. };
+	VHGnavtrackinactive = { tracking status: inactive. };
+	VHGnavtrackfixedinfo = { fixed-point chase. };
+	VHGnavtrackfarinfo = { far chase. };
+	VHGnavtracksyncinfo = { syncrone orbit. };
+	VHGnavtrackorbitinfo = { high-speed orbit. };
+	VHGnavtracknearinfo = { near chase. };
+	VHGnavfinderprefix = { planet finder report: system has };
+	VHGnavfinderproto = { proto };
+	VHGnavfinderplanet = { planet, and };
+	VHGnavfinderplanets = { planets, and };
+	VHGnavfinderminor = { minor bodies. };
+	VHGnavfinderlabeled = { labeled out of };
+	VHGnavfindernobodies = { planet finder report: there are no major bodies in this system. };
+	VHGnavfinderfar = { planet finder report: no stellar systems within remote sensors range. };
+	VHGnavperiod = { . };
 	VHGsrclighton = { internal light on };
 	VHGsrclightoff = { internal light off };
 	VHGsrcremote = { remote target data };
@@ -858,7 +880,7 @@
 	[nsx] = [VHTtx]; [nsy] = [VHTty]; [nsz] = [VHTtz]; => NsSeedFromXYZ;
 	[nsseedin] = A; [nsclass] = [VHTclass]; [nsstarray] = [VHTRay];
 	=> NsResetAll; => NsPrepare;
-	=> VHCAT refresh;
+	=> VHCAT count system bodies; => VHCAT refresh;
 	[VHSready] = 0;
 	end;
 
@@ -2990,7 +3012,8 @@
 	A = [VHCATstatus]; ? A = 1 -> VHG name added;
 	? A = 2 -> VHG name charted; ? A = 3 -> VHG name used; -> VHG name failed;
     "VHG name added"
-	=> VHCAT refresh; [VHGnoticeptr] = VHGnameoktext; [VHGnoticeframes] = 100; -> VHG command done;
+	=> VHCAT count system bodies; => VHCAT refresh;
+	[VHGnoticeptr] = VHGnameoktext; [VHGnoticeframes] = 100; -> VHG command done;
     "VHG name charted"
 	[VHGnoticeptr] = VHGnamechartedtext; [VHGnoticeframes] = 100; -> VHG command done;
     "VHG name used"
@@ -3849,6 +3872,91 @@
     "VHG onboard planet description 10"
 	[VHGonrowsrc] = VHGplanetdesc10; end;
 
+"VHG onboard navigation information"
+	( NOCTIS.CPP devices() navigation page: live amplification/radiation,
+	  tracking, and local-system finder reports on the physical plane. )
+	[VHGonrowdst] = VHGonboardrow0; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGnavampdisabled; A = [VHGamp];
+	? A = 0 -> VHG onboard nav amplification ready;
+	[VHGonrowsrc] = VHGnavampactive;
+    "VHG onboard nav amplification ready"
+	=> VHG onboard row append text; => VHG onboard row append space;
+	[VHGonrowsrc] = VHGnavradignored; A = [VHGantirad];
+	? A = 0 -> VHG onboard nav radiation ready;
+	[VHGonrowsrc] = VHGnavradavoided;
+    "VHG onboard nav radiation ready"
+	=> VHG onboard row append text; => VHG onboard row finish;
+
+	[VHGonrowdst] = VHGonboardrow1; => VHG onboard row begin;
+	[VHGonrowsrc] = VHGnavtrackinactive; A = [VHGsync];
+	? A = 0 -> VHG onboard nav tracking finish;
+	[VHGonrowsrc] = VHGnavtrackdisconnected;
+	A = [VHGlocaltarget]; ? A = 0FFFFFFFFh -> VHG onboard nav tracking finish;
+	A = [MgIpreached]; ? A = 0 -> VHG onboard nav tracking finish;
+	[VHGonrowsrc] = VHGnavtrackperforming; => VHG onboard row append text;
+	=> VHG onboard row append space; A = [VHGsync];
+	? A = 1 -> VHG onboard nav tracking fixed;
+	? A = 2 -> VHG onboard nav tracking far;
+	? A = 3 -> VHG onboard nav tracking sync;
+	? A = 4 -> VHG onboard nav tracking orbit;
+	[VHGonrowsrc] = VHGnavtracknearinfo; -> VHG onboard nav tracking finish;
+    "VHG onboard nav tracking fixed"
+	[VHGonrowsrc] = VHGnavtrackfixedinfo; -> VHG onboard nav tracking finish;
+    "VHG onboard nav tracking far"
+	[VHGonrowsrc] = VHGnavtrackfarinfo; -> VHG onboard nav tracking finish;
+    "VHG onboard nav tracking sync"
+	[VHGonrowsrc] = VHGnavtracksyncinfo; -> VHG onboard nav tracking finish;
+    "VHG onboard nav tracking orbit"
+	[VHGonrowsrc] = VHGnavtrackorbitinfo;
+    "VHG onboard nav tracking finish"
+	=> VHG onboard row append text; => VHG onboard row finish;
+
+	[VHGonrowdst] = VHGonboardrow2; => VHG onboard row begin;
+	A = [VHGfinder]; ? A = 0 -> VHG onboard nav finder finish;
+	( Recreate sqrt((nearstar-dzat)^2) before the source 20,000-unit gate. )
+	=> VHG fpu clean;
+	[FC0] = [MgDzatX0]; [FC1] = [MgDzatX1]; [FI] = [VHTtx]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul; [FC0] = [FA0]; [FC1] = [FA1];
+	[FA0] = [MgDzatY0]; [FA1] = [MgDzatY1]; [VHGonrowfp0] = [FA0]; [VHGonrowfp1] = [FA1];
+	[FI] = [VHTty]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGonrowfp0]; [FA1] = [VHGonrowfp1]; => FSub; [FB0] = [FA0]; [FB1] = [FA1];
+	=> FMul; [FB0] = [FC0]; [FB1] = [FC1]; => FAdd; [FC0] = [FA0]; [FC1] = [FA1];
+	[FA0] = [MgDzatZ0]; [FA1] = [MgDzatZ1]; [VHGonrowfp0] = [FA0]; [VHGonrowfp1] = [FA1];
+	[FI] = [VHTtz]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGonrowfp0]; [FA1] = [VHGonrowfp1]; => FSub; [FB0] = [FA0]; [FB1] = [FA1];
+	=> FMul; [FB0] = [FC0]; [FB1] = [FC1]; => FAdd; => FSqrt; => FToIntNear;
+	A = [FI]; ? A >= 20000 -> VHG onboard nav finder far;
+	A = [nsnop]; ? A = 0 -> VHG onboard nav finder no bodies;
+	[VHGonrowsrc] = VHGnavfinderprefix; => VHG onboard row append text;
+	=> VHG onboard row append space; [VHGonrowvalue] = [nsnop];
+	=> VHG onboard row append number; => VHG onboard row append space;
+	A = [VHTclass]; ? A != 9 -> VHG onboard nav finder plurality;
+	[VHGonrowsrc] = VHGnavfinderproto; => VHG onboard row append text;
+    "VHG onboard nav finder plurality"
+	[VHGonrowsrc] = VHGnavfinderplanets; A = [nsnop];
+	? A != 1 -> VHG onboard nav finder planets ready;
+	[VHGonrowsrc] = VHGnavfinderplanet;
+    "VHG onboard nav finder planets ready"
+	=> VHG onboard row append text; => VHG onboard row append space;
+	A = [nsnob]; A - [nsnop]; [VHGonrowvalue] = A;
+	=> VHG onboard row append number; => VHG onboard row append space;
+	[VHGonrowsrc] = VHGnavfinderminor; => VHG onboard row append text;
+	=> VHG onboard row append space; [VHGonrowvalue] = [VHCATlabeled];
+	=> VHG onboard row append number; => VHG onboard row append space;
+	[VHGonrowsrc] = VHGnavfinderlabeled; => VHG onboard row append text;
+	=> VHG onboard row append space; [VHGonrowvalue] = [nsnob];
+	=> VHG onboard row append number; [VHGonrowsrc] = VHGnavperiod;
+	=> VHG onboard row append text; -> VHG onboard nav finder finish;
+    "VHG onboard nav finder no bodies"
+	[VHGonrowsrc] = VHGnavfindernobodies; => VHG onboard row append text;
+	-> VHG onboard nav finder finish;
+    "VHG onboard nav finder far"
+	[VHGonrowsrc] = VHGnavfinderfar; => VHG onboard row append text;
+    "VHG onboard nav finder finish"
+	=> VHG onboard row finish;
+	end;
+
 "VHG onboard FCS information"
 	( NOCTIS.CPP:1290-1327, retaining its three source rows and exact prose. )
 	[VHGonrowdst] = VHGonboardrow0; => VHG onboard row begin;
@@ -3965,7 +4073,9 @@
 	A = VHGsrcradoff; C = [VHGantirad]; ? C = 0 -> VHG onboard prepare nav rad;
 	A = VHGsrcradon;
     "VHG onboard prepare nav rad"
-	[VHPoncmd3] = A; [VHPoninfo0] = VHGnavtitle; -> VHG onboard prepare done;
+	[VHPoncmd3] = A; => VHG onboard navigation information;
+	[VHPoninfo0] = VHGonboardrow0; [VHPoninfo1] = VHGonboardrow1;
+	[VHPoninfo2] = VHGonboardrow2; -> VHG onboard prepare done;
     "VHG onboard prepare misc"
 	A = VHGsrclightoff; C = [VHGilight]; ? C != 1 -> VHG onboard prepare misc light;
 	A = VHGsrclighton;

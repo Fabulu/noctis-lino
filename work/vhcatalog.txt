@@ -31,6 +31,7 @@
 	VHCATvalid = 0;
 	VHCATi = 0; VHCATlen = 0; VHCATshift = 0; VHCATchar = 0;
 	VHCATptr = 0; VHCATfoundptr = 0;
+	VHCATbodyi = 0; VHCATlabeled = 0;
 
 "workspace"
 
@@ -196,6 +197,21 @@
 
 "VHCAT refresh"
 	=> VHCAT default labels; => VHCAT show star; => VHCAT show body; => VHCAT sync panel;
+	end;
+
+"VHCAT count system bodies"
+	( nearstar_labeled in devices(): count every catalogue identity belonging
+	  to the generated system once when its target or catalogue changes. )
+	[VHCATlabeled] = 0; [VHCATbodyi] = 1;
+    "VHCAT count system body loop"
+	A = [VHCATbodyi]; ? A > [nsnob] -> VHCAT count system bodies done;
+	[nsid0] = [VHTid0]; [nsid1] = [VHTid1]; [FI] = A; => NsIdentAddInt;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; [VHCATtype] = VHCATP;
+	=> VHCAT find; A = [VHCATok]; ? A = 0 -> VHCAT count system body next;
+	[VHCATlabeled]+;
+    "VHCAT count system body next"
+	[VHCATbodyi]+; -> VHCAT count system body loop;
+    "VHCAT count system bodies done"
 	end;
 
       ( Pack vhcatname, reject duplicate identities/names, append one record.

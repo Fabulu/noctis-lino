@@ -67,6 +67,11 @@ first -- a broken foundation makes every later result meaningless.
   original ordinal and planet description, describe the remote star by class,
   and report elapsed range plus remaining lithium. All source descriptions fit
   the original 108-character row without abbreviating them.
+- The physical navigation-instruments page now restores `devices()`'s three
+  live status rows: amplifier plus radiation policy, active/disconnected
+  tracking mode, and the range-gated planet-finder report. Existing body labels
+  are counted from the real catalogue when a system or catalogue changes, so
+  its `labeled out of` value follows persistent starmap data.
 
 ### Native GUI performance, landing safety, and Stardrifter lift
 - Each completed 320x200 indexed render is palette-expanded into a stable

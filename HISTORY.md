@@ -392,6 +392,16 @@ kilodyams and remaining lithium. A production-window smoke opened the physical
 world-space plane; the focused integrated regression also pins every live input
 and all three output buffers.
 
+The adjacent navigation-instruments page now reports the original live
+amplification and high-radiation policy, tracking connection and mode, and
+planet-finder result instead of a static heading. The finder performs the
+source 20,000-unit distance test, reports planets and minor bodies from the
+generated system, and counts matching persistent body identities in
+`STARMAP.BIN`. Real foreground R then 6 input displayed the radiation and
+disconnected-tracking rows; a finder-enabled checkpoint also displayed the
+system body report. Startup still reached the production window in 1.4 seconds
+with the 1.2 MB working catalogue.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

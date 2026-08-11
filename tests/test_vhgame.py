@@ -421,6 +421,42 @@ def main() -> int:
         )),
         "physical FCS shows the original live local, remote, range, and lithium rows",
     )
+    original_devices = section(
+        original, "void devices ()", "/* Comandi dei dispositivi di bordo. */"
+    )
+    onboard_nav = section(
+        game, '"VHG onboard navigation information"', '"VHG onboard FCS information"'
+    )
+    catalog_count = section(
+        catalog, '"VHCAT count system bodies"', '"VHCAT add"'
+    )
+    check(
+        all(token in original_devices for token in (
+            'cline (1, "starfield amplification active, ");',
+            'other ("high-radiation fields are avoided.");',
+            'cline (2, "tracking status: disconnected.");',
+            'cline (3, "planet finder report: system has ");',
+            'other (alphavalue(nearstar_labeled));',
+            'other (" labeled out of ");',
+        ))
+        and all(token in onboard_nav for token in (
+            '[VHGonrowsrc] = VHGnavampactive;', '[VHGantirad]',
+            '[VHGonrowsrc] = VHGnavtrackdisconnected;', '[MgIpreached]',
+            '[VHGonrowsrc] = VHGnavfinderprefix;', '[nsnop]', '[nsnob]',
+            '[VHGonrowvalue] = [VHCATlabeled];',
+            '[MgDzatX0]', '[MgDzatY0]', '[MgDzatZ0]', '=> FSqrt;',
+            '? A >= 20000 -> VHG onboard nav finder far;',
+        ))
+        and all(token in catalog_count for token in (
+            '[VHCATlabeled] = 0;', '[VHCATbodyi] = 1;',
+            '? A > [nsnob] -> VHCAT count system bodies done;',
+            '[nsid0] = [VHTid0];', '=> NsIdentAddInt;',
+            '[VHCATtype] = VHCATP;', '=> VHCAT find;', '[VHCATlabeled]+;',
+        ))
+        and '=> VHG onboard navigation information;' in onboard_prepare
+        and '=> VHCAT count system bodies; => VHCAT refresh;' in game,
+        "physical navigation page restores live source status and finder rows",
+    )
     check(
         "=> TK seed; => TK start;" in game and "=> TK step;" in game,
         "live loop uses the original 54.925 ms synchronizer",
