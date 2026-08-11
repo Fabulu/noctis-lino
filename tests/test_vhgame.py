@@ -28,6 +28,8 @@ IGUI = ROOT / "work" / "igui.txt"
 STICK = ROOT / "work" / "vhstick.txt"
 SAVE = ROOT / "work" / "vhsave.txt"
 AUDIO = ROOT / "work" / "vhaudio.txt"
+FLARE = ROOT / "work" / "vhflare.txt"
+STAR = ROOT / "work" / "vhstar.txt"
 REFERENCE_ROOT = Path(os.environ.get(
     "NOCTIS_REFERENCE_ROOT",
     r"C:\programmieren\noctis\niv-plus\source",
@@ -158,6 +160,8 @@ def main() -> int:
     stick = STICK.read_text(encoding="utf-8")
     save = SAVE.read_text(encoding="utf-8")
     audio = AUDIO.read_text(encoding="utf-8")
+    flare = FLARE.read_text(encoding="utf-8")
+    star = STAR.read_text(encoding="utf-8")
     original = ORIGINAL.read_text(encoding="latin-1")
     original0 = ORIGINAL0.read_text(encoding="latin-1")
     original1 = ORIGINAL1.read_text(encoding="latin-1")
@@ -518,6 +522,45 @@ def main() -> int:
         )),
         "multiple systems restore the source secondary-sun role and terminator path",
     )
+    surface_flare = section(flare, '"VH surface flare"', '"VHF draw"')
+    check(
+        "=> VHGND render birds;\n\t=> VHGND sun flares;" in ground
+        and all(token in local_sun for token in (
+            '"VHGND sun flares"', '"VHGND flare project"',
+            "A = [GRSKrainy]; ? A '>= 3F99999Ah -> VHGND primary flare done;",
+            "? A = 6 -> VHGND primary flare done; ? A = 10 -> VHGND primary flare done;",
+            "A = [GRSKrainy]; ? A '>= 40066666h -> VHGND sun flares done;",
+            "[VHFdist] = [GRSKdsd1]; [VHFray] = [VHGNDsunray]; => VH surface flare;",
+            "[VHFdist] = [VHGNDsecdist]; [VHFray] = [VHGNDsecray]; => VH surface flare;",
+        ))
+        and all(token in surface_flare for token in (
+            "[SPoff] = A; [SPreg] = RGADP; => SP get;",
+            "A = [SPval]; ? A < 64 -> VHF done;",
+            "[FI] = 1000; => IntToF; => FMul;",
+            "[FI] = 10; => IntToF; => FQuo;",
+        ))
+        and all(token in original1 for token in (
+            "if (!nightzone && rainy < 1.2)",
+            "if (nearstar_class!=5&&nearstar_class!=6&&nearstar_class!=10)",
+            "if (dsd1<1000*nray1&&dsd1>=10*nray1)",
+            "if (!pri_nightzone && rainy < 2.1)",
+        )),
+        "surface suns restore source-gated center-occluded lens flares",
+    )
+    check(
+        all(token in star for token in (
+            "VHTphase = 0; VHTspin = 0;", '"VHT spin class11"',
+            '"VHT spin class7"', '"VHT spin class2"',
+            "A + [VHTphase]; A % 360; [VHTphase] = A;",
+        ))
+        and "[VHTphase] = [VHGframe];" not in game
+        and all(token in original0 for token in (
+            "if (ap_target_class==11) ap_target_spin = random (30) + 1;",
+            "if (ap_target_class==7) ap_target_spin = random (12) + 1;",
+            "if (ap_target_class==2) ap_target_spin = random (4) + 1;",
+        )),
+        "resolved stars retain their source class-specific spin instead of universal rotation",
+    )
     check(
         all(token in original1 for token in (
             "global_surface_seed = (nearstar_p_ray[ip_targetted]",
@@ -747,11 +790,12 @@ def main() -> int:
             '? A <= 100 -> VHL segment; [VHLcol] = 100;',
             'A = [VHLangle]; ? A < [VHLlimit] -> VHL segment;',
         ))
-        and all(token in VIEW.parent.joinpath("vhflare.txt").read_text(encoding="utf-8") for token in (
-            "A = [VHFcy]; A '* 320; A + [VHFcx];",
-            '[SPoff] = A; [SPreg] = RGADP; => SP get;',
-            'A = [SPval]; ? A < 64 -> VHF done;',
-        ))
+        and '[SPreg] = RGADP; => SP get;' not in section(
+            flare, '"VH halogen flare"', '"VH surface flare"'
+        )
+        and "-50000, 2, hud_closed, 0, 1, 1" in section(
+            original, "void alogena ()", "/* Quadranti"
+        )
         and all(token in game for token in (
             '[VHGstarclass] = [VHTclass];', '? A = 8 -> VHG star palette inner8;',
             '[FBSHfirst] = 64; [FBSHn] = 24;', '[FBSHfirst] = 88; [FBSHn] = 16;',

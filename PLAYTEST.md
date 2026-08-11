@@ -157,11 +157,12 @@ Inf/NaN, over-range, and `Removed:` records without rewriting the player's file.
 
 ## Known limitations (honest)
 
-- **Interior-light occlusion**: the reported intermittent Stardrifter light
-  pop traced to a missing `condition=1` test in the halogen flare path. The
-  port now performs the original projected center-pixel occlusion check, so
-  opaque hull geometry suppresses the flare instead of letting it leak through
-  walls. The focused gameplay regression and production build pass.
+- **Interior-light flicker**: the reported intermittent Stardrifter light pop
+  traced to an invented `condition=1` center-pixel test. The original
+  `alogena()` call passes `condition=0`; removing the test stops dark hull
+  pixels from switching the fixture flare on and off. Surface sun flares are
+  separate original calls and retain their real center-occlusion condition.
+  The focused gameplay regression and production build pass.
 - **Wall computers**: the original position-and-facing test now selects all
   three right-wall stations, including their individual illuminated selector
   bars. A targeted production-window smoke focused the first station, submitted

@@ -254,14 +254,14 @@ default, and F5 explicitly opts into the higher presentation rate.
   slope scan around the pod footprint.
 - Preserved exact selected landing coordinates through generation and reload.
 
-### Interior halogen occlusion
+### Interior halogen stability
 
-The Stardrifter lamp flare could appear through opaque hull geometry and pop
-on or off as the camera crossed an occlusion edge. The port had omitted the
-`condition=1` center-pixel test passed by the original `alogena()` call. The
-flare now samples the projected fixture center and stops when palette band 0
-covers it, matching `lens_flares_for()` in `NOCTIS-0.CPP`. The original fixture
-color clamp at index 100 is retained as well.
+An earlier source-equivalence pass incorrectly applied `condition=1` center
+occlusion to the Stardrifter's `alogena()` flare. The actual original call in
+`NOCTIS.CPP` passes `condition=0`; the invented pixel test made the light switch
+off whenever its center crossed dark hull geometry and caused the reported
+flicker. That test is now removed from the halogen path. Its original 90-spoke
+additive flare and fixture color clamp at index 100 remain intact.
 
 ### Source surface visor frame
 
@@ -300,6 +300,14 @@ secondary roles when that world belongs to a companion, derives a separate
 terminator and latitude offset for the second observer, and uses its stricter
 2.0 rain cutoff. Sun angles and coordinates retain the source's binary32
 assignment boundaries before projection.
+
+The later surface pass now restores `lens_flares_for()` for both suns. The
+primary retains its class exclusions, class-11 phase gate, 1.2 rain cutoff,
+and 10-to-1000-radius distance window; the secondary has its own 2.1 rain
+cutoff. Unlike the interior halogen, these original calls do use center-pixel
+occlusion after terrain. Resolved close stars also advance their globe only by
+the source's class-specific spin; ordinary classes no longer rotate once per
+presentation frame.
 
 ## Packaging and publication
 

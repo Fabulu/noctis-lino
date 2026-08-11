@@ -9,7 +9,7 @@
 
 	VHTtx = 0; VHTty = 0; VHTtz = 0;
 	VHTclass = 0; VHTRay = 0; VHTred = 0; VHTgreen = 0; VHTblue = 0;
-	VHTphase = 0;
+	VHTphase = 0; VHTspin = 0;
 	VHTid0 = 0; VHTid1 = 0; VHTtmp0 = 0; VHTtmp1 = 0;
 	VHTseed = 0; VHTsum = 0; VHTsmooth = 0;
 	VHTcoord = 0; VHTd0 = 0; VHTd1 = 0; VHTslot = 0;
@@ -61,6 +61,17 @@
 
 	A = [VHTclass]; A '* 3; A + VHTclassrgb;
 	[VHTred] = [A plus 0]; [VHTgreen] = [A plus 1]; [VHTblue] = [A plus 2];
+	[VHTphase] = 0; [VHTspin] = 0;
+	A = [VHTclass]; ? A = 11 -> VHT spin class11;
+	? A = 7 -> VHT spin class7; ? A = 2 -> VHT spin class2;
+	-> VHT extract done;
+    "VHT spin class11"
+	A = 30; => BrtlRandom; A + 1; [VHTspin] = A; -> VHT extract done;
+    "VHT spin class7"
+	A = 12; => BrtlRandom; A + 1; [VHTspin] = A; -> VHT extract done;
+    "VHT spin class2"
+	A = 4; => BrtlRandom; A + 1; [VHTspin] = A;
+    "VHT extract done"
 	end;
 
 "VHT load face"
@@ -108,7 +119,10 @@
 	( globe(... nearstar_ray, colormask 64, saturation 40) )
 	[GBmag] = [VHTRay]; => SP globe setup;
 	A = [GBok]; ? A = 0 -> VHT render done;
-	A = [VHTphase]; A '% 360; [GBstart] = A;
+	A = [VHTspin]; ? A = 0 -> VHT phase ready;
+	A + [VHTphase]; A % 360; [VHTphase] = A;
+    "VHT phase ready"
+	A = [VHTphase]; [GBstart] = A;
 	[GBcmask] = 64; [GBsat] = 40;
 	[GBtabreg] = RGGLB; [GBtapreg] = RGSBG; [GBdstreg] = RGADP;
 	[GBbytes] = GLBYTES; [GBbubble] = 0;

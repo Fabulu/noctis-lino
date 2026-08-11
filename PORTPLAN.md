@@ -131,6 +131,12 @@ first -- a broken foundation makes every later result meaningless.
   the original `planetary_main` path. Multiple systems additionally select and
   render the source's nearest secondary sun with its independent terminator,
   companion-owner role swap, latitude offset, and 2.0 rain cutoff.
+- The post-world surface pass now draws each eligible sun's original additive
+  lens flare with its distance window, independent rain gate, emitting-class
+  exclusions, and terrain center-pixel occlusion. The Stardrifter halogen does
+  not use that occlusion condition, exactly matching `alogena()` and removing
+  the reported hull-edge flicker. Close star globes advance by their generated
+  class-specific spin rather than a universal one degree per rendered frame.
 - Settled surfaces expose an unobtrusive GUI-scaled pod range and captured-bird
   line, keeping the capsule-return condition discoverable after exploration.
   Pressing R outside the original 1,600-unit capsule boundary now reports

@@ -127,6 +127,7 @@
 	VHGNDowner = 0; VHGNDmoonmass = 0; VHGNDplwp = 0; VHGNDviewpoint = 0;
 	VHGNDtermstart = 0; VHGNDtermend = 0; VHGNDcrep = 0; VHGNDdist = 0;
 	VHGNDsunxf = 1; VHGNDsunray = 0; VHGNDsuncoord = 0;
+	VHGNDflareok = 0; VHGNDflarecx = 0; VHGNDflarecy = 0;
 	VHGNDsund0 = 0; VHGNDsund1 = 0; VHGNDsuna0 = 0; VHGNDsuna1 = 0;
 	VHGNDsunb0 = 0; VHGNDsunb1 = 0; VHGNDsbs0 = 0; VHGNDsbs1 = 0;
 	VHGNDsas0 = 0; VHGNDsas1 = 0; VHGNDsac0 = 0; VHGNDsac1 = 0;
@@ -2091,6 +2092,7 @@
 	=> VHGND capsule;
 	=> VHGND render animals;
 	=> VHGND render birds;
+	=> VHGND sun flares;
 	A = [GRiptype]; ? A != 2 -> VHGND render weather ready;
 	=> VHGND dense atmosphere; -> VHGND render finish;
     "VHGND render weather ready"
@@ -2387,6 +2389,78 @@
 	[WHmag] = [FS0]; [WHshape] = 1; [WHsun] = 1; [WHdstreg] = RGADP;
 	=> SP white;
     "VHGND secondary sun done"
+	end;
+
+"VHGND sun flares"
+	( Restore the player's view matrix before the post-world flare pass.  The
+	  flare projector consumes already-relative sun coordinates, so only the
+	  angle table matters; keeping the real camera installed also leaves later
+	  weather rendering in its normal state. )
+	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
+	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
+
+	( Local flare: rainy < 1.2, ordinary emitting classes only, and the
+	  class-11 quarter-turn gate retained by the source. )
+	A = [GRSKnightzone]; ? A != 0 -> VHGND primary flare done;
+	A = [GRSKrainy]; ? A '>= 3F99999Ah -> VHGND primary flare done;
+	A = [nsclass]; ? A = 5 -> VHGND primary flare done;
+	? A = 6 -> VHGND primary flare done; ? A = 10 -> VHGND primary flare done;
+	? A != 11 -> VHGND primary flare project;
+	A = [VHTphase]; A % 360; ? A >= 90 -> VHGND primary flare done;
+    "VHGND primary flare project"
+	[FA0] = [VHGNDsunx0]; [FA1] = [VHGNDsunx1]; [PGFi] = SFXX; => PGF sa;
+	[FA0] = [VHGNDsuny0]; [FA1] = [VHGNDsuny1]; [PGFi] = SFYY; => PGF sa;
+	[FA0] = [VHGNDsunz0]; [FA1] = [VHGNDsunz1]; [PGFi] = SFZZ; => PGF sa;
+	=> VHGND flare project;
+	A = [VHGNDflareok]; ? A = 0 -> VHGND primary flare done;
+	[VHFcx] = [VHGNDflarecx]; [VHFcy] = [VHGNDflarecy];
+	[VHFdist] = [GRSKdsd1]; [VHFray] = [VHGNDsunray]; => VH surface flare;
+    "VHGND primary flare done"
+
+	( Secondary flare has its own terminator and the source's 2.1 rain gate. )
+	A = [VHGNDsecactive]; ? A = 0 -> VHGND sun flares done;
+	A = [VHGNDsecnight]; ? A != 0 -> VHGND sun flares done;
+	A = [GRSKrainy]; ? A '>= 40066666h -> VHGND sun flares done;
+	[FA0] = [VHGNDsecx0]; [FA1] = [VHGNDsecx1]; [PGFi] = SFXX; => PGF sa;
+	[FA0] = [VHGNDsecy0]; [FA1] = [VHGNDsecy1]; [PGFi] = SFYY; => PGF sa;
+	[FA0] = [VHGNDsecz0]; [FA1] = [VHGNDsecz1]; [PGFi] = SFZZ; => PGF sa;
+	=> VHGND flare project;
+	A = [VHGNDflareok]; ? A = 0 -> VHGND sun flares done;
+	[VHFcx] = [VHGNDflarecx]; [VHFcy] = [VHGNDflarecy];
+	[VHFdist] = [VHGNDsecdist]; [VHFray] = [VHGNDsecray]; => VH surface flare;
+    "VHGND sun flares done"
+	end;
+
+"VHGND flare project"
+	( lens_flares_for's double rotation using the p/t camera tables. )
+	[VHGNDflareok] = 0;
+	[PGFi] = SFXX; => PGF a; [PGFi] = FSPCB; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZZ; => PGF a; [PGFi] = FSPSB; => PGF mul;
+	[PGFi] = SFT0; => PGF add; [PGFi] = SFRX; => PGF sa;
+	[PGFi] = SFZZ; => PGF a; [PGFi] = FSTCB; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFXX; => PGF a; [PGFi] = FSTSB; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFZ2; => PGF sa;
+	[PGFi] = SFZ2; => PGF a; [PGFi] = FSTCA; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFYY; => PGF a; [PGFi] = FSTSA; => PGF mul;
+	[PGFi] = SFT0; => PGF add; [PGFi] = SFRZ; => PGF sa;
+	[PGFi] = SFYY; => PGF a; [PGFi] = FSPCA; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZ2; => PGF a; [PGFi] = FSPSA; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFRY; => PGF sa;
+	[FI] = 1; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRZ; => PGF a; => FCmp;
+	A = [FI]; ? A <= 0 -> VHGND flare project done;
+	[PGFi] = SFRX; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;
+	A = [FI]; A + 1; C = 0; C - 150; ? A <= C -> VHGND flare project done;
+	? A >= 160 -> VHGND flare project done; A + 160; [VHGNDflarecx] = A;
+	[PGFi] = SFRY; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;
+	A = [FI]; A + 1; C = 0; C - 90; ? A <= C -> VHGND flare project done;
+	? A >= 90 -> VHGND flare project done; A + 100; [VHGNDflarecy] = A;
+	[VHGNDflareok] = 1;
+    "VHGND flare project done"
 	end;
 
 "VHGND surrounding frame"

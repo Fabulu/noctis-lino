@@ -70,9 +70,8 @@ Useful controls:
   PCM layer is a stub, so soundtrack support is Windows-only.
 - The second physical GOES face retains command output with source-equivalent
   line, page, and end scrolling.
-- The Stardrifter halogen flare now obeys the original projected center-pixel
-  occlusion test instead of leaking through hull geometry and popping at its
-  edges.
+- The Stardrifter halogen follows `alogena()`'s actual non-occluded flare path,
+  removing the dark-hull center test that made it flicker on and off.
 - Higher-rate presentation now interpolates ordinary Stardrifter and settled
   surface movement/look without changing the original 18.206 Hz simulation.
   Surface wave feedback is forwarded once into the restored live pose;
@@ -82,6 +81,10 @@ Useful controls:
   and the correct companion-star radius in multiple systems. A nearby
   companion also appears as the original independently positioned secondary
   sun, including the source's owner-role swap and separate terminator.
+- Eligible surface suns now carry their original additive lens flares after
+  terrain, including distance, weather, star-class, phase, and center-occlusion
+  gates. Resolved star globes use source-generated class-specific spin instead
+  of rotating every presentation frame.
 - Full Noctis IV+ feature parity remains the release criterion. Historical
   screens, complete GUI behavior, and presentation details are still being
   implemented rather than cut from scope. Stellar lithium collection and

@@ -1868,7 +1868,7 @@
 	[VHSbeta] = A; [VHSamp] = [VHGamp]; => VHS stars;
 	=> VHG finder render;
 	A = [VHGlocalactive]; ? A != 0 -> VHG close star rendered;
-	[VHTphase] = [VHGframe]; => VHT render;
+	=> VHT render;
     "VHG close star rendered"
 	=> VHG local render;
 	=> VHG rescue render;
