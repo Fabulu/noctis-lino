@@ -78,6 +78,7 @@
 	VHGwhererecno = 0; VHGwherematches = 0; VHGwherefound = 0;
 	VHGwherematch = 0; VHGwhereexact = 0; VHGwherei = 0; VHGwheretype = 0;
 	VHGwherecode = 0; VHGwhereunderscores = 0;
+	VHGslleast = 0; VHGslrecno = 0; VHGslptr = 0; VHGsli = 0;
 	VHGparrange = 100; VHGparvalue = 0; VHGpardigits = 0; VHGparaction = 0;
 	VHGpartarget0 = 0; VHGpartarget1 = 0;
 	VHGparlowhi = 0; VHGparlowlo = 0; VHGparhighhi = 0; VHGparhighlo = 0;
@@ -332,6 +333,10 @@
 	VHGcleanrecordsprefix = { RECORDS: };
 	VHGcleanremovedprefix = { REMOVED: };
 	VHGcleanend = { END };
+	VHGslusage1 = { SL_(OPTIONAL_RANGE) };
+	VHGslglobal = { GLOBAL_STARS_LISTING: };
+	VHGslend = { STARS_LISTING_END. };
+	VHGslnone = { NO_KNOWN_STARS. };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -719,6 +724,7 @@
 	VHGwherebar = 22;
 	VHGparline = 22;
 	VHGcatline = 22;
+	VHGslline = 22;
 
 "programme"
 
@@ -2507,6 +2513,7 @@
 	A = [VHPsubmitted]; ? A = 0 -> VHG input done;
 	[VHGcmdsilent] = 0; [VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;
 	A = [VHGcmdsilent]; ? A != 0 -> VHG console command handled;
+	A = [VHPcmdpos]; A + vhptext; A + 42; [A] = 0;
 	A = vhptext; A + 42; [VHPoutptr] = A; => VH GOES output line;
 	[VHPoutptr] = [VHGnoticeptr]; => VH GOES output line;
 	"VHG console command handled"
@@ -3581,7 +3588,16 @@
 	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1; => VHG PAR; -> VHG command done;
     "VHG command starts s"
 	A = [vhptext plus 43]; ? A = 65 -> VHG command maybe save;
+	? A = 76 -> VHG command maybe sl;
 	? A = 84 -> VHG command starts st; -> VHG command done;
+    "VHG command maybe sl"
+	[VHGcmdi] = 44;
+    "VHG command sl tail"
+	A = vhptext; A + [VHGcmdi]; C = [A];
+	? C = 0 -> VHG command sl ready; ? C = 95 -> VHG command sl ready;
+	? C != 32 -> VHG command done; [VHGcmdi]+; -> VHG command sl tail;
+    "VHG command sl ready"
+	[VHGcmdsilent] = 1; => VHG SL; -> VHG command done;
     "VHG command starts st"
 	A = [vhptext plus 44]; ? A = 65 -> VHG command maybe star;
 	? A = 0 -> VHG command st parse; ? A = 32 -> VHG command st parse;
@@ -3666,6 +3682,44 @@
 	A = [VHGmode]; ? A != 0 -> VHG target ship only;
 	[VHTtx] = [VHGcmdx]; [VHTty] = [VHGcmdy]; [VHTtz] = [VHGcmdz];
 	=> VHG activate target; -> VHG command done;
+
+"VHG SL"
+	( SL.CPP without its optional range lists every non-removed catalogued star
+	  in file order.  Keep the leading asterisk and all twenty padded name cells
+	  so the expanded physical output history is byte-for-byte scrollable. )
+	[VHGwherei] = 0;
+    "VHG SL bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG SL bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGparusage0; => VH GOES output line;
+	[VHPoutptr] = VHGslusage1; => VH GOES output line;
+	[VHPoutptr] = VHGrepusage2; => VH GOES output line;
+	[VHPoutptr] = VHGslglobal; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHGslleast] = 0; [VHGslrecno] = 0;
+    "VHG SL catalogue loop"
+	A = [VHGslrecno]; ? A >= [VHCATrecs] -> VHG SL catalogue done;
+	A '* 8; A + vhcatraw; A + 1; [VHGslptr] = A;
+	C = [A]; ? C != VHCATTOMB0 -> VHG SL record live;
+	C = [A plus 1]; ? C = VHCATTOMB1 -> VHG SL catalogue next;
+    "VHG SL record live"
+	A = [VHGslptr]; A = [A plus 7]; A > 8; A & FFh;
+	? A != VHCATS -> VHG SL catalogue next;
+	[VHGslleast] = 1; [VHGslline plus 0] = 42; [VHGsli] = 0;
+    "VHG SL label copy"
+	A = [VHGsli]; B = A; A / 4; C = [VHGslptr]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; C = VHGslline; C + 1; C + [VHGsli]; [C] = A;
+	[VHGsli]+; A = [VHGsli]; ? A < 20 -> VHG SL label copy;
+	[VHGslline plus 21] = 0; [VHPoutptr] = VHGslline; => VH GOES output line;
+    "VHG SL catalogue next"
+	[VHGslrecno]+; -> VHG SL catalogue loop;
+    "VHG SL catalogue done"
+	A = [VHGslleast]; ? A = 0 -> VHG SL no stars;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGslend; => VH GOES output line; end;
+    "VHG SL no stars"
+	[VHPoutptr] = VHGslnone; => VH GOES output line; end;
 
 "VHG WHERE"
 	( WHERE.CPP is a bundled GOES Net module.  Search the same persistent

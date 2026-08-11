@@ -25,9 +25,12 @@ goal, with an in-game off control preserving the original silent experience.
 
 ## Active delivery docket
 
-- [ ] Recurring: commit and push every coherent playable checkpoint during
-  active implementation, and leave no finished checkpoint only in the local
-  checkout when pausing or handing off.
+- [ ] Recurring: commit and push intermittently after coherent, meaningful
+  playable fixes, and before switching feature areas, pausing, or handing off.
+  Leave no finished checkpoint only in the local checkout.
+- [ ] Restore `SL <range>` with the original interruptible procedural sector
+  scan. Bare `SL` is complete; do not substitute its global catalogue listing
+  when a range was supplied.
 
 ## Lean check before any new wave
 
@@ -46,9 +49,14 @@ first -- a broken foundation makes every later result meaningless.
 ### GOES resident command and catalogue query
 
 - The hosted GOES network now implements the original resident `CLR` command
-  by clearing all 32 retained output rows and resetting the source-style scroll
+  by clearing all 8,192 retained output rows and resetting the source-style scroll
   cursor. It no longer echoes a synthetic success line into the newly empty
   tree.
+- Bare `SL` now follows `SL.CPP` by listing every non-removed star record in
+  file order, including all twenty label cells and their literal underscores.
+  The expanded 8,192-row history retains the complete shipped result: 7,579
+  stars and 7,586 total output rows. A native production-derived probe matched
+  every retained cell from `FENIA` through `GM-E01-51`.
 - `WHERE <catalogued name>` now searches the real mutable `STARMAP.BIN` record
   names with the source's exact-match preference and ambiguous-prefix report.
   A star receives the original PAR guidance; a planet's two-digit object code

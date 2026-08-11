@@ -534,6 +534,12 @@ appended beyond, rather than folded into, the consolidated boundary. CLEAN then
 compacts complete in-memory images, adjusts only affected source boundaries,
 rewrites each validated image once, and truncates it to the resulting size.
 
+Bare `SL` restores the original global catalogue branch. It emits every
+non-removed star record in file order, preserves all twenty padded label cells,
+and retains the complete 7,586-row result in an expanded 8,192-row physical
+GOES history. Separating the output terminator from the command cursor also
+restored printable underscores in names such as `ALEXANDER_HAMILTON`.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

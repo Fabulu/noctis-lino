@@ -809,3 +809,14 @@ same condition beyond GUIDE's 4,063,588-byte boundary. Resident CLEAN reported
 37,579 starmap records with one removed and 48,377 guide records with one
 removed. Both files returned byte-for-byte to their tracked original assets,
 and the following CAT query confirmed the deleted guide record stayed absent.
+
+### GOES global SL and full scrollback regression
+
+A production-derived native probe submitted bare `SL` through the resident
+command parser and dumped the complete physical output history. It exited 0
+with 7,586 retained rows: five source header/divider rows, all 7,579
+non-removed `S` records in exact STARMAP file order, the closing divider, and
+`STARS LISTING END.`. Every one of the 172,032 history cells matched an
+independent decode of the tracked `STARMAP.BIN`; the unused tail was blank.
+The comparison included `ALEXANDER_HAMILTON`, proving that a literal underscore
+is now rendered as catalogue text rather than mistaken for the input cursor.

@@ -42,6 +42,7 @@ ORIGINAL = REFERENCE_ROOT / "NOCTIS.CPP"
 ORIGINAL0 = REFERENCE_ROOT / "NOCTIS-0.CPP"
 ORIGINAL1 = REFERENCE_ROOT / "NOCTIS-1.CPP"
 ORIGINAL_WHERE = REFERENCE_ROOT / "WHERE.CPP"
+ORIGINAL_SL = REFERENCE_ROOT / "SL.CPP"
 ORIGINAL_PAR = REFERENCE_ROOT / "PAR.CPP"
 ORIGINAL_ST = REFERENCE_ROOT / "ST.CPP"
 ORIGINAL_CAT = REFERENCE_ROOT / "CAT.CPP"
@@ -240,6 +241,7 @@ def main() -> int:
     original0 = ORIGINAL0.read_text(encoding="latin-1")
     original1 = ORIGINAL1.read_text(encoding="latin-1")
     original_where = ORIGINAL_WHERE.read_text(encoding="latin-1")
+    original_sl = ORIGINAL_SL.read_text(encoding="latin-1")
     original_par = ORIGINAL_PAR.read_text(encoding="latin-1")
     original_st = ORIGINAL_ST.read_text(encoding="latin-1")
     original_cat = ORIGINAL_CAT.read_text(encoding="latin-1")
@@ -1660,13 +1662,44 @@ def main() -> int:
             "[VHCATtype] = VHCATS;", "=> VHCAT find;",
         ))
         and all(token in panels for token in (
-            '"VH GOES output clear"', "[VHPouti]+; A = [VHPouti]; ? A < 672",
+            '"VH GOES output clear"', "[VHPouti]+; A = [VHPouti]; ? A < VHPHISTORYCELLS",
             "[VHPoutrows] = 0; [VHPoutview] = 0;",
         ))
         and titania[2:] == ("P", 1)
         and titania_parent[1:3] == ("FAIRY", "S")
         and sum(name.startswith("F") for _, name, _, _ in records) > 1,
         "GOES CLR and WHERE restore resident output clearing and real catalogue parent lookup",
+    )
+    sl_section = section(game, '"VHG SL"', '"VHG WHERE"')
+    output_line = section(panels, '"VH GOES output line"', '"VH GOES output window"')
+    star_labels = [
+        starmap[offset + 8:offset + 28].decode("latin-1")
+        for offset in range(4, len(starmap), 32)
+        if starmap[offset:offset + 8] != b"Removed:"
+        and starmap[offset + 29:offset + 30] == b"S"
+    ]
+    check(
+        all(token in original_sl for token in (
+            'msg ("SL (OPTIONAL RANGE)");', 'msg ("GLOBAL STARS LISTING:");',
+            'memcmp (&object_id, "Removed:", 8)', "object_label[21] == 'S'",
+            'sprintf (textbuffer, "*%s", object_label);', 'msg ("STARS LISTING END.");',
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe sl"', '"VHG command sl tail"', '"VHG SL"',
+            'VHGslglobal = { GLOBAL_STARS_LISTING: };', '"VHG SL catalogue loop"',
+            "? C = VHCATTOMB1 -> VHG SL catalogue next;", "? A != VHCATS -> VHG SL catalogue next;",
+            "[VHGslline plus 0] = 42;", "? A < 20 -> VHG SL label copy;",
+        ))
+        and "=> VHCAT identity valid;" not in sl_section
+        and "? A = 95" not in output_line
+        and all(token in panels for token in (
+            "VHPHISTORYROWS = 8192;", "VHPHISTORYCELLS = 172032;",
+            "vhpout = 172032;", "? A < VHPHISTORYROWS -> VHP output row available;",
+        ))
+        and len(star_labels) == 7579
+        and star_labels[0].rstrip() == "FENIA"
+        and star_labels[-1].rstrip() == "GM-E01-51",
+        "GOES bare SL preserves the complete source-ordered global star catalogue in scrollback",
     )
     elraine = next(record for record in records if record[1] == "ELRAINE" and record[2] == "S")
     par_range = 14
@@ -1873,7 +1906,7 @@ def main() -> int:
             "[vhcpoly plus 6] = VHPGL; [vhcpoly plus 9] = VHPGL;",
             "[vhcpoly plus 1] = 3280764928; [vhcpoly plus 4] = 3277979648;",
             "[vhcpoly plus 7] = 3277979648; [vhcpoly plus 10] = 3280764928;",
-            '"VH GOES output line"', "vhpout = 672;", '"VH GOES output window"',
+            '"VH GOES output line"', "vhpout = 172032;", '"VH GOES output window"',
             '"VHP status message length"', "[VHPstatptr] = A;", "[VHPmessage]",
         )),
         "source-ordered nondegenerate glyph quads keep physical GOES input on all three wall faces",

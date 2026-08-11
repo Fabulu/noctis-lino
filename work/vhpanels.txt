@@ -11,6 +11,9 @@
 	VHPGR = 1102053376;		( +22.0f glyph right )
 	VHPQTR = 1048576000;		( 0.25f )
 	VHPTX = 512; VHPTY = 576;
+	VHPHISTORYROWS = 8192;
+	VHPHISTORYCELLS = 172032;
+	VHPHISTORYSHIFT = 172011;
 
 "variables"
 
@@ -48,7 +51,7 @@
 "workspace"
 
 	vhptext = 126;			( two headers + four 21-column command rows )
-	vhpout = 672;			( thirty-two retained 21-column output rows )
+	vhpout = 172032;		( 8,192 retained 21-column output rows )
 	vhpoutdisplay = 154;		( seven zero-terminated 21-column display rows )
 	vhpstatus = 54;
 	VHPbodyy = 80; VHPbodyz = 80;
@@ -624,21 +627,22 @@
 	[VHPouti] = 0;
     "VHP output clear loop"
 	A = vhpout; A + [VHPouti]; [A] = 32;
-	[VHPouti]+; A = [VHPouti]; ? A < 672 -> VHP output clear loop;
+	[VHPouti]+; A = [VHPouti]; ? A < VHPHISTORYCELLS -> VHP output clear loop;
 	[VHPoutrows] = 0; [VHPoutview] = 0;
 	end;
 
 "VH GOES output line"
 	( GOESfile.TXT is a byte stream in the source. Retain the same fixed-width
-	  21-column flow in a bounded in-memory history for the hosted port. )
+	  21-column flow in a bounded in-memory history large enough for the full
+	  shipped star catalogue. )
 	C = [VHPoutptr]; A = [C]; ? A = 0 -> VHP output line done;
     "VHP output new row"
-	A = [VHPoutrows]; ? A < 32 -> VHP output row available;
+	A = [VHPoutrows]; ? A < VHPHISTORYROWS -> VHP output row available;
 	[VHPouti] = 0;
     "VHP output shift"
 	A = vhpout; A + [VHPouti]; C = A; A + 21; [C] = [A];
-	[VHPouti]+; A = [VHPouti]; ? A < 651 -> VHP output shift;
-	[VHPoutrows] = 31;
+	[VHPouti]+; A = [VHPouti]; ? A < VHPHISTORYSHIFT -> VHP output shift;
+	[VHPoutrows] = 8191;
     "VHP output row available"
 	A = [VHPoutrows]; A '* 21; A + vhpout; [VHPoutj] = A; [VHPouti] = 0;
     "VHP output row clear"
@@ -647,7 +651,6 @@
 	[VHPouti] = 0;
     "VHP output row copy"
 	C = [VHPoutptr]; A = [C]; ? A = 0 -> VHP output row finish;
-	? A = 95 -> VHP output row finish;
 	C = [VHPoutj]; C + [VHPouti]; [C] = A;
 	[VHPoutptr]+; [VHPouti]+; A = [VHPouti]; ? A < 21 -> VHP output row copy;
     "VHP output row finish"
@@ -655,7 +658,7 @@
     "VHP output view ready"
 	[VHPoutview] = A;
 	C = [VHPoutptr]; A = [C]; ? A = 0 -> VHP output line done;
-	? A = 95 -> VHP output line done; -> VHP output new row;
+	-> VHP output new row;
     "VHP output line done"
 	end;
 
