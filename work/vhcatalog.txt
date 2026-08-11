@@ -1,10 +1,10 @@
       ( *** vhcatalog - live Noctis STARMAP naming ***
 
 	The shipped STARMAP.BIN is the real 32-byte Noctis catalogue:
-	4-byte file-size header, binary64 identity, 20-byte padded name,
+	4-byte consolidated boundary, binary64 identity, 20-byte padded name,
 	then " Snn" or " Pnn".  Search uses the original strict
-	identity +/- 0.00001 window.  New records are appended in place and
-	the header is advanced, so names survive ordinary checkpoint loads. )
+	identity +/- 0.00001 window.  New records are appended in place while
+	the header retains the consolidated upstream boundary. )
 
 "constants"
 
@@ -32,6 +32,8 @@
 	VHCATi = 0; VHCATlen = 0; VHCATshift = 0; VHCATchar = 0;
 	VHCATptr = 0; VHCATfoundptr = 0;
 	VHCATbodyi = 0; VHCATlabeled = 0;
+	VHCATcleanin = 0; VHCATcleanout = 0; VHCATcleanword = 0;
+	VHCATcleantotal = 0; VHCATcleanremoved = 0; VHCATcleanboundary = 0;
 
 "workspace"
 
@@ -53,7 +55,9 @@
 	[File Name] = vhcatfile; [File Position] = 0; [File Command] = READ;
 	[Block Pointer] = vhcatraw; [Block Size] = [VHCATbytes]; isocall;
 	A = [Block Size]; ? A != [VHCATbytes] -> VHCAT load bad;
-	A = [vhcatraw]; ? A != [VHCATbytes] -> VHCAT load bad;
+	A = [vhcatraw]; ? A < VHCATHDRBYTES -> VHCAT load bad;
+	? A > [VHCATbytes] -> VHCAT load bad;
+	A - VHCATHDRBYTES; A '% VHCATRECBYTES; ? A != 0 -> VHCAT load bad;
 	[VHCATloaded] = 1;
 	-> VHCAT load done;
     "VHCAT load missing"
@@ -262,10 +266,7 @@
 	[File Name] = vhcatfile; [File Position] = [VHCATbytes]; [File Command] = WRITE;
 	[Block Pointer] = [VHCATfoundptr]; [Block Size] = VHCATRECBYTES; isocall;
 	? [File Status] + ERROR -> VHCAT add done; A = [Block Size]; ? A != VHCATRECBYTES -> VHCAT add done;
-	A = [VHCATbytes]; A + VHCATRECBYTES; [VHCATbytes] = A; [vhcatraw] = A;
-	[File Name] = vhcatfile; [File Position] = 0; [File Command] = WRITE;
-	[Block Pointer] = vhcatraw; [Block Size] = 4; isocall;
-	? [File Status] + ERROR -> VHCAT add done;
+	A = [VHCATbytes]; A + VHCATRECBYTES; [VHCATbytes] = A;
 	[File Name] = vhcatfile; [File Position] = 0; [File Command] = SET SIZE;
 	[File Size] = [VHCATbytes]; isocall;
 	[VHCATrecs]+; [VHCATloaded] = 1; [VHCATstatus] = 1;
@@ -273,4 +274,46 @@
     "VHCAT add charted"
 	[VHCATstatus] = 2;
     "VHCAT add done"
+	end;
+
+      ( Compact Removed: records in one bounded rewrite.  The header remains
+	the consolidated boundary, reduced only when an upstream tombstone itself
+	is removed, exactly as CLEAN.CPP does with its swap file. )
+"VHCAT clean"
+	[VHCATstatus] = 0; [VHCATcleantotal] = [VHCATrecs]; [VHCATcleanremoved] = 0;
+	A = [VHCATloaded]; ? A = 0 -> VHCAT clean done;
+	[VHCATcleanboundary] = [vhcatraw]; [VHCATcleanin] = 0; [VHCATcleanout] = 0;
+    "VHCAT clean record"
+	A = [VHCATcleanin]; ? A >= [VHCATrecs] -> VHCAT clean write;
+	A '* 8; C = vhcatraw; C + 1; C + A;
+	A = [C]; ? A != VHCATTOMB0 -> VHCAT clean retain;
+	A = [C plus 1]; ? A != VHCATTOMB1 -> VHCAT clean retain;
+	[VHCATcleanremoved]+; A = [VHCATcleanin]; A '* VHCATRECBYTES; A + VHCATHDRBYTES;
+	? A >= [VHCATcleanboundary] -> VHCAT clean next;
+	[VHCATcleanboundary] - VHCATRECBYTES; -> VHCAT clean next;
+    "VHCAT clean retain"
+	A = [VHCATcleanout]; ? A = [VHCATcleanin] -> VHCAT clean retained;
+	A '* 8; E = vhcatraw; E + 1; E + A; [VHCATcleanword] = 0;
+    "VHCAT clean copy"
+	A = [VHCATcleanword]; B = [C]; [E] = B; C + 1; E + 1;
+	[VHCATcleanword]+; ? A < 7 -> VHCAT clean copy;
+    "VHCAT clean retained"
+	[VHCATcleanout]+;
+    "VHCAT clean next"
+	[VHCATcleanin]+; -> VHCAT clean record;
+    "VHCAT clean write"
+	[vhcatraw] = [VHCATcleanboundary]; A = [VHCATcleanout]; A '* VHCATRECBYTES;
+	A + VHCATHDRBYTES; [VHCATbytes] = A;
+	[File Name] = vhcatfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhcatraw; [Block Size] = [VHCATbytes]; isocall;
+	? [File Status] + ERROR -> VHCAT clean reload;
+	A = [Block Size]; ? A != [VHCATbytes] -> VHCAT clean reload;
+	[File Name] = vhcatfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHCATbytes]; isocall;
+	? [File Status] + ERROR -> VHCAT clean reload;
+	[VHCATrecs] = [VHCATcleanout]; [VHCATstatus] = 1; => VHCAT refresh;
+	-> VHCAT clean done;
+    "VHCAT clean reload"
+	=> VHCAT load; [VHCATstatus] = 0;
+    "VHCAT clean done"
 	end;

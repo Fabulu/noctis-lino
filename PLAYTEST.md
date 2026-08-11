@@ -800,3 +800,12 @@ reported `TOTAL RECORDS: 193`, `REMOVED: 1`, and `PROTECTED: 192`; the protected
 pass reported 192 total, zero removed, and 192 protected. CAT no longer found
 record 193. The appended record began with the exact `Removed:` tombstone while
 the complete 4,063,588-byte consolidated prefix remained identical.
+
+### GOES CLEAN two-database lifecycle regression
+
+A disposable package appended one local `Removed:` record beyond STARMAP's
+1,202,500-byte consolidated boundary, then used CAST and DELE to create the
+same condition beyond GUIDE's 4,063,588-byte boundary. Resident CLEAN reported
+37,579 starmap records with one removed and 48,377 guide records with one
+removed. Both files returned byte-for-byte to their tracked original assets,
+and the following CAT query confirmed the deleted guide record stayed absent.

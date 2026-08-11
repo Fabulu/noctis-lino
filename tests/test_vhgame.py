@@ -48,6 +48,7 @@ ORIGINAL_CAT = REFERENCE_ROOT / "CAT.CPP"
 ORIGINAL_CAST = REFERENCE_ROOT / "CAST.CPP"
 ORIGINAL_REP = REFERENCE_ROOT / "REP.CPP"
 ORIGINAL_DELE = REFERENCE_ROOT / "DELE.CPP"
+ORIGINAL_CLEAN = REFERENCE_ROOT / "CLEAN.CPP"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -245,6 +246,7 @@ def main() -> int:
     original_cast = ORIGINAL_CAST.read_text(encoding="latin-1")
     original_rep = ORIGINAL_REP.read_text(encoding="latin-1")
     original_dele = ORIGINAL_DELE.read_text(encoding="latin-1")
+    original_clean = ORIGINAL_CLEAN.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1612,7 +1614,8 @@ def main() -> int:
         and "? [Menu On] = NO -> KDMA Client Return;" in igui
         and all(token in catalog for token in (
             '"VHCAT load missing"', "[VHCATbytes] = VHCATHDRBYTES;",
-            "[vhcatraw] = VHCATHDRBYTES;", "A = [vhcatraw]; ? A != [VHCATbytes]",
+            "[vhcatraw] = VHCATHDRBYTES;", "A = [vhcatraw]; ? A < VHCATHDRBYTES",
+            "? A > [VHCATbytes] -> VHCAT load bad;",
             '"VHCAT write record ready"', "[Block Size] = VHCATHDRBYTES;",
         )),
         "GOES consumes one character per physical press and creates a valid empty starmap",
@@ -1820,6 +1823,31 @@ def main() -> int:
             "? A >= [vhguidedata] -> VHGDB remove local;",
         )),
         "GOES DELE tombstones only ranged local guide records and reports protected totals",
+    )
+    check(
+        all(token in original_clean for token in (
+            'msg ("CLEANING STARMAP...");', 'msg ("CLEANING GUIDE...");',
+            'memcmp(&object_id, "Removed:", 8)', 'memcmp(&mblock_subject, "Removed:", 8)',
+            "cleaned_starmap_consolidated -= 32;", "cleaned_guide_consolidated -= 84;",
+            'msg ("END");',
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe clean"', '"VHG CLEAN"',
+            "=> VHCAT clean;", "=> VHGDB clean;", '"VHG CLEAN output count"',
+        ))
+        and all(token in catalog for token in (
+            '"VHCAT clean"', "[VHCATcleanboundary] - VHCATRECBYTES;",
+            "[Block Pointer] = vhcatraw; [Block Size] = [VHCATbytes]; isocall;",
+            "[VHCATrecs] = [VHCATcleanout]; [VHCATstatus] = 1;",
+        ))
+        and all(token in guide_source for token in (
+            '"VHGDB clean"', "[VHGDBcleanboundary] - VHGDBREC;",
+            "[Block Pointer] = vhguidedata; [Block Size] = [VHGDBbytes]; isocall;",
+            "[VHGDBrecs] = [VHGDBcleanout]; [VHGDBstatus] = 1;",
+        ))
+        and "$consolidated -lt 4 -or $consolidated -gt $bytes.Length" in package_script
+        and "($consolidated - 4) % 32 -ne 0" in package_script,
+        "GOES CLEAN compacts both tombstone databases while preserving consolidated boundaries",
     )
     check(
         all(token in game for token in (

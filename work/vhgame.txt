@@ -94,6 +94,7 @@
 	VHGreptarget = 0; VHGrepdigits = 0; VHGrepmsgptr = 0; VHGrepmsglen = 0;
 	VHGdeletotal = 0; VHGdeledeleted = 0; VHGdelequery = 0;
 	VHGdeleprefix = 0; VHGdelevalue = 0;
+	VHGcleanprefix = 0; VHGcleanvalue = 0;
 	VHGflightx = 0; VHGsecx = 0;
 	VHGlocalactive = 0; VHGlocaltarget = 0FFFFFFFFh;
 	VHGlocalx0 = 0; VHGlocalx1 = 0; VHGlocaly0 = 0; VHGlocaly1 = 0;
@@ -323,6 +324,14 @@
 	VHGdeletotalprefix = { TOTAL_RECORDS: };
 	VHGdeledeletedprefix = { REMOVED: };
 	VHGdeleprotectedprefix = { PROTECTED: };
+	VHGcleanstarmap = { CLEANING_STARMAP... };
+	VHGcleanguide = { CLEANING_GUIDE... };
+	VHGcleanstarmapmissing = { STARMAP_NOT_AVAILABLE };
+	VHGcleanguidemissing = { GUIDE_NOT_AVAILABLE };
+	VHGcleanwriteerror = { ERROR:_DISK_FULL? };
+	VHGcleanrecordsprefix = { RECORDS: };
+	VHGcleanremovedprefix = { REMOVED: };
+	VHGcleanend = { END };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -3404,9 +3413,17 @@
     "VHG command maybe clear"
 	A = [vhptext plus 43]; ? A = 65 -> VHG command maybe cat;
 	? A != 76 -> VHG command done;
-	A = [vhptext plus 44]; ? A != 82 -> VHG command done;
+	A = [vhptext plus 44]; ? A = 69 -> VHG command maybe clean;
+	? A != 82 -> VHG command done;
 	A = [vhptext plus 45]; ? A = 0 -> VHG command clear ready;
 	? A = 32 -> VHG command clear ready; ? A != 95 -> VHG command done;
+    "VHG command maybe clean"
+	A = [vhptext plus 45]; ? A != 65 -> VHG command done;
+	A = [vhptext plus 46]; ? A != 78 -> VHG command done;
+	A = [vhptext plus 47]; ? A = 0 -> VHG command clean ready;
+	? A = 32 -> VHG command clean ready; ? A != 95 -> VHG command done;
+    "VHG command clean ready"
+	[VHGcmdsilent] = 1; => VHG CLEAN; -> VHG command done;
     "VHG command clear ready"
 	[VHGcmdsilent] = 1; => VH GOES output clear; -> VHG command done;
     "VHG command maybe cat"
@@ -4046,6 +4063,43 @@
 	[VHGonrowdst] = VHGcatline; => VHG onboard row begin;
 	[VHGonrowsrc] = [VHGdeleprefix]; => VHG onboard row append text;
 	=> VHG onboard row append space; [VHGonrowvalue] = [VHGdelevalue];
+	=> VHG onboard row append number; => VHG onboard row finish;
+	[VHPoutptr] = VHGcatline; => VH GOES output line; end;
+
+"VHG CLEAN"
+	( CLEAN.CPP compacts both mutable databases and adjusts a consolidated
+	  boundary only for tombstones that were already inside that boundary. )
+	[VHGwherei] = 0;
+    "VHG CLEAN bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG CLEAN bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGcleanstarmap; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	A = [VHCATloaded]; ? A = 0 -> VHG CLEAN starmap unavailable result;
+	=> VHCAT clean; A = [VHCATstatus]; ? A = 0 -> VHG CLEAN write failed result;
+	[VHGcleanprefix] = VHGcleanrecordsprefix; [VHGcleanvalue] = [VHCATcleantotal]; => VHG CLEAN output count;
+	[VHGcleanprefix] = VHGcleanremovedprefix; [VHGcleanvalue] = [VHCATcleanremoved]; => VHG CLEAN output count;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGcleanguide; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	A = [VHGDBloaded]; ? A = 0 -> VHG CLEAN guide unavailable result;
+	=> VHGDB clean; A = [VHGDBstatus]; ? A = 0 -> VHG CLEAN write failed result;
+	[VHGcleanprefix] = VHGcleanrecordsprefix; [VHGcleanvalue] = [VHGDBcleantotal]; => VHG CLEAN output count;
+	[VHGcleanprefix] = VHGcleanremovedprefix; [VHGcleanvalue] = [VHGDBcleanremoved]; => VHG CLEAN output count;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGcleanend; => VH GOES output line; end;
+    "VHG CLEAN starmap unavailable result"
+	[VHPoutptr] = VHGcleanstarmapmissing; => VH GOES output line; end;
+    "VHG CLEAN guide unavailable result"
+	[VHPoutptr] = VHGcleanguidemissing; => VH GOES output line; end;
+    "VHG CLEAN write failed result"
+	[VHPoutptr] = VHGcleanwriteerror; => VH GOES output line; end;
+
+"VHG CLEAN output count"
+	[VHGonrowdst] = VHGcatline; => VHG onboard row begin;
+	[VHGonrowsrc] = [VHGcleanprefix]; => VHG onboard row append text;
+	=> VHG onboard row append space; [VHGonrowvalue] = [VHGcleanvalue];
 	=> VHG onboard row append number; => VHG onboard row finish;
 	[VHPoutptr] = VHGcatline; => VH GOES output line; end;
 

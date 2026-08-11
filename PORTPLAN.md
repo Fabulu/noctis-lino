@@ -97,6 +97,12 @@ first -- a broken foundation makes every later result meaningless.
   summary. A native CAST and DELE removed appended SURICRASIA record 193,
   rejected consolidated record 1 without changing it, and made CAT omit the
   tombstoned record. The original guide prefix again compared identically.
+- Resident `CLEAN` now compacts `Removed:` records from both STARMAP and GUIDE,
+  reports each source record/removal count, and recalculates a consolidated
+  boundary only when a tombstone lay inside it. STARMAP appends now correctly
+  leave that boundary unchanged instead of promoting player names to upstream
+  data. A native lifecycle added one local tombstone to each database, ran
+  CLEAN, and returned both files byte-for-byte to their tracked originals.
 
 ### Clickable FCS and onboard pages
 

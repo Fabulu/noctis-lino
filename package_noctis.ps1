@@ -66,8 +66,10 @@ foreach ($asset in $assets) {
     }
     if ($asset.Size -eq -1) {
         $bytes = [IO.File]::ReadAllBytes($asset.Source)
+        $consolidated = if ($bytes.Length -ge 4) { [BitConverter]::ToInt32($bytes, 0) } else { 0 }
         if ($bytes.Length -lt 4 -or ($bytes.Length - 4) % 32 -ne 0 -or
-            [BitConverter]::ToInt32($bytes, 0) -ne $bytes.Length -or
+            $consolidated -lt 4 -or $consolidated -gt $bytes.Length -or
+            ($consolidated - 4) % 32 -ne 0 -or
             $bytes.Length -gt 1280004) {
             throw 'STARMAP.BIN does not satisfy the 4 + 32n record contract'
         }

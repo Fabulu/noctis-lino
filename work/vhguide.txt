@@ -16,6 +16,8 @@
 	VHGDBloaded = 0; VHGDBbytes = 0; VHGDBrecs = 0; VHGDBstatus = 0;
 	VHGDBid0 = 0; VHGDBid1 = 0; VHGDBmsgptr = 0; VHGDBmsglen = 0;
 	VHGDBptr = 0; VHGDBi = 0; VHGDBshift = 0; VHGDBrecordno = 0; VHGDBpos = 0;
+	VHGDBcleanin = 0; VHGDBcleanout = 0; VHGDBcleanword = 0;
+	VHGDBcleantotal = 0; VHGDBcleanremoved = 0; VHGDBcleanboundary = 0;
 
 "workspace"
 
@@ -128,4 +130,45 @@
 	? [File Status] + ERROR -> VHGDB remove done;
 	A = [Block Size]; ? A != 8 -> VHGDB remove done; [VHGDBstatus] = 1;
     "VHGDB remove done"
+	end;
+
+      ( Compact Removed: records in memory and commit the completed bounded
+	image in one write.  Only tombstones below the consolidated boundary move
+	that boundary, matching CLEAN.CPP's swap-file result. )
+"VHGDB clean"
+	[VHGDBstatus] = 0; [VHGDBcleantotal] = [VHGDBrecs]; [VHGDBcleanremoved] = 0;
+	A = [VHGDBloaded]; ? A = 0 -> VHGDB clean done;
+	[VHGDBcleanboundary] = [vhguidedata]; [VHGDBcleanin] = 0; [VHGDBcleanout] = 0;
+    "VHGDB clean record"
+	A = [VHGDBcleanin]; ? A >= [VHGDBrecs] -> VHGDB clean write;
+	A '* 21; C = vhguidedata; C + 1; C + A;
+	A = [C]; ? A != 6F6D6552h -> VHGDB clean retain;
+	A = [C plus 1]; ? A != 3A646576h -> VHGDB clean retain;
+	[VHGDBcleanremoved]+; A = [VHGDBcleanin]; A '* VHGDBREC; A + VHGDBHDR;
+	? A >= [VHGDBcleanboundary] -> VHGDB clean next;
+	[VHGDBcleanboundary] - VHGDBREC; -> VHGDB clean next;
+    "VHGDB clean retain"
+	A = [VHGDBcleanout]; ? A = [VHGDBcleanin] -> VHGDB clean retained;
+	A '* 21; E = vhguidedata; E + 1; E + A; [VHGDBcleanword] = 0;
+    "VHGDB clean copy"
+	A = [VHGDBcleanword]; B = [C]; [E] = B; C + 1; E + 1;
+	[VHGDBcleanword]+; ? A < 20 -> VHGDB clean copy;
+    "VHGDB clean retained"
+	[VHGDBcleanout]+;
+    "VHGDB clean next"
+	[VHGDBcleanin]+; -> VHGDB clean record;
+    "VHGDB clean write"
+	[vhguidedata] = [VHGDBcleanboundary]; A = [VHGDBcleanout]; A '* VHGDBREC;
+	A + VHGDBHDR; [VHGDBbytes] = A;
+	[File Name] = VHGDBfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhguidedata; [Block Size] = [VHGDBbytes]; isocall;
+	? [File Status] + ERROR -> VHGDB clean reload;
+	A = [Block Size]; ? A != [VHGDBbytes] -> VHGDB clean reload;
+	[File Name] = VHGDBfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGDBbytes]; isocall;
+	? [File Status] + ERROR -> VHGDB clean reload;
+	[VHGDBrecs] = [VHGDBcleanout]; [VHGDBstatus] = 1; -> VHGDB clean done;
+    "VHGDB clean reload"
+	=> VHGDB load; [VHGDBstatus] = 0;
+    "VHGDB clean done"
 	end;

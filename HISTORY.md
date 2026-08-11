@@ -528,6 +528,12 @@ writes `Removed:` only to local records, and treats the consolidated source
 region as protected. CAT immediately ignores the tombstone just as the source
 database tools do.
 
+`CLEAN` restores the companion database maintenance pass for both STARMAP and
+GUIDE. The port first corrected STARMAP's header semantics so player names are
+appended beyond, rather than folded into, the consolidated boundary. CLEAN then
+compacts complete in-memory images, adjusts only affected source boundaries,
+rewrites each validated image once, and truncates it to the resulting size.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime
