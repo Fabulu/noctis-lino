@@ -47,6 +47,7 @@ ORIGINAL_ST = REFERENCE_ROOT / "ST.CPP"
 ORIGINAL_CAT = REFERENCE_ROOT / "CAT.CPP"
 ORIGINAL_CAST = REFERENCE_ROOT / "CAST.CPP"
 ORIGINAL_REP = REFERENCE_ROOT / "REP.CPP"
+ORIGINAL_DELE = REFERENCE_ROOT / "DELE.CPP"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -243,6 +244,7 @@ def main() -> int:
     original_cat = ORIGINAL_CAT.read_text(encoding="latin-1")
     original_cast = ORIGINAL_CAST.read_text(encoding="latin-1")
     original_rep = ORIGINAL_REP.read_text(encoding="latin-1")
+    original_dele = ORIGINAL_DELE.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1799,6 +1801,25 @@ def main() -> int:
             "[Block Size] = VHGDBREC; isocall;", "[VHGDBstatus] = 1;",
         )),
         "GOES REP corrects local guide notes while protecting consolidated records",
+    )
+    check(
+        all(token in original_dele for token in (
+            'msg ("DELE OBJECTNAME:X..Y");', "rec >= rec_start && rec <= rec_end",
+            "round >= guide_consolidated", '_write (gh, "Removed:", 8);',
+            'sprintf (outbuffer, "TOTAL RECORDS: %d", tmessages);',
+            'sprintf (outbuffer, "PROTECTED: %d", tmessages - rmessages);',
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe dele"', '"VHG command dele range last digits"',
+            '"VHG DELE"', '"VHG DELE guide match"', '"VHG DELE summary"',
+            "[VHGDBrecordno] = [VHGcatrecno]; => VHGDB remove;",
+        ))
+        and all(token in guide_source for token in (
+            '"VHGDB remove"', "[A] = 6F6D6552h; [A plus 1] = 3A646576h;",
+            "[Block Pointer] = [VHGDBptr]; [Block Size] = 8; isocall;",
+            "? A >= [vhguidedata] -> VHGDB remove local;",
+        )),
+        "GOES DELE tombstones only ranged local guide records and reports protected totals",
     )
     check(
         all(token in game for token in (

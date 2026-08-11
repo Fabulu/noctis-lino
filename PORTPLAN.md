@@ -92,6 +92,11 @@ first -- a broken foundation makes every later result meaningless.
   boundary. A native CAST, REP, protected-REP, CAT sequence changed appended
   SURICRASIA record 193 to `CORRECTED NOTE`, rejected record 1 as protected,
   and left the original 4,063,588-byte prefix byte-for-byte identical.
+- `DELE <catalogued name>[:X..Y]` restores ranged local Guide removal with the
+  source's exact eight-byte `Removed:` tombstone and total/removed/protected
+  summary. A native CAST and DELE removed appended SURICRASIA record 193,
+  rejected consolidated record 1 without changing it, and made CAT omit the
+  tombstoned record. The original guide prefix again compared identically.
 
 ### Clickable FCS and onboard pages
 

@@ -111,3 +111,21 @@
 	[VHGDBstatus] = 1;
     "VHGDB replace done"
 	end;
+
+      ( Mark one locally contributed record with the original eight-byte
+	Removed: tombstone.  Consolidated records remain readable and protected. )
+"VHGDB remove"
+	[VHGDBstatus] = 0; A = [VHGDBloaded]; ? A = 0 -> VHGDB remove done;
+	A = [VHGDBrecordno]; ? A < 0 -> VHGDB remove done;
+	? A >= [VHGDBrecs] -> VHGDB remove done;
+	A '* VHGDBREC; A + VHGDBHDR; [VHGDBpos] = A;
+	? A >= [vhguidedata] -> VHGDB remove local; [VHGDBstatus] = 2; -> VHGDB remove done;
+    "VHGDB remove local"
+	A = [VHGDBrecordno]; A '* 21; A + vhguidedata; A + 1; [VHGDBptr] = A;
+	[A] = 6F6D6552h; [A plus 1] = 3A646576h;
+	[File Name] = VHGDBfile; [File Position] = [VHGDBpos]; [File Command] = WRITE;
+	[Block Pointer] = [VHGDBptr]; [Block Size] = 8; isocall;
+	? [File Status] + ERROR -> VHGDB remove done;
+	A = [Block Size]; ? A != 8 -> VHGDB remove done; [VHGDBstatus] = 1;
+    "VHGDB remove done"
+	end;

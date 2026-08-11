@@ -69,6 +69,8 @@ parity, not a claim that parity is complete.
   persist in `GUIDE.BIN`, and are readable by a later `CAT` command.
   `REP <catalogued name>:<record>:<notes>` corrects a selected local record
   while retaining the original module's protection for consolidated entries.
+  `DELE <catalogued name>[:X..Y]` applies the original `Removed:` tombstone to
+  ranged local entries and reports total, removed, and protected counts.
   The third station starts planetary approach and,
   after FCS reaches STANDBY, opens the physical longitude/latitude selector.
 - Planetary views finish with the original default `surrounding()` visor
@@ -100,7 +102,7 @@ Useful controls:
 - W/A/S/D: move; right-drag or arrows: look
 - E inside the Stardrifter: ascend; walk into the roof opening to return
 - First wall panel + Enter: physical GOES; `NEXT`: choose/fly to a nearby star
-- `CAT name[:X..Y]`: read; `CAST name:notes`: add; `REP name:X:notes`: correct
+- `CAT`: read; `CAST`: add; `REP`: correct; `DELE name[:X..Y]`: remove local notes
 - Third wall panel + Enter: approach, select a landing site, and descend
 - G and L: accessible GOES and landing fallbacks
 - R: device back/close aboard ship; return in capsule on a surface

@@ -522,6 +522,12 @@ it to `CORRECTED NOTE`, rejected an attempted correction of protected record 1,
 and read the corrected text back with CAT. The consolidated guide prefix
 remained byte-for-byte identical throughout.
 
+The resident `DELE` module now completes ranged removal of contributed Guide
+records. It retains the original one-based subject numbering and summary,
+writes `Removed:` only to local records, and treats the consolidated source
+region as protected. CAT immediately ignores the tombstone just as the source
+database tools do.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

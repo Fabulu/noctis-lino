@@ -34,6 +34,7 @@ ST name[:range]   target a named star or reached-system planet
 CAT name[:X..Y]   read ranged records from the original Galactic Guide
 CAST name:notes    append a persistent Galactic Guide note (76 characters max)
 REP name:X:notes   correct local guide record X; original records are protected
+DELE name[:X..Y]   remove ranged local guide records; original records are protected
 CLR               clear the retained GOES output tree
 L                 global approach/landing-site fallback
 Site selector     arrows choose longitude/latitude; L/Enter descends; C cancels

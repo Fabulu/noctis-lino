@@ -791,3 +791,12 @@ record and `MESSAGE IS PROTECTED.` for consolidated record 1, then displayed
 record `(193)` as `CORRECTED NOTE`. The guide grew by exactly one 84-byte CAST
 record, its header stayed 4,063,588, and all 4,063,588 original bytes compared
 identically with the tracked source asset.
+
+### GOES DELE range and protection regression
+
+A disposable native run cast SURICRASIA record 193, deleted `193..193`, tried
+to delete protected record 1, then queried record 193 with CAT. The first DELE
+reported `TOTAL RECORDS: 193`, `REMOVED: 1`, and `PROTECTED: 192`; the protected
+pass reported 192 total, zero removed, and 192 protected. CAT no longer found
+record 193. The appended record began with the exact `Removed:` tombstone while
+the complete 4,063,588-byte consolidated prefix remained identical.

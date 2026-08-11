@@ -92,6 +92,8 @@
 	VHGcatreadi = 0; VHGcatlooki = 0; VHGcatwordlen = 0;
 	VHGcastmsgptr = 0; VHGcastmsglen = 0;
 	VHGreptarget = 0; VHGrepdigits = 0; VHGrepmsgptr = 0; VHGrepmsglen = 0;
+	VHGdeletotal = 0; VHGdeledeleted = 0; VHGdelequery = 0;
+	VHGdeleprefix = 0; VHGdelevalue = 0;
 	VHGflightx = 0; VHGsecx = 0;
 	VHGlocalactive = 0; VHGlocaltarget = 0FFFFFFFFh;
 	VHGlocalx0 = 0; VHGlocalx1 = 0; VHGlocaly0 = 0; VHGlocaly1 = 0;
@@ -312,6 +314,15 @@
 	VHGreprejected = { CORRECTION_REJECTED: };
 	VHGrepprotected = { MESSAGE_IS_PROTECTED. };
 	VHGrepnosuch = { NO_SUCH_RECORD! };
+	VHGdeleusage1 = { DELE_OBJECTNAME };
+	VHGdeleusage2 = { DELE_OBJECTNAME:X..Y };
+	VHGdeledberror = { DATABASE_ERROR. };
+	VHGdeleerror4 = { (ERROR_CODE_1004) };
+	VHGdelenone0 = { THERE_WERE_NO_RECORDS };
+	VHGdelenone1 = { THAT_COULD_BE_DELETED };
+	VHGdeletotalprefix = { TOTAL_RECORDS: };
+	VHGdeledeletedprefix = { REMOVED: };
+	VHGdeleprotectedprefix = { PROTECTED: };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -3286,9 +3297,57 @@
 	? A = 76 -> VHG command maybe load;
 	? A = 78 -> VHG command starts n;
 	? A = 67 -> VHG command maybe clear;
+	? A = 68 -> VHG command maybe dele;
 	? A = 80 -> VHG command maybe par;
 	? A = 82 -> VHG command maybe rep;
 	? A = 87 -> VHG command maybe where; -> VHG command done;
+    "VHG command maybe dele"
+	A = [vhptext plus 43]; ? A != 69 -> VHG command done;
+	A = [vhptext plus 44]; ? A != 76 -> VHG command done;
+	A = [vhptext plus 45]; ? A != 69 -> VHG command done;
+	A = [vhptext plus 46]; ? A = 0 -> VHG command dele parse;
+	? A = 32 -> VHG command dele parse; ? A != 95 -> VHG command done;
+    "VHG command dele parse"
+	[VHGcmdi] = 46; [VHGcatstart] = 1; [VHGcatend] = 32767;
+    "VHG command dele spaces"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 32 -> VHG command dele start;
+	[VHGcmdi]+; -> VHG command dele spaces;
+    "VHG command dele start"
+	[VHGwherequery] = A; [VHGwherelen] = 0;
+    "VHG command dele length"
+	? C = 0 -> VHG command dele trim; ? C = 58 -> VHG command dele range start;
+	? C != 95 -> VHG command dele character;
+	E = A; E + 1; E = [E]; ? E = 0 -> VHG command dele trim;
+    "VHG command dele character"
+	[VHGwherelen]+; [VHGcmdi]+; A = vhptext; A + [VHGcmdi]; C = [A];
+	-> VHG command dele length;
+    "VHG command dele range start"
+	[VHGcmdi]+; [VHGcatvalue] = 0; [VHGcatdigits] = 0;
+    "VHG command dele range first digits"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C < 48 -> VHG command dele range first done;
+	? C > 57 -> VHG command dele range first done;
+	A = [VHGcatdigits]; ? A >= 9 -> VHG command dele range first done;
+	A = [VHGcatvalue]; A '* 10; C - 48; A + C; [VHGcatvalue] = A;
+	[VHGcatdigits]+; [VHGcmdi]+; -> VHG command dele range first digits;
+    "VHG command dele range first done"
+	[VHGcatstart] = [VHGcatvalue];
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 46 -> VHG command dele trim;
+	A + 1; C = [A]; ? C != 46 -> VHG command dele trim;
+	[VHGcmdi] + 2; [VHGcatvalue] = 0; [VHGcatdigits] = 0;
+    "VHG command dele range last digits"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C < 48 -> VHG command dele range last done;
+	? C > 57 -> VHG command dele range last done;
+	A = [VHGcatdigits]; ? A >= 9 -> VHG command dele range last done;
+	A = [VHGcatvalue]; A '* 10; C - 48; A + C; [VHGcatvalue] = A;
+	[VHGcatdigits]+; [VHGcmdi]+; -> VHG command dele range last digits;
+    "VHG command dele range last done"
+	[VHGcatend] = [VHGcatvalue];
+    "VHG command dele trim"
+	A = [VHGwherelen]; ? A = 0 -> VHG command dele ready;
+	A - 1; C = [VHGwherequery]; C + A; A = [C]; ? A != 32 -> VHG command dele ready;
+	[VHGwherelen]-; -> VHG command dele trim;
+    "VHG command dele ready"
+	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1; => VHG DELE; -> VHG command done;
     "VHG command maybe rep"
 	A = [vhptext plus 43]; ? A != 69 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 80 -> VHG command done;
@@ -3885,6 +3944,110 @@
 	[VHPoutptr] = VHGcastsyntax0; => VH GOES output line;
 	[VHPoutptr] = VHGcastsyntax1; => VH GOES output line;
 	[VHPoutptr] = VHGrepsyntax1; => VH GOES output line; end;
+
+"VHG DELE"
+	( DELE.CPP counts every matching guide record, applies its one-based range,
+	  and tombstones only local contributions.  Consolidated records contribute
+	  to the protected total and remain byte-for-byte unchanged. )
+	A = [VHGwherelen]; ? A != 0 -> VHG DELE execute;
+	[VHPoutptr] = VHGparusage0; => VH GOES output line;
+	[VHPoutptr] = VHGdeleusage1; => VH GOES output line;
+	[VHPoutptr] = VHGdeleusage2; => VH GOES output line;
+	[VHPoutptr] = VHGrepusage2; => VH GOES output line;
+	[VHPoutptr] = VHGparusage3; => VH GOES output line;
+	[VHPoutptr] = VHGparusage4; => VH GOES output line; end;
+    "VHG DELE execute"
+	[VHGwherei] = 0;
+    "VHG DELE bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG DELE bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGcathead; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHGwherematches] = 0; [VHGwherefound] = 0; [VHGwhererecno] = 0;
+    "VHG DELE catalogue loop"
+	A = [VHGwhererecno]; ? A >= [VHCATrecs] -> VHG DELE catalogue done;
+	A '* 8; A + vhcatraw; A + 1; [VHGwhererec] = A;
+	=> VHG WHERE record match; A = [VHGwherematch]; ? A = 0 -> VHG DELE catalogue next;
+	[VHGwherematches]+; [VHGwherefound] = [VHGwhererec];
+	A = [VHGwhereexact]; ? A != 0 -> VHG DELE catalogue exact;
+    "VHG DELE catalogue next"
+	[VHGwhererecno]+; -> VHG DELE catalogue loop;
+    "VHG DELE catalogue exact"
+	[VHGwherematches] = 1;
+    "VHG DELE catalogue done"
+	A = [VHGwherematches]; ? A = 0 -> VHG DELE missing subject;
+	? A > 1 -> VHG DELE ambiguous subject;
+	[VHGwhererec] = [VHGwherefound];
+	A = [VHGwhererec]; C = [A plus 7]; C > 8; C & FFh; [VHGwheretype] = C;
+	? C = VHCATS -> VHG DELE star subject;
+	? C = VHCATP -> VHG DELE planet subject; -> VHG DELE missing subject;
+    "VHG DELE missing subject"
+	[VHPoutptr] = VHGwherenotfound; => VH GOES output line; end;
+    "VHG DELE ambiguous subject"
+	=> VHG WHERE ambiguous; end;
+    "VHG DELE star subject"
+	[VHPoutptr] = VHGparsubjectstar; => VH GOES output line; -> VHG DELE subject ready;
+    "VHG DELE planet subject"
+	[VHPoutptr] = VHGparsubjectplanet; => VH GOES output line;
+    "VHG DELE subject ready"
+	=> VHG PAR output name;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	A = [VHGDBloaded]; ? A = 0 -> VHG DELE database error;
+	A = [VHGwherefound]; [VHGpartarget0] = [A]; [VHGpartarget1] = [A plus 1];
+	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FSub;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparlowhi] = [VHCATkeyhi]; [VHGparlowlo] = [VHCATkeylo];
+	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FAdd;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparhighhi] = [VHCATkeyhi]; [VHGparhighlo] = [VHCATkeylo];
+	[VHGcatrecno] = 0; [VHGcatmatchno] = 0; [VHGdeletotal] = 0;
+	[VHGdeledeleted] = 0; [VHGdelequery] = 0;
+    "VHG DELE guide loop"
+	A = [VHGcatrecno]; ? A >= [VHGDBrecs] -> VHG DELE guide done;
+	A '* 21; A + vhguidedata; A + 1; [VHGcatptr] = A;
+	[VHCATid0] = [A]; [VHCATid1] = [A plus 1];
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHG DELE guide next;
+	=> VHCAT key; A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHGparlowhi] -> VHG DELE guide above low;
+	? A '< [VHGparlowhi] -> VHG DELE guide next;
+	? B '> [VHGparlowlo] -> VHG DELE guide above low; -> VHG DELE guide next;
+    "VHG DELE guide above low"
+	? A '< [VHGparhighhi] -> VHG DELE guide match;
+	? A '> [VHGparhighhi] -> VHG DELE guide next;
+	? B '< [VHGparhighlo] -> VHG DELE guide match; -> VHG DELE guide next;
+    "VHG DELE guide match"
+	[VHGdeletotal]+; [VHGcatmatchno]+; A = [VHGcatmatchno];
+	? A < [VHGcatstart] -> VHG DELE guide next;
+	? A > [VHGcatend] -> VHG DELE guide next; [VHGdelequery] = 1;
+	[VHGDBrecordno] = [VHGcatrecno]; => VHGDB remove;
+	A = [VHGDBstatus]; ? A = 1 -> VHG DELE removed one;
+	? A = 2 -> VHG DELE guide next; -> VHG DELE database error;
+    "VHG DELE removed one"
+	[VHGdeledeleted]+;
+    "VHG DELE guide next"
+	[VHGcatrecno]+; -> VHG DELE guide loop;
+    "VHG DELE guide done"
+	A = [VHGdelequery]; ? A != 0 -> VHG DELE summary;
+	[VHPoutptr] = VHGdelenone0; => VH GOES output line;
+	[VHPoutptr] = VHGdelenone1; => VH GOES output line; end;
+    "VHG DELE summary"
+	[VHGdeleprefix] = VHGdeletotalprefix; [VHGdelevalue] = [VHGdeletotal]; => VHG DELE output count;
+	[VHGdeleprefix] = VHGdeledeletedprefix; [VHGdelevalue] = [VHGdeledeleted]; => VHG DELE output count;
+	[VHGdeleprefix] = VHGdeleprotectedprefix; A = [VHGdeletotal]; A - [VHGdeledeleted];
+	[VHGdelevalue] = A; => VHG DELE output count; end;
+    "VHG DELE database error"
+	[VHPoutptr] = VHGdeledberror; => VH GOES output line;
+	[VHPoutptr] = VHGdeleerror4; => VH GOES output line; end;
+
+"VHG DELE output count"
+	[VHGonrowdst] = VHGcatline; => VHG onboard row begin;
+	[VHGonrowsrc] = [VHGdeleprefix]; => VHG onboard row append text;
+	=> VHG onboard row append space; [VHGonrowvalue] = [VHGdelevalue];
+	=> VHG onboard row append number; => VHG onboard row finish;
+	[VHPoutptr] = VHGcatline; => VH GOES output line; end;
 
 "VHG CAT"
 	( CAT.CPP reads the original 84-byte Galactic Guide records for a named
