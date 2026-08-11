@@ -842,3 +842,15 @@ DL's shared divider workspace was uninitialized when DL was the first GOES
 command; the corrected run proves all three required divider rows. The focused
 integration check pins `DL.CPP`'s generator, planet/moon ordering, note-count,
 range, and restore paths.
+
+### GOES OUTBOX packet regression
+
+A production-derived native probe added one disposable in-memory catalogue
+record and one disposable Guide record beyond the original consolidated
+boundaries, then submitted `OUTBOX` through the real resident parser. GOES
+reported one outgoing label and one outgoing comment and produced a 132-byte
+`OUTBOX.ZIP`. Its bytes were exactly `STARMAP_`, the original first 32-byte
+catalogue record, `GUIDE___`, and the original first 84-byte Guide record used
+as disposable payloads. Both payload comparisons were byte-for-byte equal,
+the process exited 0, and the tracked `STARMAP.BIN` and `GUIDE.BIN` were never
+written.

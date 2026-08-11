@@ -65,7 +65,10 @@ of up to 76 characters. `REP <catalogued name>:<record>:<notes>` corrects one
 of those local notes; consolidated records supplied with the game remain
 protected. `DELE <catalogued name>[:X..Y]` tombstones selected local records
 without changing that protected source data. `CLEAN` compacts removed starmap
-and Guide records while preserving their consolidated boundaries. The accessible G view now includes the same
+and Guide records while preserving their consolidated boundaries. `OUTBOX`
+writes `work\OUTBOX.ZIP` in the original GOES packet layout, containing only
+live player-added labels and Guide notes rather than the protected shipped
+records. The accessible G view now includes the same
 seven-line retained result history above its command prompt. The GAME menu's Flight control and Onboard devices entries open
 resize-aware mouse-accessible versions of those physical pages; the hovered
 command turns white and one left click activates it. Both routes remain over

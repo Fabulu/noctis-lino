@@ -83,6 +83,9 @@ parity, not a claim that parity is complete.
   ranged local entries and reports total, removed, and protected counts.
   `CLEAN` compacts tombstones from both mutable databases and preserves the
   consolidated source boundary separately from appended player data.
+  `OUTBOX` exports only those live player additions to `OUTBOX.ZIP` using the
+  original `STARMAP_` and `GUIDE___` packet framing, ready to copy to another
+  Stardrifter installation.
   The third station starts planetary approach and,
   after FCS reaches STANDBY, opens the physical longitude/latitude selector.
 - Planetary views finish with the original default `surrounding()` visor

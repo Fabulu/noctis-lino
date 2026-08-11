@@ -105,6 +105,8 @@
 	VHGdeletotal = 0; VHGdeledeleted = 0; VHGdelequery = 0;
 	VHGdeleprefix = 0; VHGdelevalue = 0;
 	VHGcleanprefix = 0; VHGcleanvalue = 0;
+	VHGoutboxpos = 0; VHGoutboxi = 0; VHGoutboxptr = 0;
+	VHGoutboxlabels = 0; VHGoutboxcomments = 0;
 	VHGflightx = 0; VHGsecx = 0;
 	VHGlocalactive = 0; VHGlocaltarget = 0FFFFFFFFh;
 	VHGlocalx0 = 0; VHGlocalx1 = 0; VHGlocaly0 = 0; VHGlocaly1 = 0;
@@ -342,6 +344,16 @@
 	VHGcleanrecordsprefix = { RECORDS: };
 	VHGcleanremovedprefix = { REMOVED: };
 	VHGcleanend = { END };
+	VHGoutboxfile = { OUTBOX.ZIP };
+	VHGoutboxtitle = { _____GOES_OUTBOX_____ };
+	VHGoutlabels = { OUTGOING_LABELS: };
+	VHGoutcomments = { OUTGOING_COMMENTS: };
+	VHGoutnone = { ___NONE };
+	VHGoutcreated = { OUTBOX.ZIP_CREATED. };
+	VHGoutsend0 = { SEND_OUTBOX.ZIP_TO };
+	VHGoutsend1 = { ANOTHER_STARDRIFTER };
+	VHGoutsend2 = { OR_G.O.E.S._KEEPER. };
+	VHGouterror = { OUTBOX_WRITE_ERROR. };
 	VHGslusage1 = { SL_(OPTIONAL_RANGE) };
 	VHGslglobal = { GLOBAL_STARS_LISTING: };
 	VHGslranged = { RANGED_STARS_LISTING: };
@@ -761,6 +773,7 @@
 	VHGcatline = 22;
 	VHGslline = 22;
 	VHGdlline = 22;
+	VHGoutboxmarker = 2;
 
 "programme"
 
@@ -3369,7 +3382,18 @@
 	? A = 68 -> VHG command maybe dele;
 	? A = 80 -> VHG command maybe par;
 	? A = 82 -> VHG command maybe rep;
+	? A = 79 -> VHG command maybe outbox;
 	? A = 87 -> VHG command maybe where; -> VHG command done;
+    "VHG command maybe outbox"
+	A = [vhptext plus 43]; ? A != 85 -> VHG command done;
+	A = [vhptext plus 44]; ? A != 84 -> VHG command done;
+	A = [vhptext plus 45]; ? A != 66 -> VHG command done;
+	A = [vhptext plus 46]; ? A != 79 -> VHG command done;
+	A = [vhptext plus 47]; ? A != 88 -> VHG command done;
+	A = [vhptext plus 48]; ? A = 0 -> VHG command outbox ready;
+	? A = 32 -> VHG command outbox ready; ? A != 95 -> VHG command done;
+    "VHG command outbox ready"
+	[VHGcmdsilent] = 1; => VHG OUTBOX; -> VHG command done;
     "VHG command maybe dele"
 	A = [vhptext plus 43]; ? A = 76 -> VHG command dl parse;
 	? A != 69 -> VHG command done;
@@ -4716,6 +4740,92 @@
 	[VHGonrowdst] = VHGcatline; => VHG onboard row begin;
 	[VHGonrowsrc] = [VHGdeleprefix]; => VHG onboard row append text;
 	=> VHG onboard row append space; [VHGonrowvalue] = [VHGdelevalue];
+	=> VHG onboard row append number; => VHG onboard row finish;
+	[VHPoutptr] = VHGcatline; => VH GOES output line; end;
+
+"VHG OUTBOX"
+	( OUTBOX.CPP exports only live player additions beyond each database's
+	  consolidated boundary.  Preserve its packet framing exactly: STARMAP_,
+	  zero or more 32-byte labels, GUIDE___, then zero or more 84-byte notes. )
+	[VHGwherei] = 0;
+    "VHG OUTBOX bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG OUTBOX bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGoutboxtitle; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	A = [VHCATloaded]; ? A = 0 -> VHG OUTBOX starmap unavailable;
+	A = [VHGDBloaded]; ? A = 0 -> VHG OUTBOX guide unavailable;
+	[VHGoutboxlabels] = 0; [VHGoutboxcomments] = 0; [VHGoutboxpos] = 0;
+	[VHGoutboxmarker plus 0] = 52415453h; [VHGoutboxmarker plus 1] = 5F50414Dh;
+	[File Name] = VHGoutboxfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = VHGoutboxmarker; [Block Size] = 8; isocall;
+	? [File Status] + ERROR -> VHG OUTBOX write error;
+	A = [Block Size]; ? A != 8 -> VHG OUTBOX write error; [VHGoutboxpos] = 8;
+	A = [vhcatraw]; A - VHCATHDRBYTES; A / VHCATRECBYTES; [VHGoutboxi] = A;
+    "VHG OUTBOX starmap loop"
+	A = [VHGoutboxi]; ? A >= [VHCATrecs] -> VHG OUTBOX guide marker;
+	A '* 8; A + vhcatraw; A + 1; [VHGoutboxptr] = A;
+	C = [A]; ? C != VHCATTOMB0 -> VHG OUTBOX write label;
+	C = [A plus 1]; ? C = VHCATTOMB1 -> VHG OUTBOX next label;
+    "VHG OUTBOX write label"
+	[File Name] = VHGoutboxfile; [File Position] = [VHGoutboxpos]; [File Command] = WRITE;
+	[Block Pointer] = [VHGoutboxptr]; [Block Size] = VHCATRECBYTES; isocall;
+	? [File Status] + ERROR -> VHG OUTBOX write error;
+	A = [Block Size]; ? A != VHCATRECBYTES -> VHG OUTBOX write error;
+	[VHGoutboxpos] + VHCATRECBYTES; [VHGoutboxlabels]+;
+    "VHG OUTBOX next label"
+	[VHGoutboxi]+; -> VHG OUTBOX starmap loop;
+    "VHG OUTBOX guide marker"
+	[VHGoutboxmarker plus 0] = 44495547h; [VHGoutboxmarker plus 1] = 5F5F5F45h;
+	[File Name] = VHGoutboxfile; [File Position] = [VHGoutboxpos]; [File Command] = WRITE;
+	[Block Pointer] = VHGoutboxmarker; [Block Size] = 8; isocall;
+	? [File Status] + ERROR -> VHG OUTBOX write error;
+	A = [Block Size]; ? A != 8 -> VHG OUTBOX write error; [VHGoutboxpos] + 8;
+	A = [vhguidedata]; A - VHGDBHDR; A / VHGDBREC; [VHGoutboxi] = A;
+    "VHG OUTBOX guide loop"
+	A = [VHGoutboxi]; ? A >= [VHGDBrecs] -> VHG OUTBOX finish file;
+	A '* 21; A + vhguidedata; A + 1; [VHGoutboxptr] = A;
+	C = [A]; ? C != VHCATTOMB0 -> VHG OUTBOX write comment;
+	C = [A plus 1]; ? C = VHCATTOMB1 -> VHG OUTBOX next comment;
+    "VHG OUTBOX write comment"
+	[File Name] = VHGoutboxfile; [File Position] = [VHGoutboxpos]; [File Command] = WRITE;
+	[Block Pointer] = [VHGoutboxptr]; [Block Size] = VHGDBREC; isocall;
+	? [File Status] + ERROR -> VHG OUTBOX write error;
+	A = [Block Size]; ? A != VHGDBREC -> VHG OUTBOX write error;
+	[VHGoutboxpos] + VHGDBREC; [VHGoutboxcomments]+;
+    "VHG OUTBOX next comment"
+	[VHGoutboxi]+; -> VHG OUTBOX guide loop;
+    "VHG OUTBOX finish file"
+	[File Name] = VHGoutboxfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGoutboxpos]; isocall;
+	? [File Status] + ERROR -> VHG OUTBOX write error;
+	[VHPoutptr] = VHGoutlabels; => VH GOES output line;
+	[VHGcleanvalue] = [VHGoutboxlabels]; => VHG OUTBOX output count;
+	[VHPoutptr] = VHGoutcomments; => VH GOES output line;
+	[VHGcleanvalue] = [VHGoutboxcomments]; => VHG OUTBOX output count;
+	[VHPoutptr] = VHGoutcreated; => VH GOES output line;
+	A = [VHGoutboxlabels]; A + [VHGoutboxcomments]; ? A = 0 -> VHG OUTBOX done;
+	[VHPoutptr] = VHGoutsend0; => VH GOES output line;
+	[VHPoutptr] = VHGoutsend1; => VH GOES output line;
+	[VHPoutptr] = VHGoutsend2; => VH GOES output line;
+    "VHG OUTBOX done"
+	end;
+    "VHG OUTBOX starmap unavailable"
+	[VHPoutptr] = VHGcleanstarmapmissing; => VH GOES output line; end;
+    "VHG OUTBOX guide unavailable"
+	[VHPoutptr] = VHGcleanguidemissing; => VH GOES output line; end;
+    "VHG OUTBOX write error"
+	[File Name] = VHGoutboxfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 0; isocall; [VHPoutptr] = VHGouterror; => VH GOES output line; end;
+
+"VHG OUTBOX output count"
+	A = [VHGcleanvalue]; ? A != 0 -> VHG OUTBOX output number;
+	[VHPoutptr] = VHGoutnone; => VH GOES output line; end;
+    "VHG OUTBOX output number"
+	[VHGonrowdst] = VHGcatline; => VHG onboard row begin;
+	=> VHG onboard row append space; => VHG onboard row append space;
+	=> VHG onboard row append space; [VHGonrowvalue] = [VHGcleanvalue];
 	=> VHG onboard row append number; => VHG onboard row finish;
 	[VHPoutptr] = VHGcatline; => VH GOES output line; end;
 

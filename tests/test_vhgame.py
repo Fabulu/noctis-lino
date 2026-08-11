@@ -51,6 +51,7 @@ ORIGINAL_CAST = REFERENCE_ROOT / "CAST.CPP"
 ORIGINAL_REP = REFERENCE_ROOT / "REP.CPP"
 ORIGINAL_DELE = REFERENCE_ROOT / "DELE.CPP"
 ORIGINAL_CLEAN = REFERENCE_ROOT / "CLEAN.CPP"
+ORIGINAL_OUTBOX = REFERENCE_ROOT / "OUTBOX.CPP"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -251,6 +252,7 @@ def main() -> int:
     original_rep = ORIGINAL_REP.read_text(encoding="latin-1")
     original_dele = ORIGINAL_DELE.read_text(encoding="latin-1")
     original_clean = ORIGINAL_CLEAN.read_text(encoding="latin-1")
+    original_outbox = ORIGINAL_OUTBOX.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1913,6 +1915,25 @@ def main() -> int:
         and "$consolidated -lt 4 -or $consolidated -gt $bytes.Length" in package_script
         and "($consolidated - 4) % 32 -ne 0" in package_script,
         "GOES CLEAN compacts both tombstone databases while preserving consolidated boundaries",
+    )
+    check(
+        all(token in original_outbox for token in (
+            '_write (ph, "STARMAP_", 8);', "lseek (fh, starmap_size, SEEK_SET);",
+            'memcmp (&object_id, "Removed:", 8)', '_write (ph, "GUIDE___", 8);',
+            "lseek (gh, guide_size, SEEK_SET);", 'memcmp (&mblock_subject, "Removed:", 8)',
+            'msg ("OUTGOING LABELS:");', 'msg ("OUTGOING COMMENTS:");',
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe outbox"', '"VHG OUTBOX"',
+            "[VHGoutboxmarker plus 0] = 52415453h; [VHGoutboxmarker plus 1] = 5F50414Dh;",
+            "A = [vhcatraw]; A - VHCATHDRBYTES; A / VHCATRECBYTES;",
+            "[Block Pointer] = [VHGoutboxptr]; [Block Size] = VHCATRECBYTES; isocall;",
+            "[VHGoutboxmarker plus 0] = 44495547h; [VHGoutboxmarker plus 1] = 5F5F5F45h;",
+            "A = [vhguidedata]; A - VHGDBHDR; A / VHGDBREC;",
+            "[Block Pointer] = [VHGoutboxptr]; [Block Size] = VHGDBREC; isocall;",
+            '"VHG OUTBOX output count"', "[File Size] = [VHGoutboxpos]; isocall;",
+        )),
+        "GOES OUTBOX exports only live local labels and Guide notes in source packet order",
     )
     check(
         all(token in game for token in (

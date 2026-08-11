@@ -556,6 +556,14 @@ selected body. A native range-14 query reproduced ELRAINE's charted P03
 FENHOME tree exactly and exposed a first-command divider initialization defect,
 which was corrected before publication.
 
+GOES `OUTBOX` now makes the port's player-created catalogue data portable. It
+uses the protected boundary stored at the start of each database to exclude all
+shipped records, skips local tombstones, and writes the original packet framing
+and record bytes to `OUTBOX.ZIP`. A native run with one disposable label and
+one disposable Guide note produced the expected 132-byte packet: `STARMAP_`,
+the exact 32-byte label, `GUIDE___`, and the exact 84-byte note. The command
+also reports both exported counts on the physical GOES output tree.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

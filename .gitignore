@@ -3,6 +3,8 @@
 work/*.exe
 !work/vhgame.exe
 work/*.bin
+work/*.zip
+work/*.ZIP
 !work/STARMAP.BIN
 !work/digimap2.bin
 !work/GUIDE.BIN

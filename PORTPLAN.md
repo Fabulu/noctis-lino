@@ -122,6 +122,12 @@ first -- a broken foundation makes every later result meaningless.
   leave that boundary unchanged instead of promoting player names to upstream
   data. A native lifecycle added one local tombstone to each database, ran
   CLEAN, and returned both files byte-for-byte to their tracked originals.
+- Resident `OUTBOX` now restores the original player-data exchange export. It
+  reads each database's consolidated boundary, skips local `Removed:` records,
+  and writes only live additions in the exact `STARMAP_ + 32-byte records +
+  GUIDE___ + 84-byte records` packet order. A native probe exported one label
+  and one Guide note as an exact 132-byte packet without changing either
+  tracked database.
 
 ### Clickable FCS and onboard pages
 
