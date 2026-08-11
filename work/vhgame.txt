@@ -104,7 +104,8 @@
 	VHGcatreadi = 0; VHGcatlooki = 0; VHGcatwordlen = 0;
 	VHGpripos = 0; VHGpricol = 0; VHGpriok = 0; VHGprilinei = 0; VHGpricleari = 0;
 	VHGpristrptr = 0; VHGpristri = 0; VHGprimsgi = 0; VHGprilooki = 0;
-	VHGpriwordlen = 0; VHGprichar = 0;
+	VHGpriwordlen = 0; VHGprichar = 0; VHGprioutput = 0; VHGpriexportname = 0;
+	VHGpriusageptr1 = 0; VHGpriusageptr2 = 0;
 	VHGcastmsgptr = 0; VHGcastmsglen = 0;
 	VHGreptarget = 0; VHGrepdigits = 0; VHGrepmsgptr = 0; VHGrepmsglen = 0;
 	VHGdeletotal = 0; VHGdeledeleted = 0; VHGdelequery = 0;
@@ -375,10 +376,14 @@
 	VHGcatnone2 = { SPECIFIED_SUBJECT. };
 	VHGpriusage1 = { PRI_OBJECTNAME };
 	VHGpriusage2 = { PRI_OBJECTNAME:X..Y };
+	VHGprifusage1 = { PRIF_OBJECTNAME };
+	VHGprifusage2 = { PRIF_OBJECTNAME:X..Y };
 	VHGpriheader = { GOES_GALACTIC_GUIDE_DATA_SNIPPET };
 	VHGprifile = { GUIDE-PRINT.TXT };
+	VHGpriffile = { GDOUTPUT.TXT };
 	VHGpriexport0 = { DATA_EXPORTED_TO };
 	VHGpriexport1 = { GUIDE-PRINT.TXT };
+	VHGprifexport1 = { GDOUTPUT.TXT };
 	VHGpriready = { PRINT_DATA_READY. };
 	VHGprierror = { PRINT_EXPORT_ERROR. };
 	VHGpriend = { -_END_OF_DATA_- };
@@ -3847,7 +3852,7 @@
 	[VHGwherelen]-; -> VHG command cat trim;
     "VHG command cat ready"
 	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1;
-	A = [VHGcataction]; ? A = 1 -> VHG command pri ready;
+	A = [VHGcataction]; ? A != 0 -> VHG command pri ready;
 	=> VHG CAT; -> VHG command done;
 	"VHG command pri ready"
 	=> VHG PRI; -> VHG command done;
@@ -3883,10 +3888,17 @@
 	? A = 32 -> VHG command par parse; ? A != 95 -> VHG command done;
 	"VHG command maybe pri"
 	A = [vhptext plus 44]; ? A != 73 -> VHG command done;
-	A = [vhptext plus 45]; ? A = 0 -> VHG command pri parse;
+	A = [vhptext plus 45]; ? A = 70 -> VHG command maybe prif;
+	? A = 0 -> VHG command pri parse;
 	? A = 32 -> VHG command pri parse; ? A != 95 -> VHG command done;
+	"VHG command maybe prif"
+	A = [vhptext plus 46]; ? A = 0 -> VHG command prif parse;
+	? A = 32 -> VHG command prif parse; ? A != 95 -> VHG command done;
 	"VHG command pri parse"
 	[VHGcataction] = 1; -> VHG command cat parse;
+	"VHG command prif parse"
+	[VHGcmdi] = 46; [VHGcatstart] = 1; [VHGcatend] = 32767;
+	[VHGcataction] = 2; -> VHG command cat spaces;
     "VHG command par parse"
 	[VHGcmdi] = 45; [VHGparaction] = 0; [VHGparrange] = 100;
 	-> VHG command par spaces;
@@ -5580,11 +5592,18 @@
 "VHG PRI"
 	( PRI.CPP sends selected Galactic Guide text to the printer.  The resident
 	  host keeps its catalogue lookup, one-based range, continuous text stream,
-	  and 72-column wrapping, exporting the result as GUIDE-PRINT.TXT. )
+	  and 72-column wrapping.  PRI uses the portable GUIDE-PRINT.TXT substitute;
+	  the documented PRIF variant writes the same stream to GDOUTPUT.TXT. )
+	[VHGprioutput] = VHGprifile; [VHGpriexportname] = VHGpriexport1;
+	[VHGpriusageptr1] = VHGpriusage1; [VHGpriusageptr2] = VHGpriusage2;
+	A = [VHGcataction]; ? A != 2 -> VHG PRI mode ready;
+	[VHGprioutput] = VHGpriffile; [VHGpriexportname] = VHGprifexport1;
+	[VHGpriusageptr1] = VHGprifusage1; [VHGpriusageptr2] = VHGprifusage2;
+	"VHG PRI mode ready"
 	A = [VHGwherelen]; ? A != 0 -> VHG PRI execute;
 	[VHPoutptr] = VHGparusage0; => VH GOES output line;
-	[VHPoutptr] = VHGpriusage1; => VH GOES output line;
-	[VHPoutptr] = VHGpriusage2; => VH GOES output line;
+	[VHPoutptr] = [VHGpriusageptr1]; => VH GOES output line;
+	[VHPoutptr] = [VHGpriusageptr2]; => VH GOES output line;
 	[VHPoutptr] = VHGparusage3; => VH GOES output line;
 	[VHPoutptr] = VHGparusage4; => VH GOES output line; end;
     "VHG PRI execute"
@@ -5644,7 +5663,7 @@
 	=> VHG PRI flush line; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
 	=> VHGprioutbar; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
 	[VHPoutptr] = VHGpriexport0; => VH GOES output line;
-	[VHPoutptr] = VHGpriexport1; => VH GOES output line;
+	[VHPoutptr] = [VHGpriexportname]; => VH GOES output line;
 	A = [VHGwherefound]; [VHGpartarget0] = [A]; [VHGpartarget1] = [A plus 1];
 	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
 	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FSub;
@@ -5724,7 +5743,7 @@
 	[VHPoutptr] = VHGcatdberror0; => VH GOES output line;
 	[VHPoutptr] = VHGcatdberror1; => VH GOES output line; end;
     "VHG PRI write error"
-	[File Name] = VHGprifile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Name] = [VHGprioutput]; [File Position] = 0; [File Command] = SET SIZE;
 	[File Size] = 0; isocall; [VHPoutptr] = VHGprierror; => VH GOES output line; end;
 
 "VHG PRI write string line"
@@ -5756,14 +5775,14 @@
 
 "VHG PRI flush line"
 	A = [VHGpricol]; ? A = 0 -> VHG PRI flush newline;
-	[File Name] = VHGprifile; [File Position] = [VHGpripos]; [File Command] = WRITE;
+	[File Name] = [VHGprioutput]; [File Position] = [VHGpripos]; [File Command] = WRITE;
 	[Block Pointer] = VHGpriline; [Block Size] = [VHGpricol]; isocall;
 	? [File Status] + ERROR -> VHG PRI flush error;
 	A = [Block Size]; ? A != [VHGpricol] -> VHG PRI flush error;
 	[VHGpripos] + [VHGpricol];
     "VHG PRI flush newline"
 	[VHGpricrlf] = 00000A0Dh;
-	[File Name] = VHGprifile; [File Position] = [VHGpripos]; [File Command] = WRITE;
+	[File Name] = [VHGprioutput]; [File Position] = [VHGpripos]; [File Command] = WRITE;
 	[Block Pointer] = VHGpricrlf; [Block Size] = 2; isocall;
 	? [File Status] + ERROR -> VHG PRI flush error;
 	A = [Block Size]; ? A != 2 -> VHG PRI flush error;
@@ -5778,7 +5797,7 @@
 	[VHGpricleari]+; A = [VHGpricleari]; ? A < 18 -> VHG PRI clear line loop; end;
 
 "VHG PRI finish file"
-	[File Name] = VHGprifile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Name] = [VHGprioutput]; [File Position] = 0; [File Command] = SET SIZE;
 	[File Size] = [VHGpripos]; isocall; ? [File Status] + ERROR -> VHG PRI finish error; end;
     "VHG PRI finish error"
 	[VHGpriok] = 0; end;

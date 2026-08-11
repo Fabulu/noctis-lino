@@ -70,7 +70,9 @@ restores the player's current generated system and selected body afterward.
 `CAT <catalogued name>[:X..Y]` reads ranged Galactic Guide entries.
 `PRI <catalogued name>[:X..Y]` exports the same selected records to
 `GUIDE-PRINT.TXT` beside the running game, using the original continuous
-72-column printer layout. `CAST <catalogued name>:<notes>` appends a persistent
+72-column printer layout. `PRIF <catalogued name>[:X..Y]` performs the
+historical file-output variant and writes that layout to `GDOUTPUT.TXT`.
+`CAST <catalogued name>:<notes>` appends a persistent
 player note of up to 76 characters. `REP <catalogued name>:<record>:<notes>` corrects one
 of those local notes; consolidated records supplied with the game remain
 protected. `DELE <catalogued name>[:X..Y]` tombstones selected local records

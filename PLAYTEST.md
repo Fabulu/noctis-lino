@@ -52,6 +52,17 @@ samples nonzero). A 36,000-frame headless soak passed on 2026-08-11: 488 s wall
 clean exit with deterministic output (sha256
 f439fb1d6e3bf02e6ebc9ace4f4620e4b60850b714042d1b9eec79b9483c51ed).
 
+### Native GOES PRIF smoke
+
+On 2026-08-11 a temporary exact-product entry point loaded the shipped
+`STARMAP.BIN` and `GUIDE.BIN`, copied `PRIF SURICRASIA:1..2` into the normal
+GOES command buffer, and called the real parser. The compiled executable exited
+normally and created `GDOUTPUT.TXT` at 457 bytes with SHA-256
+`31fec7d78405964d3a1814f9d07dfba106ad00926e881945ae4914909cd18d99`.
+The output contained the planet subject header and exactly the first two
+SURICRASIA records in the shared 72-column PRI layout. The temporary entry point
+was then removed and the ordinary interactive production executable rebuilt.
+
 The playable build opens in iGUI under its `Noctis IV` title at 642x426, with
 an exact 640x400 work area presenting the authentic 320x200 framebuffer at 2x.
 New games and capsule returns face into the illuminated Stardrifter interior

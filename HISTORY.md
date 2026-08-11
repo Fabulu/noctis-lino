@@ -18,6 +18,23 @@ ephemeral hosted job alone receives permission to publish the tagged release.
 The workflow is checked in, while its first run awaits registration of the
 dedicated desktop runner described in `CI_RELEASES.md`.
 
+## 2026-08-11 -- historical GOES PRIF output
+
+The resident HELP directory listed PRIF even though the recovered NIV+ source
+and module bundle contained no PRIF implementation. The surviving Noctis IV
+[manual](https://mooses.nl/nice/docs/miscdocs/noctis_iv_manual.html) supplies
+the missing contract: PRIF accepts the same object and optional record range as
+PRI, but writes the output to `GDOUTPUT.TXT`. The integrated command now shares
+PRI's source-compatible lookup, one-based range selection, continuous record
+stream, and 72-column word wrapping while selecting that historical destination.
+PRI remains available as the port's practical printer substitute and continues
+to write `GUIDE-PRINT.TXT`.
+
+A temporary exact-product entry point submitted `PRIF SURICRASIA:1..2` through
+the real command parser after loading the shipped starmap and guide. The native
+executable exited cleanly and produced a 457-byte `GDOUTPUT.TXT` containing the
+planet heading, exactly the first two Guide records, divider, and end marker.
+
 ## 2026-08-11 -- complete 60-Hz pose interpolation
 
 The optional F5 presenter previously interpolated only motion committed after

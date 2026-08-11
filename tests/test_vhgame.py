@@ -1982,6 +1982,19 @@ def main() -> int:
         "GOES PRI exports source-ranged Guide text with independent 72-column line packing",
     )
     check(
+        all(token in game for token in (
+            'VHGprifusage1 = { PRIF_OBJECTNAME };',
+            'VHGprifusage2 = { PRIF_OBJECTNAME:X..Y };',
+            'VHGpriffile = { GDOUTPUT.TXT };',
+            '"VHG command maybe prif"', '"VHG command prif parse"',
+            '[VHGcataction] = 2; -> VHG command cat spaces;',
+            '? A != 0 -> VHG command pri ready;',
+            '[VHGprioutput] = VHGpriffile; [VHGpriexportname] = VHGprifexport1;',
+            '[File Name] = [VHGprioutput]; [File Position] = [VHGpripos]; [File Command] = WRITE;',
+        )),
+        "GOES PRIF shares PRI selection and writes the historical GDOUTPUT.TXT destination",
+    )
+    check(
         all(token in original0 for token in (
             "void snapshot (int forcenumber, char showdata)",
             'sprintf (snapfilename, "..\\\\GALLERY\\\\%08d.BMP", prog);',

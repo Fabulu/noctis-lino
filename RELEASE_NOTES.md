@@ -27,6 +27,8 @@ parity, not a claim that parity is complete.
 - F5's optional 60-Hz presenter now interpolates simulation-driven flight,
   roof-lift, capsule descent/recovery, and ordinary player poses while leaving
   gameplay at the original 18.206-Hz cadence.
+- The documented GOES `PRIF name[:X..Y]` module is live and writes its selected
+  72-column Galactic Guide stream to the historical `GDOUTPUT.TXT` file.
 - Toggle Ryan J. Bury's manual soundtrack with F8; silence remains available.
 - Save the completed 320x200 game view with M or `*`. Numbered BMP files are
   written to `GALLERY` without overwriting earlier captures.

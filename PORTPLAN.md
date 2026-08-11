@@ -43,6 +43,18 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Restore documented GOES PRIF
+
+- Recovered the missing command contract from the historical Noctis IV manual:
+  `PRIF ObjectName[:Record1..Record2]` is PRI with file output directed to
+  `GDOUTPUT.TXT`.
+- Added PRIF to the live parser and reused the original-compatible PRI catalogue
+  match, one-based record range, continuous text stream, and 72-column wrapping.
+- Retained portable PRI output to `GUIDE-PRINT.TXT`; the two commands differ only
+  in their documented command spelling, usage text, and destination.
+- A native exact-product smoke submitted `PRIF SURICRASIA:1..2` and produced the
+  expected 457-byte `GDOUTPUT.TXT` before the production entry point was restored.
+
 ### Complete optional 60-Hz pose interpolation
 
 - F5 still changes presentation only; the authoritative game simulation remains
