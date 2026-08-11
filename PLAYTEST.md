@@ -902,3 +902,13 @@ character path advanced the player 20,880 world units in 1.6 seconds. Sending
 9 again cancelled the selected source speed; two later F6 checkpoints 1.6
 seconds apart retained identical X/Z coordinates. The process exited and its
 temporary 32 MB package was removed.
+
+### Surface panorama regression
+
+The same isolated landed-package method sent N through the production Windows
+character path. The game wrote a numbered 732,854-byte BMP with `BM`, pixel
+offset 54, 916x200 dimensions, 32 bits per pixel, and a 732,800-byte image
+block. Visual inspection confirmed a coherent three-panel planetary horizon
+and the center-panel data treatment. The clean exit checkpoint retained the
+starting heading exactly at zero; the temporary package was removed and the
+captured panorama was promoted to `screenshots/planet-panorama.png`.

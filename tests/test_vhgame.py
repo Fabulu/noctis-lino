@@ -1913,8 +1913,37 @@ def main() -> int:
             "A = 199; A - [VHGsnapshotrow]; A '* 320; A + [VHGsnapshotbase];",
             "[Block Size] = 1280; isocall;", "[File Size] = 256054; isocall;",
         ))
-        and "=> VHGUI prepare;\n\t\t=> VHG raw snapshot pending;\n\t\t=> VHG fps overlay;" in game,
+        and "=> VHGUI prepare;\n\t\t=> VHG raw snapshot pending;\n\t\t=> VHG wide raw pending;\n\t\t=> VHG fps overlay;" in game,
         "M or * writes a composed snapshot while B captures before port overlays",
+    )
+    check(
+        all(token in original1 for token in (
+            "const int widesnappingangle = 71;",
+            "if ((w == '/' || w == 'n') && !widesnapping)",
+            "if ((w == 'v' || w == '.') && !widesnapping)",
+            "user_beta += widesnappingangle;",
+            "user_beta -= 2 * widesnappingangle;",
+            "line*916L + 1078L + 309L", "adapted + 10, 299",
+            "line*916L + 1078L + 608L", "adapted + 10, 308",
+        ))
+        and all(token in game for token in (
+            '"VHG wide snapshot key"', "? A = 110 -> VHG wide snapshot data;",
+            "? A = 118 -> VHG wide snapshot raw;", "VHGwideframes = 192000;",
+            '"VHG wide capture"', "A '* 64000; A + VHGwideframes;",
+            "A = [VHGwideoriginalbeta]; A + 71;",
+            "A = [VHGwideoriginalbeta]; A - 71;",
+            '"VHG wide write"', "[VHGsnapshotheader plus 4] = 03940000h;",
+            '"VHG wide assemble left"', "? A < 309 -> VHG wide assemble left;",
+            '"VHG wide assemble center"', "? A < 299 -> VHG wide assemble center;",
+            '"VHG wide assemble right"', "? A < 308 -> VHG wide assemble right;",
+            "[Block Pointer] = VHGwideoutput; [Block Size] = 732800; isocall;",
+            "[File Size] = 732854;", "[VHGbeta] = [VHGwideoriginalbeta];",
+        ))
+        and "=> VHGUI prepare;\n\t\t=> VHG raw snapshot pending;\n\t\t=> VHG wide raw pending;" in game
+        and "=> VHG about overlay;\n\t\t=> VHG wide data pending;\n\t\t=> VHG wide advance;" in game
+        and 309 + 299 + 308 == 916
+        and 54 + 916 * 200 * 4 == 732854,
+        "surface wide snapshots restore the source three-panel 71-degree composite",
     )
     check(
         all(token in original_cast for token in (

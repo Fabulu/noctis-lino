@@ -34,6 +34,7 @@
 	[VHGmode] = 1; [VHGlanded] = 0; [VHGCstate] = 1; [VHGinterpok] = 0;
 	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
 	[VHGsurfacefixed] = 0;
+	[VHGwidephase] = 0; [VHGwidecaptured] = 0;
 	[VHGCcapcount] = 0; [VHGCbounces] = 0; [VHGCrecover] = 0;
 	[VHGCgravity] = 2500; [VHGCaccel] = 80;
 	A = [VHGplanet]; ? A = 0 -> VHGC gravity type8;

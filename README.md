@@ -42,7 +42,9 @@ R returns from the capsule, surface digits 1-9 toggle source-style forward
 cruise speeds and 0 stops cruise, F2 opens the original visual-effects settings,
 Page Up/Page Down open and close the visor, F5 opts into 60 FPS presentation (the original
 18.2 FPS mode is the default), F6/F7 save and load, F8 toggles music, M or `*`
-saves the next numbered 320x200 BMP under `work\GALLERY`, `?` or F9 displays
+saves the next numbered 320x200 BMP under `work\GALLERY`, and on a settled
+surface N or `/` saves the original three-panel panorama while V or `.` saves
+its raw variant. `?` or F9 displays
 the complete current control card, F1 opens the original Noctis IV+ About page,
 X clears onboard control pages, and Esc saves and quits. A valid checkpoint
 resumes automatically; verified saves maintain `CURRENT.BAK`, and a damaged
@@ -123,6 +125,8 @@ step; the exact resulting `work\vhgame.exe` is versioned for reproducible CI/CD.
 | Planetary console | Planetary surface |
 |---|---|
 | ![Selecting a landing site on the physical planetary console](screenshots/planetary-console.png) | ![The capsule on a generated planetary surface](screenshots/planet-surface.png) |
+
+![A source-shaped 916x200 three-panel planetary panorama captured in game](screenshots/planet-panorama.png)
 
 ![The restored source-style Noctis IV+ About screen](screenshots/noctis-about.png)
 

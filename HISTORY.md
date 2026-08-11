@@ -622,6 +622,12 @@ black startup page. B now restores the original raw variant by capturing the
 current game image before the port-only overlays while sharing the same safe
 numbering sequence.
 
+The surface-only N/`/` and V/`.` panoramic paths now capture the original
+three headings at 71-degree offsets and stitch the same 309/299/308-pixel
+crops into a numbered 916x200 Gallery BMP. The middle panel carries the data
+overlay only for N. In-memory assembly keeps the operation responsive and the
+player's exact heading is restored afterward.
+
 Surface digits now restore the original `fixed_step` cruise control. Digits 1
 through 9 select 10 through 90 source units of automatic forward movement per
 simulation tick, mapped into the port's terrain scale; the active digit or 0

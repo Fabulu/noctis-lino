@@ -267,6 +267,10 @@
 	VHGsnapshotden = 0; VHGsnapshotpos = 0; VHGsnapshotrow = 0;
 	VHGsnapshotfilepos = 0; VHGsnapshotsrc = 0; VHGsnapshotready = 0;
 	VHGsnapshotrequest = 0; VHGsnapshotbase = 0;
+	VHGwidephase = 0; VHGwideraw = 0; VHGwidecaptured = 0;
+	VHGwideoriginalbeta = 0; VHGwidecopyi = 0; VHGwidecopybase = 0;
+	VHGwiderow = 0; VHGwidecol = 0;
+	VHGwidesrc = 0; VHGwidedst = 0;
 	VHGsavedtext = { CHECKPOINT SAVED };
 	VHGloadedtext = { CHECKPOINT LOADED };
 	VHGbackuptext = { CHECKPOINT RECOVERED FROM BACKUP };
@@ -852,6 +856,8 @@
 	VHGpriline = 18;
 	VHGpricrlf = 1;
 	VHGsnapshotheader = 14;
+	VHGwideframes = 192000;
+	VHGwideoutput = 183200;
 
 "programme"
 
@@ -1063,6 +1069,7 @@
 		[Timer Command] = READ COUNTS; isocall; [VHGprofstart] = [Counts];
 		=> VHGUI prepare;
 		=> VHG raw snapshot pending;
+		=> VHG wide raw pending;
 		=> VHG fps overlay;
 		=> VHG energy overlay;
 		=> VHG pod overlay;
@@ -1080,6 +1087,8 @@
 		=> VHG graphics overlay;
 		=> VHG help overlay;
 		=> VHG about overlay;
+		=> VHG wide data pending;
+		=> VHG wide advance;
 		[VHGsnapshotready] = 1;
 		=> VHGUI present;
 		( Publish the completed window explicitly.  Update Area may be disabled
@@ -2611,6 +2620,7 @@
 	=> VHG music key;
 	=> VHG snapshot key;
 	=> VHG raw snapshot key;
+	=> VHG wide snapshot key;
 	A = [VHGabout]; ? A != 0 -> VHG input done;
 	=> VHG graphics character;
 	A = [VHGgraphicsused]; ? A != 0 -> VHG input done;
@@ -3141,6 +3151,7 @@
 	  active while walking. The source's digit-selected fixed advancement is
 	  additive, so it can cruise while manual forward/backward input continues. )
 	A = [VHGlanded]; ? A = 0 -> VHG input done;
+	A = [VHGwidephase]; ? A != 0 -> VHG surface input done;
 	=> VHG surface pace key;
 	A = [VHGascii]; ? A = 82 -> VHG request return; ? A = 114 -> VHG request return;
 	? A = 74 -> VHG surface jump request; ? A = 106 -> VHG surface jump request;
@@ -8269,6 +8280,7 @@
 	  GOES command line while it owns text input; everywhere else capture the
 	  last fully composed logical frame, before iGUI presentation scaling. )
 	A = [VHGconsole]; ? A != 0 -> VHG snapshot key done;
+	A = [VHGwidephase]; ? A != 0 -> VHG snapshot key done;
 	A = [VHGascii]; ? A = 77 -> VHG snapshot key pressed;
 	? A = 109 -> VHG snapshot key pressed; ? A != 42 -> VHG snapshot key done;
     "VHG snapshot key pressed"
@@ -8285,6 +8297,7 @@
 	  Queue it until VHGUI prepare has assembled the next current game frame,
 	  then save before the port-only overlays are drawn. )
 	A = [VHGconsole]; ? A != 0 -> VHG raw snapshot key done;
+	A = [VHGwidephase]; ? A != 0 -> VHG raw snapshot key done;
 	A = [VHGgraphics]; ? A != 0 -> VHG raw snapshot key done;
 	A = [VHGascii]; ? A = 66 -> VHG raw snapshot key pressed;
 	? A != 98 -> VHG raw snapshot key done;
@@ -8298,6 +8311,81 @@
 	[VHGsnapshotrequest] = 0; [VHGsnapshotbase] = VHGUIframe;
 	=> VHG snapshot;
     "VHG raw snapshot pending done"
+	end;
+
+"VHG wide snapshot key"
+	( NOCTIS-1.CPP binds N or slash to the annotated three-panel panorama and
+	  V or period to its raw variant. This is a settled-surface feature only. )
+	A = [VHGconsole]; ? A != 0 -> VHG wide snapshot key done;
+	A = [VHGgraphics]; ? A != 0 -> VHG wide snapshot key done;
+	A = [VHGabout]; ? A != 0 -> VHG wide snapshot key done;
+	A = [VHGhelpshow]; ? A != 0 -> VHG wide snapshot key done;
+	A = [VHGmode]; ? A = 0 -> VHG wide snapshot key done;
+	A = [VHGlanded]; ? A = 0 -> VHG wide snapshot key done;
+	A = [VHGwidephase]; ? A != 0 -> VHG wide snapshot key done;
+	A = [VHGascii]; ? A = 78 -> VHG wide snapshot data;
+	? A = 110 -> VHG wide snapshot data; ? A = 47 -> VHG wide snapshot data;
+	? A = 86 -> VHG wide snapshot raw; ? A = 118 -> VHG wide snapshot raw;
+	? A != 46 -> VHG wide snapshot key done;
+    "VHG wide snapshot raw"
+	[VHGwideraw] = 1; -> VHG wide snapshot start;
+    "VHG wide snapshot data"
+	[VHGwideraw] = 0;
+    "VHG wide snapshot start"
+	[VHGascii] = 0; A = [VHGsnapshotready]; ? A != 0 -> VHG wide snapshot ready;
+	[VHGnoticeptr] = VHGsnapshotwaittext; [VHGnoticeframes] = 55; -> VHG wide snapshot key done;
+    "VHG wide snapshot ready"
+	[VHGwideoriginalbeta] = [VHGbeta]; [VHGwidephase] = 1; [VHGwidecaptured] = 0;
+	[VHGinterpok] = 0;
+    "VHG wide snapshot key done"
+	end;
+
+"VHG wide raw pending"
+	A = [VHGwidephase]; ? A = 0 -> VHG wide raw pending done;
+	A = [VHGmode]; ? A = 0 -> VHG wide raw cancel;
+	A = [VHGlanded]; ? A = 0 -> VHG wide raw cancel;
+	A = [VHGwidephase]; ? A != 2 -> VHG wide raw capture;
+	A = [VHGwideraw]; ? A = 0 -> VHG wide raw pending done;
+    "VHG wide raw capture"
+	=> VHG wide capture; -> VHG wide raw pending done;
+    "VHG wide raw cancel"
+	[VHGbeta] = [VHGwideoriginalbeta]; [VHGwidephase] = 0; [VHGwidecaptured] = 0;
+	[VHGinterpok] = 0;
+    "VHG wide raw pending done"
+	end;
+
+"VHG wide data pending"
+	A = [VHGwidephase]; ? A != 2 -> VHG wide data pending done;
+	A = [VHGwideraw]; ? A != 0 -> VHG wide data pending done;
+	=> VHG wide capture;
+    "VHG wide data pending done"
+	end;
+
+"VHG wide capture"
+	A = [VHGwidephase]; A - 1; A '* 64000; A + VHGwideframes;
+	[VHGwidecopybase] = A; [VHGwidecopyi] = 0;
+    "VHG wide capture loop"
+	E = VHGUIframe; E + [VHGwidecopyi]; D = [VHGwidecopybase]; D + [VHGwidecopyi];
+	A = [E]; [D] = A; [VHGwidecopyi]+;
+	A = [VHGwidecopyi]; ? A < 64000 -> VHG wide capture loop;
+	[VHGwidecaptured] = 1;
+	end;
+
+"VHG wide advance"
+	A = [VHGwidecaptured]; ? A = 0 -> VHG wide advance done;
+	[VHGwidecaptured] = 0; A = [VHGwidephase]; ? A = 1 -> VHG wide advance left;
+	? A = 2 -> VHG wide advance right;
+	[VHGbeta] = [VHGwideoriginalbeta]; [VHGwidephase] = 0; [VHGinterpok] = 0;
+	=> VHG wide write; -> VHG wide advance done;
+    "VHG wide advance left"
+	A = [VHGwideoriginalbeta]; A + 71; ? A <= 180 -> VHG wide beta left ready; A - 360;
+    "VHG wide beta left ready"
+	[VHGbeta] = A; [VHGwidephase] = 2; [VHGinterpok] = 0; -> VHG wide advance done;
+    "VHG wide advance right"
+	A = [VHGwideoriginalbeta]; A - 71; ? A >= VHGN180 -> VHG wide beta right ready; A + 360;
+    "VHG wide beta right ready"
+	[VHGbeta] = A; [VHGwidephase] = 3; [VHGinterpok] = 0;
+    "VHG wide advance done"
 	end;
 
 "VHG snapshot"
@@ -8358,7 +8446,83 @@
 	[File Name] = VHGsnapshotfile; [File Position] = 0;
 	[File Command] = SET SIZE; [File Size] = 0; isocall;
 	[VHGnoticeptr] = VHGsnapshoterror; [VHGnoticeframes] = 75; end;
-    "VHG snapshot limit"
+"VHG snapshot limit"
+	[VHGnoticeptr] = VHGsnapshotlimittext; [VHGnoticeframes] = 75;
+	end;
+
+"VHG wide write"
+	( The NIV+ panorama is a 916x200 composite of three 71-degree panels:
+	  309 pixels from +71 degrees, 299 centered pixels, and 308 pixels from
+	  -71 degrees. Write the same crop directly as a 32-bit BMP. )
+	[File Name] = VHGsnapshotdir; [File Command] = MKDIR; isocall;
+	A = [VHGsnapshotnext]; ? A > 0 -> VHG wide scan; [VHGsnapshotnext] = 1;
+    "VHG wide scan"
+	A = [VHGsnapshotnext]; ? A > 99999999 -> VHG wide limit;
+	[VHGsnapshotnumber] = A; [VHGsnapshotvalue] = A;
+	[VHGsnapshotden] = 10000000; [VHGsnapshotpos] = 8;
+    "VHG wide digit loop"
+	A = [VHGsnapshotvalue]; C = A; A '/ [VHGsnapshotden]; A + 48;
+	E = VHGsnapshotfile; E + [VHGsnapshotpos]; [E] = A;
+	E = VHGsnapshotnotice; B = [VHGsnapshotpos]; B + 6; E + B; [E] = A;
+	A = C; A '% [VHGsnapshotden]; [VHGsnapshotvalue] = A;
+	A = [VHGsnapshotden]; A '/ 10; [VHGsnapshotden] = A;
+	[VHGsnapshotpos]+; A = [VHGsnapshotpos]; ? A < 16 -> VHG wide digit loop;
+	[File Name] = VHGsnapshotfile; [File Command] = TEST; isocall;
+	? [File Status] + ERROR -> VHG wide free;
+	[VHGsnapshotnext]+; -> VHG wide scan;
+    "VHG wide free"
+	( Assemble bottom-up output once, then issue one contiguous pixel write.
+	  This preserves the source crop without stalling the GUI on 600 file calls. )
+	[VHGwiderow] = 0;
+    "VHG wide assemble row"
+	A = [VHGwiderow]; A '* 916; A + VHGwideoutput; [VHGwidedst] = A;
+	A = 199; A - [VHGwiderow]; A '* 320; [VHGwidesrc] = A;
+	[VHGwidecol] = 0;
+    "VHG wide assemble left"
+	E = VHGwideframes; E + 64000; E + [VHGwidesrc]; E + [VHGwidecol];
+	D = [VHGwidedst]; D + [VHGwidecol]; A = [E]; [D] = A;
+	[VHGwidecol]+; A = [VHGwidecol]; ? A < 309 -> VHG wide assemble left;
+	[VHGwidecol] = 0;
+    "VHG wide assemble center"
+	E = VHGwideframes; E + [VHGwidesrc]; E + 10; E + [VHGwidecol];
+	D = [VHGwidedst]; D + 309; D + [VHGwidecol]; A = [E]; [D] = A;
+	[VHGwidecol]+; A = [VHGwidecol]; ? A < 299 -> VHG wide assemble center;
+	[VHGwidecol] = 0;
+    "VHG wide assemble right"
+	E = VHGwideframes; E + 128010; E + [VHGwidesrc]; E + [VHGwidecol];
+	D = [VHGwidedst]; D + 608; D + [VHGwidecol]; A = [E]; [D] = A;
+	[VHGwidecol]+; A = [VHGwidecol]; ? A < 308 -> VHG wide assemble right;
+	[VHGwiderow]+; A = [VHGwiderow]; ? A < 200 -> VHG wide assemble row;
+	( 732854-byte BITMAPFILEHEADER/DIB: 916 * 200 * 4 pixel bytes. )
+	[VHGsnapshotheader plus 0] = 2EB64D42h;
+	[VHGsnapshotheader plus 1] = 0000000Bh;
+	[VHGsnapshotheader plus 2] = 00360000h;
+	[VHGsnapshotheader plus 3] = 00280000h;
+	[VHGsnapshotheader plus 4] = 03940000h;
+	[VHGsnapshotheader plus 5] = 00C80000h;
+	[VHGsnapshotheader plus 6] = 00010000h;
+	[VHGsnapshotheader plus 7] = 00000020h;
+	[VHGsnapshotheader plus 8] = 2E800000h;
+	[VHGsnapshotheader plus 9] = 0000000Bh;
+	[VHGsnapshotheader plus 10] = 0; [VHGsnapshotheader plus 11] = 0;
+	[VHGsnapshotheader plus 12] = 0; [VHGsnapshotheader plus 13] = 0;
+	[File Name] = VHGsnapshotfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = VHGsnapshotheader; [Block Size] = 54; isocall;
+	? [File Status] + ERROR -> VHG wide write error;
+	A = [Block Size]; ? A != 54 -> VHG wide write error;
+	[File Name] = VHGsnapshotfile; [File Position] = 54; [File Command] = WRITE;
+	[Block Pointer] = VHGwideoutput; [Block Size] = 732800; isocall;
+	? [File Status] + ERROR -> VHG wide write error;
+	A = [Block Size]; ? A != 732800 -> VHG wide write error;
+	[File Name] = VHGsnapshotfile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 732854; isocall; ? [File Status] + ERROR -> VHG wide write error;
+	A = [VHGsnapshotnumber]; A + 1; [VHGsnapshotnext] = A;
+	[VHGnoticeptr] = VHGsnapshotnotice; [VHGnoticeframes] = 75; end;
+    "VHG wide write error"
+	[File Name] = VHGsnapshotfile; [File Position] = 0;
+	[File Command] = SET SIZE; [File Size] = 0; isocall;
+	[VHGnoticeptr] = VHGsnapshoterror; [VHGnoticeframes] = 75; end;
+    "VHG wide limit"
 	[VHGnoticeptr] = VHGsnapshotlimittext; [VHGnoticeframes] = 75;
 	end;
 

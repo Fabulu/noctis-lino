@@ -76,6 +76,14 @@ first -- a broken foundation makes every later result meaningless.
 - A first-frame readiness guard prevents an input queued during GUI startup
   from exporting an uninitialized black page. A native production smoke wrote
   a 256,054-byte image with a valid 54-byte BMP/DIB header and live pixels.
+- On settled surfaces, N or `/` now restores the source panorama and V or `.`
+  its raw variant. Three frames at the original heading and plus/minus 71
+  degrees are cropped 309 + 299 + 308 pixels into one numbered 916x200 32-bit
+  BMP. The center panel alone receives data overlays for N, matching NIV+.
+- The composite is assembled in memory and its 732,800-byte pixel block is
+  written once, avoiding a visible stall from hundreds of small file calls.
+  A packaged native run validated the BMP header, image size, and exact heading
+  restoration, then supplied the tracked planetary panorama screenshot.
 
 ### GOES resident command and catalogue query
 

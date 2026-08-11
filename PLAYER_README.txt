@@ -18,6 +18,7 @@ Essential controls
 F10               native GAME menu (Up/Down and Enter)
 W/A/S/D           walk or strafe
 Ctrl + W/A/S/D    stalk slowly near surface birds
+0-9               select/cancel automatic surface cruise speed; 0 stops
 J / hold Space    jump / use the surface jetpack; C cancels thrust
 Right mouse drag  look around inside the game view
 Arrow keys        look in all four directions
@@ -57,6 +58,9 @@ F4 / F5           FPS display / opt into 60 Hz (18.2 Hz is the default)
 F6 / F7           save / load checkpoint
 F8                soundtrack on/off
 M or *            save the next numbered 320x200 BMP in GALLERY
+B                 save a raw 320x200 BMP without port display overlays
+N or /            surface: save a three-panel 916x200 panorama
+V or .            surface: save the raw panorama variant
 I                 cycle remote, local, and environment data sheets
 F1                original Noctis IV+ About page
 ? or F9           complete current-port control card
