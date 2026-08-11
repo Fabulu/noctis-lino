@@ -366,6 +366,11 @@ The host menu's installed and on-screen capacities are now twelve rather than
 eight. The old limit silently discarded Flight control, Onboard devices,
 Preferences, and Save and quit even though their datascript entries existed.
 
+The emergency helper Stardrifter now renders its complete external VEHICLE hull
+between the source-ordered near and far cupola passes. The earlier port drew two
+cupolas without the ship body even though `other_vehicle_at()` explicitly draws
+the vehicle model during the full two-minute rescue orbit.
+
 ### Clickable onboard controls
 
 The complete FCS and onboard-device pages no longer require memorizing their

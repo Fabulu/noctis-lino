@@ -1682,10 +1682,15 @@ def main() -> int:
             "A = 32767; => BrtlRandom; A '* [VHGrescuedist]; A / 32767;",
             "A = [MgCharge]; ? A >= 3", "[MgCharge] = 3;", '"VHG rescue render"',
             "C '* 2000; C + 16000;", "=> VH polycupola; => VH cupola grid;",
+            '"VHG rescue near upper done"', '"VHG rescue near lower done"',
+            "[PVh] = 0; [DWmode] = 0; [DWuds] = 1; => SP drawpv;",
+            "=> VH join mode0;", '"VHG rescue far upper done"',
+            '"VHG rescue far lower done"',
         ))
         and all(token in original for token in (
             "if (pwr <= 15000 && !charge)", "if (!stz&&charge<3) charge = 3;",
             "other_vehicle_at ((stz + 16000) * cos (secs / 10)",
+            "drawpv (vehicle_handle, 0, 0, ovhx, ovhy, ovhz, 1);",
         )),
         "depleted ships receive the original three-unit reserve from a visible rescue fly-by",
     )

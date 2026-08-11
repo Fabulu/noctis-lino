@@ -442,8 +442,9 @@ first -- a broken foundation makes every later result meaningless.
 - H restores the original emergency escape from a zero-power, zero-lithium
   softlock. It uses the source request gate, then renders another Stardrifter
   on the original squared approach/close-orbit/departure path before delivering
-  three reserve units. The 120-second source fly-by is compressed to 180
-  simulation ticks (just under ten seconds), and pending progress is saved.
+  three reserve units. The fly-by runs for the full source 120 seconds, and its
+  near cupola halves, complete external VEHICLE hull, and far cupola halves are
+  submitted in `other_vehicle_at()` order. Pending progress is saved.
 
 ### In-game control discovery
 - `?` serves NIV+'s help/about role because this Windows iGUI host does not

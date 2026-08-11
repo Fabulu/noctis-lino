@@ -226,8 +226,12 @@ Inf/NaN, over-range, and `Removed:` records without rewriting the player's file.
   completes a pending rescue.
 - **Emergency assistance**: the depleted-state gate and three-unit lithium
   delivery match the original outcome. A second Stardrifter now follows the
-  source's squared approach, close orbit/transfer, and squared departure path;
-  the original two-minute visible phase is compressed to about ten seconds.
+  source's squared approach, close orbit/transfer, and squared departure path
+  for the original two-minute visible phase. Its complete external hull is drawn
+  between the near and far cupola passes from `other_vehicle_at()`.
+  A production-window smoke resumed second 50 at a non-default player position,
+  rendered without mapper errors, remained alive, and saved the still-active
+  rescue at second 55 in a valid version-15 checkpoint.
 - **x87 across isocalls**: the lino win32 stub corrupts the x87 stack - fix is fninit+fldcw before each FP phase (documented in game.txt header)
 - **Regression inventory**: test_ground.py is registered (22 registered, 0 unregistered); nsrun NSIN validation is fixed and test_geometry passes
 - **Open ground work**: the type-3 texture matches the NIV+ capture exactly. Disassembly of the original `round_hill` proved that Borland compares its 16-bit `unsigned` loop bounds without clipping wrapped top/left hills; reproducing that rule reduced the post-landing captured heightmap residual from 39,710 to 1,752 bytes. The surviving RAM image was taken after the landed loop began reusing `p_surfacemap` as scratch, so it is retained as a capture-boundary XFAIL rather than mislabeled as a pristine generator mismatch.

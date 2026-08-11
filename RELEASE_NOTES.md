@@ -65,6 +65,8 @@ parity, not a claim that parity is complete.
   returns control to the physical computer when closed.
 - The native GAME dropdown now installs and displays all twelve actions; its
   former eight-entry capacity silently clipped the final four menu commands.
+- Emergency assistance now shows the complete second Stardrifter hull between
+  its source-ordered near and far cupola passes throughout the two-minute orbit.
 - Version 15 saves retain those PFS settings and the navigation heading in
   addition to local flight, settled capsule, and visual preferences; v1 through
   v14 saves migrate without stranding the player or losing their

@@ -708,7 +708,7 @@
 
 	[PVh] = 0; [PVmodel] = MDVEH;
 	[PVxs] = VHG15F; [PVys] = VHG15F; [PVzs] = VHG15F;
-	[PVxm] = 0; [PVym] = 0; [PVzm] = 0; [PVcol] = 0; [PVreq] = 0;
+	[PVxm] = 0; [PVym] = 0; [PVzm] = 0; [PVcol] = 0; [PVreq] = 1;
 	=> SP loadpv;
 	( cache the 720 camera-independent normal mode-2 leaves once )
 	[PVh] = 0; [DWmode] = 2; [DWuds] = 0;
@@ -2008,17 +2008,42 @@
 	[FS0] = [VHVsin]; => FLoadF32; [FI] = 4000; => IntToF; => FMul; => FToIntChop;
 	[VHGrescuey] = [FI];
 
-	( other_vehicle_at() deliberately submits only the helper's two luminous
-	  cupolas at this close-orbit scale; drawing the full 15x interior hull
-	  would envelop the player and is not part of the source fly-by. )
+	( Exact other_vehicle_at() ordering: the near dome halves, complete external
+	  VEHICLE model, then the far dome halves. The y tests split the two full
+	  hemispheres around +/-375 exactly as the source does. )
 	[VHCroof] = 0;
 	A = [VHGx]; A - [VHGrescuex]; [VHVcamxi] = A;
 	A = [VHGy]; A - [VHGrescuey]; [VHVcamyi] = A;
 	A = [VHGz]; A - [VHGrescuez]; A + 3100; [VHVcamzi] = A;
 	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
+	A = [VHGrescuey]; C = 0; C - 375; ? A <= C -> VHG rescue near upper done;
 	[VHCyor] = 1; => VH polycupola; => VH cupola grid;
-	A = [VHGy]; A - [VHGrescuey]; A - 550; [VHVcamyi] = A; => VH set view;
-	[VHCyor] = 0; => VH polycupola; => VH cupola grid;
+    "VHG rescue near upper done"
+	A = [VHGrescuey]; ? A >= 375 -> VHG rescue near lower done;
+	A = 0; A - 1; [VHCyor] = A; => VH polycupola; => VH cupola grid;
+    "VHG rescue near lower done"
+
+	A = [VHGx]; A - [VHGrescuex]; [VHVcamxi] = A;
+	A = [VHGy]; A - [VHGrescuey]; [VHVcamyi] = A;
+	A = [VHGz]; A - [VHGrescuez]; [VHVcamzi] = A; => VH set view;
+	( drawpv(vehicle_handle,0,0,ovhx,ovhy,ovhz,1): submit the helper's
+	  unsplit solid-colour polygons through the handle's depth-sort arrays. )
+	[FI] = [VHGrescuex]; => IntToF; => F32Narrow; => FStoreF32; [DWcx] = [FS0];
+	[FI] = [VHGrescuey]; => IntToF; => F32Narrow; => FStoreF32; [DWcy] = [FS0];
+	[FI] = [VHGrescuez]; => IntToF; => F32Narrow; => FStoreF32; [DWcz] = [FS0];
+	[FI] = [VHGx]; => IntToF; => F32Narrow; => FStoreF32; [DWcamx] = [FS0];
+	[FI] = [VHGy]; => IntToF; => F32Narrow; => FStoreF32; [DWcamy] = [FS0];
+	[FI] = [VHGz]; => IntToF; => F32Narrow; => FStoreF32; [DWcamz] = [FS0];
+	[PVh] = 0; [DWmode] = 0; [DWuds] = 1; => SP drawpv;
+	[SPcull] = 0; [SPflar] = 0; [SPhalf] = 0; [PGtexf] = 0; => VH join mode0;
+
+	A = [VHGz]; A - [VHGrescuez]; A + 3100; [VHVcamzi] = A; => VH set view;
+	A = [VHGrescuey]; ? A <= 375 -> VHG rescue far upper done;
+	[VHCyor] = 1; => VH polycupola; => VH cupola grid;
+    "VHG rescue far upper done"
+	A = [VHGrescuey]; C = 0; C - 375; ? A >= C -> VHG rescue far lower done;
+	A = 0; A - 1; [VHCyor] = A; => VH polycupola; => VH cupola grid;
+    "VHG rescue far lower done"
     "VHG rescue render done"
 	end;
 
