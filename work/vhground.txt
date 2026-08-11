@@ -120,6 +120,7 @@
 	VHGNDenvpress = { @C & PRESSURE };
 	VHGNDenvpulse = {  ATM & PULSE };
 	VHGNDenvpps = {  PPS };
+	VHGNDshiphints = {  & 5\FLIGHTCTR R\DEVICES F2\PREFS X\SCREEN OFF };
 	VHGNDcloudrain = 0; VHGNDsrf = 0; VHGNDsgf = 0; VHGNDsbf = 0;
 	VHGNDgrf = 0; VHGNDggf = 0; VHGNDgbf = 0;
 	VHGNDtick = 0; VHGNDdosim = 1;
@@ -189,7 +190,7 @@
 	VHGNDruins = 40000;
 	VHGNDskycache = 64000;
 	VHGNDsqc = 32;
-	VHGNDepoctext = 32;
+	VHGNDepoctext = 96;
 	VHGNDenvtext = 128;
 
 "programme"
@@ -2695,7 +2696,9 @@
 "VHGND epoch HUD"
 	( EPOC and the three zero-padded sub-billion second triads from
 	  surrounding(). VHGutcsecs is refreshed on each original simulation tick. )
-	A = [VHGdrawhud]; ? A = 0 -> VHGND epoch HUD done;
+	A = [VHGdrawhud]; ? A != 0 -> VHGND epoch HUD visible;
+	A = [VHGgraphics]; ? A = 0 -> VHGND epoch HUD done;
+    "VHGND epoch HUD visible"
 	[VHGNDhudy] = 2;
 	[VHGNDhudptr] = VHGNDepoctext;
 	A = 69; => VHGND HUD append; A = 80; => VHGND HUD append;
@@ -2709,6 +2712,10 @@
 	A = [VHGutcsecs]; A / 1000; A % 1000; => VHGND HUD append triad;
 	A = 46; => VHGND HUD append;
 	A = [VHGutcsecs]; A % 1000; => VHGND HUD append triad;
+	A = [VHGmode]; ? A != 0 -> VHGND epoch HUD terminate;
+	A = [VHGonroof]; ? A != 0 -> VHGND epoch HUD terminate;
+	A = VHGNDshiphints; => VHGND HUD append text;
+    "VHGND epoch HUD terminate"
 	A = 0; => VHGND HUD append;
 	[VHGNDhudsource] = VHGNDepoctext; [VHGNDhudx] = 2; => VHGND HUD draw string;
     "VHGND epoch HUD done"
@@ -2846,6 +2853,8 @@
 	? A = 85 -> VHGND HUD glyph letter U; ? A = 86 -> VHGND HUD glyph letter V;
 	? A = 89 -> VHGND HUD glyph letter Y; ? A = 64 -> VHGND HUD glyph at;
 	? A = 43 -> VHGND HUD glyph add sign;
+	? A = 68 -> VHGND HUD glyph letter D; ? A = 72 -> VHGND HUD glyph letter H;
+	? A = 78 -> VHGND HUD glyph letter N; ? A = 92 -> VHGND HUD glyph backslash;
 	-> VHGND HUD glyph selected;
     "VHGND HUD glyph zero"
 	[VHGNDhudpacked] = 31599; -> VHGND HUD glyph selected;
@@ -2909,7 +2918,15 @@
     "VHGND HUD glyph at"
 	[VHGNDhudpacked] = 16; -> VHGND HUD glyph selected;
     "VHGND HUD glyph add sign"
-	[VHGNDhudpacked] = 1488;
+	[VHGNDhudpacked] = 1488; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter D"
+	[VHGNDhudpacked] = 15211; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter H"
+	[VHGNDhudpacked] = 23533; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter N"
+	[VHGNDhudpacked] = 24573; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph backslash"
+	[VHGNDhudpacked] = 6105;
     "VHGND HUD glyph selected"
 	A = [VHGNDhudpacked]; [VHGNDhudshift] = [VHGNDhudrow];
     "VHGND HUD glyph shift"

@@ -335,6 +335,12 @@ temperature, pressure, and pulse are smoothed by the original 0.25, 0.05,
 0.02, and 0.01 factors and rendered through the indexed 3x5 alphabet at y=192.
 The former oversized GUI-host telemetry row is gone from ordinary play; the
 same live values remain available on the environment data page.
+The ship side now appends a compact, indexed command strip to EPOC, following
+the source `5\FLIGHTCTR R\DEVICES ... X\SCREEN OFF` layout with F2 substituted
+for the desktop port's preferences key. The temporary host-font power, capsule,
+FCS, and body rows no longer obscure the world. Resource and body details remain
+on explicit data pages, FCS status already uses the original 3D digit path, and
+X now clears onboard pages as advertised by the visor.
 Version 13 expands `CURRENT.LIN` to 192 bytes for these preferences while
 retaining explicit readers and defaults for versions 1 through 12.
 

@@ -894,9 +894,9 @@ def main() -> int:
         and "? A '>= 10 -> VHG body no land;" in body_overlay
         and "E = nspowner;" in body_overlay
         and "[VHGbodykind] = VHGkind10;" in body_overlay
-        and body_overlay.count("=> VHG text both;") == 1
+        and body_overlay.count("=> VHG text both;") == 0
         and '"VHG text both"' in game,
-        "body HUD identifies planets/moons, formats type 10, and never marks companion stars landable",
+        "body data identifies planets/moons without placing a permanent host-font row over play",
     )
     pod_overlay = section(game, '"VHG pod overlay"', '"VHG FCS overlay"')
     bearings = [
@@ -913,8 +913,9 @@ def main() -> int:
             '"VHG pod direction"', "[VHGpodtext plus 11] = 70;",
             "[VHGpodtext plus 11] = 76;", "[VHGpodtext plus 11] = 66;",
             "[VHGpodtext plus 11] = 82;", "[VHGpodtext plus 37] = 0;",
-        )),
-        "landed HUD points toward the capsule across all eight target bearings",
+        ))
+        and pod_overlay.count("=> VHG text both;") == 0,
+        "capsule guidance remains correct without a permanent host-font surface row",
     )
     surface_telemetry = section(game, '"VHG surface telemetry init"', '"VHG FCS overlay"')
     surface_overlay = section(game, '"VHG surface telemetry overlay"', '"VHG FCS overlay"')
@@ -976,6 +977,11 @@ def main() -> int:
             'VHGNDenvgravity = { GRAVITY };', 'VHGNDenvtemp = {  FG & TEMPERATURE };',
             'VHGNDenvpress = { @C & PRESSURE };', 'VHGNDenvpulse = {  ATM & PULSE };',
             'VHGNDenvpps = {  PPS };',
+            'VHGNDshiphints = {  & 5\\FLIGHTCTR R\\DEVICES F2\\PREFS X\\SCREEN OFF };',
+            "A = [VHGmode]; ? A != 0 -> VHGND epoch HUD terminate;",
+            "A = [VHGonroof]; ? A != 0 -> VHGND epoch HUD terminate;",
+            "A = VHGNDshiphints; => VHGND HUD append text;",
+            "? A = 92 -> VHGND HUD glyph backslash;", "[VHGNDhudpacked] = 6105;",
         ))
         and all(token in original0 for token in (
             "cpos = ccom / 9; crem = ccom * 0.44444;",
@@ -985,6 +991,7 @@ def main() -> int:
             "strcat (outhudbuffer, alphavalue((((long)(pos_x)) >> 14) - 100));",
             'sprintf (outhudbuffer, "EPOC %d & ", epoc);',
             "epoc = 6011 + secs / 1e9;",
+            r'5\\FLIGHTCTR R\\DEVICES    D\\PREFS      X\\SCREEN OFF',
         )),
         "visor restores source EPOC/SQC data, compass strip, and reactive corner lamps",
     )
@@ -1163,6 +1170,25 @@ def main() -> int:
             "openhuddelta = -5;", "hud_closed = 0;", "openhuddelta = +5;",
         )),
         "F2 and Page Up/Down restore the original HUD, flare, border, and visor behavior",
+    )
+    check(
+        all(
+            "=> VHG text both;" not in section(game, start, end)
+            for start, end in (
+                ('"VHG energy overlay"', '"VHG pod overlay"'),
+                ('"VHG pod overlay"', '"VHG FCS overlay"'),
+                ('"VHG FCS overlay"', '"VHG body overlay"'),
+                ('"VHG body overlay"', '"VHG landing overlay"'),
+            )
+        )
+        and all(token in game for token in (
+            '"VHG FCS source HUD draw"', "=> VH HUD FCS;",
+            "A = [VHGdrawhud]; ? A != 0 -> VHG FCS source HUD draw;",
+            "A = [VHGgraphics]; ? A = 0 -> VHG FCS source HUD done;",
+            '"VHG screen off key"', "[KEY X]",
+            "[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0;",
+        )),
+        "ordinary play uses the indexed/source HUD and X clears onboard overlays",
     )
     check(
         all(token in game for token in (

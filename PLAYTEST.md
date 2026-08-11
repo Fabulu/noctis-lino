@@ -135,6 +135,7 @@ Controls:
 - F2: open visual effects; while open, T toggles passive HUD text, F cycles
   flare-reflection modes, and B toggles the default/seamless visor border
 - Page Up/Page Down: open/close the animated visor
+- X: close onboard control/data pages and return to the unobstructed view
 - F4: show/hide the measured FPS counter
 - F5: toggle between the default original 18.2 FPS presentation and optional
   60 FPS mode (gameplay simulation always remains 18.2 Hz)

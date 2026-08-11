@@ -1964,7 +1964,11 @@
 	A = [MgApreached]; ? A = 0 -> VHG FCS status ready;
 	A = [VHGlocalactive]; ? A != 0 -> VHG FCS status ready; [VHPfcsstatus] = 6;
     "VHG FCS status ready"
+	A = [VHGdrawhud]; ? A != 0 -> VHG FCS source HUD draw;
+	A = [VHGgraphics]; ? A = 0 -> VHG FCS source HUD done;
+    "VHG FCS source HUD draw"
 	=> VH HUD FCS;
+    "VHG FCS source HUD done"
 	[Timer Command] = READ COUNTS; isocall; A = [Counts]; A - [VHGprofpart];
 	A + [VHGprofdetail]; [VHGprofdetail] = A;
 	end;
@@ -2026,6 +2030,7 @@
 	=> VHG device key;
 	=> VHG FCS menu key;
 	=> VHG info key;
+	=> VHG screen off key;
 	A = [VHGlandingselect]; ? A != 0 -> VHG landing selector input;
 	=> VHG output scroll; A = [VHGscrollused]; ? A != 0 -> VHG input done;
 	=> VHG visor keys;
@@ -3060,12 +3065,8 @@
 	A = [VHGcollector]; ? A = 0 -> VHG energy draw;
 	[VHGenergytext plus 17] = 79; [VHGenergytext plus 18] = 78; [VHGenergytext plus 19] = 32;
     "VHG energy draw"
-	[String] = VHGenergytext; [Ink] = 80FF80h;
-	[Text X] = 12; [Text Y] = 26;
-	[Text Display Width] = 320; [Text Display Height] = 200;
-	[Text Region] = vector VHGUIregion;
-	[Text Window] = NULL; [Text Word Wrap] = OFF; [Text Ghost Mode] = OFF;
-	=> VHG text both;
+	( Normal play keeps these values on the explicit environment data page;
+	  the source does not place a host-font resource row over the ship view. )
 "VHG energy overlay done"
 	end;
 
@@ -3101,12 +3102,8 @@
     "VHG pod captures ready"
 	A + 48; [VHGpodtext plus 19] = A;
 	[VHGpodtext plus 37] = 0;
-	[String] = VHGpodtext; [Ink] = FFC060h; [Text Effect] = service FX Raw;
-	[Text X] = 12; [Text Y] = 26;
-	[Text Display Width] = 320; [Text Display Height] = 200;
-	[Text Region] = vector VHGUIregion;
-	[Text Window] = NULL; [Text Word Wrap] = OFF; [Text Ghost Mode] = OFF;
-	=> VHG text both;
+	( Capsule range remains available through the visible beacon, the control
+	  card, and the explicit out-of-range return notice, not a permanent row. )
 "VHG pod overlay done"
 	end;
 
@@ -3271,12 +3268,7 @@
 	A = [VHGlocalactive]; ? A != 0 -> VHG FCS draw;
 	[VHGfcsline] = VHGfcscalibrated;
     "VHG FCS draw"
-	[String] = [VHGfcsline]; [Ink] = 80C0FFh; [Text Effect] = service FX Raw;
-	[Text X] = 12; [Text Y] = 40;
-	[Text Display Width] = 320; [Text Display Height] = 200;
-	[Text Region] = vector VHGUIregion; [Text Window] = NULL;
-	[Text Word Wrap] = OFF; [Text Ghost Mode] = OFF;
-	=> VHG text both;
+	( VH HUD FCS renders this state through the original 3D digit path. )
 "VHG FCS overlay done"
 	end;
 
@@ -3351,12 +3343,7 @@
 	( Reassert the terminator so the mutable row cannot spill into the next
 	  declaration even when the classification occupies all eight slots. )
 	[VHGbodytext plus 21] = 0;
-	[String] = VHGbodytext; [Ink] = FFC060h; [Text Effect] = service FX Raw;
-	[Text X] = 12; [Text Y] = 54;
-	[Text Display Width] = 320; [Text Display Height] = 200;
-	[Text Region] = vector VHGUIregion; [Text Window] = NULL;
-	[Text Word Wrap] = OFF; [Text Ghost Mode] = OFF;
-	=> VHG text both;
+	( Body identity belongs to the physical planetary station and I data page. )
     "VHG body overlay done"
 	end;
 
@@ -4251,6 +4238,18 @@
     "VHG info key selected"
 	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
 "VHG info key done"
+	end;
+
+"VHG screen off key"
+	( Source X\SCREEN OFF returns from the onboard control system to the
+	  unobstructed Stardrifter view. Physical X covers hosts that omit WM_CHAR. )
+	A = [VHGconsole]; ? A != 0 -> VHG screen off key done;
+	A = [VHGascii]; ? A = 88 -> VHG screen off key pressed; ? A = 120 -> VHG screen off key pressed;
+	A = [KEY X]; ? A = OFF -> VHG screen off key done;
+    "VHG screen off key pressed"
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0;
+	[VHGgraphics] = 0; [VHGhelpshow] = 0;
+    "VHG screen off key done"
 	end;
 
 "VHG graphics key"

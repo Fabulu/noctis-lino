@@ -196,6 +196,10 @@ first -- a broken foundation makes every later result meaningless.
   temperature, and walking raises a decaying pulse. The values now use the
   original per-tick smoothing factors and the complete indexed 3x5 line at
   `(2,192)`; the temporary oversized host-font row has been removed.
+- Ship `surrounding()` now appends the source-shaped indexed command strip to
+  EPOC, using the port's functional F2 preferences key. The temporary normal-play
+  power, pod, duplicate FCS, and body rows have been retired; explicit data pages
+  retain their information, the source 3D FCS status remains, and X clears pages.
 - The same final surface pass now restores `surrounding()`'s default graded
   ten-pixel visor frame after terrain and weather. It replaces both the old
   bright sawtooth and the intermediate plain-black guard on every atmosphere

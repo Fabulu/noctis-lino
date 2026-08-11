@@ -39,6 +39,9 @@ parity, not a claim that parity is complete.
   strip, and four corner HUD lamps; jetpack thrust produces the bright flash.
 - Ship and surface visors restore the live Noctis EPOC clock and its three
   zero-padded sub-billion second triads.
+- The ship visor again carries the compact source command strip. Large temporary
+  power, capsule, FCS, and body rows no longer cover ordinary gameplay; FCS stays
+  on its original 3D HUD path, and X returns from onboard pages to the clear view.
 - Landed gravity, temperature, pressure, and pulse now use the original indexed
   3x5 lower-visor line and source smoothing rates instead of an oversized host-font row.
 - The Stardrifter is visible from the initial frame and remains stable during
