@@ -100,6 +100,11 @@ def compass_window(beta: int) -> tuple[int, str]:
     return x, "".join(chars)
 
 
+def sqc_text(longitude: int, latitude: int, x: int, z: int) -> str:
+    """Surface-coordinate suffix emitted by surrounding(1)."""
+    return f"SQC {longitude}.{latitude}:{x // 16384 - 100}.{z // 16384 - 100}"
+
+
 def surface_arc(gravity_mfg: int, thrust_ticks: int = 0) -> tuple[int, int, int]:
     """Independent integer model of the port's source-shaped surface arc."""
     ground = 0
@@ -931,6 +936,7 @@ def main() -> int:
         and compass_window(180)[1].startswith("S.........W")
         and compass_window(270)[1].startswith("E.........S")
         and all(197 <= compass_window(beta)[0] <= 200 for beta in range(360))
+        and sqc_text(8, 54, 122880, 3145728) == "SQC 8.54:-93.92"
         and all(token in ground for token in (
             '"VHGND compass"', "A = [VHGbeta]; A % 360;",
             "A = [VHGNDcompassrem]; A '* 4; A / 9;",
@@ -940,13 +946,18 @@ def main() -> int:
             '"VHGND HUD lamps"', "[VHGNDlampsize] = 4;",
             "A = [VHGsurfjet]; ? A = 0 -> VHGND HUD lamp positions ready;",
             "[VHGNDlampsize] = 5; [VHGNDframecol] = 127;",
+            '"VHGND surface coordinate HUD"', "A = [VHGlandinglon]; => VHGND HUD append number;",
+            "A = [VHGx]; A / VHGNDTS; A - 100; => VHGND HUD append number;",
+            '"VHGND HUD append number"', '"VHGND HUD row mask"',
         ))
         and all(token in original0 for token in (
             "cpos = ccom / 9; crem = ccom * 0.44444;",
             "wrouthud (200 - (crem % 4), 2, 28, compass + cpos);",
             "areaclear (adapted, 9, 9, 0, 0, 4, 4, lptr);",
+            "strcat (outhudbuffer, alphavalue(landing_pt_lon));",
+            "strcat (outhudbuffer, alphavalue((((long)(pos_x)) >> 14) - 100));",
         )),
-        "surface visor restores the source compass strip and reactive corner lamps",
+        "surface visor restores source SQC coordinates, compass strip, and reactive corner lamps",
     )
     jump_ticks, jump_apex, jump_ground = surface_arc(118)
     jet_ticks, jet_apex, jet_ground = surface_arc(118, thrust_ticks=12)

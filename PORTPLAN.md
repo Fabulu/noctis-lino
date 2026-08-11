@@ -316,7 +316,8 @@ first -- a broken foundation makes every later result meaningless.
   The closed/open state is packed into the existing version-13 preference word.
 - Surface `surrounding(1)` now draws the source 28-character compass window
   from live yaw, including its fractional four-pixel scroll, centre pointer,
-  four corner lamps, and the larger bright jetpack flash.
+  four corner lamps, and the larger bright jetpack flash. Its SQC prefix shows
+  selected landing coordinates and the current map-origin-relative square.
 - Loading reconciles the live timer and audio device after validation, then
   restores capture progress after deterministic surface regeneration. The
   reader remains backward-compatible with 96-byte v1, 108-byte v2,

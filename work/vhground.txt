@@ -113,6 +113,8 @@
 	VHGNDlampx = 0; VHGNDlampy = 0; VHGNDlampsize = 0; VHGNDlamprow = 0;
 	VHGNDcompassi = 0; VHGNDcompasspos = 0; VHGNDcompassrem = 0;
 	VHGNDcompassx = 0; VHGNDcompassrow = 0; VHGNDcompassmask = 0; VHGNDcompassdir = 0;
+	VHGNDhudptr = 0; VHGNDhudvalue = 0; VHGNDhudi = 0; VHGNDhudchar = 0;
+	VHGNDhudx = 0; VHGNDhudrow = 0; VHGNDhudpacked = 0; VHGNDhudshift = 0;
 	VHGNDcloudrain = 0; VHGNDsrf = 0; VHGNDsgf = 0; VHGNDsbf = 0;
 	VHGNDgrf = 0; VHGNDggf = 0; VHGNDgbf = 0;
 	VHGNDtick = 0; VHGNDdosim = 1;
@@ -181,6 +183,7 @@
 	( ruinschart: one source marker per 200x200 height-map point. )
 	VHGNDruins = 40000;
 	VHGNDskycache = 64000;
+	VHGNDsqc = 32;
 
 "programme"
 
@@ -2530,6 +2533,7 @@
 	[VHGNDframei]+; A = [VHGNDframei]; ? A < 10 -> VHGND surrounding seamless column;
     "VHGND surrounding done"
 	=> VHGND HUD lamps;
+	=> VHGND surface coordinate HUD;
 	=> VHGND compass;
 	end;
 
@@ -2652,6 +2656,117 @@
 "VHGND compass invert"
 	A = [VHGNDcompassrow]; A + 2; A '* 320; A + [VHGNDframeoff];
 	A + RADPT; A + nw; D = A; C = [D]; A = 191; A - C; A & 255; [D] = A;
+	end;
+
+"VHGND surface coordinate HUD"
+	( surrounding(1)'s surface-coordinate part: selected landing longitude and
+	  latitude, followed by the live 16384-unit terrain-square coordinates
+	  relative to the source's 100,100 map origin. alphavalue() emits these as
+	  variable-width decimal integers, so no port-specific zero padding is used. )
+	A = [VHGdrawhud]; ? A = 0 -> VHGND surface coordinate done;
+	A = [VHGmode]; ? A = 0 -> VHGND surface coordinate done;
+	[VHGNDhudptr] = VHGNDsqc;
+	A = 83; => VHGND HUD append; A = 81; => VHGND HUD append;
+	A = 67; => VHGND HUD append; A = 32; => VHGND HUD append;
+	A = [VHGlandinglon]; => VHGND HUD append number;
+	A = 46; => VHGND HUD append;
+	A = [VHGlandinglat]; => VHGND HUD append number;
+	A = 58; => VHGND HUD append;
+	A = [VHGx]; A / VHGNDTS; A - 100; => VHGND HUD append number;
+	A = 46; => VHGND HUD append;
+	A = [VHGz]; A / VHGNDTS; A - 100; => VHGND HUD append number;
+	A = 0; => VHGND HUD append;
+	[VHGNDhudi] = 0; [VHGNDhudx] = 2;
+    "VHGND surface coordinate character"
+	A = VHGNDsqc; A + [VHGNDhudi]; [VHGNDhudchar] = [A];
+	A = [VHGNDhudchar]; ? A = 0 -> VHGND surface coordinate done;
+	[VHGNDhudrow] = 0;
+    "VHGND surface coordinate glyph row"
+	=> VHGND HUD row mask;
+	C = [VHGNDcompassmask]; C & 1; ? C = 0 -> VHGND surface coordinate pixel one;
+	[VHGNDframeoff] = [VHGNDhudx]; [VHGNDcompassrow] = [VHGNDhudrow]; => VHGND compass invert;
+    "VHGND surface coordinate pixel one"
+	C = [VHGNDcompassmask]; C & 2; ? C = 0 -> VHGND surface coordinate pixel two;
+	A = [VHGNDhudx]; A + 1; [VHGNDframeoff] = A;
+	[VHGNDcompassrow] = [VHGNDhudrow]; => VHGND compass invert;
+    "VHGND surface coordinate pixel two"
+	C = [VHGNDcompassmask]; C & 4; ? C = 0 -> VHGND surface coordinate row done;
+	A = [VHGNDhudx]; A + 2; [VHGNDframeoff] = A;
+	[VHGNDcompassrow] = [VHGNDhudrow]; => VHGND compass invert;
+    "VHGND surface coordinate row done"
+	[VHGNDhudrow]+; A = [VHGNDhudrow]; ? A < 5 -> VHGND surface coordinate glyph row;
+	A = [VHGNDhudx]; A + 4; [VHGNDhudx] = A;
+	[VHGNDhudi]+; A = [VHGNDhudi]; ? A < 31 -> VHGND surface coordinate character;
+    "VHGND surface coordinate done"
+	end;
+
+"VHGND HUD append"
+	D = [VHGNDhudptr]; [D] = A; [VHGNDhudptr]+;
+	end;
+
+"VHGND HUD append number"
+	[VHGNDhudvalue] = A; ? A >= 0 -> VHGND HUD number magnitude;
+	A = 45; => VHGND HUD append; A = 0; A - [VHGNDhudvalue]; [VHGNDhudvalue] = A;
+    "VHGND HUD number magnitude"
+	A = [VHGNDhudvalue]; ? A < 100 -> VHGND HUD number tens;
+	A / 100; A + 48; => VHGND HUD append;
+	A = [VHGNDhudvalue]; A / 10; A % 10; A + 48; => VHGND HUD append;
+	-> VHGND HUD number ones;
+    "VHGND HUD number tens"
+	A = [VHGNDhudvalue]; ? A < 10 -> VHGND HUD number ones;
+	A / 10; A + 48; => VHGND HUD append;
+    "VHGND HUD number ones"
+	A = [VHGNDhudvalue]; A % 10; A + 48; => VHGND HUD append;
+	end;
+
+"VHGND HUD row mask"
+	[VHGNDhudpacked] = 0; A = [VHGNDhudchar];
+	? A = 48 -> VHGND HUD glyph zero; ? A = 49 -> VHGND HUD glyph one;
+	? A = 50 -> VHGND HUD glyph two; ? A = 51 -> VHGND HUD glyph three;
+	? A = 52 -> VHGND HUD glyph four; ? A = 53 -> VHGND HUD glyph five;
+	? A = 54 -> VHGND HUD glyph six; ? A = 55 -> VHGND HUD glyph seven;
+	? A = 56 -> VHGND HUD glyph eight; ? A = 57 -> VHGND HUD glyph nine;
+	? A = 83 -> VHGND HUD glyph five; ? A = 81 -> VHGND HUD glyph Q;
+	? A = 67 -> VHGND HUD glyph letter C; ? A = 45 -> VHGND HUD glyph hyphen;
+	? A = 46 -> VHGND HUD glyph dot; ? A = 58 -> VHGND HUD glyph colon;
+	-> VHGND HUD glyph selected;
+    "VHGND HUD glyph zero"
+	[VHGNDhudpacked] = 31599; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph one"
+	[VHGNDhudpacked] = 29843; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph two"
+	[VHGNDhudpacked] = 29671; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph three"
+	[VHGNDhudpacked] = 31143; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph four"
+	[VHGNDhudpacked] = 20340; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph five"
+	[VHGNDhudpacked] = 31183; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph six"
+	[VHGNDhudpacked] = 31695; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph seven"
+	[VHGNDhudpacked] = 18727; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph eight"
+	[VHGNDhudpacked] = 31727; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph nine"
+	[VHGNDhudpacked] = 18927; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph Q"
+	[VHGNDhudpacked] = 21359; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter C"
+	[VHGNDhudpacked] = 29263; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph hyphen"
+	[VHGNDhudpacked] = 448; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph dot"
+	[VHGNDhudpacked] = 8192; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph colon"
+	[VHGNDhudpacked] = 1040;
+    "VHGND HUD glyph selected"
+	A = [VHGNDhudpacked]; [VHGNDhudshift] = [VHGNDhudrow];
+    "VHGND HUD glyph shift"
+	C = [VHGNDhudshift]; ? C = 0 -> VHGND HUD glyph mask ready;
+	A / 8; [VHGNDhudshift]-; -> VHGND HUD glyph shift;
+    "VHGND HUD glyph mask ready"
+	A & 7; [VHGNDcompassmask] = A;
 	end;
 
 "VHGND dense atmosphere"
