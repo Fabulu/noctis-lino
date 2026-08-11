@@ -105,6 +105,7 @@ Controls:
 - Face the first right-wall computer and press Enter: focus the physical GOES
   command screen; Enter submits the command and returns to movement
 - G: open the large accessible GOES view from anywhere inside the Stardrifter
+- Type `HELP` in GOES: print the original seven-row resident-module directory
 - Type `SAVE` or `LOAD` in GOES: write/read `CURRENT.LIN`
 - Type `NEXT` in GOES: select the next source-generated star in the local
   729-sector navigation cube and begin a real Vimana transit from the current position

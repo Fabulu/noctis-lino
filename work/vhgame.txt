@@ -320,6 +320,13 @@
 	VHGwhereusage1 = { WHERE_PLANETNAME };
 	VHGwhereusage2 = { PLEASE_RUN_AGAIN, };
 	VHGwhereusage3 = { SPECIFYING_PARAMETERS };
+	VHGgoeshelp0 = { ST___SL___DL____PAR__ };
+	VHGgoeshelp1 = { WHERE_____CLEAN______ };
+	VHGgoeshelp2 = { CAST_CAT__REP___DELE_ };
+	VHGgoeshelp3 = { PRI_______PRIF_______ };
+	VHGgoeshelp4 = { INBOX_____OUTBOX_____ };
+	VHGgoeshelp5 = { IMPORTGD_____________ };
+	VHGgoeshelp6 = { REPAIR____X__________ };
 	VHGwherenotfound = { OBJECT_NOT_FOUND. };
 	VHGwhereambiguous0 = { AMBIGUOUS_SEARCH_KEY: };
 	VHGwhereambiguous1 = { PLEASE_EXPAND_NAME... };
@@ -3576,7 +3583,16 @@
 	? A = 82 -> VHG command maybe rep;
 	? A = 79 -> VHG command maybe outbox;
 	? A = 73 -> VHG command maybe inbox;
-	? A = 87 -> VHG command maybe where; -> VHG command done;
+	? A = 87 -> VHG command maybe where;
+	? A = 72 -> VHG command maybe help; -> VHG command done;
+    "VHG command maybe help"
+	A = [vhptext plus 43]; ? A != 69 -> VHG command done;
+	A = [vhptext plus 44]; ? A != 76 -> VHG command done;
+	A = [vhptext plus 45]; ? A != 80 -> VHG command done;
+	A = [vhptext plus 46]; ? A = 0 -> VHG command help ready;
+	? A = 32 -> VHG command help ready; ? A != 95 -> VHG command done;
+    "VHG command help ready"
+	[VHGcmdsilent] = 1; => VHG GOES HELP; -> VHG command done;
     "VHG command maybe inbox"
 	A = [vhptext plus 43]; ? A != 78 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 66 -> VHG command done;
@@ -5960,6 +5976,19 @@
 	end;
     "VHG target failed"
 	[VHGnoticeptr] = VHGtargetfailedtext; [VHGnoticeframes] = 75;
+	end;
+
+"VHG GOES HELP"
+	( N_Help_3.asm exposes the resident GOES modules as seven 20-column rows.
+	  Preserve its directory byte-for-byte, including modules still awaiting
+	  their integrated implementation. )
+	[VHPoutptr] = VHGgoeshelp0; => VH GOES output line;
+	[VHPoutptr] = VHGgoeshelp1; => VH GOES output line;
+	[VHPoutptr] = VHGgoeshelp2; => VH GOES output line;
+	[VHPoutptr] = VHGgoeshelp3; => VH GOES output line;
+	[VHPoutptr] = VHGgoeshelp4; => VH GOES output line;
+	[VHPoutptr] = VHGgoeshelp5; => VH GOES output line;
+	[VHPoutptr] = VHGgoeshelp6; => VH GOES output line;
 	end;
 
 "VHG load checkpoint"

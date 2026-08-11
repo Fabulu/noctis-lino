@@ -54,6 +54,7 @@ ORIGINAL_DELE = REFERENCE_ROOT / "DELE.CPP"
 ORIGINAL_CLEAN = REFERENCE_ROOT / "CLEAN.CPP"
 ORIGINAL_OUTBOX = REFERENCE_ROOT / "OUTBOX.CPP"
 ORIGINAL_INBOX = REFERENCE_ROOT / "INBOX.CPP"
+ORIGINAL_HELP = REFERENCE_ROOT.parent / "modules" / "N_Help_3.asm"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -262,6 +263,7 @@ def main() -> int:
     original_clean = ORIGINAL_CLEAN.read_text(encoding="latin-1")
     original_outbox = ORIGINAL_OUTBOX.read_text(encoding="latin-1")
     original_inbox = ORIGINAL_INBOX.read_text(encoding="latin-1")
+    original_help = ORIGINAL_HELP.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1708,6 +1710,25 @@ def main() -> int:
             '"VHCAT write record ready"', "[Block Size] = VHCATHDRBYTES;",
         )),
         "GOES consumes one character per physical press and creates a valid empty starmap",
+    )
+    help_output = section(game, '"VHG GOES HELP"', '"VHG load checkpoint"')
+    check(
+        all(token in original_help for token in (
+            'db\t"ST   SL   DL    PAR  "', 'db\t"WHERE     CLEAN      "',
+            'db\t"CAST CAT  REP   DELE "', 'db\t"PRI       PRIF       "',
+            'db\t"INBOX     OUTBOX     "', 'db\t"IMPORTGD             "',
+            'db\t"REPAIR    X          "',
+        ))
+        and all(token in game for token in (
+            '"VHG command maybe help"', "A = [vhptext plus 45]; ? A != 80 -> VHG command done;",
+            '"VHG command help ready"', "[VHGcmdsilent] = 1; => VHG GOES HELP;",
+            "VHGgoeshelp0 = { ST___SL___DL____PAR__ };",
+            "VHGgoeshelp3 = { PRI_______PRIF_______ };",
+            "VHGgoeshelp5 = { IMPORTGD_____________ };",
+            "VHGgoeshelp6 = { REPAIR____X__________ };",
+        ))
+        and help_output.count("=> VH GOES output line;") == 7,
+        "GOES HELP restores the original seven-row resident module directory",
     )
     starmap = (ROOT / "work" / "STARMAP.BIN").read_bytes()
     records = []

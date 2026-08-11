@@ -6,6 +6,15 @@ the integrated game, and what remains. It complements `PLAYTEST.md`, which is
 the detailed evidence log, and `PORTPLAN.md`, which is the technical source of
 truth and remaining-work ledger.
 
+## 2026-08-11 -- resident GOES help
+
+The integrated console gained the original `N_Help_3.asm` seven-row resident
+module directory. `HELP` now routes through the same bounded output history as
+the physical GOES screen and accessible G view, preserving all 140 source
+display characters and the original module roster exactly.
+The production executable rebuilt and the focused source-equivalence regression
+passed.
+
 ## Starting point
 
 The repository began with Alessandro Ghignola's L.in.oleum 1.14 tree and its

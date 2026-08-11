@@ -83,7 +83,9 @@ promotes new records into the consolidated archives, replaces matching local
 duplicates, and retains unrelated local additions. In a packaged build these
 packet files sit beside `Noctis-IV.exe`; in the source tree they sit under
 `work\`. The accessible G view now includes the same
-seven-line retained result history above its command prompt. The GAME menu's Flight control and Onboard devices entries open
+seven-line retained result history above its command prompt. `HELP` prints the
+original seven-row resident-module directory exactly. The
+GAME menu's Flight control and Onboard devices entries open
 resize-aware mouse-accessible versions of those physical pages; the hovered
 command turns white and one left click activates it. Both routes remain over
 the live Stardrifter instead of opening a black modal page. The GAME menu also

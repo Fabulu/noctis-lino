@@ -43,6 +43,17 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Original GOES resident-module help
+
+- `HELP` now restores the seven-row directory from the original
+  `modules/N_Help_3.asm` instead of falling through to `UNKNOWN GOES MODULE`.
+  Its 140 display characters and module roster are preserved exactly,
+  including entries whose integrated implementation remains on the docket.
+- Output uses the same retained 21-column GOES history as every other resident
+  module, so it appears on both the physical output face and accessible G view.
+- The production PE rebuilt successfully and the focused source-equivalence
+  regression passed.
+
 ### Original surface mouse walk and raw-snapshot alias
 
 - Holding the left mouse button inside the aspect-fitted game view now adds

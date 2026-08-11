@@ -55,6 +55,7 @@ Cartography page  label star/body / browse nearby targets / manual target
 Target browser    6 previous / 7 next / 8 select / 9 cartography
 Emergency page    reset systems / rescue / lithium collector / clear status
 C / H             lithium collection / depleted-ship rescue
+GOES: HELP         list the live resident GOES modules and commands
 F4 / F5           FPS display / opt into 60 Hz (18.2 Hz is the default)
 + / -             brighten / dim the source HUD and visor frame
 F6 / F7           save / load checkpoint

@@ -61,7 +61,8 @@ parity, not a claim that parity is complete.
   uses the same heading for the view and ride motion.
 - Facing the first right-wall computer and pressing Enter focuses physical
   GOES. Command input and retained output use the original mapped 32x36 font
-  directly on the wall faces. The original resident `CLR` command clears the
+  directly on the wall faces. `HELP` restores the exact original seven-row
+  resident module directory. The original resident `CLR` command clears the
   output tree, while `WHERE <catalogued name>` searches the mutable starmap,
   distinguishes stars from planets, reports ambiguous prefixes, and resolves
   a planet's parent star. Bare `SL` lists every non-removed star in source file
