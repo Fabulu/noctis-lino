@@ -182,14 +182,17 @@ first -- a broken foundation makes every later result meaningless.
   line, keeping the capsule-return condition discoverable after exploration.
   Pressing R outside the original 1,600-unit capsule boundary now reports
   `RETURN TO CAPSULE` instead of silently ignoring the request.
-- I now cycles three full-page onboard data sheets shaped after the original
-  miscellaneous-device display: remote star identity/class/system counts,
-  selected planet-or-moon identity/type/radius/ownership/landability, and live
-  ship or surface environment/resources. Mutable rows use dedicated bounded
-  buffers, catalogue record tags are hidden from player labels, and the live
-  FCS row dereferences its selected status string. The physical I-key table is
-  retained alongside buffered ASCII so iGUI character-message timing cannot
-  make the pages unreachable.
+- I now cycles the source-sized indexed data sheets from the original
+  miscellaneous-device display instead of replacing play with a full-screen
+  black GUI page. The header and body use the original `(11,85)` and `(11,95)`
+  rectangles, palette indices 72 and 112, 100-unit slide, four-unit delta,
+  `(scroll/4)-1` text reveal, and 3x5 HUD glyphs. The live Stardrifter remains
+  visible around the card, the local sheet reports `LOCAL TARGET NOT SET` when
+  appropriate, the remote sheet distinguishes no target and direct Parsis
+  targets, and the fourth I edge slides the card closed. The next data-sheet
+  fidelity slice still needs the original remote mass/temperature and
+  environment temperature/ion/radiation calculations; the current live values
+  are not claimed as exact equivalents of those metrics.
 - Ship-mode R now opens the original miscellaneous-device page with its 6-9
   keyboard commands. Command 6 changes the live halogen fixture between the
   source's +1/-1 color states, suppresses its flare while off, and consumes one

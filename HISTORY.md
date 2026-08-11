@@ -415,6 +415,16 @@ and `help request not sent.` rows; an active rescue leaves the information area
 blank as the original `gburst` branch does. Real foreground R then 9 input
 rendered the quiet report, and the focused regression passed.
 
+The miscellaneous data sheets then moved off the port-specific full-screen
+black GUI page and back into Noctis's compact indexed HUD card. The shipping
+path now retains the source card coordinates, palette bands, four-unit slide,
+character reveal, and 3x5 glyph rendering while the Stardrifter remains visible
+around it. A clean packaged run opened remote, local, and environment states
+with real I-key edges, showed the original no-local-target state, slid closed,
+and left the cabin unobstructed. The original remote mass/temperature and
+environment temperature/ion/radiation calculations remain a later fidelity
+checkpoint rather than being represented as complete here.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

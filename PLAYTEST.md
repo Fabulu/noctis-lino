@@ -687,3 +687,14 @@ The final physical-device smoke used real foreground R and 9 key edges. The
 emergency page rendered the original no-emergency/help-not-sent report on the
 world-space plane. Its active-rescue branch retains blank information rows, as
 in the original. The focused regression and production build passed.
+
+The data-sheet correction supersedes RC8's full-page host overlay. A clean
+packaged production run used four real foreground I edges and captured the
+remote, local, environment, and closed states. Each open state kept the live
+Stardrifter visible around the original 101x50 logical-pixel card; the local
+state displayed `LOCAL TARGET NOT SET`, and the final close animation removed
+the card completely. The card uses the source palette indices, coordinates,
+four-unit slide delta, reveal limit, and indexed 3x5 glyph path. The focused
+integrated regression passed and the production PE rebuilt successfully.
+Exact remote mass/temperature and environment temperature/ion/radiation
+values remain open source-equivalence work.

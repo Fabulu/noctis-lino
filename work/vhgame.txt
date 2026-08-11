@@ -145,6 +145,10 @@
 	VHGsurfair = 0; VHGsurfjet = 0;
 	VHGkindi = 0;
 	VHGinfo = 0; VHGinfoheld = 0; VHGinfoy = 0; VHGinfoline = 0; VHGinfovalue = 0;
+	VHGinfoscroll = 0; VHGinfodelta = 0; VHGinfowidth = 0; VHGinfomax = 0;
+	VHGinfodrawsrc = 0; VHGinfodrawx = 0; VHGinfodrawy = 0; VHGinfodrawi = 0;
+	VHGinfofillx = 0; VHGinfofilly = 0; VHGinfofillend = 0; VHGinfofillbottom = 0;
+	VHGinfofillcolour = 0;
 	VHGinfonamesrc = 0; VHGinfosrc = 0; VHGinfodst = 0; VHGinfocount = 0;
 	VHGdev = 0; VHGdevaccess = 0; VHGilight = 1; VHGlighttick = 0;
 	VHGdeviceheld = 0;
@@ -248,8 +252,12 @@
 	VHGinfotitle2 = { LOCAL TARGET DATA };
 	VHGinfotitle3 = { EXTERNAL ENVIRONMENT };
 	VHGinfohint = { I:NEXT PAGE / PAGE 3 CLOSES };
+	VHGinfonoremote = { REMOTE TARGET NOT SET };
+	VHGinfodirect = { DIRECT PARSIS TARGET };
+	VHGinfonolocal = { LOCAL TARGET NOT SET };
 	VHGinfoclasst = { CLASS 00 RADIUS 00.000 };
 	VHGinfobodiest = { BODIES 00 PLANETS 00 MOONS 00 };
+	VHGinfomajort = { MAJOR BODIES: 00 EST. };
 	VHGinfolocalt = { BODY 00 TYPE 00 PLANET };
 	VHGinforadiust = { RADIUS 00.0000 CENTIDYAMS };
 	VHGinfoownert = { OWNER -- MOON -- LAND YES };
@@ -483,6 +491,8 @@
 	VHGinfoowner = 26;
 	VHGinfoenergy = 33;
 	VHGinfostate = 28;
+	VHGinfomajor = 22;
+	VHGinfodraw = 25;
 	VHGbrowserowx = 13;
 	VHGbrowserowy = 13;
 	VHGbrowserowz = 13;
@@ -834,10 +844,12 @@
 		"VHG ticks done"
 		A = [VHGdosim]; ? A = 0 -> VHG visor tick done;
 		=> VHG UTC timestamp; => VHG visor advance; => VHG surface telemetry update;
+		=> VHG info slide advance;
 		"VHG visor tick done"
 		[Timer Command] = READ COUNTS; isocall; [VHGprofstart] = [Counts];
 		=> VHG visor flare mode;
-		=> VHG interpolation apply; => VHG render; => VHGND surrounding frame; => VHG interpolation restore;
+		=> VHG interpolation apply; => VHG render; => VHGND surrounding frame;
+		=> VHG source info overlay; => VHG interpolation restore;
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 	A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofrender]; [VHGprofrender] = A;
 		=> VHG copy page;
@@ -3657,53 +3669,107 @@
 "VHG notice overlay done"
 	end;
 
+"VHG info slide advance"
+	A = [VHGinfo]; ? A = 0 -> VHG info slide advance done;
+	A = [VHGinfoscroll]; A + [VHGinfodelta];
+	? A <= 100 -> VHG info slide upper ready; A = 100; [VHGinfodelta] = 0;
+    "VHG info slide upper ready"
+	? A >= 0 -> VHG info slide lower ready;
+	A = 0; [VHGinfo] = 0; [VHGinfodelta] = 0;
+    "VHG info slide lower ready"
+	[VHGinfoscroll] = A;
+    "VHG info slide advance done"
+	end;
+
+"VHG info source fill"
+	[VHGinfofilly] = [VHGinfodrawy];
+    "VHG info source fill row"
+	[VHGinfofillx] = [VHGinfodrawx];
+    "VHG info source fill pixel"
+	A = [VHGinfofilly]; A '* 320; A + [VHGinfofillx]; [SPoff] = A;
+	[SPval] = [VHGinfofillcolour]; [SPreg] = RGADP; => SP put;
+	[VHGinfofillx]+; A = [VHGinfofillx]; ? A '< [VHGinfofillend] -> VHG info source fill pixel;
+	[VHGinfofilly]+; A = [VHGinfofilly]; ? A '< [VHGinfofillbottom] -> VHG info source fill row;
+	end;
+
+"VHG info source draw line"
+	( wrouthud reveals at most c=(datasheetscroll/4)-1 characters. Copy that
+	  bounded prefix, then use the same indexed 3x5 HUD glyph path. )
+	[VHGinfodrawi] = 0;
+    "VHG info source draw copy"
+	A = [VHGinfodrawi]; ? A >= [VHGinfomax] -> VHG info source draw terminate;
+	? A >= 24 -> VHG info source draw terminate;
+	E = [VHGinfodrawsrc]; E + A; C = [E]; ? C = 0 -> VHG info source draw terminate;
+	D = VHGinfodraw; D + A; [D] = C; [VHGinfodrawi]+;
+	-> VHG info source draw copy;
+    "VHG info source draw terminate"
+	D = VHGinfodraw; D + [VHGinfodrawi]; [D] = 0;
+	A = [VHGdrawhud]; ? A = 0 -> VHG info source draw done;
+	[VHGNDhudsource] = VHGinfodraw; [VHGNDhudx] = [VHGinfodrawx];
+	[VHGNDhudy] = [VHGinfodrawy]; => VHGND HUD draw string;
+    "VHG info source draw done"
+	end;
+
+"VHG source info overlay"
+	A = [VHGinfo]; ? A = 0 -> VHG source info overlay done;
+	A = [VHGinfoscroll]; ? A <= 0 -> VHG source info overlay done;
+	A + 1; [VHGinfowidth] = A; A + 11; [VHGinfofillend] = A;
+	[VHGinfodrawx] = 11; [VHGinfodrawy] = 85;
+	[VHGinfofillbottom] = 94; [VHGinfofillcolour] = 72; => VHG info source fill;
+	[VHGinfodrawy] = 95; [VHGinfofillbottom] = 135;
+	[VHGinfofillcolour] = 112; => VHG info source fill;
+	A = [VHGinfoscroll]; A '/ 4; A - 1; ? A >= 0 -> VHG source info max ready; A = 0;
+    "VHG source info max ready"
+	[VHGinfomax] = A; => VHG info format common;
+	A = [VHGinfo]; ? A = 1 -> VHG source info remote;
+	? A = 2 -> VHG source info local; -> VHG source info environment;
+    "VHG source info remote"
+	A = [MgAptgt]; ? A = 0 -> VHG source info no remote;
+	? A != 1 -> VHG source info direct remote;
+	[VHGinfonamesrc] = vhcatstarlabel; => VHG info name copy;
+	[VHGinfodrawsrc] = VHGinfoname; [VHGinfodrawx] = 14; [VHGinfodrawy] = 87; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfoclass; [VHGinfodrawy] = 97; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfomajor; [VHGinfodrawy] = 129; => VHG info source draw line;
+	-> VHG source info overlay done;
+    "VHG source info no remote"
+	[VHGinfodrawsrc] = VHGinfonoremote; [VHGinfodrawx] = 14; [VHGinfodrawy] = 87;
+	=> VHG info source draw line; -> VHG source info overlay done;
+    "VHG source info direct remote"
+	[VHGinfodrawsrc] = VHGinfodirect; [VHGinfodrawx] = 14; [VHGinfodrawy] = 87;
+	=> VHG info source draw line;
+	-> VHG source info overlay done;
+    "VHG source info local"
+	A = [VHGlocaltarget]; ? A = 0FFFFFFFFh -> VHG source info no local;
+	? A '>= [nsnob] -> VHG source info no local;
+	=> VHG info format local; [VHGinfonamesrc] = vhcatbodylabel; => VHG info name copy;
+	[VHGinfodrawsrc] = VHGinfoname; [VHGinfodrawx] = 14; [VHGinfodrawy] = 87; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfolocal; [VHGinfodrawy] = 97; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinforadius; [VHGinfodrawy] = 110; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfoowner; [VHGinfodrawy] = 123; => VHG info source draw line;
+	-> VHG source info overlay done;
+    "VHG source info no local"
+	[VHGinfodrawsrc] = VHGinfonolocal; [VHGinfodrawx] = 14; [VHGinfodrawy] = 87;
+	=> VHG info source draw line;
+	-> VHG source info overlay done;
+    "VHG source info environment"
+	=> VHG info format local;
+	[VHGinfodrawsrc] = VHGinfotitle3; [VHGinfodrawx] = 14; [VHGinfodrawy] = 87; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfostate; [VHGinfodrawy] = 97; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfoenergy; [VHGinfodrawy] = 103; => VHG info source draw line;
+	A = [VHGmode]; ? A = 0 -> VHG source info environment ship;
+	[VHGinfodrawsrc] = VHGsurfacetext; [VHGinfodrawy] = 110; => VHG info source draw line;
+	[VHGinfonamesrc] = vhcatbodylabel; => VHG info name copy;
+	[VHGinfodrawsrc] = VHGinfoname; [VHGinfodrawy] = 123; => VHG info source draw line;
+	-> VHG source info overlay done;
+    "VHG source info environment ship"
+	[VHGinfodrawsrc] = VHGinfoclass; [VHGinfodrawy] = 110; => VHG info source draw line;
+	[VHGinfodrawsrc] = VHGinfobodies; [VHGinfodrawy] = 123; => VHG info source draw line;
+    "VHG source info overlay done"
+	end;
+
 "VHG info overlay"
-	A = [VHGinfo]; ? A = 0 -> VHG info overlay done;
-	( The original miscellaneous-device page slides one of three datasheets
-	  over the HUD.  Use the complete logical page in the resizable host so
-	  its live values remain readable at every supported window size. )
-	[Rectangle Display Alignment] = 320; [Rectangle Bounds] = vector VHGUIregion;
-	[Rectangle Gradients] = vector Standard Black Gradients;
-	[Rectangle Effect] = service FX Raw; [Rectangle Target Layer] = VHGUIframe; => Rectangle;
-	=> VHG info format common;
-	[VHGinfoy] = 14; A = [VHGinfo]; ? A = 1 -> VHG info remote;
-	? A = 2 -> VHG info page local; -> VHG info environment;
-    "VHG info remote"
-	[VHGinfoline] = VHGinfotitle1; => VHG info draw line;
-	[VHGinfonamesrc] = vhcatstarlabel; => VHG info name copy;
-	[VHGinfoline] = VHGinfoname; => VHG info draw line;
-	[VHGinfoline] = VHGinfoclass; => VHG info draw line;
-	[VHGinfoline] = VHGinfobodies; => VHG info draw line;
-	[VHGinfoline] = VHGinfoenergy; => VHG info draw line;
-	[VHGinfoline] = [VHGfcsline]; => VHG info draw line;
-	-> VHG info finish;
-    "VHG info page local"
-	=> VHG info format local;
-	[VHGinfoline] = VHGinfotitle2; => VHG info draw line;
-	[VHGinfonamesrc] = vhcatbodylabel; => VHG info name copy;
-	[VHGinfoline] = VHGinfoname; => VHG info draw line;
-	[VHGinfoline] = VHGinfolocal; => VHG info draw line;
-	[VHGinfoline] = VHGinforadius; => VHG info draw line;
-	[VHGinfoline] = VHGinfoowner; => VHG info draw line;
-	-> VHG info finish;
-    "VHG info environment"
-	=> VHG info format local;
-	[VHGinfoline] = VHGinfotitle3; => VHG info draw line;
-	[VHGinfonamesrc] = vhcatstarlabel; => VHG info name copy;
-	[VHGinfoline] = VHGinfoname; => VHG info draw line;
-	[VHGinfoline] = VHGinfostate; => VHG info draw line;
-	[VHGinfoline] = VHGinfoenergy; => VHG info draw line;
-	A = [VHGmode]; ? A = 0 -> VHG info environment ship;
-	[VHGinfoline] = VHGsurfacetext; => VHG info draw line;
-	[VHGinfonamesrc] = vhcatbodylabel; => VHG info name copy;
-	[VHGinfoline] = VHGinfoname; => VHG info draw line;
-	-> VHG info finish;
-    "VHG info environment ship"
-	[VHGinfoline] = VHGinfoclass; => VHG info draw line;
-	[VHGinfoline] = VHGinfobodies; => VHG info draw line;
-    "VHG info finish"
-	[VHGinfoy] = 176; [VHGinfoline] = VHGinfohint; => VHG info draw line;
-"VHG info overlay done"
+	( Source datasheets are already composed into the indexed frame before
+	  palette expansion. Keep this post-expansion hook intentionally empty. )
 	end;
 
 "VHG onboard row begin"
@@ -4382,6 +4448,7 @@
 	  them from immutable templates before substituting live values. )
 	[VHGinfosrc] = VHGinfoclasst; [VHGinfodst] = VHGinfoclass; [VHGinfocount] = 23; => VHG info row copy;
 	[VHGinfosrc] = VHGinfobodiest; [VHGinfodst] = VHGinfobodies; [VHGinfocount] = 30; => VHG info row copy;
+	[VHGinfosrc] = VHGinfomajort; [VHGinfodst] = VHGinfomajor; [VHGinfocount] = 22; => VHG info row copy;
 	[VHGinfosrc] = VHGinfoenergyt; [VHGinfodst] = VHGinfoenergy; [VHGinfocount] = 33; => VHG info row copy;
 	[VHGinfosrc] = VHGinfostatet; [VHGinfodst] = VHGinfostate; [VHGinfocount] = 28; => VHG info row copy;
 	=> VHG fpu clean;
@@ -4407,6 +4474,10 @@
     "VHG info bodies ready"
 	C = A; A '/ 10; A + 48; [VHGinfobodies plus 7] = A;
 	A = C; A '% 10; A + 48; [VHGinfobodies plus 8] = A;
+	A = [nsnop]; ? A <= 99 -> VHG info major ready; A = 99;
+    "VHG info major ready"
+	C = A; A '/ 10; A + 48; [VHGinfomajor plus 14] = A;
+	A = C; A '% 10; A + 48; [VHGinfomajor plus 15] = A;
 	A = [nsnop]; ? A <= 99 -> VHG info planets ready; A = 99;
     "VHG info planets ready"
 	C = A; A '/ 10; A + 48; [VHGinfobodies plus 18] = A;
@@ -4455,7 +4526,7 @@
 	A + 48; [VHGinfostate plus 26] = A;
 	( These rows are edited in place. Keep their string boundaries explicit
 	  so the text service can never continue into the next declaration. )
-	[VHGinfoclass plus 22] = 0; [VHGinfobodies plus 29] = 0;
+	[VHGinfoclass plus 22] = 0; [VHGinfobodies plus 29] = 0; [VHGinfomajor plus 21] = 0;
 	[VHGinfoenergy plus 32] = 0; [VHGinfostate plus 27] = 0;
 	end;
 
@@ -4811,6 +4882,7 @@
     "VHG device local"
 	[VHGinfo] = 2;
     "VHG device data"
+	[VHGinfoscroll] = 0; [VHGinfodelta] = 4;
 	[VHGdev] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0; -> VHG device key done;
     "VHG device light"
 	A = [VHGilight]; A * 0FFFFFFFFh; [VHGilight] = A; [VHLpower] = A;
@@ -4970,7 +5042,14 @@
     "VHG info physical key"
 	A = [VHGinfoheld]; ? A != 0 -> VHG info key done; [VHGinfoheld] = 1;
     "VHG info key pressed"
-	[VHGinfo]+; A = [VHGinfo]; ? A <= 3 -> VHG info key selected; [VHGinfo] = 0;
+	A = [VHGinfo]; ? A != 0 -> VHG info key cycle;
+	[VHGinfoscroll] = 0; [VHGinfo] = 1; [VHGinfodelta] = 4;
+	-> VHG info key selected;
+    "VHG info key cycle"
+	? A >= 3 -> VHG info key close; [VHGinfo]+; [VHGinfodelta] = 0;
+	-> VHG info key selected;
+    "VHG info key close"
+	[VHGinfodelta] = 0FFFFFFFCh; ( -4, source datasheetdelta close )
     "VHG info key selected"
 	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
 "VHG info key done"
@@ -4983,7 +5062,9 @@
 	A = [VHGascii]; ? A = 88 -> VHG screen off key pressed; ? A = 120 -> VHG screen off key pressed;
 	A = [KEY X]; ? A = OFF -> VHG screen off key done;
     "VHG screen off key pressed"
-	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0;
+	[VHGdev] = 0; [VHGfcsopen] = 0;
+	A = [VHGinfo]; ? A = 0 -> VHG screen off no data; [VHGinfodelta] = 0FFFFFFFCh;
+    "VHG screen off no data"
 	[VHGgraphics] = 0; [VHGhelpshow] = 0;
     "VHG screen off key done"
 	end;

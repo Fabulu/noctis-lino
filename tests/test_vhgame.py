@@ -905,7 +905,9 @@ def main() -> int:
         )),
         "question-mark/F9 restore Noctis help with a repaint-safe resizable control card",
     )
-    info_overlay = section(game, '"VHG info overlay"', '"VHG help overlay"')
+    info_overlay = section(game, '"VHG source info overlay"', '"VHG onboard row begin"')
+    info_slide = section(game, '"VHG info slide advance"', '"VHG source info overlay"')
+    info_format = section(game, '"VHG info format common"', '"VHG graphics overlay"')
     info_key = section(game, '"VHG info key"', '"VHG help key"')
     check(
         all(token in original for token in (
@@ -915,24 +917,48 @@ def main() -> int:
             'case 1: // remote target data',
             'case 2: // local target data',
             'case 3: // environment data',
+            'areaclear (adapted, 11, 85, 0, 0, 1 + datasheetscroll, 9, 72);',
+            'areaclear (adapted, 11, 95, 0, 0, 1 + datasheetscroll, 40, 112);',
+            'c = (datasheetscroll / 4) - 1;',
+            'datasheetscroll +=',
         ))
         and all(token in game for token in (
             'VHGinfotitle1 = { REMOTE TARGET DATA };',
             'VHGinfotitle2 = { LOCAL TARGET DATA };',
             'VHGinfotitle3 = { EXTERNAL ENVIRONMENT };',
+            'VHGinfonoremote = { REMOTE TARGET NOT SET };',
+            'VHGinfodirect = { DIRECT PARSIS TARGET };',
+            'VHGinfonolocal = { LOCAL TARGET NOT SET };',
+            'VHGinfomajort = { MAJOR BODIES: 00 EST. };',
             'VHGhelpview = { F4:FPS F5:60HZ F8:MUSIC I:DATA };',
+            '=> VHG info slide advance;',
+            '=> VHG source info overlay;',
+        ))
+        and all(token in info_slide for token in (
+            'A = [VHGinfoscroll]; A + [VHGinfodelta];',
+            'A = 100; [VHGinfodelta] = 0;',
+            'A = 0; [VHGinfo] = 0; [VHGinfodelta] = 0;',
+            '=> VHGND HUD draw string;',
         ))
         and all(token in info_overlay for token in (
-            '[Rectangle Bounds] = vector VHGUIregion;',
-            '[Rectangle Target Layer] = VHGUIframe;',
-            '"VHG info remote"', '"VHG info page local"',
-            '"VHG info environment"', '"VHG info format common"',
-            '"VHG info format local"', '"VHG info name copy"',
+            '"VHG source info remote"', '"VHG source info local"',
+            '"VHG source info environment"',
+            '[VHGinfodrawx] = 11; [VHGinfodrawy] = 85;',
+            '[VHGinfofillbottom] = 94;',
+            '[VHGinfodrawy] = 95; [VHGinfofillbottom] = 135;',
+            '[VHGinfofillcolour] = 72;',
+            '[VHGinfofillcolour] = 112;',
+            'A = [VHGinfoscroll]; A \'/ 4; A - 1;',
             '[VHGinfonamesrc] = vhcatstarlabel;',
             '[VHGinfonamesrc] = vhcatbodylabel;',
+            'A = [MgAptgt]; ? A = 0 -> VHG source info no remote;',
+            'A = [VHGlocaltarget]; ? A = 0FFFFFFFFh -> VHG source info no local;',
+            '[VHGinfodrawsrc] = VHGinfomajor; [VHGinfodrawy] = 129;',
+            '[VHGinfodrawsrc] = VHGsurfacetext;',
+        ))
+        and all(token in info_format for token in (
+            '"VHG info format local"', '"VHG info name copy"',
             'E = nspowner;', 'E = nspmoonid;', 'E = nspray;',
-            '[VHGinfoline] = VHGsurfacetext;',
-            '[VHGinfoline] = [VHGfcsline];',
             '"VHG info row copy"',
             '[VHGinfosrc] = VHGinfoclasst;',
             '[VHGinfodst] = VHGinfoclass;',
@@ -948,12 +974,17 @@ def main() -> int:
             'A = [VHGascii]; ? A = 73 -> VHG info key pressed;',
             '? A != 105 -> VHG info key done;',
             '[VHGinfoheld] = 1;',
-            '[VHGinfo]+;', '? A <= 3 -> VHG info key selected;',
-            '[VHGinfo] = 0;',
+            '[VHGinfoscroll] = 0; [VHGinfo] = 1; [VHGinfodelta] = 4;',
+            '? A >= 3 -> VHG info key close; [VHGinfo]+; [VHGinfodelta] = 0;',
+            '[VHGinfodelta] = 0FFFFFFFCh;',
         ))
         and game.count("=> VHG info overlay;") == 2
+        and game.count("=> VHG source info overlay;") == 1
+        and '[Rectangle Bounds] = vector VHGUIregion;' not in section(
+            game, '"VHG info overlay"', '"VHG help overlay"'
+        )
         and "A = [VHGinfo]; ? A != 0 -> VHG input done;" in game,
-        "I cycles original-shaped remote, local, and environment data pages without moving the player",
+        "I slides source-sized indexed remote, local, and environment data sheets without moving the player",
     )
     device_overlay = section(game, '"VHG device overlay"', '"VHG info format common"')
     device_key = section(game, '"VHG device key"', '"VHG info key"')
@@ -1238,7 +1269,8 @@ def main() -> int:
         all(token in game for token in (
             '"VHG interpolation advance"', '"VHG interpolation apply"',
             '"VHG interpolation restore"', '"VHG interpolation snapshot"',
-            '=> VHG interpolation apply; => VHG render; => VHGND surrounding frame; => VHG interpolation restore;',
+            '=> VHG interpolation apply; => VHG render; => VHGND surrounding frame;',
+            '=> VHG source info overlay; => VHG interpolation restore;',
             'A = [VHGmode]; ? A = 0 -> VHG interpolation apply eligible;',
             'A = [VHGlanded]; ? A = 0 -> VHG interpolation apply done;',
             'A = [VHGdosim]; ? A != 0 -> VHG interpolation advance finish;',
