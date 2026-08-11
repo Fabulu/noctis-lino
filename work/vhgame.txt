@@ -419,6 +419,21 @@
 	VHGcleanrecordsprefix = { RECORDS: };
 	VHGcleanremovedprefix = { REMOVED: };
 	VHGcleanend = { END };
+	VHGrepairtitle = { _GOES_REPAIR_UTILITY_ };
+	VHGrepairintro0 = { THIS_PROGRAM_SEARCHES };
+	VHGrepairintro1 = { FOR_DUPLICATED_LABELS };
+	VHGrepairintro2 = { AND_COMMENTS,REMOVING };
+	VHGrepairintro3 = { THEM_FROM_THE_ARCHIVE };
+	VHGrepairstarmap = { (PROCESSING_STARMAP) };
+	VHGrepairguide = { (PROCESSING_GUIDE) };
+	VHGrepairerrors = { ERRORS_FOUND: };
+	VHGrepairnone = { ___NONE };
+	VHGrepairnostarmap = { NO_ERRORS_IN_STARMAP. };
+	VHGrepairnoguide = { NO_ERRORS_IN_GUIDE. };
+	VHGrepairstarmapok = { OK,_STARMAP_REPAIRED. };
+	VHGrepairguideok = { OK,_GUIDE_REPAIRED. };
+	VHGrepairclean = { PLEASE_RUN_"CLEAN" };
+	VHGrepairgarbage = { TO_REMOVE_GARGABE. };
 	VHGoutboxfile = { OUTBOX.ZIP };
 	VHGoutboxtitle = { _____GOES_OUTBOX_____ };
 	VHGoutlabels = { OUTGOING_LABELS: };
@@ -3666,8 +3681,16 @@
     "VHG command maybe rep"
 	A = [vhptext plus 43]; ? A != 69 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 80 -> VHG command done;
-	A = [vhptext plus 45]; ? A = 0 -> VHG command rep parse;
+	A = [vhptext plus 45]; ? A = 65 -> VHG command maybe repair;
+	? A = 0 -> VHG command rep parse;
 	? A = 32 -> VHG command rep parse; ? A != 95 -> VHG command done;
+    "VHG command maybe repair"
+	A = [vhptext plus 46]; ? A != 73 -> VHG command done;
+	A = [vhptext plus 47]; ? A != 82 -> VHG command done;
+	A = [vhptext plus 48]; ? A = 0 -> VHG command repair ready;
+	? A = 32 -> VHG command repair ready; ? A != 95 -> VHG command done;
+    "VHG command repair ready"
+	[VHGcmdsilent] = 1; => VHG REPAIR; -> VHG command done;
     "VHG command rep parse"
 	[VHGcmdi] = 45;
     "VHG command rep spaces"
@@ -5348,6 +5371,70 @@
 "VHG CLEAN output count"
 	[VHGonrowdst] = VHGcatline; => VHG onboard row begin;
 	[VHGonrowsrc] = [VHGcleanprefix]; => VHG onboard row append text;
+	=> VHG onboard row append space; [VHGonrowvalue] = [VHGcleanvalue];
+	=> VHG onboard row append number; => VHG onboard row finish;
+	[VHPoutptr] = VHGcatline; => VH GOES output line; end;
+
+"VHG REPAIR"
+	( The shipped utility marks duplicates in place and deliberately asks the
+	  pilot to run CLEAN as a separate compaction step. )
+	[VHGwherei] = 0;
+    "VHG REPAIR bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG REPAIR bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGrepairtitle; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGrepairintro0; => VH GOES output line;
+	[VHPoutptr] = VHGrepairintro1; => VH GOES output line;
+	[VHPoutptr] = VHGrepairintro2; => VH GOES output line;
+	[VHPoutptr] = VHGrepairintro3; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGrepairstarmap; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	A = [VHCATloaded]; ? A = 0 -> VHG REPAIR starmap unavailable;
+	=> VHCAT repair; A = [VHCATstatus]; ? A = 0 -> VHG REPAIR starmap write failed;
+	[VHPoutptr] = VHGrepairerrors; => VH GOES output line;
+	A = [VHCATrepairerrors]; ? A = 0 -> VHG REPAIR starmap clean;
+	[VHGcleanvalue] = A; => VHG REPAIR output number;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGrepairstarmapok; => VH GOES output line;
+	[VHPoutptr] = VHGrepairclean; => VH GOES output line;
+	[VHPoutptr] = VHGrepairgarbage; => VH GOES output line;
+	-> VHG REPAIR guide begin;
+    "VHG REPAIR starmap clean"
+	[VHPoutptr] = VHGrepairnone; => VH GOES output line;
+	[VHPoutptr] = VHGrepairnostarmap; => VH GOES output line;
+	-> VHG REPAIR guide begin;
+    "VHG REPAIR starmap unavailable"
+	[VHPoutptr] = VHGcleanstarmapmissing; => VH GOES output line;
+	-> VHG REPAIR guide begin;
+    "VHG REPAIR starmap write failed"
+	[VHPoutptr] = VHGcleanwriteerror; => VH GOES output line;
+    "VHG REPAIR guide begin"
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGrepairguide; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	A = [VHGDBloaded]; ? A = 0 -> VHG REPAIR guide unavailable;
+	=> VHGDB repair; A = [VHGDBstatus]; ? A = 0 -> VHG REPAIR guide write failed;
+	[VHPoutptr] = VHGrepairerrors; => VH GOES output line;
+	A = [VHGDBrepairerrors]; ? A = 0 -> VHG REPAIR guide clean;
+	[VHGcleanvalue] = A; => VHG REPAIR output number;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGrepairguideok; => VH GOES output line;
+	[VHPoutptr] = VHGrepairclean; => VH GOES output line;
+	[VHPoutptr] = VHGrepairgarbage; => VH GOES output line; end;
+    "VHG REPAIR guide clean"
+	[VHPoutptr] = VHGrepairnone; => VH GOES output line;
+	[VHPoutptr] = VHGrepairnoguide; => VH GOES output line; end;
+    "VHG REPAIR guide unavailable"
+	[VHPoutptr] = VHGcleanguidemissing; => VH GOES output line; end;
+    "VHG REPAIR guide write failed"
+	[VHPoutptr] = VHGcleanwriteerror; => VH GOES output line; end;
+
+"VHG REPAIR output number"
+	[VHGonrowdst] = VHGcatline; => VHG onboard row begin;
+	=> VHG onboard row append space; => VHG onboard row append space;
 	=> VHG onboard row append space; [VHGonrowvalue] = [VHGcleanvalue];
 	=> VHG onboard row append number; => VHG onboard row finish;
 	[VHPoutptr] = VHGcatline; => VH GOES output line; end;

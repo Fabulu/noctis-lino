@@ -95,6 +95,9 @@ parity, not a claim that parity is complete.
   ranged local entries and reports total, removed, and protected counts.
   `CLEAN` compacts tombstones from both mutable databases and preserves the
   consolidated source boundary separately from appended player data.
+  `REPAIR` restores the original first-record-wins duplicate scan. It uses the
+  source identity window for STARMAP and requires both that subject match and
+  an exact 76-byte comment for GUIDE, then leaves compaction to `CLEAN`.
   `OUTBOX` exports only those live player additions to `OUTBOX.ZIP` using the
   original `STARMAP_` and `GUIDE___` packet framing, ready to copy to another
   Stardrifter installation.
@@ -135,7 +138,7 @@ Useful controls:
 - First wall panel + Enter: physical GOES; `NEXT`: choose/fly to a nearby star
 - `SL` lists all known stars; `SL <range>` scans locally; Escape stops a scan
 - `CAT`: read; `PRI`: text export; `CAST`: add; `REP`: correct; `DELE`: remove;
-  `CLEAN`: compact
+  `REPAIR`: find duplicates; `CLEAN`: compact
 - `OUTBOX`: export player data; `INBOX`: import a received `INBOX.ZIP`
 - Third wall panel + Enter: approach, select a landing site, and descend
 - G and L: accessible GOES and landing fallbacks

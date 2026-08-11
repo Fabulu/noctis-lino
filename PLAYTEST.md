@@ -814,6 +814,22 @@ same condition beyond GUIDE's 4,063,588-byte boundary. Resident CLEAN reported
 removed. Both files returned byte-for-byte to their tracked original assets,
 and the following CAT query confirmed the deleted guide record stayed absent.
 
+### GOES REPAIR binary-oracle and native regression
+
+The original `REPAIR.EXE` was run under DOS against two controlled archive
+fixtures because no corresponding C++ module source survives in the reference
+tree. The oracle proved that STARMAP ignores duplicate names and tombstones
+only later identities inside the strict +/-0.00001 window. GUIDE tombstones a
+later record only when both its approximate subject and all 76 comment bytes
+match. Existing `Removed:` records remain for a later `CLEAN` pass.
+
+The integrated kernels then ran through the full native game's real loaders
+and file-write paths against disposable six-record archives. STARMAP and GUIDE
+each changed records 1 and 2 to `Removed:`, retained record 0 as the first copy,
+and left the existing tombstone at record 5 unchanged. The source build and
+focused integration regression passed after restoring the normal production
+entry path.
+
 ### GOES global SL and full scrollback regression
 
 A production-derived native probe submitted bare `SL` through the resident

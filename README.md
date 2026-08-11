@@ -74,7 +74,10 @@ player note of up to 76 characters. `REP <catalogued name>:<record>:<notes>` cor
 of those local notes; consolidated records supplied with the game remain
 protected. `DELE <catalogued name>[:X..Y]` tombstones selected local records
 without changing that protected source data. `CLEAN` compacts removed starmap
-and Guide records while preserving their consolidated boundaries. `OUTBOX`
+and Guide records while preserving their consolidated boundaries. `REPAIR`
+finds duplicate starmap identities and exact duplicate Guide comments, keeps
+the first record, and tombstones later copies; run `CLEAN` afterward to compact
+them, exactly as the original utility requests. `OUTBOX`
 writes `work\OUTBOX.ZIP` in the original GOES packet layout, containing only
 live player-added labels and Guide notes rather than the protected shipped
 records. To receive another player's packet, place it beside the running game

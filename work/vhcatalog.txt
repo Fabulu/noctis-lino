@@ -34,6 +34,8 @@
 	VHCATbodyi = 0; VHCATlabeled = 0;
 	VHCATcleanin = 0; VHCATcleanout = 0; VHCATcleanword = 0;
 	VHCATcleantotal = 0; VHCATcleanremoved = 0; VHCATcleanboundary = 0;
+	VHCATrepairouteridx = 0; VHCATrepairinneridx = 0;
+	VHCATrepairouterptr = 0; VHCATrepairinnerptr = 0; VHCATrepairerrors = 0;
 
 "workspace"
 
@@ -274,6 +276,55 @@
     "VHCAT add charted"
 	[VHCATstatus] = 2;
     "VHCAT add done"
+	end;
+
+      ( REPAIR.EXE keeps the first usable identity and marks every later
+	identity within the original strict +/- 0.00001 window as Removed:.
+	Names and consolidated boundaries do not participate in this pass. )
+"VHCAT repair"
+	[VHCATstatus] = 0; [VHCATrepairerrors] = 0;
+	A = [VHCATloaded]; ? A = 0 -> VHCAT repair done;
+	[VHCATrepairouteridx] = 0;
+    "VHCAT repair outer"
+	A = [VHCATrepairouteridx]; ? A >= [VHCATrecs] -> VHCAT repair write;
+	A '* 8; E = vhcatraw; E + 1; E + A; [VHCATrepairouterptr] = E;
+	A = [E]; [VHCATid0] = A; A = [E plus 1]; [VHCATid1] = A;
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHCAT repair outer next;
+	E = [VHCATrepairouterptr]; A = [E]; [VHCATfoundptr] = A;
+	A = [E plus 1]; [VHCATptr] = A; [VHCATid0] = [VHCATfoundptr]; [VHCATid1] = A;
+	=> VHCAT bounds;
+	A = [VHCATrepairouteridx]; A + 1; [VHCATrepairinneridx] = A;
+    "VHCAT repair inner"
+	A = [VHCATrepairinneridx]; ? A >= [VHCATrecs] -> VHCAT repair outer next;
+	A '* 8; E = vhcatraw; E + 1; E + A; [VHCATrepairinnerptr] = E;
+	A = [E]; [VHCATid0] = A; A = [E plus 1]; [VHCATid1] = A;
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHCAT repair inner next;
+	=> VHCAT key; A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHCATlowhi] -> VHCAT repair above low;
+	? A '< [VHCATlowhi] -> VHCAT repair inner next;
+	? B '> [VHCATlowlo] -> VHCAT repair above low; -> VHCAT repair inner next;
+    "VHCAT repair above low"
+	? A '< [VHCAT highhi] -> VHCAT repair duplicate;
+	? A '> [VHCAT highhi] -> VHCAT repair inner next;
+	? B '< [VHCAT highlo] -> VHCAT repair duplicate; -> VHCAT repair inner next;
+    "VHCAT repair duplicate"
+	E = [VHCATrepairinnerptr]; [E] = VHCATTOMB0; [E plus 1] = VHCATTOMB1;
+	[VHCATrepairerrors]+;
+    "VHCAT repair inner next"
+	[VHCATrepairinneridx]+; -> VHCAT repair inner;
+    "VHCAT repair outer next"
+	[VHCATrepairouteridx]+; -> VHCAT repair outer;
+    "VHCAT repair write"
+	A = [VHCATrepairerrors]; ? A = 0 -> VHCAT repair success;
+	[File Name] = vhcatfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhcatraw; [Block Size] = [VHCATbytes]; isocall;
+	? [File Status] + ERROR -> VHCAT repair reload;
+	A = [Block Size]; ? A != [VHCATbytes] -> VHCAT repair reload;
+    "VHCAT repair success"
+	[VHCATstatus] = 1; => VHCAT refresh; -> VHCAT repair done;
+    "VHCAT repair reload"
+	=> VHCAT load; [VHCATstatus] = 0;
+    "VHCAT repair done"
 	end;
 
       ( Compact Removed: records in one bounded rewrite.  The header remains

@@ -67,6 +67,19 @@ first -- a broken foundation makes every later result meaningless.
 - The production PE rebuilt successfully and the focused source-equivalence
   regression passed.
 
+### Original GOES REPAIR database maintenance
+
+- Resident `REPAIR` reproduces the shipped binary utility's first-record-wins
+  pass. STARMAP duplicate detection uses the strict identity +/-0.00001 window
+  and ignores labels; GUIDE additionally requires an exact 76-byte comment.
+- Later matches receive the literal `Removed:` tombstone. Consolidated
+  boundaries and file sizes stay unchanged until the pilot separately runs
+  `CLEAN`, matching the original two-step lifecycle.
+- The utility's original 21-column title, progress, error-count, and `GARGABE`
+  rows are integrated into the physical and accessible GOES history.
+- A native full-game loader/write-path smoke against disposable six-record
+  archives produced the exact expected later-record tombstones in both files.
+
 ### Original surface mouse walk and raw-snapshot alias
 
 - Holding the left mouse button inside the aspect-fitted game view now adds

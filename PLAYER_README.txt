@@ -40,6 +40,7 @@ PRI name[:X..Y]   export ranged Guide text to GUIDE-PRINT.TXT
 CAST name:notes    append a persistent Galactic Guide note (76 characters max)
 REP name:X:notes   correct local guide record X; original records are protected
 DELE name[:X..Y]   remove ranged local guide records; original records are protected
+REPAIR             mark later duplicate starmap and Guide records as Removed:
 CLEAN              compact removed local starmap and Galactic Guide records
 OUTBOX             export local labels/notes to OUTBOX.ZIP
 INBOX              import a received packet named INBOX.ZIP

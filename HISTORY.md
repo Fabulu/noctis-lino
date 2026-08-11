@@ -18,6 +18,23 @@ ephemeral hosted job alone receives permission to publish the tagged release.
 The workflow is checked in, while its first run awaits registration of the
 dedicated desktop runner described in `CI_RELEASES.md`.
 
+## 2026-08-11 -- original GOES REPAIR utility
+
+The last standalone database-maintenance command in the resident HELP roster
+is integrated. Because this historical module shipped without C++ source, its
+exact behavior was established by running `REPAIR.EXE` under DOS against
+controlled binary fixtures. STARMAP keeps the first valid identity and marks
+later identities inside the original strict +/-0.00001 window as `Removed:`;
+duplicate names alone do not count. GUIDE requires that same subject match plus
+an exact 76-byte comment match. The utility never compacts the files, preserves
+the original `GARGABE` message, and asks the pilot to run `CLEAN` separately.
+
+The integrated command uses bounded in-memory scans and one whole-image write
+per changed database. A native full-game smoke loaded disposable six-record
+files and produced exactly the expected tombstones at records 1 and 2 in both
+archives while retaining the pre-existing tombstone at record 5. The normal
+production executable was rebuilt afterward and the focused regression passed.
+
 ## 2026-08-11 -- resident GOES help
 
 The integrated console gained the original `N_Help_3.asm` seven-row resident
@@ -617,13 +634,13 @@ database, and made a repeated import a zero-change operation.
   package without a second private source tree.
 - Local saves, diagnostics, screenshots, and historical release-candidate
   folders are deliberately excluded from version control.
-- GitHub Actions verifies the protected source, runs the focused integrated
-  regression, and assembles the versioned production payload and assets.
-  Version tags additionally produce a ZIP, checksum, and GitHub Release. The
-  historical GUI-subsystem compiler exits in GitHub's noninteractive Windows
-  service session, so the production PE is built locally with the pinned
-  compiler and committed; CI does not misrepresent package assembly as a
-  headless source build.
+- GitHub-hosted Actions verifies protected source, runs the focused integrated
+  regression, and assembles a non-publishing snapshot from the committed PE.
+  Tags and authorized manual dispatches use `source-release.yml`: an
+  interactive self-hosted `lino-gui` desktop compiles the exact revision, then
+  a downstream hosted job publishes its ZIP, checksum, and source-provenance
+  record. `CI_RELEASES.md` documents the one-time runner setup; the source
+  workflow cannot run until that external runner is registered.
 
 ## 2026-08-11 -- About screen and numbered Gallery snapshots
 

@@ -8,6 +8,7 @@ historical wave oracles or run a mutation matrix.
 
 from __future__ import annotations
 
+import math
 import os
 import re
 import struct
@@ -55,6 +56,7 @@ ORIGINAL_CLEAN = REFERENCE_ROOT / "CLEAN.CPP"
 ORIGINAL_OUTBOX = REFERENCE_ROOT / "OUTBOX.CPP"
 ORIGINAL_INBOX = REFERENCE_ROOT / "INBOX.CPP"
 ORIGINAL_HELP = REFERENCE_ROOT.parent / "modules" / "N_Help_3.asm"
+ORIGINAL_REPAIR = REFERENCE_ROOT.parent / "modules" / "REPAIR.EXE"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -120,6 +122,25 @@ def guide_wrap(message: str, width: int = 21) -> list[str]:
     if line:
         lines.append(line)
     return lines
+
+
+def repair_duplicates(
+    records: list[tuple[float, bytes]], require_payload: bool
+) -> list[int]:
+    """Independent model of the shipped REPAIR utility's first-record rule."""
+    removed: set[int] = set()
+    for outer, (subject, payload) in enumerate(records):
+        if outer in removed or not math.isfinite(subject):
+            continue
+        for inner in range(outer + 1, len(records)):
+            candidate, candidate_payload = records[inner]
+            if inner in removed or not math.isfinite(candidate):
+                continue
+            if abs(candidate - subject) < 0.00001 and (
+                not require_payload or candidate_payload == payload
+            ):
+                removed.add(inner)
+    return sorted(removed)
 
 
 def pod_hint(dx: int, dz: int, beta: int) -> str:
@@ -264,6 +285,7 @@ def main() -> int:
     original_outbox = ORIGINAL_OUTBOX.read_text(encoding="latin-1")
     original_inbox = ORIGINAL_INBOX.read_text(encoding="latin-1")
     original_help = ORIGINAL_HELP.read_text(encoding="latin-1")
+    original_repair = ORIGINAL_REPAIR.read_bytes()
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -2125,6 +2147,37 @@ def main() -> int:
         and "$consolidated -lt 4 -or $consolidated -gt $bytes.Length" in package_script
         and "($consolidated - 4) % 32 -ne 0" in package_script,
         "GOES CLEAN compacts both tombstone databases while preserving consolidated boundaries",
+    )
+    check(
+        all(token in original_repair for token in (
+            b" GOES REPAIR UTILITY ", b"(PROCESSING STARMAP)",
+            b"(PROCESSING GUIDE)", b"ERRORS FOUND:",
+            b"PLEASE RUN ", b"CLEAN", b"TO REMOVE GARGABE.",
+        ))
+        and repair_duplicates([
+            (1.0, b"ALPHA"), (2.0, b"ALPHA"),
+            (1.000005, b"BETA"), (1.00002, b"GAMMA"),
+        ], require_payload=False) == [2]
+        and repair_duplicates([
+            (10.0, b"same comment"), (10.000005, b"same comment"),
+            (10.0, b"SAME COMMENT"), (11.0, b"same comment"),
+        ], require_payload=True) == [1]
+        and all(token in game for token in (
+            '"VHG command maybe repair"', '"VHG command repair ready"',
+            '"VHG REPAIR"', "=> VHCAT repair;", "=> VHGDB repair;",
+            "VHGrepairgarbage = { TO_REMOVE_GARGABE. };",
+        ))
+        and all(token in catalog for token in (
+            '"VHCAT repair"', '"VHCAT repair duplicate"', "=> VHCAT bounds;",
+            "[E] = VHCATTOMB0; [E plus 1] = VHCATTOMB1;",
+            "[Block Pointer] = vhcatraw; [Block Size] = [VHCATbytes]; isocall;",
+        ))
+        and all(token in guide_source for token in (
+            '"VHGDB repair"', '"VHGDB repair compare word"',
+            "? A < 19 -> VHGDB repair compare word;", "=> VHCAT bounds;",
+            "[Block Pointer] = vhguidedata; [Block Size] = [VHGDBbytes]; isocall;",
+        )),
+        "GOES REPAIR keeps first identities and tombstones only source-equivalent duplicates",
     )
     check(
         all(token in original_outbox for token in (

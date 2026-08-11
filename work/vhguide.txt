@@ -18,6 +18,8 @@
 	VHGDBptr = 0; VHGDBi = 0; VHGDBshift = 0; VHGDBrecordno = 0; VHGDBpos = 0;
 	VHGDBcleanin = 0; VHGDBcleanout = 0; VHGDBcleanword = 0;
 	VHGDBcleantotal = 0; VHGDBcleanremoved = 0; VHGDBcleanboundary = 0;
+	VHGDBrepairouteridx = 0; VHGDBrepairinneridx = 0; VHGDBrepairword = 0;
+	VHGDBrepairouterptr = 0; VHGDBrepairinnerptr = 0; VHGDBrepairerrors = 0;
 
 "workspace"
 
@@ -130,6 +132,61 @@
 	? [File Status] + ERROR -> VHGDB remove done;
 	A = [Block Size]; ? A != 8 -> VHGDB remove done; [VHGDBstatus] = 1;
     "VHGDB remove done"
+	end;
+
+      ( REPAIR.EXE removes only later guide records whose subjects match
+	within the catalogue identity window and whose complete 76-byte comments
+	are identical.  The first record survives and CLEAN performs compaction. )
+"VHGDB repair"
+	[VHGDBstatus] = 0; [VHGDBrepairerrors] = 0;
+	A = [VHGDBloaded]; ? A = 0 -> VHGDB repair done;
+	[VHGDBrepairouteridx] = 0;
+    "VHGDB repair outer"
+	A = [VHGDBrepairouteridx]; ? A >= [VHGDBrecs] -> VHGDB repair write;
+	A '* 21; E = vhguidedata; E + 1; E + A; [VHGDBrepairouterptr] = E;
+	A = [E]; [VHCATid0] = A; A = [E plus 1]; [VHCATid1] = A;
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHGDB repair outer next;
+	E = [VHGDBrepairouterptr]; A = [E]; [VHCATfoundptr] = A;
+	A = [E plus 1]; [VHCATptr] = A; [VHCATid0] = [VHCATfoundptr]; [VHCATid1] = A;
+	=> VHCAT bounds;
+	A = [VHGDBrepairouteridx]; A + 1; [VHGDBrepairinneridx] = A;
+    "VHGDB repair inner"
+	A = [VHGDBrepairinneridx]; ? A >= [VHGDBrecs] -> VHGDB repair outer next;
+	A '* 21; E = vhguidedata; E + 1; E + A; [VHGDBrepairinnerptr] = E;
+	A = [E]; [VHCATid0] = A; A = [E plus 1]; [VHCATid1] = A;
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHGDB repair inner next;
+	=> VHCAT key; A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHCATlowhi] -> VHGDB repair above low;
+	? A '< [VHCATlowhi] -> VHGDB repair inner next;
+	? B '> [VHCATlowlo] -> VHGDB repair above low; -> VHGDB repair inner next;
+    "VHGDB repair above low"
+	? A '< [VHCAT highhi] -> VHGDB repair compare;
+	? A '> [VHCAT highhi] -> VHGDB repair inner next;
+	? B '< [VHCAT highlo] -> VHGDB repair compare; -> VHGDB repair inner next;
+    "VHGDB repair compare"
+	C = [VHGDBrepairouterptr]; C + 2; E = [VHGDBrepairinnerptr]; E + 2;
+	[VHGDBrepairword] = 0;
+    "VHGDB repair compare word"
+	A = [C]; ? A != [E] -> VHGDB repair inner next;
+	C + 1; E + 1; [VHGDBrepairword]+;
+	A = [VHGDBrepairword]; ? A < 19 -> VHGDB repair compare word;
+	E = [VHGDBrepairinnerptr]; [E] = VHCATTOMB0; [E plus 1] = VHCATTOMB1;
+	[VHGDBrepairerrors]+;
+    "VHGDB repair inner next"
+	[VHGDBrepairinneridx]+; -> VHGDB repair inner;
+    "VHGDB repair outer next"
+	[VHGDBrepairouteridx]+; -> VHGDB repair outer;
+    "VHGDB repair write"
+	A = [VHGDBrepairerrors]; ? A = 0 -> VHGDB repair success;
+	[File Name] = VHGDBfile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhguidedata; [Block Size] = [VHGDBbytes]; isocall;
+	? [File Status] + ERROR -> VHGDB repair reload;
+	A = [Block Size]; ? A != [VHGDBbytes] -> VHGDB repair reload;
+    "VHGDB repair success"
+	[VHGDBstatus] = 1; -> VHGDB repair done;
+    "VHGDB repair reload"
+	=> VHGDB load; [VHGDBstatus] = 0;
+    "VHGDB repair done"
 	end;
 
       ( Compact Removed: records in memory and commit the completed bounded
