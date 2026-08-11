@@ -165,6 +165,14 @@
 	VHGinfoenvironment0 = 0; VHGinfoenvironment1 = 0;
 	VHGinforadiation0 = 0; VHGinforadiation1 = 0;
 	VHGinfoions = 0; VHGinforadiationscaled = 0; VHGinfoindent = 0;
+	VHGinfoeclipse0 = 0; VHGinfoeclipse1 = 0; VHGinfoeclipsebody = 0; VHGinfogeometryvalid = 0;
+	VHGinfoshipx0 = 0; VHGinfoshipx1 = 0; VHGinfoshipy0 = 0; VHGinfoshipy1 = 0;
+	VHGinfoshipz0 = 0; VHGinfoshipz1 = 0; VHGinfostardist0 = 0; VHGinfostardist1 = 0;
+	VHGinfobodyx0 = 0; VHGinfobodyx1 = 0; VHGinfobodyy0 = 0; VHGinfobodyy1 = 0;
+	VHGinfobodyz0 = 0; VHGinfobodyz1 = 0; VHGinfobodysq0 = 0; VHGinfobodysq1 = 0;
+	VHGinfobodydist0 = 0; VHGinfobodydist1 = 0; VHGinfoforward0 = 0; VHGinfoforward1 = 0;
+	VHGinfoperp0 = 0; VHGinfoperp1 = 0; VHGinforas0 = 0; VHGinforas1 = 0;
+	VHGinforap0 = 0; VHGinforap1 = 0; VHGinfodasp0 = 0; VHGinfodasp1 = 0;
 	VHGinfonamesrc = 0; VHGinfosrc = 0; VHGinfodst = 0; VHGinfocount = 0;
 	VHGdev = 0; VHGdevaccess = 0; VHGilight = 1; VHGlighttick = 0;
 	VHGdeviceheld = 0;
@@ -4788,27 +4796,11 @@
 	end;
 
 "VHG info format environment source"
-	( Recreate dsd from the live Stardrifter and current near-star position. )
-	=> VHG fpu clean;
-	[FC0] = [MgDzatX0]; [FC1] = [MgDzatX1]; [FI] = [VHTtx]; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FSub;
-	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
-	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
-	[FC0] = [MgDzatY0]; [FC1] = [MgDzatY1]; [FI] = [VHTty]; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FSub;
-	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
-	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FAdd;
-	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
-	[FC0] = [MgDzatZ0]; [FC1] = [MgDzatZ1]; [FI] = [VHTtz]; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FSub;
-	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
-	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FAdd; => FSqrt;
-	[VHGinfodistance0] = [FA0]; [VHGinfodistance1] = [FA1]; [FI] = 1; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1];
-	[FA0] = [VHGinfodistance0]; [FA1] = [VHGinfodistance1]; => FAdd;
-	[VHGinfodistance0] = [FA0]; [VHGinfodistance1] = [FA1];
-	( data case 3: fast_srand(secs/2), then (16-dsd*.044)*abs(...). Eclipse
-	  remains zero until the local-body occlusion pass is connected. )
+	( Recreate the source dsd and eclipse from the Stardrifter's actual live
+	  position. Fine approach is kept in a target-relative frame in this port,
+	  so the geometry helper first restores the equivalent star-relative point. )
+	=> VHG info environment geometry;
+	( data case 3: fast_srand(secs/2), then (16-dsd*.044)*abs(...). )
 	A = [VHGutcsecs]; A '/ 2; => SU fast srand;
 	[FA0] = [VHGinfodistance0]; [FA1] = [VHGinfodistance1];
 	[FB0] = 020C49BAh; [FB1] = 3FA6872Bh; => FMul;
@@ -4816,6 +4808,13 @@
 	[FI] = 16; => IntToF; [FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FSub;
 	[VHGinfoenvironment0] = [FA0]; [VHGinfoenvironment1] = [FA1];
 	=> FAbs; [FB0] = [VHGinfoenvironment0]; [FB1] = [VHGinfoenvironment1]; => FMul;
+	[VHGinfoenvironment0] = [FA0]; [VHGinfoenvironment1] = [FA1];
+	( tmp_float -= (tmp_float + 273.15) * eclipse. )
+	[FB0] = 66666666h; [FB1] = 40711266h; => FAdd;
+	[FB0] = [VHGinfoeclipse0]; [FB1] = [VHGinfoeclipse1]; => FMul;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FA0] = [VHGinfoenvironment0]; [FA1] = [VHGinfoenvironment1];
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FSub;
 	[VHGinfoenvironment0] = [FA0]; [VHGinfoenvironment1] = [FA1];
 	A = 0; A - 269; [FI] = A; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [VHGinfoenvironment0]; [FA1] = [VHGinfoenvironment1]; => FCmp;
@@ -4885,6 +4884,11 @@
 	A = 10; => BrtlRandom; C = A; A = 10; => BrtlRandom;
 	C - A; C + 50; [FI] = C; => IntToF;
 	[VHGinforadiation0] = [FA0]; [VHGinforadiation1] = [FA1];
+	( tmp_float *= 1 - eclipse. )
+	[FI] = 1; => IntToF; [FB0] = [VHGinfoeclipse0]; [FB1] = [VHGinfoeclipse1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinforadiation0]; [FA1] = [VHGinforadiation1]; => FMul;
+	[VHGinforadiation0] = [FA0]; [VHGinforadiation1] = [FA1];
 	[FI] = 100; => IntToF;
 	[FB0] = [VHGinfodistance0]; [FB1] = [VHGinfodistance1]; => FQuo;
 	[FB0] = [FA0]; [FB1] = [FA1];
@@ -4908,6 +4912,164 @@
 	=> VHG info append fixed;
 	[VHGonrowsrc] = VHGinforadiationsuffix; => VHG onboard row append text;
 	=> VHG onboard row finish; => VHG fpu clean;
+	end;
+
+"VHG info environment geometry"
+	( NOCTIS.CPP:3374-3377 and 3428-3463. Ship coordinates here are relative
+	  to the primary star, matching planet_xyz after its near-star translation
+	  is removed. The exact vector projection is the analytic equivalent of
+	  watch(star), change_angle_of_view(), and xy(body), with dpp = 200. )
+	( Original eclipse and environment state advances on the 18.206-Hz source
+	  tick. In optional 60-Hz presentation mode, retain that result between
+	  simulation ticks instead of regenerating every orbit three times. )
+	A = [VHGinfogeometryvalid]; ? A = 0 -> VHG info environment geometry refresh;
+	A = [VHGdosim]; ? A = 0 -> VHG info environment geometry done;
+    "VHG info environment geometry refresh"
+	=> VHG fpu clean;
+	A = [VHGlocalactive]; ? A = 0 -> VHG info environment galactic ship;
+	A = [VHGlocaltarget]; ? A < 0 -> VHG info environment galactic ship;
+	? A '>= [nsnob] -> VHG info environment galactic ship;
+	[VHGNDvecindex] = A; => VHGND absolute body vector;
+	[FA0] = [VHGNDvecx0]; [FA1] = [VHGNDvecx1];
+	[FB0] = [VHGlocalx0]; [FB1] = [VHGlocalx1]; => FAdd;
+	[VHGinfoshipx0] = [FA0]; [VHGinfoshipx1] = [FA1];
+	[FA0] = [VHGNDvecy0]; [FA1] = [VHGNDvecy1];
+	[FB0] = [VHGlocaly0]; [FB1] = [VHGlocaly1]; => FAdd;
+	[VHGinfoshipy0] = [FA0]; [VHGinfoshipy1] = [FA1];
+	[FA0] = [VHGNDvecz0]; [FA1] = [VHGNDvecz1];
+	[FB0] = [VHGlocalz0]; [FB1] = [VHGlocalz1]; => FAdd;
+	[VHGinfoshipz0] = [FA0]; [VHGinfoshipz1] = [FA1];
+	-> VHG info environment ship ready;
+    "VHG info environment galactic ship"
+	[FC0] = [MgDzatX0]; [FC1] = [MgDzatX1]; [FI] = [VHTtx]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FSub;
+	[VHGinfoshipx0] = [FA0]; [VHGinfoshipx1] = [FA1];
+	[FC0] = [MgDzatY0]; [FC1] = [MgDzatY1]; [FI] = [VHTty]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FSub;
+	[VHGinfoshipy0] = [FA0]; [VHGinfoshipy1] = [FA1];
+	[FC0] = [MgDzatZ0]; [FC1] = [MgDzatZ1]; [FI] = [VHTtz]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FSub;
+	[VHGinfoshipz0] = [FA0]; [VHGinfoshipz1] = [FA1];
+    "VHG info environment ship ready"
+	[FA0] = [VHGinfoshipx0]; [FA1] = [VHGinfoshipx1];
+	[FB0] = [VHGinfoshipx0]; [FB1] = [VHGinfoshipx1]; => FMul;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FA0] = [VHGinfoshipy0]; [FA1] = [VHGinfoshipy1];
+	[FB0] = [VHGinfoshipy0]; [FB1] = [VHGinfoshipy1]; => FMul;
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FAdd;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FA0] = [VHGinfoshipz0]; [FA1] = [VHGinfoshipz1];
+	[FB0] = [VHGinfoshipz0]; [FB1] = [VHGinfoshipz1]; => FMul;
+	[FB0] = [VHGinfofactor0]; [FB1] = [VHGinfofactor1]; => FAdd; => FSqrt;
+	[VHGinfostardist0] = [FA0]; [VHGinfostardist1] = [FA1];
+	[FI] = 1; => IntToF; [FB0] = [VHGinfostardist0]; [FB1] = [VHGinfostardist1]; => FAdd;
+	[VHGinfodistance0] = [FA0]; [VHGinfodistance1] = [FA1];
+	( ras = clamp((105 * nearstar_ray) / dsd, 1, 66). )
+	[FS0] = [VHTRay]; => FLoadF32; [FC0] = [FA0]; [FC1] = [FA1]; [FI] = 105; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FMul;
+	[FB0] = [VHGinfodistance0]; [FB1] = [VHGinfodistance1]; => FQuo;
+	[VHGinforas0] = [FA0]; [VHGinforas1] = [FA1];
+	[FI] = 66; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinforas0]; [FA1] = [VHGinforas1]; => FCmp;
+	A = [FI]; ? A '<= 0 -> VHG info environment ras low; [VHGinforas0] = [FB0]; [VHGinforas1] = [FB1];
+    "VHG info environment ras low"
+	[FI] = 1; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinforas0]; [FA1] = [VHGinforas1]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG info environment ras ready; [VHGinforas0] = [FB0]; [VHGinforas1] = [FB1];
+    "VHG info environment ras ready"
+	[VHGinfoeclipse0] = 0; [VHGinfoeclipse1] = 0; [VHGinfoeclipsebody] = 0;
+    "VHG info environment eclipse loop"
+	A = [VHGinfoeclipsebody]; ? A '>= [nsnob] -> VHG info environment geometry done;
+	E = nsptype; E + A; C = [E]; ? C = 0FFFFFFFFh -> VHG info environment eclipse next;
+	[VHGNDvecindex] = A; => VHGND absolute body vector;
+	[FA0] = [VHGNDvecx0]; [FA1] = [VHGNDvecx1];
+	[FB0] = [VHGinfoshipx0]; [FB1] = [VHGinfoshipx1]; => FSub;
+	[VHGinfobodyx0] = [FA0]; [VHGinfobodyx1] = [FA1];
+	[FA0] = [VHGNDvecy0]; [FA1] = [VHGNDvecy1];
+	[FB0] = [VHGinfoshipy0]; [FB1] = [VHGinfoshipy1]; => FSub;
+	[VHGinfobodyy0] = [FA0]; [VHGinfobodyy1] = [FA1];
+	[FA0] = [VHGNDvecz0]; [FA1] = [VHGNDvecz1];
+	[FB0] = [VHGinfoshipz0]; [FB1] = [VHGinfoshipz1]; => FSub;
+	[VHGinfobodyz0] = [FA0]; [VHGinfobodyz1] = [FA1];
+	[FA0] = [VHGinfobodyx0]; [FA1] = [VHGinfobodyx1];
+	[FB0] = [VHGinfobodyx0]; [FB1] = [VHGinfobodyx1]; => FMul;
+	[VHGinfobodysq0] = [FA0]; [VHGinfobodysq1] = [FA1];
+	[FA0] = [VHGinfobodyy0]; [FA1] = [VHGinfobodyy1];
+	[FB0] = [VHGinfobodyy0]; [FB1] = [VHGinfobodyy1]; => FMul;
+	[FB0] = [VHGinfobodysq0]; [FB1] = [VHGinfobodysq1]; => FAdd;
+	[VHGinfobodysq0] = [FA0]; [VHGinfobodysq1] = [FA1];
+	[FA0] = [VHGinfobodyz0]; [FA1] = [VHGinfobodyz1];
+	[FB0] = [VHGinfobodyz0]; [FB1] = [VHGinfobodyz1]; => FMul;
+	[FB0] = [VHGinfobodysq0]; [FB1] = [VHGinfobodysq1]; => FAdd;
+	[VHGinfobodysq0] = [FA0]; [VHGinfobodysq1] = [FA1]; => FSqrt;
+	[FB0] = D2F1A9FCh; [FB1] = 3F50624Dh; => FAdd;
+	[VHGinfobodydist0] = [FA0]; [VHGinfobodydist1] = [FA1];
+	A = [VHGinfoeclipsebody]; A < 1; E = nspray; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
+	[FI] = 10; => IntToF; [FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [E plus 0]; [FA1] = [E plus 1]; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHGinfobodydist0]; [FA1] = [VHGinfobodydist1]; => FCmp;
+	A = [FI]; ? A '>= 0 -> VHG info environment eclipse next;
+	( forward = dot(body-from-ship, star-from-ship) / star distance. )
+	[FA0] = [VHGinfobodyx0]; [FA1] = [VHGinfobodyx1];
+	[FB0] = [VHGinfoshipx0]; [FB1] = [VHGinfoshipx1]; => FMul; => FNeg;
+	[VHGinfoforward0] = [FA0]; [VHGinfoforward1] = [FA1];
+	[FA0] = [VHGinfobodyy0]; [FA1] = [VHGinfobodyy1];
+	[FB0] = [VHGinfoshipy0]; [FB1] = [VHGinfoshipy1]; => FMul; => FNeg;
+	[FB0] = [VHGinfoforward0]; [FB1] = [VHGinfoforward1]; => FAdd;
+	[VHGinfoforward0] = [FA0]; [VHGinfoforward1] = [FA1];
+	[FA0] = [VHGinfobodyz0]; [FA1] = [VHGinfobodyz1];
+	[FB0] = [VHGinfoshipz0]; [FB1] = [VHGinfoshipz1]; => FMul; => FNeg;
+	[FB0] = [VHGinfoforward0]; [FB1] = [VHGinfoforward1]; => FAdd;
+	[FB0] = [VHGinfostardist0]; [FB1] = [VHGinfostardist1]; => FQuo;
+	[VHGinfoforward0] = [FA0]; [VHGinfoforward1] = [FA1];
+	[FB0] = D2F1A9FCh; [FB1] = 3F50624Dh; => FCmp;
+	A = [FI]; ? A '<= 0 -> VHG info environment eclipse next;
+	( dasp = dpp * perpendicular / forward. Clamp the roundoff residue
+	  before sqrt when a body lies exactly on the star axis. )
+	[FA0] = [VHGinfoforward0]; [FA1] = [VHGinfoforward1];
+	[FB0] = [VHGinfoforward0]; [FB1] = [VHGinfoforward1]; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHGinfobodysq0]; [FA1] = [VHGinfobodysq1]; => FSub;
+	[VHGinfoperp0] = [FA0]; [VHGinfoperp1] = [FA1];
+	[FB0] = 0; [FB1] = 0; => FCmp; A = [FI]; ? A '>= 0 -> VHG info environment perp ready;
+	[VHGinfoperp0] = 0; [VHGinfoperp1] = 0;
+    "VHG info environment perp ready"
+	[FA0] = [VHGinfoperp0]; [FA1] = [VHGinfoperp1]; => FSqrt;
+	[FB0] = [VHGinfoforward0]; [FB1] = [VHGinfoforward1]; => FQuo;
+	[FC0] = [FA0]; [FC1] = [FA1]; [FI] = 200; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FMul;
+	[VHGinfodasp0] = [FA0]; [VHGinfodasp1] = [FA1];
+	( rap = min((105 * body radius) / dpz, 66). )
+	A = [VHGinfoeclipsebody]; A < 1; E = nspray; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
+	[FI] = 105; => IntToF; [FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [E plus 0]; [FA1] = [E plus 1]; => FMul;
+	[FB0] = [VHGinfobodydist0]; [FB1] = [VHGinfobodydist1]; => FQuo;
+	[VHGinforap0] = [FA0]; [VHGinforap1] = [FA1];
+	[FI] = 66; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinforap0]; [FA1] = [VHGinforap1]; => FCmp;
+	A = [FI]; ? A '<= 0 -> VHG info environment rap ready; [VHGinforap0] = [FB0]; [VHGinforap1] = [FB1];
+    "VHG info environment rap ready"
+	( eclipse = 1 - clamp((dasp + ras - rap) / (2 * ras), 0, 1). )
+	[FA0] = [VHGinfodasp0]; [FA1] = [VHGinfodasp1];
+	[FB0] = [VHGinforas0]; [FB1] = [VHGinforas1]; => FAdd;
+	[FB0] = [VHGinforap0]; [FB1] = [VHGinforap1]; => FSub;
+	[VHGinfofactor0] = [FA0]; [VHGinfofactor1] = [FA1];
+	[FA0] = [VHGinforas0]; [FA1] = [VHGinforas1]; [FI] = 2; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHGinforas0]; [FA1] = [VHGinforas1]; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHGinfofactor0]; [FA1] = [VHGinfofactor1]; => FQuo;
+	[VHGinfoeclipse0] = [FA0]; [VHGinfoeclipse1] = [FA1];
+	[FI] = 1; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGinfoeclipse0]; [FA1] = [VHGinfoeclipse1]; => FCmp;
+	A = [FI]; ? A '<= 0 -> VHG info environment eclipse low; [VHGinfoeclipse0] = [FB0]; [VHGinfoeclipse1] = [FB1];
+    "VHG info environment eclipse low"
+	[FA0] = [VHGinfoeclipse0]; [FA1] = [VHGinfoeclipse1];
+	[FB0] = 0; [FB1] = 0; => FCmp; A = [FI]; ? A '>= 0 -> VHG info environment eclipse clamped;
+	[VHGinfoeclipse0] = 0; [VHGinfoeclipse1] = 0;
+    "VHG info environment eclipse clamped"
+	[FI] = 1; => IntToF; [FB0] = [VHGinfoeclipse0]; [FB1] = [VHGinfoeclipse1]; => FSub;
+	[VHGinfoeclipse0] = [FA0]; [VHGinfoeclipse1] = [FA1];
+    "VHG info environment eclipse next"
+	[VHGinfoeclipsebody]+; -> VHG info environment eclipse loop;
+    "VHG info environment geometry done"
+	[VHGinfogeometryvalid] = 1;
+	=> VHG fpu clean;
 	end;
 
 "VHG info environment radiation class"
@@ -5569,6 +5731,7 @@
     "VHG info key close"
 	[VHGinfodelta] = 0FFFFFFFCh; ( -4, source datasheetdelta close )
     "VHG info key selected"
+	[VHGinfogeometryvalid] = 0;
 	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
 "VHG info key done"
 	end;

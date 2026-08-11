@@ -426,8 +426,12 @@ the same source routines: class-corrected remote mass, radius and temperature;
 local rotation/revolution triads, type and radius; and external temperature,
 lithium ions and radiation. In the opening system the live remote card showed
 radius 6.9280, mass 1.970222 BAL M, and 7757 K / 7484 C / 13503 F, matching the
-source equations. The environment calculation still assumes zero eclipse
-until the source local-body occlusion projection is connected.
+source equations. The environment calculation now follows the Stardrifter's
+actual target-relative position during fine approach, analytically reproduces
+the source's star-centred `watch()`/`xy()` projection at `dpp=200`, and applies
+nearby-body eclipse to both external temperature and radiation. A packaged
+foreground smoke exercised the galactic and approached-body paths without
+losing responsiveness.
 
 ## Packaging and publication
 

@@ -195,9 +195,10 @@ first -- a broken foundation makes every later result meaningless.
   The local sheet restores the generated rotation triads, `rtp()` revolution
   EPOCs/triads, source type names, and radius. The environment sheet restores
   live K/C/F temperature, lithium-ion estimates, and class-scaled radiation
-  with the original identity/time random streams. Environment data currently
-  assumes zero eclipse; connecting the original projected local-body occlusion
-  term is the remaining calculation on these three sheets.
+  with the original identity/time random streams. The environment calculation
+  now reconstructs the real ship position during fine local approach, projects
+  nearby generated bodies against the primary star with the source's `dpp=200`
+  scale, and applies the resulting eclipse fraction to temperature and radiation.
 - Ship-mode R now opens the original miscellaneous-device page with its 6-9
   keyboard commands. Command 6 changes the live halogen fixture between the
   source's +1/-1 color states, suppresses its flare while off, and consumes one

@@ -704,5 +704,9 @@ started a real local approach and displayed rotation triads, revolution EPOCs,
 the generated body type, and radius. The environment card displayed live K/C/F
 temperature plus identity-seeded lithium-ion and time-jittered radiation rows.
 All three states stayed responsive and visible over the cabin. The focused
-regression passed and the production PE rebuilt. The environment path currently
-uses eclipse zero; projected local-body occlusion remains open fidelity work.
+regression passed and the production PE rebuilt. A subsequent source-equivalence
+pass restored the projected local-body eclipse calculation and corrected the
+environment geometry to follow the live target-relative Stardrifter during fine
+approach. A packaged foreground smoke kept the game responsive and showed the
+environment values changing from the galactic position to the approached body's
+actual local position.
