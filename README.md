@@ -109,6 +109,12 @@ Press M or `*` to save a numbered 320x200 BMP with display overlays in the
 `GALLERY` folder. Press B outside the F2 graphics menu for the original raw
 snapshot variant, captured before the port-only display overlays.
 
+Press F3 for the original moviemaker panel. Plus/minus selects the capture
+interval, Ctrl plus/minus selects one of 999 movie decks, F selects the source
+tracking-line or black-flash treatment, Enter starts or stops recording, and P
+pauses or resumes it. Raw 320x200 frames are written to `MOVIES\DDD` with
+eight-digit BMP filenames.
+
 Version tags matching `v*` assemble the checked production payload and runtime
 assets in GitHub Actions, then publish the ZIP plus its SHA-256 checksum as a
 prerelease. Ordinary pushes and pull requests run the protected-source check,
@@ -126,6 +132,8 @@ step; the exact resulting `work\vhgame.exe` is versioned for reproducible CI/CD.
 | Planetary console | Planetary surface |
 |---|---|
 | ![Selecting a landing site on the physical planetary console](screenshots/planetary-console.png) | ![The capsule on a generated planetary surface](screenshots/planet-surface.png) |
+
+![The original F3 moviemaker panel open inside the Stardrifter](screenshots/moviemaker.png)
 
 ![A source-shaped 916x200 three-panel planetary panorama captured in game](screenshots/planet-panorama.png)
 

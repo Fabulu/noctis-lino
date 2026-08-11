@@ -1929,8 +1929,41 @@ def main() -> int:
             "A = 199; A - [VHGsnapshotrow]; A '* 320; A + [VHGsnapshotbase];",
             "[Block Size] = 1280; isocall;", "[File Size] = 256054; isocall;",
         ))
-        and "=> VHGUI prepare;\n\t\t=> VHG raw snapshot pending;\n\t\t=> VHG wide raw pending;\n\t\t=> VHG fps overlay;" in game,
+        and "=> VHGUI prepare;\n\t\t=> VHG raw snapshot pending;\n\t\t=> VHG wide raw pending;\n\t\t=> VHG movie capture pending;\n\t\t=> VHG fps overlay;" in game,
         "M or * writes a composed snapshot while B captures before port overlays",
+    )
+    movie = section(game, '"VHG movie capture pending"', '"VHG snapshot key"')
+    movie_input = section(game, '"VHG movie key"', '"VHG visor keys"')
+    check(
+        all(token in original0 for token in (
+            "void ShowMovieSetup(int moviefsec, char movieflashoff, int moviedeck)",
+            'sprintf (outhudbuffer, "MOVIEDECK %3i                 (CTRL +/-)"',
+            'sprintf (outhudbuffer, "CAPTURE EVERY %3i FRAMES           (+/-)"',
+            'sprintf (snapfilename, "..\\\\MOVIES\\\\%03i\\\\%08d.BMP", moviedeck, movienr);',
+        ))
+        and all(token in original for token in (
+            "if (movie) {", "moviedelay = moviedelay - 1;",
+            "snapshot (0, 0);", "moviedelay = moviefsec;",
+            "if (c=='+' && moviestat && moviefsec < 999 && !movie)",
+            "if (c == 'p' && !(labstar || labplanet))",
+        ))
+        and all(token in movie_input for token in (
+            "A = [KEY F3];", "A = [KEY CROSS];", "A = [KEY HYPHEN];",
+            "A = [KEY CONTROL]; ? A = ON -> VHG movie deck higher;",
+            "? A = 43 -> VHG movie increase key; ? A = 45 -> VHG movie decrease key;",
+            "[VHGmovieinterval]+;", "[VHGmovieinterval]-;",
+            '"VHG movie pause recording"', '"VHG movie stop"',
+            '"VHG movie check deck"', "[VHGmoviefile plus 18] = 49;",
+        ))
+        and all(token in movie for token in (
+            "A = [VHGdosim]; ? A = 0 -> VHG movie capture pending done;",
+            "[VHGmoviedelay] = [VHGmovieinterval];",
+            '"VHG movie write"', "A = 199; A - [VHGmovierow];",
+            "[Block Pointer] = VHGmovieoutput; [Block Size] = 256000; isocall;",
+            "[File Size] = 256054; isocall;",
+        ))
+        and 'VHGmoviefile = { MOVIES\\\\001\\\\00000001.BMP };' in game,
+        "F3 restores the source moviemaker UI, controls, cadence, and numbered raw BMP decks",
     )
     check(
         all(token in original1 for token in (

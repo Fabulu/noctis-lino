@@ -58,6 +58,12 @@ F4 / F5           FPS display / opt into 60 Hz (18.2 Hz is the default)
 + / -             brighten / dim the source HUD and visor frame
 F6 / F7           save / load checkpoint
 F8                soundtrack on/off
+F3                original moviemaker panel
+  + / -           capture every 1 to 999 source gameplay frames
+  Ctrl + / -      select movie deck 001 to 999
+  F               tracking-line or black-flash capture treatment
+  Enter / P       start or stop recording / pause or resume
+                  raw frames are saved under MOVIES\DDD\########.BMP
 M or *            save the next numbered 320x200 BMP in GALLERY
 B                 save a raw 320x200 BMP without port display overlays
 N or /            surface: save a three-panel 916x200 panorama

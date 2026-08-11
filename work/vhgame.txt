@@ -250,6 +250,14 @@
 	VHGdrawhud = 1; VHGlensmode = 0; VHGseamless = 0;
 	VHGhudcount = 180; VHGhuddelta = 0; VHGhudclosed = 1;
 	VHGgraphicsline = 0; VHGgraphicsy = 0;
+	VHGmovieview = 0; VHGmovieheld = 0; VHGmovieused = 0;
+	VHGmoviecrossheld = 0; VHGmoviehyphenheld = 0;
+	VHGmovie = 0; VHGmoviepaused = 0; VHGmovieflashoff = 1;
+	VHGmoviedeck = 1; VHGmovieinterval = 1; VHGmoviedelay = 0;
+	VHGmovieframe = 0; VHGmovieexists = 0; VHGmoviecaptured = 0;
+	VHGmovieelapsed = 0; VHGmoviefps100 = 0; VHGmoviecutoff = 0;
+	VHGmovierow = 0; VHGmoviecol = 0; VHGmoviesrc = 0; VHGmoviedst = 0;
+	VHGmovievalue = 0; VHGmovieden = 0; VHGmoviepos = 0;
 	VHGprofstart = 0; VHGprofnow = 0; VHGprofrender = 0; VHGprofpresent = 0;
 	VHGprofpart = 0; VHGprofspace = 0; VHGprofcupola = 0; VHGprofhull = 0; VHGprofdetail = 0;
 	( Present at the original 18.206 Hz by default. F5 opts into the 60-Hz
@@ -285,6 +293,25 @@
 	VHGsnapshoterror = { SNAPSHOT WRITE ERROR };
 	VHGsnapshotlimittext = { SNAPSHOT LIMIT REACHED };
 	VHGsnapshotwaittext = { SNAPSHOT NOT READY };
+	VHGmovieroot = { MOVIES };
+	VHGmoviedir = { MOVIES\\001 };
+	VHGmoviefile = { MOVIES\\001\\00000001.BMP };
+	VHGmovietitle = { __NOCTIS_IV+_MOVIEMAKER };
+	VHGmoviedeckline = { MOVIEDECK_001_________________(CTRL_+/-) };
+	VHGmovieintervalline = { CAPTURE_EVERY_001_FRAMES___________(+/-) };
+	VHGmovieflashnone = { NO_FLASH_WHEN_SCREENCAPTURE__________(F) };
+	VHGmovieflashblack = { BLACK_FLASH_WHEN_SCREENCAPTURE_______(F) };
+	VHGmoviestartline = { START_RECORDING__________________(ENTER) };
+	VHGmoviestopline = { STOP_RECORDING___________________(ENTER) };
+	VHGmoviewarning = { WARNING: };
+	VHGmovieblackwarning = { BLACK_SCREEN! };
+	VHGmovieexistswarning = { MOVIEDECK_EXISTS! };
+	VHGmoviefpsline = { FPS:_00.00 };
+	VHGmovierecording = { RECORDING };
+	VHGmoviestopped = { STOP_REC };
+	VHGmoviepausedtext = { PAUSE_REC };
+	VHGmovieresumedtext = { RESUME_REC };
+	VHGmoviefailtext = { MOVIE_WRITE_ERROR };
 	VHGtargettext = { VIMANA TARGET SET };
 	VHGtargetfailedtext = { NO TARGET AVAILABLE };
 	VHGunknowntext = { UNKNOWN GOES MODULE };
@@ -514,6 +541,10 @@
 	VHGgraphicsborderdefault = { DEFAULT BORDER                       (B) };
 	VHGgraphicsborderseamless = { SEAMLESS BORDER                      (B) };
 	vector VHGgraphicsregion = 10; 130; 310; 180;
+	vector VHGmovieregion = 13; 131; 175; 180;
+	vector VHGmoviebar = 13; 138; 175; 139;
+	vector VHGmoviewarnregion = 14; 161; 174; 168;
+	vector VHGmovierecordregion = 15; 132; 130; 137;
 	VHGinfotitle1 = { REMOTE TARGET DATA };
 	VHGinfotitle2 = { LOCAL TARGET DATA };
 	VHGinfotitle3 = { EXTERNAL ENVIRONMENT };
@@ -856,6 +887,7 @@
 	VHGpriline = 18;
 	VHGpricrlf = 1;
 	VHGsnapshotheader = 14;
+	VHGmovieoutput = 64000;
 	VHGwideframes = 192000;
 	VHGwideoutput = 183200;
 
@@ -1048,6 +1080,7 @@
 	=> VHG FCS menu overlay;
 	=> VHG preferences overlay;
 	=> VHG device overlay;
+	=> VHG movie overlay;
 	=> VHG graphics overlay;
 	=> VHG help overlay;
 	=> VHG about overlay;
@@ -1070,6 +1103,7 @@
 		=> VHGUI prepare;
 		=> VHG raw snapshot pending;
 		=> VHG wide raw pending;
+		=> VHG movie capture pending;
 		=> VHG fps overlay;
 		=> VHG energy overlay;
 		=> VHG pod overlay;
@@ -1084,6 +1118,7 @@
 		=> VHG FCS menu overlay;
 		=> VHG preferences overlay;
 		=> VHG device overlay;
+		=> VHG movie overlay;
 		=> VHG graphics overlay;
 		=> VHG help overlay;
 		=> VHG about overlay;
@@ -2613,6 +2648,7 @@
 	=> VHG return key;
 	=> VHG fps key;
 	=> VHG graphics key;
+	=> VHG movie key;
 	=> VHG about key;
 	=> VHG help key;
 	=> VHG fast key;
@@ -2622,6 +2658,8 @@
 	=> VHG raw snapshot key;
 	=> VHG wide snapshot key;
 	A = [VHGabout]; ? A != 0 -> VHG input done;
+	=> VHG movie character;
+	A = [VHGmovieused]; ? A != 0 -> VHG input done;
 	=> VHG graphics character;
 	A = [VHGgraphicsused]; ? A != 0 -> VHG input done;
 	=> VHG menu mouse;
@@ -3154,6 +3192,7 @@
 	  available to onboard pages and the GOES console when either owns input. )
 	A = [VHGgraphics]; ? A != 0 -> VHG HUD brightness done;
 	A = [VHGhelpshow]; ? A != 0 -> VHG HUD brightness done;
+	A = [VHGmovieview]; ? A != 0 -> VHG HUD brightness done;
 	A = [VHGascii]; ? A = 43 -> VHG HUD brightness raise;
 	? A != 45 -> VHG HUD brightness done;
 	[VHGascii] = 0; A = [VHGNDsurlight]; ? A <= 10 -> VHG HUD brightness done;
@@ -5993,6 +6032,7 @@
 	  and the persistent starmap catalogue.  Save immediately so a later crash
 	  cannot resurrect the checkpoint the player deliberately replaced. )
 	[VHGmode] = 0; [VHGlanded] = 0; [VHGlandpending] = 0; [VHGinterpok] = 0;
+	[VHGmovie] = 0; [VHGmovieview] = 0; [VHGmoviepaused] = 0; [VHGmovieframe] = 0;
 	[VHGlandingselect] = 0; [VHGlandingview] = 1; [VHGlandinglon] = 0; [VHGlandinglat] = 60;
 	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
 	[VHGx] = 0; [VHGy] = 0; A = 0; A - 500; [VHGz] = A;
@@ -6017,6 +6057,10 @@
 	end;
 
 "VHG return ship"
+	( The original surface recorder cuts off during capsule recovery so it
+	  cannot follow the player indefinitely back into the Stardrifter. )
+	A = [VHGmovie]; ? A = 0 -> VHG return ship movie done; => VHG movie automatic stop;
+    "VHG return ship movie done"
 	[VHGx] = [VHGshipx]; [VHGy] = [VHGshipy]; [VHGz] = [VHGshipz];
 	[VHGalpha] = 0; [VHGbeta] = 180; [VHGmode] = 0; [VHGlanded] = 0;
 	[VHGinterpok] = 0;
@@ -8062,6 +8106,70 @@
 	A = [VHGinfoy]; A + 22; [VHGinfoy] = A;
 	end;
 
+"VHG movie overlay"
+	A = [VHGmovieview]; ? A = 0 -> VHG movie overlay done;
+	( ShowMovieSetup() uses the source's lower-visor bounds and inverse 3x5
+	  HUD lettering. Reuse the same pixel font as the restored F1 page. )
+	[VHGaboutrect] = vector VHGmovieregion; A = pal; A + 72;
+	[VHGaboutcolour] = [A]; => VHG about fill;
+	[VHGaboutrect] = vector VHGmoviebar; A = pal; A + 90;
+	[VHGaboutcolour] = [A]; => VHG about fill;
+
+	C = [VHGmovieinterval]; A = C; A / 100; A + 48; [VHGmovieintervalline plus 14] = A;
+	A = C; A / 10; A % 10; A + 48; [VHGmovieintervalline plus 15] = A;
+	A = C; A % 10; A + 48; [VHGmovieintervalline plus 16] = A;
+	[VHGmoviefps100] = 0; A = [VHGmovieelapsed]; ? A <= 0 -> VHG movie fps ready;
+	C = [VHGmoviecaptured]; C '* 1821; C / A; ? C <= 9999 -> VHG movie fps store; C = 9999;
+    "VHG movie fps store"
+	[VHGmoviefps100] = C;
+    "VHG movie fps ready"
+	C = [VHGmoviefps100]; A = C; A / 1000; A + 48; [VHGmoviefpsline plus 5] = A;
+	A = C; A / 100; A % 10; A + 48; [VHGmoviefpsline plus 6] = A;
+	A = C; A / 10; A % 10; A + 48; [VHGmoviefpsline plus 8] = A;
+	A = C; A % 10; A + 48; [VHGmoviefpsline plus 9] = A;
+
+	A = [VHGmovie]; ? A = 0 -> VHG movie overlay no record bar;
+	[VHGaboutrect] = vector VHGmovierecordregion; A = pal; A + 82;
+	[VHGaboutcolour] = [A]; => VHG about fill;
+    "VHG movie overlay no record bar"
+	A = [VHGmovieinterval]; ? A != 1 -> VHG movie warning deck;
+	A = [VHGmovieflashoff]; ? A != 0 -> VHG movie warning deck;
+	[VHGaboutrect] = vector VHGmoviewarnregion; A = pal; A + 85;
+	[VHGaboutcolour] = [A]; => VHG about fill; -> VHG movie warning filled;
+    "VHG movie warning deck"
+	A = [VHGmovieexists]; ? A != 2 -> VHG movie warning done;
+	[VHGaboutrect] = vector VHGmoviewarnregion; A = pal; A + 85;
+	[VHGaboutcolour] = [A]; => VHG about fill;
+    "VHG movie warning filled"
+	A = pal; A + 106; [VHGaboutink] = [A];
+	[VHGaboutsrc] = VHGmoviewarning; [VHGaboutx] = 15; [VHGabouty] = 162; => VHG about draw string;
+	A = [VHGmovieinterval]; ? A != 1 -> VHG movie warning exists text;
+	A = [VHGmovieflashoff]; ? A != 0 -> VHG movie warning exists text;
+	[VHGaboutsrc] = VHGmovieblackwarning; [VHGaboutx] = 51; [VHGabouty] = 162; => VHG about draw string;
+    "VHG movie warning exists text"
+	A = [VHGmovieexists]; ? A != 2 -> VHG movie warning done;
+	[VHGaboutsrc] = VHGmovieexistswarning; [VHGaboutx] = 106; [VHGabouty] = 162; => VHG about draw string;
+    "VHG movie warning done"
+
+	A = pal; A + 119; [VHGaboutink] = [A];
+	[VHGaboutsrc] = VHGmoviedeckline; [VHGaboutx] = 14; [VHGabouty] = 141; => VHG about draw string;
+	[VHGaboutsrc] = VHGmovieintervalline; [VHGaboutx] = 14; [VHGabouty] = 148; => VHG about draw string;
+	[VHGaboutsrc] = VHGmovieflashnone; A = [VHGmovieflashoff]; ? A != 0 -> VHG movie flash line ready;
+	[VHGaboutsrc] = VHGmovieflashblack;
+    "VHG movie flash line ready"
+	[VHGaboutx] = 14; [VHGabouty] = 155; => VHG about draw string;
+	[VHGaboutsrc] = VHGmoviestartline; A = [VHGmovie]; ? A = 0 -> VHG movie action ready;
+	[VHGaboutsrc] = VHGmoviestopline;
+    "VHG movie action ready"
+	[VHGaboutx] = 14; [VHGabouty] = 169; => VHG about draw string;
+	A = [VHGmovie]; ? A = 0 -> VHG movie title ready;
+	[VHGaboutsrc] = VHGmoviefpsline; [VHGaboutx] = 133; [VHGabouty] = 132; => VHG about draw string;
+	A = pal; A + 109; [VHGaboutink] = [A];
+    "VHG movie title ready"
+	[VHGaboutsrc] = VHGmovietitle; [VHGaboutx] = 14; [VHGabouty] = 132; => VHG about draw string;
+    "VHG movie overlay done"
+	end;
+
 "VHG graphics overlay"
 	A = [VHGgraphics]; ? A = 0 -> VHG graphics overlay done;
 	( NIV+'s F2 visual-effects card occupies the lower visor without changing
@@ -8253,6 +8361,7 @@
 
 "VHG load checkpoint action"
 	A = [VHGCstate]; ? A != 0 -> VHG load checkpoint busy;
+	[VHGmovie] = 0; [VHGmovieview] = 0; [VHGmoviepaused] = 0;
 	=> VHG load checkpoint; A = [VHSVok]; ? A = 0 -> VHG load checkpoint failed;
 	[VHGinterpok] = 0; => VHG load success notice; end;
     "VHG load checkpoint busy"
@@ -8291,6 +8400,109 @@
 	end;
 "VHG music unavailable"
 	[VHGnoticeptr] = VHGmusicfailedtext; [VHGnoticeframes] = 55;
+	end;
+
+"VHG movie capture pending"
+	( NIV+ records the raw adapted game page every moviefsec gameplay frames.
+	  Presentation-only F5 frames do not advance this original 18.206-Hz clock. )
+	A = [VHGmovie]; ? A != 0 -> VHG movie capture active;
+	A = [VHGmoviepaused]; ? A = 0 -> VHG movie capture pending done;
+	A = [VHGdosim]; ? A = 0 -> VHG movie capture pending done;
+	[VHGmovieelapsed]+; -> VHG movie capture pending done;
+    "VHG movie capture active"
+	A = [VHGdosim]; ? A = 0 -> VHG movie capture pending done;
+	[VHGmovieelapsed]+; [VHGmoviedelay]-;
+	A = [VHGmoviedelay]; ? A > 0 -> VHG movie capture cutoff;
+	[VHGsnapshotbase] = VHGUIframe; => VHG movie write;
+	A = [VHGmovie]; ? A = 0 -> VHG movie capture pending done;
+	[VHGmoviedelay] = [VHGmovieinterval]; => VHG movie capture indicator;
+    "VHG movie capture cutoff"
+	A = [VHGCstate]; ? A != 2 -> VHG movie capture pending done;
+	[VHGmoviecutoff]+; A = [VHGmoviecutoff]; ? A <= 100 -> VHG movie capture pending done;
+	=> VHG movie automatic stop;
+    "VHG movie capture pending done"
+	end;
+
+"VHG movie capture indicator"
+	( snapshot() flashes adaptor black when requested. Its default no-flash
+	  path instead marks the two bottom rows with the source tracking line. )
+	A = [VHGmovieflashoff]; ? A != 0 -> VHG movie tracking line;
+	[Rectangle Display Alignment] = 320; [Rectangle Bounds] = vector VHGUIregion;
+	[Rectangle Gradients] = vector Standard Black Gradients;
+	[Rectangle Effect] = service FX Raw; [Rectangle Target Layer] = VHGUIframe; => Rectangle;
+	end;
+    "VHG movie tracking line"
+	A = [VHGNDsurlight]; ? A > 38 -> VHG movie tracking dark;
+	A = pal; A + 127; C = [A]; -> VHG movie tracking colour ready;
+    "VHG movie tracking dark"
+	A = pal; A + 1; C = [A];
+    "VHG movie tracking colour ready"
+	[VHGmovierow] = 198;
+    "VHG movie tracking row"
+	A = [VHGmovierow]; A '* 320; A + 1; [VHGmoviepos] = A; [VHGmoviecol] = 1;
+    "VHG movie tracking pixel"
+	E = VHGUIframe; E + [VHGmoviepos]; [E] = C; [VHGmoviepos]+;
+	[VHGmoviecol]+; A = [VHGmoviecol]; ? A <= 319 -> VHG movie tracking pixel;
+	[VHGmovierow]+; A = [VHGmovierow]; ? A <= 199 -> VHG movie tracking row;
+	end;
+
+"VHG movie automatic stop"
+	[VHGmovie] = 0; [VHGmoviepaused] = 0; [VHGmovieexists] = 0;
+	A = [VHGmoviedeck]; ? A >= 999 -> VHG movie automatic deck ready; [VHGmoviedeck]+;
+    "VHG movie automatic deck ready"
+	[VHGmovieframe] = 0; => VHG movie format deck;
+	end;
+
+"VHG movie write"
+	A = [VHGmovieframe]; ? A >= 99999999 -> VHG movie write error;
+	[VHGmovieframe]+; [VHGmovievalue] = [VHGmovieframe];
+	[VHGmovieden] = 10000000; [VHGmoviepos] = 11;
+    "VHG movie frame digit loop"
+	A = [VHGmovievalue]; C = A; A '/ [VHGmovieden]; A + 48;
+	E = VHGmoviefile; E + [VHGmoviepos]; [E] = A;
+	A = C; A '% [VHGmovieden]; [VHGmovievalue] = A;
+	A = [VHGmovieden]; A '/ 10; [VHGmovieden] = A;
+	[VHGmoviepos]+; A = [VHGmoviepos]; ? A < 19 -> VHG movie frame digit loop;
+
+	[File Name] = VHGmovieroot; [File Command] = MKDIR; isocall;
+	[File Name] = VHGmoviedir; [File Command] = MKDIR; isocall;
+	[VHGmovierow] = 0;
+    "VHG movie assemble row"
+	A = [VHGmovierow]; A '* 320; A + VHGmovieoutput; [VHGmoviedst] = A;
+	A = 199; A - [VHGmovierow]; A '* 320; A + [VHGsnapshotbase]; [VHGmoviesrc] = A;
+	[VHGmoviecol] = 0;
+    "VHG movie assemble pixel"
+	E = [VHGmoviesrc]; E + [VHGmoviecol]; D = [VHGmoviedst]; D + [VHGmoviecol];
+	A = [E]; [D] = A; [VHGmoviecol]+; A = [VHGmoviecol]; ? A < 320 -> VHG movie assemble pixel;
+	[VHGmovierow]+; A = [VHGmovierow]; ? A < 200 -> VHG movie assemble row;
+
+	( Standard 320x200 uncompressed 32-bit BMP, shared with Gallery output. )
+	[VHGsnapshotheader plus 0] = E8364D42h;
+	[VHGsnapshotheader plus 1] = 00000003h;
+	[VHGsnapshotheader plus 2] = 00360000h;
+	[VHGsnapshotheader plus 3] = 00280000h;
+	[VHGsnapshotheader plus 4] = 01400000h;
+	[VHGsnapshotheader plus 5] = 00C80000h;
+	[VHGsnapshotheader plus 6] = 00010000h;
+	[VHGsnapshotheader plus 7] = 00000020h;
+	[VHGsnapshotheader plus 8] = E8000000h;
+	[VHGsnapshotheader plus 9] = 00000003h;
+	[VHGsnapshotheader plus 10] = 0; [VHGsnapshotheader plus 11] = 0;
+	[VHGsnapshotheader plus 12] = 0; [VHGsnapshotheader plus 13] = 0;
+	[File Name] = VHGmoviefile; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = VHGsnapshotheader; [Block Size] = 54; isocall;
+	? [File Status] + ERROR -> VHG movie write error;
+	A = [Block Size]; ? A != 54 -> VHG movie write error;
+	[File Position] = 54; [File Command] = WRITE;
+	[Block Pointer] = VHGmovieoutput; [Block Size] = 256000; isocall;
+	? [File Status] + ERROR -> VHG movie write error;
+	A = [Block Size]; ? A != 256000 -> VHG movie write error;
+	[File Name] = VHGmoviefile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 256054; isocall; ? [File Status] + ERROR -> VHG movie write error;
+	[VHGmoviecaptured]+; [VHGmovieexists] = 2; end;
+    "VHG movie write error"
+	[VHGmovie] = 0; [VHGmovieview] = 1; [VHGmoviepaused] = 0;
+	[VHGnoticeptr] = VHGmoviefailtext; [VHGnoticeframes] = 100;
 	end;
 
 "VHG snapshot key"
@@ -8338,6 +8550,8 @@
 	A = [VHGgraphics]; ? A != 0 -> VHG wide snapshot key done;
 	A = [VHGabout]; ? A != 0 -> VHG wide snapshot key done;
 	A = [VHGhelpshow]; ? A != 0 -> VHG wide snapshot key done;
+	A = [VHGmovie]; ? A != 0 -> VHG wide snapshot key done;
+	A = [VHGmovieview]; ? A != 0 -> VHG wide snapshot key done;
 	A = [VHGmode]; ? A = 0 -> VHG wide snapshot key done;
 	A = [VHGlanded]; ? A = 0 -> VHG wide snapshot key done;
 	A = [VHGwidephase]; ? A != 0 -> VHG wide snapshot key done;
@@ -8902,7 +9116,7 @@
 	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0;
 	A = [VHGinfo]; ? A = 0 -> VHG screen off no data; [VHGinfodelta] = 0FFFFFFFCh;
     "VHG screen off no data"
-	[VHGgraphics] = 0; [VHGhelpshow] = 0; [VHGabout] = 0;
+	[VHGgraphics] = 0; [VHGhelpshow] = 0; [VHGabout] = 0; [VHGmovieview] = 0;
     "VHG screen off key done"
 	end;
 
@@ -8913,6 +9127,121 @@
     "VHG graphics key released"
 	[VHGgraphicsheld] = 0;
     "VHG graphics key done"
+	end;
+
+"VHG movie key"
+	( NOCTIS.CPP/NOCTIS-1.CPP bind the source moviemaker card to F3.
+	  Recording continues when the card is reopened; F3 only toggles its view. )
+	A = [VHGconsole]; ? A != 0 -> VHG movie key done;
+	A = [VHGwidephase]; ? A != 0 -> VHG movie key done;
+	A = [KEY F3]; ? A = OFF -> VHG movie key released;
+	A = [VHGmovieheld]; ? A != 0 -> VHG movie key done; [VHGmovieheld] = 1;
+	A = [VHGmovieview]; ? A = 0 -> VHG movie key open;
+	[VHGmovieview] = 0; [VHGmoviecrossheld] = 0; [VHGmoviehyphenheld] = 0;
+	-> VHG movie key done;
+    "VHG movie key open"
+	[VHGmovieview] = 1; [VHGmoviecrossheld] = 0; [VHGmoviehyphenheld] = 0;
+	[VHGgraphics] = 0; [VHGabout] = 0; [VHGhelpshow] = 0;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0;
+	=> VHG movie format deck; => VHG movie check deck; -> VHG movie key done;
+    "VHG movie key released"
+	[VHGmovieheld] = 0;
+    "VHG movie key done"
+	end;
+
+"VHG movie character"
+	[VHGmovieused] = 0;
+	A = [VHGconsole]; ? A != 0 -> VHG movie character done;
+	A = [VHGascii]; ? A = 80 -> VHG movie pause key; ? A = 112 -> VHG movie pause key;
+	? A = 13 -> VHG movie enter key;
+	A = [VHGmovieview]; ? A = 0 -> VHG movie character done;
+	A = [VHGmovie]; ? A != 0 -> VHG movie character done;
+	A = [KEY CROSS]; ? A = OFF -> VHG movie cross released;
+	A = [VHGmoviecrossheld]; ? A != 0 -> VHG movie consume;
+	[VHGmoviecrossheld] = 1; -> VHG movie increase key;
+    "VHG movie cross released"
+	[VHGmoviecrossheld] = 0;
+	A = [KEY HYPHEN]; ? A = OFF -> VHG movie hyphen released;
+	A = [VHGmoviehyphenheld]; ? A != 0 -> VHG movie consume;
+	[VHGmoviehyphenheld] = 1; -> VHG movie decrease key;
+    "VHG movie hyphen released"
+	[VHGmoviehyphenheld] = 0;
+	A = [VHGascii]; ? A = 70 -> VHG movie flash key; ? A = 102 -> VHG movie flash key;
+	? A = 43 -> VHG movie increase key; ? A = 45 -> VHG movie decrease key;
+	-> VHG movie character done;
+    "VHG movie pause key"
+	A = [VHGmovie]; ? A != 0 -> VHG movie pause recording;
+	A = [VHGmoviepaused]; ? A = 0 -> VHG movie character done;
+	A = [VHGmovieview]; ? A = 0 -> VHG movie character done;
+	[VHGmovie] = 1; [VHGmoviepaused] = 0; [VHGmovieview] = 0;
+	[VHGnoticeptr] = VHGmovieresumedtext; [VHGnoticeframes] = 55;
+	-> VHG movie consume;
+    "VHG movie pause recording"
+	[VHGmovie] = 0; [VHGmoviepaused] = 1; [VHGmovieview] = 1;
+	[VHGnoticeptr] = VHGmoviepausedtext; [VHGnoticeframes] = 55;
+	-> VHG movie consume;
+    "VHG movie enter key"
+	A = [VHGmovie]; ? A != 0 -> VHG movie stop;
+	A = [VHGmovieview]; ? A = 0 -> VHG movie character done;
+	[VHGmovie] = 1; [VHGmoviepaused] = 0; [VHGmovieview] = 0;
+	[VHGmovieframe] = 0; [VHGmoviedelay] = 0; [VHGmoviecaptured] = 0;
+	[VHGmovieelapsed] = 0; [VHGmoviecutoff] = 0;
+	[VHGnoticeptr] = VHGmovierecording; [VHGnoticeframes] = 55;
+	-> VHG movie consume;
+    "VHG movie stop"
+	[VHGmovie] = 0; [VHGmoviepaused] = 0; [VHGmovieexists] = 0;
+	A = [VHGmoviedeck]; ? A >= 999 -> VHG movie stop deck ready; [VHGmoviedeck]+;
+    "VHG movie stop deck ready"
+	[VHGmovieframe] = 0; => VHG movie format deck;
+	A = [VHGmovieview]; ? A = 0 -> VHG movie stop notice;
+	=> VHG movie check deck;
+    "VHG movie stop notice"
+	[VHGnoticeptr] = VHGmoviestopped; [VHGnoticeframes] = 55;
+	-> VHG movie consume;
+    "VHG movie flash key"
+	A = [VHGmovieflashoff]; ? A = 0 -> VHG movie flash disable;
+	[VHGmovieflashoff] = 0; -> VHG movie consume;
+    "VHG movie flash disable"
+	[VHGmovieflashoff] = 1; -> VHG movie consume;
+    "VHG movie increase key"
+	A = [KEY CONTROL]; ? A = ON -> VHG movie deck higher;
+	A = [VHGmovieinterval]; ? A >= 999 -> VHG movie consume; [VHGmovieinterval]+;
+	-> VHG movie consume;
+    "VHG movie decrease key"
+	A = [KEY CONTROL]; ? A = ON -> VHG movie deck lower;
+	A = [VHGmovieinterval]; ? A <= 1 -> VHG movie consume; [VHGmovieinterval]-;
+	-> VHG movie consume;
+    "VHG movie deck higher"
+	A = [VHGmoviedeck]; ? A >= 999 -> VHG movie consume; [VHGmoviedeck]+;
+	[VHGmovieframe] = 0; => VHG movie format deck; => VHG movie check deck;
+	-> VHG movie consume;
+    "VHG movie deck lower"
+	A = [VHGmoviedeck]; ? A <= 1 -> VHG movie consume; [VHGmoviedeck]-;
+	[VHGmovieframe] = 0; => VHG movie format deck; => VHG movie check deck;
+    "VHG movie consume"
+	[VHGascii] = 0; [VHGmovieused] = 1;
+    "VHG movie character done"
+	end;
+
+"VHG movie format deck"
+	C = [VHGmoviedeck]; A = C; A / 100; A + 48;
+	[VHGmoviedeckline plus 10] = A; [VHGmoviedir plus 7] = A; [VHGmoviefile plus 7] = A;
+	A = C; A / 10; A % 10; A + 48;
+	[VHGmoviedeckline plus 11] = A; [VHGmoviedir plus 8] = A; [VHGmoviefile plus 8] = A;
+	A = C; A % 10; A + 48;
+	[VHGmoviedeckline plus 12] = A; [VHGmoviedir plus 9] = A; [VHGmoviefile plus 9] = A;
+	end;
+
+"VHG movie check deck"
+	( ShowMovieSetup checks frame one regardless of the last recorded filename. )
+	[VHGmoviefile plus 11] = 48; [VHGmoviefile plus 12] = 48;
+	[VHGmoviefile plus 13] = 48; [VHGmoviefile plus 14] = 48;
+	[VHGmoviefile plus 15] = 48; [VHGmoviefile plus 16] = 48;
+	[VHGmoviefile plus 17] = 48; [VHGmoviefile plus 18] = 49;
+	[File Name] = VHGmoviefile; [File Command] = TEST; isocall;
+	[VHGmovieexists] = 2; ? [File Status] + ERROR -> VHG movie deck free; end;
+    "VHG movie deck free"
+	[VHGmovieexists] = 1;
 	end;
 
 "VHG visor keys"
@@ -8959,8 +9288,9 @@
 "VHG toggle graphics action"
 	A = [VHGgraphics]; ? A = 0 -> VHG toggle graphics on;
 	[VHGgraphics] = 0; end;
-    "VHG toggle graphics on"
-	[VHGgraphics] = 1; [VHGhelpshow] = 0; [VHGabout] = 0; [VHGdev] = 0; [VHGprefs] = 0;
+"VHG toggle graphics on"
+	[VHGgraphics] = 1; [VHGhelpshow] = 0; [VHGabout] = 0; [VHGmovieview] = 0;
+	[VHGdev] = 0; [VHGprefs] = 0;
 	[VHGfcsopen] = 0; [VHGinfo] = 0; [VHGconsole] = 0;
 	end;
 
@@ -8999,7 +9329,7 @@
 	A = [VHGabout]; ? A = 0 -> VHG about key open;
 	[VHGabout] = 0; -> VHG about key done;
     "VHG about key open"
-	[VHGabout] = 1; [VHGhelpshow] = 0; [VHGgraphics] = 0; [VHGdev] = 0;
+	[VHGabout] = 1; [VHGhelpshow] = 0; [VHGgraphics] = 0; [VHGmovieview] = 0; [VHGdev] = 0;
 	[VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0; [VHGconsole] = 0;
 	-> VHG about key done;
     "VHG about key released"
@@ -9026,7 +9356,7 @@
 	[VHGhelpshow] = 0; end;
     "VHG toggle help on"
 	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0;
-	[VHGgraphics] = 0; [VHGabout] = 0; [VHGhelpshow] = 1;
+	[VHGgraphics] = 0; [VHGabout] = 0; [VHGmovieview] = 0; [VHGhelpshow] = 1;
 	end;
 
 "VHG fps key"

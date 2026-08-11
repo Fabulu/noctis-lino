@@ -27,6 +27,9 @@ parity, not a claim that parity is complete.
 - Toggle Ryan J. Bury's manual soundtrack with F8; silence remains available.
 - Save the completed 320x200 game view with M or `*`. Numbered BMP files are
   written to `GALLERY` without overwriting earlier captures.
+- Open the original moviemaker with F3 and record numbered raw 320x200 frames
+  into selectable `MOVIES\DDD` decks, with the source interval, flash, pause,
+  resume, frame count, and rate controls.
 - F1 restores the original framed Noctis IV+ About page with separate ship and
   surface text. F9 or `?` retains the accurate current-port control card.
 
@@ -138,6 +141,7 @@ Useful controls:
 - R: device back/close aboard ship; return in capsule on a surface
 - F2: visual effects; Page Up/Down: visor; F4: FPS display; F5: higher presentation rate
 - F6/F7: save/load; F8: music; M or `*`: numbered Gallery snapshot
+- F3: moviemaker; +/-: interval; Ctrl +/-: deck; F: flash; Enter/P: record/pause
 - Surface N or `/`: 916x200 panorama; V or `.`: raw panorama
 - Plus/minus: adjust the original HUD and visor-frame brightness
 - F1: original About page; F9 or `?`: complete current-port control card

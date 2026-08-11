@@ -43,6 +43,23 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Original F3 moviemaker
+
+- F3 restores `ShowMovieSetup()` on the lower Stardrifter visor with the
+  original deck, frame interval, flash treatment, start/stop, pause/resume,
+  overwrite warning, frame count, and measured-rate display.
+- Plus and minus select a 1 through 999 frame interval. Ctrl plus and minus
+  select decks 001 through 999, including the physical numeric keypad keys.
+  Enter records or stops, P pauses or resumes, and F switches between the
+  source tracking line and black capture flash.
+- Recording follows the 18.206 Hz source gameplay cadence even in the optional
+  higher presentation mode. It writes raw pre-overlay 320x200 BMP frames to
+  `MOVIES\DDD\########.BMP` and automatically stops before capsule return can
+  carry a deck indefinitely into the Stardrifter.
+- A native run recorded 50 consecutive complete frames, paused and resumed at
+  frame 33, then stopped cleanly. A separate physical-key run selected deck
+  002 with Ctrl and numeric-keypad plus.
+
 ### Source HUD brightness controls
 
 - Plus and minus now adjust `surlight` by one across the original 10 through

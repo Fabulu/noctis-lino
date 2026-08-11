@@ -920,3 +920,13 @@ An isolated production package captured the opening frame at default
 second complete frame at the source minimum of 10. The same outer-frame pixel
 changed from RGB 124,108,56 to RGB 64,52,28; both BMPs were exactly 256,054
 bytes. The temporary package and process were removed afterward.
+
+### Original F3 moviemaker regression
+
+An isolated production package received F3 through the real Windows/iGUI key
+path and displayed the source-shaped lower-visor moviemaker page over the live
+Stardrifter. Enter began deck 001, P paused at frame 33, P resumed, and Enter
+stopped after 50 frames. Files `00000001.BMP` through `00000050.BMP` were all
+exactly 256,054 bytes; no incomplete file remained. A second physical-key run
+held Ctrl with numeric-keypad plus and visibly selected movie deck 002,
+covering the host path that does not reliably emit an ASCII plus character.

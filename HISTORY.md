@@ -640,6 +640,16 @@ changes the shared ship/surface visor frame by one step within the source's
 immediately, without consuming those characters while GOES or an onboard page
 owns text input.
 
+The original F3 moviemaker is resident again. `ShowMovieSetup()` occupies its
+source lower-visor bounds and exposes deck selection, capture interval, flash
+treatment, start/stop, pause/resume, frame count, measured rate, and existing
+deck warnings. Recording follows source gameplay ticks rather than the host's
+optional presentation rate and writes raw 320x200 frames into numbered
+`MOVIES\DDD` decks. The numeric keypad plus and minus paths are handled from
+their physical keys so Ctrl deck selection remains reliable in the Windows
+host. A native session recorded 50 complete consecutive BMPs, paused and
+resumed at frame 33, and stopped without leaving a partial file.
+
 ## Current state
 
 The project is a playable Windows beta, not a claim of exact feature parity
