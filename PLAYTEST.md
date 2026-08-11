@@ -47,7 +47,10 @@ python tests/soak_game.py --frames 1000 --timeout 600
 The utility grades the exact 24-unit/96-byte telemetry contract: terminal
 frame, changed dzat, progressed pwr, nonzero framebuffer samples, clean exit,
 and wall-time/FPS. A 5-frame smoke run passed on 2026-08-08 (6/8 framebuffer
-samples nonzero).
+samples nonzero). A 36,000-frame headless soak passed on 2026-08-11: 488 s wall
+(8.1 min, 73.8 FPS), dzat/pwr progressed, 4/8 framebuffer samples nonzero, and a
+clean exit with deterministic output (sha256
+f439fb1d6e3bf02e6ebc9ace4f4620e4b60850b714042d1b9eec79b9483c51ed).
 
 The playable build opens in iGUI under its `Noctis IV` title at 642x426, with
 an exact 640x400 work area presenting the authentic 320x200 framebuffer at 2x.
@@ -218,8 +221,14 @@ Inf/NaN, over-range, and `Removed:` records without rewriting the player's file.
 
 - The full integrated game loop under exclusive mode (the bounded soak harness passes; multi-hour coverage remains open)
 - Multi-hour stability (the complete production journey and bounded capsule
-  runs plus a 189.8-second interactive standalone-bundle session pass, but an
-  unattended multi-hour session has not been completed)
+  runs, a 189.8-second interactive standalone-bundle session, and a 36,000-frame
+  / 8.1-minute headless soak all pass, but an unattended multi-hour session has
+  not been completed). The longest unattended headless soak achievable in the
+  development environment is bounded by its per-run wall-clock cap; a true
+  multi-hour pass should be run overnight, e.g.
+  `python tests/soak_game.py --frames 2000000 --timeout 86400`, against the
+  stable headless `work/game.txt` (the GUI `vhgame.exe` build needs a desktop
+  session and is not reachable headlessly)
 
 The automated iGUI capsule probe now targets a generated class-3 system and
 selects a calm ocean reflection case. It completes atmospheric fall, 11
