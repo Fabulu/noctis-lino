@@ -59,7 +59,10 @@ parity, not a claim that parity is complete.
   distinguishes stars from planets, reports ambiguous prefixes, and resolves
   a planet's parent star. Bare `SL` lists every non-removed star in source file
   order. Its 7,586 output rows fit in the expanded 8,192-row scrollback, and
-  literal underscores in catalogue names remain visible. `PAR <catalogued
+  literal underscores in catalogue names remain visible. `SL <range>` runs
+  the original centred procedural scan, reports matching stars with X, -Y, Z,
+  and two-decimal light-year distance, and can be interrupted with Escape while
+  the window remains responsive. `PAR <catalogued
   name>[:range]` now regenerates the
   original procedural sector cube and reports X, -Y, Z coordinates. The G
   shortcut includes the same seven retained output rows as the wall display.
@@ -107,7 +110,7 @@ Useful controls:
 - W/A/S/D: move; right-drag or arrows: look
 - E inside the Stardrifter: ascend; walk into the roof opening to return
 - First wall panel + Enter: physical GOES; `NEXT`: choose/fly to a nearby star
-- Bare `SL`: list all known stars; Home/End/Page Up/Page Down: scroll output
+- `SL` lists all known stars; `SL <range>` scans locally; Escape stops a scan
 - `CAT`: read; `CAST`: add; `REP`: correct; `DELE`: remove; `CLEAN`: compact
 - Third wall panel + Enter: approach, select a landing site, and descend
 - G and L: accessible GOES and landing fallbacks

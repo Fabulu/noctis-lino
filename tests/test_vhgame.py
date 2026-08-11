@@ -1670,7 +1670,7 @@ def main() -> int:
         and sum(name.startswith("F") for _, name, _, _ in records) > 1,
         "GOES CLR and WHERE restore resident output clearing and real catalogue parent lookup",
     )
-    sl_section = section(game, '"VHG SL"', '"VHG WHERE"')
+    sl_section = section(game, '"VHG SL"', '"VHG SL ranged start"')
     output_line = section(panels, '"VH GOES output line"', '"VH GOES output window"')
     star_labels = [
         starmap[offset + 8:offset + 28].decode("latin-1")
@@ -1681,14 +1681,20 @@ def main() -> int:
     check(
         all(token in original_sl for token in (
             'msg ("SL (OPTIONAL RANGE)");', 'msg ("GLOBAL STARS LISTING:");',
+            'msg ("RANGED STARS LISTING:");', "if (sts <= 2 || sts > 10000)",
             'memcmp (&object_id, "Removed:", 8)', "object_label[21] == 'S'",
             'sprintf (textbuffer, "*%s", object_label);', 'msg ("STARS LISTING END.");',
+            "retval = isthere (object_id);", 'sprintf (textbuffer, "$D=%1.2f L.Y.",',
+            'msg ("INTERRUPTED!");',
         ))
         and all(token in game for token in (
-            '"VHG command maybe sl"', '"VHG command sl tail"', '"VHG SL"',
+            '"VHG command maybe sl"', '"VHG command sl range ready"', '"VHG SL"',
             'VHGslglobal = { GLOBAL_STARS_LISTING: };', '"VHG SL catalogue loop"',
             "? C = VHCATTOMB1 -> VHG SL catalogue next;", "? A != VHCATS -> VHG SL catalogue next;",
             "[VHGslline plus 0] = 42;", "? A < 20 -> VHG SL label copy;",
+            '"VHG SL ranged start"', '"VHG SL advance"', "[VHGslbudget] = 65536;",
+            '"VHG SL scan candidate"', '"VHG SL output distance"', '"VHG SL cancel"',
+            "[VHGslcancelheld] = 1;", "=> VHG SL advance; => VHG fpu clean;",
         ))
         and "=> VHCAT identity valid;" not in sl_section
         and "? A = 95" not in output_line
@@ -1699,7 +1705,7 @@ def main() -> int:
         and len(star_labels) == 7579
         and star_labels[0].rstrip() == "FENIA"
         and star_labels[-1].rstrip() == "GM-E01-51",
-        "GOES bare SL preserves the complete source-ordered global star catalogue in scrollback",
+        "GOES SL preserves the global catalogue and frame-batches the source ranged scan",
     )
     elraine = next(record for record in records if record[1] == "ELRAINE" and record[2] == "S")
     par_range = 14

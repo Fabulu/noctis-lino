@@ -28,9 +28,6 @@ goal, with an in-game off control preserving the original silent experience.
 - [ ] Recurring: commit and push intermittently after coherent, meaningful
   playable fixes, and before switching feature areas, pausing, or handing off.
   Leave no finished checkpoint only in the local checkout.
-- [ ] Restore `SL <range>` with the original interruptible procedural sector
-  scan. Bare `SL` is complete; do not substitute its global catalogue listing
-  when a range was supplied.
 
 ## Lean check before any new wave
 
@@ -57,6 +54,13 @@ first -- a broken foundation makes every later result meaningless.
   The expanded 8,192-row history retains the complete shipped result: 7,579
   stars and 7,586 total output rows. A native production-derived probe matched
   every retained cell from `FENIA` through `GM-E01-51`.
+- `SL <range>` now restores the module's distinct ranged branch. It checks
+  catalogue stars in source file order against the same centred procedural
+  sector cube as PAR, reports `$X`, source-sign `$Y`, `$Z`, and two-decimal
+  light-year distance, and accepts Escape as `INTERRUPTED!` without quitting
+  the game. Candidate work is frame-batched so the resizable host remains
+  responsive. A native range-14 run matched the independent source model's
+  ELRAINE and ONIMACMAROOS records and all twelve detail rows exactly.
 - `WHERE <catalogued name>` now searches the real mutable `STARMAP.BIN` record
   names with the source's exact-match preference and ambiguous-prefix report.
   A star receives the original PAR guidance; a planet's two-digit object code

@@ -48,7 +48,10 @@ to start over. `WHERE <catalogued name>` identifies a charted star or resolves
 a planet to its parent system on the second GOES face; `CLR` clears that output
 tree. Bare `SL` lists all 7,579 non-removed star records in source order; the
 8,192-row history retains the complete listing and Home, End, Page Up, and
-Page Down move through it. `PAR <catalogued name>[:range]` performs the original procedural sector
+Page Down move through it. `SL <range>` scans that centred procedural sector
+cube and lists only found catalogue stars with coordinates and light-year
+distance; Escape interrupts a long scan without quitting. `PAR <catalogued
+name>[:range]` performs the original procedural sector
 search and reports the star coordinates as X, -Y, Z; underscores stand for
 spaces in multi-word names. `ST <catalogued name>[:range]` sends a named star
 to Vimana, or starts local drive to a named planet when its system has already

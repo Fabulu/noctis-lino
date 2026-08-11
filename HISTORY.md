@@ -540,6 +540,12 @@ and retains the complete 7,586-row result in an expanded 8,192-row physical
 GOES history. Separating the output terminator from the command cursor also
 restored printable underscores in names such as `ALEXANDER_HAMILTON`.
 
+The optional ranged `SL` branch then restored `SL.CPP`'s catalogue-ordered
+procedural search and its X, -Y, Z, light-year, divider, range-fallback, and
+interruption behavior. Unlike the DOS module's blocking loop, the hosted scan
+advances a measured candidate batch per frame, preserving resize and repaint
+responsiveness while Escape returns to play instead of closing the game.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

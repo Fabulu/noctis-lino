@@ -820,3 +820,12 @@ non-removed `S` records in exact STARMAP file order, the closing divider, and
 independent decode of the tracked `STARMAP.BIN`; the unused tail was blank.
 The comparison included `ALEXANDER_HAMILTON`, proving that a literal underscore
 is now rendered as catalogue text rather than mistaken for the input cursor.
+
+The ranged follow-up submitted `SL 14` from the opening galactic position. A
+production-derived native run completed the same 20.8-million-candidate search
+in 5,076 bounded advance calls and emitted exactly nineteen rows. The two hits
+were source-ordered ELRAINE at `3811056,707894,-212149`, `$D=35.30 L.Y.`, then
+ONIMACMAROOS at `3973200,721255,-448030`, `$D=39.47 L.Y.`. Headers, per-hit
+dividers, coordinates, rounded distances, closing divider, and end marker all
+matched an independent `SL.CPP` sector model. Production uses a larger measured
+65,536-candidate frame batch while retaining the same results and Escape path.

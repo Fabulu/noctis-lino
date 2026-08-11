@@ -79,6 +79,9 @@
 	VHGwherematch = 0; VHGwhereexact = 0; VHGwherei = 0; VHGwheretype = 0;
 	VHGwherecode = 0; VHGwhereunderscores = 0;
 	VHGslleast = 0; VHGslrecno = 0; VHGslptr = 0; VHGsli = 0;
+	VHGslactive = 0; VHGslphase = 0; VHGslbudget = 0; VHGslcancelheld = 0;
+	VHGslgalx0 = 0; VHGslgalx1 = 0; VHGslgaly0 = 0; VHGslgaly1 = 0;
+	VHGslgalz0 = 0; VHGslgalz1 = 0;
 	VHGparrange = 100; VHGparvalue = 0; VHGpardigits = 0; VHGparaction = 0;
 	VHGpartarget0 = 0; VHGpartarget1 = 0;
 	VHGparlowhi = 0; VHGparlowlo = 0; VHGparhighhi = 0; VHGparhighlo = 0;
@@ -335,8 +338,14 @@
 	VHGcleanend = { END };
 	VHGslusage1 = { SL_(OPTIONAL_RANGE) };
 	VHGslglobal = { GLOBAL_STARS_LISTING: };
+	VHGslranged = { RANGED_STARS_LISTING: };
 	VHGslend = { STARS_LISTING_END. };
 	VHGslnone = { NO_KNOWN_STARS. };
+	VHGslinterrupted = { INTERRUPTED! };
+	VHGslitembar = { [&&&&&&&&&&&&&&&&&&&& };
+	VHGslly = { _L.Y. };
+	VHGslbusytext = { SL_SCAN_ACTIVE:_ESC_TO_STOP };
+	VHGslcompletetext = { SL_SCAN_COMPLETE };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -1046,6 +1055,7 @@
 	=> VHG cadence;
 	=> VHG interpolation advance;
 	=> VHG fpu clean;
+	=> VHG SL advance; => VHG fpu clean;
 	( Commit a landing at a clean frame boundary.  The accepted L event is
 	  discovered after the ship and close-approach globe have rendered; doing
 	  terrain/sky construction in that same renderer frame can carry stale
@@ -2449,7 +2459,10 @@
 		  ship/device character pipeline against partially transitioned surface
 		  state; a queued landing key could otherwise survive into that pipeline
 		  and corrupt its indirect key-table return.  Escape remains immediate. )
-		A = [KEY ESCAPE]; ? A = ON -> VHG quit;
+		A = [VHGslcancelheld]; ? A = 0 -> VHG input escape ready;
+		A = [KEY ESCAPE]; ? A = ON -> VHG input done; [VHGslcancelheld] = 0;
+	    "VHG input escape ready"
+		A = [KEY ESCAPE]; ? A = ON -> VHG input escape;
 		A = [VHGmode]; ? A = 0 -> VHG input active;
 		A = [VHGlanded]; ? A != 0 -> VHG input active;
 		-> VHG input done;
@@ -2487,7 +2500,7 @@
 	=> VHG output scroll; A = [VHGscrollused]; ? A != 0 -> VHG input done;
 	=> VHG visor keys;
 	=> VHG mouse look;
-	A = [KEY ESCAPE]; ? A = ON -> VHG quit;
+	A = [KEY ESCAPE]; ? A = ON -> VHG input escape;
 	( Console characters are edge events, not held state.  Consume them on
 	  every presented frame so the 60-Hz presenter cannot discard two of
 	  every three keystrokes; only physical look/movement stays sim-paced. )
@@ -2622,6 +2635,10 @@
 	A = [KEY A]; ? A = OFF -> VHG no A; A = 0; A - VHGSTEP; [VHGstepv] = A; => VHG strafe;
     "VHG no A"
 	A = [KEY D]; ? A = OFF -> VHG input done; [VHGstepv] = VHGSTEP; => VHG strafe;
+	-> VHG input done;
+    "VHG input escape"
+	A = [VHGslactive]; ? A = 0 -> VHG quit;
+	=> VHG SL cancel; -> VHG input done;
     "VHG input done"
 	=> VHG clamp position;
 	=> VHG platform;
@@ -3309,6 +3326,9 @@
 	end;
 
 "VHG command"
+	A = [VHGslactive]; ? A = 0 -> VHG command ready;
+	[VHGnoticeptr] = VHGslbusytext; [VHGnoticeframes] = 75; end;
+    "VHG command ready"
 	A = [vhptext plus 42]; ? A = 83 -> VHG command starts s;
 	? A = 76 -> VHG command maybe load;
 	? A = 78 -> VHG command starts n;
@@ -3592,10 +3612,26 @@
 	? A = 84 -> VHG command starts st; -> VHG command done;
     "VHG command maybe sl"
 	[VHGcmdi] = 44;
-    "VHG command sl tail"
-	A = vhptext; A + [VHGcmdi]; C = [A];
+    "VHG command sl spaces"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 32 -> VHG command sl argument;
+	[VHGcmdi]+; -> VHG command sl spaces;
+    "VHG command sl argument"
 	? C = 0 -> VHG command sl ready; ? C = 95 -> VHG command sl ready;
-	? C != 32 -> VHG command done; [VHGcmdi]+; -> VHG command sl tail;
+	=> VHG parse coordinate; A = [VHGcmdok]; ? A = 0 -> VHG command done;
+    "VHG command sl range tail"
+	A = vhptext; A + [VHGcmdi]; C = [A]; ? C = 32 -> VHG command sl range space;
+	? C = 0 -> VHG command sl range ready; ? C = 95 -> VHG command sl range ready;
+	-> VHG command done;
+    "VHG command sl range space"
+	[VHGcmdi]+; -> VHG command sl range tail;
+    "VHG command sl range ready"
+	A = [VHGcmdvalue]; ? A <= 2 -> VHG command sl range default;
+	? A > 10000 -> VHG command sl range default; [VHGparrange] = A;
+	-> VHG command sl ranged;
+    "VHG command sl range default"
+	[VHGparrange] = 100;
+    "VHG command sl ranged"
+	[VHGcmdsilent] = 1; => VHG SL ranged start; -> VHG command done;
     "VHG command sl ready"
 	[VHGcmdsilent] = 1; => VHG SL; -> VHG command done;
     "VHG command starts st"
@@ -3720,6 +3756,171 @@
 	[VHPoutptr] = VHGslend; => VH GOES output line; end;
     "VHG SL no stars"
 	[VHPoutptr] = VHGslnone; => VH GOES output line; end;
+
+"VHG SL ranged start"
+	( SL.CPP's optional range examines every non-removed catalogue star in file
+	  order against a centred procedural sector cube.  The DOS module monopolised
+	  the machine while doing so; retain its ordering and results but advance a
+	  bounded candidate batch per host frame so resize, repaint, and Escape remain
+	  responsive throughout a long scan. )
+	[VHGwherei] = 0;
+    "VHG SL ranged bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG SL ranged bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGparusage0; => VH GOES output line;
+	[VHPoutptr] = VHGslusage1; => VH GOES output line;
+	[VHPoutptr] = VHGrepusage2; => VH GOES output line;
+	[VHPoutptr] = VHGslranged; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHGslgalx0] = [MgDzatX0]; [VHGslgalx1] = [MgDzatX1];
+	[VHGslgaly0] = [MgDzatY0]; [VHGslgaly1] = [MgDzatY1];
+	[VHGslgalz0] = [MgDzatZ0]; [VHGslgalz1] = [MgDzatZ1];
+	A = [VHGparrange]; A '* 50000; [VHGparoffset] = A;
+	[VHGparaxis0] = [VHGslgalx0]; [VHGparaxis1] = [VHGslgalx1]; => VHG PAR sector base;
+	[VHGparbasex] = [VHGparbaseout];
+	[VHGparaxis0] = [VHGslgaly0]; [VHGparaxis1] = [VHGslgaly1]; => VHG PAR sector base;
+	[VHGparbasey] = [VHGparbaseout];
+	[VHGparaxis0] = [VHGslgalz0]; [VHGparaxis1] = [VHGslgalz1]; => VHG PAR sector base;
+	[VHGparbasez] = [VHGparbaseout];
+	[VHGslleast] = 0; [VHGslrecno] = 0; [VHGslphase] = 0; [VHGslactive] = 1;
+	[VHGnoticeptr] = VHGslbusytext; [VHGnoticeframes] = 75;
+	end;
+
+"VHG SL advance"
+	A = [VHGslactive]; ? A = 0 -> VHG SL advance done;
+	[VHGnoticeptr] = VHGslbusytext; [VHGnoticeframes] = 2;
+	[VHGslbudget] = 65536;
+    "VHG SL advance loop"
+	A = [VHGslbudget]; ? A <= 0 -> VHG SL advance done;
+	A = [VHGslphase]; ? A != 0 -> VHG SL scan candidate;
+    "VHG SL find record"
+	A = [VHGslrecno]; ? A >= [VHCATrecs] -> VHG SL ranged complete;
+	A '* 8; A + vhcatraw; A + 1; [VHGslptr] = A;
+	C = [A]; ? C != VHCATTOMB0 -> VHG SL ranged record live;
+	C = [A plus 1]; ? C = VHCATTOMB1 -> VHG SL ranged next record;
+    "VHG SL ranged record live"
+	A = [VHGslptr]; A = [A plus 7]; A > 8; A & FFh;
+	? A != VHCATS -> VHG SL ranged next record; [VHGslleast] = 1;
+	A = [VHGslptr]; [VHCATid0] = [A]; [VHCATid1] = [A plus 1];
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHG SL ranged next record;
+	A = [VHGslptr]; [FA0] = [A]; [FA1] = [A plus 1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FSub;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparlowhi] = [VHCATkeyhi]; [VHGparlowlo] = [VHCATkeylo];
+	A = [VHGslptr]; [FA0] = [A]; [FA1] = [A plus 1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FAdd;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparhighhi] = [VHCATkeyhi]; [VHGparhighlo] = [VHCATkeylo];
+	[VHGparix] = 0; [VHGpariy] = 0; [VHGpariz] = 0;
+	[VHGparsectx] = [VHGparbasex]; [VHGparsecty] = [VHGparbasey]; [VHGparsectz] = [VHGparbasez];
+	[VHGslphase] = 1; -> VHG SL advance loop;
+    "VHG SL ranged next record"
+	[VHGslrecno]+; -> VHG SL advance loop;
+
+    "VHG SL scan candidate"
+	[VHGslbudget]-;
+	A = [VHGparsectx]; A + [VHGparsectz]; [VHSsumxz] = A;
+	A & 1FFFFh; A + [VHGparsectx]; ? A = VHSCUTOFF -> VHG SL scan next z;
+	A - VHSCUTOFF; [VHStempx] = A;
+	[VHSfmA] = A; [VHSfmB] = [VHSsumxz]; => VHS foldmul;
+	[VHSaccum] = [VHSfmResult];
+	A = [VHSsumxz]; A + [VHSaccum]; [VHSidk] = A;
+	A = [VHSaccum]; A & 1FFFFh; A + [VHGparsecty];
+	? A = VHSCUTOFF -> VHG SL scan next z; A - VHSCUTOFF; [VHStempy] = A;
+	[VHSfmA] = A; [VHSfmB] = [VHSidk]; => VHS foldmul;
+	[VHSaccum] = [VHSfmResult];
+	A = [VHSaccum]; A & 1FFFFh; A + [VHGparsectz];
+	? A = VHSCUTOFF -> VHG SL scan next z; A - VHSCUTOFF; [VHStempz] = A;
+	[FJ0] = [VHStempx]; [FJ1] = [VHStempy]; [FJ2] = [VHStempz]; => NsIdentityD;
+	[VHCATid0] = [nsid0]; [VHCATid1] = [nsid1]; => VHCAT key;
+	A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHGparlowhi] -> VHG SL candidate above low;
+	? A '< [VHGparlowhi] -> VHG SL scan next z;
+	? B '> [VHGparlowlo] -> VHG SL candidate above low; -> VHG SL scan next z;
+    "VHG SL candidate above low"
+	? A '< [VHGparhighhi] -> VHG SL scan hit;
+	? A '> [VHGparhighhi] -> VHG SL scan next z;
+	? B '< [VHGparhighlo] -> VHG SL scan hit;
+    "VHG SL scan next z"
+	[VHGparsectz] + 100000; [VHGpariz]+; A = [VHGpariz];
+	? A < [VHGparrange] -> VHG SL advance loop;
+	[VHGpariz] = 0; [VHGparsectz] = [VHGparbasez];
+	[VHGparsecty] + 100000; [VHGpariy]+; A = [VHGpariy];
+	? A < [VHGparrange] -> VHG SL advance loop;
+	[VHGpariy] = 0; [VHGparsecty] = [VHGparbasey];
+	[VHGparsectx] + 100000; [VHGparix]+; A = [VHGparix];
+	? A < [VHGparrange] -> VHG SL advance loop;
+	[VHGslphase] = 0; [VHGslrecno]+; -> VHG SL advance loop;
+
+    "VHG SL scan hit"
+	=> VHG SL output hit;
+	[VHGslphase] = 0; [VHGslrecno]+; -> VHG SL advance loop;
+    "VHG SL ranged complete"
+	[VHGslactive] = 0; [VHGslphase] = 0; [VHGslcancelheld] = 1;
+	[VHGnoticeptr] = VHGslcompletetext; [VHGnoticeframes] = 75;
+	A = [VHGslleast]; ? A = 0 -> VHG SL ranged no stars;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGslend; => VH GOES output line; -> VHG SL advance done;
+    "VHG SL ranged no stars"
+	[VHPoutptr] = VHGslnone; => VH GOES output line;
+    "VHG SL advance done"
+	end;
+
+"VHG SL cancel"
+	A = [VHGslactive]; ? A = 0 -> VHG SL cancel done;
+	[VHGslactive] = 0; [VHGslphase] = 0; [VHGslcancelheld] = 1;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGslinterrupted; => VH GOES output line;
+	[VHGnoticeptr] = VHGslinterrupted; [VHGnoticeframes] = 75;
+    "VHG SL cancel done"
+	end;
+
+"VHG SL output hit"
+	[VHGslline plus 0] = 42; [VHGsli] = 0;
+    "VHG SL hit label copy"
+	A = [VHGsli]; B = A; A / 4; C = [VHGslptr]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; C = VHGslline; C + 1; C + [VHGsli]; [C] = A;
+	[VHGsli]+; A = [VHGsli]; ? A < 20 -> VHG SL hit label copy;
+	[VHGslline plus 21] = 0; [VHPoutptr] = VHGslline; => VH GOES output line;
+	[VHGparaxischar] = 88; [VHGparcoord] = [VHStempx]; => VHG SL output coordinate;
+	[VHGparaxischar] = 89; A = 0; A - [VHStempy]; [VHGparcoord] = A;
+	=> VHG SL output coordinate;
+	[VHGparaxischar] = 90; [VHGparcoord] = [VHStempz]; => VHG SL output coordinate;
+	=> VHG SL output distance;
+	[VHPoutptr] = VHGslitembar; => VH GOES output line;
+	end;
+
+"VHG SL output coordinate"
+	[VHGonrowdst] = VHGparline; => VHG onboard row begin;
+	[VHGonrowchar] = 36; => VHG onboard row append char;
+	[VHGonrowchar] = [VHGparaxischar]; => VHG onboard row append char;
+	[VHGonrowchar] = 61; => VHG onboard row append char;
+	[VHGonrowvalue] = [VHGparcoord]; => VHG onboard row append number;
+	=> VHG onboard row finish; [VHPoutptr] = VHGparline; => VH GOES output line;
+	end;
+
+"VHG SL output distance"
+	[FI] = [VHStempx]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGslgalx0]; [FA1] = [VHGslgalx1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul; [FC0] = [FA0]; [FC1] = [FA1];
+	[FI] = [VHStempy]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGslgaly0]; [FA1] = [VHGslgaly1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [FC0]; [FB1] = [FC1]; => FAdd; [FC0] = [FA0]; [FC1] = [FA1];
+	[FI] = [VHStempz]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGslgalz0]; [FA1] = [VHGslgalz1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [FC0]; [FB1] = [FC1]; => FAdd; => FSqrt;
+	[FB0] = 47AE147Bh; [FB1] = 3F747AE1h; => FMul; => FToIntNear;
+	[VHGonrowdst] = VHGparline; => VHG onboard row begin;
+	[VHGonrowchar] = 36; => VHG onboard row append char;
+	[VHGonrowchar] = 68; => VHG onboard row append char;
+	[VHGonrowchar] = 61; => VHG onboard row append char;
+	[VHGinfofixedvalue] = [FI]; [VHGinfofixeddigits] = 2; => VHG info append fixed;
+	[VHGonrowsrc] = VHGslly; => VHG onboard row append text;
+	=> VHG onboard row finish; [VHPoutptr] = VHGparline; => VH GOES output line;
+	end;
 
 "VHG WHERE"
 	( WHERE.CPP is a bundled GOES Net module.  Search the same persistent
