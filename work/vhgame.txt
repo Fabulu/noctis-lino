@@ -57,6 +57,8 @@
 	VHGdx = 0; VHGdz = 0; VHGdist = 0;
 	VHGesc = 0; VHGframe = 0; VHGsent = 0;
 	VHGmouseheld = 0; VHGmousex = 0; VHGmousey = 0; VHGmousedx = 0; VHGmousedy = 0;
+	VHGmenuheld = 0; VHGmenux = 0; VHGmenuy = 0;
+	VHGmenuhover = 0; VHGmenuhovery = 0; VHGmenukey = 0;
 	VHGconsole = 0; VHGconsoleview = 0; VHGascii = 0; VHGasciiheld = 0; VHGasciikey = 0;
 	VHGscreen = 0FFFFFFFFh; VHGscreenprev = 0FFFFFFFFh; VHGfcsopen = 0;
 	VHGscrollheld = 0; VHGscrollused = 0;
@@ -1747,9 +1749,9 @@
 	[PVfirst] = 0; [PVn] = 64;
 	[PVfr] = 16; [PVfg] = 32; [PVfb] = 63; => PAL tavola;
 
-	( Temporary live-space bands until the sector/star palette joins this
-	  executable.  Keep their source ordering: blue-white cosmos, warm stars,
-	  and cool planet/UI colours. )
+	( Bootstrap bands used before the first system resolves.  VHG star palette
+	  replaces 64..127, while VHGND globe surface replaces the resident moon
+	  and planet bands 128..191 and 192..255 with surface()'s generated colours. )
 	[PVsrc] = range8088; [PVself] = 0;
 	[PVfirst] = 64; [PVn] = 64;
 	[PVfr] = 32; [PVfg] = 48; [PVfb] = 63; => PAL tavola;
@@ -2033,6 +2035,7 @@
 	=> VHG music key;
 	=> VHG graphics character;
 	A = [VHGgraphicsused]; ? A != 0 -> VHG input done;
+	=> VHG menu mouse;
 	=> VHG device key;
 	=> VHG FCS menu key;
 	=> VHG info key;
@@ -2362,6 +2365,54 @@
 	A = [VHGbrowseptr]; [VHGbrowsex] = [A plus 0]; [VHGbrowsey] = [A plus 1];
 	[VHGbrowsez] = [A plus 2]; [VHGbrowsevalid] = 1;
     "VHG browse seek done"
+	end;
+
+"VHG menu mouse"
+	( The source exposes four gaze-selected command slots.  The desktop page
+	  keeps those same slots but also lets the visible rows act as controls.
+	  Convert the host pointer back through VHGUI's current aspect fit so the
+	  hit areas remain exact after any resize. )
+	[VHGmenuhover] = 0; [VHGmenuhovery] = 0; [VHGmenukey] = 0;
+	A = [VHGdev]; ? A != 0 -> VHG menu mouse active;
+	A = [VHGfcsopen]; ? A != 0 -> VHG menu mouse active; -> VHG menu mouse release;
+    "VHG menu mouse active"
+	A = [Client Owns Mouse Pointer]; ? A = NO -> VHG menu mouse release;
+	A = [VHGUIdw]; ? A <= 0 -> VHG menu mouse release;
+	A = [VHGUIdh]; ? A <= 0 -> VHG menu mouse release;
+	A = [Pointer X Coordinate]; ? A < [VHGUIleft] -> VHG menu mouse release;
+	C = [VHGUIleft]; C + [VHGUIdw]; ? A '>= C -> VHG menu mouse release;
+	A - [VHGUIleft]; A '* 320; A '/ [VHGUIdw]; [VHGmenux] = A;
+	A = [Pointer Y Coordinate]; ? A < [VHGUItop] -> VHG menu mouse release;
+	C = [VHGUItop]; C + [VHGUIdh]; ? A '>= C -> VHG menu mouse release;
+	A - [VHGUItop]; A '* 200; A '/ [VHGUIdh]; [VHGmenuy] = A;
+
+	( The target browser's four actions are its last four rows; all other
+	  control pages use the first four rows under their title. )
+	A = [VHGdev]; ? A != 6 -> VHG menu mouse regular rows;
+	A = [VHGmenuy]; ? A < 96 -> VHG menu mouse button;
+	? A >= 184 -> VHG menu mouse button; A - 96; A '/ 22; C = A;
+	A + 1; [VHGmenuhover] = A; A = C; A '* 22; A + 102; [VHGmenuhovery] = A;
+	A = C; A + 54; [VHGmenukey] = A; -> VHG menu mouse button;
+    "VHG menu mouse regular rows"
+	A = [VHGmenuy]; ? A < 30 -> VHG menu mouse back row;
+	? A >= 118 -> VHG menu mouse back row; A - 30; A '/ 22; C = A;
+	A + 1; [VHGmenuhover] = A; A = C; A '* 22; A + 36; [VHGmenuhovery] = A;
+	A = C; A + 54; [VHGmenukey] = A; -> VHG menu mouse button;
+    "VHG menu mouse back row"
+	A = [VHGmenuy]; ? A < 168 -> VHG menu mouse button;
+	A = [VHGdev]; ? A = 0 -> VHG menu mouse FCS back; [VHGmenukey] = 82; -> VHG menu mouse button;
+    "VHG menu mouse FCS back"
+	[VHGmenukey] = 53;
+    "VHG menu mouse button"
+	A = [Pointer Status]; ? A - PD LEFT BUTTON DOWN -> VHG menu mouse release held;
+	A = [VHGmenuheld]; ? A != 0 -> VHG menu mouse done;
+	[VHGmenuheld] = 1; A = [VHGmenukey]; ? A = 0 -> VHG menu mouse done;
+	[VHGascii] = A; -> VHG menu mouse done;
+    "VHG menu mouse release held"
+	[VHGmenuheld] = 0; -> VHG menu mouse done;
+    "VHG menu mouse release"
+	[VHGmenuheld] = 0;
+    "VHG menu mouse done"
 	end;
 
 "VHG systems reset action"
@@ -3771,7 +3822,12 @@
 	end;
 
 "VHG info draw line"
-	[String] = [VHGinfoline]; [Ink] = 80FFFFh; [Text Effect] = service FX Raw;
+	[String] = [VHGinfoline]; [Ink] = 80FFFFh;
+	A = [VHGmenuhover]; ? A = 0 -> VHG info line ink ready;
+	A = [VHGinfoy]; ? A != [VHGmenuhovery] -> VHG info line ink ready;
+	[Ink] = FFFFFFh;
+    "VHG info line ink ready"
+	[Text Effect] = service FX Raw;
 	[Text X] = 14; [Text Y] = [VHGinfoy]; [Text Display Width] = 320; [Text Display Height] = 200;
 	[Text Region] = vector VHGUIregion; [Text Window] = NULL;
 	[Text Word Wrap] = OFF; [Text Ghost Mode] = OFF; => VHG text both;

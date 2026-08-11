@@ -37,6 +37,17 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Clickable FCS and onboard pages
+
+- The existing FCS, device, emergency, cartography, and target-browser pages
+  now expose their visible command rows as real mouse controls. Hit testing
+  uses the current `VHGUIleft/top/dw/dh` aspect fit, so resizing does not move
+  the logical 320x200 targets. Hovered rows turn white and left-button edges
+  dispatch the same original 6-9 command slots as the keyboard.
+- A live production-window smoke hovered and opened `MISCELLANEOUS DEVICES`,
+  then clicked its first row and observed `INTERNAL LIGHT ON` change to
+  `INTERNAL LIGHT OFF`. The focused integrated regression passes.
+
 ### Native GUI performance, landing safety, and Stardrifter lift
 - Each completed 320x200 indexed render is palette-expanded into a stable
   logical RGB composition page. HUD, notices, GOES input, FPS, and the control

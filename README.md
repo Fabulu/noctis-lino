@@ -44,7 +44,9 @@ Page Up/Page Down open and close the visor, F5 opts into 60 FPS presentation (th
 the complete in-game control card, X clears onboard control pages, and Esc saves and quits. A valid checkpoint
 resumes automatically; verified saves maintain `CURRENT.BAK`, and a damaged
 primary recovers visibly from that last-known-good copy. Enter `NEW` in GOES
-to start over.
+to start over. The FCS and onboard-device pages retain keys 6-9 and also expose
+their visible rows as resize-aware mouse controls; the hovered command turns
+white and a single left click activates it.
 
 To build a clean, self-contained redistributable play folder with every runtime
 asset and a SHA-256 manifest:

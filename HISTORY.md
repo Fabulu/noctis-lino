@@ -346,6 +346,17 @@ X now clears onboard pages as advertised by the visor.
 Version 13 expands `CURRENT.LIN` to 192 bytes for these preferences while
 retaining explicit readers and defaults for versions 1 through 12.
 
+### Clickable onboard controls
+
+The complete FCS and onboard-device pages no longer require memorizing their
+keyboard slots. Their existing four source-shaped command rows now track the
+pointer through the resizable 320x200 aspect fit, highlight the hovered command,
+and accept one action per left-button edge. The target browser maps its final
+four visible rows to the same 6-9 command slots, while each page's bottom hint
+retains the original back or close action. Keyboard controls remain unchanged.
+A production-window smoke opened the miscellaneous page from the onboard root
+and changed its live internal-light row from ON to OFF with two mouse clicks.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

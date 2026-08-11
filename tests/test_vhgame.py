@@ -290,6 +290,7 @@ def main() -> int:
         "lift camera and source forward push share one player heading",
     )
     mouse_look = section(game, '"VHG mouse look"', '"VHG return key"')
+    menu_mouse = section(game, '"VHG menu mouse"', '"VHG systems reset action"')
     check(
         "=> VHG mouse look;" in game
         and all(token in mouse_look for token in (
@@ -303,6 +304,21 @@ def main() -> int:
         and "A '* 320" not in mouse_look
         and "A '* 200" not in mouse_look,
         "right-drag mouselook respects iGUI ownership and uses signed resize-stable deltas",
+    )
+    check(
+        "=> VHG menu mouse;" in game
+        and all(token in menu_mouse for token in (
+            "[Client Owns Mouse Pointer]", "PD LEFT BUTTON DOWN",
+            "[VHGUIleft]", "[VHGUItop]", "[VHGUIdw]", "[VHGUIdh]",
+            "A - [VHGUIleft]; A '* 320; A '/ [VHGUIdw];",
+            "A - [VHGUItop]; A '* 200; A '/ [VHGUIdh];",
+            "A = [VHGdev]; ? A != 6 -> VHG menu mouse regular rows;",
+            "[VHGascii] = A;", "[VHGmenuheld] = 1;",
+        ))
+        and "[Ink] = FFFFFFh;" in section(
+            game, '"VHG info draw line"', '"VHG graphics overlay"'
+        ),
+        "onboard and FCS pages expose resize-stable clickable command rows with hover feedback",
     )
     check(
         "=> TK seed; => TK start;" in game and "=> TK step;" in game,

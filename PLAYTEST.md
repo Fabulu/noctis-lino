@@ -129,6 +129,9 @@ Controls:
   and emergency pages. Their displayed 6-9 rows operate the field amplifier,
   target finder, five tracking modes, anti-radiation stand-off, internal light,
   data sheets, starmap naming/targeting, reset, rescue, and lithium collector
+- The FCS and onboard-device rows are also clickable. Pointer coordinates are
+  converted through the live 320x200 aspect fit, the hovered row turns white,
+  and a held button cannot repeat a command across presentation frames
 - The surface HUD shows approximate `POD` range, an `F/L/B/R` direction toward
   it relative to your current view, captured `BIRDS`, and the `CTRL:STALK` and
   `R@POD` reminders; an out-of-range R press reports `RETURN TO CAPSULE`
