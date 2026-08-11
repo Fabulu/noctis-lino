@@ -30,6 +30,7 @@ NEXT              target and fly to a nearby generated star
 STAR X Y Z        target exact galactic coordinates
 WHERE name        identify a charted star or a planet's parent system
 PAR name[:range]  recover source coordinates; use _ for spaces in names
+ST name[:range]   target a named star or reached-system planet
 CLR               clear the retained GOES output tree
 L                 global approach/landing-site fallback
 Site selector     arrows choose longitude/latitude; L/Enter descends; C cancels

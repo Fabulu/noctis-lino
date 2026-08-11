@@ -489,6 +489,15 @@ The accessible G console now shows its seven retained output rows, and the
 GOES strings use Lino's underscore encoding so their intended spaces survive
 compilation.
 
+`ST.CPP` now consumes that same verified lookup and scan instead of requiring
+players to retype PAR's numeric result into the port-only STAR command. A star
+hit retargets live Vimana travel and prints the original remote-target status;
+a planet hit is accepted only after its parent star has been reached, then
+selects the encoded body ordinal and starts the existing local approach. The
+native regression targeted ELRAINE, moved Vimana to its exact coordinates,
+then targeted FENHOME P03 in that reached system and entered local drive with
+body index 2.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

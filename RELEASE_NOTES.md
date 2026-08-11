@@ -60,6 +60,8 @@ parity, not a claim that parity is complete.
   a planet's parent star. `PAR <catalogued name>[:range]` now regenerates the
   original procedural sector cube and reports X, -Y, Z coordinates. The G
   shortcut includes the same seven retained output rows as the wall display.
+  `ST <catalogued name>[:range]` now sends a resolved star to Vimana or begins
+  local drive for a named planet belonging to the currently reached system.
   The third station starts planetary approach and,
   after FCS reaches STANDBY, opens the physical longitude/latitude selector.
 - Planetary views finish with the original default `surrounding()` visor

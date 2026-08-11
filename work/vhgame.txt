@@ -78,7 +78,7 @@
 	VHGwhererecno = 0; VHGwherematches = 0; VHGwherefound = 0;
 	VHGwherematch = 0; VHGwhereexact = 0; VHGwherei = 0; VHGwheretype = 0;
 	VHGwherecode = 0; VHGwhereunderscores = 0;
-	VHGparrange = 100; VHGparvalue = 0; VHGpardigits = 0;
+	VHGparrange = 100; VHGparvalue = 0; VHGpardigits = 0; VHGparaction = 0;
 	VHGpartarget0 = 0; VHGpartarget1 = 0;
 	VHGparlowhi = 0; VHGparlowlo = 0; VHGparhighhi = 0; VHGparhighlo = 0;
 	VHGparaxis0 = 0; VHGparaxis1 = 0; VHGparbaseout = 0; VHGparoffset = 0;
@@ -265,6 +265,19 @@
 	VHGparsubjectplanet = { SUBJECT:_PLANET; };
 	VHGparnameprefix = { NAME: };
 	VHGparoutofrange = { IS_OUT_OF_RANGE };
+	VHGstlooking = { LOOKING_FOR_TARGET... };
+	VHGstusage1 = { ST_OBJECTNAME };
+	VHGstusage2 = { ST_OBJECTNAME:RANGE };
+	VHGstusage5 = { (ST_REVISION_6011/28) };
+	VHGstremote0 = { REM._TARGET_DATA_SENT };
+	VHGstremote1 = { STARTING_VIMANA_DRIVE };
+	VHGstlocal0 = { LOC._TARGET_DATA_SENT };
+	VHGstlocal1 = { BEGIN_IN-SYSTEM_DRIVE };
+	VHGstnotpart0 = { PLANET_NOT_FOUND_AS };
+	VHGstnotpart1 = { PART_OF_THIS_SYSTEM. };
+	VHGstnotpart2 = { PLEASE_USE_'PAR'_TO };
+	VHGstnotpart3 = { FIND_PARSIS_FOR_THE };
+	VHGstnotpart4 = { CORRESPONDING_STAR. };
 	VHGshiponlytext = { RETURN TO STARDRIFTER };
 	VHGliftdecktext = { LIFT: INTERIOR DECK - WALK CLEAR };
 	VHGliftrooftext = { LIFT: ROOF LEVEL - WALK CLEAR };
@@ -3276,7 +3289,10 @@
 	A = [vhptext plus 45]; ? A = 0 -> VHG command par parse;
 	? A = 32 -> VHG command par parse; ? A != 95 -> VHG command done;
     "VHG command par parse"
-	[VHGcmdi] = 45; [VHGparrange] = 100;
+	[VHGcmdi] = 45; [VHGparaction] = 0; [VHGparrange] = 100;
+	-> VHG command par spaces;
+    "VHG command st parse"
+	[VHGcmdi] = 44; [VHGparaction] = 1; [VHGparrange] = 100;
     "VHG command par spaces"
 	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 32 -> VHG command par start;
 	[VHGcmdi]+; -> VHG command par spaces;
@@ -3312,7 +3328,11 @@
 	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1; => VHG PAR; -> VHG command done;
     "VHG command starts s"
 	A = [vhptext plus 43]; ? A = 65 -> VHG command maybe save;
-	? A = 84 -> VHG command maybe star; -> VHG command done;
+	? A = 84 -> VHG command starts st; -> VHG command done;
+    "VHG command starts st"
+	A = [vhptext plus 44]; ? A = 65 -> VHG command maybe star;
+	? A = 0 -> VHG command st parse; ? A = 32 -> VHG command st parse;
+	? A = 95 -> VHG command st parse; -> VHG command done;
     "VHG command maybe save"
 	A = [vhptext plus 44]; ? A != 86 -> VHG command done;
 	A = [vhptext plus 45]; ? A != 69 -> VHG command done;
@@ -3523,6 +3543,7 @@
 	  compares the resulting binary64 identity with the selected catalogue
 	  subject. Keep that original search and its X,-Y,Z coordinate convention. )
 	A = [VHGwherelen]; ? A != 0 -> VHG PAR execute;
+	A = [VHGparaction]; ? A = 1 -> VHG ST usage;
 	[VHPoutptr] = VHGparusage0; => VH GOES output line;
 	[VHPoutptr] = VHGparusage1; => VH GOES output line;
 	[VHPoutptr] = VHGparusage2; => VH GOES output line;
@@ -3535,14 +3556,32 @@
 	[VHGwherebar plus 21] = 0;
 	[VHPoutptr] = VHGwherebar; => VH GOES output line;
 	[VHPoutptr] = VHGparusage5; => VH GOES output line; end;
+    "VHG ST usage"
+	[VHPoutptr] = VHGparusage0; => VH GOES output line;
+	[VHPoutptr] = VHGstusage1; => VH GOES output line;
+	[VHPoutptr] = VHGstusage2; => VH GOES output line;
+	[VHPoutptr] = VHGparusage3; => VH GOES output line;
+	[VHPoutptr] = VHGparusage4; => VH GOES output line;
+	[VHGwherei] = 0;
+    "VHG ST usage bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG ST usage bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHPoutptr] = VHGstusage5; => VH GOES output line; end;
     "VHG PAR execute"
 	[VHGwherei] = 0;
     "VHG PAR bar fill"
 	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
 	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG PAR bar fill;
 	[VHGwherebar plus 21] = 0;
+	A = [VHGparaction]; ? A = 1 -> VHG ST output head;
 	[VHPoutptr] = VHGparhead; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line; -> VHG analysis catalogue begin;
+    "VHG ST output head"
+	[VHPoutptr] = VHGstlooking; => VH GOES output line;
 	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+    "VHG analysis catalogue begin"
 	[VHGwherematches] = 0; [VHGwherefound] = 0; [VHGwhererecno] = 0;
     "VHG PAR catalogue loop"
 	A = [VHGwhererecno]; ? A >= [VHCATrecs] -> VHG PAR catalogue done;
@@ -3568,11 +3607,17 @@
     "VHG PAR star subject"
 	[VHPoutptr] = VHGparsubjectstar; => VH GOES output line;
 	=> VHG PAR output name;
+	A = [VHGparaction]; ? A != 1 -> VHG PAR star target ready;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+    "VHG PAR star target ready"
 	A = [VHGwherefound]; [VHGpartarget0] = [A]; [VHGpartarget1] = [A plus 1];
 	-> VHG PAR prepare scan;
     "VHG PAR planet subject"
 	[VHPoutptr] = VHGparsubjectplanet; => VH GOES output line;
 	=> VHG PAR output name;
+	A = [VHGparaction]; ? A != 1 -> VHG PAR planet target ready;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+    "VHG PAR planet target ready"
 	A = [VHGwherefound]; C = [A plus 7];
 	A = C; A > 16; A & FFh; A - 48; A '* 10; [VHGwherecode] = A;
 	A = C; A > 24; A & FFh; A - 48; A + [VHGwherecode]; [VHGwherecode] = A;
@@ -3643,11 +3688,35 @@
 	[VHGwhererec] = [VHGwherefound]; => VHG WHERE output label;
 	[VHPoutptr] = VHGparoutofrange; => VH GOES output line; end;
     "VHG PAR scan hit"
+	A = [VHGparaction]; ? A = 1 -> VHG ST scan hit;
 	[VHGparaxischar] = 88; [VHGparcoord] = [VHStempx]; => VHG PAR output coordinate;
 	[VHGparaxischar] = 89; A = 0; A - [VHStempy]; [VHGparcoord] = A;
 	=> VHG PAR output coordinate;
 	[VHGparaxischar] = 90; [VHGparcoord] = [VHStempz]; => VHG PAR output coordinate;
 	end;
+
+"VHG ST scan hit"
+	A = [VHGwheretype]; ? A = VHCATP -> VHG ST local hit;
+	[VHTtx] = [VHStempx]; [VHTty] = [VHStempy]; [VHTtz] = [VHStempz];
+	=> VHG activate target;
+	[VHPoutptr] = VHGstremote0; => VH GOES output line;
+	[VHPoutptr] = VHGstremote1; => VH GOES output line; end;
+    "VHG ST local hit"
+	A = [MgApreached]; ? A = 0 -> VHG ST local missing;
+	A = [VHTtx]; ? A != [VHStempx] -> VHG ST local missing;
+	A = [VHTty]; ? A != [VHStempy] -> VHG ST local missing;
+	A = [VHTtz]; ? A != [VHStempz] -> VHG ST local missing;
+	A = [VHGwherecode]; A - 1; ? A < 0 -> VHG ST local missing;
+	? A '>= [nsnob] -> VHG ST local missing; [VHGplanet] = A;
+	=> VHCAT refresh; => VHG local reset; => VHG local start;
+	[VHPoutptr] = VHGstlocal0; => VH GOES output line;
+	[VHPoutptr] = VHGstlocal1; => VH GOES output line; end;
+    "VHG ST local missing"
+	[VHPoutptr] = VHGstnotpart0; => VH GOES output line;
+	[VHPoutptr] = VHGstnotpart1; => VH GOES output line;
+	[VHPoutptr] = VHGstnotpart2; => VH GOES output line;
+	[VHPoutptr] = VHGstnotpart3; => VH GOES output line;
+	[VHPoutptr] = VHGstnotpart4; => VH GOES output line; end;
 
 "VHG PAR sector base"
 	[FI] = [VHGparoffset]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];

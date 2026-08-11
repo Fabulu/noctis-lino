@@ -751,3 +751,11 @@ tree contained `SUBJECT: STAR;`, `NAME: ELRAINE`, `X=3811056`, `Y=707894`, and
 the source sector base, signed folded multiply, star hash, and identity formula
 found the same catalogue record and coordinates. The focused integrated check
 also pins the relevant `PAR.CPP` branches and the G-overlay output rows.
+
+The companion ST probe used the same live scan to submit `ST ELRAINE:14`.
+Vimana's target became `(3811056,-707894,-212149)` and the output tree reported
+`REM. TARGET DATA SENT` followed by `STARTING VIMANA DRIVE`. After placing the
+probe at that reached star, `ST FENHOME:3` resolved its P03 catalogue identity,
+selected zero-based body 2, set local approach active, and emitted the source's
+two local-drive confirmation rows. Both operations completed in one native
+process with exit code 0.

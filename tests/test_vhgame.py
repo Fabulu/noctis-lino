@@ -40,6 +40,7 @@ ORIGINAL0 = REFERENCE_ROOT / "NOCTIS-0.CPP"
 ORIGINAL1 = REFERENCE_ROOT / "NOCTIS-1.CPP"
 ORIGINAL_WHERE = REFERENCE_ROOT / "WHERE.CPP"
 ORIGINAL_PAR = REFERENCE_ROOT / "PAR.CPP"
+ORIGINAL_ST = REFERENCE_ROOT / "ST.CPP"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -215,6 +216,7 @@ def main() -> int:
     original1 = ORIGINAL1.read_text(encoding="latin-1")
     original_where = ORIGINAL_WHERE.read_text(encoding="latin-1")
     original_par = ORIGINAL_PAR.read_text(encoding="latin-1")
+    original_st = ORIGINAL_ST.read_text(encoding="latin-1")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -1669,6 +1671,26 @@ def main() -> int:
         and par_xyz == (3811056, -707894, -212149)
         and abs(par_identity - elraine[0]) < 0.00001,
         "GOES PAR regenerates a catalogued star and reports source-convention coordinates",
+    )
+    fenhome = next(record for record in records if record[1] == "FENHOME" and record[2] == "P")
+    check(
+        all(token in original_st for token in (
+            'msg ("LOOKING FOR TARGET...");', "void settarget ()",
+            'msg ("REM. TARGET DATA SENT");', 'msg ("STARTING VIMANA DRIVE");',
+            "if (laststar_x < nearstar_x - idscale || laststar_x > nearstar_x + idscale)",
+            'msg ("LOC. TARGET DATA SENT");', 'msg ("BEGIN IN-SYSTEM DRIVE");',
+        ))
+        and all(token in game for token in (
+            '"VHG command starts st"', "[VHGparaction] = 1;", '"VHG ST scan hit"',
+            "[VHTtx] = [VHStempx]; [VHTty] = [VHStempy]; [VHTtz] = [VHStempz];",
+            "=> VHG activate target;", '"VHG ST local hit"',
+            "A = [MgApreached]; ? A = 0 -> VHG ST local missing;",
+            "? A '>= [nsnob] -> VHG ST local missing; [VHGplanet] = A;",
+            "=> VHCAT refresh; => VHG local reset; => VHG local start;",
+        ))
+        and fenhome[3] == 3
+        and abs((fenhome[0] - fenhome[3]) - elraine[0]) < 0.00001,
+        "GOES ST targets a named star and starts local drive only for its reached-system planet",
     )
     check(
         all(token in game for token in (

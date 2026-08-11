@@ -67,6 +67,11 @@ first -- a broken foundation makes every later result meaningless.
   `3811056,707894,-212149`, exactly matching an independent catalogue/hash
   model. The accessible G view now renders the same seven output rows above
   its command prompt, and GOES strings encode real spaces in Lino literals.
+- The original `ST <catalogued name>[:range]` command shares that proven scan.
+  Star hits retarget live Vimana travel; planet hits require the source's
+  currently reached parent system and immediately start the existing local
+  drive. Native probes retargeted ELRAINE and then selected its FENHOME P03,
+  leaving body index 2 in active local approach.
 
 ### Clickable FCS and onboard pages
 
