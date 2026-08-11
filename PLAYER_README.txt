@@ -58,7 +58,8 @@ F6 / F7           save / load checkpoint
 F8                soundtrack on/off
 M or *            save the next numbered 320x200 BMP in GALLERY
 I                 cycle remote, local, and environment data sheets
-? or F9           complete in-game control card
+F1                original Noctis IV+ About page
+? or F9           complete current-port control card
 Esc               save and quit
 
 Presentation remains the authentic 320x200 renderer, nearest-neighbour scaled

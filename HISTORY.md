@@ -604,7 +604,14 @@ database, and made a repeated import a zero-change operation.
   compiler and committed; CI does not misrepresent package assembly as a
   headless source build.
 
-## 2026-08-11 -- numbered Gallery snapshots
+## 2026-08-11 -- About screen and numbered Gallery snapshots
+
+F1 now opens the original `ShowAboutPage()` presentation independently of the
+port-specific F9/`?` control card. The source's five framed regions, palette
+indices, inverse-colour 3x5 HUD lettering, credits, ship/surface text branches,
+Omega-drive notice, and release footer are composed into the logical game page
+before scaling. The retained HUD font gained the remaining letter and
+punctuation shapes required by the complete screen.
 
 The original M and `*` snapshot path is resident again. It finds the next free
 eight-digit name in `GALLERY`, captures the fully composed 320x200 logical game

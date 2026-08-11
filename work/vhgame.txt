@@ -241,6 +241,10 @@
 	VHGbrowsevalid = 0; VHGbrowsex = 0; VHGbrowsey = 0; VHGbrowsez = 0;
 	VHGbrowserowaxis = 0; VHGbrowserowdst = 0; VHGbrowserowvalue = 0; VHGbrowserowi = 0;
 	VHGhelpshow = 0; VHGhelpheld = 0; VHGhelpline = 0; VHGhelpy = 0;
+	VHGabout = 0; VHGaboutheld = 0; VHGaboutsrc = 0; VHGaboutx = 0; VHGabouty = 0;
+	VHGabouti = 0; VHGaboutrow = 0; VHGaboutink = 0; VHGaboutptr = 0;
+	VHGaboutleft = 0; VHGabouttop = 0; VHGaboutright = 0; VHGaboutbottom = 0;
+	VHGaboutcolour = 0; VHGaboutfillx = 0; VHGaboutfilly = 0; VHGaboutrect = 0;
 	VHGgraphics = 0; VHGgraphicsheld = 0; VHGgraphicsused = 0;
 	VHGdrawhud = 1; VHGlensmode = 0; VHGseamless = 0;
 	VHGhudcount = 180; VHGhuddelta = 0; VHGhudclosed = 1;
@@ -460,7 +464,7 @@
 	VHGsurfacetext = { G 0.000FG T +000.0C P 00.000ATM HR 000 };
 	VHGhelptitle = { NOCTIS-IV:CONTROLS };
 	VHGhelpclose = { ?/F9:CLOSE / ESC:QUIT };
-	VHGhelpmenu = { F10:GAME-MENU / ARROWS+ENTER };
+	VHGhelpmenu = { F10:MENU / F1:ORIGINAL-ABOUT };
 	VHGhelpmove = { RMB/ARROWS:LOOK / WASD / CTRL:STALK };
 	VHGhelpjump = { SURFACE:J JUMP / HOLD SPACE JETPACK };
 	VHGhelplift = { E:LIFT / STEP INTO CUPOLA:RETURN };
@@ -472,6 +476,29 @@
 	VHGhelpfuel = { C:COLLECT-LITHIUM / H:RESCUE };
 	VHGhelpsave = { F6:SAVE / F7:LOAD / M:SNAPSHOT };
 	VHGhelpview = { F4:FPS F5:60HZ F8:MUSIC I:DATA };
+	VHGabouttitle = { NOCTIS_IV_PLUS };
+	VHGaboutauthors = { BY_MEGA,_NEUZD,_SL,_AND_OTHERS };
+	VHGaboutorigin = { MODIFIED_VERSION_OF_NOCTIS_-_A_PROGRAM_MADE_BY_ALESSANDRO_GHIGNOLA. };
+	VHGaboutspacehead = { SHORTCUT_KEYS_(WHEN_IN_SPACE): };
+	VHGaboutspace0 = { M_OR_ASTERISK_-_SNAPSHOT__________________B_-_RAW_SNAPSHOT };
+	VHGaboutspace1 = { F3_-_MOVIEMAKER___________________________F2_-_VISUAL_EFFECTS_SETTINGS };
+	VHGaboutspace2 = { S_-_TOGGLE_ROOFSPEED______________________UP_ARROW_-_EXIT_TO_ROOF };
+	VHGaboutspace3 = { DOWN_ARROW_-_TOGGLE_MOUSELOOK_____________PLUS_AND_MINUS_-_HUD_BRIGHTNESS };
+	VHGaboutsurfacehead = { SHORTCUT_KEYS_(WHEN_ON_THE_SURFACE): };
+	VHGaboutsurface0 = { 0-9_-_MOVEMENT_SPEED______________________LEFT_CLICK_-_WALK_FORWARD };
+	VHGaboutsurface1 = { J_-_JUMP__________________________________L_-_LAND_ON_SURFACE };
+	VHGaboutsurface2 = { SPACE_-_JETPACK___________________________C_-_DISENGAGE_JETPACK_CONTROL };
+	VHGaboutsurface3 = { M_OR_ASTERISK_-_SNAPSHOT__________________N_OR_/_-_WIDE_SNAPSHOT };
+	VHGaboutsurface4 = { B_OR_DELETE_-_RAW_SNAPSHOT________________V_OR_PERIOD_-_RAW_WIDE_SNAPSHOT };
+	VHGaboutsurface5 = { F3_-_MOVIEMAKER___________________________F2_-_VISUAL_EFFECTS_SETTINGS };
+	VHGaboutsurface6 = { DOWN_ARROW_-_TOGGLE_MOUSELOOK_____________PLUS_AND_MINUS_-_HUD_BRIGHTNESS };
+	VHGaboutomega = { THIS_STARDRIFTER_IS_EQUIPPED_WITH_THE_OMEGA_DRIVE };
+	VHGaboutrelease = { RELEASE_2.3 };
+	vector VHGaboutwhole = 5; 5; 315; 195;
+	vector VHGaboutheader = 11; 10; 310; 32;
+	vector VHGaboutbar = 11; 35; 310; 44;
+	vector VHGaboutbody = 11; 45; 310; 168;
+	vector VHGaboutfooter = 11; 178; 310; 188;
 	VHGgraphicstitle = { NOCTIS IV+ VISUAL EFFECTS SETTINGS };
 	VHGgraphicshudon = { HUD TEXT ON                          (T) };
 	VHGgraphicshudoff = { HUD TEXT OFF                         (T) };
@@ -1015,6 +1042,7 @@
 	=> VHG device overlay;
 	=> VHG graphics overlay;
 	=> VHG help overlay;
+	=> VHG about overlay;
 	=> VHGUI present;
 	end;
 
@@ -1048,6 +1076,7 @@
 		=> VHG device overlay;
 		=> VHG graphics overlay;
 		=> VHG help overlay;
+		=> VHG about overlay;
 		[VHGsnapshotready] = 1;
 		=> VHGUI present;
 		( Publish the completed window explicitly.  Update Area may be disabled
@@ -1085,7 +1114,7 @@
 	A = [VHGmode]; ? A = 0 -> VHG menu console open;
 	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
     "VHG menu console open"
-	[VHGconsole] = 1; [VHGconsoleview] = 1;
+	[VHGabout] = 0; [VHGconsole] = 1; [VHGconsoleview] = 1;
 	end;
 
 "service VHG menu save"
@@ -1117,7 +1146,7 @@
 	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
     "VHG menu fcs open"
 	[VHGfcsopen] = 1; [VHGdevaccess] = 1; [VHGdev] = 0; [VHGprefs] = 0; [VHGinfo] = 0;
-	[VHGhelpshow] = 0; [VHGconsole] = 0;
+	[VHGhelpshow] = 0; [VHGabout] = 0; [VHGconsole] = 0;
 	end;
 
 "service VHG menu devices"
@@ -1125,7 +1154,7 @@
 	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
     "VHG menu devices open"
 	[VHGdev] = 1; [VHGdevaccess] = 1; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0;
-	[VHGhelpshow] = 0; [VHGconsole] = 0;
+	[VHGhelpshow] = 0; [VHGabout] = 0; [VHGconsole] = 0;
 	end;
 
 "service VHG menu prefs"
@@ -1133,7 +1162,7 @@
 	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
     "VHG menu prefs open"
 	[VHGprefs] = 1; [VHGdevaccess] = 1; [VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0;
-	[VHGhelpshow] = 0; [VHGconsole] = 0;
+	[VHGhelpshow] = 0; [VHGabout] = 0; [VHGconsole] = 0;
 	end;
 
 "service VHG menu quit"
@@ -2572,11 +2601,13 @@
 	=> VHG return key;
 	=> VHG fps key;
 	=> VHG graphics key;
+	=> VHG about key;
 	=> VHG help key;
 	=> VHG fast key;
 	=> VHG checkpoint keys;
 	=> VHG music key;
 	=> VHG snapshot key;
+	A = [VHGabout]; ? A != 0 -> VHG input done;
 	=> VHG graphics character;
 	A = [VHGgraphicsused]; ? A != 0 -> VHG input done;
 	=> VHG menu mouse;
@@ -8008,8 +8039,8 @@
 
 "VHG help overlay"
 	A = [VHGhelpshow]; ? A = 0 -> VHG help overlay done;
-	( Match NIV+'s F1 about page: darken the completed frame, then draw the
-	  controls in the aspect-fitted game area on both synchronized layers. )
+	( Port-specific current control card: darken the completed frame, then draw
+	  it in the aspect-fitted game area. The source F1 page is kept separately. )
 	[Rectangle Display Alignment] = 320; [Rectangle Bounds] = vector VHGUIregion;
 	[Rectangle Gradients] = vector Standard Black Gradients; [Rectangle Effect] = service FX Raw;
 	[Rectangle Target Layer] = VHGUIframe; => Rectangle;
@@ -8034,6 +8065,88 @@
 	=> Update Title Bar;
 	[Menu Caption] = VHGmenucaption; => Update Menu Button Appearence;
     "VHG help overlay done"
+	end;
+
+"VHG about overlay"
+	A = [VHGabout]; ? A = 0 -> VHG about overlay done;
+	( ShowAboutPage() paints five indexed rectangles over the live page. Rebuild
+	  those exact bounds after RGB composition, using the current palette entry
+	  for each source index and the source 3x5 inverse-text colours. )
+	[VHGaboutrect] = vector VHGaboutwhole; A = pal; [VHGaboutcolour] = [A]; => VHG about fill;
+	[VHGaboutrect] = vector VHGaboutheader; A = pal; A + 80; [VHGaboutcolour] = [A]; => VHG about fill;
+	[VHGaboutrect] = vector VHGaboutbar; A = pal; A + 72; [VHGaboutcolour] = [A]; => VHG about fill;
+	[VHGaboutrect] = vector VHGaboutbody; A = pal; A + 112; [VHGaboutcolour] = [A]; => VHG about fill;
+	[VHGaboutrect] = vector VHGaboutfooter; A = pal; A + 72; [VHGaboutcolour] = [A]; => VHG about fill;
+
+	A = pal; A + 111; [VHGaboutink] = [A];
+	[VHGaboutsrc] = VHGabouttitle; [VHGaboutx] = 138; [VHGabouty] = 12; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutauthors; [VHGaboutx] = 102; [VHGabouty] = 19; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutorigin; [VHGaboutx] = 34; [VHGabouty] = 26; => VHG about draw string;
+
+	A = pal; A + 119; [VHGaboutink] = [A];
+	[VHGaboutsrc] = VHGaboutspacehead; A = [VHGmode]; ? A = 0 -> VHG about heading ready;
+	[VHGaboutsrc] = VHGaboutsurfacehead;
+    "VHG about heading ready"
+	[VHGaboutx] = 14; [VHGabouty] = 37; => VHG about draw string;
+	A = pal; A + 79; [VHGaboutink] = [A];
+	A = [VHGmode]; ? A != 0 -> VHG about surface lines;
+	[VHGaboutsrc] = VHGaboutspace0; [VHGaboutx] = 14; [VHGabouty] = 53; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutspace1; [VHGaboutx] = 14; [VHGabouty] = 59; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutspace2; [VHGaboutx] = 14; [VHGabouty] = 65; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutspace3; [VHGaboutx] = 14; [VHGabouty] = 71; => VHG about draw string;
+	-> VHG about common lines;
+    "VHG about surface lines"
+	[VHGaboutsrc] = VHGaboutsurface0; [VHGaboutx] = 14; [VHGabouty] = 53; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutsurface1; [VHGaboutx] = 14; [VHGabouty] = 59; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutsurface2; [VHGaboutx] = 14; [VHGabouty] = 65; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutsurface3; [VHGaboutx] = 14; [VHGabouty] = 71; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutsurface4; [VHGaboutx] = 14; [VHGabouty] = 77; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutsurface5; [VHGaboutx] = 14; [VHGabouty] = 83; => VHG about draw string;
+	[VHGaboutsrc] = VHGaboutsurface6; [VHGaboutx] = 14; [VHGabouty] = 89; => VHG about draw string;
+    "VHG about common lines"
+	A = [MgCharge]; ? A >= 0 -> VHG about footer line;
+	[VHGaboutsrc] = VHGaboutomega; [VHGaboutx] = 58; [VHGabouty] = 160; => VHG about draw string;
+    "VHG about footer line"
+	A = pal; A + 119; [VHGaboutink] = [A];
+	[VHGaboutsrc] = VHGaboutrelease; [VHGaboutx] = 14; [VHGabouty] = 180; => VHG about draw string;
+    "VHG about overlay done"
+	end;
+
+"VHG about fill"
+	A = [VHGaboutrect]; [VHGaboutleft] = [A plus 0]; [VHGabouttop] = [A plus 1];
+	[VHGaboutright] = [A plus 2]; [VHGaboutbottom] = [A plus 3];
+	[VHGaboutfilly] = [VHGabouttop];
+    "VHG about fill row"
+	A = [VHGaboutfilly]; A '* 320; A + [VHGaboutleft]; A + VHGUIframe; [VHGaboutptr] = A;
+	[VHGaboutfillx] = [VHGaboutleft];
+    "VHG about fill pixel"
+	E = [VHGaboutptr]; [E] = [VHGaboutcolour]; [VHGaboutptr]+; [VHGaboutfillx]+;
+	A = [VHGaboutfillx]; ? A <= [VHGaboutright] -> VHG about fill pixel;
+	[VHGaboutfilly]+; A = [VHGaboutfilly]; ? A <= [VHGaboutbottom] -> VHG about fill row;
+	end;
+
+"VHG about draw string"
+	[VHGabouti] = 0;
+    "VHG about draw character"
+	A = [VHGaboutsrc]; A + [VHGabouti]; A = [A]; [VHGNDhudchar] = A;
+	? A = 0 -> VHG about draw done;
+	[VHGaboutrow] = 0;
+    "VHG about draw glyph row"
+	[VHGNDhudrow] = [VHGaboutrow]; => VHGND HUD row mask;
+	A = [VHGabouty]; A + [VHGaboutrow]; A '* 320; A + [VHGaboutx]; A + VHGUIframe;
+	[VHGaboutptr] = A; C = [VHGNDcompassmask]; C & 1; ? C = 0 -> VHG about draw pixel two;
+	E = [VHGaboutptr]; [E] = [VHGaboutink];
+    "VHG about draw pixel two"
+	C = [VHGNDcompassmask]; C & 2; ? C = 0 -> VHG about draw pixel three;
+	E = [VHGaboutptr]; E + 1; [E] = [VHGaboutink];
+    "VHG about draw pixel three"
+	C = [VHGNDcompassmask]; C & 4; ? C = 0 -> VHG about draw row done;
+	E = [VHGaboutptr]; E + 2; [E] = [VHGaboutink];
+    "VHG about draw row done"
+	[VHGaboutrow]+; A = [VHGaboutrow]; ? A < 5 -> VHG about draw glyph row;
+	A = [VHGaboutx]; A + 4; [VHGaboutx] = A; [VHGabouti]+;
+	A = [VHGabouti]; ? A < 80 -> VHG about draw character;
+    "VHG about draw done"
 	end;
 
 "VHG help draw line"
@@ -8558,7 +8671,7 @@
 	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0;
 	A = [VHGinfo]; ? A = 0 -> VHG screen off no data; [VHGinfodelta] = 0FFFFFFFCh;
     "VHG screen off no data"
-	[VHGgraphics] = 0; [VHGhelpshow] = 0;
+	[VHGgraphics] = 0; [VHGhelpshow] = 0; [VHGabout] = 0;
     "VHG screen off key done"
 	end;
 
@@ -8616,7 +8729,7 @@
 	A = [VHGgraphics]; ? A = 0 -> VHG toggle graphics on;
 	[VHGgraphics] = 0; end;
     "VHG toggle graphics on"
-	[VHGgraphics] = 1; [VHGhelpshow] = 0; [VHGdev] = 0; [VHGprefs] = 0;
+	[VHGgraphics] = 1; [VHGhelpshow] = 0; [VHGabout] = 0; [VHGdev] = 0; [VHGprefs] = 0;
 	[VHGfcsopen] = 0; [VHGinfo] = 0; [VHGconsole] = 0;
 	end;
 
@@ -8646,9 +8759,26 @@
     "VHG graphics character done"
 	end;
 
+"VHG about key"
+	( NIV+ F1 toggles ShowAboutPage(). Keep it distinct from the port's F9/?
+	  control card so the original screen and accurate current controls coexist. )
+	A = [VHGconsole]; ? A != 0 -> VHG about key done;
+	A = [KEY F1]; ? A = OFF -> VHG about key released;
+	A = [VHGaboutheld]; ? A != 0 -> VHG about key done; [VHGaboutheld] = 1;
+	A = [VHGabout]; ? A = 0 -> VHG about key open;
+	[VHGabout] = 0; -> VHG about key done;
+    "VHG about key open"
+	[VHGabout] = 1; [VHGhelpshow] = 0; [VHGgraphics] = 0; [VHGdev] = 0;
+	[VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0; [VHGconsole] = 0;
+	-> VHG about key done;
+    "VHG about key released"
+	[VHGaboutheld] = 0;
+    "VHG about key done"
+	end;
+
 "VHG help key"
-	( NIV+ used F1 for help/about.  This iGUI host does not expose a distinct
-	  F1 state, so retain '?' and add the unused, layout-independent F9 flag. )
+	( F9 and ? retain the port-specific control card. F1 owns the separate
+	  source-shaped Noctis IV+ About page. )
 	A = [VHGconsole]; ? A != 0 -> VHG help key done;
 	A = [VHGascii]; ? A = 63 -> VHG help key pressed;
 	A = [KEY F9]; ? A = OFF -> VHG help key released;
@@ -8664,7 +8794,8 @@
 	A = [VHGhelpshow]; ? A = 0 -> VHG toggle help on;
 	[VHGhelpshow] = 0; end;
     "VHG toggle help on"
-	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0; [VHGgraphics] = 0; [VHGhelpshow] = 1;
+	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGinfo] = 0;
+	[VHGgraphics] = 0; [VHGabout] = 0; [VHGhelpshow] = 1;
 	end;
 
 "VHG fps key"

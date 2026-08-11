@@ -1008,17 +1008,38 @@ def main() -> int:
             '"VHG help key"', "A = [VHGascii]; ? A = 63 -> VHG help key pressed;",
             "A = [KEY F9]; ? A = OFF -> VHG help key released;", '"VHG help overlay"',
             "[Rectangle Bounds] = vector VHGUIregion;", "[Rectangle Target Layer] = VHGUIframe;",
-            "VHGhelpmenu = { F10:GAME-MENU / ARROWS+ENTER };",
+            "VHGhelpmenu = { F10:MENU / F1:ORIGINAL-ABOUT };",
             "[Text Display Origin] = VHGUIframe;", "[VHGhelpline] = VHGhelpfuel;",
             "[VHGhelpline] = VHGhelpview;", "=> VHG help draw line;",
             "[Rectangle Gradients] = vector Standard Black Gradients;", "[Ink] = FFFFFFh;",
             "[Text Effect] = service FX Raw;",
-        ))
-        and all(token in original for token in (
-            "if (c==0x3B) { // F1 - help & about", "ShowAboutPage",
-            "SHORTCUT KEYS (WHEN IN SPACE):",
         )),
-        "question-mark/F9 restore Noctis help with a repaint-safe resizable control card",
+        "question-mark/F9 retain the repaint-safe current-port control card",
+    )
+    check(
+        all(token in original for token in (
+            "if (c==0x3B) { // F1 - help & about", "void ShowAboutPage(char surface)",
+            "areaclear(adapted, 5, 5, 315, 195, 0, 0, 0);",
+            "areaclear(adapted, 11, 10, 310, 32, 0, 0, 80);",
+            'wrouthud (14, 37, NULL, "SHORTCUT KEYS (WHEN IN SPACE):");',
+            'wrouthud (14,180, NULL, "RELEASE 2.3");',
+        ))
+        and all(token in game for token in (
+            '"VHG about key"', "A = [KEY F1]; ? A = OFF -> VHG about key released;",
+            'vector VHGaboutwhole = 5; 5; 315; 195;',
+            'vector VHGaboutheader = 11; 10; 310; 32;',
+            'vector VHGaboutbody = 11; 45; 310; 168;',
+            'VHGaboutspacehead = { SHORTCUT_KEYS_(WHEN_IN_SPACE): };',
+            'VHGaboutsurfacehead = { SHORTCUT_KEYS_(WHEN_ON_THE_SURFACE): };',
+            'VHGaboutrelease = { RELEASE_2.3 };', '"VHG about overlay"',
+            "=> VHGND HUD row mask;", "[VHGaboutsrc] = VHGaboutsurface6;",
+        ))
+        and all(token in ground for token in (
+            "? A = 66 -> VHGND HUD glyph letter B;",
+            "? A = 87 -> VHGND HUD glyph letter W;",
+            "[VHGNDhudpacked] = 31471;", "[VHGNDhudpacked] = 24557;",
+        )),
+        "F1 restores the source-framed ship/surface About page with complete 3x5 text",
     )
     info_overlay = section(game, '"VHG source info overlay"', '"VHG onboard row begin"')
     info_slide = section(game, '"VHG info slide advance"', '"VHG source info overlay"')

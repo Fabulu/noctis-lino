@@ -2841,17 +2841,24 @@
 	? A = 52 -> VHGND HUD glyph four; ? A = 53 -> VHGND HUD glyph five;
 	? A = 54 -> VHGND HUD glyph six; ? A = 55 -> VHGND HUD glyph seven;
 	? A = 56 -> VHGND HUD glyph eight; ? A = 57 -> VHGND HUD glyph nine;
+	? A = 40 -> VHGND HUD glyph open paren; ? A = 41 -> VHGND HUD glyph close paren;
+	? A = 42 -> VHGND HUD glyph asterisk; ? A = 44 -> VHGND HUD glyph comma;
+	? A = 47 -> VHGND HUD glyph slash; ? A = 63 -> VHGND HUD glyph question;
 	? A = 83 -> VHGND HUD glyph five; ? A = 81 -> VHGND HUD glyph Q;
 	? A = 67 -> VHGND HUD glyph letter C; ? A = 45 -> VHGND HUD glyph hyphen;
 	? A = 46 -> VHGND HUD glyph dot; ? A = 58 -> VHGND HUD glyph colon;
 	? A = 69 -> VHGND HUD glyph E; ? A = 80 -> VHGND HUD glyph P;
 	? A = 79 -> VHGND HUD glyph zero; ? A = 38 -> VHGND HUD glyph ampersand;
-	? A = 65 -> VHGND HUD glyph letter A; ? A = 70 -> VHGND HUD glyph letter F;
+	? A = 65 -> VHGND HUD glyph letter A; ? A = 66 -> VHGND HUD glyph letter B;
+	? A = 70 -> VHGND HUD glyph letter F; ? A = 74 -> VHGND HUD glyph letter J;
 	? A = 71 -> VHGND HUD glyph letter G; ? A = 73 -> VHGND HUD glyph letter I;
-	? A = 76 -> VHGND HUD glyph letter L; ? A = 77 -> VHGND HUD glyph letter M;
+	? A = 75 -> VHGND HUD glyph letter K; ? A = 76 -> VHGND HUD glyph letter L;
+	? A = 77 -> VHGND HUD glyph letter M;
 	? A = 82 -> VHGND HUD glyph letter R; ? A = 84 -> VHGND HUD glyph letter T;
 	? A = 85 -> VHGND HUD glyph letter U; ? A = 86 -> VHGND HUD glyph letter V;
-	? A = 89 -> VHGND HUD glyph letter Y; ? A = 64 -> VHGND HUD glyph at;
+	? A = 87 -> VHGND HUD glyph letter W; ? A = 88 -> VHGND HUD glyph letter X;
+	? A = 89 -> VHGND HUD glyph letter Y; ? A = 90 -> VHGND HUD glyph letter Z;
+	? A = 64 -> VHGND HUD glyph at;
 	? A = 43 -> VHGND HUD glyph add sign;
 	? A = 68 -> VHGND HUD glyph letter D; ? A = 72 -> VHGND HUD glyph letter H;
 	? A = 78 -> VHGND HUD glyph letter N; ? A = 92 -> VHGND HUD glyph backslash;
@@ -2876,6 +2883,18 @@
 	[VHGNDhudpacked] = 31727; -> VHGND HUD glyph selected;
     "VHGND HUD glyph nine"
 	[VHGNDhudpacked] = 18927; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph open paren"
+	[VHGNDhudpacked] = 17556; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph close paren"
+	[VHGNDhudpacked] = 5265; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph asterisk"
+	[VHGNDhudpacked] = 9664; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph comma"
+	[VHGNDhudpacked] = 5120; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph slash"
+	[VHGNDhudpacked] = 672; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph question"
+	[VHGNDhudpacked] = 8615; -> VHGND HUD glyph selected;
     "VHGND HUD glyph Q"
 	[VHGNDhudpacked] = 21359; -> VHGND HUD glyph selected;
     "VHGND HUD glyph letter C"
@@ -2895,12 +2914,18 @@
 	[VHGNDhudpacked] = 128; -> VHGND HUD glyph selected;
     "VHGND HUD glyph letter A"
 	[VHGNDhudpacked] = 23535; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter B"
+	[VHGNDhudpacked] = 31471; -> VHGND HUD glyph selected;
     "VHGND HUD glyph letter F"
 	[VHGNDhudpacked] = 4815; -> VHGND HUD glyph selected;
     "VHGND HUD glyph letter G"
 	[VHGNDhudpacked] = 31567; -> VHGND HUD glyph selected;
     "VHGND HUD glyph letter I"
 	[VHGNDhudpacked] = 9362; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter J"
+	[VHGNDhudpacked] = 31524; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter K"
+	[VHGNDhudpacked] = 23277; -> VHGND HUD glyph selected;
     "VHGND HUD glyph letter L"
 	[VHGNDhudpacked] = 29257; -> VHGND HUD glyph selected;
     "VHGND HUD glyph letter M"
@@ -2913,8 +2938,14 @@
 	[VHGNDhudpacked] = 31597; -> VHGND HUD glyph selected;
     "VHGND HUD glyph letter V"
 	[VHGNDhudpacked] = 11117; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter W"
+	[VHGNDhudpacked] = 24557; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter X"
+	[VHGNDhudpacked] = 23213; -> VHGND HUD glyph selected;
     "VHGND HUD glyph letter Y"
 	[VHGNDhudpacked] = 9709; -> VHGND HUD glyph selected;
+    "VHGND HUD glyph letter Z"
+	[VHGNDhudpacked] = 29351; -> VHGND HUD glyph selected;
     "VHGND HUD glyph at"
 	[VHGNDhudpacked] = 16; -> VHGND HUD glyph selected;
     "VHGND HUD glyph add sign"

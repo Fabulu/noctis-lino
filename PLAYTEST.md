@@ -883,3 +883,13 @@ Stardrifter view contained 35 distinct colors and 60,814 non-black pixels, and
 visual inspection confirmed correct orientation, HUD composition, and live
 geometry. The first probe deliberately exposed an input-before-first-frame
 race; the shipping path now guards that state.
+
+### Original F1 About-page regression
+
+The production executable received a physical F1 key-down/up pair through its
+real Windows/iGUI event path. After the page composed, the resident M command
+captured it as a complete 320x200 Gallery image. Visual inspection confirmed
+the five source bounds, palette bands, title and credits, space-key branch,
+release footer, correct orientation, and the previously missing B, J, K, W, X,
+Z, comma, parentheses, asterisk, slash, and question-mark glyph shapes. The
+current-port control card remains separately available on F9 and `?`.

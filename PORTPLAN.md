@@ -43,6 +43,18 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Original F1 About page
+
+- F1 now restores `ShowAboutPage()` as a distinct screen instead of aliasing
+  the port's modern control card. F9 and `?` retain the latter so players also
+  have accurate instructions for the current host and control mapping.
+- The five source rectangles use the original 320x200 bounds and live palette
+  indices. Text uses the complete source 3x5 HUD glyph shapes, inverse colours,
+  original credits, separate ship/surface branches, Omega-drive notice, and
+  `RELEASE 2.3` footer before nearest-neighbour host scaling.
+- A real iGUI F1 event opened the page in the production executable. Its own M
+  snapshot path captured the composed frame at the expected source geometry.
+
 ### Numbered in-game Gallery snapshots
 
 - M and `*` restore `snapshot(0,1)` from `NOCTIS.CPP`. The resident game scans

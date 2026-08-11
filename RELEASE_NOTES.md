@@ -27,6 +27,8 @@ parity, not a claim that parity is complete.
 - Toggle Ryan J. Bury's manual soundtrack with F8; silence remains available.
 - Save the completed 320x200 game view with M or `*`. Numbered BMP files are
   written to `GALLERY` without overwriting earlier captures.
+- F1 restores the original framed Noctis IV+ About page with separate ship and
+  surface text. F9 or `?` retains the accurate current-port control card.
 
 ## Important behavior in this build
 
@@ -135,8 +137,8 @@ Useful controls:
 - G and L: accessible GOES and landing fallbacks
 - R: device back/close aboard ship; return in capsule on a surface
 - F2: visual effects; Page Up/Down: visor; F4: FPS display; F5: higher presentation rate
-- F6/F7: save/load; F8: music; M or `*`: numbered Gallery snapshot;
-  F9 or `?`: complete control card
+- F6/F7: save/load; F8: music; M or `*`: numbered Gallery snapshot
+- F1: original About page; F9 or `?`: complete current-port control card
 - Esc: save and quit
 
 ## Known limitations
