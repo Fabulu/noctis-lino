@@ -151,6 +151,7 @@
 	VHGhelpshow = 0; VHGhelpheld = 0; VHGhelpline = 0; VHGhelpy = 0;
 	VHGgraphics = 0; VHGgraphicsheld = 0; VHGgraphicsused = 0;
 	VHGdrawhud = 1; VHGlensmode = 0; VHGseamless = 0;
+	VHGhudcount = 180; VHGhuddelta = 0; VHGhudclosed = 1;
 	VHGgraphicsline = 0; VHGgraphicsy = 0;
 	VHGprofstart = 0; VHGprofnow = 0; VHGprofrender = 0; VHGprofpresent = 0;
 	VHGprofpart = 0; VHGprofspace = 0; VHGprofcupola = 0; VHGprofhull = 0; VHGprofdetail = 0;
@@ -695,8 +696,11 @@
 		A = [VHGmode]; ? A = 0 -> VHG ticks done;
 		=> VHGC tick;
 		"VHG ticks done"
+		A = [VHGdosim]; ? A = 0 -> VHG visor tick done; => VHG visor advance;
+		"VHG visor tick done"
 		[Timer Command] = READ COUNTS; isocall; [VHGprofstart] = [Counts];
-		=> VHG interpolation apply; => VHG render; => VHG interpolation restore;
+		=> VHG visor flare mode;
+		=> VHG interpolation apply; => VHG render; => VHGND surrounding frame; => VHG interpolation restore;
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 	A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofrender]; [VHGprofrender] = A;
 		=> VHG copy page;
@@ -2021,6 +2025,7 @@
 	=> VHG info key;
 	A = [VHGlandingselect]; ? A != 0 -> VHG landing selector input;
 	=> VHG output scroll; A = [VHGscrollused]; ? A != 0 -> VHG input done;
+	=> VHG visor keys;
 	=> VHG mouse look;
 	A = [KEY ESCAPE]; ? A = ON -> VHG quit;
 	( Console characters are edge events, not held state.  Consume them on
@@ -4239,6 +4244,47 @@
     "VHG graphics key released"
 	[VHGgraphicsheld] = 0;
     "VHG graphics key done"
+	end;
+
+"VHG visor keys"
+	( NIV+ accepts these extended keys only when no onboard screen or overlay
+	  owns input. Opening clears hud_closed immediately; closing sets it only
+	  when the moving edge reaches the original 180-line endpoint. )
+	A = [VHGconsole]; ? A != 0 -> VHG visor keys done;
+	A = [VHGdev]; ? A != 0 -> VHG visor keys done;
+	A = [VHGfcsopen]; ? A != 0 -> VHG visor keys done;
+	A = [VHGinfo]; ? A != 0 -> VHG visor keys done;
+	A = [VHGgraphics]; ? A != 0 -> VHG visor keys done;
+	A = [VHGhelpshow]; ? A != 0 -> VHG visor keys done;
+	A = [VHGlandingselect]; ? A != 0 -> VHG visor keys done;
+	A = [KEY PGUP]; ? A = OFF -> VHG visor close key;
+	A = 0; A - 5; [VHGhuddelta] = A; [VHGhudclosed] = 0;
+    "VHG visor close key"
+	A = [KEY PGDN]; ? A = OFF -> VHG visor keys done; [VHGhuddelta] = 5;
+    "VHG visor keys done"
+	end;
+
+"VHG visor advance"
+	A = [VHGhuddelta]; ? A = 0 -> VHG visor advance done;
+	A + [VHGhudcount]; [VHGhudcount] = A;
+	A = [VHGhuddelta]; ? A > 0 -> VHG visor closing;
+	A = [VHGhudcount]; ? A > 0 -> VHG visor advance done;
+	[VHGhudcount] = 0; [VHGhuddelta] = 0; -> VHG visor advance done;
+    "VHG visor closing"
+	A = [VHGhudcount]; ? A < 180 -> VHG visor advance done;
+	[VHGhudcount] = 180; [VHGhuddelta] = 0; [VHGhudclosed] = 1;
+    "VHG visor advance done"
+	end;
+
+"VHG visor flare mode"
+	( lens_flares_for(): mode 0 reflects only from the closed visor, mode 1
+	  forces reflections, and mode -1 suppresses them. )
+	[VHFghost] = 0; A = [VHGlensmode]; ? A = 1 -> VHG visor flare on;
+	? A != 0 -> VHG visor flare done;
+	A = [VHGhudclosed]; ? A = 0 -> VHG visor flare done;
+    "VHG visor flare on"
+	[VHFghost] = 1;
+    "VHG visor flare done"
 	end;
 
 "VHG toggle graphics action"

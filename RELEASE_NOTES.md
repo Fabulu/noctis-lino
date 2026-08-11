@@ -33,6 +33,8 @@ parity, not a claim that parity is complete.
 - F2 opens the source-equivalent visual-effects card. T toggles passive HUD
   text, F cycles visor-only/always-on/always-off flare reflections, and B
   selects the default or seamless visor border. These choices persist.
+- Page Up and Page Down animate the source visor edge at its original five
+  lines per simulation tick; visor-only reflections follow its closed state.
 - The Stardrifter is visible from the initial frame and remains stable during
   movement.
 - E directly starts the source lift event while inside the Stardrifter. Up
@@ -64,7 +66,7 @@ Useful controls:
 - Third wall panel + Enter: approach, select a landing site, and descend
 - G and L: accessible GOES and landing fallbacks
 - R: device back/close aboard ship; return in capsule on a surface
-- F2: visual effects; F4: FPS display; F5: higher presentation rate
+- F2: visual effects; Page Up/Down: visor; F4: FPS display; F5: higher presentation rate
 - F6/F7: save/load; F8: music; F9 or `?`: complete control card
 - Esc: save and quit
 

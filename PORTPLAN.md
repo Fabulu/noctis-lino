@@ -311,6 +311,9 @@ first -- a broken foundation makes every later result meaningless.
   across time spent outside the game.
 - Readers remain explicit for versions 1 through 12. Older saves receive the
   source defaults: HUD text on, visor-only reflections, and the default border.
+- Page Up/Page Down restore `openhuddelta=-5/+5`, the four-row moving visor
+  edge, and the source rule connecting visor-only reflections to `hud_closed`.
+  The closed/open state is packed into the existing version-13 preference word.
 - Loading reconciles the live timer and audio device after validation, then
   restores capture progress after deterministic surface regeneration. The
   reader remains backward-compatible with 96-byte v1, 108-byte v2,

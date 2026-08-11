@@ -955,7 +955,7 @@ def main() -> int:
         all(token in game for token in (
             '"VHG interpolation advance"', '"VHG interpolation apply"',
             '"VHG interpolation restore"', '"VHG interpolation snapshot"',
-            '=> VHG interpolation apply; => VHG render; => VHG interpolation restore;',
+            '=> VHG interpolation apply; => VHG render; => VHGND surrounding frame; => VHG interpolation restore;',
             'A = [VHGmode]; ? A = 0 -> VHG interpolation apply eligible;',
             'A = [VHGlanded]; ? A = 0 -> VHG interpolation apply done;',
             'A = [VHGdosim]; ? A != 0 -> VHG interpolation advance finish;',
@@ -1057,11 +1057,19 @@ def main() -> int:
             "A = 0; A - 1; [VHGlensmode] = A;", "[VHGdrawhud] = 0;",
             "[VHGseamless] = 1;", "A = [VHGdrawhud]; ? A = 0 -> VHG energy overlay done;",
             "A = [VHGdrawhud]; ? A = 0 -> VHG surface telemetry done;",
+            '"VHG visor keys"', "[KEY PGUP]", "[KEY PGDN]",
+            "A = 0; A - 5; [VHGhuddelta] = A; [VHGhudclosed] = 0;",
+            '"VHG visor advance"', "[VHGhudcount] = 180; [VHGhuddelta] = 0; [VHGhudclosed] = 1;",
+        ))
+        and all(token in game for token in (
+            '"VHG visor flare mode"', "A = [VHGhudclosed]; ? A = 0 -> VHG visor flare done;",
+            "[VHFghost] = 1;",
         ))
         and all(token in ground for token in (
-            "A = [VHGlensmode]; ? A != 1 -> VHGND flare mode ready;", "[VHFghost] = 1;",
             "A = [VHGseamless]; ? A != 0 -> VHGND surrounding seamless;",
             "C = 310; C + [VHGNDframei];", "C = 200; C - A; [VHGNDframecount] = C;",
+            '"VHGND surrounding moving row"', "A = [VHGhudcount]; A + 9; A - [VHGNDframei];",
+            "[VHGNDframei]+; A = [VHGNDframei]; ? A < 4 -> VHGND surrounding moving row;",
         ))
         and all(token in flare for token in (
             '"VHF ghost reflections"', "A = [VHFang]; A % 8;",
@@ -1077,8 +1085,9 @@ def main() -> int:
             "else if (lens_flare_mode == 1) lens_flare_mode = -1;",
             "if (seamless_border == 0) seamless_border = 1;",
             "if (draw_hud == 0) draw_hud = 1;",
+            "openhuddelta = -5;", "hud_closed = 0;", "openhuddelta = +5;",
         )),
-        "F2 restores the original HUD, flare-reflection, and visor-border settings",
+        "F2 and Page Up/Down restore the original HUD, flare, border, and visor behavior",
     )
     check(
         all(token in game for token in (
@@ -1266,6 +1275,7 @@ def main() -> int:
             "[Block Pointer] = vhsvbuf; [Block Size] = 192; isocall;",
             "[vhsvbuf plus 47] = C;", "A = [VHSVsize]; ? A != 192 -> VHSV load graphics done;",
             "A - 1; [VHGlensmode] = A;", "[VHGdrawhud] = A;", "[VHGseamless] = A;",
+            "A = 1; A - [VHGhudclosed]; A '* 16;", "[VHGhudclosed] = 0; [VHGhudcount] = 0;",
             "? A < MINIMUM WIDTH -> VHSV load done;", "? A > MAXIMUM HEIGHT -> VHSV load done;",
             "[VHSVmusic] = [VHAwanted];", "[VHAwanted] = [VHSVmusic];",
         ))

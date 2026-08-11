@@ -317,6 +317,9 @@ and B switches between the default rectangular visor frame and the source's
 tapered seamless edge. The flare setting deliberately governs the three
 secondary reflections while retaining the central sunburst, matching
 `lens_flares_for()` rather than treating the menu wording as a new renderer.
+Page Up and Page Down now drive the original `-5`/`+5` visor motion across
+both Stardrifter and surface frames. Visor-only reflections follow the saved
+closed state instead of behaving like a second spelling of always-off.
 Version 13 expands `CURRENT.LIN` to 192 bytes for these preferences while
 retaining explicit readers and defaults for versions 1 through 12.
 
