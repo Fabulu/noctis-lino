@@ -272,6 +272,16 @@ its default ten-row and ten-column graded frame after terrain and weather,
 including dense type-2 atmospheres. Later polygon work can no longer dirty the
 edge, and the intended Noctis visor treatment replaces the black workaround.
 
+### High-rate Stardrifter pose interpolation
+
+The 60 Hz presenter previously repeated each ordinary 18.206 Hz ship pose,
+which made a correct FPS counter look almost as stepped as original mode. Ship
+position, pitch, and shortest-path yaw now interpolate between committed source
+ticks for rendering only. The authoritative pose is restored before input,
+collision, save, and the next simulation step, so Noctis movement timing is not
+changed. Surface interpolation remains separate because its renderer feeds
+wave impacts back into live movement state.
+
 ## Packaging and publication
 
 - `play_noctis.ps1` is the supported source-tree launcher and fixes the runtime

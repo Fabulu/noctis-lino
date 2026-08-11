@@ -73,8 +73,10 @@ Useful controls:
 - The Stardrifter halogen flare now obeys the original projected center-pixel
   occlusion test instead of leaking through hull geometry and popping at its
   edges.
-- Higher-rate presentation does not yet interpolate the original 18.206 Hz
-  simulation, so it is not expected to feel like a modern native 60 Hz game.
+- Higher-rate presentation now interpolates ordinary Stardrifter movement and
+  look without changing the original 18.206 Hz simulation. Surface movement
+  is not yet interpolated because weather and wave rendering still feeds back
+  into live motion state.
 - Full Noctis IV+ feature parity remains the release criterion. Historical
   screens, complete GUI behavior, and presentation details are still being
   implemented rather than cut from scope. Stellar lithium collection and

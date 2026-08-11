@@ -59,6 +59,12 @@ def aspect_fit(width: int, height: int) -> tuple[int, int, int, int]:
     return draw_width, draw_height, (width - draw_width) // 2, (height - draw_height) // 2
 
 
+def signed_lerp(old: int, new: int, phase: int, denominator: int = 60000) -> int:
+    product = (new - old) * phase
+    delta = abs(product) // denominator
+    return old - delta if product < 0 else old + delta
+
+
 def pod_hint(dx: int, dz: int, beta: int) -> str:
     """Independent model of the HUD's integer eight-sector return bearing."""
     ax, az = abs(dx), abs(dz)
@@ -849,6 +855,22 @@ def main() -> int:
         and "[VHGNDdosim] = [VHGdosim]; => VHGND render;" in game
         and ground.count("A = [VHGNDdosim]; ? A = 0") >= 3,
         "original presentation is default and F5 opts into 60 FPS without changing simulation cadence",
+    )
+    check(
+        all(token in game for token in (
+            '"VHG interpolation advance"', '"VHG interpolation apply"',
+            '"VHG interpolation restore"', '"VHG interpolation snapshot"',
+            '=> VHG interpolation apply; => VHG render; => VHG interpolation restore;',
+            'A = [VHGmode]; ? A != 0 -> VHG interpolation apply done;',
+            'A = [VHGdosim]; ? A != 0 -> VHG interpolation advance finish;',
+            "A = [VHGinterpdelta]; A '* [VHGinterpacc]; A / VHGSIMDEN;",
+            '[VHGinterpok] = 0; => VHG load success notice;',
+        ))
+        and [signed_lerp(0, 80, phase) for phase in (0, 18206, 36412, 54618, 60000)]
+        == [0, 24, 48, 72, 80]
+        and [signed_lerp(0, -80, phase) for phase in (0, 18206, 36412, 54618, 60000)]
+        == [0, -24, -48, -72, -80],
+        "60-Hz ship presentation interpolates render poses without mutating simulation state",
     )
     check(
         (lambda run: (

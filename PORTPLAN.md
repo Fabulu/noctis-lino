@@ -117,6 +117,11 @@ first -- a broken foundation makes every later result meaningless.
   The full-size capture shows the generated surface correctly aspect-fitted
   and centered rather than left at 320x200.  Earlier high-20s/30-FPS surface
   measurements predate the current presenter and panorama cache.
+- Ordinary Stardrifter position and look now use render-only interpolation
+  between committed 18.206-Hz poses in 60-Hz mode. Shortest-path yaw crosses
+  the signed 180-degree boundary correctly, and the live pose is restored
+  before input and simulation. Surface interpolation remains isolated until
+  its render-time wave feedback can be separated safely.
 - Settled surfaces expose an unobtrusive GUI-scaled pod range and captured-bird
   line, keeping the capsule-return condition discoverable after exploration.
   Pressing R outside the original 1,600-unit capsule boundary now reports

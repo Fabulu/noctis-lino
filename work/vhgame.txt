@@ -153,6 +153,11 @@
 	( Present at the original 18.206 Hz by default. F5 opts into the 60-Hz
 	  presenter; gameplay simulation remains 18.206 Hz in either mode. )
 	VHGfast = 0; VHGfastheld = 0; VHGsimacc = 0; VHGdosim = 1;
+	VHGinterpok = 0; VHGinterpacc = 0; VHGinterpapplied = 0;
+	VHGinterpx = 0; VHGinterpy = 0; VHGinterpz = 0;
+	VHGinterpalpha = 0; VHGinterpbeta = 0;
+	VHGinterplivex = 0; VHGinterplivey = 0; VHGinterplivez = 0;
+	VHGinterplivealpha = 0; VHGinterplivebeta = 0; VHGinterpdelta = 0;
 	VHGsaveheld = 0; VHGloadheld = 0; VHGmusicheld = 0; VHGnoticeptr = 0; VHGnoticeframes = 0;
 	VHGsavedtext = { CHECKPOINT SAVED };
 	VHGloadedtext = { CHECKPOINT LOADED };
@@ -634,6 +639,7 @@
 
 "VHG one frame"
 	=> VHG cadence;
+	=> VHG interpolation advance;
 	=> VHG fpu clean;
 	( Commit a landing at a clean frame boundary.  The accepted L event is
 	  discovered after the ship and close-approach globe have rendered; doing
@@ -669,7 +675,7 @@
 		=> VHGC tick;
 		"VHG ticks done"
 		[Timer Command] = READ COUNTS; isocall; [VHGprofstart] = [Counts];
-		=> VHG render;
+		=> VHG interpolation apply; => VHG render; => VHG interpolation restore;
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 	A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofrender]; [VHGprofrender] = A;
 		=> VHG copy page;
@@ -682,6 +688,7 @@
 		  Rendering uses the same shared stack, so give input a clean ABI boundary;
 		  without it the first walking sample after capsule settlement could return
 		  through a corrupted floating-point helper frame. )
+		=> VHG interpolation snapshot;
 		=> VHG fpu clean; => VHG lift postrender; => VHG input;
 	[VHGframe]+;
 	end;
@@ -2911,7 +2918,7 @@
 	  and the opening flight, but retain user presentation/music preferences
 	  and the persistent starmap catalogue.  Save immediately so a later crash
 	  cannot resurrect the checkpoint the player deliberately replaced. )
-	[VHGmode] = 0; [VHGlanded] = 0; [VHGlandpending] = 0;
+	[VHGmode] = 0; [VHGlanded] = 0; [VHGlandpending] = 0; [VHGinterpok] = 0;
 	[VHGlandingselect] = 0; [VHGlandingview] = 1; [VHGlandinglon] = 0; [VHGlandinglat] = 60;
 	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
 	[VHGx] = 0; [VHGy] = 0; A = 0; A - 500; [VHGz] = A;
@@ -2938,6 +2945,7 @@
 "VHG return ship"
 	[VHGx] = [VHGshipx]; [VHGy] = [VHGshipy]; [VHGz] = [VHGshipz];
 	[VHGalpha] = 0; [VHGbeta] = 180; [VHGmode] = 0; [VHGlanded] = 0;
+	[VHGinterpok] = 0;
 	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfvy] = 0;
 	[VHGCstate] = 0; [VHGCcapcount] = 0;
 	=> VHG palette; => VHG star palette;
@@ -3834,7 +3842,7 @@
 "VHG load checkpoint action"
 	A = [VHGCstate]; ? A != 0 -> VHG load checkpoint busy;
 	=> VHG load checkpoint; A = [VHSVok]; ? A = 0 -> VHG load checkpoint failed;
-	=> VHG load success notice; end;
+	[VHGinterpok] = 0; => VHG load success notice; end;
     "VHG load checkpoint busy"
 	[VHGnoticeptr] = VHGbusytext; [VHGnoticeframes] = 55; end;
     "VHG load checkpoint failed"
@@ -4213,10 +4221,82 @@
 
 "VHG toggle fast action"
 	A = [VHGfast]; ? A = 0 -> VHG toggle fast on;
-	[VHGfast] = 0; [VHGsimacc] = 0; => TK period; => VHG timing rebase;
+	[VHGfast] = 0; [VHGsimacc] = 0; [VHGinterpok] = 0; => TK period; => VHG timing rebase;
 	end;
     "VHG toggle fast on"
-	[VHGfast] = 1; [VHGsimacc] = VHGSIMDEN; => VHG timing rebase;
+	[VHGfast] = 1; [VHGsimacc] = VHGSIMDEN; [VHGinterpok] = 0; => VHG timing rebase;
+	end;
+
+"VHG interpolation advance"
+	( Presentation-only phase between two authoritative 18.206-Hz ship poses.
+	  A simulation frame must arrive exactly at its target before the next input
+	  commits a new one; intermediate 60-Hz frames advance by the same rational
+	  cadence numerator used by VHG cadence. )
+	A = [VHGfast]; ? A = 0 -> VHG interpolation advance done;
+	A = [VHGmode]; ? A != 0 -> VHG interpolation advance done;
+	A = [VHGinterpok]; ? A = 0 -> VHG interpolation advance done;
+	A = [VHGdosim]; ? A != 0 -> VHG interpolation advance finish;
+	A = [VHGinterpacc]; A + VHGSIMADD; ? A <= VHGSIMDEN -> VHG interpolation advance store;
+    "VHG interpolation advance finish"
+	A = VHGSIMDEN;
+    "VHG interpolation advance store"
+	[VHGinterpacc] = A;
+    "VHG interpolation advance done"
+	end;
+
+"VHG interpolation apply"
+	[VHGinterpapplied] = 0;
+	A = [VHGfast]; ? A = 0 -> VHG interpolation apply done;
+	A = [VHGmode]; ? A != 0 -> VHG interpolation apply done;
+	A = [VHGinterpok]; ? A != 0 -> VHG interpolation apply ready;
+	=> VHG interpolation reset; -> VHG interpolation apply done;
+    "VHG interpolation apply ready"
+	[VHGinterplivex] = [VHGx]; [VHGinterplivey] = [VHGy]; [VHGinterplivez] = [VHGz];
+	[VHGinterplivealpha] = [VHGalpha]; [VHGinterplivebeta] = [VHGbeta];
+	A = [VHGx]; A - [VHGinterpx]; A '* [VHGinterpacc]; A / VHGSIMDEN;
+	A + [VHGinterpx]; [VHGx] = A;
+	A = [VHGy]; A - [VHGinterpy]; A '* [VHGinterpacc]; A / VHGSIMDEN;
+	A + [VHGinterpy]; [VHGy] = A;
+	A = [VHGz]; A - [VHGinterpz]; A '* [VHGinterpacc]; A / VHGSIMDEN;
+	A + [VHGinterpz]; [VHGz] = A;
+	A = [VHGalpha]; A - [VHGinterpalpha]; A '* [VHGinterpacc]; A / VHGSIMDEN;
+	A + [VHGinterpalpha]; [VHGalpha] = A;
+	A = [VHGinterplivebeta]; A - [VHGinterpbeta]; [VHGinterpdelta] = A;
+	? A <= 180 -> VHG interpolation beta low; A - 360; [VHGinterpdelta] = A;
+    "VHG interpolation beta low"
+	A = [VHGinterpdelta]; ? A >= VHGN180 -> VHG interpolation beta delta ready;
+	A + 360; [VHGinterpdelta] = A;
+    "VHG interpolation beta delta ready"
+	A = [VHGinterpdelta]; A '* [VHGinterpacc]; A / VHGSIMDEN;
+	A + [VHGinterpbeta]; ? A <= 180 -> VHG interpolation beta normalize low; A - 360;
+    "VHG interpolation beta normalize low"
+	? A >= VHGN180 -> VHG interpolation beta ready; A + 360;
+    "VHG interpolation beta ready"
+	[VHGbeta] = A; [VHGinterpapplied] = 1;
+    "VHG interpolation apply done"
+	end;
+
+"VHG interpolation restore"
+	A = [VHGinterpapplied]; ? A = 0 -> VHG interpolation restore done;
+	[VHGx] = [VHGinterplivex]; [VHGy] = [VHGinterplivey]; [VHGz] = [VHGinterplivez];
+	[VHGalpha] = [VHGinterplivealpha]; [VHGbeta] = [VHGinterplivebeta];
+    "VHG interpolation restore done"
+	end;
+
+"VHG interpolation snapshot"
+	A = [VHGfast]; ? A = 0 -> VHG interpolation snapshot done;
+	A = [VHGmode]; ? A != 0 -> VHG interpolation snapshot done;
+	A = [VHGdosim]; ? A = 0 -> VHG interpolation snapshot done;
+	[VHGinterpx] = [VHGx]; [VHGinterpy] = [VHGy]; [VHGinterpz] = [VHGz];
+	[VHGinterpalpha] = [VHGalpha]; [VHGinterpbeta] = [VHGbeta];
+	[VHGinterpacc] = 0; [VHGinterpok] = 1;
+    "VHG interpolation snapshot done"
+	end;
+
+"VHG interpolation reset"
+	[VHGinterpx] = [VHGx]; [VHGinterpy] = [VHGy]; [VHGinterpz] = [VHGz];
+	[VHGinterpalpha] = [VHGalpha]; [VHGinterpbeta] = [VHGbeta];
+	[VHGinterpacc] = 0; [VHGinterpok] = 1;
 	end;
 
 "VHG cadence"
