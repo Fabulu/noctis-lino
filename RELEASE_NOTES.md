@@ -1,10 +1,11 @@
-# Noctis IV L.in.oleum port -- 0.1.0 beta 3
+# Noctis IV L.in.oleum port -- 0.1.0 beta 4
 
 This beta restores the source-positioned Stardrifter wall computers, makes the
-physical planetary station usable through landing, corrects the surface guard
-frame, and retains the source-equivalent cupola and lift behavior confirmed in
-beta 2. It is an intermediate milestone toward uncompromised Noctis IV+ feature
-parity, not a claim that parity is complete.
+physical planetary station usable through landing, corrects surface momentum
+and the optional 60-Hz touchdown transition, and retains the source-equivalent
+cupola and lift behavior confirmed in earlier betas. It is an intermediate
+milestone toward uncompromised Noctis IV+ feature parity, not a claim that
+parity is complete.
 
 ## What is playable
 
@@ -43,6 +44,9 @@ parity, not a claim that parity is complete.
 
 ## Important behavior in this build
 
+- This is the first prerelease produced by the automated tagged GitHub path.
+  GitHub reran the focused regression, verified the versioned i386 PE, built the
+  standalone ZIP, and published its checksum and explicit build provenance.
 - The authentic 18.206 FPS presentation is the default.
 - F5 opts into the higher presentation rate; simulation remains 18.206 Hz in
   either presentation mode.
