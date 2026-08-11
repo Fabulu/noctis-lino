@@ -314,11 +314,54 @@ def main() -> int:
             "A - [VHGUItop]; A '* 200; A '/ [VHGUIdh];",
             "A = [VHGdev]; ? A != 6 -> VHG menu mouse regular rows;",
             "[VHGascii] = A;", "[VHGmenuheld] = 1;",
+            "A = [VHGdevaccess]; ? A = 0 -> VHG menu mouse release;",
         ))
         and "[Ink] = FFFFFFh;" in section(
             game, '"VHG info draw line"', '"VHG graphics overlay"'
         ),
         "onboard and FCS pages expose resize-stable clickable command rows with hover feedback",
+    )
+    panels = PANELS.read_text(encoding="utf-8")
+    physical_onboard = section(panels, '"VH onboard screen"', '"VHP GOES selector"')
+    onboard_prepare = section(game, '"VHG onboard prepare"', '"VHG device overlay"')
+    original_screen = section(original, "void screen ()", "/* Disegna la mappa")
+    check(
+        all(token in original_screen for token in (
+            "for (p=-2; p<2; p++)", "for (c=-64; c<64; c++)",
+            "cam_x = x - c*30;", "cam_y = y - p*50;",
+            "digit_at (ctb[t], -6, -16, 4, screencolor, 1);",
+        ))
+        and all(token in physical_onboard for token in (
+            "at z=0", "[VHPonc] = 0FFFFFFC0h", "[VHPonc] = 0FFFFFFD4h",
+            "[VHPonc] = 0FFFFFFEFh", "[VHPonc] = 10", "[VHPonc] = 37",
+            "[VHPonp] = 0FFFFFFFEh", "[VHPonp] = 0FFFFFFFFh",
+            "A = [VHPonc]; A '* 30;", "A = [VHPonp]; A '* 50;",
+            "A - 12; [VHPonx0] = A;", "C + 10; [VHPonx1] = C;",
+            "A - 24; [VHPony0] = A;", "C + 16; [VHPony1] = C;",
+            "[vhcpoly plus 2] = 0;", "[DGshader] = 1; => FB digit at;",
+        ))
+        and all(token in onboard_prepare for token in (
+            "[VHPonsys] = 0;", '"VHG onboard prepare FCS"',
+            '"VHG onboard prepare root"', '"VHG onboard prepare nav"',
+            '"VHG onboard prepare misc"', '"VHG onboard prepare cart"',
+            '"VHG onboard prepare emergency"', '"VHG onboard prepare browser"',
+            "[VHPoncmd0] = VHGsrcdevnav;", "[VHPoncmd1] = VHGsrcdevmisc;",
+            "A = VHGsrcampoff;", "A = VHGsrcfinderoff;",
+            "A = VHGsrctrackoff;", "A = VHGsrcradoff;",
+            "[VHPoncmd0] = VHGsrccartstar;", "[VHPoncmd0] = VHGsrcreset;",
+            "[VHPoninfo2] = VHGdevselect;", "=> VHG browse format rows;",
+        ))
+        and all(token in game for token in (
+            "VHGsrcdevnav = { navigation instruments };",
+            "VHGsrcampoff = { starfield amplificator };",
+            "VHGsrctracksync = { syncrone orbit };",
+            "VHGsrccartparsis = { set target to parsis };",
+            "VHGsrclithiumoff = { scope for lithium };",
+        ))
+        and "=> VHG onboard prepare; => VH onboard screen;" in game
+        and "A = [VHGdevaccess]; ? A = 0 -> VHG device overlay done;" in game
+        and "A = [VHGdevaccess]; ? A = 0 -> VHG FCS menu overlay done;" in game,
+        "source z=0 onboard computer uses the original control, command, and information grid",
     )
     check(
         "=> TK seed; => TK start;" in game and "=> TK step;" in game,
@@ -1130,11 +1173,13 @@ def main() -> int:
             "{ Toggle_60_Hz }; service VHG menu fast;",
             "{ Toggle_music }; service VHG menu music;",
             "{ Visual_effects }; service VHG menu graphics;",
+            "{ Flight_control }; service VHG menu fcs;",
+            "{ Onboard_devices }; service VHG menu devices;",
             "{ Save_and_quit }; service VHG menu quit;",
             "[Menu To Install] = VHGmenu; => Install Menu;",
             "=> VHG save checkpoint action;", "=> VHG load checkpoint action;",
             "=> VHG toggle fps action;", "=> VHG toggle fast action;",
-            "=> VHG toggle music action;", "[Quit Now] = YES;",
+            "=> VHG toggle music action;", "[VHGdevaccess] = 1;", "[Quit Now] = YES;",
         ))
         and (
             section(game, '"VHG run"', '"service VHG repaint"').index(

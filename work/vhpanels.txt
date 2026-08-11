@@ -23,6 +23,11 @@
 	VHPfcsstatus = 0; VHPstatbase = 0; VHPstatlen = 0; VHPstatptr = 0;
 	VHPmessage = 0;
 	VHPcx4 = 0; VHPxbase4 = 0;
+	VHPonsys = 0; VHPoncmd0 = 0; VHPoncmd1 = 0; VHPoncmd2 = 0; VHPoncmd3 = 0;
+	VHPoninfo0 = 0; VHPoninfo1 = 0; VHPoninfo2 = 0;
+	VHPonptr = 0; VHPonc = 0; VHPonp = 0; VHPonmax = 0; VHPoni = 0;
+	VHPonx0 = 0; VHPonx1 = 0; VHPony0 = 0; VHPony1 = 0;
+	VHPonbright = 0; VHPonglyphbright = 0;
 	VHPsysn = 0; VHPdotx = 0; VHPdoty = 0; VHPdotz = 0;
 	VHPselected = 0; VHPsysphase = 0; VHPangle = 0; VHPradius = 0; VHPdotsize = 0;
 	VHPorbitn = 0; VHPorbitseg = 0; VHPprevy = 0; VHPprevz = 0; VHPowner = 0;
@@ -34,6 +39,10 @@
 	vhpboot0 = { G.O.E.S. OUTPUT TREE };
 	vhpboot1 = { REVISION ID 6011/0200 };
 	vhpboot2 = { CHANNEL READY };
+	vhponctl0 = { flight control drive };
+	vhponctl1 = { onboard devices };
+	vhponctl2 = { preferences };
+	vhponctl3 = { disable display };
 
 "workspace"
 
@@ -120,6 +129,95 @@
 	=> VHP GOES text;
 	=> VHP GOES output text;
 	=> VHP GOES selector;
+	end;
+
+"VH onboard screen"
+	( NOCTIS.CPP screen(): the main computer is a luminous world-space plane
+	  at z=0, not a modal GUI page.  Controls occupy c=-64..-45 on four
+	  50-unit rows; the four 27-character command slots share the top row
+	  from c=-44 onward, and information uses the remaining three rows. )
+	A = [VHPonsys]; ? A = 0 -> VHP onboard screen done;
+	A = [VHPfontok]; ? A = 0 -> VHP onboard screen done;
+	[VHVcamxi] = [VHPcamx]; [VHVcamyi] = [VHPcamy]; [VHVcamzi] = [VHPcamz];
+	[VHValpha] = [VHPalpha]; [VHVbeta] = [VHPbeta]; => VH set view;
+
+	[VHPonptr] = vhponctl0; [VHPonc] = 0FFFFFFC0h; [VHPonp] = 0FFFFFFFEh;
+	[VHPonmax] = 20; [VHPonbright] = 0; A = [VHPonsys]; ? A != 1 -> VHP onboard ctl0 ready;
+	[VHPonbright] = 1;
+    "VHP onboard ctl0 ready"
+	=> VHP onboard line;
+	[VHPonptr] = vhponctl1; [VHPonc] = 0FFFFFFC0h; [VHPonp] = 0FFFFFFFFh;
+	[VHPonmax] = 20; [VHPonbright] = 0; A = [VHPonsys]; ? A != 2 -> VHP onboard ctl1 ready;
+	[VHPonbright] = 1;
+    "VHP onboard ctl1 ready"
+	=> VHP onboard line;
+	[VHPonptr] = vhponctl2; [VHPonc] = 0FFFFFFC0h; [VHPonp] = 0;
+	[VHPonmax] = 20; [VHPonbright] = 0; => VHP onboard line;
+	[VHPonptr] = vhponctl3; [VHPonc] = 0FFFFFFC0h; [VHPonp] = 1;
+	[VHPonmax] = 20; [VHPonbright] = 0; => VHP onboard line;
+
+	[VHPonptr] = [VHPoncmd0]; [VHPonc] = 0FFFFFFD4h; [VHPonp] = 0FFFFFFFEh;
+	[VHPonmax] = 27; [VHPonbright] = 0; => VHP onboard line;
+	[VHPonptr] = [VHPoncmd1]; [VHPonc] = 0FFFFFFEFh; => VHP onboard line;
+	[VHPonptr] = [VHPoncmd2]; [VHPonc] = 10; => VHP onboard line;
+	[VHPonptr] = [VHPoncmd3]; [VHPonc] = 37; => VHP onboard line;
+
+	[VHPonptr] = [VHPoninfo0]; [VHPonc] = 0FFFFFFD4h; [VHPonp] = 0FFFFFFFFh;
+	[VHPonmax] = 108; => VHP onboard line;
+	[VHPonptr] = [VHPoninfo1]; [VHPonc] = 0FFFFFFD4h; [VHPonp] = 0;
+	=> VHP onboard line;
+	[VHPonptr] = [VHPoninfo2]; [VHPonc] = 0FFFFFFD4h; [VHPonp] = 1;
+	=> VHP onboard line;
+	[SPflar] = 0; [PGtexf] = 0;
+    "VHP onboard screen done"
+	end;
+
+"VHP onboard line"
+	A = [VHPonptr]; ? A = 0 -> VHP onboard line done;
+	[VHPoni] = 0;
+    "VHP onboard line loop"
+	A = [VHPoni]; ? A >= [VHPonmax] -> VHP onboard line done;
+	C = [VHPonptr]; C + A; A = [C]; ? A = 0 -> VHP onboard line done;
+	[VHPchar] = A; => VHP onboard digit;
+	[VHPonc]+; [VHPoni]+; -> VHP onboard line loop;
+    "VHP onboard line done"
+	end;
+
+"VHP onboard digit"
+	A = [VHPchar]; ? A <= 32 -> VHP onboard digit done;
+	[VHPonglyphbright] = [VHPonbright];
+	? A >= 97 -> VHP onboard digit lowercase;
+	? A <= 64 -> VHP onboard digit normalized;
+	? A <= 90 -> VHP onboard digit uppercase;
+	? A <= 96 -> VHP onboard digit normalized; -> VHP onboard digit done;
+    "VHP onboard digit lowercase"
+	? A > 122 -> VHP onboard digit done; A - 32; -> VHP onboard digit normalized;
+    "VHP onboard digit uppercase"
+	[VHPonglyphbright] = 1;
+    "VHP onboard digit normalized"
+	? A > 96 -> VHP onboard digit done; [DGdigit] = A;
+	[DGcolor] = 115; A = [VHPonglyphbright]; ? A = 0 -> VHP onboard digit color ready;
+	[DGcolor] = 127;
+    "VHP onboard digit color ready"
+	[DGshader] = 1; => FB digit at;
+	( digit_at(c,-6,-16,4): absolute source-plane bounds after replacing
+	  its per-character camera shift with equivalent world coordinates. )
+	A = [VHPonc]; A '* 30; C = A; A - 12; [VHPonx0] = A; C + 10; [VHPonx1] = C;
+	A = [VHPonp]; A '* 50; C = A; A - 24; [VHPony0] = A; C + 16; [VHPony1] = C;
+	[FI] = [VHPonx1]; => IntToF; => F32Narrow;
+	[vhcpoly plus 0] = [FS0]; [vhcpoly plus 3] = [FS0];
+	[FI] = [VHPonx0]; => IntToF; => F32Narrow;
+	[vhcpoly plus 6] = [FS0]; [vhcpoly plus 9] = [FS0];
+	[FI] = [VHPony0]; => IntToF; => F32Narrow;
+	[vhcpoly plus 1] = [FS0]; [vhcpoly plus 10] = [FS0];
+	[FI] = [VHPony1]; => IntToF; => F32Narrow;
+	[vhcpoly plus 4] = [FS0]; [vhcpoly plus 7] = [FS0];
+	[vhcpoly plus 2] = 0; [vhcpoly plus 5] = 0;
+	[vhcpoly plus 8] = 0; [vhcpoly plus 11] = 0;
+	[PGtexf] = 4; [SPsrc] = 1; [SPtinta] = 64; [SPescr] = 0;
+	[SPflar] = 2; [SPcull] = 0; [SPhalf] = 0;
+	[VHPcol] = 64; => VHP draw mapped quad;
+    "VHP onboard digit done"
 	end;
 
 "VHP GOES selector"

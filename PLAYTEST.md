@@ -129,11 +129,14 @@ Controls:
   and emergency pages. Their displayed 6-9 rows operate the field amplifier,
   target finder, five tracking modes, anti-radiation stand-off, internal light,
   data sheets, starmap naming/targeting, reset, rescue, and lithium collector
-- The FCS and onboard-device rows are also clickable. Pointer coordinates are
-  converted through the live 320x200 aspect fit, the hovered row turns white,
-  and a held button cannot repeat a command across presentation frames. The
-  luminous rows remain transparent over the live cabin, matching the original
-  `screen()` presentation rather than opening a black host page
+- Direct R and 5 render the source `screen()` geometry at world z=0: four
+  controls at c=-64..-45, four 27-character commands across the top row, and
+  three information rows. Turn toward the forward windows to see the plane
+- The GAME menu's Onboard devices and Flight control entries open the same
+  actions as resize-aware clickable rows. Pointer coordinates are converted
+  through the live 320x200 aspect fit, the hovered row turns white, and a held
+  button cannot repeat a command across presentation frames. These accessible
+  rows remain transparent over the live cabin rather than opening a black page
 - The surface HUD shows approximate `POD` range, an `F/L/B/R` direction toward
   it relative to your current view, captured `BIRDS`, and the `CTRL:STALK` and
   `R@POD` reminders; an out-of-range R press reports `RETURN TO CAPSULE`

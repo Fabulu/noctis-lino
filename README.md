@@ -36,7 +36,7 @@ the game automatically when the executable is absent; pass `-Build` to force a
 fresh production build. Clean saves also retain the current validated window
 dimensions, so a resized game reopens at the same size.
 
-Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E starts the Stardrifter roof lift from inside the ship, and walking into the roof cupola opening starts the automatic return. Face the first computer on the Stardrifter's right wall and press Enter to type directly into GOES; G opens its large accessible view from anywhere in the ship. At the third wall panel, Enter starts planetary approach and, after FCS reports STANDBY, opens the physical landing-site selector.
+Essential controls: F10 opens the native GAME menu, W/A/S/D move, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E starts the Stardrifter roof lift from inside the ship, and walking into the roof cupola opening starts the automatic return. Face the first computer on the Stardrifter's right wall and press Enter to type directly into GOES; G opens its large accessible view from anywhere in the ship. At the third wall panel, Enter starts planetary approach and, after FCS reports STANDBY, opens the physical landing-site selector. R and 5 activate the original world-space onboard-device and flight-control screens at the Stardrifter's z=0 forward plane; turn toward the forward windows to view them and use 6-9 for their four command slots.
 `NEXT` selects and flies toward a nearby generated star, L remains the global approach fallback, arrows choose landing coordinates, L/Enter descends,
 R returns from the capsule, F2 opens the original visual-effects settings,
 Page Up/Page Down open and close the visor, F5 opts into 60 FPS presentation (the original
@@ -44,10 +44,10 @@ Page Up/Page Down open and close the visor, F5 opts into 60 FPS presentation (th
 the complete in-game control card, X clears onboard control pages, and Esc saves and quits. A valid checkpoint
 resumes automatically; verified saves maintain `CURRENT.BAK`, and a damaged
 primary recovers visibly from that last-known-good copy. Enter `NEW` in GOES
-to start over. The FCS and onboard-device pages retain keys 6-9 and also expose
-their visible rows as resize-aware mouse controls; the hovered command turns
-white and a single left click activates it. Their luminous text remains over
-the live Stardrifter view instead of opening a black modal page.
+to start over. The GAME menu's Flight control and Onboard devices entries open
+resize-aware mouse-accessible versions of those physical pages; the hovered
+command turns white and one left click activates it. Both routes remain over
+the live Stardrifter instead of opening a black modal page.
 
 To build a clean, self-contained redistributable play folder with every runtime
 asset and a SHA-256 manifest:

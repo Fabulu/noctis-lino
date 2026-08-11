@@ -357,9 +357,23 @@ retains the original back or close action. Keyboard controls remain unchanged.
 A production-window smoke opened the miscellaneous page from the onboard root
 and changed its live internal-light row from ON to OFF with two mouse clicks.
 The device and FCS command text also stopped blanking the cabin with a black
-host rectangle. It now remains transparent over the live Stardrifter, as the
-original `screen()` path does, while the remaining perspective placement is
-implemented.
+host rectangle. It remained transparent over the live Stardrifter as an
+intermediate step toward the original physical layout.
+
+### Physical onboard computer
+
+Direct R and 5 now build the live device/FCS command set on the source's z=0
+computer plane. The implementation retains `screen()`'s four 50-unit control
+rows at c=-64, four 27-character top-row command slots beginning at c=-44,
+-17, 10, and 37, three information rows, `digit_at(...,-6,-16,4,...)` glyph
+bounds, and the player's actual camera perspective. A clean production-window
+capture loaded the original `(0,0,-500)` distance facing the plane and showed
+only the command slots inside its real frustum rather than a fixed GUI page.
+
+The native GAME menu now offers Flight control and Onboard devices as explicit
+accessibility routes. Those entries retain the previously verified resizable
+click rows and hover feedback; direct source keys no longer cover the physical
+screen with them.
 
 ## Packaging and publication
 

@@ -53,9 +53,11 @@ first -- a broken foundation makes every later result meaningless.
 - A live production-window smoke hovered and opened `MISCELLANEOUS DEVICES`,
   then clicked its first row and observed `INTERNAL LIGHT ON` change to
   `INTERNAL LIGHT OFF`. The focused integrated regression passes.
-- Device and FCS command text now remains luminous over the live Stardrifter
-  view instead of replacing it with a black modal page, matching the original
-  `screen()` presentation while perspective placement is completed.
+- Direct R/5 now use the original world-space `screen()` arrangement at z=0:
+  the four left controls, four top-row 27-character command slots, and three
+  information rows are built from the live FCS/device state and projected by
+  the Stardrifter camera. GAME-menu Flight control and Onboard devices entries
+  retain the transparent, resize-aware clickable view as an accessibility path.
 
 ### Native GUI performance, landing safety, and Stardrifter lift
 - Each completed 320x200 indexed render is palette-expanded into a stable

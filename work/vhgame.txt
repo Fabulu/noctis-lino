@@ -119,7 +119,9 @@
 	06000000h; OPTION TYPE NORMAL; { Toggle_60_Hz }; service VHG menu fast;
 	07000000h; OPTION TYPE NORMAL; { Toggle_music }; service VHG menu music;
 	08000000h; OPTION TYPE NORMAL; { Visual_effects }; service VHG menu graphics;
-	09000000h; OPTION TYPE NORMAL; { Save_and_quit }; service VHG menu quit;
+	09000000h; OPTION TYPE NORMAL; { Flight_control }; service VHG menu fcs;
+	0A000000h; OPTION TYPE NORMAL; { Onboard_devices }; service VHG menu devices;
+	0B000000h; OPTION TYPE NORMAL; { Save_and_quit }; service VHG menu quit;
 	END OF MENU;
 	VHGfps = 0; VHGfpsframes = 0; VHGfpslast = 0; VHGfpsnow = 0;
 	VHGfpsdelta = 0; VHGfpsshow = 0; VHGfpsheld = 0;
@@ -137,7 +139,7 @@
 	VHGkindi = 0;
 	VHGinfo = 0; VHGinfoheld = 0; VHGinfoy = 0; VHGinfoline = 0; VHGinfovalue = 0;
 	VHGinfonamesrc = 0; VHGinfosrc = 0; VHGinfodst = 0; VHGinfocount = 0;
-	VHGdev = 0; VHGilight = 1; VHGlighttick = 0;
+	VHGdev = 0; VHGdevaccess = 0; VHGilight = 1; VHGlighttick = 0;
 	VHGdeviceheld = 0;
 	VHGstarclass = 0; VHGstarr = 0; VHGstarg = 0; VHGstarb = 0;
 	VHGstarinnerR = 0; VHGstarinnerG = 0; VHGstarinnerB = 0;
@@ -288,6 +290,37 @@
 	VHGdevenvironment = { 9 ENVIRONMENT DATA };
 	VHGdevhint = { R:CLOSE / 6-9:SELECT };
 	VHGdevbackhint = { R:BACK / 6-9:SELECT };
+	VHGdevselect = { SELECT ARGUMENT };
+	VHGsrcdevnav = { navigation instruments };
+	VHGsrcdevmisc = { miscellaneous };
+	VHGsrcdevcart = { galactic cartography };
+	VHGsrcdevemergency = { emergency functions };
+	VHGsrcampoff = { starfield amplificator };
+	VHGsrcampon = { STARFIELD AMPLIFICATOR };
+	VHGsrcfinderoff = { local planets finder };
+	VHGsrcfinderon = { LOCAL PLANETS FINDER };
+	VHGsrctrackoff = { drive tracking mode };
+	VHGsrctrackfixed = { fixed-point chase };
+	VHGsrctrackfar = { far chase };
+	VHGsrctracksync = { syncrone orbit };
+	VHGsrctrackorbit = { high-speed orbit };
+	VHGsrctracknear = { near chase };
+	VHGsrcradoff = { force radiations limit };
+	VHGsrcradon = { FORCE RADIATIONS LIMIT };
+	VHGsrclighton = { internal light on };
+	VHGsrclightoff = { internal light off };
+	VHGsrcremote = { remote target data };
+	VHGsrclocal = { local target data };
+	VHGsrcenvironment = { environment data };
+	VHGsrccartstar = { label star as... };
+	VHGsrccartplanet = { label planet as... };
+	VHGsrccarttargets = { show targets in range };
+	VHGsrccartparsis = { set target to parsis };
+	VHGsrcreset = { reset onboard system };
+	VHGsrchelp = { send help request };
+	VHGsrclithiumon = { stop scoping lithium };
+	VHGsrclithiumoff = { scope for lithium };
+	VHGsrcclear = { clear status };
 	VHGfcsmenutitle = { FLIGHT CONTROL SYSTEM };
 	VHGfcsmremote = { 6 SET REMOTE TARGET };
 	VHGfcsmstart = { 7 START VIMANA FLIGHT };
@@ -657,6 +690,22 @@
 
 "service VHG menu graphics"
 	=> VHG toggle graphics action;
+	end;
+
+"service VHG menu fcs"
+	A = [VHGmode]; ? A = 0 -> VHG menu fcs open;
+	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
+    "VHG menu fcs open"
+	[VHGfcsopen] = 1; [VHGdevaccess] = 1; [VHGdev] = 0; [VHGinfo] = 0;
+	[VHGhelpshow] = 0; [VHGconsole] = 0;
+	end;
+
+"service VHG menu devices"
+	A = [VHGmode]; ? A = 0 -> VHG menu devices open;
+	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
+    "VHG menu devices open"
+	[VHGdev] = 1; [VHGdevaccess] = 1; [VHGfcsopen] = 0; [VHGinfo] = 0;
+	[VHGhelpshow] = 0; [VHGconsole] = 0;
 	end;
 
 "service VHG menu quit"
@@ -1957,6 +2006,7 @@
 	[VHPcamx] = [VHGx]; [VHPcamy] = [VHGy]; [VHPcamz] = [VHGz];
 	[VHPalpha] = [VHGalpha]; [VHPbeta] = [VHGbeta];
 	[VHPactive] = [VHGscreen]; [VHPselected] = [VHGplanet]; [VHPsysphase] = [VHGframe]; => VH screens;
+	=> VHG onboard prepare; => VH onboard screen;
 
 	( interior halogen fixture: vehicle() camera x-3395,y+480,z+200 )
 	A = [VHGx]; A - 3395; [VHVcamxi] = A;
@@ -2373,6 +2423,7 @@
 	  Convert the host pointer back through VHGUI's current aspect fit so the
 	  hit areas remain exact after any resize. )
 	[VHGmenuhover] = 0; [VHGmenuhovery] = 0; [VHGmenukey] = 0;
+	A = [VHGdevaccess]; ? A = 0 -> VHG menu mouse release;
 	A = [VHGdev]; ? A != 0 -> VHG menu mouse active;
 	A = [VHGfcsopen]; ? A != 0 -> VHG menu mouse active; -> VHG menu mouse release;
     "VHG menu mouse active"
@@ -3539,11 +3590,96 @@
 "VHG info overlay done"
 	end;
 
+"VHG onboard prepare"
+	( Materialize the live source command set for VH onboard screen. Physical
+	  pages use the original command() wording; the separate accessibility
+	  strings retain their clearer desktop 6-9 prefixes. )
+	[VHPonsys] = 0; [VHPoncmd0] = 0; [VHPoncmd1] = 0;
+	[VHPoncmd2] = 0; [VHPoncmd3] = 0;
+	[VHPoninfo0] = 0; [VHPoninfo1] = 0; [VHPoninfo2] = 0;
+	A = [VHGfcsopen]; ? A != 0 -> VHG onboard prepare FCS;
+	A = [VHGdev]; ? A = 0 -> VHG onboard prepare done;
+	[VHPonsys] = 2;
+	? A = 1 -> VHG onboard prepare root;
+	? A = 2 -> VHG onboard prepare nav;
+	? A = 3 -> VHG onboard prepare misc;
+	? A = 4 -> VHG onboard prepare cart;
+	? A = 5 -> VHG onboard prepare emergency;
+	? A = 6 -> VHG onboard prepare browser; -> VHG onboard prepare done;
+    "VHG onboard prepare FCS"
+	[VHPonsys] = 1;
+	A = VHGfcsmremote; A + 2; [VHPoncmd0] = A;
+	A = VHGfcsmstart; C = [MgStspeed]; ? C = 0 -> VHG onboard prepare FCS flight;
+	A = VHGfcsmstop;
+    "VHG onboard prepare FCS flight"
+	A + 2; [VHPoncmd1] = A;
+	A = VHGfcsmlocal; C = [VHGlocalactive]; ? C = 0 -> VHG onboard prepare FCS local;
+	A = VHGfcsmrestart; C = [MgIpreached]; ? C != 0 -> VHG onboard prepare FCS local;
+	A = VHGfcsmcancel; C = [MgIpreaching]; ? C != 0 -> VHG onboard prepare FCS local;
+	A = VHGfcsmlocal;
+    "VHG onboard prepare FCS local"
+	A + 2; [VHPoncmd2] = A;
+	A = VHGfcsmcapsule; A + 2; [VHPoncmd3] = A;
+	[VHPoninfo0] = VHGfcsmenutitle; -> VHG onboard prepare done;
+    "VHG onboard prepare root"
+	[VHPoncmd0] = VHGsrcdevnav; [VHPoncmd1] = VHGsrcdevmisc;
+	[VHPoncmd2] = VHGsrcdevcart; [VHPoncmd3] = VHGsrcdevemergency;
+	[VHPoninfo2] = VHGdevselect; -> VHG onboard prepare done;
+    "VHG onboard prepare nav"
+	A = VHGsrcampoff; C = [VHGamp]; ? C = 0 -> VHG onboard prepare nav amp;
+	A = VHGsrcampon;
+    "VHG onboard prepare nav amp"
+	[VHPoncmd0] = A;
+	A = VHGsrcfinderoff; C = [VHGfinder]; ? C = 0 -> VHG onboard prepare nav finder;
+	A = VHGsrcfinderon;
+    "VHG onboard prepare nav finder"
+	[VHPoncmd1] = A;
+	A = VHGsrctrackoff; C = [VHGsync]; ? C = 0 -> VHG onboard prepare nav track;
+	A = VHGsrctrackfixed; ? C = 1 -> VHG onboard prepare nav track;
+	A = VHGsrctrackfar; ? C = 2 -> VHG onboard prepare nav track;
+	A = VHGsrctracksync; ? C = 3 -> VHG onboard prepare nav track;
+	A = VHGsrctrackorbit; ? C = 4 -> VHG onboard prepare nav track;
+	A = VHGsrctracknear;
+    "VHG onboard prepare nav track"
+	[VHPoncmd2] = A;
+	A = VHGsrcradoff; C = [VHGantirad]; ? C = 0 -> VHG onboard prepare nav rad;
+	A = VHGsrcradon;
+    "VHG onboard prepare nav rad"
+	[VHPoncmd3] = A; [VHPoninfo0] = VHGnavtitle; -> VHG onboard prepare done;
+    "VHG onboard prepare misc"
+	A = VHGsrclightoff; C = [VHGilight]; ? C != 1 -> VHG onboard prepare misc light;
+	A = VHGsrclighton;
+    "VHG onboard prepare misc light"
+	[VHPoncmd0] = A; [VHPoncmd1] = VHGsrcremote;
+	[VHPoncmd2] = VHGsrclocal; [VHPoncmd3] = VHGsrcenvironment;
+	[VHPoninfo0] = VHGdevtitle; -> VHG onboard prepare done;
+    "VHG onboard prepare cart"
+	[VHPoncmd0] = VHGsrccartstar; [VHPoncmd1] = VHGsrccartplanet;
+	[VHPoncmd2] = VHGsrccarttargets; [VHPoncmd3] = VHGsrccartparsis;
+	[VHPoninfo0] = VHGcarttitle; -> VHG onboard prepare done;
+    "VHG onboard prepare emergency"
+	[VHPoncmd0] = VHGsrcreset; [VHPoncmd1] = VHGsrchelp;
+	A = VHGsrclithiumoff; C = [VHGcollector]; ? C = 0 -> VHG onboard prepare collector;
+	A = VHGsrclithiumon;
+    "VHG onboard prepare collector"
+	[VHPoncmd2] = A; [VHPoncmd3] = VHGsrcclear;
+	[VHPoninfo0] = VHGemergencytitle; -> VHG onboard prepare done;
+    "VHG onboard prepare browser"
+	=> VHG browse format rows;
+	A = VHGbrowseprev; A + 2; [VHPoncmd0] = A;
+	A = VHGbrowsenext; A + 2; [VHPoncmd1] = A;
+	A = VHGbrowseselect; A + 2; [VHPoncmd2] = A;
+	A = VHGbrowseback; A + 2; [VHPoncmd3] = A;
+	[VHPoninfo0] = VHGbrowserowx; [VHPoninfo1] = VHGbrowserowy; [VHPoninfo2] = VHGbrowserowz;
+    "VHG onboard prepare done"
+	end;
+
 "VHG device overlay"
 	A = [VHGdev]; ? A = 0 -> VHG device overlay done;
-	( NOCTIS.CPP screen() projects luminous computer text over the live cabin;
-	  it never replaces the world with a black modal page.  Keep the complete
-	  hosted rows transparent while their perspective 3D successor is built. )
+	A = [VHGdevaccess]; ? A = 0 -> VHG device overlay done;
+	( Explicit native-GUI accessibility view. Direct R uses VH onboard screen,
+	  the source z=0 computer plane; the GAME-menu route retains these complete
+	  resize-aware rows and mouse targets without blacking out the cabin. )
 	A = [VHGdev]; ? A = 1 -> VHG device root overlay;
 	? A = 2 -> VHG device navigation overlay;
 	? A = 3 -> VHG device miscellaneous overlay;
@@ -3629,9 +3765,10 @@
 
 "VHG FCS menu overlay"
 	A = [VHGfcsopen]; ? A = 0 -> VHG FCS menu overlay done;
+	A = [VHGdevaccess]; ? A = 0 -> VHG FCS menu overlay done;
 	( NOCTIS.CPP fcs()/fcs_commands(): key 5 selects the flight-control
-	  screen and source command slots 1..4 remain on physical keys 6..9.
-	  Like screen(), the command light remains transparent over the cabin. )
+	  screen and source command slots 1..4 remain on physical keys 6..9. This
+	  GAME-menu accessibility view mirrors the physical computer's commands. )
 	[VHGinfoy] = 14; [VHGinfoline] = VHGfcsmenutitle; => VHG info draw line;
 	[VHGinfoline] = VHGfcsmremote; => VHG info draw line;
 	[VHGinfoline] = VHGfcsmstart; A = [MgStspeed]; ? A = 0 -> VHG FCS menu flight selected;
@@ -3995,7 +4132,7 @@
 	A = [VHGfcsopen]; ? A = 0 -> VHG FCS menu open;
 	[VHGfcsopen] = 0; [VHGascii] = 0; -> VHG FCS menu key done;
     "VHG FCS menu open"
-	[VHGfcsopen] = 1; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGascii] = 0;
+	[VHGfcsopen] = 1; [VHGdevaccess] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGascii] = 0;
 	-> VHG FCS menu key done;
     "VHG FCS remote action"
 	A = [MgStspeed]; ? A != 0 -> VHG FCS conflict;
@@ -4159,7 +4296,7 @@
     "VHG device close"
 	[VHGdev] = 0; [VHGascii] = 0; -> VHG device key done;
     "VHG device open"
-	[VHGdev] = 1; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
+	[VHGdev] = 1; [VHGdevaccess] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0; [VHGhelpshow] = 0; [VHGconsole] = 0;
     "VHG device key done"
 	end;
 
