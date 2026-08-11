@@ -1246,19 +1246,26 @@ def main() -> int:
             "[VHGconsole] = 1; [VHGconsoleview] = 0;",
             "A = [VHGscreen]; ? A = 2 -> VHG request landing;",
             "A = [VHGconsoleview]; ? A = 0 -> VHG physical console overlay;",
-            '"VHG physical console overlay"', "[String] = VHGphysicaltitle;",
+            '"VHG physical console overlay"',
             "A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG energy overlay done;",
             "A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG FCS overlay done;",
             "A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG body overlay done;",
             '"VHG physical landing overlay"', "[VHGlandingview] = 0;",
         ))
+        and "=> VHG text both;" not in section(game, '"VHG physical console overlay"', '"VHG console overlay done"')
+        and "=> VHG text both;" not in section(game, '"VHG physical landing overlay"', '"VHG landing overlay done"')
         and all(token in panels for token in (
             '"VHP selector zero active"', '"VHP selector one active"',
             '"VHP selector two active"', "A = [VHPcamz]; A + 1620;",
             '"VHP GOES output text"', "A - 2385; A '* 4; [VHPxbase4] = A;",
+            "[vhcpoly plus 0] = VHPGR; [vhcpoly plus 3] = VHPGR;",
+            "[vhcpoly plus 6] = VHPGL; [vhcpoly plus 9] = VHPGL;",
+            "[vhcpoly plus 1] = 3280764928; [vhcpoly plus 4] = 3277979648;",
+            "[vhcpoly plus 7] = 3277979648; [vhcpoly plus 10] = 3280764928;",
             '"VH GOES output line"', "vhpout = 672;", '"VH GOES output window"',
+            '"VHP status message length"', "[VHPstatptr] = A;", "[VHPmessage]",
         )),
-        "source-positioned wall screens select all three faces and keep physical GOES input in-world",
+        "source-ordered nondegenerate glyph quads keep physical GOES input on all three wall faces",
     )
     check(
         all(token in game for token in (
@@ -1268,10 +1275,14 @@ def main() -> int:
             "A = [KEY PGUP]; ? A = ON -> VHG output scroll pressed;",
             "A = [KEY PGDN]; ? A = ON -> VHG output scroll pressed;",
             "[VHPoutptr] = [VHGnoticeptr]; => VH GOES output line;",
-            '"VHG output overlay"', "A = [VHGscreen]; ? A != 1 -> VHG output overlay done;",
-            "[String] = vhpoutdisplay; => VHG text both;",
+            '"VHG output overlay"',
+        ))
+        and "=> VHG text both;" not in section(game, '"VHG output overlay"', '"VHG console overlay"')
+        and all(token in panels for token in (
+            '"VHP GOES output text"', "A = [VHPoutview]; A '* 21;",
+            "A = [VHPfi]; ? A < 147 -> VHP output text loop;",
         )),
-        "second GOES face retains command output and source-equivalent line/page/end scrolling",
+        "second GOES face retains scrolling output directly on its physical 3D display",
     )
     check(
         all(token in catalog for token in (
@@ -1293,6 +1304,8 @@ def main() -> int:
             "[VHGnoticeptr] = VHGapproachtext;", "=> VHG local render;",
             "VHGfcsapproach = { FCS APPROACH };",
             '"VHG landing selector input"', '"VHG landing overlay"',
+            'VHGlandingstatus = { LQ 000:060 };', '"VHG landing status format"',
+            "=> VHG landing status format; [VHPmessage] = VHGlandingstatus;",
             "[VHGlandingselect] = 0; [VHGlandingview] = 1; [VHGlandpending] = 1;", '"VHG landing commit done"',
             "[VHGNDlon] = [VHGlandinglon]; [VHGNDlat] = [VHGlandinglat];",
             "=> VHG prepare planet; => VHG fpu clean;",
@@ -1303,6 +1316,8 @@ def main() -> int:
             "if (ip_reaching)", "current_approach_coefficient +=",
             "if (l_dsd < 2*nearstar_p_ray[ip_targetted])",
             "landing_pt_lon++;", "landing_pt_lat--;", "land_now = 1;",
+            'sprintf (short_text, "LQ %03d:%03d", landing_pt_lon, landing_pt_lat);',
+            "status (short_text, 10);",
         )),
         "selected bodies expose active approach and a visible source-shaped landing-site selector",
     )

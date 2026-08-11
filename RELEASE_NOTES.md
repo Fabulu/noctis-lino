@@ -52,8 +52,9 @@ parity, not a claim that parity is complete.
   forward momentum through the final roof frame, carries the player clear, and
   uses the same heading for the view and ride motion.
 - Facing the first right-wall computer and pressing Enter focuses physical
-  GOES. The third station starts planetary approach and, after FCS reaches
-  STANDBY, opens the physical longitude/latitude selector.
+  GOES. Command input and retained output use the original mapped 32x36 font
+  directly on the wall faces. The third station starts planetary approach and,
+  after FCS reaches STANDBY, opens the physical longitude/latitude selector.
 - Planetary views finish with the original default `surrounding()` visor
   frame. Its stable graded edge replaces both the incorrect bright sawtooth
   and the intermediate plain-black guard without changing polygon clipping.

@@ -393,12 +393,14 @@ first -- a broken foundation makes every later result meaningless.
   control card covering movement, lift, GOES targeting, body selection,
   persistent star/planet naming, approach/landing, lithium/rescue, checkpoint,
   presentation, and audio keys.
-- GOES now has a visible screen-space command line. ASCII is consumed every
-  presentation frame but debounced against the runtime's physical key table,
-  so 60-Hz mode neither drops two-thirds of typed characters nor repeats a
-  retained console-buffer value. `G`/Tab are reliable open/submit fallbacks
-  for the iGUI-owned Enter key, while Enter remains wired through a menu-safe
-  client hook.
+- GOES now maps its 21x7 command and output buffers onto the two physical wall
+  faces with the original SUPPORTS.NCT font. Correcting the source vertex order
+  removed the former zero-area glyph quads; host-font fallbacks no longer cover
+  the ship. ASCII is consumed every presentation frame but debounced against
+  the runtime's physical key table, so 60-Hz mode neither drops two-thirds of
+  typed characters nor repeats a retained console-buffer value. `G` keeps the
+  large accessible view, while Enter remains wired through a menu-safe client
+  hook for the physical station.
 - Naming from a distribution without `STARMAP.BIN` creates the authentic
   four-byte total-size header before its first 32-byte record. Relaunching
   reloads that record; malformed existing headers are refused rather than

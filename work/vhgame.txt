@@ -324,6 +324,7 @@
 	VHGgoesprompt = { GOES> };
 	VHGlandingtitle = { PLANETARY LANDING SITE };
 	VHGlandingcoords = { LONGITUDE 000  LATITUDE 060 };
+	VHGlandingstatus = { LQ 000:060 };
 	VHGlandinghint = { ARROWS:SELECT  L/ENTER:DESCEND };
 	VHGlandingphysicalhint = { ARROWS SELECT ENTER LAND };
 	VHGlandingcancel = { C:CANCEL };
@@ -1960,6 +1961,11 @@
 	A = [VHGy]; A + 480; [VHVcamyi] = A;
 	A = [VHGz]; A + 200; [VHVcamzi] = A;
 	=> VH set view; [VHLpower] = [VHGilight]; => VH alogena;
+	[VHPmessage] = 0;
+	A = [VHGlandingselect]; ? A = 0 -> VHG source status ready;
+	A = [VHGlandingview]; ? A != 0 -> VHG source status ready;
+	=> VHG landing status format; [VHPmessage] = VHGlandingstatus;
+    "VHG source status ready"
 	[VHPfcsstatus] = [MgStatus];
 	A = [MgApreached]; ? A = 0 -> VHG FCS status ready;
 	A = [VHGlocalactive]; ? A != 0 -> VHG FCS status ready; [VHPfcsstatus] = 6;
@@ -3372,46 +3378,22 @@
 	[Text X] = 126; [Text Y] = 146; [String] = VHGlandingcancel; => VHG text both;
 	-> VHG landing overlay done;
     "VHG physical landing overlay"
-	( The original arrows and Enter belong to the third physical wall station.
-	  Keep the 3D planetary map visible and place its live coordinates over the
-	  lower face, matching the physical GOES focus treatment. )
-	C = [VHGlandinglon]; A = C; A '/ 100; A + 48; [VHGlandingcoords plus 10] = A;
-	A = C; A '/ 10; A '% 10; A + 48; [VHGlandingcoords plus 11] = A;
-	A = C; A '% 10; A + 48; [VHGlandingcoords plus 12] = A;
-	C = [VHGlandinglat]; A = C; A '/ 100; A + 48; [VHGlandingcoords plus 24] = A;
-	A = C; A '/ 10; A '% 10; A + 48; [VHGlandingcoords plus 25] = A;
-	A = C; A '% 10; A + 48; [VHGlandingcoords plus 26] = A;
-	[Text Display Width] = 320; [Text Display Height] = 200;
-	[Text Region] = vector VHGUIregion; [Text Window] = NULL;
-	[Text Word Wrap] = OFF; [Text Ghost Mode] = OFF; [Text Effect] = service FX Raw;
-	[Ink] = 80FF80h; [Text X] = 82; [Text Y] = 118;
-	[String] = VHGlandingtitle; => VHG text both;
-	[Ink] = FFFFFFh; [Text X] = 82; [Text Y] = 136;
-	[String] = VHGlandingcoords; => VHG text both;
-	[Text X] = 82; [Text Y] = 154; [String] = VHGlandingphysicalhint; => VHG text both;
+	( The physical station keeps its generated map unobstructed. The original
+	  status("LQ %03d:%03d") path is rendered by VH HUD FCS above. )
     "VHG landing overlay done"
 	end;
 
+"VHG landing status format"
+	C = [VHGlandinglon]; A = C; A '/ 100; A + 48; [VHGlandingstatus plus 3] = A;
+	A = C; A '/ 10; A '% 10; A + 48; [VHGlandingstatus plus 4] = A;
+	A = C; A '% 10; A + 48; [VHGlandingstatus plus 5] = A;
+	C = [VHGlandinglat]; A = C; A '/ 100; A + 48; [VHGlandingstatus plus 7] = A;
+	A = C; A '/ 10; A '% 10; A + 48; [VHGlandingstatus plus 8] = A;
+	A = C; A '% 10; A + 48; [VHGlandingstatus plus 9] = A;
+	end;
+
 "VHG output overlay"
-	A = [VHGmode]; ? A != 0 -> VHG output overlay done;
-	A = [VHGscreen]; ? A != 1 -> VHG output overlay done;
-	A = [VHGconsole]; ? A != 0 -> VHG output overlay done;
-	A = [VHGlandingselect]; ? A != 0 -> VHG output overlay done;
-	A = [VHGdev]; ? A != 0 -> VHG output overlay done;
-	A = [VHGinfo]; ? A != 0 -> VHG output overlay done;
-	A = [VHGhelpshow]; ? A != 0 -> VHG output overlay done;
-	=> VH GOES output window;
-	[Text Display Width] = 320; [Text Display Height] = 200;
-	[Text Region] = vector VHGUIregion; [Text Window] = NULL;
-	[Text Word Wrap] = OFF; [Text Ghost Mode] = OFF; [Text Effect] = service FX Raw;
-	[Ink] = FFB030h; [Text X] = 74; [Text Y] = 66;
-	[String] = vhpoutdisplay; => VHG text both;
-	[Text Y] = 82; [String] = vhpoutdisplay; [String] + 22; => VHG text both;
-	[Text Y] = 98; [String] = vhpoutdisplay; [String] + 44; => VHG text both;
-	[Text Y] = 114; [String] = vhpoutdisplay; [String] + 66; => VHG text both;
-	[Text Y] = 130; [String] = vhpoutdisplay; [String] + 88; => VHG text both;
-	[Text Y] = 146; [String] = vhpoutdisplay; [String] + 110; => VHG text both;
-	[Text Y] = 162; [String] = vhpoutdisplay; [String] + 132; => VHG text both;
+	( The second GOES wall face draws its retained seven-row history in 3D. )
     "VHG output overlay done"
 	end;
 
@@ -3437,21 +3419,16 @@
 	=> VHG text both;
 	-> VHG console overlay done;
     "VHG physical console overlay"
-	( Physical focus keeps the 3D Stardrifter visible. This compact fallback
-	  follows the lower portion of the selected wall face and makes the live
-	  command buffer readable while the source glyph mapping is repaired. )
-	[Text Display Width] = 320; [Text Display Height] = 200;
-	[Text Region] = vector VHGUIregion; [Text Window] = NULL;
-	[Text Word Wrap] = OFF; [Text Ghost Mode] = OFF; [Text Effect] = service FX Raw;
-	[Ink] = 80FF80h; [Text X] = 88; [Text Y] = 136;
-	[String] = VHGphysicaltitle; => VHG text both;
-	[Text X] = 88; [Text Y] = 154; [String] = VHGgoesprompt; => VHG text both;
-	[Text X] = 136; [String] = vhptext; [String] + 42; => VHG text both;
+	( Physical focus writes directly into vhptext; VHP GOES text maps that
+	  source-format buffer onto the first wall face every rendered frame. )
     "VHG console overlay done"
 	end;
 
 "VHG notice overlay"
 	A = [VHGnoticeframes]; ? A = 0 -> VHG notice overlay done;
+	A = [VHGlandingselect]; ? A = 0 -> VHG notice overlay draw;
+	A = [VHGlandingview]; ? A = 0 -> VHG notice overlay done;
+    "VHG notice overlay draw"
 	[String] = [VHGnoticeptr]; [Ink] = 80FF80h;
 	[Text X] = 12; [Text Y] = 176;
 	[Text Display Width] = 320; [Text Display Height] = 200;

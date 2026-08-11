@@ -634,3 +634,21 @@ identified the 306x180 cleared guard band. The corrected build retains the
 clean clipped view, adds the source final graded visor frame, leaves the
 polygon sentinel untouched, and passes
 `python tests/test_vhgame.py` before compiling to the production Windows PE.
+
+### Physical Stardrifter computer text correction
+
+The physical GOES font was present but invisible because every character quad
+collapsed its two right vertices to one point and its two left vertices to a
+second point. The resulting zero-area diagonal could not carry the mapped
+32x36 glyph. The corrected order matches `digit_at()` exactly: right-bottom,
+right-top, left-top, left-bottom. The original local `z=0`, beta-plus-90 camera
+transform, 35.25-unit spacing, SUPPORTS.NCT font, and bright texture mode are
+otherwise unchanged.
+
+A deterministic checkpoint at `x=2800, y=0, z=-1935, beta=-90` put the real
+production window directly in front of station zero. Enter focused the physical
+console and buffered character input visibly produced `NEXT_` on its 3D face.
+The same slice moved retained output and `LQ %03d:%03d` landing status back to
+their source-shaped render paths instead of covering the ship with host-font
+fallbacks. The production PE rebuilt successfully and the focused
+`python tests/test_vhgame.py` regression passed.

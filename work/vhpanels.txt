@@ -20,7 +20,8 @@
 	VHPfontok = 0; VHPfi = 0; VHPchar = 0; VHPline = 0;
 	VHPkey = 0; VHPcmdpos = 0; VHPsubmitted = 0; VHPactive = 0;
 	VHPoutptr = 0; VHPoutrows = 0; VHPoutview = 0; VHPouti = 0; VHPoutj = 0;
-	VHPfcsstatus = 0; VHPstatbase = 0; VHPstatlen = 0;
+	VHPfcsstatus = 0; VHPstatbase = 0; VHPstatlen = 0; VHPstatptr = 0;
+	VHPmessage = 0;
 	VHPcx4 = 0; VHPxbase4 = 0;
 	VHPsysn = 0; VHPdotx = 0; VHPdoty = 0; VHPdotz = 0;
 	VHPselected = 0; VHPsysphase = 0; VHPangle = 0; VHPradius = 0; VHPdotsize = 0;
@@ -409,32 +410,32 @@
 	end;
 
 "VHP digit row0"
-	[vhcpoly plus 1] = 3280764928; [vhcpoly plus 4] = 3280764928;
-	[vhcpoly plus 7] = 3277979648; [vhcpoly plus 10] = 3277979648;
+	[vhcpoly plus 1] = 3280764928; [vhcpoly plus 4] = 3277979648;
+	[vhcpoly plus 7] = 3277979648; [vhcpoly plus 10] = 3280764928;
 	=> VHP digit; end;
 "VHP digit row1"
-	[vhcpoly plus 1] = 3277160448; [vhcpoly plus 4] = 3277160448;
-	[vhcpoly plus 7] = 3273555968; [vhcpoly plus 10] = 3273555968;
+	[vhcpoly plus 1] = 3277160448; [vhcpoly plus 4] = 3273555968;
+	[vhcpoly plus 7] = 3273555968; [vhcpoly plus 10] = 3277160448;
 	=> VHP digit; end;
 "VHP digit row2"
-	[vhcpoly plus 1] = 3272736768; [vhcpoly plus 4] = 3272736768;
-	[vhcpoly plus 7] = 3266707456; [vhcpoly plus 10] = 3266707456;
+	[vhcpoly plus 1] = 3272736768; [vhcpoly plus 4] = 3266707456;
+	[vhcpoly plus 7] = 3266707456; [vhcpoly plus 10] = 3272736768;
 	=> VHP digit; end;
 "VHP digit row3"
-	[vhcpoly plus 1] = 3265069056; [vhcpoly plus 4] = 3265069056;
-	[vhcpoly plus 7] = 3250323456; [vhcpoly plus 10] = 3250323456;
+	[vhcpoly plus 1] = 3265069056; [vhcpoly plus 4] = 3250323456;
+	[vhcpoly plus 7] = 3250323456; [vhcpoly plus 10] = 3265069056;
 	=> VHP digit; end;
 "VHP digit row4"
-	[vhcpoly plus 1] = 3241148416; [vhcpoly plus 4] = 3241148416;
-	[vhcpoly plus 7] = 1110441984; [vhcpoly plus 10] = 1110441984;
+	[vhcpoly plus 1] = 3241148416; [vhcpoly plus 4] = 1110441984;
+	[vhcpoly plus 7] = 1110441984; [vhcpoly plus 10] = 3241148416;
 	=> VHP digit; end;
 "VHP digit row5"
-	[vhcpoly plus 1] = 1113718784; [vhcpoly plus 4] = 1113718784;
-	[vhcpoly plus 7] = 1121910784; [vhcpoly plus 10] = 1121910784;
+	[vhcpoly plus 1] = 1113718784; [vhcpoly plus 4] = 1121910784;
+	[vhcpoly plus 7] = 1121910784; [vhcpoly plus 10] = 1113718784;
 	=> VHP digit; end;
 "VHP digit row6"
-	[vhcpoly plus 1] = 1123549184; [vhcpoly plus 4] = 1123549184;
-	[vhcpoly plus 7] = 1127415808; [vhcpoly plus 10] = 1127415808;
+	[vhcpoly plus 1] = 1123549184; [vhcpoly plus 4] = 1127415808;
+	[vhcpoly plus 7] = 1127415808; [vhcpoly plus 10] = 1123549184;
 	=> VHP digit; end;
 
 "VH GOES key"
@@ -557,7 +558,14 @@
 "VH HUD FCS"
 	( Source outer HUD: the current FCS status at cam=(-512,-275,-750),
 	  rendered right-to-left in colour 120. )
-	[VHPstatbase] = 47; [VHPstatlen] = 7;
+	[VHPstatptr] = vhpstatus; [VHPstatbase] = 47; [VHPstatlen] = 7;
+	A = [VHPmessage]; ? A = 0 -> VHP status select;
+	[VHPstatptr] = A; [VHPstatbase] = 0; [VHPstatlen] = 0;
+    "VHP status message length"
+	A = [VHPstatptr]; A + [VHPstatlen]; A = [A]; ? A = 0 -> VHP status ready;
+	[VHPstatlen]+; A = [VHPstatlen]; ? A < 41 -> VHP status message length;
+	-> VHP status ready;
+    "VHP status select"
 	A = [VHPfcsstatus]; ? A = 1 -> VHP status charging;
 	? A = 2 -> VHP status parking; ? A = 3 -> VHP status linking;
 	? A = 4 -> VHP status driving; ? A = 5 -> VHP status ignition;
@@ -580,7 +588,7 @@
 	[VHValpha] = 0; [VHVbeta] = 0; => VH set view;
 	A = [VHPstatlen]; A - 1; [VHPfi] = A;
     "VHP HUD status loop"
-	A = vhpstatus; A + [VHPstatbase]; A + [VHPfi]; [VHPchar] = [A];
+	A = [VHPstatptr]; A + [VHPstatbase]; A + [VHPfi]; [VHPchar] = [A];
 	=> VHP HUD digit;
 	A = [VHVcamxi]; A + 45; [VHVcamxi] = A; => VH set view;
 	[VHPfi]-; A = [VHPfi]; ? A >= 0 -> VHP HUD status loop;

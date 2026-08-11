@@ -69,9 +69,13 @@ step; the exact resulting `work\vhgame.exe` is versioned for reproducible CI/CD.
 
 ## Screenshots
 
-| Stardrifter interior | Planetary console | Planetary surface |
-|---|---|---|
-| ![Inside the Stardrifter](screenshots/stardrifter-interior.png) | ![Selecting a landing site on the physical planetary console](screenshots/planetary-console.png) | ![The capsule on a generated planetary surface](screenshots/planet-surface.png) |
+| Stardrifter interior | Physical GOES console |
+|---|---|
+| ![Inside the Stardrifter](screenshots/stardrifter-interior.png) | ![Typing NEXT directly on the Stardrifter wall console](screenshots/goes-console.png) |
+
+| Planetary console | Planetary surface |
+|---|---|
+| ![Selecting a landing site on the physical planetary console](screenshots/planetary-console.png) | ![The capsule on a generated planetary surface](screenshots/planet-surface.png) |
 
 ## Project documentation
 

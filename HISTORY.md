@@ -190,7 +190,9 @@ received `VIMANA TARGET SET`. A readable compact prompt was then integrated on
 the physical first face and temporary HUD rows were suppressed while any wall
 station is selected. The third station now starts local approach, opens the
 live landing-coordinate selector over the orbital display at STANDBY, and
-deploys the capsule with Enter. The second GOES output face remains unfinished.
+deploys the capsule with Enter. The second GOES output face now retains the
+same source-format command history and line, page, and end scrolling as the
+original station.
 
 The same session reproduced the reported bright, stair-stepped surface border,
 first from a forced checkpoint and then through a valid physical-console
