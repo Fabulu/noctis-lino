@@ -47,6 +47,7 @@ ORIGINAL_DL = REFERENCE_ROOT / "DL.CPP"
 ORIGINAL_PAR = REFERENCE_ROOT / "PAR.CPP"
 ORIGINAL_ST = REFERENCE_ROOT / "ST.CPP"
 ORIGINAL_CAT = REFERENCE_ROOT / "CAT.CPP"
+ORIGINAL_PRI = REFERENCE_ROOT / "PRI.CPP"
 ORIGINAL_CAST = REFERENCE_ROOT / "CAST.CPP"
 ORIGINAL_REP = REFERENCE_ROOT / "REP.CPP"
 ORIGINAL_DELE = REFERENCE_ROOT / "DELE.CPP"
@@ -249,6 +250,7 @@ def main() -> int:
     original_par = ORIGINAL_PAR.read_text(encoding="latin-1")
     original_st = ORIGINAL_ST.read_text(encoding="latin-1")
     original_cat = ORIGINAL_CAT.read_text(encoding="latin-1")
+    original_pri = ORIGINAL_PRI.read_text(encoding="latin-1")
     original_cast = ORIGINAL_CAST.read_text(encoding="latin-1")
     original_rep = ORIGINAL_REP.read_text(encoding="latin-1")
     original_dele = ORIGINAL_DELE.read_text(encoding="latin-1")
@@ -1827,6 +1829,24 @@ def main() -> int:
             "LEAST FROM MY POINT", "OF VIEW. NOBODY", "SHOULD MISS THE", "SURICRASIAN SKY AT",
         ],
         "GOES CAT reads the original Galactic Guide with ranged 21-column records",
+    )
+    check(
+        all(token in original_pri for token in (
+            'msg ("PRI OBJECTNAME:X..Y");', 'int COLS = 72;',
+            'pmsg ("GOES GALACTIC GUIDE DATA SNIPPET");',
+            "if (rec >= rec_start && rec <= rec_end)", "if (pre >= COLS)",
+            'pmsg ("- END OF DATA -");',
+        ))
+        and all(token in game for token in (
+            'VHGprifile = { GUIDE-PRINT.TXT };', '"VHG command maybe pri"',
+            '[VHGcataction] = 1; -> VHG command cat parse;', '"VHG PRI"',
+            '"VHG PRI guide loop"', '"VHG PRI message word length"',
+            "? A <= 72 -> VHG PRI message reread;", '"VHG PRI flush line"',
+            "[Block Pointer] = VHGpriline; [Block Size] = [VHGpricol]; isocall;",
+            "[VHGpricrlf] = 00000A0Dh;", "[File Size] = [VHGpripos]; isocall;",
+            "[VHGpricleari] = 0;", "? A < 18 -> VHG PRI clear line loop;",
+        )),
+        "GOES PRI exports source-ranged Guide text with independent 72-column line packing",
     )
     check(
         all(token in original_cast for token in (

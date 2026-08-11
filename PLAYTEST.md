@@ -114,6 +114,9 @@ Controls:
 - Type `NAME STAR LABEL` or `NAME PLANET LABEL` in GOES: add the current
   target or selected body to the persistent local starmap (labels are up to
   20 characters; duplicate identities and labels are rejected visibly)
+- Type `PRI name[:X..Y]` in GOES: export the selected Galactic Guide records
+  to `GUIDE-PRINT.TXT` beside the executable, in the original 72-column printer
+  layout
 - 1/2/3/4/5: directly select the first five bodies on the planetary display
 - `[` / `]`: cycle backward/forward through every generated planet and moon
 - L: after star `CALIBRATED`, start fine approach to the selected body; press

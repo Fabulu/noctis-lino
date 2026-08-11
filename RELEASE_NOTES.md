@@ -74,6 +74,10 @@ parity, not a claim that parity is complete.
   the player's prior generated system and selected body.
   `CAT <catalogued name>[:X..Y]` reads the original 48,376-record Galactic
   Guide with its source one-based ranges and 21-column word wrapping.
+  `PRI <catalogued name>[:X..Y]` selects the same subject records and exports
+  them beside the game as `GUIDE-PRINT.TXT`, preserving the original heading,
+  padded subject label, continuous message stream, CRLF lines, and 72-column
+  printer word wrapping.
   `CAST <catalogued name>:<notes>` appends a source-compatible 84-byte record
   after the consolidated guide boundary. Notes are limited to 76 characters,
   persist in `GUIDE.BIN`, and are readable by a later `CAT` command.
@@ -122,7 +126,8 @@ Useful controls:
 - E inside the Stardrifter: ascend; walk into the roof opening to return
 - First wall panel + Enter: physical GOES; `NEXT`: choose/fly to a nearby star
 - `SL` lists all known stars; `SL <range>` scans locally; Escape stops a scan
-- `CAT`: read; `CAST`: add; `REP`: correct; `DELE`: remove; `CLEAN`: compact
+- `CAT`: read; `PRI`: text export; `CAST`: add; `REP`: correct; `DELE`: remove;
+  `CLEAN`: compact
 - `OUTBOX`: export player data; `INBOX`: import a received `INBOX.ZIP`
 - Third wall panel + Enter: approach, select a landing site, and descend
 - G and L: accessible GOES and landing fallbacks

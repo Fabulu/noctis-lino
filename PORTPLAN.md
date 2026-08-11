@@ -556,6 +556,12 @@ first -- a broken foundation makes every later result meaningless.
   typed characters nor repeats a retained console-buffer value. `G` keeps the
   large accessible view, while Enter remains wired through a menu-safe client
   hook for the physical station.
+- The resident `PRI name[:X..Y]` command restores `PRI.CPP` subject lookup and
+  one-based Guide ranges. Since modern Windows does not expose the DOS printer
+  stream, it writes `GUIDE-PRINT.TXT` beside the game with the original header,
+  padded 20-character subject label, continuous record text, CRLF endings, and
+  72-column word wrapping. A native two-record SURICRASIA export matched an
+  independent replay of the source algorithm byte for byte.
 - Naming from a distribution without `STARMAP.BIN` creates the authentic
   four-byte total-size header before its first 32-byte record. Relaunching
   reloads that record; malformed existing headers are refused rather than

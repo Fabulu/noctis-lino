@@ -34,6 +34,7 @@ ST name[:range]   target a named star or reached-system planet
 SL [range]        list all charted stars or scan the nearby procedural cube
 DL name[:range]   list a charted system's planet/moon dependency tree
 CAT name[:X..Y]   read ranged records from the original Galactic Guide
+PRI name[:X..Y]   export ranged Guide text to GUIDE-PRINT.TXT
 CAST name:notes    append a persistent Galactic Guide note (76 characters max)
 REP name:X:notes   correct local guide record X; original records are protected
 DELE name[:X..Y]   remove ranged local guide records; original records are protected

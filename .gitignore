@@ -11,6 +11,7 @@ work/*.ZIP
 work/errorlog.txt
 work/smblsmap.txt
 work/gamediag.txt
+work/GUIDE-PRINT.TXT
 work/*.png
 work/*.lin
 work/*.wavebuild.txt

@@ -98,9 +98,13 @@
 	VHGparix = 0; VHGpariy = 0; VHGpariz = 0;
 	VHGparaxischar = 0; VHGparcoord = 0;
 	VHGcatstart = 1; VHGcatend = 32767; VHGcatvalue = 0; VHGcatdigits = 0;
+	VHGcataction = 0;
 	VHGcatrecno = 0; VHGcatmatchno = 0; VHGcatfound = 0; VHGcatptr = 0;
 	VHGcatmsgi = 0; VHGcatcol = 0; VHGcatchar = 0;
 	VHGcatreadi = 0; VHGcatlooki = 0; VHGcatwordlen = 0;
+	VHGpripos = 0; VHGpricol = 0; VHGpriok = 0; VHGprilinei = 0; VHGpricleari = 0;
+	VHGpristrptr = 0; VHGpristri = 0; VHGprimsgi = 0; VHGprilooki = 0;
+	VHGpriwordlen = 0; VHGprichar = 0;
 	VHGcastmsgptr = 0; VHGcastmsglen = 0;
 	VHGreptarget = 0; VHGrepdigits = 0; VHGrepmsgptr = 0; VHGrepmsglen = 0;
 	VHGdeletotal = 0; VHGdeledeleted = 0; VHGdelequery = 0;
@@ -316,6 +320,15 @@
 	VHGcatnone0 = { THERE_WERE_NO_RECORDS };
 	VHGcatnone1 = { IN_THE_GUIDE_RELATING };
 	VHGcatnone2 = { SPECIFIED_SUBJECT. };
+	VHGpriusage1 = { PRI_OBJECTNAME };
+	VHGpriusage2 = { PRI_OBJECTNAME:X..Y };
+	VHGpriheader = { GOES_GALACTIC_GUIDE_DATA_SNIPPET };
+	VHGprifile = { GUIDE-PRINT.TXT };
+	VHGpriexport0 = { DATA_EXPORTED_TO };
+	VHGpriexport1 = { GUIDE-PRINT.TXT };
+	VHGpriready = { PRINT_DATA_READY. };
+	VHGprierror = { PRINT_EXPORT_ERROR. };
+	VHGpriend = { -_END_OF_DATA_- };
 	VHGcastusage1 = { CAST_OBJECTNAME:NOTES };
 	VHGcastsyntax0 = { SYNTAX_ERROR: };
 	VHGcastsyntax1 = { MISSING_COLON_BETWEEN };
@@ -798,6 +811,8 @@
 	VHGinrecord = 21;
 	VHGincompare = 21;
 	VHGinheader = 1;
+	VHGpriline = 18;
+	VHGpricrlf = 1;
 
 "programme"
 
@@ -3551,8 +3566,10 @@
     "VHG command maybe cat"
 	A = [vhptext plus 44]; ? A = 83 -> VHG command maybe cast;
 	? A != 84 -> VHG command done;
-	A = [vhptext plus 45]; ? A = 0 -> VHG command cat parse;
-	? A = 32 -> VHG command cat parse; ? A != 95 -> VHG command done;
+	A = [vhptext plus 45]; ? A = 0 -> VHG command cat select;
+	? A = 32 -> VHG command cat select; ? A != 95 -> VHG command done;
+	"VHG command cat select"
+	[VHGcataction] = 0; -> VHG command cat parse;
     "VHG command maybe cast"
 	A = [vhptext plus 45]; ? A != 84 -> VHG command done;
 	A = [vhptext plus 46]; ? A = 0 -> VHG command cast parse;
@@ -3633,7 +3650,11 @@
 	A - 1; C = [VHGwherequery]; C + A; A = [C]; ? A != 32 -> VHG command cat ready;
 	[VHGwherelen]-; -> VHG command cat trim;
     "VHG command cat ready"
-	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1; => VHG CAT; -> VHG command done;
+	[VHGwhereunderscores] = 1; [VHGcmdsilent] = 1;
+	A = [VHGcataction]; ? A = 1 -> VHG command pri ready;
+	=> VHG CAT; -> VHG command done;
+	"VHG command pri ready"
+	=> VHG PRI; -> VHG command done;
     "VHG command maybe where"
 	A = [vhptext plus 43]; ? A != 72 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 69 -> VHG command done;
@@ -3659,10 +3680,17 @@
     "VHG command where ready"
 	[VHGwhereunderscores] = 0; [VHGcmdsilent] = 1; => VHG WHERE; -> VHG command done;
     "VHG command maybe par"
-	A = [vhptext plus 43]; ? A != 65 -> VHG command done;
+	A = [vhptext plus 43]; ? A = 82 -> VHG command maybe pri;
+	? A != 65 -> VHG command done;
 	A = [vhptext plus 44]; ? A != 82 -> VHG command done;
 	A = [vhptext plus 45]; ? A = 0 -> VHG command par parse;
 	? A = 32 -> VHG command par parse; ? A != 95 -> VHG command done;
+	"VHG command maybe pri"
+	A = [vhptext plus 44]; ? A != 73 -> VHG command done;
+	A = [vhptext plus 45]; ? A = 0 -> VHG command pri parse;
+	? A = 32 -> VHG command pri parse; ? A != 95 -> VHG command done;
+	"VHG command pri parse"
+	[VHGcataction] = 1; -> VHG command cat parse;
     "VHG command par parse"
 	[VHGcmdi] = 45; [VHGparaction] = 0; [VHGparrange] = 100;
 	-> VHG command par spaces;
@@ -5288,6 +5316,212 @@
 "VHG CAT read message char"
 	A = [VHGcatreadi]; B = A; A / 4; C = [VHGcatptr]; C + 2; C + A; A = [C];
 	B & 3; B '* 8; A > B; A & FFh; [VHGcatchar] = A; end;
+
+"VHG PRI"
+	( PRI.CPP sends selected Galactic Guide text to the printer.  The resident
+	  host keeps its catalogue lookup, one-based range, continuous text stream,
+	  and 72-column wrapping, exporting the result as GUIDE-PRINT.TXT. )
+	A = [VHGwherelen]; ? A != 0 -> VHG PRI execute;
+	[VHPoutptr] = VHGparusage0; => VH GOES output line;
+	[VHPoutptr] = VHGpriusage1; => VH GOES output line;
+	[VHPoutptr] = VHGpriusage2; => VH GOES output line;
+	[VHPoutptr] = VHGparusage3; => VH GOES output line;
+	[VHPoutptr] = VHGparusage4; => VH GOES output line; end;
+    "VHG PRI execute"
+	[VHGwherei] = 0;
+    "VHG PRI bar fill"
+	A = VHGwherebar; A + [VHGwherei]; [A] = 38;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 21 -> VHG PRI bar fill;
+	[VHGwherebar plus 21] = 0;
+	[VHPoutptr] = VHGcathead; => VH GOES output line;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	[VHGwherematches] = 0; [VHGwherefound] = 0; [VHGwhererecno] = 0;
+    "VHG PRI catalogue loop"
+	A = [VHGwhererecno]; ? A >= [VHCATrecs] -> VHG PRI catalogue done;
+	A '* 8; A + vhcatraw; A + 1; [VHGwhererec] = A;
+	=> VHG WHERE record match; A = [VHGwherematch]; ? A = 0 -> VHG PRI catalogue next;
+	[VHGwherematches]+; [VHGwherefound] = [VHGwhererec];
+	A = [VHGwhereexact]; ? A != 0 -> VHG PRI catalogue exact;
+    "VHG PRI catalogue next"
+	[VHGwhererecno]+; -> VHG PRI catalogue loop;
+    "VHG PRI catalogue exact"
+	[VHGwherematches] = 1;
+    "VHG PRI catalogue done"
+	A = [VHGwherematches]; ? A = 0 -> VHG PRI missing result;
+	? A > 1 -> VHG PRI ambiguous result;
+	[VHGwhererec] = [VHGwherefound];
+	A = [VHGwhererec]; C = [A plus 7]; C > 8; C & FFh; [VHGwheretype] = C;
+	? C = VHCATS -> VHG PRI star subject;
+	? C = VHCATP -> VHG PRI planet subject; -> VHG PRI missing result;
+    "VHG PRI missing result"
+	[VHPoutptr] = VHGwherenotfound; => VH GOES output line; end;
+    "VHG PRI ambiguous result"
+	=> VHG WHERE ambiguous; end;
+    "VHG PRI star subject"
+	[VHPoutptr] = VHGparsubjectstar; => VH GOES output line; -> VHG PRI subject label;
+    "VHG PRI planet subject"
+	[VHPoutptr] = VHGparsubjectplanet; => VH GOES output line;
+    "VHG PRI subject label"
+	[VHGwhererec] = [VHGwherefound]; => VHG WHERE output label;
+	[VHPoutptr] = VHGwherebar; => VH GOES output line;
+	A = [VHGDBloaded]; ? A = 0 -> VHG PRI database error;
+	[VHGpripos] = 0; [VHGpricol] = 0; [VHGpriok] = 1; => VHG PRI clear line;
+	[VHGpristrptr] = VHGpriheader; => VHG PRI write string line;
+	A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	=> VHGprioutbar; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	A = [VHGwheretype]; ? A = VHCATP -> VHG PRI file planet subject;
+	[VHGpristrptr] = VHGparsubjectstar; -> VHG PRI file subject ready;
+    "VHG PRI file planet subject"
+	[VHGpristrptr] = VHGparsubjectplanet;
+    "VHG PRI file subject ready"
+	=> VHG PRI write string line; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	[VHGwherei] = 0;
+    "VHG PRI file label loop"
+	A = [VHGwherei]; B = A; A / 4; C = [VHGwherefound]; C + 2; C + A; A = [C];
+	B & 3; B '* 8; A > B; A & FFh; [VHGprichar] = A; => VHG PRI append char;
+	A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	[VHGwherei]+; A = [VHGwherei]; ? A < 20 -> VHG PRI file label loop;
+	=> VHG PRI flush line; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	=> VHGprioutbar; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	[VHPoutptr] = VHGpriexport0; => VH GOES output line;
+	[VHPoutptr] = VHGpriexport1; => VH GOES output line;
+	A = [VHGwherefound]; [VHGpartarget0] = [A]; [VHGpartarget1] = [A plus 1];
+	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FSub;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparlowhi] = [VHCATkeyhi]; [VHGparlowlo] = [VHCATkeylo];
+	[FA0] = [VHGpartarget0]; [FA1] = [VHGpartarget1];
+	[FB0] = VHCATIDSC0; [FB1] = VHCATIDSC1; => FAdd;
+	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT key;
+	[VHGparhighhi] = [VHCATkeyhi]; [VHGparhighlo] = [VHCATkeylo];
+	[VHGcatrecno] = 0; [VHGcatmatchno] = 0; [VHGcatfound] = 0;
+    "VHG PRI guide loop"
+	A = [VHGcatrecno]; ? A >= [VHGDBrecs] -> VHG PRI guide done;
+	A '* 21; A + vhguidedata; A + 1; [VHGcatptr] = A;
+	[VHCATid0] = [A]; [VHCATid1] = [A plus 1];
+	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHG PRI guide next;
+	=> VHCAT key; A = [VHCATkeyhi]; B = [VHCATkeylo];
+	? A '> [VHGparlowhi] -> VHG PRI guide above low;
+	? A '< [VHGparlowhi] -> VHG PRI guide next;
+	? B '> [VHGparlowlo] -> VHG PRI guide above low; -> VHG PRI guide next;
+    "VHG PRI guide above low"
+	? A '< [VHGparhighhi] -> VHG PRI guide match;
+	? A '> [VHGparhighhi] -> VHG PRI guide next;
+	? B '< [VHGparhighlo] -> VHG PRI guide match; -> VHG PRI guide next;
+    "VHG PRI guide match"
+	[VHGcatmatchno]+; A = [VHGcatmatchno]; ? A < [VHGcatstart] -> VHG PRI guide next;
+	? A > [VHGcatend] -> VHG PRI guide done;
+	A = [VHGpricol]; ? A = 0 -> VHG PRI output record;
+	[VHGprichar] = 32; => VHG PRI append char;
+	A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+    "VHG PRI output record"
+	[VHGcatfound] = 1; [VHGprimsgi] = 0;
+    "VHG PRI message loop"
+	A = [VHGprimsgi]; ? A >= 76 -> VHG PRI guide next;
+	[VHGcatreadi] = A; => VHG CAT read message char; A = [VHGcatchar];
+	? A = 0 -> VHG PRI guide next;
+	A = [VHGprimsgi]; ? A = 0 -> VHG PRI message word check;
+	A = [VHGcatchar]; ? A = 32 -> VHG PRI message word check;
+    "VHG PRI message emit"
+	[VHGprichar] = [VHGcatchar]; => VHG PRI append char;
+	A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	[VHGprimsgi]+; -> VHG PRI message loop;
+    "VHG PRI message word check"
+	A = [VHGprimsgi]; A + 1; [VHGprilooki] = A; [VHGpriwordlen] = 1;
+    "VHG PRI message word length"
+	A = [VHGprilooki]; ? A >= 76 -> VHG PRI message word ready;
+	[VHGcatreadi] = A; => VHG CAT read message char; A = [VHGcatchar];
+	? A = 0 -> VHG PRI message word ready; ? A = 32 -> VHG PRI message word ready;
+	[VHGpriwordlen]+; [VHGprilooki]+; -> VHG PRI message word length;
+    "VHG PRI message word ready"
+	A = [VHGpricol]; A + [VHGpriwordlen]; ? A <= 72 -> VHG PRI message reread;
+	=> VHG PRI flush line; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	A = [VHGprimsgi]; ? A = 0 -> VHG PRI message reread;
+	[VHGprimsgi]+;
+    "VHG PRI message reread"
+	[VHGcatreadi] = [VHGprimsgi]; => VHG CAT read message char; A = [VHGcatchar];
+	? A = 32 -> VHG PRI message leading space;
+	-> VHG PRI message emit;
+    "VHG PRI message leading space"
+	A = [VHGpricol]; ? A != 0 -> VHG PRI message emit;
+	[VHGprimsgi]+; -> VHG PRI message loop;
+    "VHG PRI guide next"
+	[VHGcatrecno]+; -> VHG PRI guide loop;
+    "VHG PRI guide done"
+	A = [VHGcatfound]; ? A = 0 -> VHG PRI no records;
+	=> VHG PRI flush line; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	=> VHGprioutbar; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	[VHGpristrptr] = VHGpriend; => VHG PRI write string line;
+	A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	=> VHG PRI finish file; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	[VHPoutptr] = VHGpriready; => VH GOES output line; end;
+    "VHG PRI no records"
+	=> VHG PRI finish file; A = [VHGpriok]; ? A = 0 -> VHG PRI write error;
+	[VHPoutptr] = VHGcatnone0; => VH GOES output line;
+	[VHPoutptr] = VHGcatnone1; => VH GOES output line;
+	[VHPoutptr] = VHGcatnone2; => VH GOES output line; end;
+    "VHG PRI database error"
+	[VHPoutptr] = VHGcatdberror0; => VH GOES output line;
+	[VHPoutptr] = VHGcatdberror1; => VH GOES output line; end;
+    "VHG PRI write error"
+	[File Name] = VHGprifile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 0; isocall; [VHPoutptr] = VHGprierror; => VH GOES output line; end;
+
+"VHG PRI write string line"
+	[VHGpristri] = 0;
+    "VHG PRI write string loop"
+	A = [VHGpristrptr]; A + [VHGpristri]; A = [A]; ? A = 0 -> VHG PRI write string done;
+	[VHGprichar] = A; => VHG PRI append char; A = [VHGpriok]; ? A = 0 -> VHG PRI write string done;
+	[VHGpristri]+; -> VHG PRI write string loop;
+    "VHG PRI write string done"
+	A = [VHGpriok]; ? A = 0 -> VHG PRI write string end; => VHG PRI flush line;
+    "VHG PRI write string end"
+	end;
+
+"VHGprioutbar"
+	[VHGprilinei] = 0;
+	"VHGprioutbar loop"
+	[VHGprichar] = 95; => VHG PRI append char; A = [VHGpriok]; ? A = 0 -> VHGprioutbar done;
+	[VHGprilinei]+; A = [VHGprilinei]; ? A < 72 -> VHGprioutbar loop;
+	"VHGprioutbar done"
+	end;
+
+"VHG PRI append char"
+	A = [VHGpricol]; B = A; A / 4; C = VHGpriline; C + A; E = C;
+	B & 3; B '* 8; A = [VHGprichar]; A & FFh; A < B; C = [E]; C | A; [E] = C;
+	[VHGpricol]+; A = [VHGpricol]; ? A < 72 -> VHG PRI append char done;
+	=> VHG PRI flush line;
+    "VHG PRI append char done"
+	end;
+
+"VHG PRI flush line"
+	A = [VHGpricol]; ? A = 0 -> VHG PRI flush newline;
+	[File Name] = VHGprifile; [File Position] = [VHGpripos]; [File Command] = WRITE;
+	[Block Pointer] = VHGpriline; [Block Size] = [VHGpricol]; isocall;
+	? [File Status] + ERROR -> VHG PRI flush error;
+	A = [Block Size]; ? A != [VHGpricol] -> VHG PRI flush error;
+	[VHGpripos] + [VHGpricol];
+    "VHG PRI flush newline"
+	[VHGpricrlf] = 00000A0Dh;
+	[File Name] = VHGprifile; [File Position] = [VHGpripos]; [File Command] = WRITE;
+	[Block Pointer] = VHGpricrlf; [Block Size] = 2; isocall;
+	? [File Status] + ERROR -> VHG PRI flush error;
+	A = [Block Size]; ? A != 2 -> VHG PRI flush error;
+	[VHGpripos] + 2; [VHGpricol] = 0; => VHG PRI clear line; end;
+    "VHG PRI flush error"
+	[VHGpriok] = 0; end;
+
+"VHG PRI clear line"
+	[VHGpricleari] = 0;
+    "VHG PRI clear line loop"
+	A = VHGpriline; A + [VHGpricleari]; [A] = 0;
+	[VHGpricleari]+; A = [VHGpricleari]; ? A < 18 -> VHG PRI clear line loop; end;
+
+"VHG PRI finish file"
+	[File Name] = VHGprifile; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGpripos]; isocall; ? [File Status] + ERROR -> VHG PRI finish error; end;
+    "VHG PRI finish error"
+	[VHGpriok] = 0; end;
 
 "VHG PAR"
 	( PAR.CPP regenerates every procedural star in a centred sector cube and

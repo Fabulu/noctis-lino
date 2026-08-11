@@ -59,9 +59,11 @@ been reached. `DL <catalogued name>[:range]` regenerates the named system and
 prints its charted planet and moon dependency tree, including Galactic Guide
 note counts; bare `DL` uses the current remote target. The temporary query
 restores the player's current generated system and selected body afterward.
-`CAT <catalogued name>[:X..Y]` reads ranged Galactic Guide
-entries, and `CAST <catalogued name>:<notes>` appends a persistent player note
-of up to 76 characters. `REP <catalogued name>:<record>:<notes>` corrects one
+`CAT <catalogued name>[:X..Y]` reads ranged Galactic Guide entries.
+`PRI <catalogued name>[:X..Y]` exports the same selected records to
+`GUIDE-PRINT.TXT` beside the running game, using the original continuous
+72-column printer layout. `CAST <catalogued name>:<notes>` appends a persistent
+player note of up to 76 characters. `REP <catalogued name>:<record>:<notes>` corrects one
 of those local notes; consolidated records supplied with the game remain
 protected. `DELE <catalogued name>[:X..Y]` tombstones selected local records
 without changing that protected source data. `CLEAN` compacts removed starmap

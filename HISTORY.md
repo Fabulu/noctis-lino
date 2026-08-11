@@ -506,6 +506,16 @@ the physical 21-column output tree. The native probe's `CAT SURICRASIA:1..2`
 result reproduced the first two guide blocks, including their `(1)` and `(2)`
 headers, and the package check retained the source asset's exact SHA-256.
 
+The companion `PRI.CPP` path now lives inside GOES as well. `PRI` shares CAT's
+exact or unambiguous catalogue lookup and one-based record ranges, then writes
+the selected Guide prose to `GUIDE-PRINT.TXT` in place of the DOS printer
+device. The export retains the source heading, 72-underscore rules, padded
+20-character subject label, continuous record stream, CRLF endings, and exact
+72-column word-wrap decisions. A disposable native `PRI SURICRASIA:1..2` run
+produced 457 bytes that matched an independent replay of the original routine
+byte for byte; that run also caught and removed an early packed-line counter
+collision before publication.
+
 The companion `CAST.CPP` path now contributes persistent player notes to that
 same database. The port keeps the original four-byte consolidated boundary
 untouched and appends each local contribution as the source's binary64 subject
