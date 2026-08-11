@@ -793,10 +793,10 @@ def main() -> int:
             '"VHG device target browser overlay"', '=> VHG browse format rows;',
             'VHGbrowserowx', 'VHGbrowseprev', 'VHGbrowseselect',
             '[VHGinfoline] = VHGdevtitle;',
-            '[Rectangle Bounds] = vector VHGUIregion;',
             'VHGdevlighton', 'VHGdevlightoff', 'VHGdevremote',
             'VHGdevlocal', 'VHGdevenvironment', 'VHGdevhint',
         ))
+        and 'Standard Black Gradients' not in device_overlay
         and all(token in device_key for token in (
             '=> VHG device physical poll;', '"VHG device physical poll"',
             'E = KEY A; E + 17;', 'E = KEY A; E + 32;',
@@ -878,8 +878,8 @@ def main() -> int:
             '[VHGinfoline] = VHGfcsmenutitle;', 'VHGfcsmremote',
             'VHGfcsmstart', 'VHGfcsmstop', 'VHGfcsmlocal',
             'VHGfcsmcancel', 'VHGfcsmrestart', 'VHGfcsmcapsule',
-            '[Rectangle Bounds] = vector VHGUIregion;',
         ))
+        and 'Standard Black Gradients' not in fcs_menu_overlay
         and all(token in fcs_menu_key for token in (
             '? A = 53 -> VHG FCS menu toggle;',
             '? A = 54 -> VHG FCS remote action;',

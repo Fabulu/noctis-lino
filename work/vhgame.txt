@@ -3541,11 +3541,9 @@
 
 "VHG device overlay"
 	A = [VHGdev]; ? A = 0 -> VHG device overlay done;
-	( Keyboard counterpart of the original four-page onboard console. Keep it
-	  on the logical page so resize scaling remains exact. )
-	[Rectangle Display Alignment] = 320; [Rectangle Bounds] = vector VHGUIregion;
-	[Rectangle Gradients] = vector Standard Black Gradients;
-	[Rectangle Effect] = service FX Raw; [Rectangle Target Layer] = VHGUIframe; => Rectangle;
+	( NOCTIS.CPP screen() projects luminous computer text over the live cabin;
+	  it never replaces the world with a black modal page.  Keep the complete
+	  hosted rows transparent while their perspective 3D successor is built. )
 	A = [VHGdev]; ? A = 1 -> VHG device root overlay;
 	? A = 2 -> VHG device navigation overlay;
 	? A = 3 -> VHG device miscellaneous overlay;
@@ -3632,10 +3630,8 @@
 "VHG FCS menu overlay"
 	A = [VHGfcsopen]; ? A = 0 -> VHG FCS menu overlay done;
 	( NOCTIS.CPP fcs()/fcs_commands(): key 5 selects the flight-control
-	  screen and source command slots 1..4 remain on physical keys 6..9. )
-	[Rectangle Display Alignment] = 320; [Rectangle Bounds] = vector VHGUIregion;
-	[Rectangle Gradients] = vector Standard Black Gradients;
-	[Rectangle Effect] = service FX Raw; [Rectangle Target Layer] = VHGUIframe; => Rectangle;
+	  screen and source command slots 1..4 remain on physical keys 6..9.
+	  Like screen(), the command light remains transparent over the cabin. )
 	[VHGinfoy] = 14; [VHGinfoline] = VHGfcsmenutitle; => VHG info draw line;
 	[VHGinfoline] = VHGfcsmremote; => VHG info draw line;
 	[VHGinfoline] = VHGfcsmstart; A = [MgStspeed]; ? A = 0 -> VHG FCS menu flight selected;

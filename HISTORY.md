@@ -356,6 +356,10 @@ four visible rows to the same 6-9 command slots, while each page's bottom hint
 retains the original back or close action. Keyboard controls remain unchanged.
 A production-window smoke opened the miscellaneous page from the onboard root
 and changed its live internal-light row from ON to OFF with two mouse clicks.
+The device and FCS command text also stopped blanking the cabin with a black
+host rectangle. It now remains transparent over the live Stardrifter, as the
+original `screen()` path does, while the remaining perspective placement is
+implemented.
 
 ## Packaging and publication
 

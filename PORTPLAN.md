@@ -23,6 +23,12 @@ goal, with an in-game off control preserving the original silent experience.
   delivery work never accumulates only in the local checkout.
 - Verify claims by running things. A wave is not done because an agent said so.
 
+## Active delivery docket
+
+- [ ] Recurring: commit and push every coherent playable checkpoint during
+  active implementation, and leave no finished checkpoint only in the local
+  checkout when pausing or handing off.
+
 ## Lean check before any new wave
 
 ```powershell
@@ -47,6 +53,9 @@ first -- a broken foundation makes every later result meaningless.
 - A live production-window smoke hovered and opened `MISCELLANEOUS DEVICES`,
   then clicked its first row and observed `INTERNAL LIGHT ON` change to
   `INTERNAL LIGHT OFF`. The focused integrated regression passes.
+- Device and FCS command text now remains luminous over the live Stardrifter
+  view instead of replacing it with a black modal page, matching the original
+  `screen()` presentation while perspective placement is completed.
 
 ### Native GUI performance, landing safety, and Stardrifter lift
 - Each completed 320x200 indexed render is palette-expanded into a stable

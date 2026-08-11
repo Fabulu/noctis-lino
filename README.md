@@ -46,7 +46,8 @@ resumes automatically; verified saves maintain `CURRENT.BAK`, and a damaged
 primary recovers visibly from that last-known-good copy. Enter `NEW` in GOES
 to start over. The FCS and onboard-device pages retain keys 6-9 and also expose
 their visible rows as resize-aware mouse controls; the hovered command turns
-white and a single left click activates it.
+white and a single left click activates it. Their luminous text remains over
+the live Stardrifter view instead of opening a black modal page.
 
 To build a clean, self-contained redistributable play folder with every runtime
 asset and a SHA-256 manifest:
