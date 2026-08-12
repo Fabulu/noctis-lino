@@ -33,6 +33,7 @@
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
 	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
+	VHGNDnormgen = 0; VHGNDnormindex = 0;
 	VHGNDtilex = 0; VHGNDtilez = 0; VHGNDfx = 0; VHGNDfz = 0;
 	VHGNDheight = 0; VHGNDtmp = 0;
 	VHGNDgeni = 0; VHGNDgenn = 0; VHGNDtexn = 0;
@@ -256,6 +257,9 @@
 	VHGNDvcry0 = 40000; VHGNDvcry1 = 40000;
 	VHGNDvcrz0 = 40000; VHGNDvcrz1 = 40000;
 	VHGNDvcvisible = 40000; VHGNDvcpx = 40000; VHGNDvcpy = 40000;
+	( Two static triangle normals per cell, cached as their exact binary32 bits. )
+	VHGNDnormstamp = 80000; VHGNDnormx = 80000;
+	VHGNDnormy = 80000; VHGNDnormz = 80000;
 	( Three possible source objects per 200x200 quadrant.  Positions and the
 	  post-coordinate fast RNG state are immutable for a generated surface. )
 	VHGNDobjcachex = 120000; VHGNDobjcachey = 120000;
@@ -275,6 +279,14 @@
 	  real build_surface switch arms: type 8 milky/quartz and type 4 rocky.
 	  Body 2 is type 6 and is rejected by VHG land. )
 	[VHGNDtick] = 0; [VHGNDptr] = 0; [VHGNDplayerstep] = 0;
+	[VHGNDnormgen]+; A = [VHGNDnormgen]; ? A != 0 -> VHGND normal generation ready;
+	[VHGNDptr] = 0;
+    "VHGND normal cache clear"
+	A = VHGNDnormstamp; A + [VHGNDptr]; [A] = 0;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A < 80000 -> VHGND normal cache clear;
+	[VHGNDnormgen] = 1;
+    "VHGND normal generation ready"
+	[VHGNDptr] = 0;
 	[VHGNDwaswet] = 0; [VHGNDwavescalm] = 0;
 	[VHGNDstormflashes] = 0; [VHGNDflashactive] = 0; [VHGNDflashpending] = 0;
 	[VHGNDflashlast] = 0;
@@ -2505,6 +2517,31 @@
 	=> VHGND terrain cached bounds;
 	[PJpreproject] = 1; [PJnrv] = 3; => PG polymap;
 	[SPterrain] = 0; end;
+
+"VHGND terrain facing"
+	( Unit terrain geometry is immutable until the next surface generation.
+	  Cache the original routine's narrowed cross product, then retain its exact
+	  camera-relative dot schedule each frame.  Reflections use generic facing. )
+	A = [VHGNDmirror]; ? A != 0 -> VHGND terrain facing generic;
+	A = [VHGNDh1]; A + A; A + [VHGNDvctri]; [VHGNDnormindex] = A;
+	A = VHGNDnormstamp; A + [VHGNDnormindex]; C = [A];
+	A = [VHGNDnormgen]; ? A != C -> VHGND terrain facing build;
+	A = VHGNDnormx; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRX; => PGF setf32;
+	A = VHGNDnormy; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRY; => PGF setf32;
+	A = VHGNDnormz; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRZ; => PGF setf32;
+	=> PG facing dot; end;
+    "VHGND terrain facing build"
+	=> PG facing;
+	[PGFi] = FSRX; => PGF a; => PGF stf32;
+	A = VHGNDnormx; A + [VHGNDnormindex]; C = [PGFt]; [A] = C;
+	[PGFi] = FSRY; => PGF a; => PGF stf32;
+	A = VHGNDnormy; A + [VHGNDnormindex]; C = [PGFt]; [A] = C;
+	[PGFi] = FSRZ; => PGF a; => PGF stf32;
+	A = VHGNDnormz; A + [VHGNDnormindex]; C = [PGFt]; [A] = C;
+	A = VHGNDnormstamp; A + [VHGNDnormindex]; C = [VHGNDnormgen]; [A] = C;
+	end;
+    "VHGND terrain facing generic"
+	=> PG facing; end;
 
     "VHGND terrain mapped generic"
 	[PJpreproject] = 0; [PJnrv] = 3; => PG polymap;
@@ -5092,7 +5129,7 @@
 	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
 	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
 	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	=> PG facing;
+	[VHGNDvctri] = 0; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile first mirror facing;
 	A = [FCret]; ? A = 0 -> VHGND tile first done; -> VHGND tile first visible;
     "VHGND tile first mirror facing"
@@ -5119,7 +5156,7 @@
 	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
 	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
 	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	=> PG facing;
+	[VHGNDvctri] = 1; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile second mirror facing;
 	A = [FCret]; ? A = 0 -> VHGND tile second done; -> VHGND tile second visible;
     "VHGND tile second mirror facing"

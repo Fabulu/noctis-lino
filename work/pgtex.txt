@@ -682,58 +682,68 @@
 	pixel order, but perform its three fixed byte accesses directly. )
 
 "PG terrain pixel native"
-	( One non-culling mapper pixel.  EDI is the L.in.oleum workspace base;
-	  every memory cell remains one 32-bit unit containing one DOS byte. )
+	( One complete non-culling mapper block.  Moving the small 1..16 pixel
+	  loop into the fragment removes the remaining Lino call/branch tax. )
 	{
+	    55                                   (save Lino X/ebp)
 	    8B B7 <dPGnwbase mtp bytesperunit>     (esi = runtime nw workspace)
 	    8D 34 B7                              (esi = edi + 4*workspace index)
+	    8B 8F <dSPcl mtp bytesperunit>         (ecx = block count)
+	    (loop begins here, 16 bytes from fragment start)
 	    8B 87 <dSPdi mtp bytesperunit>       (eax = di)
 	    40                                   (inc eax)
 	    25 FF FF 00 00                       (and eax,65535)
 	    89 87 <dSPdi mtp bytesperunit>       (save di)
 	    8B 97 <dSPdx mtp bytesperunit>       (edx = v)
 	    81 E2 00 FF 00 00                    (v high byte in bits 8..15)
-	    8B 8F <dSPax mtp bytesperunit>       (ecx = u)
-	    C1 E9 08                             (shr ecx,8)
-	    81 E1 FF 00 00 00                    (u high byte)
-	    09 CA                                (edx |= ecx)
-	    8B 8C 96 70 68 06 00                 (ecx = texture[index])
-	    81 E1 FF 00 00 00                    (DOS byte)
-	    03 8F <dSPtinta mtp bytesperunit>    (add tinta)
-	    81 E1 FF 00 00 00                    (byte wrap)
+	    8B 9F <dSPax mtp bytesperunit>       (ebx = u)
+	    C1 EB 08                             (shr ebx,8)
+	    81 E3 FF 00 00 00                    (u high byte)
+	    09 DA                                (edx |= ebx)
+	    8B AC 96 70 68 06 00                 (ebp = texture[index])
+	    81 E5 FF 00 00 00                    (DOS byte)
+	    03 AF <dSPtinta mtp bytesperunit>    (add tinta)
+	    81 E5 FF 00 00 00                    (byte wrap)
 	    8B 9F <dSPax mtp bytesperunit>       (ebx = u)
 	    03 9F <dSPbp mtp bytesperunit>       (ebx += du)
 	    81 E3 FF FF 00 00                    (16-bit accumulator)
 	    89 9F <dSPax mtp bytesperunit>
 	    83 C0 03                             (DOS store is di+3)
 	    25 FF FF 00 00
-	    89 8C 86 A0 8B 10 00
+	    89 AC 86 A0 8B 10 00
 	    8B 97 <dSPdx mtp bytesperunit>       (edx = v)
 	    03 97 <dSPsi mtp bytesperunit>       (edx += dv)
 	    81 E2 FF FF 00 00
 	    89 97 <dSPdx mtp bytesperunit>
+	    49                                   (dec ecx)
+	    0F 85 72 FF FF FF                    (jnz block loop)
+	    89 8F <dSPcl mtp bytesperunit>       (publish zero count)
+	    5D                                   (restore ebp)
 	}
 	end;
 
 "PG terrain cull pixel native"
-	( One culling mapper sample, preserving its duplicated adjacent stores. )
+	( One complete culling mapper block, preserving duplicated stores. )
 	{
+	    55
 	    8B B7 <dPGnwbase mtp bytesperunit>     (esi = runtime nw workspace)
 	    8D 34 B7                              (esi = edi + 4*workspace index)
+	    8B 8F <dSPcl mtp bytesperunit>
+	    (loop begins here, 16 bytes from fragment start)
 	    8B 87 <dSPdi mtp bytesperunit>
 	    83 C0 02
 	    25 FF FF 00 00
 	    89 87 <dSPdi mtp bytesperunit>
 	    8B 97 <dSPdx mtp bytesperunit>
 	    81 E2 00 FF 00 00
-	    8B 8F <dSPax mtp bytesperunit>
-	    C1 E9 08
-	    81 E1 FF 00 00 00
-	    09 CA
-	    8B 8C 96 70 68 06 00
-	    81 E1 FF 00 00 00
-	    03 8F <dSPtinta mtp bytesperunit>
-	    81 E1 FF 00 00 00
+	    8B 9F <dSPax mtp bytesperunit>
+	    C1 EB 08
+	    81 E3 FF 00 00 00
+	    09 DA
+	    8B AC 96 70 68 06 00
+	    81 E5 FF 00 00 00
+	    03 AF <dSPtinta mtp bytesperunit>
+	    81 E5 FF 00 00 00
 	    8B 9F <dSPax mtp bytesperunit>
 	    03 9F <dSPbp mtp bytesperunit>
 	    81 E3 FF FF 00 00
@@ -741,14 +751,18 @@
 	    89 C3                                (ebx = di)
 	    83 C3 02
 	    81 E3 FF FF 00 00
-	    89 8C 9E A0 8B 10 00                 (store di+2)
+	    89 AC 9E A0 8B 10 00                 (store di+2)
 	    83 C0 03
 	    25 FF FF 00 00
-	    89 8C 86 A0 8B 10 00                 (store di+3)
+	    89 AC 86 A0 8B 10 00                 (store di+3)
 	    8B 97 <dSPdx mtp bytesperunit>
 	    03 97 <dSPsi mtp bytesperunit>
 	    81 E2 FF FF 00 00
 	    89 97 <dSPdx mtp bytesperunit>
+	    49
+	    0F 85 5E FF FF FF
+	    89 8F <dSPcl mtp bytesperunit>
+	    5D
 	}
 	end;
 
@@ -769,7 +783,6 @@
 	[SPu] = [SPun]; [SPv] = [SPvn];
     "PG terrain pixel"
 	=> PG terrain pixel native;
-	[SPcl]-; ? [SPcl] != 0 -> PG terrain pixel;
 	-> PG terrain row;
     "PG terrain row end"
 	end;
@@ -793,7 +806,6 @@
 	A = [SPdi]; [SPsave] = A;
     "PG terrain cull pixel"
 	=> PG terrain cull pixel native;
-	[SPcl]-; ? [SPcl] != 0 -> PG terrain cull pixel;
 	A = [SPsave]; A + 32; A & 65535; [SPdi] = A;
 	-> PG terrain crow;
     "PG terrain crow end"
