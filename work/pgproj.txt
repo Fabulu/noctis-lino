@@ -73,6 +73,7 @@
 	PJminx	= 0;			( polymap horizontal early-out box )
 	PJmaxx	= 0;
 	PJpreproject = 0;		( caller supplied exact rotated/projected slots )
+	PJfwbase = 0;			( runtime relocated fw workspace for native kernels )
 
 	( ---- generic 2-D clip stage ---- )
 	CLxi	= 0;
@@ -670,11 +671,48 @@
 	[PGFi] = FSW0; => PGF add; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSCAMZ; => PGF a; A = FSINZ; A + 2; [PGFi] = A; => PGF sub; [PGFi] = FSRZ; => PGF mul;
 	[PGFi] = FSW0; => PGF add;
+	-> PG facing compare;
+    "PG facing compare"
 	[PGFi] = FSZERO; => PGF b; => FCmp;
 	A = [FI]; ? A = 2 -> PG facing done; ? A < 0 -> PG facing done;
 	[FCret] = 1;
     "PG facing done"
 	end;
+
+"PG terrain facing dot native"
+	( Cached terrain normals still use the original scalar schedule: every
+	  subtraction, multiply and addition is spilled to binary64 before the
+	  next operation.  Only the Lino slot/call shuttle is removed. )
+	[FCret] = 0; A = fw; [PJfwbase] = A;
+	{
+	    8B B7 <dPJfwbase mtp bytesperunit>     (esi = relocated fw)
+	    8D 34 B7
+	    DD 86 00 07 00 00                     (cam x)
+	    DC A6 F0 07 00 00                     (- vertex 2 x)
+	    DD 9F <dFA0 mtp bytesperunit>         (rounded difference)
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8E 58 07 00 00                     (* normal x)
+	    DD 9E C0 07 00 00                     (x product -> FSW0)
+	    DD 86 08 07 00 00                     (cam y)
+	    DC A6 10 08 00 00                     (- vertex 2 y)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8E 60 07 00 00                     (* normal y)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 C0 07 00 00                     (+ x product)
+	    DD 9E C0 07 00 00                     (xy sum -> FSW0)
+	    DD 86 10 07 00 00                     (cam z)
+	    DC A6 30 08 00 00                     (- vertex 2 z)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8E 68 07 00 00                     (* normal z)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 C0 07 00 00                     (+ xy sum)
+	    DD 9F <dFA0 mtp bytesperunit>         (final dot in FA)
+	}
+	-> PG facing compare;
 
 ( ==================================================================== )
 ( poly3d - the whole pipeline                                           )
