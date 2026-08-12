@@ -83,8 +83,12 @@
 	GRfrhi		= 0;	( loop upper bound (cx + r)		)
 	GRfcanyon	= 0;	( allowcanyons flag			)
 	GRfd2		= 0;	( integer dx*dx+dz*dz cache key		)
+	GRfd2delta	= 0;	( next-row delta for integer d squared	)
 	GRfr2		= 0;	( integer crater radius squared		)
 	GRcraterid	= 0;	( generation stamp for radial cache		)
+	GRscaddr	= 0;	( clipped map address, advanced by align	)
+	GRsczlo	= 0;	( clipped z lower bound, inclusive		)
+	GRsczhi	= 0;	( clipped z upper bound, exclusive		)
 
 	( ---- float scratch (binary64, adjacent pairs) ---- )
 
@@ -129,10 +133,10 @@
 	( std_crater's profile is radial: all pixels with the same integer
 	  dx*dx+dz*dz execute the same float sequence and produce the same
 	  binary32 y.  Cache that value per call without changing any defined
-	  surface byte.  The largest source call is radius 109, so 12000 keys
-	  cover every in-circle squared distance. )
-	GRscache = 12000;
-	GRsstamp = 12000;
+	  surface byte.  16384 keys cover every squared distance below 128,
+	  including the source's largest 100..109-radius crater path. )
+	GRscache = 16384;
+	GRsstamp = 16384;
 
 "programme"
 
@@ -671,37 +675,49 @@
 	    D9 9F <dGRfscr mtp bytesperunit>	(fstp dword [edi+GRfscr*4])
 	}
 
-	( loop bounds: x from cx-r to cx+r-1, z from cz-r to cz+r-1 )
+	( Clip the source's half-open crater rectangle once.  Skipped out-of-map
+	  iterations have no side effects or RNG calls, so this is identical to
+	  the original per-pixel bounds checks. )
 	A = [SUia];
 	B = [SUcxi];
 	[GRfrlo] = B; [GRfrlo] - A;
 	C = B; C + A;
 	[GRfrhi] = C;
+	A = [GRfrlo]; ? A >= 0 -> GR sc xlo ready; [GRfrlo] = 0;
+    "GR sc xlo ready"
+	A = [GRfrhi]; ? A '<= [GRfsca] -> GR sc xhi ready; [GRfrhi] = [GRfsca];
+    "GR sc xhi ready"
+	A = [SUia]; B = [SUcyi];
+	[GRsczlo] = B; [GRsczlo] - A;
+	C = B; C + A; [GRsczhi] = C;
+	A = [GRsczlo]; ? A >= 0 -> GR sc zlo ready; [GRsczlo] = 0;
+    "GR sc zlo ready"
+	A = [GRsczhi]; ? A '<= [GRfsca] -> GR sc zhi ready; [GRsczhi] = [GRfsca];
+    "GR sc zhi ready"
+	A = [GRfrlo]; ? A '>= [GRfrhi] -> GR sc done;
+	A = [GRsczlo]; ? A '>= [GRsczhi] -> GR sc done;
 	[GRfrx] = [GRfrlo];
 
 "GR sc xloop"
 	A = [GRfrx];
 	? A '>= [GRfrhi] -> GR sc done;
 
-	( z loop bounds )
-	A = [SUia];
-	B = [SUcyi];
-	D = B; D - A; [GRfrz] = D;
+	( The integer radial key and the map pointer are both recurrence values
+	  down the z-major inner loop: d2 advances by 2*dz+1 and the address
+	  advances by align. )
+	B = [GRfrx]; B - [SUcxi]; [GRdxi] = B;
+	A = B; A '* B; [GRfd2] = A;
+	[GRfrz] = [GRsczlo];
+	C = [GRfrz]; C - [SUcyi]; [GRdzi] = C;
+	A = C; A '* C; D = [GRfd2]; D + A; [GRfd2] = D;
+	A = C; A + C; A+; [GRfd2delta] = A;
+	A = [GRfrz]; A '* [GRfsca]; A + [GRfrx]; A + [GRscmap]; [GRscaddr] = A;
 
 "GR sc zloop"
-	A = [GRfrx];
-	? A '< 0 -> GR sc znext;
-	? A '>= [GRfsca] -> GR sc znext;
-	A = [GRfrz];
-	? A '< 0 -> GR sc znext;
-	? A '>= [GRfsca] -> GR sc znext;
-
 	( Integer radius rejection is exact here: dx and dz are small integers,
-	  and the source accepts precisely sqrt(dx*dx+dz*dz) < r.  It also gives
+	  and the source accepts precisely sqrt(dx*dx+dz*dz) <= r.  It also gives
 	  the radial-profile cache its stable key before any x87 work. )
-	B = [GRfrx]; B - [SUcxi]; [GRdxi] = B;
-	C = [GRfrz]; C - [SUcyi]; [GRdzi] = C;
-	A = B; A '* B; D = C; D '* C; A + D; [GRfd2] = A;
+	A = [GRfd2];
 	? A > [GRfr2] -> GR sc znext;
 	A = GRsstamp; A + [GRfd2]; C = [A];
 	? C != [GRcraterid] -> GR sc profile miss;
@@ -769,11 +785,9 @@
 
 "GR sc profile ready"
 
-	( y += map[align*z + x] )
-	A = [GRfrz]; A '* [GRfsca]; A + [GRfrx]; [GRptr] = A;
-	A = [GRscmap]; A + [GRptr]; [MBptr] = A;
-	=> MEM get byte;
-	[GRsval] = [MBval];
+	( y += map[align*z + x].  The clipped rectangle proves this direct
+	  one-byte load has the exact semantics of MEM get byte. )
+	A = nw; A + [GRscaddr]; C = [A]; C & 255; [GRsval] = C;
 	{
 	    D9 87 <dGRfy   mtp bytesperunit>	(fld dword [edi+GRfy*4])
 	    DB 87 <dGRsval mtp bytesperunit>	(fild dword [edi+GRsval*4])
@@ -810,15 +824,15 @@
 	    D9 AF <dGRcwn mtp bytesperunit>	(fldcw [edi+GRcwn*4])
 	}
 	A = [GRfti]; A & 0FFh;
-	[MBval] = A;
-	A = [GRscmap]; A + [GRptr]; [MBptr] = A;
-	=> MEM put byte;
+	C = A; A = nw; A + [GRscaddr]; [A] = C;
 
 "GR sc znext"
+	A = [GRfd2]; A + [GRfd2delta]; [GRfd2] = A;
+	[GRfd2delta] + 2;
+	A = [GRscaddr]; A + [GRfsca]; [GRscaddr] = A;
+	[GRdzi]+;
 	[GRfrz]+;
-	A = [GRfrz];
-	B = [SUcyi]; B + [SUia]; B & 0FFFFh;
-	? A '< B -> GR sc zloop;
+	A = [GRfrz]; ? A '< [GRsczhi] -> GR sc zloop;
 	[GRfrx]+;
 	-> GR sc xloop;
 

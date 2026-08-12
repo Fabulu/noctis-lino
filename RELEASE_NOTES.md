@@ -16,7 +16,11 @@ Type-1 lunar landings retain the source's complete zero-to-thirty height-crater
 field, uncapped texture-crater field, dark lines, rocks, mottling and airless
 presentation. A radial profile cache reuses the identical float result for
 pixels at equal integer squared radius, accelerating the authentic workload
-without shrinking or removing terrain content.
+without shrinking or removing terrain content. The crater loop now also clips
+its side-effect-free map bounds once, advances squared radius and map address
+by exact integer recurrences, and inlines the already-bounded byte access. All
+source crater calls, RNG draws, profile calculations, application ordering and
+float-to-byte conversion points remain in place.
 
 Galactic Cartography's manual Parsis target now accepts ten coordinate digits
 plus an optional minus sign. This corrects the original ten-character editor
