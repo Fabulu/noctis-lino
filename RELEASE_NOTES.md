@@ -51,6 +51,17 @@ chain retained every qword spill, square root and chop-conversion boundary; in
 a same-scene hidden A/B against its immediate predecessor, the 11-frame sample
 fell from 1,482 to 1,329 ms and the 60-frame wall time from 6,858 to 6,665 ms.
 
+Close surface stones now follow NIV+'s complete `roccia()` path: type-3
+generation retains the final `random(5)` quartz choice, type-8 sets quartz
+unconditionally, close-rock RNG draws keep their source order, rear faces use
+the source's inverse-facing gate, depths zero and one map `p_background` as a
+four-vertex degenerate face, and depth two remains solid. The former flat,
+unculled close faces made an observer standing inside a dense crystal group
+look like a moving wall. The reproducible lunar capture now starts at its
+measured terrain-relative eye height and faces the clean 90-degree green-sun
+composition; the promoted frame retains genuine crystals without presenting
+an inside-a-crystal view as landscape evidence.
+
 The earlier release audit passed all 24 then-registered suites. The integrated
 build/flight/render/present loop also completed 600,000 frames in 8,125.55
 seconds (2 h 15 min 25.55 s) at 73.84 FPS, with advanced state and power,

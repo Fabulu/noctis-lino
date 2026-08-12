@@ -887,17 +887,26 @@ def main() -> int:
         '"VHGND felisian line"' in post
         and "A & 0FCh; A | [VHGNDoval]" in post
         and "[VHGNDobjbyte] = A; A & 3; [VHGNDocount] = A;" in objects
+        and '"VHGND type3 done"' in ground
+        and "C = 5; => SU rnd; ? C != 0 -> VHGND generate done;" in ground
         and "[SUfmask] = [VHGNDrockdensity]" in rocks
-        and rocks.count("=> PG poly3d;") == 4
+        and rocks.count("=> PG facing;") == 4
+        and rocks.count("=> PG poly3d;") == 2
+        and rocks.count("=> PG polymap;") == 1
+        and rocks.index("( base point 0:") < rocks.index("[SUfmask] = 63;")
+        < rocks.index("( apex height =")
         and all(token in rocks for token in (
             "A = [VHGNDdepth]; ? A > 2 -> VHGND rock distant;",
             '"VHGND rock distant"', "[SUfmask] = 71; => VHGND render random; [DBcol] = C;",
             "=> PG facing; A = [FCret]; ? A = 0 -> VHGND rock done;",
             '"VHGND rock repeat"', "A '* 5; [VHGNDrockworkscale] = A;",
+            "[SPflar] = [VHGNDquartz]; [DBflar] = [VHGNDquartz];",
+            "A = [VHGNDdepth]; ? A >= 2 -> VHGND rock draw solid;",
+            "[PJnrv] = 4; => PG polymap;", "[PJnrv] = 3; => PG poly3d;",
             "A '* 1000; A '* [VHGNDcdown];", "A '/ 2; [VHGNDrockworkscale] = A;",
             "[VHGNDcdown]-; A = [VHGNDcdown]; ? A > 0 -> VHGND rock repeat;",
         )),
-        "rocks retain source distant triangles and complete close tetrahedral groups",
+        "rocks retain source RNG order, facing, quartz mapping, and distant triangles",
     )
     traversal = section(ground, '"VHGND render"', '"VHGND tile"')
     check(

@@ -27,6 +27,16 @@ with identical ten-second hidden warmups: the steady 12-frame sample fell from
 1,973 to 1,311 ms and the 60-frame wall time from 10,237 to 6,650 ms, raising
 the measured rate from 6 to 9 FPS. The 60-FPS optimization goal remains open.
 
+The remaining foreground slabs were isolated to depth-zero rocks rather than
+terrain. The port had omitted `roccia()`'s inverse-facing tests, source RNG
+order, quartz flare state, and mapped four-vertex path for depth-zero/one
+faces. Restoring those rules retains the authentic dense crystal fields. A
+solid-rasterizer split showed that a final screen-height silhouette was a real
+crystal intersecting the checkpoint near plane, not mapper corruption; moving
+the checkpoint moved the silhouette in world space. The reproducible lunar
+scene now uses the measured grounded eye height and the clean 90-degree view,
+and its replacement gallery frame contains no pillar or floor gap.
+
 ## 2026-08-12 -- source-lit Stardrifter and natural surface fauna
 
 The final release audit passed all 24 registered suites. One Wave 5

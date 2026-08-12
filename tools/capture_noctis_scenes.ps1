@@ -57,7 +57,8 @@ $scenes = @(
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=200.0 },
     # IDEAL's only body is an authentic type-1 primary. This avoids spending
     # screenshot startup time generating JROT's pathological 80-body system.
-    @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60; Beta=180; Pitch=-12 },
+    @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
+       Beta=90; Pitch=-12; PlayerY=-19032 },
     @{ Name='dense';     X=1463568; Y=-4728350; Z=-437812; Body=0; Type=2; Lon=0; Lat=60; Beta=180; Pitch=-12 },
     # Naturally generated plains mammal, birds, vegetation and the local sun.
     @{ Name='habitable'; FileName='planet-habitable-sun.png';

@@ -47,6 +47,7 @@
 	VHGNDlinetrendx = 0; VHGNDlinetrendz = 0;
 	VHGNDhr = 0;
 	VHGNDrockscale = 0; VHGNDrockworkscale = 0; VHGNDrockpeak = 0; VHGNDrockdensity = 0;
+	VHGNDquartz = 0;
 	VHGNDpostn = 0; VHGNDdeviation = 0; VHGNDvariability = 0;
 	VHGNDincl = 0; VHGNDoval = 0;
 	VHGNDh1i = 0; VHGNDh2i = 0; VHGNDh3i = 0; VHGNDh4i = 0;
@@ -57,7 +58,7 @@
 	VHGNDocount = 0; VHGNDicx = 0; VHGNDicz = 0;
 	VHGNDoox = 0; VHGNDooy = 0; VHGNDooz = 0;
 	VHGNDrox = 0; VHGNDroy = 0; VHGNDroz = 0;
-	VHGNDcdown = 0; VHGNDrcolor = 0;
+	VHGNDcdown = 0; VHGNDrcolor = 0; VHGNDrocktile = 0;
 	VHGNDsctype = 0; VHGNDobjbyte = 0; VHGNDobjclass = 0; VHGNDobjid = 0;
 	VHGNDobjcachep = 0;
 	VHGNDtreescale = 0; VHGNDtreetop = 0; VHGNDtreeapex = 0; VHGNDtreerad = 0; VHGNDtreecol = 0;
@@ -332,7 +333,7 @@
 	  immediately before the type-specific terrain switch. )
 	A = [VHGNDlocseed]; => SU fast srand;
 	A = [VHGNDlocseed]; A & 0FFFFh; => SU srand;
-	[VHGNDtscale] = 32;
+	[VHGNDtscale] = 32; [VHGNDquartz] = 0;
 	A = [GRiptype]; ? A = 8 -> VHGND generate type8;
 	? A = 1 -> VHGND generate type1;
 	? A = 2 -> VHGND generate type2;
@@ -424,6 +425,7 @@
 	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
 	[SUia] = [VHGNDgeni]; => GR round hill;
 	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type8 hill loop;
+	[VHGNDquartz] = 1;
 	( rockscaling, rockpeaking, rockdensity draws )
 	C = 300; => SU rnd; C + 50; [VHGNDrockscale] = C;
 	C = 300; => SU rnd; C + 50; [VHGNDrockpeak] = C;
@@ -556,8 +558,8 @@
 	=> VHGND texture random;
 	C = 75; => SU rnd; C + 50; [VHGNDrockscale] = C;
 	C = 25; => SU rnd; C + 30; [VHGNDrockpeak] = C;
-	C = 3; => SU rnd; [VHGNDrockdensity] = 0; ? C = 0 -> VHGND generate done;
-	[VHGNDrockdensity] = 31; -> VHGND generate done;
+	C = 3; => SU rnd; [VHGNDrockdensity] = 0; ? C = 0 -> VHGND type3 done;
+	[VHGNDrockdensity] = 31; -> VHGND type3 done;
 
     "VHGND type3 addtrees"
 	( `addtrees:`: preserve the otherwise-unused random(6), assign the
@@ -586,7 +588,7 @@
 	C = 200; => SU rnd; C + 100; [VHGNDrockscale] = C;
 	C = 200; => SU rnd; C + 100; [VHGNDrockpeak] = C;
 	C = 2; => SU rnd; C '* 4; C + 3; [VHGNDrockdensity] = C;
-	-> VHGND generate done;
+	-> VHGND type3 done;
 
     "VHGND generate desert"
 	( DESERT: source dune rule, with greater random relief receiving more
@@ -597,7 +599,7 @@
 	=> GR rockyground;
 	[VHGNDtscale] = 128; [VHGNDtexn] = 32; => VHGND texture random;
 	[VHGNDrockscale] = 0; [VHGNDrockpeak] = 0; [VHGNDrockdensity] = 0;
-	-> VHGND generate done;
+	-> VHGND type3 done;
 
     "VHGND generate icy"
 	( ICY: the four original orography classes: snowfield, bare ice,
@@ -632,7 +634,13 @@
 	C = 250; => SU rnd; C + 150; [VHGNDrockpeak] = C;
 	C = 2; => SU rnd; C '* 2; [VHGNDrockdensity] = C;
 	=> VHGND similar texture;
-	-> VHGND generate done;
+	-> VHGND type3 done;
+
+    "VHGND type3 done"
+	( NIV+ keeps quartz as surface state and consumes this final PLAINS
+	  random(5) for every type-3 biome. )
+	C = 5; => SU rnd; ? C != 0 -> VHGND generate done;
+	[VHGNDquartz] = 1; -> VHGND generate done;
 
     "VHGND generate type4"
 	( NOCTIS-1.CPP:2389-2443.  Preserve the right-to-left random order
@@ -5406,43 +5414,52 @@
 	  the source's single-triangle LOD.  Close groups use fivefold scale,
 	  repeat fast_random(rockdensity) times, halve scale after each stone,
 	  and move each following centre by the original cdown-weighted draws. )
+	[VHGNDrocktile] = [VHGNDh1];
 	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; => SU fast srand;
 	[SUfmask] = [VHGNDrockdensity]; => VHGND render random; [VHGNDcdown] = C;
 	A = C; ? A = 0 -> VHGND rock done;
 	A = [VHGNDdepth]; ? A > 2 -> VHGND rock distant;
 	[VHGNDrockworkscale] = [VHGNDrockscale];
 	A = [VHGNDrockworkscale]; A '* 5; [VHGNDrockworkscale] = A;
+	( setfx(quartz): close stones use the planet's quartz translucency state. )
+	[SPflar] = [VHGNDquartz]; [DBflar] = [VHGNDquartz];
+	[SPcull] = 0; [SPhalf] = 0; [SPescr] = 0; [DBent] = 0;
+	[PGtexf] = 5; [SPsrc] = 1;
     "VHGND rock repeat"
 
-	( apex height = ground - 100 - fast_flandom()*rockpeaking )
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockpeak]; A '/ 32767;
-	C = [VHGNDooy]; C - 100; C - A; [VHGNDrtop] = C;
-
+	( Source order is five base-coordinate draws, four colour draws, then
+	  the apex draw.  This order is procedural state, not cosmetic. )
 	( base point 0: x-rand(scale), z-rand(scale) )
 	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDoox]; C - A; [VHGNDrx0] = C;
 	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDooz]; C - A; [VHGNDrz0] = C;
-	[VHGNDrox] = [VHGNDrx0]; [VHGNDroz] = [VHGNDrz0]; => VHGND rock height; [VHGNDry0] = [VHGNDroy];
 
 	( base point 1: centre x, z+rand(scale) )
 	[VHGNDrx1] = [VHGNDoox];
 	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDooz]; C + A; [VHGNDrz1] = C;
-	[VHGNDrox] = [VHGNDrx1]; [VHGNDroz] = [VHGNDrz1]; => VHGND rock height; [VHGNDry1] = [VHGNDroy];
 
 	( base point 2: x+rand(scale), z-rand(scale) )
 	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDoox]; C + A; [VHGNDrx2] = C;
 	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDooz]; C - A; [VHGNDrz2] = C;
-	[VHGNDrox] = [VHGNDrx2]; [VHGNDroz] = [VHGNDrz2]; => VHGND rock height; [VHGNDry2] = [VHGNDroy];
 
 	[SUfmask] = 63; => SU frnd; [VHGNDrcolor] = C;
 	[SUfmask] = 7; => SU frnd; C + [VHGNDrcolor]; [VHGNDrcol0] = C;
 	[SUfmask] = 15; => SU frnd; C + [VHGNDrcolor]; [VHGNDrcol1] = C;
 	[SUfmask] = 31; => SU frnd; C + [VHGNDrcolor]; [VHGNDrcol2] = C;
-	[SPcull] = 0; [DBflar] = 0; [DBent] = 0;
+
+	( apex height = supplied fragment ground - 100 - fast_flandom()*peak )
+	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockpeak]; A '/ 32767;
+	C = [VHGNDooy]; C - 100; C - A; [VHGNDrtop] = C;
+
+	( hpoint() for the three base vertices; deterministic results are reused
+	  across their two adjoining faces. )
+	[VHGNDrox] = [VHGNDrx0]; [VHGNDroz] = [VHGNDrz0]; => VHGND rock height; [VHGNDry0] = [VHGNDroy];
+	[VHGNDrox] = [VHGNDrx1]; [VHGNDroz] = [VHGNDrz1]; => VHGND rock height; [VHGNDry1] = [VHGNDroy];
+	[VHGNDrox] = [VHGNDrx2]; [VHGNDroz] = [VHGNDrz2]; => VHGND rock height; [VHGNDry2] = [VHGNDroy];
 
 	( face 0: base0, base1, apex )
 	[VHGNDvi] = 0; [VHGNDvv] = [VHGNDrx0]; [VHGNDvslot] = FSINX; => VHGND vload;
@@ -5454,9 +5471,10 @@
 	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload;
 	[VHGNDvv] = [VHGNDrtop]; [VHGNDvslot] = FSINY; => VHGND vload;
 	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload;
-	[PJnrv] = 3; [DBcol] = [VHGNDrcol0]; => PG poly3d;
-	A = [VHGNDdepth]; ? A > 2 -> VHGND rock done;
+	=> PG facing; A = [FCret]; ? A != 0 -> VHGND rock face one;
+	[DBcol] = [VHGNDrcol0]; [SPtinta] = [VHGNDrcol0]; => VHGND rock draw face;
 
+	"VHGND rock face one"
 	( face 1: base1, base2, apex )
 	[VHGNDvi] = 0; [VHGNDvv] = [VHGNDrx1]; [VHGNDvslot] = FSINX; => VHGND vload;
 	[VHGNDvv] = [VHGNDry1]; [VHGNDvslot] = FSINY; => VHGND vload;
@@ -5467,8 +5485,10 @@
 	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload;
 	[VHGNDvv] = [VHGNDrtop]; [VHGNDvslot] = FSINY; => VHGND vload;
 	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload;
-	[PJnrv] = 3; [DBcol] = [VHGNDrcol1]; => PG poly3d;
+	=> PG facing; A = [FCret]; ? A != 0 -> VHGND rock face two;
+	[DBcol] = [VHGNDrcol1]; [SPtinta] = [VHGNDrcol1]; => VHGND rock draw face;
 
+	"VHGND rock face two"
 	( face 2: base2, base0, apex )
 	[VHGNDvi] = 0; [VHGNDvv] = [VHGNDrx2]; [VHGNDvslot] = FSINX; => VHGND vload;
 	[VHGNDvv] = [VHGNDry2]; [VHGNDvslot] = FSINY; => VHGND vload;
@@ -5479,7 +5499,9 @@
 	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload;
 	[VHGNDvv] = [VHGNDrtop]; [VHGNDvslot] = FSINY; => VHGND vload;
 	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload;
-	[PJnrv] = 3; [DBcol] = [VHGNDrcol2]; => PG poly3d;
+	=> PG facing; A = [FCret]; ? A != 0 -> VHGND rock faces done;
+	[DBcol] = [VHGNDrcol2]; [SPtinta] = [VHGNDrcol2]; => VHGND rock draw face;
+	"VHGND rock faces done"
 	( Source rockrep centre walk and scale decay. )
 	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
 	A + [VHGNDoox]; [VHGNDtmp] = A;
@@ -5493,7 +5515,20 @@
 	[VHGNDooy] = [VHGNDroy];
 	A = [VHGNDrockworkscale]; A '/ 2; [VHGNDrockworkscale] = A;
 	[VHGNDcdown]-; A = [VHGNDcdown]; ? A > 0 -> VHGND rock repeat;
+	[SPflar] = 0; [DBflar] = 0; [SPcull] = 0; [SPhalf] = 0;
 	-> VHGND rock done;
+
+    "VHGND rock draw face"
+	( At depths zero and one NIV+ duplicates the apex into vertex four and
+	  maps p_background.  Depth two keeps the solid three-vertex face. )
+	A = [VHGNDdepth]; ? A >= 2 -> VHGND rock draw solid;
+	[VHGNDvi]+;
+	[VHGNDvv] = [VHGNDoox]; [VHGNDvslot] = FSINX; => VHGND vload;
+	[VHGNDvv] = [VHGNDrtop]; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvv] = [VHGNDooz]; [VHGNDvslot] = FSINZ; => VHGND vload;
+	[PJnrv] = 4; => PG polymap; end;
+    "VHGND rock draw solid"
+	[PJnrv] = 3; => PG poly3d; end;
 
     "VHGND rock distant"
 	( roccia() depths three through seven: a single irregular triangle,
@@ -5529,7 +5564,7 @@
 "VHGND rock height"
 	[VHGNDcamx] = [VHGNDrox]; [VHGNDcamz] = [VHGNDroz]; => VHGND eye height;
 	A = [VHGNDheight]; A + 600; [VHGNDroy] = A;
-	[VHGNDcamx] = [VHGNDviewx]; [VHGNDcamz] = [VHGNDviewz];
+	[VHGNDcamx] = [VHGNDviewx]; [VHGNDcamz] = [VHGNDviewz]; [VHGNDh1] = [VHGNDrocktile];
 	end;
 
 "VHGND tile depth"
