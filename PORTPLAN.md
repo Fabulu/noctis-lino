@@ -1,7 +1,8 @@
 # Port plan -- Noctis IV in L.in.oleum
 
-Source of truth for what is done and what is next. The hourly heartbeat reads
-this file. Update it when a wave completes; do not let it drift.
+Source of truth for what is done and what is next. Update it when a wave
+completes; do not let it drift. No background or hourly agent is permitted to
+edit or build this checkout while an interactive delivery session owns it.
 
 ## Current completion target
 
@@ -10,6 +11,9 @@ toward Noctis IV+. Project authorization update reported by the user on
 2026-08-09: Alex confirmed that this port may proceed and that the Noctis
 manual soundtrack may be included. Music is therefore part of the completion
 goal, with an in-game off control preserving the original silent experience.
+The delivery target also includes authentic screenshots, current active
+documentation, honest test-coverage boundaries, working CI definitions, and a
+clean synchronized repository.
 
 ## Standing rules
 
@@ -42,6 +46,144 @@ first -- a broken foundation makes every later result meaningless.
 ---
 
 ## Done
+
+### Restore exact stellar lithium collection
+
+- Collection now uses the source's `sqrt(dx*dx+dy*dy+dz*dz)+1` distance and
+  identity-seeded Borland draw on every simulation tick.
+- Class-5 stars retain their guaranteed minimum yield of one even when the
+  distance penalty exceeds the draw. Class-6 stars retain the original
+  `GET CLOSER` shutdown instead.
+- Planetary approach no longer disables an active collector. Starting the
+  collector uses the exact reached-star and remote-target gates, while Vimana
+  departure continues to report the original conflict.
+- `SCOPING`, `FULL`, `GET CLOSER`, `IDLE`, `NEED RECAL`, and `UNSUITABLE`
+  feedback now uses the source durations and remains visible while fuel flows.
+
+### Restore source live-fauna steering and movement
+
+- Surface mammals now use the original per-animal fast-RNG schedule for their
+  stop, turn, and movement decisions instead of choosing among four cardinal
+  directions.
+- Feline, rabbit, and kangaroo forms retain their distinct source speed ranges.
+  Current speed and hundredth-degree heading ease toward independent targets
+  with the original scale-dependent reaction, then move through x87 sine and
+  cosine vectors.
+- Population setup now preserves each source LFS index and consumes the
+  original scale and per-record random sequence for all fauna classifications.
+  Boundary reversal retains the original implementation's asymmetric z
+  correction.
+- Birds now share that continuous heading path and restore all four original
+  altitude regimes: grounded wandering, landing, low flight, and high flight.
+  Their source-seeded speed, heading jitter, altitude drift, takeoff response,
+  and scale-dependent target easing replace the former timer and cardinal-step
+  approximation; captured birds remain tied to the player as before.
+- Grounded bird wings now fold with live_animal's exact
+  max(0, 1 - quote*0.5/scale) factor and mirrored 45/75-degree joints. This
+  removes the port's scale-blind 50-unit ramp, which left small landed birds
+  visibly spread long after the source model had closed its wings.
+- The same ground pose now uses the original ay < 0 or non-ocean decision, so
+  low birds over real ocean islands are no longer forced into a permanent
+  flight silhouette merely because the wider biome is ocean.
+- Recently captured birds now trail from the complete original five-cord
+  harness, tied to the player's center and four 50-unit side points, instead
+  of hanging from the port's single line.
+- The tightening harness also restores the original temporary movement drag:
+  each negative lcount stage subtracts twice its value from retained surface
+  momentum before relaxing one step toward zero.
+- Wildlife visibility and proximity now use the source's three-dimensional
+  Euclidean distance from the pre-movement pose, including terrain height and
+  bird altitude. Original cadence renders that captured pose directly while
+  F5 interpolates forward from the same authoritative endpoints.
+- Mammals again use drawpv mode 1 with the live planetary background texture.
+  Birds remain solid at range, alternate source modes 1 and 2 inside 12,500
+  units, use the original three-step recursive mapper for mode 2, and enable
+  per-model depth sorting only inside 75,000 units.
+- Fauna beyond 250,000 units now continues directly from each animal behavior
+  seed and uses four exact full-range 100,000-unit flandom draws around the
+  player. The former custom reseed and 98,301-unit truncation made every animal
+  repeat one offset forever. Only birds consume the source's fifth altitude
+  draw, and F5-only presentation frames can no longer relocate live records.
+- The original rare ocean-mammal branch is live. Mammals at sea level flatten
+  to 70 percent height, hide the exact 14 listed leg groups, pitch 15 degrees,
+  and swim with the source's 0-through-25-degree half-second stroke instead of
+  running the land gait underwater. F5 interpolates that stroke without
+  changing the authoritative 18.206-Hz animal state.
+- Land mammals now use the one shared fabs(fsecs - 0.5) world-clock phase from
+  live_animal instead of a private per-record triangle wave. Feline, rabbit,
+  and kangaroo bounce retain their exact 45/60/22 period bases and 35/50/300
+  height factors; running bodies and rear groups use the original -50x and
+  +100x articulation, while idle tails move only for the source-indexed
+  fast_random(1) subset.
+- Mammal bodies now follow the exact terrain inclination formula as well:
+  sample 50 units forward, clamp the rise ratio to -1..+1, and apply
+  180*atan(ratio)/pi at the source wrap joint. This restores the full
+  -45..+45 degree slope response in place of the port's invented -20..+20
+  linear approximation.
+- Mammal and bird decision seeds now consume the raw source-rate
+  `long tick = 18*secs` value. The former extra rounding to an 18-tick boundary
+  made `/10`, `/15`, `/50`, `/update_ratio`, and `/5` decisions change on the
+  wrong cadence, visibly flattening wildlife wandering.
+- Flying birds now articulate both wing groups from NIV+'s shared global tick.
+  The port no longer adds a private per-bird phase that the source never used,
+  so small six-tick and large twenty-tick flap cycles match `live_animal`.
+- The focused source-equivalence regression and production build pass.
+
+### Restore source emergency illumination and reset sequence
+
+- Exhausting both flight power and lithium now activates the original
+  emergency-light state: navigation systems disconnect, the two right-wall
+  text displays blank, the normal halogen lens reflection is suppressed, and
+  only the source's deliberately irregular emergency hull illumination remains.
+- A successful rescue request now advances `gburst` every authentic simulation
+  tick, emits the four-frame white hull pulse and recurring `SIGNAL` status at
+  the original 63-tick interval, then clears the transmitter when the helper
+  arrives. Failed and manually cleared request states remain distinct on the
+  physical emergency page.
+- Reset onboard systems now follows the source's 150-step staged restart rather
+  than changing every system instantly. The emergency lamps hand back to a
+  gradual internal-light rise at step 75, with navigation, target, collector,
+  and screen state restored at their original milestones.
+- The 268-byte version-16 checkpoint packs emergency illumination, transmitter
+  phase, reset progress, and the 0-through-63 lamp fade into its lighting word.
+  Earlier version-16 fade-only records and versions 1 through 15 still migrate.
+- The focused integrated regression and production build pass.
+
+### Restore the source-distance surface object field
+
+- Surface rocks, bushes, and trees now remain visible through the original
+  fragment depth of 40 instead of disappearing with the depth-three terrain
+  detail ring.
+- Distant vegetation uses the original six-pixel greenmush stamp. Ordinary
+  trees use the source 3/7, 7/15, and 15/31 density ladders; giant trees retain
+  their separate depth-11, depth-7, and depth-4 geometry transitions.
+- Rocks use the original single irregular triangle from depths three through
+  seven, then disappear at depth eight. Close tetrahedral groups are unchanged.
+- Object ground coordinates now use fragment's four-corner interpolation in
+  eighth-world-unit precision. A conservative camera-envelope rejection avoids
+  projecting object clusters that cannot enter the view, without shortening
+  the source horizon.
+- The object-only horizon now rejects cells provably beyond the source's
+  42-tile pre-depth boundary before camera rotation and square root, and does
+  not calculate terrain-only diffuse shading. The exact floating-point depth,
+  object projection, RNG selection, and silhouettes remain unchanged.
+- Each generated surface now caches the immutable source-derived coordinates
+  and post-coordinate RNG state of its packed objects. Live frames no longer
+  reread four terrain corners, interpolate the same height, and replay the two
+  placement draws for every visible rock or plant; view-dependent LOD and all
+  subsequent source rendering remain live.
+- Distant foliage, tree-kind selection, and distant-rock construction now
+  perform their raw fast-RNG transitions locally with the stock i386 unsigned
+  `mul` instruction instead of entering the generic 64-bit helper and hashing
+  render-only draws into the test ledger. The seed transition, mask,
+  conditional draw order, projected points, colors, and source silhouettes are
+  unchanged. The first foliage optimization reduced the complete GUI journey
+  from 101.0 to 92.1 seconds; extending the same exact path to trees and rocks
+  advanced the measured surface checkpoint from frame 653 near 59 seconds to
+  frame 738 near 57 seconds while preserving every gameplay counter.
+- A complete native capsule round trip retained 140 valid capsule panels, 720
+  Stardrifter leaves, zero bad geometry, and the generated 39-member fauna mix.
+  The focused source-equivalence regression and production build pass.
 
 ### Stop map-edge crashes and preserve signed surface movement
 
@@ -228,12 +370,13 @@ first -- a broken foundation makes every later result meaningless.
 
 - Hosted Windows CI retains protected-source verification, the focused
   integrated regression, and a non-publishing snapshot package.
-- Tags matching `v*` now validate the exact revision, verify and package the
-  versioned i386 PE, and publish a GitHub prerelease entirely on hosted Windows.
-  The ZIP, checksum, and provenance record are release assets. Publication is
-  gated on the regression and package jobs succeeding.
-- The tagged provenance record explicitly says that the PE was compiled
-  locally before tagging. It does not claim a hosted source compilation.
+- Tags matching `v*` now validate the exact revision on hosted Windows, compile
+  that tagged source through `lino_build.ps1` on the isolated interactive
+  `lino-gui` runner, and return the resulting package to a hosted publication
+  job. The ZIP, checksum, and source/compiler/executable provenance record are
+  release assets. Publication is gated on every preceding job succeeding.
+- The tagged provenance record now identifies a fresh build from the exact tag
+  instead of relying on or making claims about a previously committed PE.
 - A separate manually dispatched workflow compiles through `lino_build.ps1`
   on a logged-in self-hosted runner labelled `lino-gui`, rejects Session 0,
   removes stale artifacts, and uploads the exact source-built package and hash
@@ -241,8 +384,8 @@ first -- a broken foundation makes every later result meaningless.
 - Public pull requests have no path to the self-hosted machine. Release-write
   permission is confined to the hosted tag publication job.
 - The repository currently has no registered runner. `CI_RELEASES.md` records
-  the one-time VM setup required before the first interactive source rebuild;
-  this does not block automated tagged releases.
+  the one-time VM setup required before source-built tags can complete. Hosted
+  push and pull-request validation remains independent of that machine.
 
 ### Original GOES resident-module help
 
@@ -573,7 +716,17 @@ first -- a broken foundation makes every later result meaningless.
   the signed 180-degree boundary correctly, and the live pose is restored
   before input and simulation. Settled surfaces use the same path and forward
   only the X/Z/pitch wave deltas from the temporary render to the restored live
-  state. Animated capsule descent/ascent remains source-tick presentation.
+  state. Animated capsule descent/ascent uses the same render-only
+  interpolation while its simulation remains on the source tick.
+- The interpolation fraction now comes from the cadence scheduler's measured
+  residual wall time. This removes the periodic catch-up step caused by using
+  one fixed fraction across the alternating three/four-frame presentation gaps.
+- Surface mammals and birds now retain their authoritative source-rate AI,
+  reactions, capture state, and record positions while the optional 60-Hz
+  presenter interpolates their horizontal translation, bird altitude, mammal
+  gait, and small/large bird wing articulation. Relocation snaps both
+  presentation samples so an out-of-range creature never sweeps visibly across
+  the world.
 - Surface daylight now draws the active local sun through the retained
   `white_sun` rasterizer before terrain. Its latitude, exposure, dawn/dusk
   side, weather gate, atmospheric corona, and companion-star radius follow
@@ -585,7 +738,49 @@ first -- a broken foundation makes every later result meaningless.
   exclusions, and terrain center-pixel occlusion. The Stardrifter halogen does
   not use that occlusion condition, exactly matching `alogena()` and removing
   the reported hull-edge flicker. Close star globes advance by their generated
-  class-specific spin rather than a universal one degree per rendered frame.
+  class-specific spin at the original 18.206-Hz loop cadence rather than once
+  per presentation frame. F5 interpolates only the displayed longitude, while
+  non-spinning classes retain the source's `(clock()/360)%360` phase.
+- The physical orbital console's retained phase counter now advances only on
+  source simulation ticks, so its planet and moon display keeps the same speed
+  in original and F5 presentation modes.
+- Near-star rendering now uses `l_dsd < 100*nearstar_ray` for the luminous
+  shell and `l_dsd < 8*nearstar_ray` for the textured globe in both galactic
+  and local-system views. It no longer substitutes autopilot arrival state for
+  the source's visible distance transitions.
+- The adjoining 1,550-to-100-radius approach band restores the three source
+  `far_pixel_at()` submissions, distance-derived 0x30-based brightness, four
+  halo rings, and light-emitting saturation behavior.
+- While the close globe is active, all 64,800 units of `s_background` retain
+  their high palette band and advance their low six bits modulo 64 after each
+  source simulation frame. Optional F5 frames do not over-cycle the texture.
+- The ship-space frame now retains `NOCTIS.CPP` ordering around
+  `mask_pixels(adapted+2880,64)`: primary and companion coronas precede the
+  182-row viewport's low-six-bit conversion to band 64, resolved stellar and planetary
+  geometry follows it, vehicle and onboard geometry render next, and the
+  procedural galaxy is last. `sky(0x405C)` checks the original target
+  64..92 band on both fresh and cached submissions, so stars remain behind
+  hull geometry and the restored far-star compositor has the required base.
+- Active Vimana flight restores `pfade(adapted,180,8)` over the exact
+  segment-derived offset 2876 and 57,920-pixel span. It strips the old palette
+  band, subtracts eight with a zero clamp, then lets the normal mask and sky
+  passes rebuild the space band, producing the source's short motion trails.
+  The first frame remains explicitly cleared rather than reading workspace
+  residue.
+- Stellar distance color is now source-equivalent. The globe saturation uses
+  `chop(12*dsd/ray)`, the identity-stable `fast_random(31)+29` floor, and the
+  63 cap. Inside 1,000 radii, both palette ramps are raised by the capped
+  `float(6.4*dsd/ray)` threshold; outside it they use the source's fixed pale
+  targets. Six retained RGB endpoints move one unit per 18.206-Hz source tick.
+- The close-star pre-mask path now matches `NOCTIS.CPP:2564-2575`: distance
+  beyond six radii enables `psmooth_grays(adapted+2880)`, while emitting
+  classes 0-4, 7-9, and 11 receive the positive-step flare inside 1,000
+  radii. Class 11 retains its `gl_start < 90` gate. The flare uses the source
+  x-shift of three, 60 spokes, visor reflection mode, and strict view bounds.
+- Type-10 generated companions now run the adjoining source flare branch after
+  `whiteglobe()`. Their body distance is narrowed through the original float
+  `nearstar_p_qsortdist` boundary before testing `5*ray < d < 1000*ray`, then
+  feeds the same positive-step space-flare projector.
 - Settled surfaces expose an unobtrusive GUI-scaled pod range and captured-bird
   line, keeping the capsule-return condition discoverable after exploration.
   Walking beyond and then back inside the original three-dimensional
@@ -712,7 +907,9 @@ first -- a broken foundation makes every later result meaningless.
   source ring, applies the short radial shove and view disturbance, and runs
   the original central-page, low-six-bit wet-lens smoothing for one to three
   simulation ticks. Crest contraction, wake expansion, impacts, and camera
-  response remain fixed at 18.206 Hz under both presentation modes.
+  response remain fixed at 18.206 Hz under both presentation modes; F5
+  interpolates only the rendered ring radius and height between those
+  authoritative samples.
 
 ### Source-shaped surface trees
 - Plains tree objects no longer use crossed trunk and crown cards. The live
@@ -765,18 +962,19 @@ first -- a broken foundation makes every later result meaningless.
   Vimana, target, resources, lift/capsule and surface progress to the opening
   flight, preserves presentation/audio preferences and starmap names, and
   immediately replaces the prior checkpoint.
-- `CURRENT.LIN` version 15 is a 264-byte record retaining the original PFS
-  preferences and navigation heading, local fine-approach integrator and
+- `CURRENT.LIN` version 16 is a 268-byte record retaining the original PFS
+  preferences, navigation heading, and exact 0-through-63 internal-light fade,
+  local fine-approach integrator and
   parked-world position, landing longitude and latitude, the
   settled capsule's X/Y/Z coordinates, navigation-device settings,
-  internal-light state, F2 HUD/lens-reflection/visor-border preferences, and the last
+  internal-light direction, F2 HUD/lens-reflection/visor-border preferences, and the last
   validated iGUI width/height alongside the 60/original
   presentation choice, FPS-overlay visibility, soundtrack state,
   captured-fauna count, lithium reserve, active collector, player, ship,
   target, Vimana, lift, landed state, and pending emergency-rescue phase. Its
   Noctis-epoch UTC timestamp advances an active collector and pending rescue
   across time spent outside the game.
-- Readers remain explicit for versions 1 through 14. Older saves receive the
+- Readers remain explicit for versions 1 through 15. Older saves receive the
   source defaults: HUD text on, visor-only reflections, and the default border.
 - Page Up/Page Down restore `openhuddelta=-5/+5`, the four-row moving visor
   edge, and the source rule connecting visor-only reflections to `hud_closed`.
@@ -833,8 +1031,9 @@ first -- a broken foundation makes every later result meaningless.
 - C toggles the original collector after calibration at class-5 stars or
   class-6 stars with radius above 4. Each simulation tick repeats the source
   `srand(identity); random(50)` rate and class-specific `125/dsd` or `25/dsd`
-  penalty, fills power first, then banks charge up to 120. Planet approach and
-  star retargeting stop collection.
+  penalty, fills power first, then banks charge up to 120. Class-5 collection
+  floors non-positive yields to one, and remains active during planetary
+  approach. Vimana departure retains the source collector conflict.
 - A compact ship overlay exposes unbiased power, lithium reserve, and
   collector ON/OFF state. Current checkpoints retain both resource and
   collector state; older port checkpoints load with the source default of
@@ -919,6 +1118,22 @@ first -- a broken foundation makes every later result meaningless.
   rain streams from `clock()`. It therefore cannot perturb terrain's fast RNG
   or the live Borland stream used by capsule wind. Rain density now uses the
   complete source random(25*flashes)+50 range, with the original 30-flash cap.
+- Rain streak vectors now include the source's `0.333 * (pos-ref)` player
+  displacement correction on both surface axes. Walking through a storm bends
+  the apparent rain direction instead of leaving it attached only to the wind.
+- The rain field now also restores NIV+'s `Forward(-1000)` view offset and
+  luminous `setfx(1)` sticks, then returns the camera and line mode immediately
+  after the field. Drops occupy the original forward-biased volume and retain
+  their bright storm appearance without leaking that state into the HUD.
+- Lightning now uses the source's continuous `random(150/rainy)` probability,
+  one-to-three rerolls, and random 64-through-127 palette multiplier. The old
+  three-bucket probability and fixed halfway-to-white blend are gone, restoring
+  the original variation from dim flashes through saturated strikes.
+- Strike selection now carries into the next authoritative tick, matching the
+  source's end-of-frame `flash` assignment and pre-background consumption.
+  Active strikes temporarily invert sky-source entries 40000 through 1 before
+  panorama mapping, undo the inversion immediately, and bypass the normal-sky
+  cache so lightning changes the clouds without contaminating later frames.
 - The focused production-library smoke submitted 108/108 rain sticks, drew 52
   foreground pixels with a 50-unit wind slant, verified palette 0 -> 31 -> 0
   across flash/restore, and exited cleanly.

@@ -88,6 +88,13 @@ inside a resizable 8:5 iGUI host. Gameplay simulation remains 18.206 Hz in both
 presentation modes. Landed HUD telemetry reports fractional gravity,
 temperature, atmospheric pressure, and movement-sensitive pulse.
 
+NIV+ surface content is live rather than decorative documentation: generated
+habitable worlds can contain full branch-stack trees, mammals/hoppers and
+landing or flying birds; birds can be stalked and captured. The three historical
+systems contain all six original ruin styles, and Suricrasia at LQ 018:060
+contains the original 25-by-25-cell Cube. The capsule shell is transparent; its
+structural line modes and skyward beacon follow the original source.
+
 Credits and distribution
 ------------------------
 Noctis IV: Alessandro Ghignola, Copyright 1996-2002.

@@ -22,6 +22,7 @@
 	VHPalpha = 0; VHPbeta = 0;
 	VHPfontok = 0; VHPfi = 0; VHPchar = 0; VHPline = 0;
 	VHPkey = 0; VHPcmdpos = 0; VHPsubmitted = 0; VHPactive = 0;
+	VHPblackout = 0; VHPresetphase = 0;
 	VHPoutptr = 0; VHPoutrows = 0; VHPoutview = 0; VHPouti = 0; VHPoutj = 0;
 	VHPfcsstatus = 0; VHPstatbase = 0; VHPstatlen = 0; VHPstatptr = 0;
 	VHPmessage = 0;
@@ -34,6 +35,9 @@
 	VHPonbright = 0; VHPonglyphbright = 0;
 	VHPsysn = 0; VHPdotx = 0; VHPdoty = 0; VHPdotz = 0;
 	VHPselected = 0; VHPsysphase = 0; VHPangle = 0; VHPradius = 0; VHPdotsize = 0;
+	VHPlanding = 0; VHPlandinglon = 0; VHPlandinglat = 60;
+	VHPmaplon = 0; VHPmaplat = 0; VHPmapi = 0; VHPmapj = 0;
+	VHPmapsrc = 0; VHPmapdst = 0; VHPmapband = 0;
 	VHPorbitn = 0; VHPorbitseg = 0; VHPprevy = 0; VHPprevz = 0; VHPowner = 0;
 	VHPscoreindex = 0; VHPscore = 0; VHPcurrent = 0;
 	VHPminscore = 0; VHPmaxscore = 0; VHPscorespan = 0; VHPscan = 0;
@@ -127,13 +131,56 @@
 
 	( planetary map station )
 	A = [VHPcamz]; A + 1620; [VHVcamzi] = A; => VH set view;
+	A = [VHPlanding]; ? A = 0 -> VHP planetary flat;
+	=> VHP planetary map;
+	[FI] = 256; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = 384; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[PGtexoff] = 2064; [PGtexf] = 4; [SPsrc] = 1; [SPtinta] = 0; [SPescr] = 0;
+	[SPflar] = 0; [SPcull] = 0; [SPhalf] = 0; [VHPcol] = 0;
+	=> VHP draw mapped quad;
+	[PGtexoff] = 0; [PGtexf] = 0;
+	-> VHP planetary rails;
+    "VHP planetary flat"
 	[VHPcol] = 4; => VHP draw quad;
-	=> VHP planet crosshair;
 	=> VHP system dots;
+    "VHP planetary rails"
+	=> VHP planet crosshair;
 	( Text uses the same vertex workspace, so it follows all three faces. )
+	A = [VHPblackout]; ? A != 0 -> VHP screens text done;
 	=> VHP GOES text;
 	=> VHP GOES output text;
+    "VHP screens text done"
 	=> VHP GOES selector;
+	end;
+
+"VHP planetary map"
+	( NOCTIS.CPP show_planetary_map(): copy the live 48x32 albedo window
+	  into p_surfacemap at (14,9), centered on the selected LQ. )
+	A = [VHPlandinglon]; A - 22; [VHPmaplon] = A; [VHPmapi] = 0;
+    "VHP planetary map column"
+	A = [VHPmaplon]; ? A >= 0 -> VHP planetary lon high;
+	A + 360; [VHPmaplon] = A; -> VHP planetary lon ready;
+    "VHP planetary lon high"
+	? A < 360 -> VHP planetary lon ready;
+	A - 360; [VHPmaplon] = A;
+    "VHP planetary lon ready"
+	A = [VHPlandinglat]; A - 14; [VHPmaplat] = A; [VHPmapj] = 0;
+    "VHP planetary map row"
+	A = [VHPmapj]; A + 9; A '* 256; A + [VHPmapi]; A + 14; A + RPSM; A + nw; [VHPmapdst] = A;
+	A = [VHPmaplat]; ? A <= 0 -> VHP planetary map polar;
+	? A >= 120 -> VHP planetary map polar;
+	A '* 360; A + [VHPmaplon]; [VHPmapsrc] = A;
+	[VHPmapband] = 192; C = RPBG;
+	E = nspowner; E + [VHPselected]; A = [E]; ? A <= 0FFFFFFFFh -> VHP planetary map source;
+	[VHPmapband] = 128; C = RSBG;
+    "VHP planetary map source"
+	C + nw; C + [VHPmapsrc]; A = [C]; A & 255; A + [VHPmapband]; C = [VHPmapdst]; [C] = A;
+	-> VHP planetary map next;
+    "VHP planetary map polar"
+	C = [VHPmapdst]; [C] = 4;
+    "VHP planetary map next"
+	[VHPmaplat]+; [VHPmapj]+; A = [VHPmapj]; ? A < 32 -> VHP planetary map row;
+	[VHPmaplon]+; [VHPmapi]+; A = [VHPmapi]; ? A < 48 -> VHP planetary map column;
 	end;
 
 "VH onboard screen"
@@ -474,18 +521,21 @@
 	A = [VHPcamx]; A - 3540; [VHVcamzi] = A;
 	[VHValpha] = [VHPalpha]; A = [VHPbeta]; A + 90; [VHVbeta] = A;
 	=> VH set view;
+	A = [VHPresetphase]; ? A > 55 -> VHP text done;
 
 	( row 0: G.O.E.S. COMMAND NET: )
 	[VHPline] = 0; [VHPfi] = 0; [VHPcx4] = [VHPxbase4];
     "VHP text row0"
 	A = vhptext; A + [VHPfi]; [VHPchar] = [A]; => VHP digit row0;
 	=> VHP text advance; [VHPfi]+; A = [VHPfi]; ? A < 21 -> VHP text row0;
+	A = [VHPresetphase]; ? A > 35 -> VHP text done;
 
 	( row 1: REVISION ID 6011/0200 )
 	[VHPline] = 1; [VHPfi] = 21; [VHPcx4] = [VHPxbase4];
     "VHP text row1"
 	A = vhptext; A + [VHPfi]; [VHPchar] = [A]; => VHP digit row1;
 	=> VHP text advance; [VHPfi]+; A = [VHPfi]; ? A < 42 -> VHP text row1;
+	A = [VHPresetphase]; ? A > 0 -> VHP text done;
 
 	( command cursor on source row 3 )
 	[VHPfi] = 42; [VHPline] = 3; [VHPcx4] = [VHPxbase4];

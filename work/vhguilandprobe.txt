@@ -86,7 +86,7 @@
 
 "workspace"
 
-	vhgstate = 40;
+	vhgstate = 44;
 	vhgprogress = 10;
 	VHGfpstext = 7;
 
@@ -377,7 +377,9 @@
 
     "VHG render surface"
 	[VHGNDcamx] = [VHGx]; [VHGNDcamy] = [VHGy]; [VHGNDcamz] = [VHGz];
-	[VHGNDalpha] = [VHGalpha]; [VHGNDbeta] = [VHGbeta]; => VHGND render;
+	[VHGNDalpha] = [VHGalpha]; [VHGNDbeta] = [VHGbeta];
+	[VHGNDfast] = [VHGfast]; [VHGNDinterpok] = 1; [VHGNDinterpacc] = 18206;
+	=> VHGND render;
 	A = [VHGlanded]; ? A != 0 -> VHGLP render surface done;
 	=> VHGND moving capsule;
     "VHGLP render surface done"
@@ -765,7 +767,9 @@
 	[vhgstate plus 36] = [VHGNDseed];
 	[vhgstate plus 37] = [VHGLPruinmax];
 	[vhgstate plus 38] = [VHGNDruinanchor]; [vhgstate plus 39] = [VHGNDruinmarks];
+	[vhgstate plus 40] = [VHGNDpopulation]; [vhgstate plus 41] = [VHGNDanimals];
+	[vhgstate plus 42] = [VHGNDbirds]; [vhgstate plus 43] = [VHGNDanimorphs];
 	[File Name] = vhgoutname; [File Position] = 0; [File Command] = WRITE;
-	[Block Pointer] = vhgstate; [Block Size] = 160; isocall;
-	[File Name] = vhgoutname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 160; isocall;
+	[Block Pointer] = vhgstate; [Block Size] = 176; isocall;
+	[File Name] = vhgoutname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 176; isocall;
 	end;

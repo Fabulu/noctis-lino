@@ -169,7 +169,6 @@
 	  5996-6010.  Panels within 500 units move by 4*dd*y_or; the fixed
 	  support grid does not move. )
 	A = [VHCcapsule]; ? A = 0 -> VHC capsule view done;
-	A = [VHCopen]; ? A != 0 -> VHC capsule view done;
 	( polycupola restores cam_y after every textured panel.  The cached port
 	  must do the same before measuring the next midpoint; otherwise the first
 	  opening panel biases every later distance and eventually submits invalid
@@ -205,10 +204,17 @@
     "VHC capsule dd nonnegative"
 	A = [VHCdd]; ? A <= 500 -> VHC capsule dd ready; [VHCdd] = 500;
     "VHC capsule dd ready"
-	( The original translates nearby mapped panels by 4*dd*y_or.  Passing a
-	  translated quad through this port's near plane can make polymap submit a
-	  degenerate span; VHC draw panel therefore opens the same selected panels
-	  by omitting their glass while the fixed structural grid remains visible. )
+	( Exact source operation around this panel's polymap call:
+	  cam_y += 4 * dd * y_or.  The render loop restores VHCcamybase before
+	  measuring each subsequent panel and once more when the dome is complete. )
+	A = [VHCyor]; ? A >= 0 -> VHC capsule shift positive;
+	A = [VHCdd]; A + A; A + A; C = 0; C - A; A = C;
+	-> VHC capsule shift apply;
+    "VHC capsule shift positive"
+	A = [VHCdd]; A + A; A + A;
+    "VHC capsule shift apply"
+	A + [VHCcamybase]; [FI] = A; => IntToF; => F32Narrow;
+	[PGFi] = FSCAMY; => PGF sa;
     "VHC capsule view done"
 	end;
 
@@ -305,7 +311,6 @@
 
 "VHC draw panel"
 	A = [VHCcapsule]; ? A = 0 -> VHC draw panel visible;
-	A = [VHCopen]; ? A != 0 -> VHC draw panel done;
     "VHC draw panel visible"
 	[VHCi] = 0;
     "VHC panel vertex"
@@ -340,7 +345,6 @@
 
 "VHC draw grid"
 	A = [VHCcapsule]; ? A = 0 -> VHC draw grid visible;
-	A = [VHCopen]; ? A != 0 -> VHC draw grid done;
     "VHC draw grid visible"
 	( cupola() sets flares=0 in the original.  This produces its reflective
 	  structural trace; only the separate capsule beacon uses flares=1. )

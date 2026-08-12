@@ -20,6 +20,7 @@
 	VHFcx = 0; VHFcy = 0; VHFk = 0; VHFl = 0; VHFu = 0; VHFang = 0;
 	VHFadd = 2; VHFpx = 0; VHFpy = 0; VHFpz = 0;
 	VHFdist = 0; VHFray = 0; VHFstep = 0;
+	VHFok = 0;
 	VHFghost = 0; VHFgdx = 0; VHFgdy = 0; VHFgx = 0; VHFgy = 0; VHFgr = 0;
 	VHFdx = 0; VHFdy = 0;
 	VHFx0 = 0; VHFy0 = 0; VHFx1 = 0; VHFy1 = 0;
@@ -65,6 +66,38 @@
 	[FI] = 500000; => IntToF; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSRZF; => PGF quo;
 	=> F32Narrow; => PGF stf32; [VHFk] = [PGFt];
+	-> VHF draw;
+
+"VH space flare"
+	( NOCTIS.CPP:3639-3701 with xshift=3, yshift=0 and condition=0.
+	  The selected star is already relative in SFXX/SFYY/SFZZ; preserve
+	  the source's double rotation and strict relative-screen bounds. )
+	[VHFadd] = 3; [VHFok] = 0;
+	[PGFi] = SFXX; => PGF a; [PGFi] = FSPCB; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZZ; => PGF a; [PGFi] = FSPSB; => PGF mul;
+	[PGFi] = SFT0; => PGF add; [PGFi] = SFRX; => PGF sa;
+	[PGFi] = SFZZ; => PGF a; [PGFi] = FSTCB; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFXX; => PGF a; [PGFi] = FSTSB; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFZ2; => PGF sa;
+	[PGFi] = SFZ2; => PGF a; [PGFi] = FSTCA; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFYY; => PGF a; [PGFi] = FSTSA; => PGF mul;
+	[PGFi] = SFT0; => PGF add; [PGFi] = SFRZ; => PGF sa;
+	[PGFi] = SFYY; => PGF a; [PGFi] = FSPCA; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZ2; => PGF a; [PGFi] = FSPSA; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFRY; => PGF sa;
+	[FI] = 1; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRZ; => PGF a; => FCmp;
+	A = [FI]; ? A <= 0 -> VHF done;
+	[PGFi] = SFRX; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;
+	A = [FI]; A + 3; C = 0; C - 150; ? A <= C -> VHF done;
+	? A >= 160 -> VHF done; A + 160; [VHFcx] = A;
+	[PGFi] = SFRY; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;
+	A = [FI]; C = 0; C - 90; ? A <= C -> VHF done;
+	? A >= 90 -> VHF done; A + 100; [VHFcy] = A; [VHFok] = 1;
 	-> VHF draw;
 
 "VH surface flare"

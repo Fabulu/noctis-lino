@@ -10,6 +10,7 @@
 "variables"
 
 	VHLpower = 1;			( source ilightv: +1 on, -1 off )
+	VHLemergency = 0;		( source elight: suppress the normal lens flare )
 	VHLseg = 0; VHLcol = 0; VHLi = 0;
 	VHLangle = 0; VHLstep = 36; VHLlimit = 342; VHLdistance = 0;
 	VHLx0 = 0; VHLy0 = 0; VHLz0 = 0;
@@ -50,6 +51,7 @@
 	A = [VHLcol]; A + 2; [VHLcol] = A;
 	[VHLseg]+; A = [VHLangle]; ? A < [VHLlimit] -> VHL segment;
 	A = [VHLpower]; ? A != 1 -> VHL done;
+	A = [VHLemergency]; ? A != 0 -> VHL done;
 	=> VH halogen flare;
     "VHL done"
 	end;

@@ -49,6 +49,7 @@
 	VHSdepth = 0; VHScolour = 0; VHSscreeny = 0;
 	VHSdrawready = 0; VHSdrawcount = 0; VHSdrawi = 0; VHSdrawptr = 0;
 	VHSdrawalpha = 0; VHSdrawbeta = 0; VHSdrawage = 0; VHSviewkey = 0;
+	VHSfadebase = 0; VHSfadei = 0;
 
 "workspace"
 
@@ -132,22 +133,50 @@
 	A = [GCx]; ? A <= 10 -> VHS draw next; ? A >= 310 -> VHS draw next;
 	C = [GCy]; C - 2; [VHSscreeny] = C;
 	? C <= 10 -> VHS draw next; ? C >= 190 -> VHS draw next;
-	C '* 320; C + A; [SPoff] = C;
-	[SPval] = [VHScolour]; [SPreg] = RGADP; => SP put;
+	C '* 320; C + A; C + 4; [SPoff] = C;
 	A = [VHSdrawcount]; A '* 2; A + vhsscreencache; [VHSdrawptr] = A;
 	[A plus 0] = [SPoff]; [A plus 1] = [VHScolour]; [VHSdrawcount]+;
+	( adapted is based at DOS segment offset four. sky(0x405C) reads and
+	  writes that same target only while it remains in the 64..92 space band,
+	  preserving the already drawn vehicle and panels in front of the galaxy. )
+	[SPreg] = RGADP; => SP get;
+	C = [SPval]; ? C < 64 -> VHS draw next; ? C > 92 -> VHS draw next;
+	D = C; D & 192; C & 63; C + [VHScolour]; ? C <= 63 -> VHS draw colour ready; C = 63;
+    "VHS draw colour ready"
+	C | D; [SPval] = C; [SPreg] = RGADP; => SP put;
     "VHS draw next"
 	[VHSstar]+; A = [VHSstar]; ? A < [VHScount] -> VHS draw loop;
 	[VHSdrawready] = 1;
 	end;
 
-    "VHS replay draw cache"
+"VHS replay draw cache"
 	[VHSdrawi] = 0; A = [VHSdrawcount]; ? A = 0 -> VHS replay done;
     "VHS replay loop"
 	A = [VHSdrawi]; A '* 2; A + vhsscreencache;
-	[SPoff] = [A plus 0]; [SPval] = [A plus 1]; [SPreg] = RGADP; => SP put;
+	[SPoff] = [A plus 0];
+	[SPreg] = RGADP; => SP get; C = [SPval]; ? C < 64 -> VHS replay next;
+	? C > 92 -> VHS replay next;
+	D = C; D & 192; C & 63;
+	A = [VHSdrawi]; A '* 2; A + vhsscreencache;
+	C + [A plus 1]; ? C <= 63 -> VHS replay colour ready; C = 63;
+    "VHS replay colour ready"
+	C | D; [SPoff] = [A plus 0]; [SPval] = C; [SPreg] = RGADP; => SP put;
+    "VHS replay next"
 	[VHSdrawi]+; A = [VHSdrawi]; ? A < [VHSdrawcount] -> VHS replay loop;
     "VHS replay done"
+	end;
+
+"VHS fade"
+	( pfade(adapted,180,8) with live QUADWORDS=14560 begins at the
+	  segment-derived adapted offset 2876 and processes 57,920 pixels. )
+	[SPreg] = RGADP; => SP base; C + 2876; [VHSfadebase] = C; [VHSfadei] = 0;
+    "VHS fade pixel"
+	A = nw; A + [VHSfadebase]; A + [VHSfadei]; C = [A]; C & 63;
+	? C >= 8 -> VHS fade subtract; C = 0; -> VHS fade store;
+    "VHS fade subtract"
+	C - 8;
+    "VHS fade store"
+	[A] = C; [VHSfadei]+; A = [VHSfadei]; ? A < 57920 -> VHS fade pixel;
 	end;
 
       ( sect = chop((dzat - 450000) / 100000) * 100000 )

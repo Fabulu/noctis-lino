@@ -35,12 +35,13 @@
 	VHGgraphics = 0; VHGutcsecs = 0; VHGonroof = 0;
 	VHGsurfgravdisp = 0; VHGsurftempdisp = 0; VHGsurfpressdisp = 0; VHGsurfpulsedisp = 0;
 	VHGCwindangle = 0; VHGCwindpower = 0;
+	VHGCstate = 0;
 	VHBp = 0; VHBmin = 0; VHBmax = 0; VHBsum = 0;
 	VHBname = { vhbiome-out.bin };
 
 "workspace"
 
-	vhbout = 32;
+	vhbout = 43;
 
 "programme"
 
@@ -74,9 +75,32 @@
 	[VHGNDsctype] = 3; => VHGND animals setup; [VHBp] = 8; => VHB fauna record;
 	[VHGNDsctype] = 4; => VHGND animals setup; [VHBp] = 12; => VHB fauna record;
 
+	( Exercise the production 60-Hz fauna presenter at its first intermediate
+	  phase without advancing any authoritative animal record. )
+	[VHGNDfast] = 1; [VHGNDinterpok] = 1; [VHGNDinterpacc] = 18206; [VHGNDanii] = 0;
+	C = VHGNDanimalprevx; [C] = 1000;
+	A = 0; A - 1000; C = VHGNDanimalprevz; [C] = A;
+	[VHGNDanix] = 1600; A = 0; A - 400; [VHGNDaniz] = A;
+	=> VHGND animal interpolate;
+	[vhbout plus 32] = [VHGNDanix]; [vhbout plus 33] = [VHGNDaniz];
+	C = VHGNDbirdprevx; [C] = 1000;
+	A = 0; A - 1000; C = VHGNDbirdprevz; [C] = A;
+	C = VHGNDbirdprevquote; [C] = 500;
+	[VHGNDanix] = 1600; A = 0; A - 400; [VHGNDaniz] = A; [VHGNDbirdquote] = 450;
+	[vhbout plus 36] = [VHGNDbirdquote]; [vhbout plus 37] = [C];
+	=> VHGND bird interpolate;
+	[vhbout plus 34] = [VHGNDanix]; [vhbout plus 35] = [VHGNDaniz];
+	[vhbout plus 38] = [VHGNDbirdquote]; [vhbout plus 39] = [VHGNDinterpacc];
+	[VHGNDtick] = 4; => VHGND mammal half phase;
+	[vhbout plus 40] = [VHGNDmammphase];
+	[VHGNDaniscale] = 10; [VHGNDtick] = 4; => VHGND bird flap interpolate;
+	[vhbout plus 41] = [VHGNDbirdflap];
+	[VHGNDaniscale] = 11; [VHGNDtick] = 11; => VHGND bird flap interpolate;
+	[vhbout plus 42] = [VHGNDbirdflap];
+
 	[File Name] = VHBname; [File Position] = 0; [File Command] = WRITE;
-	[Block Pointer] = vhbout; [Block Size] = 128; isocall;
-	[File Name] = VHBname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 128; isocall;
+	[Block Pointer] = vhbout; [Block Size] = 172; isocall;
+	[File Name] = VHBname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 172; isocall;
 	end;
 
 "VHB fauna record"

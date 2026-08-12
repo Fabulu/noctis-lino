@@ -64,7 +64,7 @@
 	[GRalbedo] = 20;
 	[GRlat]    = 30;
 
-	( 1. prologue — 12 brtl draws for type 1 )
+	( 1. prologue -- 12 brtl draws for type 1 )
 	=> GR prologue;
 
 	( 2. re-seed for painters )
@@ -79,7 +79,7 @@
 	[GRlevel] = 0;
 	=> GR rockyground;
 
-	( 4. plains noise — p_surfacemap[ptr] += fast_random(3) )
+	( 4. plains noise -- p_surfacemap[ptr] += fast_random(3) )
 	=> GR plains noise;
 
 	( copy p_surfacemap to SADPR )

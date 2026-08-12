@@ -29,7 +29,7 @@
 	SZOUT	= 64;
 	SZBUF	= 32;
 
-	CLMAGIC	= 434C4F53h;  ( "CLOS" in LE — "CL" console		    )
+	CLMAGIC	= 434C4F53h;  ( "CLOS" in LE -- "CL" console		    )
 
 	COMMSIZE2  = 2;
 	COMMSIZE24 = 24;
@@ -108,7 +108,7 @@
 	isocall;
       ? [File Status] + ERROR -> clr ok;
       ? [File Size] = 0 -> clr ok;
-	( file still exists with nonzero size — CLR failed		    )
+	( file still exists with nonzero size -- CLR failed		    )
 	A = 0; [clstat] = A;
 	-> clr done;
     "clr ok"
@@ -250,7 +250,7 @@
 	A = [cmbuf]; A & FFFFFFh;  ( keep only first 3 bytes		    )
       ? A = 524C43h -> clr parse ok;  ( "CLR" = 43 4C 52 LE = 0x524C43	    )
 
-	( not CLR — would fall through to system() in original		    )
+	( not CLR -- would fall through to system() in original		    )
 	A = [clflags]; A | 0; [clflags] = A;
 	-> clr parse done;
 

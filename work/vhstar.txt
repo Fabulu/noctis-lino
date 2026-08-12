@@ -9,10 +9,22 @@
 
 	VHTtx = 0; VHTty = 0; VHTtz = 0;
 	VHTclass = 0; VHTRay = 0; VHTred = 0; VHTgreen = 0; VHTblue = 0;
-	VHTphase = 0; VHTspin = 0;
+	VHTphase = 0; VHTspin = 0; VHTprevphase = 0; VHTrenderphase = 0;
+	( The game sets these presentation inputs before drawing.  Defaults retain
+	  the original one-render/one-tick behaviour for focused library probes. )
+	VHTdosim = 1; VHTfast = 0; VHTinterpok = 0; VHTinterpacc = 0;
+	VHTclockphase = 0;
 	VHTid0 = 0; VHTid1 = 0; VHTtmp0 = 0; VHTtmp1 = 0;
 	VHTseed = 0; VHTsum = 0; VHTsmooth = 0;
 	VHTcoord = 0; VHTd0 = 0; VHTd1 = 0; VHTslot = 0;
+	VHTdist0 = 0; VHTdist1 = 0; VHTacc0 = 0; VHTacc1 = 0;
+	VHTlimit0 = 0; VHTlimit1 = 0; VHTwhiteok = 0; VHTglobeok = 0;
+	VHTglobesat = 0; VHTpalsat = 0; VHTpalfar = 0;
+	VHTfarok = 0; VHTfarcolour = 0; VHTpix = 0;
+	VHTfaraddoff = 0; VHTfaraddcolour = 0;
+	VHTcyclebase = 0; VHTcyclei = 0;
+	VHTmaskbase = 0; VHTmaski = 0;
+	VHTsmoothbase = 0;
 
 	VHTclassrgb = 63;
 	no label = 58; no label = 40;
@@ -61,7 +73,7 @@
 
 	A = [VHTclass]; A '* 3; A + VHTclassrgb;
 	[VHTred] = [A plus 0]; [VHTgreen] = [A plus 1]; [VHTblue] = [A plus 2];
-	[VHTphase] = 0; [VHTspin] = 0;
+	[VHTphase] = 0; [VHTprevphase] = 0; [VHTrenderphase] = 0; [VHTspin] = 0;
 	A = [VHTclass]; ? A = 11 -> VHT spin class11;
 	? A = 7 -> VHT spin class7; ? A = 2 -> VHT spin class2;
 	-> VHT extract done;
@@ -95,18 +107,18 @@
     "VHT face done"
 	end;
 
-      ( Draw the close star only after the flight integrator reaches its
-	terminal radius.  Before that, VHS stars supplies the same body as the
-	ordinary hashed galaxy point. )
+      ( NOCTIS.CPP draws the luminous shell inside 100 stellar radii and the
+	textured globe inside 8.  These are geometric visibility thresholds,
+	not autopilot arrival-state thresholds. )
 "VHT render"
-	A = [MgApreached]; ? A = 0 -> VHT render done;
-
 	[VHTcoord] = [VHTtx]; [VHTd0] = [MgDzatX0]; [VHTd1] = [MgDzatX1];
 	[VHTslot] = SFXX; => VHT relative;
 	[VHTcoord] = [VHTty]; [VHTd0] = [MgDzatY0]; [VHTd1] = [MgDzatY1];
 	[VHTslot] = SFYY; => VHT relative;
 	[VHTcoord] = [VHTtz]; [VHTd0] = [MgDzatZ0]; [VHTd1] = [MgDzatZ1];
 	[VHTslot] = SFZZ; => VHT relative;
+	=> VHT visibility;
+	A = [VHTwhiteok]; ? A = 0 -> VHT render mask;
 
 	( whiteglobe(..., 3*nearstar_ray, 0.3) )
 	[PGFt] = [VHTRay]; => PGF ldf32; [VHTtmp0] = [FA0]; [VHTtmp1] = [FA1];
@@ -115,19 +127,251 @@
 	=> F32Narrow; [WHmag] = [FS0];
 	[WHfgm] = 3E99999Ah; [WHshape] = 2; [WHsun] = 0; [WHdstreg] = RGADP;
 	=> SP white;
+    "VHT render mask"
+	( mask_pixels(adapted+2880,64): retain every low-six intensity and
+	  move the exact space viewport into the stellar palette band before
+	  globe(), far_pixel_at(), planets(), vehicle(), and finally sky(). )
+	=> VHT premask; => VHT mask page;
+	A = [VHTglobeok]; ? A = 0 -> VHT render far;
 
-	( globe(... nearstar_ray, colormask 64, saturation 40) )
+	( globe(... nearstar_ray, colormask 64, live distance saturation) )
 	[GBmag] = [VHTRay]; => SP globe setup;
 	A = [GBok]; ? A = 0 -> VHT render done;
-	A = [VHTspin]; ? A = 0 -> VHT phase ready;
-	A + [VHTphase]; A % 360; [VHTphase] = A;
+	=> VHT phase advance;
     "VHT phase ready"
-	A = [VHTphase]; [GBstart] = A;
-	[GBcmask] = 64; [GBsat] = 40;
+	A = [VHTrenderphase]; [GBstart] = A;
+	[GBcmask] = 64; [GBsat] = [VHTglobesat];
 	[GBtabreg] = RGGLB; [GBtapreg] = RGSBG; [GBdstreg] = RGADP;
 	[GBbytes] = GLBYTES; [GBbubble] = 0;
-	=> SP globe raster;
+	=> SP globe raster; => VHT texture cycle;
+    "VHT render far"
+	A = [VHTfarok]; ? A = 0 -> VHT render done; => VHT far pixel;
     "VHT render done"
+	end;
+
+"VHT visibility"
+	[VHTwhiteok] = 0; [VHTglobeok] = 0; [VHTfarok] = 0;
+	[PGFi] = SFXX; => PGF a; [FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[VHTacc0] = [FA0]; [VHTacc1] = [FA1];
+	[PGFi] = SFYY; => PGF a; [FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHTacc0]; [FB1] = [VHTacc1]; => FAdd;
+	[VHTacc0] = [FA0]; [VHTacc1] = [FA1];
+	[PGFi] = SFZZ; => PGF a; [FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHTacc0]; [FB1] = [VHTacc1]; => FAdd; => FSqrt;
+	[VHTacc0] = [FA0]; [VHTacc1] = [FA1];
+	[FI] = 1; => IntToF; [FB0] = [VHTacc0]; [FB1] = [VHTacc1]; => FAdd;
+	[VHTdist0] = [FA0]; [VHTdist1] = [FA1]; => VHT saturation;
+
+	[PGFt] = [VHTRay]; => PGF ldf32; [VHTtmp0] = [FA0]; [VHTtmp1] = [FA1];
+	[FI] = 100; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTtmp0]; [FA1] = [VHTtmp1]; => FMul;
+	[VHTlimit0] = [FA0]; [VHTlimit1] = [FA1];
+	[FA0] = [VHTdist0]; [FA1] = [VHTdist1];
+	[FB0] = [VHTlimit0]; [FB1] = [VHTlimit1]; => FCmp;
+	A = [FI]; ? A < 0 -> VHT visibility close; ? A = 0 -> VHT visibility done;
+
+	( Source far-star buildup: 100*ray < distance < 1550*ray,
+	  colour = chop((1600*ray-distance)/(100*ray)) + 0x30. )
+	[FI] = 1550; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTtmp0]; [FA1] = [VHTtmp1]; => FMul;
+	[VHTlimit0] = [FA0]; [VHTlimit1] = [FA1];
+	[FA0] = [VHTdist0]; [FA1] = [VHTdist1];
+	[FB0] = [VHTlimit0]; [FB1] = [VHTlimit1]; => FCmp;
+	A = [FI]; ? A >= 0 -> VHT visibility done;
+	[FI] = 1600; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTtmp0]; [FA1] = [VHTtmp1]; => FMul;
+	[FB0] = [VHTdist0]; [FB1] = [VHTdist1]; => FSub;
+	[VHTacc0] = [FA0]; [VHTacc1] = [FA1];
+	[FI] = 100; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTtmp0]; [FA1] = [VHTtmp1]; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHTacc0]; [FA1] = [VHTacc1];
+	=> FQuo; => FToIntChop; A = [FI]; ? A >= 0 -> VHT far colour ready; A = 0;
+    "VHT far colour ready"
+	A + 48; [VHTfarcolour] = A; [VHTfarok] = 1; -> VHT visibility done;
+
+    "VHT visibility close"
+	[VHTwhiteok] = 1;
+
+	[FI] = 8; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTtmp0]; [FA1] = [VHTtmp1]; => FMul;
+	[VHTlimit0] = [FA0]; [VHTlimit1] = [FA1];
+	[FA0] = [VHTdist0]; [FA1] = [VHTdist1];
+	[FB0] = [VHTlimit0]; [FB1] = [VHTlimit1]; => FCmp;
+	A = [FI]; ? A >= 0 -> VHT visibility done; [VHTglobeok] = 1;
+    "VHT visibility done"
+	end;
+
+"VHT saturation"
+	( NOCTIS.CPP:2541-2546.  globe() receives chop(12*distance/ray),
+	  floored by a deterministic fast_random(31)+29 for this star. )
+	[FA0] = [VHTdist0]; [FA1] = [VHTdist1]; [VHTacc0] = [FA0]; [VHTacc1] = [FA1];
+	[FI] = 12; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTacc0]; [FA1] = [VHTacc1]; => FMul;
+	[VHTacc0] = [FA0]; [VHTacc1] = [FA1];
+	[PGFt] = [VHTRay]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTacc0]; [FA1] = [VHTacc1]; => FQuo; => FToIntChop;
+	[VHTglobesat] = [FI]; A = [VHTtz]; => SU fast srand;
+	[SUfmask] = 31; => SU fast raw; A = [SUfval]; A + 29;
+	? A <= [VHTglobesat] -> VHT globe saturation cap; [VHTglobesat] = A;
+    "VHT globe saturation cap"
+	A = [VHTglobesat]; ? A <= 63 -> VHT palette saturation; [VHTglobesat] = 63;
+
+    "VHT palette saturation"
+	( NOCTIS.CPP:3740-3756.  Inside 1000 radii, every target colour is
+	  raised by chop(float(6.4*distance/ray)), capped at 44. )
+	[VHTpalfar] = 0; [PGFt] = [VHTRay]; => PGF ldf32;
+	[VHTtmp0] = [FA0]; [VHTtmp1] = [FA1];
+	[FI] = 1000; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTtmp0]; [FA1] = [VHTtmp1]; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHTdist0]; [FA1] = [VHTdist1]; => FCmp;
+	A = [FI]; ? A >= 0 -> VHT palette saturation far;
+	[FA0] = [VHTdist0]; [FA1] = [VHTdist1];
+	[FB0] = 9999999Ah; [FB1] = 40199999h; => FMul;
+	[VHTacc0] = [FA0]; [VHTacc1] = [FA1];
+	[FB0] = [VHTtmp0]; [FB1] = [VHTtmp1]; => FQuo;
+	=> F32Narrow; => FToIntChop; [VHTpalsat] = [FI];
+	A = [VHTpalsat]; ? A <= 44 -> VHT saturation done; [VHTpalsat] = 44;
+	-> VHT saturation done;
+    "VHT palette saturation far"
+	[VHTpalfar] = 1; [VHTpalsat] = 0;
+    "VHT saturation done"
+	end;
+
+"VHT premask"
+	( NOCTIS.CPP:2564-2575.  Beyond six stellar radii, eligible emitting
+	  classes produce the source's 60-spoke visor flare below 1000 radii;
+	  every class then receives psmooth_grays before mask_pixels. )
+	[PGFt] = [VHTRay]; => PGF ldf32; [VHTtmp0] = [FA0]; [VHTtmp1] = [FA1];
+	[FI] = 6; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHTtmp0]; [FA1] = [VHTtmp1]; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHTdist0]; [FA1] = [VHTdist1]; => FCmp;
+	A = [FI]; ? A <= 0 -> VHT premask done;
+	A = [VHTclass]; ? A = 5 -> VHT premask smooth;
+	? A = 6 -> VHT premask smooth; ? A = 10 -> VHT premask smooth;
+	? A != 11 -> VHT premask flare range;
+	A = [VHTphase]; A % 360; ? A >= 90 -> VHT premask smooth;
+    "VHT premask flare range"
+	A = [VHTpalfar]; ? A != 0 -> VHT premask smooth;
+	[FA0] = [VHTdist0]; [FA1] = [VHTdist1];
+	[FB0] = [VHTtmp0]; [FB1] = [VHTtmp1]; => FQuo;
+	=> F32Narrow; [VHFk] = [FS0]; => VH space flare;
+    "VHT premask smooth"
+	=> VHT smooth grays;
+    "VHT premask done"
+	end;
+
+"VHT smooth grays"
+	( QUADWORDS=14560 at the live call.  Starting at adapted+2880+320,
+	  the four-row source kernel writes 58,240-1,280 = 56,960 bytes. )
+	A = nw; A + RADPT; A + 2880; [VHTsmoothbase] = A;
+	A = [VHTsmoothbase]; [SUsp] = A; [SUsi] = 320; B = 56960;
+    "VHT smooth gray pixel"
+	C = [SUsp]; C + [SUsi]; C - 320;
+	=> SU dw at; E = D;
+	C + 320; => SU dw at; E + D;
+	C + 320; => SU dw at; E + D;
+	C + 320; => SU dw at; E + D;
+	E & 0FCFCFCFCh; E > 2;
+	A = E; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	E > 16;
+	D = E; D & 0FFh; A + D; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	A > 2;
+	C = [SUsp]; C + [SUsi]; [C] = A;
+	[SUsi]+; B ^ VHT smooth gray pixel;
+	end;
+
+"VHT mask page"
+	( QUADWORDS is 14560 in the live loop, so adapted+2880 spans the
+	  source's exact 182-row space viewport: offsets 2880..61119. )
+	[SPreg] = RGADP; => SP base; C + 2880; [VHTmaskbase] = C; [VHTmaski] = 0;
+    "VHT mask page pixel"
+	A = nw; A + [VHTmaskbase]; A + [VHTmaski];
+	C = [A]; C & 63; C + 64; [A] = C;
+	[VHTmaski]+; A = [VHTmaski]; ? A < 58240 -> VHT mask page pixel;
+	end;
+
+"VHT far pixel"
+	=> PG getcoords; A = [GCret]; ? A = 0 -> VHT far pixel done;
+	A = [GCx]; ? A <= 10 -> VHT far pixel done; ? A >= 310 -> VHT far pixel done;
+	C = [GCy]; ? C <= 10 -> VHT far pixel done; ? C >= 190 -> VHT far pixel done;
+	C '* 320; C + A; C + 4; [VHTpix] = C;
+	=> VHT far spread; => VHT far spread; => VHT far spread;
+    "VHT far pixel done"
+	end;
+
+"VHT far spread"
+	A = [VHTfarcolour]; A > 1; [VHTfaraddcolour] = A; ? A <= 7 -> VHT far spread edge2;
+	A = [VHTpix]; A - 320; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A + 320; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A - 1; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A + 1; [VHTfaraddoff] = A; => VHT far light;
+    "VHT far spread edge2"
+	A = [VHTfarcolour]; A > 2; [VHTfaraddcolour] = A; ? A <= 7 -> VHT far spread edge3;
+	A = [VHTpix]; A - 321; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A - 319; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A + 321; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A + 319; [VHTfaraddoff] = A; => VHT far light;
+    "VHT far spread edge3"
+	A = [VHTfarcolour]; A > 3; [VHTfaraddcolour] = A; ? A <= 7 -> VHT far spread edge4;
+	A = [VHTpix]; A - 640; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A + 640; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A - 2; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A + 2; [VHTfaraddoff] = A; => VHT far light;
+    "VHT far spread edge4"
+	A = [VHTfarcolour]; A > 4; [VHTfaraddcolour] = A; ? A <= 7 -> VHT far spread centre;
+	A = [VHTpix]; A - 641; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A - 639; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A + 641; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A + 639; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A - 322; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A - 318; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A + 322; [VHTfaraddoff] = A; => VHT far light;
+	A = [VHTpix]; A + 318; [VHTfaraddoff] = A; => VHT far light;
+    "VHT far spread centre"
+	[VHTfaraddoff] = [VHTpix]; [VHTfaraddcolour] = [VHTfarcolour]; => VHT far light;
+	end;
+
+"VHT far light"
+	[SPoff] = [VHTfaraddoff]; [SPreg] = RGADP; => SP get;
+	C = [SPval]; ? C < 64 -> VHT far light done;
+	A = C; A & 63; A + [VHTfaraddcolour]; ? A <= 62 -> VHT far light colour ready; A = 62;
+    "VHT far light colour ready"
+	C & 192; C | A; [SPval] = C; => SP put;
+    "VHT far light done"
+	end;
+
+      ( NOCTIS.CPP cycles all 64,800 s_background texels after each close-star
+	frame.  F5 presentation-only frames reuse the authoritative texture. )
+"VHT texture cycle"
+	A = [VHTdosim]; ? A = 0 -> VHT texture cycle done;
+	[SPreg] = RGSBG; => SP base; [VHTcyclebase] = C; [VHTcyclei] = 0;
+    "VHT texture cycle texel"
+	A = nw; A + [VHTcyclebase]; A + [VHTcyclei];
+	C = [A]; C & 255; D = C; D & 192; C + 1; C & 63; C | D; [A] = C;
+	[VHTcyclei]+; A = [VHTcyclei]; ? A < 64800 -> VHT texture cycle texel;
+    "VHT texture cycle done"
+	end;
+
+      ( NOCTIS.CPP advances gl_start by nearstar_spin once per source loop.
+	F5 adds presentation frames, not source loops, so retain one authoritative
+	step at 18.206 Hz and interpolate only the longitude handed to globe().
+	Non-spinning classes keep the source's independent clock()/360 phase. )
+"VHT phase advance"
+	A = [VHTspin]; ? A != 0 -> VHT phase spinning;
+	[VHTrenderphase] = [VHTclockphase]; -> VHT phase advance done;
+    "VHT phase spinning"
+	A = [VHTdosim]; ? A = 0 -> VHT phase interpolate;
+	[VHTprevphase] = [VHTphase]; A = [VHTspin]; A + [VHTphase]; A % 360; [VHTphase] = A;
+    "VHT phase interpolate"
+	A = [VHTfast]; ? A = 0 -> VHT phase authoritative;
+	A = [VHTinterpok]; ? A = 0 -> VHT phase authoritative;
+	A = [VHTspin]; A '* [VHTinterpacc]; A / 60000; A + [VHTprevphase]; A % 360;
+	[VHTrenderphase] = A; -> VHT phase advance done;
+    "VHT phase authoritative"
+	[VHTrenderphase] = [VHTphase];
+    "VHT phase advance done"
 	end;
 
 "VHT relative"

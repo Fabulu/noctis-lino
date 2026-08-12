@@ -4,12 +4,19 @@ This is a test checklist and capability inventory.  Interactive and automated
 production runs are called out explicitly below; unchecked scenarios remain
 requirements rather than implied results.
 
+The concise coverage boundary is in `TEST_COVERAGE.md`. On 2026-08-12 the
+focused integrated gameplay suite passed in full, including capsule recovery,
+focus-safe GUI repaint, resizing, ship movement, jetpack, every accepted terrain
+class, vegetation, trees, mammals, birds, ruins, and the Cube. That result is
+broad regression coverage, not a claim of exhaustive procedural or multi-hour
+playtesting.
+
 ## What the playable build can do right now
 
 | Capability | Status |
 |---|---|
 | Walk inside/on top of the Stardrifter | Live first-person hull, lift, cupolas, glass, consoles and HUD |
-| Fly to a generated star | Live Vimana approach with exact galaxy hash and selected-star globe, visible power/lithium reserves, source-shaped stellar lithium collection, and a visible fine approach to the selected planet before landing |
+| Fly to a generated star | Live Vimana approach with exact galaxy hash and selected-star globe, visible power/lithium reserves, source-exact stellar lithium collection, and a visible fine approach to the selected planet before landing |
 | Enter a generated planetary system | Source-generated body topology with an animated console map: central star, retained relative orbits/orientations, selected planet, and correctly parented moons; the flight HUD identifies planets versus moons and shows a readable world class plus authoritative landability |
 | Land and walk | Physical capsule descent, gravity, rebounds and settling lead into first-person type-specific terrain, across the source 64-tile view radius with live textures, shading, crevasses, deterministic rocks, historical ruins, open-ocean sea level, calm-water/ice terrain reflections, shimmer, contracting wind crests and expanding swimmer wakes, type-3 vegetation/trees, three mammal gaits, landing/flying/capturable birds, atmospheric skies, type-3 rain/lightning, source-shaped indexed EPOC/SQC/compass and smoothed environmental visor data, low-gravity jumping, hold-to-thrust jetpack flight, and capsule ascent |
 | Resize the game | Live iGUI window with centered 8:5 nearest-neighbour aspect-fit scaling; validated dimensions persist across clean restarts |
@@ -1032,3 +1039,12 @@ units while retaining settled surface mode. Physical Delete then wrote exactly
 one raw `00000001.BMP` at 256,054 bytes. Replacing the former 200 row writes
 with one in-memory pixel-block write reduced measured Delete-to-complete time
 from several seconds to 514 ms. The process and isolated package were removed.
+
+### Exact class-5 lithium collection regression
+
+An isolated production package resumed two units from a generated class-5
+star with zero lithium, 18,000 power, and its collector active. This distance
+makes the identity-seeded draw lose to `125/dsd`, directly exercising the
+source's minimum-yield branch. After 60 original-rate frames the ship reported
+class 5, calibrated arrival, 20,000 power, 720 valid hull leaves, and zero bad
+leaves. The temporary process and package were removed.

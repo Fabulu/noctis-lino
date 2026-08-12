@@ -6,6 +6,22 @@ the integrated game, and what remains. It complements `PLAYTEST.md`, which is
 the detailed evidence log, and `PORTPLAN.md`, which is the technical
 implementation and source-parity ledger.
 
+## 2026-08-12 -- reproducible world gallery and coverage boundary
+
+The production screenshot path now builds isolated version-15 compatibility
+checkpoints at fixed known-dry cells, launches the shipping executable, captures
+the native iGUI client, and cleans up the staged run. Keeping the capsule away
+from the observer prevents its transparent shell from being mistaken for a
+terrain grid. The resulting gallery records multiple planet classes, a local
+sun with vegetation/fauna, marked historical ruin silhouettes, and an elevated
+view along the source 25-by-25 Suricrasian Cube wall.
+
+The focused integrated gameplay regression passed in full. A new coverage
+ledger distinguishes those automated checks from native visual/input sessions
+and names the remaining long-duration and composed-view gaps. During recovery,
+an obsolete hourly scheduled Codex task was found launching concurrent builds
+and edits in this checkout; its worker was stopped and the task disabled.
+
 ## 2026-08-12 -- stable map-edge traversal and signed surface motion
 
 A native debugger trace found that the disappearing or black surface frame was

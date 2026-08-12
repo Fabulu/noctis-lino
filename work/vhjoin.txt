@@ -75,3 +75,53 @@
 
     "VH jm done"
 	end;
+
+      ( Mode 1 is drawpv's texture-mapped path.  Unit 5 already carries the
+	original colour mangle; the live planetary p_background texture remains
+	selected by the caller exactly as live_animal establishes it. )
+
+"VH join mode1"
+	[VHJrow] = 0;
+	[VHJdrawn] = 0;
+	[VHJbad] = 0;
+
+	[PGFi] = SFDX; [PGFj] = FSCAMX; => PGF mov;
+	[PGFi] = SFDY; [PGFj] = FSCAMY; => PGF mov;
+	[PGFi] = SFDZ; [PGFj] = FSCAMZ; => PGF mov;
+
+	A = [DWn]; ? A = 0 -> VH jm1 done;
+
+    "VH jm1 row"
+	A = [VHJrow]; A '* 8; C = pvcall; C + A; [VHJptr] = C;
+	A = [C plus 7]; ? A != 1 -> VH jm1 badrow;
+	[VHJbase] = [C plus 2];
+	[VHJnrv] = [C plus 3];
+	A = [VHJnrv]; ? A < 3 -> VH jm1 badrow;
+	? A > 4 -> VH jm1 badrow;
+
+	[VHJv] = 0;
+    "VH jm1 vertex"
+	A = [VHJbase]; A + [VHJv]; A '* 4; [VHJbi] = A;
+	[SPreg] = RGPVF;
+
+	A = [PVax]; A + [VHJbi]; [SPidx] = A; => SP getf32;
+	A = FSINX; A + [VHJv]; [PGFi] = A; [PGFt] = [SPf]; => PGF setf32;
+	A = [PVay]; A + [VHJbi]; [SPidx] = A; => SP getf32;
+	A = FSINY; A + [VHJv]; [PGFi] = A; [PGFt] = [SPf]; => PGF setf32;
+	A = [PVaz]; A + [VHJbi]; [SPidx] = A; => SP getf32;
+	A = FSINZ; A + [VHJv]; [PGFi] = A; [PGFt] = [SPf]; => PGF setf32;
+
+	[VHJv]+;
+	A = [VHJv]; ? A '< [VHJnrv] -> VH jm1 vertex;
+
+	[PJnrv] = [VHJnrv]; C = [VHJptr]; [SPtinta] = [C plus 5]; [DBcol] = [C plus 5];
+	[DBflar] = 0; [DBent] = 0; => PG polymap;
+	[VHJdrawn]+; -> VH jm1 next;
+
+    "VH jm1 badrow"
+	[VHJbad]+;
+    "VH jm1 next"
+	[VHJrow]+;
+	A = [VHJrow]; ? A '< [DWn] -> VH jm1 row;
+    "VH jm1 done"
+	end;

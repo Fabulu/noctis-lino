@@ -1,6 +1,8 @@
 # CI and tagged releases
 
-The repository has three deliberately separate GitHub Actions paths.
+The repository has three deliberately separate GitHub Actions paths. Current
+test scope and its manual/native boundary are summarized in
+`TEST_COVERAGE.md`.
 
 - `.github/workflows/windows-release.yml` runs regression checks and packages
   the committed executable on GitHub-hosted Windows runners. It runs for pull
@@ -79,6 +81,6 @@ or packaging fails, no release is created. If the tag already has a release,
 rerunning the workflow replaces its three generated assets. The release remains
 a prerelease while the game is under active parity development.
 
-As of 2026-08-11 no self-hosted runner is registered for this repository. This
-only blocks the optional clean-source rebuild artifact. It does not block
-tests, tagged package builds, or GitHub prerelease publication.
+As of 2026-08-12 GitHub reports no self-hosted runner registered for this
+repository. This only blocks the optional clean-source rebuild artifact. It does
+not block hosted tests, tagged package builds, or GitHub prerelease publication.

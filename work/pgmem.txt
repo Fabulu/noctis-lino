@@ -101,6 +101,7 @@
 	PGtexf	= 0;			( texture formula id )
 	PGtexi	= 0;
 	PGtexv	= 0;
+	PGtexoff	= 0;		( scoped base offset within live texture windows )
 
 	PGpstate = 0;			( pre-state formula id )
 
@@ -286,7 +287,7 @@
 	[PGtexv] = 255; end;
     "PG tex 4"
 	( TEX4: the live Noctis texture window, based at p_surfacemap. )
-	A = RPSM; A + [PGtmp]; [MBptr] = A; => MEM get byte;
+	A = RPSM; A + [PGtexoff]; A + [PGtmp]; [MBptr] = A; => MEM get byte;
 	[PGtexv] = [MBval]; end;
     "PG tex 5"
 	( TEX5: the live Noctis planetary-ground texture window, based at

@@ -50,6 +50,7 @@
 	[VHGNDatmosphere] = 1; [VHGNDseed] = 149135;
 	[VHGNDdosim] = 0; [VHGNDtick] = 17; [VHGNDstormflashes] = 30;
 	[VHGNDcamx] = 1646592; [VHGNDcamy] = 0; [VHGNDcamz] = 1646592;
+	[VHGNDplayerrefx] = [VHGNDcamx]; [VHGNDplayerrefz] = [VHGNDcamz];
 	[VHGNDalpha] = 0; [VHGNDbeta] = 0;
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;

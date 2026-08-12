@@ -35,6 +35,7 @@ SAVE = ROOT / "work" / "vhsave.txt"
 AUDIO = ROOT / "work" / "vhaudio.txt"
 FLARE = ROOT / "work" / "vhflare.txt"
 STAR = ROOT / "work" / "vhstar.txt"
+SPACE = ROOT / "work" / "vhspace.txt"
 REFERENCE_ROOT = Path(os.environ.get(
     "NOCTIS_REFERENCE_ROOT",
     r"C:\programmieren\noctis\niv-plus\source",
@@ -311,6 +312,7 @@ def main() -> int:
     audio = AUDIO.read_text(encoding="utf-8")
     flare = FLARE.read_text(encoding="utf-8")
     star = STAR.read_text(encoding="utf-8")
+    space = SPACE.read_text(encoding="utf-8")
     original = ORIGINAL.read_text(encoding="latin-1")
     original0 = ORIGINAL0.read_text(encoding="latin-1")
     original1 = ORIGINAL1.read_text(encoding="latin-1")
@@ -686,7 +688,7 @@ def main() -> int:
             '[VHGonrowdst] = VHGonboardrow0;',
             '[VHGonrowdst] = VHGonboardrow1;',
             '[VHGonrowdst] = VHGonboardrow2;',
-            '[VHGrescueactive]', '[VHGonrowsrc] = VHGemerquiet;',
+            '[VHGgburst]', '[VHGonrowsrc] = VHGemerquiet;',
             '[VHGonrowsrc] = VHGemernotsent;',
         ))
         and '=> VHG onboard emergency information;' in onboard_prepare,
@@ -753,11 +755,13 @@ def main() -> int:
         and '"PG tex 5"' in (ROOT / "work" / "pgmem.txt").read_text(encoding="utf-8"),
         "landing textures the nearest ground triangles and flat-shades coarse LOD",
     )
+    depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
     check(
         "[SUfmask] = 7; => SU frnd;" in shade
         and "A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;" in shade
-        and "=> FAdd; => FSqrt; => FToIntChop;" in shade
+        and "=> VHGND tile depth;" in shade
+        and "=> FAdd; => FSqrt; => FToIntChop;" in depth
         and "? C '<= 32" in shade
         and "A = [VHGNDshade]; [SPtinta] = A; [DBcol] = A;" in tile
         and "=> VHGND palette" not in game,
@@ -793,7 +797,10 @@ def main() -> int:
         and "A # 80000000h" in cupola
         and '"VHC capsule view"' in cupola
         and "A = 500; A - [FI]" in cupola
-        and "A = [VHCopen]; ? A != 0 -> VHC capsule view done;" in cupola
+        and "A = [VHCyor]; ? A >= 0 -> VHC capsule shift positive;" in cupola
+        and "A = [VHCdd]; A + A; A + A;" in cupola
+        and "A + [VHCcamybase]; [FI] = A;" in cupola
+        and "? A != 0 -> VHC draw panel done;" not in cupola
         and '"VHC draw textured panel"' in cupola
         and all(token in cupola for token in (
             "[VHCvi] = [VHCi];", "A = [VHCi]; A - 1;",
@@ -868,20 +875,26 @@ def main() -> int:
         "landing validates the body and advances descent at the original visible rate",
     )
     post = section(ground, '"VHGND post surface"', '"VHGND flandom"')
+    cache_objects = section(
+        ground, '"VHGND cache objects"', '"VHGND animals setup"'
+    )
     objects = section(ground, '"VHGND tile objects"', '"VHGND veget"')
     rocks = section(ground, '"VHGND rock"', '"VHGND rock height"')
     check(
         '"VHGND felisian line"' in post
         and "A & 0FCh; A | [VHGNDoval]" in post
-        and "A = [MBval]; A & 3; [VHGNDocount] = A;" in objects
+        and "[VHGNDobjbyte] = A; A & 3; [VHGNDocount] = A;" in objects
         and "[SUfmask] = [VHGNDrockdensity]" in rocks
-        and rocks.count("=> PG poly3d;") == 3
+        and rocks.count("=> PG poly3d;") == 4
         and all(token in rocks for token in (
+            "A = [VHGNDdepth]; ? A >= 8 -> VHGND rock done;",
+            "A = [VHGNDdepth]; ? A > 2 -> VHGND rock distant;",
+            '"VHGND rock distant"', "[SUfmask] = 71; => VHGND render random; [DBcol] = C;",
             '"VHGND rock repeat"', "A '* 5; [VHGNDrockworkscale] = A;",
             "A '* 1000; A '* [VHGNDcdown];", "A '/ 2; [VHGNDrockworkscale] = A;",
             "[VHGNDcdown]-; A = [VHGNDcdown]; ? A > 0 -> VHGND rock repeat;",
         )),
-        "source post-surface counts drive complete close tetrahedral rock groups",
+        "rocks retain source distant triangles and complete close tetrahedral groups",
     )
     traversal = section(ground, '"VHGND render"', '"VHGND tile"')
     check(
@@ -893,6 +906,24 @@ def main() -> int:
         and "[SPcull] = 1" in tile
         and "A > [VHGNDmaxdepth]" in tile,
         "landed renderer covers the source 64-tile radius with distance-aware rings",
+    )
+    distant_objects = section(
+        ground, '"VHGND render distant objects"', '"VHGND tile"'
+    )
+    check(
+        "if (depth > 40) return;" in original1
+        and "VHGNDOBJECTFAR = 40;" in ground
+        and all(token in distant_objects for token in (
+            "[VHGNDlodstep] = 1;", "A = nw; A + ROBJ; A + [VHGNDh1];",
+            "? A = 0 -> VHGND distant object next;",
+            "=> VHGND object view cull;", "A '* 3; A '/ 4; A + 128;",
+            "? A '>= 7225344 -> VHGND object view hidden;",
+            "=> VHGND tile depth;",
+            "A = [VHGNDdepth]; ? A <= 3 -> VHGND distant object next;",
+            "? A > VHGNDOBJECTFAR -> VHGND distant object next;",
+            "=> VHGND tile objects;",
+        )),
+        "surface objects retain the original depth-40 horizon with empty cells rejected early",
     )
     check(
         "grnd; sky;" in game and "spglobe; spglow; spbg;" in game
@@ -917,6 +948,32 @@ def main() -> int:
         ))
         and "A = [VHGNDstormflashes];" in ground
         and "A '* 25; [VHGNDflashtries] = A;" in ground
+        and all(token in original1 for token in (
+            "wdirsin -= (pos_z - refz) * 0.333;",
+            "wdircos -= (pos_x - refx) * 0.333;",
+            "setfx (1);", "Forward (-1000);",
+            "ptr = random(3) + 1", "flash = random (150 / rainy);",
+            "w = random (64) + 64;",
+            "s_background[ptr] = 63 - s_background[ptr];",
+        ))
+        and all(token in ground for token in (
+            "A = [VHGNDcamx]; A - [VHGNDplayerrefx]; A '* 333; A / 1000;",
+            "A = [VHGNDcamz]; A - [VHGNDplayerrefz]; A '* 333; A / 1000;",
+            "A = [VHGNDcamx]; A + [FI]; [VHVcamxi] = A;",
+            "A = [VHGNDcamz]; A - [FI]; [VHVcamzi] = A;",
+            "A = [VHGNDcamy]; A - [FI]; [VHVcamyi] = A;",
+            "=> FMul; [FB0] = [FA0]; [FB1] = [FA1];",
+            "[VHSflare] = 1;", "[VHSflare] = 0;",
+            "[FI] = 150; => IntToF; => FQuo; => FToIntChop;",
+            "A % 3; A + 1;", "A % 64; A + 64;",
+            "C '* [VHGNDflashgain]; C '/ 63;",
+            "[VHGNDflashactive] = [VHGNDflashpending]; [VHGNDflashpending] = 0;",
+            '"VHGND background lightning invert"',
+            "A = [D]; C = 63; C - A; [D] = C;",
+        ))
+        and "[VHGNDplayerrefx] = [VHGsurfrefx]; [VHGNDplayerrefz] = [VHGsurfrefz];" in game
+        and ground.index("=> VHGND weather lightning begin;")
+        < ground.index("[VHGNDruindrawn] = 0; => VHGND background;")
         and "? A '<= 5 -> VHGND weather density ready;" not in ground,
         "live landings cache the generated panorama through a direct wrapping mapper",
     )
@@ -1000,9 +1057,68 @@ def main() -> int:
         all(token in star for token in (
             "VHTphase = 0; VHTspin = 0;", '"VHT spin class11"',
             '"VHT spin class7"', '"VHT spin class2"',
-            "A + [VHTphase]; A % 360; [VHTphase] = A;",
+            '"VHT phase advance"', "[VHTprevphase] = [VHTphase];",
+            "A = [VHTspin]; A + [VHTphase]; A % 360; [VHTphase] = A;",
+            "A = [VHTspin]; A '* [VHTinterpacc]; A / 60000;",
+            "[VHTrenderphase] = [VHTclockphase];",
+            '"VHT visibility"', "[VHTwhiteok] = 0; [VHTglobeok] = 0;",
+            "[FI] = 1; => IntToF;", '"VHT saturation"',
+            "[SUfmask] = 31; => SU fast raw;", "A + 29;",
+            '"VHT palette saturation"', "[VHTpalfar] = 1; [VHTpalsat] = 0;",
+            '"VHT premask"', "[FI] = 6; => IntToF;",
+            "? A = 6 -> VHT premask smooth; ? A = 10 -> VHT premask smooth;",
+            "A = [VHTphase]; A % 360; ? A >= 90 -> VHT premask smooth;",
+            "[VHFk] = [FS0]; => VH space flare;", '"VHT smooth grays"',
+            "[SUsi] = 320; B = 56960;", "B ^ VHT smooth gray pixel;",
+            "[FI] = 100; => IntToF;", "[FI] = 8; => IntToF;",
+            "[FI] = 1550; => IntToF;", "[FI] = 1600; => IntToF;",
+            '"VHT far pixel"', "=> VHT far spread; => VHT far spread; => VHT far spread;",
+            '"VHT far spread"', "A = [VHTfarcolour]; A > 4;",
+            '"VHT texture cycle"', "? A < 64800 -> VHT texture cycle texel;",
+            "C = [A]; C & 255; D = C; D & 192; C + 1; C & 63; C | D; [A] = C;",
+            '"VHT mask page"', "C = [A]; C & 63; C + 64; [A] = C;",
+            "? A < 58240 -> VHT mask page pixel;",
+        ))
+        and "A = [MgApreached]; ? A = 0 -> VHT render done;" not in star
+        and all(token in game for token in (
+            "=> VHT visibility; A = [VHTwhiteok]; ? A = 0 -> VHG local star premask;",
+            "=> VHG local companion coronas; => VHT premask; => VHT mask page;",
+            "A = [VHTglobeok]; ? A = 0 -> VHG local star far;",
+            "[GBcmask] = 64; [GBsat] = [VHTglobesat];",
+            "A = [VHTfarok]; ? A = 0 -> VHG local planet render; => VHT far pixel;",
+            '"VHG local companion coronas"',
+            "=> VHG local body relative; => VHG local body distance;",
+            "[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1]; => F32Narrow; => FLoadF32;",
+            "[FI] = 5; => IntToF;", "[FI] = 1000; => IntToF;",
+            "[VHFk] = [FS0]; => VH space flare;",
+            "=> VHS stars; => VHG finder render;",
+        ))
+        and all(token in flare for token in (
+            '"VH space flare"', "[VHFadd] = 3; [VHFok] = 0;",
+            "[PGFi] = SFRX; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;",
+            "A = [FI]; A + 3;", "? A >= 90 -> VHF done; A + 100; [VHFcy] = A;",
+        ))
+        and game.index("=> VHS stars; => VHG finder render;") > game.index("=> VH set view; [VHLpower] = [VHGilight]; [VHLemergency] = [VHGelight]; => VH alogena;")
+        and all(token in space for token in (
+            "C '* 320; C + A; C + 4; [SPoff] = C;",
+            "C = [SPval]; ? C < 64 -> VHS draw next; ? C > 92 -> VHS draw next;",
+            "D = C; D & 192; C & 63; C + [VHScolour];",
+            "? C > 92 -> VHS replay next;",
+            '"VHS fade"', "C + 2876; [VHSfadebase] = C;",
+            "? C >= 8 -> VHS fade subtract;", "? A < 57920 -> VHS fade pixel;",
+        ))
+        and all(token in game for token in (
+            "A = [MgStspeed]; ? A != 0 -> VHG render space fade;",
+            "=> VHS fade;", "[VHGspacevalid] = 1;",
         ))
         and "[VHTphase] = [VHGframe];" not in game
+        and "A = [VHGframe]; A % 360; [GBstart] = A;" not in game
+        and game.count("=> VHT phase advance;") >= 1
+        and all(token in game for token in (
+            "[VHTdosim] = [VHGdosim]; [VHTfast] = [VHGfast];",
+            "[VHTinterpok] = [VHGinterpok]; [VHTinterpacc] = [VHGinterpacc];",
+            "A = [TKtmp]; A / 360; A % 360; [VHTclockphase] = A;",
+        ))
         and all(token in original0 for token in (
             "if (ap_target_class==11) ap_target_spin = random (30) + 1;",
             "if (ap_target_class==7) ap_target_spin = random (12) + 1;",
@@ -1457,6 +1573,8 @@ def main() -> int:
             '[VHGilight] = A; [VHLpower] = A;',
         ))
         and all(token in light for token in (
+            'A = [VHGilightlevel]; A + [VHGilight];',
+            '[VHGilightlevel] = A;',
             'A = [VHGilight]; ? A != 1 -> VHG light step done;',
             '[VHGlighttick]+;', '? A < 1529 -> VHG light step done;', '[MgPwr]-;',
             '"VHG navigation step"', '? A < 746 -> VHG navigation amplifier off;',
@@ -1479,9 +1597,23 @@ def main() -> int:
         )
         and all(token in game for token in (
             '[VHGstarclass] = [VHTclass];', '? A = 8 -> VHG star palette inner8;',
+            '"VHG star palette update"', '[VHGstartargetR] = 48;',
+            '[VHGstartargetinnerR] = 24;', '[VHGstarpaletteok] = 0;',
+            '[VHGstarcurrentR]+;', '[VHGstarcurrentinnerB]-;',
+            'A = [VHGdosim]; ? A = 0 -> VHG star palette frame done;',
             '[FBSHfirst] = 64; [FBSHn] = 24;', '[FBSHfirst] = 88; [FBSHn] = 16;',
             '[FBSHfirst] = 104; [FBSHn] = 24;',
             '[PVself] = 1; [PVfirst] = 64; [PVn] = 64;',
+        ))
+        and all(token in original for token in (
+            "l_dsd = sqrt (dxx*dxx + dyy*dyy + dzz*dzz) + 1;",
+            "satur = (12 * dsd) / nearstar_ray;", "ir = fast_random(31) + 29;",
+            "satur = (6.4 * dsd) / nearstar_ray;",
+            "if (ire < ir) ire++; if (ire > ir) ire--;",
+            "if (l_dsd > 6 * nearstar_ray)",
+            "nearstar_class!=5&&nearstar_class!=6&&nearstar_class!=10",
+            "l_dsd>5*nearstar_ray&&l_dsd<1000*nearstar_ray",
+            "psmooth_grays (adapted+2880);",
         ))
         and all(token in game for token in (
             '[VHGlocalmask] = 128;', '[VHGlocalbubble] = 1;',
@@ -1505,7 +1637,28 @@ def main() -> int:
             'E = nspring;', '=> VHG local ring viewpoint;',
             '=> VHG local ring;', '[GLarc] = 130; [GLcol] = 127;',
         ))
-        and '[vhsvbuf plus 38] = [VHGilight];' in save,
+        and all(token in game for token in (
+            '"VHG ship palette update"', '=> VHG info environment geometry;',
+            '[PVsrc] = range8088;', '[PVfirst] = 0; [PVn] = 64;',
+            '[PVfr] = [VHGshipr]; [PVfg] = [VHGshipg]; [PVfb] = [VHGshipb];',
+            '[VHGelight]', '[VHGgburst]', '[TKtmp]', '[VHGshped]',
+            '"VHG reset step"', '[VHGresetcount] = 150;',
+            '"VHG emergency step"', '[VHGelight] = 1;',
+            '[VHPblackout] = [VHGelight];', '[VHLemergency] = [VHGelight];',
+        ))
+        and all(token in original for token in (
+            'stz = dzz * cos (deg * navigation_beta)', 'ilight += ilightv;',
+            'ir3 = ilight / 4 + l_dsd;', 'ig3 = ilight / 2 + l_dsd;',
+            'ib3 = ilight + l_dsd;',
+            'tavola_colori (range8088, 0, 64, ir3, ig3, ib3);',
+        ))
+        and '[vhsvbuf plus 38] = [VHGilight];' in save
+        and all(token in save for token in (
+            '[VHGgburst]; A + 1; A \'* 32768;',
+            '[VHGresetcount]; A \'* 128;', '[VHGelight]; A \'* 64;',
+            'C + 4194304; [vhsvbuf plus 66] = C;', 'A & 63; [VHGilightlevel] = A;',
+            'A & 1; [VHGelight] = A;', '[VHGresetcount] = A;', '[VHGgburst] = A;',
+        )),
         "R and 6-9 restore onboard navigation/miscellaneous devices with live powered effects",
     )
     fcs_menu_overlay = section(game, '"VHG FCS menu overlay"', '"VHG browse format rows"')
@@ -1697,7 +1850,8 @@ def main() -> int:
         and "A = [VHGfast]; ? A != 0 -> VHG timing fast;" in game
         and "=> TK step;" in section(game, '"VHG timing step"', '"VHG timing rebase"')
         and "[TKdeadline] = [TKnow]; [TKacc] = 0;" in game
-        and "[VHGNDdosim] = [VHGdosim]; => VHGND render;" in game
+        and "[VHGNDdosim] = [VHGdosim];" in game
+        and "[VHGNDinterpacc] = [VHGinterpacc];" in game
         and ground.count("A = [VHGNDdosim]; ? A = 0") >= 3,
         "original presentation is default and F5 opts into 60 FPS without changing simulation cadence",
     )
@@ -1713,12 +1867,25 @@ def main() -> int:
             'A = [VHGCstate]; ? A = 0 -> VHG interpolation apply done;',
             'A = [VHGCstate]; ? A = 0 -> VHG interpolation advance done;',
             'A = [VHGCstate]; ? A = 0 -> VHG interpolation snapshot done;',
-            'A = [VHGdosim]; ? A != 0 -> VHG interpolation advance finish;',
+            'A = [VHGsimacc]; ? A >= 0 -> VHG interpolation phase positive;',
+            "A '* VHGSIMDEN; A / 1000000;",
+            '? A <= VHGSIMDEN -> VHG interpolation advance store; A = VHGSIMDEN;',
             "A = [VHGinterpdelta]; A '* [VHGinterpacc]; A / VHGSIMDEN;",
             'A = [VHGx]; A - [VHGinterprenderx]; [VHGinterpeffectx] = A;',
             'A = [VHGz]; A - [VHGinterprenderz]; [VHGinterpeffectz] = A;',
             'A = [VHGalpha]; A - [VHGinterprenderalpha]; [VHGinterpeffectalpha] = A;',
             '[VHGinterpok] = 0; => VHG load success notice;',
+        ))
+        and all(token in ground for token in (
+            '"VHGND animal snapshot"', '"VHGND animal interpolate"',
+            '"VHGND bird snapshot"', '"VHGND bird interpolate"',
+            '"VHGND mammal half phase"', '"VHGND bird flap interpolate"',
+            '"VHGND wave snapshot"', '"VHGND wave interpolate"',
+            "A = [VHGNDanix]; A - [VHGNDaniprevx]; A '* [VHGNDinterpacc]; A / 60000;",
+            "A = [VHGNDbirdquote]; A - [VHGNDaniprevquote]; A '* [VHGNDinterpacc]; A / 60000;",
+            "A = [VHGNDtick]; A '% 18; A '* 60000; C = A;",
+            "A = [VHGNDbirdflapcurr]; A - [VHGNDbirdflapprev]; A '* [VHGNDinterpacc]; A / 60000;",
+            "A = [VHGNDwaveauthradius]; A - [VHGNDwaveprevr]; A '* [VHGNDinterpacc]; A / 60000;",
         ))
         and one_frame.count('=> VHG interpolation snapshot;') == 1
         and one_frame.index('"VHG landing commit done"')
@@ -1730,12 +1897,15 @@ def main() -> int:
         < one_frame.index('=> VHG interpolation apply;')
         and one_frame.index('=> VHG interpolation snapshot;')
         < one_frame.index('=> VHGC tick;')
+        and '[VHGinterpacc] = 0; [VHGinterpok] = 1;' not in section(
+            game, '"VHG interpolation snapshot"', '"VHG interpolation reset"'
+        )
         and '[VHGinterpok] = 0;' in section(capsule_physics, '"VHGC settle"', '"VHGC slope scan"')
         and [signed_lerp(0, 80, phase) for phase in (0, 18206, 36412, 54618, 60000)]
         == [0, 24, 48, 72, 80]
         and [signed_lerp(0, -80, phase) for phase in (0, 18206, 36412, 54618, 60000)]
         == [0, -24, -48, -72, -80],
-        "60-Hz ship, lift, capsule, and surface poses interpolate without mutating simulation state",
+        "60-Hz ship, lift, capsule, surface, and fauna poses interpolate without mutating simulation state",
     )
     check(
         (lambda run: (
@@ -1762,8 +1932,8 @@ def main() -> int:
             "[VHGx] = [VHGNDdropx]; [VHGz] = [VHGNDdropz]; [VHGlanded] = 1;",
         ))
         and all(token in save for token in (
-            "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 264;",
-            "[File Command] = TEST;", "? [File Size] != 264 -> VHSV save done;",
+            "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 268;",
+            "[File Command] = TEST;", "? [File Size] != 268 -> VHSV save done;",
             "[VHSVok] = 1;",
         )),
         "startup resume and F6/F7 cover stable ship/surface checkpoints with fallback",
@@ -1889,7 +2059,7 @@ def main() -> int:
             "[VHGcmdsilent] = 0; [VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;",
         ))
         and all(token in save for token in (
-            "VHSVVERSION = 15;", "[vhsvbuf plus 24] = [VHTtx];",
+            "VHSVVERSION = 16;", "[vhsvbuf plus 24] = [VHTtx];",
             "[VHTtx] = [vhsvbuf plus 24];",
         )),
         "GOES NEXT/STAR retarget real Vimana travel and persist the selected star",
@@ -2536,12 +2706,20 @@ def main() -> int:
             "A = 50; => BrtlRandom;",
             "[FI] = 125;", "[FI] = 25;", "[MgCharge]-; [MgPwr] = 20000;",
             "[MgPwr] = 15001; [MgCharge]+;", "VHGenergytext = { PWR 00000 LI 003 OFF };",
+            "C = [VHTclass]; ? C != 5 -> VHG collector rate ready;",
+            "? A > 0 -> VHG collector rate ready; [VHGcollectrate] = 1; A = 1;",
+            "[VHGnoticeptr] = VHGcollecttext; [VHGnoticeframes] = 25;",
+            "A = [MgAptgt]; ? A != 1 -> VHG collector needs calibration;",
+            "[MgLdsd0] = [FA0]; [MgLdsd1] = [FA1]; [FI] = 1; => IntToF;",
         ))
+        and "A = [VHGlocalactive]; ? A != 0 -> VHG collector stop;" not in game
+        and "A = [VHGlocalactive]; ? A != 0 -> VHG collector needs calibration;" not in game
         and "[MgPwr] = 30000" not in section(game, '"VHG flight retarget"', '"VHG flight step"')
         and "[MgPwr] = 20000; [MgCharge] = 3;" in section(game, '"VHG flight init"', '"VHG target world"')
         and all(token in original for token in (
             "if (lithium_collector)", "ir = random (50);", "ir -= 125 / dsd;",
-            "ir -= 25 / dsd;", "if (charge < 120)", "charge++;",
+            "ir -= 25 / dsd;", "if (ir <= 0) ir = 1;", 'SCOPING...',
+            "if (charge < 120)", "charge++;",
         ))
         and all(token in save for token in (
             "[vhsvbuf plus 31] = [MgCharge];", "[vhsvbuf plus 32] = [VHGcollector];",
@@ -2553,7 +2731,7 @@ def main() -> int:
             "A = [VHGelapsed]; A '/ 30;", "A = 5000; => BrtlRandom; A + 15000;",
             '"VHG offline collector full"', "[MgPwr] = 20000;",
         )),
-        "live and closed-game lithium collection are source-shaped, visible, and persistent",
+        "live and closed-game lithium collection use exact source gates, minimum yield, feedback, and persistence",
     )
     check(
         all(token in game for token in (
@@ -2595,12 +2773,14 @@ def main() -> int:
             "? A = 156 -> VHSV load size ok; ? A = 160 -> VHSV load size ok;",
             "? A = 168 -> VHSV load size ok; ? A = 180 -> VHSV load size ok;",
             "? A = 188 -> VHSV load size ok; ? A = 192 -> VHSV load size ok;",
-            "? A = 256 -> VHSV load size ok; ? A != 264 -> VHSV load done;",
+            "? A = 256 -> VHSV load size ok; ? A = 264 -> VHSV load size ok;",
+            "? A != 268 -> VHSV load done;",
             '"VHSV load version two"', '"VHSV load version three"', '"VHSV load version four"',
             '"VHSV load version five"', '"VHSV load version six"', '"VHSV load version seven"',
             '"VHSV load version eight"', '"VHSV load version nine"', '"VHSV load version ten"',
             '"VHSV load version eleven"', '"VHSV load version twelve"',
             '"VHSV load version thirteen"', '"VHSV load version fourteen"',
+            '"VHSV load version fifteen"',
             "[vhsvbuf plus 27] = [VHGfast];",
             "[vhsvbuf plus 28] = [VHGfpsshow];", "[vhsvbuf plus 29] = [VHAwanted];",
             "[vhsvbuf plus 30] = [VHGNDcaptures];", "[VHSVcaptures] = A;",
@@ -2612,7 +2792,7 @@ def main() -> int:
             "[vhsvbuf plus 40] = [VHGlandinglon];", "[VHGlandinglat] = A;",
             "[vhsvbuf plus 42] = [VHGNDdropx];", "[vhsvbuf plus 43] = [VHGNDdropy];",
             "[vhsvbuf plus 44] = [VHGNDdropz];", "[VHSVdropstored] = 1;",
-            "[Block Pointer] = vhsvbuf; [Block Size] = 264; isocall;",
+            "[Block Pointer] = vhsvbuf; [Block Size] = 268; isocall;",
             "[vhsvbuf plus 47] = C;", "A = [VHSVsize]; ? A = 192 -> VHSV load graphics stored;",
             "A - 1; [VHGlensmode] = A;", "[VHGdrawhud] = A;", "[VHGseamless] = A;",
             "A = 1; A - [VHGhudclosed]; A '* 16;", "[VHGhudclosed] = 0; [VHGhudcount] = 0;",
@@ -2622,6 +2802,8 @@ def main() -> int:
             "[vhsvbuf plus 62] = [VHGlocalacc];", "[vhsvbuf plus 63] = [VHGlocalphasetick];",
             "[VHSVlocalstored] = 1;",
             "[vhsvbuf plus 64] = C;", "[vhsvbuf plus 65] = [VHGnavbeta];",
+            "C + 4194304; [vhsvbuf plus 66] = C;", "[VHGilightlevel] = A;",
+            "[VHGelight] = A;", "[VHGresetcount] = A;", "[VHGgburst] = A;",
             "[VHGautoscreenoff] = A;", "[VHGdepolarize] = A;", "[VHGnavbeta] = A;",
             "? A < MINIMUM WIDTH -> VHSV load done;", "? A > MAXIMUM HEIGHT -> VHSV load done;",
             "[VHSVmusic] = [VHAwanted];", "[VHAwanted] = [VHSVmusic];",
@@ -2660,7 +2842,7 @@ def main() -> int:
             < run.index("=> VHA apply;")
             < run.index("=> Enter Integrated GUI;")
         ))(section(game, '"VHG run"', '"service VHG repaint"')),
-        "version-15 checkpoints retain PFS state and safely migrate v1-v14 progress",
+        "version-16 checkpoints retain PFS/light fade and safely migrate v1-v15 progress",
     )
     check(
         all(token in ground for token in (
@@ -2676,6 +2858,7 @@ def main() -> int:
     tree = section(ground, '"VHGND tree"', '"VHGND rock"')
     bush = section(ground, '"VHGND bush"', '"VHGND tree direction"')
     grass = section(ground, '"VHGND veget"', '"VHGND tree"')
+    greenmush = section(ground, '"VHGND greenmush"', '"VHGND tree"')
     check(
         all(token in original1 for token in (
             "fast_srand (x+y+z+3);", "int treetype = fast_random(511);",
@@ -2690,8 +2873,13 @@ def main() -> int:
         and all(token in tree for token in (
             '"VHGND tree node enter"', '"VHGND tree node branch"',
             '"VHGND tree terminal"', '"VHGND tree node pop"',
-            "[SUfmask] = 511; => SU frnd; [VHTkind] = C;",
+            "[SUfmask] = 511; => VHGND render random; [VHTkind] = C;",
             "A = [VHTkind]; ? A = 333 -> VHGND tree giant;",
+            "A = [VHGNDdepth]; ? A > 20 -> VHGND tree far;",
+            "? A > 10 -> VHGND tree middle;", "? A > 3 -> VHGND tree distant;",
+            "? A > 11 -> VHGND tree giant mush;", "? A > 7 -> VHGND tree giant middle;",
+            "? A > 4 -> VHGND tree giant near;",
+            "[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 31;",
             "[VHGNDtreelayers] = 4; [VHTforks] = 3; [VHGNDtreefaces] = 5;",
             "A = VHGNDtslseed;", "C + 3; [A] = C;",
             "[VHGNDtreelevel]+;", "[VHGNDtreelevel]-;",
@@ -2708,6 +2896,21 @@ def main() -> int:
             "A = [VHGNDooy]; C = 0; C - 15000;",
             "? A <= C -> VHGND object tall tree;", "=> VHGND bush;",
         ))
+        and all(token in cache_objects for token in (
+            '"VHGND cache object height upper"',
+            '"VHGND cache object height ready"',
+            "C - A; C '/ 8; [VHGNDooy] = C;",
+            "C = VHGNDobjcachex; C + A; [C] = [VHGNDoox];",
+            "C = VHGNDobjcachey; C + A; [C] = [VHGNDooy];",
+            "C = VHGNDobjcachez; C + A; [C] = [VHGNDooz];",
+            "C = VHGNDobjcacheseed; C + A; [C] = [SUfseed];",
+        ))
+        and all(token in objects for token in (
+            "C = VHGNDobjcachex; C + A; [VHGNDoox] = [C];",
+            "C = VHGNDobjcachey; C + A; [VHGNDooy] = [C];",
+            "C = VHGNDobjcachez; C + A; [VHGNDooz] = [C];",
+            "C = VHGNDobjcacheseed; C + A; [SUfseed] = [C];",
+        ))
         and all(token in bush for token in (
             "[VHGNDtreescale] = 3000; [VHGNDtreerange] = 2250;",
             "[VHGNDtreebr] = 450; [VHGNDtreeer] = 337;",
@@ -2716,6 +2919,8 @@ def main() -> int:
             "[VHGNDtreeleafrad] = 337;", "A '* 1687; A '/ 32767;",
             "A '* 2250; A '/ 32767; [VHGNDtreeleafdrop] = A;",
             "[VHGNDtreefaces] = 2;",
+            "[VHGNDmushmask1] = 7; [VHGNDmushmask2] = 7;",
+            "[VHGNDmushbase] = 209;", "=> VHGND greenmush;",
         )),
         "low-ground tree objects restore source-shaped depth-dependent bushes",
     )
@@ -2728,10 +2933,28 @@ def main() -> int:
             "A = [VHGNDdepth]; ? A >= 4 -> VHGND veget done;",
             "[VHGNDgrassfaces] = 3;", "[VHGNDgrassfaces] = 4;",
             "[VHGNDgrassfaces] = 6;", "[SUfmask] = 7; => SU frnd; C + 1;",
-            '"VHGND veget distant"', "[VHGNDgrassrad] = 32;",
-            "[VHGNDgrassrange] = 1023;", "A + 511; A - C;",
+            '"VHGND veget distant"', "[VHGNDmushscale] = 1023;",
+            "[VHGNDmushbase] = 216;", "=> VHGND greenmush;",
             "A '* 1000; A '/ 32767;", "[VHGNDgrassby] = A;",
             "[VHGNDgrasstotal]-; -> VHGND veget blade;",
+        ))
+        and all(token in greenmush for token in (
+            "[SUfmask] = [VHGNDmushmask1]; => VHGND render random;",
+            "[SUfmask] = [VHGNDmushmask2]; => VHGND render random;",
+            "[SUfmask] = 7; => VHGND render random;",
+            "[SUfmask] = [VHGNDmushcolmask]; => VHGND render random;",
+            "A = [SUfseed]; { F7 E0 }",
+            "C = A; C & 0FFh; B = D; B & 0FFh; C + B; C & 0FFh;",
+            "A & 0FFFFFF00h; A | C; [SUfeax] = A;",
+            "B = [SUfseed]; B + A; [SUfseed] = B;",
+            "A & [SUfmask]; [SUfval] = A; C = A;",
+            "[VHGNDvv] = [VHGNDmushpx]; [VHGNDvslot] = FSINX; => VHGND vload;",
+            "[VHGNDvv] = [VHGNDmushpy]; [VHGNDvslot] = FSINY; => VHGND vload;",
+            "[VHGNDvv] = [VHGNDmushpz]; [VHGNDvslot] = FSINZ; => VHGND vload;",
+            "=> PG getcoords;",
+            "D = nw; D + RADPT; D + [VHGNDmushoff];",
+            "[D plus 4] = C; [D plus 5] = C; [D plus 3] = C; [D plus 324] = C;",
+            "A = D; A - 316; [A] = C; A = D; A - 636; [A] = C;",
         )),
         "grass tufts restore source depth visibility, density, scale, and distant foliage",
     )
@@ -2905,10 +3128,14 @@ def main() -> int:
         "open oceans carry paced wind crests, wakes, and wet-lens wave impacts",
     )
     original_animals = section(original1, "void setup_animals ()", "void add_height")
+    original_live_animal = section(original1, "void live_animal (int n)", "void add_height")
     animals = section(ground, '"VHGND render animals"', '"VHGND capsule"')
     check(
         all(token in original_animals for token in (
             "nearstar_p_type[ip_targetted] != 3", "case PLAINS:",
+            "animals = LFS/5  + random (LFS-LFS/5)",
+            "animals = LFS/2  + random (LFS-LFS/2)",
+            "x = random (3);", "p = random (18);",
             "loadpv (mamm_base, mammal_ncc", "loadpv (mamm_result, mammal_ncc",
         ))
         and all(token in game for token in (
@@ -2917,17 +3144,94 @@ def main() -> int:
         ))
         and all(token in ground for token in (
             '"VHGND animals setup"', "? A != 3 -> VHGND animals setup done;",
+            "VHGNDfaunatypes = 100;",
+            "[VHGNDfaunabase] = 20; [VHGNDfaunarange] = 80;",
+            "[VHGNDfaunabase] = 50; [VHGNDfaunarange] = 50;",
+            "[VHGNDfaunabase] = 10; [VHGNDfaunarange] = 20;",
+            "[VHGNDfaunabase] = 10; [VHGNDfaunarange] = 50;",
+            "A = 3; => BrtlRandom; [VHGNDfaunatype] = A;",
+            "A = 18; => BrtlRandom; [VHGNDfaunachance] = A;",
+            '"VHGND fauna relocate nearby"',
             "? A > 150000 -> VHGND animal next;", "? A '<= 250000 -> VHGND animal ranged;",
+            '"VHGND fauna relocation draw"', "A '* 1699; A '/ 32767;",
+            "[VHGNDbirdquote] = 0; A = [VHGNDfaunatype]; ? A != 1 -> VHGND fauna relocate done;",
+            "A = [VHGNDanidist]; ? A '<= 250000 -> VHGND animal ranged;",
+            "A = [VHGNDdosim]; ? A = 0 -> VHGND animal ranged;",
+            "A = [VHGNDdosim]; ? A = 0 -> VHGND bird ranged;",
+            '"VHGND mammal behavior"', "[SUfmask] = 31; => SU frnd; C + 3;",
+            "[VHGNDanitickbase] = [VHGNDtick];",
+            "A '* 800; A '/ 32767; [VHGNDanitendency] = A;",
+            "A '* 350; A '/ 32767; A + 350;",
+            "A '* 200; A '/ 32767; A + 200;",
+            "A '* 100; A '/ 32767; A + 400;",
+            '=> VHGND mammal motion vector;', '=> VHGND mammal cosine motion;',
         ))
+        and all(token in original_live_animal for token in (
+            "update_ratio = fast_random (31) + 3;",
+            "tendence_to_stop = fast_flandom () * 0.8;",
+            "velocity = 350 + fast_flandom() * 350;",
+            "velocity = 200 + fast_flandom() * 200;",
+            "velocity = 400 + fast_flandom() * 100;",
+            "ani_speed[n] += 3 * reaction * dx;",
+            "ani_pitch[n] += 2 * reaction * dz;",
+            "ani_x[n] -= ani_speed[n] * sin (deg * ani_pitch[n]);",
+            "ani_z[n] -= ani_speed[n] * cos (deg * ani_pitch[n]);",
+            "ani_x[n] = pos_x + 100000 * fast_flandom() - 100000 * fast_flandom();",
+            "ani_z[n] = pos_z + 100000 * fast_flandom() - 100000 * fast_flandom();",
+            "ani_quote[n] = 25000 * fast_flandom();",
+            "dy = 1 - (ani_quote[n] * reaction); if (dy < 0) dy = 0;",
+            "if (ay < 0 || sctype != OCEAN)",
+            "0, +45*dy, +75*dy, bird_wing1",
+            "0, -45*dy, -75*dy, bird_wing2",
+            "stick3d (ax, ay, az, pos_x,      pos_y - 50, pos_z);",
+            "stick3d (ax, ay, az, pos_x - 50, pos_y - 50, pos_z);",
+            "stick3d (ax, ay, az, pos_x + 50, pos_y - 50, pos_z);",
+            "stick3d (ax, ay, az, pos_x,      pos_y - 50, pos_z + 50);",
+            "stick3d (ax, ay, az, pos_x,      pos_y - 50, pos_z - 50);",
+            "if (ani_lcount[n] < -1) {",
+            "step += 2 * ani_lcount[n];",
+            "ani_lcount[n]++;",
+            "if (ay > -10 && sctype == OCEAN)",
+            "modpv (mamm_result, -1, -1, 1, 0.7, 1, 0, 0, 0, NULL);",
+            "modpv (mamm_result, -1, -1, 1, 0.0, 1, 0, 0, 0, mamm_legs);",
+            "period = fabs (fsecs - 0.5);",
+            "incl /= an_incl_prec;", "if (incl < -1) incl = -1;",
+            "if (incl > +1) incl = +1;",
+            "incl = ((double)180 * atan(incl)) / M_PI;",
+            "fast_srand (4*n);", "if (fast_random(1))",
+            "period = 45;", "period = 60;", "period = 22;",
+            "period /= ani_scale[n];",
+            "modpv (mamm_result, -1, -1, 1, 1, 1, 15, 0, 50 * period, NULL);",
+        ))
+        and "A '* 7919; A + [VHGNDseed];" not in ground
+        and "A = [VHGNDtick]; A / 18; A '* 18; [VHGNDanitickbase] = A;" not in ground
         and all(token in animals for token in (
             "[PVh] = 3; [PVk] = 2; => SP copypv;", "=> SP modpv;",
-            "A '* 7; A + VHGNDanidata;", "[VHGNDanimtype] = [C plus 4];",
+            "A '* 10; A + VHGNDanidata;", "[VHGNDanimtype] = [C plus 4];",
+            "[VHGNDaniscale] = [C plus 6];",
             "[MOpid] = 16; [MOvid] = 2;", "=> VHGND mamm rear list;",
-            "[DWmode] = 0; [DWuds] = 1;", "=> SP drawpv;", "=> VH join mode0;",
+            "[DWmode] = 1; [DWuds] = [VHGNDdepthsort];",
+            "[PGtexf] = 5; [SPsrc] = 1;", "=> SP drawpv;", "=> VH join mode1;",
         ))
         and all(token in ground for token in (
+            '"VHGND animal distance"', "=> FSqrt; => FToIntNear;",
+            "? A '>= 75000 -> VHGND animal draw sort ready;",
+            '"VHGND animal land shape"', '"VHGND mammal half phase"',
+            "[MOxs] = 3F800000h; [MOys] = 3F333333h; [MOzs] = 3F800000h;",
+            "=> VHGND mamm legs list; [MOlist] = pvlst; [PVh] = 3; => SP modpv;",
+            "A '/ 1200; [VHGNDswimphase] = A;",
+            "A = [VHGNDaniindex]; A '* 4; => SU fast srand;",
+            "[SUfmask] = 1; => SU fast raw; A = [SUfval]; ? A = 0 -> VHGND animal animated;",
+            "A = [VHGNDmammphase]; A '/ 250; A - 60;",
+            "A '* [VHGNDmammphase]; A '* 1000;",
+            "A = [VHGNDaniperiod]; A '* 50;", "A = [VHGNDaniperiod]; A '* 100;",
+            '"VHGND animal incl clamped"', "[FB0] = 0; [FB1] = 40490000h; => FAtan2;",
+            "[FB0] = 0; [FB1] = 40668000h; => FMul;",
+            "[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;",
             '"VHGND mamm rear list"', "[A plus 0] = 0C007h;",
             '"VHGND mamm tail list"', "[A plus 4] = 7030h;",
+            '"VHGND mamm legs list"', "[A plus 0] = 0F000h;",
+            "[A plus 13] = 0F00Bh; [A plus 14] = 0FFFh;",
         )),
         "habitable land carries source-model feline, rabbit, and kangaroo deformation",
     )
@@ -2941,24 +3245,63 @@ def main() -> int:
         ))
         and all(token in birds for token in (
             "[PVh] = 5; [PVk] = 4; => SP copypv;",
-            "A '* 8; A + VHGNDbirddata;", "[VHGNDbirdlcount] = [C plus 6];",
+            "A '* 12; A + VHGNDbirddata;", "[VHGNDbirdlcount] = [C plus 6];",
+            "[VHGNDaniscale] = [C plus 7];",
             '"VHGND bird near 3000"', '"VHGND bird catch range"',
             "[VHGNDplayerstep]", "? A '<= 250", "? A '<= 100",
-            "? A '>= 500 -> VHGND bird habits;",
-            '"VHGND bird reaction speed"', "A = 250; A '/ [VHGNDtmp];",
+            "A = 250; A '/ [VHGNDtmp]; [VHGNDanitargetspeed] = A;",
             "[MOpid] = 1; [MOvid] = 0;", "=> VHGND bird wing one list;",
             "=> VHGND bird wing two list;", "=> VHGND bird legs list;",
             "[VHGNDgroundbirds]+;", "[VHGNDcaptures]+;",
-            "C '* 15; [VHGNDbirdflap] = C;",
+            "=> VHGND bird flap interpolate;",
+            '"VHGND bird ground fold ready"',
+            "A = [VHGNDsctype]; ? A != 1 -> VHGND bird ground pose;",
+            "A = [VHGNDroy]; A - [VHGNDbirdquote]; ? A >= 0 -> VHGND bird flight pose;",
+            "A = [VHGNDbirdquote]; A '* 500; A '/ [VHGNDaniscale];",
+            "C = 1000; C - A; ? C >= 0 -> VHGND bird ground fold ready; C = 0;",
+            "A = C; A '* 45; [VHGNDaniperiod] = A;",
+            "C '* 75; [VHGNDbirdflap] = C;",
+            "A = [VHGNDcamx]; A - 50;", "A = [VHGNDcamx]; A + 50;",
+            "A = [VHGNDcamz]; A + 50;", "A = [VHGNDcamz]; A - 50;",
+            "A = [VHGNDbirdlcount]; A + A; C = [VHGsurfstep]; C + A; [VHGsurfstep] = C;",
+            "? A '>= 12500 -> VHGND bird draw mode ready;",
+            "A = [VHGNDaniindex]; A & 1; A + 1; [VHGNDdrawmode] = A;",
+            "[DWmode] = [VHGNDdrawmode]; [DWuds] = [VHGNDdepthsort];",
+            "[VHRiters] = 3; => VH join mode2;", "=> VH join mode1;", "=> VH join mode0;",
             "=> SP drawpv;", "=> VH join mode0;",
         ))
         and all(token in ground for token in (
             "VHGNDSTALK = 80;", "VHGNDplayerstep = 0;",
             '"VHGND restore captures"', '"VHGND restore capture one"',
             "[VHGNDcaptures] = [VHGNDbirds];", "[C plus 6] = A;",
+            '"VHGND bird behavior"', "C / 10; A + C; => SU fast srand;",
+            "A = [VHGNDanimtick]; A '% 6; C = 3; C - A;",
+            "A = [VHGNDanimtick]; A '% 20; C = 10; C - A;",
+            "[VHGNDanitargetspeed] = 800;", "[VHGNDanitargetspeed] = 400;",
+            "A '* 1000; A '/ 32767; A + 1500;",
+            "A = [VHGNDanidir]; => VHGND mammal cosine motion;",
             '"VHGND bird legs list"', "[A plus 0] = 4012h;",
             '"VHGND bird wing one list"', "[A plus 0] = 7000h;",
             '"VHGND bird wing two list"', "[A plus 0] = 7002h;",
+            "C '* 15; [VHGNDbirdflap] = C;",
+        ))
+        and all(token in original_live_animal for token in (
+            "if (quote >= 1500)", "velocity = 800;",
+            "if (quote > 750)", "velocity = 400;", "quote   *= 0.5;",
+            "if (quote > 250)", "velocity = 0;", "quote    = 0;",
+            "fast_srand (n + (tick / 10));", "tick = 18 * secs;",
+            "fabs(10 - (tick % 20))", "fabs(3 - (tick % 6))",
+            "if (fast_random(7) == 3)", "quote = 1500 + 1000 * fast_flandom();",
+            "ani_quote[n] += 1 * reaction * dy;",
+            "animal_distance = sqrt (dx*dx + dy*dy + dz*dz);",
+            "if (animal_distance <  75000) perform_depth_sort = 1;",
+            "if (animal_distance <  12500) texture_skin_map   = 1 + (n % 2);",
+            "drawpv (bird_result, texture_skin_map, 3, ax, ay",
+            "drawpv (mamm_result, 1, 0, ax, ay, az, perform_depth_sort);",
+        ))
+        and "A = [VHGNDanimtick]; A + [VHGNDaniphase];" not in ground
+        and all(token in (ROOT / "work" / "vhjoin.txt").read_text(encoding="utf-8") for token in (
+            '"VH join mode1"', "[SPtinta] = [C plus 5];", "=> PG polymap;",
         ))
         and all(token in game for token in (
             "[KEY CONTROL]", "[VHGstepv] = VHGNDSTALK;",
@@ -2978,6 +3321,8 @@ def main() -> int:
             "[VHPdotsize] = 45; [VHScolor] = 63;",
         ))
         and "[VHPradius] = 70; [VHPangle] = 151;" not in panels
+        and "A = [VHGdosim]; ? A = 0 -> VHG frame count done; [VHGframe]+;" in game
+        and "[VHPsysphase] = [VHGframe];" in game
         and "[SPval] = [VHScolor];" in stick,
         "planetary console draws retained system orbits, orientations, selection, and owned moons",
     )

@@ -28,13 +28,18 @@
 
 "variables"
 
-	VHGlanded = 1; VHGframe = 0; VHGplanet = 0;
+	VHGlanded = 1; VHGframe = 0; VHGplanet = 0; VHGmode = 1;
+	VHGdrawhud = 0; VHGhudcount = 0; VHGseamless = 0; VHGsurfjet = 0;
+	VHGbeta = 0; VHGlandinglon = 0; VHGlandinglat = 60; VHGx = 0; VHGz = 0;
+	VHGgraphics = 0; VHGutcsecs = 0; VHGonroof = 0;
+	VHGsurfgravdisp = 0; VHGsurftempdisp = 0; VHGsurfpressdisp = 0; VHGsurfpulsedisp = 0;
+	VHGCwindangle = 0; VHGCwindpower = 0;
 	VHWp = 0; VHWsum = 0; VHWbefore = 0;
 	VHWname = { vhwave-out.bin };
 
 "workspace"
 
-	vhwout = 10;
+	vhwout = 14;
 
 "programme"
 
@@ -62,9 +67,20 @@
 	D = nw; D + RADPT; D + 30000; [vhwout plus 7] = [D];
 	D = nw; D + RADPT; D + 2560; [vhwout plus 8] = [D];
 	D = nw; D + RADPT; D + 60479; [vhwout plus 9] = [D];
+
+	( F5 render phase: contraction and crest decay interpolate backward while
+	  an expanding wake interpolates forward, without touching stored records. )
+	[VHGNDfast] = 1; [VHGNDinterpok] = 1; [VHGNDinterpacc] = 18206; [VHGNDwavei] = 0;
+	C = VHGNDwaveprevradius; [C] = 1000; C = VHGNDwaveprevheight; [C] = 500;
+	[VHGNDwaveauthradius] = 400; [VHGNDwaveauthheight] = 450;
+	=> VHGND wave interpolate;
+	[vhwout plus 10] = [VHGNDwaveradius]; [vhwout plus 11] = [VHGNDwaveheight];
+	[VHGNDwaveauthradius] = 1600; [VHGNDwaveauthheight] = 550;
+	=> VHGND wave interpolate;
+	[vhwout plus 12] = [VHGNDwaveradius]; [vhwout plus 13] = [VHGNDwaveheight];
 	[File Name] = VHWname; [File Position] = 0; [File Command] = WRITE;
-	[Block Pointer] = vhwout; [Block Size] = 40; isocall;
-	[File Name] = VHWname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 40; isocall;
+	[Block Pointer] = vhwout; [Block Size] = 56; isocall;
+	[File Name] = VHWname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 56; isocall;
 	end;
 
 "VHG fpu clean"

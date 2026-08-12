@@ -15,7 +15,8 @@ The current Windows build is a complete playable port of the Noctis IV+
 gameplay route implemented in this repository. You
 can walk through the Stardrifter, target generated star systems, approach
 planets, enter the landing and surface systems, see source-positioned local
-suns and weather, read the original EPOC/SQC/compass and environmental visor data, return in the capsule, and save
+suns and weather, cross the original depth-40 field of rocks, bushes, and trees,
+read the original EPOC/SQC/compass and environmental visor data, return in the capsule, and save
 your journey. It opens in a
 practical 2x window while retaining Noctis's authentic
 320x200 software framebuffer; iGUI's size and full-view controls can resize it
@@ -46,8 +47,9 @@ Ordinary jumps retain their takeoff direction; the active jetpack accepts
 W/A/S/D steering. Surface digits 1-9 toggle source-style forward
 cruise speeds and 0 stops cruise, F2 opens the original visual-effects settings,
 Page Up/Page Down open and close the visor, F5 opts into 60 FPS presentation (the original
-18.2 FPS mode is the default); player movement, flight, roof-lift, and capsule
-poses are interpolated without changing the original simulation rate. Surface
+18.2 FPS mode is the default); player movement, flight, roof-lift, capsule,
+surface-wildlife poses, ocean swell, wakes, and close-star rotation are interpolated without
+changing the original simulation rate. Surface
 walking retains Noctis IV's forward and lateral momentum, ground friction,
 uphill resistance, tiredness, circular exploration limits, and the original
 terrain-dependent held-mouse pace. Walking near the ground also returns a
@@ -144,16 +146,20 @@ eight-digit BMP filenames.
 
 Ordinary pushes and pull requests run the protected-source check, integrated
 game regression, and snapshot package assembly on GitHub-hosted Windows. A
-version tag matching `v*` now runs the same focused regression, verifies the
-versioned i386 executable, builds the standalone ZIP on GitHub-hosted Windows,
-and publishes a GitHub prerelease with its checksum and provenance record. The
-historical GUI compiler cannot run in a hosted service session, so the tagged
-workflow states plainly that its executable was built locally before tagging.
-An isolated manual workflow can rebuild the exact source on an interactive
-`lino-gui` runner once one is registered. See [CI_RELEASES.md](CI_RELEASES.md)
-for the exact release and provenance boundaries.
+version tag matching `v*` runs the same focused regression, compiles the exact
+tagged source on an isolated interactive `lino-gui` runner, verifies the fresh
+i386 executable, and hands the standalone ZIP to a GitHub-hosted publication
+job. The resulting prerelease includes its checksum and source/compiler/binary
+provenance record. A separate manual workflow provides the same source-build
+path without publishing. See [CI_RELEASES.md](CI_RELEASES.md) for the runner
+setup and exact release boundaries.
 
 ## Screenshots
+
+Every image below is captured from the production executable. Planet scenes use
+fixed, known-dry landing cells so an ocean pixel or a camera inside the capsule
+cannot masquerade as a rendering result. Reproduce them with
+`tools\capture_noctis_scenes.ps1`.
 
 | Stardrifter interior | Physical GOES console |
 |---|---|
@@ -167,6 +173,21 @@ for the exact release and provenance boundaries.
 
 ![A source-shaped 916x200 three-panel planetary panorama captured in game](screenshots/planet-panorama.png)
 
+| Dense-atmosphere world | Thin-atmosphere world | Frozen world |
+|---|---|---|
+| ![Dense-atmosphere plateau](screenshots/planet-dense.png) | ![Thin-atmosphere plain](screenshots/planet-thin.png) | ![Frozen shelves](screenshots/planet-frozen.png) |
+
+![A local sun over a habitable dry cell with generated vegetation and surface fauna](screenshots/planet-habitable-sun.png)
+
+| Marked historical ruin edge | Suricrasian Cube wall |
+|---|---|
+| ![Repeated triangular silhouettes along a marked historical ruin edge](screenshots/planet-triangular-ruins.png) | ![Elevated view along the immense source 25 by 25 Suricrasian Cube wall](screenshots/planet-suricrasian-cube.png) |
+
+The repeated triangular silhouettes are the source renderer's marked ruin-edge
+geometry, not a newly invented pyramid asset. The Cube is a maximum-height
+25-by-25-cell megastructure; from walking height it deliberately reads as an
+enormous wall rather than a small freestanding box.
+
 ![The restored source-style Noctis IV+ About screen](screenshots/noctis-about.png)
 
 ## Project documentation
@@ -178,6 +199,10 @@ for the exact release and provenance boundaries.
   ledger.
 - [`RELEASE_NOTES.md`](RELEASE_NOTES.md) describes the current public beta and
   its known limitations.
+- [`TEST_COVERAGE.md`](TEST_COVERAGE.md) states what automation and native play
+  actually cover, including the remaining visual and long-duration gaps.
+- [`CI_RELEASES.md`](CI_RELEASES.md) describes hosted checks, the interactive
+  source-build runner, and tagged prerelease publication.
 
 ## Provenance
 

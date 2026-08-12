@@ -288,7 +288,7 @@
 	end;
 
 ( ==================================================================== )
-( Decode / Neg96 / Gap96 / WinTest — copied from starmap_read/find       )
+( Decode / Neg96 / Gap96 / WinTest -- copied from starmap_read/find       )
 ( ==================================================================== )
 
 "Neg96"

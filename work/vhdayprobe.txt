@@ -7,7 +7,7 @@
 	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
 	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
 	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
-	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhstar; vhground; vhcapsule;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhstar; vhground; vhcapsule;
 
 "directors"
 
