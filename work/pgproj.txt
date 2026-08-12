@@ -74,6 +74,7 @@
 	PJmaxx	= 0;
 	PJpreproject = 0;		( caller supplied exact rotated/projected slots )
 	PJfwbase = 0;			( runtime relocated fw workspace for native kernels )
+	PJipartbase = 0;		( runtime relocated edge workspace )
 
 	( ---- generic 2-D clip stage ---- )
 	CLxi	= 0;
@@ -945,11 +946,135 @@
 	u and v, which is a different schedule from the per-block one and
 	is not merged with it. )
 
+"PG terrain trace row native"
+	( Exact terrain scanline setup.  Every arithmetic instruction still lands
+	  in a binary64 memory spill, while FSZ/FSX/FSY/FSK4 still round through
+	  the shared binary32 scratch.  This removes dozens of helper calls for
+	  every rasterized terrain row without changing the mapper schedule. )
+	{
+	    8B B7 <dPJfwbase mtp bytesperunit>
+	    8D 34 B7
+	    8B 87 <dSPi mtp bytesperunit>
+	    8B 97 <dPJipartbase mtp bytesperunit>
+	    01 D0
+	    DB 04 87                              (fild ipart[i])
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC A6 98 00 00 00                    (- x center)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 90 00 00 00                    (+ one)
+	    DD 9E D8 07 00 00                    (factor -> FSW3)
+
+	    DD 86 D8 07 00 00
+	    DC 4E 28                             (* vz)
+	    DD 9E C0 07 00 00                    (-> FSW0)
+	    DB 87 <dSPi mtp bytesperunit>         (fild i)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC A6 A0 00 00 00                    (- y center)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 4E 10                             (* hz)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 C0 07 00 00                    (+ FSW0)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 46 40                             (+ oz)
+	    DD 9E C8 07 00 00                    (wide z -> FSW1)
+	    DD 86 C8 07 00 00
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 5E 78                             (narrow z -> FSZ)
+
+	    DD 86 90 00 00 00                    (one)
+	    DC B6 C8 07 00 00                    (/ wide z)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 5E 60                             (narrow k4)
+
+	    DD 86 D8 07 00 00                    (factor)
+	    DC 4E 18                             (* vx)
+	    DD 9E C0 07 00 00
+	    DB 87 <dSPi mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC A6 A0 00 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 0E                                (* hx)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 C0 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 46 30                             (+ ox)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 5E 68                             (narrow x)
+
+	    DD 86 D8 07 00 00
+	    DC 4E 20                             (* vy)
+	    DD 9E C0 07 00 00
+	    DB 87 <dSPi mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC A6 A0 00 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 4E 08                             (* hy)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 C0 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 46 38                             (+ oy)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 5E 70                             (narrow y)
+
+	    DD 46 68                             (x)
+	    DC 8E 80 00 00 00                    (* texture x size)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 4E 60                             (* k4)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit>
+	    89 87 <dSPu mtp bytesperunit>
+	    DD 46 70                             (y)
+	    DC 8E 88 00 00 00                    (* texture y size)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 4E 60
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit>
+	    89 87 <dSPv mtp bytesperunit>
+	}
+	end;
+
 "PG trace"
 	A = PGSCRT; A + PGDOFF; [PGdi] = A; [PGval] = [SPtinta]; => PG store;
 	A = PGSCRE; A + PGDOFF; [PGdi] = A; [PGval] = [SPescr];  => PG store;
+	A = [SPterrain]; ? A = 0 -> PG tr bases ready;
+	A = fw; [PJfwbase] = A; A = ipart; [PJipartbase] = A;
+    "PG tr bases ready"
 	[SPi] = [BXminy];
     "PG tr row"
+	A = [SPterrain]; ? A = 0 -> PG tr row generic;
+	=> PG terrain trace row native;
+	-> PG tr raster;
+    "PG tr row generic"
 	( the shared factor, WIDE )
 	A = [SPi]; C = ipart; C + A; [FI] = [C]; => IntToF;
 	[PGFi] = FSXC; => PGF sub;
@@ -998,6 +1123,7 @@
 	[PGFi] = FSY; => PGF a; [PGFi] = FSTY; => PGF mul;
 	[PGFi] = FSK4; => PGF mul; => PGF int; [SPv] = [FI];
 
+    "PG tr raster"
 	A = [SPi]; C = fpart; C + A; D = [C];
 	A = [SPi]; C = ipart; C + A; E = [C];
 	D - E; [SPsec] = D;
