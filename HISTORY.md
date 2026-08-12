@@ -21,8 +21,10 @@ view-quadrant painter order. Legitimate distant crystals were separately
 identified by live walking and retained. Source-safe Manhattan and wholly
 off-screen polygon rejection are live; deferring the exact texture basis until
 after screen rejection cut the hidden 60-frame checkpoint from 6,689 to 5,728
-ms and render counts from 38,792,130 to 31,852,389. It still measures 9 FPS, so
-the 60-FPS optimization goal remains open.
+ms and render counts from 38,792,130 to 31,852,389. Inlining the exact bounded
+surface-map byte reads then cut the steady 12-frame sample from 1,319 to 1,053
+ms, raising the measured rate from 9 to 11 FPS. The 60-FPS optimization goal
+remains open.
 
 ## 2026-08-12 -- source-lit Stardrifter and natural surface fauna
 

@@ -31,8 +31,10 @@ pitch/yaw formula, eliminating the camera-relative black pillar and floor gap.
 An off-screen `polymap` rejection and the source Manhattan gate reduce only
 work that cannot contribute pixels. Texture-basis construction now occurs
 after that rejection, cutting the hidden lunar checkpoint from 38,792,130 to
-31,852,389 render counts and from 6,689 to 5,728 ms for 60 frames. The measured
-rate is still 9 FPS, so the 60-FPS optimization target remains open.
+31,852,389 render counts and from 6,689 to 5,728 ms for 60 frames. Specialized
+bounded surface-map reads then reduced its steady 12-frame sample from 1,319
+to 1,053 ms and raised the measured rate from 9 to 11 FPS. The 60-FPS
+optimization target remains open.
 
 The earlier release audit passed all 24 then-registered suites. The integrated
 build/flight/render/present loop also completed 600,000 frames in 8,125.55

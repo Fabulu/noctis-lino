@@ -4815,12 +4815,15 @@
 	A = [VHGNDmindepth]; ? A < 0 -> VHGND tile depth accepted;
 	A = [VHGNDdepth]; ? A '<= [VHGNDmindepth] -> VHGND tile done;
     "VHGND tile depth accepted"
-	A = RPSM; A + [VHGNDh1]; [MBptr] = A; => MEM get byte; [VHGNDs1] = [MBval];
-	A = RPSM; A + [VHGNDh1]; A + [VHGNDlodstep]; [MBptr] = A; => MEM get byte; [VHGNDs2] = [MBval];
-	A = [VHGNDlodstep]; A '* VHGNDMAP; A + [VHGNDlodstep]; A + RPSM; A + [VHGNDh1];
-	[MBptr] = A; => MEM get byte; [VHGNDs3] = [MBval];
-	A = [VHGNDlodstep]; A '* VHGNDMAP; A + RPSM; A + [VHGNDh1];
-	[MBptr] = A; => MEM get byte; [VHGNDs4] = [MBval];
+	( The traversal bounds guarantee all four map points are within the
+	  200x200 surface.  Inline MEM get byte's exact nw+offset load and mask;
+	  this removes four generic helper calls from every accepted tile. )
+	E = nw; E + RPSM; E + [VHGNDh1];
+	A = [E]; A & 255; [VHGNDs1] = A;
+	A = E; A + [VHGNDlodstep]; A = [A]; A & 255; [VHGNDs2] = A;
+	C = [VHGNDlodstep]; C '* VHGNDMAP;
+	A = E; A + C; A + [VHGNDlodstep]; A = [A]; A & 255; [VHGNDs3] = A;
+	A = E; A + C; A = [A]; A & 255; [VHGNDs4] = A;
 	A = [GRiptype]; ? A != 3 -> VHGND tile ground present;
 	A = [VHGNDsctype]; ? A != 1 -> VHGND tile ground present;
 	A = [VHGNDs1]; A + [VHGNDs2]; A + [VHGNDs3]; A + [VHGNDs4];
