@@ -1524,10 +1524,10 @@
 	C = 3; => SU rnd; A = [VHGNDlinex]; A + C; A + [VHGNDlinetrendx]; [VHGNDlinex] = A;
 	C = 3; => SU rnd; A = [VHGNDlinez]; A + C; A + [VHGNDlinetrendz]; [VHGNDlinez] = A;
 	A = [VHGNDlinez]; A '* 256; A + [VHGNDlinex]; A & 0FFFFh; [VHGNDptr] = A;
-	? A '<= 0 -> VHGND darkline next; ? A '>= 65536 -> VHGND darkline next;
-	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; => MEM get byte;
-	A = [MBval]; A > 1; [MBval] = A;
-	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+	? A '<= 0 -> VHGND darkline next;
+	( The 16-bit mask already proves 1..65535.  Inline the bounded byte
+	  read/write while retaining the source's skip-zero and halving rules. )
+	A + [VHGNDtexbase]; A + nw; C = [A]; C & 255; C > 1; [A] = C;
     "VHGND darkline next"
 	[VHGNDlinelen]-; -> VHGND darkline pixel;
     "VHGND darkline done"
