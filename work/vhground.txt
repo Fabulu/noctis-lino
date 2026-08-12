@@ -159,6 +159,7 @@
 	VHGNDcompassx = 0; VHGNDcompassrow = 0; VHGNDcompassmask = 0; VHGNDcompassdir = 0;
 	VHGNDhudptr = 0; VHGNDhudsource = 0; VHGNDhudvalue = 0; VHGNDhudi = 0; VHGNDhudchar = 0;
 	VHGNDhudx = 0; VHGNDhudy = 2; VHGNDhudrow = 0; VHGNDhudpacked = 0; VHGNDhudshift = 0;
+	VHGNDdensebase = 0;
 	VHGNDenvgravity = { GRAVITY };
 	VHGNDenvtemp = {  FG & TEMPERATURE };
 	VHGNDenvpress = { @C & PRESSURE };
@@ -2182,8 +2183,12 @@
 	[VHGNDbgcachep] = VHGNDskycache; A = nw; A + RADPT; [VHGNDbgcacheq] = A;
 	[VHGNDbgcachecount] = NPIX;
     "VHGND bg cache save loop"
-	A = [VHGNDbgcacheq]; C = [A]; D = [VHGNDbgcachep]; [D] = C;
-	[VHGNDbgcachep]+; [VHGNDbgcacheq]+; [VHGNDbgcachecount]-;
+	A = [VHGNDbgcacheq]; D = [VHGNDbgcachep];
+	C = [A]; [D] = C; C = [A plus 1]; [D plus 1] = C;
+	C = [A plus 2]; [D plus 2] = C; C = [A plus 3]; [D plus 3] = C;
+	A = [VHGNDbgcachep]; A + 4; [VHGNDbgcachep] = A;
+	A = [VHGNDbgcacheq]; A + 4; [VHGNDbgcacheq] = A;
+	A = [VHGNDbgcachecount]; A - 4; [VHGNDbgcachecount] = A;
 	A = [VHGNDbgcachecount]; ? A != 0 -> VHGND bg cache save loop;
 	end;
 
@@ -2191,8 +2196,12 @@
 	[VHGNDbgcachep] = VHGNDskycache; A = nw; A + RADPT; [VHGNDbgcacheq] = A;
 	[VHGNDbgcachecount] = NPIX;
     "VHGND bg cache restore loop"
-	A = [VHGNDbgcachep]; C = [A]; D = [VHGNDbgcacheq]; [D] = C;
-	[VHGNDbgcachep]+; [VHGNDbgcacheq]+; [VHGNDbgcachecount]-;
+	A = [VHGNDbgcachep]; D = [VHGNDbgcacheq];
+	C = [A]; [D] = C; C = [A plus 1]; [D plus 1] = C;
+	C = [A plus 2]; [D plus 2] = C; C = [A plus 3]; [D plus 3] = C;
+	A = [VHGNDbgcachep]; A + 4; [VHGNDbgcachep] = A;
+	A = [VHGNDbgcacheq]; A + 4; [VHGNDbgcacheq] = A;
+	A = [VHGNDbgcachecount]; A - 4; [VHGNDbgcachecount] = A;
 	A = [VHGNDbgcachecount]; ? A != 0 -> VHGND bg cache restore loop;
 	end;
 
@@ -3364,24 +3373,57 @@
 	C = [D]; C & 63; [D] = C; D+;
 	B ^ VHGND dense mask;
 
-	A = nw; A + RADPT; A + 2880; [SUsp] = A;
+	A = nw; A + RADPT; A + 2880; [SUsp] = A; [VHGNDdensebase] = A;
 	[SUsi] = 320; B = 56960;
     "VHGND dense smooth"
-	C = [SUsp]; C + [SUsi]; C - 320;
-	=> SU dw at; E = D;
-	C + 320; => SU dw at; E + D;
-	C + 320; => SU dw at; E + D;
-	C + 320; => SU dw at; E + D;
-	E & 0FCFCFCFCh; E > 2;
-	A = E; A & 0FFh;
-	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
-	E > 16;
-	D = E; D & 0FFh; A + D; A & 0FFh;
-	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
-	A > 2;
-	C = [SUsp]; C + [SUsi]; [C] = A;
+	=> VHGND dense sample native;
 	[SUsi]+;
 	B ^ VHGND dense smooth;
+	end;
+
+"VHGND dense sample native"
+	( Exact in-place psmooth_grays sample.  Packing four adjacent pixel units
+	  into each little-endian dword preserves the source's inter-byte carries;
+	  EBX is saved because the outer Lino loop owns B as its counter. )
+	{
+	    53                                      (push ebx)
+	    8B B7 <dVHGNDdensebase mtp bytesperunit>
+	    8D 34 B7                               (esi = workspace byte address)
+	    8B 8F <dSUsi mtp bytesperunit>         (ecx = destination unit index)
+
+	    8B 84 8E 00 FB FF FF 25 FF 00 00 00
+	    8B 94 8E 04 FB FF FF 81 E2 FF 00 00 00 C1 E2 08 09 D0
+	    8B 94 8E 08 FB FF FF 81 E2 FF 00 00 00 C1 E2 10 09 D0
+	    8B 94 8E 0C FB FF FF 81 E2 FF 00 00 00 C1 E2 18 09 D0
+	    89 C3                                  (first packed row)
+
+	    8B 04 8E 25 FF 00 00 00
+	    8B 54 8E 04 81 E2 FF 00 00 00 C1 E2 08 09 D0
+	    8B 54 8E 08 81 E2 FF 00 00 00 C1 E2 10 09 D0
+	    8B 54 8E 0C 81 E2 FF 00 00 00 C1 E2 18 09 D0
+	    01 C3                                  (second packed row)
+
+	    8B 84 8E 00 05 00 00 25 FF 00 00 00
+	    8B 94 8E 04 05 00 00 81 E2 FF 00 00 00 C1 E2 08 09 D0
+	    8B 94 8E 08 05 00 00 81 E2 FF 00 00 00 C1 E2 10 09 D0
+	    8B 94 8E 0C 05 00 00 81 E2 FF 00 00 00 C1 E2 18 09 D0
+	    01 C3                                  (third packed row)
+
+	    8B 84 8E 00 0A 00 00 25 FF 00 00 00
+	    8B 94 8E 04 0A 00 00 81 E2 FF 00 00 00 C1 E2 08 09 D0
+	    8B 94 8E 08 0A 00 00 81 E2 FF 00 00 00 C1 E2 10 09 D0
+	    8B 94 8E 0C 0A 00 00 81 E2 FF 00 00 00 C1 E2 18 09 D0
+	    01 C3                                  (fourth packed row)
+
+	    81 E3 FC FC FC FC C1 EB 02            (mask lanes, divide by four)
+	    89 D8 25 FF 00 00 00                  (eax = lane 0)
+	    89 DA C1 EA 08 81 E2 FF 00 00 00 01 D0 25 FF 00 00 00
+	    C1 EB 10 89 DA 81 E2 FF 00 00 00 01 D0 25 FF 00 00 00
+	    C1 EB 08 81 E3 FF 00 00 00 01 D8 25 FF 00 00 00
+	    C1 E8 02                               (horizontal average)
+	    89 04 8E                               (write current unit in place)
+	    5B                                      (pop ebx)
+	}
 	end;
 
 "VHGND weather lightning begin"
@@ -4218,12 +4260,24 @@
 	[VHGNDanimtype] = [C plus 4]; [VHGNDanispeed] = [C plus 5];
 	[VHGNDaniscale] = [C plus 6]; [VHGNDanitargetdir] = [C plus 7];
 	[VHGNDanitargetspeed] = [C plus 8]; [VHGNDaniindex] = [C plus 9];
+	A = [VHGNDanix]; A - [VHGNDcamx]; [VHGNDanidx] = A;
+	? A >= 0 -> VHGND animal axis x abs; C = 0; C - A; A = C;
+    "VHGND animal axis x abs"
+	? A > 250000 -> VHGND animal axis far;
+	A = [VHGNDaniz]; A - [VHGNDcamz]; [VHGNDanidz] = A;
+	? A >= 0 -> VHGND animal axis z abs; C = 0; C - A; A = C;
+    "VHGND animal axis z abs"
+	? A > 250000 -> VHGND animal axis far;
 	[VHGNDrox] = [VHGNDanix]; [VHGNDroz] = [VHGNDaniz]; => VHGND rock height;
 	[VHGNDaniground] = [VHGNDroy]; [VHGNDaniy] = [VHGNDroy];
-	A = [VHGNDanix]; A - [VHGNDcamx]; [VHGNDanidx] = A;
 	A = [VHGNDaniy]; A - [VHGNDcamy]; [VHGNDanidy] = A;
-	A = [VHGNDaniz]; A - [VHGNDcamz]; [VHGNDanidz] = A;
 	=> VHGND animal distance;
+	-> VHGND animal distance ready;
+    "VHGND animal axis far"
+	( One horizontal component already proves the Euclidean source distance is
+	  beyond its relocation gate.  Its exact value is otherwise unobserved. )
+	[VHGNDanidist] = 250001;
+    "VHGND animal distance ready"
 
 	A = [VHGNDdosim]; ? A = 0 -> VHGND animal moved;
 	=> VHGND animal snapshot;
@@ -4410,12 +4464,26 @@
 	[VHGNDaniscale] = [C plus 7];
 	[VHGNDanispeed] = [C plus 8]; [VHGNDanitargetspeed] = [C plus 9];
 	[VHGNDaniindex] = [C plus 10]; [VHGNDanitargetdir] = [C plus 11];
+	A = [VHGNDbirdlcount]; ? A < 0 -> VHGND bird distance full;
+	A = [VHGNDanix]; A - [VHGNDcamx]; [VHGNDanidx] = A;
+	? A >= 0 -> VHGND bird axis x abs; C = 0; C - A; A = C;
+    "VHGND bird axis x abs"
+	? A > 250000 -> VHGND bird axis far;
+	A = [VHGNDaniz]; A - [VHGNDcamz]; [VHGNDanidz] = A;
+	? A >= 0 -> VHGND bird axis z abs; C = 0; C - A; A = C;
+    "VHGND bird axis z abs"
+	? A > 250000 -> VHGND bird axis far;
+    "VHGND bird distance full"
 	[VHGNDrox] = [VHGNDanix]; [VHGNDroz] = [VHGNDaniz]; => VHGND rock height;
 	A = [VHGNDroy]; A - [VHGNDbirdquote]; [VHGNDaniy] = A;
 	A = [VHGNDanix]; A - [VHGNDcamx]; [VHGNDanidx] = A;
 	A = [VHGNDaniy]; A - [VHGNDcamy]; [VHGNDanidy] = A;
 	A = [VHGNDaniz]; A - [VHGNDcamz]; [VHGNDanidz] = A;
 	=> VHGND animal distance;
+	-> VHGND bird distance ready;
+    "VHGND bird axis far"
+	[VHGNDanidist] = 250001;
+    "VHGND bird distance ready"
 	A = [VHGNDdosim]; ? A = 0 -> VHGND bird state frozen;
 	=> VHGND bird snapshot;
 
