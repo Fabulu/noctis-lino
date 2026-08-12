@@ -4,7 +4,7 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'thin', 'frozen', 'quartz', 'ruins', 'cube')]
+    [ValidateSet('all', 'stardrifter', 'planetclose', 'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'thin', 'frozen', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
     [int]$Longitude,
@@ -55,6 +55,12 @@ $scenes = @(
     @{ Name='stardrifter'; Mode=0; X=3979984; Y=-43407; Z=-43984; Body=0; Type=0;
        Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=12;
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=200.0 },
+    # The opening system's type-8 primary after a completed fine approach,
+    # held 3.88 planetary radii away on the calibrated forward window axis.
+    @{ Name='planetclose'; FileName='planet-close-space.png'; Mode=0;
+       X=3979984; Y=-43407; Z=-43984; Body=0; Type=8; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.046885; LocalY=0.0; LocalZ=-0.110461 },
     # IDEAL's only body is an authentic type-1 primary. This avoids spending
     # screenshot startup time generating JROT's pathological 80-body system.
     @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
@@ -178,6 +184,26 @@ function New-Checkpoint {
     $u[47] = 5
     $u[48] = 0
     $u[49] = -1
+    if ($Spec.ContainsKey('LocalZ')) {
+        $localX = [double]$Spec.LocalX
+        $localY = [double]$Spec.LocalY
+        $localZ = [double]$Spec.LocalZ
+        $localDistance = [Math]::Sqrt(
+            $localX * $localX + $localY * $localY + $localZ * $localZ
+        )
+        $u[39] = 4 # no tracking drift; radiation limiter remains enabled
+        $u[48] = 1
+        $u[49] = $Spec.Body
+        [Buffer]::BlockCopy([BitConverter]::GetBytes($localX), 0, $u, 200, 8)
+        [Buffer]::BlockCopy([BitConverter]::GetBytes($localY), 0, $u, 208, 8)
+        [Buffer]::BlockCopy([BitConverter]::GetBytes($localZ), 0, $u, 216, 8)
+        [Buffer]::BlockCopy([BitConverter]::GetBytes($localDistance), 0, $u, 224, 8)
+        [Buffer]::BlockCopy([BitConverter]::GetBytes($localDistance), 0, $u, 232, 8)
+        $u[60] = 0
+        $u[61] = 1
+        $u[62] = 0
+        $u[63] = 0
+    }
     $u[64] = 4
     $u[65] = 0
     $byteCount = 264

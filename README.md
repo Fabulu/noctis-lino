@@ -165,7 +165,9 @@ the capsule cannot masquerade as a rendering result. Reproduce them with
 |---|---|
 | ![Inside the Stardrifter](screenshots/stardrifter-interior.png) | ![Typing NEXT directly on the Stardrifter wall console](screenshots/goes-console.png) |
 
-![A stellar corona and flare reflections seen through the transparent Stardrifter windows](screenshots/stardrifter-sun.png)
+| Stellar corona | Close local planet |
+|---|---|
+| ![A stellar corona and flare reflections seen through the transparent Stardrifter windows](screenshots/stardrifter-sun.png) | ![A close type-8 planet seen through the Stardrifter window after a completed fine approach](screenshots/planet-close-space.png) |
 
 | Planetary console | Planetary surface |
 |---|---|

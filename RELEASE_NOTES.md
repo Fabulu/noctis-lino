@@ -8,10 +8,16 @@ Suricrasian Cube, and retains the source-equivalent ship, terrain, devices,
 GOES modules, persistence, presentation, and soundtrack systems established in
 the earlier betas.
 
-The README gallery refresh is in progress. Deterministic production captures
-now show LANE IV's complete generated tree model and the distant whole
-Suricrasian Cube. A close space-view planet remains an explicit deliverable;
-stale artifacted frames are not accepted as evidence.
+The README gallery refresh is complete. Deterministic production captures now
+show LANE IV's complete generated tree model, the distant whole Suricrasian
+Cube, and a close type-8 planet through the Stardrifter window after a genuine
+fine-approach checkpoint; stale artifacted frames are not accepted as evidence.
+
+Close local planets now select their intended ring, disc, and resident-surface
+LOD paths. Six comparison results had accidentally been tested as unsigned, so
+the near result `-1` always took the far-point branch. The local-body pass also
+installs its zero-origin exterior camera explicitly instead of inheriting the
+previous frame's final interior fixture view.
 
 Ocean horizons now use a clipped, stable sea-palette backdrop rather than
 mapping terrain bytes across a behind-camera quad. This removes the flickering

@@ -1940,7 +1940,7 @@
 	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
 	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
-	A = [FI]; ? A '>= 0 -> VHG local other disc gate;
+	A = [FI]; ? A >= 0 -> VHG local other disc gate;
 	A = [VHGlocalbody]; A < 1; E = nspring; E + A;
 	A = [E plus 0]; A | [E plus 1]; ? A = 0 -> VHG local other disc gate;
 	[VHGlocalshowrings] = 1; [VHGlocalmultmask] = 64;
@@ -1954,14 +1954,14 @@
 	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
 	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
-	A = [FI]; ? A '>= 0 -> VHG local other point;
+	A = [FI]; ? A >= 0 -> VHG local other point;
 	[VHGlocalshowdisc] = 1; => VHG local ring viewpoint;
 	[FI] = 25; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
 	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
 	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
-	A = [FI]; ? A '>= 0 -> VHG local other draw back;
+	A = [FI]; ? A >= 0 -> VHG local other draw back;
 	=> VHG local ensure surface; A = [VHGlocalsurfaceok]; ? A = 0 -> VHG local other draw back;
 	[VHGlocalringsurface] = 1;
     "VHG local other draw back"
@@ -2039,7 +2039,7 @@
 	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
 	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
-	A = [FI]; ? A '>= 0 -> VHG local selected disc gate;
+	A = [FI]; ? A >= 0 -> VHG local selected disc gate;
 	A = [VHGplanet]; A < 1; E = nspring; E + A;
 	A = [E plus 0]; A | [E plus 1]; ? A = 0 -> VHG local selected disc gate;
 	[VHGlocalshowrings] = 1;
@@ -2053,14 +2053,14 @@
 	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
 	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
-	A = [FI]; ? A '>= 0 -> VHG local selected point;
+	A = [FI]; ? A >= 0 -> VHG local selected point;
 	[VHGlocalshowdisc] = 1;
 	[FI] = 25; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
 	[VHGlocallim0] = [FA0]; [VHGlocallim1] = [FA1];
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
 	[FB0] = [VHGlocallim0]; [FB1] = [VHGlocallim1]; => FCmp;
-	A = [FI]; ? A '>= 0 -> VHG local selected draw back;
+	A = [FI]; ? A >= 0 -> VHG local selected draw back;
 	=> VHG local ensure surface; A = [VHGlocalsurfaceok]; ? A = 0 -> VHG local selected draw back;
 	[VHGlocalringsurface] = 1;
     "VHG local selected draw back"
@@ -2927,6 +2927,12 @@
 	A = [VHGbeta]; A + [VHGnavbeta]; A % 360; ? A >= 0 -> VHG external beta ok; A + 360;
     "VHG external beta ok"
 	[VHSbeta] = A; [VHSamp] = [VHGamp];
+	( VHT and the local-system globe consume the shared projection matrix.
+	  Their SFXX/SFYY/SFZZ inputs are already relative to the Stardrifter, so
+	  install the exterior angles at a zero camera origin instead of inheriting
+	  the previous frame's final interior fixture view. )
+	[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;
+	[VHValpha] = [VHSalpha]; [VHVbeta] = [VHSbeta]; => VH set view;
 	[VHTdosim] = [VHGdosim]; [VHTfast] = [VHGfast];
 	[VHTinterpok] = [VHGinterpok]; [VHTinterpacc] = [VHGinterpacc];
 	( The source's non-spinning star classes use (clock()/360)%360 instead
