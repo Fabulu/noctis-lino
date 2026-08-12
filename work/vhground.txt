@@ -34,7 +34,8 @@
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
 	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
 	VHGNDnormgen = 0; VHGNDnormindex = 0;
-	VHGNDtilex = 0; VHGNDtilez = 0; VHGNDfx = 0; VHGNDfz = 0;
+	VHGNDtilex = 0; VHGNDtilez = 0; VHGNDcamtx = 0; VHGNDcamtz = 0;
+	VHGNDfx = 0; VHGNDfz = 0;
 	VHGNDheight = 0; VHGNDtmp = 0;
 	VHGNDgeni = 0; VHGNDgenn = 0; VHGNDtexn = 0;
 	VHGNDtexpasses = 0; VHGNDfrosty = 0; VHGNDtscale = 32;
@@ -2334,6 +2335,8 @@
 	[VHGNDruindrawn] = 0; => VHGND background;
 	=> PGF constants;
 	[VHGNDviewx] = [VHGNDcamx]; [VHGNDviewz] = [VHGNDcamz];
+	A = [VHGNDcamx]; A > 14; [VHGNDcamtx] = A;
+	A = [VHGNDcamz]; A > 14; [VHGNDcamtz] = A;
 	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32; ( 100.0f )
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
@@ -4781,16 +4784,16 @@
 	A = [VHGNDruinanchor]; ? A = 0 -> VHGND render ruins done;
 	[VHGNDruinpass] = 1; [VHGNDlodstep] = 1; [VHGNDlodradius] = VHGNDFAR;
 	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = VHGNDFAR;
-	A = [VHGNDcamx]; A > 14; A - VHGNDFAR; [VHGNDxlo] = A;
+	A = [VHGNDcamtx]; A - VHGNDFAR; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND ruins render xlo ready; [VHGNDxlo] = 0;
     "VHGND ruins render xlo ready"
-	A = [VHGNDcamx]; A > 14; A + VHGNDFAR; [VHGNDxhi] = A;
+	A = [VHGNDcamtx]; A + VHGNDFAR; [VHGNDxhi] = A;
 	? A '<= 198 -> VHGND ruins render xhi ready; [VHGNDxhi] = 198;
     "VHGND ruins render xhi ready"
-	A = [VHGNDcamz]; A > 14; A - VHGNDFAR; [VHGNDzlo] = A;
+	A = [VHGNDcamtz]; A - VHGNDFAR; [VHGNDzlo] = A;
 	? A >= 0 -> VHGND ruins render zlo ready; [VHGNDzlo] = 0;
     "VHGND ruins render zlo ready"
-	A = [VHGNDcamz]; A > 14; A + VHGNDFAR; [VHGNDzhi] = A;
+	A = [VHGNDcamtz]; A + VHGNDFAR; [VHGNDzhi] = A;
 	? A '<= 198 -> VHGND ruins render zhi ready; [VHGNDzhi] = 198;
     "VHGND ruins render zhi ready"
 	[VHGNDz] = [VHGNDzhi];
@@ -4812,16 +4815,16 @@
 	end;
 
 "VHGND traverse"
-	A = [VHGNDcamx]; A > 14; A - [VHGNDlodradius]; [VHGNDxlo] = A;
+	A = [VHGNDcamtx]; A - [VHGNDlodradius]; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND traverse xlo ready; [VHGNDxlo] = 0;
     "VHGND traverse xlo ready"
-	A = [VHGNDcamx]; A > 14; A + [VHGNDlodradius]; [VHGNDxhi] = A;
+	A = [VHGNDcamtx]; A + [VHGNDlodradius]; [VHGNDxhi] = A;
 	C = 199; C - [VHGNDlodstep]; ? A '<= C -> VHGND traverse xhi ready; [VHGNDxhi] = C;
     "VHGND traverse xhi ready"
-	A = [VHGNDcamz]; A > 14; A - [VHGNDlodradius]; [VHGNDzlo] = A;
+	A = [VHGNDcamtz]; A - [VHGNDlodradius]; [VHGNDzlo] = A;
 	? A >= 0 -> VHGND traverse zlo ready; [VHGNDzlo] = 0;
     "VHGND traverse zlo ready"
-	A = [VHGNDcamz]; A > 14; A + [VHGNDlodradius]; [VHGNDzhi] = A;
+	A = [VHGNDcamtz]; A + [VHGNDlodradius]; [VHGNDzhi] = A;
 	C = 199; C - [VHGNDlodstep]; ? A '<= C -> VHGND traverse zhi ready; [VHGNDzhi] = C;
     "VHGND traverse zhi ready"
 	[VHGNDz] = [VHGNDzhi];
@@ -4853,41 +4856,41 @@
 	-> VHGND faithful west;
 
     "VHGND faithful x bounds"
-	A = [VHGNDcamx]; A > 14; A - 65; [VHGNDxlo] = A;
+	A = [VHGNDcamtx]; A - 65; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND faithful xlo ready; [VHGNDxlo] = 0;
     "VHGND faithful xlo ready"
-	A = [VHGNDcamx]; A > 14; A + 65; [VHGNDxhi] = A;
+	A = [VHGNDcamtx]; A + 65; [VHGNDxhi] = A;
 	? A '<= 198 -> VHGND faithful x bounds done; [VHGNDxhi] = 198;
     "VHGND faithful x bounds done"
 	end;
 
     "VHGND faithful z bounds"
-	A = [VHGNDcamz]; A > 14; A - 65; [VHGNDzlo] = A;
+	A = [VHGNDcamtz]; A - 65; [VHGNDzlo] = A;
 	? A >= 0 -> VHGND faithful zlo ready; [VHGNDzlo] = 0;
     "VHGND faithful zlo ready"
-	A = [VHGNDcamz]; A > 14; A + 65; [VHGNDzhi] = A;
+	A = [VHGNDcamtz]; A + 65; [VHGNDzhi] = A;
 	? A '<= 198 -> VHGND faithful z bounds done; [VHGNDzhi] = 198;
     "VHGND faithful z bounds done"
 	end;
 
     "VHGND faithful north"
 	=> VHGND faithful x bounds;
-	A = [VHGNDcamz]; A > 14; A - 1; [VHGNDzlo] = A;
+	A = [VHGNDcamtz]; A - 1; [VHGNDzlo] = A;
 	? A >= 0 -> VHGND faithful north zlo ready; [VHGNDzlo] = 0;
     "VHGND faithful north zlo ready"
-	A = [VHGNDcamz]; A > 14; A + 65; [VHGNDzhi] = A;
+	A = [VHGNDcamtz]; A + 65; [VHGNDzhi] = A;
 	? A '<= 198 -> VHGND faithful north zhi ready; [VHGNDzhi] = 198;
     "VHGND faithful north zhi ready"
 	[VHGNDz] = [VHGNDzhi];
     "VHGND faithful north z"
 	[VHGNDx] = [VHGNDxlo];
     "VHGND faithful north left"
-	A = [VHGNDx]; C = [VHGNDcamx]; C > 14; ? A >= C -> VHGND faithful north right start;
+	A = [VHGNDx]; C = [VHGNDcamtx]; ? A >= C -> VHGND faithful north right start;
 	=> VHGND tile; [VHGNDx]+; -> VHGND faithful north left;
     "VHGND faithful north right start"
 	[VHGNDx] = [VHGNDxhi];
     "VHGND faithful north right"
-	A = [VHGNDx]; C = [VHGNDcamx]; C > 14; ? A < C -> VHGND faithful north next z;
+	A = [VHGNDx]; C = [VHGNDcamtx]; ? A < C -> VHGND faithful north next z;
 	=> VHGND tile; [VHGNDx]-; -> VHGND faithful north right;
     "VHGND faithful north next z"
 	[VHGNDz]-; A = [VHGNDz]; ? A >= [VHGNDzlo] -> VHGND faithful north z;
@@ -4895,22 +4898,22 @@
 
     "VHGND faithful south"
 	=> VHGND faithful x bounds;
-	A = [VHGNDcamz]; A > 14; A - 65; [VHGNDzlo] = A;
+	A = [VHGNDcamtz]; A - 65; [VHGNDzlo] = A;
 	? A >= 0 -> VHGND faithful south zlo ready; [VHGNDzlo] = 0;
     "VHGND faithful south zlo ready"
-	A = [VHGNDcamz]; A > 14; A + 1; [VHGNDzhi] = A;
+	A = [VHGNDcamtz]; A + 1; [VHGNDzhi] = A;
 	? A '<= 198 -> VHGND faithful south zhi ready; [VHGNDzhi] = 198;
     "VHGND faithful south zhi ready"
 	[VHGNDz] = [VHGNDzlo];
     "VHGND faithful south z"
 	[VHGNDx] = [VHGNDxlo];
     "VHGND faithful south left"
-	A = [VHGNDx]; C = [VHGNDcamx]; C > 14; ? A >= C -> VHGND faithful south right start;
+	A = [VHGNDx]; C = [VHGNDcamtx]; ? A >= C -> VHGND faithful south right start;
 	=> VHGND tile; [VHGNDx]+; -> VHGND faithful south left;
     "VHGND faithful south right start"
 	[VHGNDx] = [VHGNDxhi];
     "VHGND faithful south right"
-	A = [VHGNDx]; C = [VHGNDcamx]; C > 14; ? A < C -> VHGND faithful south next z;
+	A = [VHGNDx]; C = [VHGNDcamtx]; ? A < C -> VHGND faithful south next z;
 	=> VHGND tile; [VHGNDx]-; -> VHGND faithful south right;
     "VHGND faithful south next z"
 	[VHGNDz]+; A = [VHGNDz]; ? A '<= [VHGNDzhi] -> VHGND faithful south z;
@@ -4918,22 +4921,22 @@
 
     "VHGND faithful east"
 	=> VHGND faithful z bounds;
-	A = [VHGNDcamx]; A > 14; A - 65; [VHGNDxlo] = A;
+	A = [VHGNDcamtx]; A - 65; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND faithful east xlo ready; [VHGNDxlo] = 0;
     "VHGND faithful east xlo ready"
-	A = [VHGNDcamx]; A > 14; A + 1; [VHGNDxhi] = A;
+	A = [VHGNDcamtx]; A + 1; [VHGNDxhi] = A;
 	? A '<= 198 -> VHGND faithful east xhi ready; [VHGNDxhi] = 198;
     "VHGND faithful east xhi ready"
 	[VHGNDx] = [VHGNDxlo];
     "VHGND faithful east x"
 	[VHGNDz] = [VHGNDzhi];
     "VHGND faithful east upper"
-	A = [VHGNDz]; C = [VHGNDcamz]; C > 14; ? A <= C -> VHGND faithful east lower start;
+	A = [VHGNDz]; C = [VHGNDcamtz]; ? A <= C -> VHGND faithful east lower start;
 	=> VHGND tile; [VHGNDz]-; -> VHGND faithful east upper;
     "VHGND faithful east lower start"
 	[VHGNDz] = [VHGNDzlo];
     "VHGND faithful east lower"
-	A = [VHGNDz]; C = [VHGNDcamz]; C > 14; ? A > C -> VHGND faithful east next x;
+	A = [VHGNDz]; C = [VHGNDcamtz]; ? A > C -> VHGND faithful east next x;
 	=> VHGND tile; [VHGNDz]+; -> VHGND faithful east lower;
     "VHGND faithful east next x"
 	[VHGNDx]+; A = [VHGNDx]; ? A '<= [VHGNDxhi] -> VHGND faithful east x;
@@ -4941,22 +4944,22 @@
 
     "VHGND faithful west"
 	=> VHGND faithful z bounds;
-	A = [VHGNDcamx]; A > 14; A - 1; [VHGNDxlo] = A;
+	A = [VHGNDcamtx]; A - 1; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND faithful west xlo ready; [VHGNDxlo] = 0;
     "VHGND faithful west xlo ready"
-	A = [VHGNDcamx]; A > 14; A + 65; [VHGNDxhi] = A;
+	A = [VHGNDcamtx]; A + 65; [VHGNDxhi] = A;
 	? A '<= 198 -> VHGND faithful west xhi ready; [VHGNDxhi] = 198;
     "VHGND faithful west xhi ready"
 	[VHGNDx] = [VHGNDxhi];
     "VHGND faithful west x"
 	[VHGNDz] = [VHGNDzhi];
     "VHGND faithful west upper"
-	A = [VHGNDz]; C = [VHGNDcamz]; C > 14; ? A <= C -> VHGND faithful west lower start;
+	A = [VHGNDz]; C = [VHGNDcamtz]; ? A <= C -> VHGND faithful west lower start;
 	=> VHGND tile; [VHGNDz]-; -> VHGND faithful west upper;
     "VHGND faithful west lower start"
 	[VHGNDz] = [VHGNDzlo];
     "VHGND faithful west lower"
-	A = [VHGNDz]; C = [VHGNDcamz]; C > 14; ? A > C -> VHGND faithful west next x;
+	A = [VHGNDz]; C = [VHGNDcamtz]; ? A > C -> VHGND faithful west next x;
 	=> VHGND tile; [VHGNDz]+; -> VHGND faithful west lower;
     "VHGND faithful west next x"
 	[VHGNDx]-; A = [VHGNDx]; ? A >= [VHGNDxlo] -> VHGND faithful west x;
@@ -4969,16 +4972,16 @@
 	  the near terrain pass. )
 	=> VHGND object view setup;
 	[VHGNDlodstep] = 1;
-	A = [VHGNDcamx]; A > 14; A - 42; [VHGNDxlo] = A;
+	A = [VHGNDcamtx]; A - 42; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND objects xlo ready; [VHGNDxlo] = 0;
     "VHGND objects xlo ready"
-	A = [VHGNDcamx]; A > 14; A + 42; [VHGNDxhi] = A;
+	A = [VHGNDcamtx]; A + 42; [VHGNDxhi] = A;
 	? A '<= 198 -> VHGND objects xhi ready; [VHGNDxhi] = 198;
     "VHGND objects xhi ready"
-	A = [VHGNDcamz]; A > 14; A - 42; [VHGNDzlo] = A;
+	A = [VHGNDcamtz]; A - 42; [VHGNDzlo] = A;
 	? A >= 0 -> VHGND objects zlo ready; [VHGNDzlo] = 0;
     "VHGND objects zlo ready"
-	A = [VHGNDcamz]; A > 14; A + 42; [VHGNDzhi] = A;
+	A = [VHGNDcamtz]; A + 42; [VHGNDzhi] = A;
 	? A '<= 198 -> VHGND objects zhi ready; [VHGNDzhi] = 198;
     "VHGND objects zhi ready"
 	[VHGNDz] = [VHGNDzhi];
@@ -5047,11 +5050,11 @@
 	( fragment()'s source Manhattan precheck rejects only cells that cannot
 	  enter the depth-64 circle.  Do it before shade/depth floating work. )
 	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile source range ready;
-	A = [VHGNDcamx]; A > 14; A - [VHGNDx]; ? A >= 0 -> VHGND tile abs x ready;
+	A = [VHGNDcamtx]; A - [VHGNDx]; ? A >= 0 -> VHGND tile abs x ready;
 	C = 0; C - A; A = C;
     "VHGND tile abs x ready"
 	[VHGNDtmp] = A;
-	A = [VHGNDcamz]; A > 14; A - [VHGNDz]; ? A >= 0 -> VHGND tile abs z ready;
+	A = [VHGNDcamtz]; A - [VHGNDz]; ? A >= 0 -> VHGND tile abs z ready;
 	C = 0; C - A; A = C;
     "VHGND tile abs z ready"
 	A + [VHGNDtmp]; ? A > 90 -> VHGND tile done;
