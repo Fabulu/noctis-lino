@@ -6762,6 +6762,11 @@
 	=> VHG onboard row finish; [VHPoutptr] = VHGparline; => VH GOES output line; end;
 
 "VHG parse coordinate"
+	( Practical NIV+ correction: the original manual Parsis editor stopped at
+	  ten total characters, so a sign left room for only nine digits and made
+	  the far Feltyrion region unreachable through Galactic Cartography.  The
+	  hosted `STAR x y z` command accepts ten digits plus an optional sign;
+	  parsed coordinates remain signed 32-bit values. )
 	[VHGcmdok] = 0; [VHGcmdvalue] = 0; [VHGcmdsign] = 0; [VHGcmddigits] = 0;
     "VHG parse skip spaces"
 	A = vhptext; A + [VHGcmdi]; C = [A]; ? C != 32 -> VHG parse sign;
@@ -6771,7 +6776,13 @@
     "VHG parse digits"
 	A = vhptext; A + [VHGcmdi]; C = [A]; ? C < 48 -> VHG parse end;
 	? C > 57 -> VHG parse end;
-	A = [VHGcmddigits]; ? A >= 9 -> VHG parse done;
+	A = [VHGcmddigits]; ? A >= 10 -> VHG parse done;
+	A = [VHGcmdvalue]; ? A < 214748364 -> VHG parse accumulate;
+	? A > 214748364 -> VHG parse done;
+	C - 48; A = 7; E = [VHGcmdsign]; ? E = 0 -> VHG parse last digit ready; A = 8;
+    "VHG parse last digit ready"
+	? C > A -> VHG parse done; C + 48;
+    "VHG parse accumulate"
 	A = [VHGcmdvalue]; A '* 10; C - 48; A + C; [VHGcmdvalue] = A;
 	[VHGcmddigits]+; [VHGcmdi]+; -> VHG parse digits;
     "VHG parse end"

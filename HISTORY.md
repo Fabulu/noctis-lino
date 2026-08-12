@@ -34,10 +34,15 @@ window caption remains `vhgame` even after its custom chrome says `Noctis IV`,
 so title polling waited on a condition that could never become true. Capture
 readiness now samples the production framebuffer and rejects only the genuinely
 black pre-initialization host. An authentic one-planet type-1 system named
-IDEAL now supplies the lunar scene. Its source-profiled height craters retain a
-four-crater startup bound; this reduced the focused lunar generator from about
-59.5 seconds to 3.6 seconds while preserving texture craters, rocks and the
-airless palette. The complete native lunar capture finished in 15.7 seconds.
+IDEAL now supplies the lunar scene. A later fidelity review rejected the
+temporary four-crater startup bound: type-1 generation again retains the
+source's full zero-to-thirty height-crater field, uncapped texture craters and
+uncapped dark lines. A radial profile cache removes repeated sqrt/sin/pow work
+for equal integer radii without changing defined terrain bytes.
+
+The manual Galactic Cartography target also corrects NIV+'s ten-character
+Parsis editor oversight. A sign no longer consumes one of the ten coordinate
+digits, and explicit signed 32-bit limits prevent wraparound.
 
 ## 2026-08-12 -- reproducible world gallery and coverage boundary
 

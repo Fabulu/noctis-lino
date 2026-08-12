@@ -82,6 +82,9 @@
 	GRfrlo		= 0;	( loop lower bound (cx - r)		)
 	GRfrhi		= 0;	( loop upper bound (cx + r)		)
 	GRfcanyon	= 0;	( allowcanyons flag			)
+	GRfd2		= 0;	( integer dx*dx+dz*dz cache key		)
+	GRfr2		= 0;	( integer crater radius squared		)
+	GRcraterid	= 0;	( generation stamp for radial cache		)
 
 	( ---- float scratch (binary64, adjacent pairs) ---- )
 
@@ -112,7 +115,7 @@
 	GRK254L	= 0;	GRK254H	= 0;	( 254.0					)
 	GRKPIL	= 0;	GRKPIH	= 0;	( M_PI = 3.14159265...			)
 
-	( ---- build_surface prologue globals ---- )
+    ( ---- build_surface prologue globals ---- )
 
 	GRgseed		= 0;	( global_surface_seed			)
 	GRiptype	= 0;	( nearstar_p_type[ip_targetted]	)
@@ -120,6 +123,16 @@
 	GRalbedo	= 0;
 	GRlat		= 0;	( latitude				)
 	GRgflares	= 0;	( groundflares result			)
+
+"workspace"
+
+	( std_crater's profile is radial: all pixels with the same integer
+	  dx*dx+dz*dz execute the same float sequence and produce the same
+	  binary32 y.  Cache that value per call without changing any defined
+	  surface byte.  The largest source call is radius 109, so 12000 keys
+	  cover every in-circle squared distance. )
+	GRscache = 12000;
+	GRsstamp = 12000;
 
 "programme"
 
@@ -635,6 +648,7 @@
 ( fyl2x/frndint/f2xm1/fscale sequence, preserving the live float32 y. )
 
 "GR std crater"
+	[GRcraterid]+;
 
 	( h = (float)r * h_factor -- fild r; fmul h_factor; fstp dword h )
 	{
@@ -649,6 +663,7 @@
 	B = 0; B - A; A = B;
 "GR sc absok"
 	[SUia] = A;
+	C = A; A '* C; [GRfr2] = A;
 
 	( fr = (float)r -- fild abs(r); fstp dword fr )
 	{
@@ -681,15 +696,26 @@
 	? A '< 0 -> GR sc znext;
 	? A '>= [GRfsca] -> GR sc znext;
 
-	( dx = (float)(x - cx) )
+	( Integer radius rejection is exact here: dx and dz are small integers,
+	  and the source accepts precisely sqrt(dx*dx+dz*dz) < r.  It also gives
+	  the radial-profile cache its stable key before any x87 work. )
 	B = [GRfrx]; B - [SUcxi]; [GRdxi] = B;
+	C = [GRfrz]; C - [SUcyi]; [GRdzi] = C;
+	A = B; A '* B; D = C; D '* C; A + D; [GRfd2] = A;
+	? A > [GRfr2] -> GR sc znext;
+	A = GRsstamp; A + [GRfd2]; C = [A];
+	? C != [GRcraterid] -> GR sc profile miss;
+	A = GRscache; A + [GRfd2]; [GRfy] = [A];
+	-> GR sc profile ready;
+
+"GR sc profile miss"
+	( dx = (float)(x - cx) )
 	{
 	    DB 87 <dGRdxi mtp bytesperunit>	(fild dword [edi+GRdxi*4])
 	    D9 9F <dGRfdx mtp bytesperunit>	(fstp dword [edi+GRfdx*4])
 	}
 
 	( dz = (float)(z - cz) )
-	B = [GRfrz]; B - [SUcyi]; [GRdzi] = B;
 	{
 	    DB 87 <dGRdzi mtp bytesperunit>	(fild dword [edi+GRdzi*4])
 	    D9 9F <dGRfdz mtp bytesperunit>	(fstp dword [edi+GRfdz*4])
@@ -705,15 +731,6 @@
 	    D9 FA				(fsqrt)
 	    D9 9F <dGRfd mtp bytesperunit>	(fstp dword [edi+GRfd*4])
 	}
-
-	( if (d > fr) skip -- compute d - fr, check sign bit )
-	{
-	    D9 87 <dGRfd  mtp bytesperunit>	(fld dword [edi+GRfd*4])
-	    D8 A7 <dGRfscr mtp bytesperunit>	(fsub dword [edi+GRfscr*4])
-	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
-	}
-	A = [GRfs1]; A & 80000000h;
-	? A = 0 -> GR sc znext;	( d - fr >= 0 → d > fr → skip )
 
 	( d <= fr: compute y = sin(M_PI * d / fr) * h )
 	{
@@ -747,6 +764,10 @@
 	    D9 9F <dGRfy mtp bytesperunit>	(fstp dword [edi+GRfy*4])
 	}
 "GR sc power done"
+	A = GRscache; A + [GRfd2]; [A] = [GRfy];
+	A = GRsstamp; A + [GRfd2]; [A] = [GRcraterid];
+
+"GR sc profile ready"
 
 	( y += map[align*z + x] )
 	A = [GRfrz]; A '* [GRfsca]; A + [GRfrx]; [GRptr] = A;

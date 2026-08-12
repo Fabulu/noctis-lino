@@ -63,9 +63,13 @@ first -- a broken foundation makes every later result meaningless.
 
 - Type-1 terrain retains the source powered-crater profile, deterministic
   placement, separate texture-crater field, mottling, rocks and airless sky.
-  The existing port-side height-crater workload bound is tightened from twelve
-  to four: the focused lunar generator falls from about 59.5 seconds to 3.6
-  seconds without replacing the terrain arm with a synthetic shortcut.
+  The source's full zero-to-thirty height-crater bound and uncapped texture
+  crater/dark-line counts are preserved. `GR std crater` caches each radial
+  float profile by integer squared distance within a call, avoiding redundant
+  sqrt/sin/pow work while producing the same defined surface bytes.
+- Galactic Cartography's manual Parsis target accepts ten digits plus an
+  optional sign and rejects values outside signed 32-bit range. This is an
+  explicit correction to NIV+'s ten-total-character editor limit.
 - The screenshot tool now waits for non-black production framebuffer content.
   iGUI paints `Noctis IV` in its custom chrome but leaves the native Win32
   caption as `vhgame`, so caption polling could never identify readiness and

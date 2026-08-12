@@ -24,11 +24,16 @@ The same capture audit found that title-based readiness was invalid for iGUI:
 Windows reports the programme name `vhgame`, while `Noctis IV` is painted by
 the custom chrome. A framebuffer-content readiness check now refuses the real
 black pre-initialization host without waiting forever on that caption. The
-catalogued one-body system IDEAL provides an authentic type-1 primary. Bounding
-its source-profiled height-map craters at four reduced the isolated lunar arm
-from about 59.5 seconds to 3.6 seconds; texture craters, rocks, airless sky and
-the original crater profile remain live. The clean production scene opened and
-captured in 15.7 seconds.
+catalogued one-body system IDEAL provides an authentic type-1 primary. The
+temporary four-crater reduction was rejected during fidelity review: the live
+generator now preserves the source's complete zero-to-thirty height-crater
+field and uncapped texture details. Equal-radius profile results are cached
+inside each crater to accelerate the unchanged workload.
+
+The hosted `STAR x y z` path used by Galactic Cartography now accepts the full
+signed 32-bit Parsis range: ten digits plus an optional sign, with explicit
+overflow rejection. This deliberately corrects NIV+'s ten-total-character
+manual editor oversight rather than inheriting its unreachable far region.
 
 ## What the playable build can do right now
 

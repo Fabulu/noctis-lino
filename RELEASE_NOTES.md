@@ -18,12 +18,16 @@ separately records automated and native evidence together with the unavoidable
 procedural and platform boundaries, without claiming impossible exhaustive
 enumeration.
 
-Type-1 lunar landings no longer spend roughly a minute constructing the
-height-map before the GUI can unfold. The existing bounded source-profiled
-crater workload is tightened to four height craters while retaining the
-separate texture-crater field, rocks, mottling and airless presentation. A
-native production capture of an authentic one-body lunar system now completes
-in about sixteen seconds.
+Type-1 lunar landings retain the source's complete zero-to-thirty height-crater
+field, uncapped texture-crater field, dark lines, rocks, mottling and airless
+presentation. A radial profile cache reuses the identical float result for
+pixels at equal integer squared radius, accelerating the authentic workload
+without shrinking or removing terrain content.
+
+Galactic Cartography's manual Parsis target now accepts ten coordinate digits
+plus an optional minus sign. This corrects the original ten-character editor
+limit while retaining signed 32-bit range checks, so the distant Feltyrion
+region is reachable without wrapping a coordinate.
 
 The final release audit passes all 24 registered suites. The integrated
 build/flight/render/present loop also completed 600,000 frames in 8,125.55

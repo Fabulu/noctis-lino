@@ -2056,6 +2056,9 @@ def main() -> int:
         all(token in game for token in (
             '"VHG next star"', '"VHG flight retarget"', '"VHG parse coordinate"',
             "A '% [VHScount]", "=> VHG target world; => VHG flight retarget;",
+            "A = [VHGcmddigits]; ? A >= 10 -> VHG parse done;",
+            "? A > 214748364 -> VHG parse done;",
+            "E = [VHGcmdsign]; ? E = 0 -> VHG parse last digit ready; A = 8;",
             "[VHGcmdsilent] = 0; [VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;",
         ))
         and all(token in save for token in (
@@ -2982,8 +2985,12 @@ def main() -> int:
             "? A = 5 -> VHGND generate type5;", "? A = 7 -> VHGND generate type7;",
             '"VHGND type1 craters"', '"VHGND type5 craters"',
             '"VHGND type7 surface line loop"',
-            "? A '<= 4 -> VHGND type1 crater count ready; A = 4;",
+            "? A '<= 30 -> VHGND type1 crater count ready; A = 30;",
         ))
+        and "VHGND type1 texture count ready" not in ground
+        and "VHGND type1 line count ready" not in ground
+        and "VHGND type7 texture count ready" not in ground
+        and "VHGND type7 small count ready" not in ground
         and all(token in grnd for token in (
             '"GR rg positive start"', '"GR sc power done"',
             "D9 F1", "D9 F0", "D9 FD",
