@@ -3031,11 +3031,16 @@ def main() -> int:
             "C = 3; => SU rnd; ? C != 0 -> VHGND type3 full ocean;",
             "[VHGNDwaswet] = 1;", "=> GR round hill;",
         ))
-        and water.count("=> PG polymap;") == 2
+        and water.count("=> PG polymap;") == 0
         and all(token in water for token in (
-            "[SPtinta] = 128;", "[SPflar] = 1;", "[VHGNDwaterphase]",
+            '"VHGND water backdrop"',
+            "A = [VHGNDalpha]; A '* 5; C = 100; C - A;",
+            "[VHGNDwaterbase] = 128;",
+            "A + 144; [VHGNDwaterbase] = A;",
+            "A = [VHGNDwatery]; A '* 320; A + 5; A + RADPT; A + nw;",
+            "? A '< 191 -> VHGND water backdrop row;",
         )),
-        "open-ocean worlds render sea level, shimmer, rare islands, and no floating objects",
+        "open-ocean worlds render a clipped stable sea backdrop, rare islands, and no floating objects",
     )
     original_horizon = section(
         original1,

@@ -119,6 +119,8 @@
 	VHGNDaniprevx = 0; VHGNDaniprevz = 0; VHGNDaniprevquote = 0;
 	VHGNDbirdflapprev = 0; VHGNDbirdflapcurr = 0;
 	VHGNDwaterglaze = 0; VHGNDwaterphase = 0; VHGNDwatery = 0;
+	VHGNDwaterptr = 0; VHGNDwaterband = 0; VHGNDwatercount = 0;
+	VHGNDwaterhorizon = 0; VHGNDwaterbase = 0; VHGNDwaterden = 0;
 	VHGNDmirror = 0; VHGNDwavesin = 0; VHGNDreflected = 0;
 	VHGNDruined = 0; VHGNDruindrawn = 0; VHGNDruinbuildings = 0;
 	VHGNDruinanchor = 0; VHGNDruinmarks = 0; VHGNDruinpass = 0;
@@ -3391,33 +3393,15 @@
 	end;
 
 "VHGND water"
-	( Ocean/ice plane: source 128x texture scale and ocean palette band. )
-	=> VHGND water quad;
-
-	[FI] = 32768; => IntToF; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
-	[PGtexf] = 5; [SPsrc] = 1; [SPtinta] = 128; [SPescr] = 0;
-	[SPflar] = 0; [DBflar] = 0; [DBent] = 0; [SPcull] = 0; [PJnrv] = 4;
-	=> PG polymap;
-
+	( NIV+'s horizon quad surrounds the temporary camera.  Feeding its two
+	  behind-eye corners to this port's non-clipping 32-bit mapper produced
+	  the observed rainbow wedges. Rasterize the analytically clipped result
+	  directly into the background: terrain and objects still overpaint it in
+	  the original order, while the sea keeps the source 128/144 palette bands. )
+	=> VHGND water backdrop;
 	( The source reflects landscape only when the sea has no incoming wind
 	  waves, and always on the frozen ICY scenario. )
 	=> VHGND reflection;
-	=> VHGND water quad;
-
-	( Second transparent pass supplies the moving glints normally written
-	  into n_globes_map.  Frozen glints stay spatially stable. )
-	A = [VHGframe]; A & 31; [VHGNDwaterphase] = A;
-	A = [VHGNDsctype]; ? A != 4 -> VHGND water phase moving;
-	A = [VHGNDcamx]; A > 10; C = [VHGNDcamz]; C > 10; A + C; A & 15;
-	[VHGNDwaterphase] = A; -> VHGND water phase ready;
-    "VHGND water phase moving"
-	A = [VHGNDwaterphase]; ? A '<= 15 -> VHGND water phase ready;
-	C = 31; C - A; [VHGNDwaterphase] = C;
-    "VHGND water phase ready"
-	A = [VHGNDwaterphase]; A '* 256; A + 32768; [FI] = A; => IntToF;
-	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
-	[SPflar] = 1; [DBflar] = 1; [SPtinta] = 128; [PJnrv] = 4;
-	=> PG polymap;
 	A = [VHGNDsctype]; ? A != 1 -> VHGND water waves done; => VHGND waves;
     "VHGND water waves done"
 
@@ -3425,36 +3409,33 @@
 	[FI] = [VHGNDtscale]; => IntToF;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;
 	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
-	[SPflar] = 0; [DBflar] = 0; [SPhalf] = 0;
+	[PGtexf] = 5; [SPflar] = 0; [DBflar] = 0; [SPhalf] = 0; [SPcull] = 0;
 	end;
 
-"VHGND water quad"
-	A = [VHGNDcamx]; A - 1048576; [VHGNDxlo] = A;
-	? A >= 0 -> VHGND water xlo ready; [VHGNDxlo] = 0;
-    "VHGND water xlo ready"
-	A = [VHGNDcamx]; A + 1048576; [VHGNDxhi] = A;
-	? A '<= 3276800 -> VHGND water xhi ready; [VHGNDxhi] = 3276800;
-    "VHGND water xhi ready"
-	A = [VHGNDcamz]; A - 1048576; [VHGNDzlo] = A;
-	? A >= 0 -> VHGND water zlo ready; [VHGNDzlo] = 0;
-    "VHGND water zlo ready"
-	A = [VHGNDcamz]; A + 1048576; [VHGNDzhi] = A;
-	? A '<= 3276800 -> VHGND water zhi ready; [VHGNDzhi] = 3276800;
-    "VHGND water zhi ready"
-
-	[VHGNDvi] = 0;
-	[VHGNDvv] = [VHGNDxlo]; [VHGNDvslot] = FSINX; => VHGND vload;
-	[VHGNDvv] = 0; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvv] = [VHGNDzlo]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
-	[VHGNDvv] = [VHGNDxhi]; [VHGNDvslot] = FSINX; => VHGND vload;
-	[VHGNDvv] = 0; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvv] = [VHGNDzlo]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
-	[VHGNDvv] = [VHGNDxhi]; [VHGNDvslot] = FSINX; => VHGND vload;
-	[VHGNDvv] = 0; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvv] = [VHGNDzhi]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;
-	[VHGNDvv] = [VHGNDxlo]; [VHGNDvslot] = FSINX; => VHGND vload;
-	[VHGNDvv] = 0; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvv] = [VHGNDzhi]; [VHGNDvslot] = FSINZ; => VHGND vload;
+"VHGND water backdrop"
+	( The logical horizon moves about five rows per pitch degree in the source
+	  320x200 projection. Keep it inside TDPOLYGS.H's y=10..190 guard. )
+	A = [VHGNDalpha]; A '* 5; C = 100; C - A; [VHGNDwaterhorizon] = C;
+	? C >= 10 -> VHGND water horizon low ready; [VHGNDwaterhorizon] = 10;
+    "VHGND water horizon low ready"
+	A = [VHGNDwaterhorizon]; ? A '<= 190 -> VHGND water horizon ready;
+	[VHGNDwaterhorizon] = 190;
+    "VHGND water horizon ready"
+	C = 191; C - [VHGNDwaterhorizon]; [VHGNDwaterden] = C;
+	[VHGNDwatery] = [VHGNDwaterhorizon];
+    "VHGND water backdrop row"
+	A = [GRSKnightzone]; [VHGNDwaterbase] = 128; ? A != 0 -> VHGND water backdrop colour;
+	A = [VHGNDwatery]; A - [VHGNDwaterhorizon]; A '* 16; A '/ [VHGNDwaterden];
+	? A '<= 15 -> VHGND water backdrop band ready; A = 15;
+    "VHGND water backdrop band ready"
+	A + 144; [VHGNDwaterbase] = A;
+    "VHGND water backdrop colour"
+	A = [VHGNDwatery]; A '* 320; A + 5; A + RADPT; A + nw; [VHGNDwaterptr] = A;
+	[VHGNDwatercount] = 307;
+    "VHGND water backdrop pixel"
+	A = [VHGNDwaterptr]; C = [VHGNDwaterbase]; [A] = C; [VHGNDwaterptr]+;
+	[VHGNDwatercount]-; A = [VHGNDwatercount]; ? A != 0 -> VHGND water backdrop pixel;
+	[VHGNDwatery]+; A = [VHGNDwatery]; ? A '< 191 -> VHGND water backdrop row;
 	end;
 
 "VHGND reflection"

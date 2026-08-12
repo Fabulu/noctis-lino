@@ -12,6 +12,11 @@ The README gallery refresh is in progress. Corrected planet-class captures,
 animals, trees, a distant whole-Cube view, and a close space-view planet remain
 explicit deliverables; stale artifacted frames are not accepted as evidence.
 
+Ocean horizons now use a clipped, stable sea-palette backdrop rather than
+mapping terrain bytes across a behind-camera quad. This removes the flickering
+rainbow strip seen at shoreline viewpoints while preserving foreground land,
+reflections, waves and surface life.
+
 Type-1 lunar landings retain the source's complete zero-to-thirty height-crater
 field, uncapped texture-crater field, dark lines, rocks, mottling and airless
 presentation. A radial profile cache reuses the identical float result for

@@ -8,6 +8,15 @@ implementation and source-parity ledger.
 
 ## 2026-08-12 -- faithful terrain renderer correction
 
+An ocean-site capture exposed a flickering rainbow strip. The water pass was
+sampling `p_background` through a camera-centred quad whose rear corners sat
+behind the viewer; the non-clipping 32-bit mapper turned those corners into
+unstable wedges. The source instead treats this as a separate horizon layer.
+The port now rasterizes the analytically clipped horizon directly behind the
+normal terrain pass with NIV+'s night/day sea palette bands. Shoreline terrain,
+reflections, waves, fauna and foreground objects retain their existing order,
+while the corrupt strip and full-screen wedges are gone.
+
 Live walking identified camera-relative black/white walls, floor gaps, and
 crashes when backing away. The black pillar was isolated to the panorama even
 with terrain disabled: the port had swapped the pitch/yaw cursor axes, omitted
