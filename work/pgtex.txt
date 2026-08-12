@@ -99,6 +99,16 @@
 	SPn	= 0;
 	SPsave	= 0;
 	SPterrain = 0;			( exact fixed-buffer ground span specialization )
+	PGUVZ	= 0; PGUVX = 0; PGUVY = 0; PGUVK4 = 0;
+	PGfwbase = 0; PGnwbase = 0;
+
+	( Unit offsets for the terrain x87 UV chain.  Float slot k is fw[2*k].
+	  The native fragment first converts fw's runtime workspace index into a
+	  real address, then uses these fixed byte displacements. )
+	FWK1	= 18; FWK2 = 20; FWK3 = 22; FWK4 = 24;
+	FWX	= 26; FWY = 28; FWZ = 30;
+	FWTX	= 32; FWTY = 34; FWONE = 36;
+	FWW0	= 496; FWW1 = 498; FWW2 = 500; FWW3 = 502;
 
 "workspace"
 
@@ -276,6 +286,7 @@
 	A = [SPuvi]; A+; [SPuvi] = A;
 	end;
     "PG uv float"
+	A = [SPterrain]; ? A != 0 -> PG uv terrain float;
 	( _z += k3 ; _x += k1 ; _y += k2 ; k4 = 1/_z ;
 	  u = (_x * tempXsize) * k4 ; v = (_y * tempYsize) * k4.
 	  fst _z / fst _x / fst _y are stores to FLOAT locals, so each
@@ -303,6 +314,65 @@
 	[PGFi] = FSK4; => PGF mul; => PGF int; [SPun] = [FI];
 	[PGFi] = FSW2; => PGF a; [PGFi] = FSTY; => PGF mul;
 	[PGFi] = FSK4; => PGF mul; => PGF int; [SPvn] = [FI];
+	end;
+
+    "PG uv terrain float"
+	( Exact terrain-only form of the same x87 schedule.  All slots are static,
+	  so one fragment replaces the generic PGF call/address shuttle chain.
+	  Each _z/_x/_y and k4 store still narrows through m32 and reloads; the
+	  wide sums feeding the reciprocal/numerators remain live on x87. )
+	{
+	    8B B7 <dPGfwbase mtp bytesperunit>     (esi = runtime fw workspace)
+	    8D 34 B7                              (esi = edi + 4*workspace index)
+	    DD 86 78 00 00 00                     (fld  qword FSZ)
+	    DC 86 58 00 00 00                     (fadd qword FSK3)
+	    DD 9E C0 07 00 00                     (fstp qword wide z)
+	    DD 86 C0 07 00 00                     (fld  qword wide z)
+	    D9 9F <dPGUVZ mtp bytesperunit>       (fstp dword narrow z)
+	    D9 87 <dPGUVZ mtp bytesperunit>       (fld  dword narrow z)
+	    DD 9E 78 00 00 00                     (fstp qword FSZ)
+
+	    DD 86 68 00 00 00                     (fld  qword FSX)
+	    DC 86 48 00 00 00                     (fadd qword FSK1)
+	    DD 9E C8 07 00 00                     (fstp qword wide x)
+	    DD 86 C8 07 00 00                     (fld  qword wide x)
+	    D9 9F <dPGUVX mtp bytesperunit>       (fstp dword narrow x)
+	    D9 87 <dPGUVX mtp bytesperunit>       (fld  dword narrow x)
+	    DD 9E 68 00 00 00                     (fstp qword FSX)
+
+	    DD 86 70 00 00 00                     (fld  qword FSY)
+	    DC 86 50 00 00 00                     (fadd qword FSK2)
+	    DD 9E D0 07 00 00                     (fstp qword wide y)
+	    DD 86 D0 07 00 00                     (fld  qword wide y)
+	    D9 9F <dPGUVY mtp bytesperunit>       (fstp dword narrow y)
+	    D9 87 <dPGUVY mtp bytesperunit>       (fld  dword narrow y)
+	    DD 9E 70 00 00 00                     (fstp qword FSY)
+
+	    DD 86 90 00 00 00                     (fld  qword FSUNO)
+	    DC B6 C0 07 00 00                     (fdiv qword wide z)
+	    DD 9E D8 07 00 00                     (fstp qword wide k4)
+	    DD 86 D8 07 00 00                     (fld  qword wide k4)
+	    D9 9F <dPGUVK4 mtp bytesperunit>      (fstp dword narrow k4)
+	    D9 87 <dPGUVK4 mtp bytesperunit>      (fld  dword k4)
+	    DD 9E 60 00 00 00                     (fstp qword FSK4)
+
+	    DD 86 C8 07 00 00                     (fld  qword wide x)
+	    DC 8E 80 00 00 00                     (fmul qword FSTX)
+	    DD 9E D8 07 00 00                     (fstp qword rounded product)
+	    DD 86 D8 07 00 00                     (fld  qword rounded product)
+	    DC 8E 60 00 00 00                     (fmul qword narrow k4)
+	    DD 9E D8 07 00 00                     (fstp qword rounded u)
+	    DD 86 D8 07 00 00                     (fld  qword rounded u)
+	    DB 9F <dSPun mtp bytesperunit>        (fistp dword SPun)
+	    DD 86 D0 07 00 00                     (fld  qword wide y)
+	    DC 8E 88 00 00 00                     (fmul qword FSTY)
+	    DD 9E D8 07 00 00                     (fstp qword rounded product)
+	    DD 86 D8 07 00 00                     (fld  qword rounded product)
+	    DC 8E 60 00 00 00                     (fmul qword narrow k4)
+	    DD 9E D8 07 00 00                     (fstp qword rounded v)
+	    DD 86 D8 07 00 00                     (fld  qword rounded v)
+	    DB 9F <dSPvn mtp bytesperunit>        (fistp dword SPvn)
+	}
 	end;
 
       ( PG texel : [PGtexv] <- txtr[ (v_hi << 8) | u_hi ].
@@ -611,6 +681,77 @@
 	the DOS mapper's block sizes, 16-bit accumulators, culling overdraw and
 	pixel order, but perform its three fixed byte accesses directly. )
 
+"PG terrain pixel native"
+	( One non-culling mapper pixel.  EDI is the L.in.oleum workspace base;
+	  every memory cell remains one 32-bit unit containing one DOS byte. )
+	{
+	    8B B7 <dPGnwbase mtp bytesperunit>     (esi = runtime nw workspace)
+	    8D 34 B7                              (esi = edi + 4*workspace index)
+	    8B 87 <dSPdi mtp bytesperunit>       (eax = di)
+	    40                                   (inc eax)
+	    25 FF FF 00 00                       (and eax,65535)
+	    89 87 <dSPdi mtp bytesperunit>       (save di)
+	    8B 97 <dSPdx mtp bytesperunit>       (edx = v)
+	    81 E2 00 FF 00 00                    (v high byte in bits 8..15)
+	    8B 8F <dSPax mtp bytesperunit>       (ecx = u)
+	    C1 E9 08                             (shr ecx,8)
+	    81 E1 FF 00 00 00                    (u high byte)
+	    09 CA                                (edx |= ecx)
+	    8B 8C 96 70 68 06 00                 (ecx = texture[index])
+	    81 E1 FF 00 00 00                    (DOS byte)
+	    03 8F <dSPtinta mtp bytesperunit>    (add tinta)
+	    81 E1 FF 00 00 00                    (byte wrap)
+	    8B 9F <dSPax mtp bytesperunit>       (ebx = u)
+	    03 9F <dSPbp mtp bytesperunit>       (ebx += du)
+	    81 E3 FF FF 00 00                    (16-bit accumulator)
+	    89 9F <dSPax mtp bytesperunit>
+	    83 C0 03                             (DOS store is di+3)
+	    25 FF FF 00 00
+	    89 8C 86 A0 8B 10 00
+	    8B 97 <dSPdx mtp bytesperunit>       (edx = v)
+	    03 97 <dSPsi mtp bytesperunit>       (edx += dv)
+	    81 E2 FF FF 00 00
+	    89 97 <dSPdx mtp bytesperunit>
+	}
+	end;
+
+"PG terrain cull pixel native"
+	( One culling mapper sample, preserving its duplicated adjacent stores. )
+	{
+	    8B B7 <dPGnwbase mtp bytesperunit>     (esi = runtime nw workspace)
+	    8D 34 B7                              (esi = edi + 4*workspace index)
+	    8B 87 <dSPdi mtp bytesperunit>
+	    83 C0 02
+	    25 FF FF 00 00
+	    89 87 <dSPdi mtp bytesperunit>
+	    8B 97 <dSPdx mtp bytesperunit>
+	    81 E2 00 FF 00 00
+	    8B 8F <dSPax mtp bytesperunit>
+	    C1 E9 08
+	    81 E1 FF 00 00 00
+	    09 CA
+	    8B 8C 96 70 68 06 00
+	    81 E1 FF 00 00 00
+	    03 8F <dSPtinta mtp bytesperunit>
+	    81 E1 FF 00 00 00
+	    8B 9F <dSPax mtp bytesperunit>
+	    03 9F <dSPbp mtp bytesperunit>
+	    81 E3 FF FF 00 00
+	    89 9F <dSPax mtp bytesperunit>
+	    89 C3                                (ebx = di)
+	    83 C3 02
+	    81 E3 FF FF 00 00
+	    89 8C 9E A0 8B 10 00                 (store di+2)
+	    83 C0 03
+	    25 FF FF 00 00
+	    89 8C 86 A0 8B 10 00                 (store di+3)
+	    8B 97 <dSPdx mtp bytesperunit>
+	    03 97 <dSPsi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    89 97 <dSPdx mtp bytesperunit>
+	}
+	end;
+
 "PG terrain row"
 	? [SPsec] <= 0 -> PG terrain row end;
 	A = [SPsec]; ? A > 16 -> PG terrain row complete;
@@ -627,13 +768,7 @@
 	A = [SPv]; A & 65535; [SPdx] = A;
 	[SPu] = [SPun]; [SPv] = [SPvn];
     "PG terrain pixel"
-	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
-	A = [SPdx]; A > 8; A & 255; A < 8;
-	C = [SPax]; C > 8; C & 255; A | C; A + RPBG; A + nw; A = [A]; A & 255;
-	A + [SPtinta]; A & 255; [SPch] = A;
-	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
-	A = [SPdi]; A + 3; A & 65535; A + SADPT; A + nw; C = [SPch]; [A] = C;
-	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	=> PG terrain pixel native;
 	[SPcl]-; ? [SPcl] != 0 -> PG terrain pixel;
 	-> PG terrain row;
     "PG terrain row end"
@@ -657,14 +792,7 @@
 	[SPu] = [SPun]; [SPv] = [SPvn];
 	A = [SPdi]; [SPsave] = A;
     "PG terrain cull pixel"
-	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
-	A = [SPdx]; A > 8; A & 255; A < 8;
-	C = [SPax]; C > 8; C & 255; A | C; A + RPBG; A + nw; A = [A]; A & 255;
-	A + [SPtinta]; A & 255; [SPch] = A;
-	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
-	A = [SPdi]; A + 2; A & 65535; A + SADPT; A + nw; C = [SPch]; [A] = C;
-	A = [SPdi]; A + 3; A & 65535; A + SADPT; A + nw; C = [SPch]; [A] = C;
-	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	=> PG terrain cull pixel native;
 	[SPcl]-; ? [SPcl] != 0 -> PG terrain cull pixel;
 	A = [SPsave]; A + 32; A & 65535; [SPdi] = A;
 	-> PG terrain crow;
@@ -677,6 +805,7 @@
 
 "PG scanline"
 	A = [SPterrain]; ? A = 0 -> PG scanline generic;
+	A = fw; [PGfwbase] = A; A = nw; [PGnwbase] = A;
 	A = [SPcull]; A & 1; ? A != 0 -> PG scanline terrain cull;
 	=> PG terrain row; end;
     "PG scanline terrain cull"

@@ -32,6 +32,7 @@
 	VHGNDlodstep = 1; VHGNDlodradius = 4;
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
+	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
 	VHGNDtilex = 0; VHGNDtilez = 0; VHGNDfx = 0; VHGNDfz = 0;
 	VHGNDheight = 0; VHGNDtmp = 0;
 	VHGNDgeni = 0; VHGNDgenn = 0; VHGNDtexn = 0;
@@ -247,6 +248,13 @@
 	( ruinschart: one source marker per 200x200 height-map point. )
 	VHGNDruins = 40000;
 	VHGNDskycache = 64000;
+	( Per-frame exact landed-grid transform cache.  Each surface point keeps
+	  the binary64 carriers produced by polymap's narrowed rotation, its
+	  near-plane flag, and the two nearest-even projected integers. )
+	VHGNDvcstamp = 40000; VHGNDvcrx0 = 40000; VHGNDvcrx1 = 40000;
+	VHGNDvcry0 = 40000; VHGNDvcry1 = 40000;
+	VHGNDvcrz0 = 40000; VHGNDvcrz1 = 40000;
+	VHGNDvcvisible = 40000; VHGNDvcpx = 40000; VHGNDvcpy = 40000;
 	( Three possible source objects per 200x200 quadrant.  Positions and the
 	  post-coordinate fast RNG state are immutable for a generated surface. )
 	VHGNDobjcachex = 120000; VHGNDobjcachey = 120000;
@@ -2322,6 +2330,7 @@
     "VHGND water render done"
 	A = [VHGlanded]; ? A = 0 -> VHGND render descent;
 
+	=> VHGND terrain cache frame;
 	=> VHGND traverse faithful;
 	-> VHGND render terrain done;
     "VHGND render descent"
@@ -2347,6 +2356,150 @@
 	=> VHGND render weather;
     "VHGND render finish"
 	end;
+
+"VHGND terrain cache frame"
+	( A generation stamp makes invalidation constant-time as the camera moves.
+	  The wrap clear is reached only after 2^32 landed frames. )
+	[VHGNDvcgen]+; A = [VHGNDvcgen]; ? A != 0 -> VHGND terrain cache frame ready;
+	[VHGNDptr] = 0;
+    "VHGND terrain cache clear"
+	A = VHGNDvcstamp; A + [VHGNDptr]; [A] = 0;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A < 40000 -> VHGND terrain cache clear;
+	[VHGNDvcgen] = 1;
+    "VHGND terrain cache frame ready"
+	end;
+
+"VHGND terrain vertex index"
+	( The faithful unit tile's two triangles address [0,1,200] and
+	  [1,201,200] relative to h1. )
+	A = [VHGNDvi]; ? A = 2 -> VHGND terrain vertex index bottom;
+	C = [VHGNDvctri]; ? C = 0 -> VHGND terrain vertex index first;
+	A = [VHGNDvi]; ? A = 0 -> VHGND terrain vertex index second top;
+	A = [VHGNDh1]; A + 201; [VHGNDvcindex] = A; end;
+    "VHGND terrain vertex index second top"
+	A = [VHGNDh1]; A + 1; [VHGNDvcindex] = A; end;
+    "VHGND terrain vertex index first"
+	A = [VHGNDh1]; A + [VHGNDvi]; [VHGNDvcindex] = A; end;
+    "VHGND terrain vertex index bottom"
+	A = [VHGNDh1]; A + 200; [VHGNDvcindex] = A; end;
+
+"VHGND terrain vertex ensure"
+	=> VHGND terrain vertex index;
+	A = VHGNDvcstamp; A + [VHGNDvcindex]; C = [A];
+	A = [VHGNDvcgen]; ? A = C -> VHGND terrain vertex ensure done;
+
+	( Rotate only the selected input slot.  PJ rotate selected executes the
+	  same narrowed x87 sequence as polymap, so cached carriers are bit copies
+	  of the ordinary path rather than a second approximation. )
+	[PJmode] = 1; [PJvr] = [VHGNDvi];
+	A = [VHGNDvi]; A + 1; [PJnrv] = A;
+	=> PJ rotate selected;
+
+	A = [VHGNDvi]; A + FSRXF; A + A; A + fw; D = A;
+	A = VHGNDvcrx0; A + [VHGNDvcindex]; C = [D]; [A] = C;
+	A = VHGNDvcrx1; A + [VHGNDvcindex]; C = [D plus 1]; [A] = C;
+	A = [VHGNDvi]; A + FSRYF; A + A; A + fw; D = A;
+	A = VHGNDvcry0; A + [VHGNDvcindex]; C = [D]; [A] = C;
+	A = VHGNDvcry1; A + [VHGNDvcindex]; C = [D plus 1]; [A] = C;
+	A = [VHGNDvi]; A + FSRZF; A + A; A + fw; D = A;
+	A = VHGNDvcrz0; A + [VHGNDvcindex]; C = [D]; [A] = C;
+	A = VHGNDvcrz1; A + [VHGNDvcindex]; C = [D plus 1]; [A] = C;
+
+	A = rwf; A + [VHGNDvi]; C = [A];
+	A = VHGNDvcvisible; A + [VHGNDvcindex]; [A] = C;
+	? C = 0 -> VHGND terrain vertex stamped;
+
+	( Project the one visible rotated point with the mapper's exact routine.
+	  Slot zero is scratch here; all triangle slots are restored from cache
+	  after the three lookups finish. )
+	A = [VHGNDvi]; A + FSRXF; A + A; A + fw; D = A;
+	A = FSUX; A + A; A + fw; C = [D]; [A] = C; C = [D plus 1]; [A plus 1] = C;
+	A = [VHGNDvi]; A + FSRYF; A + A; A + fw; D = A;
+	A = FSUY; A + A; A + fw; C = [D]; [A] = C; C = [D plus 1]; [A plus 1] = C;
+	A = [VHGNDvi]; A + FSRZF; A + A; A + fw; D = A;
+	A = FSUZ; A + A; A + fw; C = [D]; [A] = C; C = [D plus 1]; [A plus 1] = C;
+	[PJvr2] = 1; => PJ projectmap;
+	A = mp; C = [A]; A = VHGNDvcpx; A + [VHGNDvcindex]; [A] = C;
+	A = mp; C = [A plus 1]; A = VHGNDvcpy; A + [VHGNDvcindex]; [A] = C;
+
+    "VHGND terrain vertex stamped"
+	A = VHGNDvcstamp; A + [VHGNDvcindex]; C = [VHGNDvcgen]; [A] = C;
+    "VHGND terrain vertex ensure done"
+	end;
+
+"VHGND terrain vertex load"
+	=> VHGND terrain vertex index;
+	A = [VHGNDvi]; A + FSRXF; A + A; A + fw; D = A;
+	A = VHGNDvcrx0; A + [VHGNDvcindex]; C = [A]; [D] = C;
+	A = VHGNDvcrx1; A + [VHGNDvcindex]; C = [A]; [D plus 1] = C;
+	A = [VHGNDvi]; A + FSRYF; A + A; A + fw; D = A;
+	A = VHGNDvcry0; A + [VHGNDvcindex]; C = [A]; [D] = C;
+	A = VHGNDvcry1; A + [VHGNDvcindex]; C = [A]; [D plus 1] = C;
+	A = [VHGNDvi]; A + FSRZF; A + A; A + fw; D = A;
+	A = VHGNDvcrz0; A + [VHGNDvcindex]; C = [A]; [D] = C;
+	A = VHGNDvcrz1; A + [VHGNDvcindex]; C = [A]; [D plus 1] = C;
+	A = [VHGNDvi]; A + A; A + mp; D = A;
+	A = VHGNDvcpx; A + [VHGNDvcindex]; C = [A]; [D] = C;
+	A = VHGNDvcpy; A + [VHGNDvcindex]; C = [A]; [D plus 1] = C;
+	A = rwf; A + [VHGNDvi]; [A] = 1;
+	end;
+
+"VHGND terrain cached bounds"
+	( This is projectmap's four-entry min/max walk, including its seed values
+	  and comparison order.  Slot three is the closing duplicate below. )
+	[PJminx] = PGUBX; [PJmaxx] = PGLBX;
+	[BXminy] = PGUBY; [BXmaxy] = PGLBY;
+	[PJvr] = 0;
+    "VHGND terrain cached bounds point"
+	A = [PJvr]; A + A; C = mp; C + A; A = [C];
+	? A >= [PJminx] -> VHGND terrain cached bounds x min ready; [PJminx] = A;
+    "VHGND terrain cached bounds x min ready"
+	A = [C]; ? A <= [PJmaxx] -> VHGND terrain cached bounds x max ready; [PJmaxx] = A;
+    "VHGND terrain cached bounds x max ready"
+	A = [C plus 1];
+	? A >= [BXminy] -> VHGND terrain cached bounds y min ready; [BXminy] = A;
+    "VHGND terrain cached bounds y min ready"
+	A = [C plus 1]; ? A <= [BXmaxy] -> VHGND terrain cached bounds y max ready; [BXmaxy] = A;
+    "VHGND terrain cached bounds y max ready"
+	[PJvr]+; A = [PJvr]; ? A < 4 -> VHGND terrain cached bounds point;
+	end;
+
+"VHGND terrain mapped"
+	( Mirrored heights are not the cached surface.  Near-plane triangles keep
+	  polymap's generic four-edge clipping and projection path unchanged. )
+	[SPterrain] = 1;
+	A = [VHGNDmirror]; ? A != 0 -> VHGND terrain mapped generic;
+	[VHGNDvi] = 0;
+    "VHGND terrain mapped ensure"
+	=> VHGND terrain vertex ensure;
+	[VHGNDvi]+; A = [VHGNDvi]; ? A < 3 -> VHGND terrain mapped ensure;
+
+	[VHGNDvi] = 0;
+    "VHGND terrain mapped front"
+	=> VHGND terrain vertex index;
+	A = VHGNDvcvisible; A + [VHGNDvcindex]; A = [A];
+	? A = 0 -> VHGND terrain mapped generic;
+	[VHGNDvi]+; A = [VHGNDvi]; ? A < 3 -> VHGND terrain mapped front;
+
+	[VHGNDvi] = 0;
+    "VHGND terrain mapped load"
+	=> VHGND terrain vertex load;
+	[VHGNDvi]+; A = [VHGNDvi]; ? A < 3 -> VHGND terrain mapped load;
+
+	( Preserve polymap's four-entry closing edge in every rotated, projected,
+	  visibility and ultima workspace consumed downstream. )
+	A = FSRXF; A + 2; [PGFi] = A; A = FSRXF; A + 3; [PGFj] = A; => PGF mov;
+	A = FSRYF; A + 2; [PGFi] = A; A = FSRYF; A + 3; [PGFj] = A; => PGF mov;
+	A = FSRZF; A + 2; [PGFi] = A; A = FSRZF; A + 3; [PGFj] = A; => PGF mov;
+	A = mp; C = [A plus 4]; [A plus 6] = C; C = [A plus 5]; [A plus 7] = C;
+	A = rwf; [A plus 3] = 1; [PJdoflag] = 4;
+	=> VHGND terrain cached bounds;
+	[PJpreproject] = 1; [PJnrv] = 3; => PG polymap;
+	[SPterrain] = 0; end;
+
+    "VHGND terrain mapped generic"
+	[PJpreproject] = 0; [PJnrv] = 3; => PG polymap;
+	[SPterrain] = 0; end;
 
 "VHGND secondary sun setup"
 	( NOCTIS-1.CPP chooses the class-10 companion nearest the landed world.
@@ -4883,7 +5036,7 @@
     "VHGND tile first flat"
 	[PGtexf] = 0; [PJnrv] = 3; => PG poly3d; -> VHGND tile first done;
     "VHGND tile first textured"
-	[PGtexf] = 5; [PJnrv] = 3; [SPterrain] = 1; => PG polymap; [SPterrain] = 0;
+	[PGtexf] = 5; [VHGNDvctri] = 0; => VHGND terrain mapped;
     "VHGND tile first done"
 
 	[VHGNDvi] = 0;
@@ -4910,7 +5063,7 @@
     "VHGND tile second flat"
 	[PGtexf] = 0; [PJnrv] = 3; => PG poly3d; -> VHGND tile second done;
     "VHGND tile second textured"
-	[PGtexf] = 5; [PJnrv] = 3; [SPterrain] = 1; => PG polymap; [SPterrain] = 0;
+	[PGtexf] = 5; [VHGNDvctri] = 1; => VHGND terrain mapped;
     "VHGND tile second done"
 
 	A = [VHGNDruined]; ? A = 0 -> VHGND tile texture restored;

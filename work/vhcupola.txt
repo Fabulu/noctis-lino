@@ -14,6 +14,7 @@
 	VHCCUPSIZE = 1155596288;		( 1800.0f )
 	VHCCUPHEIGHT = 1154506752;	( 1667.0f )
 	VHCHALF = 1056964608;		( 0.5f )
+	VHCCULLBACK = 0C6000000h;		( -8192.0f )
 
 "variables"
 
@@ -44,7 +45,7 @@
 	VHCready = 0; VHCbuilding = 0; VHCsaveyor = 0;
 	VHCcachep = 0; VHCcachebase = 0; VHCcopy = 0;
 	VHCroof = 0; VHCcapsule = 0; VHCopen = 0; VHCcamybase = 0; VHCdd = 0;
-	VHCtexx = 0; VHCtexy = 0;
+	VHCtexx = 0; VHCtexy = 0; VHCvisible = 0;
 
 "workspace"
 
@@ -92,6 +93,11 @@
 
 "VHC render cache"
 	[VHCcamybase] = [VHVcamyi];
+	[VHCvisible] = 1;
+	A = [VHCcapsule]; ? A = 0 -> VHC render visible;
+	=> VHC capsule cull;
+	A = [VHCvisible]; ? A = 0 -> VHC render done;
+    "VHC render visible"
 	[VHCcachebase] = vhccache;
 	A = [VHCyor]; ? A = 0 -> VHC render base;
 	A = [VHCcachebase]; A + 1680; [VHCcachebase] = A;
@@ -126,6 +132,24 @@
 	[VHCpanels]+; A = [VHCpanels]; ? A < 140 -> VHC render panel;
 	[FI] = [VHCcamybase]; => IntToF; => F32Narrow;
 	[PGFi] = FSCAMY; => PGF sa;
+	"VHC render done"
+	end;
+
+"VHC capsule cull"
+	( The textured capsule can move a panel at most 2000 units vertically;
+	  together with its 1800x1667 source shell, every submitted point remains
+	  within 4086 units of the origin.  Rotate the origin once and reject only
+	  when an oversized 8192-unit bound is wholly behind the camera.  Nearby
+	  and edge-on shells retain the original per-panel clipping unchanged. )
+	[PGFi] = FSZERO; => PGF a;
+	[PGFi] = FSINX; => PGF sa;
+	[PGFi] = FSINY; => PGF sa;
+	[PGFi] = FSINZ; => PGF sa;
+	[PJnrv] = 1; [PJmode] = 1; => PJ rotate;
+	[PGFi] = FSW0; [PGFt] = VHCCULLBACK; => PGF setf32;
+	[PGFi] = FSRZF; => PGF a; [PGFi] = FSW0; => PGF b; => FCmp;
+	A = [FI]; ? A >= 0 -> VHC capsule cull done; [VHCvisible] = 0;
+    "VHC capsule cull done"
 	end;
 
 "VHC roof view"

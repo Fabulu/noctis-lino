@@ -72,6 +72,7 @@
 	PJmode	= 0;			( 0 = poly3d nucleus, 1 = polymap )
 	PJminx	= 0;			( polymap horizontal early-out box )
 	PJmaxx	= 0;
+	PJpreproject = 0;		( caller supplied exact rotated/projected slots )
 
 	( ---- generic 2-D clip stage ---- )
 	CLxi	= 0;
@@ -125,8 +126,9 @@
 	cannot be checked against one. )
 
 "PJ rotate"
-	[PJdoflag] = 0;
 	[PJvr] = 0;
+"PJ rotate selected"
+	[PJdoflag] = 0;
     "PJ rot v"
 	( zz = z[i] - cam_z ; the WIDE value continues, the NARROW one
 	  is what "fld zz" reloads two instructions later. )
@@ -993,6 +995,7 @@
     "PG pm r"
 	[PJmode] = 1;
 	[PJdx] = [PJnrv];
+	A = [PJpreproject]; ? A != 0 -> PG pm preloaded;
 	A = [PJdx]; ? A != 3 -> PG pm rotate four;
 	( A triangle's fourth input is the bitwise duplicate of vertex 2 above.
 	  Rotate the three unique inputs, then duplicate the resulting float slots
@@ -1010,6 +1013,8 @@
     "PG pm rotate four"
 	[PJnrv] = 4;
 	=> PJ rotate;
+    "PG pm preloaded"
+	A = 4; [PJvr] = A; [PJnrv] = A;
     "PG pm rotated"
 	[PJgate] = 1;
 	A = [PJdoflag]; ? A = 0 -> PG pm out;
@@ -1023,7 +1028,10 @@
 	[PJgate] = 2;
 	A = [PJvr2]; ? A < 3 -> PG pm out;
     "PG pm 2d"
+	A = [PJpreproject]; ? A != 0 -> PG pm projected;
 	=> PJ projectmap;
+    "PG pm projected"
+	[PJpreproject] = 0;
 
 	[PJgate] = 7;
 	A = [PJminx]; ? A > PGUBX -> PG pm out;

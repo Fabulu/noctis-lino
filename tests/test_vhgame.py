@@ -746,13 +746,15 @@ def main() -> int:
 
     tile = section(ground, '"VHGND tile"', '"VHGND tile objects"')
     check(
-        tile.count("=> PG polymap;") == 2
+        tile.count("=> VHGND terrain mapped;") == 2
         and tile.count("=> PG poly3d;") == 2
         and tile.count("-> VHGND tile first textured;") == 1
         and tile.count("-> VHGND tile second textured;") == 1
         and '"VHGND tile first flat"' in tile
         and '"VHGND tile second flat"' in tile
         and "[PGtexf] = 5" in ground
+        and '"VHGND terrain mapped"' in ground
+        and "[PJpreproject] = 1; [PJnrv] = 3; => PG polymap;" in ground
         and '"PG tex 5"' in (ROOT / "work" / "pgmem.txt").read_text(encoding="utf-8"),
         "faithful landed unit triangles stay texture mapped while airborne fallback remains bounded",
     )
@@ -811,6 +813,9 @@ def main() -> int:
             '"VHC panel source capsule"', '"VHC draw grid"',
             "[VHSflare] = 0;", '"VHC polycupola render"',
             "[PGFi] = FSZERO;", "[VHCtexx] = [FS0];", "[VHCtexy] = [FS0];",
+            "VHCCULLBACK = 0C6000000h;", '"VHC capsule cull"',
+            "[PJnrv] = 1; [PJmode] = 1; => PJ rotate;",
+            "? A = 0 -> VHC render done;",
         ))
         and all(token in stick for token in (
             "VHSflare = 0; VHSphase = 0;", '"VHS luminous point"',
