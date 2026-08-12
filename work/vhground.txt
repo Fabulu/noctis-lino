@@ -5117,19 +5117,8 @@
 	A = [VHGNDmirror]; ? A = 0 -> VHGND tile mirror cull ready; [SPcull] = 0;
     "VHGND tile mirror cull ready"
 
-	[VHGNDvi] = 0;
-	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs1]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvi]+;
-	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvi]+;
-	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvctri] = 0; => VHGND terrain facing;
+	[VHGNDvctri] = 0; A = fw; [PJfwbase] = A;
+	=> VHGND terrain triangle load native; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile first mirror facing;
 	A = [FCret]; ? A = 0 -> VHGND tile first done; -> VHGND tile first visible;
     "VHGND tile first mirror facing"
@@ -5144,19 +5133,7 @@
 	[PGtexf] = 5; [VHGNDvctri] = 0; => VHGND terrain mapped;
     "VHGND tile first done"
 
-	[VHGNDvi] = 0;
-	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvi]+;
-	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs3]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvi]+;
-	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvctri] = 1; => VHGND terrain facing;
+	[VHGNDvctri] = 1; => VHGND terrain triangle load native; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile second mirror facing;
 	A = [FCret]; ? A = 0 -> VHGND tile second done; -> VHGND tile second visible;
     "VHGND tile second mirror facing"
@@ -5863,6 +5840,97 @@
 	? C '<= 32 -> VHGND tile shade ready; C = 32;
     "VHGND tile shade ready"
 	[VHGNDshade] = C;
+	end;
+
+"VHGND terrain triangle load native"
+	( Build all nine exact binary64 input coordinates for one terrain triangle
+	  in a single fragment.  Integer shifts/signs and fild conversion are the
+	  same operations previously paid through eighteen Lino helper calls. )
+	{
+	    55
+	    8B B7 <dPJfwbase mtp bytesperunit>
+	    8D 34 B7
+	    8B 9F <dVHGNDx mtp bytesperunit>
+	    C1 E3 0E
+	    8B 8F <dVHGNDlodstep mtp bytesperunit>
+	    C1 E1 0E
+	    01 D9
+	    8B 97 <dVHGNDz mtp bytesperunit>
+	    C1 E2 0E
+	    8B AF <dVHGNDlodstep mtp bytesperunit>
+	    C1 E5 0E
+	    01 D5
+	    83 BF <dVHGNDvctri mtp bytesperunit> 00
+	    0F 85 87 00 00 00
+	    89 9F <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E E0 07 00 00
+	    89 97 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E 20 08 00 00
+	    8B 87 <dVHGNDs1 mtp bytesperunit>
+	    C1 E0 0B
+	    F7 D8
+	    89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E 00 08 00 00
+	    89 8F <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E E8 07 00 00
+	    89 97 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E 28 08 00 00
+	    8B 87 <dVHGNDs2 mtp bytesperunit>
+	    C1 E0 0B
+	    F7 D8
+	    89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E 08 08 00 00
+	    E9 82 00 00 00
+	    89 8F <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E E0 07 00 00
+	    89 97 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E 20 08 00 00
+	    8B 87 <dVHGNDs2 mtp bytesperunit>
+	    C1 E0 0B
+	    F7 D8
+	    89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E 00 08 00 00
+	    89 8F <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E E8 07 00 00
+	    89 AF <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E 28 08 00 00
+	    8B 87 <dVHGNDs3 mtp bytesperunit>
+	    C1 E0 0B
+	    F7 D8
+	    89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E 08 08 00 00
+	    89 9F <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E F0 07 00 00
+	    89 AF <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E 30 08 00 00
+	    8B 87 <dVHGNDs4 mtp bytesperunit>
+	    C1 E0 0B
+	    F7 D8
+	    89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 9E 10 08 00 00
+	    DD 86 10 08 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    89 87 <dVHGNDvv mtp bytesperunit>
+	    C7 87 <dVHGNDvi mtp bytesperunit> 02 00 00 00
+	    C7 87 <dVHGNDvslot mtp bytesperunit> 00 01 00 00
+	    C7 87 <dPGFi mtp bytesperunit> 02 01 00 00
+	    5D
+	}
 	end;
 
 "VHGND vload"
