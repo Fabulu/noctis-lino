@@ -75,6 +75,7 @@
 	PJpreproject = 0;		( caller supplied exact rotated/projected slots )
 	PJfwbase = 0;			( runtime relocated fw workspace for native kernels )
 	PJipartbase = 0;		( runtime relocated edge workspace )
+	PJthird0 = 0; PJthird1 = 0;	( terrain midpoint's binary64 literal )
 
 	( ---- generic 2-D clip stage ---- )
 	CLxi	= 0;
@@ -803,6 +804,8 @@
 	line up between two polygons. )
 
 "PJ vectors"
+	A = fw; [PJfwbase] = A;
+	A = [SPterrain]; ? A != 0 -> PJ vectors terrain;
 	( midx/midy/midz - the divisor is a DOUBLE literal, 0.3333333 for
 	  three vertices and 0.25 for four. )
 	A = [PJnrv]; C = 3; ? A = 3 -> PJ vc n3; C = 4;
@@ -884,6 +887,7 @@
 	A = [PJvv]; A + FSTRZ; [PGFi] = A; => PGF sub;
 	[PGFi] = FSNZ; => PGF sa; => PGF narrow;
 
+    "PJ vc gradients"
 	( hx = (rx*mz - rz*mx)*YCOEFF, and its eight siblings.  Every one
 	  is "fld a / fmul b / fld c / fmul d / fsubp / fmul k / fstp s",
 	  so the subtraction is st(1) - st(0) = a*b - c*d and the scale
@@ -909,6 +913,21 @@
 	[CLbnd] = FSUNO; [CLt] = FSOZ; => PJ vc cross;
 	end;
 
+    "PJ vectors terrain"
+	( Landed ground is always a three-vertex polygon.  Keep the exact scalar
+	  spill and binary32-store schedule, but execute its fixed midpoint,
+	  expansion and basis-vector chains without the generic slot shuttle. )
+	[PJdx] = 3;
+	[PJthird0] = D64THLO; [PJthird1] = D64THHI;
+	=> PJ terrain midpoint native;
+	[PJvr] = 0;
+    "PJ terrain expand loop"
+	=> PJ terrain expand native;
+	[PJvr]+; A = [PJvr]; ? A < 3 -> PJ terrain expand loop;
+	[PJvv] = 2;
+	=> PJ terrain basis native;
+	-> PJ vc gradients;
+
     "PJ vc scale"
 	A = [PJdx]; ? A = 3 -> PJ vc s3;
 	[PGFt] = D64QLO;  [PGFu] = D64QHI;  -> PJ vc s;
@@ -923,6 +942,45 @@
 	end;
 
     "PJ vc cross"
+	( Dynamic fixed-slot cross kernel.  Products, subtraction and scale still
+	  spill separately to binary64; the destination still narrows via FS0. )
+	A = [SPterrain]; ? A = 0 -> PJ vc cross generic;
+	{
+	    8B B7 <dPJfwbase mtp bytesperunit>
+	    8D 34 B7
+	    8B 87 <dCLxi mtp bytesperunit>
+	    C1 E0 03
+	    DD 04 06
+	    8B 8F <dCLyi mtp bytesperunit>
+	    C1 E1 03
+	    DC 0C 0E
+	    DD 9E D8 07 00 00                    (first product -> FSW3)
+	    8B 87 <dCLxo mtp bytesperunit>
+	    C1 E0 03
+	    DD 04 06
+	    8B 8F <dCLyo mtp bytesperunit>
+	    C1 E1 03
+	    DC 0C 0E
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 86 D8 07 00 00
+	    DC A7 <dFA0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    8B 8F <dCLbnd mtp bytesperunit>
+	    C1 E1 03
+	    DC 0C 0E
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    8B 97 <dCLt mtp bytesperunit>
+	    C1 E2 03
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 1C 16
+	    DD 04 16
+	    DD 9F <dFA0 mtp bytesperunit>
+	}
+	end;
+    "PJ vc cross generic"
 	[PGFi] = [CLxi]; => PGF a;
 	[PGFi] = [CLyi]; => PGF mul;
 	[PGFi] = FSW3;   => PGF sa;
@@ -931,6 +989,174 @@
 	[PGFi] = FSW3;   => PGF rsub;
 	[PGFi] = [CLbnd];=> PGF mul;
 	[PGFi] = [CLt];  => PGF sa; => PGF narrow;
+	end;
+
+"PJ terrain midpoint native"
+	{
+	    8B B7 <dPJfwbase mtp bytesperunit>
+	    8D 34 B7
+	    DD 86 00 01 00 00                    (rxf 0)
+	    DC 86 08 01 00 00                    (+ rxf 1)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 10 01 00 00                    (+ rxf 2)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8F <dPJthird0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 60 06 00 00                    (midx)
+	    DD 86 20 01 00 00                    (ryf 0)
+	    DC 86 28 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 30 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8F <dPJthird0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 68 06 00 00                    (midy)
+	    DD 86 40 01 00 00                    (rzf 0)
+	    DC 86 48 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 50 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8F <dPJthird0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 70 06 00 00                    (midz)
+	}
+	end;
+
+"PJ terrain expand native"
+	{
+	    8B B7 <dPJfwbase mtp bytesperunit>
+	    8D 34 B7
+	    8B 87 <dPJvr mtp bytesperunit>
+	    C1 E0 03
+	    89 C2
+	    05 00 01 00 00                       (rxf[v])
+	    81 C2 00 06 00 00                    (trxf[v])
+	    DD 04 06
+	    DC A6 60 06 00 00                    (- midx)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8E 80 06 00 00                    (* aa x)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 60 06 00 00                    (+ midx)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 1C 16
+	    8B 87 <dPJvr mtp bytesperunit>
+	    C1 E0 03
+	    89 C2
+	    05 20 01 00 00                       (ryf[v])
+	    81 C2 20 06 00 00                    (tryf[v])
+	    DD 04 06
+	    DC A6 68 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8E 88 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 68 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 1C 16
+	    8B 87 <dPJvr mtp bytesperunit>
+	    C1 E0 03
+	    89 C2
+	    05 40 01 00 00                       (rzf[v])
+	    81 C2 40 06 00 00                    (trzf[v])
+	    DD 04 06
+	    DC A6 70 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8E 90 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 70 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 1C 16
+	}
+	end;
+
+"PJ terrain basis native"
+	{
+	    8B B7 <dPJfwbase mtp bytesperunit>
+	    8D 34 B7
+	    DD 86 00 06 00 00                    (trxf0 -> rx)
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 58 07 00 00
+	    DD 86 20 06 00 00                    (tryf0 -> ry)
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 60 07 00 00
+	    DD 86 40 06 00 00                    (trzf0 -> rz)
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 68 07 00 00
+	    DD 86 08 06 00 00                    (trxf1-rx -> mx)
+	    DC A6 58 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 28 07 00 00
+	    DD 86 28 06 00 00
+	    DC A6 60 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 30 07 00 00
+	    DD 86 48 06 00 00
+	    DC A6 68 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 38 07 00 00
+	    DD 86 58 07 00 00                    (rx-trxf2 -> nx)
+	    DC A6 10 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 40 07 00 00
+	    DD 86 60 07 00 00
+	    DC A6 30 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 48 07 00 00
+	    DD 86 68 07 00 00
+	    DC A6 50 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 50 07 00 00
+	}
 	end;
 
 ( ==================================================================== )
@@ -1061,6 +1287,65 @@
 	    8B 87 <dFI mtp bytesperunit>
 	    89 87 <dSPv mtp bytesperunit>
 	}
+	end;
+
+"PG terrain block steps native"
+	( k1/k2/k3 retain the source's binary64 multiply followed by a binary32
+	  store.  The culling path doubles those already-narrow values and stores
+	  them to binary32 once more. )
+	A = fw; [PJfwbase] = A;
+	{
+	    8B B7 <dPJfwbase mtp bytesperunit>
+	    8D 34 B7
+	    DD 46 18                             (vx)
+	    DC 8E 90 07 00 00                    (* 16)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 5E 48                             (k1)
+	    DD 46 20                             (vy)
+	    DC 8E 90 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 5E 50                             (k2)
+	    DD 46 28                             (vz)
+	    DC 8E 90 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 5E 58                             (k3)
+	}
+	A = [SPcull]; ? A = 0 -> PG terrain block steps done;
+	{
+	    8B B7 <dPJfwbase mtp bytesperunit>
+	    8D 34 B7
+	    DD 46 48                             (k1)
+	    DC 46 48                             (+ k1)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 5E 48
+	    DD 46 50                             (k2)
+	    DC 46 50
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 5E 50
+	    DD 46 58                             (k3)
+	    DC 46 58
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 5E 58
+	}
+    "PG terrain block steps done"
 	end;
 
 "PG trace"
@@ -1224,6 +1509,10 @@
 
 	( k1/k2/k3 = 16*vx/vy/vz, doubled when culling halves the
 	  horizontal sampling rate. )
+	A = [SPterrain]; ? A = 0 -> PG pm k generic;
+	=> PG terrain block steps native;
+	-> PG pm k;
+    "PG pm k generic"
 	[PGFi] = FSVX; => PGF a; [PGFi] = FS16; => PGF mul;
 	[PGFi] = FSK1; => PGF sa; => PGF narrow;
 	[PGFi] = FSVY; => PGF a; [PGFi] = FS16; => PGF mul;
