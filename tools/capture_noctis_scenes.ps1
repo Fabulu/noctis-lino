@@ -4,7 +4,7 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'lunar', 'dense', 'habitable', 'hopper', 'rocky', 'thin', 'frozen', 'quartz', 'ruins', 'cube')]
+    [ValidateSet('all', 'stardrifter', 'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'thin', 'frozen', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
     [int]$Longitude,
@@ -64,6 +64,11 @@ $scenes = @(
     @{ Name='habitable'; FileName='planet-habitable-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
        Beta=65; Pitch=-10; Warmup=7; PlayerX=1598248; PlayerZ=2251369 },
+    # LANE IV's first complete nearby tree-class object, retained at its
+    # deterministic fragment() coordinate and viewed from ordinary eye height.
+    @{ Name='tree'; FileName='planet-habitable-tree.png';
+       X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
+       Beta=0; Pitch=0; Warmup=2; PlayerX=1073152; PlayerZ=2160996 },
     # LANE IV's naturally generated index-15 hopper, viewed from five
     # thousand surface units away. It remains in its source fauna record;
     # the checkpoint does not inject or relocate showcase scenery.
