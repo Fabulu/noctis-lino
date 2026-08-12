@@ -101,6 +101,7 @@
 	SPterrain = 0;			( exact fixed-buffer ground span specialization )
 	PGUVZ	= 0; PGUVX = 0; PGUVY = 0; PGUVK4 = 0;
 	PGfwbase = 0; PGnwbase = 0;
+	PGfpartbase = 0; PGipartbase = 0;
 
 	( Unit offsets for the terrain x87 UV chain.  Float slot k is fw[2*k].
 	  The native fragment first converts fw's runtime workspace index into a
@@ -137,12 +138,84 @@
 "PG ol init"
 	( NIV+ initializes only the already-clamped polygon row interval.  Rows
 	  outside it are never read by edges, trace, or halfscan. )
+	A = [SPterrain]; ? A = 0 -> PG ol init generic;
+	A = fpart; [PGfpartbase] = A; A = ipart; [PGipartbase] = A;
+	{
+	    8B 87 <dEWminy mtp bytesperunit>
+	    8B 8F <dEWmaxy mtp bytesperunit>
+	    8B 97 <dPGfpartbase mtp bytesperunit>
+	    8B B7 <dPGipartbase mtp bytesperunit>
+	    89 D3
+	    01 C3
+	    C7 04 9F 05 00 00 00                (fpart[i] = 5)
+	    89 F3
+	    01 C3
+	    C7 04 9F 37 01 00 00                (ipart[i] = 311)
+	    40
+	    39 C8
+	    7E E5
+	    89 87 <dPGi mtp bytesperunit>
+	}
+	end;
+    "PG ol init generic"
 	[PGi] = [EWminy];
     "PG ol i0"
 	A = [PGi]; C = fpart; C + A; [C] = PGLBX;
 	C = ipart; C + A; [C] = PGUBX;
 	[PGi]+;
 	A = [PGi]; ? A '<= [EWmaxy] -> PG ol i0;
+	end;
+
+"PG terrain edge rows native"
+	( Exact edge accumulator loop for landed polygons.  fistp remains nearest,
+	  bndx remains binary64, kx remains narrowed, and all clamp/update rules
+	  are performed in the original inclusive row order. )
+	{
+	    8B B7 <dPGfwbase mtp bytesperunit>
+	    8D 34 B7
+	    8B 8F <dEWcx mtp bytesperunit>
+	    8B 97 <dEWh mtp bytesperunit>
+	    DD 86 B0 00 00 00                    (bndx)
+	    DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit>
+	    3D F0 D8 FF FF                        (cmp -10000)
+	    7D 05
+	    B8 F0 D8 FF FF
+	    3D 10 27 00 00                        (cmp 10000)
+	    7E 05
+	    B8 10 27 00 00
+	    89 87 <dEWax mtp bytesperunit>
+	    8B 9F <dPGfpartbase mtp bytesperunit>
+	    01 D3
+	    8D 1C 9F
+	    3B 03
+	    7E 11
+	    3D 37 01 00 00                        (cmp 311)
+	    7C 08
+	    C7 03 37 01 00 00
+	    EB 02
+	    89 03
+	    8B 9F <dPGipartbase mtp bytesperunit>
+	    01 D3
+	    8D 1C 9F
+	    3B 03
+	    7D 0F
+	    83 F8 05
+	    7F 08
+	    C7 03 05 00 00 00
+	    EB 02
+	    89 03
+	    DD 86 B0 00 00 00
+	    DC 86 A8 00 00 00                    (+ narrow kx)
+	    DD 9E B0 00 00 00
+	    42
+	    49
+	    0F 85 78 FF FF FF
+	    89 97 <dEWh mtp bytesperunit>
+	    89 8F <dEWcx mtp bytesperunit>
+	    DD 86 B0 00 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	}
 	end;
 
       ( PG edges : the whole "Calcolo confini orizzontali" block.
@@ -220,6 +293,10 @@
 	A = [EWity]; ? A >= [EWjty] -> PG ew next;
 	C = [EWjty]; C - [EWity]; C+; [EWcx] = C;
 	[EWh] = [EWity];
+	A = [SPterrain]; ? A = 0 -> PG ew intfor;
+	A = fw; [PGfwbase] = A; [PGFi] = FSBNDX;
+	=> PG terrain edge rows native;
+	-> PG ew next;
     "PG ew intfor"
 	( fist bndx - NO POP.  The accumulator keeps running. )
 	[PGFi] = FSBNDX; => PGF a;
