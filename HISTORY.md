@@ -22,9 +22,10 @@ identified by live walking and retained. Source-safe Manhattan and wholly
 off-screen polygon rejection are live; deferring the exact texture basis until
 after screen rejection cut the hidden 60-frame checkpoint from 6,689 to 5,728
 ms and render counts from 38,792,130 to 31,852,389. Inlining the exact bounded
-surface-map byte reads then cut the steady 12-frame sample from 1,319 to 1,053
-ms, raising the measured rate from 9 to 11 FPS. The 60-FPS optimization goal
-remains open.
+surface-map byte reads was remeasured against its preceding committed binary
+with identical ten-second hidden warmups: the steady 12-frame sample fell from
+1,973 to 1,311 ms and the 60-frame wall time from 10,237 to 6,650 ms, raising
+the measured rate from 6 to 9 FPS. The 60-FPS optimization goal remains open.
 
 ## 2026-08-12 -- source-lit Stardrifter and natural surface fauna
 

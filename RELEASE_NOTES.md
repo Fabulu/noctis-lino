@@ -32,9 +32,11 @@ An off-screen `polymap` rejection and the source Manhattan gate reduce only
 work that cannot contribute pixels. Texture-basis construction now occurs
 after that rejection, cutting the hidden lunar checkpoint from 38,792,130 to
 31,852,389 render counts and from 6,689 to 5,728 ms for 60 frames. Specialized
-bounded surface-map reads then reduced its steady 12-frame sample from 1,319
-to 1,053 ms and raised the measured rate from 9 to 11 FPS. The 60-FPS
-optimization target remains open.
+bounded surface-map reads were remeasured against the preceding committed
+binary with the same ten-second hidden warmup: they reduced the steady
+12-frame sample from 1,973 to 1,311 ms and the 60-frame wall time from 10,237
+to 6,650 ms, raising the measured rate from 6 to 9 FPS. The 60-FPS optimization
+target remains open.
 
 The earlier release audit passed all 24 then-registered suites. The integrated
 build/flight/render/present loop also completed 600,000 frames in 8,125.55
