@@ -5537,14 +5537,34 @@
 	               (pos_z-tile_centre_z)^2), then depth=(hpdep>>14)-1. )
 	A = [VHGNDx]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
 	C = [VHGNDcamx]; C - A;
-	[VHGNDdx] = C; [FI] = C; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
-	[FT0] = [FA0]; [FT1] = [FA1];
+	[VHGNDdx] = C;
 	A = [VHGNDz]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
 	C = [VHGNDcamz]; C - A;
-	[VHGNDdz] = C; [FI] = C; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
-	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => FSqrt; => FToIntChop;
+	[VHGNDdz] = C;
+	( Fuse the existing IntToF / square / add / sqrt / chop chain without
+	  changing its qword spill points or x87 control-word transition. )
+	{
+	    DB 87 <dVHGNDdx mtp bytesperunit> (fild dx)
+	    DD 9F <dFA0 mtp bytesperunit>      (fstp qword FA)
+	    DD 87 <dFA0 mtp bytesperunit>      (fld qword FA)
+	    DC 8F <dFA0 mtp bytesperunit>      (fmul qword FA)
+	    DD 9F <dFT0 mtp bytesperunit>      (fstp qword dx2)
+	    DB 87 <dVHGNDdz mtp bytesperunit> (fild dz)
+	    DD 9F <dFA0 mtp bytesperunit>      (fstp qword FA)
+	    DD 87 <dFA0 mtp bytesperunit>      (fld qword FA)
+	    DC 8F <dFA0 mtp bytesperunit>      (fmul qword FA)
+	    DD 9F <dFA0 mtp bytesperunit>      (fstp qword dz2)
+	    DD 87 <dFA0 mtp bytesperunit>      (fld qword dz2)
+	    DC 87 <dFT0 mtp bytesperunit>      (fadd qword dx2)
+	    DD 9F <dFA0 mtp bytesperunit>      (fstp qword sum)
+	    DD 87 <dFA0 mtp bytesperunit>      (fld qword sum)
+	    D9 FA                              (fsqrt)
+	    DD 9F <dFA0 mtp bytesperunit>      (fstp qword distance)
+	    D9 AF <dGRcwc mtp bytesperunit>    (fldcw chop)
+	    DD 87 <dFA0 mtp bytesperunit>      (fld qword distance)
+	    DB 9F <dFI mtp bytesperunit>       (fistp dword depth)
+	    D9 AF <dGRcwn mtp bytesperunit>    (fldcw nearest)
+	}
 	A = [FI]; A > 14; A - 1; ? A >= 0 -> VHGND tile depth ready; A = 0;
     "VHGND tile depth ready"
 	[VHGNDdepth] = A;

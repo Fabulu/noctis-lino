@@ -43,7 +43,10 @@ bounded surface-map reads were remeasured against the preceding committed
 binary with the same ten-second hidden warmup: they reduced the steady
 12-frame sample from 1,973 to 1,311 ms and the 60-frame wall time from 10,237
 to 6,650 ms, raising the measured rate from 6 to 9 FPS. The 60-FPS optimization
-target remains open.
+target remains open. A subsequent exact fusion of the per-tile x87 distance
+chain retained every qword spill, square root and chop-conversion boundary; in
+a same-scene hidden A/B against its immediate predecessor, the 11-frame sample
+fell from 1,482 to 1,329 ms and the 60-frame wall time from 6,858 to 6,665 ms.
 
 The earlier release audit passed all 24 then-registered suites. The integrated
 build/flight/render/present loop also completed 600,000 frames in 8,125.55

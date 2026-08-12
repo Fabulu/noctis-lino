@@ -762,7 +762,9 @@ def main() -> int:
         "[SUfmask] = 7; => SU frnd;" in shade
         and "A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;" in shade
         and "=> VHGND tile depth;" in shade
-        and "=> FAdd; => FSqrt; => FToIntChop;" in depth
+        and "D9 FA                              (fsqrt)" in depth
+        and "D9 AF <dGRcwc mtp bytesperunit>    (fldcw chop)" in depth
+        and "DB 9F <dFI mtp bytesperunit>       (fistp dword depth)" in depth
         and "? C '<= 32" in shade
         and "A = [VHGNDshade]; [SPtinta] = A; [DBcol] = A;" in tile
         and "=> VHGND palette" not in game,
