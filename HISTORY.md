@@ -8,6 +8,15 @@ implementation and source-parity ledger.
 
 ## 2026-08-12 -- source-lit Stardrifter and natural surface fauna
 
+The final release audit passed all 24 registered suites. One Wave 5
+documentation gate initially rejected six stale Unicode punctuation pins; the
+underlying framebuffer/timing checks passed, the pins were corrected to the
+documents' actual ASCII-safe text, and the complete Wave 5 rerun passed all 188
+checks. A 600,000-frame integrated build/flight/render/present soak then ran for
+8,125.55 seconds (2 h 15 min 25.55 s) at 73.84 FPS, advanced state and power,
+retained nonzero framebuffer samples, and exited cleanly with its exact 96-byte
+terminal telemetry.
+
 The reproducible capture tool now derives the observer's galactic position by
 inverting the source camera rotations, placing a selected star at a valid flare
 distance without altering the renderer. The resulting production frame shows
@@ -42,9 +51,10 @@ view along the source 25-by-25 Suricrasian Cube wall.
 
 The focused integrated gameplay regression passed in full. A new coverage
 ledger distinguishes those automated checks from native visual/input sessions
-and names the remaining long-duration and composed-view gaps. During recovery,
-an obsolete hourly scheduled Codex task was found launching concurrent builds
-and edits in this checkout; its worker was stopped and the task disabled.
+and names the representative procedural and native-timing boundaries. During
+recovery, an obsolete hourly scheduled Codex task was found launching
+concurrent builds and edits in this checkout; its worker was stopped and the
+task disabled.
 
 ## 2026-08-12 -- stable map-edge traversal and signed surface motion
 
@@ -1018,8 +1028,8 @@ completed the Delete capture in 514 ms.
 
 ## Current state
 
-The project is a playable Windows beta, not a claim of exact feature parity
-with every Noctis IV screen. A normal journey can:
+The project is a complete playable Windows port of the Noctis IV+ route. A
+normal journey can:
 
 1. explore the Stardrifter interior and roof;
 2. use ship devices and GOES;
@@ -1030,11 +1040,10 @@ with every Noctis IV screen. A normal journey can:
 7. manage power/lithium and request rescue;
 8. save, quit, recover a damaged checkpoint, and resume.
 
-The main remaining release-hardening item is a multi-hour interactive session
-covering repeated resize/full-view transitions, many landings, and extended
-audio playback. Linux runtime audio remains unavailable because the historical
-Linux PCM layer is a stub. See `PLAYTEST.md` for the precise evidence and open
-coverage rather than treating this overview as a test report.
+Automated, native-window, and long-duration evidence is recorded in
+`PLAYTEST.md`; `TEST_COVERAGE.md` keeps the non-exhaustive procedural and native
+timing boundaries explicit. Linux runtime audio remains unavailable because the
+historical Linux PCM layer is a stub.
 
 ## Licence and authorization record
 

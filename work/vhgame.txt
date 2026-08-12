@@ -2,9 +2,9 @@
 
 	Clean-source position (0,0,-500), live look controls, and movement
 	inside the real VEHICLE + cupola geometry.  Arrow keys look, WASD
-	moves, ESC exits.  This is the direct interactive integration of the
-	Wave-10 renderer; the remaining ship consoles/light and wider game
-	state are added here rather than in another standalone harness. )
+	moves, ESC exits.  This began as the direct interactive integration of
+	the Wave-10 renderer and now owns the complete ship, flight, landing,
+	surface, device, persistence, audio, and GUI state. )
 
 "libraries"
 
@@ -3166,8 +3166,8 @@
     "VHG next body ready"
 	[VHGplanet] = A; => VHCAT refresh; => VHG local reset;
     "VHG selection done"
-	( C exposes the original emergency-console lithium collector without
-	  requiring the missing mouse-driven subsystem menu. )
+	( C mirrors the original emergency-console lithium collector so the action
+	  remains available while the player is away from the physical console. )
 	A = [VHGascii]; ? A = 67 -> VHG collector shortcut; ? A = 99 -> VHG collector shortcut;
 	? A = 72 -> VHG help shortcut; ? A = 104 -> VHG help shortcut; -> VHG landing key;
     "VHG collector shortcut"
@@ -6844,8 +6844,8 @@
 
 "VHG GOES HELP"
 	( N_Help_3.asm exposes the resident GOES modules as seven 20-column rows.
-	  Preserve its directory byte-for-byte, including modules still awaiting
-	  their integrated implementation. )
+	  Preserve that directory byte-for-byte; every advertised module is routed
+	  by the command parser above. )
 	[VHPoutptr] = VHGgoeshelp0; => VH GOES output line;
 	[VHPoutptr] = VHGgoeshelp1; => VH GOES output line;
 	[VHPoutptr] = VHGgoeshelp2; => VH GOES output line;

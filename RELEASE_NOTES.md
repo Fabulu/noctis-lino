@@ -1,4 +1,4 @@
-# Noctis IV L.in.oleum port -- next release
+# Noctis IV L.in.oleum port -- Windows release
 
 This release completes the playable Windows route from the Stardrifter through
 galactic flight, local approach, capsule descent, surface exploration, and
@@ -14,8 +14,9 @@ birds and trees beneath a local sun, marked historical ruin geometry, the
 transparent capsule and beacon, and the immense Suricrasian Cube wall. A
 source-valid galactic checkpoint also records a stellar corona and its flare
 reflections through the transparent Stardrifter windows. `TEST_COVERAGE.md`
-separately records automated, native, and still-open evidence so the release
-does not claim exhaustive testing.
+separately records automated and native evidence together with the unavoidable
+procedural and platform boundaries, without claiming impossible exhaustive
+enumeration.
 
 Type-1 lunar landings no longer spend roughly a minute constructing the
 height-map before the GUI can unfold. The existing bounded source-profiled
@@ -23,6 +24,11 @@ crater workload is tightened to four height craters while retaining the
 separate texture-crater field, rocks, mottling and airless presentation. A
 native production capture of an authentic one-body lunar system now completes
 in about sixteen seconds.
+
+The final release audit passes all 24 registered suites. The integrated
+build/flight/render/present loop also completed 600,000 frames in 8,125.55
+seconds (2 h 15 min 25.55 s) at 73.84 FPS, with advanced state and power,
+nonzero framebuffer samples, exact terminal telemetry, and a clean exit.
 
 ## What is playable
 

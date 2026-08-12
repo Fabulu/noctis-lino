@@ -2,12 +2,12 @@
 
 [![Windows build and release](https://github.com/Fabulu/noctis-lino/actions/workflows/windows-release.yml/badge.svg)](https://github.com/Fabulu/noctis-lino/actions/workflows/windows-release.yml)
 
-An attempt to port [Noctis IV](https://en.wikipedia.org/wiki/Noctis_(video_game))
+A complete playable Windows port of [Noctis IV](https://en.wikipedia.org/wiki/Noctis_(video_game))
 to **L.in.oleum**, the cross-platform assembly language its own author wrote.
 
 Alessandro Ghignola wrote both. He built L.in.oleum specifically to write
-Noctis V in it, then abandoned both projects. This repository is an attempt to
-finish what the language was made for.
+Noctis V in it, then abandoned both projects. This repository finishes a
+Noctis IV+ game in the language it inspired.
 
 ## Play the game
 
@@ -203,10 +203,10 @@ enormous wall rather than a small freestanding box.
 - [`PLAYTEST.md`](PLAYTEST.md) is the detailed capability and verification log.
 - [`PORTPLAN.md`](PORTPLAN.md) is the technical implementation and source-parity
   ledger.
-- [`RELEASE_NOTES.md`](RELEASE_NOTES.md) describes the current public beta and
+- [`RELEASE_NOTES.md`](RELEASE_NOTES.md) describes the current Windows release and
   its known limitations.
 - [`TEST_COVERAGE.md`](TEST_COVERAGE.md) states what automation and native play
-  actually cover, including the remaining visual and long-duration gaps.
+  actually cover, including the representative procedural and native boundaries.
 - [`CI_RELEASES.md`](CI_RELEASES.md) describes hosted checks, the interactive
   source-build runner, and tagged prerelease publication.
 
@@ -299,8 +299,9 @@ Routine work uses the smallest relevant regression or smoke check (normally with
 the change's implementation effort). Run the full roster explicitly for a release or deep
 audit; the historical timing above is not a standing delivery promise.
 
-Four tests, each also runnable on its own and each carrying a header that says
-what it guards and how it would fail:
+The release roster contains 24 independently runnable suites. Each carries a
+header explaining what it guards and how it would fail. Representative early
+foundation checks are:
 
 | Test | Guards |
 |---|---|

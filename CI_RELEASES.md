@@ -79,7 +79,8 @@ git push origin v0.1.0
 The tag launches hosted validation, packaging, and publication. If validation
 or packaging fails, no release is created. If the tag already has a release,
 rerunning the workflow replaces its three generated assets. The release remains
-a prerelease while the game is under active parity development.
+a prerelease until a stable version tag and its exact provenance artifact have
+been reviewed for public promotion.
 
 As of 2026-08-12 GitHub reports no self-hosted runner registered for this
 repository. This only blocks the optional clean-source rebuild artifact. It does

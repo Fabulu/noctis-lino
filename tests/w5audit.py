@@ -1120,12 +1120,12 @@ TIER_CLAIMS = [
         why="asserted, never measured; must stay NOT GRADED"),
     TierClaim(
         "docs-notes/HARNESSAUDIT.md",
-        "| 531 | Tier 0 declaration | — | — | NOT GRADED, correctly |",
+        "| 531 | Tier 0 declaration | -- | -- | NOT GRADED, correctly |",
         0, ["T0.ALIAS8.PREMISE"], why="the same premise, printed not counted"),
     TierClaim(
         "docs-notes/HARNESSAUDIT.md",
-        "| 663–669 | BMP is ×4-scaled, PNG is shift-or-scaled, mutually exclusive "
-        "| 1996/DOSBox artifact | arithmetic predicate | **SOUND** — Tier 1, external |",
+        "| 663-669 | BMP is ×4-scaled, PNG is shift-or-scaled, mutually exclusive "
+        "| 1996/DOSBox artifact | arithmetic predicate | **SOUND** -- Tier 1, external |",
         1, ["T1.BMP.SCALE", "T1.PNG.SCALE"],
         why="graded against captures this project did not make"),
     TierClaim(
@@ -1135,8 +1135,8 @@ TIER_CLAIMS = [
         0, ["T0.ALIAS8.PREMISE"], why="the pin's premise, again"),
     TierClaim(
         "docs-notes/HARNESSAUDIT.md",
-        "| 237–239 | `consistent_with_x4` / `consistent_with_shift_or`, both reported "
-        "| **SOUND** — falsifiable in both directions, which is why the Tier 1 row "
+        "| 237-239 | `consistent_with_x4` / `consistent_with_shift_or`, both reported "
+        "| **SOUND** -- falsifiable in both directions, which is why the Tier 1 row "
         "means something |",
         1, ["T1.BMP.SCALE", "T1.PNG.SCALE"], why="same pair, stated from fb_bmp"),
     TierClaim(
@@ -1145,14 +1145,14 @@ TIER_CLAIMS = [
         1, ["T1.PAL.FIT", "T1.PAL.NOROUND", "T1.PAL.NODIV64"],
         why="the palette against the 1996 BMP"),
     TierClaim(
-        "docs-notes/LINOBUF.md", "### Tier 1 — exact, against artifacts this project did not make",
+        "docs-notes/LINOBUF.md", "### Tier 1 -- exact, against artifacts this project did not make",
         1, ["T1.PAL.FIT", "T1.BMP.SCALE"], why="the section that DEFINES tier 1"),
     TierClaim(
-        "docs-notes/LINOBUF.md", "### Tier 2 — exact, two independent implementations",
+        "docs-notes/LINOBUF.md", "### Tier 2 -- exact, two independent implementations",
         2, ["T2.REC.PAL6.PYVSC", "T2.LINO.REC.PAL6"], producers=3,
         why="the section that DEFINES tier 2"),
     TierClaim(
-        "docs-notes/LINOBUF.md", "### Tier 3 — properties that need no oracle",
+        "docs-notes/LINOBUF.md", "### Tier 3 -- properties that need no oracle",
         3, ["T3.LAYOUT.CHECK", "T3.OVERRUN.CENSUS"],
         why="the section that DEFINES tier 3"),
 ]

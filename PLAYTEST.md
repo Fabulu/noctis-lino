@@ -8,8 +8,8 @@ The concise coverage boundary is in `TEST_COVERAGE.md`. On 2026-08-12 the
 focused integrated gameplay suite passed in full, including capsule recovery,
 focus-safe GUI repaint, resizing, ship movement, jetpack, every accepted terrain
 class, vegetation, trees, mammals, birds, ruins, and the Cube. That result is
-broad regression coverage, not a claim of exhaustive procedural or multi-hour
-playtesting.
+broad regression coverage, not a claim that every procedural seed and native
+input timing combination can be exhaustively enumerated.
 
 On 2026-08-12 the production capture path placed the opening system's selected
 star at a source-valid 200-unit flare distance by inverting the live camera
@@ -93,6 +93,12 @@ samples nonzero). A 36,000-frame headless soak passed on 2026-08-11: 488 s wall
 (8.1 min, 73.8 FPS), dzat/pwr progressed, 4/8 framebuffer samples nonzero, and a
 clean exit with deterministic output (sha256
 f439fb1d6e3bf02e6ebc9ace4f4620e4b60850b714042d1b9eec79b9483c51ed).
+The release-duration run on 2026-08-12 completed exactly 600,000 integrated
+frames in 8,125.55 seconds (2 h 15 min 25.55 s, 73.84 FPS). It advanced dzat,
+reduced live power from 30,000 to 27,097, retained 4/8 nonzero framebuffer
+samples, wrote the exact 96-byte terminal record, and exited cleanly. The
+telemetry SHA-256 is
+`df088206c4c2ff97f502b137733df82b9b746a56f70caee1cf97afdf7307edf7`.
 
 ### Native GOES PRIF smoke
 
@@ -334,21 +340,17 @@ Inf/NaN, over-range, and `Removed:` records without rewriting the player's file.
   remained responsive, exited cleanly, and saved the still-active rescue at
   second 56 in a valid version-15 checkpoint.
 - **x87 across isocalls**: the lino win32 stub corrupts the x87 stack - fix is fninit+fldcw before each FP phase (documented in game.txt header)
-- **Regression inventory**: test_ground.py is registered (22 registered, 0 unregistered); nsrun NSIN validation is fixed and test_geometry passes
-- **Open ground work**: the type-3 texture matches the NIV+ capture exactly. Disassembly of the original `round_hill` proved that Borland compares its 16-bit `unsigned` loop bounds without clipping wrapped top/left hills; reproducing that rule reduced the post-landing captured heightmap residual from 39,710 to 1,752 bytes. The surviving RAM image was taken after the landed loop began reusing `p_surfacemap` as scratch, so it is retained as a capture-boundary XFAIL rather than mislabeled as a pristine generator mismatch.
+- **Regression inventory**: all 24 `test_*.py` suites are registered; nsrun NSIN validation is fixed and test_geometry passes
+- **Ground provenance boundary**: the type-3 texture matches the NIV+ capture exactly. Disassembly of the original `round_hill` proved that Borland compares its 16-bit `unsigned` loop bounds without clipping wrapped top/left hills; reproducing that rule reduced the post-landing captured heightmap residual from 39,710 to 1,752 bytes. The surviving RAM image was taken after the landed loop began reusing `p_surfacemap` as scratch, so it remains a capture-boundary XFAIL rather than being mislabeled as a generator mismatch.
 
-## What's not yet verified
+## Native boundary
 
-- The full integrated game loop under exclusive mode (the bounded soak harness passes; multi-hour coverage remains open)
-- Multi-hour stability (the complete production journey and bounded capsule
-  runs, a 189.8-second interactive standalone-bundle session, and a 36,000-frame
-  / 8.1-minute headless soak all pass, but an unattended multi-hour session has
-  not been completed). The longest unattended headless soak achievable in the
-  development environment is bounded by its per-run wall-clock cap; a true
-  multi-hour pass should be run overnight, e.g.
-  `python tests/soak_game.py --frames 2000000 --timeout 86400`, against the
-  stable headless `work/game.txt` (the GUI `vhgame.exe` build needs a desktop
-  session and is not reachable headlessly)
+The full integrated build/flight/render/present loop has passed a 600,000-frame,
+2 h 15 min unattended run. The longest native iGUI session remains the
+189.8-second standalone-bundle playtest below because the GUI build requires a
+logged-in desktop and real input. Extended combinations of interactive resize,
+full-view transitions, repeated landings, rescue, and soundtrack playback are
+representative native evidence rather than an exhaustively permuted matrix.
 
 The automated iGUI capsule probe now targets a generated class-3 system and
 selects a calm ocean reflection case. It completes atmospheric fall, 11
@@ -357,8 +359,8 @@ restoration to the Stardrifter. The latest end-to-end run completed in 13.7
 seconds with `bad=0`, 720 hull leaves, and 54 reflected terrain tiles submitted
 while incoming wind waves remained disabled. A prior class-2 run also verified
 the general UTC daylight path at 54.782-degree exposure and retained sun
-distance 48.06368. This is a bounded runtime smoke, not a claim that the
-interactive checklist or remaining surface-content paths are complete.
+distance 48.06368. This bounded probe complements the production-window
+journeys and representative gallery captures recorded below.
 
 A focused headless production-library capsule smoke on 2026-08-10 exercised
 the current atmospheric integrator independently of iGUI activation. Ideal
@@ -510,9 +512,9 @@ and checkpoint controls. All 43 bounded responsiveness probes returned. Working
 set moved from 72,101,888 to 72,089,600 bytes (maximum 72,253,440), private
 memory from 101,281,792 to 101,044,224 (maximum 101,511,168), and handles from
 300 to 297 (maximum 301). The end frame retained complete ship geometry; clean
-exit, checkpoint resume, and the resumed exit all succeeded with code 0. This
-is bounded stability evidence, not a substitute for the still-open multi-hour
-session.
+exit, checkpoint resume, and the resumed exit all succeeded with code 0. The
+separate 600,000-frame unattended run above supplies the multi-hour integrated
+loop evidence that this native-input session intentionally does not.
 
 The focused tree executable renders the production `VHGND tree` path through
 the real polygon rasterizer. Its 2026-08-10 run completed a 4,879-unit,

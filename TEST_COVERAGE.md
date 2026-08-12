@@ -18,6 +18,7 @@ tested.
 | Historical ruins and Suricrasian Cube | All six source ruin styles, three historical systems, Cube footprint and marked wall rows/columns | Marked triangular-silhouette ruin and elevated Cube-wall screenshots |
 | GOES, Guide, starmap and devices | Integrated command, parsing, persistence, file, power, lithium and rescue checks | Physical-console screenshots and native sessions |
 | Save/load and distribution | Version 1-15 migration, version 16 state, backup recovery, packaging and protected upstream checks | Corrupt-primary recovery and packaged-launch sessions in `PLAYTEST.md` |
+| Long-duration loop | 600,000 integrated build/flight/render/present frames, exact terminal telemetry and clean exit over 2 h 15 min | 189.8-second standalone-bundle session with 43/43 responsive probes and stable memory/handles |
 | CI/CD | Hosted focused regression, snapshot package and tagged prerelease jobs; separate interactive source-build workflow | Current `master` run is green; no `lino-gui` runner is registered, so the optional fresh-source artifact is unavailable |
 
 ## Commands
@@ -34,8 +35,9 @@ python tests\run_all.py  # explicit deep/release audit, not a routine gate
   gallery uses known dry cells and representative classes.
 - Pixel appearance, focus switching, live input timing, sound, and resizing
   still need native Windows evidence in addition to source/state assertions.
-- Multi-hour travel, rescue, soundtrack, and every combination of preferences
-  are not exhaustively replayed on every change.
+- Multi-hour integrated stability is covered; multi-hour real-input travel,
+  rescue, soundtrack, resize, and every preference combination are not
+  exhaustively replayed on every change.
 - No finite gallery can show every generated star, world, ruin, animal, weather
   state, viewing angle, or preference combination. The checked-in images are
   reproducible representative evidence, not golden-image tests.

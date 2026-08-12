@@ -47,6 +47,18 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Complete the release audit and long-duration run
+
+- All 24 registered release suites pass. The sole broad-run failure was a Wave
+  5 mechanical documentation gate whose six pinned quotes still used older
+  Unicode punctuation; correcting them to the active documents' ASCII-safe
+  spelling restored the gate, and the complete Wave 5 suite passed all 188
+  checks.
+- The sandboxed integrated build/flight/render/present loop completed 600,000
+  frames in 8,125.55 seconds (2 h 15 min 25.55 s) at 73.84 FPS. Exact terminal
+  telemetry proved dzat and power progression, 4/8 nonzero framebuffer samples,
+  the required 96-byte record, and a clean exit.
+
 ### Make lunar landings and production evidence practical
 
 - Type-1 terrain retains the source powered-crater profile, deterministic
@@ -1261,7 +1273,9 @@ first -- a broken foundation makes every later result meaningless.
   help/FPS repaints, cadence/audio toggles, and checkpoints with 43/43 responsive
   window probes. Working/private memory and handle counts ended below baseline,
   the rendered ship remained coherent, and exit/resume/exit all completed with
-  code 0. Multi-hour coverage remains a separate open release-hardening item.
+  code 0. The later 600,000-frame unattended run supplies 2 h 15 min of
+  integrated-loop duration evidence; this session remains the native-input and
+  iGUI complement.
 - A fresh relocated-launch smoke invoked `Play Noctis IV.cmd` from an unrelated
   working directory. The game and launcher exited with code 0, the valid
   152-byte version-7 checkpoint and diagnostic appeared only in the bundle,
