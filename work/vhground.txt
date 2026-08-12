@@ -2111,9 +2111,14 @@
 	  alpha.  The original offset-map panorama is regenerated when the view
 	  changes, then cached as a complete 320x200 indexed sky.  Steady walking
 	  restores that cache at the same cost as the former flat page clear. )
-	A = [VHGNDbeta]; A + 51; A % 360; C = [VHGNDalpha]; C % 360;
-	A - C; [VHGNDbgstart] = A;
-	A = 0; A - 4; C = [VHGNDalpha]; C '/ 72; C '* 320; A - C;
+	( Immediately before background(), NIV+ assigns alfa=user_alfa (pitch)
+	  and beta=user_beta (yaw).  Preserve its full 360*pitch panorama stride
+	  before the 16-bit source-cursor wrap. )
+	A = [VHGNDalpha]; A + 51; A '* 360;
+	C = [VHGNDbeta]; C % 360; A - C; [VHGNDbgstart] = A;
+	( The two integer-multiple remainder terms in the source are zero.  Its
+	  remaining shift is -4 - 639 - trunc(yaw/72)*320. )
+	A = 0; A - 643; C = [VHGNDbeta]; C '/ 72; C '* 320; A - C;
 	[VHGNDbgshift] = A;
 	[BGstart] = [VHGNDbgstart]; [BGshift] = [VHGNDbgshift];
 	[BGbytes] = OMBYTES; [BGtabreg] = RGOFF; [BGsrcreg] = RGSBG;
@@ -2280,12 +2285,9 @@
 	end;
 
 "VHGND render"
-	( Sky first, then the source 64-tile circular visibility range.  The
-	  original submits every full-detail tile; this unit-addressed port keeps
-	  that range playable with three concentric resolutions: 32-tile far,
-	  8-tile middle, exact 1-tile near.  The exact mesh covers a three-tile
-	  walking radius; all rings use fragment()'s Euclidean depth gate and
-	  draw far-to-near. )
+	( Sky first, then NIV+'s fully textured unit fragments through depth 64,
+	  traversed in the source quadrant painter order.  The source Manhattan
+	  and facing gates reject only fragments and triangles NIV+ would not draw. )
 	A = [VHGNDdosim]; ? A = 0 -> VHGND render tick ready; [VHGNDtick]+;
     "VHGND render tick ready"
 	=> VHGND wave impact tick;
@@ -2310,15 +2312,7 @@
     "VHGND water render done"
 	A = [VHGlanded]; ? A = 0 -> VHGND render descent;
 
-	[VHGNDlodstep] = 32; [VHGNDlodradius] = VHGNDFAR;
-	[VHGNDmindepth] = VHGNDMID; [VHGNDmaxdepth] = VHGNDFAR;
-	=> VHGND traverse;
-	[VHGNDlodstep] = 8; [VHGNDlodradius] = VHGNDMID;
-	[VHGNDmindepth] = 3; [VHGNDmaxdepth] = VHGNDMID;
-	=> VHGND traverse;
-	[VHGNDlodstep] = 1; [VHGNDlodradius] = 3;
-	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = 3;
-	=> VHGND traverse;
+	=> VHGND traverse faithful;
 	-> VHGND render terrain done;
     "VHGND render descent"
 	( From the airborne pod, one broad coarse pass covers the visible landing
@@ -2330,7 +2324,9 @@
 	A = [VHGlanded]; ? A = 0 -> VHGND render objects done;
 	=> VHGND render distant objects;
     "VHGND render objects done"
-	=> VHGND render ruins;
+	( The faithful unit mesh already visits every ruinschart tile in source
+	  painter order.  The old second ruins pass existed only to patch holes
+	  left by the removed coarse mesh and would now redraw terrain late. )
 	=> VHGND capsule;
 	=> VHGND render animals;
 	=> VHGND render birds;
@@ -4531,9 +4527,9 @@
 	end;
 
 "VHGND render ruins"
-	( The normal landed renderer groups distant ground into 8/16-tile quads.
-	  Historical walls are often only one map point thick, so overlay just the
-	  marked unit tiles instead of making the entire landscape full-detail. )
+	( Reflection fallback retains a separate marked-tile pass.  Normal landed
+	  terrain already carries ruins in its faithful unit traversal and does not
+	  call this compensating path. )
 	[VHGNDruinpass] = 0; A = [VHGlanded]; ? A = 0 -> VHGND render ruins done;
 	A = [VHGNDruinanchor]; ? A = 0 -> VHGND render ruins done;
 	[VHGNDruinpass] = 1; [VHGNDlodstep] = 1; [VHGNDlodradius] = VHGNDFAR;
@@ -4595,9 +4591,133 @@
 	? A >= [VHGNDzlo] -> VHGND render z;
 	end;
 
+"VHGND traverse faithful"
+	( NIV+ iperficie()/fragment(): one map tile per fragment, depth 64,
+	  and quadrant-dependent far-to-near painter order.  Bounds of 65 retain
+	  every tile whose centre can truncate to source depth 64 while avoiding
+	  the source loops over cells that its own depth test must reject. )
+	[VHGNDlodstep] = 1; [VHGNDlodradius] = 65;
+	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = VHGNDFAR;
+	A = [VHGNDbeta]; ? A >= 0 -> VHGND faithful beta ready; A + 360;
+    "VHGND faithful beta ready"
+	A % 360; [VHGNDtmp] = A;
+	? A < 45 -> VHGND faithful north; ? A '>= 315 -> VHGND faithful north;
+	? A < 135 -> VHGND faithful east; ? A < 225 -> VHGND faithful south;
+	-> VHGND faithful west;
+
+    "VHGND faithful x bounds"
+	A = [VHGNDcamx]; A > 14; A - 65; [VHGNDxlo] = A;
+	? A >= 0 -> VHGND faithful xlo ready; [VHGNDxlo] = 0;
+    "VHGND faithful xlo ready"
+	A = [VHGNDcamx]; A > 14; A + 65; [VHGNDxhi] = A;
+	? A '<= 198 -> VHGND faithful x bounds done; [VHGNDxhi] = 198;
+    "VHGND faithful x bounds done"
+	end;
+
+    "VHGND faithful z bounds"
+	A = [VHGNDcamz]; A > 14; A - 65; [VHGNDzlo] = A;
+	? A >= 0 -> VHGND faithful zlo ready; [VHGNDzlo] = 0;
+    "VHGND faithful zlo ready"
+	A = [VHGNDcamz]; A > 14; A + 65; [VHGNDzhi] = A;
+	? A '<= 198 -> VHGND faithful z bounds done; [VHGNDzhi] = 198;
+    "VHGND faithful z bounds done"
+	end;
+
+    "VHGND faithful north"
+	=> VHGND faithful x bounds;
+	A = [VHGNDcamz]; A > 14; A - 1; [VHGNDzlo] = A;
+	? A >= 0 -> VHGND faithful north zlo ready; [VHGNDzlo] = 0;
+    "VHGND faithful north zlo ready"
+	A = [VHGNDcamz]; A > 14; A + 65; [VHGNDzhi] = A;
+	? A '<= 198 -> VHGND faithful north zhi ready; [VHGNDzhi] = 198;
+    "VHGND faithful north zhi ready"
+	[VHGNDz] = [VHGNDzhi];
+    "VHGND faithful north z"
+	[VHGNDx] = [VHGNDxlo];
+    "VHGND faithful north left"
+	A = [VHGNDx]; C = [VHGNDcamx]; C > 14; ? A >= C -> VHGND faithful north right start;
+	=> VHGND tile; [VHGNDx]+; -> VHGND faithful north left;
+    "VHGND faithful north right start"
+	[VHGNDx] = [VHGNDxhi];
+    "VHGND faithful north right"
+	A = [VHGNDx]; C = [VHGNDcamx]; C > 14; ? A < C -> VHGND faithful north next z;
+	=> VHGND tile; [VHGNDx]-; -> VHGND faithful north right;
+    "VHGND faithful north next z"
+	[VHGNDz]-; A = [VHGNDz]; ? A >= [VHGNDzlo] -> VHGND faithful north z;
+	end;
+
+    "VHGND faithful south"
+	=> VHGND faithful x bounds;
+	A = [VHGNDcamz]; A > 14; A - 65; [VHGNDzlo] = A;
+	? A >= 0 -> VHGND faithful south zlo ready; [VHGNDzlo] = 0;
+    "VHGND faithful south zlo ready"
+	A = [VHGNDcamz]; A > 14; A + 1; [VHGNDzhi] = A;
+	? A '<= 198 -> VHGND faithful south zhi ready; [VHGNDzhi] = 198;
+    "VHGND faithful south zhi ready"
+	[VHGNDz] = [VHGNDzlo];
+    "VHGND faithful south z"
+	[VHGNDx] = [VHGNDxlo];
+    "VHGND faithful south left"
+	A = [VHGNDx]; C = [VHGNDcamx]; C > 14; ? A >= C -> VHGND faithful south right start;
+	=> VHGND tile; [VHGNDx]+; -> VHGND faithful south left;
+    "VHGND faithful south right start"
+	[VHGNDx] = [VHGNDxhi];
+    "VHGND faithful south right"
+	A = [VHGNDx]; C = [VHGNDcamx]; C > 14; ? A < C -> VHGND faithful south next z;
+	=> VHGND tile; [VHGNDx]-; -> VHGND faithful south right;
+    "VHGND faithful south next z"
+	[VHGNDz]+; A = [VHGNDz]; ? A '<= [VHGNDzhi] -> VHGND faithful south z;
+	end;
+
+    "VHGND faithful east"
+	=> VHGND faithful z bounds;
+	A = [VHGNDcamx]; A > 14; A - 65; [VHGNDxlo] = A;
+	? A >= 0 -> VHGND faithful east xlo ready; [VHGNDxlo] = 0;
+    "VHGND faithful east xlo ready"
+	A = [VHGNDcamx]; A > 14; A + 1; [VHGNDxhi] = A;
+	? A '<= 198 -> VHGND faithful east xhi ready; [VHGNDxhi] = 198;
+    "VHGND faithful east xhi ready"
+	[VHGNDx] = [VHGNDxlo];
+    "VHGND faithful east x"
+	[VHGNDz] = [VHGNDzhi];
+    "VHGND faithful east upper"
+	A = [VHGNDz]; C = [VHGNDcamz]; C > 14; ? A <= C -> VHGND faithful east lower start;
+	=> VHGND tile; [VHGNDz]-; -> VHGND faithful east upper;
+    "VHGND faithful east lower start"
+	[VHGNDz] = [VHGNDzlo];
+    "VHGND faithful east lower"
+	A = [VHGNDz]; C = [VHGNDcamz]; C > 14; ? A > C -> VHGND faithful east next x;
+	=> VHGND tile; [VHGNDz]+; -> VHGND faithful east lower;
+    "VHGND faithful east next x"
+	[VHGNDx]+; A = [VHGNDx]; ? A '<= [VHGNDxhi] -> VHGND faithful east x;
+	end;
+
+    "VHGND faithful west"
+	=> VHGND faithful z bounds;
+	A = [VHGNDcamx]; A > 14; A - 1; [VHGNDxlo] = A;
+	? A >= 0 -> VHGND faithful west xlo ready; [VHGNDxlo] = 0;
+    "VHGND faithful west xlo ready"
+	A = [VHGNDcamx]; A > 14; A + 65; [VHGNDxhi] = A;
+	? A '<= 198 -> VHGND faithful west xhi ready; [VHGNDxhi] = 198;
+    "VHGND faithful west xhi ready"
+	[VHGNDx] = [VHGNDxhi];
+    "VHGND faithful west x"
+	[VHGNDz] = [VHGNDzhi];
+    "VHGND faithful west upper"
+	A = [VHGNDz]; C = [VHGNDcamz]; C > 14; ? A <= C -> VHGND faithful west lower start;
+	=> VHGND tile; [VHGNDz]-; -> VHGND faithful west upper;
+    "VHGND faithful west lower start"
+	[VHGNDz] = [VHGNDzlo];
+    "VHGND faithful west lower"
+	A = [VHGNDz]; C = [VHGNDcamz]; C > 14; ? A > C -> VHGND faithful west next x;
+	=> VHGND tile; [VHGNDz]+; -> VHGND faithful west lower;
+    "VHGND faithful west next x"
+	[VHGNDx]-; A = [VHGNDx]; ? A >= [VHGNDxlo] -> VHGND faithful west x;
+	end;
+
 "VHGND render distant objects"
 	( Source fragment() keeps surface objects through depth 40.  Terrain is
-	  already covered by the concentric mesh, so scan only the exact object
+	  already covered by the faithful unit mesh, so scan only the exact object
 	  chart here and skip the depth-zero-through-three cells rendered with
 	  the near terrain pass. )
 	=> VHGND object view setup;
@@ -4677,6 +4797,18 @@
 	[VHGNDviewrz] = 0; end;
 
 "VHGND tile"
+	( fragment()'s source Manhattan precheck rejects only cells that cannot
+	  enter the depth-64 circle.  Do it before shade/depth floating work. )
+	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile source range ready;
+	A = [VHGNDcamx]; A > 14; A - [VHGNDx]; ? A >= 0 -> VHGND tile abs x ready;
+	C = 0; C - A; A = C;
+    "VHGND tile abs x ready"
+	[VHGNDtmp] = A;
+	A = [VHGNDcamz]; A > 14; A - [VHGNDz]; ? A >= 0 -> VHGND tile abs z ready;
+	C = 0; C - A; A = C;
+    "VHGND tile abs z ready"
+	A + [VHGNDtmp]; ? A > 90 -> VHGND tile done;
+    "VHGND tile source range ready"
 	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
 	=> VHGND tile shade;
 	A = [VHGNDdepth]; ? A > [VHGNDmaxdepth] -> VHGND tile done;
@@ -4718,7 +4850,14 @@
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile texture ready; [VHGNDruindrawn]+;
     "VHGND tile texture ready"
 	[SPescr] = 0; [DBflar] = 0; [DBent] = 0;
-	[SPcull] = 0; A = [VHGNDdepth]; ? A < 4 -> VHGND tile cull ready; [SPcull] = 1;
+	( Source keeps every terrain triangle textured.  Its culling flag changes
+	  texture sampling density only; deserts invert the ordinary near/far
+	  choice so distant sand does not grow coarser toward the horizon. )
+	[SPcull] = 0; A = [VHGNDsctype]; ? A != 3 -> VHGND tile cull normal;
+	A = [VHGNDdepth]; ? A '>= 4 -> VHGND tile cull ready; [SPcull] = 1;
+	-> VHGND tile cull ready;
+    "VHGND tile cull normal"
+	A = [VHGNDdepth]; ? A < 4 -> VHGND tile cull ready; [SPcull] = 1;
     "VHGND tile cull ready"
 	A = [VHGNDmirror]; ? A = 0 -> VHGND tile mirror cull ready; [SPcull] = 0;
     "VHGND tile mirror cull ready"
@@ -4735,8 +4874,15 @@
 	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
 	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
 	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	=> PG facing;
+	A = [VHGNDmirror]; ? A != 0 -> VHGND tile first mirror facing;
+	A = [FCret]; ? A = 0 -> VHGND tile first done; -> VHGND tile first visible;
+    "VHGND tile first mirror facing"
+	A = [FCret]; ? A != 0 -> VHGND tile first done;
+	A = [VHGNDs1]; A + [VHGNDs2]; A + [VHGNDs4]; ? A = 0 -> VHGND tile first done;
+    "VHGND tile first visible"
 	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile first flat;
-	A = [VHGNDdepth]; ? A '<= 1 -> VHGND tile first textured;
+	-> VHGND tile first textured;
     "VHGND tile first flat"
 	[PGtexf] = 0; [PJnrv] = 3; => PG poly3d; -> VHGND tile first done;
     "VHGND tile first textured"
@@ -4755,8 +4901,15 @@
 	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
 	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
 	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	=> PG facing;
+	A = [VHGNDmirror]; ? A != 0 -> VHGND tile second mirror facing;
+	A = [FCret]; ? A = 0 -> VHGND tile second done; -> VHGND tile second visible;
+    "VHGND tile second mirror facing"
+	A = [FCret]; ? A != 0 -> VHGND tile second done;
+	A = [VHGNDs2]; A + [VHGNDs3]; A + [VHGNDs4]; ? A = 0 -> VHGND tile second done;
+    "VHGND tile second visible"
 	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile second flat;
-	A = [VHGNDdepth]; ? A '<= 1 -> VHGND tile second textured;
+	-> VHGND tile second textured;
     "VHGND tile second flat"
 	[PGtexf] = 0; [PJnrv] = 3; => PG poly3d; -> VHGND tile second done;
     "VHGND tile second textured"
@@ -5250,7 +5403,6 @@
 	  the source's single-triangle LOD.  Close groups use fivefold scale,
 	  repeat fast_random(rockdensity) times, halve scale after each stone,
 	  and move each following centre by the original cdown-weighted draws. )
-	A = [VHGNDdepth]; ? A >= 8 -> VHGND rock done;
 	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; => SU fast srand;
 	[SUfmask] = [VHGNDrockdensity]; => VHGND render random; [VHGNDcdown] = C;
 	A = C; ? A = 0 -> VHGND rock done;
@@ -5366,6 +5518,7 @@
 	[VHGNDvv] = [VHGNDrx2]; [VHGNDvslot] = FSINX; => VHGND vload;
 	[VHGNDvv] = [VHGNDry2]; [VHGNDvslot] = FSINY; => VHGND vload;
 	[VHGNDvv] = [VHGNDrz2]; [VHGNDvslot] = FSINZ; => VHGND vload;
+	=> PG facing; A = [FCret]; ? A = 0 -> VHGND rock done;
 	[PJnrv] = 3; => PG poly3d;
     "VHGND rock done"
 	end;

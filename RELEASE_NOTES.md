@@ -8,15 +8,9 @@ Suricrasian Cube, and retains the source-equivalent ship, terrain, devices,
 GOES modules, persistence, presentation, and soundtrack systems established in
 the earlier betas.
 
-The README gallery now contains production-executable captures from fixed dry
-cells across multiple planet classes, including a naturally generated hopper,
-birds and trees beneath a local sun, marked historical ruin geometry, the
-transparent capsule and beacon, and the immense Suricrasian Cube wall. A
-source-valid galactic checkpoint also records a stellar corona and its flare
-reflections through the transparent Stardrifter windows. `TEST_COVERAGE.md`
-separately records automated and native evidence together with the unavoidable
-procedural and platform boundaries, without claiming impossible exhaustive
-enumeration.
+The README gallery refresh is in progress. Corrected planet-class captures,
+animals, trees, a distant whole-Cube view, and a close space-view planet remain
+explicit deliverables; stale artifacted frames are not accepted as evidence.
 
 Type-1 lunar landings retain the source's complete zero-to-thirty height-crater
 field, uncapped texture-crater field, dark lines, rocks, mottling and airless
@@ -29,10 +23,21 @@ plus an optional minus sign. This corrects the original ten-character editor
 limit while retaining signed 32-bit range checks, so the distant Feltyrion
 region is reachable without wrapping a coordinate.
 
-The final release audit passes all 24 registered suites. The integrated
+Landed terrain now uses NIV+'s fully textured unit-tile depth-64 mesh, source
+triangle-facing test and view-quadrant painter order. The invented 8/32-tile
+mesh and compensating late ruins pass were removed; they caused moving walls
+and erased real terrain detail. The panorama cursor now follows NIV+'s exact
+pitch/yaw formula, eliminating the camera-relative black pillar and floor gap.
+An off-screen `polymap` rejection and the source Manhattan gate reduce only
+work that cannot contribute pixels. The current faithful lunar benchmark is
+9 FPS, so the 60-FPS optimization target remains open.
+
+The earlier release audit passed all 24 then-registered suites. The integrated
 build/flight/render/present loop also completed 600,000 frames in 8,125.55
 seconds (2 h 15 min 25.55 s) at 73.84 FPS, with advanced state and power,
-nonzero framebuffer samples, exact terminal telemetry, and a clean exit.
+nonzero framebuffer samples, exact terminal telemetry, and a clean exit. That
+ship-mode soak predates the faithful landed renderer and is not evidence of
+the current surface frame rate.
 
 ## What is playable
 

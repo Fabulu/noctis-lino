@@ -251,7 +251,9 @@ foreach ($spec in $scenes) {
         New-Checkpoint -Spec $spec -Path (Join-Path $stage 'CURRENT.LIN')
         Copy-Item -LiteralPath (Join-Path $stage 'CURRENT.LIN') -Destination (Join-Path $stage 'CURRENT.BAK')
 
-        $proc = Start-Process -FilePath (Join-Path $stage 'Noctis-IV.exe') -WorkingDirectory $stage -PassThru
+        # Automated captures must not open an interactive window on the user's
+        # desktop: input would both interrupt them and taint fixed-scene probes.
+        $proc = Start-Process -FilePath (Join-Path $stage 'Noctis-IV.exe') -WorkingDirectory $stage -WindowStyle Hidden -PassThru
         $deadline = [DateTime]::UtcNow.AddSeconds(15)
         do {
             Start-Sleep -Milliseconds 100

@@ -70,6 +70,8 @@
 	PJgate	= 0;			( which clip stage returned early )
 	PJ8n	= 0;
 	PJmode	= 0;			( 0 = poly3d nucleus, 1 = polymap )
+	PJminx	= 0;			( polymap horizontal early-out box )
+	PJmaxx	= 0;
 
 	( ---- generic 2-D clip stage ---- )
 	CLxi	= 0;
@@ -399,6 +401,8 @@
 
 "PJ projectmap"
 	[PJvr] = 0;
+	[PJminx] = PGUBX;
+	[PJmaxx] = PGLBX;
 	[BXminy] = PGUBY;
 	[BXmaxy] = PGLBY;
     "PJ pm v"
@@ -410,6 +414,10 @@
 	[PGFi] = FSXC; => PGF add;
 	=> PGF int;
 	A = [PJvr]; A + A; C = mp; C + A; [C] = [FI];
+	A = [FI]; ? A >= [PJminx] -> PJ pm x min ready; [PJminx] = A;
+    "PJ pm x min ready"
+	A = [FI]; ? A <= [PJmaxx] -> PJ pm x max ready; [PJmaxx] = A;
+    "PJ pm x max ready"
 
 	[PGFi] = FSW3; => PGF a;
 	A = [PJvr]; A + FSUY; [PGFi] = A; => PGF mul;
@@ -609,6 +617,58 @@
 	A = [GCy]; ? A >= PGUBY -> PG gc done;
 	[GCret] = 1;
     "PG gc done"
+	end;
+
+( ==================================================================== )
+( facing - TDPOLYGS.H:3206-3264                                         )
+( ==================================================================== )
+
+      ( Reject a one-sided polygon before projection and texture setup.
+	The source stores both edge vectors and their cross product as float,
+	then tests (camera-v2).normal in the live x87 expression.  FSN*, FSM*
+	and FSR* are the original named scratch slots. )
+
+"PG facing"
+	[FCret] = 0;
+
+	( edge 1 = vertex 0 - vertex 2, narrowed on each float store )
+	[PGFi] = FSINX; => PGF a; A = FSINX; A + 2; [PGFi] = A; => PGF sub;
+	[PGFi] = FSNX; => PGF sa; => PGF narrow;
+	[PGFi] = FSINY; => PGF a; A = FSINY; A + 2; [PGFi] = A; => PGF sub;
+	[PGFi] = FSNY; => PGF sa; => PGF narrow;
+	[PGFi] = FSINZ; => PGF a; A = FSINZ; A + 2; [PGFi] = A; => PGF sub;
+	[PGFi] = FSNZ; => PGF sa; => PGF narrow;
+
+	( edge 2 = vertex 1 - vertex 2 )
+	A = FSINX; A + 1; [PGFi] = A; => PGF a; A = FSINX; A + 2; [PGFi] = A; => PGF sub;
+	[PGFi] = FSMX; => PGF sa; => PGF narrow;
+	A = FSINY; A + 1; [PGFi] = A; => PGF a; A = FSINY; A + 2; [PGFi] = A; => PGF sub;
+	[PGFi] = FSMY; => PGF sa; => PGF narrow;
+	A = FSINZ; A + 1; [PGFi] = A; => PGF a; A = FSINZ; A + 2; [PGFi] = A; => PGF sub;
+	[PGFi] = FSMZ; => PGF sa; => PGF narrow;
+
+	( normal = edge1 cross edge2, narrowed like xr/yr/zr )
+	[PGFi] = FSNY; => PGF a; [PGFi] = FSMZ; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSNZ; => PGF a; [PGFi] = FSMY; => PGF mul; [PGFi] = FSW0; => PGF rsub;
+	[PGFi] = FSRX; => PGF sa; => PGF narrow;
+	[PGFi] = FSNZ; => PGF a; [PGFi] = FSMX; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSNX; => PGF a; [PGFi] = FSMZ; => PGF mul; [PGFi] = FSW0; => PGF rsub;
+	[PGFi] = FSRY; => PGF sa; => PGF narrow;
+	[PGFi] = FSNX; => PGF a; [PGFi] = FSMY; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSNY; => PGF a; [PGFi] = FSMX; => PGF mul; [PGFi] = FSW0; => PGF rsub;
+	[PGFi] = FSRZ; => PGF sa; => PGF narrow;
+
+	( dot = (camera - vertex 2).normal; ftst returns visible for >= 0 )
+	[PGFi] = FSCAMX; => PGF a; A = FSINX; A + 2; [PGFi] = A; => PGF sub; [PGFi] = FSRX; => PGF mul;
+	[PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSCAMY; => PGF a; A = FSINY; A + 2; [PGFi] = A; => PGF sub; [PGFi] = FSRY; => PGF mul;
+	[PGFi] = FSW0; => PGF add; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSCAMZ; => PGF a; A = FSINZ; A + 2; [PGFi] = A; => PGF sub; [PGFi] = FSRZ; => PGF mul;
+	[PGFi] = FSW0; => PGF add;
+	[PGFi] = FSZERO; => PGF b; => FCmp;
+	A = [FI]; ? A = 2 -> PG facing done; ? A < 0 -> PG facing done;
+	[FCret] = 1;
+    "PG facing done"
 	end;
 
 ( ==================================================================== )
@@ -954,6 +1014,8 @@
 	=> PJ projectmap;
 
 	[PJgate] = 7;
+	A = [PJminx]; ? A > PGUBX -> PG pm out;
+	A = [PJmaxx]; ? A < PGLBX -> PG pm out;
 	A = [BXminy]; ? A > PGUBY -> PG pm out;
 	A = [BXmaxy]; ? A < PGLBY -> PG pm out;
 	A = [BXminy]; ? A >= PGLBY -> PG pm s1;

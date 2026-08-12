@@ -6,6 +6,22 @@ the integrated game, and what remains. It complements `PLAYTEST.md`, which is
 the detailed evidence log, and `PORTPLAN.md`, which is the technical
 implementation and source-parity ledger.
 
+## 2026-08-12 -- faithful terrain renderer correction
+
+Live walking identified camera-relative black/white walls, floor gaps, and
+crashes when backing away. The black pillar was isolated to the panorama even
+with terrain disabled: the port had swapped the pitch/yaw cursor axes, omitted
+NIV+'s 360-byte row stride, and omitted its -639 shift. Restoring the literal
+source cursor removes the pillar across the quartz and lunar fixed scenes.
+
+The remaining moving walls came from an invented 8/32-tile terrain mesh and a
+late ruins overlay. Landed rendering now submits NIV+'s unit tiles through the
+source depth-64 circle, triangle facing checks, fully textured path and
+view-quadrant painter order. Legitimate distant crystals were separately
+identified by live walking and retained. The faithful lunar path currently
+measures 9 FPS; source-safe Manhattan and wholly off-screen polygon rejection
+are live, but the 60-FPS optimization goal remains open.
+
 ## 2026-08-12 -- source-lit Stardrifter and natural surface fauna
 
 The final release audit passed all 24 registered suites. One Wave 5

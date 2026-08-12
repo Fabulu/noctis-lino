@@ -748,12 +748,13 @@ def main() -> int:
     check(
         tile.count("=> PG polymap;") == 2
         and tile.count("=> PG poly3d;") == 2
-        and tile.count("[VHGNDdepth]; ? A '<= 1") == 2
+        and tile.count("-> VHGND tile first textured;") == 1
+        and tile.count("-> VHGND tile second textured;") == 1
         and '"VHGND tile first flat"' in tile
         and '"VHGND tile second flat"' in tile
         and "[PGtexf] = 5" in ground
         and '"PG tex 5"' in (ROOT / "work" / "pgmem.txt").read_text(encoding="utf-8"),
-        "landing textures the nearest ground triangles and flat-shades coarse LOD",
+        "faithful landed unit triangles stay texture mapped while airborne fallback remains bounded",
     )
     depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
@@ -887,9 +888,9 @@ def main() -> int:
         and "[SUfmask] = [VHGNDrockdensity]" in rocks
         and rocks.count("=> PG poly3d;") == 4
         and all(token in rocks for token in (
-            "A = [VHGNDdepth]; ? A >= 8 -> VHGND rock done;",
             "A = [VHGNDdepth]; ? A > 2 -> VHGND rock distant;",
             '"VHGND rock distant"', "[SUfmask] = 71; => VHGND render random; [DBcol] = C;",
+            "=> PG facing; A = [FCret]; ? A = 0 -> VHGND rock done;",
             '"VHGND rock repeat"', "A '* 5; [VHGNDrockworkscale] = A;",
             "A '* 1000; A '* [VHGNDcdown];", "A '/ 2; [VHGNDrockworkscale] = A;",
             "[VHGNDcdown]-; A = [VHGNDcdown]; ? A > 0 -> VHGND rock repeat;",
@@ -898,14 +899,16 @@ def main() -> int:
     )
     traversal = section(ground, '"VHGND render"', '"VHGND tile"')
     check(
-        all(token in ground for token in ("VHGNDFAR = 64", "VHGNDMID = 24"))
+        "VHGNDFAR = 64" in ground
         and all(token in traversal for token in (
-            "[VHGNDlodstep] = 32", "[VHGNDlodstep] = 8",
-            "[VHGNDlodstep] = 1", "=> VHGND traverse;",
+            "=> VHGND traverse faithful;", "[VHGNDlodstep] = 1; [VHGNDlodradius] = 65;",
+            '"VHGND faithful north"', '"VHGND faithful east"',
+            '"VHGND faithful south"', '"VHGND faithful west"',
         ))
+        and "? A > 90 -> VHGND tile done;" in tile
         and "[SPcull] = 1" in tile
         and "A > [VHGNDmaxdepth]" in tile,
-        "landed renderer covers the source 64-tile radius with distance-aware rings",
+        "landed renderer uses NIV+ unit tiles, painter quadrants, and depth-64 source gates",
     )
     distant_objects = section(
         ground, '"VHGND render distant objects"', '"VHGND tile"'
@@ -1164,17 +1167,16 @@ def main() -> int:
         "general landings derive source-shaped UTC orbital daylight and a 130-degree terminator",
     )
 
-    # Every ring clamps its origin so the far corner x/z + step stays inside
+    # The unit traversal clamps x/z so every tile's +1 corner stays inside
     # the 200x200 map, including both walking-clamp endpoints.
     for tile_coord in (7, 100, 192):
-        for radius, step in ((64, 32), (24, 8), (3, 1)):
-            lo = max(0, tile_coord - radius)
-            hi = min(199 - step, tile_coord + radius)
-            coords = list(range(lo, hi + 1, step))
-            check(
-                bool(coords) and coords[0] >= 0 and coords[-1] + step < 200,
-                f"terrain ring r{radius}/s{step} is in range at tile {tile_coord}",
-            )
+        lo = max(0, tile_coord - 65)
+        hi = min(198, tile_coord + 65)
+        coords = list(range(lo, hi + 1))
+        check(
+            bool(coords) and coords[0] >= 0 and coords[-1] + 1 < 200,
+            f"unit terrain range is in bounds at tile {tile_coord}",
+        )
 
     surface_input = section(game, '"VHG surface input"', '"VHG quit"')
     check(
@@ -3386,7 +3388,8 @@ def main() -> int:
         and "A = [FI]; A % 360; ? A >= 0 -> VHGND orbital phase ready;" in ground
         and "A = [SUti]; A % 360;" in ground
         and "A + [VHGNDrotation]; A % 360;" in ground
-        and "A = [VHGNDbeta]; A + 51; A % 360;" in ground
+        and "A = [VHGNDalpha]; A + 51; A '* 360;" in ground
+        and "C = [VHGNDbeta]; C % 360; A - C; [VHGNDbgstart] = A;" in ground
         and "A '% 360; ? A '>= 0 -> VHV angle normalized;" not in view,
         "camera trig cache is initialized before exact integral-angle reuse",
     )

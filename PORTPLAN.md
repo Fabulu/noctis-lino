@@ -696,11 +696,11 @@ first -- a broken foundation makes every later result meaningless.
   cannot corrupt the floating-point camera state it is measuring.
 - Landing now bounds-checks the selected body, visibly rejects non-landable
   types, labels accepted descent, and advances capsule physics once per
-  original simulation frame. Planetary far/middle terrain keeps the 64-tile
-  horizon with 32/8-tile LOD while preserving an exact three-tile walking ring.
-  Coarse triangles are flat shaded, texture mapping is limited to the nearest
-  two depth bands. Both settled and airborne capsules retain the original pair
-  of textured moving shells around their two structural grids.
+  original simulation frame. Landed terrain now follows NIV+'s fully textured
+  unit-tile depth-64 mesh and view-quadrant painter order; the former 32/8-tile
+  approximation was removed after it produced moving walls and lost terrain
+  detail. Both settled and airborne capsules retain the original pair of
+  textured moving shells around their two structural grids.
 - E maps the original DOS Up lift event while leaving all four arrows available
   for looking. Like the source event, it starts directly from inside the ship
   rather than passing through a port-invented center gate. The ascent and
@@ -1186,8 +1186,8 @@ first -- a broken foundation makes every later result meaningless.
   colonial cross-buildings, and stepped domed Suricrasian blocks.
 - Ruins modify the live 200x200 height map and carry a separate `ruinschart`
   marker map, selecting the source 2x texture scale and palette band 64..127.
-  A sparse unit-tile overlay preserves narrow historical walls through the
-  normal 8/16-tile distant-terrain LOD without making every surface expensive.
+  Historical walls are carried directly by the faithful unit terrain mesh;
+  the compensating late overlay used by the removed coarse mesh is gone.
 - Suricrasia's LQ 018:060 site also restores the separate source fragment for
   the 25x25 Suricrasian Cube, including maximum height and the original marked
   wall rows and columns.
