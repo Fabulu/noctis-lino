@@ -157,10 +157,7 @@
 	mechanism, called at the point where the DOS code truncates DI. )
 
 "PG store"
-	[SAseg] = SADPT;
-	[SAoff] = [PGdi];
-	=> MEM seg addr;
-	A = nw; A + [SAnw];
+	A = [PGdi]; A & 65535; A + SADPT; A + nw;
 	C = [PGval]; C & 255;
 	[A] = C;
 	end;
@@ -168,10 +165,7 @@
       ( PG load : [PGval] <- the byte at DOS offset [PGdi], unsigned. )
 
 "PG load"
-	[SAseg] = SADPT;
-	[SAoff] = [PGdi];
-	=> MEM seg addr;
-	A = nw; A + [SAnw];
+	A = [PGdi]; A & 65535; A + SADPT; A + nw;
 	C = [A]; C & 255;
 	[PGval] = C;
 	end;
@@ -287,18 +281,18 @@
 	[PGtexv] = 255; end;
     "PG tex 4"
 	( TEX4: the live Noctis texture window, based at p_surfacemap. )
-	A = RPSM; A + [PGtexoff]; A + [PGtmp]; [MBptr] = A; => MEM get byte;
-	[PGtexv] = [MBval]; end;
+	A = RPSM; A + [PGtexoff]; A + [PGtmp]; A + nw; C = [A]; C & 255;
+	[PGtexv] = C; end;
     "PG tex 5"
 	( TEX5: the live Noctis planetary-ground texture window, based at
 	  p_background exactly as fragment() selects it. )
-	A = RPBG; A + [PGtmp]; [MBptr] = A; => MEM get byte;
-	[PGtexv] = [MBval]; end;
+	A = RPBG; A + [PGtmp]; A + nw; C = [A]; C & 255;
+	[PGtexv] = C; end;
     "PG tex 6"
 	( TEX6: polycupola(.,1) points txtr at n_globes_map. Preserve the
 	  original 16-bit texture-window wrap across the adjacent allocation. )
-	A = RNGLB; A + [PGtmp]; [MBptr] = A; => MEM get byte;
-	[PGtexv] = [MBval]; end;
+	A = RNGLB; A + [PGtmp]; A + nw; C = [A]; C & 255;
+	[PGtexv] = C; end;
     "PG tex 7"
 	( planetary_main pclear() overwrites n_globes_map[0..32767] with
 	  32 constant 1-KiB horizon bands before drawing the surface. Capsule
