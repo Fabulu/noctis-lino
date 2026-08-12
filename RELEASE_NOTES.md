@@ -66,6 +66,11 @@ target remains open. A subsequent exact fusion of the per-tile x87 distance
 chain retained every qword spill, square root and chop-conversion boundary; in
 a same-scene hidden A/B against its immediate predecessor, the 11-frame sample
 fell from 1,482 to 1,329 ms and the 60-frame wall time from 6,858 to 6,665 ms.
+The landed projection cache now takes a direct three-vertex hit path instead
+of re-entering six small index/validation routines for every reused triangle.
+On the same retained lunar checkpoint, the 60-frame render profile fell from
+1,422 to 1,207 ms and render-plus-presentation from 1,732 to 1,481 ms, raising
+the unconstrained measured rate from 34.64 to 40.52 FPS.
 
 Close surface stones now follow NIV+'s complete `roccia()` path: type-3
 generation retains the final `random(5)` quartz choice, type-8 sets quartz

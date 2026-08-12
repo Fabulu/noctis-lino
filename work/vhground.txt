@@ -2493,6 +2493,31 @@
 	  polymap's generic four-edge clipping and projection path unchanged. )
 	[SPterrain] = 1;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND terrain mapped generic;
+	( Shared unit-grid vertices normally arrived through the preceding
+	  triangle.  Check the three exact cache slots directly before entering
+	  the general ensure/front loops; this removes six tiny Lino calls from
+	  the overwhelmingly common cache-hit path without changing a transform. )
+	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped cache second;
+	A = VHGNDvcstamp; A + [VHGNDh1]; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
+	A = VHGNDvcvisible; A + [VHGNDh1]; A = [A]; ? A = 0 -> VHGND terrain mapped generic;
+	A = [VHGNDh1]; A + 1; D = A; -> VHGND terrain mapped cache middle;
+    "VHGND terrain mapped cache second"
+	A = [VHGNDh1]; A + 1; D = A;
+	A = VHGNDvcstamp; A + D; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
+	A = VHGNDvcvisible; A + D; A = [A]; ? A = 0 -> VHGND terrain mapped generic;
+	A = [VHGNDh1]; A + 201; D = A;
+    "VHGND terrain mapped cache middle"
+	A = VHGNDvcstamp; A + D; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
+	A = VHGNDvcvisible; A + D; A = [A]; ? A = 0 -> VHGND terrain mapped generic;
+	A = [VHGNDh1]; A + 200; D = A;
+	A = VHGNDvcstamp; A + D; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
+	A = VHGNDvcvisible; A + D; A = [A]; ? A = 0 -> VHGND terrain mapped generic;
+	-> VHGND terrain mapped load begin;
+    "VHGND terrain mapped ensure begin"
 	[VHGNDvi] = 0;
     "VHGND terrain mapped ensure"
 	=> VHGND terrain vertex ensure;
@@ -2505,6 +2530,7 @@
 	? A = 0 -> VHGND terrain mapped generic;
 	[VHGNDvi]+; A = [VHGNDvi]; ? A < 3 -> VHGND terrain mapped front;
 
+	"VHGND terrain mapped load begin"
 	[VHGNDvi] = 0;
     "VHGND terrain mapped load"
 	=> VHGND terrain vertex load;
@@ -2512,9 +2538,9 @@
 
 	( Preserve polymap's four-entry closing edge in every rotated, projected,
 	  visibility and ultima workspace consumed downstream. )
-	A = FSRXF; A + 2; [PGFi] = A; A = FSRXF; A + 3; [PGFj] = A; => PGF mov;
-	A = FSRYF; A + 2; [PGFi] = A; A = FSRYF; A + 3; [PGFj] = A; => PGF mov;
-	A = FSRZF; A + 2; [PGFi] = A; A = FSRZF; A + 3; [PGFj] = A; => PGF mov;
+	A = FSRXF; A + 2; A + A; A + fw; C = [A]; [A plus 2] = C; C = [A plus 1]; [A plus 3] = C;
+	A = FSRYF; A + 2; A + A; A + fw; C = [A]; [A plus 2] = C; C = [A plus 1]; [A plus 3] = C;
+	A = FSRZF; A + 2; A + A; A + fw; C = [A]; [A plus 2] = C; C = [A plus 1]; [A plus 3] = C;
 	A = mp; C = [A plus 4]; [A plus 6] = C; C = [A plus 5]; [A plus 7] = C;
 	A = rwf; [A plus 3] = 1; [PJdoflag] = 4;
 	=> VHGND terrain cached bounds;
