@@ -157,8 +157,8 @@ setup and exact release boundaries.
 ## Screenshots
 
 Every image below is captured from the production executable. Planet scenes use
-fixed, known-dry landing cells so an ocean pixel or a camera inside the capsule
-cannot masquerade as a rendering result. Reproduce them with
+fixed deterministic landing cells and measured camera poses so a camera inside
+the capsule cannot masquerade as a rendering result. Reproduce them with
 `tools\capture_noctis_scenes.ps1`.
 
 | Stardrifter interior | Physical GOES console |
@@ -183,7 +183,9 @@ cannot masquerade as a rendering result. Reproduce them with
 |---|---|---|
 | ![Corrugated boulder terrain on a rocky world](screenshots/planet-rocky.png) | ![Striated frozen shelves on an airless ice world](screenshots/planet-frozen.png) | ![Milky quartz terrain beneath an oxygen atmosphere](screenshots/planet-quartz.png) |
 
-![A local sun over a habitable dry cell with naturally generated trees, a hopper and flying birds](screenshots/planet-habitable-sun.png)
+| Habitable shoreline | Native hopper |
+|---|---|
+| ![A local sun over a habitable shoreline with naturally generated vegetation and flying birds](screenshots/planet-habitable-sun.png) | ![A naturally generated source-model hopper on the same world](screenshots/planet-habitable-hopper.png) |
 
 | Marked historical ruin edge | Suricrasian Cube wall |
 |---|---|

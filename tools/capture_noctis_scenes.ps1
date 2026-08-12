@@ -4,7 +4,7 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'lunar', 'dense', 'habitable', 'rocky', 'thin', 'frozen', 'quartz', 'ruins', 'cube')]
+    [ValidateSet('all', 'stardrifter', 'lunar', 'dense', 'habitable', 'hopper', 'rocky', 'thin', 'frozen', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
     [int]$Longitude,
@@ -64,6 +64,12 @@ $scenes = @(
     @{ Name='habitable'; FileName='planet-habitable-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
        Beta=65; Pitch=-10; Warmup=7; PlayerX=1598248; PlayerZ=2251369 },
+    # LANE IV's naturally generated index-15 hopper, viewed from five
+    # thousand surface units away. It remains in its source fauna record;
+    # the checkpoint does not inject or relocate showcase scenery.
+    @{ Name='hopper'; FileName='planet-habitable-hopper.png';
+       X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
+       Beta=90; Pitch=0; Warmup=1; PlayerX=1747153; PlayerZ=872226 },
     @{ Name='rocky';     X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=0; Lat=60; Beta=180; Pitch=-12 },
     @{ Name='thin';      X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=0; Lat=60; Beta=180; Pitch=-12 },
     @{ Name='frozen';    X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60; Beta=180; Pitch=-12 },

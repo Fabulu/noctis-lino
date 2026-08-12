@@ -17,6 +17,12 @@ normal terrain pass with NIV+'s night/day sea palette bands. Shoreline terrain,
 reflections, waves, fauna and foreground objects retain their existing order,
 while the corrupt strip and full-screen wedges are gone.
 
+The same deterministic ocean-biome fauna table yielded a readable close hopper
+without modifying its record or model. Its checkpoint begins five thousand
+surface units from the native index-15 animal and is now a separate gallery
+scene, so the broader sun-and-shore frame remains available as environmental
+evidence.
+
 Live walking identified camera-relative black/white walls, floor gaps, and
 crashes when backing away. The black pillar was isolated to the panorama even
 with terrain disabled: the port had swapped the pitch/yaw cursor axes, omitted
