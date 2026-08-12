@@ -9,11 +9,20 @@ GOES modules, persistence, presentation, and soundtrack systems established in
 the earlier betas.
 
 The README gallery now contains production-executable captures from fixed dry
-cells across multiple planet classes, including a local sun with generated
-vegetation/fauna, marked historical ruin geometry, the transparent capsule and
-beacon, and the immense Suricrasian Cube wall. `TEST_COVERAGE.md` separately
-records automated, native, and still-open evidence so the release does not
-claim exhaustive testing.
+cells across multiple planet classes, including a naturally generated hopper,
+birds and trees beneath a local sun, marked historical ruin geometry, the
+transparent capsule and beacon, and the immense Suricrasian Cube wall. A
+source-valid galactic checkpoint also records a stellar corona and its flare
+reflections through the transparent Stardrifter windows. `TEST_COVERAGE.md`
+separately records automated, native, and still-open evidence so the release
+does not claim exhaustive testing.
+
+Type-1 lunar landings no longer spend roughly a minute constructing the
+height-map before the GUI can unfold. The existing bounded source-profiled
+crater workload is tightened to four height craters while retaining the
+separate texture-crater field, rocks, mottling and airless presentation. A
+native production capture of an authentic one-body lunar system now completes
+in about sixteen seconds.
 
 ## What is playable
 

@@ -47,6 +47,22 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Make lunar landings and production evidence practical
+
+- Type-1 terrain retains the source powered-crater profile, deterministic
+  placement, separate texture-crater field, mottling, rocks and airless sky.
+  The existing port-side height-crater workload bound is tightened from twelve
+  to four: the focused lunar generator falls from about 59.5 seconds to 3.6
+  seconds without replacing the terrain arm with a synthetic shortcut.
+- The screenshot tool now waits for non-black production framebuffer content.
+  iGUI paints `Noctis IV` in its custom chrome but leaves the native Win32
+  caption as `vhgame`, so caption polling could never identify readiness and
+  previously misreported a completed surface as a three-minute initialization
+  failure.
+- The authentic one-body system IDEAL supplies the type-1 gallery scene. The
+  complete clean native capture finishes in about 15.7 seconds, and `-Scene
+  all` produces ten non-blank ship/world/ruin frames in one bounded run.
+
 ### Restore exact stellar lithium collection
 
 - Collection now uses the source's `sqrt(dx*dx+dy*dy+dz*dz)+1` distance and

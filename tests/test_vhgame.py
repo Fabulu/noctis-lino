@@ -2982,6 +2982,7 @@ def main() -> int:
             "? A = 5 -> VHGND generate type5;", "? A = 7 -> VHGND generate type7;",
             '"VHGND type1 craters"', '"VHGND type5 craters"',
             '"VHGND type7 surface line loop"',
+            "? A '<= 4 -> VHGND type1 crater count ready; A = 4;",
         ))
         and all(token in grnd for token in (
             '"GR rg positive start"', '"GR sc power done"',

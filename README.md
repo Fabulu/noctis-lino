@@ -165,6 +165,8 @@ cannot masquerade as a rendering result. Reproduce them with
 |---|---|
 | ![Inside the Stardrifter](screenshots/stardrifter-interior.png) | ![Typing NEXT directly on the Stardrifter wall console](screenshots/goes-console.png) |
 
+![A stellar corona and flare reflections seen through the transparent Stardrifter windows](screenshots/stardrifter-sun.png)
+
 | Planetary console | Planetary surface |
 |---|---|
 | ![Selecting a landing site on the physical planetary console](screenshots/planetary-console.png) | ![The capsule on a generated planetary surface](screenshots/planet-surface.png) |
@@ -173,11 +175,15 @@ cannot masquerade as a rendering result. Reproduce them with
 
 ![A source-shaped 916x200 three-panel planetary panorama captured in game](screenshots/planet-panorama.png)
 
-| Dense-atmosphere world | Thin-atmosphere world | Frozen world |
+| Lunar world | Dense-atmosphere world | Thin-atmosphere world |
 |---|---|---|
-| ![Dense-atmosphere plateau](screenshots/planet-dense.png) | ![Thin-atmosphere plain](screenshots/planet-thin.png) | ![Frozen shelves](screenshots/planet-frozen.png) |
+| ![Airless crater fields on an authentic type-1 world](screenshots/planet-lunar.png) | ![Dense-atmosphere plateau](screenshots/planet-dense.png) | ![Thin-atmosphere plain](screenshots/planet-thin.png) |
 
-![A local sun over a habitable dry cell with generated vegetation and surface fauna](screenshots/planet-habitable-sun.png)
+| Rocky world | Frozen world | Quartz world |
+|---|---|---|
+| ![Corrugated boulder terrain on a rocky world](screenshots/planet-rocky.png) | ![Striated frozen shelves on an airless ice world](screenshots/planet-frozen.png) | ![Milky quartz terrain beneath an oxygen atmosphere](screenshots/planet-quartz.png) |
+
+![A local sun over a habitable dry cell with naturally generated trees, a hopper and flying birds](screenshots/planet-habitable-sun.png)
 
 | Marked historical ruin edge | Suricrasian Cube wall |
 |---|---|

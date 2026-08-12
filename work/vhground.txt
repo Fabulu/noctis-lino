@@ -366,7 +366,7 @@
 	C = 48; => SU rnd; A = C; A + 32; A - [GRalbedo];
 	? A >= 0 -> VHGND type1 crater nonnegative; A = 0;
     "VHGND type1 crater nonnegative"
-	? A '<= 12 -> VHGND type1 crater count ready; A = 12;
+	? A '<= 4 -> VHGND type1 crater count ready; A = 4;
     "VHGND type1 crater count ready"
 	[VHGNDgenn] = A;
     "VHGND type1 crater loop"

@@ -11,6 +11,25 @@ class, vegetation, trees, mammals, birds, ruins, and the Cube. That result is
 broad regression coverage, not a claim of exhaustive procedural or multi-hour
 playtesting.
 
+On 2026-08-12 the production capture path placed the opening system's selected
+star at a source-valid 200-unit flare distance by inverting the live camera
+rotation. The native frame shows the corona and reflection ghosts through the
+Stardrifter windows with hull occlusion intact. A separate fixed, central dry
+cell on a class-3 world shows the local sun, a naturally generated hopper,
+flying birds and trees. Earlier shoreline and map-edge candidates were rejected
+rather than promoted as representative terrain. Both coordinates are now
+reproducible through `tools\capture_noctis_scenes.ps1`.
+
+The same capture audit found that title-based readiness was invalid for iGUI:
+Windows reports the programme name `vhgame`, while `Noctis IV` is painted by
+the custom chrome. A framebuffer-content readiness check now refuses the real
+black pre-initialization host without waiting forever on that caption. The
+catalogued one-body system IDEAL provides an authentic type-1 primary. Bounding
+its source-profiled height-map craters at four reduced the isolated lunar arm
+from about 59.5 seconds to 3.6 seconds; texture craters, rocks, airless sky and
+the original crater profile remain live. The clean production scene opened and
+captured in 15.7 seconds.
+
 ## What the playable build can do right now
 
 | Capability | Status |

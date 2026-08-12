@@ -10,9 +10,9 @@ tested.
 
 | Area | Automated evidence | Native/product evidence |
 |---|---|---|
-| Stardrifter, movement, roof lift and cupolas | `tests/test_vhgame.py` pins controls, lift states, cupola apertures, hull order, focus-safe repaint and resize | `screenshots/stardrifter-interior.png`; resize and movement sessions in `PLAYTEST.md` |
+| Stardrifter, movement, roof lift and cupolas | `tests/test_vhgame.py` pins controls, lift states, cupola apertures, hull order, focus-safe repaint and resize | Interior and through-window stellar-flare screenshots; resize and movement sessions in `PLAYTEST.md` |
 | Capsule descent, exit, transparent shell, walk-away/re-entry, seal and ascent | Integrated source/order/state assertions and independent capsule-gate models | `screenshots/planet-surface.png`; complete landing/return sessions in `PLAYTEST.md` |
-| Planet classes, terrain, water, weather and suns | All accepted class arms, terrain bounds, daylight, secondary suns, reflections, waves and storms | Multi-class gallery plus dry-cell sun scene; native sessions in `PLAYTEST.md` |
+| Planet classes, terrain, water, weather and suns | All accepted class arms, terrain bounds, daylight, secondary suns, reflections, waves and storms | Lunar/dense/thin/frozen gallery plus dry-cell sun scene; native sessions in `PLAYTEST.md` |
 | Trees, hoppers/mammals and birds | Generation, source branch-stack tree shapes, three mammal morphs/gaits, bird flight/stalking/capture and persistence | Habitable sun/fauna screenshot and the bird capture/reload session in `PLAYTEST.md` |
 | Jump and NIV+ jetpack | Gravity, jump/hold-thrust/cancel/descent and landing state assertions | Hardware-key jetpack session recorded in `PLAYTEST.md` |
 | Historical ruins and Suricrasian Cube | All six source ruin styles, three historical systems, Cube footprint and marked wall rows/columns | Marked triangular-silhouette ruin and elevated Cube-wall screenshots |
@@ -36,9 +36,9 @@ python tests\run_all.py  # explicit deep/release audit, not a routine gate
   still need native Windows evidence in addition to source/state assertions.
 - Multi-hour travel, rescue, soundtrack, and every combination of preferences
   are not exhaustively replayed on every change.
-- A composed Stardrifter-through-cupola stellar-flare screenshot remains open;
-  the code path is covered, but the current reproducible checkpoint places the
-  selected sun outside the roof view.
+- No finite gallery can show every generated star, world, ruin, animal, weather
+  state, viewing angle, or preference combination. The checked-in images are
+  reproducible representative evidence, not golden-image tests.
 
 `PLAYTEST.md` is the detailed evidence log. `CI_RELEASES.md` documents what
 hosted CI can prove and the separate interactive source-build boundary.

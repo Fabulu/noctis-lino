@@ -6,6 +6,30 @@ the integrated game, and what remains. It complements `PLAYTEST.md`, which is
 the detailed evidence log, and `PORTPLAN.md`, which is the technical
 implementation and source-parity ledger.
 
+## 2026-08-12 -- source-lit Stardrifter and natural surface fauna
+
+The reproducible capture tool now derives the observer's galactic position by
+inverting the source camera rotations, placing a selected star at a valid flare
+distance without altering the renderer. The resulting production frame shows
+the stellar corona and reflection ghosts through transparent Stardrifter
+windows, with the hull's source lighting and occlusion intact.
+
+The habitable-world capture was also moved off the initially selected ocean
+pixel and away from map boundaries. Its fixed central dry cell contains a
+naturally generated hopper, flying birds and trees under the local sun; no
+fauna or scenery is injected for the screenshot. The capture tool records the
+exact proven coordinates for that scene and for the two ruin examples.
+
+The same audit exposed a misleading screenshot-tool failure: iGUI's native
+window caption remains `vhgame` even after its custom chrome says `Noctis IV`,
+so title polling waited on a condition that could never become true. Capture
+readiness now samples the production framebuffer and rejects only the genuinely
+black pre-initialization host. An authentic one-planet type-1 system named
+IDEAL now supplies the lunar scene. Its source-profiled height craters retain a
+four-crater startup bound; this reduced the focused lunar generator from about
+59.5 seconds to 3.6 seconds while preserving texture craters, rocks and the
+airless palette. The complete native lunar capture finished in 15.7 seconds.
+
 ## 2026-08-12 -- reproducible world gallery and coverage boundary
 
 The production screenshot path now builds isolated version-15 compatibility
