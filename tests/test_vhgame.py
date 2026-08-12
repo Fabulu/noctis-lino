@@ -759,9 +759,10 @@ def main() -> int:
     depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
     check(
-        "[SUfmask] = 7; => SU frnd;" in shade
+        "[SUfmask] = 7; => VHGND render random;" in shade
         and "A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;" in shade
-        and "=> VHGND tile depth;" in shade
+        and "=> VHGND tile depth;" in tile
+        and "A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;" in tile
         and "D9 FA                              (fsqrt)" in depth
         and "D9 AF <dGRcwc mtp bytesperunit>    (fldcw chop)" in depth
         and "DB 9F <dFI mtp bytesperunit>       (fistp dword depth)" in depth
@@ -814,7 +815,9 @@ def main() -> int:
         and all(token in stick for token in (
             "VHSflare = 0; VHSphase = 0;", '"VHS luminous point"',
             "A = [VHSphase]; A & 1;", "C & 63; C + 8;",
-            "[SPval] = 0; => SP put;", "[SPoff]+; [SPval] = [VHScolor]; => SP put;",
+            "A + RADPT; A + nw; D = A;", "[D] = 0;",
+            "C = [VHScolor]; C & 255; [D plus 1] = C;",
+            "A = [D]; A & 255;", "A & 192; C | A; [D] = C;",
             '"VHS endpoints ordered"', "? A >= [VHSpx0] -> VHS endpoints ordered;",
         ))
         and all(token in settled_capsule for token in (
@@ -1366,10 +1369,10 @@ def main() -> int:
     )
     gui_loop = section(game, '"service VHG GUI loop"', '"service VHG GUI sleepy"')
     check(
-        "[L2L Region] = vector Work Area; => Update Area;" in gui_loop
+        "[L2L Region] = vector Work Area; => Update Area Fast;" in gui_loop
         and "[Display Command] = RETRACE; [Display Live Region] = WHOLE DISPLAY; isocall;" not in gui_loop
         and "[Do Not Retrace Arrow Region] = YES;" not in gui_loop
-        and "=> VHG copy page;" in game,
+        and "=> VHG copy page;" not in game,
         "GUI publishes the complete 3-D backdrop through iGUI's focus-safe update path",
     )
     check(
@@ -3349,7 +3352,7 @@ def main() -> int:
         and "[VHPradius] = 70; [VHPangle] = 151;" not in panels
         and "A = [VHGdosim]; ? A = 0 -> VHG frame count done; [VHGframe]+;" in game
         and "[VHPsysphase] = [VHGframe];" in game
-        and "[SPval] = [VHScolor];" in stick,
+        and "C = [VHScolor]; C & 255; [D plus 1] = C;" in stick,
         "planetary console draws retained system orbits, orientations, selection, and owned moons",
     )
     check(

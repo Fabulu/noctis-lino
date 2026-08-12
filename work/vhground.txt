@@ -28,7 +28,7 @@
 	VHGNDzlo = 0; VHGNDzhi = 0; VHGNDptr = 0;
 	VHGNDh1 = 0; VHGNDs1 = 0; VHGNDs2 = 0;
 	VHGNDs3 = 0; VHGNDs4 = 0; VHGNDshade = 0;
-	VHGNDdepth = 0; VHGNDdx = 0; VHGNDdz = 0;
+	VHGNDdepth = 0; VHGNDrawdepth = 0; VHGNDdx = 0; VHGNDdz = 0;
 	VHGNDlodstep = 1; VHGNDlodradius = 4;
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
@@ -4797,13 +4797,18 @@
 	C = 0; C - A; A = C;
     "VHGND tile abs z ready"
 	A + [VHGNDtmp]; ? A > 90 -> VHGND tile done;
-    "VHGND tile source range ready"
+	"VHGND tile source range ready"
 	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
-	=> VHGND tile shade;
+	( Source rejects the raw distance bin above 64 before decrementing it.
+	  Do that before the deterministic shade draw so rejected horizon cells
+	  pay neither RNG nor ledger/hash work. )
+	=> VHGND tile depth;
+	A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;
 	A = [VHGNDdepth]; ? A > [VHGNDmaxdepth] -> VHGND tile done;
 	A = [VHGNDmindepth]; ? A < 0 -> VHGND tile depth accepted;
 	A = [VHGNDdepth]; ? A '<= [VHGNDmindepth] -> VHGND tile done;
     "VHGND tile depth accepted"
+	=> VHGND tile shade;
 	( The traversal bounds guarantee all four map points are within the
 	  200x200 surface.  Inline MEM get byte's exact nw+offset load and mask;
 	  this removes four generic helper calls from every accepted tile. )
@@ -4878,7 +4883,7 @@
     "VHGND tile first flat"
 	[PGtexf] = 0; [PJnrv] = 3; => PG poly3d; -> VHGND tile first done;
     "VHGND tile first textured"
-	[PGtexf] = 5; [PJnrv] = 3; => PG polymap;
+	[PGtexf] = 5; [PJnrv] = 3; [SPterrain] = 1; => PG polymap; [SPterrain] = 0;
     "VHGND tile first done"
 
 	[VHGNDvi] = 0;
@@ -4905,7 +4910,7 @@
     "VHGND tile second flat"
 	[PGtexf] = 0; [PJnrv] = 3; => PG poly3d; -> VHGND tile second done;
     "VHGND tile second textured"
-	[PGtexf] = 5; [PJnrv] = 3; => PG polymap;
+	[PGtexf] = 5; [PJnrv] = 3; [SPterrain] = 1; => PG polymap; [SPterrain] = 0;
     "VHGND tile second done"
 
 	A = [VHGNDruined]; ? A = 0 -> VHGND tile texture restored;
@@ -5581,7 +5586,8 @@
 	    DB 9F <dFI mtp bytesperunit>       (fistp dword depth)
 	    D9 AF <dGRcwn mtp bytesperunit>    (fldcw nearest)
 	}
-	A = [FI]; A > 14; A - 1; ? A >= 0 -> VHGND tile depth ready; A = 0;
+	A = [FI]; A > 14; [VHGNDrawdepth] = A;
+	A - 1; ? A >= 0 -> VHGND tile depth ready; A = 0;
     "VHGND tile depth ready"
 	[VHGNDdepth] = A;
 	end;
@@ -5593,9 +5599,8 @@
 	  landing fixtures are close to a perpendicular sun, so this is the
 	  active source path and selects surface_palette's ground band 0..63. )
 	A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;
-	[SUfmask] = 7; => SU frnd;
+	[SUfmask] = 7; => VHGND render random;
 	C + 8; [VHGNDshade] = C;
-	=> VHGND tile depth;
 	A = [VHGNDdepth]; A > 1; C = [VHGNDshade]; C + A;
 	? C '<= 32 -> VHGND tile shade ready; C = 32;
     "VHGND tile shade ready"

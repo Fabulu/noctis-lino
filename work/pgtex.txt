@@ -98,6 +98,7 @@
 	SPt	= 0;
 	SPn	= 0;
 	SPsave	= 0;
+	SPterrain = 0;			( exact fixed-buffer ground span specialization )
 
 "workspace"
 
@@ -124,12 +125,14 @@
 	and grades only [min_y, max_y]. )
 
 "PG ol init"
-	[PGi] = 0;
+	( NIV+ initializes only the already-clamped polygon row interval.  Rows
+	  outside it are never read by edges, trace, or halfscan. )
+	[PGi] = [EWminy];
     "PG ol i0"
 	A = [PGi]; C = fpart; C + A; [C] = PGLBX;
 	C = ipart; C + A; [C] = PGUBX;
 	[PGi]+;
-	A = [PGi]; ? A '< 200 -> PG ol i0;
+	A = [PGi]; ? A '<= [EWmaxy] -> PG ol i0;
 	end;
 
       ( PG edges : the whole "Calcolo confini orizzontali" block.
@@ -599,11 +602,86 @@
     "PG crow end"
 	end;
 
+( ==================================================================== )
+( Exact fixed-buffer terrain spans                                     )
+( ==================================================================== )
+
+      ( The landed terrain's common path has a fixed texture window,
+	fixed internal blend mode and a framebuffer-clamped scan range.  Keep
+	the DOS mapper's block sizes, 16-bit accumulators, culling overdraw and
+	pixel order, but perform its three fixed byte accesses directly. )
+
+"PG terrain row"
+	? [SPsec] <= 0 -> PG terrain row end;
+	A = [SPsec]; ? A > 16 -> PG terrain row complete;
+	A & 255; [SPcl] = A; -> PG terrain row unpack;
+    "PG terrain row complete"
+	[SPcl] = 16;
+    "PG terrain row unpack"
+	A = [SPsec]; A - 16; [SPsec] = A;
+	A = [SPcl]; ? A = 0 -> PG terrain row;
+	=> PG uv next;
+	A = [SPvn]; C = [SPv]; A - C; A >> 4; A & 65535; [SPsi] = A;
+	A = [SPun]; C = [SPu]; A - C; A >> 4; A & 65535; [SPbp] = A;
+	A = [SPu]; A & 65535; [SPax] = A;
+	A = [SPv]; A & 65535; [SPdx] = A;
+	[SPu] = [SPun]; [SPv] = [SPvn];
+    "PG terrain pixel"
+	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
+	A = [SPdx]; A > 8; A & 255; A < 8;
+	C = [SPax]; C > 8; C & 255; A | C; A + RPBG; A + nw; A = [A]; A & 255;
+	A + [SPtinta]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	A = [SPdi]; A + 3; A & 65535; A + SADPT; A + nw; C = [SPch]; [A] = C;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	[SPcl]-; ? [SPcl] != 0 -> PG terrain pixel;
+	-> PG terrain row;
+    "PG terrain row end"
+	end;
+
+"PG terrain crow"
+	? [SPsec] <= 0 -> PG terrain crow end;
+	A = [SPsec]; ? A > 32 -> PG terrain crow complete;
+	A + 2; A & 255; [SPcl] = A; -> PG terrain crow unpack;
+    "PG terrain crow complete"
+	[SPcl] = 32;
+    "PG terrain crow unpack"
+	A = [SPsec]; A - 32; [SPsec] = A;
+	A = [SPcl]; ? A < 2 -> PG terrain crow;
+	A > 1; [SPcl] = A;
+	=> PG uv next;
+	A = [SPvn]; C = [SPv]; A - C; A >> 4; A & 65535; [SPsi] = A;
+	A = [SPun]; C = [SPu]; A - C; A >> 4; A & 65535; [SPbp] = A;
+	A = [SPu]; A & 65535; [SPax] = A;
+	A = [SPv]; A & 65535; [SPdx] = A;
+	[SPu] = [SPun]; [SPv] = [SPvn];
+	A = [SPdi]; [SPsave] = A;
+    "PG terrain cull pixel"
+	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
+	A = [SPdx]; A > 8; A & 255; A < 8;
+	C = [SPax]; C > 8; C & 255; A | C; A + RPBG; A + nw; A = [A]; A & 255;
+	A + [SPtinta]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	A = [SPdi]; A + 2; A & 65535; A + SADPT; A + nw; C = [SPch]; [A] = C;
+	A = [SPdi]; A + 3; A & 65535; A + SADPT; A + nw; C = [SPch]; [A] = C;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	[SPcl]-; ? [SPcl] != 0 -> PG terrain cull pixel;
+	A = [SPsave]; A + 32; A & 65535; [SPdi] = A;
+	-> PG terrain crow;
+    "PG terrain crow end"
+	end;
+
       ( PG scanline : one row of the trace loop, from ipart[i] to
 	fpart[i].  Assumes [SPu]/[SPv] already hold the row's first
 	sample and [SPdi] the row's starting offset. )
 
 "PG scanline"
+	A = [SPterrain]; ? A = 0 -> PG scanline generic;
+	A = [SPcull]; A & 1; ? A != 0 -> PG scanline terrain cull;
+	=> PG terrain row; end;
+    "PG scanline terrain cull"
+	=> PG terrain crow; end;
+    "PG scanline generic"
 	A = [SPcull]; A & 1;
 	? A != 0 -> PG sl cull;
 	=> PG row;

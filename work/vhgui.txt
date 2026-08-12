@@ -67,8 +67,8 @@
 	( The 1x path copies four composed RGB pixels per loop.  Only Backdrop is
 	  written here: Update Area performs the one authoritative copy into
 	  Primary Display immediately afterward. )
-	A = [VHGUIdw]; ? A != 320 -> VHGUI scaled;
-	A = [VHGUIdh]; ? A != 200 -> VHGUI scaled;
+	A = [VHGUIdw]; ? A != 320 -> VHGUI maybe 2x;
+	A = [VHGUIdh]; ? A != 200 -> VHGUI maybe 2x;
 	[VHGUIy] = 0;
     "VHGUI 1x row"
 	A = [VHGUIy]; A '* 320; C = A; C + VHGUIframe;
@@ -83,6 +83,29 @@
 	C + 4; D + 4; [VHGUIx]-;
 	A = [VHGUIx]; ? A != 0 -> VHGUI 1x pixel;
 	[VHGUIy]+; A = [VHGUIy]; ? A < 200 -> VHGUI 1x row;
+	end;
+
+    "VHGUI maybe 2x"
+	( The default client is exactly 640x400.  Expand four logical pixels into
+	  two identical pairs on two destination rows per loop, so the common path
+	  loads each composed pixel once instead of running the generic scaler's
+	  coordinate accumulators once per destination pixel. )
+	A = [VHGUIdw]; ? A != 640 -> VHGUI scaled;
+	A = [VHGUIdh]; ? A != 400 -> VHGUI scaled;
+	[VHGUIy] = 0;
+    "VHGUI 2x row"
+	A = [VHGUIy]; A '* 320; C = A; C + VHGUIframe;
+	A = [VHGUIy]; A + A; A + [VHGUItop]; A '* [Display Width];
+	A + [VHGUIleft]; D = A; D + Backdrop Layer; E = D; E + [Display Width];
+	[VHGUIx] = 80;
+    "VHGUI 2x pixel"
+	A = [C]; [D] = A; [D plus 1] = A; [E] = A; [E plus 1] = A;
+	A = [C plus 1]; [D plus 2] = A; [D plus 3] = A; [E plus 2] = A; [E plus 3] = A;
+	A = [C plus 2]; [D plus 4] = A; [D plus 5] = A; [E plus 4] = A; [E plus 5] = A;
+	A = [C plus 3]; [D plus 6] = A; [D plus 7] = A; [E plus 6] = A; [E plus 7] = A;
+	C + 4; D + 8; E + 8; [VHGUIx]-;
+	A = [VHGUIx]; ? A != 0 -> VHGUI 2x pixel;
+	[VHGUIy]+; A = [VHGUIy]; ? A < 200 -> VHGUI 2x row;
 	end;
     "VHGUI scaled"
 	[VHGUIy] = 0; [VHGUIsy] = 0; [VHGUIyacc] = 0;

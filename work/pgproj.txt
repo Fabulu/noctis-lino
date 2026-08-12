@@ -993,8 +993,24 @@
     "PG pm r"
 	[PJmode] = 1;
 	[PJdx] = [PJnrv];
+	A = [PJdx]; ? A != 3 -> PG pm rotate four;
+	( A triangle's fourth input is the bitwise duplicate of vertex 2 above.
+	  Rotate the three unique inputs, then duplicate the resulting float slots
+	  and visibility byte.  This leaves the four-entry near-plane walk,
+	  closing edge, projection and texture basis exactly as before. )
+	[PJnrv] = 3;
+	=> PJ rotate;
+	A = FSRXF; A + 2; [PGFi] = A; A = FSRXF; A + 3; [PGFj] = A; => PGF mov;
+	A = FSRYF; A + 2; [PGFi] = A; A = FSRYF; A + 3; [PGFj] = A; => PGF mov;
+	A = FSRZF; A + 2; [PGFi] = A; A = FSRZF; A + 3; [PGFj] = A; => PGF mov;
+	A = rwf; A + 2; C = [A]; A = rwf; A + 3; [A] = C;
+	A = [PJdoflag]; A + C; [PJdoflag] = A;
+	A = 4; [PJvr] = A; [PJnrv] = A;
+	-> PG pm rotated;
+    "PG pm rotate four"
 	[PJnrv] = 4;
 	=> PJ rotate;
+    "PG pm rotated"
 	[PJgate] = 1;
 	A = [PJdoflag]; ? A = 0 -> PG pm out;
 

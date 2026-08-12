@@ -115,18 +115,20 @@
 	A = [VHSdx]; A + [VHSdy]; [VHSerr] = A;
 	[VHSphase] = 0;
 
-    "VHS line loop"
-	[SPreg] = RGADP;
-	A = [VHSpy0]; A '* 320; A + [VHSpx0]; [SPoff] = A;
-	A = [VHSflare]; ? A = 1 -> VHS luminous point;
-	[SPval] = 0; => SP put;
-	[SPoff]+; [SPval] = [VHScolor]; => SP put; -> VHS point done;
-    "VHS luminous point"
-	A = [VHSphase]; A & 1; ? A != 0 -> VHS point done;
-	=> SP get; A = [SPval]; C = A; C & 63; C + 8;
-	? C <= 62 -> VHS luminous level ready; C = 62;
-    "VHS luminous level ready"
-	A & 192; C | A; [SPval] = C; => SP put;
+"VHS line loop"
+    ( The projected line is already clipped to the fixed 320x200 RADPT
+      viewport above.  Address it directly instead of paying the generic
+      segmented-memory SP get/put path for every Bresenham sample. )
+    A = [VHSpy0]; A '* 320; A + [VHSpx0]; A + RADPT; A + nw; D = A;
+    A = [VHSflare]; ? A = 1 -> VHS luminous point;
+    [D] = 0;
+    C = [VHScolor]; C & 255; [D plus 1] = C; -> VHS point done;
+"VHS luminous point"
+    A = [VHSphase]; A & 1; ? A != 0 -> VHS point done;
+    A = [D]; A & 255; C = A; C & 63; C + 8;
+    ? C <= 62 -> VHS luminous level ready; C = 62;
+"VHS luminous level ready"
+    A & 192; C | A; [D] = C;
     "VHS point done"
 	[VHSphase]+;
 	[VHSdrawn]+;

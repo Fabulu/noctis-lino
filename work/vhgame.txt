@@ -1195,9 +1195,11 @@
 		  the runtime's cooperative-display activation transition and crashes on
 		  an ordinary focus change.  Update Area also preserves iGUI's cursor
 		  save/restore ordering. )
+		[L2L Region] = vector Work Area; => Update Area Fast;
+		( Presentation cost includes the authoritative Backdrop-to-Primary copy
+		  and physical retrace, not just logical composition and scaling. )
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 		A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofpresent]; [VHGprofpresent] = A;
-		[L2L Region] = vector Work Area; => Update Area;
 		=> VHG timing step;
 	=> VHG fps tick;
 	A = [VHGesc]; ? A = 0 -> VHG GUI loop done;
@@ -1378,7 +1380,6 @@
 		=> VHG source info overlay; => VHG interpolation restore;
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 	A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofrender]; [VHGprofrender] = A;
-		=> VHG copy page;
 		[VHGsentframes]+;
 		A = [VHGsent]; ? A != 0 -> VHG no sentinel;
 		A = [VHGsentframes]; ? A < 60 -> VHG no sentinel;
@@ -3043,14 +3044,6 @@
 	A = [VHGlanded]; ? A != 0 -> VHG render surface done;
 	=> VHGND moving capsule;
     "VHG render surface done"
-	end;
-
-"VHG copy page"
-	[VHGptr] = 0;
-    "VHG copy loop"
-	D = nw; D + RADPT; D + [VHGptr]; E = nw; E + RADPR; E + [VHGptr];
-	C = [D]; [E] = C; [VHGptr]+;
-	A = [VHGptr]; ? A < NPIX -> VHG copy loop;
 	end;
 
 	"VHG input"

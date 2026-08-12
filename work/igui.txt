@@ -1803,6 +1803,43 @@
       "UA Idle"
 	leave;
 
+    ( Game-frame variant of Update Area.  It preserves the same normalization,
+      cursor composition and retrace ordering, but copies four adjacent layer
+      units per inner iteration.  Rectangles of any width retain a scalar tail. )
+
+"Update Area Fast"
+      ? [UA Disable] = YES -> UAF Idle;
+	[Region To Normalize] = [L2L Region];
+	=> Normalize Region;
+	E = [L2L Region];
+	A = [E plus 1]; A * [Display Width]; A + [E plus 0];
+	B = A; A + Backdrop Layer; B + Primary Display;
+	C = [E plus 2]; C - [E plus 0]; C+;
+	D = [E plus 3]; D - [E plus 1]; D+;
+    "UAF Scanline"
+	A -->; B -->; C -->;
+    "UAF Quad"
+	? C < 4 -> UAF Tail;
+	[B] = [A]; [B plus 1] = [A plus 1]; [B plus 2] = [A plus 2]; [B plus 3] = [A plus 3];
+	A + 4; B + 4; C - 4;
+	-> UAF Quad;
+    "UAF Tail"
+	? C = 0 -> UAF Scanline Done;
+	[B] = [A]; A+; B+; C-;
+	-> UAF Tail;
+    "UAF Scanline Done"
+	<-- C; <-- B; <-- A;
+	A + [Display Width]; B + [Display Width];
+	D-; ? D != 0 -> UAF Scanline;
+	[L2L Region] -->;
+	=> RD Retrace Arrow;
+	<-- [L2L Region];
+	[Display Command]     = RETRACE;
+	[Display Live Region] = [L2L Region];
+	isocall;
+      "UAF Idle"
+	leave;
+
     (retraces the title bar, typically after changing the pointer to the
      actual string to be written there, which is [Window Title])
 
