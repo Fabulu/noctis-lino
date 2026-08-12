@@ -20,10 +20,13 @@ without shrinking or removing terrain content. The crater loop now also clips
 its side-effect-free map bounds once, advances squared radius and map address
 by exact integer recurrences, and inlines the already-bounded byte access. All
 source crater calls, RNG draws, profile calculations, application ordering and
-float-to-byte conversion points remain in place. Texture dark lines likewise
-retain every source step and both RNG draws per step while using the already
-masked texture address directly and removing a post-mask upper-bound test that
-could never succeed.
+float-to-byte conversion points remain in place. On a radial-cache miss, the
+same exactly representable integer `dx*dx+dz*dz` now feeds x87 `fsqrt`
+directly, eliminating two conversions, two multiplies and an add without
+changing the square root input. Texture dark lines likewise retain every
+source step and both RNG draws per step while using the already masked texture
+address directly and removing a post-mask upper-bound test that could never
+succeed.
 
 Galactic Cartography's manual Parsis target now accepts ten coordinate digits
 plus an optional minus sign. This corrects the original ten-character editor
