@@ -103,6 +103,7 @@ using System.Runtime.InteropServices;
 public static class NoctisCaptureWin32 {
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
 }
 '@
@@ -297,10 +298,20 @@ foreach ($spec in $scenes) {
         Write-Output ("CAPTURED {0} type {1} -> {2}" -f $spec.Name, $spec.Type, $destination)
     } finally {
         if ($proc -and -not $proc.HasExited) {
-            $proc.CloseMainWindow() | Out-Null
+            # Prefer the game's own Escape path so it saves state and flushes
+            # performance telemetry. Hidden automated windows cannot receive
+            # physical input, so post the same key transition to their queue.
+            if ($proc.MainWindowHandle -ne [IntPtr]::Zero) {
+                [NoctisCaptureWin32]::PostMessage($proc.MainWindowHandle, 0x0100, [IntPtr]0x1B, [IntPtr]1) | Out-Null
+                Start-Sleep -Milliseconds 50
+                [NoctisCaptureWin32]::PostMessage($proc.MainWindowHandle, 0x0101, [IntPtr]0x1B, [IntPtr]0xC0000001) | Out-Null
+            }
             if (-not $proc.WaitForExit(3000)) {
-                Stop-Process -Id $proc.Id -Force
-                $proc.WaitForExit()
+                $proc.CloseMainWindow() | Out-Null
+                if (-not $proc.WaitForExit(3000)) {
+                    Stop-Process -Id $proc.Id -Force
+                    $proc.WaitForExit()
+                }
             }
         }
         if (-not $KeepStages -and (Test-Path -LiteralPath $stage)) {

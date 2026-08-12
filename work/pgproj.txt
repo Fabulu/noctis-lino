@@ -998,10 +998,6 @@
 	[PJgate] = 1;
 	A = [PJdoflag]; ? A = 0 -> PG pm out;
 
-	A = [PJdx]; [PJnrv] = A;
-	=> PJ vectors;
-	[PJnrv] = 4;
-
 	A = [PJdoflag];
 	? A != 4 -> PG pm clip;
 	=> PJ zload;
@@ -1026,6 +1022,14 @@
     "PG pm s2"
 	[PJgate] = 8;
 	A = [BXminy]; ? A > [BXmaxy] -> PG pm out;
+
+	( The texture basis depends only on the original rotated vertices.  Build
+	  it after projection's conservative screen rejection so wholly off-screen
+	  polygons do not pay for nine gradient crosses and antialias expansion.
+	  No basis operation consumes or changes the clipped/projected vertices. )
+	A = [PJdx]; [PJnrv] = A;
+	=> PJ vectors;
+	[PJnrv] = 4;
 
 	( k1/k2/k3 = 16*vx/vy/vz, doubled when culling halves the
 	  horizontal sampling rate. )

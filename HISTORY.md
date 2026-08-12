@@ -18,9 +18,11 @@ The remaining moving walls came from an invented 8/32-tile terrain mesh and a
 late ruins overlay. Landed rendering now submits NIV+'s unit tiles through the
 source depth-64 circle, triangle facing checks, fully textured path and
 view-quadrant painter order. Legitimate distant crystals were separately
-identified by live walking and retained. The faithful lunar path currently
-measures 9 FPS; source-safe Manhattan and wholly off-screen polygon rejection
-are live, but the 60-FPS optimization goal remains open.
+identified by live walking and retained. Source-safe Manhattan and wholly
+off-screen polygon rejection are live; deferring the exact texture basis until
+after screen rejection cut the hidden 60-frame checkpoint from 6,689 to 5,728
+ms and render counts from 38,792,130 to 31,852,389. It still measures 9 FPS, so
+the 60-FPS optimization goal remains open.
 
 ## 2026-08-12 -- source-lit Stardrifter and natural surface fauna
 

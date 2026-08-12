@@ -29,8 +29,10 @@ mesh and compensating late ruins pass were removed; they caused moving walls
 and erased real terrain detail. The panorama cursor now follows NIV+'s exact
 pitch/yaw formula, eliminating the camera-relative black pillar and floor gap.
 An off-screen `polymap` rejection and the source Manhattan gate reduce only
-work that cannot contribute pixels. The current faithful lunar benchmark is
-9 FPS, so the 60-FPS optimization target remains open.
+work that cannot contribute pixels. Texture-basis construction now occurs
+after that rejection, cutting the hidden lunar checkpoint from 38,792,130 to
+31,852,389 render counts and from 6,689 to 5,728 ms for 60 frames. The measured
+rate is still 9 FPS, so the 60-FPS optimization target remains open.
 
 The earlier release audit passed all 24 then-registered suites. The integrated
 build/flight/render/present loop also completed 600,000 frames in 8,125.55
