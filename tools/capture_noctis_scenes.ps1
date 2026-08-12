@@ -83,11 +83,11 @@ $scenes = @(
     @{ Name='ruins';     FileName='planet-triangular-ruins.png';
        X=-56784; Y=-15693; Z=-129542; Body=3; Type=3; Lon=18; Lat=60;
        Beta=45; Pitch=10; Warmup=5; PlayerX=1327104; PlayerZ=1884160 },
-    # Ylastravenya III at the original photographed site. The player starts
-    # west of the map-space Cube and faces its centre.
+    # Ylastravenya III from a high northeastern ridge. The complete 25x25
+    # Cube and both marked wall bands remain inside the faithful 64-tile pass.
     @{ Name='cube';      FileName='planet-suricrasian-cube.png';
        X=-56784; Y=-15693; Z=-129542; Body=3; Type=3; Lon=18; Lat=60;
-       Beta=90; Pitch=35; Warmup=5; PlayerX=1318912; PlayerY=-30000; PlayerZ=1318912 }
+       Beta=61; Pitch=-10; Warmup=1; PlayerX=2785280; PlayerY=-350000; PlayerZ=1474560 }
 )
 if ($Scene -ne 'all') {
     $scenes = @($scenes | Where-Object Name -eq $Scene)

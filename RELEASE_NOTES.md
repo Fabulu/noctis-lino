@@ -8,10 +8,10 @@ Suricrasian Cube, and retains the source-equivalent ship, terrain, devices,
 GOES modules, persistence, presentation, and soundtrack systems established in
 the earlier betas.
 
-The README gallery refresh is in progress. A deterministic production capture
-now shows LANE IV's complete generated tree model. A distant whole-Cube view
-and a close space-view planet remain
-explicit deliverables; stale artifacted frames are not accepted as evidence.
+The README gallery refresh is in progress. Deterministic production captures
+now show LANE IV's complete generated tree model and the distant whole
+Suricrasian Cube. A close space-view planet remains an explicit deliverable;
+stale artifacted frames are not accepted as evidence.
 
 Ocean horizons now use a clipped, stable sea-palette backdrop rather than
 mapping terrain bytes across a behind-camera quad. This removes the flickering

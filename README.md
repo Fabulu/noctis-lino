@@ -187,14 +187,14 @@ the capsule cannot masquerade as a rendering result. Reproduce them with
 |---|---|---|
 | ![A local sun over a habitable shoreline with naturally generated vegetation and flying birds](screenshots/planet-habitable-sun.png) | ![A complete naturally generated fractal tree on the same world](screenshots/planet-habitable-tree.png) | ![A naturally generated source-model hopper on the same world](screenshots/planet-habitable-hopper.png) |
 
-| Marked historical ruin edge | Suricrasian Cube wall |
+| Marked historical ruin edge | Complete Suricrasian Cube |
 |---|---|
-| ![Repeated triangular silhouettes along a marked historical ruin edge](screenshots/planet-triangular-ruins.png) | ![Elevated view along the immense source 25 by 25 Suricrasian Cube wall](screenshots/planet-suricrasian-cube.png) |
+| ![Repeated triangular silhouettes along a marked historical ruin edge](screenshots/planet-triangular-ruins.png) | ![Distant view of the complete source 25 by 25 Suricrasian Cube and its marked wall bands](screenshots/planet-suricrasian-cube.png) |
 
 The repeated triangular silhouettes are the source renderer's marked ruin-edge
 geometry, not a newly invented pyramid asset. The Cube is a maximum-height
-25-by-25-cell megastructure; from walking height it deliberately reads as an
-enormous wall rather than a small freestanding box.
+25-by-25-cell megastructure; the elevated distant view keeps its complete
+silhouette and the source's marked wall bands in frame.
 
 ![The restored source-style Noctis IV+ About screen](screenshots/noctis-about.png)
 
