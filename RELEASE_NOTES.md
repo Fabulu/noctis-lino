@@ -15,6 +15,15 @@ showed an unrelated foliage mass. The gallery also retains the distant whole
 Suricrasian Cube and a close type-8 planet through the Stardrifter window after
 a genuine fine-approach checkpoint.
 
+Close stellar coronas are bright filled discs again. The second and third
+stellar palette ramps had inherited the previous shade routine's divisor, so
+otherwise correct high-index sun pixels were mapped back toward black. Each
+ramp now restores the unit divisor before converting its endpoint colors. A
+Borland-built NIV+ source oracle at the same star, camera, distance, and class
+confirmed the expected filled white center. The reproducible capture harness
+now also emits the complete version-16 checkpoint lighting word instead of
+labeling a shorter version-15 record as version 16.
+
 Close local planets now select their intended ring, disc, and resident-surface
 LOD paths. Six comparison results had accidentally been tested as unsigned, so
 the near result `-1` always took the far-point branch. The local-body pass also

@@ -2758,12 +2758,14 @@
 
 	[FBSHfirst] = 88; [FBSHn] = 16;
 	[SHsr] = [SHer]; [SHsg] = [SHeg]; [SHsb] = [SHeb];
+	[PFden] = 1;
 	[PFnum] = [VHGstarcurrentR]; => PAL f32 make; [SHer] = [PFbits];
 	[PFnum] = [VHGstarcurrentG]; => PAL f32 make; [SHeg] = [PFbits];
 	[PFnum] = [VHGstarcurrentB]; => PAL f32 make; [SHeb] = [PFbits]; => PAL shade;
 
 	[FBSHfirst] = 104; [FBSHn] = 24;
 	[SHsr] = [SHer]; [SHsg] = [SHeg]; [SHsb] = [SHeb];
+	[PFden] = 1;
 	[PFnum] = 64; => PAL f32 make; [SHer] = [PFbits];
 	[PFnum] = 70; => PAL f32 make; [SHeg] = [PFbits];
 	[PFnum] = 76; => PAL f32 make; [SHeb] = [PFbits]; => PAL shade;

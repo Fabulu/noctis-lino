@@ -17,8 +17,10 @@ param(
     [int]$PlayerZ,
     [int]$CapsuleX = 131072,
     [int]$CapsuleZ = 131072,
-    [ValidateSet(15)]
-    [int]$CheckpointVersion = 15,
+    [ValidateSet(-1, 0, 1)]
+    [int]$LensMode = 0,
+    [ValidateSet(16)]
+    [int]$CheckpointVersion = 16,
     [switch]$Fast,
     [switch]$ReportPerformance,
     [switch]$KeepStages,
@@ -196,7 +198,8 @@ function New-Checkpoint {
     $u[42] = $CapsuleX
     $u[43] = 0
     $u[44] = $CapsuleZ
-    $u[47] = 5
+    # Graphics word: lens mode + 1 in bits 0..1, source HUD enabled in bit 2.
+    $u[47] = ($LensMode + 1) + 4
     $u[48] = 0
     $u[49] = -1
     if ($Spec.ContainsKey('LocalZ')) {
@@ -221,7 +224,10 @@ function New-Checkpoint {
     }
     $u[64] = 4
     $u[65] = 0
-    $byteCount = 264
+    # Version 16 stores the complete lighting word in unit 66. Stage the
+    # ordinary fully lit state: no burst/reset/external flash, level 63.
+    $u[66] = 4194304 + 32768 + 63
+    $byteCount = 268
     $bytes = New-Object byte[] $byteCount
     [Buffer]::BlockCopy($u, 0, $bytes, 0, $bytes.Length)
     [IO.File]::WriteAllBytes($Path, $bytes)

@@ -1633,6 +1633,9 @@ def main() -> int:
             '[FBSHfirst] = 104; [FBSHn] = 24;',
             '[PVself] = 1; [PVfirst] = 64; [PVn] = 64;',
         ))
+        and section(game, '"VHG star palette shades"', '"VHG star palette update done"').count(
+            '[PFden] = 1;'
+        ) == 3
         and all(token in original for token in (
             "l_dsd = sqrt (dxx*dxx + dyy*dyy + dzz*dzz) + 1;",
             "satur = (12 * dsd) / nearstar_ray;", "ir = fast_random(31) + 29;",
