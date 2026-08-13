@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+"""Drive the production Lino generators with the public NIVGEN protocol."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+import struct
+import subprocess
+import sys
+import tempfile
+import zlib
+
+
+ROOT = Path(__file__).resolve().parents[1]
+WORK = ROOT / "work"
+TESTS = ROOT / "tests"
+sys.path.insert(0, str(TESTS))
+import linoharness as lh  # noqa: E402
+
+
+IN_MAGIC = 0x4E494E31
+OUT_MAGIC = 0x4E494E32
+VERSION = 1
+HEAD = 32
+LAYOUT = {
+    "surface": (32, 64800),
+    "atmo": (64832, 32400),
+    "palette": (97232, 768),
+    "height": (98000, 40000),
+    "gap": (138000, 16),
+    "objects": (138016, 40000),
+    "surftex": (178016, 65536),
+    "sky": (243552, 64800),
+    "surface_palette": (308352, 768),
+}
+OUT_UNITS = 309120
+DEFAULT_GAP = bytes.fromhex("000000000000000000000000C509F054")
+
+
+def u32(value: int) -> int:
+    return value & 0xFFFFFFFF
+
+
+def signed(value: int) -> int:
+    return value if value < 0x80000000 else value - 0x100000000
+
+
+def fnv1a(data: bytes) -> int:
+    value = 2166136261
+    for byte in data:
+        value = ((value ^ byte) * 16777619) & 0xFFFFFFFF
+    return value
+
+
+def hash_record(data: bytes) -> dict[str, object]:
+    return {
+        "len": len(data),
+        "fnv": f"{fnv1a(data):08X}",
+        "crc": f"{zlib.crc32(data) & 0xFFFFFFFF:08X}",
+    }
+
+
+def derive_main() -> tuple[Path, bool]:
+    source_path = WORK / "vhgame.txt"
+    generated = WORK / "nivtestmain.txt"
+    text = source_path.read_text(encoding="utf-8")
+    libs_old = "vhspace; vhstar; vhground; vhcapsule;"
+    libs_new = "vhspace; vhstar; vhground; vhnivgen; vhcapsule;"
+    entry_old = "\t=> VHG run;\n\tend;"
+    entry_new = "\t=> VHNIV run;\n\tend;"
+    if text.count(libs_old) != 1 or text.count(entry_old) != 1:
+        raise RuntimeError("vhgame NIVGEN splice point changed")
+    text = text.replace(libs_old, libs_new, 1)
+    text = text.replace("program name = { vhgame };",
+                        "program name = { nivtestmain };", 1)
+    text = text.replace(entry_old, entry_new, 1)
+    changed = not generated.exists() or generated.read_text(
+        encoding="utf-8") != text
+    if changed:
+        generated.write_text(text, encoding="utf-8", newline="\n")
+    return generated, changed
+
+
+def ensure_build(force: bool) -> Path:
+    source, changed = derive_main()
+    exe = source.with_suffix(".exe")
+    source_files = list(WORK.glob("*.txt")) + list((WORK / "fp").glob("*.txt"))
+    stale = (not exe.exists() or changed or
+             any(path.stat().st_mtime > exe.stat().st_mtime
+                 for path in source_files))
+    if force or stale:
+        rc, note = lh.build(str(source), timeout_sec=300)
+        if rc or not exe.exists():
+            raise RuntimeError("Lino NIVGEN build failed: " + note[-2000:])
+    return exe
+
+
+def decode_units(path: Path) -> tuple[list[int], dict[str, bytes]]:
+    raw = path.read_bytes()
+    if len(raw) != OUT_UNITS * 4:
+        raise RuntimeError(f"wrong Lino output size {len(raw)}")
+    units = list(struct.unpack(f"<{OUT_UNITS}I", raw))
+    header = units[:HEAD]
+    if header[0] != OUT_MAGIC or header[1] != VERSION or header[2] != 0:
+        raise RuntimeError(
+            f"bad Lino output header {header[0]:08X}/{header[1]}/{header[2]}")
+    buffers = {
+        name: bytes(value & 0xFF for value in units[start:start + length])
+        for name, (start, length) in LAYOUT.items()
+    }
+    return header, buffers
+
+
+def run_lino(args: argparse.Namespace) -> tuple[list[int], dict[str, bytes]]:
+    exe = ensure_build(args.build)
+    gap = bytes.fromhex(args.gap) if args.gap else DEFAULT_GAP
+    if len(gap) != 16:
+        raise ValueError("-gap must contain exactly 32 hexadecimal digits")
+    values = [
+        IN_MAGIC, VERSION, u32(args.x), u32(args.y), u32(args.z),
+        u32(args.p), u32(args.lon), u32(args.lat), u32(args.secs),
+        u32(args.sc), u32(args.albedo), u32(args.night), 1, 0, 0, 0,
+        *gap,
+    ]
+    with tempfile.TemporaryDirectory(prefix="nivtest-") as temp_name:
+        temp = Path(temp_name)
+        (temp / "niv-input.bin").write_bytes(struct.pack("<32I", *values))
+        proc = subprocess.run(
+            [str(exe)], cwd=temp, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=args.timeout,
+        )
+        output = temp / "niv-output.bin"
+        if proc.returncode or not output.exists():
+            detail = ((proc.stdout or "") + (proc.stderr or ""))[-2000:]
+            raise RuntimeError(
+                f"Lino NIVGEN run failed with exit {proc.returncode}: {detail}")
+        return decode_units(output)
+
+
+def results(header: list[int], buffers: dict[str, bytes]) -> dict[str, object]:
+    owner = signed(header[9])
+    palette_base = (128 if owner >= 0 else 192) * 3
+    hashes = {
+        "surf": hash_record(buffers["surface"][:46080]),
+        "atmo": hash_record(buffers["atmo"]),
+        "pal": hash_record(buffers["palette"][palette_base:palette_base + 192]),
+        "hm": hash_record(buffers["height"]),
+        "oc": hash_record(buffers["objects"]),
+        "stex": hash_record(buffers["surftex"][:65024]),
+        "sky": hash_record(buffers["sky"][:46080]),
+    }
+    return {
+        "body": header[6], "body_count": header[7], "type": header[8],
+        "owner": owner, "global_surface_seed": signed(header[10]),
+        "sctype": header[11], "albedo": signed(header[12]),
+        "night": signed(header[13]), "secs": signed(header[14]),
+        "gap": buffers["gap"].hex().upper(), "hashes": hashes,
+    }
+
+
+def dump_buffers(args: argparse.Namespace, buffers: dict[str, bytes]) -> None:
+    target = args.dump or os.environ.get("NIVDUMP")
+    if not target:
+        return
+    folder = Path(target)
+    folder.mkdir(parents=True, exist_ok=True)
+    files = {
+        "surfmap.bin": buffers["surface"],
+        "atmover.bin": buffers["atmo"],
+        "palette.raw": buffers["palette"],
+        "height.bin": buffers["height"],
+        "objects.bin": buffers["objects"],
+        "surftex.bin": buffers["surftex"][:65024],
+        "sky.bin": buffers["sky"],
+    }
+    for name, data in files.items():
+        (folder / name).write_bytes(data)
+    if os.environ.get("NIVDUMP"):
+        aliases = {
+            "HEIGHT.bin": buffers["height"],
+            "OBJECTS.bin": buffers["objects"],
+            "SURFTEX.bin": buffers["surftex"][:65024],
+            "SKY.bin": buffers["sky"],
+            "palette.raw": buffers["palette"],
+        }
+        for name, data in aliases.items():
+            (folder / name).write_bytes(data)
+
+
+def line(label: str, record: dict[str, object]) -> str:
+    return (f"{label:<16} len={record['len']:<6} "
+            f"fnv={record['fnv']} crc={record['crc']}")
+
+
+def emit_text(command: str, result: dict[str, object]) -> str:
+    h = result["hashes"]
+    if command == "planet":
+        rows = ["=== PLANET TEXTURE ===",
+                f"PLANET body={result['body']} type={result['type']} "
+                f"owner={result['owner']}",
+                line("surface_map", h["surf"]),
+                line("atmo_overlay", h["atmo"]),
+                line("palette64", h["pal"])]
+    elif command == "sector":
+        rows = ["=== SURFACE SECTOR (heightmap) ===",
+                f"SECTOR body={result['body']} type={result['type']} "
+                f"sctype={result['sctype']} albedo={result['albedo']} "
+                f"night={result['night']}",
+                f"  global_surface_seed={result['global_surface_seed']}",
+                line("heightmap", h["hm"]), line("objectchart", h["oc"]),
+                f"gap               len=16   {result['gap']}"]
+    elif command == "surftex":
+        rows = ["=== SURFACE SECTOR (texture) ===",
+                f"SURFTEX body={result['body']} type={result['type']} "
+                f"sctype={result['sctype']} albedo={result['albedo']}",
+                line("surf_texture", h["stex"]),
+                line("sky_texture", h["sky"])]
+    else:
+        rows = [json.dumps(result, sort_keys=True)]
+    return "\n".join(rows) + "\n"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Production Lino NIVGEN output harness")
+    parser.add_argument("command", choices=("planet", "sector", "surftex", "json"))
+    parser.add_argument("-x", type=int, required=True)
+    parser.add_argument("-y", type=int, required=True)
+    parser.add_argument("-z", type=int, required=True)
+    parser.add_argument("-p", type=int, required=True)
+    parser.add_argument("-lon", type=int, default=0)
+    parser.add_argument("-lat", type=int, default=60)
+    parser.add_argument("-secs", type=int, default=0)
+    parser.add_argument("-sc", type=int, default=-1)
+    parser.add_argument("-albedo", type=int, default=-1)
+    parser.add_argument("-night", type=int, default=0)
+    parser.add_argument("-gap")
+    parser.add_argument("-o")
+    parser.add_argument("-dump")
+    parser.add_argument("--build", action="store_true")
+    parser.add_argument("--timeout", type=int, default=180)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    try:
+        header, buffers = run_lino(args)
+        result = results(header, buffers)
+        dump_buffers(args, buffers)
+        text = emit_text(args.command, result)
+        if args.o:
+            with open(args.o, "a", encoding="utf-8", newline="\n") as stream:
+                stream.write(text)
+        else:
+            sys.stdout.write(text)
+        return 0
+    except Exception as exc:
+        print(f"nivtest: {exc}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

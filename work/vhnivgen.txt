@@ -1,0 +1,230 @@
+      ( *** vhnivgen - production NIVGEN output driver ***
+
+	This library is linked into a derived vhgame main by tools/nivtest.py.
+	It drives the real star topology, orbital surface(), landed
+	build_surface(), and create_sky paths, then emits their byte-bearing
+	Lino units in one deterministic file.  The Python wrapper only packs
+	arguments, strips the low byte from each unit, and applies the public
+	NIVGEN hash boundaries. )
+
+"constants"
+
+	NHINMAGIC = 1313426993;	( 0x4E494E31, NIN1 )
+	NHOUTMAGIC = 1313426994;	( 0x4E494E32, NIN2 )
+	NHVERSION = 1;
+	NHIN = 32; NHHEAD = 32;
+
+	NHSURFU = 64800; NHATMOU = 32400; NHPALU = 768;
+	NHHEIGHTU = 40000; NHGAPU = 16; NHOBJECTU = 40000;
+	NHSTEXU = 65536; NHSKYU = 64800; NHSRFPALU = 768;
+
+	NHOFFSURF = 32;
+	NHOFFATMO = 64832;
+	NHOFFPAL = 97232;
+	NHOFFHEIGHT = 98000;
+	NHOFFGAP = 138000;
+	NHOFFOBJECT = 138016;
+	NHOFFSTEX = 178016;
+	NHOFFSKY = 243552;
+	NHOFFSRFPAL = 308352;
+	NHOUT = 309120;
+
+"variables"
+
+	NHinname = { niv-input.bin };
+	NHoutname = { niv-output.bin };
+	NHi = 0; NHsrc = 0; NHunits = 0; NHoff = 0; NHtmp = 0;
+
+"workspace"
+
+	NHinput = 32;
+	NHheader = 32;
+
+"programme"
+
+"VHNIV run"
+	=> FEnter;
+	[File Name] = NHinname; [File Position] = 0;
+	[File Command] = READ; [Block Pointer] = NHinput;
+	[Block Size] = NHIN; [Block Size] * BYTESPERUNIT; isocall;
+	A = [NHinput]; ? A != NHINMAGIC -> VHNIV invalid;
+	A = [NHinput plus 1]; ? A != NHVERSION -> VHNIV invalid;
+
+	=> MEM build rtab; => MEM build ztab; => MEM wrap reset;
+	=> PAL float init; => PGF constants; => SU fp init; => SU pal init;
+
+	[VHGNDclockoverride] = 1; [VHGNDclocksecs] = [NHinput plus 8];
+	[VHTtx] = [NHinput plus 2];
+	A = 0; A - [NHinput plus 3]; [VHTty] = A;
+	[VHTtz] = [NHinput plus 4];
+
+	( extract_ap_target_infos() + prepare_nearstar(), without GUI/catalogue work )
+	=> VHT extract;
+	[nsx] = [VHTtx]; [nsy] = [VHTty]; [nsz] = [VHTtz]; => NsSeedFromXYZ;
+	[nsseedin] = A; [nsclass] = [VHTclass]; [nsstarray] = [VHTRay];
+	=> NsResetAll; => NsPrepare;
+
+	[VHGplanet] = [NHinput plus 5];
+	A = [VHGplanet]; ? A '< [nsnob] -> VHNIV body valid;
+	-> VHNIV invalid;
+    "VHNIV body valid"
+	[VHGlandinglon] = [NHinput plus 6]; [VHGlandinglat] = [NHinput plus 7];
+	[VHGNDlon] = [VHGlandinglon]; [VHGNDlat] = [VHGlandinglat];
+	=> VHG select texture buffer; => VHG prepare planet; => VHG fpu clean;
+	=> VHNIV orbital surface; => VHG fpu clean;
+
+	( Preserve the public harness's orbital products before build_surface
+	  reuses the same allocations. )
+	A = nw; A + [VHGNDtexbase]; [NHsrc] = A;
+	[NHunits] = NHSURFU; [NHoff] = NHOFFSURF; => VHNIV write;
+	A = nw; A + ROBJ; [NHsrc] = A;
+	[NHunits] = NHATMOU; [NHoff] = NHOFFATMO; => VHNIV write;
+	[NHsrc] = sutmppal; [NHunits] = NHPALU; [NHoff] = NHOFFPAL; => VHNIV write;
+
+	( Retain surface()'s selected colour/cloud/tint state for create_sky.
+	  The benchmark build itself still receives its explicit/default albedo. )
+	[GRiptype] = [VHGptype]; => VHGND landing identity; => VHG fpu clean;
+
+	=> VHNIV landed inputs;
+	=> VHNIV wipe landed;
+	=> SU ledger reset; => GR float init;
+	[VHGNDrockscale] = 500; [VHGNDrockpeak] = 250; [VHGNDrockdensity] = 15;
+	[VHGNDwaswet] = 0; [VHGNDwavescalm] = 0; [VHGNDfrosty] = 0;
+	=> VHGND build surface; => VHG fpu clean;
+
+	A = nw; A + RPSM; [NHsrc] = A;
+	[NHunits] = NHHEIGHTU; [NHoff] = NHOFFHEIGHT; => VHNIV write;
+	A = nw; A + RPSM; A + 40000; [NHsrc] = A;
+	[NHunits] = NHGAPU; [NHoff] = NHOFFGAP; => VHNIV write;
+	A = nw; A + ROBJ; [NHsrc] = A;
+	[NHunits] = NHOBJECTU; [NHoff] = NHOFFOBJECT; => VHNIV write;
+	A = nw; A + [VHGNDtexbase]; [NHsrc] = A;
+	[NHunits] = NHSTEXU; [NHoff] = NHOFFSTEX; => VHNIV write;
+
+	=> VHGND sky; => VHG fpu clean;
+	A = nw; A + RSBG; [NHsrc] = A;
+	[NHunits] = NHSKYU; [NHoff] = NHOFFSKY; => VHNIV write;
+	[NHsrc] = srfpal6; [NHunits] = NHSRFPALU; [NHoff] = NHOFFSRFPAL; => VHNIV write;
+
+	[NHheader] = NHOUTMAGIC; [NHheader plus 1] = NHVERSION;
+	[NHheader plus 2] = 0;
+	[NHheader plus 3] = [NHinput plus 2];
+	[NHheader plus 4] = [NHinput plus 3];
+	[NHheader plus 5] = [NHinput plus 4];
+	[NHheader plus 6] = [VHGplanet]; [NHheader plus 7] = [nsnob];
+	[NHheader plus 8] = [VHGptype]; [NHheader plus 9] = [VHGNDowner];
+	[NHheader plus 10] = [GRgseed]; [NHheader plus 11] = [VHGNDsctype];
+	[NHheader plus 12] = [GRalbedo]; [NHheader plus 13] = [NHinput plus 11];
+	[NHheader plus 14] = [VHGNDclocksecs];
+	[NHheader plus 15] = NHSURFU; [NHheader plus 16] = NHATMOU;
+	[NHheader plus 17] = NHPALU; [NHheader plus 18] = NHHEIGHTU;
+	[NHheader plus 19] = NHGAPU; [NHheader plus 20] = NHOBJECTU;
+	[NHheader plus 21] = NHSTEXU; [NHheader plus 22] = NHSKYU;
+	[NHheader plus 23] = NHSRFPALU;
+	[NHheader plus 24] = [SUfseed]; [NHheader plus 25] = [brtlseed];
+	[NHheader plus 26] = [SUfn]; [NHheader plus 27] = [SUbnc];
+	[NHheader plus 28] = [VHGNDtermstart]; [NHheader plus 29] = [VHGNDtermend];
+	[NHheader plus 30] = [VHGNDtscale]; [NHheader plus 31] = 0;
+	[NHsrc] = NHheader; [NHunits] = NHHEAD; [NHoff] = 0; => VHNIV write;
+
+	[File Name] = NHoutname; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = NHOUT; [File Size] * BYTESPERUNIT; isocall;
+	[VHGNDclockoverride] = 0;
+	=> FLeave;
+	end;
+
+"VHNIV orbital surface"
+	( The public harness calls surface() immediately after prepare_nearstar,
+	  with the zero-initialized planet viewpoint.  Gameplay's close-body path
+	  computes an observer-relative phase first, so call the shared surface
+	  implementation at the public boundary here. )
+	E = nspowner; E + [VHGplanet]; A = [E]; [VHGNDowner] = A;
+	=> VHGND rotation seed;
+	=> VHG fpu clean; => SU fp init; => SU pal init;
+	[SUid] = [VHGplanet]; [SUtype] = [VHGptype]; [SUplwp] = 0;
+	[SUowner] = [VHGNDowner]; [SUnsr] = [VHTred]; [SUnsg] = [VHTgreen]; [SUnsb] = [VHTblue];
+	[SUsv0] = [VHGNDseedval0]; [SUsv1] = [VHGNDseedval1]; [SUledon] = 0;
+	A = [VHGNDowner]; ? A >= 0 -> VHNIV orbital moon;
+	[SUcbase] = 192; [VHGNDcbase] = 192; => SU select planet; -> VHNIV orbital selected;
+    "VHNIV orbital moon"
+	[SUcbase] = 128; [VHGNDcbase] = 128; => SU select moon;
+    "VHNIV orbital selected"
+	=> SU select ovl; => SU wipe; => SU wipe ovl; => SU surface;
+	end;
+
+"VHNIV landed inputs"
+	[VHGNDlocseed] = [VHGNDlat]; A = [VHGNDlocseed]; A '* [VHGNDlon]; [VHGNDlocseed] = A;
+	[GRgseed] = [VHGNDseed]; [GRiptype] = [VHGptype];
+	A = [NHinput plus 10]; ? A >= 0 -> VHNIV albedo ready; A = 32;
+    "VHNIV albedo ready"
+	[GRalbedo] = A;
+	A = [VHGNDlat]; A - 60; ? A >= 0 -> VHNIV latitude absolute; A +-;
+    "VHNIV latitude absolute"
+	A '* 3; A '/ 2; [GRlat] = A;
+
+	( setup_landing's type-3 global_surface_seed polar correction. )
+	A = [GRiptype]; ? A != 3 -> VHNIV seed ready;
+	A = [GRgseed]; A + [VHGNDlon]; => BrtlSrand;
+	A = 5; => BrtlRandom; [NHtmp] = A;
+	A = [GRgseed]; A % 15; A + 25; A + [NHtmp];
+	C = [GRlat]; ? C <= A -> VHNIV seed ready;
+	[GRgseed]+; [VHGNDseed] = [GRgseed];
+    "VHNIV seed ready"
+
+	A = [NHinput plus 9]; ? A '< 1 -> VHNIV scenario automatic;
+	? A '> 4 -> VHNIV scenario automatic; [VHGNDsctype] = A;
+	-> VHNIV scenario ready;
+    "VHNIV scenario automatic"
+	[VHGNDsctype] = 2; A = [GRiptype]; ? A != 3 -> VHNIV scenario ready;
+	A = [VHGNDlocseed]; => BrtlSrand; A = 100; => BrtlRandom;
+	? A '<= 5 -> VHNIV scenario local;
+	A = [VHGNDplanet]; A < 1; E = nspororient; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1]; A = 3; => GeoSetK;
+	=> GeoKMulChopLive; A = [FI]; A % 4; A + 1; [VHGNDsctype] = A;
+	-> VHNIV scenario albedo;
+    "VHNIV scenario local"
+	A = 4; => BrtlRandom; A + 1; [VHGNDsctype] = A;
+    "VHNIV scenario albedo"
+	A = [GRalbedo]; ? A '>= 25 -> VHNIV scenario polar; [VHGNDsctype] = 1;
+    "VHNIV scenario polar"
+	A = [GRlat]; ? A '<= 75 -> VHNIV scenario near polar; [VHGNDsctype] = 4;
+    "VHNIV scenario near polar"
+	A = [GRlat]; ? A '<= 60 -> VHNIV scenario ready;
+	A = 3; => BrtlRandom; ? A = 0 -> VHNIV scenario ready; [VHGNDsctype] = 4;
+    "VHNIV scenario ready"
+	[GRsctype] = [VHGNDsctype];
+	end;
+
+"VHNIV wipe landed"
+	[NHi] = 0;
+    "VHNIV wipe height"
+	A = nw; A + RPSM; A + [NHi]; [A] = 0;
+	[NHi]+; A = [NHi]; ? A '< 40000 -> VHNIV wipe height;
+	[NHi] = 0;
+    "VHNIV wipe objects"
+	A = nw; A + ROBJ; A + [NHi]; [A] = 0;
+	[NHi]+; A = [NHi]; ? A '< 40000 -> VHNIV wipe objects;
+	[NHi] = 0;
+    "VHNIV wipe texture"
+	A = nw; A + [VHGNDtexbase]; A + [NHi]; [A] = 16;
+	[NHi]+; A = [NHi]; ? A '< 65535 -> VHNIV wipe texture;
+	A = nw; A + [VHGNDtexbase]; A + 65535; [A] = 0;
+
+	( Replay the public harness's sixteen-byte far-heap gap. )
+	A = nw; A + RPSM; A + 40000; [NHsrc] = A; [NHi] = 0;
+    "VHNIV gap copy"
+	A = NHinput; A + 16; A + [NHi]; C = [A];
+	A = [NHsrc]; A + [NHi]; [A] = C;
+	[NHi]+; A = [NHi]; ? A '< 16 -> VHNIV gap copy;
+	end;
+
+"VHNIV write"
+	[File Name] = NHoutname; A = [NHoff]; A '* BYTESPERUNIT; [File Position] = A;
+	[File Command] = WRITE; [Block Pointer] = [NHsrc];
+	[Block Size] = [NHunits]; [Block Size] * BYTESPERUNIT; isocall;
+	end;
+
+"VHNIV invalid"
+	[VHGNDclockoverride] = 0;
+	=> FLeave;
+	end;

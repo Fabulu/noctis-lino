@@ -15,6 +15,7 @@ work/GUIDE-PRINT.TXT
 work/*.png
 work/*.lin
 work/*.wavebuild.txt
+work/nivtestmain.txt
 work/rc*-smoke*/
 work/rc*-journey*/
 

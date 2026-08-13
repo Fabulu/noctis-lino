@@ -190,6 +190,9 @@
 	VHGNDflashskyp = 0;
 	VHGNDskyfill = 0; VHGNDskycount = 0; VHGNDpalcount = 0;
 	VHGNDdays = 0; VHGNDsecs = 0; VHGNDmonthbase = 0;
+	( Headless generation harnesses pin the NIV+ secs global.  Normal play
+	  leaves this disabled and continues to read the host UTC clock. )
+	VHGNDclockoverride = 0; VHGNDclocksecs = 0;
 	VHGNDphaseindex = 0; VHGNDphase = 0; VHGNDrotation = 0; VHGNDperiod = 0;
 	VHGNDowner = 0; VHGNDmoonmass = 0; VHGNDplwp = 0; VHGNDviewpoint = 0;
 	VHGNDtermstart = 0; VHGNDtermend = 0; VHGNDcrep = 0; VHGNDdist = 0;
@@ -379,12 +382,8 @@
 	? A = 5 -> VHGND generate type5;
 	? A = 7 -> VHGND generate type7;
 
-	( Defensive fallback for an unexpected type; every accepted landable
-	  class has a dedicated arm above. )
-	A = [GRgseed]; => SU fast srand;
-	A = [GRgseed]; A & 0FFFFh; => SU srand;
-	[GRrough] = 28; [GRround] = 4; [GRlevel] = 0;
-	=> GR rockyground; => GR plains noise;
+	( The source switch has no default arm.  Non-landable types retain the
+	  prologue state and proceed directly to the common post-switch work. )
 	-> VHGND build surface done;
 
     "VHGND generate type1"
@@ -1828,6 +1827,7 @@
 	( NIV+ clock basis: elapsed UTC seconds since 1984-01-01, including its
 	  original every-four-years leap rule.  The 32-bit value remains in range
 	  through the dates supported by this port. )
+	A = [VHGNDclockoverride]; ? A != 0 -> VHGND pinned seconds;
 	[Timer Command] = READ UTC TIME; isocall;
 	( The win32 runtime does not preserve x87 state across isocalls. )
 	=> VHG fpu clean; => SU fp init;
@@ -1854,6 +1854,12 @@
 	A = [Hour]; A '* 3600; A + [VHGNDsecs]; [VHGNDsecs] = A;
 	A = [Minute]; A '* 60; A + [VHGNDsecs]; A + [Second]; [VHGNDsecs] = A;
 	[FI] = A; => IntToF; [SUsec0] = [FA0]; [SUsec1] = [FA1];
+	-> VHGND seconds ready;
+    "VHGND pinned seconds"
+	A = [VHGNDclocksecs]; [VHGNDsecs] = A;
+	=> VHG fpu clean; => SU fp init;
+	[FI] = A; => IntToF; [SUsec0] = [FA0]; [SUsec1] = [FA1];
+    "VHGND seconds ready"
 	end;
 
 "VHGND orbital phase"
