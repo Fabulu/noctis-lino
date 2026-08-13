@@ -73,7 +73,7 @@
 	VHGNDtreeex = 0; VHGNDtreeey = 0; VHGNDtreeez = 0;
 	VHGNDtreebr = 0; VHGNDtreeer = 0; VHGNDtreeside = 0;
 	VHGNDtreepoint = 0; VHGNDtreecx = 0; VHGNDtreecy = 0; VHGNDtreecz = 0;
-	VHGNDtreepx = 0; VHGNDtreepz = 0; VHGNDtreeorient = 0;
+	VHGNDtreepx = 0; VHGNDtreepz = 0; VHGNDtreeorient = 0; VHGNDtreeangle = 0;
 	VHGNDtreebranch = 0; VHGNDtreebranches = 0; VHGNDtreerange = 0;
 	VHGNDtreefaces = 3; VHGNDtreeleafrad = 0; VHGNDtreeleafdrop = 0;
 	VHGNDtreeleafx = 0; VHGNDtreeleafz = 0;
@@ -5468,7 +5468,9 @@
     "VHGND tree node count ready"
 	A = VHGNDtscount; A + [VHGNDtreelevel]; [A] = [VHGNDtreebranches];
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; [A] = 0;
-	A = [VHGNDtreebx]; A + [VHGNDtreeby]; A + [VHGNDtreebz]; A + [VHGNDh1];
+	( NIV+ build_fractal_tree uses the fixed detail_seed, not the terrain
+	  cell index, so the same world-space tree keeps its native branch RNG. )
+	A = [VHGNDtreebx]; A + [VHGNDtreeby]; A + [VHGNDtreebz]; A + 12345;
 	C = VHGNDtslseed; C + [VHGNDtreelevel]; [C] = A;
 	A = [VHGNDtreescale]; A '* [VHTpeak];
 	C = [VHGNDtreeisroot]; ? C = 0 -> VHGND tree node nonroot range;
@@ -5651,23 +5653,36 @@
 	end;
 
 "VHGND tree leaves"
-	( Terminal source fan: three faces normally, five for giant trees. )
+	( Terminal source fan.  Its second ring point is rotation+72 and its tip
+	  is rotation+36 regardless of branchdetail; using the next prism point
+	  here produces the long crossed spikes that are absent in NIV+. )
 	[VHGNDtreerad] = [VHGNDtreeleafrad];
 	[VHGNDtreeside] = 0;
     "VHGND tree leaf face"
 	A = [VHGNDtreeside]; ? A '>= [VHGNDtreefaces] -> VHGND tree leaves done;
 	A '* [VHTfacestep]; A + [VHTfacebase]; [DBcol] = A;
 	[VHGNDvi] = 0; [VHGNDtreecx] = [VHGNDtreeex]; [VHGNDtreecy] = [VHGNDtreeey]; [VHGNDtreecz] = [VHGNDtreeez];
-	[VHGNDtreepoint] = [VHGNDtreeside]; => VHGND tree vertex;
-	[VHGNDtreepoint]+; A = [VHGNDtreepoint]; ? A < [VHGNDtreefaces] -> VHGND tree leaf next; [VHGNDtreepoint] = 0;
-    "VHGND tree leaf next"
-	=> VHGND tree vertex;
-	[VHGNDtreepx] = [VHGNDtreeleafx]; A = [VHGNDtreeey]; A - [VHGNDtreeleafdrop]; [VHGNDtreecy] = A;
-	[VHGNDtreepz] = [VHGNDtreeleafz]; => VHGND tree vertex load;
+	A = 360; A / [VHGNDtreefaces]; A '* [VHGNDtreeside]; [VHGNDtreeangle] = A;
+	=> VHGND tree polar vertex;
+	A = [VHGNDtreeangle]; A + 72; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
+	[VHGNDtreecx] = [VHGNDtreeleafx]; [VHGNDtreecz] = [VHGNDtreeleafz];
+	[VHGNDtreerad] = [VHGNDtreerange]; A = [VHGNDtreeangle]; A - 36; [VHGNDtreeangle] = A;
+	A = [VHGNDtreeey]; A - [VHGNDtreeleafdrop]; [VHGNDtreecy] = A; => VHGND tree polar vertex;
 	[PJnrv] = 3; => PG poly3d;
 	[VHGNDtreeside]+; -> VHGND tree leaf face;
     "VHGND tree leaves done"
 	end;
+
+"VHGND tree polar vertex"
+	[VHVangle] = [VHGNDtreeangle]; => VHV sincos;
+	[FI] = [VHGNDtreerad]; => IntToF; [PGFi] = FSW1; => PGF sa;
+	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
+	A = [FI]; A + [VHGNDtreecx]; [VHGNDtreepx] = A;
+	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
+	A = [FI]; A + [VHGNDtreecz]; [VHGNDtreepz] = A;
+	-> VHGND tree vertex load;
 
 "VHGND tree vertex"
 	A = [VHGNDtreefaces]; ? A = 2 -> VHGND tree vertex two;

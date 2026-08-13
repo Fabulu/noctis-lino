@@ -2906,6 +2906,9 @@ def main() -> int:
             "[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 31;",
             "[VHGNDtreelayers] = 4; [VHTforks] = 3; [VHGNDtreefaces] = 5;",
             "A = VHGNDtslseed;", "C + 3; [A] = C;",
+            "A + [VHGNDtreebz]; A + 12345;",
+            '"VHGND tree polar vertex"', "A + 72; [VHGNDtreeangle] = A;",
+            "A - 36; [VHGNDtreeangle] = A;",
             "[VHGNDtreelevel]+;", "[VHGNDtreelevel]-;",
             "[PJnrv] = 4; => PG poly3d;", "[PJnrv] = 3; => PG poly3d;",
         ))
