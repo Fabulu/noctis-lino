@@ -33,6 +33,7 @@
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
 	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
+	VHGNDmpbase = 0;
 	VHGNDnormgen = 0; VHGNDnormindex = 0;
 	VHGNDtilex = 0; VHGNDtilez = 0; VHGNDcamtx = 0; VHGNDcamtz = 0;
 	VHGNDfx = 0; VHGNDfz = 0;
@@ -2483,21 +2484,36 @@
 "VHGND terrain cached bounds"
 	( This is projectmap's four-entry min/max walk, including its seed values
 	  and comparison order.  Slot three is the closing duplicate below. )
-	[PJminx] = PGUBX; [PJmaxx] = PGLBX;
-	[BXminy] = PGUBY; [BXmaxy] = PGLBY;
-	[PJvr] = 0;
-    "VHGND terrain cached bounds point"
-	A = [PJvr]; A + A; C = mp; C + A; A = [C];
-	? A >= [PJminx] -> VHGND terrain cached bounds x min ready; [PJminx] = A;
-    "VHGND terrain cached bounds x min ready"
-	A = [C]; ? A <= [PJmaxx] -> VHGND terrain cached bounds x max ready; [PJmaxx] = A;
-    "VHGND terrain cached bounds x max ready"
-	A = [C plus 1];
-	? A >= [BXminy] -> VHGND terrain cached bounds y min ready; [BXminy] = A;
-    "VHGND terrain cached bounds y min ready"
-	A = [C plus 1]; ? A <= [BXmaxy] -> VHGND terrain cached bounds y max ready; [BXmaxy] = A;
-    "VHGND terrain cached bounds y max ready"
-	[PJvr]+; A = [PJvr]; ? A < 4 -> VHGND terrain cached bounds point;
+	A = mp; [VHGNDmpbase] = A;
+	{
+	    56
+	    8B B7 <dVHGNDmpbase mtp bytesperunit>
+	    8D 34 B7
+	    C7 87 <dPJminx mtp bytesperunit> 37 01 00 00
+	    C7 87 <dPJmaxx mtp bytesperunit> 05 00 00 00
+	    C7 87 <dBXminy mtp bytesperunit> BE 00 00 00
+	    C7 87 <dBXmaxy mtp bytesperunit> 0A 00 00 00
+	    B9 04 00 00 00
+	    8B 06
+	    3B 87 <dPJminx mtp bytesperunit>
+	    7D 06
+	    89 87 <dPJminx mtp bytesperunit>
+	    3B 87 <dPJmaxx mtp bytesperunit>
+	    7E 06
+	    89 87 <dPJmaxx mtp bytesperunit>
+	    8B 46 04
+	    3B 87 <dBXminy mtp bytesperunit>
+	    7D 06
+	    89 87 <dBXminy mtp bytesperunit>
+	    3B 87 <dBXmaxy mtp bytesperunit>
+	    7E 06
+	    89 87 <dBXmaxy mtp bytesperunit>
+	    83 C6 08
+	    49
+	    75 BD
+	    5E
+	}
+	[PJvr] = 4;
 	end;
 
 "VHGND terrain mapped"
