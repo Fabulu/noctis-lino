@@ -29,6 +29,7 @@
 	VHGNDh1 = 0; VHGNDs1 = 0; VHGNDs2 = 0;
 	VHGNDs3 = 0; VHGNDs4 = 0; VHGNDshade = 0;
 	VHGNDdepth = 0; VHGNDrawdepth = 0; VHGNDdx = 0; VHGNDdz = 0;
+	VHGNDmanhattan = 0;
 	VHGNDlodstep = 1; VHGNDlodradius = 4;
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
@@ -5121,7 +5122,11 @@
 "VHGND tile"
 	( fragment()'s source Manhattan precheck rejects only cells that cannot
 	  enter the depth-64 circle.  Do it before shade/depth floating work. )
-	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile source range ready;
+	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile source range generic;
+	=> VHGND faithful tile admission native;
+	A = [VHGNDmanhattan]; ? A > 90 -> VHGND tile done;
+	-> VHGND tile depth computed;
+    "VHGND tile source range generic"
 	A = [VHGNDcamtx]; A - [VHGNDx]; ? A >= 0 -> VHGND tile abs x ready;
 	C = 0; C - A; A = C;
     "VHGND tile abs x ready"
@@ -5136,6 +5141,7 @@
 	  Do that before the deterministic shade draw so rejected horizon cells
 	  pay neither RNG nor ledger/hash work. )
 	=> VHGND tile depth;
+    "VHGND tile depth computed"
 	A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;
 	A = [VHGNDdepth]; ? A > [VHGNDmaxdepth] -> VHGND tile done;
 	A = [VHGNDmindepth]; ? A < 0 -> VHGND tile depth accepted;
@@ -5900,6 +5906,79 @@
 	A - 1; ? A >= 0 -> VHGND tile depth ready; A = 0;
     "VHGND tile depth ready"
 	[VHGNDdepth] = A;
+	end;
+
+"VHGND faithful tile admission native"
+	( Unit-tile source Manhattan gate and accepted-cell depth in one call.
+	  The early return keeps rejected cells at NIV+'s exact no-map-index/no-x87
+	  side-effect boundary without paying a second native-call transition. )
+	{
+	    8B 87 <dVHGNDcamtx mtp bytesperunit>
+	    2B 87 <dVHGNDx mtp bytesperunit>
+	    89 C1
+	    C1 F9 1F
+	    31 C8
+	    29 C8
+	    89 C3
+	    8B 87 <dVHGNDcamtz mtp bytesperunit>
+	    2B 87 <dVHGNDz mtp bytesperunit>
+	    89 C1
+	    C1 F9 1F
+	    31 C8
+	    29 C8
+	    01 D8
+	    89 87 <dVHGNDmanhattan mtp bytesperunit>
+	    83 F8 5A
+	    7E 01
+	    C3
+
+	    8B 87 <dVHGNDz mtp bytesperunit>
+	    69 C0 C8 00 00 00
+	    03 87 <dVHGNDx mtp bytesperunit>
+	    89 87 <dVHGNDh1 mtp bytesperunit>
+
+	    8B 87 <dVHGNDx mtp bytesperunit>
+	    C1 E0 0E
+	    05 00 20 00 00
+	    8B 9F <dVHGNDcamx mtp bytesperunit>
+	    29 C3
+	    89 9F <dVHGNDdx mtp bytesperunit>
+	    8B 87 <dVHGNDz mtp bytesperunit>
+	    C1 E0 0E
+	    05 00 20 00 00
+	    8B 9F <dVHGNDcamz mtp bytesperunit>
+	    29 C3
+	    89 9F <dVHGNDdz mtp bytesperunit>
+
+	    DB 87 <dVHGNDdx mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8F <dFA0 mtp bytesperunit>
+	    DD 9F <dFT0 mtp bytesperunit>
+	    DB 87 <dVHGNDdz mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8F <dFA0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 87 <dFT0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 FA
+	    DD 9F <dFA0 mtp bytesperunit>
+	    D9 AF <dGRcwc mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DB 9F <dFI mtp bytesperunit>
+	    D9 AF <dGRcwn mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit>
+	    C1 F8 0E
+	    89 87 <dVHGNDrawdepth mtp bytesperunit>
+	    48
+	    85 C0
+	    79 02
+	    31 C0
+	    89 87 <dVHGNDdepth mtp bytesperunit>
+	}
 	end;
 
 "VHGND tile shade"
