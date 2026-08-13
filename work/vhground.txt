@@ -471,6 +471,11 @@
 	[VHGNDfrosty] = 1;
     "VHGND type8 texture"
 	=> VHGND similar texture;
+	( `goto similar` lands inside the type-3 scenario switch.  Its `break`
+	  then reaches the shared `if (!random(5)) quartz=1` before the outer
+	  planet-type switch exits.  Quartz is already set here; the draw still
+	  controls every subsequent post-surface crevasse. )
+	C = 5; => SU rnd;
 	-> VHGND build surface done;
 
     "VHGND generate type2"
@@ -727,11 +732,18 @@
 	( Thin-atmosphere worlds: Martian plains or broken permafrost, eroded
 	  profile craters, dense texture fissures, and sparse-or-dense stones. )
 	C = 2; => SU rnd; ? C = 0 -> VHGND type5 broken;
-	C = 10; => SU rnd; C + 5; [GRrough] = C; [GRround] = 1; [GRlevel] = 0;
-	=> GR rockyground; -> VHGND type5 craters;
+	C = 10; => SU rnd; C + 5; [GRrough] = C; [GRlevel] = 0;
+	-> VHGND type5 rough ready;
     "VHGND type5 broken"
+	( Source computes n before evaluating rockyground's -random(24)
+	  argument, so the roughness draw precedes the level draw. )
+	C = 32; => SU rnd; C + 15; [GRrough] = C;
 	C = 24; => SU rnd; A = 0; A - C; [GRlevel] = A;
-	C = 32; => SU rnd; C + 15; [GRrough] = C; [GRround] = 1; => GR rockyground;
+    "VHGND type5 rough ready"
+	A = [GRalbedo]; ? A '<= 48 -> VHGND type5 rough adjusted;
+	A = [GRrough]; A / 2; [GRrough] = A;
+    "VHGND type5 rough adjusted"
+	[GRround] = 1; => GR rockyground;
     "VHGND type5 craters"
 	C = 68; => SU rnd; A = C; A - [GRalbedo]; ? A >= 1 -> VHGND type5 crater low; A = 1;
     "VHGND type5 crater low"
@@ -771,8 +783,10 @@
 	[GRfrlo] = 0FFFFFFFFh; [GRfrhi] = 0FFFFFFFFh; => GR srf darkline;
 	[VHGNDgenn]-; -> VHGND type7 surface line loop;
     "VHGND type7 texture craters"
-	C = 100; => SU rnd; [VHGNDtmp] = C; C = 200; => SU rnd;
-	A = [GRalbedo]; A + C; A - [VHGNDtmp]; ? A >= 0 -> VHGND type7 texture nonnegative; A = 0;
+	( These random calls are separate expression operands in the source, not
+	  function arguments: Borland emits random(200), then random(100). )
+	C = 200; => SU rnd; [VHGNDtmp] = C; C = 100; => SU rnd;
+	A = [GRalbedo]; A + [VHGNDtmp]; A - C; ? A >= 0 -> VHGND type7 texture nonnegative; A = 0;
     "VHGND type7 texture nonnegative"
 	[VHGNDgenn] = A;
     "VHGND type7 texture crater loop"
@@ -783,16 +797,18 @@
 	[GRfscl] = 31; [GRfsca] = 256; [GRscmap] = [VHGNDtexbase]; => GR std crater;
 	[VHGNDgenn]-; -> VHGND type7 texture crater loop;
     "VHGND type7 small lines"
-	C = 50; => SU rnd; [VHGNDtmp] = C; C = 100; => SU rnd;
-	A = [GRalbedo]; A + C; A - [VHGNDtmp]; ? A >= 0 -> VHGND type7 small nonnegative; A = 0;
+	C = 100; => SU rnd; [VHGNDtmp] = C; C = 50; => SU rnd;
+	A = [GRalbedo]; A + [VHGNDtmp]; A - C; ? A >= 0 -> VHGND type7 small nonnegative; A = 0;
     "VHGND type7 small nonnegative"
 	A / 2;
 	[VHGNDgenn] = A;
     "VHGND type7 small line loop"
 	A = [VHGNDgenn]; ? A = 0 -> VHGND type7 rocks;
-	C = 100; => SU rnd; [VHGNDlinelen] = C;
+	( Function arguments are evaluated right-to-left: z trend, x trend,
+	  then the random line length. )
+	C = 2; => SU rnd; A = 0; A - C; [VHGNDlinetrendz] = A;
 	C = 2; => SU rnd; A = 0; A - C; [VHGNDlinetrendx] = A;
-	C = 2; => SU rnd; A = 0; A - C; [VHGNDlinetrendz] = A; => VHGND texture darkline;
+	C = 100; => SU rnd; [VHGNDlinelen] = C; => VHGND texture darkline;
 	[VHGNDgenn]-; -> VHGND type7 small line loop;
     "VHGND type7 rocks"
 	C = 400; => SU rnd; C + 50; [VHGNDrockscale] = C;

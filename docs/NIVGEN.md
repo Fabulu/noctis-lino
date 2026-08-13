@@ -91,15 +91,33 @@ type-2 smoke matched all 11 scored hashes:
 That is encouraging because those fields are the current leader's largest
 public gap. It is one row, not yet a corpus-wide claim.
 
-The first production type-1 row now also matches all 11 scored hashes at both
-the default and random landing coordinates. Two faults in `GR std crater` had
-previously hidden that parity. Its supposed `fld qword M_PI` used the `fadd`
-opcode, producing a NaN profile that erased powered crater circles. Its
-`abs(r)` guard used an unsigned comparison, so negative companion craters
-exited with reversed bounds. Correcting those two instructions restored the
-public heightmap, object-chart, and surface-texture hashes without changing
-the random stream or crater workload. The already exact type-2 smoke remains
-11 for 11 after the correction.
+One representative public row for every planet type 0 through 9 now matches
+all 11 scored hashes, including both landed coordinates. This is representative
+coverage, not a claim that the complete live corpus is already perfect.
+
+The landed fixes behind that result are source-level corrections rather than
+fixture exceptions:
+
+- Type 1 needed the exact `std_crater` x87 opcode and signed negative-radius
+  bounds.
+- Types 1 and 4 exposed `rockyground`'s source cutoff. Positive and negative
+  levels both apply `value >= abs(level)` before adding the signed level.
+- Type 5 needed Borland's argument evaluation order and the source albedo
+  reduction of roughness.
+- Type 7 needed the original expression and function-argument random draw
+  order for craters and dark lines.
+- Type 8 reaches the type-3 `similar:` label with `goto`. After that inner
+  switch exits, NIV+ consumes one shared `random(5)` draw before the common
+  crevasse pass. Omitting it left the planet texture exact but shifted every
+  landed post-pass draw.
+
+For the type-8 diagnosis, an isolated Borland C++ 3.1 build of the NIV+
+`planetdump` source wrote the original 40,000-byte heightmap and object chart
+at the clean `build_surface()` return boundary. Their FNV-1a hashes were
+`D035342C` and `2FA9DADD`, exactly matching the public sheet. A temporary
+per-hill trace then proved all 136 Lino hills already matched NIV+; the first
+difference appeared in the shifted shared crevasse pass. After restoring the
+missing draw, both the default and random public sectors became 11 for 11.
 
 These are deliberate smoke rows, not yet corpus-wide accuracy claims. Larger
 per-type sweeps still belong at stable accuracy milestones and before release.
