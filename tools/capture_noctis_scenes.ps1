@@ -19,6 +19,8 @@ param(
     [int]$CapsuleZ = 131072,
     [ValidateSet(15)]
     [int]$CheckpointVersion = 15,
+    [switch]$Fast,
+    [switch]$ReportPerformance,
     [switch]$KeepStages,
     [switch]$Interactive
 )
@@ -72,11 +74,13 @@ $scenes = @(
     @{ Name='habitable'; FileName='planet-habitable-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
        Beta=65; Pitch=-10; Warmup=7; PlayerX=1598248; PlayerZ=2251369 },
-    # LANE IV's first complete tree-class object, centered from an ordinary
-    # 30,000-unit walking distance so its native trunk and canopy are visible.
+    # LANE IV's complete tree at (1045540,2207735), aimed from 45,000 units
+    # east. The former checkpoint faced north from only 9,258 units away, so
+    # its advertised tree was off-screen and an unrelated foliage mass filled
+    # the gallery frame.
     @{ Name='tree'; FileName='planet-habitable-tree.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
-       Beta=0; Pitch=0; Warmup=2; PlayerX=1054729; PlayerZ=2206608 },
+       Beta=90; Pitch=0; Warmup=2; PlayerX=1090540; PlayerZ=2207735 },
     # LANE IV's naturally generated index-15 hopper, viewed from five
     # thousand surface units away. It remains in its source fauna record;
     # the checkpoint does not inject or relocate showcase scenery.
@@ -178,7 +182,7 @@ function New-Checkpoint {
     $u[24] = $Spec.X
     $u[25] = $Spec.Y
     $u[26] = $Spec.Z
-    $u[27] = 0
+    $u[27] = if ($Fast) { 1 } else { 0 }
     $u[28] = 0
     $u[29] = 0
     $u[31] = 3
@@ -354,6 +358,30 @@ foreach ($spec in $scenes) {
         $destination = Join-Path $outputPath $fileName
         Save-WindowPng -Handle $proc.MainWindowHandle -Path $destination
         Write-Output ("CAPTURED {0} type {1} -> {2}" -f $spec.Name, $spec.Type, $destination)
+        if ($ReportPerformance) {
+            $profilePath = Join-Path $stage 'game-vh-out.bin'
+            if (Test-Path -LiteralPath $profilePath) {
+                $bytes = [IO.File]::ReadAllBytes($profilePath)
+                if ($bytes.Length -eq 156) {
+                    $profile = New-Object 'System.Int32[]' 39
+                    [Buffer]::BlockCopy($bytes, 0, $profile, 0, $bytes.Length)
+                    $countsPerMs = $profile[25]
+                    if ($countsPerMs -gt 0) {
+                        $renderMs = $profile[18] / [double]$countsPerMs / 60.0
+                        $presentMs = $profile[19] / [double]$countsPerMs / 60.0
+                        $spaceMs = $profile[20] / [double]$countsPerMs / 60.0
+                        $cupolaMs = $profile[21] / [double]$countsPerMs / 60.0
+                        $hullMs = $profile[22] / [double]$countsPerMs / 60.0
+                        $detailMs = $profile[23] / [double]$countsPerMs / 60.0
+                        Write-Output (
+                            'PERF {0} fps={1} render={2:N2}ms present={3:N2}ms space={4:N2}ms cupola={5:N2}ms hull={6:N2}ms detail={7:N2}ms' -f
+                            $spec.Name, $profile[24], $renderMs, $presentMs,
+                            $spaceMs, $cupolaMs, $hullMs, $detailMs
+                        )
+                    }
+                }
+            }
+        }
     } finally {
         if ($proc -and -not $proc.HasExited) {
             # Prefer the game's own Escape path so it saves state and flushes

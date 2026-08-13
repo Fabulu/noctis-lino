@@ -374,14 +374,14 @@
 	point: every rasteriser store goes through "SP put". )
 
 "SP dput"
-	=> SP base;
+	A = [SPreg]; A '* 4; A + rgt; C = [A plus 0];
 	A = nw; A + C; A + [SPidx];
 	C = [SPval]; C & 255;
 	[A] = C;
 	end;
 
 "SP dget"
-	=> SP base;
+	A = [SPreg]; A '* 4; A + rgt; C = [A plus 0];
 	A = nw; A + C; A + [SPidx];
 	C = [A]; C & 255;
 	[SPval] = C;
@@ -416,11 +416,11 @@
 ( ==================================================================== )
 
       ( SP getf32 : [SPf] <- the little-endian binary32 held in the four
-	byte units at region [SPreg], index [SPidx]. )
+	pvfile byte units at [SPidx].  Every production and corpus caller uses
+	RGPVF, so keep the exact fixed arena base on this hot model path. )
 
 "SP getf32"
-	=> SP base;
-	A = nw; A + C; A + [SPidx];
+	A = nw; A + RPVF; A + [SPidx];
 	C = [A plus 3]; C & 255; C < 8;
 	D = [A plus 2]; D & 255; C + D; C < 8;
 	D = [A plus 1]; D & 255; C + D; C < 8;
@@ -428,12 +428,11 @@
 	[SPf] = C;
 	end;
 
-      ( SP putf32 : the four byte units at region [SPreg], index [SPidx]
+      ( SP putf32 : the four pvfile byte units at index [SPidx]
 	<- the little-endian binary32 pattern [SPf]. )
 
 "SP putf32"
-	=> SP base;
-	A = nw; A + C; A + [SPidx];
+	A = nw; A + RPVF; A + [SPidx];
 	C = [SPf]; C & 255;         [A plus 0] = C;
 	C = [SPf]; C > 8;  C & 255; [A plus 1] = C;
 	C = [SPf]; C > 16; C & 255; [A plus 2] = C;
@@ -444,16 +443,14 @@
 	pv_dep_i is an int far * and its entries are Borland 16-bit ints. )
 
 "SP getu16"
-	=> SP base;
-	A = nw; A + C; A + [SPidx];
+	A = nw; A + RPVF; A + [SPidx];
 	C = [A plus 1]; C & 255; C < 8;
 	D = [A plus 0]; D & 255; C + D;
 	[SPf] = C;
 	end;
 
 "SP putu16"
-	=> SP base;
-	A = nw; A + C; A + [SPidx];
+	A = nw; A + RPVF; A + [SPidx];
 	C = [SPf]; C & 255;        [A plus 0] = C;
 	C = [SPf]; C > 8; C & 255; [A plus 1] = C;
 	end;

@@ -3031,7 +3031,8 @@ def main() -> int:
         and "VHGND type7 texture count ready" not in ground
         and "VHGND type7 small count ready" not in ground
         and all(token in grnd for token in (
-            '"GR rg positive start"', '"GR sc power done"',
+            'Every level applies the source value >= abs(level) cutoff',
+            '"GR sc power done"',
             "D9 F1", "D9 F0", "D9 FD",
         ))
         and "FLAGGED GAP" not in grnd,

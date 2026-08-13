@@ -236,6 +236,7 @@
 	VHGNDbgrowbase = 0; VHGNDbgcol = 0;
 	VHGNDbgcacheok = 0; VHGNDbgcachealpha = 0; VHGNDbgcachebeta = 0;
 	VHGNDbgcachep = 0; VHGNDbgcacheq = 0; VHGNDbgcachecount = 0;
+	VHGNDbgcachefrom = 0; VHGNDbgcacheto = 0;
 
 "workspace"
 
@@ -2235,27 +2236,42 @@
 "VHGND background cache save"
 	[VHGNDbgcachep] = VHGNDskycache; A = nw; A + RADPT; [VHGNDbgcacheq] = A;
 	[VHGNDbgcachecount] = NPIX;
-	"VHGND bg cache save loop"
-	A = [VHGNDbgcacheq]; D = [VHGNDbgcachep];
-	C = [A]; [D] = C; C = [A plus 1]; [D plus 1] = C;
-	C = [A plus 2]; [D plus 2] = C; C = [A plus 3]; [D plus 3] = C;
-	A = [VHGNDbgcachep]; A + 4; [VHGNDbgcachep] = A;
-	A = [VHGNDbgcacheq]; A + 4; [VHGNDbgcacheq] = A;
-	A = [VHGNDbgcachecount]; A - 4; [VHGNDbgcachecount] = A;
-	A = [VHGNDbgcachecount]; ? A != 0 -> VHGND bg cache save loop;
+	[VHGNDbgcachefrom] = [VHGNDbgcacheq]; [VHGNDbgcacheto] = [VHGNDbgcachep];
+	=> VHGND background cache copy native;
 	end;
 
 "VHGND background cache restore"
 	[VHGNDbgcachep] = VHGNDskycache; A = nw; A + RADPT; [VHGNDbgcacheq] = A;
 	[VHGNDbgcachecount] = NPIX;
-	"VHGND bg cache restore loop"
-	A = [VHGNDbgcachep]; D = [VHGNDbgcacheq];
-	C = [A]; [D] = C; C = [A plus 1]; [D plus 1] = C;
-	C = [A plus 2]; [D plus 2] = C; C = [A plus 3]; [D plus 3] = C;
-	A = [VHGNDbgcachep]; A + 4; [VHGNDbgcachep] = A;
-	A = [VHGNDbgcacheq]; A + 4; [VHGNDbgcacheq] = A;
-	A = [VHGNDbgcachecount]; A - 4; [VHGNDbgcachecount] = A;
-	A = [VHGNDbgcachecount]; ? A != 0 -> VHGND bg cache restore loop;
+	[VHGNDbgcachefrom] = [VHGNDbgcachep]; [VHGNDbgcacheto] = [VHGNDbgcacheq];
+	=> VHGND background cache copy native;
+	end;
+
+"VHGND background cache copy native"
+	( Fixed, non-overlapping Lino-unit ranges.  Keep EDI on the workspace and
+	  walk the resolved source/destination through ESI/EDX.  The previous native
+	  attempt borrowed EDI and then used it to fetch the count, so that read came
+	  from the destination page and damaged the local sun flare. )
+	{
+	    56
+	    8B B7 <dVHGNDbgcachefrom mtp bytesperunit>
+	    8D 34 B7
+	    8B 97 <dVHGNDbgcacheto mtp bytesperunit>
+	    8D 14 97
+	    8B 8F <dVHGNDbgcachecount mtp bytesperunit>
+	    85 C9
+	    74 0D
+	    8B 06
+	    89 02
+	    83 C6 04
+	    83 C2 04
+	    49
+	    75 F3
+	    5E
+	}
+	A = [VHGNDbgcachep]; A + NPIX; [VHGNDbgcachep] = A;
+	A = [VHGNDbgcacheq]; A + NPIX; [VHGNDbgcacheq] = A;
+	[VHGNDbgcachecount] = 0;
 	end;
 
 "VHGND background direct"
@@ -2420,11 +2436,11 @@
 	end;
 
 "VHGND terrain cache frame"
-	( Presentation-only frames may reuse the exact projected grid when every
-	  camera input is bit-identical. Simulation frames still invalidate even
-	  at rest because waves and other source effects can alter geometry. )
+	( Reuse the exact projected ground grid whenever every camera input is
+	  bit-identical.  Simulation changes waves, fauna and weather, but none of
+	  those mutate p_surfacemap; water reflections already take the generic
+	  mirror path and never consume this ordinary-terrain cache. )
 	A = [VHGNDvccacheok]; ? A = 0 -> VHGND terrain cache invalidate;
-	A = [VHGNDdosim]; ? A != 0 -> VHGND terrain cache invalidate;
 	A = [VHGNDcamx]; ? A != [VHGNDvccamx] -> VHGND terrain cache invalidate;
 	A = [VHGNDcamy]; ? A != [VHGNDvccamy] -> VHGND terrain cache invalidate;
 	A = [VHGNDcamz]; ? A != [VHGNDvccamz] -> VHGND terrain cache invalidate;
@@ -4430,6 +4446,10 @@
 	[C plus 7] = [VHGNDanitargetdir]; [C plus 8] = [VHGNDanitargetspeed];
 	=> VHGND animal interpolate;
 	A = [VHGNDanidist]; ? A > 150000 -> VHGND animal next;
+	=> VHGND fauna view cull; A = [VHGNDviewrz]; ? A = 0 -> VHGND animal hidden;
+	[SPskipmid] = 0; A = [VHGNDanidist]; ? A '< 75000 -> VHGND animal midpoint ready;
+	[SPskipmid] = 1;
+    "VHGND animal midpoint ready"
 
 	( Sample the ground ahead and bend the body around the source wrap joint. )
 	[VHGNDrox] = [VHGNDanix]; [VHGNDroz] = [VHGNDaniz]; => VHGND rock height;
@@ -4573,9 +4593,18 @@
 	[DWcamx] = [VHGNDanicamx]; [DWcamy] = [VHGNDanicamy]; [DWcamz] = [VHGNDanicamz];
 	=> SP drawpv;
 	[SPcull] = 0; [SPflar] = 0; [SPhalf] = 0; => VH join mode1; [PGtexf] = 0;
+	-> VHGND animal next;
+    "VHGND animal hidden"
+	( The only render-stage RNG is the idle-tail choice.  Preserve that draw
+	  when an off-screen model skips its otherwise side-effect-free shaping. )
+	A = [VHGNDanispeed]; ? A '< 50 -> VHGND animal hidden tail; -> VHGND animal next;
+    "VHGND animal hidden tail"
+	A = [VHGNDaniindex]; A '* 4; => SU fast srand;
+	[SUfmask] = 1; => SU fast raw;
     "VHGND animal next"
 	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDanimals] -> VHGND animal one;
     "VHGND animals done"
+	[SPskipmid] = 0;
 	end;
 
 
@@ -4674,6 +4703,10 @@
 	[C plus 11] = [VHGNDanitargetdir];
 	=> VHGND bird interpolate;
 	A = [VHGNDanidist]; ? A > 150000 -> VHGND bird next;
+	=> VHGND fauna view cull; A = [VHGNDviewrz]; ? A = 0 -> VHGND bird next;
+	[SPskipmid] = 0; A = [VHGNDanidist]; ? A '< 75000 -> VHGND bird midpoint ready;
+	[SPskipmid] = 1;
+    "VHGND bird midpoint ready"
 
 	[VHGNDrox] = [VHGNDanix]; [VHGNDroz] = [VHGNDaniz]; => VHGND rock height;
 	A = [VHGNDaniscale]; C = A; C '* 9; A = [VHGNDroy]; A - C; A - [VHGNDbirdquote]; [VHGNDaniy] = A;
@@ -4792,6 +4825,7 @@
     "VHGND bird next"
 	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDbirds] -> VHGND bird one;
     "VHGND birds done"
+	[SPskipmid] = 0;
 	end;
 
 
@@ -5136,6 +5170,31 @@
     "VHGND object view visible"
 	[VHGNDviewrz] = 1; end;
     "VHGND object view hidden"
+	[VHGNDviewrz] = 0; end;
+
+"VHGND fauna view cull"
+	( Simulation, model deformation and rendering RNG have already run.  Reject
+	  only a complete model whose centre is beyond a conservative 8,192-unit
+	  envelope behind or beside the 320x200 view.  Shipped mammal geometry is
+	  bounded below 7,000 units even at maximum scale and deformation; birds are
+	  smaller, so the shared envelope cannot clip a contributing polygon. )
+	A = [VHGNDanix]; A - [VHGNDcamx]; A '/ 256; [VHGNDdx] = A;
+	A = [VHGNDaniz]; A - [VHGNDcamz]; A '/ 256; [VHGNDdz] = A;
+	A = [VHGNDdz]; A '* [VHGNDviewsinb];
+	C = [VHGNDdx]; C '* [VHGNDviewcosb]; A + C; A '/ 32768; [VHGNDviewrx] = A;
+	A = [VHGNDdz]; A '* [VHGNDviewcosb];
+	C = [VHGNDdx]; C '* [VHGNDviewsinb]; A - C; A '/ 32768;
+	A '* [VHGNDviewcosa]; A '/ 32768; [VHGNDviewrz] = A;
+	A = 0; A - 32; ? [VHGNDviewrz] <= A -> VHGND fauna view hidden;
+	A = [VHGNDviewrz]; ? A <= 0 -> VHGND fauna view visible;
+	A '* 3; A '/ 4; A + 32; [VHGNDtmp] = A;
+	A = [VHGNDviewrx]; ? A >= 0 -> VHGND fauna view abs ready;
+	C = 0; C - A; A = C;
+    "VHGND fauna view abs ready"
+	? A > [VHGNDtmp] -> VHGND fauna view hidden;
+    "VHGND fauna view visible"
+	[VHGNDviewrz] = 1; end;
+    "VHGND fauna view hidden"
 	[VHGNDviewrz] = 0; end;
 
 "VHGND tile"

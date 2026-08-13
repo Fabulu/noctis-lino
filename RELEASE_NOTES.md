@@ -8,10 +8,12 @@ Suricrasian Cube, and retains the source-equivalent ship, terrain, devices,
 GOES modules, persistence, presentation, and soundtrack systems established in
 the earlier betas.
 
-The README gallery refresh is complete. Deterministic production captures now
-show LANE IV's complete generated tree model, the distant whole Suricrasian
-Cube, and a close type-8 planet through the Stardrifter window after a genuine
-fine-approach checkpoint; stale artifacted frames are not accepted as evidence.
+The README gallery refresh is complete. The LANE IV tree capture now aims at
+the measured tree record itself from 45,000 units away. The previous checkpoint
+faced north while its advertised tree was west of the camera, so the frame only
+showed an unrelated foliage mass. The gallery also retains the distant whole
+Suricrasian Cube and a close type-8 planet through the Stardrifter window after
+a genuine fine-approach checkpoint.
 
 Close local planets now select their intended ring, disc, and resident-surface
 LOD paths. Six comparison results had accidentally been tested as unsigned, so
@@ -80,8 +82,24 @@ runs of the committed baseline measured 70.52 and 70.43 FPS including
 presentation, crossing the optional 60-Hz presenter's target on the test host.
 This is a scene and host measurement, not a minimum guarantee for every planet
 or machine. A native landed-sky cache copy was removed after visual bisection
-showed that it erased the local sun's source lens-flare halo; the correct halo
-and the slower interpreted cache copy are retained.
+showed that it erased the local sun's source lens-flare halo. The defect in
+that implementation is identified and corrected below.
+
+The sky-cache copy is native again after correcting the actual defect in that
+earlier attempt: it changed EDI to the destination before loading the workspace
+copy count, then copied a framebuffer-derived garbage length. The corrected
+loop keeps the workspace base intact and preserves the sun halo. Stationary
+source ticks now retain the exact terrain projection cache because waves,
+weather, and fauna do not mutate the ground grid. Off-screen fauna keep their
+simulation and RNG schedule but skip model deformation only when a conservative
+whole-model frustum bound proves they cannot contribute a pixel. Distant fauna
+also skip midpoint rebuilding when the source has already disabled depth sort.
+The fixed pvfile float accessors and animal model-block copy no longer rebuild
+generic region addresses for every byte. In the retained F5 scene sweep,
+Stardrifter and the simpler landed worlds remained inside the 60 Hz budget; the
+heaviest habitable samples measured about 15.0 ms render plus 1.2 ms present,
+with wildlife-dependent runs near the boundary rather than the former 20 to
+23 ms render cost.
 
 Close surface stones now follow NIV+'s complete `roccia()` path: type-3
 generation retains the final `random(5)` quartz choice, type-8 sets quartz
