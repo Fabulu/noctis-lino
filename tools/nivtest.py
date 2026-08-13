@@ -142,6 +142,10 @@ def run_lino(args: argparse.Namespace) -> tuple[list[int], dict[str, bytes]]:
 
 def results(header: list[int], buffers: dict[str, bytes]) -> dict[str, object]:
     owner = signed(header[9])
+    def f64(index: int) -> float:
+        return struct.unpack("<d", struct.pack("<II", header[index],
+                                               header[index + 1]))[0]
+    seedval = f64(30)
     palette_base = (128 if owner >= 0 else 192) * 3
     hashes = {
         "surf": hash_record(buffers["surface"][:46080]),
@@ -155,8 +159,14 @@ def results(header: list[int], buffers: dict[str, bytes]) -> dict[str, object]:
     return {
         "body": header[6], "body_count": header[7], "type": header[8],
         "owner": owner, "global_surface_seed": signed(header[10]),
+        "seedval": seedval,
         "sctype": header[11], "albedo": signed(header[12]),
         "night": signed(header[13]), "secs": signed(header[14]),
+        "geometry": {
+            "ray": f64(15), "orb_ray": f64(17), "orb_seed": f64(19),
+            "tilt": f64(21), "orb_tilt": f64(23), "orb_ecc": f64(25),
+            "orb_orient": f64(27), "plwp": header[29],
+        },
         "gap": buffers["gap"].hex().upper(), "hashes": hashes,
     }
 

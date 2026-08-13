@@ -93,6 +93,7 @@ def grade_row(args: argparse.Namespace, row: dict[str, object], build: bool):
     return {
         "key": row["key"], "type": row["type"], "coords": coords[:3],
         "body": coords[3], "reported_type": default["type"],
+        "sheet_seedval": row.get("seedval"), "lino_seedval": default["seedval"],
         "global_surface_seed": default["global_surface_seed"],
         "comparisons": comparisons,
     }

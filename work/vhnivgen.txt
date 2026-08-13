@@ -71,7 +71,7 @@
 	[VHGlandinglon] = [NHinput plus 6]; [VHGlandinglat] = [NHinput plus 7];
 	[VHGNDlon] = [VHGlandinglon]; [VHGNDlat] = [VHGlandinglat];
 	=> VHG select texture buffer; => VHG prepare planet; => VHG fpu clean;
-	=> VHNIV orbital surface; => VHG fpu clean;
+	=> VHGND globe surface; => VHG fpu clean;
 
 	( Preserve the public harness's orbital products before build_surface
 	  reuses the same allocations. )
@@ -116,40 +116,22 @@
 	[NHheader plus 10] = [GRgseed]; [NHheader plus 11] = [VHGNDsctype];
 	[NHheader plus 12] = [GRalbedo]; [NHheader plus 13] = [NHinput plus 11];
 	[NHheader plus 14] = [VHGNDclocksecs];
-	[NHheader plus 15] = NHSURFU; [NHheader plus 16] = NHATMOU;
-	[NHheader plus 17] = NHPALU; [NHheader plus 18] = NHHEIGHTU;
-	[NHheader plus 19] = NHGAPU; [NHheader plus 20] = NHOBJECTU;
-	[NHheader plus 21] = NHSTEXU; [NHheader plus 22] = NHSKYU;
-	[NHheader plus 23] = NHSRFPALU;
-	[NHheader plus 24] = [SUfseed]; [NHheader plus 25] = [brtlseed];
-	[NHheader plus 26] = [SUfn]; [NHheader plus 27] = [SUbnc];
-	[NHheader plus 28] = [VHGNDtermstart]; [NHheader plus 29] = [VHGNDtermend];
-	[NHheader plus 30] = [VHGNDtscale]; [NHheader plus 31] = 0;
+	A = [VHGplanet]; A < 1;
+	E = nspray; E + A; [NHheader plus 15] = [E plus 0]; [NHheader plus 16] = [E plus 1];
+	E = nsporbray; E + A; [NHheader plus 17] = [E plus 0]; [NHheader plus 18] = [E plus 1];
+	E = nsporbseed; E + A; [NHheader plus 19] = [E plus 0]; [NHheader plus 20] = [E plus 1];
+	E = nsptilt; E + A; [NHheader plus 21] = [E plus 0]; [NHheader plus 22] = [E plus 1];
+	E = nsporbtlt; E + A; [NHheader plus 23] = [E plus 0]; [NHheader plus 24] = [E plus 1];
+	E = nsporbecc; E + A; [NHheader plus 25] = [E plus 0]; [NHheader plus 26] = [E plus 1];
+	E = nspororient; E + A; [NHheader plus 27] = [E plus 0]; [NHheader plus 28] = [E plus 1];
+	[NHheader plus 29] = [VHGNDplwp];
+	[NHheader plus 30] = [VHGNDseedval0]; [NHheader plus 31] = [VHGNDseedval1];
 	[NHsrc] = NHheader; [NHunits] = NHHEAD; [NHoff] = 0; => VHNIV write;
 
 	[File Name] = NHoutname; [File Position] = 0; [File Command] = SET SIZE;
 	[File Size] = NHOUT; [File Size] * BYTESPERUNIT; isocall;
 	[VHGNDclockoverride] = 0;
 	=> FLeave;
-	end;
-
-"VHNIV orbital surface"
-	( The public harness calls surface() immediately after prepare_nearstar,
-	  with the zero-initialized planet viewpoint.  Gameplay's close-body path
-	  computes an observer-relative phase first, so call the shared surface
-	  implementation at the public boundary here. )
-	E = nspowner; E + [VHGplanet]; A = [E]; [VHGNDowner] = A;
-	=> VHGND rotation seed;
-	=> VHG fpu clean; => SU fp init; => SU pal init;
-	[SUid] = [VHGplanet]; [SUtype] = [VHGptype]; [SUplwp] = 0;
-	[SUowner] = [VHGNDowner]; [SUnsr] = [VHTred]; [SUnsg] = [VHTgreen]; [SUnsb] = [VHTblue];
-	[SUsv0] = [VHGNDseedval0]; [SUsv1] = [VHGNDseedval1]; [SUledon] = 0;
-	A = [VHGNDowner]; ? A >= 0 -> VHNIV orbital moon;
-	[SUcbase] = 192; [VHGNDcbase] = 192; => SU select planet; -> VHNIV orbital selected;
-    "VHNIV orbital moon"
-	[SUcbase] = 128; [VHGNDcbase] = 128; => SU select moon;
-    "VHNIV orbital selected"
-	=> SU select ovl; => SU wipe; => SU wipe ovl; => SU surface;
 	end;
 
 "VHNIV landed inputs"

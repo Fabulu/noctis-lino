@@ -1928,7 +1928,7 @@
     "VHGND rotation planet fields"
 	A = [VHGNDplanet]; A < 1; E = nsporbseed; E + A;
 	[VHGNDsf20] = [E plus 0]; [VHGNDsf21] = [E plus 1];
-	E = nsptilt; E + A; [VHGNDsf30] = [E plus 0]; [VHGNDsf31] = [E plus 1];
+	E = nsporbtlt; E + A; [VHGNDsf30] = [E plus 0]; [VHGNDsf31] = [E plus 1];
 	E = nsporbecc; E + A; [VHGNDsf40] = [E plus 0]; [VHGNDsf41] = [E plus 1];
 	-> VHGND rotation seed calculate;
     "VHGND rotation moon seed"
