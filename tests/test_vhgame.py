@@ -959,6 +959,11 @@ def main() -> int:
         and '"VHGND background cache restore"' in ground
         and "VHGNDskycache = 64000" in ground
         and "A & 65535; [BGdi] = A;" in ground
+        and "VHGNDbgstart = 0; VHGNDbgshift = 0; VHGNDbgangle = 0;" in ground
+        and "A = [VHGNDbeta]; ? A >= 0 -> VHGND background angle ready; A + 360;" in ground
+        and "C = [VHGNDbgangle]; C % 360; A - C; [VHGNDbgstart] = A;" in ground
+        and "A = [VHGNDbgangle]; A '/ 72; A '* 320; C = A;" in ground
+        and "A = 0; A - 643; A - C;" in ground
         and '"VHGND surrounding frame"' in ground
         and "A = 64; A + [VHGNDsurlight]; A - [VHGNDframei];" in ground
         and "A = 190; A + [VHGNDframei]; A '* 320;" in ground
@@ -3435,7 +3440,7 @@ def main() -> int:
         and "A = [SUti]; A % 360;" in ground
         and "A + [VHGNDrotation]; A % 360;" in ground
         and "A = [VHGNDalpha]; A + 51; A '* 360;" in ground
-        and "C = [VHGNDbeta]; C % 360; A - C; [VHGNDbgstart] = A;" in ground
+        and "C = [VHGNDbgangle]; C % 360; A - C; [VHGNDbgstart] = A;" in ground
         and "A '% 360; ? A '>= 0 -> VHV angle normalized;" not in view,
         "camera trig cache is initialized before exact integral-angle reuse",
     )

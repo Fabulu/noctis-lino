@@ -19,8 +19,8 @@ param(
     [int]$CapsuleZ = 131072,
     [ValidateSet(-1, 0, 1)]
     [int]$LensMode = 0,
-    [ValidateSet(16)]
-    [int]$CheckpointVersion = 16,
+    [ValidateSet(15)]
+    [int]$CheckpointVersion = 15,
     [switch]$Fast,
     [switch]$ReportPerformance,
     [switch]$KeepStages,
@@ -224,10 +224,10 @@ function New-Checkpoint {
     }
     $u[64] = 4
     $u[65] = 0
-    # Version 16 stores the complete lighting word in unit 66. Stage the
-    # ordinary fully lit state: no burst/reset/external flash, level 63.
-    $u[66] = 4194304 + 32768 + 63
-    $byteCount = 268
+    # Synthetic scenes intentionally use the complete version-15 subset.
+    # Version 16 adds live transient lighting/reset state that these fixtures
+    # do not author and must not invent.
+    $byteCount = 264
     $bytes = New-Object byte[] $byteCount
     [Buffer]::BlockCopy($u, 0, $bytes, 0, $bytes.Length)
     [IO.File]::WriteAllBytes($Path, $bytes)

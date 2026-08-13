@@ -232,7 +232,7 @@
 	VHGNDsf30 = 0; VHGNDsf31 = 3FF00000h;
 	VHGNDsf40 = 0; VHGNDsf41 = 3FF00000h;
 	VHGNDsf50 = 0; VHGNDsf51 = 3FF00000h;
-	VHGNDbgstart = 0; VHGNDbgshift = 0;
+	VHGNDbgstart = 0; VHGNDbgshift = 0; VHGNDbgangle = 0;
 	VHGNDbgrowbase = 0; VHGNDbgcol = 0;
 	VHGNDbgcacheok = 0; VHGNDbgcachealpha = 0; VHGNDbgcachebeta = 0;
 	VHGNDbgcachep = 0; VHGNDbgcacheq = 0; VHGNDbgcachecount = 0;
@@ -2187,11 +2187,19 @@
 	( Immediately before background(), NIV+ assigns alfa=user_alfa (pitch)
 	  and beta=user_beta (yaw).  Preserve its full 360*pitch panorama stride
 	  before the 16-bit source-cursor wrap. )
+	( Canonicalize equivalent negative headings before forming both panorama
+	  cursors.  The original 16-bit mapper can otherwise walk through the
+	  736-byte allocation tail at the -180/180 representation seam, painting
+	  its zero-filled host padding as a moving black five-pixel column. )
+	A = [VHGNDbeta]; ? A >= 0 -> VHGND background angle ready; A + 360;
+    "VHGND background angle ready"
+	[VHGNDbgangle] = A;
 	A = [VHGNDalpha]; A + 51; A '* 360;
-	C = [VHGNDbeta]; C % 360; A - C; [VHGNDbgstart] = A;
+	C = [VHGNDbgangle]; C % 360; A - C; [VHGNDbgstart] = A;
 	( The two integer-multiple remainder terms in the source are zero.  Its
 	  remaining shift is -4 - 639 - trunc(yaw/72)*320. )
-	A = 0; A - 643; C = [VHGNDbeta]; C '/ 72; C '* 320; A - C;
+	A = [VHGNDbgangle]; A '/ 72; A '* 320; C = A;
+	A = 0; A - 643; A - C;
 	[VHGNDbgshift] = A;
 	[BGstart] = [VHGNDbgstart]; [BGshift] = [VHGNDbgshift];
 	[BGbytes] = OMBYTES; [BGtabreg] = RGOFF; [BGsrcreg] = RGSBG;

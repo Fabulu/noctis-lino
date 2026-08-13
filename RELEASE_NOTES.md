@@ -21,8 +21,9 @@ otherwise correct high-index sun pixels were mapped back toward black. Each
 ramp now restores the unit divisor before converting its endpoint colors. A
 Borland-built NIV+ source oracle at the same star, camera, distance, and class
 confirmed the expected filled white center. The reproducible capture harness
-now also emits the complete version-16 checkpoint lighting word instead of
-labeling a shorter version-15 record as version 16.
+continues to identify its deliberately limited synthetic state as version 15;
+it does not invent the transient lighting/reset word added to live version-16
+saves.
 
 Close local planets now select their intended ring, disc, and resident-surface
 LOD paths. Six comparison results had accidentally been tested as unsigned, so
@@ -64,7 +65,10 @@ Landed terrain now uses NIV+'s fully textured unit-tile depth-64 mesh, source
 triangle-facing test and view-quadrant painter order. The invented 8/32-tile
 mesh and compensating late ruins pass were removed; they caused moving walls
 and erased real terrain detail. The panorama cursor now follows NIV+'s exact
-pitch/yaw formula, eliminating the camera-relative black pillar and floor gap.
+pitch/yaw formula. Equivalent negative headings are canonicalized before both
+cursor calculations, preventing the source mapper from sampling the 736-byte
+allocation tail as a moving black five-pixel pillar. Its signed shift is also
+formed in a clobber-safe order instead of retaining arithmetic scratch state.
 An off-screen `polymap` rejection and the source Manhattan gate reduce only
 work that cannot contribute pixels. Texture-basis construction now occurs
 after that rejection, cutting the hidden lunar checkpoint from 38,792,130 to
