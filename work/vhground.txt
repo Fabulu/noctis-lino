@@ -228,6 +228,7 @@
 	VHGNDbgrowbase = 0; VHGNDbgcol = 0;
 	VHGNDbgcacheok = 0; VHGNDbgcachealpha = 0; VHGNDbgcachebeta = 0;
 	VHGNDbgcachep = 0; VHGNDbgcacheq = 0; VHGNDbgcachecount = 0;
+	VHGNDbgcachefrom = 0; VHGNDbgcacheto = 0;
 
 "workspace"
 
@@ -2195,27 +2196,38 @@
 "VHGND background cache save"
 	[VHGNDbgcachep] = VHGNDskycache; A = nw; A + RADPT; [VHGNDbgcacheq] = A;
 	[VHGNDbgcachecount] = NPIX;
-    "VHGND bg cache save loop"
-	A = [VHGNDbgcacheq]; D = [VHGNDbgcachep];
-	C = [A]; [D] = C; C = [A plus 1]; [D plus 1] = C;
-	C = [A plus 2]; [D plus 2] = C; C = [A plus 3]; [D plus 3] = C;
-	A = [VHGNDbgcachep]; A + 4; [VHGNDbgcachep] = A;
-	A = [VHGNDbgcacheq]; A + 4; [VHGNDbgcacheq] = A;
-	A = [VHGNDbgcachecount]; A - 4; [VHGNDbgcachecount] = A;
-	A = [VHGNDbgcachecount]; ? A != 0 -> VHGND bg cache save loop;
+	[VHGNDbgcachefrom] = [VHGNDbgcacheq]; [VHGNDbgcacheto] = [VHGNDbgcachep];
+	=> VHGND background cache copy native;
 	end;
 
 "VHGND background cache restore"
 	[VHGNDbgcachep] = VHGNDskycache; A = nw; A + RADPT; [VHGNDbgcacheq] = A;
 	[VHGNDbgcachecount] = NPIX;
-    "VHGND bg cache restore loop"
-	A = [VHGNDbgcachep]; D = [VHGNDbgcacheq];
-	C = [A]; [D] = C; C = [A plus 1]; [D plus 1] = C;
-	C = [A plus 2]; [D plus 2] = C; C = [A plus 3]; [D plus 3] = C;
-	A = [VHGNDbgcachep]; A + 4; [VHGNDbgcachep] = A;
-	A = [VHGNDbgcacheq]; A + 4; [VHGNDbgcacheq] = A;
-	A = [VHGNDbgcachecount]; A - 4; [VHGNDbgcachecount] = A;
-	A = [VHGNDbgcachecount]; ? A != 0 -> VHGND bg cache restore loop;
+	[VHGNDbgcachefrom] = [VHGNDbgcachep]; [VHGNDbgcacheto] = [VHGNDbgcacheq];
+	=> VHGND background cache copy native;
+	end;
+
+"VHGND background cache copy native"
+	( Both cache directions are fixed, non-overlapping Lino unit ranges.
+	  Copy the declared unit count as dwords, then publish the same exhausted
+	  cursors and zero count left by the former four-unit loop. )
+	{
+	    56
+	    57
+	    8B B7 <dVHGNDbgcachefrom mtp bytesperunit>
+	    8D 34 B7
+	    8B 87 <dVHGNDbgcacheto mtp bytesperunit>
+	    8D 04 87
+	    89 C7
+	    8B 8F <dVHGNDbgcachecount mtp bytesperunit>
+	    FC
+	    F3 A5
+	    5F
+	    5E
+	}
+	A = [VHGNDbgcachep]; A + NPIX; [VHGNDbgcachep] = A;
+	A = [VHGNDbgcacheq]; A + NPIX; [VHGNDbgcacheq] = A;
+	[VHGNDbgcachecount] = 0;
 	end;
 
 "VHGND background direct"
