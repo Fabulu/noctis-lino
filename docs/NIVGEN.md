@@ -89,11 +89,20 @@ type-2 smoke matched all 11 scored hashes:
 - random-coordinate heightmap, object chart, surface texture, and sky
 
 That is encouraging because those fields are the current leader's largest
-public gap. It is one row, not yet a corpus-wide claim. On the same row Lino's
-type-1 smoke matched all three orbital fields and both skies, but its landed
-heightmap, object chart, and surface texture still missed at both coordinates.
-These mismatches are now actionable output from the real executable rather
-than predictions from the Python or C transcriptions.
+public gap. It is one row, not yet a corpus-wide claim.
+
+The first production type-1 row now also matches all 11 scored hashes at both
+the default and random landing coordinates. Two faults in `GR std crater` had
+previously hidden that parity. Its supposed `fld qword M_PI` used the `fadd`
+opcode, producing a NaN profile that erased powered crater circles. Its
+`abs(r)` guard used an unsigned comparison, so negative companion craters
+exited with reversed bounds. Correcting those two instructions restored the
+public heightmap, object-chart, and surface-texture hashes without changing
+the random stream or crater workload. The already exact type-2 smoke remains
+11 for 11 after the correction.
+
+These are deliberate smoke rows, not yet corpus-wide accuracy claims. Larger
+per-type sweeps still belong at stable accuracy milestones and before release.
 
 Two source-state details were decisive. The `planet` command calls `surface()`
 immediately after system preparation, while the shared `plx` and `plz` scratch

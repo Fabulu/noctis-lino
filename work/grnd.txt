@@ -663,7 +663,7 @@
 
 	( r = abs(r) )
 	A = [SUia];
-	? A '>= 0 -> GR sc absok;
+	? A >= 0 -> GR sc absok;
 	B = 0; B - A; A = B;
 "GR sc absok"
 	[SUia] = A;
@@ -719,8 +719,8 @@
 	  the radial-profile cache its stable key before any x87 work. )
 	A = [GRfd2];
 	? A > [GRfr2] -> GR sc znext;
-	A = GRsstamp; A + [GRfd2]; C = [A];
-	? C != [GRcraterid] -> GR sc profile miss;
+	A = GRsstamp; A + [GRfd2]; A = [A];
+	? A != [GRcraterid] -> GR sc profile miss;
 	A = GRscache; A + [GRfd2]; [GRfy] = [A];
 	-> GR sc profile ready;
 
@@ -737,7 +737,7 @@
 
 	( d <= fr: compute y = sin(M_PI * d / fr) * h )
 	{
-	    DC 87 <dGRKPIL mtp bytesperunit>	(fld qword [edi+GRKPIL*4])
+	    DD 87 <dGRKPIL mtp bytesperunit>	(fld qword [edi+GRKPIL*4])
 	    D9 87 <dGRfd  mtp bytesperunit>	(fld dword [edi+GRfd*4])
 	    D9 87 <dGRfscr mtp bytesperunit>	(fld dword [edi+GRfscr*4])
 	    DE F9				(fdivp st1,st0 : d/fr)
