@@ -33,6 +33,8 @@
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
 	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
+	VHGNDvccacheok = 0; VHGNDvccamx = 0; VHGNDvccamy = 0; VHGNDvccamz = 0;
+	VHGNDvcalpha = 0; VHGNDvcbeta = 0;
 	VHGNDmpbase = 0;
 	VHGNDnormgen = 0; VHGNDnormindex = 0;
 	VHGNDtilex = 0; VHGNDtilez = 0; VHGNDcamtx = 0; VHGNDcamtz = 0;
@@ -282,6 +284,7 @@
 	  real build_surface switch arms: type 8 milky/quartz and type 4 rocky.
 	  Body 2 is type 6 and is rejected by VHG land. )
 	[VHGNDtick] = 0; [VHGNDptr] = 0; [VHGNDplayerstep] = 0;
+	[VHGNDvccacheok] = 0;
 	[VHGNDnormgen]+; A = [VHGNDnormgen]; ? A != 0 -> VHGND normal generation ready;
 	[VHGNDptr] = 0;
     "VHGND normal cache clear"
@@ -2395,8 +2398,23 @@
 	end;
 
 "VHGND terrain cache frame"
-	( A generation stamp makes invalidation constant-time as the camera moves.
-	  The wrap clear is reached only after 2^32 landed frames. )
+	( Presentation-only frames may reuse the exact projected grid when every
+	  camera input is bit-identical. Simulation frames still invalidate even
+	  at rest because waves and other source effects can alter geometry. )
+	A = [VHGNDvccacheok]; ? A = 0 -> VHGND terrain cache invalidate;
+	A = [VHGNDdosim]; ? A != 0 -> VHGND terrain cache invalidate;
+	A = [VHGNDcamx]; ? A != [VHGNDvccamx] -> VHGND terrain cache invalidate;
+	A = [VHGNDcamy]; ? A != [VHGNDvccamy] -> VHGND terrain cache invalidate;
+	A = [VHGNDcamz]; ? A != [VHGNDvccamz] -> VHGND terrain cache invalidate;
+	A = [VHGNDalpha]; ? A != [VHGNDvcalpha] -> VHGND terrain cache invalidate;
+	A = [VHGNDbeta]; ? A != [VHGNDvcbeta] -> VHGND terrain cache invalidate;
+	end;
+    "VHGND terrain cache invalidate"
+	[VHGNDvccamx] = [VHGNDcamx]; [VHGNDvccamy] = [VHGNDcamy];
+	[VHGNDvccamz] = [VHGNDcamz]; [VHGNDvcalpha] = [VHGNDalpha];
+	[VHGNDvcbeta] = [VHGNDbeta]; [VHGNDvccacheok] = 1;
+	( A generation stamp makes invalidation constant-time. The wrap clear is
+	  reached only after 2^32 actual cache invalidations. )
 	[VHGNDvcgen]+; A = [VHGNDvcgen]; ? A != 0 -> VHGND terrain cache frame ready;
 	[VHGNDptr] = 0;
     "VHGND terrain cache clear"
