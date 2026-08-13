@@ -33,12 +33,17 @@
 #include <unistd.h>
 
 #include <dirent.h>
+#ifndef __APPLE__
 #include <sys/syscall.h>
+#endif
 
+#ifndef __APPLE__
 #include <wordexp.h>
+#endif
 
 #include "lino_file.h"
 
+#ifndef __APPLE__
 /*
  * Directory listing via the raw getdents64 syscall. glibc readdir() uses the
  * 32-bit getdents(2) syscall, whose directory cookie handling qemu-user
@@ -56,6 +61,7 @@ static int gDirFd = -1;
 static char gdeBuf[16384];
 static struct lino_dirent64 *gdeCur;
 static int gdeRem;
+#endif
 
 DIR *hDir;
 int hFile;
@@ -66,6 +72,7 @@ char *filename;
 char dmsfilename[32768];
 unit dmsFileOrigin;		/* Base byte for file (0 for normal files). */
 
+#ifndef __APPLE__
 static void lino_opendir_cwd(void)
 {
 	if (gDirFd >= 0) {
@@ -105,6 +112,35 @@ static char *lino_next_dirent(void)
 		}
 	}
 }
+#else /* __APPLE__ */
+static void lino_opendir_cwd(void)
+{
+	if (hDir) {
+		closedir(hDir);
+		hDir = NULL;
+	}
+	directory = getcwd(NULL, 0);
+	if (directory == NULL)
+		return;
+	hDir = opendir(directory);
+	free(directory);
+}
+
+static char *lino_next_dirent(void)
+{
+	if (hDir == NULL)
+		return NULL;
+	for (;;) {
+		entry = readdir(hDir);
+		if (entry == NULL) {
+			closedir(hDir);
+			hDir = NULL;
+			return NULL;
+		}
+		return entry->d_name;
+	}
+}
+#endif /* __APPLE__ */
 
 /**
  * get the file size of the file in filename
@@ -216,7 +252,9 @@ bool krnlFileCommand(FileCommand command)
 	bool result = true;
 
 	/* reserve memory for result */
+#ifndef __APPLE__
 	wordexp_t cmd;
+#endif
 	mode_t w_mode;
 	/* find the separator of command and parameters */
 	char *params;
@@ -398,6 +436,8 @@ bool krnlFileCommand(FileCommand command)
 	case _RUN:{
 		unsigned i;
 		pid_t newProcess;
+#ifndef __APPLE__
+		wordexp_t cmd;
 
 		PRINT1("Run command: %s\n", filename);
 		params = strstr(filename, "||");
@@ -430,6 +470,55 @@ bool krnlFileCommand(FileCommand command)
 			/* inside main process */
 			PRINT(":)\n");
 		}
+#else /* __APPLE__ */
+		/* minimal wordexp replacement: split on whitespace, expand a
+		 * leading "~/" of the program name to $HOME */
+		{
+			char wline[32768];
+			char *wargv[256];
+			char expanded[32768];
+			char *tok;
+			int wargc = 0;
+
+			PRINT1("Run command: %s\n", filename);
+			strncpy(wline, filename, sizeof(wline) - 1);
+			wline[sizeof(wline) - 1] = '\0';
+			tok = strtok(wline, " \t");
+			while (tok != NULL && wargc < 255) {
+				wargv[wargc++] = tok;
+				tok = strtok(NULL, " \t");
+			}
+			wargv[wargc] = NULL;
+			if (wargc > 0 && wargv[0][0] == '~'
+			    && wargv[0][1] == '/') {
+				const char *home = getenv("HOME");
+				if (home != NULL) {
+					snprintf(expanded,
+						 sizeof(expanded), "%s%s",
+						 home, wargv[0] + 1);
+					wargv[0] = expanded;
+				}
+			}
+			PRINT1("Run program: %s\n", wargv[0]);
+			for (i = 1; i < (unsigned) wargc; i++)
+				PRINT2("param %d: %s\n", i, wargv[i]);
+
+			newProcess = fork();
+			if (newProcess == -1) {
+				result = false;
+				PRINTERROR("fork");
+			} else if (newProcess == 0) {
+				/* inside child process */
+				if (execv(wargv[0], wargv) == -1) {
+					PRINTERROR("execve");
+					exit(1);
+				}
+			} else {
+				/* inside main process */
+				PRINT(":)\n");
+			}
+		}
+#endif
 		break;
 	}
 	case SET_DIR:
