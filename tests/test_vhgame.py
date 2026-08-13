@@ -756,7 +756,7 @@ def main() -> int:
         and '"VHGND terrain mapped"' in ground
         and "[PJpreproject] = 1; [PJnrv] = 3; => PG polymap;" in ground
         and '"PG tex 5"' in (ROOT / "work" / "pgmem.txt").read_text(encoding="utf-8"),
-        "faithful landed unit triangles stay texture mapped while airborne fallback remains bounded",
+        "faithful terrain triangles remain texture mapped on foot and during capsule flight",
     )
     depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')

@@ -2371,19 +2371,9 @@
     "VHGND water render"
 	=> VHGND water;
     "VHGND water render done"
-	A = [VHGlanded]; ? A = 0 -> VHGND render descent;
-
 	=> VHGND terrain cache frame;
 	=> VHGND traverse faithful;
-	-> VHGND render terrain done;
-    "VHGND render descent"
-	( From the airborne pod, one broad coarse pass covers the visible landing
-	  patch at a fraction of the cost of the walking mesh. )
-	[VHGNDlodstep] = 16; [VHGNDlodradius] = VHGNDABOVE;
-	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = VHGNDABOVE;
-	=> VHGND traverse;
     "VHGND render terrain done"
-	A = [VHGlanded]; ? A = 0 -> VHGND render objects done;
 	=> VHGND render distant objects;
     "VHGND render objects done"
 	( The faithful unit mesh already visits every ruinschart tile in source
@@ -4363,7 +4353,6 @@
 	( live_animal() mammals: persistent motion plus the shipped model's
 	  feline, rabbit and kangaroo body-part deformation. )
 	[VHGNDanimorphs] = 0;
-	A = [VHGlanded]; ? A = 0 -> VHGND animals done;
 	A = [GRiptype]; ? A != 3 -> VHGND animals done;
 	A = [VHGNDanimals]; ? A = 0 -> VHGND animals done;
 	[VHGNDanii] = 0;
@@ -4565,7 +4554,6 @@
 	( Birds retain their source-selected scale, altitude and capture state,
 	  descend, cruise and take off across the full LFS population. )
 	[VHGNDgroundbirds] = 0;
-	A = [VHGlanded]; ? A = 0 -> VHGND birds done;
 	A = [GRiptype]; ? A != 3 -> VHGND birds done;
 	A = [VHGNDbirds]; ? A = 0 -> VHGND birds done;
 	[VHGNDanii] = 0;
