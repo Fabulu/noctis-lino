@@ -286,7 +286,7 @@
     "PG tex 5"
 	( TEX5: the live Noctis planetary-ground texture window, based at
 	  p_background exactly as fragment() selects it. )
-	A = RPBG; A + [PGtmp]; A + nw; C = [A]; C & 255;
+	A = RPBG; A + [PGtexoff]; A + [PGtmp]; A + nw; C = [A]; C & 255;
 	[PGtexv] = C; end;
     "PG tex 6"
 	( TEX6: polycupola(.,1) points txtr at n_globes_map. Preserve the

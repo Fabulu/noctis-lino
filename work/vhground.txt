@@ -74,6 +74,7 @@
 	VHGNDtreebr = 0; VHGNDtreeer = 0; VHGNDtreeside = 0;
 	VHGNDtreepoint = 0; VHGNDtreecx = 0; VHGNDtreecy = 0; VHGNDtreecz = 0;
 	VHGNDtreepx = 0; VHGNDtreepz = 0; VHGNDtreeorient = 0; VHGNDtreeangle = 0;
+	VHGNDtreewindx = 0; VHGNDtreewindz = 0;
 	VHGNDtreebranch = 0; VHGNDtreebranches = 0; VHGNDtreerange = 0;
 	VHGNDtreefaces = 3; VHGNDtreeleafrad = 0; VHGNDtreeleafdrop = 0;
 	VHGNDtreeleafx = 0; VHGNDtreeleafz = 0;
@@ -2357,6 +2358,7 @@
 	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32; ( 100.0f )
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
+	=> VHGND tree wind;
 	=> VHGND local sun;
 	( Source fragment() maps p_background across every ground triangle. )
 	[FI] = [VHGNDtscale]; => IntToF;
@@ -5600,80 +5602,97 @@
 	end;
 
 "VHGND tree direction"
-	( b_angle starts at half of 2*pi/subdivs in build_fractal_tree. )
-	A = [VHGNDtreebranches]; ? A = 1 -> VHGND tree direction one only;
-	? A = 2 -> VHGND tree direction two; ? A = 3 -> VHGND tree direction three;
-	( Four branches: 45, 135, 225, 315 degrees. )
-	A = [VHGNDtreerange]; A '* 181; A / 256; [VHGNDtmp] = A;
-	A = [VHGNDtreebranch]; ? A = 0 -> VHGND tree direction four ne;
-	? A = 1 -> VHGND tree direction four nw; ? A = 2 -> VHGND tree direction four sw;
-	[VHGNDtreepx] = [VHGNDtmp]; A = 0; A - [VHGNDtmp]; [VHGNDtreepz] = A; -> VHGND tree direction done;
-    "VHGND tree direction four ne"
-	[VHGNDtreepx] = [VHGNDtmp]; [VHGNDtreepz] = [VHGNDtmp]; -> VHGND tree direction done;
-    "VHGND tree direction four nw"
-	A = 0; A - [VHGNDtmp]; [VHGNDtreepx] = A; [VHGNDtreepz] = [VHGNDtmp]; -> VHGND tree direction done;
-    "VHGND tree direction four sw"
-	A = 0; A - [VHGNDtmp]; [VHGNDtreepx] = A; [VHGNDtreepz] = A; -> VHGND tree direction done;
-    "VHGND tree direction one only"
-	A = 0; A - [VHGNDtreerange]; [VHGNDtreepx] = A; [VHGNDtreepz] = 0; -> VHGND tree direction done;
-    "VHGND tree direction two"
-	[VHGNDtreepx] = 0; A = [VHGNDtreebranch]; ? A = 0 -> VHGND tree direction two north;
-	A = 0; A - [VHGNDtreerange]; [VHGNDtreepz] = A; -> VHGND tree direction done;
-    "VHGND tree direction two north"
-	[VHGNDtreepz] = [VHGNDtreerange]; -> VHGND tree direction done;
-    "VHGND tree direction three"
-	A = [VHGNDtreebranch]; ? A = 0 -> VHGND tree direction three ne;
-	? A = 1 -> VHGND tree direction one only;
-	A = [VHGNDtreerange]; A / 2; [VHGNDtreepx] = A;
-	A = [VHGNDtreerange]; A '* 7; A / 8; C = A; A = 0; A - C; [VHGNDtreepz] = A; -> VHGND tree direction done;
-    "VHGND tree direction three ne"
-	A = [VHGNDtreerange]; A / 2; [VHGNDtreepx] = A;
-	A = [VHGNDtreerange]; A '* 7; A / 8; [VHGNDtreepz] = A;
+	( b_angle = pi/subdivs + branch*2*pi/subdivs.  All live subdivision
+	  counts divide 360 exactly, so the cached source trig table preserves
+	  the real 45/60/90/180-degree directions without integer surrogates. )
+	A = 180; A / [VHGNDtreebranches]; [VHGNDtreeangle] = A;
+	A = 360; A / [VHGNDtreebranches]; A '* [VHGNDtreebranch]; A + [VHGNDtreeangle];
+	[VHGNDtreeangle] = A; [VHGNDtreecx] = 0; [VHGNDtreecz] = 0;
+	[VHGNDtreerad] = [VHGNDtreerange]; => VHGND tree polar point;
     "VHGND tree direction done"
 	end;
 
 "VHGND tree limb"
-	( Tapered triangular prism: branchdetail=120 in the source. )
+	( NIV+ maps visible limb faces through the ground texture at 3x8 and
+	  advances the texture window 48 bytes after every attempted face. )
+	[FI] = 3; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = 8; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
 	[VHGNDtreeside] = 0;
     "VHGND tree limb face"
 	A = [VHGNDtreeside]; ? A '>= [VHGNDtreefaces] -> VHGND tree limb done;
-	A '* [VHTfacestep]; A + [VHTfacebase]; [DBcol] = A;
+	A '* [VHTfacestep]; A + [VHTfacebase]; [SPtinta] = A;
 	[VHGNDvi] = 0;
 	[VHGNDtreecx] = [VHGNDtreebx]; [VHGNDtreecy] = [VHGNDtreeby]; [VHGNDtreecz] = [VHGNDtreebz];
-	[VHGNDtreerad] = [VHGNDtreebr]; [VHGNDtreepoint] = [VHGNDtreeside]; => VHGND tree vertex;
-	[VHGNDtreepoint]+; A = [VHGNDtreepoint]; ? A < [VHGNDtreefaces] -> VHGND tree limb base next; [VHGNDtreepoint] = 0;
-    "VHGND tree limb base next"
-	=> VHGND tree vertex;
+	[VHGNDtreerad] = [VHGNDtreebr]; A = 360; A / [VHGNDtreefaces]; [VHGNDtmp] = A;
+	A '* [VHGNDtreeside]; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
+	A = [VHGNDtreeangle]; A + [VHGNDtmp]; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
 	[VHGNDtreecx] = [VHGNDtreeex]; [VHGNDtreecy] = [VHGNDtreeey]; [VHGNDtreecz] = [VHGNDtreeez]; [VHGNDtreerad] = [VHGNDtreeer];
-	=> VHGND tree vertex;
-	[VHGNDtreepoint] = [VHGNDtreeside]; => VHGND tree vertex;
-	[PJnrv] = 4; => PG poly3d;
+	=> VHGND tree polar vertex;
+	A = [VHGNDtreeangle]; A - [VHGNDtmp]; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
+	=> PG facing; A = [FCret]; ? A = 0 -> VHGND tree limb advance;
+	[PJnrv] = 4; => PG polymap;
+    "VHGND tree limb advance"
+	A = [PGtexoff]; A + 48; [PGtexoff] = A;
 	[VHGNDtreeside]+; -> VHGND tree limb face;
     "VHGND tree limb done"
+	=> VHGND tree texture restore;
 	end;
 
 "VHGND tree leaves"
 	( Terminal source fan.  Its second ring point is rotation+72 and its tip
-	  is rotation+36 regardless of branchdetail; using the next prism point
-	  here produces the long crossed spikes that are absent in NIV+. )
+	  is rotation+36 regardless of branchdetail.  NIV+ maps these faces at
+	  1x3 without backface culling and stamps foliage at each tip. )
+	[FI] = 1; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = 3; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
 	[VHGNDtreerad] = [VHGNDtreeleafrad];
 	[VHGNDtreeside] = 0;
     "VHGND tree leaf face"
 	A = [VHGNDtreeside]; ? A '>= [VHGNDtreefaces] -> VHGND tree leaves done;
-	A '* [VHTfacestep]; A + [VHTfacebase]; [DBcol] = A;
+	A '* [VHTfacestep]; A + [VHTfacebase]; [SPtinta] = A;
 	[VHGNDvi] = 0; [VHGNDtreecx] = [VHGNDtreeex]; [VHGNDtreecy] = [VHGNDtreeey]; [VHGNDtreecz] = [VHGNDtreeez];
 	A = 360; A / [VHGNDtreefaces]; A '* [VHGNDtreeside]; [VHGNDtreeangle] = A;
 	=> VHGND tree polar vertex;
 	A = [VHGNDtreeangle]; A + 72; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
-	[VHGNDtreecx] = [VHGNDtreeleafx]; [VHGNDtreecz] = [VHGNDtreeleafz];
+	A = [VHGNDtreeleafx]; A + [VHGNDtreewindx]; [VHGNDtreecx] = A;
+	A = [VHGNDtreeleafz]; A + [VHGNDtreewindz]; [VHGNDtreecz] = A;
 	[VHGNDtreerad] = [VHGNDtreerange]; A = [VHGNDtreeangle]; A - 36; [VHGNDtreeangle] = A;
 	A = [VHGNDtreeey]; A - [VHGNDtreeleafdrop]; [VHGNDtreecy] = A; => VHGND tree polar vertex;
-	[PJnrv] = 3; => PG poly3d;
+	[PJnrv] = 3; => PG polymap;
+	[VHGNDmushx] = [VHGNDtreepx]; [VHGNDmushy] = [VHGNDtreecy]; [VHGNDmushz] = [VHGNDtreepz];
+	[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3; [VHGNDmushscale] = 1023;
+	[VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31; => VHGND greenmush;
+	A = [PGtexoff]; A + 48; [PGtexoff] = A;
 	[VHGNDtreeside]+; -> VHGND tree leaf face;
     "VHGND tree leaves done"
+	=> VHGND tree texture restore;
+	end;
+
+"VHGND tree wind"
+	( wdircos/wdirsin = 10*cos/sin(wdir)*wp.  The capsule stores direction
+	  in sixteenth-degrees and power as wp*100. )
+	A = [VHGCwindangle]; A + 8; A / 16; [VHVangle] = A; => VHV sincos;
+	[FI] = [VHGCwindpower]; => IntToF; [PGFi] = FSW1; => PGF sa;
+	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
+	A = [FI]; A / 10; [VHGNDtreewindx] = A;
+	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
+	A = [FI]; A / 10; [VHGNDtreewindz] = A;
+	end;
+
+"VHGND tree texture restore"
+	[PGtexoff] = 0; [PGtexf] = 0; [SPflar] = 0;
+	[FI] = [VHGNDtscale]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 256; => IntToF; => FMul; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
 	end;
 
 "VHGND tree polar vertex"
+	=> VHGND tree polar point;
+	-> VHGND tree vertex load;
+
+"VHGND tree polar point"
 	[VHVangle] = [VHGNDtreeangle]; => VHV sincos;
 	[FI] = [VHGNDtreerad]; => IntToF; [PGFi] = FSW1; => PGF sa;
 	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
@@ -5682,45 +5701,9 @@
 	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
 	A = [FI]; A + [VHGNDtreecz]; [VHGNDtreepz] = A;
-	-> VHGND tree vertex load;
+	end;
 
-"VHGND tree vertex"
-	A = [VHGNDtreefaces]; ? A = 2 -> VHGND tree vertex two;
-	? A = 5 -> VHGND tree vertex five;
-	A = [VHGNDtreepoint]; ? A = 0 -> VHGND tree point zero;
-	? A = 1 -> VHGND tree point one;
-	A = [VHGNDtreerad]; C = A; C / 2; A = [VHGNDtreecx]; A - C; [VHGNDtreepx] = A;
-	A = [VHGNDtreerad]; A '* 7; A / 8; C = [VHGNDtreecz]; C - A; [VHGNDtreepz] = C; -> VHGND tree vertex load;
-    "VHGND tree point one"
-	A = [VHGNDtreerad]; C = A; C / 2; A = [VHGNDtreecx]; A - C; [VHGNDtreepx] = A;
-	A = [VHGNDtreerad]; A '* 7; A / 8; C = [VHGNDtreecz]; C + A; [VHGNDtreepz] = C; -> VHGND tree vertex load;
-    "VHGND tree point zero"
-	A = [VHGNDtreecx]; A + [VHGNDtreerad]; [VHGNDtreepx] = A; [VHGNDtreepz] = [VHGNDtreecz];
-	-> VHGND tree vertex load;
-    "VHGND tree vertex two"
-	A = [VHGNDtreepoint]; ? A = 0 -> VHGND tree point zero;
-	A = [VHGNDtreecx]; A - [VHGNDtreerad]; [VHGNDtreepx] = A; [VHGNDtreepz] = [VHGNDtreecz];
-	-> VHGND tree vertex load;
-    "VHGND tree vertex five"
-	A = [VHGNDtreepoint]; ? A = 0 -> VHGND tree point zero;
-	? A = 1 -> VHGND tree point five one; ? A = 2 -> VHGND tree point five two;
-	? A = 3 -> VHGND tree point five three;
-	( point four: +0.309r, -0.951r )
-	A = [VHGNDtreerad]; A '* 309; A / 1000; A + [VHGNDtreecx]; [VHGNDtreepx] = A;
-	A = [VHGNDtreerad]; A '* 951; A / 1000; C = [VHGNDtreecz]; C - A; [VHGNDtreepz] = C;
-	-> VHGND tree vertex load;
-    "VHGND tree point five one"
-	A = [VHGNDtreerad]; A '* 309; A / 1000; A + [VHGNDtreecx]; [VHGNDtreepx] = A;
-	A = [VHGNDtreerad]; A '* 951; A / 1000; A + [VHGNDtreecz]; [VHGNDtreepz] = A;
-	-> VHGND tree vertex load;
-    "VHGND tree point five two"
-	A = [VHGNDtreerad]; A '* 809; A / 1000; C = [VHGNDtreecx]; C - A; [VHGNDtreepx] = C;
-	A = [VHGNDtreerad]; A '* 588; A / 1000; A + [VHGNDtreecz]; [VHGNDtreepz] = A;
-	-> VHGND tree vertex load;
-    "VHGND tree point five three"
-	A = [VHGNDtreerad]; A '* 809; A / 1000; C = [VHGNDtreecx]; C - A; [VHGNDtreepx] = C;
-	A = [VHGNDtreerad]; A '* 588; A / 1000; C = [VHGNDtreecz]; C - A; [VHGNDtreepz] = C;
-    "VHGND tree vertex load"
+"VHGND tree vertex load"
 	[VHGNDvv] = [VHGNDtreepx]; [VHGNDvslot] = FSINX; => VHGND vload;
 	[VHGNDvv] = [VHGNDtreecy]; [VHGNDvslot] = FSINY; => VHGND vload;
 	[VHGNDvv] = [VHGNDtreepz]; [VHGNDvslot] = FSINZ; => VHGND vload; [VHGNDvi]+;

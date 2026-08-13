@@ -2909,8 +2909,16 @@ def main() -> int:
             "A + [VHGNDtreebz]; A + 12345;",
             '"VHGND tree polar vertex"', "A + 72; [VHGNDtreeangle] = A;",
             "A - 36; [VHGNDtreeangle] = A;",
+            "A = 180; A / [VHGNDtreebranches]; [VHGNDtreeangle] = A;",
+            '"VHGND tree polar point"',
+            '"VHGND tree wind"', "[VHGNDtreewindx] = A;",
+            "[VHGNDtreewindz] = A;",
             "[VHGNDtreelevel]+;", "[VHGNDtreelevel]-;",
-            "[PJnrv] = 4; => PG poly3d;", "[PJnrv] = 3; => PG poly3d;",
+            "[PJnrv] = 4; => PG polymap;", "[PJnrv] = 3; => PG polymap;",
+            "[FI] = 3; => IntToF; [PGFi] = FSTX; => PGF sa;",
+            "[FI] = 8; => IntToF; [PGFi] = FSTY; => PGF sa;",
+            "[FI] = 1; => IntToF; [PGFi] = FSTX; => PGF sa;",
+            "[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3;",
         ))
         and "crossed trunk" not in tree
         and "crossed leafy crown" not in tree,
