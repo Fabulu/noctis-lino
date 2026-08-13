@@ -81,16 +81,26 @@ texture, and all sky hashes were exact on its completed rows. Most misses were
 type-2 random landed heightmaps, object charts, and surface textures, with a
 small number of object-chart misses on types 1, 4, and 5.
 
-The first production Lino type-2 smoke matched all six landed hashes:
+After matching the published call boundaries, the first production Lino
+type-2 smoke matched all 11 scored hashes:
 
-- default heightmap, object chart, and surface texture
-- random-coordinate heightmap, object chart, and surface texture
+- orbital surface, atmosphere overlay, and palette band
+- default heightmap, object chart, surface texture, and sky
+- random-coordinate heightmap, object chart, surface texture, and sky
 
 That is encouraging because those fields are the current leader's largest
 public gap. It is one row, not yet a corpus-wide claim. On the same row Lino's
-orbital fields and sky missed. A type-1 smoke matched atmosphere and sky but
-missed the other fields. These mismatches are now actionable output from the
-real executable rather than predictions from the Python or C transcriptions.
+type-1 smoke matched all three orbital fields and both skies, but its landed
+heightmap, object chart, and surface texture still missed at both coordinates.
+These mismatches are now actionable output from the real executable rather
+than predictions from the Python or C transcriptions.
+
+Two source-state details were decisive. The `planet` command calls `surface()`
+immediately after system preparation, while the shared `plx` and `plz` scratch
+coordinates are still zero. It must not pre-position the body as gameplay does.
+The `surftex` command fills the sky and calls `create_sky()` directly; it does
+not apply planetary_main's later 120-row horizon pass. The Lino driver keeps
+both benchmark-only boundaries separate from normal gameplay.
 
 The leading upstream suspect is the eleven floating-point system/body
 properties that `test_nearstar.py` has historically left outside its exactness

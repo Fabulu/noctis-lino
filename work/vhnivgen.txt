@@ -71,7 +71,7 @@
 	[VHGlandinglon] = [NHinput plus 6]; [VHGlandinglat] = [NHinput plus 7];
 	[VHGNDlon] = [VHGlandinglon]; [VHGNDlat] = [VHGlandinglat];
 	=> VHG select texture buffer; => VHG prepare planet; => VHG fpu clean;
-	=> VHGND globe surface; => VHG fpu clean;
+	=> VHNIV orbital surface; => VHG fpu clean;
 
 	( Preserve the public harness's orbital products before build_surface
 	  reuses the same allocations. )
@@ -80,10 +80,6 @@
 	A = nw; A + ROBJ; [NHsrc] = A;
 	[NHunits] = NHATMOU; [NHoff] = NHOFFATMO; => VHNIV write;
 	[NHsrc] = sutmppal; [NHunits] = NHPALU; [NHoff] = NHOFFPAL; => VHNIV write;
-
-	( Retain surface()'s selected colour/cloud/tint state for create_sky.
-	  The benchmark build itself still receives its explicit/default albedo. )
-	[GRiptype] = [VHGptype]; => VHGND landing identity; => VHG fpu clean;
 
 	=> VHNIV landed inputs;
 	=> VHNIV wipe landed;
@@ -101,7 +97,7 @@
 	A = nw; A + [VHGNDtexbase]; [NHsrc] = A;
 	[NHunits] = NHSTEXU; [NHoff] = NHOFFSTEX; => VHNIV write;
 
-	=> VHGND sky; => VHG fpu clean;
+	=> VHNIV sky; => VHG fpu clean;
 	A = nw; A + RSBG; [NHsrc] = A;
 	[NHunits] = NHSKYU; [NHoff] = NHOFFSKY; => VHNIV write;
 	[NHsrc] = srfpal6; [NHunits] = NHSRFPALU; [NHoff] = NHOFFSRFPAL; => VHNIV write;
@@ -132,6 +128,57 @@
 	[File Size] = NHOUT; [File Size] * BYTESPERUNIT; isocall;
 	[VHGNDclockoverride] = 0;
 	=> FLeave;
+	end;
+
+"VHNIV orbital surface"
+	( The public command calls surface() immediately after prepare_nearstar().
+	  At that boundary the source's shared plx/plz scratch coordinates are still
+	  zero.  Normal gameplay first positions a body and therefore deliberately
+	  uses VHGND globe surface instead. )
+	E = nspowner; E + [VHGplanet]; A = [E]; [VHGNDowner] = A;
+	=> VHGND rotation seed;
+
+	( surface(): exact rotation-period stream and integer seconds division. )
+	[FB0] = [VHGNDseedval0]; [FB1] = [VHGNDseedval1];
+	=> GeoAdd4112ChopLive; A = [FI]; => SU fast srand;
+	C = 50; => SU rfr; A = C; A + 1; A '* 10; [VHGNDperiod] = A;
+	C = 25; => SU rfr; A = C; A '* 10; A + [VHGNDperiod]; [VHGNDperiod] = A;
+	C = 250; => SU rfr; A = C; A + [VHGNDperiod]; A + 41; [VHGNDperiod] = A;
+	[SUia] = A; => SU secs rot; A = [SUti]; A % 360;
+	? A >= 0 -> VHNIV orbital rotation ready; A + 360;
+    "VHNIV orbital rotation ready"
+	[VHGNDrotation] = A;
+
+	( cplx_planet_viewpoint(): primaries and ordinary moons observe the
+	  still-zero plx/plz scratch point from the star coordinates.  A moon of
+	  a companion star instead observes its live local vector from its owner. )
+	A = [VHGNDowner]; ? A < 0 -> VHNIV orbital initial viewpoint;
+	E = nsptype; E + A; A = [E]; ? A != 10 -> VHNIV orbital initial viewpoint;
+	=> VHGND exact viewpoint; A = [VHGNDviewpoint]; -> VHNIV orbital viewpoint ready;
+    "VHNIV orbital initial viewpoint"
+	[FI] = [VHTtz]; => IntToF;
+	[VHGNDxx0] = [FA0]; [VHGNDxx1] = [FA1];
+	[FI] = [VHTtx]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGNDxx0]; [FA1] = [VHGNDxx1]; => FAtan2;
+	[FB0] = 0; [FB1] = 40668000h; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
+	A = [FI]; A % 360; ? A >= 0 -> VHNIV orbital viewpoint ready; A + 360;
+    "VHNIV orbital viewpoint ready"
+	C = 89; C - A; C + [VHGNDrotation]; A = C; A % 360;
+	? A >= 0 -> VHNIV orbital plwp ready; A + 360;
+    "VHNIV orbital plwp ready"
+	[VHGNDplwp] = A;
+
+	=> VHG fpu clean; => SU fp init; => SU pal init;
+	[SUid] = [VHGplanet]; [SUtype] = [VHGptype]; [SUplwp] = [VHGNDplwp];
+	[SUowner] = [VHGNDowner]; [SUnsr] = [VHTred]; [SUnsg] = [VHTgreen]; [SUnsb] = [VHTblue];
+	[SUsv0] = [VHGNDseedval0]; [SUsv1] = [VHGNDseedval1]; [SUledon] = 0;
+	A = [VHGNDowner]; ? A >= 0 -> VHNIV orbital moon;
+	[SUcbase] = 192; [VHGNDcbase] = 192; => SU select planet; -> VHNIV orbital selected;
+    "VHNIV orbital moon"
+	[SUcbase] = 128; [VHGNDcbase] = 128; => SU select moon;
+    "VHNIV orbital selected"
+	=> SU select ovl; => SU wipe; => SU wipe ovl; => SU surface;
 	end;
 
 "VHNIV landed inputs"
@@ -175,6 +222,43 @@
 	A = 3; => BrtlRandom; ? A = 0 -> VHNIV scenario ready; [VHGNDsctype] = 4;
     "VHNIV scenario ready"
 	[GRsctype] = [VHGNDsctype];
+	end;
+
+"VHNIV sky"
+	( The public surftex command invokes create_sky() directly after a flat
+	  memset.  It does not run planetary_main's later 120-row horizon pass and
+	  it retains the generator globals' source defaults rather than gameplay's
+	  sampled landing filters. )
+	[GRSKptype] = [GRiptype]; [GRSKsctype] = [VHGNDsctype];
+	[GRSKatmosphere] = 1; A = [GRiptype];
+	? A = 1 -> VHNIV sky airless; ? A = 4 -> VHNIV sky airless;
+	? A = 7 -> VHNIV sky airless; -> VHNIV sky atmosphere ready;
+    "VHNIV sky airless"
+	[GRSKatmosphere] = 0;
+    "VHNIV sky atmosphere ready"
+	[GRSKnightzone] = [NHinput plus 11]; [GRSKtarget] = [VHGplanet];
+	[GRSKowner] = [VHGNDowner]; [GRSKstarclass] = [nsclass];
+	[GRSKseed] = [GRgseed]; [GRSKalbedo] = [GRalbedo]; [GRSKrainy] = 0;
+	[GRSKsrf] = 63; [GRSKsgf] = 63; [GRSKsbf] = 63;
+	[GRSKgrf] = 63; [GRSKggf] = 63; [GRSKgbf] = 63;
+	[GRSKbrightness] = 32;
+	A = [GRiptype]; ? A = 2 -> VHNIV sky type2;
+	? A = 1 -> VHNIV sky dark; ? A = 4 -> VHNIV sky dark;
+	? A = 7 -> VHNIV sky dark; -> VHNIV sky brightness ready;
+    "VHNIV sky type2"
+	A = [GRSKnightzone]; A '* 31; C = 63; C - A; [GRSKbrightness] = C;
+	-> VHNIV sky brightness ready;
+    "VHNIV sky dark"
+	[GRSKbrightness] = 0;
+    "VHNIV sky brightness ready"
+	[GRSKdsd1] = 447A0000h; [GRSKexposure] = 0; [GRSKlat] = [VHGNDlat];
+	[GRSKquadwords] = 16000;
+	A = nw; A + RSBG; [VHGNDskyfill] = A; [VHGNDskycount] = 64864;
+	C = [GRSKbrightness]; C & 255;
+    "VHNIV fill sky"
+	A = [VHGNDskyfill]; [A] = C; [VHGNDskyfill]+;
+	[VHGNDskycount]-; A = [VHGNDskycount]; ? A != 0 -> VHNIV fill sky;
+	=> SU ledger reset; => GRSK create;
 	end;
 
 "VHNIV wipe landed"
