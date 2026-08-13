@@ -896,7 +896,7 @@ def main() -> int:
         and "A & 0FCh; A | [VHGNDoval]" in post
         and "[VHGNDobjbyte] = A; A & 3; [VHGNDocount] = A;" in objects
         and '"VHGND type3 done"' in ground
-        and "C = 5; => SU rnd; ? C != 0 -> VHGND generate done;" in ground
+        and "C = 5; => SU rnd; ? C != 0 -> VHGND build surface done;" in ground
         and "[SUfmask] = [VHGNDrockdensity]" in rocks
         and rocks.count("=> PG facing;") == 4
         and rocks.count("=> PG poly3d;") == 2
@@ -2923,7 +2923,7 @@ def main() -> int:
         and all(token in cache_objects for token in (
             '"VHGND cache object height upper"',
             '"VHGND cache object height ready"',
-            "C - A; C '/ 8; [VHGNDooy] = C;",
+            "C - A; C / 8; [VHGNDooy] = C;",
             "C = VHGNDobjcachex; C + A; [C] = [VHGNDoox];",
             "C = VHGNDobjcachey; C + A; [C] = [VHGNDooy];",
             "C = VHGNDobjcachez; C + A; [C] = [VHGNDooz];",

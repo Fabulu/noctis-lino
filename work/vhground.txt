@@ -875,11 +875,11 @@
 	A = [VHGNDs4]; A - [VHGNDs3]; C = VHGNDTS; C - [VHGNDicx]; A '* C;
 	C = [VHGNDtmp]; C - A; [VHGNDtmp] = C;
 	A = [VHGNDs2]; A - [VHGNDs3]; C = VHGNDTS; C - [VHGNDicz]; A '* C;
-	C = [VHGNDtmp]; C - A; C '/ 8; [VHGNDooy] = C; -> VHGND cache object height ready;
+	C = [VHGNDtmp]; C - A; C / 8; [VHGNDooy] = C; -> VHGND cache object height ready;
     "VHGND cache object height upper"
 	A = [VHGNDs1]; A < 14; C = 0; C - A; [VHGNDtmp] = C;
 	A = [VHGNDs2]; A - [VHGNDs1]; A '* [VHGNDicx]; C = [VHGNDtmp]; C - A; [VHGNDtmp] = C;
-	A = [VHGNDs4]; A - [VHGNDs1]; A '* [VHGNDicz]; C = [VHGNDtmp]; C - A; C '/ 8; [VHGNDooy] = C;
+	A = [VHGNDs4]; A - [VHGNDs1]; A '* [VHGNDicz]; C = [VHGNDtmp]; C - A; C / 8; [VHGNDooy] = C;
     "VHGND cache object height ready"
 	A = [VHGNDptr]; A '* 3; A + [VHGNDobjid]; [VHGNDobjcachep] = A;
 	C = VHGNDobjcachex; C + A; [C] = [VHGNDoox];

@@ -9,6 +9,7 @@ param(
     [int]$WarmupSeconds = 7,
     [int]$Longitude,
     [int]$Latitude,
+    [int]$BodyIndex,
     [int]$ViewAngle,
     [int]$ViewPitch,
     [int]$PlayerX,
@@ -18,7 +19,8 @@ param(
     [int]$CapsuleZ = 131072,
     [ValidateSet(15)]
     [int]$CheckpointVersion = 15,
-    [switch]$KeepStages
+    [switch]$KeepStages,
+    [switch]$Interactive
 )
 
 $ErrorActionPreference = 'Stop'
@@ -102,6 +104,7 @@ try {
 foreach ($spec in $scenes) {
     if ($PSBoundParameters.ContainsKey('Longitude')) { $spec.Lon = $Longitude }
     if ($PSBoundParameters.ContainsKey('Latitude')) { $spec.Lat = $Latitude }
+    if ($PSBoundParameters.ContainsKey('BodyIndex')) { $spec.Body = $BodyIndex }
     if ($PSBoundParameters.ContainsKey('ViewAngle')) { $spec.Beta = $ViewAngle }
     if ($PSBoundParameters.ContainsKey('ViewPitch')) { $spec.Pitch = $ViewPitch }
     if ($PSBoundParameters.ContainsKey('PlayerX')) { $spec.PlayerX = $PlayerX }
@@ -122,6 +125,8 @@ public static class NoctisCaptureWin32 {
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hwnd, int command);
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
 }
 '@
@@ -292,7 +297,8 @@ foreach ($spec in $scenes) {
 
         # Automated captures must not open an interactive window on the user's
         # desktop: input would both interrupt them and taint fixed-scene probes.
-        $proc = Start-Process -FilePath (Join-Path $stage 'Noctis-IV.exe') -WorkingDirectory $stage -WindowStyle Hidden -PassThru
+        $windowStyle = if ($Interactive) { 'Normal' } else { 'Hidden' }
+        $proc = Start-Process -FilePath (Join-Path $stage 'Noctis-IV.exe') -WorkingDirectory $stage -WindowStyle $windowStyle -PassThru
         $deadline = [DateTime]::UtcNow.AddSeconds(15)
         do {
             Start-Sleep -Milliseconds 100
@@ -315,6 +321,14 @@ foreach ($spec in $scenes) {
         if ($proc.HasExited) { throw "Scene $($spec.Name) exited during initialization with code $($proc.ExitCode)" }
         if (-not $ready) {
             throw "Scene $($spec.Name) did not finish initialization"
+        }
+        if ($Interactive) {
+            [NoctisCaptureWin32]::ShowWindowAsync($proc.MainWindowHandle, 9) | Out-Null
+            [NoctisCaptureWin32]::SetForegroundWindow($proc.MainWindowHandle) | Out-Null
+            $interactivePid = $proc.Id
+            $proc = $null
+            Write-Output ("LAUNCHED {0} type {1}, PID {2}, stage {3}" -f $spec.Name, $spec.Type, $interactivePid, $stage)
+            continue
         }
         $sceneWarmup = if ($PSBoundParameters.ContainsKey('WarmupSeconds')) {
             $WarmupSeconds
@@ -352,7 +366,7 @@ foreach ($spec in $scenes) {
                 }
             }
         }
-        if (-not $KeepStages -and (Test-Path -LiteralPath $stage)) {
+        if (-not $Interactive -and -not $KeepStages -and (Test-Path -LiteralPath $stage)) {
             $resolvedStage = (Resolve-Path -LiteralPath $stage).Path
             $resolvedParent = (Resolve-Path -LiteralPath (Split-Path -Parent $stage)).Path
             if ((Split-Path -Parent $resolvedStage) -ne $resolvedParent -or

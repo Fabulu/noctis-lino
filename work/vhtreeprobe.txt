@@ -33,9 +33,11 @@
 	VHGbeta = 0; VHGlandinglon = 0; VHGlandinglat = 60;
 	VHGx = 0; VHGz = 0;
 	VHGgraphics = 0; VHGutcsecs = 0; VHGonroof = 0;
+	VHGsurfstep = 0;
 	VHGsurfgravdisp = 0; VHGsurftempdisp = 0; VHGsurfpressdisp = 0; VHGsurfpulsedisp = 0;
 	VHGCwindangle = 0; VHGCwindpower = 0;
 	VHTRp = 0; VHTRlit = 0; VHTRname = { vhtree-out.bin };
+	VHTRpagename = { vhtree-page.bin };
 
 "workspace"
 
@@ -46,12 +48,17 @@
 	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
 	=> PGF constants;
 	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32;
-	( x=131293 makes fast_random(511) select source GIANT_TREE 333. )
-	[VHVcamxi] = 131293; A = 0; A - 2000; [VHVcamyi] = A;
-	A = 0; A - 12000; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	( LANE IV's naturally generated giant at cell 66,130.  These tree
+	  parameters are the exact build_surface results for surface seed 1029155,
+	  type 3 OCEAN, albedo 40 and latitude 60. )
+	[GRtreescale] = 2428; [GRtreepeak] = 791; [GRtreespread] = 1168;
+	[GRbranchwidth] = 132; [GRrootheight] = 952; [GRrootshade] = 128;
+	[GRtreeflares] = 0; [GRleafflares] = 1; [GRmushscale] = 4095;
+	[VHVcamxi] = 1086769; A = 0; A - 151024; [VHVcamyi] = A;
+	[VHVcamzi] = 2139484; [VHValpha] = 0; [VHVbeta] = 180; => VH set view;
 	[PGtexf] = 0; [SPsrc] = 1; [SPflar] = 0; [SPcull] = 0; [SPhalf] = 0;
-	A = 17391; => SU fast srand;
-	[VHGNDoox] = 131293; [VHGNDooy] = 0; [VHGNDooz] = 0; [VHGNDdepth] = 0;
+	[VHGNDoox] = 1086769; A = 0; A - 149024; [VHGNDooy] = A;
+	[VHGNDooz] = 2139184; [VHGNDh1] = 26066; [VHGNDdepth] = 0;
 	=> VHGND tree;
 
 	[VHTRp] = 0; [VHTRlit] = 0;
@@ -66,6 +73,10 @@
 	[File Name] = VHTRname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = vhtrout; [Block Size] = 32; isocall;
 	[File Name] = VHTRname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 32; isocall;
+	[File Name] = VHTRpagename; [File Position] = 0; [File Command] = WRITE;
+	A = nw; A + RADPT; [Block Pointer] = A; [Block Size] = NPIX; [Block Size] * BYTESPERUNIT; isocall;
+	[File Name] = VHTRpagename; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = NPIX; [File Size] * BYTESPERUNIT; isocall;
 	end;
 
 "VHG fpu clean"
