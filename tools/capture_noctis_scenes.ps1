@@ -83,9 +83,15 @@ $scenes = @(
     @{ Name='hopper'; FileName='planet-habitable-hopper.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
        Beta=90; Pitch=0; Warmup=1; PlayerX=1747153; PlayerZ=872226 },
-    @{ Name='rocky';     X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=0; Lat=60; Beta=180; Pitch=-12 },
-    @{ Name='thin';      X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=0; Lat=60; Beta=180; Pitch=-12 },
-    @{ Name='frozen';    X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60; Beta=180; Pitch=-12 },
+    # Do not stage these at the exact 100,100 grid corner on a cardinal
+    # heading. At walking height the four nearest source tiles then meet on
+    # the centre column and make an ordinary terrain edge look like a pillar.
+    @{ Name='rocky';     X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=0; Lat=60;
+       Beta=173; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
+    @{ Name='thin';      X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=0; Lat=60;
+       Beta=167; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
+    @{ Name='frozen';    X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
+       Beta=193; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='quartz';    X=1463568; Y=-4728350; Z=-437812; Body=7; Type=8; Lon=0; Lat=60; Beta=180; Pitch=-12 },
     # Ylastravenya III's marked ruin edge, photographed outside the Cube.
     @{ Name='ruins';     FileName='planet-triangular-ruins.png';
