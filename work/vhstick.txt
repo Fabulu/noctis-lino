@@ -15,6 +15,7 @@
 	VHSdrawn = 0; VHSflare = 0; VHSphase = 0;
 	VHScolor = 62;
 	VHSnearbase = 0;
+	VHSclipbound = 0;
 
 "programme"
 
@@ -57,18 +58,7 @@
 	[VHSpx0] = [mp plus 0]; [VHSpy0] = [mp plus 1];
 	[VHSpx1] = [mp plus 2]; [VHSpy1] = [mp plus 3];
 
-	( Stick() swaps non-vertical endpoints whenever xa-xp is negative.  This
-	  is visually essential for flare 0: each left-to-right 00/3E pair is
-	  partly overwritten by the following sample, producing the original
-	  dark reflective beads.  Reversed traversal leaves every 3E neighbour
-	  untouched and incorrectly turns the framework into solid white lines. )
-	A = [VHSpx1]; ? A >= [VHSpx0] -> VHS endpoints ordered;
-	C = [VHSpx0]; [VHSpx0] = [VHSpx1]; [VHSpx1] = C;
-	C = [VHSpy0]; [VHSpy0] = [VHSpy1]; [VHSpy1] = C;
-    "VHS endpoints ordered"
-
-	( reject segments wholly outside one edge, then clamp the endpoints;
-	   cupola's clean visible lines are already inside these bounds )
+	( Reject segments wholly outside one edge. )
 	A = [VHSpx0]; ? A >= PGLBX -> VHS not left; A = [VHSpx1]; ? A < PGLBX -> VHS done;
     "VHS not left"
 	A = [VHSpx0]; ? A <= PGUBX -> VHS not right; A = [VHSpx1]; ? A > PGUBX -> VHS done;
@@ -78,22 +68,39 @@
 	A = [VHSpy0]; ? A <= PGUBY -> VHS not bottom; A = [VHSpy1]; ? A > PGUBY -> VHS done;
     "VHS not bottom"
 
-	A = [VHSpx0]; ? A >= PGLBX -> VHS x0 hi; [VHSpx0] = PGLBX;
+	( NOCTIS-0.CPP:1914-1976 clips in this exact left, top, right,
+	  bottom order.  Move the other coordinate along the segment instead of
+	  independently clamping X and Y: the old shortcut visibly fanned the
+	  capsule's three almost-vertical beacon rays toward unrelated edges. )
+	A = [VHSpx0]; ? A >= PGLBX -> VHS x0 hi; [VHSclipbound] = PGLBX; => VHS clip x0;
     "VHS x0 hi"
-	A = [VHSpx0]; ? A <= PGUBX -> VHS x0 ok; [VHSpx0] = PGUBX;
-    "VHS x0 ok"
-	A = [VHSpx1]; ? A >= PGLBX -> VHS x1 hi; [VHSpx1] = PGLBX;
+	A = [VHSpx1]; ? A >= PGLBX -> VHS x1 hi; [VHSclipbound] = PGLBX; => VHS clip x1;
     "VHS x1 hi"
-	A = [VHSpx1]; ? A <= PGUBX -> VHS x1 ok; [VHSpx1] = PGUBX;
-    "VHS x1 ok"
-	A = [VHSpy0]; ? A >= PGLBY -> VHS y0 hi; [VHSpy0] = PGLBY;
+	A = [VHSpy0]; ? A >= PGLBY -> VHS y0 hi; [VHSclipbound] = PGLBY; => VHS clip y0;
     "VHS y0 hi"
-	A = [VHSpy0]; ? A <= PGUBY -> VHS y0 ok; [VHSpy0] = PGUBY;
-    "VHS y0 ok"
-	A = [VHSpy1]; ? A >= PGLBY -> VHS y1 hi; [VHSpy1] = PGLBY;
+	A = [VHSpy1]; ? A >= PGLBY -> VHS y1 hi; [VHSclipbound] = PGLBY; => VHS clip y1;
     "VHS y1 hi"
-	A = [VHSpy1]; ? A <= PGUBY -> VHS y1 ok; [VHSpy1] = PGUBY;
-    "VHS y1 ok"
+	A = [VHSpx0]; ? A <= PGUBX -> VHS x0 ok; [VHSclipbound] = PGUBX; => VHS clip x0;
+	"VHS x0 ok"
+	A = [VHSpx1]; ? A <= PGUBX -> VHS x1 ok; [VHSclipbound] = PGUBX; => VHS clip x1;
+	"VHS x1 ok"
+	A = [VHSpy0]; ? A <= PGUBY -> VHS y0 ok; [VHSclipbound] = PGUBY; => VHS clip y0;
+	"VHS y0 ok"
+	A = [VHSpy1]; ? A <= PGUBY -> VHS y1 ok; [VHSclipbound] = PGUBY; => VHS clip y1;
+	"VHS y1 ok"
+	A = [VHSpx0]; ? A != [VHSpx1] -> VHS line ready;
+	A = [VHSpy0]; ? A = [VHSpy1] -> VHS done;
+    "VHS line ready"
+
+	( Stick() swaps non-vertical endpoints whenever xa-xp is negative.  Do it
+	  after stick3d's clipping, in the source order.  This is visually
+	  essential for flare 0: each left-to-right 00/3E pair is partly
+	  overwritten by the following sample, producing the original dark
+	  reflective beads. )
+	A = [VHSpx1]; ? A >= [VHSpx0] -> VHS endpoints ordered;
+	C = [VHSpx0]; [VHSpx0] = [VHSpx1]; [VHSpx1] = C;
+	C = [VHSpy0]; [VHSpy0] = [VHSpy1]; [VHSpy1] = C;
+    "VHS endpoints ordered"
 
 	( Integer Bresenham supplies the projected samples.  Source flare 0 writes
 	  the literal little-endian word 0x3E00 at every sample: a dark structural
@@ -148,4 +155,56 @@
 
     "VHS done"
 	[PGFi] = FSUNEG; [PGFt] = [VHSnearbase]; => PGF setf32;
+	end;
+
+( Clip endpoint 0 against a vertical boundary.  Source float `diff` and
+  `kk` are explicitly narrowed before the wide multiply/add and final
+  nearest-even integer store. )
+"VHS clip x0"
+	A = [VHSpx0]; A - [VHSpx1]; [FI] = A; => IntToF; => F32Narrow;
+	[PGFi] = FSW0; => PGF sa;
+	A = [VHSclipbound]; A - [VHSpx1]; [FI] = A; => IntToF;
+	[PGFi] = FSW0; => PGF quo; => F32Narrow; [PGFi] = FSW1; => PGF sa;
+	A = [VHSpy0]; A - [VHSpy1]; [FI] = A; => IntToF;
+	[PGFi] = FSW1; => PGF mul;
+	[PGFi] = FSW2; => PGF sa;
+	[FI] = [VHSpy1]; => IntToF; [PGFi] = FSW2; => PGF add; => PGF int;
+	[VHSpy0] = [FI]; [VHSpx0] = [VHSclipbound];
+	end;
+
+"VHS clip x1"
+	A = [VHSpx1]; A - [VHSpx0]; [FI] = A; => IntToF; => F32Narrow;
+	[PGFi] = FSW0; => PGF sa;
+	A = [VHSclipbound]; A - [VHSpx0]; [FI] = A; => IntToF;
+	[PGFi] = FSW0; => PGF quo; => F32Narrow; [PGFi] = FSW1; => PGF sa;
+	A = [VHSpy1]; A - [VHSpy0]; [FI] = A; => IntToF;
+	[PGFi] = FSW1; => PGF mul;
+	[PGFi] = FSW2; => PGF sa;
+	[FI] = [VHSpy0]; => IntToF; [PGFi] = FSW2; => PGF add; => PGF int;
+	[VHSpy1] = [FI]; [VHSpx1] = [VHSclipbound];
+	end;
+
+( Clip endpoint 0/1 against a horizontal boundary. )
+"VHS clip y0"
+	A = [VHSpy0]; A - [VHSpy1]; [FI] = A; => IntToF; => F32Narrow;
+	[PGFi] = FSW0; => PGF sa;
+	A = [VHSclipbound]; A - [VHSpy1]; [FI] = A; => IntToF;
+	[PGFi] = FSW0; => PGF quo; => F32Narrow; [PGFi] = FSW1; => PGF sa;
+	A = [VHSpx0]; A - [VHSpx1]; [FI] = A; => IntToF;
+	[PGFi] = FSW1; => PGF mul;
+	[PGFi] = FSW2; => PGF sa;
+	[FI] = [VHSpx1]; => IntToF; [PGFi] = FSW2; => PGF add; => PGF int;
+	[VHSpx0] = [FI]; [VHSpy0] = [VHSclipbound];
+	end;
+
+"VHS clip y1"
+	A = [VHSpy1]; A - [VHSpy0]; [FI] = A; => IntToF; => F32Narrow;
+	[PGFi] = FSW0; => PGF sa;
+	A = [VHSclipbound]; A - [VHSpy0]; [FI] = A; => IntToF;
+	[PGFi] = FSW0; => PGF quo; => F32Narrow; [PGFi] = FSW1; => PGF sa;
+	A = [VHSpx1]; A - [VHSpx0]; [FI] = A; => IntToF;
+	[PGFi] = FSW1; => PGF mul;
+	[PGFi] = FSW2; => PGF sa;
+	[FI] = [VHSpx0]; => IntToF; [PGFi] = FSW2; => PGF add; => PGF int;
+	[VHSpx1] = [FI]; [VHSpy1] = [VHSclipbound];
 	end;
