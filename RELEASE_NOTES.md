@@ -61,9 +61,9 @@ after that rejection, cutting the hidden lunar checkpoint from 38,792,130 to
 bounded surface-map reads were remeasured against the preceding committed
 binary with the same ten-second hidden warmup: they reduced the steady
 12-frame sample from 1,973 to 1,311 ms and the 60-frame wall time from 10,237
-to 6,650 ms, raising the measured rate from 6 to 9 FPS. The 60-FPS optimization
-target remains open. A subsequent exact fusion of the per-tile x87 distance
-chain retained every qword spill, square root and chop-conversion boundary; in
+to 6,650 ms, raising the measured rate from 6 to 9 FPS. A subsequent exact
+fusion of the per-tile x87 distance chain retained every qword spill, square
+root and chop-conversion boundary; in
 a same-scene hidden A/B against its immediate predecessor, the 11-frame sample
 fell from 1,482 to 1,329 ms and the 60-frame wall time from 6,858 to 6,665 ms.
 The landed projection cache now takes a direct three-vertex hit path instead
@@ -71,6 +71,17 @@ of re-entering six small index/validation routines for every reused triangle.
 On the same retained lunar checkpoint, the 60-frame render profile fell from
 1,422 to 1,207 ms and render-plus-presentation from 1,732 to 1,481 ms, raising
 the unconstrained measured rate from 34.64 to 40.52 FPS.
+
+Further exact terrain work fused the mapper's bounded spans, cached repeated
+terrain normals and projections, reused stationary-frame projections, and
+combined the source Manhattan admission with its accepted-cell x87 depth
+schedule. On the repaired retained lunar checkpoint, two immediate 60-frame
+runs of the committed baseline measured 70.52 and 70.43 FPS including
+presentation, crossing the optional 60-Hz presenter's target on the test host.
+This is a scene and host measurement, not a minimum guarantee for every planet
+or machine. A native landed-sky cache copy was removed after visual bisection
+showed that it erased the local sun's source lens-flare halo; the correct halo
+and the slower interpreted cache copy are retained.
 
 Close surface stones now follow NIV+'s complete `roccia()` path: type-3
 generation retains the final `random(5)` quartz choice, type-8 sets quartz
