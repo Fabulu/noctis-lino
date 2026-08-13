@@ -1,0 +1,123 @@
+      ( *** vhgroundfixture - clean production build_surface driver ***
+
+	This library is linked only into the derived ground-fixture executable.
+	It calls VHGND build surface, the same routine used by the game, and exits
+	before ruins, water cleanup, object caches, drop-site selection or fauna.
+
+	Input gr-full-in.bin, eight 32-bit units:
+	  magic/version, global seed, planet type, surface class, albedo,
+	  landing latitude, landing longitude.
+
+	Output gr-full-out.bin:
+	  28 state/header units, 40000 surface-map units, 65536 texture units,
+	  then 40000 packed-object units.  Each emulated byte remains one unit. )
+
+"constants"
+
+	GFINMAGIC = 1195788593;       ( 0x47464931, GFI1 )
+	GFOUTMAGIC = 1195788849;      ( 0x47464A31, GFJ1 )
+	GFVERSION = 1;
+	GFHEAD = 28;
+	GFINUNITS = 8;
+	GFSMUNITS = 40000;
+	GFTXUNITS = 65536;
+	GFOBUNITS = 40000;
+	GFOUTUNITS = 145564;
+
+"variables"
+
+	GFinputname = { gr-full-in.bin };
+	GFoutputname = { gr-full-out.bin };
+	GFi = 0; GFpos = 0;
+
+"workspace"
+
+	GFinput = 8;
+	GFheader = 28;
+
+"programme"
+
+"VHG ground fixture run"
+	=> FEnter;
+
+	[File Name] = GFinputname; [File Position] = 0;
+	[File Command] = READ; [Block Pointer] = GFinput;
+	[Block Size] = GFINUNITS; [Block Size] * BYTESPERUNIT; isocall;
+
+	A = [GFinput]; ? A != GFINMAGIC -> VHG ground fixture invalid;
+	A = [GFinput plus 1]; ? A != GFVERSION -> VHG ground fixture invalid;
+
+	[GRgseed] = [GFinput plus 2]; [GRiptype] = [GFinput plus 3];
+	[GRsctype] = [GFinput plus 4]; [VHGNDsctype] = [GFinput plus 4];
+	[GRalbedo] = [GFinput plus 5];
+	[VHGNDlat] = [GFinput plus 6]; [VHGNDlon] = [GFinput plus 7];
+	A = [VHGNDlat]; A '* [VHGNDlon]; [VHGNDlocseed] = A;
+	A = [VHGNDlat]; A - 60; ? A >= 0 -> VHG ground fixture latitude absolute; A +-;
+    "VHG ground fixture latitude absolute"
+	A '* 3; A '/ 2; [GRlat] = A;
+	[VHGNDtexbase] = RPBG;
+
+	=> SU ledger reset; => GR float init;
+	[VHGNDrockscale] = 500; [VHGNDrockpeak] = 250; [VHGNDrockdensity] = 15;
+	[VHGNDwaswet] = 0; [VHGNDwavescalm] = 0; [VHGNDfrosty] = 0;
+
+	( Exact production pre-core buffer state. )
+	[GFi] = 0;
+    "VHG ground fixture wipe surface"
+	A = RPSM; A + [GFi]; [MBptr] = A; [MBval] = 0; => MEM put byte;
+	[GFi]+; A = [GFi]; ? A '< GFSMUNITS -> VHG ground fixture wipe surface;
+	[GFi] = 0;
+    "VHG ground fixture wipe objects"
+	A = ROBJ; A + [GFi]; [MBptr] = A; [MBval] = 0; => MEM put byte;
+	[GFi]+; A = [GFi]; ? A '< GFOBUNITS -> VHG ground fixture wipe objects;
+	[GFi] = 0;
+    "VHG ground fixture wipe texture"
+	A = RPBG; A + [GFi]; [MBptr] = A; [MBval] = 16; => MEM put byte;
+	[GFi]+; A = [GFi]; ? A '< 65535 -> VHG ground fixture wipe texture;
+	A = RPBG; A + 65535; [MBptr] = A; [MBval] = 0; => MEM put byte;
+
+	=> VHGND build surface;
+
+	[GFheader] = GFOUTMAGIC; [GFheader plus 1] = GFVERSION;
+	[GFheader plus 2] = [GRgseed]; [GFheader plus 3] = [GRiptype];
+	[GFheader plus 4] = [GRsctype]; [GFheader plus 5] = [GRalbedo];
+	[GFheader plus 6] = [VHGNDlat]; [GFheader plus 7] = [VHGNDlon];
+	[GFheader plus 8] = [SUfseed]; [GFheader plus 9] = [brtlseed];
+	[GFheader plus 10] = [SUfn]; [GFheader plus 11] = [SUbnc];
+	[GFheader plus 12] = [SUfh]; [GFheader plus 13] = [SUbh];
+	[GFheader plus 14] = [VHGNDquartz]; [GFheader plus 15] = [VHGNDfrosty];
+	[GFheader plus 16] = [VHGNDwaswet]; [GFheader plus 17] = [VHGNDwavescalm];
+	[GFheader plus 18] = [VHGNDrockscale]; [GFheader plus 19] = [VHGNDrockpeak];
+	[GFheader plus 20] = [VHGNDrockdensity]; [GFheader plus 21] = [VHGNDtscale];
+	[GFheader plus 22] = [GRrough]; [GFheader plus 23] = [GRround];
+	[GFheader plus 24] = [GRlevel]; [GFheader plus 25] = [GRlat];
+	[GFheader plus 26] = [VHGNDlocseed]; [GFheader plus 27] = 0;
+
+	[File Name] = GFoutputname; [File Position] = 0;
+	[File Command] = WRITE; [Block Pointer] = GFheader;
+	[Block Size] = GFHEAD; [Block Size] * BYTESPERUNIT; isocall;
+
+	A = GFHEAD; A '* BYTESPERUNIT; [GFpos] = A;
+	[File Position] = [GFpos]; [File Command] = WRITE;
+	A = nw; A + RPSM; [Block Pointer] = A;
+	[Block Size] = GFSMUNITS; [Block Size] * BYTESPERUNIT; isocall;
+
+	A = GFSMUNITS; A '* BYTESPERUNIT; A + [GFpos]; [GFpos] = A;
+	[File Position] = [GFpos]; [File Command] = WRITE;
+	A = nw; A + RPBG; [Block Pointer] = A;
+	[Block Size] = GFTXUNITS; [Block Size] * BYTESPERUNIT; isocall;
+
+	A = GFTXUNITS; A '* BYTESPERUNIT; A + [GFpos]; [GFpos] = A;
+	[File Position] = [GFpos]; [File Command] = WRITE;
+	A = nw; A + ROBJ; [Block Pointer] = A;
+	[Block Size] = GFOBUNITS; [Block Size] * BYTESPERUNIT; isocall;
+
+	[File Name] = GFoutputname; [File Position] = 0;
+	[File Command] = SET SIZE; [File Size] = GFOUTUNITS;
+	[File Size] * BYTESPERUNIT; isocall;
+	=> FLeave;
+	end;
+
+    "VHG ground fixture invalid"
+	=> FLeave;
+	end;

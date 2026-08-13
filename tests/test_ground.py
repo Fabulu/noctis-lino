@@ -10,37 +10,36 @@ WHAT THIS GRADES
 
 WHAT THE ORACLE IS
     For non-type-3 complete builds: internal consistency (spec == cref).
-    The current Lino leg covers one multi-painter path, not the complete
-    type switch; do not describe this corpus as full three-way coverage.
+    The Lino leg calls the production VHGND build surface core at its clean
+    return boundary.  The smaller painter driver remains a focused check.
     For type-3 equator: a binary capture from
     NIV+ R2.3's own guest RAM (tests/gen/recon_w7b/out/).  The type-3
-    p_surfacemap binary-capture grade retains a small post-landing XFAIL,
-    but the earlier seed-flow explanation has been falsified.  A live RAM capture pins
+    p_surfacemap and every deterministic texture byte match through the
+    production Lino core.  A live RAM capture pins
     sctype=OCEAN and albedo=40; OCEAN therefore takes the `goto revert`
     PLAINS path.  With that corrected fixture, the first 65,532 texture
     bytes match the NIV+ capture.  NIV/NIV+ leaves the final four ptxtr
     bytes dependent on nondeterministic reads, so they are deliberately not
-    a golden equality oracle.  Reproducing Borland's unsigned
-    16-bit round_hill loop bounds reduced the map difference from 39,710
-    to 1,752 bytes.  The surviving fixture is captured after the landed
-    loop has begun reusing p_surfacemap as scratch, not at build_surface's
-    return boundary, so that residual remains explicitly capture-only.
+    a golden equality oracle.  The independent Python/C round_hill model
+    still differs in 1,752 map bytes; the actual Lino output proves that is
+    a model gap, not corruption in the captured p_surfacemap.
 
 THE THREE IMPLEMENTATIONS
     spec  noctis-harness/gr_spec.py   Python, exact rationals for the
                                       seed chop, float32 stores modeled.
     cref  noctis-harness/gr_ref.c     C, hardware x87 (fsqrt/fsin/fcos
                                       via inline asm), separate pass.
-    lino  work/grnd.txt + grmain.txt  The DELIVERABLE's focused multi-painter
-                                      leg, compiled and run with the
-                                      poll-and-kill runner.  Complete Lino
-                                      builds still need clean NIV+ fixtures.
+    lino  work/vhground.txt           The production type switch and clean
+                                      return, driven through a derived game
+                                      executable; grmain retains its focused
+                                      painter check.
 
 Usage:  python tests/test_ground.py [--deep] [--no-lino]
 """
 
 import argparse
 import hashlib
+import json
 import os
 import shutil
 import struct
@@ -52,6 +51,9 @@ REPO = os.path.dirname(HERE)
 WORK = os.path.join(REPO, "work")
 HARNESS = os.path.join(REPO, "noctis-harness")
 RECON_W7B = os.path.join(HERE, "gen", "recon_w7b", "out")
+NIV_CLEAN_ROOT = os.environ.get(
+    "NOCTIS_NIV_GROUND_FIXTURES",
+    os.path.join(HERE, "fixtures", "niv_ground"))
 SAND = os.path.join(HERE, "gen", "gr_sand")
 
 for p in (HERE, HARNESS):
@@ -76,10 +78,24 @@ REC_SZ = PS_BYTES + OC_BYTES + 16  # map + objects + 4 int32 counters
 CAPTURE_GSEED = 1029155
 CAPTURE_SCTYPE = 1                 # OCEAN
 CAPTURE_ALBEDO = 40                # >20, therefore goto revert / PLAINS
-# With DOS `unsigned` round_hill bounds reproduced, the old 39,710-byte gap
-# falls to this post-landing capture residual.  Do not present it as a pristine
-# build_surface mismatch: the running game has already reused this RAM buffer.
-CAPTURE_MAP_OPEN_DIFF = 1752
+# The remaining 1,752-byte delta belongs to the independent Python/C model.
+MODEL_MAP_OPEN_DIFF = 1752
+FULL_HEAD_UNITS = 28
+FULL_OUT_UNITS = FULL_HEAD_UNITS + PS_BYTES + TXTR_BYTES + OC_BYTES
+FULL_IN_MAGIC = 0x47464931
+FULL_OUT_MAGIC = 0x47464A31
+FULL_VERSION = 1
+NIV_OBJ_MATCH_PREFIX = 39925
+CAPTURE_OBJECT_OPEN_DIFF = 39
+FULL_STATE_INDEX = {
+    "fast_seed": 8, "borland_seed": 9,
+    "fast_draws": 10, "borland_draws": 11,
+    "fast_hash": 12, "borland_hash": 13,
+    "quartz": 14, "frosty": 15, "waswet": 16, "wavescalm": 17,
+    "rock_scale": 18, "rock_peak": 19, "rock_density": 20,
+    "texture_scale": 21, "roughness": 22, "rounding": 23,
+    "level": 24, "normalized_latitude": 25, "local_seed": 26,
+}
 
 
 def nd(a, b):
@@ -149,6 +165,103 @@ def run_lino(main_src, out_name, timeout=600):
     return keep, note
 
 
+def build_full_lino_driver():
+    """Derive a clean-return entry point while linking the actual game."""
+    source_path = os.path.join(WORK, "vhgame.txt")
+    generated = os.path.join(WORK, "grfullfixturemain.txt")
+    exe = os.path.join(WORK, "grfullfixturemain.exe")
+    text = open(source_path, "r", encoding="utf-8").read()
+    libs_old = "vhspace; vhstar; vhground; vhcapsule;"
+    libs_new = "vhspace; vhstar; vhground; vhgroundfixture; vhcapsule;"
+    entry_old = "\t=> VHG run;\n\tend;"
+    entry_new = "\t=> VHG ground fixture run;\n\tend;"
+    if text.count(libs_old) != 1 or text.count(entry_old) != 1:
+        return generated, None, "vhgame fixture splice point changed"
+    text = text.replace(libs_old, libs_new, 1)
+    text = text.replace("program name = { vhgame };",
+                        "program name = { grfullfixturemain };", 1)
+    text = text.replace(entry_old, entry_new, 1)
+    with open(generated, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(text)
+    if os.path.exists(exe):
+        os.remove(exe)
+    rc, note = lh.build(generated, timeout_sec=240)
+    if rc != 0 or not os.path.exists(exe):
+        return generated, None, "BUILD FAILED: " + note[:200]
+    return generated, exe, note
+
+
+def run_full_lino_case(exe, gseed, ip_type, sctype, albedo, lat, lon,
+                       timeout=120):
+    inp = os.path.join(WORK, "gr-full-in.bin")
+    out = os.path.join(WORK, "gr-full-out.bin")
+    with open(inp, "wb") as fh:
+        fh.write(struct.pack("<8I", FULL_IN_MAGIC, FULL_VERSION, gseed,
+                             ip_type, sctype, albedo, lat, lon))
+    if os.path.exists(out):
+        os.remove(out)
+    p = subprocess.run([exe], cwd=WORK, timeout=timeout,
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace")
+    if p.returncode != 0 or not os.path.exists(out):
+        return None, "RUN FAILED: exit %d" % p.returncode
+    raw = open(out, "rb").read()
+    if len(raw) != FULL_OUT_UNITS * 4:
+        return None, "wrong output size %d" % len(raw)
+    units = struct.unpack("<%dI" % FULL_OUT_UNITS, raw)
+    if units[0] != FULL_OUT_MAGIC or units[1] != FULL_VERSION:
+        return None, "bad output header %08x/%d" % (units[0], units[1])
+    pos = FULL_HEAD_UNITS
+    smap = bytes(u & 255 for u in units[pos:pos + PS_BYTES]); pos += PS_BYTES
+    txtr = bytes(u & 255 for u in units[pos:pos + TXTR_BYTES]); pos += TXTR_BYTES
+    objs = bytes(u & 255 for u in units[pos:pos + OC_BYTES])
+    return dict(header=units[:FULL_HEAD_UNITS], smap=smap,
+                txtr=txtr, objs=objs), "ok"
+
+
+def load_clean_niv_cases():
+    """Load optional clean-return NIV+ fixtures without weakening any byte."""
+    manifest_path = os.path.join(NIV_CLEAN_ROOT, "manifest.json")
+    if not os.path.isfile(manifest_path):
+        return []
+    data = json.load(open(manifest_path, "r", encoding="utf-8"))
+    cases = data if isinstance(data, list) else data.get("cases", [])
+    required = ("tag", "gseed", "ip_type", "sctype", "albedo", "lat", "lon",
+                "surfacemap", "texture", "objects")
+    for case in cases:
+        missing = [key for key in required if key not in case]
+        if missing:
+            raise ValueError("clean NIV fixture %r missing %s" %
+                             (case.get("tag", "?"), ", ".join(missing)))
+    return cases
+
+
+def grade_clean_niv_case(case, got):
+    def fixture_bytes(key, size):
+        path = os.path.join(NIV_CLEAN_ROOT, case[key])
+        raw = open(path, "rb").read()
+        if len(raw) < size:
+            raise ValueError("%s is %d bytes, expected at least %d" %
+                             (path, len(raw), size))
+        return raw[:size]
+
+    smap = fixture_bytes("surfacemap", PS_BYTES)
+    txtr = fixture_bytes("texture", TXTR_BYTES)
+    objs = fixture_bytes("objects", OC_BYTES)
+    defined = int(case.get("texture_defined_bytes", NIV_TXTR_DEFINED_BYTES))
+    if defined != NIV_TXTR_DEFINED_BYTES:
+        raise ValueError("NIV texture mask must remain exactly 65,532 bytes")
+    diffs = dict(map=nd(got["smap"], smap),
+                 texture=nd(got["txtr"][:defined], txtr[:defined]),
+                 objects=nd(got["objs"], objs), state=0)
+    for name, expected in case.get("exit_state", {}).items():
+        if name not in FULL_STATE_INDEX:
+            raise ValueError("unknown clean NIV exit-state field %r" % name)
+        actual = got["header"][FULL_STATE_INDEX[name]]
+        diffs["state"] += actual != (int(expected) & 0xFFFFFFFF)
+    return diffs
+
+
 # =========================================================================
 # The test
 # =========================================================================
@@ -163,15 +276,21 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     chk = lh.Check("WAVE 7b - build_surface + SURFACE.BIN")
-    chk.note("ORACLE: complete spec==cref builds, focused Lino painter leg, "
-             "+ one NIV+ type-3 capture.")
+    chk.note("ORACLE: complete spec==cref builds, production Lino clean-return "
+             "driver, focused painter leg, and one NIV+ type-3 capture.")
     chk.note("Type-3 capture fixture is RAM-pinned (OCEAN, albedo 40, seed 0).")
-    chk.note("Its deterministic texture prefix is exact; the final four ptxtr "
-             "bytes are undefined in NIV+, and p_surfacemap retains a "
-             "post-landing RAM residual.")
+    chk.note("The production Lino map and deterministic texture prefix are "
+             "exact; the final four ptxtr bytes are undefined in NIV+.")
 
     # ---- fixture ----
     os.makedirs(SAND, exist_ok=True)
+    clean_niv_cases = load_clean_niv_cases()
+    if clean_niv_cases:
+        chk.note("Clean-return NIV+ fixture manifest: %d cases" %
+                 len(clean_niv_cases))
+    else:
+        chk.note("Clean-return NIV+ fixture manifest not present; drop one at %s"
+                 % NIV_CLEAN_ROOT)
     rows = gr_corpus.all_cases()
     spc = os.path.join(SAND, "gr_corpus.spc")
     gr_corpus.write_spc(spc, rows)
@@ -238,7 +357,8 @@ def main(argv=None):
            % (b_map, build_n, b_obj, build_n),
            ", ".join(bad[:3]) if bad else "all ok")
 
-    # ---- lino comparison (round_hill path) ----
+    # ---- lino focused painter comparison + complete production core ----
+    full_lino = None
     if not a.no_lino:
         # Copy all needed libraries to the sandbox
         lino_libs = ("fbmem", "brtl", "mul64frag", "surng", "suseed", "grnd")
@@ -278,13 +398,60 @@ def main(argv=None):
                    "B3 lino multi-painter byte-exact: prologue + rockyground "
                    "+ smoothterrain + plains noise (40000 B map + draws + hashes)",
                    "map %d diff, draws %s" % (map_diff, "ok" if draw_ok else "FAIL"))
+
+        generated, full_exe, note = build_full_lino_driver()
+        chk.ok(full_exe is not None, "R4 production Lino surface driver built",
+               note[:120] if note else "ok")
+        try:
+            if full_exe:
+                full_lino, note = run_full_lino_case(
+                    full_exe, CAPTURE_GSEED, 3, CAPTURE_SCTYPE,
+                    CAPTURE_ALBEDO, 60, 0)
+                chk.ok(full_lino is not None,
+                       "R5 production Lino build_surface core ran to clean return",
+                       note)
+                for case in clean_niv_cases:
+                    got, note = run_full_lino_case(
+                        full_exe, int(case["gseed"]), int(case["ip_type"]),
+                        int(case["sctype"]), int(case["albedo"]),
+                        int(case["lat"]), int(case["lon"]))
+                    diffs = grade_clean_niv_case(case, got) if got else None
+                    exact = got is not None and all(v == 0 for v in diffs.values())
+                    chk.ok(exact, "NIV clean %s: production Lino exact" %
+                           case["tag"], str(diffs) if diffs else note)
+        finally:
+            for stale in (generated, full_exe,
+                          os.path.join(WORK, "gr-full-in.bin"),
+                          os.path.join(WORK, "gr-full-out.bin")):
+                if stale and os.path.exists(stale):
+                    os.remove(stale)
     else:
-        chk.note("R3 lino SKIPPED (--no-lino)")
+        chk.note("R3/R4/R5 lino SKIPPED (--no-lino)")
 
     # ---- type-3 binary capture ----
     if os.path.isdir(RECON_W7B):
         cap_map = open(os.path.join(RECON_W7B, "t3_equator.p_surfacemap"), "rb").read()
         cap_txtr = open(os.path.join(RECON_W7B, "t3_equator.p_background"), "rb").read()
+        cap_obj = open(os.path.join(RECON_W7B, "t3_equator.objectschart"), "rb").read()
+        if full_lino:
+            lino_map_diff = nd(full_lino["smap"], cap_map[:PS_BYTES])
+            lino_txtr_diff = nd(full_lino["txtr"][:NIV_TXTR_DEFINED_BYTES],
+                                cap_txtr[:NIV_TXTR_DEFINED_BYTES])
+            chk.ok(lino_map_diff == 0 and lino_txtr_diff == 0,
+                   "C1 production Lino clean return matches NIV+ map and all "
+                   "65,532 deterministic texture bytes",
+                   "map %d diff, texture %d diff" %
+                   (lino_map_diff, lino_txtr_diff))
+            obj_prefix_diff = nd(full_lino["objs"][:NIV_OBJ_MATCH_PREFIX],
+                                 cap_obj[:NIV_OBJ_MATCH_PREFIX])
+            obj_total_diff = nd(full_lino["objs"], cap_obj[:OC_BYTES])
+            chk.ok(obj_prefix_diff == 0 and
+                   obj_total_diff == CAPTURE_OBJECT_OPEN_DIFF,
+                   "C2 production Lino object map matches the captured "
+                   "39,925-byte prefix",
+                   "%d prefix diffs; %d boundary-tail diffs still need a "
+                   "clean-return NIV+ capture" %
+                   (obj_prefix_diff, obj_total_diff))
         S = gr_spec.BuildSurface(ledger=False)
         S.smap = bytearray(PS_BYTES)
         S.objs = bytearray(OC_BYTES)
@@ -303,14 +470,14 @@ def main(argv=None):
         diff = nd(spec_map, cap_map[:PS_BYTES])
         if a.deep:
             chk.ok(row0_cap_nz == 0,
-                   "C1 type-3 capture: row 0 all-zero in capture (baseline confirmed)",
+                   "C3 type-3 capture: row 0 all-zero in capture (baseline confirmed)",
                    "cap row0 nonzero=%d" % row0_cap_nz)
-            chk.note("C1 note: corrected source model row 0 has %d nonzero; this is "
+            chk.note("C3 note: independent model row 0 has %d nonzero; this is "
                      "part of the remaining map-only gap" % row0_spec_nz)
         txtr_diff = nd(spec_txtr[:NIV_TXTR_DEFINED_BYTES],
                        cap_txtr[:NIV_TXTR_DEFINED_BYTES])
         chk.ok(txtr_diff == 0,
-               "C2 type-3 corrected fixture: all 65,532 deterministic "
+               "C4 independent spec: all 65,532 deterministic "
                "ground-texture bytes match NIV+ (OCEAN albedo 40 -> "
                "PLAINS/revert; final four undefined bytes excluded)",
                "%d bytes differ" % txtr_diff)
@@ -328,19 +495,19 @@ def main(argv=None):
             wrong_txtr_diff = nd(bytes(W.txtr)[:NIV_TXTR_DEFINED_BYTES],
                                  cap_txtr[:NIV_TXTR_DEFINED_BYTES])
             chk.ok(wrong_txtr_diff > 0,
-                   "C3 broken control: old OCEAN/albedo-17 fixture is rejected",
+                   "C5 broken control: old OCEAN/albedo-17 fixture is rejected",
                    "%d texture bytes differ" % wrong_txtr_diff)
 
         # XFAIL convention: assert the measured defect is STILL present.  A
         # fix (or any drift in its boundary) deliberately fails this check so
         # the open item cannot silently become stale.  Unlike the former
         # ok(False), this condition is data-dependent and can pass or fail.
-        still_open = diff == CAPTURE_MAP_OPEN_DIFF
+        still_open = diff == MODEL_MAP_OPEN_DIFF
         chk.ok(still_open,
-               "XFAIL C4 type-3 post-landing p_surfacemap capture residual",
-               ("STILL OPEN: %d bytes differ" % diff) if still_open else
+               "XFAIL C6 independent Python/C round_hill model residual",
+               ("MODEL STILL OPEN: %d bytes differ" % diff) if still_open else
                ("BOUNDARY CHANGED: got %d diffs, expected %d; re-audit or "
-                "remove this XFAIL if now exact" % (diff, CAPTURE_MAP_OPEN_DIFF)))
+                "remove this XFAIL if now exact" % (diff, MODEL_MAP_OPEN_DIFF)))
 
         # Break one byte that currently agrees.  Mutating an already-different
         # byte could leave the difference count unchanged and prove nothing.
@@ -349,12 +516,12 @@ def main(argv=None):
             broken_cap = bytearray(cap_map[:PS_BYTES])
             broken_cap[break_at] = (broken_cap[break_at] + 1) & 0xFF
             broken_diff = nd(spec_map, bytes(broken_cap))
-            chk.ok(broken_diff == CAPTURE_MAP_OPEN_DIFF + 1,
-                   "C5 broken control: XFAIL boundary rejects capture drift",
+            chk.ok(broken_diff == MODEL_MAP_OPEN_DIFF + 1,
+                   "C7 broken control: model boundary rejects capture drift",
                    "byte %d makes diff %d (expected %d)" %
-                   (break_at, broken_diff, CAPTURE_MAP_OPEN_DIFF + 1))
+                   (break_at, broken_diff, MODEL_MAP_OPEN_DIFF + 1))
     else:
-        chk.note("C1/C2 type-3 capture not available (no tests/gen/recon_w7b/out/)")
+        chk.note("C1-C7 type-3 capture not available (no tests/gen/recon_w7b/out/)")
 
     # ---- sabotages ----
     if not a.deep:
@@ -372,11 +539,11 @@ def main(argv=None):
 
     # ---- hygiene ----
     chk.note("Build via lino_build.ps1; run via w7arun.ps1.")
-    chk.note("Type-3: RNG/fixture is resolved by exact agreement across all "
-             "65,532 deterministic texture bytes (the NIV+ undefined four-byte "
-             "tail is narrowly excluded) and "
-             "unsigned 16-bit round_hill bounds close 37,958 prior map bytes; "
-             "the post-landing RAM residual is asserted at its measured count.")
+    chk.note("Type-3: the production Lino core agrees with NIV+ on the complete "
+             "40,000-byte map and all 65,532 deterministic texture bytes. "
+             "The independent Python/C map model retains a measured 1,752-byte "
+             "gap, and the final 75 captured object slots still require a "
+             "clean-return NIV+ fixture.")
 
     return chk.done()
 

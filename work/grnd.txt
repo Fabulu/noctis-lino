@@ -32,8 +32,8 @@
 
 	GRPi2L	= 54442D18h;	GRPi2H	= 3FF921FBh;	( M_PI/2	)
 	GRPIL	= 54442D18h;	GRPIH	= 400921FBh;	( M_PI		)
-	GR127L	= 0;		GR127H	= 405FE000h;	( 127.0		)
-	GR254L	= 0;		GR254H	= 406FE000h;	( 254.0		)
+	GR127L	= 0;		GR127H	= 405FC000h;	( 127.0		)
+	GR254L	= 0;		GR254H	= 406FC000h;	( 254.0		)
 
 	( ---- control words ---- )
 
@@ -562,8 +562,8 @@
 	? A != 0 -> GR rh store;		( y - 127 < 0 → y <= 127, skip )
 	( y > 127: canyon mirror )
 	{
-	    DC 87 <dGRK254L mtp bytesperunit>	(fld qword [edi+GRK254L*4])
-	    D8 87 <dGRfy  mtp bytesperunit>	(fsub dword [edi+GRfy*4])
+	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
+	    DC AF <dGRK254L mtp bytesperunit>	(fsubr qword [edi+GRK254L*4])
 	    D9 9F <dGRfy  mtp bytesperunit>	(fstp dword [edi+GRfy*4])
 	}
 	-> GR rh store;

@@ -357,6 +357,13 @@
 	=> FQuo; => F32Narrow; => FStoreF32; [VHGNDcloudrain] = [FS0];
     "VHGND scenario ready"
 	[GRsctype] = [VHGNDsctype];
+	=> VHGND build surface;
+	-> VHGND generate world setup;
+
+"VHGND build surface"
+	( Clean build_surface boundary shared by production and the generation
+	  regression driver.  Callers provide GRgseed/GRiptype/GRsctype/GRalbedo,
+	  GRlat, VHGNDlocseed and VHGNDtexbase, with RPSM/ROBJ/texture initialized. )
 	=> GR prologue;
 	( build_surface resets both random streams from landing_pt_lat*landing_pt_lon
 	  immediately before the type-specific terrain switch. )
@@ -377,7 +384,7 @@
 	A = [GRgseed]; A & 0FFFFh; => SU srand;
 	[GRrough] = 28; [GRround] = 4; [GRlevel] = 0;
 	=> GR rockyground; => GR plains noise;
-	-> VHGND generate done;
+	-> VHGND build surface done;
 
     "VHGND generate type1"
 	( Airless lunar rock: rounded ground, raised rim craters, mottled
@@ -439,7 +446,7 @@
 	A = C; A '* [VHGNDtmp]; [VHGNDrockdensity] = A;
 	C = 500; => SU rnd; C + 150; [VHGNDrockscale] = C;
 	C = 300; => SU rnd; C + 100; [VHGNDrockpeak] = C;
-	-> VHGND generate done;
+	-> VHGND build surface done;
 
     "VHGND generate type8"
 	( NOCTIS-1.CPP:2532-2580.  Albedo 32 skips the dark-zone dome arm.
@@ -464,7 +471,7 @@
 	[VHGNDfrosty] = 1;
     "VHGND type8 texture"
 	=> VHGND similar texture;
-	-> VHGND generate done;
+	-> VHGND build surface done;
 
     "VHGND generate type2"
 	( NOCTIS-1.CPP:2100-2140, the thick-atmosphere/Venusian arm used
@@ -514,7 +521,7 @@
 	C = 500; => SU rnd; C + 500; [VHGNDrockscale] = C;
 	C = 2; => SU rnd; C '* 8; C + 7; [VHGNDrockdensity] = C;
 	C = 150; => SU rnd; C + 50; [VHGNDrockpeak] = C;
-	-> VHGND generate done;
+	-> VHGND build surface done;
 
     "VHGND generate type3"
 	( NOCTIS-1.CPP:2151-2294.  GR prologue and the switch preamble have
@@ -668,8 +675,8 @@
     "VHGND type3 done"
 	( NIV+ keeps quartz as surface state and consumes this final PLAINS
 	  random(5) for every type-3 biome. )
-	C = 5; => SU rnd; ? C != 0 -> VHGND generate done;
-	[VHGNDquartz] = 1; -> VHGND generate done;
+	C = 5; => SU rnd; ? C != 0 -> VHGND build surface done;
+	[VHGNDquartz] = 1; -> VHGND build surface done;
 
     "VHGND generate type4"
 	( NOCTIS-1.CPP:2389-2443.  Preserve the right-to-left random order
@@ -714,7 +721,7 @@
 	C = 200; => SU rnd; C + 100; [VHGNDrockscale] = C;
 	C = 2; => SU rnd; C '* 4; C + 3; [VHGNDrockdensity] = C;
 	C = 200; => SU rnd; C + 100; [VHGNDrockpeak] = C;
-	-> VHGND generate done;
+	-> VHGND build surface done;
 
     "VHGND generate type5"
 	( Thin-atmosphere worlds: Martian plains or broken permafrost, eroded
@@ -746,7 +753,7 @@
 	C = 1500; => SU rnd; C + 500; [VHGNDtmp] = C;
 	A = [GRalbedo]; A '* 5; [VHGNDgenn] = A;
     "VHGND type5 line loop"
-	A = [VHGNDgenn]; ? A = 0 -> VHGND generate done;
+	A = [VHGNDgenn]; ? A = 0 -> VHGND build surface done;
 	C = [VHGNDtmp]; => SU rnd; [VHGNDlinelen] = C;
 	[VHGNDlinetrendx] = 0FFFFFFFFh; [VHGNDlinetrendz] = 0FFFFFFFFh; => VHGND texture darkline;
 	[VHGNDgenn]-; -> VHGND type5 line loop;
@@ -791,13 +798,18 @@
 	C = 400; => SU rnd; C + 50; [VHGNDrockscale] = C;
 	C = 200; => SU rnd; C + 50; [VHGNDrockpeak] = C;
 	C = 2; => SU rnd; C '* 4; C + 3; [VHGNDrockdensity] = C;
-    "VHGND generate done"
+    "VHGND build surface done"
 	=> VHGND post surface;
-	=> VHGND historical ruins;
-	A = [GRiptype]; ? A != 3 -> VHGND water objects done;
-	A = [VHGNDsctype]; ? A != 1 -> VHGND water objects done;
+	( NOCTIS-1.CPP:2620-2625 liquid_water is part of build_surface,
+	  before the clean return boundary. )
+	A = [GRiptype]; ? A != 3 -> VHGND build surface water done;
+	A = [VHGNDsctype]; ? A != 1 -> VHGND build surface water done;
 	=> VHGND water clear objects;
-    "VHGND water objects done"
+    "VHGND build surface water done"
+	end;
+
+    "VHGND generate world setup"
+	=> VHGND historical ruins;
 	=> VHGND cache objects;
 	( Choose deterministic local high points for the two steep type-2 maps.
 	  Their complete 11x11 walking neighborhoods sit at or below the centre,
