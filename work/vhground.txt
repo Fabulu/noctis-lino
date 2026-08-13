@@ -2359,7 +2359,14 @@
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
 	=> VHGND tree wind;
+	( NIV+ installs the player's angles but a zero camera before whitesun:
+	  the local solar vector is already relative to the observer. )
+	[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;
+	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
 	=> VHGND local sun;
+	( Terrain and all world objects use the walking camera again. )
+	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
+	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
 	( Source fragment() maps p_background across every ground triangle. )
 	[FI] = [VHGNDtscale]; => IntToF;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;

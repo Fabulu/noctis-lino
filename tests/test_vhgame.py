@@ -1001,6 +1001,11 @@ def main() -> int:
     )
     local_sun = section(ground, '"VHGND local sun"', '"VHGND surrounding frame"')
     secondary_sun = section(ground, '"VHGND secondary sun setup"', '"VHGND local sun"')
+    sun_zero_view = "[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;"
+    surface_world_view = (
+        "[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; "
+        "[VHVcamzi] = [VHGNDcamz];"
+    )
     check(
         all(token in local_sun for token in (
             "A = [GRSKnightzone]; ? A != 0 -> VHGND local primary done;",
@@ -1013,10 +1018,12 @@ def main() -> int:
         ))
         and "[GRSKatmosphere] = [VHGNDatmosphere]; [GRSKnightzone] = 0; [VHGNDsunxf] = 1;" in ground
         and "[VHGNDcrep] = A; A = 0; A - 1; [VHGNDsunxf] = A;" in ground
-        and traversal.index("=> VH set view;")
+        and traversal.index(sun_zero_view)
         < traversal.index("=> VHGND local sun;")
+        < traversal.index(surface_world_view, traversal.index("=> VHGND local sun;"))
         < traversal.index("( Source fragment()")
         and all(token in original1 for token in (
+            "cam_x = 0; cam_y = 0; cam_z = 0;",
             "sun_x = -dsd1 * cos(beta) * sun_x_factor;",
             "sun_y = -dsd1 * sin(beta) * sin(alfa);",
             "sun_z = +dsd1 * sin(beta) * cos(alfa);",
