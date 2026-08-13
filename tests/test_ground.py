@@ -9,15 +9,18 @@ WHAT THIS GRADES
     srf_darkline, felisian_srf_darkline, asterism).
 
 WHAT THE ORACLE IS
-    For non-type-3: three-way internal consistency (spec == cref == lino),
-    the Wave 7a pattern.  For type-3 equator: a binary capture from
+    For non-type-3 complete builds: internal consistency (spec == cref).
+    The current Lino leg covers one multi-painter path, not the complete
+    type switch; do not describe this corpus as full three-way coverage.
+    For type-3 equator: a binary capture from
     NIV+ R2.3's own guest RAM (tests/gen/recon_w7b/out/).  The type-3
     p_surfacemap binary-capture grade retains a small post-landing XFAIL,
     but the earlier seed-flow explanation has been falsified.  A live RAM capture pins
     sctype=OCEAN and albedo=40; OCEAN therefore takes the `goto revert`
-    PLAINS path.  With that corrected fixture, all 65,536 texture bytes
-    match the NIV+ capture, proving that the brtl stream entering and
-    leaving the terrain calls is aligned.  Reproducing Borland's unsigned
+    PLAINS path.  With that corrected fixture, the first 65,532 texture
+    bytes match the NIV+ capture.  NIV/NIV+ leaves the final four ptxtr
+    bytes dependent on nondeterministic reads, so they are deliberately not
+    a golden equality oracle.  Reproducing Borland's unsigned
     16-bit round_hill loop bounds reduced the map difference from 39,710
     to 1,752 bytes.  The surviving fixture is captured after the landed
     loop has begun reusing p_surfacemap as scratch, not at build_surface's
@@ -28,8 +31,10 @@ THE THREE IMPLEMENTATIONS
                                       seed chop, float32 stores modeled.
     cref  noctis-harness/gr_ref.c     C, hardware x87 (fsqrt/fsin/fcos
                                       via inline asm), separate pass.
-    lino  work/grnd.txt + grmain.txt  The DELIVERABLE.  Compiled and run
-                                      with the poll-and-kill runner.
+    lino  work/grnd.txt + grmain.txt  The DELIVERABLE's focused multi-painter
+                                      leg, compiled and run with the
+                                      poll-and-kill runner.  Complete Lino
+                                      builds still need clean NIV+ fixtures.
 
 Usage:  python tests/test_ground.py [--deep] [--no-lino]
 """
@@ -60,6 +65,9 @@ import gr_corpus
 PS_BYTES = gr_spec.PS_BYTES
 OC_BYTES = gr_spec.OC_BYTES
 TXTR_BYTES = gr_spec.TXTR_BYTES
+# NIV/NIV+ ptxtr's last four bytes are sourced through nondeterministic reads.
+# Keep the exception exactly this narrow: byte 65531 is still authoritative.
+NIV_TXTR_DEFINED_BYTES = TXTR_BYTES - 4
 REC_SZ = PS_BYTES + OC_BYTES + 16  # map + objects + 4 int32 counters
 
 # t3_equator live state, measured by tests/gen/recon_w7b/diag_ground_state.py.
@@ -155,9 +163,12 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     chk = lh.Check("WAVE 7b - build_surface + SURFACE.BIN")
-    chk.note("ORACLE: three-way (spec==cref==lino) + binary capture for type-3.")
+    chk.note("ORACLE: complete spec==cref builds, focused Lino painter leg, "
+             "+ one NIV+ type-3 capture.")
     chk.note("Type-3 capture fixture is RAM-pinned (OCEAN, albedo 40, seed 0).")
-    chk.note("Its texture is exact; p_surfacemap retains a post-landing RAM residual.")
+    chk.note("Its deterministic texture prefix is exact; the final four ptxtr "
+             "bytes are undefined in NIV+, and p_surfacemap retains a "
+             "post-landing RAM residual.")
 
     # ---- fixture ----
     os.makedirs(SAND, exist_ok=True)
@@ -296,10 +307,12 @@ def main(argv=None):
                    "cap row0 nonzero=%d" % row0_cap_nz)
             chk.note("C1 note: corrected source model row 0 has %d nonzero; this is "
                      "part of the remaining map-only gap" % row0_spec_nz)
-        txtr_diff = nd(spec_txtr, cap_txtr[:TXTR_BYTES])
+        txtr_diff = nd(spec_txtr[:NIV_TXTR_DEFINED_BYTES],
+                       cap_txtr[:NIV_TXTR_DEFINED_BYTES])
         chk.ok(txtr_diff == 0,
-               "C2 type-3 corrected fixture: all 65,536 ground-texture bytes "
-               "match NIV+ (OCEAN albedo 40 -> PLAINS/revert)",
+               "C2 type-3 corrected fixture: all 65,532 deterministic "
+               "ground-texture bytes match NIV+ (OCEAN albedo 40 -> "
+               "PLAINS/revert; final four undefined bytes excluded)",
                "%d bytes differ" % txtr_diff)
 
         # Deliberately restore the old, false fixture.  It must not match: this
@@ -312,7 +325,8 @@ def main(argv=None):
             W.prologue(0, 3, 1, 17, 0)
             W.F.srand(0); W.B.srand(0); W.liquid_water = 0
             W._switch(3, 1, 17); W._post_switch()
-            wrong_txtr_diff = nd(bytes(W.txtr), cap_txtr[:TXTR_BYTES])
+            wrong_txtr_diff = nd(bytes(W.txtr)[:NIV_TXTR_DEFINED_BYTES],
+                                 cap_txtr[:NIV_TXTR_DEFINED_BYTES])
             chk.ok(wrong_txtr_diff > 0,
                    "C3 broken control: old OCEAN/albedo-17 fixture is rejected",
                    "%d texture bytes differ" % wrong_txtr_diff)
@@ -358,7 +372,9 @@ def main(argv=None):
 
     # ---- hygiene ----
     chk.note("Build via lino_build.ps1; run via w7arun.ps1.")
-    chk.note("Type-3: RNG/fixture is resolved by exact texture agreement and "
+    chk.note("Type-3: RNG/fixture is resolved by exact agreement across all "
+             "65,532 deterministic texture bytes (the NIV+ undefined four-byte "
+             "tail is narrowly excluded) and "
              "unsigned 16-bit round_hill bounds close 37,958 prior map bytes; "
              "the post-landing RAM residual is asserted at its measured count.")
 
