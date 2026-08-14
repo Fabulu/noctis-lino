@@ -8,7 +8,8 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'thin', 'thinsun',
+        'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
+        'thin', 'thinsun',
         'frozen', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
@@ -157,6 +158,12 @@ $scenes = @(
     # the centre column and make an ordinary terrain edge look like a pillar.
     @{ Name='rocky';     X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=0; Lat=60;
        Beta=173; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
+    # Airless day-side oracle. The primary disc is visible but its live
+    # 9133-unit distance exceeds the source's 1000*ray flare gate, so the
+    # authentic result deliberately has no radial beams.
+    @{ Name='rockysun'; FileName='planet-rocky-sun.png';
+       X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=90; Lat=60;
+       Beta=270; Pitch=-38; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='thin';      X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=0; Lat=60;
        Beta=167; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
     # Native-matched clear type-5 lighting state. Longitude 45 lowers the

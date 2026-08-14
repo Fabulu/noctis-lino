@@ -407,6 +407,15 @@ now captures that pose. As with the type-3 checkpoint, exact whole-context
 framebuffer and palette grading remains open; the flare raster itself retains
 its independent byte-exact native page oracle.
 
+**Airless rocky native-context checkpoint.** The same fixed epoch now covers
+the system's type-4 body at longitude 90, heading 270, and pitch -38. Both
+renderers retain distance `9133.45`, exposure `53.2168`, rain `0`, day state,
+albedo 36, and seed 38821023. Both show the small primary disc over the black
+airless sky and deliberately draw no radial flare: the distance exceeds the
+source's `1000 * ray` upper gate. The reproducible `rockysun` scene preserves
+this negative case. Authenticity includes correct beam suppression, not merely
+adding rays whenever a disc is visible.
+
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 
