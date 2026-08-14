@@ -216,6 +216,11 @@ in one native loop, preserving the previous-pixel sampling order and original
 clamp at colour 62. The exact raster pages remain byte-identical and the live
 Stardrifter sun and corona smoke remains intact.
 
+Halo effect polygons now execute both source paths natively, including the
+historical `di-321` and `di-642` neighbor samples and the remaining-run-length
+brightness term. Exact raster pages remain byte-identical, and a fresh
+multi-sun Stardrifter smoke rendered intact in 4.52 ms.
+
 That fixed 2x path now publishes each duplicated RGB pixel to Backdrop and
 Primary Display while the value is already loaded. The two synchronized layers
 therefore no longer need a subsequent 1 MiB Backdrop reread and copy. Resized

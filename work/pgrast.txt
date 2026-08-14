@@ -603,31 +603,7 @@
 	C = [DBdi]; C - [DBsi]; C & 65535; [DBcx] = C;
 	A = [DBsi]; [DBdi] = A;
     "PG db c2 fill"
-	? [DBcx] = 0 -> PG db c2 next;
-	[PGdi] = [DBdi]; => PG load;
-	A = [PGval]; ? A != 255 -> PG db c2 tsnob;
-	( the pixel is still a sentinel: take the neighbour one row up
-	  AND one column left, [di-321]. )
-	A = [DBdi]; A - 321; A & 65535; [PGdi] = A; => PG load;
-	C = [PGval]; C & 63; C | 64;
-	[PGval] = C; [PGdi] = [DBdi]; => PG store;
-	[CSbyte]+;
-	-> PG db c2 under;
-    "PG db c2 tsnob"
-	( and ax,0x3F clears AH, so the following add ax,cx is a clean
-	  16-bit add of the REMAINING PIXEL COUNT.  Yes, the count. )
-	C = [PGval]; C & 63; C | 64;
-	C + [DBcx]; C & 65535;
-	? C '< 128 -> PG db c2 dnorm;
-	C = 127;
-    "PG db c2 dnorm"
-	C & 255;
-	[PGval] = C; [PGdi] = [DBdi]; => PG store;
-	[CSbyte]+;
-    "PG db c2 under"
-	A = [DBdi]; A + 1; A & 65535; [DBdi] = A;
-	[DBcx]-;
-	? [DBcx] != 0 -> PG db c2 fill;
+	=> PG db c2 fill native;
 	-> PG db c2 next;
     "PG db c2 fb3"
 	[CSfb1]+;
@@ -636,20 +612,95 @@
 	C = [DBbx]; C - [DBsi]; C & 65535; [DBcx] = C;
 	A = [DBsi]; [DBdi] = A;
     "PG db c2 fb3a"
-	? [DBcx] = 0 -> PG db c2 next;
-	A = [DBdi]; A - 321; A & 65535; [PGdi] = A; => PG load;
-	A = [PGval]; ? A != 255 -> PG db c2 tsnoby;
-	A = [DBdi]; A - 642; A & 65535; [PGdi] = A; => PG load;
-    "PG db c2 tsnoby"
-	C = [PGval]; C & 63; C | 64;
-	[PGval] = C; [PGdi] = [DBdi]; => PG store;
-	[CSbyte]+;
-	A = [DBdi]; A + 1; A & 65535; [DBdi] = A;
-	[DBcx]-;
-	? [DBcx] != 0 -> PG db c2 fb3a;
+	=> PG db c2 fallback native;
     "PG db c2 next"
 	C = [DBdi0]; C + 320; C & 65535; [DBdi] = C;
 	? C '<= [DBlimy] -> PG db c2 row;
+	end;
+
+"PG db c2 fill native"
+	( Normal halo rows keep the source's split behavior: sentinel pixels
+	  sample di-321, while existing pixels add the remaining run length. )
+	? [DBcx] = 0 -> PG db c2 fill native done;
+	A = nw;
+	{
+	    55
+	    8D 04 87
+	    8B 97 <dDBdi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    8B 8F <dDBcx mtp bytesperunit>
+	    01 8F <dCSbyte mtp bytesperunit>
+	    8B AC 90 <dSADPT mtp bytesperunit>
+	    81 E5 FF 00 00 00
+	    81 FD FF 00 00 00
+	    75 20
+	    89 D6
+	    81 EE 41 01 00 00
+	    81 E6 FF FF 00 00
+	    8B AC B0 <dSADPT mtp bytesperunit>
+	    81 E5 3F 00 00 00
+	    83 CD 40
+	    EB 1E
+	    81 E5 3F 00 00 00
+	    83 CD 40
+	    01 CD
+	    81 E5 FF FF 00 00
+	    81 FD 80 00 00 00
+	    72 05
+	    BD 7F 00 00 00
+	    89 AC 90 <dSADPT mtp bytesperunit>
+	    66 42
+	    49
+	    75 A1
+	    89 97 <dDBdi mtp bytesperunit>
+	    89 8F <dDBcx mtp bytesperunit>
+	    89 D0
+	    66 48
+	    89 87 <dPGdi mtp bytesperunit>
+	    89 AF <dPGval mtp bytesperunit>
+	    5D
+	}
+    "PG db c2 fill native done"
+	end;
+
+"PG db c2 fallback native"
+	( The single-run fallback first samples di-321 and, only when that is
+	  still a sentinel, substitutes di-642. )
+	? [DBcx] = 0 -> PG db c2 fallback native done;
+	A = nw;
+	{
+	    55
+	    8D 04 87
+	    8B 97 <dDBdi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    8B 8F <dDBcx mtp bytesperunit>
+	    01 8F <dCSbyte mtp bytesperunit>
+	    89 D6
+	    81 EE 41 01 00 00
+	    81 E6 FF FF 00 00
+	    8B AC B0 <dSADPT mtp bytesperunit>
+	    81 E5 FF 00 00 00
+	    81 FD FF 00 00 00
+	    75 15
+	    89 D6
+	    81 EE 82 02 00 00
+	    81 E6 FF FF 00 00
+	    8B AC B0 <dSADPT mtp bytesperunit>
+	    81 E5 3F 00 00 00
+	    83 CD 40
+	    89 AC 90 <dSADPT mtp bytesperunit>
+	    66 42
+	    49
+	    75 B3
+	    89 97 <dDBdi mtp bytesperunit>
+	    89 8F <dDBcx mtp bytesperunit>
+	    89 D0
+	    66 48
+	    89 87 <dPGdi mtp bytesperunit>
+	    89 AF <dPGval mtp bytesperunit>
+	    5D
+	}
+    "PG db c2 fallback native done"
 	end;
 
 ( -------------------------------------------------------------------- )
