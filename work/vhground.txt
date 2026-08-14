@@ -253,6 +253,7 @@
 	VHGNDbgcachep = 0; VHGNDbgcacheq = 0; VHGNDbgcachecount = 0;
 	VHGNDbgcachefrom = 0; VHGNDbgcacheto = 0;
 	VHGNDbgoffnative = 0; VHGNDbgsourcenative = 0; VHGNDbgdestinationnative = 0;
+	VHGNDpageclearptr = 0;
 
 "workspace"
 
@@ -2266,7 +2267,7 @@
 	( The source enters planetary_main with adapted cleared to index zero.
 	  background() paints its wrapped panorama into the DOS page, including
 	  the irregular edge pixels outside the terrain raster's clip rectangle. )
-	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
+	=> VHGND background clear native;
 	=> VHGND background direct;
 	=> VHGND background cache save;
 	[VHGNDbgcachealpha] = [VHGNDalpha]; [VHGNDbgcachebeta] = [VHGNDbeta];
@@ -2275,19 +2276,37 @@
     "VHGND background lightning"
 	( NOCTIS-1.CPP temporarily maps each source sky entry 40000..1 to
 	  63-value, draws the panorama, then applies the same involution again. )
-	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
+	=> VHGND background clear native;
 	=> VHGND background lightning invert;
 	=> VHGND background direct;
 	=> VHGND background lightning invert;
 	end;
 
 "VHGND background lightning invert"
-	[VHGNDflashskyp] = 40000;
-    "VHGND background lightning invert one"
-	A = nw; A + RSBG; A + [VHGNDflashskyp]; D = A;
-	A = [D]; C = 63; C - A; [D] = C;
-	[VHGNDflashskyp]-; A = [VHGNDflashskyp];
-	? A != 0 -> VHGND background lightning invert one;
+	( The source transforms entries 40000 down through 1, leaving entry zero
+	  untouched. Storm frames do this once before and once after mapping. )
+	A = nw; A + RSBG; [VHGNDbgsourcenative] = A;
+	{
+	    56
+	    8B B7 <dVHGNDbgsourcenative mtp bytesperunit> 8D 34 B7
+	    B9 40 9C 00 00
+	    B8 3F 00 00 00 2B 04 8E 89 04 8E 49 75 F2
+	    5E
+	}
+	[VHGNDflashskyp] = 0;
+	end;
+
+"VHGND background clear native"
+	( Clear the same 64,000 Lino units as SP fill page, but avoid one
+	  interpreted iteration per framebuffer pixel whenever a turn or storm
+	  regenerates the panorama. )
+	A = nw; A + RADPT; [VHGNDpageclearptr] = A;
+	{
+	    57
+	    8B 87 <dVHGNDpageclearptr mtp bytesperunit> 8D 04 87 89 C7
+	    31 C0 B9 00 FA 00 00 F3 AB
+	    5F
+	}
 	end;
 
 "VHGND background cache save"

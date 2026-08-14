@@ -947,7 +947,8 @@ def main() -> int:
     check(
         "grnd; sky;" in game and "spglobe; spglow; spbg;" in game
         and "=> GRSK create; => GRSK horizon;" in ground
-        and "[SPval] = 0; => SP fill page;" in ground
+        and '"VHGND background clear native"' in ground
+        and "31 C0 B9 00 FA 00 00 F3 AB" in ground
         and '"VHGND guard band"' not in ground
         and "=> VHGND background direct;\n\t=> VHGND background cache save;" in ground
         and "[BGdstreg] = RGADP; => SP background;" not in ground
@@ -998,7 +999,8 @@ def main() -> int:
             "C '* [VHGNDflashgain]; C '/ 63;",
             "[VHGNDflashactive] = [VHGNDflashpending]; [VHGNDflashpending] = 0;",
             '"VHGND background lightning invert"',
-            "A = [D]; C = 63; C - A; [D] = C;",
+            "B8 3F 00 00 00 2B 04 8E 89 04 8E 49 75 F2",
+            "[VHGNDflashskyp] = 0;",
         ))
         and "[VHGNDplayerrefx] = [VHGsurfrefx]; [VHGNDplayerrefz] = [VHGsurfrefz];" in game
         and ground.index("=> VHGND weather lightning begin;")

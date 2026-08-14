@@ -185,9 +185,11 @@ the generic resizable aspect-fit path. Fresh production captures measured 56
 to 61 FPS across every landable planet class and 58 FPS in the Stardrifter;
 the slowest measured surface render was 10.69 ms.
 
-Surface turns now run the 3,670-record wrapped panorama mapper and its five-row
-stamps in one native kernel. A full-context thin-atmosphere page remains
-byte-exact against the NIV+ oracle after the change.
+Surface turns now clear the page and run the 3,670-record wrapped panorama
+mapper and its five-row stamps in native kernels. Storm inversion likewise
+avoids 80,000 interpreted source-pixel iterations per lightning frame. A
+full-context thin-atmosphere page remains byte-exact against the NIV+ oracle
+after the changes.
 
 That fixed 2x path now publishes each duplicated RGB pixel to Backdrop and
 Primary Display while the value is already loaded. The two synchronized layers
