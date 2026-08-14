@@ -349,6 +349,16 @@ grading, so the omitted pass is fixed but whole-frame frozen-sky parity remains
 open. This pose cannot authenticate the primary sun, which is off-screen in
 the current Lino trace.
 
+The shared galaxy renderer no longer rounds the view into four-degree buckets
+or reuses a moving Stardrifter position for an arbitrary frame count. Its draw
+cache now requires exact integer angles and bit-identical binary64 coordinates.
+Three fused x87 kernels retain the established subtraction, narrowing,
+rotation, depth, and projection schedule while removing the interpreted helper
+chains that made exact turning too slow. The frozen checkpoint retained all 34
+visible sky pixels exactly across the change. A ten-second alternating turn
+dropped from 17.90 ms to 16.29 ms of measured render plus presentation work per
+frame, while the stationary Stardrifter checkpoint held 60 FPS.
+
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 

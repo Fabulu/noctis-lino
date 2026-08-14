@@ -45,13 +45,13 @@
 	VHSaccum = 0; VHSidk = 0;
 	VHSfmA = 0; VHSfmB = 0; VHSfmResult = 0;
 
-	VHSaxis0 = 0; VHSaxis1 = 0; VHSbaseout = 0;
+	VHSaxis0 = 0; VHSaxis1 = 0; VHSbaseout = 0; VHSfwbase = 0;
 	VHSnum0 = 0; VHSnum1 = 0;
-	VHScoord = 0; VHSd0 = 0; VHSd1 = 0; VHSslot = 0;
 	VHSdepth = 0; VHScolour = 0; VHSscreeny = 0;
 	VHSdrawready = 0; VHSdrawcount = 0; VHSdrawi = 0; VHSdrawptr = 0;
 	VHSdrawalpha = 0; VHSdrawbeta = 0; VHSdrawsurface = 0;
-	VHSdrawage = 0; VHSviewkey = 0;
+	VHSdrawdx0 = 0; VHSdrawdx1 = 0; VHSdrawdy0 = 0; VHSdrawdy1 = 0;
+	VHSdrawdz0 = 0; VHSdrawdz1 = 0;
 	VHSfadebase = 0; VHSfadei = 0;
 
 "workspace"
@@ -88,25 +88,30 @@
 	[VHSbasex] = [VHSnewx]; [VHSbasey] = [VHSnewy]; [VHSbasez] = [VHSnewz];
 	=> VHS build cache; [VHSready] = 1; [VHSbuiltvisible] = [VHSvisible]; [VHSdrawready] = 0;
     "VHS cache ready"
-	( Projecting all 729 source sectors dominates the native game frame.  Cache
-	  the resulting visible pixels for eight frames, invalidating immediately
-	  on a sector change or each four-degree view bucket.  The catalogue and
-	  projection remain source-derived; only imperceptible sub-sector parallax
-	  is batched between refreshes. )
-	A = [VHSalpha]; A / 4; [VHSviewkey] = A;
+	( Cache the resulting visible candidates only while every projection input
+	  is bit-identical.  The prior four-degree/eight-frame heuristic made the
+	  galaxy jump during a smooth turn and delayed sub-sector parallax.  Exact
+	  keys retain the static-view win without changing a moving source frame. )
 	A = [VHSdrawready]; ? A = 0 -> VHS rebuild draw cache;
-	A = [VHSviewkey]; ? A != [VHSdrawalpha] -> VHS rebuild draw cache;
-	A = [VHSbeta]; A / 4; ? A != [VHSdrawbeta] -> VHS rebuild draw cache;
+	A = [VHSalpha]; ? A != [VHSdrawalpha] -> VHS rebuild draw cache;
+	A = [VHSbeta]; ? A != [VHSdrawbeta] -> VHS rebuild draw cache;
 	A = [VHSsurface]; ? A != [VHSdrawsurface] -> VHS rebuild draw cache;
-	C = 8; A = [VHSamp]; ? A = 0 -> VHS draw age limit ready; C = 30;
-    "VHS draw age limit ready"
-	A = [VHSdrawage]; ? A >= C -> VHS rebuild draw cache;
-	[VHSdrawage]+; => VHS replay draw cache; end;
+	A = [VHSdx0]; ? A != [VHSdrawdx0] -> VHS rebuild draw cache;
+	A = [VHSdx1]; ? A != [VHSdrawdx1] -> VHS rebuild draw cache;
+	A = [VHSdy0]; ? A != [VHSdrawdy0] -> VHS rebuild draw cache;
+	A = [VHSdy1]; ? A != [VHSdrawdy1] -> VHS rebuild draw cache;
+	A = [VHSdz0]; ? A != [VHSdrawdz0] -> VHS rebuild draw cache;
+	A = [VHSdz1]; ? A != [VHSdrawdz1] -> VHS rebuild draw cache;
+	=> VHS replay draw cache; end;
 
     "VHS rebuild draw cache"
-	[VHSdrawalpha] = [VHSviewkey]; A = [VHSbeta]; A / 4; [VHSdrawbeta] = A;
+	[VHSdrawalpha] = [VHSalpha]; [VHSdrawbeta] = [VHSbeta];
 	[VHSdrawsurface] = [VHSsurface];
-	[VHSdrawcount] = 0; [VHSdrawage] = 0;
+	[VHSdrawdx0] = [VHSdx0]; [VHSdrawdx1] = [VHSdx1];
+	[VHSdrawdy0] = [VHSdy0]; [VHSdrawdy1] = [VHSdy1];
+	[VHSdrawdz0] = [VHSdz0]; [VHSdrawdz1] = [VHSdz1];
+	[VHSdrawcount] = 0;
+	A = fw; [VHSfwbase] = A;
 
 	[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;
 	[VHValpha] = [VHSalpha]; [VHVbeta] = [VHSbeta]; => VH set view;
@@ -115,18 +120,9 @@
 	A = [VHSstar]; A '* VHSENTRY; A + vhsstarcache; [VHSstarptr] = A;
 	A = [A plus 3]; ? A = 0 -> VHS draw next;
 
-	A = [VHSstarptr]; [VHScoord] = [A plus 0];
-	[VHSd0] = [VHSdx0]; [VHSd1] = [VHSdx1]; [VHSslot] = FSINX;
-	=> VHS relative f32;
-	A = [VHSstarptr]; [VHScoord] = [A plus 1];
-	[VHSd0] = [VHSdy0]; [VHSd1] = [VHSdy1]; [VHSslot] = FSINY;
-	=> VHS relative f32;
-	A = [VHSstarptr]; [VHScoord] = [A plus 2];
-	[VHSd0] = [VHSdz0]; [VHSd1] = [VHSdz1]; [VHSslot] = FSINZ;
-	=> VHS relative f32;
+	=> VHS relative xyz native;
 
-	=> PG getcoords; A = [GCret]; ? A = 0 -> VHS draw next;
-	[PGFi] = FSRZF; => PGF a; => PGF int; [VHSdepth] = [FI];
+	=> VHS rotate depth native;
 	A = [VHSdepth]; ? A < 10000 -> VHS draw next;
 	C = [VHSamp]; ? C != 0 -> VHS amplified depth; A > 13; -> VHS depth ready;
     "VHS amplified depth"
@@ -135,6 +131,7 @@
 	? A > 63 -> VHS draw next;
 	C = 63; C - A; [VHScolour] = C;
 
+	=> VHS project native;
 	A = [GCx]; ? A <= 10 -> VHS draw next; ? A >= 310 -> VHS draw next;
 	C = [GCy]; C - 2; [VHSscreeny] = C;
 	? C <= 10 -> VHS draw next; ? C >= 190 -> VHS draw next;
@@ -247,11 +244,164 @@
 	[VHSix]+; A = [VHSix]; ? A < [VHSvisible] -> VHS build x;
 	end;
 
-"VHS relative f32"
-	[FI] = [VHScoord]; => IntToF;
-	[FB0] = [VHSd0]; [FB1] = [VHSd1]; => FSub;
-	=> F32Narrow; => PGF stf32;
-	[PGFi] = [VHSslot]; => PGF setf32;
+"VHS relative xyz native"
+	( Exact fused form of the three former helper chains.  Each coordinate is
+	  converted to binary64, subtracted from the live binary64 dzat with the
+	  scalar result spill retained, then narrowed once to binary32 and widened
+	  into the corresponding PG input slot. )
+	{
+	    55                                      (save Lino X/ebp)
+	    8B AF <dVHSstarptr mtp bytesperunit>     (ebp = star-cache unit index)
+	    8D 2C AF                                 (ebp = runtime star record)
+	    8B B7 <dVHSfwbase mtp bytesperunit>      (esi = fw unit index)
+	    8D 34 B7                                 (esi = runtime fw)
+
+	    DB 45 00                                 (fild x)
+	    DD 9F <dFA0 mtp bytesperunit>            (binary64 IntToF spill)
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC A7 <dVHSdx0 mtp bytesperunit>         (subtract dzat x)
+	    DD 9F <dFA0 mtp bytesperunit>            (binary64 scalar spill)
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>            (narrow to binary32)
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E E0 07 00 00                        (widen into FSINX, 252*8)
+
+	    DB 45 04                                 (fild y)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC A7 <dVHSdy0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 00 08 00 00                        (FSINY, 256*8)
+
+	    DB 45 08                                 (fild z)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC A7 <dVHSdz0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 20 08 00 00                        (FSINZ, 260*8)
+	    5D                                      (restore ebp)
+	}
+	end;
+
+"VHS rotate depth native"
+	( Star-specific polymap nucleus.  The operation order and every binary64
+	  scalar spill/binary32 named-variable narrowing match PJ rotate, but the
+	  generic vertex loop, slot shuttles and near-plane bookkeeping are absent.
+	  The narrowed camera-relative inputs are already based at a zero camera. )
+	{
+	    8B B7 <dVHSfwbase mtp bytesperunit>
+	    8D 34 B7                                 (esi = runtime fw)
+
+	    ( rxf = z*sinbeta + x*cosbeta )
+	    DD 86 20 08 00 00                        (FSINZ)
+	    DC 8E B8 06 00 00                        (* FSTSB)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DD 9E C0 07 00 00                        (FSW0)
+	    DD 86 E0 07 00 00                        (FSINX)
+	    DC 8E B0 06 00 00                        (* FSTCB)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 C0 07 00 00                        (+ FSW0)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 00 01 00 00                        (FSRXF)
+
+	    ( z2 = z*cosbeta - x*sinbeta )
+	    DD 86 20 08 00 00
+	    DC 8E B0 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DD 9E C0 07 00 00
+	    DD 86 E0 07 00 00
+	    DC 8E B8 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 86 C0 07 00 00                        (FSW0)
+	    DC A7 <dFA0 mtp bytesperunit>            (- second product)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 88 07 00 00                        (FSZ2)
+
+	    ( rzf = z2*cosalfa + y*sinalfa )
+	    DD 86 88 07 00 00
+	    DC 8E D0 06 00 00                        (* FSTCA)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DD 9E C0 07 00 00
+	    DD 86 00 08 00 00                        (FSINY)
+	    DC 8E D8 06 00 00                        (* FSTSA)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 C0 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DD 9E C8 07 00 00                        (wide FSW1)
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 40 01 00 00                        (narrow FSRZF)
+
+	    ( ryf = y*cosalfa - z2*sinalfa )
+	    DD 86 00 08 00 00
+	    DC 8E D0 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DD 9E C0 07 00 00
+	    DD 86 88 07 00 00
+	    DC 8E D8 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 86 C0 07 00 00
+	    DC A7 <dFA0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit>
+	    DD 9E 20 01 00 00                        (FSRYF)
+
+	    DD 86 40 01 00 00                        (narrow rzf)
+	    DB 9F <dVHSdepth mtp bytesperunit>       (nearest integer depth)
+	}
+	end;
+
+"VHS project native"
+	( Exact getcoords projection for the already-front star. )
+	{
+	    8B B7 <dVHSfwbase mtp bytesperunit>
+	    8D 34 B7
+	    DD 86 C8 00 00 00                        (FSDPP)
+	    DC B6 40 01 00 00                        (/ FSRZF)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DD 9E D8 07 00 00                        (FSW3)
+
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 8E 00 01 00 00                        (* FSRXF)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 98 00 00 00                        (+ FSXC)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DB 9F <dGCx mtp bytesperunit>
+
+	    DD 86 D8 07 00 00                        (FSW3)
+	    DC 8E 20 01 00 00                        (* FSRYF)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 A0 00 00 00                        (+ FSYC)
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit>
+	    DB 9F <dGCy mtp bytesperunit>
+	}
 	end;
 
 "VHS foldmul"
