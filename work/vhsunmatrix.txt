@@ -1,0 +1,128 @@
+      ( Cross-class indexed-page oracle for NIV+'s Stardrifter sun path.
+
+	The twelve inputs are real generated stars, one per class.  Each is
+	centred at roughly thirty stellar radii.  The programme writes twelve
+	consecutive 64,000-byte pages for each native checkpoint so they can be
+	compared directly with Borland captures.  Expected combined SHA-256:
+
+	white  9020021A88612AAB5B0ED8563F28DF875A842A7596D10116A030A8B70F6AC388
+	flare  F2E553E03F03AA02C7DBE53CB9649EAC70702FEA04F05158AC2F34D26A680356
+	smooth 5430E183E0A18C1E8EFEEE64B87505642EA93AC4A0EF712A6BDA2C9BEDDFECFC
+	mask   999AE0327A23635F7CE2E2CBBEEEEFE9873C5606DDD7C899BF9DD04563216EA4 )
+
+"libraries"
+
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal; pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhstar;
+
+"directors"
+
+	program name = { vhsunmatrix };
+	unit = 32;
+
+"variables"
+
+	VHGx = 0; VHGy = 0; VHGz = 0;
+	VHGalpha = 0; VHGbeta = 0; VHGmode = 0; VHGlanded = 0;
+	VHGplanet = 0; VHGframe = 0; VHGdosim = 0; VHGfast = 1;
+	vhsmclass = 0; vhsmray = 0; vhsmd0 = 0; vhsmd1 = 0;
+	vhsmfile = 0; vhsmpos = 0; vhsmleft = 0;
+	vhsmwname = { vhsunm-white.bin };
+	vhsmfname = { vhsunm-flare.bin };
+	vhsmsname = { vhsunm-smooth.bin };
+	vhsmoname = { vhsunm-out.bin };
+
+"workspace"
+
+	vhsmrays = 12; vhsmdlos = 12; vhsmdhis = 12;
+
+"programme"
+
+	=> FEnter; => PGF constants; => SP build rgt; => SP riga init;
+	=> VH view init; => VHSM fixtures;
+	[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;
+	[VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	[vhsmclass] = 0; [vhsmpos] = 0;
+
+    "VHSM fixture"
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
+	A = vhsmrays; A + [vhsmclass]; [vhsmray] = [A];
+	A = vhsmdlos; A + [vhsmclass]; [vhsmd0] = [A];
+	A = vhsmdhis; A + [vhsmclass]; [vhsmd1] = [A];
+	[PGFt] = 0; [PGFu] = 0; => PGF ldf64; [PGFi] = SFXX; => PGF sa;
+	[PGFi] = SFYY; => PGF sa;
+	[FA0] = [vhsmd0]; [FA1] = [vhsmd1]; [FI] = 1; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [vhsmd0]; [FA1] = [vhsmd1]; => FSub;
+	[PGFi] = SFZZ; => PGF sa;
+	[PGFt] = [vhsmray]; => PGF ldf32; [FI] = 3; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [PGFt] = [vhsmray]; => PGF ldf32; => FMul;
+	=> F32Narrow; [WHmag] = [FS0]; [WHfgm] = 3E99999Ah;
+	[WHshape] = 2; [WHsun] = 0; [WHdstreg] = RGADP; => SP white;
+	[vhsmfile] = vhsmwname; => VHSM dump page;
+
+	A = [vhsmclass]; ? A = 5 -> VHSM flare done;
+	? A = 6 -> VHSM flare done; ? A = 10 -> VHSM flare done;
+	[FA0] = [vhsmd0]; [FA1] = [vhsmd1];
+	[PGFt] = [vhsmray]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [vhsmd0]; [FA1] = [vhsmd1]; => FQuo; => F32Narrow; [VHFk] = [FS0];
+	[VHFdist0] = [vhsmd0]; [VHFdist1] = [vhsmd1]; [VHFghost] = 1;
+	=> VH space flare;
+    "VHSM flare done"
+	[vhsmfile] = vhsmfname; => VHSM dump page;
+	=> VHT smooth grays;
+	[vhsmfile] = vhsmsname; => VHSM dump page;
+	=> VHT mask page;
+	[vhsmfile] = vhsmoname; => VHSM dump page;
+	A = [vhsmpos]; A + 64000; [vhsmpos] = A;
+	[vhsmclass]+; A = [vhsmclass]; ? A < 12 -> VHSM fixture;
+
+	[vhsmfile] = vhsmwname; => VHSM size file;
+	[vhsmfile] = vhsmfname; => VHSM size file;
+	[vhsmfile] = vhsmsname; => VHSM size file;
+	[vhsmfile] = vhsmoname; => VHSM size file;
+	=> FLeave;
+	end;
+
+"VHSM dump page"
+	[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;
+	[File Name] = [vhsmfile]; [File Position] = [vhsmpos]; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 64000; isocall;
+	end;
+
+"VHSM size file"
+	[File Name] = [vhsmfile]; [File Command] = SET SIZE; [File Size] = 768000; isocall;
+	end;
+
+"VHSM fixtures"
+	( Exact nearstar_ray binary32 values from the twelve native captures. )
+	[vhsmrays plus 0] = 40C08312h; [vhsmrays plus 1] = 41BBFDF4h;
+	[vhsmrays plus 2] = 3EEB020Ch; [vhsmrays plus 3] = 41B98312h;
+	[vhsmrays plus 4] = 4183A1CBh; [vhsmrays plus 5] = 3FD020C5h;
+	[vhsmrays plus 6] = 4062B021h; [vhsmrays plus 7] = 4017AE14h;
+	[vhsmrays plus 8] = 40F40831h; [vhsmrays plus 9] = 400AF1AAh;
+	[vhsmrays plus 10] = 41F3374Ch; [vhsmrays plus 11] = 3E828F5Ch;
+	( d = abs(relative z) + 1, stored as the source binary64 local. )
+	[vhsmdlos plus 0] = 28F5C28Fh; [vhsmdhis plus 0] = 4066AF5Ch;
+	[vhsmdlos plus 1] = 8F5C28F6h; [vhsmdhis plus 1] = 40860FC2h;
+	[vhsmdlos plus 2] = 70A3D70Ah; [vhsmdhis plus 2] = 402D8A3Dh;
+	[vhsmdlos plus 3] = 28F5C28Fh; [vhsmdhis plus 3] = 4085C55Ch;
+	[vhsmdlos plus 4] = 851EB852h; [vhsmdhis plus 4] = 407EE9EBh;
+	[vhsmdlos plus 5] = 0A3D70A4h; [vhsmdhis plus 5] = 4048E3D7h;
+	[vhsmdlos plus 6] = D70A3D71h; [vhsmdhis plus 6] = 405AD0A3h;
+	[vhsmdlos plus 7] = 66666666h; [vhsmdhis plus 7] = 40520666h;
+	[vhsmdlos plus 8] = C28F5C29h; [vhsmdhis plus 8] = 406CB8F5h;
+	[vhsmdlos plus 9] = EB851EB8h; [vhsmdhis plus 9] = 40508851h;
+	[vhsmdlos plus 10] = E147AE14h; [vhsmdhis plus 10] = 408C887Ah;
+	[vhsmdlos plus 11] = CCCCCCCDh; [vhsmdhis plus 11] = 40214CCCh;
+	end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;
+
+"VHG return ship"
+	end;
