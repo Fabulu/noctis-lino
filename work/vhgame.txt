@@ -1901,12 +1901,7 @@
 	[VHGlocaltx0] = [VHGNDvecx0]; [VHGlocaltx1] = [VHGNDvecx1];
 	[VHGlocalty0] = [VHGNDvecy0]; [VHGlocalty1] = [VHGNDvecy1];
 	[VHGlocaltz0] = [VHGNDvecz0]; [VHGlocaltz1] = [VHGNDvecz1];
-	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocaltx0]; [FB1] = [VHGlocaltx1]; => FSub;
-	[FB0] = [VHGlocalx0]; [FB1] = [VHGlocalx1]; => FSub; [PGFi] = SFXX; => PGF sa;
-	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocalty0]; [FB1] = [VHGlocalty1]; => FSub;
-	[FB0] = [VHGlocaly0]; [FB1] = [VHGlocaly1]; => FSub; [PGFi] = SFYY; => PGF sa;
-	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocaltz0]; [FB1] = [VHGlocaltz1]; => FSub;
-	[FB0] = [VHGlocalz0]; [FB1] = [VHGlocalz1]; => FSub; [PGFi] = SFZZ; => PGF sa;
+	=> VHG local star coords;
 	=> VHT visibility; A = [VHTwhiteok]; ? A = 0 -> VHG local star premask;
 	[PGFt] = [VHTRay]; => PGF ldf32; [VHTtmp0] = [FA0]; [VHTtmp1] = [FA1];
 	[FI] = 3; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
@@ -1914,7 +1909,11 @@
 	[WHfgm] = 3E99999Ah; [WHshape] = 2; [WHsun] = 0; [WHdstreg] = RGADP; => SP white;
     "VHG local star premask"
 	( planets() submits every companion-star corona before mask_pixels(). )
-	=> VHG local companion coronas; => VHT premask; => VHT mask page;
+	=> VHG local companion coronas;
+	( lens_flares_for's primary-star call receives the near star's own
+	  coordinates after the companion loop.  Restore those arguments because
+	  every sphere/flare helper shares SFXX/SFYY/SFZZ in this port. )
+	=> VHG local star coords; => VHT premask; => VHT mask page;
 	A = [VHTglobeok]; ? A = 0 -> VHG local star far;
 	[GBmag] = [VHTRay]; => SP globe setup; A = [GBok]; ? A = 0 -> VHG local planet render;
 	( The local-system path draws the same near star at a different translated
@@ -2451,6 +2450,16 @@
 	[VHGlocalringcz0] = [FA0]; [VHGlocalringcz1] = [FA1]; [PGFi] = SFZZ; => PGF sa;
 	end;
 
+"VHG local star coords"
+	( near star minus selected-world position minus Stardrifter offset. )
+	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocaltx0]; [FB1] = [VHGlocaltx1]; => FSub;
+	[FB0] = [VHGlocalx0]; [FB1] = [VHGlocalx1]; => FSub; [PGFi] = SFXX; => PGF sa;
+	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocalty0]; [FB1] = [VHGlocalty1]; => FSub;
+	[FB0] = [VHGlocaly0]; [FB1] = [VHGlocaly1]; => FSub; [PGFi] = SFYY; => PGF sa;
+	[FA0] = 0; [FA1] = 0; [FB0] = [VHGlocaltz0]; [FB1] = [VHGlocaltz1]; => FSub;
+	[FB0] = [VHGlocalz0]; [FB1] = [VHGlocalz1]; => FSub; [PGFi] = SFZZ; => PGF sa;
+	end;
+
 "VHG local body distance"
 	[PGFi] = SFXX; => PGF a; [PGFi] = SFXX; => PGF mul; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = SFYY; => PGF a; [PGFi] = SFYY; => PGF mul; [PGFi] = FSW0; => PGF add;
@@ -2813,7 +2822,11 @@
 	=> VHG info environment geometry;
 
 	( stz = clamp(dzz*cos(nav)-dxx*sin(nav)-abs(dyy)/2,0,dsd)/1.25. )
-	[VHVangle] = [VHGnavbeta]; => VHV sincos;
+	( Source navigation_beta is 180 degrees opposite the port's external
+	  navigation convention.  The camera path accounts for that when it forms
+	  the exterior view; apply the same conversion to the source stz lighting
+	  term or planet-orbit views saturate the hull and halogen beams. )
+	A = [VHGnavbeta]; A + 180; A % 360; [VHVangle] = A; => VHV sincos;
 	[PGFt] = [VHVcos]; => PGF ldf32;
 	[FB0] = [VHGinfoshipz0]; [FB1] = [VHGinfoshipz1]; => FMul;
 	[VHGshipstz0] = [FA0]; [VHGshipstz1] = [FA1];
@@ -3037,10 +3050,12 @@
 	[VHPblackout] = [VHGelight]; [VHPresetphase] = [VHGresetcount]; => VH screens;
 	=> VHG onboard prepare; => VH onboard screen;
 
-	( interior halogen fixture: vehicle() camera x-3395,y+480,z+200 )
+	( interior halogen fixture: vehicle() first retains the screen pass's
+	  cam_z -= 2*54*15, then applies x-3395,y+480,z+200.  Relative to the
+	  player's clean camera that is x-3395,y+480,z-1420. )
 	A = [VHGx]; A - 3395; [VHVcamxi] = A;
 	A = [VHGy]; A + 480; [VHVcamyi] = A;
-	A = [VHGz]; A + 200; [VHVcamzi] = A;
+	A = [VHGz]; A - 1420; [VHVcamzi] = A;
 	=> VH set view; [VHLpower] = [VHGilight]; [VHLemergency] = [VHGelight]; => VH alogena;
 	( sky(0x405C) is the final 3-D scene pass in NOCTIS.CPP: it follows
 	  vehicle() so the stellar-band neighbour test preserves the hull. )

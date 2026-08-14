@@ -28,6 +28,7 @@ param(
     [int]$CapsuleZ = 131072,
     [ValidateSet(-1, 0, 1)]
     [int]$LensMode = 0,
+    [switch]$OpenHud,
     [ValidateSet(15)]
     [int]$CheckpointVersion = 15,
     [switch]$Fast,
@@ -121,13 +122,14 @@ $scenes = @(
        X=1463568; Y=-4728350; Z=-437812; Body=1; Type=9; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
        LocalX=0.333919; LocalY=0.0; LocalZ=-0.786714 },
-    # ROTOR IGNE is a generated class-8 multiple system. Body 0 is a primary
-    # planet and body 3 is its companion star, so this view exercises the
-    # real two-star corona/flare ordering instead of a synthetic overlay.
+    # ROTOR IGNE is a generated class-8 multiple system. This certified
+    # native-matched pose keeps the primary behind the camera and exposes body
+    # 3's real companion corona and long radial flare through the open visor.
     @{ Name='orbitmultiple'; FileName='planet-space-multiple-system.png'; Mode=0;
        X=3866416; Y=-4813508; Z=-735695; Body=0; Type=5; Lon=0; Lat=60;
-       Beta=300; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=-0.05479262724126303; LocalY=0.0; LocalZ=-0.03163453808735004 },
+       Beta=0; Nav=120; Pitch=-34; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;
+       OpenHud=$true;
+       LocalX=-0.025440362261571668; LocalY=0.0; LocalZ=-0.014688000000000005 },
     # IDEAL's only body is an authentic type-1 primary. This avoids spending
     # screenshot startup time generating JROT's pathological 80-body system.
     @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
@@ -309,7 +311,8 @@ function New-Checkpoint {
     $u[43] = 0
     $u[44] = $CapsuleZ
     # Graphics word: lens mode + 1 in bits 0..1, source HUD enabled in bit 2.
-    $u[47] = ($LensMode + 1) + 4
+    $sceneOpenHud = $OpenHud -or ($Spec.ContainsKey('OpenHud') -and $Spec.OpenHud)
+    $u[47] = ($LensMode + 1) + 4 + $(if ($sceneOpenHud) { 16 } else { 0 })
     $u[48] = 0
     $u[49] = -1
     if ($Spec.ContainsKey('LocalZ')) {

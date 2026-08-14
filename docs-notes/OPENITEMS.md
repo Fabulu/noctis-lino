@@ -251,8 +251,8 @@ those inputs, not the unrelated black horizon-pillar defect. Parallel
 screenshot processes can interfere and produced two all-black captures, so
 this matrix must be captured sequentially. Still open: representative views
 for every planet and atmosphere class, weather and day/night boundaries,
-companion and multiple suns, orbital views, and the full Stardrifter
-interior/cupola/exterior transition.
+additional companion and multiple-sun arrangements, orbital views, and the
+full Stardrifter interior/cupola/exterior transition.
 
 A generated class-8 system is now part of the reproducible capture gallery.
 Its 300-degree view shows a planet partially occluding the primary disc beside
@@ -284,6 +284,20 @@ axis. Both full-context frames kept the primary behind the planet and emitted
 no companion flare. This settles that one dark, aligned viewpoint and the
 identity of the showcase spokes. It does not settle visible companion views or
 the wider matrix below.
+
+**ROTOR IGNE visible-companion checkpoint.** A second certified native pose
+turns 34 degrees downward while keeping the visor open. Body 3 is then visible
+at native relative screen coordinate `(-15,17)` with its long source flare,
+while the class-8 primary is behind the camera. A shared-workspace bug had let
+the companion pass overwrite `SFXX/SFYY/SFZZ`; the following primary-flare
+call consequently redrew the companion using the primary star's much shorter
+distance and produced a large false cyan bloom. The local-system renderer now
+reconstructs the primary coordinates at the original call boundary. Fresh
+same-clock native and Lino captures agree on body 0 radius `0.01632`, body 3
+radius `15.6`, its three-dimensional local vector, visibility, centre, corona,
+and radial-beam layout. The reproducible `orbitmultiple` gallery scene now
+uses this open-visor native-matched pose by default. This closes one real
+visible-companion context, not the remaining cross-context matrix.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
