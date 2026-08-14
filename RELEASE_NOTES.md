@@ -1,5 +1,28 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+## Beta 13
+
+Beta 13 removes another layer of interpreter overhead from the exact renderer.
+Additive and halo polygon fills now execute their source-ordered neighbour
+sampling and saturation loops natively. Surface foliage stamps keep the same
+three fast-random draws and six-pixel write order in one bounded loop, while
+render-only tree, bush, grass, and rock draws no longer pay for the generator
+corpus hash ledger.
+
+Terrain height interpolation retains both binary32 stores and the source chop
+boundary in a fused x87 path. Integer object vertices now enter projection
+slots through one exact `fild`, and every accepted terrain cell performs its
+seeded shade draw without two extra interpreted calls. These paths apply to
+all landable planet classes. Fresh fixed captures measured 7.57 ms for the
+dense-atmosphere surface, 9.62 ms for the rocky surface, 11.60 ms for the
+NIV+-matched giant-tree scene, and 4.52 ms for the Stardrifter renderer.
+
+The 107-page raster corpus remains byte-identical, including counters and edge
+state. The frozen production tree probe also retains its exact framebuffer and
+exit-state hashes. The unusual orange crown and blue limbs in that authored
+daylight state are confirmed by the direct NIV+ framebuffer and full 768-entry
+palette oracle; the former rainbow spray defect remains absent.
+
 ## Beta 11
 
 Beta 11 hardens smooth presentation, preserves more NIV+ memory behavior, and
