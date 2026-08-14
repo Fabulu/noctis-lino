@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'thin',
+        'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'thin', 'thinsun',
         'frozen', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
@@ -159,6 +159,12 @@ $scenes = @(
        Beta=173; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='thin';      X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=0; Lat=60;
        Beta=167; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
+    # Native-matched clear type-5 lighting state. Longitude 45 lowers the
+    # otherwise near-zenith sun into the source-valid pitch range so its disc
+    # and complete radial flare are visible against the thin atmosphere.
+    @{ Name='thinsun'; FileName='planet-thin-sun.png';
+       X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=45; Lat=60;
+       Beta=90; Pitch=-30; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='frozen';    X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
        Beta=193; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='quartz';    X=1463568; Y=-4728350; Z=-437812; Body=7; Type=8; Lon=0; Lat=60; Beta=180; Pitch=-12 },

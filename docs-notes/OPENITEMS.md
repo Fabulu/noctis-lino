@@ -395,6 +395,18 @@ this exact flare algorithm byte for byte. Exact full-context framebuffer and
 palette grading for this viewpoint remains open; the false storm comparison is
 not admissible evidence.
 
+**Thin-atmosphere native-context checkpoint.** A second fixed-epoch comparison
+uses the same generated system's type-5 body at longitude 45, heading 90, and
+pitch -30. NIV+ and Lino both retain distance `112.235`, exposure `84.5208` at
+longitude 0 and `49.3038` at longitude 45, rain `0`, day classification,
+albedo 24, and seed 472392. The longitude-45 pose brings the otherwise
+near-zenith star into the playable camera range. Certified native and product
+frames place its disc at the top centre and show the same long radial pattern
+over the teal atmospheric gradient. The reproducible `thinsun` gallery scene
+now captures that pose. As with the type-3 checkpoint, exact whole-context
+framebuffer and palette grading remains open; the flare raster itself retains
+its independent byte-exact native page oracle.
+
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 
