@@ -1,5 +1,40 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+## Beta 10
+
+Beta 10 restores live, phase-dependent surface lighting and begins the
+cross-planet sun-authenticity gallery with direct Borland-built NIV+ evidence.
+The surface renderer no longer replaces a generated world's terminator,
+dawn/dusk side, and exposure with the opening-system defaults. Solar distance
+now comes from the body's current three-dimensional orbit rather than its
+nominal radius, including the separate companion-owner rule.
+
+Automated captures pin the source epoch explicitly and clamp authored surface
+pitch to the port's playable `-44..44` degree range. This closes two misleading
+oracle setups: NIV+ reloads time from the DOS clock during landed resume, and
+its floating camera clamps at `44.9` degrees even when a saved pose asks for
+more. Fixed-epoch native and product runs now agree on the lighting state for a
+clear type-3 world, a type-5 thin-atmosphere world, an airless type-4 world,
+and a frozen type-7 world around a distinct class-1 star.
+
+Three reproducible gallery scenes document the resulting behavior. `thinsun`
+shows the native radial flare over a teal atmosphere. `rockysun` and
+`frozensun` show visible stellar discs with no radial beams because their live
+distances exceed NIV+'s original `1000 * ray` gate. Correct suppression is part
+of renderer fidelity. The README publishes all three production captures.
+
+Surface galaxy stars now follow the source camera and coordinate schedule
+instead of a quantized view cache. Fused exact x87 kernels recover the cost of
+that correction while retaining the matched frozen-world points. Additional
+exact globe and Stardrifter hull paths remove redundant scaling and scratch
+copies across every orbital planet type and the vehicle exterior.
+
+Live NIVGEN service work remains paused while that external service is
+unavailable. No polling, submission, or current-score claim is made by this
+release.
+
+## Beta 9 foundation
+
 Beta 9 completes the current native-matched companion-star checkpoint and
 ships the latest exact terrain and presentation optimizations. Stationary
 local-system rendering is active again, local tracking status survives the
