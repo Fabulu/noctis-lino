@@ -497,7 +497,7 @@ plausibility alone does not close this item. The finished result must look and
 behave authentically in motion, including beam direction, clipping, brightness,
 palette response, and transitions between contexts.
 
-## 7. Smooth 60 Hz presentation -- **OPEN / DOCKET**
+## 7. Smooth 60 Hz presentation -- **SETTLED / MONITORED**
 
 Harden the optional 60 Hz renderer until sustained walking, looking, jetpack
 flight, capsule travel, orbital flight, and Stardrifter movement remain evenly
@@ -512,9 +512,7 @@ now uses calibrated high-resolution counts with a carried fractional residue,
 removing the former whole-millisecond phase quantization. The focused current
 habitable smoke held the target rate. A 30-second real-input surface session
 also held forward continuously, alternated left and right yaw, and retained
-terrain and detail without a crash, black pillar, or input stall. Longer
-orbital and overloaded-frame recovery sessions remain required before this
-item closes.
+terrain and detail without a crash, black pillar, or input stall.
 
 A later product session completed a surface capsule return into the Stardrifter,
 held a stationary 60 Hz interior view for 23 seconds, paused the inactive client
@@ -525,6 +523,18 @@ through its normal save path in Stardrifter mode. That closes the capsule-return
 and focus-loss legs. The same audit removed the port's old `-70` lift impulse:
 the live lift now uses NIV+'s `-100`, with smooth presentation interpolating the
 original eight simulation steps instead of changing their gameplay timing.
+
+A 60-second fine-approach session then held forward movement inside the
+Stardrifter, alternated left and right view input, and captured the internal
+indexed page every 15 seconds. At second 25 the live client was enlarged from
+640x440 to 2560x1600 for six seconds, then restored. The window remained active
+and responsive at every five-second heartbeat, all five snapshots completed on
+schedule, post-load frames continued changing with the commanded view, and the
+game exited through its normal save path. The final checkpoint retained fast
+presentation, the same body and fine-approach state, and source-rate frame
+advancement rather than a 60-Hz gameplay clock. Startup telemetry reported 61
+FPS with 5.56 ms render, 3.01 ms present, and 1.69 ms space work. This closes
+the orbital movement and overloaded-client recovery legs of the cadence item.
 
 ## 8. Cross-references
 
