@@ -9,6 +9,15 @@ Alessandro Ghignola wrote both. He built L.in.oleum specifically to write
 Noctis V in it, then abandoned both projects. This repository finishes a
 Noctis IV+ game in the language it inspired.
 
+## At a glance
+
+- Explore the procedural Feltyrion galaxy from the fully playable Stardrifter.
+- Approach and land on every planet class, then walk, fly, save, and return.
+- Choose the authentic 18.2 FPS presentation or smooth 60 FPS rendering without
+  changing the original simulation rate.
+- Run the production game in a resizable Windows host with music, screenshots,
+  panoramas, checkpoints, and the original onboard systems.
+
 ## Play the game
 
 The current Windows build covers the complete playable Noctis IV+ route. Walk
@@ -83,34 +92,41 @@ and a damaged primary visibly recovers from that last-known-good copy. Enter
 - F3 opens the original moviemaker. Plus/minus changes its interval, Ctrl plus
   or minus changes decks, F changes the effect, Enter records, and P pauses.
 
-GOES retains the original catalogue and Guide tools. `WHERE`, `SL`, `PAR`,
-`ST`, and `DL` locate or regenerate stars, planets, and moon trees. `CAT`,
-`PRI`, and `PRIF` read or export Guide records. `CAST`, `REP`, `DELE`, `CLEAN`,
-and `REPAIR` maintain player notes without altering protected shipped records.
-`OUTBOX` exports player additions, while `INBOX` validates and merges another
-player's packet. `HELP` lists the resident modules, `CLR` clears output, and
-`X <text>` uses the Xnice bridge files. `IMPORTGD` is intentionally a no-op
-because this port already uses the older 84-byte `GUIDE.BIN` format.
+GOES retains the original catalogue and Guide tools:
+
+- `WHERE`, `SL`, `PAR`, `ST`, and `DL` locate or regenerate stars, planets, and
+  moon trees.
+- `CAT`, `PRI`, and `PRIF` read or export Guide records.
+- `CAST`, `REP`, `DELE`, `CLEAN`, and `REPAIR` maintain player notes without
+  altering protected shipped records.
+- `OUTBOX` exports player additions. `INBOX` validates and merges another
+  player's packet.
+- `HELP` lists the resident modules, `CLR` clears output, and `X <text>` uses
+  the Xnice bridge files.
+
+`IMPORTGD` is intentionally a no-op because this port already uses the older
+84-byte `GUIDE.BIN` format.
 
 The GAME menu mirrors Flight control, Onboard devices, and Preferences in
 resize-aware mouse-accessible pages over the live Stardrifter.
 
-To build a clean, self-contained redistributable play folder with every runtime
-asset and a SHA-256 manifest:
+### Portable package and releases
+
+Build a clean, self-contained play folder with every runtime asset and a
+SHA-256 manifest:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\package_noctis.ps1
 ```
 
-The default output is `dist\Noctis-IV`; the command refuses to merge
-with an existing directory so stale files cannot masquerade as bundle content.
-Inside the bundle, double-click `Play Noctis IV.cmd`. The relocatable launcher
-anchors all relative asset, checkpoint, catalogue, and diagnostic paths to the
-bundle even when it is started from an unrelated working directory. The
-bundle includes the original 48,376-record `GUIDE.BIN`. `CAST` additions remain
-separate from its consolidated source boundary, so the original records and
-new player notes can both be read after restarting the game. Back up
-`GUIDE.BIN` together with saves and `STARMAP.BIN` to preserve those notes.
+The default output is `dist\Noctis-IV`. The command refuses to merge with an
+existing directory, so stale files cannot masquerade as bundle content.
+
+- Double-click `Play Noctis IV.cmd` inside the bundle to play.
+- The launcher anchors assets, checkpoints, catalogue files, and diagnostics to
+  the bundle even when started from another working directory.
+- The bundle includes the original 48,376-record `GUIDE.BIN`. Back up that file
+  with saves and `STARMAP.BIN` to preserve player notes added through `CAST`.
 
 Ordinary pushes and pull requests run the protected-source check, integrated
 game regression, and snapshot package assembly on GitHub-hosted Windows. A
@@ -196,12 +212,12 @@ silhouette and the source's marked wall bands in frame.
 ## Provenance
 
 The base of this repository is an unmodified clone of
-[8l/linoleum](https://github.com/8l/linoleum) -- commits `eb25dcb` and `9559333`.
+[8l/linoleum](https://github.com/8l/linoleum), commits `eb25dcb` and `9559333`.
 
 **No upstream file has been modified.** Every commit after `9559333` only *adds*
 files. This is deliberate: `main/lib/gen/compiler.txt` is licensed under the WTOF
 Public License, which permits consulting, keeping and freely redistributing the
-source but forbids changing it -- for personal use as well as redistribution --
+source but forbids changing it, for personal use as well as redistribution,
 without the author's authorisation. To see exactly what is ours:
 
 ```
@@ -213,7 +229,7 @@ git diff 9559333..HEAD --stat
 L.in.oleum can reproduce Noctis IV's galaxy, bit for bit.
 
 The Feltyrion galaxy has no star table. Every one of its ~78 billion stars is a
-pure hash of its sector's integer coordinates -- the universe *is* that function.
+pure hash of its sector's integer coordinates. The universe *is* that function.
 `work/galaxy.txt` ports it, and its output is byte-identical to both a C
 reference extracted from `noctis-iv-lr` and an independent arbitrary-precision
 Python implementation, across 343 sectors spanning the galactic origin.
@@ -222,7 +238,7 @@ Two details turned out to be load-bearing:
 
 - **The multiply must be signed.** Sector coordinates go negative either side of
   the centre; an unsigned product yields a different high word and therefore a
-  different galaxy -- one that generates perfectly happily and matches nothing.
+  different galaxy, one that generates perfectly happily and matches nothing.
   The fragment is `IMUL` (`F7 EB`), not `MUL` (`F7 E3`).
 - **L.in.oleum has no 64-bit multiply.** The original folds `edx:eax` back
   together (`edx += eax`) after an `imul`, and the language exposes only the low
@@ -268,13 +284,13 @@ python oracle.py                                 # independent Python, cross-che
 python compare3.py
 ```
 
-Those two repositories are deliberately **not** vendored here -- they are separate
+Those two repositories are deliberately **not** vendored here. They are separate
 upstream projects with their own licensing.
 
 ### Regression suite
 
 ```powershell
-python tests\run_all.py           # optional --deep historical/release audit
+python tests\run_all.py           # optional deep historical/release audit
 python tests\run_all.py galaxy    # just the tests matching "galaxy"
 ```
 
@@ -289,11 +305,11 @@ foundation checks are:
 | Test | Guards |
 |---|---|
 | `test_toolchain.py` | the extended toolchain is installed, the two copies of `i386m.bin` agree, `main/` is pristine, and every wrong compiler/pack pairing refuses to build |
-| `test_galaxy.py` | `work/galaxy2.txt` (the `*%` rewrite) is bit-exact with the `{ F7 EB }` version, a freshly compiled C oracle, and two bignum Python references -- plus signedness at the opcode level |
+| `test_galaxy.py` | `work/galaxy2.txt` (the `*%` rewrite) is bit-exact with the `{ F7 EB }` version, a freshly compiled C oracle, and two bignum Python references, including signedness at the opcode level |
 | `test_galaxy_stress.py` | the same arithmetic on coordinates the 343-sector sweep cannot reach, including the ones that make all three cutoff branches fire |
 | `test_mulsplit.py` | the `*%` contract `galaxy2.txt` cannot self-test: which half lands in which operand, signed vs unsigned, and which registers survive |
 
-Nothing is graded against a stored `.bin` -- every side is rebuilt and re-run on
+Nothing is graded against a stored `.bin`. Every side is rebuilt and re-run on
 each invocation, because a stored `.bin` is exactly what goes stale unnoticed.
 Each test also builds a deliberately wrong version of its subject and requires
 it to *fail*, so a check that has quietly stopped discriminating shows up as a
@@ -308,7 +324,7 @@ Hard-won; all of these cost real debugging time.
   `name = N;` allocates an *uninitialised vector of N units* and the name is its
   **address**. So `foo = 0;` in `workspace` allocates nothing, top-of-workspace
   never advances, and every symbol silently collapses onto the same cell. No
-  error, no warning -- just uniformly wrong values.
+  error and no warning, just uniformly wrong values.
 - **Do not launch the compiler with PowerShell's `Start-Process`.** It appends a
   trailing space to the argument string, which the compiler folds into the output
   filename, giving `prog.txt .exe`. Use `ProcessStartInfo.Arguments`, which is
@@ -320,11 +336,11 @@ Hard-won; all of these cost real debugging time.
 1. **Command-line parser truncates on `--` anywhere.** `copy option` ends a
    value at any two consecutive hyphens, including inside a filesystem path,
    with no check that an option name follows. A path containing `--` silently
-   truncates and the build dies reporting `error reading cpu pack` -- pointing at
+   truncates and the build dies reporting `error reading cpu pack`, pointing at
    a component that is perfectly fine. `lino_build.ps1` refuses such paths rather
    than let you chase the phantom.
 2. **`main/linux_compiler.bin` is dead on modern systems.** Segfaults at startup,
-   before parsing arguments, in every configuration -- including with no arguments
+   before parsing arguments, in every configuration, including with no arguments
    at all.
 3. **The relative-address modifier is documented backwards.** For `<+N label>` in
    machine-language fragments the manual gives `label - pc + N`; the compiler
@@ -332,7 +348,7 @@ Hard-won; all of these cost real debugging time.
    The manual's own worked example proves the manual wrong.
 4. **The application-name field is not cleared before writing.** The compiler
    writes `strlen+1` bytes over the 40-byte field in the runtime template, so a
-   program named `mul64` ships with `mul64\0leum runtime` embedded -- a shard of
+   program named `mul64` ships with `mul64\0leum runtime` embedded, a shard of
    the template string `L.in.oleum runtime`.
 
 Documentation drift worth knowing: `readme.htm` says the CPU pack holds 6616
