@@ -191,6 +191,11 @@ avoids 80,000 interpreted source-pixel iterations per lightning frame. A
 full-context thin-atmosphere page remains byte-exact against the NIV+ oracle
 after the changes.
 
+The shared polygon framebuffer load and store primitives now perform their
+fixed page addressing, 16-bit DOS wrap, and byte masks in native code. This
+benefits solid and effect polygons across surface and Stardrifter views. All
+107 joined exact raster corpus pages remain byte-identical after the change.
+
 That fixed 2x path now publishes each duplicated RGB pixel to Backdrop and
 Primary Display while the value is already loaded. The two synchronized layers
 therefore no longer need a subsequent 1 MiB Backdrop reread and copy. Resized

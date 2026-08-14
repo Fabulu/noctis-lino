@@ -157,17 +157,33 @@
 	mechanism, called at the point where the DOS code truncates DI. )
 
 "PG store"
-	A = [PGdi]; A & 65535; A + SADPT; A + nw;
-	C = [PGval]; C & 255;
-	[A] = C;
+	( Resolve the runtime page workspace once, then perform the fixed
+	  16-bit DOS offset wrap and byte-masked unit store natively.  Every
+	  raster path, including the exact corpus runner, still enters through
+	  this single truncation point. )
+	A = nw;
+	{
+	    8B 97 <dPGdi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    8B 8F <dPGval mtp bytesperunit>
+	    81 E1 FF 00 00 00
+	    8D 04 87
+	    89 8C 90 <dSADPT mtp bytesperunit>
+	}
 	end;
 
       ( PG load : [PGval] <- the byte at DOS offset [PGdi], unsigned. )
 
 "PG load"
-	A = [PGdi]; A & 65535; A + SADPT; A + nw;
-	C = [A]; C & 255;
-	[PGval] = C;
+	A = nw;
+	{
+	    8B 97 <dPGdi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    8D 04 87
+	    8B 8C 90 <dSADPT mtp bytesperunit>
+	    81 E1 FF 00 00 00
+	    89 8F <dPGval mtp bytesperunit>
+	}
 	end;
 
       ( PG dput / PG dget : DIRECT page-relative access, nw[RADPT+i].
