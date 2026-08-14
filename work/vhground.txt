@@ -91,6 +91,7 @@
 	VHGNDtreescalef = 0; VHGNDtreerangef = 0; VHTnextscf = 0;
 	VHTrootcol = 0; VHTleafcol = 192; VHTlseed = 0;
 	VHTfacebase = 0; VHTfacestep = 0; VHTnextsc = 0;
+	VHTtrigready = 0; VHTtrigi = 0; VHTtriga0 = 0; VHTtriga1 = 0;
 	VHGNDgrassgroups = 0; VHGNDgrassfaces = 0; VHGNDgrasstotal = 0;
 	VHGNDgrassdistant = 0; VHGNDgrassrad = 0; VHGNDgrassrange = 0;
 	VHGNDgrassbx = 0; VHGNDgrassby = 0; VHGNDgrassbz = 0;
@@ -285,6 +286,7 @@
 	VHGNDtsx = 6; VHGNDtsy = 6; VHGNDtsz = 6; VHGNDtsscale = 6;
 	VHGNDtslayers = 6; VHGNDtsroot = 6; VHGNDtsocc = 6;
 	VHGNDtscount = 6; VHGNDtsbranch = 6; VHGNDtslseed = 6; VHGNDtsrange = 6;
+	VHTsintab = 361; VHTcostab = 361;
 	VHGNDenvtext = 128;
 
 "programme"
@@ -5442,18 +5444,25 @@
 	A = [VHGNDmushx]; A + [VHGNDtmp]; [VHGNDmushx] = A;
 	A = [VHGNDmushy]; A + [VHGNDtmp]; [VHGNDmushy] = A;
 	A = [VHGNDmushz]; A + [VHGNDtmp]; [VHGNDmushz] = A;
-	A = [VHGNDmushx]; A > 14; C = A;
-	A = [VHGNDmushy]; A > 14; C + A;
-	A = [VHGNDmushz]; A > 14; A + C; => SU fast srand;
+	( C's signed long >>14 is an arithmetic shift.  This matters for the
+	  negative world Y of every landed tree and therefore for every foliage
+	  RNG stream. )
+	A = [VHGNDmushx]; A >> 14; C = A;
+	A = [VHGNDmushy]; A >> 14; C + A;
+	A = [VHGNDmushz]; A >> 14; A + C; => SU fast srand;
 	[SUfmask] = [VHGNDmushmask1]; => VHGND render random; C + 1; [VHGNDmushouter] = C;
     "VHGND greenmush outer"
 	[SUfmask] = [VHGNDmushscale]; => VHGND render random; A = [VHGNDmushx]; A - C; [VHGNDmushpx] = A;
 	=> VHGND render random; A = [VHGNDmushy]; A - C; [VHGNDmushpy] = A;
 	=> VHGND render random; A = [VHGNDmushz]; A - C; [VHGNDmushpz] = A;
+	( getcoords consumes scalar input slot zero, independent of whichever
+	  polygon vertex the previous caller left selected. )
+	[VHGNDvi] = 0;
 	[VHGNDvv] = [VHGNDmushpx]; [VHGNDvslot] = FSINX; => VHGND vload;
 	[VHGNDvv] = [VHGNDmushpy]; [VHGNDvslot] = FSINY; => VHGND vload;
 	[VHGNDvv] = [VHGNDmushpz]; [VHGNDvslot] = FSINZ; => VHGND vload;
-	=> PG getcoords; A = [GCret]; ? A = 0 -> VHGND greenmush outer next;
+	=> PG getcoords;
+	A = [GCret]; ? A = 0 -> VHGND greenmush outer next;
 	[SUfmask] = [VHGNDmushmask2]; => VHGND render random; C + 1; [VHGNDmushinner] = C;
     "VHGND greenmush inner"
 	[SUfmask] = 7; => VHGND render random; A = [GCy]; A + C; A '* 320; [VHGNDmushoff] = A;
@@ -5552,6 +5561,7 @@
 	=> VHGND greenmush; -> VHGND tree done;
 "VHGND tree configured"
 	[SPcull] = 0; [DBent] = 0; [VHGNDtreelevel] = 0; [VHGNDtreefloat] = 1;
+	=> VHGND tree trig init;
 	[FI] = [VHGNDoox]; => IntToF; => F32Narrow; => FStoreF32; A = VHGNDtsx; [A] = [FS0];
 	[FI] = [VHGNDooy]; => IntToF; => F32Narrow; => FStoreF32; A = VHGNDtsy; [A] = [FS0];
 	[FI] = [VHGNDooz]; => IntToF; => F32Narrow; => FStoreF32; A = VHGNDtsz; [A] = [FS0];
@@ -5615,11 +5625,20 @@
 	A = VHGNDtslseed; A + [VHGNDtreelevel]; C = [A]; [VHTlseed] = C;
 	C + 3; [A] = C; A = [VHTlseed]; => SU fast srand;
 	A = [VHGNDtreelayers]; ? A = 0 -> VHGND tree terminal;
+	A = [VHGNDtreebranches]; ? A = 1 -> VHGND tree endpoint pi;
 
-	{ D9 87 <dVHVcos mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
+	{ D9 87 <dVHGNDtreeangle mtp bytesperunit> D9 FF
+	  D8 8F <dVHGNDtreerangef mtp bytesperunit>
 	  D8 87 <dVHGNDtreebxf mtp bytesperunit> D9 9F <dVHGNDtreeexf mtp bytesperunit>
-	  D9 87 <dVHVsin mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
+	  D9 87 <dVHGNDtreeangle mtp bytesperunit> D9 FE
+	  D8 8F <dVHGNDtreerangef mtp bytesperunit>
 	  D8 87 <dVHGNDtreebzf mtp bytesperunit> D9 9F <dVHGNDtreeezf mtp bytesperunit> }
+	-> VHGND tree endpoint ready;
+    "VHGND tree endpoint pi"
+	{ D9 87 <dVHGNDtreebxf mtp bytesperunit> D8 A7 <dVHGNDtreerangef mtp bytesperunit>
+	  D9 9F <dVHGNDtreeexf mtp bytesperunit> }
+	[VHGNDtreeezf] = [VHGNDtreebzf];
+    "VHGND tree endpoint ready"
 	[PGFt] = [VHGNDtreeexf]; => PGF ldf32; => FToIntChop; [VHGNDtreeex] = [FI];
 	[PGFt] = [VHGNDtreeezf]; => PGF ldf32; => FToIntChop; [VHGNDtreeez] = [FI];
 	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
@@ -5637,11 +5656,9 @@
 	{ D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTreducf mtp bytesperunit>
 	  D9 9F <dVHTnextscf mtp bytesperunit>
 	  D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTwidthf mtp bytesperunit>
-	  DD 9F <dFA0 mtp bytesperunit> }
-	=> FToIntChop; [VHGNDtreebr] = [FI];
-	{ D9 87 <dVHTnextscf mtp bytesperunit> D8 8F <dVHTwidthf mtp bytesperunit>
-	  DD 9F <dFA0 mtp bytesperunit> }
-	=> FToIntChop; [VHGNDtreeer] = [FI];
+	  D9 9F <dVHGNDtreebr mtp bytesperunit>
+	  D9 87 <dVHTreducf mtp bytesperunit> D8 8F <dVHGNDtreescalef mtp bytesperunit>
+	  D8 8F <dVHTwidthf mtp bytesperunit> D9 9F <dVHGNDtreeer mtp bytesperunit> }
 	[PGFt] = [VHTnextscf]; => PGF ldf32; => FToIntChop; [VHTnextsc] = [FI];
 	A = [VHGNDtreeocc]; A '* 9; A + [VHTrootcol]; [VHTfacebase] = A;
 	[VHTfacestep] = 4; [DBflar] = [GRtreeflares]; => VHGND tree limb;
@@ -5658,17 +5675,49 @@
 
     "VHGND tree terminal"
 	( Terminal source node: each subdivision is its own randomized leaf fan. )
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreerange]; A '/ 32767;
-	A + [VHGNDtreebx]; [VHGNDtmp] = A;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreerange]; A '/ 32767;
-	C = [VHGNDtmp]; C - A; [VHGNDtreeleafx] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreerange]; A '/ 32767;
-	A + [VHGNDtreebz]; [VHGNDtmp] = A;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreerange]; A '/ 32767;
-	C = [VHGNDtmp]; C - A; [VHGNDtreeleafz] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreescale]; A '/ 32767;
-	[VHGNDtreeleafdrop] = A;
-	A = [VHGNDtreescale]; A '* [VHTwidth]; A / 1000; [VHGNDtreeleafrad] = A;
+	( x2 = x + fast_flandom()*range - fast_flandom()*range.  Keep the
+	  first partial sum wide across the second RNG call, then narrow only at
+	  the source's float assignment. )
+	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreebxf]; => PGF setf32;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add;
+	[GRtreeacc0] = [FA0]; [GRtreeacc0 plus 1] = [FA1];
+	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [GRtreeacc0]; [FA1] = [GRtreeacc0 plus 1];
+	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafx] = [FS0];
+
+	( z2 follows the same live-x87 schedule. )
+	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreebzf]; => PGF setf32;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add;
+	[GRtreeacc0] = [FA0]; [GRtreeacc0 plus 1] = [FA1];
+	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [GRtreeacc0]; [FA1] = [GRtreeacc0 plus 1];
+	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafz] = [FS0];
+
+	( fy[2] = y-fast_flandom()*scaling; widthscale1=scaling*globalwidth. )
+	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreescalef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [PGFi] = FSW0; [PGFt] = [VHGNDtreebyf]; => PGF setf32;
+	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafdrop] = [FS0];
+	[PGFi] = FSW0; [PGFt] = [VHGNDtreescalef]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHTwidthf]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
+	=> F32Narrow; => FStoreF32; [VHGNDtreebr] = [FS0];
 	[VHGNDtreeex] = [VHGNDtreebx]; [VHGNDtreeey] = [VHGNDtreeby]; [VHGNDtreeez] = [VHGNDtreebz];
 	[SUfmask] = 31; => SU frnd; C + [VHTleafcol]; [VHGNDtreecol] = C;
 	[VHTfacebase] = C; [VHTfacestep] = 2;
@@ -5732,27 +5781,30 @@
 	end;
 
 "VHGND tree direction"
-	( b_angle = pi/subdivs + branch*2*pi/subdivs.  All live subdivision
-	  counts divide 360 exactly, so the cached source trig table preserves
-	  the real 45/60/90/180-degree directions without integer surrogates. )
-	A = 180; A / [VHGNDtreebranches]; [VHGNDtreeangle] = A;
-	A = 360; A / [VHGNDtreebranches]; A '* [VHGNDtreebranch]; A + [VHGNDtreeangle];
-	[VHGNDtreeangle] = A; [VHGNDtreecx] = 0; [VHGNDtreecz] = 0;
-	[VHGNDtreerad] = [VHGNDtreerange]; => VHGND tree polar point;
+	( Native b_angle is not an integral-degree lookup.  Borland narrows
+	  b_angle_delta=(float)(2*M_PI/subdivs), narrows its half-angle, then
+	  narrows every +=delta step.  Those low bits feed the next node seed. )
+	[PGFt] = 40C90FDBh; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
+	[FI] = [VHGNDtreebranches]; => IntToF; => VHGND fb fa;
+	[PGFi] = FSW0; => PGF a; => FQuo; => F32Narrow; => FStoreF32; [VHGNDtmp] = [FS0];
+	[PGFt] = [VHGNDtmp]; => PGF ldf32;
+	[FB0] = [GRK050L]; [FB1] = [GRK050H]; => FMul;
+	=> F32Narrow; => FStoreF32; [VHGNDtreeangle] = [FS0];
+	[VHGNDvi] = 0;
+    "VHGND tree direction advance"
+	A = [VHGNDvi]; ? A '>= [VHGNDtreebranch] -> VHGND tree direction trig;
+	[PGFt] = [VHGNDtreeangle]; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtmp]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
+	=> F32Narrow; => FStoreF32; [VHGNDtreeangle] = [FS0];
+	[VHGNDvi]+; -> VHGND tree direction advance;
+    "VHGND tree direction trig"
     "VHGND tree direction done"
 	end;
 
 "VHGND tree limb"
-	( NIV+ maps visible limb faces through the ground texture at 3x8 and
-	  advances the texture window 48 bytes after every attempted face. )
-	( Until the general textured mapper can reproduce the native tree faces,
-	  retain the exact recursive endpoints and draw a bounded centreline.
-	  This prevents malformed faces from spraying palette indices over the
-	  sky while keeping the source branch and foliage topology visible. )
-	A = [VHGNDtreefloat]; ? A = 0 -> VHGND tree limb integer endpoints;
-	[VHSx0] = [VHGNDtreebxf]; [VHSy0] = [VHGNDtreebyf]; [VHSz0] = [VHGNDtreebzf];
-	[VHSx1] = [VHGNDtreeexf]; [VHSy1] = [VHGNDtreeeyf]; [VHSz1] = [VHGNDtreeezf];
-	-> VHGND tree limb endpoints ready;
+	( Distant integer-tree fallback remains a single bounded centreline. )
+	A = [VHGNDtreefloat]; ? A != 0 -> VHGND tree limb native faces;
     "VHGND tree limb integer endpoints"
 	[FI] = [VHGNDtreebx]; => IntToF; => F32Narrow; => FStoreF32; [VHSx0] = [FS0];
 	[FI] = [VHGNDtreeby]; => IntToF; => F32Narrow; => FStoreF32; [VHSy0] = [FS0];
@@ -5763,57 +5815,86 @@
     "VHGND tree limb endpoints ready"
 	[VHSflare] = 0; [VHScolor] = 62; => VH stick3d;
 	end;
-	[FI] = 3; => IntToF; [PGFi] = FSTX; => PGF sa;
-	[FI] = 8; => IntToF; [PGFi] = FSTY; => PGF sa;
-	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
+
+    "VHGND tree limb native faces"
+	( The source texture-maps these faces.  Until the tree-specific mapper is
+	  ported exactly, use the same native shade progression as solid faces.
+	  This preserves the oracle-matched geometry without allowing unrelated
+	  ground texels to spray black or rainbow pixels through the crown. )
+	[SPterrain] = 0; [VHGNDtreefloat] = 2;
+	[PGtexf] = 0; [SPflar] = [DBflar];
 	[VHGNDtreeside] = 0;
     "VHGND tree limb face"
 	A = [VHGNDtreeside]; ? A '>= [VHGNDtreefaces] -> VHGND tree limb done;
-	A '* [VHTfacestep]; A + [VHTfacebase]; [SPtinta] = A;
+	A '* [VHTfacestep]; A + [VHTfacebase]; [DBcol] = A;
 	[VHGNDvi] = 0;
-	[VHGNDtreecx] = [VHGNDtreebx]; [VHGNDtreecy] = [VHGNDtreeby]; [VHGNDtreecz] = [VHGNDtreebz];
+	[VHGNDtreecx] = [VHGNDtreebxf]; [VHGNDtreecy] = [VHGNDtreebyf]; [VHGNDtreecz] = [VHGNDtreebzf];
 	[VHGNDtreerad] = [VHGNDtreebr]; A = 360; A / [VHGNDtreefaces]; [VHGNDtmp] = A;
 	A '* [VHGNDtreeside]; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
 	A = [VHGNDtreeangle]; A + [VHGNDtmp]; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
-	[VHGNDtreecx] = [VHGNDtreeex]; [VHGNDtreecy] = [VHGNDtreeey]; [VHGNDtreecz] = [VHGNDtreeez]; [VHGNDtreerad] = [VHGNDtreeer];
+	[VHGNDtreecx] = [VHGNDtreeexf]; [VHGNDtreecy] = [VHGNDtreeeyf]; [VHGNDtreecz] = [VHGNDtreeezf]; [VHGNDtreerad] = [VHGNDtreeer];
 	=> VHGND tree polar vertex;
 	A = [VHGNDtreeangle]; A - [VHGNDtmp]; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
 	=> PG facing; A = [FCret]; ? A = 0 -> VHGND tree limb advance;
-	[PJnrv] = 4; => PG polymap;
+	[PJnrv] = 4; => PG poly3d;
     "VHGND tree limb advance"
-	A = [PGtexoff]; A + 48; [PGtexoff] = A;
 	[VHGNDtreeside]+; -> VHGND tree limb face;
     "VHGND tree limb done"
+	[VHGNDtreefloat] = 1;
 	=> VHGND tree texture restore;
 	end;
 
 "VHGND tree leaves"
 	( Terminal source fan.  Its second ring point is rotation+72 and its tip
-	  is rotation+36 regardless of branchdetail.  NIV+ maps these faces at
-	  1x3 without backface culling and stamps foliage at each tip. )
-	[FI] = 1; => IntToF; [PGFi] = FSTX; => PGF sa;
-	[FI] = 3; => IntToF; [PGFi] = FSTY; => PGF sa;
-	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
-	[VHGNDtreerad] = [VHGNDtreeleafrad];
+	  is rotation+36 regardless of branchdetail.  Preserve every generated
+	  tip and foliage stamp, but omit the currently non-parity leaf triangle:
+	  it crosses the viewport in the port even though NIV+ keeps it bounded. )
+	[SPterrain] = 0; [VHGNDtreefloat] = 2;
+	[PGtexf] = 0; [SPflar] = [DBflar];
+	[VHGNDtreerad] = [VHGNDtreebr];
 	[VHGNDtreeside] = 0;
     "VHGND tree leaf face"
 	A = [VHGNDtreeside]; ? A '>= [VHGNDtreefaces] -> VHGND tree leaves done;
-	A '* [VHTfacestep]; A + [VHTfacebase]; [SPtinta] = A;
-	[VHGNDvi] = 0; [VHGNDtreecx] = [VHGNDtreeex]; [VHGNDtreecy] = [VHGNDtreeey]; [VHGNDtreecz] = [VHGNDtreeez];
+	[VHGNDvi] = 0; [VHGNDtreecx] = [VHGNDtreebxf]; [VHGNDtreecy] = [VHGNDtreebyf]; [VHGNDtreecz] = [VHGNDtreebzf];
 	A = 360; A / [VHGNDtreefaces]; A '* [VHGNDtreeside]; [VHGNDtreeangle] = A;
 	=> VHGND tree polar vertex;
 	A = [VHGNDtreeangle]; A + 72; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
-	A = [VHGNDtreeleafx]; A + [VHGNDtreewindx]; [VHGNDtreecx] = A;
-	A = [VHGNDtreeleafz]; A + [VHGNDtreewindz]; [VHGNDtreecz] = A;
-	[VHGNDtreerad] = [VHGNDtreerange]; A = [VHGNDtreeangle]; A - 36; [VHGNDtreeangle] = A;
-	A = [VHGNDtreeey]; A - [VHGNDtreeleafdrop]; [VHGNDtreecy] = A; => VHGND tree polar vertex;
-	[VHGNDmushx] = [VHGNDtreepx]; [VHGNDmushy] = [VHGNDtreecy]; [VHGNDmushz] = [VHGNDtreepz];
+	A = [VHGNDtreeangle]; A - 36; [VHGNDtreeangle] = A; => VHGND tree leaf tip vertex;
+	( greenmush remains the integer projection helper; convert the exact leaf
+	  tip only at this compatibility boundary instead of interpreting bits. )
+	[PGFt] = [VHGNDtreepx]; => PGF ldf32; => FToIntChop; [VHGNDmushx] = [FI];
+	[PGFt] = [VHGNDtreeleafdrop]; => PGF ldf32; => FToIntChop; [VHGNDmushy] = [FI];
+	[PGFt] = [VHGNDtreepz]; => PGF ldf32; => FToIntChop; [VHGNDmushz] = [FI];
 	[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3; [VHGNDmushscale] = 1023;
 	[VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31; => VHGND greenmush;
-	A = [PGtexoff]; A + 48; [PGtexoff] = A;
 	[VHGNDtreeside]+; -> VHGND tree leaf face;
     "VHGND tree leaves done"
+	[VHGNDtreefloat] = 1;
 	=> VHGND tree texture restore;
+	end;
+
+"VHGND tree leaf tip vertex"
+	( fx[2]/fz[2] keep x2 + trig*range + wind live until their one
+	  binary32 array store, matching the native expression. )
+	=> VHGND tree sincos;
+	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreeleafx]; => PGF setf32;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreewindx]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add; => F32Narrow;
+	A = FSINX; A + [VHGNDvi]; [PGFi] = A; => PGF sa; => FStoreF32; [VHGNDtreepx] = [FS0];
+	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreeleafz]; => PGF setf32;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreewindz]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add; => F32Narrow;
+	A = FSINZ; A + [VHGNDvi]; [PGFi] = A; => PGF sa; => FStoreF32; [VHGNDtreepz] = [FS0];
+	A = FSINY; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreeleafdrop]; => PGF setf32;
+	[VHGNDvi]+;
 	end;
 
 "VHGND tree wind"
@@ -5822,22 +5903,63 @@
 	A = [VHGCwindangle]; A + 8; A / 16; [VHVangle] = A; => VHV sincos;
 	[FI] = [VHGCwindpower]; => IntToF; [PGFi] = FSW1; => PGF sa;
 	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
-	A = [FI]; A / 10; [VHGNDtreewindx] = A;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[FI] = 10; => IntToF; => VHGND fb fa; [PGFi] = FSW0; => PGF a; => FQuo;
+	=> F32Narrow; => FStoreF32; [VHGNDtreewindx] = [FS0];
 	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
-	A = [FI]; A / 10; [VHGNDtreewindz] = A;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[FI] = 10; => IntToF; => VHGND fb fa; [PGFi] = FSW0; => PGF a; => FQuo;
+	=> F32Narrow; => FStoreF32; [VHGNDtreewindz] = [FS0];
 	end;
 
 "VHGND tree texture restore"
-	[PGtexoff] = 0; [PGtexf] = 0; [SPflar] = 0;
+	[PGtexf] = 0; [SPflar] = 0;
 	[FI] = [VHGNDtscale]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
 	[FI] = 256; => IntToF; => FMul; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
 	end;
 
 "VHGND tree polar vertex"
+	A = [VHGNDtreefloat]; ? A = 2 -> VHGND tree polar float vertex;
 	=> VHGND tree polar point;
 	-> VHGND tree vertex load;
+
+"VHGND tree polar float vertex"
+	=> VHGND tree sincos;
+	{ D9 87 <dVHVcos mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
+	  D8 87 <dVHGNDtreecx mtp bytesperunit> D9 9F <dVHGNDtreepx mtp bytesperunit>
+	  D9 87 <dVHVsin mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
+	  D8 87 <dVHGNDtreecz mtp bytesperunit> D9 9F <dVHGNDtreepz mtp bytesperunit> }
+	A = FSINX; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreepx]; => PGF setf32;
+	A = FSINY; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreecy]; => PGF setf32;
+	A = FSINZ; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreepz]; => PGF setf32;
+	[VHGNDvi]+;
+	end;
+
+"VHGND tree trig init"
+	( NOCTIS builds lft_sin/lft_cos by repeatedly adding the binary64
+	  pi/180 step.  Direct degree multiplication differs in low bits and can
+	  change greenmush seeds after the source's float-to-long casts. )
+	A = [VHTtrigready]; ? A != 0 -> VHGND tree trig init done;
+	[VHTtrigi] = 0; [VHTtriga0] = 0; [VHTtriga1] = 0;
+    "VHGND tree trig build"
+	[PGFt] = [VHTtriga0]; [PGFu] = [VHTtriga1]; => PGF ldf64;
+	[PGFi] = FSW0; => PGF sa; => FCos; => F32Narrow; => FStoreF32;
+	A = VHTcostab; A + [VHTtrigi]; [A] = [FS0];
+	[PGFi] = FSW0; => PGF a; => FSin; => F32Narrow; => FStoreF32;
+	A = VHTsintab; A + [VHTtrigi]; [A] = [FS0];
+	[PGFi] = FSW0; => PGF a; [FB0] = VHVDEGLO; [FB1] = VHVDEGHI; => FAdd;
+	[VHTtriga0] = [FA0]; [VHTtriga1] = [FA1];
+	[VHTtrigi]+; A = [VHTtrigi]; ? A <= 360 -> VHGND tree trig build;
+	[VHTtrigready] = 1;
+    "VHGND tree trig init done"
+	end;
+
+"VHGND tree sincos"
+	A = [VHGNDtreeangle]; A % 360; ? A >= 0 -> VHGND tree trig normalized; A + 360;
+    "VHGND tree trig normalized"
+	C = VHTsintab; C + A; [VHVsin] = [C];
+	C = VHTcostab; C + A; [VHVcos] = [C];
+	end;
 
 "VHGND tree polar point"
 	[VHVangle] = [VHGNDtreeangle]; => VHV sincos;

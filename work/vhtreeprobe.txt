@@ -45,7 +45,12 @@
 
 "programme"
 
+	[FCW] = FCWEXT; => FEnter;
 	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
+	[VHTRp] = 0;
+    "VHTR texture fill"
+	A = nw; A + RPBG; A + [VHTRp]; [A] = 16;
+	[VHTRp]+; A = [VHTRp]; ? A < 65536 -> VHTR texture fill;
 	=> PGF constants;
 	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32;
 	( LANE IV's naturally generated giant at cell 66,130.  These tree
@@ -57,11 +62,12 @@
 	[GRtreespreadf] = 1066759344; [GRbranchwidthf] = 1040713088;
 	[GRrootheightf] = 1064547742;
 	[GRtreeflares] = 0; [GRleafflares] = 1; [GRmushscale] = 4095;
-	[VHVcamxi] = 1086769; A = 0; A - 151024; [VHVcamyi] = A;
-	[VHVcamzi] = 2139484; [VHValpha] = 0; [VHVbeta] = 180; => VH set view;
+	=> VH view init;
+	[VHVcamxi] = 1086769; A = 0; A - 147364; [VHVcamyi] = A;
+	[VHVcamzi] = 2184184; [VHValpha] = 0; [VHVbeta] = 180; => VH set view;
 	[PGtexf] = 0; [SPsrc] = 1; [SPflar] = 0; [SPcull] = 0; [SPhalf] = 0;
 	[VHGNDoox] = 1086769; A = 0; A - 149024; [VHGNDooy] = A;
-	[VHGNDooz] = 2139184; [VHGNDh1] = 26066; [VHGNDdepth] = 0;
+	[VHGNDooz] = 2139184; [VHGNDh1] = 26066; [VHGNDdepth] = 1;
 	=> VHGND tree;
 
 	[VHTRp] = 0; [VHTRlit] = 0;
@@ -80,6 +86,7 @@
 	A = nw; A + RADPT; [Block Pointer] = A; [Block Size] = NPIX; [Block Size] * BYTESPERUNIT; isocall;
 	[File Name] = VHTRpagename; [File Position] = 0; [File Command] = SET SIZE;
 	[File Size] = NPIX; [File Size] * BYTESPERUNIT; isocall;
+	=> FLeave;
 	end;
 
 "VHG fpu clean"
