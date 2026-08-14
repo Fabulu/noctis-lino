@@ -5857,7 +5857,13 @@
 	( Source branch face: 3x8 repeating matrix over the live p_background
 	  window.  PGtexoff models txtr += 48 after every face, including a
 	  back-facing face, and is restored before descending to the child. )
-	[SPterrain] = 0; [VHGNDtreefloat] = 2;
+	[SPterrain] = 0; [SPmapfast] = 1; [SPpixfast] = 0; [SPtrifast] = 0;
+	[VHGNDtreefloat] = 2;
+	A = [DBflar]; A & 15; ? A = 0 -> VHGND tree limb pixel fast;
+	A & 1; ? A = 0 -> VHGND tree limb mapper ready;
+    "VHGND tree limb pixel fast"
+	[SPpixfast] = 1;
+    "VHGND tree limb mapper ready"
 	[FI] = 3; => IntToF; [PGFi] = FSTX; => PGF sa;
 	[FI] = 8; => IntToF; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
@@ -5883,7 +5889,7 @@
 	A = [PGtexoff]; A + 48; [PGtexoff] = A;
 	[VHGNDtreeside]+; -> VHGND tree limb face;
     "VHGND tree limb done"
-	[VHGNDtreefloat] = 1;
+	[SPmapfast] = 0; [SPpixfast] = 0; [VHGNDtreefloat] = 1;
 	=> VHGND tree texture restore;
 	end;
 
@@ -5891,7 +5897,13 @@
 	( Terminal source fan.  Its second ring point is rotation+72 and its tip
 	  is rotation+36 regardless of branchdetail.  The 1x3 repeating texture
 	  and 48-byte face stride mirror the source's live txtr window. )
-	[SPterrain] = 0; [VHGNDtreefloat] = 2;
+	[SPterrain] = 0; [SPmapfast] = 1; [SPpixfast] = 0; [SPtrifast] = 1;
+	[VHGNDtreefloat] = 2;
+	A = [DBflar]; A & 15; ? A = 0 -> VHGND tree leaf pixel fast;
+	A & 1; ? A = 0 -> VHGND tree leaf mapper ready;
+    "VHGND tree leaf pixel fast"
+	[SPpixfast] = 1;
+    "VHGND tree leaf mapper ready"
 	[FI] = 1; => IntToF; [PGFi] = FSTX; => PGF sa;
 	[FI] = 3; => IntToF; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
@@ -5916,6 +5928,7 @@
 	A = [PGtexoff]; A + 48; [PGtexoff] = A;
 	[VHGNDtreeside]+; -> VHGND tree leaf face;
     "VHGND tree leaves done"
+	[SPmapfast] = 0; [SPpixfast] = 0; [SPtrifast] = 0;
 	[VHGNDtreefloat] = 1;
 	=> VHGND tree texture restore;
 	end;

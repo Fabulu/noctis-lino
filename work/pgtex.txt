@@ -99,6 +99,9 @@
 	SPn	= 0;
 	SPsave	= 0;
 	SPterrain = 0;			( exact fixed-buffer ground span specialization )
+	SPmapfast = 0;			( exact fixed-slot setup for other mapped polygons )
+	SPpixfast = 0;			( direct TEX5 pixel loop for plain/transparent modes )
+	SPtrifast = 0;			( exact fixed three-vertex basis specialization )
 	PGUVZ	= 0; PGUVX = 0; PGUVY = 0; PGUVK4 = 0;
 	PGfwbase = 0; PGnwbase = 0;
 	PGfpartbase = 0; PGipartbase = 0;
@@ -138,7 +141,7 @@
 "PG ol init"
 	( NIV+ initializes only the already-clamped polygon row interval.  Rows
 	  outside it are never read by edges, trace, or halfscan. )
-	A = [SPterrain]; ? A = 0 -> PG ol init generic;
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG ol init generic;
 	A = fpart; [PGfpartbase] = A; A = ipart; [PGipartbase] = A;
 	{
 	    8B 87 <dEWminy mtp bytesperunit>
@@ -293,7 +296,7 @@
 	A = [EWity]; ? A >= [EWjty] -> PG ew next;
 	C = [EWjty]; C - [EWity]; C+; [EWcx] = C;
 	[EWh] = [EWity];
-	A = [SPterrain]; ? A = 0 -> PG ew intfor;
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG ew intfor;
 	A = fw; [PGfwbase] = A; [PGFi] = FSBNDX;
 	=> PG terrain edge rows native;
 	-> PG ew next;
@@ -363,7 +366,7 @@
 	A = [SPuvi]; A+; [SPuvi] = A;
 	end;
     "PG uv float"
-	A = [SPterrain]; ? A != 0 -> PG uv terrain float;
+	A = [SPterrain]; A | [SPmapfast]; ? A != 0 -> PG uv terrain float;
 	( _z += k3 ; _x += k1 ; _y += k2 ; k4 = 1/_z ;
 	  u = (_x * tempXsize) * k4 ; v = (_y * tempYsize) * k4.
 	  fst _z / fst _x / fst _y are stores to FLOAT locals, so each
@@ -777,6 +780,7 @@
 	    C1 EB 08                             (shr ebx,8)
 	    81 E3 FF 00 00 00                    (u high byte)
 	    09 DA                                (edx |= ebx)
+	    03 97 <dPGtexoff mtp bytesperunit>   (live txtr face offset)
 	    8B AC 96 70 68 06 00                 (ebp = texture[index])
 	    81 E5 FF 00 00 00                    (DOS byte)
 	    03 AF <dSPtinta mtp bytesperunit>    (add tinta)
@@ -793,7 +797,7 @@
 	    81 E2 FF FF 00 00
 	    89 97 <dSPdx mtp bytesperunit>
 	    49                                   (dec ecx)
-	    0F 85 72 FF FF FF                    (jnz block loop)
+	    0F 85 6C FF FF FF                    (jnz block loop)
 	    89 8F <dSPcl mtp bytesperunit>       (publish zero count)
 	    5D                                   (restore ebp)
 	}
@@ -817,6 +821,7 @@
 	    C1 EB 08
 	    81 E3 FF 00 00 00
 	    09 DA
+	    03 97 <dPGtexoff mtp bytesperunit>
 	    8B AC 96 70 68 06 00
 	    81 E5 FF 00 00 00
 	    03 AF <dSPtinta mtp bytesperunit>
@@ -837,8 +842,94 @@
 	    81 E2 FF FF 00 00
 	    89 97 <dSPdx mtp bytesperunit>
 	    49
-	    0F 85 5E FF FF FF
+	    0F 85 58 FF FF FF
 	    89 8F <dSPcl mtp bytesperunit>
+	    5D
+	}
+	end;
+
+"PG mapped transparent pixel native"
+	( One TEX5 transparent pixel: read the destination, add the texture byte,
+	  wrap to eight bits, then publish the same 16-bit UV/DI state as PG px
+	  transp.  The caller retains the source block loop. )
+	{
+	    55
+	    8B B7 <dPGnwbase mtp bytesperunit>
+	    8D 34 B7
+	    8B 87 <dSPdi mtp bytesperunit>
+	    40
+	    25 FF FF 00 00
+	    89 87 <dSPdi mtp bytesperunit>
+	    83 C0 03
+	    25 FF FF 00 00
+	    8B AC 86 A0 8B 10 00
+	    81 E5 FF 00 00 00
+	    8B 97 <dSPdx mtp bytesperunit>
+	    81 E2 00 FF 00 00
+	    8B 9F <dSPax mtp bytesperunit>
+	    C1 EB 08
+	    81 E3 FF 00 00 00
+	    09 DA
+	    03 97 <dPGtexoff mtp bytesperunit>
+	    8B 9C 96 70 68 06 00
+	    81 E3 FF 00 00 00
+	    01 DD
+	    81 E5 FF 00 00 00
+	    8B 9F <dSPax mtp bytesperunit>
+	    03 9F <dSPbp mtp bytesperunit>
+	    81 E3 FF FF 00 00
+	    89 9F <dSPax mtp bytesperunit>
+	    89 AC 86 A0 8B 10 00
+	    8B 97 <dSPdx mtp bytesperunit>
+	    03 97 <dSPsi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    89 97 <dSPdx mtp bytesperunit>
+	    5D
+	}
+	end;
+
+"PG mapped transparent cull pixel native"
+	( Culling's transparent mode samples the old right pixel, then writes the
+	  resulting byte to both duplicated destinations in source order. )
+	{
+	    55
+	    8B B7 <dPGnwbase mtp bytesperunit>
+	    8D 34 B7
+	    8B 87 <dSPdi mtp bytesperunit>
+	    83 C0 02
+	    25 FF FF 00 00
+	    89 87 <dSPdi mtp bytesperunit>
+	    89 C3
+	    83 C3 03
+	    81 E3 FF FF 00 00
+	    8B AC 9E A0 8B 10 00
+	    81 E5 FF 00 00 00
+	    8B 97 <dSPdx mtp bytesperunit>
+	    81 E2 00 FF 00 00
+	    8B 9F <dSPax mtp bytesperunit>
+	    C1 EB 08
+	    81 E3 FF 00 00 00
+	    09 DA
+	    03 97 <dPGtexoff mtp bytesperunit>
+	    8B 9C 96 70 68 06 00
+	    81 E3 FF 00 00 00
+	    01 DD
+	    81 E5 FF 00 00 00
+	    8B 9F <dSPax mtp bytesperunit>
+	    03 9F <dSPbp mtp bytesperunit>
+	    81 E3 FF FF 00 00
+	    89 9F <dSPax mtp bytesperunit>
+	    89 C3
+	    83 C3 02
+	    81 E3 FF FF 00 00
+	    89 AC 9E A0 8B 10 00
+	    83 C0 03
+	    25 FF FF 00 00
+	    89 AC 86 A0 8B 10 00
+	    8B 97 <dSPdx mtp bytesperunit>
+	    03 97 <dSPsi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    89 97 <dSPdx mtp bytesperunit>
 	    5D
 	}
 	end;
@@ -859,7 +950,12 @@
 	A = [SPv]; A & 65535; [SPdx] = A;
 	[SPu] = [SPun]; [SPv] = [SPvn];
     "PG terrain pixel"
+	A = [SPflar]; A & 1; ? A != 0 -> PG mapped transparent pixel;
 	=> PG terrain pixel native;
+	-> PG terrain row;
+    "PG mapped transparent pixel"
+	=> PG mapped transparent pixel native;
+	[SPcl]-; A = [SPcl]; ? A != 0 -> PG mapped transparent pixel;
 	-> PG terrain row;
     "PG terrain row end"
 	end;
@@ -882,7 +978,13 @@
 	[SPu] = [SPun]; [SPv] = [SPvn];
 	A = [SPdi]; [SPsave] = A;
     "PG terrain cull pixel"
+	A = [SPflar]; A & 1; ? A != 0 -> PG mapped transparent cull pixel;
 	=> PG terrain cull pixel native;
+	A = [SPsave]; A + 32; A & 65535; [SPdi] = A;
+	-> PG terrain crow;
+    "PG mapped transparent cull pixel"
+	=> PG mapped transparent cull pixel native;
+	[SPcl]-; A = [SPcl]; ? A != 0 -> PG mapped transparent cull pixel;
 	A = [SPsave]; A + 32; A & 65535; [SPdi] = A;
 	-> PG terrain crow;
     "PG terrain crow end"
@@ -893,7 +995,7 @@
 	sample and [SPdi] the row's starting offset. )
 
 "PG scanline"
-	A = [SPterrain]; ? A = 0 -> PG scanline generic;
+	A = [SPterrain]; A | [SPpixfast]; ? A = 0 -> PG scanline generic;
 	A = fw; [PGfwbase] = A; A = nw; [PGnwbase] = A;
 	A = [SPcull]; A & 1; ? A != 0 -> PG scanline terrain cull;
 	=> PG terrain row; end;

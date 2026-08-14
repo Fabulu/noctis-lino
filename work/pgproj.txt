@@ -805,7 +805,7 @@
 
 "PJ vectors"
 	A = fw; [PJfwbase] = A;
-	A = [SPterrain]; ? A != 0 -> PJ vectors terrain;
+	A = [SPterrain]; A | [SPtrifast]; ? A != 0 -> PJ vectors terrain;
 	( midx/midy/midz - the divisor is a DOUBLE literal, 0.3333333 for
 	  three vertices and 0.25 for four. )
 	A = [PJnrv]; C = 3; ? A = 3 -> PJ vc n3; C = 4;
@@ -944,7 +944,7 @@
     "PJ vc cross"
 	( Dynamic fixed-slot cross kernel.  Products, subtraction and scale still
 	  spill separately to binary64; the destination still narrows via FS0. )
-	A = [SPterrain]; ? A = 0 -> PJ vc cross generic;
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PJ vc cross generic;
 	{
 	    8B B7 <dPJfwbase mtp bytesperunit>
 	    8D 34 B7
@@ -1351,12 +1351,12 @@
 "PG trace"
 	A = PGSCRT; A + PGDOFF; [PGdi] = A; [PGval] = [SPtinta]; => PG store;
 	A = PGSCRE; A + PGDOFF; [PGdi] = A; [PGval] = [SPescr];  => PG store;
-	A = [SPterrain]; ? A = 0 -> PG tr bases ready;
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG tr bases ready;
 	A = fw; [PJfwbase] = A; A = ipart; [PJipartbase] = A;
     "PG tr bases ready"
 	[SPi] = [BXminy];
     "PG tr row"
-	A = [SPterrain]; ? A = 0 -> PG tr row generic;
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG tr row generic;
 	=> PG terrain trace row native;
 	-> PG tr raster;
     "PG tr row generic"
@@ -1509,7 +1509,7 @@
 
 	( k1/k2/k3 = 16*vx/vy/vz, doubled when culling halves the
 	  horizontal sampling rate. )
-	A = [SPterrain]; ? A = 0 -> PG pm k generic;
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG pm k generic;
 	=> PG terrain block steps native;
 	-> PG pm k;
     "PG pm k generic"
