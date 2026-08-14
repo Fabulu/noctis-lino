@@ -56,3 +56,15 @@ galaxy, galaxy2, mulcheck (16-bit `*'`), ft2 all produce byte-identical
 output to the Linux x86_64 builds. vhgame runs and is playable under
 Rosetta with the native Cocoa window: WASD moves, arrows look,
 right-click-drag looks around, menu clicks work, ESC exits.
+
+## Headless mode
+
+Any compiled program accepts `--headless`: the runtime prints the game's
+epoch (UTC seconds since 1984-01-01, the same value the game keeps in
+`VHGutcsecs`) to stdout and exits without opening a window. A simple
+template for headless/automation hooks.
+
+```sh
+./vhgame.exe --headless
+# in-game epoch: 1344936754 seconds since 1984-01-01 UTC
+```
