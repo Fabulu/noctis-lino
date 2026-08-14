@@ -26,9 +26,9 @@ So the rules this file now works by:
   2. NO ASSERTED DEFECTS. An XFAIL is a promise to fix something later.
      Wave 5 used three of them to record defects this wave was told to
      fix; all three are now positive assertions and the evidence for
-     each removal is in WAVE5B_CORRECTIONS.md. One NEW xfail remains,
-     for the call-site census this wave genuinely did NOT close, and it says
-     precisely what is still broken and at what boundary.
+     each removal is in WAVE5B_CORRECTIONS.md. The two later XFAILs are
+     closed as well: H7 covers the fast-host servo ceiling, while the
+     production surface corpus covers the class-A game callers.
   3. NOTHING IS GRADED AGAINST A STORED ARTIFACT. Both sides are
      recomputed on every run: the lino is rebuilt from work/fb*.txt, the
      model is re-derived from the 1996 sources and from arithmetic.
@@ -36,7 +36,7 @@ So the rules this file now works by:
 WHAT THE SIX DEFECTS COST, AND WHERE EACH IS NOW GRADED
 =======================================================
 CRITICAL 1  the servo wrapped .............. H1 H2 H3 H4 H7 T4
-CRITICAL 2  class A could not wrap ......... M1 M2 M3 M4 M5, xfail X2
+CRITICAL 2  class A could not wrap ......... M1 M2 M3 M4 M5
 MAJOR 3     the pads had two jobs .......... Z1 Z2 C2 C3 O2 O3 O3b
 MAJOR 4     tier 2 for palette and LUT ..... P1 P2 P3 F1 F2 F3 (see note)
 MAJOR 5     the canary passed regardless ... C1 C2 C3
@@ -73,10 +73,12 @@ WHAT IS NOT COVERED - stated plainly, not implied
 =================================================
   * ANYTHING THAT NEEDS A RENDERER. No polygons, globes, textures, and
     no frame compared against DOSBox-X. Wave 5 has no renderer.
-  * WHETHER THE GAME EVER PERFORMS A CLASS-A WRAP. X2. The mask is
-    proved to reproduce a 16-bit fold at two truncation points with the
-    two distinct deltas the two sites require; no CALL SITE of the game
-    drives it, because Wave 5 has no spot() and no cirrus().
+  * WHETHER THE GAME EVER PERFORMS A CLASS-A WRAP. Wave 5 itself cannot
+    answer this because it has no surface renderer. The later production
+    `supaint.txt` implements `spot`, `cirrus`, `crater`, `wave`, `volcano`
+    and `atm_cyclon` with their site-specific truncation order, and
+    `test_surface.py` runs those actual Lino painters across the complete
+    surface corpus. This is no longer an open product question.
   * WHETHER THE INDEX PAGE MATCHES noctis-harness. It does not, and this
     file does not claim otherwise: w5probe's page fixture and
     fb_ref.c's are different scenarios, and LINOBUF has no section
@@ -175,7 +177,7 @@ BOUND_MAX_MS = 40.0
 BOUND_DRIFT_MS = 60.0
 BOUND_PRESENT_P50_MS = 10.0
 
-# --------------------------------------------------------- the REMAINING open item
+# --------------------------------------------------------------- open items
 #
 # Wave 5's three xfails asserted defects this wave was told to fix. All three
 # are gone and each removal is justified by evidence, recorded beside the
@@ -194,23 +196,9 @@ BOUND_PRESENT_P50_MS = 10.0
 #      3*[FBSHfirst] + [SHdstb]; "PAL zero" defaults it to pal6 so the seven
 #      tmppal sites need no change. Sabotage S-SHADE-IGNOREDST proves it.
 #
-# What is left is left because it is NOT fixed, and each says at what
-# boundary it breaks so that "still open" is a measurement.
-
 H7 = "H7 the rate-derived servo ceiling prevents fast-host counter aliasing"
-X2 = "X2 no game call site drives the class-A mask"
 
-KNOWN_OPEN = {
-    X2: (
-        "The mask is exercised by 340 synthetic cases per site and "
-        "reproduces both truncation points exactly. It is not exercised by "
-        "any CALL SITE of the game, because Wave 5 has no spot(), cirrus(), "
-        "crater(), wave() or stick(): FBDUMP kind 10 reads calls=0 for "
-        "sites 2..5. The reachability census is therefore NOT exhaustive "
-        "and must not be called so - NOCTIS-0.CPP:4625 (volcano) and "
-        ":4735-4740 (atm_cyclon) are callers whose px can escape and are "
-        "not censused. BUFFERMODEL.md section 5, open item 6."),
-}
+KNOWN_OPEN = {}
 
 # --------------------------------------------------------------- the variants
 
@@ -938,12 +926,6 @@ def grade(blob):
           [S.srvmax_for(g["seed"]) for g in fast], S.HOR_WIN,
           [g["win"] for g in fast], [g["winerr"] for g in fast]))
 
-    # ----------------------------------------------------- the remaining xfail
-    dead = [i for i in range(2, sf[80]) if msk[2 * i] == 0]
-    ck(X2, len(dead) == sf[80] - 2,
-       "class-A sites with no exerciser at all: %s of %d. Only spot and "
-       "cirrus are driven, and only by a synthetic battery" % (dead, sf[80]))
-
     # --------------------------------------------------------- the present
     costs = [c for c in frm if c]
     if sf[63]:
@@ -1133,7 +1115,6 @@ def perturbations(blob):
          bump(_at(idx, S.KPAL6, 2) + 7)),
         (H7, "the fast-host rejection evidence is falsified",
          setv(hor + 6 * 20 + 3, 0)),
-        (X2, "a third class-A site acquires a caller", setv(msk + 4, 1)),
         ("T4 the servo actually ran in the soak, and every sample was accepted",
          "one servo sample rejected as too long", setv(srv + 5, S.SVWLONG)),
         ("T5 period decomposition", "55*cpms off by one", bump(sf + 44)),

@@ -34,9 +34,8 @@ sabotage, and one is a check whose result is a *build failure*.
 
 **2. No asserted defects.** An XFAIL is a promise to fix something later. Wave 5
 used three of them to record defects this wave was told to fix. All three are
-now positive assertions. Two NEW xfails remain, for two things genuinely not
-closed, and each states the boundary at which it breaks so that "still open" is
-a measurement rather than a note.
+now positive assertions. Two new XFAILs remained at the end of Wave 5b; later
+work closed both, as recorded beside their original findings below.
 
 ---
 
@@ -187,24 +186,22 @@ instead of the origin would break it -- but its detail text says outright that
 the 340-case battery is not what makes it true, so nobody can quote it as
 empirical coverage.
 
-### Still open -- X2, XFAIL, and it resolves BUFFERMODEL open item 6
+### Closed after Wave 7 -- former X2
 
-**No game call site drives the mask.** Wave 5 has no `spot()`, `cirrus()`,
-`crater()`, `wave()` or `stick()`: FBDUMP kind 10 reads `calls = 0` for sites
-2..5 and the only callers of the primitives anywhere are the synthetic
-batteries. **The reachability census is not exhaustive and must not be called
-so.** Two callers with the same escape shape are not censused at all:
+Wave 5 had no `spot()`, `cirrus()`, `crater()`, `wave()` or `stick()`, so its
+FBDUMP correctly read zero game calls for sites 2..5. That was a limit of the
+then-current product, not a permanent property of the port. The later
+`work/supaint.txt` production renderer implements all of those painters and the
+two formerly omitted escape-shape callers:
 
 * `volcano` (`NOCTIS-0.CPP:4625`), whose `px = cx + cos(a)*g` runs `g` over
   `cr/2 .. cr−1`;
 * `atm_cyclon` (`:4735-4740`), which applies `px += random(4)` / `px -= random(4)`
   to an already-wrapped unsigned `px` between calls.
 
-Of the omitted callers only the `4990/4993` loop is provably safe
-(`px = ranged_fast_random(360)`, never negative). BUFFERMODEL open item 6 is
-rewritten from "the wrap is not expressible" -- it is now expressible and
-expressed -- to "the mechanism has no game caller", which is the honest remaining
-statement and is Wave 6's first job.
+`tests/test_surface.py` links the actual Lino implementation and grades its
+maps, overlays, RNG counts, and synthetic boundary cases. The mask mechanism
+and its real callers are therefore both present. X2 is closed.
 
 ---
 
@@ -400,7 +397,7 @@ graded on every run.
 |---|---|---|
 | checks | 109 around a rejected model | 156, PASS |
 | unbreakable checks | 1 (`O1b`, comparing two copies of one literal) | 0, and "every graded check is proved breakable" is itself a check |
-| XFAILs | 3, all asserting defects this wave was told to fix | 2, both for things genuinely not closed, each with the boundary |
+| XFAILs | 3, all asserting defects this wave was told to fix | 2 at the end of Wave 5b; both closed by later production work |
 | sabotage builds | 13 | 23 |
 | perturbations | 37 | 59 |
 | servo evidence | 6 single questions, then XFAILed | 9 synthetic origins × 85 firings × 3 legs, with the ORIGINAL estimator as the control |

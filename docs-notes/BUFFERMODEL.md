@@ -616,8 +616,9 @@ quantised to {1,2} periods with 5 skips.
 
 ## 10. What remains open
 
-Ranked. One item is **executable and asserted**: `test_wave5.py` grades item 6
-as XFAIL, so the suite fails the day it is fixed and this list is not updated.
+Ranked. The executable expected-failure list is now empty. The two late items
+that survived Wave 5b were closed by the rate-derived servo bound and by the
+later production surface renderer.
 
 **Items 1, 2, 2b and 5 are CLOSED.** They were defects Wave 5 asserted
 rather than fixed, and each closure is justified by a measurement rather than by
@@ -661,23 +662,16 @@ an edit to this list:
    (`tests/gen/recon_w5c/hostshot4.ps1`). Falsifiable prediction to check in the
    same session: `adapted[63996..63997]` carry `polymap`'s fill colour whenever
    `polymap` has run -- row 199, columns 316-317.
-6. **The class-A mask has no GAME call site, and the census is not
-   exhaustive.** The mechanism itself is closed -- §4.0 replaces
-   "1,540 units, no code" with a mask at each site's own truncation point, and
-   both deltas (65,536 for `spot`, 32,768 for `cirrus`) are measured with
-   min = max over 212 and 208 wrapping cases. What is **not** closed is
-   reachability. Wave 5 has no `spot()`, `cirrus()`, `crater()`, `wave()` or
-   `stick()`: `FBDUMP` kind 10 reads `calls = 0` for sites 2..5, and the only
-   callers of the masking primitives anywhere are the two synthetic batteries.
-   The census must therefore **not** be called exhaustive. Two callers with the
-   same escape shape are not censused at all: `volcano` (`NOCTIS-0.CPP:4625`),
-   whose `px = cx + cos(a)*g` runs `g` over `cr/2 .. cr-1`, and `atm_cyclon`
-   (`:4735-4740`), which applies `px += random(4)` / `px -= random(4)` to an
-   already-wrapped unsigned `px` between calls. Of the omitted callers only the
-   `4990/4993` loop is provably safe (`px = ranged_fast_random(360)`, never
-   negative). The remaining audit -- `Segmento`/`Stick` `riga[]`, `mask_pixels`,
-   `pv_dep_i` -- **is Wave 6's first job**, and it is now an audit of *call
-   sites* rather than of the mechanism. *Guarded by:* X2, XFAIL.
+6. ~~**The class-A mask has no game call site.**~~ **Closed after Wave 7.**
+   Wave 5 itself had no surface renderer, so its dump correctly recorded no
+   game callers. `work/supaint.txt` now contains the production `spot`,
+   `cirrus`, `crater`, `wave`, `volcano`, and `atm_cyclon` paths with the three
+   distinct 16-bit address formulas and the original truncation order.
+   `tests/test_surface.py` links those actual Lino painters and grades complete
+   maps, overlays, draw counts, and synthetic escape cases. The later line and
+   polygon renderers likewise use bounded or explicitly wrapped page
+   addressing. X2 was removed rather than preserved as a historical expected
+   failure.
 7. **`n_globes_map` is `char` (signed)** and is right-shifted. Values are 0..63
    in practice, so it does not bite -- but check the loaded `globes.map` bytes
    rather than silently switching to unsigned.
@@ -737,6 +731,6 @@ list a future wave should read before writing a check.
 workspace in `farmalloc` order, the three overrun classes, the alias register,
 the palette pipeline, the framebuffer and the corrected tick servo are all
 untouched. `test_wave5.py`'s own canary replacement and its 23-sabotage battery
-are untouched. The class-A call-site census remains the one executable XFAIL.
-The former literal `SRVMAX` defect was closed later by the live rate-derived
-bound recorded in item 2b.
+are untouched. Both later executable XFAILs are closed: the class-A callers by
+the production surface renderer and the former literal `SRVMAX` defect by the
+live rate-derived bound recorded in item 2b.

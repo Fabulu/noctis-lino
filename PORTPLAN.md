@@ -1489,11 +1489,12 @@ The index page differs in 63,988 of 64,000 units because `w5probe` and
 Tier 2 (three producers, three sabotages caught). The index page is **Tier 1**.
 Alias 8's premise -- that `farmalloc` returns offset 4 -- is **Tier 0**.
 
-**Two XFAILs were recorded here.** The literal `SRVMAX` defect is now closed:
-the production servo derives a fourfold-safe ceiling from the live counter rate,
-and H7 confirms that a 1,000,000-cpms replay rejects every aliasing window. The
-class-A call-site census remains open: sites 2..5 read zero calls and two
-painters are uncensused.
+**Two XFAILs were recorded here, and both are now closed.** The production
+servo derives a fourfold-safe ceiling from the live counter rate, and H7
+confirms that a 1,000,000-cpms replay rejects every aliasing window. The later
+surface renderer implements the class-A `spot`, `cirrus`, `crater`, `wave`,
+`volcano`, and `atm_cyclon` callers with their site-specific 16-bit truncation
+order; `test_surface.py` exercises the actual Lino painters.
 
 **The lesson worth keeping:** fixing the instance you are pointed at does not
 fix the pattern. The next wave that touches the harness must re-audit every
