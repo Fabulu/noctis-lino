@@ -53,6 +53,8 @@
 	[vhsunfile] = vhsunwname; => VHSUN dump page;
 
 	[VHFray] = 40DDB22Dh;
+	[FS0] = 40DDB22Dh; => FLoadF32;
+	[VHFspaceray0] = [FA0]; [VHFspaceray1] = [FA1];
 	[VHFdist0] = 0; [VHFdist1] = 40692000h;
 	[VHFghost] = 1; => VH space flare;
 	[vhsunfile] = vhsunfname; => VHSUN dump page;

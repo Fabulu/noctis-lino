@@ -1162,8 +1162,11 @@ def main() -> int:
         ))
         and all(token in game for token in (
             "A = [MgStspeed]; ? A != 0 -> VHG render space fade;",
-            "=> VHS fade;", "[VHGspacevalid] = 1;",
+            '"VHG render space clear"', "=> VHG space clear;",
+            '"VHG space clear"', "A = nw; A + RADPT; A + 2880; B = 7280; C = 0;",
+            "B ^ VHG space clear eight;", "=> VHS fade;",
         ))
+        and "VHGspacevalid" not in game
         and "[VHTphase] = [VHGframe];" not in game
         and "A = [VHGframe]; A % 360; [GBstart] = A;" not in game
         and game.count("=> VHT phase advance;") >= 1
@@ -1171,6 +1174,7 @@ def main() -> int:
             "[VHTdosim] = [VHGdosim]; [VHTfast] = [VHGfast];",
             "[VHTinterpok] = [VHGinterpok]; [VHTinterpacc] = [VHGinterpacc];",
             "A = [TKtmp]; A / 360; A % 360; [VHTclockphase] = A;",
+            "[MgApreached] = 1; [MgStspeed] = 0;",
         ))
         and all(token in original0 for token in (
             "if (ap_target_class==11) ap_target_spin = random (30) + 1;",

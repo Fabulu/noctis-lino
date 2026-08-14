@@ -295,7 +295,6 @@
 	VHGmovievalue = 0; VHGmovieden = 0; VHGmoviepos = 0;
 	VHGprofstart = 0; VHGprofnow = 0; VHGprofrender = 0; VHGprofpresent = 0;
 	VHGprofpart = 0; VHGprofspace = 0; VHGprofcupola = 0; VHGprofhull = 0; VHGprofdetail = 0;
-	VHGspacevalid = 0;
 	( Present at the original 18.206 Hz by default. F5 opts into the 60-Hz
 	  presenter; gameplay simulation remains 18.206 Hz in either mode. )
 	VHGfast = 0; VHGfastheld = 0; VHGsimacc = 0; VHGdosim = 1;
@@ -2946,15 +2945,13 @@
 	  the runtime ABI before the first surface/ship floating-point work. )
 	=> VHG fpu clean;
 	A = [VHGmode]; ? A != 0 -> VHG render surface;
-	A = [VHGspacevalid]; ? A = 0 -> VHG render space clear;
 	A = [MgStspeed]; ? A != 0 -> VHG render space fade;
     "VHG render space clear"
-	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
+	=> VHG space clear;
 	-> VHG render space ready;
     "VHG render space fade"
 	=> VHS fade;
     "VHG render space ready"
-	[VHGspacevalid] = 1;
 	=> PGF constants;
 	( The source renderer's 100-unit plane is safe for exterior views, but
 	  from inside the hull a fast turn can put every subdivided leaf of a
@@ -3036,6 +3033,17 @@
 	A = [VHGz]; A + 3100; [VHVcamzi] = A;
 	[VHValpha] = [VHGalpha]; [VHVbeta] = [VHGbeta]; => VH set view;
 	[VHCyor] = 1; => VH polycupola; => VH cupola grid;
+	end;
+
+"VHG space clear"
+	( Stationary Stardrifter frames call pclear(adapted+2880,0) with the
+	  live QUADWORDS=14560.  Clear that exact 58,240-pixel viewport every
+	  frame so additive stars and flares cannot accumulate. )
+	A = nw; A + RADPT; A + 2880; B = 7280; C = 0;
+    "VHG space clear eight"
+	[A] = C; A+; [A] = C; A+; [A] = C; A+; [A] = C; A+;
+	[A] = C; A+; [A] = C; A+; [A] = C; A+; [A] = C; A+;
+	B ^ VHG space clear eight;
 	end;
 
     "VHG interior details"
@@ -6989,6 +6997,10 @@
 	A = [VHGlocaltarget]; A < 1; E = nspray; E + A;
 	[FA0] = [E plus 0]; [FA1] = [E plus 1]; => F32Narrow; [MgPray] = [FS0];
 	[MgPlX0] = 0; [MgPlX1] = 0; [MgPlY0] = 0; [MgPlY1] = 0; [MgPlZ0] = 0; [MgPlZ1] = 0;
+	( A live local-system checkpoint exists only after Vimana has reached the
+	  parent star.  Flight init ran before the checkpoint load, so restore the
+	  outer drive state as well as the fine-approach integrator. )
+	[MgApreached] = 1; [MgStspeed] = 0;
 	[MgStatus] = 5; A = [MgIpreached]; ? A = 0 -> VHG restore local done; [MgStatus] = 12;
 	-> VHG restore local done;
     "VHG restore local inactive"

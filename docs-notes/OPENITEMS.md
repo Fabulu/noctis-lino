@@ -300,10 +300,25 @@ radial-beam layout. Companion radii now remain binary64 through the source's
 the flare boundary. A focused product capture changed no pixels in the sun
 region; its only 20 differences from the prior frame were clock glyphs. The
 false secondary bloom is gone, but exact full-frame corona and palette grading
-against native remains open. The reproducible `orbitmultiple` gallery scene
-uses this open-visor native-matched pose by default. This closes the coordinate
-and beam-layout defect in one real visible-companion context, not the remaining
-cross-context matrix.
+against native remains open.
+
+A second defect was in the checkpoint state rather than the flare raster.
+Restoring an active local system rebuilt the fine-approach integrator but left
+the outer Vimana drive at its startup `stspeed=1`, `ap_reached=0` values. The
+gallery scene was therefore fading and accumulating additive rays as if it
+were still in fast travel, while the native checkpoint was stationary. Active
+local-system checkpoints now restore `stspeed=0`, `ap_reached=1`, and stationary
+space frames perform the source's exact `pclear(adapted+2880,0)` viewport clear.
+The clear is eight-way unrolled so restoring the source boundary does not add
+an interpreter-scale fill penalty. In the same 41-by-31 sun crop, pixels above
+the bright RGB thresholds 160 and 220 fell from 180/141 to 55/31; the native
+frame contains 64/37. This removes the accumulated blue slab and leaves a
+native-sized centre while exact whole-frame grading remains open.
+
+The reproducible `orbitmultiple` gallery scene uses this open-visor
+native-matched pose by default. This closes the coordinate, drive-state, and
+beam-accumulation defects in one real visible-companion context, not the
+remaining cross-context matrix.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
