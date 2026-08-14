@@ -235,6 +235,17 @@ heaviest habitable samples measured about 15.0 ms render plus 1.2 ms present,
 with wildlife-dependent runs near the boundary rather than the former 20 to
 23 ms render cost.
 
+Nearby mammals and birds now defer polygon-midpoint rebuilding until their
+last articulated body transform. The original path rebuilt the complete model
+after scaling, each limb or wing operation, gait, inclination, and heading,
+although no draw or later transform observed any intermediate midpoint set.
+The final coordinates, one final midpoint set, depth sort, painter order, and
+RNG schedule are unchanged. A controlled fixed-checkpoint smoke using the
+committed predecessor and the new executable measured the same habitable scene
+at 12.06 ms and 10.08 ms render time respectively, with the new run holding
+59 FPS. This one-scene measurement is evidence of the removed work, not a
+minimum guarantee for every fauna population or host.
+
 Ordinary generated worlds now bypass the four per-tile ruin-marker probes when
 the authoritative historical-ruin anchor is absent. Those surfaces begin with
 an explicitly wiped ruin chart and have no writer outside the anchored ruin

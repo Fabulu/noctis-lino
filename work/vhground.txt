@@ -4537,7 +4537,9 @@
 	=> VHGND animal interpolate;
 	A = [VHGNDanidist]; ? A > 150000 -> VHGND animal next;
 	=> VHGND fauna view cull; A = [VHGNDviewrz]; ? A = 0 -> VHGND animal hidden;
-	[SPskipmid] = 0; A = [VHGNDanidist]; ? A '< 75000 -> VHGND animal midpoint ready;
+	( No draw observes the intermediate midpoint sets produced after each
+	  body-part transform.  Defer the source-equivalent final set until the
+	  complete model is shaped, avoiding repeated full-model midpoint walks. )
 	[SPskipmid] = 1;
     "VHGND animal midpoint ready"
 
@@ -4662,6 +4664,9 @@
 	A = [VHGNDanidir]; A / 100; A + 180; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
 	[MOya] = [FS0]; [MOxa] = 0; [MOza] = 0; [MOlist] = 0; [MOpid] = 16; [MOvid] = 2;
 	[PVh] = 3; => SP modpv;
+	A = [VHGNDanidist]; ? A '>= 75000 -> VHGND animal final midpoints ready;
+	[PVh] = 3; => SP pv midpoints2;
+    "VHGND animal final midpoints ready"
 
 	[FI] = [VHGNDanix]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanifx] = [FS0];
 	[FI] = [VHGNDaniy]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanify] = [FS0];
@@ -4795,7 +4800,8 @@
 	=> VHGND bird interpolate;
 	A = [VHGNDanidist]; ? A > 150000 -> VHGND bird next;
 	=> VHGND fauna view cull; A = [VHGNDviewrz]; ? A = 0 -> VHGND bird next;
-	[SPskipmid] = 0; A = [VHGNDanidist]; ? A '< 75000 -> VHGND bird midpoint ready;
+	( As with mammals, only the final shaped bird midpoint set reaches drawpv.
+	  Keep every articulated transform but rebuild depth data once at the end. )
 	[SPskipmid] = 1;
     "VHGND bird midpoint ready"
 
@@ -4868,6 +4874,9 @@
 	A = [VHGNDanidir]; A / 100; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
 	[MOya] = [FS0]; [MOxa] = 0; [MOza] = 0; [MOlist] = 0; [MOpid] = 1; [MOvid] = 0;
 	[PVh] = 5; => SP modpv;
+	A = [VHGNDanidist]; ? A '>= 75000 -> VHGND bird final midpoints ready;
+	[PVh] = 5; => SP pv midpoints2;
+    "VHGND bird final midpoints ready"
 
 	[FI] = [VHGNDanix]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanifx] = [FS0];
 	[FI] = [VHGNDaniy]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanify] = [FS0];

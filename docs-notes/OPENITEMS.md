@@ -480,6 +480,12 @@ Stardrifter viewpoints where they can appear.
 - the Stardrifter interior, cupola, and exterior in both surface and orbital
   situations, plus launch and landing transitions.
 
+For every applicable planet class, star class, and Stardrifter viewpoint, the
+matrix must include a native-positive case in which beams actually render, not
+only a visible disc or a source-gated negative. It must also retain native
+no-beam cases at the distance, weather, occlusion, and transition boundaries so
+that increasing apparent spectacle cannot masquerade as improved fidelity.
+
 Do not treat the beams as incidental flare decoration. Grade their count,
 origin, direction, length, spread, colour, brightness, clipping, and palette
 interaction separately for each planet/sun pairing. The Stardrifter cases must
