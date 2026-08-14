@@ -99,6 +99,8 @@
 	VHGNDgrassax = 0; VHGNDgrassay = 0; VHGNDgrassaz = 0;
 	VHGNDmushx = 0; VHGNDmushy = 0; VHGNDmushz = 0;
 	VHGNDmushpx = 0; VHGNDmushpy = 0; VHGNDmushpz = 0;
+	VHGNDmushfloat = 0; VHGNDmushxf = 0; VHGNDmushyf = 0; VHGNDmushzf = 0;
+	VHGNDmushpxf = 0; VHGNDmushpyf = 0; VHGNDmushpzf = 0;
 	VHGNDmushscale = 0; VHGNDmushmask1 = 0; VHGNDmushmask2 = 0;
 	VHGNDmushbase = 0; VHGNDmushcolmask = 0;
 	VHGNDmushouter = 0; VHGNDmushinner = 0; VHGNDmushoff = 0;
@@ -5431,7 +5433,7 @@
 	[VHGNDmushx] = [VHGNDoox]; A = [VHGNDooy]; A + 150; [VHGNDmushy] = A;
 	[VHGNDmushz] = [VHGNDooz]; [VHGNDmushmask1] = 3; [VHGNDmushmask2] = 7;
 	[VHGNDmushscale] = 1023; [VHGNDmushbase] = 216; [VHGNDmushcolmask] = 31;
-	=> VHGND greenmush; -> VHGND veget done;
+	[VHGNDmushfloat] = 0; => VHGND greenmush; -> VHGND veget done;
     "VHGND veget count ready"
 	A = [VHGNDgrassgroups]; A '* [VHGNDgrassfaces]; [VHGNDgrasstotal] = A;
 	[SPcull] = 0; [DBflar] = 0; [DBent] = 0;
@@ -5488,9 +5490,24 @@
 	( NOCTIS-1.CPP greenmush(): project sparse leaf centres and stamp the
 	  original six-pixel silhouette directly into the adapted page. )
 	A = [VHGNDmushscale]; A > 1; [VHGNDtmp] = A;
+	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer setup;
+	( Tree leaf tips are native binary32 arguments.  Preserve their fractional
+	  bits through x/y/z += correction and each getcoords argument store. )
+	[PGFt] = [VHGNDmushxf]; => PGF ldf32; => VHGND fb fa;
+	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushxf] = [FS0];
+	[PGFt] = [VHGNDmushyf]; => PGF ldf32; => VHGND fb fa;
+	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushyf] = [FS0];
+	[PGFt] = [VHGNDmushzf]; => PGF ldf32; => VHGND fb fa;
+	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushzf] = [FS0];
+	[PGFt] = [VHGNDmushxf]; => PGF ldf32; => FToIntChop; [VHGNDmushx] = [FI];
+	[PGFt] = [VHGNDmushyf]; => PGF ldf32; => FToIntChop; [VHGNDmushy] = [FI];
+	[PGFt] = [VHGNDmushzf]; => PGF ldf32; => FToIntChop; [VHGNDmushz] = [FI];
+	-> VHGND greenmush seed;
+    "VHGND greenmush integer setup"
 	A = [VHGNDmushx]; A + [VHGNDtmp]; [VHGNDmushx] = A;
 	A = [VHGNDmushy]; A + [VHGNDtmp]; [VHGNDmushy] = A;
 	A = [VHGNDmushz]; A + [VHGNDtmp]; [VHGNDmushz] = A;
+	"VHGND greenmush seed"
 	( C's signed long >>14 is an arithmetic shift.  This matters for the
 	  negative world Y of every landed tree and therefore for every foliage
 	  RNG stream. )
@@ -5499,15 +5516,42 @@
 	A = [VHGNDmushz]; A >> 14; A + C; => SU fast srand;
 	[SUfmask] = [VHGNDmushmask1]; => VHGND render random; C + 1; [VHGNDmushouter] = C;
     "VHGND greenmush outer"
-	[SUfmask] = [VHGNDmushscale]; => VHGND render random; A = [VHGNDmushx]; A - C; [VHGNDmushpx] = A;
-	=> VHGND render random; A = [VHGNDmushy]; A - C; [VHGNDmushpy] = A;
-	=> VHGND render random; A = [VHGNDmushz]; A - C; [VHGNDmushpz] = A;
+	( Borland evaluates getcoords(x-fast_random(), y-fast_random(),
+	  z-fast_random()) right-to-left while preparing its stack arguments. )
+	[SUfmask] = [VHGNDmushscale]; => VHGND render random;
+	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer z;
+	[FI] = C; => IntToF; => VHGND fb fa; [PGFt] = [VHGNDmushzf]; => PGF ldf32;
+	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpzf] = [FS0]; -> VHGND greenmush z ready;
+    "VHGND greenmush integer z"
+	A = [VHGNDmushz]; A - C; [VHGNDmushpz] = A;
+    "VHGND greenmush z ready"
+	=> VHGND render random;
+	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer y;
+	[FI] = C; => IntToF; => VHGND fb fa; [PGFt] = [VHGNDmushyf]; => PGF ldf32;
+	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpyf] = [FS0]; -> VHGND greenmush y ready;
+    "VHGND greenmush integer y"
+	A = [VHGNDmushy]; A - C; [VHGNDmushpy] = A;
+    "VHGND greenmush y ready"
+	=> VHGND render random;
+	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer x;
+	[FI] = C; => IntToF; => VHGND fb fa; [PGFt] = [VHGNDmushxf]; => PGF ldf32;
+	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpxf] = [FS0]; -> VHGND greenmush x ready;
+    "VHGND greenmush integer x"
+	A = [VHGNDmushx]; A - C; [VHGNDmushpx] = A;
+    "VHGND greenmush x ready"
 	( getcoords consumes scalar input slot zero, independent of whichever
 	  polygon vertex the previous caller left selected. )
 	[VHGNDvi] = 0;
+	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer inputs;
+	[PGFi] = FSINX; [PGFt] = [VHGNDmushpxf]; => PGF setf32;
+	[PGFi] = FSINY; [PGFt] = [VHGNDmushpyf]; => PGF setf32;
+	[PGFi] = FSINZ; [PGFt] = [VHGNDmushpzf]; => PGF setf32;
+	-> VHGND greenmush project;
+    "VHGND greenmush integer inputs"
 	[VHGNDvv] = [VHGNDmushpx]; [VHGNDvslot] = FSINX; => VHGND vload;
 	[VHGNDvv] = [VHGNDmushpy]; [VHGNDvslot] = FSINY; => VHGND vload;
 	[VHGNDvv] = [VHGNDmushpz]; [VHGNDvslot] = FSINZ; => VHGND vload;
+	"VHGND greenmush project"
 	=> PG getcoords;
 	A = [GCret]; ? A = 0 -> VHGND greenmush outer next;
 	[SUfmask] = [VHGNDmushmask2]; => VHGND render random; C + 1; [VHGNDmushinner] = C;
@@ -5516,8 +5560,11 @@
 	=> VHGND render random; A = [GCx]; A + C; C = [VHGNDmushoff]; C + A; [VHGNDmushoff] = C;
 	[SUfmask] = [VHGNDmushcolmask]; => VHGND render random; C + [VHGNDmushbase];
 	D = nw; D + RADPT; D + [VHGNDmushoff];
-	[D plus 4] = C; [D plus 5] = C; [D plus 3] = C; [D plus 324] = C;
-	A = D; A - 316; [A] = C; A = D; A - 636; [A] = C;
+	( Native loads only adapted's segment into ES; its Borland far-heap
+	  pointer has offset 4.  Thus source displacements +4,+5,+3,+324,
+	  -316,-636 are buffer-relative 0,+1,-1,+320,-320,-640. )
+	[D] = C; [D plus 1] = C; A = D; A - 1; [A] = C; [D plus 320] = C;
+	A = D; A - 320; [A] = C; A = D; A - 640; [A] = C;
 	[VHGNDmushinner]-; A = [VHGNDmushinner]; ? A > 0 -> VHGND greenmush inner;
     "VHGND greenmush outer next"
 	[VHGNDmushouter]-; A = [VHGNDmushouter]; ? A > 0 -> VHGND greenmush outer;
@@ -5567,7 +5614,7 @@
 	A = [VHGNDooy]; A - [VHGNDtmp]; [VHGNDmushy] = A;
 	[VHGNDmushx] = [VHGNDoox]; [VHGNDmushz] = [VHGNDooz];
 	[VHGNDmushscale] = [GRmushscale]; [VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31;
-	=> VHGND greenmush; -> VHGND tree done;
+	[VHGNDmushfloat] = 0; => VHGND greenmush; -> VHGND tree done;
 "VHGND tree forced broadleaf"
 	[VHTforks] = 3; A = [GRtreepeak]; A '* 2; [VHTpeak] = A;
 	[GRtreeci] = 2; { D9 87 <dGRtreepeakf mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
@@ -5605,7 +5652,7 @@
 	[VHGNDmushx] = [VHGNDoox]; A = [VHGNDooy]; A - [VHGNDtmp]; [VHGNDmushy] = A;
 	[VHGNDmushz] = [VHGNDooz]; [VHGNDmushmask1] = 7; [VHGNDmushmask2] = 15;
 	[VHGNDmushscale] = [GRmushscale]; [VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31;
-	=> VHGND greenmush; -> VHGND tree done;
+	[VHGNDmushfloat] = 0; => VHGND greenmush; -> VHGND tree done;
 "VHGND tree configured"
 	[SPcull] = 0; [DBent] = 0; [VHGNDtreelevel] = 0; [VHGNDtreefloat] = 1;
 	=> VHGND tree trig init;
@@ -5823,7 +5870,7 @@
     "VHGND bush distant"
 	[VHGNDmushx] = [VHGNDoox]; [VHGNDmushy] = [VHGNDooy]; [VHGNDmushz] = [VHGNDooz];
 	[VHGNDmushmask1] = 7; [VHGNDmushmask2] = 7; [VHGNDmushscale] = [GRmushscale];
-	[VHGNDmushbase] = 209; [VHGNDmushcolmask] = 31; => VHGND greenmush;
+	[VHGNDmushbase] = 209; [VHGNDmushcolmask] = 31; [VHGNDmushfloat] = 0; => VHGND greenmush;
     "VHGND bush done"
 	end;
 
@@ -5874,9 +5921,9 @@
     "VHGND tree limb pixel fast"
 	[SPpixfast] = 1;
     "VHGND tree limb mapper ready"
-	[FI] = 3; => IntToF; [PGFi] = FSTX; => PGF sa;
-	[FI] = 8; => IntToF; [PGFi] = FSTY; => PGF sa;
-	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
+	[FI] = 768; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = 2048; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 5; A = 0; A - 4; [PGtexoff] = A; [SPsrc] = 1; [SPflar] = [DBflar];
 	[VHGNDtreeside] = 0;
     "VHGND tree limb face"
 	A = [VHGNDtreeside]; ? A '>= [VHGNDtreefaces] -> VHGND tree limb done;
@@ -5914,9 +5961,9 @@
     "VHGND tree leaf pixel fast"
 	[SPpixfast] = 1;
     "VHGND tree leaf mapper ready"
-	[FI] = 1; => IntToF; [PGFi] = FSTX; => PGF sa;
-	[FI] = 3; => IntToF; [PGFi] = FSTY; => PGF sa;
-	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
+	[FI] = 256; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = 768; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 5; A = 0; A - 4; [PGtexoff] = A; [SPsrc] = 1; [SPflar] = [DBflar];
 	[VHGNDtreerad] = [VHGNDtreebr];
 	[VHGNDtreeside] = 0;
     "VHGND tree leaf face"
@@ -5928,13 +5975,11 @@
 	A = [VHGNDtreeangle]; A + 72; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
 	A = [VHGNDtreeangle]; A - 36; [VHGNDtreeangle] = A; => VHGND tree leaf tip vertex;
 	[PJnrv] = 3; => PG polymap;
-	( greenmush remains the integer projection helper; convert the exact leaf
-	  tip only at this compatibility boundary instead of interpreting bits. )
-	[PGFt] = [VHGNDtreepx]; => PGF ldf32; => FToIntChop; [VHGNDmushx] = [FI];
-	[PGFt] = [VHGNDtreeleafdrop]; => PGF ldf32; => FToIntChop; [VHGNDmushy] = [FI];
-	[PGFt] = [VHGNDtreepz]; => PGF ldf32; => FToIntChop; [VHGNDmushz] = [FI];
+	( Native greenmush receives the binary32 leaf-tip arguments themselves. )
+	[VHGNDmushxf] = [VHGNDtreepx]; [VHGNDmushyf] = [VHGNDtreeleafdrop];
+	[VHGNDmushzf] = [VHGNDtreepz]; [VHGNDmushfloat] = 1;
 	[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3; [VHGNDmushscale] = 1023;
-	[VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31; => VHGND greenmush;
+	[VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31; => VHGND greenmush; [VHGNDmushfloat] = 0;
 	A = [PGtexoff]; A + 48; [PGtexoff] = A;
 	[VHGNDtreeside]+; -> VHGND tree leaf face;
     "VHGND tree leaves done"

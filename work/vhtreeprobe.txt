@@ -38,10 +38,14 @@
 	VHGCwindangle = 0; VHGCwindpower = 0;
 	VHTRp = 0; VHTRlit = 0; VHTRname = { vhtree-out.bin };
 	VHTRpagename = { vhtree-page.bin };
+	VHTRtexname = { vhtree-texture.bin }; VHTRheightname = { vhtree-height.bin };
+	VHTRloadname = 0; VHTRloadbase = 0; VHTRloadtotal = 0;
+	VHTRloadpos = 0; VHTRloadchunk = 0; VHTRloadi = 0; VHTRloadok = 0;
+	VHTRtexok = 0; VHTRheightok = 0;
 
 "workspace"
 
-	vhtrout = 8;
+	vhtrout = 10;
 
 "programme"
 
@@ -51,6 +55,12 @@
     "VHTR texture fill"
 	A = nw; A + RPBG; A + [VHTRp]; [A] = 16;
 	[VHTRp]+; A = [VHTRp]; ? A < 65536 -> VHTR texture fill;
+	( Optional native-oracle inputs. Missing files retain the former flat
+	  texture and zero heightmap, so the ordinary focused smoke still runs. )
+	[VHTRloadname] = VHTRtexname; [VHTRloadbase] = RPBG;
+	[VHTRloadtotal] = 65536; => VHTR load raw; [VHTRtexok] = [VHTRloadok];
+	[VHTRloadname] = VHTRheightname; [VHTRloadbase] = RPSM;
+	[VHTRloadtotal] = 40000; => VHTR load raw; [VHTRheightok] = [VHTRloadok];
 	=> PGF constants;
 	[PGFi] = FSUNEG; [PGFt] = 1120403456; => PGF setf32;
 	( LANE IV's naturally generated giant at cell 66,130.  These tree
@@ -79,14 +89,40 @@
 	[vhtrout plus 2] = [VHGNDtreebranch]; [vhtrout plus 3] = [VHGNDtreeside];
 	[vhtrout plus 4] = [VHGNDtreeorient]; [vhtrout plus 5] = [VHGNDtreecol];
 	[vhtrout plus 6] = [VHGNDtreetop]; [vhtrout plus 7] = [VHTRlit];
+	[vhtrout plus 8] = [VHTRtexok]; [vhtrout plus 9] = [VHTRheightok];
 	[File Name] = VHTRname; [File Position] = 0; [File Command] = WRITE;
-	[Block Pointer] = vhtrout; [Block Size] = 32; isocall;
-	[File Name] = VHTRname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 32; isocall;
+	[Block Pointer] = vhtrout; [Block Size] = 40; isocall;
+	[File Name] = VHTRname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 40; isocall;
 	[File Name] = VHTRpagename; [File Position] = 0; [File Command] = WRITE;
 	A = nw; A + RADPT; [Block Pointer] = A; [Block Size] = NPIX; [Block Size] * BYTESPERUNIT; isocall;
 	[File Name] = VHTRpagename; [File Position] = 0; [File Command] = SET SIZE;
 	[File Size] = NPIX; [File Size] * BYTESPERUNIT; isocall;
 	=> FLeave;
+	end;
+
+"VHTR load raw"
+	[VHTRloadpos] = 0; [VHTRloadok] = 1;
+    "VHTR load raw chunk"
+	A = [VHTRloadtotal]; A - [VHTRloadpos];
+	? A <= 0 -> VHTR load raw done;
+	? A <= 32768 -> VHTR load raw size ready; A = 32768;
+    "VHTR load raw size ready"
+	[VHTRloadchunk] = A;
+	[File Name] = [VHTRloadname]; [File Position] = [VHTRloadpos];
+	[File Command] = READ; [Block Pointer] = stage; [Block Size] = [VHTRloadchunk];
+	isocall;
+	A = [Block Size]; ? A = [VHTRloadchunk] -> VHTR load raw unpack;
+	[VHTRloadok] = 0; end;
+    "VHTR load raw unpack"
+	[VHTRloadi] = 0;
+    "VHTR load raw byte"
+	A = [VHTRloadi]; C = A; C > 2; D = stage; D + C; C = [D];
+	A = [VHTRloadi]; A & 3; A '* 8; C > A; C & 255;
+	A = nw; A + [VHTRloadbase]; A + [VHTRloadpos]; A + [VHTRloadi]; [A] = C;
+	[VHTRloadi]+; A = [VHTRloadi]; ? A < [VHTRloadchunk] -> VHTR load raw byte;
+	A = [VHTRloadpos]; A + [VHTRloadchunk]; [VHTRloadpos] = A;
+	-> VHTR load raw chunk;
+    "VHTR load raw done"
 	end;
 
 "VHG fpu clean"
