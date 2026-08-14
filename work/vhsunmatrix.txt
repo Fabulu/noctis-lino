@@ -1,14 +1,16 @@
       ( Cross-class indexed-page oracle for NIV+'s Stardrifter sun path.
 
-	The twelve inputs are real generated stars, one per class.  Each is
-	centred at roughly thirty stellar radii.  The programme writes twelve
-	consecutive 64,000-byte pages for each native checkpoint so they can be
-	compared directly with Borland captures.  Expected combined SHA-256:
+	The first twelve inputs are real generated stars, one per class, centred
+	at roughly thirty stellar radii.  The thirteenth is the exact opening
+	Stardrifter star and 200-unit capture distance used by the production
+	gallery.  The programme writes thirteen consecutive 64,000-byte pages for
+	each native checkpoint so they can be compared directly with Borland
+	captures.  Expected combined SHA-256:
 
-	white  9020021A88612AAB5B0ED8563F28DF875A842A7596D10116A030A8B70F6AC388
-	flare  F2E553E03F03AA02C7DBE53CB9649EAC70702FEA04F05158AC2F34D26A680356
-	smooth 5430E183E0A18C1E8EFEEE64B87505642EA93AC4A0EF712A6BDA2C9BEDDFECFC
-	mask   999AE0327A23635F7CE2E2CBBEEEEFE9873C5606DDD7C899BF9DD04563216EA4 )
+	white  DBD099FE42D0ED8C3CF2B14827B8FAD0BE38830AA41E63C3B382C3EB0BDF4B71
+	flare  109113B8DB1415FDEA137A5495ECD9B15AB307FBC57C392C812FC353AEF5FA89
+	smooth 6B57CDFB90197003D0DC4B50EF16BEF8D2B7330371D1D97B0ADBBD329BCE5C6C
+	mask   C2D7A42830F070DD6FF8CBEC6DBBCA1AD1BBA2EC345B066FDE6E4F299240BBE2 )
 
 "libraries"
 
@@ -29,7 +31,7 @@
 	VHGx = 0; VHGy = 0; VHGz = 0;
 	VHGalpha = 0; VHGbeta = 0; VHGmode = 0; VHGlanded = 0;
 	VHGplanet = 0; VHGframe = 0; VHGdosim = 0; VHGfast = 1;
-	vhsmclass = 0; vhsmray = 0; vhsmd0 = 0; vhsmd1 = 0;
+	vhsmindex = 0; vhsmclass = 0; vhsmray = 0; vhsmd0 = 0; vhsmd1 = 0;
 	vhsmfile = 0; vhsmpos = 0; vhsmleft = 0;
 	vhsmwname = { vhsunm-white.bin };
 	vhsmfname = { vhsunm-flare.bin };
@@ -38,7 +40,7 @@
 
 "workspace"
 
-	vhsmrays = 12; vhsmdlos = 12; vhsmdhis = 12;
+	vhsmrays = 13; vhsmdlos = 13; vhsmdhis = 13;
 
 "programme"
 
@@ -46,13 +48,16 @@
 	=> VH view init; => VHSM fixtures;
 	[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;
 	[VHValpha] = 0; [VHVbeta] = 0; => VH set view;
-	[vhsmclass] = 0; [vhsmpos] = 0;
+	[vhsmindex] = 0; [vhsmpos] = 0;
 
     "VHSM fixture"
 	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
-	A = vhsmrays; A + [vhsmclass]; [vhsmray] = [A];
-	A = vhsmdlos; A + [vhsmclass]; [vhsmd0] = [A];
-	A = vhsmdhis; A + [vhsmclass]; [vhsmd1] = [A];
+	[vhsmclass] = [vhsmindex]; A = [vhsmindex]; ? A != 12 -> VHSM class ready;
+	[vhsmclass] = 0;
+    "VHSM class ready"
+	A = vhsmrays; A + [vhsmindex]; [vhsmray] = [A];
+	A = vhsmdlos; A + [vhsmindex]; [vhsmd0] = [A];
+	A = vhsmdhis; A + [vhsmindex]; [vhsmd1] = [A];
 	[PGFt] = 0; [PGFu] = 0; => PGF ldf64; [PGFi] = SFXX; => PGF sa;
 	[PGFi] = SFYY; => PGF sa;
 	[FA0] = [vhsmd0]; [FA1] = [vhsmd1]; [FI] = 1; => IntToF;
@@ -76,7 +81,7 @@
 	=> VHT mask page;
 	[vhsmfile] = vhsmoname; => VHSM dump page;
 	A = [vhsmpos]; A + 64000; [vhsmpos] = A;
-	[vhsmclass]+; A = [vhsmclass]; ? A < 12 -> VHSM fixture;
+	[vhsmindex]+; A = [vhsmindex]; ? A < 13 -> VHSM fixture;
 
 	[vhsmfile] = vhsmwname; => VHSM size file;
 	[vhsmfile] = vhsmfname; => VHSM size file;
@@ -92,7 +97,7 @@
 	end;
 
 "VHSM size file"
-	[File Name] = [vhsmfile]; [File Command] = SET SIZE; [File Size] = 768000; isocall;
+	[File Name] = [vhsmfile]; [File Command] = SET SIZE; [File Size] = 832000; isocall;
 	end;
 
 "VHSM fixtures"
@@ -103,6 +108,7 @@
 	[vhsmrays plus 6] = 4062B021h; [vhsmrays plus 7] = 4017AE14h;
 	[vhsmrays plus 8] = 40F40831h; [vhsmrays plus 9] = 400AF1AAh;
 	[vhsmrays plus 10] = 41F3374Ch; [vhsmrays plus 11] = 3E828F5Ch;
+	[vhsmrays plus 12] = 40DDB22Dh;
 	( d = abs(relative z) + 1, stored as the source binary64 local. )
 	[vhsmdlos plus 0] = 28F5C28Fh; [vhsmdhis plus 0] = 4066AF5Ch;
 	[vhsmdlos plus 1] = 8F5C28F6h; [vhsmdhis plus 1] = 40860FC2h;
@@ -116,6 +122,7 @@
 	[vhsmdlos plus 9] = EB851EB8h; [vhsmdhis plus 9] = 40508851h;
 	[vhsmdlos plus 10] = E147AE14h; [vhsmdhis plus 10] = 408C887Ah;
 	[vhsmdlos plus 11] = CCCCCCCDh; [vhsmdhis plus 11] = 40214CCCh;
+	[vhsmdlos plus 12] = 00000000h; [vhsmdhis plus 12] = 40692000h;
 	end;
 
 "VHG fpu clean"

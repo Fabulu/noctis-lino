@@ -231,12 +231,17 @@ must match the native renderer in each context.
 reflection, surface occlusion, and brightness-band behaviour now match direct
 NIV+ page dumps. A 12-class star matrix compares four 64,000-byte checkpoints
 per class (white core, flare, smoothing, and mask), with zero differing bytes
-across all 48 comparisons. Eight surface-flare oracle cases likewise have zero
-page differences. Two of those cases use the exact binary32 ray and distance
-captured from the current thin-atmosphere and quartz-world gallery scenes.
+across all 48 comparisons. A thirteenth space case uses the exact opening
+Stardrifter star (`40DDB22D`) and 200-unit gallery distance; its four complete
+pages also match the Borland-built NIV+ oracle with zero differing bytes.
+Eight surface-flare oracle cases likewise have zero page differences. Two of
+those cases use the exact binary32 ray and distance captured from the current
+thin-atmosphere and quartz-world gallery scenes.
 
-**Playable evidence so far.** Sequential production captures show a healthy
-Stardrifter glare and a habitable-world sun disc. East-facing surface captures
+**Playable evidence so far.** A fresh sequential opening Stardrifter capture
+shows a bright filled corona and radial beams at 60 FPS, backed by the exact
+four-stage comparison above rather than appearance alone. The habitable scene
+shows its sun disc. East-facing surface captures
 also expose why the thin-atmosphere and quartz scenes can show a conspicuous
 near-vertical ray across the ground: the captured thin input is ray
 `40A4CCCD`, distance `42E0A1F0`, while quartz is ray `40A4CCCD`, distance
