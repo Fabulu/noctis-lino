@@ -1,5 +1,13 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+Beta 6 extends the orbital gallery across the generated planet classes,
+accelerates every orbital globe and the Stardrifter hull, restores the exact
+crater squared-distance recurrence, reproduces the landed generator's heap-gap
+layout for NIVGEN, and repairs giant-tree generation. The tree now follows the
+initialized NIV+ trigonometric table and binary32 recursion, produces the same
+375 measured leaf tips, and uses a bounded presentation path while its remaining
+tree-face texture-mapper discrepancy stays explicitly open.
+
 This release completes the playable Windows route from the Stardrifter through
 galactic flight, local approach, capsule descent, surface exploration, and
 automatic capsule return. It also repairs the final capsule coordinate-space
