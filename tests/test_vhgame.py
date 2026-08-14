@@ -754,8 +754,10 @@ def main() -> int:
     depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
     check(
-        "[SUfmask] = 7; => VHGND render random;" in shade
-        and "A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;" in shade
+        "8B 87 <dVHGNDh1 mtp bytesperunit>" in shade
+        and "03 87 <dVHGNDseed mtp bytesperunit>" in shade
+        and "F7 E0 00 D0" in shade
+        and "C7 87 <dSUfmask mtp bytesperunit> 07 00 00 00" in shade
         and "=> VHGND tile depth;" in tile
         and "A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;" in tile
         and "D9 FA                              (fsqrt)" in depth

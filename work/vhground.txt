@@ -6528,8 +6528,22 @@
 	  fast_random(7), followed by the source distance haze.  The live
 	  landing fixtures are close to a perpendicular sun, so this is the
 	  active source path and selects surface_palette's ground band 0..63. )
-	A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;
-	[SUfmask] = 7; => VHGND render random;
+	( Fuse the single seed/draw pair paid by every accepted tile.  add al,dl
+	  is the source's unsigned square fold; all public RNG state is retained. )
+	{
+	    8B 87 <dVHGNDh1 mtp bytesperunit>
+	    03 87 <dVHGNDseed mtp bytesperunit>
+	    83 C8 03
+	    89 87 <dSUfseed mtp bytesperunit>
+	    F7 E0 00 D0
+	    89 87 <dSUfeax mtp bytesperunit>
+	    01 87 <dSUfseed mtp bytesperunit>
+	    8B 9F <dSUfseed mtp bytesperunit>
+	    C7 87 <dSUfmask mtp bytesperunit> 07 00 00 00
+	    83 E0 07
+	    89 87 <dSUfval mtp bytesperunit>
+	    89 C1
+	}
 	C + 8; [VHGNDshade] = C;
 	A = [VHGNDdepth]; A > 1; C = [VHGNDshade]; C + A;
 	? C '<= 32 -> VHGND tile shade ready; C = 32;
