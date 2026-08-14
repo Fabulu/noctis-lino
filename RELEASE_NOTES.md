@@ -1,6 +1,6 @@
 # Noctis IV L.in.oleum port -- Windows release
 
-Beta 6 extends the orbital gallery across all generated planet types 0 through 9,
+Beta 7 extends the orbital gallery across all generated planet types 0 through 9,
 accelerates every orbital globe and the Stardrifter hull, restores the exact
 crater squared-distance recurrence, reproduces the landed generator's heap-gap
 layout for NIVGEN, and repairs giant-tree generation. The tree now follows the
