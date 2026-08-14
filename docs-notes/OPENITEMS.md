@@ -198,15 +198,21 @@ output) while the intact 8-record control still produces 8 records.
 
 ---
 
-## 5. Intermittent Stardrifter interior-light flicker -- **OPEN / OBSERVED**
+## 5. Intermittent Stardrifter interior-light flicker -- **SETTLED**
 
-During fresh screenshot capture from the public `v0.1.0-beta.1` build on
-2026-08-10, the interior light was observed flickering while the player was
-standing inside the Stardrifter. This has not yet been reproduced on demand or
-diagnosed, so it remains a possible rendering or light-state bug rather than a
-confirmed cause. A later playtest should record the exact position, movement,
-frame-rate mode, and whether the geometry, palette, or whole presented frame is
-alternating when it occurs.
+The observation came from the public `v0.1.0-beta.1` build on 2026-08-10 and
+predates the source-faithful ship-palette path in `ce730ad`. Current ordinary
+interior lighting updates only on simulation ticks, so 60 FPS presentation
+cannot alternate its palette independently. Random lamp variation remains
+confined to the original emergency-light state.
+
+On 2026-08-14, two fresh production runs held the same fixed Stardrifter view
+for 15 seconds, one at the original 18.2 FPS presentation rate and one in
+smooth mode. Their complete 213,956-pixel game viewports were identical. The
+top 54,090-pixel and bottom 72,120-pixel hull-light regions each had zero pixel
+differences as well. Both runs remained healthy and reported 18 and 58 FPS,
+respectively. The earlier report is therefore closed as a defect of the old
+build, not a current rendering fault.
 
 ---
 
