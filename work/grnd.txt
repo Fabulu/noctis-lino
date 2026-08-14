@@ -106,6 +106,10 @@
 	GRleafflares	= 0;	( source leaf translucency mode )
 	GRmushscale	= 4095;	( 4095 or 8191 from tree scale )
 	GRtreedraw	= 0;	( fixed-point conversion scratch )
+	( Exact binary32 source parameters retained for the landed tree renderer. )
+	GRtreepeakf = 0; GRtreescalef = 0; GRtreespreadf = 0;
+	GRbranchwidthf = 0; GRrootheightf = 0; GRtreefl = 0;
+	GRtreeacc0 = 0; GRtreeci = 0;
 
 	( ---- control word slots ---- )
 
@@ -118,6 +122,15 @@
 	GRK127L	= 0;	GRK127H	= 0;	( 127.0					)
 	GRK254L	= 0;	GRK254H	= 0;	( 254.0					)
 	GRKPIL	= 0;	GRKPIH	= 0;	( M_PI = 3.14159265...			)
+	GRKFL0 = 7EDA0BE1h; GRKFL1 = 3F00000Eh;	( 0.000030518 )
+	GRK090L = CCCCCCCDh; GRK090H = 3FECCCCCh;
+	GRK010L = 9999999Ah; GRK010H = 3FB99999h;
+	GRK075L = 0; GRK075H = 3FE80000h;
+	GRK015L = 33333333h; GRK015H = 3FC33333h;
+	GRK005L = 9999999Ah; GRK005H = 3FA99999h;
+	GRK050L = 0; GRK050H = 3FE00000h;
+	GRK020L = 9999999Ah; GRK020H = 3FC99999h;
+	GRK025L = 0; GRK025H = 3FD00000h;
 
     ( ---- build_surface prologue globals ---- )
 
@@ -384,10 +397,16 @@
 	  live surface renderer.  The calls and their order remain :2004-2034. )
 	A = [GRlat];
 	? A '<= 45 -> GR prol tree2;
-	C = 32767; => SU rnd; A = C; A '* 900; A / 32767; A + 100; [GRtreepeak] = A;
+	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
+	{ D9 87 <dGRtreefl mtp bytesperunit> DC 8F <dGRK090L mtp bytesperunit>
+	  DC 87 <dGRK010L mtp bytesperunit> D9 9F <dGRtreepeakf mtp bytesperunit> }
+	A = C; A '* 900; A / 32767; A + 100; [GRtreepeak] = A;
 	-> GR prol tree3;
 "GR prol tree2"
-	C = 32767; => SU rnd; A = C; A '* 1000; A / 32767; A + 750; [GRtreepeak] = A;
+	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
+	{ D9 87 <dGRtreefl mtp bytesperunit> DC 87 <dGRK075L mtp bytesperunit>
+	  D9 9F <dGRtreepeakf mtp bytesperunit> }
+	A = C; A '* 1000; A / 32767; A + 750; [GRtreepeak] = A;
 "GR prol tree3"
 	C = 3; => SU rnd; [GRrootshade] = 0; A = C; ? A = 0 -> GR prol rootshade done;
 	[GRrootshade] = 128; ? A = 1 -> GR prol rootshade done; [GRrootshade] = 192;
@@ -410,12 +429,30 @@
 "GR prol leafflare four"
 	[GRleafflares] = 4;
 "GR prol leafflare done"
-	C = 32767; => SU rnd; A = C; A '* 3000; A / 32767; A + 3000; [GRtreedraw] = A;
-	C = 32767; => SU rnd; A = C; A '* 1500; A / 32767; C = [GRtreedraw]; C - A; [GRtreescale] = C;
-	C = 32767; => SU rnd; A = C; A '* 500; A / 32767; A + 750; [GRtreedraw] = A;
-	C = 32767; => SU rnd; A = C; A '* 500; A / 32767; C = [GRtreedraw]; C - A; [GRtreespread] = C;
-	C = 32767; => SU rnd; A = C; A '* 150; A / 32767; A + 50; [GRbranchwidth] = A;
-	C = 32767; => SU rnd; A = C; A '* 1000; A / 32767; A + 50; [GRrootheight] = A;
+	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
+	[GRtreeci] = 3000; { D9 87 <dGRtreefl mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
+	  DA 87 <dGRtreeci mtp bytesperunit> DD 9F <dGRtreeacc0 mtp bytesperunit> }
+	A = C; A '* 3000; A / 32767; A + 3000; [GRtreedraw] = A;
+	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
+	[GRtreeci] = 1500; { DD 87 <dGRtreeacc0 mtp bytesperunit> D9 87 <dGRtreefl mtp bytesperunit>
+	  DA 8F <dGRtreeci mtp bytesperunit> DE E9 D9 9F <dGRtreescalef mtp bytesperunit> }
+	A = C; A '* 1500; A / 32767; C = [GRtreedraw]; C - A; [GRtreescale] = C;
+	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
+	{ D9 87 <dGRtreefl mtp bytesperunit> DC 8F <dGRK050L mtp bytesperunit>
+	  DC 87 <dGRK075L mtp bytesperunit> DD 9F <dGRtreeacc0 mtp bytesperunit> }
+	A = C; A '* 500; A / 32767; A + 750; [GRtreedraw] = A;
+	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
+	{ DD 87 <dGRtreeacc0 mtp bytesperunit> D9 87 <dGRtreefl mtp bytesperunit>
+	  DC 8F <dGRK050L mtp bytesperunit> DE E9 D9 9F <dGRtreespreadf mtp bytesperunit> }
+	A = C; A '* 500; A / 32767; C = [GRtreedraw]; C - A; [GRtreespread] = C;
+	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
+	{ D9 87 <dGRtreefl mtp bytesperunit> DC 8F <dGRK015L mtp bytesperunit>
+	  DC 87 <dGRK005L mtp bytesperunit> D9 9F <dGRbranchwidthf mtp bytesperunit> }
+	A = C; A '* 150; A / 32767; A + 50; [GRbranchwidth] = A;
+	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
+	{ D9 87 <dGRtreefl mtp bytesperunit> DC 87 <dGRK005L mtp bytesperunit>
+	  D9 9F <dGRrootheightf mtp bytesperunit> }
+	A = C; A '* 1000; A / 32767; A + 50; [GRrootheight] = A;
 	[GRmushscale] = 4095; A = [GRtreescale]; ? A '<= 4096 -> GR prol tree params done; [GRmushscale] = 8191;
 "GR prol tree params done"
 
@@ -428,6 +465,11 @@
 	[GRgflares] = 8;
 
 "GR prol done"
+	end;
+
+"GR tree flandom"
+	{ DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
+	  D9 9F <dGRtreefl mtp bytesperunit> }
 	end;
 
 ( ==================================================================== )

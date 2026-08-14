@@ -53,6 +53,9 @@
 	  type 3 OCEAN, albedo 40 and latitude 60. )
 	[GRtreescale] = 2428; [GRtreepeak] = 791; [GRtreespread] = 1168;
 	[GRbranchwidth] = 132; [GRrootheight] = 952; [GRrootshade] = 128;
+	[GRtreescalef] = 1159183889; [GRtreepeakf] = 1061859338;
+	[GRtreespreadf] = 1066759344; [GRbranchwidthf] = 1040713088;
+	[GRrootheightf] = 1064547742;
 	[GRtreeflares] = 0; [GRleafflares] = 1; [GRmushscale] = 4095;
 	[VHVcamxi] = 1086769; A = 0; A - 151024; [VHVcamyi] = A;
 	[VHVcamzi] = 2139484; [VHValpha] = 0; [VHVbeta] = 180; => VH set view;

@@ -2921,7 +2921,8 @@ def main() -> int:
             "[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 31;",
             "[VHGNDtreelayers] = 4; [VHTforks] = 3; [VHGNDtreefaces] = 5;",
             "A = VHGNDtslseed;", "C + 3; [A] = C;",
-            "A + [VHGNDtreebz]; A + 12345;",
+            "D8 87 <dVHGNDtreebzf mtp bytesperunit>",
+            "DA 87 <dVHGNDh1 mtp bytesperunit>",
             '"VHGND tree polar vertex"', "A + 72; [VHGNDtreeangle] = A;",
             "A - 36; [VHGNDtreeangle] = A;",
             "A = 180; A / [VHGNDtreebranches]; [VHGNDtreeangle] = A;",
@@ -2929,15 +2930,13 @@ def main() -> int:
             '"VHGND tree wind"', "[VHGNDtreewindx] = A;",
             "[VHGNDtreewindz] = A;",
             "[VHGNDtreelevel]+;", "[VHGNDtreelevel]-;",
-            "[PJnrv] = 4; => PG polymap;", "[PJnrv] = 3; => PG polymap;",
-            "[FI] = 3; => IntToF; [PGFi] = FSTX; => PGF sa;",
-            "[FI] = 8; => IntToF; [PGFi] = FSTY; => PGF sa;",
-            "[FI] = 1; => IntToF; [PGFi] = FSTX; => PGF sa;",
+            "[VHSx0] = [VHGNDtreebxf];", "[VHSx1] = [VHGNDtreeexf];",
+            "[VHScolor] = 62; => VH stick3d;",
             "[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3;",
         ))
         and "crossed trunk" not in tree
         and "crossed leafy crown" not in tree,
-        "trees retain world parameters and execute the full source branch stack",
+        "trees retain binary32 world parameters and execute the source branch stack safely",
     )
     check(
         "if (y > -15000)" in original1

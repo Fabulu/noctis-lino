@@ -79,11 +79,16 @@
 	VHGNDtreefaces = 3; VHGNDtreeleafrad = 0; VHGNDtreeleafdrop = 0;
 	VHGNDtreeleafx = 0; VHGNDtreeleafz = 0;
 	VHGNDtreelevel = 0; VHGNDtreelayers = 0; VHGNDtreeisroot = 0; VHGNDtreeocc = 0;
+	VHGNDtreefloat = 0;
 	VHTkind = 0;
 	VHTforks = 0;
 	VHTpeak = 0;
 	VHTwidth = 0;
 	VHTreduc = 0;
+	VHTpeakf = 0; VHTwidthf = 0; VHTreducf = 0;
+	VHGNDtreebxf = 0; VHGNDtreebyf = 0; VHGNDtreebzf = 0;
+	VHGNDtreeexf = 0; VHGNDtreeeyf = 0; VHGNDtreeezf = 0;
+	VHGNDtreescalef = 0; VHGNDtreerangef = 0; VHTnextscf = 0;
 	VHTrootcol = 0; VHTleafcol = 192; VHTlseed = 0;
 	VHTfacebase = 0; VHTfacestep = 0; VHTnextsc = 0;
 	VHGNDgrassgroups = 0; VHGNDgrassfaces = 0; VHGNDgrasstotal = 0;
@@ -5481,6 +5486,8 @@
 	[SUfmask] = 511; => VHGND render random; [VHTkind] = C;
 	[VHGNDtreescale] = [GRtreescale]; [VHTreduc] = [GRtreespread];
 	[VHTwidth] = [GRbranchwidth]; [VHGNDtreelayers] = 2;
+	[VHGNDtreescalef] = [GRtreescalef]; [VHTreducf] = [GRtreespreadf];
+	[VHTwidthf] = [GRbranchwidthf]; [VHTpeakf] = [GRtreepeakf];
 	[VHTforks] = 2; [VHTpeak] = [GRtreepeak];
 	[VHTrootcol] = [GRrootshade]; [VHTleafcol] = 192;
 	[VHGNDtreefaces] = 3;
@@ -5505,16 +5512,26 @@
 	[VHGNDmushx] = [VHGNDoox]; [VHGNDmushz] = [VHGNDooz];
 	[VHGNDmushscale] = [GRmushscale]; [VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31;
 	=> VHGND greenmush; -> VHGND tree done;
-    "VHGND tree forced broadleaf"
+"VHGND tree forced broadleaf"
 	[VHTforks] = 3; A = [GRtreepeak]; A '* 2; [VHTpeak] = A;
+	[GRtreeci] = 2; { D9 87 <dGRtreepeakf mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
+	  D9 9F <dVHTpeakf mtp bytesperunit> }
 	[VHTrootcol] = 128; -> VHGND tree configured;
-    "VHGND tree forced conifer"
+"VHGND tree forced conifer"
 	[VHTforks] = 2; A = [GRtreepeak]; A / 2; [VHTpeak] = A;
+	{ D9 87 <dGRtreepeakf mtp bytesperunit> DC 8F <dGRK050L mtp bytesperunit>
+	  D9 9F <dVHTpeakf mtp bytesperunit> }
 	[VHTrootcol] = 128; [VHTleafcol] = 64; -> VHGND tree configured;
-    "VHGND tree giant"
+"VHGND tree giant"
 	A = [GRtreescale]; A '* 2; [VHGNDtreescale] = A;
 	A = [GRbranchwidth]; A '* 3; A / 2; [VHTwidth] = A;
 	A = [GRtreepeak]; A '* 3; A / 2; [VHTpeak] = A;
+	[GRtreeci] = 2; { D9 87 <dGRtreescalef mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
+	  D9 9F <dVHGNDtreescalef mtp bytesperunit> }
+	[GRtreeci] = 3; { D9 87 <dGRbranchwidthf mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
+	  DC 8F <dGRK050L mtp bytesperunit> D9 9F <dVHTwidthf mtp bytesperunit> }
+	{ D9 87 <dGRtreepeakf mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
+	  DC 8F <dGRK050L mtp bytesperunit> D9 9F <dVHTpeakf mtp bytesperunit> }
 	A = [VHGNDdepth]; ? A > 11 -> VHGND tree giant mush;
 	? A > 7 -> VHGND tree giant middle; ? A > 4 -> VHGND tree giant near;
 	( The closest GIANT_TREE keeps the source's full four-layer,
@@ -5533,19 +5550,25 @@
 	[VHGNDmushz] = [VHGNDooz]; [VHGNDmushmask1] = 7; [VHGNDmushmask2] = 15;
 	[VHGNDmushscale] = [GRmushscale]; [VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31;
 	=> VHGND greenmush; -> VHGND tree done;
-    "VHGND tree configured"
-	[SPcull] = 0; [DBent] = 0; [VHGNDtreelevel] = 0;
-	A = VHGNDtsx; [A] = [VHGNDoox]; A = VHGNDtsy; [A] = [VHGNDooy];
-	A = VHGNDtsz; [A] = [VHGNDooz]; A = VHGNDtsscale; [A] = [VHGNDtreescale];
+"VHGND tree configured"
+	[SPcull] = 0; [DBent] = 0; [VHGNDtreelevel] = 0; [VHGNDtreefloat] = 1;
+	[FI] = [VHGNDoox]; => IntToF; => F32Narrow; => FStoreF32; A = VHGNDtsx; [A] = [FS0];
+	[FI] = [VHGNDooy]; => IntToF; => F32Narrow; => FStoreF32; A = VHGNDtsy; [A] = [FS0];
+	[FI] = [VHGNDooz]; => IntToF; => F32Narrow; => FStoreF32; A = VHGNDtsz; [A] = [FS0];
+	A = VHGNDtsscale; [A] = [VHGNDtreescalef];
 	A = VHGNDtslayers; [A] = [VHGNDtreelayers]; A = VHGNDtsroot; [A] = 1;
 	A = VHGNDtsocc; [A] = 0;
 	-> VHGND tree node enter;
 
-    "VHGND tree node enter"
-	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebx] = [A];
-	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreeby] = [A];
-	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebz] = [A];
-	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescale] = [A];
+"VHGND tree node enter"
+	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebxf] = [A];
+	[PGFt] = [VHGNDtreebxf]; => PGF ldf32; => FToIntChop; [VHGNDtreebx] = [FI];
+	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreebyf] = [A];
+	[PGFt] = [VHGNDtreebyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeby] = [FI];
+	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebzf] = [A];
+	[PGFt] = [VHGNDtreebzf]; => PGF ldf32; => FToIntChop; [VHGNDtreebz] = [FI];
+	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescalef] = [A];
+	[PGFt] = [VHGNDtreescalef]; => PGF ldf32; => FToIntChop; [VHGNDtreescale] = [FI];
 	A = VHGNDtslayers; A + [VHGNDtreelevel]; [VHGNDtreelayers] = [A];
 	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
 	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
@@ -5554,57 +5577,80 @@
     "VHGND tree node count ready"
 	A = VHGNDtscount; A + [VHGNDtreelevel]; [A] = [VHGNDtreebranches];
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; [A] = 0;
-	( NIV+ build_fractal_tree uses the fixed detail_seed, not the terrain
-	  cell index, so the same world-space tree keeps its native branch RNG. )
-	A = [VHGNDtreebx]; A + [VHGNDtreeby]; A + [VHGNDtreebz]; A + 12345;
-	C = VHGNDtslseed; C + [VHGNDtreelevel]; [C] = A;
-	A = [VHGNDtreescale]; A '* [VHTpeak];
+	( The source seed truncates the sum of its binary32 node coordinates. )
+	{ D9 87 <dVHGNDtreebxf mtp bytesperunit> D8 87 <dVHGNDtreebyf mtp bytesperunit>
+	  D8 87 <dVHGNDtreebzf mtp bytesperunit> DA 87 <dVHGNDh1 mtp bytesperunit>
+	  DD 9F <dFA0 mtp bytesperunit> }
+	=> FToIntChop; A = [FI]; C = VHGNDtslseed; C + [VHGNDtreelevel]; [C] = A;
 	C = [VHGNDtreeisroot]; ? C = 0 -> VHGND tree node nonroot range;
-	A / 5000; -> VHGND tree node range ready;
-    "VHGND tree node nonroot range"
-	A / 2000;
-    "VHGND tree node range ready"
-	[VHGNDtreerange] = A; C = VHGNDtsrange; C + [VHGNDtreelevel]; [C] = A;
+	{ D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTpeakf mtp bytesperunit>
+	  DC 8F <dGRK020L mtp bytesperunit> D9 9F <dVHGNDtreerangef mtp bytesperunit> }
+	-> VHGND tree node range ready;
+"VHGND tree node nonroot range"
+	{ D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTpeakf mtp bytesperunit>
+	  DC 8F <dGRK050L mtp bytesperunit> D9 9F <dVHGNDtreerangef mtp bytesperunit> }
+"VHGND tree node range ready"
+	[PGFt] = [VHGNDtreerangef]; => PGF ldf32; => FToIntChop; [VHGNDtreerange] = [FI];
+	C = VHGNDtsrange; C + [VHGNDtreelevel]; [C] = [VHGNDtreerangef];
 	-> VHGND tree node branch;
 
-    "VHGND tree node branch"
-	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebx] = [A];
-	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreeby] = [A];
-	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebz] = [A];
-	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescale] = [A];
+"VHGND tree node branch"
+	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebxf] = [A];
+	[PGFt] = [VHGNDtreebxf]; => PGF ldf32; => FToIntChop; [VHGNDtreebx] = [FI];
+	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreebyf] = [A];
+	[PGFt] = [VHGNDtreebyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeby] = [FI];
+	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebzf] = [A];
+	[PGFt] = [VHGNDtreebzf]; => PGF ldf32; => FToIntChop; [VHGNDtreebz] = [FI];
+	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescalef] = [A];
+	[PGFt] = [VHGNDtreescalef]; => PGF ldf32; => FToIntChop; [VHGNDtreescale] = [FI];
 	A = VHGNDtslayers; A + [VHGNDtreelevel]; [VHGNDtreelayers] = [A];
 	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
 	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
 	A = VHGNDtscount; A + [VHGNDtreelevel]; [VHGNDtreebranches] = [A];
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; [VHGNDtreebranch] = [A];
 	A = [VHGNDtreebranch]; ? A '>= [VHGNDtreebranches] -> VHGND tree node pop;
-	A = VHGNDtsrange; A + [VHGNDtreelevel]; [VHGNDtreerange] = [A];
+	A = VHGNDtsrange; A + [VHGNDtreelevel]; [VHGNDtreerangef] = [A];
+	[PGFt] = [VHGNDtreerangef]; => PGF ldf32; => FToIntChop; [VHGNDtreerange] = [FI];
 	=> VHGND tree direction;
 	A = VHGNDtslseed; A + [VHGNDtreelevel]; C = [A]; [VHTlseed] = C;
 	C + 3; [A] = C; A = [VHTlseed]; => SU fast srand;
 	A = [VHGNDtreelayers]; ? A = 0 -> VHGND tree terminal;
 
-	A = [VHGNDtreepx]; A + [VHGNDtreebx]; [VHGNDtreeex] = A;
-	A = [VHGNDtreepz]; A + [VHGNDtreebz]; [VHGNDtreeez] = A;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDtreescale]; A '/ 32767;
+	{ D9 87 <dVHVcos mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
+	  D8 87 <dVHGNDtreebxf mtp bytesperunit> D9 9F <dVHGNDtreeexf mtp bytesperunit>
+	  D9 87 <dVHVsin mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
+	  D8 87 <dVHGNDtreebzf mtp bytesperunit> D9 9F <dVHGNDtreeezf mtp bytesperunit> }
+	[PGFt] = [VHGNDtreeexf]; => PGF ldf32; => FToIntChop; [VHGNDtreeex] = [FI];
+	[PGFt] = [VHGNDtreeezf]; => PGF ldf32; => FToIntChop; [VHGNDtreeez] = [FI];
+	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
 	C = [VHGNDtreeisroot]; ? C = 0 -> VHGND tree child nonroot height;
-	A '* [GRrootheight]; A / 1000; C = [VHGNDtreescale]; C / 10; A + C;
+	{ D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dGRrootheightf mtp bytesperunit>
+	  DC 87 <dGRK010L mtp bytesperunit> D8 8F <dVHGNDtreescalef mtp bytesperunit>
+	  D9 87 <dVHGNDtreebyf mtp bytesperunit> DE E1 D9 9F <dVHGNDtreeeyf mtp bytesperunit> }
 	-> VHGND tree child height ready;
-    "VHGND tree child nonroot height"
-	A / 4; C = [VHGNDtreescale]; C / 16; A + C;
-    "VHGND tree child height ready"
-	C = [VHGNDtreeby]; C - A; [VHGNDtreeey] = C;
-	A = [VHGNDtreescale]; A '* [VHTreduc]; A / 1000; [VHTnextsc] = A;
-	A = [VHGNDtreescale]; A '* [VHTwidth]; A / 1000; [VHGNDtreebr] = A;
-	A = [VHTnextsc]; A '* [VHTwidth]; A / 1000; [VHGNDtreeer] = A;
+"VHGND tree child nonroot height"
+	{ D9 87 <dGRtreefl mtp bytesperunit> DC 87 <dGRK025L mtp bytesperunit>
+	  D8 8F <dVHGNDtreescalef mtp bytesperunit> DC 8F <dGRK025L mtp bytesperunit>
+	  D9 87 <dVHGNDtreebyf mtp bytesperunit> DE E1 D9 9F <dVHGNDtreeeyf mtp bytesperunit> }
+"VHGND tree child height ready"
+	[PGFt] = [VHGNDtreeeyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeey] = [FI];
+	{ D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTreducf mtp bytesperunit>
+	  D9 9F <dVHTnextscf mtp bytesperunit>
+	  D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTwidthf mtp bytesperunit>
+	  DD 9F <dFA0 mtp bytesperunit> }
+	=> FToIntChop; [VHGNDtreebr] = [FI];
+	{ D9 87 <dVHTnextscf mtp bytesperunit> D8 8F <dVHTwidthf mtp bytesperunit>
+	  DD 9F <dFA0 mtp bytesperunit> }
+	=> FToIntChop; [VHGNDtreeer] = [FI];
+	[PGFt] = [VHTnextscf]; => PGF ldf32; => FToIntChop; [VHTnextsc] = [FI];
 	A = [VHGNDtreeocc]; A '* 9; A + [VHTrootcol]; [VHTfacebase] = A;
 	[VHTfacestep] = 4; [DBflar] = [GRtreeflares]; => VHGND tree limb;
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; C = [A]; C + 1; [A] = C;
 	[VHGNDtreelevel]+;
-	A = VHGNDtsx; A + [VHGNDtreelevel]; [A] = [VHGNDtreeex];
-	A = VHGNDtsy; A + [VHGNDtreelevel]; [A] = [VHGNDtreeey];
-	A = VHGNDtsz; A + [VHGNDtreelevel]; [A] = [VHGNDtreeez];
-	A = VHGNDtsscale; A + [VHGNDtreelevel]; [A] = [VHTnextsc];
+	A = VHGNDtsx; A + [VHGNDtreelevel]; [A] = [VHGNDtreeexf];
+	A = VHGNDtsy; A + [VHGNDtreelevel]; [A] = [VHGNDtreeeyf];
+	A = VHGNDtsz; A + [VHGNDtreelevel]; [A] = [VHGNDtreeezf];
+	A = VHGNDtsscale; A + [VHGNDtreelevel]; [A] = [VHTnextscf];
 	A = VHGNDtslayers; A + [VHGNDtreelevel]; C = [VHGNDtreelayers]; C - 1; [A] = C;
 	A = VHGNDtsroot; A + [VHGNDtreelevel]; [A] = 0;
 	A = VHGNDtsocc; A + [VHGNDtreelevel]; C = [VHGNDtreeocc]; C + 1; [A] = C;
@@ -5633,8 +5679,8 @@
     "VHGND tree node pop"
 	A = [VHGNDtreelevel]; ? A = 0 -> VHGND tree done;
 	[VHGNDtreelevel]-; -> VHGND tree node branch;
-    "VHGND tree done"
-	[DBflar] = 0;
+"VHGND tree done"
+	[DBflar] = 0; [VHGNDtreefloat] = 0;
 	end;
 
 "VHGND bush"
@@ -5666,7 +5712,7 @@
 	[SUfmask] = 32767; => SU frnd; A = C; A '* 750; A '/ 32767; A + 187;
 	C = [VHGNDooy]; C - A; [VHGNDtreeey] = C;
 	[VHTfacebase] = 0; [VHTfacestep] = 4;
-	[DBflar] = [GRtreeflares]; => VHGND tree limb;
+	[VHGNDtreefloat] = 0; [DBflar] = [GRtreeflares]; => VHGND tree limb;
 	( Terminal layer: width 2250*.15 and range 2250*1.5*.5. )
 	[VHGNDtreeleafrad] = 337;
 	[SUfmask] = 32767; => SU frnd; A = C; A '* 1687; A '/ 32767; A + [VHGNDtreeex]; [VHGNDtmp] = A;
@@ -5699,6 +5745,24 @@
 "VHGND tree limb"
 	( NIV+ maps visible limb faces through the ground texture at 3x8 and
 	  advances the texture window 48 bytes after every attempted face. )
+	( Until the general textured mapper can reproduce the native tree faces,
+	  retain the exact recursive endpoints and draw a bounded centreline.
+	  This prevents malformed faces from spraying palette indices over the
+	  sky while keeping the source branch and foliage topology visible. )
+	A = [VHGNDtreefloat]; ? A = 0 -> VHGND tree limb integer endpoints;
+	[VHSx0] = [VHGNDtreebxf]; [VHSy0] = [VHGNDtreebyf]; [VHSz0] = [VHGNDtreebzf];
+	[VHSx1] = [VHGNDtreeexf]; [VHSy1] = [VHGNDtreeeyf]; [VHSz1] = [VHGNDtreeezf];
+	-> VHGND tree limb endpoints ready;
+    "VHGND tree limb integer endpoints"
+	[FI] = [VHGNDtreebx]; => IntToF; => F32Narrow; => FStoreF32; [VHSx0] = [FS0];
+	[FI] = [VHGNDtreeby]; => IntToF; => F32Narrow; => FStoreF32; [VHSy0] = [FS0];
+	[FI] = [VHGNDtreebz]; => IntToF; => F32Narrow; => FStoreF32; [VHSz0] = [FS0];
+	[FI] = [VHGNDtreeex]; => IntToF; => F32Narrow; => FStoreF32; [VHSx1] = [FS0];
+	[FI] = [VHGNDtreeey]; => IntToF; => F32Narrow; => FStoreF32; [VHSy1] = [FS0];
+	[FI] = [VHGNDtreeez]; => IntToF; => F32Narrow; => FStoreF32; [VHSz1] = [FS0];
+    "VHGND tree limb endpoints ready"
+	[VHSflare] = 0; [VHScolor] = 62; => VH stick3d;
+	end;
 	[FI] = 3; => IntToF; [PGFi] = FSTX; => PGF sa;
 	[FI] = 8; => IntToF; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
@@ -5743,7 +5807,6 @@
 	A = [VHGNDtreeleafz]; A + [VHGNDtreewindz]; [VHGNDtreecz] = A;
 	[VHGNDtreerad] = [VHGNDtreerange]; A = [VHGNDtreeangle]; A - 36; [VHGNDtreeangle] = A;
 	A = [VHGNDtreeey]; A - [VHGNDtreeleafdrop]; [VHGNDtreecy] = A; => VHGND tree polar vertex;
-	[PJnrv] = 3; => PG polymap;
 	[VHGNDmushx] = [VHGNDtreepx]; [VHGNDmushy] = [VHGNDtreecy]; [VHGNDmushz] = [VHGNDtreepz];
 	[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3; [VHGNDmushscale] = 1023;
 	[VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31; => VHGND greenmush;

@@ -76,13 +76,12 @@ $scenes = @(
     @{ Name='habitable'; FileName='planet-habitable-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
        Beta=65; Pitch=-10; Warmup=7; PlayerX=1598248; PlayerZ=2251369 },
-    # LANE IV's complete tree at (1045540,2207735), aimed from 45,000 units
-    # east. The former checkpoint faced north from only 9,258 units away, so
-    # its advertised tree was off-screen and an unrelated foliage mass filled
-    # the gallery frame.
+    # LANE IV's naturally generated GIANT_TREE at (1086769,2139184), viewed
+    # from 45,000 units south. This coordinate and its source parameters were
+    # verified directly against the NIV+ tree renderer.
     @{ Name='tree'; FileName='planet-habitable-tree.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
-       Beta=90; Pitch=0; Warmup=2; PlayerX=1090540; PlayerZ=2207735 },
+       Beta=180; Pitch=0; Warmup=2; PlayerX=1086769; PlayerZ=2184184 },
     # LANE IV's naturally generated index-15 hopper, viewed from five
     # thousand surface units away. It remains in its source fauna record;
     # the checkpoint does not inject or relocate showcase scenery.
