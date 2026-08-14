@@ -213,10 +213,12 @@ alternating when it occurs.
 ## 6. Sun beams and lens flares across the game -- **OPEN / DOCKET**
 
 Authenticate the complete sun-beam and lens-flare treatment against native
-captures across every star class, representative surface atmospheres and
-weather states, orbital planet views, and the Stardrifter interior/exterior.
-The comparison must cover direction, occlusion, colour, intensity, geometry,
-and transition behaviour. A flare merely being present is not sufficient.
+captures across every star class, every planet class in representative surface
+atmospheres and weather states, single- and multiple-sun situations, orbital
+planet views, and the Stardrifter interior, cupola, and exterior. The comparison
+must cover direction, occlusion, colour, intensity, geometry, and transition
+behaviour. A flare merely being present is not sufficient; the implementation
+must match the native renderer in each context.
 
 ## 7. Cross-references
 

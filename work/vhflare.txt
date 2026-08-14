@@ -8,24 +8,30 @@
 
 "constants"
 
-	VHFF1 = 1065353216;		( 1.0f )
 	VHFF15 = 1069547520;		( 1.5f )
-	VHFF3 = 1077936128;		( 3.0f )
-	VHFF23 = 1059760811;		( 2/3f )
 	VHFM10 = 3240099840;		( -10.0f )
 	VHFP10 = 1092616192;		( +10.0f )
 
 "variables"
 
-	VHFcx = 0; VHFcy = 0; VHFk = 0; VHFl = 0; VHFu = 0; VHFang = 0;
+	VHFcx = 0; VHFcy = 0; VHFk = 0; VHFang = 0;
+	VHFk0 = 0; VHFk1 = 0; VHFl0 = 0; VHFl1 = 0; VHFu0 = 0; VHFu1 = 0;
+	VHFtrigready = 0; VHFtrigi = 0; VHFtriga0 = 0; VHFtriga1 = 0;
 	VHFadd = 2; VHFpx = 0; VHFpy = 0; VHFpz = 0;
 	VHFdist = 0; VHFdist0 = 0; VHFdist1 = 0; VHFray = 0; VHFstep = 0;
 	VHFok = 0;
-	VHFghost = 0; VHFgdx = 0; VHFgdy = 0; VHFgx = 0; VHFgy = 0; VHFgr = 0;
+	VHFghost = 0; VHFgdx = 0; VHFgdy = 0; VHFgr = 0;
+	VHFgfx = 0; VHFgfy = 0;
 	VHFdx = 0; VHFdy = 0;
 	VHFx0 = 0; VHFy0 = 0; VHFx1 = 0; VHFy1 = 0;
-	VHFldx = 0; VHFldy = 0; VHFlsx = 0; VHFlsy = 0;
-	VHFerr = 0; VHFe2 = 0;
+	VHFclipbound = 0; VHFlineleft = 0; VHFlinetop = 0;
+	VHFlinea = 0; VHFlineb = 0; VHFlineL = 0;
+	VHFlinegx = 0; VHFlinegy = 0; VHFlineend = 0;
+	VHFlineax = 0; VHFlineay = 0; VHFlinep = 0; VHFlinepf = 0;
+
+"workspace"
+
+	VHFsintab = 361; VHFcostab = 361;
 
 "programme"
 
@@ -131,43 +137,70 @@
 	=> VHF surface added;
 
     "VHF draw"
-	[VHFl] = VHFF1; [VHFu] = VHFF15; [VHFang] = 0;
+	( The step callers currently publish k as binary32.  Widen that exact
+	  value, then keep k/l/u in the source's binary64 local format. )
+	[FS0] = [VHFk]; => FLoadF32; [VHFk0] = [FA0]; [VHFk1] = [FA1];
+	[FI] = 1; => IntToF; [VHFl0] = [FA0]; [VHFl1] = [FA1];
+	[PGFt] = VHFF15; => PGF ldf32; [VHFu0] = [FA0]; [VHFu1] = [FA1];
+	[VHFang] = 0; => VHF trig init;
 
     "VHF spoke"
-	[VHVangle] = [VHFang]; => VHV sincos;
-	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
-	[PGFi] = FSW1; [PGFt] = [VHFk]; => PGF setf32;
-	[PGFi] = FSW2; [PGFt] = [VHFl]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW2; => PGF mul;
-	=> PGF int; [VHFdx] = [FI];
-	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW2; => PGF mul;
-	=> PGF int; [VHFdy] = [FI];
+	=> VHF sincos;
+	[PGFt] = [VHVcos]; => PGF ldf32;
+	[FB0] = [VHFk0]; [FB1] = [VHFk1]; => FMul;
+	[FB0] = [VHFl0]; [FB1] = [VHFl1]; => FMul; => FToIntChop; [VHFdx] = [FI];
+	[PGFt] = [VHVsin]; => PGF ldf32;
+	[FB0] = [VHFk0]; [FB1] = [VHFk1]; => FMul;
+	[FB0] = [VHFl0]; [FB1] = [VHFl1]; => FMul; => FToIntChop; [VHFdy] = [FI];
 
-	A = [VHFcx]; A - [VHFdx]; [VHFx0] = A;
-	A = [VHFcy]; A - [VHFdy]; [VHFy0] = A;
-	A = [VHFcx]; A + [VHFdx]; [VHFx1] = A;
-	A = [VHFcy]; A + [VHFdy]; [VHFy1] = A;
-	=> VHF clamp; => VHF additive line;
+	( fline receives coordinates relative to the source's 158,100 centre. )
+	A = [VHFcx]; A - 160; A - [VHFdx]; [VHFx0] = A;
+	A = [VHFcy]; A - 100; A - [VHFdy]; [VHFy0] = A;
+	A = [VHFcx]; A - 160; A + [VHFdx]; [VHFx1] = A;
+	A = [VHFcy]; A - 100; A + [VHFdy]; [VHFy1] = A;
+	=> VHF source fline;
 	A = [VHFghost]; ? A = 0 -> VHF spoke scale;
 	A = [VHFang]; A % 8; ? A != 0 -> VHF spoke scale;
 	=> VHF ghost reflections;
 
 	"VHF spoke scale"
-	[PGFi] = FSW0; [PGFt] = [VHFl]; => PGF setf32;
-	[PGFi] = FSW1; [PGFt] = [VHFu]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
-	=> F32Narrow; => PGF stf32; [VHFl] = [PGFt];
-	A = [VHFl]; ? A > VHFF3 -> VHF flip; ? A < VHFF1 -> VHF flip;
+	[FA0] = [VHFl0]; [FA1] = [VHFl1];
+	[FB0] = [VHFu0]; [FB1] = [VHFu1]; => FMul;
+	[VHFl0] = [FA0]; [VHFl1] = [FA1];
+	[FI] = 3; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHFl0]; [FA1] = [VHFl1]; => FCmp;
+	A = [FI]; ? A > 0 -> VHF flip;
+	[FI] = 1; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHFl0]; [FA1] = [VHFl1]; => FCmp;
+	A = [FI]; ? A < 0 -> VHF flip;
 	-> VHF scale ready;
     "VHF flip"
-	A = [VHFu]; ? A = VHFF15 -> VHF scale down;
-	[VHFu] = VHFF15; -> VHF scale ready;
-    "VHF scale down"
-	[VHFu] = VHFF23;
+	[FI] = 1; => IntToF; [FB0] = [VHFu0]; [FB1] = [VHFu1]; => FQuo;
+	[VHFu0] = [FA0]; [VHFu1] = [FA1];
     "VHF scale ready"
 	A = [VHFang]; A + [VHFadd]; [VHFang] = A; ? A < 180 -> VHF spoke;
     "VHF done"
+	end;
+
+"VHF trig init"
+	A = [VHFtrigready]; ? A != 0 -> VHF trig init done;
+	[VHFtrigi] = 0; [VHFtriga0] = 0; [VHFtriga1] = 0;
+    "VHF trig build"
+	[PGFt] = [VHFtriga0]; [PGFu] = [VHFtriga1]; => PGF ldf64;
+	[PGFi] = FSW0; => PGF sa; => FCos; => F32Narrow; => FStoreF32;
+	A = VHFcostab; A + [VHFtrigi]; [A] = [FS0];
+	[PGFi] = FSW0; => PGF a; => FSin; => F32Narrow; => FStoreF32;
+	A = VHFsintab; A + [VHFtrigi]; [A] = [FS0];
+	[PGFi] = FSW0; => PGF a; [FB0] = VHVDEGLO; [FB1] = VHVDEGHI; => FAdd;
+	[VHFtriga0] = [FA0]; [VHFtriga1] = [FA1];
+	[VHFtrigi]+; A = [VHFtrigi]; ? A <= 360 -> VHF trig build;
+	[VHFtrigready] = 1;
+    "VHF trig init done"
+	end;
+
+"VHF sincos"
+	A = VHFcostab; A + [VHFang]; [VHVcos] = [A];
+	A = VHFsintab; A + [VHFang]; [VHVsin] = [A];
 	end;
 
 "VHF surface added"
@@ -193,70 +226,188 @@
 	  The menu's ALWAYS ON mode forces this path even with the visor HUD open. )
 	A = [VHFdx]; A / 10; [VHFgdx] = A;
 	A = [VHFdy]; A / 10; [VHFgdy] = A;
-	A = [VHFcx]; A - 160; C = 0; C - A; C / 10; [VHFgx] = C;
-	A = [VHFcy]; A - 100; C = 0; C - A; C / 10; [VHFgy] = C;
+	A = [VHFcx]; A - 160; [FI] = A; => IntToF;
+	[FB0] = 9999999Ah; [FB1] = BFB99999h; => FMul; => F32Narrow; [VHFgfx] = [FS0];
+	A = [VHFcy]; A - 100; [FI] = A; => IntToF;
+	[FB0] = 9999999Ah; [FB1] = BFB99999h; => FMul; => F32Narrow; [VHFgfy] = [FS0];
 	[VHFgr] = 0;
     "VHF ghost reflection"
-	A = 160; A + [VHFgx]; A - [VHFgdx]; [VHFx0] = A;
-	A = 100; A + [VHFgy]; A - [VHFgdy]; [VHFy0] = A;
-	A = 160; A + [VHFgx]; A + [VHFgdx]; [VHFx1] = A;
-	A = 100; A + [VHFgy]; A + [VHFgdy]; [VHFy1] = A;
-	=> VHF clamp; => VHF additive line;
+	[FS0] = [VHFgfx]; => FLoadF32; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHFgdx]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1]; => FSub; => FToIntChop; [VHFx0] = [FI];
+	[FA0] = [FT0]; [FA1] = [FT1]; => FAdd; => FToIntChop; [VHFx1] = [FI];
+	[FS0] = [VHFgfy]; => FLoadF32; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHFgdy]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1]; => FSub; => FToIntChop; [VHFy0] = [FI];
+	[FA0] = [FT0]; [FA1] = [FT1]; => FAdd; => FToIntChop; [VHFy1] = [FI];
+	=> VHF source fline;
 	A = [VHFgdx]; A '* 4; [VHFgdx] = A;
 	A = [VHFgdy]; A '* 4; [VHFgdy] = A;
-	A = [VHFgx]; A '* 3; [VHFgx] = A;
-	A = [VHFgy]; A '* 3; [VHFgy] = A;
+	[FS0] = [VHFgfx]; => FLoadF32; [FI] = 3; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FS0] = [VHFgfx]; => FLoadF32; => FMul;
+	=> F32Narrow; [VHFgfx] = [FS0];
+	[FS0] = [VHFgfy]; => FLoadF32; [FI] = 3; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FS0] = [VHFgfy]; => FLoadF32; => FMul;
+	=> F32Narrow; [VHFgfy] = [FS0];
 	[VHFgr]+; A = [VHFgr]; ? A < 3 -> VHF ghost reflection;
 	end;
 
-"VHF clamp"
-	A = [VHFx0]; ? A >= 10 -> VHF cx0u; [VHFx0] = 10;
-    "VHF cx0u"
-	A = [VHFx0]; ? A <= 310 -> VHF cy0l; [VHFx0] = 310;
-    "VHF cy0l"
-	A = [VHFy0]; ? A >= 10 -> VHF cy0u; [VHFy0] = 10;
-    "VHF cy0u"
-	A = [VHFy0]; ? A <= 190 -> VHF cx1l; [VHFy0] = 190;
-    "VHF cx1l"
-	A = [VHFx1]; ? A >= 10 -> VHF cx1u; [VHFx1] = 10;
-    "VHF cx1u"
-	A = [VHFx1]; ? A <= 310 -> VHF cy1l; [VHFx1] = 310;
-    "VHF cy1l"
-	A = [VHFy1]; ? A >= 10 -> VHF cy1u; [VHFy1] = 10;
-    "VHF cy1u"
-	A = [VHFy1]; ? A <= 190 -> VHF clamp done; [VHFy1] = 190;
-    "VHF clamp done"
+( Source fline() clipping order and Stick(..., flares=1) fixed-point
+  sampling.  The original non-vertical Stick path deliberately samples
+  every other fixed-point position and writes at di+4; its vertical special
+  case writes every row without that displacement. )
+"VHF source fline"
+	C = 0; C - 150; [VHFlineleft] = C;
+	C = 0; C - 90; [VHFlinetop] = C;
+	A = [VHFx0]; ? A >= [VHFlineleft] -> VHF fl x1 left;
+	A = [VHFx0]; A - [VHFx1]; ? A = 0 -> VHF fl x1 left;
+	[VHFclipbound] = [VHFlineleft]; => VHF clip x0;
+    "VHF fl x1 left"
+	A = [VHFx1]; ? A >= [VHFlineleft] -> VHF fl y0 top;
+	A = [VHFx1]; A - [VHFx0]; ? A = 0 -> VHF fl y0 top;
+	[VHFclipbound] = [VHFlineleft]; => VHF clip x1;
+    "VHF fl y0 top"
+	A = [VHFy0]; ? A >= [VHFlinetop] -> VHF fl y1 top;
+	A = [VHFy0]; A - [VHFy1]; ? A = 0 -> VHF fl y1 top;
+	[VHFclipbound] = [VHFlinetop]; => VHF clip y0;
+    "VHF fl y1 top"
+	A = [VHFy1]; ? A >= [VHFlinetop] -> VHF fl x0 right;
+	A = [VHFy1]; A - [VHFy0]; ? A = 0 -> VHF fl x0 right;
+	[VHFclipbound] = [VHFlinetop]; => VHF clip y1;
+    "VHF fl x0 right"
+	A = [VHFx0]; ? A <= 160 -> VHF fl x1 right;
+	A = [VHFx0]; A - [VHFx1]; ? A = 0 -> VHF fl x1 right;
+	[VHFclipbound] = 160; => VHF clip x0;
+    "VHF fl x1 right"
+	A = [VHFx1]; ? A <= 160 -> VHF fl y0 bottom;
+	A = [VHFx1]; A - [VHFx0]; ? A = 0 -> VHF fl y0 bottom;
+	[VHFclipbound] = 160; => VHF clip x1;
+    "VHF fl y0 bottom"
+	A = [VHFy0]; ? A <= 90 -> VHF fl y1 bottom;
+	A = [VHFy0]; A - [VHFy1]; ? A = 0 -> VHF fl y1 bottom;
+	[VHFclipbound] = 90; => VHF clip y0;
+    "VHF fl y1 bottom"
+	A = [VHFy1]; ? A <= 90 -> VHF fl reject point;
+	A = [VHFy1]; A - [VHFy0]; ? A = 0 -> VHF fl reject point;
+	[VHFclipbound] = 90; => VHF clip y1;
+    "VHF fl reject point"
+	A = [VHFx0]; ? A != [VHFx1] -> VHF fl bounds;
+	A = [VHFy0]; ? A = [VHFy1] -> VHF source fline done;
+    "VHF fl bounds"
+	A = [VHFy0]; ? A < [VHFlinetop] -> VHF source fline done; ? A > 90 -> VHF source fline done;
+	A = [VHFy1]; ? A < [VHFlinetop] -> VHF source fline done; ? A > 90 -> VHF source fline done;
+	A = [VHFx0]; ? A < [VHFlineleft] -> VHF source fline done; ? A > 160 -> VHF source fline done;
+	A = [VHFx1]; ? A < [VHFlineleft] -> VHF source fline done; ? A > 160 -> VHF source fline done;
+	A = [VHFx0]; A + 158; [VHFx0] = A;
+	A = [VHFx1]; A + 158; [VHFx1] = A;
+	A = [VHFy0]; A + 100; [VHFy0] = A;
+	A = [VHFy1]; A + 100; [VHFy1] = A;
+	=> VHF source stick;
+    "VHF source fline done"
 	end;
 
-"VHF additive line"
-	A = [VHFx1]; A - [VHFx0]; [VHFlsx] = 1; ? A >= 0 -> VHF dx positive;
-	C = 0; C - A; A = C; C = 0; C - 1; [VHFlsx] = C;
-    "VHF dx positive"
-	[VHFldx] = A;
-	A = [VHFy1]; A - [VHFy0]; [VHFlsy] = 1; ? A >= 0 -> VHF dy positive;
-	C = 0; C - 1; [VHFlsy] = C; C = 0; C - A; A = C;
-    "VHF dy positive"
-	C = 0; C - A; [VHFldy] = C;
-	A = [VHFldx]; A + [VHFldy]; [VHFerr] = A;
+"VHF source stick"
+	A = [VHFx0]; ? A != [VHFx1] -> VHF stick nonvertical;
+	A = [VHFy1]; ? A < [VHFy0] -> VHF stick vertical reverse;
+	A = [VHFy0]; A '* 320; A + [VHFx0]; A + RADPT; A + nw; [VHFlinep] = A;
+	A = [VHFy1]; A+; A '* 320; A + RADPT; A + nw; [VHFlinepf] = A;
+	-> VHF stick vertical loop;
+    "VHF stick vertical reverse"
+	A = [VHFy1]; A '* 320; A + [VHFx0]; A + RADPT; A + nw; [VHFlinep] = A;
+	A = [VHFy0]; A+; A '* 320; A + RADPT; A + nw; [VHFlinepf] = A;
+    "VHF stick vertical loop"
+	A = [VHFlinep]; ? A >= [VHFlinepf] -> VHF source stick done; D = A; => VHF brighten;
+	A = [VHFlinep]; A + 320; [VHFlinep] = A; -> VHF stick vertical loop;
 
-    "VHF line loop"
-	A = [VHFy0]; A '* 320; A + [VHFx0]; [SPoff] = A; [SPreg] = RGADP; => SP get;
-	C = [SPval]; D = C; D & 192; C & 63; C + 8;
-	? C <= 62 -> VHF pixel ready; C = 62;
-    "VHF pixel ready"
-	C | D; [SPval] = C; => SP put;
-	A = [VHFx0]; ? A != [VHFx1] -> VHF line step;
-	A = [VHFy0]; ? A = [VHFy1] -> VHF line done;
-    "VHF line step"
-	A = [VHFerr]; A + A; [VHFe2] = A;
-	A = [VHFe2]; ? A < [VHFldy] -> VHF skip x;
-	A = [VHFerr]; A + [VHFldy]; [VHFerr] = A;
-	A = [VHFx0]; A + [VHFlsx]; [VHFx0] = A;
-    "VHF skip x"
-	A = [VHFe2]; ? A > [VHFldx] -> VHF skip y;
-	A = [VHFerr]; A + [VHFldx]; [VHFerr] = A;
-	A = [VHFy0]; A + [VHFlsy]; [VHFy0] = A;
-    "VHF skip y"
-	-> VHF line loop;
-    "VHF line done"
+    "VHF stick nonvertical"
+	A = [VHFx1]; ? A >= [VHFx0] -> VHF stick ordered;
+	C = [VHFx0]; [VHFx0] = [VHFx1]; [VHFx1] = C;
+	C = [VHFy0]; [VHFy0] = [VHFy1]; [VHFy1] = C;
+    "VHF stick ordered"
+	A = [VHFx1]; A - [VHFx0]; [VHFlinea] = A; [VHFlineL] = A;
+	A = [VHFy1]; A - [VHFy0]; ? A >= 0 -> VHF stick b positive;
+	C = 0; C - A; A = C; C = 0; C - 1; [VHFlineay] = C; -> VHF stick b ready;
+    "VHF stick b positive"
+	[VHFlineay] = 1;
+    "VHF stick b ready"
+	[VHFlineb] = A; C = [VHFlineL]; ? A < C -> VHF stick length ready; [VHFlineL] = A;
+    "VHF stick length ready"
+	[VHFlineL]+;
+	A = [VHFx0]; A '* 65536; [VHFlinegx] = A;
+	A = [VHFy0]; A '* 65536; [VHFlinegy] = A;
+	A = [VHFx1]; A '* 65536; [VHFlineend] = A;
+	A = [VHFlinea]; A '* 65536; A / [VHFlineL]; A + A; [VHFlineax] = A;
+	A = [VHFlineb]; A '* 65536; A / [VHFlineL]; A + A;
+	C = [VHFlineay]; ? C > 0 -> VHF stick ystep ready; C = 0; C - A; A = C;
+    "VHF stick ystep ready"
+	[VHFlineay] = A;
+    "VHF stick loop"
+	( Native Stick addresses seg_adapted:[di+4] after discarding the far
+	  pointer's four-byte allocation offset.  Against the logical page those
+	  two offsets cancel, so the packed framebuffer index is simply di. )
+	A = [VHFlinegy]; A '/ 65536; A '* 320; C = [VHFlinegx]; C '/ 65536; A + C;
+	A + RADPT; A + nw; D = A; => VHF brighten nonvertical;
+	A = [VHFlinegx]; A + [VHFlineax]; [VHFlinegx] = A;
+	A = [VHFlinegy]; A + [VHFlineay]; [VHFlinegy] = A;
+	A = [VHFlinegx]; ? A < [VHFlineend] -> VHF stick loop;
+    "VHF source stick done"
 	end;
+
+"VHF brighten"
+	A = [D]; A & 255; C = A; C & 63; C + 8;
+	? C <= 62 -> VHF brighten ready; C = 62;
+    "VHF brighten ready"
+	A & 192; C | A; [D] = C;
+	end;
+
+"VHF brighten nonvertical"
+	( Stick's general flare-1 assembly saturates only when the low-byte add
+	  carries.  A source level of 55 therefore becomes 63; levels 56..63
+	  become 62.  Its vertical special case above clamps all of them to 62. )
+	A = [D]; A & 255; C = A; C & 63; ? C > 55 -> VHF brighten nonvertical sat;
+	A + 8; [D] = A; end;
+    "VHF brighten nonvertical sat"
+	A & 192; A | 62; [D] = A;
+	end;
+
+( fline's float kk and diff temporaries narrow at their declarations and the
+  resulting floating expression is converted back to long with C truncation. )
+"VHF clip x0"
+	A = [VHFx0]; A - [VHFx1]; [FI] = A; => IntToF; => F32Narrow;
+	[PGFi] = FSW0; => PGF sa;
+	A = [VHFclipbound]; A - [VHFx1]; [FI] = A; => IntToF;
+	[PGFi] = FSW0; => PGF quo; => F32Narrow; [PGFi] = FSW1; => PGF sa;
+	A = [VHFy0]; A - [VHFy1]; [FI] = A; => IntToF;
+	[PGFi] = FSW1; => PGF mul; [PGFi] = FSW2; => PGF sa;
+	[FI] = [VHFy1]; => IntToF; [PGFi] = FSW2; => PGF add; => FToIntChop;
+	[VHFy0] = [FI]; [VHFx0] = [VHFclipbound]; end;
+
+"VHF clip x1"
+	A = [VHFx1]; A - [VHFx0]; [FI] = A; => IntToF; => F32Narrow;
+	[PGFi] = FSW0; => PGF sa;
+	A = [VHFclipbound]; A - [VHFx0]; [FI] = A; => IntToF;
+	[PGFi] = FSW0; => PGF quo; => F32Narrow; [PGFi] = FSW1; => PGF sa;
+	A = [VHFy1]; A - [VHFy0]; [FI] = A; => IntToF;
+	[PGFi] = FSW1; => PGF mul; [PGFi] = FSW2; => PGF sa;
+	[FI] = [VHFy0]; => IntToF; [PGFi] = FSW2; => PGF add; => FToIntChop;
+	[VHFy1] = [FI]; [VHFx1] = [VHFclipbound]; end;
+
+"VHF clip y0"
+	A = [VHFy0]; A - [VHFy1]; [FI] = A; => IntToF; => F32Narrow;
+	[PGFi] = FSW0; => PGF sa;
+	A = [VHFclipbound]; A - [VHFy1]; [FI] = A; => IntToF;
+	[PGFi] = FSW0; => PGF quo; => F32Narrow; [PGFi] = FSW1; => PGF sa;
+	A = [VHFx0]; A - [VHFx1]; [FI] = A; => IntToF;
+	[PGFi] = FSW1; => PGF mul; [PGFi] = FSW2; => PGF sa;
+	[FI] = [VHFx1]; => IntToF; [PGFi] = FSW2; => PGF add; => FToIntChop;
+	[VHFx0] = [FI]; [VHFy0] = [VHFclipbound]; end;
+
+"VHF clip y1"
+	A = [VHFy1]; A - [VHFy0]; [FI] = A; => IntToF; => F32Narrow;
+	[PGFi] = FSW0; => PGF sa;
+	A = [VHFclipbound]; A - [VHFy0]; [FI] = A; => IntToF;
+	[PGFi] = FSW0; => PGF quo; => F32Narrow; [PGFi] = FSW1; => PGF sa;
+	A = [VHFx1]; A - [VHFx0]; [FI] = A; => IntToF;
+	[PGFi] = FSW1; => PGF mul; [PGFi] = FSW2; => PGF sa;
+	[FI] = [VHFx0]; => IntToF; [PGFi] = FSW2; => PGF add; => FToIntChop;
+	[VHFx1] = [FI]; [VHFy1] = [VHFclipbound]; end;

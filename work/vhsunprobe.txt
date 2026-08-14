@@ -1,0 +1,79 @@
+      ( Focused indexed-page oracle for NIV+'s Stardrifter star path.
+
+	Fixture: class-0 ray 40DDB22D, centred at distance 200, HUD ghosts on.
+	The four expected SHA-256 values were captured from the Borland 3.1
+	NIV+ renderer after the corresponding native calls:
+
+	white  B1240D9B35D63010704DD330134F593F76BC332608EA7D81E2F6723A6989B16C
+	flare  0CD7ADB782543E384473DC3AEFEBE63FE5AEA9481E47FA87062A8CAC85C912A9
+	smooth A84416026FEE23AF42E2FFFAA99ABF3FA737B47AE953B5CA9B9956288C9D8EA0
+	mask   2882FB4E7F690DAE58393A8D0AB027907DF3E25900F06FB84BE42347E67866D6 )
+
+"libraries"
+
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal; pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhstar;
+
+"directors"
+
+	program name = { vhsunprobe };
+	unit = 32;
+
+"variables"
+
+	VHGx = 0; VHGy = 0; VHGz = 0;
+	VHGalpha = 0; VHGbeta = 0; VHGmode = 0; VHGlanded = 0;
+	VHGplanet = 0; VHGframe = 0;
+	VHGdosim = 0; VHGfast = 1;
+	vhsunfile = 0;
+	vhsunwname = { vhsun-white.bin };
+	vhsunfname = { vhsun-flare.bin };
+	vhsunsname = { vhsun-smooth.bin };
+	vhsunname = { vhsun-out.bin };
+
+"programme"
+
+	=> FEnter; => PGF constants; => SP build rgt; => SP riga init;
+	=> VH view init;
+	[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;
+	[VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
+
+	( Native fixture: class-0 Felysia star, ray bits 40DDB22D, camera
+	  200 units behind it.  The source distance is sqrt(200^2)+1 = 201. )
+	[PGFt] = 0; [PGFu] = 0; => PGF ldf64; [PGFi] = SFXX; => PGF sa;
+	[PGFi] = SFYY; => PGF sa;
+	[PGFt] = 0; [PGFu] = 40690000h; => PGF ldf64; [PGFi] = SFZZ; => PGF sa;
+	[WHmag] = 41A645A2h; [WHfgm] = 3E99999Ah;
+	[WHshape] = 2; [WHsun] = 0; [WHdstreg] = RGADP; => SP white;
+	[vhsunfile] = vhsunwname; => VHSUN dump page;
+
+	[VHFk] = 41E81A04h;
+	[VHFdist0] = 0; [VHFdist1] = 40692000h;
+	[VHFghost] = 1; => VH space flare;
+	[vhsunfile] = vhsunfname; => VHSUN dump page;
+	=> VHT smooth grays;
+	[vhsunfile] = vhsunsname; => VHSUN dump page;
+	=> VHT mask page;
+	[vhsunfile] = vhsunname; => VHSUN dump page;
+	=> FLeave;
+	end;
+
+"VHSUN dump page"
+	[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;
+	[File Name] = [vhsunfile]; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 64000; isocall;
+	[File Name] = [vhsunfile]; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 64000; isocall;
+	end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;
+
+"VHG return ship"
+	end;

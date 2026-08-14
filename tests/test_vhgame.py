@@ -2058,7 +2058,7 @@ def main() -> int:
         ))
         and all(token in flare for token in (
             '"VHF ghost reflections"', "A = [VHFang]; A % 8;",
-            "A = [VHFgdx]; A '* 4;", "A = [VHFgx]; A '* 3;",
+            "A = [VHFgdx]; A '* 4;", "[FS0] = [VHFgfx]; => FLoadF32;",
             "[VHFgr]+; A = [VHFgr]; ? A < 3 -> VHF ghost reflection;",
         ))
         and all(token in original0 for token in (
