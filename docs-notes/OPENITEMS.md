@@ -235,6 +235,20 @@ sequentially. Still open: representative views for every planet and atmosphere
 class, weather and day/night boundaries, companion and multiple suns, orbital
 views, and the full Stardrifter interior/cupola/exterior transition.
 
+**Required authenticity matrix.** Capture and compare the visible beams, disc,
+ghosts, and occlusion against the native renderer for:
+
+- every planet and atmosphere class, including clear, cloudy, stormy, horizon,
+  overhead, sunrise, and sunset views;
+- every sun class and colour, including companion and multiple-sun scenes;
+- orbital planet views with the sun both beside and behind the globe;
+- the Stardrifter interior, cupola, exterior, launch, and landing transitions.
+
+Each case needs a matching native viewpoint or raw framebuffer oracle. Visual
+plausibility alone does not close this item. The finished result must look and
+behave authentically in motion, including beam direction, clipping, brightness,
+palette response, and transitions between contexts.
+
 ## 7. Cross-references
 
 | document | what Wave 6 changed in it |
