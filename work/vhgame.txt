@@ -172,6 +172,7 @@
 	VHGlandmapdst = 0; VHGlandmapink = 0;
 	VHGshipx = 0; VHGshipy = 0; VHGshipz = 0;
 		vhgoutname = { game-vh-out.bin };
+		vhgsunname = { game-sun-out.bin };
 	VHGcaption = { Noctis_IV };
 	VHGmenucaption = { GAME };
 	VHGmenu = { NOCTIS_IV };
@@ -916,6 +917,7 @@
 	vhgstate = 18;
 	VHGfpstext = 7;
 	vhgperf = 21;
+	vhgsun = 24;
 	VHGinfoname = 22;
 	VHGinfoclass = 23;
 	VHGinfobodies = 30;
@@ -10554,9 +10556,27 @@
 	[vhgperf plus 15] = [TKlate]; [vhgperf plus 16] = [TKbase];
 	[vhgperf plus 17] = [TKsubper]; [vhgperf plus 18] = [TKacc];
 	[vhgperf plus 19] = [VHGloopcalls]; [vhgperf plus 20] = [VHGtimingcalls];
+	( Real-context sun inputs for native flare comparison.  Keep this separate
+	  from game-vh-out.bin so its established 156-byte capture contract stays
+	  unchanged.  Float and binary64 carriers are written as their raw units. )
+	[vhgsun plus 0] = [VHGmode]; [vhgsun plus 1] = [VHGlanded];
+	[vhgsun plus 2] = [VHGptype]; [vhgsun plus 3] = [nsclass];
+	[vhgsun plus 4] = [VHGNDatmosphere]; [vhgsun plus 5] = [GRSKnightzone];
+	[vhgsun plus 6] = [GRSKrainy]; [vhgsun plus 7] = [GRSKexposure];
+	[vhgsun plus 8] = [GRSKdsd1]; [vhgsun plus 9] = [VHGNDsunray];
+	[vhgsun plus 10] = [VHGNDsunx0]; [vhgsun plus 11] = [VHGNDsunx1];
+	[vhgsun plus 12] = [VHGNDsuny0]; [vhgsun plus 13] = [VHGNDsuny1];
+	[vhgsun plus 14] = [VHGNDsunz0]; [vhgsun plus 15] = [VHGNDsunz1];
+	[vhgsun plus 16] = [VHGNDflareok]; [vhgsun plus 17] = [VHGNDflarecx];
+	[vhgsun plus 18] = [VHGNDflarecy]; [vhgsun plus 19] = [VHFadd];
+	[vhgsun plus 20] = [VHGNDsecactive]; [vhgsun plus 21] = [VHGNDsecnight];
+	[vhgsun plus 22] = [VHGNDsecray]; [vhgsun plus 23] = [VHGNDsecdist];
 	[File Name] = vhgoutname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = vhgstate; [Block Size] = 72; isocall;
 	[File Position] = 72; [File Command] = WRITE;
 	[Block Pointer] = vhgperf; [Block Size] = 84; isocall;
 	[File Name] = vhgoutname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 156; isocall;
+	[File Name] = vhgsunname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhgsun; [Block Size] = 96; isocall;
+	[File Name] = vhgsunname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 96; isocall;
 		end;

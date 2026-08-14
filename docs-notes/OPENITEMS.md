@@ -231,16 +231,23 @@ must match the native renderer in each context.
 reflection, surface occlusion, and brightness-band behaviour now match direct
 NIV+ page dumps. A 12-class star matrix compares four 64,000-byte checkpoints
 per class (white core, flare, smoothing, and mask), with zero differing bytes
-across all 48 comparisons. Six surface-flare oracle cases likewise have zero
-page differences.
+across all 48 comparisons. Eight surface-flare oracle cases likewise have zero
+page differences. Two of those cases use the exact binary32 ray and distance
+captured from the current thin-atmosphere and quartz-world gallery scenes.
 
 **Playable evidence so far.** Sequential production captures show a healthy
-Stardrifter glare, a habitable-world sun disc, and a thin-atmosphere sun with
-radial beams and no horizon pillar. Parallel screenshot processes can interfere
-and produced two all-black captures, so this matrix must be captured
-sequentially. Still open: representative views for every planet and atmosphere
-class, weather and day/night boundaries, companion and multiple suns, orbital
-views, and the full Stardrifter interior/cupola/exterior transition.
+Stardrifter glare and a habitable-world sun disc. East-facing surface captures
+also expose why the thin-atmosphere and quartz scenes can show a conspicuous
+near-vertical ray across the ground: the captured thin input is ray
+`40A4CCCD`, distance `42E0A1F0`, while quartz is ray `40A4CCCD`, distance
+`457B07C0`; both complete 64,000-byte flare pages match the Borland-built NIV+
+oracle exactly. That bright ray is therefore authentic flare geometry for
+those inputs, not the unrelated black horizon-pillar defect. Parallel
+screenshot processes can interfere and produced two all-black captures, so
+this matrix must be captured sequentially. Still open: representative views
+for every planet and atmosphere class, weather and day/night boundaries,
+companion and multiple suns, orbital views, and the full Stardrifter
+interior/cupola/exterior transition.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:

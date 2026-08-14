@@ -447,6 +447,27 @@ foreach ($spec in $scenes) {
                     }
                 }
             }
+            $sunPath = Join-Path $stage 'game-sun-out.bin'
+            if (Test-Path -LiteralPath $sunPath) {
+                $sunBytes = [IO.File]::ReadAllBytes($sunPath)
+                if ($sunBytes.Length -eq 96) {
+                    $sun = New-Object 'System.Int32[]' 24
+                    [Buffer]::BlockCopy($sunBytes, 0, $sun, 0, $sunBytes.Length)
+                    $sunFloats = New-Object 'System.Single[]' 24
+                    [Buffer]::BlockCopy($sunBytes, 0, $sunFloats, 0, $sunBytes.Length)
+                    $rain = $sunFloats[6]
+                    $exposure = $sunFloats[7]
+                    $distance = $sunFloats[8]
+                    $ray = $sunFloats[9]
+                    Write-Output (
+                        'SUN {0} mode={1} landed={2} type={3} class={4} atmo={5} night={6} rain={7:R} exposure={8:R} distance={9:R}[{10:X8}] ray={11:R}[{12:X8}] center={13},{14} visible={15} added={16} secondary={17}' -f
+                        $spec.Name, $sun[0], $sun[1], $sun[2], $sun[3],
+                        $sun[4], $sun[5], $rain, $exposure, $distance, $sun[8],
+                        $ray, $sun[9], $sun[17], $sun[18], $sun[16],
+                        $sun[19], $sun[20]
+                    )
+                }
+            }
         }
     } finally {
         if ($proc -and -not $proc.HasExited) {
