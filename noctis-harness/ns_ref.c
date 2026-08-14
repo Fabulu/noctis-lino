@@ -27,9 +27,10 @@
  *    the same way.  Nothing is left to this compiler's int.
  *
  * 2. A double or float argument to random() goes through Borland's __ftol
- *    (chop to a 32-bit long) and is then read as the low 16 bits.  ftoi16()
- *    spells that out in two explicit steps.  LR's one-step (int) cast is
- *    undefined behaviour at exactly these sites, so it is not used.
+ *    (chop to a 64-bit integer, returning its low 32 bits) and is then read
+ *    as the low 16 bits.  ftoi16() spells that out explicitly.  LR's
+ *    one-step (int) cast is undefined at exactly these sites, so it is not
+ *    used.
  *
  * 3. Signed overflow.  `seed * 0x015A4E35` overflows a signed 32-bit int.
  *    THIS FILE MUST BE BUILT WITH -fwrapv.  Without it gcc -O2 is entitled
@@ -309,13 +310,10 @@ static unsigned ident_chop16 (double x, double y, double z)
 {
     ext v = ident_ext (x, y, z);
     double d;
-    i32 l;
+    long long l;
     if (identchop_f64) { d = (double)v; v = (ext)d; }
-    if (!(v > (ext)-2147483649.0 && v < (ext)2147483648.0) || v != v)
-        l = (i32)0x80000000;
-    else
-        l = (i32)(long long)v;
-    return (unsigned)((u32)l & 0xFFFFu);
+    l = (long long)v;
+    return (unsigned)((u64)l & 0xFFFFu);
 }
 
 /* ======================================================================= */

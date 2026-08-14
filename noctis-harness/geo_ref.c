@@ -335,12 +335,8 @@ static ext ident_ext (double x, double y, double z)
 static unsigned ident_chop16 (double x, double y, double z)
 {
     ext v = ident_ext (x, y, z);
-    i32 l;
-    if (!(v > (ext)-2147483649.0L && v < (ext)2147483648.0L) || v != v)
-        l = (i32)0x80000000;
-    else
-        l = (i32)(long long)v;
-    return (unsigned)((u32)l & 0xFFFFu);
+    long long l = (long long)v;
+    return (unsigned)((u64)l & 0xFFFFu);
 }
 
 static i32 seed_from_xyz (i32 x, i32 y, i32 z)

@@ -39,8 +39,11 @@
 	closes it for this one site and no other.
 
 	The fragment below is the NsIdentity fragment with its terminal
-	`fstp id` replaced by fldcw-chop / fistp on the live st(0) / fldcw
-	restore.  The eight instructions before that are byte-identical to
+	`fstp id` replaced by fldcw-chop / fistp QWORD on the live st(0) /
+	fldcw restore.  Borland's __ftol returns the low 32 bits of that 64-bit
+	integer result.  A dword store instead produces 80000000h when the
+	identity exceeds signed 32-bit, which changes the stellar class.  The
+	eight instructions before that are byte-identical to
 	NsIdentity's, and they are identical by CONSTRUCTION rather than by
 	transcription: the fidiv operand is fpchains' own generated constant
 	FKNsIdentityK100000, not a copy of it.  A hand-written fragment that
@@ -88,6 +91,8 @@
 				  would silently replace the word FLeave is
 				  supposed to put back. )
 	nsicchop = 0;
+	nsicq0 = 0;		( __ftol qword result, low half first )
+	nsicq1 = 0;
 
 	nsidsav0 = 0;
 	nsidsav1 = 0;
@@ -126,10 +131,10 @@
 	    DE C9					(fmulp  st1,st0)
 	    DA B7 <dFKNsIdentityK100000 mtp bytesperunit>(fidiv K100000)
 	    D9 AF <dnsicchop mtp bytesperunit>		(fldcw  chop)
-	    DB 9F <dFI mtp bytesperunit>		(fistp  dword [FI])
+	    DF BF <dnsicq0 mtp bytesperunit>		(fistp  qword [nsicq0])
 	    D9 AF <dnsicsav mtp bytesperunit>		(fldcw  restore)
 	}
-	A = [FI]; A & 0FFFFh; [FI] = A;
+	A = [nsicq0]; A & 0FFFFh; [FI] = A;
 	end;
 
 ( ==================================================================== )

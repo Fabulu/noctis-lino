@@ -113,6 +113,16 @@ One representative public row for every planet type 0 through 9 now matches
 all 11 scored hashes, including both landed coordinates. This is representative
 coverage, not a claim that the complete live corpus is already perfect.
 
+A bounded 2026-08-14 pass selected ten type-2 rows where Rust had public
+errors. Lino matches all 110 original hashes. Eight systems were exact
+immediately. The remaining two were moons in `NOCHUT`, whose stellar identity
+is `3,546,965,295.741...`, beyond signed 32-bit. Borland's `__ftol` performs a
+qword integer store and returns its low bits; the old specialized identity
+helper used a dword store and therefore selected class 0 instead of class 9.
+Restoring the qword conversion made both rows exact across orbital output and
+both landed sites. This is still a bounded first-page result, not a full-corpus
+claim.
+
 The landed fixes behind that result are source-level corrections rather than
 fixture exceptions:
 

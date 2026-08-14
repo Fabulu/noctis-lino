@@ -241,9 +241,9 @@ def ident_chop16(x, y, z, mode="ext"):
     v = identity_ext(x, y, z)
     if mode == "f64":
         v = Fraction(to_f64(v)[0])
+    # Borland __ftol stores a signed 64-bit integer and returns its low word.
+    # Every int32-coordinate identity is far inside that 64-bit range.
     t = int(v)                                    # toward zero
-    if not (-2147483649 < t < 2147483648):
-        t = -2147483648
     return t & M16                                # srand(unsigned): low 16
 
 

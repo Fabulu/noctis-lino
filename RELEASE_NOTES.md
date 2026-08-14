@@ -116,6 +116,13 @@ deterministic bytes covered by the current type sweep. The known final four
 surface-texture bytes are documented as NIV+/vanilla undefined data rather than
 being fitted to one arbitrary memory capture.
 
+Large stellar identities now pass through Borland's real qword `__ftol`
+boundary before their low 16 bits seed the class stream. The earlier dword
+store returned the integer-indefinite pattern beyond signed 32-bit and could
+generate a completely different system. The two affected `NOCHUT` rows now
+match all 22 public orbital and landed hashes; the bounded ten-row type-2
+Rust-error sample is exact on all 110 fields.
+
 The optional 60 Hz path now presents completed simulation states at stable
 boundaries and keeps original gameplay cadence. Surface panorama addressing is
 canonicalized before sampling, removing the moving black horizon pillar, and

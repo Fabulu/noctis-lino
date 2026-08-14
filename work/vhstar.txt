@@ -58,9 +58,9 @@
 	[FJ0] = [VHTtx]; [FJ1] = [VHTty]; [FJ2] = [VHTtz]; => NsIdentityD;
 	[VHTid0] = [nsid0]; [VHTid1] = [nsid1];
 
-	( srand(ap_target_id), then class and radius draws )
-	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FToIntChop;
-	A = [FI]; => BrtlSrand;
+	( extract_ap_target_infos passes the live identity expression through
+	  Borland's qword __ftol and then keeps the unsigned low 16 bits. )
+	=> NsIdentChop16; => BrtlSrand;
 	A = 12; => BrtlRandom; [VHTclass] = A;
 	E = VHTclassvar; E + A; A = [E]; => BrtlRandom;
 	[VHTsum] = A;
