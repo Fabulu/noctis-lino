@@ -1,9 +1,9 @@
 # NIVGEN accuracy procedure
 
-> **Service pause (2026-08-14):** NIVGEN is currently unavailable. Do not run
-> live sheet downloads, corpus scoring sweeps, SheetBot jobs, or submissions
-> until the project owner explicitly confirms that the service is back. Local
-> generator development and saved-fixture comparisons may continue offline.
+> **Service availability (2026-08-14):** NIVGEN is live again. A failed live
+> request is an offline-state signal, not a transient error to retry. Record it
+> once, stop contacting the service, and continue from the most recent saved
+> snapshot until the project owner confirms that the host is back.
 
 This repository can drive its current production Noctis generator through the
 public NIVGEN planet corpus. The goal is full, auditable accuracy against the
@@ -67,22 +67,33 @@ every non-null original field it generated.
 # One deliberate smoke row
 python tools\nivgen_score.py --limit 1 --planet-only
 
+# The same smoke without another network request
+python tools\nivgen_score.py --sheet-json PATH\TO\nivgen-planets.json --limit 1 --planet-only
+
+# Deliberately read every live API page once
+python tools\nivgen_score.py --all-pages --limit 1 --planet-only
+
 # One complete type-2 row, including its random landing
 python tools\nivgen_score.py --type 2 --limit 1
 
 # A larger local batch with a machine-readable report
-python tools\nivgen_score.py --type 2 --limit 25 --json-out nivgen-type2.json
+python tools\nivgen_score.py --sheet-json PATH\TO\nivgen-planets.json --type 2 --rust-errors-only --limit 25 --json-out nivgen-type2.json
 ```
 
 The default limit is one. A live corpus sweep is a release or explicit accuracy
-run, not a routine edit gate. Transient sheet failures are retried five times;
-long unattended runs can raise that bound with `--fetch-attempts` and
-`--fetch-delay`.
+run, not a routine edit gate. Each live page is requested at most once. The
+scorer never retries or polls an unavailable host. Prefer `--sheet-json` for
+repeated local work against a deliberately saved snapshot. `--all-pages` is
+explicit because the API is paginated; it makes exactly one request for each
+advertised page and stops immediately if any page is unavailable.
 
 ## Current measured position
 
-The sheet is live, so all counts require a timestamp. On 2026-08-13 it exposed
-more than 1,500 rows. Rust was the accuracy leader in the inspected snapshot.
+The sheet is live, so all counts require a timestamp. On 2026-08-14 the API
+advertised 7,616 rows. Its first 2,000-row page had Rust results for 1,312 rows:
+98 rows had 254 mismatched fields, including 85 type-2 rows. This is a
+page-limited snapshot, not a complete current leaderboard count. Rust was the
+accuracy leader in the inspected snapshot.
 Its orbital surface, atmosphere, palette, default heightmap, default surface
 texture, and all sky hashes were exact on its completed rows. Most misses were
 type-2 random landed heightmaps, object charts, and surface textures, with a

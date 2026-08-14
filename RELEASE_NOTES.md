@@ -29,9 +29,10 @@ that correction while retaining the matched frozen-world points. Additional
 exact globe and Stardrifter hull paths remove redundant scaling and scratch
 copies across every orbital planet type and the vehicle exterior.
 
-Live NIVGEN service work remains paused while that external service is
-unavailable. No polling, submission, or current-score claim is made by this
-release.
+Live NIVGEN service work has resumed from one deliberate 2026-08-14 snapshot.
+The public schema currently exposes original, Rust, and LR results but does not
+yet expose L.in.oleum columns. Accuracy work uses the saved snapshot locally;
+an unavailable host is recorded once and is never retried or polled.
 
 ## Beta 9 foundation
 

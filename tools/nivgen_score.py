@@ -9,8 +9,8 @@ import json
 from pathlib import Path
 import re
 import sys
-import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 
@@ -28,21 +28,41 @@ FIELDS = (
 )
 
 
-def fetch_rows(url: str, attempts: int, delay: float) -> list[dict[str, object]]:
-    for attempt in range(1, attempts + 1):
-        try:
-            with urllib.request.urlopen(url, timeout=30) as response:
-                payload = json.load(response)
-            break
-        except (urllib.error.URLError, TimeoutError) as error:
-            if attempt == attempts:
-                raise
-            wait = min(30.0, delay * attempt)
-            print(f"sheet fetch {attempt}/{attempts} failed: {error}; "
-                  f"retrying in {wait:g}s", file=sys.stderr, flush=True)
-            time.sleep(wait)
-    names = [column["name"] for column in payload["columns"]]
-    return [dict(zip(names, row)) for row in payload["rows"]]
+def fetch_payload(url: str) -> dict[str, object]:
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            return json.load(response)
+    except (urllib.error.URLError, TimeoutError) as error:
+        raise RuntimeError(
+            f"NIVGEN sheet unavailable: {error}; not retrying") from error
+
+
+def page_url(url: str, page: int) -> str:
+    parsed = urllib.parse.urlsplit(url)
+    query = dict(urllib.parse.parse_qsl(parsed.query, keep_blank_values=True))
+    query["page"] = str(page)
+    return urllib.parse.urlunsplit(parsed._replace(
+        query=urllib.parse.urlencode(query)))
+
+
+def fetch_rows(url: str, sheet_json: str | None,
+               all_pages: bool) -> list[dict[str, object]]:
+    if sheet_json:
+        with Path(sheet_json).open(encoding="utf-8") as response:
+            payloads = [json.load(response)]
+    else:
+        first = fetch_payload(url)
+        payloads = [first]
+        if all_pages:
+            page_size = int(first.get("pageSize") or len(first["rows"]))
+            total = int(first.get("total") or len(first["rows"]))
+            last_page = (total + page_size - 1) // page_size
+            first_page = int(first.get("page") or 1)
+            for page in range(first_page + 1, last_page + 1):
+                payloads.append(fetch_payload(page_url(url, page)))
+    names = [column["name"] for column in payloads[0]["columns"]]
+    return [dict(zip(names, row))
+            for payload in payloads for row in payload["rows"]]
 
 
 def coordinates(row: dict[str, object]) -> tuple[int, int, int, int]:
@@ -115,6 +135,12 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Compare real Lino generator hashes to NIVGEN originals")
     parser.add_argument("--url", default=API)
+    parser.add_argument("--sheet-json",
+                        help="use a previously downloaded sheet snapshot")
+    parser.add_argument("--all-pages", action="store_true",
+                        help="fetch every live page once; never retries")
+    parser.add_argument("--rust-errors-only", action="store_true",
+                        help="select rows with at least one Rust mismatch")
     parser.add_argument("--type", type=int, action="append", dest="types")
     parser.add_argument("--start", type=int, default=0)
     parser.add_argument("--limit", type=int, default=1,
@@ -122,16 +148,21 @@ def parse_args():
     parser.add_argument("--planet-only", action="store_true")
     parser.add_argument("--build", action="store_true")
     parser.add_argument("--timeout", type=int, default=180)
-    parser.add_argument("--fetch-attempts", type=int, default=5)
-    parser.add_argument("--fetch-delay", type=float, default=2.0)
     parser.add_argument("--json-out")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    rows = fetch_rows(args.url, max(1, args.fetch_attempts),
-                      max(0.0, args.fetch_delay))
+    try:
+        rows = fetch_rows(args.url, args.sheet_json, args.all_pages)
+    except (OSError, ValueError, RuntimeError) as error:
+        print(f"nivgen_score: {error}", file=sys.stderr)
+        return 2
+    if args.rust_errors_only:
+        rows = [row for row in rows
+                if row.get("rust_errors") is not None
+                and int(row["rust_errors"]) > 0]
     if args.types:
         wanted = set(args.types)
         rows = [row for row in rows if int(row["type"]) in wanted]
