@@ -14,8 +14,9 @@
 
 "variables"
 
-	VHFcx = 0; VHFcy = 0; VHFk = 0; VHFang = 0;
+	VHFcx = 0; VHFcy = 0; VHFang = 0;
 	VHFk0 = 0; VHFk1 = 0; VHFl0 = 0; VHFl1 = 0; VHFu0 = 0; VHFu1 = 0;
+	VHFstep0 = 0; VHFstep1 = 0;
 	VHFtrigready = 0; VHFtrigi = 0; VHFtriga0 = 0; VHFtriga1 = 0;
 	VHFadd = 2; VHFpx = 0; VHFpy = 0; VHFpz = 0;
 	VHFdist = 0; VHFdist0 = 0; VHFdist1 = 0; VHFray = 0; VHFstep = 0;
@@ -48,7 +49,7 @@
 	A = [VHFcy]; ? A < 10 -> VHF done; ? A > 190 -> VHF done;
 	[FI] = 50000; => IntToF; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSRZF; => PGF quo;
-	=> F32Narrow; => PGF stf32; [VHFk] = [PGFt];
+	[VHFk0] = [FA0]; [VHFk1] = [FA1];
 	-> VHF draw;
 
 "VH rescue flare"
@@ -67,18 +68,20 @@
 	A = [GCy]; A+; [VHFcy] = A;
 	A = [VHFcx]; ? A <= 10 -> VHF done; ? A >= 320 -> VHF done;
 	A = [VHFcy]; ? A <= 10 -> VHF done; ? A >= 190 -> VHF done;
-	A '* 320; A + [VHFcx]; [SPoff] = A; [SPreg] = RGADP; => SP get;
+	( Source logical x is carrier-2.  SP get accepts the DOS segment offset,
+	  which is logical+4 for adapted, so the net offset is carrier+2. )
+	A '* 320; A + [VHFcx]; A + 2; [SPoff] = A; [SPreg] = RGADP; => SP get;
 	A = [SPval]; ? A < 64 -> VHF done;
 	[FI] = 500000; => IntToF; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSRZF; => PGF quo;
-	=> F32Narrow; => PGF stf32; [VHFk] = [PGFt];
+	[VHFk0] = [FA0]; [VHFk1] = [FA1];
 	-> VHF draw;
 
 "VH space flare"
 	( NOCTIS.CPP:3639-3701 with xshift=3, yshift=0 and condition=0.
 	  The selected star is already relative in SFXX/SFYY/SFZZ; preserve
 	  the source's double rotation and strict relative-screen bounds. )
-	=> VHF space added; [VHFok] = 0;
+	=> VHF space added; => VHF positive k; [VHFok] = 0;
 	[PGFi] = SFXX; => PGF a; [PGFi] = FSPCB; => PGF mul;
 	[PGFi] = SFT0; => PGF sa;
 	[PGFi] = SFZZ; => PGF a; [PGFi] = FSPSB; => PGF mul;
@@ -111,7 +114,7 @@
 	  64..127 at the projected centre permits the complete flare. )
 	A = [VHFcx]; ? A <= 10 -> VHF done; ? A >= 320 -> VHF done;
 	A = [VHFcy]; ? A <= 10 -> VHF done; ? A >= 190 -> VHF done;
-	A '* 320; A + [VHFcx]; [SPoff] = A; [SPreg] = RGADP; => SP get;
+	A '* 320; A + [VHFcx]; A + 2; [SPoff] = A; [SPreg] = RGADP; => SP get;
 	A = [SPval]; ? A < 64 -> VHF done; ? A > 127 -> VHF done;
 
 	( Source range: d >= 10*ray and d < 1000*ray.  Retain the binary32
@@ -127,32 +130,36 @@
 	[FS0] = [VHFdist]; => FLoadF32; => FCmp;
 	A = [FI]; ? A >= 0 -> VHF done;
 
-	( step=(10*ray)/distance is a float argument; k=10/step. )
-	[FS0] = [VHFray]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 10; => IntToF; => FMul; => F32Narrow; [VHFstep] = [FS0];
-	[FS0] = [VHFdist]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FS0] = [VHFstep]; => FLoadF32; => FQuo; => F32Narrow; [VHFstep] = [FS0];
-	[FS0] = [VHFstep]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 10; => IntToF; => FQuo; => F32Narrow; [VHFk] = [FS0];
+	( The float operands remain in x87 precision until the double argument
+	  store.  lens_flares_for then stores k=10/step as another binary64. )
+	[FS0] = [VHFdist]; => FLoadF32; [VHFdist0] = [FA0]; [VHFdist1] = [FA1];
+	=> VHF positive k;
 	=> VHF surface added;
 
     "VHF draw"
-	( The step callers currently publish k as binary32.  Widen that exact
-	  value, then keep k/l/u in the source's binary64 local format. )
-	[FS0] = [VHFk]; => FLoadF32; [VHFk0] = [FA0]; [VHFk1] = [FA1];
+	( Keep k/l/u in the source's binary64 local format. )
 	[FI] = 1; => IntToF; [VHFl0] = [FA0]; [VHFl1] = [FA1];
 	[PGFt] = VHFF15; => PGF ldf32; [VHFu0] = [FA0]; [VHFu1] = [FA1];
 	[VHFang] = 0; => VHF trig init;
 
     "VHF spoke"
 	=> VHF sincos;
-	[PGFt] = [VHVcos]; => PGF ldf32;
-	[FB0] = [VHFk0]; [FB1] = [VHFk1]; => FMul;
-	[FB0] = [VHFl0]; [FB1] = [VHFl1]; => FMul; => FToIntChop; [VHFdx] = [FI];
-	[PGFt] = [VHVsin]; => PGF ldf32;
-	[FB0] = [VHFk0]; [FB1] = [VHFk1]; => FMul;
-	[FB0] = [VHFl0]; [FB1] = [VHFl1]; => FMul; => FToIntChop; [VHFdy] = [FI];
-
+	( Borland keeps each complete trig*k*l expression in x87 extended
+	  precision until __ftol.  Helper calls introduced binary64 spills and
+	  moved the long c=60 surface spoke from 49 to 50 pixels. )
+	[FCWCSAV] = 0;
+	{ 9B D9 BF <dFCWCSAV mtp bytesperunit> }
+	A = [FCWCSAV]; A & 0F3FFh; A | 0C00h; [FCWCHOP] = A;
+	{ D9 AF <dFCWCHOP mtp bytesperunit>
+	  D9 87 <dVHVcos mtp bytesperunit>
+	  DC 8F <dVHFk0 mtp bytesperunit>
+	  DC 8F <dVHFl0 mtp bytesperunit>
+	  DB 9F <dVHFdx mtp bytesperunit>
+	  D9 87 <dVHVsin mtp bytesperunit>
+	  DC 8F <dVHFk0 mtp bytesperunit>
+	  DC 8F <dVHFl0 mtp bytesperunit>
+	  DB 9F <dVHFdy mtp bytesperunit>
+	  D9 AF <dFCWCSAV mtp bytesperunit> }
 	( fline receives coordinates relative to the source's 158,100 centre. )
 	A = [VHFcx]; A - 160; A - [VHFdx]; [VHFx0] = A;
 	A = [VHFcy]; A - 100; A - [VHFdy]; [VHFy0] = A;
@@ -201,6 +208,19 @@
 "VHF sincos"
 	A = VHFcostab; A + [VHFang]; [VHVcos] = [A];
 	A = VHFsintab; A + [VHFang]; [VHVsin] = [A];
+	end;
+
+"VHF positive k"
+	( Reproduce the caller's double step argument followed by the callee's
+	  binary64 k local.  Algebraically replacing this with distance/ray loses
+	  an observable integer at long surface spokes. )
+	[PGFt] = [VHFray]; => PGF ldf32; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = 10; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1]; => FMul;
+	[FB0] = [VHFdist0]; [FB1] = [VHFdist1]; => FQuo;
+	[VHFstep0] = [FA0]; [VHFstep1] = [FA1];
+	[FI] = 10; => IntToF; [FB0] = [VHFstep0]; [FB1] = [VHFstep1]; => FQuo;
+	[VHFk0] = [FA0]; [VHFk1] = [FA1];
 	end;
 
 "VHF surface added"

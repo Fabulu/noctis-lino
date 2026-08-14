@@ -1,0 +1,96 @@
+      ( Native surface-flare oracle: dynamic spoke counts 1, 2, and 4, HUD
+	ghosts on/off, the 64..127 condition-2 band, and the source x_centro=158
+	occlusion pixel.  The six concatenated Borland pages have SHA-256:
+
+	before AAB1EE2E97ABB322CA8F2A6EAB21829FD12604928EE5391AC2A53251C22CD179
+	after  2AE4BF3B1EF32B12108AD51D6B94C1682439C45E94822EEA5C69460CE38F22AF )
+
+"libraries"
+
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fbmem; fbpal; pgfp; pgmem; pgrast; pgtex; pgproj;
+	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
+	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;
+	mgmain; nsident; nsrng; nsseed; nstopo; mgloop; mgnav; mgin;
+	vhjoin; vhrmap; vhstick; vhcupola; vhview; vhflare; vhstar;
+
+"directors"
+
+	program name = { vhsurfaceprobe };
+	unit = 32;
+
+"variables"
+
+	VHGx = 0; VHGy = 0; VHGz = 0;
+	VHGalpha = 0; VHGbeta = 0; VHGmode = 0; VHGlanded = 0;
+	VHGplanet = 0; VHGframe = 0; VHGdosim = 0; VHGfast = 1;
+	vhspi = 0; vhsppos = 0; vhspfile = 0; vhsppage = 0;
+	vhspbefore = { vhsurface-before.bin };
+	vhspafter = { vhsurface-after.bin };
+
+"workspace"
+
+	vhsprays = 6; vhspdists = 6; vhsppages = 6; vhspghosts = 6;
+
+"programme"
+
+	=> FEnter; => PGF constants; => SP build rgt; => SP riga init;
+	=> VH view init; => VHSP fixtures;
+	[vhspi] = 0; [vhsppos] = 0;
+    "VHSP fixture"
+	A = vhsppages; A + [vhspi]; [vhsppage] = [A];
+	A = [vhsppage]; ? A = 1001 -> VHSP block native center;
+	? A = 1002 -> VHSP block carrier center;
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = A; => SP fill page;
+	-> VHSP page ready;
+    "VHSP block native center"
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 64; => SP fill page;
+	D = nw; D + RADPT; D + 32479; [D] = 63; -> VHSP page ready;
+    "VHSP block carrier center"
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 64; => SP fill page;
+	D = nw; D + RADPT; D + 32481; [D] = 128;
+    "VHSP page ready"
+	[vhspfile] = vhspbefore; => VHSP dump page;
+	A = vhsprays; A + [vhspi]; [VHFray] = [A];
+	A = vhspdists; A + [vhspi]; [VHFdist] = [A];
+	A = vhspghosts; A + [vhspi]; [VHFghost] = [A];
+	[VHFcx] = 161; [VHFcy] = 101; => VH surface flare;
+	[vhspfile] = vhspafter; => VHSP dump page;
+	A = [vhsppos]; A + 64000; [vhsppos] = A;
+	[vhspi]+; A = [vhspi]; ? A < 6 -> VHSP fixture;
+	[vhspfile] = vhspbefore; => VHSP size file;
+	[vhspfile] = vhspafter; => VHSP size file;
+	=> FLeave;
+	end;
+
+"VHSP dump page"
+	[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;
+	[File Name] = [vhspfile]; [File Position] = [vhsppos]; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 64000; isocall;
+	end;
+
+"VHSP size file"
+	[File Name] = [vhspfile]; [File Command] = SET SIZE; [File Size] = 384000; isocall;
+	end;
+
+"VHSP fixtures"
+	[vhsprays plus 0] = 40DDB22Dh; [vhspdists plus 0] = 43490000h;
+	[vhsprays plus 1] = 41A00000h; [vhspdists plus 1] = 443B8000h;
+	[vhsprays plus 2] = 41200000h; [vhspdists plus 2] = 44BB8000h;
+	[vhsprays plus 3] = 40DDB22Dh; [vhspdists plus 3] = 43490000h;
+	[vhsprays plus 4] = 40DDB22Dh; [vhspdists plus 4] = 43490000h;
+	[vhsprays plus 5] = 41A00000h; [vhspdists plus 5] = 443B8000h;
+	[vhsppages plus 0] = 64; [vhspghosts plus 0] = 1;
+	[vhsppages plus 1] = 90; [vhspghosts plus 1] = 1;
+	[vhsppages plus 2] = 120; [vhspghosts plus 2] = 1;
+	[vhsppages plus 3] = 1001; [vhspghosts plus 3] = 1;
+	[vhsppages plus 4] = 1002; [vhspghosts plus 4] = 1;
+	[vhsppages plus 5] = 90; [vhspghosts plus 5] = 0;
+	end;
+
+"VHG fpu clean"
+	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	end;
+
+"VHG return ship"
+	end;

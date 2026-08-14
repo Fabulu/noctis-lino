@@ -1076,7 +1076,8 @@ def main() -> int:
             "[SPoff] = A; [SPreg] = RGADP; => SP get;",
             "A = [SPval]; ? A < 64 -> VHF done; ? A > 127 -> VHF done;",
             "[FI] = 1000; => IntToF; => FMul;",
-            "[FI] = 10; => IntToF; => FQuo;",
+            "[FS0] = [VHFdist]; => FLoadF32; [VHFdist0] = [FA0]; [VHFdist1] = [FA1];",
+            "=> VHF positive k;",
             "=> VHF surface added;",
         ))
         and all(token in flare for token in (
@@ -1133,7 +1134,7 @@ def main() -> int:
             "=> VHS stars; => VHG finder render;",
         ))
         and all(token in flare for token in (
-            '"VH space flare"', "=> VHF space added; [VHFok] = 0;",
+            '"VH space flare"', "=> VHF space added; => VHF positive k; [VHFok] = 0;",
             "[PGFi] = SFRX; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;",
             "A = [FI]; A + 3;", "? A >= 90 -> VHF done; A + 100; [VHFcy] = A;",
         ))

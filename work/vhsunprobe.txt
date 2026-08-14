@@ -52,7 +52,7 @@
 	[WHshape] = 2; [WHsun] = 0; [WHdstreg] = RGADP; => SP white;
 	[vhsunfile] = vhsunwname; => VHSUN dump page;
 
-	[VHFk] = 41E81A04h;
+	[VHFray] = 40DDB22Dh;
 	[VHFdist0] = 0; [VHFdist1] = 40692000h;
 	[VHFghost] = 1; => VH space flare;
 	[vhsunfile] = vhsunfname; => VHSUN dump page;

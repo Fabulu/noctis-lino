@@ -66,9 +66,7 @@
 
 	A = [vhsmclass]; ? A = 5 -> VHSM flare done;
 	? A = 6 -> VHSM flare done; ? A = 10 -> VHSM flare done;
-	[FA0] = [vhsmd0]; [FA1] = [vhsmd1];
-	[PGFt] = [vhsmray]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FA0] = [vhsmd0]; [FA1] = [vhsmd1]; => FQuo; => F32Narrow; [VHFk] = [FS0];
+	[VHFray] = [vhsmray];
 	[VHFdist0] = [vhsmd0]; [VHFdist1] = [vhsmd1]; [VHFghost] = 1;
 	=> VH space flare;
     "VHSM flare done"

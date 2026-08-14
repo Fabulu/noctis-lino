@@ -250,11 +250,9 @@
 	? A = 6 -> VHT premask smooth; ? A = 10 -> VHT premask smooth;
 	? A != 11 -> VHT premask flare range;
 	A = [VHTphase]; A % 360; ? A >= 90 -> VHT premask smooth;
-    "VHT premask flare range"
+	"VHT premask flare range"
 	A = [VHTpalfar]; ? A != 0 -> VHT premask smooth;
-	[FA0] = [VHTdist0]; [FA1] = [VHTdist1];
-	[FB0] = [VHTtmp0]; [FB1] = [VHTtmp1]; => FQuo;
-	=> F32Narrow; [VHFk] = [FS0];
+	[VHFray] = [VHTRay];
 	[VHFdist0] = [VHTdist0]; [VHFdist1] = [VHTdist1]; => VH space flare;
     "VHT premask smooth"
 	=> VHT smooth grays;
