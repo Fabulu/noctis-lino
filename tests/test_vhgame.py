@@ -1129,7 +1129,8 @@ def main() -> int:
         and "A = [MgApreached]; ? A = 0 -> VHT render done;" not in star
         and all(token in game for token in (
             "=> VHT visibility; A = [VHTwhiteok]; ? A = 0 -> VHG local star premask;",
-            "=> VHG local companion coronas; => VHT premask; => VHT mask page;",
+            "=> VHG local companion coronas;",
+            "=> VHG local star coords; => VHT premask; => VHT mask page;",
             "A = [VHTglobeok]; ? A = 0 -> VHG local star far;",
             "[GBcmask] = 64; [GBsat] = [VHTglobesat];",
             "A = [VHTfarok]; ? A = 0 -> VHG local planet render; => VHT far pixel;",
@@ -1145,7 +1146,8 @@ def main() -> int:
             "=> VHS stars; => VHG finder render;",
         ))
         and all(token in flare for token in (
-            '"VH space flare"', "=> VHF space added; => VHF positive k; [VHFok] = 0;",
+            '"VH space flare"', "=> VHF space added; => VHF space positive k; [VHFok] = 0;",
+            '"VHF space positive k"', "[FA0] = [VHFspaceray0]; [FA1] = [VHFspaceray1];",
             "[PGFi] = SFRX; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;",
             "A = [FI]; A + 3;", "? A >= 90 -> VHF done; A + 100; [VHFcy] = A;",
         ))

@@ -253,6 +253,8 @@
 	"VHT premask flare range"
 	A = [VHTpalfar]; ? A != 0 -> VHT premask smooth;
 	[VHFray] = [VHTRay];
+	[FS0] = [VHTRay]; => FLoadF32;
+	[VHFspaceray0] = [FA0]; [VHFspaceray1] = [FA1];
 	[VHFdist0] = [VHTdist0]; [VHFdist1] = [VHTdist1]; => VH space flare;
     "VHT premask smooth"
 	=> VHT smooth grays;

@@ -20,6 +20,7 @@
 	VHFtrigready = 0; VHFtrigi = 0; VHFtriga0 = 0; VHFtriga1 = 0;
 	VHFadd = 2; VHFpx = 0; VHFpy = 0; VHFpz = 0;
 	VHFdist = 0; VHFdist0 = 0; VHFdist1 = 0; VHFray = 0; VHFstep = 0;
+	VHFspaceray0 = 0; VHFspaceray1 = 0;
 	VHFok = 0;
 	VHFghost = 0; VHFgdx = 0; VHFgdy = 0; VHFgr = 0;
 	VHFgfx = 0; VHFgfy = 0;
@@ -81,7 +82,7 @@
 	( NOCTIS.CPP:3639-3701 with xshift=3, yshift=0 and condition=0.
 	  The selected star is already relative in SFXX/SFYY/SFZZ; preserve
 	  the source's double rotation and strict relative-screen bounds. )
-	=> VHF space added; => VHF positive k; [VHFok] = 0;
+	=> VHF space added; => VHF space positive k; [VHFok] = 0;
 	[PGFi] = SFXX; => PGF a; [PGFi] = FSPCB; => PGF mul;
 	[PGFi] = SFT0; => PGF sa;
 	[PGFi] = SFZZ; => PGF a; [PGFi] = FSPSB; => PGF mul;
@@ -215,6 +216,19 @@
 	  binary64 k local.  Algebraically replacing this with distance/ray loses
 	  an observable integer at long surface spokes. )
 	[PGFt] = [VHFray]; => PGF ldf32; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = 10; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FT0]; [FA1] = [FT1]; => FMul;
+	[FB0] = [VHFdist0]; [FB1] = [VHFdist1]; => FQuo;
+	[VHFstep0] = [FA0]; [VHFstep1] = [FA1];
+	[FI] = 10; => IntToF; [FB0] = [VHFstep0]; [FB1] = [VHFstep1]; => FQuo;
+	[VHFk0] = [FA0]; [VHFk1] = [FA1];
+	end;
+
+"VHF space positive k"
+	( Space companions carry nearstar_p_ray as binary64.  The primary star is
+	  binary32 and its caller widens it into the same argument carrier. )
+	[FA0] = [VHFspaceray0]; [FA1] = [VHFspaceray1];
+	[FT0] = [FA0]; [FT1] = [FA1];
 	[FI] = 10; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [FT0]; [FA1] = [FT1]; => FMul;
 	[FB0] = [VHFdist0]; [FB1] = [VHFdist1]; => FQuo;

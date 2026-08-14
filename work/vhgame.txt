@@ -2179,6 +2179,7 @@
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1]; => FCmp;
 	A = [FI]; ? A >= 0 -> VHG local companion corona next;
 	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => F32Narrow; [VHFray] = [FS0];
+	[VHFspaceray0] = [VHGlocalray0]; [VHFspaceray1] = [VHGlocalray1];
 	[VHFdist0] = [VHGlocaldist0]; [VHFdist1] = [VHGlocaldist1]; => VH space flare;
 	[VHGlocalcompflareok] = [VHFok]; [VHGlocalcompflarecx] = [VHFcx];
 	[VHGlocalcompflarecy] = [VHFcy];

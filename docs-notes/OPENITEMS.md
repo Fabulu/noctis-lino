@@ -294,10 +294,16 @@ call consequently redrew the companion using the primary star's much shorter
 distance and produced a large false cyan bloom. The local-system renderer now
 reconstructs the primary coordinates at the original call boundary. Fresh
 same-clock native and Lino captures agree on body 0 radius `0.01632`, body 3
-radius `15.6`, its three-dimensional local vector, visibility, centre, corona,
-and radial-beam layout. The reproducible `orbitmultiple` gallery scene now
-uses this open-visor native-matched pose by default. This closes one real
-visible-companion context, not the remaining cross-context matrix.
+radius `15.6`, its three-dimensional local vector, visibility, centre, and
+radial-beam layout. Companion radii now remain binary64 through the source's
+`(10 * ray) / distance` calculation instead of being narrowed to binary32 at
+the flare boundary. A focused product capture changed no pixels in the sun
+region; its only 20 differences from the prior frame were clock glyphs. The
+false secondary bloom is gone, but exact full-frame corona and palette grading
+against native remains open. The reproducible `orbitmultiple` gallery scene
+uses this open-visor native-matched pose by default. This closes the coordinate
+and beam-layout defect in one real visible-companion context, not the remaining
+cross-context matrix.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
