@@ -2136,10 +2136,19 @@
 	[VHGlocaldist0] = [FA0]; [VHGlocaldist1] = [FA1];
 	A = [VHGlocalbody]; A < 1; E = nspray; E + A;
 	[VHGlocalray0] = [E plus 0]; [VHGlocalray1] = [E plus 1];
+	( Native planets() reseeds each companion from its body index and the
+	  system star's signed X coordinate, then passes the narrowed
+	  0.15-fast_flandom()*0.3 factor to whiteglobe. )
+	A = [VHGlocalbody]; A + [VHTtx]; => SU fast srand;
+	=> VHG local fast flandom;
+	[FB0] = 33333333h; [FB1] = 3FD33333h; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = 33333333h; [FA1] = 3FC33333h; => FSub; => F32Narrow;
+	[WHfgm] = [FS0];
 	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1];
 	[FI] = 3; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;
-	=> F32Narrow; [WHmag] = [FS0]; [WHfgm] = 3E19999Ah;
+	=> F32Narrow; [WHmag] = [FS0];
 	[WHshape] = 2; [WHsun] = 0; [WHdstreg] = RGADP; => SP white;
 	( Companion stars use the same condition-0, 60-spoke flare when
 	  5*ray < p_dsd < 1000*ray. )

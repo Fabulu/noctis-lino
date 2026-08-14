@@ -265,6 +265,14 @@ full flare at rain 0.5 and 0.625, sun without primary flare at rain 1.67 and
 2.0, and storm rendering without a flare at rain 2.5 through 5.0. The clear
 case's complete flare page now matches the native oracle byte for byte.
 
+The Stardrifter local-system pass now restores the companion-star corona's
+source expression too: each type-10 body reseeds the fast generator with its
+body index plus the signed system-star X coordinate, then passes the narrowed
+`0.15 - fast_flandom() * 0.3` factor to `whiteglobe`. The former fixed `0.15`
+factor was a real multi-sun mismatch. A fresh ROTOR IGNE product smoke retained
+both the eclipsed primary and companion beam field at 60 FPS. Full-context
+native framebuffer comparison remains required before this matrix is closed.
+
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 

@@ -6,6 +6,8 @@ real thin-atmosphere, quartz, and clear habitable surface inputs. The opening
 Stardrifter star also matches at every staged checkpoint: white core, radial
 flare, smoothing, and mask. A new reproducible multiple-system gallery scene
 shows a planet eclipsing the primary while its companion flare remains visible.
+Companion stars now also restore `planets()`'s per-body fast-RNG seed and exact
+`0.15 - fast_flandom() * 0.3` corona factor instead of using a fixed value.
 
 The surface weather sweep confirms the source gates between full flare, bare
 sun, and storm suppression. Broad sun authenticity remains an open acceptance
