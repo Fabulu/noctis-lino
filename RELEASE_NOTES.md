@@ -1,12 +1,28 @@
 # Noctis IV L.in.oleum port -- Windows release
 
-Beta 7 extends the orbital gallery across all generated planet types 0 through 9,
-accelerates every orbital globe and the Stardrifter hull, restores the exact
-crater squared-distance recurrence, reproduces the landed generator's heap-gap
-layout for NIVGEN, and repairs giant-tree generation. The tree now follows the
-initialized NIV+ trigonometric table and binary32 recursion, produces the same
-375 measured leaf tips, and uses a bounded presentation path while its remaining
-tree-face texture-mapper discrepancy stays explicitly open.
+Beta 8 authenticates the restored sun renderer with direct Borland-built NIV+
+framebuffer comparisons. The complete 64,000-byte flare page now matches for
+real thin-atmosphere, quartz, and clear habitable surface inputs. The opening
+Stardrifter star also matches at every staged checkpoint: white core, radial
+flare, smoothing, and mask. A new reproducible multiple-system gallery scene
+shows a planet eclipsing the primary while its companion flare remains visible.
+
+The surface weather sweep confirms the source gates between full flare, bare
+sun, and storm suppression. Broad sun authenticity remains an open acceptance
+item: every planet, atmosphere, star class, orbital configuration, and
+Stardrifter transition still requires a matching native viewpoint before the
+matrix can be called complete.
+
+Timing protection now derives its safe sampling window from the live host
+counter rate and rejects aliased deltas even under an artificial million-count
+clock. The stale class-A renderer census is closed, and generated floating-point
+helpers now reject unsafe integer conversions instead of silently weakening the
+port's narrowing contract.
+
+Live NIVGEN service integration is intentionally paused while the external
+service is unavailable. Its local harness, protocol notes, and generator work
+remain preserved, but this release does not poll, submit to, or claim a current
+score from the service.
 
 This release completes the playable Windows route from the Stardrifter through
 galactic flight, local approach, capsule descent, surface exploration, and
