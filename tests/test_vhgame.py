@@ -929,23 +929,20 @@ def main() -> int:
         and "A > [VHGNDmaxdepth]" in tile,
         "landed renderer uses NIV+ unit tiles, painter quadrants, and depth-64 source gates",
     )
-    distant_objects = section(
-        ground, '"VHGND render distant objects"', '"VHGND tile"'
-    )
     check(
         "if (depth > 40) return;" in original1
         and "VHGNDOBJECTFAR = 40;" in ground
-        and all(token in distant_objects for token in (
-            "[VHGNDlodstep] = 1;", "A = nw; A + ROBJ; A + [VHGNDh1];",
-            "? A = 0 -> VHGND distant object next;",
-            "=> VHGND object view cull;", "A '* 3; A '/ 4; A + 128;",
-            "? A '>= 7225344 -> VHGND object view hidden;",
-            "=> VHGND tile depth;",
-            "A = [VHGNDdepth]; ? A <= 3 -> VHGND distant object next;",
-            "? A > VHGNDOBJECTFAR -> VHGND distant object next;",
+        and all(token in tile for token in (
+            "A = [VHGNDdepth]; ? A > VHGNDOBJECTFAR -> VHGND tile done;",
+            "A = [VHGNDtilepolys]; ? A = 0 -> VHGND tile done;",
+            "=> VHGND capsule;", "=> VHGND render tile fauna;",
             "=> VHGND tile objects;",
-        )),
-        "surface objects retain the original depth-40 horizon with empty cells rejected early",
+        ))
+        and tile.index("=> VHGND capsule;")
+        < tile.index("=> VHGND render tile fauna;")
+        < tile.index("=> VHGND tile objects;")
+        and "=> VHGND render distant objects;" not in traversal,
+        "surface detail retains source per-tile painter order through depth 40",
     )
     check(
         "grnd; sky;" in game and "spglobe; spglow; spbg;" in game
@@ -1064,7 +1061,8 @@ def main() -> int:
     )
     surface_flare = section(flare, '"VH surface flare"', '"VHF draw"')
     check(
-        "=> VHGND render birds;\n\t=> VHGND sun flares;" in ground
+        "=> VHGND render tile fauna;" in ground
+        and "=> VHGND sun flares;" in ground
         and all(token in local_sun for token in (
             '"VHGND sun flares"', '"VHGND flare project"',
             "A = [GRSKrainy]; ? A '>= 3F99999Ah -> VHGND primary flare done;",

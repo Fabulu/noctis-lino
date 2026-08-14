@@ -108,6 +108,8 @@
 	VHGNDrx2 = 0; VHGNDry2 = 0; VHGNDrz2 = 0;
 	VHGNDrtop = 0; VHGNDrcol0 = 0; VHGNDrcol1 = 0; VHGNDrcol2 = 0;
 	VHGNDanimals = 0; VHGNDanii = 0; VHGNDanip = 0;
+	VHGNDanisingle = 0; VHGNDmii = 0; VHGNDbii = 0;
+	VHGNDfaunamid = 0; VHGNDfaunabid = 0; VHGNDtilepolys = 0;
 	VHGNDpopulation = 0; VHGNDfaunabase = 0; VHGNDfaunarange = 0;
 	VHGNDfaunatype = 0; VHGNDfaunachance = 0;
 	VHGNDfaunabirdp = 0; VHGNDfaunareptp = 0; VHGNDfaunamammp = 0;
@@ -2432,16 +2434,13 @@
 	=> VHGND water;
     "VHGND water render done"
 	=> VHGND terrain cache frame;
+	=> VHGND object view setup;
+	[VHGNDanimorphs] = 0; [VHGNDgroundbirds] = 0;
 	=> VHGND traverse faithful;
     "VHGND render terrain done"
-	=> VHGND render distant objects;
-    "VHGND render objects done"
 	( The faithful unit mesh already visits every ruinschart tile in source
 	  painter order.  The old second ruins pass existed only to patch holes
 	  left by the removed coarse mesh and would now redraw terrain late. )
-	=> VHGND capsule;
-	=> VHGND render animals;
-	=> VHGND render birds;
 	=> VHGND sun flares;
 	A = [GRiptype]; ? A != 2 -> VHGND render weather ready;
 	=> VHGND dense atmosphere; -> VHGND render finish;
@@ -4412,9 +4411,9 @@
 "VHGND render animals"
 	( live_animal() mammals: persistent motion plus the shipped model's
 	  feline, rabbit and kangaroo body-part deformation. )
-	[VHGNDanimorphs] = 0;
 	A = [GRiptype]; ? A != 3 -> VHGND animals done;
 	A = [VHGNDanimals]; ? A = 0 -> VHGND animals done;
+	A = [VHGNDanisingle]; ? A != 0 -> VHGND animal one;
 	[VHGNDanii] = 0;
     "VHGND animal one"
 	A = [VHGNDanii]; A '* 10; A + VHGNDanidata; [VHGNDanip] = A;
@@ -4617,6 +4616,7 @@
 	A = [VHGNDaniindex]; A '* 4; => SU fast srand;
 	[SUfmask] = 1; => SU fast raw;
     "VHGND animal next"
+	A = [VHGNDanisingle]; ? A != 0 -> VHGND animals done;
 	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDanimals] -> VHGND animal one;
     "VHGND animals done"
 	[SPskipmid] = 0;
@@ -4626,9 +4626,9 @@
 "VHGND render birds"
 	( Birds retain their source-selected scale, altitude and capture state,
 	  descend, cruise and take off across the full LFS population. )
-	[VHGNDgroundbirds] = 0;
 	A = [GRiptype]; ? A != 3 -> VHGND birds done;
 	A = [VHGNDbirds]; ? A = 0 -> VHGND birds done;
+	A = [VHGNDanisingle]; ? A != 0 -> VHGND bird one;
 	[VHGNDanii] = 0;
     "VHGND bird one"
 	A = [VHGNDanii]; A '* 12; A + VHGNDbirddata; [VHGNDanip] = A;
@@ -4838,6 +4838,7 @@
 	A = [VHGNDcamz]; A - 50; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
 	[VHSz1] = [FS0]; => VH stick3d;
     "VHGND bird next"
+	A = [VHGNDanisingle]; ? A != 0 -> VHGND birds done;
 	[VHGNDanii]+; A = [VHGNDanii]; ? A '< [VHGNDbirds] -> VHGND bird one;
     "VHGND birds done"
 	[SPskipmid] = 0;
@@ -4886,10 +4887,13 @@
     "VHGND capsule beacon"
 	[VHSx0] = 0; [VHSy0] = 3304718336; [VHSz0] = 0;
 	[VHSx1] = 1120403456; [VHSy1] = 3388220416; [VHSz1] = 0; => VH stick3d;
+	A = [VHGNDdepth]; ? A '>= 48 -> VHGND capsule beacon repeat;
 	[VHSx0] = 0; [VHSy0] = 3305119744; [VHSz0] = 0;
 	[VHSx1] = 0; [VHSy1] = 3379831808; [VHSz1] = 0; => VH stick3d;
+	A = [VHGNDdepth]; ? A '>= 24 -> VHGND capsule beacon repeat;
 	[VHSx0] = 0; [VHSy0] = 3305324544; [VHSz0] = 0;
 	[VHSx1] = 0; [VHSy1] = 3371443200; [VHSz1] = 1120403456; => VH stick3d;
+    "VHGND capsule beacon repeat"
 	[VHGNDbeaconpass]+; A = [GRSKnightzone]; ? A = 0 -> VHGND capsule beacon done;
 	A = [VHGNDbeaconpass]; ? A < 6 -> VHGND capsule beacon;
     "VHGND capsule beacon done"
@@ -5106,44 +5110,6 @@
 	[VHGNDx]-; A = [VHGNDx]; ? A >= [VHGNDxlo] -> VHGND faithful west x;
 	end;
 
-"VHGND render distant objects"
-	( Source fragment() keeps surface objects through depth 40.  Terrain is
-	  already covered by the faithful unit mesh, so scan only the exact object
-	  chart here and skip the depth-zero-through-three cells rendered with
-	  the near terrain pass. )
-	=> VHGND object view setup;
-	[VHGNDlodstep] = 1;
-	A = [VHGNDcamtx]; A - 42; [VHGNDxlo] = A;
-	? A >= 0 -> VHGND objects xlo ready; [VHGNDxlo] = 0;
-    "VHGND objects xlo ready"
-	A = [VHGNDcamtx]; A + 42; [VHGNDxhi] = A;
-	? A '<= 198 -> VHGND objects xhi ready; [VHGNDxhi] = 198;
-    "VHGND objects xhi ready"
-	A = [VHGNDcamtz]; A - 42; [VHGNDzlo] = A;
-	? A >= 0 -> VHGND objects zlo ready; [VHGNDzlo] = 0;
-    "VHGND objects zlo ready"
-	A = [VHGNDcamtz]; A + 42; [VHGNDzhi] = A;
-	? A '<= 198 -> VHGND objects zhi ready; [VHGNDzhi] = 198;
-    "VHGND objects zhi ready"
-	[VHGNDz] = [VHGNDzhi];
-    "VHGND distant objects z"
-	[VHGNDx] = [VHGNDxlo];
-    "VHGND distant objects x"
-	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
-	( Most source-chart cells are empty.  Reject them before the floating
-	  distance calculation so the full depth-40 horizon stays inexpensive. )
-	A = nw; A + ROBJ; A + [VHGNDh1]; A = [A]; A & 3;
-	? A = 0 -> VHGND distant object next;
-	=> VHGND object view cull; A = [VHGNDviewrz]; ? A = 0 -> VHGND distant object next;
-	=> VHGND tile depth;
-	A = [VHGNDdepth]; ? A <= 3 -> VHGND distant object next;
-	? A > VHGNDOBJECTFAR -> VHGND distant object next;
-	=> VHGND tile objects;
-    "VHGND distant object next"
-	[VHGNDx]+; A = [VHGNDx]; ? A '<= [VHGNDxhi] -> VHGND distant objects x;
-	[VHGNDz]-; A = [VHGNDz]; ? A >= [VHGNDzlo] -> VHGND distant objects z;
-	end;
-
 "VHGND object view setup"
 	( Fixed 15-bit camera vectors for the conservative distant-tile cull. )
 	[VHVangle] = [VHGNDbeta]; => VHV sincos;
@@ -5291,6 +5257,7 @@
 	A = [VHGNDmirror]; ? A = 0 -> VHGND tile mirror cull ready; [SPcull] = 0;
     "VHGND tile mirror cull ready"
 
+	[VHGNDtilepolys] = 0;
 	[VHGNDvctri] = 0; A = fw; [PJfwbase] = A;
 	=> VHGND terrain triangle load native; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile first mirror facing;
@@ -5299,6 +5266,7 @@
 	A = [FCret]; ? A != 0 -> VHGND tile first done;
 	A = [VHGNDs1]; A + [VHGNDs2]; A + [VHGNDs4]; ? A = 0 -> VHGND tile first done;
     "VHGND tile first visible"
+	[VHGNDtilepolys]+;
 	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile first flat;
 	-> VHGND tile first textured;
     "VHGND tile first flat"
@@ -5314,6 +5282,7 @@
 	A = [FCret]; ? A != 0 -> VHGND tile second done;
 	A = [VHGNDs2]; A + [VHGNDs3]; A + [VHGNDs4]; ? A = 0 -> VHGND tile second done;
     "VHGND tile second visible"
+	[VHGNDtilepolys]+;
 	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile second flat;
 	-> VHGND tile second textured;
     "VHGND tile second flat"
@@ -5330,9 +5299,76 @@
 	A = [VHGNDruinpass]; ? A != 0 -> VHGND tile done;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile done;
 	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile done;
-	A = [VHGNDdepth]; ? A '>= 4 -> VHGND tile done;
+	( fragment() paints the settled capsule in its terrain cell before fauna
+	  and surface objects, so nearer cells can cover it in painter order. )
+	A = [VHGNDdropx]; A / VHGNDTS; ? A != [VHGNDx] -> VHGND tile capsule done;
+	A = [VHGNDdropz]; A / VHGNDTS; ? A != [VHGNDz] -> VHGND tile capsule done;
+	=> VHGND capsule;
+    "VHGND tile capsule done"
+	A = [VHGNDdepth]; ? A > VHGNDOBJECTFAR -> VHGND tile done;
+	? A '<= 8 -> VHGND tile detail visible;
+	A = [VHGNDtilepolys]; ? A = 0 -> VHGND tile done;
+    "VHGND tile detail visible"
+	=> VHGND render tile fauna;
 	=> VHGND tile objects;
 	"VHGND tile done"
+	end;
+
+"VHGND render tile fauna"
+	( NIV+ scans the mixed life-form array in original ID order for every
+	  fragment.  Mammals and birds are compacted separately here, so merge
+	  their stored source IDs while retaining the dynamic cell test. )
+	A = [GRiptype]; ? A != 3 -> VHGND tile fauna done;
+	[VHGNDmii] = 0; [VHGNDbii] = 0; [VHGNDanisingle] = 1;
+    "VHGND tile fauna merge"
+	[VHGNDfaunamid] = 2147483647; [VHGNDfaunabid] = 2147483647;
+	A = [VHGNDmii]; ? A '>= [VHGNDanimals] -> VHGND tile fauna mammal id ready;
+	A '* 10; A + VHGNDanidata; C = A; [VHGNDfaunamid] = [C plus 9];
+    "VHGND tile fauna mammal id ready"
+	A = [VHGNDbii]; ? A '>= [VHGNDbirds] -> VHGND tile fauna bird id ready;
+	A '* 12; A + VHGNDbirddata; C = A; [VHGNDfaunabid] = [C plus 10];
+    "VHGND tile fauna bird id ready"
+	A = [VHGNDfaunamid]; ? A != 2147483647 -> VHGND tile fauna choose;
+	A = [VHGNDfaunabid]; ? A = 2147483647 -> VHGND tile fauna done;
+    "VHGND tile fauna choose"
+	A = [VHGNDfaunamid]; ? A '< [VHGNDfaunabid] -> VHGND tile fauna mammal;
+
+    "VHGND tile fauna bird"
+	A = [VHGNDbii]; A '* 12; A + VHGNDbirddata; [VHGNDanip] = A; C = A;
+	[VHGNDanix] = [C plus 0]; [VHGNDaniz] = [C plus 1]; => VHGND fauna tile match;
+	A = [VHGNDviewrz]; ? A = 0 -> VHGND tile fauna bird next;
+	[VHGNDanii] = [VHGNDbii]; => VHGND render birds;
+    "VHGND tile fauna bird next"
+	[VHGNDbii]+; -> VHGND tile fauna merge;
+
+    "VHGND tile fauna mammal"
+	A = [VHGNDmii]; A '* 10; A + VHGNDanidata; [VHGNDanip] = A; C = A;
+	[VHGNDanix] = [C plus 0]; [VHGNDaniz] = [C plus 1]; => VHGND fauna tile match;
+	A = [VHGNDviewrz]; ? A = 0 -> VHGND tile fauna mammal next;
+	[VHGNDanii] = [VHGNDmii]; => VHGND render animals;
+    "VHGND tile fauna mammal next"
+	[VHGNDmii]+; -> VHGND tile fauna merge;
+
+    "VHGND tile fauna done"
+	[VHGNDanisingle] = 0; [SPskipmid] = 0;
+	end;
+
+"VHGND fauna tile match"
+	[VHGNDviewrz] = 0;
+	A = [VHGNDanix]; A / VHGNDTS;
+	? A >= 0 -> VHGND fauna tile x high; A = 0;
+    "VHGND fauna tile x high"
+	? A '<= 199 -> VHGND fauna tile x ready; A = 199;
+    "VHGND fauna tile x ready"
+	? A != [VHGNDx] -> VHGND fauna tile match done;
+	A = [VHGNDaniz]; A / VHGNDTS;
+	? A >= 0 -> VHGND fauna tile z high; A = 0;
+    "VHGND fauna tile z high"
+	? A '<= 199 -> VHGND fauna tile z ready; A = 199;
+    "VHGND fauna tile z ready"
+	? A != [VHGNDz] -> VHGND fauna tile match done;
+	[VHGNDviewrz] = 1;
+    "VHGND fauna tile match done"
 	end;
 
 "VHGND tile objects"
