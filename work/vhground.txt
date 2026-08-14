@@ -5509,13 +5509,15 @@
 	( ciuffo(): no grass at depth four. Depth three is the source's
 	  exact greenmush 1..4 by 1..8 distant speckle mass. Depths two,
 	  one and zero draw respectively three, four and six faces for each
-	  of the original one or 1..8 terminal subdivisions. )
+	  of the original one or 1..8 terminal subdivisions.  Surface-detail
+	  draws use VHGND render random: it is the same unsigned fast_random
+	  transition without the corpus-only counter and FNV ledger. )
 	A = [VHGNDdepth]; ? A >= 4 -> VHGND veget done;
 	A = [VHGNDdepth]; ? A = 3 -> VHGND veget distant;
 	[VHGNDgrassdistant] = 0; [VHGNDgrassgroups] = 1;
 	[VHGNDgrassfaces] = 3; [VHGNDgrassrad] = 250; [VHGNDgrassrange] = 500;
 	A = [VHGNDdepth]; ? A = 2 -> VHGND veget count ready;
-	[SUfmask] = 7; => SU frnd; C + 1; [VHGNDgrassgroups] = C;
+	[SUfmask] = 7; => VHGND render random; C + 1; [VHGNDgrassgroups] = C;
 	[VHGNDgrassfaces] = 4; A = [VHGNDdepth]; ? A = 1 -> VHGND veget count ready;
 	[VHGNDgrassfaces] = 6; -> VHGND veget count ready;
     "VHGND veget distant"
@@ -5532,22 +5534,22 @@
 	[VHGNDgrassbz] = [VHGNDooz];
 	A = [VHGNDgrassdistant]; ? A = 0 -> VHGND veget base ready;
 	( greenmush correction: centre the 1023-unit random cube. )
-	[SUfmask] = 1023; => SU frnd; A = [VHGNDoox]; A + 511; A - C; [VHGNDgrassbx] = A;
-	[SUfmask] = 1023; => SU frnd; A = [VHGNDgrassby]; A + 511; A - C; [VHGNDgrassby] = A;
-	[SUfmask] = 1023; => SU frnd; A = [VHGNDooz]; A + 511; A - C; [VHGNDgrassbz] = A;
+	[SUfmask] = 1023; => VHGND render random; A = [VHGNDoox]; A + 511; A - C; [VHGNDgrassbx] = A;
+	[SUfmask] = 1023; => VHGND render random; A = [VHGNDgrassby]; A + 511; A - C; [VHGNDgrassby] = A;
+	[SUfmask] = 1023; => VHGND render random; A = [VHGNDooz]; A + 511; A - C; [VHGNDgrassbz] = A;
     "VHGND veget base ready"
 	( Terminal endpoint: x/z vary over the source 500-unit range; height
 	  is a full 1000-unit fast_flandom draw, or a tiny distant speckle. )
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDgrassrange]; A '/ 32767; A + [VHGNDgrassbx]; [VHGNDtmp] = A;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDgrassrange]; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDgrassax] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDgrassrange]; A '/ 32767; A + [VHGNDgrassbz]; [VHGNDtmp] = A;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDgrassrange]; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDgrassaz] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* [VHGNDgrassrange]; A '/ 32767; A + [VHGNDgrassbx]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* [VHGNDgrassrange]; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDgrassax] = C;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* [VHGNDgrassrange]; A '/ 32767; A + [VHGNDgrassbz]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* [VHGNDgrassrange]; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDgrassaz] = C;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 1000; A '/ 32767;
 	C = [VHGNDgrassby]; C - A; [VHGNDgrassay] = C;
 	A = [VHGNDgrassdistant]; ? A = 0 -> VHGND veget colour;
 	A = [VHGNDgrassby]; A - 64; [VHGNDgrassay] = A;
     "VHGND veget colour"
-	[SUfmask] = 31; => SU frnd; C + 192; [DBcol] = C;
+	[SUfmask] = 31; => VHGND render random; C + 192; [DBcol] = C;
 	A = [VHGNDgrassdistant]; ? A = 0 -> VHGND veget near colour; [DBcol] = C; C + 24; [DBcol] = C;
     "VHGND veget near colour"
 	[VHGNDvi] = 0;
@@ -5792,7 +5794,7 @@
 	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
 	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
 	[VHGNDtreebranches] = 1; A = [VHGNDtreeisroot]; ? A != 0 -> VHGND tree node count ready;
-	[SUfmask] = [VHTforks]; => SU frnd; C + 1; [VHGNDtreebranches] = C;
+	[SUfmask] = [VHTforks]; => VHGND render random; C + 1; [VHGNDtreebranches] = C;
     "VHGND tree node count ready"
 	A = VHGNDtscount; A + [VHGNDtreelevel]; [A] = [VHGNDtreebranches];
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; [A] = 0;
@@ -5850,7 +5852,7 @@
     "VHGND tree endpoint ready"
 	[PGFt] = [VHGNDtreeexf]; => PGF ldf32; => FToIntChop; [VHGNDtreeex] = [FI];
 	[PGFt] = [VHGNDtreeezf]; => PGF ldf32; => FToIntChop; [VHGNDtreeez] = [FI];
-	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
 	C = [VHGNDtreeisroot]; ? C = 0 -> VHGND tree child nonroot height;
 	{ D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dGRrootheightf mtp bytesperunit>
 	  DC 87 <dGRK010L mtp bytesperunit> D8 8F <dVHGNDtreescalef mtp bytesperunit>
@@ -5887,14 +5889,14 @@
 	( x2 = x + fast_flandom()*range - fast_flandom()*range.  Keep the
 	  first partial sum wide across the second RNG call, then narrow only at
 	  the source's float assignment. )
-	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
 	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
 	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSW1; [PGFt] = [VHGNDtreebxf]; => PGF setf32;
 	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add;
 	[GRtreeacc0] = [FA0]; [GRtreeacc0 plus 1] = [FA1];
-	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
 	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
 	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
@@ -5902,14 +5904,14 @@
 	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafx] = [FS0];
 
 	( z2 follows the same live-x87 schedule. )
-	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
 	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
 	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSW1; [PGFt] = [VHGNDtreebzf]; => PGF setf32;
 	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add;
 	[GRtreeacc0] = [FA0]; [GRtreeacc0 plus 1] = [FA1];
-	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
 	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
 	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
@@ -5917,7 +5919,7 @@
 	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafz] = [FS0];
 
 	( fy[2] = y-fast_flandom()*scaling; widthscale1=scaling*globalwidth. )
-	[SUfmask] = 32767; => SU frnd; [GRtreeci] = C; => GR tree flandom;
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
 	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
 	[PGFi] = FSW1; [PGFt] = [VHGNDtreescalef]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
@@ -5928,7 +5930,7 @@
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
 	=> F32Narrow; => FStoreF32; [VHGNDtreebr] = [FS0];
 	[VHGNDtreeex] = [VHGNDtreebx]; [VHGNDtreeey] = [VHGNDtreeby]; [VHGNDtreeez] = [VHGNDtreebz];
-	[SUfmask] = 31; => SU frnd; C + [VHTleafcol]; [VHGNDtreecol] = C;
+	[SUfmask] = 31; => VHGND render random; C + [VHTleafcol]; [VHGNDtreecol] = C;
 	[VHTfacebase] = C; [VHTfacestep] = 2;
 	[DBflar] = [GRleafflares]; => VHGND tree leaves;
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; C = [A]; C + 1; [A] = C;
@@ -5949,8 +5951,8 @@
 	A = [VHGNDdepth]; ? A >= 3 -> VHGND bush distant;
 	[VHGNDtreescale] = 3000; [VHGNDtreerange] = 2250;
 	[VHGNDtreebr] = 450; [VHGNDtreeer] = 337; [VHGNDtreefaces] = 3;
-	[SUfmask] = 3; => SU frnd; [VHGNDtreeorient] = C;
-	[SUfmask] = 31; => SU frnd; C + 192; [VHGNDtreecol] = C;
+	[SUfmask] = 3; => VHGND render random; [VHGNDtreeorient] = C;
+	[SUfmask] = 31; => VHGND render random; C + 192; [VHGNDtreecol] = C;
 	[VHGNDtreebranches] = 1; A = [VHGNDdepth]; ? A = 2 -> VHGND bush mask one;
 	? A = 1 -> VHGND bush mask two; [SUfmask] = 3; -> VHGND bush count;
     "VHGND bush mask one"
@@ -5958,7 +5960,7 @@
     "VHGND bush mask two"
 	[SUfmask] = 2;
     "VHGND bush count"
-	=> SU frnd; C + 1; [VHGNDtreebranches] = C;
+	=> VHGND render random; C + 1; [VHGNDtreebranches] = C;
 	[SPcull] = 0; [DBflar] = 0; [DBent] = 0; [VHGNDtreebranch] = 0;
     "VHGND bush branch loop"
 	A = [VHGNDtreebranch]; ? A '>= [VHGNDtreebranches] -> VHGND bush done;
@@ -5967,18 +5969,18 @@
 	A = [VHGNDtreepx]; A + [VHGNDoox]; [VHGNDtreeex] = A;
 	A = [VHGNDtreepz]; A + [VHGNDooz]; [VHGNDtreeez] = A;
 	( y2 = y - (fast_flandom()+.25)*3000*.25 )
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 750; A '/ 32767; A + 187;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 750; A '/ 32767; A + 187;
 	C = [VHGNDooy]; C - A; [VHGNDtreeey] = C;
 	[VHTfacebase] = 0; [VHTfacestep] = 4;
 	[VHGNDtreefloat] = 0; [DBflar] = [GRtreeflares]; => VHGND tree limb;
 	( Terminal layer: width 2250*.15 and range 2250*1.5*.5. )
 	[VHGNDtreeleafrad] = 337;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 1687; A '/ 32767; A + [VHGNDtreeex]; [VHGNDtmp] = A;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 1687; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDtreeleafx] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 1687; A '/ 32767; A + [VHGNDtreeez]; [VHGNDtmp] = A;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 1687; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDtreeleafz] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 2250; A '/ 32767; [VHGNDtreeleafdrop] = A;
-	[SUfmask] = 31; => SU frnd; C + 192; [VHGNDtreecol] = C;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 1687; A '/ 32767; A + [VHGNDtreeex]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 1687; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDtreeleafx] = C;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 1687; A '/ 32767; A + [VHGNDtreeez]; [VHGNDtmp] = A;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 1687; A '/ 32767; C = [VHGNDtmp]; C - A; [VHGNDtreeleafz] = C;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 2250; A '/ 32767; [VHGNDtreeleafdrop] = A;
+	[SUfmask] = 31; => VHGND render random; C + 192; [VHGNDtreecol] = C;
 	[VHTfacebase] = C; [VHTfacestep] = 2;
 	[DBflar] = [GRleafflares]; => VHGND tree leaves;
 	[VHGNDtreebranch]+; -> VHGND bush branch loop;
@@ -6246,29 +6248,29 @@
 	( Source order is five base-coordinate draws, four colour draws, then
 	  the apex draw.  This order is procedural state, not cosmetic. )
 	( base point 0: x-rand(scale), z-rand(scale) )
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDoox]; C - A; [VHGNDrx0] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDooz]; C - A; [VHGNDrz0] = C;
 
 	( base point 1: centre x, z+rand(scale) )
 	[VHGNDrx1] = [VHGNDoox];
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDooz]; C + A; [VHGNDrz1] = C;
 
 	( base point 2: x+rand(scale), z-rand(scale) )
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDoox]; C + A; [VHGNDrx2] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* [VHGNDrockworkscale]; A '/ 32767;
 	C = [VHGNDooz]; C - A; [VHGNDrz2] = C;
 
-	[SUfmask] = 63; => SU frnd; [VHGNDrcolor] = C;
-	[SUfmask] = 7; => SU frnd; C + [VHGNDrcolor]; [VHGNDrcol0] = C;
-	[SUfmask] = 15; => SU frnd; C + [VHGNDrcolor]; [VHGNDrcol1] = C;
-	[SUfmask] = 31; => SU frnd; C + [VHGNDrcolor]; [VHGNDrcol2] = C;
+	[SUfmask] = 63; => VHGND render random; [VHGNDrcolor] = C;
+	[SUfmask] = 7; => VHGND render random; C + [VHGNDrcolor]; [VHGNDrcol0] = C;
+	[SUfmask] = 15; => VHGND render random; C + [VHGNDrcolor]; [VHGNDrcol1] = C;
+	[SUfmask] = 31; => VHGND render random; C + [VHGNDrcolor]; [VHGNDrcol2] = C;
 
 	( apex height = supplied fragment ground - 100 - fast_flandom()*peak )
-	[SUfmask] = 32767; => SU frnd; A = C; A '* [VHGNDrockpeak]; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* [VHGNDrockpeak]; A '/ 32767;
 	C = [VHGNDooy]; C - 100; C - A; [VHGNDrtop] = C;
 
 	( hpoint() for the three base vertices; deterministic results are reused
@@ -6319,13 +6321,13 @@
 	[DBcol] = [VHGNDrcol2]; [SPtinta] = [VHGNDrcol2]; => VHGND rock draw face;
 	"VHGND rock faces done"
 	( Source rockrep centre walk and scale decay. )
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
 	A + [VHGNDoox]; [VHGNDtmp] = A;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
 	C = [VHGNDtmp]; C - A; [VHGNDoox] = C;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
 	A + [VHGNDooz]; [VHGNDtmp] = A;
-	[SUfmask] = 32767; => SU frnd; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
+	[SUfmask] = 32767; => VHGND render random; A = C; A '* 1000; A '* [VHGNDcdown]; A '/ 32767;
 	C = [VHGNDtmp]; C - A; [VHGNDooz] = C;
 	[VHGNDrox] = [VHGNDoox]; [VHGNDroz] = [VHGNDooz]; => VHGND rock height;
 	[VHGNDooy] = [VHGNDroy];

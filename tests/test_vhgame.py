@@ -3031,7 +3031,7 @@ def main() -> int:
         and all(token in grass for token in (
             "A = [VHGNDdepth]; ? A >= 4 -> VHGND veget done;",
             "[VHGNDgrassfaces] = 3;", "[VHGNDgrassfaces] = 4;",
-            "[VHGNDgrassfaces] = 6;", "[SUfmask] = 7; => SU frnd; C + 1;",
+            "[VHGNDgrassfaces] = 6;", "[SUfmask] = 7; => VHGND render random; C + 1;",
             '"VHGND veget distant"', "[VHGNDmushscale] = 1023;",
             "[VHGNDmushbase] = 216;", "=> VHGND greenmush;",
             "A '* 1000; A '/ 32767;", "[VHGNDgrassby] = A;",
