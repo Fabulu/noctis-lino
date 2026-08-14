@@ -152,12 +152,29 @@
 
 "PG stosb"
 	? [SCcx] = 0 -> PG stosb done;
-    "PG stosb l"
-	[PGdi] = [SCdi]; [PGval] = [DBal]; => PG store;
-	[CSbyte]+;
-	A = [SCdi]; A + 1; A & 65535; [SCdi] = A;
-	[SCcx]-;
-	? [SCcx] != 0 -> PG stosb l;
+	( Lino units model DOS bytes, so this is a dword-stride store with a
+	  wrapping 16-bit unit offset.  Keep the diagnostic byte census and
+	  the final primitive state exact while avoiding one interpreted call
+	  per filled pixel. )
+	A = nw;
+	{
+	    8D 04 87
+	    8B 97 <dSCdi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    8B 8F <dSCcx mtp bytesperunit>
+	    8B 9F <dDBal mtp bytesperunit>
+	    81 E3 FF 00 00 00
+	    01 8F <dCSbyte mtp bytesperunit>
+	    89 9C 90 <dSADPT mtp bytesperunit>
+	    66 42
+	    49
+	    75 F4
+	    89 97 <dSCdi mtp bytesperunit>
+	    89 8F <dSCcx mtp bytesperunit>
+	    66 4A
+	    89 97 <dPGdi mtp bytesperunit>
+	    89 9F <dPGval mtp bytesperunit>
+	}
     "PG stosb done"
 	end;
 
@@ -409,22 +426,7 @@
 	C = [DBdi]; C - [DBsi]; C & 65535; [DBdx] = C;
 	A = [DBsi]; [SCdi] = A;
 	[DBal] = [DBcol];
-	C = [DBdx]; C > 2; [SCcx] = C;
-	? C = 0 -> PG db c0 tail;
-    "PG db c0 dw"
-	( db 0x26,0x66,0x89,0x05 : mov es:[di], eax - FOUR bytes of
-	  colore.  AL is colore here because the row loop set it after
-	  the scan; the setup block alone would leave AL zero. )
-	[PGdi] = [SCdi];         [PGval] = [DBcol]; => PG store;
-	A = [SCdi]; A + 1; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
-	A = [SCdi]; A + 2; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
-	A = [SCdi]; A + 3; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
-	A = [CSbyte]; A + 4; [CSbyte] = A;
-	A = [SCdi]; A + 4; A & 65535; [SCdi] = A;
-	[SCcx]-;
-	? [SCcx] != 0 -> PG db c0 dw;
-    "PG db c0 tail"
-	C = [DBdx]; C & 3; [SCcx] = C;
+	[SCcx] = [DBdx];
 	=> PG stosb;
 	-> PG db c0 next;
     "PG db c0 fb1"
@@ -569,19 +571,7 @@
 	C = [DBdi]; C - [DBsi]; C & 65535; [DBdx] = C;
 	A = [DBsi]; [SCdi] = A;
 	[DBal] = [DBcol];
-	C = [DBdx]; C > 2; [SCcx] = C;
-	? C = 0 -> PG db c4 tail;
-    "PG db c4 dw"
-	[PGdi] = [SCdi];         [PGval] = [DBcol]; => PG store;
-	A = [SCdi]; A + 1; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
-	A = [SCdi]; A + 2; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
-	A = [SCdi]; A + 3; A & 65535; [PGdi] = A; [PGval] = [DBcol]; => PG store;
-	A = [CSbyte]; A + 4; [CSbyte] = A;
-	A = [SCdi]; A + 4; A & 65535; [SCdi] = A;
-	[SCcx]-;
-	? [SCcx] != 0 -> PG db c4 dw;
-    "PG db c4 tail"
-	C = [DBdx]; C & 3; [SCcx] = C;
+	[SCcx] = [DBdx];
 	=> PG stosb;
 	-> PG db c4 ramp;
     "PG db c4 fb"

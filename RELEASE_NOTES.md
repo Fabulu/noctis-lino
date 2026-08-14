@@ -196,6 +196,11 @@ fixed page addressing, 16-bit DOS wrap, and byte masks in native code. This
 benefits solid and effect polygons across surface and Stardrifter views. All
 107 joined exact raster corpus pages remain byte-identical after the change.
 
+Flat solid and colour-ramp polygon spans now write each complete run in one
+native loop instead of making an interpreted framebuffer call per pixel. The
+same exact raster corpus remains byte-identical, including its fill counters,
+and a fresh Stardrifter smoke held the hull pass at 2.43 ms.
+
 That fixed 2x path now publishes each duplicated RGB pixel to Backdrop and
 Primary Display while the value is already loaded. The two synchronized layers
 therefore no longer need a subsequent 1 MiB Backdrop reread and copy. Resized
