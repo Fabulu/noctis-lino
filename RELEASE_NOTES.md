@@ -1,14 +1,14 @@
 # Noctis IV L.in.oleum port -- Windows release
 
-Beta 8 authenticates the restored sun renderer with direct Borland-built NIV+
-framebuffer comparisons. The complete 64,000-byte flare page now matches for
-real thin-atmosphere, quartz, and clear habitable surface inputs. The opening
-Stardrifter star also matches at every staged checkpoint: white core, radial
-flare, smoothing, and mask. A new reproducible multiple-system gallery scene
-shows a planet eclipsing the primary beside the Stardrifter's own fixture-light
-spokes. Runtime tracing confirms that the companion is off-screen in this
-particular view, so those spokes are not mislabeled as a second sun.
-Companion stars now also restore `planets()`'s per-body fast-RNG seed and exact
+Beta 9 completes the current native-matched companion-star checkpoint and
+ships the latest exact terrain and presentation optimizations. Stationary
+local-system rendering is active again, local tracking status survives the
+renderer, and companion flare radius retains its source binary32 precision.
+The complete 64,000-byte flare page matches direct Borland-built NIV+
+framebuffer captures for real thin-atmosphere, quartz, and clear habitable
+surface inputs. The opening Stardrifter star also matches at every staged
+checkpoint: white core, radial flare, smoothing, and mask. Companion stars
+restore `planets()`'s per-body fast-RNG seed and exact
 `0.15 - fast_flandom() * 0.3` corona factor instead of using a fixed value.
 
 The gallery tool now defaults to the game's own no-flash 320x200 snapshot path.
