@@ -250,6 +250,12 @@ ghosts, and occlusion against the native renderer for:
 - orbital planet views with the sun both beside and behind the globe;
 - the Stardrifter interior, cupola, exterior, launch, and landing transitions.
 
+Do not treat the beams as incidental flare decoration. Grade their count,
+origin, direction, length, spread, colour, brightness, clipping, and palette
+interaction separately for each planet/sun pairing. The Stardrifter cases must
+also cover beams seen through the cockpit and cupola geometry, from outside the
+ship, and while crossing between surface, launch, space, and landing states.
+
 Each case needs a matching native viewpoint or raw framebuffer oracle. Visual
 plausibility alone does not close this item. The finished result must look and
 behave authentically in motion, including beam direction, clipping, brightness,
