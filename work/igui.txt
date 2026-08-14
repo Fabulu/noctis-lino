@@ -1853,6 +1853,22 @@
       "UAF Idle"
 	leave;
 
+    ( Game-frame variant used when a producer has already published the same
+      completed image to Backdrop Layer and Primary Display.  Preserve Update
+      Area's cursor composition and retrace order without copying that image a
+      second time. )
+
+"Update Area Published"
+      ? [UA Disable] = YES -> UAP Idle;
+	[L2L Region] -->;
+	=> RD Retrace Arrow;
+	<-- [L2L Region];
+	[Display Command]     = RETRACE;
+	[Display Live Region] = [L2L Region];
+	isocall;
+      "UAP Idle"
+	leave;
+
     (retraces the title bar, typically after changing the pointer to the
      actual string to be written there, which is [Window Title])
 

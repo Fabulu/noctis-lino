@@ -89,6 +89,12 @@ the generic resizable aspect-fit path. Fresh production captures measured 56
 to 61 FPS across every landable planet class and 58 FPS in the Stardrifter;
 the slowest measured surface render was 10.69 ms.
 
+That fixed 2x path now publishes each duplicated RGB pixel to Backdrop and
+Primary Display while the value is already loaded. The two synchronized layers
+therefore no longer need a subsequent 1 MiB Backdrop reread and copy. Resized
+windows retain the generic single-layer scaler and normal iGUI copy, while the
+default path retains the same cursor composition and physical retrace order.
+
 The timing servo now derives its maximum sampling window from the live host
 counter rate, capped at 60 seconds and kept fourfold inside the 32-bit counter
 ring. A synthetic million-counts-per-millisecond replay rejects every unsafe

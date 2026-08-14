@@ -13,6 +13,7 @@
 	VHGUIx = 0; VHGUIy = 0; VHGUIsx = 0; VHGUIsy = 0;
 	VHGUIsrc = 0; VHGUIdst = 0;
 	VHGUIpal = 0; VHGUIrow2 = 0; VHGUIgap = 0;
+	VHGUIdstp = 0; VHGUIrow2p = 0; VHGUIpublished = 0;
 	VHGUIxacc = 0; VHGUIyacc = 0;
 	VHGUIprevaw = 0; VHGUIprevah = 0;
 	vector VHGUIregion = 0; 0; 319; 199;
@@ -74,6 +75,7 @@
 	( The 1x path copies four composed RGB pixels per loop.  Only Backdrop is
 	  written here: Update Area performs the one authoritative copy into
 	  Primary Display immediately afterward. )
+	[VHGUIpublished] = 0;
 	A = [VHGUIdw]; ? A != 320 -> VHGUI maybe 2x;
 	A = [VHGUIdh]; ? A != 200 -> VHGUI maybe 2x;
 	[VHGUIy] = 0;
@@ -102,10 +104,14 @@
 	[VHGUIsrc] = VHGUIframe;
 	A = [VHGUItop]; A '* [Display Width]; A + [VHGUIleft]; A + Backdrop Layer;
 	[VHGUIdst] = A; A + [Display Width]; [VHGUIrow2] = A;
+	A = [VHGUItop]; A '* [Display Width]; A + [VHGUIleft]; A + Primary Display;
+	[VHGUIdstp] = A; A + [Display Width]; [VHGUIrow2p] = A;
 	A = [Display Width]; A + A; A - 640; A '* 4; [VHGUIgap] = A;
 	( Exact native expansion of 320 source dwords into two equal pixels on
-	  each of two destination rows.  The runtime display stride retains iGUI's
-	  one-unit chrome border; only the fixed 640x400 fit takes this path. )
+	  each of two destination rows. Publish those already-loaded pixels to both
+	  synchronized iGUI layers, avoiding a later 1 MiB Backdrop reread while
+	  retaining the runtime display stride and normal cursor/retrace ordering.
+	  Only the fixed 640x400 fit takes this path. )
 	{
 	    53 56 57 55                         (push ebx, esi, edi, ebp)
 	    8B B7 <dVHGUIsrc mtp bytesperunit>
@@ -114,16 +120,27 @@
 	    8D 04 87                            (eax = first destination row)
 	    8B AF <dVHGUIrow2 mtp bytesperunit>
 	    8D 2C AF                            (ebp = second destination row)
-	    8B 9F <dVHGUIgap mtp bytesperunit>
-	    BA C8 00 00 00                      (200 source rows)
+	    8B 97 <dVHGUIdstp mtp bytesperunit>
+	    8D 14 97                            (edx = first primary row)
+	    8B 9F <dVHGUIrow2p mtp bytesperunit>
+	    8D 1C 9F                            (ebx = second primary row)
+	    FF B7 <dVHGUIgap mtp bytesperunit>  (stack: row gap)
+	    68 C8 00 00 00                      (stack: 200 source rows)
 	    89 C7                               (edi = first destination row)
 	    B9 40 01 00 00                      (320 source pixels)
 	    AD AB AB                            (load once, write first pair)
-	    89 45 00 89 45 04 83 C5 08          (write second pair)
-	    49 75 F1                            (next source pixel)
-	    01 DF 01 DD 4A 75 E5                (advance both rows; next row)
+	    89 45 00 89 45 04                   (write second Backdrop pair)
+	    89 02 89 42 04                      (write first Primary pair)
+	    89 03 89 43 04                      (write second Primary pair)
+	    83 C5 08 83 C2 08 83 C3 08          (advance non-EDI rows)
+	    49 75 E1                            (next source pixel)
+	    03 7C 24 04 03 6C 24 04             (advance Backdrop rows)
+	    03 54 24 04 03 5C 24 04             (advance Primary rows)
+	    FF 0C 24 75 C7                      (decrement rows; next row)
+	    83 C4 08                            (discard row count and gap)
 	    5D 5F 5E 5B                         (restore ebp, edi, esi, ebx)
 	}
+	[VHGUIpublished] = 1;
 	[VHGUIx] = 0; [VHGUIy] = 200;
 	end;
     "VHGUI scaled"

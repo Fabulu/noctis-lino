@@ -1199,14 +1199,19 @@
 		=> VHG wide advance;
 		[VHGsnapshotready] = 1;
 		=> VHGUI present;
+		A = [VHGUIpublished]; ? A = 0 -> VHG present copied;
+		[L2L Region] = vector Work Area; => Update Area Published;
+		-> VHG present finished;
+	    "VHG present copied"
 		( Hand the completed Backdrop page to iGUI through its supported update
 		  path.  Calling RETRACE directly from the client control callback races
 		  the runtime's cooperative-display activation transition and crashes on
 		  an ordinary focus change.  Update Area also preserves iGUI's cursor
 		  save/restore ordering. )
 		[L2L Region] = vector Work Area; => Update Area Fast;
-		( Presentation cost includes the authoritative Backdrop-to-Primary copy
-		  and physical retrace, not just logical composition and scaling. )
+	    "VHG present finished"
+		( Presentation cost includes either the fallback layer copy or fixed-2x
+		  dual publication, plus cursor composition and physical retrace. )
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 		A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofpresent]; [VHGprofpresent] = A;
 		=> VHG timing step;
