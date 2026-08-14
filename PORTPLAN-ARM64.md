@@ -97,6 +97,108 @@ requires the code below 4GB. That is **impossible on arm64**.
 The pattern translation (register map, stack model, literal-pool slots, x87
 emulation) is unchanged in concept; the isocall pattern and the RTM allocation
 are the arm64-specific deltas.
+## ISOCALL mechanism (reverse-engineered, the arm64 delta)
+
+The compiler emits every `isocall;` as the SAME three shared pack patterns:
+
+    mov X, [WS + iso_off]    ; x64: 8b af <disp32>   (X=ebp, WS=rdi)
+    add X, [WS + 0]          ; x64: 03 2f            (mm_ProcessOrigin = slot 0)
+    call X                   ; x64: ff d5            (call rbp)
+
+Verified in compiled x64 output (bare `isocall;` program), ending with the
+DONE pattern (`bd 656e6f64; c3`):
+
+    8b af 04 00 00 00   mov ebp,[rdi+4]      ; X = [WS+iso_off]
+    03 2f               add ebp,[rdi]        ; X += [WS+0] (pCode)
+    ff d5               call rbp             ; call isokernel
+
+The RTM sets:
+    pWorkspace[mm_ProcessOrigin]  = (unit)pCode;                  (slot 0)
+    pUIWorkspace[mm_ProcessISOcall] = (uint32)(isokernelP-pCode); (slot 1)
+
+So X = (isokernel-pCode) + pCode = isokernel, as a 32-bit value. This works
+because on x86_64 BOTH pCode (low MAP_FIXED mmap at 0x10000000) AND the RTM
+(isokernel at ~0x40xxxx, ELF loads at 0x400000; Mach-O __TEXT at 64MB via
+-pagezero_size) live below 4GB.
+
+On arm64 macOS neither can be below 4GB (fixed 4GB __PAGEZERO; kernel SIGKILLs
+shrunk-pagezero binaries), so the 32-bit X can never equal isokernel.
+
+### ARM64 ISOCALL DESIGN - load-time patch
+
+1. translate_pack_arm64.py must emit the isocall sequence as a FIXED byte
+   pattern (deterministic register/scratch usage):
+       ldr w24,[x25,#iso_off]        ; mov X,[WS+iso_off]
+       ldr w9,[x25,#0]               ; add X,[WS+0] operand
+       add w24,w24,w9
+       blr x24                       ; call X
+2. The RTM (rtm.c, arm64 build), after loading the code, SCANS for this
+   pattern and replaces each occurrence with a direct 64-bit call to the
+   runtime isokernel address (ASLR-safe, same 16-byte size):
+       movz x24, #isok&0xffff
+       movk x24, #(isok>>16)&0xffff, lsl #16
+       movk x24, #(isok>>32)&0xffff, lsl #32
+       blr x24
+   The scan key is the fixed bytes of `ldr w24,[x25,#ISO_OFF]` + the following
+   ldr/add/blr; ISO_OFF (mm_ProcessISOcall byte offset) is a constant, so the
+   encoding is identical at every isocall site in every program.
+
+The code section is RW (mmap), so patching in place works. The patch is done
+once at startup before pCodeEntry runs.
+
+Required new patterns in translate_pack_arm64.py (currently returning None):
+   - mov X,[WS+disp32]  (nonzero disp; ldr w24,[x25,#disp] when disp<=0xfff,
+     else add x9,x25,#imm via movz/movk then ldr)
+   - add X,[WS+disp32]  (ldr operand + add)
+   - call X             (blr x24)
+## linoleum() x30 bug (FIXED, validated)
+
+`linoleum()` in isokernel.s did `blr x9` into the application but never
+saved x30 (the return-to-main link).  The game's final `ret` therefore
+jumped back to linoleum's post-blr address forever.  The saved/restored
+pair was `stp/ldp x25,x29` — x30 was missing.  Fixed to `stp/ldp x25,x30`.
+This was invisible in earlier validation because every arm64 test used
+`--headless`, which exits in main() BEFORE linoleum() runs.  Validated: a
+bare programme (DONE pattern) now completes ("linoleum returned").
+
+## arm64 isocall: three stacked bugs (FIXED, validated on a bare isocall)
+
+1. The arm64 translation places the pack token AFTER the emitted code
+   (unlike x86's inline disp32).  The isocall ends in `call X`, so when
+   isokernel returned, execution fell into the trailing token bytes (`udf`).
+2. `blr` clobbers x30, so the game's final `ret` looped back into the
+   isocall (x86 pushes return addresses on the stack; arm64 uses x30).
+3. On macOS the 32-bit computed target can't reach isokernel (>4GB).
+
+The load-time patch in rtm.c replaces each isocall site (28 code + 4 token
+bytes, signature = fixed `adr x9,#28; ldr w9,[x9]; add x9,x25,x9;
+ldr w24,[x9]; ldr w9,[x25]; add w24,w24,w9; blr x24`) with 32 bytes:
+
+    movz x24,isok&0xffff; movk x24,(isok>>16)&0xffff,lsl#16;
+    movk x24,(isok>>32)&0xffff,lsl#32; stp x29,x30,[sp,#-16]!;
+    blr x24; ldp x29,x30,[sp],#16; b #8; nop
+
+which preserves the link register and skips the token.  `pCodeSize` is in
+UNITS — the scan length is `pCodeSize * sizeof(unit)`.
+
+## Validation status (arm64, qemu-aarch64 Linux)
+
+- trivial (DONE only): completes.  bare `isocall;` program: completes.
+- galaxy / galaxy2 / mulcheck: SEGFAULT — their code contains UNTRANSLATED
+  x86 patterns (e.g. `c7 87 ...` = mov dword [edi+imm], imm).  The pack
+  translation is at ~462/6483 patterns; every pattern a program uses must be
+  translated before it can run.  This is the remaining bulk of the work:
+  jumps (jcc/loops), call/ret forms, x87 (fld/fstp/fadd/fmul), div helpers,
+  pusha/popa, complex [mem] forms.
+
+## Commit notes
+- src/linoleum_aarch64/isokernel.s: linoleum preserves x30.
+- src/linoleum_aarch64/rtm.c: pCodeEntry non-truncating on arm64;
+  arm64_patch_isocalls() load-time rewrite.
+- translate_pack_arm64.py: B.build() token-offset bug (adr pointed 8 bytes
+  early — corrupts every token-using load); parse_mem has_disp via modrm
+  mod==10 (capstone collapses [base+0] to [base]); call reg -> blr;
+  no-disp [mem] loads; isocall pattern 150 translates.
 
 ## Key technical challenges (in order of risk)
 

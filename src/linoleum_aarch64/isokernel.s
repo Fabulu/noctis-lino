@@ -42,11 +42,13 @@ isokernel:
 	.globl linoleum
 	.type linoleum, %function
 linoleum:
-	/* save the game registers + frame; keep 16-byte alignment */
+	/* save the game registers + frame + our return address, keeping the
+	 * stack 16-byte aligned.  x30 is the return-to-main link; blr below
+	 * overwrites it, so it MUST be preserved or the final ret loops. */
 	stp	x19, x20, [sp, #-16]!
 	stp	x21, x22, [sp, #-16]!
 	stp	x23, x24, [sp, #-16]!
-	stp	x25, x29, [sp, #-16]!
+	stp	x25, x30, [sp, #-16]!
 	mov	x29, sp
 	adrp	x9, sAtEntry
 	mov	x10, sp
@@ -74,7 +76,7 @@ linoleum:
 	str	w23, [x9, #:lo12:eAtExit]
 	str	w24, [x9, #:lo12:xAtExit]
 	/* restore */
-	ldp	x25, x29, [sp], #16
+	ldp	x25, x30, [sp], #16
 	ldp	x23, x24, [sp], #16
 	ldp	x21, x22, [sp], #16
 	ldp	x19, x20, [sp], #16
