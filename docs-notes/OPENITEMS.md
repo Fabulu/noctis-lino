@@ -368,6 +368,20 @@ type-7 checkpoint NIV+ and Lino now both retain exposure `18.7824`, classify the
 pose as night, and suppress the primary sun. The bright point previously read
 as a possible sun was a galaxy star revealed by the false daylight state.
 
+Automated gallery captures now pass an explicit source UTC second through the
+shipping executable's `clock=<decimal>` capture option. The default fixture
+second is the one already stored by the authored checkpoints. Interactive and
+ordinary launches do not pass the option and continue using live UTC. This
+removes wall-clock drift from planet, weather, disc, and flare comparisons.
+
+The first certified type-3 comparison at that fixed second found another
+upstream mismatch rather than a beam-raster defect. At body 3, longitude 270,
+NIV+ retained solar distance `243.552`, exposure `69.6514`, and rain `5`; Lino
+retained `247.711`, `35.9996`, and `0`. Consequently NIV+ showed a storm-muted
+sky while Lino admitted a full radial flare. Do not grade or tune the beam pages
+from that pair. The generated orbital distance, terminator, and selected cloud
+texel must match first, then the exact viewpoint can be recaptured.
+
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 

@@ -33,6 +33,7 @@ param(
     [int]$CheckpointVersion = 15,
     [switch]$Fast,
     [switch]$ReportPerformance,
+    [int]$ClockSeconds = 1344638527,
     [switch]$KeepStages,
     [switch]$UseGameSnapshot,
     [switch]$CaptureHostWindow,
@@ -457,7 +458,16 @@ foreach ($spec in $scenes) {
         # Automated captures must not open an interactive window on the user's
         # desktop: input would both interrupt them and taint fixed-scene probes.
         $windowStyle = if ($Interactive) { 'Normal' } else { 'Hidden' }
-        $proc = Start-Process -FilePath (Join-Path $stage 'Noctis-IV.exe') -WorkingDirectory $stage -WindowStyle $windowStyle -PassThru
+        $startArgs = @{
+            FilePath = (Join-Path $stage 'Noctis-IV.exe')
+            WorkingDirectory = $stage
+            WindowStyle = $windowStyle
+            PassThru = $true
+        }
+        if (-not $Interactive -or $PSBoundParameters.ContainsKey('ClockSeconds')) {
+            $startArgs.ArgumentList = "clock=$ClockSeconds"
+        }
+        $proc = Start-Process @startArgs
         $deadline = [DateTime]::UtcNow.AddSeconds(15)
         do {
             Start-Sleep -Milliseconds 100
