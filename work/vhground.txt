@@ -6629,6 +6629,19 @@
 	end;
 
 "VHGND vload"
-	[FI] = [VHGNDvv]; => IntToF;
-	A = [VHGNDvslot]; A + [VHGNDvi]; [PGFi] = A; => PGF sa;
+	( Integer world coordinates are exact binary64 values.  Place one directly
+	  into the selected projection slot while retaining IntToF's FI/FA result
+	  and PGF sa's final slot index. )
+	[FI] = [VHGNDvv]; A = fw; [PJfwbase] = A;
+	{
+	    DB 87 <dFI mtp bytesperunit>
+	    DD 97 <dFA0 mtp bytesperunit>
+	    8B B7 <dPJfwbase mtp bytesperunit>
+	    8D 34 B7
+	    8B 87 <dVHGNDvslot mtp bytesperunit>
+	    03 87 <dVHGNDvi mtp bytesperunit>
+	    89 87 <dPGFi mtp bytesperunit>
+	    C1 E0 03
+	    DD 1C 06
+	}
 	end;
