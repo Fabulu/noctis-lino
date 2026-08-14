@@ -57,7 +57,7 @@ check that reaches it:
 |---|---|---|
 | a re-base first, unconditionally | H1, H2 | the horizon replay |
 | b the acceptance band is SIGNED and two-sided | **H5** | a −86,395,000 ms midnight straddle |
-| c `SRVMAX` under the aliasing point | X1 (xfail) | 1,000,000 cpms |
+| c servo ceiling under the aliasing point | **H7** | 1,000,000 cpms |
 | d the divide is ROUNDED | **H4** | the jittered scenario |
 | e the clamp step has a floor of 1 | **H6** | a 60 cpms counter |
 
@@ -130,18 +130,14 @@ explicitly a **gross-failure backstop** and says so, because four runs of one
 binary spread −14.7 to +8.3 ms while a 55 ms period would show +15.3 ms, inside
 that noise. The period is graded exactly by T5 and T6's 256 deadlines instead.
 
-### Still open -- X1, XFAIL
+### Closed after Wave 5b -- H7
 
-`SRVMAX = 60000` in `fbtick.txt:141` and in `fb_tick.py` are compile-time
-constants; neither derives from `[Counts Per Millisecond]`. The band accepts a
-window whose *count* aliases 2^32 whenever `cpms > 2^32/SRVMAX = 71,583`. Driven
-at 1,000,000 cpms the shipped estimator reproduces the original ratchet exactly:
-**408,595 against a true 1,000,000** after 85 firings, clamp-lo throughout, 59 %
-error. This host reports ≈ 9,000, so the shipped configuration is 8× inside the
-boundary -- but a constant is not a derivation. The fix is one line: reject when
-`window_ms > 2^32/(k*cpms)`. Not taken in this wave because it changes the
-acceptance band, and the band is the thing every other servo check is calibrated
-against; it belongs with the Wave 6 audit that will also have real call sites.
+The production servo now derives its maximum accepted window from the live
+counter rate: `min(60000, floor((2^32-1)/cpms)/4)`. Both calibration and the
+running servo use that ceiling. At 1,000,000 cpms the maximum is 1,118 ms, so
+the unsafe 14,061 ms replay windows are rejected before their counter delta can
+alias. All nine synthetic origins retain the safe runtime seed. H7 asserts this
+positively; X1 is no longer an expected failure.
 
 ---
 

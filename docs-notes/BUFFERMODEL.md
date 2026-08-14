@@ -616,11 +616,10 @@ quantised to {1,2} periods with 5 skips.
 
 ## 10. What remains open
 
-Ranked. Two items are **executable and asserted**: `test_wave5.py` grades 2b and
-6 XFAIL, so the suite fails the day one of them is fixed and this list is not
-updated.
+Ranked. One item is **executable and asserted**: `test_wave5.py` grades item 6
+as XFAIL, so the suite fails the day it is fixed and this list is not updated.
 
-**Items 1, 2 and 5 are CLOSED.** They were the three defects Wave 5 asserted
+**Items 1, 2, 2b and 5 are CLOSED.** They were defects Wave 5 asserted
 rather than fixed, and each closure is justified by a measurement rather than by
 an edit to this list:
 
@@ -645,16 +644,13 @@ an edit to this list:
   and is caught. *Now asserted positively by:* P7 (in the main dump) and P7b
   (the separate probe, whose *build failure* is the result).
 
-2b. **`SRVMAX` is a literal, so the servo still aliases on a fast host.**
-   `fbtick.txt:141 SRVMAX = 60000` and `fb_tick.py`'s copy are compile-time
-   constants; neither derives from `[Counts Per Millisecond]`. The band
-   therefore accepts a window whose *count* aliases 2^32 whenever
-   `cpms > 2^32/SRVMAX = 71,583`. Driven at 1,000,000 cpms the shipped
-   estimator reproduces the original ratchet exactly: 408,595 against a true
-   1,000,000 after 85 firings, clamp-lo throughout, 59 % error. This host
-   reports ≈ 9,000, so the shipped configuration is 8× inside the boundary --
-   but the guard is a constant, not a derivation. *Fix:* one line, reject when
-   `window_ms > 2^32/(k*cpms)`. *Guarded by:* X1, XFAIL.
+2b. ~~**`SRVMAX` is a literal, so the servo aliases on a fast host.**~~
+   **Closed 2026-08-14.** `TK servo bound` now derives
+   `min(60000, floor((2^32-1)/cpms)/4)` from the live rate and both calibration
+   and servo acceptance use that value. At 1,000,000 cpms the bound is 1,118
+   ms, so every unsafe 14,061 ms replay sample is rejected and the estimator
+   remains at its runtime seed instead of ratcheting. The independent replay
+   agrees on all nine scenarios. *Now asserted positively by:* H7.
 3. **Re-grep `pvfile` for raw-byte readers** outside `loadpv`/`unloadpv` before
    the arena is re-laid out (§5 alias 9). None found; confirm at implementation
    time, because the re-layout is only observationally equivalent if that holds.
@@ -741,5 +737,6 @@ list a future wave should read before writing a check.
 workspace in `farmalloc` order, the three overrun classes, the alias register,
 the palette pipeline, the framebuffer and the corrected tick servo are all
 untouched. `test_wave5.py`'s own canary replacement and its 23-sabotage battery
-are untouched. The open items in §10 are unchanged and both XFAILs remain open:
-`SRVMAX` is still a literal, and no game call site drives the class-A mask.
+are untouched. The class-A call-site census remains the one executable XFAIL.
+The former literal `SRVMAX` defect was closed later by the live rate-derived
+bound recorded in item 2b.

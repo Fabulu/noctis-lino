@@ -80,12 +80,14 @@
 	        a run of rejections cannot grow the bracket back toward
 	        the wrap.
 	     b. THE ACCEPTANCE BAND IS SIGNED.  ? A < SRVMIN and
-	        ? A > SRVMAX, not the unsigned '< of the old code.  Signed
+	        ? A > [TKsrvmax], not the unsigned '< of the old code.  Signed
 	        is what refuses a midnight step, a resume from suspend,
 	        and any window long enough for the counter to wrap: the
 	        old unsigned '< 500 ACCEPTS a -86,395,000 ms window as
 	        4.2e9 ms and applies a permanent -1%.
-	     c. SRVMAX = 60000 ms is 7.95x under 2^32/cpms = 477,271 ms.
+	     c. The maximum accepted window is derived from the current
+	        counts-per-millisecond rate.  It is capped at 60,000 ms and
+	        kept four times inside the 32-bit counter-alias boundary.
 	     d. THE DIVIDE IS ROUNDED, one added term.  Truncation costs a
 	        systematic ~0.2 s/hour.
 	     e. THE CLAMP STEP HAS A FLOOR OF 1.  cpms/100 truncates to 0
@@ -135,15 +137,17 @@
 	( the servo acceptance band, SIGNED milliseconds.
 	  SRVMIN: below this the quantisation of a single window dominates
 	  - a 1.9 s window measured 0.134% worst error, 13.3 s measured
-	  0.0158%.  SRVMAX: 2^32 counts / 8999 cpms = 477,271 ms is where
-	  the numerator aliases; 60,000 is 7.95x under it. )
+	  0.0158%.  The upper bound is recomputed as
+	  min(60,000, floor((2^32-1)/cpms)/4), so faster counters receive a
+	  proportionally shorter safe bracket. )
 	SRVMIN	= 4000;
-	SRVMAX	= 60000;
+	SRVMAXCAP = 60000;
+	SRVMARGIN = 4;
 
 	( the calibration bracket's band.  The LOWER bound stays at the
 	  original 500 ms - the fix there is that the test is SIGNED, so a
 	  midnight straddle or a suspend is refused instead of being read
-	  as a 4.2e9 ms bracket.  The upper bound is SRVMAX. )
+	  as a 4.2e9 ms bracket.  The upper bound is [TKsrvmax]. )
 	CALMIN	= 500;
 
 	SRVLOGN	= 64;		( servo log capacity, entries )
@@ -204,6 +208,7 @@
 	TKsrvcnt = 0;
 	TKsrvms	= 0;
 	TKsrvnew = 0;
+	TKsrvmax = 0;		( rate-derived safe acceptance ceiling )
 	TKsrvn	= 0;
 	TKsrvwhy = 0;
 	TKsrvovf = 0;		( servo log entries that did not fit )
@@ -268,6 +273,21 @@
 "TK period"
 	A = [TKcpms]; A '* 55;   [TKbase]   = A;
 	A = [TKcpms]; A '* SUBN; [TKsubper] = A;
+	=> TK servo bound;
+	end;
+
+      ( Keep every accepted count window four times inside the 32-bit
+	counter ring.  The policy cap remains 60 seconds on ordinary hosts;
+	on a faster host the arithmetic boundary, not a stale literal, wins. )
+
+"TK servo bound"
+	A = [TKcpms]; ? A = 0 -> TK sb cap;
+	A = FFFFFFFFh; A '/ [TKcpms]; A '/ SRVMARGIN;
+	? A '< SRVMAXCAP -> TK sb store;
+    "TK sb cap"
+	A = SRVMAXCAP;
+    "TK sb store"
+	[TKsrvmax] = A;
 	end;
 
       ( TK advance : deadline += one exact period. )
@@ -321,7 +341,7 @@
 	=> TK read wall;
 	A = [TKtmp]; A - [TKcal0w]; [TKcalms] = A;
 	A = [TKcalms]; ? A < CALMIN -> TK cal short;	( SIGNED )
-	A = [TKcalms]; ? A > SRVMAX -> TK cal long;	( SIGNED )
+	A = [TKcalms]; ? A > [TKsrvmax] -> TK cal long;	( SIGNED )
 	B = [TKcalms]; C = B; C '/ 2;
 	A = [TKcalcnt]; A + C; A '/ B;			( ROUNDED )
 	? A = 0 -> TK cal zero;
@@ -391,7 +411,7 @@
 "TK servo apply"
 	[TKsrvwhy] = SVWAPPLY;
 	A = [TKsrvms]; ? A < SRVMIN -> TK sv short;	( SIGNED )
-	A = [TKsrvms]; ? A > SRVMAX -> TK sv long;	( SIGNED )
+	A = [TKsrvms]; ? A > [TKsrvmax] -> TK sv long;	( SIGNED )
 
 	B = [TKsrvms]; C = B; C '/ 2;
 	A = [TKsrvcnt]; A + C; A '/ B; [TKsrvnew] = A;	( ROUNDED )

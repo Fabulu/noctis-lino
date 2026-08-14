@@ -62,6 +62,12 @@ the generic resizable aspect-fit path. Fresh production captures measured 56
 to 61 FPS across every landable planet class and 58 FPS in the Stardrifter;
 the slowest measured surface render was 10.69 ms.
 
+The timing servo now derives its maximum sampling window from the live host
+counter rate, capped at 60 seconds and kept fourfold inside the 32-bit counter
+ring. A synthetic million-counts-per-millisecond replay rejects every unsafe
+window instead of accepting an aliased delta, while ordinary host timing and
+the original 18.206 Hz gameplay cadence remain unchanged.
+
 Close stellar coronas are bright filled discs again. The second and third
 stellar palette ramps had inherited the previous shade routine's divisor, so
 otherwise correct high-index sun pixels were mapped back toward black. Each

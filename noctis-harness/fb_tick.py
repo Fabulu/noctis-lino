@@ -357,7 +357,7 @@ def cal_end(counts0, counts1, wall0, wall1, seed, breaks=()):
     else:
         if s32(ms) < SRVMIN:
             return seed, 3
-        if s32(ms) > SRVMAX:
+        if s32(ms) > srvmax_for(seed):
             return seed, 4
     got = cnt // ms if "SRVTRUNC" in breaks else (cnt + ms // 2) // ms
     if "NOCALCLAMP" in breaks:
@@ -1063,13 +1063,13 @@ def main(argv=None):
              "T8b the shipped guard srvmax_for(%d) = %d is at or under the measured limit "
              "%d divided by the margin %d (= %d)"
              % (TRUE, srvmax_for(TRUE), limit, SRVMAX_MARGIN, limit // SRVMAX_MARGIN))
-        # and the guard TRACKS cpms -- which is the whole reason it stopped
-        # being a literal.  XFAIL X1's arithmetic, executed.
+        # and the guard TRACKS cpms, which is the whole reason it stopped
+        # being a literal. The production Lino path uses the same formula.
         fast = 200000
         sreq(srvmax_for(fast) < SRVMAX_CAP and srvmax_for(fast) <= ring_limit(fast) // SRVMAX_MARGIN,
              "T8b and the guard TRACKS the rate: at %d cpms the counter aliases after %d ms, "
-             "so the guard shrinks to %d -- a fixed 60000 ms literal (which is what "
-             "work/fbtick.txt:141 still holds, XFAIL X1) would be %.1fx PAST the aliasing "
+             "so the guard shrinks to %d; the former fixed 60000 ms literal would be "
+             "%.1fx PAST the aliasing "
              "limit there" % (fast, ring_limit(fast), srvmax_for(fast),
                               SRVMAX_CAP / float(ring_limit(fast))))
 

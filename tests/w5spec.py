@@ -537,8 +537,16 @@ def expected_mask(L, nwrap=52, nctl=16):
 # arithmetic gives the true delta as long as the delta itself is under 2^32.
 # The bug was the BRACKET.
 
-SRVMIN, SRVMAX = 4000, 60000
+SRVMIN, SRVMAX_CAP, SRVMAX_MARGIN = 4000, 60000, 4
+SRVMAX = SRVMAX_CAP
 SVWAPPLY, SVWCLLO, SVWCLHI, SVWSHORT, SVWLONG = 0, 1, 2, 3, 4
+
+
+def srvmax_for(cpms):
+    """The production counter-window ceiling, derived from its live rate."""
+    if not cpms:
+        return SRVMAX_CAP
+    return min(SRVMAX_CAP, (M32 // cpms) // SRVMAX_MARGIN)
 
 HOR_FIRE, HOR_WIN, HOR_SETTLE = 85, 14061, 16
 HOR_JM, HOR_JP = 40503, 21031
@@ -564,8 +572,8 @@ BAND_CASES = [
     (0, -86395000),          # a midnight straddle: unsigned this reads 4.2e9
     (35996001, 3999),        # one ms under SRVMIN
     (36000000, 4000),        # exactly SRVMIN
-    (540000000, 60000),      # exactly SRVMAX
-    (540009000, 60001),      # one ms over SRVMAX
+    (540000000, 60000),      # exactly the ordinary-host policy cap
+    (540009000, 60001),      # one ms over the ordinary-host policy cap
     (1000000, 600000),       # long enough for the counter to have aliased
 ]
 BAND_SEED = 9000
@@ -585,7 +593,7 @@ def servo_apply(cpms, cnt, ms):
     clamp step with a floor of 1. Returns (cpms, why)."""
     if s32(ms) < SRVMIN:
         return cpms, SVWSHORT
-    if s32(ms) > SRVMAX:
+    if s32(ms) > srvmax_for(cpms):
         return cpms, SVWLONG
     new = (cnt + ms // 2) // ms
     step = cpms // 100 or 1
@@ -628,8 +636,8 @@ def expected_horizon(scen=None):
       * the ANCHORED leg through the ORIGINAL estimator is destroyed by the
         same data -- which is what makes the first statement a claim rather
         than a tautology,
-      * scenario 6 shows the windowed leg failing too, because SRVMAX is a
-        literal rather than anything derived from cpms.
+      * scenario 6 proves the rate-derived ceiling rejects a count window
+        that would alias on an unusually fast host instead of ratcheting.
     """
     out = []
     for c0, true, jit in (scen or HOR_SCEN):

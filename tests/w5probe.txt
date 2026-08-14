@@ -854,7 +854,7 @@
 	work/fbtick.txt.  Leg 3 is written out here because the code it
 	models no longer exists anywhere - it is the defect, and it is the
 	POSITIVE CONTROL.  Without it the battery would be worthless:
-	leg 2 alone recovers, because SRVMAX refuses every bracket past 60
+	leg 2 alone recovers, because the upper band refuses every stale bracket
 	s, so a run that only compared 1 against 2 would report success
 	for reasons that have nothing to do with the wrap.  Leg 3 is what
 	makes "the windowed servo holds across the wrap" a claim that
@@ -876,11 +876,10 @@
 
 	Scenario 6 is the ADVERSARIAL one: cpms = 1,000,000, a host about
 	111x faster than this one.  There a single TWHWIN window already
-	encodes 1.4e10 counts, which itself aliases 2^32, and the WINDOWED
-	servo fails too - because SRVMAX is the literal 60000 rather than
-	anything derived from cpms.  The boundary is cpms > 2^32/SRVMAX =
-	71,583; this host reports about 9,000.  That is recorded, not
-	hidden: it is the part of CRITICAL 1 this wave did not close.
+	encodes 1.4e10 counts, which itself aliases 2^32.  The live upper
+	band shrinks to floor((2^32-1)/cpms)/4 and rejects every such
+	window, so the rate remains at its safe runtime seed instead of
+	ratcheting toward an aliased sample.
 
 	Sixteen units per scenario:
 	   0 C0                     1 true cpms
@@ -909,7 +908,7 @@
 	[TWhc0] = 2147483648; [TWhcp] = 8984;    => TW hor one;
 	( 5: and a third )
 	[TWhc0] = 999999937;  [TWhcp] = 9023;    => TW hor one;
-	( 6: ADVERSARIAL - a host on which SRVMAX itself aliases )
+	( 6: ADVERSARIAL - a host requiring the rate-derived upper bound )
 	[TWhc0] = 0;          [TWhcp] = 1000000; [TWhjit] = 0; => TW hor one;
 	( 7: JITTERED - the counter is no longer an exact multiple of the
 	  window, which is the only configuration in which the ROUNDED
@@ -952,9 +951,9 @@
 	[TWbc] = 35996001; [TWbm] = 3999;		=> TW band one;
 	( exactly SRVMIN - accepted )
 	[TWbc] = 36000000; [TWbm] = 4000;		=> TW band one;
-	( exactly SRVMAX - accepted )
+	( exactly the ordinary-host 60-second policy cap - accepted )
 	[TWbc] = 540000000; [TWbm] = 60000;		=> TW band one;
-	( one millisecond over SRVMAX )
+	( one millisecond over the ordinary-host policy cap )
 	[TWbc] = 540009000; [TWbm] = 60001;		=> TW band one;
 	( a window long enough for the counter to have aliased )
 	[TWbc] = 1000000; [TWbm] = 600000;		=> TW band one;
@@ -1707,7 +1706,7 @@
 	[twself plus 74] = [TKsrvovf];
 	[twself plus 75] = [TKcalwhy];
 	[twself plus 76] = SRVMIN;
-	[twself plus 77] = SRVMAX;
+	[twself plus 77] = SRVMAXCAP;
 	[twself plus 78] = NZONE;
 	[twself plus 79] = NPAD;
 	[twself plus 80] = NSITE;

@@ -40,7 +40,9 @@ ms and render counts from 38,792,130 to 31,852,389. Inlining the exact bounded
 surface-map byte reads was remeasured against its preceding committed binary
 with identical ten-second hidden warmups: the steady 12-frame sample fell from
 1,973 to 1,311 ms and the 60-frame wall time from 10,237 to 6,650 ms, raising
-the measured rate from 6 to 9 FPS. The 60-FPS optimization goal remains open.
+the measured rate from 6 to 9 FPS. Later exact mapper, cache, fauna, and host
+presentation work raised fresh sequential captures to 56 through 61 FPS across
+every landable class while retaining the original 18.206 Hz simulation cadence.
 
 The remaining foreground slabs were isolated to depth-zero rocks rather than
 terrain. The port had omitted `roccia()`'s inverse-facing tests, source RNG

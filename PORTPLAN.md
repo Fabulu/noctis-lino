@@ -1489,9 +1489,11 @@ The index page differs in 63,988 of 64,000 units because `w5probe` and
 Tier 2 (three producers, three sabotages caught). The index page is **Tier 1**.
 Alias 8's premise -- that `farmalloc` returns offset 4 -- is **Tier 0**.
 
-**Two new XFAILs, both genuinely open:** `SRVMAX` is a literal, so above
-~71,583 cpms the estimator still ratchets; and no game call site drives the
-class-A mask, so sites 2..5 read zero calls and two painters are uncensused.
+**Two XFAILs were recorded here.** The literal `SRVMAX` defect is now closed:
+the production servo derives a fourfold-safe ceiling from the live counter rate,
+and H7 confirms that a 1,000,000-cpms replay rejects every aliasing window. The
+class-A call-site census remains open: sites 2..5 read zero calls and two
+painters are uncensused.
 
 **The lesson worth keeping:** fixing the instance you are pointed at does not
 fix the pattern. The next wave that touches the harness must re-audit every

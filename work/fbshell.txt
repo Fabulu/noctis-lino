@@ -1349,7 +1349,7 @@
 	[self plus 36] = [TKwallday];
 	[self plus 37] = SERVON;
 	[self plus 38] = SRVMIN;
-	[self plus 39] = SRVMAX;
+	[self plus 39] = SRVMAXCAP;
 	[self plus 40] = [FBgn];
 	[self plus 41] = [MCoob];
 	[self plus 42] = [MCoobat];

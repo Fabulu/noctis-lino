@@ -26,8 +26,8 @@ So the rules this file now works by:
   2. NO ASSERTED DEFECTS. An XFAIL is a promise to fix something later.
      Wave 5 used three of them to record defects this wave was told to
      fix; all three are now positive assertions and the evidence for
-     each removal is in WAVE5B_CORRECTIONS.md. Two NEW xfails remain,
-     for two things this wave genuinely did NOT close, and each says
+     each removal is in WAVE5B_CORRECTIONS.md. One NEW xfail remains,
+     for the call-site census this wave genuinely did NOT close, and it says
      precisely what is still broken and at what boundary.
   3. NOTHING IS GRADED AGAINST A STORED ARTIFACT. Both sides are
      recomputed on every run: the lino is rebuilt from work/fb*.txt, the
@@ -35,7 +35,7 @@ So the rules this file now works by:
 
 WHAT THE SIX DEFECTS COST, AND WHERE EACH IS NOW GRADED
 =======================================================
-CRITICAL 1  the servo wrapped .............. H1 H2 H3 H4 T4, xfail X1
+CRITICAL 1  the servo wrapped .............. H1 H2 H3 H4 H7 T4
 CRITICAL 2  class A could not wrap ......... M1 M2 M3 M4 M5, xfail X2
 MAJOR 3     the pads had two jobs .......... Z1 Z2 C2 C3 O2 O3 O3b
 MAJOR 4     tier 2 for palette and LUT ..... P1 P2 P3 F1 F2 F3 (see note)
@@ -62,8 +62,8 @@ sampler with the shipped estimator, and the anchored sampler with the
 ORIGINAL estimator. The estimator is seeded 4% BELOW the true rate, so
 "do nothing" scores a 4% error and the graded quantity is convergence.
 
-H3 is the reason H2 means anything. Leg 2 alone recovers, because SRVMAX
-refuses every bracket past 60 s -- so a test that compared only legs 1
+H3 is the reason H2 means anything. Leg 2 alone recovers, because the upper
+band refuses every stale bracket -- so a test that compared only legs 1
 and 2 would report success for reasons that have nothing to do with the
 wrap. Leg 3 is the defect itself, and on the same data it collapses from
 8999 to 5355. That is what makes "the windowed servo holds across the
@@ -175,7 +175,7 @@ BOUND_MAX_MS = 40.0
 BOUND_DRIFT_MS = 60.0
 BOUND_PRESENT_P50_MS = 10.0
 
-# ------------------------------------------------------ the two REMAINING open items
+# --------------------------------------------------------- the REMAINING open item
 #
 # Wave 5's three xfails asserted defects this wave was told to fix. All three
 # are gone and each removal is justified by evidence, recorded beside the
@@ -197,22 +197,10 @@ BOUND_PRESENT_P50_MS = 10.0
 # What is left is left because it is NOT fixed, and each says at what
 # boundary it breaks so that "still open" is a measurement.
 
-X1 = "X1 SRVMAX is a literal, so the servo still aliases on a fast host"
+H7 = "H7 the rate-derived servo ceiling prevents fast-host counter aliasing"
 X2 = "X2 no game call site drives the class-A mask"
 
 KNOWN_OPEN = {
-    X1: (
-        "fbtick.txt:141 SRVMAX = 60000 and fb_tick.py's copy are both "
-        "compile-time constants; neither derives from [Counts Per "
-        "Millisecond]. The band therefore accepts a window whose COUNT "
-        "aliases 2^32 whenever cpms > 2^32/SRVMAX = 71,583. Scenario 6 of "
-        "the horizon replay drives the shipped estimator at 1,000,000 cpms "
-        "and reproduces the original ratchet: 408,595 against a true "
-        "1,000,000 after 85 firings, clamp-lo throughout. This host reports "
-        "about 9,000, so the shipped configuration is 8x inside the "
-        "boundary - but the guard is a constant, not a derivation. The fix "
-        "is one line: reject when window_ms > 2^32/(k*cpms). "
-        "BUFFERMODEL.md section 8, open item 2b."),
     X2: (
         "The mask is exercised by 340 synthetic cases per site and "
         "reproduces both truncation points exactly. It is not exercised by "
@@ -798,7 +786,7 @@ def grade(blob):
        "the pre-correction arithmetic - unsigned band, truncating divide, "
        "clamp step with no floor - anchored at the run start over the same "
        "timeline ends at %s against true %s, worst error %s. Without this "
-       "H2 would be a statement about SRVMAX rejecting long brackets, not "
+       "H2 would be a statement about the upper band rejecting long brackets, not "
        "about the wrap%s"
        % ([g["old"] for g in wrappy], [g["true"] for g in wrappy],
           [g["olderr"] for g in wrappy], ("; FAILED: %s" % ctl[:1]) if ctl else ""))
@@ -935,13 +923,22 @@ def grade(blob):
        % (wall, steps, nominal, drift, BOUND_DRIFT_MS,
           steps * (55.0 - S.PERIOD_NUM * 1000.0 / S.PERIOD_DEN)))
 
-    # ---------------------------------------------------- the REMAINING xfails
-    bad6 = [g for g in ghor if g["true"] >= 71583]
-    ck(X1, bool(bad6) and all(g["winerr"] * 4 > g["true"] for g in bad6),
-       "at cpms %s - past the boundary 2^32/SRVMAX = 71,583 - the WINDOWED "
-       "servo still ratchets: final %s against true %s, worst error %s"
-       % ([g["true"] for g in bad6], [g["win"] for g in bad6],
-          [g["true"] for g in bad6], [g["winerr"] for g in bad6]))
+    # ------------------------------------------ the fast-host alias boundary
+    fast = [g for g in ghor if g["true"] >= 71583]
+    ck(H7, bool(fast) and all(
+           S.srvmax_for(g["seed"]) < S.HOR_WIN
+           and g["win"] == g["seed"]
+           and g["winerr"] == g["true"] - g["seed"]
+           and g["why"] == (1 << S.SVWLONG)
+           for g in fast),
+       "at cpms %s, the derived maximum is %s ms against %d-ms samples; "
+       "all samples were rejected-long, final rates remained at safe runtime "
+       "seeds %s instead of ratcheting, worst errors %s"
+       % ([g["true"] for g in fast],
+          [S.srvmax_for(g["seed"]) for g in fast], S.HOR_WIN,
+          [g["win"] for g in fast], [g["winerr"] for g in fast]))
+
+    # ----------------------------------------------------- the remaining xfail
     dead = [i for i in range(2, sf[80]) if msk[2 * i] == 0]
     ck(X2, len(dead) == sf[80] - 2,
        "class-A sites with no exerciser at all: %s of %d. Only spot and "
@@ -1134,7 +1131,7 @@ def perturbations(blob):
          setv(hor + 8 * 20 + 2, 58)),
         (P7, "ONE component of surface_palette +1",
          bump(_at(idx, S.KPAL6, 2) + 7)),
-        (X1, "the fast-host scenario stops ratcheting",
+        (H7, "the fast-host rejection evidence is falsified",
          setv(hor + 6 * 20 + 3, 0)),
         (X2, "a third class-A site acquires a caller", setv(msk + 4, 1)),
         ("T4 the servo actually ran in the soak, and every sample was accepted",
