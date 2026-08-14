@@ -24,6 +24,9 @@
 
 	VHGNDcamx = 0; VHGNDcamy = 0; VHGNDcamz = 0;
 	VHGNDalpha = 0; VHGNDbeta = 0;
+	VHGNDgalx0 = 0; VHGNDgalx1 = 0;
+	VHGNDgaly0 = 0; VHGNDgaly1 = 0;
+	VHGNDgalz0 = 0; VHGNDgalz1 = 0; VHGNDgalamp = 0;
 	VHGNDx = 0; VHGNDz = 0; VHGNDxlo = 0; VHGNDxhi = 0;
 	VHGNDzlo = 0; VHGNDzhi = 0; VHGNDptr = 0;
 	VHGNDh1 = 0; VHGNDs1 = 0; VHGNDs2 = 0;
@@ -2410,6 +2413,17 @@
 	=> VHGND weather lightning begin;
 	[VHGNDruindrawn] = 0; => VHGND background;
 	=> PGF constants;
+	( Native fragment() restores the Stardrifter's galactic position but keeps
+	  the walking view angles for sky(003Eh).  It submits these stars after the
+	  planetary background and before either local sun and mask_pixels. )
+	A = [GRSKbrightness]; ? A >= 32 -> VHGND surface stars done;
+	A = [GRSKrainy]; ? A '>= 40000000h -> VHGND surface stars done;
+	[VHSdx0] = [VHGNDgalx0]; [VHSdx1] = [VHGNDgalx1];
+	[VHSdy0] = [VHGNDgaly0]; [VHSdy1] = [VHGNDgaly1];
+	[VHSdz0] = [VHGNDgalz0]; [VHSdz1] = [VHGNDgalz1];
+	[VHSalpha] = [VHGNDalpha]; [VHSbeta] = [VHGNDbeta];
+	[VHSamp] = [VHGNDgalamp]; [VHSsurface] = 1; => VHS stars;
+    "VHGND surface stars done"
 	[VHGNDviewx] = [VHGNDcamx]; [VHGNDviewz] = [VHGNDcamz];
 	A = [VHGNDcamx]; A > 14; [VHGNDcamtx] = A;
 	A = [VHGNDcamz]; A > 14; [VHGNDcamtz] = A;

@@ -2972,6 +2972,7 @@
 	A = [VHGbeta]; A + [VHGnavbeta]; A % 360; ? A >= 0 -> VHG external beta ok; A + 360;
     "VHG external beta ok"
 	[VHSbeta] = A; [VHSamp] = [VHGamp];
+	[VHSsurface] = 0;
 	( VHT and the local-system globe consume the shared projection matrix.
 	  Their SFXX/SFYY/SFZZ inputs are already relative to the Stardrifter, so
 	  install the exterior angles at a zero camera origin instead of inheriting
@@ -3105,6 +3106,10 @@
 		[VHGNDcamx] = [VHGx]; [VHGNDcamy] = [VHGy]; [VHGNDcamz] = [VHGz];
 		[VHGNDplayerrefx] = [VHGsurfrefx]; [VHGNDplayerrefz] = [VHGsurfrefz];
 		[VHGNDalpha] = [VHGalpha]; [VHGNDbeta] = [VHGbeta]; [VHGNDdosim] = [VHGdosim];
+		[VHGNDgalx0] = [MgDzatX0]; [VHGNDgalx1] = [MgDzatX1];
+		[VHGNDgaly0] = [MgDzatY0]; [VHGNDgaly1] = [MgDzatY1];
+		[VHGNDgalz0] = [MgDzatZ0]; [VHGNDgalz1] = [MgDzatZ1];
+		[VHGNDgalamp] = [VHGamp];
 		[VHGNDfast] = [VHGfast]; [VHGNDinterpok] = [VHGinterpok]; [VHGNDinterpacc] = [VHGinterpacc];
 		=> VHGND render;
 	A = [VHGx]; A + [VHGNDimpactx]; [VHGx] = A;

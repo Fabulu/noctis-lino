@@ -328,17 +328,26 @@ beam-accumulation defects in one real visible-companion context, not the
 remaining cross-context matrix.
 
 **Frozen-world native-context checkpoint.** The landed NIV+ capture rig now
-accepts the exact terrain quotient/remainder and camera pose needed by product
-checkpoints. Source `user_alfa` is vertical pitch and `user_beta` is heading;
-reversing them produces an impossible camera and is not admissible oracle
-evidence. A certified type-7 capture at player `(1645000, 1641000)`, pitch
-`-12`, and heading `193` retained body 9 and landed state. Repeating that frame
-with lens mode `0` and `-1` changed 20 full-frame pixels and only one gameplay
-viewport pixel. The tall green and dotted structures in the native frame are
-therefore not sun beams. The current Lino product frame does not reproduce
-that terrain/sky structure, so frozen-world camera or terrain parity remains a
-separate open renderer defect. This pose cannot authenticate the primary sun,
-which is off-screen in the current Lino trace.
+accepts independent capsule and player coordinates plus the exact camera pose
+needed by product checkpoints. Source `user_alfa` is vertical pitch and
+`user_beta` is heading; reversing them produces an impossible camera and is
+not admissible oracle evidence. A certified type-7 capture placed the player
+at `(1645000, 1641000)`, the remote capsule at `(131072, 131072)`, pitch at
+`-12`, and heading at `193`. This removed the huge vertical lines produced by
+the earlier invalid capsule-underfoot setup and broadly aligned the native and
+Lino ground views. A separate lens-mode `0` versus `-1` pair changed only one
+gameplay viewport pixel, proving those earlier lines were the capsule's own
+three locator beams, not lens flare. NIV+ still has sparse sky points absent
+from the earlier all-black Lino sky. Source inspection identified the missing
+`sky(003Eh)` call: on dark, dry surfaces it uses the Stardrifter's galactic
+position with the player's walking angles after the planetary background and
+before both suns and the palette mask. That exact mode and ordering are now in
+production. A fresh frozen-world product smoke shows the same sparse field;
+31 unobstructed native star components align with the Lino points after the
+capture-frame offset. Three dim or top-edge points still need raw-page palette
+grading, so the omitted pass is fixed but whole-frame frozen-sky parity remains
+open. This pose cannot authenticate the primary sun, which is off-screen in
+the current Lino trace.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:

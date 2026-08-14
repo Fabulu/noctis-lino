@@ -8,6 +8,7 @@
 	Inputs before VHS stars:
 	  VHSdx0/1, VHSdy0/1, VHSdz0/1  live dzat binary64 halves
 	  VHSalpha, VHSbeta              player's integer look angles
+	  VHSsurface                     0 for sky(405Ch), 1 for sky(003Eh)
 
 	The cached values are global integer star coordinates.  Projection
 	first subtracts the live binary64 dzat value and only then narrows to
@@ -30,6 +31,7 @@
 	VHSdy0 = 0; VHSdy1 = 0;
 	VHSdz0 = 0; VHSdz1 = 0;
 	VHSalpha = 0; VHSbeta = 0;
+	VHSsurface = 0;
 	VHSamp = 0; VHSvisible = VHSNORMAL; VHScount = 729; VHShalfspan = VHSNORMALHALF;
 
 	VHSready = 0; VHSbuiltvisible = 0;
@@ -48,7 +50,8 @@
 	VHScoord = 0; VHSd0 = 0; VHSd1 = 0; VHSslot = 0;
 	VHSdepth = 0; VHScolour = 0; VHSscreeny = 0;
 	VHSdrawready = 0; VHSdrawcount = 0; VHSdrawi = 0; VHSdrawptr = 0;
-	VHSdrawalpha = 0; VHSdrawbeta = 0; VHSdrawage = 0; VHSviewkey = 0;
+	VHSdrawalpha = 0; VHSdrawbeta = 0; VHSdrawsurface = 0;
+	VHSdrawage = 0; VHSviewkey = 0;
 	VHSfadebase = 0; VHSfadei = 0;
 
 "workspace"
@@ -94,6 +97,7 @@
 	A = [VHSdrawready]; ? A = 0 -> VHS rebuild draw cache;
 	A = [VHSviewkey]; ? A != [VHSdrawalpha] -> VHS rebuild draw cache;
 	A = [VHSbeta]; A / 4; ? A != [VHSdrawbeta] -> VHS rebuild draw cache;
+	A = [VHSsurface]; ? A != [VHSdrawsurface] -> VHS rebuild draw cache;
 	C = 8; A = [VHSamp]; ? A = 0 -> VHS draw age limit ready; C = 30;
     "VHS draw age limit ready"
 	A = [VHSdrawage]; ? A >= C -> VHS rebuild draw cache;
@@ -101,6 +105,7 @@
 
     "VHS rebuild draw cache"
 	[VHSdrawalpha] = [VHSviewkey]; A = [VHSbeta]; A / 4; [VHSdrawbeta] = A;
+	[VHSdrawsurface] = [VHSsurface];
 	[VHSdrawcount] = 0; [VHSdrawage] = 0;
 
 	[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;
@@ -136,11 +141,16 @@
 	C '* 320; C + A; C + 4; [SPoff] = C;
 	A = [VHSdrawcount]; A '* 2; A + vhsscreencache; [VHSdrawptr] = A;
 	[A plus 0] = [SPoff]; [A plus 1] = [VHScolour]; [VHSdrawcount]+;
-	( adapted is based at DOS segment offset four. sky(0x405C) reads and
-	  writes that same target only while it remains in the 64..92 space band,
-	  preserving the already drawn vehicle and panels in front of the galaxy. )
+	( adapted is based at DOS segment offset four.  The orbital sky(405Ch)
+	  accepts the 64..92 space band, except colour 68.  The landed sky(003Eh)
+	  runs before mask_pixels and accepts the unmasked 0..62 sky band. )
 	[SPreg] = RGADP; => SP get;
-	C = [SPval]; ? C < 64 -> VHS draw next; ? C > 92 -> VHS draw next;
+	C = [SPval]; A = [VHSsurface]; ? A != 0 -> VHS draw surface gate;
+	? C = 68 -> VHS draw next; ? C < 64 -> VHS draw next; ? C > 92 -> VHS draw next;
+	-> VHS draw gate ready;
+    "VHS draw surface gate"
+	? C > 62 -> VHS draw next;
+    "VHS draw gate ready"
 	D = C; D & 192; C & 63; C + [VHScolour]; ? C <= 63 -> VHS draw colour ready; C = 63;
     "VHS draw colour ready"
 	C | D; [SPval] = C; [SPreg] = RGADP; => SP put;
@@ -154,8 +164,13 @@
     "VHS replay loop"
 	A = [VHSdrawi]; A '* 2; A + vhsscreencache;
 	[SPoff] = [A plus 0];
-	[SPreg] = RGADP; => SP get; C = [SPval]; ? C < 64 -> VHS replay next;
-	? C > 92 -> VHS replay next;
+	[SPreg] = RGADP; => SP get; C = [SPval];
+	A = [VHSsurface]; ? A != 0 -> VHS replay surface gate;
+	? C = 68 -> VHS replay next; ? C < 64 -> VHS replay next; ? C > 92 -> VHS replay next;
+	-> VHS replay gate ready;
+    "VHS replay surface gate"
+	? C > 62 -> VHS replay next;
+    "VHS replay gate ready"
 	D = C; D & 192; C & 63;
 	A = [VHSdrawi]; A '* 2; A + vhsscreencache;
 	C + [A plus 1]; ? C <= 63 -> VHS replay colour ready; C = 63;
