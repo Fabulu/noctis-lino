@@ -201,12 +201,28 @@ Add-Type @'
 using System;
 using System.Runtime.InteropServices;
 public static class NoctisCaptureWin32 {
+    public delegate bool EnumWindowDelegate(IntPtr hwnd, IntPtr lParam);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hwnd, int command);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowDelegate callback, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hwnd, int command);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+
+    public static void HideProcessPopups(IntPtr host) {
+        uint processId;
+        GetWindowThreadProcessId(host, out processId);
+        EnumWindows(delegate(IntPtr hwnd, IntPtr lParam) {
+            uint candidateProcessId;
+            GetWindowThreadProcessId(hwnd, out candidateProcessId);
+            if (candidateProcessId != processId) return true;
+            if (hwnd != host) ShowWindow(hwnd, 0);
+            return true;
+        }, IntPtr.Zero);
+    }
 }
 '@
 
@@ -429,6 +445,10 @@ foreach ($spec in $scenes) {
             "planet-$($spec.Name).png"
         }
         $destination = Join-Path $outputPath $fileName
+        # The hidden iGUI host can inherit the desktop cursor over its fold
+        # button. Suppress its owned popup windows so the framebuffer capture
+        # stays clean without moving the user's cursor or gameplay input.
+        [NoctisCaptureWin32]::HideProcessPopups($proc.MainWindowHandle)
         Save-WindowPng -Handle $proc.MainWindowHandle -Path $destination
         Write-Output ("CAPTURED {0} type {1} -> {2}" -f $spec.Name, $spec.Type, $destination)
         if ($ReportPerformance) {
