@@ -1,7 +1,8 @@
 # linoleum_macos64 - macOS x86_64 (Mach-O) Run-Time Module
 
 Port of the L.in.oleum runtime so compiled programs run natively on macOS
-x86_64 (Apple Silicon via Rosetta 2) against XQuartz.
+x86_64 (Apple Silicon via Rosetta 2). The display layer is **native Cocoa**
+(`lino_cocoa.m`) — no XQuartz required.
 
 ## What changed vs linoleum_linux32
 
@@ -17,19 +18,31 @@ x86_64 (Apple Silicon via Rosetta 2) against XQuartz.
   The game's TK tick engine reads it during `TK seed`, which runs before the
   first READ COUNTS isocall; without an early value the tick period becomes
   zero counts and the main loop spins forever (no frames, no input).
+- `lino_cocoa.m` — **native Cocoa display/event/mouse/clipboard layer**
+  replacing the X11 files. Creates an `NSApplication` + `NSWindow` (manual
+  event pump from `handle_pending_events`), blits the game's framebuffer
+  (32-bit BGRX units, zero-copy via `kCGBitmapByteOrder32Little`) with a
+  flipped CTM draw, feeds `NSEvent` key/mouse input into the same key-state
+  table / console buffer / mouse state, and uses `NSPasteboard` for the
+  clipboard. `lino_mouse_update_position` mirrors `XQueryPointer` by setting
+  `MP_INSIGHT` while the cursor is over the window — iGUI only hands the
+  pointer to the client (and thus enables right-drag mouse-look) when
+  `PD IN SIGHT` is set.
 - `lino_file.c` — `readdir`-based directory listing under `__APPLE__`
   (raw `getdents64` on Linux for qemu-user), minimal `wordexp` replacement.
 - `rtm.h` — `_POSIX_C_SOURCE` and hand-rolled `snprintf/realpath/truncate`
   prototypes disabled on macOS; `free_section` prototype added.
-- `lino_noX11.c` — headless display stubs for builds without XQuartz
-  (deterministic console programs only; the game needs the real X11 build).
+- `lino_noX11.c` — headless display stubs for builds without a window layer
+  (deterministic console programs only).
+- `lino_xdisplay.c`, `lino_xevent.c`, `lino_mouse.c`, `lino_xclip.c` — the
+  former X11 layer, retained as an alternative (requires XQuartz).
 
 ## Build
 
-Requires XQuartz (`/opt/X11`) and clang.
+Requires clang only (no XQuartz).
 
 ```sh
-./build.sh            # DEBUG=1 for verbose output
+./build.sh            # Cocoa display layer, links -framework Cocoa
 ```
 
 `build.sh` produces `rtm01.bin` (Mach-O x86_64). Pack it as a sys pack
@@ -41,4 +54,5 @@ bytes, variant[0] at offset 68) and splice with the compiler's
 
 galaxy, galaxy2, mulcheck (16-bit `*'`), ft2 all produce byte-identical
 output to the Linux x86_64 builds. vhgame runs and is playable under
-Rosetta + XQuartz.
+Rosetta with the native Cocoa window: WASD moves, arrows look,
+right-click-drag looks around, menu clicks work, ESC exits.
