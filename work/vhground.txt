@@ -91,6 +91,7 @@
 	VHGNDtreescalef = 0; VHGNDtreerangef = 0; VHTnextscf = 0;
 	VHTrootcol = 0; VHTleafcol = 192; VHTlseed = 0;
 	VHTfacebase = 0; VHTfacestep = 0; VHTnextsc = 0;
+	VHTcamxsave = 0; VHTcamzsave = 0; VHTseedtilesave = 0;
 	VHTtrigready = 0; VHTtrigi = 0; VHTtriga0 = 0; VHTtriga1 = 0;
 	VHGNDgrassgroups = 0; VHGNDgrassfaces = 0; VHGNDgrasstotal = 0;
 	VHGNDgrassdistant = 0; VHGNDgrassrad = 0; VHGNDgrassrange = 0;
@@ -5852,28 +5853,34 @@
 	[VHSflare] = 0; [VHScolor] = 62; => VH stick3d;
 	end;
 
-    "VHGND tree limb native faces"
-	( The source texture-maps these faces.  Until the tree-specific mapper is
-	  ported exactly, use the same native shade progression as solid faces.
-	  This preserves the oracle-matched geometry without allowing unrelated
-	  ground texels to spray black or rainbow pixels through the crown. )
+"VHGND tree limb native faces"
+	( Source branch face: 3x8 repeating matrix over the live p_background
+	  window.  PGtexoff models txtr += 48 after every face, including a
+	  back-facing face, and is restored before descending to the child. )
 	[SPterrain] = 0; [VHGNDtreefloat] = 2;
-	[PGtexf] = 0; [SPflar] = [DBflar];
+	[FI] = 3; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = 8; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
 	[VHGNDtreeside] = 0;
     "VHGND tree limb face"
 	A = [VHGNDtreeside]; ? A '>= [VHGNDtreefaces] -> VHGND tree limb done;
-	A '* [VHTfacestep]; A + [VHTfacebase]; [DBcol] = A;
+	A '* [VHTfacestep]; A + [VHTfacebase]; [SPtinta] = A;
 	[VHGNDvi] = 0;
 	[VHGNDtreecx] = [VHGNDtreebxf]; [VHGNDtreecy] = [VHGNDtreebyf]; [VHGNDtreecz] = [VHGNDtreebzf];
 	[VHGNDtreerad] = [VHGNDtreebr]; A = 360; A / [VHGNDtreefaces]; [VHGNDtmp] = A;
 	A '* [VHGNDtreeside]; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
 	A = [VHGNDtreeangle]; A + [VHGNDtmp]; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
+	A = [VHGNDtreeisroot]; ? A = 0 -> VHGND tree limb upper;
+	[VHGNDtreepoint] = 0; => VHGND tree root height;
+	[VHGNDtreepoint] = 1; => VHGND tree root height;
+    "VHGND tree limb upper"
 	[VHGNDtreecx] = [VHGNDtreeexf]; [VHGNDtreecy] = [VHGNDtreeeyf]; [VHGNDtreecz] = [VHGNDtreeezf]; [VHGNDtreerad] = [VHGNDtreeer];
 	=> VHGND tree polar vertex;
 	A = [VHGNDtreeangle]; A - [VHGNDtmp]; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
 	=> PG facing; A = [FCret]; ? A = 0 -> VHGND tree limb advance;
-	[PJnrv] = 4; => PG poly3d;
+	[PJnrv] = 4; => PG polymap;
     "VHGND tree limb advance"
+	A = [PGtexoff]; A + 48; [PGtexoff] = A;
 	[VHGNDtreeside]+; -> VHGND tree limb face;
     "VHGND tree limb done"
 	[VHGNDtreefloat] = 1;
@@ -5882,20 +5889,23 @@
 
 "VHGND tree leaves"
 	( Terminal source fan.  Its second ring point is rotation+72 and its tip
-	  is rotation+36 regardless of branchdetail.  Preserve every generated
-	  tip and foliage stamp, but omit the currently non-parity leaf triangle:
-	  it crosses the viewport in the port even though NIV+ keeps it bounded. )
+	  is rotation+36 regardless of branchdetail.  The 1x3 repeating texture
+	  and 48-byte face stride mirror the source's live txtr window. )
 	[SPterrain] = 0; [VHGNDtreefloat] = 2;
-	[PGtexf] = 0; [SPflar] = [DBflar];
+	[FI] = 1; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = 3; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 5; [PGtexoff] = 0; [SPsrc] = 1; [SPflar] = [DBflar];
 	[VHGNDtreerad] = [VHGNDtreebr];
 	[VHGNDtreeside] = 0;
     "VHGND tree leaf face"
 	A = [VHGNDtreeside]; ? A '>= [VHGNDtreefaces] -> VHGND tree leaves done;
+	A '* [VHTfacestep]; A + [VHTfacebase]; [SPtinta] = A;
 	[VHGNDvi] = 0; [VHGNDtreecx] = [VHGNDtreebxf]; [VHGNDtreecy] = [VHGNDtreebyf]; [VHGNDtreecz] = [VHGNDtreebzf];
 	A = 360; A / [VHGNDtreefaces]; A '* [VHGNDtreeside]; [VHGNDtreeangle] = A;
 	=> VHGND tree polar vertex;
 	A = [VHGNDtreeangle]; A + 72; [VHGNDtreeangle] = A; => VHGND tree polar vertex;
 	A = [VHGNDtreeangle]; A - 36; [VHGNDtreeangle] = A; => VHGND tree leaf tip vertex;
+	[PJnrv] = 3; => PG polymap;
 	( greenmush remains the integer projection helper; convert the exact leaf
 	  tip only at this compatibility boundary instead of interpreting bits. )
 	[PGFt] = [VHGNDtreepx]; => PGF ldf32; => FToIntChop; [VHGNDmushx] = [FI];
@@ -5903,6 +5913,7 @@
 	[PGFt] = [VHGNDtreepz]; => PGF ldf32; => FToIntChop; [VHGNDmushz] = [FI];
 	[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3; [VHGNDmushscale] = 1023;
 	[VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31; => VHGND greenmush;
+	A = [PGtexoff]; A + 48; [PGtexoff] = A;
 	[VHGNDtreeside]+; -> VHGND tree leaf face;
     "VHGND tree leaves done"
 	[VHGNDtreefloat] = 1;
@@ -5949,9 +5960,27 @@
 	end;
 
 "VHGND tree texture restore"
-	[PGtexf] = 0; [SPflar] = 0;
+	[PGtexoff] = 0; [PGtexf] = 0; [SPflar] = 0;
 	[FI] = [VHGNDtscale]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
 	[FI] = 256; => IntToF; => FMul; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	end;
+
+"VHGND tree root height"
+	( build_fractal_tree seats both bottom vertices of its root branch on
+	  hpoint().  The polar coordinates are binary32, then implicitly chopped
+	  to the long parameters.  Reuse the exact landed HPOINT chain and retain
+	  the traversal/camera globals which that shared helper uses as scratch. )
+	[VHTcamxsave] = [VHGNDcamx]; [VHTcamzsave] = [VHGNDcamz];
+	[VHTseedtilesave] = [VHGNDh1];
+	A = FSINX; A + [VHGNDtreepoint]; [PGFi] = A; => PGF a; => FToIntChop;
+	[VHGNDcamx] = [FI];
+	A = FSINZ; A + [VHGNDtreepoint]; [PGFi] = A; => PGF a; => FToIntChop;
+	[VHGNDcamz] = [FI];
+	=> VHGND eye height;
+	A = FSINY; A + [VHGNDtreepoint]; [PGFi] = A;
+	[PGFt] = [VHGNDpy]; => PGF setf32;
+	[VHGNDcamx] = [VHTcamxsave]; [VHGNDcamz] = [VHTcamzsave];
+	[VHGNDh1] = [VHTseedtilesave];
 	end;
 
 "VHGND tree polar vertex"

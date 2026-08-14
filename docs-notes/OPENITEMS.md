@@ -210,7 +210,15 @@ alternating when it occurs.
 
 ---
 
-## 6. Cross-references
+## 6. Sun beams and lens flares across the game -- **OPEN / DOCKET**
+
+Authenticate the complete sun-beam and lens-flare treatment against native
+captures across every star class, representative surface atmospheres and
+weather states, orbital planet views, and the Stardrifter interior/exterior.
+The comparison must cover direction, occlusion, colour, intensity, geometry,
+and transition behaviour. A flare merely being present is not sufficient.
+
+## 7. Cross-references
 
 | document | what Wave 6 changed in it |
 |---|---|

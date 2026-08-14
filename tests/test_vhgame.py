@@ -2929,7 +2929,13 @@ def main() -> int:
             "[VHGNDtreewindz] = [FS0];",
             "[VHGNDtreelevel]+;", "[VHGNDtreelevel]-;",
             "[VHGNDtreecx] = [VHGNDtreebxf];", "[VHGNDtreecx] = [VHGNDtreeexf];",
-            "[PJnrv] = 4; => PG poly3d;",
+            "[FI] = 3; => IntToF; [PGFi] = FSTX; => PGF sa;",
+            "[FI] = 8; => IntToF; [PGFi] = FSTY; => PGF sa;",
+            "[FI] = 1; => IntToF; [PGFi] = FSTX; => PGF sa;",
+            "[PGtexf] = 5; [PGtexoff] = 0;",
+            "[PJnrv] = 4; => PG polymap;", "[PJnrv] = 3; => PG polymap;",
+            '"VHGND tree root height"', "=> VHGND eye height;",
+            "A = [PGtexoff]; A + 48; [PGtexoff] = A;",
             "[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3;",
         ))
         and "crossed trunk" not in tree
