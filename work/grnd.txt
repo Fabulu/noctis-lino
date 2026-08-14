@@ -109,7 +109,9 @@
 	( Exact binary32 source parameters retained for the landed tree renderer. )
 	GRtreepeakf = 0; GRtreescalef = 0; GRtreespreadf = 0;
 	GRbranchwidthf = 0; GRrootheightf = 0; GRtreefl = 0;
-	GRtreeacc0 = 0; GRtreeci = 0;
+	( Retain the second x87 tree accumulator slot.  The landed renderer's
+	  fixed compatibility regions depend on this established workspace layout. )
+	GRtreeacc0 = 0; GRtreeacc1 = 0; GRtreeci = 0;
 
 	( ---- control word slots ---- )
 
