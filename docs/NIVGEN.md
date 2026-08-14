@@ -1,5 +1,10 @@
 # NIVGEN accuracy procedure
 
+> **Service pause (2026-08-14):** NIVGEN is currently unavailable. Do not run
+> live sheet downloads, corpus scoring sweeps, SheetBot jobs, or submissions
+> until the project owner explicitly confirms that the service is back. Local
+> generator development and saved-fixture comparisons may continue offline.
+
 This repository can drive its current production Noctis generator through the
 public NIVGEN planet corpus. The goal is full, auditable accuracy against the
 original implementation, not a low error count obtained by omitting outputs.
