@@ -417,6 +417,21 @@ source's `1000 * ray` upper gate. The reproducible `rockysun` scene preserves
 this negative case. Authenticity includes correct beam suppression, not merely
 adding rays whenever a disc is visible.
 
+**Dense-atmosphere native-context checkpoint.** LANE I now has a certified
+stock NIV+ comparison at longitude 0, heading 90, pitch -44, and the same raw
+Noctis clock scalar.  The first apparent contradiction, a native frame without
+a sun, was invalid: DOSBox-X rejected the rig's `MM-DD-YYYY` command because
+this guest expects `DD.MM.YYYY`, so that run silently retained a host date three
+days later.  The original also counts leap days with its own 1984-based rule,
+placing raw second `1344638527` on guest date 11 August 2026 rather than the
+Gregorian date inferred by a host library.  With both boundaries corrected,
+NIV+ and Lino agree exactly on rotation period `457`, terminator `77..207`,
+distance bits `41C22E20`, exposure bits `42710A72`, and all three binary32 sun
+coordinates (`C140A69B`, `C1A89AA9`, `B5774B25`).  Both frames show the same
+large white disc and broad corona over the purple atmosphere.  The reproducible
+`densesun` scene records this authenticated positive disc case.  Exact
+whole-frame indexed grading remains open.
+
 **Airless lunar lower-gate checkpoint.** IDEAL I adds the complementary close
 sun case on a type-1 world at longitude 0, heading 90, and pitch -44. Product
 and pinned NIV+ memory agree exactly on the widened binary32 sun coordinates,

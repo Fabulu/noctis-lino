@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'lunarsun', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
+        'lunar', 'lunarsun', 'dense', 'densesun', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -143,6 +143,11 @@ $scenes = @(
        X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
        Beta=90; Pitch=-44; PlayerX=1638400; PlayerY=-19032; PlayerZ=1638400 },
     @{ Name='dense';     X=1463568; Y=-4728350; Z=-437812; Body=0; Type=2; Lon=0; Lat=60; Beta=180; Pitch=-12 },
+    # Same-clock stock NIV+ checkpoint.  The dense atmosphere keeps the source
+    # disc and broad corona but suppresses radial rays below the 10*ray gate.
+    @{ Name='densesun'; FileName='planet-dense-sun.png';
+       X=1463568; Y=-4728350; Z=-437812; Body=0; Type=2; Lon=0; Lat=60;
+       Beta=90; Pitch=-44; PlayerX=1638400; PlayerY=0; PlayerZ=1638400 },
     # Naturally generated plains mammal, birds, vegetation and the local sun.
     @{ Name='habitable'; FileName='planet-habitable-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
@@ -591,10 +596,10 @@ foreach ($spec in $scenes) {
             $sunPath = Join-Path $stage 'game-sun-out.bin'
             if (Test-Path -LiteralPath $sunPath) {
                 $sunBytes = [IO.File]::ReadAllBytes($sunPath)
-                if ($sunBytes.Length -eq 96) {
-                    $sun = New-Object 'System.Int32[]' 24
+                if ($sunBytes.Length -eq 128) {
+                    $sun = New-Object 'System.Int32[]' 32
                     [Buffer]::BlockCopy($sunBytes, 0, $sun, 0, $sunBytes.Length)
-                    $sunFloats = New-Object 'System.Single[]' 24
+                    $sunFloats = New-Object 'System.Single[]' 32
                     [Buffer]::BlockCopy($sunBytes, 0, $sunFloats, 0, $sunBytes.Length)
                     $rain = $sunFloats[6]
                     $exposure = $sunFloats[7]
@@ -606,6 +611,11 @@ foreach ($spec in $scenes) {
                         $sun[4], $sun[5], $rain, $exposure, $distance, $sun[8],
                         $ray, $sun[9], $sun[17], $sun[18], $sun[16],
                         $sun[19], $sun[20]
+                    )
+                    Write-Output (
+                        'LIGHT {0} period={1} rotation={2} viewpoint={3} plwp={4} term={5}..{6} edge={7} xfactor={8}' -f
+                        $spec.Name, $sun[24], $sun[25], $sun[26], $sun[27],
+                        $sun[28], $sun[29], $sun[30], $sun[31]
                     )
                 }
             }

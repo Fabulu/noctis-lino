@@ -925,7 +925,7 @@
 	vhgstate = 18;
 	VHGfpstext = 7;
 	vhgperf = 21;
-	vhgsun = 24;
+	vhgsun = 32;
 	vhglocal = 44;
 	VHGinfoname = 22;
 	VHGinfoclass = 23;
@@ -10678,6 +10678,12 @@
 	[vhgsun plus 18] = [VHGNDflarecy]; [vhgsun plus 19] = [VHFadd];
 	[vhgsun plus 20] = [VHGNDsecactive]; [vhgsun plus 21] = [VHGNDsecnight];
 	[vhgsun plus 22] = [VHGNDsecray]; [vhgsun plus 23] = [VHGNDsecdist];
+	( Surface-lighting provenance.  These are the exact integer decisions that
+	  turn orbital state into the day/night terminator and primary-sun vector. )
+	[vhgsun plus 24] = [VHGNDperiod]; [vhgsun plus 25] = [VHGNDrotation];
+	[vhgsun plus 26] = [VHGNDviewpoint]; [vhgsun plus 27] = [VHGNDplwp];
+	[vhgsun plus 28] = [VHGNDtermstart]; [vhgsun plus 29] = [VHGNDtermend];
+	[vhgsun plus 30] = [VHGNDcrep]; [vhgsun plus 31] = [VHGNDsunxf];
 	[vhglocal plus 0] = [VHGmode]; [vhglocal plus 1] = [VHGlocalactive];
 	[vhglocal plus 2] = [VHGutcsecs]; [vhglocal plus 3] = [VHGNDsecs];
 	[vhglocal plus 4] = [VHGplanet]; [vhglocal plus 5] = [VHGbeta];
@@ -10707,8 +10713,8 @@
 	[Block Pointer] = vhgperf; [Block Size] = 84; isocall;
 	[File Name] = vhgoutname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 156; isocall;
 	[File Name] = vhgsunname; [File Position] = 0; [File Command] = WRITE;
-	[Block Pointer] = vhgsun; [Block Size] = 96; isocall;
-	[File Name] = vhgsunname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 96; isocall;
+	[Block Pointer] = vhgsun; [Block Size] = 128; isocall;
+	[File Name] = vhgsunname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 128; isocall;
 	[File Name] = vhglocalname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = vhglocal; [Block Size] = 176; isocall;
 	[File Name] = vhglocalname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 176; isocall;
