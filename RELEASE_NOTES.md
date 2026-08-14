@@ -104,6 +104,10 @@ pixels. With identical landed inputs, all 768 palette components match NIV+
 exactly, including the unusual orange crown and blue limbs produced by this
 particular daylight state.
 
+The gallery tree has been recaptured from the final production renderer rather
+than retaining the older pre-addressing frame. Its SHA-256 is
+`e06a746f034c1025235e6a6f0c94d6db0968d0ccca01f7c5d6bae71c4e26dc15`.
+
 The production NIVGEN harness now speaks the public command protocol, emits the
 actual L.in.oleum orbital and landed buffers, and scores public sheet rows by
 field. Surface generation restores the source crater workload and matches all

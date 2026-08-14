@@ -184,7 +184,7 @@ rendering result. Reproduce them with
 |---|---|---|---|---|
 | ![A close lunar primary whose radial flare is correctly suppressed by the original lower-distance gate](screenshots/planet-lunar-sun.png) | ![A stock-NIV+-matched white primary and broad corona above a dense atmosphere](screenshots/planet-dense-sun.png) | ![A native-matched radial flare over a thin-atmosphere world](screenshots/planet-thin-sun.png) | ![A distant primary disc correctly showing no flare over an airless rocky world](screenshots/planet-rocky-sun.png) | ![A class-1 primary over a frozen world, beyond the original flare-distance gate](screenshots/planet-frozen-sun.png) |
 
-| Habitable shoreline | Native tree | Native hopper |
+| Habitable shoreline | NIV+-matched tree | Native hopper |
 |---|---|---|
 | ![A local sun over a habitable shoreline with naturally generated vegetation and flying birds](screenshots/planet-habitable-sun.png) | ![A complete naturally generated fractal tree on the same world](screenshots/planet-habitable-tree.png) | ![A naturally generated source-model hopper on the same world](screenshots/planet-habitable-hopper.png) |
 
