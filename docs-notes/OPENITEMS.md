@@ -513,8 +513,18 @@ removing the former whole-millisecond phase quantization. The focused current
 habitable smoke held the target rate. A 30-second real-input surface session
 also held forward continuously, alternated left and right yaw, and retained
 terrain and detail without a crash, black pillar, or input stall. Longer
-capsule, orbital, focus-loss, and overloaded-frame recovery sessions remain
-required before this item closes.
+orbital and overloaded-frame recovery sessions remain required before this
+item closes.
+
+A later product session completed a surface capsule return into the Stardrifter,
+held a stationary 60 Hz interior view for 23 seconds, paused the inactive client
+for five seconds, and resumed through the normal focus path. Four pre-pause
+internal frames were byte-identical. The recovered frame differed in only 17
+pixels, all inside the advancing epoch clock glyph, and the process exited
+through its normal save path in Stardrifter mode. That closes the capsule-return
+and focus-loss legs. The same audit removed the port's old `-70` lift impulse:
+the live lift now uses NIV+'s `-100`, with smooth presentation interpolating the
+original eight simulation steps instead of changing their gameplay timing.
 
 ## 8. Cross-references
 

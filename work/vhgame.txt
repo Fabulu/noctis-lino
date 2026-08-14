@@ -4115,15 +4115,14 @@
 "VHG platform"
 	( NOCTIS.CPP:4106-4108 starts the ascent directly from the key event.
 	  E deliberately substitutes for DOS Up because all four arrows look in
-	  this port.  The live renderer uses -70 so the opening gets enough
-	  visible approach time instead of crossing the glass
-	  in two displayed frames.  This discrete value also avoids the extra
-	  forward-carry frame produced by nearby slower impulses.  Roof return
-	  remains the source's +75. )
+	  this port.  Keep the source's -100 ascent impulse.  Smooth mode presents
+	  the eight authoritative lift steps across roughly 26 display frames, so
+	  authentic gameplay timing no longer needs a slower surrogate.  Roof
+	  return remains the source's +75. )
 	A = [VHGlifter]; ? A != 0 -> VHG platform done;
 	A = [VHGonroof]; ? A != 0 -> VHG platform done;
 	A = [VHGuprequest]; ? A = 0 -> VHG platform done;
-	A = 0; A - 70; [VHGlifter] = A; [VHGliftstep] = 0;
+	A = 0; A - 100; [VHGlifter] = A; [VHGliftstep] = 0;
     "VHG platform done"
 	[VHGuprequest] = 0;
 	end;

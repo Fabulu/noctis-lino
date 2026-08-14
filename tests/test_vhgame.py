@@ -358,14 +358,6 @@ def main() -> int:
         and abs(ascent_route[-1][2]) > 1100,
         "source-order ascent momentum carries a centered rider clear of automatic return",
     )
-    calibrated_route = lift_ascent_route(0, -1, 70)
-    check(
-        len(calibrated_route) == 12
-        and calibrated_route[-1] == (-750, 0, -1827, 335)
-        and abs(calibrated_route[-1][2]) < abs(lift_ascent_route(0, -1, 75)[-1][2]),
-        "calibrated ascent slows the opening without adding the nearby impulse's roof overshoot",
-    )
-
     lift = section(game, '"VHG lift tick"', '"VHG lift move"')
     check(
         all(token in lift for token in (
@@ -409,7 +401,8 @@ def main() -> int:
         and "[VHGupheld]" in ship_input
         and "[VHGuprequest] = 1;" in ship_input
         and "[VHGuprequest]" in platform
-        and "A - 70; [VHGlifter] = A;" in platform
+        and "A - 100; [VHGlifter] = A;" in platform
+        and "A - 70; [VHGlifter] = A;" not in platform
         and "1210000" not in platform
         and "[VHGlifter] = 75;" not in platform
         and "[VHGnoticeptr] = VHGliftdecktext;" in lift
