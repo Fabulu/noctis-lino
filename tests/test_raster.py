@@ -696,8 +696,8 @@ def mp_components(mp_rows):
 SABOTAGE = {
     # name        library      one line, replaced by one line
     "SEGCLOSED": ("pgrast.txt",
-                  "\t? C '< [SGt] -> PG seg do;",
-                  "\t? C '<= [SGt] -> PG seg do;",
+                  "\t    72 BA",
+                  "\t    76 BA",
                   "Segmento's DDA closes the half-open x interval, so the "
                   "greater-x endpoint gets painted"),
     "FILLROW":   ("pgrast.txt",
