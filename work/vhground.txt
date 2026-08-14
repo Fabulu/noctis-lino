@@ -5645,16 +5645,42 @@
 	A = [GCret]; ? A = 0 -> VHGND greenmush outer next;
 	[SUfmask] = [VHGNDmushmask2]; => VHGND render random; C + 1; [VHGNDmushinner] = C;
     "VHGND greenmush inner"
-	[SUfmask] = 7; => VHGND render random; A = [GCy]; A + C; A '* 320; [VHGNDmushoff] = A;
-	=> VHGND render random; A = [GCx]; A + C; C = [VHGNDmushoff]; C + A; [VHGNDmushoff] = C;
-	[SUfmask] = [VHGNDmushcolmask]; => VHGND render random; C + [VHGNDmushbase];
-	D = nw; D + RADPT; D + [VHGNDmushoff];
-	( Native loads only adapted's segment into ES; its Borland far-heap
-	  pointer has offset 4.  Thus source displacements +4,+5,+3,+324,
-	  -316,-636 are buffer-relative 0,+1,-1,+320,-320,-640. )
-	[D] = C; [D plus 1] = C; A = D; A - 1; [A] = C; [D plus 320] = C;
-	A = D; A - 320; [A] = C; A = D; A - 640; [A] = C;
-	[VHGNDmushinner]-; A = [VHGNDmushinner]; ? A > 0 -> VHGND greenmush inner;
+	( The source stamps every clump with three consecutive fast-random draws.
+	  Keep their unsigned square transition and write order in one native loop;
+	  the final seed, raw value, mask, offset, colour and counters remain the
+	  values left by the interpreted sequence.  Native loads only adapted's
+	  segment into ES; its far pointer offset maps the six source displacements
+	  to buffer-relative 0,+1,-1,+320,-320,-640. )
+	[SUfmask] = [VHGNDmushcolmask]; A = nw;
+	{
+	    55 56
+	    8D 2C 87
+	    8B 8F <dVHGNDmushinner mtp bytesperunit>
+	    8B B7 <dSUfseed mtp bytesperunit>
+	    89 F0 F7 E0 00 D0 01 C6 83 E0 07
+	    03 87 <dGCy mtp bytesperunit>
+	    69 D8 40 01 00 00
+	    89 F0 F7 E0 00 D0 01 C6 83 E0 07
+	    03 87 <dGCx mtp bytesperunit>
+	    01 C3
+	    89 9F <dVHGNDmushoff mtp bytesperunit>
+	    89 F0 F7 E0 00 D0
+	    89 87 <dSUfeax mtp bytesperunit>
+	    01 C6
+	    89 B7 <dSUfseed mtp bytesperunit>
+	    89 C2
+	    23 97 <dVHGNDmushcolmask mtp bytesperunit>
+	    89 97 <dSUfval mtp bytesperunit>
+	    03 97 <dVHGNDmushbase mtp bytesperunit>
+	    8D 9C 9D <dRADPT mtp bytesperunit>
+	    89 13 89 53 04 89 53 FC
+	    89 93 00 05 00 00
+	    89 93 00 FB FF FF
+	    89 93 00 F6 FF FF
+	    49 0F 85 80 FF FF FF
+	    89 8F <dVHGNDmushinner mtp bytesperunit>
+	    89 F3 89 D1 31 C0 5E 5D
+	}
     "VHGND greenmush outer next"
 	[VHGNDmushouter]-; A = [VHGNDmushouter]; ? A > 0 -> VHGND greenmush outer;
 	end;
