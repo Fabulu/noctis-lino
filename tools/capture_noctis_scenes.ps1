@@ -4,13 +4,18 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'planetclose', 'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'thin', 'frozen', 'quartz', 'ruins', 'cube')]
+    [ValidateSet('all', 'stardrifter', 'planetclose',
+        'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
+        'orbitthin', 'orbitfrozen', 'orbitsubstellar',
+        'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'thin',
+        'frozen', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
     [int]$Longitude,
     [int]$Latitude,
     [int]$BodyIndex,
     [int]$ViewAngle,
+    [int]$OrbitalViewAngle,
     [int]$ViewPitch,
     [int]$PlayerX,
     [int]$PlayerY,
@@ -67,6 +72,37 @@ $scenes = @(
        X=3979984; Y=-43407; Z=-43984; Body=0; Type=8; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
        LocalX=0.046885; LocalY=0.0; LocalZ=-0.110461 },
+    # Target-relative fine-approach frames for the other major orbital body
+    # classes. Each offset is scaled from the type-8 checkpoint by the target's
+    # generated p_ray, keeping the camera at the same apparent body radius.
+    @{ Name='orbitlunar'; FileName='planet-space-lunar.png'; Mode=0;
+       X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.010794; LocalY=0.0; LocalZ=-0.025432 },
+    @{ Name='orbitdense'; FileName='planet-space-dense.png'; Mode=0;
+       X=4304272; Y=-4664874; Z=-1062549; Body=0; Type=2; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.034346; LocalY=0.0; LocalZ=-0.080919 },
+    @{ Name='orbithabitable'; FileName='planet-space-habitable.png'; Mode=0;
+       X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.032783; LocalY=0.0; LocalZ=-0.077237 },
+    @{ Name='orbitrocky'; FileName='planet-space-rocky.png'; Mode=0;
+       X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.027804; LocalY=0.0; LocalZ=-0.065506 },
+    @{ Name='orbitthin'; FileName='planet-space-thin.png'; Mode=0;
+       X=-1996240944; Y=72703; Z=944799; Body=3; Type=5; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.030966; LocalY=0.0; LocalZ=-0.072956 },
+    @{ Name='orbitfrozen'; FileName='planet-space-frozen.png'; Mode=0;
+       X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.039580; LocalY=0.0; LocalZ=-0.093250 },
+    @{ Name='orbitsubstellar'; FileName='planet-space-substellar.png'; Mode=0;
+       X=1463568; Y=-4728350; Z=-437812; Body=1; Type=9; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.333919; LocalY=0.0; LocalZ=-0.786714 },
     # IDEAL's only body is an authentic type-1 primary. This avoids spending
     # screenshot startup time generating JROT's pathological 80-body system.
     @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
@@ -117,6 +153,18 @@ foreach ($spec in $scenes) {
     if ($PSBoundParameters.ContainsKey('Latitude')) { $spec.Lat = $Latitude }
     if ($PSBoundParameters.ContainsKey('BodyIndex')) { $spec.Body = $BodyIndex }
     if ($PSBoundParameters.ContainsKey('ViewAngle')) { $spec.Beta = $ViewAngle }
+    if ($PSBoundParameters.ContainsKey('OrbitalViewAngle') -and $spec.ContainsKey('LocalZ')) {
+        $distance = [Math]::Sqrt(
+            [double]$spec.LocalX * $spec.LocalX +
+            [double]$spec.LocalY * $spec.LocalY +
+            [double]$spec.LocalZ * $spec.LocalZ
+        )
+        $angle = $OrbitalViewAngle * [Math]::PI / 180.0
+        $spec.LocalX = [Math]::Sin($angle) * $distance
+        $spec.LocalY = 0.0
+        $spec.LocalZ = -[Math]::Cos($angle) * $distance
+        $spec.Beta = (($OrbitalViewAngle % 360) + 360) % 360
+    }
     if ($PSBoundParameters.ContainsKey('ViewPitch')) { $spec.Pitch = $ViewPitch }
     if ($PSBoundParameters.ContainsKey('PlayerX')) { $spec.PlayerX = $PlayerX }
     if ($PSBoundParameters.ContainsKey('PlayerY')) { $spec.PlayerY = $PlayerY }

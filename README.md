@@ -125,8 +125,9 @@ setup and exact release boundaries.
 ## Screenshots
 
 Every image below is captured from the production executable. Planet scenes use
-fixed deterministic landing cells and measured camera poses so a camera inside
-the capsule cannot masquerade as a rendering result. Reproduce them with
+fixed generated worlds, radius-scaled approaches, deterministic landing cells,
+and measured camera poses so a camera inside the capsule cannot masquerade as a
+rendering result. Reproduce them with
 `tools\capture_noctis_scenes.ps1`.
 
 | Stardrifter interior | Physical GOES console |
@@ -136,6 +137,14 @@ the capsule cannot masquerade as a rendering result. Reproduce them with
 | Stellar corona | Close local planet |
 |---|---|
 | ![A stellar corona and flare reflections seen through the transparent Stardrifter windows](screenshots/stardrifter-sun.png) | ![A close type-8 planet seen through the Stardrifter window after a completed fine approach](screenshots/planet-close-space.png) |
+
+| Craterized world | Dense atmosphere | Felisian world | Creased world |
+|---|---|---|---|
+| ![A craterized airless planet from the Stardrifter](screenshots/planet-space-lunar.png) | ![A purple dense-atmosphere planet from the Stardrifter](screenshots/planet-space-dense.png) | ![A bright Felisian planet from the Stardrifter](screenshots/planet-space-habitable.png) | ![A creased airless planet from the Stardrifter](screenshots/planet-space-rocky.png) |
+
+| Thin atmosphere | Frozen world | Substellar object |
+|---|---|---|
+| ![A thin-atmosphere planet from the Stardrifter](screenshots/planet-space-thin.png) | ![A half-lit frozen planet from the Stardrifter](screenshots/planet-space-frozen.png) | ![A substellar object in a bright crowded system](screenshots/planet-space-substellar.png) |
 
 | Planetary console | Planetary surface |
 |---|---|
