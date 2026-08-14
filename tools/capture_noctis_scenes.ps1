@@ -10,7 +10,7 @@ param(
         'orbitsubstellar', 'orbitmultiple',
         'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
         'thin', 'thinsun',
-        'frozen', 'quartz', 'ruins', 'cube')]
+        'frozen', 'frozensun', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
     [int]$Longitude,
@@ -174,6 +174,11 @@ $scenes = @(
        Beta=90; Pitch=-30; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='frozen';    X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
        Beta=193; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
+    # Class-1 primary over an airless frozen world. The disc is visible while
+    # its live distance remains outside the original flare gate.
+    @{ Name='frozensun'; FileName='planet-frozen-sun.png';
+       X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
+       Beta=90; Pitch=-44; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='quartz';    X=1463568; Y=-4728350; Z=-437812; Body=7; Type=8; Lon=0; Lat=60; Beta=180; Pitch=-12 },
     # Ylastravenya III's marked ruin edge, photographed outside the Cube.
     @{ Name='ruins';     FileName='planet-triangular-ruins.png';

@@ -416,6 +416,15 @@ source's `1000 * ray` upper gate. The reproducible `rockysun` scene preserves
 this negative case. Authenticity includes correct beam suppression, not merely
 adding rays whenever a disc is visible.
 
+**Frozen-world class-1 checkpoint.** A separate system extends the matrix
+beyond class-0 primaries. On its type-7 body at longitude 0, heading 90, and
+pitch -44, both renderers retain star class 1, stellar radius `21.879`, solar
+distance `34167.4`, exposure `58.695`, rain `0`, and day state. Certified
+frames place the larger white disc against the frozen world's black sky and
+again suppress beams because `34167.4 > 1000 * 21.879`. The reproducible
+`frozensun` scene records this distinct star-size and no-flare case. The wider
+frozen starfield parity item remains open independently.
+
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 
