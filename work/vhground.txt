@@ -203,6 +203,7 @@
 	VHGNDflashpalp = 0; VHGNDflashpalq = 0; VHGNDflashpaln = 0;
 	VHGNDflashskyp = 0;
 	VHGNDskyfill = 0; VHGNDskycount = 0; VHGNDpalcount = 0;
+	VHGNDresolve = 0; VHGNDresolvenext = 1; VHGNDresolveview = 0;
 	VHGNDdays = 0; VHGNDsecs = 0; VHGNDmonthbase = 0;
 	( Headless generation harnesses pin the NIV+ secs global.  Normal play
 	  leaves this disabled and continues to read the host UTC clock. )
@@ -2193,14 +2194,36 @@
 	[VHGNDskycount]-; A = [VHGNDskycount]; ? A != 0 -> VHGND fill sky loop;
 	=> SU ledger reset; => GRSK create; => GRSK horizon;
 
-	( planetary_main fades to the complete surface_palette.  The GUI uses
-	  the same uploaded palette through its indexed-to-RGB presenter. )
-	A = srfpal6; D = pal6; [VHGNDpalcount] = 768;
-    "VHGND sky palette copy"
-	C = [A]; [D] = C; A+; D+; [VHGNDpalcount]-;
-	C = [VHGNDpalcount]; ? C != 0 -> VHGND sky palette copy;
-	[PUn] = 256; => PAL upload;
+	( planetary_main enters from a blank frame with resolve=1.  Its live loop
+	  applies 1,5,...,61 and then stops because the next value is 65; it never
+	  uploads an ordinary factor of 63.  Start blank here and let render advance
+	  the same source-rate sequence. )
+	[VHGNDresolve] = 0; [VHGNDresolvenext] = 1; [VHGNDresolveview] = 0;
+	[PVsrc] = srfpal6; [PVself] = 0; [PVfirst] = 0; [PVn] = 256;
+	[PVfr] = 0; [PVfg] = 0; [PVfb] = 0; => PAL tavola;
 	[VHGNDbgcacheok] = 0;
+	end;
+
+"VHGND palette fade"
+	( Original mode applies exactly one resolve step per source frame.  F5 keeps
+	  those authoritative 18.206-Hz endpoints and fills the presentation-only
+	  frames with the integer factors between them.  Storm flashes retain their
+	  source palette overrides and are not interpolated. )
+	A = [VHGNDdosim]; ? A != 0 -> VHGND palette fade tick;
+	A = [VHGNDfast]; ? A = 0 -> VHGND palette fade done;
+	A = [GRSKrainy]; ? A '>= 40000000h -> VHGND palette fade done;
+	A = [VHGNDresolvenext]; ? A > 63 -> VHGND palette fade done;
+	A - [VHGNDresolve]; A '* [VHGNDinterpacc]; A / 60000;
+	A + [VHGNDresolve]; [VHGNDresolveview] = A;
+	-> VHGND palette fade apply;
+    "VHGND palette fade tick"
+	A = [VHGNDresolvenext]; ? A > 63 -> VHGND palette fade done;
+	[VHGNDresolve] = A; [VHGNDresolveview] = A; A + 4; [VHGNDresolvenext] = A;
+    "VHGND palette fade apply"
+	[PVsrc] = srfpal6; [PVself] = 0; [PVfirst] = 0; [PVn] = 256;
+	A = [VHGNDresolveview]; [PVfr] = A; [PVfg] = A; [PVfb] = A;
+	=> PAL tavola;
+    "VHGND palette fade done"
 	end;
 
 "VHGND guard band"
@@ -2441,6 +2464,7 @@
 	A = [VHGNDdosim]; ? A = 0 -> VHGND render tick ready; [VHGNDtick]+;
     "VHGND render tick ready"
 	=> VHGND wave impact tick;
+	=> VHGND palette fade;
 	=> VHGND weather lightning begin;
 	[VHGNDruindrawn] = 0; => VHGND background;
 	=> PGF constants;

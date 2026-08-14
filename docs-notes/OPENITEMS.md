@@ -425,11 +425,14 @@ exposure `49.3038`. The disc and corona are visible, but the real planetary
 loop suppresses radial beams because `34.576252 < 10 * 6.955`. A direct call
 to the standalone flare routine would add one spoke and is therefore not an
 admissible full-context oracle for this pose. The tenth surface-flare fixture
-now protects the correct unchanged page. The native screenshot's active
-palette is also explained exactly: every component is
-`floor(surface_palette * 61 / 63)`, a capture taken two fade steps before full
-brightness, while the product trace records the same completed surface
-palette. The reproducible `lunarsun` scene preserves this close-disc,
+now protects the correct unchanged page. Direct palette tracing exposed and
+fixed a real stable-state error: native `resolve` starts at 1 and advances by
+4, so its sequence ends at 61 and never visits 63. The old product uploaded
+the unfiltered surface palette at 63. Classic and smooth product captures now
+emit the exact 768 active native components, SHA-256
+`ce2b034ee3da7e553e1d5ba2fd5ccaeee9721b5ee9cdb3bab4515bdb73bc0a81`,
+with smooth mode interpolating only between the original 18.206-Hz fade
+endpoints. The reproducible `lunarsun` scene preserves this close-disc,
 no-beam case. Exact full indexed-frame grading remains open.
 
 **Frozen-world class-1 checkpoint.** A separate system extends the matrix
