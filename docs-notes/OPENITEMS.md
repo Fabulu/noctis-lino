@@ -220,6 +220,21 @@ must cover direction, occlusion, colour, intensity, geometry, and transition
 behaviour. A flare merely being present is not sufficient; the implementation
 must match the native renderer in each context.
 
+**Completed foundation.** The flare raster, clipping, trig setup, ghost
+reflection, surface occlusion, and brightness-band behaviour now match direct
+NIV+ page dumps. A 12-class star matrix compares four 64,000-byte checkpoints
+per class (white core, flare, smoothing, and mask), with zero differing bytes
+across all 48 comparisons. Six surface-flare oracle cases likewise have zero
+page differences.
+
+**Playable evidence so far.** Sequential production captures show a healthy
+Stardrifter glare, a habitable-world sun disc, and a thin-atmosphere sun with
+radial beams and no horizon pillar. Parallel screenshot processes can interfere
+and produced two all-black captures, so this matrix must be captured
+sequentially. Still open: representative views for every planet and atmosphere
+class, weather and day/night boundaries, companion and multiple suns, orbital
+views, and the full Stardrifter interior/cupola/exterior transition.
+
 ## 7. Cross-references
 
 | document | what Wave 6 changed in it |
