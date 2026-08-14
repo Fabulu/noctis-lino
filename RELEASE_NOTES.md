@@ -206,6 +206,11 @@ The solid-polygon sentinel searches now execute their exact `repne` and
 captures, total render time fell from 6.17 ms to 4.79 ms and the hull pass
 from 2.43 ms to 1.51 ms. All 107 exact raster pages remained byte-identical.
 
+Solid polygon edge strokes now execute both the vertical and general DDA
+trace loops natively while retaining the original inclusive vertical rule,
+half-open greater-X endpoint, and 16-bit page wrap. The exact raster corpus
+remains byte-identical and a fresh Stardrifter capture rendered in 4.75 ms.
+
 That fixed 2x path now publishes each duplicated RGB pixel to Backdrop and
 Primary Display while the value is already loaded. The two synchronized layers
 therefore no longer need a subsequent 1 MiB Backdrop reread and copy. Resized

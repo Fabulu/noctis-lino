@@ -235,10 +235,7 @@
     "PG seg v2"
 	C = [SGpi]; C + PGDOFF; C & 65535; [SGpi] = C;
 	C = [SGpf]; C + PGDOFF; C & 65535; [SGpf] = C;
-    "PG seg v loop"
-	[PGdi] = [SGpi]; [PGval] = 255; => PG store;
-	C = [SGpi]; C + 320; C & 65535; [SGpi] = C;
-	? C '< [SGpf] -> PG seg v loop;
+	=> PG seg v trace native;
 	end;
 
       ( ---- general branch, convention (b): es:[di+4] ---- )
@@ -281,16 +278,62 @@
     "PG seg trace"
 	( the loop limit is xa<<16, compared UNSIGNED against global_x )
 	C = [SGxa]; C < 16; [SGt] = C;
-    "PG seg do"
-	C = [SGgy]; C > 16; C & 65535;		( bx = global_y[2] )
-	=> PG riga;				( riga[bx], 16-bit )
-	D = [SGgx]; D > 16; D & 65535;		( di = global_x[2] )
-	C + D; C & 65535;			( add di, riga[bx] )
-	C + PGDOFF;				( es:[di+4] )
-	[PGdi] = C; [PGval] = 255; => PG store;
-	C = [SGgx]; C + [SGa]; [SGgx] = C;
-	D = [SGgy]; D + [SGb]; [SGgy] = D;
-	? C '< [SGt] -> PG seg do;
+	=> PG seg trace native;
+	end;
+
+"PG seg v trace native"
+	( Preserve the source's inclusive vertical trace and unsigned stop test. )
+	A = nw;
+	{
+	    8D 04 87
+	    8B 97 <dSGpi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    8B 8F <dSGpf mtp bytesperunit>
+	    BB FF 00 00 00
+	    89 9C 90 <dSADPT mtp bytesperunit>
+	    81 C2 40 01 00 00
+	    81 E2 FF FF 00 00
+	    39 CA
+	    72 E9
+	    89 97 <dSGpi mtp bytesperunit>
+	    89 D6
+	    81 EE 40 01 00 00
+	    81 E6 FF FF 00 00
+	    89 B7 <dPGdi mtp bytesperunit>
+	    89 9F <dPGval mtp bytesperunit>
+	}
+	end;
+
+"PG seg trace native"
+	( Preserve the half-open greater-X endpoint, 16-bit projected address,
+	  and unsigned 16.16 accumulator comparison of the general DDA. )
+	A = nw;
+	{
+	    55
+	    8D 04 87
+	    8B 97 <dSGgx mtp bytesperunit>
+	    8B 8F <dSGgy mtp bytesperunit>
+	    89 CD
+	    C1 ED 10
+	    69 ED 40 01 00 00
+	    81 E5 FF FF 00 00
+	    89 D3
+	    C1 EB 10
+	    81 E3 FF FF 00 00
+	    01 DD
+	    83 C5 04
+	    81 E5 FF FF 00 00
+	    C7 84 A8 <dSADPT mtp bytesperunit> FF 00 00 00
+	    03 97 <dSGa mtp bytesperunit>
+	    03 8F <dSGb mtp bytesperunit>
+	    3B 97 <dSGt mtp bytesperunit>
+	    72 BA
+	    89 97 <dSGgx mtp bytesperunit>
+	    89 8F <dSGgy mtp bytesperunit>
+	    89 AF <dPGdi mtp bytesperunit>
+	    C7 87 <dPGval mtp bytesperunit> FF 00 00 00
+	    5D
+	}
 	end;
 
 ( ==================================================================== )
