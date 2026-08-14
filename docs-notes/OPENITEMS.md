@@ -425,6 +425,12 @@ again suppress beams because `34167.4 > 1000 * 21.879`. The reproducible
 `frozensun` scene records this distinct star-size and no-flare case. The wider
 frozen starfield parity item remains open independently.
 
+The product gallery now publishes all three fixed-epoch checkpoints as
+`planet-thin-sun.png`, `planet-rocky-sun.png`, and `planet-frozen-sun.png`.
+Their captions distinguish a real radial flare from the two source-gated
+no-flare discs so screenshots do not imply that every visible sun must emit
+beams.
+
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 
