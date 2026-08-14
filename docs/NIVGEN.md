@@ -70,7 +70,9 @@ python tools\nivgen_score.py --type 2 --limit 25 --json-out nivgen-type2.json
 ```
 
 The default limit is one. A live corpus sweep is a release or explicit accuracy
-run, not a routine edit gate.
+run, not a routine edit gate. Transient sheet failures are retried five times;
+long unattended runs can raise that bound with `--fetch-attempts` and
+`--fetch-delay`.
 
 ## Current measured position
 

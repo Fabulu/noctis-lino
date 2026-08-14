@@ -9,6 +9,8 @@ import json
 from pathlib import Path
 import re
 import sys
+import time
+import urllib.error
 import urllib.request
 
 
@@ -26,9 +28,19 @@ FIELDS = (
 )
 
 
-def fetch_rows(url: str) -> list[dict[str, object]]:
-    with urllib.request.urlopen(url, timeout=30) as response:
-        payload = json.load(response)
+def fetch_rows(url: str, attempts: int, delay: float) -> list[dict[str, object]]:
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as response:
+                payload = json.load(response)
+            break
+        except (urllib.error.URLError, TimeoutError) as error:
+            if attempt == attempts:
+                raise
+            wait = min(30.0, delay * attempt)
+            print(f"sheet fetch {attempt}/{attempts} failed: {error}; "
+                  f"retrying in {wait:g}s", file=sys.stderr, flush=True)
+            time.sleep(wait)
     names = [column["name"] for column in payload["columns"]]
     return [dict(zip(names, row)) for row in payload["rows"]]
 
@@ -110,13 +122,16 @@ def parse_args():
     parser.add_argument("--planet-only", action="store_true")
     parser.add_argument("--build", action="store_true")
     parser.add_argument("--timeout", type=int, default=180)
+    parser.add_argument("--fetch-attempts", type=int, default=5)
+    parser.add_argument("--fetch-delay", type=float, default=2.0)
     parser.add_argument("--json-out")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    rows = fetch_rows(args.url)
+    rows = fetch_rows(args.url, max(1, args.fetch_attempts),
+                      max(0.0, args.fetch_delay))
     if args.types:
         wanted = set(args.types)
         rows = [row for row in rows if int(row["type"]) in wanted]
