@@ -300,7 +300,8 @@
 	( Present at the original 18.206 Hz by default. F5 opts into the 60-Hz
 	  presenter; gameplay simulation remains 18.206 Hz in either mode. )
 	VHGfast = 0; VHGfastheld = 0; VHGsimacc = 0; VHGdosim = 1;
-	VHGsimwallprev = 0; VHGsimwallelapsed = 0;
+	VHGsimcountprev = 0; VHGsimcountelapsed = 0; VHGsimcountok = 0;
+	VHGsimwhole = 0; VHGsimrem = 0; VHGsimfrac = 0; VHGsiminc = 0;
 	VHGinterpok = 0; VHGinterpacc = 0; VHGinterpapplied = 0;
 	VHGinterpx = 0; VHGinterpy = 0; VHGinterpz = 0;
 	VHGinterpalpha = 0; VHGinterpbeta = 0;
@@ -6979,9 +6980,9 @@
 	[VHGamptick] = 0; [VHGfindertick] = 0; [VHGsynctick] = 0;
 	( Reconcile persisted user-facing settings with live timer/audio state. )
 	A = [VHGfast]; ? A = 0 -> VHG load original cadence;
-	[VHGsimacc] = 0; [VHGsimwallprev] = 0; -> VHG load cadence ready;
+	[VHGsimacc] = 0; [VHGsimfrac] = 0; [VHGsimcountok] = 0; -> VHG load cadence ready;
     "VHG load original cadence"
-	[VHGsimacc] = 0; [VHGsimwallprev] = 0; => TK period;
+	[VHGsimacc] = 0; [VHGsimfrac] = 0; [VHGsimcountok] = 0; => TK period;
     "VHG load cadence ready"
 	=> VHG timing rebase;
 	=> VHA apply;
@@ -10488,11 +10489,11 @@
 
 "VHG toggle fast action"
 	A = [VHGfast]; ? A = 0 -> VHG toggle fast on;
-	[VHGfast] = 0; [VHGsimacc] = 0; [VHGsimwallprev] = 0;
+	[VHGfast] = 0; [VHGsimacc] = 0; [VHGsimfrac] = 0; [VHGsimcountok] = 0;
 	[VHGinterpok] = 0; => TK period; => VHG timing rebase;
 	end;
     "VHG toggle fast on"
-	[VHGfast] = 1; [VHGsimacc] = 0; [VHGsimwallprev] = 0;
+	[VHGfast] = 1; [VHGsimacc] = 0; [VHGsimfrac] = 0; [VHGsimcountok] = 0;
 	[VHGinterpok] = 0; => VHG timing rebase;
 	end;
 
@@ -10595,21 +10596,35 @@
 
 "VHG cadence"
 	[VHGdosim] = 1; A = [VHGfast]; ? A = 0 -> VHG cadence done;
-	[VHGdosim] = 0; => TK read wall;
-	A = [VHGsimwallprev]; ? A != 0 -> VHG cadence wall ready;
-	[VHGsimwallprev] = [TKtmp]; [VHGdosim] = 1; -> VHG cadence done;
-    "VHG cadence wall ready"
-	A = [TKtmp]; A - [VHGsimwallprev]; [VHGsimwallelapsed] = A;
-	[VHGsimwallprev] = [TKtmp];
-	( Refuse clock discontinuities and large focus/suspend gaps rather than
-	  replaying seconds of simulation in one presentation frame. )
-	A = [VHGsimwallelapsed]; ? A '< 0 -> VHG cadence discontinuity;
-	? A > 250 -> VHG cadence discontinuity;
-	A '* VHGSIMADD; A + [VHGsimacc]; [VHGsimacc] = A;
+	[VHGdosim] = 0; [Timer Command] = READ COUNTS; isocall; [TKnow] = [Counts];
+	A = [VHGsimcountok]; ? A != 0 -> VHG cadence count ready;
+	[VHGsimcountprev] = [TKnow]; [VHGsimcountok] = 1; [VHGdosim] = 1;
+	-> VHG cadence done;
+    "VHG cadence count ready"
+	A = [TKnow]; A - [VHGsimcountprev]; [VHGsimcountelapsed] = A;
+	[VHGsimcountprev] = [TKnow];
+	( The calibrated high-resolution counter removes the former whole-ms
+	  interpolation steps. A normal unsigned counter wrap subtracts to the
+	  correct small positive delta; signed negatives and gaps above 250 ms are
+	  still treated as focus/suspend discontinuities. )
+	A = [VHGsimcountelapsed]; ? A < 0 -> VHG cadence discontinuity;
+	A = [TKcpms]; ? A = 0 -> VHG cadence discontinuity;
+	C = A; C '* 250; A = [VHGsimcountelapsed]; ? A > C -> VHG cadence discontinuity;
+	( Convert elapsed counts to the existing million-unit 18.206-Hz
+	  accumulator without overflowing: split whole milliseconds from the
+	  sub-millisecond remainder, and carry the division remainder between
+	  presentation frames. )
+	A = [VHGsimcountelapsed]; A '/ [TKcpms]; [VHGsimwhole] = A;
+	C = A; C '* [TKcpms]; A = [VHGsimcountelapsed]; A - C; [VHGsimrem] = A;
+	A = [VHGsimwhole]; A '* VHGSIMADD; [VHGsiminc] = A;
+	A = [VHGsimrem]; A '* VHGSIMADD; A + [VHGsimfrac]; [VHGsimrem] = A;
+	A '/ [TKcpms]; C = [VHGsiminc]; C + A; [VHGsiminc] = C;
+	C = A; C '* [TKcpms]; A = [VHGsimrem]; A - C; [VHGsimfrac] = A;
+	A = [VHGsiminc]; A + [VHGsimacc]; [VHGsimacc] = A;
 	? A '< 1000000 -> VHG cadence done;
 	A - 1000000; [VHGsimacc] = A; [VHGdosim] = 1; -> VHG cadence done;
     "VHG cadence discontinuity"
-	[VHGsimacc] = 0; [VHGdosim] = 1;
+	[VHGsimacc] = 0; [VHGsimfrac] = 0; [VHGdosim] = 1;
     "VHG cadence done"
 	end;
 

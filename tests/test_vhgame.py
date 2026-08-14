@@ -1908,9 +1908,13 @@ def main() -> int:
     check(
         all(token in game for token in (
             '"VHG fast key"', "[KEY F5]", '"VHG cadence"',
-            "VHGSIMADD = 18206", '"VHG timing step"', "=> TK read wall;",
-            "A '* VHGSIMADD; A + [VHGsimacc];", "? A '< 1000000 -> VHG cadence done;",
-            "[VHGsimwallprev] = [TKtmp]; [VHGdosim] = 1;",
+            "VHGSIMADD = 18206", '"VHG timing step"',
+            "[Timer Command] = READ COUNTS; isocall; [TKnow] = [Counts];",
+            "A = [VHGsimcountelapsed]; A '/ [TKcpms]; [VHGsimwhole] = A;",
+            "A = [VHGsimrem]; A '* VHGSIMADD; A + [VHGsimfrac];",
+            "A = [VHGsiminc]; A + [VHGsimacc]; [VHGsimacc] = A;",
+            "? A '< 1000000 -> VHG cadence done;",
+            "[VHGsimcountprev] = [TKnow]; [VHGsimcountok] = 1; [VHGdosim] = 1;",
         ))
         and "VHGfast = 0; VHGfastheld = 0; VHGsimacc = 0;" in game
         and game.count("[VHGsimacc] = 1000000;") == 0

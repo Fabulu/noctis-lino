@@ -497,7 +497,26 @@ plausibility alone does not close this item. The finished result must look and
 behave authentically in motion, including beam direction, clipping, brightness,
 palette response, and transitions between contexts.
 
-## 7. Cross-references
+## 7. Smooth 60 Hz presentation -- **OPEN / DOCKET**
+
+Harden the optional 60 Hz renderer until sustained walking, looking, jetpack
+flight, capsule travel, orbital flight, and Stardrifter movement remain evenly
+paced while every gameplay decision continues at the original 18.206-Hz rate.
+Acceptance requires long real-input sessions across the heaviest habitable
+surface and every major mode transition, with no duplicated-pose hitch,
+catch-up burst, terrain loss, input loss, or simulation acceleration.
+
+The presenter already interpolates player, ship, capsule, wave, fauna, palette,
+and instrument poses between authoritative source ticks. Its cadence remainder
+now uses calibrated high-resolution counts with a carried fractional residue,
+removing the former whole-millisecond phase quantization. The focused current
+habitable smoke held the target rate. A 30-second real-input surface session
+also held forward continuously, alternated left and right yaw, and retained
+terrain and detail without a crash, black pillar, or input stall. Longer
+capsule, orbital, focus-loss, and overloaded-frame recovery sessions remain
+required before this item closes.
+
+## 8. Cross-references
 
 | document | what Wave 6 changed in it |
 |---|---|

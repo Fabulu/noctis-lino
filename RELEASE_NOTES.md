@@ -117,6 +117,18 @@ canonicalized before sampling, removing the moving black horizon pillar, and
 the refreshed frozen-world frame no longer contains its former diagonal stroke
 or blown-out foreground cluster.
 
+The smooth presenter now derives its 18.206-Hz simulation remainder from the
+calibrated high-resolution counter instead of a whole-millisecond wall clock.
+The conversion splits whole milliseconds from the sub-millisecond remainder to
+stay inside 32-bit arithmetic and carries the division residue across frames.
+This removes roughly 1.8-percent interpolation-phase steps without changing the
+authoritative simulation rate, state order, or the original presentation mode.
+A ten-second habitable-world smoke with terrain, fauna, and storm rendering
+completed at 62 reported FPS with 10.29 ms render and 2.98 ms present time.
+A separate 30-second real-input session held forward continuously and alternated
+left and right yaw. It completed without a crash, terrain loss, black horizon
+pillar, or input stall, and retained the world detail in all four live frames.
+
 The common 640x400 host path now expands the complete indexed page through the
 live RGB palette and performs its exact 2x duplication in bounded native loops.
 This removes 32,000 interpreted presenter iterations per frame while retaining
