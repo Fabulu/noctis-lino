@@ -118,32 +118,60 @@
 
 "PG repne"
 	? [SCcx] = 0 -> PG rep done;
-    "PG repne l"
-	[SCcx]-;
-	[PGdi] = [SCdi]; => PG load;
-	C = 0;
-	A = [PGval]; ? A != [SCal] -> PG repne nz;
-	C = 1;
-    "PG repne nz"
-	[SCzf] = C;
-	A = [SCdi]; A + 1; A & 65535; [SCdi] = A;
-	? [SCzf] != 0 -> PG rep done;
-	? [SCcx] != 0 -> PG repne l;
+	A = nw;
+	{
+	    8D 04 87
+	    8B 8F <dSCcx mtp bytesperunit>
+	    8B 97 <dSCdi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    8B B4 90 <dSADPT mtp bytesperunit>
+	    81 E6 FF 00 00 00
+	    49
+	    66 42
+	    3B B7 <dSCal mtp bytesperunit>
+	    0F 94 C3
+	    84 DB
+	    75 04
+	    85 C9
+	    75 DF
+	    89 D0
+	    66 48
+	    89 87 <dPGdi mtp bytesperunit>
+	    89 B7 <dPGval mtp bytesperunit>
+	    0F B6 DB
+	    89 9F <dSCzf mtp bytesperunit>
+	    89 97 <dSCdi mtp bytesperunit>
+	    89 8F <dSCcx mtp bytesperunit>
+	}
 	-> PG rep done;
 
 "PG repe"
 	? [SCcx] = 0 -> PG rep done;
-    "PG repe l"
-	[SCcx]-;
-	[PGdi] = [SCdi]; => PG load;
-	C = 0;
-	A = [PGval]; ? A != [SCal] -> PG repe nz;
-	C = 1;
-    "PG repe nz"
-	[SCzf] = C;
-	A = [SCdi]; A + 1; A & 65535; [SCdi] = A;
-	? [SCzf] = 0 -> PG rep done;
-	? [SCcx] != 0 -> PG repe l;
+	A = nw;
+	{
+	    8D 04 87
+	    8B 8F <dSCcx mtp bytesperunit>
+	    8B 97 <dSCdi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    8B B4 90 <dSADPT mtp bytesperunit>
+	    81 E6 FF 00 00 00
+	    49
+	    66 42
+	    3B B7 <dSCal mtp bytesperunit>
+	    0F 94 C3
+	    84 DB
+	    74 04
+	    85 C9
+	    75 DF
+	    89 D0
+	    66 48
+	    89 87 <dPGdi mtp bytesperunit>
+	    89 B7 <dPGval mtp bytesperunit>
+	    0F B6 DB
+	    89 9F <dSCzf mtp bytesperunit>
+	    89 97 <dSCdi mtp bytesperunit>
+	    89 8F <dSCcx mtp bytesperunit>
+	}
     "PG rep done"
 	end;
 

@@ -201,6 +201,11 @@ native loop instead of making an interpreted framebuffer call per pixel. The
 same exact raster corpus remains byte-identical, including its fill counters,
 and a fresh Stardrifter smoke held the hull pass at 2.43 ms.
 
+The solid-polygon sentinel searches now execute their exact `repne` and
+`repe` scan semantics in native loops. In consecutive fixed Stardrifter
+captures, total render time fell from 6.17 ms to 4.79 ms and the hull pass
+from 2.43 ms to 1.51 ms. All 107 exact raster pages remained byte-identical.
+
 That fixed 2x path now publishes each duplicated RGB pixel to Backdrop and
 Primary Display while the value is already loaded. The two synchronized layers
 therefore no longer need a subsequent 1 MiB Backdrop reread and copy. Resized
