@@ -180,9 +180,9 @@ rendering result. Reproduce them with
 |---|---|---|
 | ![Corrugated boulder terrain on a rocky world](screenshots/planet-rocky.png) | ![Striated frozen shelves on an airless ice world](screenshots/planet-frozen.png) | ![Milky quartz terrain beneath an oxygen atmosphere](screenshots/planet-quartz.png) |
 
-| Thin-atmosphere flare | Distant airless sun | Class-1 frozen sun |
-|---|---|---|
-| ![A native-matched radial flare over a thin-atmosphere world](screenshots/planet-thin-sun.png) | ![A distant primary disc correctly showing no flare over an airless rocky world](screenshots/planet-rocky-sun.png) | ![A class-1 primary over a frozen world, beyond the original flare-distance gate](screenshots/planet-frozen-sun.png) |
+| Close lunar sun | Thin-atmosphere flare | Distant airless sun | Class-1 frozen sun |
+|---|---|---|---|
+| ![A close lunar primary whose radial flare is correctly suppressed by the original lower-distance gate](screenshots/planet-lunar-sun.png) | ![A native-matched radial flare over a thin-atmosphere world](screenshots/planet-thin-sun.png) | ![A distant primary disc correctly showing no flare over an airless rocky world](screenshots/planet-rocky-sun.png) | ![A class-1 primary over a frozen world, beyond the original flare-distance gate](screenshots/planet-frozen-sun.png) |
 
 | Habitable shoreline | Native tree | Native hopper |
 |---|---|---|

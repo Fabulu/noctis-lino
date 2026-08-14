@@ -234,9 +234,10 @@ per class (white core, flare, smoothing, and mask), with zero differing bytes
 across all 48 comparisons. A thirteenth space case uses the exact opening
 Stardrifter star (`40DDB22D`) and 200-unit gallery distance; its four complete
 pages also match the Borland-built NIV+ oracle with zero differing bytes.
-Nine surface-flare oracle cases likewise have zero page differences. Three of
+Ten surface-flare oracle cases likewise preserve their expected pages. Four of
 those cases use the exact binary32 ray and distance captured from the current
-thin-atmosphere, quartz-world, and clear habitable-world scenes.
+thin-atmosphere, quartz-world, clear habitable-world, and airless lunar scenes.
+The lunar case is the source-gated unchanged-page negative described below.
 
 **Playable evidence so far.** A fresh sequential opening Stardrifter capture
 shows a bright filled corona and radial beams at 60 FPS, backed by the exact
@@ -416,6 +417,21 @@ source's `1000 * ray` upper gate. The reproducible `rockysun` scene preserves
 this negative case. Authenticity includes correct beam suppression, not merely
 adding rays whenever a disc is visible.
 
+**Airless lunar lower-gate checkpoint.** IDEAL I adds the complementary close
+sun case on a type-1 world at longitude 0, heading 90, and pitch -44. Product
+and pinned NIV+ memory agree exactly on the widened binary32 sun coordinates,
+distance bits `420A4E15` (`34.576252`), ray bits `40DE8F5C` (`6.955`), and
+exposure `49.3038`. The disc and corona are visible, but the real planetary
+loop suppresses radial beams because `34.576252 < 10 * 6.955`. A direct call
+to the standalone flare routine would add one spoke and is therefore not an
+admissible full-context oracle for this pose. The tenth surface-flare fixture
+now protects the correct unchanged page. The native screenshot's active
+palette is also explained exactly: every component is
+`floor(surface_palette * 61 / 63)`, a capture taken two fade steps before full
+brightness, while the product trace records the same completed surface
+palette. The reproducible `lunarsun` scene preserves this close-disc,
+no-beam case. Exact full indexed-frame grading remains open.
+
 **Frozen-world class-1 checkpoint.** A separate system extends the matrix
 beyond class-0 primaries. On its type-7 body at longitude 0, heading 90, and
 pitch -44, both renderers retain star class 1, stellar radius `21.879`, solar
@@ -425,11 +441,11 @@ again suppress beams because `34167.4 > 1000 * 21.879`. The reproducible
 `frozensun` scene records this distinct star-size and no-flare case. The wider
 frozen starfield parity item remains open independently.
 
-The product gallery now publishes all three fixed-epoch checkpoints as
-`planet-thin-sun.png`, `planet-rocky-sun.png`, and `planet-frozen-sun.png`.
-Their captions distinguish a real radial flare from the two source-gated
-no-flare discs so screenshots do not imply that every visible sun must emit
-beams.
+The product gallery publishes the fixed-epoch checkpoints as
+`planet-lunar-sun.png`, `planet-thin-sun.png`, `planet-rocky-sun.png`, and
+`planet-frozen-sun.png`. Their captions distinguish a real radial flare from
+the source-gated no-flare discs so screenshots do not imply that every visible
+sun must emit beams.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:

@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
+        'lunar', 'lunarsun', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -136,6 +136,12 @@ $scenes = @(
     # screenshot startup time generating JROT's pathological 80-body system.
     @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
        Beta=90; Pitch=-12; PlayerY=-19032 },
+    # IDEAL I at the pinned NIV+ clock and player position. The primary is
+    # close enough that distance < 10*ray, so planetary_main draws its white
+    # disc/corona but authentically suppresses the radial surface flare.
+    @{ Name='lunarsun'; FileName='planet-lunar-sun.png';
+       X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
+       Beta=90; Pitch=-44; PlayerX=1638400; PlayerY=-19032; PlayerZ=1638400 },
     @{ Name='dense';     X=1463568; Y=-4728350; Z=-437812; Body=0; Type=2; Lon=0; Lat=60; Beta=180; Pitch=-12 },
     # Naturally generated plains mammal, birds, vegetation and the local sun.
     @{ Name='habitable'; FileName='planet-habitable-sun.png';
