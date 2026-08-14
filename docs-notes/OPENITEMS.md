@@ -278,9 +278,11 @@ ghosts, and occlusion against the native renderer for:
 
 - every planet and atmosphere class, including clear, cloudy, stormy, horizon,
   overhead, sunrise, and sunset views;
-- every sun class and colour, including companion and multiple-sun scenes;
+- every sun class, colour, apparent size, and beam pattern, including companion
+  and multiple-sun scenes where each light source is graded independently;
 - orbital planet views with the sun both beside and behind the globe;
-- the Stardrifter interior, cupola, exterior, launch, and landing transitions.
+- the Stardrifter interior, cupola, and exterior in both surface and orbital
+  situations, plus launch and landing transitions.
 
 Do not treat the beams as incidental flare decoration. Grade their count,
 origin, direction, length, spread, colour, brightness, clipping, and palette
