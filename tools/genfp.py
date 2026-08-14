@@ -264,6 +264,12 @@ def check(ch, env, path):
     peak = 0
     stores = 0
     for mn, op, ln in ch.ops:
+        if mn in ('fistp', 'fist'):
+            raise SyntaxError(
+                '%s: chain %s line %d: bare %s is forbidden; integer '
+                'conversion must be a hand-checked fragment that names its '
+                'rounding-control bracket and live-value reading'
+                % (path, ch.name, ln, mn))
         if op is not None:
             if op not in env:
                 raise SyntaxError('%s: chain %s line %d: undeclared operand %r'

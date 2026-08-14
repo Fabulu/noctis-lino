@@ -276,23 +276,23 @@ handed between two L.in.oleum routines. On hardware the two readings differ:
 the intermediate spilled to a binary64, at the same control word. The
 delivered `fpconv` can only produce the second answer.
 
-Separately, `genfp` will happily emit a bare `fistp` with no `fldcw` bracket,
+Separately, an earlier `genfp` accepted a bare `fistp` with no `fldcw` bracket,
 which under 133Fh rounds to **nearest** where a C cast **truncates**. Modelled
 at the three landmark sites in `NOCTIS-1.CPP`, that divergence changes the
-seed for 1488/2981, 663/1376 and 231/475 of the in-range stars. The rule
-"NEVER emit a bare `=,`" is currently a comment in `fpconv.txt` with nothing
-enforcing it.
+seed for 1488/2981, 663/1376 and 231/475 of the in-range stars. The generator
+now rejects both `fistp` and `fist`, including the former loophole where the
+destination was declared as an integer input rather than an output.
 
-**Interim policy, and what the test enforces.** Unchanged in wording, changed
-in reason. Until `genfp` can end a chain on a live `st(0)` and refuses a bare
-`fistp`:
+**Interim policy, and what the test enforces.** Until `genfp` can end a chain
+on a live `st(0)`:
 
 > No **generated** chain may convert to an integer. A conversion must be
 > written as a hand-checked fragment naming its own reading.
 
 `test_floatcontract.py` asserts exactly that and nothing stronger: `genfp`
-refuses a non-`f64` output, and the generated `fpchains.txt` contains no
-`fistp` encoding at all. Note what that rule is now *for*: it is a guard on
+refuses a schedule containing `fistp` even when the store targets a declared
+integer input slot, and the generated `fpchains.txt` contains no `fistp`
+encoding at all. Note what that rule is now *for*: it is a guard on
 the code generator, **not** an admission that we do not know what the
 original does. We do -- see above -- and the two hand-written places that need
 it (`nsident.txt`'s `NsIdentChop16`, Wave 4, and `work/geoconv.txt`'s
@@ -417,14 +417,13 @@ about it.
 
 ## 6. What remains open
 
-1. **The cast boundary (§3.3) -- half closed by Wave 6.** *What the original
+1. **The cast boundary (§3.3) -- generator guard closed.** *What the original
    does* is settled: chop on the live 80-bit `st(0)`, read out of
    `NOCTIS.EXE` and re-derived by `tests/test_geometry.py` section 1 on every
-   run. *What `genfp` can emit* is not: a generated chain still ends in an
-   `fstp`, and `genfp` will still emit a bare `fistp` with no `fldcw`
-   bracket. The remaining work is a `genfp` rule that refuses a bare `fistp`;
-   the live chop itself is available per expression shape in
-   `work/geoconv.txt`. Until then, no *generated* chain may convert to int.
+   run. `genfp` now refuses bare `fistp` and `fist`, and the focused contract
+   test attacks the integer-input-slot bypass directly. A generated chain
+   still cannot return a live extended value across a routine boundary, so
+   known casts remain hand-checked expression fragments in `work/geoconv.txt`.
 2. **Isocalls other than file I/O.** Control-word persistence is measured only
    across a file write. Graphics, sound, timer and memory isocalls are
    untested and `win32.bin` has 8 chop-forcing sites.

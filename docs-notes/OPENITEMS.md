@@ -66,13 +66,14 @@ pin the boundary, because **they also agree bit for bit under `(near, f64)`,
 the hypothesis furthest from the binary's answer**. Section 3 of the test
 measures that on purpose so nobody mistakes engine agreement for a decision.
 
-**What is NOT settled by this**, and it is a different question: what the
-L.in.oleum code generator can *emit*. `genfp` still ends a chain in an `fstp`
-and will still emit a bare `fistp` with no `fldcw` bracket. The live chop
-exists per expression shape in `work/geoconv.txt`, not as a general routine,
-because a value in `st(0)` cannot be handed between two L.in.oleum routines.
-See FLOATPOLICY.md §3.3 and §6.1. **Route:** a `genfp` rule that refuses a
-bare `fistp`, plus a shape-per-site table for any future conversion site.
+**What is NOT settled by this**, and it is a different question: a general
+L.in.oleum routine still cannot accept an unstored live `st(0)` value across a
+routine boundary. The generator-side hazard is closed: `genfp` now rejects
+both bare `fistp` and `fist`, including an integer-input-slot bypass, and the
+known live chops exist as hand-checked expression fragments in
+`work/geoconv.txt`. See FLOATPOLICY.md §3.3 and §6.1. Any future conversion
+site still needs a named expression shape rather than a generic stored-value
+helper.
 
 ---
 

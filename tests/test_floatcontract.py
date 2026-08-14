@@ -176,12 +176,12 @@ def main():
 
     bad = os.path.join(good.dir, "intout.tmp")
     with open(bad, "w", encoding="utf-8") as fh:
-        fh.write("chain CastMe\n  in int32 x\n  out int32 n\n  fild x\n"
+        fh.write("chain CastMe\n  in int32 x,n\n  fild x\n"
                  "  fistp n\nend\n")
     rc, msg = genfp(["intout.tmp", "intout2.tmp"], good.dir)
-    c.ok(rc != 0,
-         "genfp REFUSES an int output - a chain cannot end in a cast, so the "
-         "unsettled float-to-int boundary cannot be reached from a schedule",
+    c.ok(rc != 0 and "bare fistp is forbidden" in msg,
+         "genfp REFUSES a bare fistp even when it targets a declared integer "
+         "input slot, so a schedule cannot bypass the f64-only output rule",
          msg.strip().splitlines()[-1] if msg.strip() else "rc %d" % rc)
 
     # fistp encodings: DB /3 dword, DB /2 fist, DF /7 qword, DF /3 word.
