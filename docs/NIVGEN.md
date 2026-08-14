@@ -142,6 +142,14 @@ Lino now performs the same writes in explicit flat memory. It models the
 historical spill deterministically and does not depend on uninitialized host
 memory.
 
+The other 13 first-page rows carrying Rust errors cover types 1, 4, 5, 6, and
+9. They match all 143 original hashes without further changes. Combined with
+the type-2 result, Lino matches all 1,078 scored hashes across every one of the
+98 leader-error rows in the saved first page. This is the most useful public
+competitive subset because each row contains at least one field the current
+leader misses. It still does not replace a complete 7,616-row run or hidden
+holdout.
+
 The landed fixes behind that result are source-level corrections rather than
 fixture exceptions:
 

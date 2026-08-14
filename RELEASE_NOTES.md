@@ -1,6 +1,33 @@
 # Noctis IV L.in.oleum port -- Windows release
 
-## Beta 10
+## Beta 11
+
+Beta 11 hardens smooth presentation, preserves more NIV+ memory behavior, and
+turns the public NIVGEN leaderboard into a practical accuracy target. A saved
+first-page snapshot contains 98 rows where the current Rust leader reports at
+least one error. L.in.oleum matches all 1,078 original hashes across those
+rows, covering types 1, 2, 4, 5, 6, and 9, orbital output, and both landed
+sites. Network access remains deliberately polite: an outage is observed once
+and is never retried or polled until the service owner brings it back.
+
+Two generator corrections close the last failures in that subset. Stellar
+identity conversion now uses Borland's qword `__ftol` boundary before taking
+the low seed bits. Surface crevasses now retain the source's unchecked
+four-neighbour stores in explicitly modeled memory, including the rare south
+edge spill through the far-heap header into the adjacent object chart.
+
+The 60 Hz presenter now carries calibrated sub-millisecond cadence residue
+while the authoritative game continues at 18.206 Hz. Nearby articulated fauna
+builds polygon midpoints only after its final transform. Fresh sequential
+captures measure 56 through 61 FPS across every landable planet class and 58
+FPS in the Stardrifter, with the slowest measured surface render at 10.69 ms.
+
+Native-backed lighting coverage now includes the dense atmosphere disc, the
+lunar lower flare gate, and the exact active surface palette. The tree gallery
+uses the final NIV+-matched production renderer, and the README has a shorter,
+more readable build and play guide without em dashes.
+
+## Beta 10 foundation
 
 Beta 10 restores live, phase-dependent surface lighting and begins the
 cross-planet sun-authenticity gallery with direct Borland-built NIV+ evidence.
@@ -34,10 +61,11 @@ The public schema currently exposes original, Rust, and LR results but does not
 yet expose L.in.oleum columns. Accuracy work uses the saved snapshot locally;
 an unavailable host is recorded once and is never retried or polled.
 
-The first-page accuracy sweep now covers all 85 type-2 rows on which the
-current Rust leader reports an error. L.in.oleum matches all 935 scored NIV+
-hashes across orbital output and both landed sites. The last three random-site
-object charts exposed a source memory effect: `felisian_srf_darkline()` bounds
+The first-page accuracy sweep now covers all 98 rows on which the current Rust
+leader reports an error. L.in.oleum matches all 1,078 scored NIV+ hashes across
+types 1, 2, 4, 5, 6, and 9, including orbital output and both landed sites. The
+last three random-site object charts exposed a source memory effect:
+`felisian_srf_darkline()` bounds
 its centre pixel but not its four neighbouring writes. A south-edge neighbour
 can cross the 40,000-byte heightmap, pass through the 16-byte far-heap header,
 and alter the adjacent object chart. The port now reproduces that bounded spill
