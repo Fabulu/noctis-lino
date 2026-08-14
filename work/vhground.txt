@@ -30,7 +30,7 @@
 	VHGNDs3 = 0; VHGNDs4 = 0; VHGNDshade = 0;
 	VHGNDdepth = 0; VHGNDrawdepth = 0; VHGNDdx = 0; VHGNDdz = 0;
 	VHGNDmanhattan = 0;
-	VHGNDlodstep = 1; VHGNDlodradius = 4;
+	VHGNDlodstep = 1; VHGNDlodradius = 4; VHGNDbackspan = 1;
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
 	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
@@ -4995,8 +4995,14 @@
 	( NIV+ iperficie()/fragment(): one map tile per fragment, depth 64,
 	  and quadrant-dependent far-to-near painter order.  Bounds of 65 retain
 	  every tile whose centre can truncate to source depth 64 while avoiding
-	  the source loops over cells that its own depth test must reject. )
+	  the source loops over cells that its own depth test must reject.
+	  iperficie's argument extends the near/back edge by one quadrant while
+	  walking and four while the capsule is airborne.  The extra three rows
+	  keep rising and pitched capsule views covered at the bottom of frame. )
 	[VHGNDlodstep] = 1; [VHGNDlodradius] = 65;
+	[VHGNDbackspan] = 1; A = [VHGlanded]; ? A != 0 -> VHGND faithful span ready;
+	[VHGNDbackspan] = 4;
+    "VHGND faithful span ready"
 	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = VHGNDFAR;
 	A = [VHGNDbeta]; ? A >= 0 -> VHGND faithful beta ready; A + 360;
     "VHGND faithful beta ready"
@@ -5025,7 +5031,7 @@
 
     "VHGND faithful north"
 	=> VHGND faithful x bounds;
-	A = [VHGNDcamtz]; A - 1; [VHGNDzlo] = A;
+	A = [VHGNDcamtz]; A - [VHGNDbackspan]; [VHGNDzlo] = A;
 	? A >= 0 -> VHGND faithful north zlo ready; [VHGNDzlo] = 0;
     "VHGND faithful north zlo ready"
 	A = [VHGNDcamtz]; A + 65; [VHGNDzhi] = A;
@@ -5051,7 +5057,7 @@
 	A = [VHGNDcamtz]; A - 65; [VHGNDzlo] = A;
 	? A >= 0 -> VHGND faithful south zlo ready; [VHGNDzlo] = 0;
     "VHGND faithful south zlo ready"
-	A = [VHGNDcamtz]; A + 1; [VHGNDzhi] = A;
+	A = [VHGNDcamtz]; A + [VHGNDbackspan]; [VHGNDzhi] = A;
 	? A '<= 198 -> VHGND faithful south zhi ready; [VHGNDzhi] = 198;
     "VHGND faithful south zhi ready"
 	[VHGNDz] = [VHGNDzlo];
@@ -5074,7 +5080,7 @@
 	A = [VHGNDcamtx]; A - 65; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND faithful east xlo ready; [VHGNDxlo] = 0;
     "VHGND faithful east xlo ready"
-	A = [VHGNDcamtx]; A + 1; [VHGNDxhi] = A;
+	A = [VHGNDcamtx]; A + [VHGNDbackspan]; [VHGNDxhi] = A;
 	? A '<= 198 -> VHGND faithful east xhi ready; [VHGNDxhi] = 198;
     "VHGND faithful east xhi ready"
 	[VHGNDx] = [VHGNDxlo];
@@ -5094,7 +5100,7 @@
 
     "VHGND faithful west"
 	=> VHGND faithful z bounds;
-	A = [VHGNDcamtx]; A - 1; [VHGNDxlo] = A;
+	A = [VHGNDcamtx]; A - [VHGNDbackspan]; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND faithful west xlo ready; [VHGNDxlo] = 0;
     "VHGND faithful west xlo ready"
 	A = [VHGNDcamtx]; A + 65; [VHGNDxhi] = A;

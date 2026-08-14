@@ -919,15 +919,22 @@ def main() -> int:
     traversal = section(ground, '"VHGND render"', '"VHGND tile"')
     check(
         "VHGNDFAR = 64" in ground
+        and "iperficie (1);" in original1
+        and "iperficie (4);" in original1
         and all(token in traversal for token in (
             "=> VHGND traverse faithful;", "[VHGNDlodstep] = 1; [VHGNDlodradius] = 65;",
+            "[VHGNDbackspan] = 1;", "[VHGNDbackspan] = 4;",
+            "A - [VHGNDbackspan]; [VHGNDzlo] = A;",
+            "A + [VHGNDbackspan]; [VHGNDzhi] = A;",
+            "A + [VHGNDbackspan]; [VHGNDxhi] = A;",
+            "A - [VHGNDbackspan]; [VHGNDxlo] = A;",
             '"VHGND faithful north"', '"VHGND faithful east"',
             '"VHGND faithful south"', '"VHGND faithful west"',
         ))
         and "? A > 90 -> VHGND tile done;" in tile
         and "[SPcull] = 1" in tile
         and "A > [VHGNDmaxdepth]" in tile,
-        "landed renderer uses NIV+ unit tiles, painter quadrants, and depth-64 source gates",
+        "surface renderer uses NIV+ unit tiles, airborne backspan, painter quadrants, and depth-64 source gates",
     )
     check(
         "if (depth > 40) return;" in original1
