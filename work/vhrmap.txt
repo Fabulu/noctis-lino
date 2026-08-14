@@ -118,13 +118,8 @@
 	A = [VHRcached]; ? A = 0 -> VHR cache draw done;
 	[VHRcachep] = 0;
     "VHR cache draw loop"
-	A = [VHRcachep]; A '* 10; C = vhrcache; C + A;
-	[VHRi] = 0;
-    "VHR cache load leaf"
-	A = [VHRi]; D = vhrleaf; D + A; A = [C]; [D] = A;
-	C+; [VHRi]+; A = [VHRi]; ? A < 9 -> VHR cache load leaf;
-	[VHRcol] = [C];
-	=> VHR raster leaf;
+	A = [VHRcachep]; A '* 10; C = vhrcache; C + A; [VHRptr] = C;
+	=> VHR raster cached leaf;
 	[VHRcachep]+; A = [VHRcachep]; ? A < [VHRcachecount] -> VHR cache draw loop;
     "VHR cache draw done"
 	end;
@@ -283,6 +278,26 @@
 	[VHRi]+;
 	A = [VHRi]; ? A < 3 -> VHR draw vertex;
 	[PJnrv] = 3; [DBcol] = [VHRcol]; [DBflar] = 0; [DBent] = 0;
+	=> PG poly3d;
+	[VHRdrawn]+;
+	end;
+
+      ( The fixed VEHICLE cache already stores the exact nine binary32 leaf
+	coordinates followed by its colour.  Feed that immutable record directly
+	to the projector instead of copying 720 * 9 units through vhrleaf each
+	frame.  Projection order, float patterns, colour and raster call are
+	unchanged. )
+
+"VHR raster cached leaf"
+	[VHRi] = 0;
+    "VHR draw cached vertex"
+	A = [VHRi]; A '* 3; C = [VHRptr]; C + A;
+	A = FSINX; A + [VHRi]; [PGFi] = A; [PGFt] = [C plus 0]; => PGF setf32;
+	A = FSINY; A + [VHRi]; [PGFi] = A; [PGFt] = [C plus 1]; => PGF setf32;
+	A = FSINZ; A + [VHRi]; [PGFi] = A; [PGFt] = [C plus 2]; => PGF setf32;
+	[VHRi]+;
+	A = [VHRi]; ? A < 3 -> VHR draw cached vertex;
+	[PJnrv] = 3; C = [VHRptr]; [DBcol] = [C plus 9]; [DBflar] = 0; [DBent] = 0;
 	=> PG poly3d;
 	[VHRdrawn]+;
 	end;

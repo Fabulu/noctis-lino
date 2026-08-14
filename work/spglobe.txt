@@ -102,6 +102,7 @@
 	sprg	= 200;			( riga[] )
 	spgmt	= 32;			( gman byte-delta table  )
 	spgmi	= 10;			( per-gman (offset, count) )
+	spgscale = 256;		( exact signed-byte scale table )
 
 "programme"
 
@@ -217,6 +218,22 @@
 	[GBpaint] = 0;
 	[CSdraw] = 0; [CSskip] = 0;
 
+	( Every DRAW record scales two signed map bytes by the same binary32
+	  magnification.  The old path decoded that identical float and repeated
+	  the exact multiply/half-even division machinery for each component of
+	  every record.  Materialise the complete signed-byte function once per
+	  globe with SP scale itself, then make the hot record loop a lookup.  This
+	  changes neither the function nor its domain: all 256 byte patterns are
+	  present, including values outside the shipped GLOBES.MAP range for the
+	  synthetic corpus. )
+	[GBi] = 0;
+    "SP gr scale table"
+	C = [GBi]; => SP sx8;
+	[SCdy] = C; [SCmag] = [GBmag]; => SP scale;
+	A = spgscale; A + [GBi]; [A] = [SCout];
+	[GBi]+;
+	A = [GBi]; ? A '< 256 -> SP gr scale table;
+
 	( les ax,tapestry / add start,ax / mov bx,start : the SOURCE index
 	  carries farmalloc's offset of 4.  les ax,target discards its
 	  offset, and every gman supplies it as the +4 displacement. )
@@ -237,9 +254,7 @@
 
 	( ---- the Y component ---- )
 	[CSdraw]+;
-	C = [GBy]; => SP sx8;
-	[SCdy] = C; [SCmag] = [GBmag]; => SP scale;
-	A = [SCout]; A + [GBcy]; A & 65535; [GBdi] = A;
+	A = spgscale; A + [GBy]; A = [A]; A + [GBcy]; A & 65535; [GBdi] = A;
 	A = [GBdi]; ? A '< 6 -> SP gr ry0;
 	A = [GBdi]; ? A '>= 191 -> SP gr ry1;
 
@@ -250,9 +265,7 @@
 	=> SP riga at;
 	[GBdi] = C;
 
-	C = [GBx]; => SP sx8;
-	[SCdy] = C; [SCmag] = [GBmag]; => SP scale;
-	A = [SCout]; A + [GBcx]; A & 65535; [GBax] = A;
+	A = spgscale; A + [GBx]; A = [A]; A + [GBcx]; A & 65535; [GBax] = A;
 	A = [GBax]; ? A '< 6 -> SP gr rx0;
 	A = [GBax]; ? A '>= 311 -> SP gr rx1;
 
