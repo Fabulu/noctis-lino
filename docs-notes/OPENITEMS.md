@@ -288,6 +288,10 @@ the wider matrix below.
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 
+This is cross-context coverage, not a small representative sample: sun beams
+must be authenticated across all planet classes, all sun classes, and all
+Stardrifter viewpoints where they can appear.
+
 - every planet and atmosphere class, including clear, cloudy, stormy, horizon,
   overhead, sunrise, and sunset views;
 - every sun class, colour, apparent size, and beam pattern, including companion

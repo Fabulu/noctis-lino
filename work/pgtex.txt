@@ -1025,6 +1025,10 @@
 	? A = 0 -> PG hs done;
 	[SPn] = A;
 	C = [SPi]; => PG riga; C + [SPt]; C & 65535; [SPdi] = C;
+	A = [SPterrain]; A | [SPpixfast]; ? A = 0 -> PG hs dup;
+	A = nw; [PGnwbase] = A;
+	=> PG halfscan native;
+	-> PG hs done;
     "PG hs dup"
 	A = [SPdi]; A - 316; A & 65535; [PGdi] = A; => PG load;
 	A = [PGval]; [SPch] = A;
@@ -1036,4 +1040,37 @@
 	[SPn]-;
 	? [SPn] != 0 -> PG hs dup;
     "PG hs done"
+	end;
+
+"PG halfscan native"
+	( Terrain and fixed TEX5 object spans already omit the diagnostic pixel
+	  census in their direct raster loops.  Duplicate the preceding row through
+	  the same resolved page here, preserving every 16-bit address wrap and the
+	  original source, first destination and second destination order. )
+	{
+	    8B B7 <dPGnwbase mtp bytesperunit>     (esi = runtime nw workspace)
+	    8D 34 B7                              (esi = edi + 4*workspace index)
+	    8B 8F <dSPn mtp bytesperunit>          (ecx = span length, known > 0)
+	    8B 87 <dSPdi mtp bytesperunit>         (eax = wrapped page offset)
+	    (loop begins here)
+	    8B D0                                 (edx = di)
+	    81 EA 3C 01 00 00                    (source = di - 316)
+	    81 E2 FF FF 00 00
+	    8B 9C 96 A0 8B 10 00                 (ebx = page[source])
+	    81 E3 FF 00 00 00                    (unsigned DOS byte)
+	    8B D0
+	    83 C2 04                             (first destination = di + 4)
+	    81 E2 FF FF 00 00
+	    89 9C 96 A0 8B 10 00
+	    8B D0
+	    81 C2 44 01 00 00                    (second destination = di + 324)
+	    81 E2 FF FF 00 00
+	    89 9C 96 A0 8B 10 00
+	    40                                   (di = (di + 1) & 65535)
+	    25 FF FF 00 00
+	    49
+	    0F 85 B1 FF FF FF                    (repeat native loop)
+	    89 87 <dSPdi mtp bytesperunit>
+	    89 8F <dSPn mtp bytesperunit>         (publish exhausted count)
+	}
 	end;
