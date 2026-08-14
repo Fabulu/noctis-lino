@@ -3469,7 +3469,9 @@ def main() -> int:
     )
     eye = section(ground, '"VHGND eye height"', '"VHGND render"')
     check(
-        "VHGNDQIDHI" in eye and eye.count("=> F32Narrow; => FStoreF32;") == 4
+        "VHGNDQIDHI" in eye
+        and eye.count("D9 9F <dVHGNDpy mtp bytesperunit>") == 4
+        and "DB 9F <dFI mtp bytesperunit>" in eye
         and "A / VHGNDTS" not in eye,
         "terrain eye height follows the rendered float triangles without integer loss",
     )

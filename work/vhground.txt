@@ -2426,37 +2426,62 @@
 	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDh2i] = A;
 	A = [VHGNDs3]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDh3i] = A;
 	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDh4i] = A;
+	[FB0] = VHGNDQIDLO; [FB1] = VHGNDQIDHI;
 	A = [VHGNDfx]; A + [VHGNDfz]; ? A '< VHGNDTS -> VHGND height upper;
 	( lower triangle: h3+(h4-h3)*(1-fx/TS), then +(h2-h3)*(1-fz/TS) )
-	A = VHGNDTS; A - [VHGNDfx]; [FI] = A; => IntToF;
-	[FB0] = VHGNDQIDLO; [FB1] = VHGNDQIDHI; => FMul; [FT0] = [FA0]; [FT1] = [FA1];
-	[FI] = [VHGNDh3i]; => IntToF; => VHGND fb fa;
-	[FI] = [VHGNDh4i]; => IntToF; => FSub; [FB0] = [FT0]; [FB1] = [FT1]; => FMul;
-	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDh3i]; => IntToF;
-	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => F32Narrow; => FStoreF32; [VHGNDpy] = [FS0];
-	A = VHGNDTS; A - [VHGNDfz]; [FI] = A; => IntToF;
-	[FB0] = VHGNDQIDLO; [FB1] = VHGNDQIDHI; => FMul; [FT0] = [FA0]; [FT1] = [FA1];
-	[FI] = [VHGNDh3i]; => IntToF; => VHGND fb fa;
-	[FI] = [VHGNDh2i]; => IntToF; => FSub; [FB0] = [FT0]; [FB1] = [FT1]; => FMul;
-	[FT0] = [FA0]; [FT1] = [FA1]; [FS0] = [VHGNDpy]; => FLoadF32;
-	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => F32Narrow; => FStoreF32; [VHGNDpy] = [FS0];
+	{
+	    B8 00 40 00 00
+	    2B 87 <dVHGNDfx mtp bytesperunit>
+	    89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DC 8F <dFB0 mtp bytesperunit>
+	    DD 9F <dFT0 mtp bytesperunit>
+	    DB 87 <dVHGNDh4i mtp bytesperunit>
+	    DA A7 <dVHGNDh3i mtp bytesperunit>
+	    DC 8F <dFT0 mtp bytesperunit>
+	    DA 87 <dVHGNDh3i mtp bytesperunit>
+	    D9 9F <dVHGNDpy mtp bytesperunit>
+	    B8 00 40 00 00
+	    2B 87 <dVHGNDfz mtp bytesperunit>
+	    89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit>
+	    DC 8F <dFB0 mtp bytesperunit>
+	    DD 9F <dFT0 mtp bytesperunit>
+	    DB 87 <dVHGNDh2i mtp bytesperunit>
+	    DA A7 <dVHGNDh3i mtp bytesperunit>
+	    DC 8F <dFT0 mtp bytesperunit>
+	    D8 87 <dVHGNDpy mtp bytesperunit>
+	    D9 9F <dVHGNDpy mtp bytesperunit>
+	}
 	-> VHGND height finish;
     "VHGND height upper"
 	( upper triangle: h1+(h2-h1)*fx/TS, then +(h4-h1)*fz/TS )
-	[FI] = [VHGNDfx]; => IntToF; [FB0] = VHGNDQIDLO; [FB1] = VHGNDQIDHI;
-	=> FMul; [FT0] = [FA0]; [FT1] = [FA1];
-	[FI] = [VHGNDh1i]; => IntToF; => VHGND fb fa;
-	[FI] = [VHGNDh2i]; => IntToF; => FSub; [FB0] = [FT0]; [FB1] = [FT1]; => FMul;
-	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDh1i]; => IntToF;
-	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => F32Narrow; => FStoreF32; [VHGNDpy] = [FS0];
-	[FI] = [VHGNDfz]; => IntToF; [FB0] = VHGNDQIDLO; [FB1] = VHGNDQIDHI;
-	=> FMul; [FT0] = [FA0]; [FT1] = [FA1];
-	[FI] = [VHGNDh1i]; => IntToF; => VHGND fb fa;
-	[FI] = [VHGNDh4i]; => IntToF; => FSub; [FB0] = [FT0]; [FB1] = [FT1]; => FMul;
-	[FT0] = [FA0]; [FT1] = [FA1]; [FS0] = [VHGNDpy]; => FLoadF32;
-	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => F32Narrow; => FStoreF32; [VHGNDpy] = [FS0];
+	{
+	    DB 87 <dVHGNDfx mtp bytesperunit>
+	    DC 8F <dFB0 mtp bytesperunit>
+	    DD 9F <dFT0 mtp bytesperunit>
+	    DB 87 <dVHGNDh2i mtp bytesperunit>
+	    DA A7 <dVHGNDh1i mtp bytesperunit>
+	    DC 8F <dFT0 mtp bytesperunit>
+	    DA 87 <dVHGNDh1i mtp bytesperunit>
+	    D9 9F <dVHGNDpy mtp bytesperunit>
+	    DB 87 <dVHGNDfz mtp bytesperunit>
+	    DC 8F <dFB0 mtp bytesperunit>
+	    DD 9F <dFT0 mtp bytesperunit>
+	    DB 87 <dVHGNDh4i mtp bytesperunit>
+	    DA A7 <dVHGNDh1i mtp bytesperunit>
+	    DC 8F <dFT0 mtp bytesperunit>
+	    D8 87 <dVHGNDpy mtp bytesperunit>
+	    D9 9F <dVHGNDpy mtp bytesperunit>
+	}
     "VHGND height finish"
-	[FS0] = [VHGNDpy]; => FLoadF32; => FToIntChop;
+	[FS0] = [VHGNDpy];
+	{
+	    D9 87 <dVHGNDpy mtp bytesperunit>
+	    D9 AF <dGRcwc mtp bytesperunit>
+	    DB 9F <dFI mtp bytesperunit>
+	    D9 AF <dGRcwn mtp bytesperunit>
+	}
 	A = [FI]; A - 600; [VHGNDheight] = A;
 	end;
 
