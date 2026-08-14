@@ -948,8 +948,8 @@ def main() -> int:
         "grnd; sky;" in game and "spglobe; spglow; spbg;" in game
         and "=> GRSK create; => GRSK horizon;" in ground
         and "[SPval] = 0; => SP fill page;" in ground
-        and '"VHGND guard band"' in ground
-        and "=> VHGND background direct;\n\t=> VHGND guard band;" in ground
+        and '"VHGND guard band"' not in ground
+        and "=> VHGND background direct;\n\t=> VHGND background cache save;" in ground
         and "[BGdstreg] = RGADP; => SP background;" not in ground
         and '"VHGND background direct"' in ground
         and '"VHGND background cache save"' in ground
@@ -3443,7 +3443,8 @@ def main() -> int:
         all(token in gui for token in (
             "A '* 5; A '/ 8", "A '* 8; A '/ 5",
             '"VHGUI 1x row"', '"VHGUI maybe 2x"', '"VHGUI scaled"',
-            "8B 06 8B 04 83 89 02", "AD AB AB",
+            "8B 06 8B 04 83 89 02", "AD AB AB", "8D 74 85 00",
+            "39 D8 7C 07", "03 BD <dVHGUIgap mtp bytesperunit>",
         )),
         "presenter has a fast 1x path and an 8:5 aspect-fit path",
     )
