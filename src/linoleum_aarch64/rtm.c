@@ -101,6 +101,55 @@ static uintptr_t pNextLowBase = 0x10000000;
 const unit FAIL = 0x6661696C;	/* "FAIL" */
 const unit DONE = 0x646F6E65;	/* "DONE" */
 
+#if defined(__aarch64__)
+/* The arm64 CPU pack translates the compiler's isocall (pack pattern 150)
+ * to a fixed 28-byte sequence:
+ *     adr x9,#28; ldr w9,[x9]; add x9,x25,x9; ldr w24,[x9];
+ *     ldr w9,[x25]; add w24,w24,w9; blr x24
+ * followed by a 4-byte token (the iso slot byte offset).  On macOS the RTM
+ * (and therefore isokernel) is loaded above 4GB, so the 32-bit computed
+ * target can never reach it.  Also, because the token is trailing data and
+ * the blr clobbers the link register, the unpatched sequence would both
+ * fall into the token and corrupt x30 (breaking the game's final ret).
+ * Replace each occurrence (28 code + 4 token bytes) with a direct 64-bit
+ * call that preserves the link register across the isokernel call:
+ *     movz x24,lo; movk x24,mid,lsl#16; movk x24,hi,lsl#32;
+ *     stp x29,x30,[sp,#-16]!; blr x24; ldp x29,x30,[sp],#16;
+ *     b #8; nop                      (32 bytes, works at any load address)
+ */
+static void arm64_patch_isocalls(void)
+{
+	static const unsigned char sig[28] = {
+		0xe9, 0x00, 0x00, 0x10, 0x29, 0x01, 0x40, 0xb9,
+		0x29, 0x03, 0x09, 0x8b, 0x38, 0x01, 0x40, 0xb9,
+		0x29, 0x03, 0x40, 0xb9, 0x18, 0x03, 0x09, 0x0b,
+		0x00, 0x03, 0x3f, 0xd6
+	};
+	uintptr_t isok = (uintptr_t) isokernel;
+	uint32_t w[8];
+	w[0] = 0xd2800000u | (((uint32_t) isok & 0xffffu) << 5) | 24u;
+	w[1] = 0xf2800000u | (1u << 21) | ((((uint32_t) isok >> 16) & 0xffffu) << 5) | 24u;
+	w[2] = 0xf2800000u | (2u << 21) | ((((uint32_t) (isok >> 32)) & 0xffffu) << 5) | 24u;
+	w[3] = 0xa9bf7bfdu;	/* stp x29, x30, [sp, #-16]! */
+	w[4] = 0xd63f0300u;	/* blr x24 */
+	w[5] = 0xa8c17bfdu;	/* ldp x29, x30, [sp], #16 */
+	w[6] = 0x14000002u;	/* b #8 (skip the trailing 4-byte token) */
+	w[7] = 0xd503201fu;	/* nop */
+	int found = 0;
+	int codebytes = pCodeSize * sizeof(unit);
+	for (int i = 0; i + 32 <= codebytes; i++) {
+		if (memcmp((char *) pCode + i, sig, 28) == 0) {
+			memcpy((char *) pCode + i, w, 32);
+			found++;
+		}
+	}
+	if (found > 0) {
+		__builtin___clear_cache((char *) pCode, (char *) pCode + codebytes);
+		fprintf(stderr, "DBG arm64: patched %d isocall(s)\n", found);
+	}
+}
+#endif
+
 /*******************************************************************************
  * Sets up the Linoleum environment and handles execution to the linoleum 
  * program.
@@ -207,10 +256,20 @@ int main(int argc, char **argv, char **env)
 		     IParagraph->physwsentry, IParagraph->app_code_size,
 		     "code");
 	/* set pointer to application start address */
+#ifdef __aarch64__
+	/* pCode may live above 4GB (macOS arm64), so do not truncate. */
+	pCodeEntry = (proc_t) & pCode[IParagraph->app_code_entry];
+#else
 	pCodeEntry = (proc_t) (unit) & pCode[IParagraph->app_code_entry];
+#endif
 
 	/* close file handle */
 	fclose(openFile);
+
+#if defined(__aarch64__)
+	/* rewrite isocalls to call isokernel directly (macOS loads >4GB) */
+	arm64_patch_isocalls();
+#endif
 
 	/* transfer commandline parameters */
 	btrsstring(&pUIWorkspace[mm_ProcessCommandLine], dmsParameters);
