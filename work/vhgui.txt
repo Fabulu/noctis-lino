@@ -12,6 +12,7 @@
 	VHGUIleft = 0; VHGUItop = 0;
 	VHGUIx = 0; VHGUIy = 0; VHGUIsx = 0; VHGUIsy = 0;
 	VHGUIsrc = 0; VHGUIdst = 0;
+	VHGUIpal = 0; VHGUIrow2 = 0; VHGUIgap = 0;
 	VHGUIxacc = 0; VHGUIyacc = 0;
 	VHGUIprevaw = 0; VHGUIprevah = 0;
 	vector VHGUIregion = 0; 0; 319; 199;
@@ -49,18 +50,24 @@
 	( Compose one logical RGB page from the authentic indexed framebuffer.
 	  HUD/help text is added to this page before presentation, so it follows
 	  the same nearest-neighbour scaling as the rendered scene. )
-	[VHGUIy] = 0;
-    "VHGUI compose row"
-	A = [VHGUIy]; A '* 320; C = A; C + nw; C + RADPT;
-	D = A; D + VHGUIframe; [VHGUIx] = 80;
-    "VHGUI compose pixel"
-	A = [C]; A + pal; [D] = [A];
-	A = [C plus 1]; A + pal; [D plus 1] = [A];
-	A = [C plus 2]; A + pal; [D plus 2] = [A];
-	A = [C plus 3]; A + pal; [D plus 3] = [A];
-	C + 4; D + 4; [VHGUIx]-;
-	A = [VHGUIx]; ? A != 0 -> VHGUI compose pixel;
-	[VHGUIy]+; A = [VHGUIy]; ? A < 200 -> VHGUI compose row;
+	A = nw; A + RADPT; [VHGUIsrc] = A; [VHGUIpal] = pal; [VHGUIdst] = VHGUIframe;
+	( The indexed page, presenter palette, and composition page are fixed,
+	  disjoint 64,000-unit buffers.  Expand every index through the same palette
+	  lookup as the Lino loop, but without 16,000 interpreter dispatches. )
+	{
+	    53 56 57                            (push ebx, esi, edi)
+	    8B B7 <dVHGUIsrc mtp bytesperunit>
+	    8D 34 B7                            (esi = indexed source)
+	    8B 9F <dVHGUIpal mtp bytesperunit>
+	    8D 1C 9F                            (ebx = RGB palette)
+	    8B 97 <dVHGUIdst mtp bytesperunit>
+	    8D 14 97                            (edx = composition page)
+	    B9 00 FA 00 00                      (64,000 pixels)
+	    8B 06 8B 04 83 89 02                (palette-expand one pixel)
+	    83 C6 04 83 C2 04 49 75 F0          (advance and repeat)
+	    5F 5E 5B                            (restore edi, esi, ebx)
+	}
+	[VHGUIx] = 0; [VHGUIy] = 200;
 	end;
 
 "VHGUI present"
@@ -92,20 +99,32 @@
 	  coordinate accumulators once per destination pixel. )
 	A = [VHGUIdw]; ? A != 640 -> VHGUI scaled;
 	A = [VHGUIdh]; ? A != 400 -> VHGUI scaled;
-	[VHGUIy] = 0;
-    "VHGUI 2x row"
-	A = [VHGUIy]; A '* 320; C = A; C + VHGUIframe;
-	A = [VHGUIy]; A + A; A + [VHGUItop]; A '* [Display Width];
-	A + [VHGUIleft]; D = A; D + Backdrop Layer; E = D; E + [Display Width];
-	[VHGUIx] = 80;
-    "VHGUI 2x pixel"
-	A = [C]; [D] = A; [D plus 1] = A; [E] = A; [E plus 1] = A;
-	A = [C plus 1]; [D plus 2] = A; [D plus 3] = A; [E plus 2] = A; [E plus 3] = A;
-	A = [C plus 2]; [D plus 4] = A; [D plus 5] = A; [E plus 4] = A; [E plus 5] = A;
-	A = [C plus 3]; [D plus 6] = A; [D plus 7] = A; [E plus 6] = A; [E plus 7] = A;
-	C + 4; D + 8; E + 8; [VHGUIx]-;
-	A = [VHGUIx]; ? A != 0 -> VHGUI 2x pixel;
-	[VHGUIy]+; A = [VHGUIy]; ? A < 200 -> VHGUI 2x row;
+	[VHGUIsrc] = VHGUIframe;
+	A = [VHGUItop]; A '* [Display Width]; A + [VHGUIleft]; A + Backdrop Layer;
+	[VHGUIdst] = A; A + [Display Width]; [VHGUIrow2] = A;
+	A = [Display Width]; A + A; A - 640; A '* 4; [VHGUIgap] = A;
+	( Exact native expansion of 320 source dwords into two equal pixels on
+	  each of two destination rows.  The runtime display stride retains iGUI's
+	  one-unit chrome border; only the fixed 640x400 fit takes this path. )
+	{
+	    53 56 57 55                         (push ebx, esi, edi, ebp)
+	    8B B7 <dVHGUIsrc mtp bytesperunit>
+	    8D 34 B7                            (esi = source unit address)
+	    8B 87 <dVHGUIdst mtp bytesperunit>
+	    8D 04 87                            (eax = first destination row)
+	    8B AF <dVHGUIrow2 mtp bytesperunit>
+	    8D 2C AF                            (ebp = second destination row)
+	    8B 9F <dVHGUIgap mtp bytesperunit>
+	    BA C8 00 00 00                      (200 source rows)
+	    89 C7                               (edi = first destination row)
+	    B9 40 01 00 00                      (320 source pixels)
+	    AD AB AB                            (load once, write first pair)
+	    89 45 00 89 45 04 83 C5 08          (write second pair)
+	    49 75 F1                            (next source pixel)
+	    01 DF 01 DD 4A 75 E5                (advance both rows; next row)
+	    5D 5F 5E 5B                         (restore ebp, edi, esi, ebx)
+	}
+	[VHGUIx] = 0; [VHGUIy] = 200;
 	end;
     "VHGUI scaled"
 	[VHGUIy] = 0; [VHGUIsy] = 0; [VHGUIyacc] = 0;

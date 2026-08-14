@@ -31,6 +31,15 @@ renderer now preserves the native branch and foliage topology and uses bounded
 branch centrelines while the remaining textured-tree-face mapper discrepancy is
 tracked separately. The promoted tree frame contains no rainbow spray or slab.
 
+The tree mapper now also restores the source's 256-scaled repeat dimensions,
+four-byte Borland texture-window residue, right-to-left leaf-coordinate random
+draws, binary32 leaf-tip projection, and buffer-relative foliage stamps. A
+direct full-tree comparison against the corrected NIV+ harness overlaps 8,282
+of 8,309 native nonzero pixels, with only 24 Lino-only and 27 native-only
+pixels. With identical landed inputs, all 768 palette components match NIV+
+exactly, including the unusual orange crown and blue limbs produced by this
+particular daylight state.
+
 The production NIVGEN harness now speaks the public command protocol, emits the
 actual L.in.oleum orbital and landed buffers, and scores public sheet rows by
 field. Surface generation restores the source crater workload and matches all
@@ -43,6 +52,13 @@ boundaries and keeps original gameplay cadence. Surface panorama addressing is
 canonicalized before sampling, removing the moving black horizon pillar, and
 the refreshed frozen-world frame no longer contains its former diagonal stroke
 or blown-out foreground cluster.
+
+The common 640x400 host path now expands the complete indexed page through the
+live RGB palette and performs its exact 2x duplication in bounded native loops.
+This removes 32,000 interpreted presenter iterations per frame while retaining
+the generic resizable aspect-fit path. Fresh production captures measured 56
+to 61 FPS across every landable planet class and 58 FPS in the Stardrifter;
+the slowest measured surface render was 10.69 ms.
 
 Close stellar coronas are bright filled discs again. The second and third
 stellar palette ramps had inherited the previous shade routine's divisor, so

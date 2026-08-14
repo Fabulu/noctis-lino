@@ -3425,15 +3425,16 @@ def main() -> int:
     check(
         all(token in gui for token in (
             "A '* 5; A '/ 8", "A '* 8; A '/ 5",
-            '"VHGUI 1x row"', '"VHGUI scaled"',
+            '"VHGUI 1x row"', '"VHGUI maybe 2x"', '"VHGUI scaled"',
+            "8B 06 8B 04 83 89 02", "AD AB AB",
         )),
         "presenter has a fast 1x path and an 8:5 aspect-fit path",
     )
     check(
         "=> FB expand;" not in gui_loop
-        and "C + nw; C + RADPT" in gui
-        and "D + VHGUIframe" in gui
-        and "A + VHGUIframe" in gui
+        and "A = nw; A + RADPT; [VHGUIsrc] = A;" in gui
+        and "[VHGUIpal] = pal; [VHGUIdst] = VHGUIframe;" in gui
+        and "[VHGUIsrc] = VHGUIframe;" in gui
         and "D + Backdrop Layer" in gui
         and "E + Primary Display" not in gui
         and "[D] = A" in gui,

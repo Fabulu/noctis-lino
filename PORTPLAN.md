@@ -743,6 +743,15 @@ first -- a broken foundation makes every later result meaningless.
   The full-size capture shows the generated surface correctly aspect-fitted
   and centered rather than left at 320x200.  Earlier high-20s/30-FPS surface
   measurements predate the current presenter and panorama cache.
+- The default 640x400 presentation path now performs its fixed 64,000-pixel
+  palette expansion and exact 2x duplication in two bounded native kernels.
+  The generic aspect-fit path remains available for every other window size.
+  A fresh sequential production matrix measured 56 to 61 FPS across lunar,
+  dense-atmosphere, habitable, rocky, thin-atmosphere, frozen, and quartz
+  surfaces. The Stardrifter measured 58 FPS with 4.63 ms render time before
+  this final presenter pass. The slowest surface render was 10.69 ms, leaving
+  the original 18.206 Hz simulation cadence unchanged with useful 60 Hz
+  presentation headroom.
 - Ordinary Stardrifter position and look now use render-only interpolation
   between committed 18.206-Hz poses in 60-Hz mode. Shortest-path yaw crosses
   the signed 180-degree boundary correctly, and the live pose is restored
