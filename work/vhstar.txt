@@ -254,7 +254,8 @@
 	A = [VHTpalfar]; ? A != 0 -> VHT premask smooth;
 	[FA0] = [VHTdist0]; [FA1] = [VHTdist1];
 	[FB0] = [VHTtmp0]; [FB1] = [VHTtmp1]; => FQuo;
-	=> F32Narrow; [VHFk] = [FS0]; => VH space flare;
+	=> F32Narrow; [VHFk] = [FS0];
+	[VHFdist0] = [VHTdist0]; [VHFdist1] = [VHTdist1]; => VH space flare;
     "VHT premask smooth"
 	=> VHT smooth grays;
     "VHT premask done"

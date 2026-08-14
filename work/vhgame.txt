@@ -2155,7 +2155,8 @@
 	A = [FI]; ? A >= 0 -> VHG local companion corona next;
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
 	[FB0] = [VHGlocalray0]; [FB1] = [VHGlocalray1]; => FQuo;
-	=> F32Narrow; [VHFk] = [FS0]; => VH space flare;
+	=> F32Narrow; [VHFk] = [FS0];
+	[VHFdist0] = [VHGlocaldist0]; [VHFdist1] = [VHGlocaldist1]; => VH space flare;
     "VHG local companion corona next"
 	[VHGlocalbody]+; -> VHG local companion corona loop;
     "VHG local companion corona done"

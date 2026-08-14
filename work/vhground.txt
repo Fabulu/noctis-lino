@@ -2420,6 +2420,10 @@
 	[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
 	=> VHGND local sun;
+	( NIV+ masks the completed sky and both sun discs into palette band 64
+	  before any terrain is submitted.  Leaving the whitesun pixels in band 0
+	  turns a clipped bright disc into a dark vertical slab on some palettes. )
+	=> VHT mask page;
 	( Terrain and all world objects use the walking camera again. )
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;

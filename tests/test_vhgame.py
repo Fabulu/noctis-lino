@@ -1022,6 +1022,7 @@ def main() -> int:
         and "[VHGNDcrep] = A; A = 0; A - 1; [VHGNDsunxf] = A;" in ground
         and traversal.index(sun_zero_view)
         < traversal.index("=> VHGND local sun;")
+        < traversal.index("=> VHT mask page;", traversal.index("=> VHGND local sun;"))
         < traversal.index(surface_world_view, traversal.index("=> VHGND local sun;"))
         < traversal.index("( Source fragment()")
         and all(token in original1 for token in (
@@ -1073,14 +1074,20 @@ def main() -> int:
         ))
         and all(token in surface_flare for token in (
             "[SPoff] = A; [SPreg] = RGADP; => SP get;",
-            "A = [SPval]; ? A < 64 -> VHF done;",
+            "A = [SPval]; ? A < 64 -> VHF done; ? A > 127 -> VHF done;",
             "[FI] = 1000; => IntToF; => FMul;",
             "[FI] = 10; => IntToF; => FQuo;",
+            "=> VHF surface added;",
+        ))
+        and all(token in flare for token in (
+            '"VHF surface added"', "[FB0] = D2F1A9FCh; [FB1] = 3F60624Dh; => FMul;",
+            '"VHF space added"', "[FB0] = D2F1A9FCh; [FB1] = 3F50624Dh; => FMul;",
         ))
         and all(token in original1 for token in (
             "if (!nightzone && rainy < 1.2)",
             "if (nearstar_class!=5&&nearstar_class!=6&&nearstar_class!=10)",
             "if (dsd1<1000*nray1&&dsd1>=10*nray1)",
+            "(10 * nray1) / dsd1, 1 + (0.002 * dsd1), hud_closed, 2, 1, 1",
             "if (!pri_nightzone && rainy < 2.1)",
         )),
         "surface suns restore source-gated center-occluded lens flares",
@@ -1100,7 +1107,7 @@ def main() -> int:
             '"VHT premask"', "[FI] = 6; => IntToF;",
             "? A = 6 -> VHT premask smooth; ? A = 10 -> VHT premask smooth;",
             "A = [VHTphase]; A % 360; ? A >= 90 -> VHT premask smooth;",
-            "[VHFk] = [FS0]; => VH space flare;", '"VHT smooth grays"',
+            "[VHFdist0] = [VHTdist0]; [VHFdist1] = [VHTdist1]; => VH space flare;", '"VHT smooth grays"',
             "[SUsi] = 320; B = 56960;", "B ^ VHT smooth gray pixel;",
             "[FI] = 100; => IntToF;", "[FI] = 8; => IntToF;",
             "[FI] = 1550; => IntToF;", "[FI] = 1600; => IntToF;",
@@ -1122,11 +1129,11 @@ def main() -> int:
             "=> VHG local body relative; => VHG local body distance;",
             "[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1]; => F32Narrow; => FLoadF32;",
             "[FI] = 5; => IntToF;", "[FI] = 1000; => IntToF;",
-            "[VHFk] = [FS0]; => VH space flare;",
+            "[VHFdist0] = [VHGlocaldist0]; [VHFdist1] = [VHGlocaldist1]; => VH space flare;",
             "=> VHS stars; => VHG finder render;",
         ))
         and all(token in flare for token in (
-            '"VH space flare"', "[VHFadd] = 3; [VHFok] = 0;",
+            '"VH space flare"', "=> VHF space added; [VHFok] = 0;",
             "[PGFi] = SFRX; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;",
             "A = [FI]; A + 3;", "? A >= 90 -> VHF done; A + 100; [VHFcy] = A;",
         ))

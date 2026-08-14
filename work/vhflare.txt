@@ -19,7 +19,7 @@
 
 	VHFcx = 0; VHFcy = 0; VHFk = 0; VHFl = 0; VHFu = 0; VHFang = 0;
 	VHFadd = 2; VHFpx = 0; VHFpy = 0; VHFpz = 0;
-	VHFdist = 0; VHFray = 0; VHFstep = 0;
+	VHFdist = 0; VHFdist0 = 0; VHFdist1 = 0; VHFray = 0; VHFstep = 0;
 	VHFok = 0;
 	VHFghost = 0; VHFgdx = 0; VHFgdy = 0; VHFgx = 0; VHFgy = 0; VHFgr = 0;
 	VHFdx = 0; VHFdy = 0;
@@ -72,7 +72,7 @@
 	( NOCTIS.CPP:3639-3701 with xshift=3, yshift=0 and condition=0.
 	  The selected star is already relative in SFXX/SFYY/SFZZ; preserve
 	  the source's double rotation and strict relative-screen bounds. )
-	[VHFadd] = 3; [VHFok] = 0;
+	=> VHF space added; [VHFok] = 0;
 	[PGFi] = SFXX; => PGF a; [PGFi] = FSPCB; => PGF mul;
 	[PGFi] = SFT0; => PGF sa;
 	[PGFi] = SFZZ; => PGF a; [PGFi] = FSPSB; => PGF mul;
@@ -101,13 +101,12 @@
 	-> VHF draw;
 
 "VH surface flare"
-	( Surface suns pass condition=1: terrain or another opaque palette-band-0
-	  pixel at the projected centre suppresses the complete flare. )
-	[VHFadd] = 2;
+	( Surface suns pass source condition 2: only the completed sky band
+	  64..127 at the projected centre permits the complete flare. )
 	A = [VHFcx]; ? A <= 10 -> VHF done; ? A >= 320 -> VHF done;
 	A = [VHFcy]; ? A <= 10 -> VHF done; ? A >= 190 -> VHF done;
 	A '* 320; A + [VHFcx]; [SPoff] = A; [SPreg] = RGADP; => SP get;
-	A = [SPval]; ? A < 64 -> VHF done;
+	A = [SPval]; ? A < 64 -> VHF done; ? A > 127 -> VHF done;
 
 	( Source range: d >= 10*ray and d < 1000*ray.  Retain the binary32
 	  expression boundary used by the float star radius and distance. )
@@ -129,6 +128,7 @@
 	[FS0] = [VHFstep]; => FLoadF32; => FQuo; => F32Narrow; [VHFstep] = [FS0];
 	[FS0] = [VHFstep]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
 	[FI] = 10; => IntToF; => FQuo; => F32Narrow; [VHFk] = [FS0];
+	=> VHF surface added;
 
     "VHF draw"
 	[VHFl] = VHFF1; [VHFu] = VHFF15; [VHFang] = 0;
@@ -168,6 +168,24 @@
     "VHF scale ready"
 	A = [VHFang]; A + [VHFadd]; [VHFang] = A; ? A < 180 -> VHF spoke;
     "VHF done"
+	end;
+
+"VHF surface added"
+	( int added = 1 + 0.002 * dsd; dsd is the source float. )
+	[FS0] = [VHFdist]; => FLoadF32;
+	[FB0] = D2F1A9FCh; [FB1] = 3F60624Dh; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = 1; => IntToF;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => FToIntChop;
+	[VHFadd] = [FI];
+	end;
+
+"VHF space added"
+	( int added = 1 + 0.001 * distance; Stardrifter distances remain double. )
+	[FA0] = [VHFdist0]; [FA1] = [VHFdist1];
+	[FB0] = D2F1A9FCh; [FB1] = 3F50624Dh; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = 1; => IntToF;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => FToIntChop;
+	[VHFadd] = [FI];
 	end;
 
 "VHF ghost reflections"
