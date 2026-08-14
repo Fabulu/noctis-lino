@@ -7,7 +7,7 @@ param(
     [ValidateSet('all', 'stardrifter', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
-        'orbitsubstellar',
+        'orbitsubstellar', 'orbitmultiple',
         'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'thin',
         'frozen', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -116,6 +116,13 @@ $scenes = @(
        X=1463568; Y=-4728350; Z=-437812; Body=1; Type=9; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
        LocalX=0.333919; LocalY=0.0; LocalZ=-0.786714 },
+    # ROTOR IGNE is a generated class-8 multiple system. Body 0 is a primary
+    # planet and body 3 is its companion star, so this view exercises the
+    # real two-star corona/flare ordering instead of a synthetic overlay.
+    @{ Name='orbitmultiple'; FileName='planet-space-multiple-system.png'; Mode=0;
+       X=3866416; Y=-4813508; Z=-735695; Body=0; Type=5; Lon=0; Lat=60;
+       Beta=300; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=-0.05479262724126303; LocalY=0.0; LocalZ=-0.03163453808735004 },
     # IDEAL's only body is an authentic type-1 primary. This avoids spending
     # screenshot startup time generating JROT's pathological 80-body system.
     @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;

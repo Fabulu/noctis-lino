@@ -162,6 +162,8 @@ rendering result. Reproduce them with
 |---|---|---|---|---|
 | ![A thin-atmosphere planet from the Stardrifter](screenshots/planet-space-thin.png) | ![A banded type-6 giant from the Stardrifter](screenshots/planet-space-large.png) | ![A half-lit frozen planet from the Stardrifter](screenshots/planet-space-frozen.png) | ![A dark type-8 milky world from the Stardrifter](screenshots/planet-space-milky.png) | ![A substellar object in a bright crowded system](screenshots/planet-space-substellar.png) |
 
+![A planet partially eclipsing its primary while a companion star flares in a generated multiple system](screenshots/planet-space-multiple-system.png)
+
 | Planetary console | Planetary surface |
 |---|---|
 | ![Selecting a landing site on the physical planetary console](screenshots/planetary-console.png) | ![The capsule on a generated planetary surface](screenshots/planet-surface.png) |

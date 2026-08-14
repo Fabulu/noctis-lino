@@ -254,6 +254,12 @@ for every planet and atmosphere class, weather and day/night boundaries,
 companion and multiple suns, orbital views, and the full Stardrifter
 interior/cupola/exterior transition.
 
+A generated class-8 system is now part of the reproducible capture gallery.
+Its 300-degree view shows a planet partially occluding the primary disc while
+the companion flare remains separately visible. This is useful production
+coverage and proves both sources are live, but it does not by itself settle
+native full-context ordering or occlusion parity; that comparison remains open.
+
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 
