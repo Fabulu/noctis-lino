@@ -1748,10 +1748,9 @@
 	  type 8; planet 1 is type 4.  The exact create_sky path is cheap for both
 	  types and produces the source surface palette as well as atmosphere. )
 	[GRSKptype] = [GRiptype]; [GRSKsctype] = [VHGNDsctype];
-	[GRSKatmosphere] = [VHGNDatmosphere]; [GRSKnightzone] = 0; [VHGNDsunxf] = 1;
+	[GRSKatmosphere] = [VHGNDatmosphere];
 	[GRSKtarget] = [VHGNDplanet]; [GRSKowner] = 0FFFFFFFFh;
 	[GRSKstarclass] = 0; [GRSKlat] = [VHGNDlat]; [GRSKquadwords] = 16000;
-	[GRSKexposure] = 41DB20C5h; ( 27.391f, source 35-degree day exposure )
 
 	( Preserve the measured opening landing exactly.  Every other selected
 	  star takes the generated UTC/orbit/terminator path below. )
@@ -1760,6 +1759,8 @@
 	A = [VHTtz]; ? A != 0FFFF5430h -> VHGND general sky;
 	A = [VHGNDlon]; ? A != 0 -> VHGND general sky;
 	A = [VHGNDlat]; ? A != 60 -> VHGND general sky;
+	[GRSKnightzone] = 0; [VHGNDsunxf] = 1;
+	[GRSKexposure] = 41DB20C5h; ( 27.391f, source 35-degree day exposure )
 
 	( planet 0, type 8 milky/quartz )
 	[GRSKseed] = 149130; [GRSKalbedo] = 32; [GRSKrainy] = 0;

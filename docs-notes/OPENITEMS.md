@@ -359,6 +359,15 @@ visible sky pixels exactly across the change. A ten-second alternating turn
 dropped from 17.90 ms to 16.29 ms of measured render plus presentation work per
 frame, while the stationary Stardrifter checkpoint held 60 FPS.
 
+A matched-clock frozen-world run exposed an upstream lighting-state defect.
+The general surface path computed the live terminator correctly, then the sky
+handoff replaced its night flag, dawn/dusk side, and exposure with the special
+opening-system defaults before deciding that no recomputation was needed. Those
+defaults now live only inside the opening-system compatibility branch. At the
+type-7 checkpoint NIV+ and Lino now both retain exposure `18.7824`, classify the
+pose as night, and suppress the primary sun. The bright point previously read
+as a possible sun was a galaxy star revealed by the false daylight state.
+
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 
