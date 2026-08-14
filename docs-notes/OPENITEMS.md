@@ -315,6 +315,13 @@ the bright RGB thresholds 160 and 220 fell from 180/141 to 55/31; the native
 frame contains 64/37. This removes the accumulated blue slab and leaves a
 native-sized centre while exact whole-frame grading remains open.
 
+The gallery checkpoint had also disabled synchronization while its native
+reference visibly reported `TRACKING`. It now selects source fixed-chase sync;
+the retained body offset is already the exact navigation-120 equilibrium, so
+the viewpoint remains stable. The outer HUD now follows the source's settled
+local branch and renders `TRACKING`, or `MOVIEMAKER` while recording, instead
+of leaking the fine-approach integrator's `STANDBY` state.
+
 The reproducible `orbitmultiple` gallery scene uses this open-visor
 native-matched pose by default. This closes the coordinate, drive-state, and
 beam-accumulation defects in one real visible-companion context, not the

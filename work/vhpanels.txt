@@ -57,7 +57,7 @@
 	vhptext = 126;			( two headers + four 21-column command rows )
 	vhpout = 172032;		( 8,192 retained 21-column output rows )
 	vhpoutdisplay = 154;		( seven zero-terminated 21-column display rows )
-	vhpstatus = 54;
+	vhpstatus = 72;
 	VHPbodyy = 80; VHPbodyz = 80;
 
 "programme"
@@ -109,6 +109,11 @@
 	[vhpstatus plus 45] = 69; [vhpstatus plus 46] = 68;
 	[vhpstatus plus 47] = 83; [vhpstatus plus 48] = 84; [vhpstatus plus 49] = 65; [vhpstatus plus 50] = 78;
 	[vhpstatus plus 51] = 68; [vhpstatus plus 52] = 66; [vhpstatus plus 53] = 89;
+	[vhpstatus plus 54] = 84; [vhpstatus plus 55] = 82; [vhpstatus plus 56] = 65; [vhpstatus plus 57] = 67;
+	[vhpstatus plus 58] = 75; [vhpstatus plus 59] = 73; [vhpstatus plus 60] = 78; [vhpstatus plus 61] = 71;
+	[vhpstatus plus 62] = 77; [vhpstatus plus 63] = 79; [vhpstatus plus 64] = 86; [vhpstatus plus 65] = 73;
+	[vhpstatus plus 66] = 69; [vhpstatus plus 67] = 77; [vhpstatus plus 68] = 65; [vhpstatus plus 69] = 75;
+	[vhpstatus plus 70] = 69; [vhpstatus plus 71] = 82;
     "VHP font done"
 	end;
 
@@ -774,7 +779,8 @@
 	A = [VHPfcsstatus]; ? A = 1 -> VHP status charging;
 	? A = 2 -> VHP status parking; ? A = 3 -> VHP status linking;
 	? A = 4 -> VHP status driving; ? A = 5 -> VHP status ignition;
-	? A = 6 -> VHP status calibrated; -> VHP status ready;
+	? A = 6 -> VHP status calibrated; ? A = 13 -> VHP status tracking;
+	? A = 14 -> VHP status moviemaker; -> VHP status ready;
     "VHP status charging"
 	[VHPstatbase] = 0; [VHPstatlen] = 8; -> VHP status ready;
     "VHP status parking"
@@ -787,6 +793,11 @@
 	[VHPstatbase] = 29; [VHPstatlen] = 8; -> VHP status ready;
     "VHP status calibrated"
 	[VHPstatbase] = 37; [VHPstatlen] = 10;
+	-> VHP status ready;
+    "VHP status tracking"
+	[VHPstatbase] = 54; [VHPstatlen] = 8; -> VHP status ready;
+    "VHP status moviemaker"
+	[VHPstatbase] = 62; [VHPstatlen] = 10;
     "VHP status ready"
 	[VHVcamxi] = 0; A = 0; A - 512; [VHVcamxi] = A;
 	A = 0; A - 275; [VHVcamyi] = A; A = 0; A - 750; [VHVcamzi] = A;

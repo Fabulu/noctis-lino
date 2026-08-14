@@ -128,7 +128,7 @@ $scenes = @(
     @{ Name='orbitmultiple'; FileName='planet-space-multiple-system.png'; Mode=0;
        X=3866416; Y=-4813508; Z=-735695; Body=0; Type=5; Lon=0; Lat=60;
        Beta=0; Nav=120; Pitch=-34; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;
-       OpenHud=$true;
+       OpenHud=$true; Sync=1;
        LocalX=-0.025440362261571668; LocalY=0.0; LocalZ=-0.014688000000000005 },
     # IDEAL's only body is an authentic type-1 primary. This avoids spending
     # screenshot startup time generating JROT's pathological 80-body system.
@@ -322,7 +322,11 @@ function New-Checkpoint {
         $localDistance = [Math]::Sqrt(
             $localX * $localX + $localY * $localY + $localZ * $localZ
         )
-        $u[39] = 4 # no tracking drift; radiation limiter remains enabled
+        # Navigation word: sync in bits 3..5, with anti-radiation in bit 2.
+        # Most authored orbital poses remain fixed. The ROTOR IGNE companion
+        # fixture opts into source fixed-chase tracking at its exact equilibrium.
+        $sceneSync = if ($Spec.ContainsKey('Sync')) { [int]$Spec.Sync } else { 0 }
+        $u[39] = 4 + 8 * $sceneSync
         $u[48] = 1
         $u[49] = $Spec.Body
         [Buffer]::BlockCopy([BitConverter]::GetBytes($localX), 0, $u, 200, 8)

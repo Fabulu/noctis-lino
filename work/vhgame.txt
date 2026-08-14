@@ -3075,6 +3075,15 @@
 	=> VHG landing status format; [VHPmessage] = VHGlandingstatus;
     "VHG source status ready"
 	[VHPfcsstatus] = [MgStatus];
+	( Once local tracking has settled, the source refreshes TRACKING or
+	  MOVIEMAKER every frame before the inactive approach branch. )
+	A = [VHPmessage]; ? A != 0 -> VHG FCS status ready;
+	A = [VHGlocalactive]; ? A = 0 -> VHG FCS status ready;
+	A = [MgIpreached]; ? A = 0 -> VHG FCS status ready;
+	A = [VHGsync]; ? A = 0 -> VHG FCS status ready;
+	[VHPfcsstatus] = 13;
+	A = [VHGmovie]; ? A = 0 -> VHG FCS status ready;
+	[VHPfcsstatus] = 14;
 	A = [MgApreached]; ? A = 0 -> VHG FCS status ready;
 	A = [VHGlocalactive]; ? A != 0 -> VHG FCS status ready; [VHPfcsstatus] = 6;
     "VHG FCS status ready"

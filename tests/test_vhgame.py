@@ -1175,6 +1175,8 @@ def main() -> int:
             "[VHTinterpok] = [VHGinterpok]; [VHTinterpacc] = [VHGinterpacc];",
             "A = [TKtmp]; A / 360; A % 360; [VHTclockphase] = A;",
             "[MgApreached] = 1; [MgStspeed] = 0;",
+            "[VHPfcsstatus] = 13;",
+            "[VHPfcsstatus] = 14;",
         ))
         and all(token in original0 for token in (
             "if (ap_target_class==11) ap_target_spin = random (30) + 1;",
@@ -2704,6 +2706,8 @@ def main() -> int:
             "[vhcpoly plus 7] = 3277979648; [vhcpoly plus 10] = 3280764928;",
             '"VH GOES output line"', "vhpout = 172032;", '"VH GOES output window"',
             '"VHP status message length"', "[VHPstatptr] = A;", "[VHPmessage]",
+            '"VHP status tracking"', "[VHPstatbase] = 54; [VHPstatlen] = 8;",
+            '"VHP status moviemaker"', "[VHPstatbase] = 62; [VHPstatlen] = 10;",
         )),
         "source-ordered nondegenerate glyph quads keep physical GOES input on all three wall faces",
     )
