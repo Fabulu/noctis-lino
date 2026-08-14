@@ -404,9 +404,12 @@ albedo 24, and seed 472392. The longitude-45 pose brings the otherwise
 near-zenith star into the playable camera range. Certified native and product
 frames place its disc at the top centre and show the same long radial pattern
 over the teal atmospheric gradient. The reproducible `thinsun` gallery scene
-now captures that pose. As with the type-3 checkpoint, exact whole-context
-framebuffer and palette grading remains open; the flare raster itself retains
-its independent byte-exact native page oracle.
+now captures that pose. After removing the port's non-native rectangular
+panorama-edge erase, full-context staged grading is exact: the complete
+64,000-byte pages before the sun, after the sun, and after palette-band masking
+each differ from NIV+ at zero pixels. This closes the reported thin-world
+pillar for the complete sky and sun sequence, while final terrain and object
+compositing remain separate coverage.
 
 **Airless rocky native-context checkpoint.** The same fixed epoch now covers
 the system's type-4 body at longitude 90, heading 270, and pitch -38. Both
