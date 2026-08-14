@@ -541,20 +541,48 @@
 	A = [DBsi]; [DBdi] = A;
 	C = [DBcol]; C & 255; C > 1; [DBdl] = C;	( shr dl,1 )
     "PG db c1 fill"
-	? [DBcx] = 0 -> PG db c1 next;
-	A = [DBdi]; A - 1; A & 65535; [PGdi] = A; => PG load;
-	C = [PGval]; C & 63; C + [DBdl]; C & 255;
-	? C '< 62 -> PG db c1 flow;
-	C = 62;
-    "PG db c1 flow"
-	[PGval] = C; [PGdi] = [DBdi]; => PG store;
-	[CSbyte]+;
-	A = [DBdi]; A + 1; A & 65535; [DBdi] = A;
-	[DBcx]-;
-	? [DBcx] != 0 -> PG db c1 fill;
+	=> PG db c1 fill native;
     "PG db c1 next"
 	C = [DBdi0]; C + 320; C & 65535; [DBdi] = C;
 	? C '<= [DBlimy] -> PG db c1 row;
+	end;
+
+"PG db c1 fill native"
+	( Additive flare rows sample the just-previous pixel, so the native loop
+	  retains the source-order dependency and the original clamp at 62. )
+	? [DBcx] = 0 -> PG db c1 fill native done;
+	A = nw;
+	{
+	    55
+	    8D 04 87
+	    8B 97 <dDBdi mtp bytesperunit>
+	    81 E2 FF FF 00 00
+	    8B 8F <dDBcx mtp bytesperunit>
+	    8B 9F <dDBdl mtp bytesperunit>
+	    81 E3 FF 00 00 00
+	    01 8F <dCSbyte mtp bytesperunit>
+	    89 D6
+	    66 4E
+	    8B AC B0 <dSADPT mtp bytesperunit>
+	    81 E5 3F 00 00 00
+	    01 DD
+	    81 E5 FF 00 00 00
+	    83 FD 3E
+	    72 05
+	    BD 3E 00 00 00
+	    89 AC 90 <dSADPT mtp bytesperunit>
+	    66 42
+	    49
+	    75 D1
+	    89 97 <dDBdi mtp bytesperunit>
+	    89 8F <dDBcx mtp bytesperunit>
+	    89 D0
+	    66 48
+	    89 87 <dPGdi mtp bytesperunit>
+	    89 AF <dPGval mtp bytesperunit>
+	    5D
+	}
+    "PG db c1 fill native done"
 	end;
 
 ( -------------------------------------------------------------------- )

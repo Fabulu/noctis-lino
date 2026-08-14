@@ -211,6 +211,11 @@ trace loops natively while retaining the original inclusive vertical rule,
 half-open greater-X endpoint, and 16-bit page wrap. The exact raster corpus
 remains byte-identical and a fresh Stardrifter capture rendered in 4.75 ms.
 
+Additive effect polygons now execute each complete source-dependent fill run
+in one native loop, preserving the previous-pixel sampling order and original
+clamp at colour 62. The exact raster pages remain byte-identical and the live
+Stardrifter sun and corona smoke remains intact.
+
 That fixed 2x path now publishes each duplicated RGB pixel to Backdrop and
 Primary Display while the value is already loaded. The two synchronized layers
 therefore no longer need a subsequent 1 MiB Backdrop reread and copy. Resized
