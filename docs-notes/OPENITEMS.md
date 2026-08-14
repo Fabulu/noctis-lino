@@ -255,10 +255,12 @@ companion and multiple suns, orbital views, and the full Stardrifter
 interior/cupola/exterior transition.
 
 A generated class-8 system is now part of the reproducible capture gallery.
-Its 300-degree view shows a planet partially occluding the primary disc while
-the companion flare remains separately visible. This is useful production
-coverage and proves both sources are live, but it does not by itself settle
-native full-context ordering or occlusion parity; that comparison remains open.
+Its 300-degree view shows a planet partially occluding the primary disc beside
+radial light spokes. Live tracing corrected the earlier interpretation of
+those spokes: the companion star is off-screen and its flare gate is closed in
+this view. They are Stardrifter fixture lights, not a second sun. The scene is
+still useful production coverage, but it is not evidence of a visible
+companion flare.
 
 The production habitable-world sweep also exercised the source weather gates:
 full flare at rain 0.5 and 0.625, sun without primary flare at rain 1.67 and
@@ -270,8 +272,18 @@ source expression too: each type-10 body reseeds the fast generator with its
 body index plus the signed system-star X coordinate, then passes the narrowed
 `0.15 - fast_flandom() * 0.3` factor to `whiteglobe`. The former fixed `0.15`
 factor was a real multi-sun mismatch. A fresh ROTOR IGNE product smoke retained
-both the eclipsed primary and companion beam field at 60 FPS. Full-context
-native framebuffer comparison remains required before this matrix is closed.
+the eclipsed primary and ship-light field at 60 FPS.
+
+**ROTOR IGNE native-context checkpoint.** A certified NIV+ run and the current
+Lino renderer were placed at the same class-8 system, body 0, source UTC phase,
+1.8-radius orbital distance, cockpit position, user yaw, and navigation yaw.
+Lino reported the native body radius `0.01632`, distance `0.029376`, projected
+centre `(158,100)`, and magnification `0.5555555`. At UTC second `1344854657`,
+its selected-body vector differed from NIV+ by less than `2.5e-10` on every
+axis. Both full-context frames kept the primary behind the planet and emitted
+no companion flare. This settles that one dark, aligned viewpoint and the
+identity of the showcase spokes. It does not settle visible companion views or
+the wider matrix below.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:

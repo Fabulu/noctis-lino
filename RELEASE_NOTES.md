@@ -5,9 +5,17 @@ framebuffer comparisons. The complete 64,000-byte flare page now matches for
 real thin-atmosphere, quartz, and clear habitable surface inputs. The opening
 Stardrifter star also matches at every staged checkpoint: white core, radial
 flare, smoothing, and mask. A new reproducible multiple-system gallery scene
-shows a planet eclipsing the primary while its companion flare remains visible.
+shows a planet eclipsing the primary beside the Stardrifter's own fixture-light
+spokes. Runtime tracing confirms that the companion is off-screen in this
+particular view, so those spokes are not mislabeled as a second sun.
 Companion stars now also restore `planets()`'s per-body fast-RNG seed and exact
 `0.15 - fast_flandom() * 0.3` corona factor instead of using a fixed value.
+
+The gallery tool now defaults to the game's own no-flash 320x200 snapshot path.
+This captures the completed game frame directly and cannot include iGUI hover
+balloons or desktop chrome. Explicit camera-distance, user-yaw, and navigation-
+yaw controls support like-for-like native viewpoints, while a compact exit
+trace records the selected body and companion vectors used by the live frame.
 
 The surface weather sweep confirms the source gates between full flare, bare
 sun, and storm suppression. Broad sun authenticity remains an open acceptance

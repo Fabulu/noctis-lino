@@ -16,7 +16,10 @@ param(
     [int]$Latitude,
     [int]$BodyIndex,
     [int]$ViewAngle,
+    [int]$NavigationAngle,
     [int]$OrbitalViewAngle,
+    [ValidateRange(0.01, 100.0)]
+    [double]$OrbitalDistanceScale,
     [int]$ViewPitch,
     [int]$PlayerX,
     [int]$PlayerY,
@@ -30,6 +33,8 @@ param(
     [switch]$Fast,
     [switch]$ReportPerformance,
     [switch]$KeepStages,
+    [switch]$UseGameSnapshot,
+    [switch]$CaptureHostWindow,
     [switch]$Interactive
 )
 
@@ -173,6 +178,7 @@ foreach ($spec in $scenes) {
     if ($PSBoundParameters.ContainsKey('Latitude')) { $spec.Lat = $Latitude }
     if ($PSBoundParameters.ContainsKey('BodyIndex')) { $spec.Body = $BodyIndex }
     if ($PSBoundParameters.ContainsKey('ViewAngle')) { $spec.Beta = $ViewAngle }
+    if ($PSBoundParameters.ContainsKey('NavigationAngle')) { $spec.Nav = $NavigationAngle }
     if ($PSBoundParameters.ContainsKey('OrbitalViewAngle') -and $spec.ContainsKey('LocalZ')) {
         $distance = [Math]::Sqrt(
             [double]$spec.LocalX * $spec.LocalX +
@@ -184,6 +190,11 @@ foreach ($spec in $scenes) {
         $spec.LocalY = 0.0
         $spec.LocalZ = -[Math]::Cos($angle) * $distance
         $spec.Beta = (($OrbitalViewAngle % 360) + 360) % 360
+    }
+    if ($PSBoundParameters.ContainsKey('OrbitalDistanceScale') -and $spec.ContainsKey('LocalZ')) {
+        $spec.LocalX = [double]$spec.LocalX * $OrbitalDistanceScale
+        $spec.LocalY = [double]$spec.LocalY * $OrbitalDistanceScale
+        $spec.LocalZ = [double]$spec.LocalZ * $OrbitalDistanceScale
     }
     if ($PSBoundParameters.ContainsKey('ViewPitch')) { $spec.Pitch = $ViewPitch }
     if ($PSBoundParameters.ContainsKey('PlayerX')) { $spec.PlayerX = $PlayerX }
@@ -200,6 +211,7 @@ Add-Type -AssemblyName System.Drawing
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 public static class NoctisCaptureWin32 {
     public delegate bool EnumWindowDelegate(IntPtr hwnd, IntPtr lParam);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
@@ -209,7 +221,9 @@ public static class NoctisCaptureWin32 {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
     [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowDelegate callback, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr parent, EnumWindowDelegate callback, IntPtr lParam);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hwnd, int command);
+    [DllImport("user32.dll", CharSet = CharSet.Auto)] public static extern int GetClassName(IntPtr hwnd, StringBuilder name, int capacity);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
 
     public static void HideProcessPopups(IntPtr host) {
@@ -222,6 +236,19 @@ public static class NoctisCaptureWin32 {
             if (hwnd != host) ShowWindow(hwnd, 0);
             return true;
         }, IntPtr.Zero);
+        EnumChildWindows(host, delegate(IntPtr hwnd, IntPtr lParam) {
+            StringBuilder name = new StringBuilder(128);
+            GetClassName(hwnd, name, name.Capacity);
+            if (name.ToString().IndexOf("tooltips_class32", StringComparison.OrdinalIgnoreCase) >= 0)
+                ShowWindow(hwnd, 0);
+            return true;
+        }, IntPtr.Zero);
+    }
+
+    public static void ClearHover(IntPtr host) {
+        PostMessage(host, 0x02A3, IntPtr.Zero, IntPtr.Zero); // WM_MOUSELEAVE
+        PostMessage(host, 0x0200, IntPtr.Zero,
+            new IntPtr((100 << 16) | 160));                 // WM_MOUSEMOVE
     }
 }
 '@
@@ -306,7 +333,7 @@ function New-Checkpoint {
         $u[63] = 0
     }
     $u[64] = 4
-    $u[65] = 0
+    $u[65] = if ($Spec.ContainsKey('Nav')) { $Spec.Nav } else { 0 }
     # Synthetic scenes intentionally use the complete version-15 subset.
     # Version 16 adds live transient lighting/reset state that these fixtures
     # do not author and must not invent.
@@ -340,6 +367,32 @@ function Save-WindowPng {
         $graphics.Dispose()
         $bitmap.Dispose()
     }
+}
+
+function Save-GameSnapshotPng {
+    param([Diagnostics.Process]$Process, [string]$Stage, [string]$Path)
+    $gallery = Join-Path $Stage 'GALLERY'
+    if (Test-Path -LiteralPath $gallery) {
+        Remove-Item -LiteralPath $gallery -Recurse -Force
+    }
+    [NoctisCaptureWin32]::PostMessage($Process.MainWindowHandle, 0x0100, [IntPtr]0x4D, [IntPtr]1) | Out-Null
+    Start-Sleep -Milliseconds 50
+    [NoctisCaptureWin32]::PostMessage($Process.MainWindowHandle, 0x0101, [IntPtr]0x4D, [IntPtr]0xC0000001) | Out-Null
+    $deadline = [DateTime]::UtcNow.AddSeconds(4)
+    $snapshot = $null
+    do {
+        Start-Sleep -Milliseconds 100
+        $snapshot = Get-ChildItem -LiteralPath $gallery -Filter '*.BMP' -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    } until ($snapshot -or [DateTime]::UtcNow -ge $deadline)
+    if (-not $snapshot) { return $false }
+    $bitmap = [Drawing.Bitmap]::FromFile($snapshot.FullName)
+    try {
+        $bitmap.Save($Path, [Drawing.Imaging.ImageFormat]::Png)
+    } finally {
+        $bitmap.Dispose()
+    }
+    return $true
 }
 
 function Test-NoctisWindowReady {
@@ -436,6 +489,12 @@ foreach ($spec in $scenes) {
         } else {
             7
         }
+        $wantGameSnapshot = $UseGameSnapshot -or -not $CaptureHostWindow
+        if ($wantGameSnapshot -and $sceneWarmup -lt 4) {
+            # Synthetic checkpoints announce their load for roughly three
+            # source-rate seconds. Keep that transient text out of gallery art.
+            $sceneWarmup = 4
+        }
         Start-Sleep -Seconds $sceneWarmup
         $fileName = if ($spec.ContainsKey('FileName')) {
             $spec.FileName
@@ -448,8 +507,16 @@ foreach ($spec in $scenes) {
         # The hidden iGUI host can inherit the desktop cursor over its fold
         # button. Suppress its owned popup windows so the framebuffer capture
         # stays clean without moving the user's cursor or gameplay input.
-        [NoctisCaptureWin32]::HideProcessPopups($proc.MainWindowHandle)
-        Save-WindowPng -Handle $proc.MainWindowHandle -Path $destination
+        $capturedInternally = $false
+        if ($wantGameSnapshot) {
+            $capturedInternally = Save-GameSnapshotPng -Process $proc -Stage $stage -Path $destination
+        }
+        if (-not $capturedInternally) {
+            [NoctisCaptureWin32]::ClearHover($proc.MainWindowHandle)
+            Start-Sleep -Milliseconds 150
+            [NoctisCaptureWin32]::HideProcessPopups($proc.MainWindowHandle)
+            Save-WindowPng -Handle $proc.MainWindowHandle -Path $destination
+        }
         Write-Output ("CAPTURED {0} type {1} -> {2}" -f $spec.Name, $spec.Type, $destination)
         if ($ReportPerformance) {
             $profilePath = Join-Path $stage 'game-vh-out.bin'
@@ -493,6 +560,42 @@ foreach ($spec in $scenes) {
                         $ray, $sun[9], $sun[17], $sun[18], $sun[16],
                         $sun[19], $sun[20]
                     )
+                }
+            }
+            $localPath = Join-Path $stage 'game-local-out.bin'
+            if (Test-Path -LiteralPath $localPath) {
+                $localBytes = [IO.File]::ReadAllBytes($localPath)
+                if ($localBytes.Length -eq 176) {
+                    $local = New-Object 'System.Int32[]' 44
+                    [Buffer]::BlockCopy($localBytes, 0, $local, 0, $localBytes.Length)
+                    $localX = [BitConverter]::ToDouble($localBytes, 32)
+                    $localY = [BitConverter]::ToDouble($localBytes, 40)
+                    $localZ = [BitConverter]::ToDouble($localBytes, 48)
+                    $targetX = [BitConverter]::ToDouble($localBytes, 56)
+                    $targetY = [BitConverter]::ToDouble($localBytes, 64)
+                    $targetZ = [BitConverter]::ToDouble($localBytes, 72)
+                    $bodyRay = [BitConverter]::ToDouble($localBytes, 80)
+                    $bodyDistance = [BitConverter]::ToDouble($localBytes, 88)
+                    Write-Output (
+                        'LOCAL {0} active={1} utc={2} phase={3} body={4} type={5} view={6} nav={7} offset={8:R},{9:R},{10:R} target={11:R},{12:R},{13:R} ray={14:R} distance={15:R} globe={16} center={17},{18} mag={19:R}' -f
+                        $spec.Name, $local[1], $local[2], $local[3], $local[4],
+                        $local[7], $local[5], $local[6], $localX, $localY,
+                        $localZ, $targetX, $targetY, $targetZ, $bodyRay,
+                        $bodyDistance, $local[24], $local[25], $local[26],
+                        [BitConverter]::ToSingle($localBytes, 108)
+                    )
+                    if ($local[28] -ge 0) {
+                        Write-Output (
+                            'COMPANION {0} body={1} type={2} relative={3:R},{4:R},{5:R} distance={6:R} ray={7:R} flare={8} center={9},{10}' -f
+                            $spec.Name, $local[28], $local[29],
+                            [BitConverter]::ToDouble($localBytes, 120),
+                            [BitConverter]::ToDouble($localBytes, 128),
+                            [BitConverter]::ToDouble($localBytes, 136),
+                            [BitConverter]::ToDouble($localBytes, 144),
+                            [BitConverter]::ToDouble($localBytes, 152),
+                            $local[40], $local[41], $local[42]
+                        )
+                    }
                 }
             }
         }

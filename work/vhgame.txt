@@ -139,6 +139,12 @@
 	VHGlocalsurfaceok = 0; VHGlocalsavedplanet = 0;
 	VHGlocaltx0 = 0; VHGlocaltx1 = 0; VHGlocalty0 = 0; VHGlocalty1 = 0;
 	VHGlocaltz0 = 0; VHGlocaltz1 = 0;
+	VHGlocalcompi = 0FFFFFFFFh; VHGlocalcomptype = 0;
+	VHGlocalcompx0 = 0; VHGlocalcompx1 = 0; VHGlocalcompy0 = 0; VHGlocalcompy1 = 0;
+	VHGlocalcompz0 = 0; VHGlocalcompz1 = 0;
+	VHGlocalcompdist0 = 0; VHGlocalcompdist1 = 0;
+	VHGlocalcompray0 = 0; VHGlocalcompray1 = 0;
+	VHGlocalcompflareok = 0; VHGlocalcompflarecx = 0; VHGlocalcompflarecy = 0;
 	VHGlocalbody = 0; VHGlocalray0 = 0; VHGlocalray1 = 0;
 	VHGlocaldist0 = 0; VHGlocaldist1 = 0; VHGlocallim0 = 0; VHGlocallim1 = 0;
 	VHGlocaltmp0 = 0; VHGlocaltmp1 = 0; VHGlocalcolour = 0; VHGlocaloff = 0;
@@ -173,6 +179,7 @@
 	VHGshipx = 0; VHGshipy = 0; VHGshipz = 0;
 		vhgoutname = { game-vh-out.bin };
 		vhgsunname = { game-sun-out.bin };
+		vhglocalname = { game-local-out.bin };
 	VHGcaption = { Noctis_IV };
 	VHGmenucaption = { GAME };
 	VHGmenu = { NOCTIS_IV };
@@ -918,6 +925,7 @@
 	VHGfpstext = 7;
 	vhgperf = 21;
 	vhgsun = 24;
+	vhglocal = 44;
 	VHGinfoname = 22;
 	VHGinfoclass = 23;
 	VHGinfobodies = 30;
@@ -2125,17 +2133,24 @@
 	end;
 
 "VHG local companion coronas"
-	[VHGlocalbody] = 0;
+	[VHGlocalbody] = 0; [VHGlocalcompi] = 0FFFFFFFFh;
     "VHG local companion corona loop"
 	A = [VHGlocalbody]; ? A '>= [nsnob] -> VHG local companion corona done;
 	E = nsptype; E + A; A = [E]; ? A != 10 -> VHG local companion corona next;
 	[VHGNDvecindex] = [VHGlocalbody]; => VHGND absolute body vector;
 	=> VHG local body relative; => VHG local body distance;
+	[VHGlocalcompi] = [VHGlocalbody]; [VHGlocalcomptype] = 10;
+	[VHGlocalcompx0] = [VHGlocalringcx0]; [VHGlocalcompx1] = [VHGlocalringcx1];
+	[VHGlocalcompy0] = [VHGlocalringcy0]; [VHGlocalcompy1] = [VHGlocalringcy1];
+	[VHGlocalcompz0] = [VHGlocalringcz0]; [VHGlocalcompz1] = [VHGlocalringcz1];
+	[VHGlocalcompdist0] = [VHGlocaldist0]; [VHGlocalcompdist1] = [VHGlocaldist1];
+	[VHGlocalcompflareok] = 0; [VHGlocalcompflarecx] = 0; [VHGlocalcompflarecy] = 0;
 	( nearstar_p_qsortdist is float in the source, then promoted to p_dsd. )
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1]; => F32Narrow; => FLoadF32;
 	[VHGlocaldist0] = [FA0]; [VHGlocaldist1] = [FA1];
 	A = [VHGlocalbody]; A < 1; E = nspray; E + A;
 	[VHGlocalray0] = [E plus 0]; [VHGlocalray1] = [E plus 1];
+	[VHGlocalcompray0] = [VHGlocalray0]; [VHGlocalcompray1] = [VHGlocalray1];
 	( Native planets() reseeds each companion from its body index and the
 	  system star's signed X coordinate, then passes the narrowed
 	  0.15-fast_flandom()*0.3 factor to whiteglobe. )
@@ -2166,6 +2181,8 @@
 	A = [FI]; ? A >= 0 -> VHG local companion corona next;
 	[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => F32Narrow; [VHFray] = [FS0];
 	[VHFdist0] = [VHGlocaldist0]; [VHFdist1] = [VHGlocaldist1]; => VH space flare;
+	[VHGlocalcompflareok] = [VHFok]; [VHGlocalcompflarecx] = [VHFcx];
+	[VHGlocalcompflarecy] = [VHFcy];
     "VHG local companion corona next"
 	[VHGlocalbody]+; -> VHG local companion corona loop;
     "VHG local companion corona done"
@@ -10580,6 +10597,29 @@
 	[vhgsun plus 18] = [VHGNDflarecy]; [vhgsun plus 19] = [VHFadd];
 	[vhgsun plus 20] = [VHGNDsecactive]; [vhgsun plus 21] = [VHGNDsecnight];
 	[vhgsun plus 22] = [VHGNDsecray]; [vhgsun plus 23] = [VHGNDsecdist];
+	[vhglocal plus 0] = [VHGmode]; [vhglocal plus 1] = [VHGlocalactive];
+	[vhglocal plus 2] = [VHGutcsecs]; [vhglocal plus 3] = [VHGNDsecs];
+	[vhglocal plus 4] = [VHGplanet]; [vhglocal plus 5] = [VHGbeta];
+	[vhglocal plus 6] = [VHGnavbeta]; [vhglocal plus 7] = [VHGptype];
+	[vhglocal plus 8] = [VHGlocalx0]; [vhglocal plus 9] = [VHGlocalx1];
+	[vhglocal plus 10] = [VHGlocaly0]; [vhglocal plus 11] = [VHGlocaly1];
+	[vhglocal plus 12] = [VHGlocalz0]; [vhglocal plus 13] = [VHGlocalz1];
+	[vhglocal plus 14] = [VHGlocaltx0]; [vhglocal plus 15] = [VHGlocaltx1];
+	[vhglocal plus 16] = [VHGlocalty0]; [vhglocal plus 17] = [VHGlocalty1];
+	[vhglocal plus 18] = [VHGlocaltz0]; [vhglocal plus 19] = [VHGlocaltz1];
+	A = [VHGplanet]; A < 1; E = nspray; E + A;
+	[vhglocal plus 20] = [E plus 0]; [vhglocal plus 21] = [E plus 1];
+	[vhglocal plus 22] = [VHGlocaldist0]; [vhglocal plus 23] = [VHGlocaldist1];
+	[vhglocal plus 24] = [GBok]; [vhglocal plus 25] = [GBcx];
+	[vhglocal plus 26] = [GBcy]; [vhglocal plus 27] = [GBmag];
+	[vhglocal plus 28] = [VHGlocalcompi]; [vhglocal plus 29] = [VHGlocalcomptype];
+	[vhglocal plus 30] = [VHGlocalcompx0]; [vhglocal plus 31] = [VHGlocalcompx1];
+	[vhglocal plus 32] = [VHGlocalcompy0]; [vhglocal plus 33] = [VHGlocalcompy1];
+	[vhglocal plus 34] = [VHGlocalcompz0]; [vhglocal plus 35] = [VHGlocalcompz1];
+	[vhglocal plus 36] = [VHGlocalcompdist0]; [vhglocal plus 37] = [VHGlocalcompdist1];
+	[vhglocal plus 38] = [VHGlocalcompray0]; [vhglocal plus 39] = [VHGlocalcompray1];
+	[vhglocal plus 40] = [VHGlocalcompflareok]; [vhglocal plus 41] = [VHGlocalcompflarecx];
+	[vhglocal plus 42] = [VHGlocalcompflarecy]; [vhglocal plus 43] = 0;
 	[File Name] = vhgoutname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = vhgstate; [Block Size] = 72; isocall;
 	[File Position] = 72; [File Command] = WRITE;
@@ -10588,4 +10628,7 @@
 	[File Name] = vhgsunname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = vhgsun; [Block Size] = 96; isocall;
 	[File Name] = vhgsunname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 96; isocall;
+	[File Name] = vhglocalname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhglocal; [Block Size] = 176; isocall;
+	[File Name] = vhglocalname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 176; isocall;
 		end;
