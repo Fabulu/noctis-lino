@@ -327,6 +327,19 @@ native-matched pose by default. This closes the coordinate, drive-state, and
 beam-accumulation defects in one real visible-companion context, not the
 remaining cross-context matrix.
 
+**Frozen-world native-context checkpoint.** The landed NIV+ capture rig now
+accepts the exact terrain quotient/remainder and camera pose needed by product
+checkpoints. Source `user_alfa` is vertical pitch and `user_beta` is heading;
+reversing them produces an impossible camera and is not admissible oracle
+evidence. A certified type-7 capture at player `(1645000, 1641000)`, pitch
+`-12`, and heading `193` retained body 9 and landed state. Repeating that frame
+with lens mode `0` and `-1` changed 20 full-frame pixels and only one gameplay
+viewport pixel. The tall green and dotted structures in the native frame are
+therefore not sun beams. The current Lino product frame does not reproduce
+that terrain/sky structure, so frozen-world camera or terrain parity remains a
+separate open renderer defect. This pose cannot authenticate the primary sun,
+which is off-screen in the current Lino trace.
+
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
 
