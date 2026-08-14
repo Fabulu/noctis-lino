@@ -5980,7 +5980,6 @@
 	[VHGNDmushzf] = [VHGNDtreepz]; [VHGNDmushfloat] = 1;
 	[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3; [VHGNDmushscale] = 1023;
 	[VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31; => VHGND greenmush; [VHGNDmushfloat] = 0;
-	A = [PGtexoff]; A + 48; [PGtexoff] = A;
 	[VHGNDtreeside]+; -> VHGND tree leaf face;
     "VHGND tree leaves done"
 	[SPmapfast] = 0; [SPpixfast] = 0; [SPtrifast] = 0;

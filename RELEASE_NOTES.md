@@ -46,14 +46,15 @@ width, peak, and root-height values. The earlier integer recursion changed the
 fractional coordinate sum after the first limb, which changed every later node
 seed and could explode a crown into rainbow polygons across the sky. The live
 renderer now preserves the native branch and foliage topology and uses bounded
-branch centrelines while the remaining textured-tree-face mapper discrepancy is
-tracked separately. The promoted tree frame contains no rainbow spray or slab.
+branch centrelines. The promoted tree frame contains no rainbow spray or slab.
 
 The tree mapper now also restores the source's 256-scaled repeat dimensions,
 four-byte Borland texture-window residue, right-to-left leaf-coordinate random
-draws, binary32 leaf-tip projection, and buffer-relative foliage stamps. A
-direct full-tree comparison against the corrected NIV+ harness overlaps 8,282
-of 8,309 native nonzero pixels, with only 24 Lino-only and 27 native-only
+draws, binary32 leaf-tip projection, and buffer-relative foliage stamps. Limb
+faces retain the source's 48-byte texture stride, while every leaf face uses
+the same fixed texture window. With corrected native height input, the full
+tree now differs from the NIV+ framebuffer at only 7 pixels out of 64,000:
+one native-only edge pixel and six colour-value differences, with no Lino-only
 pixels. With identical landed inputs, all 768 palette components match NIV+
 exactly, including the unusual orange crown and blue limbs produced by this
 particular daylight state.
