@@ -74,6 +74,30 @@ checkpoint:
 - Splice the arm64 macOS RTM + game; run natively on the M4 (no Rosetta).
 - Verify playability + headless output matches x86_64.
 
+## CRITICAL FINDING: the 4GB __PAGEZERO breaks the 32-bit pointer model
+
+macOS arm64 enforces a **fixed 4GB `__PAGEZERO`**:
+- `-Wl,-pagezero_size` **malforms the Mach-O** (any non-default value, even for a
+  trivial hello — the binary SIGKILLs / dyld rejects it). This is a hard arm64
+  constraint, unlike x86_64 where the flag is honored.
+- `MAP_FIXED` at a low address fails with `EPERM` (cannot override `__PAGEZERO`).
+
+L.in.oleum stores `pCode` and the isocall target as 32-bit `unit`s, which
+requires the code below 4GB. That is **impossible on arm64**.
+
+**Required redesign (affects the RTM and the CPU pack):**
+1. Drop the low-4GB mmap; allocate code/workspace at normal 64-bit addresses.
+2. The **isocall** must use a 64-bit isokernel address (held in a workspace
+   slot as two units, or a code literal) instead of `[pCode + 32-bit-offset]`.
+3. `mm_ProcessOrigin` / `mm_ProcessISOcall` become 64-bit (two units) or are
+   repurposed.
+4. Workspace *offsets* (32-bit displacements relative to WS=x25) are unaffected
+   and stay 32-bit.
+
+The pattern translation (register map, stack model, literal-pool slots, x87
+emulation) is unchanged in concept; the isocall pattern and the RTM allocation
+are the arm64-specific deltas.
+
 ## Key technical challenges (in order of risk)
 
 1. **x87 emulation** — every float ISMO must round-trip through a software
