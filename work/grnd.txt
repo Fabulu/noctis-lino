@@ -748,6 +748,7 @@
 	B = [GRfrx]; B - [SUcxi]; [GRdxi] = B;
 	A = B; A '* B; [GRfd2] = A;
 	[GRfrz] = [GRsczlo];
+	C = [GRfrz]; C - [SUcyi]; [GRdzi] = C;
 	A = C; A '* C; D = [GRfd2]; D + A; [GRfd2] = D;
 	A = C; A + C; A+; [GRfd2delta] = A;
 	A = [GRfrz]; A '* [GRfsca]; A + [GRfrx]; A + [GRscmap]; [GRscaddr] = A;
@@ -856,6 +857,7 @@
 	A = [GRfd2]; A + [GRfd2delta]; [GRfd2] = A;
 	[GRfd2delta] + 2;
 	A = [GRscaddr]; A + [GRfsca]; [GRscaddr] = A;
+	[GRdzi]+;
 	[GRfrz]+;
 	A = [GRfrz]; ? A '< [GRsczhi] -> GR sc zloop;
 	[GRfrx]+;
