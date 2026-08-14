@@ -59,19 +59,14 @@ right-click-drag looks around, menu clicks work, ESC exits.
 
 ## Headless mode
 
-Any compiled program accepts `--headless`: the runtime reports the game's
-clock and exits without opening a window. The game keeps time as "UTC
-seconds since 1984-01-01" (`VHGutcsecs`, vhgame.txt "VHG UTC timestamp"),
-computed in the runtime and printed along with the Stardrifter calendar
-date. A simple template for headless/automation hooks.
+Any compiled program accepts `--headless`: the runtime prints the
+in-game time in the same "epoc / triads" format the cartography page
+shows (vhgame.txt "VHG onboard cartography information"), then exits
+without opening a window. The game keeps time as `VHGutcsecs` (UTC
+seconds since 1984-01-01); year = secs/1e9 + 6011 and the triads are the
+seconds split into 3-digit groups.
 
 ```sh
 ./vhgame.exe --headless
-# in-game epoch: 1344939002 seconds since 1984-01-01 UTC
-# Stardrifter date: 2026-08-14 10:10:02
+# epoc 6012 triads 344,939,367
 ```
-
-Note: the info page's "EPOCS" value (`VHGinforevepoc` + triads) is a
-*local* revolution counter that only composes while the player is at a
-planet; the headless space-start has no local target, so the runtime
-reports the global epoch instead.
