@@ -11,17 +11,13 @@ Noctis IV+ game in the language it inspired.
 
 ## Play the game
 
-The current Windows build is a complete playable port of the Noctis IV+
-gameplay route implemented in this repository. You
-can walk through the Stardrifter, target generated star systems, approach
-planets, enter the landing and surface systems, see source-positioned local
-suns and weather, cross the original depth-40 field of rocks, bushes, and trees,
-read the original EPOC/SQC/compass and environmental visor data, return in the capsule, and save
-your journey. It opens in a
-practical 2x window while retaining Noctis's authentic
-320x200 software framebuffer; iGUI's size and full-view controls can resize it
-without changing simulation or rendering coordinates. From PowerShell in the
-repository root, run:
+The current Windows build covers the complete playable Noctis IV+ route. Walk
+through the Stardrifter, target generated systems, approach and land on
+planets, explore weather and terrain, return in the capsule, and save the
+journey. The practical 2x window retains Noctis's authentic 320x200 software
+framebuffer and resizes without changing simulation or rendering coordinates.
+
+From PowerShell in the repository root, run:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\play_noctis.ps1
@@ -37,85 +33,67 @@ the game automatically when the executable is absent; pass `-Build` to force a
 fresh production build. Clean saves also retain the current validated window
 dimensions, so a resized game reopens at the same size.
 
-Essential controls: F10 opens the native GAME menu, W/A/S/D move, held left-click walks forward on a surface, Ctrl + W/A/S/D stalks surface birds, right mouse drag or arrow keys look, E starts the Stardrifter roof lift from inside the ship, and walking into the roof cupola opening starts the automatic return. Face the first computer on the Stardrifter's right wall and press Enter to type directly into GOES; G opens its large accessible view from anywhere in the ship. At the third wall panel, Enter starts planetary approach and, after FCS reports STANDBY, opens the physical landing-site selector. R and 5 activate the original world-space onboard-device and flight-control screens at the Stardrifter's z=0 forward plane; turn toward the forward windows, aim at a framed control or command, and left-click it. The third physical control opens the original Preferences page. Keys 6-9 remain direct shortcuts for the four command slots.
-`NEXT` selects and flies toward a nearby generated star, L remains the global approach fallback, arrows choose landing coordinates, L/Enter descends.
-On a surface, walk outside the capsule's 1,600-unit radius and re-enter it to
-trigger the original automatic return; R remains an accessible fallback while
-inside. J starts an ordinary jump, holding Space provides jetpack thrust, C
-cancels the jetpack, and L adds the original downward impulse while airborne.
-Ordinary jumps retain their takeoff direction; the active jetpack accepts
-W/A/S/D steering. Surface digits 1-9 toggle source-style forward
-cruise speeds and 0 stops cruise, F2 opens the original visual-effects settings,
-Page Up/Page Down open and close the visor, F5 opts into 60 FPS presentation (the original
-18.2 FPS mode is the default); player movement, flight, roof-lift, capsule,
-surface-wildlife poses, ocean swell, wakes, and close-star rotation are interpolated without
-changing the original simulation rate. Surface
-walking retains Noctis IV's forward and lateral momentum, ground friction,
-uphill resistance, tiredness, circular exploration limits, and the original
-terrain-dependent held-mouse pace. Walking near the ground also returns a
-tilted view gradually toward the horizon at the source rate. Capsule
-settlement begins the landed renderer from a clean authoritative camera pose.
-The settled capsule uses its mapped moving shell panels, and return preserves
-the original 32-frame seal and 250-frame ascent timing at 18.206 Hz.
-`+`/`-` adjust the source HUD brightness,
-F6/F7 save and load, F8 toggles music, M or `*`
-saves the next numbered 320x200 BMP under `work\GALLERY`; B, or Delete on a
-surface, saves the raw pre-overlay variant. On a settled
-surface N or `/` saves the original three-panel panorama while V or `.` saves
-its raw variant. `?` or F9 displays
-the complete current control card, F1 opens the original Noctis IV+ About page,
-X clears onboard control pages, and Esc saves and quits. A valid checkpoint
-resumes automatically; verified saves maintain `CURRENT.BAK`, and a damaged
-primary recovers visibly from that last-known-good copy. Enter `NEW` in GOES
-to start over. `WHERE <catalogued name>` identifies a charted star or resolves
-a planet to its parent system on the second GOES face; `CLR` clears that output
-tree. Bare `SL` lists all 7,579 non-removed star records in source order; the
-8,192-row history retains the complete listing and Home, End, Page Up, and
-Page Down move through it. `SL <range>` scans that centred procedural sector
-cube and lists only found catalogue stars with coordinates and light-year
-distance; Escape interrupts a long scan without quitting. `PAR <catalogued
-name>[:range]` performs the original procedural sector
-search and reports the star coordinates as X, -Y, Z; underscores stand for
-spaces in multi-word names. `ST <catalogued name>[:range]` sends a named star
-to Vimana, or starts local drive to a named planet when its system has already
-been reached. `DL <catalogued name>[:range]` regenerates the named system and
-prints its charted planet and moon dependency tree, including Galactic Guide
-note counts; bare `DL` uses the current remote target. The temporary query
-restores the player's current generated system and selected body afterward.
-`CAT <catalogued name>[:X..Y]` reads ranged Galactic Guide entries.
-`PRI <catalogued name>[:X..Y]` exports the same selected records to
-`GUIDE-PRINT.TXT` beside the running game, using the original continuous
-72-column printer layout. `PRIF <catalogued name>[:X..Y]` performs the
-historical file-output variant and writes that layout to `GDOUTPUT.TXT`.
-`CAST <catalogued name>:<notes>` appends a persistent
-player note of up to 76 characters. `REP <catalogued name>:<record>:<notes>` corrects one
-of those local notes; consolidated records supplied with the game remain
-protected. `DELE <catalogued name>[:X..Y]` tombstones selected local records
-without changing that protected source data. `CLEAN` compacts removed starmap
-and Guide records while preserving their consolidated boundaries. `REPAIR`
-finds duplicate starmap identities and exact duplicate Guide comments, keeps
-the first record, and tombstones later copies; run `CLEAN` afterward to compact
-them, exactly as the original utility requests. `OUTBOX`
-writes `work\OUTBOX.ZIP` in the original GOES packet layout, containing only
-live player-added labels and Guide notes rather than the protected shipped
-records. To receive another player's packet, place it beside the running game
-as `INBOX.ZIP` and submit `INBOX`; the importer preflights the whole packet,
-promotes new records into the consolidated archives, replaces matching local
-duplicates, and retains unrelated local additions. In a packaged build these
-packet files sit beside `Noctis-IV.exe`; in the source tree they sit under
-`work\`. The accessible G view now includes the same
-seven-line retained result history above its command prompt. `HELP` prints the
-original seven-row resident-module directory exactly. `X <text>` restores the
-Xnice bridge protocol: the active message is written to `X.TXT`, later messages
-queue in `XBUFF.TXT`, and bare `X` promotes the oldest queued line after an
-external consumer removes the active file. `IMPORTGD` is recognized but
-intentionally performs no conversion because this port already uses the old
-84-byte `GUIDE.BIN` format that the NICE-only command treated as its input. The
-GAME menu's Flight control and Onboard devices entries open
-resize-aware mouse-accessible versions of those physical pages; the hovered
-command turns white and one left click activates it. Both routes remain over
-the live Stardrifter instead of opening a black modal page. The GAME menu also
-offers a resize-aware Preferences mirror with the same four live PFS commands.
+### Essential controls
+
+- F10 opens the GAME menu. W/A/S/D move, right-drag or the arrow keys look,
+  and held left-click walks forward on a surface.
+- E starts the Stardrifter roof lift. Walk into the roof cupola opening for the
+  automatic return.
+- Face the first right-wall computer and press Enter to use GOES. G opens its
+  larger accessible view. At the third wall panel, Enter begins approach and
+  opens the landing-site selector after FCS reports STANDBY.
+- R and 5 open the world-space onboard-device and flight-control pages. Aim at
+  a framed command and left-click it. Keys 6-9 remain direct command shortcuts.
+- F1 opens About, F2 opens visual effects, F5 toggles smooth 60 FPS
+  presentation, F6/F7 save and load, F8 toggles music, F9 shows the full
+  control card, and Esc saves and quits.
+
+The original 18.2 FPS presentation remains the default. The 60 FPS mode
+interpolates player movement, flight, the lift, capsule, wildlife, ocean, and
+close-star poses without changing the original simulation rate.
+
+### Flight and surface play
+
+In GOES, `NEXT` selects a nearby generated star. L remains the global approach
+fallback. During landing, use the arrows to choose coordinates and L or Enter
+to descend.
+
+- On a surface, J jumps, Space runs the jetpack, C cancels it, and W/A/S/D
+  steer while thrust is active. L adds the original downward impulse.
+- Digits 1-9 select surface cruise speed and 0 stops it. Ctrl + W/A/S/D stalks
+  birds. Page Up and Page Down open and close the visor.
+- Walk outside the capsule's 1,600-unit radius and re-enter it to start the
+  original automatic return. R is the accessible fallback while inside.
+- `+` and `-` adjust HUD brightness. X clears onboard pages.
+
+Surface movement retains the source momentum, friction, slope resistance,
+tiredness, terrain-dependent pace, and circular exploration limits. Capsule
+return keeps the original 32-frame seal and 250-frame ascent timing.
+
+### Saves, captures, and GOES
+
+Checkpoints resume automatically. Each verified save maintains `CURRENT.BAK`,
+and a damaged primary visibly recovers from that last-known-good copy. Enter
+`NEW` in GOES to restart.
+
+- M or `*` saves a numbered 320x200 BMP under `work\GALLERY`. B, or Delete on
+  a surface, saves the raw pre-overlay image.
+- On a settled surface, N or `/` saves the three-panel panorama. V or `.` saves
+  its raw version.
+- F3 opens the original moviemaker. Plus/minus changes its interval, Ctrl plus
+  or minus changes decks, F changes the effect, Enter records, and P pauses.
+
+GOES retains the original catalogue and Guide tools. `WHERE`, `SL`, `PAR`,
+`ST`, and `DL` locate or regenerate stars, planets, and moon trees. `CAT`,
+`PRI`, and `PRIF` read or export Guide records. `CAST`, `REP`, `DELE`, `CLEAN`,
+and `REPAIR` maintain player notes without altering protected shipped records.
+`OUTBOX` exports player additions, while `INBOX` validates and merges another
+player's packet. `HELP` lists the resident modules, `CLR` clears output, and
+`X <text>` uses the Xnice bridge files. `IMPORTGD` is intentionally a no-op
+because this port already uses the older 84-byte `GUIDE.BIN` format.
+
+The GAME menu mirrors Flight control, Onboard devices, and Preferences in
+resize-aware mouse-accessible pages over the live Stardrifter.
 
 To build a clean, self-contained redistributable play folder with every runtime
 asset and a SHA-256 manifest:
@@ -133,16 +111,6 @@ bundle includes the original 48,376-record `GUIDE.BIN`. `CAST` additions remain
 separate from its consolidated source boundary, so the original records and
 new player notes can both be read after restarting the game. Back up
 `GUIDE.BIN` together with saves and `STARMAP.BIN` to preserve those notes.
-
-Press M or `*` to save a numbered 320x200 BMP with display overlays in the
-`GALLERY` folder. Press B outside the F2 graphics menu for the original raw
-snapshot variant, captured before the port-only display overlays.
-
-Press F3 for the original moviemaker panel. Plus/minus selects the capture
-interval, Ctrl plus/minus selects one of 999 movie decks, F selects the source
-tracking-line or black-flash treatment, Enter starts or stops recording, and P
-pauses or resumes it. Raw 320x200 frames are written to `MOVIES\DDD` with
-eight-digit BMP filenames.
 
 Ordinary pushes and pull requests run the protected-source check, integrated
 game regression, and snapshot package assembly on GitHub-hosted Windows. A
@@ -213,6 +181,8 @@ silhouette and the source's marked wall bands in frame.
   actually cover, including the representative procedural and native boundaries.
 - [`CI_RELEASES.md`](CI_RELEASES.md) describes hosted checks, the interactive
   source-build runner, and tagged prerelease publication.
+- [`docs/NIVGEN.md`](docs/NIVGEN.md) documents the public NIVGEN protocol,
+  local scoring workflow, known undefined texture tail, and accuracy strategy.
 
 ## Provenance
 
