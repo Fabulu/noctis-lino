@@ -1,7 +1,7 @@
       ( Native surface-flare oracle: dynamic spoke counts 1, 2, and 4, HUD
 	ghosts on/off, the 64..127 condition-2 band, the source x_centro=158
-	occlusion pixel, and the actual thin-atmosphere and quartz-world gallery
-	ray/distance pairs.  The
+	occlusion pixel, and the actual thin-atmosphere, quartz-world, and clear
+	habitable-world gallery ray/distance pairs.  The
 	first six concatenated Borland pages have SHA-256:
 
 	before AAB1EE2E97ABB322CA8F2A6EAB21829FD12604928EE5391AC2A53251C22CD179
@@ -9,7 +9,9 @@
 	The actual-context after pages are thin-atmosphere
 	1BF100BAF523624AB44BCC9DCDA60D5E0663B36E9E22F8CC73E17EF20F1581E9
 	and quartz-world
-	17835A159FA70BA49C6842E37ED6088128E988744514F5F537719391D73ABDD8. )
+	17835A159FA70BA49C6842E37ED6088128E988744514F5F537719391D73ABDD8,
+	and clear habitable-world
+	89F0D4288D0A73F3C9C446E07DBA74C14F9E439EFC6EBD81D29E3F902B41F47C. )
 
 "libraries"
 
@@ -36,7 +38,7 @@
 
 "workspace"
 
-	vhsprays = 8; vhspdists = 8; vhsppages = 8; vhspghosts = 8;
+	vhsprays = 9; vhspdists = 9; vhsppages = 9; vhspghosts = 9;
 
 "programme"
 
@@ -63,7 +65,7 @@
 	[VHFcx] = 161; [VHFcy] = 101; => VH surface flare;
 	[vhspfile] = vhspafter; => VHSP dump page;
 	A = [vhsppos]; A + 64000; [vhsppos] = A;
-	[vhspi]+; A = [vhspi]; ? A < 8 -> VHSP fixture;
+	[vhspi]+; A = [vhspi]; ? A < 9 -> VHSP fixture;
 	[vhspfile] = vhspbefore; => VHSP size file;
 	[vhspfile] = vhspafter; => VHSP size file;
 	=> FLeave;
@@ -76,7 +78,7 @@
 	end;
 
 "VHSP size file"
-	[File Name] = [vhspfile]; [File Command] = SET SIZE; [File Size] = 512000; isocall;
+	[File Name] = [vhspfile]; [File Command] = SET SIZE; [File Size] = 576000; isocall;
 	end;
 
 "VHSP fixtures"
@@ -88,6 +90,7 @@
 	[vhsprays plus 5] = 41A00000h; [vhspdists plus 5] = 443B8000h;
 	[vhsprays plus 6] = 40A4CCCDh; [vhspdists plus 6] = 42E0A1F0h;
 	[vhsprays plus 7] = 40A4CCCDh; [vhspdists plus 7] = 457B07C0h;
+	[vhsprays plus 8] = 40A4CCCDh; [vhspdists plus 8] = 4377B615h;
 	[vhsppages plus 0] = 64; [vhspghosts plus 0] = 1;
 	[vhsppages plus 1] = 90; [vhspghosts plus 1] = 1;
 	[vhsppages plus 2] = 120; [vhspghosts plus 2] = 1;
@@ -96,6 +99,7 @@
 	[vhsppages plus 5] = 90; [vhspghosts plus 5] = 0;
 	[vhsppages plus 6] = 64; [vhspghosts plus 6] = 1;
 	[vhsppages plus 7] = 64; [vhspghosts plus 7] = 1;
+	[vhsppages plus 8] = 64; [vhspghosts plus 8] = 1;
 	end;
 
 "VHG fpu clean"

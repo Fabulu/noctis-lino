@@ -234,9 +234,9 @@ per class (white core, flare, smoothing, and mask), with zero differing bytes
 across all 48 comparisons. A thirteenth space case uses the exact opening
 Stardrifter star (`40DDB22D`) and 200-unit gallery distance; its four complete
 pages also match the Borland-built NIV+ oracle with zero differing bytes.
-Eight surface-flare oracle cases likewise have zero page differences. Two of
+Nine surface-flare oracle cases likewise have zero page differences. Three of
 those cases use the exact binary32 ray and distance captured from the current
-thin-atmosphere and quartz-world gallery scenes.
+thin-atmosphere, quartz-world, and clear habitable-world scenes.
 
 **Playable evidence so far.** A fresh sequential opening Stardrifter capture
 shows a bright filled corona and radial beams at 60 FPS, backed by the exact
@@ -259,6 +259,11 @@ Its 300-degree view shows a planet partially occluding the primary disc while
 the companion flare remains separately visible. This is useful production
 coverage and proves both sources are live, but it does not by itself settle
 native full-context ordering or occlusion parity; that comparison remains open.
+
+The production habitable-world sweep also exercised the source weather gates:
+full flare at rain 0.5 and 0.625, sun without primary flare at rain 1.67 and
+2.0, and storm rendering without a flare at rain 2.5 through 5.0. The clear
+case's complete flare page now matches the native oracle byte for byte.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:
