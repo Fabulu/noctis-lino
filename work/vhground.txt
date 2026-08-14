@@ -5235,6 +5235,10 @@
 	? A = 0 -> VHGND tile done;
     "VHGND tile ground present"
 	[VHGNDruined] = 0;
+	( Only the three historical systems can populate ruinschart.  Every other
+	  generated surface leaves the wiped map empty, so avoid four marker probes
+	  for every accepted unit tile on the overwhelmingly common path. )
+	A = [VHGNDruinanchor]; ? A = 0 -> VHGND tile ruin ready;
 	A = VHGNDruins; A + [VHGNDh1]; A = [A]; ? A != 0 -> VHGND tile ruined;
 	A = VHGNDruins; A + [VHGNDh1]; A + [VHGNDlodstep]; A = [A]; ? A != 0 -> VHGND tile ruined;
 	A = [VHGNDlodstep]; A '* VHGNDMAP; A + [VHGNDlodstep]; A + VHGNDruins; A + [VHGNDh1]; A = [A]; ? A != 0 -> VHGND tile ruined;

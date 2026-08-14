@@ -194,6 +194,12 @@ heaviest habitable samples measured about 15.0 ms render plus 1.2 ms present,
 with wildlife-dependent runs near the boundary rather than the former 20 to
 23 ms render cost.
 
+Ordinary generated worlds now bypass the four per-tile ruin-marker probes when
+the authoritative historical-ruin anchor is absent. Those surfaces begin with
+an explicitly wiped ruin chart and have no writer outside the anchored ruin
+generator, so the shortcut removes only repeated reads of known zeroes while
+the three historical systems retain the complete marker path.
+
 Close surface stones now follow NIV+'s complete `roccia()` path: type-3
 generation retains the final `random(5)` quartz choice, type-8 sets quartz
 unconditionally, close-rock RNG draws keep their source order, rear faces use
