@@ -249,7 +249,7 @@ Two details turned out to be load-bearing:
 - **L.in.oleum has no 64-bit multiply.** The original folds `edx:eax` back
   together (`edx += eax`) after an `imul`, and the language exposes only the low
   32 bits. Both routes are implemented and verified against each other:
-  `work/mulcheck.txt` (portable, four 16×16 partial products) and
+  `work/mulcheck.txt` (portable, four 16-by-16 partial products) and
   `work/mulcheck2.txt` (a two-byte inline machine-language fragment). They
   produce byte-identical output.
 
@@ -271,7 +271,7 @@ on screen until dismissed. `lino_build.ps1` works around this by detecting the
 artifacts it leaves behind and killing it as soon as they appear.
 
 ```powershell
-powershell -File lino_build.ps1 -Src work\galaxy.txt
+powershell -File lino_build.ps1 -Src work\vhgame.txt
 ```
 
 Success prints `OK <path> <bytes> <seconds>`; warnings are listed but do not
@@ -296,17 +296,15 @@ upstream projects with their own licensing.
 ### Regression suite
 
 ```powershell
-python tests\run_all.py           # optional deep historical/release audit
-python tests\run_all.py galaxy    # just the tests matching "galaxy"
+python tests\test_vhgame.py       # lean integrated gameplay regression
+python tests\run_all.py galaxy    # tests whose filename contains "galaxy"
+python tests\run_all.py --deep    # full release and historical audit
 ```
 
-Routine work uses the smallest relevant regression or smoke check (normally within 10% of
-the change's implementation effort). Run the full roster explicitly for a release or deep
-audit; the historical timing above is not a standing delivery promise.
-
-The release roster contains 24 independently runnable suites. Each carries a
-header explaining what it guards and how it would fail. Representative early
-foundation checks are:
+Use the smallest relevant regression or playable smoke during ordinary work.
+Run the complete 24-suite roster for a release or deliberate deep audit. Every
+suite is independently runnable and explains its own prerequisites and scope.
+Representative foundation checks include:
 
 | Test | Guards |
 |---|---|
@@ -315,11 +313,14 @@ foundation checks are:
 | `test_galaxy_stress.py` | the same arithmetic on coordinates the 343-sector sweep cannot reach, including the ones that make all three cutoff branches fire |
 | `test_mulsplit.py` | the `*%` contract `galaxy2.txt` cannot self-test: which half lands in which operand, signed vs unsigned, and which registers survive |
 
-Nothing is graded against a stored `.bin`. Every side is rebuilt and re-run on
-each invocation, because a stored `.bin` is exactly what goes stale unnoticed.
-Each test also builds a deliberately wrong version of its subject and requires
-it to *fail*, so a check that has quietly stopped discriminating shows up as a
-failure rather than a green tick. Needs `gcc` on `PATH` for the C references.
+- Arithmetic and generation tests rebuild their Lino, C, and Python subjects
+  where those independent oracles exist.
+- Native NIV+ fixtures protect renderer and generation boundaries that cannot
+  be derived from the port itself.
+- Several historical suites include deliberately wrong variants to prove their
+  graders still discriminate.
+- C-backed reference checks require `gcc` on `PATH`; individual tests report
+  any additional reference-source requirement.
 
 ## Toolchain gotchas
 
@@ -358,7 +359,7 @@ Hard-won; all of these cost real debugging time.
    the template string `L.in.oleum runtime`.
 
 Documentation drift worth knowing: `readme.htm` says the CPU pack holds 6616
-instruction patterns; it holds **6241** (`48 × 6241 + 8` = the exact file size of
+instruction patterns; it holds **6241** (`48 * 6241 + 8` = the exact file size of
 `main/cpu/i386.bin`, and the compiler enforces that equality). The manual also
 calls the program counter `bcodesize`; it is `bpos`.
 
@@ -377,6 +378,6 @@ The upstream L.in.oleum compiler has its own WPL notice in [`wpl.htm`](wpl.htm).
 notices remain scoped to their respective material; no single licence is
 claimed for unrelated third-party components.
 
-Noctis IV is Copyright © 1996-2002 Alessandro Ghignola. Portions of the manual
-and soundtrack are Copyright © 2001-2002 Ryan J. Bury. See the licence files
+Noctis IV is Copyright (c) 1996-2002 Alessandro Ghignola. Portions of the manual
+and soundtrack are Copyright (c) 2001-2002 Ryan J. Bury. See the licence files
 before copying or redistributing the project or a packaged build.
