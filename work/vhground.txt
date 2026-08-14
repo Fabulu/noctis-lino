@@ -252,6 +252,7 @@
 	VHGNDbgcacheok = 0; VHGNDbgcachealpha = 0; VHGNDbgcachebeta = 0;
 	VHGNDbgcachep = 0; VHGNDbgcacheq = 0; VHGNDbgcachecount = 0;
 	VHGNDbgcachefrom = 0; VHGNDbgcacheto = 0;
+	VHGNDbgoffnative = 0; VHGNDbgsourcenative = 0; VHGNDbgdestinationnative = 0;
 
 "workspace"
 
@@ -2333,39 +2334,47 @@
 "VHGND background direct"
 	( Direct specialization of SP background for the fixed Noctis buffers.
 	  Region offsets cancel against their -4 segment origins exactly as in
-	  spbg; every destination row and source cursor still wraps at 16 bits. )
+	  spbg; every destination row and source cursor still wraps at 16 bits.
+	  Turning regenerates all 3,670 offset records, so execute that exact mapper
+	  natively instead of interpreting its record, row, and pixel loops. )
 	A = [BGshift]; A + 4; A & 65535; [BGdx] = A;
 	A = [BGstart]; A + 4; A & 65535; [BGbp] = A;
 	[BGsi] = 0; A = OMBYTES; A > 1; [BGcxr] = A;
-    "VHGND bg record"
-	A = nw; A + RNOFF; A + [BGsi];
-	C = [A]; C & 255; D = [A plus 1]; D & 255; D < 8; C + D; [BGw] = C;
-	A = [BGw]; ? A '>= 64000 -> VHGND bg skip;
-	A + [BGdx]; A & 65535; [BGdi] = A;
-	A = [BGbp]; A & 65535; A + SSBG; A + nw; C = [A]; C & 255; [BGpx] = C;
-	[BGi] = 0;
-    "VHGND bg row"
-	A = [BGi]; A '* 320; A + [BGdi]; A & 65535; [VHGNDbgrowbase] = A;
-	? A '<= 65531 -> VHGND bg row contiguous;
-	[VHGNDbgcol] = 0;
-    "VHGND bg row wrapped"
-	A = [VHGNDbgrowbase]; A + [VHGNDbgcol]; A & 65535; A + SADPT; A + nw;
-	C = [BGpx]; [A] = C; [VHGNDbgcol]+;
-	A = [VHGNDbgcol]; ? A < 5 -> VHGND bg row wrapped;
-	-> VHGND bg row done;
-    "VHGND bg row contiguous"
-	D = nw; D + SADPT; D + [VHGNDbgrowbase]; C = [BGpx];
-	[D plus 0] = C; [D plus 1] = C; [D plus 2] = C; [D plus 3] = C; [D plus 4] = C;
-    "VHGND bg row done"
-	[BGi]+; A = [BGi]; ? A < 5 -> VHGND bg row;
-    "VHGND bg consume"
-	A = [BGbp]; A + 1; A & 65535; [BGbp] = A;
-	-> VHGND bg next;
-    "VHGND bg skip"
-	A = [BGw]; A - 64000; A + [BGbp]; A & 65535; [BGbp] = A;
-    "VHGND bg next"
-	A = [BGsi]; A + 2; [BGsi] = A;
-	[BGcxr]-; A = [BGcxr]; ? A != 0 -> VHGND bg record;
+	A = nw; A + RNOFF; [VHGNDbgoffnative] = A;
+	A = nw; A + SSBG; [VHGNDbgsourcenative] = A;
+	A = nw; A + SADPT; [VHGNDbgdestinationnative] = A;
+	{
+	    53 56 57 55 89 FD                  (save registers; ebp = workspace)
+	    8B B5 <dVHGNDbgoffnative mtp bytesperunit> 8D 74 B5 00
+	    8B 95 <dVHGNDbgsourcenative mtp bytesperunit> 8D 54 95 00
+	    8B BD <dVHGNDbgdestinationnative mtp bytesperunit> 8D 7C BD 00
+	    8B 9D <dBGbp mtp bytesperunit>     (ebx = 16-bit source cursor)
+	    0F B6 06 0F B6 4E 04 C1 E1 08 01 C8
+	    89 85 <dBGw mtp bytesperunit>      (decode next little-endian record)
+	    3D 00 FA 00 00 0F 83 81 00 00 00  (64000..65535 skips source bytes)
+	    03 85 <dBGdx mtp bytesperunit> 25 FF FF 00 00
+	    89 85 <dBGdi mtp bytesperunit>
+	    0F B6 0C 9A 89 8D <dBGpx mtp bytesperunit>
+	    C7 85 <dBGi mtp bytesperunit> 00 00 00 00
+	    8B 85 <dBGi mtp bytesperunit> 69 C0 40 01 00 00
+	    03 85 <dBGdi mtp bytesperunit> 25 FF FF 00 00
+	    89 85 <dVHGNDbgrowbase mtp bytesperunit>
+	    89 0C 87 40 25 FF FF 00 00         (five columns, wrapping each one)
+	    89 0C 87 40 25 FF FF 00 00
+	    89 0C 87 40 25 FF FF 00 00
+	    89 0C 87 40 25 FF FF 00 00
+	    89 0C 87
+	    FF 85 <dBGi mtp bytesperunit>
+	    83 BD <dBGi mtp bytesperunit> 05 7C AD
+	    43 81 E3 FF FF 00 00 EB 0D         (ordinary record consumes one byte)
+	    2D 00 FA 00 00 01 C3 81 E3 FF FF 00 00
+	    83 C6 08                           (next two offset-map units)
+	    FF 8D <dBGcxr mtp bytesperunit>
+	    0F 85 46 FF FF FF                  (next record)
+	    89 9D <dBGbp mtp bytesperunit>
+	    5D 5F 5E 5B                        (restore registers)
+	}
+	[BGsi] = OMBYTES;
 	end;
 
 "VHGND eye height"

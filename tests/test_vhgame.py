@@ -955,7 +955,12 @@ def main() -> int:
         and '"VHGND background cache save"' in ground
         and '"VHGND background cache restore"' in ground
         and "VHGNDskycache = 64000" in ground
-        and "A & 65535; [BGdi] = A;" in ground
+        and all(token in ground for token in (
+            "[VHGNDbgoffnative] = A;", "[VHGNDbgsourcenative] = A;",
+            "[VHGNDbgdestinationnative] = A;", "25 FF FF 00 00",
+            "89 85 <dBGdi mtp bytesperunit>",
+            "0F 85 46 FF FF FF",
+        ))
         and "VHGNDbgstart = 0; VHGNDbgshift = 0; VHGNDbgangle = 0;" in ground
         and "A = [VHGNDbeta]; ? A >= 0 -> VHGND background angle ready; A + 360;" in ground
         and "C = [VHGNDbgangle]; C % 360; A - C; [VHGNDbgstart] = A;" in ground
