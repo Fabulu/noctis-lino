@@ -374,19 +374,26 @@ second is the one already stored by the authored checkpoints. Interactive and
 ordinary launches do not pass the option and continue using live UTC. This
 removes wall-clock drift from planet, weather, disc, and flare comparisons.
 
-The first certified type-3 comparison at that fixed second found another
-upstream mismatch rather than a beam-raster defect. At body 3, longitude 270,
-NIV+ retained solar distance `243.552`, exposure `69.6514`, and rain `5`; Lino
-originally retained `247.711`, `35.9996`, and `0`. The first distance defect is
-fixed: surface lighting now uses the source's live phase-dependent body vector
-instead of the nominal orbital radius, with the separate companion-owner rule.
-The same pinned product case now reports `243.633`. Its remaining `0.081`
-distance error, plus the unchanged exposure and rain errors, identifies a
-smaller generated-orbit or floating-schedule mismatch upstream. Consequently
-NIV+ showed a storm-muted sky while Lino admitted a full radial flare. Do not
-grade or tune the beam pages from that pair. The generated orbital distance,
-terminator, and selected cloud texel must match first, then the exact viewpoint
-can be recaptured.
+The first retained type-3 comparison was invalidated rather than used to tune
+the renderer. NIV+ reloads `secs` from the DOS clock during landed resume, so
+the saved fixture epoch had silently been replaced by the capture machine's
+date. A Borland-built source harness with `secs=1344638527` now supplies the
+valid oracle at body 3, longitude 270. NIV+ and Lino both report solar distance
+`243.633`, exposure `35.9996`, rain `0`, day classification, surface class 1,
+albedo 16, and surface seed 1029155. Surface lighting now obtains that distance
+from the source's live phase-dependent body vector instead of the nominal
+orbital radius, including the separate companion-owner rule.
+
+That matched-state comparison also exposed an invalid camera fixture. NIV+
+clamps surface pitch to `-44.9` degrees, but a fast product capture had retained
+an impossible `-45` checkpoint and displaced the flare centre by 15 rows. The
+capture tool now clamps authored integer pitches to the port's playable
+`-44..44` range even when simulation is disabled. At `-44`, the product and
+pinned native frames align the primary centre at approximately `(161,130)` and
+show the same giant radial layout. The standalone page oracle already grades
+this exact flare algorithm byte for byte. Exact full-context framebuffer and
+palette grading for this viewpoint remains open; the false storm comparison is
+not admissible evidence.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:

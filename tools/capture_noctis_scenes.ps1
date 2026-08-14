@@ -260,6 +260,13 @@ function New-Checkpoint {
     param([hashtable]$Spec, [string]$Path)
     $playerX = if ($Spec.ContainsKey('PlayerX')) { $Spec.PlayerX } else { 1638400 }
     $playerZ = if ($Spec.ContainsKey('PlayerZ')) { $Spec.PlayerZ } else { 1638400 }
+    # NIV+ clamps user_alfa to +/-44.9. The port stores whole-degree camera
+    # angles, so +/-44 is its closest playable checkpoint boundary. Clamp
+    # authored states here as well because Fast capture mode intentionally
+    # skips simulation and would otherwise preserve an impossible pitch.
+    $pitch = if ($Spec.ContainsKey('Pitch')) { [int]$Spec.Pitch } else { -12 }
+    if ($pitch -gt 44) { $pitch = 44 }
+    if ($pitch -lt -44) { $pitch = -44 }
     $u = New-Object 'System.Int32[]' 67
     $u[0] = [int]0x56485356
     $u[1] = $CheckpointVersion
@@ -268,7 +275,7 @@ function New-Checkpoint {
     $u[4] = $playerX
     $u[5] = if ($Spec.ContainsKey('PlayerY')) { $Spec.PlayerY } else { -600 }
     $u[6] = $playerZ
-    $u[7] = if ($Spec.ContainsKey('Pitch')) { $Spec.Pitch } else { -12 }
+    $u[7] = $pitch
     $u[8] = $Spec.Beta
     $u[9] = 0
     $u[10] = 0
@@ -278,7 +285,6 @@ function New-Checkpoint {
         # vector projects to the centre of the 320x200 source viewport.
         $radians = [Math]::PI / 180.0
         $distance = [double]$Spec.StarDistance
-        $pitch = if ($Spec.ContainsKey('Pitch')) { $Spec.Pitch } else { -12 }
         $cosAlpha = [Math]::Cos($pitch * $radians)
         $relativeX = -[Math]::Sin($Spec.Beta * $radians) * $cosAlpha * $distance
         $relativeY = [Math]::Sin($pitch * $radians) * $distance
