@@ -2230,28 +2230,6 @@
     "VHGND palette fade done"
 	end;
 
-"VHGND guard band"
-	( TDPOLYGS.H clips the rendered world to x=5..311 and y=10..190.
-	  The DOS page outside that rectangle starts cleared and remains the
-	  dark frame seen around the original planetary view.  Normalize it
-	  after the wrapping panorama mapper so its edge cannot become ragged. )
-	[VHGNDptr] = 0;
-    "VHGND guard top"
-	A = nw; A + RADPT; A + [VHGNDptr]; [A] = 0;
-	[VHGNDptr]+; A = [VHGNDptr]; ? A < 3200 -> VHGND guard top;
-	[VHGNDptr] = 61120;
-    "VHGND guard bottom"
-	A = nw; A + RADPT; A + [VHGNDptr]; [A] = 0;
-	[VHGNDptr]+; A = [VHGNDptr]; ? A < NPIX -> VHGND guard bottom;
-	[VHGNDtmp] = 10;
-    "VHGND guard sides"
-	A = [VHGNDtmp]; A '* 320; A + RADPT; A + nw; D = A;
-	[D plus 0] = 0; [D plus 1] = 0; [D plus 2] = 0; [D plus 3] = 0; [D plus 4] = 0;
-	[D plus 312] = 0; [D plus 313] = 0; [D plus 314] = 0; [D plus 315] = 0;
-	[D plus 316] = 0; [D plus 317] = 0; [D plus 318] = 0; [D plus 319] = 0;
-	[VHGNDtmp]+; A = [VHGNDtmp]; ? A <= 190 -> VHGND guard sides;
-	end;
-
 "VHGND background"
 	( NOCTIS-1.CPP:3939-3942, with this port's yaw in beta and pitch in
 	  alpha.  The original offset-map panorama is regenerated when the view
@@ -2285,12 +2263,10 @@
 	end;
     "VHGND background regenerate"
 	( The source enters planetary_main with adapted cleared to index zero.
-	  background() paints the 306x180 view but deliberately leaves its guard
-	  band alone.  Filling the whole page with sky_brightness turned that
-	  guard band white on bright surface palettes. )
+	  background() paints its wrapped panorama into the DOS page, including
+	  the irregular edge pixels outside the terrain raster's clip rectangle. )
 	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
 	=> VHGND background direct;
-	=> VHGND guard band;
 	=> VHGND background cache save;
 	[VHGNDbgcachealpha] = [VHGNDalpha]; [VHGNDbgcachebeta] = [VHGNDbeta];
 	[VHGNDbgcacheok] = 1;
@@ -2302,7 +2278,6 @@
 	=> VHGND background lightning invert;
 	=> VHGND background direct;
 	=> VHGND background lightning invert;
-	=> VHGND guard band;
 	end;
 
 "VHGND background lightning invert"

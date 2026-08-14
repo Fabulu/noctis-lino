@@ -436,11 +436,13 @@ box and apply the same transformation to every changed pixel. Their following
 palette-band masks also cover the same 58,240 pixels in
 `(0,9)..(319,190)`. The later `lens_flares_for` pass changes zero pixels in
 both engines at this pose, so the visible corona and radial layout belong to
-the exactly matched local-sun pass. The 2,676 page differences already present
-before that pass remain unchanged after it and after masking; they are an
-upstream sky/background issue, not evidence of a sun-stage mismatch. Exact
-whole-frame indexed grading remains open until that upstream difference is
-resolved.
+the exactly matched local-sun pass. The remaining 2,676 differences were all
+zeroed Lino pixels in the panorama mapper's irregular edge area. The port had
+added a rectangular guard-band erase that does not exist in NIV+ and could
+present as a black horizon edge. Removing that erase makes the complete
+64,000-byte pre-sun page exact, so the full background, sun, and mask sequence
+is now byte-exact for this real scene. Final terrain and object compositing
+remain separate coverage.
 
 **Airless lunar lower-gate checkpoint.** IDEAL I adds the complementary close
 sun case on a type-1 world at longitude 0, heading 90, and pitch -44. Product
