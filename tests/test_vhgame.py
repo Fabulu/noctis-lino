@@ -1010,6 +1010,8 @@ def main() -> int:
     )
     local_sun = section(ground, '"VHGND local sun"', '"VHGND surrounding frame"')
     secondary_sun = section(ground, '"VHGND secondary sun setup"', '"VHGND local sun"')
+    opening_sky = section(ground, '"VHGND sky"', '"VHGND general sky"')
+    general_sky = section(ground, '"VHGND general sky"', '"VHGND UTC seconds"')
     sun_zero_view = "[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;"
     surface_world_view = (
         "[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; "
@@ -1025,7 +1027,9 @@ def main() -> int:
             "[WHshape] = 1; [WHsun] = 1; [WHdstreg] = RGADP; => SP white;",
             "=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;",
         ))
-        and "[GRSKatmosphere] = [VHGNDatmosphere]; [GRSKnightzone] = 0; [VHGNDsunxf] = 1;" in ground
+        and "[GRSKatmosphere] = [VHGNDatmosphere];" in ground
+        and "[GRSKnightzone] = 0; [VHGNDsunxf] = 1;" in opening_sky
+        and "[GRSKnightzone] = 0; [VHGNDsunxf] = 1;" not in general_sky
         and "[VHGNDcrep] = A; A = 0; A - 1; [VHGNDsunxf] = A;" in ground
         and traversal.index(sun_zero_view)
         < traversal.index("=> VHGND local sun;")
@@ -1154,7 +1158,9 @@ def main() -> int:
         and game.index("=> VHS stars; => VHG finder render;") > game.index("=> VH set view; [VHLpower] = [VHGilight]; [VHLemergency] = [VHGelight]; => VH alogena;")
         and all(token in space for token in (
             "C '* 320; C + A; C + 4; [SPoff] = C;",
-            "C = [SPval]; ? C < 64 -> VHS draw next; ? C > 92 -> VHS draw next;",
+            "C = [SPval]; A = [VHSsurface]; ? A != 0 -> VHS draw surface gate;",
+            "? C = 68 -> VHS draw next; ? C < 64 -> VHS draw next; ? C > 92 -> VHS draw next;",
+            '"VHS draw surface gate"', "? C > 62 -> VHS draw next;",
             "D = C; D & 192; C & 63; C + [VHScolour];",
             "? C > 92 -> VHS replay next;",
             '"VHS fade"', "C + 2876; [VHSfadebase] = C;",
