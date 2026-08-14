@@ -15,6 +15,27 @@ showed an unrelated foliage mass. The gallery also retains the distant whole
 Suricrasian Cube and a close type-8 planet through the Stardrifter window after
 a genuine fine-approach checkpoint.
 
+Tree recursion now retains the source binary32 coordinates, scale, spread,
+width, peak, and root-height values. The earlier integer recursion changed the
+fractional coordinate sum after the first limb, which changed every later node
+seed and could explode a crown into rainbow polygons across the sky. The live
+renderer now preserves the native branch and foliage topology and uses bounded
+branch centrelines while the remaining textured-tree-face mapper discrepancy is
+tracked separately. The promoted tree frame contains no rainbow spray or slab.
+
+The production NIVGEN harness now speaks the public command protocol, emits the
+actual L.in.oleum orbital and landed buffers, and scores public sheet rows by
+field. Surface generation restores the source crater workload and matches all
+deterministic bytes covered by the current type sweep. The known final four
+surface-texture bytes are documented as NIV+/vanilla undefined data rather than
+being fitted to one arbitrary memory capture.
+
+The optional 60 Hz path now presents completed simulation states at stable
+boundaries and keeps original gameplay cadence. Surface panorama addressing is
+canonicalized before sampling, removing the moving black horizon pillar, and
+the refreshed frozen-world frame no longer contains its former diagonal stroke
+or blown-out foreground cluster.
+
 Close stellar coronas are bright filled discs again. The second and third
 stellar palette ramps had inherited the previous shade routine's divisor, so
 otherwise correct high-index sun pixels were mapped back toward black. Each
