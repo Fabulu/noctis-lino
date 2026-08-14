@@ -1,6 +1,6 @@
 # Noctis IV L.in.oleum port -- Windows release
 
-Beta 6 extends the orbital gallery across the generated planet classes,
+Beta 6 extends the orbital gallery across all generated planet types 0 through 9,
 accelerates every orbital globe and the Stardrifter hull, restores the exact
 crater squared-distance recurrence, reproduces the landed generator's heap-gap
 layout for NIVGEN, and repairs giant-tree generation. The tree now follows the
@@ -21,7 +21,9 @@ the measured tree record itself from 45,000 units away. The previous checkpoint
 faced north while its advertised tree was west of the camera, so the frame only
 showed an unrelated foliage mass. The gallery also retains the distant whole
 Suricrasian Cube and a close type-8 planet through the Stardrifter window after
-a genuine fine-approach checkpoint.
+a genuine fine-approach checkpoint. Separate, radius-matched fine-approach
+frames now cover every orbital planet type, including internally hot type 0,
+the large banded type 6, and a second milky type-8 world.
 
 Tree recursion now retains the source binary32 coordinates, scale, spread,
 width, peak, and root-height values. The earlier integer recursion changed the

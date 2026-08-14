@@ -154,13 +154,13 @@ rendering result. Reproduce them with
 |---|---|
 | ![A stellar corona and flare reflections seen through the transparent Stardrifter windows](screenshots/stardrifter-sun.png) | ![A close type-8 planet seen through the Stardrifter window after a completed fine approach](screenshots/planet-close-space.png) |
 
-| Craterized world | Dense atmosphere | Felisian world | Creased world |
-|---|---|---|---|
-| ![A craterized airless planet from the Stardrifter](screenshots/planet-space-lunar.png) | ![A purple dense-atmosphere planet from the Stardrifter](screenshots/planet-space-dense.png) | ![A bright Felisian planet from the Stardrifter](screenshots/planet-space-habitable.png) | ![A creased airless planet from the Stardrifter](screenshots/planet-space-rocky.png) |
+| Internally hot | Craterized | Dense atmosphere | Felisian | Creased |
+|---|---|---|---|---|
+| ![An internally hot type-0 planet from the Stardrifter](screenshots/planet-space-hot.png) | ![A craterized airless planet from the Stardrifter](screenshots/planet-space-lunar.png) | ![A purple dense-atmosphere planet from the Stardrifter](screenshots/planet-space-dense.png) | ![A bright Felisian planet from the Stardrifter](screenshots/planet-space-habitable.png) | ![A creased airless planet from the Stardrifter](screenshots/planet-space-rocky.png) |
 
-| Thin atmosphere | Frozen world | Substellar object |
-|---|---|---|
-| ![A thin-atmosphere planet from the Stardrifter](screenshots/planet-space-thin.png) | ![A half-lit frozen planet from the Stardrifter](screenshots/planet-space-frozen.png) | ![A substellar object in a bright crowded system](screenshots/planet-space-substellar.png) |
+| Thin atmosphere | Large world | Frozen world | Milky world | Substellar object |
+|---|---|---|---|---|
+| ![A thin-atmosphere planet from the Stardrifter](screenshots/planet-space-thin.png) | ![A banded type-6 giant from the Stardrifter](screenshots/planet-space-large.png) | ![A half-lit frozen planet from the Stardrifter](screenshots/planet-space-frozen.png) | ![A dark type-8 milky world from the Stardrifter](screenshots/planet-space-milky.png) | ![A substellar object in a bright crowded system](screenshots/planet-space-substellar.png) |
 
 | Planetary console | Planetary surface |
 |---|---|

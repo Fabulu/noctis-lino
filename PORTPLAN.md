@@ -75,6 +75,11 @@ first -- a broken foundation makes every later result meaningless.
   caption as `vhgame`, so caption polling could never identify readiness and
   previously misreported a completed surface as a three-minute initialization
   failure.
+- The orbital gallery now uses radius-matched fine-approach checkpoints for
+  every generated planet type from 0 through 9. The added type-0, type-6, and
+  type-8 scenes use small authentic catalogue systems rather than JROT's
+  pathological 80-body generator, keeping the complete gallery reproducible
+  in a bounded sequential run.
 - The authentic one-body system IDEAL supplies the type-1 gallery scene. The
   complete clean native capture finishes in about 15.7 seconds, and `-Scene
   all` produces ten non-blank ship/world/ruin frames in one bounded run.

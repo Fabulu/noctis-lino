@@ -5,8 +5,9 @@ param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
     [ValidateSet('all', 'stardrifter', 'planetclose',
-        'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
-        'orbitthin', 'orbitfrozen', 'orbitsubstellar',
+        'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
+        'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
+        'orbitsubstellar',
         'lunar', 'dense', 'habitable', 'tree', 'hopper', 'rocky', 'thin',
         'frozen', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -72,9 +73,13 @@ $scenes = @(
        X=3979984; Y=-43407; Z=-43984; Body=0; Type=8; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
        LocalX=0.046885; LocalY=0.0; LocalZ=-0.110461 },
-    # Target-relative fine-approach frames for the other major orbital body
-    # classes. Each offset is scaled from the type-8 checkpoint by the target's
+    # Target-relative fine-approach frames for every orbital body class. Each
+    # offset is scaled from the type-8 checkpoint by the target's
     # generated p_ray, keeping the camera at the same apparent body radius.
+    @{ Name='orbithot'; FileName='planet-space-hot.png'; Mode=0;
+       X=4162480; Y=-6132645; Z=587893; Body=1; Type=0; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.025697; LocalY=0.0; LocalZ=-0.060539 },
     @{ Name='orbitlunar'; FileName='planet-space-lunar.png'; Mode=0;
        X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
@@ -95,10 +100,18 @@ $scenes = @(
        X=-1996240944; Y=72703; Z=944799; Body=3; Type=5; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
        LocalX=0.030966; LocalY=0.0; LocalZ=-0.072956 },
+    @{ Name='orbitlarge'; FileName='planet-space-large.png'; Mode=0;
+       X=770352; Y=-131847; Z=665208; Body=0; Type=6; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.261698; LocalY=0.0; LocalZ=-0.616521 },
     @{ Name='orbitfrozen'; FileName='planet-space-frozen.png'; Mode=0;
        X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
        LocalX=0.039580; LocalY=0.0; LocalZ=-0.093250 },
+    @{ Name='orbitmilky'; FileName='planet-space-milky.png'; Mode=0;
+       X=3904272; Y=-4365172; Z=-679394; Body=1; Type=8; Lon=0; Lat=60;
+       Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       LocalX=0.055611; LocalY=0.0; LocalZ=-0.131011 },
     @{ Name='orbitsubstellar'; FileName='planet-space-substellar.png'; Mode=0;
        X=1463568; Y=-4728350; Z=-437812; Body=1; Type=9; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
