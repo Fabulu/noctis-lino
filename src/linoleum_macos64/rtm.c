@@ -79,6 +79,9 @@ int pWorkspaceSize;
 /* pointer to uninitialized workspace */
 unit *pUIWorkspace;
 
+/* headless mode flag (--headless on the command line) */
+bool gHeadless;
+
 unit current_ramtop;
 
 /* file group */
@@ -122,20 +125,25 @@ int main(int argc, char **argv, char **env)
 
 	environment = env;
 
-	/* headless mode: report the in-game epoch and exit. The game's clock
-	 * is "UTC seconds since 1984-01-01" (VHGutcsecs, vhgame.txt "VHG UTC
+	/* headless mode: report the in-game time and exit. The game's clock is
+	 * "UTC seconds since 1984-01-01" (VHGutcsecs, vhgame.txt "VHG UTC
 	 * timestamp"), which is exactly now - 1984-01-01. */
 	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--headless") == 0) {
 			struct tm t0;
-			time_t e1984;
+			time_t e1984, now = time(NULL);
+			struct tm *gt;
 			memset(&t0, 0, sizeof t0);
 			t0.tm_year = 84;
 			t0.tm_mon = 0;
 			t0.tm_mday = 1;
 			e1984 = timegm(&t0);
 			printf("in-game epoch: %ld seconds since 1984-01-01 UTC\n",
-			       (long) (time(NULL) - e1984));
+			       (long) (now - e1984));
+			gt = gmtime(&now);
+			printf("Stardrifter date: %04d-%02d-%02d %02d:%02d:%02d\n",
+			       gt->tm_year + 1900, gt->tm_mon + 1, gt->tm_mday,
+			       gt->tm_hour, gt->tm_min, gt->tm_sec);
 			return 0;
 		}
 	}
