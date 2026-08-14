@@ -377,10 +377,16 @@ removes wall-clock drift from planet, weather, disc, and flare comparisons.
 The first certified type-3 comparison at that fixed second found another
 upstream mismatch rather than a beam-raster defect. At body 3, longitude 270,
 NIV+ retained solar distance `243.552`, exposure `69.6514`, and rain `5`; Lino
-retained `247.711`, `35.9996`, and `0`. Consequently NIV+ showed a storm-muted
-sky while Lino admitted a full radial flare. Do not grade or tune the beam pages
-from that pair. The generated orbital distance, terminator, and selected cloud
-texel must match first, then the exact viewpoint can be recaptured.
+originally retained `247.711`, `35.9996`, and `0`. The first distance defect is
+fixed: surface lighting now uses the source's live phase-dependent body vector
+instead of the nominal orbital radius, with the separate companion-owner rule.
+The same pinned product case now reports `243.633`. Its remaining `0.081`
+distance error, plus the unchanged exposure and rain errors, identifies a
+smaller generated-orbit or floating-schedule mismatch upstream. Consequently
+NIV+ showed a storm-muted sky while Lino admitted a full radial flare. Do not
+grade or tune the beam pages from that pair. The generated orbital distance,
+terminator, and selected cloud texel must match first, then the exact viewpoint
+can be recaptured.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:

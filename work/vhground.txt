@@ -1806,11 +1806,12 @@
 	=> VHGND general phase setup; [GRSKowner] = [VHGNDowner];
     "VHGND general phase ready"
 
-	( dsd1 is the active sun distance: the parent planet's star orbit for
-	  ordinary moons, or the body's own orbit otherwise. )
-	A = [VHGNDphaseindex]; A < 1; E = nsporbray; E + A;
-	[FA0] = [E plus 0]; [FA1] = [E plus 1]; => F32Narrow; => FStoreF32;
-	[GRSKdsd1] = [FS0];
+	( dsd1 is the live distance to the active sun, not the nominal orbital
+	  radius.  NIV+ computes the selected body's phase-dependent absolute
+	  vector, takes its length plus one, and narrows that result to float.  A
+	  body orbiting a companion-class star instead uses its live distance to
+	  that owner without the extra unit. )
+	=> VHGND primary sun distance;
 
 	( The live landing generator retains the selected surface palette colour,
 	  cloud load and exact tint stream.  Keep the old deterministic fallback
@@ -2086,6 +2087,35 @@
 	[VHGNDvecx0] = [VHGNDownx0]; [VHGNDvecx1] = [VHGNDownx1];
 	[VHGNDvecy0] = [VHGNDowny0]; [VHGNDvecy1] = [VHGNDowny1];
 	[VHGNDvecz0] = [VHGNDownz0]; [VHGNDvecz1] = [VHGNDownz1];
+	end;
+
+"VHGND primary sun distance"
+	( Reproduce planetary_main's dsd1 selection.  Ordinary bodies use
+	  sqrt((planet-primary)^2)+1.  For a world owned by a companion star,
+	  planets() stores the body's direct distance from that owner instead. )
+	E = nspowner; E + [VHGNDplanet]; A = [E];
+	? A < 0 -> VHGND primary distance absolute;
+	E = nsptype; E + A; C = [E]; ? C != 10 -> VHGND primary distance absolute;
+	[VHGNDvecindex] = [VHGNDplanet]; => VHGND body vector;
+	[VHGNDtmp] = 0; -> VHGND primary distance length;
+    "VHGND primary distance absolute"
+	[VHGNDvecindex] = [VHGNDplanet]; => VHGND absolute body vector;
+	[VHGNDtmp] = 1;
+    "VHGND primary distance length"
+	[FA0] = [VHGNDvecx0]; [FA1] = [VHGNDvecx1];
+	[FB0] = [VHGNDvecx0]; [FB1] = [VHGNDvecx1]; => FMul;
+	[VHGNDxx0] = [FA0]; [VHGNDxx1] = [FA1];
+	[FA0] = [VHGNDvecy0]; [FA1] = [VHGNDvecy1];
+	[FB0] = [VHGNDvecy0]; [FB1] = [VHGNDvecy1]; => FMul;
+	[FB0] = [VHGNDxx0]; [FB1] = [VHGNDxx1]; => FAdd;
+	[VHGNDxx0] = [FA0]; [VHGNDxx1] = [FA1];
+	[FA0] = [VHGNDvecz0]; [FA1] = [VHGNDvecz1];
+	[FB0] = [VHGNDvecz0]; [FB1] = [VHGNDvecz1]; => FMul;
+	[FB0] = [VHGNDxx0]; [FB1] = [VHGNDxx1]; => FAdd; => FSqrt;
+	A = [VHGNDtmp]; ? A = 0 -> VHGND primary distance narrow;
+	[FB0] = 0; [FB1] = 3FF00000h; => FAdd;
+    "VHGND primary distance narrow"
+	=> F32Narrow; => FStoreF32; [GRSKdsd1] = [FS0];
 	end;
 
 "VHGND exact viewpoint"
