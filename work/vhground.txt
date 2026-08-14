@@ -1514,7 +1514,11 @@
 	end;
 
 "VHGND felisian line"
-	( felisian_srf_darkline over the 200x200 height map. )
+	( felisian_srf_darkline over the 200x200 height map.  The source bounds
+	  only the centre location.  Its four-neighbour stores deliberately retain
+	  the huge-pointer spill at the map edges: the positive edge crosses the
+	  sixteen-byte far-heap header and can update the adjacent object chart.
+	  This is observable in NIVGEN object maps, so model it in flat memory. )
 	C = 200; => SU rnd; [VHGNDlinex] = C;
 	C = 200; => SU rnd; [VHGNDlinez] = C;
 	C = 25; => SU rnd; C - 50; [VHGNDdeviation] = C;
@@ -1534,13 +1538,13 @@
     "VHGND felisian peak"
 	[VHGNDtmp] = A; [MBval] = A;
 	A = RPSM; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
-	A = [VHGNDptr]; A + 1; ? A '>= 40000 -> VHGND felisian left; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+	A = [VHGNDptr]; A + 1; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
     "VHGND felisian left"
-	A = [VHGNDptr]; A - 1; ? A '<= 0 -> VHGND felisian down; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+	A = [VHGNDptr]; A - 1; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
     "VHGND felisian down"
-	A = [VHGNDptr]; A + 200; ? A '>= 40000 -> VHGND felisian up; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+	A = [VHGNDptr]; A + 200; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
     "VHGND felisian up"
-	A = [VHGNDptr]; A - 200; ? A '<= 0 -> VHGND felisian next; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+	A = [VHGNDptr]; A - 200; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
     "VHGND felisian next"
 	[VHGNDlinelen]-; -> VHGND felisian pixel;
     "VHGND felisian done"

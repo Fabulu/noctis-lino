@@ -34,6 +34,15 @@ The public schema currently exposes original, Rust, and LR results but does not
 yet expose L.in.oleum columns. Accuracy work uses the saved snapshot locally;
 an unavailable host is recorded once and is never retried or polled.
 
+The first-page accuracy sweep now covers all 85 type-2 rows on which the
+current Rust leader reports an error. L.in.oleum matches all 935 scored NIV+
+hashes across orbital output and both landed sites. The last three random-site
+object charts exposed a source memory effect: `felisian_srf_darkline()` bounds
+its centre pixel but not its four neighbouring writes. A south-edge neighbour
+can cross the 40,000-byte heightmap, pass through the 16-byte far-heap header,
+and alter the adjacent object chart. The port now reproduces that bounded spill
+inside its explicit framebuffer model, without using uninitialized host memory.
+
 ## Beta 9 foundation
 
 Beta 9 completes the current native-matched companion-star checkpoint and

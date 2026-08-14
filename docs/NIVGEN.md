@@ -123,6 +123,25 @@ Restoring the qword conversion made both rows exact across orbital output and
 both landed sites. This is still a bounded first-page result, not a full-corpus
 claim.
 
+The sweep then covered the remaining 75 first-page type-2 rows where Rust had
+public errors. After one source-memory correction, all 85 selected rows match
+all 935 original hashes. This includes orbital surface, atmosphere, and palette
+plus both sites' heightmap, object chart, surface texture, and sky. It is exact
+coverage of that dated first-page subset, not a claim about all 7,616 rows.
+
+Three random-site object charts initially missed while their other ten fields
+were exact: `MAAREN|8`, `VENE'EREIB|36`, and `SADA'UKEIRIT|63`. A focused
+Borland C++ 3.1 NIV+ build reproduced MAAREN's public `B4FA7DB8` height hash and
+`3CB001B1` object hash. Raw comparison found only four object-byte differences.
+The root was `felisian_srf_darkline()`: the source checks its centre location
+against the 40,000-byte map but writes the four neighbours without additional
+bounds checks. At the south edge, `location + 200` crosses the 16-byte allocator
+header and writes into the adjacent object chart. That changed one class byte;
+the later inclination loop read it back and changed three more object counts.
+Lino now performs the same writes in explicit flat memory. It models the
+historical spill deterministically and does not depend on uninitialized host
+memory.
+
 The landed fixes behind that result are source-level corrections rather than
 fixture exceptions:
 
