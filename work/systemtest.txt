@@ -1,0 +1,203 @@
+
+"libraries"
+
+	brtl;
+	nsrng;
+	nsseed;
+	nstopo;
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+	geoconv;
+	nsident;
+	nslabel;
+	fbmem;
+	emit;
+	emitout;
+	emitfp;
+
+"directors"
+
+	program name = { systemtest };
+	unit = 32;
+
+"variables"
+
+	result file name = { systemtest.out };
+	NRX = 0;
+	NRY = 0;
+	NRZ = 0;
+	SYv = 0;
+	SYi = 0;
+	SYtmp = 0;
+
+"workspace"
+
+	systws = 6000;
+
+"programme"
+
+	( INIX I engine y = -9508 )
+	A = 1998254512; A +-; [NRX] = A;
+	A = 9508; A +-; [NRY] = A;
+	[NRZ] = 2380852;
+
+	=> EMO init;
+	[EMOname] = result file name;
+	[FCW] = FCWEXT;
+	=> FEnter;
+	=> EMF init;
+
+	( nearstar generation )
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentityD;
+	[nsid0] = [FA0]; [nsid1] = [FA1];
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = 12; => NsRandom;
+	[nsclass] = A;
+
+	( ray variance draw, CLASS_RAYVAR[0]=2000 )
+	A = 2000; => NsRandom;
+	[SYv] = A;
+
+	( the seed )
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+
+	( star ray = (variance + CLASS_RAY[0]=5000) / 1000, stored as f32 )
+	A = [SYv]; A + 5000; [FI] = A; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000; => IntToF;
+	[FC0] = [FB0]; [FC1] = [FB1];
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FC0]; [FA1] = [FC1];
+	=> FQuo;
+	=> FStoreF32; [nsstarray] = [FS0];
+
+	=> NsStarnop;
+	=> NsResetAll;
+	=> NsPrepare;
+
+	( === SYSTEM === )
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 32; => EMO put;
+	A = 83; => EMO put; A = 89; => EMO put; A = 83; => EMO put; A = 84; => EMO put; A = 69; => EMO put; A = 77; => EMO put;
+	A = 32; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put;
+	=> EMO crlf;
+
+	( STAR x= y= z= )
+	A = 83; => EMO put; A = 84; => EMO put; A = 65; => EMO put; A = 82; => EMO put;
+	A = 32; => EMO put; A = 120; => EMO put; A = 61; => EMO put;
+	A = [NRX]; => EMO num;
+	A = 32; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	A = [NRY]; => EMO num;
+	A = 32; => EMO put; A = 122; => EMO put; A = 61; => EMO put;
+	A = [NRZ]; => EMO num;
+	=> EMO crlf;
+
+	( identity )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 105; => EMO put; A = 100; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 116; => EMO put; A = 105; => EMO put; A = 116; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	[FA0] = [nsid0]; [FA1] = [nsid1];
+	[EMFdec] = 6;
+	=> EMF f64;
+	=> EMO crlf;
+
+	( class= ray= spin= rgb= )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 99; => EMO put; A = 108; => EMO put; A = 97; => EMO put; A = 115; => EMO put; A = 115; => EMO put; A = 61; => EMO put;
+	A = [nsclass]; => EMO num;
+	A = 32; => EMO put; A = 114; => EMO put; A = 97; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	[FS0] = [nsstarray]; => FLoadF32;
+	[EMFdec] = 6;
+	=> EMF f64;
+	A = 32; => EMO put; A = 115; => EMO put; A = 112; => EMO put; A = 105; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 0; => EMO num;	( spin = 0 for class 0 )
+	A = 32; => EMO put; A = 114; => EMO put; A = 103; => EMO put; A = 98; => EMO put; A = 61; => EMO put;
+	A = 63; => EMO num;	( rgb r, class 0 )
+	A = 44; => EMO put;
+	A = 58; => EMO num;	( g )
+	A = 44; => EMO put;
+	A = 40; => EMO num;	( b )
+	=> EMO crlf;
+
+	( nop= nob= labeled= )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 110; => EMO put; A = 111; => EMO put; A = 112; => EMO put; A = 61; => EMO put;
+	A = [nsnop]; => EMO num;
+	A = 32; => EMO put; A = 110; => EMO put; A = 111; => EMO put; A = 98; => EMO put; A = 61; => EMO put;
+	A = [nsnob]; => EMO num;
+	A = 32; => EMO put; A = 108; => EMO put; A = 97; => EMO put; A = 98; => EMO put; A = 101; => EMO put; A = 108; => EMO put; A = 101; => EMO put; A = 100; => EMO put; A = 61; => EMO put;
+	A = 0; => EMO num;
+	=> EMO crlf;
+
+	( bodies )
+	[SYi] = 0;
+    "SY bloop"
+	A = [SYi]; ? A >= [nsnob] -> SY bdone;
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 66; => EMO put; A = 79; => EMO put; A = 68; => EMO put; A = 89; => EMO put;
+	A = 32; => EMO put;
+	( body index, 2-wide )
+	A = [SYi]; ? A >= 10 -> SY i10;
+	A = 32; => EMO put;
+    "SY i10"
+	A = [SYi]; => EMO num;
+	A = 32; => EMO put;
+	( type= )
+	A = 116; => EMO put; A = 121; => EMO put; A = 112; => EMO put; A = 101; => EMO put; A = 61; => EMO put;
+	E = nsptype; E + [SYi]; A = [E]; A & 0FFh; => EMO num;
+	A = 32; => EMO put; A = 111; => EMO put; A = 119; => EMO put; A = 110; => EMO put; A = 101; => EMO put; A = 114; => EMO put; A = 61; => EMO put;
+	E = nspowner; E + [SYi]; A = [E]; => EMO num;
+	A = 32; => EMO put; A = 109; => EMO put; A = 111; => EMO put; A = 111; => EMO put; A = 110; => EMO put; A = 105; => EMO put; A = 100; => EMO put; A = 61; => EMO put;
+	E = nspmoonid; E + [SYi]; A = [E]; A & 0FFh; => EMO num;
+	A = 32; => EMO put; A = 114; => EMO put; A = 97; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	( ray )
+	A = [SYi]; A < 1; E = nspray; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 6; => EMF f64;
+	A = 32; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 98; => EMO put; A = 95; => EMO put; A = 114; => EMO put; A = 97; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	( orb_ray )
+	A = [SYi]; A < 1; E = nsporbray; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 6; => EMF f64;
+	=> EMO crlf;
+
+	(          tilt= orb_tilt= orb_orient= orb_ecc= orb_seed= ring= )
+	A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put;
+	A = 116; => EMO put; A = 105; => EMO put; A = 108; => EMO put; A = 116; => EMO put; A = 61; => EMO put;
+	( tilt )
+	A = [SYi]; A < 1; E = nsptilt; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 8; => EMF f64;
+	A = 32; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 98; => EMO put; A = 95; => EMO put; A = 116; => EMO put; A = 105; => EMO put; A = 108; => EMO put; A = 116; => EMO put; A = 61; => EMO put;
+	( orb_tilt )
+	A = [SYi]; A < 1; E = nsporbtlt; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 8; => EMF f64;
+	A = 32; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 98; => EMO put; A = 95; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 105; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 116; => EMO put; A = 61; => EMO put;
+	( orb_orient )
+	A = [SYi]; A < 1; E = nspororient; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 8; => EMF f64;
+	A = 32; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 98; => EMO put; A = 95; => EMO put; A = 101; => EMO put; A = 99; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	( orb_ecc )
+	A = [SYi]; A < 1; E = nsporbecc; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 8; => EMF f64;
+	A = 32; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 98; => EMO put; A = 95; => EMO put; A = 115; => EMO put; A = 101; => EMO put; A = 101; => EMO put; A = 100; => EMO put; A = 61; => EMO put;
+	( orb_seed )
+	A = [SYi]; A < 1; E = nsporbseed; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 6; => EMF f64;
+	A = 32; => EMO put; A = 114; => EMO put; A = 105; => EMO put; A = 110; => EMO put; A = 103; => EMO put; A = 61; => EMO put;
+	( ring )
+	A = [SYi]; A < 1; E = nspring; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 6; => EMF f64;
+	=> EMO crlf;
+
+	A = [SYi]; A + 1; [SYi] = A;
+	-> SY bloop;
+    "SY bdone"
+
+	=> EMO flush;
+	=> FLeave;
+	end;
