@@ -577,12 +577,26 @@ must be translated into exact portable JavaScript intrinsics or rejected with
 a clear diagnostic; the browser must never silently execute a different
 program. WebAssembly is optional future research, not a delivery dependency.
 
-Both products need an obvious GUI fullscreen button. The browser version must
-use the Fullscreen API, retain the Lino chrome in fullscreen, and always expose
-a visible exit control in addition to Escape. The Windows build must keep its
-existing iGUI fullscreen title-bar button and make Escape return to windowed
-mode without quitting the game. Repeated entry and exit must preserve the
-aspect-fitted game page, controls, audio, and saved state.
+Audit the behavior of every iGUI title-bar, menu, and window-management action
+on both the browser host and desktop build. Move, resize, minimize or fold,
+hide, restore, maximize, exclusive mode, screen-off, close, and menu actions
+must either perform their documented operation in that host or be deliberately
+remapped to a coherent equivalent. Browser actions must not mutate imaginary
+Windows coordinates or leave controls performing unrelated operations. Check
+pointer capture, focus, keyboard ownership, resized work-area publication, and
+state restoration across every transition. If the stock iGUI assumptions are
+not portable, adapt the Lino GUI services explicitly instead of accumulating
+host-side exceptions.
+
+Both products need an obvious fullscreen route that does not steal Escape from
+Noctis. In the browser, fullscreen should present the game canvas itself, hide
+the Lino desktop chrome and ordinary page controls, and expose an intuitive
+edge or corner exit affordance that appears on pointer movement or focus. The
+exit must also have a discoverable non-Escape keyboard shortcut. Audit the same
+game-only fullscreen option on desktop, where appropriate, instead of assuming
+the iGUI title bar belongs in exclusive play. Repeated entry and exit must
+preserve the aspect-fitted game page, input focus, controls, audio, and saved
+state. Escape remains available to the original game behavior.
 
 Acceptance is product-level: publish both standalone repositories under an
 open-source licence, deploy the Linoctis static build through the existing
@@ -594,33 +608,37 @@ gameplay semantics. Push source and publish the live Cloudflare site at stable,
 player-visible milestones as the implementation improves, rather than waiting
 for the entire port or deploying every internal edit.
 
-**Completed browser compiler and real-iGUI milestone.** The public
+**Completed browser compiler, real-iGUI, and first full-game boot milestone.** The public
 [`Fabulu/linojava`](https://github.com/Fabulu/linojava) repository now contains
 the independent ahead-of-time JavaScript compiler, a recursive project linker,
 the complete published IsoKernel layout, explicit 32-bit workspace, shared
-typed call/data stack, float32 operations, and all instruction forms used by
-the real iGUI project. It links all 14 modules, 23 stockfiles, 4,609 programme
-statements, and 714 labels without unresolved relocations, then executes the
-original 23 READ calls, GET DIR, and first RETRACE in order. Its architecture,
-focused regressions, and delivery-wave procedure are public in that repository.
-The current compiler revision is pinned by the separate
+typed call/data stack, float32 operations, and every ordinary instruction form
+used by the current Noctis project. It links 73 modules, 23 stockfiles, 56,945
+programme instructions, and 5,895 labels. Portable JavaScript covers 97 of the
+202 unique native fragment IDs reached or inventoried so far. Straight source
+regions use generated fallthrough, large projects are split into bounded
+browser-safe runners, and hot PGF calls use exact portable service fast paths.
+The host supplies pointer state, queued ASCII, the held-key table, monotonic
+counts, and millisecond sleeps. Unsupported native paths remain explicit
+errors. The current compiler revision is pinned by the separate
 [`Fabulu/Linoctissite`](https://github.com/Fabulu/Linoctissite) repository.
-That site now ships the transitive iGUI source and asset closure, compiles the
-ordinary Lino files in the browser, and presents the original 400 by 300
-Lino-drawn framebuffer. The real title controls, fonts, resident graphics,
-gradients, and `CLICK THIS` menu are no longer HTML/CSS substitutes. A held
-browser pointer click opens the original `Show credits` / `Quit program` menu;
-continuous execution and the visible reversible fullscreen control work with
-no browser errors. It is deployed through the author's Cloudflare account at
+That site now ships the transitive `work/vhgame.txt` closure and native
+intrinsics, compiles it in Chromium, and reaches real cupola game frames from
+the actual Lino entry point. A focused browser smoke advanced five frames,
+accepted W and Left Arrow through Lino memory, and produced no page or console
+errors. Game-only fullscreen presents the live VHGUI rectangle without the
+outer desktop title bar; a corner control, double-click, and Ctrl+Shift+F exit
+without consuming Noctis's Escape key. It is deployed through the author's
+Cloudflare account at
 [`linoctis.pages.dev`](https://linoctis.pages.dev/).
 
 The Windows product already had iGUI's fullscreen title-bar button. It now
 advertises the Escape route and consumes the held Escape while leaving
 exclusive mode, so the same press cannot fall through to Noctis's save-and-quit
-path. The production game compiles with this behavior. Still open is the main
-work: link the complete current Noctis project, add portable JavaScript
-replacements for every embedded x86 fragment, complete keyboard/audio/file and
-persistence services, then optimize the full game on the site.
+path. The production game compiles with this behavior. Still open are the full
+iGUI behavior audit, renderer fidelity, every remaining native path, audio,
+file mutation and persistence services, complete game-mode coverage, and the
+performance work needed for smooth play.
 
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
