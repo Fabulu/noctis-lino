@@ -1,0 +1,118 @@
+
+"libraries"
+
+	brtl;
+	nsrng;
+	nsseed;
+	nstopo;
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+	geoconv;
+	nsident;
+	nslabel;
+	fbmem;
+	emit;
+	emitout;
+
+"directors"
+
+	program name = { bodysysprobe };
+	unit = 32;
+
+"variables"
+
+	result file name = { bodysysprobe.out };
+	NRX = 0;
+	NRY = 0;
+	NRZ = 0;
+	PB = 0;
+	PBi = 0;
+	PBlo = 0;
+	PBhi = 0;
+
+"programme"
+
+	( INIX I engine y = -9508 )
+	A = 1998254512; A +-; [NRX] = A;
+	A = 9508; A +-; [NRY] = A;
+	[NRZ] = 2380852;
+
+	=> EMO init;
+	[EMOname] = result file name;
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentityD;
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = 12; => NsRandom;
+	[nsclass] = A;
+
+	( ray variance draw, class 0 table lookup: CLASS_RAYVAR[0]=2000 )
+	A = 2000; => NsRandom;
+	[PB] = A;
+
+	( the seed.  srand((x%10000*y)%10000*z%10000), engine y )
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+
+	( star ray = (variance + CLASS_RAY[0]=5000) / 1000, stored as f32 )
+	A = [PB]; A + 5000; [FI] = A; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000; => IntToF;
+	[FC0] = [FB0]; [FC1] = [FB1];
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FC0]; [FA1] = [FC1];
+	=> FQuo;
+	=> FStoreF32; [nsstarray] = [FS0];
+
+	=> NsStarnop;
+	=> NsResetAll;
+	=> NsPrepare;
+
+	( dump full params for each body )
+	[PB] = 0;
+    "PB loop"
+	A = [PB]; ? A >= [nsnob] -> PB done;
+	A = 66; => EMO put; A = 79; => EMO put; A = 68; => EMO put; A = 89; => EMO put;
+	A = 32; => EMO put;
+	A = [PB]; => EMO num; A = 32; => EMO put;
+	( ray )
+	A = [PB]; A < 1; E = nspray; E + A; C = [E]; [PBlo] = C; E + 1; C = [E]; [PBhi] = C;
+	A = [PBhi]; => EMO hex; A = [PBlo]; => EMO hex; A = 32; => EMO put;
+	( orb_ray )
+	A = [PB]; A < 1; E = nsporbray; E + A; C = [E]; [PBlo] = C; E + 1; C = [E]; [PBhi] = C;
+	A = [PBhi]; => EMO hex; A = [PBlo]; => EMO hex; A = 32; => EMO put;
+	( tilt )
+	A = [PB]; A < 1; E = nsptilt; E + A; C = [E]; [PBlo] = C; E + 1; C = [E]; [PBhi] = C;
+	A = [PBhi]; => EMO hex; A = [PBlo]; => EMO hex; A = 32; => EMO put;
+	( orb_tilt )
+	A = [PB]; A < 1; E = nsporbtlt; E + A; C = [E]; [PBlo] = C; E + 1; C = [E]; [PBhi] = C;
+	A = [PBhi]; => EMO hex; A = [PBlo]; => EMO hex; A = 32; => EMO put;
+	( orb_orient )
+	A = [PB]; A < 1; E = nspororient; E + A; C = [E]; [PBlo] = C; E + 1; C = [E]; [PBhi] = C;
+	A = [PBhi]; => EMO hex; A = [PBlo]; => EMO hex; A = 32; => EMO put;
+	( ecc )
+	A = [PB]; A < 1; E = nsporbecc; E + A; C = [E]; [PBlo] = C; E + 1; C = [E]; [PBhi] = C;
+	A = [PBhi]; => EMO hex; A = [PBlo]; => EMO hex; A = 32; => EMO put;
+	( orb_seed )
+	A = [PB]; A < 1; E = nsporbseed; E + A; C = [E]; [PBlo] = C; E + 1; C = [E]; [PBhi] = C;
+	A = [PBhi]; => EMO hex; A = [PBlo]; => EMO hex; A = 32; => EMO put;
+	( ring )
+	A = [PB]; A < 1; E = nspring; E + A; C = [E]; [PBlo] = C; E + 1; C = [E]; [PBhi] = C;
+	A = [PBhi]; => EMO hex; A = [PBlo]; => EMO hex;
+	A = 13; => EMO put; A = 10; => EMO put;
+	A = [PB]; A + 1; [PB] = A;
+	-> PB loop;
+    "PB done"
+
+	=> EMO flush;
+	=> FLeave;
+	end;
