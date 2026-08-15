@@ -1,0 +1,117 @@
+      ( *** emitfp - printf %.Nf formatting of the port's binary64 values.
+
+	EMF f64 formats the f64 currently in FA0/FA1 (the fp ABI's
+	accumulator) as C printf %.Nf with N = [EMFdec] (6 or 8), appending
+	to the emit output buffer.  Rounding is round-half-to-even via the
+	FPU under FEnter's control word (RC=nearest), matching Rust's
+	{:.N} and C's %.Nf for every value in the engine-output fixtures.
+
+	The value is decomposed without ever going through an f32: the
+	integer part is truncated with RC=chop (SUcwc-style), the fraction
+	is scaled by 10^N and rounded to nearest, and the digits are emitted
+	MSD-first with zero padding.  A carry (fraction rounding to 10^N)
+	increments the integer part, so 0.9999999 formats as "1.000000".
+
+	Pre: FEnter already called (FCW=133Fh).  Destroys A B C D E,
+	FA FB FC FD FI and the EMF* working slots.                    )
+
+"libraries"
+
+"constants"
+
+	( the two control words, as suseed's CWCHOP / CWNEAR )
+	EMFCWCHOP	= 1F3Fh;
+	EMFCWNEAR	= 133Fh;
+
+"variables"
+
+	EMFcwc		= 0;		( control word with RC=chop   )
+	EMFcwn		= 0;		( control word with RC=nearest )
+	EMFv		= 0 *** 2;	( the value under format, qword )
+	EMFi		= 0 *** 2;	( integer part, qword from fistp )
+	EMFfd		= 0 *** 2;	( fraction*10^N, rounded, qword )
+	EMFdec		= 0;		( decimals: 6 or 8 )
+	EMFpow		= 0;		( 10^N as an int )
+	EMFtmp		= 0;
+
+"programme"
+
+"EMF init"
+	[EMFcwc] = EMFCWCHOP;
+	[EMFcwn] = EMFCWNEAR;
+	end;
+
+      ( EMF f64 - format FA0/FA1 to [EMFdec] decimals. )
+
+"EMF f64"
+	( sign )
+	A = [FA1]; A & 80000000h;
+	? A = 0 -> EMF pos;
+	A = 45; => EMO put;
+	=> FNeg;
+    "EMF pos"
+	( save |value| as a contiguous qword )
+	E = EMFv; [E] = [FA0]; E + 1; [E] = [FA1];
+	( integer part = trunc(|value|), RC=chop )
+	{
+	    D9 AF <dEMFcwc mtp bytesperunit>	(fldcw [edi+EMFcwc*4])
+	    DD 87 <dEMFv  mtp bytesperunit>	(fld  qword [edi+EMFv*4])
+	    DF BF <dEMFi  mtp bytesperunit>	(fistp qword [edi+EMFi*4])
+	    D9 AF <dEMFcwn mtp bytesperunit>	(fldcw [edi+EMFcwn*4])
+	}
+	( fraction = value - integer )
+	E = EMFv; [FB0] = [E]; E + 1; [FB1] = [E];
+	[FI] = [EMFi]; => IntToF;
+	[FC0] = [FA0]; [FC1] = [FA1];
+	[FA0] = [FB0]; [FA1] = [FB1];
+	[FB0] = [FC0]; [FB1] = [FC1];
+	=> FSub;
+	E = EMFv; [E] = [FA0]; E + 1; [E] = [FA1];
+	( 10^N into EMFpow )
+	A = 1; C = [EMFdec];
+    "EMF p10"
+	? C = 0 -> EMF p10 done;
+	A '* 10;
+	C - 1;
+	-> EMF p10;
+    "EMF p10 done"
+	[EMFpow] = A;
+	( FA = fraction * 10^N )
+	[FI] = A; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	E = EMFv; [FA0] = [E]; E + 1; [FA1] = [E];
+	=> FMul;
+	( round to nearest integer (RC=nearest under FEnter) )
+	{
+	    DD 87 <dFA0  mtp bytesperunit>	(fld  qword [edi+FA0*4])
+	    DF BF <dEMFfd mtp bytesperunit>	(fistp qword [edi+EMFfd*4])
+	}
+	( carry: if fd == 10^N, integer++ and fd = 0 )
+	A = [EMFfd]; C = [EMFpow]; ? A '< C -> EMF emit;
+	A = [EMFi]; A + 1; [EMFi] = A;
+	[EMFfd] = 0;
+    "EMF emit"
+	( emit integer part )
+	A = [EMFi]; => EMO num;
+	A = 46; => EMO put;
+	( emit fraction, zero-padded to [EMFdec] digits, MSD first )
+	( pow = 10^(N-1) )
+	A = 1; C = [EMFdec]; C - 1;
+    "EMF powl"
+	? C = 0 -> EMF powl done;
+	A '* 10; C - 1; -> EMF powl;
+    "EMF powl done"
+	[EMFtmp] = A;
+    "EMF fdigit"
+	( digit = fd / pow )
+	B = [EMFfd]; B '/ [EMFtmp];
+	A = B; A + 48; => EMO put;
+	( fd = fd - digit*pow )
+	B = [EMFfd]; B '/ [EMFtmp]; B '* [EMFtmp]; B +-;
+	C = [EMFfd]; C + B; [EMFfd] = C;
+	( pow /= 10 )
+	B = [EMFtmp]; B '/ 10; [EMFtmp] = B;
+	? [EMFtmp] = 0 -> EMF done;
+	-> EMF fdigit;
+    "EMF done"
+	end;

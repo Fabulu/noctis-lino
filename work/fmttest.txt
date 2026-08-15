@@ -1,0 +1,82 @@
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	emit;
+	emitout;
+	emitfp;
+
+"directors"
+
+	program name = { fmttest };
+	unit = 32;
+
+"variables"
+
+	result file name = { fmttest.out };
+
+"programme"
+
+	=> EMO init;
+	[EMOname] = result file name;
+	[FCW] = FCWEXT;
+	=> FEnter;
+	=> EMF init;
+
+	( body 0 values from the reference f64 bits )
+	( ray = 0.024576 : 3F992A737110E454 )
+	A = 7110E454h; [FA0] = A; A = 3F992A73h; [FA1] = A;
+	[EMFdec] = 6;
+	=> EMF f64;
+	A = 32; => EMO put;
+
+	( orb_ray = 30.248680 : 403E3FA97D0A3D71 )
+	A = 7D0A3D71h; [FA0] = A; A = 403E3FA9h; [FA1] = A;
+	[EMFdec] = 6;
+	=> EMF f64;
+	A = 32; => EMO put;
+
+	( tilt = -0.232 : BFCDB22D0E560419 )
+	A = 0E560419h; [FA0] = A; A = BFCDB22Dh; [FA1] = A;
+	[EMFdec] = 8;
+	=> EMF f64;
+	A = 32; => EMO put;
+
+	( orb_orient = 1.34390352 : 3FF580A0FB4B6529 )
+	A = FB4B6529h; [FA0] = A; A = 3FF580A0h; [FA1] = A;
+	[EMFdec] = 8;
+	=> EMF f64;
+	A = 32; => EMO put;
+
+	( 0.9999999 : 3FEFFFFF203B3A7B )
+	A = 203B3A7Bh; [FA0] = A; A = 3FEFFFFFh; [FA1] = A;
+	[EMFdec] = 6;
+	=> EMF f64;
+	A = 32; => EMO put;
+
+	( 12522.806437 : 40C875673956E8E7, body 11 orb_ray )
+	A = 3956E8E7h; [FA0] = A; A = 40C87567h; [FA1] = A;
+	[EMFdec] = 6;
+	=> EMF f64;
+	A = 32; => EMO put;
+
+	( 0.0 )
+	A = 0; [FA0] = A; A = 0; [FA1] = A;
+	[EMFdec] = 6;
+	=> EMF f64;
+	A = 32; => EMO put;
+
+	( 0.493056 : 3FDF8E3AC0C62E4D )
+	A = C0C62E4Dh; [FA0] = A; A = 3FDF8E3Ah; [FA1] = A;
+	[EMFdec] = 6;
+	=> EMF f64;
+
+	=> EMO crlf;
+	=> EMO flush;
+	=> FLeave;
+	end;
