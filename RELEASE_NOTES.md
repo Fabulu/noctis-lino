@@ -1,5 +1,31 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+## Beta 16
+
+Beta 16 fixes the malformed rainbow tree regression introduced by beta 15's
+mapped-object rotation shortcut. A disposable historical bisect isolated the
+first bad revision, and the unsafe rotation kernel has been removed while the
+exact projection, facing, basis, gradient, edge, and raster fast paths remain.
+The fixed tree page and exit state again match the NIV+ oracle hashes exactly.
+Fresh habitable, close-tree, and hopper scenes render in 9.85, 10.88, and 9.25
+ms respectively, each without the giant slabs or rainbow pixels.
+
+Sun rendering now forms clipped framebuffer offsets directly and reuses the
+source's chopped viewport coordinates instead of routing every pixel through
+generic segment and floating-bound helpers. Flare spokes inline their exact
+vertical and general brightening rules. The 13-case NIV+ matrix remains exact
+across all 3,328,000 staged bytes for the white-disc, flare, smoothing, and
+palette-mask checkpoints. The dense sun scene fell from roughly 13.5 to 10.5
+ms render time, while the thin-atmosphere radial flare measured 6.32 ms at 61
+FPS.
+
+Mapped terrain and object setup also receives exact native vertex expansion,
+foliage preparation, and edge submission. Together with the corrected tree
+path, every staged planet class and the Stardrifter now stays below the 16.7 ms
+render budget in the playable performance matrix. Public documentation is
+shorter, uses more scannable bullets, describes the actual hosted and optional
+self-hosted release paths accurately, and contains no em dash characters.
+
 ## Beta 15
 
 Beta 15 removes another layer of interpreter overhead from the exact landed
