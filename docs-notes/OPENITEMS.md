@@ -626,8 +626,9 @@ the independent ahead-of-time JavaScript compiler, a recursive project linker,
 the complete published IsoKernel layout, explicit 32-bit workspace, shared
 typed call/data stack, float32 operations, and every ordinary instruction form
 used by the current Noctis project. It links 73 modules, 23 stockfiles, 56,945
-programme instructions, and 5,895 labels. Portable JavaScript covers 97 of the
-202 unique native fragment IDs reached or inventoried so far. Straight source
+programme instructions, and 5,895 labels. Portable JavaScript covers all 202
+unique native fragment IDs, and the site compiles without allowing missing
+intrinsics. Straight source
 regions use generated fallthrough, large projects are split into bounded
 browser-safe runners, and hot PGF calls use exact portable service fast paths.
 The host supplies pointer state, queued ASCII, the held-key table, monotonic
@@ -675,7 +676,7 @@ preserves the total drag vector even when Chromium coalesces pointer events.
 
 Still open are the remaining iGUI action cases, especially hide or screen-off,
 restore, close, menu behavior, focus loss, and repeated edge transitions in each host;
-renderer fidelity; every remaining native path; audio; file mutation and
+renderer fidelity; audio; file mutation and
 persistence services; complete game-mode coverage; and the performance work
 needed for smooth play.
 
@@ -712,6 +713,21 @@ glyph map loaded from the 9,360-byte `digimap2.bin`, and maps the result as a
 the same frame as a positive control. The reporter is also bringing up a
 headless content dumper for comparison-sheet output, which may provide stable
 raw captures from the affected host rather than screenshot-only evidence.
+
+**Browser named-file corruption fixed.** The JavaScript IsoKernel formerly
+ignored nonzero `File Name` pointers and served every `READ` from the combined
+iGUI stockfile. `VH panels init` therefore copied the first 9,360 bytes of skin
+graphics into `digimap2`, producing the reported random-looking FCS and GOES
+glyphs. LinoJava now distinguishes `STOCK FILE` from named virtual files,
+decodes the Lino filename, reports missing files as errors, and reads the
+selected byte stream with the requested position and length. Linoctissite now
+ships `digimap2.bin` as a named runtime file. A strict five-frame machine run
+loaded all 2,340 little-endian glyph units with zero differences from the
+checked-in file; a 37-frame Chromium product smoke showed recognizable
+`STANDBY` glyphs with no page or console errors; and a production desktop
+capture rendered the same `STANDBY` source text. This closes the browser file
+selection bug only. XQuartz reproduction, complete glyph grading, projection
+and clipping parity, and matched NIV+ oracle evidence remain open.
 
 Do not close this from plausible screenshots. Use matched NIV+ framebuffer or
 glyph-atlas evidence for the source fonts, then require stable product captures
