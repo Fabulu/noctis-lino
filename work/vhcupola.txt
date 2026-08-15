@@ -92,6 +92,18 @@
 	end;
 
 "VHC render cache"
+	( The browser host batches the immutable, unshifted Stardrifter cache in one
+	  service call.  Native Lino follows the service stub back into the original
+	  loop, and the roof/capsule paths retain their per-panel camera changes. )
+	A = [VHCcapsule]; ? A != 0 -> VHC render cache source;
+	A = [VHCroof]; ? A != 0 -> VHC render cache source;
+	=> VHC render cache common;
+	end;
+
+"VHC render cache common"
+	-> VHC render cache source;
+
+"VHC render cache source"
 	[VHCcamybase] = [VHVcamyi];
 	[VHCvisible] = 1;
 	A = [VHCcapsule]; ? A = 0 -> VHC render visible;
