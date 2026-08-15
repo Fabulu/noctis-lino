@@ -62,6 +62,12 @@ The original 18.2 FPS presentation remains the default. The 60 FPS mode
 interpolates player movement, flight, the lift, capsule, wildlife, ocean, and
 close-star poses without changing the original simulation rate.
 
+The browser port is being built separately in
+[`Fabulu/linojava`](https://github.com/Fabulu/linojava), with its first
+interactive iGUI host live at [linoctis.pages.dev](https://linoctis.pages.dev/).
+That page is currently the compiler/runtime bring-up slice, not yet the full
+Noctis game.
+
 ### Flight and surface play
 
 In GOES, `NEXT` selects a nearby generated star. L remains the global approach

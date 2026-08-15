@@ -551,7 +551,7 @@ advancement rather than a 60-Hz gameplay clock. Startup telemetry reported 61
 FPS with 5.56 ms render, 3.01 ms present, and 1.69 ms space work. This closes
 the orbital movement and overloaded-client recovery legs of the cadence item.
 
-## 8. LinoJava browser runtime and reversible fullscreen -- **OPEN / DOCKET**
+## 8. LinoJava browser runtime and reversible fullscreen -- **IN PROGRESS / DOCKET**
 
 Create a separate open-source project at `C:\Programmieren\linojava` that
 turns L.in.oleum programs into fast browser applications and uses the current
@@ -587,6 +587,26 @@ boot the current Noctis program through LinoJava, and demonstrate
 windowed/fullscreen round trips on desktop browsers. Performance work belongs
 in the compiler/runtime, not in reduced game detail or altered 18.206-Hz
 gameplay semantics.
+
+**Completed foundation.** The public
+[`Fabulu/linojava`](https://github.com/Fabulu/linojava) repository now contains
+the independent ahead-of-time JavaScript compiler, explicit 32-bit workspace,
+basic-block execution engine, command-line compiler, example Lino programme,
+and focused regression. The first compiler revision is pinned by the separate
+[`Fabulu/Linoctissite`](https://github.com/Fabulu/Linoctissite) repository.
+That site compiles and runs an interactive Lino movement programme inside a
+responsive iGUI-inspired host with keyboard input, pixel presentation, the
+fullscreen title-bar button, a visible fullscreen exit control, and Escape.
+It is deployed through the author's Cloudflare account at
+[`linoctis.pages.dev`](https://linoctis.pages.dev/).
+
+The Windows product already had iGUI's fullscreen title-bar button. It now
+advertises the Escape route and consumes the held Escape while leaving
+exclusive mode, so the same press cannot fall through to Noctis's save-and-quit
+path. The production game compiles with this behavior. Still open is the main
+work: extend the independent compiler through the complete language and host
+surface, add WebAssembly lowering and portable replacements for every embedded
+x86 fragment, then boot and optimize the full current Noctis port on the site.
 
 ## 9. Cross-references
 
