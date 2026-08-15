@@ -263,6 +263,10 @@ powershell -File lino_build.ps1 -Src work\vhgame.txt
 The wrapper handles the historical GUI compiler, reports its warnings, verifies
 the output artifact, and terminates the compiler after the build settles.
 
+For interactive comparison against the local NIV+ reference build, run
+`powershell -File tools\start_nivplus.ps1`. It uses a fast gameplay profile;
+the byte-oracle capture rigs keep their separate pinned DOSBox-X settings.
+
 Useful checks:
 
 ```powershell
