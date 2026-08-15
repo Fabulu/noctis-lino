@@ -680,6 +680,29 @@ renderer fidelity; audio; file mutation and
 persistence services; complete game-mode coverage; and the performance work
 needed for smooth play.
 
+**First strict-JavaScript optimization and complete runtime-data milestone.**
+LinoJava now batches instruction budgets, keeps hot PGF services inside the
+generated runner, and replaces the exact iGUI glyph, dimming, layer-copy, and
+Stardrifter viewport loops with typed-array JavaScript kernels. There is no
+WebAssembly backend or dependency. A focused state differential found zero
+unit differences across the complete machine memory for the exercised frame
+sequence. The public status line now calls its cumulative counter
+`presentations` and separately reports a measured presentation rate instead
+of looking like an FPS counter.
+
+The first published browser build showed cupola geometry without the
+Stardrifter exterior because the host shipped only the font file. Named reads
+for `globes.map`, `offsets.map`, `vehicle.ncc`, `mammal.ncc`, and `birdy.ncc`
+failed, leaving the VEHICLE dispatch table empty. Linoctissite now packages all
+six currently requested runtime files. The same strict machine path builds
+720 of 720 hull cache leaves with `VHRbad=0`, and a fresh Chromium product
+capture contains the hull between the cupola passes with no page or console
+errors. That smoke measured about 7.4 display presentations per second. This
+is a useful improvement and fixes the missing hull, but it is not yet smooth
+gameplay and it is not a claim of 7.4 simulation frames per second. Continue
+collapsing measured Lino hot loops into exact pure-JavaScript kernels while
+preserving the original gameplay cadence.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
