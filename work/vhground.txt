@@ -5850,17 +5850,7 @@
 	-> VHGND tree node enter;
 
 "VHGND tree node enter"
-	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebxf] = [A];
-	[PGFt] = [VHGNDtreebxf]; => PGF ldf32; => FToIntChop; [VHGNDtreebx] = [FI];
-	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreebyf] = [A];
-	[PGFt] = [VHGNDtreebyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeby] = [FI];
-	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebzf] = [A];
-	[PGFt] = [VHGNDtreebzf]; => PGF ldf32; => FToIntChop; [VHGNDtreebz] = [FI];
-	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescalef] = [A];
-	[PGFt] = [VHGNDtreescalef]; => PGF ldf32; => FToIntChop; [VHGNDtreescale] = [FI];
-	A = VHGNDtslayers; A + [VHGNDtreelevel]; [VHGNDtreelayers] = [A];
-	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
-	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
+	=> VHGND tree node load native;
 	[VHGNDtreebranches] = 1; A = [VHGNDtreeisroot]; ? A != 0 -> VHGND tree node count ready;
 	[SUfmask] = [VHTforks]; => VHGND render random; C + 1; [VHGNDtreebranches] = C;
     "VHGND tree node count ready"
@@ -5884,17 +5874,7 @@
 	-> VHGND tree node branch;
 
 "VHGND tree node branch"
-	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebxf] = [A];
-	[PGFt] = [VHGNDtreebxf]; => PGF ldf32; => FToIntChop; [VHGNDtreebx] = [FI];
-	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreebyf] = [A];
-	[PGFt] = [VHGNDtreebyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeby] = [FI];
-	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebzf] = [A];
-	[PGFt] = [VHGNDtreebzf]; => PGF ldf32; => FToIntChop; [VHGNDtreebz] = [FI];
-	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescalef] = [A];
-	[PGFt] = [VHGNDtreescalef]; => PGF ldf32; => FToIntChop; [VHGNDtreescale] = [FI];
-	A = VHGNDtslayers; A + [VHGNDtreelevel]; [VHGNDtreelayers] = [A];
-	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
-	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
+	=> VHGND tree node load native;
 	A = VHGNDtscount; A + [VHGNDtreelevel]; [VHGNDtreebranches] = [A];
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; [VHGNDtreebranch] = [A];
 	A = [VHGNDtreebranch]; ? A '>= [VHGNDtreebranches] -> VHGND tree node pop;
@@ -6042,6 +6022,39 @@
 	    D9 87 <dVHGNDtreebr mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
 	    8B 87 <dVHGNDtreebr mtp bytesperunit> 89 87 <dFS0 mtp bytesperunit>
 	    5E
+	}
+	end;
+
+"VHGND tree node load native"
+	( Restore one depth-stack record and chop its four binary32 geometry
+	  values under one exact x87 control-word interval. )
+	{
+	    8B 8F <dVHGNDtreelevel mtp bytesperunit>
+	    D9 AF <dGRcwc mtp bytesperunit>
+	    8B 84 8F <dVHGNDtsx mtp bytesperunit>
+	    89 87 <dVHGNDtreebxf mtp bytesperunit>
+	    D9 87 <dVHGNDtreebxf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDtreebx mtp bytesperunit>
+	    8B 84 8F <dVHGNDtsy mtp bytesperunit>
+	    89 87 <dVHGNDtreebyf mtp bytesperunit>
+	    D9 87 <dVHGNDtreebyf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDtreeby mtp bytesperunit>
+	    8B 84 8F <dVHGNDtsz mtp bytesperunit>
+	    89 87 <dVHGNDtreebzf mtp bytesperunit>
+	    D9 87 <dVHGNDtreebzf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDtreebz mtp bytesperunit>
+	    8B 84 8F <dVHGNDtsscale mtp bytesperunit>
+	    89 87 <dVHGNDtreescalef mtp bytesperunit> 89 87 <dPGFt mtp bytesperunit>
+	    D9 87 <dVHGNDtreescalef mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDtreescale mtp bytesperunit>
+	    D9 AF <dGRcwn mtp bytesperunit>
+	    D9 87 <dVHGNDtreescalef mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    8B 84 8F <dVHGNDtslayers mtp bytesperunit>
+	    89 87 <dVHGNDtreelayers mtp bytesperunit>
+	    8B 84 8F <dVHGNDtsroot mtp bytesperunit>
+	    89 87 <dVHGNDtreeisroot mtp bytesperunit>
+	    8B 84 8F <dVHGNDtsocc mtp bytesperunit>
+	    89 87 <dVHGNDtreeocc mtp bytesperunit>
 	}
 	end;
 
