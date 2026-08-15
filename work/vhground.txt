@@ -5609,15 +5609,7 @@
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer setup;
 	( Tree leaf tips are native binary32 arguments.  Preserve their fractional
 	  bits through x/y/z += correction and each getcoords argument store. )
-	[PGFt] = [VHGNDmushxf]; => PGF ldf32; => VHGND fb fa;
-	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushxf] = [FS0];
-	[PGFt] = [VHGNDmushyf]; => PGF ldf32; => VHGND fb fa;
-	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushyf] = [FS0];
-	[PGFt] = [VHGNDmushzf]; => PGF ldf32; => VHGND fb fa;
-	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushzf] = [FS0];
-	[PGFt] = [VHGNDmushxf]; => PGF ldf32; => FToIntChop; [VHGNDmushx] = [FI];
-	[PGFt] = [VHGNDmushyf]; => PGF ldf32; => FToIntChop; [VHGNDmushy] = [FI];
-	[PGFt] = [VHGNDmushzf]; => PGF ldf32; => FToIntChop; [VHGNDmushz] = [FI];
+	=> VHGND greenmush float setup native;
 	-> VHGND greenmush seed;
     "VHGND greenmush integer setup"
 	A = [VHGNDmushx]; A + [VHGNDtmp]; [VHGNDmushx] = A;
@@ -5752,6 +5744,45 @@
 	    D9 87 <dVHGNDmushpxf mtp bytesperunit> DD 9B E0 07 00 00
 	    D9 87 <dVHGNDmushpyf mtp bytesperunit> DD 9B 00 08 00 00
 	    D9 87 <dVHGNDmushpzf mtp bytesperunit> DD 9B 20 08 00 00 5B 5E
+	}
+	end;
+
+"VHGND greenmush float setup native"
+	( Add the half-scale correction to all three binary32 leaf coordinates,
+	  then chop their integer seed coordinates under one exact control-word
+	  interval.  Every add still spills to binary64 before narrowing. )
+	{
+	    D9 87 <dVHGNDmushxf mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
+	    DB 87 <dVHGNDtmp mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 87 <dFB0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    8B 87 <dFS0 mtp bytesperunit> 89 87 <dVHGNDmushxf mtp bytesperunit>
+	    D9 87 <dVHGNDmushyf mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
+	    DB 87 <dVHGNDtmp mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 87 <dFB0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    8B 87 <dFS0 mtp bytesperunit> 89 87 <dVHGNDmushyf mtp bytesperunit>
+	    D9 87 <dVHGNDmushzf mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
+	    DB 87 <dVHGNDtmp mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 87 <dFB0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    8B 87 <dFS0 mtp bytesperunit> 89 87 <dVHGNDmushzf mtp bytesperunit>
+	    D9 AF <dGRcwc mtp bytesperunit>
+	    D9 87 <dVHGNDmushxf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDmushx mtp bytesperunit>
+	    D9 87 <dVHGNDmushyf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDmushy mtp bytesperunit>
+	    8B 87 <dVHGNDmushzf mtp bytesperunit> 89 87 <dPGFt mtp bytesperunit>
+	    D9 87 <dVHGNDmushzf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDmushz mtp bytesperunit>
+	    D9 AF <dGRcwn mtp bytesperunit>
+	    D9 87 <dVHGNDmushzf mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
 	}
 	end;
 
