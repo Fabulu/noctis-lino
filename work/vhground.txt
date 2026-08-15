@@ -6242,14 +6242,22 @@
 
 "VHGND tree polar float vertex"
 	=> VHGND tree sincos;
-	{ D9 87 <dVHVcos mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
-	  D8 87 <dVHGNDtreecx mtp bytesperunit> D9 9F <dVHGNDtreepx mtp bytesperunit>
-	  D9 87 <dVHVsin mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
-	  D8 87 <dVHGNDtreecz mtp bytesperunit> D9 9F <dVHGNDtreepz mtp bytesperunit> }
-	A = FSINX; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreepx]; => PGF setf32;
-	A = FSINY; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreecy]; => PGF setf32;
-	A = FSINZ; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreepz]; => PGF setf32;
-	[VHGNDvi]+;
+	A = fw; [PJfwbase] = A;
+	( The polar arithmetic already executes in one x87 fragment.  Widen its
+	  three stored binary32 results directly into the selected projector slots
+	  instead of shuttling each one through PGF setf32. )
+	{
+	    56 8B B7 <dPJfwbase mtp bytesperunit> 8D 34 B7
+	    D9 87 <dVHVcos mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
+	    D8 87 <dVHGNDtreecx mtp bytesperunit> D9 9F <dVHGNDtreepx mtp bytesperunit>
+	    D9 87 <dVHVsin mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
+	    D8 87 <dVHGNDtreecz mtp bytesperunit> D9 9F <dVHGNDtreepz mtp bytesperunit>
+	    8B 87 <dVHGNDvi mtp bytesperunit> C1 E0 03
+	    D9 87 <dVHGNDtreepx mtp bytesperunit> DD 9C 06 E0 07 00 00
+	    D9 87 <dVHGNDtreecy mtp bytesperunit> DD 9C 06 00 08 00 00
+	    D9 87 <dVHGNDtreepz mtp bytesperunit> DD 9C 06 20 08 00 00
+	    FF 87 <dVHGNDvi mtp bytesperunit> 5E
+	}
 	end;
 
 "VHGND tree trig init"
