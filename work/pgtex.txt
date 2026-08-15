@@ -228,6 +228,9 @@
 
 "PG edges"
 	=> PG ol init;
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG edges generic;
+	A = fw; [PGfwbase] = A; => PG edges native; end;
+    "PG edges generic"
 
 	( mp[vr22] = mp[0] ; mp[vr22+1] = mp[1] - the closing edge )
 	A = [EWvr22]; C = mp; C + A;
@@ -346,6 +349,84 @@
 	A = [EWsi]; A + 2; [EWsi] = A;		( +8 BYTES = one vertex )
 	[PGj]-;
 	A = [PGj]; ? A != 0 -> PG ew edge;
+	end;
+
+"PG edges native"
+	( Fixed fast-path edge walker for terrain and mapped surface objects.  It
+	  preserves the integer endpoint sort, binary32 slope, nearest rounding,
+	  clipping, inclusive row order and horizontal-edge skip in one call. )
+	{
+	    55 8B B7 <dPGfwbase mtp bytesperunit> 8D 34 B7
+	    8B 87 <dEWvr22 mtp bytesperunit>
+	    8B 97 <dmp mtp bytesperunit> 89 94 87 <dmp mtp bytesperunit>
+	    8B 97 <dmp plus 1 mtp bytesperunit> 89 94 87 <dmp plus 1 mtp bytesperunit>
+	    31 C9 89 8F <dEWsi mtp bytesperunit>
+	    89 C5 D1 ED 89 AF <dPGj mtp bytesperunit>
+	    8B 84 8F <dmp mtp bytesperunit>
+	    8B 9C 8F <dmp plus 1 mtp bytesperunit>
+	    8B 94 8F <dmp plus 2 mtp bytesperunit>
+	    89 87 <dSPt mtp bytesperunit>
+	    8B 84 8F <dmp plus 3 mtp bytesperunit>
+	    39 D8 7D 20
+	    89 97 <dEWx1 mtp bytesperunit> 89 87 <dEWy1 mtp bytesperunit>
+	    8B 87 <dSPt mtp bytesperunit> 89 87 <dEWx2 mtp bytesperunit>
+	    89 9F <dEWy2 mtp bytesperunit> EB 25
+	    8B 97 <dSPt mtp bytesperunit> 89 97 <dEWx1 mtp bytesperunit>
+	    89 9F <dEWy1 mtp bytesperunit>
+	    8B 94 8F <dmp plus 2 mtp bytesperunit>
+	    89 97 <dEWx2 mtp bytesperunit> 89 87 <dEWy2 mtp bytesperunit>
+	    8B 87 <dEWy2 mtp bytesperunit> 3B 87 <dEWy1 mtp bytesperunit>
+	    0F 84 F2 01 00 00
+	    8B 87 <dEWx2 mtp bytesperunit> 2B 87 <dEWx1 mtp bytesperunit>
+	    89 87 <dFI mtp bytesperunit> DB 87 <dFI mtp bytesperunit>
+	    DD 9F <dFT0 mtp bytesperunit>
+	    8B 87 <dEWy2 mtp bytesperunit> 2B 87 <dEWy1 mtp bytesperunit>
+	    89 87 <dFI mtp bytesperunit> DB 87 <dFI mtp bytesperunit>
+	    DD 9F <dFB0 mtp bytesperunit>
+	    DD 87 <dFT0 mtp bytesperunit> DC B7 <dFB0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9E A8 00 00 00
+	    C7 87 <dPGFi mtp bytesperunit> 16 00 00 00
+	    8B 87 <dEWy1 mtp bytesperunit> 83 F8 05 7D 71
+	    C7 87 <dEWity mtp bytesperunit> 05 00 00 00
+	    DB 87 <dEWx1 mtp bytesperunit> DD 9F <dFT0 mtp bytesperunit>
+	    B8 05 00 00 00 2B 87 <dEWy1 mtp bytesperunit>
+	    89 87 <dFI mtp bytesperunit> DB 87 <dFI mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 8E A8 00 00 00
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 87 <dFT0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 89 87 <dEWx1 mtp bytesperunit> EB 06
+	    89 87 <dEWity mtp bytesperunit>
+	    8B 87 <dEWy2 mtp bytesperunit> 3D BE 00 00 00 7E 05 B8 BE 00 00 00
+	    89 87 <dEWjty mtp bytesperunit>
+	    8B 87 <dEWx1 mtp bytesperunit> 89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit> DD 9E B0 00 00 00
+	    DD 86 B0 00 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    8B 97 <dEWity mtp bytesperunit> 3B 97 <dEWjty mtp bytesperunit>
+	    0F 8D B2 00 00 00
+	    8B 87 <dEWjty mtp bytesperunit> 29 D0 40
+	    89 87 <dEWcx mtp bytesperunit> 89 97 <dEWh mtp bytesperunit>
+	    DD 86 B0 00 00 00 DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 3D F0 D8 FF FF 7D 05 B8 F0 D8 FF FF
+	    3D 10 27 00 00 7E 05 B8 10 27 00 00
+	    89 87 <dEWax mtp bytesperunit>
+	    8B 97 <dEWh mtp bytesperunit>
+	    8D 9C 97 <dfpart mtp bytesperunit> 3B 03 7E 11
+	    3D 37 01 00 00 7C 08 C7 03 37 01 00 00 EB 02 89 03
+	    8D 9C 97 <dipart mtp bytesperunit> 3B 03 7D 0F
+	    83 F8 05 7F 08 C7 03 05 00 00 00 EB 02 89 03
+	    DD 86 B0 00 00 00 DC 86 A8 00 00 00 DD 9E B0 00 00 00
+	    42 89 97 <dEWh mtp bytesperunit>
+	    FF 8F <dEWcx mtp bytesperunit> 0F 85 6F FF FF FF
+	    DD 86 B0 00 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    83 C1 02 89 8F <dEWsi mtp bytesperunit>
+	    4D 89 AF <dPGj mtp bytesperunit> 0F 85 7B FD FF FF
+	    5D
+	}
 	end;
 
 ( ==================================================================== )
