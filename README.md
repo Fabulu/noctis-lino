@@ -55,7 +55,8 @@ dimensions, so a resized game reopens at the same size.
   a framed command and left-click it. Keys 6-9 remain direct command shortcuts.
 - F1 opens About, F2 opens visual effects, F5 toggles smooth 60 FPS
   presentation, F6/F7 save and load, F8 toggles music, F9 shows the full
-  control card, and Esc saves and quits.
+  control card, and Esc saves and quits. The iGUI full-screen title-bar button
+  toggles full-screen mode; while full-screen, Esc returns to the window first.
 
 The original 18.2 FPS presentation remains the default. The 60 FPS mode
 interpolates player movement, flight, the lift, capsule, wildlife, ocean, and

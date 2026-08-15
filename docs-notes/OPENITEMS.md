@@ -551,7 +551,44 @@ advancement rather than a 60-Hz gameplay clock. Startup telemetry reported 61
 FPS with 5.56 ms render, 3.01 ms present, and 1.69 ms space work. This closes
 the orbital movement and overloaded-client recovery legs of the cadence item.
 
-## 8. Cross-references
+## 8. LinoJava browser runtime and reversible fullscreen -- **OPEN / DOCKET**
+
+Create a separate open-source project at `C:\Programmieren\linojava` that
+turns L.in.oleum programs into fast browser applications and uses the current
+Noctis port as its flagship playable workload. Create a second open-source
+project at `C:\Programmieren\Linoctissite` for the actual hosted, playable
+Noctis website. The site must consume a pinned LinoJava compiler/runtime build
+rather than hiding game-specific behaviour inside the reusable language
+project. The product goal is a real website version of Noctis with the
+recognisable Lino iGUI, game controls, sound, persistence, resizing, and smooth
+presentation intact.
+
+The project name does not dictate a slow source interpreter. Choose the best
+implementation after measuring the language and the current port. The leading
+architecture is an ahead-of-time Lino-to-WebAssembly compiler with JavaScript
+hosting browser services such as Canvas, Web Audio, input, files, and saved
+state. A JavaScript execution path may remain useful for diagnostics or small
+programs, but playable Noctis performance and faithful 32-bit unit semantics
+take priority. Native x86 byte fragments used by the optimized desktop port
+must be translated, replaced with portable equivalents, or rejected with a
+clear diagnostic; the browser must never silently execute a different program.
+
+Both products need an obvious GUI fullscreen button. The browser version must
+use the Fullscreen API, retain the Lino chrome in fullscreen, and always expose
+a visible exit control in addition to Escape. The Windows build must keep its
+existing iGUI fullscreen title-bar button and make Escape return to windowed
+mode without quitting the game. Repeated entry and exit must preserve the
+aspect-fitted game page, controls, audio, and saved state.
+
+Acceptance is product-level: publish both standalone repositories under an
+open-source licence, deploy the Linoctis static build through the existing
+Cloudflare setup and GitHub automation used by the author's other projects,
+boot the current Noctis program through LinoJava, and demonstrate
+windowed/fullscreen round trips on desktop browsers. Performance work belongs
+in the compiler/runtime, not in reduced game detail or altered 18.206-Hz
+gameplay semantics.
+
+## 9. Cross-references
 
 | document | what Wave 6 changed in it |
 |---|---|

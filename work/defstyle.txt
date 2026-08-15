@@ -116,7 +116,7 @@
 	Slep Button Description 	= { Go_dormant };
 	Fold Button Description 	= { Fold/unfold };
 	Maxi Button Description 	= { Full-Size };
-	Full Button Description 	= { Full-Screen };
+	Full Button Description 	= { Full-Screen - ESC exits };
 	Size Button Description 	= { Adjust_size };
 	Root	Directory Description	= { System_root };
 	Startup Directory Description	= { Initial_directory };

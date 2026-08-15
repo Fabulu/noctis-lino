@@ -57,7 +57,7 @@
 	VHGalpha = 0; VHGbeta = 0; VHGnavbeta = 0; VHGabs = 0;
 	VHGlifter = 0; VHGliftstep = 0; VHGonroof = 0; VHGridearmed = 1; VHGuprequest = 0; VHGupheld = 0;
 	VHGdx = 0; VHGdz = 0; VHGdist = 0;
-	VHGesc = 0; VHGframe = 0; VHGsent = 0;
+	VHGesc = 0; VHGframe = 0; VHGsent = 0; VHGfullescheld = 0;
 	VHGargptr = 0; VHGargvalue = 0; VHGargdigits = 0;
 	VHGmouseheld = 0; VHGmousex = 0; VHGmousey = 0; VHGmousedx = 0; VHGmousedy = 0;
 	VHGmenuheld = 0; VHGmenux = 0; VHGmenuy = 0;
@@ -1192,6 +1192,17 @@
 
 "service VHG GUI loop"
 	A = [Fold Is Active]; ? A != NO -> VHG GUI loop done;
+	( iGUI already exposes its fullscreen title-bar button.  In exclusive
+	  mode, Escape now means "return to the window" and is swallowed until
+	  release so the same held key cannot reach the game's quit path. )
+	A = [VHGfullescheld]; ? A = 0 -> VHG fullscreen escape ready;
+	A = [KEY ESCAPE]; ? A = ON -> VHG GUI loop done;
+	[VHGfullescheld] = 0; -> VHG fullscreen escape ready;
+    "VHG fullscreen escape ready"
+	A = [Display Status]; ? A - EXCLUSIVE -> VHG fullscreen escape done;
+	A = [KEY ESCAPE]; ? A = OFF -> VHG fullscreen escape done;
+	[VHGfullescheld] = 1; => Now Unfull; -> VHG GUI loop done;
+    "VHG fullscreen escape done"
 	( Do not advance or publish a client frame while the legacy cooperative
 	  display is inactive.  Its iGUI chrome may still repaint, but the complete
 	  game backdrop remains the last active frame until focus returns. )
