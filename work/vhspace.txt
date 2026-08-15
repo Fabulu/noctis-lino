@@ -115,6 +115,13 @@
 
 	[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;
 	[VHValpha] = [VHSalpha]; [VHVbeta] = [VHSbeta]; => VH set view;
+	=> VHS rebuild draw cache common;
+	end;
+
+"VHS rebuild draw cache common"
+	-> VHS rebuild draw cache source;
+
+"VHS rebuild draw cache source"
 	[VHSstar] = 0;
     "VHS draw loop"
 	A = [VHSstar]; A '* VHSENTRY; A + vhsstarcache; [VHSstarptr] = A;
