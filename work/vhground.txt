@@ -3146,6 +3146,15 @@
 	end;
 
 "VHGND surrounding frame"
+	=> VHGND surrounding border;
+	=> VHGND HUD lamps;
+	=> VHGND epoch HUD;
+	=> VHGND surface coordinate HUD;
+	=> VHGND compass;
+	=> VHGND environment HUD;
+	end;
+
+"VHGND surrounding border"
 	( NOCTIS-0.CPP surrounding(), shared by the Stardrifter and surface views.
 	  Its moving four-row edge precedes the ten graded outer rows and columns,
 	  exactly as the source draws it. )
@@ -3209,11 +3218,6 @@
 	A = [VHGNDframecount]; ? A != 0 -> VHGND surrounding seamless row;
 	[VHGNDframei]+; A = [VHGNDframei]; ? A < 10 -> VHGND surrounding seamless column;
     "VHGND surrounding done"
-	=> VHGND HUD lamps;
-	=> VHGND epoch HUD;
-	=> VHGND surface coordinate HUD;
-	=> VHGND compass;
-	=> VHGND environment HUD;
 	end;
 
 "VHGND HUD lamps"
