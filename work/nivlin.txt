@@ -160,6 +160,21 @@
 
 	=> EMCL run;
 
+	( if -o FILE given, redirect the output file to it )
+	A = [EMCLout]; ? A = 0 -> NV no out;
+	[EMCLix] = 1;
+    "NV find o"
+	A = [EMCLix]; ? A >= [EMCLargc] -> NV no out;
+	=> EMCL argbase;
+	A = EMCLFLAGO; => EMCL stris; ? A = 1 -> NV got o;
+	A = [EMCLix]; A + 1; [EMCLix] = A;
+	-> NV find o;
+    "NV got o"
+	A = [EMCLix]; A + 1; [EMCLix] = A;
+	=> EMCL argbase;
+	[EMOname] = [EMCLt];
+    "NV no out"
+
 	( dispatch on the command word )
 	A = CMDSELF;	=> EMCL cmdis; ? A = 1 -> NV selftest;
 	A = CMDSYSTEM;	=> EMCL cmdis; ? A = 1 -> NV system;
