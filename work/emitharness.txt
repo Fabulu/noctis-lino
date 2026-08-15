@@ -221,6 +221,7 @@
 	[SUsec0] = 0; [SUsec1] = 0;	( secs = 0 )
 
 	( run surface() )
+	=> SU fp init;
 	=> SU pal init;
 	=> SU select ovl;
 	=> SU select planet;
