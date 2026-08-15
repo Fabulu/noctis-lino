@@ -350,7 +350,11 @@
 	A = [VHFy1]; A '* 320; A + [VHFx0]; A + RADPT; A + nw; [VHFlinep] = A;
 	A = [VHFy0]; A+; A '* 320; A + RADPT; A + nw; [VHFlinepf] = A;
     "VHF stick vertical loop"
-	A = [VHFlinep]; ? A >= [VHFlinepf] -> VHF source stick done; D = A; => VHF brighten;
+	A = [VHFlinep]; ? A >= [VHFlinepf] -> VHF source stick done; D = A;
+	A = [D]; A & 255; C = A; C & 63; C + 8;
+	? C <= 62 -> VHF stick vertical bright ready; C = 62;
+    "VHF stick vertical bright ready"
+	A & 192; C | A; [D] = C;
 	A = [VHFlinep]; A + 320; [VHFlinep] = A; -> VHF stick vertical loop;
 
     "VHF stick nonvertical"
@@ -380,7 +384,14 @@
 	  pointer's four-byte allocation offset.  Against the logical page those
 	  two offsets cancel, so the packed framebuffer index is simply di. )
 	A = [VHFlinegy]; A '/ 65536; A '* 320; C = [VHFlinegx]; C '/ 65536; A + C;
-	A + RADPT; A + nw; D = A; => VHF brighten nonvertical;
+	A + RADPT; A + nw; D = A;
+	( Inline Stick's general flare-1 add.  This runs for every sampled point
+	  of every spoke; keeping it here avoids a Lino call/return per pixel. )
+	A = [D]; A & 255; C = A; C & 63; ? C > 55 -> VHF stick nonvertical bright sat;
+	A + 8; [D] = A; -> VHF stick nonvertical bright done;
+    "VHF stick nonvertical bright sat"
+	A & 192; A | 62; [D] = A;
+    "VHF stick nonvertical bright done"
 	A = [VHFlinegx]; A + [VHFlineax]; [VHFlinegx] = A;
 	A = [VHFlinegy]; A + [VHFlineay]; [VHFlinegy] = A;
 	A = [VHFlinegx]; ? A < [VHFlineend] -> VHF stick loop;
