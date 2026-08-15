@@ -74,6 +74,7 @@
 	PJmaxx	= 0;
 	PJpreproject = 0;		( caller supplied exact rotated/projected slots )
 	PJfwbase = 0;			( runtime relocated fw workspace for native kernels )
+	PJmpbase = 0;			( runtime relocated mp workspace for native kernels )
 	PJipartbase = 0;		( runtime relocated edge workspace )
 	PJthird0 = 0; PJthird1 = 0;	( terrain midpoint's binary64 literal )
 
@@ -474,6 +475,10 @@
 	different. )
 
 "PJ projectmap"
+	A = [SPmapfast]; ? A = 0 -> PJ projectmap generic;
+	A = fw; [PJfwbase] = A; A = mp; [PJmpbase] = A;
+	=> PJ projectmap mapped native; end;
+    "PJ projectmap generic"
 	[PJvr] = 0;
 	[PJminx] = PGUBX;
 	[PJmaxx] = PGLBX;
@@ -508,6 +513,40 @@
     "PJ pm y2"
 	[PJvr]+;
 	A = [PJvr]; ? A '< [PJvr2] -> PJ pm v;
+	end;
+
+"PJ projectmap mapped native"
+	( Exact polymap projector for mapped surface objects.  The arithmetic
+	  retains the original binary64 spill after divide, multiply and add,
+	  then uses the live nearest-even x87 conversion.  The generic path stays
+	  available for terrain, clipped corpus cases and every poly3d caller. )
+	{
+	    55 56 53
+	    8B 9F <dPJfwbase mtp bytesperunit> 8D 1C 9F
+	    8B B7 <dPJmpbase mtp bytesperunit> 8D 34 B7
+	    C7 87 <dPJminx mtp bytesperunit> 37 01 00 00
+	    C7 87 <dPJmaxx mtp bytesperunit> 05 00 00 00
+	    C7 87 <dBXminy mtp bytesperunit> BE 00 00 00
+	    C7 87 <dBXmaxy mtp bytesperunit> 0A 00 00 00
+	    31 ED 89 E8 C1 E0 03
+	    DD 83 C8 00 00 00 DC B4 03 00 02 00 00 DD 9B D8 07 00 00
+	    DD 83 D8 07 00 00 DC 8C 03 80 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 83 98 00 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 8F <dFI mtp bytesperunit> 89 0C EE
+	    3B 8F <dPJminx mtp bytesperunit> 7D 06 89 8F <dPJminx mtp bytesperunit>
+	    3B 8F <dPJmaxx mtp bytesperunit> 7E 06 89 8F <dPJmaxx mtp bytesperunit>
+	    DD 83 D8 07 00 00 DC 8C 03 C0 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 83 A0 00 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 8F <dFI mtp bytesperunit> 89 4C EE 04
+	    3B 8F <dBXminy mtp bytesperunit> 7D 06 89 8F <dBXminy mtp bytesperunit>
+	    3B 8F <dBXmaxy mtp bytesperunit> 7E 06 89 8F <dBXmaxy mtp bytesperunit>
+	    45 3B AF <dPJvr2 mtp bytesperunit> 0F 82 2E FF FF FF
+	    89 AF <dPJvr mtp bytesperunit> 5B 5E 5D
+	}
 	end;
 
 ( ==================================================================== )
