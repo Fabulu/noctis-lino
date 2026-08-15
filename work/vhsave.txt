@@ -411,7 +411,7 @@
 	A = C; A & 63; [VHGilightlevel] = A;
 	A = C; A / 64; A & 1; [VHGelight] = A;
 	A = C; A / 128; A % 256; ? A > 200 -> VHSV load done; [VHGresetcount] = A;
-	A = C; A / 32768; A - 1; ? A '< 0FFFFFFFFh -> VHSV load done;
+	A = C; A / 32768; A - 1; ? A < 0 -> VHSV load done;
 	? A > 63 -> VHSV load done; [VHGgburst] = A; -> VHSV load light level done;
     "VHSV load legacy light level"
 	[VHGilightlevel] = A;
