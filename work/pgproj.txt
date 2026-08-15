@@ -742,6 +742,9 @@
 	and FSR* are the original named scratch slots. )
 
 "PG facing"
+	A = [SPmapfast]; ? A = 0 -> PG facing generic;
+	A = fw; [PJfwbase] = A; => PG facing mapped native; end;
+    "PG facing generic"
 	[FCret] = 0;
 
 	( edge 1 = vertex 0 - vertex 2, narrowed on each float store )
@@ -787,6 +790,61 @@
 	A = [FI]; ? A = 2 -> PG facing done; ? A < 0 -> PG facing done;
 	[FCret] = 1;
     "PG facing done"
+	end;
+
+"PG facing mapped native"
+	( Exact mapped-object facing test.  Each edge subtraction and cross/dot
+	  arithmetic result still spills to binary64.  Edge and normal locals
+	  additionally retain their source binary32 store/reload boundaries. )
+	{
+	    53 8B 9F <dPJfwbase mtp bytesperunit> 8D 1C 9F
+	    C7 87 <dFCret mtp bytesperunit> 00 00 00 00
+	    DD 83 E0 07 00 00 DC A3 F0 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9B 40 07 00 00
+	    DD 83 00 08 00 00 DC A3 10 08 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9B 48 07 00 00
+	    DD 83 20 08 00 00 DC A3 30 08 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9B 50 07 00 00
+	    DD 83 E8 07 00 00 DC A3 F0 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9B 28 07 00 00
+	    DD 83 08 08 00 00 DC A3 10 08 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9B 30 07 00 00
+	    DD 83 28 08 00 00 DC A3 30 08 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9B 38 07 00 00
+
+	    DD 83 48 07 00 00 DC 8B 38 07 00 00 DD 9B C0 07 00 00
+	    DD 83 50 07 00 00 DC 8B 30 07 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 83 C0 07 00 00 DC A7 <dFA0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9B 58 07 00 00
+	    DD 83 50 07 00 00 DC 8B 28 07 00 00 DD 9B C0 07 00 00
+	    DD 83 40 07 00 00 DC 8B 38 07 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 83 C0 07 00 00 DC A7 <dFA0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9B 60 07 00 00
+	    DD 83 40 07 00 00 DC 8B 30 07 00 00 DD 9B C0 07 00 00
+	    DD 83 48 07 00 00 DC 8B 28 07 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 83 C0 07 00 00 DC A7 <dFA0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9B 68 07 00 00
+
+	    DD 83 00 07 00 00 DC A3 F0 07 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 8B 58 07 00 00 DD 9B C0 07 00 00
+	    DD 83 08 07 00 00 DC A3 10 08 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 8B 60 07 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 83 C0 07 00 00 DD 9B C0 07 00 00
+	    DD 83 10 07 00 00 DC A3 30 08 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 8B 68 07 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 83 C0 07 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 83 98 07 00 00 DD 87 <dFA0 mtp bytesperunit> DE D9 DF E0 9E 72 0A
+	    C7 87 <dFCret mtp bytesperunit> 01 00 00 00 5B
+	}
 	end;
 
 "PG terrain facing dot native"
