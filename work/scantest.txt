@@ -1,0 +1,154 @@
+
+"libraries"
+
+	brtl;
+	nsrng;
+	nsseed;
+	nstopo;
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+	geoconv;
+	nsident;
+	nslabel;
+	fbmem;
+	emit;
+	emitout;
+
+"directors"
+
+	program name = { scantest };
+	unit = 32;
+
+"variables"
+
+	result file name = { scantest.out };
+	NRX = 0;
+	NRY = 0;
+	NRZ = 0;
+	SCfnv = 0;
+	SCix = 0;
+	SCtmp = 0;
+	SCbody = 0;
+
+"workspace"
+
+	scbuf = 40;
+
+"programme"
+
+	( INIX I engine y = -9508 )
+	A = 1998254512; A +-; [NRX] = A;
+	A = 9508; A +-; [NRY] = A;
+	[NRZ] = 2380852;
+
+	=> EMO init;
+	[EMOname] = result file name;
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	( nearstar: identity, class, seed )
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentityD;
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = 12; => NsRandom;
+	[nsclass] = A;
+
+	( seed and topology )
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+	=> NsStarnop;
+	=> NsResetAll;
+	=> NsPrepare;
+
+	( debug: write/read owner[0] and moonid[0] )
+
+	( FNV accumulator start )
+	D = 2166136261; [SCfnv] = D;
+
+	( header: "class nop nob spin" )
+	A = [nsclass]; => SC dec; A = 32; C = A; => SC byte;
+	A = [nsnop]; => SC dec; A = 32; C = A; => SC byte;
+	A = [nsnob]; => SC dec; A = 32; C = A; => SC byte;
+	A = 0; => SC dec;	( spin = 0 for class 0 )
+
+	( per body: "type owner moonid" into the fnv )
+	[SCbody] = 0;
+    "SC bloop"
+	A = [SCbody]; ? A >= [nsnob] -> SC bdone;
+	E = nsptype; E + [SCbody]; A = [E]; A & 0FFh; => SC dec; A = 32; C = A; => SC byte;
+	E = nspowner; E + [SCbody]; A = [E]; => SC dec; A = 32; C = A; => SC byte;
+	E = nspmoonid; E + [SCbody]; A = [E]; A & 0FFh; => SC dec;
+	A = [SCbody]; A + 1; [SCbody] = A;
+	-> SC bloop;
+    "SC bdone"
+
+	( emit SCAN line )
+	A = 83; => EMO put; A = 67; => EMO put; A = 65; => EMO put; A = 78; => EMO put;
+	A = 32; => EMO put;	( SCAN )
+	A = 120; => EMO put; A = 61; => EMO put;	( x= )
+	A = [NRX]; => EMO num;
+	A = 32; => EMO put; A = 121; => EMO put; A = 61; => EMO put;	( y= )
+	A = [NRY]; A +-; => EMO num;
+	A = 32; => EMO put; A = 122; => EMO put; A = 61; => EMO put;	( z= )
+	A = [NRZ]; => EMO num;
+	A = 32; => EMO put;
+	A = 99; => EMO put; A = 108; => EMO put; A = 97; => EMO put; A = 115; => EMO put; A = 115; => EMO put; A = 61; => EMO put;
+	A = [nsclass]; => EMO num;
+	A = 32; => EMO put;
+	A = 110; => EMO put; A = 111; => EMO put; A = 112; => EMO put; A = 61; => EMO put;
+	A = [nsnop]; => EMO num;
+	A = 32; => EMO put;
+	A = 110; => EMO put; A = 111; => EMO put; A = 98; => EMO put; A = 61; => EMO put;
+	A = [nsnob]; => EMO num;
+	A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	A = [SCfnv]; => EMO hex;
+	=> EMO crlf;
+=> EMO flush;
+	=> FLeave;
+
+( SC byte - update [SCfnv] with the ASCII byte in C. )
+
+"SC byte"
+	D = [SCfnv]; D # C; D '* 16777619; [SCfnv] = D;
+	end;
+
+( SC dec - feed the decimal ASCII of A (signed) into the fnv stream. )
+
+"SC dec"
+	? A >= 0 -> SC dec pos;
+	A +-; C = 45; => SC byte;
+    "SC dec pos"
+	? A = 0 -> SC dec zero;
+	[SCix] = 0;
+	[SCtmp] = A;
+    "SC dec loop"
+	A = [SCtmp]; A '/ 10; ? A = 0 -> SC dec emit;
+	B = A; B '* 10; B +-;
+	C = [SCtmp]; C + B;	( C = value - (value/10)*10 = digit )
+	E = scbuf; E + [SCix]; [E] = C;
+	[SCix]+;
+	A = [SCtmp]; A '/ 10; [SCtmp] = A;
+	-> SC dec loop;
+    "SC dec zero"
+	E = scbuf; E + 0; [E] = 0;
+	[SCix] = 0;
+	-> SC dec feed;
+    "SC dec emit"
+	( store the most significant digit too )
+	E = scbuf; E + [SCix]; C = [SCtmp]; [E] = C;
+    "SC dec feed"
+	( emit scbuf[SCix] down to [0] )
+	E = scbuf; E + [SCix]; C = [E]; C + 48; => SC byte;
+	? [SCix] = 0 -> SC dec done;
+	A = [SCix]; A - 1; [SCix] = A;
+	-> SC dec feed;
+    "SC dec done"
+	end;
