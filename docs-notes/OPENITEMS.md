@@ -588,10 +588,22 @@ state restoration across every transition. If the stock iGUI assumptions are
 not portable, adapt the Lino GUI services explicitly instead of accumulating
 host-side exceptions.
 
+Treat this as a source-level iGUI behavior audit, not merely a host shim pass.
+Inventory every visible button, hotspot, drag region, tooltip, and state icon
+from the Lino GUI code, record its intended desktop behavior, and define the
+browser and desktop result beside it. Disable or replace actions that have no
+honest browser equivalent, such as moving an operating-system window or hiding
+an application into a Windows-only registry. If the original title bar cannot
+express a coherent portable interface, reprogram its Lino layout, labels,
+tooltips, and state machine so the controls remain real Lino-rendered controls
+with useful host-specific behavior. Do not leave buttons that appear to work
+but perform a surprising, unrelated, or invisible operation.
+
 Both products need an obvious fullscreen route that does not steal Escape from
 Noctis. In the browser, fullscreen should present the game canvas itself, hide
-the Lino desktop chrome and ordinary page controls, and expose an intuitive
-edge or corner exit affordance that appears on pointer movement or focus. The
+the Lino desktop chrome, including its top bar, and ordinary page controls.
+Reveal a small, unmistakable exit control when the pointer reaches an edge or
+when fullscreen focus changes, then let it fade so it does not cover play. The
 exit must also have a discoverable non-Escape keyboard shortcut. Audit the same
 game-only fullscreen option on desktop, where appropriate, instead of assuming
 the iGUI title bar belongs in exclusive play. Repeated entry and exit must
