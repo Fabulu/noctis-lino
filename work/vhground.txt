@@ -6097,22 +6097,39 @@
 	( Native b_angle is not an integral-degree lookup.  Borland narrows
 	  b_angle_delta=(float)(2*M_PI/subdivs), narrows its half-angle, then
 	  narrows every +=delta step.  Those low bits feed the next node seed. )
-	[PGFt] = 40C90FDBh; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
-	[FI] = [VHGNDtreebranches]; => IntToF; => VHGND fb fa;
-	[PGFi] = FSW0; => PGF a; => FQuo; => F32Narrow; => FStoreF32; [VHGNDtmp] = [FS0];
-	[PGFt] = [VHGNDtmp]; => PGF ldf32;
-	[FB0] = [GRK050L]; [FB1] = [GRK050H]; => FMul;
-	=> F32Narrow; => FStoreF32; [VHGNDtreeangle] = [FS0];
-	[VHGNDvi] = 0;
-    "VHGND tree direction advance"
-	A = [VHGNDvi]; ? A '>= [VHGNDtreebranch] -> VHGND tree direction trig;
-	[PGFt] = [VHGNDtreeangle]; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtmp]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
-	=> F32Narrow; => FStoreF32; [VHGNDtreeangle] = [FS0];
-	[VHGNDvi]+; -> VHGND tree direction advance;
-    "VHGND tree direction trig"
-    "VHGND tree direction done"
+	{
+	    C7 87 <dPGFt mtp bytesperunit> DB 0F C9 40
+	    D9 87 <dPGFt mtp bytesperunit> DD 9F <dfw plus FSW0 plus FSW0 mtp bytesperunit>
+	    8B 87 <dVHGNDtreebranches mtp bytesperunit>
+	    89 87 <dFI mtp bytesperunit> DB 87 <dFI mtp bytesperunit>
+	    DD 9F <dFB0 mtp bytesperunit>
+	    DD 87 <dfw plus FSW0 plus FSW0 mtp bytesperunit> DC B7 <dFB0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    8B 87 <dFS0 mtp bytesperunit>
+	    89 87 <dVHGNDtmp mtp bytesperunit> 89 87 <dPGFt mtp bytesperunit>
+	    D9 87 <dVHGNDtmp mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dGRK050L mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC 8F <dFB0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    8B 87 <dFS0 mtp bytesperunit> 89 87 <dVHGNDtreeangle mtp bytesperunit>
+	    31 C9 89 8F <dVHGNDvi mtp bytesperunit>
+	    3B 8F <dVHGNDtreebranch mtp bytesperunit> 73 57
+	    D9 87 <dVHGNDtreeangle mtp bytesperunit>
+	    DD 9F <dfw plus FSW0 plus FSW0 mtp bytesperunit>
+	    D9 87 <dVHGNDtmp mtp bytesperunit>
+	    DD 9F <dfw plus FSW1 plus FSW1 mtp bytesperunit>
+	    DD 87 <dfw plus FSW0 plus FSW0 mtp bytesperunit>
+	    DC 87 <dfw plus FSW1 plus FSW1 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    8B 87 <dFS0 mtp bytesperunit> 89 87 <dVHGNDtreeangle mtp bytesperunit>
+	    41 89 8F <dVHGNDvi mtp bytesperunit> EB A1
+	}
 	end;
 
 "VHGND tree limb"
