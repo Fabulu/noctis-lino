@@ -647,13 +647,22 @@ ratio instead of forcing every resized or folded shape to 4:3. Compiler helper
 windows are also launched hidden and terminated after their output settles.
 
 LinoJava now implements the 255-unit Global K read, write, and destroy service
-used by iGUI's dormant-window registry. The service has a focused round-trip
-check, but the actual Lino sleep button did not finish a browser sleep/wake
-round trip in two held-pointer attempts. Dormant mode therefore remains open as
-an interaction defect rather than being declared fixed from its backend alone.
+used by iGUI's dormant-window registry. Browser pointer presses, releases, and
+delta movements are now queued until Lino consumes them, so a complete click
+cannot disappear between two `READ POINTER` calls. Display size and position
+changes are applied on every isocall, matching the desktop runtime contract.
+The browser publishes its real viewport as the physical display and presents
+the normal 642x426 Lino window at a crisp 1:1 scale.
 
-Still open are the rest of the iGUI action matrix, especially fold, dormant
-mode, maximize, drag, resize, hide, restore, and close behavior in each host;
+A single uninstrumented Chromium product run exercised the real Lino controls:
+title dragging moved the window and survived sleep/wake; dormant mode changed
+642x426 to 126x25 and back; fold/unfold changed 642x426 to 642x25 and back; a
+size-grip drag reached 722x466; maximize reached 962x626; and the Lino
+fullscreen button completed a game-only fullscreen round trip. The resize host
+preserves the total drag vector even when Chromium coalesces pointer events.
+
+Still open are the remaining iGUI action cases, especially hide or screen-off,
+restore, close, menu behavior, focus loss, and repeated edge transitions in each host;
 renderer fidelity; every remaining native path; audio; file mutation and
 persistence services; complete game-mode coverage; and the performance work
 needed for smooth play.
