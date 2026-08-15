@@ -1,0 +1,78 @@
+
+"libraries"
+
+	brtl;
+	nsrng;
+	nsseed;
+	nstopo;
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+	geoconv;
+	nsident;
+	nslabel;
+	fbmem;
+	emitout;
+
+"directors"
+
+	program name = { nearprobe };
+	unit = 32;
+
+"variables"
+
+	result file name = { nearprobe.out };
+	NRX = 0;
+	NRY = 0;
+	NRZ = 0;
+
+"programme"
+
+	( INIX I: -1998254512 9508 2380852 )
+	A = 1998254512; A +-; [NRX] = A;
+	[NRY] = 9508;
+	[NRZ] = 2380852;
+
+	=> EMO init;
+	[EMOname] = result file name;
+
+	( ---- float setup ---- )
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	( ---- nearstar_identity, :4078.  No draws. ---- )
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentityD;
+
+	( ---- the class.  extract_ap_target_infos ---- )
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = 12; => NsRandom;
+	[nsclass] = A;
+
+	( ---- the seed ---- )
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+
+	( ---- starnop + reset + prepare ---- )
+	=> NsStarnop;
+	=> NsResetAll;
+	=> NsPrepare;
+
+	( emit diagnostics )
+	A = [nsclass]; => EMO num; A = 32; => EMO ch;
+	A = [nsseedin]; => EMO num; A = 32; => EMO ch;
+	A = [nsnop]; => EMO num; A = 32; => EMO ch;
+	A = [nsnob]; => EMO num; => EMO crlf;
+
+	( body 0 type / owner / ray via per-body arrays )
+	A = nsptype; A + 0; [EMOval] = [A]; A = [EMOval]; => EMO num; A = 32; => EMO ch;
+	A = nspowner; A + 0; [EMOval] = [A]; A = [EMOval]; => EMO num; => EMO crlf;
+
+	=> EMO flush;
+	=> FLeave;
+	end;
