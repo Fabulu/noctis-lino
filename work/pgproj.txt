@@ -414,6 +414,9 @@
 	ryf/rzf - BIT PATTERNS, no arithmetic, no rounding. )
 
 "PJ zload"
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PJ zload generic;
+	A = fw; [PJfwbase] = A; => PJ zload native; end;
+    "PJ zload generic"
 	[PJvr] = 0;
     "PJ zl v"
 	A = [PJvr]; A + FSRXF; [PGFi] = A;
@@ -426,6 +429,24 @@
 	A = [PJvr]; ? A '< [PJnrv] -> PJ zl v;
 	A = [PJnrv]; [PJvr2] = A;
 	A + A; [PJvr22] = A;
+	end;
+
+"PJ zload native"
+	( All-visible terrain and mapped objects only need bitwise qword copies
+	  from rotated to ultima slots.  Copy the three arrays in one native loop
+	  and preserve the generic routine's final counters exactly. )
+	{
+	    55 53 8B AF <dPJfwbase mtp bytesperunit> 8D 2C AF
+	    31 C0 8B 8F <dPJnrv mtp bytesperunit> D1 E1
+	    8B 9C 85 00 01 00 00 89 9C 85 80 01 00 00
+	    8B 9C 85 20 01 00 00 89 9C 85 C0 01 00 00
+	    8B 9C 85 40 01 00 00 89 9C 85 00 02 00 00
+	    40 39 C8 72 D1
+	    8B 87 <dPJnrv mtp bytesperunit>
+	    89 87 <dPJvr mtp bytesperunit>
+	    89 87 <dPJvr2 mtp bytesperunit>
+	    01 C0 89 87 <dPJvr22 mtp bytesperunit> 5B 5D
+	}
 	end;
 
 ( ==================================================================== )
