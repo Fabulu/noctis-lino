@@ -56,12 +56,32 @@ def check_selftest(path: str) -> bool:
 def main() -> int:
     if len(sys.argv) < 3:
         print("usage: niv_check.py selftest <emitself.out>")
+        print("       niv_check.py harness <emitharness.out> <ref-selftest>")
         return 2
-    cmd, path = sys.argv[1], sys.argv[2]
+    cmd = sys.argv[1]
     if cmd == "selftest":
-        ok = check_selftest(path)
+        ok = check_selftest(sys.argv[2])
         print("SELFTEST %s" % ("PASS" if ok else "FAIL"))
         return 0 if ok else 1
+    if cmd == "harness":
+        # verify the emitted harness selftest (first 361 bytes) matches the
+        # reference selftest prefix (hash vectors + Borland random section).
+        path, ref = sys.argv[2], sys.argv[3]
+        with open(path, "rb") as f:
+            blob = f.read()
+        mine = "".join(chr(int.from_bytes(blob[i:i + 4], "little"))
+                       for i in range(0, len(blob), 4)).encode()
+        with open(ref, "rb") as f:
+            expected = f.read()
+        # the reference selftest continues with float sections we don't emit
+        # yet; compare only the byte length we produce.
+        if mine == expected[:len(mine)]:
+            print("HARNESS SELFTEST prefix matches (%d bytes)" % len(mine))
+            return 0
+        print("HARNESS SELFTEST MISMATCH")
+        print("  mine: %r" % mine)
+        print("  ref : %r" % expected[:len(mine)])
+        return 1
     print("unknown command: %s" % cmd)
     return 2
 
