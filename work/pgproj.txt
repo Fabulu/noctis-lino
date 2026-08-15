@@ -733,6 +733,9 @@
 	[GCret] = 0;
 	A = rwf; A = [A];
 	? A = 0 -> PG gc done;
+	A = [SPmapfast]; ? A = 0 -> PG gc project generic;
+	A = fw; [PJfwbase] = A; => PG getcoords mapped native; -> PG gc bounds;
+    "PG gc project generic"
 
 	( my = dpp / rz ; _x_ = my*rx + x_centro ; _y_ = my*ry + y_centro )
 	[PGFi] = FSDPP; => PGF a;
@@ -746,12 +749,33 @@
 	[PGFi] = FSYC; => PGF add;
 	=> PGF int; [GCy] = [FI];
 
+	"PG gc bounds"
 	A = [GCx]; ? A <= PGLBX -> PG gc done;
 	A = [GCx]; ? A >= PGUBX -> PG gc done;
 	A = [GCy]; ? A <= PGLBY -> PG gc done;
 	A = [GCy]; ? A >= PGUBY -> PG gc done;
 	[GCret] = 1;
     "PG gc done"
+	end;
+
+"PG getcoords mapped native"
+	( Exact fixed-slot projection for the mapped foliage point path.  Divide,
+	  multiply and add retain separate binary64 spills before nearest-even
+	  conversion; the strict viewport gates remain in PG getcoords. )
+	{
+	    53 8B 9F <dPJfwbase mtp bytesperunit> 8D 1C 9F
+	    DD 83 C8 00 00 00 DC B3 40 01 00 00 DD 9B D8 07 00 00
+	    DD 83 D8 07 00 00 DC 8B 00 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 83 98 00 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 89 87 <dGCx mtp bytesperunit>
+	    DD 83 D8 07 00 00 DC 8B 20 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 83 A0 00 00 00 DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
+	    8B 87 <dFI mtp bytesperunit> 89 87 <dGCy mtp bytesperunit> 5B
+	}
 	end;
 
 ( ==================================================================== )
