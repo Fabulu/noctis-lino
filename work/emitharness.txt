@@ -39,6 +39,33 @@
 	brtl;
 	emit;
 	emitcli;
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+
+	fbmem;
+	brtl;
+	mul64frag;
+
+	suseed;
+	surng;
+	subuf;
+	susm;
+	supaint;
+	supal;
+	sucase;
+
+	nsrng;
+	nsseed;
+	nstopo;
+	geoconv;
+	nsident;
+	nslabel;
+
+	emit;
+	emitcli;
 	emitout;
 
 "directors"
@@ -53,10 +80,23 @@
 	V1 = { a };
 	V2 = { abc };
 	CMDSELF = { selftest };
+	CMDPLANET = { planet };
 	outfile = { emitself.out };
 	ismatch = 0;
 	EHrand	= 0;
 	EHix	= 0;
+	EHrayvar = 0;
+	EHbidx	= 0;
+	EHtyp	= 0;
+	EHsfn	= 0;
+	EHscrc	= 0;
+	EHafn	= 0;
+	EHacrc	= 0;
+	EHpfn	= 0;
+	EHpcrc	= 0;
+	NRX	= 0;
+	NRY	= 0;
+	NRZ	= 0;
 
 "workspace"
 
@@ -64,12 +104,18 @@
 
 "programme"
 
-	=> EMCL run;
 	=> EMO init;
+	[EMOname] = result file name;
+
+	( float setup for the generation commands )
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	=> EMCL run;
 
 	( dispatch on the command word )
-	[EMOname] = result file name;
 	A = CMDSELF; => EMCL cmdis; ? A = 1 -> EH selftest;
+	A = CMDPLANET; => EMCL cmdis; ? A = 1 -> EH planet;
 	( unknown / unimplemented command: just exit cleanly )
 	-> EH done;
 
@@ -77,6 +123,153 @@
 	=> EH selftest hash;
 	=> EH selftest rand;
 	-> EH done;
+
+( ==================================================================== )
+( EH nearstar - run the full nearstar driver for the CLI coords.         )
+( Sets [nsclass], [nsseedin], [nsstarray], then NsPrepare.  Destroys     )
+( A B C D E.  Pre: FEnter already called.                               )
+
+"EH nearstar"
+	( engine y = -user_y )
+	A = [EMCLx]; [nsx] = A; [FJ0] = A;
+	A = [EMCLy]; A +-; [nsy] = A; [FJ1] = A;
+	A = [EMCLz]; [nsz] = A; [FJ2] = A;
+
+	( nearstar_identity, :4078.  No draws. )
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentityD;
+
+	( the class.  extract_ap_target_infos: srand(identity);
+	  random(12) [class]; random(CLASS_RAYVAR[class]) [variance]. )
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = 12; => NsRandom;
+	[nsclass] = A;
+
+	( the ray variance draw on the same stream )
+	A = 2000; => NsRandom;	( CLASS_RAYVAR[0]=2000; class table lookup TBD )
+	[EHrayvar] = A;
+
+	( the seed.  srand((x%10000*y)%10000*z%10000), engine y (negated). )
+	[nsx] = [EMCLx];
+	A = [EMCLy]; A +-; [nsy] = A;
+	[nsz] = [EMCLz];
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+
+	( star ray = (variance + CLASS_RAY[class]) / 1000, stored as f32 )
+	A = [EHrayvar]; A + 5000; [FI] = A; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000; => IntToF;
+	[FC0] = [FB0]; [FC1] = [FB1];
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FC0]; [FA1] = [FC1];
+	=> FQuo;
+	=> FStoreF32; [nsstarray] = [FS0];
+
+	=> NsStarnop;
+	=> NsResetAll;
+	=> NsPrepare;
+	end;
+
+( ==================================================================== )
+( EH planet - the planet command: nearstar, seedval, SU surface, hashes. )
+
+"EH planet"
+	=> EH nearstar;
+
+	( body index = EMCLp ; derive surface_seedval_for )
+	( seedval = 1e6 * type * orb_seed * orb_tilt * ecc * orient )
+	A = [EMCLp]; [EHbidx] = A;
+	E = nsptype; E + [EHbidx]; A = [E]; A & 0FFh; [EHtyp] = A;
+
+	( 1e6 * type )
+	[FI] = 1000000; => IntToF;
+	A = [EHtyp]; [FI] = A; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000000; => IntToF;
+	=> FMul;	( FA = 1e6 * type )
+
+	( * orb_seed )
+	A = [EHbidx]; A < 1; E = nsporbseed; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1];
+	=> FMul;
+
+	( * orb_tilt )
+	A = [EHbidx]; A < 1; E = nsporbtlt; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1];
+	=> FMul;
+
+	( * ecc )
+	A = [EHbidx]; A < 1; E = nsporbecc; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1];
+	=> FMul;
+
+	( * orient )
+	A = [EHbidx]; A < 1; E = nspororient; E + A;
+	[FB0] = [E plus 0]; [FB1] = [E plus 1];
+	=> FMul;
+
+	( store seedval into SUsv0/SUsv1 )
+	[SUsv0] = [FA0]; [SUsv1] = [FA1];
+
+	( set SU surface inputs )
+	[SUtype] = [EHtyp];
+	[SUcbase] = 192;	( planet colorbase )
+	[SUplwp] = 0;
+	[SUowner] = 0;
+	[SUsec0] = 0; [SUsec1] = 0;	( secs = 0 )
+
+	( run surface() )
+	=> SU pal init;
+	=> SU select ovl;
+	=> SU select planet;
+	=> SU wipe;
+	=> SU wipe ovl;
+	=> SU wipe pal;
+	=> SU surface;
+
+	( hash surface_map: nw+RPBG[0..46080] )
+	A = nw; A + RPBG; [EMHbase] = A;
+	[EMHcount] = 46080;
+	=> EMH hsh;
+	[EHsfn] = [EMHfnv]; [EHscrc] = [EMHcrc];
+
+	( hash atmo_overlay: nw+ROBJ[0..32400] )
+	A = nw; A + ROBJ; [EMHbase] = A;
+	[EMHcount] = 32400;
+	=> EMH hsh;
+	[EHafn] = [EMHfnv]; [EHacrc] = [EMHcrc];
+
+	( hash palette64: tmppal[576..768] )
+	A = sutmppal; A + 576; [EMHbase] = A;
+	[EMHcount] = 192;
+	=> EMH hsh;
+	[EHpfn] = [EMHfnv]; [EHpcrc] = [EMHcrc];
+
+	( write the hash-lines )
+	A = 80; => EMO ch; A = 76; => EMO ch; A = 65; => EMO ch; A = 78; => EMO ch;
+	A = 69; => EMO ch; A = 84; => EMO ch; A = 32; => EMO ch;
+	A = 98; => EMO ch; A = 111; => EMO ch; A = 100; => EMO ch; A = 121; => EMO ch;
+	A = 61; => EMO ch;
+	A = [EMCLp]; => EMO num; A = 32; => EMO ch;
+	A = 116; => EMO ch; A = 121; => EMO ch; A = 112; => EMO ch; A = 101; => EMO ch;
+	A = 61; => EMO ch;
+	A = [EHtyp]; => EMO num; => EMO crlf;
+
+	A = 115; => EMO ch; A = 117; => EMO ch; A = 114; => EMO ch; A = 102; => EMO ch;
+	A = 97; => EMO ch; A = 99; => EMO ch; A = 101; => EMO ch; A = 95; => EMO ch;
+	A = 109; => EMO ch; A = 97; => EMO ch; A = 112; => EMO ch;
+	A = 32; => EMO ch;
+	A = 108; => EMO ch; A = 101; => EMO ch; A = 110; => EMO ch; A = 61; => EMO ch;
+	A = 102; => EMO ch; A = 110; => EMO ch; A = 118; => EMO ch; A = 61; => EMO ch;
+	A = [EHsfn]; => EMO hex; A = 32; => EMO ch;
+	A = 99; => EMO ch; A = 114; => EMO ch; A = 99; => EMO ch; A = 61; => EMO ch;
+	A = [EHscrc]; => EMO hex; => EMO crlf;
+
+	=> EMO flush;
+	-> EH done;
+
 
 ( ==================================================================== )
 ( EH selftest hash - the four FNV/CRC hash vectors, exact reference      )
@@ -222,4 +415,17 @@
 
     "EH done"
 	=> EMO flush;
+	end;
+
+( ==================================================================== )
+( SU wipe pal - zero the 768-unit tmppal.  Driver routine, mirrors the  )
+( standalone graders' "SU wipe pal".                                   )
+
+"SU wipe pal"
+	A = sutmppal;
+	B = 768;
+	C = 0;
+    "SU wp u"
+	[A] = C; A+;
+	B ^ SU wp u;
 	end;
