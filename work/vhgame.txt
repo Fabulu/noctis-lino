@@ -297,9 +297,9 @@
 	VHGmovievalue = 0; VHGmovieden = 0; VHGmoviepos = 0;
 	VHGprofstart = 0; VHGprofnow = 0; VHGprofrender = 0; VHGprofpresent = 0;
 	VHGprofpart = 0; VHGprofspace = 0; VHGprofcupola = 0; VHGprofhull = 0; VHGprofdetail = 0;
-	( Present at the original 18.206 Hz by default. F5 opts into the 60-Hz
-	  presenter; gameplay simulation remains 18.206 Hz in either mode. )
-	VHGfast = 0; VHGfastheld = 0; VHGsimacc = 0; VHGdosim = 1;
+	( Present at 60 Hz by default while gameplay simulation remains at its
+	  original 18.206-Hz cadence. F5 retains the classic presentation toggle. )
+	VHGfast = 1; VHGfastheld = 0; VHGsimacc = 0; VHGdosim = 1;
 	VHGsimcountprev = 0; VHGsimcountelapsed = 0; VHGsimcountok = 0;
 	VHGsimwhole = 0; VHGsimrem = 0; VHGsimfrac = 0; VHGsiminc = 0;
 	VHGinterpok = 0; VHGinterpacc = 0; VHGinterpapplied = 0;
