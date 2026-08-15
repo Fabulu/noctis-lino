@@ -1,0 +1,211 @@
+
+"libraries"
+
+	fbmem;
+	brtl;
+	emit;
+	emitcli;
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+
+	mul64frag;
+
+	suseed;
+	surng;
+	subuf;
+	susm;
+	supaint;
+	supal;
+	sucase;
+
+	nsrng;
+	nsseed;
+	nstopo;
+	geoconv;
+	nsident;
+	nslabel;
+
+	emitout;
+
+"directors"
+
+	program name = { planetalltest };
+	unit = 32;
+
+"variables"
+
+	result file name = { planetalltest.out };
+	NRX = 0;
+	NRY = 0;
+	NRZ = 0;
+	PAi = 0;
+	PAtyp = 0;
+	PAsfn = 0;
+	PAsrc = 0;
+	PAafn = 0;
+	PAacrc = 0;
+	PApfn = 0;
+	PApcrc = 0;
+	PAv = 0;
+
+
+"programme"
+
+	( INIX I engine y = -9508 )
+	A = 1998254512; A +-; [NRX] = A;
+	A = 9508; A +-; [NRY] = A;
+	[NRZ] = 2380852;
+
+	=> EMO init;
+	[EMOname] = result file name;
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	( nearstar generation )
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentityD;
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = 12; => NsRandom;
+	[nsclass] = A;
+	A = 2000; => NsRandom;
+	[PAv] = A;
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+	A = [PAv]; A + 5000; [FI] = A; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000; => IntToF;
+	[FC0] = [FB0]; [FC1] = [FB1];
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FC0]; [FA1] = [FC1];
+	=> FQuo;
+	=> FStoreF32; [nsstarray] = [FS0];
+	=> NsStarnop;
+	=> NsResetAll;
+	=> NsPrepare;
+
+	( header )
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 32; => EMO put;
+	A = 80; => EMO put; A = 76; => EMO put; A = 65; => EMO put; A = 78; => EMO put;
+	A = 69; => EMO put; A = 84; => EMO put; A = 32; => EMO put;
+	A = 84; => EMO put; A = 69; => EMO put; A = 88; => EMO put; A = 84; => EMO put;
+	A = 85; => EMO put; A = 82; => EMO put; A = 69; => EMO put; A = 83; => EMO put;
+	A = 32; => EMO put; A = 40; => EMO put;
+	A = 97; => EMO put; A = 108; => EMO put; A = 108; => EMO put; A = 32; => EMO put;
+	A = [nsnob]; => EMO num; A = 32; => EMO put;
+	A = 98; => EMO put; A = 111; => EMO put; A = 100; => EMO put; A = 105; => EMO put;
+	A = 101; => EMO put; A = 115; => EMO put; A = 41; => EMO put; A = 32; => EMO put;
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put;
+	=> EMO crlf;
+
+	( loop bodies )
+	[PAi] = 0;
+    "PA bloop"
+	A = [PAi]; ? A >= [nsnob] -> PA bdone;
+
+	( body type )
+	E = nsptype; E + [PAi]; A = [E]; A & 0FFh; [PAtyp] = A;
+
+	( seedval = 1e6 * type * orb_seed * orb_tilt * ecc * orient )
+	[FI] = 1000000; => IntToF;
+	A = [PAtyp]; [FI] = A; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000000; => IntToF;
+	=> FMul;
+	A = [PAi]; A < 1; E = nsporbseed; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	=> FMul;
+	A = [PAi]; A < 1; E = nsporbtlt; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	=> FMul;
+	A = [PAi]; A < 1; E = nsporbecc; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	=> FMul;
+	A = [PAi]; A < 1; E = nspororient; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	=> FMul;
+	[SUsv0] = [FA0]; [SUsv1] = [FA1];
+
+	( SU surface inputs )
+	[SUtype] = [PAtyp];
+	[SUcbase] = 192;
+	[SUplwp] = 269;
+	[SUowner] = 0;
+	[SUnsr] = 63; [SUnsg] = 58; [SUnsb] = 40;
+	[SUsec0] = 0; [SUsec1] = 0;
+
+	( run surface )
+	=> SU fp init;
+	=> SU pal init;
+	=> SU select ovl;
+	=> SUDM reset;
+	=> SU select planet;
+	=> SU wipe;
+	=> SU wipe ovl;
+	=> SU wipe pal;
+	=> SU surface;
+
+	( hash surface_map: nw+RPBG[0..46080] )
+	A = nw; A + RPBG; [EMHbase] = A;
+	[EMHcount] = 46080;
+	=> EMH hsh;
+	[PAsfn] = [EMHfnv]; [PAsrc] = [EMHcrc];
+
+	( hash atmo: nw+ROBJ[0..32400] )
+	A = nw; A + ROBJ; [EMHbase] = A;
+	[EMHcount] = 32400;
+	=> EMH hsh;
+	[PAafn] = [EMHfnv]; [PAacrc] = [EMHcrc];
+
+	( hash palette64: tmppal[576..768] )
+	A = sutmppal; A + 576; [EMHbase] = A;
+	[EMHcount] = 192;
+	=> EMH hsh;
+	[PApfn] = [EMHfnv]; [PApcrc] = [EMHcrc];
+
+	( emit compact line )
+	A = 80; => EMO put; A = 76; => EMO put; A = 65; => EMO put; A = 78; => EMO put;
+	A = 69; => EMO put; A = 84; => EMO put; A = 32; => EMO put;
+	A = [PAi]; => EMO num; A = 32; => EMO put;
+	A = 116; => EMO put; A = 121; => EMO put; A = 112; => EMO put; A = 101; => EMO put;
+	A = 61; => EMO put;
+	A = [PAtyp]; => EMO num; A = 32; => EMO put;
+	A = 105; => EMO put; A = 115; => EMO put; A = 95; => EMO put; A = 109; => EMO put;
+	A = 111; => EMO put; A = 111; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	E = nspowner; E + [PAi]; A = [E]; ? A >= 0 -> PA nm;
+	A = 0; => EMO num;	( planet, is_moon=0 )
+	-> PA moon done;
+    "PA nm"
+	A = 1; => EMO num;	( moon )
+    "PA moon done"
+	A = 32; => EMO put;
+	A = 115; => EMO put; A = 117; => EMO put; A = 114; => EMO put; A = 102; => EMO put;
+	A = 61; => EMO put;
+	A = [PAsfn]; => EMO hex; A = 32; => EMO put;
+	A = 97; => EMO put; A = 116; => EMO put; A = 109; => EMO put; A = 111; => EMO put;
+	A = 61; => EMO put;
+	A = [PAafn]; => EMO hex; A = 32; => EMO put;
+	A = 112; => EMO put; A = 97; => EMO put; A = 108; => EMO put; A = 61; => EMO put;
+	A = [PApfn]; => EMO hex;
+	=> EMO crlf;
+
+	=> EMO flush;
+	A = [PAi]; A + 1; [PAi] = A;
+	-> PA bloop;
+    "PA bdone"
+
+	=> EMO flush;
+	=> FLeave;
+
+( SU wipe pal - zero the 768-unit tmppal.  Driver routine. )
+
+"SU wipe pal"
+	A = sutmppal;
+	B = 768;
+	C = 0;
+    "SU wp u"
+	[A] = C; A+;
+	B ^ SU wp u;
+	end;
+	end;
