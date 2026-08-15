@@ -75,6 +75,7 @@
 	PJpreproject = 0;		( caller supplied exact rotated/projected slots )
 	PJfwbase = 0;			( runtime relocated fw workspace for native kernels )
 	PJmpbase = 0;			( runtime relocated mp workspace for native kernels )
+	PJrwfbase = 0;			( runtime relocated visibility workspace )
 	PJipartbase = 0;		( runtime relocated edge workspace )
 	PJthird0 = 0; PJthird1 = 0;	( terrain midpoint's binary64 literal )
 
@@ -1701,6 +1702,9 @@
 	  it from slot 2, and the order matters. )
 	[PJgate] = 0;
 	A = [PJnrv]; ? A != 3 -> PG pm r;
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG pm duplicate input generic;
+	A = fw; [PJfwbase] = A; => PG pm duplicate input native; -> PG pm r;
+    "PG pm duplicate input generic"
 	A = FSINX; A + 2; [PGFi] = A; A = FSINX; A + 3; [PGFj] = A; => PGF mov;
 	A = FSINY; A + 2; [PGFi] = A; A = FSINY; A + 3; [PGFj] = A; => PGF mov;
 	A = FSINZ; A + 2; [PGFi] = A; A = FSINZ; A + 3; [PGFj] = A; => PGF mov;
@@ -1715,11 +1719,16 @@
 	  closing edge, projection and texture basis exactly as before. )
 	[PJnrv] = 3;
 	=> PJ rotate;
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG pm duplicate rotated generic;
+	A = fw; [PJfwbase] = A; A = rwf; [PJrwfbase] = A;
+	=> PG pm duplicate rotated native; -> PG pm duplicate rotated done;
+    "PG pm duplicate rotated generic"
 	A = FSRXF; A + 2; [PGFi] = A; A = FSRXF; A + 3; [PGFj] = A; => PGF mov;
 	A = FSRYF; A + 2; [PGFi] = A; A = FSRYF; A + 3; [PGFj] = A; => PGF mov;
 	A = FSRZF; A + 2; [PGFi] = A; A = FSRZF; A + 3; [PGFj] = A; => PGF mov;
 	A = rwf; A + 2; C = [A]; A = rwf; A + 3; [A] = C;
 	A = [PJdoflag]; A + C; [PJdoflag] = A;
+	"PG pm duplicate rotated done"
 	A = 4; [PJvr] = A; [PJnrv] = A;
 	-> PG pm rotated;
     "PG pm rotate four"
@@ -1795,4 +1804,27 @@
 	=> PG trace;
 	[PJgate] = 0;
     "PG pm out"
+	end;
+
+"PG pm duplicate input native"
+	( A mapped triangle closes by bit-copying vertex 2 into slot 3. )
+	{
+	    56 8B B7 <dPJfwbase mtp bytesperunit> 8D 34 B7
+	    8B 86 F0 07 00 00 8B 96 F4 07 00 00 89 86 F8 07 00 00 89 96 FC 07 00 00
+	    8B 86 10 08 00 00 8B 96 14 08 00 00 89 86 18 08 00 00 89 96 1C 08 00 00
+	    8B 86 30 08 00 00 8B 96 34 08 00 00 89 86 38 08 00 00 89 96 3C 08 00 00 5E
+	}
+	end;
+
+"PG pm duplicate rotated native"
+	( The corresponding rotated carriers and visibility flag are also pure
+	  bit copies; retain the duplicate's contribution to doflag. )
+	{
+	    56 51 8B B7 <dPJfwbase mtp bytesperunit> 8D 34 B7
+	    8B 86 10 01 00 00 8B 96 14 01 00 00 89 86 18 01 00 00 89 96 1C 01 00 00
+	    8B 86 30 01 00 00 8B 96 34 01 00 00 89 86 38 01 00 00 89 96 3C 01 00 00
+	    8B 86 50 01 00 00 8B 96 54 01 00 00 89 86 58 01 00 00 89 96 5C 01 00 00
+	    8B 8F <dPJrwfbase mtp bytesperunit> 8D 0C 8F
+	    8B 41 08 89 41 0C 01 87 <dPJdoflag mtp bytesperunit> 59 5E
+	}
 	end;
