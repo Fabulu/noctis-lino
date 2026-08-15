@@ -1173,10 +1173,7 @@
 	[PJdx] = 3;
 	[PJthird0] = D64THLO; [PJthird1] = D64THHI;
 	=> PJ terrain midpoint native;
-	[PJvr] = 0;
-    "PJ terrain expand loop"
-	=> PJ terrain expand native;
-	[PJvr]+; A = [PJvr]; ? A < 3 -> PJ terrain expand loop;
+	[PJvr] = 0; => PJ terrain expand native;
 	[PJvv] = 2;
 	=> PJ terrain basis native;
 	-> PJ vc gradients;
@@ -1188,10 +1185,7 @@
 	[PJdx] = 4;
 	[PJthird0] = D64QLO; [PJthird1] = D64QHI;
 	=> PJ mapped midpoint native;
-	[PJvr] = 0;
-    "PJ mapped expand loop"
-	=> PJ terrain expand native;
-	[PJvr]+; A = [PJvr]; ? A < 4 -> PJ mapped expand loop;
+	[PJvr] = 0; => PJ terrain expand native;
 	[PJvv] = 3;
 	=> PJ mapped basis native;
 	-> PJ vc gradients;
@@ -1333,10 +1327,12 @@
 	end;
 
 "PJ terrain expand native"
+	( Expand all PJdx vertices in one native loop. )
 	{
 	    8B B7 <dPJfwbase mtp bytesperunit>
 	    8D 34 B7
-	    8B 87 <dPJvr mtp bytesperunit>
+	    8B 8F <dPJvr mtp bytesperunit>
+	    89 C8
 	    C1 E0 03
 	    89 C2
 	    05 00 01 00 00                       (rxf[v])
@@ -1354,7 +1350,7 @@
 	    D9 9F <dFS0 mtp bytesperunit>
 	    D9 87 <dFS0 mtp bytesperunit>
 	    DD 1C 16
-	    8B 87 <dPJvr mtp bytesperunit>
+	    89 C8
 	    C1 E0 03
 	    89 C2
 	    05 20 01 00 00                       (ryf[v])
@@ -1372,7 +1368,7 @@
 	    D9 9F <dFS0 mtp bytesperunit>
 	    D9 87 <dFS0 mtp bytesperunit>
 	    DD 1C 16
-	    8B 87 <dPJvr mtp bytesperunit>
+	    89 C8
 	    C1 E0 03
 	    89 C2
 	    05 40 01 00 00                       (rzf[v])
@@ -1390,6 +1386,9 @@
 	    D9 9F <dFS0 mtp bytesperunit>
 	    D9 87 <dFS0 mtp bytesperunit>
 	    DD 1C 16
+	    41 89 8F <dPJvr mtp bytesperunit>
+	    3B 8F <dPJdx mtp bytesperunit>
+	    0F 82 DF FE FF FF
 	}
 	end;
 
