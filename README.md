@@ -64,9 +64,10 @@ close-star poses without changing the original simulation rate.
 
 The browser port is being built separately in
 [`Fabulu/linojava`](https://github.com/Fabulu/linojava), with its first
-interactive iGUI host live at [linoctis.pages.dev](https://linoctis.pages.dev/).
-That page is currently the compiler/runtime bring-up slice, not yet the full
-Noctis game.
+real Lino-rendered iGUI live at
+[linoctis.pages.dev](https://linoctis.pages.dev/). The original iGUI source,
+graphics, pointer-driven menu, and framebuffer now run in JavaScript; the page
+is not yet the full Noctis game.
 
 ### Flight and surface play
 

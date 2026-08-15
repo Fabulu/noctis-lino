@@ -594,30 +594,33 @@ gameplay semantics. Push source and publish the live Cloudflare site at stable,
 player-visible milestones as the implementation improves, rather than waiting
 for the entire port or deploying every internal edit.
 
-**Completed foundation.** The public
+**Completed browser compiler and real-iGUI milestone.** The public
 [`Fabulu/linojava`](https://github.com/Fabulu/linojava) repository now contains
-the independent ahead-of-time JavaScript compiler, explicit 32-bit workspace,
-optimized local regions, typed return stack, command-line compiler, browser
-source loader, IndexedDB compiled-module cache, example Lino programme, and
-focused regressions. Its architecture and delivery-wave procedure are public
-in that repository. The current compiler revision is pinned by the separate
+the independent ahead-of-time JavaScript compiler, a recursive project linker,
+the complete published IsoKernel layout, explicit 32-bit workspace, shared
+typed call/data stack, float32 operations, and all instruction forms used by
+the real iGUI project. It links all 14 modules, 23 stockfiles, 4,609 programme
+statements, and 714 labels without unresolved relocations, then executes the
+original 23 READ calls, GET DIR, and first RETRACE in order. Its architecture,
+focused regressions, and delivery-wave procedure are public in that repository.
+The current compiler revision is pinned by the separate
 [`Fabulu/Linoctissite`](https://github.com/Fabulu/Linoctissite) repository.
-That site now places `noctis_probe.lino` directly on the page as a `text/lino`
-script, compiles it to JavaScript inside the browser, caches the result, and
-runs it inside a responsive temporary host with keyboard input, pixel
-presentation, the fullscreen title-bar button, a visible fullscreen exit
-control, and Escape. Focused Edge QA proved cold compilation, warm cache reuse,
-movement, menu input, a complete non-black canvas, and no browser errors. It is
-deployed through the author's Cloudflare account at
+That site now ships the transitive iGUI source and asset closure, compiles the
+ordinary Lino files in the browser, and presents the original 400 by 300
+Lino-drawn framebuffer. The real title controls, fonts, resident graphics,
+gradients, and `CLICK THIS` menu are no longer HTML/CSS substitutes. A held
+browser pointer click opens the original `Show credits` / `Quit program` menu;
+continuous execution and the visible reversible fullscreen control work with
+no browser errors. It is deployed through the author's Cloudflare account at
 [`linoctis.pages.dev`](https://linoctis.pages.dev/).
 
 The Windows product already had iGUI's fullscreen title-bar button. It now
 advertises the Escape route and consumes the held Escape while leaving
 exclusive mode, so the same press cannot fall through to Noctis's save-and-quit
 path. The production game compiles with this behavior. Still open is the main
-work: extend the independent compiler through the complete language and host
-surface, add portable JavaScript replacements for every embedded x86 fragment,
-then boot and optimize the full current Noctis port on the site.
+work: link the complete current Noctis project, add portable JavaScript
+replacements for every embedded x86 fragment, complete keyboard/audio/file and
+persistence services, then optimize the full game on the site.
 
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
