@@ -1,0 +1,190 @@
+
+"libraries"
+
+	fbmem;
+	brtl;
+	emit;
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+
+	mul64frag;
+
+	nsrng;
+	nsseed;
+	nstopo;
+	geoconv;
+	nsident;
+	nslabel;
+
+	emitout;
+
+"directors"
+
+	program name = { sectortest };
+	unit = 32;
+
+"variables"
+
+	result file name = { sectortest.out };
+	NRX = 0;
+	NRY = 0;
+	NRZ = 0;
+	STi = 0;
+	STv = 0;
+	STseed = 0 *** 2;
+	STtyp = 0;
+	EMFcwc = 0;
+	EMFcwn = 0;
+	SThfn = 0;
+	SThcr = 0;
+	STofn = 0;
+	STocr = 0;
+
+"workspace"
+
+	systws = 8000;
+
+"programme"
+
+	( INIX I engine y = -9508 )
+	A = 1998254512; A +-; [NRX] = A;
+	A = 9508; A +-; [NRY] = A;
+	[NRZ] = 2380852;
+
+	=> EMO init;
+	[EMOname] = result file name;
+	[FCW] = FCWEXT;
+	=> FEnter;
+	[EMFcwc] = 1F3Fh;
+	[EMFcwn] = 133Fh;
+
+	( nearstar generation )
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentityD;
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = 12; => NsRandom;
+	[nsclass] = A;
+	A = 2000; => NsRandom;
+	[STv] = A;
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+	A = [STv]; A + 5000; [FI] = A; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000; => IntToF;
+	[FC0] = [FB0]; [FC1] = [FB1];
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FC0]; [FA1] = [FC1];
+	=> FQuo;
+	=> FStoreF32; [nsstarray] = [FS0];
+	=> NsStarnop;
+	=> NsResetAll;
+	=> NsPrepare;
+
+	( body 0 type )
+	E = nsptype; E + 0; A = [E]; A & 0FFh; [STtyp] = A;
+
+	( global_surface_seed = trunc((p_ray + p_orb_ray + p_orb_orient) * 4112) )
+	A = 0; A < 1; E = nspray; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	A = 0; A < 1; E = nsporbray; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	=> FAdd;
+	A = 0; A < 1; E = nspororient; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	=> FAdd;
+	( save sum in FC, set FA = 4112 )
+	[FC0] = [FA0]; [FC1] = [FA1];
+	[FI] = 4112; => IntToF;
+	( FB = sum, FA = 4112, FMul )
+	[FB0] = [FC0]; [FB1] = [FC1];
+	=> FMul;
+	( truncate to integer, RC=chop )
+	{
+	    D9 AF <dEMFcwc mtp bytesperunit>	(fldcw [edi+EMFcwc*4])
+	    DD 87 <dFA0    mtp bytesperunit>	(fld  qword [edi+FA0*4])
+	    DF BF <dSTseed mtp bytesperunit>	(fistp qword [edi+STseed*4])
+	    D9 AF <dEMFcwn mtp bytesperunit>	(fldcw [edi+EMFcwn*4])
+	}
+
+	( === SURFACE SECTOR (heightmap) === )
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 32; => EMO put;
+	A = 83; => EMO put; A = 85; => EMO put; A = 82; => EMO put; A = 70; => EMO put;
+	A = 65; => EMO put; A = 67; => EMO put; A = 69; => EMO put; A = 32; => EMO put;
+	A = 83; => EMO put; A = 69; => EMO put; A = 67; => EMO put; A = 84; => EMO put;
+	A = 79; => EMO put; A = 82; => EMO put; A = 32; => EMO put; A = 40; => EMO put;
+	A = 104; => EMO put; A = 101; => EMO put; A = 105; => EMO put; A = 103; => EMO put;
+	A = 104; => EMO put; A = 116; => EMO put; A = 109; => EMO put; A = 97; => EMO put;
+	A = 112; => EMO put; A = 41; => EMO put; A = 32; => EMO put;
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put;
+	=> EMO crlf;
+
+	( SECTOR body=0 type=5 lon=0 lat=60 sctype=2 albedo=32 night=0 )
+	A = 83; => EMO put; A = 69; => EMO put; A = 67; => EMO put; A = 84; => EMO put;
+	A = 79; => EMO put; A = 82; => EMO put; A = 32; => EMO put;
+	A = 98; => EMO put; A = 111; => EMO put; A = 100; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	A = 0; => EMO num; A = 32; => EMO put;
+	A = 116; => EMO put; A = 121; => EMO put; A = 112; => EMO put; A = 101; => EMO put; A = 61; => EMO put;
+	A = [STtyp]; => EMO num; A = 32; => EMO put;
+	A = 108; => EMO put; A = 111; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 0; => EMO num; A = 32; => EMO put;
+	A = 108; => EMO put; A = 97; => EMO put; A = 116; => EMO put; A = 61; => EMO put;
+	A = 60; => EMO num; A = 32; => EMO put;
+	A = 115; => EMO put; A = 99; => EMO put; A = 116; => EMO put; A = 121; => EMO put;
+	A = 112; => EMO put; A = 101; => EMO put; A = 61; => EMO put;
+	A = 2; => EMO num; A = 32; => EMO put;	( SC_PLAINS )
+	A = 97; => EMO put; A = 108; => EMO put; A = 98; => EMO put; A = 101; => EMO put;
+	A = 100; => EMO put; A = 111; => EMO put; A = 61; => EMO put;
+	A = 32; => EMO num; A = 32; => EMO put;
+	A = 110; => EMO put; A = 105; => EMO put; A = 103; => EMO put; A = 104; => EMO put;
+	A = 116; => EMO put; A = 61; => EMO put;
+	A = 0; => EMO num;
+	=> EMO crlf;
+
+	( global_surface_seed= )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 103; => EMO put; A = 108; => EMO put; A = 111; => EMO put; A = 98; => EMO put;
+	A = 97; => EMO put; A = 108; => EMO put; A = 95; => EMO put; A = 115; => EMO put;
+	A = 117; => EMO put; A = 114; => EMO put; A = 102; => EMO put; A = 97; => EMO put;
+	A = 99; => EMO put; A = 101; => EMO put; A = 95; => EMO put; A = 115; => EMO put;
+	A = 101; => EMO put; A = 101; => EMO put; A = 100; => EMO put; A = 61; => EMO put;
+	A = [STseed]; => EMO num;
+	=> EMO crlf;
+
+	( placeholder heightmap: hash 40000 zeroed units )
+	( use RPBG area as a scratch; hash it )
+	A = nw; A + RPBG; [EMHbase] = A; [EMHcount] = 40000; => EMH hsh;
+	[ST hfn] = [EMHfnv]; [SThcr] = [EMHcrc];
+	A = 104; => EMO put; A = 101; => EMO put; A = 105; => EMO put; A = 103; => EMO put;
+	A = 104; => EMO put; A = 116; => EMO put; A = 109; => EMO put; A = 97; => EMO put;
+	A = 112; => EMO put; A = 32; => EMO put;
+	A = 108; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 40000; => EMO num;
+	A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	A = [SThfn]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [SThcr]; => EMO hex;
+	=> EMO crlf;
+
+	( placeholder objectchart )
+	A = nw; A + ROBJ; [EMHbase] = A; [EMHcount] = 40000; => EMH hsh;
+	[STofn] = [EMHfnv]; [STocr] = [EMHcrc];
+	A = 111; => EMO put; A = 98; => EMO put; A = 106; => EMO put; A = 101; => EMO put;
+	A = 99; => EMO put; A = 116; => EMO put; A = 99; => EMO put; A = 104; => EMO put;
+	A = 97; => EMO put; A = 114; => EMO put; A = 116; => EMO put; A = 32; => EMO put;
+	A = 108; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 40000; => EMO num;
+	A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	A = [STofn]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [STocr]; => EMO hex;
+	=> EMO crlf;
+
+	=> EMO flush;
+	=> FLeave;
+	end;
