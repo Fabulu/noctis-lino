@@ -130,13 +130,12 @@ existing directory, so stale files cannot masquerade as bundle content.
 
 Ordinary pushes and pull requests run the protected-source check, integrated
 game regression, and snapshot package assembly on GitHub-hosted Windows. A
-version tag matching `v*` runs the same focused regression, compiles the exact
-tagged source on an isolated interactive `lino-gui` runner, verifies the fresh
-i386 executable, and hands the standalone ZIP to a GitHub-hosted publication
-job. The resulting prerelease includes its checksum and source/compiler/binary
-provenance record. A separate manual workflow provides the same source-build
-path without publishing. See [CI_RELEASES.md](CI_RELEASES.md) for the runner
-setup and exact release boundaries.
+version tag matching `v*` validates and packages the committed i386 executable,
+then publishes the standalone ZIP as a GitHub prerelease with its checksum and
+source/compiler/binary provenance record. A separate manual workflow can build
+the exact source on an isolated interactive `lino-gui` runner when one is
+available. See [CI_RELEASES.md](CI_RELEASES.md) for the runner setup and exact
+release boundaries.
 
 ## Screenshots
 
@@ -220,11 +219,11 @@ silhouette and the source's marked wall bands in frame.
 The base of this repository is an unmodified clone of
 [8l/linoleum](https://github.com/8l/linoleum), commits `eb25dcb` and `9559333`.
 
-**No upstream file has been modified.** Every commit after `9559333` only *adds*
-files. This is deliberate: `main/lib/gen/compiler.txt` is licensed under the WTOF
-Public License, which permits consulting, keeping and freely redistributing the
-source but forbids changing it, for personal use as well as redistribution,
-without the author's authorisation. To see exactly what is ours:
+No file inherited from upstream has been modified. Port code, tests, tools, and
+documentation live in files added after `9559333`. This keeps the original
+L.in.oleum sources intact under their WTOF Public License terms.
+
+To inspect the complete added surface:
 
 ```
 git diff 9559333..HEAD --stat
@@ -232,26 +231,15 @@ git diff 9559333..HEAD --stat
 
 ## What has been established
 
-L.in.oleum can reproduce Noctis IV's galaxy, bit for bit.
-
-The Feltyrion galaxy has no star table. Every one of its ~78 billion stars is a
-pure hash of its sector's integer coordinates. The universe *is* that function.
-`work/galaxy.txt` ports it, and its output is byte-identical to both a C
-reference extracted from `noctis-iv-lr` and an independent arbitrary-precision
-Python implementation, across 343 sectors spanning the galactic origin.
-
-Two details turned out to be load-bearing:
-
-- **The multiply must be signed.** Sector coordinates go negative either side of
-  the centre; an unsigned product yields a different high word and therefore a
-  different galaxy, one that generates perfectly happily and matches nothing.
-  The fragment is `IMUL` (`F7 EB`), not `MUL` (`F7 E3`).
-- **L.in.oleum has no 64-bit multiply.** The original folds `edx:eax` back
-  together (`edx += eax`) after an `imul`, and the language exposes only the low
-  32 bits. Both routes are implemented and verified against each other:
-  `work/mulcheck.txt` (portable, four 16-by-16 partial products) and
-  `work/mulcheck2.txt` (a two-byte inline machine-language fragment). They
-  produce byte-identical output.
+- The procedural galaxy hash is bit-exact against independent C and
+  arbitrary-precision Python references across the tested sector corpus.
+- Orbital planet appearance has byte-level NIV+ fixtures for all ten planet
+  types. Landed rendering has targeted native page oracles for the polygon,
+  sky, sphere, sun, flare, and object paths.
+- The playable host retains Noctis's 18.206 Hz simulation while optionally
+  presenting interpolated frames at 60 Hz.
+- Exactness claims are scoped. [TEST_COVERAGE.md](TEST_COVERAGE.md) separates
+  native evidence, independent references, playable smokes, and open gaps.
 
 ## Layout
 
@@ -259,41 +247,23 @@ Two details turned out to be load-bearing:
 |---|---|
 | `docs/`, `main/`, `examples/`, `src/` | upstream, untouched |
 | `lino_build.ps1` | drives the compiler non-interactively |
-| `work/*.txt` | our L.in.oleum programs |
-| `verify_mul.py` | checks the 64-bit multiply against exact arithmetic |
-| `noctis-harness/` | C and Python reference implementations + three-way diff |
-| `tests/` | regression suite for the galaxy hash and the `*%` instruction |
+| `work/` | port source, executable, assets, and probe programs |
+| `tools/` | launch, capture, packaging, and release helpers |
+| `noctis-harness/` | native fixtures and independent reference programs |
+| `tests/` | focused and release regression checks |
 
 ## Building and testing
 
-The compiler is a GUI-subsystem binary: it never writes to stdout and it lingers
-on screen until dismissed. `lino_build.ps1` works around this by detecting the
-artifacts it leaves behind and killing it as soon as they appear.
+Build the production executable with:
 
 ```powershell
 powershell -File lino_build.ps1 -Src work\vhgame.txt
 ```
 
-Success prints `OK <path> <bytes> <seconds>`; warnings are listed but do not
-fail the build; `error:` in `errorlog.txt` does.
+The wrapper handles the historical GUI compiler, reports its warnings, verifies
+the output artifact, and terminates the compiler after the build settles.
 
-To reproduce the galaxy-hash result you also need the reference implementations:
-
-```powershell
-git clone https://github.com/dgcole/noctis-iv-lr        # de-assembled C++ reference
-git clone https://github.com/jorisvddonk/Noctis-IV-Plus # the maintained DOS original
-
-cd noctis-harness
-gcc -O2 -o oracle.exe oracle.c && ./oracle.exe   # C ground truth
-python oracle.py                                 # independent Python, cross-checks C
-# run work/galaxy.exe, copy galaxy.bin here as lino.bin
-python compare3.py
-```
-
-Those two repositories are deliberately **not** vendored here. They are separate
-upstream projects with their own licensing.
-
-### Regression suite
+Useful checks:
 
 ```powershell
 python tests\test_vhgame.py       # lean integrated gameplay regression
@@ -302,66 +272,10 @@ python tests\run_all.py --deep    # full release and historical audit
 ```
 
 Use the smallest relevant regression or playable smoke during ordinary work.
-Run the complete 24-suite roster for a release or deliberate deep audit. Every
-suite is independently runnable and explains its own prerequisites and scope.
-Representative foundation checks include:
-
-| Test | Guards |
-|---|---|
-| `test_toolchain.py` | the extended toolchain is installed, the two copies of `i386m.bin` agree, `main/` is pristine, and every wrong compiler/pack pairing refuses to build |
-| `test_galaxy.py` | `work/galaxy2.txt` (the `*%` rewrite) is bit-exact with the `{ F7 EB }` version, a freshly compiled C oracle, and two bignum Python references, including signedness at the opcode level |
-| `test_galaxy_stress.py` | the same arithmetic on coordinates the 343-sector sweep cannot reach, including the ones that make all three cutoff branches fire |
-| `test_mulsplit.py` | the `*%` contract `galaxy2.txt` cannot self-test: which half lands in which operand, signed vs unsigned, and which registers survive |
-
-- Arithmetic and generation tests rebuild their Lino, C, and Python subjects
-  where those independent oracles exist.
-- Native NIV+ fixtures protect renderer and generation boundaries that cannot
-  be derived from the port itself.
-- Several historical suites include deliberately wrong variants to prove their
-  graders still discriminate.
-- C-backed reference checks require `gcc` on `PATH`; individual tests report
-  any additional reference-source requirement.
-
-## Toolchain gotchas
-
-Hard-won; all of these cost real debugging time.
-
-- **`"variables"` vs `"workspace"` is not a style choice.** In `variables`,
-  `name = N;` declares a variable initialised to N. In `workspace`,
-  `name = N;` allocates an *uninitialised vector of N units* and the name is its
-  **address**. So `foo = 0;` in `workspace` allocates nothing, top-of-workspace
-  never advances, and every symbol silently collapses onto the same cell. No
-  error and no warning, just uniformly wrong values.
-- **Do not launch the compiler with PowerShell's `Start-Process`.** It appends a
-  trailing space to the argument string, which the compiler folds into the output
-  filename, giving `prog.txt .exe`. Use `ProcessStartInfo.Arguments`, which is
-  passed verbatim.
-- **No path may contain `--`.** See below.
-
-## Bugs found in L.in.oleum
-
-1. **Command-line parser truncates on `--` anywhere.** `copy option` ends a
-   value at any two consecutive hyphens, including inside a filesystem path,
-   with no check that an option name follows. A path containing `--` silently
-   truncates and the build dies reporting `error reading cpu pack`, pointing at
-   a component that is perfectly fine. `lino_build.ps1` refuses such paths rather
-   than let you chase the phantom.
-2. **`main/linux_compiler.bin` is dead on modern systems.** Segfaults at startup,
-   before parsing arguments, in every configuration, including with no arguments
-   at all.
-3. **The relative-address modifier is documented backwards.** For `<+N label>` in
-   machine-language fragments the manual gives `label - pc + N`; the compiler
-   computes `label - pc - N`, and `+` and `-` behave identically (both subtract).
-   The manual's own worked example proves the manual wrong.
-4. **The application-name field is not cleared before writing.** The compiler
-   writes `strlen+1` bytes over the 40-byte field in the runtime template, so a
-   program named `mul64` ships with `mul64\0leum runtime` embedded, a shard of
-   the template string `L.in.oleum runtime`.
-
-Documentation drift worth knowing: `readme.htm` says the CPU pack holds 6616
-instruction patterns; it holds **6241** (`48 * 6241 + 8` = the exact file size of
-`main/cpu/i386.bin`, and the compiler enforces that equality). The manual also
-calls the program counter `bcodesize`; it is `bpos`.
+Run the complete roster before a release. Individual checks describe any GCC,
+native-fixture, or external-reference requirements they have. The compiler
+quirks uncovered during the port are recorded in
+[`docs-notes/LINOBUGS.md`](docs-notes/LINOBUGS.md), not repeated here.
 
 ## Licence
 
