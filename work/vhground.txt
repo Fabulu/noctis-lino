@@ -5634,7 +5634,12 @@
     "VHGND greenmush outer"
 	( Borland evaluates getcoords(x-fast_random(), y-fast_random(),
 	  z-fast_random()) right-to-left while preparing its stack arguments. )
-	[SUfmask] = [VHGNDmushscale]; => VHGND render random;
+	[SUfmask] = [VHGNDmushscale];
+	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush generic point;
+	A = fw; [PJfwbase] = A; => VHGND greenmush float point native;
+	[VHGNDvi] = 0; -> VHGND greenmush project;
+    "VHGND greenmush generic point"
+	=> VHGND render random;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer z;
 	[FI] = C; => IntToF; => VHGND fb fa; [PGFt] = [VHGNDmushzf]; => PGF ldf32;
 	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpzf] = [FS0]; -> VHGND greenmush z ready;
@@ -5710,6 +5715,44 @@
 	}
     "VHGND greenmush outer next"
 	[VHGNDmushouter]-; A = [VHGNDmushouter]; ? A > 0 -> VHGND greenmush outer;
+	end;
+
+"VHGND greenmush float point native"
+	( A close tree leaf point consumes the same z, y, x random draws and keeps
+	  every unsigned-square RNG state update.  Each binary32 source coordinate
+	  is widened, subtracts the exact integer draw at binary64, narrows once,
+	  and is widened into getcoords' fixed input slot. )
+	{
+	    56 53 8B 9F <dPJfwbase mtp bytesperunit> 8D 1C 9F
+	    8B B7 <dSUfseed mtp bytesperunit>
+	    89 F0 F7 E0 00 D0 89 87 <dSUfeax mtp bytesperunit> 01 C6
+	    89 B7 <dSUfseed mtp bytesperunit> 23 87 <dVHGNDmushscale mtp bytesperunit>
+	    89 87 <dSUfval mtp bytesperunit> 89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
+	    D9 87 <dVHGNDmushzf mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC A7 <dFB0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dVHGNDmushpzf mtp bytesperunit>
+	    89 F0 F7 E0 00 D0 89 87 <dSUfeax mtp bytesperunit> 01 C6
+	    89 B7 <dSUfseed mtp bytesperunit> 23 87 <dVHGNDmushscale mtp bytesperunit>
+	    89 87 <dSUfval mtp bytesperunit> 89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
+	    D9 87 <dVHGNDmushyf mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC A7 <dFB0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dVHGNDmushpyf mtp bytesperunit>
+	    89 F0 F7 E0 00 D0 89 87 <dSUfeax mtp bytesperunit> 01 C6
+	    89 B7 <dSUfseed mtp bytesperunit> 23 87 <dVHGNDmushscale mtp bytesperunit>
+	    89 87 <dSUfval mtp bytesperunit> 89 87 <dFI mtp bytesperunit>
+	    DB 87 <dFI mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
+	    D9 87 <dVHGNDmushxf mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> DC A7 <dFB0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dVHGNDmushpxf mtp bytesperunit>
+	    D9 87 <dVHGNDmushpxf mtp bytesperunit> DD 9B E0 07 00 00
+	    D9 87 <dVHGNDmushpyf mtp bytesperunit> DD 9B 00 08 00 00
+	    D9 87 <dVHGNDmushpzf mtp bytesperunit> DD 9B 20 08 00 00 5B 5E
+	}
 	end;
 
 "VHGND render random"
