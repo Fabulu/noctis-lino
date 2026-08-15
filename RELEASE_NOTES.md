@@ -1,5 +1,26 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+## Beta 14
+
+Beta 14 removes the remaining interpreter-heavy setup stages from the mapped
+surface-object path. Tree branch and leaf polygons now perform facing,
+rotation, projection, and the four-vertex texture basis in exact native x87
+kernels. The original binary64 spill points, binary32 local stores,
+nearest-even projection, near-plane decisions, polygon order, and texture
+sampling remain unchanged.
+
+Fully visible terrain and mapped polygons now populate their near-plane output
+arrays with one bounded native bit-copy loop instead of twelve generic helper
+calls per polygon. Clipped polygons retain the original generic clipper. This
+shared change applies to every landable planet class as well as mapped surface
+objects.
+
+The NIV+-anchored tree probe retains its exact framebuffer and exit-state
+hashes after every stage. The frozen raster/projection check retains 107 exact
+pages, 5,028 exact span integers, 122 exact topology groups, and 222 exact
+projected components. A fresh dense-atmosphere product capture remained smooth
+at 61 FPS with 8.11 ms render time.
+
 ## Beta 13
 
 Beta 13 removes another layer of interpreter overhead from the exact renderer.
