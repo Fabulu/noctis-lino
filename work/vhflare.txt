@@ -51,7 +51,7 @@
 	[FI] = 50000; => IntToF; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSRZF; => PGF quo;
 	[VHFk0] = [FA0]; [VHFk1] = [FA1];
-	-> VHF draw;
+	=> VHF draw; end;
 
 "VH rescue flare"
 	( other_vehicle_at() passes a negative 500000-unit step, added=3, and
@@ -76,7 +76,7 @@
 	[FI] = 500000; => IntToF; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSRZF; => PGF quo;
 	[VHFk0] = [FA0]; [VHFk1] = [FA1];
-	-> VHF draw;
+	=> VHF draw; end;
 
 "VH space flare"
 	( NOCTIS.CPP:3639-3701 with xshift=3, yshift=0 and condition=0.
@@ -108,7 +108,7 @@
 	[PGFi] = SFRY; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;
 	A = [FI]; C = 0; C - 90; ? A <= C -> VHF done;
 	? A >= 90 -> VHF done; A + 100; [VHFcy] = A; [VHFok] = 1;
-	-> VHF draw;
+	=> VHF draw; end;
 
 "VH surface flare"
 	( Surface suns pass source condition 2: only the completed sky band
@@ -136,6 +136,7 @@
 	[FS0] = [VHFdist]; => FLoadF32; [VHFdist0] = [FA0]; [VHFdist1] = [FA1];
 	=> VHF positive k;
 	=> VHF surface added;
+	=> VHF draw; end;
 
     "VHF draw"
 	( Keep k/l/u in the source's binary64 local format. )

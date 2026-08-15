@@ -451,15 +451,7 @@
 	E = nsporideg; E + A; [VHPangle] = [E];
 	[VHPscoreindex] = [VHPsysn]; => VHP orbit score; [VHPcurrent] = [VHPscore];
 	[VHPminscore] = [VHPscore]; [VHPmaxscore] = [VHPscore]; [VHPscan] = [nsnop];
-    "VHP moon score scan"
-	A = [VHPscan]; ? A >= [nsnob] -> VHP moon score ready;
-	E = nspowner; E + A; A = [E]; ? A != [VHPowner] -> VHP moon score next;
-	[VHPscoreindex] = [VHPscan]; => VHP orbit score;
-	A = [VHPscore]; ? A >= [VHPminscore] -> VHP moon score not min; [VHPminscore] = A;
-    "VHP moon score not min"
-	A = [VHPscore]; ? A <= [VHPmaxscore] -> VHP moon score next; [VHPmaxscore] = A;
-    "VHP moon score next"
-	[VHPscan]+; -> VHP moon score scan;
+	=> VHP moon score bounds;
     "VHP moon score ready"
 	A = [VHPmaxscore]; A - [VHPminscore]; [VHPscorespan] = A;
 	? A <= 0 -> VHP moon values middle;
@@ -477,6 +469,19 @@
 	=> VHP draw marker;
 	[VHPsysn]+; -> VHP moon loop;
     "VHP moon done"
+	end;
+
+"VHP moon score bounds"
+    "VHP moon score bounds scan"
+	A = [VHPscan]; ? A >= [nsnob] -> VHP moon score bounds done;
+	E = nspowner; E + A; A = [E]; ? A != [VHPowner] -> VHP moon score bounds next;
+	[VHPscoreindex] = [VHPscan]; => VHP orbit score;
+	A = [VHPscore]; ? A >= [VHPminscore] -> VHP moon score bounds not min; [VHPminscore] = A;
+    "VHP moon score bounds not min"
+	A = [VHPscore]; ? A <= [VHPmaxscore] -> VHP moon score bounds next; [VHPmaxscore] = A;
+    "VHP moon score bounds next"
+	[VHPscan]+; -> VHP moon score bounds scan;
+    "VHP moon score bounds done"
 	end;
 
 "VHP draw marker"
