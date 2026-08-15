@@ -566,14 +566,16 @@ CSS chrome is temporary bring-up scaffolding, not an acceptable substitute for
 the game drawing and operating its own authentic interface.
 
 The project name does not dictate a slow source interpreter. Choose the best
-implementation after measuring the language and the current port. The leading
-architecture is an ahead-of-time Lino-to-WebAssembly compiler with JavaScript
-hosting browser services such as Canvas, Web Audio, input, files, and saved
-state. A JavaScript execution path may remain useful for diagnostics or small
-programs, but playable Noctis performance and faithful 32-bit unit semantics
+implementation after measuring the language and the current port. The product
+architecture is a real Lino machine implemented in JavaScript: an ahead-of-time
+compiler emits optimized JavaScript regions over typed workspace memory, while
+JavaScript hosts browser services such as Canvas, Web Audio, input, files, and
+saved state. This must not redispatch every source operation through a slow
+interpreter. Playable Noctis performance and faithful 32-bit unit semantics
 take priority. Native x86 byte fragments used by the optimized desktop port
-must be translated, replaced with portable equivalents, or rejected with a
-clear diagnostic; the browser must never silently execute a different program.
+must be translated into exact portable JavaScript intrinsics or rejected with
+a clear diagnostic; the browser must never silently execute a different
+program. WebAssembly is optional future research, not a delivery dependency.
 
 Both products need an obvious GUI fullscreen button. The browser version must
 use the Fullscreen API, retain the Lino chrome in fullscreen, and always expose
@@ -595,13 +597,18 @@ for the entire port or deploying every internal edit.
 **Completed foundation.** The public
 [`Fabulu/linojava`](https://github.com/Fabulu/linojava) repository now contains
 the independent ahead-of-time JavaScript compiler, explicit 32-bit workspace,
-basic-block execution engine, command-line compiler, example Lino programme,
-and focused regression. The first compiler revision is pinned by the separate
+optimized local regions, typed return stack, command-line compiler, browser
+source loader, IndexedDB compiled-module cache, example Lino programme, and
+focused regressions. Its architecture and delivery-wave procedure are public
+in that repository. The current compiler revision is pinned by the separate
 [`Fabulu/Linoctissite`](https://github.com/Fabulu/Linoctissite) repository.
-That site compiles and runs an interactive Lino movement programme inside a
-responsive iGUI-inspired host with keyboard input, pixel presentation, the
-fullscreen title-bar button, a visible fullscreen exit control, and Escape.
-It is deployed through the author's Cloudflare account at
+That site now places `noctis_probe.lino` directly on the page as a `text/lino`
+script, compiles it to JavaScript inside the browser, caches the result, and
+runs it inside a responsive temporary host with keyboard input, pixel
+presentation, the fullscreen title-bar button, a visible fullscreen exit
+control, and Escape. Focused Edge QA proved cold compilation, warm cache reuse,
+movement, menu input, a complete non-black canvas, and no browser errors. It is
+deployed through the author's Cloudflare account at
 [`linoctis.pages.dev`](https://linoctis.pages.dev/).
 
 The Windows product already had iGUI's fullscreen title-bar button. It now
@@ -609,8 +616,8 @@ advertises the Escape route and consumes the held Escape while leaving
 exclusive mode, so the same press cannot fall through to Noctis's save-and-quit
 path. The production game compiles with this behavior. Still open is the main
 work: extend the independent compiler through the complete language and host
-surface, add WebAssembly lowering and portable replacements for every embedded
-x86 fragment, then boot and optimize the full current Noctis port on the site.
+surface, add portable JavaScript replacements for every embedded x86 fragment,
+then boot and optimize the full current Noctis port on the site.
 
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
