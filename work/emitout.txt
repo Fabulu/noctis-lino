@@ -1,0 +1,174 @@
+      ( *** emitout - text output for the emit harness.
+
+	The Noctis-IV-Plus reference engines (NIVTEST.CPP and nivgen) print
+	their results as CRLF-terminated text hash-lines.  The emit harness
+	reproduces that text by building it into a workspace buffer and
+	writing it to a file with the standard WRITE isocall.
+
+	This library provides the small set of formatting primitives the
+	harness needs, mirroring the reference's output exactly:
+
+	    EMO init     clears the output buffer, sets [EMOptr] to its start
+	    EMO ch       append the byte in A to the buffer (CR=13, LF=10)
+	    EMO str      append the unit string at A (a { ... } constant)
+	    EMO num      append the signed integer in A as ASCII decimal
+	    EMO numu     append the unsigned integer in A as ASCII decimal
+	    EMO hex      append the integer in A as 8 hex digits (upper case)
+	    EMO space    append one space
+	    EMO crlf     append CR LF
+	    EMO flush    write the buffer to [EMOname] (a result file name)
+
+	All routines destroy A B C D E.  The output buffer is the workspace
+	region `emotxt`, EMOTXTSIZE units.
+
+	It is a LIBRARY, not a program: it declares no "directors" period.
+        )
+
+"constants"
+
+	EMOTXTSIZE = 4096;	( 16 KiB of text per flush )
+
+"variables"
+
+	EMOptr	= 0;
+	EMOix	= 0;
+	EMOdig	= 0;
+	EMOval	= 0;
+	EMOname	= 0;
+	EMOtmp	= 0;
+
+"workspace"
+
+	emotxt = EMOTXTSIZE;
+
+"programme"
+
+( ==================================================================== )
+( EMO init - reset the output cursor.                                   )
+
+"EMO init"
+	[EMOptr] = 0;
+	end;
+
+( ==================================================================== )
+( EMO put - append the byte in A to the buffer; no bounds check beyond   )
+( the buffer size.                                                       )
+
+"EMO put"
+	C = emotxt; C + [EMOptr]; [C] = A;
+	A = [EMOptr]; A + 1; [EMOptr] = A;
+	end;
+
+( ==================================================================== )
+( EMO ch - append the byte in A.                                        )
+
+"EMO ch"
+	=> EMO put;
+	end;
+
+( ==================================================================== )
+( EMO space - append a space.                                           )
+
+"EMO space"
+	A = 32;
+	=> EMO put;
+	end;
+
+( ==================================================================== )
+( EMO crlf - append CR LF.                                              )
+
+"EMO crlf"
+	A = 13; => EMO put;
+	A = 10; => EMO put;
+	end;
+
+( ==================================================================== )
+( EMO str - append the unit string at A up to the null.                 )
+
+"EMO str"
+	[EMOix] = 0;
+    "EMO str ch"
+	C = [A]; ? C = 0 -> EMO str done;
+	[EMOtmp] = A;	( keep string address; EMO put uses C )
+	A = C; => EMO put;
+	A = [EMOtmp];
+	A+;
+	-> EMO str ch;
+    "EMO str done"
+	end;
+
+( ==================================================================== )
+( EMO digits - append the digits of [EMOval] (non-negative) to the      )
+( buffer.  Uses division by 10 into a stack-less scratch via recursion.  )
+
+"EMO digits"
+	A = [EMOval]; A '/ 10; ? A = 0 -> EMO digits one;
+	( last digit = value - (value/10)*10 )
+	[EMOtmp] = A; A '* 10; A +-;
+	B = [EMOval]; B + A; [EMOdig] = B;
+	( recurse on the quotient )
+	A = [EMOval]; A '/ 10; [EMOval] = A;
+	=> EMO digits;
+	( emit the saved digit )
+	A = [EMOdig]; A + 48; => EMO put;
+	end;
+    "EMO digits one"
+	A = [EMOval]; A + 48; => EMO put;
+	end;
+
+( ==================================================================== )
+( EMO num - append the signed integer in A as decimal.                  )
+
+"EMO num"
+	[EMOval] = A;
+	? A >= 0 -> EMO num pos;
+	A +-; [EMOval] = A;
+	A = 45; => EMO put;	( '-' )
+    "EMO num pos"
+	=> EMO digits;
+	end;
+
+( ==================================================================== )
+( EMO numu - append the unsigned integer in A as decimal.               )
+
+"EMO numu"
+	[EMOval] = A;
+	=> EMO digits;
+	end;
+
+( ==================================================================== )
+( EMO hex - append the integer in A as 8 upper-case hex digits.         )
+
+"EMO hex"
+	[EMOval] = A;
+	[EMOix] = 28;
+    "EMO hex digit"
+	A = [EMOval]; A > [EMOix]; A & 15;
+	? A '< 10 -> EMO hex num;
+	A + 55; -> EMO hex put;
+    "EMO hex num"
+	A + 48;
+    "EMO hex put"
+	=> EMO put;
+	A = [EMOix]; A - 4; [EMOix] = A;
+	? [EMOix] >= 0 -> EMO hex digit;
+	end;
+
+( ==================================================================== )
+( EMO flush - write the output buffer to the file at [EMOname].         )
+
+"EMO flush"
+	[File Name]	= [EMOname];
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= emotxt;
+	[Block Size]	= [EMOptr];
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= [EMOname];
+	[File Command]	= SET SIZE;
+	[File Size]	= [EMOptr];
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+	end;
