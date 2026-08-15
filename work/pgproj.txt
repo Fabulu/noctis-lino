@@ -390,6 +390,12 @@
 	the WIDE one rounded to nearest even. )
 
 "PJ project3d"
+	=> PJ project3d service;
+	[BXn] = [PJvr2];
+	=> PG bbox;
+	end;
+
+"PJ project3d service"
 	[PJvr] = 0;
     "PJ p3 v"
 	[PGFi] = FSUNO; => PGF a;
@@ -414,12 +420,6 @@
 	[PJvr]+;
 	A = [PJvr]; ? A '< [PJvr2] -> PJ p3 v;
 
-	( the min/max search is FUSED into this loop in the original.
-	  It is the same four seeded accumulators and the same four
-	  gates that "PG bbox" implements, so it is called rather than
-	  written twice - one implementation, graded once, used twice. )
-	[BXn] = [PJvr2];
-	=> PG bbox;
 	end;
 
       ( PJ projectmap : polymap's.  w = dpp/Zc, NO video_* store at all
@@ -432,6 +432,10 @@
 	A = fw; [PJfwbase] = A; A = mp; [PJmpbase] = A;
 	=> PJ projectmap mapped native; end;
     "PJ projectmap generic"
+	=> PJ projectmap generic service;
+	end;
+
+"PJ projectmap generic service"
 	[PJvr] = 0;
 	[PJminx] = PGUBX;
 	[PJmaxx] = PGLBX;
