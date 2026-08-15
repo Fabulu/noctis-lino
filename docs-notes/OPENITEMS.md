@@ -638,9 +638,19 @@ keeps `Display Status` cooperative on failure. The X11/XQuartz runtime likewise
 returns failure when exclusive mode was not compiled in instead of printing an
 unsupported warning and then reporting success. The stock iGUI failure path
 now restores its exact former width, height, and position. The browser uses its
-separate game-only fullscreen control; the Lino tooltip no longer advertises
-Escape as the required way out. Compiler helper windows are also launched
-hidden and terminated after their output settles.
+game-only fullscreen surface, but entry is now bridged from the real
+Lino-rendered fullscreen hotspot while the browser still has a live user
+gesture. Normal page chrome disappears; the corner exit and Ctrl+Shift+F
+remain available. The Lino tooltip no longer advertises Escape as the required
+way out. Browser CSS now preserves the current Lino display's intrinsic aspect
+ratio instead of forcing every resized or folded shape to 4:3. Compiler helper
+windows are also launched hidden and terminated after their output settles.
+
+LinoJava now implements the 255-unit Global K read, write, and destroy service
+used by iGUI's dormant-window registry. The service has a focused round-trip
+check, but the actual Lino sleep button did not finish a browser sleep/wake
+round trip in two held-pointer attempts. Dormant mode therefore remains open as
+an interaction defect rather than being declared fixed from its backend alone.
 
 Still open are the rest of the iGUI action matrix, especially fold, dormant
 mode, maximize, drag, resize, hide, restore, and close behavior in each host;
