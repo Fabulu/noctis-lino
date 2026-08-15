@@ -972,6 +972,7 @@
 "PJ vectors"
 	A = fw; [PJfwbase] = A;
 	A = [SPterrain]; A | [SPtrifast]; ? A != 0 -> PJ vectors terrain;
+	A = [SPmapfast]; ? A != 0 -> PJ vectors mapped quad;
 	( midx/midy/midz - the divisor is a DOUBLE literal, 0.3333333 for
 	  three vertices and 0.25 for four. )
 	A = [PJnrv]; C = 3; ? A = 3 -> PJ vc n3; C = 4;
@@ -1094,6 +1095,21 @@
 	=> PJ terrain basis native;
 	-> PJ vc gradients;
 
+    "PJ vectors mapped quad"
+	( Branch faces have four unique vertices.  Use the same exact binary64
+	  spill and binary32-local schedule as the triangle kernel, with the
+	  source's 0.25 midpoint and vertex 3 as the n-vector endpoint. )
+	[PJdx] = 4;
+	[PJthird0] = D64QLO; [PJthird1] = D64QHI;
+	=> PJ mapped midpoint native;
+	[PJvr] = 0;
+    "PJ mapped expand loop"
+	=> PJ terrain expand native;
+	[PJvr]+; A = [PJvr]; ? A < 4 -> PJ mapped expand loop;
+	[PJvv] = 3;
+	=> PJ mapped basis native;
+	-> PJ vc gradients;
+
     "PJ vc scale"
 	A = [PJdx]; ? A = 3 -> PJ vc s3;
 	[PGFt] = D64QLO;  [PGFu] = D64QHI;  -> PJ vc s;
@@ -1200,6 +1216,33 @@
 	    D9 9F <dFS0 mtp bytesperunit>
 	    D9 87 <dFS0 mtp bytesperunit>
 	    DD 9E 70 06 00 00                    (midz)
+	}
+	end;
+
+"PJ mapped midpoint native"
+	{
+	    8B B7 <dPJfwbase mtp bytesperunit> 8D 34 B7
+	    DD 86 00 01 00 00 DC 86 08 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 10 01 00 00 DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 18 01 00 00 DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 8F <dPJthird0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9E 60 06 00 00
+	    DD 86 20 01 00 00 DC 86 28 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 30 01 00 00 DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 38 01 00 00 DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 8F <dPJthird0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9E 68 06 00 00
+	    DD 86 40 01 00 00 DC 86 48 01 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 50 01 00 00 DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 86 58 01 00 00 DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    DC 8F <dPJthird0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9E 70 06 00 00
 	}
 	end;
 
@@ -1322,6 +1365,36 @@
 	    D9 9F <dFS0 mtp bytesperunit>
 	    D9 87 <dFS0 mtp bytesperunit>
 	    DD 9E 50 07 00 00
+	}
+	end;
+
+"PJ mapped basis native"
+	{
+	    8B B7 <dPJfwbase mtp bytesperunit> 8D 34 B7
+	    DD 86 00 06 00 00 D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9E 58 07 00 00
+	    DD 86 20 06 00 00 D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9E 60 07 00 00
+	    DD 86 40 06 00 00 D9 9F <dFS0 mtp bytesperunit>
+	    D9 87 <dFS0 mtp bytesperunit> DD 9E 68 07 00 00
+	    DD 86 08 06 00 00 DC A6 58 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9E 28 07 00 00
+	    DD 86 28 06 00 00 DC A6 60 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9E 30 07 00 00
+	    DD 86 48 06 00 00 DC A6 68 07 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9E 38 07 00 00
+	    DD 86 58 07 00 00 DC A6 18 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9E 40 07 00 00
+	    DD 86 60 07 00 00 DC A6 38 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9E 48 07 00 00
+	    DD 86 68 07 00 00 DC A6 58 06 00 00
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit> DD 9E 50 07 00 00
 	}
 	end;
 
