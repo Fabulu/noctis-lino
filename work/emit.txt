@@ -187,10 +187,10 @@
 	[EMHix] = 28;
     "EMH hex8 digit"
 	A = [EMHv]; A > [EMHix]; A & 15;
-	? A '< 10 -> EMH hex8 letter;
-	A + 48; -> EMH hex8 store;
-    "EMH hex8 letter"
-	A + 55;
+	? A '< 10 -> EMH hex8 num;
+	A + 55; -> EMH hex8 store;
+    "EMH hex8 num"
+	A + 48;
     "EMH hex8 store"
 	[EMHr] = A;
 	A = [EMHix];
@@ -206,5 +206,6 @@
     "EMH hex8 s6" [EMHhex6] = [EMHr]; -> EMH hex8 next;
     "EMH hex8 s7" [EMHhex7] = [EMHr];
     "EMH hex8 next"
-	[EMHix] - 4; ? [EMHix] >= 0 -> EMH hex8 digit;
+	A = [EMHix]; A - 4; [EMHix] = A;
+	? [EMHix] >= 0 -> EMH hex8 digit;
 	end;
