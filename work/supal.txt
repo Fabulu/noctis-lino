@@ -208,8 +208,8 @@
       ( SU shade byte - [SUti] <- the byte shade stores for [SFtmp]. )
 
 "SU shade byte"
-	?? [SFtmp] < [KFZERO] -> SU sb zero;
-	?? [SFtmp] >= [KF64] -> SU sb full;
+	A = [SFtmp]; ? A < 0 -> SU sb zero;
+	A = [SFtmp]; C = [KF64]; ? A >= C -> SU sb full;
 	{
 	    D9 87 <dSFtmp mtp bytesperunit>	(fld dword [edi+SFtmp*4])
 	}

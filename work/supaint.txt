@@ -155,7 +155,7 @@
 	A = [SUg]; ? A >= [SUcr] -> SU ps done;
 	=> SU a zero;
     "SU ps a"
-	?? [SFa] >= [KF2PI] -> SU ps aend;
+	A = [SFa]; C = [KF2PI]; ? A >= C -> SU ps aend;
 	[SUmi] = [SUg];
 	=> SU calc px;
 	=> SU calc py;
@@ -175,7 +175,7 @@
 	A = [SUg]; ? A >= [SUcr] -> SU st done;
 	=> SU a zero;
     "SU st a"
-	?? [SFa] >= [KF2PI] -> SU st aend;
+	A = [SFa]; C = [KF2PI]; ? A >= C -> SU st aend;
 	[SUmi] = [SUg];
 	=> SU calc px;
 	=> SU calc py;
@@ -201,7 +201,7 @@
 "SU volcano"
 	=> SU a zero;
     "SU vo a"
-	?? [SFa] >= [KF2PI] -> SU vo done;
+	A = [SFa]; C = [KF2PI]; ? A >= C -> SU vo done;
 	[SUb] = [SUgr];
 	A = [SUcr]; A / 2; [SUg] = A;
     "SU vo g"
@@ -334,18 +334,18 @@
 	=> SU a add deg;
 
 	=> SU frx step;
-	?? [SFpx] <= [KF359] -> SU fr xa;
+	A = [SFpx]; C = [KF359]; ? A <= C -> SU fr xa;
 	[SFpx] -- [KF360];
     "SU fr xa"
-	?? [SFpx] >= [KFZERO] -> SU fr xb;
+	A = [SFpx]; ? A >= 0 -> SU fr xb;
 	[SFpx] ++ [KF360];
     "SU fr xb"
 
 	=> SU fry step;
-	?? [SFpy] <= [KF179] -> SU fr ya;
+	A = [SFpy]; C = [KF179]; ? A <= C -> SU fr ya;
 	[SFpy] -- [KF180];
     "SU fr ya"
-	?? [SFpy] >= [KFZERO] -> SU fr yb;
+	A = [SFpy]; ? A >= 0 -> SU fr yb;
 	[SFpy] ++ [KF180];
     "SU fr yb"
 
@@ -380,18 +380,36 @@
 	=> SU dget;
 	[SUia] = [SUval];
 	=> SU a of int;
-	[SFa] -- [SFth];
-	?? [SFa] > [KFZERO] -> SU co hi;
-	[SFa] ** [SFkq];
+	{
+	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
+	    D8 A7 <dSFth mtp bytesperunit>	(fsub dword [edi+SFth*4])
+	    D9 9F <dSFa  mtp bytesperunit>	(fstp dword [edi+SFa*4])
+	}
+	A = [SFa]; ? A > 0 -> SU co hi;
+	{
+	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
+	    D8 8F <dSFkq mtp bytesperunit>	(fmul dword [edi+SFkq*4])
+	    D9 9F <dSFa  mtp bytesperunit>	(fstp dword [edi+SFa*4])
+	}
 	-> SU co add;
     "SU co hi"
-	[SFa] ** [SFkt];
+	{
+	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
+	    D8 8F <dSFkt mtp bytesperunit>	(fmul dword [edi+SFkt*4])
+	    D9 9F <dSFa  mtp bytesperunit>	(fstp dword [edi+SFa*4])
+	}
     "SU co add"
-	[SFa] ++ [SFth];
-	?? [SFa] >= [KFZERO] -> SU co p1;
+	{
+	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
+	    D8 87 <dSFth mtp bytesperunit>	(fadd dword [edi+SFth*4])
+	    D9 9F <dSFa  mtp bytesperunit>	(fstp dword [edi+SFa*4])
+	}
+	A = [SFa]; ? A >= 0 -> SU co p1;
 	[SFa] = 0;
     "SU co p1"
-	?? [SFa] <= [KF63] -> SU co p2;
+	A = [SFa]; C = [KF63]; ? A > C -> SU co p63;
+	-> SU co p2;
+    "SU co p63"
 	[SFa] = [KF63];
     "SU co p2"
 	=> SU a to int;
@@ -469,7 +487,7 @@
 "SU crater"
 	=> SU a zero;
     "SU cr a"
-	?? [SFa] >= [KF2PI] -> SU cr done;
+	A = [SFa]; C = [KF2PI]; ? A >= C -> SU cr done;
 
 	[SUgr] = 0;
     "SU cr g"
