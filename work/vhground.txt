@@ -33,6 +33,7 @@
 	VHGNDs3 = 0; VHGNDs4 = 0; VHGNDshade = 0;
 	VHGNDdepth = 0; VHGNDrawdepth = 0; VHGNDdx = 0; VHGNDdz = 0;
 	VHGNDmanhattan = 0;
+	VHGNDnativecomplete = 0;
 	VHGNDlodstep = 1; VHGNDlodradius = 4; VHGNDbackspan = 1;
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
@@ -5305,7 +5306,10 @@
 	( fragment()'s source Manhattan precheck rejects only cells that cannot
 	  enter the depth-64 circle.  Do it before shade/depth floating work. )
 	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile source range generic;
+	[VHGNDnativecomplete] = 0;
 	=> VHGND faithful tile admission native;
+	A = [VHGNDnativecomplete]; ? A = 2 -> VHGND tile done;
+	? A = 1 -> VHGND tile second done;
 	A = [VHGNDmanhattan]; ? A > 90 -> VHGND tile done;
 	-> VHGND tile depth computed;
     "VHGND tile source range generic"
