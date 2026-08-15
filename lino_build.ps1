@@ -68,6 +68,8 @@ $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.FileName        = $Compiler
 $psi.Arguments       = $argLine
 $psi.UseShellExecute = $false
+$psi.CreateNoWindow  = $true
+$psi.WindowStyle     = [System.Diagnostics.ProcessWindowStyle]::Hidden
 $psi.WorkingDirectory = $dir
 $proc = [System.Diagnostics.Process]::Start($psi)
 

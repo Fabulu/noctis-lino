@@ -632,13 +632,21 @@ without consuming Noctis's Escape key. It is deployed through the author's
 Cloudflare account at
 [`linoctis.pages.dev`](https://linoctis.pages.dev/).
 
-The Windows product already had iGUI's fullscreen title-bar button. It now
-advertises the Escape route and consumes the held Escape while leaving
-exclusive mode, so the same press cannot fall through to Noctis's save-and-quit
-path. The production game compiles with this behavior. Still open are the full
-iGUI behavior audit, renderer fidelity, every remaining native path, audio,
-file mutation and persistence services, complete game-mode coverage, and the
-performance work needed for smooth play.
+The first host-contract defect from the iGUI audit is fixed. LinoJava now
+rejects exclusive-mode requests unless the host explicitly accepts them, and
+keeps `Display Status` cooperative on failure. The X11/XQuartz runtime likewise
+returns failure when exclusive mode was not compiled in instead of printing an
+unsupported warning and then reporting success. The stock iGUI failure path
+now restores its exact former width, height, and position. The browser uses its
+separate game-only fullscreen control; the Lino tooltip no longer advertises
+Escape as the required way out. Compiler helper windows are also launched
+hidden and terminated after their output settles.
+
+Still open are the rest of the iGUI action matrix, especially fold, dormant
+mode, maximize, drag, resize, hide, restore, and close behavior in each host;
+renderer fidelity; every remaining native path; audio; file mutation and
+persistence services; complete game-mode coverage; and the performance work
+needed for smooth play.
 
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 

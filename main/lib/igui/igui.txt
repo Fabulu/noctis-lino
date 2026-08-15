@@ -440,6 +440,8 @@
 	Previous display height 	= INITIAL HEIGHT;
 	Previous display X position	= MIDDLE;
 	Previous display Y position	= MIDDLE;
+	Unfull display width		= INITIAL WIDTH;
+	Unfull display height		= INITIAL HEIGHT;
 	Previous thread priority	= NORMAL PRIORITY;
  vector Standard Black Gradients	= 0.0f *** 9;
  vector All Controls Off		= .15f; .15f; .15f; 0.1f; 0.1f; 0.1f; .05f; .05f; .05f;
@@ -2045,6 +2047,8 @@
 	? [Display Status] + EXCLUSIVE -> Full from full;
 	[Previous display X position] = [Display X Position];
 	[Previous display Y position] = [Display Y Position];
+	[Unfull display width] = [Display Width];
+	[Unfull display height] = [Display Height];
     "Full from full"
     (first update area coordinates to fit desired size)
 	[Pointer Delta X] = [Fullscreen Width]; [Pointer Delta X] - [Display Width];
@@ -2056,6 +2060,8 @@
 	[Display Height]  = [Fullscreen Height];
 	isocall;
 	? ok -> Refresh Display;
+	=> Restore Unfull Window;
+	-> Refresh Display;
     (if failed, the runtime module reverts it to windowed mode, but at this
      point we must expect the display to be refitted to the desktop screen,
      whose dimensions are given by [display physical...] variables while not
@@ -2083,11 +2089,17 @@
 	[Display Y Position] = [Previous display Y position];
 	[Display Command]    = SET COOPERATIVE MODE;
 	isocall;
-    (after the above command, display may have moved to fit physical limits)
-	[Previous display X position] = [Display X Position];
-	[Previous display Y position] = [Display Y Position];
-    (check if former full-screen display now fits windowed mode display)
-	-> Is physical smaller than logical;
+	=> Restore Unfull Window;
+	-> Refresh Display;
+
+"Restore Unfull Window"
+	[New Display Width] = [Unfull display width];
+	[New Display Height] = [Unfull display height];
+	=> Resize Display;
+	[Display X Position] = [Previous display X position];
+	[Display Y Position] = [Previous display Y position];
+	isocall;
+	leave;
 
     (installs the menu layout datascript pointed by [Menu To Install] as
      current pull-down menu; may be called at any type, and more than one

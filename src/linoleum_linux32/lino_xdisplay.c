@@ -110,6 +110,7 @@ bool krnlDisplayCommand(DisplayCommand command)
 			   SubstructureRedirectMask |
 			   SubstructureNotifyMask, &xev);
 #endif
+		pUIWorkspace[mm_DisplayStatus] &= ~EXCLUSIVE;
 	}
 		break;
 	case SETEXCLUSIVEMODE:{
@@ -135,11 +136,14 @@ bool krnlDisplayCommand(DisplayCommand command)
 			   False,
 			   SubstructureRedirectMask |
 			   SubstructureNotifyMask, &xev);
-#endif
-		/* exclusive mode is currently not supported */
+		pUIWorkspace[mm_DisplayStatus] |= EXCLUSIVE;
+#else
+		/* Do not let iGUI enter a display mode the host did not enter. */
+		result = false;
 		printf
 			("%s: EXCLUSIVE display mode not (yet) supported.\n",
 			 __func__);
+#endif
 	}
 		break;
 	default:
