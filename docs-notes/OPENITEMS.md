@@ -608,7 +608,47 @@ work: extend the independent compiler through the complete language and host
 surface, add WebAssembly lowering and portable replacements for every embedded
 x86 fragment, then boot and optimize the full current Noctis port on the site.
 
-## 9. Cross-references
+## 9. Font fidelity across every text path -- **OPEN / DOCKET**
+
+Audit and authenticate every game and host font against NIV+ across Windows,
+the browser runtime, and compatibility hosts such as Wine and XQuartz on
+macOS. Cover the lower-left notices, lower-right status text, GOES
+console input and output, HUD and FCS labels, onboard devices, data sheets,
+menus, help, About, counters, coordinates, and iGUI chrome. Grade the complete
+glyph set, character mapping, spacing, baseline, row stride, clipping, colour,
+palette interaction, nearest-neighbour scaling, and resize/fullscreen behavior.
+
+The motivating external report is asymmetric: lower-left text such as the
+checkpoint-restored notice remained legible, while lower-right text was
+corrupted into shapes that did not resemble letters, and GOES console text was
+corrupted in the same way. The supplied XQuartz screenshot confirms that the
+macOS-native window chrome remains legible while the top in-game status run is
+compressed or overlapping and the lower-right glyph run is severely malformed.
+Preserve that distinction as a diagnostic case. It suggests a shared font
+pointer, glyph workspace, row-pitch, character-index, unit-width, or
+memory-clobber path used by lower-right and GOES rendering rather than a global
+Mac font failure. Reproduce it under XQuartz with the reporter's exact runtime
+and launch command, then test the ordinary Windows build and browser host with
+the same strings and window geometries.
+
+The first static split is concrete. The working checkpoint notice is drawn by
+`VHG notice overlay` through the ordinary `STD Write` font onto `VHGUIframe`.
+The broken lower-right FCS status and both GOES wall displays instead converge
+on `VHP digit`, which calls `FB digit at`, reads the 2,340-unit `digimap2`
+glyph map loaded from the 9,360-byte `digimap2.bin`, and maps the result as a
+3-D textured quad. Start the XQuartz reproduction at that shared file-load,
+32-bit-unit, glyph-row, and texture handoff. Keep the standard-font notice in
+the same frame as a positive control. The reporter is also bringing up a
+headless content dumper for comparison-sheet output, which may provide stable
+raw captures from the affected host rather than screenshot-only evidence.
+
+Do not close this from plausible screenshots. Use matched NIV+ framebuffer or
+glyph-atlas evidence for the source fonts, then require stable product captures
+through each live text route. Include nonletters and boundary characters so a
+partially shifted or incorrectly indexed font table cannot pass on a short
+uppercase message.
+
+## 10. Cross-references
 
 | document | what Wave 6 changed in it |
 |---|---|
