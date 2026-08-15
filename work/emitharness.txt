@@ -1,0 +1,225 @@
+      ( *** emitharness - headless Noctis-IV-Plus engine-output emitter.
+
+	Reproduces the output of the Noctis-IV-Plus reference engines
+	(tests/harness/NIVTEST.CPP and tests/nivgen/main.rs) so the port's
+	generation can be diffed byte-for-byte against both.
+
+	Command line (shared by both references):
+	    selftest
+	    system  -x X -y Y -z Z
+	    scan    -x X -y Y -z Z
+	    planet  -x X -y Y -z Z -p INDEX
+	    planet-all -x X -y Y -z Z
+	    sector  -x X -y Y -z Z -p INDEX -lon L -lat B [-sc TYPE]
+	    surftex -x X -y Y -z Z -p INDEX -lon L -lat B [-sc TYPE]
+	    (all)    -o FILE   append text output to FILE
+
+	Text output is written to the file named by -o (default: the 8.3
+	truncated harness name).  Binary dumps use the C -dump DIR contract.
+
+	The hash lines and binary dumps are what the parity rules compare:
+	the four hash families at exact byte lengths (surface_map 46080,
+	atmo_overlay 32400, palette64 192, heightmap 40000, objectchart
+	40000, surf_texture 65024, sky_texture 46080), FNV-1a and CRC-32 in
+	the reference's exact form (see work/emit.txt).
+
+	Current coverage: the selftest command's hash-vector section (all
+	four reference vectors) and the integer random() section.  The
+	float sections (flandom) and the system/planet/sector/surftex
+	generation are wired as later steps.
+
+	Build:   powershell -File lino_build.ps1 -Src work\emitharness.txt
+	Check:   python noctis-harness/niv_check.py \
+	             selftest-harness work\emitself.out
+        )
+
+"libraries"
+
+	fbmem;
+	brtl;
+	emit;
+	emitcli;
+	emitout;
+
+"directors"
+
+	program name = { emitharness };
+	unit = 32;
+
+"variables"
+
+	result file name = { emitself.out };
+	V0 = { };
+	V1 = { a };
+	V2 = { abc };
+	CMDSELF = { selftest };
+	outfile = { emitself.out };
+	ismatch = 0;
+	EHrand	= 0;
+	EHix	= 0;
+
+"workspace"
+
+	vfsbuf = 64;	( the long selftest sentence )
+
+"programme"
+
+	=> EMCL run;
+	=> EMO init;
+
+	( dispatch on the command word )
+	[EMOname] = result file name;
+	A = CMDSELF; => EMCL cmdis; ? A = 1 -> EH selftest;
+	( unknown / unimplemented command: just exit cleanly )
+	-> EH done;
+
+    "EH selftest"
+	=> EH selftest hash;
+	=> EH selftest rand;
+	-> EH done;
+
+( ==================================================================== )
+( EH selftest hash - the four FNV/CRC hash vectors, exact reference      )
+( format.                                                               )
+
+"EH selftest hash"
+	A = 61; => EMO ch; A = 61; => EMO ch; A = 61; => EMO ch;
+	A = 32; => EMO ch;
+	A = 83; => EMO ch; A = 69; => EMO ch; A = 76; => EMO ch;
+	A = 70; => EMO ch; A = 84; => EMO ch; A = 69; => EMO ch;
+	A = 83; => EMO ch; A = 84; => EMO ch;
+	A = 32; => EMO ch;
+	A = 61; => EMO ch; A = 61; => EMO ch; A = 61; => EMO ch;
+	=> EMO crlf;
+
+	A = 45; => EMO ch; A = 45; => EMO ch;
+	A = 32; => EMO ch;
+	A = 104; => EMO ch; A = 97; => EMO ch; A = 115; => EMO ch; A = 104; => EMO ch;
+	A = 32; => EMO ch;
+	A = 118; => EMO ch; A = 101; => EMO ch; A = 99; => EMO ch; A = 116; => EMO ch;
+	A = 111; => EMO ch; A = 114; => EMO ch; A = 115; => EMO ch;
+	A = 32; => EMO ch;
+	A = 45; => EMO ch; A = 45; => EMO ch;
+	=> EMO crlf;
+
+	( vector 1: "" )
+	A = 32; => EMO ch; A = 32; => EMO ch; A = 34; => EMO ch; A = 34; => EMO ch;
+	A = 32; => EMO ch;
+	A = 102; => EMO ch; A = 110; => EMO ch; A = 118; => EMO ch; A = 61; => EMO ch;
+	[EMHbase] = V0; [EMHcount] = 0; => EMH hsh;
+	A = [EMHfnv]; => EMO hex;
+	A = 32; => EMO ch;
+	A = 99; => EMO ch; A = 114; => EMO ch; A = 99; => EMO ch; A = 61; => EMO ch;
+	A = [EMHcrc]; => EMO hex;
+	=> EMO crlf;
+
+	( vector 2: "a" )
+	A = 32; => EMO ch; A = 32; => EMO ch; A = 34; => EMO ch; A = 97; => EMO ch; A = 34; => EMO ch;
+	A = 32; => EMO ch;
+	A = 102; => EMO ch; A = 110; => EMO ch; A = 118; => EMO ch; A = 61; => EMO ch;
+	[EMHbase] = V1; [EMHcount] = 1; => EMH hsh;
+	A = [EMHfnv]; => EMO hex;
+	A = 32; => EMO ch;
+	A = 99; => EMO ch; A = 114; => EMO ch; A = 99; => EMO ch; A = 61; => EMO ch;
+	A = [EMHcrc]; => EMO hex;
+	=> EMO crlf;
+
+	( vector 3: "abc" )
+	A = 32; => EMO ch; A = 32; => EMO ch; A = 34; => EMO ch;
+	A = 97; => EMO ch; A = 98; => EMO ch; A = 99; => EMO ch; A = 34; => EMO ch;
+	A = 32; => EMO ch;
+	A = 102; => EMO ch; A = 110; => EMO ch; A = 118; => EMO ch; A = 61; => EMO ch;
+	[EMHbase] = V2; [EMHcount] = 3; => EMH hsh;
+	A = [EMHfnv]; => EMO hex;
+	A = 32; => EMO ch;
+	A = 99; => EMO ch; A = 114; => EMO ch; A = 99; => EMO ch; A = 61; => EMO ch;
+	A = [EMHcrc]; => EMO hex;
+	=> EMO crlf;
+
+	( vector 4: the long sentence, built word by word into the workspace )
+	[EMOtmp] = VFSBUF;
+	B = [EMOtmp];
+	[B] = 84; B + 1; [B] = 104; B + 1; [B] = 101;	( The )
+	B + 1; [B] = 32;				( space )
+	B + 1; [B] = 113; B + 1; [B] = 117; B + 1; [B] = 105; B + 1; [B] = 99;
+	B + 1; [B] = 107;				( quick )
+	B + 1; [B] = 32;				( space )
+	B + 1; [B] = 98; B + 1; [B] = 114; B + 1; [B] = 111; B + 1; [B] = 119;
+	B + 1; [B] = 110;				( brown )
+	B + 1; [B] = 32;				( space )
+	B + 1; [B] = 102; B + 1; [B] = 111; B + 1; [B] = 120; ( fox )
+	B + 1; [B] = 32;				( space )
+	B + 1; [B] = 106; B + 1; [B] = 117; B + 1; [B] = 109; B + 1; [B] = 112;
+	B + 1; [B] = 115;				( jumps )
+	B + 1; [B] = 32;				( space )
+	B + 1; [B] = 111; B + 1; [B] = 118; B + 1; [B] = 101; B + 1; [B] = 114;
+	( over )
+	B + 1; [B] = 32;				( space )
+	B + 1; [B] = 116; B + 1; [B] = 104; B + 1; [B] = 101; ( the )
+	B + 1; [B] = 32;				( space )
+	B + 1; [B] = 108; B + 1; [B] = 97; B + 1; [B] = 122; B + 1; [B] = 121;
+	( lazy )
+	B + 1; [B] = 32;				( space )
+	B + 1; [B] = 100; B + 1; [B] = 111; B + 1; [B] = 103; ( dog )
+	B + 1; [B] = 0;					( null )
+
+	A = 32; => EMO ch; A = 32; => EMO ch; A = 34; => EMO ch;
+	A = VFSBUF; => EMO str;
+	A = 34; => EMO ch;
+	A = 32; => EMO ch;
+	A = 102; => EMO ch; A = 110; => EMO ch; A = 118; => EMO ch; A = 61; => EMO ch;
+	( hash the 43-byte sentence )
+	[EMHbase] = VFSBUF; [EMHcount] = 43;
+	=> EMH hsh;
+	A = [EMHfnv]; => EMO hex;
+	A = 32; => EMO ch;
+	A = 99; => EMO ch; A = 114; => EMO ch; A = 99; => EMO ch; A = 61; => EMO ch;
+	A = [EMHcrc]; => EMO hex;
+	=> EMO crlf;
+
+	=> EMO flush;
+	end;
+
+( ==================================================================== )
+( EH selftest rand - the Borland random() sequence, srand(1).            )
+
+"EH selftest rand"
+	( -- Borland random() sequence, srand(1) -- )
+	A = 45; => EMO ch; A = 45; => EMO ch;
+	A = 32; => EMO ch;
+	A = 66; => EMO ch; A = 111; => EMO ch; A = 114; => EMO ch; A = 108; => EMO ch;
+	A = 97; => EMO ch; A = 110; => EMO ch; A = 100; => EMO ch;
+	A = 32; => EMO ch;
+	A = 114; => EMO ch; A = 97; => EMO ch; A = 110; => EMO ch; A = 100; => EMO ch;
+	A = 111; => EMO ch; A = 109; => EMO ch; A = 40; => EMO ch; A = 41; => EMO ch;
+	A = 32; => EMO ch;
+	A = 115; => EMO ch; A = 101; => EMO ch; A = 113; => EMO ch; A = 117; => EMO ch;
+	A = 101; => EMO ch; A = 110; => EMO ch; A = 99; => EMO ch; A = 101; => EMO ch;
+	A = 44; => EMO ch;
+	A = 32; => EMO ch;
+	A = 115; => EMO ch; A = 114; => EMO ch; A = 97; => EMO ch; A = 110; => EMO ch;
+	A = 100; => EMO ch; A = 40; => EMO ch; A = 49; => EMO ch; A = 41; => EMO ch;
+	A = 32; => EMO ch;
+	A = 45; => EMO ch; A = 45; => EMO ch;
+	=> EMO crlf;
+
+	( 8 rand() calls )
+	A = 1; => BrtlSrand;
+	[EHix] = 0;
+    "EH rand loop"
+	=> BrtlRand;
+	[EHrand] = A;		( save before the label emission clobbers A )
+	A = 32; => EMO ch; A = 32; => EMO ch;
+	A = 114; => EMO ch; A = 97; => EMO ch; A = 110; => EMO ch; A = 100; => EMO ch;
+	A = 61; => EMO ch;
+	A = [EHrand]; => EMO num;
+	=> EMO crlf;
+	[EHix] + 1;
+	A = [EHix]; ? A '< 8 -> EH rand loop;
+
+	=> EMO flush;
+	end;
+
+    "EH done"
+	=> EMO flush;
+	end;

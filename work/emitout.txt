@@ -40,6 +40,7 @@
 "workspace"
 
 	emotxt = EMOTXTSIZE;
+	emodigbuf = 12;	( max 10 decimal digits + null )
 
 "programme"
 
@@ -98,22 +99,32 @@
 	end;
 
 ( ==================================================================== )
-( EMO digits - append the digits of [EMOval] (non-negative) to the      )
-( buffer.  Uses division by 10 into a stack-less scratch via recursion.  )
+( EMO digits - append the digits of [EMOval] (non-negative).  Iterative:  )
+( extract digits into emodigbuf from the right, then emit left to right. )
 
 "EMO digits"
-	A = [EMOval]; A '/ 10; ? A = 0 -> EMO digits one;
-	( last digit = value - (value/10)*10 )
+	[EMOix] = 0;
+    "EMO digits extract"
+	A = [EMOval]; A '/ 10; ? A = 0 -> EMO digits emit;
+	( digit = value % 10 )
 	[EMOtmp] = A; A '* 10; A +-;
-	B = [EMOval]; B + A; [EMOdig] = B;
-	( recurse on the quotient )
+	B = [EMOval]; B + A;	( B = value - (value/10)*10 )
+	( store digit into emodigbuf[EMOix] )
+	C = emodigbuf; C + [EMOix]; [C] = B;
+	[EMOix] + 1;
+	( value = value / 10 )
 	A = [EMOval]; A '/ 10; [EMOval] = A;
-	=> EMO digits;
-	( emit the saved digit )
-	A = [EMOdig]; A + 48; => EMO put;
-	end;
-    "EMO digits one"
-	A = [EMOval]; A + 48; => EMO put;
+	-> EMO digits extract;
+    "EMO digits emit"
+	( store the final (most significant) digit too )
+	C = emodigbuf; C + [EMOix]; [C] = [EMOval];
+	( now emit emodigbuf[EMOix] down to [0] )
+    "EMO digits emitloop"
+	C = emodigbuf; C + [EMOix]; A = [C]; A + 48; => EMO put;
+	? [EMOix] = 0 -> EMO digits done;
+	A = [EMOix]; A - 1; [EMOix] = A;
+	-> EMO digits emitloop;
+    "EMO digits done"
 	end;
 
 ( ==================================================================== )
