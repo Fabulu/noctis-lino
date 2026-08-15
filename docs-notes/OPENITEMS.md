@@ -227,6 +227,14 @@ must cover direction, occlusion, colour, intensity, geometry, and transition
 behaviour. A flare merely being present is not sufficient; the implementation
 must match the native renderer in each context.
 
+**Fresh-start sun defect.** The first visible sun in the JavaScript build has
+been observed with a black-square dither pattern across its disc. Determine
+whether desktop Lino produces the same pixels by replaying the identical fresh
+start, then grade both implementations against a pinned NIV+ framebuffer and
+palette capture. Preserve the input state, indexed framebuffer, palette, and
+sun-stage intermediates. Do not classify the pattern as authentic unless the
+native oracle reproduces it.
+
 **Completed foundation.** The flare raster, clipping, trig setup, ghost
 reflection, surface occlusion, and brightness-band behaviour now match direct
 NIV+ page dumps. A 12-class star matrix compares four 64,000-byte checkpoints
