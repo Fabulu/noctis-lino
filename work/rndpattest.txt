@@ -1,0 +1,75 @@
+      ( *** rndpattest - verify SU rndpat fills p_background correctly.      )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	brtl;
+	mul64frag;
+
+	suseed;
+	surng;
+	subuf;
+	susm;
+	supaint;
+	supal;
+	sucase;
+
+	emit;
+	emitout;
+
+"directors"
+
+	program name = { rndpattest };
+	unit = 32;
+
+"variables"
+
+	result file name = { rndpattest.out };
+	SURFNAME = { rndpat.raw };
+
+"programme"
+
+	=> EMO init;
+	[EMOname] = result file name;
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	( seed the same as surface() does: seed=56549 )
+	[SUsv0] = 0C715881Ch; [SUsv1] = 0C12943E2h;
+	=> SU fp init;
+	=> SU seed b;
+	A = [SUti]; => SU fast srand;
+	[SUfmask] = 0FFFFh;
+	=> SU frnd;
+	A = [SUfval]; A & 0FFFFh; [SUseed] = A;
+
+	( point at p_background and run rndpat )
+	=> SU select planet;
+	A = nw; A + RPBG; [SUsp] = A;
+	[SUsi] = 0;
+	[SUncx] = NPCL;
+	A = [SUseed]; [SUnax] = A;
+	=> SU rndpat;
+
+	( hash the rndpat result )
+	A = nw; A + RPBG; [EMHbase] = A; [EMHcount] = 46080; => EMH hsh;
+	A = [EMHfnv]; [EMOval] = A; => EMO hex; A = 32; => EMO ch;
+	A = [EMHcrc]; [EMOval] = A; => EMO hex; => EMO crlf;
+
+	( dump the raw rndpat )
+	A = nw; A + RPBG; [Block Pointer] = A;
+	[File Name] = SURFNAME;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	[Block Size] = 46080;
+	[Block Size] * BYTESPERUNIT;
+	isocall;
+
+	=> EMO flush;
+	=> FLeave;
+	end;

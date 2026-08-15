@@ -1,0 +1,57 @@
+      ( *** seedbtest - verify SU seed b truncation in isolation.          )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	brtl;
+	mul64frag;
+
+	suseed;
+	surng;
+
+	emitout;
+
+"directors"
+
+	program name = { seedbtest };
+	unit = 32;
+
+"variables"
+
+	result file name = { seedbtest.out };
+
+"programme"
+
+	=> EMO init;
+	[EMOname] = result file name;
+	[FCW] = FCWEXT;
+	=> FEnter;
+	=> SU fp init;
+
+	( seedval = -827889.3888361487 = 0xC12943E2C715881C )
+	[SUsv0] = 0C715881Ch; [SUsv1] = 0C12943E2h;
+
+	( SU seed b: SUti = trunc(seedval * 10) )
+	=> SU seed b;
+	A = [SUti]; => EMO num; A = 32; => EMO ch;
+	A = [SUq0]; => EMO num; => EMO crlf;
+
+	( SU seed b + fast srand + frnd = the surface seed )
+	=> SU seed b;
+	A = [SUti]; => SU fast srand;
+	( dump SUfseed, then the full SU fast raw result )
+	A = [SUfseed]; [EMOval] = A; => EMO hex; A = 32; => EMO ch;
+	A = [SUfseed]; [m64a] = A; [m64b] = A; => Mul64u;
+	[SUfmask] = 0FFFFh;
+	=> SU fast raw;
+	A = [SUfval]; [EMOval] = A; => EMO hex; A = 32; => EMO ch;
+	A = [SUfseed]; [EMOval] = A; => EMO hex; => EMO crlf;
+
+	=> EMO flush;
+	=> FLeave;
+	end;

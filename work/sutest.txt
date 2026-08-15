@@ -1,0 +1,131 @@
+      ( *** sutest - minimal SU surface() test with hardcoded planet inputs.
+
+	Verifies SU surface() runs headlessly for the INIX I body 0 inputs
+	(type=5, seedval=-827889.388836, colorbase=192, secs=0) and hashes
+	the resulting surface_map / atmo_overlay / palette64 the way the
+	reference planet command does.
+
+	Build:   powershell -File lino_build.ps1 -Src work\sutest.txt
+        )
+
+"libraries"
+
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+
+	fbmem;
+	brtl;
+	mul64frag;
+
+	suseed;
+	surng;
+	subuf;
+	susm;
+	supaint;
+	supal;
+	sucase;
+
+	emit;
+	emitout;
+
+"directors"
+
+	program name = { sutest };
+	unit = 32;
+
+"variables"
+
+	result file name = { sutest.out };
+	SFN = 0;
+	SCRC = 0;
+	SURFNAME = { surface.raw };
+	surfptr = 0;
+
+"programme"
+
+	=> EMO init;
+	[EMOname] = result file name;
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	( hardcode INIX I body 0 surface inputs )
+	[SUtype] = 5;
+	[SUcbase] = 192;
+	[SUplwp] = 269;
+	A = 1; A +-; [SUowner] = A;	( -1 )
+	[SUnsr] = 63; [SUnsg] = 58; [SUnsb] = 40;
+	[SUsv0] = 0C715881Ch; [SUsv1] = 0C12943E2h;	( seedval = -827889.388836 )
+	[SUsec0] = 0; [SUsec1] = 0;
+
+	( debug: verify SUsv0/SUsv1 before surface )
+	A = [SUsv0]; [EMOval] = A; => EMO hex; A = 32; => EMO ch;
+	A = [SUsv1]; [EMOval] = A; => EMO hex; => EMO crlf;
+
+	( run surface() exactly as the standalone grader does )
+	=> SU fp init;
+	=> SU pal init;
+	=> SU select ovl;
+	=> SUDM reset;
+	=> SU select planet;
+	=> SU wipe;
+	=> SU wipe ovl;
+	=> SU wipe pal;
+	=> SU surface;
+
+	( hash surface_map: nw+RPBG[0..46080] )
+	A = nw; A + RPBG; [EMHbase] = A;
+	[EMHcount] = 46080;
+	=> EMH hsh;
+	[SFN] = [EMHfnv]; [SCRC] = [EMHcrc];
+
+	( write the hashes )
+	A = [SFN]; [EMOval] = A; => EMO hex; A = 32; => EMO ch;
+	A = [SCRC]; [EMOval] = A; => EMO hex; => EMO crlf;
+
+	( debug: dump SUseed, SUpbase, SUsp after surface )
+	A = [SUseed]; => EMO num; A = 32; => EMO ch;
+	A = [SUrtp]; => EMO num; A = 32; => EMO ch;
+	A = [SUrot]; => EMO num; A = 32; => EMO ch;
+	A = [SUpbase]; => EMO num; A = 32; => EMO ch;
+	A = [SUsp]; => EMO num; A = 32; => EMO ch;
+	A = nw; => EMO num; => EMO crlf;
+
+	( atmo_overlay hash: nw+ROBJ[0..32400] )
+	A = nw; A + ROBJ; [EMHbase] = A; [EMHcount] = 32400; => EMH hsh;
+	A = [EMHfnv]; [EMOval] = A; => EMO hex; A = 32; => EMO ch;
+	A = [EMHcrc]; [EMOval] = A; => EMO hex; => EMO crlf;
+
+	( palette64 hash: tmppal[576..768] )
+	A = sutmppal; A + 576; [EMHbase] = A; [EMHcount] = 192; => EMH hsh;
+	A = [EMHfnv]; [EMOval] = A; => EMO hex; A = 32; => EMO ch;
+	A = [EMHcrc]; [EMOval] = A; => EMO hex; => EMO crlf;
+
+	( debug: dump first 16 bytes of p_background as raw )
+	A = nw; A + RPBG; [EMOval] = [A]; A = [EMOval]; => EMO num; A = 32; => EMO ch;
+	A = nw; A + RPBG; A + 1; [EMOval] = [A]; A = [EMOval]; => EMO num; A = 32; => EMO ch;
+	A = nw; A + RPBG; A + 2; [EMOval] = [A]; A = [EMOval]; => EMO num; A = 32; => EMO ch;
+	A = nw; A + RPBG; A + 3; [EMOval] = [A]; A = [EMOval]; => EMO num; => EMO crlf;
+
+	( dump the surface map to surface.raw )
+	[File Name] = SURFNAME;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	A = nw; A + RPBG; [Block Pointer] = A;
+	[Block Size] = 46080;
+	[Block Size] * BYTESPERUNIT;
+	isocall;
+
+	=> EMO flush;
+	=> FLeave;
+	end;
+
+"SU wipe pal"
+	A = sutmppal;
+	B = 768;
+	C = 0;
+    "SU wp u"
+	[A] = C; A+;
+	B ^ SU wp u;
+	end;

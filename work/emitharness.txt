@@ -45,8 +45,6 @@
 	fp/fpconv;
 	fp/fpchains;
 
-	fbmem;
-	brtl;
 	mul64frag;
 
 	suseed;
@@ -64,8 +62,6 @@
 	nsident;
 	nslabel;
 
-	emit;
-	emitcli;
 	emitout;
 
 "directors"
