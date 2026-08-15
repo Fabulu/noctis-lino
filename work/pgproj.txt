@@ -1101,6 +1101,9 @@
 	[PGFi] = FSNZ; => PGF sa; => PGF narrow;
 
     "PJ vc gradients"
+	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PJ vc gradients generic;
+	=> PJ vc gradients native; end;
+    "PJ vc gradients generic"
 	( hx = (rx*mz - rz*mx)*YCOEFF, and its eight siblings.  Every one
 	  is "fld a / fmul b / fld c / fmul d / fsubp / fmul k / fstp s",
 	  so the subtraction is st(1) - st(0) = a*b - c*d and the scale
@@ -1126,7 +1129,44 @@
 	[CLbnd] = FSUNO; [CLt] = FSOZ; => PJ vc cross;
 	end;
 
-    "PJ vectors terrain"
+"PJ vc gradients native"
+	( Execute the nine fixed texture-basis cross products in one native loop.
+	  The embedded six-byte records are xi, yi, xo, yo, scale and output slots;
+	  every product, subtraction, scale and binary32 destination keeps the
+	  same explicit x87 spill as PJ vc cross. )
+	{
+	    56 55
+	    8B B7 <dPJfwbase mtp bytesperunit> 8D 34 B7
+	    E8 36 00 00 00
+	    EB E7 ED E5 F6 00
+	    EB EA ED E8 F6 01
+	    E8 E7 EA E5 1A 02
+	    ED E6 EC E7 F5 03
+	    ED E9 EC EA F5 04
+	    EA E6 E9 E7 1A 05
+	    EC E5 EB E6 F4 06
+	    EC E8 EB E9 F4 07
+	    E9 E5 E8 E6 12 08
+	    5D B9 09 00 00 00
+	    0F B6 45 00 DD 04 C6
+	    0F B6 45 01 DC 0C C6
+	    DD 9E D8 07 00 00
+	    0F B6 45 02 DD 04 C6
+	    0F B6 45 03 DC 0C C6
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 86 D8 07 00 00 DC A7 <dFA0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    0F B6 45 04 DC 0C C6
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dFS0 mtp bytesperunit>
+	    0F B6 55 05 D9 87 <dFS0 mtp bytesperunit> DD 1C D6
+	    DD 04 D6 DD 9F <dFA0 mtp bytesperunit>
+	    83 C5 06 49 75 8B
+	    5D 5E
+	}
+	end;
+
+"PJ vectors terrain"
 	( Landed ground is always a three-vertex polygon.  Keep the exact scalar
 	  spill and binary32-store schedule, but execute its fixed midpoint,
 	  expansion and basis-vector chains without the generic slot shuttle. )
