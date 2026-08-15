@@ -27,7 +27,7 @@
 
 	NTICK = 400; NFRAME = 100; HITCHMOD = 37; CALMS = 3000; SERVON = 96;
 	VHG15F = 1097859072;
-	VHGNEAR = 1112014848;		( 50.0f: live interior near plane )
+	VHGNEAR = 1120403456;		( 100.0f: source-wide near plane )
 	VHGSTEP = 80;
 	VHGSIMADD = 18206; VHGSIMDEN = 60000;
 	VHGN44 = 0FFFFFFD4h;
@@ -2993,10 +2993,8 @@
 	=> VHS fade;
     "VHG render space ready"
 	=> PGF constants;
-	( The source renderer's 100-unit plane is safe for exterior views, but
-	  from inside the hull a fast turn can put every subdivided leaf of a
-	  nearby wall/cupola behind it for one frame.  Keep the shared renderer
-	  exact and narrow only this live interior view to 50 units. )
+	( The source renderer uses one 100-unit plane for the Stardrifter, its
+	  cupolas, and every exterior view. )
 	[PGFi] = FSUNEG; [PGFt] = VHGNEAR; => PGF setf32;
 	[VHSdx0] = [MgDzatX0]; [VHSdx1] = [MgDzatX1];
 	[VHSdy0] = [MgDzatY0]; [VHSdy1] = [MgDzatY1];
