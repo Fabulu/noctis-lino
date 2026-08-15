@@ -1074,6 +1074,13 @@
 	end;
 
 "VHGND post surface"
+	=> VHGND post surface common;
+	end;
+
+"VHGND post surface common"
+	-> VHGND post surface source;
+
+"VHGND post surface source"
 	( NOCTIS-1.CPP:2583-2615.  These shared post-switch crevasses and
 	  inclination-weighted object counts apply to every planet type. )
 	C = 5; => SU rnd; [VHGNDpostn] = C;
@@ -1605,6 +1612,13 @@
 	end;
 
 "VHGND texture darkline"
+	=> VHGND texture darkline common;
+	end;
+
+"VHGND texture darkline common"
+	-> VHGND texture darkline source;
+
+"VHGND texture darkline source"
 	( srf_darkline over the real 256x256 p_background texture. )
 	C = 256; => SU rnd; [VHGNDlinex] = C;
 	C = 256; => SU rnd; [VHGNDlinez] = C;
