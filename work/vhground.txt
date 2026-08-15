@@ -5954,49 +5954,9 @@
 
     "VHGND tree terminal"
 	( Terminal source node: each subdivision is its own randomized leaf fan. )
-	( x2 = x + fast_flandom()*range - fast_flandom()*range.  Keep the
-	  first partial sum wide across the second RNG call, then narrow only at
-	  the source's float assignment. )
-	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
-	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreebxf]; => PGF setf32;
-	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add;
-	[GRtreeacc0] = [FA0]; [GRtreeacc0 plus 1] = [FA1];
-	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
-	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [GRtreeacc0]; [FA1] = [GRtreeacc0 plus 1];
-	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafx] = [FS0];
-
-	( z2 follows the same live-x87 schedule. )
-	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
-	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreebzf]; => PGF setf32;
-	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add;
-	[GRtreeacc0] = [FA0]; [GRtreeacc0 plus 1] = [FA1];
-	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
-	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [GRtreeacc0]; [FA1] = [GRtreeacc0 plus 1];
-	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafz] = [FS0];
-
-	( fy[2] = y-fast_flandom()*scaling; widthscale1=scaling*globalwidth. )
-	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
-	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreescalef]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
-	[FB0] = [FA0]; [FB1] = [FA1]; [PGFi] = FSW0; [PGFt] = [VHGNDtreebyf]; => PGF setf32;
-	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafdrop] = [FS0];
-	[PGFi] = FSW0; [PGFt] = [VHGNDtreescalef]; => PGF setf32;
-	[PGFi] = FSW1; [PGFt] = [VHTwidthf]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
-	=> F32Narrow; => FStoreF32; [VHGNDtreebr] = [FS0];
+	( Preserve the five unsigned fast-random transitions and every source
+	  binary64 spill, but execute the terminal coordinate chain in one call. )
+	[SUfmask] = 32767; => VHGND tree terminal native;
 	[VHGNDtreeex] = [VHGNDtreebx]; [VHGNDtreeey] = [VHGNDtreeby]; [VHGNDtreeez] = [VHGNDtreebz];
 	[SUfmask] = 31; => VHGND render random; C + [VHTleafcol]; [VHGNDtreecol] = C;
 	[VHTfacebase] = C; [VHTfacestep] = 2;
@@ -6009,6 +5969,80 @@
 	[VHGNDtreelevel]-; -> VHGND tree node branch;
 "VHGND tree done"
 	[DBflar] = 0; [VHGNDtreefloat] = 0;
+	end;
+
+"VHGND tree terminal native"
+	( Five fast_flandom draws build x2, z2 and y2.  ESI holds the running
+	  unsigned seed while every public RNG value and final float scratch value
+	  remains identical to the interpreted schedule. )
+	{
+	    56
+	    8B B7 <dSUfseed mtp bytesperunit>
+
+	    89 F0 F7 E0 00 D0
+	    89 87 <dSUfeax mtp bytesperunit> 01 C6
+	    89 B7 <dSUfseed mtp bytesperunit> 25 FF 7F 00 00
+	    89 87 <dSUfval mtp bytesperunit> 89 87 <dGRtreeci mtp bytesperunit>
+	    DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
+	    D9 9F <dGRtreefl mtp bytesperunit>
+	    D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    D9 87 <dVHGNDtreebxf mtp bytesperunit> DC 87 <dFA0 mtp bytesperunit>
+	    DD 9F <dGRtreeacc0 mtp bytesperunit>
+
+	    89 F0 F7 E0 00 D0
+	    89 87 <dSUfeax mtp bytesperunit> 01 C6
+	    89 B7 <dSUfseed mtp bytesperunit> 25 FF 7F 00 00
+	    89 87 <dSUfval mtp bytesperunit> 89 87 <dGRtreeci mtp bytesperunit>
+	    DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
+	    D9 9F <dGRtreefl mtp bytesperunit>
+	    D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dGRtreeacc0 mtp bytesperunit> DC A7 <dFA0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dVHGNDtreeleafx mtp bytesperunit>
+
+	    89 F0 F7 E0 00 D0
+	    89 87 <dSUfeax mtp bytesperunit> 01 C6
+	    89 B7 <dSUfseed mtp bytesperunit> 25 FF 7F 00 00
+	    89 87 <dSUfval mtp bytesperunit> 89 87 <dGRtreeci mtp bytesperunit>
+	    DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
+	    D9 9F <dGRtreefl mtp bytesperunit>
+	    D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    D9 87 <dVHGNDtreebzf mtp bytesperunit> DC 87 <dFA0 mtp bytesperunit>
+	    DD 9F <dGRtreeacc0 mtp bytesperunit>
+
+	    89 F0 F7 E0 00 D0
+	    89 87 <dSUfeax mtp bytesperunit> 01 C6
+	    89 B7 <dSUfseed mtp bytesperunit> 25 FF 7F 00 00
+	    89 87 <dSUfval mtp bytesperunit> 89 87 <dGRtreeci mtp bytesperunit>
+	    DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
+	    D9 9F <dGRtreefl mtp bytesperunit>
+	    D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dGRtreeacc0 mtp bytesperunit> DC A7 <dFA0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dVHGNDtreeleafz mtp bytesperunit>
+
+	    89 F0 F7 E0 00 D0
+	    89 87 <dSUfeax mtp bytesperunit> 01 C6
+	    89 B7 <dSUfseed mtp bytesperunit> 25 FF 7F 00 00
+	    89 87 <dSUfval mtp bytesperunit> 89 87 <dGRtreeci mtp bytesperunit>
+	    DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
+	    D9 9F <dGRtreefl mtp bytesperunit>
+	    D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dVHGNDtreescalef mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit>
+	    D9 87 <dVHGNDtreebyf mtp bytesperunit> DC A7 <dFA0 mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dVHGNDtreeleafdrop mtp bytesperunit>
+	    D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTwidthf mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dVHGNDtreebr mtp bytesperunit>
+	    D9 87 <dVHGNDtreebr mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    8B 87 <dVHGNDtreebr mtp bytesperunit> 89 87 <dFS0 mtp bytesperunit>
+	    5E
+	}
 	end;
 
 "VHGND bush"
