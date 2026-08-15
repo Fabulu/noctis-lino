@@ -242,19 +242,14 @@
 	A = [FI]; ? A >= 0 -> SP wh xdone;
 	[WHcols]+;
 
-	( if (xx > 9 && xx < 313 && yy > 9 && yy < 190) )
-	[PGFt] = D9L; [PGFu] = D9H; => PGF ldf64; [FB0] = [FA0]; [FB1] = [FA1];
-	[PGFi] = SFXP; => PGF a; => FCmp;
-	A = [FI]; ? A != 1 -> SP wh xnext;
-	[PGFt] = D313L; [PGFu] = D313H; => PGF ldf64; [FB0] = [FA0]; [FB1] = [FA1];
-	[PGFi] = SFXP; => PGF a; => FCmp;
-	A = [FI]; ? A >= 0 -> SP wh xnext;
-	[PGFt] = D9L; [PGFu] = D9H; => PGF ldf64; [FB0] = [FA0]; [FB1] = [FA1];
-	[PGFi] = SFYP; => PGF a; => FCmp;
-	A = [FI]; ? A != 1 -> SP wh xnext;
-	[PGFt] = D190L; [PGFu] = D190H; => PGF ldf64; [FB0] = [FA0]; [FB1] = [FA1];
-	[PGFi] = SFYP; => PGF a; => FCmp;
-	A = [FI]; ? A >= 0 -> SP wh xnext;
+	( The source compares finite xx/yy to integer viewport bounds, then
+	  truncates those same values for riga and the column.  For these positive
+	  bounds the condition is exactly iy=10..189 and ix=10..312.  Convert once
+	  and reuse the results, removing four floating helper chains per sample. )
+	[PGFi] = SFYP; => PGF a; => FToIntChop; [WHiy] = [FI];
+	A = [WHiy]; ? A < 10 -> SP wh xnext; ? A > 189 -> SP wh xnext;
+	[PGFi] = SFXP; => PGF a; => FToIntChop; [WHix] = [FI];
+	A = [WHix]; ? A < 10 -> SP wh xnext; ? A > 312 -> SP wh xnext;
 
 	( zz = xa*xa + ya*ya )
 	[PGFi] = SFXA; => PGF a; [PGFi] = SFXA; => PGF mul; [PGFi] = SFT1; => PGF sa;
@@ -283,18 +278,15 @@
 	[WHpix] = 63;
 
     "SP wh ptr"
-	( pixptr = riga[(int)yy] + (int)xx - both casts CHOP )
-	[PGFi] = SFYP; => PGF a; => FToIntChop; [WHiy] = [FI];
-	[PGFi] = SFXP; => PGF a; => FToIntChop; [WHix] = [FI];
-	A = [WHiy]; A + A; A & 65535; [GBt] = A;
-	=> SP riga at;
-	C + [WHix]; C & 65535; [WHptr] = C;
+	( pixptr = riga[(int)yy] + (int)xx - both casts CHOP.
+	  Every caller supplies adapted as the destination and this point has
+	  already passed the positive 320 by 200 clip.  riga[y] is exactly
+	  320*y, so form the same logical offset directly instead of routing
+	  every sun pixel through riga, SP seg and MEM seg addr. )
+	A = [WHiy]; A '* 320; A + [WHix]; A & 65535; [WHptr] = A;
 
 	( pix += target[pixptr] - a CHAR add, and it wraps )
-	[SPreg] = [WHdstreg];
-	A = [WHptr]; A + 4; [SPoff] = A;
-	=> SP get;
-	[WHtex] = [SPval];
+	A = nw; A + RADPT; A + [WHptr]; [WHtex] = [A];
 	A = [WHpix]; A + [WHtex]; [GBt] = A;
 	C = [GBt]; => SP sx8;
 	[WHpix] = C;
@@ -306,14 +298,14 @@
 	[WHpix] = 63;
 	[WHclamp]+;
     "SP wh keep"
-	C = [WHpix]; C & 255; [SPval] = C;
+	C = [WHpix]; C & 255;
 
 	( the store shape - the whole difference between the two )
-	A = [WHptr]; A + 4; [SPoff] = A; => SP put; [WHn]+;
+	A = nw; A + RADPT; A + [WHptr]; D = A; [D] = C; [WHn]+;
 	A = [WHshape]; ? A = 1 -> SP wh xnext;
-	A = [WHptr]; A + 5; [SPoff] = A; => SP put; [WHn]+;
-	A = [WHptr]; A + 324; [SPoff] = A; => SP put; [WHn]+;
-	A = [WHptr]; A + 325; [SPoff] = A; => SP put; [WHn]+;
+	[D plus 1] = C; [WHn]+;
+	[D plus 320] = C; [WHn]+;
+	[D plus 321] = C; [WHn]+;
 
     "SP wh xnext"
 	[PGFi] = SFXA; => PGF a; [PGFi] = SFV0; => PGF add; [PGFi] = SFXA; => PGF sa;
