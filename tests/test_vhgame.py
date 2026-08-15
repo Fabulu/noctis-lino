@@ -1122,15 +1122,17 @@ def main() -> int:
             "? A = 6 -> VHT premask smooth; ? A = 10 -> VHT premask smooth;",
             "A = [VHTphase]; A % 360; ? A >= 90 -> VHT premask smooth;",
             "[VHFdist0] = [VHTdist0]; [VHFdist1] = [VHTdist1]; => VH space flare;", '"VHT smooth grays"',
-            "[SUsi] = 320; B = 56960;", "B ^ VHT smooth gray pixel;",
+            "[SUsi] = 320;", "B9 80 DE 00 00 31 ED",
+            "C1 ED 02 89 2A", "[SUsi] = 57280;",
             "[FI] = 100; => IntToF;", "[FI] = 8; => IntToF;",
             "[FI] = 1550; => IntToF;", "[FI] = 1600; => IntToF;",
             '"VHT far pixel"', "=> VHT far spread; => VHT far spread; => VHT far spread;",
             '"VHT far spread"', "A = [VHTfarcolour]; A > 4;",
-            '"VHT texture cycle"', "? A < 64800 -> VHT texture cycle texel;",
-            "C = [A]; C & 255; D = C; D & 192; C + 1; C & 63; C | D; [A] = C;",
-            '"VHT mask page"', "C = [A]; C & 63; C + 64; [A] = C;",
-            "? A < 58240 -> VHT mask page pixel;",
+            '"VHT texture cycle"', "B9 20 FD 00 00",
+            "8B 06 25 FF 00 00 00 89 C3 81 E3 C0 00 00 00",
+            "[VHTcyclei] = 64800;",
+            '"VHT mask page"', "B9 80 E3 00 00",
+            "8B 06 83 E0 3F 83 C0 40 89 06", "[VHTmaski] = 58240;",
         ))
         and "A = [MgApreached]; ? A = 0 -> VHT render done;" not in star
         and all(token in game for token in (

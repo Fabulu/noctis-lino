@@ -560,8 +560,10 @@ project at `C:\Programmieren\Linoctissite` for the actual hosted, playable
 Noctis website. The site must consume a pinned LinoJava compiler/runtime build
 rather than hiding game-specific behaviour inside the reusable language
 project. The product goal is a real website version of Noctis with the
-recognisable Lino iGUI, game controls, sound, persistence, resizing, and smooth
-presentation intact.
+actual Lino iGUI rendered by Lino program code, game controls, sound,
+persistence, resizing, and smooth presentation intact. The current HTML and
+CSS chrome is temporary bring-up scaffolding, not an acceptable substitute for
+the game drawing and operating its own authentic interface.
 
 The project name does not dictate a slow source interpreter. Choose the best
 implementation after measuring the language and the current port. The leading
@@ -586,7 +588,9 @@ Cloudflare setup and GitHub automation used by the author's other projects,
 boot the current Noctis program through LinoJava, and demonstrate
 windowed/fullscreen round trips on desktop browsers. Performance work belongs
 in the compiler/runtime, not in reduced game detail or altered 18.206-Hz
-gameplay semantics.
+gameplay semantics. Push source and publish the live Cloudflare site at stable,
+player-visible milestones as the implementation improves, rather than waiting
+for the entire port or deploying every internal edit.
 
 **Completed foundation.** The public
 [`Fabulu/linojava`](https://github.com/Fabulu/linojava) repository now contains
