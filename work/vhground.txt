@@ -6176,24 +6176,27 @@
 	( fx[2]/fz[2] keep x2 + trig*range + wind live until their one
 	  binary32 array store, matching the native expression. )
 	=> VHGND tree sincos;
-	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreeleafx]; => PGF setf32;
-	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add; [PGFi] = FSW0; => PGF sa;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreewindx]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add; => F32Narrow;
-	A = FSINX; A + [VHGNDvi]; [PGFi] = A; => PGF sa; => FStoreF32; [VHGNDtreepx] = [FS0];
-	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreeleafz]; => PGF setf32;
-	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add; [PGFi] = FSW0; => PGF sa;
-	[PGFi] = FSW1; [PGFt] = [VHGNDtreewindz]; => PGF setf32;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add; => F32Narrow;
-	A = FSINZ; A + [VHGNDvi]; [PGFi] = A; => PGF sa; => FStoreF32; [VHGNDtreepz] = [FS0];
-	A = FSINY; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreeleafdrop]; => PGF setf32;
-	[VHGNDvi]+;
+	A = fw; [PJfwbase] = A;
+	{
+	    56 8B B7 <dPJfwbase mtp bytesperunit> 8D 34 B7
+	    D9 87 <dVHVcos mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> D9 87 <dVHGNDtreeleafx mtp bytesperunit>
+	    DC 87 <dFA0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D8 87 <dVHGNDtreewindx mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dVHGNDtreepx mtp bytesperunit>
+	    D9 87 <dVHVsin mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> D9 87 <dVHGNDtreeleafz mtp bytesperunit>
+	    DC 87 <dFA0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
+	    DD 87 <dFA0 mtp bytesperunit> D8 87 <dVHGNDtreewindz mtp bytesperunit>
+	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
+	    D9 9F <dVHGNDtreepz mtp bytesperunit>
+	    8B 87 <dVHGNDvi mtp bytesperunit> C1 E0 03
+	    D9 87 <dVHGNDtreepx mtp bytesperunit> DD 9C 06 E0 07 00 00
+	    D9 87 <dVHGNDtreeleafdrop mtp bytesperunit> DD 9C 06 00 08 00 00
+	    D9 87 <dVHGNDtreepz mtp bytesperunit> DD 9C 06 20 08 00 00
+	    FF 87 <dVHGNDvi mtp bytesperunit> 5E
+	}
 	end;
 
 "VHGND tree wind"
