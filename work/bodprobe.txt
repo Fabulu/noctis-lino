@@ -1,0 +1,73 @@
+
+"libraries"
+
+	brtl;
+	nsrng;
+	nsseed;
+	nstopo;
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+	geoconv;
+	nsident;
+	nslabel;
+	fbmem;
+	emitout;
+
+"directors"
+
+	program name = { bodprobe };
+	unit = 32;
+
+"variables"
+
+	result file name = { bodprobe.out };
+	NRX = 0;
+	NRY = 0;
+	NRZ = 0;
+	BI = 0;
+
+"programme"
+
+	( INIX I engine y = -9508 )
+	A = 1998254512; A +-; [NRX] = A;
+	A = 9508; A +-; [NRY] = A;
+	[NRZ] = 2380852;
+	[BI] = 0;
+
+	=> EMO init;
+	[EMOname] = result file name;
+
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentityD;
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = 12; => NsRandom;
+	[nsclass] = A;
+
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+
+	=> NsStarnop;
+	=> NsResetAll;
+	=> NsPrepare;
+
+	( dump body 0 per-body binary64 pairs as 16 hex digits each )
+	( ray )
+	A = nspray; A + [BI]; A + [BI]; [EMOval] = [A];
+	A = [EMOval]; => EMO hex; A = 32; => EMO ch;
+	( this is the low 32; emit high too via next unit )
+	A = nspray; A + [BI]; A + [BI]; A + 1; [EMOval] = [A];
+	A = [EMOval]; => EMO hex; => EMO crlf;
+
+	=> EMO flush;
+	=> FLeave;
+	end;

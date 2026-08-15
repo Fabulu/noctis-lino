@@ -32,7 +32,7 @@
 
 	( INIX I: -1998254512 9508 2380852 )
 	A = 1998254512; A +-; [NRX] = A;
-	[NRY] = 9508;
+	A = 9508; A +-; [NRY] = A;
 	[NRZ] = 2380852;
 
 	=> EMO init;
@@ -57,6 +57,7 @@
 	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
 	=> NsSeedFromXYZ;
 	[nsseedin] = A;
+	[NRX] = [nsseedfull];	( reuse NRX as the full-seed diagnostic )
 
 	( ---- starnop + reset + prepare ---- )
 	=> NsStarnop;
@@ -66,6 +67,7 @@
 	( emit diagnostics )
 	A = [nsclass]; => EMO num; A = 32; => EMO ch;
 	A = [nsseedin]; => EMO num; A = 32; => EMO ch;
+	A = [NRX]; => EMO num; A = 32; => EMO ch;
 	A = [nsnop]; => EMO num; A = 32; => EMO ch;
 	A = [nsnob]; => EMO num; => EMO crlf;
 
