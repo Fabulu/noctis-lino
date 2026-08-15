@@ -1,5 +1,28 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+## Beta 15
+
+Beta 15 removes another layer of interpreter overhead from the exact landed
+renderer. Mapped triangles now close their duplicate vertex, project fixed
+tree and object points, and compute all nine texture-gradient cross products
+through bounded native kernels. The shared gradient path applies to every
+landable planet class as well as mapped surface objects.
+
+Close trees now prepare foliage points, polar vertices, leaf tips, terminal
+leaf fans, branch angles, and recursive node restores without repeatedly
+crossing the generic scalar-float and RNG helpers. The original unsigned draw
+order, binary64 spill points, binary32 stores, chopped integer boundaries,
+depth-first traversal, polygon order, and texture sampling remain unchanged.
+
+The direct NIV+ tree probe retains its exact 256,000-byte framebuffer hash
+`1D8120F3CF329067AEF24D4C2D5693F5694EE875AEA04759D533369DCA08F7E2`
+and 40-byte exit-state hash
+`FF664C8DE0D8E3B8A1C510E3877F6E27D834F8BBD395451E963AD39F0B41FD34`.
+The release matrix passed 23 unchanged suites, and its one stale structural
+tree assertion passed after being updated to recognize the new native loader.
+A fresh playable close-tree capture rendered in 25.24 ms at 36 FPS; this
+authored scene remains time-varying, so the fixed oracle is the fidelity gate.
+
 ## Beta 14
 
 Beta 14 removes the remaining interpreter-heavy setup stages from the mapped

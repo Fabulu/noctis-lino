@@ -2950,6 +2950,7 @@ def main() -> int:
         ))
         and all(token in tree for token in (
             '"VHGND tree node enter"', '"VHGND tree node branch"',
+            '"VHGND tree node load native"',
             '"VHGND tree terminal"', '"VHGND tree node pop"',
             "[SUfmask] = 511; => VHGND render random; [VHTkind] = C;",
             "A = [VHTkind]; ? A = 333 -> VHGND tree giant;",
@@ -2964,7 +2965,7 @@ def main() -> int:
             "DA 87 <dVHGNDh1 mtp bytesperunit>",
             '"VHGND tree polar vertex"', "A + 72; [VHGNDtreeangle] = A;",
             "A - 36; [VHGNDtreeangle] = A;",
-            "[PGFt] = 40C90FDBh; => PGF ldf32;", '"VHGND tree trig init"',
+            "C7 87 <dPGFt mtp bytesperunit> DB 0F C9 40", '"VHGND tree trig init"',
             '"VHGND tree leaf tip vertex"', '"VHGND tree polar point"',
             '"VHGND tree wind"', "[VHGNDtreewindx] = [FS0];",
             "[VHGNDtreewindz] = [FS0];",
