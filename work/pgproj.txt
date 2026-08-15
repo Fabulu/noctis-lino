@@ -132,9 +132,6 @@
 
 "PJ rotate"
 	[PJvr] = 0;
-	A = [SPmapfast]; ? A = 0 -> PJ rotate selected;
-	A = [PJmode]; ? A != 1 -> PJ rotate selected;
-	A = fw; [PJfwbase] = A; => PJ rotate mapped native; end;
 "PJ rotate selected"
 	[PJdoflag] = 0;
     "PJ rot v"
@@ -207,72 +204,6 @@
 
 	[PJvr]+;
 	A = [PJvr]; ? A '< [PJnrv] -> PJ rot v;
-	end;
-
-"PJ rotate mapped native"
-	( Fixed-slot polymap rotation for source-model mapped objects.  Every x87
-	  arithmetic result still spills to binary64, every original float local
-	  still narrows through FS0, and the wide rzf carrier remains separate for
-	  the near-plane comparison.  Generic poly3d and corpus paths are unchanged. )
-	{
-	    55
-	    8B B7 <dPJfwbase mtp bytesperunit>
-	    8D 34 B7 31 ED
-	    C7 87 <dPJdoflag mtp bytesperunit> 00 00 00 00
-	    89 EB C1 E3 03
-	    DD 84 1E 20 08 00 00 DC A6 10 07 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
-	    DD 97 <dFA0 mtp bytesperunit> DD 9C 1E 80 07 00 00
-	    DD 84 1E E0 07 00 00 DC A6 00 07 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
-	    DD 97 <dFA0 mtp bytesperunit> DD 9C 1E 70 07 00 00
-	    DD 84 1E 00 08 00 00 DC A6 08 07 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
-	    DD 97 <dFA0 mtp bytesperunit> DD 9C 1E 78 07 00 00
-
-	    DD 86 80 07 00 00 DC 8E B8 06 00 00 DD 9E C0 07 00 00
-	    DD 86 70 07 00 00 DC 8E B0 06 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    DC 86 C0 07 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
-	    DD 97 <dFA0 mtp bytesperunit> DD 9C 1E 00 01 00 00
-
-	    DD 86 80 07 00 00 DC 8E B0 06 00 00 DD 9E C0 07 00 00
-	    DD 86 70 07 00 00 DC 8E B8 06 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    DC AE C0 07 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
-	    DD 97 <dFA0 mtp bytesperunit> DD 9C 1E 88 07 00 00
-
-	    DD 86 88 07 00 00 DC 8E D0 06 00 00 DD 9E C0 07 00 00
-	    DD 86 78 07 00 00 DC 8E D8 06 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    DC 86 C0 07 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    DD 96 C8 07 00 00 D9 9F <dFS0 mtp bytesperunit>
-	    D9 87 <dFS0 mtp bytesperunit> DD 97 <dFA0 mtp bytesperunit>
-	    DD 9C 1E 40 01 00 00
-
-	    31 C9 DD 86 C8 07 00 00 DC 9E D8 00 00 00 DF E0 9E 72 07
-	    41 FF 87 <dPJdoflag mtp bytesperunit>
-	    8D 04 AD 00 00 00 00
-	    89 8C 07 <drwf mtp bytesperunit>
-
-	    DD 86 78 07 00 00 DC 8E D0 06 00 00 DD 9E C0 07 00 00
-	    DD 86 88 07 00 00 DC 8E D8 06 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    DC AE C0 07 00 00
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
-	    DD 97 <dFA0 mtp bytesperunit> DD 9C 1E 20 01 00 00
-	    45 3B AF <dPJnrv mtp bytesperunit> 0F 82 D6 FD FF FF
-	    89 E8 89 87 <dPJvr mtp bytesperunit> 5D
-	}
 	end;
 
 ( ==================================================================== )
