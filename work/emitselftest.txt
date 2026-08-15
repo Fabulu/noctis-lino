@@ -1,0 +1,67 @@
+      ( *** emitselftest - hash-library self-test for the emit harness.
+
+	Links work/emit.txt and verifies FNV-1a + CRC-32 against the
+	reference vectors from Noctis-IV-Plus tests/nivgen/src/hash.rs:
+
+	    ""      fnv=811C9DC5 crc=00000000
+	    "a"     fnv=E40C292C crc=E8B7BE43
+	    "abc"   fnv=1A47E90B crc=352441C2
+
+	Writes work\emitself.out: 3 records x 2 units = 6 units, each
+	record being [fnv, crc] little-endian.
+
+	Build:   powershell -File lino_build.ps1 -Src work\emitselftest.txt
+	Check:   python noctis-harness/niv_check.py selftest work\emitself.out
+        )
+
+"libraries"
+
+	fbmem;
+	emit;
+
+"directors"
+
+	program name = { emitselftest };
+	unit = 32;
+
+"variables"
+
+	result file name = { emitself.out };
+
+"workspace"
+
+	strbuf = 4;	( contiguous byte buffer for the hash input )
+	recs = 6;	( 3 records x 2 units )
+
+"programme"
+
+	( vector 0: empty (count 0) )
+	[EMHbase] = strbuf; [EMHcount] = 0; => EMH hsh;
+	A = recs; [A] = [EMHfnv]; A + 1; [A] = [EMHcrc];
+
+	( vector 1: "a" )
+	A = strbuf; [A] = 97;
+	[EMHbase] = strbuf; [EMHcount] = 1; => EMH hsh;
+	A = recs; A + 2; [A] = [EMHfnv]; A + 1; [A] = [EMHcrc];
+
+	( vector 2: "abc" )
+	A = strbuf; [A] = 97; A + 1; [A] = 98; A + 1; [A] = 99;
+	[EMHbase] = strbuf; [EMHcount] = 3; => EMH hsh;
+	A = recs; A + 4; [A] = [EMHfnv]; A + 1; [A] = [EMHcrc];
+
+	( write 6 units from recs )
+	[File Name]	= result file name;
+	[File Position]	= 0;
+	[File Command]	= WRITE;
+	[Block Pointer]	= recs;
+	[Block Size]	= 6;
+	[Block Size]	* BYTESPERUNIT;
+	isocall;
+
+	[File Name]	= result file name;
+	[File Command]	= SET SIZE;
+	[File Size]	= 6;
+	[File Size]	* BYTESPERUNIT;
+	isocall;
+
+	end;

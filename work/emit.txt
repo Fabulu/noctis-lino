@@ -1,0 +1,210 @@
+      ( *** emit - headless Noctis-IV-Plus engine-output emitter, hashing
+        primitives first.
+
+        This library is the hash core for the emit harness: FNV-1a and
+        CRC-32 over arbitrary byte buffers in the shared workspace, in the
+        exact reference form used by Noctis-IV-Plus' two reference engines
+        (tests/harness/NIVHASH.C and tests/nivgen/src/hash.rs).
+
+        It is a LIBRARY, not a program: it declares no "directors" period,
+        so the including program keeps its own program name and unit size.
+
+        -----------------------------------------------------------------
+        FNV-1a  (reference: NIVHASH.C / nivgen hash.rs fnv1a)
+        -----------------------------------------------------------------
+            hash = 0x811C9DC5
+            for each byte b:  hash ^= b;  hash *= 0x01000193
+
+        The port's surface() library already computes FNV-1a inline ("SU
+        map hash" in sucase.txt) and is verified against the reference at
+        10686/10686 bodies.  This entry generalises it to any (base,count)
+        so the emit harness can hash the exact byte ranges the reference
+        engines name.
+
+        -----------------------------------------------------------------
+        CRC-32  (reference: NIVHASH.C / nivgen hash.rs crc32)
+        -----------------------------------------------------------------
+        Standard IEEE 802.3 CRC-32: poly 0x04C11DB7, reflected input and
+        output, init 0xFFFFFFFF, final XOR 0xFFFFFFFF (== zlib.crc32).
+        Implemented MSB-first with explicit per-byte bit reflection,
+        matching the reference exactly.
+
+        L.in.oleum has no rotate and no 32-bit << with carry, so the CRC
+        is written as a bit-serial accumulator:
+
+            crc ^= reflect8(byte) << 24
+            for _ in 0..8:
+                if crc & 0x80000000: crc = (crc << 1) ^ 0x04C11DB7
+                else:                crc = crc << 1
+            final: crc = reflect32(crc) ^ 0xFFFFFFFF
+
+        reflect8/reflect32 are looped bit moves (shift + select), matching
+        the reference's own `reflect` helper bit-for-bit.
+
+        -----------------------------------------------------------------
+        API
+        -----------------------------------------------------------------
+            EMH fnv1a   in A = base address (workspace offset)
+                        in B = byte count
+                    out [EMHfnv]  FNV-1a
+                    destroys A B C D E
+
+            EMH crc32   in A = base address (workspace offset)
+                        in B = byte count
+                    out [EMHcrc]  CRC-32
+                    destroys A B C D E
+
+            EMH hsh     in [EMHbase] = base address, [EMHcount] = byte count
+                    out [EMHfnv] and [EMHcrc]
+                    destroys A B C D E
+
+            EMH rbit    in [EMHv], [EMHbits] -> out D = low bits reversed
+                    destroys B C E; A survives
+
+            EMH hex8    in [EMHv] -> out [EMHhex0..7] ASCII, MSB first
+                    destroys A B D
+
+        Reference vectors (tests/nivgen/src/hash.rs):
+            fnv1a("")  = 0x811C9DC5   crc32("")  = 0x00000000
+            fnv1a("a") = 0xE40C292C   crc32("a") = 0xE8B7BE43
+            fnv1a("abc")=0x1A47E90B   crc32("abc")=0x352441C2
+        )
+
+"constants"
+
+	EMHFNVOFFSET	= 2166136261;	( 0x811C9DC5 )
+	EMHFNVPRIME	= 16777619;	( 0x01000193 )
+	EMHCRCPOLY	= 04C11DB7h;	( 0x04C11DB7 )
+	EMHCRCINIT	= 0FFFFFFFFh;	( init and final XOR )
+
+"variables"
+
+	EMHfnv	= 0;
+	EMHcrc	= 0;
+	EMHbase	= 0;
+	EMHcount = 0;
+	EMHv	= 0;
+	EMHix	= 0;
+	EMHr	= 0;
+	EMHbits	= 0;
+	EMHcrcv	= 0;
+	EMHhex0 = 0; EMHhex1 = 0; EMHhex2 = 0; EMHhex3 = 0;
+	EMHhex4 = 0; EMHhex5 = 0; EMHhex6 = 0; EMHhex7 = 0;
+
+"programme"
+
+( ==================================================================== )
+( EMH fnv1a - FNV-1a over a byte range.  Result in EMHfnv.  )
+
+"EMH fnv1a"
+	( in A = base address, B = byte count ; out [EMHfnv] )
+	D = EMHFNVOFFSET;
+    "EMH fnv1a loop"
+	? B = 0 -> EMH fnv1a done;
+	C = [A]; C & 0FFh;
+	D # C;
+	D '* EMHFNVPRIME;
+	A+;
+	B ^ EMH fnv1a loop;
+    "EMH fnv1a done"
+	[EMHfnv] = D;
+	end;
+
+( ==================================================================== )
+( EMH rbit - reverse the low `bits` bits of [EMHv] into D.  Destroys     )
+( B, C and E; the caller's A survives, so a byte pointer in A is safe.  )
+
+"EMH rbit"
+	D = 0; B = [EMHbits];
+	C = [EMHv];		( C = our shift register )
+    "EMH rbit loop"
+	? B = 0 -> EMH rbit done;
+	E = C; E & 1; ? E = 0 -> EMH rbit zero;
+	D < 1; D | 1; -> EMH rbit next;
+    "EMH rbit zero"
+	D < 1;
+    "EMH rbit next"
+	C > 1;
+	B ^ EMH rbit loop;
+    "EMH rbit done"
+	end;
+
+( ==================================================================== )
+( EMH crc32 - CRC-32 over a byte range.  Result in EMHcrc.  )
+( in A = base address, B = byte count )
+
+"EMH crc32"
+	[EMHcrcv] = EMHCRCINIT;
+	[EMHcount] = B;		( save byte count; rbit will clobber B )
+    "EMH crc32 outer"
+	? [EMHcount] = 0 -> EMH crc32 final;
+	C = [A]; C & 0FFh;
+	( reflect the byte -> D, then E = that value shifted to bit 24 )
+	[EMHv] = C; [EMHbits] = 8; => EMH rbit;
+	E = D;
+	[EMHix] = 0;
+    "EMH crc32 shift24"
+	? [EMHix] >= 24 -> EMH crc32 xored;
+	E < 1; [EMHix] + 1; -> EMH crc32 shift24;
+    "EMH crc32 xored"
+	( D = crc ^ E ; crc kept in [EMHcrcv] across rbit )
+	D = [EMHcrcv]; D # E;
+	( eight bit-serial steps )
+	[EMHix] = 0;
+    "EMH crc32 bit"
+	? [EMHix] >= 8 -> EMH crc32 bytedone;
+	C = D; C & 080000000h; ? C = 0 -> EMH crc32 noxor;
+	D < 1; D # EMHCRCPOLY; -> EMH crc32 bitnext;
+    "EMH crc32 noxor"
+	D < 1;
+    "EMH crc32 bitnext"
+	[EMHix] + 1; -> EMH crc32 bit;
+    "EMH crc32 bytedone"
+	[EMHcrcv] = D;
+	A+;
+	B = [EMHcount]; B - 1; [EMHcount] = B;
+	-> EMH crc32 outer;
+    "EMH crc32 final"
+	D = [EMHcrcv]; [EMHv] = D; [EMHbits] = 32; => EMH rbit;
+	D # EMHCRCINIT;
+	[EMHcrc] = D;
+	end;
+
+( ==================================================================== )
+( EMH hsh - both hashes over the same range.                           )
+
+"EMH hsh"
+	( in [EMHbase] = base address, [EMHcount] = byte count )
+	A = [EMHbase]; B = [EMHcount]; => EMH fnv1a;
+	A = [EMHbase]; B = [EMHcount]; => EMH crc32;
+	end;
+
+( ==================================================================== )
+( EMH hex8 - render EMHv as eight ASCII hex digits MSB first, into      )
+( EMHhex0..EMHhex7.                                                      )
+
+"EMH hex8"
+	[EMHix] = 28;
+    "EMH hex8 digit"
+	A = [EMHv]; A > [EMHix]; A & 15;
+	? A '< 10 -> EMH hex8 letter;
+	A + 48; -> EMH hex8 store;
+    "EMH hex8 letter"
+	A + 55;
+    "EMH hex8 store"
+	[EMHr] = A;
+	A = [EMHix];
+	? A = 28 -> EMH hex8 s0; ? A = 24 -> EMH hex8 s1; ? A = 20 -> EMH hex8 s2;
+	? A = 16 -> EMH hex8 s3; ? A = 12 -> EMH hex8 s4; ? A = 8 -> EMH hex8 s5;
+	? A = 4 -> EMH hex8 s6; -> EMH hex8 s7;
+    "EMH hex8 s0" [EMHhex0] = [EMHr]; -> EMH hex8 next;
+    "EMH hex8 s1" [EMHhex1] = [EMHr]; -> EMH hex8 next;
+    "EMH hex8 s2" [EMHhex2] = [EMHr]; -> EMH hex8 next;
+    "EMH hex8 s3" [EMHhex3] = [EMHr]; -> EMH hex8 next;
+    "EMH hex8 s4" [EMHhex4] = [EMHr]; -> EMH hex8 next;
+    "EMH hex8 s5" [EMHhex5] = [EMHr]; -> EMH hex8 next;
+    "EMH hex8 s6" [EMHhex6] = [EMHr]; -> EMH hex8 next;
+    "EMH hex8 s7" [EMHhex7] = [EMHr];
+    "EMH hex8 next"
+	[EMHix] - 4; ? [EMHix] >= 0 -> EMH hex8 digit;
+	end;
