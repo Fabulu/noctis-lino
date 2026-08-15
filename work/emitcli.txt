@@ -1,0 +1,281 @@
+      ( *** emitcli - command-line parser for the emit harness.
+
+	Reads the process command line (RTM's dmsParameters, stored by
+	btrsstring at pUIWorkspace[mm_ProcessCommandLine]) and tokenises it
+	so the harness can reproduce the Noctis-IV-Plus CLI (shared by both
+	reference engines, tests/harness/NIVTEST.CPP and tests/nivgen/main.rs).
+
+	    selftest
+	    system  -x X -y Y -z Z
+	    scan    -x X -y Y -z Z
+	    planet  -x X -y Y -z Z -p INDEX
+	    planet-all -x X -y Y -z Z
+	    sector  -x X -y Y -z Z -p INDEX -lon L -lat B [-sc TYPE]
+	    surftex -x X -y Y -z Z -p INDEX -lon L -lat B [-sc TYPE]
+	    (all)    -o FILE   append text output to FILE
+	    (C)      -dump DIR binary dumps ; (Rust) NIVDUMP env
+
+	WPL has no argv; the runtime joins argv[1..] with spaces into one
+	string at [Command Line].  The parser walks that string, splits on
+	whitespace, stores the tokens in the workspace buffer `emclargs`,
+	then fills the option values.
+
+	It is a LIBRARY, not a program: it declares no "directors" period.
+
+	-----------------------------------------------------------------
+	API
+	-----------------------------------------------------------------
+	    EMCL run    reads [Command Line], fills the fields below.
+	                destroys A B C D E
+
+	    [EMCLcmd]   command word as a unit string (or 0 if empty)
+	    [EMCLx] [EMCLy] [EMCLz]   Parsis coords (signed int, default 0)
+	    [EMCLp]     body index (default 0)
+	    [EMCLlon] [EMCLlat]  landing longitude/latitude (default 0/60)
+	    [EMCLsc]    scenario type override (default -1 = none)
+	    [EMCLsecs]  global time counter (default 0)
+	    [EMCLargc]  number of tokens
+	    emclargs    workspace buffer: EMCLargc unit-strings of
+	                EMCLARGLEN units each (index via EMCL argbase)
+	    [EMCLdump]  nonzero if -dump present
+	    [EMCLout]   nonzero if -o present
+
+	Helpers (destroy A B C D E unless noted):
+	    EMCL getch      [EMCLpos] -> [EMCLch]; 0 at end
+	    EMCL argbase    [EMCLix] -> [EMCLt] = slot address
+	    EMCL stris      in A = string addr; compares to [EMCLt];
+	                    out A = 1 equal / 0 not
+	    EMCL toint      parse the decimal unit string at [EMCLt]; out A
+	)
+
+"constants"
+
+	EMCLMAXARGS	= 16;
+	EMCLARGLEN	= 24;	( units per argument string )
+
+"variables"
+
+	EMCLcmd	= 0;
+	EMCLx	= 0;
+	EMCLy	= 0;
+	EMCLz	= 0;
+	EMCLp	= 0;
+	EMCLlon	= 0;
+	EMCLlat	= 0;
+	EMCLsc	= 0;
+	EMCLsecs	= 0;
+	EMCLargc	= 0;
+	EMCLix	= 0;
+	EMCLpos	= 0;
+	EMCLch	= 0;
+	EMCLt	= 0;
+	EMCLn	= 0;
+	EMCLdump	= 0;
+	EMCLout	= 0;
+	EMCLFLAGX	= { -x };
+	EMCLFLAGY	= { -y };
+	EMCLFLAGZ	= { -z };
+	EMCLFLAGP	= { -p };
+	EMCLFLAGLON	= { -lon };
+	EMCLFLAGLAT	= { -lat };
+	EMCLFLAGSC	= { -sc };
+	EMCLFLAGSECS	= { -secs };
+	EMCLFLAGO	= { -o };
+	EMCLFLAGDUMP	= { -dump };
+
+"workspace"
+
+	emclargs = EMCLMAXARGS multiplied EMCLARGLEN;
+
+"programme"
+
+( ==================================================================== )
+( EMCL getch - [EMCLch] = byte at [Command Line] + [EMCLpos].           )
+
+"EMCL getch"
+	A = Command Line; A + [EMCLpos]; [EMCLch] = [A];
+	end;
+
+( ==================================================================== )
+( EMCL skipws - advance [EMCLpos] past spaces.                          )
+
+"EMCL skipws"
+    "EMCL skipws loop"
+	=> EMCL getch;
+	A = [EMCLch]; ? A = 0 -> EMCL skipws done;
+	A = [EMCLch]; ? A != 32 -> EMCL skipws done;
+	[EMCLpos] + 1; -> EMCL skipws loop;
+    "EMCL skipws done"
+	end;
+
+( ==================================================================== )
+( EMCL readtok - copy the next token into arg slot [EMCLargc],          )
+( null-terminated.  [EMCLch] = 0 if no token.                           )
+
+"EMCL readtok"
+	=> EMCL skipws;
+	A = [EMCLch]; ? A = 0 -> EMCL readtok done;
+	( slot base = emclargs + argc*EMCLARGLEN )
+	A = emclargs; [EMCLt] = A;
+	A = [EMCLargc]; A '* EMCLARGLEN; A + [EMCLt]; [EMCLt] = A;
+	[EMCLix] = 0;
+    "EMCL readtok ch"
+	=> EMCL getch;
+	A = [EMCLch]; ? A = 0 -> EMCL readtok end;
+	A = [EMCLch]; ? A = 32 -> EMCL readtok end;
+	B = [EMCLt]; B + [EMCLix]; [B] = [EMCLch];
+	[EMCLix] + 1;
+	[EMCLpos] + 1;
+	-> EMCL readtok ch;
+    "EMCL readtok end"
+	B = [EMCLt]; B + [EMCLix]; [B] = 0;
+	A = [EMCLargc]; A + 1; [EMCLargc] = A;
+    "EMCL readtok done"
+	end;
+
+( ==================================================================== )
+( EMCL argbase - [EMCLt] = address of arg slot [EMCLix].                )
+
+"EMCL argbase"
+	A = emclargs; A + [EMCLix]; A '* 0;
+	A = emclargs; [EMCLt] = A;
+	A = [EMCLix]; A '* EMCLARGLEN; A + [EMCLt]; [EMCLt] = A;
+	end;
+
+( ==================================================================== )
+( EMCL stris - compare the unit string at A (a flag) with the arg at    )
+( [EMCLt].  Out A = 1 if equal, 0 if not.  Compares to the flag's       )
+( null; the arg must also be exhausted.                                 )
+
+"EMCL stris"
+	[EMCLn] = 0;
+    "EMCL stris ch"
+	B = [EMCLt]; B + [EMCLn]; B = [B];
+	C = [A]; ? C = 0 -> EMCL stris aend;
+	? B != C -> EMCL stris no;
+	[EMCLn] + 1;
+	A+;
+	-> EMCL stris ch;
+    "EMCL stris aend"
+	B = [EMCLt]; B + [EMCLn]; B = [B];
+	? B != 0 -> EMCL stris no;
+	A = 1; -> EMCL stris out;
+    "EMCL stris no"
+	A = 0;
+    "EMCL stris out"
+	end;
+
+( ==================================================================== )
+( EMCL toint - parse the signed decimal unit string at [EMCLt]; out A.  )
+
+"EMCL toint"
+	C = 0;			( running value )
+	[EMCLn] = 0;		( digit index )
+	[EMCLpos] = 0;		( sign: 0 none, 1 negative )
+	B = [EMCLt]; B = [B];	( first char )
+	? B != 45 -> EMCL toint digits;
+	[EMCLpos] = 1;
+	[EMCLn] = 1;
+    "EMCL toint digits"
+	( EMCLpos = char index )
+    "EMCL toint ch"
+	B = [EMCLt]; B + [EMCLpos]; B = [B];
+	? B = 0 -> EMCL toint done;
+	B - 48;
+	? B '< 0 -> EMCL toint done;
+	? B >= 10 -> EMCL toint done;
+	C '* 10; C + B;
+	[EMCLpos] + 1;
+	-> EMCL toint ch;
+    "EMCL toint done"
+	A = C;
+	? [EMCLn] = 0 -> EMCL toint out;
+	A +-;
+    "EMCL toint out"
+	end;
+
+( ==================================================================== )
+( EMCL cmdis - compare the command word (arg slot 0) with the unit      )
+( string at A.  Out A = 1 if equal, 0 if not.                           )
+
+"EMCL cmdis"
+	( compare slot 0 with the string at A ; use EMCLt+EMCLpos as scratch )
+	[EMCLix] = 0;
+	[EMCLpos] = A;		( keep flag address in EMCLpos )
+	=> EMCL argbase;	( EMCLt = slot 0 )
+	A = [EMCLpos];
+	=> EMCL stris;		( uses EMCLn as counter, not EMCLpos )
+	end;
+
+( ==================================================================== )
+( EMCL run - tokenise the command line and fill the option fields.      )
+
+"EMCL run"
+	[EMCLcmd] = 0; [EMCLx] = 0; [EMCLy] = 0; [EMCLz] = 0;
+	[EMCLp] = 0; [EMCLlon] = 0; [EMCLlat] = 60;
+	A = 1; A +-; [EMCLsc] = A;	( -1 : no scenario override )
+	[EMCLsecs] = 0; [EMCLargc] = 0; [EMCLpos] = 0;
+	[EMCLdump] = 0; [EMCLout] = 0;
+
+	( tokenise everything )
+    "EMCL run tok"
+	=> EMCL readtok;
+	A = [EMCLch]; ? A = 0 -> EMCL run toksdone;
+	? [EMCLargc] >= EMCLMAXARGS -> EMCL run toksdone;
+	-> EMCL run tok;
+    "EMCL run toksdone"
+	A = [EMCLargc]; ? A = 0 -> EMCL run done;
+
+	( command = arg 0 ; copy first unit to EMCLcmd )
+	[EMCLix] = 0; => EMCL argbase;
+	A = [EMCLt]; [EMCLcmd] = [A];
+
+	( walk args 1.. )
+	[EMCLix] = 1;
+    "EMCL run arg"
+	A = [EMCLix]; ? A >= [EMCLargc] -> EMCL run done;
+	=> EMCL argbase;
+	( save slot base in EMCLt, compare each flag )
+	[EMCLt] + 0;
+	A = EMCLFLAGX;   => EMCL stris; ? A = 1 -> EMCL run x;
+	A = EMCLFLAGY;   => EMCL stris; ? A = 1 -> EMCL run y;
+	A = EMCLFLAGZ;   => EMCL stris; ? A = 1 -> EMCL run z;
+	A = EMCLFLAGP;   => EMCL stris; ? A = 1 -> EMCL run p;
+	A = EMCLFLAGLON; => EMCL stris; ? A = 1 -> EMCL run lon;
+	A = EMCLFLAGLAT; => EMCL stris; ? A = 1 -> EMCL run lat;
+	A = EMCLFLAGSC;  => EMCL stris; ? A = 1 -> EMCL run sc;
+	A = EMCLFLAGSECS;=> EMCL stris; ? A = 1 -> EMCL run secs;
+	A = EMCLFLAGO;   => EMCL stris; ? A = 1 -> EMCL run o;
+	A = EMCLFLAGDUMP;=> EMCL stris; ? A = 1 -> EMCL run dump;
+	[EMCLix] + 1; -> EMCL run arg;
+
+    "EMCL run x"
+	[EMCLix] + 1; => EMCL argbase; => EMCL toint; [EMCLx] = A;
+	[EMCLix] + 1; -> EMCL run arg;
+    "EMCL run y"
+	[EMCLix] + 1; => EMCL argbase; => EMCL toint; [EMCLy] = A;
+	[EMCLix] + 1; -> EMCL run arg;
+    "EMCL run z"
+	[EMCLix] + 1; => EMCL argbase; => EMCL toint; [EMCLz] = A;
+	[EMCLix] + 1; -> EMCL run arg;
+    "EMCL run p"
+	[EMCLix] + 1; => EMCL argbase; => EMCL toint; [EMCLp] = A;
+	[EMCLix] + 1; -> EMCL run arg;
+    "EMCL run lon"
+	[EMCLix] + 1; => EMCL argbase; => EMCL toint; [EMCLlon] = A;
+	[EMCLix] + 1; -> EMCL run arg;
+    "EMCL run lat"
+	[EMCLix] + 1; => EMCL argbase; => EMCL toint; [EMCLlat] = A;
+	[EMCLix] + 1; -> EMCL run arg;
+    "EMCL run sc"
+	[EMCLix] + 1; => EMCL argbase; => EMCL toint; [EMCLsc] = A;
+	[EMCLix] + 1; -> EMCL run arg;
+    "EMCL run secs"
+	[EMCLix] + 1; => EMCL argbase; => EMCL toint; [EMCLsecs] = A;
+	[EMCLix] + 1; -> EMCL run arg;
+    "EMCL run o"
+	[EMCLout] = 1; [EMCLix] + 2; -> EMCL run arg;
+    "EMCL run dump"
+	[EMCLdump] = 1; [EMCLix] + 2; -> EMCL run arg;
+    "EMCL run done"
+	end;
