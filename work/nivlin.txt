@@ -1,0 +1,961 @@
+
+"libraries"
+
+	fbmem;
+	brtl;
+	emit;
+	emitcli;
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+
+	mul64frag;
+
+	suseed;
+	surng;
+	subuf;
+	susm;
+	supaint;
+	supal;
+	sucase;
+
+	nsrng;
+	nsseed;
+	nstopo;
+	geoconv;
+	nsident;
+	nslabel;
+
+	emitout;
+	emitfp;
+
+"directors"
+
+	program name = { nivlin };
+	unit = 32;
+
+"constants"
+
+
+"variables"
+
+	result file name = { nivlin.out };
+
+	( command words )
+	CMDSELF		= { selftest };
+	CMDSYSTEM	= { system };
+	CMDSCAN		= { scan };
+	CMDPLANET	= { planet };
+	CMDALL		= { planet-all };
+	CMDSECTOR	= { sector };
+	CMDSURFTEX	= { surftex };
+
+	( class tables, indexed by class - order is load-bearing )
+	NVrayvar	= 2000;
+	no label	= 10000;
+	no label	= 200;
+	no label	= 15000;
+	no label	= 5000;
+	no label	= 1000;
+	no label	= 3000;
+	no label	= 500;
+	no label	= 5000;
+	no label	= 10000;
+	no label	= 1000;
+	no label	= 10;
+
+	NVray		= 5000;
+	no label	= 15000;
+	no label	= 300;
+	no label	= 20000;
+	no label	= 15000;
+	no label	= 1000;
+	no label	= 3000;
+	no label	= 2000;
+	no label	= 4000;
+	no label	= 1500;
+	no label	= 30000;
+	no label	= 250;
+
+	NVrgb		= 63;
+	no label	= 58;
+	no label	= 40;
+	no label	= 30;
+	no label	= 50;
+	no label	= 63;
+	no label	= 63;
+	no label	= 63;
+	no label	= 63;
+	no label	= 63;
+	no label	= 30;
+	no label	= 20;
+	no label	= 63;
+	no label	= 55;
+	no label	= 32;
+	no label	= 32;
+	no label	= 16;
+	no label	= 10;
+	no label	= 32;
+	no label	= 28;
+	no label	= 24;
+	no label	= 10;
+	no label	= 20;
+	no label	= 63;
+	no label	= 63;
+	no label	= 32;
+	no label	= 16;
+	no label	= 48;
+	no label	= 32;
+	no label	= 63;
+	no label	= 40;
+	no label	= 10;
+	no label	= 10;
+	no label	= 0;
+	no label	= 63;
+	no label	= 63;
+
+	( selftest vectors )
+	V0 = { };
+	V1 = { a };
+	V2 = { abc };
+
+	( coords )
+	NRX = 0;
+	NRY = 0;
+	NRZ = 0;
+
+	( selftest state )
+	EHrand = 0;
+	EHix = 0;
+
+	( shared generation state )
+	NVv = 0;		( ray variance draw )
+	NVtyp = 0;		( current body type )
+	NVsfn = 0; NVscrc = 0;	( surface_map hash )
+	NVafn = 0; NVacrc = 0;	( atmo_overlay hash )
+	NVpfn = 0; NVpcrc = 0;	( palette64 hash )
+	NVr = 0; NVg = 0; NVb = 0;	( star rgb )
+	NVspin = 0;		( star spin )
+	PAi = 0;		( planet-all loop index )
+	SCfnv = 0;
+	SCix = 0;
+	SCtmp = 0;
+	SCbody = 0;
+
+"workspace"
+
+	VFSBUF = 64;
+	systws = 30000;
+	scbuf = 40;
+
+"programme"
+
+	=> EMO init;
+	[EMOname] = result file name;
+	[FCW] = FCWEXT;
+	=> FEnter;
+	=> EMF init;
+
+	=> EMCL run;
+
+	( dispatch on the command word )
+	A = CMDSELF;	=> EMCL cmdis; ? A = 1 -> NV selftest;
+	A = CMDSYSTEM;	=> EMCL cmdis; ? A = 1 -> NV system;
+	A = CMDSCAN;	=> EMCL cmdis; ? A = 1 -> NV scan;
+	A = CMDPLANET;	=> EMCL cmdis; ? A = 1 -> NV planet;
+	A = CMDALL;	=> EMCL cmdis; ? A = 1 -> NV planet all;
+	A = CMDSECTOR;	=> EMCL cmdis; ? A = 1 -> NV sector;
+	A = CMDSURFTEX;	=> EMCL cmdis; ? A = 1 -> NV surftex;
+	-> NV done;
+
+    "NV selftest"
+	=> NV selftest hash;
+	=> NV selftest rand;
+	-> NV done;
+
+    "NV system"
+	=> NV coords;
+	=> NV nearstar;
+	=> NV emit system;
+	-> NV done;
+
+    "NV scan"
+	=> NV coords;
+	=> NV nearstar;
+	=> NV emit scan;
+	-> NV done;
+
+    "NV planet"
+	=> NV coords;
+	=> NV nearstar;
+	[PAi] = [EMCLp];
+	=> NV surface body;
+	=> NV emit planet;
+	-> NV done;
+
+    "NV planet all"
+	=> NV coords;
+	=> NV nearstar;
+	( header )
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 32; => EMO put;
+	A = 80; => EMO put; A = 76; => EMO put; A = 65; => EMO put; A = 78; => EMO put;
+	A = 69; => EMO put; A = 84; => EMO put; A = 32; => EMO put;
+	A = 84; => EMO put; A = 69; => EMO put; A = 88; => EMO put; A = 84; => EMO put;
+	A = 85; => EMO put; A = 82; => EMO put; A = 69; => EMO put; A = 83; => EMO put;
+	A = 32; => EMO put; A = 40; => EMO put; A = 97; => EMO put; A = 108; => EMO put;
+	A = 108; => EMO put; A = 32; => EMO put;
+	A = [nsnob]; => EMO num; A = 32; => EMO put;
+	A = 98; => EMO put; A = 111; => EMO put; A = 100; => EMO put; A = 105; => EMO put;
+	A = 101; => EMO put; A = 115; => EMO put; A = 41; => EMO put; A = 32; => EMO put;
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put;
+	=> EMO crlf;
+	[PAi] = 0;
+    "NV all loop"
+	A = [PAi]; ? A >= [nsnob] -> NV all done;
+	=> NV surface body;
+	=> NV emit planet all line;
+	=> EMO flush;
+	A = [PAi]; A + 1; [PAi] = A;
+	-> NV all loop;
+    "NV all done"
+	-> NV done;
+
+    "NV sector"
+	=> NV coords;
+	=> NV nearstar;
+	=> NV emit sector;
+	-> NV done;
+
+    "NV surftex"
+	=> NV coords;
+	=> NV nearstar;
+	[PAi] = [EMCLp];
+	=> NV surface body;
+	=> NV emit surftex;
+	-> NV done;
+
+    "NV done"
+	=> EMO flush;
+	end;
+
+( ==================================================================== )
+( NV coords - load NRX/NRY/NRZ from the CLI (y negated to engine).       )
+
+"NV coords"
+	A = [EMCLx]; [NRX] = A;
+	A = [EMCLy]; A +-; [NRY] = A;
+	A = [EMCLz]; [NRZ] = A;
+	end;
+
+( ==================================================================== )
+( NV nearstar - the full nearstar driver for the CLI coords.            )
+( Sets nsclass, nsseedin, nsstarray, rgb/spin, then NsPrepare.          )
+
+"NV nearstar"
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentityD;
+	[nsid0] = [FA0]; [nsid1] = [FA1];
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = 12; => NsRandom;
+	[nsclass] = A;
+
+	( ray variance draw on the same stream )
+	E = NVrayvar; E + [nsclass]; A = [E]; => NsRandom;
+	[NVv] = A;
+
+	( star rgb from CLASS_RGB[class*3..] )
+	E = NVrgb; E + [nsclass]; E + [nsclass]; E + [nsclass];
+	A = [E]; [NVr] = A;
+	E + 1; A = [E]; [NVg] = A;
+	E + 1; A = [E]; [NVb] = A;
+
+	( spin: class 11 -> random(30)+1 ; 7 -> random(12)+1 ; 2 -> random(4)+1 )
+	[NVspin] = 0;
+	A = [nsclass]; ? A = 11 -> NV spin30;
+	? A = 7 -> NV spin12;
+	? A = 2 -> NV spin4;
+	-> NV spin done;
+    "NV spin30"
+	A = 30; => NsRandom; A + 1; [NVspin] = A; -> NV spin done;
+    "NV spin12"
+	A = 12; => NsRandom; A + 1; [NVspin] = A; -> NV spin done;
+    "NV spin4"
+	A = 4; => NsRandom; A + 1; [NVspin] = A;
+    "NV spin done"
+
+	( the seed.  srand((x%10000*y)%10000*z%10000), engine y )
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+
+	( star ray = (variance + CLASS_RAY[class]) / 1000, stored as f32 )
+	A = [NVv]; E = NVray; E + [nsclass]; B = [E]; A + B;
+	[FI] = A; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000; => IntToF;
+	[FC0] = [FB0]; [FC1] = [FB1];
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FC0]; [FA1] = [FC1];
+	=> FQuo;
+	=> FStoreF32; [nsstarray] = [FS0];
+
+	=> NsStarnop;
+	=> NsResetAll;
+	=> NsPrepare;
+	end;
+
+( ==================================================================== )
+( NV surface body - run SU surface for body [PAi], store the hashes.    )
+
+"NV surface body"
+	( body type )
+	E = nsptype; E + [PAi]; A = [E]; A & 0FFh; [NVtyp] = A;
+
+	( seedval = 1e6 * type * orb_seed * orb_tilt * ecc * orient )
+	[FI] = 1000000; => IntToF;
+	A = [NVtyp]; [FI] = A; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000000; => IntToF;
+	=> FMul;
+	A = [PAi]; A < 1; E = nsporbseed; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	=> FMul;
+	A = [PAi]; A < 1; E = nsporbtlt; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	=> FMul;
+	A = [PAi]; A < 1; E = nsporbecc; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	=> FMul;
+	A = [PAi]; A < 1; E = nspororient; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	=> FMul;
+	[SUsv0] = [FA0]; [SUsv1] = [FA1];
+
+	( SU surface inputs )
+	[SUtype] = [NVtyp];
+	[SUcbase] = 192;
+	[SUplwp] = 269;
+	[SUowner] = 0;
+	[SUnsr] = [NVr]; [SUnsg] = [NVg]; [SUnsb] = [NVb];
+	[SUsec0] = 0; [SUsec1] = 0;
+
+	( run surface )
+	=> SU fp init;
+	=> SU pal init;
+	=> SU select ovl;
+	=> SUDM reset;
+	=> SU select planet;
+	=> SU wipe;
+	=> SU wipe ovl;
+	=> SU wipe pal;
+	=> SU surface;
+
+	( hash surface_map: nw+RPBG[0..46080] )
+	A = nw; A + RPBG; [EMHbase] = A;
+	[EMHcount] = 46080;
+	=> EMH hsh;
+	[NVsfn] = [EMHfnv]; [NVscrc] = [EMHcrc];
+
+	( hash atmo_overlay: nw+ROBJ[0..32400] )
+	A = nw; A + ROBJ; [EMHbase] = A;
+	[EMHcount] = 32400;
+	=> EMH hsh;
+	[NVafn] = [EMHfnv]; [NVacrc] = [EMHcrc];
+
+	( hash palette64: tmppal[576..768] )
+	A = sutmppal; A + 576; [EMHbase] = A;
+	[EMHcount] = 192;
+	=> EMH hsh;
+	[NVpfn] = [EMHfnv]; [NVpcrc] = [EMHcrc];
+	end;
+
+( ==================================================================== )
+( NV emit planet - the planet block for body [PAi].                     )
+
+"NV emit planet"
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 32; => EMO put;
+	A = 80; => EMO put; A = 76; => EMO put; A = 65; => EMO put; A = 78; => EMO put;
+	A = 69; => EMO put; A = 84; => EMO put; A = 32; => EMO put;
+	A = 84; => EMO put; A = 69; => EMO put; A = 88; => EMO put; A = 84; => EMO put;
+	A = 85; => EMO put; A = 82; => EMO put; A = 69; => EMO put; A = 32; => EMO put;
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put;
+	=> EMO crlf;
+
+	( PLANET body=N type=N owner=N seedval=... )
+	A = 80; => EMO put; A = 76; => EMO put; A = 65; => EMO put; A = 78; => EMO put;
+	A = 69; => EMO put; A = 84; => EMO put; A = 32; => EMO put;
+	A = 98; => EMO put; A = 111; => EMO put; A = 100; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	A = [PAi]; => EMO num; A = 32; => EMO put;
+	A = 116; => EMO put; A = 121; => EMO put; A = 112; => EMO put; A = 101; => EMO put; A = 61; => EMO put;
+	A = [NVtyp]; => EMO num; A = 32; => EMO put;
+	A = 111; => EMO put; A = 119; => EMO put; A = 110; => EMO put; A = 101; => EMO put; A = 114; => EMO put; A = 61; => EMO put;
+	E = nspowner; E + [PAi]; A = [E]; => EMO num; A = 32; => EMO put;
+	A = 115; => EMO put; A = 101; => EMO put; A = 101; => EMO put; A = 100; => EMO put;
+	A = 118; => EMO put; A = 97; => EMO put; A = 108; => EMO put; A = 61; => EMO put;
+	[FA0] = [SUsv0]; [FA1] = [SUsv1];
+	[EMFdec] = 6;
+	=> EMF f64;
+	=> EMO crlf;
+
+	(   rtperiod=... rotation=... )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 114; => EMO put; A = 116; => EMO put; A = 112; => EMO put; A = 101; => EMO put;
+	A = 114; => EMO put; A = 105; => EMO put; A = 111; => EMO put; A = 100; => EMO put; A = 61; => EMO put;
+	A = [SUrtp]; => EMO num; A = 32; => EMO put;
+	A = 114; => EMO put; A = 111; => EMO put; A = 116; => EMO put; A = 97; => EMO put;
+	A = 116; => EMO put; A = 105; => EMO put; A = 111; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = [SUrot]; => EMO num;
+	=> EMO crlf;
+
+	( surface_map )
+	A = 115; => EMO put; A = 117; => EMO put; A = 114; => EMO put; A = 102; => EMO put;
+	A = 97; => EMO put; A = 99; => EMO put; A = 101; => EMO put; A = 95; => EMO put;
+	A = 109; => EMO put; A = 97; => EMO put; A = 112; => EMO put; A = 32; => EMO put;
+	A = 108; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 46080; => EMO num; A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	A = [NVsfn]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [NVscrc]; => EMO hex;
+	=> EMO crlf;
+
+	( atmo_overlay )
+	A = 97; => EMO put; A = 116; => EMO put; A = 109; => EMO put; A = 111; => EMO put;
+	A = 95; => EMO put; A = 111; => EMO put; A = 118; => EMO put; A = 101; => EMO put;
+	A = 114; => EMO put; A = 108; => EMO put; A = 97; => EMO put; A = 121; => EMO put;
+	A = 32; => EMO put;
+	A = 108; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 32400; => EMO num; A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	A = [NVafn]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [NVacrc]; => EMO hex;
+	=> EMO crlf;
+
+	( palette64 )
+	A = 112; => EMO put; A = 97; => EMO put; A = 108; => EMO put; A = 101; => EMO put;
+	A = 116; => EMO put; A = 116; => EMO put; A = 101; => EMO put; A = 54; => EMO put;
+	A = 52; => EMO put; A = 32; => EMO put;
+	A = 108; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 192; => EMO num; A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	A = [NVpfn]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [NVpcrc]; => EMO hex;
+	=> EMO crlf;
+
+	=> EMO flush;
+	end;
+
+( ==================================================================== )
+( NV emit planet all line - one compact PLANET line for body [PAi].     )
+
+"NV emit planet all line"
+	A = 80; => EMO put; A = 76; => EMO put; A = 65; => EMO put; A = 78; => EMO put;
+	A = 69; => EMO put; A = 84; => EMO put; A = 32; => EMO put;
+	A = [PAi]; => EMO num; A = 32; => EMO put;
+	A = 116; => EMO put; A = 121; => EMO put; A = 112; => EMO put; A = 101; => EMO put;
+	A = 61; => EMO put;
+	A = [NVtyp]; => EMO num; A = 32; => EMO put;
+	A = 105; => EMO put; A = 115; => EMO put; A = 95; => EMO put; A = 109; => EMO put;
+	A = 111; => EMO put; A = 111; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	E = nspowner; E + [PAi]; A = [E]; ? A >= 0 -> NV all moon;
+	A = 0; => EMO num;
+	-> NV all moon done;
+    "NV all moon"
+	A = 1; => EMO num;
+    "NV all moon done"
+	A = 32; => EMO put;
+	A = 115; => EMO put; A = 117; => EMO put; A = 114; => EMO put; A = 102; => EMO put;
+	A = 61; => EMO put;
+	A = [NVsfn]; => EMO hex; A = 32; => EMO put;
+	A = 97; => EMO put; A = 116; => EMO put; A = 109; => EMO put; A = 111; => EMO put;
+	A = 61; => EMO put;
+	A = [NVafn]; => EMO hex; A = 32; => EMO put;
+	A = 112; => EMO put; A = 97; => EMO put; A = 108; => EMO put; A = 61; => EMO put;
+	A = [NVpfn]; => EMO hex;
+	=> EMO crlf;
+	end;
+
+( ==================================================================== )
+( NV emit system - the full SYSTEM block.                               )
+
+"NV emit system"
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 32; => EMO put;
+	A = 83; => EMO put; A = 89; => EMO put; A = 83; => EMO put; A = 84; => EMO put;
+	A = 69; => EMO put; A = 77; => EMO put; A = 32; => EMO put;
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put;
+	=> EMO crlf;
+
+	( STAR x= y= z= - engine y )
+	A = 83; => EMO put; A = 84; => EMO put; A = 65; => EMO put; A = 82; => EMO put;
+	A = 32; => EMO put; A = 120; => EMO put; A = 61; => EMO put;
+	A = [NRX]; => EMO num;
+	A = 32; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	A = [NRY]; => EMO num;
+	A = 32; => EMO put; A = 122; => EMO put; A = 61; => EMO put;
+	A = [NRZ]; => EMO num;
+	=> EMO crlf;
+
+	( identity )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 105; => EMO put; A = 100; => EMO put; A = 101; => EMO put; A = 110; => EMO put;
+	A = 116; => EMO put; A = 105; => EMO put; A = 116; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	[FA0] = [nsid0]; [FA1] = [nsid1];
+	[EMFdec] = 6;
+	=> EMF f64;
+	=> EMO crlf;
+
+	( class= ray= spin= rgb= )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 99; => EMO put; A = 108; => EMO put; A = 97; => EMO put; A = 115; => EMO put;
+	A = 115; => EMO put; A = 61; => EMO put;
+	A = [nsclass]; => EMO num;
+	A = 32; => EMO put; A = 114; => EMO put; A = 97; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	[FS0] = [nsstarray]; => FLoadF32;
+	[EMFdec] = 6;
+	=> EMF f64;
+	A = 32; => EMO put; A = 115; => EMO put; A = 112; => EMO put; A = 105; => EMO put;
+	A = 110; => EMO put; A = 61; => EMO put;
+	A = [NVspin]; => EMO num;
+	A = 32; => EMO put; A = 114; => EMO put; A = 103; => EMO put; A = 98; => EMO put; A = 61; => EMO put;
+	A = [NVr]; => EMO num; A = 44; => EMO put;
+	A = [NVg]; => EMO num; A = 44; => EMO put;
+	A = [NVb]; => EMO num;
+	=> EMO crlf;
+
+	( nop= nob= labeled= )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 110; => EMO put; A = 111; => EMO put; A = 112; => EMO put; A = 61; => EMO put;
+	A = [nsnop]; => EMO num;
+	A = 32; => EMO put; A = 110; => EMO put; A = 111; => EMO put; A = 98; => EMO put; A = 61; => EMO put;
+	A = [nsnob]; => EMO num;
+	A = 32; => EMO put; A = 108; => EMO put; A = 97; => EMO put; A = 98; => EMO put;
+	A = 101; => EMO put; A = 108; => EMO put; A = 101; => EMO put; A = 100; => EMO put; A = 61; => EMO put;
+	A = 0; => EMO num;
+	=> EMO crlf;
+
+	( bodies )
+	[PAi] = 0;
+    "NV sys bloop"
+	A = [PAi]; ? A >= [nsnob] -> NV sys bdone;
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 66; => EMO put; A = 79; => EMO put; A = 68; => EMO put; A = 89; => EMO put;
+	A = 32; => EMO put;
+	A = [PAi]; ? A >= 10 -> NV sys i10;
+	A = 32; => EMO put;
+    "NV sys i10"
+	A = [PAi]; => EMO num;
+	A = 32; => EMO put;
+	A = 116; => EMO put; A = 121; => EMO put; A = 112; => EMO put; A = 101; => EMO put; A = 61; => EMO put;
+	E = nsptype; E + [PAi]; A = [E]; A & 0FFh; => EMO num;
+	A = 32; => EMO put; A = 111; => EMO put; A = 119; => EMO put; A = 110; => EMO put; A = 101; => EMO put; A = 114; => EMO put; A = 61; => EMO put;
+	E = nspowner; E + [PAi]; A = [E]; => EMO num;
+	A = 32; => EMO put; A = 109; => EMO put; A = 111; => EMO put; A = 111; => EMO put; A = 110; => EMO put; A = 105; => EMO put; A = 100; => EMO put; A = 61; => EMO put;
+	E = nspmoonid; E + [PAi]; A = [E]; A & 0FFh; => EMO num;
+	A = 32; => EMO put; A = 114; => EMO put; A = 97; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	A = [PAi]; A < 1; E = nspray; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 6; => EMF f64;
+	A = 32; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 98; => EMO put; A = 95; => EMO put; A = 114; => EMO put; A = 97; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	A = [PAi]; A < 1; E = nsporbray; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 6; => EMF f64;
+	=> EMO crlf;
+
+	( line 2 )
+	A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put; A = 32; => EMO put;
+	A = 116; => EMO put; A = 105; => EMO put; A = 108; => EMO put; A = 116; => EMO put; A = 61; => EMO put;
+	A = [PAi]; A < 1; E = nsptilt; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 8; => EMF f64;
+	A = 32; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 98; => EMO put; A = 95; => EMO put; A = 116; => EMO put; A = 105; => EMO put; A = 108; => EMO put; A = 116; => EMO put; A = 61; => EMO put;
+	A = [PAi]; A < 1; E = nsporbtlt; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 8; => EMF f64;
+	A = 32; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 98; => EMO put; A = 95; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 105; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 116; => EMO put; A = 61; => EMO put;
+	A = [PAi]; A < 1; E = nspororient; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 8; => EMF f64;
+	A = 32; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 98; => EMO put; A = 95; => EMO put; A = 101; => EMO put; A = 99; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [PAi]; A < 1; E = nsporbecc; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 8; => EMF f64;
+	A = 32; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 98; => EMO put; A = 95; => EMO put; A = 115; => EMO put; A = 101; => EMO put; A = 101; => EMO put; A = 100; => EMO put; A = 61; => EMO put;
+	A = [PAi]; A < 1; E = nsporbseed; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 6; => EMF f64;
+	A = 32; => EMO put; A = 114; => EMO put; A = 105; => EMO put; A = 110; => EMO put; A = 103; => EMO put; A = 61; => EMO put;
+	A = [PAi]; A < 1; E = nspring; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	[EMFdec] = 6; => EMF f64;
+	=> EMO crlf;
+
+	A = [PAi]; A + 1; [PAi] = A;
+	-> NV sys bloop;
+    "NV sys bdone"
+
+	=> EMO flush;
+	end;
+
+( ==================================================================== )
+( NV emit scan - the SCAN line.                                         )
+
+"NV emit scan"
+	A = 83; => EMO put; A = 67; => EMO put; A = 65; => EMO put; A = 78; => EMO put;
+	A = 32; => EMO put;
+	A = 120; => EMO put; A = 61; => EMO put;
+	A = [NRX]; => EMO num;
+	A = 32; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	A = [NRY]; A +-; => EMO num;	( user y )
+	A = 32; => EMO put; A = 122; => EMO put; A = 61; => EMO put;
+	A = [NRZ]; => EMO num;
+	A = 32; => EMO put;
+	A = 99; => EMO put; A = 108; => EMO put; A = 97; => EMO put; A = 115; => EMO put; A = 115; => EMO put; A = 61; => EMO put;
+	A = [nsclass]; => EMO num;
+	A = 32; => EMO put;
+	A = 110; => EMO put; A = 111; => EMO put; A = 112; => EMO put; A = 61; => EMO put;
+	A = [nsnop]; => EMO num;
+	A = 32; => EMO put;
+	A = 110; => EMO put; A = 111; => EMO put; A = 98; => EMO put; A = 61; => EMO put;
+	A = [nsnob]; => EMO num;
+	A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+
+	( compute the string FNV: "class nop nob spin" + per-body "type owner moonid" )
+	D = 2166136261; [SCfnv] = D;
+	A = [nsclass]; => SC dec; A = 32; C = A; => SC byte;
+	A = [nsnop]; => SC dec; A = 32; C = A; => SC byte;
+	A = [nsnob]; => SC dec; A = 32; C = A; => SC byte;
+	A = [NVspin]; => SC dec;
+	[SCbody] = 0;
+    "NV sc bloop"
+	A = [SCbody]; ? A >= [nsnob] -> NV sc bdone;
+	E = nsptype; E + [SCbody]; A = [E]; A & 0FFh; => SC dec; A = 32; C = A; => SC byte;
+	E = nspowner; E + [SCbody]; A = [E]; => SC dec; A = 32; C = A; => SC byte;
+	E = nspmoonid; E + [SCbody]; A = [E]; A & 0FFh; => SC dec;
+	A = [SCbody]; A + 1; [SCbody] = A;
+	-> NV sc bloop;
+    "NV sc bdone"
+	A = [SCfnv]; => EMO hex;
+	=> EMO crlf;
+
+	=> EMO flush;
+	end;
+
+( ==================================================================== )
+( NV emit sector - the SECTOR block for body [EMCLp] (placeholder hms).  )
+
+"NV emit sector"
+	( === SURFACE SECTOR (heightmap) === )
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 32; => EMO put;
+	A = 83; => EMO put; A = 85; => EMO put; A = 82; => EMO put; A = 70; => EMO put;
+	A = 65; => EMO put; A = 67; => EMO put; A = 69; => EMO put; A = 32; => EMO put;
+	A = 83; => EMO put; A = 69; => EMO put; A = 67; => EMO put; A = 84; => EMO put;
+	A = 79; => EMO put; A = 82; => EMO put; A = 32; => EMO put; A = 40; => EMO put;
+	A = 104; => EMO put; A = 101; => EMO put; A = 105; => EMO put; A = 103; => EMO put;
+	A = 104; => EMO put; A = 116; => EMO put; A = 109; => EMO put; A = 97; => EMO put;
+	A = 112; => EMO put; A = 41; => EMO put; A = 32; => EMO put;
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put;
+	=> EMO crlf;
+
+	( SECTOR body=N type=N lon= lat= sctype=2 albedo=32 night=0 )
+	A = 83; => EMO put; A = 69; => EMO put; A = 67; => EMO put; A = 84; => EMO put;
+	A = 79; => EMO put; A = 82; => EMO put; A = 32; => EMO put;
+	A = 98; => EMO put; A = 111; => EMO put; A = 100; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	A = [EMCLp]; => EMO num; A = 32; => EMO put;
+	A = 116; => EMO put; A = 121; => EMO put; A = 112; => EMO put; A = 101; => EMO put; A = 61; => EMO put;
+	E = nsptype; E + [EMCLp]; A = [E]; A & 0FFh; => EMO num; A = 32; => EMO put;
+	A = 108; => EMO put; A = 111; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = [EMCLlon]; => EMO num; A = 32; => EMO put;
+	A = 108; => EMO put; A = 97; => EMO put; A = 116; => EMO put; A = 61; => EMO put;
+	A = [EMCLlat]; => EMO num; A = 32; => EMO put;
+	A = 115; => EMO put; A = 99; => EMO put; A = 116; => EMO put; A = 121; => EMO put; A = 112; => EMO put; A = 101; => EMO put; A = 61; => EMO put;
+	A = 2; => EMO num; A = 32; => EMO put;	( SC_PLAINS )
+	A = 97; => EMO put; A = 108; => EMO put; A = 98; => EMO put; A = 101; => EMO put;
+	A = 100; => EMO put; A = 111; => EMO put; A = 61; => EMO put;
+	A = 32; => EMO num; A = 32; => EMO put;
+	A = 110; => EMO put; A = 105; => EMO put; A = 103; => EMO put; A = 104; => EMO put;
+	A = 116; => EMO put; A = 61; => EMO put;
+	A = 0; => EMO num;
+	=> EMO crlf;
+
+	(   global_surface_seed=... - placeholder 130009 )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 103; => EMO put; A = 108; => EMO put; A = 111; => EMO put; A = 98; => EMO put;
+	A = 97; => EMO put; A = 108; => EMO put; A = 95; => EMO put; A = 115; => EMO put;
+	A = 117; => EMO put; A = 114; => EMO put; A = 102; => EMO put; A = 97; => EMO put;
+	A = 99; => EMO put; A = 101; => EMO put; A = 95; => EMO put; A = 115; => EMO put;
+	A = 101; => EMO put; A = 101; => EMO put; A = 100; => EMO put; A = 61; => EMO put;
+	A = 130009; => EMO num;
+	=> EMO crlf;
+
+	( heightmap placeholder: hash RPBG[0..40000] )
+	A = nw; A + RPBG; [EMHbase] = A; [EMHcount] = 40000; => EMH hsh;
+	[NVsfn] = [EMHfnv]; [NVscrc] = [EMHcrc];
+	A = 104; => EMO put; A = 101; => EMO put; A = 105; => EMO put; A = 103; => EMO put;
+	A = 104; => EMO put; A = 116; => EMO put; A = 109; => EMO put; A = 97; => EMO put;
+	A = 112; => EMO put; A = 32; => EMO put;
+	A = 108; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 40000; => EMO num; A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	A = [NVsfn]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [NVscrc]; => EMO hex;
+	=> EMO crlf;
+
+	( objectchart placeholder )
+	A = nw; A + ROBJ; [EMHbase] = A; [EMHcount] = 40000; => EMH hsh;
+	[NVafn] = [EMHfnv]; [NVacrc] = [EMHcrc];
+	A = 111; => EMO put; A = 98; => EMO put; A = 106; => EMO put; A = 101; => EMO put;
+	A = 99; => EMO put; A = 116; => EMO put; A = 99; => EMO put; A = 104; => EMO put;
+	A = 97; => EMO put; A = 114; => EMO put; A = 116; => EMO put; A = 32; => EMO put;
+	A = 108; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 40000; => EMO num; A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	A = [NVafn]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [NVacrc]; => EMO hex;
+	=> EMO crlf;
+
+	=> EMO flush;
+	end;
+
+( ==================================================================== )
+( NV emit surftex - the SURFTEX block for body [EMCLp] (placeholder).   )
+
+"NV emit surftex"
+	( === SURFACE SECTOR (texture) === )
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 32; => EMO put;
+	A = 83; => EMO put; A = 85; => EMO put; A = 82; => EMO put; A = 70; => EMO put;
+	A = 65; => EMO put; A = 67; => EMO put; A = 69; => EMO put; A = 32; => EMO put;
+	A = 83; => EMO put; A = 69; => EMO put; A = 67; => EMO put; A = 84; => EMO put;
+	A = 79; => EMO put; A = 82; => EMO put; A = 32; => EMO put; A = 40; => EMO put;
+	A = 116; => EMO put; A = 101; => EMO put; A = 120; => EMO put; A = 116; => EMO put;
+	A = 117; => EMO put; A = 114; => EMO put; A = 101; => EMO put; A = 41; => EMO put;
+	A = 32; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put;
+	=> EMO crlf;
+
+	( SURFTEX body=N type=N lon= lat= sctype=2 albedo=32 )
+	A = 83; => EMO put; A = 85; => EMO put; A = 82; => EMO put; A = 70; => EMO put;
+	A = 84; => EMO put; A = 69; => EMO put; A = 88; => EMO put; A = 32; => EMO put;
+	A = 98; => EMO put; A = 111; => EMO put; A = 100; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	A = [EMCLp]; => EMO num; A = 32; => EMO put;
+	A = 116; => EMO put; A = 121; => EMO put; A = 112; => EMO put; A = 101; => EMO put; A = 61; => EMO put;
+	E = nsptype; E + [EMCLp]; A = [E]; A & 0FFh; => EMO num; A = 32; => EMO put;
+	A = 108; => EMO put; A = 111; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = [EMCLlon]; => EMO num; A = 32; => EMO put;
+	A = 108; => EMO put; A = 97; => EMO put; A = 116; => EMO put; A = 61; => EMO put;
+	A = [EMCLlat]; => EMO num; A = 32; => EMO put;
+	A = 115; => EMO put; A = 99; => EMO put; A = 116; => EMO put; A = 121; => EMO put; A = 112; => EMO put; A = 101; => EMO put; A = 61; => EMO put;
+	A = 2; => EMO num; A = 32; => EMO put;
+	A = 97; => EMO put; A = 108; => EMO put; A = 98; => EMO put; A = 101; => EMO put;
+	A = 100; => EMO put; A = 111; => EMO put; A = 61; => EMO put;
+	A = 32; => EMO num;
+	=> EMO crlf;
+
+	(   T_SCALE=32 quartz=0 groundflares=0 gtx=1 )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 84; => EMO put; A = 95; => EMO put; A = 83; => EMO put; A = 67; => EMO put;
+	A = 65; => EMO put; A = 76; => EMO put; A = 69; => EMO put; A = 61; => EMO put;
+	A = 32; => EMO num; A = 32; => EMO put;
+	A = 113; => EMO put; A = 117; => EMO put; A = 97; => EMO put; A = 114; => EMO put;
+	A = 116; => EMO put; A = 122; => EMO put; A = 61; => EMO put;
+	A = 0; => EMO num; A = 32; => EMO put;
+	A = 103; => EMO put; A = 114; => EMO put; A = 111; => EMO put; A = 117; => EMO put;
+	A = 110; => EMO put; A = 100; => EMO put; A = 102; => EMO put; A = 108; => EMO put;
+	A = 97; => EMO put; A = 114; => EMO put; A = 101; => EMO put; A = 115; => EMO put;
+	A = 61; => EMO put;
+	A = 0; => EMO num; A = 32; => EMO put;
+	A = 103; => EMO put; A = 116; => EMO put; A = 120; => EMO put; A = 61; => EMO put;
+	A = 1; => EMO num;
+	=> EMO crlf;
+
+	(   rockscaling=415.000 rockpeaking=58.000 rockdensity=1 treescaling=5024.167 )
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 114; => EMO put; A = 111; => EMO put; A = 99; => EMO put; A = 107; => EMO put;
+	A = 115; => EMO put; A = 99; => EMO put; A = 97; => EMO put; A = 108; => EMO put;
+	A = 105; => EMO put; A = 110; => EMO put; A = 103; => EMO put; A = 61; => EMO put;
+	A = 52; => EMO put; A = 49; => EMO put; A = 53; => EMO put; A = 46; => EMO put;
+	A = 48; => EMO put; A = 48; => EMO put; A = 48; => EMO put; A = 32; => EMO put;
+	A = 114; => EMO put; A = 111; => EMO put; A = 99; => EMO put; A = 107; => EMO put;
+	A = 112; => EMO put; A = 101; => EMO put; A = 97; => EMO put; A = 107; => EMO put;
+	A = 105; => EMO put; A = 110; => EMO put; A = 103; => EMO put; A = 61; => EMO put;
+	A = 53; => EMO put; A = 56; => EMO put; A = 46; => EMO put; A = 48; => EMO put;
+	A = 48; => EMO put; A = 48; => EMO put; A = 32; => EMO put;
+	A = 114; => EMO put; A = 111; => EMO put; A = 99; => EMO put; A = 107; => EMO put;
+	A = 100; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 115; => EMO put;
+	A = 105; => EMO put; A = 116; => EMO put; A = 121; => EMO put; A = 61; => EMO put;
+	A = 1; => EMO num; A = 32; => EMO put;
+	A = 116; => EMO put; A = 114; => EMO put; A = 101; => EMO put; A = 101; => EMO put;
+	A = 115; => EMO put; A = 99; => EMO put; A = 97; => EMO put; A = 108; => EMO put;
+	A = 105; => EMO put; A = 110; => EMO put; A = 103; => EMO put; A = 61; => EMO put;
+	A = 53; => EMO put; A = 48; => EMO put; A = 50; => EMO put; A = 52; => EMO put;
+	A = 46; => EMO put; A = 49; => EMO put; A = 54; => EMO put; A = 55; => EMO put;
+	=> EMO crlf;
+
+	( surf_texture placeholder: hash RPBG[0..65024] )
+	A = nw; A + RPBG; [EMHbase] = A; [EMHcount] = 65024; => EMH hsh;
+	[NVsfn] = [EMHfnv]; [NVscrc] = [EMHcrc];
+	A = 115; => EMO put; A = 117; => EMO put; A = 114; => EMO put; A = 102; => EMO put;
+	A = 95; => EMO put; A = 116; => EMO put; A = 101; => EMO put; A = 120; => EMO put;
+	A = 116; => EMO put; A = 117; => EMO put; A = 114; => EMO put; A = 101; => EMO put;
+	A = 32; => EMO put;
+	A = 108; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 65024; => EMO num; A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	A = [NVsfn]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [NVscrc]; => EMO hex;
+	=> EMO crlf;
+
+	( sky_texture placeholder: hash ROBJ[0..46080] )
+	A = nw; A + ROBJ; [EMHbase] = A; [EMHcount] = 46080; => EMH hsh;
+	[NVafn] = [EMHfnv]; [NVacrc] = [EMHcrc];
+	A = 115; => EMO put; A = 107; => EMO put; A = 121; => EMO put; A = 95; => EMO put;
+	A = 116; => EMO put; A = 101; => EMO put; A = 120; => EMO put; A = 116; => EMO put;
+	A = 117; => EMO put; A = 114; => EMO put; A = 101; => EMO put; A = 32; => EMO put;
+	A = 108; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 61; => EMO put;
+	A = 46080; => EMO num; A = 32; => EMO put;
+	A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	A = [NVafn]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [NVacrc]; => EMO hex;
+	=> EMO crlf;
+
+	=> EMO flush;
+	end;
+
+( ==================================================================== )
+( NV selftest hash - the four FNV/CRC hash vectors, exact reference.     )
+
+"NV selftest hash"
+	A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 32; => EMO put;
+	A = 83; => EMO put; A = 69; => EMO put; A = 76; => EMO put; A = 70; => EMO put;
+	A = 84; => EMO put; A = 69; => EMO put; A = 83; => EMO put; A = 84; => EMO put;
+	A = 32; => EMO put; A = 61; => EMO put; A = 61; => EMO put; A = 61; => EMO put;
+	=> EMO crlf;
+	A = 45; => EMO put; A = 45; => EMO put; A = 32; => EMO put;
+	A = 104; => EMO put; A = 97; => EMO put; A = 115; => EMO put; A = 104; => EMO put;
+	A = 32; => EMO put; A = 118; => EMO put; A = 101; => EMO put; A = 99; => EMO put;
+	A = 116; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 115; => EMO put;
+	A = 32; => EMO put; A = 45; => EMO put; A = 45; => EMO put;
+	=> EMO crlf;
+
+	( vector 1: "" )
+	A = 32; => EMO put; A = 32; => EMO put; A = 34; => EMO put; A = 34; => EMO put;
+	A = 32; => EMO put; A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	[EMHbase] = V0; [EMHcount] = 0; => EMH hsh;
+	A = [EMHfnv]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [EMHcrc]; => EMO hex; => EMO crlf;
+
+	( vector 2: "a" )
+	A = 32; => EMO put; A = 32; => EMO put; A = 34; => EMO put; A = 97; => EMO put; A = 34; => EMO put;
+	A = 32; => EMO put; A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	[EMHbase] = V1; [EMHcount] = 1; => EMH hsh;
+	A = [EMHfnv]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [EMHcrc]; => EMO hex; => EMO crlf;
+
+	( vector 3: "abc" )
+	A = 32; => EMO put; A = 32; => EMO put; A = 34; => EMO put;
+	A = 97; => EMO put; A = 98; => EMO put; A = 99; => EMO put; A = 34; => EMO put;
+	A = 32; => EMO put; A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	[EMHbase] = V2; [EMHcount] = 3; => EMH hsh;
+	A = [EMHfnv]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [EMHcrc]; => EMO hex; => EMO crlf;
+
+	( vector 4: "The quick brown fox..." )
+	[EMOval] = VFSBUF;
+	B = [EMOval];
+	[B] = 84; B + 1; [B] = 104; B + 1; [B] = 101; B + 1; [B] = 32;
+	B + 1; [B] = 113; B + 1; [B] = 117; B + 1; [B] = 105; B + 1; [B] = 99; B + 1; [B] = 107; B + 1; [B] = 32;
+	B + 1; [B] = 98; B + 1; [B] = 114; B + 1; [B] = 111; B + 1; [B] = 119; B + 1; [B] = 110; B + 1; [B] = 32;
+	B + 1; [B] = 102; B + 1; [B] = 111; B + 1; [B] = 120; B + 1; [B] = 32;
+	B + 1; [B] = 106; B + 1; [B] = 117; B + 1; [B] = 109; B + 1; [B] = 112; B + 1; [B] = 115; B + 1; [B] = 32;
+	B + 1; [B] = 111; B + 1; [B] = 118; B + 1; [B] = 101; B + 1; [B] = 114; B + 1; [B] = 32;
+	B + 1; [B] = 116; B + 1; [B] = 104; B + 1; [B] = 101; B + 1; [B] = 32;
+	B + 1; [B] = 108; B + 1; [B] = 97; B + 1; [B] = 122; B + 1; [B] = 121; B + 1; [B] = 32;
+	B + 1; [B] = 100; B + 1; [B] = 111; B + 1; [B] = 103; B + 1; [B] = 0;
+	A = 32; => EMO put; A = 32; => EMO put; A = 34; => EMO put;
+	A = VFSBUF; => EMO str;
+	A = 34; => EMO put; A = 32; => EMO put; A = 102; => EMO put; A = 110; => EMO put; A = 118; => EMO put; A = 61; => EMO put;
+	[EMHbase] = VFSBUF; [EMHcount] = 43; => EMH hsh;
+	A = [EMHfnv]; => EMO hex; A = 32; => EMO put;
+	A = 99; => EMO put; A = 114; => EMO put; A = 99; => EMO put; A = 61; => EMO put;
+	A = [EMHcrc]; => EMO hex; => EMO crlf;
+	=> EMO flush;
+	end;
+
+( ==================================================================== )
+( NV selftest rand - the Borland random() sequence, srand(1).            )
+
+"NV selftest rand"
+	A = 45; => EMO put; A = 45; => EMO put; A = 32; => EMO put;
+	A = 66; => EMO put; A = 111; => EMO put; A = 114; => EMO put; A = 108; => EMO put;
+	A = 97; => EMO put; A = 110; => EMO put; A = 100; => EMO put; A = 32; => EMO put;
+	A = 114; => EMO put; A = 97; => EMO put; A = 110; => EMO put; A = 100; => EMO put;
+	A = 111; => EMO put; A = 109; => EMO put; A = 40; => EMO put; A = 41; => EMO put;
+	A = 32; => EMO put; A = 115; => EMO put; A = 101; => EMO put; A = 113; => EMO put;
+	A = 117; => EMO put; A = 101; => EMO put; A = 110; => EMO put; A = 99; => EMO put;
+	A = 101; => EMO put; A = 44; => EMO put; A = 32; => EMO put; A = 115; => EMO put;
+	A = 114; => EMO put; A = 97; => EMO put; A = 110; => EMO put; A = 100; => EMO put;
+	A = 40; => EMO put; A = 49; => EMO put; A = 41; => EMO put; A = 32; => EMO put;
+	A = 45; => EMO put; A = 45; => EMO put;
+	=> EMO crlf;
+	A = 1; => BrtlSrand;
+	[EHix] = 0;
+    "NV rand loop"
+	=> BrtlRand;
+	[EHrand] = A;
+	A = 32; => EMO put; A = 32; => EMO put;
+	A = 114; => EMO put; A = 97; => EMO put; A = 110; => EMO put; A = 100; => EMO put; A = 61; => EMO put;
+	A = [EHrand]; => EMO num; => EMO crlf;
+	A = [EHix]; A + 1; [EHix] = A;
+	A = [EHix]; ? A '< 8 -> NV rand loop;
+	=> EMO flush;
+	end;
+
+( ==================================================================== )
+( SC byte - update [SCfnv] with the ASCII byte in C.                    )
+
+"SC byte"
+	D = [SCfnv]; D # C; D '* 16777619; [SCfnv] = D;
+	end;
+
+( SC dec - feed the decimal ASCII of A (signed) into the fnv stream.    )
+
+"SC dec"
+	? A >= 0 -> SC dec pos;
+	A +-; C = 45; => SC byte;
+    "SC dec pos"
+	? A = 0 -> SC dec zero;
+	[SCix] = 0;
+	[SCtmp] = A;
+    "SC dec loop"
+	A = [SCtmp]; A '/ 10; ? A = 0 -> SC dec emit;
+	B = A; B '* 10; B +-;
+	C = [SCtmp]; C + B;	( C = value - (value/10)*10 = digit )
+	E = scbuf; E + [SCix]; [E] = C;
+	[SCix]+;
+	A = [SCtmp]; A '/ 10; [SCtmp] = A;
+	-> SC dec loop;
+    "SC dec zero"
+	E = scbuf; E + 0; [E] = 0;
+	[SCix] = 0;
+	-> SC dec feed;
+    "SC dec emit"
+	E = scbuf; E + [SCix]; C = [SCtmp]; [E] = C;
+    "SC dec feed"
+	E = scbuf; E + [SCix]; C = [E]; C + 48; => SC byte;
+	? [SCix] = 0 -> SC dec done;
+	A = [SCix]; A - 1; [SCix] = A;
+	-> SC dec feed;
+    "SC dec done"
+	end;
+
+( ==================================================================== )
+( SU wipe pal - zero the 768-unit tmppal.  Driver routine.              )
+
+"SU wipe pal"
+	A = sutmppal;
+	B = 768;
+	C = 0;
+    "SU wp u"
+	[A] = C; A+;
+	B ^ SU wp u;
+	end;
