@@ -121,7 +121,10 @@
     "VHS dy ready"
 	A = [VHSdx]; A + [VHSdy]; [VHSerr] = A;
 	[VHSphase] = 0;
+	=> VHS draw line;
+	-> VHS done;
 
+"VHS draw line"
 "VHS line loop"
     ( The projected line is already clipped to the fixed 320x200 RADPT
       viewport above.  Address it directly instead of paying the generic
@@ -140,7 +143,7 @@
 	[VHSphase]+;
 	[VHSdrawn]+;
 	A = [VHSpx0]; ? A != [VHSpx1] -> VHS line step;
-	A = [VHSpy0]; ? A = [VHSpy1] -> VHS done;
+	A = [VHSpy0]; ? A = [VHSpy1] -> VHS draw line done;
     "VHS line step"
 	A = [VHSerr]; A + A; [VHSe2] = A;
 	A = [VHSe2]; ? A < [VHSdy] -> VHS skip x;
@@ -152,6 +155,9 @@
 	A = [VHSpy0]; A + [VHSsy]; [VHSpy0] = A;
     "VHS skip y"
 	-> VHS line loop;
+
+    "VHS draw line done"
+	end;
 
     "VHS done"
 	[PGFi] = FSUNEG; [PGFt] = [VHSnearbase]; => PGF setf32;

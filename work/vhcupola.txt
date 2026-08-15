@@ -106,10 +106,7 @@
     "VHC render panel"
 	A = [VHCpanels]; A '* 12; A + [VHCcachebase]; [VHCcachep] = A;
 	[VHCcopy] = 0;
-    "VHC render copy"
-	A = [VHCcachep]; A + [VHCcopy]; C = [A];
-	A = vhcpoly; A + [VHCcopy]; [A] = C;
-	[VHCcopy]+; A = [VHCcopy]; ? A < 12 -> VHC render copy;
+	=> VHC copy cached panel;
 	( The landing capsule uses the same source cupola mesh with y_or=-1
 	  for its lower hemisphere.  Cache the +1 dome once and mirror only
 	  its four Y coordinates here; the Stardrifter's y_or=0/+1 paths are
@@ -133,6 +130,13 @@
 	[FI] = [VHCcamybase]; => IntToF; => F32Narrow;
 	[PGFi] = FSCAMY; => PGF sa;
 	"VHC render done"
+	end;
+
+"VHC copy cached panel"
+    "VHC copy cached panel loop"
+	A = [VHCcachep]; A + [VHCcopy]; C = [A];
+	A = vhcpoly; A + [VHCcopy]; [A] = C;
+	[VHCcopy]+; A = [VHCcopy]; ? A < 12 -> VHC copy cached panel loop;
 	end;
 
 "VHC capsule cull"

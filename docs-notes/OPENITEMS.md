@@ -512,7 +512,7 @@ plausibility alone does not close this item. The finished result must look and
 behave authentically in motion, including beam direction, clipping, brightness,
 palette response, and transitions between contexts.
 
-## 7. Smooth 60 Hz presentation -- **SETTLED / MONITORED**
+## 7. Smooth 60 Hz presentation -- **SETTLED / MONITORED, FPS PARITY OPEN**
 
 Harden the optional 60 Hz renderer until sustained walking, looking, jetpack
 flight, capsule travel, orbital flight, and Stardrifter movement remain evenly
@@ -520,6 +520,16 @@ paced while every gameplay decision continues at the original 18.206-Hz rate.
 Acceptance requires long real-input sessions across the heaviest habitable
 surface and every major mode transition, with no duplicated-pose hitch,
 catch-up burst, terrain loss, input loss, or simulation acceleration.
+
+**Desktop Lino Noctis FPS parity is a separate open acceptance item.** The
+ordinary packaged desktop game must sustain the intended 60 Hz presentation
+rate on the agreed reference machine in every planet class, Stardrifter mode,
+orbital flight, capsule travel, and the heaviest landed scenes. A fast isolated
+checkpoint is not sufficient. Measure completed presentations, renderer time,
+present time, simulation ticks, missed deadlines, and input latency separately
+so a cumulative frame counter, duplicated presentation, dropped detail, or
+accelerated gameplay cannot masquerade as parity. Preserve the authoritative
+18.206-Hz gameplay clock and require smooth pacing as well as the average FPS.
 
 The presenter already interpolates player, ship, capsule, wave, fauna, palette,
 and instrument poses between authoritative source ticks. Its cadence remainder
