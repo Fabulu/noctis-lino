@@ -1,0 +1,132 @@
+
+"libraries"
+
+	brtl;
+	nsrng;
+	nsseed;
+	nstopo;
+	fp/fpabi;
+	fp/fpctl;
+	fp/fpx87;
+	fp/fpconv;
+	fp/fpchains;
+	geoconv;
+	nsident;
+	nslabel;
+	fbmem;
+	emitout;
+
+"directors"
+
+	program name = { seedvalprobe };
+	unit = 32;
+
+"variables"
+
+	result file name = { seedvalprobe.out };
+	NRX = 0;
+	NRY = 0;
+	NRZ = 0;
+	BI = 0;
+
+"programme"
+
+	( INIX I engine y = -9508 )
+	A = 1998254512; A +-; [NRX] = A;
+	A = 9508; A +-; [NRY] = A;
+	[NRZ] = 2380852;
+	[BI] = 0;
+
+	=> EMO init;
+	[EMOname] = result file name;
+
+	[FCW] = FCWEXT;
+	=> FEnter;
+
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentityD;
+	[FJ0] = [nsx]; [FJ1] = [nsy]; [FJ2] = [nsz];
+	=> NsIdentChop16;
+	A = [FI]; => NsSrand;
+	A = 12; => NsRandom;
+	[nsclass] = A;
+
+	[nsx] = [NRX]; [nsy] = [NRY]; [nsz] = [NRZ];
+	=> NsSeedFromXYZ;
+	[nsseedin] = A;
+
+	( derive the star ray on the SAME identity srand stream as the class.
+	  extract_ap_target_infos: srand(identity); random(12) [class];
+	  random(CLASS_RAYVAR[class]) [variance].  The class was drawn above;
+	  the ray draw is the next draw on that same stream, so NO re-srand. )
+	A = 2000; => NsRandom;	( ray variance draw, CLASS_RAYVAR[0]=2000 )
+	[nsdrawvalue] = A;
+	[EMOval] = A; A = [EMOval]; => EMO num;
+	A = 32; => EMO ch;
+	A = [nsdrawvalue]; A + 5000; [FI] = A; => IntToF;
+	( FA = (draw+5000) ; FB = 1000 ; FA = FA/FB )
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000; => IntToF;
+	( swap: FA <- 1000 is wrong; we want FA=dividend.  Save 5612, load
+	  FB=1000, then divide.  Use a swap through FC. )
+	[FC0] = [FB0]; [FC1] = [FB1];	( FC = 5612 )
+	[FB0] = [FA0]; [FB1] = [FA1];	( FB = 1000 )
+	[FA0] = [FC0]; [FA1] = [FC1];	( FA = 5612 )
+	=> FQuo;
+	( store as f32 bits in nsstarray )
+	=> FStoreF32; [nsstarray] = [FS0];
+	[EMOval] = [FS0]; A = [EMOval]; => EMO hex;
+	A = 32; => EMO ch;
+
+	=> NsStarnop;
+	=> NsResetAll;
+	=> NsPrepare;
+
+	( seedval = 1e6 * type * orb_seed * orb_tilt * ecc * orient )
+	( type = 5 as double )
+	[FI] = 5; => IntToF;	( FA0/FA1 = 5.0 )
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000000; => IntToF;
+	=> FMul;		( FA = 1e6 * type )
+
+	( * orb_seed )
+	[nsgeoi] = [BI];
+	=> Ns geo load seed;	( FB = orb_seed )
+	=> FMul;
+
+	( * orb_tilt )
+	[nsgeoi] = [BI];
+	E = nsporbtlt; E + 0; [FC0] = [E plus 0]; [FC1] = [E plus 1];
+	[FB0] = [FC0]; [FB1] = [FC1];
+	=> FMul;
+
+	( * ecc )
+	E = nsporbecc; E + 0; [FC0] = [E plus 0]; [FC1] = [E plus 1];
+	[FB0] = [FC0]; [FB1] = [FC1];
+	=> FMul;
+
+	( * orient )
+	E = nspororient; E + 0; [FC0] = [E plus 0]; [FC1] = [E plus 1];
+	[FB0] = [FC0]; [FB1] = [FC1];
+	=> FMul;
+
+	( debug: nsporbseed[0] and nspororient[0] via bodprobe read pattern )
+	A = nsporbseed; A + [BI]; A + [BI]; [EMOval] = [A]; A = [EMOval]; => EMO hex;
+	A = 32; => EMO ch;
+	A = nsporbseed; A + [BI]; A + [BI]; A + 1; [EMOval] = [A]; A = [EMOval]; => EMO hex;
+	A = 32; => EMO ch;
+	A = nspororient; A + [BI]; A + [BI]; [EMOval] = [A]; A = [EMOval]; => EMO hex;
+	A = 32; => EMO ch;
+	A = nspororient; A + [BI]; A + [BI]; A + 1; [EMOval] = [A]; A = [EMOval]; => EMO hex;
+	A = 32; => EMO ch;
+
+	( emit FA0/FA1 as hex )
+	A = [FA0]; [EMOval] = A; => EMO hex;
+	A = 32; => EMO ch;
+	A = [FA1]; [EMOval] = A; => EMO hex;
+	=> EMO crlf;
+
+	=> EMO flush;
+	=> FLeave;
+	end;
