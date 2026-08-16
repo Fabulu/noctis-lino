@@ -752,6 +752,24 @@ reported no runtime errors. This proves that the pure-JavaScript architecture
 can clear 60 without reducing terrain or gameplay. The acceptance item remains
 open until moving play and every planet class also hold the target smoothly.
 
+**Habitable-tree follow-up.** A cold type-3 fixture exposed the remaining
+worst case: its completed-frame rate was only 1.49 FPS on a loaded development
+host even though the public per-slice timer displayed a much smaller render
+cost. LinoJava now lets the original Lino tree routine generate each
+deterministic model once, records its world-space branch polygons and foliage
+calls in painter order, and replays them through the live facing and mapped
+renderer. The bounded greenmush path is now direct JavaScript with the same
+unsigned-square RNG transitions, binary32 point setup, strict projection
+bounds, six-pixel stamp order, and final RNG state. Cached tree bounds permit a
+conservative whole-model frustum rejection with extra foliage margin. Across
+successive loaded-host samples this moved the same fixture to 3.83 FPS, then
+7.48 FPS after the direct foliage path; a later visual smoke under heavier load
+measured 4.21 FPS and retained trees, foliage, terrain, HUD text, and the notice
+overlay without a worker error. This is a material multiplier, not completion:
+habitable rendering and its multi-minute cold surface build remain open, and
+the next pass must batch or cache the repeated tree polygon transforms rather
+than spending effort on small dispatch savings.
+
 The first published browser build showed cupola geometry without the
 Stardrifter exterior because the host shipped only the font file. Named reads
 for `globes.map`, `offsets.map`, `vehicle.ncc`, `mammal.ncc`, and `birdy.ncc`
