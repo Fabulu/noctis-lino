@@ -981,6 +981,23 @@ all persistence fields before accepting a visually plausible single frame.
 Reproduce the multi-frame smear and menu failure in the actual public product;
 one-call service tests and synthetic pointer injection are insufficient.
 
+**Returning-browser persistence hardening deployed on 2026-08-16.** Clean
+automation and the player's long-lived browser were not starting from the same
+machine state. The host loaded all iGUI GlobalK blocks across deployments even
+though those 255-unit records can contain addresses and handles belonging to a
+different linked build. It also allowed persisted virtual files to override the
+packaged font and model assets. The public runtime now fingerprints each linked
+runner, loads GlobalK only for that exact fingerprint, and makes manifest assets
+authoritative and read-only while keeping versioned `CURRENT.LIN` checkpoints
+portable. A focused returning-browser smoke deliberately stored a zeroed
+`DIGIMAP2.BIN` and invalid legacy GlobalK data; the reloaded product retained
+visible text, live rendering at 72 FPS, and no crash. A second real DOM/canvas
+GAME interaction selected a command and returned to play at 95 rendered FPS
+without a page or worker error. This removes a concrete clean-versus-returning
+session divergence. It does not close the direct reports or authenticate the
+Stardrifter lines, sun, palette progression, or translated renderer against
+NIV+.
+
 Keep the broader iGUI audit on the docket as a release blocker. Exercise every menu command and
 title-bar control, including menu construction, dormant-window registration,
 layer ownership, focus, dismissal, command dispatch, resize, fold, hide,
