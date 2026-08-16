@@ -1115,6 +1115,18 @@ visible window at the viewport edge and exits fullscreen cleanly with no page
 or worker error. Dragging, free resize, repeated state transitions, and every
 remaining command still belong to the open audit.
 
+**Fresh player report, 2026-08-16:** clicking the published JavaScript build's
+GAME title-bar control still crashes or halts the game, and the browser GUI as a
+whole remains visibly unreliable. Keep this as a current release blocker even
+though isolated scripted paths have passed. The next repair must start from the
+ordinary public-page click path and retain the exact input-event sequence,
+active Lino location, layer/focus state, and worker failure or starvation state.
+Acceptance requires manual use of GAME plus every non-quit command, repeated
+open/dismiss cycles, and continued live rendering. The same pass must give every
+desktop-only title-bar action an explicit browser-safe meaning, including move,
+resize, maximize, fold, hide/screen-off, and game-only fullscreen with an exit
+that does not consume Noctis's Escape key.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
