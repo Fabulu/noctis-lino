@@ -2995,6 +2995,20 @@
 	end;
 
 "VHG render"
+	( Fast presentation may call this renderer two or three times between
+	  authoritative 18.206-Hz flight ticks.  The space page is persistent while
+	  MgStspeed is nonzero: replaying pfade plus the same additive stars, suns and
+	  flares at an unchanged pose over-brightens the source effect and makes the
+	  white trails spread at presentation cadence.  Reuse the completed indexed
+	  page between flight ticks.  Fine approach remains live because its retained
+	  local step advances on every presentation frame; surfaces retain their
+	  interpolation path. )
+	A = [VHGfast]; ? A = 0 -> VHG render live;
+	A = [VHGdosim]; ? A != 0 -> VHG render live;
+	A = [VHGmode]; ? A != 0 -> VHG render live;
+	A = [VHGlocalactive]; ? A = 0 -> VHG render reused;
+	A = [MgIpreaching]; ? A = 0 -> VHG render reused;
+    "VHG render live"
 	[Timer Command] = READ COUNTS; isocall; [VHGprofpart] = [Counts];
 	( IsoKernel timer calls do not preserve the x87 stack.  Profiling was
 	  inserted ahead of each render phase, so every camera began with stale
@@ -3150,6 +3164,9 @@
     "VHG FCS source HUD done"
 	[Timer Command] = READ COUNTS; isocall; A = [Counts]; A - [VHGprofpart];
 	A + [VHGprofdetail]; [VHGprofdetail] = A;
+	-> VHG render done;
+    "VHG render reused"
+    "VHG render done"
 	end;
 
 	"VHG render surface"

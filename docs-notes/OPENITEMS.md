@@ -259,6 +259,19 @@ drive state, and successive indexed pages. Do not call the symptom authentic
 or closed until that real state is reproduced and compared with the native
 renderer.
 
+**Space-effect cadence fix staged on 2026-08-16.** Smooth presentation had a
+second independent way to exaggerate persistent effects: between authoritative
+18.206-Hz flight ticks it reran `pfade` and submitted the identical additive
+stars, suns, and flares two or three times at the same pose. The completed
+indexed flight page is now reused on those duplicate presentation frames.
+Surface interpolation and the per-presentation fine-approach step remain live.
+A 30-second browser smoke held the Stardrifter effect bounded across successive
+captures, reduced the steady runner cost to about 2.1 ms per presentation, and
+ended at a reported 57 rendered FPS on a 60-Hz display with no browser errors.
+This addresses cadence amplification and its redundant renderer cost. It does
+not close the player's persisted-session report or authenticate the complete
+Stardrifter composition against NIV+.
+
 **Completed foundation.** The flare raster, clipping, trig setup, ghost
 reflection, surface occlusion, and brightness-band behaviour now match direct
 NIV+ page dumps. A 12-class star matrix compares four 64,000-byte checkpoints
