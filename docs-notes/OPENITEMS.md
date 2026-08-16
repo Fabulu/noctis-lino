@@ -770,6 +770,19 @@ habitable rendering and its multi-minute cold surface build remain open, and
 the next pass must batch or cache the repeated tree polygon transforms rather
 than spending effort on small dispatch savings.
 
+That whole-tree transform pass is now implemented. Each deterministic cached
+tree model interns bit-identical world vertices shared by its branch and leaf
+polygons. For the current camera it performs the original binary32-narrowed
+rotation and mapped projection once per unique vertex, then feeds the cached
+results into each polygon in the unchanged painter order. Facing remains live;
+any polygon crossing the near plane falls back to the complete mapper; texture,
+flare, tint, culling, UV, and raster state are restored per command exactly as
+before. On the same fixed type-3 checkpoint at heading -163 degrees, measured
+rendering increased from 17.0 to 27.9 FPS. The product capture retained the
+continuous terrain coverage, trees, HUD, and border without a worker error.
+This is a substantial multiplier but does not close the cross-scene 60-FPS
+goal, and the several-minute cold surface build remains a separate bottleneck.
+
 The direct foliage pass also exposed a critical address-space bug. Its
 translated native fragment treated the workspace-relative `RADPT` symbol as
 an absolute unit address instead of adding Noctis's workspace base. Every
