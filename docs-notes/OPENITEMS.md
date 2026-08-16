@@ -787,6 +787,38 @@ gain.
 This is a substantial multiplier but does not close the cross-scene 60-FPS
 goal, and the several-minute cold surface build remains a separate bottleneck.
 
+**Exact crater, facing, and wind-varying tree kernels.** The complete standard
+crater loop now runs as one JavaScript service while retaining its signed
+radius quirk, unsigned clipping, radial stamps, x87 narrowing schedule, map
+writes, registers, RNG, and FPU exit state. Four direct-versus-source cases had
+zero differences across the entire machine memory. In the same lunar product
+fixture, time through surface construction and the following sample fell from
+111.6 to 84.7 seconds; steady rendering was intentionally unchanged.
+
+Mapped facing no longer allocates temporary edge, cross-product, and normal
+arrays for every polygon. Its scalar schedule produces the same whole-memory
+hash as the previous kernel. A tree-heavy turning product sample moved from
+about 29.0 to 31.5 measured FPS, although the changing final camera makes that
+measurement directional rather than a controlled frame-for-frame comparison.
+
+The remaining tree-cache invalidation was structural: the key included the
+incoming fast-RNG seed even though `VHGND tree` immediately overwrites it from
+the tree's world coordinates. Wind also changed leaf-tip coordinates without
+changing branch topology. LinoJava now caches the topology independently,
+recomputes every wind-dependent binary32 leaf tip and greenmush seed, preserves
+the source-visible random mask and final scratch coordinates, and projects the
+updated shared vertices. A normal steady frame and a forced between-frame wind
+change both matched the source path with zero differences across the complete
+machine memory. Instrumented tree traversal fell from about 430 to 88 ms in
+the steady comparison and from 490 to 149 ms after the forced wind change. The
+actual worker product reached the same habitable turning scene in 69.2 seconds,
+continued without errors, and reported 31.4 rendered FPS with only 1.9 ms of
+render work plus 0.5 ms of display work. This removes interpreter pressure and
+cold-frame stutter, but it also makes the next open issue explicit: the
+remaining roughly 30-Hz gameplay cadence is not renderer saturation and must
+be reconciled with the 60-FPS desktop/parity requirement without changing the
+original simulation rate.
+
 The direct foliage pass also exposed a critical address-space bug. Its
 translated native fragment treated the workspace-relative `RADPT` symbol as
 an absolute unit address instead of adding Noctis's workspace base. Every
