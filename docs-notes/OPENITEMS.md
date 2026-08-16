@@ -780,6 +780,10 @@ flare, tint, culling, UV, and raster state are restored per command exactly as
 before. On the same fixed type-3 checkpoint at heading -163 degrees, measured
 rendering increased from 17.0 to 27.9 FPS. The product capture retained the
 continuous terrain coverage, trees, HUD, and border without a worker error.
+The corresponding continuously turning session reached 32.2 measured FPS,
+compared with 18.6 FPS in the pre-cache moving run; changing the camera every
+frame therefore still exercises the intended invalidation path and retains the
+gain.
 This is a substantial multiplier but does not close the cross-scene 60-FPS
 goal, and the several-minute cold surface build remains a separate bottleneck.
 
