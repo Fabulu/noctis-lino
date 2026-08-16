@@ -721,6 +721,39 @@ gameplay and it is not a claim of 7.4 simulation frames per second. Continue
 collapsing measured Lino hot loops into exact pure-JavaScript kernels while
 preserving the original gameplay cadence.
 
+**JavaScript translation-state audit and mapped-camera corruption fix.** A
+framebuffer-only comparison was not strong enough for the direct JavaScript
+services. Several routines produced the expected immediate pixels while
+leaving different Lino-visible cursors, helper words, or workspace values.
+The live audit now compares the complete machine memory where practical and
+found concrete state defects in rectangle fill, standard text, TGA loading,
+the cupola cache, the white-body raster, and the Stardrifter hull cache. The
+hull's whole-frame pixel replay was removed because it skipped every public
+polygon and raster transition; the retained shared-geometry path is still
+about twice as fast as interpreted source in the focused steady run and ends
+with identical complete memory.
+
+The most serious defect was in the mapped UV-step translation. Its wide
+temporaries were written to literal float-workspace offsets 24 through 27,
+but the source scratch slots are numbered 248 through 251. The wrong writes
+overwrote the projection distance and near-plane values. One correctly drawn
+HUD glyph could therefore corrupt the camera used by the following glyph,
+mapped hull panel, or terrain polygon. A two-glyph reproduction had 54 wrong
+pixels and omitted the second glyph. Addressing the named scratch slots makes
+both glyph pages exact and makes the complete presented Stardrifter frame hash
+match the interpreted Lino path. A focused regression now asserts that one UV
+step updates slots 248 through 251 without changing slots 24 through 27.
+
+The Cloudflare build published from LinoJava `11148f5` and Linoctissite
+`53a58db` held 60.0 rendered FPS and 60.0 Hz display in the post-deployment
+Stardrifter smoke, with 5.6 ms render and 0.8 ms display work. Fresh rocky and
+frozen landed smokes retained visible terrain and text without runtime errors;
+their reported rendered rates were about 48 to 50 FPS, so the cross-scene
+60-FPS acceptance item remains open. This evidence establishes direct
+JavaScript parity with the current Lino routines for the exercised paths. It
+does not replace the separate NIV+ native-renderer oracle required for visual
+authenticity.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
