@@ -784,15 +784,20 @@ columns. This removes one source of broad browser corruption, but the GAME
 menu report remains open until it is retested through the real public input
 route after this build is deployed.
 
-That result did not close the older horizon-column family. A later continuous-
-turn type-3 habitable capture showed long dotted vertical structures extending
-below a slanted visible terrain strip. They were present with both the ordinary
-source-facing routine and an experimental cached-facing routine; the latter was
-discarded. The two runs ended about four degrees apart, so this is evidence for
-the same defect class rather than a pixel-identical comparison. Keep it open as
-a terrain-coverage, painter-order, or surface-object rendering defect. It is
-not authenticated as an NIV+ renderer quirk, and it is distinct from the fixed
-workspace-relative foliage-address corruption.
+That result did not initially close the older horizon-column family. A later
+continuous-turn type-3 habitable capture showed long dotted vertical structures
+extending below a slanted visible terrain strip with both the ordinary facing
+routine and a discarded cached-facing experiment. The cause was a separate
+JavaScript-only whole-tile screen rejection inside the direct terrain kernel.
+When that speculative test rejected a foreground ground tile, the traversal
+still rendered the tile's tall trees and fauna, exposing distant foliage through
+ground that should have occluded it. Removing the rejection restores the source
+far-to-near terrain workload. A fixed checkpoint at the original failing
+heading of -163 degrees then rendered continuous foreground coverage with no
+dotted vertical structures, no worker error, and 17.0 measured FPS. The dark
+ground is populated framebuffer output rather than unwritten memory. Its exact
+palette remains subject to NIV+ visual grading, and this fix does not close the
+separate horizon-pillar reports in other planet scenes.
 
 The first published browser build showed cupola geometry without the
 Stardrifter exterior because the host shipped only the font file. Named reads
