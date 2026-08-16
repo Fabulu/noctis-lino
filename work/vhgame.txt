@@ -1207,6 +1207,12 @@
 	  display is inactive.  Its iGUI chrome may still repaint, but the complete
 	  game backdrop remains the last active frame until focus returns. )
 	A = [Display Status]; ? A - ACTIVE -> VHG GUI loop done;
+	( iGUI owns the composed backdrop while a pulldown menu or its file
+	  selector is visible.  Advancing and publishing a client frame here
+	  overwrites that chrome while leaving its hotspots active.  Keep both
+	  gameplay and the last composed page still until iGUI closes the modal. )
+	A = [Menu On]; ? A = YES -> VHG GUI loop done;
+	A = [FS On]; ? A = YES -> VHG GUI loop done;
 	( Windows converts Alt+F4 into WM_CLOSE before iGUI's enhanced-key
 	  session can serve F4, and this runtime discards that message.  Poll the
 	  live keyboard map here so the standard chord still takes the same clean
