@@ -784,6 +784,16 @@ columns. This removes one source of broad browser corruption, but the GAME
 menu report remains open until it is retested through the real public input
 route after this build is deployed.
 
+That result did not close the older horizon-column family. A later continuous-
+turn type-3 habitable capture showed long dotted vertical structures extending
+below a slanted visible terrain strip. They were present with both the ordinary
+source-facing routine and an experimental cached-facing routine; the latter was
+discarded. The two runs ended about four degrees apart, so this is evidence for
+the same defect class rather than a pixel-identical comparison. Keep it open as
+a terrain-coverage, painter-order, or surface-object rendering defect. It is
+not authenticated as an NIV+ renderer quirk, and it is distinct from the fixed
+workspace-relative foliage-address corruption.
+
 The first published browser build showed cupola geometry without the
 Stardrifter exterior because the host shipped only the font file. Named reads
 for `globes.map`, `offsets.map`, `vehicle.ncc`, `mammal.ncc`, and `birdy.ncc`
@@ -912,6 +922,15 @@ with no page or worker error. This is consistent with the foliage overwrite
 having poisoned GUI state in some sessions, but it is still a non-reproduction
 on one browser path. Keep the issue open until the reporter confirms the
 corrected public build and the crash packet catches any remaining failure.
+
+**Fresh direct report after that retest:** pressing GAME still crashes the game
+for the player, and the JavaScript GUI remains broadly unreliable. This report
+supersedes any implication that the synthetic menu sweep closed the defect.
+Treat the crash panel as diagnostic infrastructure, not as the fix. Reproduce
+and repair the actual player path, then require a manual GAME-menu confirmation
+before release closure. Audit missing console and overlay text in the same live
+session because corrupted machine state, menu layers, font pointers, or host
+event ordering may connect those symptoms.
 
 Keep the broader iGUI audit on the docket as a release blocker. Exercise every menu command and
 title-bar control, including menu construction, dormant-window registration,
