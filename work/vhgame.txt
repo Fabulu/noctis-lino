@@ -7606,6 +7606,7 @@
 	A = [VHGlandingview]; ? A = 0 -> VHG notice overlay done;
     "VHG notice overlay draw"
 	[String] = [VHGnoticeptr]; [Ink] = 80FF80h;
+	[Text Effect] = service FX Raw;
 	[Text X] = 12; [Text Y] = 176;
 	[Text Display Width] = 320; [Text Display Height] = 200;
 	[Text Region] = vector VHGUIregion;
