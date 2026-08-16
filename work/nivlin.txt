@@ -263,6 +263,8 @@
     "NV sector"
 	=> NV coords;
 	=> NV nearstar;
+	[PAi] = [EMCLp];
+	=> NV surface body;
 	=> NV emit sector;
 	-> NV done;
 

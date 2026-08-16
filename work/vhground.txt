@@ -415,7 +415,8 @@
 	=> GR rockyground; -> VHGND type1 craters;
     "VHGND type1 smooth"
 	[GRrough] = 25; C = 4; => SU rnd; C + 4; [GRround] = C; [GRlevel] = 0;
-	=> GR rockyground; -> VHGND type1 craters;
+	=> GR rockyground;
+	-> VHGND type1 craters;
     "VHGND type1 rough"
 	C = 5; => SU rnd; C + 5; [GRrough] = C; [GRround] = 1; [GRlevel] = 1;
 	=> GR rockyground;
@@ -426,6 +427,7 @@
 	? A '<= 30 -> VHGND type1 crater count ready; A = 30;
     "VHGND type1 crater count ready"
 	[VHGNDgenn] = A;
+
     "VHGND type1 crater loop"
 	A = [VHGNDgenn]; ? A = 0 -> VHGND type1 texture craters;
 	C = 32; => SU rnd; [FI] = C; => IntToF;
@@ -434,7 +436,9 @@
 	[FB0] = 33333333h; [FB1] = 3FB33333h; => FMul; => F32Narrow; => FStoreF32; [GRfhmt] = [FS0];
 	C = 50; => SU rnd; C + 5; [SUia] = C;
 	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
-	[GRfscl] = 127; [GRfsca] = 200; [GRscmap] = RPSM; => GR std crater;
+	[GRfscl] = 127; [GRfsca] = 200; [GRscmap] = RPSM;
+	=> GR std crater;
+
 	[VHGNDgenn]-; -> VHGND type1 crater loop;
     "VHGND type1 texture craters"
 	C = 48; => SU rnd; A = C; A + 64; A - [GRalbedo];
@@ -1546,15 +1550,31 @@
     "VHGND felisian low"
 	? A '<= 127 -> VHGND felisian peak; A = 127;
     "VHGND felisian peak"
-	[VHGNDtmp] = A; [MBval] = A;
-	A = RPSM; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
-	A = [VHGNDptr]; A + 1; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
-    "VHGND felisian left"
-	A = [VHGNDptr]; A - 1; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
-    "VHGND felisian down"
-	A = [VHGNDptr]; A + 200; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
-    "VHGND felisian up"
-	A = [VHGNDptr]; A - 200; A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+[VHGNDtmp] = A;
+	A = RPSM; A + [VHGNDptr]; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+	( neighbor writes: location+1, -1, +align, -align, with the C wrap
+	  into the objectschart region for out-of-heightmap indices )
+	A = [VHGNDptr]; A + 1; => VHGND felisian put;
+	A = [VHGNDptr]; A - 1; => VHGND felisian put;
+	A = [VHGNDptr]; A + 200; => VHGND felisian put;
+	A = [VHGNDptr]; A - 200; => VHGND felisian put;
+	-> VHGND felisian next;
+
+    "VHGND felisian put"
+	( A = index.  Write [VHGNDtmp] to p_surfacemap if 0<=i<40000, else to
+	  objectschart if 40016<=i<80016 (C far-heap layout), else skip. )
+	? A < 0 -> VHGND felisian put done;
+	? A '>= 40000 -> VHGND felisian put obj;
+	( i in 0..40000: p_surfacemap )
+	A + RPSM; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+	-> VHGND felisian put done;
+    "VHGND felisian put obj"
+	? A '< 40016 -> VHGND felisian put done;
+	? A '>= 80016 -> VHGND felisian put done;
+	( i in 40016..80016: objectschart[i-40016] )
+	A - 40016; A + ROBJ; [MBptr] = A; [MBval] = [VHGNDtmp]; => MEM put byte;
+    "VHGND felisian put done"
+	end;
     "VHGND felisian next"
 	[VHGNDlinelen]-; -> VHGND felisian pixel;
     "VHGND felisian done"
