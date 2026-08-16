@@ -20,7 +20,7 @@
 	VHPcol = 0; VHPi = 0;
 	VHPcamx = 0; VHPcamy = 0; VHPcamz = 0;
 	VHPalpha = 0; VHPbeta = 0;
-	VHPfontok = 0; VHPfi = 0; VHPchar = 0; VHPline = 0;
+	VHPfontok = 0; VHPfi = 0; VHPchar = 0; VHPline = 0; VHPdigitskip = 0;
 	VHPkey = 0; VHPcmdpos = 0; VHPsubmitted = 0; VHPactive = 0;
 	VHPblackout = 0; VHPresetphase = 0;
 	VHPoutptr = 0; VHPoutrows = 0; VHPoutview = 0; VHPouti = 0; VHPoutj = 0;
@@ -738,8 +738,17 @@
 	end;
 
 "VHP digit"
+	=> VHP digit prepare;
+	A = [VHPdigitskip]; ? A != 0 -> VHP digit done;
+	=> VHP draw mapped quad;
+	"VHP digit done"
+	end;
+
+"VHP digit prepare"
+	[VHPdigitskip] = 1;
 	A = [VHPchar]; ? A '<= 32 -> VHP digit done;
 	? A '> 96 -> VHP digit done;
+	[VHPdigitskip] = 0;
 	[DGdigit] = [VHPchar]; [DGcolor] = 152; [DGshader] = 0; => FB digit at;
 	( local glyph quad, z=0 )
 	[vhcpoly plus 0] = VHPGR; [vhcpoly plus 3] = VHPGR;
@@ -754,8 +763,7 @@
 	[FI] = VHPTY; => IntToF; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 4; [SPsrc] = 1; [SPtinta] = 128; [SPescr] = 0;
 	[SPflar] = 2; [SPcull] = 0; [SPhalf] = 0;
-	[VHPcol] = 128; => VHP draw mapped quad;
-	"VHP digit done"
+	[VHPcol] = 128;
 	end;
 
 "VHP draw mapped quad"

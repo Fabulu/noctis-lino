@@ -1920,7 +1920,7 @@ def main() -> int:
             "? A '< 1000000 -> VHG cadence done;",
             "[VHGsimcountprev] = [TKnow]; [VHGsimcountok] = 1; [VHGdosim] = 1;",
         ))
-        and "VHGfast = 0; VHGfastheld = 0; VHGsimacc = 0;" in game
+        and "VHGfast = 1; VHGfastheld = 0; VHGsimacc = 0;" in game
         and game.count("[VHGsimacc] = 1000000;") == 0
         and "A = [VHGfast]; ? A != 0 -> VHG timing fast;" in game
         and "=> TK step;" in section(game, '"VHG timing step"', '"VHG timing rebase"')
@@ -1928,7 +1928,7 @@ def main() -> int:
         and "[VHGNDdosim] = [VHGdosim];" in game
         and "[VHGNDinterpacc] = [VHGinterpacc];" in game
         and ground.count("A = [VHGNDdosim]; ? A = 0") >= 3,
-        "original presentation is default and F5 opts into 60 FPS without changing simulation cadence",
+        "60 FPS presentation is default and F5 retains classic presentation without changing simulation cadence",
     )
     one_frame = section(game, '"VHG one frame"', '"VHG flight init"')
     check(
