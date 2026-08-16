@@ -759,6 +759,12 @@
 	end;
 
 "VHP draw mapped quad"
+	=> VHP mapped quad load;
+	[PJnrv] = 4; [DBcol] = [VHPcol]; [DBflar] = 2; [DBent] = 0;
+	=> PG polymap;
+	end;
+
+"VHP mapped quad load"
 	[VHPi] = 0;
     "VHP mapped vertex"
 	A = [VHPi]; A '* 3; C = vhcpoly; C + A;
@@ -766,8 +772,6 @@
 	A = FSINY; A + [VHPi]; [PGFi] = A; [PGFt] = [C plus 1]; => PGF setf32;
 	A = FSINZ; A + [VHPi]; [PGFi] = A; [PGFt] = [C plus 2]; => PGF setf32;
 	[VHPi]+; A = [VHPi]; ? A < 4 -> VHP mapped vertex;
-	[PJnrv] = 4; [DBcol] = [VHPcol]; [DBflar] = 2; [DBent] = 0;
-	=> PG polymap;
 	end;
 
 "VH HUD FCS"
