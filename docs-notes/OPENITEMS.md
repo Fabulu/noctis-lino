@@ -936,6 +936,17 @@ measured FPS over 434 frames without a runtime error. Linoctissite `065bdab` is
 the corresponding public build. A broader outer-loop batch was measured,
 failed to improve the result, and was removed before publication.
 
+LinoJava `46257da` then replaces eight projected AABB corners per cached terrain
+model with a widened circumscribed-sphere test against the four camera frustum
+planes. The projection context and plane norms are built once per terrain
+traversal. The widened sphere is conservative, so uncertain models still enter
+the unchanged renderer. In a deterministic 28-frame comparison, steady frame
+time fell from 34.29 to 30.38 ms while the complete machine-memory, raster,
+display, and tree-command hashes remained identical. The browser run completed
+435 measured frames at 36.2 FPS with a final live rate of 38.8 FPS and no error.
+Linoctissite `586bd9d` publishes this checkpoint. The hard 60-FPS target remains
+open.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
