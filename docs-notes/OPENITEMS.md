@@ -954,6 +954,33 @@ before release closure. Audit missing console and overlay text in the same live
 session because corrupted machine state, menu layers, font pointers, or host
 event ordering may connect those symptoms.
 
+**Newest public-build regression bundle.** Treat the following as active,
+possibly connected release blockers even where an older focused smoke reported
+success:
+
+- GAME can crash or halt the running game from an ordinary player click. The
+  complete browser iGUI contract remains suspect, including layer ownership,
+  pointer routing, focus, menu dispatch, and unsupported desktop window actions.
+- All game and console text can disappear, not only one damaged glyph route.
+  Audit font loading, address relocation, text services, clipping, palette use,
+  and state left behind by translated drawing routines.
+- The Stardrifter exterior can acquire long stray lines. Its white smear can
+  grow across the screen without clearing, contain hundreds of black dots, and
+  become progressively more expensive until frame rate collapses.
+- The opening sun can lose its lens flares and show a black-square dither or
+  punched-out core. This is not authenticated original behavior. Compare the
+  indexed page and intermediate sun stages against a matched NIV+ oracle.
+- Saving and loading a checkpoint can change the Stardrifter from mauve to blue.
+  A snapshot must restore the authoritative palette and visual state, not act as
+  an accidental palette initializer or repair step.
+
+Audit every JavaScript routine translation exercised by these paths for both
+immediate pixels and complete Lino-visible exit state. In particular, compare
+scratch words, cursors, stack, framebuffer ownership, palette, clip state, and
+all persistence fields before accepting a visually plausible single frame.
+Reproduce the multi-frame smear and menu failure in the actual public product;
+one-call service tests and synthetic pointer injection are insufficient.
+
 Keep the broader iGUI audit on the docket as a release blocker. Exercise every menu command and
 title-bar control, including menu construction, dormant-window registration,
 layer ownership, focus, dismissal, command dispatch, resize, fold, hide,
