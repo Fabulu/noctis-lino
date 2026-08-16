@@ -895,6 +895,16 @@ cache/build identity, worker exception, and last committed machine state from a
 player-equivalent run. Test Save and quit separately as an intentional orderly
 halt rather than treating its stopped worker as a crash.
 
+The browser now retains an actionable failure packet instead of only freezing
+the last frame. An unexpected worker or foreground-runtime exception exposes a
+copyable report in the page and stores it in session storage. The packet
+contains the JavaScript stack, current Lino instruction and source location,
+all matching labels, A-E/X, stack depth and top entries, rendered-frame count,
+and the worker's last 32 key, pointer, physical-display, or display-position
+events. A synthetic run failure verified both the visible and persisted packet
+at the real `VHG run` call site. Intentional source `end` remains a normal stop
+and does not masquerade as a crash.
+
 After correcting the foliage framebuffer base and deploying LinoJava
 `ac9bec9`, another fresh public-page run used the actual DOM/canvas pointer
 route, opened GAME, selected the first command, and continued at about 58 FPS
