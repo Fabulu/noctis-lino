@@ -39,17 +39,39 @@
 
 "VH halogen flare"
 	[VHFadd] = 2;
-	[PGFi] = FSINX; [PGFt] = VHFM10; => PGF setf32;
-	[PGFi] = FSINY; [PGFt] = VHFP10; => PGF setf32;
-	[PGFi] = FSINZ; [PGFt] = VHFM10; => PGF setf32;
-	=> PG getcoords;
-	A = rwf; A = [A]; ? A = 0 -> VHF done;
-	A = [GCx]; A+; [VHFcx] = A;
-	A = [GCy]; A+; [VHFcy] = A;
-	A = [VHFcx]; ? A < 10 -> VHF done; ? A > 310 -> VHF done;
-	A = [VHFcy]; ? A < 10 -> VHF done; ? A > 190 -> VHF done;
+	( Use lens_flares_for's own raw projection, not PG getcoords.  The latter
+	  is a polygon helper with viewport-oriented result state; it can turn a
+	  far-off interior fixture into an apparently valid edge coordinate. )
+	A = 0; A - 10; A - [VHVcamxi]; [FI] = A; => IntToF; [PGFi] = SFXX; => PGF sa;
+	A = 10; A - [VHVcamyi]; [FI] = A; => IntToF; [PGFi] = SFYY; => PGF sa;
+	A = 0; A - 10; A - [VHVcamzi]; [FI] = A; => IntToF; [PGFi] = SFZZ; => PGF sa;
+	[PGFi] = SFXX; => PGF a; [PGFi] = FSPCB; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZZ; => PGF a; [PGFi] = FSPSB; => PGF mul;
+	[PGFi] = SFT0; => PGF add; [PGFi] = SFRX; => PGF sa;
+	[PGFi] = SFZZ; => PGF a; [PGFi] = FSTCB; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFXX; => PGF a; [PGFi] = FSTSB; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFZ2; => PGF sa;
+	[PGFi] = SFZ2; => PGF a; [PGFi] = FSTCA; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFYY; => PGF a; [PGFi] = FSTSA; => PGF mul;
+	[PGFi] = SFT0; => PGF add; [PGFi] = SFRZ; => PGF sa;
+	[PGFi] = SFYY; => PGF a; [PGFi] = FSPCA; => PGF mul;
+	[PGFi] = SFT0; => PGF sa;
+	[PGFi] = SFZ2; => PGF a; [PGFi] = FSPSA; => PGF mul;
+	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFRY; => PGF sa;
+	[FI] = 1; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[PGFi] = SFRZ; => PGF a; => FCmp;
+	A = [FI]; ? A <= 0 -> VHF done;
+	[PGFi] = SFRX; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;
+	A = [FI]; A+; C = 0; C - 150; ? A <= C -> VHF done;
+	? A >= 160 -> VHF done; A + 160; [VHFcx] = A;
+	[PGFi] = SFRY; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;
+	A = [FI]; A+; C = 0; C - 90; ? A <= C -> VHF done;
+	? A >= 90 -> VHF done; A + 100; [VHFcy] = A;
 	[FI] = 50000; => IntToF; [PGFi] = FSW0; => PGF sa;
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSRZF; => PGF quo;
+	[PGFi] = FSW0; => PGF a; [PGFi] = SFRZ; => PGF quo;
 	[VHFk0] = [FA0]; [VHFk1] = [FA1];
 	=> VHF draw; end;
 
