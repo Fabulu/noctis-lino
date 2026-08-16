@@ -249,6 +249,16 @@ Desktop and browser captures of the same migrated opening fixture now show the
 bounded filled sun and flare. The broader cross-class/context coverage below
 remains open.
 
+**Reopened by a later public-build report.** A player subsequently observed
+the white Stardrifter smear spreading across the screen, retaining hundreds of
+black dots, and becoming expensive enough to collapse the frame rate. Treat
+that report as authoritative for its persisted session even though a fresh
+local version-17 checkpoint now remains bounded during stationary and held-key
+runs. Capture the player's stored `CURRENT.LIN`, exact deployed asset identity,
+drive state, and successive indexed pages. Do not call the symptom authentic
+or closed until that real state is reproduced and compared with the native
+renderer.
+
 **Completed foundation.** The flare raster, clipping, trig setup, ghost
 reflection, surface occlusion, and brightness-band behaviour now match direct
 NIV+ page dumps. A 12-class star matrix compares four 64,000-byte checkpoints
@@ -722,6 +732,20 @@ sequence. The public status line now calls its cumulative counter
 `presentations` and separately reports a measured presentation rate instead
 of looking like an FPS counter.
 
+**Landed hot-path progress on 2026-08-16.** The JavaScript replacement for
+`VHGND vload` skipped its Lino prologue: it read stale `FI` instead of the
+caller's `VHGNDvv` coordinate and failed to restore `PJfwbase`. That could
+suppress detail or project it through stale terrain state. The replacement now
+performs both source assignments before its native body. The ordinary aligned
+nearest-mode triangle-vector, mapped-step, and row-trace paths now use one
+cached `Float64Array` over the same Lino memory while preserving the original
+binary64 scratch writes and binary32 narrowing points. In the same stationary
+rocky-world fixture, the product moved from the prior 31.8 measured FPS to
+39.8 measured FPS after the row kernel was split into a JIT-sized helper. The
+visible frame remained intact and the focused intrinsic regression passed.
+This is meaningful progress, but 39.8 is not 60 and the acceptance item stays
+open.
+
 The first published browser build showed cupola geometry without the
 Stardrifter exterior because the host shipped only the font file. Named reads
 for `globes.map`, `offsets.map`, `vehicle.ncc`, `mammal.ncc`, and `birdy.ncc`
@@ -774,11 +798,16 @@ cover. The Stardrifter's white smear/corona effects spread across the viewport,
 retained hundreds of black holes like the defective sun core, and progressively
 reduced the rendered frame rate. A reproduced long run reached only about 26
 rendered FPS with 32.6 ms of render work and showed most of the viewport covered
-by stale white geometry. On 2026-08-16 the browser fade was changed to apply the
-equivalent number of missed 60 Hz fade steps. That removed the runaway smear
-and fill-rate feedback loop in a 12-second browser run while retaining the
-original single step at 60 Hz. The black/dithered sun core still needs a native
-oracle comparison, and moving effects still need a longer interactive check.
+by stale white geometry. The initial wall-clock catch-up fade hid the symptom
+but was not source-exact and punched holes into slow-host effects. It has been
+removed. The real accumulation cause was checkpoint state: completed stellar
+approaches restored `MgApreached=1` while leaving `MgStspeed=1`, so the moving
+fade path kept consuming the stationary hull. Version 17 persists the exact
+drive flag and versions 1 through 16 reconstruct a completed approach as
+stationary. The remaining black core came from the separately corrected
+`VHT smooth grays` back-edge. A steady deployed run now keeps one source fade
+per rendered frame, shows a bounded filled corona, matches every pinned native
+stage hash, and has substantial 60 Hz render headroom.
 
 Opening the JavaScript build's GAME menu was reported to crash the game. The
 first complete reproduction found three interacting causes: browser input could
@@ -803,6 +832,19 @@ source-level or host-contract divergence. Then exercise every GAME command,
 keyboard and pointer dismissal, repeated opening, and return to live play. A
 menu is accepted only when an ordinary player can use it without stopping,
 corrupting, or silently freezing the Lino machine.
+
+**Current deployed retest.** After the input, shadow, scheduler, and checkpoint
+fixes were published, a fresh production load accepted an ordinary held pointer
+click on GAME. A single session then selected all eleven non-quit rows with the
+same player-like press duration. Every option closed the menu, returned to the
+idle game loop, kept the worker running, and produced no page or worker error.
+GAME to GOES also displayed its complete cyan and green console text. Keep the
+manual report open: the latest direct player report still says that pressing
+GAME crashes the game, so the automated sweep is only a non-reproduction on one
+input path and browser state, not closure. Capture the real click sequence,
+cache/build identity, worker exception, and last committed machine state from a
+player-equivalent run. Test Save and quit separately as an intentional orderly
+halt rather than treating its stopped worker as a crash.
 
 Keep the broader iGUI audit on the docket as a release blocker. Exercise every menu command and
 title-bar control, including menu construction, dormant-window registration,
@@ -862,6 +904,20 @@ checked-in file; a 37-frame Chromium product smoke showed recognizable
 capture rendered the same `STANDBY` source text. This closes the browser file
 selection bug only. XQuartz reproduction, complete glyph grading, projection
 and clipping parity, and matched NIV+ oracle evidence remain open.
+
+A later production GAME to GOES run rendered the complete `GOES COMMAND
+CONSOLE`, version, output, channel, and prompt strings and remained active at a
+reported 56.7 rendered FPS with no page or worker errors. This strengthens the
+browser product check but does not close the separate XQuartz path.
+
+**Reopened browser text and checkpoint palette report.** A later player run of
+the public JavaScript build showed no console text at all, and reported that
+saving then loading a checkpoint changed the Stardrifter palette from mauve to
+blue. Preserve the pre-save, post-save, and post-load indexed page, palette,
+font pointers, named-file hashes, and checkpoint bytes from that persisted
+session. The local GOES smoke is a non-reproduction, not closure. Loading must
+restore the source-authoritative visual state without using checkpoint reload
+as an accidental palette initializer.
 
 Do not close this from plausible screenshots. Use matched NIV+ framebuffer or
 glyph-atlas evidence for the source fonts, then require stable product captures
