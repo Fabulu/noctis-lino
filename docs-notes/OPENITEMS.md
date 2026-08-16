@@ -907,6 +907,16 @@ JavaScript parity with the current Lino routines for the exercised paths. It
 does not replace the separate NIV+ native-renderer oracle required for visual
 authenticity.
 
+**Exact landed-runtime optimization checkpoint, 2026-08-16.** The browser now
+uses conservative wind-adjusted bounds for cached trees, direct cached
+addresses in the repeated greenmush RNG/pixel path, allocation-free exact
+BigInt bit-length calculation in the x87 model, and direct typed float-bit
+views. In the fixed habitable worker fixture these changes raised the measured
+rate from about 14.2 to 21.7 FPS and cut tree replay from roughly 54 ms to 27 ms
+per terrain render. LinoJava's 42 checks, the site check, and a deployed GAME
+menu smoke passed. This is a substantial cross-planet checkpoint, not closure:
+the hard 60-FPS landed acceptance item remains open.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
