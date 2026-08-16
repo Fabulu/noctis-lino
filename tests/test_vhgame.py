@@ -1727,7 +1727,8 @@ def main() -> int:
         and all(token in save for token in (
             '[VHGgburst]; A + 1; A \'* 32768;',
             '[VHGresetcount]; A \'* 128;', '[VHGelight]; A \'* 64;',
-            'C + 4194304; [vhsvbuf plus 66] = C;', 'A & 63; [VHGilightlevel] = A;',
+            "[MgStspeed]; A '* 8388608;", 'C + A; [vhsvbuf plus 66] = C;',
+            'A / 8388608; A & 1; [MgStspeed] = A;', 'A & 63; [VHGilightlevel] = A;',
             'A & 1; [VHGelight] = A;', '[VHGresetcount] = A;', '[VHGgburst] = A;',
         )),
         "R and 6-9 restore onboard navigation/miscellaneous devices with live powered effects",
@@ -2137,7 +2138,7 @@ def main() -> int:
             "[VHGcmdsilent] = 0; [VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;",
         ))
         and all(token in save for token in (
-            "VHSVVERSION = 16;", "[vhsvbuf plus 24] = [VHTtx];",
+            "VHSVVERSION = 17;", "[vhsvbuf plus 24] = [VHTtx];",
             "[VHTtx] = [vhsvbuf plus 24];",
         )),
         "GOES NEXT/STAR retarget real Vimana travel and persist the selected star",
@@ -2882,7 +2883,9 @@ def main() -> int:
             "[vhsvbuf plus 62] = [VHGlocalacc];", "[vhsvbuf plus 63] = [VHGlocalphasetick];",
             "[VHSVlocalstored] = 1;",
             "[vhsvbuf plus 64] = C;", "[vhsvbuf plus 65] = [VHGnavbeta];",
-            "C + 4194304; [vhsvbuf plus 66] = C;", "[VHGilightlevel] = A;",
+            "[MgStspeed]; A '* 8388608;", "C + A; [vhsvbuf plus 66] = C;",
+            "A = 1; A - [MgApreached]; [MgStspeed] = A;",
+            "A / 8388608; A & 1; [MgStspeed] = A;", "[VHGilightlevel] = A;",
             "[VHGelight] = A;", "[VHGresetcount] = A;", "[VHGgburst] = A;",
             "[VHGautoscreenoff] = A;", "[VHGdepolarize] = A;", "[VHGnavbeta] = A;",
             "? A < MINIMUM WIDTH -> VHSV load done;", "? A > MAXIMUM HEIGHT -> VHSV load done;",
@@ -2922,7 +2925,7 @@ def main() -> int:
             < run.index("=> VHA apply;")
             < run.index("=> Enter Integrated GUI;")
         ))(section(game, '"VHG run"', '"service VHG repaint"')),
-        "version-16 checkpoints retain PFS/light fade and safely migrate v1-v15 progress",
+        "version-17 checkpoints retain drive and lighting state and safely migrate v1-v16 progress",
     )
     check(
         all(token in ground for token in (

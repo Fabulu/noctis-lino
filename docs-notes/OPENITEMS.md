@@ -235,6 +235,20 @@ palette capture. Preserve the input state, indexed framebuffer, palette, and
 sun-stage intermediates. Do not classify the pattern as authentic unless the
 native oracle reproduces it.
 
+**JavaScript defect fixed locally on 2026-08-16.** The portable translation of
+`VHT smooth grays` incorrectly carried EBP between destination pixels. The x86
+back-edge actually lands on `xor ebp,ebp`, so every output begins with a fresh
+packed-lane accumulator. Correcting that one control-flow edge removes the
+black lattice from the stellar core. The optimized JavaScript path now matches
+the pinned Borland NIV+ white, flare, smooth, and mask pages across all 64,000
+bytes at every stage. A separate checkpoint defect caused the spectacular
+screen-filling white smear: old saves retained `MgApreached` but omitted the
+paired `MgStspeed` drive/fade flag. Checkpoint version 17 now persists that flag
+and reconstructs the stable stopped-drive invariant for versions 1 through 16.
+Desktop and browser captures of the same migrated opening fixture now show the
+bounded filled sun and flare. The broader cross-class/context coverage below
+remains open.
+
 **Completed foundation.** The flare raster, clipping, trig setup, ghost
 reflection, surface occlusion, and brightness-band behaviour now match direct
 NIV+ page dumps. A 12-class star matrix compares four 64,000-byte checkpoints
@@ -766,15 +780,39 @@ and fill-rate feedback loop in a 12-second browser run while retaining the
 original single step at 60 Hz. The black/dithered sun core still needs a native
 oracle comparison, and moving effects still need a longer interactive check.
 
-Opening the JavaScript build's GAME menu was reported to crash the game. An
-automated pointer attempt on the rebuilt version did not crash, but also did
-not open the menu. Audit the complete iGUI transaction rather than patching the
-visible button alone:
-pointer capture, menu-window construction, dormant-window registration,
-layer ownership, focus, dismissal, command dispatch, and return to the game
-runner. Every menu and title-bar action must either work in the browser or
-produce an explicit safe browser behavior; none may corrupt or halt the Lino
-machine.
+Opening the JavaScript build's GAME menu was reported to crash the game. The
+first complete reproduction found three interacting causes: browser input could
+starve behind a long Lino execution slice, stale queued button state could
+replay a press after release, and the menu's real `FX Shadow` operation was
+missing from the JavaScript host. The unsupported effect stopped the worker and
+left its last frame visible, which looked like a game crash. The production
+browser now uses responsive execution slices and current pointer state, and its
+pure-JavaScript host implements the exact packed-channel shadow operation and
+raw tiled-region path. The Lino game also pauses frame publication while an
+iGUI menu or file selector owns the backdrop. A deployed interaction smoke
+opened the real 12-row Lino GAME menu, held it for one second, dismissed it,
+and continued rendering without an error.
+
+**Reopened by a fresh player report on 2026-08-16.** Activating GAME in the
+published JavaScript build still crashes or halts the game in at least one real
+interaction sequence. The earlier automated open-hold-dismiss smoke therefore
+covered only its exact synthetic pointer path and must not be treated as menu
+closure. Reproduce the player's ordinary click from a fresh public load, retain
+the worker exception and last committed machine state, and fix the first
+source-level or host-contract divergence. Then exercise every GAME command,
+keyboard and pointer dismissal, repeated opening, and return to live play. A
+menu is accepted only when an ordinary player can use it without stopping,
+corrupting, or silently freezing the Lino machine.
+
+Keep the broader iGUI audit on the docket as a release blocker. Exercise every menu command and
+title-bar control, including menu construction, dormant-window registration,
+layer ownership, focus, dismissal, command dispatch, resize, fold, hide,
+screen-off, fullscreen entry and exit, and return to the game runner. Browser
+actions that have no honest operating-system-window equivalent need an explicit
+safe behavior instead of inherited desktop assumptions. Every action must
+either work or explain that it is unavailable; none may corrupt or halt the
+Lino machine. Preserve an easy game-only fullscreen exit that does not consume
+Noctis's Escape key, and audit the same behavior on the desktop host.
 
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 

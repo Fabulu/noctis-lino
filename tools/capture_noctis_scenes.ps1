@@ -378,8 +378,9 @@ function New-Checkpoint {
     $u[64] = 4
     $u[65] = if ($Spec.ContainsKey('Nav')) { $Spec.Nav } else { 0 }
     # Synthetic scenes intentionally use the complete version-15 subset.
-    # Version 16 adds live transient lighting/reset state that these fixtures
-    # do not author and must not invent.
+    # Versions 16 and 17 add live transient lighting/reset/drive state that
+    # these fixtures do not author and must not invent. The loader reconstructs
+    # the stable stopped-drive invariant from their completed-approach flag.
     $byteCount = 264
     $bytes = New-Object byte[] $byteCount
     [Buffer]::BlockCopy($u, 0, $bytes, 0, $bytes.Length)
