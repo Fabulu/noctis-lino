@@ -1203,6 +1203,17 @@ pressed loop. A focused real-page run cancelled a press over GAME, observed
 rendering and no crash or console error. Keep the broader player report open
 until this deployed build is confirmed in the affected interactive session.
 
+**Fresh player report, 2026-08-17:** clicking GAME still crashes or halts the
+published JavaScript game. This supersedes the passing scripted menu smokes and
+keeps the defect open as a release blocker. Treat it as part of the broader
+browser iGUI reliability failure, not an isolated menu cosmetic: capture and
+repair the ordinary real-pointer path, then manually confirm repeated GAME
+open/use/dismiss cycles, every non-quit command, and continued rendering. The
+same acceptance pass must cover layer and focus ownership plus safe browser
+meanings for move, resize, maximize, fold, hide/screen-off, and fullscreen.
+No unsupported desktop-window action may crash, freeze, or corrupt the Lino
+machine.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
