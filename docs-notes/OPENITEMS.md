@@ -1214,6 +1214,17 @@ meanings for move, resize, maximize, fold, hide/screen-off, and fullscreen.
 No unsupported desktop-window action may crash, freeze, or corrupt the Lino
 machine.
 
+**GAME title-control hardening, 2026-08-17:** the browser host now recognizes
+the live Lino `Menu Button Hotspot` and schedules the original
+`service Menu Button Action` on the VM call stack. This avoids routing a
+browser title control through the modal pointer-capture loop while retaining
+the real Lino menu, layers, reset routine, and retrace. The call is asynchronous
+because the service legitimately yields during its display retrace. Real DOM
+clicks now open and dismiss GAME with continued rendering and no crash in the
+worker, foreground, and legacy main-thread runtimes. Keep the broader iGUI
+audit open until ordinary play has exercised every menu command and all
+desktop-only title controls have explicit browser-safe behavior.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
