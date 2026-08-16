@@ -743,8 +743,14 @@ binary64 scratch writes and binary32 narrowing points. In the same stationary
 rocky-world fixture, the product moved from the prior 31.8 measured FPS to
 39.8 measured FPS after the row kernel was split into a JIT-sized helper. The
 visible frame remained intact and the focused intrinsic regression passed.
-This is meaningful progress, but 39.8 is not 60 and the acceptance item stays
-open.
+A second delivery wave split the still-oversized vector and conservative tile
+visibility kernels, cached direct code handles, and routed aligned qword reads
+and writes through the same typed memory. The actual worker product then
+measured 98.0 FPS in that rocky fixture with 9.4 ms average runner work. A
+following Stardrifter smoke measured 73.7 FPS, stayed visually bounded, and
+reported no runtime errors. This proves that the pure-JavaScript architecture
+can clear 60 without reducing terrain or gameplay. The acceptance item remains
+open until moving play and every planet class also hold the target smoothly.
 
 The first published browser build showed cupola geometry without the
 Stardrifter exterior because the host shipped only the font file. Named reads
