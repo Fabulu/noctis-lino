@@ -121,6 +121,10 @@
 	V1 = { a };
 	V2 = { abc };
 
+	( dump file name suffixes )
+	NVDUMPNAME = { /surface.raw };
+	NVPALNAME = { /palette.raw };
+
 	( coords )
 	NRX = 0;
 	NRY = 0;
@@ -143,12 +147,15 @@
 	SCix = 0;
 	SCtmp = 0;
 	SCbody = 0;
+	NVdump = 0;		( -dump DIR: write surface.raw + palette.raw )
+	NVdi = 0;		( dump path builder index )
 
 "workspace"
 
 	VFSBUF = 64;
 	systws = 30000;
 	scbuf = 40;
+	NVdumpbuf = 256;	( scratch for DIR + / + name )
 
 "programme"
 
@@ -174,6 +181,21 @@
 	=> EMCL argbase;
 	[EMOname] = [EMCLt];
     "NV no out"
+
+	( if -dump DIR given, remember the directory for the planet dump )
+	A = [EMCLdump]; ? A = 0 -> NV no dump;
+	[EMCLix] = 1;
+    "NV find dump"
+	A = [EMCLix]; ? A >= [EMCLargc] -> NV no dump;
+	=> EMCL argbase;
+	A = EMCLFLAGDUMP; => EMCL stris; ? A = 1 -> NV got dump;
+	A = [EMCLix]; A + 1; [EMCLix] = A;
+	-> NV find dump;
+    "NV got dump"
+	A = [EMCLix]; A + 1; [EMCLix] = A;
+	=> EMCL argbase;
+	[NVdump] = [EMCLt];
+    "NV no dump"
 
 	( dispatch on the command word )
 	A = CMDSELF;	=> EMCL cmdis; ? A = 1 -> NV selftest;
@@ -207,6 +229,7 @@
 	=> NV nearstar;
 	[PAi] = [EMCLp];
 	=> NV surface body;
+	=> NV dump surface;
 	=> NV emit planet;
 	-> NV done;
 
@@ -382,6 +405,63 @@
 	[EMHcount] = 192;
 	=> EMH hsh;
 	[NVpfn] = [EMHfnv]; [NVpcrc] = [EMHcrc];
+	end;
+
+( ==================================================================== )
+( NV dump surface - write surface.raw and palette.raw to [NVdump].      )
+( The File WRITE emits one byte per 32-bit unit (4 bytes per unit), so   )
+( callers that need the raw byte stream must keep every 4th byte.        )
+
+"NV dump surface"
+	A = [NVdump]; ? A = 0 -> NV dump out;
+
+	( DIR + /surface.raw -> NVdumpbuf, write RPBG[0..64800] )
+	[NVdi] = 0;
+	A = [NVdump]; => NV dump cat;
+	A = NVDUMPNAME; => NV dump cat;
+	A = 0; => NV dump term;
+	[File Name] = NVdumpbuf;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	A = nw; A + RPBG; [Block Pointer] = A;
+	[Block Size] = 64800;
+	[Block Size] * BYTESPERUNIT;
+	isocall;
+
+	( DIR + /palette.raw -> NVdumpbuf, write sutmppal[0..768] )
+	[NVdi] = 0;
+	A = [NVdump]; => NV dump cat;
+	A = NVPALNAME; => NV dump cat;
+	A = 0; => NV dump term;
+	[File Name] = NVdumpbuf;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	A = sutmppal; [Block Pointer] = A;
+	[Block Size] = 768;
+	[Block Size] * BYTESPERUNIT;
+	isocall;
+
+	( clear the dump dir so a second body does not re-dump )
+	[NVdump] = 0;
+    "NV dump out"
+	end;
+
+( NV dump cat - append the null-terminated unit string at A to           )
+( NVdumpbuf at [NVdi].  Leaves [NVdi] past the last unit copied.         )
+
+"NV dump cat"
+    "NV dump cat ch"
+	B = [A]; ? B = 0 -> NV dump cat done;
+	E = NVdumpbuf; E + [NVdi]; [E] = B;
+	[NVdi] + 1; A+;
+	-> NV dump cat ch;
+    "NV dump cat done"
+	end;
+
+( NV dump term - store the terminator unit in A at NVdumpbuf[NVdi].     )
+
+"NV dump term"
+	E = NVdumpbuf; E + [NVdi]; [E] = A;
 	end;
 
 ( ==================================================================== )
