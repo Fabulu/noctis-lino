@@ -928,6 +928,14 @@ complete nonzero page, loaded font data, and no runtime error. This version is
 published through Linoctissite `6d24a2f`. It is another material step, but the
 60-FPS landed target and cross-planet acceptance remain open.
 
+The following exact particle-stamp batch in LinoJava `a6cf8e1` retains every
+fast-RNG transition and framebuffer write but publishes the final Lino RNG
+workspace and registers once per inner stamp loop instead of after each of its
+three immediately consumed draws. The same browser fixture reached 36.1
+measured FPS over 434 frames without a runtime error. Linoctissite `065bdab` is
+the corresponding public build. A broader outer-loop batch was measured,
+failed to improve the result, and was removed before publication.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
