@@ -981,6 +981,16 @@ all persistence fields before accepting a visually plausible single frame.
 Reproduce the multi-frame smear and menu failure in the actual public product;
 one-call service tests and synthetic pointer injection are insufficient.
 
+**Latest manual confirmation.** Pressing the GAME title-bar menu itself still
+crashes or halts the public JavaScript game for the player. More generally, the
+browser iGUI is not yet trustworthy enough for ordinary use: controls can map
+desktop-only window behavior into incoherent browser actions, and a scripted
+menu success does not establish that the real player path is safe. Keep GAME
+and the complete iGUI interaction audit open until the public build survives
+manual menu use, every non-quit command, dismissal, repeated opening, and
+return to live rendering without corrupting machine, layer, input, or font
+state.
+
 **Returning-browser persistence hardening deployed on 2026-08-16.** Clean
 automation and the player's long-lived browser were not starting from the same
 machine state. The host loaded all iGUI GlobalK blocks across deployments even
