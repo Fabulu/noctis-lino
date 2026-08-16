@@ -1180,6 +1180,17 @@ desktop-only title-bar action an explicit browser-safe meaning, including move,
 resize, maximize, fold, hide/screen-off, and game-only fullscreen with an exit
 that does not consume Noctis's Escape key.
 
+One real host-contract hole from that report is now repaired. Both the worker
+and foreground browser hosts publish an explicit Lino button-up transition when
+Chromium cancels a pointer, drops capture, hides the page, or moves focus away.
+They also abandon any pending title drag, resize, or fullscreen activation.
+Previously those browser events cleared keys but could leave iGUI's left-button
+hotspot latched indefinitely, trapping GAME or a title-bar control in its modal
+pressed loop. A focused real-page run cancelled a press over GAME, observed
+`Pointer Status=3`, then opened and dismissed GAME normally with continued
+rendering and no crash or console error. Keep the broader player report open
+until this deployed build is confirmed in the affected interactive session.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
