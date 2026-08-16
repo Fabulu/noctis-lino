@@ -754,6 +754,28 @@ JavaScript parity with the current Lino routines for the exercised paths. It
 does not replace the separate NIV+ native-renderer oracle required for visual
 authenticity.
 
+**Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
+had a multi-frame failure that the single-call service comparisons did not
+cover. The Stardrifter's white smear/corona effects spread across the viewport,
+retained hundreds of black holes like the defective sun core, and progressively
+reduced the rendered frame rate. A reproduced long run reached only about 26
+rendered FPS with 32.6 ms of render work and showed most of the viewport covered
+by stale white geometry. On 2026-08-16 the browser fade was changed to apply the
+equivalent number of missed 60 Hz fade steps. That removed the runaway smear
+and fill-rate feedback loop in a 12-second browser run while retaining the
+original single step at 60 Hz. The black/dithered sun core still needs a native
+oracle comparison, and moving effects still need a longer interactive check.
+
+Opening the JavaScript build's GAME menu was reported to crash the game. An
+automated pointer attempt on the rebuilt version did not crash, but also did
+not open the menu. Audit the complete iGUI transaction rather than patching the
+visible button alone:
+pointer capture, menu-window construction, dormant-window registration,
+layer ownership, focus, dismissal, command dispatch, and return to the game
+runner. Every menu and title-bar action must either work in the browser or
+produce an explicit safe browser behavior; none may corrupt or halt the Lino
+machine.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
