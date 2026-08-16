@@ -947,6 +947,19 @@ display, and tree-command hashes remained identical. The browser run completed
 Linoctissite `586bd9d` publishes this checkpoint. The hard 60-FPS target remains
 open.
 
+**Allocation-free JavaScript runner boundary.** LinoJava `e4ab148` reuses each
+machine's typed memory view and sends region exits through one common epilogue,
+removing the fresh DataView and two closure allocations formerly paid by every
+nested Lino call. This benefits fauna, terrain detail, GUI, Stardrifter, and
+arbitrary Lino projects rather than one renderer service. The compact emitter
+keeps static runners at 7.4 MiB instead of the first experimental 9.8 MiB.
+Across the deterministic habitable run it reduced steady frame time from 30.38
+to 28.33 ms with identical complete machine state, raster, and display hashes.
+All 42 LinoJava checks passed. Linoctissite `0cad531` is deployed, and a fresh
+public canvas click on GAME continued rendering with no page error or failure
+packet. This does not close the player-reported GAME failure or the 60-FPS
+target.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
