@@ -960,6 +960,18 @@ public canvas click on GAME continued rendering with no page error or failure
 packet. This does not close the player-reported GAME failure or the 60-FPS
 target.
 
+**Exact moving-fauna dispatch checkpoint, 2026-08-17.** LinoJava `b964d85`
+builds the source merge order for mammals and birds once per terrain traversal
+and dispatches only the records currently occupying each painted tile. When a
+rendered creature moves, its bucket is updated immediately, preserving the
+source behavior where that creature can enter a later tile during the same
+frame. The replacement also reproduces the loop's counters, selected record,
+registers, status, and final scratch state. A matched 12-frame habitable-world
+A/B ended with zero differing units across the complete 73,702,444-byte machine
+image, including identical raster, display, and presented hashes. Steady frame
+time in that run fell from 45.11 to 30.30 ms. Linoctissite `b7fd3bc` publishes
+the change. The hard 60-FPS and cross-planet acceptance items remain open.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
