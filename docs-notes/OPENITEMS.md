@@ -1053,6 +1053,29 @@ now leaves the real Lino menu visible, reports about 50-60 rendered FPS on a
 identified render-flood cause, but the broader menu item, repeated interaction,
 and browser iGUI contract audit remains open pending player confirmation.
 
+**Player verdict after the current public performance build: still a release
+blocker.** The faster build reaches a useful frame rate, but its translated
+rendering and GUI paths are not yet trustworthy. The reported failures are:
+
+- clicking GAME can still crash or halt the game in the player's ordinary
+  browser session, despite the isolated render-flood fix;
+- the Stardrifter exterior grows persistent white smear bands and stray lines
+  instead of clearing them, with dense black holes/dots inside the effect;
+- that accumulated smear becomes dramatically slower as it spreads;
+- game, HUD, and console text can all be absent;
+- the opening sun has no convincing lens flare and shows a black-square/dithered
+  centre that has not been authenticated against NIV+;
+- checkpoint save/load changes the Stardrifter palette from mauve to blue,
+  proving that live and restored visual state currently diverge.
+
+Treat these as one audit of the JavaScript translations and machine-state
+contract, not six cosmetic patches. Validate every optimized/direct routine
+against the ordinary Lino implementation for framebuffer output and all
+caller-visible state, then grade sun and effect behavior against a matched NIV+
+oracle. The acceptance run must exercise several consecutive Stardrifter
+frames, open and use GAME, enter GOES, show its text, save and reload, and return
+to stable live rendering without new pixels accumulating or frame time growing.
+
 Keep the broader iGUI audit on the docket as a release blocker. Exercise every menu command and
 title-bar control, including menu construction, dormant-window registration,
 layer ownership, focus, dismissal, command dispatch, resize, fold, hide,
