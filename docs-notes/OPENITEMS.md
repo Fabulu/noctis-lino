@@ -770,6 +770,20 @@ habitable rendering and its multi-minute cold surface build remain open, and
 the next pass must batch or cache the repeated tree polygon transforms rather
 than spending effort on small dispatch savings.
 
+The direct foliage pass also exposed a critical address-space bug. Its
+translated native fragment treated the workspace-relative `RADPT` symbol as
+an absolute unit address instead of adding Noctis's workspace base. Every
+mushroom stamp therefore wrote into unrelated live machine state rather than
+the display page. This explains the observed vertical dotted columns and could
+destabilize later text, GUI, or menu execution. The fixed path resolves
+`RADPT` through the Noctis buffer base; a focused regression checks the six
+pixel writes and proves the old workspace locations remain untouched. The
+corrected full habitable product smoke completed without a worker error at
+24.8 measured FPS and showed dense ground foliage without the vertical
+columns. This removes one source of broad browser corruption, but the GAME
+menu report remains open until it is retested through the real public input
+route after this build is deployed.
+
 The first published browser build showed cupola geometry without the
 Stardrifter exterior because the host shipped only the font file. Named reads
 for `globes.map`, `offsets.map`, `vehicle.ncc`, `mammal.ncc`, and `birdy.ncc`
