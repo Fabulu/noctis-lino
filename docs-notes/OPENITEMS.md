@@ -917,6 +917,18 @@ hit testing, pressed-state feedback, focus ownership, command routing, and
 unsupported window-manager actions all need coherent browser-native outcomes
 while the visible chrome continues to be rendered by the real Lino GUI.
 
+The first full title-bar control sweep found one concrete browser-host defect.
+Fold/unfold, sleep/wake, cropped game-only fullscreen, and the explicit
+fullscreen exit all completed through the real Lino buttons, but maximize kept
+the old window origin and enlarged the DOM window beyond the right and top
+edges of the viewport. Normal browser windows are now clamped to the visible
+viewport after Lino changes their logical size, and the corrected coordinates
+are written back to the Lino display workspace. Dormant 126x25 windows retain
+their source grid placement. The focused sweep now maximizes to an entirely
+visible window at the viewport edge and exits fullscreen cleanly with no page
+or worker error. Dragging, free resize, repeated state transitions, and every
+remaining command still belong to the open audit.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
