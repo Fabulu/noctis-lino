@@ -839,6 +839,17 @@ keyboard and pointer dismissal, repeated opening, and return to live play. A
 menu is accepted only when an ordinary player can use it without stopping,
 corrupting, or silently freezing the Lino machine.
 
+**Direct report repeated after the deployed retest.** The user again reports
+that merely pressing GAME crashes the published game and describes the current
+JavaScript GUI implementation as broadly unreliable. Treat that observation as
+authoritative over the synthetic non-reproduction below. Do not close this item
+from scripted pointer injection alone: reproduce it through the public page's
+real DOM/canvas event route, including its exact viewport scale, pointer
+capture, focus, worker scheduling, and menu-layer transition. Preserve a crash
+packet in the page when the worker stops so the next real occurrence exposes
+the exception, active code handle, menu state, and recent input events instead
+of leaving only a frozen last frame.
+
 **Current deployed retest.** After the input, shadow, scheduler, and checkpoint
 fixes were published, a fresh production load accepted an ordinary held pointer
 click on GAME. A single session then selected all eleven non-quit rows with the
@@ -860,7 +871,11 @@ actions that have no honest operating-system-window equivalent need an explicit
 safe behavior instead of inherited desktop assumptions. Every action must
 either work or explain that it is unavailable; none may corrupt or halt the
 Lino machine. Preserve an easy game-only fullscreen exit that does not consume
-Noctis's Escape key, and audit the same behavior on the desktop host.
+Noctis's Escape key, and audit the same behavior on the desktop host. This is a
+functional rework of the JavaScript iGUI contract, not a cosmetic pass: button
+hit testing, pressed-state feedback, focus ownership, command routing, and
+unsupported window-manager actions all need coherent browser-native outcomes
+while the visible chrome continues to be rendered by the real Lino GUI.
 
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
