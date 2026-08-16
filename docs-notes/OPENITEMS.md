@@ -895,6 +895,14 @@ cache/build identity, worker exception, and last committed machine state from a
 player-equivalent run. Test Save and quit separately as an intentional orderly
 halt rather than treating its stopped worker as a crash.
 
+After correcting the foliage framebuffer base and deploying LinoJava
+`ac9bec9`, another fresh public-page run used the actual DOM/canvas pointer
+route, opened GAME, selected the first command, and continued at about 58 FPS
+with no page or worker error. This is consistent with the foliage overwrite
+having poisoned GUI state in some sessions, but it is still a non-reproduction
+on one browser path. Keep the issue open until the reporter confirms the
+corrected public build and the crash packet catches any remaining failure.
+
 Keep the broader iGUI audit on the docket as a release blocker. Exercise every menu command and
 title-bar control, including menu construction, dormant-window registration,
 layer ownership, focus, dismissal, command dispatch, resize, fold, hide,
