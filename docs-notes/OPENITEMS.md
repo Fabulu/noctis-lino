@@ -1040,6 +1040,19 @@ session divergence. It does not close the direct reports or authenticate the
 Stardrifter lines, sun, palette progression, or translated renderer against
 NIV+.
 
+**GAME-menu render flood fixed and deployed on 2026-08-16.** A real click on
+the public GAME button exposed a host failure that looked like a crash without
+throwing an exception: iGUI's unpaced RETRACE loop produced roughly 4,000
+presentations per second, continuously recycled superseded buffers as new
+render credits, and saturated the worker/main-thread message path. Dropped
+frames now return only their storage; only a frame actually presented by the
+browser grants another render credit. The worker stops when those credits are
+exhausted and resumes on the next browser presentation. The same public click
+now leaves the real Lino menu visible, reports about 50-60 rendered FPS on a
+60-Hz display, and produces no crash packet or console error. This closes the
+identified render-flood cause, but the broader menu item, repeated interaction,
+and browser iGUI contract audit remains open pending player confirmation.
+
 Keep the broader iGUI audit on the docket as a release blocker. Exercise every menu command and
 title-bar control, including menu construction, dormant-window registration,
 layer ownership, focus, dismissal, command dispatch, resize, fold, hide,
