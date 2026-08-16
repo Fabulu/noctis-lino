@@ -917,6 +917,17 @@ per terrain render. LinoJava's 42 checks, the site check, and a deployed GAME
 menu smoke passed. This is a substantial cross-planet checkpoint, not closure:
 the hard 60-FPS landed acceptance item remains open.
 
+**Second exact landed-runtime checkpoint, 2026-08-16.** LinoJava `92d5897`
+removes repeated symbol, typed-view, and scalar scratch lookups from the
+floating tree-particle projector and uses one cached unaligned qword view
+through the exact one-point rotation path. It retains the original binary32
+spill points, workspace side effects, fast-RNG order, framebuffer writes, and
+x87 control changes. The same fixed habitable browser session rendered 375
+measured frames at 31.2 FPS, up from the preceding 21.7-FPS checkpoint, with a
+complete nonzero page, loaded font data, and no runtime error. This version is
+published through Linoctissite `6d24a2f`. It is another material step, but the
+60-FPS landed target and cross-planet acceptance remain open.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
