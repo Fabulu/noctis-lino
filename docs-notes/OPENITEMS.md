@@ -567,6 +567,20 @@ plausibility alone does not close this item. The finished result must look and
 behave authentically in motion, including beam direction, clipping, brightness,
 palette response, and transitions between contexts.
 
+**Orbital rocky/frozen pillar report resolved, 2026-08-17.** The vertical
+bands in the rocky and frozen gallery globes were not a native rendering quirk.
+Matched instrumented NIV+ orbital frames showed complete textured globes. Two
+port regressions combined to produce the bad captures. The exterior view added
+the source half-turn twice, moving the approached world off axis, and the
+two-resident cache ranked `FCmp`'s signed `-1/0/+1` result with an unsigned
+predicate. A closer body therefore could not replace the first catalogue
+entry, leaving the real surface map unavailable and exposing the distant
+crescent fallback as stripes. The renderer now uses the port's already-shifted
+exterior angle, refreshes the selected body origin before the scan, and ranks
+all three resident comparisons as signed values. Fresh rocky and frozen product
+captures show complete textured globes without pillars; focused regression
+checks pin the comparison and camera conventions.
+
 ## 7. Smooth 60 Hz presentation -- **SETTLED / MONITORED, FPS PARITY OPEN**
 
 Harden the optional 60 Hz renderer until sustained walking, looking, jetpack

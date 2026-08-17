@@ -255,8 +255,14 @@ public static class NoctisCaptureWin32 {
     [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowDelegate callback, IntPtr lParam);
     [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr parent, EnumWindowDelegate callback, IntPtr lParam);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hwnd, int command);
+    [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT point);
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] public static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll", CharSet = CharSet.Auto)] public static extern int GetClassName(IntPtr hwnd, StringBuilder name, int capacity);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
+    private static POINT savedCursor;
+    private static bool cursorSaved;
 
     public static void HideProcessPopups(IntPtr host) {
         uint processId;
@@ -278,9 +284,14 @@ public static class NoctisCaptureWin32 {
     }
 
     public static void ClearHover(IntPtr host) {
+        cursorSaved = GetCursorPos(out savedCursor);
+        SetCursorPos(GetSystemMetrics(0) - 1, GetSystemMetrics(1) - 1);
         PostMessage(host, 0x02A3, IntPtr.Zero, IntPtr.Zero); // WM_MOUSELEAVE
-        PostMessage(host, 0x0200, IntPtr.Zero,
-            new IntPtr((100 << 16) | 160));                 // WM_MOUSEMOVE
+    }
+
+    public static void RestoreCursor() {
+        if (cursorSaved) SetCursorPos(savedCursor.X, savedCursor.Y);
+        cursorSaved = false;
     }
 }
 '@
@@ -566,9 +577,13 @@ foreach ($spec in $scenes) {
         }
         if (-not $capturedInternally) {
             [NoctisCaptureWin32]::ClearHover($proc.MainWindowHandle)
-            Start-Sleep -Milliseconds 150
-            [NoctisCaptureWin32]::HideProcessPopups($proc.MainWindowHandle)
-            Save-WindowPng -Handle $proc.MainWindowHandle -Path $destination
+            try {
+                Start-Sleep -Milliseconds 150
+                [NoctisCaptureWin32]::HideProcessPopups($proc.MainWindowHandle)
+                Save-WindowPng -Handle $proc.MainWindowHandle -Path $destination
+            } finally {
+                [NoctisCaptureWin32]::RestoreCursor()
+            }
         }
         Write-Output ("CAPTURED {0} type {1} -> {2}" -f $spec.Name, $spec.Type, $destination)
         if ($ReportPerformance) {

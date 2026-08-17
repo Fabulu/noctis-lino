@@ -89,6 +89,16 @@ advertised page and stops immediately if any page is unavailable.
 
 ## Current measured position
 
+On 2026-08-17 the public sheet exposed Lino results, but they were not yet the
+output of this repository's current local harness. In the first 2,000 rows,
+1,269 had Lino results and none was perfect; the largest failures included both
+landed surface-texture fields. A fresh local replay of the same live type-2 row
+matched all 11 original hashes. No upstream PR, public fork, or NIVGEN branch
+was visible in either this repository or the original Linoleum repository at
+that time. Treat the public Lino column as an integration bring-up until the
+announced upstream patch arrives and its runner is identified with the current
+source and executable hash.
+
 The sheet is live, so all counts require a timestamp. On 2026-08-14 the API
 advertised 7,616 rows. Its first 2,000-row page had Rust results for 1,312 rows:
 98 rows had 254 mismatched fields, including 85 type-2 rows. This is a

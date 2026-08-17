@@ -1950,14 +1950,17 @@
 
 "VHG local render"
 	A = [VHGlocalactive]; ? A = 0 -> VHG local render done;
-	=> VHG local resident scan;
 	( planet_xyz(selected) places the approached world in the generated
 	  system.  The fine-approach integrator stores the Stardrifter relative
-	  to that world, so the primary star is -planet_xyz-ship. )
+	  to that world.  Refresh this origin before the resident scan: orbital
+	  phase can change it, and measuring against the previous origin selects
+	  the wrong physical surface caches. )
 	[VHGNDvecindex] = [VHGplanet]; => VHGND absolute body vector;
 	[VHGlocaltx0] = [VHGNDvecx0]; [VHGlocaltx1] = [VHGNDvecx1];
 	[VHGlocalty0] = [VHGNDvecy0]; [VHGlocalty1] = [VHGNDvecy1];
 	[VHGlocaltz0] = [VHGNDvecz0]; [VHGlocaltz1] = [VHGNDvecz1];
+	=> VHG local resident scan;
+	( The primary star is -planet_xyz-ship. )
 	=> VHG local star coords;
 	=> VHT visibility; A = [VHTwhiteok]; ? A = 0 -> VHG local star premask;
 	[PGFt] = [VHTRay]; => PGF ldf32; [VHTtmp0] = [FA0]; [VHTtmp1] = [FA1];
@@ -2262,7 +2265,7 @@
     "VHG local resident compare first"
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
 	[FB0] = [VHGlocalnear10]; [FB1] = [VHGlocalnear11]; => FCmp;
-	A = [FI]; ? A '>= 0 -> VHG local resident compare second;
+	A = [FI]; ? A >= 0 -> VHG local resident compare second;
 	[VHGlocalresident2] = [VHGlocalresident1];
 	[VHGlocalnear20] = [VHGlocalnear10]; [VHGlocalnear21] = [VHGlocalnear11];
 	[VHGlocalresident1] = [VHGlocalbody];
@@ -2276,7 +2279,7 @@
     "VHG local resident compare second distance"
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
 	[FB0] = [VHGlocalnear20]; [FB1] = [VHGlocalnear21]; => FCmp;
-	A = [FI]; ? A '>= 0 -> VHG local resident scan next;
+	A = [FI]; ? A >= 0 -> VHG local resident scan next;
 	[VHGlocalresident2] = [VHGlocalbody];
 	[VHGlocalnear20] = [VHGlocaldist0]; [VHGlocalnear21] = [VHGlocaldist1];
     "VHG local resident scan next"
@@ -2298,7 +2301,7 @@
     "VHG local resident primary compare"
 	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
 	[FB0] = [VHGlocalnear20]; [FB1] = [VHGlocalnear21]; => FCmp;
-	A = [FI]; ? A '>= 0 -> VHG local resident primary next;
+	A = [FI]; ? A >= 0 -> VHG local resident primary next;
 	[VHGlocalresident2] = [VHGlocalbody];
 	[VHGlocalnear20] = [VHGlocaldist0]; [VHGlocalnear21] = [VHGlocaldist1];
     "VHG local resident primary next"
@@ -3036,10 +3039,10 @@
 	[VHSdy0] = [MgDzatY0]; [VHSdy1] = [MgDzatY1];
 	[VHSdz0] = [MgDzatZ0]; [VHSdz1] = [MgDzatZ1];
 	[VHSalpha] = [VHGalpha];
-	( from_vehicle(): user_beta + navigation_beta + 180.  VHGbeta is the
-	  unshifted player view used by the interior, so retain the source's
-	  half-turn when projecting stars and planets outside the Stardrifter. )
-	A = [VHGbeta]; A + [VHGnavbeta]; A + 180; A % 360;
+	( from_vehicle(): user_beta + navigation_beta + 180.  The port's external
+	  VHGbeta convention already includes that source half-turn, as proved by
+	  the native orbital globe poses, so add only navigation_beta here. )
+	A = [VHGbeta]; A + [VHGnavbeta]; A % 360;
 	? A >= 0 -> VHG external beta ok; A + 360;
     "VHG external beta ok"
 	[VHSbeta] = A; [VHSamp] = [VHGamp];

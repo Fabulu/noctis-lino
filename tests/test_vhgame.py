@@ -1734,6 +1734,18 @@ def main() -> int:
         )),
         "R and 6-9 restore onboard navigation/miscellaneous devices with live powered effects",
     )
+    resident_scan = section(game, '"VHG local resident scan"', '"VHG local ensure surface"')
+    external_camera = section(game, '"VHG render"', '"VHG close star rendered"')
+    local_render = section(game, '"VHG local render"', '"VHG local ring"')
+    check(
+        resident_scan.count("A = [FI]; ? A >= 0") == 3
+        and "A = [FI]; ? A '>= 0" not in resident_scan
+        and "A = [VHGbeta]; A + [VHGnavbeta]; A % 360;" in external_camera
+        and "A = [VHGbeta]; A + [VHGnavbeta]; A + 180;" not in external_camera
+        and local_render.index("[VHGNDvecindex] = [VHGplanet]; => VHGND absolute body vector;")
+        < local_render.index("=> VHG local resident scan;"),
+        "orbital renderer selects the nearest resident maps with signed distances and the native exterior pose",
+    )
     fcs_menu_overlay = section(game, '"VHG FCS menu overlay"', '"VHG browse format rows"')
     fcs_menu_key = section(game, '"VHG FCS menu key"', '"VHG device key"')
     check(
