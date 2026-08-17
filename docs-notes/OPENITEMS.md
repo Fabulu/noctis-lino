@@ -1290,6 +1290,14 @@ implementation under audit: browser-inapplicable move, resize, maximize, fold,
 hide/screen-off, and fullscreen actions need coherent safe behavior and none
 may crash, freeze, or corrupt the Lino machine.
 
+The latest player verdict is that the JavaScript iGUI remains sketchy as a
+whole, not merely that GAME has one bad command. Do not treat the current GUI
+as release-ready and do not close this from synthetic pointer injection. The
+public build must survive ordinary manual clicks through the real canvas/DOM
+route, retain correct focus and layer ownership, and return from every safe
+menu or title-control action to a visibly live game. GAME itself is a hard
+release blocker until that exact player route stops crashing.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
