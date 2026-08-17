@@ -107,7 +107,7 @@
 	=> VHGND palette; [VHLphase] = 4; => VHL write phase;
 	[VHGx] = 1646592; [VHGz] = 1646592; [VHGalpha] = 0; [VHGbeta] = 0;
 	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz];
-	=> VHGND eye height; [VHLphase] = 5; => VHL write phase;
+	=> service VHGND eye height; [VHLphase] = 5; => VHL write phase;
 	[VHGy] = [VHGNDheight]; [VHGmode] = 1; [VHGlanded] = 1;
 	[VHLphase] = 6; => VHL write phase;
 	=> TK seed; => TK start;
@@ -406,7 +406,7 @@
 	A = [KEY D]; ? A = OFF -> VHG surface moved; [VHGstepv] = VHGNDSTEP; => VHG strafe;
     "VHG surface moved"
 	=> VHG surface clamp;
-	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;
 	[VHGy] = [VHGNDheight];
 	end;
     "VHG quit"
@@ -517,7 +517,7 @@
 	=> VHG prepare planet;
 	=> VHGND generate; => VHGND palette;
 	[VHGx] = 1646592; [VHGz] = 1646592; [VHGalpha] = 0; [VHGbeta] = 0;
-	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;
 	[VHGy] = [VHGNDheight]; [VHGmode] = 1; [VHGlanded] = 1;
     "VHG land rejected"
 	end;

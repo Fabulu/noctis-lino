@@ -861,7 +861,7 @@
 	( Cache the selected site's exact HPOINT for descent and the persistent
 	  capsule mesh. )
 	[VHGNDcamx] = [VHGNDdropx]; [VHGNDcamz] = [VHGNDdropz];
-	=> VHGND eye height; A = [VHGNDheight]; A + 600; [VHGNDdropy] = A;
+	=> service VHGND eye height; A = [VHGNDheight]; A + 600; [VHGNDdropy] = A;
 	=> VHGND animals setup;
 	=> VHGND birds setup;
 	=> VHGND waves init;
@@ -2411,7 +2411,7 @@
 	[BGsi] = OMBYTES;
 	end;
 
-"VHGND eye height"
+"service VHGND eye height"
 	( Exact HPOINT float path.  Interpolating byte heights as integers can
 	  lose almost two full height units (4096 world units), enough to put the
 	  600-unit eye below the triangles.  Preserve both source float stores.
@@ -6348,7 +6348,7 @@
 	[VHGNDcamx] = [FI];
 	A = FSINZ; A + [VHGNDtreepoint]; [PGFi] = A; => PGF a; => FToIntChop;
 	[VHGNDcamz] = [FI];
-	=> VHGND eye height;
+	=> service VHGND eye height;
 	A = FSINY; A + [VHGNDtreepoint]; [PGFi] = A;
 	[PGFt] = [VHGNDpy]; => PGF setf32;
 	[VHGNDcamx] = [VHTcamxsave]; [VHGNDcamz] = [VHTcamzsave];
@@ -6576,7 +6576,7 @@
 	end;
 
 "VHGND rock height"
-	[VHGNDcamx] = [VHGNDrox]; [VHGNDcamz] = [VHGNDroz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGNDrox]; [VHGNDcamz] = [VHGNDroz]; => service VHGND eye height;
 	A = [VHGNDheight]; A + 600; [VHGNDroy] = A;
 	[VHGNDcamx] = [VHGNDviewx]; [VHGNDcamz] = [VHGNDviewz]; [VHGNDh1] = [VHGNDrocktile];
 	end;

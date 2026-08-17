@@ -3922,7 +3922,7 @@
 	[VHGsurfstep] = [VHGsurfbkstep]; [VHGsurfshift] = [VHGsurfbkshift];
     "VHG surface movement sampled"
 	=> VHG surface motion;
-	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;
 	[VHGsurfground] = [VHGNDheight]; => VHG surface vertical;
 	=> VHG surface capsule proximity;
     "VHG surface input done"
@@ -4028,7 +4028,7 @@
 	[VHGsurfbeta] = [VHGbeta];
     "VHG surface heading ready"
 	[VHGsurfrefx] = [VHGx]; [VHGsurfrefz] = [VHGz];
-	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;
 	[VHGsurfoldground] = [VHGNDheight];
 	[VHVcamxi] = [VHGx]; [VHVcamyi] = [VHGy]; [VHVcamzi] = [VHGz];
 	[VHValpha] = 0; [VHVbeta] = [VHGsurfbeta]; => VH set view;
@@ -4048,7 +4048,7 @@
 	? A >= 4 -> VHG surface friction done; [VHGsurfstep] = 0;
     "VHG surface friction done"
 	A = [VHGsurfjumping]; ? A != 0 -> VHG surface slope done;
-	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;
 	[VHGsurfnewground] = [VHGNDheight];
 	A = [VHGsurfoldground]; A - [VHGsurfnewground];
 	A '* [VHGsurfgravm]; A '* 12; A / 100; A - 24000;
@@ -7039,7 +7039,7 @@
 	  its player permanently beyond capsule range. )
 	A = [VHSVdropstored]; ? A != 0 -> VHG load stored capsule;
 	[VHGNDdropx] = [VHGx]; [VHGNDdropz] = [VHGz];
-	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;
 	A = [VHGNDheight]; A + 600; [VHGNDdropy] = A;
 	-> VHG load capsule ready;
     "VHG load stored capsule"
@@ -7047,7 +7047,7 @@
 	( A settled capsule rests on deterministic terrain.  Re-sample hpoint at
 	  its persisted X/Z so legacy saves made while drop_y had the wrong
 	  eye-height convention cannot bury or levitate the restored mesh. )
-	[VHGNDcamx] = [VHGNDdropx]; [VHGNDcamz] = [VHGNDdropz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGNDdropx]; [VHGNDcamz] = [VHGNDdropz]; => service VHGND eye height;
 	A = [VHGNDheight]; A + 600; [VHGNDdropy] = A;
     "VHG load capsule ready"
 	( Capsule phase is intentionally transient and is not part of the checkpoint
@@ -7342,7 +7342,7 @@
 	[VHGsurfair] = 0; [VHGsurfjet] = 0; [VHGsurfjumping] = 0; [VHGsurfvy] = 0;
 	[VHGsurfstep] = 0; [VHGsurfshift] = 0; [VHGsurfbeta] = [VHGbeta];
 	[VHGsurftiredr] = 0; [VHGsurflevelacc] = 0; [VHGNDplayerstep] = 0;
-	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;
 	[VHGsurfground] = [VHGNDheight]; [VHGy] = [VHGsurfground];
 	end;
 

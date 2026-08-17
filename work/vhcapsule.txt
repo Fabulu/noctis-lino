@@ -138,7 +138,7 @@
 	A = [VHGz]; ? A '<= VHGNDHI -> VHGC wind z ready; [VHGz] = VHGNDHI;
     "VHGC wind z ready"
 	( Lateral motion changes both the impact height and the safe-slope scan. )
-	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;
 	A = [VHGNDheight]; A + 600; [VHGCground] = A;
     "VHGC wind done"
 	end;
@@ -204,7 +204,7 @@
 	A = [VHGz]; A > 14; A < 14; A + 8192; [VHGz] = A;
 	( Wind may have moved the pod away from the generated drop point; sample
 	  the snapped tile centre used by the persistent capsule mesh. )
-	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;
 	A = [VHGNDheight]; A + 600; [VHGCground] = A;
 	A = [VHGCground]; A - 600; [VHGy] = A;
 	[VHGNDdropx] = [VHGx]; [VHGNDdropy] = [VHGCground]; [VHGNDdropz] = [VHGz];
@@ -263,7 +263,7 @@
 	end;
 
 "VHGC slope sample"
-	=> VHGND eye height; A = [VHGNDheight]; A + 600; A - [VHGCground]; [VHGCsample] = A;
+	=> service VHGND eye height; A = [VHGNDheight]; A + 600; A - [VHGCground]; [VHGCsample] = A;
 	? A '<= [VHGCslope] -> VHGC slope sample clean;
 	[VHGCslope] = A; [VHGCslopedir] = [VHGCslopet];
     "VHGC slope sample clean"

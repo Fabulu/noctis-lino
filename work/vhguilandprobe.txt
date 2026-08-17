@@ -494,7 +494,7 @@
 	A = [KEY D]; ? A = OFF -> VHG surface moved; [VHGstepv] = VHGNDSTEP; => VHG strafe;
     "VHG surface moved"
 	=> VHG surface clamp;
-	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;
+	[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;
 	[VHGy] = [VHGNDheight];
 	end;
     "VHG quit"
