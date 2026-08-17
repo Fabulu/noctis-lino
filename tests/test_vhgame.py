@@ -858,7 +858,7 @@ def main() -> int:
             "A '* 917; A / 10240;",
             "A = [VHGx]; A - [FI]; [VHGx] = A;",
             "A = [VHGz]; A + [FI]; [VHGz] = A;",
-            "=> VHGND eye height;", '"VHGC slope scan loop"',
+            "=> service VHGND eye height;", '"VHGC slope scan loop"',
             "[FB0] = 9999999Ah; [FB1] = 3F999999h; => FAdd;",
             "=> FSin;", "=> FCos;", "[VHGCslopedir] = [VHGCslopet];",
         ))
@@ -2895,9 +2895,9 @@ def main() -> int:
         and all(token in game for token in (
             '"VHG load original cadence"', "[VHGNDcaptures] = [VHSVcaptures];",
             '"VHG load stored capsule"', "[VHGNDdropx] = [VHGx]; [VHGNDdropz] = [VHGz];",
-            "[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => VHGND eye height;",
+            "[VHGNDcamx] = [VHGx]; [VHGNDcamz] = [VHGz]; => service VHGND eye height;",
             "[VHGNDdropx] = [VHSVdropx]; [VHGNDdropz] = [VHSVdropz];",
-            "[VHGNDcamx] = [VHGNDdropx]; [VHGNDcamz] = [VHGNDdropz]; => VHGND eye height;",
+            "[VHGNDcamx] = [VHGNDdropx]; [VHGNDcamz] = [VHGNDdropz]; => service VHGND eye height;",
             "A = [VHGNDheight]; A + 600; [VHGNDdropy] = A;",
             '"VHG restore window"', "[New Display Width] = [VHSVwindoww];",
             "=> Resize Display;", "=> VHG restore window;", "=> VHA apply;",
@@ -2987,7 +2987,7 @@ def main() -> int:
             "A = [DBflar]; A & 15; ? A = 0 -> VHGND tree limb pixel fast;",
             "A = [DBflar]; A & 15; ? A = 0 -> VHGND tree leaf pixel fast;",
             "[PJnrv] = 4; => PG polymap;", "[PJnrv] = 3; => PG polymap;",
-            '"VHGND tree root height"', "=> VHGND eye height;",
+            '"VHGND tree root height"', "=> service VHGND eye height;",
             "A = [PGtexoff]; A + 48; [PGtexoff] = A;",
             "[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3;",
             "[VHGNDmushxf] = [VHGNDtreepx]; [VHGNDmushyf] = [VHGNDtreeleafdrop];",
@@ -3476,7 +3476,7 @@ def main() -> int:
         and "[D] = A" in gui,
         "GUI presenter composes one logical RGB page and writes only the authoritative backdrop",
     )
-    eye = section(ground, '"VHGND eye height"', '"VHGND render"')
+    eye = section(ground, '"service VHGND eye height"', '"VHGND render"')
     check(
         "VHGNDQIDHI" in eye
         and eye.count("D9 9F <dVHGNDpy mtp bytesperunit>") == 4
