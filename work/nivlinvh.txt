@@ -1083,19 +1083,13 @@
 	( body type and global_surface_seed )
 	E = nsptype; E + [PAi]; A = [E]; A & 0FFh; [GRiptype] = A;
 	[VHGNDplanet] = [PAi];
-	A = [PAi]; A < 1; E = nspray; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
-	A = [PAi]; A < 1; E = nsporbray; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
-	=> FAdd;
-	A = [PAi]; A < 1; E = nspororient; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
-	=> FAdd;
-	[FC0] = [FA0]; [FC1] = [FA1];
-	[FI] = 4112; => IntToF;
-	[FB0] = [FC0]; [FB1] = [FC1];
-	=> FMul;
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld qword [edi+FA0*4])
-	    DF BF <dVHGNDseed mtp bytesperunit>	(fistp qword [edi+VHGNDseed*4])
-	}
+	( global_surface_seed via GeoSurfaceSeedChop: FB=ray, FC=orb_ray, FA=orient )
+	( GeoSurfaceSeedChop: FA=orientation, FB=ray, FC=orbit ray )
+	A = [PAi]; A < 1; E = nspray; E + A; [FB0] = [E]; E + 1; [FB1] = [E];
+	A = [PAi]; A < 1; E = nsporbray; E + A; [FC0] = [E]; E + 1; [FC1] = [E];
+	A = [PAi]; A < 1; E = nspororient; E + A; [FA0] = [E]; E + 1; [FA1] = [E];
+	=> GeoSurfaceSeedChop;
+	[VHGNDseed] = [FI];
 
 	( landing setup: lat/lon, albedo, sctype )
 	[GRgseed] = [VHGNDseed];

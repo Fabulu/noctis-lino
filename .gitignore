@@ -64,3 +64,7 @@ vlc-log.txt
 work/hits.tsv
 work/*.tmp
 work/GALLERY/
+
+# Built CLI binaries (reproducible via build/build_*.sh)
+build/nivlin
+build/nivsector
