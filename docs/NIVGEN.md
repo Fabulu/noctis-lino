@@ -212,6 +212,18 @@ The `surftex` command fills the sky and calls `create_sky()` directly; it does
 not apply planetary_main's later 120-row horizon pass. The Lino driver keeps
 both benchmark-only boundaries separate from normal gameplay.
 
+A third boundary matters for moons. The NIV+ landing handoff first calls
+`surface()` while `p_background` still points at the 65,552-byte planet
+allocation, then `planets()` regenerates the selected body after swapping the
+pointer to the 64,800-byte moon allocation. Moon `lssmooth()` reads 41 bytes
+past the visible map, through 12 bytes of paragraph slack and a 4-byte Borland
+heap header into the first pass's live map. On `SOTETI III|21`, that changes one
+`randoface()` decision, advances the Borland stream by two draws, and changes
+the palette hash from `1D1FDD34` to the original `C6E1BAA8`. The production
+Lino NIVGEN driver now reproduces this two-pass buffer history explicitly. Its
+focused cached-sheet result is 11 exact fields out of 11; no host uninitialized
+memory or fixture-specific adjustment is used.
+
 The leading upstream suspect is the eleven floating-point system/body
 properties that `test_nearstar.py` has historically left outside its exactness
 claim. They feed orbital `seedval`, the planet viewpoint, the global landed
