@@ -1319,6 +1319,22 @@ route, retain correct focus and layer ownership, and return from every safe
 menu or title-control action to a visibly live game. GAME itself is a hard
 release blocker until that exact player route stops crashing.
 
+**GAME crash root cause and repair, 2026-08-17:** the browser shortcut entered
+`Menu Button Action` by pushing the current continuation and changing `pc`
+immediately, even when the worker was yielded in the middle of the renderer.
+One captured ordinary click changed a live render state at `pc=26049`, stack
+depth 10, into the menu service at depth 11. That spliced a GUI call into the
+wrong call stack and explains why identical-looking clicks could either work at
+iGUI idle or corrupt the game. Both JavaScript runtimes now leave the request
+pending until the real `eclj25` GUI-idle yield and enter the original service
+from that stable continuation. The worker also keeps the oldest unconsumed
+browser pointer edge in Lino's workspace; a fast press/release pair can no
+longer erase its press before `Check Hot Spot` samples it. A zero-duration DOM
+click opened GAME, selected Controls, displayed the original Controls screen,
+continued near 58 rendered FPS, and produced no crash packet or browser error.
+Publish this repair, then retain the wider command/title-control audit and
+player confirmation requirement rather than generalizing one accepted path.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
