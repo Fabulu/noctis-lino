@@ -972,6 +972,19 @@ image, including identical raster, display, and presented hashes. Steady frame
 time in that run fell from 45.11 to 30.30 ms. Linoctissite `b7fd3bc` publishes
 the change. The hard 60-FPS and cross-planet acceptance items remain open.
 
+**Exact cached-particle visibility checkpoint, 2026-08-17.** LinoJava
+`89a2021` applies the existing conservative terrain frustum test to each cached
+greenmush particle cloud after a tree's whole-model test succeeds. Static cloud
+bounds retain the source scale radius and ten-pixel stamp margin. Wind-driven
+leaf clouds translate those same widened bounds by the exact current binary32
+wind displacement. Only a cloud whose complete possible footprint misses the
+viewport is skipped; every potentially visible command retains its original
+RNG, projection, and pixel path. A matched habitable run ended with identical
+registers and zero differing units across the complete 73,702,444-byte VM
+image, including identical raster and display hashes, while measured frame time
+fell from 22.16 to 21.22 ms. Linoctissite `53664fd` publishes the change. The
+hard 60-FPS landed target remains open.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
