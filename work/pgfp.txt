@@ -122,6 +122,7 @@
 
 "workspace"
 
+	PGFalign = 1;			( keep fw on an 8-byte boundary for typed qword hosts )
 	fw	= 768;			( 384 binary64 slots )
 
 "programme"
