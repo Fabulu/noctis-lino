@@ -3147,12 +3147,12 @@
 	[VHPblackout] = [VHGelight]; [VHPresetphase] = [VHGresetcount]; => VH screens;
 	=> VHG onboard prepare; => VH onboard screen;
 
-	( interior halogen fixture: vehicle() first retains the screen pass's
-	  cam_z -= 2*54*15, then applies x-3395,y+480,z+200.  Relative to the
-	  player's clean camera that is x-3395,y+480,z-1420. )
+	( interior halogen fixture: each of vehicle()'s two screen passes restores
+	  cam_z and then advances it by 54*15.  The following cam_z -= 2*54*15
+	  cancels those advances before alogena applies its own +200 offset. )
 	A = [VHGx]; A - 3395; [VHVcamxi] = A;
 	A = [VHGy]; A + 480; [VHVcamyi] = A;
-	A = [VHGz]; A - 1420; [VHVcamzi] = A;
+	A = [VHGz]; A + 200; [VHVcamzi] = A;
 	=> VH set view; [VHLpower] = [VHGilight]; [VHLemergency] = [VHGelight]; => VH alogena;
 	( NIV+ smooths the composed interior twice before sky() and the HUD.  This
 	  is what turns the halogen's raw dotted spokes into the soft visor glow;

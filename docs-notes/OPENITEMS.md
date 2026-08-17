@@ -1154,6 +1154,17 @@ focused browser run sustained about 50 rendered FPS. The frame is still too
 mauve and still contains unauthenticated radial flare geometry, so sun, flare,
 palette restoration, and multi-frame visual fidelity remain release blockers.
 
+**Stardrifter false halogen flare repaired, 2026-08-17.** The radial lines in
+the opening window were not an authentic renderer quirk. The port incorrectly
+carried the two temporary `cam_z += 54*15` screen offsets into `alogena`, even
+though NIV+ cancels both before applying the lamp's own `cam_z += 200`. That
+placed the fixture camera 1,620 units too far aft and projected its complete
+visor flare into the window. The port now uses the source-effective camera
+`player_z + 200`. The matched NIV+ lens-enabled capture and the corrected
+browser frame both contain no fixture rays at the opening pose; the browser
+continued at about 49 rendered FPS. Keep the wider sun, exterior smear,
+checkpoint-palette, and multi-frame clearing audit open.
+
 **Latest manual confirmation.** Pressing the GAME title-bar menu itself still
 crashes or halts the public JavaScript game for the player. More generally, the
 browser iGUI is not yet trustworthy enough for ordinary use: controls can map
