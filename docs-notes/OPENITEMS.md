@@ -1261,6 +1261,18 @@ worker, foreground, and legacy main-thread runtimes. Keep the broader iGUI
 audit open until ordinary play has exercised every menu command and all
 desktop-only title controls have explicit browser-safe behavior.
 
+**Post-hardening player recurrence, 2026-08-17:** clicking GAME in ordinary
+published play still crashes or halts the game. Reopen this as an observed
+release blocker; the focused host smoke above is diagnostic evidence only and
+does not close it. Capture the public-build pointer event, VM location and call
+stack, worker error or starvation state, active layer, focus/capture state, and
+the first failed menu command from a real click. Repair the underlying iGUI
+contract, then manually exercise repeated GAME open/use/dismiss cycles and
+every non-quit item while rendering continues. Keep the whole JavaScript GUI
+implementation under audit: browser-inapplicable move, resize, maximize, fold,
+hide/screen-off, and fullscreen actions need coherent safe behavior and none
+may crash, freeze, or corrupt the Lino machine.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
