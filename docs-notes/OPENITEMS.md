@@ -1450,6 +1450,20 @@ CONSOLE`, version, output, channel, and prompt strings and remained active at a
 reported 56.7 rendered FPS with no page or worker errors. This strengthens the
 browser product check but does not close the separate XQuartz path.
 
+**Pilot-font word-order hardening, 2026-08-17.** The lower-right status and
+physical GOES screens share the 2,340-word `digimap2` pilot font, while the
+legible lower-left notice uses the unrelated iGUI standard font. Its loader
+copied packed file words directly into glyph units and therefore assumed the
+host exposed each four-byte word in little-endian order. The XQuartz screenshot
+is consistent with the first lit `!` row changing from `0001C000h` to the
+byte-reversed `00C00100h`. Startup now recognizes that exact alternate form,
+byte-swaps all 2,340 scanlines once, and rejects any unrelated corrupt asset
+instead of rendering it as text. The normal Windows product still renders the
+complete `STANDBY` glyph and holds 60 FPS; a direct reverse-word check restored
+all 2,340 rows exactly. This is a portability repair with a strong matching
+failure signature, but the XQuartz item remains open until the reporter runs
+the rebuilt executable on the affected host.
+
 **Reopened browser text and checkpoint palette report.** A later player run of
 the public JavaScript build showed no console text at all, and reported that
 saving then loading a checkpoint changed the Stardrifter palette from mauve to

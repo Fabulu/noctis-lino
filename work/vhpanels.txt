@@ -72,6 +72,23 @@
     "VHP font copy"
 	A = stage; A + [VHPfi]; C = digimap2; C + [VHPfi]; [C] = [A];
 	[VHPfi]+; A = [VHPfi]; ? A < 2340 -> VHP font copy;
+	( FILE READ exposes packed host words.  The Windows kernel is little
+	  endian, but compatibility hosts may publish each four-byte word in
+	  the opposite order.  The first lit row of '!' is an unambiguous
+	  0001C000h in the authoritative asset.  Detect its byte-reversed
+	  00C00100h form and normalize every scanline exactly once. )
+	A = [digimap2 plus 38];
+	? A = 114688 -> VHP font valid;
+	? A != 12583168 -> VHP font done;
+	[VHPfi] = 0;
+    "VHP font swap"
+	C = digimap2; C + [VHPfi]; A = [C];
+	B = A; B & 255; B < 24;
+	D = A; D > 8; D & 255; D < 16; B | D;
+	D = A; D > 16; D & 255; D < 8; B | D;
+	A > 24; A & 255; B | A; [C] = B;
+	[VHPfi]+; A = [VHPfi]; ? A < 2340 -> VHP font swap;
+    "VHP font valid"
 	[VHPfontok] = 1;
 	( Startup rows written by reset_signal in the original. )
 	[vhptext plus 0] = 71; [vhptext plus 1] = 46; [vhptext plus 2] = 79;
