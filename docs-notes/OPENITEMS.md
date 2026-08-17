@@ -996,6 +996,18 @@ complete 73,702,444-byte VM image, raster, display, and registers. Measured
 frame time fell from 21.22 to 18.60 ms. Linoctissite `a28e930` publishes the
 change. Browser-wide 60-FPS acceptance remains open.
 
+**Exact shared HPOINT checkpoint, 2026-08-17.** Noctis Lino `a4ff43c`
+exposes the existing terrain-height sampler as a service at every production
+caller, and LinoJava `e41e75c` executes its complete clamped byte lookup,
+triangle interpolation, binary32 spill, chopped conversion, and scratch-state
+publication directly. Birds, mammals, rocks, the capsule, collision, and
+landed setup all use this shared boundary. The desktop Lino game compiles with
+the service unchanged. A matched browser-runtime run ended with identical
+registers and zero differences across the complete VM image, raster, and
+display, while measured frame time fell from 20.98 to 19.00 ms. Linoctissite
+`1a1b2ea` publishes the change. The hard 60-FPS and cross-planet acceptance
+items remain open.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
