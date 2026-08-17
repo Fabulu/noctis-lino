@@ -1008,6 +1008,23 @@ display, while measured frame time fell from 20.98 to 19.00 ms. Linoctissite
 `1a1b2ea` publishes the change. The hard 60-FPS and cross-planet acceptance
 items remain open.
 
+**Exact foliage projection checkpoint, 2026-08-17.** LinoJava `0733268`
+fuses each greenmush particle's one-point rotation and projection while
+retaining the original binary32 narrowing points, qword scratch values, final
+offset state, and pixel order. The matched habitable run ended with the same
+SHA-256 hash across all 73,702,444 bytes of VM state. Steady frame time fell
+from 19.00 to 18.57 ms. Linoctissite `8dc7bfc` publishes the change.
+
+**Exact terrain scanline checkpoint, 2026-08-17.** LinoJava `2279fcb` fuses
+the ordinary terrain UV update and mapped pixel blocks into one bounded
+JavaScript scanline kernel. It preserves the x87 spill schedule, current
+control word, 16-bit texture-coordinate wrapping, culling duplication, and all
+published scratch state. The same complete 73,702,444-byte VM image remained
+identical, while the matched landed-frame benchmark fell from 18.57 to 17.48
+ms. Linoctissite `03e5de5` is deployed at `linoctis.pages.dev`. A fresh Chrome
+habitable run measured 38.9 FPS, so the hard 60-FPS and cross-planet target
+remain open.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
