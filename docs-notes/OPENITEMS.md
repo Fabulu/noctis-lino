@@ -1064,6 +1064,20 @@ mauve palette, accumulated no smear, and finished near 59 FPS; GAME-to-GOES
 still displayed complete text at 60 FPS without a crash. Linoctissite
 `4e48014` publishes the change. The landed hard-60 target remains open.
 
+**Stale public deployment repaired, 2026-08-17.** The repeated discrepancy
+between passing local smokes and the player's public-page failures had a real
+deployment cause. Linoctissite's workflow rebuilt every push from pinned
+LinoJava and Noctis revisions, but those pins were far behind the checked-in
+generated runtime. The successful GitHub job could therefore validate one
+artifact while Cloudflare continued serving another. The pins now identify
+LinoJava `1d49bef` and Noctis Lino `5db0c0b`, and CI fails if rebuilding those
+pins changes the checked-in runners or runtime files. The exact image was then
+published through the authenticated Cloudflare path. Its public runtime ID is
+`1b491e3209ccfa9774d39d62`; a fresh public canvas interaction opened GAME,
+entered GOES, displayed the complete console text, sustained 59.4 gameplay FPS
+at 60 Hz, and produced no crash or browser error. This resolves the stale-build
+mechanism, not the broader iGUI audit or the hard-60 landed target.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
