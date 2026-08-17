@@ -1346,6 +1346,19 @@ continued near 58 rendered FPS, and produced no crash packet or browser error.
 Publish this repair, then retain the wider command/title-control audit and
 player confirmation requirement rather than generalizing one accepted path.
 
+**Complete pointer-scan and GOES text repair, 2026-08-17:** retaining edge
+order was not sufficient because one JavaScript VM slice can execute multiple
+`READ POINTER` calls before iGUI reaches `Check Hot Spot`. A fast click could
+therefore consume both queued edges inside one slice and become hover-only.
+Each edge is now the stable live sample until the full iGUI control loop
+returns to `eclj25`; only then is the next edge exposed. Instantaneous DOM
+clicks now open GAME and activate GOES in both worker and foreground runtimes.
+The resulting screen contains the green title/prompt, cyan revision and output
+rows, and live input cursor, with continued rendering and no browser error or
+crash packet. This supplies current evidence against the old all-text-missing
+browser state. Keep the wider glyph-fidelity and XQuartz audit open because a
+healthy browser asset/runtime does not prove every compatibility host.
+
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
 Audit and authenticate every game and host font against NIV+ across Windows,
