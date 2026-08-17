@@ -1,0 +1,5 @@
+#!/bin/sh
+# SheetBot-compatible command wrapper around the production Lino generator.
+set -eu
+repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+exec python3 "$repo/tools/nivtest.py" "$@" --exe "$repo/build/nivtest"

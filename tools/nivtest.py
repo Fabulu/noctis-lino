@@ -98,6 +98,23 @@ def ensure_build(force: bool) -> Path:
     return exe
 
 
+def resolve_executable(args: argparse.Namespace) -> Path:
+    """Use a supplied portable build, or build the Windows harness locally."""
+    supplied = getattr(args, "exe", None) or os.environ.get("LINO_NIVTEST_EXE")
+    if supplied:
+        if getattr(args, "build", False):
+            raise ValueError("--build cannot be combined with --exe")
+        executable = Path(supplied).expanduser().resolve()
+        if not executable.is_file():
+            raise FileNotFoundError(f"NIVGEN executable not found: {executable}")
+        return executable
+    if os.name != "nt":
+        raise RuntimeError(
+            "no portable NIVGEN executable supplied; pass --exe or set "
+            "LINO_NIVTEST_EXE (build/build_nivtest.sh builds the macOS host)")
+    return ensure_build(getattr(args, "build", False))
+
+
 def decode_units(path: Path) -> tuple[list[int], dict[str, bytes]]:
     raw = path.read_bytes()
     if len(raw) != OUT_UNITS * 4:
@@ -115,7 +132,7 @@ def decode_units(path: Path) -> tuple[list[int], dict[str, bytes]]:
 
 
 def run_lino(args: argparse.Namespace) -> tuple[list[int], dict[str, bytes]]:
-    exe = ensure_build(args.build)
+    exe = resolve_executable(args)
     gap = bytes.fromhex(args.gap) if args.gap else DEFAULT_GAP
     if len(gap) != 16:
         raise ValueError("-gap must contain exactly 32 hexadecimal digits")
@@ -251,6 +268,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-o")
     parser.add_argument("-dump")
     parser.add_argument("--build", action="store_true")
+    parser.add_argument(
+        "--exe", help="use this prebuilt native harness instead of compiling")
     parser.add_argument("--timeout", type=int, default=180)
     return parser.parse_args()
 
