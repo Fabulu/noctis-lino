@@ -1,5 +1,36 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+## Beta 17
+
+Beta 17 restores several pieces of live Stardrifter and orbital rendering.
+The exterior again follows the source composition order, its halogen flare uses
+the correct camera and NIV+ projection, the hull respects the original near
+plane, and white space effects advance on the source cadence without smearing
+across later frames. Orbital planet surfaces remain resident across repeated
+views, and checkpoint restore preserves the active ship palette and drive
+state instead of silently recolouring the Stardrifter.
+
+The desktop host now defaults to smooth 60 Hz presentation while retaining the
+authoritative gameplay clock. Exact native paths cover Stardrifter page filters
+and glyph setup, hot panel loading, terrain height sampling, starfield and
+cupola batches, and the shared projection handoffs used by every planet class.
+The pilot-font loader also recognizes and repairs a byte-reversed word stream,
+which hardens lower-right status and GOES wall text on compatibility hosts.
+
+Public NIVGEN work is now part of the production repository. The current Lino
+generator matches all 1,078 original hashes in the saved 98-row subset where
+the public Rust leader had errors. A second breadth point for each ordinary
+planet type matches 110 of 110 hashes, and five type-10 companion rows match all
+40 available landed hashes. The scorer follows the coordinates encoded in the
+original artifact names, grades only fields with an oracle, accepts saved JSON
+with a UTF-8 marker, and never retries an unavailable private host. These are
+measured subsets, not a claim that the complete live corpus is finished.
+
+This remains a prerelease. Full XQuartz font authentication, every iGUI window
+action, and the JavaScript site's Visual Effects and GOES menu crashes remain
+open. Those browser defects do not change the packaged Windows executable, but
+they remain tracked rather than being hidden behind passing scripted smokes.
+
 ## Beta 16
 
 Beta 16 fixes the malformed rainbow tree regression introduced by beta 15's
