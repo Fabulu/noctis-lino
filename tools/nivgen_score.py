@@ -95,7 +95,7 @@ def namespace(args: argparse.Namespace, x: int, y: int, z: int, body: int,
     return argparse.Namespace(
         x=x, y=y, z=z, p=body, lon=lon, lat=lat, secs=0, sc=-1,
         albedo=-1, night=0, gap=gap, build=build, timeout=args.timeout,
-        dump=None, o=None,
+        dump=None, o=None, exe=args.exe,
     )
 
 
@@ -169,6 +169,8 @@ def parse_args():
                         help="rows to execute; defaults to one deliberate smoke")
     parser.add_argument("--planet-only", action="store_true")
     parser.add_argument("--build", action="store_true")
+    parser.add_argument(
+        "--exe", help="use this prebuilt native harness instead of compiling")
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--json-out")
     return parser.parse_args()

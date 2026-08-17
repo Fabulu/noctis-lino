@@ -19,6 +19,9 @@ work/nivtestmain.txt
 work/rc*-smoke*/
 work/rc*-journey*/
 
+# Portable production NIVGEN harness (built from tracked Lino sources).
+build/nivtest
+
 # The stock library compiler outputs are reproducible. The extended compiler is
 # versioned so a clean checkout can build and play immediately.
 main/lib/gen/*.exe

@@ -55,6 +55,28 @@ python tools\nivtest.py sector -x -1996209872 -y 55508 -z 816148 -p 0 -lon 0 -la
 python tools\nivtest.py surftex -x -1996209872 -y 55508 -z 816148 -p 0 -lon 301 -lat 68
 ```
 
+`nivtest.py` normally rebuilds and runs the local Windows harness. A remote
+worker can instead pass `--exe /path/to/nivtest` or set
+`LINO_NIVTEST_EXE`. This keeps one generator implementation: the executable is
+still compiled from the production `vhgame.txt` library graph plus
+`work/vhnivgen.txt`, while Python only supplies the public command protocol and
+hash boundaries.
+
+For the contributor's macOS x86_64 compiler/runtime container:
+
+```sh
+./build/build_nivtest.sh
+./tools/nivlin planet -x -1996209872 -y 55508 -z 816148 -p 0
+```
+
+The build script transfers only tracked `.txt` sources and the derived main to
+the isolated compiler container. `tools/nivlin` is the SheetBot-facing command;
+it executes the resulting `build/nivtest` binary through the same production
+protocol used by local scoring. Do not deploy the older standalone
+`work/nivlin.txt` or `work/nivlinvh.txt` generators: they duplicate generation
+logic and the live sheet currently demonstrates that they have drifted far
+behind this implementation.
+
 Use `-dump DIR` for the public lowercase raw names. Setting `NIVDUMP` produces
 the uppercase Rust-style names as well. `-secs`, `-sc`, `-albedo`, `-night`,
 and `-gap` mirror the published harness inputs.
