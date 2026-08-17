@@ -193,7 +193,6 @@
 	  at z=0, not a modal GUI page.  Controls occupy c=-64..-45 on four
 	  50-unit rows; the four 27-character command slots share the top row
 	  from c=-44 onward, and information uses the remaining three rows. )
-	A = [VHPonsys]; ? A = 0 -> VHP onboard screen done;
 	A = [VHPfontok]; ? A = 0 -> VHP onboard screen done;
 	[VHVcamxi] = [VHPcamx]; [VHVcamyi] = [VHPcamy]; [VHVcamzi] = [VHPcamz];
 	[VHValpha] = [VHPalpha]; [VHVbeta] = [VHPbeta]; => VH set view;
@@ -300,7 +299,11 @@
 	[DGshader] = 1; => FB digit at;
 	( digit_at(c,-6,-16,4): absolute source-plane bounds after replacing
 	  its per-character camera shift with equivalent world coordinates. )
-	A = [VHPonc]; A '* 30; C = A; A - 12; [VHPonx0] = A; C + 10; [VHPonx1] = C;
+	A = [VHPonc]; A '* 30; C = A;
+	A = [VHPonc]; ? A >= 0FFFFFFD4h -> VHP onboard digit x ready;
+	C - 50;
+    "VHP onboard digit x ready"
+	A = C; A - 12; [VHPonx0] = A; C + 10; [VHPonx1] = C;
 	A = [VHPonp]; A '* 50; C = A; A - 24; [VHPony0] = A; C + 16; [VHPony1] = C;
 	[FI] = [VHPonx1]; => IntToF; => F32Narrow;
 	[vhcpoly plus 0] = [FS0]; [vhcpoly plus 3] = [FS0];

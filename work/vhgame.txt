@@ -265,6 +265,7 @@
 	VHGshipoldr = 0; VHGshipoldg = 0; VHGshipoldb = 0;
 	VHGshipstz0 = 0; VHGshipstz1 = 0; VHGshipden0 = 0; VHGshipden1 = 0;
 	VHGshipfactor0 = 0; VHGshipfactor1 = 0;
+	VHGsmoothbase = 0; VHGsmoothcount = 0;
 	VHGshpcf = 0; VHGshpbs = 0; VHGshpdv = 1; VHGshped = 1;
 	VHGshpcp = 63; VHGshpbt = 0; VHGshprs = 0;
 	( Original navigation-device defaults: normal field, finder off, fixed
@@ -2879,11 +2880,10 @@
 	=> VHG info environment geometry;
 
 	( stz = clamp(dzz*cos(nav)-dxx*sin(nav)-abs(dyy)/2,0,dsd)/1.25. )
-	( Source navigation_beta is 180 degrees opposite the port's external
-	  navigation convention.  The camera path accounts for that when it forms
-	  the exterior view; apply the same conversion to the source stz lighting
-	  term or planet-orbit views saturate the hull and halogen beams. )
-	A = [VHGnavbeta]; A + 180; A % 360; [VHVangle] = A; => VHV sincos;
+	( navigation_beta is the physical Stardrifter heading here, exactly as in
+	  NOCTIS.CPP.  The separate +180 adjustment belongs only to from_vehicle's
+	  external camera projection and must not reverse the hull-lighting term. )
+	[VHVangle] = [VHGnavbeta]; => VHV sincos;
 	[PGFt] = [VHVcos]; => PGF ldf32;
 	[FB0] = [VHGinfoshipz0]; [FB1] = [VHGinfoshipz1]; => FMul;
 	[VHGshipstz0] = [FA0]; [VHGshipstz1] = [FA1];
@@ -3031,9 +3031,11 @@
 	[VHSdy0] = [MgDzatY0]; [VHSdy1] = [MgDzatY1];
 	[VHSdz0] = [MgDzatZ0]; [VHSdz1] = [MgDzatZ1];
 	[VHSalpha] = [VHGalpha];
-	( from_vehicle(): user_beta + navigation_beta + 180.  VHGbeta already
-	  includes the port's 180-degree hull-model offset, so add only nav beta. )
-	A = [VHGbeta]; A + [VHGnavbeta]; A % 360; ? A >= 0 -> VHG external beta ok; A + 360;
+	( from_vehicle(): user_beta + navigation_beta + 180.  VHGbeta is the
+	  unshifted player view used by the interior, so retain the source's
+	  half-turn when projecting stars and planets outside the Stardrifter. )
+	A = [VHGbeta]; A + [VHGnavbeta]; A + 180; A % 360;
+	? A >= 0 -> VHG external beta ok; A + 360;
     "VHG external beta ok"
 	[VHSbeta] = A; [VHSamp] = [VHGamp];
 	[VHSsurface] = 0;
@@ -3116,6 +3118,22 @@
 	B ^ VHG space clear eight;
 	end;
 
+"VHG interior smooth64"
+	( NOCTIS-0.CPP psmooth_64, operating on Lino's one-byte-per-unit page.
+	  Each destination keeps the first sample's palette band and receives the
+	  average low-six intensity of the 2x2 block one and two rows below. )
+	{ 50 53 51 52 56
+	  8B B7 <dVHGsmoothbase mtp bytesperunit>
+	  8D 34 B7
+	  8B 8F <dVHGsmoothcount mtp bytesperunit>
+	  8B 86 00 05 00 00 89 C2 81 E2 C0 00 00 00 83 E0 3F
+	  8B 9E 04 05 00 00 83 E3 3F 01 D8
+	  8B 9E 00 0A 00 00 83 E3 3F 01 D8
+	  8B 9E 04 0A 00 00 83 E3 3F 01 D8
+	  C1 E8 02 09 D0 89 06 83 C6 04 49 75 C1
+	  5E 5A 59 5B 58 }
+	end;
+
     "VHG interior details"
 	[Timer Command] = READ COUNTS; isocall; [VHGprofpart] = [Counts];
 	=> VHG fpu clean;
@@ -3136,6 +3154,15 @@
 	A = [VHGy]; A + 480; [VHVcamyi] = A;
 	A = [VHGz]; A - 1420; [VHVcamzi] = A;
 	=> VH set view; [VHLpower] = [VHGilight]; [VHLemergency] = [VHGelight]; => VH alogena;
+	( NIV+ smooths the composed interior twice before sky() and the HUD.  This
+	  is what turns the halogen's raw dotted spokes into the soft visor glow;
+	  omitting it exposed the construction lines and made bright pixels linger.
+	  psmooth_64 discards the far pointer's +4 offset when it adds segment 160,
+	  hence logical page byte 2556.  Its live count is
+	  (160 + openhudcount*80 - 80)*4 = 320 + openhudcount*320. )
+	A = nw; A + RADPT; A + 2556; [VHGsmoothbase] = A;
+	A = [VHGhudcount]; A '* 320; A + 320; [VHGsmoothcount] = A;
+	=> VHG interior smooth64; => VHG interior smooth64;
 	( sky(0x405C) is the final 3-D scene pass in NOCTIS.CPP: it follows
 	  vehicle() so the stellar-band neighbour test preserves the hull. )
 	=> VHS stars; => VHG finder render;

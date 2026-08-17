@@ -1144,6 +1144,16 @@ all persistence fields before accepting a visually plausible single frame.
 Reproduce the multi-frame smear and menu failure in the actual public product;
 one-call service tests and synthetic pointer injection are insufficient.
 
+**Stardrifter composition repair, 2026-08-17.** Two source omissions and one
+angle mix-up are now corrected. The port again runs NIV+'s two `psmooth_64`
+passes after the interior and halogen are composed, uses the unshifted player
+view for the interior, and reserves `navigation_beta + 180` for the external
+`from_vehicle` camera instead of reversing the physical hull-lighting term.
+The native and pure-JavaScript products render the same corrected frame, and a
+focused browser run sustained about 50 rendered FPS. The frame is still too
+mauve and still contains unauthenticated radial flare geometry, so sun, flare,
+palette restoration, and multi-frame visual fidelity remain release blockers.
+
 **Latest manual confirmation.** Pressing the GAME title-bar menu itself still
 crashes or halts the public JavaScript game for the player. More generally, the
 browser iGUI is not yet trustworthy enough for ordinary use: controls can map
