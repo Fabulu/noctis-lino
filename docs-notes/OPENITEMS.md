@@ -1035,6 +1035,21 @@ ms. Linoctissite `03e5de5` is deployed at `linoctis.pages.dev`. A fresh Chrome
 habitable run measured 38.9 FPS, so the hard 60-FPS and cross-planet target
 remain open.
 
+**Flagged mapped-vector checkpoint, 2026-08-17.** Cached tree leaves set
+`SPtrifast` for their three-vertex mapped fans, while limb faces set
+`SPmapfast` for four-vertex mapped quads. Both still repeated the generic
+midpoint, transform, edge-vector, and nine-gradient helper pipeline on every
+visible cached command. LinoJava `1d49bef` now routes those explicit fast flags
+through the existing fused vector schedule and selects the original one-third
+or one-quarter centroid constant from the vertex count. Unflagged polygons,
+near-plane projection fallback, texture and flare modes, and raster order are
+unchanged. The focused intrinsic checks pass; a real habitable browser run
+finished with a complete nonzero framebuffer, no runtime errors, and about
+30 gameplay FPS. A Stardrifter save/load and twelve-frame replay retained its
+mauve palette, accumulated no smear, and finished near 59 FPS; GAME-to-GOES
+still displayed complete text at 60 FPS without a crash. Linoctissite
+`4e48014` publishes the change. The landed hard-60 target remains open.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
