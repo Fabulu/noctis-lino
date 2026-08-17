@@ -402,8 +402,10 @@
 	? A = 5 -> VHGND generate type5;
 	? A = 7 -> VHGND generate type7;
 
-	( The source switch has no default arm.  Non-landable types retain the
-	  prologue state and proceed directly to the common post-switch work. )
+( Unhandled types (0, 6, 9) leave p_surfacemap as the wiped zeros,
+	  matching the reference's `_ => {}` after the type switch.  Only the
+	  post-surface (crevasses, object distribution) still runs. )
+	-> VHGND build surface done;
 	-> VHGND build surface done;
 
     "VHGND generate type1"
