@@ -792,7 +792,16 @@
 	( y = pow(y,h_raiser). Non-unit raisers are used only by positive
 	  type-1/type-5 terrain craters; zero stays zero without log2(0). )
 	A = [GRfhmt]; A & 0FFFFFFFFh; ? A = 3F800000h -> GR sc power done;
-	A = [GRfy]; A & 7FFFFFFFh; ? A = 0 -> GR sc power done;
+	( y <= 0 treated as 0: at the exact rim sin(pi) returns a small negative
+	  in fsin and pow of a negative is NaN via fyl2x.  The source's pow of a
+	  positive tiny rounds to 0 anyway, so zeroing matches the reference. )
+
+	A = [GRfy]; ? A >= 0 -> GR sc power yok;
+	[GRfy] = 0; -> GR sc power done;
+    "GR sc power yok"
+	A = [GRfy]; ? A != 0 -> GR sc power do;
+	-> GR sc power done;
+    "GR sc power do"
 	{
 	    D9 87 <dGRfhmt mtp bytesperunit>	(fld dword [edi+GRfhmt*4] : exponent)
 	    D9 87 <dGRfy   mtp bytesperunit>	(fld dword [edi+GRfy*4] : y)

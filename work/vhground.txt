@@ -839,6 +839,13 @@
 	C = 200; => SU rnd; C + 50; [VHGNDrockpeak] = C;
 	C = 2; => SU rnd; C '* 4; C + 3; [VHGNDrockdensity] = C;
     "VHGND build surface done"
+	( set the 16-byte farmalloc gap after p_surfacemap to the C default:
+	  [00..00, c5, 09, f0, 54].  surf_h reads indices 40000..40016 from
+	  this gap, and the object distribution's inclination depends on it. )
+	A = RPSM; A + 40012; [MBptr] = A; [MBval] = 0C5h; => MEM put byte;
+	A = RPSM; A + 40013; [MBptr] = A; [MBval] = 09h; => MEM put byte;
+	A = RPSM; A + 40014; [MBptr] = A; [MBval] = 0F0h; => MEM put byte;
+	A = RPSM; A + 40015; [MBptr] = A; [MBval] = 54h; => MEM put byte;
 	=> VHGND post surface;
 	( NOCTIS-1.CPP:2620-2625 liquid_water is part of build_surface,
 	  before the clean return boundary. )
@@ -1121,6 +1128,10 @@
 	A = [VHGNDs1]; A - [VHGNDs2]; ? A >= 0 -> VHGND post abs2; C = 0; C - A; A = C;
     "VHGND post abs2"
 	A + [VHGNDincl]; [VHGNDincl] = A; [VHGNDoval] = 0;
+	( inclination-weighted object classes, matching the C's guarded draws:
+	  random(2) only when incl<20, random(3) only when incl<15, random(4)
+	  only when incl<10.  The reference does NOT draw the narrower ranges
+	  unless its guard holds, so the brtl stream must not advance either. )
 	A = [VHGNDincl]; ? A '>= 20 -> VHGND post object store;
 	C = 2; => SU rnd; [VHGNDoval] = C;
 	A = [VHGNDincl]; ? A '>= 15 -> VHGND post object store;
