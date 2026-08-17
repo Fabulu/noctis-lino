@@ -1465,7 +1465,23 @@ through each live text route. Include nonletters and boundary characters so a
 partially shifted or incorrectly indexed font table cannot pass on a short
 uppercase message.
 
-## 10. Cross-references
+## 10. GitHub documentation and README -- **SETTLED / MONITORED**
+
+The GitHub-facing documentation is split into readable sections, short
+paragraphs, restrained bullet lists, and focused reference documents. The
+README links the playable Windows and browser builds, gives the essential
+controls before the deeper feature inventory, and no longer describes the
+browser as an iGUI-only preview. The current browser paragraph identifies the
+pure-JavaScript runtime, real Lino GUI, complete game route, and the remaining
+dense-vegetation performance limit.
+
+`README.md`, `HISTORY.md`, `PLAYTEST.md`, `PORTPLAN.md`, `RELEASE_NOTES.md`,
+`TEST_COVERAGE.md`, `CI_RELEASES.md`, and `docs/NIVGEN.md` contain zero em dash
+characters. Keep that invariant when editing them. Continue removing stale
+claims and redundant history at release checkpoints instead of turning the
+README back into one chronological wall of text.
+
+## 11. Cross-references
 
 | document | what Wave 6 changed in it |
 |---|---|

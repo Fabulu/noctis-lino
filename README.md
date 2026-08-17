@@ -62,12 +62,13 @@ The original 18.2 FPS presentation remains the default. The 60 FPS mode
 interpolates player movement, flight, the lift, capsule, wildlife, ocean, and
 close-star poses without changing the original simulation rate.
 
-The browser port is being built separately in
-[`Fabulu/linojava`](https://github.com/Fabulu/linojava), with its first
-real Lino-rendered iGUI live at
-[linoctis.pages.dev](https://linoctis.pages.dev/). The original iGUI source,
-graphics, pointer-driven menu, and framebuffer now run in JavaScript; the page
-is not yet the full Noctis game.
+The complete browser build is live at
+[linoctis.pages.dev](https://linoctis.pages.dev/), backed by the separate
+[`Fabulu/linojava`](https://github.com/Fabulu/linojava) runtime. It compiles and
+runs the Lino project as pure JavaScript, with no WebAssembly backend. The real
+Lino-rendered iGUI, menus, framebuffer, game code, persistence, and packaged
+Noctis assets run in the page. Spaceflight and ordinary interface scenes can
+reach 60 FPS; dense landed vegetation remains an active performance target.
 
 ### Flight and surface play
 
