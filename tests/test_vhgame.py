@@ -1712,6 +1712,7 @@ def main() -> int:
             '"VHG ship palette update"', '=> VHG info environment geometry;',
             '[PVsrc] = range8088;', '[PVfirst] = 0; [PVn] = 64;',
             '[PVfr] = [VHGshipr]; [PVfg] = [VHGshipg]; [PVfb] = [VHGshipb];',
+            '[VHGshipoldr] = A; [VHGshipoldg] = A; [VHGshipoldb] = A;',
             '[VHGelight]', '[VHGgburst]', '[TKtmp]', '[VHGshped]',
             '"VHG reset step"', '[VHGresetcount] = 150;',
             '"VHG emergency step"', '[VHGelight] = 1;',

@@ -1165,6 +1165,17 @@ browser frame both contain no fixture rays at the opening pose; the browser
 continued at about 49 rendered FPS. Keep the wider sun, exterior smear,
 checkpoint-palette, and multi-frame clearing audit open.
 
+**Checkpoint ship-palette repair, 2026-08-17.** Save/load did not lose the
+selected star or require new persisted colour fields. `VHG palette` rebuilt
+band 0 with its cobalt bootstrap ramp, but retained `VHGshipoldr/g/b`. The next
+geometry-derived ship update could compute those same cached values and skip
+the upload, leaving the bootstrap band visible after load. Every base-palette
+rebuild now invalidates that upload cache. A browser save/load reproduction
+retained the same Stardrifter hull/chrome colours before and after restore,
+while gameplay and rendering continued. The complete checkpoint-state and
+cross-scene palette audit remains open; this closes the reported stale band-0
+mechanism rather than claiming all palette progression is authenticated.
+
 **Latest manual confirmation.** Pressing the GAME title-bar menu itself still
 crashes or halts the public JavaScript game for the player. More generally, the
 browser iGUI is not yet trustworthy enough for ordinary use: controls can map

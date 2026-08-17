@@ -2700,6 +2700,11 @@
 	[PVsrc] = range8088; [PVself] = 0;
 	[PVfirst] = 192; [PVn] = 64;
 	[PVfr] = 40; [PVfg] = 52; [PVfb] = 63; => PAL tavola;
+	( Rebuilding the base palette overwrites band 0.  Invalidate the derived
+	  ship-colour upload cache as well; otherwise checkpoint load can retain
+	  matching cached RGB values and leave the cobalt bootstrap band visible. )
+	A = 0; A - 1;
+	[VHGshipoldr] = A; [VHGshipoldg] = A; [VHGshipoldb] = A;
 	end;
 
 "VHG star palette"
