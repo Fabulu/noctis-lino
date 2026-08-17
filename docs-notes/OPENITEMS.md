@@ -985,6 +985,17 @@ image, including identical raster and display hashes, while measured frame time
 fell from 22.16 to 21.22 ms. Linoctissite `53664fd` publishes the change. The
 hard 60-FPS landed target remains open.
 
+**Exact terrain pixel-loop checkpoint, 2026-08-17.** LinoJava `9a30977`
+removes redundant 16-bit page-address wrapping from the ordinary terrain-only
+texture loop. Terrain raster rows are already clipped to x 5 through 311 and y
+10 through 190, so their largest destination remains below the 65,536-unit
+page boundary. Required 16-bit U and V wrapping is unchanged, as are texture
+indices, tint arithmetic, culling duplication, pixel order, and final scratch
+state. The same deterministic habitable run remained identical to the prior
+complete 73,702,444-byte VM image, raster, display, and registers. Measured
+frame time fell from 21.22 to 18.60 ms. Linoctissite `a28e930` publishes the
+change. Browser-wide 60-FPS acceptance remains open.
+
 **Browser Stardrifter accumulation and iGUI menu crash.** The JavaScript build
 had a multi-frame failure that the single-call service comparisons did not
 cover. The Stardrifter's white smear/corona effects spread across the viewport,
