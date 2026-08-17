@@ -1507,7 +1507,38 @@ through each live text route. Include nonletters and boundary characters so a
 partially shifted or incorrectly indexed font table cannot pass on a short
 uppercase message.
 
-## 10. GitHub documentation and README -- **SETTLED / MONITORED**
+## 10. NIVGEN public accuracy integration -- **IN PROGRESS / PR PENDING**
+
+Win the public NIVGEN accuracy comparison with the production Lino generator,
+not with omitted fields or fixture-specific answers. `docs/NIVGEN.md` is the
+operating procedure and `tools/nivtest.py` plus `tools/nivgen_score.py` are the
+current local runner and scorer.
+
+On 2026-08-17 Mega brought a Lino column online and announced that small
+runner fixes would be upstreamed. No open or closed PR, public fork, or extra
+branch was visible on either `Fabulu/noctis-lino` or the historical
+`8l/linoleum` upstream when checked after that announcement. Recheck both
+repositories before starting overlapping integration work, then review the
+patch against the published hash boundaries and merge only with a focused live
+row smoke.
+
+The public runner is not yet evidence for this repository's accuracy. In the
+first 2,000 public rows, 1,269 had Lino results and none was exact. The first
+row matched nine of eleven fields but used the same wrong surface-texture hash
+for both landing coordinates. A fresh build of this repository's production
+runner matched all eleven original hashes for that same row, including both
+surface textures. Keep the public runner and the locally verified generator
+separate until the submitted source revision, executable hash, command
+contract, texture hash length, coordinate sign convention, gap input, and
+artifact packing are identified.
+
+After the upstream patch lands, replace or adapt its remote worker plumbing to
+call the already verified production driver. Run a small live smoke first,
+then the full corpus at an accuracy milestone. Preserve raw artifacts for any
+mismatch and report both coverage and exactness. If the service is unavailable,
+record that once and do not retry until the host is known to be back.
+
+## 11. GitHub documentation and README -- **SETTLED / MONITORED**
 
 The GitHub-facing documentation is split into readable sections, short
 paragraphs, restrained bullet lists, and focused reference documents. The
@@ -1523,7 +1554,7 @@ characters. Keep that invariant when editing them. Continue removing stale
 claims and redundant history at release checkpoints instead of turning the
 README back into one chronological wall of text.
 
-## 11. Cross-references
+## 12. Cross-references
 
 | document | what Wave 6 changed in it |
 |---|---|
