@@ -20,7 +20,15 @@ import nivtest  # noqa: E402
 
 
 API = "https://litterbox.moos.es/sheets/nivgen_planets?page=1&pageSize=2000"
-COORDS = re.compile(r"orig_surface_(-?\d+)_(-?\d+)_(-?\d+)_([0-9]+)\.png")
+COORDS = re.compile(
+    r"orig_(?:surface|def|rand)_(-?\d+)_(-?\d+)_(-?\d+)_([0-9]+)"
+    r"(?:_|\.png)")
+RANDOM_SITE = re.compile(
+    r"orig_rand_-?\d+_-?\d+_-?\d+_[0-9]+_(-?\d+)_(-?\d+)_")
+ORIGINAL_URLS = (
+    "orig_surface_url", "orig_sect_def_stex_url", "orig_sect_def_sky_url",
+    "orig_sect_rand_stex_url", "orig_sect_rand_sky_url",
+)
 FIELDS = (
     "surf", "atmo", "pal", "sect_def_hm", "sect_def_oc",
     "sect_def_stex", "sect_def_sky", "sect_rand_hm", "sect_rand_oc",
@@ -48,7 +56,7 @@ def page_url(url: str, page: int) -> str:
 def fetch_rows(url: str, sheet_json: str | None,
                all_pages: bool) -> list[dict[str, object]]:
     if sheet_json:
-        with Path(sheet_json).open(encoding="utf-8") as response:
+        with Path(sheet_json).open(encoding="utf-8-sig") as response:
             payloads = [json.load(response)]
     else:
         first = fetch_payload(url)
@@ -66,11 +74,20 @@ def fetch_rows(url: str, sheet_json: str | None,
 
 
 def coordinates(row: dict[str, object]) -> tuple[int, int, int, int]:
-    url = str(row.get("orig_surface_url") or "")
-    match = COORDS.search(url)
-    if not match:
-        raise ValueError(f"row {row.get('key')} has no parseable original URL")
-    return tuple(map(int, match.groups()))  # type: ignore[return-value]
+    for field in ORIGINAL_URLS:
+        match = COORDS.search(str(row.get(field) or ""))
+        if match:
+            return tuple(map(int, match.groups()))  # type: ignore[return-value]
+    raise ValueError(
+        f"row {row.get('key')} has no parseable original artifact URL")
+
+
+def random_site(row: dict[str, object]) -> tuple[int, int]:
+    for field in ("orig_sect_rand_stex_url", "orig_sect_rand_sky_url"):
+        match = RANDOM_SITE.search(str(row.get(field) or ""))
+        if match:
+            return tuple(map(int, match.groups()))  # type: ignore[return-value]
+    return int(row["rand_lon"]), int(row["rand_lat"])
 
 
 def namespace(args: argparse.Namespace, x: int, y: int, z: int, body: int,
@@ -95,9 +112,12 @@ def grade_row(args: argparse.Namespace, row: dict[str, object], build: bool):
                        str(row.get("orig_sect_def_gap") or "") or None,
                        build)
     random = None
+    random_coords = None
     if not args.planet_only:
+        random_coords = random_site(row)
+        random_lon, random_lat = random_coords
         random = run_site(
-            args, coords, int(row["rand_lon"]), int(row["rand_lat"]),
+            args, coords, random_lon, random_lat,
             str(row.get("orig_sect_rand_gap") or "") or None, False)
     got = {
         "surf": default["hashes"]["surf"]["fnv"],
@@ -118,13 +138,15 @@ def grade_row(args: argparse.Namespace, row: dict[str, object], build: bool):
     comparisons = {}
     for field, value in got.items():
         expected = row.get("orig_" + field)
+        if expected is None:
+            continue
         comparisons[field] = {
-            "got": value, "expected": expected,
-            "match": expected is not None and value == expected,
+            "got": value, "expected": expected, "match": value == expected,
         }
     return {
         "key": row["key"], "type": row["type"], "coords": coords[:3],
-        "body": coords[3], "reported_type": default["type"],
+        "body": coords[3], "random_site": random_coords,
+        "reported_type": default["type"],
         "sheet_seedval": row.get("seedval"), "lino_seedval": default["seedval"],
         "global_surface_seed": default["global_surface_seed"],
         "comparisons": comparisons,
@@ -166,6 +188,8 @@ def main() -> int:
     if args.types:
         wanted = set(args.types)
         rows = [row for row in rows if int(row["type"]) in wanted]
+    rows = [row for row in rows
+            if any(row.get("orig_" + field) is not None for field in FIELDS)]
     rows = rows[args.start:args.start + args.limit]
     reports = []
     counts = Counter()

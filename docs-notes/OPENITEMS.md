@@ -1383,6 +1383,16 @@ route, retain correct focus and layer ownership, and return from every safe
 menu or title-control action to a visibly live game. GAME itself is a hard
 release blocker until that exact player route stops crashing.
 
+**Command-specific player recurrence, 2026-08-17:** selecting Visual Effects
+through the real JavaScript GAME menu is broken and crashes, and selecting the
+GOES console through that menu is also broken and crashes. Do not generalize a
+successful GAME-open or direct-key GOES smoke to either route. Capture the
+ordinary click sequence, selected command, VM continuation and stack, active
+layer, worker failure/starvation state, and first bad frame for each command.
+Acceptance requires repeated menu entry into Visual Effects and GOES, visible
+and usable resulting screens, dismissal back to live gameplay, and no crash,
+halt, lost text, palette change, or renderer-state corruption.
+
 **GAME crash root cause and repair, 2026-08-17:** the browser shortcut entered
 `Menu Button Action` by pushing the current continuation and changing `pc`
 immediately, even when the worker was yielded in the middle of the renderer.
@@ -1433,6 +1443,23 @@ console input and output, HUD and FCS labels, onboard devices, data sheets,
 menus, help, About, counters, coordinates, and iGUI chrome. Grade the complete
 glyph set, character mapping, spacing, baseline, row stride, clipping, colour,
 palette interaction, nearest-neighbour scaling, and resize/fullscreen behavior.
+
+The desktop game also needs a fresh matched-oracle pass for both physical
+Stardrifter text routes: GOES console output and the text rendered onto the
+interior wall/panels. Compare the production desktop build, the JavaScript
+runtime, and the same NIV+/vanilla state. Grade glyph identity, character
+mapping, projected placement, clipping, colour, persistence, and the transition
+into and out of GOES. Treat the JavaScript failures as potentially different
+until the raw font data, pointers, and framebuffer evidence identify a shared
+cause.
+
+Visible but unselectable text boxes or input fields in the game/iGUI window are
+also an open parity question. Establish from a matched original Noctis/iGUI
+oracle which boxes are meant to be editable, focusable, read-only, decorative,
+or hidden in each state. Then make focus, hit testing, caret, keyboard input,
+selection feedback, and disabled appearance match the original on desktop and
+in the browser; do not preserve inert host artifacts merely because they are
+visible in the current port.
 
 The motivating external report is asymmetric: lower-left text such as the
 checkpoint-restored notice remained legible, while lower-right text was

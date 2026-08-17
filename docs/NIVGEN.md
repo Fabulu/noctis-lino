@@ -63,6 +63,17 @@ and `-gap` mirror the published harness inputs.
 original artifact URLs, supplies each original gap, and compares Lino hashes to
 every non-null original field it generated.
 
+The original artifact filenames are authoritative for both the system
+coordinates and the random landing longitude/latitude. The sheet's separate
+`rand_lon` and `rand_lat` columns can describe a newer requested site while its
+retained original hashes and PNG URLs still describe the older captured site.
+Comparing those columns to the retained hashes produces convincing but false
+terrain failures. The scorer therefore reads the random site from
+`orig_rand_*_<body>_<lon>_<lat>_*.png` when that evidence is available, records
+the chosen site in its JSON report, and uses the columns only as a fallback.
+Rows with no original hashes are not scoreable and are skipped. Cached API JSON
+may contain a UTF-8 BOM and is accepted without altering the snapshot.
+
 ```powershell
 # One deliberate smoke row
 python tools\nivgen_score.py --limit 1 --planet-only
@@ -122,6 +133,13 @@ public gap. It is one row, not yet a corpus-wide claim.
 One representative public row for every planet type 0 through 9 now matches
 all 11 scored hashes, including both landed coordinates. This is representative
 coverage, not a claim that the complete live corpus is already perfect.
+
+The live sheet also contains type-10 companion-star rows. Their orbital oracle
+fields can be absent because `surface()` is a no-op, so only non-null fields are
+graded. Five sampled type-10 rows match all 40 available landed hashes. A second
+breadth point for each ordinary type 0 through 9 matches all 110 hashes. This
+sample exposed and fixed the stale random-coordinate scoring error above; it did
+not require a generator exception or a planet-specific output change.
 
 A bounded 2026-08-14 pass selected ten type-2 rows where Rust had public
 errors. Lino matches all 110 original hashes. Eight systems were exact
