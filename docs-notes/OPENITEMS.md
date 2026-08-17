@@ -272,6 +272,16 @@ This addresses cadence amplification and its redundant renderer cost. It does
 not close the player's persisted-session report or authenticate the complete
 Stardrifter composition against NIV+.
 
+**Current post-repair replay, 2026-08-17.** A fresh browser start was turned
+through sixteen consecutive cockpit views and a separate twelve-frame
+stationary sequence. The visible sun remained a filled bright core with bounded
+radial and ghost flares; no black lattice, persistent white band, stray line,
+or increasing frame cost appeared. The stationary sequence ended around
+57 rendered FPS with roughly 1.8 ms of runner work, consistent with the exact
+four-stage oracle below. This is useful current-build evidence, but it does not
+replace the missing persisted checkpoint from the reported failing session or
+the still-open cupola/exterior transition coverage.
+
 **Completed foundation.** The flare raster, clipping, trig setup, ghost
 reflection, surface occlusion, and brightness-band behaviour now match direct
 NIV+ page dumps. A 12-class star matrix compares four 64,000-byte checkpoints
@@ -1358,6 +1368,18 @@ rows, and live input cursor, with continued rendering and no browser error or
 crash packet. This supplies current evidence against the old all-text-missing
 browser state. Keep the wider glyph-fidelity and XQuartz audit open because a
 healthy browser asset/runtime does not prove every compatibility host.
+
+**Complete-frame browser pacing, 2026-08-17:** iGUI performs a changed-area
+retrace and then a pointer/composition retrace during one Noctis gameplay
+frame. The worker previously spent one browser presentation credit on each,
+which made a renderer capable of 60 gameplay frames appear capped near 30.
+Linoctissite `ec67846` now recognizes the first retrace from the authoritative
+`VHGtimingcalls` counter, keeps that intermediate page in the worker, and
+publishes the following fully composed page. A real GAME-to-GOES smoke rendered
+the complete console text, reported 59.0 gameplay FPS on a 60 Hz display, and
+produced no crash or browser error. Habitable landed terrain remains around
+26 to 27 gameplay FPS in the current matched benchmark, so the hard-60 task is
+still open and now cleanly isolated from the former double-pacing defect.
 
 ## 9. Font fidelity across every text path -- **OPEN / DOCKET**
 
