@@ -1,5 +1,15 @@
 # CI and tagged releases
 
+## Beta 18 release checkpoint
+
+Beta 18 is the first tagged package after the portable production NIVGEN
+runner and exact moon two-pass buffer history landed. Its public score should be
+refreshed only from the release's rebuilt worker executable. The same checkpoint
+includes the source-matched projected cockpit-font repair and the native
+capsule-ascent comparison. The committed Windows executable was rebuilt from
+the tagged source before publication, while GitHub Actions performs the hosted
+regression, package, checksum, and provenance stages.
+
 The repository has three deliberately separate GitHub Actions paths. Current
 test scope and its manual/native boundary are summarized in
 `TEST_COVERAGE.md`.

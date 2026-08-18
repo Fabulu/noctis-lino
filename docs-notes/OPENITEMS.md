@@ -310,6 +310,14 @@ for every planet and atmosphere class, weather and day/night boundaries,
 additional companion and multiple-sun arrangements, orbital views, and the
 full Stardrifter interior/cupola/exterior transition.
 
+The thin gallery case now also has a full-context NIV+ oracle, not only the
+synthetic uniform-page flare check. An instrumented Borland build rendered the
+exact body, longitude, latitude, player position, pitch, heading, and pinned
+clock through `planetary_main`; its pre/post-flare pages changed 2,833 bytes and
+contain the same long near-vertical spoke. The gallery camera uses pitch -40 so
+that authentic spoke reads as part of the radial flare in the sky instead of
+resembling the unrelated horizon-pillar defect across the ground.
+
 A generated class-8 system is now part of the reproducible capture gallery.
 Its 300-degree view shows a planet partially occluding the primary disc beside
 radial light spokes. Live tracing corrected the earlier interpretation of
@@ -617,6 +625,18 @@ through its normal save path in Stardrifter mode. That closes the capsule-return
 and focus-loss legs. The same audit removed the port's old `-70` lift impulse:
 the live lift now uses NIV+'s `-100`, with smooth presentation interpolating the
 original eight simulation steps instead of changing their gameplay timing.
+
+**Capsule terrain withdrawal matched, 2026-08-18.** A production return capture
+kept detailed terrain through roughly 2.2 seconds and showed only the distant
+background bands by 3.5 seconds. A render-only NIV+ oracle then executed all 251
+original ascent frames with the same deterministic LANE IV terrain buffers. Its
+frame 40 still contained the nearby ground, while frame 60 had the same terrain
+withdrawal; at the source 18.206-Hz tick rate those are 2.20 and 3.30 seconds.
+The source changes `landed` after capsule count 32, raises the camera rapidly,
+and retains the capsule grid over the receding background until handoff. The
+reported few-second ground disappearance during takeoff is therefore matched
+source behavior, not a streaming failure. Long-distance walking terrain loss
+remains a separate bug class and is not closed by this ascent oracle.
 
 A 60-second fine-approach session then held forward movement inside the
 Stardrifter, alternated left and right view input, and captured the internal
@@ -1486,6 +1506,30 @@ Mac font failure. Reproduce it under XQuartz with the reporter's exact runtime
 and launch command, then test the ordinary Windows build and browser host with
 the same strings and window geometries.
 
+A second external capture shows another projected-pilot-font failure while the
+ordinary overlay font remains clean in the same frame. `UNCHARTED STAR` and
+`UNCHARTED BODY` are recognizable but have missing, shifted, or joined strokes;
+the nearby `CALIBRATED` overlay is intact. Treat this separately from a corrupt
+or byte-swapped atlas: authenticate those exact strings against a matched NIV+
+screen, then grade the `VHP digit -> FB digit at -> polymap` raster, row
+selection, spacing, quad projection, and clipping at the captured geometry.
+The atlas hash alone cannot close a rendering-path defect after a valid atlas
+has loaded.
+
+**Projected pilot-font repair, 2026-08-18.** The source audit found two exact
+translation omissions in that path. NIV+'s `digit_at()` temporarily sets
+`XSIZE=512` and `YSIZE=576` for every physical glyph, whereas the port inherited
+whatever texture dimensions the preceding mapper left behind. NIV+'s three
+information rows also use `p*46+12` in the port's equivalent world coordinates,
+not the generic control-row `p*50`. The physical onboard renderer now pins the
+512-by-576 basis and uses the source information spacing. A hidden production
+FCS capture changed the giant shredded glyphs into compact coherent letters;
+a controlled NIV+ camera sweep confirms the source's projected font is compact
+and perspective-distorted rather than the prior port artifact. The focused
+desktop regression passes. Keep the wider glyph-set, GOES, clipping, and
+XQuartz reporter checks open; this closes the identified onboard projection
+translation defect, not every compatibility-host font report.
+
 The first static split is concrete. The working checkpoint notice is drawn by
 `VHG notice overlay` through the ordinary `STD Write` font onto `VHGUIframe`.
 The broken lower-right FCS status and both GOES wall displays instead converge
@@ -1560,6 +1604,12 @@ not with omitted fields or fixture-specific answers. `docs/NIVGEN.md` is the
 operating procedure and `tools/nivtest.py` plus `tools/nivgen_score.py` are the
 current local runner and scorer.
 
+**Near-term priority.** With the projected pilot-font translation defect fixed,
+resume NIVGEN parity work before returning to the paused JavaScript
+compiler/site track. Iterate on real mismatches from the production runner,
+publish stable accuracy improvements in sensible batches, and keep increasing
+the live Lino column's exact coverage toward the most-accurate result.
+
 On 2026-08-17 Mega brought a Lino column online and announced that small
 runner fixes would be upstreamed. No open or closed PR, public fork, or extra
 branch was visible on either `Fabulu/noctis-lino` or the historical
@@ -1584,6 +1634,14 @@ then the full corpus at an accuracy milestone. Preserve raw artifacts for any
 mismatch and report both coverage and exactness. If the service is unavailable,
 record that once and do not retry until the host is known to be back.
 
+**Pull-request handling policy.** Review incoming PRs against the current
+production tree and deal with them as appropriate: merge clean unique work,
+adapt or cherry-pick useful pieces from stacked branches, or close changes that
+are obsolete, duplicated, unsafe, or superseded. Before closing any PR, leave a
+specific public comment stating what was evaluated, what landed elsewhere (if
+anything), why the PR is being closed, and what work remains. Do not silently
+close a contributor's branch merely because current master has moved ahead.
+
 **Production runner merged, 2026-08-18.** PR #5 landed the portable executable
 handoff, macOS x86_64 container build, and SheetBot-facing `tools/nivlin`
 wrapper on master. The wrapper calls the generated production harness rather
@@ -1594,6 +1652,20 @@ planet class then scored 118/118 fields, while 20 type-7 moon cases scored
 140/140 after the two-pass surface-buffer repair. The live sheet will remain
 stale until the contributor rebuilds and replaces its worker executable; do
 not interpret those old Lino columns as results from this master revision.
+
+A fresh late-corpus batch on 2026-08-18 covered 20 `RAVALISS` bodies of types
+0, 2, 3, 5, and 7. Both the fixed and random landed sectors were graded along
+with orbital surface, atmosphere, and palette output: all 220 available NIV+
+hashes matched. This adds two arbitrary-coordinate type-2 cases without
+weakening the rule above: the public Lino column is deployment evidence only
+after its worker is rebuilt from the production runner.
+
+**Coordinate-convention guard.** Gameplay checkpoint fixtures store the star Y
+value in the port's internal convention, while the public NIVGEN command uses
+the public catalogue convention. Do not copy a checkpoint Y directly into a
+runner invocation: doing so can select a different topology and make a valid
+body index look missing. Take parity inputs from the sheet/scorer record itself
+and retain one known 11/11 row as the runner smoke.
 
 ## 11. GitHub documentation and README -- **SETTLED / MONITORED**
 

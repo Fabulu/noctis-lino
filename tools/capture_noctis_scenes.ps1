@@ -38,6 +38,8 @@ param(
     [switch]$KeepStages,
     [switch]$UseGameSnapshot,
     [switch]$CaptureHostWindow,
+    [switch]$CapsuleReturn,
+    [switch]$OpenFcs,
     [switch]$Interactive
 )
 
@@ -177,12 +179,13 @@ $scenes = @(
        Beta=270; Pitch=-38; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='thin';      X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=0; Lat=60;
        Beta=167; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
-    # Native-matched clear type-5 lighting state. Longitude 45 lowers the
-    # otherwise near-zenith sun into the source-valid pitch range so its disc
-    # and complete radial flare are visible against the thin atmosphere.
+    # Native-matched clear type-5 lighting state. Longitude 45 and the lower
+    # camera pitch keep the complete radial flare visibly centred in the sky,
+    # instead of letting its authentic near-vertical spoke resemble the old
+    # horizon-pillar defect as it crosses the terrain.
     @{ Name='thinsun'; FileName='planet-thin-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=45; Lat=60;
-       Beta=90; Pitch=-30; PlayerX=1645000; PlayerZ=1641000 },
+       Beta=90; Pitch=-40; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='frozen';    X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
        Beta=193; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
     # Class-1 primary over an airless frozen world. The disc is visible while
@@ -560,6 +563,56 @@ foreach ($spec in $scenes) {
             $sceneWarmup = 4
         }
         Start-Sleep -Seconds $sceneWarmup
+        if ($OpenFcs) {
+            if ($spec.ContainsKey('Mode') -and $spec.Mode -ne 0) {
+                throw 'OpenFcs requires a Stardrifter scene'
+            }
+            [NoctisCaptureWin32]::PostMessage(
+                $proc.MainWindowHandle, 0x0100, [IntPtr]0x35, [IntPtr]1) | Out-Null
+            Start-Sleep -Milliseconds 80
+            [NoctisCaptureWin32]::PostMessage(
+                $proc.MainWindowHandle, 0x0101, [IntPtr]0x35,
+                [IntPtr]0xC0000001) | Out-Null
+            Start-Sleep -Seconds 1
+        }
+        if ($CapsuleReturn) {
+            if (($spec.ContainsKey('Mode') -and $spec.Mode -eq 0) -or
+                -not $spec.ContainsKey('PlayerX') -or
+                -not $spec.ContainsKey('PlayerZ') -or
+                $spec.PlayerX -ne $CapsuleX -or $spec.PlayerZ -ne $CapsuleZ) {
+                throw 'CapsuleReturn requires a landed scene with PlayerX/PlayerZ equal to CapsuleX/CapsuleZ'
+            }
+            # Exercise the shipping return path in the same process that loaded
+            # the authored checkpoint. Reopening a save written during automated
+            # shutdown is a different persistence test and can hide the takeoff
+            # frame behind startup work. The source seals for 32 ticks and lifts
+            # through tick 250, so these samples cover the complete transition.
+            $samples = @(0.0, 0.5, 1.5, 2.2, 3.5, 5.0, 7.0, 9.0, 11.0, 13.0, 15.0)
+            $watch = [Diagnostics.Stopwatch]::StartNew()
+            [NoctisCaptureWin32]::PostMessage(
+                $proc.MainWindowHandle, 0x0100, [IntPtr]0x52, [IntPtr]1) | Out-Null
+            Start-Sleep -Milliseconds 80
+            [NoctisCaptureWin32]::PostMessage(
+                $proc.MainWindowHandle, 0x0101, [IntPtr]0x52,
+                [IntPtr]0xC0000001) | Out-Null
+            foreach ($sample in $samples) {
+                $remaining = $sample - $watch.Elapsed.TotalSeconds
+                if ($remaining -gt 0) {
+                    Start-Sleep -Milliseconds ([int]($remaining * 1000))
+                }
+                $proc.Refresh()
+                if ($proc.HasExited) {
+                    throw "Capsule return exited before the $sample-second sample (code $($proc.ExitCode))"
+                }
+                $sampleMs = [int]($sample * 1000)
+                $destination = Join-Path $outputPath (
+                    '{0}-capsule-return-{1:D5}ms.png' -f $spec.Name, $sampleMs)
+                Save-WindowPng -Handle $proc.MainWindowHandle -Path $destination
+                Write-Output ("CAPTURED {0} capsule return {1:N1}s -> {2}" -f
+                    $spec.Name, $sample, $destination)
+            }
+            continue
+        }
         $fileName = if ($spec.ContainsKey('FileName')) {
             $spec.FileName
         } elseif ($spec.Name -eq 'stardrifter') {

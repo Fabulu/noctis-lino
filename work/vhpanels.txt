@@ -33,7 +33,7 @@
 	VHPoncontrol = 0; VHPoncommand = 0; VHPoninfoarea = 0; VHPalwayson = 1;
 	VHPonptr = 0; VHPonc = 0; VHPonp = 0; VHPonmax = 0; VHPoni = 0;
 	VHPonx0 = 0; VHPonx1 = 0; VHPony0 = 0; VHPony1 = 0;
-	VHPonbright = 0; VHPonglyphbright = 0;
+	VHPonbright = 0; VHPonglyphbright = 0; VHPoninfotext = 0;
 	VHPsysn = 0; VHPdotx = 0; VHPdoty = 0; VHPdotz = 0;
 	VHPselected = 0; VHPsysphase = 0; VHPangle = 0; VHPradius = 0; VHPdotsize = 0;
 	VHPlanding = 0; VHPlandinglon = 0; VHPlandinglat = 60;
@@ -232,6 +232,10 @@
 	A = [VHPfontok]; ? A = 0 -> VHP onboard screen done;
 	[VHVcamxi] = [VHPcamx]; [VHVcamyi] = [VHPcamy]; [VHVcamzi] = [VHPcamz];
 	[VHValpha] = [VHPalpha]; [VHVbeta] = [VHPbeta]; => VH set view;
+	( digit_at fixes XSIZE=512 and YSIZE=576 around every mapped glyph. )
+	[FI] = VHPTX; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = VHPTY; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[VHPoninfotext] = 0;
 
 	A = [VHPalwayson]; ? A != 0 -> VHP onboard controls begin;
 	A = [VHPoncontrol]; ? A = 0 -> VHP onboard commands gate;
@@ -268,6 +272,7 @@
 	A = [VHPalwayson]; ? A != 0 -> VHP onboard information begin;
 	A = [VHPoninfoarea]; ? A = 0 -> VHP onboard text done;
     "VHP onboard information begin"
+	[VHPoninfotext] = 1;
 	[VHPonptr] = [VHPoninfo0]; [VHPonc] = 0FFFFFFD4h; [VHPonp] = 0FFFFFFFFh;
 	[VHPonmax] = 108; => VHP onboard line;
 	[VHPonptr] = [VHPoninfo1]; [VHPonc] = 0FFFFFFD4h; [VHPonp] = 0;
@@ -340,7 +345,11 @@
 	C - 50;
     "VHP onboard digit x ready"
 	A = C; A - 12; [VHPonx0] = A; C + 10; [VHPonx1] = C;
-	A = [VHPonp]; A '* 50; C = A; A - 24; [VHPony0] = A; C + 16; [VHPony1] = C;
+	A = [VHPonp]; A '* 50; C = A;
+	A = [VHPoninfotext]; ? A = 0 -> VHP onboard digit y ready;
+	A = [VHPonp]; A '* 46; A + 12; C = A;
+    "VHP onboard digit y ready"
+	A = C; A - 24; [VHPony0] = A; C + 16; [VHPony1] = C;
 	[FI] = [VHPonx1]; => IntToF; => F32Narrow;
 	[vhcpoly plus 0] = [FS0]; [vhcpoly plus 3] = [FS0];
 	[FI] = [VHPonx0]; => IntToF; => F32Narrow;
