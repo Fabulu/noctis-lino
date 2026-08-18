@@ -1,10 +1,29 @@
 #!/bin/bash
 set -e
 cd "$(dirname "$0")"
-CC=clang
+CC=${CC:-clang}
 ARCH=x86_64
+HEADLESS=${HEADLESS:-0}
 CFLAGS="-arch $ARCH -O2 -W -Wall -D_GNU_SOURCE"
 LDFLAGS="-Wl,-pagezero_size,0x4000000"
+
+case "$HEADLESS" in
+	0)
+		display_source=lino_cocoa.m
+		display_object=lino_cocoa.o
+		display_ldflags="-framework Cocoa"
+		;;
+	1)
+		display_source=lino_noX11.c
+		display_object=lino_noX11.o
+		display_ldflags=
+		CFLAGS="$CFLAGS -DLINO_HEADLESS"
+		;;
+	*)
+		echo "HEADLESS must be 0 or 1" >&2
+		exit 2
+		;;
+esac
 
 rm -f *.o rtm01.bin
 
@@ -13,16 +32,16 @@ for f in rtm.c lino_file.c lino_globalK.c lino_socket.c lino_sound.c \
 	echo "compiling $f"
 	$CC $CFLAGS -c -o ${f%.c}.o $f
 done
-echo "compiling lino_cocoa.m"
-$CC $CFLAGS -c -o lino_cocoa.o lino_cocoa.m
+echo "compiling $display_source"
+$CC $CFLAGS -c -o "$display_object" "$display_source"
 echo "assembling isokernel.s"
 $CC -arch $ARCH -c -o isokernel.o isokernel.s
 
 echo "linking"
 $CC -arch $ARCH $LDFLAGS -o rtm01.bin \
 	rtm.o lino_file.o lino_globalK.o lino_socket.o lino_sound.o \
-	lino_keyboard.o lino_cocoa.o isokernel.o \
-	-framework Cocoa
+	lino_keyboard.o "$display_object" isokernel.o \
+	$display_ldflags
 
 echo "done"
 file rtm01.bin

@@ -79,9 +79,6 @@ int pWorkspaceSize;
 /* pointer to uninitialized workspace */
 unit *pUIWorkspace;
 
-/* headless mode flag (--headless on the command line) */
-bool gHeadless;
-
 unit current_ramtop;
 
 /* file group */
@@ -125,31 +122,6 @@ int main(int argc, char **argv, char **env)
 
 	environment = env;
 
-	/* headless mode: report the in-game time and exit, exactly as the
-	 * cartography page does (vhgame.txt "VHG onboard cartography
-	 * information"): VHGutcsecs = UTC seconds since 1984-01-01, shown as
-	 * "epoc <year> triads <g1>,<g2>,<g3>" where year = secs/1e9 + 6011
-	 * and the triads are the seconds split into 3-digit groups. */
-	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "--headless") == 0) {
-			struct tm t0;
-			time_t e1984, now = time(NULL);
-			long epoch;
-			memset(&t0, 0, sizeof t0);
-			t0.tm_year = 84;
-			t0.tm_mon = 0;
-			t0.tm_mday = 1;
-			e1984 = timegm(&t0);
-			epoch = (long) (now - e1984);
-			printf("epoc %ld triads %ld,%ld,%03ld\n",
-			       epoch / 1000000000L + 6011,
-			       (epoch / 1000000L) % 1000,
-			       (epoch / 1000L) % 1000,
-			       epoch % 1000L);
-			return 0;
-		}
-	}
-
 	/* initialize IParagraph */
 	IParagraph = (struct LNLMINIT *) &ipData[8];
 	/* check the size of the application name */
@@ -163,6 +135,14 @@ int main(int argc, char **argv, char **env)
 	dmsParameters[0] = '\0';
 	parameterLen = 0;
 	for (i = 1; i < argc; i++) {
+		/* --headless selects a runtime build, not an alternate program.
+		 * Keep it out of the Lino command line and continue into linoleum(). */
+		if (strcmp(argv[i], "--headless") == 0) {
+#ifndef LINO_HEADLESS
+			programError("ERROR: This executable has the Cocoa runtime. Rebuild the RTM with HEADLESS=1.");
+#endif
+			continue;
+		}
 		/* check if there are spaces in the current entry */
 		if (strchr(argv[i], ' ') == NULL) {
 			/* just insert string */
@@ -195,9 +175,7 @@ int main(int argc, char **argv, char **env)
 		dmsParameters[--parameterLen] = '\0';
 
 	/* allocate and initialize L.IN.OLEUM code area */
-	fprintf(stderr,"DBG code_size=%u ramtop=%u physws=%u appwssz=%u appcodesz=%u entry=%u\n", IParagraph->app_code_size, IParagraph->default_ramtop, IParagraph->physwsentry, IParagraph->app_ws_size, IParagraph->app_code_size, IParagraph->app_code_entry);
 	init_section(&pCode, IParagraph->app_code_size, "code");
-	fprintf(stderr,"DBG pCode=%p\n", (void*)pCode);
 	/* allocate and initialize application workspace */
 	init_section(&pWorkspace, IParagraph->default_ramtop, "workspace");
 	current_ramtop = IParagraph->default_ramtop;
@@ -207,7 +185,6 @@ int main(int argc, char **argv, char **env)
 	if (!openFile)
 		programError("ERROR: Failed to open Stockfile");
 
-	fprintf(stderr,"DBG stock=%s\n", dmsStockFilename);
 	/* read the initialised workspace */
 	read_section(&pWorkspace,
 		     IParagraph->physwsentry,
@@ -230,8 +207,6 @@ int main(int argc, char **argv, char **env)
 
 	/* initialize rest of workspace */
 	isokernelP = isokernel;
-	fprintf(stderr,"DBG ws loaded, pUIWs=%p\n", (void*)pUIWorkspace);
-	fprintf(stderr,"DBG isokernelP=%p pCode=%p\n", (void*)isokernelP, (void*)pCode);
 	pWorkspace[mm_ProcessOrigin] = (unit) pCode;
 	pUIWorkspace[mm_ProcessISOcall] = ((unit) isokernelP - (unit) pCode);
 	pUIWorkspace[mm_ProcessRAMtop] = IParagraph->default_ramtop;
@@ -254,10 +229,7 @@ int main(int argc, char **argv, char **env)
 	assert(initNetCommand());
 
 	PRINT1("%s: run main linoleum program.\n", __func__);
-	fprintf(stderr,"DBG calling linoleum, isocall offset=%u\n", pUIWorkspace[mm_ProcessISOcall]);
-
 	linoleum();
-	fprintf(stderr,"DBG linoleum returned\n");
 	if (xAtExit == FAIL) {
 #ifndef __APPLE__
 		int size = 256, n, result;
@@ -302,23 +274,6 @@ int main(int argc, char **argv, char **env)
 	if ((IParagraph->lfb_w_atstartup > 0) &&
 	    (IParagraph->lfb_h_atstartup > 0)) {
 		lino_display_close();
-	}
-
-	/* DUMP compiled code for analysis */
-	{
-		printf("DBG dump: pCodeSize=%d pWorkspaceSize=%d\n", pCodeSize, pWorkspaceSize);
-#ifdef __APPLE__
-		const char *dump_dir = "/tmp";
-#else
-		const char *dump_dir = "/workspace";
-#endif
-		char dump_path[1024];
-		snprintf(dump_path, sizeof dump_path, "%s/dump_code.bin", dump_dir);
-		FILE *f = fopen(dump_path, "wb");
-		if (f) { fwrite(pCode, 1, pCodeSize, f); fclose(f); }
-		snprintf(dump_path, sizeof dump_path, "%s/dump_ws.bin", dump_dir);
-		f = fopen(dump_path, "wb");
-		if (f) { fwrite(pWorkspace, 4, pWorkspaceSize, f); fclose(f); }
 	}
 
 	/* free allocated memory */
