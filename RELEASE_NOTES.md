@@ -1,5 +1,28 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+## Beta 18
+
+Beta 18 makes the production Lino generator deployable to the public NIVGEN
+worker. The SheetBot-facing wrapper now builds and runs the same current
+`vhgame.txt` generation graph used by the game, including the exact benchmark
+hash boundaries and arbitrary landed coordinates. Moon generation restores the
+original two-pass surface-buffer history instead of treating the second pass as
+an isolated allocation. That closes the observed moon palette mismatch without
+using fixture keys or uninitialized host memory.
+
+Fresh local replays against the live NIVGEN oracle add 40 planets and moons,
+including arbitrary type-2 sites, with all 440 available hashes exact. The
+previous 98-row leader-error set remains 1,078 for 1,078. The public Lino column
+still reflects an older worker until it is rebuilt from this release, so these
+figures describe the tagged production runner rather than the stale deployment.
+
+The desktop renderer also restores two source details around the Stardrifter.
+The physical onboard font now uses NIV+'s fixed 512-by-576 texture basis and
+46-unit information-row spacing, removing giant shredded cockpit lettering.
+A complete native capsule-ascent oracle confirms that the brief withdrawal of
+nearby terrain during takeoff occurs at the same source frames; long-distance
+walking coverage remains tracked separately.
+
 ## Beta 17
 
 Beta 17 restores several pieces of live Stardrifter and orbital rendering.
