@@ -98,7 +98,6 @@
 
 	PVp	= 0;	PVc	= 0;	PVv	= 0;	PVi	= 0;
 	PVnv	= 0;	PVj	= 0;	PVk	= 0;
-	SPcpfrom = 0; SPcpto = 0;
 
 	PVovn	= 0;			( colour-overrun address census )
 	PVovlo	= 0;
@@ -486,30 +485,12 @@
 	A = [PVh]; A '* PVSLOT; A + pvhtab; [PVc] = [A plus 1];
 
 	[SPreg] = RGPVF;
-	A = [PVi]; A + RPVF; A + nw; [SPcpfrom] = A;
-	A = [PVc]; A + RPVF; A + nw; [SPcpto] = A;
-	( Both handles are fixed, contiguous, non-overlapping ranges in the same
-	  one-byte-per-Lino-unit arena.  Resolve their workspace addresses first,
-	  then copy exactly the stored block length through ESI/EDX. )
-	{
-	    56
-	    8B B7 <dSPcpfrom mtp bytesperunit>
-	    8D 34 B7
-	    8B 97 <dSPcpto mtp bytesperunit>
-	    8D 14 97
-	    8B 8F <dPVj mtp bytesperunit>
-	    85 C9
-	    74 0D
-	    8B 06
-	    89 02
-	    83 C6 04
-	    83 C2 04
-	    49
-	    75 F3
-	    5E
-	}
-	[SPMi] = [PVj]; A = [PVc]; A + [PVj]; A - 1; [SPidx] = A;
-	A = [SPcpto]; C = [A]; C & 255; [SPval] = C;
+	[SPMi] = 0;
+    "SP cp b"
+	A = [PVi]; A + [SPMi]; [SPidx] = A; => SP dget;
+	A = [PVc]; A + [SPMi]; [SPidx] = A; => SP dput;
+	[SPMi]+;
+	A = [SPMi]; ? A '< [PVj] -> SP cp b;
 	[PVret] = 1;
     "SP cp out"
 	end;
