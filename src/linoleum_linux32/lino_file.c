@@ -33,10 +33,29 @@
 #include <unistd.h>
 
 #include <dirent.h>
+#include <sys/syscall.h>
 
 #include <wordexp.h>
 
 #include "lino_file.h"
+
+/*
+ * Directory listing via the raw getdents64 syscall. glibc readdir() uses the
+ * 32-bit getdents(2) syscall, whose directory cookie handling qemu-user
+ * emulation gets wrong on some hosts; getdents64 is always reliable.
+ */
+struct lino_dirent64 {
+	unsigned long long d_ino;
+	long long d_off;
+	unsigned short d_reclen;
+	unsigned char d_type;
+	char d_name[256];
+};
+
+static int gDirFd = -1;
+static char gdeBuf[16384];
+static struct lino_dirent64 *gdeCur;
+static int gdeRem;
 
 DIR *hDir;
 int hFile;
@@ -46,6 +65,46 @@ char *directory;
 char *filename;
 char dmsfilename[32768];
 unit dmsFileOrigin;		/* Base byte for file (0 for normal files). */
+
+static void lino_opendir_cwd(void)
+{
+	if (gDirFd >= 0) {
+		close(gDirFd);
+		gDirFd = -1;
+	}
+	gdeCur = NULL;
+	gdeRem = 0;
+	directory = getcwd(NULL, 0);
+	if (directory == NULL)
+		return;
+	gDirFd = open(directory, O_RDONLY | O_DIRECTORY);
+	free(directory);
+}
+
+static char *lino_next_dirent(void)
+{
+	for (;;) {
+		if (gdeRem <= 0) {
+			long n;
+			if (gDirFd < 0)
+				return NULL;
+			n = syscall(SYS_getdents64, gDirFd, gdeBuf,
+				    sizeof gdeBuf);
+			if (n <= 0)
+				return NULL;
+			gdeCur = (struct lino_dirent64 *)gdeBuf;
+			gdeRem = (int)n;
+		}
+		{
+			struct lino_dirent64 *e = gdeCur;
+			char *name = e->d_name;
+			gdeRem -= e->d_reclen;
+			gdeCur = (struct lino_dirent64 *)(
+				 (char *)e + e->d_reclen);
+			return name;
+		}
+	}
+}
 
 /**
  * get the file size of the file in filename
@@ -408,147 +467,90 @@ bool krnlFileCommand(FileCommand command)
 		break;
 	case GET_FIRST_FILE:
 		PRINT("Get first file.\n");
-		/* get string with path of current directory */
-		directory = getcwd(NULL, 0);
-		if (directory == NULL) {
-			PRINTERROR("getcwd");
-			result = false;
-			break;
-		}
-		/* open current directory */
-		hDir = opendir(directory);
-		if (!hDir) {
-			PRINTERROR("opendir");
-			result = false;
-			free(directory);
-			break;
-		}
-		/* read the directory's contents, print out the name of each entry. */
-		do {
-			entry = readdir(hDir);
-			if (entry != NULL) {
-				/* get statistics of file */
-				if (stat(entry->d_name, &fileStatus) != 0) {
-					PRINTERROR("stat");
-					result = false;
-				}
-			} else {
-				result = false;
-				/* close directory */
-				if (closedir(hDir) == -1) {
-					PRINTERROR("closedir");
-				}
+		lino_opendir_cwd();
+		result = false;
+		for (;;) {
+			char *name = lino_next_dirent();
+			if (name == NULL)
+				break;
+			if (stat(name, &fileStatus) != 0)
+				break;
+			if (S_ISREG(fileStatus.st_mode)) {
+				strcpy(dmsfilename, name);
+				result = true;
+				break;
 			}
 		}
-		while (entry != NULL && !(S_ISREG(fileStatus.st_mode)));
-		if (result == true && S_ISREG(fileStatus.st_mode)) {
+		if (result == true) {
 			btrsstring((unit *)
 				   & pWorkspace[pUIWorkspace[mm_FileName]],
-				   entry->d_name);
+				   dmsfilename);
 		} else {
 			PRINT("No file found.\n");
-			result = false;
 		}
-		free(directory);
 		break;
 	case GET_NEXT_FILE:
 		PRINT("Get next file.\n");
-		/* read the directory's contents, print out the name of each entry. */
-		do {
-			entry = readdir(hDir);
-			if (entry != NULL) {
-				/* get statistics of file */
-				if (stat(entry->d_name, &fileStatus) != 0) {
-					PRINTERROR("stat");
-					result = false;
-				}
-			} else {
-				result = false;
-				/* close directory */
-				if (closedir(hDir) == -1) {
-					PRINTERROR("closedir");
-				}
+		result = false;
+		for (;;) {
+			char *name = lino_next_dirent();
+			if (name == NULL)
+				break;
+			if (stat(name, &fileStatus) != 0)
+				break;
+			if (S_ISREG(fileStatus.st_mode)) {
+				strcpy(dmsfilename, name);
+				result = true;
+				break;
 			}
 		}
-		while (entry != NULL && !(S_ISREG(fileStatus.st_mode)));
-		if (result == true && S_ISREG(fileStatus.st_mode)) {
+		if (result == true) {
 			btrsstring((unit *)
 				   & pWorkspace[pUIWorkspace[mm_FileName]],
-				   entry->d_name);
-		} else {
-			result = false;
+				   dmsfilename);
 		}
 		break;
 	case GET_FIRST_DIR:
 		PRINT("Get first directory.\n");
-		/* get string with path of current directory */
-		directory = getcwd(NULL, 0);
-		if (directory == NULL) {
-			PRINTERROR("getcwd");
-			result = false;
-			break;
-		}
-		/* open current directory */
-		hDir = opendir(directory);
-		if (!hDir) {
-			PRINTERROR("opendir");
-			result = false;
-			free(directory);
-			break;
-		}
-		/* read the directory's contents, print out the name of each entry. */
-		do {
-			entry = readdir(hDir);
-			if (entry != NULL) {
-				/* get statistics of file */
-				if (stat(entry->d_name, &fileStatus) != 0) {
-					PRINTERROR("stat");
-					result = false;
-				}
-			} else {
-				result = false;
-				/* close directory */
-				if (closedir(hDir) == -1) {
-					PRINTERROR("closedir");
-				}
+		lino_opendir_cwd();
+		result = false;
+		for (;;) {
+			char *name = lino_next_dirent();
+			if (name == NULL)
+				break;
+			if (stat(name, &fileStatus) != 0)
+				break;
+			if (S_ISDIR(fileStatus.st_mode)) {
+				strcpy(dmsfilename, name);
+				result = true;
+				break;
 			}
 		}
-		while (entry != NULL && !(S_ISDIR(fileStatus.st_mode)));
-		if (result == true && S_ISDIR(fileStatus.st_mode)) {
+		if (result == true) {
 			btrsstring((unit *)
 				   & pWorkspace[pUIWorkspace[mm_FileName]],
-				   entry->d_name);
-		} else {
-			result = false;
+				   dmsfilename);
 		}
-		free(directory);
 		break;
 	case GET_NEXT_DIR:
 		PRINT("Get next directory.\n");
-		/* read the directory's contents, print out the name of each entry. */
-		do {
-			entry = readdir(hDir);
-			if (entry != NULL) {
-				/* get statistics of file */
-				if (stat(entry->d_name, &fileStatus) != 0) {
-					PRINTERROR("stat");
-					result = false;
-				}
-			} else {
-				result = false;
-				/* close directory */
-				if (closedir(hDir) == -1) {
-					PRINTERROR("closedir");
-				}
+		result = false;
+		for (;;) {
+			char *name = lino_next_dirent();
+			if (name == NULL)
+				break;
+			if (stat(name, &fileStatus) != 0)
+				break;
+			if (S_ISDIR(fileStatus.st_mode)) {
+				strcpy(dmsfilename, name);
+				result = true;
+				break;
 			}
 		}
-		while (entry != NULL && !(S_ISDIR(fileStatus.st_mode)));
-		if (result == true && S_ISDIR(fileStatus.st_mode)) {
+		if (result == true) {
 			btrsstring((unit *)
 				   & pWorkspace[pUIWorkspace[mm_FileName]],
-				   entry->d_name);
-		} else {
-			result = false;
+				   dmsfilename);
 		}
 		break;
 	default:
