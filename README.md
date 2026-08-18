@@ -2,8 +2,10 @@
 
 [![Windows build and release](https://github.com/Fabulu/noctis-lino/actions/workflows/windows-release.yml/badge.svg)](https://github.com/Fabulu/noctis-lino/actions/workflows/windows-release.yml)
 
-A complete playable Windows port of [Noctis IV](https://en.wikipedia.org/wiki/Noctis_(video_game))
+A complete playable port of [Noctis IV](https://en.wikipedia.org/wiki/Noctis_(video_game))
 to **L.in.oleum**, the cross-platform assembly language its own author wrote.
+The downloadable package targets Windows; the repository also includes a
+native macOS x86_64 host and Linux runtime sources.
 
 Alessandro Ghignola wrote both. He built L.in.oleum specifically to write
 Noctis V in it, then abandoned both projects. This repository finishes a
@@ -145,6 +147,17 @@ source/compiler/binary provenance record. A separate manual workflow can build
 the exact source on an isolated interactive `lino-gui` runner when one is
 available. See [CI_RELEASES.md](CI_RELEASES.md) for the runner setup and exact
 release boundaries.
+
+### Source platforms
+
+- Windows is the packaged and regularly played release target.
+- macOS x86_64 has a native Cocoa host with resizing, logical pointer mapping,
+  native fullscreen, and no XQuartz dependency. From
+  `src/linoleum_macos64`, run `./build.sh`; use `HEADLESS=1 ./build.sh` for
+  NIVGEN and console automation. Apple Silicon runs the x86_64 host through
+  Rosetta 2 while the separate ARM64 port remains unfinished.
+- Linux runtime sources remain available under `src/linoleum_linux32`; its
+  directory enumeration also works through the supported qemu-user path.
 
 ## Screenshots
 
