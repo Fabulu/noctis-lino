@@ -310,6 +310,14 @@ for every planet and atmosphere class, weather and day/night boundaries,
 additional companion and multiple-sun arrangements, orbital views, and the
 full Stardrifter interior/cupola/exterior transition.
 
+The thin gallery case now also has a full-context NIV+ oracle, not only the
+synthetic uniform-page flare check. An instrumented Borland build rendered the
+exact body, longitude, latitude, player position, pitch, heading, and pinned
+clock through `planetary_main`; its pre/post-flare pages changed 2,833 bytes and
+contain the same long near-vertical spoke. The gallery camera uses pitch -40 so
+that authentic spoke reads as part of the radial flare in the sky instead of
+resembling the unrelated horizon-pillar defect across the ground.
+
 A generated class-8 system is now part of the reproducible capture gallery.
 Its 300-degree view shows a planet partially occluding the primary disc beside
 radial light spokes. Live tracing corrected the earlier interpretation of

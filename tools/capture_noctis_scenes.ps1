@@ -177,12 +177,13 @@ $scenes = @(
        Beta=270; Pitch=-38; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='thin';      X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=0; Lat=60;
        Beta=167; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
-    # Native-matched clear type-5 lighting state. Longitude 45 lowers the
-    # otherwise near-zenith sun into the source-valid pitch range so its disc
-    # and complete radial flare are visible against the thin atmosphere.
+    # Native-matched clear type-5 lighting state. Longitude 45 and the lower
+    # camera pitch keep the complete radial flare visibly centred in the sky,
+    # instead of letting its authentic near-vertical spoke resemble the old
+    # horizon-pillar defect as it crosses the terrain.
     @{ Name='thinsun'; FileName='planet-thin-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=45; Lat=60;
-       Beta=90; Pitch=-30; PlayerX=1645000; PlayerZ=1641000 },
+       Beta=90; Pitch=-40; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='frozen';    X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
        Beta=193; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
     # Class-1 primary over an airless frozen world. The disc is visible while
