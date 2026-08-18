@@ -551,6 +551,41 @@
 	[FA0] = 0; [FA1] = 0;
 	end;
 
+      ( XToF32 - X registers -> FS0, rounded once from the live 64-bit
+	extended mantissa.  Production enters these chains with RC=nearest;
+	there is deliberately no binary64 intermediate. )
+
+"XToF32"
+      ? [XE] = 0 -> xf32 zero;
+	A = [XMH]; A > 8; A & 7FFFFFh; [xa0] = A;
+	A = [XMH]; A > 7; A & 1; [xrbit] = A;
+	A = [XMH]; A & 7Fh; B = [XML]; A | B; [xsbit] = A;
+	A = [XE]; A - 16256; [xtmp] = A;
+	      ? [xrbit] = 0 -> xf32 pack;
+	      ? [xsbit] != 0 -> xf32 inc;
+	A = [xa0]; A & 1;
+	      ? A = 0 -> xf32 pack;
+    "xf32 inc"
+	A = [xa0]; A + 1; [xa0] = A;
+	      ? A != 800000h -> xf32 pack;
+	[xa0] = 0; [xtmp]+;
+    "xf32 pack"
+	      ? [xtmp] <= 0 -> xf32 reject;
+	      ? [xtmp] >= 0FFh -> xf32 overflow;
+	A = [xa0]; B = [xtmp]; B < 23; A | B;
+	B = [XS]; B < 31; A | B; [FS0] = A;
+	end;
+    "xf32 zero"
+	A = [XS]; A < 31; [FS0] = A;
+	end;
+    "xf32 overflow"
+	A = 7F800000h; B = [XS]; B < 31; A | B; [FS0] = A;
+	end;
+    "xf32 reject"
+	[XREJ]+;
+	A = [XS]; A < 31; [FS0] = A;
+	end;
+
 ( ==================================================================== )
 ( the schedule primitives - one per x87 mnemonic                        )
 ( ==================================================================== )

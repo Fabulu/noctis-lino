@@ -362,7 +362,7 @@ def main(argv=None):
     if not a.no_lino:
         # Copy all needed libraries to the sandbox
         lino_libs = ("fbmem", "brtl", "mul64frag", "surng", "suseed", "grnd")
-        fp_libs = ("fpabi", "fpctl", "fpx87", "fpconv")
+        fp_libs = ("fpabi", "fpctl", "fpsoft", "fpx87", "fpconv")
         os.makedirs(os.path.join(SAND, "fp"), exist_ok=True)
         for lib in lino_libs:
             shutil.copy(os.path.join(WORK, lib + ".txt"), os.path.join(SAND, lib + ".txt"))

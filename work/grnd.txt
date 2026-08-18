@@ -463,8 +463,14 @@
 	end;
 
 "GR tree flandom"
-	{ DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
-	  D9 9F <dGRtreefl mtp bytesperunit> }
+	( Exact fild/multiply/store chain, kept live at x87's 64-bit
+	  significand until the one binary32 store. )
+	[XIN] = [GRtreeci]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRKFL0]; [XU0] = A; A = [GRKFL1]; [XU1] = A; => XFromF64;
+	=> XMulCore; => XToF32;
+	[GRtreefl] = [FS0];
 	end;
 
 ( ==================================================================== )
@@ -494,11 +500,12 @@
 	[GRprofileid]+;
 
 	( v = (float)r / M_PI_2 -- fild r; fdiv M_PI_2; fstp dword v )
-	{
-	    DB 87 <dSUia   mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    DC B7 <dGRKPI2L mtp bytesperunit>	(fdiv qword [edi+GRKPI2L*4])
-	    D9 9F <dGRfv   mtp bytesperunit>	(fstp dword [edi+GRfv*4])
-	}
+	A = [GRKPI2L]; [XU0] = A; A = [GRKPI2H]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [SUia]; => XFromInt;
+	=> XQuoCore; => XToF32;
+	[GRfv] = [FS0];
 
 	( Borland compares the int16 x/z locals against cx+r/cz+r as
 	  uint16 because source r is unsigned.  A wrapped negative start
@@ -572,52 +579,38 @@
 	A = [GRfrz]; A '* 200; A + [GRfrx]; [GRptr] = A;
 	A = RPSM; A + [GRptr]; [MBptr] = A; A + nw; C = [A]; C & 255;
 	[MBval] = C; [GRsval] = C;
-	{
-	    D9 87 <dGRfy   mtp bytesperunit>	(fld dword [edi+GRfy*4])
-	    DB 87 <dGRsval mtp bytesperunit>	(fild dword [edi+GRsval*4])
-	    DE C1				(faddp st1,st0)
-	    D9 9F <dGRfy   mtp bytesperunit>	(fstp dword [edi+GRfy*4])
-	}
+	[FS0] = [GRfy]; => FLoadF32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = [GRsval]; => IntToF; => FAdd; => FStoreF32;
+	[GRfy] = [FS0];
 
 	( canyon mirror or hmax clamp )
 	A = [GRfcanyon];
 	? A = 0 -> GR rh clamp;
 
 	( if (y > 127) y = 254 - y -- compute y - 127.0, check sign )
-	{
-	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
-	    DC A7 <dGRK127L mtp bytesperunit>	(fsub qword [edi+GRK127L*4])
-	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
-	}
-	A = [GRfs1]; A & 80000000h;
-	? A != 0 -> GR rh store;		( y - 127 < 0 → y <= 127, skip )
+	[FS0] = [GRfy]; => FLoadF32;
+	[FB0] = [GRK127L]; [FB1] = [GRK127H]; => FCmp;
+	? [FI] <= 0 -> GR rh store;
 	( y > 127: canyon mirror )
-	{
-	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
-	    DC AF <dGRK254L mtp bytesperunit>	(fsubr qword [edi+GRK254L*4])
-	    D9 9F <dGRfy  mtp bytesperunit>	(fstp dword [edi+GRfy*4])
-	}
+	[FS0] = [GRfy]; => FLoadF32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [GRK254L]; [FA1] = [GRK254H]; => FSub; => FStoreF32;
+	[GRfy] = [FS0];
 	-> GR rh store;
 
 "GR rh clamp"
 	( if (y > hmax) y = hmax -- compute y - hmax, check sign )
-	{
-	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
-	    D8 A7 <dGRfhmt mtp bytesperunit>	(fsub dword [edi+GRfhmt*4])
-	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
-	}
-	A = [GRfs1]; A & 80000000h;
-	? A != 0 -> GR rh store;		( y - hmax < 0 → skip )
+	[FS0] = [GRfhmt]; => FLoadF32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FS0] = [GRfy]; => FLoadF32; => FCmp;
+	? [FI] <= 0 -> GR rh store;
 	[GRfy] = [GRfhmt];			( y = hmax )
 
 "GR rh store"
 	( surfacemap[idx] = (unsigned char)y -- chop )
-	{
-	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
-	    D9 AF <dGRcwc mtp bytesperunit>	(fldcw [edi+GRcwc*4])
-	    DB 9F <dGRfti mtp bytesperunit>	(fistp dword [edi+GRfti*4])
-	    D9 AF <dGRcwn mtp bytesperunit>	(fldcw [edi+GRcwn*4])
-	}
+	[FS0] = [GRfy]; => FLoadF32; => FToIntChop;
+	[GRfti] = [FI];
 	A = [GRfti]; A & 0FFh;
 	[MBval] = A;
 	C = A; A = RPSM; A + [GRptr]; [MBptr] = A; A + nw; [A] = C;
@@ -685,11 +678,10 @@
 	[GRprofileid]+; [GRcraterid] = [GRprofileid];
 
 	( h = (float)r * h_factor -- fild r; fmul h_factor; fstp dword h )
-	{
-	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    D8 8F <dGRfht mtp bytesperunit>	(fmul dword [edi+GRfht*4])
-	    D9 9F <dGRfsch mtp bytesperunit>	(fstp dword [edi+GRfsch*4])
-	}
+	[FI] = [SUia]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FS0] = [GRfht]; => FLoadF32; => FMul; => FStoreF32;
+	[GRfsch] = [FS0];
 
 	( r = abs(r) )
 	A = [SUia];
@@ -700,10 +692,8 @@
 	C = A; A '* C; [GRfr2] = A;
 
 	( fr = (float)r -- fild abs(r); fstp dword fr )
-	{
-	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    D9 9F <dGRfscr mtp bytesperunit>	(fstp dword [edi+GRfscr*4])
-	}
+	[FI] = [SUia]; => IntToF; => FStoreF32;
+	[GRfscr] = [FS0];
 
 	( Clip the source's half-open crater rectangle once.  Skipped out-of-map
 	  iterations have no side effects or RNG calls, so this is identical to
@@ -805,12 +795,10 @@
 	( y += map[align*z + x].  The clipped rectangle proves this direct
 	  one-byte load has the exact semantics of MEM get byte. )
 	A = nw; A + [GRscaddr]; C = [A]; C & 255; [GRsval] = C;
-	{
-	    D9 87 <dGRfy   mtp bytesperunit>	(fld dword [edi+GRfy*4])
-	    DB 87 <dGRsval mtp bytesperunit>	(fild dword [edi+GRsval*4])
-	    DE C1				(faddp st1,st0)
-	    D9 9F <dGRfy   mtp bytesperunit>	(fstp dword [edi+GRfy*4])
-	}
+	[FS0] = [GRfy]; => FLoadF32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = [GRsval]; => IntToF; => FAdd; => FStoreF32;
+	[GRfy] = [FS0];
 
 	( if (y < 0) y = 0 )
 	A = [GRfy]; A & 80000000h;
@@ -819,27 +807,18 @@
 
 "GR sc clamphi"
 	( if (y > lim_h) y = lim_h -- compute y - lim_h, check sign )
-	{
-	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
-	    DA A7 <dGRfscl mtp bytesperunit>	(fisub dword [edi+GRfscl*4])
-	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
-	}
-	A = [GRfs1]; A & 80000000h;
-	? A != 0 -> GR sc store;	( y - lim_h < 0 → y < lim_h, no clamp )
+	[FI] = [GRfscl]; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FS0] = [GRfy]; => FLoadF32; => FCmp;
+	? [FI] <= 0 -> GR sc store;
 	( y >= lim_h: clamp to lim_h )
-	{
-	    DB 87 <dGRfscl mtp bytesperunit>	(fild dword [edi+GRfscl*4])
-	    D9 9F <dGRfy mtp bytesperunit>	(fstp dword [edi+GRfy*4])
-	}
+	[FI] = [GRfscl]; => IntToF; => FStoreF32;
+	[GRfy] = [FS0];
 
 "GR sc store"
 	( map[idx] = (unsigned char)y -- chop )
-	{
-	    D9 87 <dGRfy mtp bytesperunit>	(fld dword [edi+GRfy*4])
-	    D9 AF <dGRcwc mtp bytesperunit>	(fldcw [edi+GRcwc*4])
-	    DB 9F <dGRfti mtp bytesperunit>	(fistp dword [edi+GRfti*4])
-	    D9 AF <dGRcwn mtp bytesperunit>	(fldcw [edi+GRcwn*4])
-	}
+	[FS0] = [GRfy]; => FLoadF32; => FToIntChop;
+	[GRfti] = [FI];
 	A = [GRfti]; A & 0FFh;
 	C = A; A = nw; A + [GRscaddr]; [A] = C;
 
