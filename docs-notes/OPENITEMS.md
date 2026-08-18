@@ -547,11 +547,31 @@ again suppress beams because `34167.4 > 1000 * 21.879`. The reproducible
 `frozensun` scene records this distinct star-size and no-flare case. The wider
 frozen starfield parity item remains open independently.
 
+**Frozen-world class-0 positive-flare checkpoint.** RENIET VIII body 7 adds
+the missing positive counterpart at longitude 0, heading 90, pitch -20, and
+the pinned source clock. The native rig now generates the requested sector
+before rendering it, preventing stale terrain and object buffers from
+invalidating the comparison. Current Lino and Borland NIV+ then match all
+40,000 height bytes, all 40,000 object-chart bytes, and the complete 65,024
+byte landed texture payload. At the post-walk camera position, both renderers
+sample indexed value `108` at sun centre `(161,114)` before the flare pass and
+draw the same screen-wide radial spoke geometry. The native flare changes the
+centre to `126`; its pre-flare and post-flare page hashes are respectively
+`37DD345C1F26969839B4AC8F8F82241016BD6515541414AC771B8D3978F58FE1`
+and `09931622318561CB10470B606581EC4C09E74DC5FB03D4DC37DA9372C4E1D463`.
+Moving the capsule under the camera instead yields centre sample `62` and
+suppresses the flare in both engines, confirming that the gate is authentic
+foreground occlusion rather than a renderer accident. The reproducible
+`frozenflare` scene and `planet-frozen-sunbeams.png` publish the unobscured
+positive case. This closes one real type-7 positive-flare context, not the
+remaining all-class and transition matrix.
+
 The product gallery publishes the fixed-epoch checkpoints as
 `planet-lunar-sun.png`, `planet-thin-sun.png`, `planet-rocky-sun.png`, and
-`planet-frozen-sun.png`. Their captions distinguish a real radial flare from
-the source-gated no-flare discs so screenshots do not imply that every visible
-sun must emit beams.
+`planet-frozen-sun.png`, plus the positive class-0 frozen case as
+`planet-frozen-sunbeams.png`. Their captions distinguish a real radial flare
+from the source-gated no-flare discs so screenshots do not imply that every
+visible sun must emit beams.
 
 **Required authenticity matrix.** Capture and compare the visible beams, disc,
 ghosts, and occlusion against the native renderer for:

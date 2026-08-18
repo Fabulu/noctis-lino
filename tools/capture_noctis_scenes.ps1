@@ -10,7 +10,7 @@ param(
         'orbitsubstellar', 'orbitmultiple',
         'lunar', 'lunarsun', 'dense', 'densesun', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
         'thin', 'thinsun',
-        'frozen', 'frozensun', 'quartz', 'ruins', 'cube')]
+        'frozen', 'frozensun', 'frozenflare', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
     [int]$Longitude,
@@ -197,6 +197,16 @@ $scenes = @(
     @{ Name='frozensun'; FileName='planet-frozen-sun.png';
        X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
        Beta=90; Pitch=-44; PlayerX=1645000; PlayerZ=1641000 },
+    # RENIET VIII is a genuine type-7 primary around a class-0 star. Its
+    # roughly 610-stellar-radius orbit lies inside the source flare gate,
+    # complementing the deliberately beamless distant frozen-world fixture.
+    # This is a valid post-walk state: the capsule remains at its generated
+    # landing tile while the player has moved far enough to uncover the sun.
+    # A sector-first Borland NIV+ capture produced the same centre sample and
+    # the same positive radial flare at this pose.
+    @{ Name='frozenflare'; FileName='planet-frozen-sunbeams.png';
+       X=-1418337904; Y=1953670; Z=-1274313078; Body=7; Type=7; Lon=0; Lat=60;
+       Beta=90; Pitch=-20; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='quartz';    X=1463568; Y=-4728350; Z=-437812; Body=7; Type=8; Lon=0; Lat=60; Beta=180; Pitch=-12 },
     # Ylastravenya III's marked ruin edge, photographed outside the Cube.
     @{ Name='ruins';     FileName='planet-triangular-ruins.png';
@@ -679,7 +689,7 @@ foreach ($spec in $scenes) {
                     $distance = $sunFloats[8]
                     $ray = $sunFloats[9]
                     Write-Output (
-                        'SUN {0} mode={1} landed={2} type={3} class={4} atmo={5} night={6} rain={7:R} exposure={8:R} distance={9:R}[{10:X8}] ray={11:R}[{12:X8}] center={13},{14} visible={15} added={16} secondary={17}' -f
+                        'SUN {0} mode={1} landed={2} type={3} class={4} atmo={5} night={6} rain={7:R} exposure={8:R} distance={9:R}[{10:X8}] ray={11:R}[{12:X8}] center={13},{14} visible={15} sample={16} secondary={17}' -f
                         $spec.Name, $sun[0], $sun[1], $sun[2], $sun[3],
                         $sun[4], $sun[5], $rain, $exposure, $distance, $sun[8],
                         $ray, $sun[9], $sun[17], $sun[18], $sun[16],
