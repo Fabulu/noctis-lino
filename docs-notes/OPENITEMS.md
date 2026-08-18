@@ -630,6 +630,18 @@ advancement rather than a 60-Hz gameplay clock. Startup telemetry reported 61
 FPS with 5.56 ms render, 3.01 ms present, and 1.69 ms space work. This closes
 the orbital movement and overloaded-client recovery legs of the cadence item.
 
+**All-class desktop checkpoint, 2026-08-18.** One production fast-mode capture
+measured lunar 59, dense 59, habitable 60, rocky 63, thin-atmosphere 57,
+frozen 60, quartz 60, and Stardrifter 61 FPS. Landed render time ranged from
+6.86 to 10.88 ms; Stardrifter
+rendered in 1.07 ms. The only miss was the thin-atmosphere capture, whose
+renderer took 9.20 ms but whose host presentation rose to 8.96 ms. Its frame
+was complete and showed neither the former horizon pillar nor lost terrain.
+This moves the remaining shortfall out of planet-specific geometry and into
+desktop presentation jitter. Keep sustained motion, capsule transitions, and
+input-latency parity open; do not lower detail or accelerate the 18.206-Hz
+simulation to conceal a late host frame.
+
 ## 8. LinoJava browser runtime and reversible fullscreen -- **IN PROGRESS / DOCKET**
 
 Create a separate open-source project at `C:\Programmieren\linojava` that
@@ -1534,7 +1546,14 @@ through each live text route. Include nonletters and boundary characters so a
 partially shifted or incorrectly indexed font table cannot pass on a short
 uppercase message.
 
-## 10. NIVGEN public accuracy integration -- **IN PROGRESS / PR PENDING**
+The loader now checks that complete failure mode as well as its sentinel row.
+After optional host-word normalization it computes FNV-1a over all 9,360
+canonical atlas bytes and enables physical FCS/GOES text only for the checked-in
+`494B1F1D` image. This prevents a partial or mixed-order file read from being
+projected as plausible garbage. It is host hardening, not matched XQuartz or
+NIV+ visual closure; the reporter still needs to exercise the rebuilt binary.
+
+## 10. NIVGEN public accuracy integration -- **IN PROGRESS / DEPLOYMENT PENDING**
 
 Win the public NIVGEN accuracy comparison with the production Lino generator,
 not with omitted fields or fixture-specific answers. `docs/NIVGEN.md` is the
@@ -1564,6 +1583,17 @@ call the already verified production driver. Run a small live smoke first,
 then the full corpus at an accuracy milestone. Preserve raw artifacts for any
 mismatch and report both coverage and exactness. If the service is unavailable,
 record that once and do not retry until the host is known to be back.
+
+**Production runner merged, 2026-08-18.** PR #5 landed the portable executable
+handoff, macOS x86_64 container build, and SheetBot-facing `tools/nivlin`
+wrapper on master. The wrapper calls the generated production harness rather
+than the older duplicated `nivlin`/`nivlinvh` implementations. GitHub's Windows
+gameplay and package checks passed, and a cached public `OLIKETT I|0` row scored
+7/7 through the prebuilt-executable route. One farther-away row from every
+planet class then scored 118/118 fields, while 20 type-7 moon cases scored
+140/140 after the two-pass surface-buffer repair. The live sheet will remain
+stale until the contributor rebuilds and replaces its worker executable; do
+not interpret those old Lino columns as results from this master revision.
 
 ## 11. GitHub documentation and README -- **SETTLED / MONITORED**
 

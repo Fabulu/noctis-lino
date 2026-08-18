@@ -222,18 +222,20 @@ def line(label: str, record: dict[str, object]) -> str:
             f"fnv={record['fnv']} crc={record['crc']}")
 
 
-def emit_text(command: str, result: dict[str, object]) -> str:
+def emit_text(command: str, result: dict[str, object],
+              args: argparse.Namespace) -> str:
     h = result["hashes"]
     if command == "planet":
         rows = ["=== PLANET TEXTURE ===",
                 f"PLANET body={result['body']} type={result['type']} "
-                f"owner={result['owner']}",
+                f"owner={result['owner']} seedval={result['seedval']:.6f}",
                 line("surface_map", h["surf"]),
                 line("atmo_overlay", h["atmo"]),
                 line("palette64", h["pal"])]
     elif command == "sector":
         rows = ["=== SURFACE SECTOR (heightmap) ===",
                 f"SECTOR body={result['body']} type={result['type']} "
+                f"lon={args.lon} lat={args.lat} "
                 f"sctype={result['sctype']} albedo={result['albedo']} "
                 f"night={result['night']}",
                 f"  global_surface_seed={result['global_surface_seed']}",
@@ -242,6 +244,7 @@ def emit_text(command: str, result: dict[str, object]) -> str:
     elif command == "surftex":
         rows = ["=== SURFACE SECTOR (texture) ===",
                 f"SURFTEX body={result['body']} type={result['type']} "
+                f"lon={args.lon} lat={args.lat} "
                 f"sctype={result['sctype']} albedo={result['albedo']}",
                 line("surf_texture", h["stex"]),
                 line("sky_texture", h["sky"])]
@@ -250,14 +253,27 @@ def emit_text(command: str, result: dict[str, object]) -> str:
     return "\n".join(rows) + "\n"
 
 
+def emit_planet_all(results_by_body: list[dict[str, object]]) -> str:
+    rows = [f"=== PLANET TEXTURES (all {len(results_by_body)} bodies) ==="]
+    for result in results_by_body:
+        hashes = result["hashes"]
+        rows.append(
+            f"PLANET {result['body']} type={result['type']} "
+            f"is_moon={1 if result['owner'] >= 0 else 0} "
+            f"surf={hashes['surf']['fnv']} atmo={hashes['atmo']['fnv']} "
+            f"pal={hashes['pal']['fnv']}")
+    return "\n".join(rows) + "\n"
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Production Lino NIVGEN output harness")
-    parser.add_argument("command", choices=("planet", "sector", "surftex", "json"))
+    parser.add_argument(
+        "command", choices=("planet", "planet-all", "sector", "surftex", "json"))
     parser.add_argument("-x", type=int, required=True)
     parser.add_argument("-y", type=int, required=True)
     parser.add_argument("-z", type=int, required=True)
-    parser.add_argument("-p", type=int, required=True)
+    parser.add_argument("-p", type=int, default=0)
     parser.add_argument("-lon", type=int, default=0)
     parser.add_argument("-lat", type=int, default=60)
     parser.add_argument("-secs", type=int, default=0)
@@ -277,10 +293,27 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     try:
+        if args.command == "planet-all":
+            args.p = 0
+            header, buffers = run_lino(args)
+            all_results = [results(header, buffers)]
+            body_count = int(all_results[0]["body_count"])
+            args.build = False
+            for body in range(1, body_count):
+                args.p = body
+                header, buffers = run_lino(args)
+                all_results.append(results(header, buffers))
+            text = emit_planet_all(all_results)
+            if args.o:
+                with open(args.o, "a", encoding="utf-8", newline="\n") as stream:
+                    stream.write(text)
+            else:
+                sys.stdout.write(text)
+            return 0
         header, buffers = run_lino(args)
         result = results(header, buffers)
         dump_buffers(args, buffers)
-        text = emit_text(args.command, result)
+        text = emit_text(args.command, result, args)
         if args.o:
             with open(args.o, "a", encoding="utf-8", newline="\n") as stream:
                 stream.write(text)
