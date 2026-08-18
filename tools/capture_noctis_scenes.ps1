@@ -38,6 +38,8 @@ param(
     [switch]$KeepStages,
     [switch]$UseGameSnapshot,
     [switch]$CaptureHostWindow,
+    [switch]$CapsuleReturn,
+    [switch]$OpenFcs,
     [switch]$Interactive
 )
 
@@ -561,6 +563,56 @@ foreach ($spec in $scenes) {
             $sceneWarmup = 4
         }
         Start-Sleep -Seconds $sceneWarmup
+        if ($OpenFcs) {
+            if ($spec.ContainsKey('Mode') -and $spec.Mode -ne 0) {
+                throw 'OpenFcs requires a Stardrifter scene'
+            }
+            [NoctisCaptureWin32]::PostMessage(
+                $proc.MainWindowHandle, 0x0100, [IntPtr]0x35, [IntPtr]1) | Out-Null
+            Start-Sleep -Milliseconds 80
+            [NoctisCaptureWin32]::PostMessage(
+                $proc.MainWindowHandle, 0x0101, [IntPtr]0x35,
+                [IntPtr]0xC0000001) | Out-Null
+            Start-Sleep -Seconds 1
+        }
+        if ($CapsuleReturn) {
+            if (($spec.ContainsKey('Mode') -and $spec.Mode -eq 0) -or
+                -not $spec.ContainsKey('PlayerX') -or
+                -not $spec.ContainsKey('PlayerZ') -or
+                $spec.PlayerX -ne $CapsuleX -or $spec.PlayerZ -ne $CapsuleZ) {
+                throw 'CapsuleReturn requires a landed scene with PlayerX/PlayerZ equal to CapsuleX/CapsuleZ'
+            }
+            # Exercise the shipping return path in the same process that loaded
+            # the authored checkpoint. Reopening a save written during automated
+            # shutdown is a different persistence test and can hide the takeoff
+            # frame behind startup work. The source seals for 32 ticks and lifts
+            # through tick 250, so these samples cover the complete transition.
+            $samples = @(0.0, 0.5, 1.5, 2.2, 3.5, 5.0, 7.0, 9.0, 11.0, 13.0, 15.0)
+            $watch = [Diagnostics.Stopwatch]::StartNew()
+            [NoctisCaptureWin32]::PostMessage(
+                $proc.MainWindowHandle, 0x0100, [IntPtr]0x52, [IntPtr]1) | Out-Null
+            Start-Sleep -Milliseconds 80
+            [NoctisCaptureWin32]::PostMessage(
+                $proc.MainWindowHandle, 0x0101, [IntPtr]0x52,
+                [IntPtr]0xC0000001) | Out-Null
+            foreach ($sample in $samples) {
+                $remaining = $sample - $watch.Elapsed.TotalSeconds
+                if ($remaining -gt 0) {
+                    Start-Sleep -Milliseconds ([int]($remaining * 1000))
+                }
+                $proc.Refresh()
+                if ($proc.HasExited) {
+                    throw "Capsule return exited before the $sample-second sample (code $($proc.ExitCode))"
+                }
+                $sampleMs = [int]($sample * 1000)
+                $destination = Join-Path $outputPath (
+                    '{0}-capsule-return-{1:D5}ms.png' -f $spec.Name, $sampleMs)
+                Save-WindowPng -Handle $proc.MainWindowHandle -Path $destination
+                Write-Output ("CAPTURED {0} capsule return {1:N1}s -> {2}" -f
+                    $spec.Name, $sample, $destination)
+            }
+            continue
+        }
         $fileName = if ($spec.ContainsKey('FileName')) {
             $spec.FileName
         } elseif ($spec.Name -eq 'stardrifter') {
