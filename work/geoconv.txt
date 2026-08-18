@@ -224,10 +224,7 @@
 
 "GeoChopEnter"
 	[gcsav] = 0;
-	{
-	    9B					(fwait)
-	    D9 BF <dgcsav mtp bytesperunit>	(fnstcw [edi+gcsav*4])
-	}
+	=> FCWRead; A = [FI]; [gcsav] = A;
 	A = [gcsav]; A | 0C00h; [gcchop] = A;
 	end;
 
@@ -264,29 +261,18 @@
 ( ==================================================================== )
 
 "GeoKMulChopLive"
-	=> GeoChopEnter;
-	{
-	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
-	    DC 8F <dgcK0 mtp bytesperunit>	(fmul  qword [edi+gcK0*4])
-	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
-	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
-	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
-	}
-	A = [gcQ0]; [FI] = A;
+	=> XReset;
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64; => XPush;
+	A = [gcK0]; [XU0] = A; A = [gcK1]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp; => XPop; => XChop32;
 	end;
 
 "GeoKMulChopSpill"
-	=> GeoChopEnter;
-	{
-	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
-	    DC 8F <dgcK0 mtp bytesperunit>	(fmul  qword [edi+gcK0*4])
-	    DD 9F <dgcT0 mtp bytesperunit>	(fstp  qword [edi+gcT0*4])
-	    DD 87 <dgcT0 mtp bytesperunit>	(fld   qword [edi+gcT0*4])
-	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
-	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
-	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
-	}
-	A = [gcQ0]; [FI] = A;
+	=> XReset;
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64; => XPush;
+	A = [gcK0]; [XU0] = A; A = [gcK1]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp; => XFstpQ;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XChop32;
 	end;
 
       ( Two stored doubles multiplied by the selected K and converted at the
@@ -294,16 +280,12 @@
 	p_orb_seed * p_orb_ecc * 12345. )
 
 "GeoTwoMulKChopLive"
-	=> GeoChopEnter;
-	{
-	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
-	    DC 8F <dFC0 mtp bytesperunit>	(fmul  qword [edi+FC0*4])
-	    DC 8F <dgcK0 mtp bytesperunit>	(fmul  qword [edi+gcK0*4])
-	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
-	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
-	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
-	}
-	A = [gcQ0]; [FI] = A;
+	=> XReset;
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64; => XPush;
+	A = [FC0]; [XU0] = A; A = [FC1]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp;
+	A = [gcK0]; [XU0] = A; A = [gcK1]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp; => XPop; => XChop32;
 	end;
 
 ( ==================================================================== )
@@ -351,14 +333,8 @@
 ( ==================================================================== )
 
 "GeoPlainChop"
-	=> GeoChopEnter;
-	{
-	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
-	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
-	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
-	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
-	}
-	A = [gcQ0]; [FI] = A;
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A;
+	=> XFromF64; => XChop32;
 	end;
 
 
@@ -369,13 +345,8 @@
 	fistp m64int lets the low half through. )
 
 "GeoPlainChopD32"
-	=> GeoChopEnter;
-	{
-	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
-	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
-	    DB 9F <dFI mtp bytesperunit>	(fistp dword [edi+FI*4])
-	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
-	}
+	A = [FB0]; [FA0] = A; A = [FB1]; [FA1] = A;
+	=> FToIntChop;
 	end;
 
 ( ==================================================================== )
@@ -391,16 +362,16 @@
 ( ==================================================================== )
 
 "GeoQuoMulChopLive"
-	=> GeoChopEnter;
-	{
-	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
-	    DC B7 <dFC0 mtp bytesperunit>	(fdiv  qword [edi+FC0*4])
-	    DC 8F <dFC0 mtp bytesperunit>	(fmul  qword [edi+FC0*4])
-	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
-	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
-	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
-	}
-	A = [gcQ0]; [FI] = A;
+	=> XReset;
+	A = [FC0]; [XU0] = A; A = [FC1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	=> XQuoCore; => XPush;
+	A = [FC0]; [XU0] = A; A = [FC1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	=> XPop; => XMulCore; => XChop32;
 	end;
 
       ( spill point 1: the QUOTIENT is narrowed to binary64, the
@@ -408,36 +379,31 @@
 	carries every C sub-expression in a double produces. )
 
 "GeoQuoMulChopSpill1"
-	=> GeoChopEnter;
-	{
-	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
-	    DC B7 <dFC0 mtp bytesperunit>	(fdiv  qword [edi+FC0*4])
-	    DD 9F <dgcT0 mtp bytesperunit>	(fstp  qword [edi+gcT0*4])
-	    DD 87 <dgcT0 mtp bytesperunit>	(fld   qword [edi+gcT0*4])
-	    DC 8F <dFC0 mtp bytesperunit>	(fmul  qword [edi+FC0*4])
-	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
-	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
-	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
-	}
-	A = [gcQ0]; [FI] = A;
+	A = [FB0]; [FA0] = A; A = [FB1]; [FA1] = A;
+	A = [FC0]; [FB0] = A; A = [FC1]; [FB1] = A;
+	=> FQuo;
+	A = [FC0]; [XU0] = A; A = [FC1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XMulCore; => XChop32;
 	end;
 
       ( spill point 2: the PRODUCT is narrowed before the chop.  This is
 	precisely what fpconv's FToIntChop can do and nothing else. )
 
 "GeoQuoMulChopSpill2"
-	=> GeoChopEnter;
-	{
-	    DD 87 <dFB0 mtp bytesperunit>	(fld   qword [edi+FB0*4])
-	    DC B7 <dFC0 mtp bytesperunit>	(fdiv  qword [edi+FC0*4])
-	    DC 8F <dFC0 mtp bytesperunit>	(fmul  qword [edi+FC0*4])
-	    DD 9F <dgcT0 mtp bytesperunit>	(fstp  qword [edi+gcT0*4])
-	    DD 87 <dgcT0 mtp bytesperunit>	(fld   qword [edi+gcT0*4])
-	    D9 AF <dgcchop mtp bytesperunit>	(fldcw [edi+gcchop*4])
-	    DF BF <dgcQ0 mtp bytesperunit>	(fistp qword [edi+gcQ0*4])
-	    D9 AF <dgcsav mtp bytesperunit>	(fldcw [edi+gcsav*4])
-	}
-	A = [gcQ0]; [FI] = A;
+	=> XReset;
+	A = [FC0]; [XU0] = A; A = [FC1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	=> XQuoCore; => XPush;
+	A = [FC0]; [XU0] = A; A = [FC1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	=> XPop; => XMulCore; => XToF64;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XChop32;
 	end;
 
 ( ==================================================================== )
@@ -491,27 +457,21 @@
 	end;
 
 "GeoRatioStore50"
-	{
-	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
-	    DC B7 <dgcFif0 mtp bytesperunit>	(fdiv  qword [edi+gcFif0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
-	}
+	=> IntToF;
+	A = [gcFif0]; [FB0] = A; A = [gcFif1]; [FB1] = A;
+	=> FQuo;
 	end;
 
 "GeoRatioStore500"
-	{
-	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
-	    DC B7 <dgcFiv0 mtp bytesperunit>	(fdiv  qword [edi+gcFiv0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
-	}
+	=> IntToF;
+	A = [gcFiv0]; [FB0] = A; A = [gcFiv1]; [FB1] = A;
+	=> FQuo;
 	end;
 
 "GeoRatioStore5000"
-	{
-	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
-	    DC B7 <dgcFvt0 mtp bytesperunit>	(fdiv  qword [edi+gcFvt0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
-	}
+	=> IntToF;
+	A = [gcFvt0]; [FB0] = A; A = [gcFvt1]; [FB1] = A;
+	=> FQuo;
 	end;
 
 "GeoEccStore2000"
