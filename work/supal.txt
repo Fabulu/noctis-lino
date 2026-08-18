@@ -129,10 +129,7 @@
       ( SU f of ia - [SFtmp] <- (float)[SUia]. )
 
 "SU f of ia"
-	{
-	    DB 87 <dSUia  mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    D9 9F <dSFtmp mtp bytesperunit>	(fstp dword [edi+SFtmp*4])
-	}
+	[FI] = [SUia]; => IntToF; => FStoreF32; [SFtmp] = [FS0];
 	end;
 
       ( The three scalings.  A float TIMES a double literal: the float
@@ -140,27 +137,21 @@
 	store back into the float rounds. )
 
 "SU f q25"
-	{
-	    D9 87 <dSFtmp mtp bytesperunit>	(fld  dword [edi+SFtmp*4])
-	    DC 8F <dK025A mtp bytesperunit>	(fmul qword [edi+K025A*4])
-	    D9 9F <dSFtmp mtp bytesperunit>	(fstp dword [edi+SFtmp*4])
-	}
+	[FS0] = [SFtmp]; => FLoadF32;
+	A = [K025A]; [FB0] = A; A = [K025B]; [FB1] = A;
+	=> FMul; => FStoreF32; [SFtmp] = [FS0];
 	end;
 
 "SU f q75"
-	{
-	    D9 87 <dSFtmp mtp bytesperunit>	(fld  dword [edi+SFtmp*4])
-	    DC 8F <dK075A mtp bytesperunit>	(fmul qword [edi+K075A*4])
-	    D9 9F <dSFtmp mtp bytesperunit>	(fstp dword [edi+SFtmp*4])
-	}
+	[FS0] = [SFtmp]; => FLoadF32;
+	A = [K075A]; [FB0] = A; A = [K075B]; [FB1] = A;
+	=> FMul; => FStoreF32; [SFtmp] = [FS0];
 	end;
 
 "SU f q125"
-	{
-	    D9 87 <dSFtmp mtp bytesperunit>	(fld  dword [edi+SFtmp*4])
-	    DC 8F <dK125A mtp bytesperunit>	(fmul qword [edi+K125A*4])
-	    D9 9F <dSFtmp mtp bytesperunit>	(fstp dword [edi+SFtmp*4])
-	}
+	[FS0] = [SFtmp]; => FLoadF32;
+	A = [K125A]; [FB0] = A; A = [K125B]; [FB1] = A;
+	=> FMul; => FStoreF32; [SFtmp] = [FS0];
 	end;
 
 ( ==================================================================== )
@@ -173,36 +164,41 @@
 	call site's 16 is an argument, not a property of shade. )
 
 "SU shade k"
-	{
-	    DD 87 <dK1A  mtp bytesperunit>	(fld  qword [edi+K1A*4])
-	    DB 87 <dSUSHn  mtp bytesperunit>	(fild dword [edi+SUSHn*4])
-	    DE F9				(fdivp st(1),st(0))
-	    D9 9F <dSFk  mtp bytesperunit>	(fstp dword [edi+SFk*4])
-	}
+	[FI] = [SUSHn]; => IntToF;
+	A = [FA0]; [FB0] = A; A = [FA1]; [FB1] = A;
+	A = [K1A]; [FA0] = A; A = [K1B]; [FA1] = A;
+	=> FQuo; => FStoreF32; [SFk] = [FS0];
 	end;
 
       ( the three deltas: (finish - start) * k, ONE rounding.  Writing
 	this as two L.in.oleum float instructions would round the
 	difference to binary32 before the multiply, which Borland does
-	not do. )
+	not do.  The ABI calls below keep the operands as binary64 between
+	those two operations; for this routine's binary32 endpoints and
+	its exact k=1/16 call sites, that is the same value as the x87
+	extended expression before the deliberate binary32 store. )
 
 "SU shade d"
-	{
-	    D9 87 <dSFfr mtp bytesperunit>	(fld  dword [edi+SFfr*4])
-	    D8 A7 <dSFsr mtp bytesperunit>	(fsub dword [edi+SFsr*4])
-	    D8 8F <dSFk  mtp bytesperunit>	(fmul dword [edi+SFk*4])
-	    D9 9F <dSFdr mtp bytesperunit>	(fstp dword [edi+SFdr*4])
+	[FS0] = [SFsr]; => FLoadF32; A = [FA0]; [FB0] = A; A = [FA1]; [FB1] = A;
+	[FS0] = [SFfr]; => FLoadF32; => FSub;
+	A = [FA0]; [FT0] = A; A = [FA1]; [FT1] = A;
+	[FS0] = [SFk]; => FLoadF32; A = [FA0]; [FB0] = A; A = [FA1]; [FB1] = A;
+	A = [FT0]; [FA0] = A; A = [FT1]; [FA1] = A;
+	=> FMul; => FStoreF32; [SFdr] = [FS0];
 
-	    D9 87 <dSFfg mtp bytesperunit>	(fld  dword [edi+SFfg*4])
-	    D8 A7 <dSFsg mtp bytesperunit>	(fsub dword [edi+SFsg*4])
-	    D8 8F <dSFk  mtp bytesperunit>	(fmul dword [edi+SFk*4])
-	    D9 9F <dSFdg mtp bytesperunit>	(fstp dword [edi+SFdg*4])
+	[FS0] = [SFsg]; => FLoadF32; A = [FA0]; [FB0] = A; A = [FA1]; [FB1] = A;
+	[FS0] = [SFfg]; => FLoadF32; => FSub;
+	A = [FA0]; [FT0] = A; A = [FA1]; [FT1] = A;
+	[FS0] = [SFk]; => FLoadF32; A = [FA0]; [FB0] = A; A = [FA1]; [FB1] = A;
+	A = [FT0]; [FA0] = A; A = [FT1]; [FA1] = A;
+	=> FMul; => FStoreF32; [SFdg] = [FS0];
 
-	    D9 87 <dSFfb mtp bytesperunit>	(fld  dword [edi+SFfb*4])
-	    D8 A7 <dSFsb mtp bytesperunit>	(fsub dword [edi+SFsb*4])
-	    D8 8F <dSFk  mtp bytesperunit>	(fmul dword [edi+SFk*4])
-	    D9 9F <dSFdb mtp bytesperunit>	(fstp dword [edi+SFdb*4])
-	}
+	[FS0] = [SFsb]; => FLoadF32; A = [FA0]; [FB0] = A; A = [FA1]; [FB1] = A;
+	[FS0] = [SFfb]; => FLoadF32; => FSub;
+	A = [FA0]; [FT0] = A; A = [FA1]; [FT1] = A;
+	[FS0] = [SFk]; => FLoadF32; A = [FA0]; [FB0] = A; A = [FA1]; [FB1] = A;
+	A = [FT0]; [FA0] = A; A = [FT1]; [FA1] = A;
+	=> FMul; => FStoreF32; [SFdb] = [FS0];
 	end;
 
       ( SU shade byte - [SUti] <- the byte shade stores for [SFtmp]. )
@@ -210,10 +206,7 @@
 "SU shade byte"
 	?? [SFtmp] < [KFZERO] -> SU sb zero;
 	?? [SFtmp] >= [KF64] -> SU sb full;
-	{
-	    D9 87 <dSFtmp mtp bytesperunit>	(fld dword [edi+SFtmp*4])
-	}
-	=> SU chop32;
+	[FS0] = [SFtmp]; => FLoadF32; => FToIntChop; [SUti] = [FI];
 	end;
     "SU sb full"
 	[SUti] = 63;

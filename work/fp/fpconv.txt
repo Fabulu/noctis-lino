@@ -39,6 +39,10 @@
 
 	FCWCSAV	= 0;		( private: __ftol's own save slot )
 	FCWCHOP	= 0;		( private: the chop word it builds )
+	CVS = 0; CVE = 0; CVMH = 0; CVML = 0;
+	CVSHIFT = 0; CVROUND = 0; CVSTICKY = 0;
+	CVMAGH = 0; CVMAGL = 0; CVEXP = 0;
+	CVFRAC = 0; CVMODE = 0; CVTMP = 0;
 
 "programme"
 
@@ -47,18 +51,8 @@
       ( FToIntChop - FI <- (long)FA.  C cast semantics, __ftol. )
 
 "FToIntChop"
-	[FCWCSAV] = 0;
-	{
-	    9B					(fwait)
-	    D9 BF <dFCWCSAV mtp bytesperunit>	(fnstcw [edi+FCWCSAV*4])
-	}
-	A = [FCWCSAV]; A & 0F3FFh; A | 0C00h; [FCWCHOP] = A;
-	{
-	    D9 AF <dFCWCHOP mtp bytesperunit>	(fldcw [edi+FCWCHOP*4])
-	    DD 87 <dFA0 mtp bytesperunit>	(fld   qword [edi+FA0*4])
-	    DB 9F <dFI  mtp bytesperunit>	(fistp dword [edi+FI*4])
-	    D9 AF <dFCWCSAV mtp bytesperunit>	(fldcw [edi+FCWCSAV*4])
-	}
+	[CVMODE] = 3;
+	=> CV F64 to int;
 	end;
 
       ( FToIntNear - FI <- fistp(FA) under the AMBIENT control word.
@@ -66,10 +60,8 @@
 	37 hand-written sites, for free. )
 
 "FToIntNear"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld   qword [edi+FA0*4])
-	    DB 9F <dFI  mtp bytesperunit>	(fistp dword [edi+FI*4])
-	}
+	A = [FCW]; A > 10; A & 3; [CVMODE] = A;
+	=> CV F64 to int;
 	end;
 
       ( FToInt16Chop / FToInt16Near - the same, then Borland's 16-bit
@@ -96,10 +88,7 @@
 	int32, at every precision control, so this one cannot round. )
 
 "IntToF"
-	{
-	    DB 87 <dFI  mtp bytesperunit>	(fild dword [edi+FI*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword  [edi+FA0*4])
-	}
+	=> CV int to F64;
 	end;
 
       ( F32Narrow - FA <- (double)(float)FA.
@@ -117,29 +106,232 @@
 	round-to-nearest-even to binary32 - exactly a C store to float. )
 
 "F32Narrow"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    D9 9F <dFS0 mtp bytesperunit>	(fstp dword [edi+FS0*4])
-	    D9 87 <dFS0 mtp bytesperunit>	(fld  dword [edi+FS0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	=> FStoreF32;
+	=> FLoadF32;
 	end;
 
       ( FStoreF32 - FS0 <- (float)FA, as a bit image, without widening
 	back.  This is what writing a float to a file has to do. )
 
 "FStoreF32"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    D9 9F <dFS0 mtp bytesperunit>	(fstp dword [edi+FS0*4])
-	}
+	=> CV F64 to F32;
 	end;
 
       ( FLoadF32 - FA <- (double)the binary32 in FS0.  Always exact. )
 
 "FLoadF32"
-	{
-	    D9 87 <dFS0 mtp bytesperunit>	(fld  dword [edi+FS0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	=> CV F32 to F64;
+	end;
+
+( ==================================================================== )
+( Portable bit-exact conversion machinery.  These routines operate on )
+( IEEE images with integer Lino only; no target CPU escape is needed. )
+( ==================================================================== )
+
+"CV unpack F64"
+	A = [FA1]; A > 31; [CVS] = A;
+	A = [FA1]; A > 20; A & 7FFh; [CVE] = A;
+	A = [FA1]; A & 0FFFFFh; A < 11;
+	B = [FA0]; B > 21; A | B; [CVMH] = A;
+	A = [FA0]; A < 11; [CVML] = A;
+      ? [CVE] = 0 -> CVUF denorm;
+	A = [CVMH]; A | 80000000h; [CVMH] = A;
+	end;
+    "CVUF denorm"
+	A = [CVMH]; B = [CVML]; A | B;
+      ? A = 0 -> CVUF zero;
+	[CVE] = 1;
+    "CVUF norm"
+	A = [CVMH]; A & 80000000h;
+      ? A != 0 -> CVUF done;
+	A = [CVMH]; A < 1; B = [CVML]; B > 31; A | B; [CVMH] = A;
+	A = [CVML]; A < 1; [CVML] = A;
+	[CVE]-;
+	-> CVUF norm;
+    "CVUF zero"
+	[CVMH] = 0; [CVML] = 0;
+    "CVUF done"
+	end;
+
+"CV F64 to int"
+	=> CV unpack F64;
+	A = [CVMH]; B = [CVML]; A | B;
+      ? A = 0 -> CVI zero;
+	A = [CVE]; A - 1023; [CVEXP] = A;
+	      ? A >= 0 -> CVI exponent ok;
+	      ? A = 0FFFFFFFFh -> CVI exponent ok;
+	( Below one half, nearest and chop produce zero.  Directed modes
+	  produce one only when they point away from zero. )
+	A = [CVMODE];
+	      ? A = 1 -> CVI tiny down;
+	      ? A = 2 -> CVI tiny up;
+	-> CVI zero;
+    "CVI tiny down"
+	      ? [CVS] = 0 -> CVI zero;
+	[FI] = 0FFFFFFFFh;
+	end;
+    "CVI tiny up"
+	      ? [CVS] != 0 -> CVI zero;
+	[FI] = 1;
+	end;
+    "CVI exponent ok"
+	A = [CVEXP];
+	      ? A > 31 -> CVI invalid;
+	A = 63; A - [CVEXP]; [CVSHIFT] = A;
+	A = [CVMH]; [CVMAGH] = A;
+	A = [CVML]; [CVMAGL] = A;
+	[CVROUND] = 0; [CVSTICKY] = 0;
+    "CVI shift"
+	A = [CVSTICKY]; B = [CVROUND]; A | B; [CVSTICKY] = A;
+	A = [CVMAGL]; A & 1; [CVROUND] = A;
+	A = [CVMAGL]; A > 1; B = [CVMAGH]; B < 31; A | B; [CVMAGL] = A;
+	A = [CVMAGH]; A > 1; [CVMAGH] = A;
+	[CVSHIFT]-;
+      ? [CVSHIFT] != 0 -> CVI shift;
+
+	A = [CVMODE];
+      ? A = 3 -> CVI signed;
+      ? A = 0 -> CVI nearest;
+	A = [CVROUND]; B = [CVSTICKY]; A | B;
+      ? A = 0 -> CVI signed;
+	A = [CVMODE];
+      ? A = 1 -> CVI down;
+      ( mode 2, round toward +infinity )
+      ? [CVS] != 0 -> CVI signed;
+	-> CVI increment;
+    "CVI down"
+      ? [CVS] = 0 -> CVI signed;
+	-> CVI increment;
+    "CVI nearest"
+      ? [CVROUND] = 0 -> CVI signed;
+      ? [CVSTICKY] != 0 -> CVI increment;
+	A = [CVMAGL]; A & 1;
+      ? A = 0 -> CVI signed;
+    "CVI increment"
+	A = [CVMAGL]; A + 1; [CVMAGL] = A;
+      ? A != 0 -> CVI signed;
+	[CVMAGH]+;
+    "CVI signed"
+      ? [CVMAGH] != 0 -> CVI invalid;
+      ? [CVS] != 0 -> CVI negative;
+	A = [CVMAGL];
+      ? A '> 7FFFFFFFh -> CVI invalid;
+	[FI] = A;
+	end;
+    "CVI negative"
+	A = [CVMAGL];
+      ? A '> 80000000h -> CVI invalid;
+	A = 0; A - [CVMAGL]; [FI] = A;
+	end;
+    "CVI zero"
+	[FI] = 0;
+	end;
+    "CVI invalid"
+	[FI] = 80000000h;
+	end;
+
+"CV int to F64"
+	[CVS] = 0;
+	A = [FI];
+      ? A != 0 -> CVIF nonzero;
+	[FA0] = 0; [FA1] = 0;
+	end;
+    "CVIF nonzero"
+	A = [FI]; A & 80000000h;
+      ? A = 0 -> CVIF positive;
+	[CVS] = 1;
+	A = 0; A - [FI]; [CVMH] = A;
+	-> CVIF normalize;
+    "CVIF positive"
+	A = [FI]; [CVMH] = A;
+    "CVIF normalize"
+	[CVEXP] = 31;
+    "CVIF shift"
+	A = [CVMH]; A & 80000000h;
+      ? A != 0 -> CVIF pack;
+	A = [CVMH]; A < 1; [CVMH] = A;
+	[CVEXP]-;
+	-> CVIF shift;
+    "CVIF pack"
+	A = [CVMH]; A < 21; [FA0] = A;
+	A = [CVMH]; A > 11; A & 0FFFFFh;
+	B = [CVEXP]; B + 1023; B < 20; A | B;
+	B = [CVS]; B < 31; A | B; [FA1] = A;
+	end;
+
+"CV F32 to F64"
+	A = [FS0]; A > 31; [CVS] = A;
+	A = [FS0]; A > 23; A & 0FFh; [CVEXP] = A;
+	A = [FS0]; A & 7FFFFFh; [CVFRAC] = A;
+      ? [CVEXP] = 0 -> CV32 denorm;
+	-> CV32 pack;
+    "CV32 denorm"
+      ? [CVFRAC] = 0 -> CV32 zero;
+	[CVEXP] = 1;
+    "CV32 norm"
+	A = [CVFRAC]; A & 800000h;
+      ? A != 0 -> CV32 implicit;
+	A = [CVFRAC]; A < 1; [CVFRAC] = A;
+	[CVEXP]-;
+	-> CV32 norm;
+    "CV32 implicit"
+	A = [CVFRAC]; A & 7FFFFFh; [CVFRAC] = A;
+    "CV32 pack"
+	A = [CVFRAC]; A < 29; [FA0] = A;
+	A = [CVFRAC]; A > 3;
+	B = [CVEXP]; B + 896; B < 20; A | B;
+	B = [CVS]; B < 31; A | B; [FA1] = A;
+	end;
+    "CV32 zero"
+	[FA0] = 0;
+	A = [CVS]; A < 31; [FA1] = A;
+	end;
+
+"CV F64 to F32"
+	=> CV unpack F64;
+	A = [CVMH]; B = [CVML]; A | B;
+      ? A = 0 -> CV64 zero;
+	A = [CVE]; A - 896; [CVEXP] = A;
+      ? A <= 0 -> CV64 underflow;
+      ? A >= 255 -> CV64 overflow;
+	A = [CVMH]; A > 8; A & 7FFFFFh; [CVFRAC] = A;
+	A = [CVMH]; A > 7; A & 1; [CVROUND] = A;
+	A = [CVMH]; A & 7Fh; B = [CVML]; A | B; [CVSTICKY] = A;
+	A = [FCW]; A > 10; A & 3; [CVMODE] = A;
+      ? A = 3 -> CV64 pack;
+      ? A = 0 -> CV64 nearest;
+	A = [CVROUND]; B = [CVSTICKY]; A | B;
+      ? A = 0 -> CV64 pack;
+	A = [CVMODE];
+      ? A = 1 -> CV64 down;
+      ? [CVS] != 0 -> CV64 pack;
+	-> CV64 increment;
+    "CV64 down"
+      ? [CVS] = 0 -> CV64 pack;
+	-> CV64 increment;
+    "CV64 nearest"
+      ? [CVROUND] = 0 -> CV64 pack;
+      ? [CVSTICKY] != 0 -> CV64 increment;
+	A = [CVFRAC]; A & 1;
+      ? A = 0 -> CV64 pack;
+    "CV64 increment"
+	A = [CVFRAC]; A + 1; [CVFRAC] = A;
+      ? A != 800000h -> CV64 pack;
+	[CVFRAC] = 0;
+	[CVEXP]+;
+      ? [CVEXP] >= 255 -> CV64 overflow;
+    "CV64 pack"
+	A = [CVFRAC];
+	B = [CVEXP]; B < 23; A | B;
+	B = [CVS]; B < 31; A | B; [FS0] = A;
+	end;
+    "CV64 zero"
+	A = [CVS]; A < 31; [FS0] = A;
+	end;
+    "CV64 underflow"
+	( Noctis never stores a binary32 subnormal; keep the sign on zero. )
+	A = [CVS]; A < 31; [FS0] = A;
+	end;
+    "CV64 overflow"
+	A = 7F800000h; B = [CVS]; B < 31; A | B; [FS0] = A;
 	end;

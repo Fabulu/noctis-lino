@@ -116,11 +116,15 @@
 
 "NsIdentChop16"
 	[nsicsav] = 0;
-	{
-	    9B					(fwait)
-	    D9 BF <dnsicsav mtp bytesperunit>	(fnstcw [edi+nsicsav*4])
-	}
+	( FCWRead is the portable control-word read service.  It masks the
+	  reserved/readback bit exactly as the chop-word construction below does;
+	  the effective control word restored by the raw __ftol fragment is
+	  therefore unchanged. )
+	=> FCWRead; A = [FI]; [nsicsav] = A;
 	A = [nsicsav]; A & 0F3FFh; A | 0C00h; [nsicchop] = A;
+	( The following fragment is intentionally still target code: fpsoft has
+	  no operation for chopping the live extended st(0) into a qword and
+	  returning its low word.  FToIntChop would first narrow to binary64. )
 	{
 	    DB 87 <dFJ0 mtp bytesperunit>		(fild   x)
 	    DA B7 <dFKNsIdentityK100000 mtp bytesperunit>(fidiv K100000)

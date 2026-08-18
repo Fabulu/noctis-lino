@@ -173,8 +173,13 @@
 	  precision until __ftol.  Helper calls introduced binary64 spills and
 	  moved the long c=60 surface spoke from 49 to 50 pixels. )
 	[FCWCSAV] = 0;
-	{ 9B D9 BF <dFCWCSAV mtp bytesperunit> }
+	( FCWRead supplies the portable control-word read; its reserved-bit mask
+	  does not change the effective word restored after the spoke. )
+	=> FCWRead; A = [FI]; [FCWCSAV] = A;
 	A = [FCWCSAV]; A & 0F3FFh; A | 0C00h; [FCWCHOP] = A;
+	( The extended trig*k*l product and live __ftol cast below remain a raw
+	  fragment: fpsoft has no imported-binary64/extended stack operation for
+	  this chain, and replacing it with scalar calls changes the spoke pixel. )
 	{ D9 AF <dFCWCHOP mtp bytesperunit>
 	  D9 87 <dVHVcos mtp bytesperunit>
 	  DC 8F <dVHFk0 mtp bytesperunit>
