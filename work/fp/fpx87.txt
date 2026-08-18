@@ -1,6 +1,9 @@
       ( *** fpx87 - the X87 backend, Level 2 (SCALAR) ***
 
-	One of three interchangeable backends.  Link exactly one.  All
+	One of three interchangeable backends.  Stored-value division now
+	delegates to fpsoft's portable exact integer engine; the multiply and
+	transcendental operations remain below until their software primitives
+	can pass the full-game smoke as well as the arithmetic corpus.  All
 	three export the same period names and read and write the same
 	fpabi register file, so a call site never changes.
 
@@ -28,6 +31,10 @@
 	    DE F8+i is FDIVP  ST(i),ST(0)
 	    DE F0+i is FDIVRP ST(i),ST(0)
 	Nothing here relies on that; the chains in fpchains do.        )
+
+"libraries"
+
+	fpsoft;
 
 "programme"
 
@@ -68,11 +75,7 @@
 	end;
 
 "FQuo"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    DC B7 <dFB0 mtp bytesperunit>	(fdivide qword [edi+FB0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	=> XScalarQuo;
 	end;
 
 "FSqrt"
@@ -84,19 +87,11 @@
 	end;
 
 "FNeg"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    D9 E0				(fchs)
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	A = [FA1]; A # 80000000h; [FA1] = A;
 	end;
 
 "FAbs"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    D9 E1				(fabs)
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	A = [FA1]; A & 7FFFFFFFh; [FA1] = A;
 	end;
 
 "FSin"
@@ -144,20 +139,43 @@
 	FFLGUNORD.  No Noctis vector should ever reach it. )
 
 "FCmp"
-	[FSW] = 0;
-	{
-	    DD 87 <dFB0 mtp bytesperunit>	(fld qword [edi+FB0*4])
-	    DD 87 <dFA0 mtp bytesperunit>	(fld qword [edi+FA0*4])
-	    DE D9				(fcompp)
-	    9B					(fwait)
-	    DD BF <dFSW mtp bytesperunit>	(fnstsw [edi+FSW*4])
-	}
-	A = [FSW]; A & 0400h;
-      ? A != 0 -> FCMP unord;
-	A = [FSW]; A & 4000h;
-      ? A != 0 -> FCMP eq;
-	A = [FSW]; A & 0100h;
-      ? A != 0 -> FCMP lt;
+	A = [FA1]; A > 20; A & 7FFh;
+	      ? A != 7FFh -> FCMP b finite;
+	A = [FA1]; A & 0FFFFFh; B = [FA0]; A | B;
+	      ? A != 0 -> FCMP unord;
+    "FCMP b finite"
+	A = [FB1]; A > 20; A & 7FFh;
+	      ? A != 7FFh -> FCMP zeros;
+	A = [FB1]; A & 0FFFFFh; B = [FB0]; A | B;
+	      ? A != 0 -> FCMP unord;
+    "FCMP zeros"
+	A = [FA1]; A & 7FFFFFFFh; B = [FA0]; A | B;
+	      ? A != 0 -> FCMP signs;
+	A = [FB1]; A & 7FFFFFFFh; B = [FB0]; A | B;
+	      ? A = 0 -> FCMP eq;
+    "FCMP signs"
+	A = [FA1]; A > 31; C = A;
+	A = [FB1]; A > 31;
+	      ? A != C -> FCMP sign diff;
+	      ? C != 0 -> FCMP negative;
+	A = [FA1];
+	      ? A '> [FB1] -> FCMP gt;
+	      ? A '< [FB1] -> FCMP lt;
+	A = [FA0];
+	      ? A '> [FB0] -> FCMP gt;
+	      ? A '< [FB0] -> FCMP lt;
+	-> FCMP eq;
+    "FCMP negative"
+	A = [FA1];
+	      ? A '< [FB1] -> FCMP gt;
+	      ? A '> [FB1] -> FCMP lt;
+	A = [FA0];
+	      ? A '< [FB0] -> FCMP gt;
+	      ? A '> [FB0] -> FCMP lt;
+	-> FCMP eq;
+    "FCMP sign diff"
+	      ? C != 0 -> FCMP lt;
+    "FCMP gt"
 	[FI] = 1;
 	end;
     "FCMP eq"

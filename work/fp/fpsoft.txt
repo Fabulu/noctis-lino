@@ -58,6 +58,7 @@
 
 	XTOP = 0;			( 0..7, decrements on push )
 	XIN  = 0;			( int32 input to XFild / XFiquo )
+	XU0 = 0; XU1 = 0;		( binary64 input image, low/high )
 	XREJ = 0;
 	XDEPTH = 0;			( how many pushes are live )
 
@@ -162,6 +163,45 @@
 "XReset"
 	[XTOP] = 0;
 	[XDEPTH] = 0;
+	end;
+
+( ==================================================================== )
+( binary64 -> extended, exact                                           )
+( ==================================================================== )
+
+      ( XFromF64 - XU0:XU1 -> X registers.  Normal binary64 values are
+	exactly representable in the wider 64-bit x87 mantissa.  Binary64
+	subnormals are normalized explicitly rather than delegated to a host. )
+
+"XFromF64"
+	A = [XU1]; A > 31; [XS] = A;
+	A = [XU1]; A > 20; A & 7FFh; [XE] = A;
+	A = [XU1]; A & 0FFFFFh; A < 11;
+	B = [XU0]; B > 21; A | B; [XMH] = A;
+	A = [XU0]; A < 11; [XML] = A;
+      ? [XE] = 0 -> XFF denorm;
+      ? [XE] = 7FFh -> XFF reject;
+	A = [XE]; A + 15360; [XE] = A;
+	A = [XMH]; A | 80000000h; [XMH] = A;
+	end;
+    "XFF denorm"
+	A = [XMH]; B = [XML]; A | B;
+      ? A = 0 -> XFF zero;
+	A = 15361; [XE] = A;
+    "XFF norm"
+	A = [XMH]; A & 80000000h;
+      ? A != 0 -> XFF done;
+	A = [XMH]; A < 1; B = [XML]; B > 31; A | B; [XMH] = A;
+	A = [XML]; A < 1; [XML] = A;
+	[XE]-;
+	-> XFF norm;
+    "XFF zero"
+	[XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+    "XFF reject"
+	[XREJ]+;
+	[XE] = 0; [XMH] = 0; [XML] = 0;
+    "XFF done"
 	end;
 
 ( ==================================================================== )
@@ -555,4 +595,26 @@
 "XFstpQ"
 	=> XPop;
 	=> XToF64;
+	end;
+
+( ==================================================================== )
+( Stored-binary64 scalar helpers used by the portable public backend.  )
+( ==================================================================== )
+
+"XScalarQuo"
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+      ? [YE] = 0 -> XSQ zeroden;
+      ? [XE] != 0 -> XSQ nonzero;
+	A = [XS]; B = [YS]; A # B; A < 31; [FA1] = A; [FA0] = 0;
+	end;
+    "XSQ nonzero"
+	=> XQuoCore;
+	=> XToF64;
+	end;
+    "XSQ zeroden"
+	A = [XS]; B = [YS]; A # B; A < 31; A | 7FF00000h; [FA1] = A;
+	[FA0] = 0;
 	end;
