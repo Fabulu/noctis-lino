@@ -97,6 +97,7 @@
 	GRfd2delta	= 0;	( next-row delta for integer d squared	)
 	GRfr2		= 0;	( integer crater radius squared		)
 	GRcraterid	= 0;	( generation stamp for radial cache		)
+	GRprofileid	= 0;	( shared hill/crater radial generation	)
 	GRscaddr	= 0;	( clipped map address, advanced by align	)
 	GRsczlo	= 0;	( clipped z lower bound, inclusive		)
 	GRsczhi	= 0;	( clipped z upper bound, exclusive		)
@@ -156,13 +157,12 @@
 
 "workspace"
 
-	( std_crater's profile is radial: all pixels with the same integer
-	  dx*dx+dz*dz execute the same float sequence and produce the same
-	  binary32 y.  Cache that value per call without changing any defined
-	  surface byte.  16384 keys cover every squared distance below 128,
-	  including the source's largest 100..109-radius crater path. )
-	GRscache = 16384;
-	GRsstamp = 16384;
+	( round_hill and std_crater are radial: pixels with the same integer
+	  dx*dx+dz*dz execute the same float profile and produce the same binary32
+	  y.  One shared generation-stamped cache covers the complete 200x200 map;
+	  the largest possible in-bounds key is 2*199*199 = 79202. )
+	GRscache = 80000;
+	GRsstamp = 80000;
 
 "programme"
 
@@ -511,6 +511,7 @@
 ( to float32 where the C code stores, matching Borland's codegen.     )
 
 "GR round hill"
+	[GRprofileid]+;
 
 	( v = (float)r / M_PI_2 -- fild r; fdiv M_PI_2; fstp dword v )
 	{
@@ -546,30 +547,20 @@
 	? A < 0 -> GR rh znext;
 	? A >= 200 -> GR rh znext;
 
-	( dx = (float)(x - cx) )
+	( The binary32 dx/dz squares are exact small integers.  Use their integer
+	  sum as the radial cache key, then execute the original qword-spilled
+	  sqrt/cos profile only once per unique distance in this hill call. )
 	B = [GRfrx]; B - [SUcxi]; [GRdxi] = B;
-	{
-	    DB 87 <dGRdxi mtp bytesperunit>	(fild dword [edi+GRdxi*4])
-	    D9 9F <dGRfdx mtp bytesperunit>	(fstp dword [edi+GRfdx*4])
-	}
-
-	( dz = (float)(z - cz) )
 	B = [GRfrz]; B - [SUcyi]; [GRdzi] = B;
-	{
-	    DB 87 <dGRdzi mtp bytesperunit>	(fild dword [edi+GRdzi*4])
-	    D9 9F <dGRfdz mtp bytesperunit>	(fstp dword [edi+GRfdz*4])
-	}
+	A = [GRdxi]; A '* [GRdxi]; B = [GRdzi]; B '* [GRdzi]; A + B;
+	[GRfd2] = A;
+	A = GRsstamp; A + [GRfd2]; A = [A];
+	? A = [GRprofileid] -> GR rh profile cached;
 
-	( d = sqrt(dx*dx + dz*dz)
-	  Borland passes the expression to the far sqrt(double) helper through
-	  an eight-byte stack argument.  Preserve that binary64 spill before
-	  fsqrt instead of carrying the sum at x87 extended precision. )
+	( d = sqrt((double)d2).  The original float squares and sum are exact for
+	  this bounded integer domain, followed by the same binary64 helper spill. )
 	{
-	    D9 87 <dGRfdx mtp bytesperunit>	(fld dword [edi+GRfdx*4])
-	    D8 8F <dGRfdx mtp bytesperunit>	(fmul dword [edi+GRfdx*4])
-	    D9 87 <dGRfdz mtp bytesperunit>	(fld dword [edi+GRfdz*4])
-	    D8 8F <dGRfdz mtp bytesperunit>	(fmul dword [edi+GRfdz*4])
-	    DE C1				(faddp st1,st0)
+	    DB 87 <dGRfd2 mtp bytesperunit>	(fild dword [edi+GRfd2*4])
 	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
 	    DD 87 <dGRfs0 mtp bytesperunit>	(fld qword [edi+GRfs0*4])
 	    D9 FA				(fsqrt)
@@ -586,6 +577,12 @@
 	    D8 8F <dGRfht mtp bytesperunit>	(fmul dword [edi+GRfht*4])
 	    D9 9F <dGRfy  mtp bytesperunit>	(fstp dword [edi+GRfy*4])
 	}
+	A = GRscache; A + [GRfd2]; [A] = [GRfy];
+	A = GRsstamp; A + [GRfd2]; [A] = [GRprofileid];
+	-> GR rh profile ready;
+    "GR rh profile cached"
+	A = GRscache; A + [GRfd2]; [GRfy] = [A];
+    "GR rh profile ready"
 
 	( if (y >= 0) -- check sign bit of float32 )
 	A = [GRfy]; A & 80000000h;
@@ -593,9 +590,8 @@
 
 	( y += surfacemap[200*z + x] )
 	A = [GRfrz]; A '* 200; A + [GRfrx]; [GRptr] = A;
-	A = RPSM; A + [GRptr]; [MBptr] = A;
-	=> MEM get byte;
-	[GRsval] = [MBval];
+	A = RPSM; A + [GRptr]; [MBptr] = A; A + nw; C = [A]; C & 255;
+	[MBval] = C; [GRsval] = C;
 	{
 	    D9 87 <dGRfy   mtp bytesperunit>	(fld dword [edi+GRfy*4])
 	    DB 87 <dGRsval mtp bytesperunit>	(fild dword [edi+GRsval*4])
@@ -644,8 +640,7 @@
 	}
 	A = [GRfti]; A & 0FFh;
 	[MBval] = A;
-	A = RPSM; A + [GRptr]; [MBptr] = A;
-	=> MEM put byte;
+	C = A; A = RPSM; A + [GRptr]; [MBptr] = A; A + nw; [A] = C;
 
 "GR rh znext"
 	[GRfrz]+;
@@ -707,7 +702,7 @@
 ( fyl2x/frndint/f2xm1/fscale sequence, preserving the live float32 y. )
 
 "GR std crater"
-	[GRcraterid]+;
+	[GRprofileid]+; [GRcraterid] = [GRprofileid];
 
 	( h = (float)r * h_factor -- fild r; fmul h_factor; fstp dword h )
 	{
@@ -775,7 +770,7 @@
 	A = [GRfd2];
 	? A > [GRfr2] -> GR sc znext;
 	A = GRsstamp; A + [GRfd2]; A = [A];
-	? A != [GRcraterid] -> GR sc profile miss;
+	? A != [GRprofileid] -> GR sc profile miss;
 	A = GRscache; A + [GRfd2]; [GRfy] = [A];
 	-> GR sc profile ready;
 
@@ -823,7 +818,7 @@
 	}
 "GR sc power done"
 	A = GRscache; A + [GRfd2]; [A] = [GRfy];
-	A = GRsstamp; A + [GRfd2]; [A] = [GRcraterid];
+	A = GRsstamp; A + [GRfd2]; [A] = [GRprofileid];
 
 "GR sc profile ready"
 
