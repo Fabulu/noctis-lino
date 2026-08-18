@@ -4,7 +4,7 @@ Three rules of this suite are baked in here and must not be worked around:
 
   * TESTS NEVER TOUCH work/. Every run copies the eight L.in.oleum sources
     the Wave 4 driver needs - nsrun.txt and its libraries brtl, nsrng,
-    nsseed, nstopo, geoconv, nsident, nslabel, plus work/fp's five engine
+    nsseed, nstopo, geoconv, nsident, nslabel, plus work/fp's six engine
     files - into a sandbox under tests/gen and builds THERE. The code under
     test is still the code in work/: a regression there fails this test. But
     work/nstopo.bin and work/nsdiag.bin keep whatever the pipeline left in
@@ -61,7 +61,7 @@ import ns_spec as N                                              # noqa: E402
 # fp/ ones keep their subdirectory because that is how nsrun.txt spells them.
 LIBS = ("brtl.txt", "nsrng.txt", "nsseed.txt", "nstopo.txt",
         "geoconv.txt", "nsident.txt", "nslabel.txt")
-FPLIBS = ("fpabi.txt", "fpctl.txt", "fpx87.txt", "fpconv.txt", "fpchains.txt")
+FPLIBS = ("fpabi.txt", "fpctl.txt", "fpsoft.txt", "fpx87.txt", "fpconv.txt", "fpchains.txt")
 PROG = "nsrun.txt"
 
 # The programme's own file-name literals. Named here so the test can say what

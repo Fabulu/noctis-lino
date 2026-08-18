@@ -78,6 +78,7 @@
 	xiter = 0; xbrw = 0;
 	xrbit = 0; xsbit = 0; xdel = 0;
 	xtmp = 0; xadr = 0;
+	xi64h = 0; xi64l = 0; xishift = 0;
 
 "workspace"
 
@@ -617,4 +618,32 @@
     "XSQ zeroden"
 	A = [XS]; B = [YS]; A # B; A < 31; A | 7FF00000h; [FA1] = A;
 	[FA0] = 0;
+	end;
+
+      ( XChop16 - truncate the live extended X value to a signed qword,
+	then return its low 16 bits zero-extended.  This is the observable
+	part of Borland __ftol used by the stellar-class seed site. )
+
+"XChop16"
+      ? [XE] = 0 -> XCI zero;
+	A = [XE]; A - XBIAS; [xtmp] = A;
+      ? A < 0 -> XCI zero;
+      ? A > 63 -> XCI zero;
+	A = 63; A - [xtmp]; [xishift] = A;
+	A = [XMH]; [xi64h] = A;
+	A = [XML]; [xi64l] = A;
+      ? [xishift] = 0 -> XCI sign;
+    "XCI shift"
+	A = [xi64l]; A > 1; B = [xi64h]; B < 31; A | B; [xi64l] = A;
+	A = [xi64h]; A > 1; [xi64h] = A;
+	[xishift]-;
+      ? [xishift] != 0 -> XCI shift;
+    "XCI sign"
+      ? [XS] = 0 -> XCI low;
+	A = 0; A - [xi64l]; [xi64l] = A;
+    "XCI low"
+	A = [xi64l]; A & 0FFFFh; [FI] = A;
+	end;
+    "XCI zero"
+	[FI] = 0;
 	end;

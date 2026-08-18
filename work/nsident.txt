@@ -33,29 +33,14 @@
 
 	Borland passes that expression to __ftol on the x87 stack: there is
 	no memory round trip, so __ftol truncates the LIVE EXTENDED value.
-	FLOATPOLICY 3.3 records that the delivered fpconv cannot do this -
-	FToIntChop begins `fld qword [FA0]`, which has already narrowed the
-	value to binary64 - and leaves the boundary UNSETTLED.  Wave 4
-	closes it for this one site and no other.
-
-	The fragment below is the NsIdentity fragment with its terminal
-	`fstp id` replaced by fldcw-chop / fistp QWORD on the live st(0) /
-	fldcw restore.  Borland's __ftol returns the low 32 bits of that 64-bit
+	FToIntChop begins from the stored binary64 in FA and therefore cannot
+	serve this site.  NsIdentChop16 instead runs the same schedule through
+	fpsoft and applies XChop16 before the live extended value is stored.
+	Borland's __ftol returns the low 32 bits of that 64-bit
 	integer result.  A dword store instead produces 80000000h when the
 	identity exceeds signed 32-bit, which changes the stellar class.  The
-	eight instructions before that are byte-identical to
-	NsIdentity's, and they are identical by CONSTRUCTION rather than by
-	transcription: the fidiv operand is fpchains' own generated constant
-	FKNsIdentityK100000, not a copy of it.  A hand-written fragment that
-	quietly drifts from the generated schedule is the obvious failure
-	mode here; sharing the constant slot removes half of it, and the
-	regression test's opcode-prefix check removes the rest.
-
-	Why not add this to fpsched.txt: test_floatcontract.py (a) requires
-	fpchains.txt to be byte-identical to what fpsched.txt regenerates
-	and (b) asserts fpchains.txt contains NO fistp encoding at all.
-	Generalising this into genfp is a Wave-3.1 tidy-up with its own test
-	edit, not a side effect of Wave 4.
+	divisions use fpchains' generated FKNsIdentityK100000 slot, so the
+	constant cannot drift from the graded identity schedule.
 
 	NOTE THE ASYMMETRY, again: srand's int16 is ZERO extended, because
 	Borland's srand writes an explicit 0 into the seed's high word.
@@ -85,15 +70,6 @@
 	nsid0	= 0;		( nearstar_identity, low half  )
 	nsid1	= 0;		( nearstar_identity, high half )
 
-	nsicsav = 0;		( __ftol's own control-word save slot.  NOT
-				  shared with FCWSAV or with fpconv's
-				  FCWCSAV: a routine that borrowed either
-				  would silently replace the word FLeave is
-				  supposed to put back. )
-	nsicchop = 0;
-	nsicq0 = 0;		( __ftol qword result, low half first )
-	nsicq1 = 0;
-
 	nsidsav0 = 0;
 	nsidsav1 = 0;
 
@@ -115,30 +91,17 @@
 	live st(0), then Borland's zero-extended 16 bits. )
 
 "NsIdentChop16"
-	[nsicsav] = 0;
-	( FCWRead is the portable control-word read service.  It masks the
-	  reserved/readback bit exactly as the chop-word construction below does;
-	  the effective control word restored by the raw __ftol fragment is
-	  therefore unchanged. )
-	=> FCWRead; A = [FI]; [nsicsav] = A;
-	A = [nsicsav]; A & 0F3FFh; A | 0C00h; [nsicchop] = A;
-	( The following fragment is intentionally still target code: fpsoft has
-	  no operation for chopping the live extended st(0) into a qword and
-	  returning its low word.  FToIntChop would first narrow to binary64. )
-	{
-	    DB 87 <dFJ0 mtp bytesperunit>		(fild   x)
-	    DA B7 <dFKNsIdentityK100000 mtp bytesperunit>(fidiv K100000)
-	    DB 87 <dFJ1 mtp bytesperunit>		(fild   y)
-	    DE C9					(fmulp  st1,st0)
-	    DA B7 <dFKNsIdentityK100000 mtp bytesperunit>(fidiv K100000)
-	    DB 87 <dFJ2 mtp bytesperunit>		(fild   z)
-	    DE C9					(fmulp  st1,st0)
-	    DA B7 <dFKNsIdentityK100000 mtp bytesperunit>(fidiv K100000)
-	    D9 AF <dnsicchop mtp bytesperunit>		(fldcw  chop)
-	    DF BF <dnsicq0 mtp bytesperunit>		(fistp  qword [nsicq0])
-	    D9 AF <dnsicsav mtp bytesperunit>		(fldcw  restore)
-	}
-	A = [nsicq0]; A & 0FFFFh; [FI] = A;
+	=> XReset;
+	A = [FJ0]; [XIN] = A; => XFild;
+	A = [FKNsIdentityK100000]; [XIN] = A; => XFiquo;
+	A = [FJ1]; [XIN] = A; => XFild;
+	=> XFmulp;
+	A = [FKNsIdentityK100000]; [XIN] = A; => XFiquo;
+	A = [FJ2]; [XIN] = A; => XFild;
+	=> XFmulp;
+	A = [FKNsIdentityK100000]; [XIN] = A; => XFiquo;
+	=> XPop;
+	=> XChop16;
 	end;
 
 ( ==================================================================== )
