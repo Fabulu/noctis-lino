@@ -373,12 +373,22 @@
 	A = [VHFy1]; A '* 320; A + [VHFx0]; A + RADPT; A + nw; [VHFlinep] = A;
 	A = [VHFy0]; A+; A '* 320; A + RADPT; A + nw; [VHFlinepf] = A;
     "VHF stick vertical loop"
-	A = [VHFlinep]; ? A >= [VHFlinepf] -> VHF source stick done; D = A;
-	A = [D]; A & 255; C = A; C & 63; C + 8;
-	? C <= 62 -> VHF stick vertical bright ready; C = 62;
-    "VHF stick vertical bright ready"
-	A & 192; C | A; [D] = C;
-	A = [VHFlinep]; A + 320; [VHFlinep] = A; -> VHF stick vertical loop;
+	( Exact vertical Stick loop. The original overwrites one complete display
+	  unit, advances by 320 units, and stops at the exclusive row endpoint. )
+	{
+	    53 56 57 55 89 FD
+	    8B B5 <dVHFlinep mtp bytesperunit>
+	    8B 95 <dVHFlinepf mtp bytesperunit>
+	    39 D6 7D 36 8D 7C B5 00
+	    8B 07 25 FF 00 00 00 89 C3 83 E3 3F 83 C3 08
+	    83 FB 3E 7E 05 BB 3E 00 00 00
+	    25 C0 00 00 00 09 C3 89 1F
+	    81 C6 40 01 00 00 81 C7 00 05 00 00
+	    39 D6 7C CE
+	    89 B5 <dVHFlinep mtp bytesperunit>
+	    89 F0 5D 5F 5E 5B
+	}
+	-> VHF source stick done;
 
     "VHF stick nonvertical"
 	A = [VHFx1]; ? A >= [VHFx0] -> VHF stick ordered;
@@ -404,20 +414,28 @@
 	[VHFlineay] = A;
     "VHF stick loop"
 	( Native Stick addresses seg_adapted:[di+4] after discarding the far
-	  pointer's four-byte allocation offset.  Against the logical page those
-	  two offsets cancel, so the packed framebuffer index is simply di. )
-	A = [VHFlinegy]; A '/ 65536; A '* 320; C = [VHFlinegx]; C '/ 65536; A + C;
-	A + RADPT; A + nw; D = A;
-	( Inline Stick's general flare-1 add.  This runs for every sampled point
-	  of every spoke; keeping it here avoids a Lino call/return per pixel. )
-	A = [D]; A & 255; C = A; C & 63; ? C > 55 -> VHF stick nonvertical bright sat;
-	A + 8; [D] = A; -> VHF stick nonvertical bright done;
-    "VHF stick nonvertical bright sat"
-	A & 192; A | 62; [D] = A;
-    "VHF stick nonvertical bright done"
-	A = [VHFlinegx]; A + [VHFlineax]; [VHFlinegx] = A;
-	A = [VHFlinegy]; A + [VHFlineay]; [VHFlinegy] = A;
-	A = [VHFlinegx]; ? A < [VHFlineend] -> VHF stick loop;
+	  pointer's four-byte allocation offset. Against the logical page those
+	  offsets cancel, so RADPT plus the fixed-point coordinates is exact.
+	  Clipping above guarantees positive viewport coordinates, making the
+	  source signed division by 65536 identical to the arithmetic shifts. )
+	{
+	    53 56 57 55 89 FD
+	    8B B5 <dVHFlinegx mtp bytesperunit>
+	    8B BD <dVHFlinegy mtp bytesperunit>
+	    8B 95 <dVHFlineend mtp bytesperunit>
+	    89 F8 C1 F8 10 69 C0 40 01 00 00
+	    89 F1 C1 F9 10 01 C8
+	    8D 8C 85 <dnw plus RADPT mtp bytesperunit>
+	    8B 01 25 FF 00 00 00 89 C3 83 E3 3F 83 FB 37 7F 07
+	    83 C0 08 89 01 EB 0A
+	    25 C0 00 00 00 83 C8 3E 89 01
+	    03 B5 <dVHFlineax mtp bytesperunit>
+	    03 BD <dVHFlineay mtp bytesperunit>
+	    39 D6 7C B5
+	    89 B5 <dVHFlinegx mtp bytesperunit>
+	    89 BD <dVHFlinegy mtp bytesperunit>
+	    89 F0 5D 5F 5E 5B
+	}
     "VHF source stick done"
 	end;
 

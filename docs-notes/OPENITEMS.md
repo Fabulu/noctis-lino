@@ -294,6 +294,16 @@ those cases use the exact binary32 ray and distance captured from the current
 thin-atmosphere, quartz-world, clear habitable-world, and airless lunar scenes.
 The lunar case is the source-gated unchanged-page negative described below.
 
+The vertical and fixed-point spoke pixel loops now execute as bounded native
+kernels instead of one Lino dispatch chain per sampled point. They preserve the
+source clipping, exclusive vertical endpoint, every-other-position general
+sampling, low-six-bit saturation, write order, and final fixed-point cursors.
+The ten-case probe retains its exact 640,000-byte before and after hashes,
+including the four real surface inputs. One matched thin-world product sample
+reduced measured rendering from 8.71 to 6.96 ms; host timing varied on later
+runs, so the pinned page hashes and eliminated interpreter loop are the durable
+evidence rather than that single timing delta.
+
 **Playable evidence so far.** A fresh sequential opening Stardrifter capture
 shows a bright filled corona and radial beams at 60 FPS, backed by the exact
 four-stage comparison above rather than appearance alone. The habitable scene
