@@ -429,7 +429,8 @@
     "VHGND type1 crater loop"
 	A = [VHGNDgenn]; ? A = 0 -> VHGND type1 texture craters;
 	C = 32; => SU rnd; [FI] = C; => IntToF;
-	[FB0] = 7AE147AEh; [FB1] = 3F847AE1h; => FMul; => F32Narrow; => FStoreF32; [GRfht] = [FS0];
+	( NIV+ C literal 0.01 is binary64 3F847AE147AE147B. )
+	[FB0] = 47AE147Bh; [FB1] = 3F847AE1h; => FMul; => F32Narrow; => FStoreF32; [GRfht] = [FS0];
 	C = 20; => SU rnd; C + 5; [FI] = C; => IntToF;
 	[FB0] = 33333333h; [FB1] = 3FB33333h; => FMul; => F32Narrow; => FStoreF32; [GRfhmt] = [FS0];
 	C = 50; => SU rnd; C + 5; [SUia] = C;
