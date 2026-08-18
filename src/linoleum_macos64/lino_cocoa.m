@@ -42,6 +42,7 @@ static CGImageRef currentImage;
 
 static void lino_cocoa_key_event(NSEvent *event, int down);
 static void lino_cocoa_mouse_event(NSEvent *event, int kind);
+static void lino_cocoa_set_mouse(NSPoint point);
 
 /* ------------------------------------------------------------------ */
 /* the content view                                                    */
@@ -261,8 +262,37 @@ static void lino_cocoa_mouse_event(NSEvent *event, int kind)
 {
 	(void) kind;
 	NSPoint p = [view convertPoint:[event locationInWindow] fromView:nil];
-	lm.x = (int) p.x;
-	lm.y = (int) p.y;
+	lino_cocoa_set_mouse(p);
+}
+
+static void lino_cocoa_set_mouse(NSPoint point)
+{
+	NSRect bounds = [view bounds];
+	CGFloat local_x;
+	CGFloat local_y;
+	if (bounds.size.width <= 0 || bounds.size.height <= 0 ||
+	    fb_w <= 0 || fb_h <= 0) {
+		lm.x = -1;
+		lm.y = -1;
+		return;
+	}
+	/* Cocoa may resize the host window without changing the logical Lino
+	 * framebuffer. Map pointer coordinates through the same scaling used by
+	 * drawRect so iGUI hit targets and game mouse-look remain aligned. */
+	local_x = point.x - bounds.origin.x;
+	local_y = point.y - bounds.origin.y;
+	if (local_x < 0)
+		lm.x = -1;
+	else if (local_x >= bounds.size.width)
+		lm.x = fb_w;
+	else
+		lm.x = (int) (local_x * fb_w / bounds.size.width);
+	if (local_y < 0)
+		lm.y = -1;
+	else if (local_y >= bounds.size.height)
+		lm.y = fb_h;
+	else
+		lm.y = (int) (local_y * fb_h / bounds.size.height);
 }
 
 lino_mouse *lino_mouse_update_position(void)
@@ -271,8 +301,7 @@ lino_mouse *lino_mouse_update_position(void)
 		NSPoint p =
 		    [view convertPoint:[win mouseLocationOutsideOfEventStream]
 		     fromView:nil];
-		lm.x = (int) p.x;
-		lm.y = (int) p.y;
+		lino_cocoa_set_mouse(p);
 	}
 	/* the iGUI grants the client the pointer only while it is over the
 	 * window (PD IN SIGHT): mirror the X11 XQueryPointer result */
@@ -392,9 +421,16 @@ bool krnlDisplayCommand(DisplayCommand command)
 		}
 		break;
 	case SETCOOPERATIVEMODE:
+		if (pUIWorkspace[mm_DisplayStatus] & EXCLUSIVE) {
+			[win toggleFullScreen:nil];
+			pUIWorkspace[mm_DisplayStatus] &= ~EXCLUSIVE;
+		}
+		break;
 	case SETEXCLUSIVEMODE:
-		printf("%s: exclusive display mode not (yet) supported.\n",
-		       __func__);
+		if (!(pUIWorkspace[mm_DisplayStatus] & EXCLUSIVE)) {
+			[win toggleFullScreen:nil];
+			pUIWorkspace[mm_DisplayStatus] |= EXCLUSIVE;
+		}
 		break;
 	default:
 		result = false;
@@ -420,7 +456,8 @@ bool lino_display_init(unit x, unit y, unit w, unit h, void *data)
 	win = [[NSWindow alloc]
 	    initWithContentRect:NSMakeRect(0, 0, (CGFloat) w, (CGFloat) h)
 	    styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
-		     NSWindowStyleMaskMiniaturizable)
+		     NSWindowStyleMaskMiniaturizable |
+		     NSWindowStyleMaskResizable)
 	    backing:NSBackingStoreBuffered
 	    defer:NO];
 	if (win == nil)
@@ -428,6 +465,11 @@ bool lino_display_init(unit x, unit y, unit w, unit h, void *data)
 	[win setTitle:
 	    [NSString stringWithUTF8String:(const char *)IParagraph->appname]];
 	[win setAcceptsMouseMovedEvents:YES];
+	[win setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+	/* iGUI owns fullscreen state and preserves its prior logical dimensions.
+	 * Hide the native zoom control so an out-of-band transition cannot leave
+	 * Display Status and iGUI's restore bookkeeping disagreeing. */
+	[[win standardWindowButton:NSWindowZoomButton] setHidden:YES];
 
 	view = [[LinoView alloc] initWithFrame:NSMakeRect(0, 0,
 							 (CGFloat) w,
