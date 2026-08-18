@@ -20,7 +20,8 @@
 	VHPcol = 0; VHPi = 0;
 	VHPcamx = 0; VHPcamy = 0; VHPcamz = 0;
 	VHPalpha = 0; VHPbeta = 0;
-	VHPfontok = 0; VHPfi = 0; VHPchar = 0; VHPline = 0; VHPdigitskip = 0;
+	VHPfontok = 0; VHPfi = 0; VHPfonthash = 0; VHPfontword = 0;
+	VHPchar = 0; VHPline = 0; VHPdigitskip = 0;
 	VHPkey = 0; VHPcmdpos = 0; VHPsubmitted = 0; VHPactive = 0;
 	VHPblackout = 0; VHPresetphase = 0;
 	VHPoutptr = 0; VHPoutrows = 0; VHPoutview = 0; VHPouti = 0; VHPoutj = 0;
@@ -78,7 +79,7 @@
 	  0001C000h in the authoritative asset.  Detect its byte-reversed
 	  00C00100h form and normalize every scanline exactly once. )
 	A = [digimap2 plus 38];
-	? A = 114688 -> VHP font valid;
+	? A = 114688 -> VHP font checksum;
 	? A != 12583168 -> VHP font done;
 	[VHPfi] = 0;
     "VHP font swap"
@@ -88,6 +89,24 @@
 	D = A; D > 16; D & 255; D < 8; B | D;
 	A > 24; A & 255; B | A; [C] = B;
 	[VHPfi]+; A = [VHPfi]; ? A < 2340 -> VHP font swap;
+    "VHP font checksum"
+	( Validate the complete canonical atlas, not only the endian sentinel.
+	  FNV-1a covers the exact 9,360 authoritative file bytes in low-byte-first
+	  order.  A truncated or partly corrupted compatibility-host read must not
+	  become random-looking FCS and GOES glyphs. )
+	[VHPfonthash] = 0811C9DC5h; [VHPfi] = 0;
+    "VHP font hash word"
+	C = digimap2; C + [VHPfi]; D = [C]; [VHPfontword] = D;
+	B = D; B & 255; A = [VHPfonthash]; A # B; A '* 16777619; [VHPfonthash] = A;
+	D = [VHPfontword]; D > 8; B = D; B & 255;
+	A = [VHPfonthash]; A # B; A '* 16777619; [VHPfonthash] = A;
+	D = [VHPfontword]; D > 16; B = D; B & 255;
+	A = [VHPfonthash]; A # B; A '* 16777619; [VHPfonthash] = A;
+	D = [VHPfontword]; D > 24; B = D; B & 255;
+	A = [VHPfonthash]; A # B; A '* 16777619; [VHPfonthash] = A;
+	[VHPfi]+; A = [VHPfi]; ? A < 2340 -> VHP font hash word;
+	A = [VHPfonthash]; ? A != 494B1F1Dh -> VHP font done;
+
     "VHP font valid"
 	[VHPfontok] = 1;
 	( Startup rows written by reset_signal in the original. )

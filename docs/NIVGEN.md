@@ -51,6 +51,7 @@ low-byte packing, hashes, and raw dump names only.
 
 ```powershell
 python tools\nivtest.py planet -x -1996209872 -y 55508 -z 816148 -p 0 --build
+python tools\nivtest.py planet-all -x -1996209872 -y 55508 -z 816148
 python tools\nivtest.py sector -x -1996209872 -y 55508 -z 816148 -p 0 -lon 0 -lat 60
 python tools\nivtest.py surftex -x -1996209872 -y 55508 -z 816148 -p 0 -lon 301 -lat 68
 ```
