@@ -952,8 +952,7 @@ def main() -> int:
     check(
         "grnd; sky;" in game and "spglobe; spglow; spbg;" in game
         and "=> GRSK create; => GRSK horizon;" in ground
-        and '"VHGND background clear native"' in ground
-        and "31 C0 B9 00 FA 00 00 F3 AB" in ground
+        and ground.count("[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;") == 2
         and '"VHGND guard band"' not in ground
         and "=> VHGND background direct;\n\t=> VHGND background cache save;" in ground
         and "[BGdstreg] = RGADP; => SP background;" not in ground
@@ -962,10 +961,10 @@ def main() -> int:
         and '"VHGND background cache restore"' in ground
         and "VHGNDskycache = 64000" in ground
         and all(token in ground for token in (
-            "[VHGNDbgoffnative] = A;", "[VHGNDbgsourcenative] = A;",
-            "[VHGNDbgdestinationnative] = A;", "25 FF FF 00 00",
-            "89 85 <dBGdi mtp bytesperunit>",
-            "0F 85 46 FF FF FF",
+            '"VHGND bg record"', '"VHGND bg row"',
+            '"VHGND bg row wrapped"', '"VHGND bg row contiguous"',
+            '"VHGND bg consume"', '"VHGND bg skip"',
+            "A = [BGbp]; A + 1; A & 65535; [BGbp] = A;",
         ))
         and "VHGNDbgstart = 0; VHGNDbgshift = 0; VHGNDbgangle = 0;" in ground
         and "A = [VHGNDbeta]; ? A >= 0 -> VHGND background angle ready; A + 360;" in ground
@@ -1004,8 +1003,9 @@ def main() -> int:
             "C '* [VHGNDflashgain]; C '/ 63;",
             "[VHGNDflashactive] = [VHGNDflashpending]; [VHGNDflashpending] = 0;",
             '"VHGND background lightning invert"',
-            "B8 3F 00 00 00 2B 04 8E 89 04 8E 49 75 F2",
-            "[VHGNDflashskyp] = 0;",
+            '"VHGND background lightning invert one"',
+            "C = 63; C - A; [D] = C;",
+            "[VHGNDflashskyp] = 40000;",
         ))
         and "[VHGNDplayerrefx] = [VHGsurfrefx]; [VHGNDplayerrefz] = [VHGsurfrefz];" in game
         and ground.index("=> VHGND weather lightning begin;")
@@ -1125,17 +1125,18 @@ def main() -> int:
             "? A = 6 -> VHT premask smooth; ? A = 10 -> VHT premask smooth;",
             "A = [VHTphase]; A % 360; ? A >= 90 -> VHT premask smooth;",
             "[VHFdist0] = [VHTdist0]; [VHFdist1] = [VHTdist1]; => VH space flare;", '"VHT smooth grays"',
-            "[SUsi] = 320;", "B9 80 DE 00 00 31 ED",
-            "C1 ED 02 89 2A", "[SUsi] = 57280;",
+            "[SUsi] = 320;", '"VHT smooth gray pixel"',
+            "E & 0FCFCFCFCh; E > 2;", "B = 56960;",
             "[FI] = 100; => IntToF;", "[FI] = 8; => IntToF;",
             "[FI] = 1550; => IntToF;", "[FI] = 1600; => IntToF;",
             '"VHT far pixel"', "=> VHT far spread; => VHT far spread; => VHT far spread;",
             '"VHT far spread"', "A = [VHTfarcolour]; A > 4;",
-            '"VHT texture cycle"', "B9 20 FD 00 00",
-            "8B 06 25 FF 00 00 00 89 C3 81 E3 C0 00 00 00",
-            "[VHTcyclei] = 64800;",
-            '"VHT mask page"', "B9 80 E3 00 00",
-            "8B 06 83 E0 3F 83 C0 40 89 06", "[VHTmaski] = 58240;",
+            '"VHT texture cycle"', '"VHT texture cycle texel"',
+            "C = [A]; C & 255; D = C; D & 192; C + 1; C & 63; C | D; [A] = C;",
+            "? A < 64800 -> VHT texture cycle texel;",
+            '"VHT mask page"', '"VHT mask page pixel"',
+            "C = [A]; C & 63; C + 64; [A] = C;",
+            "? A < 58240 -> VHT mask page pixel;",
         ))
         and "A = [MgApreached]; ? A = 0 -> VHT render done;" not in star
         and all(token in game for token in (
@@ -3476,24 +3477,22 @@ def main() -> int:
         all(token in gui for token in (
             "A '* 5; A '/ 8", "A '* 8; A '/ 5",
             '"VHGUI 1x row"', '"VHGUI maybe 2x"', '"VHGUI scaled"',
-            "8B 06 8B 04 83 89 02", "AD AB AB", "8D 74 85 00",
-            "8B 95 <dVHGUIdstp mtp bytesperunit>",
-            "8B 1E 89 1F 89 1A",
-            "03 BD <dVHGUIgap mtp bytesperunit>",
-            "03 95 <dVHGUIgap mtp bytesperunit>",
+            '"VHGUI compose row"', '"VHGUI compose pixel"',
+            '"VHGUI 2x row"', '"VHGUI 2x pixel"',
+            '"VHGUI row"', '"VHGUI pixel"',
+            '"VHGUI x advance"', '"VHGUI y advance"',
         )),
-        "presenter has a fast 1x path and an 8:5 aspect-fit path",
+        "portable Lino presenter has 1x, 2x, and arbitrary 8:5 aspect-fit paths",
     )
     check(
         "=> FB expand;" not in gui_loop
-        and "A = nw; A + RADPT; [VHGUIsrc] = A;" in gui
-        and "[VHGUIpal] = pal; [VHGUIdst] = VHGUIframe;" in gui
-        and "[VHGUIsrc] = VHGUIframe;" in gui
+        and "C + nw; C + RADPT;" in gui
+        and "A = [C]; A + pal; [D] = [A];" in gui
         and "D + Backdrop Layer" in gui
-        and "A + Primary Display;" in gui
-        and gui.count("[VHGUIpublished] = 1;") == 2
+        and "[VHGUIpublished] = 0;" in gui
+        and "=> Update Area Fast;" in game
         and "[D] = A" in gui,
-        "GUI presenter composes one logical page and dual-publishes scaled frames",
+        "GUI presenter composes and scales the logical page in portable Lino",
     )
     eye = section(ground, '"service VHGND eye height"', '"VHGND render"')
     check(

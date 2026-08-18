@@ -703,11 +703,6 @@
 	RD Disable			= 1;
 	UL Disable			= 1;
 	UA Disable			= 1;
-	UAFsrc				= 1;
-	UAFdst				= 1;
-	UAFwidth			= 1;
-	UAFheight			= 1;
-	UAFgap				= 1;
 
     (pointing device cursor)
 	Do Not Retrace Arrow Region	= 1;
@@ -1821,29 +1816,21 @@
 	B = A; A + Backdrop Layer; B + Primary Display;
 	C = [E plus 2]; C - [E plus 0]; C+;
 	D = [E plus 3]; D - [E plus 1]; D+;
-	( The game presenter updates a large rectangle every frame.  A Lino loop
-	  still paid interpreter dispatch 25,600 times for the default 640x400
-	  client.  Copy each normalized row with the processor's exact dword move;
-	  E carries the byte gap between row end and the next display scanline.
-	  Source, destination, rectangle semantics and later cursor/retrace order
-	  are unchanged. )
-	[UAFsrc] = A; [UAFdst] = B; [UAFwidth] = C; [UAFheight] = D;
-	E = [Display Width]; E - C; E * 4; [UAFgap] = E;
-	( Resolve every workspace-relative operand before borrowing EDI for
-	  rep movsd.  EDI is the Lino workspace base and must be restored before
-	  the next instruction. )
-	{ 53 56 57				(push ebx, esi, edi)
-	  8B B7 <dUAFsrc mtp bytesperunit>
-	  8D 34 B7				(lea esi,[edi+esi*4])
-	  8B 87 <dUAFdst mtp bytesperunit>
-	  8D 04 87				(lea eax,[edi+eax*4])
-	  8B 8F <dUAFwidth mtp bytesperunit>
-	  8B 97 <dUAFheight mtp bytesperunit>
-	  8B 9F <dUAFgap mtp bytesperunit>
-	  89 C7 85 D2 74 0B		(mov edi,eax; test edx,edx; jz done)
-	  51 F3 A5 59			(push ecx; rep movsd; pop ecx)
-	  01 DE 01 DF 4A 75 F5		(next rows)
-	  5F 5E 5B }			(pop edi, esi, ebx)
+    "UAF Scanline"
+	A -->; B -->; C -->;
+    "UAF Quad"
+	? C < 4 -> UAF Tail;
+	[B] = [A]; [B plus 1] = [A plus 1]; [B plus 2] = [A plus 2]; [B plus 3] = [A plus 3];
+	A + 4; B + 4; C - 4;
+	-> UAF Quad;
+    "UAF Tail"
+	? C = 0 -> UAF Scanline Done;
+	[B] = [A]; A+; B+; C-;
+	-> UAF Tail;
+    "UAF Scanline Done"
+	<-- C; <-- B; <-- A;
+	A + [Display Width]; B + [Display Width];
+	D-; ? D != 0 -> UAF Scanline;
 	[L2L Region] -->;
 	=> RD Retrace Arrow;
 	<-- [L2L Region];

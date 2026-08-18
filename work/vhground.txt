@@ -254,9 +254,6 @@
 	VHGNDbgrowbase = 0; VHGNDbgcol = 0;
 	VHGNDbgcacheok = 0; VHGNDbgcachealpha = 0; VHGNDbgcachebeta = 0;
 	VHGNDbgcachep = 0; VHGNDbgcacheq = 0; VHGNDbgcachecount = 0;
-	VHGNDbgcachefrom = 0; VHGNDbgcacheto = 0;
-	VHGNDbgoffnative = 0; VHGNDbgsourcenative = 0; VHGNDbgdestinationnative = 0;
-	VHGNDpageclearptr = 0;
 
 "workspace"
 
@@ -1581,19 +1578,25 @@
 	( Shared `similar:` texture body at NOCTIS-1.CPP:2353-2379. )
 	[VHGNDtscale] = 32;
 	C = 16; => SU rnd; C + 16; [VHGNDtexn] = C;
-	( Slot zero remains cleared.  Fill 65535 down through 1 with the exact
-	  signed Borland stream and ledger using the shared native pass. )
-	A = nw; A + [VHGNDtexbase]; A + 65535; [GRnativeptr] = A;
-	[GRnativecount] = 65535; [GRnativestep] = 0FFFFFFFCh;
-	[GRnativerange] = [VHGNDtexn]; => GR random fill native;
-	[VHGNDptr] = 0; A = [VHGNDtexbase]; A + 1; [MBptr] = A;
+	[VHGNDptr] = 65535;
+    "VHGND texture fill"
+	C = [VHGNDtexn]; => SU rnd;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; [MBval] = C; => MEM put byte;
+	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture fill;
 	C = 3; => SU rnd; C + 1; [VHGNDtexpasses] = C;
-	A = nw; A + [VHGNDtexbase]; A + 65278; [GRnativeptr] = A;
-	[GRnativecount] = 65278; [GRnativestep] = 0FFFFFFFCh;
-	[GRnativerow] = 1024; [GRnativepasses] = [VHGNDtexpasses];
-	=> GR smooth native;
-	[VHGNDptr] = 0; [VHGNDtexpasses] = 0;
-	A = [VHGNDtexbase]; A + 1; [MBptr] = A;
+    "VHGND texture smooth pass"
+	[VHGNDptr] = 65278;
+    "VHGND texture smooth pixel"
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; => MEM get byte; [VHGNDtmp] = [MBval];
+	A = [VHGNDtexbase]; A + [VHGNDptr]; A + 1; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; A + 256; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; A + 257; [MBptr] = A; => MEM get byte;
+	A = [VHGNDtmp]; A + [MBval]; A > 2; [MBval] = A;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
+	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture smooth pixel;
+	[VHGNDtexpasses]-; A = [VHGNDtexpasses]; ? A != 0 -> VHGND texture smooth pass;
 	A = [VHGNDfrosty]; ? A = 0 -> VHGND similar done;
 	C = 48; => SU rnd; C + 16; [VHGNDtscale] = C;
 	C = 250; => SU rnd; [VHGNDgenn] = C;
@@ -1608,10 +1611,11 @@
 
 "VHGND texture random"
 	( Source texture fill: slot zero retains its cleared value. )
-	A = nw; A + [VHGNDtexbase]; A + 65535; [GRnativeptr] = A;
-	[GRnativecount] = 65535; [GRnativestep] = 0FFFFFFFCh;
-	[GRnativerange] = [VHGNDtexn]; => GR random fill native;
-	[VHGNDptr] = 0; A = [VHGNDtexbase]; A + 1; [MBptr] = A;
+	[VHGNDptr] = 65535;
+    "VHGND texture random pixel"
+	C = [VHGNDtexn]; => SU rnd;
+	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; [MBval] = C; => MEM put byte;
+	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture random pixel;
 	end;
 
 "VHGND texture darkline"
@@ -2285,7 +2289,7 @@
 	( The source enters planetary_main with adapted cleared to index zero.
 	  background() paints its wrapped panorama into the DOS page, including
 	  the irregular edge pixels outside the terrain raster's clip rectangle. )
-	=> VHGND background clear native;
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
 	=> VHGND background direct;
 	=> VHGND background cache save;
 	[VHGNDbgcachealpha] = [VHGNDalpha]; [VHGNDbgcachebeta] = [VHGNDbeta];
@@ -2294,124 +2298,83 @@
     "VHGND background lightning"
 	( NOCTIS-1.CPP temporarily maps each source sky entry 40000..1 to
 	  63-value, draws the panorama, then applies the same involution again. )
-	=> VHGND background clear native;
+	[SPpreg] = RGADP; [SPpn] = NPIX; [SPval] = 0; => SP fill page;
 	=> VHGND background lightning invert;
 	=> VHGND background direct;
 	=> VHGND background lightning invert;
 	end;
 
 "VHGND background lightning invert"
-	( The source transforms entries 40000 down through 1, leaving entry zero
-	  untouched. Storm frames do this once before and once after mapping. )
-	A = nw; A + RSBG; [VHGNDbgsourcenative] = A;
-	{
-	    56
-	    8B B7 <dVHGNDbgsourcenative mtp bytesperunit> 8D 34 B7
-	    B9 40 9C 00 00
-	    B8 3F 00 00 00 2B 04 8E 89 04 8E 49 75 F2
-	    5E
-	}
-	[VHGNDflashskyp] = 0;
-	end;
-
-"VHGND background clear native"
-	( Clear the same 64,000 Lino units as SP fill page, but avoid one
-	  interpreted iteration per framebuffer pixel whenever a turn or storm
-	  regenerates the panorama. )
-	A = nw; A + RADPT; [VHGNDpageclearptr] = A;
-	{
-	    57
-	    8B 87 <dVHGNDpageclearptr mtp bytesperunit> 8D 04 87 89 C7
-	    31 C0 B9 00 FA 00 00 F3 AB
-	    5F
-	}
+	[VHGNDflashskyp] = 40000;
+    "VHGND background lightning invert one"
+	A = nw; A + RSBG; A + [VHGNDflashskyp]; D = A;
+	A = [D]; C = 63; C - A; [D] = C;
+	[VHGNDflashskyp]-; A = [VHGNDflashskyp];
+	? A != 0 -> VHGND background lightning invert one;
 	end;
 
 "VHGND background cache save"
 	[VHGNDbgcachep] = VHGNDskycache; A = nw; A + RADPT; [VHGNDbgcacheq] = A;
 	[VHGNDbgcachecount] = NPIX;
-	[VHGNDbgcachefrom] = [VHGNDbgcacheq]; [VHGNDbgcacheto] = [VHGNDbgcachep];
-	=> VHGND background cache copy native;
+	"VHGND bg cache save loop"
+	A = [VHGNDbgcacheq]; D = [VHGNDbgcachep];
+	C = [A]; [D] = C; C = [A plus 1]; [D plus 1] = C;
+	C = [A plus 2]; [D plus 2] = C; C = [A plus 3]; [D plus 3] = C;
+	A = [VHGNDbgcachep]; A + 4; [VHGNDbgcachep] = A;
+	A = [VHGNDbgcacheq]; A + 4; [VHGNDbgcacheq] = A;
+	A = [VHGNDbgcachecount]; A - 4; [VHGNDbgcachecount] = A;
+	A = [VHGNDbgcachecount]; ? A != 0 -> VHGND bg cache save loop;
 	end;
 
 "VHGND background cache restore"
 	[VHGNDbgcachep] = VHGNDskycache; A = nw; A + RADPT; [VHGNDbgcacheq] = A;
 	[VHGNDbgcachecount] = NPIX;
-	[VHGNDbgcachefrom] = [VHGNDbgcachep]; [VHGNDbgcacheto] = [VHGNDbgcacheq];
-	=> VHGND background cache copy native;
-	end;
-
-"VHGND background cache copy native"
-	( Fixed, non-overlapping Lino-unit ranges.  Keep EDI on the workspace and
-	  walk the resolved source/destination through ESI/EDX.  The previous native
-	  attempt borrowed EDI and then used it to fetch the count, so that read came
-	  from the destination page and damaged the local sun flare. )
-	{
-	    56
-	    8B B7 <dVHGNDbgcachefrom mtp bytesperunit>
-	    8D 34 B7
-	    8B 97 <dVHGNDbgcacheto mtp bytesperunit>
-	    8D 14 97
-	    8B 8F <dVHGNDbgcachecount mtp bytesperunit>
-	    85 C9
-	    74 0D
-	    8B 06
-	    89 02
-	    83 C6 04
-	    83 C2 04
-	    49
-	    75 F3
-	    5E
-	}
-	A = [VHGNDbgcachep]; A + NPIX; [VHGNDbgcachep] = A;
-	A = [VHGNDbgcacheq]; A + NPIX; [VHGNDbgcacheq] = A;
-	[VHGNDbgcachecount] = 0;
+	"VHGND bg cache restore loop"
+	A = [VHGNDbgcachep]; D = [VHGNDbgcacheq];
+	C = [A]; [D] = C; C = [A plus 1]; [D plus 1] = C;
+	C = [A plus 2]; [D plus 2] = C; C = [A plus 3]; [D plus 3] = C;
+	A = [VHGNDbgcachep]; A + 4; [VHGNDbgcachep] = A;
+	A = [VHGNDbgcacheq]; A + 4; [VHGNDbgcacheq] = A;
+	A = [VHGNDbgcachecount]; A - 4; [VHGNDbgcachecount] = A;
+	A = [VHGNDbgcachecount]; ? A != 0 -> VHGND bg cache restore loop;
 	end;
 
 "VHGND background direct"
 	( Direct specialization of SP background for the fixed Noctis buffers.
 	  Region offsets cancel against their -4 segment origins exactly as in
-	  spbg; every destination row and source cursor still wraps at 16 bits.
-	  Turning regenerates all 3,670 offset records, so execute that exact mapper
-	  natively instead of interpreting its record, row, and pixel loops. )
+	  spbg; every destination row and source cursor still wraps at 16 bits. )
 	A = [BGshift]; A + 4; A & 65535; [BGdx] = A;
 	A = [BGstart]; A + 4; A & 65535; [BGbp] = A;
 	[BGsi] = 0; A = OMBYTES; A > 1; [BGcxr] = A;
-	A = nw; A + RNOFF; [VHGNDbgoffnative] = A;
-	A = nw; A + SSBG; [VHGNDbgsourcenative] = A;
-	A = nw; A + SADPT; [VHGNDbgdestinationnative] = A;
-	{
-	    53 56 57 55 89 FD                  (save registers; ebp = workspace)
-	    8B B5 <dVHGNDbgoffnative mtp bytesperunit> 8D 74 B5 00
-	    8B 95 <dVHGNDbgsourcenative mtp bytesperunit> 8D 54 95 00
-	    8B BD <dVHGNDbgdestinationnative mtp bytesperunit> 8D 7C BD 00
-	    8B 9D <dBGbp mtp bytesperunit>     (ebx = 16-bit source cursor)
-	    0F B6 06 0F B6 4E 04 C1 E1 08 01 C8
-	    89 85 <dBGw mtp bytesperunit>      (decode next little-endian record)
-	    3D 00 FA 00 00 0F 83 81 00 00 00  (64000..65535 skips source bytes)
-	    03 85 <dBGdx mtp bytesperunit> 25 FF FF 00 00
-	    89 85 <dBGdi mtp bytesperunit>
-	    0F B6 0C 9A 89 8D <dBGpx mtp bytesperunit>
-	    C7 85 <dBGi mtp bytesperunit> 00 00 00 00
-	    8B 85 <dBGi mtp bytesperunit> 69 C0 40 01 00 00
-	    03 85 <dBGdi mtp bytesperunit> 25 FF FF 00 00
-	    89 85 <dVHGNDbgrowbase mtp bytesperunit>
-	    89 0C 87 40 25 FF FF 00 00         (five columns, wrapping each one)
-	    89 0C 87 40 25 FF FF 00 00
-	    89 0C 87 40 25 FF FF 00 00
-	    89 0C 87 40 25 FF FF 00 00
-	    89 0C 87
-	    FF 85 <dBGi mtp bytesperunit>
-	    83 BD <dBGi mtp bytesperunit> 05 7C AD
-	    43 81 E3 FF FF 00 00 EB 0D         (ordinary record consumes one byte)
-	    2D 00 FA 00 00 01 C3 81 E3 FF FF 00 00
-	    83 C6 08                           (next two offset-map units)
-	    FF 8D <dBGcxr mtp bytesperunit>
-	    0F 85 46 FF FF FF                  (next record)
-	    89 9D <dBGbp mtp bytesperunit>
-	    5D 5F 5E 5B                        (restore registers)
-	}
-	[BGsi] = OMBYTES;
+    "VHGND bg record"
+	A = nw; A + RNOFF; A + [BGsi];
+	C = [A]; C & 255; D = [A plus 1]; D & 255; D < 8; C + D; [BGw] = C;
+	A = [BGw]; ? A '>= 64000 -> VHGND bg skip;
+	A + [BGdx]; A & 65535; [BGdi] = A;
+	A = [BGbp]; A & 65535; A + SSBG; A + nw; C = [A]; C & 255; [BGpx] = C;
+	[BGi] = 0;
+    "VHGND bg row"
+	A = [BGi]; A '* 320; A + [BGdi]; A & 65535; [VHGNDbgrowbase] = A;
+	? A '<= 65531 -> VHGND bg row contiguous;
+	[VHGNDbgcol] = 0;
+    "VHGND bg row wrapped"
+	A = [VHGNDbgrowbase]; A + [VHGNDbgcol]; A & 65535; A + SADPT; A + nw;
+	C = [BGpx]; [A] = C; [VHGNDbgcol]+;
+	A = [VHGNDbgcol]; ? A < 5 -> VHGND bg row wrapped;
+	-> VHGND bg row done;
+    "VHGND bg row contiguous"
+	D = nw; D + SADPT; D + [VHGNDbgrowbase]; C = [BGpx];
+	[D plus 0] = C; [D plus 1] = C; [D plus 2] = C; [D plus 3] = C; [D plus 4] = C;
+    "VHGND bg row done"
+	[BGi]+; A = [BGi]; ? A < 5 -> VHGND bg row;
+    "VHGND bg consume"
+	A = [BGbp]; A + 1; A & 65535; [BGbp] = A;
+	-> VHGND bg next;
+    "VHGND bg skip"
+	A = [BGw]; A - 64000; A + [BGbp]; A & 65535; [BGbp] = A;
+    "VHGND bg next"
+	A = [BGsi]; A + 2; [BGsi] = A;
+	[BGcxr]-; A = [BGcxr]; ? A != 0 -> VHGND bg record;
 	end;
 
 "service VHGND eye height"

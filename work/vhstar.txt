@@ -263,50 +263,34 @@
 
 "VHT smooth grays"
 	( QUADWORDS=14560 at the live call.  Starting at adapted+2880+320,
-	  the four-row source kernel writes 58,240-1,280 = 56,960 bytes.  Each
-	  original packed byte is one Lino unit, so gather the same sixteen low
-	  bytes, preserve the packed-lane wrap, and write the in-place result. )
+	  the four-row source kernel writes 58,240-1,280 = 56,960 bytes. )
 	A = nw; A + RADPT; A + 2880; [VHTsmoothbase] = A;
-	[SUsi] = 320;
-	{
-	  55 8B B7 <dVHTsmoothbase mtp bytesperunit>
-	  8D 94 B7 00 05 00 00 B9 80 DE 00 00 31 ED
-	  8B 82 00 FB FF FF 25 FF 00 00 00
-	  8B 1A 81 E3 FF 00 00 00 01 D8
-	  8B 9A 00 05 00 00 81 E3 FF 00 00 00 01 D8
-	  8B 9A 00 0A 00 00 81 E3 FF 00 00 00 01 D8
-	  25 FC 00 00 00 C1 E8 02 01 C5 81 E5 FF 00 00 00
-	  8B 82 04 FB FF FF 25 FF 00 00 00
-	  8B 5A 04 81 E3 FF 00 00 00 01 D8
-	  8B 9A 04 05 00 00 81 E3 FF 00 00 00 01 D8
-	  8B 9A 04 0A 00 00 81 E3 FF 00 00 00 01 D8
-	  25 FC 00 00 00 C1 E8 02 01 C5 81 E5 FF 00 00 00
-	  8B 82 08 FB FF FF 25 FF 00 00 00
-	  8B 5A 08 81 E3 FF 00 00 00 01 D8
-	  8B 9A 08 05 00 00 81 E3 FF 00 00 00 01 D8
-	  8B 9A 08 0A 00 00 81 E3 FF 00 00 00 01 D8
-	  25 FC 00 00 00 C1 E8 02 01 C5 81 E5 FF 00 00 00
-	  8B 82 0C FB FF FF 25 FF 00 00 00
-	  8B 5A 0C 81 E3 FF 00 00 00 01 D8
-	  8B 9A 0C 05 00 00 81 E3 FF 00 00 00 01 D8
-	  8B 9A 0C 0A 00 00 81 E3 FF 00 00 00 01 D8
-	  25 FC 00 00 00 C1 E8 02 01 C5 81 E5 FF 00 00 00
-	  C1 ED 02 89 2A 83 C2 04 49 0F 85 E8 FE FF FF 5D
-	}
-	[SUsi] = 57280;
+	A = [VHTsmoothbase]; [SUsp] = A; [SUsi] = 320; B = 56960;
+    "VHT smooth gray pixel"
+	C = [SUsp]; C + [SUsi]; C - 320;
+	=> SU dw at; E = D;
+	C + 320; => SU dw at; E + D;
+	C + 320; => SU dw at; E + D;
+	C + 320; => SU dw at; E + D;
+	E & 0FCFCFCFCh; E > 2;
+	A = E; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	E > 16;
+	D = E; D & 0FFh; A + D; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	A > 2;
+	C = [SUsp]; C + [SUsi]; [C] = A;
+	[SUsi]+; B ^ VHT smooth gray pixel;
 	end;
 
 "VHT mask page"
 	( QUADWORDS is 14560 in the live loop, so adapted+2880 spans the
 	  source's exact 182-row space viewport: offsets 2880..61119. )
-	[SPreg] = RGADP; => SP base; A = nw; A + C; A + 2880;
-	[VHTmaskbase] = A; [VHTmaski] = 0;
-	{
-	  8B B7 <dVHTmaskbase mtp bytesperunit> 8D 34 B7
-	  B9 80 E3 00 00
-	  8B 06 83 E0 3F 83 C0 40 89 06 83 C6 04 49 75 F0
-	}
-	[VHTmaski] = 58240;
+	[SPreg] = RGADP; => SP base; C + 2880; [VHTmaskbase] = C; [VHTmaski] = 0;
+    "VHT mask page pixel"
+	A = nw; A + [VHTmaskbase]; A + [VHTmaski];
+	C = [A]; C & 63; C + 64; [A] = C;
+	[VHTmaski]+; A = [VHTmaski]; ? A < 58240 -> VHT mask page pixel;
 	end;
 
 "VHT far pixel"
@@ -363,15 +347,11 @@
 	frame.  F5 presentation-only frames reuse the authoritative texture. )
 "VHT texture cycle"
 	A = [VHTdosim]; ? A = 0 -> VHT texture cycle done;
-	[SPreg] = RGSBG; => SP base; A = nw; A + C;
-	[VHTcyclebase] = A; [VHTcyclei] = 0;
-	{
-	  8B B7 <dVHTcyclebase mtp bytesperunit> 8D 34 B7
-	  B9 20 FD 00 00
-	  8B 06 25 FF 00 00 00 89 C3 81 E3 C0 00 00 00
-	  40 83 E0 3F 09 D8 89 06 83 C6 04 49 75 E3
-	}
-	[VHTcyclei] = 64800;
+	[SPreg] = RGSBG; => SP base; [VHTcyclebase] = C; [VHTcyclei] = 0;
+    "VHT texture cycle texel"
+	A = nw; A + [VHTcyclebase]; A + [VHTcyclei];
+	C = [A]; C & 255; D = C; D & 192; C + 1; C & 63; C | D; [A] = C;
+	[VHTcyclei]+; A = [VHTcyclei]; ? A < 64800 -> VHT texture cycle texel;
     "VHT texture cycle done"
 	end;
 
