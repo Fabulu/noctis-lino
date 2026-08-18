@@ -3477,7 +3477,10 @@ def main() -> int:
             "A '* 5; A '/ 8", "A '* 8; A '/ 5",
             '"VHGUI 1x row"', '"VHGUI maybe 2x"', '"VHGUI scaled"',
             "8B 06 8B 04 83 89 02", "AD AB AB", "8D 74 85 00",
-            "39 D8 7C 07", "03 BD <dVHGUIgap mtp bytesperunit>",
+            "8B 95 <dVHGUIdstp mtp bytesperunit>",
+            "8B 1E 89 1F 89 1A",
+            "03 BD <dVHGUIgap mtp bytesperunit>",
+            "03 95 <dVHGUIgap mtp bytesperunit>",
         )),
         "presenter has a fast 1x path and an 8:5 aspect-fit path",
     )
@@ -3487,9 +3490,10 @@ def main() -> int:
         and "[VHGUIpal] = pal; [VHGUIdst] = VHGUIframe;" in gui
         and "[VHGUIsrc] = VHGUIframe;" in gui
         and "D + Backdrop Layer" in gui
-        and "E + Primary Display" not in gui
+        and "A + Primary Display;" in gui
+        and gui.count("[VHGUIpublished] = 1;") == 2
         and "[D] = A" in gui,
-        "GUI presenter composes one logical RGB page and writes only the authoritative backdrop",
+        "GUI presenter composes one logical page and dual-publishes scaled frames",
     )
     eye = section(ground, '"service VHGND eye height"', '"VHGND render"')
     check(
