@@ -9,7 +9,7 @@
 "libraries"
 
 	defstyle;
-	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpsoft; fp/fpchainssoft; geoconv;
 	fbmem; fbpal; fbtick; fbshell;
 	pgfp; pgmem; pgrast; pgtex; pgproj;
 	spmem; spscale; spmap; spglobe; spglow; spbg; spwhite; spncc;

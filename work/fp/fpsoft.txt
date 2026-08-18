@@ -40,14 +40,14 @@
 	any that turn up so a vector set that trips one is visible rather
 	than silently wrong.
 
-	REQUIRES THE EXTENDED TOOLCHAIN for the *%' 32x32->64 multiply:
-	    -Compiler main\lib\gen\compiler114m.exe  -Cpu i386m
-	Mul128 is lifted from work/probe_w3c_sf.txt, where it was already
-	measured correct; only the exponent handling around it is new.  )
+	Mul128 uses its own portable 16-bit-limb routine for the four exact
+	32x32 partial products.  It therefore builds with the stock Lino
+	compiler and CPU pack and contains no target-machine escape.      )
 
 "constants"
 
 	XBIAS	= 16383;
+	XM16	= 65535;
 
 "variables"
 
@@ -66,6 +66,10 @@
 	xc0 = 0; xc1 = 0; xd0 = 0; xd1 = 0;
 	xp0 = 0; xp1 = 0; xp2 = 0; xp3 = 0;
 	xcy = 0;
+	xua = 0; xub = 0; xulo = 0; xuhi = 0;
+	xul0 = 0; xuh0 = 0; xul1 = 0; xuh1 = 0;
+	xup0 = 0; xup1 = 0; xup2 = 0; xup3 = 0;
+	xumid = 0; xutmp = 0;
 
 	( division state: R is 65 bits, Q is 66 bits )
 	rc = 0; rh = 0; rl = 0;
@@ -209,14 +213,40 @@
 ( multiply, 64-bit mantissa                                             )
 ( ==================================================================== )
 
+      ( XMul32u - exact unsigned 32x32 -> 64 using four 16-bit limbs. )
+
+"XMul32u"
+	A = [xua]; A & XM16;			[xul0] = A;
+	A = [xua]; A > 16; A & XM16;		[xuh0] = A;
+	A = [xub]; A & XM16;			[xul1] = A;
+	A = [xub]; A > 16; A & XM16;		[xuh1] = A;
+	A = [xul0]; A '* [xul1];		[xup0] = A;
+	A = [xul0]; A '* [xuh1];		[xup1] = A;
+	A = [xuh0]; A '* [xul1];		[xup2] = A;
+	A = [xuh0]; A '* [xuh1];		[xup3] = A;
+	A = [xup0]; A > 16;			[xutmp] = A;
+	A = [xup1]; A & XM16; A + [xutmp];	[xutmp] = A;
+	A = [xup2]; A & XM16; A + [xutmp];	[xumid] = A;
+	A = [xumid]; A & XM16; A < 16;		[xutmp] = A;
+	A = [xup0]; A & XM16; A | [xutmp];	[xulo] = A;
+	A = [xup3];
+	B = [xup1]; B > 16; A + B;
+	B = [xup2]; B > 16; A + B;
+	B = [xumid]; B > 16; A + B;		[xuhi] = A;
+	end;
+
       ( Mul128 - XMH:XML times YMH:YML -> xp3:xp2:xp1:xp0, exact.
 	Lifted from work/probe_w3c_sf.txt. )
 
 "Mul128"
-	A = [XML]; B = [YML]; A *%' B;	[xa0] = A; [xa1] = B;
-	A = [XML]; B = [YMH]; A *%' B;	[xb0] = A; [xb1] = B;
-	A = [XMH]; B = [YML]; A *%' B;	[xc0] = A; [xc1] = B;
-	A = [XMH]; B = [YMH]; A *%' B;	[xd0] = A; [xd1] = B;
+	[xua] = [XML]; [xub] = [YML]; => XMul32u;
+	[xa0] = [xulo]; [xa1] = [xuhi];
+	[xua] = [XML]; [xub] = [YMH]; => XMul32u;
+	[xb0] = [xulo]; [xb1] = [xuhi];
+	[xua] = [XMH]; [xub] = [YML]; => XMul32u;
+	[xc0] = [xulo]; [xc1] = [xuhi];
+	[xua] = [XMH]; [xub] = [YMH]; => XMul32u;
+	[xd0] = [xulo]; [xd1] = [xuhi];
 
 	A = [xa0];			[xp0] = A;
 

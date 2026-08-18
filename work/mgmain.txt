@@ -23,7 +23,8 @@
 	fp/fpctl;
 	fp/fpx87;
 	fp/fpconv;
-	fp/fpchains;
+	fp/fpsoft;
+	fp/fpchainssoft;
 
 	nsident;
 
