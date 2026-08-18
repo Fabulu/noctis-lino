@@ -58,6 +58,12 @@ output to the Linux x86_64 builds. vhgame runs and is playable under
 Rosetta with the native Cocoa window: WASD moves, arrows look,
 right-click-drag looks around, menu clicks work, ESC exits.
 
+The Cocoa window is resizable. Framebuffer pixels scale to the content area
+and pointer coordinates map back to the logical Lino display, so iGUI buttons
+and mouse-look stay aligned. iGUI's fullscreen button uses native macOS
+fullscreen state; Noctis consumes Escape once to return to the window before
+its normal save-and-exit shortcut becomes active again.
+
 ## Headless mode
 
 Build the RTM with `HEADLESS=1` before packing it into the compiler system
