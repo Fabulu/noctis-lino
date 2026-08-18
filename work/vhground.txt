@@ -38,7 +38,7 @@
 	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
 	VHGNDvccacheok = 0; VHGNDvccamx = 0; VHGNDvccamy = 0; VHGNDvccamz = 0;
 	VHGNDvcalpha = 0; VHGNDvcbeta = 0;
-	VHGNDmpbase = 0;
+	VHGNDmpbase = 0; VHGNDmpi = 0;
 	VHGNDnormgen = 0; VHGNDnormindex = 0;
 	VHGNDtilex = 0; VHGNDtilez = 0; VHGNDcamtx = 0; VHGNDcamtz = 0;
 	VHGNDfx = 0; VHGNDfz = 0;
@@ -2640,35 +2640,18 @@
 "VHGND terrain cached bounds"
 	( This is projectmap's four-entry min/max walk, including its seed values
 	  and comparison order.  Slot three is the closing duplicate below. )
-	A = mp; [VHGNDmpbase] = A;
-	{
-	    56
-	    8B B7 <dVHGNDmpbase mtp bytesperunit>
-	    8D 34 B7
-	    C7 87 <dPJminx mtp bytesperunit> 37 01 00 00
-	    C7 87 <dPJmaxx mtp bytesperunit> 05 00 00 00
-	    C7 87 <dBXminy mtp bytesperunit> BE 00 00 00
-	    C7 87 <dBXmaxy mtp bytesperunit> 0A 00 00 00
-	    B9 04 00 00 00
-	    8B 06
-	    3B 87 <dPJminx mtp bytesperunit>
-	    7D 06
-	    89 87 <dPJminx mtp bytesperunit>
-	    3B 87 <dPJmaxx mtp bytesperunit>
-	    7E 06
-	    89 87 <dPJmaxx mtp bytesperunit>
-	    8B 46 04
-	    3B 87 <dBXminy mtp bytesperunit>
-	    7D 06
-	    89 87 <dBXminy mtp bytesperunit>
-	    3B 87 <dBXmaxy mtp bytesperunit>
-	    7E 06
-	    89 87 <dBXmaxy mtp bytesperunit>
-	    83 C6 08
-	    49
-	    75 BD
-	    5E
-	}
+	D = mp; [VHGNDmpbase] = D; [VHGNDmpi] = 4;
+	[PJminx] = 311; [PJmaxx] = 5; [BXminy] = 190; [BXmaxy] = 10;
+    "VHGND terrain cached bounds point"
+	C = [D]; A = [PJminx]; ? C >= A -> VHGND terrain cached minx ready; [PJminx] = C;
+    "VHGND terrain cached minx ready"
+	A = [PJmaxx]; ? C <= A -> VHGND terrain cached maxx ready; [PJmaxx] = C;
+    "VHGND terrain cached maxx ready"
+	C = [D plus 1]; A = [BXminy]; ? C >= A -> VHGND terrain cached miny ready; [BXminy] = C;
+    "VHGND terrain cached miny ready"
+	A = [BXmaxy]; ? C <= A -> VHGND terrain cached maxy ready; [BXmaxy] = C;
+    "VHGND terrain cached maxy ready"
+	D + 2; [VHGNDmpi]-; A = [VHGNDmpi]; ? A > 0 -> VHGND terrain cached bounds point;
 	[PJvr] = 4;
 	end;
 
@@ -5657,10 +5640,10 @@
 	end;
 
 "VHGND render random"
-	( Exact SU fast raw transition using x86's unsigned 32-bit square.
-	  MUL leaves the low half in A and high half in D, matching Mul64u. )
-	A = [SUfseed]; { F7 E0 }
-	C = A; C & 0FFh; B = D; B & 0FFh; C + B; C & 0FFh;
+	( Exact SU fast raw transition using the portable 32x32-to-64 square. )
+	[m64a] = [SUfseed]; [m64b] = [SUfseed]; => Mul64u;
+	A = [m64lo];
+	C = A; C & 0FFh; B = [m64hi]; B & 0FFh; C + B; C & 0FFh;
 	A & 0FFFFFF00h; A | C; [SUfeax] = A;
 	B = [SUfseed]; B + A; [SUfseed] = B;
 	A & [SUfmask]; [SUfval] = A; C = A;
