@@ -1,5 +1,30 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+## Beta 20
+
+Beta 20 removes the remaining multi-second interpreter tax from cold planetary
+landings without changing generated terrain. Exact native kernels now perform
+the shared 40,000-cell terrain fill, in-place smoothing, signed level pass,
+fast-noise pass, and the corresponding 65,535-cell texture fill and smoothing
+paths. Borland's signed random stream, the fast generator, draw counts, FNV
+ledgers, traversal directions, and in-place write order remain intact.
+
+`round_hill` and `std_crater` now share an exact generation-stamped radial
+profile cache. Habitable asterism rays retain one binary64 sine and cosine pair
+per ray instead of recomputing the same pair for every radial pixel. A fixed
+habitable scene reached its first capturable frame in 3.17 seconds instead of
+17.18 seconds. A fresh sweep placed all seven landable planet classes between
+2.72 and 3.23 seconds on the same host. The focused 160,016-byte painter result
+and both RNG hashes stayed identical, and the production clean-return fixture
+still matches NIV+ across all 40,000 height bytes and all 65,532 deterministic
+texture bytes.
+
+Arbitrary resized windows now publish scaled pixels directly to both game
+layers, removing a complete fitted-region copy. Exact native flare spans remove
+the per-pixel interpreted walk from surface and Stardrifter sun beams while
+retaining the established flare probe hashes. Gameplay regression and Windows
+package checks passed for each merged optimization.
+
 ## Beta 19
 
 Beta 19 makes the current production generator usable by the public NIVGEN
