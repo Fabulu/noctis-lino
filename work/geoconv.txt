@@ -485,21 +485,15 @@
 	end;
 
 "GeoPlanetRayStore"
-	{
-	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
-	    DC 8F <dgcMil0 mtp bytesperunit>	(fmul  qword [edi+gcMil0*4])
-	    DC 87 <dgcCen0 mtp bytesperunit>	(fadd  qword [edi+gcCen0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
-	}
+	=> IntToF;
+	A = [gcMil0]; [FB0] = A; A = [gcMil1]; [FB1] = A; => FMul;
+	A = [gcCen0]; [FB0] = A; A = [gcCen1]; [FB1] = A; => FAdd;
 	end;
 
 "GeoMoonRayStore"
-	{
-	    DB 87 <dFI mtp bytesperunit>	(fild  dword [edi+FI*4])
-	    DC 8F <dgcFivp0 mtp bytesperunit>	(fmul  qword [edi+gcFivp0*4])
-	    DC 87 <dgcTent0 mtp bytesperunit>	(fadd  qword [edi+gcTent0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp  qword [edi+FA0*4])
-	}
+	=> IntToF;
+	A = [gcFivp0]; [FB0] = A; A = [gcFivp1]; [FB1] = A; => FMul;
+	A = [gcTent0]; [FB0] = A; A = [gcTent1]; [FB1] = A; => FAdd;
 	end;
 
       ( global_surface_seed = (FB + FC + FA) * 4112, converted by the
