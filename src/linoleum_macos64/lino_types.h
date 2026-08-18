@@ -24,8 +24,20 @@
 
 typedef int32_t unit;
 
+/* Cocoa imports stdbool.h before the RTM headers. Keep the historical
+ * integer-sized runtime ABI instead of letting that translation unit silently
+ * change every bool return value to C99 _Bool. */
+#ifdef bool
+#undef bool
+#endif
+#ifdef false
+#undef false
+#endif
+#ifdef true
+#undef true
+#endif
 typedef int bool;
 #define false 0
-#define true !false
+#define true (!false)
 
 #endif

@@ -258,7 +258,7 @@ int main(int argc, char **argv, char **env)
 		if (result != 0)
 #endif
 		{
-			printf(dmsStockFilename);
+			printf("%s", dmsStockFilename);
 			printf("Registers after execution.\n");
 			printf("A: %d\n", (int) aAtExit);
 			printf("B: %d\n", (int) bAtExit);
