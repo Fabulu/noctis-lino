@@ -34,6 +34,7 @@
 	NHinname = { niv-input.bin };
 	NHoutname = { niv-output.bin };
 	NHi = 0; NHsrc = 0; NHunits = 0; NHoff = 0; NHtmp = 0;
+	NHviewbody = 0;
 
 "workspace"
 
@@ -149,13 +150,38 @@
     "VHNIV orbital rotation ready"
 	[VHGNDrotation] = A;
 
-	( cplx_planet_viewpoint(): primaries and ordinary moons observe the
-	  still-zero plx/plz scratch point from the star coordinates.  A moon of
-	  a companion star instead observes its live local vector from its owner. )
+	( cplx_planet_viewpoint(): a moon of a companion star observes its live
+	  local vector from that owner.  planet-all generates bodies in order, and
+	  planet_xyz() leaves that moon's absolute position in the shared plx/plz
+	  scratch coordinates.  Later ordinary bodies observe that lingering point
+	  rather than the initial zero coordinates.  Replay the last such preceding
+	  body so isolated worker calls retain the source's sequential state. )
 	A = [VHGNDowner]; ? A < 0 -> VHNIV orbital initial viewpoint;
 	E = nsptype; E + A; A = [E]; ? A != 10 -> VHNIV orbital initial viewpoint;
 	=> VHGND exact viewpoint; A = [VHGNDviewpoint]; -> VHNIV orbital viewpoint ready;
     "VHNIV orbital initial viewpoint"
+	A = [VHGplanet]; A - 1; [NHviewbody] = A;
+    "VHNIV orbital prior viewpoint loop"
+	A = [NHviewbody]; ? A < 0 -> VHNIV orbital zero viewpoint;
+	E = nspowner; E + A; C = [E]; ? C < 0 -> VHNIV orbital prior viewpoint next;
+	E = nsptype; E + C; C = [E]; ? C = 10 -> VHNIV orbital prior viewpoint found;
+    "VHNIV orbital prior viewpoint next"
+	A = [NHviewbody]; A - 1; [NHviewbody] = A; -> VHNIV orbital prior viewpoint loop;
+    "VHNIV orbital prior viewpoint found"
+	[VHGNDvecindex] = [NHviewbody]; => VHGND absolute body vector;
+	( Analytic equivalent of planet_viewpoint(nearstar_x,nearstar_z) after
+	  planet_xyz() has left this absolute body vector relative to the star. )
+	[FA0] = [VHGNDvecz0]; [FA1] = [VHGNDvecz1]; => FNeg;
+	[FB0] = [VHGNDvecx0]; [FB1] = [VHGNDvecx1];
+	A = [FB0]; [VHGNDxx0] = A; A = [FB1]; [VHGNDxx1] = A;
+	[FA0] = [VHGNDxx0]; [FA1] = [VHGNDxx1]; => FNeg;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [VHGNDvecz0]; [FA1] = [VHGNDvecz1]; => FNeg; => FAtan2;
+	[FB0] = 0; [FB1] = 40668000h; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
+	A = [FI]; A % 360; ? A >= 0 -> VHNIV orbital viewpoint ready;
+	A + 360; -> VHNIV orbital viewpoint ready;
+    "VHNIV orbital zero viewpoint"
 	[FI] = [VHTtz]; => IntToF;
 	[VHGNDxx0] = [FA0]; [VHGNDxx1] = [FA1];
 	[FI] = [VHTtx]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
