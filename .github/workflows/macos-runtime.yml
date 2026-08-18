@@ -1,0 +1,39 @@
+name: macOS x86_64 runtime
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - "src/linoleum_macos64/**"
+      - ".github/workflows/macos-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Cocoa and headless RTMs
+    runs-on: macos-15-intel
+
+    steps:
+      - name: Check out the port
+        uses: actions/checkout@v7
+
+      - name: Build the no-display runtime
+        shell: bash
+        run: |
+          HEADLESS=1 ./src/linoleum_macos64/build.sh
+          file src/linoleum_macos64/rtm01.bin | grep -q x86_64
+          if otool -L src/linoleum_macos64/rtm01.bin | grep -q '/Cocoa.framework/'; then
+            echo 'Headless runtime unexpectedly links Cocoa' >&2
+            exit 1
+          fi
+
+      - name: Build the native Cocoa runtime
+        shell: bash
+        run: |
+          ./src/linoleum_macos64/build.sh
+          file src/linoleum_macos64/rtm01.bin | grep -q x86_64
+          otool -L src/linoleum_macos64/rtm01.bin | grep -q '/Cocoa.framework/'
