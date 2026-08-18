@@ -3091,6 +3091,7 @@
 	end;
 
 "VHGND sun flares"
+	[VHFsample] = 0;
 	( Restore the player's view matrix before the post-world flare pass.  The
 	  flare projector consumes already-relative sun coordinates, so only the
 	  angle table matters; keeping the real camera installed also leaves later

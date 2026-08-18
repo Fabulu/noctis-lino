@@ -21,7 +21,7 @@
 	VHFadd = 2; VHFpx = 0; VHFpy = 0; VHFpz = 0;
 	VHFdist = 0; VHFdist0 = 0; VHFdist1 = 0; VHFray = 0; VHFstep = 0;
 	VHFspaceray0 = 0; VHFspaceray1 = 0;
-	VHFok = 0;
+	VHFok = 0; VHFsample = 0;
 	VHFghost = 0; VHFgdx = 0; VHFgdy = 0; VHFgr = 0;
 	VHFgfx = 0; VHFgfy = 0;
 	VHFdx = 0; VHFdy = 0;
@@ -138,6 +138,7 @@
 	A = [VHFcx]; ? A <= 10 -> VHF done; ? A >= 320 -> VHF done;
 	A = [VHFcy]; ? A <= 10 -> VHF done; ? A >= 190 -> VHF done;
 	A '* 320; A + [VHFcx]; A + 2; [SPoff] = A; [SPreg] = RGADP; => SP get;
+	[VHFsample] = [SPval];
 	A = [SPval]; ? A < 64 -> VHF done; ? A > 127 -> VHF done;
 
 	( Source range: d >= 10*ray and d < 1000*ray.  Retain the binary32

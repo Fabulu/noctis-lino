@@ -10757,7 +10757,7 @@
 	[vhgsun plus 12] = [VHGNDsuny0]; [vhgsun plus 13] = [VHGNDsuny1];
 	[vhgsun plus 14] = [VHGNDsunz0]; [vhgsun plus 15] = [VHGNDsunz1];
 	[vhgsun plus 16] = [VHGNDflareok]; [vhgsun plus 17] = [VHGNDflarecx];
-	[vhgsun plus 18] = [VHGNDflarecy]; [vhgsun plus 19] = [VHFadd];
+	[vhgsun plus 18] = [VHGNDflarecy]; [vhgsun plus 19] = [VHFsample];
 	[vhgsun plus 20] = [VHGNDsecactive]; [vhgsun plus 21] = [VHGNDsecnight];
 	[vhgsun plus 22] = [VHGNDsecray]; [vhgsun plus 23] = [VHGNDsecdist];
 	( Surface-lighting provenance.  These are the exact integer decisions that
