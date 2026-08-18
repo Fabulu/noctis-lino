@@ -54,6 +54,8 @@
 	VHGNDastarad = 0; VHGNDastarang = 0; VHGNDastard = 0;
 	VHGNDastarvar = 0; VHGNDastarcolor = 0;
 	VHGNDastarpx = 0; VHGNDastarpy = 0;
+	VHGNDastarcos0 = 0; VHGNDastarcos1 = 0;
+	VHGNDastarsin0 = 0; VHGNDastarsin1 = 0;
 	VHGNDlinex = 0; VHGNDlinez = 0; VHGNDlinelen = 0;
 	VHGNDlinetrendx = 0; VHGNDlinetrendz = 0;
 	VHGNDhr = 0;
@@ -1484,18 +1486,25 @@
 	=> F32Narrow; => FStoreF32; [VHGNDastarvar] = [FS0];
 	[FI] = [VHGNDastarbase]; => IntToF;
 	=> F32Narrow; => FStoreF32; [VHGNDastarcolor] = [FS0];
+	( Angle is constant for the complete ray.  The source recomputes these
+	  identical x87 results at every radial pixel; retain the exact binary64
+	  outputs once and reuse them until the angle advances. )
+	[FS0] = [VHGNDastarang]; => FLoadF32; => FCos;
+	[VHGNDastarcos0] = [FA0]; [VHGNDastarcos1] = [FA1];
+	[FS0] = [VHGNDastarang]; => FLoadF32; => FSin;
+	[VHGNDastarsin0] = [FA0]; [VHGNDastarsin1] = [FA1];
     "VHGND asterism pixel"
 	A = [VHGNDastard]; A & 7FFFFFFFh; ? A = 0 -> VHGND asterism next ray;
 	A = [VHGNDastard]; A & 80000000h; ? A != 0 -> VHGND asterism next ray;
 	( shift_x = chop(cos(ang)*shift_d+x). )
 	[FS0] = [VHGNDastard]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FS0] = [VHGNDastarang]; => FLoadF32; => FCos; => FMul;
+	[FA0] = [VHGNDastarcos0]; [FA1] = [VHGNDastarcos1]; => FMul;
 	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDastarx]; => IntToF;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FT0]; [FA1] = [FT1];
 	=> FAdd; => FToIntChop; [VHGNDastarpx] = [FI];
 	( shift_y = chop(sin(ang)*shift_d+y). )
 	[FS0] = [VHGNDastard]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FS0] = [VHGNDastarang]; => FLoadF32; => FSin; => FMul;
+	[FA0] = [VHGNDastarsin0]; [FA1] = [VHGNDastarsin1]; => FMul;
 	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDastary]; => IntToF;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FT0]; [FA1] = [FT1];
 	=> FAdd; => FToIntChop; [VHGNDastarpy] = [FI];

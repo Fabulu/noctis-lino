@@ -1682,6 +1682,20 @@ scene reached its first capturable frame in 9.23 seconds instead of 17.18
 seconds. The production clean-return fixture still matches NIV+ on all 40,000
 height bytes and all 65,532 deterministic texture bytes.
 
+The following radial-profile pass shares one generation-stamped cache between
+`round_hill` and `std_crater`. Each hill now evaluates the exact qword-spilled
+`sqrt` and `cos` chain once per integer squared distance, then reuses the same
+binary32 profile for symmetric pixels. The same cold habitable scene reached
+its first capturable frame in 4.92 seconds. A fresh production clean-return
+comparison still reported zero heightmap and deterministic-texture differences
+against NIV+.
+
+Habitable asterism rays now retain each ray's exact binary64 sine and cosine
+once instead of recomputing the same pair for every pixel along that ray. The
+same product smoke reached its first capturable frame in 3.17 seconds, down
+from the original 17.18-second baseline. The clean-return NIV+ comparison again
+reported zero differences after this pass.
+
 **Coordinate-convention guard.** Gameplay checkpoint fixtures store the star Y
 value in the port's internal convention, while the public NIVGEN command uses
 the public catalogue convention. Do not copy a checkpoint Y directly into a
