@@ -3130,16 +3130,16 @@
 	( NOCTIS-0.CPP psmooth_64, operating on Lino's one-byte-per-unit page.
 	  Each destination keeps the first sample's palette band and receives the
 	  average low-six intensity of the 2x2 block one and two rows below. )
-	{ 50 53 51 52 56
-	  8B B7 <dVHGsmoothbase mtp bytesperunit>
-	  8D 34 B7
-	  8B 8F <dVHGsmoothcount mtp bytesperunit>
-	  8B 86 00 05 00 00 89 C2 81 E2 C0 00 00 00 83 E0 3F
-	  8B 9E 04 05 00 00 83 E3 3F 01 D8
-	  8B 9E 00 0A 00 00 83 E3 3F 01 D8
-	  8B 9E 04 0A 00 00 83 E3 3F 01 D8
-	  C1 E8 02 09 D0 89 06 83 C6 04 49 75 C1
-	  5E 5A 59 5B 58 }
+	D = [VHGsmoothbase]; B = [VHGsmoothcount];
+	? B = 0 -> VHG interior smooth64 done;
+    "VHG interior smooth64 pixel"
+	A = [D plus 320]; A & 255; E = A; E & 192; A & 63; C = A;
+	A = [D plus 321]; A & 63; C + A;
+	A = [D plus 640]; A & 63; C + A;
+	A = [D plus 641]; A & 63; C + A;
+	C > 2; C | E; [D] = C; D+;
+	B ^ VHG interior smooth64 pixel;
+    "VHG interior smooth64 done"
 	end;
 
     "VHG interior details"

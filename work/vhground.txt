@@ -32,8 +32,6 @@
 	VHGNDh1 = 0; VHGNDs1 = 0; VHGNDs2 = 0;
 	VHGNDs3 = 0; VHGNDs4 = 0; VHGNDshade = 0;
 	VHGNDdepth = 0; VHGNDrawdepth = 0; VHGNDdx = 0; VHGNDdz = 0;
-	VHGNDmanhattan = 0;
-	VHGNDnativecomplete = 0;
 	VHGNDlodstep = 1; VHGNDlodradius = 4; VHGNDbackspan = 1;
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
@@ -183,7 +181,6 @@
 	VHGNDcompassx = 0; VHGNDcompassrow = 0; VHGNDcompassmask = 0; VHGNDcompassdir = 0;
 	VHGNDhudptr = 0; VHGNDhudsource = 0; VHGNDhudvalue = 0; VHGNDhudi = 0; VHGNDhudchar = 0;
 	VHGNDhudx = 0; VHGNDhudy = 2; VHGNDhudrow = 0; VHGNDhudpacked = 0; VHGNDhudshift = 0;
-	VHGNDdensebase = 0;
 	VHGNDenvgravity = { GRAVITY };
 	VHGNDenvtemp = {  FG & TEMPERATURE };
 	VHGNDenvpress = { @C & PRESSURE };
@@ -2745,7 +2742,7 @@
 	A = VHGNDnormx; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRX; => PGF setf32;
 	A = VHGNDnormy; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRY; => PGF setf32;
 	A = VHGNDnormz; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRZ; => PGF setf32;
-	=> PG terrain facing dot native; end;
+	=> PG facing dot; end;
     "VHGND terrain facing build"
 	=> PG facing;
 	[PGFi] = FSRX; => PGF a; => PGF stf32;
@@ -3631,58 +3628,29 @@
 	C = [D]; C & 63; [D] = C; D+;
 	B ^ VHGND dense mask;
 
-	A = nw; A + RADPT; A + 2880; [SUsp] = A; [VHGNDdensebase] = A;
+	A = nw; A + RADPT; A + 2880; [SUsp] = A;
 	[SUsi] = 320; B = 56960;
     "VHGND dense smooth"
-	=> VHGND dense sample native;
+	C = [SUsp]; C + [SUsi]; C - 320;
+	=> SU dw at; E = D;
+	C + 320; => SU dw at; E + D;
+	C + 320; => SU dw at; E + D;
+	C + 320; => SU dw at; E + D;
+	E & 0FCFCFCFCh; E > 2;
+	A = E; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	E > 16;
+	D = E; D & 0FFh; A + D; A & 0FFh;
+	D = E; D > 8; D & 0FFh; A + D; A & 0FFh;
+	A > 2;
+	C = [SUsp]; C + [SUsi]; [C] = A;
 	[SUsi]+;
 	B ^ VHGND dense smooth;
 	end;
 
-"VHGND dense sample native"
-	( Exact in-place psmooth_grays sample.  Packing four adjacent pixel units
-	  into each little-endian dword preserves the source's inter-byte carries;
-	  EBX is saved because the outer Lino loop owns B as its counter. )
-	{
-	    53                                      (push ebx)
-	    8B B7 <dVHGNDdensebase mtp bytesperunit>
-	    8D 34 B7                               (esi = workspace byte address)
-	    8B 8F <dSUsi mtp bytesperunit>         (ecx = destination unit index)
 
-	    8B 84 8E 00 FB FF FF 25 FF 00 00 00
-	    8B 94 8E 04 FB FF FF 81 E2 FF 00 00 00 C1 E2 08 09 D0
-	    8B 94 8E 08 FB FF FF 81 E2 FF 00 00 00 C1 E2 10 09 D0
-	    8B 94 8E 0C FB FF FF 81 E2 FF 00 00 00 C1 E2 18 09 D0
-	    89 C3                                  (first packed row)
 
-	    8B 04 8E 25 FF 00 00 00
-	    8B 54 8E 04 81 E2 FF 00 00 00 C1 E2 08 09 D0
-	    8B 54 8E 08 81 E2 FF 00 00 00 C1 E2 10 09 D0
-	    8B 54 8E 0C 81 E2 FF 00 00 00 C1 E2 18 09 D0
-	    01 C3                                  (second packed row)
 
-	    8B 84 8E 00 05 00 00 25 FF 00 00 00
-	    8B 94 8E 04 05 00 00 81 E2 FF 00 00 00 C1 E2 08 09 D0
-	    8B 94 8E 08 05 00 00 81 E2 FF 00 00 00 C1 E2 10 09 D0
-	    8B 94 8E 0C 05 00 00 81 E2 FF 00 00 00 C1 E2 18 09 D0
-	    01 C3                                  (third packed row)
-
-	    8B 84 8E 00 0A 00 00 25 FF 00 00 00
-	    8B 94 8E 04 0A 00 00 81 E2 FF 00 00 00 C1 E2 08 09 D0
-	    8B 94 8E 08 0A 00 00 81 E2 FF 00 00 00 C1 E2 10 09 D0
-	    8B 94 8E 0C 0A 00 00 81 E2 FF 00 00 00 C1 E2 18 09 D0
-	    01 C3                                  (fourth packed row)
-
-	    81 E3 FC FC FC FC C1 EB 02            (mask lanes, divide by four)
-	    89 D8 25 FF 00 00 00                  (eax = lane 0)
-	    89 DA C1 EA 08 81 E2 FF 00 00 00 01 D0 25 FF 00 00 00
-	    C1 EB 10 89 DA 81 E2 FF 00 00 00 01 D0 25 FF 00 00 00
-	    C1 EB 08 81 E3 FF 00 00 00 01 D8 25 FF 00 00 00
-	    C1 E8 02                               (horizontal average)
-	    89 04 8E                               (write current unit in place)
-	    5B                                      (pop ebx)
-	}
-	end;
 
 "VHGND weather lightning begin"
 	( flash is selected at the end of one source frame and consumed before
@@ -5291,12 +5259,7 @@
 	( fragment()'s source Manhattan precheck rejects only cells that cannot
 	  enter the depth-64 circle.  Do it before shade/depth floating work. )
 	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile source range generic;
-	[VHGNDnativecomplete] = 0;
-	=> VHGND faithful tile admission native;
-	A = [VHGNDnativecomplete]; ? A = 2 -> VHGND tile done;
-	? A = 1 -> VHGND tile second done;
-	A = [VHGNDmanhattan]; ? A > 90 -> VHGND tile done;
-	-> VHGND tile depth computed;
+	-> VHGND tile source range generic;
     "VHGND tile source range generic"
 	A = [VHGNDcamtx]; A - [VHGNDx]; ? A >= 0 -> VHGND tile abs x ready;
 	C = 0; C - A; A = C;
@@ -5374,8 +5337,19 @@
     "VHGND tile mirror cull ready"
 
 	[VHGNDtilepolys] = 0;
-	[VHGNDvctri] = 0; A = fw; [PJfwbase] = A;
-	=> VHGND terrain triangle load native; => VHGND terrain facing;
+	[VHGNDvi] = 0;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs1]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvctri] = 0; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile first mirror facing;
 	A = [FCret]; ? A = 0 -> VHGND tile first done; -> VHGND tile first visible;
     "VHGND tile first mirror facing"
@@ -5391,7 +5365,19 @@
 	[PGtexf] = 5; [VHGNDvctri] = 0; => VHGND terrain mapped;
     "VHGND tile first done"
 
-	[VHGNDvctri] = 1; => VHGND terrain triangle load native; => VHGND terrain facing;
+	[VHGNDvi] = 0;
+	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs3]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	[VHGNDvctri] = 1; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile second mirror facing;
 	A = [FCret]; ? A = 0 -> VHGND tile second done; -> VHGND tile second visible;
     "VHGND tile second mirror facing"
@@ -5596,9 +5582,15 @@
 	  original six-pixel silhouette directly into the adapted page. )
 	A = [VHGNDmushscale]; A > 1; [VHGNDtmp] = A;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer setup;
-	( Tree leaf tips are native binary32 arguments.  Preserve their fractional
-	  bits through x/y/z += correction and each getcoords argument store. )
-	=> VHGND greenmush float setup native;
+	[PGFt] = [VHGNDmushxf]; => PGF ldf32; => VHGND fb fa;
+	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushxf] = [FS0];
+	[PGFt] = [VHGNDmushyf]; => PGF ldf32; => VHGND fb fa;
+	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushyf] = [FS0];
+	[PGFt] = [VHGNDmushzf]; => PGF ldf32; => VHGND fb fa;
+	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushzf] = [FS0];
+	[PGFt] = [VHGNDmushxf]; => PGF ldf32; => FToIntChop; [VHGNDmushx] = [FI];
+	[PGFt] = [VHGNDmushyf]; => PGF ldf32; => FToIntChop; [VHGNDmushy] = [FI];
+	[PGFt] = [VHGNDmushzf]; => PGF ldf32; => FToIntChop; [VHGNDmushz] = [FI];
 	-> VHGND greenmush seed;
     "VHGND greenmush integer setup"
 	A = [VHGNDmushx]; A + [VHGNDtmp]; [VHGNDmushx] = A;
@@ -5615,12 +5607,7 @@
     "VHGND greenmush outer"
 	( Borland evaluates getcoords(x-fast_random(), y-fast_random(),
 	  z-fast_random()) right-to-left while preparing its stack arguments. )
-	[SUfmask] = [VHGNDmushscale];
-	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush generic point;
-	A = fw; [PJfwbase] = A; => VHGND greenmush float point native;
-	[VHGNDvi] = 0; -> VHGND greenmush project;
-    "VHGND greenmush generic point"
-	=> VHGND render random;
+	[SUfmask] = [VHGNDmushscale]; => VHGND render random;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer z;
 	[FI] = C; => IntToF; => VHGND fb fa; [PGFt] = [VHGNDmushzf]; => PGF ldf32;
 	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpzf] = [FS0]; -> VHGND greenmush z ready;
@@ -5657,122 +5644,16 @@
 	=> PG getcoords;
 	A = [GCret]; ? A = 0 -> VHGND greenmush outer next;
 	[SUfmask] = [VHGNDmushmask2]; => VHGND render random; C + 1; [VHGNDmushinner] = C;
-    "VHGND greenmush inner"
-	( The source stamps every clump with three consecutive fast-random draws.
-	  Keep their unsigned square transition and write order in one native loop;
-	  the final seed, raw value, mask, offset, colour and counters remain the
-	  values left by the interpreted sequence.  Native loads only adapted's
-	  segment into ES; its far pointer offset maps the six source displacements
-	  to buffer-relative 0,+1,-1,+320,-320,-640. )
-	[SUfmask] = [VHGNDmushcolmask]; A = nw;
-	{
-	    55 56
-	    8D 2C 87
-	    8B 8F <dVHGNDmushinner mtp bytesperunit>
-	    8B B7 <dSUfseed mtp bytesperunit>
-	    89 F0 F7 E0 00 D0 01 C6 83 E0 07
-	    03 87 <dGCy mtp bytesperunit>
-	    69 D8 40 01 00 00
-	    89 F0 F7 E0 00 D0 01 C6 83 E0 07
-	    03 87 <dGCx mtp bytesperunit>
-	    01 C3
-	    89 9F <dVHGNDmushoff mtp bytesperunit>
-	    89 F0 F7 E0 00 D0
-	    89 87 <dSUfeax mtp bytesperunit>
-	    01 C6
-	    89 B7 <dSUfseed mtp bytesperunit>
-	    89 C2
-	    23 97 <dVHGNDmushcolmask mtp bytesperunit>
-	    89 97 <dSUfval mtp bytesperunit>
-	    03 97 <dVHGNDmushbase mtp bytesperunit>
-	    8D 9C 9D <dRADPT mtp bytesperunit>
-	    89 13 89 53 04 89 53 FC
-	    89 93 00 05 00 00
-	    89 93 00 FB FF FF
-	    89 93 00 F6 FF FF
-	    49 0F 85 80 FF FF FF
-	    89 8F <dVHGNDmushinner mtp bytesperunit>
-	    89 F3 89 D1 31 C0 5E 5D
-	}
+	"VHGND greenmush inner"
+	[SUfmask] = 7; => VHGND render random; A = [GCy]; A + C; A '* 320; [VHGNDmushoff] = A;
+	=> VHGND render random; A = [GCx]; A + C; C = [VHGNDmushoff]; C + A; [VHGNDmushoff] = C;
+	[SUfmask] = [VHGNDmushcolmask]; => VHGND render random; C + [VHGNDmushbase];
+	D = nw; D + RADPT; D + [VHGNDmushoff];
+	[D] = C; [D plus 1] = C; A = D; A - 1; [A] = C; [D plus 320] = C;
+	A = D; A - 320; [A] = C; A = D; A - 640; [A] = C;
+	[VHGNDmushinner]-; A = [VHGNDmushinner]; ? A > 0 -> VHGND greenmush inner;
     "VHGND greenmush outer next"
 	[VHGNDmushouter]-; A = [VHGNDmushouter]; ? A > 0 -> VHGND greenmush outer;
-	end;
-
-"VHGND greenmush float point native"
-	( A close tree leaf point consumes the same z, y, x random draws and keeps
-	  every unsigned-square RNG state update.  Each binary32 source coordinate
-	  is widened, subtracts the exact integer draw at binary64, narrows once,
-	  and is widened into getcoords' fixed input slot. )
-	{
-	    56 53 8B 9F <dPJfwbase mtp bytesperunit> 8D 1C 9F
-	    8B B7 <dSUfseed mtp bytesperunit>
-	    89 F0 F7 E0 00 D0 89 87 <dSUfeax mtp bytesperunit> 01 C6
-	    89 B7 <dSUfseed mtp bytesperunit> 23 87 <dVHGNDmushscale mtp bytesperunit>
-	    89 87 <dSUfval mtp bytesperunit> 89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
-	    D9 87 <dVHGNDmushzf mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> DC A7 <dFB0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dVHGNDmushpzf mtp bytesperunit>
-	    89 F0 F7 E0 00 D0 89 87 <dSUfeax mtp bytesperunit> 01 C6
-	    89 B7 <dSUfseed mtp bytesperunit> 23 87 <dVHGNDmushscale mtp bytesperunit>
-	    89 87 <dSUfval mtp bytesperunit> 89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
-	    D9 87 <dVHGNDmushyf mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> DC A7 <dFB0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dVHGNDmushpyf mtp bytesperunit>
-	    89 F0 F7 E0 00 D0 89 87 <dSUfeax mtp bytesperunit> 01 C6
-	    89 B7 <dSUfseed mtp bytesperunit> 23 87 <dVHGNDmushscale mtp bytesperunit>
-	    89 87 <dSUfval mtp bytesperunit> 89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
-	    D9 87 <dVHGNDmushxf mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> DC A7 <dFB0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dVHGNDmushpxf mtp bytesperunit>
-	    D9 87 <dVHGNDmushpxf mtp bytesperunit> DD 9B E0 07 00 00
-	    D9 87 <dVHGNDmushpyf mtp bytesperunit> DD 9B 00 08 00 00
-	    D9 87 <dVHGNDmushpzf mtp bytesperunit> DD 9B 20 08 00 00 5B 5E
-	}
-	end;
-
-"VHGND greenmush float setup native"
-	( Add the half-scale correction to all three binary32 leaf coordinates,
-	  then chop their integer seed coordinates under one exact control-word
-	  interval.  Every add still spills to binary64 before narrowing. )
-	{
-	    D9 87 <dVHGNDmushxf mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
-	    DB 87 <dVHGNDtmp mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> DC 87 <dFB0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    8B 87 <dFS0 mtp bytesperunit> 89 87 <dVHGNDmushxf mtp bytesperunit>
-	    D9 87 <dVHGNDmushyf mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
-	    DB 87 <dVHGNDtmp mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> DC 87 <dFB0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    8B 87 <dFS0 mtp bytesperunit> 89 87 <dVHGNDmushyf mtp bytesperunit>
-	    D9 87 <dVHGNDmushzf mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
-	    DB 87 <dVHGNDtmp mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> DC 87 <dFB0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dFS0 mtp bytesperunit> D9 87 <dFS0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    8B 87 <dFS0 mtp bytesperunit> 89 87 <dVHGNDmushzf mtp bytesperunit>
-	    D9 AF <dGRcwc mtp bytesperunit>
-	    D9 87 <dVHGNDmushxf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDmushx mtp bytesperunit>
-	    D9 87 <dVHGNDmushyf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDmushy mtp bytesperunit>
-	    8B 87 <dVHGNDmushzf mtp bytesperunit> 89 87 <dPGFt mtp bytesperunit>
-	    D9 87 <dVHGNDmushzf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDmushz mtp bytesperunit>
-	    D9 AF <dGRcwn mtp bytesperunit>
-	    D9 87 <dVHGNDmushzf mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	}
 	end;
 
 "VHGND render random"
@@ -5870,7 +5751,17 @@
 	-> VHGND tree node enter;
 
 "VHGND tree node enter"
-	=> VHGND tree node load native;
+	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebxf] = [A];
+	[PGFt] = [VHGNDtreebxf]; => PGF ldf32; => FToIntChop; [VHGNDtreebx] = [FI];
+	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreebyf] = [A];
+	[PGFt] = [VHGNDtreebyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeby] = [FI];
+	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebzf] = [A];
+	[PGFt] = [VHGNDtreebzf]; => PGF ldf32; => FToIntChop; [VHGNDtreebz] = [FI];
+	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescalef] = [A];
+	[PGFt] = [VHGNDtreescalef]; => PGF ldf32; => FToIntChop; [VHGNDtreescale] = [FI];
+	A = VHGNDtslayers; A + [VHGNDtreelevel]; [VHGNDtreelayers] = [A];
+	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
+	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
 	[VHGNDtreebranches] = 1; A = [VHGNDtreeisroot]; ? A != 0 -> VHGND tree node count ready;
 	[SUfmask] = [VHTforks]; => VHGND render random; C + 1; [VHGNDtreebranches] = C;
     "VHGND tree node count ready"
@@ -5894,7 +5785,17 @@
 	-> VHGND tree node branch;
 
 "VHGND tree node branch"
-	=> VHGND tree node load native;
+	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebxf] = [A];
+	[PGFt] = [VHGNDtreebxf]; => PGF ldf32; => FToIntChop; [VHGNDtreebx] = [FI];
+	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreebyf] = [A];
+	[PGFt] = [VHGNDtreebyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeby] = [FI];
+	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebzf] = [A];
+	[PGFt] = [VHGNDtreebzf]; => PGF ldf32; => FToIntChop; [VHGNDtreebz] = [FI];
+	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescalef] = [A];
+	[PGFt] = [VHGNDtreescalef]; => PGF ldf32; => FToIntChop; [VHGNDtreescale] = [FI];
+	A = VHGNDtslayers; A + [VHGNDtreelevel]; [VHGNDtreelayers] = [A];
+	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
+	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
 	A = VHGNDtscount; A + [VHGNDtreelevel]; [VHGNDtreebranches] = [A];
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; [VHGNDtreebranch] = [A];
 	A = [VHGNDtreebranch]; ? A '>= [VHGNDtreebranches] -> VHGND tree node pop;
@@ -5954,9 +5855,47 @@
 
     "VHGND tree terminal"
 	( Terminal source node: each subdivision is its own randomized leaf fan. )
-	( Preserve the five unsigned fast-random transitions and every source
-	  binary64 spill, but execute the terminal coordinate chain in one call. )
-	[SUfmask] = 32767; => VHGND tree terminal native;
+	( x2 = x + fast_flandom()*range - fast_flandom()*range.  Keep the
+	  first partial sum wide across the second RNG call, then narrow only at
+	  the source's float assignment. )
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
+	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreebxf]; => PGF setf32;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add;
+	[GRtreeacc0] = [FA0]; [GRtreeacc0 plus 1] = [FA1];
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
+	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [GRtreeacc0]; [FA1] = [GRtreeacc0 plus 1];
+	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafx] = [FS0];
+
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
+	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreebzf]; => PGF setf32;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add;
+	[GRtreeacc0] = [FA0]; [GRtreeacc0 plus 1] = [FA1];
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
+	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [GRtreeacc0]; [FA1] = [GRtreeacc0 plus 1];
+	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafz] = [FS0];
+
+	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
+	[PGFi] = FSW0; [PGFt] = [GRtreefl]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreescalef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [PGFi] = FSW0; [PGFt] = [VHGNDtreebyf]; => PGF setf32;
+	=> FSub; => F32Narrow; => FStoreF32; [VHGNDtreeleafdrop] = [FS0];
+	[PGFi] = FSW0; [PGFt] = [VHGNDtreescalef]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHTwidthf]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
+	=> F32Narrow; => FStoreF32; [VHGNDtreebr] = [FS0];
 	[VHGNDtreeex] = [VHGNDtreebx]; [VHGNDtreeey] = [VHGNDtreeby]; [VHGNDtreeez] = [VHGNDtreebz];
 	[SUfmask] = 31; => VHGND render random; C + [VHTleafcol]; [VHGNDtreecol] = C;
 	[VHTfacebase] = C; [VHTfacestep] = 2;
@@ -5971,112 +5910,8 @@
 	[DBflar] = 0; [VHGNDtreefloat] = 0;
 	end;
 
-"VHGND tree terminal native"
-	( Five fast_flandom draws build x2, z2 and y2.  ESI holds the running
-	  unsigned seed while every public RNG value and final float scratch value
-	  remains identical to the interpreted schedule. )
-	{
-	    56
-	    8B B7 <dSUfseed mtp bytesperunit>
 
-	    89 F0 F7 E0 00 D0
-	    89 87 <dSUfeax mtp bytesperunit> 01 C6
-	    89 B7 <dSUfseed mtp bytesperunit> 25 FF 7F 00 00
-	    89 87 <dSUfval mtp bytesperunit> 89 87 <dGRtreeci mtp bytesperunit>
-	    DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
-	    D9 9F <dGRtreefl mtp bytesperunit>
-	    D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    D9 87 <dVHGNDtreebxf mtp bytesperunit> DC 87 <dFA0 mtp bytesperunit>
-	    DD 9F <dGRtreeacc0 mtp bytesperunit>
 
-	    89 F0 F7 E0 00 D0
-	    89 87 <dSUfeax mtp bytesperunit> 01 C6
-	    89 B7 <dSUfseed mtp bytesperunit> 25 FF 7F 00 00
-	    89 87 <dSUfval mtp bytesperunit> 89 87 <dGRtreeci mtp bytesperunit>
-	    DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
-	    D9 9F <dGRtreefl mtp bytesperunit>
-	    D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dGRtreeacc0 mtp bytesperunit> DC A7 <dFA0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dVHGNDtreeleafx mtp bytesperunit>
-
-	    89 F0 F7 E0 00 D0
-	    89 87 <dSUfeax mtp bytesperunit> 01 C6
-	    89 B7 <dSUfseed mtp bytesperunit> 25 FF 7F 00 00
-	    89 87 <dSUfval mtp bytesperunit> 89 87 <dGRtreeci mtp bytesperunit>
-	    DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
-	    D9 9F <dGRtreefl mtp bytesperunit>
-	    D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    D9 87 <dVHGNDtreebzf mtp bytesperunit> DC 87 <dFA0 mtp bytesperunit>
-	    DD 9F <dGRtreeacc0 mtp bytesperunit>
-
-	    89 F0 F7 E0 00 D0
-	    89 87 <dSUfeax mtp bytesperunit> 01 C6
-	    89 B7 <dSUfseed mtp bytesperunit> 25 FF 7F 00 00
-	    89 87 <dSUfval mtp bytesperunit> 89 87 <dGRtreeci mtp bytesperunit>
-	    DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
-	    D9 9F <dGRtreefl mtp bytesperunit>
-	    D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dGRtreeacc0 mtp bytesperunit> DC A7 <dFA0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dVHGNDtreeleafz mtp bytesperunit>
-
-	    89 F0 F7 E0 00 D0
-	    89 87 <dSUfeax mtp bytesperunit> 01 C6
-	    89 B7 <dSUfseed mtp bytesperunit> 25 FF 7F 00 00
-	    89 87 <dSUfval mtp bytesperunit> 89 87 <dGRtreeci mtp bytesperunit>
-	    DB 87 <dGRtreeci mtp bytesperunit> DC 8F <dGRKFL0 mtp bytesperunit>
-	    D9 9F <dGRtreefl mtp bytesperunit>
-	    D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dVHGNDtreescalef mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    D9 87 <dVHGNDtreebyf mtp bytesperunit> DC A7 <dFA0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dVHGNDtreeleafdrop mtp bytesperunit>
-	    D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTwidthf mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dVHGNDtreebr mtp bytesperunit>
-	    D9 87 <dVHGNDtreebr mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    8B 87 <dVHGNDtreebr mtp bytesperunit> 89 87 <dFS0 mtp bytesperunit>
-	    5E
-	}
-	end;
-
-"VHGND tree node load native"
-	( Restore one depth-stack record and chop its four binary32 geometry
-	  values under one exact x87 control-word interval. )
-	{
-	    8B 8F <dVHGNDtreelevel mtp bytesperunit>
-	    D9 AF <dGRcwc mtp bytesperunit>
-	    8B 84 8F <dVHGNDtsx mtp bytesperunit>
-	    89 87 <dVHGNDtreebxf mtp bytesperunit>
-	    D9 87 <dVHGNDtreebxf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDtreebx mtp bytesperunit>
-	    8B 84 8F <dVHGNDtsy mtp bytesperunit>
-	    89 87 <dVHGNDtreebyf mtp bytesperunit>
-	    D9 87 <dVHGNDtreebyf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDtreeby mtp bytesperunit>
-	    8B 84 8F <dVHGNDtsz mtp bytesperunit>
-	    89 87 <dVHGNDtreebzf mtp bytesperunit>
-	    D9 87 <dVHGNDtreebzf mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDtreebz mtp bytesperunit>
-	    8B 84 8F <dVHGNDtsscale mtp bytesperunit>
-	    89 87 <dVHGNDtreescalef mtp bytesperunit> 89 87 <dPGFt mtp bytesperunit>
-	    D9 87 <dVHGNDtreescalef mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit> 89 87 <dVHGNDtreescale mtp bytesperunit>
-	    D9 AF <dGRcwn mtp bytesperunit>
-	    D9 87 <dVHGNDtreescalef mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    8B 84 8F <dVHGNDtslayers mtp bytesperunit>
-	    89 87 <dVHGNDtreelayers mtp bytesperunit>
-	    8B 84 8F <dVHGNDtsroot mtp bytesperunit>
-	    89 87 <dVHGNDtreeisroot mtp bytesperunit>
-	    8B 84 8F <dVHGNDtsocc mtp bytesperunit>
-	    89 87 <dVHGNDtreeocc mtp bytesperunit>
-	}
-	end;
 
 "VHGND bush"
 	( cespuglio(): low-ground tree-class objects are bushes. At depth three
@@ -6127,42 +5962,23 @@
 	end;
 
 "VHGND tree direction"
-	( Native b_angle is not an integral-degree lookup.  Borland narrows
-	  b_angle_delta=(float)(2*M_PI/subdivs), narrows its half-angle, then
-	  narrows every +=delta step.  Those low bits feed the next node seed. )
-	{
-	    C7 87 <dPGFt mtp bytesperunit> DB 0F C9 40
-	    D9 87 <dPGFt mtp bytesperunit> DD 9F <dfw plus FSW0 plus FSW0 mtp bytesperunit>
-	    8B 87 <dVHGNDtreebranches mtp bytesperunit>
-	    89 87 <dFI mtp bytesperunit> DB 87 <dFI mtp bytesperunit>
-	    DD 9F <dFB0 mtp bytesperunit>
-	    DD 87 <dfw plus FSW0 plus FSW0 mtp bytesperunit> DC B7 <dFB0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
-	    D9 87 <dFS0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    8B 87 <dFS0 mtp bytesperunit>
-	    89 87 <dVHGNDtmp mtp bytesperunit> 89 87 <dPGFt mtp bytesperunit>
-	    D9 87 <dVHGNDtmp mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dGRK050L mtp bytesperunit> DD 9F <dFB0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> DC 8F <dFB0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
-	    D9 87 <dFS0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    8B 87 <dFS0 mtp bytesperunit> 89 87 <dVHGNDtreeangle mtp bytesperunit>
-	    31 C9 89 8F <dVHGNDvi mtp bytesperunit>
-	    3B 8F <dVHGNDtreebranch mtp bytesperunit> 73 57
-	    D9 87 <dVHGNDtreeangle mtp bytesperunit>
-	    DD 9F <dfw plus FSW0 plus FSW0 mtp bytesperunit>
-	    D9 87 <dVHGNDtmp mtp bytesperunit>
-	    DD 9F <dfw plus FSW1 plus FSW1 mtp bytesperunit>
-	    DD 87 <dfw plus FSW0 plus FSW0 mtp bytesperunit>
-	    DC 87 <dfw plus FSW1 plus FSW1 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
-	    D9 87 <dFS0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    8B 87 <dFS0 mtp bytesperunit> 89 87 <dVHGNDtreeangle mtp bytesperunit>
-	    41 89 8F <dVHGNDvi mtp bytesperunit> EB A1
-	}
+	( b_angle_delta=(float)(2*M_PI/subdivs), with each step narrowed. )
+	[PGFt] = 40C90FDBh; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
+	[FI] = [VHGNDtreebranches]; => IntToF; => VHGND fb fa;
+	[PGFi] = FSW0; => PGF a; => FQuo; => F32Narrow; => FStoreF32; [VHGNDtmp] = [FS0];
+	[PGFt] = [VHGNDtmp]; => PGF ldf32;
+	[FB0] = [GRK050L]; [FB1] = [GRK050H]; => FMul;
+	=> F32Narrow; => FStoreF32; [VHGNDtreeangle] = [FS0];
+	[VHGNDvi] = 0;
+    "VHGND tree direction advance"
+	A = [VHGNDvi]; ? A '>= [VHGNDtreebranch] -> VHGND tree direction trig;
+	[PGFt] = [VHGNDtreeangle]; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtmp]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
+	=> F32Narrow; => FStoreF32; [VHGNDtreeangle] = [FS0];
+	[VHGNDvi]+; -> VHGND tree direction advance;
+    "VHGND tree direction trig"
+    "VHGND tree direction done"
 	end;
 
 "VHGND tree limb"
@@ -6260,27 +6076,24 @@
 	( fx[2]/fz[2] keep x2 + trig*range + wind live until their one
 	  binary32 array store, matching the native expression. )
 	=> VHGND tree sincos;
-	A = fw; [PJfwbase] = A;
-	{
-	    56 8B B7 <dPJfwbase mtp bytesperunit> 8D 34 B7
-	    D9 87 <dVHVcos mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> D9 87 <dVHGNDtreeleafx mtp bytesperunit>
-	    DC 87 <dFA0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> D8 87 <dVHGNDtreewindx mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dVHGNDtreepx mtp bytesperunit>
-	    D9 87 <dVHVsin mtp bytesperunit> D8 8F <dVHGNDtreerangef mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> D9 87 <dVHGNDtreeleafz mtp bytesperunit>
-	    DC 87 <dFA0 mtp bytesperunit> DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> D8 87 <dVHGNDtreewindz mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit> DD 87 <dFA0 mtp bytesperunit>
-	    D9 9F <dVHGNDtreepz mtp bytesperunit>
-	    8B 87 <dVHGNDvi mtp bytesperunit> C1 E0 03
-	    D9 87 <dVHGNDtreepx mtp bytesperunit> DD 9C 06 E0 07 00 00
-	    D9 87 <dVHGNDtreeleafdrop mtp bytesperunit> DD 9C 06 00 08 00 00
-	    D9 87 <dVHGNDtreepz mtp bytesperunit> DD 9C 06 20 08 00 00
-	    FF 87 <dVHGNDvi mtp bytesperunit> 5E
-	}
+	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreeleafx]; => PGF setf32;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreewindx]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add; => F32Narrow;
+	A = FSINX; A + [VHGNDvi]; [PGFi] = A; => PGF sa; => FStoreF32; [VHGNDtreepx] = [FS0];
+	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreerangef]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreeleafz]; => PGF setf32;
+	[PGFi] = FSW1; => PGF a; [PGFi] = FSW0; => PGF add; [PGFi] = FSW0; => PGF sa;
+	[PGFi] = FSW1; [PGFt] = [VHGNDtreewindz]; => PGF setf32;
+	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add; => F32Narrow;
+	A = FSINZ; A + [VHGNDvi]; [PGFi] = A; => PGF sa; => FStoreF32; [VHGNDtreepz] = [FS0];
+	A = FSINY; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreeleafdrop]; => PGF setf32;
+	[VHGNDvi]+;
 	end;
 
 "VHGND tree wind"
@@ -6329,22 +6142,14 @@
 
 "VHGND tree polar float vertex"
 	=> VHGND tree sincos;
-	A = fw; [PJfwbase] = A;
-	( The polar arithmetic already executes in one x87 fragment.  Widen its
-	  three stored binary32 results directly into the selected projector slots
-	  instead of shuttling each one through PGF setf32. )
-	{
-	    56 8B B7 <dPJfwbase mtp bytesperunit> 8D 34 B7
-	    D9 87 <dVHVcos mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
-	    D8 87 <dVHGNDtreecx mtp bytesperunit> D9 9F <dVHGNDtreepx mtp bytesperunit>
-	    D9 87 <dVHVsin mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
-	    D8 87 <dVHGNDtreecz mtp bytesperunit> D9 9F <dVHGNDtreepz mtp bytesperunit>
-	    8B 87 <dVHGNDvi mtp bytesperunit> C1 E0 03
-	    D9 87 <dVHGNDtreepx mtp bytesperunit> DD 9C 06 E0 07 00 00
-	    D9 87 <dVHGNDtreecy mtp bytesperunit> DD 9C 06 00 08 00 00
-	    D9 87 <dVHGNDtreepz mtp bytesperunit> DD 9C 06 20 08 00 00
-	    FF 87 <dVHGNDvi mtp bytesperunit> 5E
-	}
+	{ D9 87 <dVHVcos mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
+	  D8 87 <dVHGNDtreecx mtp bytesperunit> D9 9F <dVHGNDtreepx mtp bytesperunit>
+	  D9 87 <dVHVsin mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
+	  D8 87 <dVHGNDtreecz mtp bytesperunit> D9 9F <dVHGNDtreepz mtp bytesperunit> }
+	A = FSINX; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreepx]; => PGF setf32;
+	A = FSINY; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreecy]; => PGF setf32;
+	A = FSINZ; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreepz]; => PGF setf32;
+	[VHGNDvi]+;
 	end;
 
 "VHGND tree trig init"
@@ -6553,112 +6358,20 @@
 	               (pos_z-tile_centre_z)^2), then depth=(hpdep>>14)-1. )
 	A = [VHGNDx]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
 	C = [VHGNDcamx]; C - A;
-	[VHGNDdx] = C;
+	[VHGNDdx] = C; [FI] = C; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FT0] = [FA0]; [FT1] = [FA1];
 	A = [VHGNDz]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
 	C = [VHGNDcamz]; C - A;
-	[VHGNDdz] = C;
-	( Fuse the existing IntToF / square / add / sqrt / chop chain without
-	  changing its qword spill points or x87 control-word transition. )
-	{
-	    DB 87 <dVHGNDdx mtp bytesperunit> (fild dx)
-	    DD 9F <dFA0 mtp bytesperunit>      (fstp qword FA)
-	    DD 87 <dFA0 mtp bytesperunit>      (fld qword FA)
-	    DC 8F <dFA0 mtp bytesperunit>      (fmul qword FA)
-	    DD 9F <dFT0 mtp bytesperunit>      (fstp qword dx2)
-	    DB 87 <dVHGNDdz mtp bytesperunit> (fild dz)
-	    DD 9F <dFA0 mtp bytesperunit>      (fstp qword FA)
-	    DD 87 <dFA0 mtp bytesperunit>      (fld qword FA)
-	    DC 8F <dFA0 mtp bytesperunit>      (fmul qword FA)
-	    DD 9F <dFA0 mtp bytesperunit>      (fstp qword dz2)
-	    DD 87 <dFA0 mtp bytesperunit>      (fld qword dz2)
-	    DC 87 <dFT0 mtp bytesperunit>      (fadd qword dx2)
-	    DD 9F <dFA0 mtp bytesperunit>      (fstp qword sum)
-	    DD 87 <dFA0 mtp bytesperunit>      (fld qword sum)
-	    D9 FA                              (fsqrt)
-	    DD 9F <dFA0 mtp bytesperunit>      (fstp qword distance)
-	    D9 AF <dGRcwc mtp bytesperunit>    (fldcw chop)
-	    DD 87 <dFA0 mtp bytesperunit>      (fld qword distance)
-	    DB 9F <dFI mtp bytesperunit>       (fistp dword depth)
-	    D9 AF <dGRcwn mtp bytesperunit>    (fldcw nearest)
-	}
+	[VHGNDdz] = C; [FI] = C; => IntToF;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => FSqrt; => FToIntChop;
 	A = [FI]; A > 14; [VHGNDrawdepth] = A;
 	A - 1; ? A >= 0 -> VHGND tile depth ready; A = 0;
     "VHGND tile depth ready"
 	[VHGNDdepth] = A;
 	end;
 
-"VHGND faithful tile admission native"
-	( Unit-tile source Manhattan gate and accepted-cell depth in one call.
-	  The early return keeps rejected cells at NIV+'s exact no-map-index/no-x87
-	  side-effect boundary without paying a second native-call transition. )
-	{
-	    8B 87 <dVHGNDcamtx mtp bytesperunit>
-	    2B 87 <dVHGNDx mtp bytesperunit>
-	    89 C1
-	    C1 F9 1F
-	    31 C8
-	    29 C8
-	    89 C3
-	    8B 87 <dVHGNDcamtz mtp bytesperunit>
-	    2B 87 <dVHGNDz mtp bytesperunit>
-	    89 C1
-	    C1 F9 1F
-	    31 C8
-	    29 C8
-	    01 D8
-	    89 87 <dVHGNDmanhattan mtp bytesperunit>
-	    83 F8 5A
-	    7E 01
-	    C3
-
-	    8B 87 <dVHGNDz mtp bytesperunit>
-	    69 C0 C8 00 00 00
-	    03 87 <dVHGNDx mtp bytesperunit>
-	    89 87 <dVHGNDh1 mtp bytesperunit>
-
-	    8B 87 <dVHGNDx mtp bytesperunit>
-	    C1 E0 0E
-	    05 00 20 00 00
-	    8B 9F <dVHGNDcamx mtp bytesperunit>
-	    29 C3
-	    89 9F <dVHGNDdx mtp bytesperunit>
-	    8B 87 <dVHGNDz mtp bytesperunit>
-	    C1 E0 0E
-	    05 00 20 00 00
-	    8B 9F <dVHGNDcamz mtp bytesperunit>
-	    29 C3
-	    89 9F <dVHGNDdz mtp bytesperunit>
-
-	    DB 87 <dVHGNDdx mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit>
-	    DC 8F <dFA0 mtp bytesperunit>
-	    DD 9F <dFT0 mtp bytesperunit>
-	    DB 87 <dVHGNDdz mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit>
-	    DC 8F <dFA0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit>
-	    DC 87 <dFT0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit>
-	    D9 FA
-	    DD 9F <dFA0 mtp bytesperunit>
-	    D9 AF <dGRcwc mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit>
-	    DB 9F <dFI mtp bytesperunit>
-	    D9 AF <dGRcwn mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit>
-	    C1 F8 0E
-	    89 87 <dVHGNDrawdepth mtp bytesperunit>
-	    48
-	    85 C0
-	    79 02
-	    31 C0
-	    89 87 <dVHGNDdepth mtp bytesperunit>
-	}
-	end;
 
 "VHGND tile shade"
 	( NOCTIS-1.CPP:1125-1150, diffuse-light arm (sh_delta == 0).
@@ -6666,22 +6379,8 @@
 	  fast_random(7), followed by the source distance haze.  The live
 	  landing fixtures are close to a perpendicular sun, so this is the
 	  active source path and selects surface_palette's ground band 0..63. )
-	( Fuse the single seed/draw pair paid by every accepted tile.  add al,dl
-	  is the source's unsigned square fold; all public RNG state is retained. )
-	{
-	    8B 87 <dVHGNDh1 mtp bytesperunit>
-	    03 87 <dVHGNDseed mtp bytesperunit>
-	    83 C8 03
-	    89 87 <dSUfseed mtp bytesperunit>
-	    F7 E0 00 D0
-	    89 87 <dSUfeax mtp bytesperunit>
-	    01 87 <dSUfseed mtp bytesperunit>
-	    8B 9F <dSUfseed mtp bytesperunit>
-	    C7 87 <dSUfmask mtp bytesperunit> 07 00 00 00
-	    83 E0 07
-	    89 87 <dSUfval mtp bytesperunit>
-	    89 C1
-	}
+	A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;
+	[SUfmask] = 7; => VHGND render random;
 	C + 8; [VHGNDshade] = C;
 	A = [VHGNDdepth]; A > 1; C = [VHGNDshade]; C + A;
 	? C '<= 32 -> VHGND tile shade ready; C = 32;
@@ -6689,111 +6388,7 @@
 	[VHGNDshade] = C;
 	end;
 
-"VHGND terrain triangle load native"
-	( Build all nine exact binary64 input coordinates for one terrain triangle
-	  in a single fragment.  Integer shifts/signs and fild conversion are the
-	  same operations previously paid through eighteen Lino helper calls. )
-	{
-	    55
-	    8B B7 <dPJfwbase mtp bytesperunit>
-	    8D 34 B7
-	    8B 9F <dVHGNDx mtp bytesperunit>
-	    C1 E3 0E
-	    8B 8F <dVHGNDlodstep mtp bytesperunit>
-	    C1 E1 0E
-	    01 D9
-	    8B 97 <dVHGNDz mtp bytesperunit>
-	    C1 E2 0E
-	    8B AF <dVHGNDlodstep mtp bytesperunit>
-	    C1 E5 0E
-	    01 D5
-	    83 BF <dVHGNDvctri mtp bytesperunit> 00
-	    0F 85 87 00 00 00
-	    89 9F <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E E0 07 00 00
-	    89 97 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E 20 08 00 00
-	    8B 87 <dVHGNDs1 mtp bytesperunit>
-	    C1 E0 0B
-	    F7 D8
-	    89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E 00 08 00 00
-	    89 8F <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E E8 07 00 00
-	    89 97 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E 28 08 00 00
-	    8B 87 <dVHGNDs2 mtp bytesperunit>
-	    C1 E0 0B
-	    F7 D8
-	    89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E 08 08 00 00
-	    E9 82 00 00 00
-	    89 8F <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E E0 07 00 00
-	    89 97 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E 20 08 00 00
-	    8B 87 <dVHGNDs2 mtp bytesperunit>
-	    C1 E0 0B
-	    F7 D8
-	    89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E 00 08 00 00
-	    89 8F <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E E8 07 00 00
-	    89 AF <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E 28 08 00 00
-	    8B 87 <dVHGNDs3 mtp bytesperunit>
-	    C1 E0 0B
-	    F7 D8
-	    89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E 08 08 00 00
-	    89 9F <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E F0 07 00 00
-	    89 AF <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E 30 08 00 00
-	    8B 87 <dVHGNDs4 mtp bytesperunit>
-	    C1 E0 0B
-	    F7 D8
-	    89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 9E 10 08 00 00
-	    DD 86 10 08 00 00
-	    DD 9F <dFA0 mtp bytesperunit>
-	    89 87 <dVHGNDvv mtp bytesperunit>
-	    C7 87 <dVHGNDvi mtp bytesperunit> 02 00 00 00
-	    C7 87 <dVHGNDvslot mtp bytesperunit> 00 01 00 00
-	    C7 87 <dPGFi mtp bytesperunit> 02 01 00 00
-	    5D
-	}
-	end;
-
 "VHGND vload"
-	( Integer world coordinates are exact binary64 values.  Place one directly
-	  into the selected projection slot while retaining IntToF's FI/FA result
-	  and PGF sa's final slot index. )
-	[FI] = [VHGNDvv]; A = fw; [PJfwbase] = A;
-	{
-	    DB 87 <dFI mtp bytesperunit>
-	    DD 97 <dFA0 mtp bytesperunit>
-	    8B B7 <dPJfwbase mtp bytesperunit>
-	    8D 34 B7
-	    8B 87 <dVHGNDvslot mtp bytesperunit>
-	    03 87 <dVHGNDvi mtp bytesperunit>
-	    89 87 <dPGFi mtp bytesperunit>
-	    C1 E0 03
-	    DD 1C 06
-	}
+	[FI] = [VHGNDvv]; => IntToF;
+	A = [VHGNDvslot]; A + [VHGNDvi]; [PGFi] = A; => PGF sa;
 	end;

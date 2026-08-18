@@ -757,15 +757,12 @@ def main() -> int:
     depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
     check(
-        "8B 87 <dVHGNDh1 mtp bytesperunit>" in shade
-        and "03 87 <dVHGNDseed mtp bytesperunit>" in shade
-        and "F7 E0 00 D0" in shade
-        and "C7 87 <dSUfmask mtp bytesperunit> 07 00 00 00" in shade
+        "A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;" in shade
+        and "[SUfmask] = 7; => VHGND render random;" in shade
+        and shade.count("C + 8; [VHGNDshade] = C;") == 1
         and "=> VHGND tile depth;" in tile
         and "A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;" in tile
-        and "D9 FA                              (fsqrt)" in depth
-        and "D9 AF <dGRcwc mtp bytesperunit>    (fldcw chop)" in depth
-        and "DB 9F <dFI mtp bytesperunit>       (fistp dword depth)" in depth
+        and "=> FAdd; => FSqrt; => FToIntChop;" in depth
         and "? C '<= 32" in shade
         and "A = [VHGNDshade]; [SPtinta] = A; [DBcol] = A;" in tile
         and "=> VHGND palette" not in game,
@@ -2972,7 +2969,7 @@ def main() -> int:
         ))
         and all(token in tree for token in (
             '"VHGND tree node enter"', '"VHGND tree node branch"',
-            '"VHGND tree node load native"',
+            "[PGFt] = [VHGNDtreebxf]; => PGF ldf32; => FToIntChop; [VHGNDtreebx] = [FI];",
             '"VHGND tree terminal"', '"VHGND tree node pop"',
             "[SUfmask] = 511; => VHGND render random; [VHTkind] = C;",
             "A = [VHTkind]; ? A = 333 -> VHGND tree giant;",
@@ -2987,7 +2984,7 @@ def main() -> int:
             "DA 87 <dVHGNDh1 mtp bytesperunit>",
             '"VHGND tree polar vertex"', "A + 72; [VHGNDtreeangle] = A;",
             "A - 36; [VHGNDtreeangle] = A;",
-            "C7 87 <dPGFt mtp bytesperunit> DB 0F C9 40", '"VHGND tree trig init"',
+            "[VHVangle] = [VHGNDtreeangle]; => VHV sincos;", '"VHGND tree trig init"',
             '"VHGND tree leaf tip vertex"', '"VHGND tree polar point"',
             '"VHGND tree wind"', "[VHGNDtreewindx] = [FS0];",
             "[VHGNDtreewindz] = [FS0];",
@@ -3066,7 +3063,6 @@ def main() -> int:
             "[SUfmask] = [VHGNDmushmask1]; => VHGND render random;",
             "[SUfmask] = [VHGNDmushmask2]; => VHGND render random;",
             '"VHGND greenmush inner"',
-            "[SUfmask] = [VHGNDmushcolmask]; A = nw;",
             "A = [SUfseed]; { F7 E0 }",
             "C = A; C & 0FFh; B = D; B & 0FFh; C + B; C & 0FFh;",
             "A & 0FFFFFF00h; A | C; [SUfeax] = A;",
@@ -3076,11 +3072,11 @@ def main() -> int:
             "A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer y;",
             "A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer x;",
             "=> PG getcoords;",
-            "8B B7 <dSUfseed mtp bytesperunit>",
-            "89 9F <dVHGNDmushoff mtp bytesperunit>",
-            "23 97 <dVHGNDmushcolmask mtp bytesperunit>",
-            "8D 9C 9D <dRADPT mtp bytesperunit>",
-            "89 93 00 F6 FF FF",
+            "[SUfmask] = 7; => VHGND render random; A = [GCy]; A + C; A '* 320; [VHGNDmushoff] = A;",
+            "=> VHGND render random; A = [GCx]; A + C; C = [VHGNDmushoff]; C + A; [VHGNDmushoff] = C;",
+            "[SUfmask] = [VHGNDmushcolmask]; => VHGND render random; C + [VHGNDmushbase];",
+            "D = nw; D + RADPT; D + [VHGNDmushoff];",
+            "[D] = C; [D plus 1] = C;",
         )),
         "grass tufts restore source depth visibility, density, scale, and distant foliage",
     )

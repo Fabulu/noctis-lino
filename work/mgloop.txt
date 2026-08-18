@@ -186,10 +186,7 @@
 	value widened to double.  fld dword / fstp qword. )
 "MG widen f32 FA from C"
 	[FS0] = C;
-	{
-	    D9 87 <dFS0 mtp bytesperunit>	(fld  dword [edi+FS0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	=> FLoadF32;
 	end;
 
       ( MG vimana emit - dump one frame: dzat(3d) pwr cur ap_reached status )

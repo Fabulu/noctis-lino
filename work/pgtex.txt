@@ -102,18 +102,6 @@
 	SPmapfast = 0;			( exact fixed-slot setup for other mapped polygons )
 	SPpixfast = 0;			( direct TEX5 pixel loop for plain/transparent modes )
 	SPtrifast = 0;			( exact fixed three-vertex basis specialization )
-	PGUVZ	= 0; PGUVX = 0; PGUVY = 0; PGUVK4 = 0;
-	PGfwbase = 0; PGnwbase = 0;
-	PGfpartbase = 0; PGipartbase = 0;
-
-	( Unit offsets for the terrain x87 UV chain.  Float slot k is fw[2*k].
-	  The native fragment first converts fw's runtime workspace index into a
-	  real address, then uses these fixed byte displacements. )
-	FWK1	= 18; FWK2 = 20; FWK3 = 22; FWK4 = 24;
-	FWX	= 26; FWY = 28; FWZ = 30;
-	FWTX	= 32; FWTY = 34; FWONE = 36;
-	FWW0	= 496; FWW1 = 498; FWW2 = 500; FWW3 = 502;
-
 "workspace"
 
 	ipart	= 200;
@@ -141,84 +129,12 @@
 "PG ol init"
 	( NIV+ initializes only the already-clamped polygon row interval.  Rows
 	  outside it are never read by edges, trace, or halfscan. )
-	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG ol init generic;
-	A = fpart; [PGfpartbase] = A; A = ipart; [PGipartbase] = A;
-	{
-	    8B 87 <dEWminy mtp bytesperunit>
-	    8B 8F <dEWmaxy mtp bytesperunit>
-	    8B 97 <dPGfpartbase mtp bytesperunit>
-	    8B B7 <dPGipartbase mtp bytesperunit>
-	    89 D3
-	    01 C3
-	    C7 04 9F 05 00 00 00                (fpart[i] = 5)
-	    89 F3
-	    01 C3
-	    C7 04 9F 37 01 00 00                (ipart[i] = 311)
-	    40
-	    39 C8
-	    7E E5
-	    89 87 <dPGi mtp bytesperunit>
-	}
-	end;
-    "PG ol init generic"
 	[PGi] = [EWminy];
     "PG ol i0"
 	A = [PGi]; C = fpart; C + A; [C] = PGLBX;
 	C = ipart; C + A; [C] = PGUBX;
 	[PGi]+;
 	A = [PGi]; ? A '<= [EWmaxy] -> PG ol i0;
-	end;
-
-"PG terrain edge rows native"
-	( Exact edge accumulator loop for landed polygons.  fistp remains nearest,
-	  bndx remains binary64, kx remains narrowed, and all clamp/update rules
-	  are performed in the original inclusive row order. )
-	{
-	    8B B7 <dPGfwbase mtp bytesperunit>
-	    8D 34 B7
-	    8B 8F <dEWcx mtp bytesperunit>
-	    8B 97 <dEWh mtp bytesperunit>
-	    DD 86 B0 00 00 00                    (bndx)
-	    DB 9F <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit>
-	    3D F0 D8 FF FF                        (cmp -10000)
-	    7D 05
-	    B8 F0 D8 FF FF
-	    3D 10 27 00 00                        (cmp 10000)
-	    7E 05
-	    B8 10 27 00 00
-	    89 87 <dEWax mtp bytesperunit>
-	    8B 9F <dPGfpartbase mtp bytesperunit>
-	    01 D3
-	    8D 1C 9F
-	    3B 03
-	    7E 11
-	    3D 37 01 00 00                        (cmp 311)
-	    7C 08
-	    C7 03 37 01 00 00
-	    EB 02
-	    89 03
-	    8B 9F <dPGipartbase mtp bytesperunit>
-	    01 D3
-	    8D 1C 9F
-	    3B 03
-	    7D 0F
-	    83 F8 05
-	    7F 08
-	    C7 03 05 00 00 00
-	    EB 02
-	    89 03
-	    DD 86 B0 00 00 00
-	    DC 86 A8 00 00 00                    (+ narrow kx)
-	    DD 9E B0 00 00 00
-	    42
-	    49
-	    0F 85 78 FF FF FF
-	    89 97 <dEWh mtp bytesperunit>
-	    89 8F <dEWcx mtp bytesperunit>
-	    DD 86 B0 00 00 00
-	    DD 9F <dFA0 mtp bytesperunit>
-	}
 	end;
 
       ( PG edges : the whole "Calcolo confini orizzontali" block.
@@ -228,8 +144,7 @@
 
 "PG edges"
 	=> PG ol init;
-	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG edges generic;
-	A = fw; [PGfwbase] = A; => PG edges native; end;
+	-> PG edges generic;
     "PG edges generic"
 
 	( mp[vr22] = mp[0] ; mp[vr22+1] = mp[1] - the closing edge )
@@ -299,10 +214,7 @@
 	A = [EWity]; ? A >= [EWjty] -> PG ew next;
 	C = [EWjty]; C - [EWity]; C+; [EWcx] = C;
 	[EWh] = [EWity];
-	A = [SPterrain]; A | [SPmapfast]; ? A = 0 -> PG ew intfor;
-	A = fw; [PGfwbase] = A; [PGFi] = FSBNDX;
-	=> PG terrain edge rows native;
-	-> PG ew next;
+	-> PG ew intfor;
     "PG ew intfor"
 	( fist bndx - NO POP.  The accumulator keeps running. )
 	[PGFi] = FSBNDX; => PGF a;
@@ -351,85 +263,6 @@
 	A = [PGj]; ? A != 0 -> PG ew edge;
 	end;
 
-"PG edges native"
-	( Fixed fast-path edge walker for terrain and mapped surface objects.  It
-	  preserves the integer endpoint sort, binary32 slope, nearest rounding,
-	  clipping, inclusive row order and horizontal-edge skip in one call. )
-	{
-	    55 8B B7 <dPGfwbase mtp bytesperunit> 8D 34 B7
-	    8B 87 <dEWvr22 mtp bytesperunit>
-	    8B 97 <dmp mtp bytesperunit> 89 94 87 <dmp mtp bytesperunit>
-	    8B 97 <dmp plus 1 mtp bytesperunit> 89 94 87 <dmp plus 1 mtp bytesperunit>
-	    31 C9 89 8F <dEWsi mtp bytesperunit>
-	    89 C5 D1 ED 89 AF <dPGj mtp bytesperunit>
-	    8B 84 8F <dmp mtp bytesperunit>
-	    8B 9C 8F <dmp plus 1 mtp bytesperunit>
-	    8B 94 8F <dmp plus 2 mtp bytesperunit>
-	    89 87 <dSPt mtp bytesperunit>
-	    8B 84 8F <dmp plus 3 mtp bytesperunit>
-	    39 D8 7D 20
-	    89 97 <dEWx1 mtp bytesperunit> 89 87 <dEWy1 mtp bytesperunit>
-	    8B 87 <dSPt mtp bytesperunit> 89 87 <dEWx2 mtp bytesperunit>
-	    89 9F <dEWy2 mtp bytesperunit> EB 25
-	    8B 97 <dSPt mtp bytesperunit> 89 97 <dEWx1 mtp bytesperunit>
-	    89 9F <dEWy1 mtp bytesperunit>
-	    8B 94 8F <dmp plus 2 mtp bytesperunit>
-	    89 97 <dEWx2 mtp bytesperunit> 89 87 <dEWy2 mtp bytesperunit>
-	    8B 87 <dEWy2 mtp bytesperunit> 3B 87 <dEWy1 mtp bytesperunit>
-	    0F 84 F2 01 00 00
-	    8B 87 <dEWx2 mtp bytesperunit> 2B 87 <dEWx1 mtp bytesperunit>
-	    89 87 <dFI mtp bytesperunit> DB 87 <dFI mtp bytesperunit>
-	    DD 9F <dFT0 mtp bytesperunit>
-	    8B 87 <dEWy2 mtp bytesperunit> 2B 87 <dEWy1 mtp bytesperunit>
-	    89 87 <dFI mtp bytesperunit> DB 87 <dFI mtp bytesperunit>
-	    DD 9F <dFB0 mtp bytesperunit>
-	    DD 87 <dFT0 mtp bytesperunit> DC B7 <dFB0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> D9 9F <dFS0 mtp bytesperunit>
-	    D9 87 <dFS0 mtp bytesperunit> DD 9E A8 00 00 00
-	    C7 87 <dPGFi mtp bytesperunit> 16 00 00 00
-	    8B 87 <dEWy1 mtp bytesperunit> 83 F8 05 7D 71
-	    C7 87 <dEWity mtp bytesperunit> 05 00 00 00
-	    DB 87 <dEWx1 mtp bytesperunit> DD 9F <dFT0 mtp bytesperunit>
-	    B8 05 00 00 00 2B 87 <dEWy1 mtp bytesperunit>
-	    89 87 <dFI mtp bytesperunit> DB 87 <dFI mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> DC 8E A8 00 00 00
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> DC 87 <dFT0 mtp bytesperunit>
-	    DD 9F <dFA0 mtp bytesperunit>
-	    DD 87 <dFA0 mtp bytesperunit> DB 9F <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit> 89 87 <dEWx1 mtp bytesperunit> EB 06
-	    89 87 <dEWity mtp bytesperunit>
-	    8B 87 <dEWy2 mtp bytesperunit> 3D BE 00 00 00 7E 05 B8 BE 00 00 00
-	    89 87 <dEWjty mtp bytesperunit>
-	    8B 87 <dEWx1 mtp bytesperunit> 89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit> DD 9E B0 00 00 00
-	    DD 86 B0 00 00 00 DD 9F <dFA0 mtp bytesperunit>
-	    8B 97 <dEWity mtp bytesperunit> 3B 97 <dEWjty mtp bytesperunit>
-	    0F 8D B2 00 00 00
-	    8B 87 <dEWjty mtp bytesperunit> 29 D0 40
-	    89 87 <dEWcx mtp bytesperunit> 89 97 <dEWh mtp bytesperunit>
-	    DD 86 B0 00 00 00 DB 9F <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit> 3D F0 D8 FF FF 7D 05 B8 F0 D8 FF FF
-	    3D 10 27 00 00 7E 05 B8 10 27 00 00
-	    89 87 <dEWax mtp bytesperunit>
-	    8B 97 <dEWh mtp bytesperunit>
-	    8D 9C 97 <dfpart mtp bytesperunit> 3B 03 7E 11
-	    3D 37 01 00 00 7C 08 C7 03 37 01 00 00 EB 02 89 03
-	    8D 9C 97 <dipart mtp bytesperunit> 3B 03 7D 0F
-	    83 F8 05 7F 08 C7 03 05 00 00 00 EB 02 89 03
-	    DD 86 B0 00 00 00 DC 86 A8 00 00 00 DD 9E B0 00 00 00
-	    42 89 97 <dEWh mtp bytesperunit>
-	    FF 8F <dEWcx mtp bytesperunit> 0F 85 6F FF FF FF
-	    DD 86 B0 00 00 00 DD 9F <dFA0 mtp bytesperunit>
-	    83 C1 02 89 8F <dEWsi mtp bytesperunit>
-	    4D 89 AF <dPGj mtp bytesperunit> 0F 85 7B FD FF FF
-	    5D
-	}
-	end;
-
-( ==================================================================== )
 ( S5 - the span engine                                                  )
 ( ==================================================================== )
 
@@ -447,7 +280,6 @@
 	A = [SPuvi]; A+; [SPuvi] = A;
 	end;
     "PG uv float"
-	A = [SPterrain]; A | [SPmapfast]; ? A != 0 -> PG uv terrain float;
 	( _z += k3 ; _x += k1 ; _y += k2 ; k4 = 1/_z ;
 	  u = (_x * tempXsize) * k4 ; v = (_y * tempYsize) * k4.
 	  fst _z / fst _x / fst _y are stores to FLOAT locals, so each
@@ -477,69 +309,10 @@
 	[PGFi] = FSK4; => PGF mul; => PGF int; [SPvn] = [FI];
 	end;
 
-    "PG uv terrain float"
-	( Exact terrain-only form of the same x87 schedule.  All slots are static,
-	  so one fragment replaces the generic PGF call/address shuttle chain.
-	  Each _z/_x/_y and k4 store still narrows through m32 and reloads; the
-	  wide sums feeding the reciprocal/numerators remain live on x87. )
-	{
-	    8B B7 <dPGfwbase mtp bytesperunit>     (esi = runtime fw workspace)
-	    8D 34 B7                              (esi = edi + 4*workspace index)
-	    DD 86 78 00 00 00                     (fld  qword FSZ)
-	    DC 86 58 00 00 00                     (fadd qword FSK3)
-	    DD 9E C0 07 00 00                     (fstp qword wide z)
-	    DD 86 C0 07 00 00                     (fld  qword wide z)
-	    D9 9F <dPGUVZ mtp bytesperunit>       (fstp dword narrow z)
-	    D9 87 <dPGUVZ mtp bytesperunit>       (fld  dword narrow z)
-	    DD 9E 78 00 00 00                     (fstp qword FSZ)
-
-	    DD 86 68 00 00 00                     (fld  qword FSX)
-	    DC 86 48 00 00 00                     (fadd qword FSK1)
-	    DD 9E C8 07 00 00                     (fstp qword wide x)
-	    DD 86 C8 07 00 00                     (fld  qword wide x)
-	    D9 9F <dPGUVX mtp bytesperunit>       (fstp dword narrow x)
-	    D9 87 <dPGUVX mtp bytesperunit>       (fld  dword narrow x)
-	    DD 9E 68 00 00 00                     (fstp qword FSX)
-
-	    DD 86 70 00 00 00                     (fld  qword FSY)
-	    DC 86 50 00 00 00                     (fadd qword FSK2)
-	    DD 9E D0 07 00 00                     (fstp qword wide y)
-	    DD 86 D0 07 00 00                     (fld  qword wide y)
-	    D9 9F <dPGUVY mtp bytesperunit>       (fstp dword narrow y)
-	    D9 87 <dPGUVY mtp bytesperunit>       (fld  dword narrow y)
-	    DD 9E 70 00 00 00                     (fstp qword FSY)
-
-	    DD 86 90 00 00 00                     (fld  qword FSUNO)
-	    DC B6 C0 07 00 00                     (fdiv qword wide z)
-	    DD 9E D8 07 00 00                     (fstp qword wide k4)
-	    DD 86 D8 07 00 00                     (fld  qword wide k4)
-	    D9 9F <dPGUVK4 mtp bytesperunit>      (fstp dword narrow k4)
-	    D9 87 <dPGUVK4 mtp bytesperunit>      (fld  dword k4)
-	    DD 9E 60 00 00 00                     (fstp qword FSK4)
-
-	    DD 86 C8 07 00 00                     (fld  qword wide x)
-	    DC 8E 80 00 00 00                     (fmul qword FSTX)
-	    DD 9E D8 07 00 00                     (fstp qword rounded product)
-	    DD 86 D8 07 00 00                     (fld  qword rounded product)
-	    DC 8E 60 00 00 00                     (fmul qword narrow k4)
-	    DD 9E D8 07 00 00                     (fstp qword rounded u)
-	    DD 86 D8 07 00 00                     (fld  qword rounded u)
-	    DB 9F <dSPun mtp bytesperunit>        (fistp dword SPun)
-	    DD 86 D0 07 00 00                     (fld  qword wide y)
-	    DC 8E 88 00 00 00                     (fmul qword FSTY)
-	    DD 9E D8 07 00 00                     (fstp qword rounded product)
-	    DD 86 D8 07 00 00                     (fld  qword rounded product)
-	    DC 8E 60 00 00 00                     (fmul qword narrow k4)
-	    DD 9E D8 07 00 00                     (fstp qword rounded v)
-	    DD 86 D8 07 00 00                     (fld  qword rounded v)
-	    DB 9F <dSPvn mtp bytesperunit>        (fistp dword SPvn)
-	}
-	end;
-
-      ( PG texel : [PGtexv] <- txtr[ (v_hi << 8) | u_hi ].
-	bh = dh and bl = ah, so the index is exactly the two HIGH bytes
-	of the two 16-bit accumulators, and the whole 64 KiB window
-	wraps rather than clamping. )
+	( PG texel : [PGtexv] <- txtr[ (v_hi << 8) | u_hi ].
+	  bh = dh and bl = ah, so the index is exactly the two HIGH bytes
+	  of the two 16-bit accumulators, and the whole 64 KiB window
+	  wraps rather than clamping. )
 
 "PG texel"
 	A = [SPdx]; A > 8; A & 255; A < 8;
@@ -833,256 +606,11 @@
     "PG crow end"
 	end;
 
-( ==================================================================== )
-( Exact fixed-buffer terrain spans                                     )
-( ==================================================================== )
-
-      ( The landed terrain's common path has a fixed texture window,
-	fixed internal blend mode and a framebuffer-clamped scan range.  Keep
-	the DOS mapper's block sizes, 16-bit accumulators, culling overdraw and
-	pixel order, but perform its three fixed byte accesses directly. )
-
-"PG terrain pixel native"
-	( One complete non-culling mapper block.  Moving the small 1..16 pixel
-	  loop into the fragment removes the remaining Lino call/branch tax. )
-	{
-	    55                                   (save Lino X/ebp)
-	    8B B7 <dPGnwbase mtp bytesperunit>     (esi = runtime nw workspace)
-	    8D 34 B7                              (esi = edi + 4*workspace index)
-	    8B 8F <dSPcl mtp bytesperunit>         (ecx = block count)
-	    (loop begins here, 16 bytes from fragment start)
-	    8B 87 <dSPdi mtp bytesperunit>       (eax = di)
-	    40                                   (inc eax)
-	    25 FF FF 00 00                       (and eax,65535)
-	    89 87 <dSPdi mtp bytesperunit>       (save di)
-	    8B 97 <dSPdx mtp bytesperunit>       (edx = v)
-	    81 E2 00 FF 00 00                    (v high byte in bits 8..15)
-	    8B 9F <dSPax mtp bytesperunit>       (ebx = u)
-	    C1 EB 08                             (shr ebx,8)
-	    81 E3 FF 00 00 00                    (u high byte)
-	    09 DA                                (edx |= ebx)
-	    03 97 <dPGtexoff mtp bytesperunit>   (live txtr face offset)
-	    8B AC 96 70 68 06 00                 (ebp = texture[index])
-	    81 E5 FF 00 00 00                    (DOS byte)
-	    03 AF <dSPtinta mtp bytesperunit>    (add tinta)
-	    81 E5 FF 00 00 00                    (byte wrap)
-	    8B 9F <dSPax mtp bytesperunit>       (ebx = u)
-	    03 9F <dSPbp mtp bytesperunit>       (ebx += du)
-	    81 E3 FF FF 00 00                    (16-bit accumulator)
-	    89 9F <dSPax mtp bytesperunit>
-	    83 C0 03                             (DOS store is di+3)
-	    25 FF FF 00 00
-	    89 AC 86 A0 8B 10 00
-	    8B 97 <dSPdx mtp bytesperunit>       (edx = v)
-	    03 97 <dSPsi mtp bytesperunit>       (edx += dv)
-	    81 E2 FF FF 00 00
-	    89 97 <dSPdx mtp bytesperunit>
-	    49                                   (dec ecx)
-	    0F 85 6C FF FF FF                    (jnz block loop)
-	    89 8F <dSPcl mtp bytesperunit>       (publish zero count)
-	    5D                                   (restore ebp)
-	}
-	end;
-
-"PG terrain cull pixel native"
-	( One complete culling mapper block, preserving duplicated stores. )
-	{
-	    55
-	    8B B7 <dPGnwbase mtp bytesperunit>     (esi = runtime nw workspace)
-	    8D 34 B7                              (esi = edi + 4*workspace index)
-	    8B 8F <dSPcl mtp bytesperunit>
-	    (loop begins here, 16 bytes from fragment start)
-	    8B 87 <dSPdi mtp bytesperunit>
-	    83 C0 02
-	    25 FF FF 00 00
-	    89 87 <dSPdi mtp bytesperunit>
-	    8B 97 <dSPdx mtp bytesperunit>
-	    81 E2 00 FF 00 00
-	    8B 9F <dSPax mtp bytesperunit>
-	    C1 EB 08
-	    81 E3 FF 00 00 00
-	    09 DA
-	    03 97 <dPGtexoff mtp bytesperunit>
-	    8B AC 96 70 68 06 00
-	    81 E5 FF 00 00 00
-	    03 AF <dSPtinta mtp bytesperunit>
-	    81 E5 FF 00 00 00
-	    8B 9F <dSPax mtp bytesperunit>
-	    03 9F <dSPbp mtp bytesperunit>
-	    81 E3 FF FF 00 00
-	    89 9F <dSPax mtp bytesperunit>
-	    89 C3                                (ebx = di)
-	    83 C3 02
-	    81 E3 FF FF 00 00
-	    89 AC 9E A0 8B 10 00                 (store di+2)
-	    83 C0 03
-	    25 FF FF 00 00
-	    89 AC 86 A0 8B 10 00                 (store di+3)
-	    8B 97 <dSPdx mtp bytesperunit>
-	    03 97 <dSPsi mtp bytesperunit>
-	    81 E2 FF FF 00 00
-	    89 97 <dSPdx mtp bytesperunit>
-	    49
-	    0F 85 58 FF FF FF
-	    89 8F <dSPcl mtp bytesperunit>
-	    5D
-	}
-	end;
-
-"PG mapped transparent pixel native"
-	( One TEX5 transparent pixel: read the destination, add the texture byte,
-	  wrap to eight bits, then publish the same 16-bit UV/DI state as PG px
-	  transp.  The caller retains the source block loop. )
-	{
-	    55
-	    8B B7 <dPGnwbase mtp bytesperunit>
-	    8D 34 B7
-	    8B 87 <dSPdi mtp bytesperunit>
-	    40
-	    25 FF FF 00 00
-	    89 87 <dSPdi mtp bytesperunit>
-	    83 C0 03
-	    25 FF FF 00 00
-	    8B AC 86 A0 8B 10 00
-	    81 E5 FF 00 00 00
-	    8B 97 <dSPdx mtp bytesperunit>
-	    81 E2 00 FF 00 00
-	    8B 9F <dSPax mtp bytesperunit>
-	    C1 EB 08
-	    81 E3 FF 00 00 00
-	    09 DA
-	    03 97 <dPGtexoff mtp bytesperunit>
-	    8B 9C 96 70 68 06 00
-	    81 E3 FF 00 00 00
-	    01 DD
-	    81 E5 FF 00 00 00
-	    8B 9F <dSPax mtp bytesperunit>
-	    03 9F <dSPbp mtp bytesperunit>
-	    81 E3 FF FF 00 00
-	    89 9F <dSPax mtp bytesperunit>
-	    89 AC 86 A0 8B 10 00
-	    8B 97 <dSPdx mtp bytesperunit>
-	    03 97 <dSPsi mtp bytesperunit>
-	    81 E2 FF FF 00 00
-	    89 97 <dSPdx mtp bytesperunit>
-	    5D
-	}
-	end;
-
-"PG mapped transparent cull pixel native"
-	( Culling's transparent mode samples the old right pixel, then writes the
-	  resulting byte to both duplicated destinations in source order. )
-	{
-	    55
-	    8B B7 <dPGnwbase mtp bytesperunit>
-	    8D 34 B7
-	    8B 87 <dSPdi mtp bytesperunit>
-	    83 C0 02
-	    25 FF FF 00 00
-	    89 87 <dSPdi mtp bytesperunit>
-	    89 C3
-	    83 C3 03
-	    81 E3 FF FF 00 00
-	    8B AC 9E A0 8B 10 00
-	    81 E5 FF 00 00 00
-	    8B 97 <dSPdx mtp bytesperunit>
-	    81 E2 00 FF 00 00
-	    8B 9F <dSPax mtp bytesperunit>
-	    C1 EB 08
-	    81 E3 FF 00 00 00
-	    09 DA
-	    03 97 <dPGtexoff mtp bytesperunit>
-	    8B 9C 96 70 68 06 00
-	    81 E3 FF 00 00 00
-	    01 DD
-	    81 E5 FF 00 00 00
-	    8B 9F <dSPax mtp bytesperunit>
-	    03 9F <dSPbp mtp bytesperunit>
-	    81 E3 FF FF 00 00
-	    89 9F <dSPax mtp bytesperunit>
-	    89 C3
-	    83 C3 02
-	    81 E3 FF FF 00 00
-	    89 AC 9E A0 8B 10 00
-	    83 C0 03
-	    25 FF FF 00 00
-	    89 AC 86 A0 8B 10 00
-	    8B 97 <dSPdx mtp bytesperunit>
-	    03 97 <dSPsi mtp bytesperunit>
-	    81 E2 FF FF 00 00
-	    89 97 <dSPdx mtp bytesperunit>
-	    5D
-	}
-	end;
-
-"PG terrain row"
-	? [SPsec] <= 0 -> PG terrain row end;
-	A = [SPsec]; ? A > 16 -> PG terrain row complete;
-	A & 255; [SPcl] = A; -> PG terrain row unpack;
-    "PG terrain row complete"
-	[SPcl] = 16;
-    "PG terrain row unpack"
-	A = [SPsec]; A - 16; [SPsec] = A;
-	A = [SPcl]; ? A = 0 -> PG terrain row;
-	=> PG uv next;
-	A = [SPvn]; C = [SPv]; A - C; A >> 4; A & 65535; [SPsi] = A;
-	A = [SPun]; C = [SPu]; A - C; A >> 4; A & 65535; [SPbp] = A;
-	A = [SPu]; A & 65535; [SPax] = A;
-	A = [SPv]; A & 65535; [SPdx] = A;
-	[SPu] = [SPun]; [SPv] = [SPvn];
-    "PG terrain pixel"
-	A = [SPflar]; A & 1; ? A != 0 -> PG mapped transparent pixel;
-	=> PG terrain pixel native;
-	-> PG terrain row;
-    "PG mapped transparent pixel"
-	=> PG mapped transparent pixel native;
-	[SPcl]-; A = [SPcl]; ? A != 0 -> PG mapped transparent pixel;
-	-> PG terrain row;
-    "PG terrain row end"
-	end;
-
-"PG terrain crow"
-	? [SPsec] <= 0 -> PG terrain crow end;
-	A = [SPsec]; ? A > 32 -> PG terrain crow complete;
-	A + 2; A & 255; [SPcl] = A; -> PG terrain crow unpack;
-    "PG terrain crow complete"
-	[SPcl] = 32;
-    "PG terrain crow unpack"
-	A = [SPsec]; A - 32; [SPsec] = A;
-	A = [SPcl]; ? A < 2 -> PG terrain crow;
-	A > 1; [SPcl] = A;
-	=> PG uv next;
-	A = [SPvn]; C = [SPv]; A - C; A >> 4; A & 65535; [SPsi] = A;
-	A = [SPun]; C = [SPu]; A - C; A >> 4; A & 65535; [SPbp] = A;
-	A = [SPu]; A & 65535; [SPax] = A;
-	A = [SPv]; A & 65535; [SPdx] = A;
-	[SPu] = [SPun]; [SPv] = [SPvn];
-	A = [SPdi]; [SPsave] = A;
-    "PG terrain cull pixel"
-	A = [SPflar]; A & 1; ? A != 0 -> PG mapped transparent cull pixel;
-	=> PG terrain cull pixel native;
-	A = [SPsave]; A + 32; A & 65535; [SPdi] = A;
-	-> PG terrain crow;
-    "PG mapped transparent cull pixel"
-	=> PG mapped transparent cull pixel native;
-	[SPcl]-; A = [SPcl]; ? A != 0 -> PG mapped transparent cull pixel;
-	A = [SPsave]; A + 32; A & 65535; [SPdi] = A;
-	-> PG terrain crow;
-    "PG terrain crow end"
-	end;
-
       ( PG scanline : one row of the trace loop, from ipart[i] to
 	fpart[i].  Assumes [SPu]/[SPv] already hold the row's first
 	sample and [SPdi] the row's starting offset. )
 
 "PG scanline"
-	A = [SPterrain]; A | [SPpixfast]; ? A = 0 -> PG scanline generic;
-	A = fw; [PGfwbase] = A; A = nw; [PGnwbase] = A;
-	A = [SPcull]; A & 1; ? A != 0 -> PG scanline terrain cull;
-	=> PG terrain row; end;
-    "PG scanline terrain cull"
-	=> PG terrain crow; end;
-    "PG scanline generic"
 	A = [SPcull]; A & 1;
 	? A != 0 -> PG sl cull;
 	=> PG row;
@@ -1090,7 +618,6 @@
     "PG sl cull"
 	=> PG crow;
 	end;
-
       ( PG halfscan : the inter-scanline duplication.
 	Reads element i-1 and the pixel at [di-316]; writes rows i and
 	i+1.  [di-316] is di-320+4, so the source is the row ABOVE at
@@ -1106,10 +633,6 @@
 	? A = 0 -> PG hs done;
 	[SPn] = A;
 	C = [SPi]; => PG riga; C + [SPt]; C & 65535; [SPdi] = C;
-	A = [SPterrain]; A | [SPpixfast]; ? A = 0 -> PG hs dup;
-	A = nw; [PGnwbase] = A;
-	=> PG halfscan native;
-	-> PG hs done;
     "PG hs dup"
 	A = [SPdi]; A - 316; A & 65535; [PGdi] = A; => PG load;
 	A = [PGval]; [SPch] = A;
@@ -1121,37 +644,4 @@
 	[SPn]-;
 	? [SPn] != 0 -> PG hs dup;
     "PG hs done"
-	end;
-
-"PG halfscan native"
-	( Terrain and fixed TEX5 object spans already omit the diagnostic pixel
-	  census in their direct raster loops.  Duplicate the preceding row through
-	  the same resolved page here, preserving every 16-bit address wrap and the
-	  original source, first destination and second destination order. )
-	{
-	    8B B7 <dPGnwbase mtp bytesperunit>     (esi = runtime nw workspace)
-	    8D 34 B7                              (esi = edi + 4*workspace index)
-	    8B 8F <dSPn mtp bytesperunit>          (ecx = span length, known > 0)
-	    8B 87 <dSPdi mtp bytesperunit>         (eax = wrapped page offset)
-	    (loop begins here)
-	    8B D0                                 (edx = di)
-	    81 EA 3C 01 00 00                    (source = di - 316)
-	    81 E2 FF FF 00 00
-	    8B 9C 96 A0 8B 10 00                 (ebx = page[source])
-	    81 E3 FF 00 00 00                    (unsigned DOS byte)
-	    8B D0
-	    83 C2 04                             (first destination = di + 4)
-	    81 E2 FF FF 00 00
-	    89 9C 96 A0 8B 10 00
-	    8B D0
-	    81 C2 44 01 00 00                    (second destination = di + 324)
-	    81 E2 FF FF 00 00
-	    89 9C 96 A0 8B 10 00
-	    40                                   (di = (di + 1) & 65535)
-	    25 FF FF 00 00
-	    49
-	    0F 85 B1 FF FF FF                    (repeat native loop)
-	    89 87 <dSPdi mtp bytesperunit>
-	    89 8F <dSPn mtp bytesperunit>         (publish exhausted count)
-	}
 	end;

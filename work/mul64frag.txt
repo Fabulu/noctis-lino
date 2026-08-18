@@ -1,27 +1,26 @@
 
-      ( *** mul64frag - 32x32 -> 64 multiply via inline x86 machine language *** )
+      ( *** mul64frag - portable 32x32 -> 64 Lino multiply *** )
 
       ( One of three interchangeable backends behind the same two entry points:
 
             "Mul64u"   [m64a] * [m64b] -> [m64lo], [m64hi]   unsigned
             "Mul64s"   [m64a] * [m64b] -> [m64lo], [m64hi]   signed
 
-        Operands and results are passed in memory, not in registers, because
-        the fragment below clobbers edx invisibly to the compiler and the
-        limb backend needs more scratch than there are registers. A caller
-        that only has to remember "destroys A, B, C, D" can swap backends
-        without reading any of them.
+	Operands and results are passed in memory so callers share one stable
+	interface across the language-level and limb backends.
 
         The two entry points are deliberately SEPARATE rather than one
         routine with a sign flag. sky/isthere are imul; fast_random is mul.
         A single routine that guessed wrong would build a complete, plausible
         and entirely wrong universe with no diagnostic anywhere.
 
-        This backend needs the STOCK compiler and the STOCK i386 pack. It is
-        the only one of the three that does, which is why it is the one the
-        port can currently ship: main/lib/gen/compiler.txt is under a licence
-        that forbids modification, so a patched compiler is not ours to
-        redistribute.                                                        )
+	Both products are built from four unsigned 16-bit limb products.  This
+	uses only stock Lino operations and therefore needs neither inline target
+	machine code nor a compiler extension.                                  )
+
+"constants"
+
+	M16	= 65535;
 
 "variables"
 
@@ -29,33 +28,55 @@
 	m64b	= 0;
 	m64lo	= 0;
 	m64hi	= 0;
+	mlxl	= 0;
+	mlxh	= 0;
+	mlyl	= 0;
+	mlyh	= 0;
+	mlp0	= 0;
+	mlp1	= 0;
+	mlp2	= 0;
+	mlp3	= 0;
+	mlmid	= 0;
+	mltmp	= 0;
 
 "programme"
 
 "Mul64u"
     ( Unsigned 32x32 -> 64.  In: [m64a],[m64b].  Out: [m64lo],[m64hi].  )
-    ( Destroys A, B, D.  D is written by the fragment, not by the       )
-    ( compiler, so never place this call where D is live.               )
+    ( Destroys A and B. )
 
-	A = [m64a];
-	B = [m64b];
-	{
-	    F7 E3	(mul ebx  ->  edx:eax = eax * ebx, UNSIGNED)
-	}
-	[m64hi] = D;	( store the invisible register first )
-	[m64lo] = A;
+	A = [m64a]; A & M16;			[mlxl] = A;
+	A = [m64a]; A > 16; A & M16;		[mlxh] = A;
+	A = [m64b]; A & M16;			[mlyl] = A;
+	A = [m64b]; A > 16; A & M16;		[mlyh] = A;
+
+	A = [mlxl]; A '* [mlyl];		[mlp0] = A;
+	A = [mlxl]; A '* [mlyh];		[mlp1] = A;
+	A = [mlxh]; A '* [mlyl];		[mlp2] = A;
+	A = [mlxh]; A '* [mlyh];		[mlp3] = A;
+
+	A = [mlp0]; A > 16;			[mltmp] = A;
+	A = [mlp1]; A & M16; A + [mltmp];	[mltmp] = A;
+	A = [mlp2]; A & M16; A + [mltmp];	[mlmid] = A;
+
+	A = [mlmid]; A & M16; A < 16;		[mltmp] = A;
+	A = [mlp0]; A & M16; A | [mltmp];	[m64lo] = A;
+
+	A = [mlp3];
+	B = [mlp1]; B > 16; A + B;
+	B = [mlp2]; B > 16; A + B;
+	B = [mlmid]; B > 16; A + B;		[m64hi] = A;
 
 	end;
 
 "Mul64s"
     ( Signed 32x32 -> 64.  Same contract as Mul64u. )
 
-	A = [m64a];
-	B = [m64b];
-	{
-	    F7 EB	(imul ebx  ->  edx:eax = eax * ebx, SIGNED)
-	}
-	[m64hi] = D;
-	[m64lo] = A;
+	=> Mul64u;
+
+	A = [m64hi];
+	B = [m64a]; B >> 31; B & [m64b]; A - B;
+	B = [m64b]; B >> 31; B & [m64a]; A - B;
+	[m64hi] = A;
 
 	end;
