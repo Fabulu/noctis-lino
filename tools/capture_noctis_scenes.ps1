@@ -27,6 +27,10 @@ param(
     [int]$PlayerZ,
     [int]$CapsuleX = 131072,
     [int]$CapsuleZ = 131072,
+    [ValidateRange(272, 962)]
+    [int]$WindowWidth = 642,
+    [ValidateRange(120, 626)]
+    [int]$WindowHeight = 426,
     [ValidateSet(-1, 0, 1)]
     [int]$LensMode = 0,
     [switch]$OpenHud,
@@ -351,8 +355,8 @@ function New-Checkpoint {
     $u[29] = 0
     $u[31] = 3
     $u[35] = 1344638527
-    $u[36] = 642
-    $u[37] = 426
+    $u[36] = $WindowWidth
+    $u[37] = $WindowHeight
     $u[38] = 1
     $u[39] = 12
     $u[40] = $Spec.Lon

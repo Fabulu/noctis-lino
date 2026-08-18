@@ -151,25 +151,34 @@
 	[VHGUIsrc] = VHGUIframe;
 	A = [VHGUItop]; A '* [Display Width]; A + [VHGUIleft]; A + Backdrop Layer;
 	[VHGUIdst] = A;
+	A = [VHGUItop]; A '* [Display Width]; A + [VHGUIleft]; A + Primary Display;
+	[VHGUIdstp] = A;
 	A = [Display Width]; A - [VHGUIdw]; A '* 4; [VHGUIgap] = A;
 	[VHGUIy] = 0; [VHGUIsy] = 0; [VHGUIyacc] = 0;
+	( Publish each already-loaded scaled pixel to both synchronized iGUI layers.
+	  This preserves the fixed-2x path's clean Backdrop and cursor-ready Primary
+	  semantics at every resized fit without a second full-image layer copy. )
 	{
 	    53 56 57 55                         (push ebx, esi, edi, ebp)
 	    89 FD                               (ebp = workspace base)
 	    8B BD <dVHGUIdst mtp bytesperunit>
 	    8D 7C BD 00                         (edi = destination address)
-	    8B 9D <dVHGUIdw mtp bytesperunit>   (ebx = fitted width)
+	    8B 95 <dVHGUIdstp mtp bytesperunit>
+	    8D 54 95 00                         (edx = Primary destination)
 	    8B 85 <dVHGUIsy mtp bytesperunit>   (row: source y)
 	    69 C0 40 01 00 00                   (source y * 320)
 	    03 85 <dVHGUIsrc mtp bytesperunit>
 	    8D 74 85 00                         (esi = source row address)
-	    89 D9 31 C0                         (ecx = width; x accumulator = 0)
-	    8B 16 89 17                         (pixel: copy one RGB unit)
-	    83 C7 04 05 40 01 00 00             (advance destination; xacc += 320)
-	    39 D8 7C 07                         (x advance: ready when xacc < width)
-	    29 D8 83 C6 04 EB F5                (otherwise advance source and repeat)
-	    49 75 E6                            (next destination pixel)
-	    03 BD <dVHGUIgap mtp bytesperunit>  (advance to next destination row)
+	    8B 8D <dVHGUIdw mtp bytesperunit>   (ecx = fitted width)
+	    31 C0                               (x accumulator = 0)
+	    8B 1E 89 1F 89 1A                   (copy pixel to both layers)
+	    83 C7 04 83 C2 04 05 40 01 00 00   (advance destinations; xacc += 320)
+	    3B 85 <dVHGUIdw mtp bytesperunit> 7C 0B
+	    2B 85 <dVHGUIdw mtp bytesperunit>
+	    83 C6 04 EB ED                      (otherwise advance source and repeat)
+	    49 75 D9                            (next destination pixel)
+	    03 BD <dVHGUIgap mtp bytesperunit>  (advance Backdrop row)
+	    03 95 <dVHGUIgap mtp bytesperunit>  (advance Primary row)
 	    8B 85 <dVHGUIyacc mtp bytesperunit>
 	    05 C8 00 00 00                      (y accumulator += 200)
 	    3B 85 <dVHGUIdh mtp bytesperunit> 7C 0E
@@ -178,8 +187,10 @@
 	    89 85 <dVHGUIyacc mtp bytesperunit>
 	    FF 85 <dVHGUIy mtp bytesperunit>
 	    8B 85 <dVHGUIy mtp bytesperunit>
-	    3B 85 <dVHGUIdh mtp bytesperunit> 7C 8B
+	    3B 85 <dVHGUIdh mtp bytesperunit>
+	    0F 8C 70 FF FF FF                   (next fitted row)
 	    5D 5F 5E 5B                         (restore ebp, edi, esi, ebx)
 	}
+	[VHGUIpublished] = 1;
 	[VHGUIx] = [VHGUIdw]; [VHGUIsx] = 320; [VHGUIxacc] = 0;
 	end;
