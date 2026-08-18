@@ -1,5 +1,32 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+## Beta 19
+
+Beta 19 makes the current production generator usable by the public NIVGEN
+worker on macOS. The new x86_64 runtime executes compiled Lino programs through
+a real headless host instead of returning from a placeholder process. A fresh
+live-oracle smoke of the current runner matched all 11 available hashes for the
+sampled planet, including both landed surface textures. The public sheet still
+showed two surface-texture errors from its older deployed worker at release
+time; rebuilding that worker from beta 19 should remove that discrepancy.
+
+Planet generation also restores NIV+'s type-1 crater height literal and keeps
+the original sequential orbital viewpoint state between bodies. These are
+algorithmic fixes, not fixture-specific answers. The committed Windows game
+executable has been rebuilt from the same current source before publication.
+
+The macOS x86_64 host now uses native Cocoa without XQuartz. Its window resizes
+the logical framebuffer, maps pointer coordinates back into Lino space, enters
+native fullscreen through the original iGUI command, and consumes Escape once
+to return to the window. The same runtime can be built without a display for
+NIVGEN and other deterministic jobs. The x64 compiler pack also repairs a
+push-from-memory code-generation fault and keeps the host boolean ABI stable.
+
+Linux directory enumeration now uses a raw `getdents64` path that works under
+the supported qemu-user environment. The focused macOS Cocoa and headless
+runtime checks, gameplay regression, and Windows package checks passed before
+merge. ARM64 remains a separate unfinished port and is not claimed here.
+
 ## Beta 18
 
 Beta 18 makes the production Lino generator deployable to the public NIVGEN
