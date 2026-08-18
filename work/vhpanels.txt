@@ -21,7 +21,7 @@
 	VHPcamx = 0; VHPcamy = 0; VHPcamz = 0;
 	VHPalpha = 0; VHPbeta = 0;
 	VHPfontok = 0; VHPfi = 0; VHPfonthash = 0; VHPfontword = 0;
-	VHPchar = 0; VHPline = 0; VHPdigitskip = 0;
+	VHPchar = 0; VHPline = 0; VHPdigitskip = 0; VHPchcol = 152;
 	VHPkey = 0; VHPcmdpos = 0; VHPsubmitted = 0; VHPactive = 0;
 	VHPblackout = 0; VHPresetphase = 0;
 	VHPoutptr = 0; VHPoutrows = 0; VHPoutview = 0; VHPouti = 0; VHPoutj = 0;
@@ -323,7 +323,7 @@
 
 "VHP onboard digit"
 	A = [VHPchar]; ? A <= 32 -> VHP onboard digit done;
-	[VHPonglyphbright] = [VHPonbright];
+	[VHPonglyphbright] = 0;
 	? A >= 97 -> VHP onboard digit lowercase;
 	? A <= 64 -> VHP onboard digit normalized;
 	? A <= 90 -> VHP onboard digit uppercase;
@@ -334,8 +334,10 @@
 	[VHPonglyphbright] = 1;
     "VHP onboard digit normalized"
 	? A > 96 -> VHP onboard digit done; [DGdigit] = A;
-	[DGcolor] = 115; A = [VHPonglyphbright]; ? A = 0 -> VHP onboard digit color ready;
-	[DGcolor] = 127;
+	( screen uses steady screencolor 127 for lowercase and punctuation.  Text
+	  supplied in uppercase blinks on the retained 18.206-Hz source clock. )
+	[DGcolor] = 127; A = [VHPonglyphbright]; ? A = 0 -> VHP onboard digit color ready;
+	A = [VHGframe]; A % 6; A '* 12; C = 127; C - A; [DGcolor] = C;
     "VHP onboard digit color ready"
 	[DGshader] = 1; => FB digit at;
 	( digit_at(c,-6,-16,4): absolute source-plane bounds after replacing
@@ -579,6 +581,7 @@
 	A = [VHPcamx]; A - 3540; [VHVcamzi] = A;
 	[VHValpha] = [VHPalpha]; A = [VHPbeta]; A + 90; [VHVbeta] = A;
 	=> VH set view;
+	[VHPchcol] = 152;
 	A = [VHPresetphase]; ? A > 55 -> VHP text done;
 
 	( row 0: G.O.E.S. COMMAND NET: )
@@ -627,6 +630,7 @@
 	A = [VHPcamx]; A - 3540; [VHVcamzi] = A;
 	[VHValpha] = [VHPalpha]; A = [VHPbeta]; A + 90; [VHVbeta] = A;
 	=> VH set view;
+	[VHPchcol] = 152;
 	[VHPfi] = 0; [VHPline] = 0; [VHPcx4] = [VHPxbase4];
     "VHP output text loop"
 	A = [VHPoutview]; A '* 21; A + [VHPfi]; A + vhpout;
@@ -789,6 +793,11 @@
 	=> VHP digit prepare;
 	A = [VHPdigitskip]; ? A != 0 -> VHP digit done;
 	=> VHP draw mapped quad;
+	( vehicle restores the ordinary console colour after a closing parenthesis. )
+	A = [VHPchar]; ? A = 41 -> VHP digit close parenthesis;
+	-> VHP digit done;
+    "VHP digit close parenthesis"
+	[VHPchcol] = 152;
 	"VHP digit done"
 	end;
 
@@ -797,10 +806,60 @@
 	A = [VHPchar]; ? A '<= 32 -> VHP digit done;
 	? A '> 96 -> VHP digit done;
 	[VHPdigitskip] = 0;
-	[DGdigit] = [VHPchar]; [DGcolor] = 152; [DGshader] = 0; => FB digit at;
+	[DGdigit] = [VHPchar]; [DGcolor] = [VHPchcol]; [DGshader] = 0;
+	( Source GOES punctuation rules.  An opening parenthesis changes the
+	  running screen colour through its matching close; six command symbols
+	  use a larger 6.5-unit glyph and their own colour. )
+	A = [VHPchar]; ? A = 40 -> VHP digit open parenthesis;
+	? A = 36 -> VHP digit special; ? A = 91 -> VHP digit special;
+	? A = 93 -> VHP digit special; ? A = 42 -> VHP digit special;
+	? A = 38 -> VHP digit special; ? A = 95 -> VHP digit special;
+	-> VHP digit ordinary;
+    "VHP digit open parenthesis"
+	[VHPchcol] = 191; [DGcolor] = 191;
+    "VHP digit ordinary"
+	=> FB digit at;
 	( local glyph quad, z=0 )
 	[vhcpoly plus 0] = VHPGR; [vhcpoly plus 3] = VHPGR;
 	[vhcpoly plus 6] = VHPGL; [vhcpoly plus 9] = VHPGL;
+	-> VHP digit geometry ready;
+    "VHP digit special"
+	[DGcolor] = 138; => FB digit at;
+	( digit_at(c,0,chry,6.5): x=-9.75..26 and y=chry-13..chry+52. )
+	[vhcpoly plus 0] = 1104150528; [vhcpoly plus 3] = 1104150528;
+	[vhcpoly plus 6] = 3239837696; [vhcpoly plus 9] = 3239837696;
+	A = [VHPline]; ? A = 0 -> VHP digit special row0;
+	? A = 1 -> VHP digit special row1; ? A = 2 -> VHP digit special row2;
+	? A = 3 -> VHP digit special row3; ? A = 4 -> VHP digit special row4;
+	? A = 5 -> VHP digit special row5; -> VHP digit special row6;
+    "VHP digit special row0"
+	[vhcpoly plus 1] = 3280830464; [vhcpoly plus 4] = 3277455360;
+	[vhcpoly plus 7] = 3277455360; [vhcpoly plus 10] = 3280830464;
+	-> VHP digit geometry ready;
+    "VHP digit special row1"
+	[vhcpoly plus 1] = 3277291520; [vhcpoly plus 4] = 3273031680;
+	[vhcpoly plus 7] = 3273031680; [vhcpoly plus 10] = 3277291520;
+	-> VHP digit geometry ready;
+    "VHP digit special row2"
+	[vhcpoly plus 1] = 3272867840; [vhcpoly plus 4] = 3265658880;
+	[vhcpoly plus 7] = 3265658880; [vhcpoly plus 10] = 3272867840;
+	-> VHP digit geometry ready;
+    "VHP digit special row3"
+	[vhcpoly plus 1] = 3265331200; [vhcpoly plus 4] = 3245867008;
+	[vhcpoly plus 7] = 3245867008; [vhcpoly plus 10] = 3265331200;
+	-> VHP digit geometry ready;
+    "VHP digit special row4"
+	[vhcpoly plus 1] = 3243245568; [vhcpoly plus 4] = 1112539136;
+	[vhcpoly plus 7] = 1112539136; [vhcpoly plus 10] = 3243245568;
+	-> VHP digit geometry ready;
+    "VHP digit special row5"
+	[vhcpoly plus 1] = 1113194496; [vhcpoly plus 4] = 1122959360;
+	[vhcpoly plus 7] = 1122959360; [vhcpoly plus 10] = 1113194496;
+	-> VHP digit geometry ready;
+    "VHP digit special row6"
+	[vhcpoly plus 1] = 1123287040; [vhcpoly plus 4] = 1127940096;
+	[vhcpoly plus 7] = 1127940096; [vhcpoly plus 10] = 1123287040;
+    "VHP digit geometry ready"
 	[vhcpoly plus 2] = 0; [vhcpoly plus 5] = 0;
 	[vhcpoly plus 8] = 0; [vhcpoly plus 11] = 0;
 	( camera x is kept in quarter-units to preserve the source's 35.25 step )

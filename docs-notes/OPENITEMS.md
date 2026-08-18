@@ -1607,6 +1607,18 @@ canonical atlas bytes and enables physical FCS/GOES text only for the checked-in
 projected as plausible garbage. It is host hardening, not matched XQuartz or
 NIV+ visual closure; the reporter still needs to exercise the rebuilt binary.
 
+**Remaining source font rules restored, 2026-08-18.** A direct audit of
+NIV+'s `vehicle()` and `screen()` found two visible rules that the port still
+flattened. GOES uses a 6.5-unit glyph and colour 138 for `$`, `[`, `]`, `*`,
+`&`, and `_`, while parentheses carry colour 191 until the closing parenthesis;
+ordinary console glyphs remain 5.5 units and colour 152. The onboard computer
+uses steady colour 127 for lowercase and punctuation, while source-uppercase
+text blinks through `127 - 12 * (clock() % 6)`. The port now reproduces those
+rules with its retained 18.206-Hz source clock. The production game rebuilt,
+the focused gameplay regression passed, and a fresh physical-screen capture
+remained coherent. Matched XQuartz reporter output and a complete glyph-set
+comparison remain required before closing the wider compatibility item.
+
 ## 10. NIVGEN public accuracy integration -- **IN PROGRESS / DEPLOYMENT PENDING**
 
 Win the public NIVGEN accuracy comparison with the production Lino generator,
