@@ -1603,6 +1603,13 @@ planet class then scored 118/118 fields, while 20 type-7 moon cases scored
 stale until the contributor rebuilds and replaces its worker executable; do
 not interpret those old Lino columns as results from this master revision.
 
+A fresh late-corpus batch on 2026-08-18 covered 20 `RAVALISS` bodies of types
+0, 2, 3, 5, and 7. Both the fixed and random landed sectors were graded along
+with orbital surface, atmosphere, and palette output: all 220 available NIV+
+hashes matched. This adds two arbitrary-coordinate type-2 cases without
+weakening the rule above: the public Lino column is deployment evidence only
+after its worker is rebuilt from the production runner.
+
 ## 11. GitHub documentation and README -- **SETTLED / MONITORED**
 
 The GitHub-facing documentation is split into readable sections, short
