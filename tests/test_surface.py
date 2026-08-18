@@ -107,7 +107,7 @@ REC_SZ = MAPB + OVLB + 768 + 24   # one su_ref.exe record
 # lino library set, exactly the "libraries" block of work/sumain.txt
 LINO_LIBS = ("fbmem", "brtl", "mul64frag", "suseed", "surng", "subuf",
              "susm", "supaint", "supal", "sucase")
-FP_LIBS = ("fpabi", "fpctl", "fpx87", "fpconv")
+FP_LIBS = ("fpabi", "fpctl", "fpsoft", "fpx87", "fpconv")
 
 # SUDUMP record kinds, from work/subuf.txt's "constants" block
 KMAP, KOVL, KPAL, KSCAL, KLED, KTAIL, KTRL = 1, 2, 3, 4, 5, 6, 7

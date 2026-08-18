@@ -299,11 +299,10 @@
       ( SU seed b - [SUti] <- (long)(seedval * 10). )
 
 "SU seed b"
-	{
-	    DD 87 <dSUsv0 mtp bytesperunit>	(fld  qword [edi+SUsv0*4])
-	    DC 8F <dK10A  mtp bytesperunit>	(fmul qword [edi+K10A*4])
-	}
-	=> SU chop32;
+	=> XReset;
+	A = [SUsv0]; [XU0] = A; A = [SUsv1]; [XU1] = A; => XFromF64; => XPush;
+	A = [K10A]; [XU0] = A; A = [K10B]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp; => XPop; => XChop32; [SUti] = [FI];
 	end;
 
 ( ==================================================================== )
@@ -314,12 +313,9 @@
 	NOCTIS-0.CPP:4795.  rtperiod is an int; C widens it to double. )
 
 "SU secs rot"
-	{
-	    DD 87 <dSUsec0 mtp bytesperunit>	(fld  qword [edi+SUsec0*4])
-	    DB 87 <dSUia   mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    DE F9				(fdivp st(1),st(0))
-	}
-	=> SU chop32;
+	=> XReset;
+	A = [SUsec0]; [XU0] = A; A = [SUsec1]; [XU1] = A; => XFromF64; => XPush;
+	A = [SUia]; [XIN] = A; => XFiquo; => XPop; => XChop32; [SUti] = [FI];
 	=> SU i16;
 	end;
 
@@ -327,26 +323,22 @@
 	the low 32 bits.  :4933, :4890, :5000 and :5047 respectively. )
 
 "SU secs 1"
-	{
-	    DD 87 <dSUsec0 mtp bytesperunit>	(fld qword [edi+SUsec0*4])
-	}
-	=> SU chop32;
+	A = [SUsec0]; [XU0] = A; A = [SUsec1]; [XU1] = A;
+	=> XFromF64; => XChop32; [SUti] = [FI];
 	end;
 
 "SU secs 10"
-	{
-	    DD 87 <dSUsec0 mtp bytesperunit>	(fld  qword [edi+SUsec0*4])
-	    DC 8F <dK10A   mtp bytesperunit>	(fmul qword [edi+K10A*4])
-	}
-	=> SU chop32;
+	=> XReset;
+	A = [SUsec0]; [XU0] = A; A = [SUsec1]; [XU1] = A; => XFromF64; => XPush;
+	A = [K10A]; [XU0] = A; A = [K10B]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp; => XPop; => XChop32; [SUti] = [FI];
 	end;
 
 "SU secs 60"
-	{
-	    DD 87 <dSUsec0 mtp bytesperunit>	(fld  qword [edi+SUsec0*4])
-	    DC 8F <dK60A   mtp bytesperunit>	(fmul qword [edi+K60A*4])
-	}
-	=> SU chop32;
+	=> XReset;
+	A = [SUsec0]; [XU0] = A; A = [SUsec1]; [XU1] = A; => XFromF64; => XPush;
+	A = [K60A]; [XU0] = A; A = [K60B]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp; => XPop; => XChop32; [SUti] = [FI];
 	end;
 
 ( ==================================================================== )
@@ -480,12 +472,8 @@
       ( SU fr load - the two locals from the two int globals. )
 
 "SU fr load"
-	{
-	    DB 87 <dSUcxi mtp bytesperunit>	(fild dword [edi+SUcxi*4])
-	    D9 9F <dSFpx  mtp bytesperunit>	(fstp dword [edi+SFpx*4])
-	    DB 87 <dSUcyi mtp bytesperunit>	(fild dword [edi+SUcyi*4])
-	    D9 9F <dSFpy  mtp bytesperunit>	(fstp dword [edi+SFpy*4])
-	}
+	[FI] = [SUcxi]; => IntToF; => FStoreF32; [SFpx] = [FS0];
+	[FI] = [SUcyi]; => IntToF; => FStoreF32; [SFpy] = [FS0];
 	end;
 
       ( SU fr vptr - [SUti] <- (unsigned)(px + 360*(unsigned)py).
@@ -537,27 +525,18 @@
 	end;
 
 "SU th of"				( thrshld = 25 + rfr(3), an int )
-	{
-	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    D9 9F <dSFth mtp bytesperunit>	(fstp dword [edi+SFth*4])
-	}
+	[FI] = [SUia]; => IntToF; => FStoreF32; [SFth] = [FS0];
 	end;
 
       ( SU a of int - "a = (float)[SUia]".  contrast's
 	"a = p_background[c]". )
 
 "SU a of int"
-	{
-	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    D9 9F <dSFa  mtp bytesperunit>	(fstp dword [edi+SFa*4])
-	}
+	[FI] = [SUia]; => IntToF; => FStoreF32; [SFa] = [FS0];
 	end;
 
       ( SU a to int - [SUti] <- (unsigned char)a, i.e. truncate. )
 
 "SU a to int"
-	{
-	    D9 87 <dSFa mtp bytesperunit>	(fld dword [edi+SFa*4])
-	}
-	=> SU chop32;
+	[FS0] = [SFa]; => FLoadF32; => FToIntChop; [SUti] = [FI];
 	end;
