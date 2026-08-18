@@ -1670,6 +1670,18 @@ hashes matched. This adds two arbitrary-coordinate type-2 cases without
 weakening the rule above: the public Lino column is deployment evidence only
 after its worker is rebuilt from the production runner.
 
+**Cold generation acceleration, 2026-08-18.** The shared 40,000-cell terrain
+fill, in-place smoothing, signed level pass, and fast-noise pass now execute as
+bounded native kernels. The same exact Borland fill and smoothing kernels also
+cover the 65,535-cell planet texture paths. Borland's signed `random(n)`, both
+RNG states, draw counts, FNV ledgers, traversal directions, and in-place write
+order remain intact. The focused painter artifact stayed byte-identical at
+SHA-256 `99067B096289AD60F7D663A03FB638037CD52B3B0CBC8D5D153B187B75859721`
+while its warm execution fell from about 224 ms to 7 ms. A real cold habitable
+scene reached its first capturable frame in 9.23 seconds instead of 17.18
+seconds. The production clean-return fixture still matches NIV+ on all 40,000
+height bytes and all 65,532 deterministic texture bytes.
+
 **Coordinate-convention guard.** Gameplay checkpoint fixtures store the star Y
 value in the port's internal convention, while the public NIVGEN command uses
 the public catalogue convention. Do not copy a checkpoint Y directly into a

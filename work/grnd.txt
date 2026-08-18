@@ -58,6 +58,17 @@
 	GRcz		= 0;	( prologue cz = random(2)		)
 	GRcx		= 0;	( prologue cx = random(100)		)
 
+	( ---- bounded native whole-map kernels ---- )
+
+	GRnativeptr	= 0;	( absolute Lino-unit pointer		)
+	GRnativecount	= 0;	( cells in the current pass		)
+	GRnativestep	= 0;	( physical byte stride, +4 or -4	)
+	GRnativerange	= 0;	( signed Borland random() argument	)
+	GRnativescale	= 32768;	( signed random() divisor		)
+	GRnativepasses	= 0;	( in-place smoothing passes		)
+	GRnativerow	= 0;	( physical byte row stride		)
+	GRnativevalue	= 0;	( last byte written by a native pass	)
+
 	( ---- float painter state (round_hill, std_crater) ---- )
 	( float32 values stored as IEEE-754 binary32 bit patterns  )
 
@@ -167,23 +178,21 @@
 
 "GR rockyground"
 
-	( phase 1: fill with random(roughness) )
-	[GRptr] = 0;
-"GR rg fill"
-	C = [GRrough];
-	=> SU rnd;
-	C & 0FFh;
-	[MBval] = C;
-	A = RPSM; A + [GRptr]; [MBptr] = A;
-	=> MEM put byte;
-	[GRptr]+;
-	? [GRptr] '< 40000 -> GR rg fill;
+	( Phase 1 keeps all 40,000 signed Borland random() transitions and the
+	  diagnostic draw/hash ledger, but performs the bounded fill as one native
+	  pass over the fixed surface map. )
+	A = nw; A + RPSM; [GRnativeptr] = A;
+	[GRnativecount] = 40000; [GRnativestep] = 4;
+	[GRnativerange] = [GRrough];
+	=> GR random fill native;
+	[GRptr] = 40000; A = RPSM; A + 39999; [MBptr] = A;
 
 	( phase 2: smooth )
 	C = [GRround];
 	=> GR smoothterrain;
 
-	( phase 3: level adjust )
+	( Phase 3 retains the source's unsigned cutoff, signed adjustment and
+	  127 clamp while removing another interpreted 40,000-cell walk. )
 	( Every level applies the source value >= abs(level) cutoff before the
 	  signed adjustment. This matters for positive levels too: zero-valued
 	  cells stay at zero rather than being lifted to one. )
@@ -192,33 +201,10 @@
 	B = 0; B - A; A = B;
 "GR rg absok"
 	[GRabs] = A;
-
-	[GRptr] = 0;
-"GR rg level"
-	A = RPSM; A + [GRptr]; [MBptr] = A;
-	=> MEM get byte;
-	A = [MBval];
-	? A '>= [GRabs] -> GR rg add;
-	( else set to 0 )
-	C = 0;
-	[MBval] = C;
-	A = RPSM; A + [GRptr]; [MBptr] = A;
-	=> MEM put byte;
-	-> GR rg next;
-
-"GR rg add"
-	A = [MBval]; A + [GRlevel];
-	? A '<= 127 -> GR rg store;
-	A = 127;
-"GR rg store"
-	C = A; C & 0FFh;
-	[MBval] = C;
-	A = RPSM; A + [GRptr]; [MBptr] = A;
-	=> MEM put byte;
-
-"GR rg next"
-	[GRptr]+;
-	? [GRptr] '< 40000 -> GR rg level;
+	A = nw; A + RPSM; [GRnativeptr] = A;
+	[GRnativecount] = 40000;
+	=> GR level native;
+	[GRptr] = 40000; A = RPSM; A + 39999; [MBptr] = A;
 	end;
 
 ( ==================================================================== )
@@ -242,44 +228,13 @@
 
 "GR smoothterrain"
 	[GRsmp] = C;
-"GR sm outer"
 	? [GRsmp] '<= 0 -> GR sm end;
-	[GRptr] = 0;
-"GR sm loop"
-	? [GRptr] '>= 39799 -> GR sm nextpass;
-
-	( n = smap[ptr] )
-	A = RPSM; A + [GRptr]; [MBptr] = A;
-	=> MEM get byte;
-	A = [MBval]; [GRn] = A;
-
-	( n += smap[ptr+1] )
-	A = RPSM; A + [GRptr]; A + 1; [MBptr] = A;
-	=> MEM get byte;
-	A = [GRn]; A + [MBval]; [GRn] = A;
-
-	( n += smap[ptr+200] )
-	A = 200; A + [GRptr]; A + RPSM; [MBptr] = A;
-	=> MEM get byte;
-	A = [GRn]; A + [MBval]; [GRn] = A;
-
-	( n += smap[ptr+201] )
-	A = 201; A + [GRptr]; A + RPSM; [MBptr] = A;
-	=> MEM get byte;
-	A = [GRn]; A + [MBval]; [GRn] = A;
-
-	( smap[ptr] = n >> 2 )
-	A = [GRn]; A > 2; A & 0FFh;
-	[MBval] = A;
-	A = RPSM; A + [GRptr]; [MBptr] = A;
-	=> MEM put byte;
-
-	[GRptr]+;
-	-> GR sm loop;
-
-"GR sm nextpass"
-	[GRsmp]-;
-	-> GR sm outer;
+	A = nw; A + RPSM; [GRnativeptr] = A;
+	[GRnativecount] = 39799; [GRnativestep] = 4;
+	[GRnativerow] = 800; [GRnativepasses] = [GRsmp];
+	=> GR smooth native;
+	[GRsmp] = 0; [GRptr] = 39799;
+	A = RPSM; A + 39798; [MBptr] = A;
 "GR sm end"
 	end;
 
@@ -299,28 +254,10 @@
 	oc_bytes == ps_bytes == 40000.					)
 
 "GR plains noise"
-	[GRptr] = 0;
-"GR pn loop"
-	( read current value )
-	A = RPSM; A + [GRptr]; [MBptr] = A;
-	=> MEM get byte;
-	A = [MBval]; [GRcur] = A;
-
-	( fast_random(3) -- COUNTED via SU frnd )
-	[SUfmask] = 3;
-	=> SU frnd;
-	C & 0FFh;
-	A = [GRcur]; A + C;
-	? A '<= 255 -> GR pn store;
-	A = 255;
-"GR pn store"
-	C = A; C & 0FFh;
-	[MBval] = C;
-	A = RPSM; A + [GRptr]; [MBptr] = A;
-	=> MEM put byte;
-
-	[GRptr]+;
-	? [GRptr] '< 40000 -> GR pn loop;
+	A = nw; A + RPSM; [GRnativeptr] = A;
+	[GRnativecount] = 40000; [SUfmask] = 3;
+	=> GR fast noise native;
+	[GRptr] = 40000; A = RPSM; A + 39999; [MBptr] = A;
 	end;
 
 ( ==================================================================== )
@@ -485,6 +422,82 @@
 	[GRK254L] = GR254L;	[GRK254H] = GR254H;
 	[GRcwc] = GRCWCHOP;
 	[GRcwn] = GRCWNEAR;
+	end;
+
+( ==================================================================== )
+( exact native whole-map kernels                                      )
+( ==================================================================== )
+
+"GR random fill native"
+	( Borland random(n) is signed and always draws.  Keep its LCG, signed
+	  division, four-byte FNV ledger fold and low-byte map store in the same
+	  order for every cell.  The caller supplies a resolved Lino-unit pointer,
+	  count, physical byte stride and signed range. )
+	{
+	    55 56 53 8B B7 <dGRnativeptr mtp bytesperunit> 8D 34 B7 8B 8F <dGRnativecount mtp bytesperunit>
+	    85 C9 0F 84 C2 00 00 00 8B 9F <dbrtlseed mtp bytesperunit> 8B
+	    AF <dSUbh mtp bytesperunit> 69 DB 35 4E 5A 01 43 89 D8 C1
+	    E8 10 25 FF 7F 00 00 0F AF 87 <dGRnativerange mtp bytesperunit> 99
+	    F7 BF <dGRnativescale mtp bytesperunit> 89 87 <dSUhv mtp bytesperunit> 89 C2 81 E2 FF 00
+	    00 00 89 16 89 C2 81 E2 FF 00 00 00
+	    31 D5 69 ED 93 01 00 01 C1 E8 08 89
+	    C2 81 E2 FF 00 00 00 31 D5 69 ED 93
+	    01 00 01 C1 E8 08 89 C2 81 E2 FF 00
+	    00 00 31 D5 69 ED 93 01 00 01 C1 E8
+	    08 25 FF 00 00 00 31 C5 69 ED 93 01
+	    00 01 03 B7 <dGRnativestep mtp bytesperunit> 49 75 82 89 9F <dbrtlseed mtp bytesperunit> 89
+	    AF <dSUbh mtp bytesperunit> 89 AF <dSUhx mtp bytesperunit> 8B 87 <dGRnativecount mtp bytesperunit> 01 87 <dSUbnc mtp bytesperunit> 8B
+	    87 <dGRnativerange mtp bytesperunit> 89 87 <dbrtln mtp bytesperunit> 8B 87 <dSUhv mtp bytesperunit> 89 87 <dMBval mtp bytesperunit> 89
+	    C1 5B 5E 5D
+	}
+	end;
+
+"GR smooth native"
+	( In-place 2x2 average.  Direction, row stride and pass count are explicit
+	  so the same kernel preserves both the ascending 200-wide terrain walk
+	  and the descending 256-wide texture walk. )
+	{
+	    55 56 53 8B 97 <dGRnativepasses mtp bytesperunit> 85 D2 7E 49 8B AF
+	    <dGRnativerow mtp bytesperunit> 8B B7 <dGRnativeptr mtp bytesperunit> 8D 34 B7 8B 8F <dGRnativecount mtp bytesperunit> 8B 06
+	    03 46 04 03 04 2E 03 44 2E 04 89 87
+	    <dGRn mtp bytesperunit> C1 E8 02 25 FF 00 00 00 89 06 89
+	    87 <dMBval mtp bytesperunit> 03 B7 <dGRnativestep mtp bytesperunit> 49 75 D5 4A 75 C3 89
+	    97 <dGRnativepasses mtp bytesperunit> 5B 5E 5D
+	}
+	end;
+
+"GR level native"
+	( Source unsigned cutoff followed by the signed level adjustment and
+	  unsigned 127 ceiling over the fixed 40,000-cell surface map. )
+	{
+	    56 53 8B B7 <dGRnativeptr mtp bytesperunit> 8D 34 B7 8B 8F <dGRnativecount mtp bytesperunit> 8B
+	    9F <dGRlevel mtp bytesperunit> 8B 97 <dGRabs mtp bytesperunit> 8B 06 25 FF 00 00 00
+	    39 D0 72 0E 01 D8 83 F8 7F 76 09 B8
+	    7F 00 00 00 EB 02 31 C0 89 06 89 87
+	    <dMBval mtp bytesperunit> 83 C6 04 49 75 D7 5B 5E
+	}
+	end;
+
+"GR fast noise native"
+	( Exact unsigned-square fast_random(3), counted FNV ledger and saturated
+	  additive terrain noise for every surface cell. )
+	{
+	    55 56 53 8B B7 <dGRnativeptr mtp bytesperunit> 8D 34 B7 8B 8F <dGRnativecount mtp bytesperunit>
+	    8B 9F <dSUfseed mtp bytesperunit> 8B AF <dSUfh mtp bytesperunit> 89 D8 F7 E0 00 D0
+	    01 C3 89 87 <dSUfeax mtp bytesperunit> 23 87 <dSUfmask mtp bytesperunit> 89 87 <dSUfval mtp bytesperunit> 89
+	    87 <dSUhv mtp bytesperunit> 8B 16 81 E2 FF 00 00 00 89 97
+	    <dGRcur mtp bytesperunit> 01 C2 81 FA FF 00 00 00 76 05 BA
+	    FF 00 00 00 89 16 89 97 <dGRnativevalue mtp bytesperunit> 89 C2 81
+	    E2 FF 00 00 00 31 D5 69 ED 93 01 00
+	    01 C1 E8 08 89 C2 81 E2 FF 00 00 00
+	    31 D5 69 ED 93 01 00 01 C1 E8 08 89
+	    C2 81 E2 FF 00 00 00 31 D5 69 ED 93
+	    01 00 01 C1 E8 08 25 FF 00 00 00 31
+	    C5 69 ED 93 01 00 01 83 C6 04 49 0F
+	    85 6B FF FF FF 89 9F <dSUfseed mtp bytesperunit> 89 AF <dSUfh mtp bytesperunit> 89
+	    AF <dSUhx mtp bytesperunit> 8B 87 <dGRnativecount mtp bytesperunit> 01 87 <dSUfn mtp bytesperunit> 8B 87 <dSUfval mtp bytesperunit> 89
+	    C1 8B 87 <dGRnativevalue mtp bytesperunit> 89 87 <dMBval mtp bytesperunit> 5B 5E 5D
+	}
 	end;
 
 ( ==================================================================== )

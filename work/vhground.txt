@@ -1572,25 +1572,19 @@
 	( Shared `similar:` texture body at NOCTIS-1.CPP:2353-2379. )
 	[VHGNDtscale] = 32;
 	C = 16; => SU rnd; C + 16; [VHGNDtexn] = C;
-	[VHGNDptr] = 65535;
-    "VHGND texture fill"
-	C = [VHGNDtexn]; => SU rnd;
-	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; [MBval] = C; => MEM put byte;
-	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture fill;
+	( Slot zero remains cleared.  Fill 65535 down through 1 with the exact
+	  signed Borland stream and ledger using the shared native pass. )
+	A = nw; A + [VHGNDtexbase]; A + 65535; [GRnativeptr] = A;
+	[GRnativecount] = 65535; [GRnativestep] = 0FFFFFFFCh;
+	[GRnativerange] = [VHGNDtexn]; => GR random fill native;
+	[VHGNDptr] = 0; A = [VHGNDtexbase]; A + 1; [MBptr] = A;
 	C = 3; => SU rnd; C + 1; [VHGNDtexpasses] = C;
-    "VHGND texture smooth pass"
-	[VHGNDptr] = 65278;
-    "VHGND texture smooth pixel"
-	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; => MEM get byte; [VHGNDtmp] = [MBval];
-	A = [VHGNDtexbase]; A + [VHGNDptr]; A + 1; [MBptr] = A; => MEM get byte;
-	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
-	A = [VHGNDtexbase]; A + [VHGNDptr]; A + 256; [MBptr] = A; => MEM get byte;
-	A = [VHGNDtmp]; A + [MBval]; [VHGNDtmp] = A;
-	A = [VHGNDtexbase]; A + [VHGNDptr]; A + 257; [MBptr] = A; => MEM get byte;
-	A = [VHGNDtmp]; A + [MBval]; A > 2; [MBval] = A;
-	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; => MEM put byte;
-	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture smooth pixel;
-	[VHGNDtexpasses]-; A = [VHGNDtexpasses]; ? A != 0 -> VHGND texture smooth pass;
+	A = nw; A + [VHGNDtexbase]; A + 65278; [GRnativeptr] = A;
+	[GRnativecount] = 65278; [GRnativestep] = 0FFFFFFFCh;
+	[GRnativerow] = 1024; [GRnativepasses] = [VHGNDtexpasses];
+	=> GR smooth native;
+	[VHGNDptr] = 0; [VHGNDtexpasses] = 0;
+	A = [VHGNDtexbase]; A + 1; [MBptr] = A;
 	A = [VHGNDfrosty]; ? A = 0 -> VHGND similar done;
 	C = 48; => SU rnd; C + 16; [VHGNDtscale] = C;
 	C = 250; => SU rnd; [VHGNDgenn] = C;
@@ -1605,11 +1599,10 @@
 
 "VHGND texture random"
 	( Source texture fill: slot zero retains its cleared value. )
-	[VHGNDptr] = 65535;
-    "VHGND texture random pixel"
-	C = [VHGNDtexn]; => SU rnd;
-	A = [VHGNDtexbase]; A + [VHGNDptr]; [MBptr] = A; [MBval] = C; => MEM put byte;
-	[VHGNDptr]-; A = [VHGNDptr]; ? A != 0 -> VHGND texture random pixel;
+	A = nw; A + [VHGNDtexbase]; A + 65535; [GRnativeptr] = A;
+	[GRnativecount] = 65535; [GRnativestep] = 0FFFFFFFCh;
+	[GRnativerange] = [VHGNDtexn]; => GR random fill native;
+	[VHGNDptr] = 0; A = [VHGNDtexbase]; A + 1; [MBptr] = A;
 	end;
 
 "VHGND texture darkline"
