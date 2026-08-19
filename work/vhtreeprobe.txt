@@ -3,7 +3,7 @@
 "libraries"
 
 	defstyle;
-	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpsoft; fp/fpchainssoft; geoconv;
 	fbmem; fbpal; fbtick; fbshell;
 	pgfp; pgmem; pgrast; pgtex; pgproj;
 	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
@@ -37,6 +37,7 @@
 	VHGsurfgravdisp = 0; VHGsurftempdisp = 0; VHGsurfpressdisp = 0; VHGsurfpulsedisp = 0;
 	VHGCwindangle = 0; VHGCwindpower = 0;
 	VHTRp = 0; VHTRlit = 0; VHTRname = { vhtree-out.bin };
+	VHTRrepeat = 0;
 	VHTRpagename = { vhtree-page.bin };
 	VHTRtexname = { vhtree-texture.bin }; VHTRheightname = { vhtree-height.bin };
 	VHTRloadname = 0; VHTRloadbase = 0; VHTRloadtotal = 0;
@@ -78,7 +79,10 @@
 	[PGtexf] = 0; [SPsrc] = 1; [SPflar] = 0; [SPcull] = 0; [SPhalf] = 0;
 	[VHGNDoox] = 1086769; A = 0; A - 149024; [VHGNDooy] = A;
 	[VHGNDooz] = 2139184; [VHGNDh1] = 26066; [VHGNDdepth] = 1;
+	[VHTRrepeat] = 0;
+    "VHTR tree repeat"
 	=> VHGND tree;
+	[VHTRrepeat]+; A = [VHTRrepeat]; ? A < 16 -> VHTR tree repeat;
 
 	[VHTRp] = 0; [VHTRlit] = 0;
     "VHTR scan"
@@ -126,5 +130,5 @@
 	end;
 
 "VHG fpu clean"
-	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	=> FReset;
 	end;

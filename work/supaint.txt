@@ -284,15 +284,31 @@
 
 "SU wave"
 	[SUpx] = CRSTEP;
-    "SU wave u"
-	{
-	    DB 87 <dSUpx mtp bytesperunit>	(fild dword [edi+SUpx*4])
-	    D8 8F <dSFa  mtp bytesperunit>	(fmul dword [edi+SFa*4])
-	    D9 FE				(fsin)
-	    DB 87 <dSUcr mtp bytesperunit>	(fild dword [edi+SUcr*4])
-	    DE C9				(fmulp st(1),st(0))
-	}
-	=> SU near32;
+"SU wave u"
+	---->;
+	( Keep px*SFa live in X through the multiply.  FSin is the existing
+	  scalar trig boundary; its binary64 argument is the only required
+	  spill, after which the SUcr multiply remains in X until near32. )
+	[XIN] = [SUpx]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [SFa]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; B = [YS]; [XS] = B; [YS] = A;
+	A = [XE]; B = [YE]; [XE] = B; [YE] = A;
+	A = [XMH]; B = [YMH]; [XMH] = B; [YMH] = A;
+	A = [XML]; B = [YML]; [XML] = B; [YML] = A;
+	=> XMulCore; => XToF64; => FSin;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [SUcr]; => XFromInt;
+	A = [XS]; B = [YS]; [XS] = B; [YS] = A;
+	A = [XE]; B = [YE]; [XE] = B; [YE] = A;
+	A = [XMH]; B = [YMH]; [XMH] = B; [YMH] = A;
+	A = [XML]; B = [YML]; [XML] = B; [YML] = A;
+	=> XMulCore; => XToF64; => FToIntNear; [SUti] = [FI];
+	<----;
 	A = [SUti]; A & 0FFFFh; [SUpy] = A;
 	A = [SUpy]; A + [SUcyi]; A & 0FFFFh; [SUpy] = A;
 	A = [SUpy]; A '* CRSTEP; A & 0FFFFh;

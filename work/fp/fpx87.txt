@@ -1,8 +1,9 @@
       ( *** fpx87 - the X87 backend, Level 2 (SCALAR) ***
 
 	One of three interchangeable backends.  Stored-value division now
-	delegates to fpsoft's portable exact integer engine; the multiply and
-	transcendental operations remain below until their software primitives
+	delegates to fpsoft's portable exact integer engine; basic arithmetic is
+	now entirely portable L.in.oleum.  The transcendental operations remain
+	below until their software primitives
 	can pass the full-game smoke as well as the arithmetic corpus.  All
 	three export the same period names and read and write the same
 	fpabi register file, so a call site never changes.
@@ -18,9 +19,11 @@
 	CLOBBERING CONTRACT.
 	  - the ML fragments touch ONLY the x87 stack and the fpabi
 	    variables.  They never touch A/B/C/D/E and never touch edi.
-	  - the L.in.oleum glue around them DOES use A and E, following the
-	    stock library convention that a subroutine need not preserve
-	    registers.
+	  - the public scalar interface preserves A/B/C/D/E.  The original
+	    machine-language primitives touched only the x87 stack, and game
+	    callers legitimately keep loop counters and addresses live across
+	    these arithmetic calls.  Portable glue therefore has to retain the
+	    same boundary even though ordinary L.in.oleum subroutines may clobber.
 	  - every routine leaves the x87 stack exactly as it found it.
 	    FStackOK reads TOP back so a caller can assert that.
 
@@ -46,35 +49,39 @@
 	and no chance of a stack imbalance. )
 
 "FLoad"
+	---->;
+	=> FLoad body;
+	<----;
+	end;
+    "FLoad body"
 	A = [FB0]; [FA0] = A;
 	A = [FB1]; [FA1] = A;
 	end;
 
 "FAdd"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    DC 87 <dFB0 mtp bytesperunit>	(fadd qword [edi+FB0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	---->;
+	=> XScalarAdd;
+	<----;
 	end;
 
 "FSub"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    DC A7 <dFB0 mtp bytesperunit>	(fsub qword [edi+FB0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	---->;
+	=> XScalarSub;
+	<----;
 	end;
 
 "FMul"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    DC 8F <dFB0 mtp bytesperunit>	(fmul qword [edi+FB0*4])
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	---->;
+	=> XScalarMul;
+	<----;
 	end;
 
 "FQuo"
+	---->;
+	=> FQuo body;
+	<----;
+	end;
+    "FQuo body"
 	=> XScalarQuo;
 	end;
 
@@ -87,10 +94,20 @@
 	end;
 
 "FNeg"
+	---->;
+	=> FNeg body;
+	<----;
+	end;
+    "FNeg body"
 	A = [FA1]; A # 80000000h; [FA1] = A;
 	end;
 
 "FAbs"
+	---->;
+	=> FAbs body;
+	<----;
+	end;
+    "FAbs body"
 	A = [FA1]; A & 7FFFFFFFh; [FA1] = A;
 	end;
 
@@ -139,6 +156,11 @@
 	FFLGUNORD.  No Noctis vector should ever reach it. )
 
 "FCmp"
+	---->;
+	=> FCmp body;
+	<----;
+	end;
+    "FCmp body"
 	A = [FA1]; A > 20; A & 7FFh;
 	      ? A != 7FFh -> FCMP b finite;
 	A = [FA1]; A & 0FFFFFh; B = [FA0]; A | B;

@@ -184,6 +184,11 @@
 	subnormals are normalized explicitly rather than delegated to a host. )
 
 "XFromF64"
+	---->;
+	=> XFromF64 body;
+	<----;
+	end;
+    "XFromF64 body"
 	A = [XU1]; A > 31; [XS] = A;
 	A = [XU1]; A > 20; A & 7FFh; [XE] = A;
 	A = [XU1]; A & 0FFFFFh; A < 11;
@@ -225,6 +230,11 @@
 	an absolute value and a normalising shift, and nothing else. )
 
 "XFromInt"
+	---->;
+	=> XFromInt body;
+	<----;
+	end;
+    "XFromInt body"
 	[XS] = 0;
 	A = [XIN];
       ? A != 0 -> XFI nonzero;
@@ -337,6 +347,11 @@
 	bit and a sticky. )
 
 "XMulCore"
+	---->;
+	=> XMulCore body;
+	<----;
+	end;
+    "XMulCore body"
 	? [XE] = 0 -> xm zero;
 	? [YE] = 0 -> xm zero;
 	=> Mul128;
@@ -394,10 +409,20 @@
 	usual x87 convention: M is [XMH:XML], E is [XE], and zero is E=0. )
 
 "XAddCore"
+	---->;
+	=> XAddCore body;
+	<----;
+	end;
+    "XAddCore body"
 	[xaso] = 0;
 	-> xas enter;
 
 "XSubCore"
+	---->;
+	=> XSubCore body;
+	<----;
+	end;
+    "XSubCore body"
 	[xaso] = 1;
 	-> xas enter;
 
@@ -717,6 +742,11 @@
 	silently produces a quotient that saturates. )
 
 "XQuoCore"
+	---->;
+	=> XQuoCore body;
+	<----;
+	end;
+    "XQuoCore body"
 	A = [XS]; B = [YS]; A # B;	[XS] = A;
 	A = [XE]; A - [YE]; A + XBIAS;	[xtmp] = A;
 
@@ -837,6 +867,11 @@
 	    exponent field = E - 16383 + 1023 = E - 15360             )
 
 "XToF64"
+	---->;
+	=> XToF64 body;
+	<----;
+	end;
+    "XToF64 body"
       ? [XE] = 0 -> xf zero;
 
 	A = [XMH]; A > 11; A & 0FFFFFh;			[xa0] = A;  ( frac hi )
@@ -882,6 +917,11 @@
 	there is deliberately no binary64 intermediate. )
 
 "XToF32"
+	---->;
+	=> XToF32 body;
+	<----;
+	end;
+    "XToF32 body"
       ? [XE] = 0 -> xf32 zero;
 	A = [XMH]; A > 8; A & 7FFFFFh; [xa0] = A;
 	A = [XMH]; A > 7; A & 1; [xrbit] = A;
@@ -999,11 +1039,25 @@
 	=> XToF64;
 	end;
 
+"XScalarMul"
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XMulCore;
+	=> XToF64;
+	end;
+
       ( XChop32 - truncate the live extended X value to a signed qword,
 	then return its low 32 bits.  XChop16 applies the stellar seed site's
 	final unsigned-word narrowing. )
 
 "XChop32"
+	---->;
+	=> XChop32 body;
+	<----;
+	end;
+    "XChop32 body"
       ? [XE] = 0 -> XCI zero;
 	A = [XE]; A - XBIAS; [xtmp] = A;
       ? A < 0 -> XCI zero;
@@ -1030,4 +1084,52 @@
 "XChop16"
 	=> XChop32;
 	A = [FI]; A & 0FFFFh; [FI] = A;
+	end;
+
+      ( XNear32 - round the live extended X value to the nearest signed
+	qword, ties to even, and return its low 32 bits.  This is the portable
+	equivalent of the surface painter's ambient-RC fistp qword. )
+
+"XNear32"
+	---->;
+	=> XNear32 body;
+	<----;
+	end;
+    "XNear32 body"
+      ? [XE] = 0 -> XNI zero;
+	A = [XE]; A - XBIAS; [xtmp] = A;
+      ? A < minus 1 -> XNI zero;
+      ? A > 63 -> XNI zero;
+	A = 63; A - [xtmp]; [xishift] = A;
+	A = [XMH]; [xi64h] = A;
+	A = [XML]; [xi64l] = A;
+	[xrbit] = 0; [xsbit] = 0;
+      ? [xishift] = 0 -> XNI decide;
+    "XNI shift"
+	A = [xi64l]; A & 1; [xasbit] = A;
+	[xishift]-;
+      ? [xishift] = 0 -> XNI round bit;
+	A = [xsbit]; A | [xasbit]; [xsbit] = A;
+	-> XNI shift value;
+    "XNI round bit"
+	[xrbit] = [xasbit];
+    "XNI shift value"
+	A = [xi64l]; A > 1; B = [xi64h]; B < 31; A | B; [xi64l] = A;
+	A = [xi64h]; A > 1; [xi64h] = A;
+      ? [xishift] != 0 -> XNI shift;
+    "XNI decide"
+      ? [xrbit] = 0 -> XNI sign;
+      ? [xsbit] != 0 -> XNI increment;
+	A = [xi64l]; A & 1;
+      ? A = 0 -> XNI sign;
+    "XNI increment"
+	[xi64l]+;
+    "XNI sign"
+      ? [XS] = 0 -> XNI low;
+	A = 0; A - [xi64l]; [xi64l] = A;
+    "XNI low"
+	[FI] = [xi64l];
+	end;
+    "XNI zero"
+	[FI] = 0;
 	end;

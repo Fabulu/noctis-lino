@@ -84,5 +84,5 @@
 	end;
 
 "VHG fpu clean"
-	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	=> FReset;
 	end;

@@ -55,5 +55,5 @@
 	[File Name]=VHOPname; [File Position]=0; [File Command]=SET SIZE; [File Size]=272; isocall;
 	end;
 "VHG fpu clean"
-	{ DB E3 D9 AF <dFCW mtp bytesperunit> }
+	=> FReset;
 	end;

@@ -51,6 +51,11 @@
       ( FToIntChop - FI <- (long)FA.  C cast semantics, __ftol. )
 
 "FToIntChop"
+	---->;
+	=> FToIntChop body;
+	<----;
+	end;
+    "FToIntChop body"
 	[CVMODE] = 3;
 	=> CV F64 to int;
 	end;
@@ -60,6 +65,11 @@
 	37 hand-written sites, for free. )
 
 "FToIntNear"
+	---->;
+	=> FToIntNear body;
+	<----;
+	end;
+    "FToIntNear body"
 	A = [FCW]; A > 10; A & 3; [CVMODE] = A;
 	=> CV F64 to int;
 	end;
@@ -68,16 +78,31 @@
 	int.  Low 16 bits, sign extended back into the unit. )
 
 "FToInt16Chop"
+	---->;
+	=> FToInt16Chop body;
+	<----;
+	end;
+    "FToInt16Chop body"
 	=> FToIntChop;
 	=> FNarrow16;
 	end;
 
 "FToInt16Near"
+	---->;
+	=> FToInt16Near body;
+	<----;
+	end;
+    "FToInt16Near body"
 	=> FToIntNear;
 	=> FNarrow16;
 	end;
 
 "FNarrow16"
+	---->;
+	=> FNarrow16 body;
+	<----;
+	end;
+    "FNarrow16 body"
 	A = [FI]; A & 0FFFFh; [FI] = A;
       ? [FI] '< 8000h -> FN16 done;
 	A = [FI]; A - 65536; [FI] = A;
@@ -88,6 +113,11 @@
 	int32, at every precision control, so this one cannot round. )
 
 "IntToF"
+	---->;
+	=> IntToF body;
+	<----;
+	end;
+    "IntToF body"
 	=> CV int to F64;
 	end;
 
@@ -106,6 +136,11 @@
 	round-to-nearest-even to binary32 - exactly a C store to float. )
 
 "F32Narrow"
+	---->;
+	=> F32Narrow body;
+	<----;
+	end;
+    "F32Narrow body"
 	=> FStoreF32;
 	=> FLoadF32;
 	end;
@@ -114,12 +149,22 @@
 	back.  This is what writing a float to a file has to do. )
 
 "FStoreF32"
+	---->;
+	=> FStoreF32 body;
+	<----;
+	end;
+    "FStoreF32 body"
 	=> CV F64 to F32;
 	end;
 
       ( FLoadF32 - FA <- (double)the binary32 in FS0.  Always exact. )
 
 "FLoadF32"
+	---->;
+	=> FLoadF32 body;
+	<----;
+	end;
+    "FLoadF32 body"
 	=> CV F32 to F64;
 	end;
 

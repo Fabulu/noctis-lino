@@ -2062,17 +2062,22 @@
 	[VHGNDvecy0] = [FA0]; [VHGNDvecy1] = [FA1];
 	[FA0] = [VHGNDct0]; [FA1] = [VHGNDct1]; => FCos;
 	[VHGNDct0] = [FA0]; [VHGNDct1] = [FA1];
+	A = [VHGNDvecindex]; A < 1;
 	E = nsporbray; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
 	[FB0] = [VHGNDsin0]; [FB1] = [VHGNDsin1]; => FMul;
 	[FB0] = [VHGNDct0]; [FB1] = [VHGNDct1]; => FMul; => FNeg;
 	[VHGNDxx0] = [FA0]; [VHGNDxx1] = [FA1];
+	A = [VHGNDvecindex]; A < 1;
 	E = nsporbray; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1];
 	[FB0] = [VHGNDcos0]; [FB1] = [VHGNDcos1]; => FMul;
 	[FB0] = [VHGNDct0]; [FB1] = [VHGNDct1]; => FMul;
+	A = [VHGNDvecindex]; A < 1;
 	E = nsporbecc; E + A; [FB0] = [E plus 0]; [FB1] = [E plus 1]; => FMul;
 	[VHGNDzz0] = [FA0]; [VHGNDzz1] = [FA1];
+	A = [VHGNDvecindex]; A < 1;
 	E = nspororient; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1]; => FSin;
 	[VHGNDso0] = [FA0]; [VHGNDso1] = [FA1];
+	A = [VHGNDvecindex]; A < 1;
 	E = nspororient; E + A; [FA0] = [E plus 0]; [FA1] = [E plus 1]; => FCos;
 	[VHGNDco0] = [FA0]; [VHGNDco1] = [FA1];
 	[FA0] = [VHGNDxx0]; [FA1] = [VHGNDxx1];
@@ -5790,18 +5795,48 @@
     "VHGND tree node count ready"
 	A = VHGNDtscount; A + [VHGNDtreelevel]; [A] = [VHGNDtreebranches];
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; [A] = 0;
-	( The source seed truncates the sum of its binary32 node coordinates. )
-	{ D9 87 <dVHGNDtreebxf mtp bytesperunit> D8 87 <dVHGNDtreebyf mtp bytesperunit>
-	  D8 87 <dVHGNDtreebzf mtp bytesperunit> DA 87 <dVHGNDh1 mtp bytesperunit>
-	  DD 9F <dFA0 mtp bytesperunit> }
-	=> FToIntChop; A = [FI]; C = VHGNDtslseed; C + [VHGNDtreelevel]; [C] = A;
+	( The source seed truncates the sum of its binary32 node coordinates.
+	  Keep the live sum in fpsoft's extended mantissa until the source's
+	  binary64 store immediately before the cast. )
+	---->;
+	=> XReset;
+	[FS0] = [VHGNDtreebxf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreebyf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreebzf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [VHGNDh1]; => XFromInt; => XAddCore; => XChop32;
+	<----;
+	A = [FI]; C = VHGNDtslseed; C + [VHGNDtreelevel]; [C] = A;
 	C = [VHGNDtreeisroot]; ? C = 0 -> VHGND tree node nonroot range;
-	{ D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTpeakf mtp bytesperunit>
-	  DC 8F <dGRK020L mtp bytesperunit> D9 9F <dVHGNDtreerangef mtp bytesperunit> }
+	---->;
+	=> XReset;
+	[FS0] = [VHGNDtreescalef]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHTpeakf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK020L]; [XU0] = A; A = [GRK020H]; [XU1] = A; => XFromF64; => XMulCore; => XToF32;
+	[VHGNDtreerangef] = [FS0];
+	<----;
 	-> VHGND tree node range ready;
 "VHGND tree node nonroot range"
-	{ D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTpeakf mtp bytesperunit>
-	  DC 8F <dGRK050L mtp bytesperunit> D9 9F <dVHGNDtreerangef mtp bytesperunit> }
+	---->;
+	=> XReset;
+	[FS0] = [VHGNDtreescalef]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHTpeakf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK050L]; [XU0] = A; A = [GRK050H]; [XU1] = A; => XFromF64; => XMulCore; => XToF32;
+	[VHGNDtreerangef] = [FS0];
+	<----;
 "VHGND tree node range ready"
 	[PGFt] = [VHGNDtreerangef]; => PGF ldf32; => FToIntChop; [VHGNDtreerange] = [FI];
 	C = VHGNDtsrange; C + [VHGNDtreelevel]; [C] = [VHGNDtreerangef];
@@ -5830,38 +5865,95 @@
 	A = [VHGNDtreelayers]; ? A = 0 -> VHGND tree terminal;
 	A = [VHGNDtreebranches]; ? A = 1 -> VHGND tree endpoint pi;
 
-	{ D9 87 <dVHGNDtreeangle mtp bytesperunit> D9 FF
-	  D8 8F <dVHGNDtreerangef mtp bytesperunit>
-	  D8 87 <dVHGNDtreebxf mtp bytesperunit> D9 9F <dVHGNDtreeexf mtp bytesperunit>
-	  D9 87 <dVHGNDtreeangle mtp bytesperunit> D9 FE
-	  D8 8F <dVHGNDtreerangef mtp bytesperunit>
-	  D8 87 <dVHGNDtreebzf mtp bytesperunit> D9 9F <dVHGNDtreeezf mtp bytesperunit> }
+	( Trig is the scalar compatibility boundary.  Import its result into
+	  fpsoft immediately, then keep the multiply and add live in the
+	  extended image until the source's final binary32 store. )
+	---->;
+	[FS0] = [VHGNDtreeangle]; => FLoadF32; => FCos;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreerangef]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreebxf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore;
+	=> XToF32; [VHGNDtreeexf] = [FS0];
+	[FS0] = [VHGNDtreeangle]; => FLoadF32; => FSin;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreerangef]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreebzf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore;
+	=> XToF32; [VHGNDtreeezf] = [FS0];
+	<----;
 	-> VHGND tree endpoint ready;
     "VHGND tree endpoint pi"
-	{ D9 87 <dVHGNDtreebxf mtp bytesperunit> D8 A7 <dVHGNDtreerangef mtp bytesperunit>
-	  D9 9F <dVHGNDtreeexf mtp bytesperunit> }
+	---->;
+	[FS0] = [VHGNDtreerangef]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreebxf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XSubCore;
+	=> XToF32; [VHGNDtreeexf] = [FS0];
 	[VHGNDtreeezf] = [VHGNDtreebzf];
+	<----;
     "VHGND tree endpoint ready"
 	[PGFt] = [VHGNDtreeexf]; => PGF ldf32; => FToIntChop; [VHGNDtreeex] = [FI];
 	[PGFt] = [VHGNDtreeezf]; => PGF ldf32; => FToIntChop; [VHGNDtreeez] = [FI];
 	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
 	C = [VHGNDtreeisroot]; ? C = 0 -> VHGND tree child nonroot height;
-	{ D9 87 <dGRtreefl mtp bytesperunit> D8 8F <dGRrootheightf mtp bytesperunit>
-	  DC 87 <dGRK010L mtp bytesperunit> D8 8F <dVHGNDtreescalef mtp bytesperunit>
-	  D9 87 <dVHGNDtreebyf mtp bytesperunit> DE E1 D9 9F <dVHGNDtreeeyf mtp bytesperunit> }
+	---->;
+	=> XReset;
+	[FS0] = [GRtreefl]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [GRrootheightf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK010L]; [XU0] = A; A = [GRK010H]; [XU1] = A; => XFromF64; => XAddCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreescalef]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreebyf]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XSubCore; => XToF32;
+	[VHGNDtreeeyf] = [FS0];
+	<----;
 	-> VHGND tree child height ready;
 "VHGND tree child nonroot height"
-	{ D9 87 <dGRtreefl mtp bytesperunit> DC 87 <dGRK025L mtp bytesperunit>
-	  D8 8F <dVHGNDtreescalef mtp bytesperunit> DC 8F <dGRK025L mtp bytesperunit>
-	  D9 87 <dVHGNDtreebyf mtp bytesperunit> DE E1 D9 9F <dVHGNDtreeeyf mtp bytesperunit> }
+	---->;
+	=> XReset;
+	[FS0] = [GRtreefl]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK025L]; [XU0] = A; A = [GRK025H]; [XU1] = A; => XFromF64; => XAddCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreescalef]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK025L]; [XU0] = A; A = [GRK025H]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreebyf]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XSubCore; => XToF32;
+	[VHGNDtreeeyf] = [FS0];
+	<----;
 "VHGND tree child height ready"
 	[PGFt] = [VHGNDtreeeyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeey] = [FI];
-	{ D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTreducf mtp bytesperunit>
-	  D9 9F <dVHTnextscf mtp bytesperunit>
-	  D9 87 <dVHGNDtreescalef mtp bytesperunit> D8 8F <dVHTwidthf mtp bytesperunit>
-	  D9 9F <dVHGNDtreebr mtp bytesperunit>
-	  D9 87 <dVHTreducf mtp bytesperunit> D8 8F <dVHGNDtreescalef mtp bytesperunit>
-	  D8 8F <dVHTwidthf mtp bytesperunit> D9 9F <dVHGNDtreeer mtp bytesperunit> }
+	---->;
+	=> XReset;
+	[FS0] = [VHGNDtreescalef]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHTreducf]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore; => XToF32;
+	[VHTnextscf] = [FS0];
+	=> XReset;
+	[FS0] = [VHGNDtreescalef]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHTwidthf]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore; => XToF32;
+	[VHGNDtreebr] = [FS0];
+	=> XReset;
+	[FS0] = [VHTreducf]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreescalef]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHTwidthf]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore; => XToF32;
+	[VHGNDtreeer] = [FS0];
+	<----;
 	[PGFt] = [VHTnextscf]; => PGF ldf32; => FToIntChop; [VHTnextsc] = [FI];
 	A = [VHGNDtreeocc]; A '* 9; A + [VHTrootcol]; [VHTfacebase] = A;
 	[VHTfacestep] = 4; [DBflar] = [GRtreeflares]; => VHGND tree limb;
@@ -6165,10 +6257,22 @@
 
 "VHGND tree polar float vertex"
 	=> VHGND tree sincos;
-	{ D9 87 <dVHVcos mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
-	  D8 87 <dVHGNDtreecx mtp bytesperunit> D9 9F <dVHGNDtreepx mtp bytesperunit>
-	  D9 87 <dVHVsin mtp bytesperunit> D8 8F <dVHGNDtreerad mtp bytesperunit>
-	  D8 87 <dVHGNDtreecz mtp bytesperunit> D9 9F <dVHGNDtreepz mtp bytesperunit> }
+	---->;
+	=> XReset;
+	[FS0] = [VHVcos]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreerad]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreecx]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore; => XToF32;
+	[VHGNDtreepx] = [FS0];
+	=> XReset;
+	[FS0] = [VHVsin]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreerad]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreecz]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore; => XToF32;
+	[VHGNDtreepz] = [FS0];
+	<----;
 	A = FSINX; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreepx]; => PGF setf32;
 	A = FSINY; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreecy]; => PGF setf32;
 	A = FSINZ; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreepz]; => PGF setf32;

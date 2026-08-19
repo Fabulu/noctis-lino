@@ -301,12 +301,9 @@
 	flipped to chop for the store and flipped straight back. )
 
 "SU chop32"
-	{
-	    D9 AF <dSUcwc mtp bytesperunit>	(fldcw [edi+SUcwc*4])
-	    DF BF <dSUq0  mtp bytesperunit>	(fistp qword [edi+SUq0*4])
-	    D9 AF <dSUcwn mtp bytesperunit>	(fldcw [edi+SUcwn*4])
-	}
-	[SUti] = [SUq0];
+	---->;
+	=> XChop32; [SUti] = [FI];
+	<----;
 	end;
 
       ( SU near32 - the same under the AMBIENT control word, i.e. round
@@ -315,10 +312,9 @@
 	site inside surface(). )
 
 "SU near32"
-	{
-	    DF BF <dSUq0  mtp bytesperunit>	(fistp qword [edi+SUq0*4])
-	}
-	[SUti] = [SUq0];
+	---->;
+	=> XNear32; [SUti] = [FI];
+	<----;
 	end;
 
       ( SU i16 - narrow [SUti] to Borland's 16-bit signed int. )
@@ -479,30 +475,33 @@
 	between the fcos and the final fistp stores. )
 
 "SU cos term"
-	{
-	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
-	    D9 FF				(fcos)
-	    DB 87 <dSUmi mtp bytesperunit>	(fild dword [edi+SUmi*4])
-	    DE C9				(fmulp st(1),st(0))
-	}
+	---->;
+	[FS0] = [SFa]; => FLoadF32; => FCos;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [SUmi]; => XFromInt; => XMulCore;
+	<----;
 	end;
 
 "SU sin term"
-	{
-	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
-	    D9 FE				(fsin)
-	    DB 87 <dSUmi mtp bytesperunit>	(fild dword [edi+SUmi*4])
-	    DE C9				(fmulp st(1),st(0))
-	}
+	---->;
+	[FS0] = [SFa]; => FLoadF32; => FSin;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [SUmi]; => XFromInt; => XMulCore;
+	<----;
 	end;
 
       ( SU add ia - st0 += (double)[SUia]. )
 
 "SU add ia"
-	{
-	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    DE C1				(faddp st(1),st(0))
-	}
+	---->;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [SUia]; => XFromInt; => XAddCore;
+	<----;
 	end;
 
 ( ==================================================================== )
@@ -515,23 +514,35 @@
 	Making them doubles is a different curve. )
 
 "SU frx step"				( px += kfract * cos(a) )
-	{
-	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
-	    D9 FF				(fcos)
-	    D8 8F <dKFKF mtp bytesperunit>	(fmul dword [edi+KFKF*4])
-	    D8 87 <dSFpx mtp bytesperunit>	(fadd dword [edi+SFpx*4])
-	    D9 9F <dSFpx mtp bytesperunit>	(fstp dword [edi+SFpx*4])
-	}
+	---->;
+	[FS0] = [SFa]; => FLoadF32; => FCos;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [KFKF]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [SFpx]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore;
+	=> XToF32; [SFpx] = [FS0];
+	<----;
 	end;
 
 "SU fry step"				( py += kfract * sin(a) )
-	{
-	    D9 87 <dSFa  mtp bytesperunit>	(fld  dword [edi+SFa*4])
-	    D9 FE				(fsin)
-	    D8 8F <dKFKF mtp bytesperunit>	(fmul dword [edi+KFKF*4])
-	    D8 87 <dSFpy mtp bytesperunit>	(fadd dword [edi+SFpy*4])
-	    D9 9F <dSFpy mtp bytesperunit>	(fstp dword [edi+SFpy*4])
-	}
+	---->;
+	[FS0] = [SFa]; => FLoadF32; => FSin;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [KFKF]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [SFpy]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore;
+	=> XToF32; [SFpy] = [FS0];
+	<----;
 	end;
 
       ( SU fr load - the two locals from the two int globals. )
