@@ -18,15 +18,21 @@
 	PHSDA = 5; PHSWEND = 6; PHNORM = 7; PHMERGE = 8;
 	PHTERM = 9; PHPOST = 10; PHPAL = 11; PHDONE = 12;
 
+	SUDIAGMAGIC = 3147444Eh;	( NDG1 )
+	SUDIAGVER = 1; SUDIAGU = 256;
+	SUDIAGREC0 = 64; SUDIAGRECU = 8; SUDIAGRECMAX = 24;
+
 "variables"
 
 	SUpbase = 0; SUpseg = 0; SUobase = 0; SUoseg = 0; SUmoon = 0;
 	SUoff = 0; SUval = 0; SUidx = 0;
+	SUdiagcount = 0; SUdiagdst = 0; SUdiagidx = 0;
 
 "workspace"
 
 	sutmppal = 768;
 	sulrec = 8;
+	sudiag = 256;
 
 "programme"
 
@@ -122,6 +128,86 @@
 	B ^ SU wipe ovl u;
 	end;
 
+      ( Store the first cirrus write at the exact DOS-address boundary. )
+
+"SUDM cirrus"
+	A = [SUdiagmode]; ? A = 0 -> SUDM cirrus done;
+	A = [SUdiagcirrus]; ? A = 0 -> SUDM cirrus done;
+	[sudiag plus 40] = 1;
+	[sudiag plus 41] = [SUc]; [sudiag plus 42] = [SUg];
+	[sudiag plus 43] = [SFa]; [sudiag plus 44] = [SUpx];
+	[sudiag plus 45] = [SUpy]; [sudiag plus 46] = [SUoff];
+	[sudiag plus 47] = [SUval]; [sudiag plus 48] = [SUoseg];
+	[sudiag plus 49] = [SUobase];
+	A = nw; [sudiag plus 50] = A;
+	A + [SUoseg]; A + [SUoff]; [sudiag plus 51] = A;
+	C = [A]; C & 0FFh; [sudiag plus 52] = C;
+	A = nw; A + ROBJ; A + 6480; [sudiag plus 53] = A;
+	C = [A]; C & 0FFh; [sudiag plus 54] = C;
+	[sudiag plus 55] = [SUgr]; [sudiag plus 56] = [SUcr];
+	[sudiag plus 57] = [SUcxi]; [sudiag plus 58] = [SUcyi];
+	[sudiag plus 59] = [SUpseg]; [sudiag plus 60] = [SUpbase];
+	[sudiag plus 61] = SOBJ; [sudiag plus 62] = ROBJ;
+	[sudiag plus 63] = [SUdiagmode];
+	[SUdiagcirrus] = 0;
+    "SUDM cirrus done"
+	end;
+
+      ( Keep a compact ledger in production memory only when NIVGEN opts in.
+	The two first switch iterations get buffer hashes; later hot-loop
+	records are discarded while all broad phase records are retained. )
+
 "SUDM led"
-	( Production sets SUledon to zero, so this sink is linked but unreachable. )
+	A = [SUdiagmode]; ? A = 0 -> SUDM led done;
+	A = [sulrec]; ? A != PHCASE -> SUDM led phase;
+	A = [sulrec plus 1]; ? A '> 1 -> SUDM led done;
+	=> SU map hash; => SU ovl hash;
+	[sulrec plus 6] = [SUmh]; [sulrec plus 7] = [SUoh];
+    "SUDM led phase"
+	A = [sulrec];
+	? A = PHPRO -> SUDM led pro;
+	? A = PHSEED -> SUDM led seed;
+	? A = PHRND -> SUDM led rnd;
+	? A = PHPOST -> SUDM led prepal;
+	? A = PHPAL -> SUDM led postpal;
+	-> SUDM led store;
+    "SUDM led pro"
+	[sudiag plus 10] = [SUrtp]; [sudiag plus 11] = [SUfseed];
+	[sudiag plus 12] = [SUfn]; [sudiag plus 13] = [SUfh];
+	-> SUDM led store;
+    "SUDM led seed"
+	[sudiag plus 14] = [SUseed]; [sudiag plus 15] = [SUfseed];
+	[sudiag plus 16] = [SUfn]; [sudiag plus 17] = [SUfh];
+	-> SUDM led store;
+    "SUDM led rnd"
+	[sudiag plus 18] = [brtlseed]; [sudiag plus 19] = [SUbnc];
+	-> SUDM led store;
+    "SUDM led prepal"
+	[sudiag plus 20] = [SUnsr]; [sudiag plus 21] = [SUnsg];
+	[sudiag plus 22] = [SUnsb]; [sudiag plus 23] = [SUid];
+	[sudiag plus 24] = [SUtype]; [sudiag plus 25] = [SUowner];
+	[sudiag plus 26] = [SUcbase]; [sudiag plus 27] = [SUbnc];
+	[sudiag plus 28] = [SUbh]; [sudiag plus 29] = [brtlseed];
+	-> SUDM led store;
+    "SUDM led postpal"
+	[sudiag plus 30] = [SUr]; [sudiag plus 31] = [SUg];
+	[sudiag plus 32] = [SUb]; [sudiag plus 33] = [SUc];
+	[sudiag plus 34] = [SUbnc]; [sudiag plus 35] = [SUbh];
+	[sudiag plus 36] = [brtlseed];
+	A = sutmppal; C = [SUcbase]; C '* 3; A + C;
+	D = FNVOFF; B = 192;
+    "SUDM led pal hash"
+	C = [A]; C & 0FFh; D # C; D '* FNVPR; A+;
+	B ^ SUDM led pal hash;
+	[sudiag plus 37] = D;
+    "SUDM led store"
+	A = [SUdiagcount]; ? A '>= SUDIAGRECMAX -> SUDM led done;
+	A '* SUDIAGRECU; A + SUDIAGREC0; A + sudiag; [SUdiagdst] = A;
+	[SUdiagidx] = 0;
+    "SUDM led copy"
+	A = sulrec; A + [SUdiagidx]; C = [A];
+	A = [SUdiagdst]; A + [SUdiagidx]; [A] = C;
+	[SUdiagidx]+; A = [SUdiagidx]; ? A '< SUDIAGRECU -> SUDM led copy;
+	[SUdiagcount]+;
+    "SUDM led done"
 	end;

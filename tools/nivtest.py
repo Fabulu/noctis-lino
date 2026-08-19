@@ -37,6 +37,18 @@ LAYOUT = {
     "surface_palette": (308352, 768),
 }
 OUT_UNITS = 309120
+DIAG_MAGIC = 0x3147444E
+DIAG_VERSION = 1
+DIAG_UNITS = 256
+DIAG_RECORD_OFFSET = 64
+DIAG_RECORD_UNITS = 8
+DIAG_MAX_RECORDS = 24
+PHASE_NAMES = {
+    0: "entry", 1: "prologue", 2: "seed", 3: "rndpat",
+    4: "case", 5: "sda", 6: "switch_end", 7: "normalize",
+    8: "merge", 9: "terminator", 10: "post", 11: "palette",
+    12: "done",
+}
 DEFAULT_GAP = bytes.fromhex("000000000000000000000000C509F054")
 
 
@@ -115,11 +127,14 @@ def resolve_executable(args: argparse.Namespace) -> Path:
     return ensure_build(getattr(args, "build", False))
 
 
-def decode_units(path: Path) -> tuple[list[int], dict[str, bytes]]:
+def decode_units(
+        path: Path, diagnostic: bool = False,
+) -> tuple[list[int], dict[str, bytes], list[int] | None]:
     raw = path.read_bytes()
-    if len(raw) != OUT_UNITS * 4:
+    expected_units = OUT_UNITS + (DIAG_UNITS if diagnostic else 0)
+    if len(raw) != expected_units * 4:
         raise RuntimeError(f"wrong Lino output size {len(raw)}")
-    units = list(struct.unpack(f"<{OUT_UNITS}I", raw))
+    units = list(struct.unpack(f"<{expected_units}I", raw))
     header = units[:HEAD]
     if header[0] != OUT_MAGIC or header[1] != VERSION:
         raise RuntimeError(
@@ -128,10 +143,21 @@ def decode_units(path: Path) -> tuple[list[int], dict[str, bytes]]:
         name: bytes(value & 0xFF for value in units[start:start + length])
         for name, (start, length) in LAYOUT.items()
     }
-    return header, buffers
+    diagnostic_units = units[OUT_UNITS:] if diagnostic else None
+    if diagnostic_units is not None:
+        if (diagnostic_units[0] != DIAG_MAGIC or
+                diagnostic_units[1] != DIAG_VERSION or
+                diagnostic_units[2] != DIAG_UNITS):
+            raise RuntimeError(
+                "bad Lino diagnostic trailer "
+                f"{diagnostic_units[0]:08X}/{diagnostic_units[1]}/"
+                f"{diagnostic_units[2]}")
+    return header, buffers, diagnostic_units
 
 
-def run_lino(args: argparse.Namespace) -> tuple[list[int], dict[str, bytes]]:
+def run_lino(
+        args: argparse.Namespace,
+) -> tuple[list[int], dict[str, bytes], list[int] | None]:
     exe = resolve_executable(args)
     gap = bytes.fromhex(args.gap) if args.gap else DEFAULT_GAP
     if len(gap) != 16:
@@ -139,7 +165,8 @@ def run_lino(args: argparse.Namespace) -> tuple[list[int], dict[str, bytes]]:
     values = [
         IN_MAGIC, VERSION, u32(args.x), u32(args.y), u32(args.z),
         u32(args.p), u32(args.lon), u32(args.lat), u32(args.secs),
-        u32(args.sc), u32(args.albedo), u32(args.night), 1, 0, 0, 0,
+        u32(args.sc), u32(args.albedo), u32(args.night), 1,
+        1 if args.diagnostic else 0, 0, 0,
         *gap,
     ]
     with tempfile.TemporaryDirectory(prefix="nivtest-") as temp_name:
@@ -154,10 +181,104 @@ def run_lino(args: argparse.Namespace) -> tuple[list[int], dict[str, bytes]]:
             detail = ((proc.stdout or "") + (proc.stderr or ""))[-2000:]
             raise RuntimeError(
                 f"Lino NIVGEN run failed with exit {proc.returncode}: {detail}")
-        return decode_units(output)
+        return decode_units(output, args.diagnostic)
 
 
-def results(header: list[int], buffers: dict[str, bytes]) -> dict[str, object]:
+def hex32(value: int) -> str:
+    return f"{value:08X}"
+
+
+def diagnostic_results(units: list[int]) -> dict[str, object]:
+    record_count = units[3]
+    if record_count > DIAG_MAX_RECORDS:
+        raise RuntimeError(f"bad Lino diagnostic record count {record_count}")
+    ledger = []
+    for index in range(record_count):
+        start = DIAG_RECORD_OFFSET + index * DIAG_RECORD_UNITS
+        (
+            phase, tag, fast_count, borland_count,
+            fast_hash, borland_hash, map_hash, overlay_hash,
+        ) = units[start:start + DIAG_RECORD_UNITS]
+        ledger.append({
+            "phase": PHASE_NAMES.get(phase, f"unknown_{phase}"),
+            "phase_id": phase,
+            "tag": signed(tag),
+            "fast_count": fast_count,
+            "borland_count": borland_count,
+            "fast_hash": hex32(fast_hash),
+            "borland_hash": hex32(borland_hash),
+            "map_hash": hex32(map_hash),
+            "overlay_hash": hex32(overlay_hash),
+        })
+    return {
+        "outer": {
+            "seed_a": hex32(units[4]),
+            "fast_seed": hex32(units[5]),
+            "draws": units[6:9],
+            "period": units[9],
+        },
+        "prologue": {
+            "period": units[10],
+            "period_fast_seed": hex32(units[11]),
+            "period_fast_count": units[12],
+            "period_fast_hash": hex32(units[13]),
+            "surface_seed": hex32(units[14]),
+            "surface_fast_seed": hex32(units[15]),
+            "surface_fast_count": units[16],
+            "surface_fast_hash": hex32(units[17]),
+            "rndpat_borland_seed": hex32(units[18]),
+            "rndpat_borland_count": units[19],
+        },
+        "palette": {
+            "star_rgb": [signed(value) for value in units[20:23]],
+            "id": signed(units[23]),
+            "type": signed(units[24]),
+            "owner": signed(units[25]),
+            "color_base": units[26],
+            "entry_borland_count": units[27],
+            "entry_borland_hash": hex32(units[28]),
+            "entry_borland_seed": hex32(units[29]),
+            "mixed_rgbc": [signed(value) for value in units[30:34]],
+            "exit_borland_count": units[34],
+            "exit_borland_hash": hex32(units[35]),
+            "exit_borland_seed": hex32(units[36]),
+            "hash": hex32(units[37]),
+        },
+        "first_cirrus": {
+            "reached": bool(units[40]),
+            "case": signed(units[41]),
+            "ring": signed(units[42]),
+            "angle_bits": hex32(units[43]),
+            "px": units[44],
+            "py": units[45],
+            "offset": units[46],
+            "value": units[47],
+            "overlay_segment": hex32(units[48]),
+            "overlay_base": hex32(units[49]),
+            "workspace_base": hex32(units[50]),
+            "effective_address": hex32(units[51]),
+            "effective_byte": units[52],
+            "canonical_address": hex32(units[53]),
+            "canonical_byte": units[54],
+            "gray": signed(units[55]),
+            "radius": signed(units[56]),
+            "center_x": signed(units[57]),
+            "center_y": signed(units[58]),
+            "surface_segment": hex32(units[59]),
+            "surface_base": hex32(units[60]),
+            "sobj": hex32(units[61]),
+            "robj": hex32(units[62]),
+            "mode": units[63],
+        },
+        "record_count": record_count,
+        "ledger": ledger,
+    }
+
+
+def results(
+        header: list[int], buffers: dict[str, bytes],
+        diagnostic_units: list[int] | None = None,
+) -> dict[str, object]:
     owner = signed(header[9])
     def f64(index: int) -> float:
         return struct.unpack("<d", struct.pack("<II", header[index],
@@ -175,7 +296,7 @@ def results(header: list[int], buffers: dict[str, bytes]) -> dict[str, object]:
         "stex": hash_record(buffers["surftex"][:65024]),
         "sky": hash_record(buffers["sky"][:46080]),
     }
-    return {
+    result = {
         "body": header[6], "body_count": header[7], "type": header[8],
         "status": header[2],
         "owner": owner, "global_surface_seed": signed(header[10]),
@@ -195,6 +316,9 @@ def results(header: list[int], buffers: dict[str, bytes]) -> dict[str, object]:
         },
         "gap": buffers["gap"].hex().upper(), "hashes": hashes,
     }
+    if diagnostic_units is not None:
+        result["diagnostic"] = diagnostic_results(diagnostic_units)
+    return result
 
 
 def dump_buffers(args: argparse.Namespace, buffers: dict[str, bytes]) -> None:
@@ -292,6 +416,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-gap")
     parser.add_argument("-o")
     parser.add_argument("-dump")
+    parser.add_argument(
+        "--diagnostic", action="store_true",
+        help="append and decode the opt-in surface boundary trailer")
     parser.add_argument("--build", action="store_true")
     parser.add_argument(
         "--exe", help="use this prebuilt native harness instead of compiling")
@@ -304,14 +431,14 @@ def main() -> int:
     try:
         if args.command == "planet-all":
             args.p = 0
-            header, buffers = run_lino(args)
-            all_results = [results(header, buffers)]
+            header, buffers, diagnostic_units = run_lino(args)
+            all_results = [results(header, buffers, diagnostic_units)]
             body_count = int(all_results[0]["body_count"])
             args.build = False
             for body in range(1, body_count):
                 args.p = body
-                header, buffers = run_lino(args)
-                all_results.append(results(header, buffers))
+                header, buffers, diagnostic_units = run_lino(args)
+                all_results.append(results(header, buffers, diagnostic_units))
             text = emit_planet_all(all_results)
             if args.o:
                 with open(args.o, "a", encoding="utf-8", newline="\n") as stream:
@@ -319,8 +446,8 @@ def main() -> int:
             else:
                 sys.stdout.write(text)
             return 0
-        header, buffers = run_lino(args)
-        result = results(header, buffers)
+        header, buffers, diagnostic_units = run_lino(args)
+        result = results(header, buffers, diagnostic_units)
         dump_buffers(args, buffers)
         text = emit_text(args.command, result, args)
         if args.o:

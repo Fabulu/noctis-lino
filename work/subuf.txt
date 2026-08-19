@@ -453,6 +453,12 @@
 	=> SUDM rec;
 	end;
 
+      ( The production sink records the first cirrus store when NIVGEN
+	explicitly enables its boundary diagnostic.  Corpus runs do not. )
+
+"SUDM cirrus"
+	end;
+
       ( SUDM led - one ledger phase.  Eight units: phase id, a tag, the
 	two cumulative draw counts, the two stream value-hashes, and the
 	two buffer hashes.  Counts and value-hashes are SEPARATE on

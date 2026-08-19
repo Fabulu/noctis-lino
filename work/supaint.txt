@@ -139,6 +139,10 @@
     "SU cirrus lo"
 	[SUval] = A;
 	=> SU oput;
+	A = [SUdiagmode]; ? A = 0 -> SU cirrus done;
+	A = [SUdiagcirrus]; ? A = 0 -> SU cirrus done;
+	=> SUDM cirrus;
+    "SU cirrus done"
 	end;
 
 ( ==================================================================== )

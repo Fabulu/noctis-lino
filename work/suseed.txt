@@ -228,6 +228,11 @@
 	SUvptr	= 0;
 	SUknot1	= 0;
 
+	( Default-off observer hooks used by the production NIVGEN boundary
+	  diagnostic.  The corpus sink deliberately leaves them zero. )
+	SUdiagmode	= 0;
+	SUdiagcirrus	= 0;
+
 "workspace"
 
 	( Four X units for every integral degree multiplier -499..499.

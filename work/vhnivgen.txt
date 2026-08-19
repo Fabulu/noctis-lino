@@ -28,13 +28,14 @@
 	NHOFFSKY = 243552;
 	NHOFFSRFPAL = 308352;
 	NHOUT = 309120;
+	NHOFFDIAG = 309120; NHDIAGU = 256; NHOUTDIAG = 309376;
 
 "variables"
 
 	NHinname = { niv-input.bin };
 	NHoutname = { niv-output.bin };
 	NHi = 0; NHsrc = 0; NHunits = 0; NHoff = 0; NHtmp = 0;
-	NHviewbody = 0; NHstatus = 0;
+	NHviewbody = 0; NHstatus = 0; NHdiag = 0; NHoutunits = 0;
 
 "workspace"
 
@@ -50,6 +51,10 @@
 	[Block Size] = NHIN; [Block Size] * BYTESPERUNIT; isocall;
 	A = [NHinput]; ? A != NHINMAGIC -> VHNIV invalid;
 	A = [NHinput plus 1]; ? A != NHVERSION -> VHNIV invalid;
+	A = [NHinput plus 13]; [NHdiag] = A;
+	? A = 0 -> VHNIV diag input ready; [NHdiag] = 1;
+    "VHNIV diag input ready"
+	=> VHNIV diag reset;
 
 	=> MEM build rtab; => MEM build ztab; => MEM wrap reset;
 	=> PAL float init; => PGF constants; => SU fp init; => SU pal init;
@@ -126,10 +131,27 @@
 	[NHheader plus 30] = [VHGNDseedval0]; [NHheader plus 31] = [VHGNDseedval1];
 	[NHsrc] = NHheader; [NHunits] = NHHEAD; [NHoff] = 0; => VHNIV write;
 
+	[NHoutunits] = NHOUT;
+	A = [NHdiag]; ? A = 0 -> VHNIV diagnostic output ready;
+	[sudiag plus 3] = [SUdiagcount];
+	[NHsrc] = sudiag; [NHunits] = NHDIAGU; [NHoff] = NHOFFDIAG; => VHNIV write;
+	[NHoutunits] = NHOUTDIAG;
+    "VHNIV diagnostic output ready"
 	[File Name] = NHoutname; [File Position] = 0; [File Command] = SET SIZE;
-	[File Size] = NHOUT; [File Size] * BYTESPERUNIT; isocall;
+	[File Size] = [NHoutunits]; [File Size] * BYTESPERUNIT; isocall;
 	[VHGNDclockoverride] = 0;
 	=> FLeave;
+	end;
+
+"VHNIV diag reset"
+	[NHi] = 0;
+    "VHNIV diag wipe"
+	A = sudiag; A + [NHi]; [A] = 0;
+	[NHi]+; A = [NHi]; ? A '< NHDIAGU -> VHNIV diag wipe;
+	[sudiag plus 0] = SUDIAGMAGIC; [sudiag plus 1] = SUDIAGVER;
+	[sudiag plus 2] = SUDIAGU; [sudiag plus 3] = 0;
+	[SUdiagmode] = [NHdiag]; [SUdiagcirrus] = [NHdiag];
+	[SUdiagcount] = 0;
 	end;
 
 "VHNIV soft fp check"
@@ -183,10 +205,15 @@
 
 	( surface(): exact rotation-period stream and integer seconds division. )
 	[FB0] = [VHGNDseedval0]; [FB1] = [VHGNDseedval1];
-	=> GeoAdd4112ChopLive; A = [FI]; => SU fast srand;
-	C = 50; => SU rfr; A = C; A + 1; A '* 10; [VHGNDperiod] = A;
-	C = 25; => SU rfr; A = C; A '* 10; A + [VHGNDperiod]; [VHGNDperiod] = A;
-	C = 250; => SU rfr; A = C; A + [VHGNDperiod]; A + 41; [VHGNDperiod] = A;
+	=> GeoAdd4112ChopLive; A = [FI]; [sudiag plus 4] = A; => SU fast srand;
+	[sudiag plus 5] = [SUfseed];
+	C = 50; => SU rfr; A = C; [sudiag plus 6] = A;
+	A + 1; A '* 10; [VHGNDperiod] = A;
+	C = 25; => SU rfr; A = C; [sudiag plus 7] = A;
+	A '* 10; A + [VHGNDperiod]; [VHGNDperiod] = A;
+	C = 250; => SU rfr; A = C; [sudiag plus 8] = A;
+	A + [VHGNDperiod]; A + 41; [VHGNDperiod] = A;
+	[sudiag plus 9] = [VHGNDperiod];
 	[SUia] = A; => SU secs rot; A = [SUti]; A % 360;
 	? A >= 0 -> VHNIV orbital rotation ready; A + 360;
     "VHNIV orbital rotation ready"
@@ -240,7 +267,8 @@
 	=> VHG fpu clean; => SU fp init; => SU pal init;
 	[SUid] = [VHGplanet]; [SUtype] = [VHGptype]; [SUplwp] = [VHGNDplwp];
 	[SUowner] = [VHGNDowner]; [SUnsr] = [VHTred]; [SUnsg] = [VHTgreen]; [SUnsb] = [VHTblue];
-	[SUsv0] = [VHGNDseedval0]; [SUsv1] = [VHGNDseedval1]; [SUledon] = 0;
+	[SUsv0] = [VHGNDseedval0]; [SUsv1] = [VHGNDseedval1];
+	[SUledon] = [NHdiag];
 	A = [VHGNDowner]; ? A >= 0 -> VHNIV orbital moon;
 	[SUcbase] = 192; [VHGNDcbase] = 192; => SU select planet; -> VHNIV orbital selected;
     "VHNIV orbital moon"
@@ -252,11 +280,13 @@
 	[SUcbase] = 128; [VHGNDcbase] = 128; => SU select planet;
 	=> SU select ovl; => SU wipe; => SU wipe ovl; => SU surface;
 	=> VHNIV moon heap bridge;
+	[SUdiagcount] = 0; [SUdiagcirrus] = [NHdiag];
 	=> SU select moon; => SU surface;
 	-> VHNIV orbital complete;
     "VHNIV orbital selected"
 	=> SU select ovl; => SU wipe; => SU wipe ovl; => SU surface;
     "VHNIV orbital complete"
+	[SUledon] = 0; [SUdiagmode] = 0; [SUdiagcirrus] = 0;
 	end;
 
 "VHNIV moon heap bridge"
