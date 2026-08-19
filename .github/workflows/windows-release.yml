@@ -66,8 +66,9 @@ jobs:
         shell: bash
         run: |
           sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get update -o Acquire::Retries=3
+          sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+            apt-get install -y --no-install-recommends \
             libc6:i386 libx11-6:i386 libxau6:i386 libxcb1:i386 \
             libxdmcp6:i386 xvfb xauth
 
