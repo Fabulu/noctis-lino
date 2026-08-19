@@ -85,6 +85,7 @@ jobs:
           path: |
             build/vhgame.exe
             build/linux-compiler114m.bin
+            build/windows-build.provenance.txt
           if-no-files-found: error
 
   package:
@@ -148,27 +149,33 @@ jobs:
             -LiteralPath dist\Noctis-IV-windows-x86.zip.sha256 `
             -Encoding ascii
 
-          $sourceHash = (Get-FileHash -LiteralPath work\vhgame.txt -Algorithm SHA256).Hash.ToLowerInvariant()
+          $buildProvenance = 'build\compiled\windows-build.provenance.txt'
+          $values = @{}
+          foreach ($line in Get-Content -LiteralPath $buildProvenance) {
+            if (-not $line.Trim()) { continue }
+            $key, $value = $line -split '=', 2
+            $values[$key] = $value
+          }
+          $requiredKeys = @(
+            'commit', 'source_sha256', 'executable_sha256', 'compile_script_sha256',
+            'bootstrap_compiler_sha256', 'compiler_source_sha256',
+            'compiler_bits_library_sha256', 'compiler_bytes_library_sha256',
+            'compiler_build_script_sha256', 'bootstrap_cpu_pack_sha256',
+            'bootstrap_system_pack_sha256', 'compiler_sha256', 'cpu_pack_sha256',
+            'system_pack_sha256', 'target', 'build_provenance'
+          )
+          foreach ($key in $requiredKeys) {
+            if (-not $values.ContainsKey($key)) { throw "Build provenance lacks $key" }
+          }
+          if ($values.commit -ne $env:GITHUB_SHA -or $values.target -ne 'win32/i386m') {
+            throw 'Build provenance does not identify this commit and target'
+          }
           $exeHash = (Get-FileHash -LiteralPath work\vhgame.exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          $bootstrapHash = (Get-FileHash -LiteralPath main\linux_compiler.bin -Algorithm SHA256).Hash.ToLowerInvariant()
-          $compilerSourceHash = (Get-FileHash -LiteralPath main\lib\gen\compiler114m.txt -Algorithm SHA256).Hash.ToLowerInvariant()
-          $compilerBuildHash = (Get-FileHash -LiteralPath build\build_compiler114m_linux.sh -Algorithm SHA256).Hash.ToLowerInvariant()
           $compilerHash = (Get-FileHash -LiteralPath build\compiled\linux-compiler114m.bin -Algorithm SHA256).Hash.ToLowerInvariant()
-          $cpuHash = (Get-FileHash -LiteralPath main\cpu\i386m.bin -Algorithm SHA256).Hash.ToLowerInvariant()
-          $sysHash = (Get-FileHash -LiteralPath main\sys\win32.bin -Algorithm SHA256).Hash.ToLowerInvariant()
-          @(
-            "commit=$env:GITHUB_SHA"
-            "source_sha256=$sourceHash"
-            "executable_sha256=$exeHash"
-            "bootstrap_compiler_sha256=$bootstrapHash"
-            "compiler_source_sha256=$compilerSourceHash"
-            "compiler_build_script_sha256=$compilerBuildHash"
-            "compiler_sha256=$compilerHash"
-            "cpu_pack_sha256=$cpuHash"
-            "system_pack_sha256=$sysHash"
-            "target=win32/i386m"
-            "build_provenance=bootstrapped and fixpoint-verified the extended compiler, then compiled tagged source on GitHub-hosted Ubuntu; tested and packaged on GitHub-hosted Windows"
-          ) | Set-Content -LiteralPath dist\Noctis-IV-windows-x86.provenance.txt -Encoding ascii
+          if ($values.executable_sha256 -ne $exeHash -or $values.compiler_sha256 -ne $compilerHash) {
+            throw 'Downloaded compiler or executable does not match its Linux build provenance'
+          }
+          Copy-Item -LiteralPath $buildProvenance -Destination dist\Noctis-IV-windows-x86.provenance.txt
 
       - name: Upload the tagged package
         uses: actions/upload-artifact@v7

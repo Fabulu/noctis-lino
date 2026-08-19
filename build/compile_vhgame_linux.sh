@@ -70,12 +70,19 @@ mkdir -p "$(dirname "$output")"
 cp "$compiled" "$output"
 rm -f "$compiled"
 
-python3 - "$output" <<'PY'
+provenance="$repo/build/windows-build.provenance.txt"
+python3 - "$output" "$repo" "$compiler" "$provenance" <<'PY'
 from pathlib import Path
+import hashlib
+import os
 import struct
+import subprocess
 import sys
 
 path = Path(sys.argv[1])
+repo = Path(sys.argv[2])
+compiler = Path(sys.argv[3])
+provenance = Path(sys.argv[4])
 data = path.read_bytes()
 if len(data) < 1024 or data[:2] != b"MZ":
     raise SystemExit(f"{path} is not a plausible Windows PE")
@@ -87,5 +94,41 @@ if machine != 0x014C or sections == 0:
     raise SystemExit(
         f"expected sectioned i386 PE, got machine {machine:#06x} with {sections} sections"
     )
+
+
+def sha256(file: Path) -> str:
+    return hashlib.sha256(file.read_bytes()).hexdigest()
+
+
+commit = os.environ.get("GITHUB_SHA")
+if not commit:
+    commit = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+records = [
+    ("commit", commit),
+    ("source_sha256", sha256(repo / "work/vhgame.txt")),
+    ("executable_sha256", sha256(path)),
+    ("compile_script_sha256", sha256(repo / "build/compile_vhgame_linux.sh")),
+    ("bootstrap_compiler_sha256", sha256(repo / "main/linux_compiler.bin")),
+    ("compiler_source_sha256", sha256(repo / "main/lib/gen/compiler114m.txt")),
+    ("compiler_bits_library_sha256", sha256(repo / "main/lib/gen/bits.txt")),
+    ("compiler_bytes_library_sha256", sha256(repo / "main/lib/gen/bytes.txt")),
+    ("compiler_build_script_sha256", sha256(repo / "build/build_compiler114m_linux.sh")),
+    ("bootstrap_cpu_pack_sha256", sha256(repo / "main/cpu/i386.bin")),
+    ("bootstrap_system_pack_sha256", sha256(repo / "main/sys/linux.bin")),
+    ("compiler_sha256", sha256(compiler)),
+    ("cpu_pack_sha256", sha256(repo / "main/cpu/i386m.bin")),
+    ("system_pack_sha256", sha256(repo / "main/sys/win32.bin")),
+    ("target", "win32/i386m"),
+    (
+        "build_provenance",
+        "all hashes were recorded from bytes on the Linux build host; the extended compiler was bootstrapped and fixpoint-verified before compiling the game",
+    ),
+]
+provenance.write_text(
+    "".join(f"{key}={value}\n" for key, value in records), encoding="ascii"
+)
 print(f"compiled {path} ({len(data)} bytes, {sections} PE sections)")
+print(f"wrote {provenance}")
 PY
