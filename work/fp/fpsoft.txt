@@ -89,6 +89,14 @@
 	xass = 0; xbss = 0; xaso = 0; xasw = 0;
 	xasb = 0; xasbit = 0;
 
+	( square-root state: fixed 128-bit radicand, root and descending
+	  candidate mask.  Candidate squares use Mul128, so every decision
+	  remains exact in ordinary 32-bit integer instructions. )
+	srd0 = 0; srd1 = 0; srd2 = 0; srd3 = 0;
+	sqrh = 0; sqrl = 0; sqmh = 0; sqml = 0;
+	sqcarry = 0; sqstep = 0;
+	srm0 = 0; srm1 = 0; srm2 = 0; srm3 = 0;
+
 "workspace"
 
 	XSTK = 32;			( 8 entries of 4 units: s e mh ml )
@@ -1046,6 +1054,152 @@
 	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
 	=> XMulCore;
 	=> XToF64;
+	end;
+
+      ( XScalarSqrt - FA <- sqrt(FA), preserving the x87 sequence:
+	  XFromF64 is exact, XRootCore rounds at 64 significand bits, and
+	  XToF64 performs the final qword store rounding. )
+
+"XScalarSqrt"
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	? [XE] = 0 -> XSS zero;
+	? [XS] = 0 -> XSS positive;
+	[XREJ]+; [FA0] = 0; [FA1] = 0;
+	end;
+    "XSS positive"
+	=> XRootCore;
+	=> XToF64;
+	end;
+    "XSS zero"
+	[FA0] = 0; [FA1] = 0;
+	end;
+
+      ( XRootCore - exact integer bit-search for sqrt(X) at 64
+	  significand bits.  For an even unbiased exponent the radicand is
+	  M*2^63; for an odd exponent it is M*2^64.  Setting each candidate
+	  root bit and comparing its exact 128-bit square is slower than a
+	  restoring loop, but has no implicit-width or trial-state ambiguity. )
+
+"XRootCore"
+	A = [XE]; A - XBIAS; [xtmp] = A;
+	A = [xtmp]; A & 1;
+	? A = 0 -> XRoot even;
+	[srd0] = 0; [srd1] = 0;
+	A = [XML]; [srd2] = A;
+	A = [XMH]; [srd3] = A;
+	A = [xtmp]; A - 1; [xtmp] = A;
+	-> XRoot radicand ready;
+    "XRoot even"
+	[srd0] = 0;
+	A = [XML]; A < 31; [srd1] = A;
+	A = [XML]; A > 1; [srd2] = A;
+	A = [XMH]; A < 31; B = [srd2]; A | B; [srd2] = A;
+	A = [XMH]; A > 1; [srd3] = A;
+    "XRoot radicand ready"
+	[sqrh] = 0; [sqrl] = 0;
+	[sqmh] = 80000000h; [sqml] = 0;
+	[sqstep] = 0;
+    "XRoot bit loop"
+	( q |= mask )
+	A = [sqrl]; B = [sqml]; A | B; [sqrl] = A;
+	A = [sqrh]; B = [sqmh]; A | B; [sqrh] = A;
+	( exact q*q )
+	A = [sqrh]; [XMH] = A; [YMH] = A;
+	A = [sqrl]; [XML] = A; [YML] = A;
+	=> Mul128;
+	( reject the candidate if its 128-bit square is too large )
+	A = [xp3]; B = [srd3];
+	? A '> B -> XRoot reject;
+	? A '< B -> XRoot mask;
+	A = [xp2]; B = [srd2];
+	? A '> B -> XRoot reject;
+	? A '< B -> XRoot mask;
+	A = [xp1]; B = [srd1];
+	? A '> B -> XRoot reject;
+	? A '< B -> XRoot mask;
+	A = [xp0]; B = [srd0];
+	? A '> B -> XRoot reject;
+	-> XRoot mask;
+    "XRoot reject"
+	? [sqml] = 0 -> XRoot reject high;
+	A = [sqrl]; A - [sqml]; [sqrl] = A;
+	-> XRoot mask;
+    "XRoot reject high"
+	A = [sqrh]; A - [sqmh]; [sqrh] = A;
+    "XRoot mask"
+	( mask >>= 1 )
+	A = [sqmh]; A & 1; [sqcarry] = A;
+	A = [sqmh]; A > 1; [sqmh] = A;
+	A = [sqml]; A > 1; B = [sqcarry]; B < 31; A | B; [sqml] = A;
+	[sqstep]+;
+	? [sqstep] < 64 -> XRoot bit loop;
+
+	( Recompute q*q and form the exact residual S-q*q. )
+	A = [sqrh]; [XMH] = A; [YMH] = A;
+	A = [sqrl]; [XML] = A; [YML] = A;
+	=> Mul128;
+	A = [srd0]; B = [xp0];
+	? A '> B -> XRoot residual low ordered;
+	E = 1; -> XRoot residual low;
+    "XRoot residual low ordered"
+	E = 0;
+    "XRoot residual low"
+	A = [srd0]; A - [xp0]; [srm0] = A;
+	A = [srd1]; B = [xp1];
+	? A '> B -> XRoot residual one greater;
+	? A '< B -> XRoot residual one less;
+	? E = 0 -> XRoot residual one equal;
+	D = 1; -> XRoot residual one ready;
+    "XRoot residual one greater"
+	D = 0; -> XRoot residual one ready;
+    "XRoot residual one less"
+	D = 1; -> XRoot residual one ready;
+    "XRoot residual one equal"
+	D = 0;
+    "XRoot residual one ready"
+	A = [srd1]; A - [xp1]; A - E; [srm1] = A;
+	E = D;
+	A = [srd2]; B = [xp2];
+	? A '> B -> XRoot residual two greater;
+	? A '< B -> XRoot residual two less;
+	? E = 0 -> XRoot residual two equal;
+	D = 1; -> XRoot residual two ready;
+    "XRoot residual two greater"
+	D = 0; -> XRoot residual two ready;
+    "XRoot residual two less"
+	D = 1; -> XRoot residual two ready;
+    "XRoot residual two equal"
+	D = 0;
+    "XRoot residual two ready"
+	A = [srd2]; A - [xp2]; A - E; [srm2] = A;
+	E = D;
+	A = [srd3]; A - [xp3]; A - E; [srm3] = A;
+
+	( round up iff residual > q; a half-way case is impossible for
+	  an integer radicand and an integer q. )
+	? [srm3] != 0 -> XRoot increment;
+	? [srm2] != 0 -> XRoot increment;
+	A = [srm1]; B = [sqrh];
+	? A '> B -> XRoot increment;
+	? A '< B -> XRoot done;
+	A = [srm0]; B = [sqrl];
+	? A '> B -> XRoot increment;
+	-> XRoot done;
+    "XRoot increment"
+	A = [sqrl]; A + 1; [sqrl] = A;
+	? A != 0 -> XRoot done;
+	A = [sqrh]; A + 1; [sqrh] = A;
+	? A != 0 -> XRoot overflow;
+	-> XRoot done;
+    "XRoot overflow"
+	[XMH] = 80000000h; [XML] = 0; [xtmp]+;
+	-> XRoot finish;
+    "XRoot done"
+	A = [sqrh]; [XMH] = A;
+	A = [sqrl]; [XML] = A;
+    "XRoot finish"
+	A = [xtmp]; A / 2; A + XBIAS; [XE] = A;
+	[XS] = 0;
 	end;
 
       ( XChop32 - truncate the live extended X value to a signed qword,

@@ -86,11 +86,9 @@
 	end;
 
 "FSqrt"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    D9 FA				(fsqrt)
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	---->;
+	=> XScalarSqrt;
+	<----;
 	end;
 
 "FNeg"
