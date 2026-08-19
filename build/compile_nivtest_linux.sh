@@ -180,7 +180,7 @@ if app_ws_size < 0 or app_code_size <= 0 or not 0 <= app_code_entry < app_code_s
 if default_ramtop < app_ws_size or physwsentry != runtime.stat().st_size:
     raise SystemExit("compiled NIVTEST does not identify the supplied headless RTM")
 expected_size = physwsentry + (app_ws_size + app_code_size) * 4
-if physappsize != len(data) or expected_size != len(data):
+if physappsize != expected_size or len(data) < expected_size:
     raise SystemExit(
         f"compiled NIVTEST is incomplete: header={physappsize}, "
         f"sections={expected_size}, file={len(data)}"
