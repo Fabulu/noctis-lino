@@ -1,97 +1,116 @@
 # CI and tagged releases
 
-## Beta 18 release checkpoint
+## Current release boundary
 
-Beta 18 is the first tagged package after the portable production NIVGEN
-runner and exact moon two-pass buffer history landed. Its public score should be
-refreshed only from the release's rebuilt worker executable. The same checkpoint
-includes the source-matched projected cockpit-font repair and the native
-capsule-ascent comparison. The committed Windows executable was rebuilt from
-the tagged source before publication, while GitHub Actions performs the hosted
-regression, package, checksum, and provenance stages.
+Beta 21 is the first release whose Windows executable is compiled from the
+tagged Lino source on a GitHub-hosted runner. CI does not package a committed
+`work/vhgame.exe` and does not depend on a self-hosted desktop to produce the
+release artifact.
 
-The repository has three deliberately separate GitHub Actions paths. Current
-test scope and its manual/native boundary are summarized in
-`TEST_COVERAGE.md`.
+The protected historical Linux compiler is still the trust anchor. On current
+Linux, that compiler loads its Lino application into heap memory and jumps to
+it; normal NX policy rejects the jump. The build invokes the unchanged binary
+through `setarch -X`, which restores the executable-heap process personality
+expected by the historical runtime. It then:
 
-- `.github/workflows/windows-release.yml` runs regression checks and packages
-  the committed executable on GitHub-hosted Windows runners. It runs for pull
-  requests and master pushes, but it never claims to compile L.in.oleum source
-  and it cannot publish a release.
-- `.github/workflows/tagged-release.yml` runs for every pushed `v*` tag. It
-  validates the exact revision on hosted Windows, packages the versioned i386
-  executable, records hashes and provenance, and publishes a GitHub prerelease.
-- `.github/workflows/source-release.yml` is manually dispatched. It deletes
-  stale game artifacts, compiles the checked-out `work/vhgame.txt` on an
-  interactive Windows runner, verifies the fresh i386 PE, and uploads a
-  source-build artifact with source, compiler, executable, and commit hashes.
+1. compiles `main/lib/gen/compiler114m.txt` with the protected compiler and the
+   protected `i386` CPU pack;
+2. uses the generated compiler with `i386m` to rebuild itself;
+3. requires the two generated compiler images to be byte-identical;
+4. uses that fixpoint compiler to compile `work/vhgame.txt` for
+   `win32/i386m`; and
+5. validates a nonempty, sectioned i386 PE before upload.
 
-The split exists because `compiler114m.exe` accepts unattended build arguments
-but its historical Win32 host runtime still initializes a graphical display and
-remains resident after emitting the artifact. `lino_build.ps1` already supplies
-the arguments, detects a settled artifact and error log, and terminates that
-process. The missing CI requirement is a real logged-in Windows desktop, not UI
-click automation. Hosted GitHub runners can test and package the committed
-product, but they cannot honestly claim to compile it from L.in.oleum source.
+The compatibility boundary and 32-bit glibc/X11 dependencies belong to the
+compiler host only. They do not alter the protected compiler, the Lino source,
+or the released Windows executable.
 
-The tagged release workflow is therefore automated and usable now. Its
-provenance record says that the executable was compiled locally before the tag,
-then tested and packaged on GitHub-hosted Windows. The manual interactive build
-is the stricter clean-source provenance path when a dedicated runner is online.
+## Workflow roles
 
-## One-time runner setup
+- `.github/workflows/windows-release.yml` runs on pull requests and master
+  pushes. A Windows job runs the focused gameplay regression, an Ubuntu job
+  builds the extended compiler and production PE from source, and a fresh
+  Windows job verifies and packages the transferred PE. The result is the
+  `Noctis-IV-windows-x86-snapshot` Actions artifact.
+- `.github/workflows/tagged-release.yml` repeats that source build for every
+  pushed `v*` tag. It publishes the exact tested ZIP, ZIP checksum, and build
+  provenance as a GitHub prerelease. Publication cannot run if regression,
+  compilation, provenance verification, or packaging fails.
+- `.github/workflows/source-release.yml` remains an optional independent build
+  through the historical Win32 compiler on an interactive `lino-gui` runner.
+  It is useful as a second compiler-host comparison, but is no longer required
+  for hosted release production and is not the release provenance authority.
+- `.github/workflows/macos-runtime.yml` builds both Cocoa and headless x86_64
+  runtimes on Intel macOS.
+- `.github/workflows/macos-rosetta-nivgen.yml` builds the x86_64 runtime on Apple
+  Silicon, cross-compiles the production NIVGEN executable on Ubuntu, executes
+  it through Rosetta 2, and checks all seven output families against the
+  authoritative Windows hashes. A runnable process is not enough: any numerical
+  mismatch keeps this workflow red and blocks a macOS release claim.
 
-Use a dedicated Windows 10 or 11 VM or spare machine with no personal files,
-SSH keys, cloud credentials, or access to unrelated internal services.
+Linux dependency installation is shared by the source-build workflows. Mirror
+requests and package-manager locks have finite timeouts and retries, and compile
+jobs have a 30-minute outer bound instead of occupying a runner indefinitely.
 
-1. In the GitHub repository, open Settings, Actions, Runners, then choose New
-   self-hosted runner and Windows x64.
-2. Install the current runner under `C:\actions-runner`. The Node 24 actions in
-   these workflows require runner version 2.327.1 or newer.
-3. Run GitHub's displayed `config.cmd` command and add the custom label
-   `lino-gui`. Do not install the runner as a Windows service.
-4. Log into the dedicated account and launch `C:\actions-runner\run.cmd`
-   directly. The source workflow rejects Session 0 so a service configuration
-   fails visibly instead of hanging the compiler.
-5. If automatic startup is wanted, use the account's Startup folder or a Task
-   Scheduler logon trigger with "Run only when user is logged on". Disable sleep
-   and hibernation. Keep the desktop session unlocked through a VM console.
+## Provenance and package integrity
 
-GitHub warns that public-repository pull requests can persistently compromise a
-self-hosted runner. This project therefore never routes pull requests to the
-runner. The compile job has only `contents: read`, checkout does not persist its
-token, and the runner uploads an Actions artifact only. A separate ephemeral
-GitHub-hosted job receives `contents: write` and publishes tagged releases.
+`build/compile_vhgame_linux.sh` writes
+`build/windows-build.provenance.txt` in the Ubuntu compile job. Hashing occurs on
+the host that consumed the bytes, so a later Windows checkout cannot substitute
+CRLF-converted hashes for the actual Linux inputs. The record includes:
 
-Official references:
+- commit and target;
+- root game source and top-level compile script;
+- Linux dependency installer;
+- protected bootstrap compiler;
+- extended compiler source, `bits` and `bytes` libraries, and bootstrap script;
+- bootstrap `i386`/Linux and target `i386m`/Win32 packs;
+- generated fixpoint compiler; and
+- final PE.
+
+The package job requires every field, verifies the downloaded compiler and PE
+against the Linux record, and copies the record unchanged. The ZIP contains a
+`MANIFEST.sha256` covering every payload file, while the adjacent
+`Noctis-IV-windows-x86.zip.sha256` covers the archive itself. GitHub also records
+an Actions/release-asset digest.
+
+A release is not considered verified merely because its workflow is green.
+After publication, download the public assets into an empty directory, verify
+the ZIP checksum, reject duplicate or escaping archive paths, verify every
+manifest entry, compare the packaged PE with the provenance hash, and inspect
+the PE machine and section table. This independent download check is part of the
+release procedure.
+
+## Creating a prerelease
+
+First require green master regression and source-package jobs, review the
+release notes, and use the next annotated beta tag:
+
+```sh
+git tag -a v0.1.0-beta.21 -m "Noctis IV Lino beta 21"
+git push origin v0.1.0-beta.21
+```
+
+The tag launches compilation, packaging, and publication. If any prerequisite
+fails, no GitHub release is created. If a release already exists for the tag, a
+manual rerun replaces only the three generated assets. Do not move or recreate a
+published tag to hide a failure; fix master and use the next version.
+
+## Optional interactive Windows runner
+
+The optional `source-release.yml` path requires a dedicated Windows 10 or 11 VM
+or spare machine with no unrelated credentials or personal files. Register a
+current GitHub Actions runner with the `lino-gui` label, launch `run.cmd` from a
+logged-in desktop session, and do not install it as a service. The workflow
+rejects Session 0 because the historical Win32 compiler initializes a graphical
+host and remains resident after writing its output.
+
+Public-repository pull requests never run on this self-hosted machine. The job
+has read-only repository permissions, does not persist checkout credentials, and
+only uploads an Actions artifact. No self-hosted runner is required for normal
+CI or tagged releases.
+
+Official security references:
 
 - [Adding a self-hosted runner](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners)
 - [Secure use of self-hosted runners](https://docs.github.com/en/actions/reference/security/secure-use)
-
-## Creating a build or release
-
-For an unpublished source-build artifact, start the VM, confirm that `run.cmd`
-reports it is listening, then manually run the `Interactive source build`
-workflow. The compile job produces:
-
-- `Noctis-IV-windows-x86.zip`
-- `Noctis-IV-windows-x86.zip.sha256`
-- `Noctis-IV-windows-x86.source.txt`
-
-For a GitHub prerelease, first build and commit the current executable locally,
-make sure master CI is green, then push an annotated version tag:
-
-```powershell
-git tag -a v0.1.0 -m "Noctis IV L.in.oleum port v0.1.0"
-git push origin v0.1.0
-```
-
-The tag launches hosted validation, packaging, and publication. If validation
-or packaging fails, no release is created. If the tag already has a release,
-rerunning the workflow replaces its three generated assets. The release remains
-a prerelease until a stable version tag and its exact provenance artifact have
-been reviewed for public promotion.
-
-No self-hosted runner is currently registered for this repository. This only
-blocks the optional clean-source rebuild artifact. It does not block hosted
-tests, tagged package builds, or GitHub prerelease publication.
