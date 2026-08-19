@@ -12,6 +12,7 @@ source="$repo/work/vhgame.txt"
 compiled="$repo/work/vhgame.exe"
 log="$repo/work/errorlog.txt"
 compiler_log="$repo/build/noctis-macos-compiler.log"
+compiler_group_file="$repo/build/noctis-macos-compiler.pgid"
 compiler="$repo/build/linux-compiler114m.bin"
 
 if [ ! -f "$rtm" ] || [ ! -f "$runtime_provenance" ]; then
@@ -26,12 +27,38 @@ python3 "$repo/tools/macos_runtime_provenance.py" verify \
 python3 "$repo/tools/fix_x64_pack_flags.py" "$repo/main/cpu/x64.bin"
 python3 "$repo/tools/pack_lino_sys.py" "$rtm" "$repo/main/sys/macos.bin"
 "$repo/build/build_compiler114m_linux.sh" "$compiler"
-rm -f "$compiled" "$log" "$compiler_log"
+rm -f "$compiled" "$log" "$compiler_log" "$compiler_group_file"
 
-setsid xvfb-run -a setarch "$(uname -m)" -X "$compiler" \
+setsid sh -c '
+    group_file=$1
+    shift
+    printf "%s\n" "$$" >"$group_file"
+    exec "$@"
+' sh "$compiler_group_file" xvfb-run -a setarch "$(uname -m)" -X "$compiler" \
     "--sys:macos--cpu:x64--ext:.exe--env:$repo/main--src:$source" \
     >"$compiler_log" 2>&1 &
-compiler_group=$!
+compiler_supervisor=$!
+count=0
+while [ ! -s "$compiler_group_file" ] && [ "$count" -lt 100 ]; do
+    count=$((count + 1))
+    sleep 0.025
+done
+if [ ! -s "$compiler_group_file" ]; then
+    /bin/kill -TERM "$compiler_supervisor" 2>/dev/null || true
+    wait "$compiler_supervisor" 2>/dev/null || true
+    cat "$compiler_log" >&2 || true
+    echo "macOS compiler process group did not start" >&2
+    exit 1
+fi
+read -r compiler_group <"$compiler_group_file"
+case $compiler_group in
+    ''|*[!0-9]*)
+        /bin/kill -TERM "$compiler_supervisor" 2>/dev/null || true
+        wait "$compiler_supervisor" 2>/dev/null || true
+        echo "macOS compiler reported an invalid process group" >&2
+        exit 1
+        ;;
+esac
 cleanup() {
     /bin/kill -TERM -- "-$compiler_group" 2>/dev/null || true
     count=0
@@ -41,7 +68,8 @@ cleanup() {
         sleep 0.05
     done
     /bin/kill -KILL -- "-$compiler_group" 2>/dev/null || true
-    wait "$compiler_group" 2>/dev/null || true
+    wait "$compiler_supervisor" 2>/dev/null || true
+    rm -f "$compiler_group_file"
 }
 trap cleanup EXIT
 trap 'cleanup; exit 130' INT
