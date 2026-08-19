@@ -6,6 +6,28 @@ the integrated game, and what remains. It complements `PLAYTEST.md`, which is
 the detailed evidence log, and `PORTPLAN.md`, which is the technical
 implementation and source-parity ledger.
 
+## 2026-08-19 -- exact macOS Rosetta generation
+
+The x86_64 macOS host now completes the production generator under Rosetta
+without the earlier access violation. The runtime reserves code, workspace and
+IsoKernel-visible state below the language's 32-bit address ceiling, rejects
+out-of-range mappings, and resizes mapped workspaces by map/copy/unmap rather
+than passing them to `realloc`.
+
+An opt-in, versioned NIVGEN diagnostic trailer then traced the remaining output
+difference without changing the default protocol or any public output byte.
+Windows and Rosetta agreed through orbital geometry, both random streams and
+the first type-2 storm dispatch, but Rosetta skipped every cirrus store and
+mis-clamped the palette. The x64 CPU pack restored saved 32-bit registers after
+`sahf` with `add rsp, 4`; each ADD overwrote the x87 comparison flags before the
+following conditional jump. All 792 floating-branch patterns now use
+flag-preserving LEA cleanups for their 1,236 restores, with a deterministic
+pack auditor guarding the invariant.
+
+The Apple-Silicon CI fixture now matches the authoritative Windows run on the
+complete diagnostic record and all seven production hashes: surface map,
+atmosphere overlay, palette, heightmap, object chart, surface texture and sky.
+
 ## 2026-08-12 -- faithful terrain renderer correction
 
 An ocean-site capture exposed a flickering rainbow strip. The water pass was
