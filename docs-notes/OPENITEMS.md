@@ -1728,6 +1728,13 @@ same product smoke reached its first capturable frame in 3.17 seconds, down
 from the original 17.18-second baseline. The clean-return NIV+ comparison again
 reported zero differences after this pass.
 
+**Portability correction, 2026-08-19.** The native generation kernels described
+above violated the project's portable-Lino architecture and have been removed.
+Their parity fixtures and performance measurements remain useful evidence, but
+the implementation and timings are historical, not the current production
+state. Recover this speed only through ordinary Lino algorithms, compiler/CPU
+pack improvements, or platform runtime work below the language boundary.
+
 **Coordinate-convention guard.** Gameplay checkpoint fixtures store the star Y
 value in the port's internal convention, while the public NIVGEN command uses
 the public catalogue convention. Do not copy a checkpoint Y directly into a
@@ -1751,7 +1758,53 @@ characters. Keep that invariant when editing them. Continue removing stale
 claims and redundant history at release checkpoints instead of turning the
 README back into one chronological wall of text.
 
-## 12. Cross-references
+## 12. Release, portability, and macOS gates -- **OPEN / CRITICAL**
+
+These are near-term release gates, not background polish.
+
+### 12.1 Finish the portable-Lino repair
+
+No Noctis game logic or optimization may embed raw x86 opcode blocks. At the
+2026-08-19 checkpoint, the real `vhgame.txt` dependency closure contains ten
+such blocks, all isolated in the floating-point boundary: `FSin`, `FCos`, and
+`FAtan2` in `work/fp/fpx87.txt`, plus seven control/status operations in
+`work/fp/fpctl.txt`. Basic arithmetic, comparisons, conversions, and exact
+square root are already ordinary Lino. Finish the transcendental replacements,
+resolve the control/status boundary without weakening semantics, then add a
+build-time closure check that prevents game-side native blocks from returning.
+The production game, representative surface/tree scenes, and the FP/NIVGEN
+oracles must pass before this item closes.
+
+### 12.2 Resume usable releases
+
+Resume releases at stable batches. A release is not complete merely because a
+tag and prose exist: it must attach the actual compiled package, its SHA-256
+checksum, provenance, and the package's internal manifest. The beta 20 assets
+were downloaded and verified on 2026-08-19: the ZIP checksum matches, the ZIP
+contains one valid sectioned i386 PE, and its executable hash matches the
+provenance file. Preserve that standard and make the pipeline compile the
+tagged source itself rather than silently trusting a stale versioned binary.
+Verify the uploaded assets from GitHub after publishing. Do not cut the next
+release while the portable-Lino repair is knowingly incomplete.
+
+### 12.3 Reproduce and fix macOS/Rosetta crashes
+
+Megagun/Joris reported a beta 20 segmentation fault under Rosetta, which blocks
+the public NIVGEN worker and therefore fidelity feedback. Reproduce it on a
+GitHub-hosted Apple-Silicon runner with the real production NIVGEN executable,
+retain the crash log, fix the runtime or generated payload from evidence, and
+keep an exact known-row hash check in CI. Commit `3a59d9d` adds the initial
+Rosetta execution probe; a passing build alone is not closure until the
+contributor's failing route is identified or independently shown equivalent.
+
+Ship a macOS download if practical. The repository already has x86_64 Cocoa and
+headless runtimes, so first produce and smoke-test a self-contained x86_64
+macOS package for Intel and Rosetta. A native ARM64 game remains a separate,
+larger port: PR #10 is only a Phase-1 runtime and explicitly leaves the
+`__PAGEZERO` and 64-bit pointer-model redesign open. Review and publicly comment
+on that contribution before merging, adapting, or closing it.
+
+## 13. Cross-references
 
 | document | what Wave 6 changed in it |
 |---|---|
