@@ -103,8 +103,10 @@ unit sAtEntry;
 unit aAtExit, bAtExit, cAtExit, dAtExit, eAtExit, xAtExit;
 
 #ifdef __x86_64__
+#ifndef MAP_32BIT
 /* next hint for low (<4GB) mappings when MAP_32BIT is unavailable */
 static uintptr_t pNextLowBase = 0x10000000;
+#endif
 static unit *map_low_section(int size);
 #endif
 
@@ -622,7 +624,6 @@ bool krnlPrinterCommand(PrinterCommand command)
 static unit *map_low_section(int size)
 {
 	const uintptr_t low_limit = (uintptr_t) UINT32_MAX + 1;
-	const size_t fallback_stride = 0x01000000;
 	long system_page_size;
 	size_t byte_size, map_size, page_size;
 	int flags = MAP_PRIVATE | MAP_ANONYMOUS;
@@ -654,6 +655,8 @@ static unit *map_low_section(int size)
 	}
 	return (unit *) mapping;
 #else
+	const size_t fallback_stride = 0x01000000;
+
 	/* A non-fixed address is only a hint: it cannot replace an existing map.
 	 * Reject high results and keep looking rather than truncating a pointer. */
 	for (; pNextLowBase < low_limit &&
