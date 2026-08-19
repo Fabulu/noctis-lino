@@ -36,6 +36,7 @@
 #include "lino_event.h"
 #include "lino_mouse.h"
 #include "lino_globalK.h"
+#include <errno.h>
 #include <sys/mman.h>
 
 #ifdef __APPLE__
@@ -102,8 +103,9 @@ unit sAtEntry;
 unit aAtExit, bAtExit, cAtExit, dAtExit, eAtExit, xAtExit;
 
 #ifdef __x86_64__
-/* next address for low (<4GB) mmap of the code/workspace sections */
+/* next hint for low (<4GB) mappings when MAP_32BIT is unavailable */
 static uintptr_t pNextLowBase = 0x10000000;
+static unit *map_low_section(int size);
 #endif
 
 /* codes used for failing or ending subroutines in linoleum */
@@ -197,7 +199,7 @@ int main(int argc, char **argv, char **env)
 		     IParagraph->physwsentry, IParagraph->app_code_size,
 		     "code");
 	/* set pointer to application start address */
-	pCodeEntry = (proc_t) (unit) & pCode[IParagraph->app_code_entry];
+	pCodeEntry = (proc_t) &pCode[IParagraph->app_code_entry];
 
 	/* close file handle */
 	fclose(openFile);
@@ -207,8 +209,13 @@ int main(int argc, char **argv, char **env)
 
 	/* initialize rest of workspace */
 	isokernelP = isokernel;
-	pWorkspace[mm_ProcessOrigin] = (unit) pCode;
-	pUIWorkspace[mm_ProcessISOcall] = ((unit) isokernelP - (unit) pCode);
+#ifdef __x86_64__
+	if ((uintptr_t) isokernelP > UINT32_MAX)
+		programError("ERROR: The isokernel must be linked below 4GB.");
+#endif
+	pWorkspace[mm_ProcessOrigin] = (unit) (uintptr_t) pCode;
+	pUIWorkspace[mm_ProcessISOcall] =
+	    (unit) ((uintptr_t) isokernelP - (uintptr_t) pCode);
 	pUIWorkspace[mm_ProcessRAMtop] = IParagraph->default_ramtop;
 	pUIWorkspace[mm_ProcessPriority] = IParagraph->app_code_pri;
 	/* The TK tick engine reads Counts Per Millisecond during TK seed, which
@@ -329,26 +336,40 @@ void ISOKRNLCALL(void)
 
 	/* check if the workspace needs to be resized */
 	if (current_ramtop != pUIWorkspace[mm_ProcessRAMtop]) {
+		unit requested_ramtop = pUIWorkspace[mm_ProcessRAMtop];
+		unit old_ramtop = current_ramtop;
+		unit *old_workspace = pWorkspace;
 		unit *new_workspace;
 
-		/* resize the workspace */
-		if ((new_workspace =
-		     (unit *) realloc((void *) pWorkspace,
-				      pUIWorkspace[mm_ProcessRAMtop] *
-				      sizeof(unit)))) {
-			pWorkspace = new_workspace;
-			pUIWorkspace = &pWorkspace[IParagraph->app_ws_size];
-			current_ramtop = pUIWorkspace[mm_ProcessRAMtop];
-			lino_display_set_origin(&pWorkspace
-						[pUIWorkspace
-						 [mm_DisplayOrigin]]);
-			/* clear the new bytes if any */
-			if (pUIWorkspace[mm_ProcessRAMtop] > current_ramtop) {
-				memset(&pWorkspace[current_ramtop], 0,
-				       (pUIWorkspace[mm_ProcessRAMtop] -
-					current_ramtop) * sizeof(unit));
+#ifdef __x86_64__
+		new_workspace = map_low_section(requested_ramtop);
+#else
+		new_workspace = (unit *) mmap(NULL,
+						  (size_t) requested_ramtop * sizeof(unit),
+						  PROT_READ | PROT_WRITE | PROT_EXEC,
+						  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+#endif
+		if (new_workspace != MAP_FAILED) {
+			unit copy_ramtop = old_ramtop < requested_ramtop ?
+				old_ramtop : requested_ramtop;
+
+			memcpy(new_workspace, old_workspace,
+			       (size_t) copy_ramtop * sizeof(unit));
+			if (requested_ramtop > old_ramtop) {
+				memset(&new_workspace[old_ramtop], 0,
+				       (size_t) (requested_ramtop - old_ramtop) *
+				       sizeof(unit));
 			}
+			free_section(old_workspace, pWorkspaceSize);
+			pWorkspace = new_workspace;
+			pWorkspaceSize = requested_ramtop;
+			pUIWorkspace = &pWorkspace[IParagraph->app_ws_size];
+			pUIWorkspace[mm_ProcessRAMtop] = requested_ramtop;
+			current_ramtop = requested_ramtop;
+			lino_display_set_origin(&pWorkspace
+						[pUIWorkspace[mm_DisplayOrigin]]);
 		} else {
+			pUIWorkspace[mm_ProcessRAMtop] = current_ramtop;
 			isostatus++;
 		}
 	}
@@ -597,6 +618,67 @@ bool krnlPrinterCommand(PrinterCommand command)
 }
 
 
+#ifdef __x86_64__
+static unit *map_low_section(int size)
+{
+	const uintptr_t low_limit = (uintptr_t) UINT32_MAX + 1;
+	const size_t fallback_stride = 0x01000000;
+	long system_page_size;
+	size_t byte_size, map_size, page_size;
+	int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+	void *mapping;
+
+	if (size <= 0 || (size_t) size > SIZE_MAX / sizeof(unit)) {
+		errno = EINVAL;
+		return MAP_FAILED;
+	}
+	byte_size = (size_t) size * sizeof(unit);
+	system_page_size = sysconf(_SC_PAGESIZE);
+	page_size = system_page_size > 0 ? (size_t) system_page_size : 4096;
+	if (byte_size > SIZE_MAX - (page_size - 1)) {
+		errno = ENOMEM;
+		return MAP_FAILED;
+	}
+	map_size = ((byte_size + page_size - 1) / page_size) * page_size;
+
+#ifdef MAP_32BIT
+	mapping = mmap(NULL, map_size, PROT_READ | PROT_WRITE | PROT_EXEC,
+		       flags | MAP_32BIT, -1, 0);
+	if (mapping == MAP_FAILED)
+		return MAP_FAILED;
+	if ((uintptr_t) mapping >= low_limit ||
+	    map_size > low_limit - (uintptr_t) mapping) {
+		munmap(mapping, map_size);
+		errno = ENOMEM;
+		return MAP_FAILED;
+	}
+	return (unit *) mapping;
+#else
+	/* A non-fixed address is only a hint: it cannot replace an existing map.
+	 * Reject high results and keep looking rather than truncating a pointer. */
+	for (; pNextLowBase < low_limit &&
+	       map_size <= low_limit - pNextLowBase;
+	     pNextLowBase += fallback_stride) {
+		mapping = mmap((void *) pNextLowBase, map_size,
+			       PROT_READ | PROT_WRITE | PROT_EXEC,
+			       flags, -1, 0);
+		if (mapping == MAP_FAILED)
+			return MAP_FAILED;
+		if ((uintptr_t) mapping < low_limit &&
+		    map_size <= low_limit - (uintptr_t) mapping) {
+			uintptr_t next = (uintptr_t) mapping + map_size;
+			if (next > pNextLowBase)
+				pNextLowBase = next;
+			return (unit *) mapping;
+		}
+		munmap(mapping, map_size);
+	}
+	errno = ENOMEM;
+	return MAP_FAILED;
+#endif
+}
+#endif
+
 /**
  * Initialize a certain section, pWorkspace or pCode
  * @param size The size of the section
@@ -605,28 +687,13 @@ bool krnlPrinterCommand(PrinterCommand command)
  */
 void init_section(unit ** section, int size, const char *section_name)
 {
-	if (size != 0) {
+	if (size > 0) {
 #ifdef __x86_64__
-		/* The L.IN.OLEUM code addresses code and workspace with 32-bit
-		 * values (pWorkspace[mm_ProcessOrigin] = (unit)pCode, plus
-		 * lea ebp,[ebp+eax] jumps), so both must live below 4GB. */
-		size_t len = (size_t) size * sizeof(unit);
-		len = (len + 0xFFF) & ~(size_t) 0xFFF;
-		*section = (unit *) mmap((void *) pNextLowBase, len,
-					  PROT_READ | PROT_WRITE | PROT_EXEC,
-					  MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
-					  -1, 0);
-		if (*section == MAP_FAILED) {
-			perror("mmap low");
-			*section = (unit *) mmap(NULL, len,
-						  PROT_READ | PROT_WRITE |
-						  PROT_EXEC,
-						  MAP_PRIVATE | MAP_ANONYMOUS, -1,
-						  0);
-		}
-		pNextLowBase += len;
+		/* L.IN.OLEUM stores code addresses in 32-bit units, so code and
+		 * workspace mappings must fit wholly below 4GB. */
+		*section = map_low_section(size);
 #else
-		*section = (unit *) mmap(NULL, size * sizeof(unit),
+		*section = (unit *) mmap(NULL, (size_t) size * sizeof(unit),
 					  PROT_READ | PROT_WRITE | PROT_EXEC,
 					  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #endif
@@ -637,7 +704,7 @@ void init_section(unit ** section, int size, const char *section_name)
 			     section_name);
 			programError("");
 		} else {
-			memset(*section, '\0', size * sizeof(unit));
+			memset(*section, '\0', (size_t) size * sizeof(unit));
 			if (section == &pCode)
 				pCodeSize = size;
 			else if (section == &pWorkspace)
