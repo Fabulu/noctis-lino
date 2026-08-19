@@ -16,6 +16,7 @@ on:
       - "main/lib/gen/compiler114m.txt"
       - "main/linux_compiler.bin"
       - "src/linoleum_macos64/**"
+      - "tools/fix_x64_pack_flags.py"
       - "tools/nivtest.py"
       - "tools/pack_lino_sys.py"
       - "work/**.txt"
@@ -60,6 +61,10 @@ jobs:
     steps:
       - name: Check out the production source
         uses: actions/checkout@v7
+
+      - name: Audit x64 floating branches
+        shell: bash
+        run: python3 tools/fix_x64_pack_flags.py main/cpu/x64.bin
 
       - name: Download the x86_64 runtime
         uses: actions/download-artifact@v8
