@@ -5,15 +5,29 @@ set -eu
 
 sudo dpkg --add-architecture i386
 
+. /etc/os-release
+sources=/tmp/noctis-ubuntu.sources.list
+native_arch=$(dpkg --print-architecture)
+printf '%s\n' \
+    "deb [arch=$native_arch,i386] https://archive.ubuntu.com/ubuntu $VERSION_CODENAME main restricted universe multiverse" \
+    "deb [arch=$native_arch,i386] https://archive.ubuntu.com/ubuntu $VERSION_CODENAME-updates main restricted universe multiverse" \
+    "deb [arch=$native_arch,i386] https://archive.ubuntu.com/ubuntu $VERSION_CODENAME-backports main restricted universe multiverse" \
+    "deb [arch=$native_arch,i386] https://archive.ubuntu.com/ubuntu $VERSION_CODENAME-security main restricted universe multiverse" \
+    >"$sources"
+trap 'rm -f "$sources"' EXIT
+
 apt_retry() {
     attempt=1
     while [ "$attempt" -le 3 ]; do
-        if sudo env \
+        if timeout --kill-after=15s 180s sudo env \
             DEBIAN_FRONTEND=noninteractive \
             DEBIAN_PRIORITY=critical \
             NEEDRESTART_MODE=a \
             APT_LISTCHANGES_FRONTEND=none \
             apt-get \
+                -o "Dir::Etc::sourcelist=$sources" \
+                -o Dir::Etc::sourceparts=- \
+                -o APT::Get::List-Cleanup=0 \
                 -o Acquire::Retries=3 \
                 -o Acquire::http::Timeout=30 \
                 -o Acquire::https::Timeout=30 \
