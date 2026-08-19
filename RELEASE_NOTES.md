@@ -1,5 +1,44 @@
 # Noctis IV L.in.oleum port -- Windows release
 
+## Beta 21
+
+Beta 21 restores a reproducible hosted source build for the downloadable Windows
+package. GitHub Actions now starts with the protected historical Linux compiler,
+runs it under an explicit executable-heap compatibility boundary, bootstraps the
+extended compiler from the tracked `compiler114m` source, proves a byte-identical
+self-hosting fixpoint, and then compiles the production `vhgame.txt` graph for
+`win32/i386m`. The resulting 594,234-byte, four-section i386 PE is no longer a
+checked-in executable repackaged by CI.
+
+Build provenance is recorded where the Linux job consumes the bytes, before any
+Windows checkout can convert text line endings. The release record identifies
+the commit, root game source, both compilation scripts, dependency installer,
+protected bootstrap compiler, compiler source and its two libraries, bootstrap
+and target CPU/SYS packs, generated compiler, target, and final executable by
+SHA-256. The Windows packaging job verifies the transferred executable and
+compiler against that record, preserves it unchanged, emits a ZIP checksum, and
+retains the per-file `MANIFEST.sha256` inside the archive. The latest snapshot
+was independently unpacked and verified across all 13 payload entries before
+this tag was prepared.
+
+The game source also crosses the main portability milestone begun after beta 20:
+ordinary rendering, terrain, geometry, stellar-seed, surface-seed, conversion,
+and scalar floating-point paths no longer depend on hidden native game kernels.
+Exact square root and the portable software floating-point ABI now live in Lino
+source, while platform implementation remains below the language boundary.
+Focused gameplay regression and the hosted source build both pass with the same
+production PE hash as the authenticated pre-release baseline.
+
+The x86_64 macOS runtime now allocates code and workspace below 4 GB without
+`MAP_FIXED`, rejects high mappings instead of truncating pointers, and grows an
+`mmap` workspace by mapping, copying, clearing, and unmapping rather than passing
+it to `realloc`. Both Cocoa and headless runtimes build on Intel macOS, and the
+production generator executes to completion under Rosetta on Apple Silicon.
+A macOS package is deliberately not attached yet: the exactness gate still finds
+a Rosetta floating-point divergence in surface, atmosphere, and palette output,
+while heightmap, object chart, surface texture, and sky remain exact. The gate is
+being fixed rather than weakening its Windows/NIV+ reference hashes.
+
 ## Beta 20
 
 Beta 20 removes the remaining multi-second interpreter tax from cold planetary
@@ -844,9 +883,13 @@ Useful controls:
 
 - Windows is the supported packaged platform. The historical Linux runtime's
   PCM layer is a stub, so soundtrack support is Windows-only.
-- The native L.in.oleum compiler requires a logged-in Windows desktop. Hosted
-  GitHub Actions validate and package the committed executable; the separate
-  source-build workflow needs a registered interactive `lino-gui` runner.
+- The x86_64 Cocoa runtime builds and the headless production generator runs
+  under Rosetta 2, but three of seven exact NIVGEN output families still expose
+  a floating-point divergence. A macOS game bundle will follow only after that
+  gate is exact and the Cocoa game has passed full-package validation.
+- Hosted source builds require the historical compiler's 32-bit glibc/X11
+  dependencies and an explicit Linux executable-heap compatibility boundary;
+  the release workflow installs and bounds that environment automatically.
 
 ## Integrity and licence
 
