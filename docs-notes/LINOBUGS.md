@@ -75,28 +75,30 @@ before the drift is applied.
 
 ---
 
-## 3. `linux_compiler.bin` is dead on modern systems
+## 3. `linux_compiler.bin` needs an executable-heap compatibility personality
 
 **Severity: high on Linux, none on Windows.**
 
-The shipped Linux compiler segfaults at startup, before parsing arguments, in
-every configuration tested -- including with no arguments at all.
+The shipped Linux compiler needs 32-bit glibc and X11. On current Linux it then
+segfaults immediately after connecting to X11, before opening the requested
+source file. This was initially mistaken for an old-libX11 incompatibility.
 
-Diagnosis, in order:
-- It is a dynamically-linked 32-bit ELF needing `/lib/ld-linux.so.2`, absent on
-  a modern 64-bit distribution. Installing 32-bit glibc gets past this.
-- It then needs 32-bit `libX11.so.6` -- the runtime links X11 unconditionally.
-  Installing that gets past this too.
-- It then **segfaults immediately**, with no arguments, before any parsing.
+GDB identifies the actual boundary: the runtime loads the Lino application into
+its heap and jumps there. The faulting instruction pointer is inside a heap
+mapping that current Linux marks `rw-p`, so the jump raises `SEGV_ACCERR`. This
+is the old runtime's expected execution model meeting modern NX policy, not an
+X11 fault.
 
-The kernel is not the problem (ia32 emulation present). This is a 2004 binary
-meeting a 2026 libX11.
+**What we did: FIXED in the hosted build path.** Invoke the compiler through
+`setarch "$(uname -m)" -X`, which supplies Linux's legacy `READ_IMPLIES_EXEC`
+personality for that process. The protected historical binary remains
+unchanged. `build/build_compiler114m_linux.sh` uses that compatibility boundary
+to bootstrap the extended compiler from `compiler114m.txt`, then recompiles it
+with `i386m` and requires byte-identical self-hosting output before any game or
+NIVGEN build can proceed.
 
-**What we did:** abandoned the Linux path and worked on Windows. Not fixed.
-
-The Linux runtime source (`src/linoleum_linux32/`) is GPLv2 and *could* be
-rebuilt -- that is the one component of the toolchain that is freely
-modifiable -- but it was not needed for this project.
+The required runtime packages remain the 32-bit loader, glibc, and X11
+libraries plus Xvfb. Missing X fonts were not the cause.
 
 ---
 

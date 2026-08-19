@@ -10,10 +10,12 @@ source="$repo/work/vhgame.txt"
 compiled="$repo/work/vhgame.lxe"
 log="$repo/work/errorlog.txt"
 compiler_log="$repo/build/vhgame-compiler.log"
+compiler="$repo/build/linux-compiler114m.bin"
 
+"$repo/build/build_compiler114m_linux.sh" "$compiler"
 rm -f "$compiled" "$log" "$compiler_log"
 
-xvfb-run -a "$repo/main/linux_compiler.bin" \
+xvfb-run -a setarch "$(uname -m)" -X "$compiler" \
     "--sys:win32--cpu:i386m--ext:.lxe--env:$repo/main--src:$source" \
     >"$compiler_log" 2>&1 &
 compiler_pid=$!

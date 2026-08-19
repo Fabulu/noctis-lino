@@ -7,8 +7,12 @@ on:
     paths:
       - ".github/workflows/macos-rosetta-nivgen.yml"
       - "build/compile_nivtest_linux.sh"
+      - "build/build_compiler114m_linux.sh"
       - "build/build_nivtest.sh"
+      - "main/cpu/i386.bin"
+      - "main/cpu/i386m.bin"
       - "main/cpu/x64.bin"
+      - "main/lib/gen/compiler114m.txt"
       - "main/linux_compiler.bin"
       - "src/linoleum_macos64/**"
       - "tools/nivtest.py"
@@ -69,7 +73,7 @@ jobs:
           sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
             apt-get install -y --no-install-recommends \
             libc6:i386 libx11-6:i386 libxau6:i386 libxcb1:i386 \
-            libxdmcp6:i386 xvfb xauth
+            libxdmcp6:i386 util-linux xvfb xauth
 
       - name: Compile the real production NIVGEN executable
         shell: bash

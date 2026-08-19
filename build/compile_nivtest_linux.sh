@@ -11,12 +11,14 @@ output=${2:-"$repo/build/nivtest"}
 source="$repo/work/nivtestmain.txt"
 compiled="$repo/work/nivtestmain.exe"
 log="$repo/work/errorlog.txt"
+compiler="$repo/build/linux-compiler114m.bin"
 
 python3 "$repo/tools/pack_lino_sys.py" "$rtm" "$repo/main/sys/macos.bin"
 python3 -c 'from tools.nivtest import derive_main; derive_main()'
+"$repo/build/build_compiler114m_linux.sh" "$compiler"
 rm -f "$compiled" "$log"
 
-xvfb-run -a "$repo/main/linux_compiler.bin" \
+xvfb-run -a setarch "$(uname -m)" -X "$compiler" \
     "--sys:macos--cpu:x64--ext:.exe--env:$repo/main--src:$source" \
     >"$repo/build/nivtest-compiler.log" 2>&1 &
 compiler_pid=$!

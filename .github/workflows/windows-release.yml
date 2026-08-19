@@ -70,17 +70,19 @@ jobs:
           sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
             apt-get install -y --no-install-recommends \
             libc6:i386 libx11-6:i386 libxau6:i386 libxcb1:i386 \
-            libxdmcp6:i386 xvfb xauth
+            libxdmcp6:i386 util-linux xvfb xauth
 
       - name: Compile the production game
         shell: bash
         run: ./build/compile_vhgame_linux.sh build/vhgame.exe
 
-      - name: Upload the compiled PE
+      - name: Upload the compiled outputs
         uses: actions/upload-artifact@v7
         with:
           name: Noctis-IV-windows-x86-compiled
-          path: build/vhgame.exe
+          path: |
+            build/vhgame.exe
+            build/linux-compiler114m.bin
           if-no-files-found: error
 
   package:
@@ -116,18 +118,24 @@ jobs:
 
           $sourceHash = (Get-FileHash -LiteralPath work\vhgame.txt -Algorithm SHA256).Hash.ToLowerInvariant()
           $exeHash = (Get-FileHash -LiteralPath work\vhgame.exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          $compilerHash = (Get-FileHash -LiteralPath main\linux_compiler.bin -Algorithm SHA256).Hash.ToLowerInvariant()
+          $bootstrapHash = (Get-FileHash -LiteralPath main\linux_compiler.bin -Algorithm SHA256).Hash.ToLowerInvariant()
+          $compilerSourceHash = (Get-FileHash -LiteralPath main\lib\gen\compiler114m.txt -Algorithm SHA256).Hash.ToLowerInvariant()
+          $compilerBuildHash = (Get-FileHash -LiteralPath build\build_compiler114m_linux.sh -Algorithm SHA256).Hash.ToLowerInvariant()
+          $compilerHash = (Get-FileHash -LiteralPath build\compiled\linux-compiler114m.bin -Algorithm SHA256).Hash.ToLowerInvariant()
           $cpuHash = (Get-FileHash -LiteralPath main\cpu\i386m.bin -Algorithm SHA256).Hash.ToLowerInvariant()
           $sysHash = (Get-FileHash -LiteralPath main\sys\win32.bin -Algorithm SHA256).Hash.ToLowerInvariant()
           @(
             "commit=$env:GITHUB_SHA"
             "source_sha256=$sourceHash"
             "executable_sha256=$exeHash"
+            "bootstrap_compiler_sha256=$bootstrapHash"
+            "compiler_source_sha256=$compilerSourceHash"
+            "compiler_build_script_sha256=$compilerBuildHash"
             "compiler_sha256=$compilerHash"
             "cpu_pack_sha256=$cpuHash"
             "system_pack_sha256=$sysHash"
             "target=win32/i386m"
-            "build_provenance=compiled from checked-out source by the repository Linux compiler on GitHub-hosted Ubuntu; packaged on GitHub-hosted Windows"
+            "build_provenance=bootstrapped and fixpoint-verified the extended compiler, then compiled checked-out source on GitHub-hosted Ubuntu; packaged on GitHub-hosted Windows"
           ) | Set-Content -LiteralPath dist\Noctis-IV-windows-x86.provenance.txt -Encoding ascii
 
       - name: Upload the package artifact
