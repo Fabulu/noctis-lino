@@ -172,24 +172,25 @@
 	( Borland keeps each complete trig*k*l expression in x87 extended
 	  precision until __ftol.  Helper calls introduced binary64 spills and
 	  moved the long c=60 surface spoke from 49 to 50 pixels. )
-	[FCWCSAV] = 0;
-	( FCWRead supplies the portable control-word read; its reserved-bit mask
-	  does not change the effective word restored after the spoke. )
-	=> FCWRead; A = [FI]; [FCWCSAV] = A;
-	A = [FCWCSAV]; A & 0F3FFh; A | 0C00h; [FCWCHOP] = A;
-	( The extended trig*k*l product and live __ftol cast below remain a raw
-	  fragment: fpsoft has no imported-binary64/extended stack operation for
-	  this chain, and replacing it with scalar calls changes the spoke pixel. )
-	{ D9 AF <dFCWCHOP mtp bytesperunit>
-	  D9 87 <dVHVcos mtp bytesperunit>
-	  DC 8F <dVHFk0 mtp bytesperunit>
-	  DC 8F <dVHFl0 mtp bytesperunit>
-	  DB 9F <dVHFdx mtp bytesperunit>
-	  D9 87 <dVHVsin mtp bytesperunit>
-	  DC 8F <dVHFk0 mtp bytesperunit>
-	  DC 8F <dVHFl0 mtp bytesperunit>
-	  DB 9F <dVHFdy mtp bytesperunit>
-	  D9 AF <dFCWCSAV mtp bytesperunit> }
+	( Keep both products in fpsoft's 64-bit-mantissa extended stack,
+	  then apply the same truncating cast.  FLoadF32 widens the table's
+	  binary32 image exactly; XFromF64 is therefore an exact import, and
+	  the two XFmulp calls reproduce fld/fmul/fmul without a binary64 spill. )
+	=> XReset;
+	[FS0] = [VHVcos]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XPush;
+	A = [VHFk0]; [XU0] = A; A = [VHFk1]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp;
+	A = [VHFl0]; [XU0] = A; A = [VHFl1]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp; => XChop32; [VHFdx] = [FI];
+
+	=> XReset;
+	[FS0] = [VHVsin]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XPush;
+	A = [VHFk0]; [XU0] = A; A = [VHFk1]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp;
+	A = [VHFl0]; [XU0] = A; A = [VHFl1]; [XU1] = A; => XFromF64; => XPush;
+	=> XFmulp; => XChop32; [VHFdy] = [FI];
 	( fline receives coordinates relative to the source's 158,100 centre. )
 	A = [VHFcx]; A - 160; A - [VHFdx]; [VHFx0] = A;
 	A = [VHFcy]; A - 100; A - [VHFdy]; [VHFy0] = A;

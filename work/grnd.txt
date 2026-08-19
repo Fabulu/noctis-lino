@@ -393,14 +393,25 @@
 	A = [GRlat];
 	? A '<= 45 -> GR prol tree2;
 	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
-	{ D9 87 <dGRtreefl mtp bytesperunit> DC 8F <dGRK090L mtp bytesperunit>
-	  DC 87 <dGRK010L mtp bytesperunit> D9 9F <dGRtreepeakf mtp bytesperunit> }
+	[FS0] = [GRtreefl]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK090L]; [XU0] = A; A = [GRK090H]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK010L]; [XU0] = A; A = [GRK010H]; [XU1] = A; => XFromF64;
+	=> XAddCore; => XToF32; [GRtreepeakf] = [FS0];
 	A = C; A '* 900; A / 32767; A + 100; [GRtreepeak] = A;
 	-> GR prol tree3;
 "GR prol tree2"
 	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
-	{ D9 87 <dGRtreefl mtp bytesperunit> DC 87 <dGRK075L mtp bytesperunit>
-	  D9 9F <dGRtreepeakf mtp bytesperunit> }
+	[FS0] = [GRtreefl]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK075L]; [XU0] = A; A = [GRK075H]; [XU1] = A; => XFromF64;
+	=> XAddCore; => XToF32; [GRtreepeakf] = [FS0];
 	A = C; A '* 1000; A / 32767; A + 750; [GRtreepeak] = A;
 "GR prol tree3"
 	C = 3; => SU rnd; [GRrootshade] = 0; A = C; ? A = 0 -> GR prol rootshade done;
@@ -425,28 +436,67 @@
 	[GRleafflares] = 4;
 "GR prol leafflare done"
 	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
-	[GRtreeci] = 3000; { D9 87 <dGRtreefl mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
-	  DA 87 <dGRtreeci mtp bytesperunit> DD 9F <dGRtreeacc0 mtp bytesperunit> }
+	[GRtreeci] = 3000; [XIN] = [GRtreeci]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [GRtreefl]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XQuoCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [GRtreeci]; => XFromInt; => XAddCore; => XToF64;
+	[GRtreeacc0] = [FA0]; [GRtreeacc1] = [FA1];
 	A = C; A '* 3000; A / 32767; A + 3000; [GRtreedraw] = A;
 	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
-	[GRtreeci] = 1500; { DD 87 <dGRtreeacc0 mtp bytesperunit> D9 87 <dGRtreefl mtp bytesperunit>
-	  DA 8F <dGRtreeci mtp bytesperunit> DE E9 D9 9F <dGRtreescalef mtp bytesperunit> }
+	[GRtreeci] = 1500; [XIN] = [GRtreeci]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [GRtreefl]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XQuoCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRtreeacc0]; [XU0] = A; A = [GRtreeacc1]; [XU1] = A; => XFromF64;
+	=> XSubCore; => XToF32; [GRtreescalef] = [FS0];
 	A = C; A '* 1500; A / 32767; C = [GRtreedraw]; C - A; [GRtreescale] = C;
 	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
-	{ D9 87 <dGRtreefl mtp bytesperunit> DC 8F <dGRK050L mtp bytesperunit>
-	  DC 87 <dGRK075L mtp bytesperunit> DD 9F <dGRtreeacc0 mtp bytesperunit> }
+	[FS0] = [GRtreefl]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK050L]; [XU0] = A; A = [GRK050H]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK075L]; [XU0] = A; A = [GRK075H]; [XU1] = A; => XFromF64;
+	=> XAddCore; => XToF64; [GRtreeacc0] = [FA0]; [GRtreeacc1] = [FA1];
 	A = C; A '* 500; A / 32767; A + 750; [GRtreedraw] = A;
 	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
-	{ DD 87 <dGRtreeacc0 mtp bytesperunit> D9 87 <dGRtreefl mtp bytesperunit>
-	  DC 8F <dGRK050L mtp bytesperunit> DE E9 D9 9F <dGRtreespreadf mtp bytesperunit> }
+	[FS0] = [GRtreefl]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK050L]; [XU0] = A; A = [GRK050H]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRtreeacc0]; [XU0] = A; A = [GRtreeacc1]; [XU1] = A; => XFromF64;
+	=> XSubCore; => XToF32; [GRtreespreadf] = [FS0];
 	A = C; A '* 500; A / 32767; C = [GRtreedraw]; C - A; [GRtreespread] = C;
 	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
-	{ D9 87 <dGRtreefl mtp bytesperunit> DC 8F <dGRK015L mtp bytesperunit>
-	  DC 87 <dGRK005L mtp bytesperunit> D9 9F <dGRbranchwidthf mtp bytesperunit> }
+	[FS0] = [GRtreefl]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK015L]; [XU0] = A; A = [GRK015H]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK005L]; [XU0] = A; A = [GRK005H]; [XU1] = A; => XFromF64;
+	=> XAddCore; => XToF32; [GRbranchwidthf] = [FS0];
 	A = C; A '* 150; A / 32767; A + 50; [GRbranchwidth] = A;
 	C = 32767; => SU rnd; [GRtreeci] = C; => GR tree flandom;
-	{ D9 87 <dGRtreefl mtp bytesperunit> DC 87 <dGRK005L mtp bytesperunit>
-	  D9 9F <dGRrootheightf mtp bytesperunit> }
+	[FS0] = [GRtreefl]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK005L]; [XU0] = A; A = [GRK005H]; [XU1] = A; => XFromF64;
+	=> XAddCore; => XToF32; [GRrootheightf] = [FS0];
 	A = C; A '* 1000; A / 32767; A + 50; [GRrootheight] = A;
 	[GRmushscale] = 4095; A = [GRtreescale]; ? A '<= 4096 -> GR prol tree params done; [GRmushscale] = 8191;
 "GR prol tree params done"
@@ -546,24 +596,24 @@
 
 	( d = sqrt((double)d2).  The original float squares and sum are exact for
 	  this bounded integer domain, followed by the same binary64 helper spill. )
-	{
-	    DB 87 <dGRfd2 mtp bytesperunit>	(fild dword [edi+GRfd2*4])
-	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
-	    DD 87 <dGRfs0 mtp bytesperunit>	(fld qword [edi+GRfs0*4])
-	    D9 FA				(fsqrt)
-	    D9 9F <dGRfd mtp bytesperunit>	(fstp dword [edi+GRfd*4])
-	}
+	[FI] = [GRfd2]; => IntToF;
+	[GRfs0] = [FA0]; [GRfs1] = [FA1];
+	[FA0] = [GRfs0]; [FA1] = [GRfs1]; => FSqrt;
+	=> FStoreF32; [GRfd] = [FS0];
 
 	( y = cos(d / v) * h -- cos(double) has the same qword argument spill )
-	{
-	    D9 87 <dGRfd  mtp bytesperunit>	(fld dword [edi+GRfd*4])
-	    D8 B7 <dGRfv  mtp bytesperunit>	(fdiv dword [edi+GRfv*4])
-	    DD 9F <dGRfs0 mtp bytesperunit>	(fstp qword [edi+GRfs0*4])
-	    DD 87 <dGRfs0 mtp bytesperunit>	(fld qword [edi+GRfs0*4])
-	    D9 FF				(fcos)
-	    D8 8F <dGRfht mtp bytesperunit>	(fmul dword [edi+GRfht*4])
-	    D9 9F <dGRfy  mtp bytesperunit>	(fstp dword [edi+GRfy*4])
-	}
+	[FS0] = [GRfd]; => FLoadF32;
+	[GRfs0] = [FA0]; [GRfs1] = [FA1];
+	[FS0] = [GRfv]; => FLoadF32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [GRfs0]; [FA1] = [GRfs1]; => FQuo;
+	[GRfs0] = [FA0]; [GRfs1] = [FA1];
+	[FA0] = [GRfs0]; [FA1] = [GRfs1]; => FCos;
+	[GRfs0] = [FA0]; [GRfs1] = [FA1];
+	[FS0] = [GRfht]; => FLoadF32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [GRfs0]; [FA1] = [GRfs1]; => FMul;
+	=> FStoreF32; [GRfy] = [FS0];
 	A = GRscache; A + [GRfd2]; [A] = [GRfy];
 	A = GRsstamp; A + [GRfd2]; [A] = [GRprofileid];
 	-> GR rh profile ready;
@@ -749,43 +799,59 @@
 	  then squares and adds them exactly before fsqrt.  GRfd2 is that same
 	  exact integer sum, so loading it directly removes redundant float
 	  conversions and arithmetic without changing fsqrt's input or result. )
-	{
-	    DB 87 <dGRfd2 mtp bytesperunit>	(fild dword [edi+GRfd2*4])
-	    D9 FA				(fsqrt)
-	    D9 9F <dGRfd mtp bytesperunit>	(fstp dword [edi+GRfd*4])
-	}
+	[FI] = [GRfd2]; => IntToF; => FSqrt;
+	=> FStoreF32; [GRfd] = [FS0];
 
 	( d <= fr: compute y = sin(M_PI * d / fr) * h )
-	{
-	    DD 87 <dGRKPIL mtp bytesperunit>	(fld qword [edi+GRKPIL*4])
-	    D9 87 <dGRfd  mtp bytesperunit>	(fld dword [edi+GRfd*4])
-	    D9 87 <dGRfscr mtp bytesperunit>	(fld dword [edi+GRfscr*4])
-	    DE F9				(fdivp st1,st0 : d/fr)
-	    DE C9				(fmulp st1,st0 : M_PI*(d/fr))
-	    D9 FE				(fsin)
-	    D8 8F <dGRfsch mtp bytesperunit>	(fmul dword [edi+GRfsch*4] : sin*h)
-	    D9 9F <dGRfy  mtp bytesperunit>	(fstp dword [edi+GRfy*4])
-	}
+	[FS0] = [GRfd]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [GRfscr]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	( Swap the two extended operands: X=d, Y=fr, retaining d/fr live
+	  through the divide and pi multiply until the required sin spill. )
+	A = [XS]; B = [YS]; [XS] = B; [YS] = A;
+	A = [XE]; B = [YE]; [XE] = B; [YE] = A;
+	A = [XMH]; B = [YMH]; [XMH] = B; [YMH] = A;
+	A = [XML]; B = [YML]; [XML] = B; [YML] = A;
+	=> XQuoCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FA0] = [GRKPIL]; [FA1] = [GRKPIH];
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; B = [YS]; [XS] = B; [YS] = A;
+	A = [XE]; B = [YE]; [XE] = B; [YE] = A;
+	A = [XMH]; B = [YMH]; [XMH] = B; [YMH] = A;
+	A = [XML]; B = [YML]; [XML] = B; [YML] = A;
+	=> XMulCore; => XToF64; => FSin;
+	[GRfs0] = [FA0]; [GRfs1] = [FA1];
+	[FS0] = [GRfsch]; => FLoadF32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [GRfs0]; [FA1] = [GRfs1]; => FMul;
+	=> FStoreF32; [GRfy] = [FS0];
 
-	( y = pow(y,h_raiser). Non-unit raisers are used only by positive
-	  type-1/type-5 terrain craters; zero stays zero without log2(0). )
+	( y = pow(y,h_raiser).  Keep the base and accumulator in the portable
+	  extended-X stack, so every multiply stays live until the final F32 spill. )
 	A = [GRfhmt]; A & 0FFFFFFFFh; ? A = 3F800000h -> GR sc power done;
 	A = [GRfy]; A & 7FFFFFFFh; ? A = 0 -> GR sc power done;
-	{
-	    D9 87 <dGRfhmt mtp bytesperunit>	(fld dword [edi+GRfhmt*4] : exponent)
-	    D9 87 <dGRfy   mtp bytesperunit>	(fld dword [edi+GRfy*4] : y)
-	    D9 F1				(fyl2x : t=exponent*log2(y))
-	    D9 C0				(fld st0)
-	    D9 FC				(frndint : integral power)
-	    DC E9				(fsub st1,st0 : fractional power)
-	    D9 C9				(fxch st1)
-	    D9 F0				(f2xm1)
-	    D9 E8				(fld1)
-	    DE C1				(faddp st1,st0)
-	    D9 FD				(fscale)
-	    DD D9				(fstp st1)
-	    D9 9F <dGRfy mtp bytesperunit>	(fstp dword [edi+GRfy*4])
-	}
+	[FS0] = [GRfhmt]; => FLoadF32; => FToIntChop; [GRn] = [FI];
+	[FS0] = [GRfy]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XPush;
+	[XU0] = 0; [XU1] = 3FF00000h; => XFromF64;
+	"GR sc power loop"
+	A = [GRn]; ? A '<= 0 -> GR sc power store;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	=> XLoad0;
+	A = [XS]; B = [YS]; [XS] = B; [YS] = A;
+	A = [XE]; B = [YE]; [XE] = B; [YE] = A;
+	A = [XMH]; B = [YMH]; [XMH] = B; [YMH] = A;
+	A = [XML]; B = [YML]; [XML] = B; [YML] = A;
+	=> XMulCore;
+	[GRn]-; -> GR sc power loop;
+	"GR sc power store"
+	=> XStore0; => XPop; => XToF32; [GRfy] = [FS0];
 "GR sc power done"
 	A = GRscache; A + [GRfd2]; [A] = [GRfy];
 	A = GRsstamp; A + [GRfd2]; [A] = [GRprofileid];

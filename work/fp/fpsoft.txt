@@ -80,6 +80,15 @@
 	xtmp = 0; xadr = 0;
 	xi64h = 0; xi64l = 0; xishift = 0;
 
+	( add/sub state: a 67-bit significand is high:low:extra,
+	  with three low guard/round/sticky bits )
+	xash = 0; xasl = 0; xasx = 0;
+	xbsh = 0; xbsl = 0; xbsx = 0;
+	xssh = 0; xssl = 0; xssx = 0;
+	xase = 0; xbse = 0; xasd = 0;
+	xass = 0; xbss = 0; xaso = 0; xasw = 0;
+	xasb = 0; xasbit = 0;
+
 "workspace"
 
 	XSTK = 32;			( 8 entries of 4 units: s e mh ml )
@@ -328,6 +337,8 @@
 	bit and a sticky. )
 
 "XMulCore"
+	? [XE] = 0 -> xm zero;
+	? [YE] = 0 -> xm zero;
 	=> Mul128;
 
 	A = [xp3]; A > 31;		[xdel] = A;
@@ -364,6 +375,321 @@
     "xm exp"
 	A = [XE]; A + [YE]; A - XBIAS; A + [xdel];	[XE] = A;
 	A = [XS]; B = [YS]; A # B;			[XS] = A;
+	end;
+
+    "xm zero"
+	A = [XS]; B = [YS]; A # B; [XS] = A;
+	[XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+
+( ==================================================================== )
+( add/subtract, 64-bit mantissa                                        )
+( ==================================================================== )
+
+      ( XAddCore / XSubCore - X <- X +/- Y for finite normal or zero
+	values.  The significand is carried as a 67-bit integer
+	(high:low:extra), where extra contains guard, round and sticky bits.
+	The smaller operand is shifted right with jamming, so the final pack is
+	nearest-even without a binary64 spill.  The input/output images use the
+	usual x87 convention: M is [XMH:XML], E is [XE], and zero is E=0. )
+
+"XAddCore"
+	[xaso] = 0;
+	-> xas enter;
+
+"XSubCore"
+	[xaso] = 1;
+	-> xas enter;
+
+    "xas enter"
+	A = [XS]; [xass] = A;
+	A = [YS]; [xbss] = A;
+	A = [xaso]; B = [xbss]; A # B; [xbss] = A;
+	A = [XE]; [xase] = A;
+	A = [YE]; [xbse] = A;
+	A = [XMH]; [xash] = A;
+	A = [XML]; [xasl] = A;
+	A = [YMH]; [xbsh] = A;
+	A = [YML]; [xbsl] = A;
+	? [xase] = 0 -> xas xzero;
+	? [xbse] = 0 -> xas yzero;
+	-> xas magnitude;
+
+    "xas xzero"
+	? [xbse] != 0 -> xas xzero copy;
+	A = [xass]; B = [xbss]; ? A = B -> xas zero same;
+	[XS] = 0; [XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+    "xas zero same"
+	A = [xass]; [XS] = A;
+	[XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+    "xas xzero copy"
+	A = [xbss]; [XS] = A;
+	A = [xbse]; [XE] = A;
+	A = [xbsh]; [XMH] = A;
+	A = [xbsl]; [XML] = A;
+	end;
+
+    "xas yzero"
+	A = [xass]; [XS] = A;
+	A = [xase]; [XE] = A;
+	A = [xash]; [XMH] = A;
+	A = [xasl]; [XML] = A;
+	end;
+
+    ( Put the greater magnitude in the X work image.  Equal
+	  magnitudes keep X, which gives exact cancellation a canonical +0. )
+    "xas magnitude"
+	A = [xase]; B = [xbse];
+	? A '>= B -> xas exponent ordered;
+	-> xas swap;
+    "xas exponent ordered"
+	? A '> B -> xas aligned;
+	? A '< B -> xas swap;
+	A = [xash]; B = [xbsh];
+	? A '> B -> xas aligned;
+	? A '< B -> xas swap;
+	A = [xasl]; B = [xbsl];
+	? A '>= B -> xas aligned;
+	-> xas swap;
+    "xas swap"
+	A = [xase]; B = [xbse]; [xase] = B; [xbse] = A;
+	A = [xass]; B = [xbss]; [xass] = B; [xbss] = A;
+	A = [xash]; B = [xbsh]; [xash] = B; [xbsh] = A;
+	A = [xasl]; B = [xbsl]; [xasl] = B; [xbsl] = A;
+
+    "xas aligned"
+	( X and Y remain unshifted M[63:32]:M[31:0]; extra carries only
+	  the three guard/round/sticky bits below bit zero. )
+	[xasx] = 0; [xbsx] = 0;
+	A = [xase]; A - [xbse]; [xasd] = A;
+	A = [xasd]; ? A > 67 -> xas far;
+	? [xasd] = 0 -> xas op;
+
+    ( Binary-decompose the distance instead of walking one bit at a time.
+	  Each fixed shift keeps the three leading discarded bits in extra and
+	  jams every lower discarded bit into extra bit zero. )
+    "xas shift"
+	A = [xasd]; ? A = 0 -> xas op;
+	? A > 31 -> xas shift32 dispatch;
+	-> xas shift16 dispatch;
+    "xas shift32 dispatch"
+	-> xas shift32;
+    "xas shift32 next"
+	A = [xasd]; A - 32; [xasd] = A; -> xas shift;
+    "xas shift32"
+	A = [xbsx]; [xasbit] = A;
+	A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; [xbsl] = A; [xbsh] = 0;
+	A = [xasw]; A > 29; [xbsx] = A;
+	A = [xasw]; A & 1FFFFFFFh; B = [xasbit]; A | B;
+	? A = 0 -> xas shift32 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift32 sticky done"
+	-> xas shift32 next;
+
+    "xas shift16 dispatch"
+	A = [xasd]; A & 16; ? A = 0 -> xas shift8 dispatch;
+	-> xas shift16;
+    "xas shift16 next"
+	A = [xasd]; A - 16; [xasd] = A; -> xas shift;
+    "xas shift16"
+	A = [xbsx]; [xasbit] = A; A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; A > 16; [xbsh] = A;
+	A = [xasw]; A > 16; B = [xssh]; B < 16; A | B; [xbsl] = A;
+	A = [xasw]; A > 13; A & 7; [xbsx] = A;
+	A = [xasw]; A & 1FFFh; B = [xasbit]; A | B;
+	? A = 0 -> xas shift16 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift16 sticky done"
+	-> xas shift16 next;
+
+    "xas shift8 dispatch"
+	A = [xasd]; A & 8; ? A = 0 -> xas shift4 dispatch;
+	-> xas shift8;
+    "xas shift8 next"
+	A = [xasd]; A - 8; [xasd] = A; -> xas shift;
+    "xas shift8"
+	A = [xbsx]; [xasbit] = A; A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; A > 8; [xbsh] = A;
+	A = [xasw]; A > 8; B = [xssh]; B < 24; A | B; [xbsl] = A;
+	A = [xasw]; A > 5; A & 7; [xbsx] = A;
+	A = [xasw]; A & 1Fh; B = [xasbit]; A | B;
+	? A = 0 -> xas shift8 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift8 sticky done"
+	-> xas shift8 next;
+
+    "xas shift4 dispatch"
+	A = [xasd]; A & 4; ? A = 0 -> xas shift2 dispatch;
+	-> xas shift4;
+    "xas shift4 next"
+	A = [xasd]; A - 4; [xasd] = A; -> xas shift;
+    "xas shift4"
+	A = [xbsx]; [xasbit] = A; A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; A > 4; [xbsh] = A;
+	A = [xasw]; A > 4; B = [xssh]; B < 28; A | B; [xbsl] = A;
+	A = [xasw]; A > 1; A & 7; [xbsx] = A;
+	A = [xasw]; A & 1; B = [xasbit]; A | B;
+	? A = 0 -> xas shift4 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift4 sticky done"
+	-> xas shift4 next;
+
+    "xas shift2 dispatch"
+	A = [xasd]; A & 2; ? A = 0 -> xas shift1 dispatch;
+	-> xas shift2;
+    "xas shift2 next"
+	A = [xasd]; A - 2; [xasd] = A; -> xas shift;
+    "xas shift2"
+	A = [xbsx]; [xasbit] = A; A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; A > 2; [xbsh] = A;
+	A = [xasw]; A > 2; B = [xssh]; B < 30; A | B; [xbsl] = A;
+	A = [xasbit]; A > 2; [xbsx] = A;
+	A = [xasw]; A & 3; A < 1; B = [xbsx]; A | B; [xbsx] = A;
+	A = [xasbit]; A & 3; ? A = 0 -> xas shift2 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift2 sticky done"
+	-> xas shift2 next;
+
+    "xas shift1 dispatch"
+	A = [xasd]; A & 1; ? A = 0 -> xas op;
+	-> xas shift1;
+    "xas shift1"
+	A = [xbsx]; [xasbit] = A; A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; A > 1; [xbsh] = A;
+	A = [xasw]; A > 1; B = [xssh]; B < 31; A | B; [xbsl] = A;
+	A = [xasbit]; A > 1; [xbsx] = A;
+	A = [xasw]; A & 1; A < 2; B = [xbsx]; A | B; [xbsx] = A;
+	A = [xasbit]; A & 1; ? A = 0 -> xas shift1 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift1 sticky done"
+	[xasd] = 0; -> xas op;
+
+    "xas far"
+	( All of Y is below the retained 67 bits.  Y is normal and nonzero,
+	  so one sticky bit is sufficient. )
+	[xbsh] = 0; [xbsl] = 0; [xbsx] = 1;
+
+    "xas op"
+	A = [xass]; B = [xbss];
+	? A = B -> xas add;
+	-> xas subtract;
+
+    ( Same signs: add the three words, carrying from extra to low and
+	  from low to high.  xasb is the carry beyond the top word. )
+    "xas add"
+	A = [xasx]; B = [xbsx]; A + B; [xssx] = A; [xasbit] = 0;
+	? A < 8 -> xas add extra ready;
+	[xasbit] = 1;
+    "xas add extra ready"
+	A = [xasl]; B = [xbsl]; A + B; [xssl] = A; [xasb] = 0;
+	? A '>= B -> xas add low ready;
+	[xasb] = 1;
+    "xas add low ready"
+	? [xasbit] = 0 -> xas add high;
+	A = [xssl]; A + 1; [xssl] = A;
+	? A != 0 -> xas add high;
+	[xasb] = 1;
+    "xas add high"
+	A = [xash]; B = [xbsh]; A + B; [xssh] = A; E = 0;
+	? A '>= B -> xas add high base ready;
+	E = 1;
+    "xas add high base ready"
+	[xasw] = E;
+	? [xasb] = 0 -> xas add high combine;
+	A = [xssh]; A + 1; [xssh] = A;
+	? A != 0 -> xas add high combine;
+	[xasw] = 1;
+	"xas add high combine"
+	A = [xasw]; [xasb] = A;
+    "xas add high carry ready"
+	? [xasb] = 0 -> xas pack;
+	( A carry out shifts the 67-bit sum and becomes part of the
+	  normalized high word.  Preserve the old low bit as sticky. )
+	A = [xssx]; A & 1; [xasbit] = A;
+	A = [xssx]; A > 1; [xssx] = A;
+	A = [xssl]; A & 1; A < 2; B = [xssx]; A | B; [xssx] = A;
+	A = [xssl]; A > 1; B = [xssh]; B < 31; A | B; [xssl] = A;
+	A = [xssh]; A > 1; B = [xasb]; B < 31; A | B; [xssh] = A;
+	A = [xasbit]; ? A = 0 -> xas add carry sticky ready;
+	A = [xssx]; A | 1; [xssx] = A;
+    "xas add carry sticky ready"
+	A = [xase]; A + 1; [xase] = A;
+	-> xas pack;
+
+    ( Opposite signs: subtract the smaller magnitude from the larger.
+	  Borrow is propagated extra -> low -> high. )
+    "xas subtract"
+	A = [xasx]; B = [xbsx]; E = 0;
+	? A '>= B -> xas sub extra ordered;
+	E = 1;
+    "xas sub extra ordered"
+	A = [xasx]; A - [xbsx]; [xssx] = A; [xasb] = E;
+	A = [xasl]; B = [xbsl]; [xasbit] = 0;
+	? A '>= B -> xas sub low ordered;
+	[xasbit] = 1;
+    "xas sub low ordered"
+	A = [xasl]; A - [xbsl]; [xssl] = A;
+	? [xasb] = 0 -> xas sub high;
+	A = [xssl]; ? A = 0 -> xas sub extra borrow;
+	A - 1; [xssl] = A; -> xas sub high;
+	"xas sub extra borrow"
+	A = 0; A - 1; [xssl] = A; [xasbit] = 1;
+    "xas sub high"
+	A = [xash]; B = [xbsh]; [xasb] = 0;
+	? A '>= B -> xas sub high ordered;
+	[xasb] = 1;
+    "xas sub high ordered"
+	A = [xash]; A - [xbsh]; [xssh] = A;
+	? [xasbit] = 0 -> xas sub result;
+	A = [xssh]; ? A = 0 -> xas sub high borrow;
+	A - 1; [xssh] = A; -> xas sub result;
+	"xas sub high borrow"
+	A = 0; A - 1; [xssh] = A; [xasb] = 1;
+
+    "xas sub result"
+	A = [xssh]; B = [xssl]; A | B; C = [xssx]; A | C;
+	? A = 0 -> xas zero result;
+	A = [xssh]; A & 80000000h;
+	? A != 0 -> xas pack;
+    "xas sub normalize"
+	A = [xssx]; A > 2; [xasbit] = A;
+	A = [xssl]; A > 31; [xasw] = A;
+	A = [xssx]; A < 1; A & 7; [xssx] = A;
+	A = [xssl]; A < 1; B = [xasbit]; A | B; [xssl] = A;
+	A = [xssh]; A < 1; B = [xasw]; A | B; [xssh] = A;
+	A = [xase]; A - 1; [xase] = A;
+	? A <= 0 -> xas zero result;
+	A = [xssh]; A & 80000000h;
+	? A = 0 -> xas sub normalize;
+	-> xas pack;
+
+    "xas zero result"
+	[XS] = 0; [XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+
+
+    ( Pack M and the extra guard/round/sticky bits, then nearest-even
+	  round and sticky bits. )
+    "xas pack"
+	A = [xssh]; [XMH] = A;
+	A = [xssl]; [XML] = A;
+	A = [xssx]; A & 4; ? A = 0 -> xas packed;
+	A = [xssx]; A & 3; ? A != 0 -> xas increment;
+	A = [XML]; A & 1; ? A != 0 -> xas increment;
+	-> xas packed;
+    "xas increment"
+	A = [XML]; A + 1; [XML] = A;
+	? A != 0 -> xas packed;
+	A = [XMH]; A + 1; [XMH] = A;
+	? A != 0 -> xas packed;
+	[XMH] = 80000000h; [XML] = 0;
+	[xase]+;
+    "xas packed"
+	A = [xass]; [XS] = A;
+	A = [xase]; [XE] = A;
 	end;
 
 ( ==================================================================== )
@@ -653,6 +979,24 @@
     "XSQ zeroden"
 	A = [XS]; B = [YS]; A # B; A < 31; A | 7FF00000h; [FA1] = A;
 	[FA0] = 0;
+	end;
+
+"XScalarAdd"
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XAddCore;
+	=> XToF64;
+	end;
+
+"XScalarSub"
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XSubCore;
+	=> XToF64;
 	end;
 
       ( XChop32 - truncate the live extended X value to a signed qword,

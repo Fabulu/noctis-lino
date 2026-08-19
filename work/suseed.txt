@@ -144,11 +144,39 @@
 
 	SUti	= 0;		( last integer conversion, 32 bits )
 	SUt2	= 0;
+	SUdegin	= 0;
+	SUdegi	= 0;
+	SUdegp	= 0;
 	SUscr0	= 0;	SUscr1	= 0;	( a binary64 scratch pair )
 
 	( ---------- the painters' float state ---------- )
 
 	SFa	= 0;		( the global "float a"      )
+	SUa4i	= 0;		( index into the exact four-degree cycle )
+	vector SUa4tab =
+		000000000h; 03D8EFA35h; 03E0EFA35h; 03E567750h;
+		03E8EFA35h; 03EB2B8C2h; 03ED6774Fh; 03EFA35DCh;
+		03F0EFA35h; 03F20D97Ch; 03F32B8C3h; 03F44980Ah;
+		03F567751h; 03F685698h; 03F7A35DFh; 03F860A93h;
+		03F8EFA36h; 03F97E9D9h; 03FA0D97Ch; 03FA9C91Fh;
+		03FB2B8C2h; 03FBBA865h; 03FC49808h; 03FCD87ABh;
+		03FD6774Eh; 03FDF66F1h; 03FE85694h; 03FF14637h;
+		03FFA35DAh; 0400192BFh; 040060A91h; 0400A8263h;
+		0400EFA35h; 040137207h; 04017E9D9h; 0401C61ABh;
+		04020D97Dh; 04025514Fh; 04029C921h; 0402E40F3h;
+		04032B8C5h; 040373097h; 0403BA869h; 04040203Bh;
+		04044980Dh; 040490FDFh; 0404D87B1h; 04051FF83h;
+		040567755h; 0405AEF27h; 0405F66F9h; 04063DECBh;
+		04068569Dh; 0406CCE6Fh; 040714641h; 04075BE13h;
+		0407A35E5h; 0407EADB7h; 0408192C4h; 04083CEADh;
+		040860A96h; 04088467Fh; 0408A8268h; 0408CBE51h;
+		0408EFA3Ah; 040913623h; 04093720Ch; 04095ADF5h;
+		04097E9DEh; 0409A25C7h; 0409C61B0h; 0409E9D99h;
+		040A0D982h; 040A3156Bh; 040A55154h; 040A78D3Dh;
+		040A9C926h; 040AC050Fh; 040AE40F8h; 040B07CE1h;
+		040B2B8CAh; 040B4F4B3h; 040B7309Ch; 040B96C85h;
+		040BBA86Eh; 040BDE457h; 040C02040h; 040C25C29h;
+		040C49812h; 040C6D3FBh; 040C90FE4h;
 	SFpx	= 0;		( fracture's LOCAL float px )
 	SFpy	= 0;		( fracture's LOCAL float py )
 	SFkt	= 0;		( contrast's kt      )
@@ -200,6 +228,14 @@
 	SUvptr	= 0;
 	SUknot1	= 0;
 
+"workspace"
+
+	( Four X units for every integral degree multiplier -499..499.
+	  Fracture's widest random delta is in that interval.  The table
+	  retains the live 64-bit extended product and avoids repeating the
+	  software multiply at every point of every fracture. )
+	SUdegtable = 3996;
+
 "programme"
 
 ( ==================================================================== )
@@ -235,6 +271,23 @@
 
 	[SUcwc]  = CWCHOP;
 	[SUcwn]  = CWNEAR;
+
+	A = [SUdegin]; ? A != 0 -> SU fp init done;
+	[SUdegi] = minus 499;
+	[SUdegp] = SUdegtable;
+    "SU fp degree table"
+	A = [KDEG0]; [XU0] = A; A = [KDEG1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [SUdegi]; => XFromInt; => XMulCore;
+	D = [SUdegp];
+	[D plus 0] = [XS]; [D plus 1] = [XE];
+	[D plus 2] = [XMH]; [D plus 3] = [XML];
+	D + 4; [SUdegp] = D;
+	[SUdegi]+;
+	A = [SUdegi]; ? A <= 499 -> SU fp degree table;
+	[SUdegin] = 1;
+    "SU fp init done"
 	end;
 
 ( ==================================================================== )
@@ -289,11 +342,11 @@
 	No store between the fadd and the fistp. )
 
 "SU seed a"
-	{
-	    DD 87 <dSUsv0  mtp bytesperunit>	(fld  qword [edi+SUsv0*4])
-	    DC 87 <dK4112A mtp bytesperunit>	(fadd qword [edi+K4112A*4])
-	}
-	=> SU chop32;
+	A = [K4112A]; [XU0] = A; A = [K4112B]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [SUsv0]; [XU0] = A; A = [SUsv1]; [XU1] = A; => XFromF64;
+	=> XAddCore; => XChop32; [SUti] = [FI];
 	end;
 
       ( SU seed b - [SUti] <- (long)(seedval * 10). )
@@ -351,54 +404,66 @@
 
 "SU a zero"
 	[SFa] = 0;
+	[SUa4i] = 0;
 	end;
 
 "SU a step4"
-	{
-	    D9 87 <dSFa    mtp bytesperunit>	(fld  dword [edi+SFa*4])
-	    DC 87 <dK4DEG0 mtp bytesperunit>	(fadd qword [edi+K4DEG0*4])
-	    D9 9F <dSFa    mtp bytesperunit>	(fstp dword [edi+SFa*4])
-	}
+	A = [SUa4i]; A + 1; [SUa4i] = A;
+	A + vector SUa4tab; A = [A]; [SFa] = A;
 	end;
 
 "SU a step6"
-	{
-	    D9 87 <dSFa    mtp bytesperunit>	(fld  dword [edi+SFa*4])
-	    DC 87 <dK6DEG0 mtp bytesperunit>	(fadd qword [edi+K6DEG0*4])
-	    D9 9F <dSFa    mtp bytesperunit>	(fstp dword [edi+SFa*4])
-	}
+	D = SUdegtable; D + 2020;
+	A = [D plus 0]; [YS] = A; A = [D plus 1]; [YE] = A;
+	A = [D plus 2]; [YMH] = A; A = [D plus 3]; [YML] = A;
+	[FS0] = [SFa]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XAddCore; => XToF32; [SFa] = [FS0];
 	end;
 
       ( SU a of deg - "a = [SUia] * deg", the float32 store included.
 	:4586 (fracture) and :4936 (case 3). )
 
 "SU a of deg"
-	{
-	    DB 87 <dSUia  mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    DC 8F <dKDEG0 mtp bytesperunit>	(fmul qword [edi+KDEG0*4])
-	    D9 9F <dSFa   mtp bytesperunit>	(fstp dword [edi+SFa*4])
-	}
+	=> SU degree X;
+	=> XToF32; [SFa] = [FS0];
 	end;
 
       ( SU a add deg - "a += [SUia] * deg", fracture's :4598. )
 
 "SU a add deg"
-	{
-	    DB 87 <dSUia  mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    DC 8F <dKDEG0 mtp bytesperunit>	(fmul qword [edi+KDEG0*4])
-	    D8 87 <dSFa   mtp bytesperunit>	(fadd dword [edi+SFa*4])
-	    D9 9F <dSFa   mtp bytesperunit>	(fstp dword [edi+SFa*4])
-	}
+	=> SU degree Y;
+	[FS0] = [SFa]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XAddCore; => XToF32; [SFa] = [FS0];
+	end;
+
+"SU degree ptr"
+	A = [SUia]; A + 499; A '* 4; A + SUdegtable; [SUdegp] = A;
+	end;
+
+"SU degree X"
+	=> SU degree ptr;
+	D = [SUdegp];
+	A = [D plus 0]; [XS] = A; A = [D plus 1]; [XE] = A;
+	A = [D plus 2]; [XMH] = A; A = [D plus 3]; [XML] = A;
+	end;
+
+"SU degree Y"
+	=> SU degree ptr;
+	D = [SUdegp];
+	A = [D plus 0]; [YS] = A; A = [D plus 1]; [YE] = A;
+	A = [D plus 2]; [YMH] = A; A = [D plus 3]; [YML] = A;
 	end;
 
       ( SU a over 30 - "a = (float)[SUia] / 30", case 6's :5027. )
 
 "SU a over 30"
-	{
-	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    DC B7 <dK30A mtp bytesperunit>	(fdiv qword [edi+K30A*4])
-	    D9 9F <dSFa  mtp bytesperunit>	(fstp dword [edi+SFa*4])
-	}
+	A = [K30A]; [XU0] = A; A = [K30B]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [SUia]; => XFromInt;
+	=> XQuoCore; => XToF32; [SFa] = [FS0];
 	end;
 
 ( ==================================================================== )
@@ -484,16 +549,11 @@
 	16 bits again. )
 
 "SU fr vptr"
-	{
-	    D9 87 <dSFpy mtp bytesperunit>	(fld dword [edi+SFpy*4])
-	}
-	=> SU chop32;
+	[FS0] = [SFpy]; => FLoadF32; => FToIntChop; [SUti] = [FI];
 	A = [SUti]; A & 0FFFFh; A '* 360; A & 0FFFFh; [SUia] = A;
-	{
-	    D9 87 <dSFpx mtp bytesperunit>	(fld dword [edi+SFpx*4])
-	}
-	=> SU add ia;
-	=> SU chop32;
+	[FS0] = [SFpx]; => FLoadF32;
+	[FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = [SUia]; => IntToF; => FAdd; => FToIntChop; [SUti] = [FI];
 	A = [SUti]; A & 0FFFFh; [SUti] = A;
 	end;
 
@@ -507,21 +567,25 @@
 	binary32 before the addition; only the parameter push rounds. )
 
 "SU kt of"
-	{
-	    DB 87 <dSUia mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    DC B7 <dK900A mtp bytesperunit>	(fdiv qword [edi+K900A*4])
-	    DC 87 <dK06A  mtp bytesperunit>	(fadd qword [edi+K06A*4])
-	    D9 9F <dSFkt  mtp bytesperunit>	(fstp dword [edi+SFkt*4])
-	}
+	A = [K900A]; [XU0] = A; A = [K900B]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [SUia]; => XFromInt; => XQuoCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [K06A]; [XU0] = A; A = [K06B]; [XU1] = A; => XFromF64;
+	=> XAddCore; => XToF32; [SFkt] = [FS0];
 	end;
 
 "SU kq of"
-	{
-	    DB 87 <dSUia  mtp bytesperunit>	(fild dword [edi+SUia*4])
-	    DC B7 <dK100A mtp bytesperunit>	(fdiv qword [edi+K100A*4])
-	    DC 87 <dK40A  mtp bytesperunit>	(fadd qword [edi+K40A*4])
-	    D9 9F <dSFkq  mtp bytesperunit>	(fstp dword [edi+SFkq*4])
-	}
+	A = [K100A]; [XU0] = A; A = [K100B]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [SUia]; => XFromInt; => XQuoCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [K40A]; [XU0] = A; A = [K40B]; [XU1] = A; => XFromF64;
+	=> XAddCore; => XToF32; [SFkq] = [FS0];
 	end;
 
 "SU th of"				( thrshld = 25 + rfr(3), an int )

@@ -25,6 +25,17 @@
 ( control word                                                          )
 ( ==================================================================== )
 
+      ( FReset - reset the host floating-point stack and reinstall the
+	project's declared control word.  Keep the architecture boundary here,
+	not in Noctis game code; future CPU packs replace this one primitive. )
+
+"FReset"
+	{
+	    DB E3				(fninit)
+	}
+	=> FLoadCW;
+	end;
+
       ( FEnter - save the ambient control word and install [FCW].
 
 	This is NOT optional and it is NOT only about fidelity.  The
@@ -105,4 +116,3 @@
 	A = [FFLG]; A | FFLGSTACKBAD; [FFLG] = A;
     "FSTOK done"
 	end;
-

@@ -3113,8 +3113,10 @@ def main() -> int:
         and all(token in grnd for token in (
             'Every level applies the source value >= abs(level) cutoff',
             '"GR sc power done"',
-            "D9 F1", "D9 F0", "D9 FD",
+            "=> FSqrt;", "=> FCos;", "=> FSin;",
+            "=> XMulCore; => XToF32;",
         ))
+        and not re.search(r"^\s*\{", grnd, re.MULTILINE)
         and "FLAGGED GAP" not in grnd,
         "all accepted landable classes have distinct terrain and powered crater profiles",
     )
@@ -3493,8 +3495,11 @@ def main() -> int:
     eye = section(ground, '"service VHGND eye height"', '"VHGND render"')
     check(
         "VHGNDQIDHI" in eye
-        and eye.count("D9 9F <dVHGNDpy mtp bytesperunit>") == 4
-        and "DB 9F <dFI mtp bytesperunit>" in eye
+        and eye.count("=> XSubCore;") == 4
+        and eye.count("=> XAddCore;") == 4
+        and eye.count("=> XToF32;") == 4
+        and "[FS0] = [VHGNDpy]; => FLoadF32; => FToIntChop;" in eye
+        and not re.search(r"^\s*\{", eye, re.MULTILINE)
         and "A / VHGNDTS" not in eye,
         "terrain eye height follows the rendered float triangles without integer loss",
     )

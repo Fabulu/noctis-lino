@@ -63,6 +63,7 @@
 	VHGNDincl = 0; VHGNDoval = 0;
 	VHGNDh1i = 0; VHGNDh2i = 0; VHGNDh3i = 0; VHGNDh4i = 0;
 	VHGNDpy = 0;
+	VHGNDhxS = 0; VHGNDhxE = 0; VHGNDhxH = 0; VHGNDhxL = 0;
 	VHGNDdropx = 1646592; VHGNDdropy = 0; VHGNDdropz = 1646592;
 	VHGNDbeaconpass = 0;
 	VHGNDviewx = 0; VHGNDviewz = 0;
@@ -2002,15 +2003,15 @@
     "VHGND rotation moon typed"
 	[FI] = A; => IntToF; [VHGNDsf20] = [FA0]; [VHGNDsf21] = [FA1];
 "VHGND rotation seed calculate"
-	{
-	    DD 87 <dVHGNDsf00 mtp bytesperunit>	(fld qword [edi+VHGNDsf00*4])
-	    DC 8F <dVHGNDsf10 mtp bytesperunit>	(fmul qword [edi+VHGNDsf10*4])
-	    DC 8F <dVHGNDsf20 mtp bytesperunit>	(fmul qword [edi+VHGNDsf20*4])
-	    DC 8F <dVHGNDsf30 mtp bytesperunit>	(fmul qword [edi+VHGNDsf30*4])
-	    DC 8F <dVHGNDsf40 mtp bytesperunit>	(fmul qword [edi+VHGNDsf40*4])
-	    DC 8F <dVHGNDsf50 mtp bytesperunit>	(fmul qword [edi+VHGNDsf50*4])
-	    DD 9F <dVHGNDseedval0 mtp bytesperunit>	(fstp qword [edi+VHGNDseedval0*4])
-	}
+	=> XReset;
+	A = [VHGNDsf00]; [XU0] = A; A = [VHGNDsf01]; [XU1] = A; => XFromF64; => XPush;
+	A = [VHGNDsf10]; [XU0] = A; A = [VHGNDsf11]; [XU1] = A; => XFromF64; => XPush; => XFmulp;
+	A = [VHGNDsf20]; [XU0] = A; A = [VHGNDsf21]; [XU1] = A; => XFromF64; => XPush; => XFmulp;
+	A = [VHGNDsf30]; [XU0] = A; A = [VHGNDsf31]; [XU1] = A; => XFromF64; => XPush; => XFmulp;
+	A = [VHGNDsf40]; [XU0] = A; A = [VHGNDsf41]; [XU1] = A; => XFromF64; => XPush; => XFmulp;
+	A = [VHGNDsf50]; [XU0] = A; A = [VHGNDsf51]; [XU1] = A; => XFromF64; => XPush; => XFmulp;
+	=> XFstpQ;
+	[VHGNDseedval0] = [FA0]; [VHGNDseedval1] = [FA1];
 	end;
 
 "VHGND orbit angle"
@@ -2407,59 +2408,70 @@
 	[FB0] = VHGNDQIDLO; [FB1] = VHGNDQIDHI;
 	A = [VHGNDfx]; A + [VHGNDfz]; ? A '< VHGNDTS -> VHGND height upper;
 	( lower triangle: h3+(h4-h3)*(1-fx/TS), then +(h2-h3)*(1-fz/TS) )
-	{
-	    B8 00 40 00 00
-	    2B 87 <dVHGNDfx mtp bytesperunit>
-	    89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DC 8F <dFB0 mtp bytesperunit>
-	    DD 9F <dFT0 mtp bytesperunit>
-	    DB 87 <dVHGNDh4i mtp bytesperunit>
-	    DA A7 <dVHGNDh3i mtp bytesperunit>
-	    DC 8F <dFT0 mtp bytesperunit>
-	    DA 87 <dVHGNDh3i mtp bytesperunit>
-	    D9 9F <dVHGNDpy mtp bytesperunit>
-	    B8 00 40 00 00
-	    2B 87 <dVHGNDfz mtp bytesperunit>
-	    89 87 <dFI mtp bytesperunit>
-	    DB 87 <dFI mtp bytesperunit>
-	    DC 8F <dFB0 mtp bytesperunit>
-	    DD 9F <dFT0 mtp bytesperunit>
-	    DB 87 <dVHGNDh2i mtp bytesperunit>
-	    DA A7 <dVHGNDh3i mtp bytesperunit>
-	    DC 8F <dFT0 mtp bytesperunit>
-	    D8 87 <dVHGNDpy mtp bytesperunit>
-	    D9 9F <dVHGNDpy mtp bytesperunit>
-	}
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = VHGNDTS; A - [VHGNDfx]; [XIN] = A; => XFromInt; => XMulCore; => XToF64;
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[XIN] = [VHGNDh3i]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [VHGNDh4i]; => XFromInt; => XSubCore;
+	[VHGNDhxS] = [XS]; [VHGNDhxE] = [XE]; [VHGNDhxH] = [XMH]; [VHGNDhxL] = [XML];
+	A = [FT0]; [XU0] = A; A = [FT1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XS] = [VHGNDhxS]; [XE] = [VHGNDhxE]; [XMH] = [VHGNDhxH]; [XML] = [VHGNDhxL]; => XMulCore;
+	[VHGNDhxS] = [XS]; [VHGNDhxE] = [XE]; [VHGNDhxH] = [XMH]; [VHGNDhxL] = [XML];
+	[XIN] = [VHGNDh3i]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XS] = [VHGNDhxS]; [XE] = [VHGNDhxE]; [XMH] = [VHGNDhxH]; [XML] = [VHGNDhxL]; => XAddCore; => XToF32;
+	[VHGNDpy] = [FS0];
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = VHGNDTS; A - [VHGNDfz]; [XIN] = A; => XFromInt; => XMulCore; => XToF64;
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[XIN] = [VHGNDh3i]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [VHGNDh2i]; => XFromInt; => XSubCore;
+	[VHGNDhxS] = [XS]; [VHGNDhxE] = [XE]; [VHGNDhxH] = [XMH]; [VHGNDhxL] = [XML];
+	A = [FT0]; [XU0] = A; A = [FT1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XS] = [VHGNDhxS]; [XE] = [VHGNDhxE]; [XMH] = [VHGNDhxH]; [XML] = [VHGNDhxL]; => XMulCore;
+	[VHGNDhxS] = [XS]; [VHGNDhxE] = [XE]; [VHGNDhxH] = [XMH]; [VHGNDhxL] = [XML];
+	[FS0] = [VHGNDpy]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XS] = [VHGNDhxS]; [XE] = [VHGNDhxE]; [XMH] = [VHGNDhxH]; [XML] = [VHGNDhxL]; => XAddCore; => XToF32;
+	[VHGNDpy] = [FS0];
 	-> VHGND height finish;
     "VHGND height upper"
 	( upper triangle: h1+(h2-h1)*fx/TS, then +(h4-h1)*fz/TS )
-	{
-	    DB 87 <dVHGNDfx mtp bytesperunit>
-	    DC 8F <dFB0 mtp bytesperunit>
-	    DD 9F <dFT0 mtp bytesperunit>
-	    DB 87 <dVHGNDh2i mtp bytesperunit>
-	    DA A7 <dVHGNDh1i mtp bytesperunit>
-	    DC 8F <dFT0 mtp bytesperunit>
-	    DA 87 <dVHGNDh1i mtp bytesperunit>
-	    D9 9F <dVHGNDpy mtp bytesperunit>
-	    DB 87 <dVHGNDfz mtp bytesperunit>
-	    DC 8F <dFB0 mtp bytesperunit>
-	    DD 9F <dFT0 mtp bytesperunit>
-	    DB 87 <dVHGNDh4i mtp bytesperunit>
-	    DA A7 <dVHGNDh1i mtp bytesperunit>
-	    DC 8F <dFT0 mtp bytesperunit>
-	    D8 87 <dVHGNDpy mtp bytesperunit>
-	    D9 9F <dVHGNDpy mtp bytesperunit>
-	}
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [VHGNDfx]; => XFromInt; => XMulCore; => XToF64; [FT0] = [FA0]; [FT1] = [FA1];
+	[XIN] = [VHGNDh1i]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [VHGNDh2i]; => XFromInt; => XSubCore;
+	[VHGNDhxS] = [XS]; [VHGNDhxE] = [XE]; [VHGNDhxH] = [XMH]; [VHGNDhxL] = [XML];
+	A = [FT0]; [XU0] = A; A = [FT1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XS] = [VHGNDhxS]; [XE] = [VHGNDhxE]; [XMH] = [VHGNDhxH]; [XML] = [VHGNDhxL]; => XMulCore;
+	[VHGNDhxS] = [XS]; [VHGNDhxE] = [XE]; [VHGNDhxH] = [XMH]; [VHGNDhxL] = [XML];
+	[XIN] = [VHGNDh1i]; => XFromInt; A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XS] = [VHGNDhxS]; [XE] = [VHGNDhxE]; [XMH] = [VHGNDhxH]; [XML] = [VHGNDhxL]; => XAddCore; => XToF32; [VHGNDpy] = [FS0];
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [VHGNDfz]; => XFromInt; => XMulCore; => XToF64; [FT0] = [FA0]; [FT1] = [FA1];
+	[XIN] = [VHGNDh1i]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XIN] = [VHGNDh4i]; => XFromInt; => XSubCore;
+	[VHGNDhxS] = [XS]; [VHGNDhxE] = [XE]; [VHGNDhxH] = [XMH]; [VHGNDhxL] = [XML];
+	A = [FT0]; [XU0] = A; A = [FT1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XS] = [VHGNDhxS]; [XE] = [VHGNDhxE]; [XMH] = [VHGNDhxH]; [XML] = [VHGNDhxL]; => XMulCore;
+	[VHGNDhxS] = [XS]; [VHGNDhxE] = [XE]; [VHGNDhxH] = [XMH]; [VHGNDhxL] = [XML];
+	[FS0] = [VHGNDpy]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[XS] = [VHGNDhxS]; [XE] = [VHGNDhxE]; [XMH] = [VHGNDhxH]; [XML] = [VHGNDhxL]; => XAddCore; => XToF32; [VHGNDpy] = [FS0];
     "VHGND height finish"
-	[FS0] = [VHGNDpy];
-	{
-	    D9 87 <dVHGNDpy mtp bytesperunit>
-	    D9 AF <dGRcwc mtp bytesperunit>
-	    DB 9F <dFI mtp bytesperunit>
-	    D9 AF <dGRcwn mtp bytesperunit>
-	}
+	[FS0] = [VHGNDpy]; => FLoadF32; => FToIntChop;
 	A = [FI]; A - 600; [VHGNDheight] = A;
 	end;
 
@@ -5686,24 +5698,52 @@
 	[VHGNDmushfloat] = 0; => VHGND greenmush; -> VHGND tree done;
 "VHGND tree forced broadleaf"
 	[VHTforks] = 3; A = [GRtreepeak]; A '* 2; [VHTpeak] = A;
-	[GRtreeci] = 2; { D9 87 <dGRtreepeakf mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
-	  D9 9F <dVHTpeakf mtp bytesperunit> }
+	[GRtreeci] = 2; [XIN] = [GRtreeci]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [GRtreepeakf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XQuoCore; => XToF32; [VHTpeakf] = [FS0];
 	[VHTrootcol] = 128; -> VHGND tree configured;
 "VHGND tree forced conifer"
 	[VHTforks] = 2; A = [GRtreepeak]; A / 2; [VHTpeak] = A;
-	{ D9 87 <dGRtreepeakf mtp bytesperunit> DC 8F <dGRK050L mtp bytesperunit>
-	  D9 9F <dVHTpeakf mtp bytesperunit> }
+	[FS0] = [GRtreepeakf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK050L]; [XU0] = A; A = [GRK050H]; [XU1] = A; => XFromF64;
+	=> XMulCore; => XToF32; [VHTpeakf] = [FS0];
 	[VHTrootcol] = 128; [VHTleafcol] = 64; -> VHGND tree configured;
 "VHGND tree giant"
 	A = [GRtreescale]; A '* 2; [VHGNDtreescale] = A;
 	A = [GRbranchwidth]; A '* 3; A / 2; [VHTwidth] = A;
 	A = [GRtreepeak]; A '* 3; A / 2; [VHTpeak] = A;
-	[GRtreeci] = 2; { D9 87 <dGRtreescalef mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
-	  D9 9F <dVHGNDtreescalef mtp bytesperunit> }
-	[GRtreeci] = 3; { D9 87 <dGRbranchwidthf mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
-	  DC 8F <dGRK050L mtp bytesperunit> D9 9F <dVHTwidthf mtp bytesperunit> }
-	{ D9 87 <dGRtreepeakf mtp bytesperunit> DA 8F <dGRtreeci mtp bytesperunit>
-	  DC 8F <dGRK050L mtp bytesperunit> D9 9F <dVHTpeakf mtp bytesperunit> }
+	[GRtreeci] = 2; [XIN] = [GRtreeci]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [GRtreescalef]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XQuoCore; => XToF32; [VHGNDtreescalef] = [FS0];
+	[GRtreeci] = 3; [XIN] = [GRtreeci]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [GRbranchwidthf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XQuoCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK050L]; [XU0] = A; A = [GRK050H]; [XU1] = A; => XFromF64;
+	=> XMulCore; => XToF32; [VHTwidthf] = [FS0];
+	[XIN] = [GRtreeci]; => XFromInt;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [GRtreepeakf]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XQuoCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [GRK050L]; [XU0] = A; A = [GRK050H]; [XU1] = A; => XFromF64;
+	=> XMulCore; => XToF32; [VHTpeakf] = [FS0];
 	A = [VHGNDdepth]; ? A > 11 -> VHGND tree giant mush;
 	? A > 7 -> VHGND tree giant middle; ? A > 4 -> VHGND tree giant near;
 	( The closest GIANT_TREE keeps the source's full four-layer,
