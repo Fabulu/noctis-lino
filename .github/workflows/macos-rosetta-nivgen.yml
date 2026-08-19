@@ -1,0 +1,129 @@
+name: macOS Rosetta NIVGEN
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+    paths:
+      - ".github/workflows/macos-rosetta-nivgen.yml"
+      - "build/compile_nivtest_linux.sh"
+      - "build/build_nivtest.sh"
+      - "main/cpu/x64.bin"
+      - "main/linux_compiler.bin"
+      - "src/linoleum_macos64/**"
+      - "tools/nivtest.py"
+      - "tools/pack_lino_sys.py"
+      - "work/**.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime:
+    name: Build x86_64 RTM on Apple Silicon
+    runs-on: macos-15
+
+    steps:
+      - name: Check out the port
+        uses: actions/checkout@v7
+
+      - name: Build the headless x86_64 runtime
+        shell: bash
+        run: |
+          test "$(uname -m)" = arm64
+          HEADLESS=1 ./src/linoleum_macos64/build.sh
+          file src/linoleum_macos64/rtm01.bin | grep -q 'x86_64'
+          if otool -L src/linoleum_macos64/rtm01.bin | grep -q '/Cocoa.framework/'; then
+            echo 'Headless runtime unexpectedly links Cocoa' >&2
+            exit 1
+          fi
+
+      - name: Upload the runtime for cross-compilation
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-x86_64-headless-rtm
+          path: src/linoleum_macos64/rtm01.bin
+          if-no-files-found: error
+
+  compile:
+    name: Cross-compile the production harness
+    needs: runtime
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out the production source
+        uses: actions/checkout@v7
+
+      - name: Download the x86_64 runtime
+        uses: actions/download-artifact@v8
+        with:
+          name: macos-x86_64-headless-rtm
+          path: build/macos-rtm
+
+      - name: Install the historical compiler runtime
+        shell: bash
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y \
+            libc6:i386 libx11-6:i386 libxau6:i386 libxcb1:i386 \
+            libxdmcp6:i386 xvfb xauth
+
+      - name: Compile the real production NIVGEN executable
+        shell: bash
+        run: ./build/compile_nivtest_linux.sh build/macos-rtm/rtm01.bin build/nivtest
+
+      - name: Upload the compiled harness
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-x86_64-nivtest
+          path: build/nivtest
+          if-no-files-found: error
+
+  rosetta:
+    name: Execute one exact sector through Rosetta
+    needs: compile
+    runs-on: macos-15
+
+    steps:
+      - name: Check out the runner
+        uses: actions/checkout@v7
+
+      - name: Download the compiled harness
+        uses: actions/download-artifact@v8
+        with:
+          name: macos-x86_64-nivtest
+          path: build/rosetta
+
+      - name: Run the production generator through Rosetta
+        shell: bash
+        run: |
+          set -o pipefail
+          test "$(uname -m)" = arm64
+          chmod +x build/rosetta/nivtest
+          file build/rosetta/nivtest | grep -q 'x86_64'
+          arch -x86_64 /usr/bin/true
+          python3 tools/nivtest.py json \
+            -x -1996209872 -y 55508 -z 816148 -p 2 -lon 0 -lat 60 \
+            --exe "$PWD/build/rosetta/nivtest" \
+            | tee build/rosetta-result.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(Path("build/rosetta-result.json").read_text())
+          expected = {
+              "surf": "390A2CCB",
+              "atmo": "114562E8",
+              "pal": "26961E4A",
+              "hm": "97022FD7",
+              "oc": "22913F4E",
+              "stex": "0D52F001",
+              "sky": "1E308D29",
+          }
+          got = {name: result["hashes"][name]["fnv"] for name in expected}
+          if got != expected:
+              raise SystemExit(f"Rosetta NIVGEN mismatch: {got!r}")
+          print("Rosetta NIVGEN exact: 7/7")
+          PY
