@@ -11,6 +11,27 @@ class, vegetation, trees, mammals, birds, ruins, and the Cube. That result is
 broad regression coverage, not a claim that every procedural seed and native
 input timing combination can be exhaustively enumerated.
 
+On 2026-08-19 the complete development macOS x86_64 artifact passed its hosted
+Apple-Silicon path. Unsigned Cocoa and headless runtimes were built on arm64,
+the fixpoint compiler cross-built NIVTEST and the game on Ubuntu, and Rosetta 2
+matched the authoritative production fixture on all seven hashes. The packaged
+app was ad-hoc signed, extracted into a clean directory, and passed strict nested
+signature and manifest verification. Launcher smokes repaired a deleted
+immutable asset, retained modified regular `STARMAP.BIN` and `GUIDE.BIN`, and
+rejected a mutable database path replaced by a directory. The real game then
+reached its first Cocoa retrace, accepted AppKit Quit through repeated complete
+Escape intervals, exited through normal Lino cleanup, and wrote a nonempty
+`CURRENT.LIN`.
+
+The uploaded development ZIP from commit `9fbc1e6` was downloaded separately.
+Its adjacent checksum, twenty-file app inventory, per-file manifest, copied build
+records, runtime hashes, NIVTEST evidence, plist, x86_64 target, macOS 10.15
+minimum, Cocoa/AudioToolbox linkage, normalized Mach-O geometry, one terminal
+code-signature command, and unchanged appended Lino payload all matched package
+provenance. This is bounded end-to-end Rosetta evidence. Intel CI builds both
+runtime modes, but an equivalent extracted-app gameplay smoke has not yet run on
+an Intel host, and native ARM64 is not claimed.
+
 On 2026-08-12 the production capture path placed the opening system's selected
 star at a source-valid 200-unit flare distance by inverting the live camera
 rotation. The native frame shows the corona and reflection ghosts through the
@@ -45,8 +66,8 @@ manual editor oversight rather than inheriting its unreachable far region.
 | Land and walk | Physical capsule descent, gravity, rebounds and settling lead into first-person type-specific terrain, across the source 64-tile view radius with live textures, shading, crevasses, deterministic rocks, historical ruins, open-ocean sea level, calm-water/ice terrain reflections, shimmer, contracting wind crests and expanding swimmer wakes, type-3 vegetation/trees, three mammal gaits, landing/flying/capturable birds, atmospheric skies, type-3 rain/lightning, source-shaped indexed EPOC/SQC/compass and smoothed environmental visor data, low-gravity jumping, hold-to-thrust jetpack flight, and capsule ascent |
 | Resize the game | Live iGUI window with centered 8:5 nearest-neighbour aspect-fit scaling; validated dimensions persist across clean restarts |
 | Save / load | A valid `CURRENT.LIN` resumes automatically at startup; verified saves refresh `CURRENT.BAK`, and a present-but-malformed primary visibly recovers from that last-known-good copy while a deliberately missing primary starts clean. Global F6/F7 checkpoints work in the ship and on settled surfaces, retain target/player state plus the local fine-approach and parked-world state, landing and settled-capsule coordinates, window dimensions, presentation, F2 visual preferences, original PFS preferences and navigation heading, diagnostics, soundtrack, internal light, navigation devices, capture progress, power, lithium, collector, pending-rescue state, and a UTC timestamp for closed-game evolution, and show visible success/failure feedback; v1 through v14 port saves remain loadable and the exact original CURRENT.BIN codec remains available as a component |
-| Distributable bundle | `package_noctis.ps1` builds an isolated play folder with every linked map/model/font/audio/catalog asset, a relocatable working-directory launcher, player instructions, the Noctis WPL, and a SHA-256 manifest |
-| Quit | Esc, the red iGUI close button, and Alt+F4 all exit through checkpoint/audio cleanup |
+| Distributable bundles | Windows package script builds an isolated play folder; the hosted macOS graph builds a Finder app. Both include assets, player instructions, WPL, internal SHA-256 manifest, adjacent archive checksum, and explicit provenance |
+| Quit | Windows Esc, iGUI close, and Alt+F4 use checkpoint/audio cleanup; macOS window close and AppKit Quit pulse normal Escape intervals until the same Lino save/cleanup path exits |
 
 ## How to run
 
@@ -57,11 +78,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File C:\programmieren\linoleum\pl
 # Force a fresh production build, then play
 powershell -NoProfile -ExecutionPolicy Bypass -File C:\programmieren\linoleum\play_noctis.ps1 -Build
 
-# Build a self-contained redistributable play folder
+# Build a self-contained redistributable Windows play folder
 powershell -NoProfile -ExecutionPolicy Bypass -File C:\programmieren\linoleum\package_noctis.ps1
 ```
 
-The launcher always uses `work\` as the game directory, preventing checkpoints
+For a tagged Mac package, verify `Noctis-IV-macos-x86_64.zip` with its adjacent
+checksum, extract `Noctis IV.app`, and open the app. The x86_64 image runs on
+Intel or through Rosetta 2 on Apple Silicon. It is ad-hoc signed and not
+notarized, so first launch can require explicit approval under macOS Privacy &
+Security. Mutable data is under `~/Library/Application Support/Noctis IV`.
+
+The Windows launcher always uses `work\` as the game directory, preventing checkpoints
 and other persistent files from being split across whichever directory happened
 to be current in the shell. The bounded timeout harness below remains available
 for automated smoke work; it is not the normal interactive launcher.

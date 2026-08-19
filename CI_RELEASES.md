@@ -2,99 +2,160 @@
 
 ## Current release boundary
 
-Beta 21 is the first release whose Windows executable is compiled from the
-tagged Lino source on a GitHub-hosted runner. CI does not package a committed
-`work/vhgame.exe` and does not depend on a self-hosted desktop to produce the
-release artifact.
+Beta 21 was the first release whose Windows executable was compiled from tagged
+Lino source on a GitHub-hosted runner. The current tagged-release graph extends
+that source-build boundary to a verified macOS x86_64 Finder application. A tag
+is publishable only when both platform packages pass; the workflow releases six
+generated assets:
 
-The protected historical Linux compiler is still the trust anchor. On current
-Linux, that compiler loads its Lino application into heap memory and jumps to
-it; normal NX policy rejects the jump. The build invokes the unchanged binary
-through `setarch -X`, which restores the executable-heap process personality
+```text
+Noctis-IV-windows-x86.zip
+Noctis-IV-windows-x86.zip.sha256
+Noctis-IV-windows-x86.provenance.txt
+Noctis-IV-macos-x86_64.zip
+Noctis-IV-macos-x86_64.zip.sha256
+Noctis-IV-macos-x86_64.provenance.txt
+```
+
+CI does not repackage a committed `work/vhgame.exe` and does not depend on a
+self-hosted desktop for either release executable. The protected historical
+Linux compiler remains the trust anchor. On current Linux it loads its Lino
+application into heap memory and jumps to it, so the build invokes the unchanged
+binary through `setarch -X`, restoring the executable-heap process personality
 expected by the historical runtime. It then:
 
-1. compiles `main/lib/gen/compiler114m.txt` with the protected compiler and the
-   protected `i386` CPU pack;
-2. uses the generated compiler with `i386m` to rebuild itself;
-3. requires the two generated compiler images to be byte-identical;
-4. uses that fixpoint compiler to compile `work/vhgame.txt` for
-   `win32/i386m`; and
-5. validates a nonempty, sectioned i386 PE before upload.
+1. compiles `main/lib/gen/compiler114m.txt` with the protected compiler and
+   protected i386 CPU pack;
+2. uses the generated compiler and target CPU pack to rebuild itself;
+3. requires a byte-identical self-hosting fixpoint; and
+4. uses that fixpoint compiler to build the production target.
 
-The compatibility boundary and 32-bit glibc/X11 dependencies belong to the
-compiler host only. They do not alter the protected compiler, the Lino source,
-or the released Windows executable.
+The compatibility boundary and 32-bit glibc/X11 dependencies belong only to the
+compiler host. They do not alter the protected compiler, Lino source, or release
+executables.
 
 ## Workflow roles
 
 - `.github/workflows/windows-release.yml` runs on pull requests and master
-  pushes. A Windows job runs the focused gameplay regression, an Ubuntu job
-  builds the extended compiler and production PE from source, and a fresh
-  Windows job verifies and packages the transferred PE. The result is the
+  pushes. Windows runs the focused gameplay regression, Ubuntu builds the
+  extended compiler and production PE from source, and a fresh Windows job
+  verifies and packages the transferred PE. The result is the
   `Noctis-IV-windows-x86-snapshot` Actions artifact.
-- `.github/workflows/tagged-release.yml` repeats that source build for every
-  pushed `v*` tag. It publishes the exact tested ZIP, ZIP checksum, and build
-  provenance as a GitHub prerelease. Publication cannot run if regression,
-  compilation, provenance verification, or packaging fails.
+- `.github/workflows/macos-runtime.yml` builds Cocoa and headless x86_64 runtimes
+  on Intel macOS. It verifies architecture, macOS 10.15 deployment target,
+  expected framework linkage, package-tool syntax, focused Mach-O normalization
+  tests, and the mutable seed-asset set.
+- `.github/workflows/macos-rosetta-nivgen.yml` builds both unsigned x86_64
+  runtimes on Apple Silicon, records actual toolchain/runtime provenance,
+  cross-compiles the production NIVTEST image and game on Ubuntu, and returns to
+  Apple Silicon for exact Rosetta and package validation. It uploads a
+  development macOS ZIP, checksum, and provenance artifact only after every
+  gate below succeeds.
+- `.github/workflows/tagged-release.yml` repeats the protected-source regression,
+  Windows source build/package, and the complete macOS build/package graph for
+  every pushed `v*` tag. Publication needs both platform package jobs, so no
+  partial public release is created when either side fails.
 - `.github/workflows/source-release.yml` remains an optional independent build
   through the historical Win32 compiler on an interactive `lino-gui` runner.
-  It is useful as a second compiler-host comparison, but is no longer required
-  for hosted release production and is not the release provenance authority.
-- `.github/workflows/macos-runtime.yml` builds both Cocoa and headless x86_64
-  runtimes on Intel macOS.
-- `.github/workflows/macos-rosetta-nivgen.yml` builds the x86_64 runtime on Apple
-  Silicon, cross-compiles the production NIVGEN executable on Ubuntu, executes
-  it through Rosetta 2, and checks all seven output families against the
-  authoritative Windows hashes. A runnable process is not enough: any numerical
-  mismatch keeps this workflow red and blocks a macOS release claim.
+  It is useful as a second compiler-host comparison, but it is not required for
+  hosted release production and is not the provenance authority.
 
 Linux dependency installation is shared by the source-build workflows. Mirror
 requests and package-manager locks have finite timeouts and retries, and compile
-jobs have a 30-minute outer bound instead of occupying a runner indefinitely.
+jobs have a 30-minute outer bound rather than occupying a runner indefinitely.
 
-## Provenance and package integrity
+## Windows build and package gates
 
 `build/compile_vhgame_linux.sh` writes
-`build/windows-build.provenance.txt` in the Ubuntu compile job. Hashing occurs on
-the host that consumed the bytes, so a later Windows checkout cannot substitute
-CRLF-converted hashes for the actual Linux inputs. The record includes:
+`build/windows-build.provenance.txt` on the Ubuntu host that consumed the bytes.
+This prevents a later Windows checkout from substituting CRLF-converted hashes
+for the actual inputs. The record binds:
 
-- commit and target;
-- root game source and top-level compile script;
-- Linux dependency installer;
-- protected bootstrap compiler;
+- commit, target, root game source, and compile script;
+- Linux dependency installer and protected bootstrap compiler;
 - extended compiler source, `bits` and `bytes` libraries, and bootstrap script;
-- bootstrap `i386`/Linux and target `i386m`/Win32 packs;
+- bootstrap i386/Linux and target i386m/Win32 packs;
 - generated fixpoint compiler; and
-- final PE.
+- final i386 PE.
 
-The package job requires every field, verifies the downloaded compiler and PE
-against the Linux record, and copies the record unchanged. The ZIP contains a
-`MANIFEST.sha256` covering every payload file, while the adjacent
-`Noctis-IV-windows-x86.zip.sha256` covers the archive itself. GitHub also records
-an Actions/release-asset digest.
+The package job requires every field, verifies the downloaded compiler and PE,
+and copies the record unchanged. The ZIP contains `MANIFEST.sha256` for every
+payload file. The adjacent checksum covers the archive itself.
 
-A release is not considered verified merely because its workflow is green.
-After publication, download the public assets into an empty directory, verify
-the ZIP checksum, reject duplicate or escaping archive paths, verify every
-manifest entry, compare the packaged PE with the provenance hash, and inspect
-the PE machine and section table. This independent download check is part of the
-release procedure.
+## macOS build and package gates
+
+The macOS build deliberately crosses three hosted environments:
+
+1. **Apple Silicon runtime build.** Build unsigned headless and Cocoa x86_64
+   RTMs with a macOS 10.15 deployment target. Record source-tree, runtime,
+   toolchain, SDK, host, and commit provenance.
+2. **Ubuntu compilation.** Verify each transferred runtime record, bootstrap the
+   fixpoint compiler, audit the x64 pack, and compile dedicated NIVTEST and game
+   Mach-O outputs. Bind the compiler, packs, scripts, runtimes, source graph,
+   complete RTM prefix, output, and intentional historical tail by SHA-256.
+3. **Rosetta exactness.** Run one production sector through the headless output
+   and require all seven authoritative Windows/NIV+ hashes. A runnable process
+   alone is not sufficient.
+4. **Mach-O normalization.** Parse the thin x86_64 runtime and `LNLMInit`, require
+   the original `__LINKEDIT` boundary and spare zero-filled load-command slot,
+   and extend only `__LINKEDIT.filesize` and page-aligned `vmsize` over the exact
+   appended Lino image before signing.
+5. **Signing and structural proof.** Ad-hoc sign the nested game and app. Require
+   one `LC_CODE_SIGNATURE`, signature and `__LINKEDIT` termination at EOF,
+   unchanged initialization bounds, and byte-exact preservation of the complete
+   appended Lino payload. Verify strict nested signatures.
+6. **Archive proof.** Write the non-signature app manifest, create the ZIP,
+   extract it into a clean directory, and re-verify its manifest, architecture,
+   deployment target, framework linkage, plist identity, and strict signatures.
+7. **Launcher and Cocoa proof.** Exercise immutable-resource installation and
+   repair, preservation of regular mutable `STARMAP.BIN`/`GUIDE.BIN`, rejection
+   of non-regular mutable paths, the first actual Cocoa retrace, and AppKit Quit
+   through the game's normal Escape/save path. Graceful exit must produce a
+   nonempty `CURRENT.LIN`.
+
+The package provenance binds the build records plus the package and launcher
+sources, original compiler output, normalized unsigned executable, complete
+appended Lino payload, signed executable, manifest, NIVTEST executable/result,
+archive, release label, signing mode, deployment target, and pinned external
+validation reference. The app is ad-hoc signed, not notarized, and does not claim
+a hardened runtime.
+
+## Independent release download audit
+
+A workflow is not considered fully audited merely because it is green. After
+publication, download all six public assets into an empty directory and verify:
+
+- each adjacent checksum has the expected syntax, filename, and archive hash;
+- neither ZIP has duplicate, absolute, escaping, symlink, or unexpected paths;
+- every internal manifest entry exists exactly once and hashes correctly;
+- packaged executables match their provenance records and target architectures;
+- Windows PE and macOS Mach-O headers have the expected section/segment shape;
+- the macOS nested signatures remain strict-valid after public download and
+  extraction;
+- the signed game retains the exact normalized geometry and appended Lino
+  payload recorded by package provenance; and
+- release assets correspond to the immutable tagged commit.
+
+GitHub's own Actions/release-asset digest is additional evidence, not a
+replacement for the adjacent checksums and internal manifests.
 
 ## Creating a prerelease
 
-First require green master regression and source-package jobs, review the
-release notes, and use the next annotated beta tag:
+Require green master Windows, Intel-macOS runtime, and Apple-Silicon Rosetta
+package workflows. Review `RELEASE_NOTES.md`, confirm that it identifies ad-hoc
+macOS signing and the lack of notarization, then create the next annotated beta
+tag:
 
 ```sh
-git tag -a v0.1.0-beta.21 -m "Noctis IV Lino beta 21"
-git push origin v0.1.0-beta.21
+git tag -a v0.1.0-beta.22 -m "Noctis IV Lino beta 22"
+git push origin v0.1.0-beta.22
 ```
 
-The tag launches compilation, packaging, and publication. If any prerequisite
-fails, no GitHub release is created. If a release already exists for the tag, a
-manual rerun replaces only the three generated assets. Do not move or recreate a
-published tag to hide a failure; fix master and use the next version.
+The tag launches both complete build graphs and publishes only after all jobs
+pass. If a release already exists for the tag, a manual rerun replaces only the
+six generated assets. Do not move or recreate a published tag to hide a failure;
+fix master and use the next version. Complete the independent public download
+audit before calling the release verified.
 
 ## Optional interactive Windows runner
 

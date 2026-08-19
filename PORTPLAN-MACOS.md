@@ -1,148 +1,170 @@
-# Porting the L.in.oleum toolchain to macOS (Linux bootstrap)
+# macOS x86_64 port status and ARM64 plan
 
-## Goal
+## Goal and current boundary
 
-Run the Noctis IV port (`work/vhgame.txt`) as native macOS binaries, with the
-Linoleum compiler and runtime themselves ported to macOS — bootstrapped
-entirely through Linux, no Windows anywhere in the chain.
+The first macOS target is complete at the technical release boundary: the
+Noctis IV Lino program is compiled into a native x86_64 Mach-O, hosted by Cocoa
+and AudioToolbox, assembled as a Finder application, ad-hoc signed, and tested
+end to end on Apple Silicon through Rosetta 2. The same x86_64 runtime builds on
+Intel macOS. Native ARM64 remains a separate future port.
 
-## Architecture recap (what must move)
+The compiler bootstrap remains Linux-hosted. Windows is not part of the macOS
+build chain:
 
-L.in.oleum is not a VM — it is a native cross-compiler with a runtime template
-attached to every binary.
+```text
+protected i386 Linux compiler
+  -> compiler114m bootstrap and byte-identical self-hosting fixpoint
+  -> x64 CPU pack + macOS SYS pack
+  -> Noctis-IV.game and headless nivtest Mach-O images
+  -> Apple package, signature, archive, checksum, and provenance
+```
 
-- `main/lib/gen/compiler.txt` — the compiler, itself written in L.in.oleum
-  (WPL-licensed, never modified; the repo patches a copy at
-  `patched/compiler114m.txt`). It reads a **CPU pack** and a **SYS pack** at
-  runtime and emits a raw binary:
-  `[RTM executable][initialized workspace][machine code]`.
-- **CPU pack** (`main/cpu/i386.bin`, 6241 patterns, 48-byte aligned): a
-  data-only table mapping every L.in.oleum instruction x operand-class x
-  register combo onto raw machine code. Patterns are opcode bytes interleaved
-  with ISMO placeholders (`D1.4` = workspace displacement, `L3R4` = relative
-  code address, `I2.4` = immediate). The compiler is CPU-agnostic — the pack
-  *is* the code generator.
-- **SYS pack** (`main/sys/win32.bin` / `linux.bin`): a `makertmp`
-  concatenation of 8 RTM variants (selected by the `modularextensions`
-  director). Each RTM is a real native executable (PE/ELF) whose `main()`
-  re-reads its own file, loads workspace+code, and jumps in; `isokernel.s`
-  bridges L.in.oleum registers to C isocalls (A=eax, B=ebx, C=ecx, D=edx,
-  E=esi, X=ebp, workspace-base=edi). Full RTM source for one platform is in
-  `src/linoleum_linux32/` (GPLv2, X11).
+L.in.oleum is a native cross-compiler, not a VM. Each output has this historical
+shape:
 
-The game (`work/vhgame.txt`) and iGUI are pure L.in.oleum and ride on top of
-the display/pointer/keyboard isocalls — no source changes needed there.
+```text
+[Mach-O runtime][initialized Lino workspace][Lino machine code][stock/compiler tail]
+```
 
-## Core blocker
+The CPU pack is the code generator. The SYS pack supplies the platform runtime.
+Ordinary game source remains portable Lino; Cocoa, AudioToolbox, filesystem,
+memory-mapping, and signing concerns stay below the language boundary.
 
-Every existing artifact is i386 32-bit — the compiler binaries, the CPU pack,
-the RTMs, `work/vhgame.exe`. Modern macOS cannot run 32-bit x86 at all, and
-Rosetta 2 translates x86_64 only, not i386. So a real macOS port must change
-the code target before anything else.
+## Completed phases
 
-## Target ISA decision
+### Linux bootstrap and x86_64 code generation
 
-- **x86_64 first**: runs natively on Intel Macs and on Apple Silicon via
-  Rosetta 2 (verified working on the M4 dev box). The pack is a mechanical
-  extension of the existing i386 pack (REX prefixes, 64-bit base register),
-  far less risk, and an x86_64 Linux VM can build and test it end-to-end.
-- **arm64 later**: no Rosetta dependency, best long-term, but a from-scratch
-  AArch64 code generator — substantially more effort. Keep x86_64 as fallback.
+- Current Linux hosts run the protected i386 compiler with its required 32-bit
+  glibc/X11 dependencies and an explicit `setarch -X` executable-heap boundary.
+- `compiler114m` is bootstrapped from tracked source and must reach a
+  byte-identical self-hosting fixpoint before it can compile a release output.
+- The x64 CPU pack implements the Lino instruction surface while retaining the
+  32-bit unit and address model. Its auditor covers every floating branch and
+  verifies the flag-preserving stack restores required under Rosetta.
+- The Linux build scripts bind each output to the complete runtime prefix,
+  compiler, CPU/SYS packs, source inputs, and intentional historical trailer by
+  SHA-256 provenance.
 
-## Why Linux, not Windows, for the bootstrap
+### macOS x86_64 runtime
 
-- The compiler program is OS-independent i386 data: verified identical between
-  the PE and ELF builds (`main/compiler.exe` and `main/linux_compiler.bin`
-  share code size 19307 / entry 18524; only the RTM differs).
-- The Linux RTM is rebuildable from in-repo GPL source
-  (`src/linoleum_linux32/`). The shipped `linux_compiler.bin` segfaults because
-  it carries an *old* RTM build (~26 KB of byte diffs vs `main/sys/linux.bin`);
-  rebuilding from current source is the fix.
-- Windows is actively bad on Apple Silicon: 32-bit PE under Wine-on-ARM is
-  unsupported, a Windows VM needs licensing, and it buys nothing — the compiler
-  program it carries is extractable anyway.
+- `src/linoleum_macos64` supplies a thin x86_64 Mach-O runtime with a macOS 10.15
+  deployment target.
+- The Cocoa host provides a resizable native window, aspect-correct logical
+  pointer mapping, fullscreen, keyboard/text input, clipboard access, and stable
+  immutable framebuffer snapshots.
+- AudioToolbox AudioQueue output provides stereo signed 16-bit PCM at 44.1 kHz.
+- Runtime code, workspace, and IsoKernel-visible buffers are mapped below the
+  Lino 32-bit address ceiling without destructive `MAP_FIXED` replacement.
+  Workspace growth maps, copies, clears, and unmaps explicitly.
+- GlobalK data uses `~/Library/Application Support/Linoleum/GlobalK`, retains a
+  read fallback for the historical `~/linoleum/.k` location, and writes through
+  same-directory temporary files plus `fsync` and atomic rename.
+- A separate headless build runs NIVGEN and other deterministic console jobs
+  without linking Cocoa or AudioToolbox.
 
-## Phases
+### Finder application and mutable state
 
-### Phase 0 — Environment
+The package has this boundary:
 
-- Linux x86_64 VM via the installed `qemu-system-x86_64` (Debian or Alpine),
-  with i386 multilib userland (`gcc -m32`, `libc6-dev-i386`,
-  `libx11-dev:i386`). x86_64 is the right VM shape: it runs the i386 seed
-  compiler and becomes the native dev/test box for the x86_64 CPU pack.
-- Headless display for the GUI RTM: either `Xvfb`, or (better) patch the RTM
-  source so `lino_display_init` is optional when `lfb_w/h = 0` —
-  `compiler114m.exe` already declares `lfb_w=0, lfb_h=0`, so a headless
-  compiler needs no X at all.
+```text
+Noctis IV.app/
+  Contents/MacOS/Noctis-IV       Finder-safe launcher
+  Contents/MacOS/Noctis-IV.game  compiled Lino game
+  Contents/Resources/            immutable assets and evidence
+```
 
-### Phase 1 — Bootstrap a headless i386 Linux compiler
+The launcher installs runtime data under:
 
-1. Rebuild the Linux RTM from `src/linoleum_linux32/` -> `rtm01.bin`. Fix
-   whatever the 2006 C code trips on against a modern kernel/glibc.
-2. Pack `main/sys/linux.bin` via `main/lib/ppkh/makertmp.txt` logic (or a
-   small Python packer — format is `n, offsets, sizes, variants`).
-3. Splice the seed compiler: extract `compiler114m.exe[18432:]` (headless
-   "Universal Compiler", no GUI assets, file size == `physappsize`), append to
-   the rebuilt RTM, patch LNLMINIT (`physwsentry` = RTM size, ws/code/entry
-   from the PE). Result: a headless i386 Linux compiler.
-4. Verify against known vectors: compile `work/mulcheck.txt`,
-   `work/galaxy.txt`, `work/mulall.txt` for `--sys:linux`; compare against the
-   repo's documented outputs and `verify_mul.py` / `tests/run_all.py`
-   expectations.
+```text
+~/Library/Application Support/Noctis IV
+```
 
-### Phase 2 — x86_64 CPU pack (core work)
+An absolute `NOCTIS_DATA_DIR` override exists for automation. Immutable assets
+are repaired when missing or byte-different. Existing regular `STARMAP.BIN` and
+`GUIDE.BIN` files are preserved because they contain player additions. Mutable
+seed paths that are directories, symlinks, or other non-regular objects are
+rejected. Window close and AppKit Quit repeatedly inject complete Escape
+press/release intervals until the game reaches its normal save-and-shutdown
+path; they do not terminate around Lino cleanup.
 
-1. Enumerate semantics: extend `tools/packtool.py` to decode all 6241 i386
-   patterns and map each to its ip-record (`vector packed ip records` in
-   `compiler.txt`, 609 records) + operand class.
-2. Generate the pack: emit REX-correct, 64-bit-base (`rdi`) equivalents;
-   32-bit operands (unit = 32); the 25 register combos per (reg,reg) block
-   generated from a register-encoding table, exactly as `tools/genmul.py` /
-   `tools/genfp.py` already do. The 8-ISMO uniformity keeps this bounded.
-   Subtlety: byte-register encoding differs (ah vs spl/bpl/sil/dil) and
-   `pusha/popa` do not exist in 64-bit mode.
-3. x86_64 `isokernel.s` with matching register map (A=eax ... E=esi, X=ebp,
-   ws=rdi) + System V stack alignment.
-4. Self-host proof: compile the compiler program to x86_64 *Linux* with the
-   new pack -> x86_64 Linux compiler; have it recompile itself.
-5. Validate with gcc oracles: run the repo's math/float/galaxy suites against
-   exact arithmetic (the repo already tests this way), byte-exact galaxy hash,
-   `*%` contract tests (`tests/test_mulsplit.py`).
+### Mach-O normalization and signing
 
-### Phase 3 — macOS x86_64 sys pack
+The historical compiler appends Lino bytes after the runtime's original
+`__LINKEDIT` segment. Apple `codesign --strict` correctly rejects that layout
+because bytes exist outside every segment. Packaging therefore performs one
+narrow normalization before signing:
 
-1. Adapt the RTM (`linoleum_linux32` -> `linoleum_macos`): display/input/sound
-   via SDL2 (Homebrew) or Cocoa; file/time/process/sockets already POSIX;
-   globalK -> NSUserDefaults/file; clipboard -> NSPasteboard (or stub).
-2. Build `rtm01..08` with clang -> `main/sys/macos.bin`.
-3. Cross-compile from the Linux VM: `compiler --sys:macos --cpu:x86_64` on the
-   compiler source and `work/vhgame.txt` -> x86_64 Mach-O binaries.
-4. Run on the M4 via Rosetta (verified working). RTM self-executes appended
-   code from its own file — ad-hoc sign / relaxed hardened-runtime for the
-   initial build.
-5. Port `lino_build.ps1` -> shell/Makefile, adapt `tests/run_all.py`, add a
-   macOS launcher.
+1. parse the complete thin little-endian x86_64 Mach-O and the unique
+   `LNLMInit` paragraph;
+2. require `__LINKEDIT` to end at the original runtime boundary and to be the
+   final file-backed and virtual-memory segment;
+3. require 4 KiB page geometry and a zero-filled 16-byte load-command slot;
+4. extend only `__LINKEDIT.filesize` and page-aligned `__LINKEDIT.vmsize` over
+   the complete unsigned historical file; and
+5. prove that no other byte changed.
 
-### Phase 4 — arm64 (after x86_64 ships)
+Ad-hoc codesign then adds one `LC_CODE_SIGNATURE` and appends its signature.
+Post-sign validation requires the signature and `__LINKEDIT` to end at EOF and
+proves byte-exact preservation of the complete appended Lino payload. The nested
+game and outer app signatures are checked before and after ZIP extraction.
 
-From-scratch AArch64 CPU pack + arm64 `isokernel` + native RTM; keep x86_64 as
-the fallback path.
+This is ad-hoc signing, not Developer ID signing or notarization. Hardened
+runtime is not enabled because the historical self-loading execution model
+requires an executable-memory entitlement that is not currently available.
+Users may therefore need to approve the first launch in macOS Privacy & Security.
 
-## Key risks
+## Release verification
 
-- 2006 Linux RTM may need porting fixes on a modern kernel/X11 — full source
-  is in-repo; that is the point of Phase 1.
-- x86_64 REX/byte-register encoding subtleties — contained by oracle-based
-  validation (Phase 2.5).
-- macOS code-exec restrictions on the self-loading RTM — mitigate with
-  signing/`MAP_JIT` (matters most for the arm64 phase).
-- Licensing: WPL forbids modifying `compiler.txt` / `i386.bin` — we *generate
-  new* packs and patch a copy of the compiler source (existing
-  `patched/compiler114m.txt` precedent); the new RTM is new GPL code modeled
-  on `linoleum_linux32`.
+The release graph deliberately spans three hosts:
 
-## First milestone
+1. Apple Silicon builds unsigned headless and Cocoa x86_64 runtimes and records
+   the actual Xcode, SDK, compiler, deployment target, host, and runtime hashes.
+2. Ubuntu verifies that provenance, reaches the compiler fixpoint, and compiles
+   the production game and dedicated NIVTEST image.
+3. Apple Silicon verifies transferred provenance, runs the production sector
+   through Rosetta, and requires all seven authoritative hashes.
+4. Packaging normalizes and signs the app, verifies its non-signature manifest,
+   extracts the ZIP, re-verifies signatures and manifest, exercises launcher
+   repair/preservation/rejection behavior, reaches the first real Cocoa retrace,
+   and exits through the normal Escape path with a nonempty `CURRENT.LIN`.
+5. The release publishes the ZIP beside an archive checksum and a provenance
+   record binding the source build, runtimes, compiler, original executable,
+   normalized executable, unchanged Lino payload, signed executable, launcher,
+   manifest, NIVTEST evidence, and archive.
 
-Set up the VM, rebuild the Linux RTM, splice the seed compiler, and prove it
-reproduces the repo's known test vectors for `--sys:linux`. That single step
-validates the whole bootstrap theory before any CPU-pack work begins.
+The exact Rosetta fixture is:
+
+```text
+surf=390A2CCB  atmo=114562E8  pal=26961E4A
+hm=97022FD7    oc=22913F4E    stex=0D52F001  sky=1E308D29
+```
+
+The first complete development archive passed these gates at commit
+`9fbc1e62870e62f34f98775a8dd01e6af5894957` and was independently downloaded
+and audited. A development Actions artifact is evidence, not a public release;
+only a successful tagged workflow creates public release assets.
+
+## Remaining macOS work
+
+### Native ARM64
+
+ARM64 requires a new AArch64 CPU pack, an ARM64 IsoKernel register bridge, and an
+ARM64 runtime. It must reproduce the same language-level arithmetic, conversion,
+branch, status, and consumer-boundary behavior before it can replace the x86_64
+fallback. Rosetta 2 remains the supported Apple Silicon route until that work is
+complete.
+
+### Distribution hardening
+
+Developer ID signing, notarization, and hardened-runtime distribution require
+appropriate Apple credentials plus a defensible executable-memory entitlement.
+They must be added without changing or concealing the historical self-loading
+boundary. Until then, release notes must continue to say that the app is ad-hoc
+signed and not notarized.
+
+### Additional coverage
+
+The end-to-end application smoke currently runs on Apple Silicon through Rosetta
+2, while Intel CI builds the Cocoa and headless runtimes. A direct Intel package
+play smoke would add host breadth. It is not a substitute for Rosetta numerical
+checks or for future native ARM64 exactness.

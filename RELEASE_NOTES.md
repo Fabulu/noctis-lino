@@ -1,4 +1,64 @@
-# Noctis IV L.in.oleum port -- Windows release
+# Noctis IV L.in.oleum port -- Windows and macOS prerelease
+
+## Beta 22
+
+Beta 22 adds the first packaged macOS game to the tagged release graph. The
+Finder application targets x86_64 and macOS 10.15 or newer: it runs directly on
+Intel Macs and through Rosetta 2 on Apple Silicon. The native Cocoa host provides
+a resizable window, fullscreen, logical pointer mapping, clipboard and text
+input, stable framebuffer snapshots, and AudioToolbox stereo PCM. No XQuartz is
+required. Native ARM64 remains future work.
+
+The macOS executable is built from tagged Lino source rather than checked in.
+Apple Silicon first builds unsigned headless and Cocoa runtimes and records the
+actual host/toolchain provenance. Ubuntu verifies those bytes, reaches the same
+byte-identical `compiler114m` self-hosting fixpoint used by the Windows release,
+audits the x64 CPU pack, and compiles dedicated NIVTEST and production game
+images. Apple Silicon then runs the tagged generator through Rosetta and requires
+all seven authoritative outputs: surface, atmosphere, palette, heightmap, object
+chart, surface texture, and sky. The fixed fixture matches 7/7 exactly; a process
+that merely launches cannot pass this gate.
+
+The runtime no longer depends on a fixed low mapping that can replace an existing
+region. Code and workspace are mapped below Lino's 32-bit address ceiling,
+out-of-range results are rejected, and workspace growth maps, copies, clears,
+and unmaps safely. The last Rosetta numerical fault was below game source in the
+x64 CPU pack: an `add rsp,4` restore after `sahf` destroyed the floating compare
+flags before a branch. Flag-preserving LEA restores now cover all 792 floating
+branch records and 1,236 restore sites, guarded by a deterministic pack audit.
+
+Historical Lino executables append initialized workspace, machine code, and an
+intentional trailer beyond the runtime's original `__LINKEDIT`. Before signing,
+the package tool parses the complete Mach-O and `LNLMInit`, requires the expected
+runtime boundary and spare load-command slot, and extends only
+`__LINKEDIT.filesize` and page-aligned `vmsize` over the exact unsigned image. It
+proves every other byte unchanged. Apple codesign then adds one signature, and
+post-sign validation requires both the signature and `__LINKEDIT` to end at EOF
+while preserving the complete appended Lino payload byte-for-byte.
+
+The nested game and outer app are ad-hoc signed and strictly verified before and
+after ZIP extraction. They are not Developer ID signed or notarized, and hardened
+runtime is not enabled. macOS may therefore require an explicit first-launch
+approval under System Settings, Privacy & Security. This limitation is stated in
+the packaged README rather than hidden behind the successful signature checks.
+
+A Finder-safe launcher stores changing files under
+`~/Library/Application Support/Noctis IV`. It repairs missing or byte-different
+immutable assets while preserving regular player-owned `STARMAP.BIN` and
+`GUIDE.BIN`, and rejects mutable seed paths that are directories, symlinks, or
+other non-regular objects. Window close and AppKit Quit repeatedly provide full
+Escape press/release intervals until fullscreen or a modal has been left and the
+game reaches its ordinary save/audio/cleanup path. The extracted-package smoke
+requires the first real Cocoa retrace, that graceful quit marker, and a nonempty
+`CURRENT.LIN`.
+
+Both desktop packages now carry internal SHA-256 manifests and are published
+beside archive checksums and provenance records. The macOS record separately
+binds the runtimes, compiler, original compiler output, normalized unsigned
+Mach-O, unchanged appended Lino payload, signed executable, launcher, manifest,
+NIVTEST evidence, release label, and archive. Tagged publication waits for both
+complete Windows and macOS graphs, so a platform failure cannot create a partial
+six-asset prerelease.
 
 ## Beta 21
 
@@ -857,10 +917,25 @@ the current surface frame rate.
 
 ## Run it
 
-Extract the ZIP without removing individual files, then double-click
-`Play Noctis IV.cmd`. The launcher keeps assets, `CURRENT.LIN`, `CURRENT.BAK`,
-the mutable `STARMAP.BIN`, mutable `GUIDE.BIN`, and diagnostics in the
-extracted game folder.
+### Windows
+
+Extract `Noctis-IV-windows-x86.zip` without removing individual files, then
+double-click `Play Noctis IV.cmd`. The launcher keeps assets, `CURRENT.LIN`,
+`CURRENT.BAK`, mutable `STARMAP.BIN`, mutable `GUIDE.BIN`, and diagnostics in
+the extracted game folder.
+
+### macOS
+
+Verify and extract `Noctis-IV-macos-x86_64.zip`, drag `Noctis IV.app` to
+Applications, and open the app rather than its nested game executable. Intel
+Macs run the x86_64 app directly; Apple Silicon requires Rosetta 2. The app is
+ad-hoc signed and not notarized. If first launch is blocked, approve Noctis IV
+under System Settings, Privacy & Security, then open it again.
+
+The Mac launcher stores mutable state under
+`~/Library/Application Support/Noctis IV`. Back up `CURRENT.LIN`,
+`STARMAP.BIN`, and `GUIDE.BIN` from that directory to preserve the journey and
+player catalogue additions.
 
 Useful controls:
 
@@ -885,20 +960,28 @@ Useful controls:
 
 ## Known limitations
 
-- Windows is the supported packaged platform. The historical Linux runtime's
-  PCM layer is a stub, so soundtrack support is Windows-only.
-- The x86_64 Cocoa runtime builds and the headless production generator runs
-  under Rosetta 2, but three of seven exact NIVGEN output families still expose
-  a floating-point divergence. A macOS game bundle will follow only after that
-  gate is exact and the Cocoa game has passed full-package validation.
+- The Mac package is x86_64. Apple Silicon needs Rosetta 2; a native ARM64 CPU
+  pack and runtime remain unfinished.
+- The Mac app is ad-hoc signed, not Developer ID signed or notarized, and does
+  not enable hardened runtime. First launch can require explicit approval in
+  macOS Privacy & Security.
+- The historical Linux runtime's PCM layer remains a stub. The packaged Windows
+  and macOS hosts both have soundtrack output, but Linux is not a packaged game
+  target.
 - Hosted source builds require the historical compiler's 32-bit glibc/X11
   dependencies and an explicit Linux executable-heap compatibility boundary;
-  the release workflow installs and bounds that environment automatically.
+  release workflows install and bound that environment automatically.
 
 ## Integrity and licence
 
-The release includes `MANIFEST.sha256` for every file in the extracted bundle;
-the GitHub release also supplies a checksum for the ZIP itself.
+Both platform packages include `MANIFEST.sha256` payload coverage. The Windows
+manifest covers every bundled payload file. The Mac manifest covers `Info.plist`,
+the nested game, and immutable Resources; codesign verifies the launcher and
+signature material separately, and package provenance hashes the launcher,
+manifest, and signed game. The GitHub release supplies a checksum and explicit
+provenance record beside each ZIP. The macOS record also distinguishes the
+original compiler output, normalized unsigned Mach-O, unchanged appended Lino
+payload, signed executable, and exact Rosetta result.
 
 Noctis IV and Noctis-derived port material are distributed under the original
 WTOF Public License included as `WPL.htm`, with Alessandro Ghignola's

@@ -405,24 +405,31 @@ first -- a broken foundation makes every later result meaningless.
 
 ### Automated tagged releases and interactive source rebuilds
 
-- Hosted Windows CI retains protected-source verification, the focused
-  integrated regression, and a non-publishing snapshot package.
-- Tags matching `v*` now validate the exact revision on hosted Windows, compile
-  that tagged source through `lino_build.ps1` on the isolated interactive
-  `lino-gui` runner, and return the resulting package to a hosted publication
-  job. The ZIP, checksum, and source/compiler/executable provenance record are
-  release assets. Publication is gated on every preceding job succeeding.
-- The tagged provenance record now identifies a fresh build from the exact tag
-  instead of relying on or making claims about a previously committed PE.
-- A separate manually dispatched workflow compiles through `lino_build.ps1`
-  on a logged-in self-hosted runner labelled `lino-gui`, rejects Session 0,
-  removes stale artifacts, and uploads the exact source-built package and hash
-  record for comparison or later release promotion.
-- Public pull requests have no path to the self-hosted machine. Release-write
-  permission is confined to the hosted tag publication job.
-- The repository currently has no registered runner. `CI_RELEASES.md` records
-  the one-time VM setup required before source-built tags can complete. Hosted
-  push and pull-request validation remains independent of that machine.
+- Hosted Windows CI retains protected-source verification and focused gameplay
+  regression, bootstraps `compiler114m` to a byte-identical self-hosting fixpoint
+  on Ubuntu, compiles the production i386 PE from source, and verifies/packages
+  it on a fresh Windows host.
+- Hosted macOS CI builds unsigned Cocoa and headless x86_64 runtimes with actual
+  Apple toolchain provenance, cross-compiles NIVTEST and the game through the
+  same Linux fixpoint boundary, requires all seven production hashes through
+  Rosetta 2, and validates a signed/extracted Finder application through first
+  retrace and normal Lino save/quit.
+- Tags matching `v*` rebuild both platforms from the immutable tagged source.
+  Publication requires both package jobs and supplies each ZIP beside its
+  SHA-256 checksum and explicit source/compiler/runtime/executable provenance,
+  for six generated assets in total.
+- The macOS package is ad-hoc signed rather than Developer ID signed or
+  notarized. Its provenance separately binds the original compiler output,
+  normalized unsigned Mach-O, unchanged appended Lino payload, signed image,
+  manifest, exact NIVTEST evidence, and archive.
+- A separate manually dispatched Windows workflow can still compile through the
+  historical Win32 GUI compiler on a logged-in self-hosted runner labelled
+  `lino-gui`. It is an optional independent compiler-host comparison, not a
+  prerequisite or release provenance authority.
+- Public pull requests have no path to that self-hosted machine. Release-write
+  permission is confined to the hosted tag publication job. `CI_RELEASES.md`
+  records all hosted gates, download-audit requirements, and optional runner
+  setup.
 
 ### Original GOES resident-module help
 

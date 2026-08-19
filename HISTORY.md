@@ -6,6 +6,41 @@ the integrated game, and what remains. It complements `PLAYTEST.md`, which is
 the detailed evidence log, and `PORTPLAN.md`, which is the technical
 implementation and source-parity ledger.
 
+## 2026-08-19 -- verified macOS application package
+
+The x86_64 game now crosses the complete application boundary rather than ending
+at a runnable compiler output. Apple Silicon builds the unsigned Cocoa and
+headless runtimes with actual toolchain provenance, Ubuntu verifies and compiles
+both the production game and a dedicated NIVTEST image, and Apple Silicon
+requires exact Rosetta generation before assembling a Finder application.
+
+Apple codesign initially exposed a real structural fault in the historical
+output layout: initialized workspace, Lino code, and stock data followed the
+runtime's original `__LINKEDIT`, outside every Mach-O segment. The package tool
+now strictly parses the thin x86_64 Mach-O and unique `LNLMInit`, extends only
+`__LINKEDIT` file and virtual geometry over the complete unsigned image, and
+proves every other byte unchanged. After ad-hoc signing it requires one
+`LC_CODE_SIGNATURE`, both the signature and `__LINKEDIT` ending at EOF, unchanged
+Lino bounds, and a byte-exact hash of the complete appended payload. Strict
+nested signatures and the non-signature manifest survive ZIP extraction.
+
+The native launcher installs changing state under Application Support, repairs
+immutable resources without replacing regular mutable catalogue databases, and
+rejects non-regular seed paths. Cocoa snapshots protect the framebuffer from
+workspace remapping, AudioQueue supplies stereo PCM, and close/Quit follows the
+normal Lino Escape path. The first quit smoke found that one synthetic Escape
+could merely leave fullscreen or dismiss a modal; the host now retains the quit
+request and supplies complete press/release intervals until the game saves and
+exits. The final Apple-Silicon smoke reached a real retrace, exited through Lino
+cleanup, and wrote a nonempty `CURRENT.LIN`.
+
+A downloaded development archive from commit
+`9fbc1e62870e62f34f98775a8dd01e6af5894957` independently passed archive-path,
+manifest, provenance, Mach-O, payload, plist, framework, deployment-target, and
+7/7 NIVGEN checks. Public tagged publication remains a separate gate; the
+release workflow must rebuild this evidence from the immutable tag and publish
+both platform packages together.
+
 ## 2026-08-19 -- exact macOS Rosetta generation
 
 The x86_64 macOS host now completes the production generator under Rosetta

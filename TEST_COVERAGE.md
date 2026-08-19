@@ -17,9 +17,10 @@ tested.
 | Jump and NIV+ jetpack | Gravity, jump/hold-thrust/cancel/descent and landing state assertions | Hardware-key jetpack session recorded in `PLAYTEST.md` |
 | Historical ruins and Suricrasian Cube | All six source ruin styles, three historical systems, Cube footprint and marked wall rows/columns | Marked triangular-silhouette ruin and elevated Cube-wall screenshots |
 | GOES, Guide, starmap and devices | Integrated command, parsing, persistence, file, power, lithium and rescue checks | Physical-console screenshots and native sessions |
-| Save/load and distribution | Version 1-15 migration, version 16 state, backup recovery, packaging and protected upstream checks | Corrupt-primary recovery and packaged-launch sessions in `PLAYTEST.md` |
-| Long-duration loop | 600,000 integrated build/flight/render/present frames, exact terminal telemetry and clean exit over 2 h 15 min | 189.8-second standalone-bundle session with 43/43 responsive probes and stable memory/handles |
-| CI/CD | Hosted focused regression, snapshot package and tagged prerelease jobs; separate interactive source-build workflow | Current `master` run is green; no `lino-gui` runner is registered, so the optional fresh-source artifact is unavailable |
+| Save/load and distribution | Version 1-15 migration, version 16 state, backup recovery, Windows and macOS package assembly, internal manifests, protected-source checks, macOS signature/Mach-O/payload validation, and mutable-resource tests | Corrupt-primary recovery and packaged-launch sessions in `PLAYTEST.md`; Rosetta close/Quit smoke writes a nonempty `CURRENT.LIN` |
+| Long-duration loop | 600,000 integrated build/flight/render/present frames, exact terminal telemetry and clean exit over 2 h 15 min | 189.8-second standalone Windows bundle session with 43/43 responsive probes and stable memory/handles |
+| macOS x86_64 | Intel-hosted Cocoa/headless RTM builds; Apple-Silicon runtime provenance; Linux fixpoint cross-build; Rosetta NIVGEN 7/7; extracted manifest/signature, launcher, first-retrace, and graceful-quit checks | Downloaded development archive independently audited at commit `9fbc1e6`; end-to-end product smoke runs through Rosetta 2 |
+| CI/CD | Hosted focused regression, source builds, snapshot packages, exact Rosetta app package, and six-asset tagged prerelease graph; separate interactive source-build workflow | Windows, Intel-macOS runtime, and Apple-Silicon package workflows are green; no `lino-gui` runner is registered, so the optional independent Win32 compiler-host artifact is unavailable |
 
 ## Commands
 
@@ -33,8 +34,12 @@ python tests\run_all.py  # explicit deep/release audit, not a routine gate
 
 - Procedural generation makes exhaustive visual enumeration impossible; the
   gallery uses known dry cells and representative classes.
-- Pixel appearance, focus switching, live input timing, sound, and resizing
-  still need native Windows evidence in addition to source/state assertions.
+- Pixel appearance, focus switching, live input timing, sound, and resizing retain
+  native Windows evidence plus bounded Cocoa smokes; they are not exhaustively
+  replayed across every supported Windows and Mac host on every change.
+- The complete macOS app smoke is proven on Apple Silicon through Rosetta 2.
+  Intel CI builds both runtimes but does not yet run the extracted game package;
+  native ARM64 does not exist yet.
 - Multi-hour integrated stability is covered; multi-hour real-input travel,
   rescue, soundtrack, resize, and every preference combination are not
   exhaustively replayed on every change.

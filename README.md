@@ -1,11 +1,12 @@
 # Noctis IV in L.in.oleum
 
 [![Windows build and release](https://github.com/Fabulu/noctis-lino/actions/workflows/windows-release.yml/badge.svg)](https://github.com/Fabulu/noctis-lino/actions/workflows/windows-release.yml)
+[![macOS Rosetta game](https://github.com/Fabulu/noctis-lino/actions/workflows/macos-rosetta-nivgen.yml/badge.svg)](https://github.com/Fabulu/noctis-lino/actions/workflows/macos-rosetta-nivgen.yml)
 
 A complete playable port of [Noctis IV](https://en.wikipedia.org/wiki/Noctis_(video_game))
 to **L.in.oleum**, the cross-platform assembly language its own author wrote.
-The downloadable package targets Windows; the repository also includes a
-native macOS x86_64 host and Linux runtime sources.
+Release packages target Windows x86 and macOS x86_64. The Mac app runs natively
+on Intel and through Rosetta 2 on Apple Silicon.
 
 Alessandro Ghignola wrote both. He built L.in.oleum specifically to write
 Noctis V in it, then abandoned both projects. This repository finishes a
@@ -17,8 +18,8 @@ Noctis IV+ game in the language it inspired.
 - Approach and land on every planet class, then walk, fly, save, and return.
 - Choose the authentic 18.2 FPS presentation or smooth 60 FPS rendering without
   changing the original simulation rate.
-- Run the production game in a resizable Windows host with music, screenshots,
-  panoramas, checkpoints, and the original onboard systems.
+- Run the production game in resizable Windows and native Cocoa hosts with music,
+  screenshots, panoramas, checkpoints, and the original onboard systems.
 
 ## Play the game
 
@@ -43,6 +44,27 @@ starmap, and `work\CURRENT.LIN` checkpoint are found consistently. It builds
 the game automatically when the executable is absent; pass `-Build` to force a
 fresh production build. Clean saves also retain the current validated window
 dimensions, so a resized game reopens at the same size.
+
+### macOS package
+
+Download `Noctis-IV-macos-x86_64.zip`, verify it with the adjacent `.sha256`
+file, extract it, and drag `Noctis IV.app` to Applications. The app targets
+macOS 10.15 or newer. It runs as x86_64 on Intel Macs and needs Rosetta 2 on
+Apple Silicon.
+
+The current app is ad-hoc signed rather than Developer ID signed or notarized.
+If macOS blocks its first launch, select Noctis IV under System Settings,
+Privacy & Security, and choose Open Anyway; Control-click and Open is the
+corresponding path on some older systems. Do not run the nested
+`Noctis-IV.game` directly.
+
+The Finder launcher verifies and installs data under
+`~/Library/Application Support/Noctis IV`. It repairs missing or changed
+immutable assets without replacing regular player-owned `STARMAP.BIN` or
+`GUIDE.BIN`. Closing the window or choosing Quit follows the game's normal
+Escape/save path, including leaving fullscreen or dismissing a modal first.
+Back up `CURRENT.LIN`, `STARMAP.BIN`, and `GUIDE.BIN` to preserve a journey and
+its catalogue additions.
 
 ### Essential controls
 
@@ -121,9 +143,9 @@ GOES retains the original catalogue and Guide tools:
 The GAME menu mirrors Flight control, Onboard devices, and Preferences in
 resize-aware mouse-accessible pages over the live Stardrifter.
 
-### Portable package and releases
+### Packages and releases
 
-Build a clean, self-contained play folder with every runtime asset and a
+Build a clean, self-contained Windows play folder with every runtime asset and a
 SHA-256 manifest:
 
 ```powershell
@@ -133,31 +155,34 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\package_noctis.ps1
 The default output is `dist\Noctis-IV`. The command refuses to merge with an
 existing directory, so stale files cannot masquerade as bundle content.
 
-- Double-click `Play Noctis IV.cmd` inside the bundle to play.
+- Double-click `Play Noctis IV.cmd` inside the Windows bundle to play.
 - The launcher anchors assets, checkpoints, catalogue files, and diagnostics to
   the bundle even when started from another working directory.
-- The bundle includes the original 48,376-record `GUIDE.BIN`. Back up that file
-  with saves and `STARMAP.BIN` to preserve player notes added through `CAST`.
+- Both platform packages include the original 48,376-record `GUIDE.BIN`. Back up
+  that file with saves and `STARMAP.BIN` to preserve player notes added through
+  `CAST`.
 
-Ordinary pushes and pull requests run the protected-source check, integrated
-game regression, and snapshot package assembly on GitHub-hosted Windows. A
-version tag matching `v*` validates and packages the committed i386 executable,
-then publishes the standalone ZIP as a GitHub prerelease with its checksum and
-source/compiler/binary provenance record. A separate manual workflow can build
-the exact source on an isolated interactive `lino-gui` runner when one is
-available. See [CI_RELEASES.md](CI_RELEASES.md) for the runner setup and exact
-release boundaries.
+Ordinary pushes and pull requests run protected-source, gameplay, source-build,
+and package checks on hosted runners. A version tag matching `v*` rebuilds both
+platform executables from the tagged source and publishes a GitHub prerelease
+only after both package graphs pass. Each ZIP has an adjacent SHA-256 checksum
+and source/compiler/binary provenance record; each extracted package contains
+its own per-file manifest. The macOS graph additionally proves all seven
+production NIVGEN hashes under Rosetta, strict nested ad-hoc signatures before
+and after extraction, launcher data behavior, the first Cocoa retrace, and a
+normal save-and-quit path. See [CI_RELEASES.md](CI_RELEASES.md) for exact trust
+and verification boundaries.
 
 ### Source platforms
 
-- Windows is the packaged and regularly played release target.
-- macOS x86_64 has a native Cocoa host with resizing, logical pointer mapping,
-  native fullscreen, and no XQuartz dependency. From
-  `src/linoleum_macos64`, run `./build.sh`; use `HEADLESS=1 ./build.sh` for
-  NIVGEN and console automation. Apple Silicon runs the x86_64 host through
-  Rosetta 2 while the separate ARM64 port remains unfinished.
-- Linux runtime sources remain available under `src/linoleum_linux32`; its
-  directory enumeration also works through the supported qemu-user path.
+- Windows x86 is a packaged and regularly played release target.
+- macOS x86_64 is a packaged Cocoa target with resizing, logical pointer mapping,
+  fullscreen, AudioToolbox output, and no XQuartz dependency. Intel Macs run it
+  directly; Apple Silicon uses Rosetta 2. It is ad-hoc signed and not notarized.
+  Native ARM64 remains unfinished.
+- Linux remains the hosted compiler-bootstrap platform. Runtime sources under
+  `src/linoleum_linux32` also retain directory enumeration through the supported
+  qemu-user path.
 
 ## Screenshots
 
@@ -230,13 +255,15 @@ silhouette and the source's marked wall bands in frame.
   including the recent Stardrifter, lift, frame-rate, and checkpoint fixes.
 - [`PLAYTEST.md`](PLAYTEST.md) is the detailed capability and verification log.
 - [`PORTPLAN.md`](PORTPLAN.md) is the technical implementation and source-parity
-  ledger.
-- [`RELEASE_NOTES.md`](RELEASE_NOTES.md) describes the current Windows release and
+  ledger; [`PORTPLAN-MACOS.md`](PORTPLAN-MACOS.md) records the completed x86_64
+  host/package boundary and remaining ARM64 work.
+- [`RELEASE_NOTES.md`](RELEASE_NOTES.md) describes the current desktop release and
   its known limitations.
 - [`TEST_COVERAGE.md`](TEST_COVERAGE.md) states what automation and native play
   actually cover, including the representative procedural and native boundaries.
-- [`CI_RELEASES.md`](CI_RELEASES.md) describes hosted checks, the interactive
-  source-build runner, and tagged prerelease publication.
+- [`CI_RELEASES.md`](CI_RELEASES.md) describes hosted source builds, package
+  provenance, macOS validation, the optional interactive runner, and six-asset
+  tagged prerelease publication.
 - [`docs/NIVGEN.md`](docs/NIVGEN.md) documents the public NIVGEN protocol,
   local scoring workflow, known undefined texture tail, and accuracy strategy.
 
