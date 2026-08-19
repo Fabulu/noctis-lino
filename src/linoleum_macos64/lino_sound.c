@@ -1,3 +1,9 @@
+#ifndef LINO_HEADLESS
+#include <AudioToolbox/AudioToolbox.h>
+#include <stdatomic.h>
+#include <stdint.h>
+#endif
+
 #include "lino_sound.h"
 
 #ifdef LINO_HEADLESS
@@ -24,10 +30,6 @@ bool krnlPCMdataCommand(PCMdataCommand command)
 }
 
 #else
-
-#include <AudioToolbox/AudioToolbox.h>
-#include <stdatomic.h>
-#include <stdint.h>
 
 #define LINO_AUDIO_CHANNELS 2
 #define LINO_AUDIO_BITS 16
