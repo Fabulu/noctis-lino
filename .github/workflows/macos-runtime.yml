@@ -8,6 +8,7 @@ on:
       - "src/linoleum_macos64/**"
       - "src/noctis_macos_launcher/**"
       - "tools/package_noctis_macos.py"
+      - "tools/test_package_noctis_macos.py"
       - "tools/macos_runtime_provenance.py"
       - "work/globes.map"
       - "work/offsets.map"
@@ -69,7 +70,9 @@ jobs:
         shell: bash
         run: |
           python3 -m py_compile \
-            tools/package_noctis_macos.py tools/macos_runtime_provenance.py
+            tools/package_noctis_macos.py tools/test_package_noctis_macos.py \
+            tools/macos_runtime_provenance.py
+          python3 -m unittest tools.test_package_noctis_macos -v
           python3 - <<'PY'
           from pathlib import Path
           from tools.package_noctis_macos import validate_assets

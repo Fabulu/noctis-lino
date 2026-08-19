@@ -25,6 +25,7 @@ on:
       - "tools/nivtest.py"
       - "tools/pack_lino_sys.py"
       - "tools/package_noctis_macos.py"
+      - "tools/test_package_noctis_macos.py"
       - "PLAYER_README.txt"
       - "LICENSE.htm"
       - "work/**.txt"

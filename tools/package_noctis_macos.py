@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import hashlib
 import json
 import os
@@ -21,6 +22,13 @@ APP_NAME = "Noctis IV.app"
 ARCHIVE_NAME = "Noctis-IV-macos-x86_64.zip"
 BUNDLE_ID = "io.github.fabulu.noctis-iv"
 DEPLOYMENT_TARGET = "10.15"
+MACH_HEADER_64_SIZE = 32
+LC_SEGMENT_64 = 0x19
+LC_CODE_SIGNATURE = 0x1D
+SEGMENT_COMMAND_64_SIZE = 72
+SECTION_64_SIZE = 80
+CODE_SIGNATURE_COMMAND_SIZE = 16
+MACHO_PAGE_SIZE = 4096
 EXPECTED_NIV_HASHES = {
     "surf": "390A2CCB",
     "atmo": "114562E8",
@@ -80,7 +88,10 @@ PACKAGE_PROVENANCE_KEYS = {
     "package_script_sha256",
     "launcher_source_sha256",
     "launcher_sha256",
+    "normalized_executable_sha256",
+    "appended_lino_payload_sha256",
     "signed_executable_sha256",
+    "macho_normalization",
     "manifest_sha256",
     "nivtest_executable_sha256",
     "nivtest_build_provenance_sha256",
@@ -105,13 +116,311 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def validate_macho(path: Path) -> None:
-    data = path.read_bytes()
-    if len(data) < 1024 or data[:4] != b"\xcf\xfa\xed\xfe":
-        raise ValueError(f"{path} is not a thin little-endian 64-bit Mach-O")
-    cpu_type = struct.unpack_from("<I", data, 4)[0]
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+@dataclass(frozen=True)
+class MachOSegment:
+    command_offset: int
+    name: bytes
+    vmaddr: int
+    vmsize: int
+    fileoff: int
+    filesize: int
+    nsects: int
+
+
+@dataclass(frozen=True)
+class MachOLayout:
+    commands_end: int
+    first_section_offset: int | None
+    segments: tuple[MachOSegment, ...]
+    code_signatures: tuple[tuple[int, int], ...]
+
+
+@dataclass(frozen=True)
+class LinoImage:
+    physwsentry: int
+    physappsize: int
+
+
+@dataclass(frozen=True)
+class MachONormalization:
+    original_size: int
+    lino: LinoImage
+    payload_sha256: str
+    normalized_sha256: str
+
+
+def parse_macho(data: bytes) -> MachOLayout:
+    if len(data) < MACH_HEADER_64_SIZE or data[:4] != b"\xcf\xfa\xed\xfe":
+        raise ValueError("not a thin little-endian 64-bit Mach-O")
+    _, cpu_type, _, _, ncmds, sizeofcmds, _, _ = struct.unpack_from(
+        "<8I", data, 0
+    )
     if cpu_type != 0x01000007:
-        raise ValueError(f"{path} has Mach-O CPU type {cpu_type:#x}, expected x86_64")
+        raise ValueError(
+            f"Mach-O CPU type is {cpu_type:#x}, expected x86_64"
+        )
+    if ncmds > sizeofcmds // 8:
+        raise ValueError("Mach-O load-command count exceeds its command bytes")
+    commands_end = MACH_HEADER_64_SIZE + sizeofcmds
+    if commands_end > len(data):
+        raise ValueError("Mach-O load commands are truncated")
+
+    command_offset = MACH_HEADER_64_SIZE
+    segments: list[MachOSegment] = []
+    code_signatures: list[tuple[int, int]] = []
+    section_offsets: list[int] = []
+    for _ in range(ncmds):
+        if command_offset + 8 > commands_end:
+            raise ValueError("Mach-O load-command header is truncated")
+        command, command_size = struct.unpack_from("<II", data, command_offset)
+        if (
+            command_size < 8
+            or command_size % 8
+            or command_offset + command_size > commands_end
+        ):
+            raise ValueError("Mach-O load command has invalid bounds")
+
+        if command == LC_SEGMENT_64:
+            if command_size < SEGMENT_COMMAND_64_SIZE:
+                raise ValueError("Mach-O segment command is truncated")
+            (
+                _,
+                _,
+                name,
+                vmaddr,
+                vmsize,
+                fileoff,
+                filesize,
+                _,
+                _,
+                nsects,
+                _,
+            ) = struct.unpack_from("<II16sQQQQiiII", data, command_offset)
+            expected_size = SEGMENT_COMMAND_64_SIZE + nsects * SECTION_64_SIZE
+            if command_size != expected_size:
+                raise ValueError("Mach-O segment section table has invalid bounds")
+            if filesize and (fileoff > len(data) or filesize > len(data) - fileoff):
+                raise ValueError("Mach-O segment exceeds the file")
+            segment = MachOSegment(
+                command_offset, name.rstrip(b"\0"), vmaddr, vmsize,
+                fileoff, filesize, nsects
+            )
+            segments.append(segment)
+
+            section_offset = command_offset + SEGMENT_COMMAND_64_SIZE
+            for _ in range(nsects):
+                (
+                    _,
+                    section_segment,
+                    _,
+                    section_size,
+                    file_offset,
+                    _,
+                    _,
+                    _,
+                    section_flags,
+                    _,
+                    _,
+                    _,
+                ) = struct.unpack_from(
+                    "<16s16sQQIIIIIIII", data, section_offset
+                )
+                if section_segment.rstrip(b"\0") != segment.name:
+                    raise ValueError("Mach-O section names the wrong segment")
+                section_type = section_flags & 0xFF
+                is_zerofill = section_type in (0x01, 0x0C, 0x12)
+                if section_size and not is_zerofill:
+                    if (
+                        file_offset < fileoff
+                        or section_size > filesize
+                        or file_offset - fileoff > filesize - section_size
+                    ):
+                        raise ValueError("Mach-O section exceeds its segment")
+                    section_offsets.append(file_offset)
+                section_offset += SECTION_64_SIZE
+        elif command == LC_CODE_SIGNATURE:
+            if command_size != CODE_SIGNATURE_COMMAND_SIZE:
+                raise ValueError("Mach-O code-signature command has invalid size")
+            _, _, data_offset, data_size = struct.unpack_from(
+                "<IIII", data, command_offset
+            )
+            if data_size == 0 or data_offset > len(data) or data_size > len(data) - data_offset:
+                raise ValueError("Mach-O code signature exceeds the file")
+            code_signatures.append((data_offset, data_size))
+
+        command_offset += command_size
+
+    if command_offset != commands_end:
+        raise ValueError("Mach-O load-command byte count is inconsistent")
+    if not segments:
+        raise ValueError("Mach-O has no segments")
+    first_section_offset = min(section_offsets) if section_offsets else None
+    return MachOLayout(
+        commands_end,
+        first_section_offset,
+        tuple(segments),
+        tuple(code_signatures),
+    )
+
+
+def parse_lino_image(data: bytes) -> LinoImage:
+    marker = b"LNLMInit"
+    marker_offset = data.find(marker)
+    if marker_offset < 0 or data.find(marker, marker_offset + 1) >= 0:
+        raise ValueError("Mach-O lacks one unambiguous Lino initialization paragraph")
+    paragraph = marker_offset + len(marker)
+    paragraph_end = paragraph + 40 + 14 * 4
+    if paragraph_end > len(data):
+        raise ValueError("Lino initialization paragraph is truncated")
+    appname = data[paragraph : paragraph + 40]
+    fields = struct.unpack_from("<14i", data, paragraph + 40)
+    app_ws_size, app_code_size, app_code_entry = fields[:3]
+    physwsentry, physappsize, default_ramtop = fields[3:6]
+    if b"\0" not in appname:
+        raise ValueError("Lino application name is not terminated")
+    if (
+        app_ws_size < 0
+        or app_code_size <= 0
+        or not 0 <= app_code_entry < app_code_size
+        or default_ramtop < app_ws_size
+        or physwsentry <= 0
+    ):
+        raise ValueError("Lino initialization paragraph has invalid bounds")
+    expected_size = physwsentry + (app_ws_size + app_code_size) * 4
+    if physappsize != expected_size or physappsize > len(data):
+        raise ValueError("Lino application image is incomplete")
+    return LinoImage(physwsentry, physappsize)
+
+
+def _linkedit(layout: MachOLayout) -> MachOSegment:
+    matches = [segment for segment in layout.segments if segment.name == b"__LINKEDIT"]
+    if len(matches) != 1:
+        raise ValueError("Mach-O must contain exactly one __LINKEDIT segment")
+    return matches[0]
+
+
+def normalize_appended_macho(path: Path) -> MachONormalization:
+    original = path.read_bytes()
+    layout = parse_macho(original)
+    lino = parse_lino_image(original)
+    linkedit = _linkedit(layout)
+    if layout.code_signatures:
+        raise ValueError("appended Mach-O is already signed")
+    if len(original) <= lino.physwsentry:
+        raise ValueError("Mach-O has no appended Lino payload")
+    if linkedit.fileoff + linkedit.filesize != lino.physwsentry:
+        raise ValueError("__LINKEDIT does not end at the original Lino runtime boundary")
+    file_ends = [
+        segment.fileoff + segment.filesize
+        for segment in layout.segments
+        if segment.filesize
+    ]
+    if not file_ends or linkedit.fileoff + linkedit.filesize != max(file_ends):
+        raise ValueError("__LINKEDIT is not the final file-backed segment")
+    other_vm_end = max(
+        (
+            segment.vmaddr + segment.vmsize
+            for segment in layout.segments
+            if segment is not linkedit
+        ),
+        default=0,
+    )
+    if other_vm_end > linkedit.vmaddr:
+        raise ValueError("__LINKEDIT is not the final virtual-memory segment")
+    if (
+        linkedit.vmaddr % MACHO_PAGE_SIZE != linkedit.fileoff % MACHO_PAGE_SIZE
+        or linkedit.vmsize < linkedit.filesize
+        or linkedit.vmsize % MACHO_PAGE_SIZE
+    ):
+        raise ValueError("__LINKEDIT has invalid page geometry")
+    if layout.first_section_offset is None:
+        raise ValueError("Mach-O has no file-backed sections")
+    command_room = layout.first_section_offset - layout.commands_end
+    if command_room < CODE_SIGNATURE_COMMAND_SIZE:
+        raise ValueError("Mach-O header lacks room for LC_CODE_SIGNATURE")
+    command_slot = original[
+        layout.commands_end : layout.commands_end + CODE_SIGNATURE_COMMAND_SIZE
+    ]
+    if any(command_slot):
+        raise ValueError("Mach-O code-signature command slot is not zero-filled")
+
+    new_filesize = len(original) - linkedit.fileoff
+    new_vmsize = (
+        (new_filesize + MACHO_PAGE_SIZE - 1) // MACHO_PAGE_SIZE
+    ) * MACHO_PAGE_SIZE
+    if new_vmsize < linkedit.vmsize:
+        new_vmsize = linkedit.vmsize
+    if linkedit.vmaddr > (1 << 64) - new_vmsize:
+        raise ValueError("normalized __LINKEDIT virtual range overflows")
+
+    normalized = bytearray(original)
+    struct.pack_into("<Q", normalized, linkedit.command_offset + 32, new_vmsize)
+    struct.pack_into("<Q", normalized, linkedit.command_offset + 48, new_filesize)
+    changed = {
+        index for index, (before, after) in enumerate(zip(original, normalized))
+        if before != after
+    }
+    allowed = set(range(linkedit.command_offset + 32, linkedit.command_offset + 40))
+    allowed.update(range(linkedit.command_offset + 48, linkedit.command_offset + 56))
+    if not changed or not changed <= allowed:
+        raise ValueError("Mach-O normalization changed unexpected bytes")
+    path.write_bytes(normalized)
+
+    final_layout = parse_macho(bytes(normalized))
+    final_linkedit = _linkedit(final_layout)
+    if (
+        final_layout.code_signatures
+        or final_linkedit.fileoff + final_linkedit.filesize != len(normalized)
+        or final_linkedit.vmsize < final_linkedit.filesize
+        or final_linkedit.vmsize % MACHO_PAGE_SIZE
+    ):
+        raise ValueError("normalized __LINKEDIT does not cover the complete file")
+    payload = original[lino.physwsentry :]
+    return MachONormalization(
+        len(original),
+        lino,
+        sha256_bytes(payload),
+        sha256_bytes(bytes(normalized)),
+    )
+
+
+def validate_signed_appended_macho(
+    path: Path, normalization: MachONormalization
+) -> None:
+    data = path.read_bytes()
+    layout = parse_macho(data)
+    lino = parse_lino_image(data)
+    linkedit = _linkedit(layout)
+    if lino != normalization.lino:
+        raise ValueError("codesign changed the Lino initialization bounds")
+    if len(layout.code_signatures) != 1:
+        raise ValueError("signed game must contain exactly one code signature")
+    signature_offset, signature_size = layout.code_signatures[0]
+    if (
+        len(data) <= normalization.original_size
+        or signature_offset < normalization.original_size
+        or signature_offset + signature_size != len(data)
+        or signature_offset < linkedit.fileoff
+        or signature_offset + signature_size > linkedit.fileoff + linkedit.filesize
+        or linkedit.fileoff + linkedit.filesize != len(data)
+        or linkedit.vmsize < linkedit.filesize
+        or linkedit.vmsize % MACHO_PAGE_SIZE
+    ):
+        raise ValueError("codesign produced invalid __LINKEDIT/signature bounds")
+    payload = data[lino.physwsentry : normalization.original_size]
+    if sha256_bytes(payload) != normalization.payload_sha256:
+        raise ValueError("codesign changed the appended Lino payload")
+
+
+def validate_macho(path: Path) -> None:
+    try:
+        parse_macho(path.read_bytes())
+    except ValueError as error:
+        raise ValueError(f"{path}: {error}") from error
 
 
 def validate_assets(work: Path) -> list[Path]:
@@ -451,8 +760,14 @@ def build_package(args: argparse.Namespace) -> None:
             newline="\n",
         )
 
+        normalization = normalize_appended_macho(packaged_game)
+        if normalization.normalized_sha256 != sha256(packaged_game):
+            raise ValueError("normalized game hash changed before signing")
         run("codesign", "--force", "--sign", "-", packaged_game)
-        validate_macho(packaged_game)
+        validate_signed_appended_macho(packaged_game, normalization)
+        run(
+            "codesign", "--verify", "--strict", "--verbose=2", packaged_game
+        )
         manifest = write_manifest(app)
         run("codesign", "--force", "--sign", "-", app)
         run("codesign", "--verify", "--deep", "--strict", "--verbose=2", app)
@@ -467,7 +782,17 @@ def build_package(args: argparse.Namespace) -> None:
             ("package_script_sha256", sha256(Path(__file__).resolve())),
             ("launcher_source_sha256", sha256(launcher_source)),
             ("launcher_sha256", sha256(app_output / "Contents" / "MacOS" / "Noctis-IV")),
-            ("signed_executable_sha256", sha256(app_output / "Contents" / "MacOS" / "Noctis-IV.game")),
+            ("normalized_executable_sha256", normalization.normalized_sha256),
+            ("appended_lino_payload_sha256", normalization.payload_sha256),
+            (
+                "signed_executable_sha256",
+                sha256(app_output / "Contents" / "MacOS" / "Noctis-IV.game"),
+            ),
+            (
+                "macho_normalization",
+                "__LINKEDIT was extended over the exact appended Lino payload "
+                "before ad-hoc codesign appended LC_CODE_SIGNATURE data",
+            ),
             ("manifest_sha256", sha256(app_output / "Contents" / "Resources" / "MANIFEST.sha256")),
             ("nivtest_executable_sha256", sha256(nivtest)),
             ("nivtest_build_provenance_sha256", sha256(nivtest_provenance)),
@@ -479,7 +804,14 @@ def build_package(args: argparse.Namespace) -> None:
             ("deployment_target", DEPLOYMENT_TARGET),
             ("release_label", args.release_label),
             ("signing", "ad-hoc; hardened runtime is not enabled"),
-            ("package_provenance", "the archive was extracted; strict nested signatures reverified the launcher and app, while the complete non-launcher payload manifest was independently rechecked"),
+            (
+                "package_provenance",
+                "the original compiler output, normalized unsigned Mach-O, "
+                "unchanged appended Lino payload, and signed executable are "
+                "separately hash-bound; the archive was extracted; strict "
+                "nested signatures and the complete non-launcher payload "
+                "manifest were independently rechecked",
+            ),
         ]
         if args.validation_reference_commit is not None:
             package_records.append(
