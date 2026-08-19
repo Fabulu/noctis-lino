@@ -850,14 +850,14 @@ void handle_pending_events(void)
 		[app sendEvent:event];
 	}
 	/* Closing the window or choosing Quit must follow the game's normal Escape
-	 * save-and-shutdown path rather than letting AppKit terminate the process. */
-	if (quitRequested) {
-		if (pUIWorkspace[mm_ConsoleOrigin + KEY_ESCAPE] == 0) {
-			pUIWorkspace[mm_ConsoleOrigin + KEY_ESCAPE] = 1;
-			quitKeyInjected = true;
-			quitKeyReleaseRetrace = retraceCount + 2;
-		}
-		quitRequested = false;
+	 * save-and-shutdown path rather than letting AppKit terminate the process.
+	 * Keep pulsing complete press/release intervals until the game exits: its
+	 * first Escape can legitimately leave fullscreen or dismiss a modal. */
+	if (quitRequested && !quitKeyInjected &&
+	    pUIWorkspace[mm_ConsoleOrigin + KEY_ESCAPE] == 0) {
+		pUIWorkspace[mm_ConsoleOrigin + KEY_ESCAPE] = 1;
+		quitKeyInjected = true;
+		quitKeyReleaseRetrace = retraceCount + 2;
 	}
 	[eventPool drain];
 }
