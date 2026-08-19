@@ -688,8 +688,8 @@
 	A = [xssh]; A & 80000000h;
 	? A != 0 -> xas pack;
     "xas sub normalize"
-	A = [xssx]; A > 2; [xasbit] = A;
-	A = [xssl]; A > 31; [xasw] = A;
+	A = [xssx]; A > 2; A & 1; [xasbit] = A;
+	A = [xssl]; A > 31; A & 1; [xasw] = A;
 	A = [xssx]; A < 1; A & 7; [xssx] = A;
 	A = [xssl]; A < 1; B = [xasbit]; A | B; [xssl] = A;
 	A = [xssh]; A < 1; B = [xasw]; A | B; [xssh] = A;

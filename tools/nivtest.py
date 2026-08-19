@@ -121,9 +121,9 @@ def decode_units(path: Path) -> tuple[list[int], dict[str, bytes]]:
         raise RuntimeError(f"wrong Lino output size {len(raw)}")
     units = list(struct.unpack(f"<{OUT_UNITS}I", raw))
     header = units[:HEAD]
-    if header[0] != OUT_MAGIC or header[1] != VERSION or header[2] != 0:
+    if header[0] != OUT_MAGIC or header[1] != VERSION:
         raise RuntimeError(
-            f"bad Lino output header {header[0]:08X}/{header[1]}/{header[2]}")
+            f"bad Lino output header {header[0]:08X}/{header[1]}")
     buffers = {
         name: bytes(value & 0xFF for value in units[start:start + length])
         for name, (start, length) in LAYOUT.items()
@@ -162,6 +162,8 @@ def results(header: list[int], buffers: dict[str, bytes]) -> dict[str, object]:
     def f64(index: int) -> float:
         return struct.unpack("<d", struct.pack("<II", header[index],
                                                header[index + 1]))[0]
+    def f64_bits(index: int) -> str:
+        return f"{header[index + 1]:08X}{header[index]:08X}"
     seedval = f64(30)
     palette_base = (128 if owner >= 0 else 192) * 3
     hashes = {
@@ -175,14 +177,21 @@ def results(header: list[int], buffers: dict[str, bytes]) -> dict[str, object]:
     }
     return {
         "body": header[6], "body_count": header[7], "type": header[8],
+        "status": header[2],
         "owner": owner, "global_surface_seed": signed(header[10]),
-        "seedval": seedval,
+        "seedval": seedval, "seedval_bits": f64_bits(30),
         "sctype": header[11], "albedo": signed(header[12]),
         "night": signed(header[13]), "secs": signed(header[14]),
         "geometry": {
             "ray": f64(15), "orb_ray": f64(17), "orb_seed": f64(19),
             "tilt": f64(21), "orb_tilt": f64(23), "orb_ecc": f64(25),
             "orb_orient": f64(27), "plwp": header[29],
+        },
+        "geometry_bits": {
+            "ray": f64_bits(15), "orb_ray": f64_bits(17),
+            "orb_seed": f64_bits(19), "tilt": f64_bits(21),
+            "orb_tilt": f64_bits(23), "orb_ecc": f64_bits(25),
+            "orb_orient": f64_bits(27),
         },
         "gap": buffers["gap"].hex().upper(), "hashes": hashes,
     }

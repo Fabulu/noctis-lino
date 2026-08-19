@@ -124,6 +124,9 @@ jobs:
               "sky": "1E308D29",
           }
           got = {name: result["hashes"][name]["fnv"] for name in expected}
+          if result["status"] != 0:
+              raise SystemExit(
+                  f"Rosetta portable FP self-check failed: {result['status']:#x}")
           if got != expected:
               raise SystemExit(f"Rosetta NIVGEN mismatch: {got!r}")
           print("Rosetta NIVGEN exact: 7/7")

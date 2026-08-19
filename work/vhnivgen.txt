@@ -34,7 +34,7 @@
 	NHinname = { niv-input.bin };
 	NHoutname = { niv-output.bin };
 	NHi = 0; NHsrc = 0; NHunits = 0; NHoff = 0; NHtmp = 0;
-	NHviewbody = 0;
+	NHviewbody = 0; NHstatus = 0;
 
 "workspace"
 
@@ -53,6 +53,7 @@
 
 	=> MEM build rtab; => MEM build ztab; => MEM wrap reset;
 	=> PAL float init; => PGF constants; => SU fp init; => SU pal init;
+	=> VHNIV soft fp check;
 
 	[VHGNDclockoverride] = 1; [VHGNDclocksecs] = [NHinput plus 8];
 	[VHTtx] = [NHinput plus 2];
@@ -104,7 +105,7 @@
 	[NHsrc] = srfpal6; [NHunits] = NHSRFPALU; [NHoff] = NHOFFSRFPAL; => VHNIV write;
 
 	[NHheader] = NHOUTMAGIC; [NHheader plus 1] = NHVERSION;
-	[NHheader plus 2] = 0;
+	[NHheader plus 2] = [NHstatus];
 	[NHheader plus 3] = [NHinput plus 2];
 	[NHheader plus 4] = [NHinput plus 3];
 	[NHheader plus 5] = [NHinput plus 4];
@@ -130,6 +131,47 @@
 	[VHGNDclockoverride] = 0;
 	=> FLeave;
 	end;
+
+"VHNIV soft fp check"
+		( 205/2000 followed by 1-x is the eccentricity expression for the
+		  exact-sector fixture.  Report which portable-soft boundary first
+		  differs instead of hiding the cause behind downstream hashes. )
+		[NHstatus] = 0;
+		[XU0] = 0; [XU1] = 409F4000h; => XFromF64;
+		A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+		A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+		[XIN] = 205; => XFromInt; => XQuoCore;
+		? [xiter] != 65 -> VHNIV soft iteration bad;
+		-> VHNIV soft iteration ready;
+    "VHNIV soft iteration bad"
+		A = [NHstatus]; A | 1; [NHstatus] = A;
+    "VHNIV soft iteration ready"
+		? [XS] != 0 -> VHNIV soft quotient bad;
+		? [XE] != 3FFBh -> VHNIV soft quotient bad;
+		? [XMH] != 0D1EB851Eh -> VHNIV soft quotient bad;
+		? [XML] != 0B851EB85h -> VHNIV soft quotient bad;
+		-> VHNIV soft quotient ready;
+    "VHNIV soft quotient bad"
+		A = [NHstatus]; A | 2; [NHstatus] = A;
+    "VHNIV soft quotient ready"
+		A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+		A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+		[XU0] = 0; [XU1] = 3FF00000h; => XFromF64; => XSubCore;
+		? [XS] != 0 -> VHNIV soft subtraction bad;
+		? [XE] != 3FFEh -> VHNIV soft subtraction bad;
+		? [XMH] != 0E5C28F5Ch -> VHNIV soft subtraction bad;
+		? [XML] != 28F5C28Fh -> VHNIV soft subtraction bad;
+		-> VHNIV soft subtraction ready;
+    "VHNIV soft subtraction bad"
+		A = [NHstatus]; A | 4; [NHstatus] = A;
+    "VHNIV soft subtraction ready"
+		=> XToF64;
+		? [FA0] != 0EB851EB8h -> VHNIV soft store bad;
+		? [FA1] != 3FECB851h -> VHNIV soft store bad;
+		end;
+    "VHNIV soft store bad"
+		A = [NHstatus]; A | 8; [NHstatus] = A;
+		end;
 
 "VHNIV orbital surface"
 	( The public command calls surface() immediately after prepare_nearstar().
