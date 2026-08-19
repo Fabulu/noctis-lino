@@ -34,12 +34,15 @@ request and supplies complete press/release intervals until the game saves and
 exits. The final Apple-Silicon smoke reached a real retrace, exited through Lino
 cleanup, and wrote a nonempty `CURRENT.LIN`.
 
-A downloaded development archive from commit
+The first downloaded development archive from commit
 `9fbc1e62870e62f34f98775a8dd01e6af5894957` independently passed archive-path,
 manifest, provenance, Mach-O, payload, plist, framework, deployment-target, and
-7/7 NIVGEN checks. Public tagged publication remains a separate gate; the
-release workflow must rebuild this evidence from the immutable tag and publish
-both platform packages together.
+7/7 NIVGEN checks. Beta 22 then rebuilt both desktop packages from tagged commit
+`ccd7aecdcd4a9692b5c9890268e810f877598b7d` and published all six release assets.
+The public download audit found the expected 14-file Windows and 20-file Mac
+archives, verified both checksums and manifests, reproduced the Mac normalized
+and original compiler-output hashes by reversing the downloaded signature
+geometry, and retained the exact appended Lino payload and 7/7 result.
 
 ## 2026-08-19 -- exact macOS Rosetta generation
 

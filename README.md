@@ -47,10 +47,11 @@ dimensions, so a resized game reopens at the same size.
 
 ### macOS package
 
-Download `Noctis-IV-macos-x86_64.zip`, verify it with the adjacent `.sha256`
-file, extract it, and drag `Noctis IV.app` to Applications. The app targets
-macOS 10.15 or newer. It runs as x86_64 on Intel Macs and needs Rosetta 2 on
-Apple Silicon.
+Download `Noctis-IV-macos-x86_64.zip` from the
+[GitHub releases page](https://github.com/Fabulu/noctis-lino/releases),
+verify it with the adjacent `.sha256` file, extract it, and drag
+`Noctis IV.app` to Applications. The app targets macOS 10.15 or newer. It runs
+as x86_64 on Intel Macs and needs Rosetta 2 on Apple Silicon.
 
 The current app is ad-hoc signed rather than Developer ID signed or notarized.
 If macOS blocks its first launch, select Noctis IV under System Settings,

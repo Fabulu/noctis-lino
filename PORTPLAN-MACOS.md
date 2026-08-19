@@ -141,8 +141,10 @@ hm=97022FD7    oc=22913F4E    stex=0D52F001  sky=1E308D29
 
 The first complete development archive passed these gates at commit
 `9fbc1e62870e62f34f98775a8dd01e6af5894957` and was independently downloaded
-and audited. A development Actions artifact is evidence, not a public release;
-only a successful tagged workflow creates public release assets.
+and audited. Beta 22 then rebuilt the same technical boundary from tagged commit
+`ccd7aecdcd4a9692b5c9890268e810f877598b7d`, published the first public Mac
+archive beside its checksum and provenance, and passed an independent public
+six-asset download audit.
 
 ## Remaining macOS work
 

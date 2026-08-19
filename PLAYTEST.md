@@ -28,9 +28,14 @@ Its adjacent checksum, twenty-file app inventory, per-file manifest, copied buil
 records, runtime hashes, NIVTEST evidence, plist, x86_64 target, macOS 10.15
 minimum, Cocoa/AudioToolbox linkage, normalized Mach-O geometry, one terminal
 code-signature command, and unchanged appended Lino payload all matched package
-provenance. This is bounded end-to-end Rosetta evidence. Intel CI builds both
-runtime modes, but an equivalent extracted-app gameplay smoke has not yet run on
-an Intel host, and native ARM64 is not claimed.
+provenance. Beta 22 rebuilt this boundary from tagged commit `ccd7aec` and
+published both desktop packages. A fresh public download audit verified the six
+release-asset digests and adjacent checksums, the exact 14-file Windows and
+20-file Mac inventories, both manifests, i386 PE structure, x86_64 Mach-O
+structure, reverse-normalized and original Mac executable hashes, the unchanged
+Lino payload, and the 7/7 result. This is bounded end-to-end Rosetta evidence.
+Intel CI builds both runtime modes, but an equivalent extracted-app gameplay
+smoke has not yet run on an Intel host, and native ARM64 is not claimed.
 
 On 2026-08-12 the production capture path placed the opening system's selected
 star at a source-valid 200-unit flare distance by inverting the live camera

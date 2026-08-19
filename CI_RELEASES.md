@@ -3,10 +3,9 @@
 ## Current release boundary
 
 Beta 21 was the first release whose Windows executable was compiled from tagged
-Lino source on a GitHub-hosted runner. The current tagged-release graph extends
-that source-build boundary to a verified macOS x86_64 Finder application. A tag
-is publishable only when both platform packages pass; the workflow releases six
-generated assets:
+Lino source on a GitHub-hosted runner. Beta 22 is the first dual-platform
+release and the first public macOS x86_64 Finder application. Its tagged graph
+published six generated assets only after both platform packages passed:
 
 ```text
 Noctis-IV-windows-x86.zip
@@ -136,6 +135,13 @@ publication, download all six public assets into an empty directory and verify:
   payload recorded by package provenance; and
 - release assets correspond to the immutable tagged commit.
 
+Beta 22 completed that public download audit at commit
+`ccd7aecdcd4a9692b5c9890268e810f877598b7d`. The Windows archive contained the
+expected 14 files and a four-section i386 PE. The Mac archive contained the
+expected 20 files; reverse-normalizing the downloaded signed game reproduced
+both its recorded normalized hash and original compiler-output hash, while the
+complete appended Lino payload and 7/7 NIVGEN record remained exact.
+
 GitHub's own Actions/release-asset digest is additional evidence, not a
 replacement for the adjacent checksums and internal manifests.
 
@@ -144,11 +150,11 @@ replacement for the adjacent checksums and internal manifests.
 Require green master Windows, Intel-macOS runtime, and Apple-Silicon Rosetta
 package workflows. Review `RELEASE_NOTES.md`, confirm that it identifies ad-hoc
 macOS signing and the lack of notarization, then create the next annotated beta
-tag:
+tag (beta 23 after the published beta 22):
 
 ```sh
-git tag -a v0.1.0-beta.22 -m "Noctis IV Lino beta 22"
-git push origin v0.1.0-beta.22
+git tag -a v0.1.0-beta.23 -m "Noctis IV Lino beta 23"
+git push origin v0.1.0-beta.23
 ```
 
 The tag launches both complete build graphs and publishes only after all jobs
