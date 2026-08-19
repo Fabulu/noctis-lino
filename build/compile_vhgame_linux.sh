@@ -110,6 +110,10 @@ records = [
     ("source_sha256", sha256(repo / "work/vhgame.txt")),
     ("executable_sha256", sha256(path)),
     ("compile_script_sha256", sha256(repo / "build/compile_vhgame_linux.sh")),
+    (
+        "compiler_runtime_installer_sha256",
+        sha256(repo / "build/install_linux_compiler_runtime.sh"),
+    ),
     ("bootstrap_compiler_sha256", sha256(repo / "main/linux_compiler.bin")),
     ("compiler_source_sha256", sha256(repo / "main/lib/gen/compiler114m.txt")),
     ("compiler_bits_library_sha256", sha256(repo / "main/lib/gen/bits.txt")),

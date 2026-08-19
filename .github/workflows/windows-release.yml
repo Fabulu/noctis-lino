@@ -57,6 +57,7 @@ jobs:
     name: Compile the Windows game from source
     needs: test
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
       - name: Check out the port
@@ -64,13 +65,7 @@ jobs:
 
       - name: Install the historical compiler runtime
         shell: bash
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update -o Acquire::Retries=3
-          sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
-            apt-get install -y --no-install-recommends \
-            libc6:i386 libx11-6:i386 libxau6:i386 libxcb1:i386 \
-            libxdmcp6:i386 util-linux xvfb xauth
+        run: ./build/install_linux_compiler_runtime.sh
 
       - name: Compile the production game
         shell: bash
@@ -126,7 +121,8 @@ jobs:
           }
           $requiredKeys = @(
             'commit', 'source_sha256', 'executable_sha256', 'compile_script_sha256',
-            'bootstrap_compiler_sha256', 'compiler_source_sha256',
+            'compiler_runtime_installer_sha256', 'bootstrap_compiler_sha256',
+            'compiler_source_sha256',
             'compiler_bits_library_sha256', 'compiler_bytes_library_sha256',
             'compiler_build_script_sha256', 'bootstrap_cpu_pack_sha256',
             'bootstrap_system_pack_sha256', 'compiler_sha256', 'cpu_pack_sha256',

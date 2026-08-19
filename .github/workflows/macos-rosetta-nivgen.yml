@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/macos-rosetta-nivgen.yml"
       - "build/compile_nivtest_linux.sh"
+      - "build/install_linux_compiler_runtime.sh"
       - "build/build_compiler114m_linux.sh"
       - "build/build_nivtest.sh"
       - "main/cpu/i386.bin"
@@ -54,6 +55,7 @@ jobs:
     name: Cross-compile the production harness
     needs: runtime
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
       - name: Check out the production source
@@ -67,13 +69,7 @@ jobs:
 
       - name: Install the historical compiler runtime
         shell: bash
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update -o Acquire::Retries=3
-          sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
-            apt-get install -y --no-install-recommends \
-            libc6:i386 libx11-6:i386 libxau6:i386 libxcb1:i386 \
-            libxdmcp6:i386 util-linux xvfb xauth
+        run: ./build/install_linux_compiler_runtime.sh
 
       - name: Compile the real production NIVGEN executable
         shell: bash
