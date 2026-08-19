@@ -6,6 +6,18 @@ on:
   pull_request:
     paths:
       - "src/linoleum_macos64/**"
+      - "src/noctis_macos_launcher/**"
+      - "tools/package_noctis_macos.py"
+      - "tools/macos_runtime_provenance.py"
+      - "work/globes.map"
+      - "work/offsets.map"
+      - "work/vehicle.ncc"
+      - "work/mammal.ncc"
+      - "work/birdy.ncc"
+      - "work/digimap2.bin"
+      - "work/STARMAP.BIN"
+      - "work/GUIDE.BIN"
+      - "work/noctis_music.pcm"
       - ".github/workflows/macos-runtime.yml"
   workflow_dispatch:
 
@@ -26,10 +38,12 @@ jobs:
         run: |
           HEADLESS=1 ./src/linoleum_macos64/build.sh
           file src/linoleum_macos64/rtm01.bin | grep -q x86_64
-          if otool -L src/linoleum_macos64/rtm01.bin | grep -q '/Cocoa.framework/'; then
-            echo 'Headless runtime unexpectedly links Cocoa' >&2
+          if otool -L src/linoleum_macos64/rtm01.bin | grep -Eq '/(Cocoa|AudioToolbox)\.framework/'; then
+            echo 'Headless runtime unexpectedly links a GUI/audio framework' >&2
             exit 1
           fi
+          xcrun vtool -show-build src/linoleum_macos64/rtm01.bin \
+            | grep -Eq 'minos[[:space:]]+10\.15'
 
       - name: Build the native Cocoa runtime
         shell: bash
@@ -37,3 +51,28 @@ jobs:
           ./src/linoleum_macos64/build.sh
           file src/linoleum_macos64/rtm01.bin | grep -q x86_64
           otool -L src/linoleum_macos64/rtm01.bin | grep -q '/Cocoa.framework/'
+          otool -L src/linoleum_macos64/rtm01.bin | grep -q '/AudioToolbox.framework/'
+          xcrun vtool -show-build src/linoleum_macos64/rtm01.bin \
+            | grep -Eq 'minos[[:space:]]+10\.15'
+
+      - name: Compile the Finder-safe launcher
+        shell: bash
+        run: |
+          mkdir -p build
+          xcrun --sdk macosx clang \
+            -arch x86_64 -mmacosx-version-min=10.15 -std=c11 \
+            -D_DARWIN_C_SOURCE -O2 -Wall -Wextra -Werror \
+            src/noctis_macos_launcher/launcher.c -o build/Noctis-IV
+          file build/Noctis-IV | grep -q x86_64
+
+      - name: Check the package builder and seed assets
+        shell: bash
+        run: |
+          python3 -m py_compile \
+            tools/package_noctis_macos.py tools/macos_runtime_provenance.py
+          python3 - <<'PY'
+          from pathlib import Path
+          from tools.package_noctis_macos import validate_assets
+          assets = validate_assets(Path("work"))
+          print(f"Validated {len(assets)} macOS package seed assets")
+          PY

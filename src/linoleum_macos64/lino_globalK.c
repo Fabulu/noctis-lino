@@ -20,15 +20,18 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <string.h>
+#include <sys/stat.h>
 
 #include "lino_globalK.h"
 #include "rtm.h"
 #include "lino_file.h"
 
-char *globalK_path = "~/linoleum/.k/";
-
 unit *globalK_name;
-unit globalK_filename[50];
+unit globalK_filename[32768];
+static char globalK_legacy_filename[32768];
 
 /**
  * Converts a character to a valid globalK name character.
@@ -37,7 +40,7 @@ unit globalK_filename[50];
  */
 static unit globalK_name_chr(unit u)
 {
-	if (u && !isalnum(u))
+	if (u && (u > UCHAR_MAX || !isalnum((unsigned char) u)))
 		return '_';
 	return u;
 }
@@ -61,70 +64,164 @@ unit *lino_globalK_name_copy(unit * to, const unit * from)
 	return to;
 }
 
+static bool globalK_directory(const char *path)
+{
+	struct stat status;
+
+	if (mkdir(path, 0700) == 0)
+		return true;
+	if (errno != EEXIST || stat(path, &status) != 0)
+		return false;
+	return S_ISDIR(status.st_mode);
+}
+
+static bool globalK_prepare_filename(void)
+{
+	const char *home = getenv("HOME");
+	char path[32768];
+	char name[25];
+	int length;
+
+	if (home == NULL || home[0] != '/')
+		return false;
+	length = snprintf(path, sizeof path, "%s/Library", home);
+	if (length < 0 || (size_t) length >= sizeof path ||
+	    !globalK_directory(path))
+		return false;
+	length = snprintf(path, sizeof path, "%s/Library/Application Support",
+	    home);
+	if (length < 0 || (size_t) length >= sizeof path ||
+	    !globalK_directory(path))
+		return false;
+	length = snprintf(path, sizeof path,
+	    "%s/Library/Application Support/Linoleum", home);
+	if (length < 0 || (size_t) length >= sizeof path ||
+	    !globalK_directory(path))
+		return false;
+	length = snprintf(path, sizeof path,
+	    "%s/Library/Application Support/Linoleum/GlobalK", home);
+	if (length < 0 || (size_t) length >= sizeof path ||
+	    !globalK_directory(path))
+		return false;
+	if ((size_t) length + 2 > sizeof path ||
+	    (size_t) length + 26 >=
+	    sizeof globalK_filename / sizeof globalK_filename[0])
+		return false;
+	path[length++] = '/';
+	path[length] = '\0';
+
+	btrsstring(globalK_filename, path);
+	globalK_name = &globalK_filename[ustrlen(globalK_filename)];
+	lino_globalK_name_copy(globalK_name,
+	    &pWorkspace[pUIWorkspace[mm_GlobalKName]]);
+	if (globalK_name[0] == 0)
+		return false;
+	lino_file_realpath(globalK_filename);
+	utrsstring(name, globalK_name);
+	length = snprintf(globalK_legacy_filename,
+	    sizeof globalK_legacy_filename, "%s/linoleum/.k/%s", home, name);
+	if (length < 0 || (size_t) length >= sizeof globalK_legacy_filename)
+		return false;
+	return true;
+}
+
+static bool globalK_write_atomic(const char *destination, const unit *data)
+{
+	char temporary[32768];
+	FILE *kfile;
+	int descriptor;
+	int length;
+	bool result;
+
+	length = snprintf(temporary, sizeof temporary, "%s.tmp.XXXXXX",
+	    destination);
+	if (length < 0 || (size_t) length >= sizeof temporary)
+		return false;
+	descriptor = mkstemp(temporary);
+	if (descriptor < 0)
+		return false;
+	kfile = fdopen(descriptor, "wb");
+	if (kfile == NULL) {
+		close(descriptor);
+		unlink(temporary);
+		return false;
+	}
+	result = fwrite(data, sizeof(unit), 255, kfile) == 255;
+	if (result && fflush(kfile) != 0)
+		result = false;
+	if (result && fsync(descriptor) != 0)
+		result = false;
+	if (fclose(kfile) != 0)
+		result = false;
+	if (result && rename(temporary, destination) == 0)
+		return true;
+	unlink(temporary);
+	return false;
+}
+
+static FILE *globalK_open_read(void)
+{
+	struct stat status;
+	bool new_absent;
+	FILE *kfile;
+
+	new_absent = lstat(dmsfilename, &status) != 0 && errno == ENOENT;
+	kfile = fopen(dmsfilename, "rb");
+	if (kfile == NULL && new_absent)
+		kfile = fopen(globalK_legacy_filename, "rb");
+	return kfile;
+}
+
 /**
  * handles all Global K commands.
  * @return 1 when errors, 0 otherwise
  */
 bool krnlGlobalKCommand(GlobalKCommand command)
 {
-	/* declarations */
 	FILE *kfile;
+	unit read_data[255];
 	bool result = true;
-	int globalK_units;
+	size_t globalK_units;
 
-	if (command != IDLE) {
-		/* translate the path to a unit string */
-		btrsstring(globalK_filename, globalK_path);
-		/* get a pointer to where the name will be stored */
-		globalK_name = &globalK_filename[ustrlen(globalK_filename)];
-		/* copy and check the name */
-		lino_globalK_name_copy(globalK_name,
-				       &pWorkspace[pUIWorkspace
-						   [mm_GlobalKName]]);
-		/* get the realpath of this file */
-		lino_file_realpath(globalK_filename);
-	}
+	if (command != IDLE && !globalK_prepare_filename())
+		return false;
 
 	switch (command) {
 	case IDLE:
 		break;
 	case KREAD:
-		/* open global K file for reading */
-		kfile = fopen(dmsfilename, "r");
+		kfile = globalK_open_read();
 		if (!kfile) {
 			result = false;
 			break;
 		}
-		/* read the data into the workspace */
-		globalK_units =
-		    fread(&pWorkspace[pUIWorkspace[mm_GlobalKData]],
-			  sizeof(unit), 255, kfile);
-		if (globalK_units != 255) {
+		globalK_units = fread(read_data, sizeof(unit), 255, kfile);
+		if (globalK_units != 255)
 			result = false;
-		}
-		/* close the file */
-		fclose(kfile);
+		if (fclose(kfile) != 0)
+			result = false;
+		if (result)
+			memcpy(&pWorkspace[pUIWorkspace[mm_GlobalKData]], read_data,
+			    sizeof read_data);
 		break;
 	case KWRITE:
-		/* open global K file for writing */
-		kfile = fopen(dmsfilename, "w");
-		if (!kfile) {
-			result = false;
-			break;
-		}
-		/* write the data into the file */
-		globalK_units =
-		    fwrite(&pWorkspace[pUIWorkspace[mm_GlobalKData]],
-			   sizeof(unit), 255, kfile);
-		if (globalK_units != 255) {
-			result = false;
-		}
-		/* close the file */
-		fclose(kfile);
+		result = globalK_write_atomic(dmsfilename,
+		    &pWorkspace[pUIWorkspace[mm_GlobalKData]]);
 		break;
 	case KDESTROY:
-		if (unlink(dmsfilename) == -1) {
-			result = false;
+		{
+			bool removed = false;
+
+			if (unlink(dmsfilename) == 0)
+				removed = true;
+			else if (errno != ENOENT)
+				result = false;
+			if (unlink(globalK_legacy_filename) == 0)
+				removed = true;
+			else if (errno != ENOENT)
+				result = false;
+			if (!removed)
+				result = false;
 		}
 		break;
 	default:

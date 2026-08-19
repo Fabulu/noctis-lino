@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: jorisvddonk/Noctis-IV-Plus
+          ref: 94200172ee2ca859de15f0c7b03dfa1939874681
           path: _reference/noctis-plus
 
       - name: Set up Python
@@ -140,6 +141,8 @@ jobs:
             throw 'Downloaded compiler or executable does not match its Linux build provenance'
           }
           Copy-Item -LiteralPath $buildProvenance -Destination dist\Noctis-IV-windows-x86.provenance.txt
+          'validation_reference_commit=94200172ee2ca859de15f0c7b03dfa1939874681' | Add-Content `
+            -LiteralPath dist\Noctis-IV-windows-x86.provenance.txt -Encoding ascii
 
       - name: Upload the package artifact
         uses: actions/upload-artifact@v7

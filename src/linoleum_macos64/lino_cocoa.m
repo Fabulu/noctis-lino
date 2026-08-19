@@ -13,6 +13,7 @@
 
 #include <Cocoa/Cocoa.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 #include "rtm.h"
 #include "lino_display.h"
@@ -22,18 +23,29 @@
 #include "lino_luck.h"
 #include "lino_file.h"
 
+#define LINO_BITMAP_INFO (kCGBitmapByteOrder32Little | \
+    kCGImageAlphaNoneSkipFirst)
+
 @class LinoView;
+@class LinoAppDelegate;
 
 /* ------------------------------------------------------------------ */
 /* shared state                                                        */
 /* ------------------------------------------------------------------ */
 
 static NSApplication *app;
+static NSAutoreleasePool *cocoaPool;
+static LinoAppDelegate *appDelegate;
 static NSWindow *win;
 static LinoView *view;		/* forward-declared below */
 static void *fb;		/* framebuffer pointer (workspace) */
 static int fb_w, fb_h;
 static bool display_visible;
+static bool quitRequested;
+static bool quitKeyInjected;
+static unsigned long retraceCount;
+static unsigned long quitKeyReleaseRetrace;
+static uint8_t pressedKeys[128];
 static CGImageRef currentImage;
 
 /* ------------------------------------------------------------------ */
@@ -43,6 +55,85 @@ static CGImageRef currentImage;
 static void lino_cocoa_key_event(NSEvent *event, int down);
 static void lino_cocoa_mouse_event(NSEvent *event, int kind);
 static void lino_cocoa_set_mouse(NSPoint point);
+static void lino_cocoa_create_menu(void);
+static void lino_cocoa_request_quit(void);
+static void lino_cocoa_release_keys(void);
+static bool lino_cocoa_verify_pixel_layout(void);
+
+/* ------------------------------------------------------------------ */
+/* application lifecycle                                               */
+/* ------------------------------------------------------------------ */
+
+@interface LinoAppDelegate : NSObject <NSApplicationDelegate,
+    NSWindowDelegate>
+@end
+
+@implementation LinoAppDelegate
+
+- (NSApplicationTerminateReply)applicationShouldTerminate:
+    (NSApplication *)sender
+{
+	(void) sender;
+	lino_cocoa_request_quit();
+	return NSTerminateCancel;
+}
+
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:
+    (NSApplication *)sender
+{
+	(void) sender;
+	return NO;
+}
+
+- (BOOL)windowShouldClose:(NSWindow *)sender
+{
+	(void) sender;
+	lino_cocoa_request_quit();
+	return NO;
+}
+
+- (void)applicationDidResignActive:(NSNotification *)notification
+{
+	(void) notification;
+	lino_cocoa_release_keys();
+}
+
+@end
+
+static void lino_cocoa_request_quit(void)
+{
+	quitRequested = true;
+}
+
+static void lino_cocoa_release_keys(void)
+{
+	if (quitKeyInjected) {
+		quitRequested = true;
+		quitKeyInjected = false;
+	}
+	memset(pressedKeys, 0, sizeof pressedKeys);
+	if (pUIWorkspace != NULL)
+		memset(&pUIWorkspace[mm_ConsoleOrigin], 0,
+		    (KEY_UNCLASSIFIED + 1) * sizeof *pUIWorkspace);
+}
+
+static void lino_cocoa_create_menu(void)
+{
+	NSString *appName = [NSString stringWithUTF8String:
+	    (const char *) IParagraph->appname];
+	NSMenu *mainMenu = [[[NSMenu alloc] initWithTitle:@""] autorelease];
+	NSMenuItem *appItem = [[[NSMenuItem alloc] initWithTitle:@""
+	    action:nil keyEquivalent:@""] autorelease];
+	NSMenu *appMenu = [[[NSMenu alloc] initWithTitle:appName] autorelease];
+	NSString *quitTitle = [@"Quit " stringByAppendingString:appName];
+	NSMenuItem *quitItem = [[[NSMenuItem alloc] initWithTitle:quitTitle
+	    action:@selector(terminate:) keyEquivalent:@"q"] autorelease];
+
+	[appMenu addItem:quitItem];
+	[appItem setSubmenu:appMenu];
+	[mainMenu addItem:appItem];
+	[app setMainMenu:mainMenu];
+}
 
 /* ------------------------------------------------------------------ */
 /* the content view                                                    */
@@ -224,19 +315,48 @@ static int lino_cocoa_keycode_to_key(unsigned short kc)
 
 static void lino_cocoa_key_event(NSEvent *event, int down)
 {
-	NSString *chars = [event charactersIgnoringModifiers];
+	NSString *base_chars = [event charactersIgnoringModifiers];
+	NSString *chars = [event characters];
+	unichar base = (base_chars != nil && [base_chars length] > 0) ?
+	    [base_chars characterAtIndex:0] : 0;
 	unichar c = (chars != nil && [chars length] > 0) ?
 	    [chars characterAtIndex:0] : 0;
-	int key = lino_cocoa_keycode_to_key([event keyCode]);
+	unsigned short keycode = [event keyCode];
+	int key = lino_cocoa_keycode_to_key(keycode);
 
-	/* alphabetic / digit keys fall back to the character */
-	if (key < 0 && c != 0) {
-		if (c >= 'A' && c <= 'Z')
-			key = KEY_A + (c - 'A');
-		else if (c >= 'a' && c <= 'z')
-			key = KEY_A + (c - 'a');
-		else if (c >= '0' && c <= '9')
-			key = KEY_0 + (c - '0');
+	/* Standard punctuation has the same KEY_* state as its keypad alias.
+	 * charactersIgnoringModifiers preserves Shift while removing Control. */
+	if (key < 0) {
+		switch (base) {
+		case '/': key = KEY_SLASH; break;
+		case '*': key = KEY_ASTERISK; break;
+		case '-': key = KEY_MINUS; break;
+		case '+': key = KEY_PLUS; break;
+		case '.': key = KEY_DOT; break;
+		default: break;
+		}
+	}
+
+	/* Alphabetic / digit state follows the base key, not Shift or Control. */
+	if (key < 0 && base != 0) {
+		if (base >= 'A' && base <= 'Z')
+			key = KEY_A + (base - 'A');
+		else if (base >= 'a' && base <= 'z')
+			key = KEY_A + (base - 'a');
+		else if (base >= '0' && base <= '9')
+			key = KEY_0 + (base - '0');
+	}
+
+	if (keycode < sizeof pressedKeys) {
+		if (down) {
+			if (pressedKeys[keycode] != 0)
+				key = pressedKeys[keycode] - 1;
+			else if (key >= 0)
+				pressedKeys[keycode] = (uint8_t) (key + 1);
+		} else if (pressedKeys[keycode] != 0) {
+			key = pressedKeys[keycode] - 1;
+			pressedKeys[keycode] = 0;
+		}
 	}
 
 	if (key >= 0)
@@ -370,6 +490,46 @@ bool krnlPointerCommand(PointerCommand command)
 	return true;
 }
 
+static bool lino_cocoa_verify_pixel_layout(void)
+{
+	uint32_t source = 0x00112233;
+	uint32_t destination = 0;
+	CGDataProviderRef provider = NULL;
+	CGColorSpaceRef colorSpace = NULL;
+	CGImageRef image = NULL;
+	CGContextRef context = NULL;
+	bool result = false;
+
+	provider = CGDataProviderCreateWithData(NULL, &source,
+	    sizeof source, NULL);
+	colorSpace = CGColorSpaceCreateDeviceRGB();
+	if (provider == NULL || colorSpace == NULL)
+		goto done;
+	image = CGImageCreate(1, 1, 8, 32, sizeof source, colorSpace,
+	    LINO_BITMAP_INFO, provider, NULL, false, kCGRenderingIntentDefault);
+	if (image == NULL)
+		goto done;
+	context = CGBitmapContextCreate(&destination, 1, 1, 8,
+	    sizeof destination, colorSpace,
+	    kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst);
+	if (context == NULL)
+		goto done;
+	CGContextSetBlendMode(context, kCGBlendModeCopy);
+	CGContextDrawImage(context, CGRectMake(0, 0, 1, 1), image);
+	result = destination == 0xff112233;
+
+done:
+	if (context != NULL)
+		CGContextRelease(context);
+	if (image != NULL)
+		CGImageRelease(image);
+	if (colorSpace != NULL)
+		CGColorSpaceRelease(colorSpace);
+	if (provider != NULL)
+		CGDataProviderRelease(provider);
+	return result;
+}
+
 /* ------------------------------------------------------------------ */
 /* display                                                             */
 /* ------------------------------------------------------------------ */
@@ -444,12 +604,25 @@ bool lino_display_init(unit x, unit y, unit w, unit h, void *data)
 	PRINT1("%s: Initializing display...\n", __func__);
 
 	display_visible = false;
+	quitRequested = false;
+	quitKeyInjected = false;
+	retraceCount = 0;
+	quitKeyReleaseRetrace = 0;
+	memset(pressedKeys, 0, sizeof pressedKeys);
 	fb = data;
 	fb_w = (int) w;
 	fb_h = (int) h;
+	if (!lino_cocoa_verify_pixel_layout()) {
+		fprintf(stderr, "Cocoa framebuffer pixel-layout self-test failed\n");
+		return false;
+	}
 
+	cocoaPool = [[NSAutoreleasePool alloc] init];
 	app = [NSApplication sharedApplication];
+	appDelegate = [[LinoAppDelegate alloc] init];
+	[app setDelegate:appDelegate];
 	[app setActivationPolicy:NSApplicationActivationPolicyRegular];
+	lino_cocoa_create_menu();
 	[app finishLaunching];
 	[app activateIgnoringOtherApps:YES];
 
@@ -462,6 +635,8 @@ bool lino_display_init(unit x, unit y, unit w, unit h, void *data)
 	    defer:NO];
 	if (win == nil)
 		return false;
+	[win setReleasedWhenClosed:NO];
+	[win setDelegate:appDelegate];
 	[win setTitle:
 	    [NSString stringWithUTF8String:(const char *)IParagraph->appname]];
 	[win setAcceptsMouseMovedEvents:YES];
@@ -516,18 +691,27 @@ bool lino_display_retrace(void)
 	if (fb_w <= 0 || fb_h <= 0)
 		return true;
 
-	CGDataProviderRef prov =
-	    CGDataProviderCreateWithData(NULL, fb,
-					 (size_t) fb_w * fb_h * 4, NULL);
+	size_t imageBytes = (size_t) fb_w * fb_h * 4;
+	CFDataRef snapshot = CFDataCreate(kCFAllocatorDefault,
+	    (const UInt8 *) fb, (CFIndex) imageBytes);
+	if (snapshot == NULL)
+		return true;
+	CGDataProviderRef prov = CGDataProviderCreateWithCFData(snapshot);
+	CFRelease(snapshot);
 	if (prov == NULL)
 		return true;
+	CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+	if (colorSpace == NULL) {
+		CGDataProviderRelease(prov);
+		return true;
+	}
 	CGImageRef img = CGImageCreate((size_t) fb_w, (size_t) fb_h,
 				      8, 32, (size_t) fb_w * 4,
-				      CGColorSpaceCreateDeviceRGB(),
-				      kCGBitmapByteOrder32Little |
-				      kCGImageAlphaNoneSkipLast,
+				      colorSpace,
+				      LINO_BITMAP_INFO,
 				      prov, NULL, false,
 				      kCGRenderingIntentDefault);
+	CGColorSpaceRelease(colorSpace);
 	CGDataProviderRelease(prov);
 	if (img == NULL)
 		return true;
@@ -538,6 +722,20 @@ bool lino_display_retrace(void)
 	[view setNeedsDisplay:YES];
 	[view display];		/* synchronous redraw (no run loop running) */
 	[win flushWindow];	/* push the backing store to the screen */
+	retraceCount++;
+	if (quitKeyInjected && retraceCount >= quitKeyReleaseRetrace) {
+		pUIWorkspace[mm_ConsoleOrigin + KEY_ESCAPE] = 0;
+		quitKeyInjected = false;
+	}
+	if (cocoaSmokeMode) {
+		printf("COCOA_SMOKE_OK: first Cocoa retrace completed\n");
+		fflush(stdout);
+		exit(EXIT_SUCCESS);
+	}
+	if (cocoaQuitSmokeMode && !cocoaQuitSmokeTriggered) {
+		cocoaQuitSmokeTriggered = true;
+		lino_cocoa_request_quit();
+	}
 	return true;
 }
 
@@ -611,7 +809,10 @@ bool lino_display_close(void)
 		CGImageRelease(currentImage);
 		currentImage = NULL;
 	}
+	if (app != nil)
+		[app setDelegate:nil];
 	if (win != nil) {
+		[win setDelegate:nil];
 		[win close];
 		[win release];
 		win = nil;
@@ -619,6 +820,15 @@ bool lino_display_close(void)
 	if (view != nil) {
 		[view release];
 		view = nil;
+	}
+	if (appDelegate != nil) {
+		[appDelegate release];
+		appDelegate = nil;
+	}
+	app = nil;
+	if (cocoaPool != nil) {
+		[cocoaPool drain];
+		cocoaPool = nil;
 	}
 	return true;
 }
@@ -631,6 +841,7 @@ void handle_pending_events(void)
 {
 	if (app == nil)
 		return;
+	NSAutoreleasePool *eventPool = [[NSAutoreleasePool alloc] init];
 	NSEvent *event;
 	while ((event = [app nextEventMatchingMask:NSEventMaskAny
 			    untilDate:[NSDate distantPast]
@@ -638,6 +849,17 @@ void handle_pending_events(void)
 			    dequeue:YES]) != nil) {
 		[app sendEvent:event];
 	}
+	/* Closing the window or choosing Quit must follow the game's normal Escape
+	 * save-and-shutdown path rather than letting AppKit terminate the process. */
+	if (quitRequested) {
+		if (pUIWorkspace[mm_ConsoleOrigin + KEY_ESCAPE] == 0) {
+			pUIWorkspace[mm_ConsoleOrigin + KEY_ESCAPE] = 1;
+			quitKeyInjected = true;
+			quitKeyReleaseRetrace = retraceCount + 2;
+		}
+		quitRequested = false;
+	}
+	[eventPool drain];
 }
 
 /* ------------------------------------------------------------------ */

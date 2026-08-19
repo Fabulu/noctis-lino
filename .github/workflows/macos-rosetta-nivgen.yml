@@ -1,12 +1,12 @@
-name: macOS Rosetta NIVGEN
+name: macOS Rosetta game
 
 on:
   push:
     branches: [master]
-    tags: ["v*"]
     paths:
       - ".github/workflows/macos-rosetta-nivgen.yml"
       - "build/compile_nivtest_linux.sh"
+      - "build/compile_noctis_macos_linux.sh"
       - "build/install_linux_compiler_runtime.sh"
       - "build/build_compiler114m_linux.sh"
       - "build/build_nivtest.sh"
@@ -14,46 +14,93 @@ on:
       - "main/cpu/i386m.bin"
       - "main/cpu/x64.bin"
       - "main/lib/gen/compiler114m.txt"
+      - "main/lib/gen/bits.txt"
+      - "main/lib/gen/bytes.txt"
       - "main/linux_compiler.bin"
+      - "main/sys/linux.bin"
       - "src/linoleum_macos64/**"
+      - "src/noctis_macos_launcher/**"
       - "tools/fix_x64_pack_flags.py"
+      - "tools/macos_runtime_provenance.py"
       - "tools/nivtest.py"
       - "tools/pack_lino_sys.py"
+      - "tools/package_noctis_macos.py"
+      - "PLAYER_README.txt"
+      - "LICENSE.htm"
       - "work/**.txt"
+      - "work/globes.map"
+      - "work/offsets.map"
+      - "work/vehicle.ncc"
+      - "work/mammal.ncc"
+      - "work/birdy.ncc"
+      - "work/digimap2.bin"
+      - "work/STARMAP.BIN"
+      - "work/GUIDE.BIN"
+      - "work/noctis_music.pcm"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: macos-rosetta-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   runtime:
-    name: Build x86_64 RTM on Apple Silicon
+    name: Build x86_64 RTMs on Apple Silicon
     runs-on: macos-15
 
     steps:
       - name: Check out the port
         uses: actions/checkout@v7
 
-      - name: Build the headless x86_64 runtime
+      - name: Build the headless and Cocoa runtimes
         shell: bash
         run: |
+          set -eu
           test "$(uname -m)" = arm64
+          mkdir -p build/macos-rtm
+
           HEADLESS=1 ./src/linoleum_macos64/build.sh
-          file src/linoleum_macos64/rtm01.bin | grep -q 'x86_64'
-          if otool -L src/linoleum_macos64/rtm01.bin | grep -q '/Cocoa.framework/'; then
-            echo 'Headless runtime unexpectedly links Cocoa' >&2
+          cp src/linoleum_macos64/rtm01.bin build/macos-rtm/headless-rtm01.bin
+          file build/macos-rtm/headless-rtm01.bin | grep -q 'x86_64'
+          if otool -L build/macos-rtm/headless-rtm01.bin | grep -Eq '/(Cocoa|AudioToolbox)\.framework/'; then
+            echo 'Headless runtime unexpectedly links a GUI/audio framework' >&2
             exit 1
           fi
 
-      - name: Upload the runtime for cross-compilation
+          HEADLESS=0 ./src/linoleum_macos64/build.sh
+          cp src/linoleum_macos64/rtm01.bin build/macos-rtm/cocoa-rtm01.bin
+          file build/macos-rtm/cocoa-rtm01.bin | grep -q 'x86_64'
+          otool -L build/macos-rtm/cocoa-rtm01.bin | grep -q '/Cocoa.framework/'
+          otool -L build/macos-rtm/cocoa-rtm01.bin | grep -q '/AudioToolbox.framework/'
+
+          for runtime in build/macos-rtm/*-rtm01.bin; do
+            xcrun vtool -show-build "$runtime" | grep -Eq 'minos[[:space:]]+10\.15'
+            if codesign --verify "$runtime" >/dev/null 2>&1; then
+              echo "RTM must be unsigned before the Lino image is appended: $runtime" >&2
+              exit 1
+            fi
+          done
+          python3 tools/macos_runtime_provenance.py write \
+            --runtime build/macos-rtm/headless-rtm01.bin \
+            --provenance build/macos-rtm/headless-runtime.provenance.txt \
+            --mode headless --commit "$GITHUB_SHA"
+          python3 tools/macos_runtime_provenance.py write \
+            --runtime build/macos-rtm/cocoa-rtm01.bin \
+            --provenance build/macos-rtm/cocoa-runtime.provenance.txt \
+            --mode cocoa --commit "$GITHUB_SHA"
+
+      - name: Upload runtimes for cross-compilation
         uses: actions/upload-artifact@v7
         with:
-          name: macos-x86_64-headless-rtm
-          path: src/linoleum_macos64/rtm01.bin
+          name: macos-x86_64-rtms
+          path: build/macos-rtm
           if-no-files-found: error
 
   compile:
-    name: Cross-compile the production harness
+    name: Cross-compile the generator and game
     needs: runtime
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -62,57 +109,133 @@ jobs:
       - name: Check out the production source
         uses: actions/checkout@v7
 
-      - name: Audit x64 floating branches
-        shell: bash
-        run: python3 tools/fix_x64_pack_flags.py main/cpu/x64.bin
-
-      - name: Download the x86_64 runtime
+      - name: Download the x86_64 runtimes
         uses: actions/download-artifact@v8
         with:
-          name: macos-x86_64-headless-rtm
+          name: macos-x86_64-rtms
           path: build/macos-rtm
 
       - name: Install the historical compiler runtime
         shell: bash
         run: ./build/install_linux_compiler_runtime.sh
 
-      - name: Compile the real production NIVGEN executable
+      - name: Compile the production generator and game
         shell: bash
-        run: ./build/compile_nivtest_linux.sh build/macos-rtm/rtm01.bin build/nivtest
+        run: |
+          ./build/compile_nivtest_linux.sh \
+            build/macos-rtm/headless-rtm01.bin build/nivtest \
+            build/macos-rtm/headless-runtime.provenance.txt \
+            build/nivtest-build.provenance.txt
+          ./build/compile_noctis_macos_linux.sh \
+            build/macos-rtm/cocoa-rtm01.bin build/Noctis-IV.game \
+            build/macos-rtm/cocoa-runtime.provenance.txt
 
-      - name: Upload the compiled harness
+      - name: Upload compiled outputs
         uses: actions/upload-artifact@v7
         with:
-          name: macos-x86_64-nivtest
-          path: build/nivtest
+          name: macos-x86_64-compiled
+          path: |
+            build/nivtest
+            build/nivtest-build.provenance.txt
+            build/Noctis-IV.game
+            build/linux-compiler114m.bin
+            build/macos-build.provenance.txt
           if-no-files-found: error
 
   rosetta:
-    name: Execute one exact sector through Rosetta
+    name: Validate and package the Cocoa game through Rosetta
     needs: compile
     runs-on: macos-15
+    timeout-minutes: 20
 
     steps:
-      - name: Check out the runner
+      - name: Check out the runner and package inputs
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
-      - name: Download the compiled harness
+      - name: Download the compiled outputs
         uses: actions/download-artifact@v8
         with:
-          name: macos-x86_64-nivtest
-          path: build/rosetta
+          name: macos-x86_64-compiled
+          path: build/compiled
 
-      - name: Run the production generator through Rosetta
+      - name: Download the x86_64 runtimes
+        uses: actions/download-artifact@v8
+        with:
+          name: macos-x86_64-rtms
+          path: build/macos-rtm
+
+      - name: Verify transferred build provenance
+        shell: bash
+        run: |
+          python3 tools/macos_runtime_provenance.py verify \
+            --runtime build/macos-rtm/headless-rtm01.bin \
+            --provenance build/macos-rtm/headless-runtime.provenance.txt \
+            --mode headless --commit "$GITHUB_SHA"
+          python3 tools/macos_runtime_provenance.py verify \
+            --runtime build/macos-rtm/cocoa-rtm01.bin \
+            --provenance build/macos-rtm/cocoa-runtime.provenance.txt \
+            --mode cocoa --commit "$GITHUB_SHA"
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import os
+
+          def sha256(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          def read_values(path):
+              values = {}
+              for line in Path(path).read_text(encoding="ascii").splitlines():
+                  if not line or "=" not in line:
+                      raise SystemExit(f"invalid provenance line: {line!r}")
+                  key, value = line.split("=", 1)
+                  if not key or key in values:
+                      raise SystemExit(f"invalid provenance key: {key!r}")
+                  values[key] = value
+              return values
+
+          values = read_values("build/compiled/macos-build.provenance.txt")
+          expected = {
+              "commit": os.environ["GITHUB_SHA"],
+              "executable_sha256": sha256("build/compiled/Noctis-IV.game"),
+              "compiler_sha256": sha256("build/compiled/linux-compiler114m.bin"),
+              "runtime_sha256": sha256("build/macos-rtm/cocoa-rtm01.bin"),
+              "runtime_provenance_sha256": sha256(
+                  "build/macos-rtm/cocoa-runtime.provenance.txt"),
+              "target": "macos/x64",
+          }
+          if any(values.get(key) != value for key, value in expected.items()):
+              raise SystemExit(f"transferred macOS build provenance mismatch: {values!r}")
+
+          niv_values = read_values("build/compiled/nivtest-build.provenance.txt")
+          niv_expected = {
+              "nivtest_provenance_format": "1",
+              "commit": os.environ["GITHUB_SHA"],
+              "nivtest_executable_sha256": sha256("build/compiled/nivtest"),
+              "compiler_sha256": sha256("build/compiled/linux-compiler114m.bin"),
+              "runtime_sha256": sha256("build/macos-rtm/headless-rtm01.bin"),
+              "runtime_provenance_sha256": sha256(
+                  "build/macos-rtm/headless-runtime.provenance.txt"),
+              "target": "macos/x64",
+          }
+          if any(niv_values.get(key) != value for key, value in niv_expected.items()):
+              raise SystemExit(f"transferred NIVTEST provenance mismatch: {niv_values!r}")
+          print("Transferred game and NIVTEST provenance verified across both build hosts")
+          PY
+
+      - name: Run one exact production sector through Rosetta
         shell: bash
         run: |
           set -o pipefail
           test "$(uname -m)" = arm64
-          chmod +x build/rosetta/nivtest
-          file build/rosetta/nivtest | grep -q 'x86_64'
+          chmod +x build/compiled/nivtest build/compiled/Noctis-IV.game
+          file build/compiled/nivtest | grep -q 'x86_64'
           arch -x86_64 /usr/bin/true
           python3 tools/nivtest.py json \
             -x -1996209872 -y 55508 -z 816148 -p 2 -lon 0 -lat 60 \
-            --diagnostic --exe "$PWD/build/rosetta/nivtest" \
+            --diagnostic --exe "$PWD/build/compiled/nivtest" \
             | tee build/rosetta-result.json
           python3 - <<'PY'
           import json
@@ -136,3 +259,121 @@ jobs:
               raise SystemExit(f"Rosetta NIVGEN mismatch: {got!r}")
           print("Rosetta NIVGEN exact: 7/7")
           PY
+
+      - name: Assemble and independently verify the app archive
+        shell: bash
+        run: |
+          python3 tools/package_noctis_macos.py \
+            --game build/compiled/Noctis-IV.game \
+            --provenance build/compiled/macos-build.provenance.txt \
+            --nivtest build/compiled/nivtest \
+            --nivtest-provenance build/compiled/nivtest-build.provenance.txt \
+            --nivtest-result build/rosetta-result.json \
+            --output dist \
+            --short-version 0.1.0 \
+            --build-version "$GITHUB_RUN_NUMBER" \
+            --release-label "development-${GITHUB_SHA:0:12}" \
+            --expected-commit "$GITHUB_SHA"
+
+          rm -rf build/archive-smoke
+          mkdir -p build/archive-smoke
+          ditto -x -k dist/Noctis-IV-macos-x86_64.zip build/archive-smoke
+          app='build/archive-smoke/Noctis IV.app'
+          test -x "$app/Contents/MacOS/Noctis-IV"
+          test -x "$app/Contents/MacOS/Noctis-IV.game"
+          file "$app/Contents/MacOS/Noctis-IV" | grep -q 'x86_64'
+          file "$app/Contents/MacOS/Noctis-IV.game" | grep -q 'x86_64'
+          otool -L "$app/Contents/MacOS/Noctis-IV.game" | grep -q '/Cocoa.framework/'
+          otool -L "$app/Contents/MacOS/Noctis-IV.game" | grep -q '/AudioToolbox.framework/'
+          xcrun vtool -show-build "$app/Contents/MacOS/Noctis-IV.game" \
+            | grep -Eq 'minos[[:space:]]+10\.15'
+          plutil -extract CFBundleIdentifier raw "$app/Contents/Info.plist" \
+            | grep -qx 'io.github.fabulu.noctis-iv'
+          codesign --verify --deep --strict --verbose=2 "$app"
+          python3 - <<'PY'
+          from pathlib import Path
+          from tools.package_noctis_macos import verify_manifest
+          verify_manifest(Path("build/archive-smoke/Noctis IV.app"))
+          print("Extracted app manifest verified")
+          PY
+
+      - name: Test Finder-safe data staging and first Cocoa retrace
+        shell: bash
+        run: |
+          app="$PWD/build/archive-smoke/Noctis IV.app"
+          launcher="$app/Contents/MacOS/Noctis-IV"
+          data="$PWD/build/noctis-data"
+          rm -rf "$data"
+
+          NOCTIS_DATA_DIR="$data" arch -x86_64 "$launcher" \
+            --launcher-prepare-only | grep -q '^NOCTIS_DATA_DIR='
+          for file in globes.map offsets.map vehicle.ncc mammal.ncc birdy.ncc \
+            digimap2.bin noctis_music.pcm STARMAP.BIN GUIDE.BIN; do
+            test -f "$data/$file"
+          done
+
+          for seed in STARMAP.BIN GUIDE.BIN; do
+            cp "$data/$seed" "build/$seed.seed"
+            printf 'user-state-must-survive' >> "$data/$seed"
+            cp "$data/$seed" "build/$seed.modified"
+          done
+          rm "$data/globes.map"
+          NOCTIS_DATA_DIR="$data" arch -x86_64 "$launcher" \
+            --launcher-prepare-only >/dev/null
+          for seed in STARMAP.BIN GUIDE.BIN; do
+            cmp "$data/$seed" "build/$seed.modified"
+          done
+          cmp "$data/globes.map" "$app/Contents/Resources/globes.map"
+
+          mv "$data/GUIDE.BIN" build/GUIDE.regular
+          mkdir "$data/GUIDE.BIN"
+          if NOCTIS_DATA_DIR="$data" arch -x86_64 "$launcher" \
+              --launcher-prepare-only >/dev/null 2>&1; then
+            echo 'launcher accepted a non-regular mutable seed' >&2
+            exit 1
+          fi
+          rmdir "$data/GUIDE.BIN"
+          mv build/GUIDE.regular "$data/GUIDE.BIN"
+          for seed in STARMAP.BIN GUIDE.BIN; do
+            mv "build/$seed.seed" "$data/$seed"
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import subprocess
+
+          launcher = Path("build/archive-smoke/Noctis IV.app/Contents/MacOS/Noctis-IV").resolve()
+          env = os.environ.copy()
+          env["NOCTIS_DATA_DIR"] = str(Path("build/noctis-data").resolve())
+          def run_smoke(switch, marker):
+              result = subprocess.run(
+                  ["arch", "-x86_64", str(launcher), switch],
+                  env=env,
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT,
+                  timeout=120,
+              )
+              print(result.stdout)
+              if result.returncode != 0 or marker not in result.stdout:
+                  raise SystemExit(
+                      f"{switch} failed with status {result.returncode}")
+
+          run_smoke("--cocoa-smoke", "COCOA_SMOKE_OK")
+          run_smoke("--cocoa-quit-smoke", "COCOA_QUIT_SMOKE_OK")
+          checkpoint = Path("build/noctis-data/CURRENT.LIN")
+          if not checkpoint.is_file() or checkpoint.stat().st_size == 0:
+              raise SystemExit("graceful Cocoa quit did not save CURRENT.LIN")
+          print("Rosetta Cocoa retrace and graceful Lino shutdown both passed")
+          PY
+
+      - name: Upload the verified macOS package
+        uses: actions/upload-artifact@v7
+        with:
+          name: Noctis-IV-macos-x86_64-${{ github.sha }}
+          path: |
+            dist/Noctis-IV-macos-x86_64.zip
+            dist/Noctis-IV-macos-x86_64.zip.sha256
+            dist/Noctis-IV-macos-x86_64.provenance.txt
+          if-no-files-found: error

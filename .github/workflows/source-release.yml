@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: jorisvddonk/Noctis-IV-Plus
+          ref: 94200172ee2ca859de15f0c7b03dfa1939874681
           path: _reference/noctis-plus
 
       - name: Set up Python
@@ -152,6 +153,7 @@ jobs:
             "source_sha256=$sourceHash"
             "executable_sha256=$exeHash"
             "compiler_sha256=$compilerHash"
+            "validation_reference_commit=94200172ee2ca859de15f0c7b03dfa1939874681"
             "target=win32/i386m"
           ) | Set-Content -LiteralPath dist\Noctis-IV-windows-x86.source.txt -Encoding ascii
 

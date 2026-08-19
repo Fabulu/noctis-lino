@@ -35,6 +35,7 @@
 #include "lino_display.h"
 #include "lino_event.h"
 #include "lino_mouse.h"
+#include "lino_sound.h"
 #include "lino_globalK.h"
 #include <errno.h>
 #include <sys/mman.h>
@@ -90,6 +91,12 @@ size_t readBytes;
 
 char **environment;
 
+#ifdef __APPLE__
+bool cocoaSmokeMode;
+bool cocoaQuitSmokeMode;
+bool cocoaQuitSmokeTriggered;
+#endif
+
 /* declaration section for isokernel */
 /* return status of isocalls */
 int isostatus;
@@ -122,6 +129,7 @@ const unit DONE = 0x646F6E65;	/* "DONE" */
 int main(int argc, char **argv, char **env)
 {
 	int i, toAdd, parameterLen;
+	bool soundClosed;
 	proc_t isokernelP;
 
 	environment = env;
@@ -139,11 +147,31 @@ int main(int argc, char **argv, char **env)
 	dmsParameters[0] = '\0';
 	parameterLen = 0;
 	for (i = 1; i < argc; i++) {
-		/* --headless selects a runtime build, not an alternate program.
-		 * Keep it out of the Lino command line and continue into linoleum(). */
+		/* These switches select or test the runtime itself. Keep them out of
+		 * the Lino command line and continue into linoleum(). */
 		if (strcmp(argv[i], "--headless") == 0) {
 #ifndef LINO_HEADLESS
 			programError("ERROR: This executable has the Cocoa runtime. Rebuild the RTM with HEADLESS=1.");
+#endif
+			continue;
+		}
+		if (strcmp(argv[i], "--cocoa-smoke") == 0) {
+#ifdef LINO_HEADLESS
+			programError("ERROR: Cocoa smoke testing requires the Cocoa runtime.");
+#else
+			if (cocoaQuitSmokeMode)
+				programError("ERROR: Select only one Cocoa smoke mode.");
+			cocoaSmokeMode = true;
+#endif
+			continue;
+		}
+		if (strcmp(argv[i], "--cocoa-quit-smoke") == 0) {
+#ifdef LINO_HEADLESS
+			programError("ERROR: Cocoa quit testing requires the Cocoa runtime.");
+#else
+			if (cocoaSmokeMode)
+				programError("ERROR: Select only one Cocoa smoke mode.");
+			cocoaQuitSmokeMode = true;
 #endif
 			continue;
 		}
@@ -225,6 +253,10 @@ int main(int argc, char **argv, char **env)
 	 * value the period becomes zero counts and the tick spins forever. */
 	pUIWorkspace[mm_CountsPerMillisecond] = 1000;
 
+	/* Audio is optional: initialization leaves READY clear when no output
+	 * device is available, and applications remain fully usable. */
+	lino_sound_init();
+
 	/* setup isokernel */
 	PRINT("initializing ISOKERNEL...\n");
 	if ((IParagraph->lfb_w_atstartup > 0) &&
@@ -280,6 +312,7 @@ int main(int argc, char **argv, char **env)
 
 	/* break down isokernel */
 	PRINT("Clear remaining isokernel stuff\n");
+	soundClosed = lino_sound_close();
 	if ((IParagraph->lfb_w_atstartup > 0) &&
 	    (IParagraph->lfb_h_atstartup > 0)) {
 		lino_display_close();
@@ -289,6 +322,21 @@ int main(int argc, char **argv, char **env)
 	free_section(pCode, pCodeSize);
 	free_section(pWorkspace, pWorkspaceSize);
 
+#ifdef __APPLE__
+	if (cocoaQuitSmokeMode) {
+		if (!cocoaQuitSmokeTriggered || xAtExit == FAIL) {
+			fprintf(stderr,
+			    "COCOA_QUIT_SMOKE_FAILED: graceful shutdown was not completed\n");
+			return EXIT_FAILURE;
+		}
+		printf("COCOA_QUIT_SMOKE_OK: Cocoa quit used the Lino shutdown path\n");
+		fflush(stdout);
+	}
+#endif
+	if (!soundClosed) {
+		fprintf(stderr, "ERROR: AudioQueue cleanup failed.\n");
+		return EXIT_FAILURE;
+	}
 	/* terminate program */
 	return (0);
 }

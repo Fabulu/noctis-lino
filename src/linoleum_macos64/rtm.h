@@ -85,6 +85,11 @@ extern char dmsStockFilename[32768];	/* Name of THIS executable file */
 extern char **environment;
 extern struct LNLMINIT *IParagraph;
 extern unit dmsFileOrigin;
+#ifdef __APPLE__
+extern bool cocoaSmokeMode;
+extern bool cocoaQuitSmokeMode;
+extern bool cocoaQuitSmokeTriggered;
+#endif
 
 void ISOKRNLCALL(void);
 
