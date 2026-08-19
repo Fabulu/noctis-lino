@@ -7,7 +7,7 @@ package. GitHub Actions now starts with the protected historical Linux compiler,
 runs it under an explicit executable-heap compatibility boundary, bootstraps the
 extended compiler from the tracked `compiler114m` source, proves a byte-identical
 self-hosting fixpoint, and then compiles the production `vhgame.txt` graph for
-`win32/i386m`. The resulting 594,234-byte, four-section i386 PE is no longer a
+`win32/i386m`. The resulting 594,246-byte, four-section i386 PE is no longer a
 checked-in executable repackaged by CI.
 
 Build provenance is recorded where the Linux job consumes the bytes, before any
@@ -25,17 +25,21 @@ The game source also crosses the main portability milestone begun after beta 20:
 ordinary rendering, terrain, geometry, stellar-seed, surface-seed, conversion,
 and scalar floating-point paths no longer depend on hidden native game kernels.
 Exact square root and the portable software floating-point ABI now live in Lino
-source, while platform implementation remains below the language boundary.
-Focused gameplay regression and the hosted source build both pass with the same
-production PE hash as the authenticated pre-release baseline.
+source, while platform implementation remains below the language boundary. A
+missing one-bit mask in software-x87 subtraction normalization was found at the
+raw eccentricity-word boundary and repaired; the production NIVGEN fixture now
+self-checks the quotient, subtraction, and binary64 store before generation.
+Focused gameplay regression, all seven authoritative Windows NIVGEN outputs,
+and the hosted source build pass at the tagged source revision.
 
 The x86_64 macOS runtime now allocates code and workspace below 4 GB without
 `MAP_FIXED`, rejects high mappings instead of truncating pointers, and grows an
 `mmap` workspace by mapping, copying, clearing, and unmapping rather than passing
 it to `realloc`. Both Cocoa and headless runtimes build on Intel macOS, and the
 production generator executes to completion under Rosetta on Apple Silicon.
+Its raw orbital geometry, seed value, and new portable-FP self-check are exact.
 A macOS package is deliberately not attached yet: the exactness gate still finds
-a Rosetta floating-point divergence in surface, atmosphere, and palette output,
+an independent downstream divergence in surface, atmosphere, and palette output,
 while heightmap, object chart, surface texture, and sky remain exact. The gate is
 being fixed rather than weakening its Windows/NIV+ reference hashes.
 
