@@ -200,18 +200,20 @@ release claims.
 
 ### Complete local execution
 
-A fresh offline execution now covers every authoritative field of every comparable
-body type in the canonical snapshot. The merged score is **49,774/49,823 exact
-field comparisons** and **4,513/4,546 fully exact rows**. The sheet baseline was
-38,893/49,823 fields and 426/4,546 rows, so the current production closure makes
-10,881 exact field repairs and leaves 49 fields across 33 rows.
+A retained offline execution covers every authoritative field of every comparable
+body type in the canonical snapshot. After rerunning all 220 type-3 rows with
+the final atmosphere and half-degree caller boundaries, the validated composite
+score is **49,801/49,823 exact field comparisons** and **4,540/4,546 fully exact
+rows**. The sheet baseline was 38,893/49,823 fields and 426/4,546 rows, so the
+current production closure makes 10,908 exact field repairs and leaves 22 fields
+across six rows.
 
 | Type | Exact fields | Exact rows |
 | ---: | ---: | ---: |
 | 0 | 3,124 / 3,124 | 284 / 284 |
 | 1 | 11,184 / 11,187 | 1,016 / 1,017 |
 | 2 | 5,855 / 5,863 | 531 / 533 |
-| 3 | 2,390 / 2,420 | 192 / 220 |
+| 3 | 2,417 / 2,420 | 219 / 220 |
 | 4 | 3,649 / 3,652 | 331 / 332 |
 | 5 | 6,936 / 6,941 | 630 / 631 |
 | 6 | 3,322 / 3,322 | 302 / 302 |
@@ -220,10 +222,9 @@ field comparisons** and **4,513/4,546 fully exact rows**. The sheet baseline was
 | 9 | 2,365 / 2,365 | 215 / 215 |
 | 10 | 488 / 488 | 61 / 61 |
 
-Every orbital surface and palette is exact. The only atmosphere failures are 24
-type-3 rows. The remaining 25 landed fields comprise the six-row XENOFELYS
-cluster and three non-XENOFELYS type-3 random skies. Types 0, 6, 7, 8, 9, and
-10 are completely exact.
+Every orbital surface, atmosphere, and palette is exact. All 22 residual landed
+fields belong to the six-row XENOFELYS cluster: bodies 4, 5, 8, 9, 10, and 11.
+Types 0, 6, 7, 8, 9, and 10 are completely exact.
 
 The last planetary orbital outlier, `MAGILLA PRIME|5`, exposed a caller precision
 policy rather than another x87 emulation defect. The shipping 1996 game keeps
@@ -243,18 +244,27 @@ separately and had zero field-value changes from the historical-mode score. The
 full historical nearstar regression still matches C and Python on all 100 fields
 of 5,540 records. `tests/test_nivgen_precision.py` pins the public geometry bits,
 seed, seven default-site hashes, mode isolation, and absence of fixture-specific
-production constants.
+production constants. The same request-scoped precision selector now spills each
+atmosphere coordinate product and final sum to binary64. This repairs all 24
+remaining atmosphere fields and makes atmosphere exact on all 4,485 comparable
+rows. The type-3 landing caller also keeps `3 * abs(latitude - 60)` doubled
+through its strict polar-seed threshold before restoring the historical integer
+latitude; that general boundary repairs the random skies of `SOKUN|21`,
+`COREGALAX|4`, and `JUNEA|21`. The focused precision gate passes 30 checks and
+pins all three seed/scenario/sky transitions without production fixture values.
 
-The retained complete score, transition, and run record are
-`tests/gen/nivgen-portable-f64-complete-score.json`,
-`tests/gen/nivgen-portable-f64-complete-transition.json`, and
-`tests/gen/nivgen-portable-f64-complete-score-run.json`. Their SHA-256 values
-are `709604cb7f25d79152391001721eb8c871c0c513d24e62036f2ffcd05578d2b3`,
-`20893e8ad3552b66072aa62d2756320a0a45643839fba4b0e1869928f22c3f07`,
-and `489eee20dd9aa9c5c153fd5b114030c59e4bc5a0564d15a27dae571d2d845c24`.
-The transition binds the exact executable, base revision, source-closure
-manifest, and closure-only patch; the run record additionally binds all 44
-selected shards, ten merged type scores, and seven scoring-driver files.
+The retained pre-atmosphere complete score remains
+`tests/gen/nivgen-portable-f64-complete-score.json` (SHA-256
+`709604cb7f25d79152391001721eb8c871c0c513d24e62036f2ffcd05578d2b3`).
+All 220 type-3 rows were then rerun in six independently retained shards. Their
+validated merge is `tests/gen/nivgen-f64-final-type3-complete.json` (SHA-256
+`ea48450b3a7e979729bf922473c8445ccf9bf7114ce6b22a11d0e93125d69047`),
+with 2,417/2,420 exact fields and 219/220 exact rows; only `XENOFELYS|5`
+remains. Replacing the old type-3 reports, and no other rows, produces
+`tests/gen/nivgen-f64-final-composite-score.json` (SHA-256
+`e21ea9cc83b189650221b88703576c48f6ba4bdb763aa1da6c3f088556755d6a`).
+The canonical snapshot SHA-256 is
+`ab73b236957f225247e07460eaae1a7e26891e701d6b5bd4c93d573208231f97`.
 
 The seven-field production diagnostic remains exactly:
 

@@ -1682,29 +1682,35 @@ unbackfilled rows. As backfill advanced it fell to 1,068, confirming the user's
 observation that apparent checkmarks can disappear. The dominant orbital-
 surface mismatch and broad height/object mismatch classes remain release gates.
 
-**Complete local result, 2026-08-21.** Every authoritative row and field has now
-been freshly executed in retained, non-overlapping private-desktop shards. The
-production closure reaches 49,774/49,823 exact fields and 4,513/4,546 exact rows,
-up from 38,893 fields and 426 rows in the snapshot. Types 0, 6, 7, 8, 9, and 10
-are fully exact. Every orbital surface and palette is exact. The 49 residual
-fields are 24 type-3 atmospheres, three non-XENOFELYS type-3 random skies, and 22
-landed fields across XENOFELYS bodies 4, 5, 8, 9, 10, and 11.
+**Complete local result, 2026-08-22.** Every authoritative row and field has been
+executed in retained, non-overlapping private-desktop shards. A final rerun of
+all 220 type-3 rows proves 2,417/2,420 exact fields and 219/220 exact rows. The
+validated composite production score is 49,801/49,823 exact fields and
+4,540/4,546 exact rows, up from 38,893 fields and 426 rows in the snapshot.
+Types 0, 6, 7, 8, 9, and 10 are fully exact. Every orbital surface, atmosphere,
+and palette is exact. All 22 residual fields are landed outputs across
+XENOFELYS bodies 4, 5, 8, 9, 10, and 11.
 
 `MAGILLA PRIME|5` was the sole downstream integer-boundary difference between
 the historical extended and complete binary64 geometry hypotheses over 4,473
 model-valid rows. Public NIVGEN matches binary64 nearstar expression boundaries
 and a stored left-to-right rotation seed; the shipped game retains historical
 x87 behavior by default. The NIVGEN-only driver enables and restores the general
-reference mode. MAGILLA's previously wrong surface, atmosphere, and palette now
-match `949B1F26`, `4927A000`, and `85311E10`. A fresh 106-row affected shard was
-1,166/1,166 fields exact, 73 model-edge rows had no value changes, and the 5,540-
-record historical nearstar regression remained exact. No body, coordinate, or
-expected-hash exception was introduced.
+reference mode. Request-scoped binary64 stores after each atmosphere coordinate
+product and final sum repair the final 24 atmosphere fields. Retaining doubled
+half-degree latitude through the type-3 strict polar-seed comparison repairs the
+three remaining non-XENOFELYS random skies. The 30-check focused gate pins these
+general boundaries and confirms no body, coordinate, fixture, or expected-hash
+exception was introduced.
 
-The retained merged score and transition are
-`tests/gen/nivgen-portable-f64-complete-score.json` and
-`tests/gen/nivgen-portable-f64-complete-transition.json`; the score SHA-256 is
-`709604cb7f25d79152391001721eb8c871c0c513d24e62036f2ffcd05578d2b3`.
+The pre-atmosphere complete score remains
+`tests/gen/nivgen-portable-f64-complete-score.json` (SHA-256
+`709604cb7f25d79152391001721eb8c871c0c513d24e62036f2ffcd05578d2b3`).
+The final type-3 merge and validated full composite are
+`tests/gen/nivgen-f64-final-type3-complete.json` and
+`tests/gen/nivgen-f64-final-composite-score.json`, with SHA-256 values
+`ea48450b3a7e979729bf922473c8445ccf9bf7114ce6b22a11d0e93125d69047` and
+`e21ea9cc83b189650221b88703576c48f6ba4bdb763aa1da6c3f088556755d6a`.
 Full parity remains the release gate; this is not yet the release milestone.
 
 **macOS palette regression and PR #22.** Contributor PR #22 changes `SU shade
