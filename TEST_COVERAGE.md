@@ -56,8 +56,14 @@ after `create_sky` for airless type-1 XENOFELYS 10, with the target reached and
 synchronized but before ATL landed state. All 46,080 scored native sky bytes are
 zero (FNV-1a `7B252DC5`), including byte 12,167, and match current Lino exactly;
 the authoritative value 80 and hash `CBD77DB5` therefore arise after the native
-generator return. This discriminator does not make atmospheric gameplay sky a
-public-caller oracle because those caller filters differ. Full corpus parity
+generator return. An independent FNV/palette check also confirms three non-unique
+visible-plus-two-invisible reconstructions for body 8 random sky and twelve
+non-unique two-invisible-index reconstructions for body 9 default texture; these
+prove image compatibility, not source bytes. A corrected single-process LR
+body/site batch reproduced zero of the 22 residual targets and perturbed clean
+outputs, rejecting that tested reuse order without claiming to reconstruct the
+missing historical caller. This discriminator does not make atmospheric gameplay
+sky a public-caller oracle because those caller filters differ. Full corpus parity
 remains required before release.
 
 ## Honest gaps

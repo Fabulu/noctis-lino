@@ -356,9 +356,9 @@ permission to add a body-specific pixel. A fresh original trace must establish
 which caller writes that byte and must regenerate or confirm both outlier rows
 before changing production.
 
-A broader reconstruction now finds the same signature in seven of the 22
-residual fields. Six authoritative one-byte targets are unique over their full
-scored buffers: `XENOFELYS|4` default sky `36 -> 228` at offset 30,792;
+A broader reconstruction now finds sparse target-compatible signatures in nine of
+the 22 residual fields. Six authoritative one-byte targets are unique over their
+full scored buffers: `XENOFELYS|4` default sky `36 -> 228` at offset 30,792;
 `XENOFELYS|5` random texture `3 -> 4` at 39,075; `XENOFELYS|9` default sky
 `29 -> 32` at 44,965; `XENOFELYS|10` random texture `9 -> 15` at 41,754 and
 random sky `0 -> 80` at 12,167; and `XENOFELYS|11` default heightmap `44 -> 35`
@@ -368,15 +368,17 @@ target with two changes on row 46, at offsets 11,884 (`11 -> 13`) and 11,930
 the body-10 sky pixel. Palette saturation explains why the body-4/body-9 sky
 changes are invisible in otherwise matching PNGs.
 
-The remaining public images do not collapse into a source repair.
-`XENOFELYS|8`'s random sky differs visibly from its default at one scored pixel
-and one render-only pixel, but its raw target is not reachable by one changed
-byte; substituting the visible source-domain candidate still leaves no one-byte
-solution. `XENOFELYS|9`'s default texture renders identically to current output
-while its raw target is not one-byte reachable, and its random texture differs
-at 31,048 rendered pixels. The retained reconstruction is
+Two more targets are mathematically image-compatible but non-unique. For
+`XENOFELYS|8` random sky, applying the sole scored visible source-domain
+candidate at offset 24,831 (`30 -> 14`) leaves no one-byte completion, but exactly
+three pairs of landed-palette-equivalent index changes complete the target. For
+`XENOFELYS|9` default texture, twelve distinct pairs of landed-palette-equivalent
+index substitutions reach `BF665970`; every pair preserves the already identical
+render. These alternatives cannot select authoritative raw bytes or identify a
+source mechanism. Body 9 random texture still differs at 31,048 rendered pixels
+and has no such reconstruction. The retained reconstruction is
 `tests/gen/nivgen-xenofelys-artifact-reconstruction.json` (SHA-256
-`74eaff688edede30a09dae7c6bef79b755e161f2cbf3dcca0b53b0cb650f1d51`).
+`b281be3f41610ac33ecac94d2734f0cb087ca0e6020cfc36a221575415737c64`).
 These exact inversions are evidence of missing caller/capture state or anomalous
 artifacts, not permission to write those bytes in production.
 
@@ -405,6 +407,20 @@ and body 10 random texture and sky. No residual authoritative target matches any
 of the three implementations. This consensus and the native body-5 extraction
 strengthen the artifact-regeneration case, but the published LR harness is still
 not the missing historical `planetdump` caller.
+
+The public upload timestamps suggested a bounded shared-process alternative for
+bodies 0--11. A local LR probe generated XENOFELYS once, then generated each
+orbital surface once and both recorded landed sites in sequence while restoring
+the recorded 16-byte gap before each build. Its first MinGW run exposed two
+probe defects before yielding evidence: LR's `uint16_t` bitfields made the
+nominally one-byte `quadrant` occupy two bytes, and the headless harness omitted
+the game's `adapted` allocation. With those corrected locally, an isolated body-0
+default control reproduced heightmap `301D7754`; the complete batch then matched
+zero of the 22 residual targets and changed previously clean LR sky/texture
+outputs. The retained output SHA-256 is
+`aea64f0281b2a205f7885f46a9f3291b71559f9bdc82c649f26197bfa1b6898d`.
+This rejects that particular body/site reuse ordering. It cannot exclude other
+resets, copies, or post-generation writes in the absent historical caller.
 
 A source-path trace now excludes the retained direct generator itself. Type 1
 prefills the complete scored range with zero, selects no sky painter, and does

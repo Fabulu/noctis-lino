@@ -1795,17 +1795,21 @@ capture/hash/encode caller or only in the artifact. Atmospheric game captures
 remain non-oracles because gameplay applies different filters from the public
 caller.
 
-A complete public-image reconstruction now identifies seven sparse residual
-fields rather than only the body-10 sky. Unique one-byte substitutions recover
-body 4 default sky, body 5 random texture, body 9 default sky, both body 10
-random image fields, and body 11 default heightmap; two public RGB pixels recover
-body 11 random texture exactly. The body-5 default and random HM/OC/texture also
-match extracted late-game NIV+ R2.3 buffers byte-hash for byte-hash. Conversely,
-body 8 random sky and both body 9 texture targets cannot be reduced to a single
-source-shaped change. The retained report SHA-256 is
-`74eaff688edede30a09dae7c6bef79b755e161f2cbf3dcca0b53b0cb650f1d51`.
-This strengthens the missing caller/capture-state or anomalous-artifact diagnosis
-and blocks per-field source patches.
+A complete public-image reconstruction now identifies nine sparse target-compatible
+residual fields rather than only the body-10 sky. Unique one-byte substitutions
+recover body 4 default sky, body 5 random texture, body 9 default sky, both body
+10 random image fields, and body 11 default heightmap; two public RGB pixels
+recover body 11 random texture exactly. The body-5 default and random
+HM/OC/texture also match extracted late-game NIV+ R2.3 buffers byte-hash for
+byte-hash. Two additional constructions are exact but deliberately remain
+non-source evidence: body 8 random sky reaches its target with the public visible
+`30 -> 14` candidate plus any of three pairs of palette-equivalent substitutions,
+and body 9 default texture has twelve distinct two-index palette-equivalent
+solutions. Body 9 random texture remains unreconstructed. The retained report
+SHA-256 is `b281be3f41610ac33ecac94d2734f0cb087ca0e6020cfc36a221575415737c64`.
+Multiplicity prevents selecting authoritative bytes or a generating mechanism;
+these results strengthen the missing caller/capture-state or anomalous-artifact
+diagnosis and block per-field source patches.
 
 The closest published caller, the `noctis-iv-lr` harness at commit `01c6a3a`,
 runs each landed command once rather than reusing buffers across bodies or sites.
@@ -1819,6 +1823,20 @@ sheet Rust, and sheet LR; current and Rust agree on 21, while all three
 implementations agree on eight. No authoritative residual matches any of the
 three implementations. Ordinary published-caller allocation/reuse therefore does
 not explain the cluster.
+
+Upload timestamps suggested one bounded alternative: bodies 0--11 may have been
+processed as a group. A local LR probe consequently generated XENOFELYS once,
+then generated each orbital surface once and both recorded landed sites in one
+process, preserving the measured gap. Before interpretation, an isolated body-0
+control exposed and repaired two probe-only omissions: LR's `quadrant` declaration
+occupied two bytes under MinGW despite the documented one-byte object-chart ABI,
+and the headless harness had not allocated `adapted`. The corrected control
+reproduced the authoritative body-0 default heightmap `301D7754`. The completed
+shared-process batch matched none of the 22 residual targets and changed formerly
+clean sky/texture outputs relative to fresh LR commands. Its report SHA-256 is
+`aea64f0281b2a205f7885f46a9f3291b71559f9bdc82c649f26197bfa1b6898d`.
+This rejects that plausible body/site ordering; it does not prove that the absent
+historical caller performed no other reset, copy, or post-generation operation.
 
 Obtain or instrument the original `planetdump` caller, or have the authoritative
 XENOFELYS rows regenerated, before changing generator arithmetic.
