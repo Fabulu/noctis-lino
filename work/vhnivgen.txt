@@ -46,7 +46,7 @@
 
 "VHNIV run"
 	=> FEnter;
-	[nsgeometryf64] = 1;
+	[nivgenf64] = 1;
 	[File Name] = NHinname; [File Position] = 0;
 	[File Command] = READ; [Block Pointer] = NHinput;
 	[Block Size] = NHIN; [Block Size] * BYTESPERUNIT; isocall;
@@ -140,7 +140,7 @@
     "VHNIV diagnostic output ready"
 	[File Name] = NHoutname; [File Position] = 0; [File Command] = SET SIZE;
 	[File Size] = [NHoutunits]; [File Size] * BYTESPERUNIT; isocall;
-	[VHGNDclockoverride] = 0; [nsgeometryf64] = 0;
+	[VHGNDclockoverride] = 0; [nivgenf64] = 0;
 	=> FLeave;
 	end;
 
@@ -416,6 +416,6 @@
 	end;
 
 "VHNIV invalid"
-	[VHGNDclockoverride] = 0; [nsgeometryf64] = 0;
+	[VHGNDclockoverride] = 0; [nivgenf64] = 0;
 	=> FLeave;
 	end;

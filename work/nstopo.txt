@@ -176,7 +176,6 @@
 	nstypehold	= 0;
 	nst		= 0;
 	nsstarray	= 0;		( nearstar_ray, binary32 bits from VHTRay )
-	nsgeometryf64	= 0;		( NIVGEN reference mode; game default is historical x87 )
 	nsgeo0		= 0; nsgeo1 = 0;
 	nsavg0		= 0; nsavg1 = 0;
 	nskey0		= 0; nskey1 = 0;
@@ -238,10 +237,10 @@
 ( ==================================================================== )
 
       ( Public NIVGEN was generated with binary64 expression boundaries.
-        The game leaves nsgeometryf64 zero and retains the shipped x87 schedule. )
+        The game leaves nivgenf64 zero and retains the shipped x87 schedule. )
 
 "NsGeoKMulChop"
-      ? [nsgeometryf64] = 0 -> NsGeoKMulChop live;
+      ? [nivgenf64] = 0 -> NsGeoKMulChop live;
 	=> GeoKMulChopSpill;
 	end;
     "NsGeoKMulChop live"
@@ -249,7 +248,7 @@
 	end;
 
 "NsGeoSeedTiltChop"
-      ? [nsgeometryf64] = 0 -> NsGeoSeedTiltChop live;
+      ? [nivgenf64] = 0 -> NsGeoSeedTiltChop live;
 	=> GeoSeedTiltChopSpill;
 	end;
     "NsGeoSeedTiltChop live"
@@ -257,7 +256,7 @@
 	end;
 
 "NsGeoEccStore2000"
-      ? [nsgeometryf64] = 0 -> NsGeoEccStore2000 live;
+      ? [nivgenf64] = 0 -> NsGeoEccStore2000 live;
 	=> GeoEccStore2000F64;
 	end;
     "NsGeoEccStore2000 live"

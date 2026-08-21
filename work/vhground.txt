@@ -2003,7 +2003,7 @@
     "VHGND rotation moon typed"
 	[FI] = A; => IntToF; [VHGNDsf20] = [FA0]; [VHGNDsf21] = [FA1];
 "VHGND rotation seed calculate"
-      ? [nsgeometryf64] != 0 -> VHGND rotation seed calculate f64;
+      ? [nivgenf64] != 0 -> VHGND rotation seed calculate f64;
 	=> XReset;
 	A = [VHGNDsf00]; [XU0] = A; A = [VHGNDsf01]; [XU1] = A; => XFromF64; => XPush;
 	A = [VHGNDsf10]; [XU0] = A; A = [VHGNDsf11]; [XU1] = A; => XFromF64; => XPush; => XFmulp;

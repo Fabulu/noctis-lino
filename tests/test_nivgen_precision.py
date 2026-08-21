@@ -35,18 +35,31 @@ HASHES = {
     "stex": "0D52F001",
     "sky": "4119AE46",
 }
+ATMO_FIXTURES = (
+    ("GRUPA 5|14", (-61439376, 29916264, 239760), 14,
+     "000000000000000000000000C5096055", "01F046A9"),
+    ("GRUPA 5|11", (-61439376, 29916264, 239760), 11,
+     "000000000000000000000000C5096055", "174C4959"),
+)
 
 
 def main() -> int:
     checks = lh.Check("NIVGEN binary64 geometry mode")
+    fpabi = (ROOT / "work" / "fp" / "fpabi.txt").read_text(encoding="utf-8")
     nstopo = (ROOT / "work" / "nstopo.txt").read_text(encoding="utf-8")
     geoconv = (ROOT / "work" / "geoconv.txt").read_text(encoding="utf-8")
+    suseed = (ROOT / "work" / "suseed.txt").read_text(encoding="utf-8")
+    supaint = (ROOT / "work" / "supaint.txt").read_text(encoding="utf-8")
     vhground = (ROOT / "work" / "vhground.txt").read_text(encoding="utf-8")
     vhnivgen = (ROOT / "work" / "vhnivgen.txt").read_text(encoding="utf-8")
     vhgame = (ROOT / "work" / "vhgame.txt").read_text(encoding="utf-8")
 
-    checks.eq(nstopo.count("nsgeometryf64\t= 0;"), 1,
-              "the shared generator defaults to historical x87 geometry")
+    checks.eq(fpabi.count("nivgenf64 = 0;"), 1,
+              "the shared FP ABI defaults to historical x87 arithmetic")
+    checks.eq(suseed.count("nivgenf64"), 0,
+              "surface code uses the precision selector from the shared FP ABI")
+    checks.eq(nstopo.count("nsgeometryf64"), 0,
+              "the precision selector is shared beyond nearstar geometry")
     checks.ok("=> GeoKMulChopSpill;" in nstopo and
               "=> GeoSeedTiltChopSpill;" in nstopo,
               "reference mode selects declared binary64 cast boundaries")
@@ -55,9 +68,13 @@ def main() -> int:
               "reference eccentricity rounds division and subtraction separately")
     checks.ok("VHGND rotation seed calculate f64" in vhground,
               "reference rotation seed multiplies stored binary64 factors")
-    checks.eq(vhnivgen.count("[nsgeometryf64] = 1;"), 1,
+    checks.eq(supaint.count("=> SU NIVGEN f64 spill;"), 4,
+              "reference surface coordinates spill both products and sums")
+    checks.ok("=> XToF64;" in supaint and "=> XFromF64;" in supaint,
+              "surface coordinate spills round and reload binary64 values")
+    checks.eq(vhnivgen.count("[nivgenf64] = 1;"), 1,
               "only the NIVGEN driver enables reference precision")
-    checks.eq(vhnivgen.count("[nsgeometryf64] = 0;"), 2,
+    checks.eq(vhnivgen.count("[nivgenf64] = 0;"), 2,
               "both successful and invalid NIVGEN exits restore historical mode")
     checks.ok("vhnivgen" not in vhgame.lower(),
               "the shipping game does not link the NIVGEN-only driver")
@@ -85,9 +102,28 @@ def main() -> int:
     checks.eq(got_hashes, HASHES,
               "all seven default-site public hashes are exact")
 
-    forbidden = ("MAGILLA", "-108980592", "25731476", "-852320",
-                 "949B1F26", "4927A000", "85311E10")
-    production = nstopo + geoconv + vhground + vhnivgen
+    for key, coords, body, gap, expected_atmo in ATMO_FIXTURES:
+        args = argparse.Namespace(
+            x=coords[0], y=coords[1], z=coords[2], p=body,
+            lon=0, lat=60, secs=0, sc=-1, albedo=-1, night=0,
+            gap=gap, build=False, timeout=180, dump=None, o=None,
+            exe=str(executable), diagnostic=False,
+        )
+        try:
+            header, buffers, diagnostics = nivtest.run_lino(args)
+            fixture = nivtest.results(header, buffers, diagnostics)
+        except Exception as error:
+            checks.ok(False, f"{key} atmosphere fixture runs", str(error))
+            continue
+        checks.eq(fixture["type"], 3, f"{key} remains a type-3 planet")
+        checks.eq(fixture["hashes"]["atmo"]["fnv"], expected_atmo,
+                  f"{key} atmosphere uses binary64 product and sum boundaries")
+
+    forbidden = ("MAGILLA", "GRUPA 5", "-108980592", "25731476",
+                 "-852320", "-61439376", "29916264", "239760",
+                 "949B1F26", "4927A000", "85311E10", "01F046A9",
+                 "174C4959")
+    production = fpabi + nstopo + geoconv + suseed + supaint + vhground + vhnivgen
     checks.eq([token for token in forbidden if token in production], [],
               "production precision policy contains no fixture-specific exception")
     return checks.done()

@@ -83,3 +83,9 @@
 
 	FT0	= 0;
 	FT1	= 0;
+
+	( Caller precision policy shared by every FP consumer.  The game
+	  leaves this zero; the public NIVGEN driver enables its binary64
+	  expression boundaries only for the duration of one request. )
+
+	nivgenf64 = 0;

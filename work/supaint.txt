@@ -75,20 +75,35 @@
 	py = cy + [SUmi]*sin(a), each truncated toward zero and then
 	narrowed to Borland's 16-bit unsigned.  A negative sum wraps to
 	the top of the segment, which is exactly how spot() writes
-	outside the visible panorama in the original. )
+	outside the visible panorama in the original.
+
+	The game keeps the historical live-extended multiply/add. Public
+	NIVGEN rounds both the product and the sum to binary64 before the
+	integer conversion. )
+
+"SU NIVGEN f64 spill"
+      ? [nivgenf64] = 0 -> SU NIVGEN f64 spill done;
+	=> XToF64;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+    "SU NIVGEN f64 spill done"
+	end;
 
 "SU calc px"
 	=> SU cos term;
+	=> SU NIVGEN f64 spill;
 	[SUia] = [SUcxi];
 	=> SU add ia;
+	=> SU NIVGEN f64 spill;
 	=> SU chop32;
 	A = [SUti]; A & 0FFFFh; [SUpx] = A;
 	end;
 
 "SU calc py"
 	=> SU sin term;
+	=> SU NIVGEN f64 spill;
 	[SUia] = [SUcyi];
 	=> SU add ia;
+	=> SU NIVGEN f64 spill;
 	=> SU chop32;
 	A = [SUti]; A & 0FFFFh; [SUpy] = A;
 	end;
