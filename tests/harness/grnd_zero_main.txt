@@ -1,0 +1,92 @@
+      ( Focused production-prologue regression for zero tree random quotients. )
+
+"libraries"
+
+	fpabi;
+	fpctl;
+	fpx87;
+	fpconv;
+	fbmem;
+	brtl;
+	mul64frag;
+	surng;
+	suseed;
+	grnd;
+
+"directors"
+
+	program name = { grzero };
+	unit = 32;
+
+"constants"
+
+	GZRECS = 2;
+	GZRECU = 9;
+	GZHDR = 4;
+	GZOUTU = 22;
+
+"variables"
+
+	gzoutname = { grzero-out.bin };
+	gzop = 0;
+	gzseed = 0;
+
+"workspace"
+
+	gzout = GZOUTU;
+
+"programme"
+
+	=> FEnter;
+	=> SU ledger reset;
+	=> GR float init;
+	A = gzout; A + GZHDR; [gzop] = A;
+
+	( The seventh Borland draw is zero: the first tree quotient is 0/3000. )
+	[gzseed] = 22022; [XTOP] = 5; [XDEPTH] = 3; [XREJ] = 0;
+	=> GZ one;
+
+	( The eighth Borland draw is zero: the second tree quotient is 0/1500. )
+	[gzseed] = 5963; [XTOP] = 2; [XDEPTH] = 6; [XREJ] = 0;
+	=> GZ one;
+
+	[gzout plus 0] = 475A4552h;
+	[gzout plus 1] = 1;
+	[gzout plus 2] = GZRECS;
+	[gzout plus 3] = GZRECU;
+	=> FLeave;
+
+	[File Name] = gzoutname;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	[Block Pointer] = gzout;
+	[Block Size] = GZOUTU;
+	[Block Size] * BYTES PER UNIT;
+	isocall;
+	[File Name] = gzoutname;
+	[File Position] = 0;
+	[File Command] = SET SIZE;
+	[File Size] = GZOUTU;
+	[File Size] * BYTES PER UNIT;
+	isocall;
+	end;
+
+"GZ one"
+	[GRgseed] = [gzseed];
+	[GRiptype] = 1;
+	[GRsctype] = 0;
+	[GRalbedo] = 20;
+	[GRlat] = 30;
+	=> GR prologue;
+
+	E = [gzop]; A = [gzseed]; [E plus 0] = A;
+	A = [GRtreescalef]; [E plus 1] = A;
+	A = [GRtreescale]; [E plus 2] = A;
+	A = [XTOP]; [E plus 3] = A;
+	A = [XDEPTH]; [E plus 4] = A;
+	A = [XREJ]; [E plus 5] = A;
+	A = [FCW]; [E plus 6] = A;
+	A = [SUbnc]; [E plus 7] = A;
+	[E plus 8] = 0475A001h;
+	[gzop] + GZRECU;
+	end;

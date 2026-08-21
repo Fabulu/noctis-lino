@@ -1,0 +1,125 @@
+      ( Test-only driver for fpsoft's private XPowPositive helper. )
+
+"libraries"
+
+	fpabi;
+	fpctl;
+	fpx87;
+	fpconv;
+
+"directors"
+
+	program name = { fppowmain };
+	unit = 32;
+
+"constants"
+
+	FPPMAX = 4096;
+	FPPHDR = 4;
+	FPPINU = 2;
+	FPPOUTU = 8;
+	FPPINMAX = 8196;
+	FPPOUTMAX = 32772;
+
+"variables"
+
+	fppinname = { fppow-in.bin };
+	fppoutname = { fppow-out.bin };
+	fppn = 0; fppcaseindex = 0; fppip = 0; fppop = 0;
+	fppi = 0; fppchanged = 0; fpptop = 0; fppdepth = 0;
+	fppoutunits = 0;
+
+"workspace"
+
+	fppinbuf = FPPINMAX;
+	fppoutbuf = FPPOUTMAX;
+
+"programme"
+
+	[File Name] = fppinname;
+	[File Position] = 0;
+	[File Command] = READ;
+	[Block Pointer] = fppinbuf;
+	[Block Size] = FPPINMAX;
+	[Block Size] * BYTES PER UNIT;
+	isocall;
+
+	A = [fppinbuf plus 0]; ? A != 46505056h -> fpp bad;
+	A = [fppinbuf plus 1]; ? A != 1 -> fpp bad;
+	A = [fppinbuf plus 3]; ? A != FPPINU -> fpp bad;
+	A = [fppinbuf plus 2]; [fppn] = A;
+	? A > FPPMAX -> fpp bad;
+
+	[FCW] = FCWEXT; => FEnter;
+	A = fppinbuf; A + FPPHDR; [fppip] = A;
+	A = fppoutbuf; A + FPPHDR; [fppop] = A;
+	[fppcaseindex] = 0;
+
+    "fpp case"
+	( Seed every physical stack entry independently of TOP. )
+	[fppi] = 0;
+    "fpp seed stack"
+	E = XSTK; E + [fppi];
+	A = [fppcaseindex]; A < 8; A + [fppi]; A # 5A5A0000h; [E] = A;
+	[fppi]+; ? [fppi] < 32 -> fpp seed stack;
+	A = [fppcaseindex]; A & 7; [XTOP] = A; [fpptop] = A;
+	A = [fppcaseindex]; A * 3; A & 7; [XDEPTH] = A; [fppdepth] = A;
+	[XREJ] = 0;
+
+	( Import the raw binary32 exponent to Y, then the base to X. )
+	E = [fppip]; A = [E plus 1]; [FS0] = A; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XCopyXtoY;
+	E = [fppip]; A = [E]; [FS0] = A; A & 7FFFFFFFh;
+	? A = 0 -> fpp zero base;
+	=> FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XPowPositive; => XToF32; -> fpp powered;
+    "fpp zero base"
+	[FS0] = 0;
+    "fpp powered"
+
+	[fppchanged] = 0; [fppi] = 0;
+    "fpp check stack"
+	E = XSTK; E + [fppi];
+	A = [fppcaseindex]; A < 8; A + [fppi]; A # 5A5A0000h; B = A;
+	A = [E]; ? A = B -> fpp stack next; [fppchanged]+;
+    "fpp stack next"
+	[fppi]+; ? [fppi] < 32 -> fpp check stack;
+
+	E = [fppop]; A = [FS0]; [E plus 0] = A;
+	A = [fpptop]; [E plus 1] = A; A = [XTOP]; [E plus 2] = A;
+	A = [fppdepth]; [E plus 3] = A; A = [XDEPTH]; [E plus 4] = A;
+	A = [fppchanged]; [E plus 5] = A; A = [XREJ]; [E plus 6] = A;
+	[E plus 7] = 0F00DCAFEh;
+
+	A = [fppip]; A + FPPINU; [fppip] = A;
+	A = [fppop]; A + FPPOUTU; [fppop] = A;
+	[fppcaseindex]+; A = [fppcaseindex]; ? A < [fppn] -> fpp case;
+
+	[fppoutbuf plus 0] = 46505057h;
+	[fppoutbuf plus 1] = 1;
+	A = [fppn]; [fppoutbuf plus 2] = A;
+	[fppoutbuf plus 3] = FPPOUTU;
+	A = [fppn]; A * FPPOUTU; A + FPPHDR; [fppoutunits] = A;
+	=> FLeave;
+
+	[File Name] = fppoutname;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	[Block Pointer] = fppoutbuf;
+	A = [fppoutunits]; [Block Size] = A;
+	[Block Size] * BYTES PER UNIT;
+	isocall;
+	[File Name] = fppoutname;
+	[File Position] = 0;
+	[File Command] = SET SIZE;
+	A = [fppoutunits]; [File Size] = A;
+	[File Size] * BYTES PER UNIT;
+	isocall;
+	end;
+
+    "fpp bad"
+	[fppoutbuf] = 0BADBAD0h;
+	[File Name] = fppoutname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = fppoutbuf; [Block Size] = 4; isocall;
+	end;

@@ -1,0 +1,92 @@
+      ( Focused ordinary-Lino regression for zero surface random quotients. )
+
+"libraries"
+
+	fpabi;
+	fpctl;
+	fpx87;
+	fpconv;
+	suseed;
+
+"directors"
+
+	program name = { suzero };
+	unit = 32;
+
+"constants"
+
+	SZRECS = 4;
+	SZRECU = 8;
+	SZHDR = 4;
+	SZOUTU = 36;
+
+"variables"
+
+	szoutname = { suzero-out.bin };
+	szop = 0;
+
+"workspace"
+
+	szout = SZOUTU;
+
+"programme"
+
+	=> SU fp init;
+	[FCW] = FCWEXT; => FEnter;
+	A = szout; A + SZHDR; [szop] = A;
+
+	( 0/900 + 0.6 rounds to binary32 0.6. )
+	[SUia] = 0; [XTOP] = 5; [XDEPTH] = 3; [XREJ] = 0;
+	=> SU kt of;
+	E = [szop]; [E plus 0] = 1; A = [SUia]; [E plus 1] = A;
+	A = [SFkt]; [E plus 2] = A; A = [XTOP]; [E plus 3] = A;
+	A = [XDEPTH]; [E plus 4] = A; A = [XREJ]; [E plus 5] = A;
+	A = [FCW]; [E plus 6] = A; [E plus 7] = 51A7E001h;
+	[szop] + SZRECU;
+
+	( 900/900 + 0.6 rounds to binary32 1.6. )
+	[SUia] = 900; [XTOP] = 2; [XDEPTH] = 6; [XREJ] = 0;
+	=> SU kt of;
+	E = [szop]; [E plus 0] = 1; A = [SUia]; [E plus 1] = A;
+	A = [SFkt]; [E plus 2] = A; A = [XTOP]; [E plus 3] = A;
+	A = [XDEPTH]; [E plus 4] = A; A = [XREJ]; [E plus 5] = A;
+	A = [FCW]; [E plus 6] = A; [E plus 7] = 51A7E001h;
+	[szop] + SZRECU;
+
+	( 0/100 + 4 = 4 exactly. )
+	[SUia] = 0; [XTOP] = 7; [XDEPTH] = 1; [XREJ] = 0;
+	=> SU kq of;
+	E = [szop]; [E plus 0] = 2; A = [SUia]; [E plus 1] = A;
+	A = [SFkq]; [E plus 2] = A; A = [XTOP]; [E plus 3] = A;
+	A = [XDEPTH]; [E plus 4] = A; A = [XREJ]; [E plus 5] = A;
+	A = [FCW]; [E plus 6] = A; [E plus 7] = 51A7E001h;
+	[szop] + SZRECU;
+
+	( 100/100 + 4 = 5 exactly. )
+	[SUia] = 100; [XTOP] = 4; [XDEPTH] = 7; [XREJ] = 0;
+	=> SU kq of;
+	E = [szop]; [E plus 0] = 2; A = [SUia]; [E plus 1] = A;
+	A = [SFkq]; [E plus 2] = A; A = [XTOP]; [E plus 3] = A;
+	A = [XDEPTH]; [E plus 4] = A; A = [XREJ]; [E plus 5] = A;
+	A = [FCW]; [E plus 6] = A; [E plus 7] = 51A7E001h;
+
+	[szout plus 0] = 535A4552h;
+	[szout plus 1] = 1;
+	[szout plus 2] = SZRECS;
+	[szout plus 3] = SZRECU;
+	=> FLeave;
+
+	[File Name] = szoutname;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	[Block Pointer] = szout;
+	[Block Size] = SZOUTU;
+	[Block Size] * BYTES PER UNIT;
+	isocall;
+	[File Name] = szoutname;
+	[File Position] = 0;
+	[File Command] = SET SIZE;
+	[File Size] = SZOUTU;
+	[File Size] * BYTES PER UNIT;
+	isocall;
+	end;

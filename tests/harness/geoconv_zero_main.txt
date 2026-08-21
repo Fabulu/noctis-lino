@@ -1,0 +1,112 @@
+      ( Focused ordinary-Lino regression for zero and nonzero geometry quotients. )
+
+"libraries"
+
+	fpabi;
+	fpctl;
+	fpx87;
+	fpconv;
+	geoconv;
+
+"directors"
+
+	program name = { geozero };
+	unit = 32;
+
+"constants"
+
+	GZRECS = 6;
+	GZRECU = 8;
+	GZHDR = 4;
+	GZOUTU = 52;
+
+"variables"
+
+	gzoutname = { geozero-out.bin };
+	gzop = 0;
+
+"workspace"
+
+	gzout = GZOUTU;
+
+"programme"
+
+	[FCW] = FCWEXT; => FEnter;
+	A = gzout; A + GZHDR; [gzop] = A;
+
+	( FC*FB + 0/100 = 6 exactly.  The routine deliberately starts a chain. )
+	[FB0] = 0; [FB1] = 40000000h;
+	[FC0] = 0; [FC1] = 40080000h;
+	[FI] = 0; [XTOP] = 6; [XDEPTH] = 4; [XREJ] = 0;
+	=> GeoSeedStore100;
+	E = [gzop]; [E plus 0] = 1; A = [FI]; [E plus 1] = A;
+	A = [FA0]; [E plus 2] = A; A = [FA1]; [E plus 3] = A;
+	A = [XTOP]; [E plus 4] = A; A = [XDEPTH]; [E plus 5] = A;
+	A = [XREJ]; [E plus 6] = A; A = [FCW]; [E plus 7] = A;
+	[gzop] + GZRECU;
+
+	( FC*FB + 25/100 = 6.25 exactly. )
+	[FB0] = 0; [FB1] = 40000000h;
+	[FC0] = 0; [FC1] = 40080000h;
+	[FI] = 25; [XTOP] = 7; [XDEPTH] = 5; [XREJ] = 0;
+	=> GeoSeedStore100;
+	E = [gzop]; [E plus 0] = 1; A = [FI]; [E plus 1] = A;
+	A = [FA0]; [E plus 2] = A; A = [FA1]; [E plus 3] = A;
+	A = [XTOP]; [E plus 4] = A; A = [XDEPTH]; [E plus 5] = A;
+	A = [XREJ]; [E plus 6] = A; A = [FCW]; [E plus 7] = A;
+	[gzop] + GZRECU;
+
+	( 1 - 0/2000 = 1 exactly; this routine does not use the soft stack. )
+	[FI] = 0; [XTOP] = 5; [XDEPTH] = 3; [XREJ] = 0;
+	=> GeoEccStore2000;
+	E = [gzop]; [E plus 0] = 2; A = [FI]; [E plus 1] = A;
+	A = [FA0]; [E plus 2] = A; A = [FA1]; [E plus 3] = A;
+	A = [XTOP]; [E plus 4] = A; A = [XDEPTH]; [E plus 5] = A;
+	A = [XREJ]; [E plus 6] = A; A = [FCW]; [E plus 7] = A;
+	[gzop] + GZRECU;
+
+	( 1 - 500/2000 = 0.75 exactly. )
+	[FI] = 500; [XTOP] = 2; [XDEPTH] = 6; [XREJ] = 0;
+	=> GeoEccStore2000;
+	E = [gzop]; [E plus 0] = 2; A = [FI]; [E plus 1] = A;
+	A = [FA0]; [E plus 2] = A; A = [FA1]; [E plus 3] = A;
+	A = [XTOP]; [E plus 4] = A; A = [XDEPTH]; [E plus 5] = A;
+	A = [XREJ]; [E plus 6] = A; A = [FCW]; [E plus 7] = A;
+	[gzop] + GZRECU;
+
+	( Binary64 mode has the same exact zero and representative results. )
+	[FI] = 0; [XTOP] = 4; [XDEPTH] = 7; [XREJ] = 0;
+	=> GeoEccStore2000F64;
+	E = [gzop]; [E plus 0] = 3; A = [FI]; [E plus 1] = A;
+	A = [FA0]; [E plus 2] = A; A = [FA1]; [E plus 3] = A;
+	A = [XTOP]; [E plus 4] = A; A = [XDEPTH]; [E plus 5] = A;
+	A = [XREJ]; [E plus 6] = A; A = [FCW]; [E plus 7] = A;
+	[gzop] + GZRECU;
+
+	[FI] = 500; [XTOP] = 1; [XDEPTH] = 2; [XREJ] = 0;
+	=> GeoEccStore2000F64;
+	E = [gzop]; [E plus 0] = 3; A = [FI]; [E plus 1] = A;
+	A = [FA0]; [E plus 2] = A; A = [FA1]; [E plus 3] = A;
+	A = [XTOP]; [E plus 4] = A; A = [XDEPTH]; [E plus 5] = A;
+	A = [XREJ]; [E plus 6] = A; A = [FCW]; [E plus 7] = A;
+
+	[gzout plus 0] = 475A4552h;
+	[gzout plus 1] = 1;
+	[gzout plus 2] = GZRECS;
+	[gzout plus 3] = GZRECU;
+	=> FLeave;
+
+	[File Name] = gzoutname;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	[Block Pointer] = gzout;
+	[Block Size] = GZOUTU;
+	[Block Size] * BYTES PER UNIT;
+	isocall;
+	[File Name] = gzoutname;
+	[File Position] = 0;
+	[File Command] = SET SIZE;
+	[File Size] = GZOUTU;
+	[File Size] * BYTES PER UNIT;
+	isocall;
+	end;
