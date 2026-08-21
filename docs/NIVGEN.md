@@ -12,7 +12,7 @@ original implementation, not a low error count obtained by omitting outputs.
 ## Public reference
 
 - [NIVGEN planet sheet](https://litterbox.moos.es/sheet.html?sheet=nivgen_planets)
-- [Machine-readable sheet](https://litterbox.moos.es/sheets/nivgen_planets?page=1&pageSize=2000)
+- [Machine-readable sheet](https://litterbox.moos.es/sheets/nivgen_planets?page=1&pageSize=500)
 - [Published LR harness at commit 01c6a3a](https://github.com/jorisvddonk/noctis-iv-lr/blob/01c6a3a/src/harness.cpp)
 - [SheetBot help](https://litterbox.moos.es/help.html)
 
@@ -82,6 +82,27 @@ Use `-dump DIR` for the public lowercase raw names. Setting `NIVDUMP` produces
 the uppercase Rust-style names as well. `-secs`, `-sc`, `-albedo`, `-night`,
 and `-gap` mirror the published harness inputs.
 
+`tools/nivgen_sheet_report.py` is the complete-corpus audit layer. It fetches at
+most 500 rows per request, waits one second between sequential pages by default,
+never retries, validates the page schema and unique row keys, and writes a
+canonical snapshot with a stable SHA-256. Repeated reports and before/after
+comparisons use snapshots without contacting the service.
+
+```powershell
+# Fetch all 5,188 rows once, retain the canonical input and aggregate report
+python tools\nivgen_sheet_report.py --live --snapshot-out nivgen-sheet.json --json-out nivgen-report.json
+
+# Reproduce the same report without a network request
+python tools\nivgen_sheet_report.py --snapshot nivgen-sheet.json
+
+# Classify every row and field transition from an older snapshot
+python tools\nivgen_sheet_report.py --snapshot nivgen-sheet-new.json --compare nivgen-sheet-old.json --json-out nivgen-diff.json
+```
+
+The report distinguishes the sheet's visible zero-error marker from independent
+hash exactness. During original backfill, a row with no authoritative hash can
+show zero errors; it is reported as unavailable, never as an accuracy success.
+
 `tools/nivgen_score.py` downloads the live sheet, extracts coordinates from the
 original artifact URLs, supplies each original gap, and compares Lino hashes to
 every non-null original field it generated.
@@ -112,16 +133,183 @@ python tools\nivgen_score.py --type 2 --limit 1
 
 # A larger local batch with a machine-readable report
 python tools\nivgen_score.py --sheet-json PATH\TO\nivgen-planets.json --type 2 --rust-errors-only --limit 25 --json-out nivgen-type2.json
+
+# Score every field in the pinned type-1/type-5 selection, then compare the
+# local hashes with the Lino hashes retained in that exact snapshot
+python tools\nivgen_score.py --sheet-json nivgen-sheet.json --type 1 --type 5 --limit 1648 --build --json-out nivgen-type1-type5.json
+python tools\nivgen_score_transition.py nivgen-sheet.json nivgen-type1-type5.json --executable RETAINED-SCORED-EXECUTABLE --source-revision "REVISION plus described working state" --source-state NIVTEST-SOURCE-CLOSURE.sha256 --source-state NIVTEST-DIRTY-SOURCE.patch --source-state SCORE-RUN.txt --source-state tools\nivgen_score.py --source-state tools\nivtest.py --source-state tests\linoharness.py --json-out nivgen-type1-type5-transition.json
+python tools\nivgen_score_compare.py PREVIOUS-SCORE.json nivgen-type1-type5.json --before-transition PREVIOUS-TRANSITION.json --after-transition nivgen-type1-type5-transition.json --json-out score-to-score-comparison.json
 ```
+
+`nivgen_score_transition.py` rejects duplicate or unknown row keys, expected
+hashes from a different snapshot, invalid match flags, and inconsistent score
+totals. Its report records the snapshot, score, and executable SHA-256 values,
+plus the SHA-256 and byte length of each repeatable `--source-state` artifact.
+For a dirty score, retain both a complete transitive source-closure manifest and
+a closure-only patch; a revision description alone is not exact provenance. Bind
+the exact scoring driver as additional source state too: `nivgen_score.py`,
+`nivtest.py`, and `tests/linoharness.py` determine selection, arguments, output
+boundaries, and hashes even when the executable was built earlier. Retain and
+bind a short run record with the exact command, interpreter, platform, and the
+hashes of those inputs; the score JSON alone does not record them.
+The report also records comparison and whole-row exactness before and after the
+local run, changed values, field transitions, and remaining mismatch-field
+clusters by body type. It compares only fields actually emitted by the selected
+score, so an omitted field is never presented as an accuracy success.
+
+`nivgen_score_compare.py` compares two retained scores over the same selection
+and requires identical authoritative hashes. It validates every stored match
+flag and aggregate total, then records exact fixes, exact regressions,
+wrong-value-to-different-wrong-value transitions, whole-row transitions, and
+reported zero-seed metadata. Optional transition arguments prove that each
+source-state transition is bound to the score it claims to describe.
 
 The default limit is one. A live corpus sweep is a release or explicit accuracy
 run, not a routine edit gate. Each live page is requested at most once. The
 scorer never retries or polls an unavailable host. Prefer `--sheet-json` for
 repeated local work against a deliberately saved snapshot. `--all-pages` is
 explicit because the API is paginated; it makes exactly one request for each
-advertised page and stops immediately if any page is unavailable.
+advertised page, waits one second between pages by default, and stops immediately
+if any page is unavailable. Prefer `nivgen_sheet_report.py` when the goal is a
+complete canonical snapshot rather than executing a bounded local sample.
 
 ## Current measured position
+
+The 5,188-row canonical snapshot taken on 2026-08-21 has SHA-256
+`ab73b236957f225247e07460eaae1a7e26891e701d6b5bd4c93d573208231f97`.
+The sheet shows 1,068 Lino zero-error markers, but 642 of all rows are not yet
+backfilled with any authoritative hashes. Independent comparison therefore
+finds 426 fully exact Lino rows among 4,546 comparable rows (9.4%), not
+1,068/5,188. Rust is 4,246/4,546 (93.4%). LR has no fully exact comparable row
+in this snapshot and is missing results on 175 rows; its 613 visible zero-error
+markers are all unbackfilled rows.
+
+Lino's dominant field gaps are orbital surface at 401/4,485, palette at
+2,622/4,485, default heightmap at 2,895/4,546, random heightmap at
+3,233/4,546, and random object chart at 3,439/4,546. Atmosphere is
+3,627/4,485. Default object charts, textures, and skies are near exact but still
+retain eight, one, and two mismatches respectively. Full exactness is
+concentrated in comparable types 3 (174/220), 9 (192/215), and 10 (59/61);
+types 0, 1, 4, 5, 6, 7, and 8 currently have none.
+
+Backfill explains why the visible result appeared to get worse while adding
+checkmarks. The previous 2026-08-20 marker count was 1,128; as authoritative
+hashes replaced no-data rows, it fell to 1,068 and exposed new mismatches. Use
+the independent hash counts and snapshot diff, not zero-error markers, for
+release claims.
+
+The seven-field production diagnostic remains exactly:
+
+```text
+surf=390A2CCB atmo=114562E8 pal=26961E4A hm=97022FD7
+oc=22913F4E stex=0D52F001 sky=1E308D29
+```
+
+That fixture and the selected 114/118 historical sample below are smoke tests
+only. They do not supersede the full-sheet result.
+
+### Current type-1/type-5 repair evidence
+
+The fractional-crater replacement restores the complete authoritative default
+heightmap FNVs `FDDDF3A2` (type 1) and `301D7754` (type 5). Its independent
+deep gate uses the authoritative type-5 `random(5) * 0.015` factor rule and
+matches the integer operation mirror against historical x87 on all 9,564,210
+reachable base/exponent pairs. A separate compiled-Lino gate covers 4,096
+boundary and spread cases with exact outputs and intact soft-stack state; see
+`docs-notes/TRANSCENDENTALS.md` for the arithmetic contract.
+
+The complete retained power-fixed run scores all eleven fields on 1,017 type-1
+and 631 type-5 rows. It reaches 18,120/18,128 exact comparisons and
+1,646/1,648 fully exact rows, up from 11,120/18,128 and 0/1,648 in the sheet
+snapshot. Field exactness is surface, atmosphere, palette, default texture all
+1,648/1,648; default heightmap, default object chart, default sky, random
+heightmap, random texture, and random sky all 1,647/1,648; and random object
+chart 1,646/1,648.
+
+Against the retained post-zero-quotient score, the exact-power-of-two repair
+changes 209 values: 174 random heightmaps and 35 random object charts, all exact
+repairs, with zero regressions and zero wrong-to-different-wrong transitions.
+Fully exact rows rise from 1,473 to 1,646. The snapshot, score, executable,
+source-closure manifest, dirty-source patch, transition, comparison, and run
+record SHA-256 values are respectively:
+
+```text
+ab73b236957f225247e07460eaae1a7e26891e701d6b5bd4c93d573208231f97
+b118f2530e260faf6dd550f338d8b9c6c9e0dba0029e85e1bcc0c801049af719
+8fd1f4617fe652414bdeb87ad80d860b87c9bfff7ef1d605a663013b9ad99523
+9b9438a78c89f8b33fb2c64450adb13fe744f37f2f6213151acc59d421553d86
+76c0df790117a5b33b6781930071b74002bba6e4f9c4d135cfa252d356c7b044
+d79805fdd9f63c25469c935ff38dbb26dbe204d1535b7034046daf7f896f4853
+c7c226a6f62104e9831242149c01dbe6737082663d3cffbe9cc4788348f0bae1
+499df1e38c0a7d7852626f318bb728b7484f428b9131b2d9ce60dc542b5d5863
+```
+
+The retained artifacts are
+`tests/gen/nivgen-pow-type1-type5-power2-base-score.json`,
+`tests/gen/nivgen-pow-type1-type5-power2-base-transition.json`,
+`tests/gen/nivgen-pow-type1-type5-post-zero-to-power2-base-comparison.json`,
+and `tests/gen/nivgen-pow-type1-type5-power2-base-score-run.txt`. The score was
+executed offline in sixteen independently retained 103-row shards. On Windows,
+each native child ran on a private inactive desktop so the sweep could not take
+focus from the active user desktop.
+
+Only two corpus rows remain. `XENOFELYS|4` differs in default heightmap, object
+chart, and sky plus random heightmap and object chart. `XENOFELYS|10` differs in
+random object chart, texture, and sky. Their other fourteen fields are exact,
+including both orbital outputs, both palettes, both atmosphere overlays,
+`XENOFELYS|10`'s default sector, and its repaired random heightmap. These rows
+also break otherwise complete corpus invariants: 630/631 type-5 default
+heightmaps are `301D7754`, while `XENOFELYS|4` alone retains `54297E41`; and
+1,016/1,017 type-1 random skies are `7B252DC5`, while `XENOFELYS|10` alone
+retains `CBD77DB5`. Preserve those authoritative outliers. The next diagnostic
+must locate the first state divergence against a fresh original/reference
+trace; it must not introduce body-, coordinate-, or expected-hash-specific
+behavior.
+
+The published sky images sharpen that boundary. The `XENOFELYS|4` default and
+random original PNGs are byte-identical (SHA-256
+`bbfe0cf853619cc6e24e73eff156be083f652351cf1ea6e460e385015c0d49e7`) even
+though their retained raw-sky FNVs differ. For `XENOFELYS|10`, the random target
+`CBD77DB5` is exactly the FNV-1a of the 46,080-byte zero sky (`7B252DC5`) with
+one byte changed: offset 12,167, coordinate `(287,33)`, value 80. Its published
+PNG likewise differs from the default black sky by exactly that one pixel, RGB
+`(101,109,122)`. The retained analysis record is
+`tests/gen/nivgen-xenofelys-sky-residual.json` (SHA-256
+`56ce497edfdf4f3fe10415e64bc481bd099cfea9dc79f31e17d7d6a9da5bc333`).
+This is evidence for a caller/capture overlay or context difference, not
+permission to add a body-specific pixel. A fresh original trace must establish
+which caller writes that byte and must regenerate or confirm both outlier rows
+before changing production.
+
+## Historical bounded measurements -- **SUPERSEDED**
+
+**Bounded measurement from 2026-08-19.** A fresh isolated harness derived from
+the current `work/vhgame.txt` matches the seven-field diagnostic fixture exactly:
+
+```text
+surf=390A2CCB atmo=114562E8 pal=26961E4A hm=97022FD7
+oc=22913F4E stex=0D52F001 sky=1E308D29
+```
+
+One saved public row of every type 0 through 10, including default and arbitrary
+landing coordinates where available, matches 114/118 scored fields. Types 0, 2,
+3, 4, 6, 7, 8, and 9 are 11/11; type 5 is 10/11; type 1 is 8/11; type 10 is
+8/8. The four exact failures are:
+
+```text
+type 1 default hm  89FF166B != FDDDF3A2
+type 1 random hm   2CA3DC97 != BAD7DDAC
+type 1 random oc   51876015 != 2DA704F7
+type 5 default hm  4FAFAB45 != 301D7754
+```
+
+All four reproduce with the current source linked to hardware x87
+transcendentals and with the pre-transcendental FP build. An older harness still
+matches at least the type-1 default heightmap. The misses therefore remain a
+separate current-source/runtime delta to isolate; they are not attributed to the
+portable transcendental replacement, and no public hash or acceptance boundary
+is weakened. See `docs-notes/TRANSCENDENTALS.md` for the replacement's exact
+acceptance contract.
 
 On 2026-08-17 the public sheet exposed Lino results, but they were not yet the
 output of this repository's current local harness. In the first 2,000 rows,
