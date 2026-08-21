@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import nivgen_score  # noqa: E402
 import nivgen_score_compare  # noqa: E402
+import nivgen_score_merge  # noqa: E402
 import nivgen_score_transition  # noqa: E402
 
 
@@ -210,6 +211,31 @@ def main() -> int:
               "metadata_changes": 2,
               "changed_value_rows": 2},
           "score-to-score comparison records zero-seed and metadata effects")
+
+    first_shard = {"reports": [score_data["reports"][0]],
+                   "exact": 1, "graded": 2}
+    second_shard = {"reports": [score_data["reports"][1]],
+                    "exact": 2, "graded": 2}
+    merged = nivgen_score_merge.merge([first_shard, second_shard])
+    check(merged == score_data,
+          "ordered score shards merge with recomputed exact totals")
+    try:
+        nivgen_score_merge.merge([first_shard, first_shard])
+    except ValueError:
+        rejected = True
+    else:
+        rejected = False
+    check(rejected, "score shard merge rejects duplicate report keys")
+
+    invalid_shard = json.loads(json.dumps(first_shard))
+    invalid_shard["exact"] = 2
+    try:
+        nivgen_score_merge.merge([invalid_shard])
+    except ValueError:
+        rejected = True
+    else:
+        rejected = False
+    check(rejected, "score shard merge rejects inconsistent aggregate totals")
 
     invalid_before = json.loads(json.dumps(before_score))
     invalid_before["reports"][0]["comparisons"]["surf"]["match"] = True
