@@ -356,6 +356,36 @@ permission to add a body-specific pixel. A fresh original trace must establish
 which caller writes that byte and must regenerate or confirm both outlier rows
 before changing production.
 
+A broader reconstruction now finds the same signature in seven of the 22
+residual fields. Six authoritative one-byte targets are unique over their full
+scored buffers: `XENOFELYS|4` default sky `36 -> 228` at offset 30,792;
+`XENOFELYS|5` random texture `3 -> 4` at 39,075; `XENOFELYS|9` default sky
+`29 -> 32` at 44,965; `XENOFELYS|10` random texture `9 -> 15` at 41,754 and
+random sky `0 -> 80` at 12,167; and `XENOFELYS|11` default heightmap `44 -> 35`
+at 29,689. The `XENOFELYS|11` public random-texture RGBs reconstruct its exact
+target with two changes on row 46, at offsets 11,884 (`11 -> 13`) and 11,930
+(`11 -> 9`). Public pixels directly verify the three texture reconstructions and
+the body-10 sky pixel. Palette saturation explains why the body-4/body-9 sky
+changes are invisible in otherwise matching PNGs.
+
+The remaining public images do not collapse into a source repair.
+`XENOFELYS|8`'s random sky differs visibly from its default at one scored pixel
+and one render-only pixel, but its raw target is not reachable by one changed
+byte; substituting the visible source-domain candidate still leaves no one-byte
+solution. `XENOFELYS|9`'s default texture renders identically to current output
+while its raw target is not one-byte reachable, and its random texture differs
+at 31,048 rendered pixels. The retained reconstruction is
+`tests/gen/nivgen-xenofelys-artifact-reconstruction.json` (SHA-256
+`74eaff688edede30a09dae7c6bef79b755e161f2cbf3dcca0b53b0cb650f1d51`).
+These exact inversions are evidence of missing caller/capture state or anomalous
+artifacts, not permission to write those bytes in production.
+
+Late-game NIV+ R2.3 body-5 extraction independently matches current Lino at both
+sites: default HM/OC/texture `8D2BE67B`/`ECDF02E1`/`C7A7FE82`, and random
+`E94ABB9B`/`A8A3E2FE`/`0EB7452E`. Because that capture reached landed gameplay
+after the generator return, it supports the source-shaped generator but does not
+certify the missing `planetdump` caller boundary.
+
 A source-path trace now excludes the retained direct generator itself. Type 1
 prefills the complete scored range with zero, selects no sky painter, and does
 not run the gameplay horizon pass. The unreachable nebular/cloudy painters emit

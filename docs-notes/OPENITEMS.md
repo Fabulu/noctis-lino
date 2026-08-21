@@ -1785,6 +1785,20 @@ landed gameplay, not clean return. The smallest discriminator is a DOSBox watch
 on `s_background[12167]` immediately after `create_sky` for body 10 at `(130,9)`;
 zero there moves the outlier into the missing capture/hash/encode caller.
 
+A complete public-image reconstruction now identifies seven sparse residual
+fields rather than only the body-10 sky. Unique one-byte substitutions recover
+body 4 default sky, body 5 random texture, body 9 default sky, both body 10
+random image fields, and body 11 default heightmap; two public RGB pixels recover
+body 11 random texture exactly. The body-5 default and random HM/OC/texture also
+match extracted late-game NIV+ R2.3 buffers byte-hash for byte-hash. Conversely,
+body 8 random sky and both body 9 texture targets cannot be reduced to a single
+source-shaped change. The retained report SHA-256 is
+`74eaff688edede30a09dae7c6bef79b755e161f2cbf3dcca0b53b0cb650f1d51`.
+This strengthens the missing caller/capture-state or anomalous-artifact diagnosis
+and blocks per-field source patches. Obtain or instrument the original
+`planetdump` caller, or have the authoritative XENOFELYS rows regenerated, before
+changing generator arithmetic.
+
 **Pull-request handling policy.** Review incoming PRs against the current
 production tree and deal with them as appropriate: merge clean unique work,
 adapt or cherry-pick useful pieces from stacked branches, or close changes that
