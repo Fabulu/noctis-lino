@@ -172,9 +172,19 @@ def run_lino(
     with tempfile.TemporaryDirectory(prefix="nivtest-") as temp_name:
         temp = Path(temp_name)
         (temp / "niv-input.bin").write_bytes(struct.pack("<32I", *values))
+        process_options = {}
+        if os.name == "nt":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            process_options.update(
+                startupinfo=startupinfo,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
         proc = subprocess.run(
             [str(exe)], cwd=temp, capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=args.timeout,
+            **process_options,
         )
         output = temp / "niv-output.bin"
         if proc.returncode or not output.exists():
