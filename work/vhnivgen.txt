@@ -314,16 +314,19 @@
 	[GRalbedo] = A;
 	A = [VHGNDlat]; A - 60; ? A >= 0 -> VHNIV latitude absolute; A +-;
     "VHNIV latitude absolute"
-	A '* 3; A '/ 2; [GRlat] = A;
+	A '* 3; [GRlat] = A;
 
-	( setup_landing's type-3 global_surface_seed polar correction. )
+	( setup_landing's type-3 global_surface_seed polar correction.  Keep
+	  latitude doubled through this comparison so its exact half degree is
+	  not truncated before the source's strict floating-point test. )
 	A = [GRiptype]; ? A != 3 -> VHNIV seed ready;
 	A = [GRgseed]; A + [VHGNDlon]; => BrtlSrand;
 	A = 5; => BrtlRandom; [NHtmp] = A;
-	A = [GRgseed]; A % 15; A + 25; A + [NHtmp];
+	A = [GRgseed]; A % 15; A + 25; A + [NHtmp]; A '* 2;
 	C = [GRlat]; ? C <= A -> VHNIV seed ready;
 	[GRgseed]+; [VHGNDseed] = [GRgseed];
     "VHNIV seed ready"
+	A = [GRlat]; A '/ 2; [GRlat] = A;
 
 	A = [NHinput plus 9]; ? A '< 1 -> VHNIV scenario automatic;
 	? A '> 4 -> VHNIV scenario automatic; [VHGNDsctype] = A;
