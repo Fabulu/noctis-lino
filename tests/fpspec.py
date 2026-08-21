@@ -337,7 +337,7 @@ def score(vals, exp):
 # -------------------------------------------------------------- the artifact
 
 HDR_FIELDS = ("one0 one1 cwambient cwsaved cwentered cwbeforeiso cwafteriso "
-              "top fflg nstar nbat sentinel r12 r13 r14 r15").split()
+              "top fflg nstar nbat sentinel cwruntime r13 r14 r15").split()
 HDR = len(HDR_FIELDS)
 SENTINEL = 0x0DEFACED
 

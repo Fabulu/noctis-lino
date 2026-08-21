@@ -50,6 +50,26 @@ jobs:
           }
           if ($bad.Count) { throw ($bad -join "`n") }
 
+      - name: Reject production native blocks and float-inventory drift
+        shell: pwsh
+        run: python tests\test_native_closure.py
+
+      - name: Pin the production FP runtime boundary
+        shell: pwsh
+        run: python tests\test_fp_runtime_boundary.py
+
+      - name: Check the NIVGEN scorer API
+        shell: pwsh
+        run: python tests\test_nivgen_score.py
+
+      - name: Check full-sheet snapshot and differential logic
+        shell: pwsh
+        run: python tests\test_nivgen_sheet_report.py
+
+      - name: Check tag-specific release notes and rerun safety
+        shell: pwsh
+        run: python tests\test_release_notes.py
+
       - name: Run the focused integrated-game regression
         shell: pwsh
         env:
@@ -368,6 +388,7 @@ jobs:
         run: |
           set -o pipefail
           test "$(uname -m)" = arm64
+          bash tests/run_macos_fcw_probe.sh
           chmod +x build/compiled/nivtest build/compiled/Noctis-IV.game
           arch -x86_64 /usr/bin/true
           python3 tools/nivtest.py json \
@@ -535,12 +556,18 @@ jobs:
           name: Noctis-IV-macos-x86_64-${{ github.ref_name }}
           path: dist
 
+      - name: Extract this tag's release notes
+        shell: pwsh
+        run: |
+          python tools\release_notes_for_tag.py $env:GITHUB_REF_NAME --output dist\release-notes.md
+
       - name: Publish the GitHub release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = $env:GITHUB_REF_NAME
+          $notes = 'dist\release-notes.md'
           $files = @(
             'dist\Noctis-IV-windows-x86.zip',
             'dist\Noctis-IV-windows-x86.zip.sha256',
@@ -551,6 +578,7 @@ jobs:
           )
           if (gh release view $tag 2>$null) {
             gh release upload $tag @files --clobber
+            Write-Host "Existing release body preserved; replaced generated assets only."
           } else {
-            gh release create $tag @files --verify-tag --notes-file RELEASE_NOTES.md --prerelease --title "Noctis IV L.in.oleum port $tag"
+            gh release create $tag @files --verify-tag --notes-file $notes --prerelease --title "Noctis IV L.in.oleum port $tag"
           }

@@ -19,7 +19,7 @@ pinned here:
     produces a different and equally plausible sequence.
 
 WHAT IS COMPARED. work/sitecount_rnd.txt is built unchanged three times, once
-against each backend (`{ F7 E3 }`, pure-L.in.oleum limbs, and the `*%'`
+against each backend (two pure-L.in.oleum implementations and the `*%'`
 extension), and all three are graded against an oracle written in this file
 directly from the DOS assembly - not imported from noctis-harness, so a mistake
 in that transcription cannot be laundered into agreement here. That oracle is
@@ -32,8 +32,8 @@ backend is selected by which file is copied to tests/gen/mul64be.txt, so this
 test cannot disturb work/mul64be.txt or any shipped output while it runs.
 
 NEGATIVE CONTROLS:
-  1. a fourth backend, identical to mul64frag but with Mul64u encoding
-     `imul ebx` instead of `mul ebx`, is built and run. It must DIVERGE - and
+  1. a fourth backend, identical to mul64frag except that Mul64u applies the
+     signed high-half correction, is built and run. It must DIVERGE - and
      it diverges at draw 3 and stays wrong for 4093 of 4096 draws, which is
      what "silent" means here: the program runs, exits and writes a full-length
      file of confident nonsense.
@@ -205,24 +205,35 @@ def main():
     if len(results) == len(BACKENDS):
         L.compare_records(c, results, "backends")
 
-    # ------------------------------------ 4. the MUL/IMUL negative control
+    # -------------------------- 4. the unsigned/signed negative control
     with open(os.path.join(L.WORK, "mul64frag.txt"), encoding="latin-1") as fh:
         frag = fh.read()
-    assert frag.count("F7 E3") == 1 and frag.count("F7 EB") == 1
+    unsigned_start = frag.index('\n"Mul64u"\n')
+    signed_start = frag.index('\n"Mul64s"\n')
+    high_store = "\tB = [mlmid]; B > 16; A + B;\t\t[m64hi] = A;\n"
+    unsigned_body = frag[unsigned_start:signed_start]
+    assert unsigned_body.count(high_store) == 1
+    correction = (
+        "\n\t\tA = [m64hi];\n"
+        "\t\tB = [m64a]; B >> 31; B & [m64b]; A - B;\n"
+        "\t\tB = [m64b]; B >> 31; B & [m64a]; A - B;\n"
+        "\t\t[m64hi] = A;\n"
+    )
+    insert_at = unsigned_start + unsigned_body.index(high_store) + len(high_store)
     signed_frag = os.path.join(gen, "mul64bad.txt")
     with open(signed_frag, "w", encoding="utf-8") as fh:
-        # Mul64u encoded as imul: the mistake a single shared routine would make
-        fh.write(frag.replace("F7 E3", "F7 EB"))
+        # Make the unsigned entry point return the signed 64-bit product.
+        fh.write(frag[:insert_at] + correction + frag[insert_at:])
     blob, note = build_with(signed_frag, L.STOCK_COMPILER, L.STOCK_CPU, gen,
                             prog="sitcntbad")
     if c.ok(blob is not None,
-            "NC1 a backend whose Mul64u is IMUL builds and runs - nothing "
+            "NC1 a backend whose Mul64u returns a signed product builds and runs - nothing "
             "complains", note):
         bad = rows_of(blob)
         i = first_diff(bad, ref)
         c.ok(i is not None,
              "NC1 ...and it produces a DIFFERENT sequence, so this test can "
-             "tell MUL from IMUL",
+             "tell unsigned from signed multiplication",
              "diverges at draw %s, %d of %d draws wrong"
              % (i, sum(1 for k in range(min(len(bad), len(ref)))
                        if bad[k] != ref[k]), DRAWS))

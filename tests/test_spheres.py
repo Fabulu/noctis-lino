@@ -192,7 +192,7 @@ sys.path.insert(0, HARNESS)
 LIBS = ("spmain.txt", "spmem.txt", "spscale.txt", "spmap.txt", "spglobe.txt",
         "spglow.txt", "spbg.txt", "spwhite.txt", "spdark.txt", "spncc.txt",
         "fbmem.txt", "pgfp.txt")
-FPLIBS = ("fpabi.txt", "fpctl.txt", "fpx87.txt", "fpconv.txt")
+FPLIBS = ("fpabi.txt", "fpctl.txt", "fpsoft.txt", "fpx87.txt", "fpconv.txt")
 ASSETS = ("globes.map", "offsets.map", "vehicle.ncc", "mammal.ncc",
           "birdy.ncc")
 CORPUS = "sp-corpus.txt"

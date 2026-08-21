@@ -3,38 +3,30 @@ a caller is allowed to still be holding when it calls a 64-bit multiply.
 
 The three backends are meant to be interchangeable, and the whole argument that
 the port commits to none of them rests on that. Interchangeable means more than
-"same answer": it means same damage. Two of them are pure L.in.oleum-visible
-code, but mul64frag reaches the high half through `{ F7 EB }`, which writes edx
-BEHIND the compiler's back - D is damaged by a fragment the register allocator
-cannot see. If a future backend quietly started using C or E as scratch, every
-caller holding a value there would be corrupted, the arithmetic would still be
-bit-exact, and every other test in this suite would still pass.
+"same answer": it means same damage. All current implementations use ordinary
+L.in.oleum-visible registers, but a future backend could still start using C, D,
+or E as scratch. Every caller holding a value there would be corrupted while the
+arithmetic remained bit-exact and every value-only test still passed.
 
-MEASURED, NOT ASSUMED. The three source files disagreed with the documentation
-and with each other about this: docs-notes/sitecount.md said "both destroy
-A, B, C, D", mul64limb.txt and mul64star.txt said "Destroys A, B", and only
-mul64frag.txt said "A, B, D". Two of those three cannot be right. This probe
-puts sentinels in C, D and E, calls both entry points on each backend, and reads
-the sentinels back, so the contract is a measurement.
+MEASURED, NOT ASSUMED. Historical implementations and documentation disagreed
+about the damage contract. This probe puts sentinels in C, D and E, calls both
+entry points on each backend, and reads the sentinels back.
 
 What is pinned:
 
-  * C and E survive every backend, at both entry points. That is the guarantee
-    callers may rely on, and it is the one that would break silently.
+  * C, D and E survive every backend, at both entry points. That is the
+    guarantee callers may rely on, and it is the one that would break silently.
   * whatever damage a backend does among C, D and E is a SUBSET of what its own
-    header comment declares it destroys. This is what keeps the comment honest
-    without pinning its wording: adding a clobber forces updating the sentence,
-    and a stale sentence fails the build of trust rather than the reader's
-    attention. Today frag declares A, B, D and damages D; limb and star declare
-    A, B and damage neither C, D nor E.
+    header comment declares it destroys. This keeps the comment honest without
+    pinning its wording.
   * all three still compute the same 64-bit product for the probe's operands,
     at both signednesses - so a "preserved" register cannot be preserved by a
     backend that has stopped working.
 
-NEGATIVE CONTROL: a fourth backend, mul64frag with `C = 0; E = 0;` spliced into
-both entry points, is built and run through the same probe. It must be caught
-damaging exactly C and E. Without that, "C and E are preserved" could be a
-sentence about a probe that cannot see registers at all.
+NEGATIVE CONTROL: a fourth backend, mul64frag with `C = 0; D = 0; E = 0;`
+spliced after its unsigned product, is built and run through the same probe. It
+must be caught damaging exactly C, D and E. Without that, the preservation
+contract could be a sentence about a probe that cannot see registers at all.
 
 Nothing under work/ is written. The probe and the backend copies live in
 tests/gen.
@@ -189,8 +181,9 @@ def declared_damage(path):
     with open(path, encoding="latin-1") as fh:
         text = fh.read()
     regs = set()
-    for m in re.finditer(r"Destroys\s+([A-E](?:\s*,\s*[A-E])*)", text):
-        regs |= {r.strip() for r in m.group(1).split(",")}
+    for m in re.finditer(
+            r"Destroys\s+([A-E](?:(?:\s*,\s*|\s+and\s+)[A-E])*)", text):
+        regs.update(re.findall(r"[A-E]", m.group(1)))
     return regs
 
 
@@ -220,7 +213,7 @@ def check_one(c, name, res, declared):
         for reg, sent in sentinels.items():
             if got[reg] != sent:
                 damaged.add(reg)
-        for reg in ("C", "E"):
+        for reg in ("C", "D", "E"):
             c.ok(got[reg] == sentinels[reg],
                  "  %s/%s leaves %s untouched" % (name, label, reg),
                  "sentinel 0x%08X came back 0x%08X" % (sentinels[reg], got[reg]))
@@ -255,20 +248,24 @@ def main():
         c.note("measured damage beyond A and B: %s"
                % ", ".join("%s=%s" % (k, sorted(v) or "none")
                            for k, v in sorted(all_damage.items())))
-        c.ok(union <= {"D"},
-             "across all three backends the damage beyond A and B is at most D",
+        c.ok(not union,
+             "all three backends preserve C, D and E",
              "union %s" % (sorted(union) or ["none"]))
 
     # ---------------------------------------------------- negative control
     with open(os.path.join(L.WORK, "mul64frag.txt"), encoding="latin-1") as fh:
         frag = fh.read()
-    assert frag.count("[m64hi] = D;") == 2
+    high_store = "\tB = [mlmid]; B > 16; A + B;\t\t[m64hi] = A;"
+    assert frag.count(high_store) == 1
     wrecker = os.path.join(gen, "mul64wreck.txt")
     with open(wrecker, "w", encoding="utf-8") as fh:
-        fh.write(frag.replace("[m64hi] = D;", "C = 0;\n\tE = 0;\n\t[m64hi] = D;"))
+        fh.write(frag.replace(
+            high_store,
+            high_store + "\n\tC = 0;\n\tD = 0;\n\tE = 0;",
+        ))
     res, note = run_probe("wreck", wrecker, L.STOCK_COMPILER, L.STOCK_CPU, gen)
     if c.ok(res is not None,
-            "NC a backend that scribbles on C and E builds and runs - the "
+            "NC a backend that scribbles on C, D and E builds and runs - the "
             "arithmetic is untouched and nothing complains", note):
         lo, hi = product(PA, PB, False)
         c.ok((res["u"]["lo"], res["u"]["hi"]) == (lo, hi),
@@ -277,7 +274,7 @@ def main():
         wrecked = {r for r in ("C", "D", "E")
                    if res["u"][r] != {"C": SENT_C, "D": SENT_D, "E": SENT_E}[r]}
         c.eq(sorted(wrecked), ["C", "D", "E"],
-             "NC ...and the probe catches it: C and E clobbered, D as ever")
+             "NC ...and the probe catches all three clobbered registers")
 
     for stale in (os.path.join(gen, "mul64be.txt"), wrecker):
         if os.path.exists(stale):

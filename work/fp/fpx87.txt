@@ -1,12 +1,10 @@
       ( *** fpx87 - the X87 backend, Level 2 (SCALAR) ***
 
-	One of three interchangeable backends.  Stored-value division now
-	delegates to fpsoft's portable exact integer engine; basic arithmetic is
-	now entirely portable L.in.oleum.  The transcendental operations remain
-	below until their software primitives
-	can pass the full-game smoke as well as the arithmetic corpus.  All
-	three export the same period names and read and write the same
-	fpabi register file, so a call site never changes.
+	One of three interchangeable backends.  Stored-value arithmetic, square root
+	and the transcendental operations delegate to fpsoft's portable exact-integer
+	engine; the scalar public surface now contains no target-machine escape.
+	All three export the same period names and read and write the same fpabi
+	register file, so a call site never changes.
 
 	WHAT THIS FILE IS FOR, AND WHAT IT IS NOT FOR.
 	These are the SCALAR routines: one operation, result to memory.
@@ -17,8 +15,6 @@
 	4194 STARMAP records.  Generation calls fpchains, not this file.
 
 	CLOBBERING CONTRACT.
-	  - the ML fragments touch ONLY the x87 stack and the fpabi
-	    variables.  They never touch A/B/C/D/E and never touch edi.
 	  - the public scalar interface preserves A/B/C/D/E.  The original
 	    machine-language primitives touched only the x87 stack, and game
 	    callers legitimately keep loop counters and addresses live across
@@ -110,19 +106,15 @@
 	end;
 
 "FSin"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    D9 FE				(fsin)
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	---->;
+	=> XScalarSin;
+	<----;
 	end;
 
 "FCos"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    D9 FF				(fcos)
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	---->;
+	=> XScalarCos;
+	<----;
 	end;
 
       ( FAtan2 - FA <- atan2(FA, FB), i.e. atan(FA/FB) with the quadrant
@@ -130,12 +122,9 @@
 	numerator and st0 the denominator, so FA is pushed first. )
 
 "FAtan2"
-	{
-	    DD 87 <dFA0 mtp bytesperunit>	(fld  qword [edi+FA0*4])
-	    DD 87 <dFB0 mtp bytesperunit>	(fld  qword [edi+FB0*4])
-	    D9 F3				(fpatan)
-	    DD 9F <dFA0 mtp bytesperunit>	(fstp qword [edi+FA0*4])
-	}
+	---->;
+	=> XScalarAtan2;
+	<----;
 	end;
 
       ( FCmp - FI <- -1 if FA<FB, 0 if equal, +1 if FA>FB.

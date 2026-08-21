@@ -4,9 +4,10 @@
 	It calls VHGND build surface, the same routine used by the game, and exits
 	before ruins, water cleanup, object caches, drop-site selection or fauna.
 
-	Input gr-full-in.bin, eight 32-bit units:
+	Input gr-full-in.bin, twenty-four 32-bit units:
 	  magic/version, global seed, planet type, surface class, albedo,
-	  landing latitude, landing longitude.
+	  landing latitude, landing longitude, then sixteen low-byte units for
+	  the explicit surface-map/object-chart allocation gap.
 
 	Output gr-full-out.bin:
 	  28 state/header units, 40000 surface-map units, 65536 texture units,
@@ -16,9 +17,9 @@
 
 	GFINMAGIC = 1195788593;       ( 0x47464931, GFI1 )
 	GFOUTMAGIC = 1195788849;      ( 0x47464A31, GFJ1 )
-	GFVERSION = 1;
+	GFVERSION = 2;
 	GFHEAD = 28;
-	GFINUNITS = 8;
+	GFINUNITS = 24;
 	GFSMUNITS = 40000;
 	GFTXUNITS = 65536;
 	GFOBUNITS = 40000;
@@ -32,7 +33,7 @@
 
 "workspace"
 
-	GFinput = 8;
+	GFinput = 24;
 	GFheader = 28;
 
 "programme"
@@ -66,6 +67,11 @@
     "VHG ground fixture wipe surface"
 	A = RPSM; A + [GFi]; [MBptr] = A; [MBval] = 0; => MEM put byte;
 	[GFi]+; A = [GFi]; ? A '< GFSMUNITS -> VHG ground fixture wipe surface;
+	[GFi] = 0;
+    "VHG ground fixture copy gap"
+	A = GFinput; A + 8; A + [GFi]; C = [A]; C & 255; [MBval] = C;
+	A = RPSM; A + GFSMUNITS; A + [GFi]; [MBptr] = A; => MEM put byte;
+	[GFi]+; A = [GFi]; ? A '< 16 -> VHG ground fixture copy gap;
 	[GFi] = 0;
     "VHG ground fixture wipe objects"
 	A = ROBJ; A + [GFi]; [MBptr] = A; [MBval] = 0; => MEM put byte;

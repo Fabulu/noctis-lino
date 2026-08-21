@@ -11,7 +11,7 @@
 
 "libraries"
 
-	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains; geoconv;
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchainssoft; geoconv;
 	fbmem; fbpal; pgfp; pgmem; pgrast; pgtex; pgproj;
 	spmem; spscale; spmap; spglobe; spbg; spwhite; spncc;
 	mul64frag; brtl; suseed; surng; subuf; susm; supaint; supal; sucase; grnd; sky;

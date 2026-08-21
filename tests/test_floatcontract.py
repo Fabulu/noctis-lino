@@ -87,9 +87,10 @@ K_DEFAULT = 64
 def battery_models(header):
     """The referee's prediction for each battery, in order.
 
-    Battery 2 is predicted from the control word the probe REPORTED finding,
-    not from what win32 is supposed to do. If the runtime ever stops forcing
-    chop, this test says so instead of failing for a reason it cannot name.
+    Battery 2 is predicted from the deliberately hostile control word the
+    probe REPORTED saving. The platform runtime word is recorded separately;
+    this keeps the FEnter negative control load-bearing even after runtimes
+    correctly install FCWEXT at process entry.
     """
     pa, ra = R.cw_fields(header["cwsaved"])
     return [
@@ -284,13 +285,16 @@ def main():
     c.eq(h["fflg"], 0, "no unordered compare and no stack fault")
 
     amb = h["cwambient"]
-    c.note("control word: ambient %04X, FEnter saved %04X, installed %04X"
-           % (amb, h["cwsaved"], h["cwentered"]))
-    c.eq(h["cwentered"], 0x133F & 0x0F3F, "FEnter installed 133Fh (masked 033Fh)")
-    c.ok(amb != (0x133F & 0x0F3F),
-         "the AMBIENT word is not the original's - stating it is load-bearing, "
-         "not decoration",
-         "ambient %04X: PC=%d bits, RC=%d" % ((amb,) + R.cw_fields(h["cwsaved"])))
+    c.note("control word: runtime %04X, forced ambient %04X, FEnter saved %04X, "
+           "installed %04X" %
+           (h["cwruntime"], amb, h["cwsaved"], h["cwentered"]))
+    c.eq(h["cwruntime"], 0x033F,
+         "the patched Windows runtime installs exact FCWEXT before Lino starts")
+    c.eq(amb, 0x0E3F,
+         "the historical test independently forces PC=53/RC=chop ambient state")
+    c.eq(h["cwsaved"] & 0x0F3F, amb,
+         "FEnter reads the deliberately forced ambient control word")
+    c.eq(h["cwentered"], 0x033F, "FEnter installs FCWEXT (masked 033Fh)")
     c.eq((h["cwbeforeiso"], h["cwafteriso"]), (0x033F, 0x033F),
          "the control word survives an isocall performed inside the bracket")
 
@@ -396,8 +400,8 @@ def main():
     # -------------------------------- 8. the same probe, built against a broken engine
     for flavour, label, predict in (
             (D.BREAK_NOCW,
-             "fpctl with every `fldcw [FCW]` removed - the control word "
-             "documented instead of stated",
+             "test-only fpctl with every `fldcw [FCW]` removed - the requested "
+             "word documented instead of stated",
              lambda t, pa, ra: R.ns_identity(t[0], t[1], t[2], p=pa, rc=ra)),
             (D.BREAK_SPILL,
              "fpchains with ONE fstp/fld qword pair inserted into NsIdentity "
@@ -427,8 +431,9 @@ def main():
              "%d/%d differ" % (len(badj), N) if badj else "")
         if flavour == D.BREAK_NOCW:
             c.eq(bh["cwentered"], bh["cwambient"],
-                 "...the broken build ran on the word the runtime handed it "
-                 "(%04X), which is what removing the fldcw means" % bh["cwambient"])
+                 "...the broken build stayed on the hostile word the test "
+                 "installed (%04X), which is what removing fldcw means" %
+                 bh["cwambient"])
 
     return c.done()
 

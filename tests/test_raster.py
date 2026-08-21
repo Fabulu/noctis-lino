@@ -151,7 +151,7 @@ SAND = os.path.join(HERE, "gen", "w6a")
 
 LIBS = ("pgmain.txt", "pgfp.txt", "pgmem.txt", "pgrast.txt", "pgtex.txt",
         "pgproj.txt", "fbmem.txt")
-FPLIBS = ("fpabi.txt", "fpctl.txt", "fpx87.txt", "fpconv.txt")
+FPLIBS = ("fpabi.txt", "fpctl.txt", "fpsoft.txt", "fpx87.txt", "fpconv.txt")
 CORPORA = ("pg_corpus_raster.txt", "pg_corpus_edge.txt",
            "pg_corpus_span.txt", "pg_corpus_proj.txt")
 

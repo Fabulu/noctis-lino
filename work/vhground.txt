@@ -4470,6 +4470,23 @@
 	[VHGNDanidist] = [FI];
 	end;
 
+"VHGND animal inclination"
+	( live_animal clamps (ay-ay2)/an_incl_prec to [-1,+1], then converts
+	  atan(ratio) to degrees. an_incl_prec is exactly 50. )
+	A = [VHGNDaniground]; A - [VHGNDroy];
+	? A >= 0 -> VHGND animal incl positive;
+	C = 0; C - 50; ? A >= C -> VHGND animal incl clamped; A = C;
+	-> VHGND animal incl clamped;
+    "VHGND animal incl positive"
+	? A <= 50 -> VHGND animal incl clamped; A = 50;
+    "VHGND animal incl clamped"
+	[FI] = A; => IntToF;
+	[FB0] = 0; [FB1] = 40490000h; => FAtan2;
+	[FB0] = 0; [FB1] = 40668000h; => FMul;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
+	[VHGNDaniincl] = [FI];
+	end;
+
 "VHGND render animals"
 	( live_animal() mammals: persistent motion plus the shipped model's
 	  feline, rabbit and kangaroo body-part deformation. )
@@ -4542,22 +4559,7 @@
 	A = [VHGNDroz]; A - [FI]; [VHGNDroz] = A;
     "VHGND animal ahead ready"
 	=> VHGND rock height;
-	( live_animal clamps (ay-ay2)/an_incl_prec to [-1,+1], then converts
-	  atan(ratio) to degrees. an_incl_prec is exactly 50. )
-	A = [VHGNDaniground]; A - [VHGNDroy];
-	? A >= 0 -> VHGND animal incl positive;
-	C = 0; C - 50; ? A >= C -> VHGND animal incl clamped; A = C;
-	-> VHGND animal incl clamped;
-    "VHGND animal incl positive"
-	? A <= 50 -> VHGND animal incl clamped; A = 50;
-    "VHGND animal incl clamped"
-	[FI] = A; => IntToF;
-	[FB0] = 0; [FB1] = 40490000h; => FAtan2;
-	[FB0] = 0; [FB1] = 40668000h; => FMul;
-	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
-	A = [FI];
-    "VHGND animal incl ready"
-	[VHGNDaniincl] = A;
+	=> VHGND animal inclination;
 
 	A = [VHGNDaniground];
 	C = [VHGNDaniscale]; C '* 16; ? [VHGNDanimtype] = 0 -> VHGND animal clearance;

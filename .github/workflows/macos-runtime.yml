@@ -10,6 +10,11 @@ on:
       - "tools/package_noctis_macos.py"
       - "tools/test_package_noctis_macos.py"
       - "tools/macos_runtime_provenance.py"
+      - "tests/test_fp_runtime_boundary.py"
+      - "tests/macos_fcw_probe.c"
+      - "tests/run_macos_fcw_probe.sh"
+      - "main/sys/win32.bin"
+      - "work/fp/fpctl.txt"
       - "work/globes.map"
       - "work/offsets.map"
       - "work/vehicle.ncc"
@@ -33,6 +38,14 @@ jobs:
     steps:
       - name: Check out the port
         uses: actions/checkout@v7
+
+      - name: Pin the production FP runtime boundary
+        shell: bash
+        run: python3 tests/test_fp_runtime_boundary.py
+
+      - name: Execute the x87 boundary on Intel macOS
+        shell: bash
+        run: bash tests/run_macos_fcw_probe.sh
 
       - name: Build the no-display runtime
         shell: bash

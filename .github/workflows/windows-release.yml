@@ -48,6 +48,26 @@ jobs:
           }
           if ($bad.Count) { throw ($bad -join "`n") }
 
+      - name: Reject production native blocks and float-inventory drift
+        shell: pwsh
+        run: python tests\test_native_closure.py
+
+      - name: Pin the production FP runtime boundary
+        shell: pwsh
+        run: python tests\test_fp_runtime_boundary.py
+
+      - name: Check the NIVGEN scorer API
+        shell: pwsh
+        run: python tests\test_nivgen_score.py
+
+      - name: Check full-sheet snapshot and differential logic
+        shell: pwsh
+        run: python tests\test_nivgen_sheet_report.py
+
+      - name: Check tag-specific release notes and rerun safety
+        shell: pwsh
+        run: python tests\test_release_notes.py
+
       - name: Run the focused integrated-game regression
         shell: pwsh
         env:

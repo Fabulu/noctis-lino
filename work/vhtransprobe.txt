@@ -1,0 +1,134 @@
+      ( *** vhtransprobe - production transcendental consumer boundaries ***
+
+        This test-only library is linked into a derived vhgame main.  It uses
+        the current production globals and routines, emits one compact state
+        record plus the globe page, and contains no target-machine block. )
+
+"variables"
+
+        VHTPstatename = { vhtrans-state.bin };
+        VHTPpagename = { vhtrans-page.bin };
+
+"programme"
+
+"VHTP run"
+        A = spdump; B = 64; C = 0;
+    "VHTP clear state"
+        [A] = C; A+; B ^ VHTP clear state;
+        [spdump plus 0] = 56545031h;        ( VTP1 )
+        [spdump plus 1] = 64;
+
+        => FEnter;
+        => PGF constants;
+        => GR float init;
+        => SP build rgt;
+        => VH view init;
+
+        ( Integral-degree camera cache and the real walking basis. )
+        [VHVcamxi] = 123; [VHVcamyi] = 0FFFFFE38h; [VHVcamzi] = 789;
+        [VHVbeta] = 137; [VHValpha] = 0FFFFFFD5h; => VH set view;
+        [VHGx] = 12345; [VHGz] = 0FFFEF6CEh; [VHGstepv] = 811;
+        => VHG forward; => VHG strafe;
+        [spdump plus 2] = [VHGx]; [spdump plus 3] = [VHGz];
+        [PGFi] = FSTSB; => PGF a; => F32Narrow; => PGF stf32;
+        [spdump plus 4] = [PGFt];
+        [PGFi] = FSTCB; => PGF a; => F32Narrow; => PGF stf32;
+        [spdump plus 5] = [PGFt];
+        [PGFi] = FSTSA; => PGF a; => F32Narrow; => PGF stf32;
+        [spdump plus 6] = [PGFt];
+        [PGFi] = FSTCA; => PGF a; => F32Narrow; => PGF stf32;
+        [spdump plus 7] = [PGFt];
+        [spdump plus 8] = [VHVcamxb]; [spdump plus 9] = [VHVcamyb];
+        [spdump plus 10] = [VHVcamzb];
+
+        ( globe()'s glass-bubble ellipse, including integer chop and smoothing. )
+        [SPpreg] = RGPBG; [SPpn] = NPIX; => SP ramp page;
+        [CSwr] = 0; [GBbubble] = 1; [GBmag] = 3F400000h;
+        [GBcx] = 160; [GBcy] = 100; [GBdstreg] = RGPBG;
+        => SP glass bubble;
+        [spdump plus 11] = [SAr]; [spdump plus 12] = [SAtcx];
+        [spdump plus 13] = [SAtcy]; [spdump plus 14] = [CSwr];
+        [PGFi] = SFRZ; => PGF a;
+        [spdump plus 15] = [FA0]; [spdump plus 16] = [FA1];
+
+        ( Load the shipped vehicle and rotate every used Euler vertex Y/X/Z. )
+        => SP ncc load; => SP unloadallpv;
+        [PVh] = 0; [PVmodel] = MDVEH;
+        [PVxs] = 3F800000h; [PVys] = 3F800000h; [PVzs] = 3F800000h;
+        [PVxm] = 0; [PVym] = 0; [PVzm] = 0; [PVcol] = 0; [PVreq] = 1;
+        => SP loadpv;
+        [spdump plus 17] = [SPload]; [spdump plus 18] = [PVret];
+        [MOxs] = 3F800000h; [MOys] = 3F800000h; [MOzs] = 3F800000h;
+        [MOxa] = 41540000h; [MOya] = 0C1DC0000h; [MOza] = 42330000h;
+        A = 0; A - 1; [MOpid] = A; [MOvid] = A;
+        [MOlist] = 0; [SPskipmid] = 1; [PVh] = 0; => SP modpv;
+        [spdump plus 19] = [PVcnt]; [spdump plus 20] = [MOwalk];
+        [SPreg] = RGPVF;
+        A = [PVax]; [SPidx] = A; => SP getf32; [spdump plus 21] = [SPf];
+        A = [PVay]; [SPidx] = A; => SP getf32; [spdump plus 22] = [SPf];
+        A = [PVaz]; [SPidx] = A; => SP getf32; [spdump plus 23] = [SPf];
+        A = [PVax]; A + 4; [SPidx] = A; => SP getf32; [spdump plus 24] = [SPf];
+        A = [PVay]; A + 4; [SPidx] = A; => SP getf32; [spdump plus 25] = [SPf];
+        A = [PVaz]; A + 4; [SPidx] = A; => SP getf32; [spdump plus 26] = [SPf];
+        A = [PVax]; A + 8; [SPidx] = A; => SP getf32; [spdump plus 27] = [SPf];
+        A = [PVay]; A + 8; [SPidx] = A; => SP getf32; [spdump plus 28] = [SPf];
+        A = [PVaz]; A + 8; [SPidx] = A; => SP getf32; [spdump plus 29] = [SPf];
+        A = [PVax]; A + 12; [SPidx] = A; => SP getf32; [spdump plus 30] = [SPf];
+        A = [PVay]; A + 12; [SPidx] = A; => SP getf32; [spdump plus 31] = [SPf];
+        A = [PVaz]; A + 12; [SPidx] = A; => SP getf32; [spdump plus 32] = [SPf];
+
+        ( Hundredth-degree animal heading through the production movement calls. )
+        [VHGNDanispeed] = 997;
+        [VHGNDanidir] = 0; => VHGND mammal motion vector;
+        [spdump plus 33] = [VHGNDanimove]; A = [VHGNDanidir];
+        => VHGND mammal cosine motion; [spdump plus 34] = [VHGNDanimove];
+        [VHGNDanidir] = 12345; => VHGND mammal motion vector;
+        [spdump plus 35] = [VHGNDanimove]; A = [VHGNDanidir];
+        => VHGND mammal cosine motion; [spdump plus 36] = [VHGNDanimove];
+        [VHGNDanidir] = 0FFFF960Dh; => VHGND mammal motion vector;
+        [spdump plus 37] = [VHGNDanimove]; A = [VHGNDanidir];
+        => VHGND mammal cosine motion; [spdump plus 38] = [VHGNDanimove];
+        [VHGNDanidir] = 35999; => VHGND mammal motion vector;
+        [spdump plus 39] = [VHGNDanimove]; A = [VHGNDanidir];
+        => VHGND mammal cosine motion; [spdump plus 40] = [VHGNDanimove];
+
+        ( The extracted live-animal terrain-inclination atan2 boundary. )
+        [VHGNDroy] = 100; [VHGNDaniground] = 0; => VHGND animal inclination;
+        [spdump plus 41] = [VHGNDaniincl];
+        [VHGNDroy] = 25; [VHGNDaniground] = 0; => VHGND animal inclination;
+        [spdump plus 42] = [VHGNDaniincl];
+        [VHGNDroy] = 0; [VHGNDaniground] = 0; => VHGND animal inclination;
+        [spdump plus 43] = [VHGNDaniincl];
+        [VHGNDroy] = 0; [VHGNDaniground] = 25; => VHGND animal inclination;
+        [spdump plus 44] = [VHGNDaniincl];
+        [VHGNDroy] = 0; [VHGNDaniground] = 100; => VHGND animal inclination;
+        [spdump plus 45] = [VHGNDaniincl];
+
+        ( A real retained system drives the production analytic viewpoint atan2. )
+        [VHTtx] = 3979984; [VHTty] = 0FFFF5671h; [VHTtz] = 0FFFF5430h;
+        => VHT extract;
+        [nsx] = [VHTtx]; [nsy] = [VHTty]; [nsz] = [VHTtz]; => NsSeedFromXYZ;
+        [nsseedin] = A; [nsclass] = [VHTclass]; [nsstarray] = [VHTRay];
+        => NsResetAll; => NsPrepare;
+        [VHGNDplanet] = 2; => VHGND exact viewpoint;
+        [spdump plus 46] = [VHGNDviewpoint];
+        [spdump plus 47] = [nsnop]; [spdump plus 48] = [nsnob];
+        [spdump plus 49] = [VHTclass]; [spdump plus 50] = [VHTRay];
+        [spdump plus 51] = [VHGNDownx0]; [spdump plus 52] = [VHGNDownx1];
+        [spdump plus 53] = [VHGNDownz0]; [spdump plus 54] = [VHGNDownz1];
+
+        => FLeave;
+
+        [File Name] = VHTPstatename; [File Position] = 0;
+        [File Command] = WRITE; [Block Pointer] = spdump; [Block Size] = 256;
+        isocall;
+        [File Name] = VHTPstatename; [File Command] = SET SIZE; [File Size] = 256;
+        isocall;
+
+        [SPpreg] = RGPBG; [SPpn] = NPIX; => SP packpage;
+        [File Name] = VHTPpagename; [File Position] = 0;
+        [File Command] = WRITE; [Block Pointer] = sppack; [Block Size] = 64000;
+        isocall;
+        [File Name] = VHTPpagename; [File Command] = SET SIZE; [File Size] = 64000;
+        isocall;
+        end;

@@ -6,7 +6,7 @@
 
 "libraries"
 
-	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchains;
+	fp/fpabi; fp/fpctl; fp/fpx87; fp/fpconv; fp/fpchainssoft;
 	pgfp; brtl; vhview; vhcapsule;
 
 "directors"
@@ -14,10 +14,20 @@
 	program name = { vhcapsuleprobe };
 	unit = 32;
 
+"constants"
+
+	VHGNDLO = 122880;
+	VHGNDHI = 3145728;
+
 "variables"
 
 	VHGx = 0; VHGy = 0; VHGz = 0; VHGalpha = 0; VHGbeta = 0;
 	VHGmode = 0; VHGlanded = 0; VHGplanet = 3;
+	VHGinterpok = 0;
+	VHGsurfair = 0; VHGsurfjet = 0; VHGsurfvy = 0; VHGsurfground = 0;
+	VHGsurfacefixed = 0; VHGsurfstep = 0; VHGsurfshift = 0;
+	VHGwidephase = 0; VHGwidecaptured = 0;
+	VHGcapsulestartpending = 0; VHGcapsulereturnpending = 0;
 	VHGNDdropx = 1646592; VHGNDdropy = 0; VHGNDdropz = 1646592;
 	VHGNDcamx = 0; VHGNDcamz = 0; VHGNDheight = 0;
 	VHGNDatmosphere = 1; VHGNDseed = 31169; GRalbedo = 20;
@@ -78,7 +88,7 @@
 	=> FLeave;
 	end;
 
-"VHGND eye height"
+"service VHGND eye height"
 	[VHGNDheight] = 0; end;
 
 "VHG fpu clean"

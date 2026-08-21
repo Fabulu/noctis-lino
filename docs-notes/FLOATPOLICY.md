@@ -10,21 +10,47 @@ The regression test that keeps this file honest is
 quoted here on every run. If a claim in this document ever stops being true,
 that test fails and names the battery.
 
+The portable 2026-08-20 FP update, its mathematical oracle, consumer gates,
+workspace boundary, and transitive native-block rule are recorded in
+`docs-notes/TRANSCENDENTALS.md`. That document supersedes this older wave's
+references to native x87 scalar routines and raw generated fragments. The
+original-program measurements and expression schedules below remain evidence,
+not permission to ship those opcodes.
+
+**Current shipping architecture.** Production arithmetic is ordinary Lino
+integer code that models the required 64-bit x87 significand and spill schedule.
+The 75-file, 88-import game/NIVGEN closure contains zero raw target blocks.
+`work/fp/fpctl.txt` is a portable fixed-state contract; platform runtimes own
+`FCWEXT = 133Fh`. The historical raw x87 control witness lives only in
+`work/fp/fpctlx87.txt`, which the test harness privately maps to `fpctl.txt`.
+The closure gate also pins all 36 remaining ordinary Lino floating operations
+(25 in `main/lib/gen/rect.txt`, eight in `work/supaint.txt`, and three in
+`work/supal.txt`) and permits no production `??` floating comparison.
+
+`XQuoCore` is an internal arithmetic kernel for two normalized finite
+mantissas, not a scalar IEEE division entry point. Scalar wrappers already
+handle zero classes outside it, and every direct expression schedule must do
+the same before calling it. Focused ordinary-Lino gates currently expose six
+violations of that rule: two geometry seed/eccentricity schedules, two surface
+contrast schedules, and two tree-parameter schedules fail when a valid random
+numerator is zero; their nonzero or parallel fixed-point controls remain exact.
+Those call sites must be repaired without silently broadening the core contract.
+
 ---
 
 ## 0. The one-paragraph version
 
-Generation arithmetic -- anything that becomes a seed -- is done on the x87
-register stack at **control word 133Fh** (64-bit precision, round to nearest
-even, all exceptions masked), with the intermediates **never stored** across
-an expression. The control word is **stated at every boundary**, never
-inherited. Rendering is not held to that: it goes through the same engine but
-its errors are cosmetic and it is graded against a hardware reference rather
-than against the 1996 catalogue. At the **float-to-int cast boundary** the
-original **chops the live 80-bit `st(0)`** -- settled by Wave 6 out of the
-shipped `NOCTIS.EXE` (§3.3), after Wave 3 left it open -- but the code
-generator still cannot express that, so a conversion must be a hand-checked
-fragment and never a generated chain.
+Generation arithmetic -- anything that becomes a seed -- follows the original
+x87 schedule at **control word 133Fh** (64-bit significand precision, round to
+nearest even, all exceptions masked), with no modeled binary64 spill unless the
+original stored one. Production implements that model in ordinary Lino integer
+code; the historical x87 fragments are private characterization fixtures.
+Platform runtimes state the control word at every application/C boundary rather
+than inheriting host state. Rendering has lower fidelity exposure but still runs
+through the reviewed engine and consumer gates. At the **float-to-int cast
+boundary** the original **chops the live 80-bit `st(0)`** -- settled by Wave 6
+out of the shipped `NOCTIS.EXE` (§3.3). Shipping code reproduces each needed
+expression schedule without embedding target-machine bytes in game source.
 
 ---
 
@@ -137,54 +163,54 @@ cite "4113/4113" as bit-exactness of the intermediates.
 
 ### 3.1 Generation arithmetic -- SETTLED, PROVEN
 
-**Decision.** Seeds and everything feeding them are evaluated as *instruction
-schedules*, not as expressions: the schedule is transcribed from `NOCTIS.EXE`
-into `work/fp/fpsched.txt`, and `tools/genfp.py` turns it into one L.in.oleum
-ML fragment per chain. The running value stays in `st(0)`; the only `fstp` is
-the last one. Control word 133Fh.
+**Decision.** Seeds and everything feeding them are evaluated as instruction
+schedules, not algebraically reassociated expressions. The schedules were
+transcribed from `NOCTIS.EXE` into `work/fp/fpsched.txt`; production's ordinary-
+Lino integer engine models the same 64-bit significand and explicit spill
+points. `tools/genfp.py` and its raw x87 output remain historical test witnesses,
+not production libraries.
 
-**Why a schedule and not an expression.** In a schedule the absence of an
-`fstp` is the absence of an `fstp` -- there is nothing to re-derive. One
-spilled intermediate costs about a quarter of the catalogue, so where Borland
-did and did not store is semantics, not an optimisation detail.
+**Why a schedule and not an expression.** Whether the original issued an
+`fstp` is observable semantics. One spilled intermediate costs about a quarter
+of the catalogue, so the portable model must reproduce each store rather than
+letting host compilation choose one.
 
-**Evidence.** Four independent engines agree bit for bit on all 4113 records:
-the L.in.oleum ML fragments, a gcc-built hardware x87 (built and run inside
-the test), an exact-integer x87 model in Python (`tests/fpspec.py`), and the
-1996 binary itself. `--backend native` is **refused** by the generator for any
-chain marked `exact`, because compiling one through 24-bit instructions
-produces a plausible wrong answer, which is worse than an error.
+**Evidence.** Four independent engines agreed bit for bit on all 4113 records:
+the historical Lino x87 witness, a gcc-built hardware x87, an exact-integer x87
+model in Python (`tests/fpspec.py`), and the 1996 binary itself. Current
+production validation adds portable schedule comparisons and byte-exact
+consumer outputs. No shipping root imports the raw `fpchains.txt` witness.
 
-**Do not** call the scalar `fpx87` routines in sequence to evaluate a
-generation expression. Each of them stores. That is battery 7 above: 2239.
+**Do not** decompose a generation expression into stored scalar calls. Each
+public scalar call returns a binary64. That is battery 7 above: 2239.
 
 ### 3.2 The control word -- SETTLED, and it is not decoration
 
-**Decision.** Every boundary calls `FEnter` (save ambient, install `[FCW]`)
-and `FLeave` (put back exactly what was found). `[FCW]` defaults to
-`FCWEXT = 133Fh`. `FLoadCW` is for changing it again *inside* an existing
-bracket; calling `FEnter` twice would make `FLeave` restore the wrong word.
+**Decision.** The production process owns one fixed environment:
+`FCWEXT = 133Fh`. `FEnter`, `FLeave`, and `FLoadCW` preserve the historical call
+surface but do not pretend portable source can save or load host x87 state.
+`FEnter` rejects any requested word other than `FCWEXT`; `FLeave` reasserts that
+fixed contract.
 
-**Why it is mandatory.** Measured on this machine, reported by the probe's own
-header rather than taken from documentation:
+The environment is installed below the language boundary. The eight variants in
+licence-protected `main/sys/win32.bin` retain their exact upstream bytes. After
+the compiler copies one selected variant into a generated PE,
+`tools/patch_runtime_fcw.py` replaces its one reviewed control sequence with the
+size-preserving `133Fh` form and rejects missing, duplicate, or already-patched
+sequences. Linux and macOS runtimes load `133Fh` before application entry and
+reload it immediately after every C/runtime isocall.
+`tests/test_fp_runtime_boundary.py` pins all eight protected variants, the
+post-link Windows instruction shape, both load sites and the one constant in each
+assembly source, and the absence of machine escapes from production `fpctl.txt`.
 
-* ambient control word at programme entry on win32: **0E7Fh** -- the C
-  runtime's 027Fh with **0C00h ORed in**, i.e. 53-bit precision *and rounding
-  toward zero*.
-* `main/sys/win32.bin` contains exactly 8 copies of
-  `fnstcw / and ax,0F3FFh / or ax,0C00h / fldcw`.
-* `main/sys/linux.bin` contains **zero** `fldcw` and zero `fnstcw`.
-
-So the same L.in.oleum source computes differently on the two runtimes unless
-the word is stated. Under the ambient win32 word the identity chain scores
-**7 / 4113**. Documenting this would not have removed it; `FEnter` does.
-
-**Isocall persistence.** The word survives a real file-write isocall performed
-inside the bracket: read back 033Fh (masked) immediately before and
-immediately after, and the chain re-run afterwards is bit-identical on all
-4113 records. **Scope limit, stated plainly:** only file-I/O isocalls have
-been tested. Graphics, sound, timer and memory isocalls are untested, and
-given the 8 chop-forcing sites in `win32.bin` the question is not academic.
+**Why it is mandatory.** The historical probe measured the old Windows runtime
+entering at `0E7Fh`: 53-bit precision and round-toward-zero. Under that ambient
+word the identity chain scored **7 / 4113**. The private x87 witness now records
+the patched runtime word (`033Fh`), deliberately installs hostile `0E3Fh`, and
+proves `FEnter` installs `033Fh`. Deleting every private `fldcw [FCW]` leaves the
+negative control at 7/1130 in the focused K=24 run, exactly as the independent
+referee predicts. That separates platform ownership from the historical witness
+instead of inferring one from the other.
 
 **The decoy that misleads audits.** `PITAGORA.H` contains a
 `_control87(RC_CHOP, MCW_RC)` call that **never executes** -- Noctis includes
@@ -193,18 +219,14 @@ given the 8 chop-forcing sites in `win32.bin` the question is not academic.
 concludes the original ran in chop mode. It did not: the shipped `NOCTIS.EXE`
 carries 133Fh, read out of the MZ image and the Borland C0 startup.
 
-### 3.3 Float to int -- **the ORIGINAL's behaviour is SETTLED (Wave 6); the
-### ENGINE still cannot reproduce it in general**
+### 3.3 Float to int -- **the original is settled; production models it portably**
 
-> **Changed 2026-08-05 by Wave 6.** This section previously read "UNSETTLED"
-> in both halves. One half is now closed. What the 1996 program does at a
-> cast site was read out of the shipped `NOCTIS.EXE` -- see "What Wave 6
-> settled" below -- and it is **chop applied to the live 80-bit `st(0)`**.
-> What the delivered L.in.oleum engine can *express* is unchanged, so the
-> interim policy at the end of this section still stands, but it now stands
-> for a different reason: a limitation of our engine, not an unknown about
-> the original. `tests/test_geometry.py` section 1 re-derives the settled
-> answer from the binary on every run and fails if it stops being true.
+> **Current status, 2026-08-20.** The original behavior remains chop on the
+> live 80-bit `st(0)`. The shipping generator paths reproduce the required
+> expression schedules in ordinary Lino integer code. The raw `fistp` fragments
+> discussed below are historical characterization and mutation fixtures outside
+> the production closure; they document how the answer was established, not the
+> current implementation architecture.
 
 The original has **two** float-to-int behaviours and they are not
 interchangeable:
@@ -262,47 +284,30 @@ binary64-first moves **0.28%**.
 Nothing here changes the **37 hand-written `fistp` sites**. They inherit
 133Fh and round to nearest even; that was never the open half.
 
-**What is still not settled -- and it is about our engine, not the original.**
-The engine has **no way to truncate an unstored extended value** in general.
-`FToIntChop` begins `fld qword [FA0]`, so the 80-bit intermediate is narrowed
-to binary64 *before* the truncation; and `genfp`'s `out` directive accepts
-only `f64`, so a generated chain must end in an `fstp` before any conversion.
-Wave 6's `work/geoconv.txt` closes this **per expression shape** -- one
-fragment per shape that builds its value and chops it without ever storing it,
-covering the seven geometry shapes that can differ -- but a general
-`FToIntChopExt` still cannot exist, because a value in `st(0)` cannot be
-handed between two L.in.oleum routines. On hardware the two readings differ:
-`(long)(1.0/41.0*41.0)` is **0** with the chain kept in `st(0)` and **1** with
-the intermediate spilled to a binary64, at the same control word. The
-delivered `fpconv` can only produce the second answer.
+**Historical harness limitation.** The original Lino code generator could not
+hand a live `st(0)` value between routines: `FToIntChop` first loaded a stored
+binary64, and `genfp`'s `out` directive required a store. The private
+`work/geoconv.txt` witness therefore used one raw fragment per expression shape
+to prove the live-versus-spilled distinction. On hardware,
+`(long)(1.0/41.0*41.0)` is **0** with the chain kept in `st(0)` and **1** after a
+binary64 spill at the same control word.
 
-Separately, an earlier `genfp` accepted a bare `fistp` with no `fldcw` bracket,
-which under 133Fh rounds to **nearest** where a C cast **truncates**. Modelled
-at the three landmark sites in `NOCTIS-1.CPP`, that divergence changes the
-seed for 1488/2981, 663/1376 and 231/475 of the in-range stars. The generator
-now rejects both `fistp` and `fist`, including the former loophole where the
-destination was declared as an integer input rather than an output.
+That limitation no longer licenses target bytes in shipping source. Production
+models the extended value and truncation with ordinary integer operations; the
+closure gate rejects `geoconv.txt` or any other raw witness if a shipping root
+imports it. `genfp` still rejects both `fistp` and `fist`, including the former
+integer-input-slot bypass, so generated raw schedules cannot accidentally claim
+to solve the boundary.
 
-**Interim policy, and what the test enforces.** Until `genfp` can end a chain
-on a live `st(0)`:
+The rule is now:
 
-> No **generated** chain may convert to an integer. A conversion must be
-> written as a hand-checked fragment naming its own reading.
+> No production game source may use a raw conversion fragment. Preserve the
+> original expression schedule and live-extended chop in ordinary Lino, and
+> validate it against the historical binary/model witnesses.
 
-`test_floatcontract.py` asserts exactly that and nothing stronger: `genfp`
-refuses a schedule containing `fistp` even when the store targets a declared
-integer input slot, and the generated `fpchains.txt` contains no `fistp`
-encoding at all. Note what that rule is now *for*: it is a guard on
-the code generator, **not** an admission that we do not know what the
-original does. We do -- see above -- and the two hand-written places that need
-it (`nsident.txt`'s `NsIdentChop16`, Wave 4, and `work/geoconv.txt`'s
-per-shape fragments, Wave 6) implement the settled reading, chop on the live
-value. `test_geometry.py` is what keeps the settled reading honest.
-
-Mitigating fact, so this is not overstated: the narrowing hazard's probability
-is about 1e-7 per site at these magnitudes, and it does not bite at any of the
-three landmark sites on either input set (0 differences measured). It is real
-on hardware; it is simply not exercised yet.
+`tests/test_geometry.py` keeps the settled reading honest. The historical
+`NsIdentChop16` and `geoconv` fragments remain useful negative/reference
+fixtures but are not reachable from `work/vhgame.txt` or `work/vhnivgen.txt`.
 
 ### 3.4 Rendering, projection, `F32Narrow` -- PLAUSIBLE, cosmetic exposure
 
@@ -319,21 +324,22 @@ around 3.8e6 a binary32 ULP is 0.25, so landing quantises the ship's position
 observably in the original. That is why ship state is carried as a double and
 narrowed at those points rather than kept in lino's native 24-bit floats.
 
-### 3.5 Backends -- interchangeable through `fpabi`, with one known hole
+### 3.5 Historical backends and current public ABI
 
-`fpabi.txt` declares the register file and nothing else; `fpx87`, `fpsoft` and
-`fpnative` are compiled against it alone, so a call site never knows which is
-linked. Measured cross-checks: X87 == SOFT at 133Fh on 4194/4194 (hardware vs
-an integer soft-float that never touches the FPU); SOFT PC=64 == SOFT PC=24;
-NATIVE at RC=nearest == x87 held at PC=24 on 4194/4194 -- so "24 bits per
-operation" is a *measurement*; and NATIVE PC=64 == NATIVE PC=24, which closes
-off "just raise the precision control" as a shortcut.
+The backend comparisons below are retained as characterization. Production's
+`fpx87`-named public scalar surface now delegates to `fpsoft` ordinary-Lino
+integer routines; the name is compatibility, not an opcode exception. It writes
+both `FA0` and `FA1`, preserves `A/B/C/D/E`, and contains no raw target block.
 
-**Known hole:** in `fpnative`, `FAdd/FSub/FMul/FQuo/FSqrt/FNeg/FAbs/FSin/
-FCos/FAtan2` write `FA0` only and leave `FA1` stale -- only `FLoad` and
-`FWiden` update it. A call site written against `fpx87` gets a garbage high
-half when relinked. Nothing currently miscomputes because `fpstarnat` calls
-`FWiden` before every store, but the ABI does not hold as written.
+Historically, `fpabi.txt` allowed `fpx87`, `fpsoft`, and `fpnative` test backends
+to be compiled against the same slots. Measured cross-checks were: X87 == SOFT
+at 133Fh on 4194/4194; SOFT PC=64 == SOFT PC=24; NATIVE at RC=nearest == x87
+held at PC=24 on 4194/4194; and NATIVE PC=64 == NATIVE PC=24. Those measurements
+closed off "just raise the precision control" as a shortcut.
+
+The historical `fpnative` fixture leaves `FA1` stale after scalar arithmetic and
+transcendentals. It remains a deliberately limited characterization backend and
+must not be substituted for production `fpx87`.
 
 ### 3.6 Register-file layout -- pinned, because it fails silently
 
@@ -349,13 +355,15 @@ check fails loudly instead of every score below becoming quietly meaningless.
 
 | symbol | file | contract |
 |---|---|---|
-| `FEnter` / `FLeave` | `fpctl` | save ambient CW, install `[FCW]`; restore. Mandatory at every boundary. |
-| `FLoadCW` | `fpctl` | install `[FCW]` **without** saving -- for a second change inside an existing bracket. |
-| `FCWRead` / `FSWRead` / `FStackOK` | `fpctl` | read back, masked with 0F3Fh. `fnstcw` returns bit 6 set whatever was loaded, so every comparison must mask. |
-| `FCWEXT`=133Fh, `FCWDBL`=123Fh, `FCWSGL`=103Fh, `FCWEXTCHOP`=1F3Fh | `fpabi` | the four words. Only the first is the original's. |
+| `FEnter` / `FLeave` | `fpctl` | assert/restate the runtime-owned fixed `FCWEXT` contract; no host instruction in production source. |
+| `FLoadCW` | `fpctl` | accept only `FCWEXT`; other requested words fail. |
+| `FCWRead` / `FSWRead` / `FStackOK` | `fpctl` | portable production contract values. Raw historical observations come only from test-only `fpctlx87.txt`. |
+| `FCWEXT`=133Fh, `FCWDBL`=123Fh, `FCWSGL`=103Fh, `FCWEXTCHOP`=1F3Fh | `fpabi` | historical words; production runtime state is fixed to the first. |
 | `FA0/FA1 … FD0/FD1`, `FJ0..FJ3`, `FI`, `FS0` | `fpabi` | the register file. **Order is load-bearing.** |
-| generated chains (`NsIdentity`, `Prod4`, …) | `fpchains` (from `fpsched`) | one fragment each, result in `FA`, no intermediate reaches memory, control word NOT set -- call `FEnter` first. |
-| `FToIntChop` / `FToIntNear` / `FToInt16*` | `fpconv` | cast sites vs the 37 hand-written sites. **See §3.3 -- the original chops the LIVE 80-bit value; `FToIntChop` chops a stored binary64, so it is the right answer only where the two coincide.** |
+| production scalar and generation schedules | `fpx87` / `fpsoft` and consumer libraries | ordinary-Lino integer model of binary64 import, 64-bit x87 significand operations, and explicit spills. |
+| `XQuoCore` | private `fpsoft` kernel | divide normalized finite mantissas only; scalar wrappers and direct schedules handle zero/exceptional classes before entry. |
+| historical generated chains (`NsIdentity`, `Prod4`, …) | test-only `fpchains` (from `fpsched`) | raw x87 characterization witness, outside the shipping closure. |
+| `FToIntChop` / `FToIntNear` / `FToInt16*` | `fpconv` | stored binary64 conversion helpers; live-extended production expressions must be modeled as complete ordinary-Lino schedules. |
 | `F32Narrow`, `FStoreF32`, `FLoadF32` | `fpconv` | the deliberate binary32 quantisations. |
 
 ---
@@ -384,10 +392,11 @@ Every run, from scratch:
 5. records -- and does not assert as policy -- that a one-**extended**-ULP flip
    is *not* caught, and that a bit-11 flip *is*, which locates the oracle's
    resolution;
-6. builds the same probe twice more against **deliberately broken engine
-   sources** (every `fldcw [FCW]` removed from `fpctl`; one `fstp/fld qword`
-   pair inserted into `NsIdentity`) and requires each to fail the oracle **and
-   to produce exactly what the referee predicted it would produce instead**.
+6. builds the same historical probe twice more against **deliberately broken
+   private witness sources** (every `fldcw [FCW]` removed from test-only
+   `fpctlx87.txt`; one `fstp/fld qword` pair inserted into `NsIdentity`) and
+   requires each to fail the oracle **and to produce exactly what the referee
+   predicted it would produce instead**.
 
 Proven by breaking it: nine mutations were applied one at a time, each
 restored afterwards with its SHA-256 confirmed back, and each failed the test
@@ -396,7 +405,7 @@ with attributable messages --
 | mutation | what failed |
 |---|---|
 | a spill added to the graded schedule (`fpsched.txt`) | 12 checks, starting "exactly ONE fstp: got 2" |
-| `FEnter` stops installing the word (`fpctl.txt`) | "FEnter installed 133Fh: got 0E3F" |
+| private x87 `FEnter` stops loading the word (`fpctlx87.txt`) | hostile ambient word remains 0E3Fh and the exact-chain control collapses as predicted |
 | `FCWEXT` becomes 123Fh (`fpabi.txt`) | 28 checks, including every catalogue score |
 | `fpchains.txt` drifts from `fpsched.txt` | the byte-identity check |
 | the referee's round-to-nearest gets a denominator bug | "battery 4 == the referee: 128/1130 differ" |
@@ -417,24 +426,25 @@ about it.
 
 ## 6. What remains open
 
-1. **The cast boundary (§3.3) -- generator guard closed.** *What the original
-   does* is settled: chop on the live 80-bit `st(0)`, read out of
-   `NOCTIS.EXE` and re-derived by `tests/test_geometry.py` section 1 on every
-   run. `genfp` now refuses bare `fistp` and `fist`, and the focused contract
-   test attacks the integer-input-slot bypass directly. A generated chain
-   still cannot return a live extended value across a routine boundary, so
-   known casts remain hand-checked expression fragments in `work/geoconv.txt`.
-2. **Isocalls other than file I/O.** Control-word persistence is measured only
-   across a file write. Graphics, sound, timer and memory isocalls are
-   untested and `win32.bin` has 8 chop-forcing sites.
-3. **`fpnative`'s stale `FA1` (§3.5).** The ABI does not hold as written; it
-   works only because the current call sites widen first.
-4. **`work/fp/fpgrade.py` and `fpstarin.bin`.** The score is inflated by six
-   selected rows and the provenance sentence is wrong about the inputs. Either
-   regenerate the input set from a checked-in script using the
-   single-candidate rule, or delete the files and let the regression test be
-   the grader. `fpall.ps1` also ignores the exit status of `fpgrade.py`,
-   `fpbackends.py`, `fprun.ps1` and `fpbreakrun.ps1`.
-5. **Rendering has no external grader (§3.4).** Accepted: the exposure is a
-   quarter of a pixel. If that ever stops being true -- a projection feeding a
-   seed, say -- it needs an oracle of its own.
+1. **Run the hosted macOS boundary.** Source/static checks are complete. A
+   test-only x86_64 Mach-O probe now perturbs the host to `123Fh`, loads
+   `133Fh`, reads both states with `fnstcw`, and restores the incoming word; its
+   C source passes locally and both Intel-macOS and Apple-Silicon/Rosetta
+   workflows execute it. Those hosted jobs still must run on the current source,
+   together with the existing exact Rosetta NIVGEN and game-consumer smokes.
+2. **Complete integrated regression.** The default K=64 historical contract
+   passes all 80 checks over 4,113 unambiguous catalogue rows. All 16 4,096-case
+   schedules and 45 consumer checks also pass. One coherent project-wide suite
+   still has to pass with the final runtime baseline.
+3. **Historical fixture hygiene.** `work/fp/fpgrade.py` and `fpstarin.bin` still
+   carry the older six-row input-selection problem. They are not production
+   inputs, but should be regenerated from the single-candidate rule or retired.
+4. **Rendering exposure.** The scalar model is mathematically and consumer
+   tested, while the remaining 36 ordinary Lino float operations are inventory-
+   pinned rather than externally graded at every pixel. Any path that starts
+   feeding generation state needs a stronger oracle before release.
+
+The earlier attempt to modify protected `main/sys/win32.bin` was reverted. Its
+upstream SHA-256 remains
+`6620f38b49762a434267f6ea46a0c38673f55e5ca87cff7f82dfbda9e0fa175b`;
+generated Windows PEs receive the reviewed size-preserving `133Fh` patch instead.

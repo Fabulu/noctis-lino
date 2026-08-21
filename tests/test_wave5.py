@@ -168,7 +168,7 @@ WORK = lh.WORK
 HARNESS_DIR = w5audit.HARNESS
 
 LIBS = ("fbmem.txt", "fbpal.txt", "fbtick.txt")
-FPLIBS = ("fpabi.txt", "fpctl.txt", "fpx87.txt", "fpconv.txt")
+FPLIBS = ("fpabi.txt", "fpctl.txt", "fpsoft.txt", "fpx87.txt", "fpconv.txt")
 
 # ------------------------------------------------------------- timing bounds
 BOUND_P50_MS = 0.50

@@ -14,13 +14,13 @@
 	near one is a PIXEL, and a test that only checked the arithmetic
 	would leave the more dangerous half unmeasured.
 
-	It is graded against fpref.exe, which is a C program compiled by
-	gcc that executes the same x87 instructions on the same hardware.
-	The two sides share the vector file and the definition of each
-	operation; they share no compiler, no language, no encoding and no
-	operand address.  Byte-for-byte agreement is therefore evidence
-	about the arithmetic AND about the opcodes typed out by hand in
-	fpx87 and fpconv, which is the pair of things that could be wrong.
+	Schedules other than the transcendentals are graded byte-for-byte against
+	fpref.exe, a gcc-built program executing the same x87 operations.  Schedules
+	8-10 use fptransgrade.py instead: a 180-digit Decimal oracle grades the
+	mathematical result within one final binary64 ULP and derives conversions,
+	flags, CW and TOP independently.  fpref still runs for those schedules, but
+	x87 FSIN/FCOS agreement is characterization because their documented 66-bit
+	pi reduction loses accuracy on large inputs.
 
 	Schedule ids:
 	   1 FAdd    2 FSub   3 FMul   4 FQuo   5 FSqrt of |a|

@@ -204,9 +204,9 @@
       ( SU shade byte - [SUti] <- the byte shade stores for [SFtmp]. )
 
 "SU shade byte"
-	?? [SFtmp] < [KFZERO] -> SU sb zero;
-	?? [SFtmp] >= [KF64] -> SU sb full;
 	[FS0] = [SFtmp]; => FLoadF32; => FToIntChop; [SUti] = [FI];
+	? [SUti] '< 0 -> SU sb zero;
+	? [SUti] '> 63 -> SU sb full;
 	end;
     "SU sb full"
 	[SUti] = 63;

@@ -1,0 +1,71 @@
+      ( *** fpctlx87 - test-only x87 control/status witness ***
+
+        This file retains the seven target-machine control/status operations
+        needed by the historical x87 characterization and deliberate negative
+        controls.  Shipping Noctis imports fpctl.txt instead; fixed production
+        FP state is established below the Lino boundary by each runtime.
+
+        MEASURED GOTCHA: fnstcw reads bit 6 back as 1 no matter what was
+        loaded.  Load 103Fh, read 107Fh.  Every comparison masks. )
+
+"programme"
+
+( ==================================================================== )
+( control word                                                          )
+( ==================================================================== )
+
+"FReset"
+        {
+            DB E3                               (fninit)
+        }
+        => FLoadCW;
+        end;
+
+"FEnter"
+        [FCWSAV] = 0;
+        {
+            9B                                  (fwait)
+            D9 BF <dFCWSAV mtp bytesperunit>    (fnstcw [edi+FCWSAV*4])
+        }
+        {
+            D9 AF <dFCW mtp bytesperunit>       (fldcw [edi+FCW*4])
+        }
+        end;
+
+"FLeave"
+        {
+            D9 AF <dFCWSAV mtp bytesperunit>    (fldcw [edi+FCWSAV*4])
+        }
+        end;
+
+"FLoadCW"
+        {
+            D9 AF <dFCW mtp bytesperunit>       (fldcw [edi+FCW*4])
+        }
+        end;
+
+"FCWRead"
+        [FCWTMP] = 0;
+        {
+            9B                                  (fwait)
+            D9 BF <dFCWTMP mtp bytesperunit>    (fnstcw [edi+FCWTMP*4])
+        }
+        A = [FCWTMP]; A & FCWMASK; [FI] = A;
+        end;
+
+"FSWRead"
+        [FSW] = 0;
+        {
+            9B                                  (fwait)
+            DD BF <dFSW mtp bytesperunit>       (fnstsw [edi+FSW*4])
+        }
+        A = [FSW]; A & FFFFh; [FI] = A;
+        end;
+
+"FStackOK"
+        => FSWRead;
+        A = [FI]; A > 11; A & 7; [FI] = A;
+      ? [FI] = 0 -> FSTOK done;
+        A = [FFLG]; A | FFLGSTACKBAD; [FFLG] = A;
+    "FSTOK done"
+        end;

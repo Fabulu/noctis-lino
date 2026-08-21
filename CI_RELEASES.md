@@ -42,8 +42,9 @@ executables.
   `Noctis-IV-windows-x86-snapshot` Actions artifact.
 - `.github/workflows/macos-runtime.yml` builds Cocoa and headless x86_64 runtimes
   on Intel macOS. It verifies architecture, macOS 10.15 deployment target,
-  expected framework linkage, package-tool syntax, focused Mach-O normalization
-  tests, and the mutable seed-asset set.
+  expected framework linkage, a hosted x87 `123Fh`/`133Fh` control-word probe,
+  package-tool syntax, focused Mach-O normalization tests, and the mutable
+  seed-asset set.
 - `.github/workflows/macos-rosetta-nivgen.yml` builds both unsigned x86_64
   runtimes on Apple Silicon, records actual toolchain/runtime provenance,
   cross-compiles the production NIVTEST image and game on Ubuntu, and returns to
@@ -92,7 +93,9 @@ The macOS build deliberately crosses three hosted environments:
    fixpoint compiler, audit the x64 pack, and compile dedicated NIVTEST and game
    Mach-O outputs. Bind the compiler, packs, scripts, runtimes, source graph,
    complete RTM prefix, output, and intentional historical tail by SHA-256.
-3. **Rosetta exactness.** Run one production sector through the headless output
+3. **Rosetta exactness.** Compile and execute an x86_64 host probe that perturbs
+   the x87 control word to `123Fh`, loads `133Fh`, reads both states, and restores
+   the incoming word. Then run one production sector through the headless output
    and require all seven authoritative Windows/NIV+ hashes. A runnable process
    alone is not sufficient.
 4. **Mach-O normalization.** Parse the thin x86_64 runtime and `LNLMInit`, require

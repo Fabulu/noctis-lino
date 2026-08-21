@@ -26,6 +26,10 @@ on:
       - "tools/pack_lino_sys.py"
       - "tools/package_noctis_macos.py"
       - "tools/test_package_noctis_macos.py"
+      - "tests/test_fp_runtime_boundary.py"
+      - "tests/macos_fcw_probe.c"
+      - "tests/run_macos_fcw_probe.sh"
+      - "main/sys/win32.bin"
       - "PLAYER_README.txt"
       - "LICENSE.htm"
       - "work/**.txt"
@@ -62,6 +66,10 @@ on:
       - "tools/pack_lino_sys.py"
       - "tools/package_noctis_macos.py"
       - "tools/test_package_noctis_macos.py"
+      - "tests/test_fp_runtime_boundary.py"
+      - "tests/macos_fcw_probe.c"
+      - "tests/run_macos_fcw_probe.sh"
+      - "main/sys/win32.bin"
       - "PLAYER_README.txt"
       - "LICENSE.htm"
       - "work/**.txt"
@@ -91,6 +99,10 @@ jobs:
     steps:
       - name: Check out the port
         uses: actions/checkout@v7
+
+      - name: Pin the production FP runtime boundary
+        shell: bash
+        run: python3 tests/test_fp_runtime_boundary.py
 
       - name: Build the headless and Cocoa runtimes
         shell: bash
@@ -190,6 +202,12 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+
+      - name: Execute the x87 boundary through Rosetta
+        shell: bash
+        run: |
+          test "$(uname -m)" = arm64
+          bash tests/run_macos_fcw_probe.sh
 
       - name: Download the compiled outputs
         uses: actions/download-artifact@v8

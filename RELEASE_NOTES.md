@@ -302,6 +302,24 @@ exit-state hashes. The unusual orange crown and blue limbs in that authored
 daylight state are confirmed by the direct NIV+ framebuffer and full 768-entry
 palette oracle; the former rainbow spray defect remains absent.
 
+## Beta 12
+
+Beta 12 restores the original Stardrifter lift impulse and completes the first
+long smooth-presentation cadence audit across walking, flight, focus loss, and
+mode transitions. The optional presenter continues to target 60 Hz while game
+state advances only on the original 18.206-Hz simulation ticks.
+
+Matched NIV+ stage captures authenticate the dense- and thin-atmosphere sun
+pipelines. The surface panorama no longer erases a rectangular edge area that
+the native renderer leaves intact, making the pinned pre-sun, post-sun, and
+palette-mask pages exact for those fixtures.
+
+The release also accelerates arbitrary-window scaling, exact panorama turns,
+surface-background regeneration, and the shared solid-polygon fill and edge
+paths. Focused page and edge-state comparisons, including deliberately broken
+negative controls, retain the established renderer output while removing the
+repeated interpreted scans.
+
 ## Beta 11
 
 Beta 11 hardens smooth presentation, preserves more NIV+ memory behavior, and

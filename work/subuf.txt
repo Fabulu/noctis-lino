@@ -170,6 +170,13 @@
 	sutmppal = 768;		( NOCTIS-0.CPP:56, "unsigned char tmppal[768]" )
 	sulrec	= 8;
 
+	      ( The deliberately invalid colorbase-255 synthetic case makes
+		shade/tavola touch palette units 765..956.  The first eight
+		units past tmppal retain the existing sulrec overlap; reserve the
+		remaining 181 so the bounded test does not depend on GlobalAlloc's
+		page-end slack.  Valid game colorbases never touch this tail. )
+	supalspill = 181;
+
 "programme"
 
 ( ==================================================================== )
