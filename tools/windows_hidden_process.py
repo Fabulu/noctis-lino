@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ctypes
 from ctypes import wintypes
+from collections.abc import Sequence
 import os
 from pathlib import Path
 import subprocess
@@ -75,7 +76,8 @@ def _configured_kernel32():
     return kernel32, user32
 
 
-def run(executable: Path, cwd: Path, timeout: float) -> subprocess.CompletedProcess:
+def run(executable: Path, cwd: Path, timeout: float,
+        arguments: Sequence[str] = ()) -> subprocess.CompletedProcess:
     if os.name != "nt":
         raise OSError("private Windows desktops are available only on Windows")
     kernel32, user32 = _configured_kernel32()
@@ -89,7 +91,8 @@ def run(executable: Path, cwd: Path, timeout: float) -> subprocess.CompletedProc
     startup.cb = ctypes.sizeof(startup)
     startup.lpDesktop = f"WinSta0\\{desktop_name}"
     process = PROCESS_INFORMATION()
-    command_line = ctypes.create_unicode_buffer(f'"{Path(executable).resolve()}"')
+    command = [str(Path(executable).resolve()), *map(str, arguments)]
+    command_line = ctypes.create_unicode_buffer(subprocess.list2cmdline(command))
     try:
         created = kernel32.CreateProcessW(
             str(Path(executable).resolve()), command_line,
@@ -112,7 +115,7 @@ def run(executable: Path, cwd: Path, timeout: float) -> subprocess.CompletedProc
                     process.hProcess, ctypes.byref(return_code)):
                 raise ctypes.WinError(ctypes.get_last_error())
             return subprocess.CompletedProcess(
-                [str(executable)], int(return_code.value), "", "")
+                command, int(return_code.value), "", "")
         finally:
             kernel32.CloseHandle(process.hThread)
             kernel32.CloseHandle(process.hProcess)
