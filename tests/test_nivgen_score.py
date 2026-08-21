@@ -27,6 +27,24 @@ def check(condition: bool, label: str) -> None:
 
 def main() -> int:
     args = argparse.Namespace(timeout=17, exe="fixture.exe")
+    nivtest = nivgen_score.nivtest
+    check(nivtest.HASH_EXTENTS == {
+              "surface": 360 * 128,
+              "surftex": 256 * 254,
+              "sky": 360 * 128,
+          },
+          "public hash extents retain their exact rectangular boundaries")
+    check({name: nivtest.LAYOUT[name][1]
+           for name in ("surface", "surftex", "sky")} == {
+              "surface": 360 * 180,
+              "surftex": 256 * 256,
+              "sky": 360 * 180,
+          },
+          "generator transport retains the complete allocated image buffers")
+    vhnivgen = (ROOT / "work" / "vhnivgen.txt").read_text(encoding="utf-8")
+    check("[VHGNDskycount] = 64864;" in vhnivgen and
+          "NHSTEXU = 65536; NHSKYU = 64800;" in vhnivgen,
+          "sky slack fill and full texture transport stay outside scored extents")
     call = nivgen_score.namespace(
         args, -11, 22, -33, 4, 123, -45, "00" * 16, True)
     check(call.diagnostic is False,

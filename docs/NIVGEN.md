@@ -33,10 +33,17 @@ The scored FNV-1a boundaries are:
 | Landed surface texture | 65,024 |
 | Landed sky | 46,080 |
 
-The surface texture boundary is exactly `254 * 256`. It excludes the final two
-rows, including the four tail bytes that NIV vanilla and NIV+ can derive from
-nondeterministic reads. Do not broaden this into a fuzzy comparison, and do not
-introduce host-language uninitialized memory to imitate it.
+These are exact historical harness boundaries, not allocation sizes. Orbital
+surface and landed sky each transport/render a `360 * 180 = 64,800`-byte image,
+but their FNV covers only the first `360 * 128 = 46,080` bytes; the final 52
+rows remain visible evidence but are not scored. The sky allocation also has 64
+slack bytes which the public call initializes and never hashes or renders.
+Landed texture transports a full `256 * 256 = 65,536`-byte allocation, while its
+hash and published PNG are exactly `256 * 254 = 65,024` bytes. The final two
+rows include four tail bytes that NIV vanilla and NIV+ can derive from
+nondeterministic reads. Do not broaden any extent into a fuzzy comparison, hash
+render-only rows, or introduce host-language uninitialized memory to imitate the
+excluded texture tail.
 
 The 16-byte allocation gap after the heightmap is separate from the texture
 tail. It is an explicit generator input because the original inclination loop

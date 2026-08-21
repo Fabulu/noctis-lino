@@ -1724,6 +1724,17 @@ the selected 192-byte palette and rejects both uniform `0x3f` white and any
 other uniform value before packaging. That source gate still needs a hosted
 macOS run because Windows CI did not reproduce the defect.
 
+**Scored extent reconciliation.** The hash, transport, fill, and image sizes are
+now independently pinned rather than conflated. Surface and sky transport/render
+`360 * 180 = 64,800` bytes but hash only the first `360 * 128 = 46,080`; the sky
+prefill additionally initializes 64 allocation-slack bytes. Surface texture
+transports `256 * 256 = 65,536` bytes but both its hash and public PNG stop at
+`256 * 254 = 65,024`. The excluded two texture rows contain the known
+nondeterministic tail and are not parity inputs. `nivtest.HASH_EXTENTS`, its
+focused scorer test, the published LR harness, and measured public PNG dimensions
+all agree. No residual XENOFELYS field can be repaired by changing a scored
+boundary.
+
 **Acceptance path.** Run the non-white Rosetta gate, then use the retained
 snapshot/differential report to classify and reproduce the dominant mismatch
 clusters by field, body type, and planet/moon status. Preserve raw artifacts for

@@ -36,6 +36,11 @@ LAYOUT = {
     "sky": (243552, 64800),
     "surface_palette": (308352, 768),
 }
+HASH_EXTENTS = {
+    "surface": 360 * 128,
+    "surftex": 256 * 254,
+    "sky": 360 * 128,
+}
 OUT_UNITS = 309120
 DIAG_MAGIC = 0x3147444E
 DIAG_VERSION = 1
@@ -292,13 +297,13 @@ def results(
     seedval = f64(30)
     palette_base = (128 if owner >= 0 else 192) * 3
     hashes = {
-        "surf": hash_record(buffers["surface"][:46080]),
+        "surf": hash_record(buffers["surface"][:HASH_EXTENTS["surface"]]),
         "atmo": hash_record(buffers["atmo"]),
         "pal": hash_record(buffers["palette"][palette_base:palette_base + 192]),
         "hm": hash_record(buffers["height"]),
         "oc": hash_record(buffers["objects"]),
-        "stex": hash_record(buffers["surftex"][:65024]),
-        "sky": hash_record(buffers["sky"][:46080]),
+        "stex": hash_record(buffers["surftex"][:HASH_EXTENTS["surftex"]]),
+        "sky": hash_record(buffers["sky"][:HASH_EXTENTS["sky"]]),
     }
     result = {
         "body": header[6], "body_count": header[7], "type": header[8],
@@ -337,7 +342,7 @@ def dump_buffers(args: argparse.Namespace, buffers: dict[str, bytes]) -> None:
         "palette.raw": buffers["palette"],
         "height.bin": buffers["height"],
         "objects.bin": buffers["objects"],
-        "surftex.bin": buffers["surftex"][:65024],
+        "surftex.bin": buffers["surftex"][:HASH_EXTENTS["surftex"]],
         "sky.bin": buffers["sky"],
     }
     for name, data in files.items():
@@ -346,7 +351,7 @@ def dump_buffers(args: argparse.Namespace, buffers: dict[str, bytes]) -> None:
         aliases = {
             "HEIGHT.bin": buffers["height"],
             "OBJECTS.bin": buffers["objects"],
-            "SURFTEX.bin": buffers["surftex"][:65024],
+            "SURFTEX.bin": buffers["surftex"][:HASH_EXTENTS["surftex"]],
             "SKY.bin": buffers["sky"],
             "palette.raw": buffers["palette"],
         }
