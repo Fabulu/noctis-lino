@@ -420,13 +420,34 @@ justified.
 The locally available DOS reference is NIV+ R2.3 `NOCTIS.EXE`, whose resume path
 calls `planets()`, then `planetary_main()`, and whose generation functions match
 the release source. It is a generator reference, not the missing historical
-NIVGEN `planetdump` hash/PNG caller. The retained DOSBox capture script waits
-until the landed gameplay loop and therefore observes late gameplay buffers,
-not a clean generator return. The smallest local discriminator is XENOFELYS body
-10 at random site `(130,9)`: break immediately after `create_sky(atmosphere)` and
-inspect `s_background[12167]`. A value of 80 attributes the outlier to native
-generator/allocation context; zero moves it past that return boundary. Pre-hash
-versus pre-encode attribution still requires the actual historical NIVGEN caller.
+NIVGEN `planetdump` hash/PNG caller.
+
+The decisive type-1 boundary is now captured. In an isolated copy of the DOS
+sandbox, read-only MZ disassembly identified `create_sky` at file offset
+`0x1B12C`, its caller at `0x1DA00`, and the first post-return instruction at
+`0x1DA03`. The copied executable, originally SHA-256
+`5e64d532091c9be1f91d7e0bc57719df24020ba38b0662f225f65d3c55e579ac`,
+replaced those first two return-site bytes with the bounded `EB FE` self-loop;
+the patched SHA-256 is
+`5d9c23bc959039d78e5d4ab8e71095f57e9d98a4995d4b1d3f9edc948f2f37f8`.
+A private-inactive-desktop capture at XENOFELYS body 10 random site `(130,9)`
+found unique runtime call and function signatures under the same MZ load base.
+The continuity block still had target 10 reached and synchronized, power remained
+15,000, and the `Surface.BIN` landing pattern was absent, proving the process was
+stopped after `create_sky` but before the landed gameplay state.
+
+The validated far-heap `s_background` has byte 12,167 equal to zero. All 46,080
+scored bytes are zero, FNV-1a `7B252DC5`, and byte-for-byte identical to current
+Lino. The authoritative `CBD77DB5` sky is that same buffer with byte 12,167 changed
+to 80. Native NIV+ therefore does not generate the anomalous byte: it was added
+after `create_sky` in the missing hash/PNG caller or belongs only to the retained
+artifact. The report is
+`tests/gen/nivgen-xenofelys-native-sky-boundary.json` (SHA-256
+`e58437be86dd93522f5e97fbb31c1935f7dc6f1879f27f6421d6813bd79b03d9`).
+Atmospheric native-game skies are not substituted as public oracles because the
+gameplay caller applies different sampled filters; a bounded body-4 probe confirms
+that distinction. Pre-hash versus pre-encode attribution still requires the actual
+historical NIVGEN caller.
 
 ## Historical bounded measurements -- **SUPERSEDED**
 

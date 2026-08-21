@@ -1776,14 +1776,24 @@ The retained public sky images narrow this further. `XENOFELYS|4`'s default and
 random original PNGs are byte-identical despite different raw-sky FNVs.
 `XENOFELYS|10`'s random target `CBD77DB5` is exactly a 46,080-byte zero sky with
 one byte changed at offset 12,167 (`x=287`, `y=33`, value 80); the published PNG
-also differs from the default black sky by that single pixel. Treat the sky
-residuals as caller/capture-context evidence. Identify the original writer and
-regenerate or confirm the outlier rows before altering the source-shaped
-`create_sky` path. The historical NIVGEN `planetdump` hash/PNG caller is not
-present in the local source trees. The available R2.3 game capture reaches late
-landed gameplay, not clean return. The smallest discriminator is a DOSBox watch
-on `s_background[12167]` immediately after `create_sky` for body 10 at `(130,9)`;
-zero there moves the outlier into the missing capture/hash/encode caller.
+also differs from the default black sky by that single pixel.
+
+A clean private-desktop NIV+ R2.3 boundary capture now proves the generator does
+not write that byte. DOS-aware MZ disassembly identified `create_sky`, its caller,
+and file offset `0x1DA03` immediately after return. A copied executable patched
+only there with an `EB FE` self-loop stopped XENOFELYS body 10 at `(130,9)` while
+target 10 was reached/synchronized, power was still 15,000, and the
+`Surface.BIN` landed pattern was absent. The recovered far-heap sky matched
+current Lino byte-for-byte: all 46,080 scored bytes were zero, FNV-1a
+`7B252DC5`, including zero at 12,167. Original and patched executable SHA-256
+values are `5e64d532091c9be1f91d7e0bc57719df24020ba38b0662f225f65d3c55e579ac`
+and `5d9c23bc959039d78e5d4ab8e71095f57e9d98a4995d4b1d3f9edc948f2f37f8`.
+The retained report SHA-256 is
+`e58437be86dd93522f5e97fbb31c1935f7dc6f1879f27f6421d6813bd79b03d9`.
+The anomalous value 80 therefore lies after `create_sky` in the missing
+capture/hash/encode caller or only in the artifact. Atmospheric game captures
+remain non-oracles because gameplay applies different filters from the public
+caller.
 
 A complete public-image reconstruction now identifies seven sparse residual
 fields rather than only the body-10 sky. Unique one-byte substitutions recover

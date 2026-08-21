@@ -51,7 +51,14 @@ rows is 2,417/2,420 fields and 219/220 rows exact. The 22 remaining fields are
 all landed outputs across six XENOFELYS bodies. The 30-check precision gate
 proves the public binary64 geometry/atmosphere boundaries and the exact doubled
 half-degree seed threshold without changing the default historical game
-schedule. Full corpus parity remains required before release.
+schedule. A private-desktop NIV+ R2.3 capture stopped at the first instruction
+after `create_sky` for airless type-1 XENOFELYS 10, with the target reached and
+synchronized but before ATL landed state. All 46,080 scored native sky bytes are
+zero (FNV-1a `7B252DC5`), including byte 12,167, and match current Lino exactly;
+the authoritative value 80 and hash `CBD77DB5` therefore arise after the native
+generator return. This discriminator does not make atmospheric gameplay sky a
+public-caller oracle because those caller filters differ. Full corpus parity
+remains required before release.
 
 ## Honest gaps
 
