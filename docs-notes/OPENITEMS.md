@@ -1795,9 +1795,23 @@ body 8 random sky and both body 9 texture targets cannot be reduced to a single
 source-shaped change. The retained report SHA-256 is
 `74eaff688edede30a09dae7c6bef79b755e161f2cbf3dcca0b53b0cb650f1d51`.
 This strengthens the missing caller/capture-state or anomalous-artifact diagnosis
-and blocks per-field source patches. Obtain or instrument the original
-`planetdump` caller, or have the authoritative XENOFELYS rows regenerated, before
-changing generator arithmetic.
+and blocks per-field source patches.
+
+The closest published caller, the `noctis-iv-lr` harness at commit `01c6a3a`,
+runs each landed command once rather than reusing buffers across bodies or sites.
+Although it allocates with `malloc`, `build_surface` clears all 40,000 height and
+object bytes and fills texture offsets 0 through 65,534; `surftex` fills all
+64,800 rendered sky bytes before `create_sky`. Only one texture-tail byte and 64
+sky-slack bytes remain allocator-dependent, all outside the scored extents. It
+also replays the exact per-row 16-byte gap. The canonical sheet supplies another
+independent discriminator: all 22 residual originals differ from current Lino,
+sheet Rust, and sheet LR; current and Rust agree on 21, while all three
+implementations agree on eight. No authoritative residual matches any of the
+three implementations. Ordinary published-caller allocation/reuse therefore does
+not explain the cluster.
+
+Obtain or instrument the original `planetdump` caller, or have the authoritative
+XENOFELYS rows regenerated, before changing generator arithmetic.
 
 **Pull-request handling policy.** Review incoming PRs against the current
 production tree and deal with them as appropriate: merge clean unique work,

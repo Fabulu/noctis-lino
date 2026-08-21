@@ -386,6 +386,26 @@ sites: default HM/OC/texture `8D2BE67B`/`ECDF02E1`/`C7A7FE82`, and random
 after the generator return, it supports the source-shaped generator but does not
 certify the missing `planetdump` caller boundary.
 
+The closest published caller also excludes ordinary allocator reuse as a general
+explanation. The `noctis-iv-lr` harness at commit `01c6a3a` dispatches each
+`sector` or `surftex` command once in a fresh process: it generates the system and
+orbital surface, supplies the recorded 16-byte gap, then calls `build_surface`.
+That function clears all 40,000 height and object bytes and fills texture offsets
+0 through 65,534 with 16. The `surftex` command fills all 64,800 rendered sky
+bytes before `create_sky`. The only allocation bytes left unspecified are texture
+offset 65,535 and 64 sky-slack bytes, all outside the public hashes; there is no
+landed body/site loop whose earlier output can enter a scored range.
+
+The canonical sheet independently records Rust and LR outputs for the same rows.
+Every one of the 22 residual authoritative hashes differs from current Lino,
+sheet Rust, and sheet LR; current Lino agrees with Rust on 21, and all three
+implementations agree on eight. Those eight include body 4 default heightmap,
+default sky, and random heightmap; body 5 random texture; both body 9 textures;
+and body 10 random texture and sky. No residual authoritative target matches any
+of the three implementations. This consensus and the native body-5 extraction
+strengthen the artifact-regeneration case, but the published LR harness is still
+not the missing historical `planetdump` caller.
+
 A source-path trace now excludes the retained direct generator itself. Type 1
 prefills the complete scored range with zero, selects no sky painter, and does
 not run the gameplay horizon pass. The unreachable nebular/cloudy painters emit
