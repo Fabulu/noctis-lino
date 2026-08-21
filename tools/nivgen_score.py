@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -19,7 +20,7 @@ sys.path.insert(0, str(TOOLS))
 import nivtest  # noqa: E402
 
 
-API = "https://litterbox.moos.es/sheets/nivgen_planets?page=1&pageSize=2000"
+API = "https://litterbox.moos.es/sheets/nivgen_planets?page=1&pageSize=500"
 COORDS = re.compile(
     r"orig_(?:surface|def|rand)_(-?\d+)_(-?\d+)_(-?\d+)_([0-9]+)"
     r"(?:_|\.png)")
@@ -54,7 +55,9 @@ def page_url(url: str, page: int) -> str:
 
 
 def fetch_rows(url: str, sheet_json: str | None,
-               all_pages: bool) -> list[dict[str, object]]:
+               all_pages: bool, page_delay: float = 1.0) -> list[dict[str, object]]:
+    if page_delay < 0:
+        raise ValueError("page delay cannot be negative")
     if sheet_json:
         with Path(sheet_json).open(encoding="utf-8-sig") as response:
             payloads = [json.load(response)]
@@ -67,8 +70,12 @@ def fetch_rows(url: str, sheet_json: str | None,
             last_page = (total + page_size - 1) // page_size
             first_page = int(first.get("page") or 1)
             for page in range(first_page + 1, last_page + 1):
+                if page_delay:
+                    time.sleep(page_delay)
                 payloads.append(fetch_payload(page_url(url, page)))
-    names = [column["name"] for column in payloads[0]["columns"]]
+    columns = payloads[0]["columns"]
+    names = [column if isinstance(column, str) else column["name"]
+             for column in columns]
     return [dict(zip(names, row))
             for payload in payloads for row in payload["rows"]]
 
@@ -95,14 +102,14 @@ def namespace(args: argparse.Namespace, x: int, y: int, z: int, body: int,
     return argparse.Namespace(
         x=x, y=y, z=z, p=body, lon=lon, lat=lat, secs=0, sc=-1,
         albedo=-1, night=0, gap=gap, build=build, timeout=args.timeout,
-        dump=None, o=None, exe=args.exe,
+        dump=None, o=None, exe=args.exe, diagnostic=False,
     )
 
 
 def run_site(args: argparse.Namespace, coords: tuple[int, int, int, int],
              lon: int, lat: int, gap: str | None, build: bool):
     call = namespace(args, *coords, lon, lat, gap, build)
-    header, buffers = nivtest.run_lino(call)
+    header, buffers, _ = nivtest.run_lino(call)
     return nivtest.results(header, buffers)
 
 
@@ -161,6 +168,8 @@ def parse_args():
                         help="use a previously downloaded sheet snapshot")
     parser.add_argument("--all-pages", action="store_true",
                         help="fetch every live page once; never retries")
+    parser.add_argument("--page-delay", type=float, default=1.0,
+                        help="seconds between sequential live page requests")
     parser.add_argument("--rust-errors-only", action="store_true",
                         help="select rows with at least one Rust mismatch")
     parser.add_argument("--type", type=int, action="append", dest="types")
@@ -179,7 +188,8 @@ def parse_args():
 def main() -> int:
     args = parse_args()
     try:
-        rows = fetch_rows(args.url, args.sheet_json, args.all_pages)
+        rows = fetch_rows(
+            args.url, args.sheet_json, args.all_pages, args.page_delay)
     except (OSError, ValueError, RuntimeError) as error:
         print(f"nivgen_score: {error}", file=sys.stderr)
         return 2
