@@ -410,7 +410,10 @@
 	A = [gcHun0]; [XU0] = A; A = [gcHun1]; [XU1] = A; => XFromF64;
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
-	[XIN] = [FI]; => XFromInt; => XQuoCore;
+	[XIN] = [FI]; => XFromInt;
+	? [FI] = 0 -> GeoSeed quotient ready;
+	=> XQuoCore;
+"GeoSeed quotient ready"
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
 	=> XPop; => XAddCore; => XToF64;
@@ -438,7 +441,10 @@
 	A = [gcTwo0]; [XU0] = A; A = [gcTwo1]; [XU1] = A; => XFromF64;
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
-	[XIN] = [FI]; => XFromInt; => XQuoCore;
+	[XIN] = [FI]; => XFromInt;
+	? [FI] = 0 -> GeoEcc quotient ready;
+	=> XQuoCore;
+"GeoEcc quotient ready"
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
 	[XU0] = 0; [XU1] = 3FF00000h; => XFromF64;

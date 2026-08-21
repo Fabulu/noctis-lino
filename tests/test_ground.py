@@ -78,13 +78,44 @@ REC_SZ = PS_BYTES + OC_BYTES + 16  # map + objects + 4 int32 counters
 CAPTURE_GSEED = 1029155
 CAPTURE_SCTYPE = 1                 # OCEAN
 CAPTURE_ALBEDO = 40                # >20, therefore goto revert / PLAINS
+# Canonical 2026-08-21 NIVGEN rows.  The coordinates/body identify the source
+# row; the remaining fields are the complete clean-return ground-core inputs.
+NIV_FRACTIONAL_POWER_CASES = (
+    {
+        "gate": "P1D", "tag": "OLIKETT I|0",
+        "coords": (-1996209872, 55508, 816148),
+        "body": 0, "gseed": 381343, "ip_type": 1, "sctype": 2,
+        "albedo": 32, "lat": 60, "lon": 0,
+        "gap": "000000000000000000000000C5096055",
+        "heightmap": "FDDDF3A2", "objectchart": "1AA95391",
+        "borland_draws": 169480,
+    },
+    {
+        "gate": "P5D", "tag": "WHIKEL I|3",
+        "coords": (-1996240944, 72703, 944799),
+        "body": 3, "gseed": 845964, "ip_type": 5, "sctype": 2,
+        "albedo": 32, "lat": 60, "lon": 0,
+        "gap": "000000000000000000000000C5096055",
+        "heightmap": "301D7754", "objectchart": "34B1E2D4",
+        "borland_draws": 392981,
+    },
+    {
+        "gate": "P1R", "tag": "OLIKETT I|7",
+        "coords": (-1996209872, 55508, 816148),
+        "body": 7, "gseed": 24160, "ip_type": 1, "sctype": 2,
+        "albedo": 32, "lat": 98, "lon": 2,
+        "gap": "000000000000000000000000C5096055",
+        "heightmap": "46586E03", "objectchart": "98264D87",
+        "borland_draws": 259442,
+    },
+)
 # The remaining 1,752-byte delta belongs to the independent Python/C model.
 MODEL_MAP_OPEN_DIFF = 1752
 FULL_HEAD_UNITS = 28
 FULL_OUT_UNITS = FULL_HEAD_UNITS + PS_BYTES + TXTR_BYTES + OC_BYTES
 FULL_IN_MAGIC = 0x47464931
 FULL_OUT_MAGIC = 0x47464A31
-FULL_VERSION = 1
+FULL_VERSION = 2
 NIV_OBJ_MATCH_PREFIX = 39925
 CAPTURE_OBJECT_OPEN_DIFF = 39
 FULL_STATE_INDEX = {
@@ -106,6 +137,13 @@ def nd(a, b):
 def sha(path):
     with open(path, "rb") as fh:
         return hashlib.sha256(fh.read()).hexdigest()
+
+
+def fnv1a(data):
+    value = 2166136261
+    for byte in data:
+        value = ((value ^ byte) * 16777619) & 0xFFFFFFFF
+    return "%08X" % value
 
 
 # =========================================================================
@@ -192,12 +230,19 @@ def build_full_lino_driver():
 
 
 def run_full_lino_case(exe, gseed, ip_type, sctype, albedo, lat, lon,
-                       timeout=120):
+                       timeout=120, gap=None):
     inp = os.path.join(WORK, "gr-full-in.bin")
     out = os.path.join(WORK, "gr-full-out.bin")
+    if gap is None:
+        gap = bytes(16)
+    elif isinstance(gap, str):
+        gap = bytes.fromhex(gap)
+    if len(gap) != 16:
+        raise ValueError("surface/object allocation gap must be exactly 16 bytes")
+    units = (FULL_IN_MAGIC, FULL_VERSION, gseed, ip_type, sctype,
+             albedo, lat, lon, *gap)
     with open(inp, "wb") as fh:
-        fh.write(struct.pack("<8I", FULL_IN_MAGIC, FULL_VERSION, gseed,
-                             ip_type, sctype, albedo, lat, lon))
+        fh.write(struct.pack("<24I", *units))
     if os.path.exists(out):
         os.remove(out)
     p = subprocess.run([exe], cwd=WORK, timeout=timeout,
@@ -217,6 +262,25 @@ def run_full_lino_case(exe, gseed, ip_type, sctype, albedo, lat, lon,
     objs = bytes(u & 255 for u in units[pos:pos + OC_BYTES])
     return dict(header=units[:FULL_HEAD_UNITS], smap=smap,
                 txtr=txtr, objs=objs), "ok"
+
+
+def run_authoritative_spec_case(case):
+    model = gr_spec.BuildSurface(
+        ledger=False, allocation_gap=bytes.fromhex(case["gap"]))
+    for index in range(TXTR_BYTES - 1):
+        model.txtr[index] = 16
+    latitude = abs(case["lat"] - 60) * 3 // 2
+    model.prologue(case["gseed"], case["ip_type"], case["sctype"],
+                   case["albedo"], latitude)
+    model.seed_environment(case["lat"], case["lon"])
+    model._switch(case["ip_type"], case["sctype"], case["albedo"])
+    model._post_switch()
+    model._objects_inclination()
+    if model.liquid_water:
+        for index in range(OC_BYTES):
+            if not model.smap[index]:
+                model.objs[index] &= 0xFC
+    return model
 
 
 def load_clean_niv_cases():
@@ -410,6 +474,52 @@ def main(argv=None):
                 chk.ok(full_lino is not None,
                        "R5 production Lino build_surface core ran to clean return",
                        note)
+                for case in NIV_FRACTIONAL_POWER_CASES:
+                    got, note = run_full_lino_case(
+                        full_exe, case["gseed"], case["ip_type"],
+                        case["sctype"], case["albedo"], case["lat"],
+                        case["lon"], gap=case["gap"])
+                    expected_state = tuple(
+                        case[name] & 0xFFFFFFFF for name in
+                        ("gseed", "ip_type", "sctype", "albedo", "lat", "lon"))
+                    state_ok = (got is not None and
+                                tuple(got["header"][2:8]) == expected_state)
+                    map_actual = fnv1a(got["smap"]) if got else "NO OUTPUT"
+                    object_actual = fnv1a(got["objs"]) if got else "NO OUTPUT"
+                    chk.ok(state_ok and map_actual == case["heightmap"],
+                           "%s canonical %s type-%d heightmap matches published FNV" %
+                           (case["gate"], case["tag"], case["ip_type"]),
+                           "40,000-byte FNV %s (expected %s); state %s; row %r body %d" %
+                           (map_actual, case["heightmap"],
+                            "ok" if state_ok else "FAIL", case["coords"],
+                            case["body"]))
+                    chk.ok(state_ok and object_actual == case["objectchart"],
+                           "%s canonical %s type-%d object chart matches published FNV" %
+                           (case["gate"], case["tag"], case["ip_type"]),
+                           "40,000-byte FNV %s (expected %s); gap %s; state %s; "
+                           "row %r body %d" %
+                           (object_actual, case["objectchart"], case["gap"],
+                            "ok" if state_ok else "FAIL", case["coords"],
+                            case["body"]))
+                    model = run_authoritative_spec_case(case)
+                    model_map = fnv1a(model.smap)
+                    model_object = fnv1a(model.objs)
+                    lino_draws = (got["header"][FULL_STATE_INDEX["borland_draws"]]
+                                  if got else -1)
+                    model_exact = (
+                        got is not None and
+                        got["smap"] == bytes(model.smap) and
+                        got["objs"] == bytes(model.objs) and
+                        model_map == case["heightmap"] and
+                        model_object == case["objectchart"] and
+                        model.B.n == case["borland_draws"])
+                    chk.ok(model_exact and lino_draws == case["borland_draws"],
+                           "%s independent flat-heap model is byte-exact with Lino and matches published hashes" %
+                           case["gate"],
+                           "map %s, objects %s, model/Lino draws %d/%d "
+                           "(expected %d)" %
+                           (model_map, model_object, model.B.n, lino_draws,
+                            case["borland_draws"]))
                 for case in clean_niv_cases:
                     got, note = run_full_lino_case(
                         full_exe, int(case["gseed"]), int(case["ip_type"]),

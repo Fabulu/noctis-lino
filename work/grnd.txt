@@ -440,7 +440,10 @@
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
 	[FS0] = [GRtreefl]; => FLoadF32;
-	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XQuoCore;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [GRtreefl]; A & 7FFFFFFFh; ? A = 0 -> GR tree quotient 3000 ready;
+	=> XQuoCore;
+"GR tree quotient 3000 ready"
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
 	[XIN] = [GRtreeci]; => XFromInt; => XAddCore; => XToF64;
@@ -451,7 +454,10 @@
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
 	[FS0] = [GRtreefl]; => FLoadF32;
-	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XQuoCore;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [GRtreefl]; A & 7FFFFFFFh; ? A = 0 -> GR tree quotient 1500 ready;
+	=> XQuoCore;
+"GR tree quotient 1500 ready"
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
 	A = [GRtreeacc0]; [XU0] = A; A = [GRtreeacc1]; [XU1] = A; => XFromF64;
@@ -831,27 +837,15 @@
 	[FA0] = [GRfs0]; [FA1] = [GRfs1]; => FMul;
 	=> FStoreF32; [GRfy] = [FS0];
 
-	( y = pow(y,h_raiser).  Keep the base and accumulator in the portable
-	  extended-X stack, so every multiply stays live until the final F32 spill. )
+	( y = pow(y,h_raiser).  The private positive-power helper preserves the
+	  live extended boundary through the one historical final F32 spill. )
 	A = [GRfhmt]; A & 0FFFFFFFFh; ? A = 3F800000h -> GR sc power done;
 	A = [GRfy]; A & 7FFFFFFFh; ? A = 0 -> GR sc power done;
-	[FS0] = [GRfhmt]; => FLoadF32; => FToIntChop; [GRn] = [FI];
+	[FS0] = [GRfhmt]; => FLoadF32;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XCopyXtoY;
 	[FS0] = [GRfy]; => FLoadF32;
-	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XPush;
-	[XU0] = 0; [XU1] = 3FF00000h; => XFromF64;
-	"GR sc power loop"
-	A = [GRn]; ? A '<= 0 -> GR sc power store;
-	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
-	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
-	=> XLoad0;
-	A = [XS]; B = [YS]; [XS] = B; [YS] = A;
-	A = [XE]; B = [YE]; [XE] = B; [YE] = A;
-	A = [XMH]; B = [YMH]; [XMH] = B; [YMH] = A;
-	A = [XML]; B = [YML]; [XML] = B; [YML] = A;
-	=> XMulCore;
-	[GRn]-; -> GR sc power loop;
-	"GR sc power store"
-	=> XStore0; => XPop; => XToF32; [GRfy] = [FS0];
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XPowPositive; => XToF32; [GRfy] = [FS0];
 "GR sc power done"
 	A = GRscache; A + [GRfd2]; [A] = [GRfy];
 	A = GRsstamp; A + [GRfd2]; [A] = [GRprofileid];

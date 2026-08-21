@@ -75,14 +75,25 @@ TESTS = [
     ("test_brtlrand.py", "Borland's rand/srand/random over all 65,536 seeds"),
     ("test_wave2.py", "the random() argument type and zrandom's operand order"),
     ("test_floatcontract.py", "the Wave 3 float contract, graded by STARMAP.BIN"),
+    ("test_fractional_pow.py", "fractional crater power is exact against historical x87 with intact soft-stack state"),
     ("test_nearstar.py", "Wave 4 draw accounting, graded by STARMAP.BIN and DL.EXE"),
     ("test_wave5.py", "Wave 5 buffer model, framebuffer and the 54.9254 ms tick"),
     ("test_geometry.py", "the cast boundary from __ftol; geometry bit-exact between engines but UNGRADED against 1996"),
+    ("test_geoconv_zero.py", "zero geometry numerators bypass the normalized-only quotient core without changing nonzero results or FP state"),
+    ("test_suseed_zero.py", "zero surface contrast numerators bypass the normalized-only quotient core without changing nonzero results or FP state"),
+    ("test_grnd_zero.py", "zero tree-parameter numerators bypass the normalized-only quotient core without changing historical scales or FP state"),
     ("test_raster.py", "Wave 6a: rasteriser pages byte-exact over 64,000 pixels; projection measured at delta 0"),
     ("test_spheres.py", "Wave 6b: spheres, background and .NCC loading byte-exact over 2.56 MB of pages; the table's projective model bounded and cross-validated"),
     ("test_surface.py", "Wave 7a: surface() texture byte-exact lino==spec==cref on 10 captures and 14 synthetics; 17 sabotages caught; graded against NIV+ 2.3, NOT 1996"),
     ("test_ground.py", "Wave 7b: build_surface() and SURFACE.BIN - generated outputs three-way over types 1,2,3,4,5,7,8; the captured type-3 texture is exact and its post-landing p_surfacemap RAM residual is measured"),
     ("test_sky.py", "Wave 7b: lean create_sky()/horizon/SP join regression; the historical --deep audit established 27 cases/408 records, exact NIV+ anchors, and caught 26 C plus 27 Lino mutants"),
+    ("test_release_notes.py", "tagged GitHub releases contain only their own RELEASE_NOTES section"),
+    ("test_fp_transgrade.py", "independent transcendental grading preserves signed zero and the one-ULP boundary"),
+    ("test_native_closure.py", "shipping Lino dependencies contain zero target blocks and retain the exact reviewed 36-operation float inventory"),
+    ("test_fp_runtime_boundary.py", "generated Windows PEs and Linux/macOS runtimes install exact FCWEXT below the portable Lino boundary while protected runtime inputs remain upstream-exact"),
+    ("test_transcendental_consumers.py", "portable transcendental wrappers are byte-identical to direct x87 at capsule, flare, tree, camera/walk, globe, model Euler, animal, and orbital-viewpoint boundaries"),
+    ("test_nivgen_score.py", "bounded NIVGEN scoring preserves harness inputs, rate-limits live pages, and reports local before/after transitions"),
+    ("test_nivgen_sheet_report.py", "complete NIVGEN snapshots distinguish backfill checkmarks from independently comparable hashes and expose before/after transitions"),
     ("test_vhgame.py", "live Stardrifter: original lift/aperture constants, synchronized loop, and safe provisional landing renderer"),
 ]
 
@@ -90,6 +101,7 @@ TESTS = [
 # takes the fast path; the flag is for when you are about to trust the result.
 DEEPER = {"test_brtlrand.py": "--exhaustive",
           "test_floatcontract.py": "--K 96",
+          "test_fractional_pow.py": "--deep  (model/x87 all 9,564,210 reachable pairs; compiled Lino 4,096 cases)",
           "test_ground.py": "--deep  (historical sabotage/diagnostic audit)",
           "test_sky.py": "--deep  (historical malformed/full-corpus/mutation audit)"}
 
@@ -143,7 +155,7 @@ def main():
     for name, blurb in selected:
         started = time.time()
         cmd = [sys.executable, os.path.join(HERE, name)]
-        if deep and name in ("test_ground.py", "test_sky.py"):
+        if deep and name in ("test_fractional_pow.py", "test_ground.py", "test_sky.py"):
             cmd.append("--deep")
         p = subprocess.run(cmd, cwd=HERE)
         results.append((name, blurb, p.returncode, time.time() - started))

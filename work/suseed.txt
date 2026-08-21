@@ -586,7 +586,10 @@
 	A = [K900A]; [XU0] = A; A = [K900B]; [XU1] = A; => XFromF64;
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
-	[XIN] = [SUia]; => XFromInt; => XQuoCore;
+	[XIN] = [SUia]; => XFromInt;
+	? [SUia] = 0 -> SU kt quotient ready;
+	=> XQuoCore;
+"SU kt quotient ready"
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
 	A = [K06A]; [XU0] = A; A = [K06B]; [XU1] = A; => XFromF64;
@@ -597,7 +600,10 @@
 	A = [K100A]; [XU0] = A; A = [K100B]; [XU1] = A; => XFromF64;
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
-	[XIN] = [SUia]; => XFromInt; => XQuoCore;
+	[XIN] = [SUia]; => XFromInt;
+	? [SUia] = 0 -> SU kq quotient ready;
+	=> XQuoCore;
+"SU kq quotient ready"
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
 	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
 	A = [K40A]; [XU0] = A; A = [K40B]; [XU1] = A; => XFromF64;
