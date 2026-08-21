@@ -38,6 +38,42 @@ on:
       - "work/STARMAP.BIN"
       - "work/GUIDE.BIN"
       - "work/noctis_music.pcm"
+  pull_request:
+    paths:
+      - ".github/workflows/macos-rosetta-nivgen.yml"
+      - "build/compile_nivtest_linux.sh"
+      - "build/compile_noctis_macos_linux.sh"
+      - "build/install_linux_compiler_runtime.sh"
+      - "build/build_compiler114m_linux.sh"
+      - "build/build_nivtest.sh"
+      - "main/cpu/i386.bin"
+      - "main/cpu/i386m.bin"
+      - "main/cpu/x64.bin"
+      - "main/lib/gen/compiler114m.txt"
+      - "main/lib/gen/bits.txt"
+      - "main/lib/gen/bytes.txt"
+      - "main/linux_compiler.bin"
+      - "main/sys/linux.bin"
+      - "src/linoleum_macos64/**"
+      - "src/noctis_macos_launcher/**"
+      - "tools/fix_x64_pack_flags.py"
+      - "tools/macos_runtime_provenance.py"
+      - "tools/nivtest.py"
+      - "tools/pack_lino_sys.py"
+      - "tools/package_noctis_macos.py"
+      - "tools/test_package_noctis_macos.py"
+      - "PLAYER_README.txt"
+      - "LICENSE.htm"
+      - "work/**.txt"
+      - "work/globes.map"
+      - "work/offsets.map"
+      - "work/vehicle.ncc"
+      - "work/mammal.ncc"
+      - "work/birdy.ncc"
+      - "work/digimap2.bin"
+      - "work/STARMAP.BIN"
+      - "work/GUIDE.BIN"
+      - "work/noctis_music.pcm"
   workflow_dispatch:
 
 permissions:
@@ -236,7 +272,8 @@ jobs:
           arch -x86_64 /usr/bin/true
           python3 tools/nivtest.py json \
             -x -1996209872 -y 55508 -z 816148 -p 2 -lon 0 -lat 60 \
-            --diagnostic --exe "$PWD/build/compiled/nivtest" \
+            --diagnostic -dump "$PWD/build/rosetta-niv-dump" \
+            --exe "$PWD/build/compiled/nivtest" \
             | tee build/rosetta-result.json
           python3 - <<'PY'
           import json
@@ -258,6 +295,23 @@ jobs:
                   f"Rosetta portable FP self-check failed: {result['status']:#x}")
           if got != expected:
               raise SystemExit(f"Rosetta NIVGEN mismatch: {got!r}")
+
+          raw_palette = Path(
+              "build/rosetta-niv-dump/palette.raw").read_bytes()
+          palette_base = (128 if result["owner"] >= 0 else 192) * 3
+          palette = raw_palette[palette_base:palette_base + 192]
+          if len(palette) != 192:
+              raise SystemExit(
+                  f"Rosetta NIVGEN palette is truncated: {len(palette)} bytes")
+          values = set(palette)
+          if values == {0x3f}:
+              raise SystemExit(
+                  "Rosetta NIVGEN regressed to the uniform white 0x3f palette")
+          if len(values) == 1:
+              raise SystemExit(
+                  f"Rosetta NIVGEN palette is unexpectedly uniform: {palette[0]:#04x}")
+          print(
+              f"Rosetta NIVGEN palette non-uniform: {len(values)} channel values")
           print("Rosetta NIVGEN exact: 7/7")
           PY
 
