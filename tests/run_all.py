@@ -93,6 +93,7 @@ TESTS = [
     ("test_fp_runtime_boundary.py", "generated Windows PEs and Linux/macOS runtimes install exact FCWEXT below the portable Lino boundary while protected runtime inputs remain upstream-exact"),
     ("test_transcendental_consumers.py", "portable transcendental wrappers are byte-identical to direct x87 at capsule, flare, tree, camera/walk, globe, model Euler, animal, and orbital-viewpoint boundaries"),
     ("test_nivgen_score.py", "bounded NIVGEN scoring preserves harness inputs, rate-limits live pages, and reports local before/after transitions"),
+    ("test_nivgen_precision.py", "public NIVGEN uses binary64 geometry boundaries while the shipping game retains historical x87 behavior"),
     ("test_nivgen_sheet_report.py", "complete NIVGEN snapshots distinguish backfill checkmarks from independently comparable hashes and expose before/after transitions"),
     ("test_vhgame.py", "live Stardrifter: original lift/aperture constants, synchronized loop, and safe provisional landing renderer"),
 ]

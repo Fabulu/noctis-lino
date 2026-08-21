@@ -451,6 +451,17 @@
 	=> XSubCore; => XToF64;
 	end;
 
+"GeoEccStore2000F64"
+	=> IntToF;
+	A = [gcTwo0]; [FB0] = A; A = [gcTwo1]; [FB1] = A;
+	? [FI] = 0 -> GeoEcc f64 quotient ready;
+	=> FQuo;
+"GeoEcc f64 quotient ready"
+	A = [FA0]; [FB0] = A; A = [FA1]; [FB1] = A;
+	[FA0] = 0; [FA1] = 3FF00000h;
+	=> FSub;
+	end;
+
 "GeoPlanetRayStore"
 	=> IntToF;
 	A = [gcMil0]; [FB0] = A; A = [gcMil1]; [FB1] = A; => FMul;

@@ -1639,42 +1639,134 @@ the focused gameplay regression passed, and a fresh physical-screen capture
 remained coherent. Matched XQuartz reporter output and a complete glyph-set
 comparison remain required before closing the wider compatibility item.
 
-## 10. NIVGEN public accuracy integration -- **IN PROGRESS / DEPLOYMENT PENDING**
+## 10. NIVGEN public accuracy integration -- **OPEN / RELEASE-CRITICAL**
 
-Win the public NIVGEN accuracy comparison with the production Lino generator,
-not with omitted fields or fixture-specific answers. `docs/NIVGEN.md` is the
-operating procedure and `tools/nivtest.py` plus `tools/nivgen_score.py` are the
-current local runner and scorer.
+Win the public 5,188-case `nivgen_planets` comparison with the production Lino
+generator, not with omitted fields, fixture-specific answers, or a selected
+sector. Complete exact corpus parity is the trigger for the next compiled
+release milestone; after that release checkpoint, continue the remaining docket.
+`docs/NIVGEN.md` is the operating procedure; `tools/nivtest.py` runs a
+production case, `tools/nivgen_score.py` scores a bounded local selection, and
+`tools/nivgen_sheet_report.py` snapshots, classifies, and diffs the complete
+public API corpus. Live reads are eleven sequential 500-row requests with a
+one-second delay and no retries.
 
-**Near-term priority.** With the projected pilot-font translation defect fixed,
-resume NIVGEN parity work before returning to the paused JavaScript
-compiler/site track. Iterate on real mismatches from the production runner,
-publish stable accuracy improvements in sensible batches, and keep increasing
-the live Lino column's exact coverage toward the most-accurate result.
+**Measured baseline, 2026-08-21.** The canonical 5,188-row snapshot is
+`ab73b236957f225247e07460eaae1a7e26891e701d6b5bd4c93d573208231f97`.
+The sheet's zero-error/checkmark marker is not the exactness denominator during
+backfill: 642 rows have no authoritative hashes and are marked zero-error. Lino
+shows 1,068/5,188 markers but only 426/4,546 independently comparable rows are
+fully hash-exact (9.4%). Rust is 4,246/4,546 (93.4%). LR's 613 visible markers
+are all unbackfilled; it is 0/4,546 fully exact with 175 missing result rows.
+Lino field exactness is:
 
-On 2026-08-17 Mega brought a Lino column online and announced that small
-runner fixes would be upstreamed. No open or closed PR, public fork, or extra
-branch was visible on either `Fabulu/noctis-lino` or the historical
-`8l/linoleum` upstream when checked after that announcement. Recheck both
-repositories before starting overlapping integration work, then review the
-patch against the published hash boundaries and merge only with a focused live
-row smoke.
+| field | exact / authoritative | rate |
+|---|---:|---:|
+| orbital surface | 401 / 4,485 | 8.9% |
+| atmosphere | 3,627 / 4,485 | 80.9% |
+| palette | 2,622 / 4,485 | 58.5% |
+| default heightmap | 2,895 / 4,546 | 63.7% |
+| default object chart | 4,538 / 4,546 | 99.8% |
+| random heightmap | 3,233 / 4,546 | 71.1% |
+| random object chart | 3,439 / 4,546 | 75.6% |
+| default surface texture | 4,545 / 4,546 | 99.98% |
+| default sky | 4,544 / 4,546 | 99.96% |
+| random surface texture | 4,508 / 4,546 | 99.2% |
+| random sky | 4,541 / 4,546 | 99.9% |
 
-The public runner is not yet evidence for this repository's accuracy. In the
-first 2,000 public rows, 1,269 had Lino results and none was exact. The first
-row matched nine of eleven fields but used the same wrong surface-texture hash
-for both landing coordinates. A fresh build of this repository's production
-runner matched all eleven original hashes for that same row, including both
-surface textures. Keep the public runner and the locally verified generator
-separate until the submitted source revision, executable hash, command
-contract, texture hash length, coordinate sign convention, gap input, and
-artifact packing are identified.
+Comparable exact rows are concentrated in types 3 (174/220), 9 (192/215), and
+10 (59/61). Types 0, 1, 4, 5, 6, 7, and 8 currently have none; type 2 has one.
+Planets score 294/1,438 and moons 132/3,108. The earlier 1,128 "exact" count was
+actually the previous zero-error marker count and mixed true matches with
+unbackfilled rows. As backfill advanced it fell to 1,068, confirming the user's
+observation that apparent checkmarks can disappear. The dominant orbital-
+surface mismatch and broad height/object mismatch classes remain release gates.
 
-After the upstream patch lands, replace or adapt its remote worker plumbing to
-call the already verified production driver. Run a small live smoke first,
-then the full corpus at an accuracy milestone. Preserve raw artifacts for any
-mismatch and report both coverage and exactness. If the service is unavailable,
-record that once and do not retry until the host is known to be back.
+**Complete local result, 2026-08-21.** Every authoritative row and field has now
+been freshly executed in retained, non-overlapping private-desktop shards. The
+production closure reaches 49,774/49,823 exact fields and 4,513/4,546 exact rows,
+up from 38,893 fields and 426 rows in the snapshot. Types 0, 6, 7, 8, 9, and 10
+are fully exact. Every orbital surface and palette is exact. The 49 residual
+fields are 24 type-3 atmospheres, three non-XENOFELYS type-3 random skies, and 22
+landed fields across XENOFELYS bodies 4, 5, 8, 9, 10, and 11.
+
+`MAGILLA PRIME|5` was the sole downstream integer-boundary difference between
+the historical extended and complete binary64 geometry hypotheses over 4,473
+model-valid rows. Public NIVGEN matches binary64 nearstar expression boundaries
+and a stored left-to-right rotation seed; the shipped game retains historical
+x87 behavior by default. The NIVGEN-only driver enables and restores the general
+reference mode. MAGILLA's previously wrong surface, atmosphere, and palette now
+match `949B1F26`, `4927A000`, and `85311E10`. A fresh 106-row affected shard was
+1,166/1,166 fields exact, 73 model-edge rows had no value changes, and the 5,540-
+record historical nearstar regression remained exact. No body, coordinate, or
+expected-hash exception was introduced.
+
+The retained merged score and transition are
+`tests/gen/nivgen-portable-f64-complete-score.json` and
+`tests/gen/nivgen-portable-f64-complete-transition.json`; the score SHA-256 is
+`709604cb7f25d79152391001721eb8c871c0c513d24e62036f2ffcd05578d2b3`.
+Full parity remains the release gate; this is not yet the release milestone.
+
+**macOS palette regression and PR #22.** Contributor PR #22 changes `SU shade
+byte` to convert finite binary32 through `FToIntChop`, then clamp the signed
+integer to `0..63`. That is the correct original order and removes two target-
+dependent Lino floating comparisons that made planet palettes uniformly white
+on macOS. The patch was substantively reviewed locally and appears correct; the retained
+Windows surface hashes remained exact and all Wave 5 palette checks passed. It
+is applied locally but not yet merged. The Apple-Silicon Rosetta workflow now dumps
+the selected 192-byte palette and rejects both uniform `0x3f` white and any
+other uniform value before packaging. That source gate still needs a hosted
+macOS run because Windows CI did not reproduce the defect.
+
+**Acceptance path.** Run the non-white Rosetta gate, then use the retained
+snapshot/differential report to classify and reproduce the dominant mismatch
+clusters by field, body type, and planet/moon status. Preserve raw artifacts for
+every locally reproduced mismatch. Backfill only from a named source revision
+and executable hash; report exact row and field counts before and after every
+repair. The one-sector seven-hash CI fixture remains useful as a fast smoke but
+is not NIVGEN parity evidence.
+
+**Complete type-1/type-5 power-fixed milestone.** The retained 2026-08-21
+offline run grades all eleven fields on 1,648 rows and 18,128 comparisons. It
+improves from 11,120 exact comparisons and no fully exact rows in the sheet
+snapshot to 18,120 comparisons and 1,646 fully exact rows. Relative to the
+post-zero-quotient score, the exact-power-of-two repair makes 209 exact repairs
+(174 random heightmaps and 35 random object charts), with zero regressions and
+zero wrong-to-different-wrong changes. Surface, atmosphere, palette, and default
+texture are 1,648/1,648. Six fields are 1,647/1,648; random object chart is
+1,646/1,648. The score and transition are
+`b118f2530e260faf6dd550f338d8b9c6c9e0dba0029e85e1bcc0c801049af719`
+and `d79805fdd9f63c25469c935ff38dbb26dbe204d1535b7034046daf7f896f4853`.
+The retained score-to-score comparison is
+`c7c226a6f62104e9831242149c01dbe6737082663d3cffbe9cc4788348f0bae1`.
+Its executable remains bound to the exact closure manifest and dirty patch; the
+scoring run additionally binds the private-desktop runner and shard merger.
+
+**Two residual invariant-breaking rows.** Only `XENOFELYS|4` and
+`XENOFELYS|10` remain in this complete type-1/type-5 selection. The former
+misses default HM/OC/sky and random HM/OC; the latter misses random OC/texture/
+sky. `XENOFELYS|10` random HM is now exact. The retained corpus otherwise has
+one default type-5 heightmap (`301D7754`) on 630/631 rows and one random type-1
+sky (`7B252DC5`) on 1,016/1,017 rows; each XENOFELYS target is the sole outlier.
+All authoritative hashes remain unchanged. Before changing production again,
+obtain a fresh original/reference first-divergence trace at ground reseed,
+type-switch return, post-smoothing, inclination, and sky painter/horizon
+boundaries. Distinguish captured call/allocation context from a remaining x87
+sine or spill delta. Do not search parameter space for a matching hash and do
+not add star-, body-, coordinate-, or expected-value-specific behavior.
+
+The retained public sky images narrow this further. `XENOFELYS|4`'s default and
+random original PNGs are byte-identical despite different raw-sky FNVs.
+`XENOFELYS|10`'s random target `CBD77DB5` is exactly a 46,080-byte zero sky with
+one byte changed at offset 12,167 (`x=287`, `y=33`, value 80); the published PNG
+also differs from the default black sky by that single pixel. Treat the sky
+residuals as caller/capture-context evidence. Identify the original writer and
+regenerate or confirm the outlier rows before altering the source-shaped
+`create_sky` path. The historical NIVGEN `planetdump` hash/PNG caller is not
+present in the local source trees. The available R2.3 game capture reaches late
+landed gameplay, not clean return. The smallest discriminator is a DOSBox watch
+on `s_background[12167]` immediately after `create_sky` for body 10 at `(130,9)`;
+zero there moves the outlier into the missing capture/hash/encode caller.
 
 **Pull-request handling policy.** Review incoming PRs against the current
 production tree and deal with them as appropriate: merge clean unique work,
@@ -1691,16 +1783,16 @@ than the older duplicated `nivlin`/`nivlinvh` implementations. GitHub's Windows
 gameplay and package checks passed, and a cached public `OLIKETT I|0` row scored
 7/7 through the prebuilt-executable route. One farther-away row from every
 planet class then scored 118/118 fields, while 20 type-7 moon cases scored
-140/140 after the two-pass surface-buffer repair. The live sheet will remain
-stale until the contributor rebuilds and replaces its worker executable; do
-not interpret those old Lino columns as results from this master revision.
+140/140 after the two-pass surface-buffer repair. Those selected checks proved
+the runner route but badly overstated corpus-wide parity; the 5,188-row baseline
+above supersedes them as accuracy evidence.
 
 A fresh late-corpus batch on 2026-08-18 covered 20 `RAVALISS` bodies of types
 0, 2, 3, 5, and 7. Both the fixed and random landed sectors were graded along
 with orbital surface, atmosphere, and palette output: all 220 available NIV+
-hashes matched. This adds two arbitrary-coordinate type-2 cases without
-weakening the rule above: the public Lino column is deployment evidence only
-after its worker is rebuilt from the production runner.
+hashes matched. This adds two arbitrary-coordinate type-2 cases, but it remains
+a selected historical batch rather than evidence against the full-sheet
+mismatch distribution above.
 
 **Cold generation acceleration, 2026-08-18.** The shared 40,000-cell terrain
 fill, in-place smoothing, signed level pass, and fast-noise pass now execute as
@@ -1762,53 +1854,114 @@ README back into one chronological wall of text.
 
 These are near-term release gates, not background polish.
 
-### 12.1 Finish the portable-Lino repair
+### 12.1 Finish the portable-Lino repair -- **IMPLEMENTED / FINAL PLATFORM RUN OPEN**
 
-No Noctis game logic or optimization may embed raw x86 opcode blocks. At the
-2026-08-19 checkpoint, the real `vhgame.txt` dependency closure contains ten
-such blocks, all isolated in the floating-point boundary: `FSin`, `FCos`, and
-`FAtan2` in `work/fp/fpx87.txt`, plus seven control/status operations in
-`work/fp/fpctl.txt`. Basic arithmetic, comparisons, conversions, and exact
-square root are already ordinary Lino. Finish the transcendental replacements,
-resolve the control/status boundary without weakening semantics, then add a
-build-time closure check that prevents game-side native blocks from returning.
-The production game, representative surface/tree scenes, and the FP/NIVGEN
-oracles must pass before this item closes.
+No Noctis game logic or optimization may embed raw x86 opcode blocks. The real
+`vhgame.txt`/`vhnivgen.txt` closure is now 75 files, 89 imports, and zero raw
+target blocks. Portable scalar arithmetic, exact square root, transcendentals,
+and generation schedules are ordinary Lino integer code. The seven historical
+x87 control/status blocks moved to test-only `work/fp/fpctlx87.txt`; production
+`fpctl.txt` contains no machine escape. The closure gate additionally pins the
+36 remaining ordinary Lino floating operations in three files and forbids
+production `??` floating comparisons.
 
-### 12.2 Resume usable releases
+The positive fractional-crater helper keeps its result live through one final
+binary32 store and preserves every soft-stack slot. The deep gate compares the
+integer operation mirror with its historical-x87 oracle on all 9,564,210
+reachable type-1/type-5 base/exponent pairs derived from the production factor
+rules, including type 5's `random(5) * 0.015`, and from 586,183 pre-power
+combinations and 490,424 distinct type/base pairs. Every mirrored pair agrees,
+with pinned result digest
+`b3c1aef60b2f697211e33d21b9f1d3be7f2cbcb0003fa5bc88810a46708ea937`.
+The separate compiled-Lino driver is exact on 4,096 boundary and spread cases
+and preserves all soft-stack sentinels.
+Complete production default maps retain authoritative digests `FDDDF3A2` for
+type 1 and `301D7754` for type 5. Corpus-wide NIVGEN effects are recorded under
+the release-critical accuracy gate rather than inferred from those two anchors.
 
-Resume releases at stable batches. A release is not complete merely because a
-tag and prose exist: it must attach the actual compiled package, its SHA-256
-checksum, provenance, and the package's internal manifest. The beta 20 assets
-were downloaded and verified on 2026-08-19: the ZIP checksum matches, the ZIP
-contains one valid sectioned i386 PE, and its executable hash matches the
-provenance file. Preserve that standard and make the pipeline compile the
-tagged source itself rather than silently trusting a stale versioned binary.
-Verify the uploaded assets from GitHub after publishing. Do not cut the next
-release while the portable-Lino repair is knowingly incomplete.
+Generated Windows PEs receive exact `133Fh` through a size-preserving,
+fail-closed post-link patch; all eight licence-protected runtime variants retain
+their upstream bytes and `PRISTINE.sha256` identity. Linux and macOS source load
+`133Fh` before application entry and after C/runtime isocalls. Focused runtime,
+closure, default K=64 historical-control (80 checks), 16-schedule, and 45-consumer
+gates pass, and the runtime-boundary gate is wired into Windows, source, tagged,
+Intel-macOS, and Rosetta workflows. A test-only x86_64 probe now performs a real
+`123Fh` perturb plus `133Fh` load/readback/restore and passes locally; the Intel
+and Rosetta jobs both compile and execute it. Close this item only after those
+two hosted runs pass with the existing NIVGEN/game consumers.
 
-### 12.3 Reproduce and fix macOS/Rosetta crashes
+### 12.2 Keep releases usable -- **RESTORED / HOSTED GRAPH HARDENED**
 
-Megagun/Joris reported a beta 20 segmentation fault under Rosetta, which blocks
-the public NIVGEN worker and therefore fidelity feedback. Reproduce it on a
-GitHub-hosted Apple-Silicon runner with the real production NIVGEN executable,
-retain the crash log, fix the runtime or generated payload from evidence, and
-keep an exact known-row hash check in CI. Commit `3a59d9d` adds the initial
-Rosetta execution probe; a passing build alone is not closure until the
-contributor's failing route is identified or independently shown equivalent.
+Compiled releases have resumed. Tagged builds compile the selected source,
+produce Windows and macOS packages, attach SHA-256 checksums, internal manifests,
+and provenance, and independently verify uploaded assets. Release bodies now
+contain only the selected release's own notes rather than the cumulative
+history. Beta 22 was published and its artifacts were recorded as verified.
 
-Ship a macOS download if practical. The repository already has x86_64 Cocoa and
-headless runtimes, so first produce and smoke-test a self-contained x86_64
-macOS package for Intel and Rosetta. A native ARM64 game remains a separate,
-larger port: PR #10 is only a Phase-1 runtime and explicitly leaves the
-`__PAGEZERO` and 64-bit pointer-model redesign open. Review and publicly comment
-on that contribution before merging, adapting, or closing it.
+The two release-pipeline hardening findings are repaired in source. The tagged
+workflow no longer schedules or depends on the optional self-hosted
+`[numerical, lino-gui]` job; hosted validation now feeds Windows and macOS
+compilation directly, while the complete historical FP and consumer comparison
+remains available in the separately dispatched interactive source workflow.
+Rerunning an existing tag clobbers only the six generated assets and explicitly
+preserves the existing release body, including later manual audit additions.
+`test_release_notes.py` pins both properties and actionlint accepts the graph.
+The next tagged run still needs to prove the changed hosted graph end to end.
+Do not cut a fidelity release while the full NIVGEN gate above is knowingly far
+from parity.
+
+### 12.3 Keep macOS/Rosetta executable -- **CRASH FIXED / REGRESSION EXPANSION OPEN**
+
+The beta 20 Rosetta segmentation fault was reproduced and repaired. The x86_64
+runtime now maps Lino workspaces below the 32-bit address ceiling, grows them by
+safe map/copy/clear/unmap, and repairs the translated return path with
+`lea rsp,[rsp+4]` so flags remain intact. Headless NIVGEN and the Cocoa game run
+on Apple Silicon through Rosetta; the package is Finder-safe, ad-hoc signed,
+manifested, and includes AudioQueue PCM. Intel-native x86_64 and Rosetta are the
+supported macOS routes. The download is not notarized and is not native ARM64.
+
+Keep the exact known-sector hash and Cocoa launch/quit checks, but add the
+uniform-white palette rejection from PR #22 and full/mismatch-class NIVGEN
+coverage. The `133Fh` host probe is now wired on both Intel and Rosetta and still
+needs those current hosted executions. A native ARM64 game remains a separate
+larger port. A read-only review of retained PR #10 at tip `2402172` found useful
+`__PAGEZERO`/above-4-GB design notes, the conceptual `x19` through `x25` register
+map, and a non-truncating code-entry pointer, but its implementation must not be
+merged as-is. Critical defects corrupt `x29`/`x30` across normal and nonlocal
+returns, pass an `mmap` workspace to `realloc`, fail to clear growth, and leave
+translated workspace state stale after a move. The branch also has a destructive
+fixed-address allocator, 32-bit code-pointer truncation, an unsafe signature
+patch, shell/format-string injection, unconditional `/workspace` dumps, missing
+build inputs and translator, and no Mach-O/Apple-Silicon build. Start future work
+from master's safe map/copy/clear/unmap architecture and design explicit 64-bit
+translator/isocall fixups plus separate ELF and Mach-O paths. Leave a specific
+public review before adapting or closing the contribution; no public action has
+yet been taken.
+
+### 12.4 Finish with one coherent repository audit -- **OPEN**
+
+After the final FP, NIVGEN, and runtime changes settle, run the complete
+registered regression once from the same source state, including the explicit
+deep sky/ground modes where their libraries changed. Repeat the production
+closure and floating-operator scans, runtime-boundary checks, Python compilation,
+workflow lint, package/provenance checks, and targeted static searches for raw
+target blocks, target-dependent floating comparisons, stale duplicated NIVGEN
+implementations, and release-note drift. Record every skipped external oracle as
+a gap rather than a pass.
+
+Before any commit or release, recheck the protected artifact hashes, inspect the
+complete intended diff and repository status, and account for every tracked and
+new file. The user-owned `work/fp/fpout.bin`, `fprefout.bin`, `fptest.exe`, and
+`fpvec.bin`, `docs-notes/Optimization.txt`, and the existing `.tmp-*` corpus are
+not cleanup targets and must remain outside broad reset, copy, stage, or delete
+operations. Close this item only when the final platform run and coherent suite
+use the same accepted runtime baseline.
 
 ## 13. Cross-references
 
 | document | what Wave 6 changed in it |
 |---|---|
-| `FLOATPOLICY.md` §0, §3.3, §5 table, §6.1 | the cast boundary is settled for the original; the interim rule survives but now guards the code generator rather than covering an unknown |
+| `FLOATPOLICY.md` §0, §3.1-3.5, §5, §6 | original x87 evidence retained; shipping arithmetic and control ownership reconciled with the zero-native production closure |
 | `WAVE4_NEARSTAR.md` §4, §5, §6 | `bclip` closed; the cast boundary settled; geometry still ungraded, with the reference status added |
 | `tests/test_geometry.py` | the regression test for all four entries above |
 | `noctis-harness/geo_grade.py` | the wave's own run. Its summary line still prints "the cast boundary stays OPEN", which entry 1 refutes; read it for the measurements, not for that sentence |

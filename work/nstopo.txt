@@ -176,6 +176,7 @@
 	nstypehold	= 0;
 	nst		= 0;
 	nsstarray	= 0;		( nearstar_ray, binary32 bits from VHTRay )
+	nsgeometryf64	= 0;		( NIVGEN reference mode; game default is historical x87 )
 	nsgeo0		= 0; nsgeo1 = 0;
 	nsavg0		= 0; nsavg1 = 0;
 	nskey0		= 0; nskey1 = 0;
@@ -236,6 +237,33 @@
 ( prepare_nearstar - NOCTIS-0.CPP:4059-4376, topology only              )
 ( ==================================================================== )
 
+      ( Public NIVGEN was generated with binary64 expression boundaries.
+        The game leaves nsgeometryf64 zero and retains the shipped x87 schedule. )
+
+"NsGeoKMulChop"
+      ? [nsgeometryf64] = 0 -> NsGeoKMulChop live;
+	=> GeoKMulChopSpill;
+	end;
+    "NsGeoKMulChop live"
+	=> GeoKMulChopLive;
+	end;
+
+"NsGeoSeedTiltChop"
+      ? [nsgeometryf64] = 0 -> NsGeoSeedTiltChop live;
+	=> GeoSeedTiltChopSpill;
+	end;
+    "NsGeoSeedTiltChop live"
+	=> GeoSeedTiltChopLive;
+	end;
+
+"NsGeoEccStore2000"
+      ? [nsgeometryf64] = 0 -> NsGeoEccStore2000 live;
+	=> GeoEccStore2000F64;
+	end;
+    "NsGeoEccStore2000 live"
+	=> GeoEccStore2000;
+	end;
+
 "NsPrepare"
 
 	( ---- phase 0 : :4080-4082 --------------------------------- )
@@ -270,27 +298,27 @@
 	[FS0] = [nsstarray]; => FLoadF32; => GeoStoreFAtoFB;
 	A = [nsn]; A '* [nsn]; A + 1; A '* 3; [FI] = A; => IntToF;
 	[FC0] = [FA0]; [FC1] = [FA1];
-	A = 1; => GeoSetK; => GeoKMulChopLive; => GeoChop16;
+	A = 1; => GeoSetK; => NsGeoKMulChop; => GeoChop16;
 	A = [FI]; => NsRandom; [nsdrawvalue] = A;
 	[FI] = [nsdrawvalue]; => GeoSeedStore100;
 	[nsgeoi] = [nsn]; => Ns geo store seed;
 
 	( LIVE SITE 2 :4090, p_tilt = zrandom(10*seed)/500. )
 	[nsgeoi] = [nsn]; => Ns geo load seed;
-	A = 0; => GeoSetK; => GeoKMulChopLive; => GeoChop16;
+	A = 0; => GeoSetK; => NsGeoKMulChop; => GeoChop16;
 	A = [FI]; => NsZRandom; [FI] = A; => GeoRatioStore500;
 	=> Ns geo store tilt;
 
 	( LIVE SITE 3 :4091, p_orb_tilt = zrandom(10*seed)/5000. )
 	[nsgeoi] = [nsn]; => Ns geo load seed;
-	A = 0; => GeoSetK; => GeoKMulChopLive; => GeoChop16;
+	A = 0; => GeoSetK; => NsGeoKMulChop; => GeoChop16;
 	A = [FI]; => NsZRandom; [FI] = A; => GeoRatioStore5000;
 	=> Ns geo store orb tilt;
 
 	( LIVE SITE 4 :4092, eccentricity. )
 	[nsgeoi] = [nsn]; => Ns geo load seed; => Ns geo load orb tilt;
-	=> GeoSeedTiltChopLive; => GeoChop16;
-	A = [FI]; => NsRandom; [FI] = A; => GeoEccStore2000;
+	=> NsGeoSeedTiltChop; => GeoChop16;
+	A = [FI]; => NsRandom; [FI] = A; => NsGeoEccStore2000;
 	=> Ns geo store eccentricity;
 
 	( LIVE SITE 5 :4093, initial p_ray. )
@@ -541,26 +569,26 @@
 	[nsgeoi] = [nsn]; => Ns geo load ray;
 	A = [nsc]; A '* [nsc]; A + 4; [FI] = A; => IntToF;
 	[FC0] = [FA0]; [FC1] = [FA1]; A = 1; => GeoSetK;
-	=> GeoKMulChopLive; => GeoChop16; A = [FI]; => NsZRandom;
+	=> NsGeoKMulChop; => GeoChop16; A = [FI]; => NsZRandom;
 	[FI] = A; => GeoSeedStore100;
 	[nsgeoi] = [nsq]; => Ns geo store seed;
 
 	( LIVE SITE 8 :4196, moon p_tilt. )
 	[nsgeoi] = [nsq]; => Ns geo load seed;
-	A = 0; => GeoSetK; => GeoKMulChopLive; => GeoChop16;
+	A = 0; => GeoSetK; => NsGeoKMulChop; => GeoChop16;
 	A = [FI]; => NsZRandom; [FI] = A; => GeoRatioStore50;
 	=> Ns geo store tilt;
 
 	( LIVE SITE 9 :4197, moon p_orb_tilt. )
 	[nsgeoi] = [nsq]; => Ns geo load seed;
-	A = 0; => GeoSetK; => GeoKMulChopLive; => GeoChop16;
+	A = 0; => GeoSetK; => NsGeoKMulChop; => GeoChop16;
 	A = [FI]; => NsZRandom; [FI] = A; => GeoRatioStore500;
 	=> Ns geo store orb tilt;
 
 	( LIVE SITE 10 :4198, moon eccentricity. )
 	[nsgeoi] = [nsq]; => Ns geo load seed; => Ns geo load orb tilt;
-	=> GeoSeedTiltChopLive; => GeoChop16;
-	A = [FI]; => NsRandom; [FI] = A; => GeoEccStore2000;
+	=> NsGeoSeedTiltChop; => GeoChop16;
+	A = [FI]; => NsRandom; [FI] = A; => NsGeoEccStore2000;
 	=> Ns geo store eccentricity;
 
 	( LIVE SITE 11 :4199 deliberately reads the PARENT seed. )

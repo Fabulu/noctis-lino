@@ -198,6 +198,64 @@ hashes replaced no-data rows, it fell to 1,068 and exposed new mismatches. Use
 the independent hash counts and snapshot diff, not zero-error markers, for
 release claims.
 
+### Complete local execution
+
+A fresh offline execution now covers every authoritative field of every comparable
+body type in the canonical snapshot. The merged score is **49,774/49,823 exact
+field comparisons** and **4,513/4,546 fully exact rows**. The sheet baseline was
+38,893/49,823 fields and 426/4,546 rows, so the current production closure makes
+10,881 exact field repairs and leaves 49 fields across 33 rows.
+
+| Type | Exact fields | Exact rows |
+| ---: | ---: | ---: |
+| 0 | 3,124 / 3,124 | 284 / 284 |
+| 1 | 11,184 / 11,187 | 1,016 / 1,017 |
+| 2 | 5,855 / 5,863 | 531 / 533 |
+| 3 | 2,390 / 2,420 | 192 / 220 |
+| 4 | 3,649 / 3,652 | 331 / 332 |
+| 5 | 6,936 / 6,941 | 630 / 631 |
+| 6 | 3,322 / 3,322 | 302 / 302 |
+| 7 | 6,831 / 6,831 | 621 / 621 |
+| 8 | 3,630 / 3,630 | 330 / 330 |
+| 9 | 2,365 / 2,365 | 215 / 215 |
+| 10 | 488 / 488 | 61 / 61 |
+
+Every orbital surface and palette is exact. The only atmosphere failures are 24
+type-3 rows. The remaining 25 landed fields comprise the six-row XENOFELYS
+cluster and three non-XENOFELYS type-3 random skies. Types 0, 6, 7, 8, 9, and
+10 are completely exact.
+
+The last planetary orbital outlier, `MAGILLA PRIME|5`, exposed a caller precision
+policy rather than another x87 emulation defect. The shipping 1996 game keeps
+live extended expressions and remains the default. The public NIVGEN artifacts
+instead match binary64 stores at the nearstar cast expressions, eccentricity
+quotient/subtraction, and each left-to-right rotation-seed multiply. The derived
+`vhnivgen` driver enables that general reference mode and restores historical
+mode on both exits; `vhgame` does not link the driver. MAGILLA now matches all
+11 fields, including surface `949B1F26`, atmosphere `4927A000`, and palette
+`85311E10`.
+
+The precision change was bounded before integration. Exact-rational analysis of
+all 4,473 model-valid rows found only one downstream integer RNG boundary change:
+MAGILLA's rotation seed. A fresh 106-row type-2 shard was 1,166/1,166 fields
+exact, including MAGILLA. The 73 rows outside that geometry model were executed
+separately and had zero field-value changes from the historical-mode score. The
+full historical nearstar regression still matches C and Python on all 100 fields
+of 5,540 records. `tests/test_nivgen_precision.py` pins the public geometry bits,
+seed, seven default-site hashes, mode isolation, and absence of fixture-specific
+production constants.
+
+The retained complete score, transition, and run record are
+`tests/gen/nivgen-portable-f64-complete-score.json`,
+`tests/gen/nivgen-portable-f64-complete-transition.json`, and
+`tests/gen/nivgen-portable-f64-complete-score-run.json`. Their SHA-256 values
+are `709604cb7f25d79152391001721eb8c871c0c513d24e62036f2ffcd05578d2b3`,
+`20893e8ad3552b66072aa62d2756320a0a45643839fba4b0e1869928f22c3f07`,
+and `489eee20dd9aa9c5c153fd5b114030c59e4bc5a0564d15a27dae571d2d845c24`.
+The transition binds the exact executable, base revision, source-closure
+manifest, and closure-only patch; the run record additionally binds all 44
+selected shards, ten merged type scores, and seven scoring-driver files.
+
 The seven-field production diagnostic remains exactly:
 
 ```text
@@ -280,6 +338,28 @@ This is evidence for a caller/capture overlay or context difference, not
 permission to add a body-specific pixel. A fresh original trace must establish
 which caller writes that byte and must regenerate or confirm both outlier rows
 before changing production.
+
+A source-path trace now excludes the retained direct generator itself. Type 1
+prefills the complete scored range with zero, selects no sky painter, and does
+not run the gameplay horizon pass. The unreachable nebular/cloudy painters emit
+only values `0..63`; earlier aliased moon-texture writes are erased by the
+prefill and could not leave a lone value 80. The retained trace is
+`tests/gen/nivgen-xenofelys-sky-source-trace.txt` (SHA-256
+`8637242d640fe709e5d4c5ae13dc855629b1f3b49c4f020d5ea648fc9eb7b2c7`).
+Watch offset 12,167 after prefill, after `create_sky`, and immediately before
+hashing in a fresh original/reference caller. No source-shaped sky exception is
+justified.
+
+The locally available DOS reference is NIV+ R2.3 `NOCTIS.EXE`, whose resume path
+calls `planets()`, then `planetary_main()`, and whose generation functions match
+the release source. It is a generator reference, not the missing historical
+NIVGEN `planetdump` hash/PNG caller. The retained DOSBox capture script waits
+until the landed gameplay loop and therefore observes late gameplay buffers,
+not a clean generator return. The smallest local discriminator is XENOFELYS body
+10 at random site `(130,9)`: break immediately after `create_sky(atmosphere)` and
+inspect `s_background[12167]`. A value of 80 attributes the outlier to native
+generator/allocation context; zero moves it past that return boundary. Pre-hash
+versus pre-encode attribution still requires the actual historical NIVGEN caller.
 
 ## Historical bounded measurements -- **SUPERSEDED**
 

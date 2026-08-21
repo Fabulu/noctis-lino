@@ -36,12 +36,12 @@ def main() -> int:
     if blob is None:
         return checks.done()
 
-    checks.eq(len(blob), 16 + 4 * RECORD.size,
-              "geometry quotient driver emits four complete records")
-    if len(blob) != 16 + 4 * RECORD.size:
+    checks.eq(len(blob), 16 + 6 * RECORD.size,
+              "geometry quotient driver emits six complete records")
+    if len(blob) != 16 + 6 * RECORD.size:
         return checks.done()
     header = struct.unpack_from("<4I", blob)
-    checks.eq(header, (OUT_MAGIC, 1, 4, 8),
+    checks.eq(header, (OUT_MAGIC, 1, 6, 8),
               "geometry quotient driver emits the exact output schema")
 
     expected = (
@@ -49,20 +49,25 @@ def main() -> int:
         (1, 25, 0, 0x40190000, 0, 0, 0, 0x133F),
         (2, 0, 0, 0x3FF00000, 5, 3, 0, 0x133F),
         (2, 500, 0, 0x3FE80000, 2, 6, 0, 0x133F),
+        (3, 0, 0, 0x3FF00000, 4, 7, 0, 0x133F),
+        (3, 500, 0, 0x3FE80000, 1, 2, 0, 0x133F),
     )
     actual = tuple(RECORD.unpack_from(blob, 16 + index * RECORD.size)
-                   for index in range(4))
+                   for index in range(6))
     labels = (
         "GeoSeedStore100 maps a zero numerator to exactly FC*FB",
         "GeoSeedStore100 retains a representative nonzero quotient",
         "GeoEccStore2000 maps a zero numerator to exactly binary64 one",
         "GeoEccStore2000 retains a representative nonzero quotient",
+        "GeoEccStore2000F64 maps a zero numerator to exactly binary64 one",
+        "GeoEccStore2000F64 retains a representative nonzero quotient",
     )
     for got, want, label in zip(actual, expected, labels):
         checks.eq(got, want, label)
 
     source_text = (ROOT / "work" / "geoconv.txt").read_text(encoding="utf-8")
-    for routine in ("GeoSeedStore100", "GeoEccStore2000"):
+    for routine in ("GeoSeedStore100", "GeoEccStore2000",
+                    "GeoEccStore2000F64"):
         body = source_text.split(f'"{routine}"', 1)[1].split("\n\tend;", 1)[0]
         checks.ok("? [FI] = 0" in body,
                   f"{routine} bypasses the normalized-only quotient core for zero")

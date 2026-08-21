@@ -14,7 +14,7 @@ tested.
 | Capsule descent, exit, transparent shell, walk-away/re-entry, seal and ascent | Integrated source/order/state assertions and independent capsule-gate models | `screenshots/planet-surface.png`; complete landing/return sessions in `PLAYTEST.md` |
 | Planet classes, terrain, water, weather and suns | All accepted class arms, terrain bounds, daylight, secondary suns, reflections, waves and storms | Lunar/dense/thin/frozen gallery plus dry-cell sun scene; native sessions in `PLAYTEST.md` |
 | Floating-point and transcendental boundary | Exact import/export, signed zero, subnormals, overflow, one-ULP mathematical grading, 4,113 historical catalogue rows, all 16 spill schedules, zero x87 TOP drift, 45 production-consumer checks, zero production target blocks, the exact 36-operation ordinary-float inventory, a model-vs-x87 audit of all 9,564,210 reachable fractional-crater-power pairs, and 4,096 compiled-Lino boundary cases | Generated Windows PEs receive the fail-closed post-link `FCWEXT=133Fh` patch while all eight protected runtime variants retain their upstream bytes; Linux and macOS assembly pin their own loads, and a real x86_64 perturb/load/read/restore probe is wired on Intel macOS and Rosetta but still awaits both hosted runs |
-| NIVGEN public accuracy | Canonical 5,188-row snapshots distinguish visible zero-error markers from independently comparable hashes; bounded local execution scores every non-null emitted field and retains before/after transitions | Production Rosetta has a 7/7 sector smoke; a provenance-bound complete type-1/type-5 run is 18,120/18,128 comparisons and 1,646/1,648 rows exact, while other body types still require fresh complete local scores |
+| NIVGEN public accuracy | Canonical 5,188-row snapshots distinguish visible zero-error markers from independently comparable hashes; a retained complete offline run scores all 49,823 authoritative fields on 4,546 rows, reaching 49,774 exact fields and 4,513 exact rows; `test_nivgen_precision.py` pins the NIVGEN-only binary64 geometry mode while `test_nearstar.py` retains historical game behavior | Production Rosetta has a 7/7 sector smoke; Windows native score children run on private inactive desktops; the remaining 49 fields are explicitly classified rather than omitted |
 | Trees, hoppers/mammals and birds | Generation, source branch-stack tree shapes, three mammal morphs/gaits, bird flight/stalking/capture and persistence | Habitable sun/fauna screenshot and the bird capture/reload session in `PLAYTEST.md` |
 | Jump and NIV+ jetpack | Gravity, jump/hold-thrust/cancel/descent and landing state assertions | Hardware-key jetpack session recorded in `PLAYTEST.md` |
 | Historical ruins and Suricrasian Cube | All six source ruin styles, three historical systems, Cube footprint and marked wall rows/columns | Marked triangular-silhouette ruin and elevated Cube-wall screenshots |
@@ -37,19 +37,19 @@ python tests\test_suseed_zero.py
 python tests\test_grnd_zero.py
 python tests\test_nivgen_sheet_report.py
 python tests\test_nivgen_score.py
+python tests\test_nivgen_precision.py
 powershell -File tools\capture_noctis_scenes.ps1 -Scene all
-python tests\run_all.py  # 35 registered, 35 passed in the complete 2026-08-21 run
+python tests\run_all.py  # 36 registered; run the complete gate before release
 ```
 
-The provenance-bound power-fixed NIVGEN run covers all eleven fields on 1,648
-comparable type-1/type-5 rows: 18,120/18,128 field comparisons and 1,646/1,648
-fully exact rows, versus 11,120/18,128 and 0/1,648 in the retained sheet
-snapshot. Relative to the post-zero-quotient build, it contains 209 exact repairs
-and zero regressions. This is complete for that selected corpus, not for all body
-types. The only residual rows are `XENOFELYS|4` and `XENOFELYS|10`; their eight
-remaining fields require an original/reference first-divergence trace rather
-than weakened hashes or fixture-specific behavior. The focused zero-quotient,
-fractional-power, scoring, and production-ground gates pass.
+The retained complete NIVGEN run covers all 49,823 authoritative fields on 4,546
+comparable rows: 49,774 field comparisons and 4,513 rows are exact, versus
+38,893 fields and 426 rows in the sheet snapshot. Types 0, 6, 7, 8, 9, and 10
+are completely exact; every orbital surface and palette is exact. The 49
+remaining fields are 24 type-3 atmospheres, three non-XENOFELYS type-3 random
+skies, and 22 landed fields across six XENOFELYS bodies. The precision gate
+proves the public binary64 geometry boundary without changing the default
+historical game schedule. Full corpus parity remains required before release.
 
 ## Honest gaps
 

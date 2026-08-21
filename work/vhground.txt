@@ -2003,6 +2003,7 @@
     "VHGND rotation moon typed"
 	[FI] = A; => IntToF; [VHGNDsf20] = [FA0]; [VHGNDsf21] = [FA1];
 "VHGND rotation seed calculate"
+      ? [nsgeometryf64] != 0 -> VHGND rotation seed calculate f64;
 	=> XReset;
 	A = [VHGNDsf00]; [XU0] = A; A = [VHGNDsf01]; [XU1] = A; => XFromF64; => XPush;
 	A = [VHGNDsf10]; [XU0] = A; A = [VHGNDsf11]; [XU1] = A; => XFromF64; => XPush; => XFmulp;
@@ -2011,6 +2012,15 @@
 	A = [VHGNDsf40]; [XU0] = A; A = [VHGNDsf41]; [XU1] = A; => XFromF64; => XPush; => XFmulp;
 	A = [VHGNDsf50]; [XU0] = A; A = [VHGNDsf51]; [XU1] = A; => XFromF64; => XPush; => XFmulp;
 	=> XFstpQ;
+	[VHGNDseedval0] = [FA0]; [VHGNDseedval1] = [FA1];
+	end;
+    "VHGND rotation seed calculate f64"
+	[FA0] = [VHGNDsf00]; [FA1] = [VHGNDsf01];
+	[FB0] = [VHGNDsf10]; [FB1] = [VHGNDsf11]; => FMul;
+	[FB0] = [VHGNDsf20]; [FB1] = [VHGNDsf21]; => FMul;
+	[FB0] = [VHGNDsf30]; [FB1] = [VHGNDsf31]; => FMul;
+	[FB0] = [VHGNDsf40]; [FB1] = [VHGNDsf41]; => FMul;
+	[FB0] = [VHGNDsf50]; [FB1] = [VHGNDsf51]; => FMul;
 	[VHGNDseedval0] = [FA0]; [VHGNDseedval1] = [FA1];
 	end;
 
