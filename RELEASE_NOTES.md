@@ -1,5 +1,64 @@
 # Noctis IV L.in.oleum port -- Windows and macOS prerelease
 
+## Beta 24
+
+Beta 24 adds the first native Apple-Silicon Noctis IV package. Download
+`Noctis-IV-macos-arm64.zip` on an M-series Mac; the existing
+`Noctis-IV-macos-x86_64.zip` remains available for Intel Macs and as the Rosetta
+compatibility route. The new app is a thin arm64 build targeting macOS 11.0 or
+newer. Both Mac packages are ad-hoc signed rather than Developer ID signed or
+notarized, so macOS may require first-launch approval under System Settings,
+Privacy & Security.
+
+The generated game now comes from a compiler-owned AArch64 target instead of an
+untracked CPU pack or translated x86 payload. The emitted operations required
+by the shipped game cover integer, stack, control-flow, scalar binary32,
+conversion, comparison, square-root, trigonometric, remainder, and arctangent
+paths through a checked 32-bit Lino value ABI while retaining full-width host
+pointers. The runtime reserves Darwin's x18, preserves the x19 through x25 Lino
+register map, balances the link and frame registers, reloads the workspace after
+host calls, keeps workspace memory non-executable, and seals generated code
+read/execute-only.
+
+The native Cocoa product includes display, resize, fullscreen, pointer and
+keyboard input, focus handling, file services, screenshots, checkpoint saves,
+and graceful window-close or App Quit handling. Dynamic Lino procedure values
+are reconstructed as code-relative offsets from the full-width code origin,
+which repairs the first full-game crash without scanning or rewriting generated
+code. AudioQueue provides nonfatal stereo signed 16-bit PCM at 44,100 Hz. The
+optional iGUI GlobalK service uses checked 24-unit names, exact 255-unit values,
+atomic per-user files, and safe destruction; service families not reached by the
+shipped Noctis source remain explicitly unsupported.
+
+The Finder launcher installs mutable data under
+`~/Library/Application Support/Noctis IV`, preserves regular player-owned
+`STARMAP.BIN` and `GUIDE.BIN`, rejects non-regular mutable paths, and keeps the
+nested game executable private to the app. Hosted Apple-Silicon execution proves
+the compiler-owned fixture and full game above 4 GiB, exact Mach-O payload
+boundaries, 16-KiB `__LINKEDIT` geometry, one exact ad-hoc signature suffix,
+GlobalK write/read/destroy behavior, an actual Cocoa retrace, and normal raw and
+extracted-package save/quit paths with a nonempty `CURRENT.LIN`.
+
+Tagged releases now wait for Windows x86, macOS x86_64, and native macOS arm64
+package jobs. Each platform publishes its ZIP, adjacent SHA-256 checksum, and
+provenance record, for nine generated assets in total. The ARM64 provenance
+separately binds the source revision, compiler, unsigned and signed executable
+hashes, preserved Lino payload, launcher, manifest, architecture, deployment
+target, bundle identity, release label, and archive.
+
+Joris van de Donk's ARM64 `__PAGEZERO` analysis and x19-through-x25 register-map
+work are credited in the replacement commits. The earlier prototype was not
+merged because its forced mappings, pointer truncation, relocation, unwind,
+code-patching, and build boundaries were unsafe; PR #10 was closed only after
+the checked native product superseded it.
+
+The macOS palette repair from PR #22 is included. It converts through
+`FToIntChop` before clamping to `0..63`, avoiding uniform-white planet palettes
+on macOS, and the Rosetta gate rejects any uniform palette before packaging.
+This release does not claim complete NIVGEN parity: the same 22 retained
+XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred
+pending the exact unpublished harness or paired upstream regeneration.
+
 ## Beta 23
 
 Beta 23 completes the portable floating-point repair and raises the measured

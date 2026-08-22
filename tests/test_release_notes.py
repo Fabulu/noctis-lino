@@ -31,8 +31,8 @@ def main() -> int:
 
     text = NOTES.read_text(encoding="utf-8")
     numbers = [int(match.group(1)) for match in notes_tool.BETA_HEADING_RE.finditer(text)]
-    check(numbers == list(range(23, 8, -1)),
-          "release-note headings are unique and ordered Beta 23 through Beta 9")
+    check(numbers == list(range(24, 8, -1)),
+          "release-note headings are unique and ordered Beta 24 through Beta 9")
 
     for number in numbers:
         tag = f"v0.1.0-beta.{number}"
@@ -43,7 +43,7 @@ def main() -> int:
         check("\n## " not in section,
               f"{tag} does not include another release")
 
-    for bad in ("v0.1.0", "v0.1.0-beta.0", "v0.1.0-beta.24"):
+    for bad in ("v0.1.0", "v0.1.0-beta.0", "v0.1.0-beta.25"):
         try:
             notes_tool.release_notes(text, bad)
         except ValueError:
@@ -79,7 +79,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="noctis-release-notes-") as directory:
         output = Path(directory) / "notes.md"
         process = subprocess.run(
-            [sys.executable, str(SCRIPT), "v0.1.0-beta.23", "--output", str(output)],
+            [sys.executable, str(SCRIPT), "v0.1.0-beta.24", "--output", str(output)],
             cwd=ROOT,
             text=True,
             stdout=subprocess.PIPE,
@@ -89,7 +89,7 @@ def main() -> int:
               "command-line extractor writes a release body")
         if output.is_file():
             check(output.read_text(encoding="utf-8") == notes_tool.release_notes(
-                text, "v0.1.0-beta.23"),
+                text, "v0.1.0-beta.24"),
                   "command-line output matches the in-process section")
 
     if errors:

@@ -2,11 +2,13 @@
 
 [![Windows build and release](https://github.com/Fabulu/noctis-lino/actions/workflows/windows-release.yml/badge.svg)](https://github.com/Fabulu/noctis-lino/actions/workflows/windows-release.yml)
 [![macOS Rosetta game](https://github.com/Fabulu/noctis-lino/actions/workflows/macos-rosetta-nivgen.yml/badge.svg)](https://github.com/Fabulu/noctis-lino/actions/workflows/macos-rosetta-nivgen.yml)
+[![native macOS arm64 game](https://github.com/Fabulu/noctis-lino/actions/workflows/macos-aarch64-runtime.yml/badge.svg)](https://github.com/Fabulu/noctis-lino/actions/workflows/macos-aarch64-runtime.yml)
 
 A complete playable port of [Noctis IV](https://en.wikipedia.org/wiki/Noctis_(video_game))
 to **L.in.oleum**, the cross-platform assembly language its own author wrote.
-Release packages target Windows x86 and macOS x86_64. The Mac app runs natively
-on Intel and through Rosetta 2 on Apple Silicon.
+Release packages target Windows x86, macOS x86_64, and native macOS arm64. Intel
+Macs use the x86_64 app; Apple-Silicon Macs can use the native app or run the
+x86_64 compatibility package through Rosetta 2.
 
 Alessandro Ghignola wrote both. He built L.in.oleum specifically to write
 Noctis V in it, then abandoned both projects. This repository finishes a
@@ -45,15 +47,16 @@ the game automatically when the executable is absent; pass `-Build` to force a
 fresh production build. Clean saves also retain the current validated window
 dimensions, so a resized game reopens at the same size.
 
-### macOS package
+### macOS packages
 
-Download `Noctis-IV-macos-x86_64.zip` from the
-[GitHub releases page](https://github.com/Fabulu/noctis-lino/releases),
-verify it with the adjacent `.sha256` file, extract it, and drag
-`Noctis IV.app` to Applications. The app targets macOS 10.15 or newer. It runs
-as x86_64 on Intel Macs and needs Rosetta 2 on Apple Silicon.
+Download `Noctis-IV-macos-arm64.zip` for an Apple-Silicon Mac or
+`Noctis-IV-macos-x86_64.zip` for an Intel Mac from the
+[GitHub releases page](https://github.com/Fabulu/noctis-lino/releases). Verify it
+with the adjacent `.sha256` file, extract it, and drag `Noctis IV.app` to
+Applications. The native arm64 app targets macOS 11.0 or newer. The x86_64 app
+targets macOS 10.15 or newer and can also run through Rosetta 2 on Apple Silicon.
 
-The current app is ad-hoc signed rather than Developer ID signed or notarized.
+Both apps are ad-hoc signed rather than Developer ID signed or notarized.
 If macOS blocks its first launch, select Noctis IV under System Settings,
 Privacy & Security, and choose Open Anyway; Control-click and Open is the
 corresponding path on some older systems. Do not run the nested
@@ -164,23 +167,27 @@ existing directory, so stale files cannot masquerade as bundle content.
   `CAST`.
 
 Ordinary pushes and pull requests run protected-source, gameplay, source-build,
-and package checks on hosted runners. A version tag matching `v*` rebuilds both
-platform executables from the tagged source and publishes a GitHub prerelease
-only after both package graphs pass. Each ZIP has an adjacent SHA-256 checksum
-and source/compiler/binary provenance record; each extracted package contains
-its own per-file manifest. The macOS graph additionally proves all seven
-production NIVGEN hashes under Rosetta, strict nested ad-hoc signatures before
-and after extraction, launcher data behavior, the first Cocoa retrace, and a
-normal save-and-quit path. See [CI_RELEASES.md](CI_RELEASES.md) for exact trust
-and verification boundaries.
+and package checks on hosted runners. A version tag matching `v*` rebuilds the
+Windows x86, macOS x86_64, and native macOS arm64 executables from the tagged
+source and publishes a GitHub prerelease only after all three package graphs
+pass. Each ZIP has an adjacent SHA-256 checksum and source/compiler/binary
+provenance record; each extracted package contains its own per-file manifest.
+The x86_64 macOS graph additionally proves all seven production NIVGEN hashes
+under Rosetta. Both Mac graphs verify strict nested ad-hoc signatures before and
+after extraction, launcher data behavior, the first Cocoa retrace, and a normal
+save-and-quit path. See [CI_RELEASES.md](CI_RELEASES.md) for exact trust and
+verification boundaries.
 
 ### Source platforms
 
 - Windows x86 is a packaged and regularly played release target.
 - macOS x86_64 is a packaged Cocoa target with resizing, logical pointer mapping,
   fullscreen, AudioToolbox output, and no XQuartz dependency. Intel Macs run it
-  directly; Apple Silicon uses Rosetta 2. It is ad-hoc signed and not notarized.
-  Native ARM64 remains unfinished.
+  directly; Apple Silicon can use it through Rosetta 2.
+- macOS arm64 is a separately packaged native Cocoa target for Apple Silicon,
+  with the same game route, AudioQueue PCM, Finder-safe data launcher, and
+  raw/extracted-package retrace, save, and quit gates. Both Mac apps are ad-hoc
+  signed and not notarized.
 - Linux remains the hosted compiler-bootstrap platform. Runtime sources under
   `src/linoleum_linux32` also retain directory enumeration through the supported
   qemu-user path.
@@ -257,13 +264,14 @@ silhouette and the source's marked wall bands in frame.
 - [`PLAYTEST.md`](PLAYTEST.md) is the detailed capability and verification log.
 - [`PORTPLAN.md`](PORTPLAN.md) is the technical implementation and source-parity
   ledger; [`PORTPLAN-MACOS.md`](PORTPLAN-MACOS.md) records the completed x86_64
-  host/package boundary and remaining ARM64 work.
+  host/package boundary, while `src/linoleum_macos_aarch64/README.md` documents
+  the native Apple-Silicon runtime and package boundary.
 - [`RELEASE_NOTES.md`](RELEASE_NOTES.md) describes the current desktop release and
   its known limitations.
 - [`TEST_COVERAGE.md`](TEST_COVERAGE.md) states what automation and native play
   actually cover, including the representative procedural and native boundaries.
 - [`CI_RELEASES.md`](CI_RELEASES.md) describes hosted source builds, package
-  provenance, macOS validation, the optional interactive runner, and six-asset
+  provenance, macOS validation, the optional interactive runner, and nine-asset
   tagged prerelease publication.
 - [`docs/NIVGEN.md`](docs/NIVGEN.md) documents the public NIVGEN protocol,
   local scoring workflow, known undefined texture tail, and accuracy strategy.

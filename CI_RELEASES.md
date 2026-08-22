@@ -3,9 +3,10 @@
 ## Current release boundary
 
 Beta 21 was the first release whose Windows executable was compiled from tagged
-Lino source on a GitHub-hosted runner. Beta 22 is the first dual-platform
-release and the first public macOS x86_64 Finder application. Its tagged graph
-published six generated assets only after both platform packages passed:
+Lino source on a GitHub-hosted runner. Beta 22 added the public macOS x86_64
+Finder application. Beta 24 adds the separately compiled native Apple-Silicon
+application. Its tagged graph publishes nine generated assets only after all
+three platform packages pass:
 
 ```text
 Noctis-IV-windows-x86.zip
@@ -14,6 +15,9 @@ Noctis-IV-windows-x86.provenance.txt
 Noctis-IV-macos-x86_64.zip
 Noctis-IV-macos-x86_64.zip.sha256
 Noctis-IV-macos-x86_64.provenance.txt
+Noctis-IV-macos-arm64.zip
+Noctis-IV-macos-arm64.zip.sha256
+Noctis-IV-macos-arm64.provenance.txt
 ```
 
 CI does not repackage a committed `work/vhgame.exe` and does not depend on a
@@ -51,10 +55,16 @@ executables.
   Apple Silicon for exact Rosetta and package validation. It uploads a
   development macOS ZIP, checksum, and provenance artifact only after every
   gate below succeeds.
+- `.github/workflows/macos-aarch64-runtime.yml` is both the ordinary native
+  Apple-Silicon product gate and a reusable tagged package job. It builds a thin
+  arm64 runtime on macOS 15, compiles the fixture and full game through the
+  compiler-owned AArch64 target, finalizes and signs the exact Mach-O payload,
+  runs raw and extracted-package retrace/save/quit smokes, and retains the
+  publishable ZIP, checksum, and provenance files.
 - `.github/workflows/tagged-release.yml` repeats the protected-source regression,
-  Windows source build/package, and the complete macOS build/package graph for
-  every pushed `v*` tag. Publication needs both platform package jobs, so no
-  partial public release is created when either side fails.
+  Windows source build/package, x86_64 macOS build/package, and native arm64
+  product graph for every pushed `v*` tag. Publication needs all three platform
+  package jobs, so no partial public release is created when one fails.
 - `.github/workflows/source-release.yml` remains an optional independent build
   through the historical Win32 compiler on an interactive `lino-gui` runner.
   It is useful as a second compiler-host comparison, but it is not required for
@@ -122,19 +132,38 @@ archive, release label, signing mode, deployment target, and pinned external
 validation reference. The app is ad-hoc signed, not notarized, and does not claim
 a hardened runtime.
 
+### Native Apple-Silicon package
+
+The arm64 route uses no CPU pack. Linux bootstraps the same extended compiler to
+its byte-identical i386m fixpoint, then `compiler114m.txt` emits AArch64 words
+from compiler IR for the packed native Darwin SYS. The macOS 15 job requires a
+thin arm64 image, the normal 4-GiB `__PAGEZERO`, macOS 11.0 deployment target,
+complete 32,947-unit service workspace, full-width runtime pointers, and exact
+physical workspace/code/stockfile boundaries.
+
+The checked finalizer may extend only `__LINKEDIT` over the appended Lino image,
+rounds its VM geometry to 16 KiB, preserves the stock resource suffix, and
+allows only the exact ad-hoc signature suffix beyond the recorded application
+boundary. Native execution covers the deterministic compiler fixture, checked
+GlobalK storage, AudioQueue metadata, the full game's first Cocoa retrace, and
+raw plus extracted-package graceful save/quit paths. Package provenance binds
+the compiler and source inputs, unsigned and signed executables, preserved Lino
+payload, launcher, manifest, architecture, deployment target, bundle identity,
+release label, and archive.
+
 ## Independent release download audit
 
 A workflow is not considered fully audited merely because it is green. After
-publication, download all six public assets into an empty directory and verify:
+publication, download all nine public assets into an empty directory and verify:
 
 - each adjacent checksum has the expected syntax, filename, and archive hash;
-- neither ZIP has duplicate, absolute, escaping, symlink, or unexpected paths;
+- none of the three ZIPs has duplicate, absolute, escaping, symlink, or unexpected paths;
 - every internal manifest entry exists exactly once and hashes correctly;
 - packaged executables match their provenance records and target architectures;
-- Windows PE and macOS Mach-O headers have the expected section/segment shape;
-- the macOS nested signatures remain strict-valid after public download and
+- the Windows PE and both macOS Mach-O headers have the expected section/segment shape;
+- both macOS nested signatures remain strict-valid after public download and
   extraction;
-- the signed game retains the exact normalized geometry and appended Lino
+- each signed game retains the exact normalized geometry and appended Lino
   payload recorded by package provenance; and
 - release assets correspond to the immutable tagged commit.
 
@@ -150,21 +179,21 @@ replacement for the adjacent checksums and internal manifests.
 
 ## Creating a prerelease
 
-Require green master Windows, Intel-macOS runtime, and Apple-Silicon Rosetta
-package workflows. Review `RELEASE_NOTES.md`, confirm that it identifies ad-hoc
-macOS signing and the lack of notarization, then create the next annotated beta
-tag (beta 23 after the published beta 22):
+Require green master Windows, Intel-macOS runtime, Apple-Silicon Rosetta
+package, and native Apple-Silicon product workflows. Review `RELEASE_NOTES.md`,
+confirm that it identifies ad-hoc macOS signing and the lack of notarization,
+then create the next annotated beta tag:
 
 ```sh
-git tag -a v0.1.0-beta.23 -m "Noctis IV Lino beta 23"
-git push origin v0.1.0-beta.23
+git tag -a v0.1.0-beta.24 -m "Noctis IV Lino beta 24"
+git push origin v0.1.0-beta.24
 ```
 
-The tag launches both complete build graphs and publishes only after all jobs
-pass. If a release already exists for the tag, a manual rerun replaces only the
-six generated assets. Do not move or recreate a published tag to hide a failure;
-fix master and use the next version. Complete the independent public download
-audit before calling the release verified.
+The tag launches all three complete build graphs and publishes only after all
+jobs pass. If a release already exists for the tag, a manual rerun replaces only
+the nine generated assets. Do not move or recreate a published tag to hide a
+failure; fix master and use the next version. Complete the independent public
+download audit before calling the release verified.
 
 ## Optional interactive Windows runner
 
