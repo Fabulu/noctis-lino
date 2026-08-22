@@ -265,10 +265,27 @@ static float apply_float_partial_remainder(float left, float right)
 static uint32_t apply_float_binary(uint32_t left_bits, uint32_t right_bits,
                                    uint32_t operation)
 {
+    const uint32_t left_magnitude = left_bits & UINT32_C(0x7FFFFFFF);
+    const uint32_t right_magnitude = right_bits & UINT32_C(0x7FFFFFFF);
     float left;
     float right;
     float output;
     uint32_t result;
+
+    if (operation != FLOAT_BINARY_PARTIAL_REMAINDER &&
+        operation != FLOAT_BINARY_PARTIAL_ARCTANGENT)
+        return left_bits;
+    if (right_magnitude > UINT32_C(0x7F800000))
+        return right_bits | UINT32_C(0x00400000);
+    if (left_magnitude > UINT32_C(0x7F800000))
+        return left_bits | UINT32_C(0x00400000);
+    if (operation == FLOAT_BINARY_PARTIAL_REMAINDER) {
+        if (right_magnitude == 0 ||
+            left_magnitude == UINT32_C(0x7F800000))
+            return UINT32_C(0xFFC00000);
+        if (right_magnitude == UINT32_C(0x7F800000))
+            return left_bits;
+    }
 
     memcpy(&left, &left_bits, sizeof(left));
     memcpy(&right, &right_bits, sizeof(right));

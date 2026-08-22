@@ -1082,7 +1082,46 @@ COMPILER_FIXTURE_SOURCE = """\
     [B plus 2] = 40B00000h;
     [B minus 1] = 40000000h;
     [B plus 2] %% [B minus 1];
-    ? [out] = 3FC00000h -> fp arctangent register;
+    ? [out] = 3FC00000h -> fp remainder zero divisor;
+    fail;
+
+"fp remainder zero divisor"
+
+    A = 3F800000h;
+    A %% 0;
+    ? A = FFC00000h -> fp remainder infinite dividend;
+    fail;
+
+"fp remainder infinite dividend"
+
+    [lhs] = 7F800000h;
+    [rhs] = 3F800000h;
+    [lhs] %% [rhs];
+    ? [lhs] = FFC00000h -> fp remainder infinite divisor;
+    fail;
+
+"fp remainder infinite divisor"
+
+    B = p;
+    [B plus 2] = BF800000h;
+    [B minus 1] = FF800000h;
+    [B plus 2] %% [B minus 1];
+    ? [out] = BF800000h -> fp remainder right nan;
+    fail;
+
+"fp remainder right nan"
+
+    [lhs] = 7FC12345h;
+    [rhs] = 7FC23456h;
+    [lhs] %% [rhs];
+    ? [lhs] = 7FC23456h -> fp remainder signaling nan;
+    fail;
+
+"fp remainder signaling nan"
+
+    A = 3F800000h;
+    A %% 7F823456h;
+    ? A = 7FC23456h -> fp arctangent register;
     fail;
 
 "fp arctangent register"
@@ -1105,7 +1144,54 @@ COMPILER_FIXTURE_SOURCE = """\
     [B plus 2] = 3F800000h;
     [B minus 1] = 0;
     [B plus 2] ^/ [B minus 1];
-    ? [out] = 0 -> scalar arithmetic good;
+    ? [out] = 0 -> fp arctangent signed zero;
+    fail;
+
+"fp arctangent signed zero"
+
+    A = 0;
+    A ^/ 80000000h;
+    ? A = 80000000h -> fp arctangent positive pi;
+    fail;
+
+"fp arctangent positive pi"
+
+    [lhs] = 80000000h;
+    [rhs] = 0;
+    [lhs] ^/ [rhs];
+    ? [lhs] = 40490FDBh -> fp arctangent negative pi;
+    fail;
+
+"fp arctangent negative pi"
+
+    B = p;
+    [B plus 2] = 80000000h;
+    [B minus 1] = 80000000h;
+    [B plus 2] ^/ [B minus 1];
+    ? [out] = C0490FDBh -> fp arctangent infinity quadrant;
+    fail;
+
+"fp arctangent infinity quadrant"
+
+    [lhs] = FF800000h;
+    [rhs] = 7F800000h;
+    [lhs] ^/ [rhs];
+    ? [lhs] = 4016CBE4h -> fp arctangent right nan;
+    fail;
+
+"fp arctangent right nan"
+
+    A = 7FC12345h;
+    A ^/ 7FC23456h;
+    ? A = 7FC23456h -> fp arctangent signaling nan;
+    fail;
+
+"fp arctangent signaling nan"
+
+    [lhs] = 7FC12345h;
+    [rhs] = 7F823456h;
+    [lhs] ^/ [rhs];
+    ? [lhs] = 7FC23456h -> scalar arithmetic good;
     fail;
 
 "scalar arithmetic good"
