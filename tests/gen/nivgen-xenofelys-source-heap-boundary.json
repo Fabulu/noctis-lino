@@ -1,0 +1,51 @@
+{
+  "date": "2026-08-22",
+  "purpose": "Bound which landed NIVGEN buffers can consume payload retained from an earlier NIVTEST process when the release-tag Noctis generator follows its published allocation and generation order.",
+  "reference_source": {
+    "repository": "https://github.com/jorisvddonk/Noctis-IV-Plus",
+    "tag": "2.3",
+    "commit": "c973ee5407505eef576894b89a1353080918715d",
+    "files": [
+      {"path": "source/NOCTIS.CPP", "sha256": "8b8292e53a047b35e63476f45a7eb2e8d43afbf8d75a3dd2b604bbc9becc7198"},
+      {"path": "source/NOCTIS-1.CPP", "sha256": "c5127feeaf96cd391cd90057f792f6394d8407bfbc4590641d6a51c373c97b6f"},
+      {"path": "source/NOCTIS-D.H", "sha256": "9b24ee47cd3118149c3ee37875df4a9c61463eb9659c2ecd3d0ca246985721b5"}
+    ]
+  },
+  "allocation_order": [
+    {"name": "s_background", "bytes": 64800},
+    {"name": "p_background", "bytes": 65552, "alias": "txtr"},
+    {"name": "p_surfacemap", "bytes": 40000},
+    {"name": "objectschart", "bytes": 40000, "alias": "ruinschart"},
+    {"name": "pvfile", "bytes": 20480},
+    {"name": "adapted", "bytes": 65540}
+  ],
+  "source_boundaries": [
+    {
+      "buffer": "sky",
+      "source": "source/NOCTIS-1.CPP:3683-3697 at tag 2.3",
+      "boundary": "All 64,800 s_background bytes are filled with sky_brightness before create_sky and the horizon pass; the scored extent is 46,080 bytes."
+    },
+    {
+      "buffer": "texture",
+      "source": "source/NOCTIS-1.CPP:1968 at tag 2.3",
+      "boundary": "build_surface fills txtr[0..65534] with 16 before any planet-type arm; the scored extent is 65,024 bytes."
+    },
+    {
+      "buffer": "heightmap",
+      "source": "source/NOCTIS-1.CPP:1969 at tag 2.3",
+      "boundary": "build_surface fills all 40,000 p_surfacemap bytes with zero before any planet-type arm; the scored extent is all 40,000 bytes."
+    },
+    {
+      "buffer": "object_chart",
+      "source": "source/NOCTIS-1.CPP:1970,1994-1998 at tag 2.3",
+      "boundary": "build_surface clears all 40,000 objectschart bytes and initializes every object's three class fields before the terminal inclination distribution."
+    }
+  ],
+  "known_cross_allocation_read": {
+    "source": "source/NOCTIS-1.CPP:2606-2615 at tag 2.3",
+    "operation": "For ptr 0..39999, object density reads p_surfacemap[ptr+1] and p_surfacemap[ptr+200]. The final 200 ptr+200 reads are beyond the 40,000-byte heightmap.",
+    "observed_layout_effect": "With the retained 16-byte post-heightmap gap, those reads cover the 16 gap bytes followed by the first 184 bytes of the already initialized current object chart.",
+    "writes": "The loop writes only objectschart nr_of_objects fields. It does not write the heightmap, texture, or sky. The source resets both random generators at lines 2641-2642 before historical-ruin placement."
+  },
+  "conclusion": "Under the published 2.3 generator order, a prior process's payload in the four scored landed buffers is erased before the scored result is produced. The known post-heightmap overread can make the current object chart depend on allocator/header gap bytes, but it cannot alter the already generated sky or texture and does not write the heightmap. Therefore generic same-address payload survival alone cannot explain the residual heightmap, texture, or sky hashes through this source-shaped path. It remains relevant to object-chart discrepancies. The unpublished NIVTEST harness may introduce a different capture, copy, scratch-buffer, or hash boundary, so paired shared-session/clean-session regeneration with raw pre-hash buffers remains decisive; this report does not establish artifact corruption or rule out shifted harness-specific copies. No expected hash, target byte, alternate offset, or parameter value was searched."
+}

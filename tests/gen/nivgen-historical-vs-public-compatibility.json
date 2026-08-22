@@ -1,0 +1,353 @@
+{
+  "date": "2026-08-22",
+  "purpose": "Separate historical live-game fidelity from public NIVGEN-artifact compatibility instead of counting request-scoped arithmetic divergence as evidence of game parity.",
+  "inputs": [
+    {
+      "path": "tests/gen/nivgen-portable-complete-score.json",
+      "sha256": "c74fbfc9dcc83a0ad6c0a581603d64dbda1eb89e304fbc9c8431cf7946564ebc",
+      "mode": "historical live-x87 boundaries"
+    },
+    {
+      "path": "tests/gen/nivgen-portable-f64-complete-score.json",
+      "sha256": "709604cb7f25d79152391001721eb8c871c0c513d24e62036f2ffcd05578d2b3",
+      "mode": "NIVGEN binary64 nearstar geometry"
+    },
+    {
+      "path": "tests/gen/nivgen-f64-final-composite-score.json",
+      "sha256": "e21ea9cc83b189650221b88703576c48f6ba4bdb763aa1da6c3f088556755d6a",
+      "mode": "NIVGEN binary64 geometry/atmosphere and type-3 seed boundary"
+    }
+  ],
+  "production_policy_sources": [
+    {
+      "path": "work/fp/fpabi.txt",
+      "sha256": "e38e1005c17cc0a3a0a1fb3ff8b7ed9594a33880bb87902e3b496ec06a7ed7e5"
+    },
+    {
+      "path": "work/nstopo.txt",
+      "sha256": "6e4bae36b2050ad84578c0d927d115ca4baae3b5cc900367630a52c4150e818c"
+    },
+    {
+      "path": "work/supaint.txt",
+      "sha256": "26f36b54582cc5add3bfa1a31039cad797efc17bd519cfa80ac52eb497601926"
+    },
+    {
+      "path": "work/vhground.txt",
+      "sha256": "251d1056f96fc322f9ee39a9902436c45b91029b0560f1964d856aa3acca02f9"
+    },
+    {
+      "path": "work/vhnivgen.txt",
+      "sha256": "e4953cf9b7abc1bda515603a9155ba398268af96b6445f48cc3c8e16a9d88089"
+    }
+  ],
+  "scores": {
+    "historical_game_semantics_against_public_artifacts": {
+      "exact_fields": 49771,
+      "graded_fields": 49823,
+      "exact_rows": 4512,
+      "graded_rows": 4546,
+      "mismatched_fields": 52,
+      "mismatched_rows": 34
+    },
+    "public_nivgen_compatibility_semantics": {
+      "exact_fields": 49801,
+      "graded_fields": 49823,
+      "exact_rows": 4540,
+      "graded_rows": 4546,
+      "mismatched_fields": 22,
+      "mismatched_rows": 6
+    }
+  },
+  "compatibility_delta": {
+    "exact_field_gain": 30,
+    "exact_row_gain": 28,
+    "changed_fields": 30,
+    "regressions": 0,
+    "wrong_to_different_wrong": 0,
+    "by_field": {
+      "atmo": 25,
+      "pal": 1,
+      "sect_rand_sky": 3,
+      "surf": 1
+    },
+    "by_type": {
+      "2": 3,
+      "3": 27
+    },
+    "geometry_stage_changes": 3,
+    "atmosphere_and_type3_seed_stage_changes": 27
+  },
+  "transitions": [
+    {
+      "key": "MAGILLA PRIME|5",
+      "type": 2,
+      "field": "surf",
+      "historical": "95E70981",
+      "public_compatibility": "949B1F26",
+      "authoritative": "949B1F26",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "MAGILLA PRIME|5",
+      "type": 2,
+      "field": "atmo",
+      "historical": "AD34DBCE",
+      "public_compatibility": "4927A000",
+      "authoritative": "4927A000",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "MAGILLA PRIME|5",
+      "type": 2,
+      "field": "pal",
+      "historical": "E70898CD",
+      "public_compatibility": "85311E10",
+      "authoritative": "85311E10",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "SOTETI III|3",
+      "type": 3,
+      "field": "atmo",
+      "historical": "7D85F8F0",
+      "public_compatibility": "2007C50C",
+      "authoritative": "2007C50C",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "MAAREN|32",
+      "type": 3,
+      "field": "atmo",
+      "historical": "908358D5",
+      "public_compatibility": "7394F60F",
+      "authoritative": "7394F60F",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "VENE'EREIB|31",
+      "type": 3,
+      "field": "atmo",
+      "historical": "31D89AE7",
+      "public_compatibility": "860B9680",
+      "authoritative": "860B9680",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "SOKUN|21",
+      "type": 3,
+      "field": "sect_rand_sky",
+      "historical": "4E0E4887",
+      "public_compatibility": "F9DCB00A",
+      "authoritative": "F9DCB00A",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "SOKUN|47",
+      "type": 3,
+      "field": "atmo",
+      "historical": "AAE8B344",
+      "public_compatibility": "40C4ABB3",
+      "authoritative": "40C4ABB3",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "SOKUN|75",
+      "type": 3,
+      "field": "atmo",
+      "historical": "079BD83C",
+      "public_compatibility": "271416BB",
+      "authoritative": "271416BB",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "SOKUN|76",
+      "type": 3,
+      "field": "atmo",
+      "historical": "34A47D19",
+      "public_compatibility": "7BA10467",
+      "authoritative": "7BA10467",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "SUCHAARAG|6",
+      "type": 3,
+      "field": "atmo",
+      "historical": "F6E5B7BA",
+      "public_compatibility": "DBA05B0E",
+      "authoritative": "DBA05B0E",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "GOSI'UZOV|14",
+      "type": 3,
+      "field": "atmo",
+      "historical": "05F2EA7C",
+      "public_compatibility": "C9454958",
+      "authoritative": "C9454958",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "TRINITY ALEPH|11",
+      "type": 3,
+      "field": "atmo",
+      "historical": "AC205D49",
+      "public_compatibility": "707872F5",
+      "authoritative": "707872F5",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "STRACKONEYA|3",
+      "type": 3,
+      "field": "atmo",
+      "historical": "9F942853",
+      "public_compatibility": "AF65BEDB",
+      "authoritative": "AF65BEDB",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "GALARETKA|39",
+      "type": 3,
+      "field": "atmo",
+      "historical": "78C66AD5",
+      "public_compatibility": "3A93E2A0",
+      "authoritative": "3A93E2A0",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "WOYTAR|13",
+      "type": 3,
+      "field": "atmo",
+      "historical": "FC57DBEE",
+      "public_compatibility": "9A616162",
+      "authoritative": "9A616162",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "PLAZMABALL|15",
+      "type": 3,
+      "field": "atmo",
+      "historical": "4F8BE6E2",
+      "public_compatibility": "43F20153",
+      "authoritative": "43F20153",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "NIPNIP 1|4",
+      "type": 3,
+      "field": "atmo",
+      "historical": "264E994B",
+      "public_compatibility": "3F62ADBC",
+      "authoritative": "3F62ADBC",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "COREGALAX|3",
+      "type": 3,
+      "field": "atmo",
+      "historical": "DCDB6D7E",
+      "public_compatibility": "9C09178E",
+      "authoritative": "9C09178E",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "COREGALAX|4",
+      "type": 3,
+      "field": "sect_rand_sky",
+      "historical": "9D8117BC",
+      "public_compatibility": "1B1D7307",
+      "authoritative": "1B1D7307",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "SERGEIOV|40",
+      "type": 3,
+      "field": "atmo",
+      "historical": "C89FB0A5",
+      "public_compatibility": "69C78746",
+      "authoritative": "69C78746",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "STOR OCH LITEN|14",
+      "type": 3,
+      "field": "atmo",
+      "historical": "B826C557",
+      "public_compatibility": "1A1895A1",
+      "authoritative": "1A1895A1",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "STOR OCH LITEN|20",
+      "type": 3,
+      "field": "atmo",
+      "historical": "46DB40CA",
+      "public_compatibility": "CC37B042",
+      "authoritative": "CC37B042",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "EKA30|3",
+      "type": 3,
+      "field": "atmo",
+      "historical": "2EE51128",
+      "public_compatibility": "C6BA7A49",
+      "authoritative": "C6BA7A49",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "BUTTEREDTOAST|12",
+      "type": 3,
+      "field": "atmo",
+      "historical": "67E8A0E2",
+      "public_compatibility": "8FB24F70",
+      "authoritative": "8FB24F70",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "YOUNGERIS|24",
+      "type": 3,
+      "field": "atmo",
+      "historical": "D5E2E715",
+      "public_compatibility": "DB2A1E95",
+      "authoritative": "DB2A1E95",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "GRUPA 5|14",
+      "type": 3,
+      "field": "atmo",
+      "historical": "7210F929",
+      "public_compatibility": "01F046A9",
+      "authoritative": "01F046A9",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "JUNEA|21",
+      "type": 3,
+      "field": "sect_rand_sky",
+      "historical": "4FF6691B",
+      "public_compatibility": "B7678039",
+      "authoritative": "B7678039",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "GRUPA 6|39",
+      "type": 3,
+      "field": "atmo",
+      "historical": "C8ECC422",
+      "public_compatibility": "D51B7121",
+      "authoritative": "D51B7121",
+      "transition": "wrong->exact"
+    },
+    {
+      "key": "BLUNASTERIS|24",
+      "type": 3,
+      "field": "atmo",
+      "historical": "FCA30433",
+      "public_compatibility": "055273CA",
+      "authoritative": "055273CA",
+      "transition": "wrong->exact"
+    }
+  ],
+  "conclusion": "The request-scoped NIVGEN policy changes exactly 30 public comparisons across 28 rows from wrong to exact: MAGILLA PRIME body 5 surface/atmosphere/palette, 24 other type-3 atmospheres, and three type-3 random skies. Historical live-game semantics therefore score 49,771/49,823 fields and 4,512/4,546 complete rows against the public NIVGEN artifacts, while artifact-compatibility semantics score 49,801/49,823 and 4,540/4,546. The 30 compatibility matches are not evidence that the live game matches those artifacts. The exact NIVTEST harness remains required to determine whether its different arithmetic is intentional tool behavior or a reference-generation discrepancy. No comparison was omitted and no expected value was changed."
+}

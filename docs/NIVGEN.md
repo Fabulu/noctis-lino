@@ -207,13 +207,18 @@ release claims.
 
 ### Complete local execution
 
-A retained offline execution covers every authoritative field of every comparable
-body type in the canonical snapshot. After rerunning all 220 type-3 rows with
-the final atmosphere and half-degree caller boundaries, the validated composite
-score is **49,801/49,823 exact field comparisons** and **4,540/4,546 fully exact
-rows**. The sheet baseline was 38,893/49,823 fields and 426/4,546 rows, so the
-current production closure makes 10,908 exact field repairs and leaves 22 fields
-across six rows.
+Retained offline executions cover every authoritative field of every comparable
+body type in the canonical snapshot. Two scores must remain distinct. Historical
+live-game semantics reach **49,771/49,823 exact field comparisons** and
+**4,512/4,546 fully exact rows** against the public artifacts. The request-scoped
+NIVGEN compatibility semantics reach **49,801/49,823 fields** and
+**4,540/4,546 rows**. The latter adds exactly 30 exact fields and 28 exact rows
+with zero regressions, but those matches are evidence of public-artifact
+compatibility, not live-game fidelity. The sheet baseline was 38,893/49,823
+fields and 426/4,546 rows; the compatibility run leaves 22 fields across six
+rows.
+
+The following table is the public-artifact compatibility score:
 
 | Type | Exact fields | Exact rows |
 | ---: | ---: | ---: |
@@ -229,9 +234,10 @@ across six rows.
 | 9 | 2,365 / 2,365 | 215 / 215 |
 | 10 | 488 / 488 | 61 / 61 |
 
-Every orbital surface, atmosphere, and palette is exact. All 22 residual landed
-fields belong to the six-row XENOFELYS cluster: bodies 4, 5, 8, 9, 10, and 11.
-Types 0, 6, 7, 8, 9, and 10 are completely exact.
+Under compatibility semantics, every orbital surface, atmosphere, and palette is
+exact. All 22 residual landed fields belong to the six-row XENOFELYS cluster:
+bodies 4, 5, 8, 9, 10, and 11. Types 0, 6, 7, 8, 9, and 10 are completely exact
+in that score.
 
 The last planetary orbital outlier, `MAGILLA PRIME|5`, exposed a caller precision
 policy rather than another x87 emulation defect. The shipping 1996 game keeps
@@ -259,6 +265,16 @@ through its strict polar-seed threshold before restoring the historical integer
 latitude; that general boundary repairs the random skies of `SOKUN|21`,
 `COREGALAX|4`, and `JUNEA|21`. The focused precision gate passes 30 checks and
 pins all three seed/scenario/sky transitions without production fixture values.
+
+The retained dual-score audit records every transition: MAGILLA's surface,
+atmosphere, and palette; 24 other type-3 atmospheres; and three type-3 random
+skies. No historical exact field regresses and no wrong field merely changes to
+a different wrong value. See
+`tests/gen/nivgen-historical-vs-public-compatibility.json` (SHA-256
+`a6a750495eff4d7fe7ace95834ada312203894ed2f2ee197b2c726d803d29348`).
+The missing exact NIVTEST source or executable is still required to determine
+whether the divergent arithmetic was an intentional tool contract, a build
+artifact, or a public reference-generation discrepancy.
 
 The retained pre-atmosphere complete score remains
 `tests/gen/nivgen-portable-f64-complete-score.json` (SHA-256
@@ -457,6 +473,24 @@ the byte at the same scored offset in SheetBot's immediately preceding default
 `f877cd3d11c969e13bfaec356161b8b451fa5bae24703e17d22791478563d51f`). No alternate offsets
 or values were searched; a shifted allocation, scratch buffer, header effect,
 or earlier process payload remains possible.
+
+A release-tag source-boundary trace narrows that last possibility. NIV+ 2.3
+allocates `s_background` (64,800 bytes), `p_background`/`txtr` (65,552),
+`p_surfacemap` (40,000), and `objectschart` (40,000) in that order. Before a
+landed result, it fills all of `s_background`, all scored texture bytes, and all
+40,000 heightmap and object-chart bytes. The known terminal inclination loop
+then reads 200 bytes beyond the heightmap: with the observed layout, the
+16-byte allocator gap followed by the first 184 already-initialized bytes of
+the current object chart. That loop writes only object counts; sky and texture
+are already complete, and it never writes the heightmap. Thus generic
+same-address payload survival can still affect object charts through allocator
+metadata, but cannot explain the residual sky, texture, or heightmap hashes
+through the published source-shaped path. A missing NIVTEST copy, scratch, or
+pre-hash boundary remains possible and is exactly what the paired regeneration
+must capture. The retained trace is
+`tests/gen/nivgen-xenofelys-source-heap-boundary.json` (SHA-256
+`4274b1af13cfea66a22f40b985b1af2f81e87aadf1d94eb429242890ace01e0d`).
+No expected hash, target byte, alternate offset, or parameter was searched.
 
 SheetBot identifies the deployed original engine by source hash
 `fb067a16c36f3b67a139fec3c47be483e3bb93965d467612724234d608ef21ac`.

@@ -1683,13 +1683,18 @@ observation that apparent checkmarks can disappear. The dominant orbital-
 surface mismatch and broad height/object mismatch classes remain release gates.
 
 **Complete local result, 2026-08-22.** Every authoritative row and field has been
-executed in retained, non-overlapping private-desktop shards. A final rerun of
-all 220 type-3 rows proves 2,417/2,420 exact fields and 219/220 exact rows. The
-validated composite production score is 49,801/49,823 exact fields and
-4,540/4,546 exact rows, up from 38,893 fields and 426 rows in the snapshot.
-Types 0, 6, 7, 8, 9, and 10 are fully exact. Every orbital surface, atmosphere,
-and palette is exact. All 22 residual fields are landed outputs across
-XENOFELYS bodies 4, 5, 8, 9, 10, and 11.
+executed in retained, non-overlapping private-desktop shards. The scores now
+separate historical live-game fidelity from public-artifact compatibility.
+Historical game semantics reach 49,771/49,823 exact fields and 4,512/4,546 exact
+rows against the public data. Request-scoped NIVGEN compatibility semantics
+reach 49,801/49,823 fields and 4,540/4,546 rows. That policy alone adds exactly
+30 fields and 28 rows with zero regressions; these are compatibility matches,
+not proof that live gameplay agrees with the artifacts. Under compatibility
+semantics, types 0, 6, 7, 8, 9, and 10 are fully exact and every orbital surface,
+atmosphere, and palette matches. All 22 residual fields are landed outputs across
+XENOFELYS bodies 4, 5, 8, 9, 10, and 11. The full 30-transition audit is
+`tests/gen/nivgen-historical-vs-public-compatibility.json` (SHA-256
+`a6a750495eff4d7fe7ace95834ada312203894ed2f2ee197b2c726d803d29348`).
 
 `MAGILLA PRIME|5` was the sole downstream integer-boundary difference between
 the historical extended and complete binary64 geometry hypotheses over 4,473
@@ -1864,6 +1869,22 @@ the predecessor byte at that offset. Its report SHA-256 is
 alternate values were searched, so other allocation mappings and earlier chunk
 history remain open.
 
+The NIV+ 2.3 source boundary now limits direct payload reuse further. Its fixed
+heap order places 64,800-byte `s_background`, 65,552-byte
+`p_background`/`txtr`, 40,000-byte `p_surfacemap`, and 40,000-byte
+`objectschart` consecutively. The landed path fills the complete sky buffer, all
+scored texture bytes, and both complete 40,000-byte maps before scoring. The
+known terminal inclination loop reads 200 bytes beyond the heightmap--the
+observed 16-byte allocator gap plus 184 bytes of the already initialized current
+object chart--but writes only object counts. It cannot modify the already built
+sky or texture and does not write the heightmap. Generic same-address payload
+survival therefore remains relevant to object-chart header influence, but does
+not explain residual HM/texture/sky hashes through the published source-shaped
+path. The missing NIVTEST capture/copy/scratch boundary remains open. The
+retained source trace SHA-256 is
+`4274b1af13cfea66a22f40b985b1af2f81e87aadf1d94eb429242890ace01e0d`;
+it searched no target hash, byte, offset, or parameter.
+
 SheetBot pins the original engine source as
 `fb067a16c36f3b67a139fec3c47be483e3bb93965d467612724234d608ef21ac`.
 The hash covers `tests/harness/NIVTEST.CPP`, `NIVHASH.C`, `NIVHASH.H`,
@@ -1980,7 +2001,7 @@ README back into one chronological wall of text.
 
 These are near-term release gates, not background polish.
 
-### 12.1 Finish the portable-Lino repair -- **IMPLEMENTED / FINAL PLATFORM RUN OPEN**
+### 12.1 Finish the portable-Lino repair -- **IMPLEMENTED / HOSTED BOUNDARY PROVEN**
 
 No Noctis game logic or optimization may embed raw x86 opcode blocks. The real
 `vhgame.txt`/`vhnivgen.txt` closure is now 75 files, 89 imports, and zero raw
@@ -2010,11 +2031,10 @@ fail-closed post-link patch; all eight licence-protected runtime variants retain
 their upstream bytes and `PRISTINE.sha256` identity. Linux and macOS source load
 `133Fh` before application entry and after C/runtime isocalls. Focused runtime,
 closure, default K=64 historical-control (80 checks), 16-schedule, and 45-consumer
-gates pass, and the runtime-boundary gate is wired into Windows, source, tagged,
-Intel-macOS, and Rosetta workflows. A test-only x86_64 probe now performs a real
-`123Fh` perturb plus `133Fh` load/readback/restore and passes locally; the Intel
-and Rosetta jobs both compile and execute it. Close this item only after those
-two hosted runs pass with the existing NIVGEN/game consumers.
+gates pass. The real x86_64 probe performs a `123Fh` perturb plus `133Fh`
+load/readback/restore and passes locally. It also passed hosted Intel-macOS run
+32556467204 and the tagged Apple-Silicon/Rosetta run 32555351033 with the current
+NIVGEN/game consumers.
 
 ### 12.2 Keep releases usable -- **RESTORED / HOSTED GRAPH HARDENED**
 
@@ -2022,7 +2042,9 @@ Compiled releases have resumed. Tagged builds compile the selected source,
 produce Windows and macOS packages, attach SHA-256 checksums, internal manifests,
 and provenance, and independently verify uploaded assets. Release bodies now
 contain only the selected release's own notes rather than the cumulative
-history. Beta 22 was published and its artifacts were recorded as verified.
+history. Beta 23 was published from commit
+`6c40d9e62cabe14978d148a457cb83dbbeeb98d8`; its six uploaded artifacts,
+checksums, internal manifests, and provenance were independently verified.
 
 The two release-pipeline hardening findings are repaired in source. The tagged
 workflow no longer schedules or depends on the optional self-hosted
@@ -2031,10 +2053,10 @@ compilation directly, while the complete historical FP and consumer comparison
 remains available in the separately dispatched interactive source workflow.
 Rerunning an existing tag clobbers only the six generated assets and explicitly
 preserves the existing release body, including later manual audit additions.
-`test_release_notes.py` pins both properties and actionlint accepts the graph.
-The next tagged run still needs to prove the changed hosted graph end to end.
-Do not cut a fidelity release while the full NIVGEN gate above is knowingly far
-from parity.
+`test_release_notes.py` pins both properties. Tagged run 32555351033 proved the
+changed graph end to end across validation, Windows and macOS compilation,
+Rosetta exact generation, both packages, and prerelease publication. Do not make
+a full-parity claim while the 22 retained NIVGEN fields remain unresolved.
 
 ### 12.3 Keep macOS/Rosetta executable -- **CRASH FIXED / REGRESSION EXPANSION OPEN**
 
@@ -2048,8 +2070,8 @@ supported macOS routes. The download is not notarized and is not native ARM64.
 
 Keep the exact known-sector hash and Cocoa launch/quit checks, but add the
 uniform-white palette rejection from PR #22 and full/mismatch-class NIVGEN
-coverage. The `133Fh` host probe is now wired on both Intel and Rosetta and still
-needs those current hosted executions. A native ARM64 game remains a separate
+coverage. The `133Fh` host probe passed the current hosted Intel and Rosetta
+executions recorded above. A native ARM64 game remains a separate
 larger port. A read-only review of retained PR #10 at tip `2402172` found useful
 `__PAGEZERO`/above-4-GB design notes, the conceptual `x19` through `x25` register
 map, and a non-truncating code-entry pointer, but its implementation must not be
