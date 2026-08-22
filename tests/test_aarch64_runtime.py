@@ -663,7 +663,10 @@ class AArch64ExecutionTests(unittest.TestCase):
         compiler_output = process.communicate()[0]
         if not settled:
             raise AssertionError(
-                "AArch64 Lino compilation did not settle:\n" +
+                "AArch64 Lino compilation did not settle "
+                f"(returncode={process.returncode}, "
+                f"output={output}, output_exists={output.exists()}, "
+                f"sys_bytes={cls.aarch64_sys.stat().st_size}):\n" +
                 compiler_output + fatal_log)
         return output.read_bytes()
 
