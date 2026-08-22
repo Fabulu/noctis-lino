@@ -1082,25 +1082,25 @@ COMPILER_FIXTURE_SOURCE = """\
     [B plus 2] = 40B00000h;
     [B minus 1] = 40000000h;
     [B plus 2] %% [B minus 1];
-    ? [out] = 3FC00000h -> fp remainder zero divisor;
+    ? [out] = 3FC00000h -> fp remainder zero right;
     fail;
 
-"fp remainder zero divisor"
+"fp remainder zero right"
 
     A = 3F800000h;
     A %% 0;
-    ? A = FFC00000h -> fp remainder infinite dividend;
+    ? A = FFC00000h -> fp remainder infinite left;
     fail;
 
-"fp remainder infinite dividend"
+"fp remainder infinite left"
 
     [lhs] = 7F800000h;
     [rhs] = 3F800000h;
     [lhs] %% [rhs];
-    ? [lhs] = FFC00000h -> fp remainder infinite divisor;
+    ? [lhs] = FFC00000h -> fp remainder infinite right;
     fail;
 
-"fp remainder infinite divisor"
+"fp remainder infinite right"
 
     B = p;
     [B plus 2] = BF800000h;
