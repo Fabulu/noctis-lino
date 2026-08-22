@@ -604,7 +604,7 @@ class AArch64ExecutionTests(unittest.TestCase):
 
     @classmethod
     def compile_lino_source(cls, name: str, source_text: str) -> bytes:
-        source = cls.temp / f"{name}.txt"
+        source = cls.lino_environment / "lib" / "gen" / f"{name}.txt"
         output = source.with_suffix(".bin")
         error_log = source.parent / "errorlog.txt"
         source.write_text(source_text, encoding="ascii", newline="\n")
@@ -618,7 +618,7 @@ class AArch64ExecutionTests(unittest.TestCase):
         process = subprocess.Popen(
             [cls.xvfb_run, "-a", cls.setarch, platform.machine(), "-X",
              str(cls.lino_compiler), argument],
-            cwd=source.parent,
+            cwd=ROOT,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
