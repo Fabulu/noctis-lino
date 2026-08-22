@@ -290,6 +290,62 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "integer products good"
 
+    A = 0F0F0F0Fh;
+    A !;
+    ? A = F0F0F0F0h -> inverse ok;
+    fail;
+
+"inverse ok"
+
+    [slot] = 5;
+    [slot] +-;
+    ? [slot] = FFFFFFFBh -> opposite ok;
+    fail;
+
+"opposite ok"
+
+    [B plus 2] = FFFFFFF9h;
+    [B plus 2] ||;
+    ? [out] = 7 -> magnitude ok;
+    fail;
+
+"magnitude ok"
+
+    [B plus 2] = 80000000h;
+    [B plus 2] ||;
+    ? [out] = 80000000h -> magnitude edge ok;
+    fail;
+
+"magnitude edge ok"
+
+    A = 12345678h;
+    A @> 8;
+    ? A = 78123456h -> rotate right ok;
+    fail;
+
+"rotate right ok"
+
+    [slot] = A;
+    [slot] <@ [C];
+    ? [slot] = C091A2B3h -> rotate direct ok;
+    fail;
+
+"rotate direct ok"
+
+    D = 4;
+    [B plus 2] = 80000001h;
+    [B plus 2] @> D;
+    ? [out] = 18000000h -> rotate indirect ok;
+    fail;
+
+"rotate indirect ok"
+
+    [B plus 2] <@ [rhs];
+    ? [out] = C0000000h -> unary rotate good;
+    fail;
+
+"unary rotate good"
+
     A = 1;
     B = 2;
     C = 3;
@@ -453,6 +509,20 @@ def enc_binary_w(opcode: int, destination: int, right: int) -> int:
 def enc_msub_w(destination: int, left: int, right: int, addend: int) -> int:
     return (0x1B008000 | (right << 16) | (addend << 10) |
             (left << 5) | destination)
+
+
+def enc_mvn_w(destination: int, source: int) -> int:
+    return 0x2A2003E0 | (source << 16) | destination
+
+
+def enc_neg_w(destination: int, source: int) -> int:
+    return 0x4B0003E0 | (source << 16) | destination
+
+
+def enc_asr_immediate_w(destination: int, source: int, shift: int) -> int:
+    if not 1 <= shift <= 31:
+        raise ValueError("W arithmetic shift is not encodable")
+    return 0x13007C00 | (shift << 16) | (source << 5) | destination
 
 
 def enc_tst_w(left: int, right: int) -> int:
@@ -704,6 +774,8 @@ class StaticContractTests(unittest.TestCase):
             "0B000000h", "4B000000h", "0A000000h", "2A000000h",
             "4A000000h", "1AC02400h", "1AC02000h", "1AC02800h",
             "1B007C00h", "1AC00C00h", "1AC00800h", "1B008180h",
+            "1AC02C00h", "4B0003ECh", "1ACC2C00h",
+            "2A2003E0h", "4B0003E0h", "131F7C0Ch",
             "6B00001Fh", "6A00001Fh", "54000000h",
             "AA0B8149h", "D63F0120h", "D65F03C0h",
         ):
@@ -727,6 +799,11 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_data3_w(0x1AC00C00, 12, 10, 11), 0x1ACB0D4C)
         self.assertEqual(enc_data3_w(0x1AC00800, 11, 11, 10), 0x1ACA096B)
         self.assertEqual(enc_msub_w(10, 12, 11, 10), 0x1B0BA98A)
+        self.assertEqual(enc_mvn_w(19, 19), 0x2A3303F3)
+        self.assertEqual(enc_neg_w(10, 10), 0x4B0A03EA)
+        self.assertEqual(enc_asr_immediate_w(12, 10, 31), 0x131F7D4C)
+        self.assertEqual(enc_neg_w(12, 10), 0x4B0A03EC)
+        self.assertEqual(enc_data3_w(0x1AC02C00, 11, 11, 12), 0x1ACC2D6B)
         self.assertEqual(enc_ldr_w_indexed(10), 0xB8695B2A)
         self.assertEqual(enc_ldr_w_indexed(11), 0xB8695B2B)
         self.assertEqual(enc_str_w_indexed(10), 0xB8295B2A)
@@ -1232,6 +1309,56 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in multiply_divide_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        unary_rotate_sequences = (
+            [
+                enc_mvn_w(19, 19),
+            ],
+            [
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(10),
+                enc_neg_w(10, 10),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_asr_immediate_w(12, 10, 31),
+                enc_data3_w(0x4A000000, 10, 10, 12),
+                enc_data3_w(0x4B000000, 10, 10, 12),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_mov32_w(9, 8),
+                enc_binary_w(0x1AC02C00, 19, 9),
+            ],
+            [
+                *enc_indirect_index(21, 0),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(11),
+                enc_neg_w(12, 10),
+                enc_data3_w(0x1AC02C00, 11, 11, 12),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_data3_w(0x1AC02C00, 10, 10, 22),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_neg_w(12, 10),
+                enc_data3_w(0x1AC02C00, 11, 11, 12),
+                enc_str_w_indexed(11),
+            ],
+        )
+        for sequence in unary_rotate_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         for operation in (

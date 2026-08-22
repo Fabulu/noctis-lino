@@ -2467,6 +2467,7 @@
 	a64 right reg = 1;	(AArch64 RHS W-register after materialization)
 	a64 condition = 1;	(B.cond condition code)
 	a64 remainder = 1;	(integer remainder needs quotient plus MSUB)
+	a64 rotate left = 1;	(left rotate negates count before RORV)
 
 	stab = max symbols
 	 mtp symbol size;	(internal symbols table)
@@ -6363,6 +6364,7 @@
 
       "pp a64 not assignment"
 	[a64 remainder] = no;
+	[a64 rotate left] = no;
 	[source string] = inst;
 	[target string] = q14;
 	=> strcmp;
@@ -6388,6 +6390,12 @@
 	[target string] = q38;
 	=> strcmp;
       ? ok -> pp a64 arithmetic shift right;
+	[target string] = q39;
+	=> strcmp;
+      ? ok -> pp a64 rotate right;
+	[target string] = q40;
+	=> strcmp;
+      ? ok -> pp a64 rotate left;
 	[target string] = q23;
 	=> strcmp;
       ? ok -> pp a64 multiply;
@@ -6406,6 +6414,15 @@
 	[target string] = q43;
 	=> strcmp;
       ? ok -> pp a64 unsigned remainder;
+	[target string] = q26;
+	=> strcmp;
+      ? ok -> pp a64 bitwise inverse;
+	[target string] = q32;
+	=> strcmp;
+      ? ok -> pp a64 integer opposite;
+	[target string] = q34;
+	=> strcmp;
+      ? ok -> pp a64 integer magnitude;
 	[target string] = q21;
 	=> strcmp;
       ? ok -> pp a64 branch equal;
@@ -6491,6 +6508,13 @@
 	-> pp a64 binary;
       "pp a64 arithmetic shift right"
 	[a64 opcode] = 1AC02800h; (ASRV Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 rotate right"
+	[a64 opcode] = 1AC02C00h; (RORV Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 rotate left"
+	[a64 rotate left] = yes;
+	[a64 opcode] = 1AC02C00h; (RORV Wd,Wn,-Wm)
 	-> pp a64 binary;
       "pp a64 multiply"
 	[a64 opcode] = 1B007C00h; (MUL Wd,Wn,Wm)
@@ -6650,6 +6674,7 @@
 	[a64 right reg] = 10;
       "pp a64 emit binary"
       ? [a64 remainder] = yes -> pp a64 emit remainder;
+      ? [a64 rotate left] = yes -> pp a64 emit rotate left;
 	a = [a64 right reg];
 	a < 16;
 	a | [a64 opcode];
@@ -6682,6 +6707,21 @@
 	a = [a64 left reg];
 	[a64 word] + a;
 	=> a64 emit word;
+	-> pp a64 finish binary;
+      "pp a64 emit rotate left"
+	(negate the low-five-bit count into W12, then rotate right)
+	[a64 word] = 4B0003ECh; (NEG W12,Wm)
+	a = [a64 right reg];
+	a < 16;
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 word] = 1ACC2C00h; (RORV Wd,Wn,W12)
+	a = [a64 left reg];
+	a < 5;
+	[a64 word] + a;
+	a = [a64 left reg];
+	[a64 word] + a;
+	=> a64 emit word;
       "pp a64 finish binary"
       ? [op1 class] = direct -> pp a64 store binary;
       ? [op1 class] = indirect -> pp a64 store binary;
@@ -6691,6 +6731,74 @@
 	a | B8295B20h; (STR Wn,[x25,w9,UXTW #2])
 	[a64 word] = a;
 	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 bitwise inverse"
+	[a64 opcode] = 2A2003E0h; (MVN Wd,Wn)
+	-> pp a64 unary;
+      "pp a64 integer opposite"
+	[a64 opcode] = 4B0003E0h; (NEG Wd,Wn)
+	-> pp a64 unary;
+      "pp a64 integer magnitude"
+	[a64 opcode] = null;
+      "pp a64 unary"
+      ? [op2 class] != null -> pp a64 unsupported;
+      ? [op1 class] = register -> pp a64 unary register;
+      ? [op1 class] = direct -> pp a64 unary direct;
+      ? [op1 class] = indirect -> pp a64 unary indirect;
+	-> pp a64 unsupported;
+      "pp a64 unary register"
+	a = [op1 regid];
+	a + 19;
+	[a64 left reg] = a;
+	-> pp a64 emit unary;
+      "pp a64 unary direct"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+	-> pp a64 emit unary;
+      "pp a64 unary indirect"
+	=> a64 emit op1 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+      "pp a64 emit unary"
+      ? [a64 opcode] = null -> pp a64 emit magnitude;
+	a = [a64 left reg];
+	a < 16;
+	a | [a64 opcode];
+	[a64 word] = a;
+	a = [a64 left reg];
+	[a64 word] + a;
+	=> a64 emit word;
+	-> pp a64 finish unary;
+      "pp a64 emit magnitude"
+	(asr mask = value >> 31; value = (value xor mask) - mask)
+	[a64 word] = 131F7C0Ch; (ASR W12,Wn,#31)
+	a = [a64 left reg];
+	a < 5;
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 word] = 4A0C0000h; (EOR Wn,Wn,W12)
+	a = [a64 left reg];
+	a < 5;
+	[a64 word] + a;
+	a = [a64 left reg];
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 word] = 4B0C0000h; (SUB Wn,Wn,W12)
+	a = [a64 left reg];
+	a < 5;
+	[a64 word] + a;
+	a = [a64 left reg];
+	[a64 word] + a;
+	=> a64 emit word;
+      "pp a64 finish unary"
+      ? [op1 class] = direct -> pp a64 store binary;
+      ? [op1 class] = indirect -> pp a64 store binary;
 	-> pp exit;
 
       "pp a64 branch equal"
