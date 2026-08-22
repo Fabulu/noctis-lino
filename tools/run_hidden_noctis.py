@@ -1,4 +1,4 @@
-"""Run Noctis on a private Windows desktop until its sentinel exits."""
+"""Run Noctis until its diagnostic sentinel exits."""
 
 from __future__ import annotations
 
@@ -15,23 +15,35 @@ def main() -> int:
     parser.add_argument("--executable", type=Path, required=True)
     parser.add_argument("--working-directory", type=Path, required=True)
     parser.add_argument("--timeout", type=float, default=90.0)
+    parser.add_argument("--default-desktop", action="store_true")
     parser.add_argument("argument", nargs="*")
     args = parser.parse_args()
 
     try:
-        result = windows_hidden_process.run(
-            args.executable,
-            args.working_directory,
-            args.timeout,
-            args.argument,
-        )
+        if args.default_desktop:
+            result = subprocess.run(
+                [str(args.executable.resolve()), *args.argument],
+                cwd=args.working_directory.resolve(),
+                timeout=args.timeout,
+                check=False,
+            )
+        else:
+            result = windows_hidden_process.run(
+                args.executable,
+                args.working_directory,
+                args.timeout,
+                args.argument,
+            )
     except (OSError, subprocess.TimeoutExpired) as error:
-        print(f"private Noctis run failed: {error}")
+        print(f"Noctis diagnostic run failed: {error}")
         return 1
     if result.returncode:
-        print(f"private Noctis run exited with code 0x{result.returncode:08X}")
+        print(
+            "Noctis diagnostic run exited with code "
+            f"0x{result.returncode & 0xFFFFFFFF:08X}"
+        )
         return 1
-    print("private Noctis sentinel run exited cleanly")
+    print("Noctis sentinel run exited cleanly")
     return 0
 
 

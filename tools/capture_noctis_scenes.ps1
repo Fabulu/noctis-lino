@@ -45,6 +45,7 @@ param(
     [switch]$CapsuleReturn,
     [switch]$OpenFcs,
     [switch]$DiagnosticOnly,
+    [switch]$DefaultDesktop,
     [switch]$Interactive
 )
 
@@ -67,6 +68,9 @@ $outputPath = if ([IO.Path]::IsPathRooted($OutputDirectory)) {
     [IO.Path]::GetFullPath((Join-Path $projectRoot $OutputDirectory))
 }
 
+if ($DefaultDesktop -and -not $DiagnosticOnly) {
+    throw 'DefaultDesktop requires DiagnosticOnly'
+}
 if (-not (Test-Path -LiteralPath $gameExe -PathType Leaf)) {
     throw "Missing production executable: $gameExe"
 }
@@ -557,11 +561,17 @@ foreach ($spec in $scenes) {
         if ($DiagnosticOnly) {
             if ($Interactive) { throw 'DiagnosticOnly cannot be interactive' }
             $privateRunner = Join-Path $projectRoot 'tools\run_hidden_noctis.py'
-            & python $privateRunner `
-                --executable (Join-Path $stage 'Noctis-IV.exe') `
-                --working-directory $stage `
-                --timeout 90 `
-                "clock=$ClockSeconds" quit
+            $runnerArguments = @(
+                $privateRunner,
+                '--executable', (Join-Path $stage 'Noctis-IV.exe'),
+                '--working-directory', $stage,
+                '--timeout', '90'
+            )
+            if ($DefaultDesktop) {
+                $runnerArguments += '--default-desktop'
+            }
+            $runnerArguments += @("clock=$ClockSeconds", 'quit')
+            & python @runnerArguments
             if ($LASTEXITCODE -ne 0) {
                 throw "Scene $($spec.Name) private diagnostic run failed"
             }

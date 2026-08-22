@@ -130,15 +130,18 @@ def check_source_contract(check) -> None:
           "$Spec.Name, $entry.Key" in capture,
           "diagnostic capture validates and exports scene-qualified product files")
     check("windows_hidden_process.run" in private_runner and
-          "private Noctis sentinel run exited cleanly" in private_runner and
-          "run_hidden_noctis.py" in capture and "quit" in capture,
-          "diagnostic-only product execution uses a private inactive desktop")
+          "subprocess.run" in private_runner and
+          "--default-desktop" in private_runner and
+          "run_hidden_noctis.py" in capture and
+          "DefaultDesktop" in capture and "quit" in capture,
+          "diagnostic execution supports private isolation and the hosted desktop")
     check(all(fragment in workflow for fragment in (
               "-Scene habitable",
               "-Longitude 270",
               "-ViewPitch -44",
               "-ClockSeconds 1344638527",
               "-DiagnosticOnly",
+              "-DefaultDesktop",
               "--case hab-sun270",
               "--product-directory build\\sun-gallery",
           )),
