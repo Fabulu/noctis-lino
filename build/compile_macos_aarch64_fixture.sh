@@ -7,6 +7,7 @@ compiler=${1:-"$repo/build/linux-compiler114m.bin"}
 runtime=${2:-"$repo/build/rtm-macos-aarch64"}
 source_input=${3:-"$repo/tests/fixtures/macos_aarch64_runtime.txt"}
 output=${4:-"$repo/build/macos-aarch64-fixture.unsigned"}
+source_mode=${5:-single}
 stage=$(mktemp -d "${TMPDIR:-/tmp}/macos-aarch64-lino.XXXXXX")
 compiler_group=
 compiler_supervisor=
@@ -26,7 +27,24 @@ if [ ! -x "$compiler" ] || [ ! -f "$runtime" ] || [ ! -f "$source_input" ]; then
     echo "compiler, unsigned runtime, and fixture source are required" >&2
     exit 2
 fi
-for command in python3 xvfb-run setsid setarch; do
+source_input=$(CDPATH= cd -- "$(dirname -- "$source_input")" && pwd)/$(basename -- "$source_input")
+case $source_mode in
+    single)
+        required_commands="python3 xvfb-run setsid setarch"
+        ;;
+    tracked-work)
+        if [ "$source_input" != "$repo/work/vhgame.txt" ]; then
+            echo "tracked-work mode accepts only work/vhgame.txt" >&2
+            exit 2
+        fi
+        required_commands="python3 xvfb-run setsid setarch git tar"
+        ;;
+    *)
+        echo "source mode must be single or tracked-work" >&2
+        exit 2
+        ;;
+esac
+for command in $required_commands; do
     if ! command -v "$command" >/dev/null 2>&1; then
         echo "required command not found: $command" >&2
         exit 2
@@ -38,10 +56,26 @@ ln -s "$repo/main/lib" "$stage/env/lib"
 ln -s "$repo/main/cpu" "$stage/env/cpu"
 python3 "$repo/tools/pack_lino_sys.py" \
     "$runtime" "$stage/env/sys/macarm64.bin"
-cp "$source_input" "$stage/source/fixture.txt"
-source="$stage/source/fixture.txt"
-compiled="$stage/source/fixture.bin"
-error_log="$stage/source/errorlog.txt"
+case $source_mode in
+    single)
+        cp "$source_input" "$stage/source/fixture.txt"
+        source="$stage/source/fixture.txt"
+        ;;
+    tracked-work)
+        git -C "$repo" archive --format=tar HEAD -- \
+            'work/*.txt' 'work/**/*.txt' 'work/*.tga' \
+            | tar -xf - -C "$stage/source"
+        source="$stage/source/work/vhgame.txt"
+        if [ ! -f "$source" ] || \
+            [ "$(sha256sum "$source_input" | cut -d ' ' -f 1)" != \
+              "$(sha256sum "$source" | cut -d ' ' -f 1)" ]; then
+            echo "tracked work/vhgame.txt differs from the requested source" >&2
+            exit 2
+        fi
+        ;;
+esac
+compiled="${source%.*}.bin"
+error_log="$(dirname "$source")/errorlog.txt"
 compiler_log="$stage/compiler.log"
 group_file="$stage/compiler.pgid"
 arch=$(uname -m)

@@ -132,7 +132,8 @@ jobs:
             build/linux-compiler114m.bin \
             build/macos-aarch64-rtm/rtm01.bin \
             work/vhgame.txt \
-            build/macos-aarch64-noctis.unsigned
+            build/macos-aarch64-noctis.unsigned \
+            tracked-work
           python3 - <<'PY'
           from pathlib import Path
           import struct
