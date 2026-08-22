@@ -2124,6 +2124,15 @@ aliases across direct/indirect pairs. Tracked q73 value exchange now covers all
 old values before either write, recompute the right effective index, and fix an
 indirect address before changing an aliased pointer register such as `A <> [A]`.
 
+Tracked q69/q70 split division likewise covers all 121 pairs. The emitter
+captures both old values and memory indexes, uses `UDIV` or `SDIV` with `MSUB`,
+and writes quotient-left/remainder-right while matching the packs' alias order:
+an aliased register retains the quotient, whereas an aliased memory cell retains
+the later remainder. The generated image executes every register/direct/indirect
+class pair, both pointer-alias directions, high-bit unsigned division, and signed
+negative quotient/remainder cases. Divide-by-zero and signed-minimum divided by
+minus one remain non-trapping AArch64 differences and are not claimed compatible.
+
 Stack push/pop, `$+`/`$-` unit-count adjustment, and `=$:`/`$:=`
 immediate-relative access now cover every canonical immediate, register, direct,
 and indirect shape. The logical contract remains 32-bit units, but each abstract
@@ -2176,10 +2185,10 @@ fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source
 and executes the resulting ELF above 4 GB under QEMU. Independent encoded
 fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
-refusals. All 12 checks, including compiler-produced value exchange, scalar
-arithmetic, conversion, ordered/unordered comparison, square-root, sine, cosine,
-bounded partial-remainder, and partial-arctangent execution, passed in hosted run
-32574577445 at commit `dff34b1`.
+refusals. All 12 checks, including compiler-produced value exchange, split
+division, scalar arithmetic, conversion, ordered/unordered comparison,
+square-root, sine, cosine, bounded partial-remainder, and partial-arctangent
+execution, passed in hosted run 32575171005 at commit `437ba93`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.

@@ -109,6 +109,16 @@ first write, the right effective index is recomputed for its writeback, and an
 indirect address is fixed before changing an aliased pointer register such as
 `A <> [A]`.
 
+Tracked q69/q70 split division also covers all 121 pairs. It captures both old
+values and any memory indexes, uses `UDIV` or `SDIV` plus `MSUB`, writes the
+quotient to the left operand and the remainder to the right, and preserves the
+tracked alias ordering: one aliased register retains the quotient while one
+aliased memory cell retains the later remainder. The generated image exercises
+all nine register/direct/indirect class pairs, both pointer-alias directions,
+and positive, negative, and high-bit unsigned cases. Division by zero and signed
+`0x80000000 / -1` still differ from the trapped x86 behavior and are not claimed
+compatible.
+
 Stack push/pop, unit-count SP adjustment, and immediate-relative stack
 load/store cover every canonical immediate, register, direct-workspace, and
 indirect-workspace form. One abstract 32-bit Lino stack unit occupies one
