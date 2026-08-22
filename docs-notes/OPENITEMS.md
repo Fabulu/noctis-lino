@@ -2164,12 +2164,24 @@ S0/S1 and return each single-precision result to its W destination. Register,
 direct, and indirect left operands plus immediate, register, direct, and indirect
 binary right operands use the established source-first and memory-writeback
 paths. The executed fixture covers ordinary values, the minimum subnormal,
-overflow to infinity, and signed zero.
+overflow to infinity, and signed zero. Tracked q47 also captures both raw operand
+magnitudes and rewrites masked-invalid zero/zero and infinity/infinity results to
+the x87 real-indefinite bits `FFC00000h`, independent of operand signs. The
+fixture executes register `0/0`, direct positive-infinity/negative-infinity, and
+indirect negative-zero/zero cases; finite nonzero division by zero remains the
+native signed infinity.
 
 Signed conversions now cover register, direct, and indirect destinations and
 sources. `SCVTF` plus binary32 writeback reproduces the tracked `FILD`/`FSTP`
 round-to-nearest boundary, including 16,777,217 rounding to 16,777,216, while
 `FCVTNS` reproduces in-range ties-to-even `FISTP` examples on both sides of zero.
+A raw-input range repair maps positive and negative out-of-range binary32 values,
+infinities, and NaNs to masked-x87 integer indefinite `80000000h` while preserving
+the valid `-2^31` boundary. The generated image executes same-register quiet-NaN
+conversion, direct positive overflow, indirect positive infinity, the largest
+valid positive input, and a negative out-of-range input. Exact exception flags
+and traps remain outside this bounded result-compatibility claim.
+
 All six binary32 comparisons use `FCMP`. Additional conditional branches preserve
 the x87 `FCOMP`/`FSTSW`/`SAHF` unordered mapping: equality, lower, and
 lower-or-equal accept quiet-NaN unordered results; inequality, greater, and
@@ -2177,7 +2189,10 @@ greater-or-equal reject them.
 
 Scalar square root now uses `FSQRT S0,S0` between raw W/S transfers and binary32
 writeback for register, direct, and indirect forms. The generated image executes
-an exact square, the minimum subnormal, and negative zero. Tracked q29/q30 use
+an exact square, the minimum subnormal, and negative zero. A raw-input repair maps
+negative finite inputs and negative infinity to masked-x87 real indefinite
+`FFC00000h` without changing negative zero; register `sqrt(-1)`, direct
+`sqrt(-infinity)`, and indirect `sqrt(-4)` execute under QEMU. Tracked q29/q30 use
 x87 `FSIN`/`FCOS`; because AArch64 has no scalar trigonometric instruction, the
 emitter now sends raw bits through the full-width helper and the Linux runtime
 applies `sinf` or `cosf`. The generated image executes sine and cosine of 1.0,
@@ -2189,9 +2204,8 @@ and execute one `FPREM`/`FPATAN`; the binary helper applies bounded
 executes positive and negative remainders plus first-quadrant, axis, and zero-angle
 arctangents across register, direct, and indirect writeback. Multi-step partial
 remainders, exceptional divisors, signed-zero quadrants, and exact FP exception
-state remain open. Invalid or out-of-range conversion results, negative finite
-square-root results, signaling-NaN state, NaN payload equivalence, and remaining
-transcendental compatibility remain separate work.
+state remain open. Ordinary NaN payload equivalence, signaling-NaN state, and
+remaining transcendental compatibility remain separate work.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
@@ -2200,9 +2214,10 @@ fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
 refusals. All 12 checks, including compiler-produced value exchange, split
 division, split multiplication, q71/q72 whole-register save/restore, scalar
-arithmetic, conversion, ordered/unordered comparison, square-root, sine, cosine,
-bounded partial-remainder, and partial-arctangent execution, passed in hosted run
-32575829987 at commit `a09ec5b`.
+arithmetic, masked-invalid division results, in-range and invalid/out-of-range
+conversion, ordered/unordered comparison, ordinary and masked-invalid square root,
+sine, cosine, bounded partial-remainder, and partial-arctangent execution, passed
+in hosted run 32577531743 at commit `0a8a8d1`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.

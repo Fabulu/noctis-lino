@@ -147,14 +147,24 @@ direct-workspace, and indirect-workspace left operands are covered; binary right
 operands may be immediate, register, direct, or indirect, with the same
 source-first loads and memory writeback as the integer slice. The executed fixture
 includes ordinary values, the minimum subnormal, overflow to infinity, and signed
-zero.
+zero. For tracked q47, the emitter also recognizes zero divided by zero and
+infinity divided by infinity after ignoring operand signs, and replaces those
+masked-invalid results with the x87 real-indefinite bits `0xFFC00000`. Register,
+direct, and indirect execution cover `0/0`, positive infinity divided by negative
+infinity, and negative zero divided by zero; finite nonzero division by zero
+continues to use the native signed-infinity result.
 
 Signed conversion instructions cover register, direct, and indirect sources and
 destinations. `SCVTF` plus binary32 writeback matches the historical `FILD`/`FSTP`
 boundary under round-to-nearest, including 16,777,217 rounding to 16,777,216;
 `FCVTNS` matches in-range round-to-nearest `FISTP`, including positive and
-negative half-way values. Invalid and out-of-range conversion results and floating
-exception state are not yet claimed compatible.
+negative half-way values. A raw-input range repair maps positive and negative
+out-of-range values, infinities, and NaNs to the masked-x87 integer-indefinite
+value `0x80000000`, while retaining the valid `-2^31` boundary. The generated
+image executes same-register quiet-NaN conversion, direct overflow, indirect
+infinity, the largest valid positive binary32 input, and a negative out-of-range
+input. Floating exception flags and traps remain outside this compatibility
+boundary.
 
 All six floating comparisons use `FCMP` after raw bit transfers. Their branches
 retain the tracked x87 `FCOMP`/`FSTSW`/`SAHF` unordered behavior: equality, lower,
@@ -164,9 +174,12 @@ ordered and unordered cases.
 
 Scalar square root uses `FSQRT S0,S0` between the same raw W/S transfers and
 binary32 writeback. Register, direct, and indirect forms execute exact-square,
-minimum-subnormal, and negative-zero cases in the generated image. Negative
-finite inputs, signaling-NaN behavior, floating exception state, and NaN payload
-handling remain open.
+minimum-subnormal, and negative-zero cases in the generated image. A raw-input
+repair additionally maps negative finite values and negative infinity to the
+masked-x87 real-indefinite bits `0xFFC00000` without changing negative zero; the
+fixture executes `sqrt(-1)`, `sqrt(-infinity)`, and indirect `sqrt(-4)`.
+Signaling-NaN behavior, ordinary NaN payload equivalence, and floating exception
+state remain open.
 
 Tracked q29/q30 records load a binary32 operand, execute x87 `FSIN` or `FCOS`,
 and spill once to binary32. AArch64 has no scalar trigonometric instruction, so
