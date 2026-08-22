@@ -559,8 +559,10 @@ class AArch64ExecutionTests(unittest.TestCase):
                 compiler_build.stdout)
 
         cls.lino_environment = cls.temp / "lino-environment"
+        for directory in ("cpu", "lib", "sys"):
+            shutil.copytree(ROOT / "main" / directory,
+                            cls.lino_environment / directory)
         sys_directory = cls.lino_environment / "sys"
-        sys_directory.mkdir(parents=True)
         cls.aarch64_sys = sys_directory / "aarch64.bin"
         packing = subprocess.run(
             [sys.executable, str(SYS_PACKER),
