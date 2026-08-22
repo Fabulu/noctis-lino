@@ -798,7 +798,8 @@ foreach ($spec in $scenes) {
         # Keep any diagnostics emitted before an early product exit. This makes a
         # hosted failure discriminating without weakening the successful path's
         # complete size checks above.
-        if (-not $Interactive -and $KeepStages -and (Test-Path -LiteralPath $stage)) {
+        if (-not $Interactive -and ($KeepStages -or $DiagnosticOnly) -and
+            (Test-Path -LiteralPath $stage)) {
             Export-SceneDiagnostics -Spec $spec -Stage $stage -OutputPath $outputPath
         }
         if ($proc -and -not $proc.HasExited) {
