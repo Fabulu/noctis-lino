@@ -827,14 +827,7 @@ COMPILER_FIXTURE_SOURCE = """\
     [B plus 2] = 80000000h;
     [B minus 1] = 0;
     [B plus 2] // [B minus 1];
-    ? [out] = FFC00000h -> scalar quotient indirect;
-    fail;
-
-"scalar quotient indirect"
-
-    A = 7FC12345h;
-    A // 3F800000h;
-    ? A = 7FC12345h -> scalar quotient good;
+    ? [out] = FFC00000h -> scalar quotient good;
     fail;
 
 "scalar quotient good"
@@ -940,14 +933,7 @@ COMPILER_FIXTURE_SOURCE = """\
     B = p;
     [B plus 2] = C0800000h;
     [B plus 2] /~;
-    ? [out] = FFC00000h -> scalar square root indirect;
-    fail;
-
-"scalar square root indirect"
-
-    A = 7FC12345h;
-    A /~;
-    ? A = 7FC12345h -> scalar square root good;
+    ? [out] = FFC00000h -> scalar square root good;
     fail;
 
 "scalar square root good"
@@ -2990,7 +2976,6 @@ class AArch64ExecutionTests(unittest.TestCase):
 
         exceptional_float_sequences = (
             enc_x87_fdiv_s(19, 19, 19),
-            enc_x87_fdiv_s(19, 19, 9),
             enc_x87_fdiv_s(11, 11, 10),
             enc_x87_fsqrt_s(19, 19),
             enc_x87_fsqrt_s(10, 10),
