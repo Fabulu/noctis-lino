@@ -187,8 +187,14 @@ the emitter passes the raw bits and an operation tag through the full-width
 runtime helper; the Linux bridge applies `sinf` or `cosf` and returns raw bits.
 The compiler-produced image executes sine and cosine of 1.0, sine of negative
 zero, and cosine of zero across register, direct, and indirect writeback forms.
-This is bounded ordinary-value coverage, not a claim that libm reproduces x87
-range reduction, large-argument C2 behavior, NaN payloads, or exception state.
+For both operations the runtime now reproduces the measured x87 result boundary:
+finite magnitudes at or above `2^63` return their input bits unchanged, infinities
+return real indefinite `0xFFC00000`, quiet-NaN payloads and signs survive, and
+signaling NaNs are quieted without replacing their payload or sign. Generated
+execution covers the exact positive threshold, a negative value above it, both
+signs at the finite maximum/infinity boundary, and quiet/signaling NaNs. This does
+not claim exact x87 range reduction below `2^63`, a visible C2/status result, or
+floating exception-state compatibility.
 
 Tracked q66/q67 records load the right operand before the left, then execute one
 x87 `FPREM` or `FPATAN`. The binary helper therefore applies `fmodf(left, right)`

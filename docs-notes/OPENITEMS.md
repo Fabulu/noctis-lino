@@ -2197,15 +2197,22 @@ x87 `FSIN`/`FCOS`; because AArch64 has no scalar trigonometric instruction, the
 emitter now sends raw bits through the full-width helper and the Linux runtime
 applies `sinf` or `cosf`. The generated image executes sine and cosine of 1.0,
 sine of negative zero, and cosine of zero across register, direct, and indirect
-writeback forms. This does not claim x87-compatible large-argument range
-reduction or C2 behavior. Tracked q66/q67 load the right operand before the left
+writeback forms. The runtime now also reproduces the measured x87 result boundary
+for both operations: finite magnitudes at or above `2^63` return their raw input,
+infinities become real indefinite `FFC00000h`, quiet NaNs preserve payload and
+sign, and signaling NaNs are quieted without replacing payload or sign. Generated
+execution covers the exact positive threshold, a negative value above it, maximum
+finite magnitudes, both infinity signs, and quiet/signaling NaNs. This does not
+claim exact x87 range reduction below `2^63`, observable C2/status output, or
+exception-state compatibility. Tracked q66/q67 load the right operand before the left
 and execute one `FPREM`/`FPATAN`; the binary helper applies bounded
 `fmodf(left,right)` or `atan2f(right,left)` accordingly. The generated image
 executes positive and negative remainders plus first-quadrant, axis, and zero-angle
 arctangents across register, direct, and indirect writeback. Multi-step partial
 remainders, exceptional divisors, signed-zero quadrants, and exact FP exception
-state remain open. Ordinary NaN payload equivalence, signaling-NaN state, and
-remaining transcendental compatibility remain separate work.
+state remain open. Outside the measured trigonometric-helper boundary, ordinary
+NaN payload equivalence, signaling-NaN state, and remaining transcendental
+compatibility remain separate work.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
@@ -2216,8 +2223,9 @@ refusals. All 12 checks, including compiler-produced value exchange, split
 division, split multiplication, q71/q72 whole-register save/restore, scalar
 arithmetic, masked-invalid division results, in-range and invalid/out-of-range
 conversion, ordered/unordered comparison, ordinary and masked-invalid square root,
-sine, cosine, bounded partial-remainder, and partial-arctangent execution, passed
-in hosted run 32577531743 at commit `0a8a8d1`.
+ordinary plus large-finite/exceptional sine and cosine, bounded partial-remainder,
+and partial-arctangent execution, passed in hosted run 32577915664 at commit
+`168df4a`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.
