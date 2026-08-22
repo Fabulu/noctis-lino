@@ -94,9 +94,15 @@ binary right operands may be immediate, register, direct, or indirect. Memory
 left operands are written back. Equality, signed/unsigned comparisons, and
 bit-test branches accept the same binary input combinations without writeback.
 Source operands are loaded before memory destinations, including aliasing
-indirect forms. The slice also covers unconditional/status branches, internal
-calls, `leave`, `end`, `fail`, `nop`, and the full-width isocall ABI. It does not
-yet cover stack operations, floating-point/x87 semantics, display, input, audio,
-files, sockets, timing, process commands, Cocoa, Mach-O packaging, signing, or
-Noctis integration. Wider instruction coverage and runtime services remain
-separate milestones.
+indirect forms.
+
+Stack push/pop, unit-count SP adjustment, and immediate-relative stack
+load/store cover every canonical immediate, register, direct-workspace, and
+indirect-workspace form. One abstract 32-bit Lino stack unit occupies one
+16-byte physical SP slot, so arbitrary adjustments and nested generated calls
+preserve the AArch64 ABI's alignment while stack-relative values remain 32-bit.
+The slice also covers unconditional/status branches, internal calls, `leave`,
+`end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover
+floating-point/x87 semantics, display, input, audio, files, sockets, timing,
+process commands, Cocoa, Mach-O packaging, signing, or Noctis integration.
+Wider instruction coverage and runtime services remain separate milestones.

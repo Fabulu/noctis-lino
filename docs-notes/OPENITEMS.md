@@ -2112,20 +2112,29 @@ Remainders use a W12 quotient and `MSUB`; rotate-left negates its count into W12
 before `RORV`; both retain W9 effective indexes through memory writeback.
 Equality, signed and unsigned comparisons, and zero/nonzero bit-test branches
 accept the same binary inputs without writeback. Source-first loads preserve
-aliases across direct/indirect pairs. Unconditional and status branches,
-internal calls, returns, and the exact full-width isocall ABI are also covered.
-Fixed two-word immediates keep pass-one and code-pass lengths identical, and
-internal calls preserve the host link register.
+aliases across direct/indirect pairs.
+
+Stack push/pop, `$+`/`$-` unit-count adjustment, and `=$:`/`$:=`
+immediate-relative access now cover every canonical immediate, register, direct,
+and indirect shape. The logical contract remains 32-bit units, but each abstract
+stack unit maps to one 16-byte physical SP slot. Signed extended adjustments,
+pre/post-indexed push/pop, and scaled relative addresses therefore preserve
+AArch64 alignment; a generated call occupies one such slot, and the execution
+fixture proves a callee can reach its caller's stack value at relative unit one.
+Unconditional and status branches, internal calls, returns, and the exact
+full-width isocall ABI are also covered. Fixed two-word immediates keep pass-one
+and code-pass lengths identical, and internal calls preserve the host link
+register.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
 and executes the resulting ELF above 4 GB under QEMU. Independent encoded
 fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
-refusals. All 12 checks passed in hosted run 32569677354 at commit `75af6bd`.
+refusals. All 12 checks passed in hosted run 32570563999 at commit `3be3e26`.
 
-Stack forms, floating-point/x87 semantics, full runtime services, native
-macOS/Cocoa and Mach-O packaging, and a native ARM64 Noctis build remain open.
+Floating-point/x87 semantics, full runtime services, native macOS/Cocoa and
+Mach-O packaging, and a native ARM64 Noctis build remain open.
 Expand instruction/runtime coverage before
 beginning Mach-O or native-game integration. Keep Joris van de Donk's source and
 commit credit. Leave a specific public review
