@@ -485,8 +485,6 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "exchange good"
 
-    E = 0BAD0001h;
-
     A = F0000001h;
     B = 10h;
     A /%' B;
@@ -686,8 +684,6 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "quotient remainder good"
 
-    E = 0BAD0002h;
-
     A = FFFFFFFFh;
     B = 2;
     A *%' B;
@@ -782,8 +778,6 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "product good"
 
-    E = 0BAD0003h;
-
     A = 3FC00000h;
     A ++ 40100000h;
     ? A = 40700000h -> scalar sum ok;
@@ -813,8 +807,6 @@ COMPILER_FIXTURE_SOURCE = """\
     fail;
 
 "scalar quotient ok"
-
-    E = 0BAD0004h;
 
     A = 0;
     A // A;
@@ -848,6 +840,7 @@ COMPILER_FIXTURE_SOURCE = """\
 "scalar subnormal ok"
 
     [lhs] = 7F7FFFFFh;
+    [rhs] = 40000000h;
     [lhs] ** [rhs];
     ? [lhs] = 7F800000h -> scalar overflow ok;
     fail;
@@ -923,8 +916,6 @@ COMPILER_FIXTURE_SOURCE = """\
     fail;
 
 "scalar square root delta"
-
-    E = 0BAD0005h;
 
     A = BF800000h;
     A /~;
@@ -1072,8 +1063,6 @@ COMPILER_FIXTURE_SOURCE = """\
     fail;
 
 "fp cast zeta"
-
-    E = 0BAD0006h;
 
     A = 7FC12345h;
     A =, A;
