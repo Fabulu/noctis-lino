@@ -684,6 +684,100 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "quotient remainder good"
 
+    A = FFFFFFFFh;
+    B = 2;
+    A *%' B;
+    ? A = FFFFFFFEh -> product register beta;
+    fail;
+
+"product register beta"
+
+    ? B = 1 -> product register alias;
+    fail;
+
+"product register alias"
+
+    A = 10000h;
+    A *%' A;
+    ? A = 0 -> product direct indirect alpha;
+    fail;
+
+"product direct indirect alpha"
+
+    B = p;
+    [lhs] = 80000000h;
+    [B] = 2;
+    [lhs] *%' [B];
+    ? [lhs] = 0 -> product direct indirect beta;
+    fail;
+
+"product direct indirect beta"
+
+    ? [p] = 1 -> product memory alias;
+    fail;
+
+"product memory alias"
+
+    [lhs] = 10000h;
+    [lhs] *%' [lhs];
+    ? [lhs] = 1 -> product aliased right pointer alpha;
+    fail;
+
+"product aliased right pointer alpha"
+
+    A = lhs;
+    [lhs] = 80000000h;
+    A *%' [A];
+    ? A = 0 -> product aliased right pointer beta;
+    fail;
+
+"product aliased right pointer beta"
+
+    ? [lhs] = 1 -> product aliased left pointer alpha;
+    fail;
+
+"product aliased left pointer alpha"
+
+    A = lhs;
+    [lhs] = 80000000h;
+    [A] *%' A;
+    ? [lhs] = 0 -> product aliased left pointer beta;
+    fail;
+
+"product aliased left pointer beta"
+
+    ? A = 1 -> signed product register alpha;
+    fail;
+
+"signed product register alpha"
+
+    A = FFFFFFFEh;
+    B = 3;
+    A *% B;
+    ? A = FFFFFFFAh -> signed product register beta;
+    fail;
+
+"signed product register beta"
+
+    ? B = FFFFFFFFh -> signed product memory alpha;
+    fail;
+
+"signed product memory alpha"
+
+    B = p;
+    [lhs] = 80000000h;
+    [B] = 2;
+    [lhs] *% [B];
+    ? [lhs] = 0 -> signed product memory beta;
+    fail;
+
+"signed product memory beta"
+
+    ? [p] = FFFFFFFFh -> product good;
+    fail;
+
+"product good"
+
     A = 3FC00000h;
     A ++ 40100000h;
     ? A = 40700000h -> scalar sum ok;
@@ -1303,6 +1397,12 @@ def enc_binary_w(opcode: int, destination: int, right: int) -> int:
     return enc_data3_w(opcode, destination, destination, right)
 
 
+def enc_multiply_long_x(destination: int, left: int, right: int,
+                        signed: bool) -> int:
+    opcode = 0x9B207C00 if signed else 0x9BA07C00
+    return opcode | (right << 16) | (left << 5) | destination
+
+
 def enc_msub_w(destination: int, left: int, right: int, addend: int) -> int:
     return (0x1B008000 | (right << 16) | (addend << 10) |
             (left << 5) | destination)
@@ -1582,6 +1682,7 @@ class StaticContractTests(unittest.TestCase):
             "0B000000h", "4B000000h", "0A000000h", "2A000000h",
             "4A000000h", "1AC02400h", "1AC02000h", "1AC02800h",
             "1B007C00h", "1AC00C00h", "1AC00800h", "1B008180h",
+            "9BAA7D6Ch", "9B2A7D6Ch", "D360FD8Dh",
             "1AC02C00h", "4B0003ECh", "1ACC2C00h",
             "2A2003E0h", "4B0003E0h", "131F7C0Ch",
             "8B20D3FFh", "CB20D3FFh", "8B29D3ECh",
@@ -1601,7 +1702,10 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("[target string] = q69;", source)
         self.assertIn("[target string] = q70;", source)
         self.assertIn("[target string] = q73;", source)
+        self.assertIn("[target string] = q74;", source)
+        self.assertIn("[target string] = q75;", source)
         self.assertIn('"pp a64 quotient remainder"', source)
+        self.assertIn('"pp a64 unsigned product"', source)
         self.assertIn('"pp a64 exchange"', source)
         for condition in ("(HI)", "(LO/CC)", "(HS/CS)", "(LS)",
                           "(GT)", "(LT)", "(GE)", "(LE)"):
@@ -1631,6 +1735,9 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_binary_w(0x1B007C00, 19, 9), 0x1B097E73)
         self.assertEqual(enc_data3_w(0x1AC00C00, 12, 10, 11), 0x1ACB0D4C)
         self.assertEqual(enc_data3_w(0x1AC00800, 11, 11, 10), 0x1ACA096B)
+        self.assertEqual(enc_multiply_long_x(12, 11, 10, False), 0x9BAA7D6C)
+        self.assertEqual(enc_multiply_long_x(12, 11, 10, True), 0x9B2A7D6C)
+        self.assertEqual(enc_lsr_x(13, 12, 32), 0xD360FD8D)
         self.assertEqual(enc_fmov_s_w(0, 19), 0x1E270260)
         self.assertEqual(enc_fmov_s_w(1, 9), 0x1E270121)
         self.assertEqual(enc_fmov_w_s(19, 0), 0x1E260013)
@@ -2314,6 +2421,91 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in split_division_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        unsigned_product = [
+            enc_multiply_long_x(12, 11, 10, False),
+            enc_lsr_x(13, 12, 32),
+        ]
+        signed_product = [
+            enc_multiply_long_x(12, 11, 10, True),
+            enc_lsr_x(13, 12, 32),
+        ]
+        split_product_sequences = (
+            [
+                enc_mov_w(10, 20),
+                enc_mov_w(11, 19),
+                *unsigned_product,
+                enc_mov_w(20, 13),
+                enc_mov_w(19, 12),
+            ],
+            [
+                enc_mov_w(10, 19),
+                enc_mov_w(11, 19),
+                *unsigned_product,
+                enc_mov_w(19, 13),
+                enc_mov_w(19, 12),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                *enc_mov32_w(9, lhs_index),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_product,
+                enc_str_w_indexed(12, 15),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                *enc_mov32_w(9, lhs_index),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_product,
+                enc_str_w_indexed(12, 15),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                *enc_indirect_index(19, 0),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                enc_mov_w(11, 19),
+                *unsigned_product,
+                enc_mov_w(19, 12),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                enc_mov_w(10, 19),
+                *enc_indirect_index(19, 0),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_product,
+                enc_str_w_indexed(12, 15),
+                enc_mov_w(19, 13),
+            ],
+            [
+                enc_mov_w(10, 20),
+                enc_mov_w(11, 19),
+                *signed_product,
+                enc_mov_w(20, 13),
+                enc_mov_w(19, 12),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                *enc_mov32_w(9, lhs_index),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *signed_product,
+                enc_str_w_indexed(12, 15),
+                enc_str_w_indexed(13, 14),
+            ],
+        )
+        for sequence in split_product_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         unary_rotate_sequences = (

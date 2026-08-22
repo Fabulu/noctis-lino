@@ -2473,6 +2473,7 @@
 	a64 floating branch = 1; (special x87 unordered comparison mapping)
 	a64 math helper = 1;	(1: sine, 2: cosine through full-width runtime helper)
 	a64 math binary = 1;	(1: partial remainder, 2: partial arc tangent helper)
+	a64 product = 1;		(wide product returns low W12 and high W13)
 
 	stab = max symbols
 	 mtp symbol size;	(internal symbols table)
@@ -6375,6 +6376,7 @@
 	[a64 floating branch] = no;
 	[a64 math helper] = no;
 	[a64 math binary] = no;
+	[a64 product] = no;
 	[source string] = inst;
 	[target string] = q14;
 	=> strcmp;
@@ -6454,6 +6456,12 @@
 	[target string] = q70;
 	=> strcmp;
       ? ok -> pp a64 signed quotient remainder;
+	[target string] = q74;
+	=> strcmp;
+      ? ok -> pp a64 unsigned product;
+	[target string] = q75;
+	=> strcmp;
+      ? ok -> pp a64 signed product;
 	[target string] = q73;
 	=> strcmp;
       ? ok -> pp a64 exchange;
@@ -7116,6 +7124,14 @@
 	-> pp a64 quotient remainder;
       "pp a64 signed quotient remainder"
 	[a64 opcode] = 1ACA0D6Ch; (SDIV W12,W11,W10)
+	-> pp a64 quotient remainder;
+      "pp a64 unsigned product"
+	[a64 product] = yes;
+	[a64 opcode] = 9BAA7D6Ch; (UMULL X12,W11,W10)
+	-> pp a64 quotient remainder;
+      "pp a64 signed product"
+	[a64 product] = yes;
+	[a64 opcode] = 9B2A7D6Ch; (SMULL X12,W11,W10)
       "pp a64 quotient remainder"
       ? [op1 class] = immediate -> pp a64 unsupported;
       ? [op1 class] = null -> pp a64 unsupported;
@@ -7173,10 +7189,18 @@
 	[a64 word] = B86F5B2Bh; (LDR W11,[x25,w15,UXTW #2])
 	=> a64 emit word;
       "pp a64 quotient calculate"
+      ? [a64 product] = yes -> pp a64 product calculate;
 	[a64 word] = [a64 opcode];
 	=> a64 emit word;
 	[a64 word] = 1B0AAD8Dh; (MSUB W13,W12,W10,W11)
 	=> a64 emit word;
+	-> pp a64 product finish;
+      "pp a64 product calculate"
+	[a64 word] = [a64 opcode];
+	=> a64 emit word;
+	[a64 word] = D360FD8Dh; (LSR X13,X12,#32)
+	=> a64 emit word;
+      "pp a64 product finish"
       ? [op1 class] = register -> pp a64 quotient finish left register;
 	-> pp a64 quotient finish left memory;
       "pp a64 quotient finish left register"
