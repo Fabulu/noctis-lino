@@ -6450,10 +6450,10 @@
       ? ok -> pp a64 integer to floating;
 	[target string] = q69;
 	=> strcmp;
-      ? ok -> pp a64 unsigned split division;
+      ? ok -> pp a64 unsigned quotient remainder;
 	[target string] = q70;
 	=> strcmp;
-      ? ok -> pp a64 signed split division;
+      ? ok -> pp a64 signed quotient remainder;
 	[target string] = q73;
 	=> strcmp;
       ? ok -> pp a64 exchange;
@@ -7111,19 +7111,19 @@
       ? [op1 class] = indirect -> pp a64 store binary;
 	-> pp exit;
 
-      "pp a64 unsigned split division"
+      "pp a64 unsigned quotient remainder"
 	[a64 opcode] = 1ACA096Ch; (UDIV W12,W11,W10)
-	-> pp a64 split division;
-      "pp a64 signed split division"
+	-> pp a64 quotient remainder;
+      "pp a64 signed quotient remainder"
 	[a64 opcode] = 1ACA0D6Ch; (SDIV W12,W11,W10)
-      "pp a64 split division"
+      "pp a64 quotient remainder"
       ? [op1 class] = immediate -> pp a64 unsupported;
       ? [op1 class] = null -> pp a64 unsupported;
-      ? [op2 class] = register -> pp a64 split load right register;
-      ? [op2 class] = direct -> pp a64 split load right direct;
-      ? [op2 class] = indirect -> pp a64 split load right indirect;
+      ? [op2 class] = register -> pp a64 quotient load right register;
+      ? [op2 class] = direct -> pp a64 quotient load right direct;
+      ? [op2 class] = indirect -> pp a64 quotient load right indirect;
 	-> pp a64 unsupported;
-      "pp a64 split load right register"
+      "pp a64 quotient load right register"
 	a = [op2 regid];
 	a + 19;
 	[a64 right reg] = a;
@@ -7132,25 +7132,25 @@
 	a < 16;
 	[a64 word] + a;
 	=> a64 emit word;
-	-> pp a64 split load left;
-      "pp a64 split load right direct"
+	-> pp a64 quotient load left;
+      "pp a64 quotient load right direct"
 	[a64 reg] = 9;
 	[a64 value] = [op2 value];
 	=> a64 emit immediate;
-	-> pp a64 split capture right address;
-      "pp a64 split load right indirect"
+	-> pp a64 quotient capture right address;
+      "pp a64 quotient load right indirect"
 	=> a64 emit op2 index;
-      "pp a64 split capture right address"
+      "pp a64 quotient capture right address"
 	[a64 word] = 2A0903EEh; (MOV W14,W9)
 	=> a64 emit word;
 	[a64 word] = B86E5B2Ah; (LDR W10,[x25,w14,UXTW #2])
 	=> a64 emit word;
-      "pp a64 split load left"
-      ? [op1 class] = register -> pp a64 split load left register;
-      ? [op1 class] = direct -> pp a64 split load left direct;
-      ? [op1 class] = indirect -> pp a64 split load left indirect;
+      "pp a64 quotient load left"
+      ? [op1 class] = register -> pp a64 quotient load left register;
+      ? [op1 class] = direct -> pp a64 quotient load left direct;
+      ? [op1 class] = indirect -> pp a64 quotient load left indirect;
 	-> pp a64 unsupported;
-      "pp a64 split load left register"
+      "pp a64 quotient load left register"
 	a = [op1 regid];
 	a + 19;
 	[a64 left reg] = a;
@@ -7159,34 +7159,34 @@
 	a < 16;
 	[a64 word] + a;
 	=> a64 emit word;
-	-> pp a64 split calculate;
-      "pp a64 split load left direct"
+	-> pp a64 quotient calculate;
+      "pp a64 quotient load left direct"
 	[a64 reg] = 9;
 	[a64 value] = [op1 value];
 	=> a64 emit immediate;
-	-> pp a64 split capture left address;
-      "pp a64 split load left indirect"
+	-> pp a64 quotient capture left address;
+      "pp a64 quotient load left indirect"
 	=> a64 emit op1 index;
-      "pp a64 split capture left address"
+      "pp a64 quotient capture left address"
 	[a64 word] = 2A0903EFh; (MOV W15,W9)
 	=> a64 emit word;
 	[a64 word] = B86F5B2Bh; (LDR W11,[x25,w15,UXTW #2])
 	=> a64 emit word;
-      "pp a64 split calculate"
+      "pp a64 quotient calculate"
 	[a64 word] = [a64 opcode];
 	=> a64 emit word;
 	[a64 word] = 1B0AAD8Dh; (MSUB W13,W12,W10,W11)
 	=> a64 emit word;
-      ? [op1 class] = register -> pp a64 split finish left register;
-	-> pp a64 split finish left memory;
-      "pp a64 split finish left register"
-      ? [op2 class] = register -> pp a64 split finish registers;
+      ? [op1 class] = register -> pp a64 quotient finish left register;
+	-> pp a64 quotient finish left memory;
+      "pp a64 quotient finish left register"
+      ? [op2 class] = register -> pp a64 quotient finish registers;
 	[a64 word] = 2A0C03E0h; (MOV Wleft,W12)
 	a = [a64 left reg];
 	[a64 word] + a;
 	=> a64 emit word;
-	-> pp a64 split finish right memory;
-      "pp a64 split finish registers"
+	-> pp a64 quotient finish right memory;
+      "pp a64 quotient finish registers"
 	(write the remainder first so an aliased register retains the tracked quotient)
 	[a64 word] = 2A0D03E0h; (MOV Wright,W13)
 	a = [a64 right reg];
@@ -7197,15 +7197,15 @@
 	[a64 word] + a;
 	=> a64 emit word;
 	-> pp exit;
-      "pp a64 split finish left memory"
+      "pp a64 quotient finish left memory"
 	[a64 word] = B82F5B2Ch; (STR W12,[x25,w15,UXTW #2])
 	=> a64 emit word;
-      ? [op2 class] = register -> pp a64 split finish right register;
-      "pp a64 split finish right memory"
+      ? [op2 class] = register -> pp a64 quotient finish right register;
+      "pp a64 quotient finish right memory"
 	[a64 word] = B82E5B2Dh; (STR W13,[x25,w14,UXTW #2])
 	=> a64 emit word;
 	-> pp exit;
-      "pp a64 split finish right register"
+      "pp a64 quotient finish right register"
 	[a64 word] = 2A0D03E0h; (MOV Wright,W13)
 	a = [a64 right reg];
 	[a64 word] + a;

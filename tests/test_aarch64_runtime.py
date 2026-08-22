@@ -1601,7 +1601,7 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("[target string] = q69;", source)
         self.assertIn("[target string] = q70;", source)
         self.assertIn("[target string] = q73;", source)
-        self.assertIn('"pp a64 split division"', source)
+        self.assertIn('"pp a64 quotient remainder"', source)
         self.assertIn('"pp a64 exchange"', source)
         for condition in ("(HI)", "(LO/CC)", "(HS/CS)", "(LS)",
                           "(GT)", "(LT)", "(GE)", "(LE)"):
