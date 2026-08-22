@@ -1,0 +1,44 @@
+name: Linux AArch64 runtime
+
+on:
+  push:
+    paths:
+      - "src/linoleum_aarch64/**"
+      - "tests/test_aarch64_runtime.py"
+      - "tests/run_all.py"
+      - ".github/workflows/linux-aarch64-runtime.yml"
+  pull_request:
+    paths:
+      - "src/linoleum_aarch64/**"
+      - "tests/test_aarch64_runtime.py"
+      - "tests/run_all.py"
+      - ".github/workflows/linux-aarch64-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qemu:
+    name: Checked runtime under QEMU
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the port
+        uses: actions/checkout@v7
+
+      - name: Install the AArch64 execution tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu qemu-user
+
+      - name: Build and execute the runtime fixtures
+        shell: bash
+        run: python3 tests/test_aarch64_runtime.py --require-execution -v

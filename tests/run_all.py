@@ -91,6 +91,7 @@ TESTS = [
     ("test_fp_transgrade.py", "independent transcendental grading preserves signed zero and the one-ULP boundary"),
     ("test_native_closure.py", "shipping Lino dependencies contain zero target blocks and retain the exact reviewed 36-operation float inventory"),
     ("test_fp_runtime_boundary.py", "generated Windows PEs and Linux/macOS runtimes install exact FCWEXT below the portable Lino boundary while protected runtime inputs remain upstream-exact"),
+    ("test_aarch64_runtime.py", "checked full-width AArch64 ABI, W^X mappings, relocation, image validation, and hosted QEMU execution"),
     ("test_transcendental_consumers.py", "portable transcendental wrappers are byte-identical to direct x87 at capsule, flare, tree, camera/walk, globe, model Euler, animal, and orbital-viewpoint boundaries"),
     ("test_nivgen_score.py", "bounded NIVGEN scoring preserves harness inputs, rate-limits live pages, and reports local before/after transitions"),
     ("test_nivgen_precision.py", "public NIVGEN uses binary64 geometry boundaries while the shipping game retains historical x87 behavior"),
