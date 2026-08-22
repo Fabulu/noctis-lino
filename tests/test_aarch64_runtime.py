@@ -248,6 +248,48 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "indirect nonzero test"
 
+    A = FFFFFFF9h;
+    A * 6;
+    ? A = FFFFFFD6h -> signed multiply ok;
+    fail;
+
+"signed multiply ok"
+
+    [B plus 2] = A;
+    [B plus 2] / [C];
+    ? [out] = FFFFFFF2h -> signed quotient ok;
+    fail;
+
+"signed quotient ok"
+
+    D = 5;
+    [B plus 2] % D;
+    ? [out] = FFFFFFFCh -> signed remainder ok;
+    fail;
+
+"signed remainder ok"
+
+    A = FFFFFFFEh;
+    A *' [B minus 1];
+    ? A = FFFFFFFAh -> unsigned multiply ok;
+    fail;
+
+"unsigned multiply ok"
+
+    [B plus 2] = A;
+    [B plus 2] /' [rhs];
+    ? [out] = 55555553h -> unsigned quotient ok;
+    fail;
+
+"unsigned quotient ok"
+
+    [slot] = [B plus 2];
+    [slot] %' 16;
+    ? [slot] = 3 -> integer products good;
+    fail;
+
+"integer products good"
+
     A = 1;
     B = 2;
     C = 3;
@@ -400,8 +442,17 @@ def enc_indirect_index(pointer: int, displacement: int) -> list[int]:
     return [*enc_mov32_w(9, displacement), enc_add_w(9, pointer, 9)]
 
 
+def enc_data3_w(opcode: int, destination: int, left: int, right: int) -> int:
+    return opcode | (right << 16) | (left << 5) | destination
+
+
 def enc_binary_w(opcode: int, destination: int, right: int) -> int:
-    return opcode | (right << 16) | (destination << 5) | destination
+    return enc_data3_w(opcode, destination, destination, right)
+
+
+def enc_msub_w(destination: int, left: int, right: int, addend: int) -> int:
+    return (0x1B008000 | (right << 16) | (addend << 10) |
+            (left << 5) | destination)
 
 
 def enc_tst_w(left: int, right: int) -> int:
@@ -652,6 +703,7 @@ class StaticContractTests(unittest.TestCase):
             "B8695B20h", "B8295B20h", "94000000h", "0B090009h",
             "0B000000h", "4B000000h", "0A000000h", "2A000000h",
             "4A000000h", "1AC02400h", "1AC02000h", "1AC02800h",
+            "1B007C00h", "1AC00C00h", "1AC00800h", "1B008180h",
             "6B00001Fh", "6A00001Fh", "54000000h",
             "AA0B8149h", "D63F0120h", "D65F03C0h",
         ):
@@ -671,6 +723,10 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_binary_w(0x0B000000, 19, 20), 0x0B140273)
         self.assertEqual(enc_binary_w(0x1AC02800, 21, 9), 0x1AC92AB5)
         self.assertEqual(enc_add_w(9, 19, 9), 0x0B090269)
+        self.assertEqual(enc_binary_w(0x1B007C00, 19, 9), 0x1B097E73)
+        self.assertEqual(enc_data3_w(0x1AC00C00, 12, 10, 11), 0x1ACB0D4C)
+        self.assertEqual(enc_data3_w(0x1AC00800, 11, 11, 10), 0x1ACA096B)
+        self.assertEqual(enc_msub_w(10, 12, 11, 10), 0x1B0BA98A)
         self.assertEqual(enc_ldr_w_indexed(10), 0xB8695B2A)
         self.assertEqual(enc_ldr_w_indexed(11), 0xB8695B2B)
         self.assertEqual(enc_str_w_indexed(10), 0xB8295B2A)
@@ -1131,6 +1187,51 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in indirect_binary_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        multiply_divide_sequences = (
+            [
+                *enc_mov32_w(9, 6),
+                enc_binary_w(0x1B007C00, 19, 9),
+            ],
+            [
+                *enc_indirect_index(21, 0),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_binary_w(0x1AC00C00, 11, 10),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_data3_w(0x1AC00C00, 12, 10, 22),
+                enc_msub_w(10, 12, 22, 10),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                enc_binary_w(0x1B007C00, 19, 10),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_binary_w(0x1AC00800, 11, 10),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(11, 16),
+                enc_data3_w(0x1AC00800, 12, 10, 11),
+                enc_msub_w(10, 12, 11, 10),
+                enc_str_w_indexed(10),
+            ],
+        )
+        for sequence in multiply_divide_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         for operation in (

@@ -2464,8 +2464,9 @@
 	a64 reg = 1;		(AArch64 W-register number)
 	a64 opcode = 1;		(base encoding for integer operation)
 	a64 left reg = 1;	(AArch64 left/destination W-register)
-	a64 right reg = 1;	(RHS W-register after materialization)
+	a64 right reg = 1;	(AArch64 RHS W-register after materialization)
 	a64 condition = 1;	(B.cond condition code)
+	a64 remainder = 1;	(integer remainder needs quotient plus MSUB)
 
 	stab = max symbols
 	 mtp symbol size;	(internal symbols table)
@@ -6361,6 +6362,7 @@
 	-> pp exit;
 
       "pp a64 not assignment"
+	[a64 remainder] = no;
 	[source string] = inst;
 	[target string] = q14;
 	=> strcmp;
@@ -6386,6 +6388,24 @@
 	[target string] = q38;
 	=> strcmp;
       ? ok -> pp a64 arithmetic shift right;
+	[target string] = q23;
+	=> strcmp;
+      ? ok -> pp a64 multiply;
+	[target string] = q24;
+	=> strcmp;
+      ? ok -> pp a64 signed quotient;
+	[target string] = q25;
+	=> strcmp;
+      ? ok -> pp a64 signed remainder;
+	[target string] = q41;
+	=> strcmp;
+      ? ok -> pp a64 multiply;
+	[target string] = q42;
+	=> strcmp;
+      ? ok -> pp a64 unsigned quotient;
+	[target string] = q43;
+	=> strcmp;
+      ? ok -> pp a64 unsigned remainder;
 	[target string] = q21;
 	=> strcmp;
       ? ok -> pp a64 branch equal;
@@ -6471,6 +6491,23 @@
 	-> pp a64 binary;
       "pp a64 arithmetic shift right"
 	[a64 opcode] = 1AC02800h; (ASRV Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 multiply"
+	[a64 opcode] = 1B007C00h; (MUL Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 signed quotient"
+	[a64 opcode] = 1AC00C00h; (SDIV Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 signed remainder"
+	[a64 remainder] = yes;
+	[a64 opcode] = 1AC00C00h; (SDIV quotient for signed remainder)
+	-> pp a64 binary;
+      "pp a64 unsigned quotient"
+	[a64 opcode] = 1AC00800h; (UDIV Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 unsigned remainder"
+	[a64 remainder] = yes;
+	[a64 opcode] = 1AC00800h; (UDIV quotient for unsigned remainder)
       "pp a64 binary"
       ? [op1 class] = register -> pp a64 binary register left;
       ? [op1 class] = direct -> pp a64 binary direct left;
@@ -6612,6 +6649,7 @@
 	[a64 left reg] = 11;
 	[a64 right reg] = 10;
       "pp a64 emit binary"
+      ? [a64 remainder] = yes -> pp a64 emit remainder;
 	a = [a64 right reg];
 	a < 16;
 	a | [a64 opcode];
@@ -6622,6 +6660,29 @@
 	a = [a64 left reg];
 	[a64 word] + a;
 	=> a64 emit word;
+	-> pp a64 finish binary;
+      "pp a64 emit remainder"
+	(divide into W12, then recover dividend - quotient * divisor)
+	a = [a64 right reg];
+	a < 16;
+	a | [a64 opcode];
+	[a64 word] = a;
+	a = [a64 left reg];
+	a < 5;
+	[a64 word] + a;
+	[a64 word] + 12;
+	=> a64 emit word;
+	[a64 word] = 1B008180h; (MSUB Wd,W12,Wm,Wa)
+	a = [a64 right reg];
+	a < 16;
+	[a64 word] + a;
+	a = [a64 left reg];
+	a < 10;
+	[a64 word] + a;
+	a = [a64 left reg];
+	[a64 word] + a;
+	=> a64 emit word;
+      "pp a64 finish binary"
       ? [op1 class] = direct -> pp a64 store binary;
       ? [op1 class] = indirect -> pp a64 store binary;
 	-> pp exit;
