@@ -54,7 +54,7 @@ COMPILER_FIXTURE_SOURCE = """\
 "directors"
 
     unit = 32;
-    program name = { AArch64 compiler fixture };
+    program name = { AArch64 integer fixture };
 
 "variables"
 
@@ -62,8 +62,9 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "programme"
 
-    A = 12345678h;
+    A = 5;
     B = A;
+    B - 2;
     [slot] = B;
     C = [slot];
     -> after skipped failure;
@@ -80,7 +81,49 @@ COMPILER_FIXTURE_SOURCE = """\
 "successful call"
 
     => helper;
-    D = 89ABCDEFh;
+    A = 5;
+    B = 3;
+    A + B;
+    A - 1;
+    A < 4;
+    A > 1;
+    A # 15;
+    A | 64;
+    A & 127;
+    C = 80000000h;
+    C >> 31;
+
+    ? A = 119 -> equal;
+    fail;
+
+"equal"
+
+    ? A != B -> unequal;
+    fail;
+
+"unequal"
+
+    ? A ' > B -> unsigned greater;
+    fail;
+
+"unsigned greater"
+
+    ? C < B -> signed lower;
+    fail;
+
+"signed lower"
+
+    ? A - 8 -> bit clear;
+    fail;
+
+"bit clear"
+
+    ? A + 1 -> bit set;
+    fail;
+
+"bit set"
+
+    D = A;
     nop;
     end;
 
@@ -211,6 +254,14 @@ def enc_ldr_w_indexed(target: int) -> int:
 
 def enc_str_w_indexed(source: int) -> int:
     return 0xB8295B20 | source
+
+
+def enc_binary_w(opcode: int, destination: int, right: int) -> int:
+    return opcode | (right << 16) | (destination << 5) | destination
+
+
+def enc_tst_w(left: int, right: int) -> int:
+    return 0x6A00001F | (right << 16) | (left << 5)
 
 
 def enc_ldr_x(target: int, base: int, byte_offset: int) -> int:
@@ -455,9 +506,17 @@ class StaticContractTests(unittest.TestCase):
         for word in (
             "52800000h", "72A00000h", "2A0003E0h",
             "B8695B20h", "B8295B20h", "94000000h",
+            "0B000000h", "4B000000h", "0A000000h", "2A000000h",
+            "4A000000h", "1AC02400h", "1AC02000h", "1AC02800h",
+            "6B00001Fh", "6A00001Fh", "54000000h",
             "AA0B8149h", "D63F0120h", "D65F03C0h",
         ):
             self.assertIn(word, source)
+        for token in range(50, 60):
+            self.assertIn(f"[target string] = q{token};", source)
+        for condition in ("(HI)", "(LO/CC)", "(HS/CS)", "(LS)",
+                          "(GT)", "(LT)", "(GE)", "(LE)"):
+            self.assertIn(condition, source)
 
     def test_instruction_encoders_pin_known_words(self) -> None:
         self.assertEqual(enc_movz_w(0, 1), 0x52800020)
@@ -465,6 +524,9 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_ldr_w(9, 25, 48), 0xB9403329)
         self.assertEqual(enc_str_x(25, 25, 16), 0xF9000B39)
         self.assertEqual(enc_lsr_x(9, 25, 32), 0xD360FF29)
+        self.assertEqual(enc_binary_w(0x0B000000, 19, 20), 0x0B140273)
+        self.assertEqual(enc_binary_w(0x1AC02800, 21, 9), 0x1AC92AB5)
+        self.assertEqual(enc_tst_w(19, 9), 0x6A09027F)
 
     def test_fixture_builder_requires_one_marker(self) -> None:
         with self.assertRaisesRegex(ValueError, "found 0"):
@@ -734,11 +796,15 @@ class AArch64ExecutionTests(unittest.TestCase):
         code_words = list(struct.unpack(f"<{app_code_size}I", code))
         slot_index = app_ws_size - 1
         immediate_a = [
-            enc_movz_w(19, 0x5678),
-            enc_movk_w(19, 0x1234, 16),
+            enc_movz_w(19, 5),
+            enc_movk_w(19, 0, 16),
         ]
         self.assertIn(words_to_bytes(immediate_a), code)
         self.assertIn(0x2A0003E0 | (19 << 16) | 20, code_words)
+        self.assertIn(words_to_bytes([
+            enc_movz_w(9, 2), enc_movk_w(9, 0, 16),
+            enc_binary_w(0x4B000000, 20, 9),
+        ]), code)
         self.assertIn(words_to_bytes([
             enc_movz_w(9, slot_index), enc_movk_w(9, 0, 16),
             enc_str_w_indexed(20),
@@ -747,6 +813,34 @@ class AArch64ExecutionTests(unittest.TestCase):
             enc_movz_w(9, slot_index), enc_movk_w(9, 0, 16),
             enc_ldr_w_indexed(21),
         ]), code)
+
+        for operation in (
+            enc_binary_w(0x0B000000, 19, 20),
+            enc_binary_w(0x4B000000, 19, 9),
+            enc_binary_w(0x1AC02000, 19, 9),
+            enc_binary_w(0x1AC02400, 19, 9),
+            enc_binary_w(0x4A000000, 19, 9),
+            enc_binary_w(0x2A000000, 19, 9),
+            enc_binary_w(0x0A000000, 19, 9),
+            enc_binary_w(0x1AC02800, 21, 9),
+        ):
+            self.assertIn(operation, code_words)
+
+        def has_conditional(compare: int, condition: int) -> bool:
+            return any(
+                code_words[index] == compare and
+                code_words[index + 1] & 0xFF000010 == 0x54000000 and
+                code_words[index + 1] & 15 == condition
+                for index in range(len(code_words) - 1)
+            )
+
+        self.assertTrue(has_conditional(enc_cmp_w(19, 9), 0))
+        self.assertTrue(has_conditional(enc_cmp_w(19, 20), 1))
+        self.assertTrue(has_conditional(enc_cmp_w(19, 20), 8))
+        self.assertTrue(has_conditional(enc_cmp_w(21, 20), 11))
+        self.assertTrue(has_conditional(enc_tst_w(19, 9), 0))
+        self.assertTrue(has_conditional(enc_tst_w(19, 9), 1))
+        self.assertIn(0xD503201F, code_words)
 
         isocall_words = [
             enc_movz_w(9, app_ws_size + UI_ISOKERNEL_LO),
@@ -775,10 +869,10 @@ class AArch64ExecutionTests(unittest.TestCase):
         self.assertEqual(run.stderr, "")
         result = self.parse_result(run.stdout)
         self.assertEqual(result["status"], "0")
-        self.assertEqual(result["A"], f"{default_ramtop:08X}")
-        self.assertEqual(result["B"], "12345678")
-        self.assertEqual(result["C"], "12345678")
-        self.assertEqual(result["D"], "89ABCDEF")
+        self.assertEqual(result["A"], "00000077")
+        self.assertEqual(result["B"], "00000003")
+        self.assertEqual(result["C"], "FFFFFFFF")
+        self.assertEqual(result["D"], "00000077")
         self.assertEqual(result["E"], "0BADF00D")
         self.assertEqual(result["X"], f"{DONE:08X}")
         self.assertEqual(result["ramtop"], f"{default_ramtop:08X}")

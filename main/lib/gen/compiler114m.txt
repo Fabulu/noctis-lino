@@ -2462,6 +2462,9 @@
 	a64 word = 1;		(32-bit instruction word to stream)
 	a64 value = 1;		(immediate value to materialize)
 	a64 reg = 1;		(AArch64 W-register number)
+	a64 opcode = 1;		(base encoding for integer operation)
+	a64 right reg = 1;	(RHS W-register after materialization)
+	a64 condition = 1;	(B.cond condition code)
 
 	stab = max symbols
 	 mtp symbol size;	(internal symbols table)
@@ -6290,6 +6293,66 @@
 
       "pp a64 not assignment"
 	[source string] = inst;
+	[target string] = q14;
+	=> strcmp;
+      ? ok -> pp a64 add;
+	[target string] = q15;
+	=> strcmp;
+      ? ok -> pp a64 subtract;
+	[target string] = q16;
+	=> strcmp;
+      ? ok -> pp a64 and;
+	[target string] = q17;
+	=> strcmp;
+      ? ok -> pp a64 or;
+	[target string] = q18;
+	=> strcmp;
+      ? ok -> pp a64 xor;
+	[target string] = q19;
+	=> strcmp;
+      ? ok -> pp a64 shift right;
+	[target string] = q20;
+	=> strcmp;
+      ? ok -> pp a64 shift left;
+	[target string] = q38;
+	=> strcmp;
+      ? ok -> pp a64 arithmetic shift right;
+	[target string] = q21;
+	=> strcmp;
+      ? ok -> pp a64 branch equal;
+	[target string] = q22;
+	=> strcmp;
+      ? ok -> pp a64 branch not equal;
+	[target string] = q50;
+	=> strcmp;
+      ? ok -> pp a64 branch test zero;
+	[target string] = q51;
+	=> strcmp;
+      ? ok -> pp a64 branch test nonzero;
+	[target string] = q52;
+	=> strcmp;
+      ? ok -> pp a64 branch unsigned greater;
+	[target string] = q53;
+	=> strcmp;
+      ? ok -> pp a64 branch unsigned lower;
+	[target string] = q54;
+	=> strcmp;
+      ? ok -> pp a64 branch unsigned greater equal;
+	[target string] = q55;
+	=> strcmp;
+      ? ok -> pp a64 branch unsigned lower equal;
+	[target string] = q56;
+	=> strcmp;
+      ? ok -> pp a64 branch signed greater;
+	[target string] = q57;
+	=> strcmp;
+      ? ok -> pp a64 branch signed lower;
+	[target string] = q58;
+	=> strcmp;
+      ? ok -> pp a64 branch signed greater equal;
+	[target string] = q59;
+	=> strcmp;
+      ? ok -> pp a64 branch signed lower equal;
 	[target string] = q01;
 	=> strcmp;
       ? ok -> pp a64 jump;
@@ -6315,6 +6378,135 @@
 	=> strcmp;
       ? ok -> pp a64 nop;
 	-> pp a64 unsupported;
+
+      "pp a64 add"
+	[a64 opcode] = 0B000000h; (ADD Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 subtract"
+	[a64 opcode] = 4B000000h; (SUB Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 and"
+	[a64 opcode] = 0A000000h; (AND Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 or"
+	[a64 opcode] = 2A000000h; (ORR Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 xor"
+	[a64 opcode] = 4A000000h; (EOR Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 shift right"
+	[a64 opcode] = 1AC02400h; (LSRV Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 shift left"
+	[a64 opcode] = 1AC02000h; (LSLV Wd,Wn,Wm)
+	-> pp a64 binary;
+      "pp a64 arithmetic shift right"
+	[a64 opcode] = 1AC02800h; (ASRV Wd,Wn,Wm)
+      "pp a64 binary"
+      ? [op1 class] != register -> pp a64 unsupported;
+      ? [op2 class] = immediate -> pp a64 binary immediate;
+      ? [op2 class] = register -> pp a64 binary register;
+	-> pp a64 unsupported;
+      "pp a64 binary immediate"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 right reg] = 9;
+	-> pp a64 emit binary;
+      "pp a64 binary register"
+	a = [op2 regid];
+	a + 19;
+	[a64 right reg] = a;
+      "pp a64 emit binary"
+	a = [a64 right reg];
+	a < 16;
+	a | [a64 opcode];
+	[a64 word] = a;
+	a = [op1 regid];
+	a + 19;
+	a < 5;
+	[a64 word] + a;
+	a = [op1 regid];
+	a + 19;
+	[a64 word] + a;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 branch equal"
+	[a64 condition] = 0;
+	-> pp a64 compare;
+      "pp a64 branch not equal"
+	[a64 condition] = 1;
+	-> pp a64 compare;
+      "pp a64 branch unsigned greater"
+	[a64 condition] = 8; (HI)
+	-> pp a64 compare;
+      "pp a64 branch unsigned lower"
+	[a64 condition] = 3; (LO/CC)
+	-> pp a64 compare;
+      "pp a64 branch unsigned greater equal"
+	[a64 condition] = 2; (HS/CS)
+	-> pp a64 compare;
+      "pp a64 branch unsigned lower equal"
+	[a64 condition] = 9; (LS)
+	-> pp a64 compare;
+      "pp a64 branch signed greater"
+	[a64 condition] = 12; (GT)
+	-> pp a64 compare;
+      "pp a64 branch signed lower"
+	[a64 condition] = 11; (LT)
+	-> pp a64 compare;
+      "pp a64 branch signed greater equal"
+	[a64 condition] = 10; (GE)
+	-> pp a64 compare;
+      "pp a64 branch signed lower equal"
+	[a64 condition] = 13; (LE)
+      "pp a64 compare"
+	[a64 opcode] = 6B00001Fh; (CMP Wn,Wm)
+	-> pp a64 compare operands;
+      "pp a64 branch test zero"
+	[a64 condition] = 0;
+	-> pp a64 test;
+      "pp a64 branch test nonzero"
+	[a64 condition] = 1;
+      "pp a64 test"
+	[a64 opcode] = 6A00001Fh; (TST Wn,Wm)
+      "pp a64 compare operands"
+      ? [op1 class] != register -> pp a64 unsupported;
+      ? [op3 class] != immediate -> pp a64 unsupported;
+      ? [op2 class] = immediate -> pp a64 compare immediate;
+      ? [op2 class] = register -> pp a64 compare register;
+	-> pp a64 unsupported;
+      "pp a64 compare immediate"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 right reg] = 9;
+	-> pp a64 emit compare;
+      "pp a64 compare register"
+	a = [op2 regid];
+	a + 19;
+	[a64 right reg] = a;
+      "pp a64 emit compare"
+	a = [a64 right reg];
+	a < 16;
+	a | [a64 opcode];
+	[a64 word] = a;
+	a = [op1 regid];
+	a + 19;
+	a < 5;
+	[a64 word] + a;
+	=> a64 emit word;
+	a = [op3 value];
+	a - [bpos];
+	a / 4;
+	a & 0007FFFFh;
+	a < 5;
+	a | 54000000h; (B.cond label)
+	a | [a64 condition];
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
 
       "pp a64 jump"
       ? [op1 class] != immediate -> pp a64 unsupported;
