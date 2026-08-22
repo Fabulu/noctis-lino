@@ -83,14 +83,18 @@ independent ABI and malformed-image oracles; no generated executable is tracked.
 ## Deliberate omissions
 
 The compiler-owned AArch64 emitter covers fixed-width 32-bit integer moves and
-direct workspace loads/stores. Wrapping addition, subtraction, bitwise
-operations, and logical/arithmetic shifts accept register or direct-workspace
-left operands and immediate, register, or direct-workspace right operands;
-direct left operands are written back. Equality, signed/unsigned comparisons,
-and bit-test branches accept the same input combinations without writeback. The
-slice also covers unconditional/status branches, internal calls, `leave`, `end`,
-`fail`, `nop`, and the full-width isocall ABI. It does not yet cover indirect
-addressing, multiply/divide, unary and rotate forms, floating-point/x87
+both direct and canonical indirect workspace loads/stores. Indirect operands use
+A-E as a 32-bit workspace-unit index plus a fixed unit displacement, scale the
+effective index by four from `x25`, and leave the pointer register unchanged.
+Wrapping addition, subtraction, bitwise operations, and logical/arithmetic
+shifts accept register, direct-workspace, or indirect-workspace left operands
+and immediate, register, direct-workspace, or indirect-workspace right
+operands; memory left operands are written back. Equality, signed/unsigned
+comparisons, and bit-test branches accept the same input combinations without
+writeback. Source operands are loaded before memory destinations, including
+aliasing indirect forms. The slice also covers unconditional/status branches,
+internal calls, `leave`, `end`, `fail`, `nop`, and the full-width isocall ABI. It
+does not yet cover multiply/divide, unary and rotate forms, floating-point/x87
 semantics, display, input, audio, files, sockets, timing, process commands,
 Cocoa, Mach-O packaging, signing, or Noctis integration. Wider instruction
 coverage and runtime services remain separate milestones.
