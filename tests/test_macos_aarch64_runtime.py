@@ -128,7 +128,19 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("krnlFileCommand", source)
         self.assertIn("krnl_system_time_command", source)
         self.assertIn("krnl_process_command", source)
+        self.assertIn("ARM64_UI_COMMAND_LINE = 12", header)
+        self.assertIn(
+            "ARM64_UI_COMMAND_LINE_CAPACITY = mm_DisplayCommand - ARM64_UI_COMMAND_LINE",
+            header,
+        )
+        self.assertIn("append_application_argument", source)
+        self.assertIn("publish_application_command_line();", source)
         self.assertIn("pUIWorkspace[mm_ProcessCommandLine] = 0", source)
+        self.assertIn(
+            "pUIWorkspace[ARM64_UI_COMMAND_LINE + index]",
+            source,
+        )
+        self.assertIn("applicationCommandLineLength", source)
         self.assertIn("lino_display_set_origin", source)
         self.assertIn("mprotect(pCode, pCodeMapBytes, PROT_READ | PROT_EXEC)", source)
         self.assertIn("publish_runtime_pointers();", source)
@@ -228,9 +240,20 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("Packaged native ARM64 app retrace", workflow)
         self.assertIn("--launcher-prepare-only", workflow)
         self.assertIn("CURRENT.LIN", workflow)
+        self.assertIn("tools/make_noctis_checkpoint.py", workflow)
+        self.assertIn('arguments = ("clock=1344638527", "quit")', workflow)
+        self.assertIn('gallery / f"habitable-{name}"', workflow)
+        self.assertIn("tests/test_sun_gallery.py", workflow)
+        self.assertIn("--product-directory build/sun-gallery", workflow)
+        self.assertIn("Retain native sun-oracle diagnostics", workflow)
         self.assertIn("Native compiler-owned AArch64 fixture passed", workflow)
+        self.assertIn('arch -arm64 "$output" arm64-fixture', workflow)
         self.assertIn("macos-aarch64-fixture-home", workflow)
         self.assertIn("ARM64_GlobalK_fixture_", workflow)
+        self.assertIn("Command Line Fixture = { arm64-fixture };", fixture)
+        self.assertIn("A = Command Line;", fixture)
+        self.assertIn("A + 9;", fixture)
+        self.assertIn("compare command line fixture", fixture)
         self.assertIn("Global K Fixture Name", fixture)
         self.assertIn("[Global K Name] = FFFFFFFFh;", fixture)
         self.assertIn("[Global K Data] = FFFFFFFFh;", fixture)

@@ -1069,6 +1069,10 @@
 	  first complete sentinel frame, return through the ordinary save/exit path.
 	  Ordinary launches have an empty command line and retain live UTC. )
 	A = Command Line; [VHGargptr] = A;
+	( AArch64 reserves slots 4..11 for full-width runtime pointers, so its
+	  unit-string command line starts nine units after the legacy slot. )
+	C = [A]; ? C != 0 -> VHG capture clock leading space;
+	A + 9; [VHGargptr] = A;
 	"VHG capture clock leading space"
 	C = [A]; ? C != 32 -> VHG capture clock prefix; A+;
 	-> VHG capture clock leading space;

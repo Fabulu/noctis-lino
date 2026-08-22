@@ -91,6 +91,8 @@ static size_t pWorkspaceMapBytes;
 static size_t systemPageSize;
 static bool soundInitializationAttempted;
 static bool displayInitialized;
+static char applicationCommandLine[ARM64_UI_COMMAND_LINE_CAPACITY];
+static size_t applicationCommandLineLength;
 
 static void report_error(const char *message)
 {
@@ -683,8 +685,44 @@ void ISOKRNLCALL(void)
     clear_service_commands();
 }
 
+static bool append_application_argument(const char *argument)
+{
+    size_t length;
+    size_t prefix;
+    size_t required;
+    bool quote;
+
+    if (argument == NULL)
+        return false;
+    length = strlen(argument);
+    quote = strchr(argument, ' ') != NULL;
+    prefix = (applicationCommandLineLength != 0 ? 1 : 0) +
+             (quote ? 2 : 0);
+    if (length >= ARM64_UI_COMMAND_LINE_CAPACITY ||
+        prefix >= ARM64_UI_COMMAND_LINE_CAPACITY - length)
+        return false;
+    required = length + prefix;
+    if (applicationCommandLineLength >=
+        ARM64_UI_COMMAND_LINE_CAPACITY - required)
+        return false;
+
+    if (applicationCommandLineLength != 0)
+        applicationCommandLine[applicationCommandLineLength++] = ' ';
+    if (quote)
+        applicationCommandLine[applicationCommandLineLength++] = '"';
+    memcpy(&applicationCommandLine[applicationCommandLineLength],
+           argument, length);
+    applicationCommandLineLength += length;
+    if (quote)
+        applicationCommandLine[applicationCommandLineLength++] = '"';
+    applicationCommandLine[applicationCommandLineLength] = '\0';
+    return true;
+}
+
 static bool parse_runtime_options(int argc, char **argv)
 {
+    applicationCommandLine[0] = '\0';
+    applicationCommandLineLength = 0;
     for (int index = 1; index < argc; ++index) {
         if (strcmp(argv[index], "--cocoa-smoke") == 0) {
             if (cocoaQuitSmokeMode)
@@ -694,11 +732,20 @@ static bool parse_runtime_options(int argc, char **argv)
             if (cocoaSmokeMode)
                 return false;
             cocoaQuitSmokeMode = true;
-        } else {
+        } else if (!append_application_argument(argv[index])) {
             return false;
         }
     }
     return true;
+}
+
+static void publish_application_command_line(void)
+{
+    pUIWorkspace[mm_ProcessCommandLine] = 0;
+    for (size_t index = 0; index <= applicationCommandLineLength; ++index) {
+        pUIWorkspace[ARM64_UI_COMMAND_LINE + index] =
+            (unit) (unsigned char) applicationCommandLine[index];
+    }
 }
 
 int main(int argc, char **argv, char **env)
@@ -724,7 +771,7 @@ int main(int argc, char **argv, char **env)
         return EXIT_FAILURE;
     }
     if (!parse_runtime_options(argc, argv)) {
-        report_error("only one Cocoa smoke switch and an empty application command line are supported");
+        report_error("invalid Cocoa smoke selection or application command line");
         return EXIT_FAILURE;
     }
 
@@ -789,9 +836,10 @@ int main(int argc, char **argv, char **env)
     pUIWorkspace[mm_ProcessISOcall] = 0;
     pUIWorkspace[mm_ProcessRAMtop] = current_ramtop;
     pUIWorkspace[mm_ProcessPriority] = IParagraph->app_code_pri;
-    /* Slots 4-11 contain full-width ARM pointers, so this slice deliberately
-     * exposes only an empty Lino application command line in slot 3. */
-    pUIWorkspace[mm_ProcessCommandLine] = 0;
+    /* The historical string begins at slot 3, which AArch64 cannot use because
+     * its following eight units carry full-width pointers. Publish the same
+     * unit-string representation in the reserved pre-display gap instead. */
+    publish_application_command_line();
     pUIWorkspace[mm_CountsPerMillisecond] = 1000;
     pUIWorkspace[mm_PCMdataStatus] = 0;
     pUIWorkspace[mm_PointerMode] = IParagraph->pointermode;

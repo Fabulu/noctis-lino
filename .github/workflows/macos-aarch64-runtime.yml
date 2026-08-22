@@ -24,11 +24,14 @@ on:
       - "tools/package_noctis_macos_aarch64.py"
       - "tools/package_noctis_macos.py"
       - "tools/pack_lino_sys.py"
+      - "tools/make_noctis_checkpoint.py"
       - "src/noctis_macos_launcher/launcher.c"
       - "PLAYER_README.txt"
       - "LICENSE.htm"
       - "tests/fixtures/macos_aarch64_runtime.txt"
       - "tests/test_macos_aarch64_runtime.py"
+      - "tests/test_sun_gallery.py"
+      - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.shot.BMP"
       - "tests/run_all.py"
       - "src/linoleum_macos64/lino_cocoa.m"
       - "src/linoleum_macos64/lino_display.h"
@@ -74,11 +77,14 @@ on:
       - "tools/package_noctis_macos_aarch64.py"
       - "tools/package_noctis_macos.py"
       - "tools/pack_lino_sys.py"
+      - "tools/make_noctis_checkpoint.py"
       - "src/noctis_macos_launcher/launcher.c"
       - "PLAYER_README.txt"
       - "LICENSE.htm"
       - "tests/fixtures/macos_aarch64_runtime.txt"
       - "tests/test_macos_aarch64_runtime.py"
+      - "tests/test_sun_gallery.py"
+      - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.shot.BMP"
       - "tests/run_all.py"
       - "src/linoleum_macos64/lino_cocoa.m"
       - "src/linoleum_macos64/lino_display.h"
@@ -301,7 +307,7 @@ jobs:
           fixture_home="$PWD/build/macos-aarch64-fixture-home"
           rm -rf "$fixture_home"
           mkdir -p "$fixture_home"
-          HOME="$fixture_home" arch -arm64 "$output" \
+          HOME="$fixture_home" arch -arm64 "$output" arm64-fixture \
             | tee build/macos-aarch64-result.txt
           test ! -e \
             "$fixture_home/Library/Application Support/Linoleum/GlobalK/ARM64_GlobalK_fixture_"
@@ -399,6 +405,82 @@ jobs:
               raise SystemExit("graceful ARM64 Cocoa quit did not save CURRENT.LIN")
           print("Native ARM64 Cocoa retrace and graceful Lino shutdown passed")
           PY
+
+          python3 tools/make_noctis_checkpoint.py "$data/CURRENT.LIN" \
+            --star-x 1463568 --star-y -4728350 --star-z -437812 \
+            --body 3 --longitude 270 --latitude 60 \
+            --beta 65 --pitch -44 \
+            --player-x 1598248 --player-z 2251369 --fast
+          cp "$data/CURRENT.LIN" "$data/CURRENT.BAK"
+          rm -f "$data"/game-*-out.bin
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          import subprocess
+
+          executable = Path("build/Noctis-IV-arm64.game").resolve()
+          data = Path("build/noctis-arm64-data").resolve()
+          arguments = ("clock=1344638527", "quit")
+          result = subprocess.run(
+              ["arch", "-arm64", str(executable), *arguments],
+              cwd=data,
+              text=True,
+              stdout=subprocess.PIPE,
+              stderr=subprocess.STDOUT,
+              timeout=300,
+          )
+          output = result.stdout
+          if result.returncode < 0:
+              diagnostic = subprocess.run(
+                  ["lldb", "--batch", "-o", "run",
+                   "-k", "thread backtrace all",
+                   "-k", "register read pc lr sp x19 x20 x21 x22 x23 x24 x25",
+                   str(executable), "--", *arguments],
+                  cwd=data,
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT,
+                  timeout=180,
+              )
+              output += "\nLLDB CRASH DIAGNOSTIC\n" + diagnostic.stdout
+          print(output)
+          Path("build/macos-aarch64-sun-oracle.txt").write_text(
+              output, encoding="utf-8")
+          if result.returncode != 0:
+              raise SystemExit(
+                  f"pinned ARM64 product run failed with status {result.returncode}")
+
+          expected = {
+              "game-vh-out.bin": 156,
+              "game-sun-out.bin": 128,
+              "game-local-out.bin": 176,
+              "game-palette-out.bin": 3072,
+              "game-page-out.bin": 64000,
+          }
+          gallery = Path("build/sun-gallery")
+          gallery.mkdir(parents=True, exist_ok=True)
+          for name, size in expected.items():
+              source = data / name
+              if not source.is_file() or source.stat().st_size != size:
+                  raise SystemExit(
+                      f"product did not emit {name} at exactly {size} bytes")
+              shutil.copyfile(source, gallery / f"habitable-{name}")
+          print("Native ARM64 product emitted complete pinned sun diagnostics")
+          PY
+          python3 tests/test_sun_gallery.py \
+            --case hab-sun270 \
+            --product-directory build/sun-gallery
+
+      - name: Retain native sun-oracle diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-aarch64-sun-oracle-${{ github.sha }}
+          path: |
+            build/macos-aarch64-sun-oracle.txt
+            build/sun-gallery/habitable-game-*-out.bin
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Derive native package versions
         id: version

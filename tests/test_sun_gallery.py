@@ -1,8 +1,9 @@
 """Grade a retained native surface-sun frame against product diagnostics.
 
 The default mode is non-GUI: it validates the pinned NIV+ BMP oracle and the
-shipping diagnostic/export contracts.  A hosted Windows capture supplies the
-three product files for the exact page, palette, and flare-state comparison::
+shipping diagnostic/export contracts.  The hosted native Apple-Silicon product
+run supplies the three product files for the exact page, palette, and flare-state
+comparison::
 
     python tests/test_sun_gallery.py --case hab-sun270 \
         --product-directory build/sun-gallery
@@ -14,13 +15,19 @@ import argparse
 import hashlib
 from pathlib import Path
 import struct
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "work" / "vhgame.txt"
 CAPTURE = ROOT / "tools" / "capture_noctis_scenes.ps1"
+CHECKPOINT_TOOL = ROOT / "tools" / "make_noctis_checkpoint.py"
 PRIVATE_RUNNER = ROOT / "tools" / "run_hidden_noctis.py"
-WORKFLOW = ROOT / ".github" / "workflows" / "windows-release.yml"
+MACOS_WORKFLOW = ROOT / ".github" / "workflows" / "macos-aarch64-runtime.yml"
+WINDOWS_WORKFLOW = ROOT / ".github" / "workflows" / "windows-release.yml"
+sys.path.insert(0, str(ROOT / "tools"))
+
+from make_noctis_checkpoint import build_landed_checkpoint  # noqa: E402
 
 CASES = {
     "hab-sun270": {
@@ -30,6 +37,20 @@ CASES = {
         "bmp_sha256": "c08cdb6f74f82c83170848e0071e2f7c0c82cfb35d20d097a8db7409fcf76d84",
         "page_sha256": "9e563cff6b6703f382ad15f353da71eaad8e087eba79b3b08ae757e5a45d3d8b",
         "palette_sha256": "c874d98235a9649a4e468d7f8b35f19cea923bdb72d550590ec1097b402fb7ee",
+        "checkpoint_sha256": "59dfc1d7d821fd885b48ea4f8ff5dadf7993b6ffd3496636a6e1df2c9509deb9",
+        "checkpoint": {
+            "star_x": 1463568,
+            "star_y": -4728350,
+            "star_z": -437812,
+            "body": 3,
+            "longitude": 270,
+            "latitude": 60,
+            "beta": 65,
+            "pitch": -44,
+            "player_x": 1598248,
+            "player_z": 2251369,
+            "fast": True,
+        },
         "center": (161, 130),
     }
 }
@@ -110,8 +131,10 @@ def mismatch_summary(expected: bytes, actual: bytes, width: int = 320) -> str:
 def check_source_contract(check) -> None:
     game = GAME.read_text(encoding="utf-8")
     capture = CAPTURE.read_text(encoding="utf-8")
+    checkpoint_tool = CHECKPOINT_TOOL.read_text(encoding="utf-8")
     private_runner = PRIVATE_RUNNER.read_text(encoding="utf-8")
-    workflow = WORKFLOW.read_text(encoding="utf-8")
+    macos_workflow = MACOS_WORKFLOW.read_text(encoding="utf-8")
+    windows_workflow = WINDOWS_WORKFLOW.read_text(encoding="utf-8")
     check("vhgpagename = { game-page-out.bin };" in game,
           "game declares a separate packed-page diagnostic")
     check("[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;" in game and
@@ -131,21 +154,23 @@ def check_source_contract(check) -> None:
           "diagnostic capture validates and exports scene-qualified product files")
     check("windows_hidden_process.run" in private_runner and
           "subprocess.run" in private_runner and
-          "--default-desktop" in private_runner and
-          "run_hidden_noctis.py" in capture and
-          "DefaultDesktop" in capture and "quit" in capture,
-          "diagnostic execution supports private isolation and the hosted desktop")
-    check(all(fragment in workflow for fragment in (
-              "-Scene habitable",
-              "-Longitude 270",
-              "-ViewPitch -44",
-              "-ClockSeconds 1344638527",
-              "-DiagnosticOnly",
-              "-DefaultDesktop",
+          "--default-desktop" in private_runner,
+          "retained Windows diagnostic runner preserves both launch controls")
+    check("CHECKPOINT_UNITS = 66" in checkpoint_tool and
+          "struct.pack" in checkpoint_tool and
+          "units[35:42]" in checkpoint_tool,
+          "cross-platform checkpoint builder emits the stable 264-byte subset")
+    check(all(fragment in macos_workflow for fragment in (
+              "make_noctis_checkpoint.py",
+              "--longitude 270",
+              "--pitch -44",
+              '"clock=1344638527"',
               "--case hab-sun270",
-              "--product-directory build\\sun-gallery",
+              "--product-directory build/sun-gallery",
           )),
-          "hosted Windows package gate executes the pinned product comparison")
+          "hosted Apple-Silicon gate executes the pinned product comparison")
+    check("Grade the pinned habitable-world sun frame" not in windows_workflow,
+          "Windows packaging no longer depends on an unusable hosted GUI desktop")
 
 
 def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
@@ -233,6 +258,13 @@ def main() -> int:
         cx, cy = case["center"]
         check(page[cy * 320 + cx] == 126,
               "native positive flare retains indexed centre sample 126")
+
+    checkpoint_arguments = case["checkpoint"]
+    assert isinstance(checkpoint_arguments, dict)
+    checkpoint = build_landed_checkpoint(**checkpoint_arguments)
+    check(len(checkpoint) == 264 and
+          sha256(checkpoint) == case["checkpoint_sha256"],
+          "cross-platform builder reproduces the pinned habitable checkpoint")
 
     check_source_contract(check)
     if args.product_directory is not None and page and palette:

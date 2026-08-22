@@ -121,40 +121,6 @@ jobs:
         shell: pwsh
         run: Copy-Item build\compiled\vhgame.exe work\vhgame.exe -Force
 
-      - name: Set up Python for native frame grading
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-
-      - name: Grade the pinned habitable-world sun frame
-        shell: pwsh
-        timeout-minutes: 5
-        run: |
-          .\tools\capture_noctis_scenes.ps1 `
-            -OutputDirectory build\sun-gallery `
-            -GameExecutable work\vhgame.exe `
-            -Scene habitable `
-            -Longitude 270 `
-            -ViewPitch -44 `
-            -ClockSeconds 1344638527 `
-            -Fast `
-            -DiagnosticOnly `
-            -DefaultDesktop
-          python tests\test_sun_gallery.py `
-            --case hab-sun270 `
-            --product-directory build\sun-gallery
-
-      - name: Retain the habitable-world sun diagnostics
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: habitable-sun270-diagnostics
-          path: |
-            build/sun-gallery/planet-habitable-sun.png
-            build/sun-gallery/habitable-game-*-out.bin
-          if-no-files-found: warn
-          retention-days: 7
-
       - name: Assemble the standalone Windows package
         shell: pwsh
         run: .\package_noctis.ps1 -OutputDirectory dist\Noctis-IV -SkipBuild
