@@ -439,6 +439,7 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "scalar arithmetic good"
 
+    [rhs] = 3;
     A = 2;
     A $-;
     0 $:= 11223344h;
