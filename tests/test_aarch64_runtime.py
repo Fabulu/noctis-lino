@@ -827,7 +827,54 @@ COMPILER_FIXTURE_SOURCE = """\
     [B plus 2] = 80000000h;
     [B minus 1] = 0;
     [B plus 2] // [B minus 1];
-    ? [out] = FFC00000h -> scalar quotient good;
+    ? [out] = FFC00000h -> scalar quotient left quiet nan;
+    fail;
+
+"scalar quotient left quiet nan"
+
+    A = 7FC12345h;
+    A // 3F800000h;
+    ? A = 7FC12345h -> scalar quotient right quiet nan;
+    fail;
+
+"scalar quotient right quiet nan"
+
+    [lhs] = 3F800000h;
+    [rhs] = 7FC23456h;
+    [lhs] // [rhs];
+    ? [lhs] = 7FC23456h -> scalar quotient both quiet nan;
+    fail;
+
+"scalar quotient both quiet nan"
+
+    B = p;
+    [B plus 2] = 7FC12345h;
+    [B minus 1] = 7FC23456h;
+    [B plus 2] // [B minus 1];
+    ? [out] = 7FC23456h -> scalar quotient left signaling nan;
+    fail;
+
+"scalar quotient left signaling nan"
+
+    A = 7F812345h;
+    A // 3F800000h;
+    ? A = 7FC12345h -> scalar quotient right signaling nan;
+    fail;
+
+"scalar quotient right signaling nan"
+
+    [lhs] = 3F800000h;
+    [rhs] = 7F823456h;
+    [lhs] // [rhs];
+    ? [lhs] = 7FC23456h -> scalar quotient nan precedence;
+    fail;
+
+"scalar quotient nan precedence"
+
+    [B plus 2] = 7F812345h;
+    [B minus 1] = 7FC23456h;
+    [B plus 2] // [B minus 1];
+    ? [out] = 7FC23456h -> scalar quotient good;
     fail;
 
 "scalar quotient good"
@@ -934,7 +981,36 @@ COMPILER_FIXTURE_SOURCE = """\
     B = p;
     [B plus 2] = C0800000h;
     [B plus 2] /~;
-    ? [out] = FFC00000h -> scalar square root good;
+    ? [out] = FFC00000h -> scalar square root positive quiet nan;
+    fail;
+
+"scalar square root positive quiet nan"
+
+    A = 7FC12345h;
+    A /~;
+    ? A = 7FC12345h -> scalar square root negative quiet nan;
+    fail;
+
+"scalar square root negative quiet nan"
+
+    [lhs] = FFC23456h;
+    [lhs] /~;
+    ? [lhs] = FFC23456h -> scalar square root positive signaling nan;
+    fail;
+
+"scalar square root positive signaling nan"
+
+    B = p;
+    [B plus 2] = 7F812345h;
+    [B plus 2] /~;
+    ? [out] = 7FC12345h -> scalar square root negative signaling nan;
+    fail;
+
+"scalar square root negative signaling nan"
+
+    [lhs] = FF823456h;
+    [lhs] /~;
+    ? [lhs] = FFC23456h -> scalar square root good;
     fail;
 
 "scalar square root good"
@@ -1823,22 +1899,31 @@ def enc_x87_fdiv_s(destination: int, left: int, right: int) -> list[int]:
     return [
         enc_mov_w(14, left),
         enc_mov_w(15, right),
-        enc_lsl_immediate_w(14, 14, 1),
-        enc_lsr_immediate_w(14, 14, 1),
-        enc_lsl_immediate_w(15, 15, 1),
-        enc_lsr_immediate_w(15, 15, 1),
+        enc_lsl_immediate_w(12, 14, 1),
+        enc_lsr_immediate_w(12, 12, 1),
+        enc_lsl_immediate_w(13, 15, 1),
+        enc_lsr_immediate_w(13, 13, 1),
         enc_fmov_s_w(0, left),
         enc_fmov_s_w(1, right),
         enc_float_data2_s(0x1E201800, 0, 0, 1),
         enc_fmov_w_s(destination, 0),
         *enc_mov32_w(16, 0x7F800000),
         *enc_mov32_w(17, 0xFFC00000),
-        enc_cmp_w(14, 15),
-        enc_csel_w(12, 14, 17, 0),  # EQ
+        enc_cmp_w(12, 13),
+        enc_csel_w(12, 12, 17, 0),  # EQ
         enc_cmp_w_zero(12),
-        enc_csel_w(13, 17, destination, 0),  # EQ
+        enc_csel_w(destination, 17, destination, 0),  # EQ
         enc_cmp_w(12, 16),
-        enc_csel_w(destination, 17, 13, 0),  # EQ
+        enc_csel_w(destination, 17, destination, 0),  # EQ
+        enc_lsl_immediate_w(12, 14, 1),
+        enc_lsr_immediate_w(12, 12, 1),
+        *enc_mov32_w(17, 0x00400000),
+        enc_binary_w(0x2A000000, 14, 17),
+        enc_cmp_w(12, 16),
+        enc_csel_w(destination, 14, destination, 8),  # HI
+        enc_binary_w(0x2A000000, 15, 17),
+        enc_cmp_w(13, 16),
+        enc_csel_w(destination, 15, destination, 8),  # HI
     ]
 
 
@@ -1855,6 +1940,13 @@ def enc_x87_fsqrt_s(destination: int, source: int) -> list[int]:
         enc_csel_w(12, 17, destination, 8),  # HI
         enc_cmp_w(14, 16),
         enc_csel_w(destination, 12, destination, 9),  # LS
+        enc_lsl_immediate_w(12, 14, 1),
+        enc_lsr_immediate_w(12, 12, 1),
+        *enc_mov32_w(16, 0x7F800000),
+        *enc_mov32_w(17, 0x00400000),
+        enc_binary_w(0x2A000000, 14, 17),
+        enc_cmp_w(12, 16),
+        enc_csel_w(destination, 14, destination, 8),  # HI
     ]
 
 
