@@ -1039,6 +1039,45 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "fp remainder indirect"
 
+    A = 5F000000h;
+    A %% 3FC00000h;
+    ? A = 3F000000h -> fp remainder complete boundary;
+    fail;
+
+"fp remainder complete boundary"
+
+    A = 5F000001h;
+    A %% 3F19999Ah;
+    ? A = 4EEEEE0Ch -> fp remainder partial register;
+    fail;
+
+"fp remainder partial register"
+
+    [lhs] = 71812345h;
+    [rhs] = 3F400000h;
+    [lhs] %% [rhs];
+    ? [lhs] = 5E800000h -> fp remainder partial direct;
+    fail;
+
+"fp remainder partial direct"
+
+    B = p;
+    [B plus 2] = F1812345h;
+    [B minus 1] = 3F400000h;
+    [B plus 2] %% [B minus 1];
+    ? [out] = DE800000h -> fp remainder partial indirect;
+    fail;
+
+"fp remainder partial indirect"
+
+    [lhs] = 7F7FFFFFh;
+    [rhs] = 1;
+    [lhs] %% [rhs];
+    ? [lhs] = 0 -> fp remainder extreme partial;
+    fail;
+
+"fp remainder extreme partial"
+
     B = p;
     [B plus 2] = 40B00000h;
     [B minus 1] = 40000000h;

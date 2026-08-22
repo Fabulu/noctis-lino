@@ -241,6 +241,27 @@ enum {
     FLOAT_BINARY_PARTIAL_ARCTANGENT = 2
 };
 
+static float apply_float_partial_remainder(float left, float right)
+{
+    if (isfinite(left) && isfinite(right) &&
+        left != 0.0f && right != 0.0f) {
+        const int exponent_difference =
+            ilogbf(fabsf(left)) - ilogbf(fabsf(right));
+
+        /* One measured x87 FPREM selects N = 32 + (D mod 32). */
+        if (exponent_difference >= 64) {
+            const int reduction_width =
+                32 + exponent_difference % 32;
+            const double scaled_right =
+                scalbn((double) right,
+                       exponent_difference - reduction_width);
+
+            return (float) fmod((double) left, scaled_right);
+        }
+    }
+    return fmodf(left, right);
+}
+
 static uint32_t apply_float_binary(uint32_t left_bits, uint32_t right_bits,
                                    uint32_t operation)
 {
@@ -253,7 +274,7 @@ static uint32_t apply_float_binary(uint32_t left_bits, uint32_t right_bits,
     memcpy(&right, &right_bits, sizeof(right));
     switch (operation) {
     case FLOAT_BINARY_PARTIAL_REMAINDER:
-        output = fmodf(left, right);
+        output = apply_float_partial_remainder(left, right);
         break;
     case FLOAT_BINARY_PARTIAL_ARCTANGENT:
         output = atan2f(right, left);
