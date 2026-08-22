@@ -346,6 +346,83 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "unary rotate good"
 
+    A = 2;
+    A $-;
+    0 $:= 11223344h;
+    1 $:= A;
+    C =$: 0;
+    [slot] =$: 1;
+    ? C = 11223344h -> stack register fetch ok;
+    fail;
+
+"stack register fetch ok"
+
+    ? [slot] = 2 -> stack direct fetch ok;
+    fail;
+
+"stack direct fetch ok"
+
+    A $+;
+    [slot] = 3;
+    [slot] $-;
+    0 $:= [rhs];
+    [B plus 2] =$: 0;
+    ? [out] = 3 -> stack direct forms ok;
+    fail;
+
+"stack direct forms ok"
+
+    [slot] $+;
+    [B plus 2] = 1;
+    [B plus 2] $-;
+    0 $:= [B minus 1];
+    A =$: 0;
+    ? A = 3 -> stack indirect forms ok;
+    fail;
+
+"stack indirect forms ok"
+
+    [B plus 2] $+;
+    2 $-;
+    0 $:= 13579BDFh;
+    => stack helper;
+    A =$: 0;
+    ? A = 2468ACE0h -> stack call frame ok;
+    fail;
+
+"stack call frame ok"
+
+    2 $+;
+    11223344h -->;
+    A = 22334455h;
+    A -->;
+    [lhs] = 33445566h;
+    [lhs] -->;
+    [B minus 1] -->;
+    C <--;
+    [B plus 2] <--;
+    [slot] <--;
+    D <--;
+    ? C = 3 -> stack pop register ok;
+    fail;
+
+"stack pop register ok"
+
+    ? [out] = 33445566h -> stack pop indirect ok;
+    fail;
+
+"stack pop indirect ok"
+
+    ? [slot] = 22334455h -> stack pop direct ok;
+    fail;
+
+"stack pop direct ok"
+
+    ? D = 11223344h -> stack push pop good;
+    fail;
+
+"stack push pop good"
+
     A = 1;
     B = 2;
     C = 3;
@@ -353,6 +430,12 @@ COMPILER_FIXTURE_SOURCE = """\
     E = 5;
     nop;
     end;
+
+"stack helper"
+
+    E = 2468ACE0h;
+    1 $:= E;
+    leave;
 
 "failed call"
 
@@ -492,6 +575,23 @@ def enc_str_w_indexed(source: int) -> int:
 
 def enc_add_w(destination: int, left: int, right: int) -> int:
     return 0x0B000000 | (right << 16) | (left << 5) | destination
+
+
+def enc_stack_adjust(source: int, reserve: bool) -> int:
+    opcode = 0xCB20D3FF if reserve else 0x8B20D3FF
+    return opcode | (source << 16)
+
+
+def enc_stack_address(source: int = 9) -> int:
+    return 0x8B20D3EC | (source << 16)
+
+
+def enc_push_w(source: int) -> int:
+    return 0xB81F0FE0 | source
+
+
+def enc_pop_w(destination: int) -> int:
+    return 0xB84107E0 | destination
 
 
 def enc_indirect_index(pointer: int, displacement: int) -> list[int]:
@@ -776,6 +876,9 @@ class StaticContractTests(unittest.TestCase):
             "1B007C00h", "1AC00C00h", "1AC00800h", "1B008180h",
             "1AC02C00h", "4B0003ECh", "1ACC2C00h",
             "2A2003E0h", "4B0003E0h", "131F7C0Ch",
+            "8B20D3FFh", "CB20D3FFh", "8B29D3ECh",
+            "B81F0FE0h", "B84107E0h", "B84107EAh",
+            "B9400180h", "B940018Ah", "B9000180h", "B8695B29h",
             "6B00001Fh", "6A00001Fh", "54000000h",
             "AA0B8149h", "D63F0120h", "D65F03C0h",
         ):
@@ -795,6 +898,13 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_binary_w(0x0B000000, 19, 20), 0x0B140273)
         self.assertEqual(enc_binary_w(0x1AC02800, 21, 9), 0x1AC92AB5)
         self.assertEqual(enc_add_w(9, 19, 9), 0x0B090269)
+        self.assertEqual(enc_stack_adjust(9, False), 0x8B29D3FF)
+        self.assertEqual(enc_stack_adjust(19, True), 0xCB33D3FF)
+        self.assertEqual(enc_stack_address(), 0x8B29D3EC)
+        self.assertEqual(enc_push_w(10), 0xB81F0FEA)
+        self.assertEqual(enc_pop_w(19), 0xB84107F3)
+        self.assertEqual(enc_ldr_w(19, 12, 0), 0xB9400193)
+        self.assertEqual(enc_str_w(10, 12, 0), 0xB900018A)
         self.assertEqual(enc_binary_w(0x1B007C00, 19, 9), 0x1B097E73)
         self.assertEqual(enc_data3_w(0x1AC00C00, 12, 10, 11), 0x1ACB0D4C)
         self.assertEqual(enc_data3_w(0x1AC00800, 11, 11, 10), 0x1ACA096B)
@@ -1359,6 +1469,132 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in unary_rotate_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        stack_sequences = (
+            [
+                *enc_mov32_w(19, 2),
+                enc_stack_adjust(19, True),
+            ],
+            [
+                *enc_mov32_w(10, 0x11223344),
+                *enc_mov32_w(9, 0),
+                enc_stack_address(),
+                enc_str_w(10, 12, 0),
+            ],
+            [
+                *enc_mov32_w(9, 1),
+                enc_stack_address(),
+                enc_str_w(19, 12, 0),
+            ],
+            [
+                *enc_mov32_w(9, 0),
+                enc_stack_address(),
+                enc_ldr_w(21, 12, 0),
+            ],
+            [
+                *enc_mov32_w(9, 1),
+                enc_stack_address(),
+                enc_ldr_w(10, 12, 0),
+                *enc_mov32_w(9, slot_index),
+                enc_str_w_indexed(10),
+            ],
+            [enc_stack_adjust(19, False)],
+            [
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(9),
+                enc_stack_adjust(9, True),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, 0),
+                enc_stack_address(),
+                enc_str_w(10, 12, 0),
+            ],
+            [
+                *enc_mov32_w(9, 0),
+                enc_stack_address(),
+                enc_ldr_w(10, 12, 0),
+                *enc_indirect_index(20, 2),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(9),
+                enc_stack_adjust(9, False),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(9),
+                enc_stack_adjust(9, True),
+            ],
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, 0),
+                enc_stack_address(),
+                enc_str_w(10, 12, 0),
+            ],
+            [
+                *enc_mov32_w(9, 0),
+                enc_stack_address(),
+                enc_ldr_w(19, 12, 0),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(9),
+                enc_stack_adjust(9, False),
+            ],
+            [
+                *enc_mov32_w(9, 2),
+                enc_stack_adjust(9, True),
+            ],
+            [
+                *enc_mov32_w(10, 0x13579BDF),
+                *enc_mov32_w(9, 0),
+                enc_stack_address(),
+                enc_str_w(10, 12, 0),
+            ],
+            [
+                *enc_mov32_w(9, 1),
+                enc_stack_address(),
+                enc_str_w(23, 12, 0),
+                0xD65F03C0,
+            ],
+            [
+                *enc_mov32_w(9, 2),
+                enc_stack_adjust(9, False),
+            ],
+            [
+                *enc_mov32_w(10, 0x11223344),
+                enc_push_w(10),
+            ],
+            [enc_push_w(19)],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                enc_push_w(10),
+            ],
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                enc_push_w(10),
+            ],
+            [enc_pop_w(21)],
+            [
+                enc_pop_w(10),
+                *enc_indirect_index(20, 2),
+                enc_str_w_indexed(10),
+            ],
+            [
+                enc_pop_w(10),
+                *enc_mov32_w(9, slot_index),
+                enc_str_w_indexed(10),
+            ],
+            [enc_pop_w(22)],
+        )
+        for sequence in stack_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         for operation in (

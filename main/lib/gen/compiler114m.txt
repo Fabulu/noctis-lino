@@ -6423,6 +6423,24 @@
 	[target string] = q34;
 	=> strcmp;
       ? ok -> pp a64 integer magnitude;
+	[target string] = q04;
+	=> strcmp;
+      ? ok -> pp a64 stack push;
+	[target string] = q05;
+	=> strcmp;
+      ? ok -> pp a64 stack pop;
+	[target string] = q27;
+	=> strcmp;
+      ? ok -> pp a64 stack release;
+	[target string] = q28;
+	=> strcmp;
+      ? ok -> pp a64 stack reserve;
+	[target string] = q36;
+	=> strcmp;
+      ? ok -> pp a64 stack fetch;
+	[target string] = q37;
+	=> strcmp;
+      ? ok -> pp a64 stack put;
 	[target string] = q21;
 	=> strcmp;
       ? ok -> pp a64 branch equal;
@@ -6801,6 +6819,194 @@
       ? [op1 class] = indirect -> pp a64 store binary;
 	-> pp exit;
 
+      "pp a64 stack push"
+      ? [op2 class] != null -> pp a64 unsupported;
+      ? [op1 class] = immediate -> pp a64 stack push immediate;
+      ? [op1 class] = register -> pp a64 stack push register;
+      ? [op1 class] = direct -> pp a64 stack push direct;
+      ? [op1 class] = indirect -> pp a64 stack push indirect;
+	-> pp a64 unsupported;
+      "pp a64 stack push immediate"
+	[a64 reg] = 10;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 right reg] = 10;
+	-> pp a64 emit stack push;
+      "pp a64 stack push register"
+	a = [op1 regid];
+	a + 19;
+	[a64 right reg] = a;
+	-> pp a64 emit stack push;
+      "pp a64 stack push direct"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 right reg] = 10;
+	-> pp a64 emit stack push;
+      "pp a64 stack push indirect"
+	=> a64 emit op1 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 right reg] = 10;
+      "pp a64 emit stack push"
+	a = [a64 right reg];
+	a | B81F0FE0h; (STR Wn,[SP,#-16]!)
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 stack pop"
+      ? [op2 class] != null -> pp a64 unsupported;
+      ? [op1 class] = register -> pp a64 stack pop register;
+      ? [op1 class] = direct -> pp a64 stack pop direct;
+      ? [op1 class] = indirect -> pp a64 stack pop indirect;
+	-> pp a64 unsupported;
+      "pp a64 stack pop register"
+	a = [op1 regid];
+	a + 19;
+	a | B84107E0h; (LDR Wd,[SP],#16)
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+      "pp a64 stack pop direct"
+	[a64 word] = B84107EAh; (LDR W10,[SP],#16)
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+      "pp a64 stack pop indirect"
+	[a64 word] = B84107EAh; (LDR W10,[SP],#16)
+	=> a64 emit word;
+	=> a64 emit op1 index;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 stack release"
+	[a64 opcode] = 8B20D3FFh; (ADD SP,SP,Wm,SXTW #4)
+	-> pp a64 stack shift;
+      "pp a64 stack reserve"
+	[a64 opcode] = CB20D3FFh; (SUB SP,SP,Wm,SXTW #4)
+      "pp a64 stack shift"
+      ? [op2 class] != null -> pp a64 unsupported;
+      ? [op1 class] = immediate -> pp a64 stack shift immediate;
+      ? [op1 class] = register -> pp a64 stack shift register;
+      ? [op1 class] = direct -> pp a64 stack shift direct;
+      ? [op1 class] = indirect -> pp a64 stack shift indirect;
+	-> pp a64 unsupported;
+      "pp a64 stack shift immediate"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 right reg] = 9;
+	-> pp a64 emit stack shift;
+      "pp a64 stack shift register"
+	a = [op1 regid];
+	a + 19;
+	[a64 right reg] = a;
+	-> pp a64 emit stack shift;
+      "pp a64 stack shift direct"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B29h; (LDR W9,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 right reg] = 9;
+	-> pp a64 emit stack shift;
+      "pp a64 stack shift indirect"
+	=> a64 emit op1 index;
+	[a64 word] = B8695B29h; (LDR W9,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 right reg] = 9;
+      "pp a64 emit stack shift"
+	a = [a64 right reg];
+	a < 16;
+	a | [a64 opcode];
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 stack fetch"
+      ? [op2 class] != immediate -> pp a64 unsupported;
+      ? [op1 class] = register -> pp a64 stack fetch register;
+      ? [op1 class] = direct -> pp a64 stack fetch direct;
+      ? [op1 class] = indirect -> pp a64 stack fetch indirect;
+	-> pp a64 unsupported;
+      "pp a64 stack fetch register"
+	[a64 value] = [op2 value];
+	=> a64 emit stack address;
+	a = [op1 regid];
+	a + 19;
+	a | B9400180h; (LDR Wd,[x12])
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+      "pp a64 stack fetch direct"
+	[a64 value] = [op2 value];
+	=> a64 emit stack address;
+	[a64 word] = B940018Ah; (LDR W10,[x12])
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+      "pp a64 stack fetch indirect"
+	[a64 value] = [op2 value];
+	=> a64 emit stack address;
+	[a64 word] = B940018Ah; (LDR W10,[x12])
+	=> a64 emit word;
+	=> a64 emit op1 index;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 stack put"
+      ? [op1 class] != immediate -> pp a64 unsupported;
+      ? [op2 class] = immediate -> pp a64 stack put immediate;
+      ? [op2 class] = register -> pp a64 stack put register;
+      ? [op2 class] = direct -> pp a64 stack put direct;
+      ? [op2 class] = indirect -> pp a64 stack put indirect;
+	-> pp a64 unsupported;
+      "pp a64 stack put immediate"
+	[a64 reg] = 10;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 right reg] = 10;
+	-> pp a64 emit stack put;
+      "pp a64 stack put register"
+	a = [op2 regid];
+	a + 19;
+	[a64 right reg] = a;
+	-> pp a64 emit stack put;
+      "pp a64 stack put direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 right reg] = 10;
+	-> pp a64 emit stack put;
+      "pp a64 stack put indirect"
+	=> a64 emit op2 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 right reg] = 10;
+      "pp a64 emit stack put"
+	[a64 value] = [op1 value];
+	=> a64 emit stack address;
+	a = [a64 right reg];
+	a | B9000180h; (STR Wn,[x12])
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+
       "pp a64 branch equal"
 	[a64 condition] = 0;
 	-> pp a64 compare;
@@ -7140,6 +7346,14 @@
 	-> log syntax error;
 
     (programme parser auxiliary routines)
+
+    "a64 emit stack address"
+	(one abstract 32-bit stack unit occupies one aligned 16-byte slot)
+	[a64 reg] = 9;
+	=> a64 emit immediate;
+	[a64 word] = 8B29D3ECh; (ADD X12,SP,W9,SXTW #4)
+	=> a64 emit word;
+	leave;
 
     "a64 emit op1 index"
 	[a64 reg] = 9;
