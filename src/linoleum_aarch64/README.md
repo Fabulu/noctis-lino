@@ -1,10 +1,10 @@
 # Linux AArch64 runtime bridge
 
 This directory contains the first executable AArch64 foundation for Linoleum and
-a minimal compiler-owned target for its integer ABI. It loads checked appended
-images, enters hand- or compiler-generated AArch64 code, and supports a
-no-service isocall plus safe RAMtop relocation. It is deliberately not a full RTM;
-it is not yet a native macOS or Noctis runtime.
+a minimal compiler-owned target for its integer ABI and ordinary scalar binary32
+arithmetic. It loads checked appended images, enters hand- or compiler-generated
+AArch64 code, and supports a no-service isocall plus safe RAMtop relocation. It is
+deliberately not a full RTM; it is not yet a native macOS or Noctis runtime.
 
 The register mapping and the Apple-Silicon `__PAGEZERO` investigation originated
 in [PR #10](https://github.com/bammf1/linoleum/pull/10) by Joris van de Donk. The
@@ -101,8 +101,20 @@ load/store cover every canonical immediate, register, direct-workspace, and
 indirect-workspace form. One abstract 32-bit Lino stack unit occupies one
 16-byte physical SP slot, so arbitrary adjustments and nested generated calls
 preserve the AArch64 ABI's alignment while stack-relative values remain 32-bit.
+
+Scalar binary32 negation, magnitude, addition, subtraction, multiplication, and
+division move raw IEEE-754 bits between W registers and S0/S1, execute one
+single-precision operation, and move the rounded binary32 result back. Register,
+direct-workspace, and indirect-workspace left operands are covered; binary right
+operands may be immediate, register, direct, or indirect, with the same
+source-first loads and memory writeback as the integer slice. The executed fixture
+includes ordinary values, the minimum subnormal, overflow to infinity, and signed
+zero. This does not yet claim x87-compatible conversions, comparisons, square
+root, transcendental operations, exception state, or NaN payload handling.
+
 The slice also covers unconditional/status branches, internal calls, `leave`,
-`end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover
-floating-point/x87 semantics, display, input, audio, files, sockets, timing,
-process commands, Cocoa, Mach-O packaging, signing, or Noctis integration.
-Wider instruction coverage and runtime services remain separate milestones.
+`end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover the
+remaining floating-point/x87 semantics, display, input, audio, files, sockets,
+timing, process commands, Cocoa, Mach-O packaging, signing, or Noctis
+integration. Wider instruction coverage and runtime services remain separate
+milestones.

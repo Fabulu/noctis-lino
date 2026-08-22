@@ -2126,15 +2126,26 @@ full-width isocall ABI are also covered. Fixed two-word immediates keep pass-one
 and code-pass lengths identical, and internal calls preserve the host link
 register.
 
+Ordinary scalar binary32 negation, magnitude, addition, subtraction,
+multiplication, and division now transfer raw IEEE-754 bits between W registers
+and S0/S1 and return each single-precision result to its W destination. Register,
+direct, and indirect left operands plus immediate, register, direct, and indirect
+binary right operands use the established source-first and memory-writeback
+paths. The executed fixture covers ordinary values, the minimum subnormal,
+overflow to infinity, and signed zero. NaN payload equivalence, exception state,
+conversions, comparisons, square root, and transcendental compatibility remain
+separate work.
+
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
 and executes the resulting ELF above 4 GB under QEMU. Independent encoded
 fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
-refusals. All 12 checks passed in hosted run 32570563999 at commit `3be3e26`.
+refusals. All 12 checks, including compiler-produced scalar floating execution,
+passed in hosted run 32571763208 at commit `cb37855`.
 
-Floating-point/x87 semantics, full runtime services, native macOS/Cocoa and
-Mach-O packaging, and a native ARM64 Noctis build remain open.
+Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
+and Mach-O packaging, and a native ARM64 Noctis build remain open.
 Expand instruction/runtime coverage before
 beginning Mach-O or native-game integration. Keep Joris van de Donk's source and
 commit credit. Leave a specific public review
