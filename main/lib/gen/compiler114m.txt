@@ -8235,9 +8235,45 @@
 
       "pp a64 call"
       ? [op1 class] = immediate -> pp a64 call label;
-      ? [op1 class] = direct -> pp a64 isocall;
-      ? [op1 class] = indirect -> pp a64 isocall;
+      ? [op1 class] = direct -> pp a64 call direct;
+      ? [op1 class] = indirect -> pp a64 call indirect;
 	-> pp a64 unsupported;
+
+      "pp a64 call direct"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B29h; (LDR W9,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp a64 emit computed call;
+      "pp a64 call indirect"
+	=> a64 emit op1 index;
+	[a64 word] = B8695B29h; (LDR W9,[x25,w9,UXTW #2])
+	=> a64 emit word;
+      "pp a64 emit computed call"
+	[a64 reg] = 10;
+	[a64 value] = [prws];
+	[a64 value] + 6;
+	=> a64 emit immediate;
+	[a64 word] = B86A5B2Bh; (low code-origin half to W11)
+	=> a64 emit word;
+	[a64 reg] = 10;
+	[a64 value] = [prws];
+	[a64 value] + 7;
+	=> a64 emit immediate;
+	[a64 word] = B86A5B2Ch; (high code-origin half to W12)
+	=> a64 emit word;
+	[a64 word] = AA0C816Ah; (ORR X10,X11,X12,LSL #32)
+	=> a64 emit word;
+	[a64 word] = 8B090149h; (ADD X9,X10,X9)
+	=> a64 emit word;
+	[a64 word] = A9BF7BFDh; (STP X29,X30,[SP,#-16]!)
+	=> a64 emit word;
+	[a64 word] = D63F0120h; (BLR X9)
+	=> a64 emit word;
+	[a64 word] = A8C17BFDh; (LDP X29,X30,[SP],#16)
+	=> a64 emit word;
+	-> pp exit;
 
       "pp a64 call label"
 	[a64 word] = A9BF7BFDh; (preserve top-level frame and link register)

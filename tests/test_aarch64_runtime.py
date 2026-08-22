@@ -132,6 +132,22 @@ COMPILER_FIXTURE_SOURCE = """\
 "successful call"
 
     => helper;
+    [out] = helper;
+    E = 0;
+    => [out];
+    ? E = 0BADF00Dh -> dynamic direct call ok;
+    fail;
+
+"dynamic direct call ok"
+
+    E = 0;
+    B = out;
+    => [B];
+    ? E = 0BADF00Dh -> dynamic indirect call ok;
+    fail;
+
+"dynamic indirect call ok"
+
     A = 5;
     B = 3;
     A + B;
@@ -2393,6 +2409,11 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("[target string] = q73;", source)
         self.assertIn("[target string] = q74;", source)
         self.assertIn("[target string] = q75;", source)
+        self.assertIn('"pp a64 call direct"', source)
+        self.assertIn('"pp a64 call indirect"', source)
+        self.assertIn('"pp a64 emit computed call"', source)
+        self.assertNotIn("[op1 class] = direct -> pp a64 isocall", source)
+        self.assertNotIn("[op1 class] = indirect -> pp a64 isocall", source)
         self.assertIn('"pp a64 quotient remainder"', source)
         self.assertIn('"pp a64 unsigned product"', source)
         self.assertIn('"pp a64 push all"', source)

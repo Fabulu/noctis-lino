@@ -227,9 +227,12 @@ the positive/negative-pi signed-zero quadrants, an opposing-infinity quadrant,
 and right-precedence quiet/signaling NaNs. Exact C2/exception flags and broader
 libm-versus-x87 rounding remain open.
 
-The slice also covers unconditional/status branches, internal calls, `leave`,
-`end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover the
-remaining floating-point/x87 semantics, display, input, audio, files, sockets,
+The slice also covers unconditional/status branches, immediate internal calls,
+dynamic direct/indirect calls through code-relative workspace values, `leave`,
+`end`, `fail`, `nop`, and the full-width isocall ABI. Dynamic calls reconstruct
+the full-width code origin separately; only the tagged isokernel operand reads the
+full-width runtime pointer pair. It does not yet cover the remaining
+floating-point/x87 semantics, display, input, audio, files, sockets,
 timing, process commands, Cocoa, Mach-O packaging, signing, or Noctis
 integration. Wider instruction coverage and runtime services remain separate
 milestones.
