@@ -679,10 +679,10 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "signed split indirect direct beta"
 
-    ? [rhs] = FFFFFFFEh -> split division good;
+    ? [rhs] = FFFFFFFEh -> quotient remainder good;
     fail;
 
-"split division good"
+"quotient remainder good"
 
     A = 3FC00000h;
     A ++ 40100000h;
