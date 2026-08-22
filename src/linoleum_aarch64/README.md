@@ -147,7 +147,14 @@ direct-workspace, and indirect-workspace left operands are covered; binary right
 operands may be immediate, register, direct, or indirect, with the same
 source-first loads and memory writeback as the integer slice. The executed fixture
 includes ordinary values, the minimum subnormal, overflow to infinity, and signed
-zero. For tracked q47, the emitter also recognizes zero divided by zero and
+zero. Tracked q44/q45/q46 repair the masked-invalid results for opposite-infinity
+addition, equal-signed-infinity subtraction, and zero-times-infinity multiplication
+to the x87 real-indefinite bits `0xFFC00000`. Their NaN repair preserves the
+selected payload and sign, quiets signaling inputs, and gives the measured right
+operand precedence. Generated register/direct/indirect execution covers every
+invalid class, dual quiet NaNs, and signaling inputs in both operand positions.
+
+For tracked q47, the emitter also recognizes zero divided by zero and
 infinity divided by infinity after ignoring operand signs, and replaces those
 masked-invalid results with the x87 real-indefinite bits `0xFFC00000`. Register,
 direct, and indirect execution cover `0/0`, positive infinity divided by negative
@@ -217,9 +224,8 @@ infinite divisor, and gives a right-side NaN precedence while quieting signaling
 NaNs. The same helper applies `atan2f(right, left)` to retain the observed
 `FPATAN` operand order. Generated execution covers positive and negative zero,
 the positive/negative-pi signed-zero quadrants, an opposing-infinity quadrant,
-and right-precedence quiet/signaling NaNs. Exact C2/exception flags,
-add/subtract/multiply NaN compatibility, and broader libm-versus-x87 rounding
-remain open.
+and right-precedence quiet/signaling NaNs. Exact C2/exception flags and broader
+libm-versus-x87 rounding remain open.
 
 The slice also covers unconditional/status branches, internal calls, `leave`,
 `end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover the

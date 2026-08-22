@@ -2164,8 +2164,14 @@ S0/S1 and return each single-precision result to its W destination. Register,
 direct, and indirect left operands plus immediate, register, direct, and indirect
 binary right operands use the established source-first and memory-writeback
 paths. The executed fixture covers ordinary values, the minimum subnormal,
-overflow to infinity, and signed zero. Tracked q47 also captures both raw operand
-magnitudes and rewrites masked-invalid zero/zero and infinity/infinity results to
+overflow to infinity, and signed zero. Tracked q44/q45/q46 repair opposite-infinity
+addition, equal-signed-infinity subtraction, and zero-times-infinity multiplication
+to x87 real indefinite `FFC00000h`. All three preserve the selected NaN payload
+and sign, quiet signaling inputs, and apply measured right-operand precedence.
+Generated register/direct/indirect cases cover each invalid class, dual quiet NaNs,
+and signaling inputs in both operand positions. Tracked q47 also captures both raw
+operand magnitudes and rewrites masked-invalid zero/zero and infinity/infinity
+results to
 the x87 real-indefinite bits `FFC00000h`, independent of operand signs. The
 fixture executes register `0/0`, direct positive-infinity/negative-infinity, and
 indirect negative-zero/zero cases; finite nonzero division by zero remains the
@@ -2224,8 +2230,8 @@ finite dividend against an infinite divisor, and gives the right NaN precedence
 while quieting signaling inputs. The same helper applies `atan2f(right,left)`.
 Generated execution covers positive and negative zero, positive/negative-pi
 signed-zero quadrants, one opposing-infinity quadrant, and right-precedence
-quiet/signaling NaNs. Exact FP status/exception state, add/subtract/multiply NaN
-compatibility, and remaining transcendental rounding remain separate work.
+quiet/signaling NaNs. Exact FP status/exception state and remaining transcendental
+rounding remain separate work.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
@@ -2234,12 +2240,13 @@ fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
 refusals. All 12 checks, including compiler-produced value exchange, split
 division, split multiplication, q71/q72 whole-register save/restore, scalar
-arithmetic, masked-invalid and payload-preserving NaN division results, in-range
-and invalid/out-of-range conversion, ordered/unordered comparison, ordinary,
+arithmetic, masked-invalid and right-precedence payload-preserving NaN results for
+addition, subtraction, multiplication, and division, in-range and
+invalid/out-of-range conversion, ordered/unordered comparison, ordinary,
 masked-invalid, and payload-preserving NaN square root, ordinary plus
 large-finite/exceptional sine and cosine, ordinary/partial/exceptional one-step
 remainder, and ordinary/signed-zero/infinite/NaN arctangent execution, passed in
-hosted run 32579000518 at commit `95265e2`.
+hosted run 32579864461 at commit `d22af14`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.
