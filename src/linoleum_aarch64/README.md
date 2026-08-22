@@ -32,7 +32,7 @@ The bridge saves and restores `x19`-`x25`, `x29`, and `x30`, and keeps SP aligne
 to 16 bytes at every C boundary.
 
 The historical workspace and UI workspace still contain 32-bit units. UI slots
-0-3 retain their historical layout; AArch64 reserves four previously unused
+0-3 retain their historical layout; AArch64 reserves six previously unused
 slots:
 
 | UI unit | Value |
@@ -41,11 +41,16 @@ slots:
 | 5 | isokernel address bits 32-63 |
 | 6 | code-origin address bits 0-31 |
 | 7 | code-origin address bits 32-63 |
+| 8 | scalar-math helper address bits 0-31 |
+| 9 | scalar-math helper address bits 32-63 |
 
 An AArch64 call loads and combines UI units 4 and 5, saves `x30` in a
 16-byte-aligned frame, and uses `blr`. The isokernel preserves A-E, returns DONE
 or FAIL in X, and reloads WS from `pWorkspace` after C because RAMtop growth may
 replace the mapping. No legacy 32-bit pointer or code-relative delta is written.
+Generated sine and cosine calls reconstruct the separate full-width helper from
+UI units 8 and 9 and cross the same aligned AAPCS boundary with raw binary32 bits
+in `w0`; all Lino registers and `x25` remain callee-saved.
 
 ## Image and memory contract
 
@@ -127,8 +132,17 @@ ordered and unordered cases.
 Scalar square root uses `FSQRT S0,S0` between the same raw W/S transfers and
 binary32 writeback. Register, direct, and indirect forms execute exact-square,
 minimum-subnormal, and negative-zero cases in the generated image. Negative
-finite inputs, signaling-NaN behavior, floating exception state, transcendental
-operations, and NaN payload handling remain open.
+finite inputs, signaling-NaN behavior, floating exception state, and NaN payload
+handling remain open.
+
+Tracked q29/q30 records load a binary32 operand, execute x87 `FSIN` or `FCOS`,
+and spill once to binary32. AArch64 has no scalar trigonometric instruction, so
+the emitter passes the raw bits and an operation tag through the full-width
+runtime helper; the Linux bridge applies `sinf` or `cosf` and returns raw bits.
+The compiler-produced image executes sine and cosine of 1.0, sine of negative
+zero, and cosine of zero across register, direct, and indirect writeback forms.
+This is bounded ordinary-value coverage, not a claim that libm reproduces x87
+range reduction, large-argument C2 behavior, NaN payloads, or exception state.
 
 The slice also covers unconditional/status branches, internal calls, `leave`,
 `end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover the

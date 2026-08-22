@@ -2098,10 +2098,11 @@ build inputs, translation, and Mach-O support.
 
 The safe replacement on branch `arm64-runtime` now includes both a checked
 static Linux AArch64 bridge and a compiler-owned integer target. The runtime
-retains the 32-bit image layout while publishing full-width isokernel and code
-pointers in four new UI units. It preserves the x19-x25 Lino map, reserves x18,
-balances x29/x30 and SP, reloads WS after every C isocall, seals loaded code RX,
-keeps workspace RW, and grows by map/copy/zero/refresh/unmap.
+retains the 32-bit image layout while publishing full-width isokernel, code, and
+scalar-math-helper pointers in six new UI units. It preserves the x19-x25 Lino
+map, reserves x18, balances x29/x30 and SP, reloads WS after every C isocall,
+seals loaded code RX, keeps workspace RW, and grows by
+map/copy/zero/refresh/unmap.
 
 `compiler114m.txt` recognizes `--cpu:aarch64` without loading a CPU pack and
 emits deterministic little-endian words directly from compiler IR. The current
@@ -2151,10 +2152,15 @@ greater-or-equal reject them.
 
 Scalar square root now uses `FSQRT S0,S0` between raw W/S transfers and binary32
 writeback for register, direct, and indirect forms. The generated image executes
-an exact square, the minimum subnormal, and negative zero. Invalid or out-of-range
-conversion results, negative finite square-root results, signaling-NaN/exception
-state, NaN payload equivalence, and transcendental compatibility remain separate
-work.
+an exact square, the minimum subnormal, and negative zero. Tracked q29/q30 use
+x87 `FSIN`/`FCOS`; because AArch64 has no scalar trigonometric instruction, the
+emitter now sends raw bits through the full-width helper and the Linux runtime
+applies `sinf` or `cosf`. The generated image executes sine and cosine of 1.0,
+sine of negative zero, and cosine of zero across register, direct, and indirect
+writeback forms. This does not claim x87-compatible large-argument range
+reduction or C2 behavior. Invalid or out-of-range conversion results, negative
+finite square-root results, signaling-NaN/exception state, NaN payload
+equivalence, and remaining transcendental compatibility remain separate work.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
@@ -2162,8 +2168,8 @@ and executes the resulting ELF above 4 GB under QEMU. Independent encoded
 fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
 refusals. All 12 checks, including compiler-produced scalar arithmetic,
-conversion, ordered/unordered comparison, and square-root execution, passed in
-hosted run 32572812368 at commit `be02bb7`.
+conversion, ordered/unordered comparison, square-root, sine, and cosine
+execution, passed in hosted run 32573594126 at commit `63ae32c`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.
