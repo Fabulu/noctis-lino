@@ -2248,12 +2248,24 @@ large-finite/exceptional sine and cosine, ordinary/partial/exceptional one-step
 remainder, and ordinary/signed-zero/infinite/NaN arctangent execution, passed in
 hosted run 32579864461 at commit `d22af14`.
 
-Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
-and Mach-O packaging, and a native ARM64 Noctis build remain open.
-Expand instruction/runtime coverage before
-beginning Mach-O or native-game integration. Keep Joris van de Donk's source and
-commit credit. Leave a specific public review
-before adapting or closing PR #10; no public action has yet been taken.
+The separate native-macOS gate builds a thin unsigned arm64 RTM on an Apple
+Silicon runner with the normal 4-GiB `__PAGEZERO`, then bootstraps the compiler
+on Linux and appends a real compiler-owned AArch64 Lino fixture. A checked
+post-link finalizer extends only `__LINKEDIT` over the appended payload, rounds
+its VM geometry to 16 KiB, ad-hoc signs the result, and permits only that exact
+signature suffix beyond `physappsize`. Run 32583022080 at commit `785532c`
+executed the signed image natively on macOS 15 arm64 with status zero, exact
+A-E=`1..5`, X=`DONE`, and code/workspace/isokernel pointers all above 4 GiB. The
+final executable SHA-256 was
+`ed312b96856f2dcfc43a4604ca2a4995064def423ec9e66d0a292fc2442f070e`.
+
+Remaining floating-point/x87 semantics, full Darwin runtime services, native
+Cocoa display/input/audio, a complete native ARM64 Noctis build, product
+packaging, and playtesting remain open. The current native checkpoint is a
+headless compiler/runtime/Mach-O execution foundation, not a supported game
+binary. Keep Joris van de Donk's source and commit credit. Leave a specific
+public review before adapting or closing PR #10; no public action has yet been
+taken.
 
 ### 12.4 Finish with one coherent repository audit -- **OPEN**
 
