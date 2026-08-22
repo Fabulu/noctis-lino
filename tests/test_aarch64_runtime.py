@@ -44,7 +44,9 @@ UI_ISOKERNEL_HI = 5
 UI_CODE_ORIGIN_HI = 7
 UI_FLOAT_UNARY_LO = 8
 UI_FLOAT_UNARY_HI = 9
-UI_REQUIRED_UNITS = 10
+UI_FLOAT_BINARY_LO = 10
+UI_FLOAT_BINARY_HI = 11
+UI_REQUIRED_UNITS = 12
 DONE = 0x646F6E65
 FAIL = 0x6661696C
 REGISTER_VALUES = (0x11223344, 0x89ABCDEF, 0x01020304, 0x7FFFFFFF, 0x80000000)
@@ -494,7 +496,54 @@ COMPILER_FIXTURE_SOURCE = """\
 
     [B plus 2] = 0;
     [B plus 2] ~~;
-    ? [out] = 3F800000h -> scalar arithmetic good;
+    ? [out] = 3F800000h -> fp remainder register;
+    fail;
+
+"fp remainder register"
+
+    A = 40B00000h;
+    A %% 40000000h;
+    ? A = 3FC00000h -> fp remainder direct;
+    fail;
+
+"fp remainder direct"
+
+    [lhs] = C0B00000h;
+    [rhs] = 40000000h;
+    [lhs] %% [rhs];
+    ? [lhs] = BFC00000h -> fp remainder indirect;
+    fail;
+
+"fp remainder indirect"
+
+    B = p;
+    [B plus 2] = 40B00000h;
+    [B minus 1] = 40000000h;
+    [B plus 2] %% [B minus 1];
+    ? [out] = 3FC00000h -> fp arctangent register;
+    fail;
+
+"fp arctangent register"
+
+    A = 3F800000h;
+    A ^/ 3F800000h;
+    ? A = 3F490FDBh -> fp arctangent direct;
+    fail;
+
+"fp arctangent direct"
+
+    [lhs] = 0;
+    [rhs] = 3F800000h;
+    [lhs] ^/ [rhs];
+    ? [lhs] = 3FC90FDBh -> fp arctangent indirect;
+    fail;
+
+"fp arctangent indirect"
+
+    [B plus 2] = 3F800000h;
+    [B minus 1] = 0;
+    [B plus 2] ^/ [B minus 1];
+    ? [out] = 0 -> scalar arithmetic good;
     fail;
 
 "scalar arithmetic good"
@@ -902,6 +951,21 @@ def enc_runtime_float_unary_call(app_ws_size: int,
     ]
 
 
+def enc_runtime_float_binary_call(app_ws_size: int,
+                                  operation: int) -> list[int]:
+    return [
+        *enc_mov32_w(2, operation),
+        *enc_mov32_w(9, app_ws_size + UI_FLOAT_BINARY_LO),
+        enc_ldr_w_indexed(10),
+        *enc_mov32_w(9, app_ws_size + UI_FLOAT_BINARY_HI),
+        enc_ldr_w_indexed(11),
+        enc_orr_lsl_x(9, 10, 11, 32),
+        0xA9BF7BFD,
+        enc_blr(9),
+        0xA8C17BFD,
+    ]
+
+
 def enc_binary_w(opcode: int, destination: int, right: int) -> int:
     return enc_data3_w(opcode, destination, destination, right)
 
@@ -1114,7 +1178,9 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("ARM64_UI_CODE_ORIGIN_HI = 7", header)
         self.assertIn("ARM64_UI_FLOAT_UNARY_LO = 8", header)
         self.assertIn("ARM64_UI_FLOAT_UNARY_HI = 9", header)
-        self.assertIn("ARM64_UI_REQUIRED_UNITS = 10", header)
+        self.assertIn("ARM64_UI_FLOAT_BINARY_LO = 10", header)
+        self.assertIn("ARM64_UI_FLOAT_BINARY_HI = 11", header)
+        self.assertIn("ARM64_UI_REQUIRED_UNITS = 12", header)
 
     def test_memory_and_loader_policy(self) -> None:
         source = RTM_C.read_text(encoding="utf-8")
@@ -1126,7 +1192,10 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("publish_runtime_pointers();", source)
         self.assertIn("sinf(input)", source)
         self.assertIn("cosf(input)", source)
+        self.assertIn("fmodf(left, right)", source)
+        self.assertIn("atan2f(right, left)", source)
         self.assertIn("ARM64_UI_FLOAT_UNARY_LO", source)
+        self.assertIn("ARM64_UI_FLOAT_BINARY_LO", source)
         self.assertIn("expected_size != file_size", source)
         self.assertNotRegex(source, r"\(unit\)\s*\([^\n]*pCode")
 
@@ -1194,7 +1263,7 @@ class StaticContractTests(unittest.TestCase):
             "AA0B8149h", "D63F0120h", "D65F03C0h",
         ):
             self.assertIn(word, source)
-        for token in range(50, 60):
+        for token in range(50, 68):
             self.assertIn(f"[target string] = q{token};", source)
         for condition in ("(HI)", "(LO/CC)", "(HS/CS)", "(LS)",
                           "(GT)", "(LT)", "(GE)", "(LE)"):
@@ -1203,6 +1272,7 @@ class StaticContractTests(unittest.TestCase):
     def test_instruction_encoders_pin_known_words(self) -> None:
         self.assertEqual(enc_movz_w(0, 1), 0x52800020)
         self.assertEqual(enc_mov_w(0, 19), 0x2A1303E0)
+        self.assertEqual(enc_mov_w(1, 20), 0x2A1403E1)
         self.assertEqual(enc_mov_w(19, 0), 0x2A0003F3)
         self.assertEqual(enc_blr(9), 0xD63F0120)
         self.assertEqual(enc_ldr_w(9, 25, 48), 0xB9403329)
@@ -1937,6 +2007,69 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in transcendental_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        binary_transcendental_sequences = (
+            [
+                *enc_mov32_w(9, 0x40000000),
+                enc_mov_w(0, 19),
+                enc_mov_w(1, 9),
+                *enc_runtime_float_binary_call(app_ws_size, 1),
+                enc_mov_w(19, 0),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(11),
+                enc_mov_w(0, 11),
+                enc_mov_w(1, 10),
+                *enc_runtime_float_binary_call(app_ws_size, 1),
+                *enc_mov32_w(9, lhs_index),
+                enc_str_w_indexed(0),
+            ],
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_mov_w(0, 11),
+                enc_mov_w(1, 10),
+                *enc_runtime_float_binary_call(app_ws_size, 1),
+                *enc_indirect_index(20, 2),
+                enc_str_w_indexed(0),
+            ],
+            [
+                *enc_mov32_w(9, 0x3F800000),
+                enc_mov_w(0, 19),
+                enc_mov_w(1, 9),
+                *enc_runtime_float_binary_call(app_ws_size, 2),
+                enc_mov_w(19, 0),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(11),
+                enc_mov_w(0, 11),
+                enc_mov_w(1, 10),
+                *enc_runtime_float_binary_call(app_ws_size, 2),
+                *enc_mov32_w(9, lhs_index),
+                enc_str_w_indexed(0),
+            ],
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_mov_w(0, 11),
+                enc_mov_w(1, 10),
+                *enc_runtime_float_binary_call(app_ws_size, 2),
+                *enc_indirect_index(20, 2),
+                enc_str_w_indexed(0),
+            ],
+        )
+        for sequence in binary_transcendental_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         conversion_sequences = (

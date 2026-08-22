@@ -46,7 +46,7 @@ _Static_assert(offsetof(struct LNLMINIT, physwsentry) == 52,
 _Static_assert(offsetof(struct LNLMINIT, displaymode) == 92,
                "LNLMINIT tail offset changed");
 
-/* Historical slots 0-3 retain their existing meaning. AArch64 owns six
+/* Historical slots 0-3 retain their existing meaning. AArch64 owns eight
  * formerly unused UI communication units for full-width runtime pointers. */
 enum {
     mm_ProcessISOcall = 0,
@@ -57,7 +57,9 @@ enum {
     ARM64_UI_CODE_ORIGIN_HI = 7,
     ARM64_UI_FLOAT_UNARY_LO = 8,
     ARM64_UI_FLOAT_UNARY_HI = 9,
-    ARM64_UI_REQUIRED_UNITS = 10
+    ARM64_UI_FLOAT_BINARY_LO = 10,
+    ARM64_UI_FLOAT_BINARY_HI = 11,
+    ARM64_UI_REQUIRED_UNITS = 12
 };
 
 extern unit *pWorkspace;

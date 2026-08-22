@@ -34,12 +34,15 @@ struct init_block {
 };
 
 typedef uint32_t (*float_unary_proc_t)(uint32_t, uint32_t);
+typedef uint32_t (*float_binary_proc_t)(uint32_t, uint32_t, uint32_t);
 
 _Static_assert(sizeof(struct init_block) == 112,
                "initialization block layout changed");
 _Static_assert(sizeof(proc_t) == sizeof(uintptr_t),
                "AArch64 function pointers must fit uintptr_t");
 _Static_assert(sizeof(float_unary_proc_t) == sizeof(uintptr_t),
+               "AArch64 helper pointers must fit uintptr_t");
+_Static_assert(sizeof(float_binary_proc_t) == sizeof(uintptr_t),
                "AArch64 helper pointers must fit uintptr_t");
 _Static_assert(sizeof(size_t) == 8,
                "the AArch64 runtime requires a 64-bit size type");
@@ -222,6 +225,35 @@ static uint32_t apply_float_unary(uint32_t bits, uint32_t operation)
     return result;
 }
 
+enum {
+    FLOAT_BINARY_PARTIAL_REMAINDER = 1,
+    FLOAT_BINARY_PARTIAL_ARCTANGENT = 2
+};
+
+static uint32_t apply_float_binary(uint32_t left_bits, uint32_t right_bits,
+                                   uint32_t operation)
+{
+    float left;
+    float right;
+    float output;
+    uint32_t result;
+
+    memcpy(&left, &left_bits, sizeof(left));
+    memcpy(&right, &right_bits, sizeof(right));
+    switch (operation) {
+    case FLOAT_BINARY_PARTIAL_REMAINDER:
+        output = fmodf(left, right);
+        break;
+    case FLOAT_BINARY_PARTIAL_ARCTANGENT:
+        output = atan2f(right, left);
+        break;
+    default:
+        return left_bits;
+    }
+    memcpy(&result, &output, sizeof(result));
+    return result;
+}
+
 static uintptr_t function_address(proc_t function)
 {
     uintptr_t address = 0;
@@ -231,6 +263,14 @@ static uintptr_t function_address(proc_t function)
 }
 
 static uintptr_t float_unary_address(float_unary_proc_t function)
+{
+    uintptr_t address = 0;
+
+    memcpy(&address, &function, sizeof(address));
+    return address;
+}
+
+static uintptr_t float_binary_address(float_binary_proc_t function)
 {
     uintptr_t address = 0;
 
@@ -260,6 +300,7 @@ static void publish_runtime_pointers(void)
 {
     proc_t entry = isokernel;
     float_unary_proc_t float_unary = apply_float_unary;
+    float_binary_proc_t float_binary = apply_float_binary;
 
     store_pointer_pair(&pUIWorkspace[ARM64_UI_ISOKERNEL_LO],
                        &pUIWorkspace[ARM64_UI_ISOKERNEL_HI],
@@ -270,6 +311,9 @@ static void publish_runtime_pointers(void)
     store_pointer_pair(&pUIWorkspace[ARM64_UI_FLOAT_UNARY_LO],
                        &pUIWorkspace[ARM64_UI_FLOAT_UNARY_HI],
                        float_unary_address(float_unary));
+    store_pointer_pair(&pUIWorkspace[ARM64_UI_FLOAT_BINARY_LO],
+                       &pUIWorkspace[ARM64_UI_FLOAT_BINARY_HI],
+                       float_binary_address(float_binary));
 }
 
 static void release_mappings(void)
