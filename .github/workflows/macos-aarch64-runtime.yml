@@ -12,6 +12,7 @@ on:
       - "tests/fixtures/macos_aarch64_runtime.txt"
       - "tests/test_macos_aarch64_runtime.py"
       - "tests/run_all.py"
+      - "work/vhgame.txt"
       - "main/lib/gen/compiler114m.txt"
       - "main/lib/gen/bits.txt"
       - "main/lib/gen/bytes.txt"
@@ -30,6 +31,7 @@ on:
       - "tests/fixtures/macos_aarch64_runtime.txt"
       - "tests/test_macos_aarch64_runtime.py"
       - "tests/run_all.py"
+      - "work/vhgame.txt"
       - "main/lib/gen/compiler114m.txt"
       - "main/lib/gen/bits.txt"
       - "main/lib/gen/bytes.txt"
@@ -126,6 +128,32 @@ jobs:
             build/macos-aarch64-rtm/rtm01.bin \
             tests/fixtures/macos_aarch64_runtime.txt \
             build/macos-aarch64-fixture.unsigned
+          ./build/compile_macos_aarch64_fixture.sh \
+            build/linux-compiler114m.bin \
+            build/macos-aarch64-rtm/rtm01.bin \
+            work/vhgame.txt \
+            build/macos-aarch64-noctis.unsigned
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+
+          image = Path("build/macos-aarch64-noctis.unsigned").read_bytes()
+          marker = image.index(b"LNLMInit") + len(b"LNLMInit") + 40
+          fields = struct.unpack_from("<14i", image, marker)
+          app_workspace = fields[0]
+          default_ramtop = fields[5]
+          service_units = 32947
+          if default_ramtop < app_workspace + service_units:
+              raise SystemExit(
+                  "compiled Noctis image leaves insufficient service UI workspace: "
+                  f"RAMtop={default_ramtop}, app={app_workspace}, "
+                  f"required={service_units}"
+              )
+          print(
+              "Compiled full Noctis AArch64 image with service UI workspace: "
+              f"RAMtop={default_ramtop}, app={app_workspace}"
+          )
+          PY
           python3 tools/finalize_macos_aarch64.py \
             build/macos-aarch64-fixture.unsigned \
             build/macos-aarch64-fixture.normalized
@@ -138,6 +166,8 @@ jobs:
               "build/macos-aarch64-rtm/rtm01.bin",
               "tests/fixtures/macos_aarch64_runtime.txt",
               "build/macos-aarch64-fixture.unsigned",
+              "work/vhgame.txt",
+              "build/macos-aarch64-noctis.unsigned",
           )
           lines = []
           for name in paths:
@@ -153,6 +183,7 @@ jobs:
           name: macos-aarch64-compiler-image
           path: |
             build/macos-aarch64-fixture.unsigned
+            build/macos-aarch64-noctis.unsigned
             build/macos-aarch64-fixture.provenance.txt
           if-no-files-found: error
 
