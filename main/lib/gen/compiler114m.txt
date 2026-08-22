@@ -6462,6 +6462,12 @@
 	[target string] = q75;
 	=> strcmp;
       ? ok -> pp a64 signed product;
+	[target string] = q71;
+	=> strcmp;
+      ? ok -> pp a64 push all;
+	[target string] = q72;
+	=> strcmp;
+      ? ok -> pp a64 pop all;
 	[target string] = q73;
 	=> strcmp;
       ? ok -> pp a64 exchange;
@@ -7365,6 +7371,53 @@
 	=> a64 emit op2 index;
       "pp a64 exchange store right"
 	[a64 word] = B8295B2Bh; (STR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 push all"
+      ? [op1 class] != null -> pp a64 unsupported;
+      ? [op2 class] != null -> pp a64 unsupported;
+	(the eight logical slots mirror PUSHAD: A,C,D,B,SP,X,E,WS)
+	[a64 word] = 910003E9h; (ADD X9,SP,#0)
+	=> a64 emit word;
+	[a64 word] = D10203FFh; (SUB SP,SP,#128)
+	=> a64 emit word;
+	[a64 word] = B90073F3h; (STR W19,[SP,#112])
+	=> a64 emit word;
+	[a64 word] = B90063F5h; (STR W21,[SP,#96])
+	=> a64 emit word;
+	[a64 word] = B90053F6h; (STR W22,[SP,#80])
+	=> a64 emit word;
+	[a64 word] = B90043F4h; (STR W20,[SP,#64])
+	=> a64 emit word;
+	[a64 word] = F9001BE9h; (STR X9,[SP,#48], saved pre-push SP)
+	=> a64 emit word;
+	[a64 word] = B90023F8h; (STR W24,[SP,#32])
+	=> a64 emit word;
+	[a64 word] = B90013F7h; (STR W23,[SP,#16])
+	=> a64 emit word;
+	[a64 word] = F90003F9h; (STR X25,[SP])
+	=> a64 emit word;
+	-> pp exit;
+      "pp a64 pop all"
+      ? [op1 class] != null -> pp a64 unsupported;
+      ? [op2 class] != null -> pp a64 unsupported;
+	(the saved-SP slot is deliberately ignored, as by POPAD)
+	[a64 word] = F94003F9h; (LDR X25,[SP])
+	=> a64 emit word;
+	[a64 word] = B94013F7h; (LDR W23,[SP,#16])
+	=> a64 emit word;
+	[a64 word] = B94023F8h; (LDR W24,[SP,#32])
+	=> a64 emit word;
+	[a64 word] = B94043F4h; (LDR W20,[SP,#64])
+	=> a64 emit word;
+	[a64 word] = B94053F6h; (LDR W22,[SP,#80])
+	=> a64 emit word;
+	[a64 word] = B94063F5h; (LDR W21,[SP,#96])
+	=> a64 emit word;
+	[a64 word] = B94073F3h; (LDR W19,[SP,#112])
+	=> a64 emit word;
+	[a64 word] = 910203FFh; (ADD SP,SP,#128)
 	=> a64 emit word;
 	-> pp exit;
 

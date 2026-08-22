@@ -1072,6 +1072,55 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "fp conversions good"
 
+    A = 1;
+    B = 2;
+    C = 3;
+    D = 4;
+    E = 5;
+    ---->;
+    7 $:= 11223344h;
+    6 $:= 33445566h;
+    5 $:= 44556677h;
+    4 $:= 22334455h;
+    3 $:= DEADBEEFh;
+    2 $:= 646F6E65h;
+    1 $:= 55667788h;
+    A = 0;
+    B = 0;
+    C = 0;
+    D = 0;
+    E = 0;
+    <----;
+    ? ok -> pop all register alpha;
+    fail;
+
+"pop all register alpha"
+
+    ? A = 11223344h -> pop all register beta;
+    fail;
+
+"pop all register beta"
+
+    ? B = 22334455h -> pop all register gamma;
+    fail;
+
+"pop all register gamma"
+
+    ? C = 33445566h -> pop all register delta;
+    fail;
+
+"pop all register delta"
+
+    ? D = 44556677h -> pop all register epsilon;
+    fail;
+
+"pop all register epsilon"
+
+    ? E = 55667788h -> push pop all good;
+    fail;
+
+"push pop all good"
+
     [rhs] = 3;
     B = p;
     A = 2;
@@ -1307,6 +1356,19 @@ def enc_str_w_indexed(source: int, index: int = 9) -> int:
 
 def enc_add_w(destination: int, left: int, right: int) -> int:
     return 0x0B000000 | (right << 16) | (left << 5) | destination
+
+
+def enc_add_x_immediate(destination: int, source: int, immediate: int) -> int:
+    if not 0 <= immediate <= 4095:
+        raise ValueError("X add immediate is not encodable")
+    return 0x91000000 | (immediate << 10) | (source << 5) | destination
+
+
+def enc_sp_block_adjust(byte_count: int, reserve: bool) -> int:
+    if not 0 <= byte_count <= 4095:
+        raise ValueError("SP block adjustment is not encodable")
+    opcode = 0xD1000000 if reserve else 0x91000000
+    return opcode | (byte_count << 10) | (31 << 5) | 31
 
 
 def enc_stack_adjust(source: int, reserve: bool) -> int:
@@ -1683,6 +1745,7 @@ class StaticContractTests(unittest.TestCase):
             "4A000000h", "1AC02400h", "1AC02000h", "1AC02800h",
             "1B007C00h", "1AC00C00h", "1AC00800h", "1B008180h",
             "9BAA7D6Ch", "9B2A7D6Ch", "D360FD8Dh",
+            "D10203FFh", "910203FFh", "F90003F9h", "F94003F9h",
             "1AC02C00h", "4B0003ECh", "1ACC2C00h",
             "2A2003E0h", "4B0003E0h", "131F7C0Ch",
             "8B20D3FFh", "CB20D3FFh", "8B29D3ECh",
@@ -1701,11 +1764,15 @@ class StaticContractTests(unittest.TestCase):
             self.assertIn(f"[target string] = q{token};", source)
         self.assertIn("[target string] = q69;", source)
         self.assertIn("[target string] = q70;", source)
+        self.assertIn("[target string] = q71;", source)
+        self.assertIn("[target string] = q72;", source)
         self.assertIn("[target string] = q73;", source)
         self.assertIn("[target string] = q74;", source)
         self.assertIn("[target string] = q75;", source)
         self.assertIn('"pp a64 quotient remainder"', source)
         self.assertIn('"pp a64 unsigned product"', source)
+        self.assertIn('"pp a64 push all"', source)
+        self.assertIn('"pp a64 pop all"', source)
         self.assertIn('"pp a64 exchange"', source)
         for condition in ("(HI)", "(LO/CC)", "(HS/CS)", "(LS)",
                           "(GT)", "(LT)", "(GE)", "(LE)"):
@@ -1738,6 +1805,9 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_multiply_long_x(12, 11, 10, False), 0x9BAA7D6C)
         self.assertEqual(enc_multiply_long_x(12, 11, 10, True), 0x9B2A7D6C)
         self.assertEqual(enc_lsr_x(13, 12, 32), 0xD360FD8D)
+        self.assertEqual(enc_add_x_immediate(9, 31, 0), 0x910003E9)
+        self.assertEqual(enc_sp_block_adjust(128, True), 0xD10203FF)
+        self.assertEqual(enc_sp_block_adjust(128, False), 0x910203FF)
         self.assertEqual(enc_fmov_s_w(0, 19), 0x1E270260)
         self.assertEqual(enc_fmov_s_w(1, 9), 0x1E270121)
         self.assertEqual(enc_fmov_w_s(19, 0), 0x1E260013)
@@ -2882,6 +2952,31 @@ class AArch64ExecutionTests(unittest.TestCase):
         )
         for sequence in conversion_sequences:
             self.assertIn(words_to_bytes(sequence), code)
+
+        push_all_sequence = [
+            enc_add_x_immediate(9, 31, 0),
+            enc_sp_block_adjust(128, True),
+            enc_str_w(19, 31, 112),
+            enc_str_w(21, 31, 96),
+            enc_str_w(22, 31, 80),
+            enc_str_w(20, 31, 64),
+            enc_str_x(9, 31, 48),
+            enc_str_w(24, 31, 32),
+            enc_str_w(23, 31, 16),
+            enc_str_x(25, 31, 0),
+        ]
+        pop_all_sequence = [
+            enc_ldr_x(25, 31, 0),
+            enc_ldr_w(23, 31, 16),
+            enc_ldr_w(24, 31, 32),
+            enc_ldr_w(20, 31, 64),
+            enc_ldr_w(22, 31, 80),
+            enc_ldr_w(21, 31, 96),
+            enc_ldr_w(19, 31, 112),
+            enc_sp_block_adjust(128, False),
+        ]
+        self.assertIn(words_to_bytes(push_all_sequence), code)
+        self.assertIn(words_to_bytes(pop_all_sequence), code)
 
         stack_sequences = (
             [
