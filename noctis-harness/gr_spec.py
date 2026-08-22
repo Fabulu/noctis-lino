@@ -294,10 +294,16 @@ class BuildSurface(object):
       B: Borland random() (the brtl stream)
     """
 
-    def __init__(self, keep_draws=False, ledger=True):
+    def __init__(self, keep_draws=False, ledger=True, allocation_gap=None):
         self.smap = bytearray(PS_BYTES)
         self.txtr = bytearray(TXTR_BYTES)
         self.objs = bytearray(OC_BYTES)
+        if allocation_gap is None:
+            self.allocation_gap = None
+        else:
+            self.allocation_gap = bytes(allocation_gap)
+            if len(self.allocation_gap) != 16:
+                raise ValueError("surface/object allocation gap must be 16 bytes")
         self.sv = np.frombuffer(self.smap, dtype=np.uint8)
         self.tv = np.frombuffer(self.txtr, dtype=np.uint8)
         self.ov = np.frombuffer(self.objs, dtype=np.uint8)
@@ -317,6 +323,19 @@ class BuildSurface(object):
 
     def obj_bytes(self):
         return bytes(self.objs)
+
+    def _inclination_map_byte(self, index):
+        if index < PS_BYTES:
+            return self.smap[index]
+        if self.allocation_gap is None:
+            return 0
+        offset = index - PS_BYTES
+        if offset < len(self.allocation_gap):
+            return self.allocation_gap[offset]
+        object_index = offset - len(self.allocation_gap)
+        if object_index < OC_BYTES:
+            return self.objs[object_index]
+        return 0
 
     def mark(self, phase):
         if not self.ledger_on:
@@ -526,21 +545,17 @@ class BuildSurface(object):
                 if (incl < 10) nr_of_objects = random(4);
             }
 
-        NOTE: ptr+1 and ptr+200 can read up to OC_BYTES+199 = 40199, i.e.
-        PAST the 40000-byte objectschart.  p_surfacemap IS 40000 bytes too,
-        and ptr < oc_bytes means ptr peaks at 39999; ptr+200 peaks at 40199,
-        which is 200 bytes past p_surfacemap.  In DOS this reads into the
-        neighbouring farmalloc block — faithfully modelled as reading the
-        surfacemap segment (which is exactly 40000 bytes here, so the read
-        wraps into whatever follows).  This port reads zeroes past the map
-        (the segment is 40000 bytes).  The discrepancy is noted in the exit
-        report; it affects at most 200 cells at the south edge.
+        NOTE: ptr+1 and ptr+200 can read through 199 bytes after the map.
+        With an explicit 16-byte allocation gap, this models the original flat
+        heap: first the gap, then the already-mutated prefix of the adjacent
+        object chart.  The default remains the older zero-overread model so
+        existing self-contained corpus cases retain their established boundary.
         """
         B = self.B
         sm = self.smap
         for i in range(OC_BYTES):
-            n1 = sm[i + 1] if i + 1 < PS_BYTES else 0
-            n2 = sm[i + 200] if i + 200 < PS_BYTES else 0
+            n1 = self._inclination_map_byte(i + 1)
+            n2 = self._inclination_map_byte(i + 200)
             incl = abs(sm[i] - n1) + abs(sm[i] - n2)
             nr = 0
             if incl < 20:
@@ -785,8 +800,8 @@ class BuildSurface(object):
         B = self.B
         sm = self.smap
         for i in range(OC_BYTES):
-            v1 = sm[i + 1] if i + 1 < PS_BYTES else 0
-            v2 = sm[i + 200] if i + 200 < PS_BYTES else 0
+            v1 = self._inclination_map_byte(i + 1)
+            v2 = self._inclination_map_byte(i + 200)
             incl = abs(sm[i] - v1) + abs(sm[i] - v2)
             nr = 0
             if incl < 20:
