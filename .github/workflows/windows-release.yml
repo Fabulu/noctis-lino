@@ -126,6 +126,29 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Check the Beta 24 hosted scene baseline
+        shell: pwsh
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.1.0-beta.24 `
+            --pattern Noctis-IV-windows-x86.zip `
+            --dir build\beta24-sun-baseline
+          Expand-Archive `
+            -LiteralPath build\beta24-sun-baseline\Noctis-IV-windows-x86.zip `
+            -DestinationPath build\beta24-sun-baseline\expanded
+          .\tools\capture_noctis_scenes.ps1 `
+            -OutputDirectory build\beta24-sun-gallery `
+            -GameExecutable build\beta24-sun-baseline\expanded\Noctis-IV\Noctis-IV.exe `
+            -Scene habitable `
+            -Longitude 270 `
+            -ViewPitch -44 `
+            -ClockSeconds 1344638527 `
+            -WarmupSeconds 1 `
+            -Fast `
+            -CaptureHostWindow
+
       - name: Grade the pinned habitable-world sun frame
         shell: pwsh
         timeout-minutes: 5
