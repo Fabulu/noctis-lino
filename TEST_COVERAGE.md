@@ -76,8 +76,8 @@ of the four HM/OC targets, excluding that visible gap as the complete mechanism.
 The exact DOS harness and executable remain unpublished, so acceptance still
 requires same-DOSBox versus clean-DOSBox captures at the pre-hash boundary. This
 discriminator does not make atmospheric gameplay sky a public-caller oracle
-because those caller filters differ. Full corpus parity remains required before
-release.
+because those caller filters differ. Full corpus parity remains required before a
+full-parity claim.
 
 ## Honest gaps
 

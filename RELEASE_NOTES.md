@@ -1,5 +1,47 @@
 # Noctis IV L.in.oleum port -- Windows and macOS prerelease
 
+## Beta 23
+
+Beta 23 completes the portable floating-point repair and raises the measured
+production NIVGEN score from 38,893/49,823 to 49,801/49,823 exact authoritative
+fields. Complete-row agreement rises from 426/4,546 to 4,540/4,546. Types 0, 6,
+7, 8, 9, and 10 are exact, as are all comparable orbital surfaces, atmospheres,
+and palettes. The score comes from retained, non-overlapping runs of all 4,546
+comparable rows in the canonical 5,188-row snapshot rather than a sampled or
+weakened comparison.
+
+Historical positive fractional crater power now runs as ordinary portable Lino
+integer code with the original x87 significand and spill behavior. An independent
+instruction-level witness, exact soft-stack invariants, representative production
+maps, and a complete model audit of all 9,564,210 reachable fractional crater
+pairs guard that repair. Exact zero-numerator handling also closes the related
+geometry and seed conversion boundaries without adding native game kernels or
+planet-specific answers.
+
+Public NIVGEN generation now uses request-scoped binary64 boundaries for orbital
+geometry and atmosphere painting and preserves the exact doubled half-degree seed
+threshold. The desktop game keeps its historical precision schedule. Generated
+Windows executables receive a fail-closed post-link `FCWEXT=133Fh` patch, while
+Linux and macOS runtimes install the same fixed environment below the language
+boundary. Production game and generator source now have zero raw target blocks;
+tagged Intel and Rosetta builds probe the live control word before packaging.
+
+The remaining 22 nonmatching fields are landed outputs confined to XENOFELYS
+bodies 4, 5, 8, 9, 10, and 11. They are retained caller/artifact discrepancies,
+not omitted comparisons: two native NIV+ captures agree with current source-shaped
+values at disputed boundaries, including an all-zero body-10 sky where the
+retained artifact contains a later changed byte. The original SheetBot caller
+ran five separate DOS programs per body in shared 12-body DOSBox chunks, and a
+control proves that reused DOS allocations can retain a preceding process's
+payload. The exact unpublished harness or a paired shared-session/clean-session
+regeneration is still needed to identify that historical capture path. This beta
+does not claim 49,823/49,823 parity and does not patch expected hashes or output
+bytes.
+
+The tagged release still builds both desktop packages from source, checks internal
+manifests, and publishes each archive beside its SHA-256 checksum and provenance
+record. The release body is extracted from this Beta 23 section only.
+
 ## Beta 22
 
 Beta 22 adds the first packaged macOS game to the tagged release graph. The
