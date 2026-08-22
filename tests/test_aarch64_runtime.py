@@ -42,6 +42,9 @@ UI_RAMTOP = 1
 UI_ISOKERNEL_LO = 4
 UI_ISOKERNEL_HI = 5
 UI_CODE_ORIGIN_HI = 7
+UI_FLOAT_UNARY_LO = 8
+UI_FLOAT_UNARY_HI = 9
+UI_REQUIRED_UNITS = 10
 DONE = 0x646F6E65
 FAIL = 0x6661696C
 REGISTER_VALUES = (0x11223344, 0x89ABCDEF, 0x01020304, 0x7FFFFFFF, 0x80000000)
@@ -462,7 +465,36 @@ COMPILER_FIXTURE_SOURCE = """\
 
     A = 80000000h;
     A /~;
-    ? A = 80000000h -> scalar arithmetic good;
+    ? A = 80000000h -> scalar sine register;
+    fail;
+
+"scalar sine register"
+
+    A = 3F800000h;
+    A ~;
+    ? A = 3F576AA4h -> scalar cosine direct;
+    fail;
+
+"scalar cosine direct"
+
+    [lhs] = 3F800000h;
+    [lhs] ~~;
+    ? [lhs] = 3F0A5140h -> scalar sine indirect;
+    fail;
+
+"scalar sine indirect"
+
+    B = p;
+    [B plus 2] = 80000000h;
+    [B plus 2] ~;
+    ? [out] = 80000000h -> scalar cosine indirect;
+    fail;
+
+"scalar cosine indirect"
+
+    [B plus 2] = 0;
+    [B plus 2] ~~;
+    ? [out] = 3F800000h -> scalar arithmetic good;
     fail;
 
 "scalar arithmetic good"
@@ -773,6 +805,10 @@ def enc_mov32_w(register: int, value: int) -> list[int]:
     ]
 
 
+def enc_mov_w(destination: int, source: int) -> int:
+    return 0x2A0003E0 | (source << 16) | destination
+
+
 def enc_ldr_w(target: int, base: int, byte_offset: int) -> int:
     if byte_offset % 4 or not 0 <= byte_offset // 4 <= 4095:
         raise ValueError("W load offset is not encodable")
@@ -849,6 +885,21 @@ def enc_fcvtns_w_s(destination: int, source: int) -> int:
 
 def enc_fcmp_s(left: int, right: int) -> int:
     return 0x1E202000 | (right << 16) | (left << 5)
+
+
+def enc_runtime_float_unary_call(app_ws_size: int,
+                                 operation: int) -> list[int]:
+    return [
+        *enc_mov32_w(1, operation),
+        *enc_mov32_w(9, app_ws_size + UI_FLOAT_UNARY_LO),
+        enc_ldr_w_indexed(10),
+        *enc_mov32_w(9, app_ws_size + UI_FLOAT_UNARY_HI),
+        enc_ldr_w_indexed(11),
+        enc_orr_lsl_x(9, 10, 11, 32),
+        0xA9BF7BFD,
+        enc_blr(9),
+        0xA8C17BFD,
+    ]
 
 
 def enc_binary_w(opcode: int, destination: int, right: int) -> int:
@@ -1061,7 +1112,9 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("offsetof(struct LNLMINIT, app_ws_size) == 40", header)
         self.assertIn("ARM64_UI_ISOKERNEL_LO = 4", header)
         self.assertIn("ARM64_UI_CODE_ORIGIN_HI = 7", header)
-        self.assertIn("ARM64_UI_REQUIRED_UNITS = 8", header)
+        self.assertIn("ARM64_UI_FLOAT_UNARY_LO = 8", header)
+        self.assertIn("ARM64_UI_FLOAT_UNARY_HI = 9", header)
+        self.assertIn("ARM64_UI_REQUIRED_UNITS = 10", header)
 
     def test_memory_and_loader_policy(self) -> None:
         source = RTM_C.read_text(encoding="utf-8")
@@ -1071,6 +1124,9 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("mprotect(pCode, pCodeMapBytes, PROT_READ | PROT_EXEC)", source)
         self.assertIn("memset(&new_workspace[old_ramtop], 0", source)
         self.assertIn("publish_runtime_pointers();", source)
+        self.assertIn("sinf(input)", source)
+        self.assertIn("cosf(input)", source)
+        self.assertIn("ARM64_UI_FLOAT_UNARY_LO", source)
         self.assertIn("expected_size != file_size", source)
         self.assertNotRegex(source, r"\(unit\)\s*\([^\n]*pCode")
 
@@ -1098,6 +1154,7 @@ class StaticContractTests(unittest.TestCase):
         run_all = RUN_ALL.read_text(encoding="utf-8")
         self.assertIn("-static -no-pie", build)
         self.assertIn("-Wl,-z,noexecstack", build)
+        self.assertIn("-lm", build)
         self.assertIn("aarch64-linux-gnu-gcc", build)
         self.assertIn("PR #10", readme)
         self.assertIn("not a full RTM", readme)
@@ -1145,6 +1202,8 @@ class StaticContractTests(unittest.TestCase):
 
     def test_instruction_encoders_pin_known_words(self) -> None:
         self.assertEqual(enc_movz_w(0, 1), 0x52800020)
+        self.assertEqual(enc_mov_w(0, 19), 0x2A1303E0)
+        self.assertEqual(enc_mov_w(19, 0), 0x2A0003F3)
         self.assertEqual(enc_blr(9), 0xD63F0120)
         self.assertEqual(enc_ldr_w(9, 25, 48), 0xB9403329)
         self.assertEqual(enc_str_x(25, 25, 16), 0xF9000B39)
@@ -1454,7 +1513,8 @@ class AArch64ExecutionTests(unittest.TestCase):
         self.assertEqual(len(initialized_workspace), app_ws_size * 4)
         self.assertEqual(len(code), app_code_size * 4)
         self.assertEqual(entry_unit, 0)
-        self.assertGreater(default_ramtop, app_ws_size + 7)
+        self.assertGreaterEqual(
+            default_ramtop, app_ws_size + UI_REQUIRED_UNITS)
 
         code_words = list(struct.unpack(f"<{app_code_size}I", code))
         workspace_words = struct.unpack(
@@ -1843,6 +1903,40 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in float_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        transcendental_sequences = (
+            [
+                enc_mov_w(0, 19),
+                *enc_runtime_float_unary_call(app_ws_size, 1),
+                enc_mov_w(19, 0),
+            ],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                enc_mov_w(0, 10),
+                *enc_runtime_float_unary_call(app_ws_size, 2),
+                *enc_mov32_w(9, lhs_index),
+                enc_str_w_indexed(0),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_mov_w(0, 10),
+                *enc_runtime_float_unary_call(app_ws_size, 1),
+                *enc_indirect_index(20, 2),
+                enc_str_w_indexed(0),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_mov_w(0, 10),
+                *enc_runtime_float_unary_call(app_ws_size, 2),
+                *enc_indirect_index(20, 2),
+                enc_str_w_indexed(0),
+            ],
+        )
+        for sequence in transcendental_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         conversion_sequences = (
@@ -2328,8 +2422,8 @@ class AArch64ExecutionTests(unittest.TestCase):
             "entry-outside-code": patch_field(valid, 2, code_units),
             "impossible-payload-origin": patch_field(valid, 3, 0x7FFFFFFF),
             "wrong-physical-size": patch_field(valid, 4, len(valid) - 4),
-            "insufficient-ui": patch_field(valid, 5,
-                                             APP_WS_UNITS + 7),
+            "insufficient-ui": patch_field(
+                valid, 5, APP_WS_UNITS + UI_REQUIRED_UNITS - 1),
         }
         for name, image in cases.items():
             with self.subTest(name=name):

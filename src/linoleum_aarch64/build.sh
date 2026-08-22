@@ -28,5 +28,5 @@ printf 'assembling isokernel.s\n'
 "$compiler" -g -fno-pie -c "$script_dir/isokernel.s" -o "$build_dir/isokernel.o"
 printf 'linking %s\n' "$output"
 "$compiler" "${common_flags[@]}" "${link_flags[@]}" \
-    "$build_dir/rtm.o" "$build_dir/isokernel.o" -o "$output"
+    "$build_dir/rtm.o" "$build_dir/isokernel.o" -lm -o "$output"
 printf 'built %s\n' "$output"

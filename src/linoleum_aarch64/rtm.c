@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,10 +33,14 @@ struct init_block {
     unsigned char end_marker[8];
 };
 
+typedef uint32_t (*float_unary_proc_t)(uint32_t, uint32_t);
+
 _Static_assert(sizeof(struct init_block) == 112,
                "initialization block layout changed");
 _Static_assert(sizeof(proc_t) == sizeof(uintptr_t),
                "AArch64 function pointers must fit uintptr_t");
+_Static_assert(sizeof(float_unary_proc_t) == sizeof(uintptr_t),
+               "AArch64 helper pointers must fit uintptr_t");
 _Static_assert(sizeof(size_t) == 8,
                "the AArch64 runtime requires a 64-bit size type");
 
@@ -191,7 +196,41 @@ static bool validate_image(size_t file_size, size_t *workspace_bytes,
     return true;
 }
 
+enum {
+    FLOAT_UNARY_SINE = 1,
+    FLOAT_UNARY_COSINE = 2
+};
+
+static uint32_t apply_float_unary(uint32_t bits, uint32_t operation)
+{
+    float input;
+    float output;
+    uint32_t result;
+
+    memcpy(&input, &bits, sizeof(input));
+    switch (operation) {
+    case FLOAT_UNARY_SINE:
+        output = sinf(input);
+        break;
+    case FLOAT_UNARY_COSINE:
+        output = cosf(input);
+        break;
+    default:
+        return bits;
+    }
+    memcpy(&result, &output, sizeof(result));
+    return result;
+}
+
 static uintptr_t function_address(proc_t function)
+{
+    uintptr_t address = 0;
+
+    memcpy(&address, &function, sizeof(address));
+    return address;
+}
+
+static uintptr_t float_unary_address(float_unary_proc_t function)
 {
     uintptr_t address = 0;
 
@@ -220,6 +259,7 @@ static void store_pointer_pair(unit *low, unit *high, uintptr_t address)
 static void publish_runtime_pointers(void)
 {
     proc_t entry = isokernel;
+    float_unary_proc_t float_unary = apply_float_unary;
 
     store_pointer_pair(&pUIWorkspace[ARM64_UI_ISOKERNEL_LO],
                        &pUIWorkspace[ARM64_UI_ISOKERNEL_HI],
@@ -227,6 +267,9 @@ static void publish_runtime_pointers(void)
     store_pointer_pair(&pUIWorkspace[ARM64_UI_CODE_ORIGIN_LO],
                        &pUIWorkspace[ARM64_UI_CODE_ORIGIN_HI],
                        (uintptr_t) pCode);
+    store_pointer_pair(&pUIWorkspace[ARM64_UI_FLOAT_UNARY_LO],
+                       &pUIWorkspace[ARM64_UI_FLOAT_UNARY_HI],
+                       float_unary_address(float_unary));
 }
 
 static void release_mappings(void)

@@ -2471,6 +2471,7 @@
 	a64 floating = 1;	(scalar floating operation uses S0 and S1)
 	a64 conversion = 1;	(1: float to integer, 2: integer to float)
 	a64 floating branch = 1; (special x87 unordered comparison mapping)
+	a64 math helper = 1;	(1: sine, 2: cosine through full-width runtime helper)
 
 	stab = max symbols
 	 mtp symbol size;	(internal symbols table)
@@ -6371,6 +6372,7 @@
 	[a64 floating] = no;
 	[a64 conversion] = no;
 	[a64 floating branch] = no;
+	[a64 math helper] = no;
 	[source string] = inst;
 	[target string] = q14;
 	=> strcmp;
@@ -6447,6 +6449,12 @@
 	[target string] = q34;
 	=> strcmp;
       ? ok -> pp a64 integer magnitude;
+	[target string] = q29;
+	=> strcmp;
+      ? ok -> pp a64 floating sine;
+	[target string] = q30;
+	=> strcmp;
+      ? ok -> pp a64 floating cosine;
 	[target string] = q31;
 	=> strcmp;
       ? ok -> pp a64 floating square root;
@@ -6882,6 +6890,12 @@
       "pp a64 integer magnitude"
 	[a64 opcode] = null;
 	-> pp a64 unary;
+      "pp a64 floating sine"
+	[a64 math helper] = 1;
+	-> pp a64 unary;
+      "pp a64 floating cosine"
+	[a64 math helper] = 2;
+	-> pp a64 unary;
       "pp a64 floating square root"
 	[a64 floating] = yes;
 	[a64 opcode] = 1E21C000h; (FSQRT S0,S0)
@@ -6918,6 +6932,7 @@
 	=> a64 emit word;
 	[a64 left reg] = 10;
       "pp a64 emit unary"
+      ? [a64 math helper] != no -> pp a64 emit math unary;
       ? [a64 floating] = yes -> pp a64 emit floating unary;
       ? [a64 opcode] = null -> pp a64 emit magnitude;
 	a = [a64 left reg];
@@ -6928,6 +6943,56 @@
 	[a64 word] + a;
 	=> a64 emit word;
 	-> pp a64 finish unary;
+      "pp a64 emit math unary"
+	(the runtime helper receives and returns raw binary32 bits through W0)
+	[a64 word] = 2A0003E0h; (MOV W0,Wn)
+	a = [a64 left reg];
+	a < 16;
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 reg] = 1;
+	[a64 value] = [a64 math helper];
+	=> a64 emit immediate;
+	[a64 reg] = 9;
+	[a64 value] = [prws];
+	[a64 value] + 8;
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (low helper pointer half to W10)
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [prws];
+	[a64 value] + 9;
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Bh; (high helper pointer half to W11)
+	=> a64 emit word;
+	[a64 word] = AA0B8149h; (ORR X9,X10,X11,LSL #32)
+	=> a64 emit word;
+	[a64 word] = A9BF7BFDh; (STP X29,X30,[SP,#-16]!)
+	=> a64 emit word;
+	[a64 word] = D63F0120h; (BLR X9)
+	=> a64 emit word;
+	[a64 word] = A8C17BFDh; (LDP X29,X30,[SP],#16)
+	=> a64 emit word;
+      ? [op1 class] = register -> pp a64 finish math unary register;
+      ? [op1 class] = direct -> pp a64 finish math unary direct;
+      ? [op1 class] = indirect -> pp a64 finish math unary indirect;
+	-> pp a64 unsupported;
+      "pp a64 finish math unary register"
+	[a64 word] = 2A0003E0h; (MOV Wn,W0)
+	a = [a64 left reg];
+	[a64 word] + a;
+	=> a64 emit word;
+	-> pp exit;
+      "pp a64 finish math unary direct"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	-> pp a64 finish math unary memory;
+      "pp a64 finish math unary indirect"
+	=> a64 emit op1 index;
+      "pp a64 finish math unary memory"
+	[a64 left reg] = 0;
+	-> pp a64 store binary;
       "pp a64 emit floating unary"
 	a = [a64 left reg];
 	a < 5;
