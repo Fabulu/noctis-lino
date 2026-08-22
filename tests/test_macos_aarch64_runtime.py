@@ -178,6 +178,8 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("COCOA_SMOKE_OK", workflow)
         self.assertIn("--cocoa-quit-smoke", workflow)
         self.assertIn("COCOA_QUIT_SMOKE_OK", workflow)
+        self.assertIn("LLDB CRASH DIAGNOSTIC", workflow)
+        self.assertIn("thread backtrace all", workflow)
         self.assertIn("CURRENT.LIN", workflow)
         self.assertIn("Native compiler-owned AArch64 fixture passed", workflow)
         self.assertIn("A = 1;", fixture)
