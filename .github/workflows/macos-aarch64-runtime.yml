@@ -1,7 +1,20 @@
 name: macOS AArch64 runtime
 
 on:
+  workflow_call:
+    inputs:
+      tagged_release:
+        description: Build package metadata from the caller's release tag
+        required: false
+        type: boolean
+        default: false
+      package_artifact_name:
+        description: Artifact name for the three publishable package files
+        required: false
+        type: string
+        default: ""
   push:
+    branches: ["**"]
     paths:
       - ".github/workflows/macos-aarch64-runtime.yml"
       - "src/linoleum_macos_aarch64/**"
@@ -387,8 +400,38 @@ jobs:
           print("Native ARM64 Cocoa retrace and graceful Lino shutdown passed")
           PY
 
+      - name: Derive native package versions
+        id: version
+        shell: bash
+        env:
+          TAGGED_RELEASE: ${{ inputs.tagged_release || false }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import os
+          import re
+
+          if os.environ["TAGGED_RELEASE"] == "true":
+              tag = os.environ["GITHUB_REF_NAME"]
+              match = re.fullmatch(
+                  r"v(\d+\.\d+\.\d+)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?",
+                  tag,
+              )
+              if not match:
+                  raise SystemExit(f"tag cannot form a bundle version: {tag!r}")
+              short = match.group(1)
+              label = tag
+          else:
+              short = "0.1.0"
+              label = f"development-{os.environ['GITHUB_SHA'][:12]}"
+          print(f"short={short}")
+          print(f"label={label}")
+          PY
+
       - name: Package and smoke the Finder-safe ARM64 app
         shell: bash
+        env:
+          BUNDLE_SHORT_VERSION: ${{ steps.version.outputs.short }}
+          RELEASE_LABEL: ${{ steps.version.outputs.label }}
         run: |
           set -euo pipefail
           python3 tools/package_noctis_macos_aarch64.py \
@@ -396,9 +439,9 @@ jobs:
             --unsigned-game build/compiler-image/macos-aarch64-noctis.unsigned \
             --build-provenance build/compiler-image/macos-aarch64-fixture.provenance.txt \
             --output dist \
-            --short-version 0.1.0 \
+            --short-version "$BUNDLE_SHORT_VERSION" \
             --build-version "$GITHUB_RUN_NUMBER" \
-            --release-label "development-${GITHUB_SHA:0:12}" \
+            --release-label "$RELEASE_LABEL" \
             --expected-commit "$GITHUB_SHA"
 
           rm -rf build/arm64-package-smoke build/noctis-arm64-package-data
@@ -500,6 +543,16 @@ jobs:
               raise SystemExit("packaged graceful quit did not save CURRENT.LIN")
           print("Packaged native ARM64 app retrace and graceful shutdown passed")
           PY
+
+      - name: Upload publishable native package
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.package_artifact_name || format('Noctis-IV-macos-arm64-{0}', github.sha) }}
+          path: |
+            dist/Noctis-IV-macos-arm64.zip
+            dist/Noctis-IV-macos-arm64.zip.sha256
+            dist/Noctis-IV-macos-arm64.provenance.txt
+          if-no-files-found: error
 
       - name: Upload native execution evidence
         uses: actions/upload-artifact@v7

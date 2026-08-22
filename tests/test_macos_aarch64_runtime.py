@@ -182,6 +182,12 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         run_all = RUN_ALL.read_text(encoding="utf-8")
 
         self.assertEqual(workflow.count("runs-on: macos-15"), 2)
+        self.assertIn("workflow_call:", workflow)
+        self.assertIn("tagged_release:", workflow)
+        self.assertIn('branches: ["**"]', workflow)
+        self.assertIn("Derive native package versions", workflow)
+        self.assertIn("inputs.package_artifact_name", workflow)
+        self.assertIn("Upload publishable native package", workflow)
         self.assertIn("--cpu:aarch64", compile_script)
         self.assertIn("--sys:macarm64", compile_script)
         self.assertIn("tracked-work", compile_script)

@@ -61,6 +61,20 @@ def main() -> int:
     check("gh release upload $tag @files --clobber" in workflow and
           "Existing release body preserved" in workflow,
           "rerunning an existing tag replaces only generated assets")
+    check("uses: ./.github/workflows/macos-aarch64-runtime.yml" in workflow and
+          "tagged_release: true" in workflow and
+          "package_artifact_name: Noctis-IV-macos-arm64-${{ github.ref_name }}"
+          in workflow,
+          "tagged publication calls the proven native ARM64 product gate")
+    check("needs: [package, mac_package, arm64_package]" in workflow and
+          "name: Noctis-IV-macos-arm64-${{ github.ref_name }}" in workflow,
+          "publication waits for and downloads the tested ARM64 package")
+    check(all(name in workflow for name in (
+              "Noctis-IV-macos-arm64.zip",
+              "Noctis-IV-macos-arm64.zip.sha256",
+              "Noctis-IV-macos-arm64.provenance.txt",
+          )),
+          "ARM64 archive, checksum, and provenance are release assets")
 
     with tempfile.TemporaryDirectory(prefix="noctis-release-notes-") as directory:
         output = Path(directory) / "notes.md"

@@ -531,9 +531,17 @@ jobs:
             dist/Noctis-IV-macos-x86_64.provenance.txt
           if-no-files-found: error
 
+  arm64_package:
+    name: Build and test the native Apple-Silicon package
+    needs: validate
+    uses: ./.github/workflows/macos-aarch64-runtime.yml
+    with:
+      tagged_release: true
+      package_artifact_name: Noctis-IV-macos-arm64-${{ github.ref_name }}
+
   publish:
     name: Publish the GitHub prerelease
-    needs: [package, mac_package]
+    needs: [package, mac_package, arm64_package]
     runs-on: windows-latest
     permissions:
       contents: write
@@ -550,10 +558,16 @@ jobs:
           name: Noctis-IV-windows-x86-${{ github.ref_name }}
           path: dist
 
-      - name: Download the tested macOS package
+      - name: Download the tested macOS x86_64 package
         uses: actions/download-artifact@v8
         with:
           name: Noctis-IV-macos-x86_64-${{ github.ref_name }}
+          path: dist
+
+      - name: Download the tested macOS arm64 package
+        uses: actions/download-artifact@v8
+        with:
+          name: Noctis-IV-macos-arm64-${{ github.ref_name }}
           path: dist
 
       - name: Extract this tag's release notes
@@ -574,7 +588,10 @@ jobs:
             'dist\Noctis-IV-windows-x86.provenance.txt',
             'dist\Noctis-IV-macos-x86_64.zip',
             'dist\Noctis-IV-macos-x86_64.zip.sha256',
-            'dist\Noctis-IV-macos-x86_64.provenance.txt'
+            'dist\Noctis-IV-macos-x86_64.provenance.txt',
+            'dist\Noctis-IV-macos-arm64.zip',
+            'dist\Noctis-IV-macos-arm64.zip.sha256',
+            'dist\Noctis-IV-macos-arm64.provenance.txt'
           )
           if (gh release view $tag 2>$null) {
             gh release upload $tag @files --clobber
