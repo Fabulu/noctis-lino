@@ -6,7 +6,73 @@
     display width = 0;
     display height = 0;
 
+"variables"
+
+    Global K Fixture Name = { ARM64 GlobalK fixture! };
+
+"workspace"
+
+    Global K Fixture Write Data = 255;
+    Global K Fixture Read Data = 255;
+
 "programme"
+
+    [Global K Name] = FFFFFFFFh;
+    [Global K Command] = K DESTROY;
+    isocall;
+    ? ok -> global K fixture failed;
+    ? [Global K Command] != ZERO -> global K fixture failed;
+
+    [Global K Name] = Global K Fixture Name;
+    [Global K Data] = FFFFFFFFh;
+    [Global K Command] = K WRITE;
+    isocall;
+    ? ok -> global K fixture failed;
+    ? [Global K Command] != ZERO -> global K fixture failed;
+
+    A = Global K Fixture Write Data;
+    B = 255;
+
+"initialize Global K fixture data"
+
+    [A] = B;
+    A+;
+    B-;
+    ? B > ZERO -> initialize Global K fixture data;
+
+    [Global K Name] = Global K Fixture Name;
+    [Global K Data] = Global K Fixture Write Data;
+    [Global K Command] = K WRITE;
+    isocall;
+    ? failed -> global K fixture failed;
+
+    [Global K Data] = Global K Fixture Read Data;
+    [Global K Command] = K READ;
+    isocall;
+    ? failed -> global K fixture failed;
+
+    A = Global K Fixture Write Data;
+    B = Global K Fixture Read Data;
+    C = 255;
+
+"compare Global K fixture data"
+
+    D = [A];
+    ? D != [B] -> global K fixture failed;
+    A+;
+    B+;
+    C-;
+    ? C > ZERO -> compare Global K fixture data;
+
+    [Global K Data] = FFFFFFFFh;
+    [Global K Command] = K DESTROY;
+    isocall;
+    ? failed -> global K fixture failed;
+
+    [Global K Data] = Global K Fixture Read Data;
+    [Global K Command] = K READ;
+    isocall;
+    ? ok -> global K fixture failed;
 
     [PCM data Offset] = FFFFFFFFh;
     [PCM data Command] = GET DATA OFFSET;
@@ -18,6 +84,10 @@
     D = [PCM data Bits Per Sample];
     E = [PCM data Samples Per Sec];
     end;
+
+"global K fixture failed"
+
+    fail;
 
 "audio service failed"
 

@@ -22,6 +22,8 @@ on:
       - "src/linoleum_macos64/lino_event.h"
       - "src/linoleum_macos64/lino_file.c"
       - "src/linoleum_macos64/lino_file.h"
+      - "src/linoleum_macos64/lino_globalK.c"
+      - "src/linoleum_macos64/lino_globalK.h"
       - "src/linoleum_macos64/lino_keyboard.c"
       - "src/linoleum_macos64/lino_keyboard.h"
       - "src/linoleum_macos64/lino_kernel.h"
@@ -70,6 +72,8 @@ on:
       - "src/linoleum_macos64/lino_event.h"
       - "src/linoleum_macos64/lino_file.c"
       - "src/linoleum_macos64/lino_file.h"
+      - "src/linoleum_macos64/lino_globalK.c"
+      - "src/linoleum_macos64/lino_globalK.h"
       - "src/linoleum_macos64/lino_keyboard.c"
       - "src/linoleum_macos64/lino_keyboard.h"
       - "src/linoleum_macos64/lino_kernel.h"
@@ -281,7 +285,14 @@ jobs:
           file "$output" | grep -q 'arm64'
           test "$(lipo -archs "$output")" = arm64
           codesign --verify --strict --verbose=2 "$output"
-          arch -arm64 "$output" | tee build/macos-aarch64-result.txt
+          fixture_home="$PWD/build/macos-aarch64-fixture-home"
+          rm -rf "$fixture_home"
+          mkdir -p "$fixture_home"
+          HOME="$fixture_home" arch -arm64 "$output" \
+            | tee build/macos-aarch64-result.txt
+          test ! -e \
+            "$fixture_home/Library/Application Support/Linoleum/GlobalK/ARM64_GlobalK_fixture_"
+          rm -rf "$fixture_home"
           python3 - <<'PY'
           from pathlib import Path
 

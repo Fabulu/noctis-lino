@@ -86,6 +86,7 @@ extern bool cocoaQuitSmokeTriggered;
 
 bool krnlConsoleCommand(ConsoleCommand command);
 bool krnlFileCommand(FileCommand command);
+bool krnlGlobalKCommand(GlobalKCommand command);
 bool krnlDisplayCommand(DisplayCommand command);
 bool krnlPCMdataCommand(PCMdataCommand command);
 bool krnlPointerCommand(PointerCommand command);

@@ -531,6 +531,48 @@ static bool krnl_process_command(unit command)
     return true;
 }
 
+static bool workspace_range_is_valid(unit origin, uint32_t units)
+{
+    uint64_t end;
+
+    if (origin < 0 || current_ramtop < 0)
+        return false;
+    end = (uint64_t) (uint32_t) origin + (uint64_t) units;
+    return end <= (uint64_t) (uint32_t) current_ramtop;
+}
+
+static bool krnl_checked_globalK_command(GlobalKCommand command)
+{
+    bool data_required;
+    bool result;
+
+    switch (command) {
+    case IDLE:
+        return true;
+    case KREAD:
+    case KWRITE:
+        data_required = true;
+        break;
+    case KDESTROY:
+        data_required = false;
+        break;
+    default:
+        pUIWorkspace[mm_GlobalKCommand] = IDLE;
+        return false;
+    }
+
+    if (!workspace_range_is_valid(pUIWorkspace[mm_GlobalKName], 24) ||
+        (data_required &&
+         !workspace_range_is_valid(pUIWorkspace[mm_GlobalKData], 255))) {
+        pUIWorkspace[mm_GlobalKCommand] = IDLE;
+        return false;
+    }
+
+    result = krnlGlobalKCommand(command);
+    pUIWorkspace[mm_GlobalKCommand] = IDLE;
+    return result;
+}
+
 static void reject_unsupported_command(int slot)
 {
     if (pUIWorkspace[slot] != IDLE)
@@ -629,11 +671,13 @@ void ISOKRNLCALL(void)
         ++isostatus;
     if (!krnl_process_command(pUIWorkspace[mm_ProcessCommand]))
         ++isostatus;
+    if (!krnl_checked_globalK_command(
+            (GlobalKCommand) pUIWorkspace[mm_GlobalKCommand]))
+        ++isostatus;
 
     reject_unsupported_command(mm_APDCommand);
     reject_unsupported_command(mm_PrinterCommand);
     reject_unsupported_command(mm_NetCommand);
-    reject_unsupported_command(mm_GlobalKCommand);
     reject_unsupported_command(mm_ClipCommand);
     clear_service_commands();
 }

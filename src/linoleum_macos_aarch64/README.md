@@ -7,8 +7,10 @@ through first retrace and graceful Lino shutdown. The Finder-safe native app pac
 adds an arm64 launcher, safe per-user data staging, an internal manifest, exact
 signature validation, and archive checksum/provenance. The shared AudioQueue service
 publishes the historical stereo 16-bit/44.1 kHz PCM ABI and remains optional when
-no output device is available. Networking, GlobalK, clipboard integration, and
-broader product-level playtests remain deferred.
+no output device is available. Checked GlobalK dispatch supports iGUI's optional
+sleepy-window coordination with 24-unit names, 255-unit values, and per-user atomic
+storage. Networking, clipboard integration, and broader product-level playtests
+remain deferred.
 
 The register ABI matches the Linux bridge:
 
@@ -55,5 +57,6 @@ finalized game and its recorded build provenance. It emits
 Apple-Silicon gate extracts the archive independently and exercises both first
 retrace and graceful shutdown through the launcher.
 
-Open work after this checkpoint includes remaining optional services plus broader
-product-level audio/playtesting on physical Apple-Silicon systems.
+Open work after this checkpoint includes broader product-level audio/playtesting
+on physical Apple-Silicon systems and optional services only when shipped features
+make them reachable.

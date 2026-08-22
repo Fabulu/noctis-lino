@@ -144,6 +144,19 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("-Wl,-no_adhoc_codesign", build)
         self.assertIn("lino_cocoa.m", build)
         self.assertIn("lino_file.c", build)
+        self.assertIn("lino_globalK.c", build)
+        self.assertIn("krnl_checked_globalK_command(", source)
+        self.assertIn(
+            "workspace_range_is_valid(pUIWorkspace[mm_GlobalKName], 24)",
+            source,
+        )
+        self.assertIn(
+            "workspace_range_is_valid(pUIWorkspace[mm_GlobalKData], 255)",
+            source,
+        )
+        self.assertNotIn(
+            "reject_unsupported_command(mm_GlobalKCommand)", source,
+        )
         self.assertIn("lino_keyboard.c", build)
         self.assertIn("soundInitializationAttempted = true;", source)
         self.assertIn("(void) lino_sound_init();", source)
@@ -191,6 +204,8 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("build/macos-aarch64-noctis.unsigned", workflow)
         self.assertIn("service_units = 32947", workflow)
         self.assertIn("src/linoleum_macos64/lino_cocoa.m", workflow)
+        self.assertIn("src/linoleum_macos64/lino_globalK.c", workflow)
+        self.assertIn("src/linoleum_macos64/lino_globalK.h", workflow)
         self.assertIn("/Cocoa.framework/", workflow)
         self.assertIn("/AudioToolbox.framework/", workflow)
         self.assertIn("Compiled full Noctis AArch64 image", workflow)
@@ -208,6 +223,15 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("--launcher-prepare-only", workflow)
         self.assertIn("CURRENT.LIN", workflow)
         self.assertIn("Native compiler-owned AArch64 fixture passed", workflow)
+        self.assertIn("macos-aarch64-fixture-home", workflow)
+        self.assertIn("ARM64_GlobalK_fixture_", workflow)
+        self.assertIn("Global K Fixture Name", fixture)
+        self.assertIn("[Global K Name] = FFFFFFFFh;", fixture)
+        self.assertIn("[Global K Data] = FFFFFFFFh;", fixture)
+        self.assertIn("[Global K Command] = K WRITE;", fixture)
+        self.assertIn("[Global K Command] = K READ;", fixture)
+        self.assertIn("[Global K Command] = K DESTROY;", fixture)
+        self.assertIn("compare Global K fixture data", fixture)
         self.assertIn("modular extensions = audio playback;", fixture)
         self.assertIn("[PCM data Offset] = FFFFFFFFh;", fixture)
         self.assertIn("[PCM data Command] = GET DATA OFFSET;", fixture)
