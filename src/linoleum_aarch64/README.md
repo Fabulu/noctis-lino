@@ -82,10 +82,13 @@ independent ABI and malformed-image oracles; no generated executable is tracked.
 
 ## Deliberate omissions
 
-The minimal compiler-owned AArch64 emitter covers fixed-width 32-bit integer
-moves, direct workspace loads/stores, unconditional and status branches,
-internal calls, `leave`, `end`, `fail`, `nop`, and the full-width isocall ABI.
-It does not yet cover the full compiler pattern set, floating-point/x87
-semantics, display, input, audio, files, sockets, timing, process commands,
-Cocoa, Mach-O packaging, signing, or Noctis integration. Wider instruction
-coverage and runtime services remain separate milestones.
+The compiler-owned AArch64 emitter covers fixed-width 32-bit integer moves,
+direct workspace loads/stores, wrapping register/immediate and register/register
+addition, subtraction, bitwise operations, logical/arithmetic shifts, equality,
+signed/unsigned comparisons, bit-test branches, unconditional/status branches,
+internal calls, `leave`, `end`, `fail`, `nop`, and the full-width isocall ABI. It
+does not yet cover memory operands for those calculations, indirect addressing,
+multiply/divide, unary and rotate forms, floating-point/x87 semantics, display,
+input, audio, files, sockets, timing, process commands, Cocoa, Mach-O packaging,
+signing, or Noctis integration. Wider instruction coverage and runtime services
+remain separate milestones.
