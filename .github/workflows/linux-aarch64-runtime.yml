@@ -37,7 +37,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends \
-            binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu qemu-user
+            binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu \
+            libc6-dev-arm64-cross qemu-user
 
       - name: Build and execute the runtime fixtures
         shell: bash

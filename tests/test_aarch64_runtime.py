@@ -360,7 +360,8 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("PR #10", readme)
         self.assertIn("not a full RTM", readme)
         self.assertIn("no Lino compiler emitter", readme)
-        self.assertIn("gcc-aarch64-linux-gnu qemu-user", workflow)
+        self.assertIn("gcc-aarch64-linux-gnu", workflow)
+        self.assertIn("libc6-dev-arm64-cross qemu-user", workflow)
         self.assertIn("test_aarch64_runtime.py --require-execution -v", workflow)
         self.assertEqual(run_all.count('(\"test_aarch64_runtime.py\",'), 1)
 
