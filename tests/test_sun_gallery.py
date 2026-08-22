@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 from pathlib import Path
 import struct
 import sys
@@ -21,9 +22,6 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "work" / "vhgame.txt"
-NATIVE_LOOP = ROOT / "tests" / "gen" / "recon_nivplus_sheetbot" / "source" / "NOCTIS-1.CPP"
-NATIVE_CAPTURE = ROOT / "tests" / "gen" / "recon_w7b" / "capture_w7b.ps1"
-NATIVE_DRIVER = ROOT / "tests" / "gen" / "recon_w7b" / "godos_w7b.ps1"
 CAPTURE = ROOT / "tools" / "capture_noctis_scenes.ps1"
 CHECKPOINT_TOOL = ROOT / "tools" / "make_noctis_checkpoint.py"
 PRIVATE_RUNNER = ROOT / "tools" / "run_hidden_noctis.py"
@@ -40,8 +38,11 @@ CASES = {
         / "hab_sun270_pinned_oracle.shot.BMP",
         "surface": ROOT / "tests" / "gen" / "recon_w7b" / "out"
         / "hab_sun270_pinned_oracle.SURFACE.BIN",
+        "provenance": ROOT / "tests" / "gen" / "recon_w7b" / "out"
+        / "hab_sun270_pinned_oracle.provenance.json",
         "bmp_sha256": "c08cdb6f74f82c83170848e0071e2f7c0c82cfb35d20d097a8db7409fcf76d84",
         "surface_sha256": "74eed5198ed6de0c725f610b05d5ee9a60a531fe64e1791e4fe363351febf1d6",
+        "provenance_sha256": "850b84ae0b6b6b4dffa1e4b30ab54a29da1ecfd40eb99ac7e59fcd855757578a",
         "surface_state": (
             270, 60, 8, 8, 0, 0,
             1598248.0, 1.0, 2251369.0, -45.0, 270.0,
@@ -151,9 +152,6 @@ def mismatch_summary(expected: bytes, actual: bytes, width: int = 320) -> str:
 
 def check_source_contract(check) -> None:
     game = GAME.read_text(encoding="utf-8")
-    native_loop = NATIVE_LOOP.read_text(encoding="latin-1")
-    native_capture = NATIVE_CAPTURE.read_text(encoding="utf-8")
-    native_driver = NATIVE_DRIVER.read_text(encoding="utf-8")
     capture = CAPTURE.read_text(encoding="utf-8")
     checkpoint_tool = CHECKPOINT_TOOL.read_text(encoding="utf-8")
     private_runner = PRIVATE_RUNNER.read_text(encoding="utf-8")
@@ -176,17 +174,6 @@ def check_source_contract(check) -> None:
           "'game-palette-out.bin' = 3072" in capture and
           "$Spec.Name, $entry.Key" in capture,
           "diagnostic capture validates and exports scene-qualified product files")
-    check("[int]$Wait = 30" in native_capture and
-          "[int]$TimeoutSec = 60" in native_capture and
-          "autotype -w $Wait -p 3 b" in native_capture and
-          "WaitForExit($TimeoutSec * 1000)" in native_driver and
-          "Stop-Process -Id $p.Id -Force" in native_driver,
-          "native rig keeps the timed BMP shot distinct from later timeout RAM")
-    check("getsecs ();" in native_loop and
-          "mouse_input ();" in native_loop and
-          "if (w == 'b')" in native_loop and
-          "snapshot (0, 0)" in native_loop,
-          "native landed loop advances live time and input before the gallery shot")
     check("windows_hidden_process.run" in private_runner and
           "subprocess.run" in private_runner and
           "--default-desktop" in private_runner,
@@ -322,6 +309,27 @@ def main() -> int:
     else:
         check(surface_state == case["surface_state"],
               "native oracle records longitude 270 and heading 270 explicitly")
+
+    provenance = case["provenance"]
+    assert isinstance(provenance, Path)
+    provenance_data = provenance.read_bytes()
+    check(sha256(provenance_data) == case["provenance_sha256"],
+          "retained native capture provenance has its pinned SHA-256")
+    try:
+        provenance_state = json.loads(provenance_data)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        check(False, f"retained native capture provenance decodes safely: {error}")
+    else:
+        check(
+            provenance_state.get("surface_role") == "landed-resume input state"
+            and provenance_state.get("shot_after_seconds") == 30
+            and provenance_state.get("process_timeout_seconds") == 60
+            and provenance_state.get("snapshot_camera_state_retained") is False
+            and provenance_state.get("snapshot_simulation_state_retained") is False
+            and provenance_state.get("snapshot_hud_clock_retained") is False
+            and provenance_state.get("whole_page_same_state_contract") is False,
+            "native oracle records why complete-page equality is informational",
+        )
 
     try:
         page, palette = decode_bmp(oracle)

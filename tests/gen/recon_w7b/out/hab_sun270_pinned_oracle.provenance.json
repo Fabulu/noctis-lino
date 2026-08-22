@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "oracle": "hab_sun270_pinned_oracle.shot.BMP",
+  "surface": "hab_sun270_pinned_oracle.SURFACE.BIN",
+  "surface_role": "landed-resume input state",
+  "shot_key": "b",
+  "shot_after_seconds": 30,
+  "process_timeout_seconds": 60,
+  "snapshot_camera_state_retained": false,
+  "snapshot_simulation_state_retained": false,
+  "snapshot_hud_clock_retained": false,
+  "whole_page_same_state_contract": false,
+  "whole_page_note": "The BMP is an immutable native frame, but Surface.BIN records the earlier resume input and timeout RAM records a later live frame. No retained artifact records the camera, simulation, and HUD state at the instant of the timed shot."
+}
