@@ -816,10 +816,16 @@ fullscreen button completed a game-only fullscreen round trip. The resize host
 preserves the total drag vector even when Chromium coalesces pointer events.
 
 Still open are the remaining iGUI action cases, especially hide or screen-off,
-restore, close, menu behavior, focus loss, and repeated edge transitions in each host;
-renderer fidelity; audio; file mutation and
-persistence services; complete game-mode coverage; and the performance work
-needed for smooth play.
+restore, close, menu behavior, focus loss, and repeated edge transitions in each host.
+A reported fullscreen softlock has a concrete focus-transition case to reproduce: walk
+toward the Stardrifter console, then click the window control that selects takeoff. The
+click appears to move focus away from the JavaScript canvas, after which the game no
+longer responds or advances. Pin canvas focus, pointer/keyboard ownership, fullscreen
+state, and the Lino console transition before and after that click; repair the host
+contract without swallowing the authentic control action, and add a browser regression
+for continued movement after takeoff. Renderer fidelity; audio; file mutation and
+persistence services; complete game-mode coverage; and the performance work needed
+for smooth play also remain open.
 
 **First strict-JavaScript optimization and complete runtime-data milestone.**
 LinoJava now batches instruction budgets, keeps hot PGF services inside the
