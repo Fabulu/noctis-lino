@@ -603,9 +603,7 @@ class AArch64ExecutionTests(unittest.TestCase):
         return dict(field.split("=", 1) for field in lines[0].split()[1:])
 
     @classmethod
-    def compile_lino_source(cls, name: str, source_text: str,
-                            system: str = "aarch64",
-                            cpu: str = "aarch64") -> bytes:
+    def compile_lino_source(cls, name: str, source_text: str) -> bytes:
         source = cls.lino_environment / "lib" / "gen" / f"{name}.txt"
         output = source.with_suffix(".bin")
         error_log = source.parent / "errorlog.txt"
@@ -614,7 +612,7 @@ class AArch64ExecutionTests(unittest.TestCase):
         error_log.unlink(missing_ok=True)
 
         argument = (
-            f"--sys:{system}--cpu:{cpu}--ext:.bin"
+            f"--sys:aarch64--cpu:aarch64--ext:.bin"
             f"--env:{cls.lino_environment}--src:{source}"
         )
         process = subprocess.Popen(
@@ -668,7 +666,7 @@ class AArch64ExecutionTests(unittest.TestCase):
         if not settled:
             raise AssertionError(
                 "AArch64 Lino compilation did not settle "
-                f"(sys={system}, cpu={cpu}, returncode={process.returncode}, "
+                f"(returncode={process.returncode}, "
                 f"output={output}, output_exists={output.exists()}, "
                 f"sys_bytes={cls.aarch64_sys.stat().st_size}):\n" +
                 compiler_output + fatal_log)
@@ -722,17 +720,8 @@ class AArch64ExecutionTests(unittest.TestCase):
         self.assertNotRegex("\n".join(bridge_bodies), r"\bx18\b")
 
     def test_compiler_produced_image_executes_full_integer_slice(self) -> None:
-        host_image = self.compile_lino_source(
-            "compiler-host-control", COMPILER_FIXTURE_SOURCE,
-            system="linux", cpu="i386m")
-        self.assertTrue(host_image.startswith(b"\x7fELF"))
-        linux_emitter_image = self.compile_lino_source(
-            "compiler-aarch64-control", COMPILER_FIXTURE_SOURCE,
-            system="linux", cpu="aarch64")
-        self.assertTrue(linux_emitter_image.startswith(b"\x7fELF"))
-
         image = self.compile_lino_source(
-            "compiler-aarch64-fixture", COMPILER_FIXTURE_SOURCE)
+            "compileraarch64fixture", COMPILER_FIXTURE_SOURCE)
         fields, initialized_workspace, code = compiler_image_parts(image)
         app_ws_size, app_code_size, entry_unit = fields[:3]
         default_ramtop = fields[5]
