@@ -6447,6 +6447,9 @@
 	[target string] = q34;
 	=> strcmp;
       ? ok -> pp a64 integer magnitude;
+	[target string] = q31;
+	=> strcmp;
+      ? ok -> pp a64 floating square root;
 	[target string] = q33;
 	=> strcmp;
       ? ok -> pp a64 floating opposite;
@@ -6878,6 +6881,10 @@
 	-> pp a64 unary;
       "pp a64 integer magnitude"
 	[a64 opcode] = null;
+	-> pp a64 unary;
+      "pp a64 floating square root"
+	[a64 floating] = yes;
+	[a64 opcode] = 1E21C000h; (FSQRT S0,S0)
 	-> pp a64 unary;
       "pp a64 floating opposite"
 	[a64 floating] = yes;

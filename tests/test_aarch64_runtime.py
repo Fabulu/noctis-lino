@@ -434,7 +434,35 @@ COMPILER_FIXTURE_SOURCE = """\
 
     [B plus 2] = BF400000h;
     [B plus 2] ||||;
-    ? [out] = 3F400000h -> scalar arithmetic good;
+    ? [out] = 3F400000h -> scalar square root alpha;
+    fail;
+
+"scalar square root alpha"
+
+    A = 40800000h;
+    A /~;
+    ? A = 40000000h -> scalar square root beta;
+    fail;
+
+"scalar square root beta"
+
+    [lhs] = 40100000h;
+    [lhs] /~;
+    ? [lhs] = 3FC00000h -> scalar square root gamma;
+    fail;
+
+"scalar square root gamma"
+
+    [B plus 2] = 1;
+    [B plus 2] /~;
+    ? [out] = 1A3504F3h -> scalar square root delta;
+    fail;
+
+"scalar square root delta"
+
+    A = 80000000h;
+    A /~;
+    ? A = 80000000h -> scalar arithmetic good;
     fail;
 
 "scalar arithmetic good"
@@ -1102,7 +1130,8 @@ class StaticContractTests(unittest.TestCase):
             "B9400180h", "B940018Ah", "B9000180h", "B8695B29h",
             "1E212800h", "1E213800h", "1E210800h", "1E211800h",
             "1E270000h", "1E270001h", "1E260000h",
-            "1E214000h", "1E20C000h", "1E220000h", "1E200000h",
+            "1E214000h", "1E20C000h", "1E21C000h", "1E220000h",
+            "1E200000h",
             "1E212000h", "54000046h",
             "6B00001Fh", "6A00001Fh", "54000000h",
             "AA0B8149h", "D63F0120h", "D65F03C0h",
@@ -1146,6 +1175,7 @@ class StaticContractTests(unittest.TestCase):
             enc_float_data2_s(0x1E201800, 0, 0, 1), 0x1E211800)
         self.assertEqual(enc_float_unary_s(0x1E214000, 0, 0), 0x1E214000)
         self.assertEqual(enc_float_unary_s(0x1E20C000, 0, 0), 0x1E20C000)
+        self.assertEqual(enc_float_unary_s(0x1E21C000, 0, 0), 0x1E21C000)
         self.assertEqual(enc_scvtf_s_w(0, 19), 0x1E220260)
         self.assertEqual(enc_fcvtns_w_s(19, 0), 0x1E200013)
         self.assertEqual(enc_fcmp_s(0, 1), 0x1E212000)
@@ -1787,6 +1817,27 @@ class AArch64ExecutionTests(unittest.TestCase):
                 enc_ldr_w_indexed(10),
                 enc_fmov_s_w(0, 10),
                 enc_float_unary_s(0x1E20C000, 0, 0),
+                enc_fmov_w_s(10, 0),
+                enc_str_w_indexed(10),
+            ],
+            [
+                enc_fmov_s_w(0, 19),
+                enc_float_unary_s(0x1E21C000, 0, 0),
+                enc_fmov_w_s(19, 0),
+            ],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                enc_fmov_s_w(0, 10),
+                enc_float_unary_s(0x1E21C000, 0, 0),
+                enc_fmov_w_s(10, 0),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_fmov_s_w(0, 10),
+                enc_float_unary_s(0x1E21C000, 0, 0),
                 enc_fmov_w_s(10, 0),
                 enc_str_w_indexed(10),
             ],
