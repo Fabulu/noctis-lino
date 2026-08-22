@@ -29,6 +29,9 @@ _isokernel:
 	movq	%rdi, -48(%rbp)
 	andq	$-16, %rsp
 	call	_ISOKRNLCALL
+	/* C callees should preserve x87 control state, but make the Lino
+	 * boundary explicit rather than inheriting host-library behaviour. */
+	fldcw	L_lino_fcw(%rip)
 	movq	-16(%rbp), %rax
 	movq	-24(%rbp), %rcx
 	movq	-32(%rbp), %rdx
@@ -63,6 +66,8 @@ _linoleum:
 	xorl	%esi, %esi
 	xorl	%ebp, %ebp
 	movq	_pCodeEntry(%rip), %rax
+	/* The production Lino contract is PC=64, nearest-even, masked. */
+	fldcw	L_lino_fcw(%rip)
 	call	*%rax
 	movl	%eax, _aAtExit(%rip)
 	movl	%ebx, _bAtExit(%rip)
@@ -76,3 +81,9 @@ _linoleum:
 	popq	%rbx
 	popq	%rbp
 	ret
+
+
+	.section __TEXT,__const
+	.p2align 1
+L_lino_fcw:
+	.short	0x133f

@@ -29,6 +29,8 @@ isokernel:
 	/* movl	%ebp, xAtExit */
 	pusha
 	call	ISOKRNLCALL
+	/* State the Lino FP environment again at the C/runtime boundary. */
+	fldcw	.L_lino_fcw
 	popa
 	movl	pWorkspace, %edi
 	/* set %ebp with result of call */
@@ -56,6 +58,8 @@ linoleum:
 	xorl	%edx, %edx
 	xorl	%esi, %esi
 	xorl	%ebp, %ebp
+	/* The production Lino contract is PC=64, nearest-even, masked. */
+	fldcw	.L_lino_fcw
 	call	*pCodeEntry
 	movl	%eax, aAtExit
 	movl	%ebx, bAtExit
@@ -67,3 +71,9 @@ linoleum:
 	popl	%ebp
 	ret
 .size linoleum,. - linoleum
+
+
+	.section .rodata
+	.align 2
+.L_lino_fcw:
+	.short	0x133f
