@@ -464,7 +464,7 @@ static void release_mappings(void)
     }
 }
 
-static bool krnl_system_time_command(SYStimeCommand command)
+static bool krnl_system_time_command(unit command)
 {
     struct timeval now;
     struct tm split;
@@ -506,7 +506,7 @@ static bool krnl_system_time_command(SYStimeCommand command)
     }
 }
 
-static bool krnl_process_command(ProcessCommand command)
+static bool krnl_process_command(unit command)
 {
     struct timespec request;
     struct timespec remainder;
@@ -621,11 +621,9 @@ void ISOKRNLCALL(void)
         ++isostatus;
     if (!krnlFileCommand((FileCommand) pUIWorkspace[mm_FileCommand]))
         ++isostatus;
-    if (!krnl_system_time_command(
-            (SYStimeCommand) pUIWorkspace[mm_SYStimeCommand]))
+    if (!krnl_system_time_command(pUIWorkspace[mm_SYStimeCommand]))
         ++isostatus;
-    if (!krnl_process_command(
-            (ProcessCommand) pUIWorkspace[mm_ProcessCommand]))
+    if (!krnl_process_command(pUIWorkspace[mm_ProcessCommand]))
         ++isostatus;
 
     reject_unsupported_command(mm_PCMdataCommand);
