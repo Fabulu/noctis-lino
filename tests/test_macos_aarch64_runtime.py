@@ -145,8 +145,21 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("lino_cocoa.m", build)
         self.assertIn("lino_file.c", build)
         self.assertIn("lino_keyboard.c", build)
+        self.assertIn("soundInitializationAttempted = true;", source)
+        self.assertIn("(void) lino_sound_init();", source)
+        self.assertIn("krnlPCMdataCommand(", source)
+        self.assertIn("lino_sound_close()", source)
+        self.assertLess(
+            source.index("soundInitializationAttempted = true;"),
+            source.index("linoleum();"),
+        )
+        self.assertLess(
+            source.index("if (soundInitializationAttempted)"),
+            source.index("release_mappings();"),
+        )
+        self.assertIn("lino_sound.c", build)
+        self.assertIn("-framework AudioToolbox", build)
         self.assertIn("-framework Cocoa", build)
-        self.assertNotIn("lino_sound.c", build)
         self.assertNotIn("pagezero_size", build)
 
     def test_hosted_gate_compiles_and_executes_natively(self) -> None:
@@ -179,6 +192,7 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("service_units = 32947", workflow)
         self.assertIn("src/linoleum_macos64/lino_cocoa.m", workflow)
         self.assertIn("/Cocoa.framework/", workflow)
+        self.assertIn("/AudioToolbox.framework/", workflow)
         self.assertIn("Compiled full Noctis AArch64 image", workflow)
         self.assertIn("finalize_macos_aarch64.py --sign", workflow)
         self.assertIn("arch -arm64 \"$output\"", workflow)
@@ -194,8 +208,11 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("--launcher-prepare-only", workflow)
         self.assertIn("CURRENT.LIN", workflow)
         self.assertIn("Native compiler-owned AArch64 fixture passed", workflow)
-        self.assertIn("A = 1;", fixture)
-        self.assertIn("E = 5;", fixture)
+        self.assertIn("modular extensions = audio playback;", fixture)
+        self.assertIn("[PCM data Command] = GET DATA OFFSET;", fixture)
+        self.assertIn("A = X;", fixture)
+        self.assertIn("C = [PCM data Channels];", fixture)
+        self.assertIn("E = [PCM data Samples Per Sec];", fixture)
         self.assertIn("end;", fixture)
         self.assertEqual(run_all.count('(\"test_macos_aarch64_runtime.py\",'), 1)
 

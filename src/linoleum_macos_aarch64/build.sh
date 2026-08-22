@@ -39,7 +39,7 @@ link_flags=(
 printf 'compiling checked ARM64 loader\n'
 "$compiler" "${checked_flags[@]}" -c "$script_dir/rtm.c" \
     -o "$build_dir/rtm.o"
-for source in lino_file.c lino_keyboard.c; do
+for source in lino_file.c lino_keyboard.c lino_sound.c; do
     printf 'compiling shared %s\n' "$source"
     "$compiler" "${legacy_flags[@]}" -c "$shared_dir/$source" \
         -o "$build_dir/${source%.c}.o"
@@ -53,6 +53,7 @@ printf 'assembling isokernel.s\n'
 printf 'linking %s\n' "$output"
 "$compiler" "${link_flags[@]}" \
     "$build_dir/rtm.o" "$build_dir/lino_file.o" \
-    "$build_dir/lino_keyboard.o" "$build_dir/lino_cocoa.o" \
-    "$build_dir/isokernel.o" -framework Cocoa -o "$output"
-printf 'built unsigned thin-arm64 Cocoa RTM %s\n' "$output"
+    "$build_dir/lino_keyboard.o" "$build_dir/lino_sound.o" \
+    "$build_dir/lino_cocoa.o" "$build_dir/isokernel.o" \
+    -framework Cocoa -framework AudioToolbox -o "$output"
+printf 'built unsigned thin-arm64 Cocoa/audio RTM %s\n' "$output"

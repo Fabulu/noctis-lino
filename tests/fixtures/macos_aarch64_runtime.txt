@@ -2,17 +2,18 @@
 
     unit = 32;
     program name = { native macOS AArch64 fixture };
-
-"variables"
-
-    slot = 0;
+    modular extensions = audio playback;
+    display width = 0;
+    display height = 0;
 
 "programme"
 
-    [slot] = 12345678h;
-    A = 1;
-    B = 2;
-    C = 3;
-    D = 4;
-    E = 5;
+    [PCM data Offset] = -1;
+    [PCM data Command] = GET DATA OFFSET;
+    isocall;
+    A = X;
+    B = [PCM data Offset];
+    C = [PCM data Channels];
+    D = [PCM data Bits Per Sample];
+    E = [PCM data Samples Per Sec];
     end;

@@ -27,6 +27,8 @@ on:
       - "src/linoleum_macos64/lino_kernel.h"
       - "src/linoleum_macos64/lino_luck.h"
       - "src/linoleum_macos64/lino_mouse.h"
+      - "src/linoleum_macos64/lino_sound.c"
+      - "src/linoleum_macos64/lino_sound.h"
       - "src/linoleum_macos64/lino_types.h"
       - "src/linoleum_macos64/rtm.h"
       - "work/**.txt"
@@ -73,6 +75,8 @@ on:
       - "src/linoleum_macos64/lino_kernel.h"
       - "src/linoleum_macos64/lino_luck.h"
       - "src/linoleum_macos64/lino_mouse.h"
+      - "src/linoleum_macos64/lino_sound.c"
+      - "src/linoleum_macos64/lino_sound.h"
       - "src/linoleum_macos64/lino_types.h"
       - "src/linoleum_macos64/rtm.h"
       - "work/**.txt"
@@ -127,11 +131,8 @@ jobs:
           test "$(lipo -archs build/macos-aarch64-rtm/rtm01.bin)" = arm64
           otool -L build/macos-aarch64-rtm/rtm01.bin \
             | grep -q '/Cocoa.framework/'
-          if otool -L build/macos-aarch64-rtm/rtm01.bin \
-              | grep -q '/AudioToolbox.framework/'; then
-            echo 'ARM64 smoke runtime unexpectedly links deferred audio' >&2
-            exit 1
-          fi
+          otool -L build/macos-aarch64-rtm/rtm01.bin \
+            | grep -q '/AudioToolbox.framework/'
           xcrun vtool -show-build build/macos-aarch64-rtm/rtm01.bin \
             | grep -Eq 'minos[[:space:]]+11\.0'
           if codesign --verify build/macos-aarch64-rtm/rtm01.bin \
@@ -291,11 +292,11 @@ jobs:
           values = dict(field.split("=", 1) for field in text[len(prefix):].split())
           expected = {
               "status": "0",
-              "A": "00000001",
-              "B": "00000002",
-              "C": "00000003",
-              "D": "00000004",
-              "E": "00000005",
+              "A": "646F6E65",
+              "B": "00000000",
+              "C": "00000002",
+              "D": "00000010",
+              "E": "0000AC44",
               "X": "646F6E65",
           }
           if any(values.get(key) != value for key, value in expected.items()):
@@ -318,6 +319,7 @@ jobs:
           file "$output" | grep -q 'arm64'
           test "$(lipo -archs "$output")" = arm64
           otool -L "$output" | grep -q '/Cocoa.framework/'
+          otool -L "$output" | grep -q '/AudioToolbox.framework/'
           codesign --verify --strict --verbose=2 "$output"
 
           rm -rf "$data"
@@ -399,10 +401,7 @@ jobs:
           test "$(lipo -archs "$launcher")" = arm64
           test "$(lipo -archs "$game")" = arm64
           otool -L "$game" | grep -q '/Cocoa.framework/'
-          if otool -L "$game" | grep -q '/AudioToolbox.framework/'; then
-            echo 'deferred ARM64 audio was linked unexpectedly' >&2
-            exit 1
-          fi
+          otool -L "$game" | grep -q '/AudioToolbox.framework/'
           xcrun vtool -show-build "$launcher" | grep -Eq 'minos[[:space:]]+11\.0'
           xcrun vtool -show-build "$game" | grep -Eq 'minos[[:space:]]+11\.0'
           plutil -extract CFBundleIdentifier raw "$app/Contents/Info.plist" \

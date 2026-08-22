@@ -89,6 +89,7 @@ static void *pCode;
 static size_t pCodeMapBytes;
 static size_t pWorkspaceMapBytes;
 static size_t systemPageSize;
+static bool soundInitializationAttempted;
 static bool displayInitialized;
 
 static void report_error(const char *message)
@@ -617,6 +618,9 @@ void ISOKRNLCALL(void)
         ++isostatus;
     if (!krnlDisplayCommand((DisplayCommand) pUIWorkspace[mm_DisplayCommand]))
         ++isostatus;
+    if (!krnlPCMdataCommand(
+            (PCMdataCommand) pUIWorkspace[mm_PCMdataCommand]))
+        ++isostatus;
     if (!krnlConsoleCommand((ConsoleCommand) pUIWorkspace[mm_ConsoleCommand]))
         ++isostatus;
     if (!krnlFileCommand((FileCommand) pUIWorkspace[mm_FileCommand]))
@@ -626,7 +630,6 @@ void ISOKRNLCALL(void)
     if (!krnl_process_command(pUIWorkspace[mm_ProcessCommand]))
         ++isostatus;
 
-    reject_unsupported_command(mm_PCMdataCommand);
     reject_unsupported_command(mm_APDCommand);
     reject_unsupported_command(mm_PrinterCommand);
     reject_unsupported_command(mm_NetCommand);
@@ -748,6 +751,8 @@ int main(int argc, char **argv, char **env)
     pUIWorkspace[mm_PCMdataStatus] = 0;
     pUIWorkspace[mm_PointerMode] = IParagraph->pointermode;
     publish_runtime_pointers();
+    soundInitializationAttempted = true;
+    (void) lino_sound_init();
     set_code_entry(entry_bytes);
 
     if (IParagraph->lfb_w_atstartup > 0 &&
@@ -783,6 +788,11 @@ int main(int argc, char **argv, char **env)
 cleanup:
     if (descriptor >= 0)
         (void) close(descriptor);
+    if (soundInitializationAttempted) {
+        if (!lino_sound_close())
+            result = EXIT_FAILURE;
+        soundInitializationAttempted = false;
+    }
     if (displayInitialized) {
         if (!lino_display_close())
             result = EXIT_FAILURE;

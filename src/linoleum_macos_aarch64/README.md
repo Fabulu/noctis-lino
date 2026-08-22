@@ -5,8 +5,10 @@ Lino code natively on Apple Silicon. Its current product checkpoint links the
 shared Cocoa display, input, console, and file services and runs full Noctis
 through first retrace and graceful Lino shutdown. The Finder-safe native app package
 adds an arm64 launcher, safe per-user data staging, an internal manifest, exact
-signature validation, and archive checksum/provenance. Audio, networking, GlobalK,
-clipboard integration, and broader product-level playtests remain deferred.
+signature validation, and archive checksum/provenance. The shared AudioQueue service
+publishes the historical stereo 16-bit/44.1 kHz PCM ABI and remains optional when
+no output device is available. Networking, GlobalK, clipboard integration, and
+broader product-level playtests remain deferred.
 
 The register ABI matches the Linux bridge:
 
@@ -53,5 +55,5 @@ finalized game and its recorded build provenance. It emits
 Apple-Silicon gate extracts the archive independently and exercises both first
 retrace and graceful shutdown through the launcher.
 
-Open work after this checkpoint includes native audio and remaining optional
-services plus broader product-level playtests.
+Open work after this checkpoint includes remaining optional services plus broader
+product-level audio/playtesting on physical Apple-Silicon systems.
