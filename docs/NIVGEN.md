@@ -449,6 +449,15 @@ of the four authoritative HM/OC targets. The retained report is
 No alternate gap values were searched; other heap blocks and the intervening
 body-3 texture/planet processes remain untested.
 
+A second bounded check rejects the simplest default-to-random carryover path.
+For the six sparse authoritative candidate bytes in bodies 5, 8, 10, and 11,
+the byte at the same scored offset in SheetBot's immediately preceding default
+`surftex` output matches none of the target candidates. The retained report is
+`tests/gen/nivgen-xenofelys-prior-command-sparse-probe.json` (SHA-256
+`f877cd3d11c969e13bfaec356161b8b451fa5bae24703e17d22791478563d51f`). No alternate offsets
+or values were searched; a shifted allocation, scratch buffer, header effect,
+or earlier process payload remains possible.
+
 SheetBot identifies the deployed original engine by source hash
 `fb067a16c36f3b67a139fec3c47be483e3bb93965d467612724234d608ef21ac`.
 Its hash input includes `tests/harness/NIVTEST.CPP`, `NIVHASH.C`, `NIVHASH.H`,

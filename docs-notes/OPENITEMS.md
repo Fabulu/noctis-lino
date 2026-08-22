@@ -1856,7 +1856,13 @@ changed the default/random object charts to `DA454969`/`FDB335DA`, none of which
 matches the four authoritative HM/OC residuals. The retained report SHA-256 is
 `b3367dc37137743076436f963ad2d75711570bdf7384319b1fbac999769c18c0`.
 No alternative gap was searched; unrecorded heap payload and allocation history
-remain open.
+remain open. A second bounded check rejects direct same-offset carryover from
+each random `surftex` command's immediately preceding default command: none of
+the six sparse authoritative candidate bytes for bodies 5, 8, 10, and 11 equals
+the predecessor byte at that offset. Its report SHA-256 is
+`f877cd3d11c969e13bfaec356161b8b451fa5bae24703e17d22791478563d51f`. No shifted offsets or
+alternate values were searched, so other allocation mappings and earlier chunk
+history remain open.
 
 SheetBot pins the original engine source as
 `fb067a16c36f3b67a139fec3c47be483e3bb93965d467612724234d608ef21ac`.
