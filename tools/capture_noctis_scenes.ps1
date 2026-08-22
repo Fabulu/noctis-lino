@@ -255,6 +255,13 @@ $assetNames = @(
     'globes.map', 'offsets.map', 'vehicle.ncc', 'mammal.ncc', 'birdy.ncc',
     'digimap2.bin', 'STARMAP.BIN', 'GUIDE.BIN', 'noctis_music.pcm'
 )
+$diagnosticSizes = [ordered]@{
+    'game-vh-out.bin' = 156
+    'game-sun-out.bin' = 128
+    'game-local-out.bin' = 176
+    'game-palette-out.bin' = 3072
+    'game-page-out.bin' = 64000
+}
 
 Add-Type -AssemblyName System.Drawing
 Add-Type @'
@@ -740,14 +747,7 @@ foreach ($spec in $scenes) {
             }
         }
         if ($KeepStages) {
-            $diagnostics = [ordered]@{
-                'game-vh-out.bin' = 156
-                'game-sun-out.bin' = 128
-                'game-local-out.bin' = 176
-                'game-palette-out.bin' = 3072
-                'game-page-out.bin' = 64000
-            }
-            foreach ($entry in $diagnostics.GetEnumerator()) {
+            foreach ($entry in $diagnosticSizes.GetEnumerator()) {
                 $source = Join-Path $stage $entry.Key
                 if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
                     throw "Scene $($spec.Name) did not emit $($entry.Key)"
@@ -763,6 +763,20 @@ foreach ($spec in $scenes) {
             }
         }
     } finally {
+        # Keep any diagnostics emitted before an early product exit. This makes a
+        # hosted failure discriminating without weakening the successful path's
+        # complete size checks above.
+        if (-not $Interactive -and $KeepStages -and (Test-Path -LiteralPath $stage)) {
+            foreach ($entry in $diagnosticSizes.GetEnumerator()) {
+                $source = Join-Path $stage $entry.Key
+                $diagnosticPath = Join-Path $outputPath ('{0}-{1}' -f $spec.Name, $entry.Key)
+                if ((Test-Path -LiteralPath $source -PathType Leaf) -and
+                    -not (Test-Path -LiteralPath $diagnosticPath)) {
+                    Copy-Item -LiteralPath $source -Destination $diagnosticPath
+                    Write-Output ("PARTIAL DIAGNOSTIC {0} -> {1}" -f $entry.Key, $diagnosticPath)
+                }
+            }
+        }
         if ($proc -and -not $proc.HasExited) {
             # Prefer the game's own Escape path so it saves state and flushes
             # performance telemetry. Hidden automated windows cannot receive
