@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+import plistlib
 import struct
 import sys
+import tempfile
 import unittest
 
 
@@ -18,6 +20,7 @@ RUN_ALL = ROOT / "tests" / "run_all.py"
 sys.path.insert(0, str(ROOT / "tools"))
 
 import finalize_macos_aarch64 as finalize  # noqa: E402
+import package_noctis_macos_aarch64 as package  # noqa: E402
 
 
 RUNTIME_SIZE = 0x8000
@@ -180,12 +183,49 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("COCOA_QUIT_SMOKE_OK", workflow)
         self.assertIn("LLDB CRASH DIAGNOSTIC", workflow)
         self.assertIn("thread backtrace all", workflow)
+        self.assertIn("package_noctis_macos_aarch64.py", workflow)
+        self.assertIn("Noctis-IV-macos-arm64.zip", workflow)
+        self.assertIn("Packaged native ARM64 app retrace", workflow)
+        self.assertIn("--launcher-prepare-only", workflow)
         self.assertIn("CURRENT.LIN", workflow)
         self.assertIn("Native compiler-owned AArch64 fixture passed", workflow)
         self.assertIn("A = 1;", fixture)
         self.assertIn("E = 5;", fixture)
         self.assertIn("end;", fixture)
         self.assertEqual(run_all.count('(\"test_macos_aarch64_runtime.py\",'), 1)
+
+    def test_arm64_package_metadata_and_provenance(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plist = root / "Info.plist"
+            package.write_plist(plist, "0.1.0", "42", "test-build")
+            values = plistlib.loads(plist.read_bytes())
+            self.assertEqual(values["CFBundleIdentifier"], package.BUNDLE_ID)
+            self.assertEqual(values["LSArchitecturePriority"], ["arm64"])
+            self.assertEqual(
+                values["LSMinimumSystemVersion"],
+                package.DEPLOYMENT_TARGET,
+            )
+
+            provenance = root / "build.provenance.txt"
+            provenance.write_text(
+                "".join(
+                    f"{key}=value\n"
+                    for key in sorted(package.REQUIRED_BUILD_KEYS)
+                ),
+                encoding="ascii",
+            )
+            lines, records = package.read_build_provenance(provenance)
+            self.assertEqual(len(lines), len(package.REQUIRED_BUILD_KEYS))
+            self.assertEqual(set(records), package.REQUIRED_BUILD_KEYS)
+
+            arm64 = root / "arm64"
+            arm64.write_bytes(struct.pack("<II", finalize.MH_MAGIC_64,
+                                          package.CPU_TYPE_ARM64))
+            package.validate_arm64_macho(arm64)
+            arm64.write_bytes(struct.pack("<II", finalize.MH_MAGIC_64, 7))
+            with self.assertRaisesRegex(ValueError, "not arm64"):
+                package.validate_arm64_macho(arm64)
 
     def test_normalizer_extends_only_linkedit(self) -> None:
         original = unsigned_image()

@@ -8,7 +8,12 @@ on:
       - "build/compile_macos_aarch64_fixture.sh"
       - "build/build_compiler114m_linux.sh"
       - "tools/finalize_macos_aarch64.py"
+      - "tools/package_noctis_macos_aarch64.py"
+      - "tools/package_noctis_macos.py"
       - "tools/pack_lino_sys.py"
+      - "src/noctis_macos_launcher/launcher.c"
+      - "PLAYER_README.txt"
+      - "LICENSE.htm"
       - "tests/fixtures/macos_aarch64_runtime.txt"
       - "tests/test_macos_aarch64_runtime.py"
       - "tests/run_all.py"
@@ -25,6 +30,7 @@ on:
       - "src/linoleum_macos64/lino_types.h"
       - "src/linoleum_macos64/rtm.h"
       - "work/**.txt"
+      - "work/*.tga"
       - "work/globes.map"
       - "work/offsets.map"
       - "work/vehicle.ncc"
@@ -48,7 +54,12 @@ on:
       - "build/compile_macos_aarch64_fixture.sh"
       - "build/build_compiler114m_linux.sh"
       - "tools/finalize_macos_aarch64.py"
+      - "tools/package_noctis_macos_aarch64.py"
+      - "tools/package_noctis_macos.py"
       - "tools/pack_lino_sys.py"
+      - "src/noctis_macos_launcher/launcher.c"
+      - "PLAYER_README.txt"
+      - "LICENSE.htm"
       - "tests/fixtures/macos_aarch64_runtime.txt"
       - "tests/test_macos_aarch64_runtime.py"
       - "tests/run_all.py"
@@ -65,6 +76,7 @@ on:
       - "src/linoleum_macos64/lino_types.h"
       - "src/linoleum_macos64/rtm.h"
       - "work/**.txt"
+      - "work/*.tga"
       - "work/globes.map"
       - "work/offsets.map"
       - "work/vehicle.ncc"
@@ -210,6 +222,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import hashlib
+          import os
 
           paths = (
               "build/linux-compiler114m.bin",
@@ -219,7 +232,7 @@ jobs:
               "work/vhgame.txt",
               "build/macos-aarch64-noctis.unsigned",
           )
-          lines = []
+          lines = [f"commit={os.environ['GITHUB_SHA']}\n"]
           for name in paths:
               digest = hashlib.sha256(Path(name).read_bytes()).hexdigest()
               lines.append(f"{name}_sha256={digest}\n")
@@ -361,6 +374,123 @@ jobs:
           print("Native ARM64 Cocoa retrace and graceful Lino shutdown passed")
           PY
 
+      - name: Package and smoke the Finder-safe ARM64 app
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/package_noctis_macos_aarch64.py \
+            --game build/Noctis-IV-arm64.game \
+            --unsigned-game build/compiler-image/macos-aarch64-noctis.unsigned \
+            --build-provenance build/compiler-image/macos-aarch64-fixture.provenance.txt \
+            --output dist \
+            --short-version 0.1.0 \
+            --build-version "$GITHUB_RUN_NUMBER" \
+            --release-label "development-${GITHUB_SHA:0:12}" \
+            --expected-commit "$GITHUB_SHA"
+
+          rm -rf build/arm64-package-smoke build/noctis-arm64-package-data
+          mkdir -p build/arm64-package-smoke
+          ditto -x -k dist/Noctis-IV-macos-arm64.zip build/arm64-package-smoke
+          app="$PWD/build/arm64-package-smoke/Noctis IV.app"
+          launcher="$app/Contents/MacOS/Noctis-IV"
+          game="$app/Contents/MacOS/Noctis-IV.game"
+          data="$PWD/build/noctis-arm64-package-data"
+
+          test "$(lipo -archs "$launcher")" = arm64
+          test "$(lipo -archs "$game")" = arm64
+          otool -L "$game" | grep -q '/Cocoa.framework/'
+          if otool -L "$game" | grep -q '/AudioToolbox.framework/'; then
+            echo 'deferred ARM64 audio was linked unexpectedly' >&2
+            exit 1
+          fi
+          xcrun vtool -show-build "$launcher" | grep -Eq 'minos[[:space:]]+11\.0'
+          xcrun vtool -show-build "$game" | grep -Eq 'minos[[:space:]]+11\.0'
+          plutil -extract CFBundleIdentifier raw "$app/Contents/Info.plist" \
+            | grep -qx 'io.github.fabulu.noctis-iv'
+          plutil -extract LSArchitecturePriority.0 raw "$app/Contents/Info.plist" \
+            | grep -qx arm64
+          codesign --verify --deep --strict --verbose=2 "$app"
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, str(Path("tools").resolve()))
+          from finalize_macos_aarch64 import validate_final
+          from package_noctis_macos import verify_manifest
+
+          app = Path("build/arm64-package-smoke/Noctis IV.app")
+          verify_manifest(app)
+          validate_final((app / "Contents/MacOS/Noctis-IV.game").read_bytes())
+          print("Extracted ARM64 app manifest and game signature geometry verified")
+          PY
+
+          NOCTIS_DATA_DIR="$data" arch -arm64 "$launcher" \
+            --launcher-prepare-only | grep -q '^NOCTIS_DATA_DIR='
+          for file in globes.map offsets.map vehicle.ncc mammal.ncc birdy.ncc \
+            digimap2.bin noctis_music.pcm STARMAP.BIN GUIDE.BIN; do
+            test -f "$data/$file"
+          done
+          for seed in STARMAP.BIN GUIDE.BIN; do
+            cp "$data/$seed" "build/$seed.arm64-seed"
+            printf 'user-state-must-survive' >> "$data/$seed"
+            cp "$data/$seed" "build/$seed.arm64-modified"
+          done
+          rm "$data/globes.map"
+          NOCTIS_DATA_DIR="$data" arch -arm64 "$launcher" \
+            --launcher-prepare-only >/dev/null
+          cmp "$data/globes.map" "$app/Contents/Resources/globes.map"
+          for seed in STARMAP.BIN GUIDE.BIN; do
+            cmp "$data/$seed" "build/$seed.arm64-modified"
+            cp "build/$seed.arm64-seed" "$data/$seed"
+          done
+
+          mv "$data/GUIDE.BIN" build/GUIDE.arm64-regular
+          mkdir "$data/GUIDE.BIN"
+          if NOCTIS_DATA_DIR="$data" arch -arm64 "$launcher" \
+              --launcher-prepare-only >/dev/null 2>&1; then
+            echo 'ARM64 launcher accepted a non-regular mutable seed' >&2
+            exit 1
+          fi
+          rmdir "$data/GUIDE.BIN"
+          mv build/GUIDE.arm64-regular "$data/GUIDE.BIN"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import subprocess
+
+          launcher = Path(
+              "build/arm64-package-smoke/Noctis IV.app/Contents/MacOS/Noctis-IV"
+          ).resolve()
+          data = Path("build/noctis-arm64-package-data").resolve()
+          environment = os.environ.copy()
+          environment["NOCTIS_DATA_DIR"] = str(data)
+
+          def run_smoke(switch, marker, log_name):
+              result = subprocess.run(
+                  ["arch", "-arm64", str(launcher), switch],
+                  env=environment,
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT,
+                  timeout=180,
+              )
+              print(result.stdout)
+              Path(log_name).write_text(result.stdout, encoding="utf-8")
+              if result.returncode != 0 or marker not in result.stdout:
+                  raise SystemExit(
+                      f"packaged {switch} failed with status {result.returncode}")
+
+          run_smoke("--cocoa-smoke", "COCOA_SMOKE_OK",
+                    "build/macos-aarch64-package-cocoa-smoke.txt")
+          checkpoint = data / "CURRENT.LIN"
+          checkpoint.unlink(missing_ok=True)
+          run_smoke("--cocoa-quit-smoke", "COCOA_QUIT_SMOKE_OK",
+                    "build/macos-aarch64-package-cocoa-quit-smoke.txt")
+          if not checkpoint.is_file() or checkpoint.stat().st_size == 0:
+              raise SystemExit("packaged graceful quit did not save CURRENT.LIN")
+          print("Packaged native ARM64 app retrace and graceful shutdown passed")
+          PY
+
       - name: Upload native execution evidence
         uses: actions/upload-artifact@v7
         with:
@@ -372,5 +502,11 @@ jobs:
             build/macos-aarch64-cocoa-smoke.txt
             build/macos-aarch64-cocoa-quit-smoke.txt
             build/noctis-arm64-data/CURRENT.LIN
+            build/macos-aarch64-package-cocoa-smoke.txt
+            build/macos-aarch64-package-cocoa-quit-smoke.txt
+            build/noctis-arm64-package-data/CURRENT.LIN
             build/compiler-image/macos-aarch64-fixture.provenance.txt
+            dist/Noctis-IV-macos-arm64.zip
+            dist/Noctis-IV-macos-arm64.zip.sha256
+            dist/Noctis-IV-macos-arm64.provenance.txt
           if-no-files-found: error
