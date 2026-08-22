@@ -2148,10 +2148,15 @@ stack unit maps to one 16-byte physical SP slot. Signed extended adjustments,
 pre/post-indexed push/pop, and scaled relative addresses therefore preserve
 AArch64 alignment; a generated call occupies one such slot, and the execution
 fixture proves a callee can reach its caller's stack value at relative unit one.
-Unconditional and status branches, internal calls, returns, and the exact
-full-width isocall ABI are also covered. Fixed two-word immediates keep pass-one
-and code-pass lengths identical, and internal calls preserve the host link
-register.
+Tracked q71/q72 preserve the eight-slot `PUSHA`/`POPA` order
+A,C,D,B,saved-SP,X,E,WS in one aligned 128-byte block. WS is saved and restored
+at full pointer width, while pop-all deliberately skips the saved-SP slot. The
+generated image rewrites every exposed restore slot, proves A-E and the DONE
+value in X were restored, and then uses direct workspace access to prove the
+restored WS remains valid. Unconditional and status branches, internal calls,
+returns, and the exact full-width isocall ABI are also covered. Fixed two-word
+immediates keep pass-one and code-pass lengths identical, and internal calls
+preserve the host link register.
 
 Ordinary scalar binary32 negation, magnitude, addition, subtraction,
 multiplication, and division transfer raw IEEE-754 bits between W registers and
@@ -2194,10 +2199,10 @@ and executes the resulting ELF above 4 GB under QEMU. Independent encoded
 fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
 refusals. All 12 checks, including compiler-produced value exchange, split
-division, split multiplication, scalar arithmetic, conversion, ordered/unordered
-comparison, square-root, sine, cosine, bounded partial-remainder, and
-partial-arctangent execution, passed in hosted run 32575511694 at commit
-`fa158b0`.
+division, split multiplication, q71/q72 whole-register save/restore, scalar
+arithmetic, conversion, ordered/unordered comparison, square-root, sine, cosine,
+bounded partial-remainder, and partial-arctangent execution, passed in hosted run
+32575829987 at commit `a09ec5b`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.

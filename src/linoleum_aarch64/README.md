@@ -133,6 +133,12 @@ load/store cover every canonical immediate, register, direct-workspace, and
 indirect-workspace form. One abstract 32-bit Lino stack unit occupies one
 16-byte physical SP slot, so arbitrary adjustments and nested generated calls
 preserve the AArch64 ABI's alignment while stack-relative values remain 32-bit.
+Tracked q71/q72 mirror the eight-slot `PUSHA`/`POPA` layout as
+A,C,D,B,saved-SP,X,E,WS. They reserve 128 aligned physical bytes, retain WS as a
+full-width pointer, and deliberately ignore the saved-SP slot while restoring.
+The generated image rewrites the exposed stack slots before pop-all, then proves
+A-E and the DONE value in X were restored and direct workspace access still uses
+the restored WS.
 
 Scalar binary32 negation, magnitude, addition, subtraction, multiplication, and
 division move raw IEEE-754 bits between W registers and S0/S1, execute one
