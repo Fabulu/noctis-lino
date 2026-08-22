@@ -2119,7 +2119,10 @@ Remainders use a W12 quotient and `MSUB`; rotate-left negates its count into W12
 before `RORV`; both retain W9 effective indexes through memory writeback.
 Equality, signed and unsigned comparisons, and zero/nonzero bit-test branches
 accept the same binary inputs without writeback. Source-first loads preserve
-aliases across direct/indirect pairs.
+aliases across direct/indirect pairs. Tracked q73 value exchange now covers all
+121 register, direct, and canonical indirect pairings. Memory pairs load both
+old values before either write, recompute the right effective index, and fix an
+indirect address before changing an aliased pointer register such as `A <> [A]`.
 
 Stack push/pop, `$+`/`$-` unit-count adjustment, and `=$:`/`$:=`
 immediate-relative access now cover every canonical immediate, register, direct,
@@ -2173,10 +2176,10 @@ fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source
 and executes the resulting ELF above 4 GB under QEMU. Independent encoded
 fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
-refusals. All 12 checks, including compiler-produced scalar arithmetic,
-conversion, ordered/unordered comparison, square-root, sine, cosine, bounded
-partial-remainder, and partial-arctangent execution, passed in hosted run
-32573991023 at commit `41a43ce`.
+refusals. All 12 checks, including compiler-produced value exchange, scalar
+arithmetic, conversion, ordered/unordered comparison, square-root, sine, cosine,
+bounded partial-remainder, and partial-arctangent execution, passed in hosted run
+32574577445 at commit `dff34b1`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.

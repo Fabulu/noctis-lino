@@ -103,7 +103,11 @@ binary right operands may be immediate, register, direct, or indirect. Memory
 left operands are written back. Equality, signed/unsigned comparisons, and
 bit-test branches accept the same binary input combinations without writeback.
 Source operands are loaded before memory destinations, including aliasing
-indirect forms.
+indirect forms. Tracked q73 value exchange covers all 121 register, direct, and
+canonical indirect operand pairs. Both old memory values are loaded before the
+first write, the right effective index is recomputed for its writeback, and an
+indirect address is fixed before changing an aliased pointer register such as
+`A <> [A]`.
 
 Stack push/pop, unit-count SP adjustment, and immediate-relative stack
 load/store cover every canonical immediate, register, direct-workspace, and
