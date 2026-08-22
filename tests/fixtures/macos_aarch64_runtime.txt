@@ -11,9 +11,14 @@
     [PCM data Offset] = FFFFFFFFh;
     [PCM data Command] = GET DATA OFFSET;
     isocall;
-    A = X;
+    ? failed -> audio service failed;
+    A = 646F6E65h;
     B = [PCM data Offset];
     C = [PCM data Channels];
     D = [PCM data Bits Per Sample];
     E = [PCM data Samples Per Sec];
     end;
+
+"audio service failed"
+
+    fail;
