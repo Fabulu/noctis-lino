@@ -296,6 +296,45 @@ surf=390A2CCB atmo=114562E8 pal=26961E4A hm=97022FD7
 oc=22913F4E stex=0D52F001 sky=1E308D29
 ```
 
+### BLUNASTERIS public-worker discriminator
+
+Joris van de Donk's visual report for BLUNASTERIS planet 5 identifies zero-based
+NIVGEN body 4, type 1, at `(-61132592, 29530985, 540729)`. The public original
+and Rust orbital hashes are surface `4C19BF82`, atmosphere `8BA1CB05`, and
+palette `8FA05580`. A current local Windows build matches all three. The public
+Lino result instead reports surface `DAB537D6` and palette `3A6FD9CD`, while its
+atmosphere and all eight landed fields match the original.
+
+This discrepancy does not reproduce on macOS. Hosted run
+[`32587315736`](https://github.com/Fabulu/noctis-lino/actions/runs/32587315736)
+executed the provenance-bound current x86_64 binary through Rosetta and matched
+all seven original default-site fields:
+
+```text
+surf=4C19BF82 atmo=8BA1CB05 pal=8FA05580 hm=FDDDF3A2
+oc=1AA95391 stex=62C6B0B6 sky=7B252DC5
+```
+
+The current render is pixel-identical to Rust. Its 359 differing pixels against
+the original public PNG are confined to rows 169--179, outside the surface hash's
+rows 0--127. The public Lino render differs from current at 62,399 of 64,800
+pixels and lacks the original crater/ray structure.
+
+The public BLUNASTERIS row was produced by binary SHA-256
+`01a945e3c4ed40324bcc9429bc1a4421fb6a1c7580499833cd5f424f8a7fc949`.
+The exact Rosetta binary above is
+`eecc11900f11bdfd76f3fec6f6ddcfd3e76ca42b63b699f559b58ab5408f4526`
+and binds the fixed x64 CPU pack
+`821d55c7c01e388a7622d2ba905c8480d75d5a0d66eddb8eae6580e7638a3c7c`.
+SheetBot commit `b7847bef16f08976c0a7e813410eec07d03d7775` still executes and hashes
+`build/nivlin`; the current repository instead builds `build/nivtest` and exposes
+it through `tools/nivlin`. The registry does not bind the public binary to a
+source, compiler, CPU pack, SYS pack, or runtime. Regenerate this star with a
+clean current build before attributing its artifact to generator arithmetic.
+The retained evidence is
+`tests/gen/nivgen-blunasteris5-worker-provenance.json` (SHA-256
+`8db4cec9d6a099c5eea48932329300befdf28b5ec58280cc4f04f1910a0c9aa0`).
+
 That fixture and the selected 114/118 historical sample below are smoke tests
 only. They do not supersede the full-sheet result.
 

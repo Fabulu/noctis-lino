@@ -1,0 +1,70 @@
+{
+  "date": "2026-08-22",
+  "purpose": "Distinguish a current Lino generator defect from a stale or mismatched public macOS worker by reproducing Joris van de Donk's BLUNASTERIS 5 visual report under Windows and Rosetta.",
+  "identity": {
+    "star": "BLUNASTERIS",
+    "display_planet_number": 5,
+    "nivgen_zero_based_body": 4,
+    "type": 1,
+    "coordinates": [-61132592, 29530985, 540729],
+    "sheet_key": "BLUNASTERIS|4",
+    "sheet_row_updated_at": "2026-08-22T14:04:11.279Z",
+    "lino_attempted_at": "2026-08-22T14:04:12.582Z"
+  },
+  "public_artifacts": {
+    "orig": "https://litterbox.moos.es/artefacts/public/nivgen/orig_surface_-61132592_29530985_540729_4.png",
+    "rust": "https://litterbox.moos.es/artefacts/public/nivgen/rust_surface_-61132592_29530985_540729_4.png",
+    "lino": "https://litterbox.moos.es/artefacts/public/nivgen/lino_surface_-61132592_29530985_540729_4.png"
+  },
+  "orbital_hashes": {
+    "orig": {"surf": "4C19BF82", "atmo": "8BA1CB05", "pal": "8FA05580"},
+    "rust": {"surf": "4C19BF82", "atmo": "8BA1CB05", "pal": "8FA05580"},
+    "public_lino": {"surf": "DAB537D6", "atmo": "8BA1CB05", "pal": "3A6FD9CD"},
+    "current_windows_lino": {"surf": "4C19BF82", "atmo": "8BA1CB05", "pal": "8FA05580"}
+  },
+  "public_lino_other_fields": {
+    "result": "All eight landed fields match the original; together with atmosphere this makes nine exact fields out of eleven. Only orbital surface and palette differ.",
+    "default": {"hm": "FDDDF3A2", "oc": "1AA95391", "stex": "62C6B0B6", "sky": "7B252DC5"},
+    "random_site": {"lon": 4, "lat": 50, "hm": "9C094732", "oc": "B3BDFD7F", "stex": "ECB74D77", "sky": "7B252DC5"}
+  },
+  "current_rosetta_reproduction": {
+    "workflow_run": "https://github.com/Fabulu/noctis-lino/actions/runs/32587315736",
+    "commit": "de74e7bdc997b8cb1aa52005b028796cc9fc130d",
+    "status": 0,
+    "body": 4,
+    "type": 1,
+    "hashes": {
+      "surf": "4C19BF82",
+      "atmo": "8BA1CB05",
+      "pal": "8FA05580",
+      "hm": "FDDDF3A2",
+      "oc": "1AA95391",
+      "stex": "62C6B0B6",
+      "sky": "7B252DC5"
+    },
+    "nivtest_executable_sha256": "eecc11900f11bdfd76f3fec6f6ddcfd3e76ca42b63b699f559b58ab5408f4526",
+    "source_sha256": "0e4af2932e46970fbf6b4faea632bea40afb1ac87e55367ca8715e6bb5fafb01",
+    "cpu_pack_sha256": "821d55c7c01e388a7622d2ba905c8480d75d5a0d66eddb8eae6580e7638a3c7c",
+    "target": "macos/x64",
+    "host": "macOS 15.7.7 arm64 through Rosetta"
+  },
+  "render_comparison": {
+    "dimensions": [360, 180],
+    "current_vs_rust_changed_pixels": 0,
+    "current_vs_orig_changed_pixels": 359,
+    "current_vs_orig_changed_y_range": [169, 179],
+    "current_vs_public_lino_changed_pixels": 62399,
+    "scored_surface_rows": [0, 127],
+    "interpretation": "Current and Rust renders are pixel-identical. Every current/original rendered difference is in the last eleven unscored rows. The public Lino image differs across nearly the complete rendered map and omits the large crater/ray structure visible in the original, Rust, current Lino, and the supplied in-game image."
+  },
+  "worker_provenance": {
+    "public_lino_binary_sha256": "01a945e3c4ed40324bcc9429bc1a4421fb6a1c7580499833cd5f424f8a7fc949",
+    "engine_registry_updated_at": "2026-08-22T17:10:22.033Z",
+    "sheetbot_repository": "https://github.com/jorisvddonk/sheetbot",
+    "sheetbot_commit": "b7847bef16f08976c0a7e813410eec07d03d7775",
+    "sheetbot_contract": "scripts/lib/nivgen_common.ts hashes and executes ../noctis-lino/build/nivlin, with NIVLIN_DIR as an override.",
+    "current_repository_contract": "build/build_nivtest.sh produces build/nivtest and tools/nivlin wraps tools/nivtest.py around it. No tracked build/build_nivlin.sh produces the path expected by SheetBot.",
+    "comparison": "The public worker binary SHA-256 differs from the provenance-bound current Rosetta binary, and the public build path is not the current documented build path. The public binary has no source/CPU/SYS/runtime closure in the engine registry."
+  },
+  "conclusion": "The BLUNASTERIS report does not reproduce in current Lino on Windows or macOS/Rosetta. Current Lino matches all seven original default-site hashes and the meaningful original/Rust orbital image, while the public worker alone differs in surface and palette. This confirms a stale or mismatched public worker artifact rather than a current cross-platform generator defect. Replace the public build/nivlin with a clean provenance-bound build from the current production vhnivgen topology, then regenerate BLUNASTERIS before investigating generator arithmetic. The evidence identifies the worker boundary but cannot determine which exact stale source, CPU pack, SYS pack, or runtime produced binary 01a945e3 without that binary's missing build provenance."
+}
