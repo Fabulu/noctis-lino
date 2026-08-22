@@ -32,7 +32,7 @@ The bridge saves and restores `x19`-`x25`, `x29`, and `x30`, and keeps SP aligne
 to 16 bytes at every C boundary.
 
 The historical workspace and UI workspace still contain 32-bit units. UI slots
-0-3 retain their historical layout; AArch64 reserves six previously unused
+0-3 retain their historical layout; AArch64 reserves eight previously unused
 slots:
 
 | UI unit | Value |
@@ -41,16 +41,20 @@ slots:
 | 5 | isokernel address bits 32-63 |
 | 6 | code-origin address bits 0-31 |
 | 7 | code-origin address bits 32-63 |
-| 8 | scalar-math helper address bits 0-31 |
-| 9 | scalar-math helper address bits 32-63 |
+| 8 | scalar-unary helper address bits 0-31 |
+| 9 | scalar-unary helper address bits 32-63 |
+| 10 | scalar-binary helper address bits 0-31 |
+| 11 | scalar-binary helper address bits 32-63 |
 
 An AArch64 call loads and combines UI units 4 and 5, saves `x30` in a
 16-byte-aligned frame, and uses `blr`. The isokernel preserves A-E, returns DONE
 or FAIL in X, and reloads WS from `pWorkspace` after C because RAMtop growth may
 replace the mapping. No legacy 32-bit pointer or code-relative delta is written.
-Generated sine and cosine calls reconstruct the separate full-width helper from
-UI units 8 and 9 and cross the same aligned AAPCS boundary with raw binary32 bits
-in `w0`; all Lino registers and `x25` remain callee-saved.
+Generated sine and cosine calls reconstruct the separate full-width unary helper
+from UI units 8 and 9 and cross the same aligned AAPCS boundary with raw binary32
+bits in `w0`; partial remainder and partial arctangent use the binary helper in
+units 10 and 11 with raw left/right bits in `w0`/`w1`. All Lino registers and
+`x25` remain callee-saved.
 
 ## Image and memory contract
 
@@ -143,6 +147,15 @@ The compiler-produced image executes sine and cosine of 1.0, sine of negative
 zero, and cosine of zero across register, direct, and indirect writeback forms.
 This is bounded ordinary-value coverage, not a claim that libm reproduces x87
 range reduction, large-argument C2 behavior, NaN payloads, or exception state.
+
+Tracked q66/q67 records load the right operand before the left, then execute one
+x87 `FPREM` or `FPATAN`. The binary helper therefore applies `fmodf(left, right)`
+for bounded cases where `FPREM` completes in one step, or
+`atan2f(right, left)` to retain the observed `FPATAN` operand order. Register,
+direct, and indirect writeback executes positive and negative remainders plus
+first-quadrant, axis, and zero-angle arctangents. Large exponent differences
+that make x87 `FPREM` return a partial result, exceptional divisors, signed-zero
+quadrants, NaNs, and exact exception-state compatibility remain open.
 
 The slice also covers unconditional/status branches, internal calls, `leave`,
 `end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover the
