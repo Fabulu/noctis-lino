@@ -209,6 +209,7 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("CURRENT.LIN", workflow)
         self.assertIn("Native compiler-owned AArch64 fixture passed", workflow)
         self.assertIn("modular extensions = audio playback;", fixture)
+        self.assertIn("[PCM data Offset] = FFFFFFFFh;", fixture)
         self.assertIn("[PCM data Command] = GET DATA OFFSET;", fixture)
         self.assertIn("A = X;", fixture)
         self.assertIn("C = [PCM data Channels];", fixture)

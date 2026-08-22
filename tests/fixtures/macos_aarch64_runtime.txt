@@ -8,7 +8,7 @@
 
 "programme"
 
-    [PCM data Offset] = -1;
+    [PCM data Offset] = FFFFFFFFh;
     [PCM data Command] = GET DATA OFFSET;
     isocall;
     A = X;
