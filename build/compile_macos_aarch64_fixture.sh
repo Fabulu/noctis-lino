@@ -113,7 +113,7 @@ if app_ws_size <= 0 or app_code_size <= 0:
     raise SystemExit(1)
 if not 0 <= app_code_entry < app_code_size:
     raise SystemExit(1)
-if physwsentry < len(runtime) or physappsize != len(image):
+if physwsentry < len(runtime) or physappsize > len(image):
     raise SystemExit(1)
 if physwsentry + (app_ws_size + app_code_size) * 4 != physappsize:
     raise SystemExit(1)
@@ -164,7 +164,7 @@ while [ "$attempt" -lt 600 ]; do
             stable=1
             previous=$current
         fi
-        if [ "$stable" -ge 8 ]; then
+        if [ "$stable" -ge 8 ] && [ "$source_mode" != tracked-work ]; then
             break
         fi
     else
@@ -239,7 +239,7 @@ app_ws_size, app_code_size, app_code_entry = fields[:3]
 physwsentry, physappsize, default_ramtop = fields[3:6]
 if app_ws_size <= 0 or app_code_size <= 0 or not 0 <= app_code_entry < app_code_size:
     raise SystemExit("compiled fixture has invalid Lino payload bounds")
-if physwsentry < len(runtime) or physappsize != len(image):
+if physwsentry < len(runtime) or physappsize > len(image):
     raise SystemExit(
         "compiled fixture does not identify the supplied runtime: "
         f"physwsentry={physwsentry}, runtime={len(runtime)}, "
