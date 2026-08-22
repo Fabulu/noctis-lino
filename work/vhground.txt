@@ -1914,12 +1914,12 @@
 	A = [Day]; A - 1; A + [VHGNDdays]; A '* 86400; [VHGNDsecs] = A;
 	A = [Hour]; A '* 3600; A + [VHGNDsecs]; [VHGNDsecs] = A;
 	A = [Minute]; A '* 60; A + [VHGNDsecs]; A + [Second]; [VHGNDsecs] = A;
-	[FI] = A; => IntToF; [SUsec0] = [FA0]; [SUsec1] = [FA1];
-	-> VHGND seconds ready;
+	-> VHGND convert seconds;
     "VHGND pinned seconds"
 	A = [VHGNDclocksecs]; [VHGNDsecs] = A;
 	=> VHG fpu clean; => SU fp init;
-	[FI] = A; => IntToF; [SUsec0] = [FA0]; [SUsec1] = [FA1];
+    "VHGND convert seconds"
+	A = [VHGNDsecs]; [FI] = A; => IntToF; [SUsec0] = [FA0]; [SUsec1] = [FA1];
     "VHGND seconds ready"
 	end;
 

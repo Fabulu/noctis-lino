@@ -1014,10 +1014,21 @@ def main() -> int:
     secondary_sun = section(ground, '"VHGND secondary sun setup"', '"VHGND local sun"')
     opening_sky = section(ground, '"VHGND sky"', '"VHGND general sky"')
     general_sky = section(ground, '"VHGND general sky"', '"VHGND UTC seconds"')
+    utc_seconds = section(ground, '"VHGND UTC seconds"', '"VHGND orbital phase"')
     sun_zero_view = "[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;"
     surface_world_view = (
         "[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; "
         "[VHVcamzi] = [VHGNDcamz];"
+    )
+    check(
+        '"VHGND pinned seconds"' in utc_seconds
+        and "A = [VHGNDclocksecs]; [VHGNDsecs] = A;" in utc_seconds
+        and "=> VHG fpu clean; => SU fp init;" in utc_seconds
+        and "-> VHGND convert seconds;" in utc_seconds
+        and '"VHGND convert seconds"' in utc_seconds
+        and "A = [VHGNDsecs]; [FI] = A; => IntToF;" in utc_seconds
+        and utc_seconds.count("[FI] = A; => IntToF;") == 1,
+        "pinned surface time survives floating-point initialization",
     )
     check(
         all(token in local_sun for token in (
