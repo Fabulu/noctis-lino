@@ -122,8 +122,13 @@ All six floating comparisons use `FCMP` after raw bit transfers. Their branches
 retain the tracked x87 `FCOMP`/`FSTSW`/`SAHF` unordered behavior: equality, lower,
 and lower-or-equal accept an unordered quiet-NaN comparison, while inequality,
 greater, and greater-or-equal reject it. The generated-image fixture executes both
-ordered and unordered cases. Square root, transcendental operations, signaling
-NaN behavior, and NaN payload handling remain open.
+ordered and unordered cases.
+
+Scalar square root uses `FSQRT S0,S0` between the same raw W/S transfers and
+binary32 writeback. Register, direct, and indirect forms execute exact-square,
+minimum-subnormal, and negative-zero cases in the generated image. Negative
+finite inputs, signaling-NaN behavior, floating exception state, transcendental
+operations, and NaN payload handling remain open.
 
 The slice also covers unconditional/status branches, internal calls, `leave`,
 `end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover the

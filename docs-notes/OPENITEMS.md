@@ -2141,9 +2141,14 @@ round-to-nearest boundary, including 16,777,217 rounding to 16,777,216, while
 All six binary32 comparisons use `FCMP`. Additional conditional branches preserve
 the x87 `FCOMP`/`FSTSW`/`SAHF` unordered mapping: equality, lower, and
 lower-or-equal accept quiet-NaN unordered results; inequality, greater, and
-greater-or-equal reject them. Invalid or out-of-range conversion results,
-signaling-NaN/exception state, NaN payload equivalence, square root, and
-transcendental compatibility remain separate work.
+greater-or-equal reject them.
+
+Scalar square root now uses `FSQRT S0,S0` between raw W/S transfers and binary32
+writeback for register, direct, and indirect forms. The generated image executes
+an exact square, the minimum subnormal, and negative zero. Invalid or out-of-range
+conversion results, negative finite square-root results, signaling-NaN/exception
+state, NaN payload equivalence, and transcendental compatibility remain separate
+work.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
@@ -2151,8 +2156,8 @@ and executes the resulting ELF above 4 GB under QEMU. Independent encoded
 fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
 refusals. All 12 checks, including compiler-produced scalar arithmetic,
-conversion, and ordered/unordered comparison execution, passed in hosted run
-32572539620 at commit `f4ddd35`.
+conversion, ordered/unordered comparison, and square-root execution, passed in
+hosted run 32572812368 at commit `be02bb7`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.
