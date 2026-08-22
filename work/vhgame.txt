@@ -182,6 +182,7 @@
 		vhgsunname = { game-sun-out.bin };
 		vhglocalname = { game-local-out.bin };
 		vhgpalname = { game-palette-out.bin };
+		vhgpagename = { game-page-out.bin };
 	VHGcaption = { Noctis_IV };
 	VHGmenucaption = { GAME };
 	VHGmenu = { NOCTIS_IV };
@@ -10800,6 +10801,12 @@
 	[File Name] = vhglocalname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = vhglocal; [Block Size] = 176; isocall;
 	[File Name] = vhglocalname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 176; isocall;
+	( Pack the complete final logical page separately.  Keep the established
+	  metadata and palette diagnostic sizes unchanged. )
+	[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;
+	[File Name] = vhgpagename; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 64000; isocall;
+	[File Name] = vhgpagename; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 64000; isocall;
 	( Preserve the exact 256-entry six-bit palette used by the final indexed
 	  presenter.  Palette components occupy one 32-bit Lino unit apiece, so the
 	  diagnostic is 768 raw units rather than a packed byte array. )

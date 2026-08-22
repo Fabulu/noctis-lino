@@ -739,6 +739,29 @@ foreach ($spec in $scenes) {
                 }
             }
         }
+        if ($KeepStages) {
+            $diagnostics = [ordered]@{
+                'game-vh-out.bin' = 156
+                'game-sun-out.bin' = 128
+                'game-local-out.bin' = 176
+                'game-palette-out.bin' = 3072
+                'game-page-out.bin' = 64000
+            }
+            foreach ($entry in $diagnostics.GetEnumerator()) {
+                $source = Join-Path $stage $entry.Key
+                if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+                    throw "Scene $($spec.Name) did not emit $($entry.Key)"
+                }
+                $length = (Get-Item -LiteralPath $source).Length
+                if ($length -ne $entry.Value) {
+                    throw "Scene $($spec.Name) emitted $($entry.Key) with length $length, expected $($entry.Value)"
+                }
+                $diagnosticName = '{0}-{1}' -f $spec.Name, $entry.Key
+                $diagnosticPath = Join-Path $outputPath $diagnosticName
+                Copy-Item -LiteralPath $source -Destination $diagnosticPath -Force
+                Write-Output ("DIAGNOSTIC {0} -> {1}" -f $entry.Key, $diagnosticPath)
+            }
+        }
     } finally {
         if ($proc -and -not $proc.HasExited) {
             # Prefer the game's own Escape path so it saves state and flushes
