@@ -346,6 +346,99 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "unary rotate good"
 
+    A = 3FC00000h;
+    A ++ 40100000h;
+    ? A = 40700000h -> scalar sum ok;
+    fail;
+
+"scalar sum ok"
+
+    B = 3F000000h;
+    A -- B;
+    ? A = 40500000h -> scalar difference ok;
+    fail;
+
+"scalar difference ok"
+
+    [lhs] = A;
+    [rhs] = 40000000h;
+    [lhs] ** [rhs];
+    ? [lhs] = 40D00000h -> scalar product ok;
+    fail;
+
+"scalar product ok"
+
+    B = p;
+    [B plus 2] = [lhs];
+    [B plus 2] // [B minus 1];
+    ? [out] = 40500000h -> scalar quotient ok;
+    fail;
+
+"scalar quotient ok"
+
+    A = 1;
+    A ++ 1;
+    ? A = 2 -> scalar subnormal ok;
+    fail;
+
+"scalar subnormal ok"
+
+    [lhs] = 7F7FFFFFh;
+    [lhs] ** [rhs];
+    ? [lhs] = 7F800000h -> scalar overflow ok;
+    fail;
+
+"scalar overflow ok"
+
+    A = 80000000h;
+    A ++ 80000000h;
+    ? A = 80000000h -> scalar negative zero ok;
+    fail;
+
+"scalar negative zero ok"
+
+    A = 0;
+    A ++--;
+    ? A = 80000000h -> scalar opposite register ok;
+    fail;
+
+"scalar opposite register ok"
+
+    [lhs] = C0200000h;
+    [lhs] ++--;
+    ? [lhs] = 40200000h -> scalar opposite direct ok;
+    fail;
+
+"scalar opposite direct ok"
+
+    [B plus 2] = 3F400000h;
+    [B plus 2] ++--;
+    ? [out] = BF400000h -> scalar opposite indirect ok;
+    fail;
+
+"scalar opposite indirect ok"
+
+    A = 80000000h;
+    A ||||;
+    ? A = 0 -> scalar magnitude register ok;
+    fail;
+
+"scalar magnitude register ok"
+
+    [lhs] = C0200000h;
+    [lhs] ||||;
+    ? [lhs] = 40200000h -> scalar magnitude direct ok;
+    fail;
+
+"scalar magnitude direct ok"
+
+    [B plus 2] = BF400000h;
+    [B plus 2] ||||;
+    ? [out] = 3F400000h -> scalar arithmetic good;
+    fail;
+
+"scalar arithmetic good"
+
     A = 2;
     A $-;
     0 $:= 11223344h;
@@ -600,6 +693,23 @@ def enc_indirect_index(pointer: int, displacement: int) -> list[int]:
 
 def enc_data3_w(opcode: int, destination: int, left: int, right: int) -> int:
     return opcode | (right << 16) | (left << 5) | destination
+
+
+def enc_fmov_s_w(destination: int, source: int) -> int:
+    return 0x1E270000 | (source << 5) | destination
+
+
+def enc_fmov_w_s(destination: int, source: int) -> int:
+    return 0x1E260000 | (source << 5) | destination
+
+
+def enc_float_data2_s(opcode: int, destination: int,
+                      left: int, right: int) -> int:
+    return opcode | (right << 16) | (left << 5) | destination
+
+
+def enc_float_unary_s(opcode: int, destination: int, source: int) -> int:
+    return opcode | (source << 5) | destination
 
 
 def enc_binary_w(opcode: int, destination: int, right: int) -> int:
@@ -879,6 +989,9 @@ class StaticContractTests(unittest.TestCase):
             "8B20D3FFh", "CB20D3FFh", "8B29D3ECh",
             "B81F0FE0h", "B84107E0h", "B84107EAh",
             "B9400180h", "B940018Ah", "B9000180h", "B8695B29h",
+            "1E212800h", "1E213800h", "1E210800h", "1E211800h",
+            "1E270000h", "1E270001h", "1E260000h",
+            "1E214000h", "1E20C000h",
             "6B00001Fh", "6A00001Fh", "54000000h",
             "AA0B8149h", "D63F0120h", "D65F03C0h",
         ):
@@ -908,6 +1021,19 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_binary_w(0x1B007C00, 19, 9), 0x1B097E73)
         self.assertEqual(enc_data3_w(0x1AC00C00, 12, 10, 11), 0x1ACB0D4C)
         self.assertEqual(enc_data3_w(0x1AC00800, 11, 11, 10), 0x1ACA096B)
+        self.assertEqual(enc_fmov_s_w(0, 19), 0x1E270260)
+        self.assertEqual(enc_fmov_s_w(1, 9), 0x1E270121)
+        self.assertEqual(enc_fmov_w_s(19, 0), 0x1E260013)
+        self.assertEqual(
+            enc_float_data2_s(0x1E202800, 0, 0, 1), 0x1E212800)
+        self.assertEqual(
+            enc_float_data2_s(0x1E203800, 0, 0, 1), 0x1E213800)
+        self.assertEqual(
+            enc_float_data2_s(0x1E200800, 0, 0, 1), 0x1E210800)
+        self.assertEqual(
+            enc_float_data2_s(0x1E201800, 0, 0, 1), 0x1E211800)
+        self.assertEqual(enc_float_unary_s(0x1E214000, 0, 0), 0x1E214000)
+        self.assertEqual(enc_float_unary_s(0x1E20C000, 0, 0), 0x1E20C000)
         self.assertEqual(enc_msub_w(10, 12, 11, 10), 0x1B0BA98A)
         self.assertEqual(enc_mvn_w(19, 19), 0x2A3303F3)
         self.assertEqual(enc_neg_w(10, 10), 0x4B0A03EA)
@@ -1469,6 +1595,88 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in unary_rotate_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        float_sequences = (
+            [
+                *enc_mov32_w(9, 0x40100000),
+                enc_fmov_s_w(0, 19),
+                enc_fmov_s_w(1, 9),
+                enc_float_data2_s(0x1E202800, 0, 0, 1),
+                enc_fmov_w_s(19, 0),
+            ],
+            [
+                enc_fmov_s_w(0, 19),
+                enc_fmov_s_w(1, 20),
+                enc_float_data2_s(0x1E203800, 0, 0, 1),
+                enc_fmov_w_s(19, 0),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(11),
+                enc_fmov_s_w(0, 11),
+                enc_fmov_s_w(1, 10),
+                enc_float_data2_s(0x1E200800, 0, 0, 1),
+                enc_fmov_w_s(11, 0),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_fmov_s_w(0, 11),
+                enc_fmov_s_w(1, 10),
+                enc_float_data2_s(0x1E201800, 0, 0, 1),
+                enc_fmov_w_s(11, 0),
+                enc_str_w_indexed(11),
+            ],
+            [
+                enc_fmov_s_w(0, 19),
+                enc_float_unary_s(0x1E214000, 0, 0),
+                enc_fmov_w_s(19, 0),
+            ],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                enc_fmov_s_w(0, 10),
+                enc_float_unary_s(0x1E214000, 0, 0),
+                enc_fmov_w_s(10, 0),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_fmov_s_w(0, 10),
+                enc_float_unary_s(0x1E214000, 0, 0),
+                enc_fmov_w_s(10, 0),
+                enc_str_w_indexed(10),
+            ],
+            [
+                enc_fmov_s_w(0, 19),
+                enc_float_unary_s(0x1E20C000, 0, 0),
+                enc_fmov_w_s(19, 0),
+            ],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                enc_fmov_s_w(0, 10),
+                enc_float_unary_s(0x1E20C000, 0, 0),
+                enc_fmov_w_s(10, 0),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_fmov_s_w(0, 10),
+                enc_float_unary_s(0x1E20C000, 0, 0),
+                enc_fmov_w_s(10, 0),
+                enc_str_w_indexed(10),
+            ],
+        )
+        for sequence in float_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         stack_sequences = (

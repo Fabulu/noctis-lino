@@ -2468,6 +2468,7 @@
 	a64 condition = 1;	(B.cond condition code)
 	a64 remainder = 1;	(integer remainder needs quotient plus MSUB)
 	a64 rotate left = 1;	(left rotate negates count before RORV)
+	a64 floating = 1;	(scalar floating operation uses S0 and S1)
 
 	stab = max symbols
 	 mtp symbol size;	(internal symbols table)
@@ -6365,6 +6366,7 @@
       "pp a64 not assignment"
 	[a64 remainder] = no;
 	[a64 rotate left] = no;
+	[a64 floating] = no;
 	[source string] = inst;
 	[target string] = q14;
 	=> strcmp;
@@ -6414,6 +6416,18 @@
 	[target string] = q43;
 	=> strcmp;
       ? ok -> pp a64 unsigned remainder;
+	[target string] = q44;
+	=> strcmp;
+      ? ok -> pp a64 floating sum;
+	[target string] = q45;
+	=> strcmp;
+      ? ok -> pp a64 floating difference;
+	[target string] = q46;
+	=> strcmp;
+      ? ok -> pp a64 floating product;
+	[target string] = q47;
+	=> strcmp;
+      ? ok -> pp a64 floating quotient;
 	[target string] = q26;
 	=> strcmp;
       ? ok -> pp a64 bitwise inverse;
@@ -6423,6 +6437,12 @@
 	[target string] = q34;
 	=> strcmp;
       ? ok -> pp a64 integer magnitude;
+	[target string] = q33;
+	=> strcmp;
+      ? ok -> pp a64 floating opposite;
+	[target string] = q35;
+	=> strcmp;
+      ? ok -> pp a64 floating magnitude;
 	[target string] = q04;
 	=> strcmp;
       ? ok -> pp a64 stack push;
@@ -6550,6 +6570,22 @@
       "pp a64 unsigned remainder"
 	[a64 remainder] = yes;
 	[a64 opcode] = 1AC00800h; (UDIV quotient for unsigned remainder)
+	-> pp a64 binary;
+      "pp a64 floating sum"
+	[a64 floating] = yes;
+	[a64 opcode] = 1E212800h; (FADD S0,S0,S1)
+	-> pp a64 binary;
+      "pp a64 floating difference"
+	[a64 floating] = yes;
+	[a64 opcode] = 1E213800h; (FSUB S0,S0,S1)
+	-> pp a64 binary;
+      "pp a64 floating product"
+	[a64 floating] = yes;
+	[a64 opcode] = 1E210800h; (FMUL S0,S0,S1)
+	-> pp a64 binary;
+      "pp a64 floating quotient"
+	[a64 floating] = yes;
+	[a64 opcode] = 1E211800h; (FDIV S0,S0,S1)
       "pp a64 binary"
       ? [op1 class] = register -> pp a64 binary register left;
       ? [op1 class] = direct -> pp a64 binary direct left;
@@ -6693,6 +6729,7 @@
       "pp a64 emit binary"
       ? [a64 remainder] = yes -> pp a64 emit remainder;
       ? [a64 rotate left] = yes -> pp a64 emit rotate left;
+      ? [a64 floating] = yes -> pp a64 emit floating binary;
 	a = [a64 right reg];
 	a < 16;
 	a | [a64 opcode];
@@ -6702,6 +6739,25 @@
 	[a64 word] + a;
 	a = [a64 left reg];
 	[a64 word] + a;
+	=> a64 emit word;
+	-> pp a64 finish binary;
+      "pp a64 emit floating binary"
+	(move raw binary32 operands into S0/S1, round the result back to binary32)
+	a = [a64 left reg];
+	a < 5;
+	a | 1E270000h; (FMOV S0,Wn)
+	[a64 word] = a;
+	=> a64 emit word;
+	a = [a64 right reg];
+	a < 5;
+	a | 1E270001h; (FMOV S1,Wm)
+	[a64 word] = a;
+	=> a64 emit word;
+	[a64 word] = [a64 opcode];
+	=> a64 emit word;
+	a = [a64 left reg];
+	a | 1E260000h; (FMOV Wn,S0)
+	[a64 word] = a;
 	=> a64 emit word;
 	-> pp a64 finish binary;
       "pp a64 emit remainder"
@@ -6759,6 +6815,14 @@
 	-> pp a64 unary;
       "pp a64 integer magnitude"
 	[a64 opcode] = null;
+	-> pp a64 unary;
+      "pp a64 floating opposite"
+	[a64 floating] = yes;
+	[a64 opcode] = 1E214000h; (FNEG S0,S0)
+	-> pp a64 unary;
+      "pp a64 floating magnitude"
+	[a64 floating] = yes;
+	[a64 opcode] = 1E20C000h; (FABS S0,S0)
       "pp a64 unary"
       ? [op2 class] != null -> pp a64 unsupported;
       ? [op1 class] = register -> pp a64 unary register;
@@ -6784,6 +6848,7 @@
 	=> a64 emit word;
 	[a64 left reg] = 10;
       "pp a64 emit unary"
+      ? [a64 floating] = yes -> pp a64 emit floating unary;
       ? [a64 opcode] = null -> pp a64 emit magnitude;
 	a = [a64 left reg];
 	a < 16;
@@ -6791,6 +6856,19 @@
 	[a64 word] = a;
 	a = [a64 left reg];
 	[a64 word] + a;
+	=> a64 emit word;
+	-> pp a64 finish unary;
+      "pp a64 emit floating unary"
+	a = [a64 left reg];
+	a < 5;
+	a | 1E270000h; (FMOV S0,Wn)
+	[a64 word] = a;
+	=> a64 emit word;
+	[a64 word] = [a64 opcode];
+	=> a64 emit word;
+	a = [a64 left reg];
+	a | 1E260000h; (FMOV Wn,S0)
+	[a64 word] = a;
 	=> a64 emit word;
 	-> pp a64 finish unary;
       "pp a64 emit magnitude"
