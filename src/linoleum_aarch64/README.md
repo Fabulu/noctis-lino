@@ -197,13 +197,20 @@ not claim exact x87 range reduction below `2^63`, a visible C2/status result, or
 floating exception-state compatibility.
 
 Tracked q66/q67 records load the right operand before the left, then execute one
-x87 `FPREM` or `FPATAN`. The binary helper therefore applies `fmodf(left, right)`
-for bounded cases where `FPREM` completes in one step, or
-`atan2f(right, left)` to retain the observed `FPATAN` operand order. Register,
-direct, and indirect writeback executes positive and negative remainders plus
-first-quadrant, axis, and zero-angle arctangents. Large exponent differences
-that make x87 `FPREM` return a partial result, exceptional divisors, signed-zero
-quadrants, NaNs, and exact exception-state compatibility remain open.
+x87 `FPREM` or `FPATAN`. For `FPREM` exponent differences below 64, the binary
+helper applies `fmodf(left, right)`. At larger differences it reproduces the
+measured one-instruction x87 reduction width `N = 32 + (D mod 32)` by scaling the
+divisor before one remainder operation; this intentionally returns a partial
+result rather than iterating to completion. Generated register/direct/indirect
+execution covers the complete boundary at `D=63`, partial results at `D=64` and
+`D=101` with both signs, and the maximum-finite/minimum-subnormal `D=276` case.
+The x87 reduction width is implementation-dependent from 32 through 63, so this
+pins the measured reference behavior rather than claiming every x87 model, and it
+does not expose C2/status. The same helper applies `atan2f(right, left)` to retain
+the observed `FPATAN` operand order; execution covers first-quadrant, axis, and
+zero-angle arctangents. Exceptional remainder divisors, signed-zero arctangent
+quadrants, NaNs outside the measured unary boundary, and exact exception-state
+compatibility remain open.
 
 The slice also covers unconditional/status branches, internal calls, `leave`,
 `end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover the

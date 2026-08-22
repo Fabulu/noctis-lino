@@ -2204,15 +2204,21 @@ sign, and signaling NaNs are quieted without replacing payload or sign. Generate
 execution covers the exact positive threshold, a negative value above it, maximum
 finite magnitudes, both infinity signs, and quiet/signaling NaNs. This does not
 claim exact x87 range reduction below `2^63`, observable C2/status output, or
-exception-state compatibility. Tracked q66/q67 load the right operand before the left
-and execute one `FPREM`/`FPATAN`; the binary helper applies bounded
-`fmodf(left,right)` or `atan2f(right,left)` accordingly. The generated image
-executes positive and negative remainders plus first-quadrant, axis, and zero-angle
-arctangents across register, direct, and indirect writeback. Multi-step partial
-remainders, exceptional divisors, signed-zero quadrants, and exact FP exception
-state remain open. Outside the measured trigonometric-helper boundary, ordinary
-NaN payload equivalence, signaling-NaN state, and remaining transcendental
-compatibility remain separate work.
+exception-state compatibility. Tracked q66/q67 load the right operand before the
+left and execute one `FPREM`/`FPATAN`. Below exponent difference 64 the binary
+helper applies `fmodf(left,right)`. At larger differences it reproduces the
+measured one-step reduction width `N = 32 + (D mod 32)` by scaling the divisor
+before one remainder operation, deliberately retaining the partial result rather
+than iterating to completion. Generated register/direct/indirect execution covers
+the complete `D=63` boundary, partial `D=64` and positive/negative `D=101`
+results, and maximum-finite/minimum-subnormal `D=276`. Since x87 permits an
+implementation-dependent N from 32 through 63, this pins the measured reference,
+not every x87 model, and does not expose C2/status. The same helper applies
+`atan2f(right,left)` and executes first-quadrant, axis, and zero-angle cases.
+Exceptional remainder divisors, signed-zero arctangent quadrants, and exact FP
+exception state remain open. Outside the measured trigonometric-helper boundary,
+ordinary NaN payload equivalence, signaling-NaN state, and remaining
+transcendental compatibility remain separate work.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
@@ -2223,9 +2229,9 @@ refusals. All 12 checks, including compiler-produced value exchange, split
 division, split multiplication, q71/q72 whole-register save/restore, scalar
 arithmetic, masked-invalid division results, in-range and invalid/out-of-range
 conversion, ordered/unordered comparison, ordinary and masked-invalid square root,
-ordinary plus large-finite/exceptional sine and cosine, bounded partial-remainder,
-and partial-arctangent execution, passed in hosted run 32577915664 at commit
-`168df4a`.
+ordinary plus large-finite/exceptional sine and cosine, ordinary and measured
+one-step partial-remainder, and partial-arctangent execution, passed in hosted run
+32578246168 at commit `64d787e`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.
