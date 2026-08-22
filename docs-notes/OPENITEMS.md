@@ -2127,22 +2127,32 @@ and code-pass lengths identical, and internal calls preserve the host link
 register.
 
 Ordinary scalar binary32 negation, magnitude, addition, subtraction,
-multiplication, and division now transfer raw IEEE-754 bits between W registers
-and S0/S1 and return each single-precision result to its W destination. Register,
+multiplication, and division transfer raw IEEE-754 bits between W registers and
+S0/S1 and return each single-precision result to its W destination. Register,
 direct, and indirect left operands plus immediate, register, direct, and indirect
 binary right operands use the established source-first and memory-writeback
 paths. The executed fixture covers ordinary values, the minimum subnormal,
-overflow to infinity, and signed zero. NaN payload equivalence, exception state,
-conversions, comparisons, square root, and transcendental compatibility remain
-separate work.
+overflow to infinity, and signed zero.
+
+Signed conversions now cover register, direct, and indirect destinations and
+sources. `SCVTF` plus binary32 writeback reproduces the tracked `FILD`/`FSTP`
+round-to-nearest boundary, including 16,777,217 rounding to 16,777,216, while
+`FCVTNS` reproduces in-range ties-to-even `FISTP` examples on both sides of zero.
+All six binary32 comparisons use `FCMP`. Additional conditional branches preserve
+the x87 `FCOMP`/`FSTSW`/`SAHF` unordered mapping: equality, lower, and
+lower-or-equal accept quiet-NaN unordered results; inequality, greater, and
+greater-or-equal reject them. Invalid or out-of-range conversion results,
+signaling-NaN/exception state, NaN payload equivalence, square root, and
+transcendental compatibility remain separate work.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
 and executes the resulting ELF above 4 GB under QEMU. Independent encoded
 fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
-refusals. All 12 checks, including compiler-produced scalar floating execution,
-passed in hosted run 32571763208 at commit `cb37855`.
+refusals. All 12 checks, including compiler-produced scalar arithmetic,
+conversion, and ordered/unordered comparison execution, passed in hosted run
+32572539620 at commit `f4ddd35`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.

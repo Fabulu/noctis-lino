@@ -109,8 +109,21 @@ direct-workspace, and indirect-workspace left operands are covered; binary right
 operands may be immediate, register, direct, or indirect, with the same
 source-first loads and memory writeback as the integer slice. The executed fixture
 includes ordinary values, the minimum subnormal, overflow to infinity, and signed
-zero. This does not yet claim x87-compatible conversions, comparisons, square
-root, transcendental operations, exception state, or NaN payload handling.
+zero.
+
+Signed conversion instructions cover register, direct, and indirect sources and
+destinations. `SCVTF` plus binary32 writeback matches the historical `FILD`/`FSTP`
+boundary under round-to-nearest, including 16,777,217 rounding to 16,777,216;
+`FCVTNS` matches in-range round-to-nearest `FISTP`, including positive and
+negative half-way values. Invalid and out-of-range conversion results and floating
+exception state are not yet claimed compatible.
+
+All six floating comparisons use `FCMP` after raw bit transfers. Their branches
+retain the tracked x87 `FCOMP`/`FSTSW`/`SAHF` unordered behavior: equality, lower,
+and lower-or-equal accept an unordered quiet-NaN comparison, while inequality,
+greater, and greater-or-equal reject it. The generated-image fixture executes both
+ordered and unordered cases. Square root, transcendental operations, signaling
+NaN behavior, and NaN payload handling remain open.
 
 The slice also covers unconditional/status branches, internal calls, `leave`,
 `end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover the
