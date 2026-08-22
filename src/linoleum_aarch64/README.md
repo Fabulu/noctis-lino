@@ -152,7 +152,11 @@ infinity divided by infinity after ignoring operand signs, and replaces those
 masked-invalid results with the x87 real-indefinite bits `0xFFC00000`. Register,
 direct, and indirect execution cover `0/0`, positive infinity divided by negative
 infinity, and negative zero divided by zero; finite nonzero division by zero
-continues to use the native signed-infinity result.
+continues to use the native signed-infinity result. NaN repair preserves the
+selected payload and sign, sets the quiet bit on signaling inputs, and reproduces
+the measured x87 right-operand precedence when both operands are NaNs. Generated
+register/direct/indirect cases cover left, right, and dual quiet NaNs, both
+signaling positions, and signaling-left/quiet-right precedence.
 
 Signed conversion instructions cover register, direct, and indirect sources and
 destinations. `SCVTF` plus binary32 writeback matches the historical `FILD`/`FSTP`
@@ -177,9 +181,10 @@ binary32 writeback. Register, direct, and indirect forms execute exact-square,
 minimum-subnormal, and negative-zero cases in the generated image. A raw-input
 repair additionally maps negative finite values and negative infinity to the
 masked-x87 real-indefinite bits `0xFFC00000` without changing negative zero; the
-fixture executes `sqrt(-1)`, `sqrt(-infinity)`, and indirect `sqrt(-4)`.
-Signaling-NaN behavior, ordinary NaN payload equivalence, and floating exception
-state remain open.
+fixture executes `sqrt(-1)`, `sqrt(-infinity)`, and indirect `sqrt(-4)`. Quiet
+NaNs preserve payload and sign while signaling NaNs are quieted without replacing
+either; generated execution covers both signs and register/direct/indirect
+writeback. Floating exception state remains open.
 
 Tracked q29/q30 records load a binary32 operand, execute x87 `FSIN` or `FCOS`,
 and spill once to binary32. AArch64 has no scalar trigonometric instruction, so
@@ -212,8 +217,8 @@ infinite divisor, and gives a right-side NaN precedence while quieting signaling
 NaNs. The same helper applies `atan2f(right, left)` to retain the observed
 `FPATAN` operand order. Generated execution covers positive and negative zero,
 the positive/negative-pi signed-zero quadrants, an opposing-infinity quadrant,
-and right-precedence quiet/signaling NaNs. Exact C2/exception flags, NaN compatibility
-for native arithmetic outside these helpers, and broader libm-versus-x87 rounding
+and right-precedence quiet/signaling NaNs. Exact C2/exception flags,
+add/subtract/multiply NaN compatibility, and broader libm-versus-x87 rounding
 remain open.
 
 The slice also covers unconditional/status branches, internal calls, `leave`,

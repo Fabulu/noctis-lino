@@ -2169,7 +2169,10 @@ magnitudes and rewrites masked-invalid zero/zero and infinity/infinity results t
 the x87 real-indefinite bits `FFC00000h`, independent of operand signs. The
 fixture executes register `0/0`, direct positive-infinity/negative-infinity, and
 indirect negative-zero/zero cases; finite nonzero division by zero remains the
-native signed infinity.
+native signed infinity. NaN repair preserves the selected payload/sign, quiets
+signaling inputs, and applies the measured x87 right-operand precedence. Generated
+register/direct/indirect execution covers left, right, and dual quiet NaNs, both
+signaling positions, and signaling-left/quiet-right precedence.
 
 Signed conversions now cover register, direct, and indirect destinations and
 sources. `SCVTF` plus binary32 writeback reproduces the tracked `FILD`/`FSTP`
@@ -2192,7 +2195,9 @@ writeback for register, direct, and indirect forms. The generated image executes
 an exact square, the minimum subnormal, and negative zero. A raw-input repair maps
 negative finite inputs and negative infinity to masked-x87 real indefinite
 `FFC00000h` without changing negative zero; register `sqrt(-1)`, direct
-`sqrt(-infinity)`, and indirect `sqrt(-4)` execute under QEMU. Tracked q29/q30 use
+`sqrt(-infinity)`, and indirect `sqrt(-4)` execute under QEMU. Quiet NaNs preserve
+payload/sign and signaling NaNs are quieted without replacing either; both signs
+and register/direct/indirect writeback execute. Tracked q29/q30 use
 x87 `FSIN`/`FCOS`; because AArch64 has no scalar trigonometric instruction, the
 emitter now sends raw bits through the full-width helper and the Linux runtime
 applies `sinf` or `cosf`. The generated image executes sine and cosine of 1.0,
@@ -2219,9 +2224,8 @@ finite dividend against an infinite divisor, and gives the right NaN precedence
 while quieting signaling inputs. The same helper applies `atan2f(right,left)`.
 Generated execution covers positive and negative zero, positive/negative-pi
 signed-zero quadrants, one opposing-infinity quadrant, and right-precedence
-quiet/signaling NaNs. Exact FP status/exception state, native-arithmetic NaN
-compatibility outside these helpers, and remaining transcendental rounding remain
-separate work.
+quiet/signaling NaNs. Exact FP status/exception state, add/subtract/multiply NaN
+compatibility, and remaining transcendental rounding remain separate work.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
@@ -2230,11 +2234,12 @@ fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
 refusals. All 12 checks, including compiler-produced value exchange, split
 division, split multiplication, q71/q72 whole-register save/restore, scalar
-arithmetic, masked-invalid division results, in-range and invalid/out-of-range
-conversion, ordered/unordered comparison, ordinary and masked-invalid square root,
-ordinary plus large-finite/exceptional sine and cosine, ordinary/partial/exceptional
-one-step remainder, and ordinary/signed-zero/infinite/NaN arctangent execution,
-passed in hosted run 32578578340 at commit `b8d10ed`.
+arithmetic, masked-invalid and payload-preserving NaN division results, in-range
+and invalid/out-of-range conversion, ordered/unordered comparison, ordinary,
+masked-invalid, and payload-preserving NaN square root, ordinary plus
+large-finite/exceptional sine and cosine, ordinary/partial/exceptional one-step
+remainder, and ordinary/signed-zero/infinite/NaN arctangent execution, passed in
+hosted run 32579000518 at commit `95265e2`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.
