@@ -240,7 +240,11 @@ physwsentry, physappsize, default_ramtop = fields[3:6]
 if app_ws_size <= 0 or app_code_size <= 0 or not 0 <= app_code_entry < app_code_size:
     raise SystemExit("compiled fixture has invalid Lino payload bounds")
 if physwsentry < len(runtime) or physappsize != len(image):
-    raise SystemExit("compiled fixture does not identify the supplied runtime")
+    raise SystemExit(
+        "compiled fixture does not identify the supplied runtime: "
+        f"physwsentry={physwsentry}, runtime={len(runtime)}, "
+        f"physappsize={physappsize}, image={len(image)}"
+    )
 if default_ramtop < app_ws_size + 12:
     raise SystemExit("compiled fixture leaves no arm64 communication slots")
 if physwsentry + (app_ws_size + app_code_size) * 4 != physappsize:
