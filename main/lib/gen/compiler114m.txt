@@ -6897,7 +6897,13 @@
 	=> a64 emit word;
 	-> pp a64 finish binary;
       "pp a64 emit floating to integer"
-	(FCVTNS follows the x87 round-to-nearest FISTP boundary for in-range values)
+	(FCVTNS handles in-range nearest conversion; repair every masked x87 invalid)
+	(retain the raw source because the destination may be the same Lino register)
+	[a64 word] = 2A0003EEh; (MOV W14,Wm)
+	a = [a64 right reg];
+	a < 16;
+	[a64 word] + a;
+	=> a64 emit word;
 	a = [a64 right reg];
 	a < 5;
 	a | 1E270000h; (FMOV S0,Wn)
@@ -6906,6 +6912,34 @@
 	a = [a64 left reg];
 	a | 1E200000h; (FCVTNS Wd,S0)
 	[a64 word] = a;
+	=> a64 emit word;
+	[a64 reg] = 15;
+	[a64 value] = 4F000000h; (first invalid positive binary32 value)
+	=> a64 emit immediate;
+	[a64 reg] = 16;
+	[a64 value] = CF000000h; (last valid negative binary32 value)
+	=> a64 emit immediate;
+	[a64 reg] = 17;
+	[a64 value] = 80000000h; (masked x87 integer indefinite)
+	=> a64 emit immediate;
+	[a64 word] = 710001DFh; (CMP W14,#0)
+	=> a64 emit word;
+	[a64 word] = 1A8F420Fh; (CSEL W15,W16,W15,MI)
+	=> a64 emit word;
+	[a64 word] = 6B0F01DFh; (CMP W14,W15)
+	=> a64 emit word;
+	[a64 word] = 1A80822Ch; (CSEL W12,W17,Wd,HI)
+	a = [a64 left reg];
+	a < 16;
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 word] = 1A8C022Dh; (CSEL W13,W17,W12,EQ)
+	=> a64 emit word;
+	[a64 word] = 710001DFh; (CMP W14,#0)
+	=> a64 emit word;
+	[a64 word] = 1A8C51A0h; (CSEL Wd,W13,W12,PL)
+	a = [a64 left reg];
+	[a64 word] + a;
 	=> a64 emit word;
 	-> pp a64 finish binary;
       "pp a64 emit floating binary"

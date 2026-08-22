@@ -1017,6 +1017,43 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "fp cast zeta"
 
+    A = 7FC12345h;
+    A =, A;
+    ? A = 80000000h -> fp cast register;
+    fail;
+
+"fp cast register"
+
+    [lhs] = 4F000000h;
+    [slot] =, [lhs];
+    ? [slot] = 80000000h -> fp cast direct;
+    fail;
+
+"fp cast direct"
+
+    B = p;
+    [B plus 2] = 7F800000h;
+    [B plus 2] =, [B plus 2];
+    ? [out] = 80000000h -> fp cast indirect;
+    fail;
+
+"fp cast indirect"
+
+    [lhs] = 4EFFFFFFh;
+    [slot] =, [lhs];
+    ? [slot] = 7FFFFF80h -> fp cast overflow;
+    fail;
+
+"fp cast overflow"
+
+    A = CF000001h;
+    B = 0;
+    B =, A;
+    ? B = 80000000h -> fp cast good;
+    fail;
+
+"fp cast good"
+
     A = 3F800000h;
     B = 40000000h;
     [lhs] = 40400000h;
@@ -1421,6 +1458,16 @@ def enc_fcvtns_w_s(destination: int, source: int) -> int:
     return 0x1E200000 | (source << 5) | destination
 
 
+def enc_cmp_w_zero(source: int) -> int:
+    return 0x7100001F | (source << 5)
+
+
+def enc_csel_w(destination: int, true_value: int, false_value: int,
+               condition: int) -> int:
+    return (0x1A800000 | (false_value << 16) | (condition << 12) |
+            (true_value << 5) | destination)
+
+
 def enc_fcmp_s(left: int, right: int) -> int:
     return 0x1E202000 | (right << 16) | (left << 5)
 
@@ -1516,6 +1563,24 @@ def enc_lsr_x(destination: int, source: int, shift: int) -> int:
 
 def enc_cmp_w(left: int, right: int) -> int:
     return 0x6B00001F | (right << 16) | (left << 5)
+
+
+def enc_x87_fistp_w(destination: int, source: int) -> list[int]:
+    return [
+        enc_mov_w(14, source),
+        enc_fmov_s_w(0, source),
+        enc_fcvtns_w_s(destination, 0),
+        *enc_mov32_w(15, 0x4F000000),
+        *enc_mov32_w(16, 0xCF000000),
+        *enc_mov32_w(17, 0x80000000),
+        enc_cmp_w_zero(14),
+        enc_csel_w(15, 16, 15, 4),  # MI
+        enc_cmp_w(14, 15),
+        enc_csel_w(12, 17, destination, 8),  # HI
+        enc_csel_w(13, 17, 12, 0),  # EQ
+        enc_cmp_w_zero(14),
+        enc_csel_w(destination, 13, 12, 5),  # PL
+    ]
 
 
 def enc_cmp_x(left: int, right: int) -> int:
@@ -1824,6 +1889,11 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_float_unary_s(0x1E21C000, 0, 0), 0x1E21C000)
         self.assertEqual(enc_scvtf_s_w(0, 19), 0x1E220260)
         self.assertEqual(enc_fcvtns_w_s(19, 0), 0x1E200013)
+        self.assertEqual(enc_cmp_w_zero(14), 0x710001DF)
+        self.assertEqual(enc_csel_w(15, 16, 15, 4), 0x1A8F420F)
+        self.assertEqual(enc_csel_w(12, 17, 19, 8), 0x1A93822C)
+        self.assertEqual(enc_csel_w(13, 17, 12, 0), 0x1A8C022D)
+        self.assertEqual(enc_csel_w(19, 13, 12, 5), 0x1A8C51B3)
         self.assertEqual(enc_fcmp_s(0, 1), 0x1E212000)
         self.assertEqual(enc_msub_w(10, 12, 11, 10), 0x1B0BA98A)
         self.assertEqual(enc_mvn_w(19, 19), 0x2A3303F3)
@@ -2951,6 +3021,15 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in conversion_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        exceptional_conversion_sequences = (
+            enc_x87_fistp_w(19, 19),
+            enc_x87_fistp_w(19, 20),
+            enc_x87_fistp_w(11, 10),
+            enc_x87_fistp_w(20, 19),
+        )
+        for sequence in exceptional_conversion_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         push_all_sequence = [
