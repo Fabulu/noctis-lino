@@ -732,6 +732,7 @@ class AArch64ExecutionTests(unittest.TestCase):
         self.assertGreater(default_ramtop, app_ws_size + 7)
 
         code_words = list(struct.unpack(f"<{app_code_size}I", code))
+        slot_index = app_ws_size - 1
         immediate_a = [
             enc_movz_w(19, 0x5678),
             enc_movk_w(19, 0x1234, 16),
@@ -739,11 +740,11 @@ class AArch64ExecutionTests(unittest.TestCase):
         self.assertIn(words_to_bytes(immediate_a), code)
         self.assertIn(0x2A0003E0 | (19 << 16) | 20, code_words)
         self.assertIn(words_to_bytes([
-            enc_movz_w(9, 0), enc_movk_w(9, 0, 16),
+            enc_movz_w(9, slot_index), enc_movk_w(9, 0, 16),
             enc_str_w_indexed(20),
         ]), code)
         self.assertIn(words_to_bytes([
-            enc_movz_w(9, 0), enc_movk_w(9, 0, 16),
+            enc_movz_w(9, slot_index), enc_movk_w(9, 0, 16),
             enc_ldr_w_indexed(21),
         ]), code)
 
