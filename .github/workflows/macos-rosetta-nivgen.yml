@@ -293,12 +293,30 @@ jobs:
             --diagnostic -dump "$PWD/build/rosetta-niv-dump" \
             --exe "$PWD/build/compiled/nivtest" \
             | tee build/rosetta-result.json
+          python3 tools/nivtest.py json \
+            -x -61132592 -y 29530985 -z 540729 -p 4 -lon 0 -lat 60 \
+            -dump "$PWD/build/rosetta-blunasteris5-dump" \
+            --exe "$PWD/build/compiled/nivtest" \
+            | tee build/rosetta-blunasteris5-result.json
           python3 - <<'PY'
           import json
           from pathlib import Path
 
-          result = json.loads(Path("build/rosetta-result.json").read_text())
-          expected = {
+          def verify(path, expected):
+              result = json.loads(Path(path).read_text())
+              got = {
+                  name: result["hashes"][name]["fnv"]
+                  for name in expected
+              }
+              if result["status"] != 0:
+                  raise SystemExit(
+                      f"Rosetta portable FP self-check failed: "
+                      f"{result['status']:#x}")
+              if got != expected:
+                  raise SystemExit(f"Rosetta NIVGEN mismatch: {got!r}")
+              return result
+
+          result = verify("build/rosetta-result.json", {
               "surf": "390A2CCB",
               "atmo": "114562E8",
               "pal": "26961E4A",
@@ -306,13 +324,16 @@ jobs:
               "oc": "22913F4E",
               "stex": "0D52F001",
               "sky": "1E308D29",
-          }
-          got = {name: result["hashes"][name]["fnv"] for name in expected}
-          if result["status"] != 0:
-              raise SystemExit(
-                  f"Rosetta portable FP self-check failed: {result['status']:#x}")
-          if got != expected:
-              raise SystemExit(f"Rosetta NIVGEN mismatch: {got!r}")
+          })
+          verify("build/rosetta-blunasteris5-result.json", {
+              "surf": "4C19BF82",
+              "atmo": "8BA1CB05",
+              "pal": "8FA05580",
+              "hm": "FDDDF3A2",
+              "oc": "1AA95391",
+              "stex": "62C6B0B6",
+              "sky": "7B252DC5",
+          })
 
           raw_palette = Path(
               "build/rosetta-niv-dump/palette.raw").read_bytes()
@@ -330,7 +351,7 @@ jobs:
                   f"Rosetta NIVGEN palette is unexpectedly uniform: {palette[0]:#04x}")
           print(
               f"Rosetta NIVGEN palette non-uniform: {len(values)} channel values")
-          print("Rosetta NIVGEN exact: 7/7")
+          print("Rosetta NIVGEN exact: 14/14")
           PY
 
       - name: Assemble and independently verify the app archive
