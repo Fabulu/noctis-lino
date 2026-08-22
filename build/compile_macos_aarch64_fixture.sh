@@ -171,8 +171,12 @@ while [ "$attempt" -lt 600 ]; do
         stable=0
         previous=
     fi
-    if ! /bin/kill -0 -- "-$compiler_group" 2>/dev/null && \
-        ! compiled_complete; then
+    if ! /bin/kill -0 -- "-$compiler_group" 2>/dev/null; then
+        if [ -s "$compiled" ]; then
+            previous=$(sha256sum "$compiled" | cut -d ' ' -f 1)
+            stable=8
+            break
+        fi
         cat "$compiler_log" >&2 || true
         [ ! -f "$error_log" ] || cat "$error_log" >&2
         exit 1
