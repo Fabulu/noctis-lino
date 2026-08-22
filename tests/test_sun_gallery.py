@@ -2,7 +2,7 @@
 
 The default mode is non-GUI: it validates the pinned NIV+ BMP oracle and the
 shipping diagnostic/export contracts.  The hosted native Apple-Silicon product
-run supplies the three product files for the exact page, palette, and flare-state
+run supplies the product view, page, palette, and flare-state files for the exact
 comparison::
 
     python tests/test_sun_gallery.py --case hab-sun270 \
@@ -34,10 +34,19 @@ CASES = {
         "scene": "habitable",
         "oracle": ROOT / "tests" / "gen" / "recon_w7b" / "out"
         / "hab_sun270_pinned_oracle.shot.BMP",
+        "surface": ROOT / "tests" / "gen" / "recon_w7b" / "out"
+        / "hab_sun270_pinned_oracle.SURFACE.BIN",
         "bmp_sha256": "c08cdb6f74f82c83170848e0071e2f7c0c82cfb35d20d097a8db7409fcf76d84",
+        "surface_sha256": "74eed5198ed6de0c725f610b05d5ee9a60a531fe64e1791e4fe363351febf1d6",
+        "surface_state": (
+            270, 60, 8, 8, 0, 0,
+            1598248.0, 1.0, 2251369.0, -45.0, 270.0,
+        ),
+        # NIV+ normalizes the authored heading 270 to -90 and clamps -45 to
+        # its lower camera endpoint.  Lino's integral endpoint is -44.
         "page_sha256": "9e563cff6b6703f382ad15f353da71eaad8e087eba79b3b08ae757e5a45d3d8b",
         "palette_sha256": "c874d98235a9649a4e468d7f8b35f19cea923bdb72d550590ec1097b402fb7ee",
-        "checkpoint_sha256": "59dfc1d7d821fd885b48ea4f8ff5dadf7993b6ffd3496636a6e1df2c9509deb9",
+        "checkpoint_sha256": "0216819e0a26476e48d4f9e27fa86b4d89bd965a581d58a3db8f164c0e40e3fa",
         "checkpoint": {
             "star_x": 1463568,
             "star_y": -4728350,
@@ -45,12 +54,13 @@ CASES = {
             "body": 3,
             "longitude": 270,
             "latitude": 60,
-            "beta": 65,
+            "beta": 270,
             "pitch": -44,
             "player_x": 1598248,
             "player_z": 2251369,
             "fast": True,
         },
+        "view": (1598248, -600, 2251369, -44, -90),
         "center": (161, 130),
     }
 }
@@ -58,6 +68,13 @@ CASES = {
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def decode_surface(path: Path) -> tuple[int | float, ...]:
+    data = path.read_bytes()
+    if len(data) != 40:
+        raise AssertionError(f"{path}: expected exact 40-byte NIV+ surface state")
+    return struct.unpack("<hhiiiifffff", data)
 
 
 def decode_bmp(path: Path) -> tuple[bytes, tuple[int, ...]]:
@@ -163,6 +180,7 @@ def check_source_contract(check) -> None:
     check(all(fragment in macos_workflow for fragment in (
               "make_noctis_checkpoint.py",
               "--longitude 270",
+              "--beta 270",
               "--pitch -44",
               '"clock=1344638527"',
               "--case hab-sun270",
@@ -179,12 +197,24 @@ def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
     page_path = directory / f"{scene}-game-page-out.bin"
     palette_path = directory / f"{scene}-game-palette-out.bin"
     sun_path = directory / f"{scene}-game-sun-out.bin"
+    view_path = directory / f"{scene}-game-vh-out.bin"
 
-    for path, size in ((page_path, 64000), (palette_path, 3072), (sun_path, 128)):
+    for path, size in (
+        (page_path, 64000),
+        (palette_path, 3072),
+        (sun_path, 128),
+        (view_path, 156),
+    ):
         check(path.is_file() and path.stat().st_size == size,
               f"product emitted {path.name} at exactly {size} bytes")
-    if not all(path.is_file() for path in (page_path, palette_path, sun_path)):
+    if not all(
+        path.is_file() for path in (page_path, palette_path, sun_path, view_path)
+    ):
         return
+
+    view = struct.unpack("<39i", view_path.read_bytes())
+    check(view[:5] == case["view"],
+          f"product camera {view[:5]} matches the authenticated native pose")
 
     page = page_path.read_bytes()
     if len(page) == len(oracle_page):
@@ -244,6 +274,20 @@ def main() -> int:
     data = oracle.read_bytes()
     check(sha256(data) == case["bmp_sha256"],
           "retained native BMP has its pinned SHA-256")
+
+    surface = case["surface"]
+    assert isinstance(surface, Path)
+    surface_data = surface.read_bytes()
+    check(sha256(surface_data) == case["surface_sha256"],
+          "retained native surface state has its pinned SHA-256")
+    try:
+        surface_state = decode_surface(surface)
+    except (AssertionError, OSError, struct.error) as error:
+        check(False, f"retained native surface state decodes safely: {error}")
+    else:
+        check(surface_state == case["surface_state"],
+              "native oracle records longitude 270 and heading 270 explicitly")
+
     try:
         page, palette = decode_bmp(oracle)
     except (AssertionError, OSError, struct.error) as error:

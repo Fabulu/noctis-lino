@@ -32,6 +32,7 @@ on:
       - "tests/test_macos_aarch64_runtime.py"
       - "tests/test_sun_gallery.py"
       - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.shot.BMP"
+      - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.SURFACE.BIN"
       - "tests/run_all.py"
       - "src/linoleum_macos64/lino_cocoa.m"
       - "src/linoleum_macos64/lino_display.h"
@@ -85,6 +86,7 @@ on:
       - "tests/test_macos_aarch64_runtime.py"
       - "tests/test_sun_gallery.py"
       - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.shot.BMP"
+      - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.SURFACE.BIN"
       - "tests/run_all.py"
       - "src/linoleum_macos64/lino_cocoa.m"
       - "src/linoleum_macos64/lino_display.h"
@@ -409,7 +411,7 @@ jobs:
           python3 tools/make_noctis_checkpoint.py "$data/CURRENT.LIN" \
             --star-x 1463568 --star-y -4728350 --star-z -437812 \
             --body 3 --longitude 270 --latitude 60 \
-            --beta 65 --pitch -44 \
+            --beta 270 --pitch -44 \
             --player-x 1598248 --player-z 2251369 --fast
           cp "$data/CURRENT.LIN" "$data/CURRENT.BAK"
           rm -f "$data"/game-*-out.bin
