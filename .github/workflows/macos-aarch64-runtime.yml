@@ -1,0 +1,223 @@
+name: macOS AArch64 runtime
+
+on:
+  push:
+    paths:
+      - ".github/workflows/macos-aarch64-runtime.yml"
+      - "src/linoleum_macos_aarch64/**"
+      - "build/compile_macos_aarch64_fixture.sh"
+      - "build/build_compiler114m_linux.sh"
+      - "tools/finalize_macos_aarch64.py"
+      - "tools/pack_lino_sys.py"
+      - "tests/fixtures/macos_aarch64_runtime.txt"
+      - "tests/test_macos_aarch64_runtime.py"
+      - "tests/run_all.py"
+      - "main/lib/gen/compiler114m.txt"
+      - "main/lib/gen/bits.txt"
+      - "main/lib/gen/bytes.txt"
+      - "main/linux_compiler.bin"
+      - "main/cpu/i386.bin"
+      - "main/cpu/i386m.bin"
+      - "main/sys/linux.bin"
+  pull_request:
+    paths:
+      - ".github/workflows/macos-aarch64-runtime.yml"
+      - "src/linoleum_macos_aarch64/**"
+      - "build/compile_macos_aarch64_fixture.sh"
+      - "build/build_compiler114m_linux.sh"
+      - "tools/finalize_macos_aarch64.py"
+      - "tools/pack_lino_sys.py"
+      - "tests/fixtures/macos_aarch64_runtime.txt"
+      - "tests/test_macos_aarch64_runtime.py"
+      - "tests/run_all.py"
+      - "main/lib/gen/compiler114m.txt"
+      - "main/lib/gen/bits.txt"
+      - "main/lib/gen/bytes.txt"
+      - "main/linux_compiler.bin"
+      - "main/cpu/i386.bin"
+      - "main/cpu/i386m.bin"
+      - "main/sys/linux.bin"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime:
+    name: Build unsigned native RTM
+    runs-on: macos-15
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out the runtime source
+        uses: actions/checkout@v7
+
+      - name: Run structural and Mach-O tests
+        run: python3 tests/test_macos_aarch64_runtime.py
+
+      - name: Build the thin arm64 runtime
+        shell: bash
+        run: |
+          set -eu
+          test "$(uname -m)" = arm64
+          BUILD_DIR="$PWD/build/macos-aarch64-rtm" \
+            OUTPUT="$PWD/build/macos-aarch64-rtm/rtm01.bin" \
+            ./src/linoleum_macos_aarch64/build.sh
+          file build/macos-aarch64-rtm/rtm01.bin | grep -q 'arm64'
+          test "$(lipo -archs build/macos-aarch64-rtm/rtm01.bin)" = arm64
+          xcrun vtool -show-build build/macos-aarch64-rtm/rtm01.bin \
+            | grep -Eq 'minos[[:space:]]+11\.0'
+          if codesign --verify build/macos-aarch64-rtm/rtm01.bin \
+              >/dev/null 2>&1; then
+            echo 'RTM must be unsigned before the compiler appends Lino' >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          from tools.finalize_macos_aarch64 import load_commands, validate_pagezero
+          data = Path("build/macos-aarch64-rtm/rtm01.bin").read_bytes()
+          _header, commands = load_commands(data)
+          validate_pagezero(data, commands)
+          print("Unsigned native RTM has the full 4 GiB PAGEZERO")
+          PY
+
+      - name: Upload the unsigned runtime
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-aarch64-unsigned-rtm
+          path: build/macos-aarch64-rtm/rtm01.bin
+          if-no-files-found: error
+
+  compile:
+    name: Compile Lino fixture into native RTM
+    needs: runtime
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out compiler and fixture source
+        uses: actions/checkout@v7
+
+      - name: Download unsigned native runtime
+        uses: actions/download-artifact@v8
+        with:
+          name: macos-aarch64-unsigned-rtm
+          path: build/macos-aarch64-rtm
+
+      - name: Install the historical compiler runtime
+        shell: bash
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            libc6:i386 libx11-6:i386 util-linux xvfb xauth
+
+      - name: Bootstrap compiler and append compiler-owned AArch64
+        shell: bash
+        run: |
+          set -eu
+          ./build/build_compiler114m_linux.sh build/linux-compiler114m.bin
+          ./build/compile_macos_aarch64_fixture.sh \
+            build/linux-compiler114m.bin \
+            build/macos-aarch64-rtm/rtm01.bin \
+            tests/fixtures/macos_aarch64_runtime.txt \
+            build/macos-aarch64-fixture.unsigned
+          python3 tools/finalize_macos_aarch64.py \
+            build/macos-aarch64-fixture.unsigned \
+            build/macos-aarch64-fixture.normalized
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          paths = (
+              "build/linux-compiler114m.bin",
+              "build/macos-aarch64-rtm/rtm01.bin",
+              "tests/fixtures/macos_aarch64_runtime.txt",
+              "build/macos-aarch64-fixture.unsigned",
+          )
+          lines = []
+          for name in paths:
+              digest = hashlib.sha256(Path(name).read_bytes()).hexdigest()
+              lines.append(f"{name}_sha256={digest}\n")
+          Path("build/macos-aarch64-fixture.provenance.txt").write_text(
+              "".join(lines), encoding="ascii")
+          PY
+
+      - name: Upload compiler-appended image
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-aarch64-compiler-image
+          path: |
+            build/macos-aarch64-fixture.unsigned
+            build/macos-aarch64-fixture.provenance.txt
+          if-no-files-found: error
+
+  native:
+    name: Finalize and execute on Apple Silicon
+    needs: compile
+    runs-on: macos-15
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out finalizer and test oracle
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Download compiler-appended image
+        uses: actions/download-artifact@v8
+        with:
+          name: macos-aarch64-compiler-image
+          path: build/compiler-image
+
+      - name: Normalize, sign, and execute natively
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          input=build/compiler-image/macos-aarch64-fixture.unsigned
+          output=build/macos-aarch64-fixture
+          chmod +x "$input"
+          python3 tools/finalize_macos_aarch64.py --sign "$input" "$output"
+          file "$output" | grep -q 'arm64'
+          test "$(lipo -archs "$output")" = arm64
+          codesign --verify --strict --verbose=2 "$output"
+          arch -arm64 "$output" | tee build/macos-aarch64-result.txt
+          python3 - <<'PY'
+          from pathlib import Path
+
+          text = Path("build/macos-aarch64-result.txt").read_text(encoding="utf-8").strip()
+          prefix = "MACOS_AARCH64_RUNTIME_RESULT "
+          if not text.startswith(prefix):
+              raise SystemExit(f"missing native runtime result: {text!r}")
+          values = dict(field.split("=", 1) for field in text[len(prefix):].split())
+          expected = {
+              "status": "0",
+              "A": "00000001",
+              "B": "00000002",
+              "C": "00000003",
+              "D": "00000004",
+              "E": "00000005",
+              "X": "646F6E65",
+          }
+          if any(values.get(key) != value for key, value in expected.items()):
+              raise SystemExit(f"native AArch64 register mismatch: {values!r}")
+          for key in ("code", "workspace", "isokernel"):
+              if int(values[key], 16) <= 0xFFFFFFFF:
+                  raise SystemExit(f"{key} pointer was truncated: {values[key]}")
+          print("Native compiler-owned AArch64 fixture passed above 4 GiB")
+          PY
+
+      - name: Upload native execution evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-aarch64-native-fixture-${{ github.sha }}
+          path: |
+            build/macos-aarch64-fixture
+            build/macos-aarch64-result.txt
+            build/compiler-image/macos-aarch64-fixture.provenance.txt
+          if-no-files-found: error
