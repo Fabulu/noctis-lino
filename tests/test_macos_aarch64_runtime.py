@@ -137,7 +137,7 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
 
         self.assertEqual(workflow.count("runs-on: macos-15"), 2)
         self.assertIn("--cpu:aarch64", compile_script)
-        self.assertIn("--sys:macos_aarch64", compile_script)
+        self.assertIn("--sys:macarm64", compile_script)
         self.assertIn("build_compiler114m_linux.sh", workflow)
         self.assertIn("finalize_macos_aarch64.py --sign", workflow)
         self.assertIn("arch -arm64 \"$output\"", workflow)

@@ -37,7 +37,7 @@ mkdir -p "$stage/env/sys" "$stage/source" "$(dirname "$output")"
 ln -s "$repo/main/lib" "$stage/env/lib"
 ln -s "$repo/main/cpu" "$stage/env/cpu"
 python3 "$repo/tools/pack_lino_sys.py" \
-    "$runtime" "$stage/env/sys/macos_aarch64.bin"
+    "$runtime" "$stage/env/sys/macarm64.bin"
 cp "$source_input" "$stage/source/fixture.txt"
 source="$stage/source/fixture.txt"
 compiled="$stage/source/fixture.bin"
@@ -52,7 +52,7 @@ setsid sh -c '
     printf "%s\n" "$$" > "$group_file"
     exec "$@"
 ' sh "$group_file" xvfb-run -a setarch "$arch" -X "$compiler" \
-    "--sys:macos_aarch64--cpu:aarch64--ext:.bin--env:$stage/env--src:$source" \
+    "--sys:macarm64--cpu:aarch64--ext:.bin--env:$stage/env--src:$source" \
     >"$compiler_log" 2>&1 &
 compiler_supervisor=$!
 
