@@ -2090,22 +2090,32 @@ translated workspace state stale after a move, force addresses, truncate
 pointers, scan code unsafely, dump files unconditionally, and omit required
 build inputs, translation, and Mach-O support.
 
-The first safe replacement checkpoint is now implemented on branch
-`arm64-runtime`: a checked static Linux AArch64 bridge retains the 32-bit image
-layout while publishing full-width isokernel and code pointers in four new UI
-units. It preserves the x19-x25 Lino map, reserves x18, balances x29/x30 and SP,
-reloads WS after every C isocall, seals loaded code RX, keeps workspace RW, and
-grows by map/copy/zero/refresh/unmap. Generated instruction fixtures prove a
-nonzero entry, exact register return, high-address code/workspace, LR
-continuation, relocation, old-data retention, zeroed growth, and seven malformed
-image refusals. All 10 focused checks passed under QEMU in hosted run 32561719854
-at commit `7a833c5`.
+The safe replacement on branch `arm64-runtime` now includes both a checked
+static Linux AArch64 bridge and the first compiler-owned target slice. The
+runtime retains the 32-bit image layout while publishing full-width isokernel
+and code pointers in four new UI units. It preserves the x19-x25 Lino map,
+reserves x18, balances x29/x30 and SP, reloads WS after every C isocall, seals
+loaded code RX, keeps workspace RW, and grows by
+map/copy/zero/refresh/unmap.
 
-This is not yet a compiler target, full service RTM, native macOS/Cocoa binary,
-or Noctis build. Next add a compiler-owned integer/workspace/control-flow emitter
-for this exact ABI before expanding translation or beginning Mach-O work. Keep
-Joris van de Donk's source and commit credit. Leave a specific public review
-before adapting or closing PR #10; no public action has yet been taken.
+`compiler114m.txt` recognizes `--cpu:aarch64` without loading a CPU pack and
+emits deterministic little-endian words directly from compiler IR for 32-bit
+immediates/register moves, direct workspace loads/stores, branches, internal
+calls, status returns, and the exact full-width isocall ABI. Its fixed two-word
+immediates keep pass-one and code-pass lengths identical, and internal calls
+preserve the host link register. The focused gate bootstraps the modified
+compiler to an i386m byte-identical fixpoint, packs the built runtime as an
+AArch64 SYS, compiles a real Lino source, and executes the resulting ELF above
+4 GB under QEMU. Independent encoded fixtures continue to prove relocation,
+old-data retention, zeroed growth, register preservation, and seven malformed
+image refusals. All 12 checks passed in hosted run 32564814542 at commit
+`ae3ff65`.
+
+This is not yet a broad compiler target, floating-point/x87 layer, full service
+RTM, native macOS/Cocoa binary, or Noctis build. Expand instruction/runtime
+coverage before beginning Mach-O or native-game integration. Keep Joris van de
+Donk's source and commit credit. Leave a specific public review before adapting
+or closing PR #10; no public action has yet been taken.
 
 ### 12.4 Finish with one coherent repository audit -- **OPEN**
 

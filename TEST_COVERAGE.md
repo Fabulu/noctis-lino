@@ -22,7 +22,7 @@ tested.
 | Save/load and distribution | Version 1-15 migration, version 16 state, backup recovery, Windows and macOS package assembly, internal manifests, protected-source checks, macOS signature/Mach-O/payload validation, and mutable-resource tests | Corrupt-primary recovery and packaged-launch sessions in `PLAYTEST.md`; Rosetta close/Quit smoke writes a nonempty `CURRENT.LIN` |
 | Long-duration loop | 600,000 integrated build/flight/render/present frames, exact terminal telemetry and clean exit over 2 h 15 min | 189.8-second standalone Windows bundle session with 43/43 responsive probes and stable memory/handles |
 | macOS x86_64 | Intel-hosted Cocoa/headless RTM builds; Apple-Silicon runtime provenance; Linux fixpoint cross-build; Rosetta NIVGEN 7/7; extracted manifest/signature, launcher, first-retrace, and graceful-quit checks | Development and public beta 23 archives independently downloaded/audited; end-to-end product smoke runs through Rosetta 2 |
-| Linux AArch64 runtime foundation | `test_aarch64_runtime.py` builds a static non-PIE ELF, generates real instruction fixtures, pins the x19-x25 ABI, full-width runtime slots, balanced x29/x30 unwind, W^X, map/copy/zero/unmap growth, seven malformed-image refusals, and high-address execution; all 10 checks passed under QEMU in hosted run 32561719854 | This is an executable runtime bridge, not a compiler target, macOS application, or Noctis build |
+| Linux AArch64 runtime and minimal compiler target | `test_aarch64_runtime.py` bootstraps `compiler114m.txt` to an i386m fixpoint, packs the checked runtime as an AArch64 SYS, compiles a real Lino integer/workspace/control-flow/isocall source without a CPU pack, executes that image above 4 GB, and retains independent encoded ABI fixtures plus seven malformed-image refusals; all 12 checks passed under QEMU in hosted run 32564814542 | This proves the first compiler-owned integer slice and Linux runtime bridge, not broad compiler coverage, a macOS application, or a native ARM64 Noctis build |
 | CI/CD | Hosted focused regression, source builds, snapshot packages, exact Rosetta app package, focused AArch64/QEMU execution, and six-asset tagged prerelease graph; separate interactive source-build workflow | Windows, Intel-macOS runtime, Apple-Silicon package, and Linux AArch64 fixture workflows are green; no `lino-gui` runner is registered, so the optional independent Win32 compiler-host artifact is unavailable |
 
 ## Commands
@@ -94,8 +94,9 @@ full-parity claim.
   replayed across every supported Windows and Mac host on every change.
 - The complete macOS app smoke is proven on Apple Silicon through Rosetta 2.
   Intel CI builds both x86_64 runtimes but does not yet run the extracted game
-  package. The checked Linux AArch64 bridge executes generated ABI and relocation
-  fixtures under QEMU, but no AArch64 compiler emitter, native macOS runtime,
+  package. The checked Linux AArch64 bridge executes both independent ABI
+  fixtures and a real compiler-produced image under QEMU, but the emitter still
+  lacks broad instruction and floating-point coverage; no native macOS runtime,
   Cocoa application, or native ARM64 Noctis build exists yet.
 - Multi-hour integrated stability is covered; multi-hour real-input travel,
   rescue, soundtrack, resize, and every preference combination are not

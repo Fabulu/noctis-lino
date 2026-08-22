@@ -436,7 +436,7 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("aarch64-linux-gnu-gcc", build)
         self.assertIn("PR #10", readme)
         self.assertIn("not a full RTM", readme)
-        self.assertIn("no Lino compiler emitter", readme)
+        self.assertIn("minimal compiler-owned AArch64 emitter", readme)
         self.assertIn("gcc-aarch64-linux-gnu", workflow)
         self.assertIn("libc6-dev-arm64-cross qemu-user", workflow)
         self.assertIn("libc6:i386 libx11-6:i386", workflow)

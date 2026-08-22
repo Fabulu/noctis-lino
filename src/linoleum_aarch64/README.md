@@ -1,9 +1,10 @@
 # Linux AArch64 runtime bridge
 
-This directory contains the first executable AArch64 foundation for Linoleum. It
-loads a checked appended image, enters hand- or compiler-generated AArch64 code,
-and supports a no-service isocall plus safe RAMtop relocation. It is deliberately
-not a full RTM and is not yet a native macOS or Noctis runtime.
+This directory contains the first executable AArch64 foundation for Linoleum and
+a minimal compiler-owned target for its integer ABI. It loads checked appended
+images, enters hand- or compiler-generated AArch64 code, and supports a
+no-service isocall plus safe RAMtop relocation. It is deliberately not a full RTM;
+it is not yet a native macOS or Noctis runtime.
 
 The register mapping and the Apple-Silicon `__PAGEZERO` investigation originated
 in [PR #10](https://github.com/bammf1/linoleum/pull/10) by Joris van de Donk. The
@@ -72,13 +73,19 @@ python3 tests/test_aarch64_runtime.py --require-execution -v
 ```
 
 The default compiler is `aarch64-linux-gnu-gcc`; set `CC`, `BUILD_DIR`, or
-`OUTPUT` to override it. The result is a static non-PIE Linux ELF so `qemu-aarch64`
-can execute it without a guest sysroot. The test creates all appended payloads
-programmatically; no generated executable is tracked.
+`OUTPUT` to override it. The result is a static non-PIE Linux ELF so
+`qemu-aarch64` can execute it without a guest sysroot. The required-execution
+test bootstraps `compiler114m.txt` to its Linux fixpoint, packs this runtime as
+an AArch64 SYS target, compiles a real Lino source with `--cpu:aarch64`, and
+executes that compiler-produced image. Programmatically encoded fixtures remain
+independent ABI and malformed-image oracles; no generated executable is tracked.
 
 ## Deliberate omissions
 
-This checkpoint has no Lino compiler emitter, floating-point/x87 layer, display,
-input, audio, files, sockets, timing, process commands, Cocoa bridge, Mach-O
-packaging, signing, or Noctis integration. The next milestone is a small
-compiler-owned integer/control-flow emitter that targets this exact ABI.
+The minimal compiler-owned AArch64 emitter covers fixed-width 32-bit integer
+moves, direct workspace loads/stores, unconditional and status branches,
+internal calls, `leave`, `end`, `fail`, `nop`, and the full-width isocall ABI.
+It does not yet cover the full compiler pattern set, floating-point/x87
+semantics, display, input, audio, files, sockets, timing, process commands,
+Cocoa, Mach-O packaging, signing, or Noctis integration. Wider instruction
+coverage and runtime services remain separate milestones.
