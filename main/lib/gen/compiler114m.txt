@@ -752,6 +752,7 @@
 	sys junction = { /sys/ }; (appended to --sys, prepended to --sys)
 
 	bin extension = { .bin }; (it's what it expects as SYS/CPU packs ext.)
+	aarch64 setting = { aarch64 }; (compiler-owned target, no CPU pack)
 
     (global report)
 
@@ -2456,6 +2457,12 @@
 	bbss = 1;		(binary bytes written since start of cache)
 	byte = 1;		("cat byte" routine: byte to write)
 
+    (compiler-owned AArch64 emitter)
+
+	a64 word = 1;		(32-bit instruction word to stream)
+	a64 value = 1;		(immediate value to materialize)
+	a64 reg = 1;		(AArch64 W-register number)
+
 	stab = max symbols
 	 mtp symbol size;	(internal symbols table)
 	nods = 1;		(number of defined symbols)
@@ -2465,6 +2472,7 @@
 	symaps fpos = 1;	(actual position to write to symbols map file)
 
 	unit = 1;		(if set to yes, unit director was specified)
+	aarch64 target = 1;	(compiler-owned AArch64 emitter selected)
 	cpud = 1;		(cpu delay director value)
 	smap = 1;		(symbols map - requested if nonzero)
 	rtmv = 1;		(run-time module variant to use for link)
@@ -2888,6 +2896,12 @@
 	d = 8;
 	=> copy option;
       ? [cpu setting] = null -> allstop;
+	[source string] = cpu setting;
+	[target string] = aarch64 setting;
+	=> strcmp;
+      ? failed -> cpu target selected;
+	[aarch64 target] = yes;
+      "cpu target selected"
 	[source string] = env setting;
 	[target string] = basecpu;
 	=> strcpy;
@@ -3045,7 +3059,9 @@
 	[d plus value] = [base wpos];
 	[d plus flags] = static;
 
-    (unpack instruction patterns index records)
+    (unpack instruction patterns index records for CPU-pack targets)
+
+      ? [aarch64 target] = yes -> cpu target ready;
 
 	[up source] = vector packed ip records;
 	[up target] = ip records;
@@ -3114,6 +3130,8 @@
 	[acc] = [cpu pack plus 1];
 	[acc] > 24;
 	[acc] & FFh; (insulate cpu's ACCessory flags bitmask)
+
+      "cpu target ready"
 
     (begin compiling)
 
@@ -5637,6 +5655,7 @@
 	[source string] = op isokernel; ([isokernel])
 	[target string] = first operand relating pces;
 	=> strcpy;
+      ? [aarch64 target] = yes -> pp a64 tagged isocall;
 	-> pp parse;
       (all the rest is monolithic)
       "pp leave"
@@ -5910,6 +5929,8 @@
 	=> log warning;
 	-> pp monolithic;
       "pp monolithic"
+      (AArch64 instructions are compiler-owned rather than CPU-pack patterns.)
+      ? [aarch64 target] = yes -> pp aarch64;
       (more generally, when getting here it means there's no further operands
        to process, and so it can begin seatching for the appropriate pattern:
        as a first thing, check for possible unusual CPU behavior to reverse
@@ -5924,6 +5945,7 @@
 	[op1 value] +-;
 	-> pp common stack behavior;
       "pp common stack behavior"
+      ? [aarch64 target] = yes -> pp aarch64;
       (search ip index record that matches operand types)
 	[source string] = inst; (preload for strcmp)
 	a = ip quickreference; (start with ip quickreference table's address)
@@ -6178,6 +6200,229 @@
 	b = c;
 	c = d;
 	-> pp code pass loop;
+
+      (minimal compiler-owned AArch64 instruction dispatcher)
+      "pp aarch64"
+	[source string] = inst;
+      ? [inst plus 0] != equal -> pp a64 not assignment;
+      ? [inst plus 1] != null -> pp a64 not assignment;
+      ? [op1 class] = register -> pp a64 assign register;
+      ? [op1 class] = direct -> pp a64 assign direct;
+	-> pp a64 unsupported;
+
+      "pp a64 assign register"
+      ? [op2 class] = immediate -> pp a64 register immediate;
+      ? [op2 class] = register -> pp a64 register register;
+      ? [op2 class] = direct -> pp a64 register direct;
+	-> pp a64 unsupported;
+
+      "pp a64 register immediate"
+	a = [op1 regid];
+	a + 19;
+	[a64 reg] = a;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	-> pp exit;
+
+      "pp a64 register register"
+	a = [op2 regid];
+	a + 19;
+	a < 16;
+	a | 2A0003E0h; (ORR Wd,WZR,Wn -- MOV Wd,Wn)
+	[a64 word] = a;
+	a = [op1 regid];
+	a + 19;
+	[a64 word] + a;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 register direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	a = [op1 regid];
+	a + 19;
+	a | B8695B20h; (LDR Wd,[x25,w9,UXTW #2])
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 assign direct"
+      ? [op2 class] = immediate -> pp a64 direct immediate;
+      ? [op2 class] = register -> pp a64 direct register;
+      ? [op2 class] = direct -> pp a64 direct direct;
+	-> pp a64 unsupported;
+
+      "pp a64 direct immediate"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 reg] = 10;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 direct register"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	a = [op2 regid];
+	a + 19;
+	a | B8295B20h; (STR Wn,[x25,w9,UXTW #2])
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 direct direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 not assignment"
+	[source string] = inst;
+	[target string] = q01;
+	=> strcmp;
+      ? ok -> pp a64 jump;
+	[target string] = q02;
+	=> strcmp;
+      ? ok -> pp a64 call;
+	[target string] = q09;
+	=> strcmp;
+      ? ok -> pp a64 jump success;
+	[target string] = q10;
+	=> strcmp;
+      ? ok -> pp a64 jump failure;
+	[target string] = q11;
+	=> strcmp;
+      ? ok -> pp a64 fail;
+	[target string] = q12;
+	=> strcmp;
+      ? ok -> pp a64 end;
+	[target string] = q13;
+	=> strcmp;
+      ? ok -> pp a64 leave;
+	[target string] = q68;
+	=> strcmp;
+      ? ok -> pp a64 nop;
+	-> pp a64 unsupported;
+
+      "pp a64 jump"
+      ? [op1 class] != immediate -> pp a64 unsupported;
+	a = [op1 value];
+	a - [bpos];
+	a / 4;
+	a & 03FFFFFFh;
+	a | 14000000h; (B label)
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 call"
+      ? [op1 class] = immediate -> pp a64 call label;
+      ? [op1 class] = direct -> pp a64 isocall;
+      ? [op1 class] = indirect -> pp a64 isocall;
+	-> pp a64 unsupported;
+
+      "pp a64 call label"
+	[a64 word] = A9BF7BFDh; (preserve top-level frame and link register)
+	=> a64 emit word;
+	a = [op1 value];
+	a - [bpos];
+	a / 4;
+	a & 03FFFFFFh;
+	a | 94000000h; (BL label)
+	[a64 word] = a;
+	=> a64 emit word;
+	[a64 word] = A8C17BFDh;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 tagged isocall"
+	[op1 value] = [prws];
+	-> pp a64 isocall;
+
+      "pp a64 isocall"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	[a64 value] + 4;
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (low pointer half to W10)
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	[a64 value] + 5;
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Bh; (high pointer half to W11)
+	=> a64 emit word;
+	[a64 word] = AA0B8149h; (ORR X9,X10,X11,LSL #32)
+	=> a64 emit word;
+	[a64 word] = A9BF7BFDh; (STP X29,X30,[SP,#-16]!)
+	=> a64 emit word;
+	[a64 word] = D63F0120h; (BLR X9)
+	=> a64 emit word;
+	[a64 word] = A8C17BFDh; (LDP X29,X30,[SP],#16)
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 jump success"
+	[a64 value] = 646F6E65h; (DONE)
+	-> pp a64 state jump;
+      "pp a64 jump failure"
+	[a64 value] = 6661696Ch; (FAIL)
+      "pp a64 state jump"
+      ? [op1 class] != immediate -> pp a64 unsupported;
+	[a64 reg] = 9;
+	=> a64 emit immediate;
+	[a64 word] = 6B09031Fh; (CMP W24,W9)
+	=> a64 emit word;
+	a = [op1 value];
+	a - [bpos];
+	a / 4;
+	a & 0007FFFFh;
+	a < 5;
+	a | 54000000h; (B.EQ label)
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 end"
+	[a64 value] = 646F6E65h; (DONE)
+	-> pp a64 status return;
+      "pp a64 fail"
+	[a64 value] = 6661696Ch; (FAIL)
+      "pp a64 status return"
+      ? [op1 class] != null -> pp a64 unsupported;
+	[a64 reg] = 24;
+	=> a64 emit immediate;
+      "pp a64 leave"
+      ? [op1 class] != null -> pp a64 unsupported;
+	[a64 word] = D65F03C0h; (RET X30)
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 nop"
+      ? [op1 class] != null -> pp a64 unsupported;
+	[a64 word] = D503201Fh; (NOP)
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 unsupported"
+      ? [opx error] != false -> pp exit;
+	[err string] = msg unsupported instruction syntax;
+	[cls string] = synt string;
+	=> log error;
+	-> pp exit;
+
       "pp loop stop"
       (register E is only used within pattern scanning/building loops)
 	e = [esav];
@@ -6210,6 +6455,44 @@
 	-> log syntax error;
 
     (programme parser auxiliary routines)
+
+    "a64 emit immediate"
+    (always emits MOVZ+MOVK so pass-one lengths never depend on the value)
+	a = [a64 value];
+	a & FFFFh;
+	a < 5;
+	a | 52800000h;
+	a + [a64 reg];
+	[a64 word] = a;
+	=> a64 emit word;
+	a = [a64 value];
+	a > 16;
+	a & FFFFh;
+	a < 5;
+	a | 72A00000h;
+	a + [a64 reg];
+	[a64 word] = a;
+	=> a64 emit word;
+	leave;
+
+    "a64 emit word"
+	[bpos] + 4;
+      ? [pass] != code pass -> a64 word counted;
+	a = [a64 word];
+	[byte] = a;
+	=> cat byte;
+	a > 8;
+	[byte] = a;
+	=> cat byte;
+	a > 8;
+	[byte] = a;
+	=> cat byte;
+	a > 8;
+	[byte] = a;
+	=> cat byte;
+      "a64 word counted"
+	leave;
+
     "cat byte"
       ? [bbss] < bcache size -> cb cache is not full yet;
 	=> flush code cache;

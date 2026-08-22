@@ -4,12 +4,30 @@ on:
   push:
     paths:
       - "src/linoleum_aarch64/**"
+      - "main/lib/gen/compiler114m.txt"
+      - "main/lib/gen/bits.txt"
+      - "main/lib/gen/bytes.txt"
+      - "main/linux_compiler.bin"
+      - "main/cpu/i386.bin"
+      - "main/cpu/i386m.bin"
+      - "main/sys/linux.bin"
+      - "build/build_compiler114m_linux.sh"
+      - "tools/pack_lino_sys.py"
       - "tests/test_aarch64_runtime.py"
       - "tests/run_all.py"
       - ".github/workflows/linux-aarch64-runtime.yml"
   pull_request:
     paths:
       - "src/linoleum_aarch64/**"
+      - "main/lib/gen/compiler114m.txt"
+      - "main/lib/gen/bits.txt"
+      - "main/lib/gen/bytes.txt"
+      - "main/linux_compiler.bin"
+      - "main/cpu/i386.bin"
+      - "main/cpu/i386m.bin"
+      - "main/sys/linux.bin"
+      - "build/build_compiler114m_linux.sh"
+      - "tools/pack_lino_sys.py"
       - "tests/test_aarch64_runtime.py"
       - "tests/run_all.py"
       - ".github/workflows/linux-aarch64-runtime.yml"
@@ -32,14 +50,16 @@ jobs:
       - name: Check out the port
         uses: actions/checkout@v7
 
-      - name: Install the AArch64 execution tools
+      - name: Install the AArch64 and compiler execution tools
         shell: bash
         run: |
+          sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo apt-get install --no-install-recommends \
             binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu \
-            libc6-dev-arm64-cross qemu-user
+            libc6-dev-arm64-cross qemu-user \
+            libc6:i386 libx11-6:i386 util-linux xvfb xauth
 
-      - name: Build and execute the runtime fixtures
+      - name: Bootstrap the compiler and execute generated AArch64
         shell: bash
         run: python3 tests/test_aarch64_runtime.py --require-execution -v

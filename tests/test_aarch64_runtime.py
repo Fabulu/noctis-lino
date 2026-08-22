@@ -13,10 +13,12 @@ from pathlib import Path
 import platform
 import re
 import shutil
+import signal
 import struct
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +30,9 @@ ISOKERNEL = RUNTIME / "isokernel.s"
 README = RUNTIME / "README.md"
 WORKFLOW = ROOT / ".github" / "workflows" / "linux-aarch64-runtime.yml"
 RUN_ALL = ROOT / "tests" / "run_all.py"
+COMPILER_SOURCE = ROOT / "main" / "lib" / "gen" / "compiler114m.txt"
+COMPILER_BUILD_SCRIPT = ROOT / "build" / "build_compiler114m_linux.sh"
+SYS_PACKER = ROOT / "tools" / "pack_lino_sys.py"
 MARKER = b"LNLMInit"
 END_MARKER = b"LNLMIend"
 APP_WS_UNITS = 8
@@ -43,6 +48,51 @@ REGISTER_VALUES = (0x11223344, 0x89ABCDEF, 0x01020304, 0x7FFFFFFF, 0x80000000)
 REQUIRE_EXECUTION = "--require-execution" in sys.argv
 if REQUIRE_EXECUTION:
     sys.argv.remove("--require-execution")
+
+
+COMPILER_FIXTURE_SOURCE = """\
+"directors"
+
+    unit = 32;
+    program name = { AArch64 compiler fixture };
+
+"variables"
+
+    slot = 0;
+
+"programme"
+
+    A = 12345678h;
+    B = A;
+    [slot] = B;
+    C = [slot];
+    -> after skipped failure;
+    fail;
+
+"after skipped failure"
+
+    A = [ramtop];
+    isocall;
+    ? failed -> failed call;
+    ? ok -> successful call;
+    fail;
+
+"successful call"
+
+    => helper;
+    D = 89ABCDEFh;
+    nop;
+    end;
+
+"failed call"
+
+    fail;
+
+"helper"
+
+    E = 0BADF00Dh;
+    leave;
+"""
 
 
 def all_offsets(data: bytes, needle: bytes) -> list[int]:
@@ -111,6 +161,25 @@ def patch_field(image: bytes, index: int, value: int) -> bytes:
     return bytes(patched)
 
 
+def compiler_image_parts(image: bytes) -> tuple[tuple[int, ...], bytes, bytes]:
+    marker = unique_marker_offset(image)
+    paragraph = marker + len(MARKER)
+    if paragraph + 96 > len(image):
+        raise ValueError("compiler image initialization paragraph is truncated")
+    fields = struct.unpack_from("<14i", image, paragraph + 40)
+    app_ws_size, app_code_size, entry_unit, physical_workspace = fields[:4]
+    physical_size = fields[4]
+    if min(app_ws_size, app_code_size, entry_unit, physical_workspace) < 0:
+        raise ValueError("compiler image contains a negative layout field")
+    if entry_unit >= app_code_size or physical_size != len(image):
+        raise ValueError("compiler image has inconsistent physical bounds")
+    code_start = physical_workspace + app_ws_size * 4
+    code_end = code_start + app_code_size * 4
+    if physical_workspace > code_start or code_end != physical_size:
+        raise ValueError("compiler image payload does not match its unit counts")
+    return fields, image[physical_workspace:code_start], image[code_start:code_end]
+
+
 def write_executable(path: Path, contents: bytes) -> None:
     path.write_bytes(contents)
     path.chmod(0o755)
@@ -134,6 +203,14 @@ def enc_str_w(source: int, base: int, byte_offset: int) -> int:
     if byte_offset % 4 or not 0 <= byte_offset // 4 <= 4095:
         raise ValueError("W store offset is not encodable")
     return 0xB9000000 | ((byte_offset // 4) << 10) | (base << 5) | source
+
+
+def enc_ldr_w_indexed(target: int) -> int:
+    return 0xB8695B20 | target
+
+
+def enc_str_w_indexed(source: int) -> int:
+    return 0xB8295B20 | source
 
 
 def enc_ldr_x(target: int, base: int, byte_offset: int) -> int:
@@ -362,8 +439,25 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("no Lino compiler emitter", readme)
         self.assertIn("gcc-aarch64-linux-gnu", workflow)
         self.assertIn("libc6-dev-arm64-cross qemu-user", workflow)
+        self.assertIn("libc6:i386 libx11-6:i386", workflow)
+        self.assertIn("build/build_compiler114m_linux.sh", workflow)
+        self.assertIn("tools/pack_lino_sys.py", workflow)
         self.assertIn("test_aarch64_runtime.py --require-execution -v", workflow)
         self.assertEqual(run_all.count('(\"test_aarch64_runtime.py\",'), 1)
+
+    def test_compiler_owns_the_minimal_aarch64_slice(self) -> None:
+        source = COMPILER_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("aarch64 target = 1;", source)
+        self.assertIn("? [aarch64 target] = yes -> cpu target ready;", source)
+        self.assertGreaterEqual(
+            source.count("? [aarch64 target] = yes -> pp aarch64;"), 2)
+        self.assertIn("(always emits MOVZ+MOVK", source)
+        for word in (
+            "52800000h", "72A00000h", "2A0003E0h",
+            "B8695B20h", "B8295B20h", "94000000h",
+            "AA0B8149h", "D63F0120h", "D65F03C0h",
+        ):
+            self.assertIn(word, source)
 
     def test_instruction_encoders_pin_known_words(self) -> None:
         self.assertEqual(enc_movz_w(0, 1), 0x52800020)
@@ -404,6 +498,8 @@ class AArch64ExecutionTests(unittest.TestCase):
             "AARCH64_OBJDUMP",
             ("aarch64-linux-gnu-objdump", "objdump"),
         )
+        cls.xvfb_run = find_tool("XVFB_RUN", ("xvfb-run",))
+        cls.setarch = find_tool("SETARCH", ("setarch",))
         native = (platform.system() == "Linux" and
                   platform.machine().lower() in {"aarch64", "arm64"})
         cls.qemu = None if native else find_tool("QEMU_AARCH64", ("qemu-aarch64",))
@@ -414,6 +510,10 @@ class AArch64ExecutionTests(unittest.TestCase):
             missing.append("AArch64 readelf")
         if cls.objdump is None:
             missing.append("AArch64 objdump")
+        if cls.xvfb_run is None:
+            missing.append("xvfb-run")
+        if cls.setarch is None:
+            missing.append("setarch")
         if not native and cls.qemu is None:
             missing.append("qemu-aarch64")
         if missing:
@@ -444,6 +544,36 @@ class AArch64ExecutionTests(unittest.TestCase):
         if len(all_offsets(cls.template, MARKER)) != 1:
             raise AssertionError("built runtime does not contain one patch marker")
 
+        cls.lino_compiler = cls.temp / "compiler114m-linux"
+        compiler_build = subprocess.run(
+            ["bash", str(COMPILER_BUILD_SCRIPT), str(cls.lino_compiler)],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=180,
+        )
+        if compiler_build.returncode != 0:
+            raise AssertionError(
+                "AArch64 emitter compiler bootstrap failed:\n" +
+                compiler_build.stdout)
+
+        cls.lino_environment = cls.temp / "lino-environment"
+        sys_directory = cls.lino_environment / "sys"
+        sys_directory.mkdir(parents=True)
+        cls.aarch64_sys = sys_directory / "aarch64.bin"
+        packing = subprocess.run(
+            [sys.executable, str(SYS_PACKER),
+             str(cls.runtime), str(cls.aarch64_sys)],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=30,
+        )
+        if packing.returncode != 0:
+            raise AssertionError("AArch64 SYS packing failed:\n" + packing.stdout)
+
     @classmethod
     def tearDownClass(cls) -> None:
         temporary = getattr(cls, "temporary", None)
@@ -469,6 +599,73 @@ class AArch64ExecutionTests(unittest.TestCase):
         if len(lines) != 1:
             raise AssertionError(f"expected one runtime result, got {stdout!r}")
         return dict(field.split("=", 1) for field in lines[0].split()[1:])
+
+    @classmethod
+    def compile_lino_source(cls, name: str, source_text: str) -> bytes:
+        source = cls.temp / f"{name}.txt"
+        output = source.with_suffix(".bin")
+        error_log = source.parent / "errorlog.txt"
+        source.write_text(source_text, encoding="ascii", newline="\n")
+        output.unlink(missing_ok=True)
+        error_log.unlink(missing_ok=True)
+
+        argument = (
+            f"--sys:aarch64--cpu:aarch64--ext:.bin"
+            f"--env:{cls.lino_environment}--src:{source}"
+        )
+        process = subprocess.Popen(
+            [cls.xvfb_run, "-a", cls.setarch, platform.machine(), "-X",
+             str(cls.lino_compiler), argument],
+            cwd=source.parent,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        previous: tuple[tuple[int, int], tuple[int, int] | None] | None = None
+        stable = 0
+        fatal_log = ""
+        settled = False
+        deadline = time.monotonic() + 60
+        while time.monotonic() < deadline:
+            log_state = None
+            if error_log.exists():
+                log_stat = error_log.stat()
+                log_state = (log_stat.st_size, log_stat.st_mtime_ns)
+                fatal_log = error_log.read_text(
+                    encoding="utf-8", errors="replace")
+                if re.search(r"error:|internal problem:", fatal_log,
+                             re.IGNORECASE):
+                    break
+            if output.exists() and output.stat().st_size:
+                output_stat = output.stat()
+                current = ((output_stat.st_size, output_stat.st_mtime_ns),
+                           log_state)
+                stable = stable + 1 if current == previous else 1
+                previous = current
+                if stable >= 5:
+                    settled = True
+                    break
+            else:
+                previous = None
+                stable = 0
+            if process.poll() is not None and not output.exists():
+                break
+            time.sleep(0.25)
+
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=5)
+        compiler_output = process.communicate()[0]
+        if not settled:
+            raise AssertionError(
+                "AArch64 Lino compilation did not settle:\n" +
+                compiler_output + fatal_log)
+        return output.read_bytes()
 
     def make_fixture(self, name: str, code: bytes, entry: int,
                      workspace: bytes, ramtop: int) -> Path:
@@ -516,6 +713,71 @@ class AArch64ExecutionTests(unittest.TestCase):
             self.assertIsNotNone(match, f"missing disassembly body for {symbol}")
             bridge_bodies.append(match.group("body"))
         self.assertNotRegex("\n".join(bridge_bodies), r"\bx18\b")
+
+    def test_compiler_produced_image_executes_full_integer_slice(self) -> None:
+        image = self.compile_lino_source(
+            "compiler-aarch64-fixture", COMPILER_FIXTURE_SOURCE)
+        fields, initialized_workspace, code = compiler_image_parts(image)
+        app_ws_size, app_code_size, entry_unit = fields[:3]
+        default_ramtop = fields[5]
+        self.assertGreaterEqual(app_ws_size, 2)
+        self.assertEqual(len(initialized_workspace), app_ws_size * 4)
+        self.assertEqual(len(code), app_code_size * 4)
+        self.assertEqual(entry_unit, 0)
+        self.assertGreater(default_ramtop, app_ws_size + 7)
+
+        code_words = list(struct.unpack(f"<{app_code_size}I", code))
+        immediate_a = [
+            enc_movz_w(19, 0x5678),
+            enc_movk_w(19, 0x1234, 16),
+        ]
+        self.assertIn(words_to_bytes(immediate_a), code)
+        self.assertIn(0x2A0003E0 | (19 << 16) | 20, code_words)
+        self.assertIn(words_to_bytes([
+            enc_movz_w(9, 0), enc_movk_w(9, 0, 16),
+            enc_str_w_indexed(20),
+        ]), code)
+        self.assertIn(words_to_bytes([
+            enc_movz_w(9, 0), enc_movk_w(9, 0, 16),
+            enc_ldr_w_indexed(21),
+        ]), code)
+
+        isocall_words = [
+            enc_movz_w(9, app_ws_size + UI_ISOKERNEL_LO),
+            enc_movk_w(9, 0, 16),
+            enc_ldr_w_indexed(10),
+            enc_movz_w(9, app_ws_size + UI_ISOKERNEL_HI),
+            enc_movk_w(9, 0, 16),
+            enc_ldr_w_indexed(11),
+            enc_orr_lsl_x(9, 10, 11, 32),
+            0xA9BF7BFD,
+            enc_blr(9),
+            0xA8C17BFD,
+        ]
+        self.assertIn(words_to_bytes(isocall_words), code)
+        self.assertTrue(any(
+            code_words[index] == 0xA9BF7BFD and
+            code_words[index + 1] & 0xFC000000 == 0x94000000 and
+            code_words[index + 2] == 0xA8C17BFD
+            for index in range(len(code_words) - 2)
+        ), "compiler call did not preserve x29/x30 around BL")
+
+        fixture = self.temp / "compiler-produced-aarch64"
+        write_executable(fixture, image)
+        run = self.run_fixture(fixture)
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+        self.assertEqual(run.stderr, "")
+        result = self.parse_result(run.stdout)
+        self.assertEqual(result["status"], "0")
+        self.assertEqual(result["A"], f"{default_ramtop:08X}")
+        self.assertEqual(result["B"], "12345678")
+        self.assertEqual(result["C"], "12345678")
+        self.assertEqual(result["D"], "89ABCDEF")
+        self.assertEqual(result["E"], "0BADF00D")
+        self.assertEqual(result["X"], f"{DONE:08X}")
+        self.assertEqual(result["ramtop"], f"{default_ramtop:08X}")
+        self.assertGreater(int(result["code"], 16), 0xFFFFFFFF)
+        self.assertGreater(int(result["workspace"], 16), 0xFFFFFFFF)
 
     def test_nonzero_entry_returns_exact_registers(self) -> None:
         code, entry = return_fixture()
