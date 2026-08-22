@@ -54,7 +54,7 @@ LINO_LIBS = (
     "brtl.txt", "mul64frag.txt", "suseed.txt", "surng.txt", "subuf.txt",
     "susm.txt", "sky.txt",
 )
-FP_LIBS = ("fpabi.txt", "fpctl.txt", "fpx87.txt", "fpconv.txt")
+FP_LIBS = ("fpabi.txt", "fpctl.txt", "fpsoft.txt", "fpx87.txt", "fpconv.txt")
 ASSETS = ("globes.map", "offsets.map")
 
 

@@ -30,6 +30,7 @@ uses (1e5-ish coordinates, 3.8e6 ship positions, angles in radians), and
 values chosen to exercise the int16 wrap that star classes 1, 3, 4 and 9
 take as their normal path.
 """
+import math
 import struct
 import sys
 import random
@@ -42,6 +43,10 @@ MAGIC = 0x46505643
 def d2u(x):
     b = struct.unpack('<Q', struct.pack('<d', x))[0]
     return b & 0xFFFFFFFF, (b >> 32) & 0xFFFFFFFF
+
+
+def f32(x):
+    return struct.unpack('<f', struct.pack('<f', x))[0]
 
 
 def i2u(x):
@@ -110,6 +115,81 @@ def vectors(sched):
         t = rnd.uniform(-7.0, 7.0)
         add(t, rnd.uniform(-7.0, 7.0), abs(t) + 0.001, 1.0,
             int(t * 1000), 180, 360, 1)
+
+    # The portable transcendental contract has a denser, schedule-specific
+    # tail.  It includes the signed axes, exact neighboring binary64 values at
+    # quadrant boundaries, and the accumulated angles used by production.  It
+    # also reaches the complete x87-supported reduction interval: those large
+    # cases intentionally grade mathematical range reduction rather than the
+    # x87 instruction's documented 66-bit approximation of pi.
+    if sched in (8, 9, 10):
+        min_subnormal = math.ldexp(1.0, -1074)
+        min_normal = math.ldexp(1.0, -1022)
+        max_subnormal = math.nextafter(min_normal, 0.0)
+        for value in (min_subnormal, -min_subnormal,
+                      max_subnormal, -max_subnormal,
+                      min_normal, -min_normal):
+            add(value, 1.0)
+        if sched == 10:
+            add(min_subnormal, 2.0)
+            add(-min_subnormal, 2.0)
+            add(3.0 * min_subnormal, 2.0)
+            add(-3.0 * min_subnormal, 2.0)
+
+        for y in (0.0, -0.0, 1.0, -1.0):
+            for x in (0.0, -0.0, 1.0, -1.0):
+                add(y, x)
+
+        for step, radius in ((math.pi / 2.0, 16), (math.pi, 8)):
+            for k in range(-radius, radius + 1):
+                center = k * step
+                add(math.nextafter(center, -math.inf), 1.0)
+                add(center, -1.0)
+                add(math.nextafter(center, math.inf), 1.0)
+
+        angle = 0.0
+        degree_step = math.pi / 180.0
+        for degree in range(361):
+            if degree % 6 == 0:
+                add(angle, -angle if angle else -0.0)
+            angle += degree_step
+
+        angle32 = f32(0.0)
+        capsule_step = f32(0.025)
+        for tick in range(253):
+            if tick % 8 == 0:
+                add(float(angle32), -float(angle32) if angle32 else -0.0)
+            angle32 = f32(angle32 + capsule_step)
+
+        for angle in (
+                -1310.0, -1304.0, -168.0, -2.0 * math.pi, -math.pi,
+                -math.pi / 4.0, math.pi / 4.0, math.pi, 2.0 * math.pi,
+                168.0, 1304.0, 1310.0):
+            add(angle, math.nextafter(angle, math.inf) or 1.0)
+
+        if sched == 10:
+            for y, x in ((1e-300, 1e300), (-1e-300, 1e300),
+                         (1e300, 1e-300), (-1e300, 1e-300),
+                         (1e-300, -1e300), (-1e-300, -1e300),
+                         (1e300, -1e-300), (-1e300, -1e-300)):
+                add(y, x)
+
+        for exponent in (20, 30, 40, 50, 57, 60, 61, 62):
+            magnitude = math.nextafter(2.0 ** exponent, 0.0)
+            add(magnitude, -magnitude)
+            add(-magnitude, magnitude)
+
+        if sched in (8, 9):
+            limit = 2.0 ** 63
+            for magnitude in (
+                    2.0 ** 62,
+                    math.nextafter(2.0 ** 62, math.inf),
+                    1.5 * (2.0 ** 62),
+                    math.nextafter(limit, 0.0),
+                    limit,
+                    math.nextafter(limit, math.inf)):
+                add(magnitude, -magnitude)
+                add(-magnitude, magnitude)
 
     # ---- 6. exact halves and quarters, where round-nearest-EVEN and
     #         round-half-away differ and a naive converter shows itself

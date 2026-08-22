@@ -18,6 +18,13 @@
  * arithmetic and about the hand-typed opcodes, which is exactly the pair
  * of things that could be wrong on the L.in.oleum side.
  *
+ * For schedules 8-10 this file is the LEGACY CHARACTERIZATION, not the
+ * acceptance oracle.  Intel documents that FSIN/FCOS reduce with only a 66-bit
+ * approximation of pi, so their large-argument answers can be many binary64
+ * ULPs from the mathematical value.  fptransgrade.py supplies the independent
+ * high-precision portable contract and reports this file's exact agreement.
+ * The remaining schedules continue to require byte-for-byte agreement here.
+ *
  * WHY x86-64 IS FINE.  There is no 32-bit toolchain on this machine, but
  * none is needed: `long double` on mingw-w64 IS the 80-bit x87 type and
  * gcc compiles arithmetic on it to x87 instructions.  Every operation here

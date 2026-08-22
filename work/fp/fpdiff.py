@@ -49,6 +49,13 @@ def main():
     if na != nb:
         raise SystemExit('case counts differ: %d vs %d' % (na, nb))
 
+    bad_header = []
+    if a[5] != b[5]:
+        bad_header.append('control word lino %04X ref %04X' % (a[5], b[5]))
+    atop, btop = (a[6] >> 11) & 7, (b[6] >> 11) & 7
+    if atop != btop:
+        bad_header.append('x87 TOP lino %d ref %d' % (atop, btop))
+
     bad = [0] * 6
     first = [None] * 6
     for i in range(na):
@@ -66,10 +73,12 @@ def main():
                 if first[k] is None:
                     first[k] = (i, a[oa + 1 + k], b[ob + 1 + k])
 
-    tot = sum(bad)
+    tot = sum(bad) + len(bad_header)
     tag = ('%-14s ' % label) if label else ''
     print('%scases %d  lino cw %04X TOP %d | ref cw %04X TOP %d'
-          % (tag, na, a[5], (a[6] >> 11) & 7, b[5], (b[6] >> 11) & 7))
+          % (tag, na, a[5], atop, b[5], btop))
+    for error in bad_header:
+        print('  DIFF %-12s %s' % ('header', error))
     for k in range(6):
         mark = 'OK  ' if bad[k] == 0 else 'DIFF'
         line = '  %s %-12s %5d/%d' % (mark, FIELDS[k], na - bad[k], na)
