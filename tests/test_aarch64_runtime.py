@@ -2976,16 +2976,14 @@ class AArch64ExecutionTests(unittest.TestCase):
 
         conversion_sequences = (
             [
-                enc_fmov_s_w(0, 20),
-                enc_fcvtns_w_s(19, 0),
+                *enc_x87_fistp_w(19, 20),
             ],
             [
                 *enc_mov32_w(9, lhs_index),
                 enc_ldr_w_indexed(10),
                 *enc_mov32_w(9, slot_index),
                 enc_ldr_w_indexed(11),
-                enc_fmov_s_w(0, 10),
-                enc_fcvtns_w_s(11, 0),
+                *enc_x87_fistp_w(11, 10),
                 enc_str_w_indexed(11),
             ],
             [
@@ -2993,8 +2991,7 @@ class AArch64ExecutionTests(unittest.TestCase):
                 enc_ldr_w_indexed(10),
                 *enc_indirect_index(20, 2),
                 enc_ldr_w_indexed(11),
-                enc_fmov_s_w(0, 10),
-                enc_fcvtns_w_s(11, 0),
+                *enc_x87_fistp_w(11, 10),
                 enc_str_w_indexed(11),
             ],
             [
