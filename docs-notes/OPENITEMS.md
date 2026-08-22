@@ -1639,17 +1639,21 @@ the focused gameplay regression passed, and a fresh physical-screen capture
 remained coherent. Matched XQuartz reporter output and a complete glyph-set
 comparison remain required before closing the wider compatibility item.
 
-## 10. NIVGEN public accuracy integration -- **OPEN / RELEASE-CRITICAL**
+## 10. NIVGEN public accuracy integration -- **DEFERRED PENDING UPSTREAM EVIDENCE**
 
-Win the public 5,188-case `nivgen_planets` comparison with the production Lino
-generator, not with omitted fields, fixture-specific answers, or a selected
-sector. Complete exact corpus parity is the trigger for the next compiled
-release milestone; after that release checkpoint, continue the remaining docket.
-`docs/NIVGEN.md` is the operating procedure; `tools/nivtest.py` runs a
-production case, `tools/nivgen_score.py` scores a bounded local selection, and
-`tools/nivgen_sheet_report.py` snapshots, classifies, and diffs the complete
-public API corpus. Live reads are eleven sequential 500-row requests with a
-one-second delay and no retries.
+The local investigation is deferred as of 2026-08-22 at the user's direction.
+Historical game semantics and the distinct public-artifact compatibility policy
+are now measured and retained; the final 22 fields require the unpublished exact
+NIVTEST harness/executable or paired upstream captures. Do not resume corpus
+sweeps, add fixture-specific answers, omit fields, or weaken comparisons without
+material new upstream evidence. Continue the actionable project docket while
+Joris reviews the reports.
+
+`docs/NIVGEN.md` remains the operating procedure if the boundary reopens;
+`tools/nivtest.py` runs a production case, `tools/nivgen_score.py` scores a
+bounded local selection, and `tools/nivgen_sheet_report.py` snapshots,
+classifies, and diffs the complete public API corpus. Live reads are eleven
+sequential 500-row requests with a one-second delay and no retries.
 
 **Measured baseline, 2026-08-21.** The canonical 5,188-row snapshot is
 `ab73b236957f225247e07460eaae1a7e26891e701d6b5bd4c93d573208231f97`.
@@ -1997,6 +2001,11 @@ characters. Keep that invariant when editing them. Continue removing stale
 claims and redundant history at release checkpoints instead of turning the
 README back into one chronological wall of text.
 
+The JavaScript/LinoJava version, its dense-scene speed limit, and its other
+remaining defects are back on the docket, but explicitly last. Finish the
+native runtime/compiler, rendering, optimization, static-analysis, bug-hunting,
+documentation, and cleanup items before reopening browser work.
+
 ## 12. Release, portability, and macOS gates -- **OPEN / CRITICAL**
 
 These are near-term release gates, not background polish.
@@ -2023,8 +2032,8 @@ with pinned result digest
 The separate compiled-Lino driver is exact on 4,096 boundary and spread cases
 and preserves all soft-stack sentinels.
 Complete production default maps retain authoritative digests `FDDDF3A2` for
-type 1 and `301D7754` for type 5. Corpus-wide NIVGEN effects are recorded under
-the release-critical accuracy gate rather than inferred from those two anchors.
+type 1 and `301D7754` for type 5. Corpus-wide NIVGEN effects are retained in
+the deferred accuracy evidence rather than inferred from those two anchors.
 
 Generated Windows PEs receive exact `133Fh` through a size-preserving,
 fail-closed post-link patch; all eight licence-protected runtime variants retain
@@ -2071,26 +2080,39 @@ supported macOS routes. The download is not notarized and is not native ARM64.
 Keep the exact known-sector hash and Cocoa launch/quit checks, but add the
 uniform-white palette rejection from PR #22 and full/mismatch-class NIVGEN
 coverage. The `133Fh` host probe passed the current hosted Intel and Rosetta
-executions recorded above. A native ARM64 game remains a separate
-larger port. A read-only review of retained PR #10 at tip `2402172` found useful
+executions recorded above. A native ARM64 game remains a larger port. The
+read-only review of retained PR #10 at tip `2402172` found useful
 `__PAGEZERO`/above-4-GB design notes, the conceptual `x19` through `x25` register
 map, and a non-truncating code-entry pointer, but its implementation must not be
 merged as-is. Critical defects corrupt `x29`/`x30` across normal and nonlocal
-returns, pass an `mmap` workspace to `realloc`, fail to clear growth, and leave
-translated workspace state stale after a move. The branch also has a destructive
-fixed-address allocator, 32-bit code-pointer truncation, an unsafe signature
-patch, shell/format-string injection, unconditional `/workspace` dumps, missing
-build inputs and translator, and no Mach-O/Apple-Silicon build. Start future work
-from master's safe map/copy/clear/unmap architecture and design explicit 64-bit
-translator/isocall fixups plus separate ELF and Mach-O paths. Leave a specific
-public review before adapting or closing the contribution; no public action has
-yet been taken.
+returns, pass an `mmap` workspace to `realloc`, fail to clear growth, leave
+translated workspace state stale after a move, force addresses, truncate
+pointers, scan code unsafely, dump files unconditionally, and omit required
+build inputs, translation, and Mach-O support.
+
+The first safe replacement checkpoint is now implemented on branch
+`arm64-runtime`: a checked static Linux AArch64 bridge retains the 32-bit image
+layout while publishing full-width isokernel and code pointers in four new UI
+units. It preserves the x19-x25 Lino map, reserves x18, balances x29/x30 and SP,
+reloads WS after every C isocall, seals loaded code RX, keeps workspace RW, and
+grows by map/copy/zero/refresh/unmap. Generated instruction fixtures prove a
+nonzero entry, exact register return, high-address code/workspace, LR
+continuation, relocation, old-data retention, zeroed growth, and seven malformed
+image refusals. All 10 focused checks passed under QEMU in hosted run 32561719854
+at commit `7a833c5`.
+
+This is not yet a compiler target, full service RTM, native macOS/Cocoa binary,
+or Noctis build. Next add a compiler-owned integer/workspace/control-flow emitter
+for this exact ABI before expanding translation or beginning Mach-O work. Keep
+Joris van de Donk's source and commit credit. Leave a specific public review
+before adapting or closing PR #10; no public action has yet been taken.
 
 ### 12.4 Finish with one coherent repository audit -- **OPEN**
 
-After the final FP, NIVGEN, and runtime changes settle, run the complete
+After the active runtime and remaining docket changes settle, run the complete
 registered regression once from the same source state, including the explicit
-deep sky/ground modes where their libraries changed. Repeat the production
+deep sky/ground modes where their libraries changed. Include NIVGEN-specific
+work only if material upstream evidence reopens that deferred boundary. Repeat the production
 closure and floating-operator scans, runtime-boundary checks, Python compilation,
 workflow lint, package/provenance checks, and targeted static searches for raw
 target blocks, target-dependent floating comparisons, stale duplicated NIVGEN
