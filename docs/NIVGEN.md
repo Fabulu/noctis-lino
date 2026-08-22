@@ -379,24 +379,23 @@ source mechanism. Body 9 random texture still differs at 31,048 rendered pixels
 and has no such reconstruction. The retained reconstruction is
 `tests/gen/nivgen-xenofelys-artifact-reconstruction.json` (SHA-256
 `b281be3f41610ac33ecac94d2734f0cb087ca0e6020cfc36a221575415737c64`).
-These exact inversions are evidence of missing caller/capture state or anomalous
-artifacts, not permission to write those bytes in production.
+These exact inversions are evidence of unreproduced NIVTEST capture state or
+anomalous artifacts, not permission to write those bytes in production.
 
 Late-game NIV+ R2.3 body-5 extraction independently matches current Lino at both
 sites: default HM/OC/texture `8D2BE67B`/`ECDF02E1`/`C7A7FE82`, and random
 `E94ABB9B`/`A8A3E2FE`/`0EB7452E`. Because that capture reached landed gameplay
 after the generator return, it supports the source-shaped generator but does not
-certify the missing `planetdump` caller boundary.
+certify the NIVTEST capture and hashing boundary.
 
-The closest published caller also excludes ordinary allocator reuse as a general
-explanation. The `noctis-iv-lr` harness at commit `01c6a3a` dispatches each
-`sector` or `surftex` command once in a fresh process: it generates the system and
-orbital surface, supplies the recorded 16-byte gap, then calls `build_surface`.
-That function clears all 40,000 height and object bytes and fills texture offsets
-0 through 65,534 with 16. The `surftex` command fills all 64,800 rendered sky
-bytes before `create_sky`. The only allocation bytes left unspecified are texture
-offset 65,535 and 64 sky-slack bytes, all outside the public hashes; there is no
-landed body/site loop whose earlier output can enter a scored range.
+The published `noctis-iv-lr` harness at commit `01c6a3a` excludes ordinary
+in-process allocator reuse in that implementation. It dispatches each `sector`
+or `surftex` command once in a fresh process, generates the system and orbital
+surface, supplies the recorded 16-byte gap, then calls `build_surface`. That
+function clears all 40,000 height and object bytes and fills texture offsets 0
+through 65,534 with 16. The `surftex` command fills all 64,800 rendered sky bytes
+before `create_sky`. The only allocation bytes left unspecified are texture
+offset 65,535 and 64 sky-slack bytes, all outside the public hashes.
 
 The canonical sheet independently records Rust and LR outputs for the same rows.
 Every one of the 22 residual authoritative hashes differs from current Lino,
@@ -405,43 +404,94 @@ implementations agree on eight. Those eight include body 4 default heightmap,
 default sky, and random heightmap; body 5 random texture; both body 9 textures;
 and body 10 random texture and sky. No residual authoritative target matches any
 of the three implementations. This consensus and the native body-5 extraction
-strengthen the artifact-regeneration case, but the published LR harness is still
-not the missing historical `planetdump` caller.
+strengthen the artifact-regeneration case.
 
-The public upload timestamps suggested a bounded shared-process alternative for
-bodies 0--11. A local LR probe generated XENOFELYS once, then generated each
-orbital surface once and both recorded landed sites in sequence while restoring
-the recorded 16-byte gap before each build. Its first MinGW run exposed two
-probe defects before yielding evidence: LR's `uint16_t` bitfields made the
-nominally one-byte `quadrant` occupy two bytes, and the headless harness omitted
-the game's `adapted` allocation. With those corrected locally, an isolated body-0
-default control reproduced heightmap `301D7754`; the complete batch then matched
-zero of the 22 residual targets and changed previously clean LR sky/texture
-outputs. The retained output SHA-256 is
+The authoritative orchestration is now public. SheetBot's
+`nivgen-integration` branch, pinned at
+`b7847bef16f08976c0a7e813410eec07d03d7775` (integration introduced by
+`4b2706e492c497cb90c3acf6b0f4edc8da50c990`), runs `planet-all` in one
+DOSBox-X session, sorts the returned bodies, and then processes them in chunks of
+12. One DOSBox-X session executes five separate `NIVTEST.EXE` processes for each
+body, in this exact order: default `sector`, random `sector`, default `surftex`,
+random `surftex`, and `planet`. This explains the observed upload groups 0--11,
+12--23, and 24--32 exactly. The original commands do not pass `-gap`; recorded gap
+bytes therefore arise from the DOS build and allocation state rather than caller
+replay. Fresh C globals do not cross commands, but uncleared emulated guest RAM
+and DOS allocator/header state can be reused by the separate executables in a
+chunk. A direct DOSBox-X 2026.08.02 probe confirms this boundary: two separate
+COM processes shrank their loader blocks and requested the same 65,536-byte DOS
+allocation. In one session the reader received the writer's identical segment
+`0913` with all 256 sampled bytes still `50`; in a clean session it received
+segment `0913` with all samples zero. The retained report is
+`tests/gen/recon_dos_reuse/report.json` (SHA-256
+`1458c2497b1cb966a695ccb50c81a3442838fc11b1d98b205b05b13495c3aaf1`).
+This proves cross-process allocation payload can survive under the caller's
+session policy; it does not prove that NIVTEST consumes such payload.
+
+The residual order now aligns exactly with that policy. Bodies 0--3 in the first
+XENOFELYS chunk are exact. Body 3, type 9, is the last exact body before the
+residual window and the only first-chunk row with a nonmodal random-sector gap:
+its final two gap bytes are `0000` instead of `6055`. All 22 residual fields occur
+on bodies 4--11 after body 3's five-process group and before the DOSBox reset;
+bodies 6 and 7 remain exact, and every comparable output in chunks 12--23 and
+24--32 is exact. Body 14 has another nonmodal gap without a later residual, so the
+gap itself is only a state marker, not a cause. The retained order report is
+`tests/gen/nivgen-xenofelys-dosbox-order-correlation.json` (SHA-256
+`80eb577da71679ce8abff16cbc0a04007fb882a85abd40fab4e2c0e2b5574497`).
+This correlation is strong enough to prioritize the exact same-session
+reproduction, but it does not identify bytes that production may copy. One
+bounded replay rejects the visible gap as the complete mechanism: applying body
+3's exact nonmodal random gap to body 4 leaves both heightmaps unchanged and
+changes the default/random object charts to `DA454969`/`FDB335DA`, matching none
+of the four authoritative HM/OC targets. The retained report is
+`tests/gen/nivgen-xenofelys-predecessor-gap-probe.json` (SHA-256
+`b3367dc37137743076436f963ad2d75711570bdf7384319b1fbac999769c18c0`).
+No alternate gap values were searched; other heap blocks and the intervening
+body-3 texture/planet processes remain untested.
+
+SheetBot identifies the deployed original engine by source hash
+`fb067a16c36f3b67a139fec3c47be483e3bb93965d467612724234d608ef21ac`.
+Its hash input includes `tests/harness/NIVTEST.CPP`, `NIVHASH.C`, `NIVHASH.H`,
+`NIVSTUBS.C`, `tests/dosbox/BUILD.BAT`, `LINK.RSP`, both generator translation
+units, and every source header. The orchestration is public, but those exact DOS
+harness/build files and the corresponding `NIVTEST.EXE` are not in the public
+Noctis-IV-Plus branches. The separate public `planetdump` branch adds an orbital
+BMP command to `NOCTIS.EXE`; it is not this landed NIVTEST caller.
+
+The earlier timestamp hypothesis consequently tested the wrong sharing boundary.
+A local LR probe generated XENOFELYS once, then generated each orbital surface and
+both recorded landed sites in one native process while restoring the recorded
+16-byte gap. Its first MinGW run exposed two probe defects before yielding
+evidence: LR's `uint16_t` bitfields made the nominally one-byte `quadrant` occupy
+two bytes, and the headless harness omitted the game's `adapted` allocation. With
+those corrected locally, an isolated body-0 default control reproduced heightmap
+`301D7754`; the complete batch matched zero of the 22 residual targets and changed
+previously clean LR sky/texture outputs. The retained output SHA-256 is
 `aea64f0281b2a205f7885f46a9f3291b71559f9bdc82c649f26197bfa1b6898d`.
-This rejects that particular body/site reuse ordering. It cannot exclude other
-resets, copies, or post-generation writes in the absent historical caller.
+This rejects only that single-process body/site ordering. It does not test the
+actual same-DOSBox, separate-executable allocation history.
 
-A source-path trace now excludes the retained direct generator itself. Type 1
+A source-path trace excludes the retained direct generator itself. Type 1
 prefills the complete scored range with zero, selects no sky painter, and does
 not run the gameplay horizon pass. The unreachable nebular/cloudy painters emit
 only values `0..63`; earlier aliased moon-texture writes are erased by the
 prefill and could not leave a lone value 80. The retained trace is
 `tests/gen/nivgen-xenofelys-sky-source-trace.txt` (SHA-256
 `8637242d640fe709e5d4c5ae13dc855629b1f3b49c4f020d5ea648fc9eb7b2c7`).
-Watch offset 12,167 after prefill, after `create_sky`, and immediately before
-hashing in a fresh original/reference caller. No source-shaped sky exception is
-justified.
+The decisive reproduction must compare the exact five-command, 12-body sequence
+inside one DOSBox-X session with one clean DOSBox-X session per command. It must
+capture allocation segments, the 16 bytes immediately after the object chart,
+and each full scored buffer at the pre-hash boundary. No source-shaped sky
+exception is justified.
 
 The locally available DOS reference is NIV+ R2.3 `NOCTIS.EXE`, whose resume path
 calls `planets()`, then `planetary_main()`, and whose generation functions match
-the release source. It is a generator reference, not the missing historical
-NIVGEN `planetdump` hash/PNG caller.
+the release source. It is a generator reference, not the missing NIVTEST harness.
 
-The decisive type-1 boundary is now captured. In an isolated copy of the DOS
-sandbox, read-only MZ disassembly identified `create_sky` at file offset
-`0x1B12C`, its caller at `0x1DA00`, and the first post-return instruction at
-`0x1DA03`. The copied executable, originally SHA-256
+The decisive type-1 generator boundary is already captured. In an isolated copy
+of the DOS sandbox, read-only MZ disassembly identified `create_sky` at file
+offset `0x1B12C`, its caller at `0x1DA00`, and the first post-return instruction
+at `0x1DA03`. The copied executable, originally SHA-256
 `5e64d532091c9be1f91d7e0bc57719df24020ba38b0662f225f65d3c55e579ac`,
 replaced those first two return-site bytes with the bounded `EB FE` self-loop;
 the patched SHA-256 is
@@ -455,15 +505,15 @@ stopped after `create_sky` but before the landed gameplay state.
 The validated far-heap `s_background` has byte 12,167 equal to zero. All 46,080
 scored bytes are zero, FNV-1a `7B252DC5`, and byte-for-byte identical to current
 Lino. The authoritative `CBD77DB5` sky is that same buffer with byte 12,167 changed
-to 80. Native NIV+ therefore does not generate the anomalous byte: it was added
-after `create_sky` in the missing hash/PNG caller or belongs only to the retained
-artifact. The report is
+to 80. Native NIV+ therefore does not generate the anomalous byte: it appears
+between generator return and NIVTEST's pre-hash boundary, can reflect same-DOSBox
+residual state, or belongs only to the retained artifact. The report is
 `tests/gen/nivgen-xenofelys-native-sky-boundary.json` (SHA-256
 `e58437be86dd93522f5e97fbb31c1935f7dc6f1879f27f6421d6813bd79b03d9`).
 Atmospheric native-game skies are not substituted as public oracles because the
 gameplay caller applies different sampled filters; a bounded body-4 probe confirms
-that distinction. Pre-hash versus pre-encode attribution still requires the actual
-historical NIVGEN caller.
+that distinction. Exact attribution requires the unpublished NIVTEST source or
+executable and the same-DOSBox comparison above.
 
 ## Historical bounded measurements -- **SUPERSEDED**
 

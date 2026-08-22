@@ -1790,10 +1790,10 @@ values are `5e64d532091c9be1f91d7e0bc57719df24020ba38b0662f225f65d3c55e579ac`
 and `5d9c23bc959039d78e5d4ab8e71095f57e9d98a4995d4b1d3f9edc948f2f37f8`.
 The retained report SHA-256 is
 `e58437be86dd93522f5e97fbb31c1935f7dc6f1879f27f6421d6813bd79b03d9`.
-The anomalous value 80 therefore lies after `create_sky` in the missing
-capture/hash/encode caller or only in the artifact. Atmospheric game captures
-remain non-oracles because gameplay applies different filters from the public
-caller.
+The anomalous value 80 therefore lies between native generator return and the
+NIVTEST pre-hash boundary, can reflect same-DOSBox residual state, or belongs only
+to the retained artifact. Atmospheric game captures remain non-oracles because
+gameplay applies different filters from the public caller.
 
 A complete public-image reconstruction now identifies nine sparse target-compatible
 residual fields rather than only the body-10 sky. Unique one-byte substitutions
@@ -1808,38 +1808,85 @@ and body 9 default texture has twelve distinct two-index palette-equivalent
 solutions. Body 9 random texture remains unreconstructed. The retained report
 SHA-256 is `b281be3f41610ac33ecac94d2734f0cb087ca0e6020cfc36a221575415737c64`.
 Multiplicity prevents selecting authoritative bytes or a generating mechanism;
-these results strengthen the missing caller/capture-state or anomalous-artifact
-diagnosis and block per-field source patches.
+these results strengthen the capture-state or anomalous-artifact diagnosis and
+block per-field source patches.
 
-The closest published caller, the `noctis-iv-lr` harness at commit `01c6a3a`,
-runs each landed command once rather than reusing buffers across bodies or sites.
-Although it allocates with `malloc`, `build_surface` clears all 40,000 height and
-object bytes and fills texture offsets 0 through 65,534; `surftex` fills all
-64,800 rendered sky bytes before `create_sky`. Only one texture-tail byte and 64
-sky-slack bytes remain allocator-dependent, all outside the scored extents. It
-also replays the exact per-row 16-byte gap. The canonical sheet supplies another
-independent discriminator: all 22 residual originals differ from current Lino,
-sheet Rust, and sheet LR; current and Rust agree on 21, while all three
-implementations agree on eight. No authoritative residual matches any of the
-three implementations. Ordinary published-caller allocation/reuse therefore does
-not explain the cluster.
+The published `noctis-iv-lr` harness at commit `01c6a3a` runs each landed command
+once rather than reusing buffers across bodies or sites. Although it allocates
+with `malloc`, `build_surface` clears all 40,000 height and object bytes and fills
+texture offsets 0 through 65,534; `surftex` fills all 64,800 rendered sky bytes
+before `create_sky`. Only one texture-tail byte and 64 sky-slack bytes remain
+allocator-dependent, all outside the scored extents. It also replays the exact
+per-row 16-byte gap. The canonical sheet supplies another independent
+discriminator: all 22 residual originals differ from current Lino, sheet Rust,
+and sheet LR; current and Rust agree on 21, while all three implementations agree
+on eight. No authoritative residual matches any of the three implementations.
+Ordinary in-process allocation/reuse in the LR harness therefore does not explain
+the cluster.
 
-Upload timestamps suggested one bounded alternative: bodies 0--11 may have been
-processed as a group. A local LR probe consequently generated XENOFELYS once,
-then generated each orbital surface once and both recorded landed sites in one
-process, preserving the measured gap. Before interpretation, an isolated body-0
-control exposed and repaired two probe-only omissions: LR's `quadrant` declaration
-occupied two bytes under MinGW despite the documented one-byte object-chart ABI,
-and the headless harness had not allocated `adapted`. The corrected control
-reproduced the authoritative body-0 default heightmap `301D7754`. The completed
-shared-process batch matched none of the 22 residual targets and changed formerly
-clean sky/texture outputs relative to fresh LR commands. Its report SHA-256 is
+The actual original-engine orchestration is public in SheetBot's
+`nivgen-integration` branch, pinned at
+`b7847bef16f08976c0a7e813410eec07d03d7775`; commit
+`4b2706e492c497cb90c3acf6b0f4edc8da50c990` introduced it. `origEngine()` runs
+`planet-all` in one DOSBox-X session, sorts bodies, and processes chunks of 12.
+For every body in a chunk it starts five separate `NIVTEST.EXE` processes in one
+shared DOSBox-X session: default `sector`, random `sector`, default `surftex`,
+random `surftex`, then `planet`. This exactly explains upload groups 0--11,
+12--23, and 24--32. The commands do not pass `-gap`; those bytes arise from the
+actual DOS allocation state. Each command has fresh C globals, but guest RAM and
+DOS allocator/header contents can survive between executable invocations. A
+direct DOSBox-X 2026.08.02 probe proves that premise: a writer and reader in
+separate COM processes requested the same 65,536-byte allocation at segment
+`0913`; the reader recovered all 256 sampled writer bytes in the shared session,
+while an otherwise identical clean session returned 256 zero bytes at `0913`.
+The retained report SHA-256 is
+`1458c2497b1cb966a695ccb50c81a3442838fc11b1d98b205b05b13495c3aaf1`.
+This establishes possible cross-process payload reuse, not that NIVTEST reads it.
+The ordering adds a sharper correlation: XENOFELYS bodies 0--3 are exact; body 3
+is the last exact body and the only first-chunk row with a nonmodal random-sector
+gap (`...C5090000` instead of `...C5096055`). All 22 residuals then fall on bodies
+4--11 before the DOSBox reset, while every comparable row in chunks 12--23 and
+24--32 is exact. Bodies 6 and 7 inside the window are also exact, and body 14 has
+a nonmodal gap without later residuals, so the gap is a marker rather than a
+sufficient cause. The retained order-correlation report SHA-256 is
+`80eb577da71679ce8abff16cbc0a04007fb882a85abd40fab4e2c0e2b5574497`.
+A single source-grounded replay rules out the visible gap as the whole mechanism:
+using body 3's exact nonmodal gap for body 4 left both heightmaps unchanged and
+changed the default/random object charts to `DA454969`/`FDB335DA`, none of which
+matches the four authoritative HM/OC residuals. The retained report SHA-256 is
+`b3367dc37137743076436f963ad2d75711570bdf7384319b1fbac999769c18c0`.
+No alternative gap was searched; unrecorded heap payload and allocation history
+remain open.
+
+SheetBot pins the original engine source as
+`fb067a16c36f3b67a139fec3c47be483e3bb93965d467612724234d608ef21ac`.
+The hash covers `tests/harness/NIVTEST.CPP`, `NIVHASH.C`, `NIVHASH.H`,
+`NIVSTUBS.C`, `tests/dosbox/BUILD.BAT`, `LINK.RSP`, both generator translation
+units, and every source header. The exact harness/build files and corresponding
+`NIVTEST.EXE` are absent from the public Noctis-IV-Plus branches. Its separate
+public `planetdump` branch emits orbital BMPs from `NOCTIS.EXE` and is not the
+landed NIVTEST harness.
+
+The prior timestamp experiment consequently tested a different sharing boundary.
+A local LR probe generated XENOFELYS once, then generated each orbital surface and
+both recorded landed sites in one native process while preserving the measured
+gap. Before interpretation, an isolated body-0 control exposed and repaired two
+probe-only omissions: LR's `quadrant` declaration occupied two bytes under MinGW
+despite the documented one-byte object-chart ABI, and the headless harness had
+not allocated `adapted`. The corrected control reproduced the authoritative
+body-0 default heightmap `301D7754`. The completed single-process batch matched
+none of the 22 residual targets and changed formerly clean sky/texture outputs
+relative to fresh LR commands. Its report SHA-256 is
 `aea64f0281b2a205f7885f46a9f3291b71559f9bdc82c649f26197bfa1b6898d`.
-This rejects that plausible body/site ordering; it does not prove that the absent
-historical caller performed no other reset, copy, or post-generation operation.
+This rejects only that native body/site ordering; it does not reproduce the
+actual same-DOSBox, separate-executable allocation history.
 
-Obtain or instrument the original `planetdump` caller, or have the authoritative
-XENOFELYS rows regenerated, before changing generator arithmetic.
+Obtain the unpublished DOS harness source or exact `NIVTEST.EXE`, then run the
+five-command, 12-body sequence both inside one DOSBox-X session and with one clean
+DOSBox-X session per command. Capture allocation segments, the 16 bytes after the
+object chart, and every full scored buffer immediately before hashing. If those
+materials cannot be obtained, ask for authoritative XENOFELYS regeneration under
+both session policies before changing generator arithmetic.
 
 **Pull-request handling policy.** Review incoming PRs against the current
 production tree and deal with them as appropriate: merge clean unique work,

@@ -61,10 +61,23 @@ visible-plus-two-invisible reconstructions for body 8 random sky and twelve
 non-unique two-invisible-index reconstructions for body 9 default texture; these
 prove image compatibility, not source bytes. A corrected single-process LR
 body/site batch reproduced zero of the 22 residual targets and perturbed clean
-outputs, rejecting that tested reuse order without claiming to reconstruct the
-missing historical caller. This discriminator does not make atmospheric gameplay
-sky a public-caller oracle because those caller filters differ. Full corpus parity
-remains required before release.
+outputs, rejecting that tested reuse order. The actual SheetBot caller is now
+pinned: it starts five separate `NIVTEST.EXE` processes per body, in sorted
+12-body chunks that share one DOSBox-X session. This explains the upload groups
+and changes the unresolved boundary from shared C globals to persistent guest
+RAM/DOS allocation state. A direct two-COM probe confirms that DOSBox-X can return
+the same 65,536-byte segment to the next executable with its writer payload
+intact, while a clean session returns zeros; that proves the reuse mechanism is
+possible, not that NIVTEST consumes it. The ordering independently confines all
+22 residuals to bodies 4--11 after the exact type-9 body 3 process group and
+before the chunk reset; all later chunks are exact. Replaying body 3's exact
+nonmodal 16-byte gap into body 4 changes only the object charts and matches none
+of the four HM/OC targets, excluding that visible gap as the complete mechanism.
+The exact DOS harness and executable remain unpublished, so acceptance still
+requires same-DOSBox versus clean-DOSBox captures at the pre-hash boundary. This
+discriminator does not make atmospheric gameplay sky a public-caller oracle
+because those caller filters differ. Full corpus parity remains required before
+release.
 
 ## Honest gaps
 
