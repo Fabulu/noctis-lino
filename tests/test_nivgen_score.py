@@ -26,6 +26,34 @@ def check(condition: bool, label: str) -> None:
 
 
 def main() -> int:
+    worker_build = (ROOT / "build" / "build_nivtest.sh").read_text(
+        encoding="utf-8")
+    check(
+        'if [ "$source_env" = "$staged_env" ]' in worker_build
+        and worker_build.index('if [ "$source_env" = "$staged_env" ]')
+        < worker_build.index('rm -rf "$root/work" "$staged_env"'),
+        "macOS worker refuses a destructive staging-environment alias")
+    check(
+        'fix_x64_pack_flags.py" "$repo/main/cpu/x64.bin"' in worker_build
+        and 'cat > "$1/cpu/x64.bin"' in worker_build
+        and '--env:$2--src:$3' in worker_build,
+        "macOS worker audits and stages this checkout's x64 CPU pack")
+    check(
+        "nivtest-build.provenance.txt" in worker_build
+        and "runtime_prefix_sha256" in worker_build
+        and "system_pack_sha256" in worker_build
+        and "compiler_sha256" in worker_build,
+        "macOS worker records external compiler/runtime provenance")
+    tagged_hashes = (
+        "390A2CCB", "114562E8", "26961E4A", "97022FD7",
+        "22913F4E", "0D52F001", "1E308D29",
+    )
+    check(
+        all(value in worker_build for value in tagged_hashes)
+        and 'first_cirrus.get("reached")' in worker_build
+        and 'mv "$candidate" "$output"' in worker_build,
+        "macOS worker promotes only a seven-hash tagged fixture candidate")
+
     args = argparse.Namespace(timeout=17, exe="fixture.exe")
     nivtest = nivgen_score.nivtest
     check(nivtest.HASH_EXTENTS == {
