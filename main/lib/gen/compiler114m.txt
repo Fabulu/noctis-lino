@@ -2463,6 +2463,7 @@
 	a64 value = 1;		(immediate value to materialize)
 	a64 reg = 1;		(AArch64 W-register number)
 	a64 opcode = 1;		(base encoding for integer operation)
+	a64 left reg = 1;	(AArch64 left/destination W-register)
 	a64 right reg = 1;	(RHS W-register after materialization)
 	a64 condition = 1;	(B.cond condition code)
 
@@ -6403,9 +6404,16 @@
       "pp a64 arithmetic shift right"
 	[a64 opcode] = 1AC02800h; (ASRV Wd,Wn,Wm)
       "pp a64 binary"
-      ? [op1 class] != register -> pp a64 unsupported;
+      ? [op1 class] = register -> pp a64 binary register left;
+      ? [op1 class] = direct -> pp a64 binary direct left;
+	-> pp a64 unsupported;
+      "pp a64 binary register left"
+	a = [op1 regid];
+	a + 19;
+	[a64 left reg] = a;
       ? [op2 class] = immediate -> pp a64 binary immediate;
       ? [op2 class] = register -> pp a64 binary register;
+      ? [op2 class] = direct -> pp a64 binary register direct;
 	-> pp a64 unsupported;
       "pp a64 binary immediate"
 	[a64 reg] = 9;
@@ -6417,18 +6425,73 @@
 	a = [op2 regid];
 	a + 19;
 	[a64 right reg] = a;
+	-> pp a64 emit binary;
+      "pp a64 binary register direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 right reg] = 10;
+	-> pp a64 emit binary;
+      "pp a64 binary direct left"
+      ? [op2 class] = immediate -> pp a64 binary direct immediate;
+      ? [op2 class] = register -> pp a64 binary direct register;
+      ? [op2 class] = direct -> pp a64 binary direct direct;
+	-> pp a64 unsupported;
+      "pp a64 binary direct immediate"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+	[a64 reg] = 11;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 right reg] = 11;
+	-> pp a64 emit binary;
+      "pp a64 binary direct register"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+	a = [op2 regid];
+	a + 19;
+	[a64 right reg] = a;
+	-> pp a64 emit binary;
+      "pp a64 binary direct direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 11;
+	[a64 right reg] = 10;
       "pp a64 emit binary"
 	a = [a64 right reg];
 	a < 16;
 	a | [a64 opcode];
 	[a64 word] = a;
-	a = [op1 regid];
-	a + 19;
+	a = [a64 left reg];
 	a < 5;
 	[a64 word] + a;
-	a = [op1 regid];
-	a + 19;
+	a = [a64 left reg];
 	[a64 word] + a;
+	=> a64 emit word;
+      ? [op1 class] = direct -> pp a64 store binary;
+	-> pp exit;
+      "pp a64 store binary"
+	a = [a64 left reg];
+	a | B8295B20h; (STR Wn,[x25,w9,UXTW #2])
+	[a64 word] = a;
 	=> a64 emit word;
 	-> pp exit;
 
@@ -6472,10 +6535,17 @@
       "pp a64 test"
 	[a64 opcode] = 6A00001Fh; (TST Wn,Wm)
       "pp a64 compare operands"
-      ? [op1 class] != register -> pp a64 unsupported;
       ? [op3 class] != immediate -> pp a64 unsupported;
+      ? [op1 class] = register -> pp a64 compare register left;
+      ? [op1 class] = direct -> pp a64 compare direct left;
+	-> pp a64 unsupported;
+      "pp a64 compare register left"
+	a = [op1 regid];
+	a + 19;
+	[a64 left reg] = a;
       ? [op2 class] = immediate -> pp a64 compare immediate;
       ? [op2 class] = register -> pp a64 compare register;
+      ? [op2 class] = direct -> pp a64 compare register direct;
 	-> pp a64 unsupported;
       "pp a64 compare immediate"
 	[a64 reg] = 9;
@@ -6487,13 +6557,62 @@
 	a = [op2 regid];
 	a + 19;
 	[a64 right reg] = a;
+	-> pp a64 emit compare;
+      "pp a64 compare register direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 right reg] = 10;
+	-> pp a64 emit compare;
+      "pp a64 compare direct left"
+      ? [op2 class] = immediate -> pp a64 compare direct immediate;
+      ? [op2 class] = register -> pp a64 compare direct register;
+      ? [op2 class] = direct -> pp a64 compare direct direct;
+	-> pp a64 unsupported;
+      "pp a64 compare direct immediate"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+	[a64 reg] = 11;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 right reg] = 11;
+	-> pp a64 emit compare;
+      "pp a64 compare direct register"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+	a = [op2 regid];
+	a + 19;
+	[a64 right reg] = a;
+	-> pp a64 emit compare;
+      "pp a64 compare direct direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 11;
+	[a64 right reg] = 10;
       "pp a64 emit compare"
 	a = [a64 right reg];
 	a < 16;
 	a | [a64 opcode];
 	[a64 word] = a;
-	a = [op1 regid];
-	a + 19;
+	a = [a64 left reg];
 	a < 5;
 	[a64 word] + a;
 	=> a64 emit word;
