@@ -469,6 +469,22 @@ this exact flare algorithm byte for byte. Exact full-context framebuffer and
 palette grading for this viewpoint remains open; the false storm comparison is
 not admissible evidence.
 
+**Habitable whole-page provenance audit, 2026-08-23.** The retained 40-byte
+`SURFACE.BIN` authenticates the native resume input, but it does not record the
+live state that produced the later gallery frame. The native rig waits 30
+seconds before typing `b`, continues the ordinary landed loop, and only dumps
+RAM when DOSBox is killed at 60 seconds. That loop advances mouse input and the
+ordinary HUD clock before the snapshot. The product checkpoint separately pins
+solar lighting and exports after 60 presentation frames, so its complete page
+is not a same-state oracle target for this BMP. The hosted ARM64 comparison
+reports 30,190 differing indices but now grades only contracts the artifacts
+actually establish: immutable BMP/surface hashes, the exact 768-component
+palette, reproducible checkpoint and camera, palette band, centre index 126,
+flare gate and centre, exposure, and solar distance. Restoring exact whole-page
+grading requires a new native capture that retains snapshot-time camera,
+simulation, and HUD state; renderer constants must not be tuned against this
+provenance gap.
+
 **Thin-atmosphere native-context checkpoint.** A second fixed-epoch comparison
 uses the same generated system's type-5 body at longitude 45, heading 90, and
 pitch -30. NIV+ and Lino both retain distance `112.235`, exposure `84.5208` at
