@@ -80,6 +80,35 @@ compiler_log="$stage/compiler.log"
 group_file="$stage/compiler.pgid"
 arch=$(uname -m)
 
+compiled_complete() {
+    python3 - "$compiled" "$runtime" <<'PY' >/dev/null 2>&1
+from pathlib import Path
+import struct
+import sys
+
+image = Path(sys.argv[1]).read_bytes()
+runtime = Path(sys.argv[2]).read_bytes()
+marker = b"LNLMInit"
+offset = image.find(marker)
+if offset < 0 or image.find(marker, offset + 1) >= 0:
+    raise SystemExit(1)
+try:
+    fields = struct.unpack_from("<14i", image, offset + len(marker) + 40)
+except struct.error:
+    raise SystemExit(1)
+app_ws_size, app_code_size, app_code_entry = fields[:3]
+physwsentry, physappsize = fields[3:5]
+if app_ws_size <= 0 or app_code_size <= 0:
+    raise SystemExit(1)
+if not 0 <= app_code_entry < app_code_size:
+    raise SystemExit(1)
+if physwsentry != len(runtime) or physappsize != len(image):
+    raise SystemExit(1)
+if physwsentry + (app_ws_size + app_code_size) * 4 != physappsize:
+    raise SystemExit(1)
+PY
+}
+
 setsid sh -c '
     group_file=$1
     shift
@@ -116,7 +145,7 @@ while [ "$attempt" -lt 600 ]; do
         cat "$error_log" >&2
         exit 1
     fi
-    if [ -s "$compiled" ]; then
+    if [ -s "$compiled" ] && compiled_complete; then
         current=$(sha256sum "$compiled" | cut -d ' ' -f 1)
         if [ "$current" = "$previous" ]; then
             stable=$((stable + 1))
@@ -132,7 +161,7 @@ while [ "$attempt" -lt 600 ]; do
         previous=
     fi
     if ! /bin/kill -0 -- "-$compiler_group" 2>/dev/null && \
-        [ ! -s "$compiled" ]; then
+        ! compiled_complete; then
         cat "$compiler_log" >&2 || true
         [ ! -f "$error_log" ] || cat "$error_log" >&2
         exit 1

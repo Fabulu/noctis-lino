@@ -139,6 +139,8 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("--cpu:aarch64", compile_script)
         self.assertIn("--sys:macarm64", compile_script)
         self.assertIn("tracked-work", compile_script)
+        self.assertIn("compiled_complete", compile_script)
+        self.assertIn("physwsentry != len(runtime)", compile_script)
         self.assertIn('git -C "$repo" archive', compile_script)
         self.assertIn("'work/**/*.txt'", compile_script)
         self.assertIn("'work/*.tga'", compile_script)
