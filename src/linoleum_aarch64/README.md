@@ -119,6 +119,15 @@ and positive, negative, and high-bit unsigned cases. Division by zero and signed
 `0x80000000 / -1` still differ from the trapped x86 behavior and are not claimed
 compatible.
 
+The tracked x64 pack continues beyond the i386 pack's q73 endpoint with q74/q75
+split multiplication. AArch64 supports those 121-pair unsigned and signed forms
+through the same captured-value/address path, using `UMULL` or `SMULL`, returning
+the low product to the left and high product to the right. Aliased registers keep
+the final low half and aliased memory keeps the later high half, as in the x64
+records. The generated image executes high-bit unsigned and negative signed
+products, register and memory destinations, both pointer-alias directions, and
+both alias write orders.
+
 Stack push/pop, unit-count SP adjustment, and immediate-relative stack
 load/store cover every canonical immediate, register, direct-workspace, and
 indirect-workspace form. One abstract 32-bit Lino stack unit occupies one

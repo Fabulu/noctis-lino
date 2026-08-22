@@ -2133,6 +2133,14 @@ class pair, both pointer-alias directions, high-bit unsigned division, and signe
 negative quotient/remainder cases. Divide-by-zero and signed-minimum divided by
 minus one remain non-trapping AArch64 differences and are not claimed compatible.
 
+The x64 pack continues past the i386 pack's q73 endpoint with q74/q75 split
+multiplication. Those 121-pair unsigned and signed forms reuse the captured-value
+and address path, apply `UMULL` or `SMULL`, and write low-left/high-right.
+Tracked alias order leaves the low half in an aliased register and the later high
+half in aliased memory. The generated image executes high-bit unsigned and
+negative signed products, register and memory destinations, both pointer-alias
+directions, and both alias write orders.
+
 Stack push/pop, `$+`/`$-` unit-count adjustment, and `=$:`/`$:=`
 immediate-relative access now cover every canonical immediate, register, direct,
 and indirect shape. The logical contract remains 32-bit units, but each abstract
@@ -2186,9 +2194,10 @@ and executes the resulting ELF above 4 GB under QEMU. Independent encoded
 fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
 refusals. All 12 checks, including compiler-produced value exchange, split
-division, scalar arithmetic, conversion, ordered/unordered comparison,
-square-root, sine, cosine, bounded partial-remainder, and partial-arctangent
-execution, passed in hosted run 32575171005 at commit `437ba93`.
+division, split multiplication, scalar arithmetic, conversion, ordered/unordered
+comparison, square-root, sine, cosine, bounded partial-remainder, and
+partial-arctangent execution, passed in hosted run 32575511694 at commit
+`fa158b0`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.
