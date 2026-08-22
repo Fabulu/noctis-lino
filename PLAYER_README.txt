@@ -5,13 +5,13 @@ Windows: keep every bundled file together and double-click
 "Play Noctis IV.cmd". Do not launch Noctis-IV.exe directly from another
 program: the launcher is what keeps all relative game files in this folder.
 
-macOS: drag "Noctis IV.app" to Applications and open it normally. The current
-build is for Intel Macs and Apple Silicon Macs with Rosetta 2. It is ad-hoc
-signed rather than notarized. If macOS 15 or newer blocks the first launch, open
-System Settings, choose Privacy & Security, then choose Open Anyway for Noctis
-IV and confirm. On older macOS versions, Control-clicking the app and choosing
-Open may provide the equivalent override. Do not launch Noctis-IV.game inside
-the bundle directly.
+macOS: drag "Noctis IV.app" to Applications and open it normally. Separate
+packages target Intel/x86_64 Macs and Apple-Silicon/arm64 Macs; Apple Silicon can
+also run the x86_64 package through Rosetta 2. Both are ad-hoc signed rather than
+notarized. If macOS 15 or newer blocks the first launch, open System Settings,
+choose Privacy & Security, then choose Open Anyway for Noctis IV and confirm. On
+older macOS versions, Control-clicking the app and choosing Open may provide the
+equivalent override. Do not launch Noctis-IV.game inside the bundle directly.
 
 The game creates CURRENT.LIN and may append names to STARMAP.BIN and player
 notes to GUIDE.BIN. Windows stores these beside the launcher; macOS stores them
