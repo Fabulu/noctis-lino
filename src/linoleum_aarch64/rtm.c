@@ -36,6 +36,8 @@ _Static_assert(sizeof(struct init_block) == 112,
                "initialization block layout changed");
 _Static_assert(sizeof(proc_t) == sizeof(uintptr_t),
                "AArch64 function pointers must fit uintptr_t");
+_Static_assert(sizeof(size_t) == 8,
+               "the AArch64 runtime requires a 64-bit size type");
 
 /* The appender patches this paragraph in the copied runtime before adding the
  * initialized workspace and code payload. Keep both markers literal and unique. */
@@ -84,7 +86,7 @@ static bool checked_add_size(size_t left, size_t right, size_t *result)
 
 static bool checked_unit_bytes(unit count, size_t *bytes)
 {
-    if (count <= 0 || (uintmax_t) (uint32_t) count > SIZE_MAX / sizeof(unit))
+    if (count <= 0)
         return false;
     *bytes = (size_t) (uint32_t) count * sizeof(unit);
     return true;
