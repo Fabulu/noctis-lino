@@ -546,9 +546,10 @@ static bool krnl_checked_globalK_command(GlobalKCommand command)
     bool data_required;
     bool result;
 
-    switch (command) {
-    case IDLE:
+    if ((unit) command == IDLE)
         return true;
+
+    switch (command) {
     case KREAD:
     case KWRITE:
         data_required = true;
