@@ -6386,10 +6386,10 @@
 	[source string] = inst;
 	[target string] = q06;
 	=> strcmp;
-      ? ok -> pp a64 increment;
+      ? ok -> pp a64 plus syntax;
 	[target string] = q07;
 	=> strcmp;
-      ? ok -> pp a64 decrement;
+      ? ok -> pp a64 minus syntax;
 	[target string] = q14;
 	=> strcmp;
       ? ok -> pp a64 add;
@@ -6605,6 +6605,12 @@
       ? ok -> pp a64 nop;
 	-> pp a64 unsupported;
 
+      "pp a64 plus syntax"
+      ? [op2 class] = null -> pp a64 increment;
+	-> pp a64 add;
+      "pp a64 minus syntax"
+      ? [op2 class] = null -> pp a64 decrement;
+	-> pp a64 subtract;
       "pp a64 add"
 	[a64 opcode] = 0B000000h; (ADD Wd,Wn,Wm)
 	-> pp a64 binary;
