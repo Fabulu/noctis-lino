@@ -1732,12 +1732,12 @@ Full parity remains the release gate; this is not yet the release milestone.
 byte` to convert finite binary32 through `FToIntChop`, then clamp the signed
 integer to `0..63`. That is the correct original order and removes two target-
 dependent Lino floating comparisons that made planet palettes uniformly white
-on macOS. The patch was substantively reviewed locally and appears correct; the retained
-Windows surface hashes remained exact and all Wave 5 palette checks passed. It
-is applied locally but not yet merged. The Apple-Silicon Rosetta workflow now dumps
-the selected 192-byte palette and rejects both uniform `0x3f` white and any
-other uniform value before packaging. That source gate still needs a hosted
-macOS run because Windows CI did not reproduce the defect.
+on macOS. The patch was substantively reviewed, merged as `68dea51`, and retained
+exact Windows surface hashes and all Wave 5 palette checks. The Apple-Silicon
+Rosetta workflow dumps the selected 192-byte palette and rejects both uniform
+`0x3f` white and any other uniform value before packaging. Hosted Rosetta runs
+passed this gate, and the hardened NIVGEN worker subsequently confirmed the
+non-white palette and corrected CPU-pack provenance in production.
 
 **Scored extent reconciliation.** The hash, transport, fill, and image sizes are
 now independently pinned rather than conflated. Surface and sky transport/render
@@ -2073,23 +2073,32 @@ changed graph end to end across validation, Windows and macOS compilation,
 Rosetta exact generation, both packages, and prerelease publication. Do not make
 a full-parity claim while the 22 retained NIVGEN fields remain unresolved.
 
-### 12.3 Keep macOS/Rosetta executable -- **CRASH FIXED / REGRESSION EXPANSION OPEN**
+The tagged graph now also invokes the reusable native ARM64 product gate and
+waits for its tested package before publication. It retains and publishes
+`Noctis-IV-macos-arm64.zip`, its SHA-256 sidecar, and its provenance record
+alongside the Windows and x86_64 macOS assets. Hosted run 32594152146 proved the
+reusable development-label path and all publishable artifact uploads. The
+`tagged_release: true` metadata path will be exercised only by the next
+separately authorized tag; no tag or release was created merely to test it.
+
+### 12.3 Keep macOS/Rosetta executable -- **CRASH FIXED / NATIVE ARM64 PRODUCT PROVEN**
 
 The beta 20 Rosetta segmentation fault was reproduced and repaired. The x86_64
 runtime now maps Lino workspaces below the 32-bit address ceiling, grows them by
 safe map/copy/clear/unmap, and repairs the translated return path with
 `lea rsp,[rsp+4]` so flags remain intact. Headless NIVGEN and the Cocoa game run
 on Apple Silicon through Rosetta; the package is Finder-safe, ad-hoc signed,
-manifested, and includes AudioQueue PCM. Intel-native x86_64 and Rosetta are the
-supported macOS routes. The download is not notarized and is not native ARM64.
+manifested, and includes AudioQueue PCM. Intel-native x86_64 and Rosetta remain
+supported compatibility routes. That x86_64 download is not notarized; a
+separate native ARM64 product is now proven below.
 
-Keep the exact known-sector hash and Cocoa launch/quit checks, but add the
-uniform-white palette rejection from PR #22 and full/mismatch-class NIVGEN
-coverage. The `133Fh` host probe passed the current hosted Intel and Rosetta
-executions recorded above. A native ARM64 game remains a larger port. The
+The exact known-sector hash, Cocoa launch/quit checks, and uniform-white palette
+rejection now pass on the Rosetta route. Broader mismatch-class NIVGEN work is
+deferred under section 10's evidence rule rather than an unrun macOS gate. The
+native ARM64 replacement below supersedes the earlier port attempt. The
 read-only review of retained PR #10 at tip `2402172` found useful
 `__PAGEZERO`/above-4-GB design notes, the conceptual `x19` through `x25` register
-map, and a non-truncating code-entry pointer, but its implementation must not be
+map, and a non-truncating code-entry pointer, but its implementation was not
 merged as-is. Critical defects corrupt `x29`/`x30` across normal and nonlocal
 returns, pass an `mmap` workspace to `realloc`, fail to clear growth, leave
 translated workspace state stale after a move, force addresses, truncate
@@ -2259,13 +2268,25 @@ A-E=`1..5`, X=`DONE`, and code/workspace/isokernel pointers all above 4 GiB. The
 final executable SHA-256 was
 `ed312b96856f2dcfc43a4604ca2a4995064def423ec9e66d0a292fc2442f070e`.
 
-Remaining floating-point/x87 semantics, full Darwin runtime services, native
-Cocoa display/input/audio, a complete native ARM64 Noctis build, product
-packaging, and playtesting remain open. The current native checkpoint is a
-headless compiler/runtime/Mach-O execution foundation, not a supported game
-binary. Keep Joris van de Donk's source and commit credit. Leave a specific
-public review before adapting or closing PR #10; no public action has yet been
-taken.
+The Darwin implementation now completes that foundation as a native product.
+It adds Cocoa display, input, focus, file dialogs and event handling; exact
+dynamic procedure calls; checked workspace relocation; AudioQueue stereo PCM;
+and checked GlobalK storage for the only remaining optional service family
+reachable from shipped Noctis source. APD, Printer, Net, and Clipboard remain
+explicitly rejected because shipped Noctis does not issue those commands. The
+full game compiles through the compiler-owned target, runs as a thin arm64
+Mach-O above 4 GiB, survives raw and packaged retrace/save/quit smokes, and ships
+in a Finder-safe ad-hoc-signed app with mutable data under Application Support.
+Hosted run 32593712423 proved the complete native product gate. Reusable run
+32594152146 proved the dedicated archive, checksum, and provenance artifact;
+the tagged-release graph now publishes those three files alongside Windows and
+x86_64 macOS assets. The actual tagged caller remains intentionally unexercised
+until a separately authorized release tag.
+
+PR #10 was closed as superseded after a specific public resolution identified
+what was retained and why the prototype could not be merged. Joris van de
+Donk's PAGEZERO analysis, register-map contribution, and technical credit remain
+preserved on the derived commits.
 
 ### 12.4 Finish with one coherent repository audit -- **OPEN**
 
