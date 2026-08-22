@@ -439,7 +439,105 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "scalar arithmetic good"
 
+    B = 40200000h;
+    A =, B;
+    ? A = 2 -> fp cast alpha;
+    fail;
+
+"fp cast alpha"
+
+    [lhs] = 40600000h;
+    [slot] =, [lhs];
+    ? [slot] = 4 -> fp cast beta;
+    fail;
+
+"fp cast beta"
+
+    B = p;
+    [rhs] = C0200000h;
+    [B plus 2] =, [B minus 1];
+    ? [out] = FFFFFFFEh -> fp cast gamma;
+    fail;
+
+"fp cast gamma"
+
+    A ,= [slot];
+    ? A = 40800000h -> fp cast delta;
+    fail;
+
+"fp cast delta"
+
+    [rhs] = FFFFFFFDh;
+    [lhs] ,= [B minus 1];
+    ? [lhs] = C0400000h -> fp cast epsilon;
+    fail;
+
+"fp cast epsilon"
+
+    C = 01000001h;
+    [B plus 2] ,= C;
+    ? [out] = 4B800000h -> fp cast zeta;
+    fail;
+
+"fp cast zeta"
+
+    A = 3F800000h;
+    B = 40000000h;
+    [lhs] = 40400000h;
+    [rhs] = B;
+    ?? A = 3F800000h -> fp relation alpha;
+    fail;
+
+"fp relation alpha"
+
+    ?? A != B -> fp relation beta;
+    fail;
+
+"fp relation beta"
+
+    ?? [lhs] > B -> fp relation gamma;
+    fail;
+
+"fp relation gamma"
+
+    ?? [rhs] < [lhs] -> fp relation delta;
+    fail;
+
+"fp relation delta"
+
+    B = p;
+    [B plus 2] = 40400000h;
+    ?? [B plus 2] >= [rhs] -> fp relation epsilon;
+    fail;
+
+"fp relation epsilon"
+
+    ?? [B minus 1] <= [B plus 2] -> fp relation zeta;
+    fail;
+
+"fp relation zeta"
+
+    A = 7FC00000h;
+    ?? A = 0f -> fp unordered alpha;
+    fail;
+
+"fp unordered alpha"
+
+    ?? A != 0f -> failed call;
+    ?? A > 0f -> failed call;
+    ?? A < 0f -> fp unordered beta;
+    fail;
+
+"fp unordered beta"
+
+    ?? A >= 0f -> failed call;
+    ?? A <= 0f -> fp conversions good;
+    fail;
+
+"fp conversions good"
+
     [rhs] = 3;
+    B = p;
     A = 2;
     A $-;
     0 $:= 11223344h;
@@ -713,6 +811,18 @@ def enc_float_unary_s(opcode: int, destination: int, source: int) -> int:
     return opcode | (source << 5) | destination
 
 
+def enc_scvtf_s_w(destination: int, source: int) -> int:
+    return 0x1E220000 | (source << 5) | destination
+
+
+def enc_fcvtns_w_s(destination: int, source: int) -> int:
+    return 0x1E200000 | (source << 5) | destination
+
+
+def enc_fcmp_s(left: int, right: int) -> int:
+    return 0x1E202000 | (right << 16) | (left << 5)
+
+
 def enc_binary_w(opcode: int, destination: int, right: int) -> int:
     return enc_data3_w(opcode, destination, destination, right)
 
@@ -972,7 +1082,7 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("test_aarch64_runtime.py --require-execution -v", workflow)
         self.assertEqual(run_all.count('(\"test_aarch64_runtime.py\",'), 1)
 
-    def test_compiler_owns_the_aarch64_integer_slice(self) -> None:
+    def test_compiler_owns_the_aarch64_emitter_slice(self) -> None:
         source = COMPILER_SOURCE.read_text(encoding="utf-8")
         self.assertIn("aarch64 target = 1;", source)
         self.assertIn("? [aarch64 target] = yes -> cpu target ready;", source)
@@ -992,7 +1102,8 @@ class StaticContractTests(unittest.TestCase):
             "B9400180h", "B940018Ah", "B9000180h", "B8695B29h",
             "1E212800h", "1E213800h", "1E210800h", "1E211800h",
             "1E270000h", "1E270001h", "1E260000h",
-            "1E214000h", "1E20C000h",
+            "1E214000h", "1E20C000h", "1E220000h", "1E200000h",
+            "1E212000h", "54000046h",
             "6B00001Fh", "6A00001Fh", "54000000h",
             "AA0B8149h", "D63F0120h", "D65F03C0h",
         ):
@@ -1035,6 +1146,9 @@ class StaticContractTests(unittest.TestCase):
             enc_float_data2_s(0x1E201800, 0, 0, 1), 0x1E211800)
         self.assertEqual(enc_float_unary_s(0x1E214000, 0, 0), 0x1E214000)
         self.assertEqual(enc_float_unary_s(0x1E20C000, 0, 0), 0x1E20C000)
+        self.assertEqual(enc_scvtf_s_w(0, 19), 0x1E220260)
+        self.assertEqual(enc_fcvtns_w_s(19, 0), 0x1E200013)
+        self.assertEqual(enc_fcmp_s(0, 1), 0x1E212000)
         self.assertEqual(enc_msub_w(10, 12, 11, 10), 0x1B0BA98A)
         self.assertEqual(enc_mvn_w(19, 19), 0x2A3303F3)
         self.assertEqual(enc_neg_w(10, 10), 0x4B0A03EA)
@@ -1300,7 +1414,7 @@ class AArch64ExecutionTests(unittest.TestCase):
             bridge_bodies.append(match.group("body"))
         self.assertNotRegex("\n".join(bridge_bodies), r"\bx18\b")
 
-    def test_compiler_produced_image_executes_full_integer_slice(self) -> None:
+    def test_compiler_produced_image_executes_supported_emitter_slice(self) -> None:
         image = self.compile_lino_source(
             "compileraarch64fixture", COMPILER_FIXTURE_SOURCE)
         fields, initialized_workspace, code = compiler_image_parts(image)
@@ -1680,6 +1794,55 @@ class AArch64ExecutionTests(unittest.TestCase):
         for sequence in float_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
+        conversion_sequences = (
+            [
+                enc_fmov_s_w(0, 20),
+                enc_fcvtns_w_s(19, 0),
+            ],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(11),
+                enc_fmov_s_w(0, 10),
+                enc_fcvtns_w_s(11, 0),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_fmov_s_w(0, 10),
+                enc_fcvtns_w_s(11, 0),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(10),
+                enc_scvtf_s_w(0, 10),
+                enc_fmov_w_s(19, 0),
+            ],
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(11),
+                enc_scvtf_s_w(0, 10),
+                enc_fmov_w_s(11, 0),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_scvtf_s_w(0, 21),
+                enc_fmov_w_s(10, 0),
+                enc_str_w_indexed(10),
+            ],
+        )
+        for sequence in conversion_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
         stack_sequences = (
             [
                 *enc_mov32_w(19, 2),
@@ -1942,6 +2105,88 @@ class AArch64ExecutionTests(unittest.TestCase):
         )
         for sequence, condition in indirect_conditions:
             self.assertTrue(has_conditional_sequence(sequence, condition))
+
+        floating_conditions = (
+            ([
+                *enc_mov32_w(9, 0x3F800000),
+                enc_fmov_s_w(0, 19),
+                enc_fmov_s_w(1, 9),
+                enc_fcmp_s(0, 1),
+            ], 0),
+            ([
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                enc_fmov_s_w(0, 10),
+                enc_fmov_s_w(1, 20),
+                enc_fcmp_s(0, 1),
+            ], 12),
+            ([
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(11),
+                enc_fmov_s_w(0, 11),
+                enc_fmov_s_w(1, 10),
+                enc_fcmp_s(0, 1),
+            ], 11),
+            ([
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_fmov_s_w(0, 11),
+                enc_fmov_s_w(1, 10),
+                enc_fcmp_s(0, 1),
+            ], 10),
+            ([
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(11),
+                enc_fmov_s_w(0, 11),
+                enc_fmov_s_w(1, 10),
+                enc_fcmp_s(0, 1),
+            ], 13),
+        )
+        for sequence, condition in floating_conditions:
+            self.assertTrue(has_conditional_sequence(sequence, condition))
+
+        def conditional_target(index: int) -> int:
+            immediate = (code_words[index] >> 5) & 0x7FFFF
+            if immediate & 0x40000:
+                immediate -= 0x80000
+            return index + immediate
+
+        float_equal_prefix = floating_conditions[0][0]
+        self.assertTrue(any(
+            code_words[index:index + len(float_equal_prefix)] ==
+            float_equal_prefix and
+            code_words[index + len(float_equal_prefix)] & 0xFF000010 ==
+            0x54000000 and
+            code_words[index + len(float_equal_prefix)] & 15 == 0 and
+            code_words[index + len(float_equal_prefix) + 1] & 0xFF000010 ==
+            0x54000000 and
+            code_words[index + len(float_equal_prefix) + 1] & 15 == 6 and
+            conditional_target(index + len(float_equal_prefix)) ==
+            conditional_target(index + len(float_equal_prefix) + 1)
+            for index in range(len(code_words) - len(float_equal_prefix) - 1)
+        ), "floating equality did not preserve x87 unordered semantics")
+
+        float_not_equal_prefix = [
+            enc_fmov_s_w(0, 19),
+            enc_fmov_s_w(1, 20),
+            enc_fcmp_s(0, 1),
+        ]
+        self.assertTrue(any(
+            code_words[index:index + len(float_not_equal_prefix)] ==
+            float_not_equal_prefix and
+            code_words[index + len(float_not_equal_prefix)] == 0x54000046 and
+            code_words[index + len(float_not_equal_prefix) + 1] &
+            0xFF000010 == 0x54000000 and
+            code_words[index + len(float_not_equal_prefix) + 1] & 15 == 1
+            for index in
+            range(len(code_words) - len(float_not_equal_prefix) - 1)
+        ), "floating inequality did not reject unordered operands")
         self.assertIn(0xD503201F, code_words)
 
         isocall_words = [

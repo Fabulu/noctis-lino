@@ -2469,6 +2469,8 @@
 	a64 remainder = 1;	(integer remainder needs quotient plus MSUB)
 	a64 rotate left = 1;	(left rotate negates count before RORV)
 	a64 floating = 1;	(scalar floating operation uses S0 and S1)
+	a64 conversion = 1;	(1: float to integer, 2: integer to float)
+	a64 floating branch = 1; (special x87 unordered comparison mapping)
 
 	stab = max symbols
 	 mtp symbol size;	(internal symbols table)
@@ -6367,6 +6369,8 @@
 	[a64 remainder] = no;
 	[a64 rotate left] = no;
 	[a64 floating] = no;
+	[a64 conversion] = no;
+	[a64 floating branch] = no;
 	[source string] = inst;
 	[target string] = q14;
 	=> strcmp;
@@ -6428,6 +6432,12 @@
 	[target string] = q47;
 	=> strcmp;
       ? ok -> pp a64 floating quotient;
+	[target string] = q48;
+	=> strcmp;
+      ? ok -> pp a64 floating to integer;
+	[target string] = q49;
+	=> strcmp;
+      ? ok -> pp a64 integer to floating;
 	[target string] = q26;
 	=> strcmp;
       ? ok -> pp a64 bitwise inverse;
@@ -6497,6 +6507,24 @@
 	[target string] = q59;
 	=> strcmp;
       ? ok -> pp a64 branch signed lower equal;
+	[target string] = q60;
+	=> strcmp;
+      ? ok -> pp a64 branch floating equal;
+	[target string] = q61;
+	=> strcmp;
+      ? ok -> pp a64 branch floating not equal;
+	[target string] = q62;
+	=> strcmp;
+      ? ok -> pp a64 branch floating greater;
+	[target string] = q63;
+	=> strcmp;
+      ? ok -> pp a64 branch floating lower;
+	[target string] = q64;
+	=> strcmp;
+      ? ok -> pp a64 branch floating greater equal;
+	[target string] = q65;
+	=> strcmp;
+      ? ok -> pp a64 branch floating lower equal;
 	[target string] = q01;
 	=> strcmp;
       ? ok -> pp a64 jump;
@@ -6586,6 +6614,15 @@
       "pp a64 floating quotient"
 	[a64 floating] = yes;
 	[a64 opcode] = 1E211800h; (FDIV S0,S0,S1)
+	-> pp a64 binary;
+      "pp a64 floating to integer"
+	[a64 conversion] = 1;
+	-> pp a64 conversion;
+      "pp a64 integer to floating"
+	[a64 conversion] = 2;
+      "pp a64 conversion"
+      ? [op2 class] = immediate -> pp a64 unsupported;
+	-> pp a64 binary;
       "pp a64 binary"
       ? [op1 class] = register -> pp a64 binary register left;
       ? [op1 class] = direct -> pp a64 binary direct left;
@@ -6729,6 +6766,7 @@
       "pp a64 emit binary"
       ? [a64 remainder] = yes -> pp a64 emit remainder;
       ? [a64 rotate left] = yes -> pp a64 emit rotate left;
+      ? [a64 conversion] != no -> pp a64 emit conversion;
       ? [a64 floating] = yes -> pp a64 emit floating binary;
 	a = [a64 right reg];
 	a < 16;
@@ -6739,6 +6777,31 @@
 	[a64 word] + a;
 	a = [a64 left reg];
 	[a64 word] + a;
+	=> a64 emit word;
+	-> pp a64 finish binary;
+      "pp a64 emit conversion"
+      ? [a64 conversion] = 1 -> pp a64 emit floating to integer;
+	(SCVTF plus binary32 writeback follows the x87 FILD/FSTP boundary)
+	a = [a64 right reg];
+	a < 5;
+	a | 1E220000h; (SCVTF S0,Wn)
+	[a64 word] = a;
+	=> a64 emit word;
+	a = [a64 left reg];
+	a | 1E260000h; (FMOV Wd,S0)
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp a64 finish binary;
+      "pp a64 emit floating to integer"
+	(FCVTNS follows the x87 round-to-nearest FISTP boundary for in-range values)
+	a = [a64 right reg];
+	a < 5;
+	a | 1E270000h; (FMOV S0,Wn)
+	[a64 word] = a;
+	=> a64 emit word;
+	a = [a64 left reg];
+	a | 1E200000h; (FCVTNS Wd,S0)
+	[a64 word] = a;
 	=> a64 emit word;
 	-> pp a64 finish binary;
       "pp a64 emit floating binary"
@@ -7085,6 +7148,35 @@
 	=> a64 emit word;
 	-> pp exit;
 
+      "pp a64 branch floating equal"
+	[a64 floating] = yes;
+	[a64 floating branch] = 1;
+	[a64 condition] = 0; (x87 JE: equal or unordered)
+	-> pp a64 floating compare;
+      "pp a64 branch floating not equal"
+	[a64 floating] = yes;
+	[a64 floating branch] = 2;
+	[a64 condition] = 1; (x87 JNE: ordered and not equal)
+	-> pp a64 floating compare;
+      "pp a64 branch floating greater"
+	[a64 floating] = yes;
+	[a64 condition] = 12; (GT)
+	-> pp a64 floating compare;
+      "pp a64 branch floating lower"
+	[a64 floating] = yes;
+	[a64 condition] = 11; (LT includes unordered after FCMP)
+	-> pp a64 floating compare;
+      "pp a64 branch floating greater equal"
+	[a64 floating] = yes;
+	[a64 condition] = 10; (GE)
+	-> pp a64 floating compare;
+      "pp a64 branch floating lower equal"
+	[a64 floating] = yes;
+	[a64 condition] = 13; (LE includes unordered after FCMP)
+      "pp a64 floating compare"
+	[a64 opcode] = 1E212000h; (FCMP S0,S1 after raw bit transfers)
+	-> pp a64 compare operands;
+
       "pp a64 branch equal"
 	[a64 condition] = 0;
 	-> pp a64 compare;
@@ -7266,6 +7358,7 @@
 	[a64 left reg] = 11;
 	[a64 right reg] = 10;
       "pp a64 emit compare"
+      ? [a64 floating] = yes -> pp a64 emit floating comparison;
 	a = [a64 right reg];
 	a < 16;
 	a | [a64 opcode];
@@ -7283,6 +7376,35 @@
 	a | [a64 condition];
 	[a64 word] = a;
 	=> a64 emit word;
+	-> pp exit;
+      "pp a64 emit floating comparison"
+	a = [a64 left reg];
+	a < 5;
+	a | 1E270000h; (FMOV S0,Wn)
+	[a64 word] = a;
+	=> a64 emit word;
+	a = [a64 right reg];
+	a < 5;
+	a | 1E270001h; (FMOV S1,Wm)
+	[a64 word] = a;
+	=> a64 emit word;
+	[a64 word] = [a64 opcode]; (FCMP S0,S1)
+	=> a64 emit word;
+      ? [a64 floating branch] = 1 -> pp a64 emit floating equal;
+      ? [a64 floating branch] = 2 -> pp a64 emit floating not equal;
+	-> pp a64 emit floating condition;
+      "pp a64 emit floating equal"
+	[a64 condition] = 0; (EQ)
+	=> a64 emit floating target;
+	[a64 condition] = 6; (VS: unordered)
+	=> a64 emit floating target;
+	-> pp exit;
+      "pp a64 emit floating not equal"
+	[a64 word] = 54000046h; (B.VS +8 skips JNE for unordered operands)
+	=> a64 emit word;
+	[a64 condition] = 1; (NE)
+      "pp a64 emit floating condition"
+	=> a64 emit floating target;
 	-> pp exit;
 
       "pp a64 jump"
@@ -7424,6 +7546,18 @@
 	-> log syntax error;
 
     (programme parser auxiliary routines)
+
+    "a64 emit floating target"
+	a = [op3 value];
+	a - [bpos];
+	a / 4;
+	a & 0007FFFFh;
+	a < 5;
+	a | 54000000h; (B.cond label)
+	a | [a64 condition];
+	[a64 word] = a;
+	=> a64 emit word;
+	leave;
 
     "a64 emit stack address"
 	(one abstract 32-bit stack unit occupies one aligned 16-byte slot)
