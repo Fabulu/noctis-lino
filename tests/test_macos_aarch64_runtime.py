@@ -24,8 +24,10 @@ RUNTIME_SIZE = 0x8000
 LINKEDIT_OFFSET = 0x4000
 APP_WS_UNITS = 8
 APP_CODE_UNITS = 4
+SERVICE_UNITS = 32947
 APP_SIZE = RUNTIME_SIZE + (APP_WS_UNITS + APP_CODE_UNITS) * 4
 MARKER_OFFSET = 0x1000
+STOCK_BYTES = b"opaque-stock-resource\x00\xff\x01"
 
 
 def segment(name: bytes, vmaddr: int, vmsize: int, fileoff: int,
@@ -37,7 +39,7 @@ def segment(name: bytes, vmaddr: int, vmsize: int, fileoff: int,
     )
 
 
-def unsigned_image() -> bytes:
+def unsigned_image(stock: bytes = b"") -> bytes:
     commands = b"".join((
         segment(b"__PAGEZERO", 0, 0x100000000, 0, 0, 0, 0),
         segment(
@@ -55,13 +57,14 @@ def unsigned_image() -> bytes:
         finalize.MH_MAGIC_64, finalize.CPU_TYPE_ARM64, 0,
         finalize.MH_EXECUTE, 3, len(commands), 0, 0,
     )
-    image = bytearray(APP_SIZE)
+    image = bytearray(APP_SIZE + len(stock))
     image[:len(header)] = header
     image[len(header):len(header) + len(commands)] = commands
 
     paragraph = MARKER_OFFSET + len(finalize.MARKER)
     fields = (
-        APP_WS_UNITS, APP_CODE_UNITS, 0, RUNTIME_SIZE, APP_SIZE, 32,
+        APP_WS_UNITS, APP_CODE_UNITS, 0, RUNTIME_SIZE, APP_SIZE,
+        APP_WS_UNITS + SERVICE_UNITS,
         0, 0, 0, 0, 0, 0, 0, 0,
     )
     image[MARKER_OFFSET:paragraph] = finalize.MARKER
@@ -71,13 +74,15 @@ def unsigned_image() -> bytes:
     image[paragraph + 96:paragraph + 104] = finalize.END_MARKER
     image[RUNTIME_SIZE:RUNTIME_SIZE + APP_WS_UNITS * 4] = bytes(
         APP_WS_UNITS * 4)
-    image[-APP_CODE_UNITS * 4:] = struct.pack(
+    code_start = APP_SIZE - APP_CODE_UNITS * 4
+    image[code_start:APP_SIZE] = struct.pack(
         "<4I", 0xD2800020, 0xD2800041, 0xD2800062, 0xD65F03C0)
+    image[APP_SIZE:] = stock
     return bytes(image)
 
 
-def signed_image() -> bytes:
-    image = bytearray(finalize.normalize_linkedit(unsigned_image()))
+def signed_image(stock: bytes = b"") -> bytes:
+    image = bytearray(finalize.normalize_linkedit(unsigned_image(stock)))
     header = list(finalize.MACH_HEADER.unpack_from(image))
     command_offset = finalize.MACH_HEADER.size + header[5]
     signature_offset = finalize.align_up(len(image), 16) + 16
@@ -113,8 +118,15 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         build = (RUNTIME / "build.sh").read_text(encoding="utf-8")
 
         self.assertIn("sizeof(struct LNLMINIT) == 96", header)
-        self.assertIn("ARM64_UI_REQUIRED_UNITS = 12", header)
+        self.assertIn("ARM64_UI_REQUIRED_UNITS = 32947", header)
+        self.assertIn('../linoleum_macos64/lino_kernel.h', header)
         self.assertIn("validate_macho_suffix", source)
+        self.assertIn("handle_pending_events();", source)
+        self.assertIn("krnlFileCommand", source)
+        self.assertIn("krnl_system_time_command", source)
+        self.assertIn("krnl_process_command", source)
+        self.assertIn("pUIWorkspace[mm_ProcessCommandLine] = 0", source)
+        self.assertIn("lino_display_set_origin", source)
         self.assertIn("mprotect(pCode, pCodeMapBytes, PROT_READ | PROT_EXEC)", source)
         self.assertIn("publish_runtime_pointers();", source)
         for forbidden in ("MAP_FIXED", "realloc(", "PROT_WRITE | PROT_EXEC"):
@@ -127,6 +139,11 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertEqual(assembly.count("add     sp, sp, #80"), 1)
         self.assertIn("-arch arm64", build)
         self.assertIn("-Wl,-no_adhoc_codesign", build)
+        self.assertIn("lino_cocoa.m", build)
+        self.assertIn("lino_file.c", build)
+        self.assertIn("lino_keyboard.c", build)
+        self.assertIn("-framework Cocoa", build)
+        self.assertNotIn("lino_sound.c", build)
         self.assertNotIn("pagezero_size", build)
 
     def test_hosted_gate_compiles_and_executes_natively(self) -> None:
@@ -152,9 +169,16 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("work/vhgame.txt", workflow)
         self.assertIn("build/macos-aarch64-noctis.unsigned", workflow)
         self.assertIn("service_units = 32947", workflow)
+        self.assertIn("src/linoleum_macos64/lino_cocoa.m", workflow)
+        self.assertIn("/Cocoa.framework/", workflow)
         self.assertIn("Compiled full Noctis AArch64 image", workflow)
         self.assertIn("finalize_macos_aarch64.py --sign", workflow)
         self.assertIn("arch -arm64 \"$output\"", workflow)
+        self.assertIn("--cocoa-smoke", workflow)
+        self.assertIn("COCOA_SMOKE_OK", workflow)
+        self.assertIn("--cocoa-quit-smoke", workflow)
+        self.assertIn("COCOA_QUIT_SMOKE_OK", workflow)
+        self.assertIn("CURRENT.LIN", workflow)
         self.assertIn("Native compiler-owned AArch64 fixture passed", workflow)
         self.assertIn("A = 1;", fixture)
         self.assertIn("E = 5;", fixture)
@@ -187,8 +211,9 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
 
     def test_normalizer_rejects_wrong_payload_and_signature_state(self) -> None:
         image = unsigned_image()
-        with self.assertRaisesRegex(finalize.ImageError, "beyond physappsize"):
-            finalize.normalize_linkedit(image + b"unexpected")
+        with self.assertRaisesRegex(finalize.ImageError,
+                                    "truncated before physappsize"):
+            finalize.normalize_linkedit(image[:-1])
 
         duplicate = bytearray(image)
         duplicate[0x2000:0x2008] = finalize.MARKER
@@ -201,6 +226,13 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(finalize.ImageError, "physappsize"):
             finalize.normalize_linkedit(bytes(bad_bounds))
 
+        bad_service_space = bytearray(image)
+        struct.pack_into("<i", bad_service_space, paragraph + 5 * 4,
+                         APP_WS_UNITS + SERVICE_UNITS - 1)
+        with self.assertRaisesRegex(finalize.ImageError,
+                                    "complete service workspace"):
+            finalize.normalize_linkedit(bytes(bad_service_space))
+
         bad_pagezero = bytearray(image)
         struct.pack_into("<Q", bad_pagezero,
                          finalize.MACH_HEADER.size + 32, 0x4000000)
@@ -208,22 +240,29 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
             finalize.normalize_linkedit(bytes(bad_pagezero))
 
         already_signed = signed_image()
-        with self.assertRaisesRegex(finalize.ImageError, "beyond physappsize"):
+        with self.assertRaisesRegex(finalize.ImageError,
+                                    "already contains a code-signature"):
             finalize.normalize_linkedit(already_signed)
 
-    def test_final_validator_rejects_non_signature_suffixes(self) -> None:
-        image = bytearray(signed_image())
-        image.append(0)
-        with self.assertRaisesRegex(finalize.ImageError, "exact final file suffix"):
-            finalize.validate_final(bytes(image))
+    def test_stock_resources_survive_normalization_and_signing(self) -> None:
+        original = unsigned_image(STOCK_BYTES)
+        normalized = finalize.normalize_linkedit(original)
+        self.assertEqual(normalized[APP_SIZE:], STOCK_BYTES)
+        self.assertEqual(finalize.lino_fields(normalized)[4], APP_SIZE)
+        _header, commands = finalize.load_commands(normalized)
+        _offset, values = finalize.linkedit_command(normalized, commands)
+        self.assertEqual(int(values[6]), len(normalized) - int(values[5]))
 
-        image = bytearray(signed_image())
-        _header, commands = finalize.load_commands(image)
-        signature = finalize.signature_command(image, commands)
-        self.assertIsNotNone(signature)
-        signature_offset, _signature_size = signature or (0, 0)
-        image[APP_SIZE:signature_offset] = b"\x01" * (signature_offset - APP_SIZE)
-        with self.assertRaisesRegex(finalize.ImageError, "nonzero bytes"):
+        final = signed_image(STOCK_BYTES)
+        self.assertEqual(final[APP_SIZE:APP_SIZE + len(STOCK_BYTES)],
+                         STOCK_BYTES)
+        finalize.validate_final(final)
+
+    def test_final_validator_rejects_non_signature_suffixes(self) -> None:
+        image = bytearray(signed_image(STOCK_BYTES))
+        image.append(0)
+        with self.assertRaisesRegex(finalize.ImageError,
+                                    "exact final file suffix"):
             finalize.validate_final(bytes(image))
 
 

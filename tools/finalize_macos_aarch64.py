@@ -96,8 +96,8 @@ def application_size(data: bytes) -> tuple[int, int]:
         raise ImageError("Lino code entry is outside the code payload")
     if physwsentry <= 0 or physappsize <= 0:
         raise ImageError("Lino physical offsets must be positive")
-    if default_ramtop < app_ws_size + 12:
-        raise ImageError("Lino RAMtop leaves no arm64 communication slots")
+    if default_ramtop < app_ws_size + 32947:
+        raise ImageError("Lino RAMtop leaves no complete service workspace")
     expected = physwsentry + (app_ws_size + app_code_size) * 4
     if expected != physappsize:
         raise ImageError("Lino payload bounds do not match physappsize")
@@ -172,12 +172,12 @@ def linkedit_command(data: bytes, commands: list[tuple[int, int, int]]) -> tuple
 
 
 def normalize_linkedit(data: bytes) -> bytes:
-    """Extend unsigned __LINKEDIT over the compiler-appended Lino payload."""
+    """Extend unsigned __LINKEDIT over payload and opaque stock resources."""
     _header, commands = load_commands(data)
     validate_pagezero(data, commands)
     runtime_size, physical_size = application_size(data)
-    if len(data) != physical_size:
-        raise ImageError("unsigned image has data beyond physappsize")
+    if len(data) < physical_size:
+        raise ImageError("unsigned image is truncated before physappsize")
     if signature_command(data, commands) is not None:
         raise ImageError("unsigned image already contains a code-signature command")
 
@@ -188,7 +188,7 @@ def normalize_linkedit(data: bytes) -> bytes:
         raise ImageError("arm64 __LINKEDIT geometry is not 16 KiB aligned")
     if fileoff + old_filesize != runtime_size:
         raise ImageError("__LINKEDIT does not end at the compiler-recorded RTM boundary")
-    new_filesize = physical_size - fileoff
+    new_filesize = len(data) - fileoff
     new_vmsize = align_up(new_filesize, ARM64_PAGE_SIZE)
     if new_filesize <= 0:
         raise ImageError("compiler payload does not extend __LINKEDIT")
@@ -210,8 +210,6 @@ def validate_final(data: bytes) -> None:
     data_offset, data_size = signature
     if data_size <= 0 or data_offset < physical_size or data_offset + data_size != len(data):
         raise ImageError("code signature is not the exact final file suffix")
-    if any(data[physical_size:data_offset]):
-        raise ImageError("nonzero bytes occur between the Lino payload and signature")
 
     _command_offset, values = linkedit_command(data, commands)
     vmsize, fileoff, filesize = int(values[4]), int(values[5]), int(values[6])

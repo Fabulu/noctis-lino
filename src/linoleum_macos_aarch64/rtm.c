@@ -11,22 +11,23 @@
 
 #define _DARWIN_C_SOURCE
 
-#include "rtm.h"
-
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <mach-o/loader.h>
 #include <math.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
+
+#include "rtm.h"
 
 #ifndef MAP_ANONYMOUS
 #define MAP_ANONYMOUS MAP_ANON
@@ -77,12 +78,18 @@ unit eAtExit;
 unit xAtExit;
 const unit FAIL = INT32_C(0x6661696c);
 const unit DONE = INT32_C(0x646f6e65);
+struct LNLMINIT *IParagraph = &ipData.paragraph;
+char dmsStockFilename[32768];
+char **environment;
+bool cocoaSmokeMode;
+bool cocoaQuitSmokeMode;
+bool cocoaQuitSmokeTriggered;
 
 static void *pCode;
 static size_t pCodeMapBytes;
 static size_t pWorkspaceMapBytes;
-static struct LNLMINIT *IParagraph = &ipData.paragraph;
 static size_t systemPageSize;
+static bool displayInitialized;
 
 static void report_error(const char *message)
 {
@@ -158,26 +165,6 @@ static bool read_exact_at(int descriptor, void *destination, size_t size,
     return true;
 }
 
-static bool padding_is_zero(int descriptor, size_t start, size_t end)
-{
-    unsigned char buffer[4096];
-
-    while (start < end) {
-        size_t chunk = end - start;
-
-        if (chunk > sizeof(buffer))
-            chunk = sizeof(buffer);
-        if (!read_exact_at(descriptor, buffer, chunk, (off_t) start))
-            return false;
-        for (size_t index = 0; index < chunk; ++index) {
-            if (buffer[index] != 0)
-                return false;
-        }
-        start += chunk;
-    }
-    return true;
-}
-
 static bool validate_macho_suffix(int descriptor, size_t file_size,
                                   size_t application_size,
                                   const char **reason)
@@ -229,9 +216,7 @@ static bool validate_macho_suffix(int descriptor, size_t file_size,
     if (offset != (size_t) header.sizeofcmds)
         MACH_REJECT("Mach-O load-command count does not cover its table");
 
-    if (file_size == application_size) {
-        if (signatures != 0)
-            MACH_REJECT("unsigned stock file retains a code-signature command");
+    if (signatures == 0) {
         valid = true;
         goto cleanup;
     }
@@ -239,10 +224,7 @@ static bool validate_macho_suffix(int descriptor, size_t file_size,
         (size_t) signature.dataoff < application_size ||
         (size_t) signature.dataoff > file_size ||
         (size_t) signature.datasize != file_size - (size_t) signature.dataoff)
-        MACH_REJECT("stock-file suffix is not one exact code signature");
-    if (!padding_is_zero(descriptor, application_size,
-                         (size_t) signature.dataoff))
-        MACH_REJECT("nonzero data precedes the stock-file code signature");
+        MACH_REJECT("stock-file code signature is not the exact final suffix");
 
     valid = true;
 
@@ -279,7 +261,7 @@ static bool validate_image(int descriptor, size_t file_size,
                      ARM64_UI_REQUIRED_UNITS;
     if (minimum_ramtop > INT32_MAX ||
         IParagraph->default_ramtop < minimum_ramtop)
-        REJECT("RAMtop leaves no room for AArch64 communication slots");
+        REJECT("RAMtop leaves no room for the complete service workspace");
 
     if (!checked_unit_bytes(IParagraph->app_ws_size, workspace_bytes) ||
         !checked_unit_bytes(IParagraph->app_code_size, code_bytes))
@@ -482,11 +464,100 @@ static void release_mappings(void)
     }
 }
 
+static bool krnl_system_time_command(SYStimeCommand command)
+{
+    struct timeval now;
+    struct tm split;
+    time_t seconds;
+
+    switch (command) {
+    case IDLE:
+        return true;
+    case READTIME:
+    case READUTCTIME:
+        if (gettimeofday(&now, NULL) != 0)
+            return false;
+        seconds = now.tv_sec;
+        if ((command == READTIME ? localtime_r(&seconds, &split) :
+                                   gmtime_r(&seconds, &split)) == NULL)
+            return false;
+        pUIWorkspace[mm_SYStimeYear] = split.tm_year;
+        pUIWorkspace[mm_SYStimeMonth] = split.tm_mon;
+        pUIWorkspace[mm_SYStimeDay] = split.tm_mday;
+        pUIWorkspace[mm_SYStimeDayOfWeek] = split.tm_wday;
+        pUIWorkspace[mm_SYStimeHour] = split.tm_hour;
+        pUIWorkspace[mm_SYStimeMinute] = split.tm_min;
+        pUIWorkspace[mm_SYStimeSecond] = split.tm_sec;
+        pUIWorkspace[mm_SYStimeMilliSeconds] = (unit) (now.tv_usec / 1000);
+        return true;
+    case READCOUNTS: {
+        uint64_t counts;
+
+        if (gettimeofday(&now, NULL) != 0)
+            return false;
+        counts = (uint64_t) now.tv_sec * UINT64_C(1000000) +
+                 (uint64_t) now.tv_usec;
+        store_u32(&pUIWorkspace[mm_SYStimeCounts], (uint32_t) counts);
+        pUIWorkspace[mm_CountsPerMillisecond] = 1000;
+        return true;
+    }
+    default:
+        return false;
+    }
+}
+
+static bool krnl_process_command(ProcessCommand command)
+{
+    struct timespec request;
+    struct timespec remainder;
+    unit milliseconds;
+
+    if (command == IDLE)
+        return true;
+    if (command != _SLEEP)
+        return false;
+
+    milliseconds = pUIWorkspace[mm_SleepTimeout];
+    if (milliseconds < 0)
+        return false;
+    request.tv_sec = milliseconds / 1000;
+    request.tv_nsec = (long) (milliseconds % 1000) * 1000000L;
+    while (nanosleep(&request, &remainder) != 0) {
+        if (errno != EINTR)
+            return false;
+        request = remainder;
+    }
+    return true;
+}
+
+static void reject_unsupported_command(int slot)
+{
+    if (pUIWorkspace[slot] != IDLE)
+        ++isostatus;
+}
+
+static void clear_service_commands(void)
+{
+    pUIWorkspace[mm_DisplayCommand] = IDLE;
+    pUIWorkspace[mm_PCMdataCommand] = IDLE;
+    pUIWorkspace[mm_ConsoleCommand] = IDLE;
+    pUIWorkspace[mm_PointerCommand] = IDLE;
+    pUIWorkspace[mm_FileCommand] = IDLE;
+    pUIWorkspace[mm_SYStimeCommand] = IDLE;
+    pUIWorkspace[mm_APDCommand] = IDLE;
+    pUIWorkspace[mm_PrinterCommand] = IDLE;
+    pUIWorkspace[mm_ProcessCommand] = IDLE;
+    pUIWorkspace[mm_NetCommand] = IDLE;
+    pUIWorkspace[mm_GlobalKCommand] = IDLE;
+    pUIWorkspace[mm_ClipCommand] = IDLE;
+}
+
 void ISOKRNLCALL(void)
 {
     unit requested_ramtop;
     int64_t minimum_ramtop;
 
+    handle_pending_events();
     isostatus = 0;
     requested_ramtop = pUIWorkspace[mm_ProcessRAMtop];
     minimum_ramtop = (int64_t) IParagraph->app_ws_size +
@@ -494,6 +565,7 @@ void ISOKRNLCALL(void)
     if (requested_ramtop < minimum_ramtop) {
         pUIWorkspace[mm_ProcessRAMtop] = current_ramtop;
         isostatus = 1;
+        clear_service_commands();
         return;
     }
 
@@ -511,6 +583,7 @@ void ISOKRNLCALL(void)
         if (new_workspace == MAP_FAILED) {
             pUIWorkspace[mm_ProcessRAMtop] = current_ramtop;
             isostatus = 1;
+            clear_service_commands();
             return;
         }
 
@@ -528,15 +601,62 @@ void ISOKRNLCALL(void)
         current_ramtop = requested_ramtop;
         pUIWorkspace[mm_ProcessRAMtop] = requested_ramtop;
         publish_runtime_pointers();
+        if (displayInitialized) {
+            unit origin = pUIWorkspace[mm_DisplayOrigin];
+
+            if (origin < 0 || origin >= current_ramtop ||
+                !lino_display_set_origin(&pWorkspace[origin]))
+                ++isostatus;
+        }
 
         if (munmap(old_workspace, old_map_bytes) != 0)
-            isostatus = 1;
+            ++isostatus;
     }
+
+    if (!krnlPointerCommand((PointerCommand) pUIWorkspace[mm_PointerCommand]))
+        ++isostatus;
+    if (!krnlDisplayCommand((DisplayCommand) pUIWorkspace[mm_DisplayCommand]))
+        ++isostatus;
+    if (!krnlConsoleCommand((ConsoleCommand) pUIWorkspace[mm_ConsoleCommand]))
+        ++isostatus;
+    if (!krnlFileCommand((FileCommand) pUIWorkspace[mm_FileCommand]))
+        ++isostatus;
+    if (!krnl_system_time_command(
+            (SYStimeCommand) pUIWorkspace[mm_SYStimeCommand]))
+        ++isostatus;
+    if (!krnl_process_command(
+            (ProcessCommand) pUIWorkspace[mm_ProcessCommand]))
+        ++isostatus;
+
+    reject_unsupported_command(mm_PCMdataCommand);
+    reject_unsupported_command(mm_APDCommand);
+    reject_unsupported_command(mm_PrinterCommand);
+    reject_unsupported_command(mm_NetCommand);
+    reject_unsupported_command(mm_GlobalKCommand);
+    reject_unsupported_command(mm_ClipCommand);
+    clear_service_commands();
 }
 
-int main(int argc, char **argv)
+static bool parse_runtime_options(int argc, char **argv)
 {
-    char stock_path[PATH_MAX];
+    for (int index = 1; index < argc; ++index) {
+        if (strcmp(argv[index], "--cocoa-smoke") == 0) {
+            if (cocoaQuitSmokeMode)
+                return false;
+            cocoaSmokeMode = true;
+        } else if (strcmp(argv[index], "--cocoa-quit-smoke") == 0) {
+            if (cocoaSmokeMode)
+                return false;
+            cocoaQuitSmokeMode = true;
+        } else {
+            return false;
+        }
+    }
+    return true;
+}
+
+int main(int argc, char **argv, char **env)
+{
     struct stat status;
     const char *validation_reason = NULL;
     long page_size;
@@ -551,8 +671,14 @@ int main(int argc, char **argv)
     int descriptor = -1;
     int result = EXIT_FAILURE;
 
-    if (argc < 1 || argv[0] == NULL || realpath(argv[0], stock_path) == NULL) {
+    environment = env;
+    if (argc < 1 || argv[0] == NULL ||
+        realpath(argv[0], dmsStockFilename) == NULL) {
         report_error("cannot resolve the stock-file path");
+        return EXIT_FAILURE;
+    }
+    if (!parse_runtime_options(argc, argv)) {
+        report_error("only one Cocoa smoke switch and an empty application command line are supported");
         return EXIT_FAILURE;
     }
 
@@ -563,7 +689,7 @@ int main(int argc, char **argv)
     }
     systemPageSize = (size_t) page_size;
 
-    descriptor = open(stock_path, O_RDONLY | O_CLOEXEC);
+    descriptor = open(dmsStockFilename, O_RDONLY | O_CLOEXEC);
     if (descriptor < 0 || fstat(descriptor, &status) != 0 || status.st_size < 0) {
         report_error("cannot inspect the stock file");
         goto cleanup;
@@ -616,8 +742,29 @@ int main(int argc, char **argv)
     pUIWorkspace = &pWorkspace[IParagraph->app_ws_size];
     pUIWorkspace[mm_ProcessISOcall] = 0;
     pUIWorkspace[mm_ProcessRAMtop] = current_ramtop;
+    pUIWorkspace[mm_ProcessPriority] = IParagraph->app_code_pri;
+    /* Slots 4-11 contain full-width ARM pointers, so this slice deliberately
+     * exposes only an empty Lino application command line in slot 3. */
+    pUIWorkspace[mm_ProcessCommandLine] = 0;
+    pUIWorkspace[mm_CountsPerMillisecond] = 1000;
+    pUIWorkspace[mm_PCMdataStatus] = 0;
+    pUIWorkspace[mm_PointerMode] = IParagraph->pointermode;
     publish_runtime_pointers();
     set_code_entry(entry_bytes);
+
+    if (IParagraph->lfb_w_atstartup > 0 &&
+        IParagraph->lfb_h_atstartup > 0) {
+        if (!lino_display_init(IParagraph->lfb_x_atstartup,
+                               IParagraph->lfb_y_atstartup,
+                               IParagraph->lfb_w_atstartup,
+                               IParagraph->lfb_h_atstartup, NULL) ||
+            !initPointerCommand()) {
+            (void) lino_display_close();
+            report_error("cannot initialize the Cocoa display or pointer");
+            goto cleanup;
+        }
+        displayInitialized = true;
+    }
 
     linoleum();
 
@@ -638,6 +785,21 @@ int main(int argc, char **argv)
 cleanup:
     if (descriptor >= 0)
         (void) close(descriptor);
+    if (displayInitialized) {
+        if (!lino_display_close())
+            result = EXIT_FAILURE;
+        displayInitialized = false;
+    }
     release_mappings();
+    if (cocoaQuitSmokeMode) {
+        if (!cocoaQuitSmokeTriggered || xAtExit == FAIL ||
+            result != EXIT_SUCCESS) {
+            fprintf(stderr,
+                    "COCOA_QUIT_SMOKE_FAILED: graceful shutdown was not completed\n");
+            return EXIT_FAILURE;
+        }
+        printf("COCOA_QUIT_SMOKE_OK: Cocoa quit used the Lino shutdown path\n");
+        fflush(stdout);
+    }
     return result;
 }

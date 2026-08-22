@@ -15,7 +15,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef int32_t unit;
+#include "../linoleum_macos64/lino_types.h"
+#include "../linoleum_macos64/lino_kernel.h"
+
 typedef void (*proc_t)(void);
 
 struct LNLMINIT {
@@ -49,8 +51,6 @@ _Static_assert(offsetof(struct LNLMINIT, displaymode) == 92,
 /* Historical slots 0-3 retain their existing meaning. AArch64 owns eight
  * formerly unused UI communication units for full-width runtime pointers. */
 enum {
-    mm_ProcessISOcall = 0,
-    mm_ProcessRAMtop = 1,
     ARM64_UI_ISOKERNEL_LO = 4,
     ARM64_UI_ISOKERNEL_HI = 5,
     ARM64_UI_CODE_ORIGIN_LO = 6,
@@ -59,7 +59,7 @@ enum {
     ARM64_UI_FLOAT_UNARY_HI = 9,
     ARM64_UI_FLOAT_BINARY_LO = 10,
     ARM64_UI_FLOAT_BINARY_HI = 11,
-    ARM64_UI_REQUIRED_UNITS = 12
+    ARM64_UI_REQUIRED_UNITS = 32947
 };
 
 extern unit *pWorkspace;
@@ -75,6 +75,24 @@ extern unit eAtExit;
 extern unit xAtExit;
 extern const unit FAIL;
 extern const unit DONE;
+
+/* Shared architecture-neutral macOS services use these runtime globals. */
+extern struct LNLMINIT *IParagraph;
+extern char dmsStockFilename[32768];
+extern char **environment;
+extern bool cocoaSmokeMode;
+extern bool cocoaQuitSmokeMode;
+extern bool cocoaQuitSmokeTriggered;
+
+bool krnlConsoleCommand(ConsoleCommand command);
+bool krnlFileCommand(FileCommand command);
+bool krnlDisplayCommand(DisplayCommand command);
+bool krnlPointerCommand(PointerCommand command);
+bool initPointerCommand(void);
+bool lino_display_init(unit x, unit y, unit width, unit height, void *data);
+bool lino_display_set_origin(void *data);
+bool lino_display_close(void);
+void handle_pending_events(void);
 
 void ISOKRNLCALL(void);
 void isokernel(void);

@@ -12,7 +12,28 @@ on:
       - "tests/fixtures/macos_aarch64_runtime.txt"
       - "tests/test_macos_aarch64_runtime.py"
       - "tests/run_all.py"
-      - "work/vhgame.txt"
+      - "src/linoleum_macos64/lino_cocoa.m"
+      - "src/linoleum_macos64/lino_display.h"
+      - "src/linoleum_macos64/lino_event.h"
+      - "src/linoleum_macos64/lino_file.c"
+      - "src/linoleum_macos64/lino_file.h"
+      - "src/linoleum_macos64/lino_keyboard.c"
+      - "src/linoleum_macos64/lino_keyboard.h"
+      - "src/linoleum_macos64/lino_kernel.h"
+      - "src/linoleum_macos64/lino_luck.h"
+      - "src/linoleum_macos64/lino_mouse.h"
+      - "src/linoleum_macos64/lino_types.h"
+      - "src/linoleum_macos64/rtm.h"
+      - "work/**.txt"
+      - "work/globes.map"
+      - "work/offsets.map"
+      - "work/vehicle.ncc"
+      - "work/mammal.ncc"
+      - "work/birdy.ncc"
+      - "work/digimap2.bin"
+      - "work/STARMAP.BIN"
+      - "work/GUIDE.BIN"
+      - "work/noctis_music.pcm"
       - "main/lib/gen/compiler114m.txt"
       - "main/lib/gen/bits.txt"
       - "main/lib/gen/bytes.txt"
@@ -31,7 +52,28 @@ on:
       - "tests/fixtures/macos_aarch64_runtime.txt"
       - "tests/test_macos_aarch64_runtime.py"
       - "tests/run_all.py"
-      - "work/vhgame.txt"
+      - "src/linoleum_macos64/lino_cocoa.m"
+      - "src/linoleum_macos64/lino_display.h"
+      - "src/linoleum_macos64/lino_event.h"
+      - "src/linoleum_macos64/lino_file.c"
+      - "src/linoleum_macos64/lino_file.h"
+      - "src/linoleum_macos64/lino_keyboard.c"
+      - "src/linoleum_macos64/lino_keyboard.h"
+      - "src/linoleum_macos64/lino_kernel.h"
+      - "src/linoleum_macos64/lino_luck.h"
+      - "src/linoleum_macos64/lino_mouse.h"
+      - "src/linoleum_macos64/lino_types.h"
+      - "src/linoleum_macos64/rtm.h"
+      - "work/**.txt"
+      - "work/globes.map"
+      - "work/offsets.map"
+      - "work/vehicle.ncc"
+      - "work/mammal.ncc"
+      - "work/birdy.ncc"
+      - "work/digimap2.bin"
+      - "work/STARMAP.BIN"
+      - "work/GUIDE.BIN"
+      - "work/noctis_music.pcm"
       - "main/lib/gen/compiler114m.txt"
       - "main/lib/gen/bits.txt"
       - "main/lib/gen/bytes.txt"
@@ -71,6 +113,13 @@ jobs:
             ./src/linoleum_macos_aarch64/build.sh
           file build/macos-aarch64-rtm/rtm01.bin | grep -q 'arm64'
           test "$(lipo -archs build/macos-aarch64-rtm/rtm01.bin)" = arm64
+          otool -L build/macos-aarch64-rtm/rtm01.bin \
+            | grep -q '/Cocoa.framework/'
+          if otool -L build/macos-aarch64-rtm/rtm01.bin \
+              | grep -q '/AudioToolbox.framework/'; then
+            echo 'ARM64 smoke runtime unexpectedly links deferred audio' >&2
+            exit 1
+          fi
           xcrun vtool -show-build build/macos-aarch64-rtm/rtm01.bin \
             | grep -Eq 'minos[[:space:]]+11\.0'
           if codesign --verify build/macos-aarch64-rtm/rtm01.bin \
@@ -244,6 +293,60 @@ jobs:
           print("Native compiler-owned AArch64 fixture passed above 4 GiB")
           PY
 
+      - name: Finalize and smoke full Noctis natively
+        shell: bash
+        run: |
+          set -euo pipefail
+          input=build/compiler-image/macos-aarch64-noctis.unsigned
+          output="$PWD/build/Noctis-IV-arm64.game"
+          data="$PWD/build/noctis-arm64-data"
+          chmod +x "$input"
+          python3 tools/finalize_macos_aarch64.py --sign "$input" "$output"
+          file "$output" | grep -q 'arm64'
+          test "$(lipo -archs "$output")" = arm64
+          otool -L "$output" | grep -q '/Cocoa.framework/'
+          codesign --verify --strict --verbose=2 "$output"
+
+          rm -rf "$data"
+          mkdir -p "$data"
+          for file in globes.map offsets.map vehicle.ncc mammal.ncc birdy.ncc \
+            digimap2.bin STARMAP.BIN GUIDE.BIN noctis_music.pcm; do
+            install -m 0644 "work/$file" "$data/$file"
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          executable = Path("build/Noctis-IV-arm64.game").resolve()
+          data = Path("build/noctis-arm64-data").resolve()
+
+          def run_smoke(switch, marker, log_name):
+              result = subprocess.run(
+                  ["arch", "-arm64", str(executable), switch],
+                  cwd=data,
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT,
+                  timeout=180,
+              )
+              print(result.stdout)
+              Path(log_name).write_text(result.stdout, encoding="utf-8")
+              if result.returncode != 0 or marker not in result.stdout:
+                  raise SystemExit(
+                      f"{switch} failed with status {result.returncode}")
+
+          run_smoke("--cocoa-smoke", "COCOA_SMOKE_OK",
+                    "build/macos-aarch64-cocoa-smoke.txt")
+          checkpoint = data / "CURRENT.LIN"
+          checkpoint.unlink(missing_ok=True)
+          run_smoke("--cocoa-quit-smoke", "COCOA_QUIT_SMOKE_OK",
+                    "build/macos-aarch64-cocoa-quit-smoke.txt")
+          if not checkpoint.is_file() or checkpoint.stat().st_size == 0:
+              raise SystemExit("graceful ARM64 Cocoa quit did not save CURRENT.LIN")
+          print("Native ARM64 Cocoa retrace and graceful Lino shutdown passed")
+          PY
+
       - name: Upload native execution evidence
         uses: actions/upload-artifact@v7
         with:
@@ -251,5 +354,9 @@ jobs:
           path: |
             build/macos-aarch64-fixture
             build/macos-aarch64-result.txt
+            build/Noctis-IV-arm64.game
+            build/macos-aarch64-cocoa-smoke.txt
+            build/macos-aarch64-cocoa-quit-smoke.txt
+            build/noctis-arm64-data/CURRENT.LIN
             build/compiler-image/macos-aarch64-fixture.provenance.txt
           if-no-files-found: error
