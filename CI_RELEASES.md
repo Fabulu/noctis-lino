@@ -174,6 +174,18 @@ expected 20 files; reverse-normalizing the downloaded signed game reproduced
 both its recorded normalized hash and original compiler-output hash, while the
 complete appended Lino payload and 7/7 NIVGEN record remained exact.
 
+Beta 24 completed the corresponding nine-asset audit at immutable commit
+`6cf96146cb21842fa23031d58d5ae5d4e7b26c99`. Tagged run 32595409634 passed every
+Windows, x86_64/Rosetta, and native arm64 build, execution, package, and
+publication job. A fresh public download then matched all GitHub asset digests
+and adjacent checksums; rejected duplicate, absolute, escaping, and symlink ZIP
+paths; verified every internal manifest; identified the i386 PE and thin x86_64
+and arm64 Mach-O binaries; matched both bundle versions to the tag; and bound all
+three provenance records to the tagged commit. The native archive is 23,156,821
+bytes with SHA-256
+`afa87dae1b4444b1ed4abd3160f3b0f46206540b1fa975f0c9dc604a4abeed47`; its
+finalized game also passed the independent exact-signature-suffix validator.
+
 GitHub's own Actions/release-asset digest is additional evidence, not a
 replacement for the adjacent checksums and internal manifests.
 

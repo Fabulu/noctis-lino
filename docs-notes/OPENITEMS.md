@@ -2076,10 +2076,13 @@ a full-parity claim while the 22 retained NIVGEN fields remain unresolved.
 The tagged graph now also invokes the reusable native ARM64 product gate and
 waits for its tested package before publication. It retains and publishes
 `Noctis-IV-macos-arm64.zip`, its SHA-256 sidecar, and its provenance record
-alongside the Windows and x86_64 macOS assets. Hosted run 32594152146 proved the
-reusable development-label path and all publishable artifact uploads. The
-`tagged_release: true` metadata path will be exercised only by the next
-separately authorized tag; no tag or release was created merely to test it.
+alongside the Windows and x86_64 macOS assets. Tagged run 32595409634 proved the
+real `tagged_release: true` metadata path, all native execution/package smokes,
+and nine-asset prerelease publication at immutable commit `6cf9614`. Beta 24's
+nine public assets were then independently downloaded and audited for GitHub and
+sidecar digests, safe ZIP paths, complete internal manifests, PE/Mach-O
+architectures, exact tag metadata, package provenance, and native final-image
+geometry.
 
 ### 12.3 Keep macOS/Rosetta executable -- **CRASH FIXED / NATIVE ARM64 PRODUCT PROVEN**
 
@@ -2278,10 +2281,10 @@ full game compiles through the compiler-owned target, runs as a thin arm64
 Mach-O above 4 GiB, survives raw and packaged retrace/save/quit smokes, and ships
 in a Finder-safe ad-hoc-signed app with mutable data under Application Support.
 Hosted run 32593712423 proved the complete native product gate. Reusable run
-32594152146 proved the dedicated archive, checksum, and provenance artifact;
-the tagged-release graph now publishes those three files alongside Windows and
-x86_64 macOS assets. The actual tagged caller remains intentionally unexercised
-until a separately authorized release tag.
+32594152146 proved the dedicated archive, checksum, and provenance artifact.
+Tagged run 32595409634 then exercised the tag-derived bundle metadata, repeated
+the raw and packaged native smokes, and published those three ARM64 files with
+the Windows and x86_64 macOS assets in Beta 24.
 
 PR #10 was closed as superseded after a specific public resolution identified
 what was retained and why the prototype could not be merged. Joris van de
