@@ -2466,6 +2466,7 @@
 	a64 left reg = 1;	(AArch64 left/destination W-register)
 	a64 right reg = 1;	(AArch64 RHS W-register after materialization)
 	a64 condition = 1;	(B.cond condition code)
+	a64 increment = 1;	(integer increment/decrement uses immediate one)
 	a64 remainder = 1;	(integer remainder needs quotient plus MSUB)
 	a64 rotate left = 1;	(left rotate negates count before RORV)
 	a64 floating = 1;	(scalar floating operation uses S0 and S1)
@@ -6371,6 +6372,7 @@
 	-> pp exit;
 
       "pp a64 not assignment"
+	[a64 increment] = no;
 	[a64 remainder] = no;
 	[a64 rotate left] = no;
 	[a64 floating] = no;
@@ -6382,6 +6384,12 @@
 	[a64 math binary] = no;
 	[a64 product] = no;
 	[source string] = inst;
+	[target string] = q06;
+	=> strcmp;
+      ? ok -> pp a64 increment;
+	[target string] = q07;
+	=> strcmp;
+      ? ok -> pp a64 decrement;
 	[target string] = q14;
 	=> strcmp;
       ? ok -> pp a64 add;
@@ -7142,6 +7150,14 @@
 	=> a64 emit word;
 	-> pp exit;
 
+      "pp a64 increment"
+	[a64 increment] = yes;
+	[a64 opcode] = 11000400h; (ADD Wd,Wn,#1)
+	-> pp a64 unary;
+      "pp a64 decrement"
+	[a64 increment] = yes;
+	[a64 opcode] = 51000400h; (SUB Wd,Wn,#1)
+	-> pp a64 unary;
       "pp a64 bitwise inverse"
 	[a64 opcode] = 2A2003E0h; (MVN Wd,Wn)
 	-> pp a64 unary;
@@ -7196,6 +7212,7 @@
       "pp a64 emit unary"
       ? [a64 math helper] != no -> pp a64 emit math unary;
       ? [a64 floating] = yes -> pp a64 emit floating unary;
+      ? [a64 increment] = yes -> pp a64 emit increment;
       ? [a64 opcode] = null -> pp a64 emit magnitude;
 	a = [a64 left reg];
 	a < 16;
@@ -7203,6 +7220,14 @@
 	[a64 word] = a;
 	a = [a64 left reg];
 	[a64 word] + a;
+	=> a64 emit word;
+	-> pp a64 finish unary;
+      "pp a64 emit increment"
+	a = [a64 left reg];
+	a < 5;
+	a + [a64 opcode];
+	[a64 word] = a;
+	[a64 word] + [a64 left reg];
 	=> a64 emit word;
 	-> pp a64 finish unary;
       "pp a64 emit math unary"

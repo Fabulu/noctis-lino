@@ -73,9 +73,17 @@ COMPILER_FIXTURE_SOURCE = """\
 "programme"
 
     A = 5;
+    A+;
+    A-;
     B = A;
     B - 2;
     [slot] = B;
+    [slot]+;
+    [slot]-;
+    B = [p];
+    [B]+;
+    [B]-;
+    B = [slot];
     C = [slot];
     -> after skipped failure;
     fail;
@@ -1763,6 +1771,14 @@ def enc_add_w(destination: int, left: int, right: int) -> int:
     return 0x0B000000 | (right << 16) | (left << 5) | destination
 
 
+def enc_add_sub_immediate_w(destination: int, source: int, immediate: int,
+                            subtract: bool = False) -> int:
+    if not 0 <= immediate < 4096:
+        raise ValueError("AArch64 ADD/SUB immediate is out of range")
+    opcode = 0x51000000 if subtract else 0x11000000
+    return opcode | (immediate << 10) | (source << 5) | destination
+
+
 def enc_add_x_immediate(destination: int, source: int, immediate: int) -> int:
     if not 0 <= immediate <= 4095:
         raise ValueError("X add immediate is not encodable")
@@ -2295,6 +2311,7 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("(always emits MOVZ+MOVK", source)
         for word in (
             "52800000h", "72A00000h", "2A0003E0h",
+            "11000400h", "51000400h",
             "B8695B20h", "B8295B20h", "94000000h", "0B090009h",
             "0B000000h", "4B000000h", "0A000000h", "2A000000h",
             "4A000000h", "1AC02400h", "1AC02000h", "1AC02800h",
@@ -2347,6 +2364,9 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_binary_w(0x0B000000, 19, 20), 0x0B140273)
         self.assertEqual(enc_binary_w(0x1AC02800, 21, 9), 0x1AC92AB5)
         self.assertEqual(enc_add_w(9, 19, 9), 0x0B090269)
+        self.assertEqual(enc_add_sub_immediate_w(19, 19, 1), 0x11000673)
+        self.assertEqual(
+            enc_add_sub_immediate_w(10, 10, 1, subtract=True), 0x5100054A)
         self.assertEqual(enc_stack_adjust(9, False), 0x8B29D3FF)
         self.assertEqual(enc_stack_adjust(19, True), 0xCB33D3FF)
         self.assertEqual(enc_stack_address(), 0x8B29D3EC)
@@ -2702,6 +2722,37 @@ class AArch64ExecutionTests(unittest.TestCase):
             enc_movz_w(9, slot_index), enc_movk_w(9, 0, 16),
             enc_ldr_w_indexed(21),
         ]), code)
+
+        increment_sequences = (
+            [enc_add_sub_immediate_w(19, 19, 1)],
+            [enc_add_sub_immediate_w(19, 19, 1, subtract=True)],
+            [
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(10),
+                enc_add_sub_immediate_w(10, 10, 1),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(10),
+                enc_add_sub_immediate_w(10, 10, 1, subtract=True),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_ldr_w_indexed(10),
+                enc_add_sub_immediate_w(10, 10, 1),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_ldr_w_indexed(10),
+                enc_add_sub_immediate_w(10, 10, 1, subtract=True),
+                enc_str_w_indexed(10),
+            ],
+        )
+        for sequence in increment_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
 
         indirect_assignment_sequences = (
             [
