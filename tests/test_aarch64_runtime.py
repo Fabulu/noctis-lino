@@ -808,6 +808,37 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "scalar quotient ok"
 
+    A = 0;
+    A // A;
+    ? A = FFC00000h -> scalar quotient register;
+    fail;
+
+"scalar quotient register"
+
+    [lhs] = 7F800000h;
+    [rhs] = FF800000h;
+    [lhs] // [rhs];
+    ? [lhs] = FFC00000h -> scalar quotient direct;
+    fail;
+
+"scalar quotient direct"
+
+    B = p;
+    [B plus 2] = 80000000h;
+    [B minus 1] = 0;
+    [B plus 2] // [B minus 1];
+    ? [out] = FFC00000h -> scalar quotient indirect;
+    fail;
+
+"scalar quotient indirect"
+
+    A = 7FC12345h;
+    A // 3F800000h;
+    ? A = 7FC12345h -> scalar quotient good;
+    fail;
+
+"scalar quotient good"
+
     A = 1;
     A ++ 1;
     ? A = 2 -> scalar subnormal ok;
@@ -891,6 +922,35 @@ COMPILER_FIXTURE_SOURCE = """\
     fail;
 
 "scalar square root delta"
+
+    A = BF800000h;
+    A /~;
+    ? A = FFC00000h -> scalar square root register;
+    fail;
+
+"scalar square root register"
+
+    [lhs] = FF800000h;
+    [lhs] /~;
+    ? [lhs] = FFC00000h -> scalar square root direct;
+    fail;
+
+"scalar square root direct"
+
+    B = p;
+    [B plus 2] = C0800000h;
+    [B plus 2] /~;
+    ? [out] = FFC00000h -> scalar square root indirect;
+    fail;
+
+"scalar square root indirect"
+
+    A = 7FC12345h;
+    A /~;
+    ? A = 7FC12345h -> scalar square root good;
+    fail;
+
+"scalar square root good"
 
     A = 80000000h;
     A /~;
@@ -1531,6 +1591,21 @@ def enc_asr_immediate_w(destination: int, source: int, shift: int) -> int:
     return 0x13007C00 | (shift << 16) | (source << 5) | destination
 
 
+def enc_lsl_immediate_w(destination: int, source: int, shift: int) -> int:
+    if not 1 <= shift <= 31:
+        raise ValueError("W left shift is not encodable")
+    rotate = (32 - shift) & 31
+    return (0x53000000 | (rotate << 16) | ((31 - shift) << 10) |
+            (source << 5) | destination)
+
+
+def enc_lsr_immediate_w(destination: int, source: int, shift: int) -> int:
+    if not 1 <= shift <= 31:
+        raise ValueError("W right shift is not encodable")
+    return (0x53000000 | (shift << 16) | (31 << 10) |
+            (source << 5) | destination)
+
+
 def enc_tst_w(left: int, right: int) -> int:
     return 0x6A00001F | (right << 16) | (left << 5)
 
@@ -1580,6 +1655,45 @@ def enc_x87_fistp_w(destination: int, source: int) -> list[int]:
         enc_csel_w(13, 17, 12, 0),  # EQ
         enc_cmp_w_zero(14),
         enc_csel_w(destination, 13, 12, 5),  # PL
+    ]
+
+
+def enc_x87_fdiv_s(destination: int, left: int, right: int) -> list[int]:
+    return [
+        enc_mov_w(14, left),
+        enc_mov_w(15, right),
+        enc_lsl_immediate_w(14, 14, 1),
+        enc_lsr_immediate_w(14, 14, 1),
+        enc_lsl_immediate_w(15, 15, 1),
+        enc_lsr_immediate_w(15, 15, 1),
+        enc_fmov_s_w(0, left),
+        enc_fmov_s_w(1, right),
+        enc_float_data2_s(0x1E201800, 0, 0, 1),
+        enc_fmov_w_s(destination, 0),
+        *enc_mov32_w(16, 0x7F800000),
+        *enc_mov32_w(17, 0xFFC00000),
+        enc_cmp_w(14, 15),
+        enc_csel_w(12, 14, 17, 0),  # EQ
+        enc_cmp_w_zero(12),
+        enc_csel_w(13, 17, destination, 0),  # EQ
+        enc_cmp_w(12, 16),
+        enc_csel_w(destination, 17, 13, 0),  # EQ
+    ]
+
+
+def enc_x87_fsqrt_s(destination: int, source: int) -> list[int]:
+    return [
+        enc_mov_w(14, source),
+        enc_fmov_s_w(0, source),
+        enc_float_unary_s(0x1E21C000, 0, 0),
+        enc_fmov_w_s(destination, 0),
+        *enc_mov32_w(15, 0x80000000),
+        *enc_mov32_w(16, 0xFF800000),
+        *enc_mov32_w(17, 0xFFC00000),
+        enc_cmp_w(14, 15),
+        enc_csel_w(12, 17, destination, 8),  # HI
+        enc_cmp_w(14, 16),
+        enc_csel_w(destination, 12, destination, 9),  # LS
     ]
 
 
@@ -1894,11 +2008,17 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_csel_w(12, 17, 19, 8), 0x1A93822C)
         self.assertEqual(enc_csel_w(13, 17, 12, 0), 0x1A8C022D)
         self.assertEqual(enc_csel_w(19, 13, 12, 5), 0x1A8C51B3)
+        self.assertEqual(enc_csel_w(12, 14, 17, 0), 0x1A9101CC)
+        self.assertEqual(enc_csel_w(13, 17, 19, 0), 0x1A93022D)
+        self.assertEqual(enc_csel_w(19, 17, 13, 0), 0x1A8D0233)
+        self.assertEqual(enc_csel_w(19, 12, 19, 9), 0x1A939193)
         self.assertEqual(enc_fcmp_s(0, 1), 0x1E212000)
         self.assertEqual(enc_msub_w(10, 12, 11, 10), 0x1B0BA98A)
         self.assertEqual(enc_mvn_w(19, 19), 0x2A3303F3)
         self.assertEqual(enc_neg_w(10, 10), 0x4B0A03EA)
         self.assertEqual(enc_asr_immediate_w(12, 10, 31), 0x131F7D4C)
+        self.assertEqual(enc_lsl_immediate_w(14, 14, 1), 0x531F79CE)
+        self.assertEqual(enc_lsr_immediate_w(14, 14, 1), 0x53017DCE)
         self.assertEqual(enc_neg_w(12, 10), 0x4B0A03EC)
         self.assertEqual(enc_data3_w(0x1AC02C00, 11, 11, 12), 0x1ACC2D6B)
         self.assertEqual(enc_ldr_w_indexed(10), 0xB8695B2A)
@@ -2804,10 +2924,7 @@ class AArch64ExecutionTests(unittest.TestCase):
                 enc_ldr_w_indexed(10),
                 *enc_indirect_index(20, 2),
                 enc_ldr_w_indexed(11),
-                enc_fmov_s_w(0, 11),
-                enc_fmov_s_w(1, 10),
-                enc_float_data2_s(0x1E201800, 0, 0, 1),
-                enc_fmov_w_s(11, 0),
+                *enc_x87_fdiv_s(11, 11, 10),
                 enc_str_w_indexed(11),
             ],
             [
@@ -2853,28 +2970,32 @@ class AArch64ExecutionTests(unittest.TestCase):
                 enc_str_w_indexed(10),
             ],
             [
-                enc_fmov_s_w(0, 19),
-                enc_float_unary_s(0x1E21C000, 0, 0),
-                enc_fmov_w_s(19, 0),
+                *enc_x87_fsqrt_s(19, 19),
             ],
             [
                 *enc_mov32_w(9, lhs_index),
                 enc_ldr_w_indexed(10),
-                enc_fmov_s_w(0, 10),
-                enc_float_unary_s(0x1E21C000, 0, 0),
-                enc_fmov_w_s(10, 0),
+                *enc_x87_fsqrt_s(10, 10),
                 enc_str_w_indexed(10),
             ],
             [
                 *enc_indirect_index(20, 2),
                 enc_ldr_w_indexed(10),
-                enc_fmov_s_w(0, 10),
-                enc_float_unary_s(0x1E21C000, 0, 0),
-                enc_fmov_w_s(10, 0),
+                *enc_x87_fsqrt_s(10, 10),
                 enc_str_w_indexed(10),
             ],
         )
         for sequence in float_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        exceptional_float_sequences = (
+            enc_x87_fdiv_s(19, 19, 19),
+            enc_x87_fdiv_s(19, 19, 9),
+            enc_x87_fdiv_s(11, 11, 10),
+            enc_x87_fsqrt_s(19, 19),
+            enc_x87_fsqrt_s(10, 10),
+        )
+        for sequence in exceptional_float_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         transcendental_sequences = (

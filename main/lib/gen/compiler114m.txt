@@ -2469,6 +2469,8 @@
 	a64 remainder = 1;	(integer remainder needs quotient plus MSUB)
 	a64 rotate left = 1;	(left rotate negates count before RORV)
 	a64 floating = 1;	(scalar floating operation uses S0 and S1)
+	a64 square root = 1;	(repair masked x87 invalid square-root results)
+	a64 floating quotient = 1; (repair masked x87 invalid division results)
 	a64 conversion = 1;	(1: float to integer, 2: integer to float)
 	a64 floating branch = 1; (special x87 unordered comparison mapping)
 	a64 math helper = 1;	(1: sine, 2: cosine through full-width runtime helper)
@@ -6372,6 +6374,8 @@
 	[a64 remainder] = no;
 	[a64 rotate left] = no;
 	[a64 floating] = no;
+	[a64 square root] = no;
+	[a64 floating quotient] = no;
 	[a64 conversion] = no;
 	[a64 floating branch] = no;
 	[a64 math helper] = no;
@@ -6655,6 +6659,7 @@
 	-> pp a64 binary;
       "pp a64 floating quotient"
 	[a64 floating] = yes;
+	[a64 floating quotient] = yes;
 	[a64 opcode] = 1E211800h; (FDIV S0,S0,S1)
 	-> pp a64 binary;
       "pp a64 floating partial remainder"
@@ -6943,6 +6948,29 @@
 	=> a64 emit word;
 	-> pp a64 finish binary;
       "pp a64 emit floating binary"
+      ? [a64 floating quotient] = yes -> pp a64 emit floating quotient values;
+	-> pp a64 emit floating values;
+      "pp a64 emit floating quotient values"
+	(capture absolute operands so zero/zero and infinity/infinity become x87 indefinite)
+	[a64 word] = 2A0003EEh; (MOV W14,Wn)
+	a = [a64 left reg];
+	a < 16;
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 word] = 2A0003EFh; (MOV W15,Wm)
+	a = [a64 right reg];
+	a < 16;
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 word] = 531F79CEh; (LSL W14,W14,#1)
+	=> a64 emit word;
+	[a64 word] = 53017DCEh; (LSR W14,W14,#1)
+	=> a64 emit word;
+	[a64 word] = 531F79EFh; (LSL W15,W15,#1)
+	=> a64 emit word;
+	[a64 word] = 53017DEFh; (LSR W15,W15,#1)
+	=> a64 emit word;
+      "pp a64 emit floating values"
 	(move raw binary32 operands into S0/S1, round the result back to binary32)
 	a = [a64 left reg];
 	a < 5;
@@ -6959,6 +6987,32 @@
 	a = [a64 left reg];
 	a | 1E260000h; (FMOV Wn,S0)
 	[a64 word] = a;
+	=> a64 emit word;
+      ? [a64 floating quotient] = yes -> pp a64 finish floating quotient;
+	-> pp a64 finish binary;
+      "pp a64 finish floating quotient"
+	[a64 reg] = 16;
+	[a64 value] = 7F800000h; (binary32 infinity magnitude)
+	=> a64 emit immediate;
+	[a64 reg] = 17;
+	[a64 value] = FFC00000h; (masked x87 real indefinite)
+	=> a64 emit immediate;
+	[a64 word] = 6B0F01DFh; (CMP W14,W15)
+	=> a64 emit word;
+	[a64 word] = 1A9101CCh; (CSEL W12,W14,W17,EQ)
+	=> a64 emit word;
+	[a64 word] = 7100019Fh; (CMP W12,#0)
+	=> a64 emit word;
+	[a64 word] = 1A80022Dh; (CSEL W13,W17,Wd,EQ)
+	a = [a64 left reg];
+	a < 16;
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 word] = 6B10019Fh; (CMP W12,W16)
+	=> a64 emit word;
+	[a64 word] = 1A8D0220h; (CSEL Wd,W17,W13,EQ)
+	a = [a64 left reg];
+	[a64 word] + a;
 	=> a64 emit word;
 	-> pp a64 finish binary;
       "pp a64 emit remainder"
@@ -7025,6 +7079,7 @@
 	-> pp a64 unary;
       "pp a64 floating square root"
 	[a64 floating] = yes;
+	[a64 square root] = yes;
 	[a64 opcode] = 1E21C000h; (FSQRT S0,S0)
 	-> pp a64 unary;
       "pp a64 floating opposite"
@@ -7121,6 +7176,15 @@
 	[a64 left reg] = 0;
 	-> pp a64 store binary;
       "pp a64 emit floating unary"
+      ? [a64 square root] = yes -> pp a64 emit floating square root value;
+	-> pp a64 emit floating unary value;
+      "pp a64 emit floating square root value"
+	[a64 word] = 2A0003EEh; (MOV W14,Wn)
+	a = [a64 left reg];
+	a < 16;
+	[a64 word] + a;
+	=> a64 emit word;
+      "pp a64 emit floating unary value"
 	a = [a64 left reg];
 	a < 5;
 	a | 1E270000h; (FMOV S0,Wn)
@@ -7131,6 +7195,35 @@
 	a = [a64 left reg];
 	a | 1E260000h; (FMOV Wn,S0)
 	[a64 word] = a;
+	=> a64 emit word;
+      ? [a64 square root] = yes -> pp a64 finish floating square root;
+	-> pp a64 finish unary;
+      "pp a64 finish floating square root"
+	(negative finite values and negative infinity produce x87 real indefinite)
+	[a64 reg] = 15;
+	[a64 value] = 80000000h; (negative zero boundary)
+	=> a64 emit immediate;
+	[a64 reg] = 16;
+	[a64 value] = FF800000h; (negative infinity boundary)
+	=> a64 emit immediate;
+	[a64 reg] = 17;
+	[a64 value] = FFC00000h; (masked x87 real indefinite)
+	=> a64 emit immediate;
+	[a64 word] = 6B0F01DFh; (CMP W14,W15)
+	=> a64 emit word;
+	[a64 word] = 1A80822Ch; (CSEL W12,W17,Wd,HI)
+	a = [a64 left reg];
+	a < 16;
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 word] = 6B1001DFh; (CMP W14,W16)
+	=> a64 emit word;
+	[a64 word] = 1A809180h; (CSEL Wd,W12,Wd,LS)
+	a = [a64 left reg];
+	a < 16;
+	[a64 word] + a;
+	a = [a64 left reg];
+	[a64 word] + a;
 	=> a64 emit word;
 	-> pp a64 finish unary;
       "pp a64 emit magnitude"
