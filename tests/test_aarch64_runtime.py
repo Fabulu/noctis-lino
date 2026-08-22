@@ -72,6 +72,13 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "programme"
 
+    [out] = computed jump target;
+    -> [out];
+    fail;
+
+"computed jump target"
+
+    [out] = 0;
     A = 3;
 "register loop"
     A ^ register loop;
@@ -1813,6 +1820,10 @@ def enc_cbnz_w(register: int, displacement: int) -> int:
     return 0x35000000 | ((immediate & 0x7FFFF) << 5) | register
 
 
+def enc_add_x(destination: int, left: int, right: int) -> int:
+    return 0x8B000000 | (right << 16) | (left << 5) | destination
+
+
 def enc_add_x_immediate(destination: int, source: int, immediate: int) -> int:
     if not 0 <= immediate <= 4095:
         raise ValueError("X add immediate is not encodable")
@@ -2127,6 +2138,10 @@ def enc_cmp_x(left: int, right: int) -> int:
     return 0xEB00001F | (right << 16) | (left << 5)
 
 
+def enc_br(register: int) -> int:
+    return 0xD61F0000 | (register << 5)
+
+
 def enc_blr(register: int) -> int:
     return 0xD63F0000 | (register << 5)
 
@@ -2346,7 +2361,9 @@ class StaticContractTests(unittest.TestCase):
         for word in (
             "52800000h", "72A00000h", "2A0003E0h",
             "11000400h", "51000400h", "35000000h",
-            "B8695B20h", "B8295B20h", "94000000h", "0B090009h",
+            "B8695B20h", "B8295B20h", "B8695B29h",
+            "AA0C816Ah", "8B090149h", "D61F0120h",
+            "94000000h", "0B090009h",
             "0B000000h", "4B000000h", "0A000000h", "2A000000h",
             "4A000000h", "1AC02400h", "1AC02000h", "1AC02800h",
             "1B007C00h", "1AC00C00h", "1AC00800h", "1B008180h",
@@ -2389,7 +2406,10 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_mov_w(0, 19), 0x2A1303E0)
         self.assertEqual(enc_mov_w(1, 20), 0x2A1403E1)
         self.assertEqual(enc_mov_w(19, 0), 0x2A0003F3)
+        self.assertEqual(enc_br(9), 0xD61F0120)
         self.assertEqual(enc_blr(9), 0xD63F0120)
+        self.assertEqual(enc_add_x(9, 10, 9), 0x8B090149)
+        self.assertEqual(enc_orr_lsl_x(10, 11, 12, 32), 0xAA0C816A)
         self.assertEqual(enc_ldr_w_indexed(10, 14), 0xB86E5B2A)
         self.assertEqual(enc_str_w_indexed(13, 14), 0xB82E5B2D)
         self.assertEqual(enc_ldr_w(9, 25, 48), 0xB9403329)
@@ -2758,6 +2778,19 @@ class AArch64ExecutionTests(unittest.TestCase):
             enc_movz_w(9, slot_index), enc_movk_w(9, 0, 16),
             enc_ldr_w_indexed(21),
         ]), code)
+
+        computed_jump_sequence = [
+            *enc_mov32_w(9, out_index),
+            enc_ldr_w_indexed(9),
+            *enc_mov32_w(10, app_ws_size + UI_CODE_ORIGIN_LO),
+            enc_ldr_w_indexed(11, 10),
+            *enc_mov32_w(10, app_ws_size + UI_CODE_ORIGIN_HI),
+            enc_ldr_w_indexed(12, 10),
+            enc_orr_lsl_x(10, 11, 12, 32),
+            enc_add_x(9, 10, 9),
+            enc_br(9),
+        ]
+        self.assertIn(words_to_bytes(computed_jump_sequence), code)
 
         integer_loop_sequences = (
             [
