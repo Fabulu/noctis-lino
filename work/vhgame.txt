@@ -57,7 +57,7 @@
 	VHGalpha = 0; VHGbeta = 0; VHGnavbeta = 0; VHGabs = 0;
 	VHGlifter = 0; VHGliftstep = 0; VHGonroof = 0; VHGridearmed = 1; VHGuprequest = 0; VHGupheld = 0;
 	VHGdx = 0; VHGdz = 0; VHGdist = 0;
-	VHGesc = 0; VHGframe = 0; VHGsent = 0; VHGfullescheld = 0;
+	VHGesc = 0; VHGframe = 0; VHGsent = 0; VHGsentinelquit = 0; VHGfullescheld = 0;
 	VHGargptr = 0; VHGargvalue = 0; VHGargdigits = 0;
 	VHGmouseheld = 0; VHGmousex = 0; VHGmousey = 0; VHGmousedx = 0; VHGmousedy = 0;
 	VHGmenuheld = 0; VHGmenux = 0; VHGmenuy = 0;
@@ -1064,9 +1064,10 @@
 	end;
 
 "VHG capture clock option"
-	( Automated gallery captures may pin the source UTC second with the sole
-	  command-line argument clock=<decimal>. Ordinary launches have an empty
-	  command line and retain the live UTC clock. )
+	( Automated captures may pin the source UTC second with clock=<decimal>.
+	  A following `quit` token is a hosted diagnostic boundary: after writing the
+	  first complete sentinel frame, return through the ordinary save/exit path.
+	  Ordinary launches have an empty command line and retain live UTC. )
 	A = Command Line; [VHGargptr] = A;
 	"VHG capture clock leading space"
 	C = [A]; ? C != 32 -> VHG capture clock prefix; A+;
@@ -1088,9 +1089,21 @@
 	C '* 10; C + E; [VHGargvalue] = C; A+;
 	-> VHG capture clock digit;
     "VHG capture clock parsed"
+	[VHGargptr] = A;
 	A = [VHGargdigits]; ? A = 0 -> VHG capture clock done;
 	A = [VHGargvalue]; ? A <= 0 -> VHG capture clock done;
 	[VHGNDclocksecs] = A; [VHGNDclockoverride] = 1;
+	A = [VHGargptr];
+    "VHG capture clock find suffix"
+	C = [A]; ? C = 0 -> VHG capture clock done; ? C = 32 -> VHG capture clock suffix; A+;
+	-> VHG capture clock find suffix;
+    "VHG capture clock suffix"
+	A+; C = [A]; ? C != 113 -> VHG capture clock done; A+;
+	C = [A]; ? C != 117 -> VHG capture clock done; A+;
+	C = [A]; ? C != 105 -> VHG capture clock done; A+;
+	C = [A]; ? C != 116 -> VHG capture clock done; A+;
+	C = [A]; ? C != 0 -> VHG capture clock done;
+	[VHGsentinelquit] = 1;
     "VHG capture clock done"
 	end;
 
@@ -10813,4 +10826,7 @@
 	[File Name] = vhgpalname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = curpal6; [Block Size] = 3072; isocall;
 	[File Name] = vhgpalname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 3072; isocall;
+	A = [VHGsentinelquit]; ? A = 0 -> VHG write sentinel done;
+	[VHGesc] = 1; [Quit Now] = YES;
+    "VHG write sentinel done"
 		end;

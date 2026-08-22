@@ -138,8 +138,7 @@ jobs:
             -ViewPitch -44 `
             -ClockSeconds 1344638527 `
             -Fast `
-            -ReportPerformance `
-            -KeepStages
+            -DiagnosticOnly
           python tests\test_sun_gallery.py `
             --case hab-sun270 `
             --product-directory build\sun-gallery

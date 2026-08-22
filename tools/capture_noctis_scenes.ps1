@@ -44,6 +44,7 @@ param(
     [switch]$CaptureHostWindow,
     [switch]$CapsuleReturn,
     [switch]$OpenFcs,
+    [switch]$DiagnosticOnly,
     [switch]$Interactive
 )
 
@@ -514,6 +515,33 @@ function Test-NoctisWindowReady {
     }
 }
 
+function Export-SceneDiagnostics {
+    param(
+        [hashtable]$Spec,
+        [string]$Stage,
+        [string]$OutputPath,
+        [switch]$RequireComplete
+    )
+    foreach ($entry in $diagnosticSizes.GetEnumerator()) {
+        $source = Join-Path $Stage $entry.Key
+        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+            if ($RequireComplete) {
+                throw "Scene $($Spec.Name) did not emit $($entry.Key)"
+            }
+            continue
+        }
+        $length = (Get-Item -LiteralPath $source).Length
+        if ($RequireComplete -and $length -ne $entry.Value) {
+            throw "Scene $($Spec.Name) emitted $($entry.Key) with length $length, expected $($entry.Value)"
+        }
+        $diagnosticName = '{0}-{1}' -f $Spec.Name, $entry.Key
+        $diagnosticPath = Join-Path $OutputPath $diagnosticName
+        Copy-Item -LiteralPath $source -Destination $diagnosticPath -Force
+        Write-Output ("DIAGNOSTIC {0} ({1} bytes) -> {2}" -f
+            $entry.Key, $length, $diagnosticPath)
+    }
+}
+
 foreach ($spec in $scenes) {
     $proc = $null
     $stage = Join-Path $env:TEMP ("noctis-capture-{0}-{1}" -f $spec.Name, [Guid]::NewGuid().ToString('N'))
@@ -525,6 +553,22 @@ foreach ($spec in $scenes) {
         }
         New-Checkpoint -Spec $spec -Path (Join-Path $stage 'CURRENT.LIN')
         Copy-Item -LiteralPath (Join-Path $stage 'CURRENT.LIN') -Destination (Join-Path $stage 'CURRENT.BAK')
+
+        if ($DiagnosticOnly) {
+            if ($Interactive) { throw 'DiagnosticOnly cannot be interactive' }
+            $privateRunner = Join-Path $projectRoot 'tools\run_hidden_noctis.py'
+            & python $privateRunner `
+                --executable (Join-Path $stage 'Noctis-IV.exe') `
+                --working-directory $stage `
+                --timeout 90 `
+                "clock=$ClockSeconds" quit
+            if ($LASTEXITCODE -ne 0) {
+                throw "Scene $($spec.Name) private diagnostic run failed"
+            }
+            Export-SceneDiagnostics -Spec $spec -Stage $stage `
+                -OutputPath $outputPath -RequireComplete
+            continue
+        }
 
         # Automated captures must not open an interactive window on the user's
         # desktop: input would both interrupt them and taint fixed-scene probes.
@@ -747,35 +791,15 @@ foreach ($spec in $scenes) {
             }
         }
         if ($KeepStages) {
-            foreach ($entry in $diagnosticSizes.GetEnumerator()) {
-                $source = Join-Path $stage $entry.Key
-                if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
-                    throw "Scene $($spec.Name) did not emit $($entry.Key)"
-                }
-                $length = (Get-Item -LiteralPath $source).Length
-                if ($length -ne $entry.Value) {
-                    throw "Scene $($spec.Name) emitted $($entry.Key) with length $length, expected $($entry.Value)"
-                }
-                $diagnosticName = '{0}-{1}' -f $spec.Name, $entry.Key
-                $diagnosticPath = Join-Path $outputPath $diagnosticName
-                Copy-Item -LiteralPath $source -Destination $diagnosticPath -Force
-                Write-Output ("DIAGNOSTIC {0} -> {1}" -f $entry.Key, $diagnosticPath)
-            }
+            Export-SceneDiagnostics -Spec $spec -Stage $stage `
+                -OutputPath $outputPath -RequireComplete
         }
     } finally {
         # Keep any diagnostics emitted before an early product exit. This makes a
         # hosted failure discriminating without weakening the successful path's
         # complete size checks above.
         if (-not $Interactive -and $KeepStages -and (Test-Path -LiteralPath $stage)) {
-            foreach ($entry in $diagnosticSizes.GetEnumerator()) {
-                $source = Join-Path $stage $entry.Key
-                $diagnosticPath = Join-Path $outputPath ('{0}-{1}' -f $spec.Name, $entry.Key)
-                if ((Test-Path -LiteralPath $source -PathType Leaf) -and
-                    -not (Test-Path -LiteralPath $diagnosticPath)) {
-                    Copy-Item -LiteralPath $source -Destination $diagnosticPath
-                    Write-Output ("PARTIAL DIAGNOSTIC {0} -> {1}" -f $entry.Key, $diagnosticPath)
-                }
-            }
+            Export-SceneDiagnostics -Spec $spec -Stage $stage -OutputPath $outputPath
         }
         if ($proc -and -not $proc.HasExited) {
             # Prefer the game's own Escape path so it saves state and flushes

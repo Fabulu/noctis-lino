@@ -19,6 +19,7 @@ import struct
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "work" / "vhgame.txt"
 CAPTURE = ROOT / "tools" / "capture_noctis_scenes.ps1"
+PRIVATE_RUNNER = ROOT / "tools" / "run_hidden_noctis.py"
 WORKFLOW = ROOT / ".github" / "workflows" / "windows-release.yml"
 
 CASES = {
@@ -109,6 +110,7 @@ def mismatch_summary(expected: bytes, actual: bytes, width: int = 320) -> str:
 def check_source_contract(check) -> None:
     game = GAME.read_text(encoding="utf-8")
     capture = CAPTURE.read_text(encoding="utf-8")
+    private_runner = PRIVATE_RUNNER.read_text(encoding="utf-8")
     workflow = WORKFLOW.read_text(encoding="utf-8")
     check("vhgpagename = { game-page-out.bin };" in game,
           "game declares a separate packed-page diagnostic")
@@ -119,16 +121,24 @@ def check_source_contract(check) -> None:
     check("[Block Pointer] = vhgsun; [Block Size] = 128; isocall;" in game and
           "[Block Pointer] = curpal6; [Block Size] = 3072; isocall;" in game,
           "existing sun and six-bit palette contracts remain intact")
+    check("VHGsentinelquit" in game and
+          "[VHGesc] = 1; [Quit Now] = YES;" in game,
+          "explicit quit token exits only after complete sentinel diagnostics")
     check("'game-page-out.bin' = 64000" in capture and
           "'game-sun-out.bin' = 128" in capture and
           "'game-palette-out.bin' = 3072" in capture and
-          "$spec.Name, $entry.Key" in capture,
-          "KeepStages validates and exports scene-qualified product diagnostics")
+          "$Spec.Name, $entry.Key" in capture,
+          "diagnostic capture validates and exports scene-qualified product files")
+    check("windows_hidden_process.run" in private_runner and
+          "private Noctis sentinel run exited cleanly" in private_runner and
+          "run_hidden_noctis.py" in capture and "quit" in capture,
+          "diagnostic-only product execution uses a private inactive desktop")
     check(all(fragment in workflow for fragment in (
               "-Scene habitable",
               "-Longitude 270",
               "-ViewPitch -44",
               "-ClockSeconds 1344638527",
+              "-DiagnosticOnly",
               "--case hab-sun270",
               "--product-directory build\\sun-gallery",
           )),
