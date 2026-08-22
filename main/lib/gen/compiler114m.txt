@@ -6585,6 +6585,9 @@
 	[target string] = q02;
 	=> strcmp;
       ? ok -> pp a64 call;
+	[target string] = q08;
+	=> strcmp;
+      ? ok -> pp a64 integer loop;
 	[target string] = q09;
 	=> strcmp;
       ? ok -> pp a64 jump success;
@@ -7864,6 +7867,54 @@
 	=> a64 emit stack address;
 	a = [a64 right reg];
 	a | B9000180h; (STR Wn,[x12])
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 integer loop"
+      ? [op2 class] != immediate -> pp a64 unsupported;
+      ? [op1 class] = register -> pp a64 integer loop register;
+      ? [op1 class] = direct -> pp a64 integer loop direct;
+      ? [op1 class] = indirect -> pp a64 integer loop indirect;
+	-> pp a64 unsupported;
+      "pp a64 integer loop register"
+	a = [op1 regid];
+	a + 19;
+	[a64 left reg] = a;
+	-> pp a64 emit integer loop decrement;
+      "pp a64 integer loop direct"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+	-> pp a64 emit integer loop decrement;
+      "pp a64 integer loop indirect"
+	=> a64 emit op1 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+      "pp a64 emit integer loop decrement"
+	a = [a64 left reg];
+	a < 5;
+	a + 51000400h; (SUB Wn,Wn,#1)
+	[a64 word] = a;
+	[a64 word] + [a64 left reg];
+	=> a64 emit word;
+      ? [op1 class] = register -> pp a64 emit integer loop branch;
+	a = [a64 left reg];
+	a | B8295B20h; (STR Wn,[x25,w9,UXTW #2])
+	[a64 word] = a;
+	=> a64 emit word;
+      "pp a64 emit integer loop branch"
+	a = [op2 value];
+	a - [bpos];
+	a / 4;
+	a & 0007FFFFh;
+	a < 5;
+	a | 35000000h; (CBNZ Wn,label)
+	a | [a64 left reg];
 	[a64 word] = a;
 	=> a64 emit word;
 	-> pp exit;

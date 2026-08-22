@@ -72,6 +72,31 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "programme"
 
+    A = 3;
+"register loop"
+    A ^ register loop;
+    ? A = 0 -> register loop done;
+    fail;
+
+"register loop done"
+
+    [slot] = 2;
+"direct loop"
+    [slot] ^ direct loop;
+    ? [slot] = 0 -> direct loop done;
+    fail;
+
+"direct loop done"
+
+    B = [p];
+    [B] = 2;
+"indirect loop"
+    [B] ^ indirect loop;
+    ? [out] = 0 -> integer loops done;
+    fail;
+
+"integer loops done"
+
     A = 5;
     A+;
     A-;
@@ -1779,6 +1804,15 @@ def enc_add_sub_immediate_w(destination: int, source: int, immediate: int,
     return opcode | (immediate << 10) | (source << 5) | destination
 
 
+def enc_cbnz_w(register: int, displacement: int) -> int:
+    if displacement % 4 != 0:
+        raise ValueError("AArch64 CBNZ displacement is not word-aligned")
+    immediate = displacement // 4
+    if not -(1 << 18) <= immediate < (1 << 18):
+        raise ValueError("AArch64 CBNZ displacement is out of range")
+    return 0x35000000 | ((immediate & 0x7FFFF) << 5) | register
+
+
 def enc_add_x_immediate(destination: int, source: int, immediate: int) -> int:
     if not 0 <= immediate <= 4095:
         raise ValueError("X add immediate is not encodable")
@@ -2311,7 +2345,7 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("(always emits MOVZ+MOVK", source)
         for word in (
             "52800000h", "72A00000h", "2A0003E0h",
-            "11000400h", "51000400h",
+            "11000400h", "51000400h", "35000000h",
             "B8695B20h", "B8295B20h", "94000000h", "0B090009h",
             "0B000000h", "4B000000h", "0A000000h", "2A000000h",
             "4A000000h", "1AC02400h", "1AC02000h", "1AC02800h",
@@ -2367,6 +2401,8 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_add_sub_immediate_w(19, 19, 1), 0x11000673)
         self.assertEqual(
             enc_add_sub_immediate_w(10, 10, 1, subtract=True), 0x5100054A)
+        self.assertEqual(enc_cbnz_w(19, -4), 0x35FFFFF3)
+        self.assertEqual(enc_cbnz_w(10, -20), 0x35FFFF6A)
         self.assertEqual(enc_stack_adjust(9, False), 0x8B29D3FF)
         self.assertEqual(enc_stack_adjust(19, True), 0xCB33D3FF)
         self.assertEqual(enc_stack_address(), 0x8B29D3EC)
@@ -2722,6 +2758,29 @@ class AArch64ExecutionTests(unittest.TestCase):
             enc_movz_w(9, slot_index), enc_movk_w(9, 0, 16),
             enc_ldr_w_indexed(21),
         ]), code)
+
+        integer_loop_sequences = (
+            [
+                enc_add_sub_immediate_w(19, 19, 1, subtract=True),
+                enc_cbnz_w(19, -4),
+            ],
+            [
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(10),
+                enc_add_sub_immediate_w(10, 10, 1, subtract=True),
+                enc_str_w_indexed(10),
+                enc_cbnz_w(10, -20),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_ldr_w_indexed(10),
+                enc_add_sub_immediate_w(10, 10, 1, subtract=True),
+                enc_str_w_indexed(10),
+                enc_cbnz_w(10, -24),
+            ],
+        )
+        for sequence in integer_loop_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
 
         increment_sequences = (
             [enc_add_sub_immediate_w(19, 19, 1)],
