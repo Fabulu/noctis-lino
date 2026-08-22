@@ -3,9 +3,10 @@
 This directory contains the checked runtime for running compiler-owned AArch64
 Lino code natively on Apple Silicon. Its current product checkpoint links the
 shared Cocoa display, input, console, and file services and runs full Noctis
-through first retrace and graceful Lino shutdown. Audio, networking, GlobalK,
-clipboard integration, final app packaging, and product-level playtests remain
-deferred.
+through first retrace and graceful Lino shutdown. The Finder-safe native app package
+adds an arm64 launcher, safe per-user data staging, an internal manifest, exact
+signature validation, and archive checksum/provenance. Audio, networking, GlobalK,
+clipboard integration, and broader product-level playtests remain deferred.
 
 The register ABI matches the Linux bridge:
 
@@ -46,5 +47,11 @@ truncated-pointer runtime. This implementation preserves that investigation's
 credit while reconstructing the loader and bridge around checked full-width
 pointers and W^X mappings.
 
+The native app is built by `tools/package_noctis_macos_aarch64.py` from a
+finalized game and its recorded build provenance. It emits
+`Noctis-IV-macos-arm64.zip`, its SHA-256 file, and package provenance; the hosted
+Apple-Silicon gate extracts the archive independently and exercises both first
+retrace and graceful shutdown through the launcher.
+
 Open work after this checkpoint includes native audio and remaining optional
-services, application packaging, and product-level playtests.
+services plus broader product-level playtests.
