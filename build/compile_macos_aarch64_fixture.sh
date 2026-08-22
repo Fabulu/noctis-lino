@@ -89,8 +89,19 @@ import sys
 image = Path(sys.argv[1]).read_bytes()
 runtime = Path(sys.argv[2]).read_bytes()
 marker = b"LNLMInit"
+end_marker = b"LNLMIend"
 offset = image.find(marker)
+end_offset = runtime.find(end_marker)
 if offset < 0 or image.find(marker, offset + 1) >= 0:
+    raise SystemExit(1)
+if offset != runtime.find(marker) or end_offset < 0:
+    raise SystemExit(1)
+if image.find(end_marker) != end_offset:
+    raise SystemExit(1)
+init_start = offset + len(marker)
+if image[:init_start] != runtime[:init_start]:
+    raise SystemExit(1)
+if image[end_offset:len(runtime)] != runtime[end_offset:]:
     raise SystemExit(1)
 try:
     fields = struct.unpack_from("<14i", image, offset + len(marker) + 40)
@@ -102,7 +113,7 @@ if app_ws_size <= 0 or app_code_size <= 0:
     raise SystemExit(1)
 if not 0 <= app_code_entry < app_code_size:
     raise SystemExit(1)
-if physwsentry != len(runtime) or physappsize != len(image):
+if physwsentry < len(runtime) or physappsize != len(image):
     raise SystemExit(1)
 if physwsentry + (app_ws_size + app_code_size) * 4 != physappsize:
     raise SystemExit(1)
@@ -205,17 +216,26 @@ if len(image) < len(runtime) or image[:4] != b"\xcf\xfa\xed\xfe":
 if struct.unpack_from("<i", image, 4)[0] != 0x0100000C:
     raise SystemExit("compiled fixture is not arm64")
 marker = b"LNLMInit"
+end_marker = b"LNLMIend"
 offset = image.find(marker)
+end_offset = runtime.find(end_marker)
 if offset < 0 or image.find(marker, offset + 1) >= 0:
     raise SystemExit("compiled fixture has an invalid initialization paragraph")
-if runtime.find(marker) != offset:
+if runtime.find(marker) != offset or end_offset < 0:
     raise SystemExit("compiler moved the runtime initialization paragraph")
+if image.find(end_marker) != end_offset:
+    raise SystemExit("compiler moved the runtime end marker")
+init_start = offset + len(marker)
+if image[:init_start] != runtime[:init_start]:
+    raise SystemExit("compiler changed the runtime before initialization fields")
+if image[end_offset:len(runtime)] != runtime[end_offset:]:
+    raise SystemExit("compiler changed immutable runtime bytes")
 fields = struct.unpack_from("<14i", image, offset + len(marker) + 40)
 app_ws_size, app_code_size, app_code_entry = fields[:3]
 physwsentry, physappsize, default_ramtop = fields[3:6]
 if app_ws_size <= 0 or app_code_size <= 0 or not 0 <= app_code_entry < app_code_size:
     raise SystemExit("compiled fixture has invalid Lino payload bounds")
-if physwsentry != len(runtime) or physappsize != len(image):
+if physwsentry < len(runtime) or physappsize != len(image):
     raise SystemExit("compiled fixture does not identify the supplied runtime")
 if default_ramtop < app_ws_size + 12:
     raise SystemExit("compiled fixture leaves no arm64 communication slots")
