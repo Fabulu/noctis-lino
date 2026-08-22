@@ -82,13 +82,15 @@ independent ABI and malformed-image oracles; no generated executable is tracked.
 
 ## Deliberate omissions
 
-The compiler-owned AArch64 emitter covers fixed-width 32-bit integer moves,
-direct workspace loads/stores, wrapping register/immediate and register/register
-addition, subtraction, bitwise operations, logical/arithmetic shifts, equality,
-signed/unsigned comparisons, bit-test branches, unconditional/status branches,
-internal calls, `leave`, `end`, `fail`, `nop`, and the full-width isocall ABI. It
-does not yet cover memory operands for those calculations, indirect addressing,
-multiply/divide, unary and rotate forms, floating-point/x87 semantics, display,
-input, audio, files, sockets, timing, process commands, Cocoa, Mach-O packaging,
-signing, or Noctis integration. Wider instruction coverage and runtime services
-remain separate milestones.
+The compiler-owned AArch64 emitter covers fixed-width 32-bit integer moves and
+direct workspace loads/stores. Wrapping addition, subtraction, bitwise
+operations, and logical/arithmetic shifts accept register or direct-workspace
+left operands and immediate, register, or direct-workspace right operands;
+direct left operands are written back. Equality, signed/unsigned comparisons,
+and bit-test branches accept the same input combinations without writeback. The
+slice also covers unconditional/status branches, internal calls, `leave`, `end`,
+`fail`, `nop`, and the full-width isocall ABI. It does not yet cover indirect
+addressing, multiply/divide, unary and rotate forms, floating-point/x87
+semantics, display, input, audio, files, sockets, timing, process commands,
+Cocoa, Mach-O packaging, signing, or Noctis integration. Wider instruction
+coverage and runtime services remain separate milestones.
