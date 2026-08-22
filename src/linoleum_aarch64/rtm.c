@@ -206,9 +206,20 @@ enum {
 
 static uint32_t apply_float_unary(uint32_t bits, uint32_t operation)
 {
+    const uint32_t magnitude = bits & UINT32_C(0x7FFFFFFF);
     float input;
     float output;
     uint32_t result;
+
+    if (operation != FLOAT_UNARY_SINE && operation != FLOAT_UNARY_COSINE)
+        return bits;
+    if (magnitude >= UINT32_C(0x5F000000) &&
+        magnitude < UINT32_C(0x7F800000))
+        return bits;
+    if (magnitude == UINT32_C(0x7F800000))
+        return UINT32_C(0xFFC00000);
+    if (magnitude > UINT32_C(0x7F800000))
+        return bits | UINT32_C(0x00400000);
 
     memcpy(&input, &bits, sizeof(input));
     switch (operation) {

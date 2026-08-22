@@ -968,6 +968,55 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "scalar cosine indirect"
 
+    A = 5F000000h;
+    A ~;
+    ? A = 5F000000h -> scalar sine c2 register;
+    fail;
+
+"scalar sine c2 register"
+
+    [lhs] = DF000001h;
+    [lhs] ~~;
+    ? [lhs] = DF000001h -> scalar cosine c2 direct;
+    fail;
+
+"scalar cosine c2 direct"
+
+    [B plus 2] = 7F7FFFFFh;
+    [B plus 2] ~;
+    ? [out] = 7F7FFFFFh -> scalar sine c2 indirect;
+    fail;
+
+"scalar sine c2 indirect"
+
+    [lhs] = 7F800000h;
+    [lhs] ~~;
+    ? [lhs] = FFC00000h -> scalar cosine infinity;
+    fail;
+
+"scalar cosine infinity"
+
+    [B plus 2] = FF800000h;
+    [B plus 2] ~;
+    ? [out] = FFC00000h -> scalar sine infinity;
+    fail;
+
+"scalar sine infinity"
+
+    A = 7FC12345h;
+    A ~;
+    ? A = 7FC12345h -> scalar sine quiet nan;
+    fail;
+
+"scalar sine quiet nan"
+
+    [lhs] = FF812345h;
+    [lhs] ~~;
+    ? [lhs] = FFC12345h -> scalar cosine signaling nan;
+    fail;
+
+"scalar cosine signaling nan"
+
     [B plus 2] = 0;
     [B plus 2] ~~;
     ? [out] = 3F800000h -> fp remainder register;
