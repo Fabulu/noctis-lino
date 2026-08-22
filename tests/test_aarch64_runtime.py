@@ -61,6 +61,9 @@ COMPILER_FIXTURE_SOURCE = """\
     slot = 0;
     lhs = 20;
     rhs = 3;
+    p = 6;
+    q = 3;
+    out = 0;
 
 "programme"
 
@@ -177,7 +180,79 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "workspace good"
 
-    D = [lhs];
+    A = q;
+    A = [A];
+    [A] = A;
+    B = p;
+    [slot] = [B minus 1];
+    [B plus 2] = 6;
+    C = 5;
+    [B plus 2] = C;
+    [B plus 2] = [lhs];
+    C = q;
+    [B plus 2] = [C];
+
+    ? [out] = 3 -> indirect assignments ok;
+    fail;
+
+"indirect assignments ok"
+
+    A + [B minus 1];
+    [slot] - [B minus 1];
+    [B plus 2] & 7;
+    [B plus 2] | A;
+    [B plus 2] # [rhs];
+    [B plus 2] > [C];
+    [B plus 2] = 1;
+    [B plus 2] < [C];
+    [B plus 2] = 80000000h;
+    [B plus 2] >> 31;
+
+    ? A != [B minus 1] -> indirect register condition;
+    fail;
+
+"indirect register condition"
+
+    ? [lhs] ' > [B minus 1] -> indirect direct condition;
+    fail;
+
+"indirect direct condition"
+
+    ? [B plus 2] = FFFFFFFFh -> indirect immediate condition;
+    fail;
+
+"indirect immediate condition"
+
+    ? [B plus 2] < A -> indirect register rhs condition;
+    fail;
+
+"indirect register rhs condition"
+
+    ? [B plus 2] ' > [rhs] -> indirect direct rhs condition;
+    fail;
+
+"indirect direct rhs condition"
+
+    ? [B plus 2] < [C] -> indirect indirect condition;
+    fail;
+
+"indirect indirect condition"
+
+    ? [slot] - [B minus 1] -> indirect zero test;
+    fail;
+
+"indirect zero test"
+
+    ? [B plus 2] + [C] -> indirect nonzero test;
+    fail;
+
+"indirect nonzero test"
+
+    A = 1;
+    B = 2;
+    C = 3;
+    D = 4;
+    E = 5;
     nop;
     end;
 
@@ -315,6 +390,14 @@ def enc_ldr_w_indexed(target: int) -> int:
 
 def enc_str_w_indexed(source: int) -> int:
     return 0xB8295B20 | source
+
+
+def enc_add_w(destination: int, left: int, right: int) -> int:
+    return 0x0B000000 | (right << 16) | (left << 5) | destination
+
+
+def enc_indirect_index(pointer: int, displacement: int) -> list[int]:
+    return [*enc_mov32_w(9, displacement), enc_add_w(9, pointer, 9)]
 
 
 def enc_binary_w(opcode: int, destination: int, right: int) -> int:
@@ -566,7 +649,7 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("(always emits MOVZ+MOVK", source)
         for word in (
             "52800000h", "72A00000h", "2A0003E0h",
-            "B8695B20h", "B8295B20h", "94000000h",
+            "B8695B20h", "B8295B20h", "94000000h", "0B090009h",
             "0B000000h", "4B000000h", "0A000000h", "2A000000h",
             "4A000000h", "1AC02400h", "1AC02000h", "1AC02800h",
             "6B00001Fh", "6A00001Fh", "54000000h",
@@ -587,6 +670,7 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_lsr_x(9, 25, 32), 0xD360FF29)
         self.assertEqual(enc_binary_w(0x0B000000, 19, 20), 0x0B140273)
         self.assertEqual(enc_binary_w(0x1AC02800, 21, 9), 0x1AC92AB5)
+        self.assertEqual(enc_add_w(9, 19, 9), 0x0B090269)
         self.assertEqual(enc_ldr_w_indexed(10), 0xB8695B2A)
         self.assertEqual(enc_ldr_w_indexed(11), 0xB8695B2B)
         self.assertEqual(enc_str_w_indexed(10), 0xB8295B2A)
@@ -852,7 +936,7 @@ class AArch64ExecutionTests(unittest.TestCase):
         fields, initialized_workspace, code = compiler_image_parts(image)
         app_ws_size, app_code_size, entry_unit = fields[:3]
         default_ramtop = fields[5]
-        self.assertGreaterEqual(app_ws_size, 4)
+        self.assertGreaterEqual(app_ws_size, 7)
         self.assertEqual(len(initialized_workspace), app_ws_size * 4)
         self.assertEqual(len(code), app_code_size * 4)
         self.assertEqual(entry_unit, 0)
@@ -861,11 +945,16 @@ class AArch64ExecutionTests(unittest.TestCase):
         code_words = list(struct.unpack(f"<{app_code_size}I", code))
         workspace_words = struct.unpack(
             f"<{app_ws_size}I", initialized_workspace)
-        slot_index = app_ws_size - 3
-        lhs_index = app_ws_size - 2
-        rhs_index = app_ws_size - 1
+        slot_index = app_ws_size - 6
+        lhs_index = app_ws_size - 5
+        rhs_index = app_ws_size - 4
+        p_index = app_ws_size - 3
+        q_index = app_ws_size - 2
+        out_index = app_ws_size - 1
         self.assertEqual(workspace_words[lhs_index], 20)
         self.assertEqual(workspace_words[rhs_index], 3)
+        self.assertEqual(workspace_words[p_index], out_index)
+        self.assertEqual(workspace_words[q_index], rhs_index)
         immediate_a = enc_mov32_w(19, 5)
         self.assertIn(words_to_bytes(immediate_a), code)
         self.assertIn(0x2A0003E0 | (19 << 16) | 20, code_words)
@@ -881,6 +970,46 @@ class AArch64ExecutionTests(unittest.TestCase):
             enc_movz_w(9, slot_index), enc_movk_w(9, 0, 16),
             enc_ldr_w_indexed(21),
         ]), code)
+
+        indirect_assignment_sequences = (
+            [
+                *enc_indirect_index(19, 0),
+                enc_ldr_w_indexed(19),
+            ],
+            [
+                *enc_indirect_index(19, 0),
+                enc_str_w_indexed(19),
+            ],
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, slot_index),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                *enc_mov32_w(10, 6),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_str_w_indexed(21),
+            ],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(21, 0),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_str_w_indexed(10),
+            ],
+        )
+        for sequence in indirect_assignment_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
 
         direct_binary_sequences = (
             [
@@ -940,6 +1069,68 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in direct_binary_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        indirect_binary_sequences = (
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                enc_binary_w(0x0B000000, 19, 10),
+            ],
+            [
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(11),
+                enc_binary_w(0x4B000000, 11, 10),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(11, 7),
+                enc_binary_w(0x0A000000, 10, 11),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_binary_w(0x2A000000, 10, 19),
+                enc_str_w_indexed(10),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_binary_w(0x4A000000, 11, 10),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(21, 0),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_binary_w(0x1AC02400, 11, 10),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(21, 0),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_binary_w(0x1AC02000, 11, 10),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(11, 31),
+                enc_binary_w(0x1AC02800, 10, 11),
+                enc_str_w_indexed(10),
+            ],
+        )
+        for sequence in indirect_binary_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         for operation in (
@@ -1022,6 +1213,62 @@ class AArch64ExecutionTests(unittest.TestCase):
         )
         for sequence, condition in direct_conditions:
             self.assertTrue(has_conditional_sequence(sequence, condition))
+
+        indirect_conditions = (
+            ([
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                enc_cmp_w(19, 10),
+            ], 1),
+            ([
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(11),
+                enc_cmp_w(11, 10),
+            ], 8),
+            ([
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(11, 0xFFFFFFFF),
+                enc_cmp_w(10, 11),
+            ], 0),
+            ([
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(10),
+                enc_cmp_w(10, 19),
+            ], 11),
+            ([
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_cmp_w(11, 10),
+            ], 8),
+            ([
+                *enc_indirect_index(21, 0),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_cmp_w(11, 10),
+            ], 11),
+            ([
+                *enc_indirect_index(20, -1),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, slot_index),
+                enc_ldr_w_indexed(11),
+                enc_tst_w(11, 10),
+            ], 0),
+            ([
+                *enc_indirect_index(21, 0),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 2),
+                enc_ldr_w_indexed(11),
+                enc_tst_w(11, 10),
+            ], 1),
+        )
+        for sequence, condition in indirect_conditions:
+            self.assertTrue(has_conditional_sequence(sequence, condition))
         self.assertIn(0xD503201F, code_words)
 
         isocall_words = [
@@ -1051,11 +1298,11 @@ class AArch64ExecutionTests(unittest.TestCase):
         self.assertEqual(run.stderr, "")
         result = self.parse_result(run.stdout)
         self.assertEqual(result["status"], "0")
-        self.assertEqual(result["A"], "00000007")
-        self.assertEqual(result["B"], "00000003")
-        self.assertEqual(result["C"], "FFFFFFFF")
-        self.assertEqual(result["D"], "FFFFFFFF")
-        self.assertEqual(result["E"], "0BADF00D")
+        self.assertEqual(result["A"], "00000001")
+        self.assertEqual(result["B"], "00000002")
+        self.assertEqual(result["C"], "00000003")
+        self.assertEqual(result["D"], "00000004")
+        self.assertEqual(result["E"], "00000005")
         self.assertEqual(result["X"], f"{DONE:08X}")
         self.assertEqual(result["ramtop"], f"{default_ramtop:08X}")
         self.assertGreater(int(result["code"], 16), 0xFFFFFFFF)

@@ -6212,12 +6212,14 @@
       ? [inst plus 1] != null -> pp a64 not assignment;
       ? [op1 class] = register -> pp a64 assign register;
       ? [op1 class] = direct -> pp a64 assign direct;
+      ? [op1 class] = indirect -> pp a64 assign indirect;
 	-> pp a64 unsupported;
 
       "pp a64 assign register"
       ? [op2 class] = immediate -> pp a64 register immediate;
       ? [op2 class] = register -> pp a64 register register;
       ? [op2 class] = direct -> pp a64 register direct;
+      ? [op2 class] = indirect -> pp a64 register indirect;
 	-> pp a64 unsupported;
 
       "pp a64 register immediate"
@@ -6251,10 +6253,20 @@
 	=> a64 emit word;
 	-> pp exit;
 
+      "pp a64 register indirect"
+	=> a64 emit op2 index;
+	a = [op1 regid];
+	a + 19;
+	a | B8695B20h; (LDR Wd,[x25,w9,UXTW #2])
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+
       "pp a64 assign direct"
       ? [op2 class] = immediate -> pp a64 direct immediate;
       ? [op2 class] = register -> pp a64 direct register;
       ? [op2 class] = direct -> pp a64 direct direct;
+      ? [op2 class] = indirect -> pp a64 direct indirect;
 	-> pp a64 unsupported;
 
       "pp a64 direct immediate"
@@ -6288,6 +6300,62 @@
 	[a64 reg] = 9;
 	[a64 value] = [op1 value];
 	=> a64 emit immediate;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 direct indirect"
+	=> a64 emit op2 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 assign indirect"
+      ? [op2 class] = immediate -> pp a64 indirect immediate;
+      ? [op2 class] = register -> pp a64 indirect register;
+      ? [op2 class] = direct -> pp a64 indirect direct;
+      ? [op2 class] = indirect -> pp a64 indirect indirect;
+	-> pp a64 unsupported;
+
+      "pp a64 indirect immediate"
+	=> a64 emit op1 index;
+	[a64 reg] = 10;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 indirect register"
+	=> a64 emit op1 index;
+	a = [op2 regid];
+	a + 19;
+	a | B8295B20h; (STR Wn,[x25,w9,UXTW #2])
+	[a64 word] = a;
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 indirect direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	=> a64 emit op1 index;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+
+      "pp a64 indirect indirect"
+	=> a64 emit op2 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	=> a64 emit op1 index;
 	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
 	=> a64 emit word;
 	-> pp exit;
@@ -6406,6 +6474,7 @@
       "pp a64 binary"
       ? [op1 class] = register -> pp a64 binary register left;
       ? [op1 class] = direct -> pp a64 binary direct left;
+      ? [op1 class] = indirect -> pp a64 binary indirect left;
 	-> pp a64 unsupported;
       "pp a64 binary register left"
 	a = [op1 regid];
@@ -6414,6 +6483,7 @@
       ? [op2 class] = immediate -> pp a64 binary immediate;
       ? [op2 class] = register -> pp a64 binary register;
       ? [op2 class] = direct -> pp a64 binary register direct;
+      ? [op2 class] = indirect -> pp a64 binary register indirect;
 	-> pp a64 unsupported;
       "pp a64 binary immediate"
 	[a64 reg] = 9;
@@ -6434,10 +6504,17 @@
 	=> a64 emit word;
 	[a64 right reg] = 10;
 	-> pp a64 emit binary;
+      "pp a64 binary register indirect"
+	=> a64 emit op2 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 right reg] = 10;
+	-> pp a64 emit binary;
       "pp a64 binary direct left"
       ? [op2 class] = immediate -> pp a64 binary direct immediate;
       ? [op2 class] = register -> pp a64 binary direct register;
       ? [op2 class] = direct -> pp a64 binary direct direct;
+      ? [op2 class] = indirect -> pp a64 binary direct indirect;
 	-> pp a64 unsupported;
       "pp a64 binary direct immediate"
 	[a64 reg] = 9;
@@ -6475,6 +6552,65 @@
 	=> a64 emit word;
 	[a64 left reg] = 11;
 	[a64 right reg] = 10;
+	-> pp a64 emit binary;
+      "pp a64 binary direct indirect"
+	=> a64 emit op2 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 11;
+	[a64 right reg] = 10;
+	-> pp a64 emit binary;
+      "pp a64 binary indirect left"
+      ? [op2 class] = immediate -> pp a64 binary indirect immediate;
+      ? [op2 class] = register -> pp a64 binary indirect register;
+      ? [op2 class] = direct -> pp a64 binary indirect direct;
+      ? [op2 class] = indirect -> pp a64 binary indirect indirect;
+	-> pp a64 unsupported;
+      "pp a64 binary indirect immediate"
+	=> a64 emit op1 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+	[a64 reg] = 11;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 right reg] = 11;
+	-> pp a64 emit binary;
+      "pp a64 binary indirect register"
+	=> a64 emit op1 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+	a = [op2 regid];
+	a + 19;
+	[a64 right reg] = a;
+	-> pp a64 emit binary;
+      "pp a64 binary indirect direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	=> a64 emit op1 index;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 11;
+	[a64 right reg] = 10;
+	-> pp a64 emit binary;
+      "pp a64 binary indirect indirect"
+	=> a64 emit op2 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	=> a64 emit op1 index;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 11;
+	[a64 right reg] = 10;
       "pp a64 emit binary"
 	a = [a64 right reg];
 	a < 16;
@@ -6487,6 +6623,7 @@
 	[a64 word] + a;
 	=> a64 emit word;
       ? [op1 class] = direct -> pp a64 store binary;
+      ? [op1 class] = indirect -> pp a64 store binary;
 	-> pp exit;
       "pp a64 store binary"
 	a = [a64 left reg];
@@ -6538,6 +6675,7 @@
       ? [op3 class] != immediate -> pp a64 unsupported;
       ? [op1 class] = register -> pp a64 compare register left;
       ? [op1 class] = direct -> pp a64 compare direct left;
+      ? [op1 class] = indirect -> pp a64 compare indirect left;
 	-> pp a64 unsupported;
       "pp a64 compare register left"
 	a = [op1 regid];
@@ -6546,6 +6684,7 @@
       ? [op2 class] = immediate -> pp a64 compare immediate;
       ? [op2 class] = register -> pp a64 compare register;
       ? [op2 class] = direct -> pp a64 compare register direct;
+      ? [op2 class] = indirect -> pp a64 compare register indirect;
 	-> pp a64 unsupported;
       "pp a64 compare immediate"
 	[a64 reg] = 9;
@@ -6566,10 +6705,17 @@
 	=> a64 emit word;
 	[a64 right reg] = 10;
 	-> pp a64 emit compare;
+      "pp a64 compare register indirect"
+	=> a64 emit op2 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 right reg] = 10;
+	-> pp a64 emit compare;
       "pp a64 compare direct left"
       ? [op2 class] = immediate -> pp a64 compare direct immediate;
       ? [op2 class] = register -> pp a64 compare direct register;
       ? [op2 class] = direct -> pp a64 compare direct direct;
+      ? [op2 class] = indirect -> pp a64 compare direct indirect;
 	-> pp a64 unsupported;
       "pp a64 compare direct immediate"
 	[a64 reg] = 9;
@@ -6603,6 +6749,65 @@
 	[a64 reg] = 9;
 	[a64 value] = [op1 value];
 	=> a64 emit immediate;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 11;
+	[a64 right reg] = 10;
+	-> pp a64 emit compare;
+      "pp a64 compare direct indirect"
+	=> a64 emit op2 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 11;
+	[a64 right reg] = 10;
+	-> pp a64 emit compare;
+      "pp a64 compare indirect left"
+      ? [op2 class] = immediate -> pp a64 compare indirect immediate;
+      ? [op2 class] = register -> pp a64 compare indirect register;
+      ? [op2 class] = direct -> pp a64 compare indirect direct;
+      ? [op2 class] = indirect -> pp a64 compare indirect indirect;
+	-> pp a64 unsupported;
+      "pp a64 compare indirect immediate"
+	=> a64 emit op1 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+	[a64 reg] = 11;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 right reg] = 11;
+	-> pp a64 emit compare;
+      "pp a64 compare indirect register"
+	=> a64 emit op1 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 10;
+	a = [op2 regid];
+	a + 19;
+	[a64 right reg] = a;
+	-> pp a64 emit compare;
+      "pp a64 compare indirect direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	=> a64 emit op1 index;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 left reg] = 11;
+	[a64 right reg] = 10;
+	-> pp a64 emit compare;
+      "pp a64 compare indirect indirect"
+	=> a64 emit op2 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	=> a64 emit op1 index;
 	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
 	=> a64 emit word;
 	[a64 left reg] = 11;
@@ -6766,6 +6971,30 @@
 	-> log syntax error;
 
     (programme parser auxiliary routines)
+
+    "a64 emit op1 index"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	a = [op1 regid];
+	a + 19;
+	a < 5;
+	a | 0B090009h; (ADD W9,Wn,W9)
+	[a64 word] = a;
+	=> a64 emit word;
+	leave;
+
+    "a64 emit op2 index"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	a = [op2 regid];
+	a + 19;
+	a < 5;
+	a | 0B090009h; (ADD W9,Wn,W9)
+	[a64 word] = a;
+	=> a64 emit word;
+	leave;
 
     "a64 emit immediate"
     (always emits MOVZ+MOVK so pass-one lengths never depend on the value)
