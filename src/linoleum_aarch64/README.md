@@ -87,15 +87,16 @@ both direct and canonical indirect workspace loads/stores. Indirect operands use
 A-E as a 32-bit workspace-unit index plus a fixed unit displacement, scale the
 effective index by four from `x25`, and leave the pointer register unchanged.
 Wrapping addition, subtraction, low-word multiplication, signed/unsigned
-division and remainder, bitwise operations, and logical/arithmetic shifts accept
-register, direct-workspace, or indirect-workspace left operands and immediate,
-register, direct-workspace, or indirect-workspace right operands; memory left
-operands are written back. Equality, signed/unsigned comparisons, and bit-test
-branches accept the same input combinations without writeback. Source operands
-are loaded before memory destinations, including aliasing indirect forms. The
-slice also covers unconditional/status branches, internal calls, `leave`, `end`,
-`fail`, `nop`, and the full-width isocall ABI. It does not yet cover unary and
-rotate forms, floating-point/x87 semantics, display, input, audio, files,
-sockets, timing, process commands, Cocoa, Mach-O packaging, signing, or Noctis
-integration. Wider instruction coverage and runtime services remain separate
-milestones.
+division and remainder, bitwise operations, logical/arithmetic shifts, variable
+rotates, bitwise inversion, wrapping negation, and wrapping signed magnitude
+accept their canonical register, direct-workspace, and indirect-workspace forms;
+binary right operands may be immediate, register, direct, or indirect. Memory
+left operands are written back. Equality, signed/unsigned comparisons, and
+bit-test branches accept the same binary input combinations without writeback.
+Source operands are loaded before memory destinations, including aliasing
+indirect forms. The slice also covers unconditional/status branches, internal
+calls, `leave`, `end`, `fail`, `nop`, and the full-width isocall ABI. It does not
+yet cover stack operations, floating-point/x87 semantics, display, input, audio,
+files, sockets, timing, process commands, Cocoa, Mach-O packaging, signing, or
+Noctis integration. Wider instruction coverage and runtime services remain
+separate milestones.

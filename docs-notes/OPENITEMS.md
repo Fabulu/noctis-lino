@@ -2104,27 +2104,29 @@ canonical indirect workspace loads/stores. Indirect operands add a fixed unit
 displacement to an A-E 32-bit unit-index pointer, scale from full-width x25, and
 leave the pointer unchanged. Wrapping addition/subtraction, low-word signed or
 unsigned multiplication, signed/unsigned division and remainder, AND/OR/XOR,
-logical left/right shifts, and arithmetic right shifts accept register, direct,
-or indirect left operands and immediate, register, direct, or indirect right
-operands; memory left operands are written back. Remainders use a W12 quotient
-and `MSUB`, retaining W9 effective indexes through memory writeback. Equality,
-signed and unsigned comparisons, and zero/nonzero bit-test branches accept the
-same inputs without writeback. Source-first loads preserve aliases across
-direct/indirect pairs. Unconditional and status branches, internal calls,
-returns, and the exact full-width isocall ABI are also covered. Fixed two-word
-immediates keep pass-one and code-pass lengths identical, and internal calls
-preserve the host link register.
+logical left/right shifts, arithmetic right shifts, variable rotates, bitwise
+inversion, wrapping negation, and wrapping signed absolute value accept their
+canonical register, direct, or indirect forms; binary right operands may be
+immediate, register, direct, or indirect. Memory left operands are written back.
+Remainders use a W12 quotient and `MSUB`; rotate-left negates its count into W12
+before `RORV`; both retain W9 effective indexes through memory writeback.
+Equality, signed and unsigned comparisons, and zero/nonzero bit-test branches
+accept the same binary inputs without writeback. Source-first loads preserve
+aliases across direct/indirect pairs. Unconditional and status branches,
+internal calls, returns, and the exact full-width isocall ABI are also covered.
+Fixed two-word immediates keep pass-one and code-pass lengths identical, and
+internal calls preserve the host link register.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
 and executes the resulting ELF above 4 GB under QEMU. Independent encoded
 fixtures continue to prove relocation, old-data retention, zeroed growth,
 register preservation, exact instruction words, and seven malformed-image
-refusals. All 12 checks passed in hosted run 32569243601 at commit `f2a0988`.
+refusals. All 12 checks passed in hosted run 32569677354 at commit `75af6bd`.
 
-Unary and rotate forms, floating-point/x87 semantics, full runtime services,
-native macOS/Cocoa and Mach-O packaging, and a native ARM64 Noctis build remain
-open. Expand instruction/runtime coverage before
+Stack forms, floating-point/x87 semantics, full runtime services, native
+macOS/Cocoa and Mach-O packaging, and a native ARM64 Noctis build remain open.
+Expand instruction/runtime coverage before
 beginning Mach-O or native-game integration. Keep Joris van de Donk's source and
 commit credit. Leave a specific public review
 before adapting or closing PR #10; no public action has yet been taken.
