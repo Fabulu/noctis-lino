@@ -800,8 +800,79 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "scalar product ok"
 
+    A = 7F800000h;
+    A ++ FF800000h;
+    ? A = FFC00000h -> scalar sum alpha;
+    fail;
+
+"scalar sum alpha"
+
+    [lhs] = 7FC12345h;
+    [rhs] = FFC23456h;
+    [lhs] ++ [rhs];
+    ? [lhs] = FFC23456h -> scalar sum beta;
+    fail;
+
+"scalar sum beta"
+
     B = p;
-    [B plus 2] = [lhs];
+    [B plus 2] = 7F812345h;
+    [B minus 1] = 3F800000h;
+    [B plus 2] ++ [B minus 1];
+    ? [out] = 7FC12345h -> scalar difference alpha;
+    fail;
+
+"scalar difference alpha"
+
+    [lhs] = FF800000h;
+    [rhs] = FF800000h;
+    [lhs] -- [rhs];
+    ? [lhs] = FFC00000h -> scalar difference beta;
+    fail;
+
+"scalar difference beta"
+
+    A = FFC12345h;
+    A -- 7FC23456h;
+    ? A = 7FC23456h -> scalar difference gamma;
+    fail;
+
+"scalar difference gamma"
+
+    [B plus 2] = 3F800000h;
+    [B minus 1] = FF823456h;
+    [B plus 2] -- [B minus 1];
+    ? [out] = FFC23456h -> scalar product alpha;
+    fail;
+
+"scalar product alpha"
+
+    [B plus 2] = 80000000h;
+    [B minus 1] = FF800000h;
+    [B plus 2] ** [B minus 1];
+    ? [out] = FFC00000h -> scalar product beta;
+    fail;
+
+"scalar product beta"
+
+    [lhs] = 7F812345h;
+    [rhs] = FFC23456h;
+    [lhs] ** [rhs];
+    ? [lhs] = FFC23456h -> scalar product gamma;
+    fail;
+
+"scalar product gamma"
+
+    A = FFC12345h;
+    A ** 7F823456h;
+    ? A = 7FC23456h -> scalar product delta;
+    fail;
+
+"scalar product delta"
+
+    B = p;
+    [B plus 2] = 40D00000h;
+    [B minus 1] = 40000000h;
     [B plus 2] // [B minus 1];
     ? [out] = 40500000h -> scalar quotient ok;
     fail;
@@ -1895,8 +1966,15 @@ def enc_x87_fistp_w(destination: int, source: int) -> list[int]:
     ]
 
 
-def enc_x87_fdiv_s(destination: int, left: int, right: int) -> list[int]:
-    return [
+def enc_x87_fbinary_s(destination: int, left: int, right: int,
+                       operation: int) -> list[int]:
+    opcodes = {
+        1: 0x1E202800,  # FADD S0,S0,S1
+        2: 0x1E203800,  # FSUB S0,S0,S1
+        3: 0x1E200800,  # FMUL S0,S0,S1
+        4: 0x1E201800,  # FDIV S0,S0,S1
+    }
+    words = [
         enc_mov_w(14, left),
         enc_mov_w(15, right),
         enc_lsl_immediate_w(12, 14, 1),
@@ -1905,18 +1983,46 @@ def enc_x87_fdiv_s(destination: int, left: int, right: int) -> list[int]:
         enc_lsr_immediate_w(13, 13, 1),
         enc_fmov_s_w(0, left),
         enc_fmov_s_w(1, right),
-        enc_float_data2_s(0x1E201800, 0, 0, 1),
+        enc_float_data2_s(opcodes[operation], 0, 0, 1),
         enc_fmov_w_s(destination, 0),
-        *enc_mov32_w(16, 0x7F800000),
         *enc_mov32_w(17, 0xFFC00000),
-        enc_cmp_w(12, 13),
-        enc_csel_w(12, 12, 17, 0),  # EQ
-        enc_cmp_w_zero(12),
-        enc_csel_w(destination, 17, destination, 0),  # EQ
-        enc_cmp_w(12, 16),
+    ]
+    if operation == 1:
+        words.extend([
+            enc_data3_w(0x4A000000, 13, 14, 15),  # EOR
+            *enc_mov32_w(16, 0x80000000),
+            enc_cmp_w(13, 16),
+            enc_csel_w(13, 12, 17, 0),  # EQ
+        ])
+    elif operation == 2:
+        words.extend([
+            enc_data3_w(0x4A000000, 13, 14, 15),  # EOR
+            enc_cmp_w_zero(13),
+            enc_csel_w(13, 12, 17, 0),  # EQ
+        ])
+    elif operation == 3:
+        words.extend([
+            enc_cmp_w(12, 13),
+            enc_csel_w(16, 12, 13, 9),  # LS: minimum magnitude
+            enc_csel_w(13, 12, 13, 8),  # HI: maximum magnitude
+            enc_cmp_w_zero(16),
+            enc_csel_w(13, 13, 17, 0),  # EQ
+        ])
+    else:
+        words.extend([
+            enc_cmp_w(12, 13),
+            enc_csel_w(13, 12, 17, 0),  # EQ
+            enc_cmp_w_zero(13),
+            enc_csel_w(destination, 17, destination, 0),  # EQ
+        ])
+    words.extend([
+        *enc_mov32_w(16, 0x7F800000),
+        enc_cmp_w(13, 16),
         enc_csel_w(destination, 17, destination, 0),  # EQ
         enc_lsl_immediate_w(12, 14, 1),
         enc_lsr_immediate_w(12, 12, 1),
+        enc_lsl_immediate_w(13, 15, 1),
+        enc_lsr_immediate_w(13, 13, 1),
         *enc_mov32_w(17, 0x00400000),
         enc_binary_w(0x2A000000, 14, 17),
         enc_cmp_w(12, 16),
@@ -1924,7 +2030,24 @@ def enc_x87_fdiv_s(destination: int, left: int, right: int) -> list[int]:
         enc_binary_w(0x2A000000, 15, 17),
         enc_cmp_w(13, 16),
         enc_csel_w(destination, 15, destination, 8),  # HI
-    ]
+    ])
+    return words
+
+
+def enc_x87_fadd_s(destination: int, left: int, right: int) -> list[int]:
+    return enc_x87_fbinary_s(destination, left, right, 1)
+
+
+def enc_x87_fsub_s(destination: int, left: int, right: int) -> list[int]:
+    return enc_x87_fbinary_s(destination, left, right, 2)
+
+
+def enc_x87_fmul_s(destination: int, left: int, right: int) -> list[int]:
+    return enc_x87_fbinary_s(destination, left, right, 3)
+
+
+def enc_x87_fdiv_s(destination: int, left: int, right: int) -> list[int]:
+    return enc_x87_fbinary_s(destination, left, right, 4)
 
 
 def enc_x87_fsqrt_s(destination: int, source: int) -> list[int]:
@@ -2262,6 +2385,11 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_csel_w(13, 17, 12, 0), 0x1A8C022D)
         self.assertEqual(enc_csel_w(19, 13, 12, 5), 0x1A8C51B3)
         self.assertEqual(enc_csel_w(12, 14, 17, 0), 0x1A9101CC)
+        self.assertEqual(enc_data3_w(0x4A000000, 13, 14, 15), 0x4A0F01CD)
+        self.assertEqual(enc_csel_w(13, 12, 17, 0), 0x1A91018D)
+        self.assertEqual(enc_csel_w(16, 12, 13, 9), 0x1A8D9190)
+        self.assertEqual(enc_csel_w(13, 12, 13, 8), 0x1A8D818D)
+        self.assertEqual(enc_csel_w(13, 13, 17, 0), 0x1A9101AD)
         self.assertEqual(enc_csel_w(13, 17, 19, 0), 0x1A93022D)
         self.assertEqual(enc_csel_w(19, 17, 13, 0), 0x1A8D0233)
         self.assertEqual(enc_csel_w(19, 12, 19, 9), 0x1A939193)
@@ -3150,26 +3278,17 @@ class AArch64ExecutionTests(unittest.TestCase):
         float_sequences = (
             [
                 *enc_mov32_w(9, 0x40100000),
-                enc_fmov_s_w(0, 19),
-                enc_fmov_s_w(1, 9),
-                enc_float_data2_s(0x1E202800, 0, 0, 1),
-                enc_fmov_w_s(19, 0),
+                *enc_x87_fadd_s(19, 19, 9),
             ],
             [
-                enc_fmov_s_w(0, 19),
-                enc_fmov_s_w(1, 20),
-                enc_float_data2_s(0x1E203800, 0, 0, 1),
-                enc_fmov_w_s(19, 0),
+                *enc_x87_fsub_s(19, 19, 20),
             ],
             [
                 *enc_mov32_w(9, rhs_index),
                 enc_ldr_w_indexed(10),
                 *enc_mov32_w(9, lhs_index),
                 enc_ldr_w_indexed(11),
-                enc_fmov_s_w(0, 11),
-                enc_fmov_s_w(1, 10),
-                enc_float_data2_s(0x1E200800, 0, 0, 1),
-                enc_fmov_w_s(11, 0),
+                *enc_x87_fmul_s(11, 11, 10),
                 enc_str_w_indexed(11),
             ],
             [
@@ -3242,6 +3361,9 @@ class AArch64ExecutionTests(unittest.TestCase):
             self.assertIn(words_to_bytes(sequence), code)
 
         exceptional_float_sequences = (
+            enc_x87_fadd_s(11, 11, 10),
+            enc_x87_fsub_s(19, 19, 9),
+            enc_x87_fmul_s(19, 19, 9),
             enc_x87_fdiv_s(19, 19, 19),
             enc_x87_fdiv_s(11, 11, 10),
             enc_x87_fsqrt_s(19, 19),

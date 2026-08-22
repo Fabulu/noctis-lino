@@ -2470,7 +2470,7 @@
 	a64 rotate left = 1;	(left rotate negates count before RORV)
 	a64 floating = 1;	(scalar floating operation uses S0 and S1)
 	a64 square root = 1;	(repair masked x87 invalid square-root results)
-	a64 floating quotient = 1; (repair masked x87 invalid division results)
+	a64 floating operation = 1; (1: sum, 2: difference, 3: product, 4: quotient)
 	a64 conversion = 1;	(1: float to integer, 2: integer to float)
 	a64 floating branch = 1; (special x87 unordered comparison mapping)
 	a64 math helper = 1;	(1: sine, 2: cosine through full-width runtime helper)
@@ -6375,7 +6375,7 @@
 	[a64 rotate left] = no;
 	[a64 floating] = no;
 	[a64 square root] = no;
-	[a64 floating quotient] = no;
+	[a64 floating operation] = no;
 	[a64 conversion] = no;
 	[a64 floating branch] = no;
 	[a64 math helper] = no;
@@ -6647,19 +6647,22 @@
 	-> pp a64 binary;
       "pp a64 floating sum"
 	[a64 floating] = yes;
+	[a64 floating operation] = 1;
 	[a64 opcode] = 1E212800h; (FADD S0,S0,S1)
 	-> pp a64 binary;
       "pp a64 floating difference"
 	[a64 floating] = yes;
+	[a64 floating operation] = 2;
 	[a64 opcode] = 1E213800h; (FSUB S0,S0,S1)
 	-> pp a64 binary;
       "pp a64 floating product"
 	[a64 floating] = yes;
+	[a64 floating operation] = 3;
 	[a64 opcode] = 1E210800h; (FMUL S0,S0,S1)
 	-> pp a64 binary;
       "pp a64 floating quotient"
 	[a64 floating] = yes;
-	[a64 floating quotient] = yes;
+	[a64 floating operation] = 4;
 	[a64 opcode] = 1E211800h; (FDIV S0,S0,S1)
 	-> pp a64 binary;
       "pp a64 floating partial remainder"
@@ -6948,9 +6951,6 @@
 	=> a64 emit word;
 	-> pp a64 finish binary;
       "pp a64 emit floating binary"
-      ? [a64 floating quotient] = yes -> pp a64 emit floating quotient values;
-	-> pp a64 emit floating values;
-      "pp a64 emit floating quotient values"
 	(capture raw operands and magnitudes for x87 invalid and NaN result repair)
 	[a64 word] = 2A0003EEh; (MOV W14,Wn)
 	a = [a64 left reg];
@@ -6988,20 +6988,57 @@
 	a | 1E260000h; (FMOV Wn,S0)
 	[a64 word] = a;
 	=> a64 emit word;
-      ? [a64 floating quotient] = yes -> pp a64 finish floating quotient;
-	-> pp a64 finish binary;
-      "pp a64 finish floating quotient"
-	[a64 reg] = 16;
-	[a64 value] = 7F800000h; (binary32 infinity magnitude)
-	=> a64 emit immediate;
+	-> pp a64 finish x87 floating;
+      "pp a64 finish x87 floating"
 	[a64 reg] = 17;
 	[a64 value] = FFC00000h; (masked x87 real indefinite)
 	=> a64 emit immediate;
+      ? [a64 floating operation] = 1 -> pp a64 finish floating sum;
+      ? [a64 floating operation] = 2 -> pp a64 finish floating difference;
+      ? [a64 floating operation] = 3 -> pp a64 finish floating product;
+      ? [a64 floating operation] = 4 -> pp a64 finish floating quotient;
+	-> pp a64 unsupported;
+      "pp a64 finish floating sum"
+	(opposite infinities are the masked-invalid FADD case)
+	[a64 word] = 4A0F01CDh; (EOR W13,W14,W15)
+	=> a64 emit word;
+	[a64 reg] = 16;
+	[a64 value] = 80000000h; (binary32 sign bit)
+	=> a64 emit immediate;
+	[a64 word] = 6B1001BFh; (CMP W13,W16)
+	=> a64 emit word;
+	[a64 word] = 1A91018Dh; (CSEL W13,W12,W17,EQ)
+	=> a64 emit word;
+	-> pp a64 finish floating invalid;
+      "pp a64 finish floating difference"
+	(equal signed infinities are the masked-invalid FSUB case)
+	[a64 word] = 4A0F01CDh; (EOR W13,W14,W15)
+	=> a64 emit word;
+	[a64 word] = 710001BFh; (CMP W13,#0)
+	=> a64 emit word;
+	[a64 word] = 1A91018Dh; (CSEL W13,W12,W17,EQ)
+	=> a64 emit word;
+	-> pp a64 finish floating invalid;
+      "pp a64 finish floating product"
+	(zero times infinity in either order is the masked-invalid FMUL case)
 	[a64 word] = 6B0D019Fh; (CMP W12,W13)
 	=> a64 emit word;
-	[a64 word] = 1A91018Ch; (CSEL W12,W12,W17,EQ)
+	[a64 word] = 1A8D9190h; (CSEL W16,W12,W13,LS)
 	=> a64 emit word;
-	[a64 word] = 7100019Fh; (CMP W12,#0)
+	[a64 word] = 1A8D818Dh; (CSEL W13,W12,W13,HI)
+	=> a64 emit word;
+	[a64 word] = 7100021Fh; (CMP W16,#0)
+	=> a64 emit word;
+	[a64 word] = 1A9101ADh; (CSEL W13,W13,W17,EQ)
+	=> a64 emit word;
+	-> pp a64 finish floating invalid;
+      "pp a64 finish floating quotient"
+	(equal-magnitude zero/zero and infinity/infinity are masked invalid)
+	[a64 word] = 6B0D019Fh; (CMP W12,W13)
+	=> a64 emit word;
+	[a64 word] = 1A91018Dh; (CSEL W13,W12,W17,EQ)
+	=> a64 emit word;
+	[a64 word] = 710001BFh; (CMP W13,#0)
 	=> a64 emit word;
 	[a64 word] = 1A800220h; (CSEL Wd,W17,Wd,EQ)
 	a = [a64 left reg];
@@ -7010,7 +7047,11 @@
 	a = [a64 left reg];
 	[a64 word] + a;
 	=> a64 emit word;
-	[a64 word] = 6B10019Fh; (CMP W12,W16)
+      "pp a64 finish floating invalid"
+	[a64 reg] = 16;
+	[a64 value] = 7F800000h; (binary32 infinity magnitude)
+	=> a64 emit immediate;
+	[a64 word] = 6B1001BFh; (CMP W13,W16)
 	=> a64 emit word;
 	[a64 word] = 1A800220h; (CSEL Wd,W17,Wd,EQ)
 	a = [a64 left reg];
@@ -7019,9 +7060,14 @@
 	a = [a64 left reg];
 	[a64 word] + a;
 	=> a64 emit word;
+	(recompute magnitudes after the operation-specific invalid test)
 	[a64 word] = 531F79CCh; (LSL W12,W14,#1)
 	=> a64 emit word;
 	[a64 word] = 53017D8Ch; (LSR W12,W12,#1)
+	=> a64 emit word;
+	[a64 word] = 531F79EDh; (LSL W13,W15,#1)
+	=> a64 emit word;
+	[a64 word] = 53017DADh; (LSR W13,W13,#1)
 	=> a64 emit word;
 	[a64 reg] = 17;
 	[a64 value] = 00400000h; (binary32 quiet-NaN bit)
