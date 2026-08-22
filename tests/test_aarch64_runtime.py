@@ -351,6 +351,140 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "unary rotate good"
 
+    A = 11111111h;
+    B = 22222222h;
+    A <> B;
+    ? A = 22222222h -> exchange register register beta;
+    fail;
+
+"exchange register register beta"
+
+    ? B = 11111111h -> exchange register direct alpha;
+    fail;
+
+"exchange register direct alpha"
+
+    A = 33333333h;
+    [lhs] = 44444444h;
+    A <> [lhs];
+    ? A = 44444444h -> exchange register direct beta;
+    fail;
+
+"exchange register direct beta"
+
+    ? [lhs] = 33333333h -> exchange register indirect alpha;
+    fail;
+
+"exchange register indirect alpha"
+
+    B = p;
+    A = 55555555h;
+    [B] = 66666666h;
+    A <> [B];
+    ? A = 66666666h -> exchange register indirect beta;
+    fail;
+
+"exchange register indirect beta"
+
+    ? [p] = 55555555h -> exchange direct register alpha;
+    fail;
+
+"exchange direct register alpha"
+
+    [lhs] = 77777777h;
+    C = 88888888h;
+    [lhs] <> C;
+    ? [lhs] = 88888888h -> exchange direct register beta;
+    fail;
+
+"exchange direct register beta"
+
+    ? C = 77777777h -> exchange indirect register alpha;
+    fail;
+
+"exchange indirect register alpha"
+
+    B = p;
+    [B] = 99999999h;
+    D = AAAAAAAAh;
+    [B] <> D;
+    ? [p] = AAAAAAAAh -> exchange indirect register beta;
+    fail;
+
+"exchange indirect register beta"
+
+    ? D = 99999999h -> exchange direct direct alpha;
+    fail;
+
+"exchange direct direct alpha"
+
+    [lhs] = 0BBBBBBBh;
+    [rhs] = 0CCCCCCCh;
+    [lhs] <> [rhs];
+    ? [lhs] = 0CCCCCCCh -> exchange direct direct beta;
+    fail;
+
+"exchange direct direct beta"
+
+    ? [rhs] = 0BBBBBBBh -> exchange direct indirect alpha;
+    fail;
+
+"exchange direct indirect alpha"
+
+    B = p;
+    [lhs] = 0DDDDDDDh;
+    [B] = 0EEEEEEEh;
+    [lhs] <> [B];
+    ? [lhs] = 0EEEEEEEh -> exchange direct indirect beta;
+    fail;
+
+"exchange direct indirect beta"
+
+    ? [p] = 0DDDDDDDh -> exchange indirect direct alpha;
+    fail;
+
+"exchange indirect direct alpha"
+
+    [B] = 12345678h;
+    [rhs] = 87654321h;
+    [B] <> [rhs];
+    ? [p] = 87654321h -> exchange indirect direct beta;
+    fail;
+
+"exchange indirect direct beta"
+
+    ? [rhs] = 12345678h -> exchange indirect indirect alpha;
+    fail;
+
+"exchange indirect indirect alpha"
+
+    C = q;
+    [B] = 13579BDFh;
+    [C] = 2468ACE0h;
+    [B] <> [C];
+    ? [p] = 2468ACE0h -> exchange indirect indirect beta;
+    fail;
+
+"exchange indirect indirect beta"
+
+    ? [q] = 13579BDFh -> exchange aliased pointer alpha;
+    fail;
+
+"exchange aliased pointer alpha"
+
+    A = lhs;
+    [lhs] = 31415926h;
+    A <> [A];
+    ? A = 31415926h -> exchange aliased pointer beta;
+    fail;
+
+"exchange aliased pointer beta"
+
+    ? [lhs] = lhs -> exchange good;
+    fail;
+
+"exchange good"
+
     A = 3FC00000h;
     A ++ 40100000h;
     ? A = 40700000h -> scalar sum ok;
@@ -1265,6 +1399,8 @@ class StaticContractTests(unittest.TestCase):
             self.assertIn(word, source)
         for token in range(50, 68):
             self.assertIn(f"[target string] = q{token};", source)
+        self.assertIn("[target string] = q73;", source)
+        self.assertIn('"pp a64 exchange"', source)
         for condition in ("(HI)", "(LO/CC)", "(HS/CS)", "(LS)",
                           "(GT)", "(LT)", "(GE)", "(LE)"):
             self.assertIn(condition, source)
@@ -1870,6 +2006,82 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in unary_rotate_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        exchange_sequences = (
+            [
+                enc_mov_w(9, 19),
+                enc_mov_w(19, 20),
+                enc_mov_w(20, 9),
+            ],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                enc_str_w_indexed(19),
+                enc_mov_w(19, 10),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_ldr_w_indexed(10),
+                enc_str_w_indexed(19),
+                enc_mov_w(19, 10),
+            ],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(10),
+                enc_str_w_indexed(21),
+                enc_mov_w(21, 10),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_ldr_w_indexed(10),
+                enc_str_w_indexed(22),
+                enc_mov_w(22, 10),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(11),
+                enc_str_w_indexed(10),
+                *enc_mov32_w(9, rhs_index),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_ldr_w_indexed(10),
+                *enc_mov32_w(9, lhs_index),
+                enc_ldr_w_indexed(11),
+                enc_str_w_indexed(10),
+                *enc_indirect_index(20, 0),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 0),
+                enc_ldr_w_indexed(11),
+                enc_str_w_indexed(10),
+                *enc_mov32_w(9, rhs_index),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(21, 0),
+                enc_ldr_w_indexed(10),
+                *enc_indirect_index(20, 0),
+                enc_ldr_w_indexed(11),
+                enc_str_w_indexed(10),
+                *enc_indirect_index(21, 0),
+                enc_str_w_indexed(11),
+            ],
+            [
+                *enc_indirect_index(19, 0),
+                enc_ldr_w_indexed(10),
+                enc_str_w_indexed(19),
+                enc_mov_w(19, 10),
+            ],
+        )
+        for sequence in exchange_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         float_sequences = (

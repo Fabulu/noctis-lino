@@ -6448,6 +6448,9 @@
 	[target string] = q49;
 	=> strcmp;
       ? ok -> pp a64 integer to floating;
+	[target string] = q73;
+	=> strcmp;
+      ? ok -> pp a64 exchange;
 	[target string] = q26;
 	=> strcmp;
       ? ok -> pp a64 bitwise inverse;
@@ -7100,6 +7103,138 @@
       "pp a64 finish unary"
       ? [op1 class] = direct -> pp a64 store binary;
       ? [op1 class] = indirect -> pp a64 store binary;
+	-> pp exit;
+
+      "pp a64 exchange"
+      ? [op1 class] = register -> pp a64 exchange register left;
+      ? [op1 class] = direct -> pp a64 exchange direct left;
+      ? [op1 class] = indirect -> pp a64 exchange indirect left;
+	-> pp a64 unsupported;
+      "pp a64 exchange register left"
+	a = [op1 regid];
+	a + 19;
+	[a64 left reg] = a;
+      ? [op2 class] = register -> pp a64 exchange registers;
+      ? [op2 class] = direct -> pp a64 exchange register direct;
+      ? [op2 class] = indirect -> pp a64 exchange register indirect;
+	-> pp a64 unsupported;
+      "pp a64 exchange registers"
+	a = [op2 regid];
+	a + 19;
+	[a64 right reg] = a;
+	[a64 word] = 2A0003E9h; (MOV W9,Wleft)
+	a = [a64 left reg];
+	a < 16;
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 word] = 2A0003E0h; (MOV Wleft,Wright)
+	a = [a64 right reg];
+	a < 16;
+	[a64 word] + a;
+	a = [a64 left reg];
+	[a64 word] + a;
+	=> a64 emit word;
+	[a64 word] = 2A0903E0h; (MOV Wright,W9)
+	a = [a64 right reg];
+	[a64 word] + a;
+	=> a64 emit word;
+	-> pp exit;
+      "pp a64 exchange register direct"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	-> pp a64 exchange register memory;
+      "pp a64 exchange register indirect"
+	=> a64 emit op2 index;
+      "pp a64 exchange register memory"
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	a = [a64 left reg];
+	a | B8295B20h; (STR Wleft,[x25,w9,UXTW #2])
+	[a64 word] = a;
+	=> a64 emit word;
+	[a64 word] = 2A0A03E0h; (MOV Wleft,W10)
+	a = [a64 left reg];
+	[a64 word] + a;
+	=> a64 emit word;
+	-> pp exit;
+      "pp a64 exchange direct left"
+      ? [op2 class] = register -> pp a64 exchange direct register;
+      ? [op2 class] = direct -> pp a64 exchange memory memory;
+      ? [op2 class] = indirect -> pp a64 exchange memory memory;
+	-> pp a64 unsupported;
+      "pp a64 exchange direct register"
+	a = [op2 regid];
+	a + 19;
+	[a64 right reg] = a;
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	-> pp a64 exchange memory register;
+      "pp a64 exchange indirect left"
+      ? [op2 class] = register -> pp a64 exchange indirect register;
+      ? [op2 class] = direct -> pp a64 exchange memory memory;
+      ? [op2 class] = indirect -> pp a64 exchange memory memory;
+	-> pp a64 unsupported;
+      "pp a64 exchange indirect register"
+	a = [op2 regid];
+	a + 19;
+	[a64 right reg] = a;
+	=> a64 emit op1 index;
+      "pp a64 exchange memory register"
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	a = [a64 right reg];
+	a | B8295B20h; (STR Wright,[x25,w9,UXTW #2])
+	[a64 word] = a;
+	=> a64 emit word;
+	[a64 word] = 2A0A03E0h; (MOV Wright,W10)
+	a = [a64 right reg];
+	[a64 word] + a;
+	=> a64 emit word;
+	-> pp exit;
+      "pp a64 exchange memory memory"
+      ? [op2 class] = direct -> pp a64 exchange load direct right;
+      ? [op2 class] = indirect -> pp a64 exchange load indirect right;
+	-> pp a64 unsupported;
+      "pp a64 exchange load direct right"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	-> pp a64 exchange load right;
+      "pp a64 exchange load indirect right"
+	=> a64 emit op2 index;
+      "pp a64 exchange load right"
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+      ? [op1 class] = direct -> pp a64 exchange load direct left;
+      ? [op1 class] = indirect -> pp a64 exchange load indirect left;
+	-> pp a64 unsupported;
+      "pp a64 exchange load direct left"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	-> pp a64 exchange load left;
+      "pp a64 exchange load indirect left"
+	=> a64 emit op1 index;
+      "pp a64 exchange load left"
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+      ? [op2 class] = direct -> pp a64 exchange store direct right;
+      ? [op2 class] = indirect -> pp a64 exchange store indirect right;
+	-> pp a64 unsupported;
+      "pp a64 exchange store direct right"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	-> pp a64 exchange store right;
+      "pp a64 exchange store indirect right"
+	=> a64 emit op2 index;
+      "pp a64 exchange store right"
+	[a64 word] = B8295B2Bh; (STR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
 	-> pp exit;
 
       "pp a64 stack push"
