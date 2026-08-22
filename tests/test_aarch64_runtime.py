@@ -485,6 +485,205 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "exchange good"
 
+    A = F0000001h;
+    B = 10h;
+    A /%' B;
+    ? A = 0F000000h -> unsigned split register register beta;
+    fail;
+
+"unsigned split register register beta"
+
+    ? B = 1 -> unsigned split register alias alpha;
+    fail;
+
+"unsigned split register alias alpha"
+
+    A = 5;
+    A /%' A;
+    ? A = 1 -> unsigned split register direct alpha;
+    fail;
+
+"unsigned split register direct alpha"
+
+    A = 17;
+    [rhs] = 5;
+    A /%' [rhs];
+    ? A = 3 -> unsigned split register direct beta;
+    fail;
+
+"unsigned split register direct beta"
+
+    ? [rhs] = 2 -> unsigned split register indirect alpha;
+    fail;
+
+"unsigned split register indirect alpha"
+
+    B = p;
+    A = 17;
+    [B] = 5;
+    A /%' [B];
+    ? A = 3 -> unsigned split register indirect beta;
+    fail;
+
+"unsigned split register indirect beta"
+
+    ? [p] = 2 -> unsigned split direct register alpha;
+    fail;
+
+"unsigned split direct register alpha"
+
+    [lhs] = 17;
+    D = 5;
+    [lhs] /%' D;
+    ? [lhs] = 3 -> unsigned split direct register beta;
+    fail;
+
+"unsigned split direct register beta"
+
+    ? D = 2 -> unsigned split indirect register alpha;
+    fail;
+
+"unsigned split indirect register alpha"
+
+    [B] = 17;
+    D = 5;
+    [B] /%' D;
+    ? [p] = 3 -> unsigned split indirect register beta;
+    fail;
+
+"unsigned split indirect register beta"
+
+    ? D = 2 -> unsigned split direct direct alpha;
+    fail;
+
+"unsigned split direct direct alpha"
+
+    [lhs] = 17;
+    [rhs] = 5;
+    [lhs] /%' [rhs];
+    ? [lhs] = 3 -> unsigned split direct direct beta;
+    fail;
+
+"unsigned split direct direct beta"
+
+    ? [rhs] = 2 -> unsigned split direct indirect alpha;
+    fail;
+
+"unsigned split direct indirect alpha"
+
+    [lhs] = 17;
+    [B] = 5;
+    [lhs] /%' [B];
+    ? [lhs] = 3 -> unsigned split direct indirect beta;
+    fail;
+
+"unsigned split direct indirect beta"
+
+    ? [p] = 2 -> unsigned split indirect direct alpha;
+    fail;
+
+"unsigned split indirect direct alpha"
+
+    [B] = 17;
+    [rhs] = 5;
+    [B] /%' [rhs];
+    ? [p] = 3 -> unsigned split indirect direct beta;
+    fail;
+
+"unsigned split indirect direct beta"
+
+    ? [rhs] = 2 -> unsigned split indirect indirect alpha;
+    fail;
+
+"unsigned split indirect indirect alpha"
+
+    C = q;
+    [B] = 17;
+    [C] = 5;
+    [B] /%' [C];
+    ? [p] = 3 -> unsigned split indirect indirect beta;
+    fail;
+
+"unsigned split indirect indirect beta"
+
+    ? [q] = 2 -> unsigned split aliased right pointer alpha;
+    fail;
+
+"unsigned split aliased right pointer alpha"
+
+    A = lhs;
+    [lhs] = 17;
+    A /%' [A];
+    ? A = 0 -> unsigned split aliased right pointer beta;
+    fail;
+
+"unsigned split aliased right pointer beta"
+
+    ? [lhs] = lhs -> unsigned split aliased left pointer alpha;
+    fail;
+
+"unsigned split aliased left pointer alpha"
+
+    A = lhs;
+    [lhs] = 17;
+    [A] /%' A;
+    ? [lhs] = 8 -> unsigned split aliased left pointer beta;
+    fail;
+
+"unsigned split aliased left pointer beta"
+
+    ? A = 1 -> unsigned split aliased memory;
+    fail;
+
+"unsigned split aliased memory"
+
+    [lhs] = 5;
+    [lhs] /%' [lhs];
+    ? [lhs] = 0 -> signed split register alpha;
+    fail;
+
+"signed split register alpha"
+
+    A = FFFFFFEFh;
+    B = 5;
+    A /% B;
+    ? A = FFFFFFFDh -> signed split register beta;
+    fail;
+
+"signed split register beta"
+
+    ? B = FFFFFFFEh -> signed split direct indirect alpha;
+    fail;
+
+"signed split direct indirect alpha"
+
+    B = p;
+    [lhs] = 17;
+    [B] = FFFFFFFBh;
+    [lhs] /% [B];
+    ? [lhs] = FFFFFFFDh -> signed split direct indirect beta;
+    fail;
+
+"signed split direct indirect beta"
+
+    ? [p] = 2 -> signed split indirect direct alpha;
+    fail;
+
+"signed split indirect direct alpha"
+
+    [B] = FFFFFFEFh;
+    [rhs] = FFFFFFFBh;
+    [B] /% [rhs];
+    ? [p] = 3 -> signed split indirect direct beta;
+    fail;
+
+"signed split indirect direct beta"
+
+    ? [rhs] = FFFFFFFEh -> split division good;
+    fail;
+
+"split division good"
+
     A = 3FC00000h;
     A ++ 40100000h;
     ? A = 40700000h -> scalar sum ok;
@@ -1004,12 +1203,12 @@ def enc_str_w(source: int, base: int, byte_offset: int) -> int:
     return 0xB9000000 | ((byte_offset // 4) << 10) | (base << 5) | source
 
 
-def enc_ldr_w_indexed(target: int) -> int:
-    return 0xB8695B20 | target
+def enc_ldr_w_indexed(target: int, index: int = 9) -> int:
+    return 0xB8605B20 | (index << 16) | target
 
 
-def enc_str_w_indexed(source: int) -> int:
-    return 0xB8295B20 | source
+def enc_str_w_indexed(source: int, index: int = 9) -> int:
+    return 0xB8205B20 | (index << 16) | source
 
 
 def enc_add_w(destination: int, left: int, right: int) -> int:
@@ -1399,7 +1598,10 @@ class StaticContractTests(unittest.TestCase):
             self.assertIn(word, source)
         for token in range(50, 68):
             self.assertIn(f"[target string] = q{token};", source)
+        self.assertIn("[target string] = q69;", source)
+        self.assertIn("[target string] = q70;", source)
         self.assertIn("[target string] = q73;", source)
+        self.assertIn('"pp a64 split division"', source)
         self.assertIn('"pp a64 exchange"', source)
         for condition in ("(HI)", "(LO/CC)", "(HS/CS)", "(LS)",
                           "(GT)", "(LT)", "(GE)", "(LE)"):
@@ -1411,6 +1613,8 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_mov_w(1, 20), 0x2A1403E1)
         self.assertEqual(enc_mov_w(19, 0), 0x2A0003F3)
         self.assertEqual(enc_blr(9), 0xD63F0120)
+        self.assertEqual(enc_ldr_w_indexed(10, 14), 0xB86E5B2A)
+        self.assertEqual(enc_str_w_indexed(13, 14), 0xB82E5B2D)
         self.assertEqual(enc_ldr_w(9, 25, 48), 0xB9403329)
         self.assertEqual(enc_str_x(25, 25, 16), 0xF9000B39)
         self.assertEqual(enc_lsr_x(9, 25, 32), 0xD360FF29)
@@ -1956,6 +2160,160 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in multiply_divide_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        unsigned_split = [
+            enc_data3_w(0x1AC00800, 12, 11, 10),
+            enc_msub_w(13, 12, 10, 11),
+        ]
+        signed_split = [
+            enc_data3_w(0x1AC00C00, 12, 11, 10),
+            enc_msub_w(13, 12, 10, 11),
+        ]
+        split_division_sequences = (
+            [
+                enc_mov_w(10, 20),
+                enc_mov_w(11, 19),
+                *unsigned_split,
+                enc_mov_w(20, 13),
+                enc_mov_w(19, 12),
+            ],
+            [
+                enc_mov_w(10, 19),
+                enc_mov_w(11, 19),
+                *unsigned_split,
+                enc_mov_w(19, 13),
+                enc_mov_w(19, 12),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                enc_mov_w(11, 19),
+                *unsigned_split,
+                enc_mov_w(19, 12),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                enc_mov_w(11, 19),
+                *unsigned_split,
+                enc_mov_w(19, 12),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                enc_mov_w(10, 22),
+                *enc_mov32_w(9, lhs_index),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_split,
+                enc_str_w_indexed(12, 15),
+                enc_mov_w(22, 13),
+            ],
+            [
+                enc_mov_w(10, 22),
+                *enc_indirect_index(20, 0),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_split,
+                enc_str_w_indexed(12, 15),
+                enc_mov_w(22, 13),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                *enc_mov32_w(9, lhs_index),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_split,
+                enc_str_w_indexed(12, 15),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                *enc_mov32_w(9, lhs_index),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_split,
+                enc_str_w_indexed(12, 15),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                *enc_mov32_w(9, rhs_index),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                *enc_indirect_index(20, 0),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_split,
+                enc_str_w_indexed(12, 15),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                *enc_indirect_index(21, 0),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                *enc_indirect_index(20, 0),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_split,
+                enc_str_w_indexed(12, 15),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                *enc_indirect_index(19, 0),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                enc_mov_w(11, 19),
+                *unsigned_split,
+                enc_mov_w(19, 12),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                enc_mov_w(10, 19),
+                *enc_indirect_index(19, 0),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_split,
+                enc_str_w_indexed(12, 15),
+                enc_mov_w(19, 13),
+            ],
+            [
+                *enc_mov32_w(9, lhs_index),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                *enc_mov32_w(9, lhs_index),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *unsigned_split,
+                enc_str_w_indexed(12, 15),
+                enc_str_w_indexed(13, 14),
+            ],
+            [
+                enc_mov_w(10, 20),
+                enc_mov_w(11, 19),
+                *signed_split,
+                enc_mov_w(20, 13),
+                enc_mov_w(19, 12),
+            ],
+            [
+                *enc_indirect_index(20, 0),
+                enc_mov_w(14, 9),
+                enc_ldr_w_indexed(10, 14),
+                *enc_mov32_w(9, lhs_index),
+                enc_mov_w(15, 9),
+                enc_ldr_w_indexed(11, 15),
+                *signed_split,
+                enc_str_w_indexed(12, 15),
+                enc_str_w_indexed(13, 14),
+            ],
+        )
+        for sequence in split_division_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         unary_rotate_sequences = (
