@@ -206,11 +206,15 @@ execution covers the complete boundary at `D=63`, partial results at `D=64` and
 `D=101` with both signs, and the maximum-finite/minimum-subnormal `D=276` case.
 The x87 reduction width is implementation-dependent from 32 through 63, so this
 pins the measured reference behavior rather than claiming every x87 model, and it
-does not expose C2/status. The same helper applies `atan2f(right, left)` to retain
-the observed `FPATAN` operand order; execution covers first-quadrant, axis, and
-zero-angle arctangents. Exceptional remainder divisors, signed-zero arctangent
-quadrants, NaNs outside the measured unary boundary, and exact exception-state
-compatibility remain open.
+does not expose C2/status. Result classification maps a zero divisor or infinite
+dividend to real indefinite `0xFFC00000`, preserves a finite dividend against an
+infinite divisor, and gives a right-side NaN precedence while quieting signaling
+NaNs. The same helper applies `atan2f(right, left)` to retain the observed
+`FPATAN` operand order. Generated execution covers positive and negative zero,
+the positive/negative-pi signed-zero quadrants, an opposing-infinity quadrant,
+and right-precedence quiet/signaling NaNs. Exact C2/exception flags, NaN compatibility
+for native arithmetic outside these helpers, and broader libm-versus-x87 rounding
+remain open.
 
 The slice also covers unconditional/status branches, internal calls, `leave`,
 `end`, `fail`, `nop`, and the full-width isocall ABI. It does not yet cover the

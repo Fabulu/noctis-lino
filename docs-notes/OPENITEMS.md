@@ -2213,12 +2213,15 @@ than iterating to completion. Generated register/direct/indirect execution cover
 the complete `D=63` boundary, partial `D=64` and positive/negative `D=101`
 results, and maximum-finite/minimum-subnormal `D=276`. Since x87 permits an
 implementation-dependent N from 32 through 63, this pins the measured reference,
-not every x87 model, and does not expose C2/status. The same helper applies
-`atan2f(right,left)` and executes first-quadrant, axis, and zero-angle cases.
-Exceptional remainder divisors, signed-zero arctangent quadrants, and exact FP
-exception state remain open. Outside the measured trigonometric-helper boundary,
-ordinary NaN payload equivalence, signaling-NaN state, and remaining
-transcendental compatibility remain separate work.
+not every x87 model, and does not expose C2/status. Remainder classification maps
+a zero divisor or infinite dividend to real indefinite `FFC00000h`, preserves a
+finite dividend against an infinite divisor, and gives the right NaN precedence
+while quieting signaling inputs. The same helper applies `atan2f(right,left)`.
+Generated execution covers positive and negative zero, positive/negative-pi
+signed-zero quadrants, one opposing-infinity quadrant, and right-precedence
+quiet/signaling NaNs. Exact FP status/exception state, native-arithmetic NaN
+compatibility outside these helpers, and remaining transcendental rounding remain
+separate work.
 
 The focused gate bootstraps the modified compiler to an i386m byte-identical
 fixpoint, packs the built runtime as an AArch64 SYS, compiles a real Lino source,
@@ -2229,9 +2232,9 @@ refusals. All 12 checks, including compiler-produced value exchange, split
 division, split multiplication, q71/q72 whole-register save/restore, scalar
 arithmetic, masked-invalid division results, in-range and invalid/out-of-range
 conversion, ordered/unordered comparison, ordinary and masked-invalid square root,
-ordinary plus large-finite/exceptional sine and cosine, ordinary and measured
-one-step partial-remainder, and partial-arctangent execution, passed in hosted run
-32578246168 at commit `64d787e`.
+ordinary plus large-finite/exceptional sine and cosine, ordinary/partial/exceptional
+one-step remainder, and ordinary/signed-zero/infinite/NaN arctangent execution,
+passed in hosted run 32578578340 at commit `b8d10ed`.
 
 Remaining floating-point/x87 semantics, full runtime services, native macOS/Cocoa
 and Mach-O packaging, and a native ARM64 Noctis build remain open.
