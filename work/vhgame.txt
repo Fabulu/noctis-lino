@@ -183,6 +183,7 @@
 		vhglocalname = { game-local-out.bin };
 		vhgpalname = { game-palette-out.bin };
 		vhgpagename = { game-page-out.bin };
+		vhgprofilename = { game-profile-out.bin };
 	VHGcaption = { Noctis_IV };
 	VHGmenucaption = { GAME };
 	VHGmenu = { NOCTIS_IV };
@@ -299,6 +300,10 @@
 	VHGmovievalue = 0; VHGmovieden = 0; VHGmoviepos = 0;
 	VHGprofstart = 0; VHGprofnow = 0; VHGprofrender = 0; VHGprofpresent = 0;
 	VHGprofpart = 0; VHGprofspace = 0; VHGprofcupola = 0; VHGprofhull = 0; VHGprofdetail = 0;
+	VHGprofileactive = 0; VHGprofilepresentations = 0; VHGprofilesimticks = 0;
+	VHGprofilemissed = 0; VHGprofilelatemax = 0; VHGprofilelatetotal = 0;
+	VHGprofileinputseen = 0; VHGprofileinputeffect = 0; VHGprofileinputpresent = 0;
+	VHGprofileinputpending = 0; VHGprofileorigin = 0; VHGprofileresetpending = 0;
 	( Present at 60 Hz by default while gameplay simulation remains at its
 	  original 18.206-Hz cadence. F5 retains the classic presentation toggle. )
 	VHGfast = 1; VHGfastheld = 0; VHGsimacc = 0; VHGdosim = 1;
@@ -928,6 +933,7 @@
 	vhgstate = 18;
 	VHGfpstext = 7;
 	vhgperf = 21;
+	vhgprofile = 32;
 	vhgsun = 32;
 	vhglocal = 44;
 	VHGinfoname = 22;
@@ -1111,6 +1117,32 @@
     "VHG capture clock done"
 	end;
 
+"VHG profile option"
+	( `profile` is an opt-in terminal telemetry token.  Scan independently of
+	  clock=<decimal> so ordinary launches and the first-frame oracle contract
+	  remain byte-for-byte unchanged. )
+	A = Command Line;
+	C = [A]; ? C != 0 -> VHG profile leading space; A + 9;
+    "VHG profile leading space"
+	C = [A]; ? C != 32 -> VHG profile scan; A+;
+	-> VHG profile leading space;
+    "VHG profile scan"
+	C = [A]; ? C = 0 -> VHG profile option done;
+	? C != 112 -> VHG profile next;
+	E = A; E+; C = [E]; ? C != 114 -> VHG profile next; E+;
+	C = [E]; ? C != 111 -> VHG profile next; E+;
+	C = [E]; ? C != 102 -> VHG profile next; E+;
+	C = [E]; ? C != 105 -> VHG profile next; E+;
+	C = [E]; ? C != 108 -> VHG profile next; E+;
+	C = [E]; ? C != 101 -> VHG profile next; E+;
+	C = [E]; ? C = 0 -> VHG profile found; ? C = 32 -> VHG profile found;
+    "VHG profile next"
+	A+; -> VHG profile scan;
+    "VHG profile found"
+	[VHGprofileactive] = 1;
+    "VHG profile option done"
+	end;
+
 "VHG run"
 	=> Initialize Integrated GUI;
 	=> FEnter;
@@ -1119,7 +1151,7 @@
 	=> PAL float init; => VHG palette;
 	=> SP build rgt; => SP riga init; => SP gman init; => SP load maps;
 	=> SP ncc load; => SP unloadallpv;
-	=> PGF constants; => VH view init;
+	=> PGF constants; => VH view init; => GR float init;
 	A = 0; A - 500; [VHGz] = A; [VHGbeta] = 180;
 	=> VH cupola build;
 	=> VH panels init;
@@ -1160,7 +1192,7 @@
 	=> VHG flight init;
 	=> TK seed; => TK start;
 	=> VHG fps init;
-	=> VHG capture clock option;
+	=> VHG capture clock option; => VHG profile option;
 	( Resume the versioned port checkpoint automatically when present.  VHSV
 	  leaves the initialized new-flight state untouched on a missing, stale,
 	  or malformed file, so first launch remains a clean game. )
@@ -1194,6 +1226,7 @@
 	[Client Exit Action] = service VHG GUI exit;
 	=> TK read wall; [VHGwallstart] = [TKtmp];
 	=> Enter Integrated GUI;
+	=> VHG write profile;
 	=> VHG capsule checkpoint collapse;
 	=> VHSV save;
 	=> VHA stop;
@@ -1285,7 +1318,16 @@
 		  dual publication, plus cursor composition and physical retrace. )
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 		A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofpresent]; [VHGprofpresent] = A;
+		A = [VHGprofileactive]; ? A = 0 -> VHG profile present counted;
+		[VHGprofilepresentations]+;
+		A = [VHGprofileinputpending]; ? A = 0 -> VHG profile present counted;
+		A-; [VHGprofileinputpending] = A; ? A != 0 -> VHG profile present counted;
+		[VHGprofileinputpresent] = [VHGprofnow];
+	    "VHG profile present counted"
 		=> VHG timing step;
+		A = [VHGprofileresetpending]; ? A = 0 -> VHG profile reset done;
+		[VHGprofileresetpending] = 0; => VHG profile reset;
+	    "VHG profile reset done"
 	=> VHG fps tick;
 	A = [VHGesc]; ? A = 0 -> VHG GUI loop done;
 	=> VHG capsule checkpoint collapse;
@@ -1391,6 +1433,9 @@
 
 "VHG one frame"
 	=> VHG cadence;
+	A = [VHGprofileactive]; ? A = 0 -> VHG profile sim counted;
+	A = [VHGdosim]; ? A = 0 -> VHG profile sim counted; [VHGprofilesimticks]+;
+    "VHG profile sim counted"
 	=> VHG interpolation advance;
 	=> VHG fpu clean;
 	=> VHG SL advance; => VHG DL advance; => VHG fpu clean;
@@ -1469,6 +1514,7 @@
 		A = [VHGsent]; ? A != 0 -> VHG no sentinel;
 		A = [VHGsentframes]; ? A < 60 -> VHG no sentinel;
 		=> VHG write sentinel; [VHGsent] = 1;
+		A = [VHGprofileactive]; ? A = 0 -> VHG no sentinel; [VHGprofileresetpending] = 1;
     "VHG no sentinel"
 		( Surface input samples interpolated terrain height through x87 helpers.
 		  Rendering uses the same shared stack, so give input a clean ABI boundary;
@@ -3257,6 +3303,11 @@
 		A = [VHGlanded]; ? A != 0 -> VHG input active;
 		-> VHG input done;
 	    "VHG input active"
+		A = [VHGprofileactive]; ? A = 0 -> VHG profile input sampled;
+		A = [VHGprofileinputseen]; ? A != 0 -> VHG profile input sampled;
+		A = [KEY W]; ? A = OFF -> VHG profile input sampled;
+		[Timer Command] = READ COUNTS; isocall; [VHGprofileinputseen] = [Counts];
+	    "VHG profile input sampled"
 		A = [Client Owns Text Cursor]; ? A = NO -> VHG input done;
 	A = [KEY RETURN]; ? A = ON -> VHG return hook armed;
 	[VHGreturnhookheld] = 0;
@@ -3427,7 +3478,7 @@
 
 	( The source continues sampling player movement during a lift.  The later
 	  centre restraint influences the route but does not lock out controls. )
-	A = [KEY W]; ? A = OFF -> VHG no W; [VHGstepv] = VHGSTEP; => VHG forward;
+	A = [KEY W]; ? A = OFF -> VHG no W; => VHG profile W effect; [VHGstepv] = VHGSTEP; => VHG forward;
     "VHG no W"
 	A = [KEY S]; ? A = OFF -> VHG no S; A = 0; A - VHGSTEP; [VHGstepv] = A; => VHG forward;
     "VHG no S"
@@ -3451,6 +3502,14 @@
 	=> VHG clamp position;
 	=> VHG platform;
 	"VHG input cleanup done"
+	end;
+
+"VHG profile W effect"
+	A = [VHGprofileactive]; ? A = 0 -> VHG profile W effect done;
+	A = [VHGprofileinputeffect]; ? A != 0 -> VHG profile W effect done;
+	[Timer Command] = READ COUNTS; isocall;
+	[VHGprofileinputeffect] = [Counts]; [VHGprofileinputpending] = 2;
+    "VHG profile W effect done"
 	end;
 
 "VHG landing selector input"
@@ -3952,6 +4011,7 @@
 	A = [KEY W]; ? A = ON -> VHG surface do W;
 	A = [VHGmovew]; ? A = 0 -> VHG surface no W;
     "VHG surface do W"
+	=> VHG profile W effect;
 	A = [VHGsurfstep]; A + [VHGstepv]; [VHGsurfstep] = A;
     "VHG surface no W"
 	A = [KEY S]; ? A = ON -> VHG surface do S;
@@ -10729,6 +10789,13 @@
 	=> TK advance;
 	[Timer Command] = READ COUNTS; isocall; [TKnow] = [Counts]; => TK is late;
 	A = [TKlate]; ? A = 0 -> VHG timing fast wait;
+	A = [VHGprofileactive]; ? A = 0 -> VHG timing miss counted;
+	[VHGprofilemissed]+;
+	A = [TKnow]; A - [TKdeadline]; E = A;
+	A + [VHGprofilelatetotal]; [VHGprofilelatetotal] = A;
+	A = E; ? A '<= [VHGprofilelatemax] -> VHG timing miss counted;
+	[VHGprofilelatemax] = A;
+    "VHG timing miss counted"
 	( Overrun: make now the new origin; do not discard another interval. )
 	[TKdeadline] = [TKnow]; [TKacc] = 0; -> VHG timing done;
     "VHG timing fast wait"
@@ -10739,6 +10806,52 @@
 "VHG timing rebase"
 	[TKacc] = 0; [Timer Command] = READ COUNTS; isocall;
 	[TKdeadline] = [Counts];
+	end;
+
+"VHG profile reset"
+	( The first-frame sentinel is the private runner's readiness boundary.  Keep
+	  its existing 60-frame diagnostics intact, then begin terminal measurement
+	  from zero so cold terrain/model initialization cannot masquerade as
+	  sustained gameplay cost. )
+	[VHGprofilepresentations] = 0; [VHGprofilesimticks] = 0;
+	[VHGprofilemissed] = 0; [VHGprofilelatemax] = 0; [VHGprofilelatetotal] = 0;
+	[VHGprofrender] = 0; [VHGprofpresent] = 0; [VHGprofspace] = 0;
+	[VHGprofcupola] = 0; [VHGprofhull] = 0; [VHGprofdetail] = 0;
+	[VHGprofileinputseen] = 0; [VHGprofileinputeffect] = 0;
+	[VHGprofileinputpresent] = 0; [VHGprofileinputpending] = 0;
+	[TKsleeps] = 0; [VHGloopcalls] = 0; [VHGtimingcalls] = 0;
+	=> TK read wall; [VHGwallstart] = [TKtmp];
+	[Timer Command] = READ COUNTS; isocall; [VHGprofileorigin] = [Counts];
+	end;
+
+"VHG write profile"
+	A = [VHGprofileactive]; ? A = 0 -> VHG write profile done;
+	=> TK read wall; A = [TKtmp]; A - [VHGwallstart]; [VHGwallelapsed] = A;
+	[vhgprofile plus 0] = 56504731h; [vhgprofile plus 1] = 1;
+	[vhgprofile plus 2] = [VHGprofilepresentations];
+	[vhgprofile plus 3] = [VHGprofilesimticks];
+	[vhgprofile plus 4] = [VHGprofilemissed];
+	[vhgprofile plus 5] = [VHGprofilelatemax];
+	[vhgprofile plus 6] = [VHGprofilelatetotal];
+	[vhgprofile plus 7] = [VHGprofrender]; [vhgprofile plus 8] = [VHGprofpresent];
+	[vhgprofile plus 9] = [VHGprofspace]; [vhgprofile plus 10] = [VHGprofcupola];
+	[vhgprofile plus 11] = [VHGprofhull]; [vhgprofile plus 12] = [VHGprofdetail];
+	[vhgprofile plus 13] = [VHGwallelapsed]; [vhgprofile plus 14] = [TKcpms];
+	[vhgprofile plus 15] = [TKsleeps]; [vhgprofile plus 16] = [VHGloopcalls];
+	[vhgprofile plus 17] = [VHGtimingcalls]; [vhgprofile plus 18] = [VHGfps];
+	[vhgprofile plus 19] = [VHGmode]; [vhgprofile plus 20] = [VHGlanded];
+	[vhgprofile plus 21] = [VHGCstate]; [vhgprofile plus 22] = 87;
+	[vhgprofile plus 23] = [VHGprofileorigin]; [vhgprofile plus 24] = [VHGprofileinputseen];
+	[vhgprofile plus 25] = [VHGprofileinputeffect];
+	[vhgprofile plus 26] = [VHGprofileinputpresent];
+	[vhgprofile plus 27] = [VHGx]; [vhgprofile plus 28] = [VHGz];
+	[vhgprofile plus 29] = [VHGfcsopen]; [vhgprofile plus 30] = [VHGfast];
+	[vhgprofile plus 31] = 56504731h;
+	[File Name] = vhgprofilename; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhgprofile; [Block Size] = 128; isocall;
+	[File Name] = vhgprofilename; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 128; isocall;
+    "VHG write profile done"
 	end;
 
 	"VHG write sentinel"

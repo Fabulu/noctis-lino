@@ -1,0 +1,359 @@
+#!/usr/bin/env python3
+"""Measure sustained Noctis rendering and input on a private Windows desktop."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+from pathlib import Path
+import shutil
+import struct
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+
+from make_noctis_checkpoint import build_landed_checkpoint  # noqa: E402
+from windows_hidden_process import PrivateDesktopProcess  # noqa: E402
+
+
+CLOCK_SECONDS = 1344638527
+PROFILE_MAGIC = 0x56504731
+PROFILE_UNITS = 32
+ASSETS = (
+    "globes.map",
+    "offsets.map",
+    "vehicle.ncc",
+    "mammal.ncc",
+    "birdy.ncc",
+    "digimap2.bin",
+    "STARMAP.BIN",
+    "GUIDE.BIN",
+    "noctis_music.pcm",
+)
+VK_ESCAPE = 0x1B
+VK_5 = 0x35
+VK_R = 0x52
+VK_W = 0x57
+
+PROFILE_FIELDS = (
+    "magic",
+    "schema",
+    "presentations",
+    "simulation_ticks",
+    "missed_deadlines",
+    "maximum_lateness_counts",
+    "total_lateness_counts",
+    "render_counts",
+    "present_counts",
+    "space_counts",
+    "cupola_counts",
+    "hull_counts",
+    "detail_counts",
+    "wall_milliseconds",
+    "counts_per_millisecond",
+    "sleep_calls",
+    "gui_loop_calls",
+    "timing_calls",
+    "current_fps",
+    "mode",
+    "landed",
+    "capsule_state",
+    "profiled_virtual_key",
+    "profile_origin_counter",
+    "input_detected_counter",
+    "input_effect_counter",
+    "input_presented_counter",
+    "final_x",
+    "final_z",
+    "fcs_open",
+    "fast_presentation",
+    "trailing_magic",
+)
+SIGNED_FIELDS = {"mode", "landed", "capsule_state", "final_x", "final_z"}
+
+
+def counter_difference(end: int, start: int) -> int:
+    """Return an elapsed low-32-bit performance-counter interval."""
+    return (end - start) & 0xFFFFFFFF
+
+
+def decode_profile(data: bytes) -> dict[str, int]:
+    if len(data) != PROFILE_UNITS * 4:
+        raise ValueError(f"profile is {len(data)} bytes, expected 128")
+    unsigned = struct.unpack("<32I", data)
+    signed = struct.unpack("<32i", data)
+    profile = {
+        name: (signed[index] if name in SIGNED_FIELDS else unsigned[index])
+        for index, name in enumerate(PROFILE_FIELDS)
+    }
+    if profile["magic"] != PROFILE_MAGIC or profile["trailing_magic"] != PROFILE_MAGIC:
+        raise ValueError("profile magic is incomplete or corrupt")
+    if profile["schema"] != 1:
+        raise ValueError(f"unsupported profile schema {profile['schema']}")
+    if profile["counts_per_millisecond"] == 0:
+        raise ValueError("profile has no performance-counter calibration")
+    return profile
+
+
+def _space_checkpoint(*, orbital: bool) -> bytes:
+    checkpoint = bytearray(build_landed_checkpoint(
+        star_x=1463568,
+        star_y=-4728350,
+        star_z=-437812,
+        body=3,
+        longitude=0,
+        latitude=60,
+        beta=23,
+        pitch=0,
+        player_x=2813,
+        player_y=0,
+        player_z=-1397,
+        mode=0,
+        fast=True,
+    ))
+    if orbital:
+        local = (0.032783, 0.0, -0.077237)
+        distance = math.sqrt(sum(component * component for component in local))
+        struct.pack_into("<i", checkpoint, 39 * 4, 4)
+        struct.pack_into("<ii", checkpoint, 48 * 4, 1, 3)
+        struct.pack_into("<5d", checkpoint, 50 * 4, *local, distance, distance)
+        struct.pack_into("<4i", checkpoint, 60 * 4, 0, 1, 0, 0)
+    else:
+        distance = 200.0
+        beta = math.radians(23)
+        galactic = (
+            1463568 - (-math.sin(beta) * distance),
+            -4728350.0,
+            -437812 - (math.cos(beta) * distance),
+        )
+        struct.pack_into("<3d", checkpoint, 12 * 4, *galactic)
+    return bytes(checkpoint)
+
+
+def scenario_checkpoint(scenario: str) -> bytes:
+    if scenario in {"stardrifter", "fcs"}:
+        return _space_checkpoint(orbital=False)
+    if scenario == "orbital":
+        return _space_checkpoint(orbital=True)
+    at_capsule = scenario == "capsule"
+    return build_landed_checkpoint(
+        star_x=1463568,
+        star_y=-4728350,
+        star_z=-437812,
+        body=3,
+        longitude=0,
+        latitude=60,
+        beta=65,
+        pitch=-10,
+        player_x=131072 if at_capsule else 1598248,
+        player_y=-600,
+        player_z=131072 if at_capsule else 2251369,
+        capsule_x=131072,
+        capsule_z=131072,
+        fast=True,
+    )
+
+
+def stage_scenario(stage: Path, executable: Path, checkpoint: bytes) -> Path:
+    stage.mkdir(parents=True, exist_ok=True)
+    staged_executable = stage / "Noctis-IV.exe"
+    shutil.copy2(executable, staged_executable)
+    for name in ASSETS:
+        source = ROOT / "work" / name
+        if not source.is_file():
+            raise FileNotFoundError(f"missing runtime asset: {source}")
+        shutil.copy2(source, stage / name)
+    (stage / "CURRENT.LIN").write_bytes(checkpoint)
+    (stage / "CURRENT.BAK").write_bytes(checkpoint)
+    for name in (
+        "game-vh-out.bin",
+        "game-sun-out.bin",
+        "game-local-out.bin",
+        "game-palette-out.bin",
+        "game-page-out.bin",
+        "game-profile-out.bin",
+        "profile.bin",
+        "report.json",
+    ):
+        path = stage / name
+        if path.exists():
+            path.unlink()
+    return staged_executable
+
+
+def wait_for_ready(process: PrivateDesktopProcess, stage: Path,
+                   timeout: float) -> tuple[int, tuple[int, int, int, int]]:
+    deadline = time.monotonic() + timeout
+    sentinel = stage / "game-vh-out.bin"
+    while time.monotonic() < deadline:
+        return_code = process.poll()
+        if return_code is not None:
+            raise RuntimeError(f"game exited during initialization with code {return_code}")
+        handle = process.main_window_handle()
+        if handle is not None and sentinel.is_file() and sentinel.stat().st_size == 156:
+            return handle, process.window_rectangle(handle)
+        time.sleep(0.1)
+    raise TimeoutError("game did not emit its first-frame sentinel")
+
+
+def tap_key(process: PrivateDesktopProcess, handle: int, key: int,
+            hold_seconds: float = 0.08) -> int:
+    injected = process.performance_counter() & 0xFFFFFFFF
+    process.post_key(handle, key, True)
+    time.sleep(hold_seconds)
+    if process.poll() is None:
+        try:
+            process.post_key(handle, key, False)
+        except OSError:
+            if key != VK_ESCAPE and process.poll() is None:
+                raise
+    return injected
+
+
+def derived_metrics(profile: dict[str, int], _injected_counter: int | None) -> dict[str, float | int | bool | None]:
+    counts_per_ms = profile["counts_per_millisecond"]
+    presentations = profile["presentations"]
+    wall_ms = profile["wall_milliseconds"]
+
+    def average(field: str) -> float | None:
+        if not presentations:
+            return None
+        return profile[field] / counts_per_ms / presentations
+
+    metrics: dict[str, float | int | None] = {
+        "presentation_hz": presentations * 1000.0 / wall_ms if wall_ms else None,
+        "simulation_hz": profile["simulation_ticks"] * 1000.0 / wall_ms if wall_ms else None,
+        "missed_deadline_ratio": (
+            profile["missed_deadlines"] / presentations if presentations else None
+        ),
+        "maximum_lateness_ms": profile["maximum_lateness_counts"] / counts_per_ms,
+        "total_lateness_ms": profile["total_lateness_counts"] / counts_per_ms,
+        "average_render_ms": average("render_counts"),
+        "average_present_ms": average("present_counts"),
+        "average_space_ms": average("space_counts"),
+        "average_cupola_ms": average("cupola_counts"),
+        "average_hull_ms": average("hull_counts"),
+        "average_detail_ms": average("detail_counts"),
+        "input_detection_to_effect_ms": None,
+        "input_effect_to_present_ms": None,
+        "input_detection_to_present_ms": None,
+        "external_counter_comparable": False,
+    }
+    detected = profile["input_detected_counter"]
+    effect = profile["input_effect_counter"]
+    presented = profile["input_presented_counter"]
+    if detected and effect:
+        metrics["input_detection_to_effect_ms"] = (
+            counter_difference(effect, detected) / counts_per_ms)
+    if effect and presented:
+        metrics["input_effect_to_present_ms"] = (
+            counter_difference(presented, effect) / counts_per_ms)
+    if detected and presented:
+        metrics["input_detection_to_present_ms"] = (
+            counter_difference(presented, detected) / counts_per_ms)
+    return metrics
+
+
+def run_scenario(scenario: str, output_directory: Path, executable: Path,
+                 duration: float, readiness_timeout: float) -> Path:
+    stage = output_directory / scenario
+    staged_executable = stage_scenario(
+        stage, executable, scenario_checkpoint(scenario))
+    started = time.monotonic()
+    injected_counter: int | None = None
+    with PrivateDesktopProcess(
+            staged_executable, stage,
+            (f"clock={CLOCK_SECONDS}", "profile")) as process:
+        handle, rectangle = wait_for_ready(process, stage, readiness_timeout)
+        ready = time.monotonic()
+        time.sleep(1.0)
+        if scenario == "fcs":
+            tap_key(process, handle, VK_5, 1.0)
+        elif scenario == "capsule":
+            tap_key(process, handle, VK_R, 1.0)
+        else:
+            injected_counter = process.performance_counter() & 0xFFFFFFFF
+            process.post_key(handle, VK_W, True)
+            time.sleep(min(5.0, duration / 3.0))
+            process.post_key(handle, VK_W, False)
+        remaining = duration - (time.monotonic() - ready)
+        if remaining > 0:
+            time.sleep(remaining)
+        tap_key(process, handle, VK_ESCAPE, 1.0)
+        return_code = process.wait(10.0)
+        if return_code is None:
+            raise TimeoutError("game did not exit cleanly after Escape")
+        if return_code != 0:
+            raise RuntimeError(f"game exited with code {return_code}")
+
+    profile_path = stage / "game-profile-out.bin"
+    if not profile_path.is_file():
+        raise FileNotFoundError("game did not emit terminal profile")
+    raw_profile = profile_path.read_bytes()
+    profile = decode_profile(raw_profile)
+    (stage / "profile.bin").write_bytes(raw_profile)
+    report = {
+        "schema": 1,
+        "scenario": scenario,
+        "command": [str(staged_executable), f"clock={CLOCK_SECONDS}", "profile"],
+        "window_rectangle": rectangle,
+        "startup_seconds": ready - started,
+        "requested_measurement_seconds": duration,
+        "injected_counter": injected_counter,
+        "profile": profile,
+        "metrics": derived_metrics(profile, injected_counter),
+    }
+    report_path = stage / "report.json"
+    report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    return report_path
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--scenario", choices=("surface", "capsule", "stardrifter", "orbital", "fcs"),
+        action="append", required=True,
+    )
+    parser.add_argument(
+        "--output-directory", type=Path,
+        default=ROOT / "build" / "desktop-profiles",
+    )
+    parser.add_argument(
+        "--executable", type=Path, default=ROOT / "work" / "vhgame.exe")
+    parser.add_argument("--duration", type=float, default=20.0)
+    parser.add_argument("--readiness-timeout", type=float, default=90.0)
+    parser.add_argument("--force", action="store_true",
+                        help="replace an already retained scenario report")
+    args = parser.parse_args()
+    if not 5.0 <= args.duration <= 120.0:
+        parser.error("--duration must be between 5 and 120 seconds")
+
+    executable = args.executable.resolve()
+    if not executable.is_file():
+        parser.error(f"missing executable: {executable}")
+    output_directory = args.output_directory.resolve()
+    for scenario in args.scenario:
+        retained = output_directory / scenario / "report.json"
+        if retained.is_file() and not args.force:
+            print(f"RETAINED {scenario}: {retained}")
+            continue
+        report_path = run_scenario(
+            scenario, output_directory, executable,
+            args.duration, args.readiness_timeout,
+        )
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        metrics = report["metrics"]
+        print(
+            f"PROFILE {scenario}: {report['profile']['presentations']} presentations, "
+            f"{metrics['presentation_hz']:.2f} Hz, "
+            f"{metrics['simulation_hz']:.3f} simulation Hz, "
+            f"{report['profile']['missed_deadlines']} missed deadlines -> {report_path}"
+        )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
