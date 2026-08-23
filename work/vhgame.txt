@@ -152,6 +152,7 @@
 	VHGlocaldist0 = 0; VHGlocaldist1 = 0; VHGlocallim0 = 0; VHGlocallim1 = 0;
 	VHGtelemetryacc0 = 0; VHGtelemetryacc1 = 0;
 	VHGtelemetryvalue0 = 0; VHGtelemetryvalue1 = 0;
+	VHGhudlabeli = 0; VHGhudlabelsrc = 0; VHGhudlabeldst = 0; VHGhudlabellen = 0;
 	VHGlocaltmp0 = 0; VHGlocaltmp1 = 0; VHGlocalcolour = 0; VHGlocaloff = 0;
 	VHGlocalspreads = 1; VHGlocaleffect = 0; VHGlocalmultmask = 64;
 	VHGlocalcentrecolour = 0; VHGlocalband = 0; VHGlocallow = 0;
@@ -584,6 +585,9 @@
 	VHGhelpdonetext = { RESCUE COMPLETE };
 	VHGhelpbadtext = { HELP NOT REQUIRED };
 	VHGsignaltext = { SIGNAL };
+	VHGhudstardefault = { UNKNOWN STAR / CLASS };
+	VHGhudplanetdefault = { NAMELESS PLANET / N. };
+	VHGhudmoondefault = { NAMELESS MOON # };
 	VHGresetdashtext = { ---------- };
 	VHGresetglitchtext = { _^*^-!_$[] };
 	VHGresetstandbytext = { STANDBY };
@@ -949,6 +953,8 @@
 	VHGinfoname = 22;
 	VHGtelemetrystar = 16;
 	VHGtelemetrybody = 16;
+	VHGhudstarlabel = 25;
+	VHGhudbodylabel = 25;
 	VHGinfoclass = 23;
 	VHGinfobodies = 30;
 	VHGinfolocal = 23;
@@ -3202,10 +3208,66 @@
 	B ^ VHG space clear eight;
 	end;
 
+"VHG HUD labels prepare"
+	( NOCTIS.CPP's two fixed 24-character outer-HUD labels.  Catalogue hits
+	  supply the retained 20-byte name; uncharted targets use the source text,
+	  and all rows retain the generated Snn/Pnn suffix. )
+	[VHPtelemetrystarlabel] = 0; [VHPtelemetrybodylabel] = 0;
+	A = [MgAptgt]; ? A = 0 -> VHG HUD label body;
+	[VHGhudlabeldst] = VHGhudstarlabel;
+	A = [VHCATstarok]; ? A = 0 -> VHG HUD star label default;
+	A = vhcatstarlabel; A + 1; [VHGhudlabelsrc] = A; [VHGhudlabellen] = 20;
+	=> VHG HUD label copy; -> VHG HUD star label suffix;
+    "VHG HUD star label default"
+	[VHGhudlabelsrc] = VHGhudstardefault; [VHGhudlabellen] = 20;
+	=> VHG HUD label copy;
+    "VHG HUD star label suffix"
+	E = VHGhudstarlabel; [E plus 20] = 32; [E plus 21] = 83;
+	A = [VHTclass]; B = A; A / 10; A + 48; [E plus 22] = A;
+	B '% 10; B + 48; [E plus 23] = B; [E plus 24] = 0;
+	[VHPtelemetrystarlabel] = VHGhudstarlabel;
+    "VHG HUD label body"
+	A = [VHGplanet]; ? A '>= [nsnob] -> VHG HUD labels prepared;
+	[VHGhudlabeldst] = VHGhudbodylabel;
+	A = [VHCATbodyok]; ? A = 0 -> VHG HUD body label default;
+	A = vhcatbodylabel; A + 1; [VHGhudlabelsrc] = A; [VHGhudlabellen] = 20;
+	=> VHG HUD label copy; E = VHGhudbodylabel; [E plus 20] = 32;
+	-> VHG HUD body label suffix;
+    "VHG HUD body label default"
+	E = nspowner; E + [VHGplanet]; A = [E]; ? A >= 0 -> VHG HUD moon label default;
+	[VHGhudlabelsrc] = VHGhudplanetdefault; [VHGhudlabellen] = 20;
+	=> VHG HUD label copy; E = VHGhudbodylabel; [E plus 20] = 32;
+	-> VHG HUD body label suffix;
+    "VHG HUD moon label default"
+	[VHGhudlabelsrc] = VHGhudmoondefault; [VHGhudlabellen] = 15;
+	=> VHG HUD label copy;
+	E = VHGhudbodylabel; C = nspmoonid; C + [VHGplanet]; A = [C]; A + 1;
+	B = A; A / 10; A + 48; [E plus 15] = A; B '% 10; B + 48; [E plus 16] = B;
+	[E plus 17] = 47; C = nspowner; C + [VHGplanet]; A = [C]; A + 1;
+	B = A; A / 10; A + 48; [E plus 18] = A; B '% 10; B + 48; [E plus 19] = B;
+	[E plus 20] = 38;
+    "VHG HUD body label suffix"
+	E = VHGhudbodylabel; A = [VHGplanet]; A + 1; B = A;
+	[E plus 21] = 80; A / 10; A + 48; [E plus 22] = A;
+	B '% 10; B + 48; [E plus 23] = B; [E plus 24] = 0;
+	[VHPtelemetrybodylabel] = VHGhudbodylabel;
+    "VHG HUD labels prepared"
+	end;
+
+"VHG HUD label copy"
+	[VHGhudlabeli] = 0;
+    "VHG HUD label copy loop"
+	A = [VHGhudlabeli]; ? A >= [VHGhudlabellen] -> VHG HUD label copy done;
+	C = [VHGhudlabelsrc]; C + A; E = [VHGhudlabeldst]; E + A; [E] = [C];
+	[VHGhudlabeli]+; -> VHG HUD label copy loop;
+    "VHG HUD label copy done"
+	end;
+
 "VHG HUD telemetry prepare"
 	( NOCTIS.CPP outer HUD range rows.  Keep the source's binary64 distance,
 	  scale, nearest two-decimal conversion, and separate remote/local gates. )
-	[VHPtelemetrystar] = 0; [VHPtelemetrybody] = 0; => VHG fpu clean;
+	[VHPtelemetrystar] = 0; [VHPtelemetrybody] = 0;
+	=> VHG HUD labels prepare; => VHG fpu clean;
 	A = [MgAptgt]; ? A = 0 -> VHG HUD telemetry local;
 	A = [VHGlocalactive]; ? A != 0 -> VHG HUD telemetry current star;
 	[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1];

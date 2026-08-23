@@ -94,8 +94,15 @@
     "telemetry_inside_bright_pixels": 601,
     "telemetry_roof_bright_pixels": 63,
     "telemetry_brightness_mask_differences": 538,
-    "interior_status_and_telemetry_visible": true,
-    "roof_status_and_telemetry_absent": true
+    "label_crop": [27, 19, 294, 56],
+    "label_inside_index_sha256": "495e8a2f4c68da9c7a5df93e906242934045fac38a8093e6cf7c8d5d3c1e8440",
+    "label_roof_index_sha256": "b8d447ca893d1aca46c7c427dfd1895e412640a89385cedd5715d1fade9cf9a5",
+    "label_shared_palette_band_sha256": "d33498e16b51ef474a86b2c7ea87676524f1954b39f67a2a9093dcd284aff78d",
+    "label_inside_bright_pixels": 6522,
+    "label_roof_bright_pixels": 6247,
+    "label_brightness_mask_differences": 275,
+    "interior_status_telemetry_and_labels_visible": true,
+    "roof_status_telemetry_and_labels_absent": true
   },
   "product_contract": {
     "raw_clock": 1344638737,
@@ -103,21 +110,37 @@
     "star_local": [-33.337344046565704, 0.006575896761205513, -4.090433066477999],
     "radius": 0.007128,
     "distance": 0.012845967758806344,
-    "inside_complete_page_exact_indices": 22976,
+    "inside_complete_page_exact_indices": 22927,
     "inside_complete_page_palette_band_differences": 3932,
-    "roof_complete_page_exact_indices": 61097,
+    "roof_complete_page_exact_indices": 61107,
     "roof_complete_page_palette_band_differences": 1588,
-    "complete_palette_component_differences": 241,
-    "status_inside_bright_pixels": 602,
-    "status_roof_bright_pixels": 203,
-    "status_pair_brightness_mask_differences": 411,
-    "telemetry_inside_bright_pixels": 750,
+    "complete_palette_component_differences": {
+      "inside": 296,
+      "repeat_inside": 360,
+      "roof": 360
+    },
+    "palette_independent_raster_contract": true,
+    "status_inside_index_sha256": "7e388bc406fb6874ad4ce01ba6f26c5f6273074842b702d21970824d3e1bc2cf",
+    "status_roof_index_sha256": "5527c17c96ca9465995d5aaa6af76d2e7370452b2e54a0052aeef7c87097de2c",
+    "status_inside_bright_pixel_observations": [442, 394],
+    "status_roof_bright_pixels": 10,
+    "status_pair_minimum_brightness_delta": 384,
+    "telemetry_inside_index_sha256": "1dfb3ab0ce02fe7beecd279a9231df77fd09824dc8b4c1829f09e80e6a0ccbd4",
+    "telemetry_roof_index_sha256": "3509a6265431f94460016074ea8f05cb95b744dc7981a2fbc21a548bd773bd1e",
+    "telemetry_inside_bright_pixel_observations": [749, 732],
     "telemetry_roof_bright_pixels": 63,
-    "telemetry_inside_minus_roof_bright_pixels": 687,
+    "telemetry_inside_minimum_brightness_delta": 669,
     "roof_telemetry_crop_exact_indices": 4620,
+    "label_crop": [27, 19, 294, 56],
+    "label_inside_index_sha256": "250153d3c0ae521f43d291dc148cc810f6acc0025b55b80d4aaa0fc5443af493",
+    "label_roof_index_sha256": "bf06789b74452cf147d1bff2af08505c093acfeddfbc86bf85b3169055c41d88",
+    "label_inside_unique_indices": 117,
+    "label_roof_unique_indices": 46,
     "left_range_telemetry_restored": true,
+    "upper_target_labels_restored": true,
+    "editing_cursors_restored": false,
     "inside_full_overlay_parity": false,
-    "open_gap": "The product selects the adjacent roof branch, suppresses the status overlay, and restores materially visible source-shaped L.Y. and DYAMS range rows inside. Complete interior lighting, the upper target labels, and environmental text remain open."
+    "open_gap": "The product selects the adjacent roof branch; suppresses the status, telemetry, and upper-label rasters there; and restores source-shaped L.Y./DYAMS ranges plus catalogue-backed 24-character star/body labels inside. Complete interior lighting, exact projected font raster, interactive label-edit cursors, and environmental text remain open."
   },
   "authority": {
     "snapshot_camera_state_retained": true,
@@ -130,6 +153,6 @@
     "snapshot_simulation_state_retained": false,
     "simulation_reason": "The frozen continuity blocks and adapted pages were observed after BMP serialization and had already entered a following frame.",
     "whole_page_same_state_contract": false,
-    "admissible_contract": "The native pair authenticates the strict pos_y < -500 transition: at -500 the source keeps interior status and target telemetry, while at -501 it redraws the upper cupola after the hull and returns before those details. Product grading may require the exact adjacent cameras, bounded roof composition, and disappearance of the status overlay. Complete-page equality, exact lighting, and full product inside-overlay parity remain ungraded."
+    "admissible_contract": "The native pair authenticates the strict pos_y < -500 transition: at -500 the source keeps interior status, target ranges, and both fixed upper target-label rows, while at -501 it redraws the upper cupola after the hull and returns before those details. Product grading may require the exact adjacent cameras, bounded roof composition, stable scoped indexed rasters, and disappearance of all three overlay areas. Complete-page equality, exact lighting, editing-cursor parity, and full product inside-overlay parity remain ungraded."
   }
 }

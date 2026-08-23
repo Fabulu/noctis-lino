@@ -35,7 +35,7 @@ BOUNDARY_ROOF_ADAPTED_SHA256 = "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7
 PROVENANCE_SHA256 = "da981004d14e9ea86ceb608b419122b51ebd76c2d03c1c9e473e36d9d927e2cb"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
-BOUNDARY_PROVENANCE_SHA256 = "a6ba67e3f5684a5a133c6571cc52937544e9e4547ebddef656f010c4a8848ca4"
+BOUNDARY_PROVENANCE_SHA256 = "1a0c2ce0ba25e19ce0128ad453b0d4b49c8691258d8538d7333e46f347e31352"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
@@ -54,6 +54,15 @@ BOUNDARY_STATUS_BAND_SHA256 = "60dd0511b3f6976a2e00fde549b9dc2a6a2b5aed1f776dba5
 BOUNDARY_TELEMETRY_CROP = (20, 140, 130, 182)
 BOUNDARY_TELEMETRY_INSIDE_SHA256 = "2e9601d722a08754da45c990f015dee37716f260f822fd9c6beba6c02f8933cf"
 BOUNDARY_TELEMETRY_ROOF_SHA256 = "3509a6265431f94460016074ea8f05cb95b744dc7981a2fbc21a548bd773bd1e"
+BOUNDARY_LABEL_CROP = (27, 19, 294, 56)
+BOUNDARY_LABEL_INSIDE_SHA256 = "495e8a2f4c68da9c7a5df93e906242934045fac38a8093e6cf7c8d5d3c1e8440"
+BOUNDARY_LABEL_ROOF_SHA256 = "b8d447ca893d1aca46c7c427dfd1895e412640a89385cedd5715d1fade9cf9a5"
+BOUNDARY_LABEL_BAND_SHA256 = "d33498e16b51ef474a86b2c7ea87676524f1954b39f67a2a9093dcd284aff78d"
+PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256 = "7e388bc406fb6874ad4ce01ba6f26c5f6273074842b702d21970824d3e1bc2cf"
+PRODUCT_BOUNDARY_STATUS_ROOF_SHA256 = "5527c17c96ca9465995d5aaa6af76d2e7370452b2e54a0052aeef7c87097de2c"
+PRODUCT_BOUNDARY_TELEMETRY_INSIDE_SHA256 = "1dfb3ab0ce02fe7beecd279a9231df77fd09824dc8b4c1829f09e80e6a0ccbd4"
+PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256 = "250153d3c0ae521f43d291dc148cc810f6acc0025b55b80d4aaa0fc5443af493"
+PRODUCT_BOUNDARY_LABEL_ROOF_SHA256 = "bf06789b74452cf147d1bff2af08505c093acfeddfbc86bf85b3169055c41d88"
 DIAGNOSTIC_SIZES = (
     ("game-vh-out.bin", 156),
     ("game-sun-out.bin", 128),
@@ -345,24 +354,48 @@ def grade_boundary_product_pair(
         native_inside_page, native_inside_palette, BOUNDARY_STATUS_CROP))
     native_roof_status = sum(bright_mask(
         native_roof_page, native_roof_palette, BOUNDARY_STATUS_CROP))
+    product_inside_status_indices = crop_indices(
+        inside_page, BOUNDARY_STATUS_CROP)
+    product_roof_status_indices = crop_indices(
+        roof_page, BOUNDARY_STATUS_CROP)
     product_inside_status = sum(bright_mask(
         inside_page, inside_palette, BOUNDARY_STATUS_CROP))
     product_roof_status = sum(bright_mask(
         roof_page, roof_palette, BOUNDARY_STATUS_CROP))
+    # The complete product palette is intentionally ungraded and differs between
+    # otherwise index-identical private launches.  Pin the stronger stable raster
+    # contract here, while retaining the paired visibility/suppression delta.
     check(
         native_inside_status - native_roof_status == 465
-        and product_inside_status >= 580
+        and sha256(product_inside_status_indices) ==
+        PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256
+        and sha256(product_roof_status_indices) ==
+        PRODUCT_BOUNDARY_STATUS_ROOF_SHA256
         and product_roof_status <= 220
         and product_inside_status - product_roof_status >= 350,
-        "product crosses the strict boundary and suppresses the interior status overlay",
+        "product crosses the strict boundary and suppresses the exact interior status raster",
+    )
+
+    product_inside_labels = crop_indices(inside_page, BOUNDARY_LABEL_CROP)
+    product_roof_labels = crop_indices(roof_page, BOUNDARY_LABEL_CROP)
+    check(
+        sha256(product_inside_labels) == PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256
+        and sha256(product_roof_labels) == PRODUCT_BOUNDARY_LABEL_ROOF_SHA256,
+        "product restores the fixed upper target-label raster only inside",
     )
 
     native_roof_telemetry = crop_indices(
         native_roof_page, BOUNDARY_TELEMETRY_CROP)
+    product_inside_telemetry_indices = crop_indices(
+        inside_page, BOUNDARY_TELEMETRY_CROP)
     product_roof_telemetry = crop_indices(
         roof_page, BOUNDARY_TELEMETRY_CROP)
-    check(product_roof_telemetry == native_roof_telemetry,
-          "product exactly retains the roof early-return telemetry crop")
+    check(
+        sha256(product_inside_telemetry_indices) ==
+        PRODUCT_BOUNDARY_TELEMETRY_INSIDE_SHA256
+        and product_roof_telemetry == native_roof_telemetry,
+        "product restores the exact inside range raster and retains the roof early-return crop",
+    )
 
     inside_exact = sum(native == current
                        for native, current in zip(native_inside_page, inside_page))
@@ -557,6 +590,30 @@ def main() -> int:
             "native inside boundary adds target telemetry that the roof branch omits",
         )
 
+        boundary_inside_labels = crop_indices(
+            boundary_inside_page, BOUNDARY_LABEL_CROP)
+        boundary_roof_labels = crop_indices(
+            boundary_roof_page, BOUNDARY_LABEL_CROP)
+        boundary_inside_labels_bright = bright_mask(
+            boundary_inside_page, boundary_inside_palette, BOUNDARY_LABEL_CROP)
+        boundary_roof_labels_bright = bright_mask(
+            boundary_roof_page, boundary_roof_palette, BOUNDARY_LABEL_CROP)
+        check(
+            sha256(boundary_inside_labels) == BOUNDARY_LABEL_INSIDE_SHA256
+            and sha256(boundary_roof_labels) == BOUNDARY_LABEL_ROOF_SHA256
+            and sha256(crop_bands(
+                boundary_inside_page, BOUNDARY_LABEL_CROP)) ==
+            BOUNDARY_LABEL_BAND_SHA256
+            and crop_bands(boundary_inside_page, BOUNDARY_LABEL_CROP) ==
+            crop_bands(boundary_roof_page, BOUNDARY_LABEL_CROP)
+            and sum(boundary_inside_labels_bright) == 6522
+            and sum(boundary_roof_labels_bright) == 6247
+            and sum(inside and not outside for inside, outside in zip(
+                boundary_inside_labels_bright,
+                boundary_roof_labels_bright)) == 275,
+            "native inside boundary adds both upper target-label rows before the roof return",
+        )
+
     provenance_data = PROVENANCE.read_bytes()
     check(sha256(provenance_data.replace(b"\r\n", b"\n")) == PROVENANCE_SHA256,
           "paired lunar provenance has its pinned normalized SHA-256")
@@ -746,19 +803,43 @@ def main() -> int:
         and boundary_transition.get("status_inside_bright_pixels") == 699
         and boundary_transition.get("status_roof_bright_pixels") == 234
         and boundary_transition.get("telemetry_inside_bright_pixels") == 601
-        and boundary_transition.get("telemetry_roof_bright_pixels") == 63,
-        "cupola-boundary provenance pins the native status and telemetry transition",
+        and boundary_transition.get("telemetry_roof_bright_pixels") == 63
+        and boundary_transition.get("label_crop") == list(BOUNDARY_LABEL_CROP)
+        and boundary_transition.get("label_inside_index_sha256") ==
+        BOUNDARY_LABEL_INSIDE_SHA256
+        and boundary_transition.get("label_roof_index_sha256") ==
+        BOUNDARY_LABEL_ROOF_SHA256
+        and boundary_transition.get("label_inside_bright_pixels") == 6522
+        and boundary_transition.get("label_roof_bright_pixels") == 6247
+        and boundary_transition.get("label_brightness_mask_differences") == 275,
+        "cupola-boundary provenance pins the native status, range, and target-label transition",
     )
     check(
         boundary_product.get("raw_clock") == 1344638737
-        and boundary_product.get("inside_complete_page_exact_indices") == 22976
-        and boundary_product.get("telemetry_inside_bright_pixels") == 750
-        and boundary_product.get("telemetry_inside_minus_roof_bright_pixels") == 687
+        and boundary_product.get("inside_complete_page_exact_indices") == 22927
+        and boundary_product.get("inside_complete_page_palette_band_differences") == 3932
+        and boundary_product.get("roof_complete_page_exact_indices") == 61107
+        and boundary_product.get("roof_complete_page_palette_band_differences") == 1588
+        and boundary_product.get("palette_independent_raster_contract") is True
+        and boundary_product.get("status_inside_index_sha256") ==
+        PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256
+        and boundary_product.get("status_roof_index_sha256") ==
+        PRODUCT_BOUNDARY_STATUS_ROOF_SHA256
+        and boundary_product.get("telemetry_inside_index_sha256") ==
+        PRODUCT_BOUNDARY_TELEMETRY_INSIDE_SHA256
         and boundary_product.get("roof_telemetry_crop_exact_indices") == 4620
+        and boundary_product.get("label_crop") == list(BOUNDARY_LABEL_CROP)
+        and boundary_product.get("label_inside_index_sha256") ==
+        PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256
+        and boundary_product.get("label_roof_index_sha256") ==
+        PRODUCT_BOUNDARY_LABEL_ROOF_SHA256
         and boundary_product.get("left_range_telemetry_restored") is True
+        and boundary_product.get("upper_target_labels_restored") is True
+        and boundary_product.get("editing_cursors_restored") is False
         and boundary_product.get("inside_full_overlay_parity") is False
-        and "Complete interior lighting" in boundary_product.get("open_gap", ""),
-        "cupola-boundary provenance pins restored range rows and the remaining gap",
+        and "Complete interior lighting" in boundary_product.get("open_gap", "")
+        and "label-edit cursors" in boundary_product.get("open_gap", ""),
+        "cupola-boundary provenance pins restored ranges and labels without overclaiming cursors",
     )
     check(
         boundary_authority.get("snapshot_camera_state_retained") is True

@@ -24,6 +24,7 @@
 
 	vhcatfile = { STARMAP.BIN };
 	VHCATloaded = 0; VHCATok = 0; VHCATstatus = 0;
+	VHCATstarok = 0; VHCATbodyok = 0;
 	VHCATbytes = 0; VHCATrecs = 0; VHCATrecno = 0;
 	VHCATid0 = 0; VHCATid1 = 0; VHCATtype = 0; VHCATcode = 0;
 	VHCATlowhi = 0; VHCATlowlo = 0; VHCAT highhi = 0; VHCAT highlo = 0;
@@ -74,7 +75,7 @@
 	end;
 
 "VHCAT default labels"
-	[VHCATi] = 0;
+	[VHCATstarok] = 0; [VHCATbodyok] = 0; [VHCATi] = 0;
     "VHCAT clear labels"
 	E = vhcatstarlabel; E + [VHCATi]; [E] = 32;
 	E = vhcatbodylabel; E + [VHCATi]; [E] = 32;
@@ -189,7 +190,8 @@
 "VHCAT show star"
 	[VHCATtype] = VHCATS; [VHCATcode] = [VHTclass];
 	[VHCATid0] = [VHTid0]; [VHCATid1] = [VHTid1]; => VHCAT find;
-	A = [VHCATok]; ? A = 0 -> VHCAT show star done; => VHCAT copy label;
+	A = [VHCATok]; ? A = 0 -> VHCAT show star done;
+	[VHCATstarok] = 1; => VHCAT copy label;
     "VHCAT show star done"
 	end;
 
@@ -197,7 +199,8 @@
 	[VHCATtype] = VHCATP; A = [VHGplanet]; A + 1; [VHCATcode] = A;
 	[nsid0] = [VHTid0]; [nsid1] = [VHTid1]; [FI] = A; => NsIdentAddInt;
 	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT find;
-	A = [VHCATOk]; ? A = 0 -> VHCAT show body done; => VHCAT copy label;
+	A = [VHCATOk]; ? A = 0 -> VHCAT show body done;
+	[VHCATbodyok] = 1; => VHCAT copy label;
     "VHCAT show body done"
 	end;
 

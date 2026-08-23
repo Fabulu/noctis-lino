@@ -27,6 +27,7 @@
 	VHPoutptr = 0; VHPoutrows = 0; VHPoutview = 0; VHPouti = 0; VHPoutj = 0;
 	VHPfcsstatus = 0; VHPstatbase = 0; VHPstatlen = 0; VHPstatptr = 0;
 	VHPtelemetrystar = 0; VHPtelemetrybody = 0; VHPtelemetryptr = 0;
+	VHPtelemetrystarlabel = 0; VHPtelemetrybodylabel = 0;
 	VHPtelemetryi = 0; VHPtelemetrycolour = 0;
 	VHPmessage = 0;
 	VHPcx4 = 0; VHPxbase4 = 0;
@@ -894,11 +895,16 @@
 	end;
 
 "VH HUD telemetry"
-	( NOCTIS.CPP outer HUD range rows.  The source uses size-5 digit_at
-	  geometry at the fixed visor camera, advances cam_x by -40, and leaves
-	  one character cell between each two-decimal value and its unit. )
+	( NOCTIS.CPP outer HUD target labels and range rows.  All use size-5
+	  digit_at geometry, fixed visor cameras, and a -40 camera-X advance. )
 	A = [VHPfontok]; ? A = 0 -> VHP HUD telemetry done;
-	A = [VHPtelemetrystar]; ? A = 0 -> VHP HUD telemetry body;
+	A = [VHPtelemetrystarlabel]; ? A = 0 -> VHP HUD telemetry star range;
+	[VHVcamxi] = 450; [VHVcamyi] = 250;
+	A = 0; A - 750; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	[VHPtelemetryptr] = [VHPtelemetrystarlabel]; [VHPtelemetrycolour] = 127;
+	=> VHP HUD telemetry text;
+    "VHP HUD telemetry star range"
+	A = [VHPtelemetrystar]; ? A = 0 -> VHP HUD telemetry body label;
 	[VHVcamxi] = 450; A = 0; A - 180; [VHVcamyi] = A;
 	A = 0; A - 750; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;
 	[VHPtelemetryptr] = [VHPtelemetrystar]; [VHPtelemetrycolour] = 127;
@@ -906,7 +912,13 @@
 	A = [VHVcamxi]; A - 40; [VHVcamxi] = A; => VH set view;
 	[VHPtelemetryptr] = vhpstarunit; [VHPtelemetrycolour] = 112;
 	=> VHP HUD telemetry text;
-    "VHP HUD telemetry body"
+    "VHP HUD telemetry body label"
+	A = [VHPtelemetrybodylabel]; ? A = 0 -> VHP HUD telemetry body range;
+	[VHVcamxi] = 450; [VHVcamyi] = 180;
+	A = 0; A - 750; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	[VHPtelemetryptr] = [VHPtelemetrybodylabel]; [VHPtelemetrycolour] = 112;
+	=> VHP HUD telemetry text;
+    "VHP HUD telemetry body range"
 	A = [VHPtelemetrybody]; ? A = 0 -> VHP HUD telemetry done;
 	[VHVcamxi] = 450; A = 0; A - 250; [VHVcamyi] = A;
 	A = 0; A - 750; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;

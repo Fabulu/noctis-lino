@@ -1277,6 +1277,63 @@ def main() -> int:
         < interior_details.index("=> VHG interior smooth64; => VHG interior smooth64;"),
         "inside Stardrifter restores source-shaped two-decimal L.Y. and DYAMS range rows",
     )
+    label_prepare = section(
+        game, '"VHG HUD labels prepare"', '"VHG HUD telemetry prepare"'
+    )
+    catalog_labels = section(
+        catalog, '"VHCAT default labels"', '"VHCAT refresh"'
+    )
+    check(
+        all(token in original_outer_hud for token in (
+            "if (ap_targetting || ap_targetted)",
+            "cam_x = 450; cam_y = 250; cam_z = -750;",
+            "for (c = 0; c < 24; c++)",
+            "digit_at (star_label[c], -6, -15, 5, 127, 1);",
+            "if (ip_targetted!=-1)",
+            "update_planet_label ();",
+            "cam_x = 450; cam_y = 180; cam_z = -750;",
+            "digit_at (planet_label[c], -6, -15, 5, 112, 1);",
+        ))
+        and "VHGhudstardefault = { UNKNOWN STAR / CLASS };" in game
+        and "VHGhudplanetdefault = { NAMELESS PLANET / N. };" in game
+        and "VHGhudmoondefault = { NAMELESS MOON # };" in game
+        and "VHGhudstarlabel = 25;" in game
+        and "VHGhudbodylabel = 25;" in game
+        and all(token in catalog_labels for token in (
+            "[VHCATstarok] = 0; [VHCATbodyok] = 0;",
+            "[VHCATstarok] = 1; => VHCAT copy label;",
+            "[VHCATbodyok] = 1; => VHCAT copy label;",
+        ))
+        and all(token in label_prepare for token in (
+            "A = vhcatstarlabel; A + 1; [VHGhudlabelsrc] = A; [VHGhudlabellen] = 20;",
+            "E = VHGhudstarlabel; [E plus 20] = 32; [E plus 21] = 83;",
+            "[E plus 23] = B; [E plus 24] = 0;",
+            "A = vhcatbodylabel; A + 1; [VHGhudlabelsrc] = A; [VHGhudlabellen] = 20;",
+            "[VHGhudlabelsrc] = VHGhudplanetdefault; [VHGhudlabellen] = 20;",
+            "[VHGhudlabelsrc] = VHGhudmoondefault; [VHGhudlabellen] = 15;",
+            "[E plus 15] = A; B '% 10; B + 48; [E plus 16] = B;",
+            "[E plus 17] = 47; C = nspowner;",
+            "[E plus 20] = 38;",
+            "[E plus 21] = 80;",
+            "[VHPtelemetrystarlabel] = VHGhudstarlabel;",
+            "[VHPtelemetrybodylabel] = VHGhudbodylabel;",
+        ))
+        and "=> VHG HUD labels prepare; => VHG fpu clean;" in telemetry_prepare
+        and all(token in telemetry_draw for token in (
+            "[VHVcamxi] = 450; [VHVcamyi] = 250;",
+            "[VHPtelemetryptr] = [VHPtelemetrystarlabel]; [VHPtelemetrycolour] = 127;",
+            "[VHVcamxi] = 450; [VHVcamyi] = 180;",
+            "[VHPtelemetryptr] = [VHPtelemetrybodylabel]; [VHPtelemetrycolour] = 112;",
+            "? A = 0 -> VHP HUD telemetry text done;",
+        ))
+        and telemetry_draw.index("[VHPtelemetrystarlabel]")
+        < telemetry_draw.index("[VHPtelemetrystar]")
+        < telemetry_draw.index("[VHPtelemetrybodylabel]")
+        < telemetry_draw.index("[VHPtelemetrybody]")
+        and interior_details.index("=> VHG HUD telemetry prepare; => VH HUD telemetry;")
+        < interior_details.index("=> VHG interior smooth64; => VHG interior smooth64;"),
+        "inside Stardrifter restores native 24-character catalogue and fallback target labels",
+    )
     check(
         all(token in original1 for token in (
             "global_surface_seed = (nearstar_p_ray[ip_targetted]",

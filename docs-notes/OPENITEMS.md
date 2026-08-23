@@ -497,17 +497,28 @@ Both following native blocks retain the common state and star-local position,
 but their pages had advanced by 7,958 and 12,208 indices, so complete-page
 same-state authority remains disabled.
 
-At those exact product states, the just-outside page retains 61,097 native
-indices with 1,588 band differences, suppresses the interior status overlay,
-and remains byte-exact to native across all 4,620 pixels of the telemetry crop.
-The inside path now restores the two source range rows with the native binary64
+At those exact product states, the just-outside page retains 61,107 native
+indices with 1,588 band differences, suppresses the interior overlays, and
+remains byte-exact to native across all 4,620 pixels of the lower telemetry
+crop. The inside path retains the two source range rows with the native binary64
 `5E-5`/`1E-2` scales, two-decimal rounding, fixed visor cameras, indexed glyph
 geometry, colour bands, spacing, and `L.Y.`/`DYAMS` suffixes before both smoothing
-passes. A fresh compiled capture raises the inside crop from 22 to 750 bright
-pixels (native 601), while the roof crop remains unchanged at 63. The just-inside
-complete page retains 22,976 native indices with 3,932 band differences, so exact
-glyph raster, upper target labels, environmental text, complete interior lighting,
-and actual lift motion remain open rather than being claimed as full parity.
+passes. Repeated private launches retained identical scoped indexed rasters while
+the ungraded product palette varied; the exact range crop is therefore the
+runtime contract, with observed inside brightness of 749 and 732 pixels versus
+native 601 and an unchanged roof count of 63.
+
+The same path now restores the preceding fixed 24-character star and selected-
+body rows at native camera Y values `250` and `180`, colours `127` and `112`, and
+40-unit advances. Live `STARMAP.BIN` hits supply the 20-character names; unknown
+stars, planets, and moons retain the source `UNKNOWN STAR / CLASS Snn`,
+`NAMELESS PLANET / N. Pnn`, and `NAMELESS MOON #mm/pp&Pnn` forms. The native
+upper-label crop adds exactly 275 bright-mask pixels at the inside boundary; the
+product's repeat-stable indexed label crop is present inside and has the distinct
+roof-suppressed hash outside. The just-inside complete page retains 22,927 native
+indices with 3,932 band differences, so exact projected glyph raster, interactive
+editing cursors, environmental text, complete interior lighting, and actual lift
+motion remain open rather than being claimed as full parity.
 
 The generic orbital gallery had retained the target-local signs authored around
 the former missing exterior half-turn. After the camera repair those eleven
