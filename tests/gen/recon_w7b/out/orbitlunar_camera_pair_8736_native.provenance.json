@@ -96,6 +96,50 @@
       "stardrifter_occlusion_visible": true
     }
   },
+  "matched_product_interior_contract": {
+    "capture_state": {
+      "runner": "tools/capture_noctis_scenes.ps1",
+      "private_inactive_desktop": true,
+      "diagnostic_only": true,
+      "raw_clock": 1344638736,
+      "source_hud_enabled": true,
+      "open_hud_switch": true,
+      "camera": {
+        "user_alfa": 0.0,
+        "user_beta": -97.0,
+        "navigation_beta": 0.0,
+        "view_pitch": 0.0
+      },
+      "player_position": [0.0, 0.0, -500.0],
+      "orbital_local": [0.0, 0.0, 0.01283555],
+      "reason": "This interior authority requires -OpenHud. Without it, the moving or closed visor selects a materially different composition and is not graded against this crop."
+    },
+    "crop": [30, 30, 180, 150],
+    "crop_pixels": 18000,
+    "product_crop_index_sha256": "c0ecb6a4f83c25e2e4f8155adead874be686643d37bc9747f61dafc7b5a8050f",
+    "product_complete_page_index_sha256": "389fe5a318320dd10d95cc3cc12f18276c491cf60ee524a44b79693793f06e3f",
+    "product_palette_u32le_sha256": "f1478f556372e037cefa3551394315c8e1bb6c641283b3c1d41f54041b23e3ed",
+    "exact_indices": 17395,
+    "differing_indices": 605,
+    "palette_band_differences": 0,
+    "complete_page_index_mismatches": 4499,
+    "complete_palette_component_mismatches": 54,
+    "brightness_threshold": "maximum six-bit RGB component > 32",
+    "brightness_pixels": {
+      "native_page_native_palette": 8338,
+      "native_page_product_palette": 8338,
+      "product_page_native_palette": 8215,
+      "product_page_product_palette": 8215
+    },
+    "index_77_pixels": {
+      "native": 0,
+      "product": 0
+    },
+    "indexed_page_brightness_deficit_pixels": 123,
+    "palette_brightness_contribution_pixels": 0,
+    "source_repair_supported": false,
+    "interpretation": "The current 123-pixel brightness deficit is entirely selected by the indexed page: exchanging native and product palettes changes neither page's count. Index 77 occurs zero times in both crops. The 605 differences stay within the native palette bands; complete lighting, complete-page equality, and the 54 unretained palette-easing components remain ungraded pending a source-grounded raster divergence."
+  },
   "authority": {
     "snapshot_camera_state_retained": true,
     "camera_reason": "Each staged CURRENT.BIN and its post-snapshot continuity block contain identical position and camera angles.",

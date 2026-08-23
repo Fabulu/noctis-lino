@@ -33,13 +33,16 @@ BOUNDARY_INSIDE_SHA256 = "07873d1191f192135c4050c619230264eebba85114d850b19cf4e1
 BOUNDARY_INSIDE_ADAPTED_SHA256 = "b4d23838f12a91ebe2b67b291a7d8b6704ec1371af484eb663399314d731989f"
 BOUNDARY_ROOF_SHA256 = "b2af5163ef04975a09d05043adb486f511205ef5654511b314677961a2a9dcdf"
 BOUNDARY_ROOF_ADAPTED_SHA256 = "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7bf7f19f2278ca7ea"
-PROVENANCE_SHA256 = "da981004d14e9ea86ceb608b419122b51ebd76c2d03c1c9e473e36d9d927e2cb"
+PROVENANCE_SHA256 = "767c9eaf66ae742fff9bfce8fac41a17d7e5c89d89674cc16d3c4dd1de1325b5"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
 BOUNDARY_PROVENANCE_SHA256 = "198d1db85982088bde7509cbae2a6c47af5db3eac10b7732ee33449f01ec4c95"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
+PRODUCT_INTERIOR_CROP_SHA256 = "c0ecb6a4f83c25e2e4f8155adead874be686643d37bc9747f61dafc7b5a8050f"
+PRODUCT_INTERIOR_EXACT_INDICES = 17395
+PRODUCT_INTERIOR_BRIGHTNESS = (8338, 8338, 8215, 8215)
 LIMB_CROP = (10, 75, 90, 125)
 LIMB_BAND_SHA256 = "9f7d58392998a5134aba50a131a59dde46c60be997ad446e161bda6bad511be0"
 ROOF_CUPOLA_CROP = (10, 10, 310, 124)
@@ -209,19 +212,32 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
     check(not any(palette[3 * 128:3 * 192]),
           "planet-state product leaves the absent moon palette band black")
     if view == "interior":
+        native_crop = crop_indices(native_page, INTERIOR_CROP)
+        product_crop = crop_indices(page, INTERIOR_CROP)
         native_bands = crop_bands(native_page, INTERIOR_CROP)
         product_bands = crop_bands(page, INTERIOR_CROP)
         check(product_bands == native_bands,
               "product exactly retains the native interior/primary-flare palette-band geometry")
-        exact = sum(a == b for a, b in zip(
-            (native_page[y * 320 + x] for y in range(30, 150) for x in range(30, 180)),
-            (page[y * 320 + x] for y in range(30, 150) for x in range(30, 180)),
-        ))
-        check(exact >= 17000,
-              f"product retains at least 17,000 of 18,000 exact interior-flare indices ({exact})")
+        exact = sum(native == product
+                    for native, product in zip(native_crop, product_crop))
+        check(sha256(product_crop) == PRODUCT_INTERIOR_CROP_SHA256
+              and exact == PRODUCT_INTERIOR_EXACT_INDICES,
+              "matched open-HUD product retains the pinned interior-flare indices")
+        brightness = (
+            bright_crop_count(native_page, native_palette),
+            bright_crop_count(native_page, palette),
+            bright_crop_count(page, native_palette),
+            bright_crop_count(page, palette),
+        )
+        check(
+            brightness == PRODUCT_INTERIOR_BRIGHTNESS
+            and native_crop.count(77) == product_crop.count(77) == 0,
+            "four-way interior brightness isolates the 123-pixel deficit to indexed raster state",
+        )
         print("INFO interior-flare brightness remains ungraded "
-              f"(native {bright_crop_count(native_page, native_palette)}, "
-              f"product {bright_crop_count(page, palette)} pixels above component 32)")
+              f"(native/native {brightness[0]}, native/product {brightness[1]}, "
+              f"product/native {brightness[2]}, product/product {brightness[3]}; "
+              "palette contribution zero)")
     elif view == "limb":
         native_bands = crop_bands(native_page, LIMB_CROP)
         product_bands = crop_bands(page, LIMB_CROP)
@@ -707,6 +723,35 @@ def main() -> int:
         and authority.get("snapshot_simulation_state_retained") is False
         and authority.get("whole_page_same_state_contract") is False,
         "paired provenance states the admissible camera, page, palette, and state limits",
+    )
+    product_interior = provenance.get("matched_product_interior_contract", {})
+    product_capture = product_interior.get("capture_state", {})
+    product_brightness = product_interior.get("brightness_pixels", {})
+    check(
+        product_capture.get("private_inactive_desktop") is True
+        and product_capture.get("diagnostic_only") is True
+        and product_capture.get("raw_clock") == 1344638736
+        and product_capture.get("open_hud_switch") is True
+        and product_capture.get("camera", {}).get("user_beta") == -97.0
+        and product_capture.get("player_position") == [0.0, 0.0, -500.0],
+        "paired provenance pins the matched private open-HUD interior capture state",
+    )
+    check(
+        product_interior.get("product_crop_index_sha256") ==
+        PRODUCT_INTERIOR_CROP_SHA256
+        and product_interior.get("exact_indices") == PRODUCT_INTERIOR_EXACT_INDICES
+        and product_interior.get("differing_indices") == 605
+        and product_interior.get("palette_band_differences") == 0
+        and tuple(product_brightness.get(key) for key in (
+            "native_page_native_palette",
+            "native_page_product_palette",
+            "product_page_native_palette",
+            "product_page_product_palette",
+        )) == PRODUCT_INTERIOR_BRIGHTNESS
+        and product_interior.get("indexed_page_brightness_deficit_pixels") == 123
+        and product_interior.get("palette_brightness_contribution_pixels") == 0
+        and product_interior.get("source_repair_supported") is False,
+        "paired provenance records the indexed-raster-only interior brightness discriminator",
     )
 
     limb_provenance_data = LIMB_PROVENANCE.read_bytes()

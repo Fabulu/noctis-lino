@@ -432,19 +432,27 @@ fixture tree; no protected `.tmp-*` compiler or capture tree may be reused. A re
 `ROTOR.BIN` and its product-stage comparison therefore remain open rather than
 being inferred from the static instrumentation.
 
-**IDEAL orbital camera pair.** Two retained class-0/type-1 captures now bracket
+**IDEAL orbital camera pair.** Two retained class-0/type-1 captures bracket
 the same raw second, fixed-chase state, palette, and Stardrifter position while
 changing only `user_beta` from 0 to -97. The exterior view authenticates the
 complete lunar globe silhouette with the primary outside the viewport. The
 turned view authenticates the primary corona and radial rays through the
 Stardrifter interior, including ship occlusion. At the exact product clock and
 camera, the star-relative Stardrifter position differs by less than `1e-6` on
-every axis and the lunar radius and distance are exact. The exterior palette bands differ only
-at 35 product-only globe-limb pixels. All 18,000 pixels in the retained interior
-flare crop have the same native/product palette band, and 17,318 retain the exact
-index. Native/product brightness above six-bit component 32 is 8,338 versus
-7,890; complete-page and palette equality remain informational because the BMP
-capture still lacks snapshot-time simulation and palette-easing state.
+every axis and the lunar radius and distance are exact. The exterior palette bands
+differ only at 35 product-only globe-limb pixels.
+
+The current private-desktop interior capture also retains the required source HUD
+and `-OpenHud` composition. All 18,000 pixels in `(30,30)-(180,150)` retain the
+native palette band, and 17,395 retain the exact index. Exchanging the pages and
+palettes gives four brightness counts above six-bit component 32: native/native
+8,338, native/product 8,338, product/native 8,215, and product/product 8,215.
+Neither crop contains index 77. The current 123-pixel deficit is therefore
+entirely selected by the 605 same-band indexed-page differences; the 54 palette
+component differences contribute zero in this crop. No source-grounded repair is
+yet supported, and complete-page, complete-lighting, and complete-palette
+equality remain informational because the BMP capture still lacks snapshot-time
+simulation and palette-easing state.
 
 A third IDEAL capture now supplies the previously missing genuine primary-beside-
 globe positive. It holds the class-0/type-1 system at raw second `1344638736`,
@@ -560,9 +568,10 @@ The product now leaves that absent band at `PAL zero`. Fresh private inside and
 roof captures have zero nonzero components there and match all 192 native
 components exactly, removing 187 of the previous 241 complete-palette mismatches.
 The remaining 54 components are not graded as defects because the native snapshot
-did not retain its palette-easing phase. The interior flare crop uses only bands 0
-and 1, so its separate 8,338-versus-7,890 brightness gap is unaffected and remains
-open.
+did not retain its palette-easing phase. The matched open-HUD interior flare crop
+uses only bands 0 and 1; its four-way 8,338/8,338/8,215/8,215 brightness matrix
+proves those components contribute zero to the current 123-pixel gap. The 605
+same-band index differences remain open pending a source-grounded raster cause.
 
 Exact projected glyph raster across hosts, complete interior lighting, the
 remaining unretained palette-easing state, whole-row numerical environmental-state

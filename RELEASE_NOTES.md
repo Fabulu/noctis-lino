@@ -109,7 +109,14 @@ moon. In the retained planet state, source `surface()` owns only band 192; fresh
 inside and roof captures therefore leave band 128 black and match all 192 native
 moon-band components exactly. This removes 187 of the former 241 complete-palette
 mismatches, leaving 54 components tied to still-unretained palette-easing state.
-Repeated launches retain identical scoped indexed
+At the retained interior/primary-flare camera, a current private-desktop
+`-OpenHud` capture matches all 18,000 native palette bands and 17,395 exact
+indices. The native-page/native-palette, native-page/product-palette,
+product-page/native-palette, and product-page/product-palette brightness counts
+are respectively 8,338, 8,338, 8,215, and 8,215. Thus the current 123-pixel gap
+comes entirely from 605 same-band indexed-page differences; the current palette
+mismatch and index 77 contribute zero in this crop. No raster repair is claimed
+without a source-grounded cause. Repeated launches retain identical scoped indexed
 rasters despite palette variation, so those rasters—not unstable product
 brightness—grade the repair. Native direct star/body editing now owns character
 input ahead of all other hotkeys and preserves source uppercase conversion,
