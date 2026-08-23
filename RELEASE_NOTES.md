@@ -82,15 +82,15 @@ band and brightness classification, while the product's dark lunar mask differs
 only at 99 bounded limb pixels. A fourth matched IDEAL capture pins the stable
 Stardrifter roof branch at `(0,-750,-1900)`: the native BMP exactly retains its
 frozen 64,000-byte framebuffer, and the product preserves 59,804 exact page
-indices plus bounded upper-cupola and hull palette-band geometry. Native/product
-brightness and 241 active-palette component differences remain explicit rather
-than being treated as exact lighting. Complete-page and palette equality remain
+indices plus bounded upper-cupola and hull palette-band geometry. That retained
+pre-repair checkpoint also exposed its brightness and 241 active-palette
+component differences rather than treating them as exact lighting. Complete-page and palette equality remain
 informational under the retained adjacent-frame authority limits. An additional
 one-unit pair now pins the strict source `pos_y < -500` cupola transition: the
 `-500` frame retains interior status, target telemetry, and the two fixed upper
 target-label rows, while `-501` redraws the upper cupola after the hull and
 returns before those details. The product selects the same branch, retains
-61,616 native indices in the just-outside view, and exactly matches the
+61,619 native indices in the just-outside view, and exactly matches the
 4,620-pixel roof telemetry crop. The just-inside path restores the source-shaped,
 two-decimal `L.Y.` and `DYAMS` range rows plus the native-ordered 24-character
 star and selected-body labels. Live catalogue names produce `IDEAL S00` and
@@ -104,7 +104,12 @@ and roof product captures each match the native 28-by-5 `GRAVITY`/lower-left-lam
 crop byte-for-byte; its palette-independent mask contains the same exact 69
 pixels in both modes. This deliberately scoped runtime contract does not claim
 that the differing native and product numerical histories make the complete row
-byte-identical. Repeated launches retain identical scoped indexed
+byte-identical. The base palette also stops inventing a warm ramp for an absent
+moon. In the retained planet state, source `surface()` owns only band 192; fresh
+inside and roof captures therefore leave band 128 black and match all 192 native
+moon-band components exactly. This removes 187 of the former 241 complete-palette
+mismatches, leaving 54 components tied to still-unretained palette-easing state.
+Repeated launches retain identical scoped indexed
 rasters despite palette variation, so those rasters—not unstable product
 brightness—grade the repair. Native direct star/body editing now owns character
 input ahead of all other hotkeys and preserves source uppercase conversion,
@@ -119,9 +124,9 @@ underscore, and a same-phase invisible trailing-space edit translates only its
 72 old/new raster pixels by one fixed label position. The HUD projector now
 skips spaces and out-of-atlas bytes instead of redrawing its previous glyph
 through padded cells. Exact projected glyph raster across hosts, complete
-interior lighting, whole-row numerical environmental-state equality, and
-lift-motion fidelity remain explicit rather than being claimed as complete
-interior parity.
+interior lighting, the remaining unretained palette-easing state, whole-row
+numerical environmental-state equality, and lift-motion fidelity remain explicit
+rather than being claimed as complete interior parity.
 
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred

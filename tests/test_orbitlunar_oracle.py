@@ -36,7 +36,7 @@ BOUNDARY_ROOF_ADAPTED_SHA256 = "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7
 PROVENANCE_SHA256 = "da981004d14e9ea86ceb608b419122b51ebd76c2d03c1c9e473e36d9d927e2cb"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
-BOUNDARY_PROVENANCE_SHA256 = "cdd1d4553f8ee49686ba147616ec136628dcd87e05f09f8057660c68270aa2e7"
+BOUNDARY_PROVENANCE_SHA256 = "198d1db85982088bde7509cbae2a6c47af5db3eac10b7732ee33449f01ec4c95"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
@@ -206,6 +206,8 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
     page = (directory / "orbitlunar-game-page-out.bin").read_bytes()
     palette = struct.unpack(
         "<768I", (directory / "orbitlunar-game-palette-out.bin").read_bytes())
+    check(not any(palette[3 * 128:3 * 192]),
+          "planet-state product leaves the absent moon palette band black")
     if view == "interior":
         native_bands = crop_bands(native_page, INTERIOR_CROP)
         product_bands = crop_bands(page, INTERIOR_CROP)
@@ -357,6 +359,11 @@ def grade_boundary_product_pair(
 
     inside_page, inside_palette = product["inside"]
     roof_page, roof_palette = product["roof"]
+    check(
+        not any(inside_palette[3 * 128:3 * 192])
+        and not any(roof_palette[3 * 128:3 * 192]),
+        "boundary planet-state products leave the absent moon palette band black",
+    )
     roof_exact = sum(native == current
                      for native, current in zip(native_roof_page, roof_page))
     roof_band_differences = sum(
@@ -814,6 +821,7 @@ def main() -> int:
     boundary_product = boundary_provenance.get("product_contract", {})
     boundary_capture_state = boundary_product.get("capture_state", {})
     boundary_environment = boundary_product.get("environment_glyph_lamp_contract", {})
+    boundary_absent_moon = boundary_product.get("absent_moon_palette_contract", {})
     boundary_cursor = boundary_product.get("editing_cursor_raster_contract", {})
     boundary_editing = boundary_product.get("editing_runtime_contract", {})
     boundary_authority = boundary_provenance.get("authority", {})
@@ -874,10 +882,21 @@ def main() -> int:
     )
     check(
         boundary_product.get("raw_clock") == 1344638737
-        and boundary_product.get("inside_complete_page_exact_indices") == 23704
+        and boundary_product.get("inside_complete_page_exact_indices") == 23698
         and boundary_product.get("inside_complete_page_palette_band_differences") == 3932
-        and boundary_product.get("roof_complete_page_exact_indices") == 61616
+        and boundary_product.get("roof_complete_page_exact_indices") == 61619
         and boundary_product.get("roof_complete_page_palette_band_differences") == 1588
+        and boundary_product.get("complete_palette_component_differences") ==
+        {"inside": 54, "roof": 54}
+        and boundary_absent_moon.get("target_is_planet") is True
+        and boundary_absent_moon.get("band_indices") == [128, 192]
+        and boundary_absent_moon.get("components") == 192
+        and boundary_absent_moon.get("native_nonzero_components") == 0
+        and boundary_absent_moon.get("product_nonzero_components") == 0
+        and boundary_absent_moon.get("exact_components") == 192
+        and boundary_absent_moon.get("removed_bootstrap_component_mismatches") == 187
+        and boundary_absent_moon.get("complete_palette_component_mismatches_remaining") == 54
+        and boundary_absent_moon.get("complete_palette_equality_graded") is False
         and boundary_product.get("palette_independent_raster_contract") is True
         and boundary_capture_state.get("source_hud_enabled") is True
         and boundary_capture_state.get("open_hud_switch") is False
@@ -934,10 +953,12 @@ def main() -> int:
         and boundary_editing.get("consolidated_removal_result_code") == 4
         and boundary_product.get("inside_full_overlay_parity") is False
         and "complete interior lighting" in boundary_product.get("open_gap", "")
+        and "remaining unretained palette-easing state" in
+        boundary_product.get("open_gap", "")
         and "whole-row numerical environmental-state equality" in
         boundary_product.get("open_gap", "")
         and "runtime-proven direct-edit cursors" in boundary_product.get("open_gap", ""),
-        "cupola-boundary provenance pins restored ranges, labels, environmental HUD, and separately graded cursors",
+        "cupola-boundary provenance pins restored ranges, labels, environmental HUD, absent-moon palette, and separately graded cursors",
     )
     check(
         boundary_authority.get("snapshot_camera_state_retained") is True

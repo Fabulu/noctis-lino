@@ -457,9 +457,9 @@ immediately beside the dark lunar limb. The 4,000-pixel primary-window crop has
 exact native/product palette-band and brightness masks: 2,408 dark pixels and
 1,592 bright pixels. The native globe's band-3 mask is 8,620 pixels in
 `(106,51)-(217,148)`; the product has 8,535 in `(106,51)-(216,148)`, with only
-99 bounded limb-mask differences. The complete pages differ at 6,478 indices
-and their active palettes at 241 components, so those remain informational.
-This closes one real orbital beside-primary composition, not the companion-stage
+99 bounded limb-mask differences. The retained pre-repair complete pages differ at
+6,478 indices and their active palettes at 241 components, so those remain
+informational. This closes one real orbital beside-primary composition, not the companion-stage
 or Stardrifter transition gaps.
 
 **IDEAL roof/cupola checkpoint.** A fourth capture holds the same sync-0
@@ -478,9 +478,9 @@ in the upper exterior cupola/aperture crop and 18,586 of 19,800 in the lower
 hull crop; their palette-band differences are bounded at 1,660 and 1,190. This
 authenticates the stable roof branch's upper cupola, grid, aperture, and exterior
 hull composition while keeping the intensity gap explicit: native/product bright
-counts are 21,521/20,346 in the cupola crop and 622/307 in the hull crop, with
-241 active-palette component differences. Complete-page equality and exact
-lighting remain ungraded because the frozen continuity variables still follow
+counts are 21,521/20,346 in the cupola crop and 622/307 in the hull crop. The
+retained pre-repair product palette differed at 241 components. Complete-page and
+exact lighting remain ungraded because the frozen continuity variables still follow
 BMP serialization rather than being snapshot-atomic. This checkpoint protects
 one stationary exterior-cupola state.
 
@@ -497,7 +497,7 @@ Both following native blocks retain the common state and star-local position,
 but their pages had advanced by 7,958 and 12,208 indices, so complete-page
 same-state authority remains disabled.
 
-At those exact product states, the just-outside page retains 61,616 native
+At those exact product states, the just-outside page retains 61,619 native
 indices with 1,588 band differences, suppresses the interior overlays, and
 remains byte-exact to native across all 4,620 pixels of the lower telemetry
 crop. The inside path retains the two source range rows with the native binary64
@@ -517,7 +517,7 @@ upper-label crop adds exactly 275 bright-mask pixels at the inside boundary; the
 product's repeat-stable indexed label crop is present inside and has the distinct
 roof-suppressed hash outside. This contract uses the ordinary source-HUD-enabled
 capture state without `-OpenHud`; the replaced inside-label hash belonged to the
-moving open-visor composition. The just-inside complete page retains 23,704 native
+moving open-visor composition. The just-inside complete page retains 23,698 native
 indices with 3,932 band differences. Direct star/body editing is now closed by a
 private-inactive-desktop runtime gate: it proves editor input ownership, uppercase
 conversion, Backspace, physical-Escape cancellation while the key remains held
@@ -552,9 +552,22 @@ missing environmental HUD construction and its lamp interaction without claiming
 that different accumulated smoothing histories make all numerical glyphs across
 the complete row byte-identical.
 
-Exact projected glyph raster across hosts, complete interior lighting, whole-row
-numerical environmental-state equality, and actual lift motion remain open rather
-than being claimed as full parity.
+The first concrete palette divergence is also closed. `VHG palette` had invented a
+warm `128..191` bootstrap even when no resident moon owned that band. Native
+`surface()` selects and uploads band 128 only for a moon and band 192 for a planet;
+the retained IDEAL target is a planet and its native moon band is entirely black.
+The product now leaves that absent band at `PAL zero`. Fresh private inside and
+roof captures have zero nonzero components there and match all 192 native
+components exactly, removing 187 of the previous 241 complete-palette mismatches.
+The remaining 54 components are not graded as defects because the native snapshot
+did not retain its palette-easing phase. The interior flare crop uses only bands 0
+and 1, so its separate 8,338-versus-7,890 brightness gap is unaffected and remains
+open.
+
+Exact projected glyph raster across hosts, complete interior lighting, the
+remaining unretained palette-easing state, whole-row numerical environmental-state
+equality, and actual lift motion remain open rather than being claimed as full
+parity.
 
 The generic orbital gallery had retained the target-local signs authored around
 the former missing exterior half-turn. After the camera repair those eleven

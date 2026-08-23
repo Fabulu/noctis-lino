@@ -2145,6 +2145,23 @@ def main() -> int:
         )),
         "R and 6-9 restore onboard navigation/miscellaneous devices with live powered effects",
     )
+    base_palette = section(game, '"VHG palette"', '"VHG star palette"')
+    globe_palette = section(ground, '"VHGND globe surface"', '"VHGND general phase setup"')
+    check(
+        all(token in original for token in (
+            "tavola_colori (range8088, 0, 64, 16, 32, 63);",
+            "tavola_colori (tmppal, 0, 256, 64, 64, 64);",
+        ))
+        and "=> PAL zero; => PAL range;" in base_palette
+        and "[PVfirst] = 128;" not in base_palette
+        and all(token in globe_palette for token in (
+            "[SUcbase] = 192; [VHGNDcbase] = 192; => SU select planet;",
+            "[SUcbase] = 128; [VHGNDcbase] = 128; => SU select moon;",
+            "A = sutmppal; A + C; D = pal6; D + C;",
+            '"VHGND globe palette copy"',
+        )),
+        "an absent moon leaves palette band 128 black until a moon surface owns it",
+    )
     resident_scan = section(game, '"VHG local resident scan"', '"VHG local ensure surface"')
     external_camera = section(game, '"VHG render"', '"VHG close star rendered"')
     local_render = section(game, '"VHG local render"', '"VHG local ring"')

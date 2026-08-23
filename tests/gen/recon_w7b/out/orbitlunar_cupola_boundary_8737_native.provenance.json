@@ -110,15 +110,25 @@
     "star_local": [-33.337344046565704, 0.006575896761205513, -4.090433066477999],
     "radius": 0.007128,
     "distance": 0.012845967758806344,
-    "inside_complete_page_exact_indices": 23704,
+    "inside_complete_page_exact_indices": 23698,
     "inside_complete_page_palette_band_differences": 3932,
-    "roof_complete_page_exact_indices": 61616,
+    "roof_complete_page_exact_indices": 61619,
     "roof_complete_page_palette_band_differences": 1588,
     "complete_palette_component_differences": {
-      "inside": 241,
-      "repeat_inside": 241,
-      "roof": 241,
-      "repeat_roof": 241
+      "inside": 54,
+      "roof": 54
+    },
+    "absent_moon_palette_contract": {
+      "target_is_planet": true,
+      "band_indices": [128, 192],
+      "components": 192,
+      "native_nonzero_components": 0,
+      "product_nonzero_components": 0,
+      "exact_components": 192,
+      "removed_bootstrap_component_mismatches": 187,
+      "complete_palette_component_mismatches_remaining": 54,
+      "complete_palette_equality_graded": false,
+      "reason": "surface() uploads band 128 only for a resident moon and band 192 for a planet. The retained IDEAL target is a planet, so the absent moon band remains black; the remaining live-palette mismatch includes unretained easing state."
     },
     "palette_independent_raster_contract": true,
     "capture_state": {
@@ -196,7 +206,7 @@
       "consolidated_removal_result_code": 4
     },
     "inside_full_overlay_parity": false,
-    "open_gap": "The product selects the adjacent roof branch; suppresses the status, telemetry, and upper-label rasters there; and restores source-shaped L.Y./DYAMS ranges, catalogue-backed 24-character star/body labels, runtime-proven direct-edit cursors, and the mode-independent lower environmental HUD construction inside and on the roof. The scoped GRAVITY glyphs and lower-left lamp fringe match native indices exactly; complete interior lighting, projected font raster outside the scoped contracts, and whole-row numerical environmental-state equality remain open."
+    "open_gap": "The product selects the adjacent roof branch; suppresses the status, telemetry, and upper-label rasters there; and restores source-shaped L.Y./DYAMS ranges, catalogue-backed 24-character star/body labels, runtime-proven direct-edit cursors, and the mode-independent lower environmental HUD construction inside and on the roof. The scoped GRAVITY glyphs and lower-left lamp fringe match native indices exactly. The absent moon palette band now matches all 192 native black components, reducing the complete-palette mismatch from 241 to 54; complete interior lighting, the remaining unretained palette-easing state, projected font raster outside the scoped contracts, and whole-row numerical environmental-state equality remain open."
   },
   "authority": {
     "snapshot_camera_state_retained": true,
@@ -209,6 +219,6 @@
     "snapshot_simulation_state_retained": false,
     "simulation_reason": "The frozen continuity blocks and adapted pages were observed after BMP serialization and had already entered a following frame.",
     "whole_page_same_state_contract": false,
-    "admissible_contract": "The native pair authenticates the strict pos_y < -500 transition: at -500 the source keeps interior status, target ranges, and both fixed upper target-label rows, while at -501 it redraws the upper cupola after the hull and returns before those details. Product grading may require the exact adjacent cameras, bounded roof composition, stable scoped indexed rasters, disappearance of all three interior overlay areas, and the mode-independent GRAVITY/lower-left-lamp mask. Complete-page equality, exact lighting, whole-row numerical environmental-state equality, and full product inside-overlay parity remain ungraded; direct editing and its cursor raster are graded separately by the private-desktop runtime test."
+    "admissible_contract": "The native pair authenticates the strict pos_y < -500 transition: at -500 the source keeps interior status, target ranges, and both fixed upper target-label rows, while at -501 it redraws the upper cupola after the hull and returns before those details. Product grading may require the exact adjacent cameras, bounded roof composition, stable scoped indexed rasters, disappearance of all three interior overlay areas, the mode-independent GRAVITY/lower-left-lamp mask, and the exact black band for an absent moon. Complete-page and complete-palette equality, exact lighting, whole-row numerical environmental-state equality, and full product inside-overlay parity remain ungraded; direct editing and its cursor raster are graded separately by the private-desktop runtime test."
   }
 }
