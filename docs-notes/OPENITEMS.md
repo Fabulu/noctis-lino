@@ -482,8 +482,29 @@ counts are 21,521/20,346 in the cupola crop and 622/307 in the hull crop, with
 241 active-palette component differences. Complete-page equality and exact
 lighting remain ungraded because the frozen continuity variables still follow
 BMP serialization rather than being snapshot-atomic. This checkpoint protects
-one stationary exterior-cupola state; lift motion and the complete
-interior/cupola/roof transition remain open.
+one stationary exterior-cupola state.
+
+**IDEAL strict cupola-boundary pair.** Two further captures hold the same
+class-0/type-1 target, raw second `1344638737`, sync-0 ship position, stopped
+lift, palette, pitch, and outward heading. They differ only at the source's
+strict `pos_y < -500` predicate: `(0,-500,-1900)` remains inside, while
+`(0,-501,-1900)` selects `ontheroof`, redraws the upper cupola after the hull,
+and returns before interior details. The native pages retain 59,428 of 64,000
+identical indices with only 649 palette-band differences. In the status crop,
+the inside frame adds 465 bright pixels without changing any palette band; in
+the left target/FCS telemetry crop it adds 538 bright pixels, with none lost.
+Both following native blocks retain the common state and star-local position,
+but their pages had advanced by 7,958 and 12,208 indices, so complete-page
+same-state authority remains disabled.
+
+At those exact product states, the just-outside page retains 61,097 native
+indices with 1,588 band differences, suppresses the interior status overlay,
+and is byte-exact to native across all 4,620 pixels of the telemetry crop. This
+authenticates the strict product branch and roof early return. It also exposes a
+real remaining interior gap rather than hiding it: the just-inside product page
+retains only 23,579 native indices with 3,932 band differences, and has 22
+bright telemetry-crop pixels where native has 601. The missing left target/FCS
+overlay and complete inside lighting, plus actual lift motion, remain open.
 
 The generic orbital gallery had retained the target-local signs authored around
 the former missing exterior half-turn. After the camera repair those eleven

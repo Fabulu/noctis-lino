@@ -1,4 +1,4 @@
-"""Grade native lunar exterior, interior, limb, and roof/cupola oracles."""
+"""Grade native lunar exterior, interior, limb, roof, and cupola-boundary oracles."""
 
 from __future__ import annotations
 
@@ -16,18 +16,26 @@ INTERIOR = ORACLE_ROOT / "orbitlunar_interior_8736_native.shot.BMP"
 LIMB = ORACLE_ROOT / "orbitlunar_limb_pair_8736_native.shot.BMP"
 ROOF = ORACLE_ROOT / "orbitlunar_roof_8737_native.shot.BMP"
 ROOF_ADAPTED = ORACLE_ROOT / "orbitlunar_roof_8737_native.adapted"
+BOUNDARY_INSIDE = ORACLE_ROOT / "orbitlunar_cupola_boundary_inside_8737_native.shot.BMP"
+BOUNDARY_ROOF = ORACLE_ROOT / "orbitlunar_cupola_boundary_roof_8737_native.shot.BMP"
 PROVENANCE = ORACLE_ROOT / "orbitlunar_camera_pair_8736_native.provenance.json"
 LIMB_PROVENANCE = ORACLE_ROOT / "orbitlunar_limb_pair_8736_native.provenance.json"
 ROOF_PROVENANCE = ORACLE_ROOT / "orbitlunar_roof_8737_native.provenance.json"
+BOUNDARY_PROVENANCE = ORACLE_ROOT / "orbitlunar_cupola_boundary_8737_native.provenance.json"
 CAPTURE = ROOT / "tools" / "capture_noctis_scenes.ps1"
 EXTERIOR_SHA256 = "89579c32aaee28a93e5b28675921ca055a72c870fb1e00b9381308d3ab9aa559"
 INTERIOR_SHA256 = "f26d65b7c6a96aed4e34b7b4389cbfd65777e499f521a08f1e2d970ecdc20667"
 LIMB_SHA256 = "c35d22468bdf6e83a181dde4fca6567285268b7b4abb05997b86ab1e8db583c0"
 ROOF_SHA256 = "eac49d33b4596d74bee1896e37c344c84145668fa4367bf38f36da2e4b01cc06"
 ROOF_ADAPTED_SHA256 = "a3cf70e2861584f4aee90f10226c691ee2a0c055eadf3f06dc5032b93a0d1539"
+BOUNDARY_INSIDE_SHA256 = "07873d1191f192135c4050c619230264eebba85114d850b19cf4e12237b5cd0b"
+BOUNDARY_INSIDE_ADAPTED_SHA256 = "b4d23838f12a91ebe2b67b291a7d8b6704ec1371af484eb663399314d731989f"
+BOUNDARY_ROOF_SHA256 = "b2af5163ef04975a09d05043adb486f511205ef5654511b314677961a2a9dcdf"
+BOUNDARY_ROOF_ADAPTED_SHA256 = "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7bf7f19f2278ca7ea"
 PROVENANCE_SHA256 = "da981004d14e9ea86ceb608b419122b51ebd76c2d03c1c9e473e36d9d927e2cb"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
+BOUNDARY_PROVENANCE_SHA256 = "5d78276b92e142080c045d5b9967a3dd10922689817f0111c19c1e50c39c7bba"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
@@ -39,6 +47,13 @@ ROOF_CUPOLA_BAND_SHA256 = "1583adc5d2112dbea1f9898eeb26298ab777e3e06c1ced44f0189
 ROOF_HULL_CROP = (10, 124, 310, 190)
 ROOF_HULL_INDEX_SHA256 = "9ac54f78e3f15c35df6b9bf60e0e949043a16c5bdf911cd529b1b80ab60669be"
 ROOF_HULL_BAND_SHA256 = "b19a7b0de250f12d3670b81fe2fdcffccef6bc492ce6509525344d653e9eb923"
+BOUNDARY_STATUS_CROP = (215, 160, 315, 190)
+BOUNDARY_STATUS_INSIDE_SHA256 = "b01071ff806103b1223185b35282aacee691da7ca123c0ad53527914a79a2e37"
+BOUNDARY_STATUS_ROOF_SHA256 = "b6fc311eea84bb7772eaf716f091a9719e1b8d022dc550900fb0e078634dff61"
+BOUNDARY_STATUS_BAND_SHA256 = "60dd0511b3f6976a2e00fde549b9dc2a6a2b5aed1f776dba51d054c5eb553cb9"
+BOUNDARY_TELEMETRY_CROP = (20, 140, 130, 182)
+BOUNDARY_TELEMETRY_INSIDE_SHA256 = "2e9601d722a08754da45c990f015dee37716f260f822fd9c6beba6c02f8933cf"
+BOUNDARY_TELEMETRY_ROOF_SHA256 = "3509a6265431f94460016074ea8f05cb95b744dc7981a2fbc21a548bd773bd1e"
 DIAGNOSTIC_SIZES = (
     ("game-vh-out.bin", 156),
     ("game-sun-out.bin", 128),
@@ -262,13 +277,125 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
     print(f"INFO complete-palette equality is not graded ({palette_mismatches} component mismatches)")
 
 
+def grade_boundary_product_pair(
+        inside_directory: Path, roof_directory: Path,
+        native_inside_page: bytes, native_inside_palette: tuple[int, ...],
+        native_roof_page: bytes, native_roof_palette: tuple[int, ...],
+        native_local: tuple[float, ...], check) -> None:
+    directories = {
+        "inside": (inside_directory, -500),
+        "roof": (roof_directory, -501),
+    }
+    for label, (directory, _player_y) in directories.items():
+        for path, size in diagnostic_paths(directory):
+            check(path.is_file() and path.stat().st_size == size,
+                  f"boundary {label} product emitted {path.name} at exactly {size} bytes")
+    if not all(
+            path.is_file() and path.stat().st_size == size
+            for directory, _player_y in directories.values()
+            for path, size in diagnostic_paths(directory)):
+        return
+
+    product = {}
+    for label, (directory, player_y) in directories.items():
+        local = (directory / "orbitlunar-game-local-out.bin").read_bytes()
+        header = struct.unpack_from("<8i", local)
+        binary64 = lambda unit: struct.unpack_from("<d", local, unit * 4)[0]
+        ship = (binary64(8), binary64(10), binary64(12))
+        target = (binary64(14), binary64(16), binary64(18))
+        product_local = tuple(target[index] + ship[index] for index in range(3))
+        check(
+            header[:2] == (0, 1) and header[3:] ==
+            (1344638737, 0, 180, 0, 1),
+            f"boundary {label} product retains the matched orbital clock and camera",
+        )
+        check(
+            all(abs(native_local[index] - product_local[index]) < 0.000001
+                for index in range(3))
+            and abs(binary64(20) - 0.007128) < 1e-12
+            and abs(binary64(22) - 0.012845967758806344) < 1e-12,
+            f"boundary {label} product retains the native local pose, radius, and distance",
+        )
+        view_state = struct.unpack(
+            "<39i", (directory / "orbitlunar-game-vh-out.bin").read_bytes())
+        check(view_state[:5] == (0, player_y, -1900, 0, 180),
+              f"boundary {label} product retains its exact one-unit camera")
+        sun = struct.unpack(
+            "<32i", (directory / "orbitlunar-game-sun-out.bin").read_bytes())
+        check(sun[:4] == (0, 1, 1, 0),
+              f"boundary {label} product retains the class-0/type-1 local context")
+        product[label] = (
+            (directory / "orbitlunar-game-page-out.bin").read_bytes(),
+            struct.unpack(
+                "<768I", (directory / "orbitlunar-game-palette-out.bin").read_bytes()),
+        )
+
+    inside_page, inside_palette = product["inside"]
+    roof_page, roof_palette = product["roof"]
+    roof_exact = sum(native == current
+                     for native, current in zip(native_roof_page, roof_page))
+    roof_band_differences = sum(
+        native >> 6 != current >> 6
+        for native, current in zip(native_roof_page, roof_page)
+    )
+    check(roof_exact >= 61000 and roof_band_differences <= 1600,
+          "product retains the native just-outside roof composition with bounded bands")
+
+    native_inside_status = sum(bright_mask(
+        native_inside_page, native_inside_palette, BOUNDARY_STATUS_CROP))
+    native_roof_status = sum(bright_mask(
+        native_roof_page, native_roof_palette, BOUNDARY_STATUS_CROP))
+    product_inside_status = sum(bright_mask(
+        inside_page, inside_palette, BOUNDARY_STATUS_CROP))
+    product_roof_status = sum(bright_mask(
+        roof_page, roof_palette, BOUNDARY_STATUS_CROP))
+    check(
+        native_inside_status - native_roof_status == 465
+        and product_inside_status >= 580
+        and product_roof_status <= 220
+        and product_inside_status - product_roof_status >= 350,
+        "product crosses the strict boundary and suppresses the interior status overlay",
+    )
+
+    native_roof_telemetry = crop_indices(
+        native_roof_page, BOUNDARY_TELEMETRY_CROP)
+    product_roof_telemetry = crop_indices(
+        roof_page, BOUNDARY_TELEMETRY_CROP)
+    check(product_roof_telemetry == native_roof_telemetry,
+          "product exactly retains the roof early-return telemetry crop")
+
+    inside_exact = sum(native == current
+                       for native, current in zip(native_inside_page, inside_page))
+    inside_band_differences = sum(
+        native >> 6 != current >> 6
+        for native, current in zip(native_inside_page, inside_page)
+    )
+    native_inside_telemetry = sum(bright_mask(
+        native_inside_page, native_inside_palette, BOUNDARY_TELEMETRY_CROP))
+    product_inside_telemetry = sum(bright_mask(
+        inside_page, inside_palette, BOUNDARY_TELEMETRY_CROP))
+    print("INFO complete inside-boundary parity remains open "
+          f"({inside_exact} exact indices, {inside_band_differences} band differences; "
+          f"native/product telemetry brightness {native_inside_telemetry}/"
+          f"{product_inside_telemetry})")
+    print("INFO boundary palettes remain ungraded "
+          f"(inside {sum(a != b for a, b in zip(native_inside_palette, inside_palette))}, "
+          f"roof {sum(a != b for a, b in zip(native_roof_palette, roof_palette))} "
+          "component mismatches)")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--exterior-product-directory", type=Path)
     parser.add_argument("--interior-product-directory", type=Path)
     parser.add_argument("--limb-product-directory", type=Path)
     parser.add_argument("--roof-product-directory", type=Path)
+    parser.add_argument("--boundary-inside-product-directory", type=Path)
+    parser.add_argument("--boundary-roof-product-directory", type=Path)
     args = parser.parse_args()
+    if ((args.boundary_inside_product_directory is None) !=
+            (args.boundary_roof_product_directory is None)):
+        parser.error("boundary inside and roof product directories must be supplied together")
     failures = []
 
     def check(condition: bool, message: str) -> None:
@@ -281,6 +408,8 @@ def main() -> int:
     limb_data = LIMB.read_bytes()
     roof_data = ROOF.read_bytes()
     roof_adapted = ROOF_ADAPTED.read_bytes()
+    boundary_inside_data = BOUNDARY_INSIDE.read_bytes()
+    boundary_roof_data = BOUNDARY_ROOF.read_bytes()
     check(sha256(exterior_data) == EXTERIOR_SHA256,
           "retained lunar exterior BMP has its pinned SHA-256")
     check(sha256(interior_data) == INTERIOR_SHA256,
@@ -292,15 +421,23 @@ def main() -> int:
     check(len(roof_adapted) == 65540
           and sha256(roof_adapted) == ROOF_ADAPTED_SHA256,
           "retained post-snapshot roof state has its pinned size and SHA-256")
+    check(sha256(boundary_inside_data) == BOUNDARY_INSIDE_SHA256,
+          "retained just-inside cupola-boundary BMP has its pinned SHA-256")
+    check(sha256(boundary_roof_data) == BOUNDARY_ROOF_SHA256,
+          "retained just-outside cupola-boundary BMP has its pinned SHA-256")
     try:
         exterior_page, exterior_palette = decode_bmp(EXTERIOR)
         interior_page, interior_palette = decode_bmp(INTERIOR)
         limb_page, limb_palette = decode_bmp(LIMB)
         roof_page, roof_palette = decode_bmp(ROOF)
+        boundary_inside_page, boundary_inside_palette = decode_bmp(BOUNDARY_INSIDE)
+        boundary_roof_page, boundary_roof_palette = decode_bmp(BOUNDARY_ROOF)
     except (AssertionError, OSError, struct.error) as error:
         check(False, f"lunar native BMPs decode safely: {error}")
         exterior_page = interior_page = limb_page = roof_page = b""
+        boundary_inside_page = boundary_roof_page = b""
         exterior_palette = interior_palette = limb_palette = roof_palette = ()
+        boundary_inside_palette = boundary_roof_palette = ()
     else:
         check(sha256(exterior_page) ==
               "e032b578eff11f78ca220dbfa5f6df0aae4c4940f7b93ebbf3d47f7b6df2d83a",
@@ -314,10 +451,17 @@ def main() -> int:
         check(sha256(roof_page) ==
               "87c6f02bb3a4df3f8e4b92eb5d2089d22302d4fa7836113d54202d0280b741c9",
               "native roof view retains its complete indexed page")
+        check(sha256(boundary_inside_page) ==
+              "1a622a00990b9be780d6dfa3311291657ac6722541dfea10eed07d163abe4bed",
+              "native just-inside boundary retains its complete indexed page")
+        check(sha256(boundary_roof_page) ==
+              "021b27b9b824f4d090fbd7aa0beca4d5fe780eebd3a14f8e694256ae83d8a950",
+              "native just-outside boundary retains its complete indexed page")
         check(roof_page == roof_adapted[:64000],
               "native roof BMP exactly retains the frozen post-snapshot framebuffer")
         check(sha256(bytes(exterior_palette)) == PALETTE_SHA256
-              and exterior_palette == interior_palette == limb_palette == roof_palette,
+              and exterior_palette == interior_palette == limb_palette == roof_palette
+              == boundary_inside_palette == boundary_roof_palette,
               "all native lunar views retain the same exact active six-bit palette")
         check(band_geometry(exterior_page, 3) == (9232, (98, 52, 216, 149)),
               "native exterior retains the complete lunar globe silhouette")
@@ -350,6 +494,60 @@ def main() -> int:
               and sum(bright_mask(roof_page, roof_palette,
                                   ROOF_HULL_CROP)) == 622,
               "native roof view retains the exterior hull below the aperture")
+
+        boundary_pair_exact = sum(
+            inside == outside
+            for inside, outside in zip(boundary_inside_page, boundary_roof_page)
+        )
+        boundary_pair_band_differences = sum(
+            inside >> 6 != outside >> 6
+            for inside, outside in zip(boundary_inside_page, boundary_roof_page)
+        )
+        check(boundary_pair_exact == 59428
+              and boundary_pair_band_differences == 649,
+              "native one-unit pair retains its complete strict-boundary delta")
+
+        boundary_inside_status = crop_indices(
+            boundary_inside_page, BOUNDARY_STATUS_CROP)
+        boundary_roof_status = crop_indices(
+            boundary_roof_page, BOUNDARY_STATUS_CROP)
+        boundary_inside_status_bright = bright_mask(
+            boundary_inside_page, boundary_inside_palette, BOUNDARY_STATUS_CROP)
+        boundary_roof_status_bright = bright_mask(
+            boundary_roof_page, boundary_roof_palette, BOUNDARY_STATUS_CROP)
+        check(
+            sha256(boundary_inside_status) == BOUNDARY_STATUS_INSIDE_SHA256
+            and sha256(boundary_roof_status) == BOUNDARY_STATUS_ROOF_SHA256
+            and sha256(crop_bands(
+                boundary_inside_page, BOUNDARY_STATUS_CROP)) ==
+            BOUNDARY_STATUS_BAND_SHA256
+            and crop_bands(boundary_inside_page, BOUNDARY_STATUS_CROP) ==
+            crop_bands(boundary_roof_page, BOUNDARY_STATUS_CROP)
+            and sum(boundary_inside_status_bright) == 699
+            and sum(boundary_roof_status_bright) == 234
+            and sum(inside and not outside for inside, outside in zip(
+                boundary_inside_status_bright, boundary_roof_status_bright)) == 465,
+            "native inside boundary adds the FCS status before the roof early return",
+        )
+
+        boundary_inside_telemetry = crop_indices(
+            boundary_inside_page, BOUNDARY_TELEMETRY_CROP)
+        boundary_roof_telemetry = crop_indices(
+            boundary_roof_page, BOUNDARY_TELEMETRY_CROP)
+        boundary_inside_telemetry_bright = bright_mask(
+            boundary_inside_page, boundary_inside_palette, BOUNDARY_TELEMETRY_CROP)
+        boundary_roof_telemetry_bright = bright_mask(
+            boundary_roof_page, boundary_roof_palette, BOUNDARY_TELEMETRY_CROP)
+        check(
+            sha256(boundary_inside_telemetry) == BOUNDARY_TELEMETRY_INSIDE_SHA256
+            and sha256(boundary_roof_telemetry) == BOUNDARY_TELEMETRY_ROOF_SHA256
+            and sum(boundary_inside_telemetry_bright) == 601
+            and sum(boundary_roof_telemetry_bright) == 63
+            and sum(inside and not outside for inside, outside in zip(
+                boundary_inside_telemetry_bright,
+                boundary_roof_telemetry_bright)) == 538,
+            "native inside boundary adds target telemetry that the roof branch omits",
+        )
 
     provenance_data = PROVENANCE.read_bytes()
     check(sha256(provenance_data.replace(b"\r\n", b"\n")) == PROVENANCE_SHA256,
@@ -480,6 +678,87 @@ def main() -> int:
         "roof provenance states the admissible page, palette, camera, and state limits",
     )
 
+    boundary_provenance_data = BOUNDARY_PROVENANCE.read_bytes()
+    check(sha256(boundary_provenance_data.replace(b"\r\n", b"\n")) ==
+          BOUNDARY_PROVENANCE_SHA256,
+          "cupola-boundary provenance has its pinned normalized SHA-256")
+    try:
+        boundary_provenance = json.loads(boundary_provenance_data)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        check(False, f"cupola-boundary provenance decodes safely: {error}")
+        boundary_provenance = {}
+    boundary_branch = boundary_provenance.get("source_branch", {})
+    boundary_common = boundary_provenance.get(
+        "continuity_after_snapshot", {}).get("common", {})
+    boundary_capture = boundary_provenance.get("capture", {})
+    boundary_transition = boundary_provenance.get("native_transition", {})
+    boundary_product = boundary_provenance.get("product_contract", {})
+    boundary_authority = boundary_provenance.get("authority", {})
+    check(
+        boundary_provenance.get("star") == [174288, -44389, -688771]
+        and boundary_provenance.get("target_body") == 0
+        and boundary_provenance.get("target_type") == 1
+        and boundary_provenance.get("star_class") == 0,
+        "cupola-boundary provenance identifies the same IDEAL I system",
+    )
+    check(
+        boundary_branch.get("predicate") == "pos_y < -500"
+        and boundary_branch.get("inside_position") == [0.0, -500.0, -1900.0]
+        and boundary_branch.get("roof_position") == [0.0, -501.0, -1900.0]
+        and boundary_branch.get("inside_ontheroof") is False
+        and boundary_branch.get("roof_ontheroof") is True,
+        "cupola-boundary provenance pins the exact strict source branch",
+    )
+    check(
+        boundary_common.get("sync") == 0
+        and boundary_common.get("fcs_status") == "STANDBY"
+        and boundary_common.get("secs") == 1344638737.0
+        and boundary_common.get("lifter") == 0
+        and boundary_common.get("user_beta") == 180.0
+        and boundary_common.get("star_local") ==
+        [-33.337344046565704, 0.006575896761205513, -4.090433066477999],
+        "cupola-boundary provenance brackets one shared stopped-flight state",
+    )
+    inside_capture = boundary_capture.get("inside_boundary", {})
+    outside_capture = boundary_capture.get("roof_boundary", {})
+    check(
+        inside_capture.get("frozen_adapted_sha256") ==
+        BOUNDARY_INSIDE_ADAPTED_SHA256
+        and inside_capture.get("page_vs_frozen_adapted_differences") == 7958
+        and outside_capture.get("frozen_adapted_sha256") ==
+        BOUNDARY_ROOF_ADAPTED_SHA256
+        and outside_capture.get("page_vs_frozen_adapted_differences") == 12208
+        and boundary_capture.get("sandbox_restored") is True,
+        "cupola-boundary provenance retains both following-frame limits",
+    )
+    check(
+        boundary_transition.get("complete_page_exact_indices") == 59428
+        and boundary_transition.get(
+            "complete_page_palette_band_differences") == 649
+        and boundary_transition.get("status_inside_bright_pixels") == 699
+        and boundary_transition.get("status_roof_bright_pixels") == 234
+        and boundary_transition.get("telemetry_inside_bright_pixels") == 601
+        and boundary_transition.get("telemetry_roof_bright_pixels") == 63,
+        "cupola-boundary provenance pins the native status and telemetry transition",
+    )
+    check(
+        boundary_product.get("raw_clock") == 1344638737
+        and boundary_product.get("inside_full_overlay_parity") is False
+        and boundary_product.get("roof_telemetry_crop_exact_indices") == 4620
+        and "omits" in boundary_product.get("open_gap", ""),
+        "cupola-boundary provenance keeps the product inside-overlay gap explicit",
+    )
+    check(
+        boundary_authority.get("snapshot_camera_state_retained") is True
+        and boundary_authority.get("snapshot_page_and_palette_retained") is True
+        and boundary_authority.get("post_snapshot_page_identity_retained") is False
+        and boundary_authority.get("adjacent_simulation_bracket_retained") is True
+        and boundary_authority.get("paired_state_except_camera_y_retained") is True
+        and boundary_authority.get("snapshot_simulation_state_retained") is False
+        and boundary_authority.get("whole_page_same_state_contract") is False,
+        "cupola-boundary provenance states the admissible branch and state limits",
+    )
+
     capture = CAPTURE.read_text(encoding="utf-8")
     check(
         all(name in capture for name in (
@@ -514,6 +793,7 @@ def main() -> int:
     interior_local = tuple(interior_state.get("star_local", ()))
     limb_local = tuple(limb_state.get("star_local", ()))
     roof_local = tuple(roof_state.get("star_local", ()))
+    boundary_local = tuple(boundary_common.get("star_local", ()))
     if args.exterior_product_directory is not None and exterior_page:
         grade_product(args.exterior_product_directory, 0, exterior_page,
                       exterior_palette, exterior_local, "exterior", check)
@@ -526,6 +806,15 @@ def main() -> int:
     if args.roof_product_directory is not None and roof_page:
         grade_product(args.roof_product_directory, 180, roof_page,
                       roof_palette, roof_local, "roof", check)
+    if (args.boundary_inside_product_directory is not None
+            and boundary_inside_page and boundary_roof_page):
+        grade_boundary_product_pair(
+            args.boundary_inside_product_directory,
+            args.boundary_roof_product_directory,
+            boundary_inside_page, boundary_inside_palette,
+            boundary_roof_page, boundary_roof_palette,
+            boundary_local, check,
+        )
 
     if failures:
         print(f"orbitlunar oracle: {len(failures)} failure(s)")

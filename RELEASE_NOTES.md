@@ -85,7 +85,15 @@ frozen 64,000-byte framebuffer, and the product preserves 59,804 exact page
 indices plus bounded upper-cupola and hull palette-band geometry. Native/product
 brightness and 241 active-palette component differences remain explicit rather
 than being treated as exact lighting. Complete-page and palette equality remain
-informational under the retained adjacent-frame authority limits.
+informational under the retained adjacent-frame authority limits. An additional
+one-unit pair now pins the strict source `pos_y < -500` cupola transition: the
+`-500` frame retains interior status and target telemetry, while `-501` redraws
+the upper cupola after the hull and returns before those details. The product
+selects the same branch, retains 61,097 native indices in the just-outside view,
+and exactly matches the 4,620-pixel roof telemetry crop. Its just-inside view
+still omits the native left target/FCS overlay and has wider lighting differences;
+that gap and lift-motion fidelity remain explicit rather than being claimed as
+complete interior parity.
 
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred

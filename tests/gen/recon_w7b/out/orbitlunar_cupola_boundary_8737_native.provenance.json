@@ -1,0 +1,133 @@
+{
+  "artifacts": {
+    "inside_boundary": {
+      "file": "orbitlunar_cupola_boundary_inside_8737_native.shot.BMP",
+      "sha256": "07873d1191f192135c4050c619230264eebba85114d850b19cf4e12237b5cd0b",
+      "indexed_page_sha256": "1a622a00990b9be780d6dfa3311291657ac6722541dfea10eed07d163abe4bed",
+      "six_bit_palette_sha256": "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
+    },
+    "roof_boundary": {
+      "file": "orbitlunar_cupola_boundary_roof_8737_native.shot.BMP",
+      "sha256": "b2af5163ef04975a09d05043adb486f511205ef5654511b314677961a2a9dcdf",
+      "indexed_page_sha256": "021b27b9b824f4d090fbd7aa0beca4d5fe780eebd3a14f8e694256ae83d8a950",
+      "six_bit_palette_sha256": "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
+    }
+  },
+  "star": [174288, -44389, -688771],
+  "target_body": 0,
+  "target_type": 1,
+  "star_class": 0,
+  "source_branch": {
+    "predicate": "pos_y < -500",
+    "inside_position": [0.0, -500.0, -1900.0],
+    "roof_position": [0.0, -501.0, -1900.0],
+    "camera_y_separation": 1.0,
+    "inside_ontheroof": false,
+    "roof_ontheroof": true,
+    "roof_render_order": "upper cupola after hull, then return before interior details"
+  },
+  "camera": {
+    "user_alfa": 0.0,
+    "user_beta": 180.0,
+    "navigation_beta": 0.0
+  },
+  "staged_state": {
+    "sync": 0,
+    "secs": 1344638497.2631578,
+    "star_local": [-33.337344046564766, 0.006575896758854271, -4.09043306650612]
+  },
+  "continuity_after_snapshot": {
+    "common": {
+      "ram_offset": 206300,
+      "sync": 0,
+      "ip_targetted": 0,
+      "ip_reached": 1,
+      "ap_reached": 1,
+      "pwr": 19997,
+      "fcs_status": "STANDBY",
+      "secs": 1344638737.0,
+      "lifter": 0,
+      "user_alfa": 0.0,
+      "user_beta": 180.0,
+      "navigation_beta": 0.0,
+      "dzat": [174254.66265595343, -44388.99342410324, -688775.0904330665],
+      "star_local": [-33.337344046565704, 0.006575896761205513, -4.090433066477999]
+    },
+    "inside_boundary_position": [0.0, -500.0, -1900.0],
+    "roof_boundary_position": [0.0, -501.0, -1900.0]
+  },
+  "capture": {
+    "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+    "timeout_seconds": 360,
+    "stop_poll_milliseconds": 1,
+    "stop_after_file_bytes": 65078,
+    "delayed_snapshot_key_milliseconds": [240000, 300000],
+    "command_sha256": "14508c7c57037cb972c2096bfc6b2aaa76bf532a028971fd7b4d56df7ab51d48",
+    "inside_boundary": {
+      "precapture_current_sha256": "82b8ff088f4e6b9271f7d4acabc1ae79efdc947cd802c1a89682c10fe9be1e77",
+      "frozen_ram_sha256": "5297d82f19fde2383ea4b025f92dbabbcf995e28ce7e831470399a7ac79cfce2",
+      "frozen_adapted_sha256": "b4d23838f12a91ebe2b67b291a7d8b6704ec1371af484eb663399314d731989f",
+      "page_vs_frozen_adapted_differences": 7958
+    },
+    "roof_boundary": {
+      "precapture_current_sha256": "17df4853be2d617c61b199a9e1d027c2f07de04f41feb584036285172436db2a",
+      "frozen_ram_sha256": "046c66ce7c4310c342f2ac33bccee7e82188838866a4edec7b978a7df02570fa",
+      "frozen_adapted_sha256": "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7bf7f19f2278ca7ea",
+      "page_vs_frozen_adapted_differences": 12208
+    },
+    "sandbox_restored": true
+  },
+  "native_transition": {
+    "complete_page_exact_indices": 59428,
+    "complete_page_palette_band_differences": 649,
+    "complete_page_brightness_mask_differences": 2417,
+    "status_crop": [215, 160, 315, 190],
+    "status_inside_index_sha256": "b01071ff806103b1223185b35282aacee691da7ca123c0ad53527914a79a2e37",
+    "status_roof_index_sha256": "b6fc311eea84bb7772eaf716f091a9719e1b8d022dc550900fb0e078634dff61",
+    "status_shared_palette_band_sha256": "60dd0511b3f6976a2e00fde549b9dc2a6a2b5aed1f776dba51d054c5eb553cb9",
+    "status_inside_bright_pixels": 699,
+    "status_roof_bright_pixels": 234,
+    "status_brightness_mask_differences": 465,
+    "telemetry_crop": [20, 140, 130, 182],
+    "telemetry_inside_index_sha256": "2e9601d722a08754da45c990f015dee37716f260f822fd9c6beba6c02f8933cf",
+    "telemetry_roof_index_sha256": "3509a6265431f94460016074ea8f05cb95b744dc7981a2fbc21a548bd773bd1e",
+    "telemetry_inside_bright_pixels": 601,
+    "telemetry_roof_bright_pixels": 63,
+    "telemetry_brightness_mask_differences": 538,
+    "interior_status_and_telemetry_visible": true,
+    "roof_status_and_telemetry_absent": true
+  },
+  "product_contract": {
+    "raw_clock": 1344638737,
+    "target_local": [-0.011817786847501566, 0.0000025128807406016307, 0.005035752345708744],
+    "star_local": [-33.337344046565704, 0.006575896761205513, -4.090433066477999],
+    "radius": 0.007128,
+    "distance": 0.012845967758806344,
+    "inside_complete_page_exact_indices": 23579,
+    "inside_complete_page_palette_band_differences": 3932,
+    "roof_complete_page_exact_indices": 61097,
+    "roof_complete_page_palette_band_differences": 1588,
+    "complete_palette_component_differences": 241,
+    "status_inside_bright_pixels": 602,
+    "status_roof_bright_pixels": 203,
+    "status_pair_brightness_mask_differences": 411,
+    "telemetry_inside_bright_pixels": 22,
+    "telemetry_roof_bright_pixels": 63,
+    "roof_telemetry_crop_exact_indices": 4620,
+    "inside_full_overlay_parity": false,
+    "open_gap": "The product selects the adjacent roof branch and suppresses the status overlay, but its inside-boundary page still omits the native left-side target/FCS telemetry and does not retain complete interior lighting."
+  },
+  "authority": {
+    "snapshot_camera_state_retained": true,
+    "camera_reason": "Each staged CURRENT.BIN and following continuity block retain the same position and camera; the pair changes only pos_y from -500 to -501.",
+    "snapshot_page_and_palette_retained": true,
+    "post_snapshot_page_identity_retained": false,
+    "adjacent_simulation_bracket_retained": true,
+    "paired_state_except_camera_y_retained": true,
+    "pair_reason": "Both following continuity blocks retain the same raw second, flight state, star-local ship position, palette, and camera angles; only the one-unit Y boundary differs.",
+    "snapshot_simulation_state_retained": false,
+    "simulation_reason": "The frozen continuity blocks and adapted pages were observed after BMP serialization and had already entered a following frame.",
+    "whole_page_same_state_contract": false,
+    "admissible_contract": "The native pair authenticates the strict pos_y < -500 transition: at -500 the source keeps interior status and target telemetry, while at -501 it redraws the upper cupola after the hull and returns before those details. Product grading may require the exact adjacent cameras, bounded roof composition, and disappearance of the status overlay. Complete-page equality, exact lighting, and full product inside-overlay parity remain ungraded."
+  }
+}
