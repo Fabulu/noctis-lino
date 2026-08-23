@@ -32,7 +32,9 @@ def main() -> int:
     parser.add_argument("--candidate", type=Path, action="append", required=True)
     parser.add_argument("--argument", action="append", default=[])
     parser.add_argument("--poll-milliseconds", type=int, default=250)
-    parser.add_argument("--settle-polls", type=int, default=5)
+    # Modular builds can pause between appends while the output already has a
+    # valid PE header. Five seconds of quiet prevents accepting that prefix.
+    parser.add_argument("--settle-polls", type=int, default=21)
     args = parser.parse_args()
 
     if args.timeout < 0:

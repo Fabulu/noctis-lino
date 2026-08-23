@@ -143,7 +143,10 @@ function Same-OptionalFileState($a, $b) {
 # run of polls.  The polling cadence is merely observation; file state, not a
 # one-off sleep, is the completion authority.
 $pollMilliseconds = 250
-$settlePolls = 5                 # 1.0s of observed quiet, across both files
+# Large modular builds can pause for more than a second between compiler
+# appends. Require five full seconds of observed quiet so an intermediate valid
+# PE is never promoted and the compiler is not killed before its payload lands.
+$settlePolls = 21
 $built = $null
 $settled = $false
 $naturalExitBeforeSettle = $false

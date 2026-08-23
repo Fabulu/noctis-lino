@@ -102,7 +102,8 @@ def main() -> int:
         executable = probe.with_suffix(".exe")
         after_path = SANDBOX / "vhsurface-after.bin"
         return_code, note, after = lh.run(
-            str(executable), str(after_path), timeout_sec=120)
+            str(executable), str(after_path), timeout_sec=120,
+            expected_bytes=PAGE_BYTES * PAGE_COUNT)
         check(return_code == 0 and after is not None,
               f"isolated surface-flare probe runs ({note[-300:]})")
         before_path = SANDBOX / "vhsurface-before.bin"
