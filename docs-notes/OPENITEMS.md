@@ -693,11 +693,13 @@ solar lighting and exports after 60 presentation frames, so its complete page
 is not a same-state oracle target for this BMP. The hosted ARM64 comparison
 reports 30,190 differing indices but now grades only contracts the artifacts
 actually establish: immutable BMP/surface hashes, the exact 768-component
-palette, reproducible checkpoint and camera, palette band, centre index 126,
-flare gate and centre, exposure, and solar distance. Restoring exact whole-page
-grading requires a new native capture that retains snapshot-time camera,
-simulation, and HUD state; renderer constants must not be tuned against this
-provenance gap.
+palette, reproducible checkpoint and camera, every palette band including the
+flare centre, the pre-smoothing flare gate and centre, exposure, and solar
+distance. The exact low-six-bit final centre is not a separate same-state
+contract because the two source `psmooth_64` passes mix it with unretained live
+neighbours. Restoring exact whole-page grading requires a new native capture
+that retains snapshot-time camera, simulation, and HUD state; renderer constants
+must not be tuned against this provenance gap.
 
 **Thin-atmosphere native-context checkpoint.** A second fixed-epoch comparison
 uses the same generated system's type-5 body at longitude 45, heading 90, and
@@ -714,11 +716,19 @@ each differ from NIV+ at zero pixels. This closes the reported thin-world
 pillar for the complete sky and sun sequence, while final terrain and object
 compositing remain separate coverage. The hosted Apple-Silicon product gate now
 rebuilds this exact checkpoint and requires the native camera, all 768 active
-palette components, every framebuffer palette band, flare-centre index, flare
-gate, exposure, distance, and stellar ray. The retained BMP still lacks
-snapshot-time camera/simulation/HUD provenance, so its later complete page stays
-informational rather than being misrepresented as a same-state final-frame
-oracle.
+palette components, every framebuffer palette band, the pre-smoothing flare
+admission sample and centre, exposure, distance, and stellar ray. A canonical
+private-Windows pass trace localized the apparent final centre discrepancy: the
+completed terrain/flare page has index 126, then the exact two source
+`psmooth_64(adapted,160)` passes change 22,537 indices and mix that centre to
+125; the following 11,098-index surrounding-border pass leaves it at 125. This
+rejects both a flare-raster defect and the earlier apparent border attribution.
+Because the retained BMP omits the live neighbouring pixels consumed by those
+blur passes, its final low-six-bit centre is not a same-state cross-product
+contract; the gate retains the exact native centre in the artifact and grades
+the product's centre band plus pre-smoothing admission state instead. The later
+complete page likewise stays informational rather than being misrepresented as
+a same-state final-frame oracle.
 
 **Airless rocky native-context checkpoint.** The same fixed epoch now covers
 the system's type-4 body at longitude 90, heading 270, and pitch -38. Both

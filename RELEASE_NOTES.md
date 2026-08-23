@@ -68,6 +68,19 @@ white corona and radial flare. The corrected product projects and renders that
 companion, while its remaining corona brightness, palette, shape, and whole-page
 gaps stay explicit rather than being hidden by the negative control.
 
+The retained habitable and thin-atmosphere surface-sun BMP gates now distinguish
+the final indexed contracts their capture provenance can actually support. A
+canonical private-Windows trace places the thin scene's centre at index 126 on
+the completed terrain/flare page; NIV+'s exact two post-render
+`psmooth_64(adapted,160)` passes then change 22,537 indices and mix that centre
+to 125 before the surrounding frame, while the next border pass leaves it
+unchanged. The final low-six-bit centre therefore depends on live neighbouring
+pixels that the timed native BMP did not retain and is no longer misgraded as a
+same-state cross-product value. Exact active palette, every framebuffer palette
+band, camera, flare gate/position and pre-smoothing sky-band admission sample,
+exposure, distance, and ray remain graded. The separate ten-case primitive
+flare oracle remains byte-exact to its native pages.
+
 A paired IDEAL capture extends that correction to a class-0 primary and type-1
 orbital target. At matched clock, camera, radius, distance, and Stardrifter
 position, the product retains the native exterior globe silhouette and all

@@ -21,6 +21,9 @@ The native rig did not retain snapshot-time camera, simulation, and HUD state.
 Consequently the complete final BMP page is not a same-state product target.
 The automated product gate grades only the contracts supported by the retained
 bytes and matched deterministic lighting state: camera, all 768 palette
-components, every pixel's palette band, flare-centre index, flare gate,
-exposure, solar distance, and stellar ray. Complete-page equality remains
-informational until a new native capture retains the missing live state.
+components, every pixel's palette band, the flare-centre palette band and
+pre-smoothing sky-band admission sample, flare gate, exposure, solar distance,
+and stellar ray. The exact low-six-bit final centre is not graded: NIV+'s two
+post-render `psmooth_64` passes mix it with snapshot-dependent neighbours.
+Complete-page equality remains informational until a new native capture retains
+the missing live state.
