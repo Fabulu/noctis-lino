@@ -11,6 +11,7 @@ tested.
 | Area | Automated evidence | Native/product evidence |
 |---|---|---|
 | Stardrifter, movement, roof lift and cupolas | `tests/test_vhgame.py` pins controls, lift states, cupola apertures, hull order, focus-safe repaint and resize | Interior and through-window stellar-flare screenshots; resize and movement sessions in `PLAYTEST.md` |
+| Target labels and direct editing | Static source/order checks plus `tests/test_label_editing_runtime.py` on a private inactive desktop prove star/body ownership, exact mutation and persistence, physical-Escape cancellation while held through another capture, observed latch clearing after release, byte-exact player-local removal, native `EXTANT`/`DENIED` duplicate/protection results, a byte-identical full-page blink-cycle recurrence, and same-phase fixed-position cursor movement confined to the old/new underscore rasters | The retained cupola-boundary oracle authenticates the fixed source label cameras and the runtime gate records exact STARMAP and complete 64,000-byte cursor-raster outcomes without using the interactive desktop |
 | Capsule descent, exit, transparent shell, walk-away/re-entry, seal and ascent | Integrated source/order/state assertions and independent capsule-gate models | `screenshots/planet-surface.png`; complete landing/return sessions in `PLAYTEST.md` |
 | Planet classes, terrain, water, weather and suns | All accepted class arms, terrain bounds, daylight, secondary suns, reflections, waves and storms | Lunar/dense/thin/frozen gallery plus dry-cell sun scene; native sessions in `PLAYTEST.md` |
 | Floating-point and transcendental boundary | Exact import/export, signed zero, subnormals, overflow, one-ULP mathematical grading, 4,113 historical catalogue rows, all 16 spill schedules, zero x87 TOP drift, 45 production-consumer checks, zero production target blocks, the exact 36-operation ordinary-float inventory, a model-vs-x87 audit of all 9,564,210 reachable fractional-crater-power pairs, and 4,096 compiled-Lino boundary cases | Generated Windows PEs receive the fail-closed post-link `FCWEXT=133Fh` patch while all eight protected runtime variants retain their upstream bytes; Linux and macOS assembly pin their own loads, and the real x86_64 perturb/load/read/restore probe passed hosted Intel run 32556467204 and tagged Apple-Silicon/Rosetta run 32555351033 |
@@ -30,6 +31,7 @@ tested.
 
 ```powershell
 python tests\test_vhgame.py
+python tests\test_label_editing_runtime.py  # Windows private inactive desktop
 python tests\test_floatcontract.py
 python tests\test_fp_runtime_boundary.py
 python tests\test_fractional_pow.py
@@ -42,7 +44,7 @@ python tests\test_nivgen_score.py
 python tests\test_nivgen_precision.py
 python tests\test_aarch64_runtime.py  # add --require-execution with AArch64 GCC/QEMU
 powershell -File tools\capture_noctis_scenes.ps1 -Scene all
-python tests\run_all.py  # 38 registered; run the complete gate before release
+python tests\run_all.py  # 45 registered; run the complete gate before release
 ```
 
 The retained complete NIVGEN evidence covers all 49,823 authoritative fields on

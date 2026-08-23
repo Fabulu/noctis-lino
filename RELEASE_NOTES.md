@@ -97,9 +97,21 @@ star and selected-body labels. Live catalogue names produce `IDEAL S00` and
 `CASSANI P01` in the retained fixture; source-authentic unknown-star, planet, and
 moon forms cover misses. Repeated launches retain identical scoped indexed
 rasters despite palette variation, so those rasters—not unstable product
-brightness—grade the repair. Exact projected glyph raster, interactive label-
-editing cursors, environmental text, complete interior lighting, and lift-motion
-fidelity remain explicit rather than being claimed as complete interior parity.
+brightness—grade the repair. Native direct star/body editing now owns character
+input ahead of all other hotkeys and preserves source uppercase conversion,
+Backspace, physical-Escape cancellation and held-key ownership, Return, the
+20-byte cap, exact 32-byte `STARMAP.BIN` appends, and byte-exact player-local
+removal. A registered private-desktop runtime test exercises those rules without
+touching the interactive desktop. Its 32-byte state diagnostic proves active
+editor preconditions, held/released Escape-latch state, native `EXTANT` for
+case-insensitive duplicates, and `DENIED` for consolidated-record removal. Across complete 64,000-byte indexed pages, a full modulo-32 blink cycle recurs
+byte-for-byte, a distinct phase changes only the 34-pixel shader-zero
+underscore, and a same-phase invisible trailing-space edit translates only its
+72 old/new raster pixels by one fixed label position. The HUD projector now
+skips spaces and out-of-atlas bytes instead of redrawing its previous glyph
+through padded cells. Exact projected glyph raster across hosts, environmental
+text, complete interior lighting, and lift-motion fidelity remain explicit
+rather than being claimed as complete interior parity.
 
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred

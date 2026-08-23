@@ -101,7 +101,10 @@ TESTS = [
     ("test_nivgen_score.py", "bounded NIVGEN scoring preserves harness inputs, rate-limits live pages, and reports local before/after transitions"),
     ("test_nivgen_precision.py", "public NIVGEN uses binary64 geometry boundaries while the shipping game retains historical x87 behavior"),
     ("test_nivgen_sheet_report.py", "complete NIVGEN snapshots distinguish backfill checkmarks from independently comparable hashes and expose before/after transitions"),
+    ("test_desktop_profile.py", "private-desktop sustained timing records presentations, simulation ticks, deadlines, renderer cost, and W-response latency"),
+    ("test_windows_i386_stage.py", "Windows builds select the native i386 renderer in isolation and record every backend source"),
     ("test_vhgame.py", "live Stardrifter: original lift/aperture constants, synchronized loop, and safe provisional landing renderer"),
+    ("test_label_editing_runtime.py", "private-desktop star/body editor ownership, exact STARMAP mutation rules, and isolated blinking cursor raster"),
 ]
 
 # Tests that have a slower, more complete mode of their own. run_all always

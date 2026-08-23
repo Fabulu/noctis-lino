@@ -35,7 +35,7 @@ BOUNDARY_ROOF_ADAPTED_SHA256 = "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7
 PROVENANCE_SHA256 = "da981004d14e9ea86ceb608b419122b51ebd76c2d03c1c9e473e36d9d927e2cb"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
-BOUNDARY_PROVENANCE_SHA256 = "1a0c2ce0ba25e19ce0128ad453b0d4b49c8691258d8538d7333e46f347e31352"
+BOUNDARY_PROVENANCE_SHA256 = "d109401fa717dc61a58d274a863dfdeb693708fd15ae455bb4348a3ab4e5f8fc"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
@@ -758,6 +758,8 @@ def main() -> int:
     boundary_capture = boundary_provenance.get("capture", {})
     boundary_transition = boundary_provenance.get("native_transition", {})
     boundary_product = boundary_provenance.get("product_contract", {})
+    boundary_cursor = boundary_product.get("editing_cursor_raster_contract", {})
+    boundary_editing = boundary_product.get("editing_runtime_contract", {})
     boundary_authority = boundary_provenance.get("authority", {})
     check(
         boundary_provenance.get("star") == [174288, -44389, -688771]
@@ -835,11 +837,35 @@ def main() -> int:
         PRODUCT_BOUNDARY_LABEL_ROOF_SHA256
         and boundary_product.get("left_range_telemetry_restored") is True
         and boundary_product.get("upper_target_labels_restored") is True
-        and boundary_product.get("editing_cursors_restored") is False
+        and boundary_product.get("editing_cursors_restored") is True
+        and boundary_product.get("editing_cursor_runtime_test") ==
+        "tests/test_label_editing_runtime.py"
+        and boundary_cursor.get("glyph") == "_"
+        and boundary_cursor.get("shader") == 0
+        and boundary_cursor.get("complete_indexed_page_bytes") == 64000
+        and boundary_cursor.get("phase_step") == 8
+        and boundary_cursor.get("same_phase_recurrence_delta") == 32
+        and boundary_cursor.get("same_phase_recurrence_difference_pixels") == 0
+        and boundary_cursor.get("distinct_phase_difference_pixels") == 34
+        and boundary_cursor.get("distinct_phase_bounds") == [83, 32, 91, 35]
+        and boundary_cursor.get("movement_compared_at_same_phase") is True
+        and boundary_cursor.get("one_space_position_move_pixels") == 72
+        and boundary_cursor.get("one_space_position_move_bounds") == [83, 32, 102, 35]
+        and boundary_cursor.get("one_position_translation_x") == 11
+        and boundary_editing.get("label_state_diagnostic_bytes") == 32
+        and boundary_editing.get("physical_escape_active_editor_precondition") is True
+        and boundary_editing.get("physical_escape_held_through_followup_capture") is True
+        and boundary_editing.get("physical_escape_release_survival_tested") is True
+        and boundary_editing.get("physical_escape_latch_clear_observed") is True
+        and boundary_editing.get("duplicate_editor_precondition") is True
+        and boundary_editing.get("duplicate_result") == "EXTANT"
+        and boundary_editing.get("duplicate_result_code") == 2
+        and boundary_editing.get("consolidated_removal_result") == "DENIED"
+        and boundary_editing.get("consolidated_removal_result_code") == 4
         and boundary_product.get("inside_full_overlay_parity") is False
         and "Complete interior lighting" in boundary_product.get("open_gap", "")
-        and "label-edit cursors" in boundary_product.get("open_gap", ""),
-        "cupola-boundary provenance pins restored ranges and labels without overclaiming cursors",
+        and "runtime-proven direct-edit cursors" in boundary_product.get("open_gap", ""),
+        "cupola-boundary provenance pins restored ranges, labels, and separately graded cursors",
     )
     check(
         boundary_authority.get("snapshot_camera_state_retained") is True

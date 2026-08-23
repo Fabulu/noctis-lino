@@ -10,10 +10,15 @@ from pathlib import Path
 import subprocess
 
 
+ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000
 CREATE_NO_WINDOW = 0x08000000
+ERROR_INSUFFICIENT_BUFFER = 122
 GENERIC_ALL = 0x10000000
+NORMAL_PRIORITY_CLASS = 0x00000020
+RELATION_PROCESSOR_CORE = 0
 WAIT_OBJECT_0 = 0
 WAIT_TIMEOUT = 258
+WM_CHAR = 0x0102
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101
 WNDENUMPROC = getattr(ctypes, "WINFUNCTYPE", ctypes.CFUNCTYPE)(
@@ -61,6 +66,42 @@ class PROCESS_INFORMATION(ctypes.Structure):
     ]
 
 
+class PROCESSORCORE(ctypes.Structure):
+    _fields_ = [("Flags", wintypes.BYTE)]
+
+
+class NUMANODE(ctypes.Structure):
+    _fields_ = [("NodeNumber", wintypes.DWORD)]
+
+
+class CACHE_DESCRIPTOR(ctypes.Structure):
+    _fields_ = [
+        ("Level", wintypes.BYTE),
+        ("Associativity", wintypes.BYTE),
+        ("LineSize", wintypes.WORD),
+        ("Size", wintypes.DWORD),
+        ("Type", ctypes.c_int),
+    ]
+
+
+class LOGICAL_PROCESSOR_UNION(ctypes.Union):
+    _fields_ = [
+        ("ProcessorCore", PROCESSORCORE),
+        ("NumaNode", NUMANODE),
+        ("Cache", CACHE_DESCRIPTOR),
+        ("Reserved", ctypes.c_size_t * 2),
+    ]
+
+
+class SYSTEM_LOGICAL_PROCESSOR_INFORMATION(ctypes.Structure):
+    _anonymous_ = ("relationship_data",)
+    _fields_ = [
+        ("ProcessorMask", ctypes.c_size_t),
+        ("Relationship", ctypes.c_int),
+        ("relationship_data", LOGICAL_PROCESSOR_UNION),
+    ]
+
+
 def _configured_kernel32():
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     user32 = ctypes.WinDLL("user32", use_last_error=True)
@@ -82,6 +123,21 @@ def _configured_kernel32():
     kernel32.GetExitCodeProcess.argtypes = [
         wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
     kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+    kernel32.GetLogicalProcessorInformation.argtypes = [
+        ctypes.POINTER(SYSTEM_LOGICAL_PROCESSOR_INFORMATION),
+        ctypes.POINTER(wintypes.DWORD),
+    ]
+    kernel32.GetLogicalProcessorInformation.restype = wintypes.BOOL
+    kernel32.GetPriorityClass.argtypes = [wintypes.HANDLE]
+    kernel32.GetPriorityClass.restype = wintypes.DWORD
+    kernel32.GetProcessAffinityMask.argtypes = [
+        wintypes.HANDLE, ctypes.POINTER(ctypes.c_size_t),
+        ctypes.POINTER(ctypes.c_size_t),
+    ]
+    kernel32.GetProcessAffinityMask.restype = wintypes.BOOL
+    kernel32.SetProcessAffinityMask.argtypes = [
+        wintypes.HANDLE, ctypes.c_size_t]
+    kernel32.SetProcessAffinityMask.restype = wintypes.BOOL
     kernel32.TerminateProcess.argtypes = [wintypes.HANDLE, wintypes.UINT]
     kernel32.TerminateProcess.restype = wintypes.BOOL
     kernel32.QueryPerformanceCounter.argtypes = [ctypes.POINTER(ctypes.c_longlong)]
@@ -102,13 +158,56 @@ def _configured_kernel32():
     return kernel32, user32
 
 
+def physical_core_affinity_masks() -> tuple[int, ...]:
+    """Return this processor group's logical-processor mask for each core."""
+    if os.name != "nt":
+        raise OSError("processor affinity masks are available only on Windows")
+    kernel32, _user32 = _configured_kernel32()
+    byte_count = wintypes.DWORD()
+    if kernel32.GetLogicalProcessorInformation(None, ctypes.byref(byte_count)):
+        raise OSError("processor-topology size query unexpectedly succeeded")
+    error = ctypes.get_last_error()
+    if error != ERROR_INSUFFICIENT_BUFFER:
+        raise ctypes.WinError(error)
+    unit_size = ctypes.sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION)
+    if not byte_count.value or byte_count.value % unit_size:
+        raise OSError("Windows returned a malformed processor topology")
+    entries = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION *
+               (byte_count.value // unit_size))()
+    if not kernel32.GetLogicalProcessorInformation(
+            entries, ctypes.byref(byte_count)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    masks = tuple(sorted(
+        int(entry.ProcessorMask) for entry in entries
+        if entry.Relationship == RELATION_PROCESSOR_CORE
+        and entry.ProcessorMask
+    ))
+    if not masks:
+        raise OSError("Windows returned no physical processor cores")
+    return masks
+
+
+def priority_class_name(value: int) -> str:
+    return {
+        NORMAL_PRIORITY_CLASS: "normal",
+        ABOVE_NORMAL_PRIORITY_CLASS: "above_normal",
+    }.get(value, f"unknown_0x{value:x}")
+
+
 class PrivateDesktopProcess:
     """A controllable process on an inactive Windows desktop."""
 
     def __init__(self, executable: Path, cwd: Path,
-                 arguments: Sequence[str] = ()) -> None:
+                 arguments: Sequence[str] = (), *,
+                 affinity_mask: int | None = None,
+                 priority_class: int | None = None) -> None:
         if os.name != "nt":
             raise OSError("private Windows desktops are available only on Windows")
+        if affinity_mask is not None and affinity_mask <= 0:
+            raise ValueError("affinity_mask must select at least one processor")
+        if priority_class not in (
+                None, NORMAL_PRIORITY_CLASS, ABOVE_NORMAL_PRIORITY_CLASS):
+            raise ValueError("unsupported process priority class")
         self.kernel32, self.user32 = _configured_kernel32()
         self.desktop_name = f"NoctisProfile-{os.getpid()}-{id(self):x}"
         self.desktop = self.user32.CreateDesktopW(
@@ -123,16 +222,27 @@ class PrivateDesktopProcess:
         startup = STARTUPINFOW()
         startup.cb = ctypes.sizeof(startup)
         startup.lpDesktop = f"WinSta0\\{self.desktop_name}"
+        creation_flags = CREATE_NO_WINDOW
+        if priority_class is not None:
+            creation_flags |= priority_class
         try:
             created = self.kernel32.CreateProcessW(
                 str(Path(executable).resolve()), command_line,
-                None, None, False, CREATE_NO_WINDOW, None,
+                None, None, False, creation_flags, None,
                 str(Path(cwd).resolve()), ctypes.byref(startup),
                 ctypes.byref(self.process),
             )
             if not created:
                 raise ctypes.WinError(ctypes.get_last_error())
+            if affinity_mask is not None and not self.kernel32.SetProcessAffinityMask(
+                    self.process.hProcess, affinity_mask):
+                raise ctypes.WinError(ctypes.get_last_error())
         except BaseException:
+            if self.process.hProcess:
+                self.kernel32.TerminateProcess(self.process.hProcess, 1)
+                self.kernel32.WaitForSingleObject(self.process.hProcess, 5000)
+                self.kernel32.CloseHandle(self.process.hThread)
+                self.kernel32.CloseHandle(self.process.hProcess)
             self.user32.CloseDesktop(self.desktop)
             self.desktop = None
             raise
@@ -141,6 +251,24 @@ class PrivateDesktopProcess:
     @property
     def pid(self) -> int:
         return int(self.process.dwProcessId)
+
+    def scheduling_state(self) -> dict[str, int | str]:
+        process_mask = ctypes.c_size_t()
+        system_mask = ctypes.c_size_t()
+        if not self.kernel32.GetProcessAffinityMask(
+                self.process.hProcess, ctypes.byref(process_mask),
+                ctypes.byref(system_mask)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        priority_class = int(self.kernel32.GetPriorityClass(
+            self.process.hProcess))
+        if not priority_class:
+            raise ctypes.WinError(ctypes.get_last_error())
+        return {
+            "process_affinity_mask": f"0x{process_mask.value:x}",
+            "system_affinity_mask": f"0x{system_mask.value:x}",
+            "priority_class": priority_class_name(priority_class),
+            "priority_class_value": priority_class,
+        }
 
     def poll(self) -> int | None:
         result = self.kernel32.WaitForSingleObject(self.process.hProcess, 0)
@@ -185,6 +313,9 @@ class PrivateDesktopProcess:
                 return False
 
         callback = WNDENUMPROC(visit)
+        # EnumDesktopWindows returns zero both on failure and when enumeration
+        # stops.  Clear unrelated thread-local errors before interpreting it.
+        ctypes.set_last_error(0)
         enumerated = self.user32.EnumDesktopWindows(self.desktop, callback, 0)
         if callback_error:
             raise callback_error[0]
@@ -201,6 +332,13 @@ class PrivateDesktopProcess:
         if not self.user32.GetWindowRect(handle, ctypes.byref(rect)):
             raise ctypes.WinError(ctypes.get_last_error())
         return rect.left, rect.top, rect.right, rect.bottom
+
+    def post_char(self, handle: int, character: str | int) -> None:
+        codepoint = ord(character) if isinstance(character, str) else character
+        if not 0 <= codepoint <= 0x7F:
+            raise ValueError("post_char accepts one ASCII character")
+        if not self.user32.PostMessageW(handle, WM_CHAR, codepoint, 1):
+            raise ctypes.WinError(ctypes.get_last_error())
 
     def post_key(self, handle: int, virtual_key: int, down: bool) -> None:
         message = WM_KEYDOWN if down else WM_KEYUP

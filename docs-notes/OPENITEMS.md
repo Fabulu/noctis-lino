@@ -516,9 +516,26 @@ stars, planets, and moons retain the source `UNKNOWN STAR / CLASS Snn`,
 upper-label crop adds exactly 275 bright-mask pixels at the inside boundary; the
 product's repeat-stable indexed label crop is present inside and has the distinct
 roof-suppressed hash outside. The just-inside complete page retains 22,927 native
-indices with 3,932 band differences, so exact projected glyph raster, interactive
-editing cursors, environmental text, complete interior lighting, and actual lift
-motion remain open rather than being claimed as full parity.
+indices with 3,932 band differences. Direct star/body editing is now closed by a
+private-inactive-desktop runtime gate: it proves editor input ownership, uppercase
+conversion, Backspace, physical-Escape cancellation while the key remains held
+through a following capture, release survival with the Escape latch observed clear,
+Return, the 20-byte cap, and exact 32-byte `STARMAP.BIN` appends. A 32-byte state
+diagnostic also proves the active editor preconditions and the native `EXTANT` result for a case-insensitive
+duplicate plus `DENIED` for consolidated-record removal; player-local identity
+tombstones remain byte-exact. The same gate freezes simulation while rebuilding
+complete 64,000-byte indexed pages and samples the native
+`127 - 2 * (clock % 32)` cursor phases in eight-step increments. A full modulo-32
+cycle reproduces every page byte; a distinct phase changes only 34 underscore
+pixels at `(83,32)-(91,35)`. At the same blink phase, an invisible trailing
+space changes only the 72 old/new underscore pixels at
+`(83,32)-(102,35)`, translating the raster 11 pixels to its next fixed position.
+The HUD wrapper now returns before projection for spaces and out-of-atlas bytes,
+so padding cannot remap the previous underscore across the rest of the row.
+
+Exact projected glyph raster across hosts, environmental text, complete interior
+lighting, and actual lift motion remain open rather than being claimed as full
+parity.
 
 The generic orbital gallery had retained the target-local signs authored around
 the former missing exterior half-turn. After the camera repair those eleven
@@ -841,6 +858,23 @@ desktop presentation jitter. Keep sustained motion, capsule transitions, and
 input-latency parity open; do not lower detail or accelerate the 18.206-Hz
 simulation to conceal a late host frame.
 
+**Terminal private-desktop baseline, 2026-08-23.** The current portable-FP
+Windows product (`vhgame.exe` SHA-256
+`15be8bb9e3e9236f113f97835a5a3994e121550c54e38ad6163ac34db7047467`)
+was measured on an inactive Win32 desktop after its existing 60-frame sentinel,
+with independent terminal counts rather than the startup snapshot. Sustained
+forward motion reached 1.37 presentations/s on the habitable surface (725.65 ms
+render; 720.30 ms game-detection-to-present response), 18.17 in open
+Stardrifter space (49.49 ms; 69.40 ms), and 15.09 in close orbit (65.17 ms;
+73.79 ms). Open FCS reached 12.81 presentations/s with a 73.62 ms renderer. A
+20-second capsule-return attempt reached only 44 authoritative ticks and could
+not complete its source 251-tick transition. Every measured presentation missed
+its 60-Hz deadline; only open Stardrifter movement kept the authoritative clock
+near 18.206 Hz. This supersedes the fast startup-only checkpoint for the current
+binary and makes the portable scalar/render boundary an evidence-backed
+performance blocker. Fix arithmetic or equivalent exact work, not detail,
+cadence, or transition length.
+
 ## 8. LinoJava browser runtime and reversible fullscreen -- **IN PROGRESS / DOCKET**
 
 Create a separate open-source project at `C:\Programmieren\linojava` that
@@ -972,9 +1006,21 @@ click appears to move focus away from the JavaScript canvas, after which the gam
 longer responds or advances. Pin canvas focus, pointer/keyboard ownership, fullscreen
 state, and the Lino console transition before and after that click; repair the host
 contract without swallowing the authentic control action, and add a browser regression
-for continued movement after takeoff. Renderer fidelity; audio; file mutation and
-persistence services; complete game-mode coverage; and the performance work needed
-for smooth play also remain open.
+for continued movement after takeoff.
+
+**Systemic fullscreen interaction report, 2026-08-23.** Activating the GOES
+console with the mouse pointer in game-only fullscreen stole focus and soft-locked
+the running game. Do not patch this as one GOES-specific event. Audit every
+pointer-driven game, console, menu, cockpit, and title-control transition under
+fullscreen for canvas focus, pointer capture, keyboard ownership, user-gesture
+lifetime, worker advancement, and presentation credits. The regression must use
+the real browser pointer route to enter GOES in fullscreen, prove that console
+input and live rendering continue, exit and re-enter fullscreen, and exercise the
+same contract across representative interactions. No host interaction may leave
+the canvas unfocused or the Lino VM/presenter starved.
+
+Renderer fidelity; audio; file mutation and persistence services; complete game-mode
+coverage; and the performance work needed for smooth play also remain open.
 
 **First strict-JavaScript optimization and complete runtime-data milestone.**
 LinoJava now batches instruction budgets, keeps hot PGF services inside the

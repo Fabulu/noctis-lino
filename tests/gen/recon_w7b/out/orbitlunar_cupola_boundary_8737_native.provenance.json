@@ -138,9 +138,40 @@
     "label_roof_unique_indices": 46,
     "left_range_telemetry_restored": true,
     "upper_target_labels_restored": true,
-    "editing_cursors_restored": false,
+    "editing_cursors_restored": true,
+    "editing_cursor_runtime_test": "tests/test_label_editing_runtime.py",
+    "editing_cursor_raster_contract": {
+      "private_inactive_desktop": true,
+      "complete_indexed_page_bytes": 64000,
+      "fixed_crop": [27, 19, 294, 56],
+      "glyph": "_",
+      "shader": 0,
+      "phase_formula": "127 - 2 * (clock % 32)",
+      "phase_step": 8,
+      "same_phase_recurrence_delta": 32,
+      "same_phase_recurrence_difference_pixels": 0,
+      "distinct_phase_difference_pixels": 34,
+      "distinct_phase_bounds": [83, 32, 91, 35],
+      "movement_compared_at_same_phase": true,
+      "one_space_position_move_pixels": 72,
+      "one_space_position_move_bounds": [83, 32, 102, 35],
+      "one_position_translation_x": 11
+    },
+    "editing_runtime_contract": {
+      "private_inactive_desktop": true,
+      "label_state_diagnostic_bytes": 32,
+      "physical_escape_active_editor_precondition": true,
+      "physical_escape_held_through_followup_capture": true,
+      "physical_escape_release_survival_tested": true,
+      "physical_escape_latch_clear_observed": true,
+      "duplicate_editor_precondition": true,
+      "duplicate_result": "EXTANT",
+      "duplicate_result_code": 2,
+      "consolidated_removal_result": "DENIED",
+      "consolidated_removal_result_code": 4
+    },
     "inside_full_overlay_parity": false,
-    "open_gap": "The product selects the adjacent roof branch; suppresses the status, telemetry, and upper-label rasters there; and restores source-shaped L.Y./DYAMS ranges plus catalogue-backed 24-character star/body labels inside. Complete interior lighting, exact projected font raster, interactive label-edit cursors, and environmental text remain open."
+    "open_gap": "The product selects the adjacent roof branch; suppresses the status, telemetry, and upper-label rasters there; and restores source-shaped L.Y./DYAMS ranges, catalogue-backed 24-character star/body labels, and runtime-proven direct-edit cursors inside. Complete interior lighting, exact projected font raster, and environmental text remain open."
   },
   "authority": {
     "snapshot_camera_state_retained": true,
@@ -153,6 +184,6 @@
     "snapshot_simulation_state_retained": false,
     "simulation_reason": "The frozen continuity blocks and adapted pages were observed after BMP serialization and had already entered a following frame.",
     "whole_page_same_state_contract": false,
-    "admissible_contract": "The native pair authenticates the strict pos_y < -500 transition: at -500 the source keeps interior status, target ranges, and both fixed upper target-label rows, while at -501 it redraws the upper cupola after the hull and returns before those details. Product grading may require the exact adjacent cameras, bounded roof composition, stable scoped indexed rasters, and disappearance of all three overlay areas. Complete-page equality, exact lighting, editing-cursor parity, and full product inside-overlay parity remain ungraded."
+    "admissible_contract": "The native pair authenticates the strict pos_y < -500 transition: at -500 the source keeps interior status, target ranges, and both fixed upper target-label rows, while at -501 it redraws the upper cupola after the hull and returns before those details. Product grading may require the exact adjacent cameras, bounded roof composition, stable scoped indexed rasters, and disappearance of all three overlay areas. Complete-page equality, exact lighting, and full product inside-overlay parity remain ungraded; direct editing and its cursor raster are graded separately by the private-desktop runtime test."
   }
 }

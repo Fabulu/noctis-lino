@@ -58,6 +58,7 @@ ORIGINAL_OUTBOX = REFERENCE_ROOT / "OUTBOX.CPP"
 ORIGINAL_INBOX = REFERENCE_ROOT / "INBOX.CPP"
 ORIGINAL_HELP = REFERENCE_ROOT.parent / "modules" / "N_Help_3.asm"
 ORIGINAL_REPAIR = REFERENCE_ROOT.parent / "modules" / "REPAIR.EXE"
+WINDOWS_HIDDEN_PROCESS = ROOT / "tools" / "windows_hidden_process.py"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -331,6 +332,7 @@ def main() -> int:
     original_inbox = ORIGINAL_INBOX.read_text(encoding="latin-1")
     original_help = ORIGINAL_HELP.read_text(encoding="latin-1")
     original_repair = ORIGINAL_REPAIR.read_bytes()
+    windows_hidden_process = WINDOWS_HIDDEN_PROCESS.read_text(encoding="utf-8")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -490,7 +492,7 @@ def main() -> int:
             "[VHPoncmd0] = VHGsrcdevnav;", "[VHPoncmd1] = VHGsrcdevmisc;",
             "A = VHGsrcampoff;", "A = VHGsrcfinderoff;",
             "A = VHGsrctrackoff;", "A = VHGsrcradoff;",
-            "[VHPoncmd0] = VHGsrccartstar;", "[VHPoncmd0] = VHGsrcreset;",
+            "A = VHGsrccartstarremove;", "[VHPoncmd0] = VHGsrcreset;",
             "[VHPoninfo2] = VHGdevselect;", "=> VHG browse format rows;",
         ))
         and all(token in original_gaze for token in (
@@ -1263,7 +1265,7 @@ def main() -> int:
             "[VHPtelemetrycolour] = 120;",
             "[VHPtelemetrycolour] = 105;",
             "A = [VHVcamxi]; A - 40; [VHVcamxi] = A; => VH set view;",
-            "[DGdigit] = [VHPchar]; [DGcolor] = [VHPtelemetrycolour]; [DGshader] = 1; => FB digit at;",
+            "[DGdigit] = [VHPchar]; [DGcolor] = [VHPtelemetrycolour]; [DGshader] = [VHPtelemetryshader]; => FB digit at;",
             "[vhcpoly plus 0] = 1096810496; [vhcpoly plus 1] = 3251109888;",
             "[vhcpoly plus 6] = 3243769856; [vhcpoly plus 7] = 1103626240;",
         ))
@@ -1333,6 +1335,264 @@ def main() -> int:
         and interior_details.index("=> VHG HUD telemetry prepare; => VH HUD telemetry;")
         < interior_details.index("=> VHG interior smooth64; => VHG interior smooth64;"),
         "inside Stardrifter restores native 24-character catalogue and fallback target labels",
+    )
+    original_label_commands = section(
+        original,
+        "case 3: // galactic cartography commands",
+        "case 4: switch (s_command)",
+    )
+    label_input = section(
+        game, '"VHG label input"', '"VHG navigation steering input"'
+    )
+    label_actions = section(
+        game, '"VHG device name star"', '"VHG device next target"'
+    )
+    catalog_add = section(
+        catalog, '"VHCAT folded name character"', '"VHCAT remove"'
+    )
+    catalog_remove = section(
+        catalog, '"VHCAT remove"', '"VHCAT repair"'
+    )
+    telemetry_text = section(
+        panels, '"VHP HUD telemetry text"', '"VH HUD FCS"'
+    )
+    physical_cart_commands = section(
+        game, '"VHG onboard prepare cart"', '"VHG onboard prepare emergency"'
+    )
+    accessible_cart_commands = section(
+        game, '"VHG device cartography overlay"', '"VHG device emergency overlay"'
+    )
+    check(
+        all(token in original_label_commands for token in (
+            "if (ap_targetted==1 && !ap_targetting && !labplanet)",
+            "if (ip_targetted!=-1 && !labstar)",
+            "labstar_char = 0;", "labplanet_char = 0;",
+            "for (n = 0; n < 21; n++)", "star_id = ap_target_id;",
+            "planet_id = nearstar_identity + ip_targetted + 1;",
+            "star_label_pos >= sm_consolidated",
+            "planet_label_pos >= sm_consolidated",
+            "!memicmp (comp_data+8, star_label, 20)",
+            "!memicmp (comp_data+8, planet_label, 20)",
+            'status ("PROMPT", 50);', 'status ("ASSIGNED", 50);',
+            'status ("EXTANT", 50);', 'status ("REMOVED", 50);',
+            'status ("DENIED", 50);', 'status ("CONFLICT", 50);',
+            'status ("INT. ERROR", 50);',
+        ))
+        and all(token in original for token in (
+            "if (c >= 32 && c <= 126 && labstar_char < 20)",
+            "if (c >= 'a' && c <= 'z') c -= 32;",
+            "star_label[labstar_char] = c;", "star_label[labstar_char] = 32;",
+            "planet_label[labplanet_char] = c;", "planet_label[labplanet_char] = 32;",
+            "if (c == 13)", "dev_commands ();", "goto endmain;",
+        )),
+        "native direct label gates, mutation, persistence, and statuses remain pinned",
+    )
+    check(
+        all(token in label_actions for token in (
+            "A = [MgAptgt]; ? A != 1 -> VHG label conflict;",
+            "A = [VHGlabelbody]; ? A != 0 -> VHG label conflict;",
+            "[VHGlabelid0] = [VHTid0]; [VHGlabelid1] = [VHTid1];",
+            "A = [VHGplanet]; ? A '>= [nsnob] -> VHG label conflict;",
+            "A = [VHGlabelstar]; ? A != 0 -> VHG label conflict;",
+            "[nsid0] = [VHTid0]; [nsid1] = [VHTid1]; => NsIdentAddInt;",
+            "[VHGlabelstar] = 1; [VHGlabelstarpos] = 0;",
+            "[VHGlabelbody] = 1; [VHGlabelbodypos] = 0;",
+            "A < 21 -> VHG label begin clear;",
+            "[E plus 21] = A;", "[E plus 22] = A;", "[E plus 23] = B;",
+            "=> VHCAT remove;", "? A = 1 -> VHG label removed;",
+            "? A = 2 -> VHG label denied;", "[VHGlabelresult] = 0;",
+            "[VHGlabelresult] = 3;", "[VHGlabelresult] = 4;",
+            "[VHGlabelresult] = 5;", "VHGlabelerrortext",
+            "VHGlabelconflicttext",
+        ))
+        and "=> VHG console prefill;" not in label_actions
+        and all(token in catalog_add for token in (
+            "[E plus 2] = 20202020h;", "[VHCATshift] = A; B < A;",
+            "C = FFh; C < [VHCATshift]; ! C;",
+            "A = [E]; A & C; A | B; [E] = A;",
+            "B = [VHCATi]; C = B; B / 4;",
+            "? A < 97 -> VHCAT folded name character done;",
+            "? A > 122 -> VHCAT folded name character done; A - 32;",
+            "[VHCATptr] = E; [VHCATi] = 0;",
+            "E = [VHCATptr]; => VHCAT folded name character; [VHCATchar] = A;",
+            "E = [VHCATfoundptr]; => VHCAT folded name character;",
+            "? A != [VHCATchar] -> VHCAT duplicate next;",
+            "? A < 20 -> VHCAT duplicate name loop;",
+        ))
+        and "A = [E plus 2]; ? A != [C plus 2]" not in catalog_add
+        and all(token in catalog_remove for token in (
+            "A = [VHCATrecno]; A '* VHCATRECBYTES; A + VHCATHDRBYTES;",
+            "? A < [vhcatraw] -> VHCAT remove protected;",
+            "[File Position] = [VHCATremovepos]", "[Block Size] = 8; isocall;",
+            "[VHCATstatus] = 1;", "[VHCATstatus] = 2;",
+        ))
+        and catalog_remove.index("[File Command] = WRITE;")
+        < catalog_remove.index("E = [VHCATfoundptr];")
+        and all(text in game for text in (
+            "VHGlabelprompttext = { PROMPT };",
+            "VHGlabelassignedtext = { ASSIGNED };",
+            "VHGlabelextanttext = { EXTANT };",
+            "VHGlabelremovedtext = { REMOVED };",
+            "VHGlabeldeniedtext = { DENIED };",
+            "VHGlabelconflicttext = { CONFLICT };",
+            "VHGlabelerrortext = { INT. ERROR };",
+        )),
+        "cartography actions retain identities, case-insensitive names, local removal, and native results",
+    )
+    check(
+        all(token in label_input for token in (
+            "[VHGlabelused] = 1;", "A = [KEY ESCAPE];",
+            "? A = 27 -> VHG label cancel;", "? A = 8 -> VHG label backspace;",
+            "? A = 13 -> VHG label commit;", "? A < 32 -> VHG label input done;",
+            "? A > 126 -> VHG label input done;", "? A >= 20 -> VHG label input done;",
+            "A = [VHGascii]; [VHGlabelchar] = A; [VHGascii] = 0; A = [VHGlabelchar];",
+            "-> VHG label lowercase character;",
+            "[VHGlabelchar] - 32;", "[E] = [VHGlabelchar];", "[E] = 32;",
+            "[VHCATlen] = 20;", "=> VHCAT add;",
+            "[VHGlabelresult] = 6;", "[VHGlabelresult] = 1;", "[VHGlabelresult] = 2;",
+            "[VHGlabelstar] = 0;", "[VHGlabelbody] = 0;", "=> VHCAT refresh;",
+        ))
+        and game.index("=> VHG return key;")
+        < game.index("=> VHG label input; A = [VHGlabelused]")
+        < game.index("=> VHG fps key;")
+        < game.index("=> VHG raw snapshot key;")
+        < game.index("=> VHG movie character;")
+        < game.index("=> VHG graphics character;")
+        < game.index("=> VHG menu mouse;")
+        < game.index("=> VHG device key;")
+        and all(token in game for token in (
+            "VHGlabelescheld = 0;",
+            "A = [VHGlabelescheld]; ? A = 0 -> VHG input escape ready;",
+            "A = [VHGlabelstar]; A | [VHGlabelbody]; ? A = 0 -> VHG input escape;",
+            "[VHGlabelescheld] = 1; => VHG label input; -> VHG input done;",
+        ))
+        and game.index("[VHGlabelescheld] = 1; => VHG label input;")
+        < game.index('\n    "VHG input escape"\n')
+        and all(token in physical_cart_commands for token in (
+            "VHGsrccartstarassign", "VHGsrccartstarremove",
+            "VHGsrccartplanetassign", "VHGsrccartplanetremove",
+        ))
+        and all(token in accessible_cart_commands for token in (
+            "VHGcartstarassign", "VHGcartstarremove",
+            "VHGcartplanetassign", "VHGcartplanetremove",
+        )),
+        "direct editor owns text through cancel, edit, commit, and dynamic cartography wording",
+    )
+    check(
+        all(token in original_outer_hud for token in (
+            "if (labstar && c == labstar_char) digit_at ('_', -6, -15, 5, 127 - 2 * (clock()%32), 0);",
+            "if (labplanet && c == labplanet_char) digit_at ('_', -6, -15, 5, 127 - 2 * (clock()%32), 0);",
+        ))
+        and all(token in label_prepare for token in (
+            "[VHPtelemetrystaredit] = 0; [VHPtelemetrybodyedit] = 0;",
+            "[VHPtelemetrystaredit] = 1;",
+            "[VHPtelemetrystarcursor] = [VHGlabelstarpos];",
+            "[VHPtelemetrybodyedit] = 1;",
+            "[VHPtelemetrybodycursor] = [VHGlabelbodypos];",
+        ))
+        and all(token in telemetry_text for token in (
+            "A = [VHPtelemetryi]; ? A != [VHPtelemetrycursor] -> VHP HUD telemetry character;",
+            "A = [VHPtelemetryclock]; A % 32; A '* 2; C = 127; C - A;",
+            "[VHPchar] = 95; [VHPtelemetryshader] = 0; => VHP HUD telemetry digit;",
+            "[VHPtelemetrycolour] = [VHPtelemetrysavedcolour]; [VHPtelemetryshader] = 1;",
+            "A = [VHPchar]; ? A <= 32 -> VHP HUD telemetry digit done;",
+            "? A > 96 -> VHP HUD telemetry digit done;",
+            "[DGshader] = [VHPtelemetryshader]; => FB digit at;",
+        ))
+        and telemetry_text.index("[VHPchar] = 95;")
+        < telemetry_text.index('"VHP HUD telemetry character"')
+        < telemetry_text.index("A = [VHVcamxi]; A - 40;")
+        and "[VHVcamxi]" not in section(
+            telemetry_text,
+            "[VHPchar] = 95;",
+            '"VHP HUD telemetry character"',
+        ),
+        "editing cursor blinks before the fixed-position glyph with native shader ownership",
+    )
+    repeat_sentinel = section(
+        game, '"VHG repeat sentinel option"', '"VHG freeze diagnostic option"'
+    )
+    freeze_diagnostic = section(
+        game, '"VHG freeze diagnostic option"', '"VHG profile option"'
+    )
+    cadence = section(game, '"VHG cadence"', '"VHG timing step"')
+    sentinel_schedule = section(
+        game, "[VHGsentframes]+;", "( Surface input samples"
+    )
+    check(
+        "VHGsentinelrepeat = 0;" in game
+        and all(token in repeat_sentinel for token in (
+            "A = Command Line;",
+            "? C != 99 -> VHG repeat sentinel next;",
+            "? C != 97 -> VHG repeat sentinel next;",
+            "? C != 112 -> VHG repeat sentinel next;",
+            "? C != 116 -> VHG repeat sentinel next;",
+            "? C != 117 -> VHG repeat sentinel next;",
+            "? C != 114 -> VHG repeat sentinel next;",
+            "? C != 101 -> VHG repeat sentinel next;",
+            "? C = 0 -> VHG repeat sentinel found;",
+            "? C = 32 -> VHG repeat sentinel found;",
+            "[VHGsentinelrepeat] = 1;",
+        ))
+        and "VHGsentinelfreeze = 0;" in game
+        and all(token in freeze_diagnostic for token in (
+            "? C != 102 -> VHG freeze next;",
+            "? C != 114 -> VHG freeze next;",
+            "? C != 101 -> VHG freeze next;",
+            "? C != 122 -> VHG freeze next;",
+            "[VHGsentinelfreeze] = 1;",
+        ))
+        and all(token in cadence for token in (
+            "A = [VHGsentinelfreeze]; ? A = 0 -> VHG cadence unfrozen;",
+            "[VHGdosim] = 0;",
+        ))
+        and "[VHGframe] = 0; [VHGfreezebrtl] = [brtlseed]; [VHGfreezesuf] = [SUfseed];" in game
+        and "[brtlseed] = [VHGfreezebrtl]; [SUfseed] = [VHGfreezesuf];" in game
+        and 'A = [VHGsentinelfreeze]; ? A != 0 -> VHG render live;' in game
+        and 'A = [VHGsentinelfreeze]; ? A != 0 -> VHG render space clear;' in game
+        and 'A = [VHGsentinelfreeze]; ? A != 0 -> VHG render clock frozen;' in game
+        and '[VHTclockphase] = 0;' in game
+        and "vhglabelname = { game-label-state-out.bin };" in game
+        and "vhglabelstate = 8;" in game
+        and all(token in game for token in (
+            "[vhglabelstate plus 0] = [VHGlabelstar];",
+            "[vhglabelstate plus 2] = [VHGlabelstarpos];",
+            "[vhglabelstate plus 4] = [VHPtelemetryclock];",
+            "[VHPtelemetryclock] = [VHGframe];",
+            "[VHPtelemetryclock] = [VHGfreezeblink];",
+            "[VHGfreezeblink] + 8;",
+            "C = 127; C - A; [vhglabelstate plus 5] = C;",
+            "[vhglabelstate plus 6] = [VHGlabelresult];",
+            "[vhglabelstate plus 7] = [VHGlabelescheld];",
+            "[Block Pointer] = vhglabelstate; [Block Size] = 32; isocall;",
+            "[File Size] = 32; isocall;",
+        ))
+        and "=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option; => VHG profile option;" in game
+        and all(token in sentinel_schedule for token in (
+            "A = [VHGsent]; ? A = 0 -> VHG sentinel frame ready;",
+            "A = [VHGsentinelrepeat]; ? A = 0 -> VHG no sentinel;",
+            "A = [VHGsentframes]; ? A < 60 -> VHG no sentinel;",
+            "=> VHG write sentinel; [VHGsent] = 1; [VHGsentframes] = 0;",
+        ))
+        and sentinel_schedule.index("A = [VHGsent];")
+        < sentinel_schedule.index("A = [VHGsentinelrepeat];")
+        < sentinel_schedule.index('"VHG sentinel frame ready"')
+        < sentinel_schedule.index("A = [VHGsentframes];")
+        < sentinel_schedule.index("=> VHG write sentinel;"),
+        "capture opt-in repeats complete diagnostics every 60 rendered frames",
+    )
+    check(
+        "WM_CHAR = 0x0102" in windows_hidden_process
+        and all(token in windows_hidden_process for token in (
+            "def post_char(self, handle: int, character: str | int) -> None:",
+            "codepoint = ord(character) if isinstance(character, str) else character",
+            'raise ValueError("post_char accepts one ASCII character")',
+            "self.user32.PostMessageW(handle, WM_CHAR, codepoint, 1)",
+            "ctypes.set_last_error(0)",
+            "raise ctypes.WinError(ctypes.get_last_error())",
+        ))
+        and "if not 0 <= codepoint <= 0x7F:" in windows_hidden_process,
+        "private-desktop input posts one validated ASCII WM_CHAR",
     )
     check(
         all(token in original1 for token in (
