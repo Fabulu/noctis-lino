@@ -454,8 +454,16 @@ above six-bit component 32: native/native
 8,338, native/product 8,338, product/native 8,215, and product/product 8,215.
 Neither crop contains index 77. The current 123-pixel deficit is therefore
 entirely selected by the 605 same-band indexed-page differences; the 54 palette
-component differences contribute zero in this crop. No source-grounded repair is
-yet supported, and complete-page, complete-lighting, and complete-palette
+component differences contribute zero in this crop. Upper and lower projected
+HUD rows account for 460 differences and 66 deficit pixels; 367 product values
+equal native X-1, directly assigning that portion to cross-host projected-font
+fidelity. The remaining 145 differences and 57 deficit pixels occupy right
+fixture and central flare regions. A source/port trace retains the same
+composition order, float-local clipping and truncation, x87-width spoke products,
+center and `Stick` sampling, and two source-ordered smoothing passes; the reviewed
+angular-step difference is inactive at this camera. Native pass-level indexed
+buffers and projected endpoints were not retained, so those 145 pixels do not
+yet support a repair. Complete-page, complete-lighting, and complete-palette
 equality remain informational because the BMP capture still lacks snapshot-time
 simulation and palette-easing state.
 
@@ -575,8 +583,10 @@ components exactly, removing 187 of the previous 241 complete-palette mismatches
 The remaining 54 components are not graded as defects because the native snapshot
 did not retain its palette-easing phase. The matched open-HUD interior flare crop
 uses only bands 0 and 1; its four-way 8,338/8,338/8,215/8,215 brightness matrix
-proves those components contribute zero to the current 123-pixel gap. The 605
-same-band index differences remain open pending a source-grounded raster cause.
+proves those components contribute zero to the current 123-pixel gap. The 460
+projected-HUD differences move to the cross-host font docket. The 145 remaining
+flare/fixture differences stay open only for pass-level attribution; the reviewed
+source and port paths do not support a speculative repair.
 
 Exact projected glyph raster across hosts, complete interior lighting, the
 remaining unretained palette-easing state, whole-row numerical environmental-state

@@ -120,9 +120,15 @@ native-page/native-palette, native-page/product-palette,
 product-page/native-palette, and product-page/product-palette brightness counts
 are respectively 8,338, 8,338, 8,215, and 8,215. Thus the current 123-pixel gap
 comes entirely from 605 same-band indexed-page differences; the current palette
-mismatch and index 77 contribute zero in this crop. No raster repair is claimed
-without a source-grounded cause. Repeated launches retain identical scoped indexed
-rasters despite palette variation, so those rasters—not unstable product
+mismatch and index 77 contribute zero in this crop. Upper and lower projected
+HUD rows account for 460 differences and 66 deficit pixels, with 367 product
+values equal to native X-1; this is retained for the cross-host font-fidelity
+work. The remaining 145 differences and 57 deficit pixels occupy right-fixture
+and central-flare regions. Source/port ordering, clipping, spoke arithmetic, and
+two-pass smoothing expose no active divergence there, while native pass-level
+intermediates were not retained, so no raster repair is claimed. Repeated
+launches retain identical scoped indexed rasters despite palette variation, so
+those rasters—not unstable product
 brightness—grade the repair. Native direct star/body editing now owns character
 input ahead of all other hotkeys and preserves source uppercase conversion,
 Backspace, physical-Escape cancellation and held-key ownership, Return, the

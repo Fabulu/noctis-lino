@@ -33,7 +33,7 @@ BOUNDARY_INSIDE_SHA256 = "07873d1191f192135c4050c619230264eebba85114d850b19cf4e1
 BOUNDARY_INSIDE_ADAPTED_SHA256 = "b4d23838f12a91ebe2b67b291a7d8b6704ec1371af484eb663399314d731989f"
 BOUNDARY_ROOF_SHA256 = "b2af5163ef04975a09d05043adb486f511205ef5654511b314677961a2a9dcdf"
 BOUNDARY_ROOF_ADAPTED_SHA256 = "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7bf7f19f2278ca7ea"
-PROVENANCE_SHA256 = "2fcaea57d37f6e745942799d230dba252b873b439254ff3a73acb461d7500f45"
+PROVENANCE_SHA256 = "0657a8266452315c908424088ce83fcd71484cfdc39e0a7aedd8683aa4a16bc2"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
 BOUNDARY_PROVENANCE_SHA256 = "198d1db85982088bde7509cbae2a6c47af5db3eac10b7732ee33449f01ec4c95"
@@ -45,6 +45,13 @@ PRODUCT_INTERIOR_CROP_SHA256 = "c0ecb6a4f83c25e2e4f8155adead874be686643d37bc9747
 PRODUCT_INTERIOR_STATUS_SHA256 = "5f2a5a1c0fef751c0b8d359f4b886a54e89959c68311e0d029ed3afa20c524e8"
 PRODUCT_INTERIOR_EXACT_INDICES = 17395
 PRODUCT_INTERIOR_BRIGHTNESS = (8338, 8338, 8215, 8215)
+INTERIOR_DIFFERENCE_DECOMPOSITION = (
+    ("upper_hud", 355, (30, 30, 101, 57), 30),
+    ("right_fixture", 131, (150, 94, 179, 120), 46),
+    ("central_flare", 14, (39, 95, 149, 124), 11),
+    ("lower_hud", 105, (30, 125, 179, 149), 36),
+)
+INTERIOR_HUD_NATIVE_LEFT_MATCHES = 367
 LIMB_CROP = (10, 75, 90, 125)
 LIMB_BAND_SHA256 = "9f7d58392998a5134aba50a131a59dde46c60be997ad446e161bda6bad511be0"
 ROOF_CUPOLA_CROP = (10, 10, 310, 124)
@@ -238,6 +245,60 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
             brightness == PRODUCT_INTERIOR_BRIGHTNESS
             and native_crop.count(77) == product_crop.count(77) == 0,
             "four-way interior brightness isolates the 123-pixel deficit to indexed raster state",
+        )
+        differences = [
+            y * 320 + x
+            for y in range(INTERIOR_CROP[1], INTERIOR_CROP[3])
+            for x in range(INTERIOR_CROP[0], INTERIOR_CROP[2])
+            if native_page[y * 320 + x] != page[y * 320 + x]
+        ]
+        regions = {name: [] for name, *_rest in INTERIOR_DIFFERENCE_DECOMPOSITION}
+        for position in differences:
+            x, y = position % 320, position // 320
+            if y <= 57:
+                region = "upper_hud"
+            elif y >= 125:
+                region = "lower_hud"
+            elif x >= 150:
+                region = "right_fixture"
+            else:
+                region = "central_flare"
+            regions[region].append(position)
+
+        def region_summary(name: str) -> tuple[str, int, tuple[int, ...], int]:
+            positions = regions[name]
+            if not positions:
+                return name, 0, (), 0
+            box = (
+                min(position % 320 for position in positions),
+                min(position // 320 for position in positions),
+                max(position % 320 for position in positions),
+                max(position // 320 for position in positions),
+            )
+            deficit = sum(
+                (max(native_palette[native_page[position] * 3:
+                                    native_page[position] * 3 + 3]) > 32) -
+                (max(palette[page[position] * 3:
+                             page[position] * 3 + 3]) > 32)
+                for position in positions
+            )
+            return name, len(positions), box, deficit
+
+        decomposition = tuple(
+            region_summary(name)
+            for name, *_rest in INTERIOR_DIFFERENCE_DECOMPOSITION
+        )
+        check(
+            decomposition == INTERIOR_DIFFERENCE_DECOMPOSITION,
+            "interior residual decomposes into scoped HUD and flare/fixture regions",
+        )
+        hud_differences = regions["upper_hud"] + regions["lower_hud"]
+        check(
+            len(hud_differences) == 460
+            and sum(page[position] == native_page[position - 1]
+                    for position in hud_differences) ==
+            INTERIOR_HUD_NATIVE_LEFT_MATCHES,
+            "upper and lower HUD differences retain the one-pixel projection signature",
         )
         print("INFO interior-flare brightness remains ungraded "
               f"(native/native {brightness[0]}, native/product {brightness[1]}, "
@@ -732,6 +793,9 @@ def main() -> int:
     product_interior = provenance.get("matched_product_interior_contract", {})
     product_capture = product_interior.get("capture_state", {})
     product_fixed_chase = product_interior.get("fixed_chase_contract", {})
+    product_decomposition = product_interior.get("difference_decomposition", {})
+    product_hud = product_decomposition.get("projected_hud_total", {})
+    product_flare = product_decomposition.get("flare_or_fixture_total", {})
     product_brightness = product_interior.get("brightness_pixels", {})
     check(
         product_capture.get("private_inactive_desktop") is True
@@ -774,6 +838,23 @@ def main() -> int:
         and product_interior.get("palette_brightness_contribution_pixels") == 0
         and product_interior.get("source_repair_supported") is False,
         "paired provenance records the indexed-raster-only interior brightness discriminator",
+    )
+    check(
+        product_decomposition.get("upper_hud", {}).get("differing_indices") == 355
+        and product_decomposition.get("right_flare_or_fixture_region", {}).get(
+            "differing_indices") == 131
+        and product_decomposition.get("central_flare_region", {}).get(
+            "differing_indices") == 14
+        and product_decomposition.get("lower_hud", {}).get("differing_indices") == 105
+        and product_hud.get("differing_indices") == 460
+        and product_hud.get("native_brightness_surplus_pixels") == 66
+        and product_hud.get("product_equals_native_pixel_at_x_minus_1") ==
+        INTERIOR_HUD_NATIVE_LEFT_MATCHES
+        and product_hud.get("docket") == "cross-host projected-font fidelity"
+        and product_flare.get("differing_indices") == 145
+        and product_flare.get("native_brightness_surplus_pixels") == 57
+        and product_flare.get("source_repair_supported") is False,
+        "paired provenance separates projected HUD differences from unassigned flare pixels",
     )
 
     limb_provenance_data = LIMB_PROVENANCE.read_bytes()
