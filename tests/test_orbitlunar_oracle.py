@@ -13,14 +13,20 @@ ROOT = Path(__file__).resolve().parents[1]
 ORACLE_ROOT = ROOT / "tests" / "gen" / "recon_w7b" / "out"
 EXTERIOR = ORACLE_ROOT / "orbitlunar_exterior_8736_native.shot.BMP"
 INTERIOR = ORACLE_ROOT / "orbitlunar_interior_8736_native.shot.BMP"
+LIMB = ORACLE_ROOT / "orbitlunar_limb_pair_8736_native.shot.BMP"
 PROVENANCE = ORACLE_ROOT / "orbitlunar_camera_pair_8736_native.provenance.json"
+LIMB_PROVENANCE = ORACLE_ROOT / "orbitlunar_limb_pair_8736_native.provenance.json"
 CAPTURE = ROOT / "tools" / "capture_noctis_scenes.ps1"
 EXTERIOR_SHA256 = "89579c32aaee28a93e5b28675921ca055a72c870fb1e00b9381308d3ab9aa559"
 INTERIOR_SHA256 = "f26d65b7c6a96aed4e34b7b4389cbfd65777e499f521a08f1e2d970ecdc20667"
+LIMB_SHA256 = "c35d22468bdf6e83a181dde4fca6567285268b7b4abb05997b86ab1e8db583c0"
 PROVENANCE_SHA256 = "da981004d14e9ea86ceb608b419122b51ebd76c2d03c1c9e473e36d9d927e2cb"
+LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
+LIMB_CROP = (10, 75, 90, 125)
+LIMB_BAND_SHA256 = "9f7d58392998a5134aba50a131a59dde46c60be997ad446e161bda6bad511be0"
 DIAGNOSTIC_SIZES = (
     ("game-vh-out.bin", 156),
     ("game-sun-out.bin", 128),
@@ -84,6 +90,15 @@ def bright_crop_count(page: bytes, palette: tuple[int, ...]) -> int:
     )
 
 
+def bright_mask(page: bytes, palette: tuple[int, ...],
+                box: tuple[int, int, int, int]) -> bytes:
+    x0, y0, x1, y1 = box
+    return bytes(
+        max(palette[page[y * 320 + x] * 3:page[y * 320 + x] * 3 + 3]) > 32
+        for y in range(y0, y1) for x in range(x0, x1)
+    )
+
+
 def diagnostic_paths(directory: Path) -> tuple[tuple[Path, int], ...]:
     return tuple((directory / f"orbitlunar-{name}", size)
                  for name, size in DIAGNOSTIC_SIZES)
@@ -91,7 +106,7 @@ def diagnostic_paths(directory: Path) -> tuple[tuple[Path, int], ...]:
 
 def grade_product(directory: Path, camera_beta: int, native_page: bytes,
                   native_palette: tuple[int, ...], native_local: tuple[float, ...],
-                  interior: bool, check) -> None:
+                  view: str, check) -> None:
     required = diagnostic_paths(directory)
     for path, size in required:
         check(path.is_file() and path.stat().st_size == size,
@@ -127,7 +142,7 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
     page = (directory / "orbitlunar-game-page-out.bin").read_bytes()
     palette = struct.unpack(
         "<768I", (directory / "orbitlunar-game-palette-out.bin").read_bytes())
-    if interior:
+    if view == "interior":
         native_bands = crop_bands(native_page, INTERIOR_CROP)
         product_bands = crop_bands(page, INTERIOR_CROP)
         check(product_bands == native_bands,
@@ -141,6 +156,27 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
         print("INFO interior-flare brightness remains ungraded "
               f"(native {bright_crop_count(native_page, native_palette)}, "
               f"product {bright_crop_count(page, palette)} pixels above component 32)")
+    elif view == "limb":
+        native_bands = crop_bands(native_page, LIMB_CROP)
+        product_bands = crop_bands(page, LIMB_CROP)
+        check(product_bands == native_bands,
+              "product exactly retains the native primary-window palette-band geometry")
+        check(bright_mask(page, palette, LIMB_CROP) ==
+              bright_mask(native_page, native_palette, LIMB_CROP),
+              "product exactly retains the native primary-window brightness mask")
+        check(band_geometry(page, 3) == (8535, (106, 51, 216, 148)),
+              "product retains the bounded native lunar limb silhouette")
+        globe_differences = [
+            index for index, (native, product) in enumerate(zip(native_page, page))
+            if (native >> 6 == 3) != (product >> 6 == 3)
+        ]
+        check(
+            len(globe_differences) <= 99 and all(
+                106 <= index % 320 <= 217 and 51 <= index // 320 <= 148
+                for index in globe_differences
+            ),
+            "the beside-primary globe mask differs only at 99 bounded limb pixels",
+        )
     else:
         count, bounding_box = band_geometry(page, 3)
         check(bounding_box == (98, 52, 216, 149) and 9232 <= count <= 9267,
@@ -170,6 +206,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--exterior-product-directory", type=Path)
     parser.add_argument("--interior-product-directory", type=Path)
+    parser.add_argument("--limb-product-directory", type=Path)
     args = parser.parse_args()
     failures = []
 
@@ -180,17 +217,21 @@ def main() -> int:
 
     exterior_data = EXTERIOR.read_bytes()
     interior_data = INTERIOR.read_bytes()
+    limb_data = LIMB.read_bytes()
     check(sha256(exterior_data) == EXTERIOR_SHA256,
           "retained lunar exterior BMP has its pinned SHA-256")
     check(sha256(interior_data) == INTERIOR_SHA256,
           "retained Stardrifter-interior BMP has its pinned SHA-256")
+    check(sha256(limb_data) == LIMB_SHA256,
+          "retained lunar limb-pair BMP has its pinned SHA-256")
     try:
         exterior_page, exterior_palette = decode_bmp(EXTERIOR)
         interior_page, interior_palette = decode_bmp(INTERIOR)
+        limb_page, limb_palette = decode_bmp(LIMB)
     except (AssertionError, OSError, struct.error) as error:
-        check(False, f"paired lunar native BMPs decode safely: {error}")
-        exterior_page = interior_page = b""
-        exterior_palette = interior_palette = ()
+        check(False, f"lunar native BMPs decode safely: {error}")
+        exterior_page = interior_page = limb_page = b""
+        exterior_palette = interior_palette = limb_palette = ()
     else:
         check(sha256(exterior_page) ==
               "e032b578eff11f78ca220dbfa5f6df0aae4c4940f7b93ebbf3d47f7b6df2d83a",
@@ -198,9 +239,12 @@ def main() -> int:
         check(sha256(interior_page) ==
               "ea08058aff4715a5ef9c27a27dcc27af134660653ce7edfaef251dce146e73fc",
               "native interior retains its complete indexed page")
+        check(sha256(limb_page) ==
+              "e888c0a1a1e1174ec13c6bace5319aa210a2092d64a2f742b21ff92882ecfb5f",
+              "native limb pair retains its complete indexed page")
         check(sha256(bytes(exterior_palette)) == PALETTE_SHA256
-              and exterior_palette == interior_palette,
-              "paired native views retain the same exact active six-bit palette")
+              and exterior_palette == interior_palette == limb_palette,
+              "all native lunar views retain the same exact active six-bit palette")
         check(band_geometry(exterior_page, 3) == (9232, (98, 52, 216, 149)),
               "native exterior retains the complete lunar globe silhouette")
         interior_bands = crop_bands(interior_page, INTERIOR_CROP)
@@ -208,6 +252,12 @@ def main() -> int:
               and interior_bands.count(0) == 10799
               and interior_bands.count(1) == 7201,
               "native interior retains the primary corona, rays, and Stardrifter occlusion")
+        limb_bands = crop_bands(limb_page, LIMB_CROP)
+        check(sha256(limb_bands) == LIMB_BAND_SHA256
+              and limb_bands.count(0) == 2408
+              and limb_bands.count(1) == 1592
+              and band_geometry(limb_page, 3) == (8620, (106, 51, 217, 148)),
+              "native limb view retains the primary beside the dark lunar globe")
 
     provenance_data = PROVENANCE.read_bytes()
     check(sha256(provenance_data.replace(b"\r\n", b"\n")) == PROVENANCE_SHA256,
@@ -243,6 +293,46 @@ def main() -> int:
         "paired provenance states the admissible camera, page, palette, and state limits",
     )
 
+    limb_provenance_data = LIMB_PROVENANCE.read_bytes()
+    check(sha256(limb_provenance_data.replace(b"\r\n", b"\n")) ==
+          LIMB_PROVENANCE_SHA256,
+          "limb-pair provenance has its pinned normalized SHA-256")
+    try:
+        limb_provenance = json.loads(limb_provenance_data)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        check(False, f"limb-pair provenance decodes safely: {error}")
+        limb_provenance = {}
+    limb_authority = limb_provenance.get("authority", {})
+    limb_staged = limb_provenance.get("staged_state", {})
+    limb_state = limb_provenance.get("continuity_after_snapshot", {})
+    check(
+        limb_provenance.get("star") == [174288, -44389, -688771]
+        and limb_provenance.get("target_body") == 0
+        and limb_provenance.get("target_type") == 1
+        and limb_provenance.get("star_class") == 0,
+        "limb provenance identifies the same IDEAL I system",
+    )
+    staged_local = tuple(limb_staged.get("star_local", ()))
+    bracket_local = tuple(limb_state.get("star_local", ()))
+    check(
+        limb_staged.get("sync") == limb_state.get("sync") == 0
+        and limb_state.get("fcs_status") == "STANDBY"
+        and limb_state.get("secs") == 1344638737.0
+        and len(staged_local) == len(bracket_local) == 3
+        and all(abs(staged_local[index] - bracket_local[index]) < 0.00000000003
+                for index in range(3)),
+        "limb provenance brackets the staged sync-0 pose through the native snapshot",
+    )
+    check(
+        limb_provenance.get("camera", {}).get("user_beta") == 67.0
+        and limb_authority.get("snapshot_camera_state_retained") is True
+        and limb_authority.get("snapshot_page_and_palette_retained") is True
+        and limb_authority.get("adjacent_simulation_bracket_retained") is True
+        and limb_authority.get("snapshot_simulation_state_retained") is False
+        and limb_authority.get("whole_page_same_state_contract") is False,
+        "limb provenance states the admissible camera, page, palette, and state limits",
+    )
+
     capture = CAPTURE.read_text(encoding="utf-8")
     check(
         all(name in capture for name in (
@@ -275,12 +365,16 @@ def main() -> int:
 
     exterior_local = tuple(exterior_state.get("star_local", ()))
     interior_local = tuple(interior_state.get("star_local", ()))
+    limb_local = tuple(limb_state.get("star_local", ()))
     if args.exterior_product_directory is not None and exterior_page:
         grade_product(args.exterior_product_directory, 0, exterior_page,
-                      exterior_palette, exterior_local, False, check)
+                      exterior_palette, exterior_local, "exterior", check)
     if args.interior_product_directory is not None and interior_page:
         grade_product(args.interior_product_directory, -97, interior_page,
-                      interior_palette, interior_local, True, check)
+                      interior_palette, interior_local, "interior", check)
+    if args.limb_product_directory is not None and limb_page:
+        grade_product(args.limb_product_directory, 67, limb_page,
+                      limb_palette, limb_local, "limb", check)
 
     if failures:
         print(f"orbitlunar oracle: {len(failures)} failure(s)")

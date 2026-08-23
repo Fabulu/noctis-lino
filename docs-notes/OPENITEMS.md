@@ -429,6 +429,22 @@ index. Native/product brightness above six-bit component 32 is 8,338 versus
 7,890; complete-page and palette equality remain informational because the BMP
 capture still lacks snapshot-time simulation and palette-easing state.
 
+A third IDEAL capture now supplies the previously missing genuine primary-beside-
+globe positive. It holds the class-0/type-1 system at raw second `1344638736`,
+uses a sync-0 target-local pose `(-0.01181518607173147,
+0.0000025128783893597895, 0.005015248936280497)`, and turns only to
+`user_beta=67`. The following-frame native continuity block retains that staged
+star-local position within `3e-11` on every axis, with `STANDBY` flight control.
+Through separate Stardrifter windows, the native page shows the clipped primary
+immediately beside the dark lunar limb. The 4,000-pixel primary-window crop has
+exact native/product palette-band and brightness masks: 2,408 dark pixels and
+1,592 bright pixels. The native globe's band-3 mask is 8,620 pixels in
+`(106,51)-(217,148)`; the product has 8,535 in `(106,51)-(216,148)`, with only
+99 bounded limb-mask differences. The complete pages differ at 6,478 indices
+and their active palettes at 241 components, so those remain informational.
+This closes one real orbital beside-primary composition, not the companion-stage
+or Stardrifter transition gaps.
+
 The generic orbital gallery had retained the target-local signs authored around
 the former missing exterior half-turn. After the camera repair those eleven
 poses looked away from their targets. Their local X/Z offsets are now negated

@@ -75,7 +75,12 @@ position, the product retains the native exterior globe silhouette and all
 corona and rays through the Stardrifter interior. The gallery's eleven generic
 orbital fixtures now negate their target-local offsets for the restored source
 half-turn while preserving their authored cockpit axis, and the capture tool
-accepts complete exact local X/Y/Z overrides for matched native poses.
+accepts complete exact local X/Y/Z overrides for matched native poses. A third
+sync-0 IDEAL view now pins a genuine primary-beside-globe composition through
+the Stardrifter: all 4,000 primary-window pixels retain the exact native palette
+band and brightness classification, while the product's dark lunar mask differs
+only at 99 bounded limb pixels. Complete-page and palette equality remain
+informational under the retained adjacent-frame authority limits.
 
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred
