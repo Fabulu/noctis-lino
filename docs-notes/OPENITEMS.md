@@ -364,47 +364,33 @@ no companion flare. This settles that one dark, aligned viewpoint and the
 identity of the showcase spokes. It does not settle visible companion views or
 the wider matrix below.
 
-**ROTOR IGNE visible-companion checkpoint.** A second certified native pose
-turns 34 degrees downward while keeping the visor open. Body 3 is then visible
-at native relative screen coordinate `(-15,17)` with its long source flare,
-while the class-8 primary is behind the camera. A shared-workspace bug had let
-the companion pass overwrite `SFXX/SFYY/SFZZ`; the following primary-flare
-call consequently redrew the companion using the primary star's much shorter
-distance and produced a large false cyan bloom. The local-system renderer now
-reconstructs the primary coordinates at the original call boundary. Fresh
-same-clock native and Lino captures agree on body 0 radius `0.01632`, body 3
-radius `15.6`, its three-dimensional local vector, visibility, centre, and
-radial-beam layout. Companion radii now remain binary64 through the source's
-`(10 * ray) / distance` calculation instead of being narrowed to binary32 at
-the flare boundary. A focused product capture changed no pixels in the sun
-region; its only 20 differences from the prior frame were clock glyphs. The
-false secondary bloom is gone, but exact full-frame corona and palette grading
-against native remains open.
+**ROTOR IGNE exterior-pose correction.** The earlier claim that the open-visor
+navigation-120 checkpoint showed body 3 was invalid. A retained NIV+ BMP now
+brackets the source camera on both sides of the snapshot: position
+`(0,0,-500)`, `user_alfa=-34`, `user_beta=0`, `navigation_beta=120`, fixed-chase
+`TRACKING`, and raw clock `1344638526.8333333`. Its target-relative Stardrifter
+position differs from the second-1344638526 product diagnostic by less than
+`7e-6` on every axis. The native companion crop contains one ordinary bright
+star and no corona or radial flare.
 
-A second defect was in the checkpoint state rather than the flare raster.
-Restoring an active local system rebuilt the fine-approach integrator but left
-the outer Vimana drive at its startup `stspeed=1`, `ap_reached=0` values. The
-gallery scene was therefore fading and accumulating additive rays as if it
-were still in fast travel, while the native checkpoint was stationary. Active
-local-system checkpoints now restore `stspeed=0`, `ap_reached=1`, and stationary
-space frames perform the source's exact `pclear(adapted+2880,0)` viewport clear.
-The clear is eight-way unrolled so restoring the source boundary does not add
-an interpreter-scale fill penalty. In the same 41-by-31 sun crop, pixels above
-the bright RGB thresholds 160 and 220 fell from 180/141 to 55/31; the native
-frame contains 64/37. This removes the accumulated blue slab and leaves a
-native-sized centre while exact whole-frame grading remains open.
+The defect was the exterior camera, not the companion raster. Native
+`from_vehicle()` installs `user_beta + navigation_beta + 180`; the product had
+omitted the final half-turn based on an inadmissible visual alignment. It
+therefore projected the behind-camera companion to `(145,117)`, reported a live
+flare, and filled the crop with 1,393 non-background indices. Restoring the
+source half-turn makes the projected depth negative, clears the companion flare
+flag, and leaves at most two ordinary star points in the same crop. Complete-page
+equality remains ungraded because DOSBox-X was suspended after the BMP closed
+and `adapted` had already entered the next frame; the retained BMP itself is the
+exact indexed-page and active-palette authority for this negative visibility
+contract.
 
-The gallery checkpoint had also disabled synchronization while its native
-reference visibly reported `TRACKING`. It now selects source fixed-chase sync;
-the retained body offset is already the exact navigation-120 equilibrium, so
-the viewpoint remains stable. The outer HUD now follows the source's settled
-local branch and renders `TRACKING`, or `MOVIEMAKER` while recording, instead
-of leaking the fine-approach integrator's `STANDBY` state.
-
-The reproducible `orbitmultiple` gallery scene uses this open-visor
-native-matched pose by default. This closes the coordinate, drive-state, and
-beam-accumulation defects in one real visible-companion context, not the
-remaining cross-context matrix.
+The prior shared-workspace, binary64-radius, stationary-drive, and fixed-chase
+repairs remain source-grounded and independently protected. Active local-system
+checkpoints restore `stspeed=0`, `ap_reached=1`, use the source viewport clear,
+and report `TRACKING`. This corrected checkpoint does not authenticate a visible
+companion corona or beam layout. A genuinely front-facing companion capture is
+still required by the wider matrix below.
 
 **Frozen-world native-context checkpoint.** The landed NIV+ capture rig now
 accepts independent capsule and player coordinates plus the exact camera pose

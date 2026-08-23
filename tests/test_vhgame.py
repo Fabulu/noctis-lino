@@ -1752,8 +1752,8 @@ def main() -> int:
     check(
         resident_scan.count("A = [FI]; ? A >= 0") == 3
         and "A = [FI]; ? A '>= 0" not in resident_scan
-        and "A = [VHGbeta]; A + [VHGnavbeta]; A % 360;" in external_camera
-        and "A = [VHGbeta]; A + [VHGnavbeta]; A + 180;" not in external_camera
+        and "A = [VHGbeta]; A + [VHGnavbeta]; A + 180; A % 360;" in external_camera
+        and "beta = user_beta + navigation_beta + 180;" in original0
         and local_render.index("[VHGNDvecindex] = [VHGplanet]; => VHGND absolute body vector;")
         < local_render.index("=> VHG local resident scan;"),
         "orbital renderer selects the nearest resident maps with signed distances and the native exterior pose",

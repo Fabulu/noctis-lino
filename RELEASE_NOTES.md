@@ -55,6 +55,15 @@ the checked native product superseded it.
 The macOS palette repair from PR #22 is included. It converts through
 `FToIntChop` before clamping to `0..63`, avoiding uniform-white planet palettes
 on macOS, and the Rosetta gate rejects any uniform palette before packaging.
+The matched ROTOR IGNE native capture also corrected the Stardrifter exterior
+camera. The source applies `user_beta + navigation_beta + 180`; omitting the
+half-turn had moved a behind-camera companion into the viewport and generated a
+false radial flare. The shipping renderer now retains the source half-turn, and
+the pinned native indexed page, active palette, camera, clock, target-relative
+position, and product diagnostics protect that negative visibility result.
+Complete-page equality remains explicitly ungraded because the captured RAM had
+already begun the following frame.
+
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred
 pending the exact unpublished harness or paired upstream regeneration.

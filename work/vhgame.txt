@@ -3109,10 +3109,10 @@
 	[VHSdy0] = [MgDzatY0]; [VHSdy1] = [MgDzatY1];
 	[VHSdz0] = [MgDzatZ0]; [VHSdz1] = [MgDzatZ1];
 	[VHSalpha] = [VHGalpha];
-	( from_vehicle(): user_beta + navigation_beta + 180.  The port's external
-	  VHGbeta convention already includes that source half-turn, as proved by
-	  the native orbital globe poses, so add only navigation_beta here. )
-	A = [VHGbeta]; A + [VHGnavbeta]; A % 360;
+	( from_vehicle(): user_beta + navigation_beta + 180.  VHGbeta is the
+	  source user_beta, so retain the half-turn before installing the exterior
+	  projection matrix. )
+	A = [VHGbeta]; A + [VHGnavbeta]; A + 180; A % 360;
 	? A >= 0 -> VHG external beta ok; A + 360;
     "VHG external beta ok"
 	[VHSbeta] = A; [VHSamp] = [VHGamp];

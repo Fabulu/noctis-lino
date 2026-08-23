@@ -88,6 +88,7 @@ TESTS = [
     ("test_ground.py", "Wave 7b: build_surface() and SURFACE.BIN - generated outputs three-way over types 1,2,3,4,5,7,8; the captured type-3 texture is exact and its post-landing p_surfacemap RAM residual is measured"),
     ("test_sky.py", "Wave 7b: lean create_sky()/horizon/SP join regression; the historical --deep audit established 27 cases/408 records, exact NIV+ anchors, and caught 26 C plus 27 Lino mutants"),
     ("test_sun_gallery.py", "retained native type-3/type-5 sun BMP/page/palette oracles plus exact product palette, palette-band, flare-centre, camera, and solar-state diagnostics; whole-page equality stays informational without snapshot-time state"),
+    ("test_orbitmultiple_oracle.py", "matched ROTOR IGNE camera, clock, target-relative position, indexed page, and palette prove the companion is behind the source exterior camera and has no radial flare"),
     ("test_surface_flare_oracle.py", "rebuilt ten-case surface-flare probe equals six concatenated Borland pages, three real positive ray/distance pages, and the exact lunar no-beam boundary"),
     ("test_release_notes.py", "tagged GitHub releases contain only their own RELEASE_NOTES section"),
     ("test_fp_transgrade.py", "independent transcendental grading preserves signed zero and the one-ULP boundary"),
