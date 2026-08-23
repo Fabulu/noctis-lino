@@ -13,6 +13,8 @@ param(
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
+    [ValidateRange(1, 600)]
+    [int]$DiagnosticTimeoutSeconds = 180,
     [int]$Longitude,
     [int]$Latitude,
     [int]$BodyIndex,
@@ -569,7 +571,7 @@ foreach ($spec in $scenes) {
                 $privateRunner,
                 '--executable', (Join-Path $stage 'Noctis-IV.exe'),
                 '--working-directory', $stage,
-                '--timeout', '90'
+                '--timeout', [string]$DiagnosticTimeoutSeconds
             )
             if ($DefaultDesktop) {
                 $runnerArguments += '--default-desktop'
