@@ -90,12 +90,21 @@ one-unit pair now pins the strict source `pos_y < -500` cupola transition: the
 `-500` frame retains interior status, target telemetry, and the two fixed upper
 target-label rows, while `-501` redraws the upper cupola after the hull and
 returns before those details. The product selects the same branch, retains
-61,107 native indices in the just-outside view, and exactly matches the
+61,616 native indices in the just-outside view, and exactly matches the
 4,620-pixel roof telemetry crop. The just-inside path restores the source-shaped,
 two-decimal `L.Y.` and `DYAMS` range rows plus the native-ordered 24-character
 star and selected-body labels. Live catalogue names produce `IDEAL S00` and
 `CASSANI P01` in the retained fixture; source-authentic unknown-star, planet, and
-moon forms cover misses. Repeated launches retain identical scoped indexed
+moon forms cover misses. The lower environmental fields now update in every
+Stardrifter view at the source quarter, twentieth, fiftieth, and hundredth
+smoothing rates; drawing retains the source `draw_hud` gate, value formats, and
+spacing. All four visor lamps also use the source-ordered, in-place radius-five
+low-six-bit diffusion while preserving their palette bands. The ordinary inside
+and roof product captures each match the native 28-by-5 `GRAVITY`/lower-left-lamp
+crop byte-for-byte; its palette-independent mask contains the same exact 69
+pixels in both modes. This deliberately scoped runtime contract does not claim
+that the differing native and product numerical histories make the complete row
+byte-identical. Repeated launches retain identical scoped indexed
 rasters despite palette variation, so those rasters—not unstable product
 brightness—grade the repair. Native direct star/body editing now owns character
 input ahead of all other hotkeys and preserves source uppercase conversion,
@@ -109,9 +118,10 @@ byte-for-byte, a distinct phase changes only the 34-pixel shader-zero
 underscore, and a same-phase invisible trailing-space edit translates only its
 72 old/new raster pixels by one fixed label position. The HUD projector now
 skips spaces and out-of-atlas bytes instead of redrawing its previous glyph
-through padded cells. Exact projected glyph raster across hosts, environmental
-text, complete interior lighting, and lift-motion fidelity remain explicit
-rather than being claimed as complete interior parity.
+through padded cells. Exact projected glyph raster across hosts, complete
+interior lighting, whole-row numerical environmental-state equality, and
+lift-motion fidelity remain explicit rather than being claimed as complete
+interior parity.
 
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred

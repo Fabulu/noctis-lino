@@ -180,15 +180,17 @@
 	VHGNDsurlight = 16; VHGNDframei = 0; VHGNDframey = 0;
 	VHGNDframeoff = 0; VHGNDframecount = 0; VHGNDframecol = 0;
 	VHGNDlampx = 0; VHGNDlampy = 0; VHGNDlampsize = 0; VHGNDlamprow = 0;
+	VHGNDsmoothcx = 0; VHGNDsmoothcy = 0; VHGNDsmoothx = 0; VHGNDsmoothy = 0;
+	VHGNDsmoothpx = 0; VHGNDsmoothpy = 0; VHGNDsmoothsum = 0;
+	VHGNDsmoothavg = 0; VHGNDsmoothptr = 0;
 	VHGNDcompassi = 0; VHGNDcompasspos = 0; VHGNDcompassrem = 0;
 	VHGNDcompassx = 0; VHGNDcompassrow = 0; VHGNDcompassmask = 0; VHGNDcompassdir = 0;
 	VHGNDhudptr = 0; VHGNDhudsource = 0; VHGNDhudvalue = 0; VHGNDhudi = 0; VHGNDhudchar = 0;
 	VHGNDhudx = 0; VHGNDhudy = 2; VHGNDhudrow = 0; VHGNDhudpacked = 0; VHGNDhudshift = 0;
-	VHGNDenvgravity = { GRAVITY };
-	VHGNDenvtemp = {  FG & TEMPERATURE };
-	VHGNDenvpress = { @C & PRESSURE };
-	VHGNDenvpulse = {  ATM & PULSE };
-	VHGNDenvpps = {  PPS };
+	VHGNDenvgravity = { GRAVITY }; VHGNDenvfg = { FG };
+	VHGNDenvtemperature = { TEMPERATURE }; VHGNDenvdegree = { @C };
+	VHGNDenvpressure = { PRESSURE }; VHGNDenvatm = { ATM };
+	VHGNDenvpulse = { PULSE }; VHGNDenvpps = { PPS };
 	VHGNDshiphints = {  & 5\FLIGHTCTR R\DEVICES F2\PREFS X\SCREEN OFF };
 	VHGNDcloudrain = 0; VHGNDsrf = 0; VHGNDsgf = 0; VHGNDsbf = 0;
 	VHGNDgrf = 0; VHGNDggf = 0; VHGNDgbf = 0;
@@ -3225,9 +3227,13 @@
 	[VHGNDframeoff] = 307; [VHGNDframey] = 187;
     "VHGND HUD lamp positions ready"
 	[VHGNDlampx] = 9; [VHGNDlampy] = 9; => VHGND HUD lamp;
+	[VHGNDsmoothcx] = 9; [VHGNDsmoothcy] = 9; => VHGND HUD lamp smooth;
 	[VHGNDlampx] = [VHGNDframeoff]; [VHGNDlampy] = 9; => VHGND HUD lamp;
+	[VHGNDsmoothcx] = 308; [VHGNDsmoothcy] = 9; => VHGND HUD lamp smooth;
 	[VHGNDlampx] = 9; [VHGNDlampy] = [VHGNDframey]; => VHGND HUD lamp;
+	[VHGNDsmoothcx] = 9; [VHGNDsmoothcy] = 188; => VHGND HUD lamp smooth;
 	[VHGNDlampx] = [VHGNDframeoff]; [VHGNDlampy] = [VHGNDframey]; => VHGND HUD lamp;
+	[VHGNDsmoothcx] = 308; [VHGNDsmoothcy] = 188; => VHGND HUD lamp smooth;
     "VHGND HUD lamps done"
 	end;
 
@@ -3240,6 +3246,34 @@
 	[D] = C; D+; [VHGNDframecount]-;
 	A = [VHGNDframecount]; ? A != 0 -> VHGND HUD lamp pixel;
 	[VHGNDlamprow]+; A = [VHGNDlamprow]; ? A < [VHGNDlampsize] -> VHGND HUD lamp row;
+	end;
+
+"VHGND HUD lamp smooth"
+	( smootharound_64(...,5,1): visit the strict radius-five disk in source
+	  order and replace every overlapping 2x2 low-six-bit block with its
+	  in-place average while retaining each pixel's palette-band bits. )
+	A = [VHGNDsmoothcy]; A - 5; [VHGNDsmoothy] = A; [VHGNDsmoothpy] = 0; [VHGNDsmoothpy] - 5;
+    "VHGND HUD lamp smooth row"
+	A = [VHGNDsmoothcx]; A - 5; [VHGNDsmoothx] = A; [VHGNDsmoothpx] = 0; [VHGNDsmoothpx] - 5;
+    "VHGND HUD lamp smooth pixel"
+	A = [VHGNDsmoothpx]; C = A; A '* C; [VHGNDsmoothsum] = A;
+	A = [VHGNDsmoothpy]; C = A; A '* C; C = [VHGNDsmoothsum]; A + C;
+	? A >= 25 -> VHGND HUD lamp smooth next;
+	A = [VHGNDsmoothy]; A '* 320; A + [VHGNDsmoothx]; A + RADPT; A + nw;
+	[VHGNDsmoothptr] = A; D = A; A = [D]; A & 63; [VHGNDsmoothsum] = A;
+	D+; A = [D]; A & 63; C = [VHGNDsmoothsum]; C + A; [VHGNDsmoothsum] = C;
+	A = [VHGNDsmoothptr]; A + 320; D = A; A = [D]; A & 63;
+	C = [VHGNDsmoothsum]; C + A; [VHGNDsmoothsum] = C;
+	D+; A = [D]; A & 63; C = [VHGNDsmoothsum]; C + A; C / 4; [VHGNDsmoothavg] = C;
+	D = [VHGNDsmoothptr]; A = [D]; A & 192; A + [VHGNDsmoothavg]; [D] = A;
+	D+; A = [D]; A & 192; A + [VHGNDsmoothavg]; [D] = A;
+	A = [VHGNDsmoothptr]; A + 320; D = A; A = [D]; A & 192; A + [VHGNDsmoothavg]; [D] = A;
+	D+; A = [D]; A & 192; A + [VHGNDsmoothavg]; [D] = A;
+    "VHGND HUD lamp smooth next"
+	[VHGNDsmoothx]+; [VHGNDsmoothpx]+;
+	A = [VHGNDsmoothpx]; ? A <= 5 -> VHGND HUD lamp smooth pixel;
+	[VHGNDsmoothy]+; [VHGNDsmoothpy]+;
+	A = [VHGNDsmoothpy]; ? A <= 5 -> VHGND HUD lamp smooth row;
 	end;
 
 "VHGND compass"
@@ -3385,19 +3419,24 @@
 	end;
 
 "VHGND environment HUD"
-	( surrounding()'s exact lower visor line, driven by the source-rate smoothed
-	  gravity, temperature, pressure and pulse fields maintained on simulation ticks. )
+	( surrounding()'s exact lower visor line. The source updates its smoothed
+	  fields in every mode, while wrouthud suppresses the row with draw_hud. )
 	A = [VHGdrawhud]; ? A = 0 -> VHGND environment HUD done;
-	A = [VHGmode]; ? A = 0 -> VHGND environment HUD done;
 	[VHGNDhudptr] = VHGNDenvtext;
-	A = VHGNDenvgravity; => VHGND HUD append text;
-	A = [VHGsurfgravdisp]; => VHGND HUD append fixed three;
-	A = VHGNDenvtemp; => VHGND HUD append text;
+	A = VHGNDenvgravity; => VHGND HUD append text; A = 32; => VHGND HUD append;
+	A = [VHGsurfgravdisp]; => VHGND HUD append fixed three; A = 32; => VHGND HUD append;
+	A = VHGNDenvfg; => VHGND HUD append text; A = 32; => VHGND HUD append;
+	A = 38; => VHGND HUD append; A = 32; => VHGND HUD append;
+	A = VHGNDenvtemperature; => VHGND HUD append text; A = 32; => VHGND HUD append;
 	A = [VHGsurftempdisp]; => VHGND HUD append signed fixed one;
-	A = VHGNDenvpress; => VHGND HUD append text;
-	A = [VHGsurfpressdisp]; => VHGND HUD append fixed three;
-	A = VHGNDenvpulse; => VHGND HUD append text;
-	A = [VHGsurfpulsedisp]; => VHGND HUD append width three;
+	A = VHGNDenvdegree; => VHGND HUD append text; A = 32; => VHGND HUD append;
+	A = 38; => VHGND HUD append; A = 32; => VHGND HUD append;
+	A = VHGNDenvpressure; => VHGND HUD append text; A = 32; => VHGND HUD append;
+	A = [VHGsurfpressdisp]; => VHGND HUD append fixed three; A = 32; => VHGND HUD append;
+	A = VHGNDenvatm; => VHGND HUD append text; A = 32; => VHGND HUD append;
+	A = 38; => VHGND HUD append; A = 32; => VHGND HUD append;
+	A = VHGNDenvpulse; => VHGND HUD append text; A = 32; => VHGND HUD append;
+	A = [VHGsurfpulsedisp]; => VHGND HUD append width three; A = 32; => VHGND HUD append;
 	A = VHGNDenvpps; => VHGND HUD append text;
 	A = 0; => VHGND HUD append;
 	[VHGNDhudsource] = VHGNDenvtext; [VHGNDhudx] = 2; [VHGNDhudy] = 192;

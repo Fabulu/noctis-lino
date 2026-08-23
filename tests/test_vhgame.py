@@ -189,6 +189,18 @@ def epoc_text(seconds: int) -> str:
     return f"EPOC {epoc} & {seconds // 1_000_000 % 1000:03}.{seconds // 1000 % 1000:03}.{seconds % 1000:03}"
 
 
+def environment_text(gravity: int, temperature: int, pressure: int, pulse: int) -> str:
+    """Source lower-visor values in milli-, tenth-, milli-, and whole units."""
+    sign = "+" if temperature >= 0 else "-"
+    magnitude = abs(temperature)
+    return (
+        f"GRAVITY {max(0, gravity) // 1000}.{max(0, gravity) % 1000:03} "
+        f"FG & TEMPERATURE {sign}{magnitude // 10}.{magnitude % 10}@C & "
+        f"PRESSURE {max(0, pressure) // 1000}.{max(0, pressure) % 1000:03} "
+        f"ATM & PULSE {pulse:3} PPS"
+    )
+
+
 def surface_arc(gravity_mfg: int, thrust_ticks: int = 0) -> tuple[int, int, int]:
     """Independent integer model of the port's source-shaped surface arc."""
     ground = 0
@@ -2212,15 +2224,24 @@ def main() -> int:
     )
     surface_telemetry = section(game, '"VHG surface telemetry init"', '"VHG FCS overlay"')
     surface_overlay = section(game, '"VHG surface telemetry overlay"', '"VHG FCS overlay"')
+    environment_overlay = section(
+        ground, '"VHGND environment HUD"', '"VHGND HUD draw string"')
     check(
-        all(token in original0 for token in (
+        environment_text(1000, 220, 1000, 118) ==
+        "GRAVITY 1.000 FG & TEMPERATURE +22.0@C & PRESSURE 1.000 ATM & PULSE 118 PPS"
+        and all(token in original0 for token in (
             'sprintf (outhudbuffer, "GRAVITY %2.3f FG & TEMPERATURE %+3.1f@C & PRESSURE %2.3f ATM & PULSE %3.0f PPS"',
             "pp_delta = (pp_temp - tp_temp) * 0.05;",
             "pp_delta = (pp_pressure - tp_pressure) * 0.02;",
             "pp_delta = (pp_pulse - tp_pulse) * 0.01;",
+            "smootharound_64 (adapted, 9, 188, 5, 1);",
+            "if (draw_hud == 0 && about == 0 && taking_snapshot == 0",
+            "wrouthud (2, 192, NULL, outhudbuffer);",
         ))
         and "pp_gravity = gravity * 38.26;" in original1
         and 'VHGsurfacetext = { G 0.000FG T +000.0C P 00.000ATM HR 000 };' in game
+        and "VHGsurfgravm = 1000; VHGsurftempt = 220; VHGsurfpressm = 1000;" in game
+        and "VHGsurftempnow = 220;" in game
         and all(token in surface_telemetry for token in (
             "E = nspray;", "[FI] = 38260;", "[GRSKbasetemp]",
             "[GRSKbasepressure]", "A = [VHGy]; A / 4000;",
@@ -2228,7 +2249,9 @@ def main() -> int:
             "A = [VHGutcsecs]; A '/ 2; => SU fast srand;",
             "[SUfmask] = 32767; => SU fast raw;",
             "A '* 8; A '/ 32768;", "[VHGsurfpulsejitter]",
-            '"VHG surface telemetry update"', '"VHG surface smooth field"',
+            '"VHG surface telemetry update"', '"VHG surface telemetry smooth"',
+            "A = [VHGmode]; ? A = 0 -> VHG surface telemetry smooth;",
+            '"VHG surface smooth field"',
             "D = VHGsurfgravdisp; C = 4;", "D = VHGsurftempdisp; C = 20;",
             "D = VHGsurfpressdisp; C = 50;", "D = VHGsurfpulsedisp; C = 100;",
         ))
@@ -2236,7 +2259,7 @@ def main() -> int:
         and "=> VHG UTC timestamp; => VHG visor advance; => VHG surface telemetry update;" in game
         and game.count("=> VHG surface telemetry overlay;") == 1
         and game.count("=> VHG surface telemetry init;") == 2,
-        "surface HUD restores live gravity, temperature, pressure, and pulse telemetry",
+        "shared visor HUD retains source defaults and live surface gravity, temperature, pressure, and pulse telemetry",
     )
     check(
         compass_window(0)[1].startswith("N.........E")
@@ -2256,6 +2279,12 @@ def main() -> int:
             '"VHGND HUD lamps"', "[VHGNDlampsize] = 4;",
             "A = [VHGsurfjet]; ? A = 0 -> VHGND HUD lamp positions ready;",
             "[VHGNDlampsize] = 5; [VHGNDframecol] = 127;",
+            '"VHGND HUD lamp smooth"',
+            "[VHGNDsmoothcx] = 9; [VHGNDsmoothcy] = 188; => VHGND HUD lamp smooth;",
+            "[VHGNDsmoothcx] = 308; [VHGNDsmoothcy] = 188; => VHGND HUD lamp smooth;",
+            "A = [VHGNDsmoothpx]; C = A; A '* C; [VHGNDsmoothsum] = A;",
+            "? A >= 25 -> VHGND HUD lamp smooth next;",
+            "A & 63;", "A & 192; A + [VHGNDsmoothavg]; [D] = A;",
             '"VHGND surface coordinate HUD"', "A = [VHGlandinglon]; => VHGND HUD append number;",
             "A = [VHGx]; A / VHGNDTS; A - 100; => VHGND HUD append number;",
             '"VHGND HUD append number"', '"VHGND HUD row mask"',
@@ -2265,20 +2294,24 @@ def main() -> int:
             "? A < 1000 -> VHGND HUD number hundreds;",
             "A / 1000; A + 48; => VHGND HUD append;",
             '"VHGND environment HUD"', "[VHGNDhudy] = 192;",
-            "A = VHGNDenvgravity; => VHGND HUD append text;",
-            "A = [VHGsurfgravdisp]; => VHGND HUD append fixed three;",
+            "A = [VHGdrawhud]; ? A = 0 -> VHGND environment HUD done;",
+            "A = VHGNDenvgravity; => VHGND HUD append text; A = 32; => VHGND HUD append;",
+            "A = [VHGsurfgravdisp]; => VHGND HUD append fixed three; A = 32; => VHGND HUD append;",
             "A = [VHGsurftempdisp]; => VHGND HUD append signed fixed one;",
-            "A = [VHGsurfpressdisp]; => VHGND HUD append fixed three;",
-            "A = [VHGsurfpulsedisp]; => VHGND HUD append width three;",
-            'VHGNDenvgravity = { GRAVITY };', 'VHGNDenvtemp = {  FG & TEMPERATURE };',
-            'VHGNDenvpress = { @C & PRESSURE };', 'VHGNDenvpulse = {  ATM & PULSE };',
-            'VHGNDenvpps = {  PPS };',
+            "A = [VHGsurfpressdisp]; => VHGND HUD append fixed three; A = 32; => VHGND HUD append;",
+            "A = [VHGsurfpulsedisp]; => VHGND HUD append width three; A = 32; => VHGND HUD append;",
+            'VHGNDenvgravity = { GRAVITY }; VHGNDenvfg = { FG };',
+            'VHGNDenvtemperature = { TEMPERATURE }; VHGNDenvdegree = { @C };',
+            'VHGNDenvpressure = { PRESSURE }; VHGNDenvatm = { ATM };',
+            'VHGNDenvpulse = { PULSE }; VHGNDenvpps = { PPS };',
             'VHGNDshiphints = {  & 5\\FLIGHTCTR R\\DEVICES F2\\PREFS X\\SCREEN OFF };',
             "A = [VHGmode]; ? A != 0 -> VHGND epoch HUD terminate;",
             "A = [VHGonroof]; ? A != 0 -> VHGND epoch HUD terminate;",
             "A = VHGNDshiphints; => VHGND HUD append text;",
             "? A = 92 -> VHGND HUD glyph backslash;", "[VHGNDhudpacked] = 6105;",
         ))
+        and environment_overlay.count("A = 32; => VHGND HUD append;") == 13
+        and environment_overlay.count("A = 38; => VHGND HUD append;") == 3
         and all(token in original0 for token in (
             "cpos = ccom / 9; crem = ccom * 0.44444;",
             "wrouthud (200 - (crem % 4), 2, 28, compass + cpos);",
@@ -2501,8 +2534,9 @@ def main() -> int:
             "C = 310; C + [VHGNDframei];", "C = 200; C - A; [VHGNDframecount] = C;",
             '"VHGND surrounding moving row"', "A = [VHGhudcount]; A + 9; A - [VHGNDframei];",
             "[VHGNDframei]+; A = [VHGNDframei]; ? A < 4 -> VHGND surrounding moving row;",
-            "A = [VHGdrawhud]; ? A = 0 -> VHGND environment HUD done;",
         ))
+        and "A = [VHGdrawhud]; ? A = 0 -> VHGND environment HUD done;" in ground
+        and "A = [VHGmode]; ? A = 0 -> VHGND environment HUD done;" not in ground
         and all(token in flare for token in (
             '"VHF ghost reflections"', "A = [VHFang]; A % 8;",
             "A = [VHFgdx]; A '* 4;", "[FS0] = [VHFgfx]; => FLoadF32;",

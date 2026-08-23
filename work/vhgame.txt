@@ -220,8 +220,8 @@
 	VHGdiagbase = 0; VHGdiagcount = 0; VHGdiagi = 0; VHGdiagj = 0;
 	VHGpodrange = 0; VHGpoddx = 0; VHGpoddy = 0; VHGpoddz = 0; VHGpodrangesq = 0;
 	VHGpodabsx = 0; VHGpodabsz = 0; VHGpodbearing = 0; VHGpodview = 0; VHGpoddelta = 0;
-	VHGsurfgravm = 0; VHGsurftempt = 0; VHGsurfpressm = 0;
-	VHGsurfpulse = 118; VHGsurfpulsejitter = 0; VHGsurftiredq = 0; VHGsurftempnow = 0;
+	VHGsurfgravm = 1000; VHGsurftempt = 220; VHGsurfpressm = 1000;
+	VHGsurfpulse = 118; VHGsurfpulsejitter = 0; VHGsurftiredq = 0; VHGsurftempnow = 220;
 	VHGsurfgravdisp = 1000; VHGsurftempdisp = 220; VHGsurfpressdisp = 1000; VHGsurfpulsedisp = 118;
 	VHGsurfsmoothden = 0;
 	VHGsurfground = 0; VHGsurfvy = 0; VHGsurfaccel = 1;
@@ -7773,7 +7773,7 @@
 	end;
 
 "VHG surface telemetry update"
-	A = [VHGmode]; ? A = 0 -> VHG surface telemetry update done;
+	A = [VHGmode]; ? A = 0 -> VHG surface telemetry smooth;
 	A = [VHGy]; A / 4000; A + [VHGsurftempt]; [VHGsurftempnow] = A;
 	( NOCTIS.CPP reseeds fast_random from secs/2 and adds two independent
 	  fast_flandom draws scaled by eight to the tiredness-derived pulse. )
@@ -7784,6 +7784,7 @@
 	A = [VHGsurftiredq]; A '* 118; A / 10000; A + 118;
 	A + [VHGsurfpulsejitter]; C = A;
 	A = [SUfval]; A '* 8; A '/ 32768; C - A; [VHGsurfpulse] = C;
+    "VHG surface telemetry smooth"
 	A = [VHGsurfgravm]; D = VHGsurfgravdisp; C = 4; => VHG surface smooth field;
 	A = [VHGsurftempnow]; D = VHGsurftempdisp; C = 20; => VHG surface smooth field;
 	A = [VHGsurfpressm]; D = VHGsurfpressdisp; C = 50; => VHG surface smooth field;

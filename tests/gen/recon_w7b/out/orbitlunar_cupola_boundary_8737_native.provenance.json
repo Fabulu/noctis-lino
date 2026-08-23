@@ -110,34 +110,59 @@
     "star_local": [-33.337344046565704, 0.006575896761205513, -4.090433066477999],
     "radius": 0.007128,
     "distance": 0.012845967758806344,
-    "inside_complete_page_exact_indices": 22927,
+    "inside_complete_page_exact_indices": 23704,
     "inside_complete_page_palette_band_differences": 3932,
-    "roof_complete_page_exact_indices": 61107,
+    "roof_complete_page_exact_indices": 61616,
     "roof_complete_page_palette_band_differences": 1588,
     "complete_palette_component_differences": {
-      "inside": 296,
-      "repeat_inside": 360,
-      "roof": 360
+      "inside": 241,
+      "repeat_inside": 241,
+      "roof": 241,
+      "repeat_roof": 241
     },
     "palette_independent_raster_contract": true,
-    "status_inside_index_sha256": "7e388bc406fb6874ad4ce01ba6f26c5f6273074842b702d21970824d3e1bc2cf",
-    "status_roof_index_sha256": "5527c17c96ca9465995d5aaa6af76d2e7370452b2e54a0052aeef7c87097de2c",
-    "status_inside_bright_pixel_observations": [442, 394],
-    "status_roof_bright_pixels": 10,
-    "status_pair_minimum_brightness_delta": 384,
+    "capture_state": {
+      "source_hud_enabled": true,
+      "open_hud_switch": false,
+      "scoped_rasters_repeated_after_recompile": true,
+      "previous_open_hud_label_inside_index_sha256": "250153d3c0ae521f43d291dc148cc810f6acc0025b55b80d4aaa0fc5443af493",
+      "reason": "The product contract uses the ordinary source-HUD-enabled capture state without -OpenHud. The replaced inside-label hash came from an -OpenHud launch whose moving visor composition is not used by the boundary grader."
+    },
+    "status_inside_index_sha256": "af8dcb9a9dddfc09395804d136d3351f6d4a4973611ff23b5dac4946b08701dc",
+    "status_roof_index_sha256": "2753eb145b19a5add9a9436a9b901e24844d1d713dc525a86803db9587d8ef4b",
+    "status_inside_bright_pixel_observations": [610, 610],
+    "status_roof_bright_pixel_observations": [211, 211],
+    "status_pair_minimum_brightness_delta": 399,
     "telemetry_inside_index_sha256": "1dfb3ab0ce02fe7beecd279a9231df77fd09824dc8b4c1829f09e80e6a0ccbd4",
     "telemetry_roof_index_sha256": "3509a6265431f94460016074ea8f05cb95b744dc7981a2fbc21a548bd773bd1e",
-    "telemetry_inside_bright_pixel_observations": [749, 732],
-    "telemetry_roof_bright_pixels": 63,
-    "telemetry_inside_minimum_brightness_delta": 669,
+    "telemetry_inside_bright_pixel_observations": [750, 750],
+    "telemetry_roof_bright_pixel_observations": [63, 63],
+    "telemetry_inside_minimum_brightness_delta": 687,
     "roof_telemetry_crop_exact_indices": 4620,
     "label_crop": [27, 19, 294, 56],
-    "label_inside_index_sha256": "250153d3c0ae521f43d291dc148cc810f6acc0025b55b80d4aaa0fc5443af493",
+    "label_inside_index_sha256": "14597bc2053644ca0fb7f13bf239d4397b44a8078e18cddc67389bcd83da19ff",
     "label_roof_index_sha256": "bf06789b74452cf147d1bff2af08505c093acfeddfbc86bf85b3169055c41d88",
     "label_inside_unique_indices": 117,
     "label_roof_unique_indices": 46,
+    "environment_glyph_lamp_contract": {
+      "crop": [2, 192, 30, 197],
+      "scope": "GRAVITY glyphs plus the lower-left lamp fringe; the numerical fields outside this crop are not claimed byte-exact",
+      "row_normalization": "foreground differs from the modal index across the complete 320-pixel row",
+      "foreground_pixels": 69,
+      "normalized_mask_sha256": "c9e6820e33c2dd344609b6d37d9eebc9462c786f6fb1d6640c21e0334c5a5941",
+      "native_inside_index_sha256": "2557926b731b621b966a6b9d7fdc787a7a7306932d2de9c2613ab014e6fbafc3",
+      "native_roof_index_sha256": "2557926b731b621b966a6b9d7fdc787a7a7306932d2de9c2613ab014e6fbafc3",
+      "product_inside_index_sha256": "2557926b731b621b966a6b9d7fdc787a7a7306932d2de9c2613ab014e6fbafc3",
+      "product_roof_index_sha256": "2557926b731b621b966a6b9d7fdc787a7a7306932d2de9c2613ab014e6fbafc3",
+      "native_pair_mask_equal": true,
+      "product_pair_matches_native_mask": true,
+      "product_scoped_indices_match_native": true,
+      "repeated_after_recompile": true
+    },
     "left_range_telemetry_restored": true,
     "upper_target_labels_restored": true,
+    "environmental_hud_row_restored": true,
+    "environmental_numeric_state_exact": false,
     "editing_cursors_restored": true,
     "editing_cursor_runtime_test": "tests/test_label_editing_runtime.py",
     "editing_cursor_raster_contract": {
@@ -171,7 +196,7 @@
       "consolidated_removal_result_code": 4
     },
     "inside_full_overlay_parity": false,
-    "open_gap": "The product selects the adjacent roof branch; suppresses the status, telemetry, and upper-label rasters there; and restores source-shaped L.Y./DYAMS ranges, catalogue-backed 24-character star/body labels, and runtime-proven direct-edit cursors inside. Complete interior lighting, exact projected font raster, and environmental text remain open."
+    "open_gap": "The product selects the adjacent roof branch; suppresses the status, telemetry, and upper-label rasters there; and restores source-shaped L.Y./DYAMS ranges, catalogue-backed 24-character star/body labels, runtime-proven direct-edit cursors, and the mode-independent lower environmental HUD construction inside and on the roof. The scoped GRAVITY glyphs and lower-left lamp fringe match native indices exactly; complete interior lighting, projected font raster outside the scoped contracts, and whole-row numerical environmental-state equality remain open."
   },
   "authority": {
     "snapshot_camera_state_retained": true,
@@ -184,6 +209,6 @@
     "snapshot_simulation_state_retained": false,
     "simulation_reason": "The frozen continuity blocks and adapted pages were observed after BMP serialization and had already entered a following frame.",
     "whole_page_same_state_contract": false,
-    "admissible_contract": "The native pair authenticates the strict pos_y < -500 transition: at -500 the source keeps interior status, target ranges, and both fixed upper target-label rows, while at -501 it redraws the upper cupola after the hull and returns before those details. Product grading may require the exact adjacent cameras, bounded roof composition, stable scoped indexed rasters, and disappearance of all three overlay areas. Complete-page equality, exact lighting, and full product inside-overlay parity remain ungraded; direct editing and its cursor raster are graded separately by the private-desktop runtime test."
+    "admissible_contract": "The native pair authenticates the strict pos_y < -500 transition: at -500 the source keeps interior status, target ranges, and both fixed upper target-label rows, while at -501 it redraws the upper cupola after the hull and returns before those details. Product grading may require the exact adjacent cameras, bounded roof composition, stable scoped indexed rasters, disappearance of all three interior overlay areas, and the mode-independent GRAVITY/lower-left-lamp mask. Complete-page equality, exact lighting, whole-row numerical environmental-state equality, and full product inside-overlay parity remain ungraded; direct editing and its cursor raster are graded separately by the private-desktop runtime test."
   }
 }

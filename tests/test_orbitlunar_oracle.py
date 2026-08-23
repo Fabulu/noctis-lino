@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import hashlib
 import json
 from pathlib import Path
@@ -35,7 +36,7 @@ BOUNDARY_ROOF_ADAPTED_SHA256 = "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7
 PROVENANCE_SHA256 = "da981004d14e9ea86ceb608b419122b51ebd76c2d03c1c9e473e36d9d927e2cb"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
-BOUNDARY_PROVENANCE_SHA256 = "d109401fa717dc61a58d274a863dfdeb693708fd15ae455bb4348a3ab4e5f8fc"
+BOUNDARY_PROVENANCE_SHA256 = "cdd1d4553f8ee49686ba147616ec136628dcd87e05f09f8057660c68270aa2e7"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
@@ -58,10 +59,13 @@ BOUNDARY_LABEL_CROP = (27, 19, 294, 56)
 BOUNDARY_LABEL_INSIDE_SHA256 = "495e8a2f4c68da9c7a5df93e906242934045fac38a8093e6cf7c8d5d3c1e8440"
 BOUNDARY_LABEL_ROOF_SHA256 = "b8d447ca893d1aca46c7c427dfd1895e412640a89385cedd5715d1fade9cf9a5"
 BOUNDARY_LABEL_BAND_SHA256 = "d33498e16b51ef474a86b2c7ea87676524f1954b39f67a2a9093dcd284aff78d"
-PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256 = "7e388bc406fb6874ad4ce01ba6f26c5f6273074842b702d21970824d3e1bc2cf"
-PRODUCT_BOUNDARY_STATUS_ROOF_SHA256 = "5527c17c96ca9465995d5aaa6af76d2e7370452b2e54a0052aeef7c87097de2c"
+ENVIRONMENT_GLYPH_CROP = (2, 192, 30, 197)
+ENVIRONMENT_GLYPH_MASK_PIXELS = 69
+ENVIRONMENT_GLYPH_MASK_SHA256 = "c9e6820e33c2dd344609b6d37d9eebc9462c786f6fb1d6640c21e0334c5a5941"
+PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256 = "af8dcb9a9dddfc09395804d136d3351f6d4a4973611ff23b5dac4946b08701dc"
+PRODUCT_BOUNDARY_STATUS_ROOF_SHA256 = "2753eb145b19a5add9a9436a9b901e24844d1d713dc525a86803db9587d8ef4b"
 PRODUCT_BOUNDARY_TELEMETRY_INSIDE_SHA256 = "1dfb3ab0ce02fe7beecd279a9231df77fd09824dc8b4c1829f09e80e6a0ccbd4"
-PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256 = "250153d3c0ae521f43d291dc148cc810f6acc0025b55b80d4aaa0fc5443af493"
+PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256 = "14597bc2053644ca0fb7f13bf239d4397b44a8078e18cddc67389bcd83da19ff"
 PRODUCT_BOUNDARY_LABEL_ROOF_SHA256 = "bf06789b74452cf147d1bff2af08505c093acfeddfbc86bf85b3169055c41d88"
 DIAGNOSTIC_SIZES = (
     ("game-vh-out.bin", 156),
@@ -105,6 +109,18 @@ def crop_indices(page: bytes, box: tuple[int, int, int, int]) -> bytes:
     x0, y0, x1, y1 = box
     return bytes(page[y * 320 + x]
                  for y in range(y0, y1) for x in range(x0, x1))
+
+
+def normalized_glyph_mask(
+        page: bytes, box: tuple[int, int, int, int]) -> bytes:
+    """Ignore unstable palette indices while retaining text and lamp geometry."""
+    x0, y0, x1, y1 = box
+    mask = bytearray()
+    for y in range(y0, y1):
+        row = page[y * 320:(y + 1) * 320]
+        background = Counter(row).most_common(1)[0][0]
+        mask.extend(page[y * 320 + x] != background for x in range(x0, x1))
+    return bytes(mask)
 
 
 def crop_bands(page: bytes, box: tuple[int, int, int, int]) -> bytes:
@@ -384,6 +400,28 @@ def grade_boundary_product_pair(
         "product restores the fixed upper target-label raster only inside",
     )
 
+    native_environment_indices = crop_indices(
+        native_inside_page, ENVIRONMENT_GLYPH_CROP)
+    native_environment = normalized_glyph_mask(
+        native_inside_page, ENVIRONMENT_GLYPH_CROP)
+    product_inside_environment_indices = crop_indices(
+        inside_page, ENVIRONMENT_GLYPH_CROP)
+    product_roof_environment_indices = crop_indices(
+        roof_page, ENVIRONMENT_GLYPH_CROP)
+    product_inside_environment = normalized_glyph_mask(
+        inside_page, ENVIRONMENT_GLYPH_CROP)
+    product_roof_environment = normalized_glyph_mask(
+        roof_page, ENVIRONMENT_GLYPH_CROP)
+    check(
+        product_inside_environment_indices == native_environment_indices
+        and product_roof_environment_indices == native_environment_indices
+        and product_inside_environment == native_environment
+        and product_roof_environment == native_environment
+        and sum(product_inside_environment) == ENVIRONMENT_GLYPH_MASK_PIXELS
+        and sha256(product_inside_environment) == ENVIRONMENT_GLYPH_MASK_SHA256,
+        "product restores the exact environmental glyph and lamp-fringe mask in both modes",
+    )
+
     native_roof_telemetry = crop_indices(
         native_roof_page, BOUNDARY_TELEMETRY_CROP)
     product_inside_telemetry_indices = crop_indices(
@@ -614,6 +652,22 @@ def main() -> int:
             "native inside boundary adds both upper target-label rows before the roof return",
         )
 
+        boundary_inside_environment_indices = crop_indices(
+            boundary_inside_page, ENVIRONMENT_GLYPH_CROP)
+        boundary_roof_environment_indices = crop_indices(
+            boundary_roof_page, ENVIRONMENT_GLYPH_CROP)
+        boundary_inside_environment = normalized_glyph_mask(
+            boundary_inside_page, ENVIRONMENT_GLYPH_CROP)
+        boundary_roof_environment = normalized_glyph_mask(
+            boundary_roof_page, ENVIRONMENT_GLYPH_CROP)
+        check(
+            boundary_inside_environment_indices == boundary_roof_environment_indices
+            and boundary_inside_environment == boundary_roof_environment
+            and sum(boundary_inside_environment) == ENVIRONMENT_GLYPH_MASK_PIXELS
+            and sha256(boundary_inside_environment) == ENVIRONMENT_GLYPH_MASK_SHA256,
+            "native boundary pair retains the same environmental glyph and lamp-fringe mask",
+        )
+
     provenance_data = PROVENANCE.read_bytes()
     check(sha256(provenance_data.replace(b"\r\n", b"\n")) == PROVENANCE_SHA256,
           "paired lunar provenance has its pinned normalized SHA-256")
@@ -758,6 +812,8 @@ def main() -> int:
     boundary_capture = boundary_provenance.get("capture", {})
     boundary_transition = boundary_provenance.get("native_transition", {})
     boundary_product = boundary_provenance.get("product_contract", {})
+    boundary_capture_state = boundary_product.get("capture_state", {})
+    boundary_environment = boundary_product.get("environment_glyph_lamp_contract", {})
     boundary_cursor = boundary_product.get("editing_cursor_raster_contract", {})
     boundary_editing = boundary_product.get("editing_runtime_contract", {})
     boundary_authority = boundary_provenance.get("authority", {})
@@ -818,11 +874,14 @@ def main() -> int:
     )
     check(
         boundary_product.get("raw_clock") == 1344638737
-        and boundary_product.get("inside_complete_page_exact_indices") == 22927
+        and boundary_product.get("inside_complete_page_exact_indices") == 23704
         and boundary_product.get("inside_complete_page_palette_band_differences") == 3932
-        and boundary_product.get("roof_complete_page_exact_indices") == 61107
+        and boundary_product.get("roof_complete_page_exact_indices") == 61616
         and boundary_product.get("roof_complete_page_palette_band_differences") == 1588
         and boundary_product.get("palette_independent_raster_contract") is True
+        and boundary_capture_state.get("source_hud_enabled") is True
+        and boundary_capture_state.get("open_hud_switch") is False
+        and boundary_capture_state.get("scoped_rasters_repeated_after_recompile") is True
         and boundary_product.get("status_inside_index_sha256") ==
         PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256
         and boundary_product.get("status_roof_index_sha256") ==
@@ -835,8 +894,19 @@ def main() -> int:
         PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256
         and boundary_product.get("label_roof_index_sha256") ==
         PRODUCT_BOUNDARY_LABEL_ROOF_SHA256
+        and boundary_environment.get("crop") == list(ENVIRONMENT_GLYPH_CROP)
+        and boundary_environment.get("foreground_pixels") ==
+        ENVIRONMENT_GLYPH_MASK_PIXELS
+        and boundary_environment.get("normalized_mask_sha256") ==
+        ENVIRONMENT_GLYPH_MASK_SHA256
+        and boundary_environment.get("native_pair_mask_equal") is True
+        and boundary_environment.get("product_pair_matches_native_mask") is True
+        and boundary_environment.get("product_scoped_indices_match_native") is True
+        and boundary_environment.get("repeated_after_recompile") is True
         and boundary_product.get("left_range_telemetry_restored") is True
         and boundary_product.get("upper_target_labels_restored") is True
+        and boundary_product.get("environmental_hud_row_restored") is True
+        and boundary_product.get("environmental_numeric_state_exact") is False
         and boundary_product.get("editing_cursors_restored") is True
         and boundary_product.get("editing_cursor_runtime_test") ==
         "tests/test_label_editing_runtime.py"
@@ -863,9 +933,11 @@ def main() -> int:
         and boundary_editing.get("consolidated_removal_result") == "DENIED"
         and boundary_editing.get("consolidated_removal_result_code") == 4
         and boundary_product.get("inside_full_overlay_parity") is False
-        and "Complete interior lighting" in boundary_product.get("open_gap", "")
+        and "complete interior lighting" in boundary_product.get("open_gap", "")
+        and "whole-row numerical environmental-state equality" in
+        boundary_product.get("open_gap", "")
         and "runtime-proven direct-edit cursors" in boundary_product.get("open_gap", ""),
-        "cupola-boundary provenance pins restored ranges, labels, and separately graded cursors",
+        "cupola-boundary provenance pins restored ranges, labels, environmental HUD, and separately graded cursors",
     )
     check(
         boundary_authority.get("snapshot_camera_state_retained") is True

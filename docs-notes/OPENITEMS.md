@@ -497,16 +497,16 @@ Both following native blocks retain the common state and star-local position,
 but their pages had advanced by 7,958 and 12,208 indices, so complete-page
 same-state authority remains disabled.
 
-At those exact product states, the just-outside page retains 61,107 native
+At those exact product states, the just-outside page retains 61,616 native
 indices with 1,588 band differences, suppresses the interior overlays, and
 remains byte-exact to native across all 4,620 pixels of the lower telemetry
 crop. The inside path retains the two source range rows with the native binary64
 `5E-5`/`1E-2` scales, two-decimal rounding, fixed visor cameras, indexed glyph
 geometry, colour bands, spacing, and `L.Y.`/`DYAMS` suffixes before both smoothing
-passes. Repeated private launches retained identical scoped indexed rasters while
+passes. Two private launch pairs retained identical scoped indexed rasters while
 the ungraded product palette varied; the exact range crop is therefore the
-runtime contract, with observed inside brightness of 749 and 732 pixels versus
-native 601 and an unchanged roof count of 63.
+runtime contract, with observed inside brightness of 750 pixels versus native
+601 and an unchanged roof count of 63.
 
 The same path now restores the preceding fixed 24-character star and selected-
 body rows at native camera Y values `250` and `180`, colours `127` and `112`, and
@@ -515,7 +515,9 @@ stars, planets, and moons retain the source `UNKNOWN STAR / CLASS Snn`,
 `NAMELESS PLANET / N. Pnn`, and `NAMELESS MOON #mm/pp&Pnn` forms. The native
 upper-label crop adds exactly 275 bright-mask pixels at the inside boundary; the
 product's repeat-stable indexed label crop is present inside and has the distinct
-roof-suppressed hash outside. The just-inside complete page retains 22,927 native
+roof-suppressed hash outside. This contract uses the ordinary source-HUD-enabled
+capture state without `-OpenHud`; the replaced inside-label hash belonged to the
+moving open-visor composition. The just-inside complete page retains 23,704 native
 indices with 3,932 band differences. Direct star/body editing is now closed by a
 private-inactive-desktop runtime gate: it proves editor input ownership, uppercase
 conversion, Backspace, physical-Escape cancellation while the key remains held
@@ -533,9 +535,26 @@ space changes only the 72 old/new underscore pixels at
 The HUD wrapper now returns before projection for spaces and out-of-atlas bytes,
 so padding cannot remap the previous underscore across the rest of the row.
 
-Exact projected glyph raster across hosts, environmental text, complete interior
-lighting, and actual lift motion remain open rather than being claimed as full
-parity.
+The lower environmental row now follows the source in modes 0 and 1: its gravity,
+temperature, pressure, and pulse fields continue smoothing by one quarter, one
+twentieth, one fiftieth, and one hundredth respectively, while `wrouthud`'s
+`draw_hud` gate still owns visibility. The product constructs the exact source
+spacing and fixed-point units from source defaults. All four visor lamps now run
+`smootharound_64`'s strict radius-five disk in left-to-right, top-to-bottom order,
+averaging each overlapping 2-by-2 low-six-bit block in place while retaining each
+pixel's palette band.
+
+The retained native inside and roof pages share a 69-pixel normalized mask over
+`(2,192)-(30,197)`, covering `GRAVITY` and the lower-left lamp fringe. Both latest
+ordinary product pages match those 140 native indices byte-for-byte, and a second
+private pair after recompilation has the same scoped raster. This closes the
+missing environmental HUD construction and its lamp interaction without claiming
+that different accumulated smoothing histories make all numerical glyphs across
+the complete row byte-identical.
+
+Exact projected glyph raster across hosts, complete interior lighting, whole-row
+numerical environmental-state equality, and actual lift motion remain open rather
+than being claimed as full parity.
 
 The generic orbital gallery had retained the target-local signs authored around
 the former missing exterior half-turn. After the camera repair those eleven
