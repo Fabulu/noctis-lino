@@ -1,4 +1,4 @@
-"""Grade paired native lunar exterior and Stardrifter-interior oracles."""
+"""Grade native lunar exterior, interior, limb, and roof/cupola oracles."""
 
 from __future__ import annotations
 
@@ -14,19 +14,31 @@ ORACLE_ROOT = ROOT / "tests" / "gen" / "recon_w7b" / "out"
 EXTERIOR = ORACLE_ROOT / "orbitlunar_exterior_8736_native.shot.BMP"
 INTERIOR = ORACLE_ROOT / "orbitlunar_interior_8736_native.shot.BMP"
 LIMB = ORACLE_ROOT / "orbitlunar_limb_pair_8736_native.shot.BMP"
+ROOF = ORACLE_ROOT / "orbitlunar_roof_8737_native.shot.BMP"
+ROOF_ADAPTED = ORACLE_ROOT / "orbitlunar_roof_8737_native.adapted"
 PROVENANCE = ORACLE_ROOT / "orbitlunar_camera_pair_8736_native.provenance.json"
 LIMB_PROVENANCE = ORACLE_ROOT / "orbitlunar_limb_pair_8736_native.provenance.json"
+ROOF_PROVENANCE = ORACLE_ROOT / "orbitlunar_roof_8737_native.provenance.json"
 CAPTURE = ROOT / "tools" / "capture_noctis_scenes.ps1"
 EXTERIOR_SHA256 = "89579c32aaee28a93e5b28675921ca055a72c870fb1e00b9381308d3ab9aa559"
 INTERIOR_SHA256 = "f26d65b7c6a96aed4e34b7b4389cbfd65777e499f521a08f1e2d970ecdc20667"
 LIMB_SHA256 = "c35d22468bdf6e83a181dde4fca6567285268b7b4abb05997b86ab1e8db583c0"
+ROOF_SHA256 = "eac49d33b4596d74bee1896e37c344c84145668fa4367bf38f36da2e4b01cc06"
+ROOF_ADAPTED_SHA256 = "a3cf70e2861584f4aee90f10226c691ee2a0c055eadf3f06dc5032b93a0d1539"
 PROVENANCE_SHA256 = "da981004d14e9ea86ceb608b419122b51ebd76c2d03c1c9e473e36d9d927e2cb"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
+ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
 LIMB_CROP = (10, 75, 90, 125)
 LIMB_BAND_SHA256 = "9f7d58392998a5134aba50a131a59dde46c60be997ad446e161bda6bad511be0"
+ROOF_CUPOLA_CROP = (10, 10, 310, 124)
+ROOF_CUPOLA_INDEX_SHA256 = "f5e1422cd1daa982c3f92c572783c66eb27002299abe53dadb8b747883b478d3"
+ROOF_CUPOLA_BAND_SHA256 = "1583adc5d2112dbea1f9898eeb26298ab777e3e06c1ced44f0189de68fc4bf45"
+ROOF_HULL_CROP = (10, 124, 310, 190)
+ROOF_HULL_INDEX_SHA256 = "9ac54f78e3f15c35df6b9bf60e0e949043a16c5bdf911cd529b1b80ab60669be"
+ROOF_HULL_BAND_SHA256 = "b19a7b0de250f12d3670b81fe2fdcffccef6bc492ce6509525344d653e9eb923"
 DIAGNOSTIC_SIZES = (
     ("game-vh-out.bin", 156),
     ("game-sun-out.bin", 128),
@@ -65,10 +77,14 @@ def decode_bmp(path: Path) -> tuple[bytes, tuple[int, ...]]:
     return b"".join(rows), tuple(palette)
 
 
-def crop_bands(page: bytes, box: tuple[int, int, int, int]) -> bytes:
+def crop_indices(page: bytes, box: tuple[int, int, int, int]) -> bytes:
     x0, y0, x1, y1 = box
-    return bytes(page[y * 320 + x] >> 6
+    return bytes(page[y * 320 + x]
                  for y in range(y0, y1) for x in range(x0, x1))
+
+
+def crop_bands(page: bytes, box: tuple[int, int, int, int]) -> bytes:
+    return bytes(index >> 6 for index in crop_indices(page, box))
 
 
 def band_geometry(page: bytes, band: int) -> tuple[int, tuple[int, int, int, int]]:
@@ -121,9 +137,10 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
     ship = (binary64(8), binary64(10), binary64(12))
     target = (binary64(14), binary64(16), binary64(18))
     product_local = tuple(target[index] + ship[index] for index in range(3))
+    expected_clock = 1344638737 if view == "roof" else 1344638736
     check(
         header[:2] == (0, 1) and header[3:] ==
-        (1344638736, 0, camera_beta, 0, 1),
+        (expected_clock, 0, camera_beta, 0, 1),
         "product retains the matched class-0/type-1 orbital clock and camera",
     )
     check(
@@ -131,9 +148,16 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
             for index in range(3)),
         "product brackets the native Stardrifter position within one millionth",
     )
+    expected_distance = 0.012845967758806344 if view == "roof" else 0.01283555
     check(abs(binary64(20) - 0.007128) < 1e-12
-          and abs(binary64(22) - 0.01283555) < 1e-12,
+          and abs(binary64(22) - expected_distance) < 1e-12,
           "product retains the native lunar radius and target distance")
+
+    if view == "roof":
+        view_state = struct.unpack(
+            "<39i", (directory / "orbitlunar-game-vh-out.bin").read_bytes())
+        check(view_state[:5] == (0, -750, -1900, 0, 180),
+              "product retains the stable roof position and outward camera")
 
     sun = struct.unpack("<32i", (directory / "orbitlunar-game-sun-out.bin").read_bytes())
     check(sun[:4] == (0, 1, 1, 0),
@@ -177,6 +201,42 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
             ),
             "the beside-primary globe mask differs only at 99 bounded limb pixels",
         )
+    elif view == "roof":
+        exact_page = sum(native == product
+                         for native, product in zip(native_page, page))
+        band_differences = sum(
+            native >> 6 != product >> 6
+            for native, product in zip(native_page, page)
+        )
+        check(exact_page >= 59800 and band_differences <= 2850,
+              "product retains at least 59,800 exact roof-view indices and bounded bands")
+
+        native_cupola = crop_indices(native_page, ROOF_CUPOLA_CROP)
+        product_cupola = crop_indices(page, ROOF_CUPOLA_CROP)
+        cupola_exact = sum(native == product
+                           for native, product in zip(native_cupola, product_cupola))
+        cupola_band_differences = sum(
+            native >> 6 != product >> 6
+            for native, product in zip(native_cupola, product_cupola)
+        )
+        check(cupola_exact >= 31900 and cupola_band_differences <= 1660,
+              "product retains the upper exterior cupola and roof-aperture geometry")
+
+        native_hull = crop_indices(native_page, ROOF_HULL_CROP)
+        product_hull = crop_indices(page, ROOF_HULL_CROP)
+        hull_exact = sum(native == product
+                         for native, product in zip(native_hull, product_hull))
+        hull_band_differences = sum(
+            native >> 6 != product >> 6
+            for native, product in zip(native_hull, product_hull)
+        )
+        check(hull_exact >= 18500 and hull_band_differences <= 1190,
+              "product retains the bounded roof-view hull geometry")
+        print("INFO roof lighting remains ungraded "
+              f"(cupola native {sum(bright_mask(native_page, native_palette, ROOF_CUPOLA_CROP))}, "
+              f"product {sum(bright_mask(page, palette, ROOF_CUPOLA_CROP))}; "
+              f"hull native {sum(bright_mask(native_page, native_palette, ROOF_HULL_CROP))}, "
+              f"product {sum(bright_mask(page, palette, ROOF_HULL_CROP))})")
     else:
         count, bounding_box = band_geometry(page, 3)
         check(bounding_box == (98, 52, 216, 149) and 9232 <= count <= 9267,
@@ -207,6 +267,7 @@ def main() -> int:
     parser.add_argument("--exterior-product-directory", type=Path)
     parser.add_argument("--interior-product-directory", type=Path)
     parser.add_argument("--limb-product-directory", type=Path)
+    parser.add_argument("--roof-product-directory", type=Path)
     args = parser.parse_args()
     failures = []
 
@@ -218,20 +279,28 @@ def main() -> int:
     exterior_data = EXTERIOR.read_bytes()
     interior_data = INTERIOR.read_bytes()
     limb_data = LIMB.read_bytes()
+    roof_data = ROOF.read_bytes()
+    roof_adapted = ROOF_ADAPTED.read_bytes()
     check(sha256(exterior_data) == EXTERIOR_SHA256,
           "retained lunar exterior BMP has its pinned SHA-256")
     check(sha256(interior_data) == INTERIOR_SHA256,
           "retained Stardrifter-interior BMP has its pinned SHA-256")
     check(sha256(limb_data) == LIMB_SHA256,
           "retained lunar limb-pair BMP has its pinned SHA-256")
+    check(sha256(roof_data) == ROOF_SHA256,
+          "retained Stardrifter roof BMP has its pinned SHA-256")
+    check(len(roof_adapted) == 65540
+          and sha256(roof_adapted) == ROOF_ADAPTED_SHA256,
+          "retained post-snapshot roof state has its pinned size and SHA-256")
     try:
         exterior_page, exterior_palette = decode_bmp(EXTERIOR)
         interior_page, interior_palette = decode_bmp(INTERIOR)
         limb_page, limb_palette = decode_bmp(LIMB)
+        roof_page, roof_palette = decode_bmp(ROOF)
     except (AssertionError, OSError, struct.error) as error:
         check(False, f"lunar native BMPs decode safely: {error}")
-        exterior_page = interior_page = limb_page = b""
-        exterior_palette = interior_palette = limb_palette = ()
+        exterior_page = interior_page = limb_page = roof_page = b""
+        exterior_palette = interior_palette = limb_palette = roof_palette = ()
     else:
         check(sha256(exterior_page) ==
               "e032b578eff11f78ca220dbfa5f6df0aae4c4940f7b93ebbf3d47f7b6df2d83a",
@@ -242,8 +311,13 @@ def main() -> int:
         check(sha256(limb_page) ==
               "e888c0a1a1e1174ec13c6bace5319aa210a2092d64a2f742b21ff92882ecfb5f",
               "native limb pair retains its complete indexed page")
+        check(sha256(roof_page) ==
+              "87c6f02bb3a4df3f8e4b92eb5d2089d22302d4fa7836113d54202d0280b741c9",
+              "native roof view retains its complete indexed page")
+        check(roof_page == roof_adapted[:64000],
+              "native roof BMP exactly retains the frozen post-snapshot framebuffer")
         check(sha256(bytes(exterior_palette)) == PALETTE_SHA256
-              and exterior_palette == interior_palette == limb_palette,
+              and exterior_palette == interior_palette == limb_palette == roof_palette,
               "all native lunar views retain the same exact active six-bit palette")
         check(band_geometry(exterior_page, 3) == (9232, (98, 52, 216, 149)),
               "native exterior retains the complete lunar globe silhouette")
@@ -258,6 +332,24 @@ def main() -> int:
               and limb_bands.count(1) == 1592
               and band_geometry(limb_page, 3) == (8620, (106, 51, 217, 148)),
               "native limb view retains the primary beside the dark lunar globe")
+        roof_cupola = crop_indices(roof_page, ROOF_CUPOLA_CROP)
+        roof_cupola_bands = crop_bands(roof_page, ROOF_CUPOLA_CROP)
+        check(sha256(roof_cupola) == ROOF_CUPOLA_INDEX_SHA256
+              and sha256(roof_cupola_bands) == ROOF_CUPOLA_BAND_SHA256
+              and roof_cupola_bands.count(0) == 4299
+              and roof_cupola_bands.count(1) == 29901
+              and sum(bright_mask(roof_page, roof_palette,
+                                  ROOF_CUPOLA_CROP)) == 21521,
+              "native roof view retains the upper cupola, grid, and aperture")
+        roof_hull = crop_indices(roof_page, ROOF_HULL_CROP)
+        roof_hull_bands = crop_bands(roof_page, ROOF_HULL_CROP)
+        check(sha256(roof_hull) == ROOF_HULL_INDEX_SHA256
+              and sha256(roof_hull_bands) == ROOF_HULL_BAND_SHA256
+              and roof_hull_bands.count(0) == 17860
+              and roof_hull_bands.count(1) == 1940
+              and sum(bright_mask(roof_page, roof_palette,
+                                  ROOF_HULL_CROP)) == 622,
+              "native roof view retains the exterior hull below the aperture")
 
     provenance_data = PROVENANCE.read_bytes()
     check(sha256(provenance_data.replace(b"\r\n", b"\n")) == PROVENANCE_SHA256,
@@ -333,6 +425,61 @@ def main() -> int:
         "limb provenance states the admissible camera, page, palette, and state limits",
     )
 
+    roof_provenance_data = ROOF_PROVENANCE.read_bytes()
+    check(sha256(roof_provenance_data.replace(b"\r\n", b"\n")) ==
+          ROOF_PROVENANCE_SHA256,
+          "roof/cupola provenance has its pinned normalized SHA-256")
+    try:
+        roof_provenance = json.loads(roof_provenance_data)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        check(False, f"roof/cupola provenance decodes safely: {error}")
+        roof_provenance = {}
+    roof_authority = roof_provenance.get("authority", {})
+    roof_camera = roof_provenance.get("camera", {})
+    roof_staged = roof_provenance.get("staged_state", {})
+    roof_state = roof_provenance.get("continuity_after_snapshot", {})
+    roof_capture = roof_provenance.get("capture", {})
+    check(
+        roof_provenance.get("star") == [174288, -44389, -688771]
+        and roof_provenance.get("target_body") == 0
+        and roof_provenance.get("target_type") == 1
+        and roof_provenance.get("star_class") == 0,
+        "roof provenance identifies the same IDEAL I system",
+    )
+    roof_staged_local = tuple(roof_staged.get("star_local", ()))
+    roof_bracket_local = tuple(roof_state.get("star_local", ()))
+    check(
+        roof_staged.get("sync") == roof_state.get("sync") == 0
+        and roof_state.get("fcs_status") == "STANDBY"
+        and roof_state.get("secs") == 1344638737.0
+        and roof_state.get("lifter") == 0
+        and roof_state.get("position") == [0.0, -750.0, -1900.0]
+        and len(roof_staged_local) == len(roof_bracket_local) == 3
+        and all(abs(roof_staged_local[index] - roof_bracket_local[index]) < 0.00000000003
+                for index in range(3)),
+        "roof provenance brackets the stable staged pose through the native snapshot",
+    )
+    check(
+        roof_camera.get("position") == [0.0, -750.0, -1900.0]
+        and roof_camera.get("user_beta") == 180.0
+        and roof_camera.get("source_ontheroof") is True
+        and roof_camera.get("aperture_distance") == 1200.0
+        and roof_camera.get("automatic_return_gate") == 1100.0,
+        "roof provenance pins the source roof state outside the automatic return gate",
+    )
+    check(
+        roof_capture.get("page_vs_frozen_adapted_differences") == 0
+        and roof_capture.get("frozen_adapted_sha256") == ROOF_ADAPTED_SHA256
+        and roof_capture.get("sandbox_restored") is True
+        and roof_authority.get("snapshot_camera_state_retained") is True
+        and roof_authority.get("snapshot_page_and_palette_retained") is True
+        and roof_authority.get("post_snapshot_page_identity_retained") is True
+        and roof_authority.get("adjacent_simulation_bracket_retained") is True
+        and roof_authority.get("snapshot_simulation_state_retained") is False
+        and roof_authority.get("whole_page_same_state_contract") is False,
+        "roof provenance states the admissible page, palette, camera, and state limits",
+    )
+
     capture = CAPTURE.read_text(encoding="utf-8")
     check(
         all(name in capture for name in (
@@ -366,6 +513,7 @@ def main() -> int:
     exterior_local = tuple(exterior_state.get("star_local", ()))
     interior_local = tuple(interior_state.get("star_local", ()))
     limb_local = tuple(limb_state.get("star_local", ()))
+    roof_local = tuple(roof_state.get("star_local", ()))
     if args.exterior_product_directory is not None and exterior_page:
         grade_product(args.exterior_product_directory, 0, exterior_page,
                       exterior_palette, exterior_local, "exterior", check)
@@ -375,6 +523,9 @@ def main() -> int:
     if args.limb_product_directory is not None and limb_page:
         grade_product(args.limb_product_directory, 67, limb_page,
                       limb_palette, limb_local, "limb", check)
+    if args.roof_product_directory is not None and roof_page:
+        grade_product(args.roof_product_directory, 180, roof_page,
+                      roof_palette, roof_local, "roof", check)
 
     if failures:
         print(f"orbitlunar oracle: {len(failures)} failure(s)")

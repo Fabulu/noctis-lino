@@ -445,6 +445,29 @@ and their active palettes at 241 components, so those remain informational.
 This closes one real orbital beside-primary composition, not the companion-stage
 or Stardrifter transition gaps.
 
+**IDEAL roof/cupola checkpoint.** A fourth capture holds the same sync-0
+class-0/type-1 system at raw second `1344638737` and moves the player to the
+stable source roof pose `(0,-750,-1900)`, looking outward at `user_beta=180`.
+Its 1,200-unit distance from the cupola aperture remains outside the source's
+`<1100` automatic-return gate; the following native continuity block retains
+`lifter=0`, `STANDBY`, and the staged star-local ship position within `3e-11` on
+every axis. The captured BMP's complete 64,000-byte indexed page is also exact
+to the frozen post-snapshot framebuffer, rather than having entered the next
+rendered page.
+
+At the matched clock, position, camera, radius, and distance, the product retains
+59,804 of 64,000 exact page indices. It retains 31,977 of 34,200 exact indices
+in the upper exterior cupola/aperture crop and 18,586 of 19,800 in the lower
+hull crop; their palette-band differences are bounded at 1,660 and 1,190. This
+authenticates the stable roof branch's upper cupola, grid, aperture, and exterior
+hull composition while keeping the intensity gap explicit: native/product bright
+counts are 21,521/20,346 in the cupola crop and 622/307 in the hull crop, with
+241 active-palette component differences. Complete-page equality and exact
+lighting remain ungraded because the frozen continuity variables still follow
+BMP serialization rather than being snapshot-atomic. This checkpoint protects
+one stationary exterior-cupola state; lift motion and the complete
+interior/cupola/roof transition remain open.
+
 The generic orbital gallery had retained the target-local signs authored around
 the former missing exterior half-turn. After the camera repair those eleven
 poses looked away from their targets. Their local X/Z offsets are now negated

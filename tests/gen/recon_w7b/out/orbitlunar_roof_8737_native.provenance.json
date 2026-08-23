@@ -1,0 +1,101 @@
+{
+  "artifact": {
+    "file": "orbitlunar_roof_8737_native.shot.BMP",
+    "sha256": "eac49d33b4596d74bee1896e37c344c84145668fa4367bf38f36da2e4b01cc06",
+    "indexed_page_sha256": "87c6f02bb3a4df3f8e4b92eb5d2089d22302d4fa7836113d54202d0280b741c9",
+    "six_bit_palette_sha256": "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
+  },
+  "star": [174288, -44389, -688771],
+  "target_body": 0,
+  "target_type": 1,
+  "star_class": 0,
+  "camera": {
+    "position": [0.0, -750.0, -1900.0],
+    "user_alfa": 0.0,
+    "user_beta": 180.0,
+    "navigation_beta": 0.0,
+    "source_ontheroof": true,
+    "aperture_distance": 1200.0,
+    "automatic_return_gate": 1100.0
+  },
+  "staged_state": {
+    "sync": 0,
+    "secs": 1344638497.2631578,
+    "star_local": [-33.337344046564766, 0.006575896758854271, -4.09043306650612]
+  },
+  "continuity_after_snapshot": {
+    "ram_offset": 206300,
+    "sync": 0,
+    "ip_targetted": 0,
+    "ip_reached": 1,
+    "ap_reached": 1,
+    "pwr": 19997,
+    "fcs_status": "STANDBY",
+    "secs": 1344638737.0,
+    "surlight": 16,
+    "lifter": 0,
+    "position": [0.0, -750.0, -1900.0],
+    "user_alfa": 0.0,
+    "user_beta": 180.0,
+    "navigation_beta": 0.0,
+    "dzat": [174254.66265595343, -44388.99342410324, -688775.0904330665],
+    "star_local": [-33.337344046565704, 0.006575896761205513, -4.090433066477999]
+  },
+  "capture": {
+    "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+    "timeout_seconds": 360,
+    "stop_poll_milliseconds": 1,
+    "stop_after_file_bytes": 65078,
+    "delayed_snapshot_key_milliseconds": [240000, 300000],
+    "command_sha256": "14508c7c57037cb972c2096bfc6b2aaa76bf532a028971fd7b4d56df7ab51d48",
+    "precapture_current_sha256": "c5f9cd4e494cd0e3fa787288540b4e872e359e372833a7407b37e23065a7a07e",
+    "frozen_ram_sha256": "1f8ad92696cac7d9faa921004296916e416556f4929e10744cdea2009194dd19",
+    "frozen_adapted_sha256": "a3cf70e2861584f4aee90f10226c691ee2a0c055eadf3f06dc5032b93a0d1539",
+    "page_vs_frozen_adapted_differences": 0,
+    "sandbox_restored": true
+  },
+  "native_visibility": {
+    "cupola_crop": [10, 10, 310, 124],
+    "cupola_index_sha256": "f5e1422cd1daa982c3f92c572783c66eb27002299abe53dadb8b747883b478d3",
+    "cupola_palette_band_sha256": "1583adc5d2112dbea1f9898eeb26298ab777e3e06c1ced44f0189de68fc4bf45",
+    "cupola_dark_band_pixels": 4299,
+    "cupola_ship_band_pixels": 29901,
+    "cupola_bright_pixels": 21521,
+    "hull_crop": [10, 124, 310, 190],
+    "hull_index_sha256": "9ac54f78e3f15c35df6b9bf60e0e949043a16c5bdf911cd529b1b80ab60669be",
+    "hull_palette_band_sha256": "b19a7b0de250f12d3670b81fe2fdcffccef6bc492ce6509525344d653e9eb923",
+    "upper_cupola_exterior_visible": true,
+    "roof_aperture_visible": true,
+    "interior_details_absent": true
+  },
+  "product_contract": {
+    "raw_clock": 1344638737,
+    "target_local": [-0.011817786847501566, 0.0000025128807406016307, 0.005035752345708744],
+    "star_local": [-33.337344046565704, 0.006575896761205513, -4.090433066477999],
+    "radius": 0.007128,
+    "distance": 0.012845967758806344,
+    "complete_page_exact_indices": 59804,
+    "complete_page_band_differences": 2850,
+    "complete_palette_component_differences": 241,
+    "cupola_exact_indices": 31977,
+    "cupola_palette_band_differences": 1660,
+    "cupola_dark_band_pixels": 4317,
+    "cupola_ship_band_pixels": 29883,
+    "cupola_bright_pixels": 20346,
+    "hull_exact_indices": 18586,
+    "hull_palette_band_differences": 1190,
+    "hull_bright_pixels": 307
+  },
+  "authority": {
+    "snapshot_camera_state_retained": true,
+    "camera_reason": "The staged CURRENT.BIN and frozen continuity block contain the same roof position and camera angles; source pos_y below -500 selects ontheroof, while the 1200-unit aperture distance stays outside automatic return.",
+    "snapshot_page_and_palette_retained": true,
+    "post_snapshot_page_identity_retained": true,
+    "page_reason": "The retained BMP indexed page equals all 64,000 corresponding bytes in frozen adapted.",
+    "adjacent_simulation_bracket_retained": true,
+    "snapshot_simulation_state_retained": false,
+    "simulation_reason": "The frozen continuity block is observed after BMP serialization rather than atomically with it, even though no subsequent page render occurred.",
+    "whole_page_same_state_contract": false,
+    "admissible_contract": "At the retained class-0/type-1 state, the roof camera authenticates the upper exterior cupola, its panel grid, the roof aperture, and omission of interior details. Product grading may use the exact camera and star-local pose, bounded indexed and palette-band crop differences, and the full frozen-page identity; complete-page equality and lighting intensity remain ungraded."
+  }
+}

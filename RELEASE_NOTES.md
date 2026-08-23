@@ -79,7 +79,12 @@ accepts complete exact local X/Y/Z overrides for matched native poses. A third
 sync-0 IDEAL view now pins a genuine primary-beside-globe composition through
 the Stardrifter: all 4,000 primary-window pixels retain the exact native palette
 band and brightness classification, while the product's dark lunar mask differs
-only at 99 bounded limb pixels. Complete-page and palette equality remain
+only at 99 bounded limb pixels. A fourth matched IDEAL capture pins the stable
+Stardrifter roof branch at `(0,-750,-1900)`: the native BMP exactly retains its
+frozen 64,000-byte framebuffer, and the product preserves 59,804 exact page
+indices plus bounded upper-cupola and hull palette-band geometry. Native/product
+brightness and 241 active-palette component differences remain explicit rather
+than being treated as exact lighting. Complete-page and palette equality remain
 informational under the retained adjacent-frame authority limits.
 
 This release does not claim complete NIVGEN parity: the same 22 retained
