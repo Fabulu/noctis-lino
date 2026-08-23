@@ -588,10 +588,22 @@ projected-HUD differences move to the cross-host font docket. The 145 remaining
 flare/fixture differences stay open only for pass-level attribution; the reviewed
 source and port paths do not support a speculative repair.
 
+Actual lift motion is now closed at the production indexed-page boundary. An
+opt-in `lifttrace` launch on a private inactive desktop records, after rendering
+and the source-order restraint, eight signed 32-bit scalar fields plus the
+complete 64,000-byte indexed page on each authoritative simulation tick. The
+live ascent exactly retains the eight `-100,-199,-297,-394,-490,-585,-679,-750`
+vertical states, and a separately staged roof return retains all twelve states
+from `lifter=+75` through the exact `y=0` clamp. Both directions switch the roof
+branch only across strict `y < -500`; camera pitch and forward restraint retain
+the observed source ordering, and all 20 indexed pages are distinct. The trace
+is gated by a complete command-line token and by `VHGdosim`, so ordinary
+launches neither pack nor write it and 60-Hz presentation does not duplicate
+simulation states.
+
 Exact projected glyph raster across hosts, complete interior lighting, the
-remaining unretained palette-easing state, whole-row numerical environmental-state
-equality, and actual lift motion remain open rather than being claimed as full
-parity.
+remaining unretained palette-easing state, and whole-row numerical environmental-state
+equality remain open rather than being claimed as full parity.
 
 The generic orbital gallery had retained the target-local signs authored around
 the former missing exterior half-turn. After the camera repair those eleven

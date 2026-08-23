@@ -373,6 +373,7 @@ def main() -> int:
         "source-order ascent momentum carries a centered rider clear of automatic return",
     )
     lift = section(game, '"VHG lift tick"', '"VHG lift move"')
+    lift_trace = section(game, '"VHG lift trace"', '"VHG lift move"')
     check(
         all(token in lift for token in (
             "? A > 0 -> VHG lift descending;",
@@ -398,13 +399,42 @@ def main() -> int:
         and "[VHGlifter] = 75;" in lift
         and "=> VHG lift distance;" in lift
         and '"VHG lift postrender"' in game
-        and "=> VHG fpu clean; => VHG lift postrender; => VHG input;" in game
+        and "=> VHG fpu clean; => VHG lift postrender; => VHG lift trace; => VHG input;" in game
         and "A = [VHGdosim]; ? A = 0 -> VHG lift postrender done;" in game
         and "=> VHG lift tick;\n\t( p_Forward(step) is clamped" in game
         and "=> VHG clamp position;\n    \"VHG skip ship ticks\"" in game
         and "A = [VHGx]; A * 3; A / 4; [VHGx] = A;" in game
         and "A = [VHGz]; A + 3100; A / 4;" in game,
         "lift preserves source trigger, movement, clamp, render, and restraint ordering",
+    )
+    check(
+        "VHGsentinellifttrace = 0;" in game
+        and "VHGlifttraceactive = 0; VHGlifttracecount = 0; VHGlifttraceindex = 0;" in game
+        and "vhgliftstatename = { game-lift-state-out.bin };" in game
+        and "vhgliftpagesname = { game-lift-pages-out.bin };" in game
+        and "vhgliftstate = 8;" in game
+        and all(token in lift_trace for token in (
+            "A = [VHGsentinellifttrace]; ? A = 0 -> VHG lift trace done;",
+            "A = [VHGdosim]; ? A = 0 -> VHG lift trace done;",
+            "A = [VHGlifttraceactive]; ? A != 0 -> VHG lift trace capture;",
+            "A = [VHGlifter]; ? A = 0 -> VHG lift trace done;",
+            "[VHGlifttraceactive] = 1;",
+            "[vhgliftstate plus 0] = [VHGy]; [vhgliftstate plus 1] = [VHGlifter];",
+            "[vhgliftstate plus 2] = [VHGonroof]; [vhgliftstate plus 3] = [VHGliftstep];",
+            "[vhgliftstate plus 4] = [VHGx]; [vhgliftstate plus 5] = [VHGz];",
+            "[vhgliftstate plus 6] = [VHGalpha]; [vhgliftstate plus 7] = [VHGbeta];",
+            "[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;",
+            "A = [VHGlifttracecount]; [VHGlifttraceindex] = A; A * 32;",
+            "[Block Pointer] = vhgliftstate; [Block Size] = 32; isocall;",
+            "A = [VHGlifttraceindex]; A * 64000;",
+            "[Block Pointer] = sppack; [Block Size] = 64000; isocall;",
+            "[VHGlifttracecount]+;",
+            "[VHGlifttraceactive] = 0;",
+        ))
+        and lift_trace.index("A = [VHGsentinellifttrace];")
+        < lift_trace.index("[SPpreg] = RGADP;")
+        < lift_trace.index("[VHGlifttracecount]+;"),
+        "opt-in lift trace records one post-restraint page and scalar state per simulation tick",
     )
     platform = section(game, '"VHG platform"', '"VHG lift tick"')
     ship_input = section(game, '"VHG normal input"', '"VHG surface input"')
@@ -1525,7 +1555,10 @@ def main() -> int:
         game, '"VHG repeat sentinel option"', '"VHG freeze diagnostic option"'
     )
     freeze_diagnostic = section(
-        game, '"VHG freeze diagnostic option"', '"VHG profile option"'
+        game, '"VHG freeze diagnostic option"', '"VHG lift trace option"'
+    )
+    lift_trace_option = section(
+        game, '"VHG lift trace option"', '"VHG profile option"'
     )
     cadence = section(game, '"VHG cadence"', '"VHG timing step"')
     sentinel_schedule = section(
@@ -1554,6 +1587,20 @@ def main() -> int:
             "? C != 122 -> VHG freeze next;",
             "[VHGsentinelfreeze] = 1;",
         ))
+        and all(token in lift_trace_option for token in (
+            "A = Command Line;",
+            "? C != 108 -> VHG lift trace next;",
+            "? C != 105 -> VHG lift trace next;",
+            "? C != 102 -> VHG lift trace next;",
+            "? C != 116 -> VHG lift trace next;",
+            "? C != 114 -> VHG lift trace next;",
+            "? C != 97 -> VHG lift trace next;",
+            "? C != 99 -> VHG lift trace next;",
+            "? C != 101 -> VHG lift trace next;",
+            "? C = 0 -> VHG lift trace found;",
+            "? C = 32 -> VHG lift trace found;",
+            "[VHGsentinellifttrace] = 1;",
+        ))
         and all(token in cadence for token in (
             "A = [VHGsentinelfreeze]; ? A = 0 -> VHG cadence unfrozen;",
             "[VHGdosim] = 0;",
@@ -1579,7 +1626,7 @@ def main() -> int:
             "[Block Pointer] = vhglabelstate; [Block Size] = 32; isocall;",
             "[File Size] = 32; isocall;",
         ))
-        and "=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option; => VHG profile option;" in game
+        and "=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option;\n\t=> VHG lift trace option; => VHG profile option;" in game
         and all(token in sentinel_schedule for token in (
             "A = [VHGsent]; ? A = 0 -> VHG sentinel frame ready;",
             "A = [VHGsentinelrepeat]; ? A = 0 -> VHG no sentinel;",

@@ -128,8 +128,16 @@ and central-flare regions. Source/port ordering, clipping, spoke arithmetic, and
 two-pass smoothing expose no active divergence there, while native pass-level
 intermediates were not retained, so no raster repair is claimed. Repeated
 launches retain identical scoped indexed rasters despite palette variation, so
-those rasters—not unstable product
-brightness—grade the repair. Native direct star/body editing now owns character
+those rasters—not unstable product brightness—grade the repair. A new opt-in
+private-desktop lift trace now records the post-render, post-restraint scalar
+state and complete 64,000-byte indexed page on each authoritative simulation
+tick while remaining inert during ordinary launches. The production game
+retains all eight source ascent states from impulse `-100` through `y=-750`, all
+twelve automatic-return states from `+75` through the exact `y=0` deck clamp,
+the strict `y < -500` roof switch in both directions, and the source-ordered
+camera-pitch and forward-restraint changes. Every one of the 20 states produces
+a distinct complete indexed page even though presentation continues at 60 Hz.
+Native direct star/body editing now owns character
 input ahead of all other hotkeys and preserves source uppercase conversion,
 Backspace, physical-Escape cancellation and held-key ownership, Return, the
 20-byte cap, exact 32-byte `STARMAP.BIN` appends, and byte-exact player-local
@@ -142,9 +150,9 @@ underscore, and a same-phase invisible trailing-space edit translates only its
 72 old/new raster pixels by one fixed label position. The HUD projector now
 skips spaces and out-of-atlas bytes instead of redrawing its previous glyph
 through padded cells. Exact projected glyph raster across hosts, complete
-interior lighting, the remaining unretained palette-easing state, whole-row
-numerical environmental-state equality, and lift-motion fidelity remain explicit
-rather than being claimed as complete interior parity.
+interior lighting, the remaining unretained palette-easing state, and whole-row
+numerical environmental-state equality remain explicit rather than being claimed
+as complete interior parity.
 
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred
