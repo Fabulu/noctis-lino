@@ -388,9 +388,19 @@ contract.
 The prior shared-workspace, binary64-radius, stationary-drive, and fixed-chase
 repairs remain source-grounded and independently protected. Active local-system
 checkpoints restore `stspeed=0`, `ap_reached=1`, use the source viewport clear,
-and report `TRACKING`. This corrected checkpoint does not authenticate a visible
-companion corona or beam layout. A genuinely front-facing companion capture is
-still required by the wider matrix below.
+and report `TRACKING`.
+
+A second retained capture rotates only `navigation_beta` from 120 to 300, so the
+corrected source half-turn makes body 3 genuinely front-facing. The native BMP
+now authenticates the type-10 companion's white corona and radial flare: the
+pinned crop contains 151 pixels above six-bit component 32, versus one ordinary
+star in the behind-camera control. The matched product retains the clock and
+camera, brackets the target-relative position within `0.003` on each axis,
+projects the companion in front of the camera, sets its flare diagnostic, and
+renders a real corona and rays. Its crop currently contains 61 pixels above the
+same threshold and its complete page differs at 16,155 indices. Those brightness,
+shape, palette, and whole-page gaps remain open; this positive capture prevents
+them from being hidden behind the now-correct negative checkpoint.
 
 **Frozen-world native-context checkpoint.** The landed NIV+ capture rig now
 accepts independent capsule and player coordinates plus the exact camera pose

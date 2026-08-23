@@ -137,9 +137,10 @@ $scenes = @(
        X=1463568; Y=-4728350; Z=-437812; Body=1; Type=9; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
        LocalX=0.333919; LocalY=0.0; LocalZ=-0.786714 },
-    # ROTOR IGNE is a generated class-8 multiple system. This certified
-    # native-matched pose keeps the primary behind the camera and exposes body
-    # 3's real companion corona and long radial flare through the open visor.
+    # ROTOR IGNE is a generated class-8 multiple system. This native-matched
+    # navigation-120 pose keeps body 3 behind the exterior camera and protects
+    # the negative visibility contract. Override -NavigationAngle 300 for the
+    # retained front-facing companion corona and radial-flare context.
     @{ Name='orbitmultiple'; FileName='planet-space-multiple-system.png'; Mode=0;
        X=3866416; Y=-4813508; Z=-735695; Body=0; Type=5; Lon=0; Lat=60;
        Beta=0; Nav=120; Pitch=-34; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;

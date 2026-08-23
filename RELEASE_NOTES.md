@@ -62,7 +62,11 @@ false radial flare. The shipping renderer now retains the source half-turn, and
 the pinned native indexed page, active palette, camera, clock, target-relative
 position, and product diagnostics protect that negative visibility result.
 Complete-page equality remains explicitly ungraded because the captured RAM had
-already begun the following frame.
+already begun the following frame. A second native capture rotates only the
+navigation angle and now pins the genuinely front-facing type-10 companion's
+white corona and radial flare. The corrected product projects and renders that
+companion, while its remaining corona brightness, palette, shape, and whole-page
+gaps stay explicit rather than being hidden by the negative control.
 
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred
