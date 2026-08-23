@@ -1,12 +1,13 @@
-"""Grade a retained native surface-sun frame against product diagnostics.
+"""Grade retained native surface-sun frames against product diagnostics.
 
-The default mode is non-GUI: it validates the pinned NIV+ BMP oracle and the
+The default mode is non-GUI: it validates a pinned NIV+ BMP oracle and the
 shipping diagnostic/export contracts.  The hosted native Apple-Silicon product
 run supplies the product view, page, palette, and flare-state files.  Exact
-whole-page equality is reported but cannot be graded until the native rig
-retains the live camera and HUD state at the instant of its timed snapshot::
+whole-page equality is reported but cannot be graded where the native rig did
+not retain the live camera, simulation, and HUD state at the instant of its
+timed snapshot::
 
-    python tests/test_sun_gallery.py --case hab-sun270 \
+    python tests/test_sun_gallery.py --case thin-sun45 \
         --product-directory build/sun-gallery
 """
 
@@ -67,7 +68,63 @@ CASES = {
         },
         "view": (1598248, -600, 2251369, -44, -90),
         "center": (161, 130),
-    }
+        "product": {
+            "mode": 1,
+            "landed": 1,
+            "planet_type": 3,
+            "star_class": 0,
+            "atmosphere": 1,
+            "night": 0,
+            "rain": 0.0,
+            "flare": 1,
+            "exposure": 35.9996,
+            "distance": 243.633,
+        },
+    },
+    "thin-sun45": {
+        "scene": "thin",
+        "oracle": ROOT / "tests" / "native-oracles" / "thin-sun45"
+        / "native.shot.BMP",
+        "surface": ROOT / "tests" / "native-oracles" / "thin-sun45"
+        / "native.SURFACE.BIN",
+        "bmp_sha256": "a8e94775d1d4b7d7e4817088116d716a43e42b2b456c4734125430e1714de93b",
+        "surface_sha256": "8e63c9ed2d588f2fe642ef4cf184e833edea251572b376a8a8700b1a09aabe2f",
+        "surface_state": (
+            45, 60, 8, 8, 0, 0,
+            1645000.0, 1.0, 1641000.0, -30.0, 90.0,
+        ),
+        "page_sha256": "b9c33fba1389c3244634f9e3bca7c91b63eb7657678060e6cfec74df39d22812",
+        "palette_sha256": "5c4f3d10d756593012618d64d217327241559de094ce351b9f9faf15a9de94a2",
+        "checkpoint_sha256": "2ae05d1536b524559045bf4edfe1d1e948253f682bbb61b3dfd29326ca73a5f9",
+        "checkpoint": {
+            "star_x": 1463568,
+            "star_y": -4728350,
+            "star_z": -437812,
+            "body": 2,
+            "longitude": 45,
+            "latitude": 60,
+            "beta": 90,
+            "pitch": -30,
+            "player_x": 1645000,
+            "player_z": 1641000,
+            "fast": True,
+        },
+        "view": (1645000, -2648, 1641000, -30, 90),
+        "center": (161, 28),
+        "product": {
+            "mode": 1,
+            "landed": 1,
+            "planet_type": 5,
+            "star_class": 0,
+            "atmosphere": 1,
+            "night": 0,
+            "rain": 0.0,
+            "flare": 1,
+            "exposure": 49.3038,
+            "distance": 112.235,
+            "ray": 5.15,
+        },
+    },
 }
 
 
@@ -191,7 +248,16 @@ def check_source_contract(check) -> None:
               "--case hab-sun270",
               "--product-directory build/sun-gallery",
           )),
-          "hosted Apple-Silicon gate executes the pinned product comparison")
+          "hosted Apple-Silicon gate executes the pinned habitable product comparison")
+    check(all(fragment in macos_workflow for fragment in (
+              "--body 2 --longitude 45 --latitude 60",
+              "--beta 90 --pitch -30",
+              "--player-x 1645000 --player-z 1641000 --fast",
+              "--case thin-sun45",
+              "build/macos-aarch64-thin-sun-oracle.txt",
+              "build/sun-gallery/thin-game-*-out.bin",
+          )),
+          "hosted Apple-Silicon gate executes and retains the pinned thin-world comparison")
     check("Grade the pinned habitable-world sun frame" not in windows_workflow,
           "Windows packaging no longer depends on an unusable hosted GUI desktop")
 
@@ -237,11 +303,11 @@ def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
         center_offset = cy * 320 + cx
         check(page[center_offset] == oracle_page[center_offset] == 126,
               "product page retains the native indexed flare-centre sample 126")
-        # Surface.BIN authenticates the native resume input, not the later live
-        # frame: the rig types `b` after 30 seconds but dumps RAM only when the
-        # emulator is killed at 60 seconds.  The landed loop advances input and
-        # ordinary HUD time in between.  Until snapshot-time state is retained,
-        # a whole-page mismatch is evidence to report, not a same-state failure.
+        # The retained BMP authenticates the native view and indexed output, but
+        # these historical captures do not retain every live HUD/simulation value
+        # at the screenshot instant.  Exact whole-page equality therefore remains
+        # informational; the complete palette, palette bands, and pinned sun
+        # samples below are the admissible cross-product contracts.
         print(f"INFO complete-page equality is not graded ({summary})")
 
     palette_data = palette_path.read_bytes()
@@ -263,18 +329,34 @@ def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
     if len(sun_data) == 128:
         sun = struct.unpack("<32i", sun_data)
         floats = struct.unpack("<32f", sun_data)
+        expected = case["product"]
+        assert isinstance(expected, dict)
         cx, cy = case["center"]
-        check(sun[0] == 1 and sun[1] == 1 and sun[2] == 3,
-              "product diagnostic identifies landed type-3 rendering")
-        check(sun[4] == 1 and sun[5] == 0 and floats[6] == 0.0,
-              "product diagnostic retains clear daytime atmosphere")
-        check(sun[16] == 1,
-              "product diagnostic confirms the source flare gate is active")
+        check(
+            sun[0] == expected["mode"]
+            and sun[1] == expected["landed"]
+            and sun[2] == expected["planet_type"]
+            and sun[3] == expected["star_class"],
+            "product diagnostic identifies the pinned landed planet and star class",
+        )
+        check(
+            sun[4] == expected["atmosphere"]
+            and sun[5] == expected["night"]
+            and abs(floats[6] - expected["rain"]) < 0.0001,
+            "product diagnostic retains the pinned atmosphere, day/night, and weather state",
+        )
+        check(sun[16] == expected["flare"],
+              "product diagnostic confirms the expected source flare gate")
         check(abs(sun[17] - cx) <= 1 and abs(sun[18] - cy) <= 1,
               f"product flare centre {sun[17]},{sun[18]} aligns with native {cx},{cy}")
-        check(abs(floats[7] - 35.9996) < 0.01 and
-              abs(floats[8] - 243.633) < 0.01,
-              "product retains the pinned native exposure and live solar distance")
+        check(
+            abs(floats[7] - expected["exposure"]) < 0.01
+            and abs(floats[8] - expected["distance"]) < 0.01,
+            "product retains the pinned native exposure and live solar distance",
+        )
+        if "ray" in expected:
+            check(abs(floats[9] - expected["ray"]) < 0.001,
+                  "product retains the pinned native stellar ray")
 
 
 def main() -> int:
@@ -308,28 +390,34 @@ def main() -> int:
         check(False, f"retained native surface state decodes safely: {error}")
     else:
         check(surface_state == case["surface_state"],
-              "native oracle records longitude 270 and heading 270 explicitly")
+              "native oracle records the pinned landed resume state exactly")
 
-    provenance = case["provenance"]
-    assert isinstance(provenance, Path)
-    provenance_data = provenance.read_bytes()
-    check(sha256(provenance_data) == case["provenance_sha256"],
-          "retained native capture provenance has its pinned SHA-256")
-    try:
-        provenance_state = json.loads(provenance_data)
-    except (json.JSONDecodeError, UnicodeDecodeError) as error:
-        check(False, f"retained native capture provenance decodes safely: {error}")
-    else:
-        check(
-            provenance_state.get("surface_role") == "landed-resume input state"
-            and provenance_state.get("shot_after_seconds") == 30
-            and provenance_state.get("process_timeout_seconds") == 60
-            and provenance_state.get("snapshot_camera_state_retained") is False
-            and provenance_state.get("snapshot_simulation_state_retained") is False
-            and provenance_state.get("snapshot_hud_clock_retained") is False
-            and provenance_state.get("whole_page_same_state_contract") is False,
-            "native oracle records why complete-page equality is informational",
+    provenance = case.get("provenance")
+    if provenance is None:
+        print(
+            "INFO native snapshot-time camera/simulation/HUD provenance is not "
+            "retained; complete-page equality stays disabled"
         )
+    else:
+        assert isinstance(provenance, Path)
+        provenance_data = provenance.read_bytes()
+        check(sha256(provenance_data) == case["provenance_sha256"],
+              "retained native capture provenance has its pinned SHA-256")
+        try:
+            provenance_state = json.loads(provenance_data)
+        except (json.JSONDecodeError, UnicodeDecodeError) as error:
+            check(False, f"retained native capture provenance decodes safely: {error}")
+        else:
+            check(
+                provenance_state.get("surface_role") == "landed-resume input state"
+                and provenance_state.get("shot_after_seconds") == 30
+                and provenance_state.get("process_timeout_seconds") == 60
+                and provenance_state.get("snapshot_camera_state_retained") is False
+                and provenance_state.get("snapshot_simulation_state_retained") is False
+                and provenance_state.get("snapshot_hud_clock_retained") is False
+                and provenance_state.get("whole_page_same_state_contract") is False,
+                "native oracle records why complete-page equality is informational",
+            )
 
     try:
         page, palette = decode_bmp(oracle)
@@ -351,7 +439,7 @@ def main() -> int:
     checkpoint = build_landed_checkpoint(**checkpoint_arguments)
     check(len(checkpoint) == 264 and
           sha256(checkpoint) == case["checkpoint_sha256"],
-          "cross-platform builder reproduces the pinned habitable checkpoint")
+          "cross-platform builder reproduces the pinned product checkpoint")
 
     check_source_contract(check)
     if args.product_directory is not None and page and palette:

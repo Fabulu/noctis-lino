@@ -302,7 +302,12 @@ The ten-case probe retains its exact 640,000-byte before and after hashes,
 including the four real surface inputs. One matched thin-world product sample
 reduced measured rendering from 8.71 to 6.96 ms; host timing varied on later
 runs, so the pinned page hashes and eliminated interpreter loop are the durable
-evidence rather than that single timing delta.
+evidence rather than that single timing delta. The registered
+`test_surface_flare_oracle.py` gate now rebuilds the focused probe from current
+source and requires the six-page concatenated Borland oracle, the exact thin,
+quartz, and habitable positive pages, and the unchanged lunar lower-gate page;
+the former stale `mgmain`/`vhstar` programme dependencies were removed from the
+probe rather than being allowed to mask source drift.
 
 **Playable evidence so far.** A fresh sequential opening Stardrifter capture
 shows a bright filled corona and radial beams at 60 FPS, backed by the exact
@@ -498,7 +503,13 @@ panorama-edge erase, full-context staged grading is exact: the complete
 64,000-byte pages before the sun, after the sun, and after palette-band masking
 each differ from NIV+ at zero pixels. This closes the reported thin-world
 pillar for the complete sky and sun sequence, while final terrain and object
-compositing remain separate coverage.
+compositing remain separate coverage. The hosted Apple-Silicon product gate now
+rebuilds this exact checkpoint and requires the native camera, all 768 active
+palette components, every framebuffer palette band, flare-centre index, flare
+gate, exposure, distance, and stellar ray. The retained BMP still lacks
+snapshot-time camera/simulation/HUD provenance, so its later complete page stays
+informational rather than being misrepresented as a same-state final-frame
+oracle.
 
 **Airless rocky native-context checkpoint.** The same fixed epoch now covers
 the system's type-4 body at longitude 90, heading 270, and pitch -38. Both
