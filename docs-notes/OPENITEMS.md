@@ -402,6 +402,41 @@ same threshold and its complete page differs at 16,155 indices. Those brightness
 shape, palette, and whole-page gaps remain open; this positive capture prevents
 them from being hidden behind the now-correct negative checkpoint.
 
+A scoped source audit found no material caller divergence that can explain that
+61-versus-151 count: native and product retain companion seeding, binary64 ray,
+binary32 distance, companion-before-primary flare order, smoothing, and masking.
+Both paths clear rather than accumulate: the fresh native process initializes
+`stspeed=0` and queues only the snapshot key, while the product restore path also
+installs zero. Prior fast-generator phase is irrelevant because both companion
+callers reseed immediately. The native snapshot still lacks exact fractional-time
+companion coordinates and pages at the white-globe, flare, and smoothing
+boundaries. Do not tune the flare from this measurement. The discriminating
+native capture must export those exact inputs and the page after each stage; only
+then can the product repair the first proven divergence, or limit the residual to
+palette easing if all indexed stages match.
+
+**IDEAL orbital camera pair.** Two retained class-0/type-1 captures now bracket
+the same raw second, fixed-chase state, palette, and Stardrifter position while
+changing only `user_beta` from 0 to -97. The exterior view authenticates the
+complete lunar globe silhouette with the primary outside the viewport. The
+turned view authenticates the primary corona and radial rays through the
+Stardrifter interior, including ship occlusion. At the exact product clock and
+camera, the star-relative Stardrifter position differs by less than `1e-6` on
+every axis and the lunar radius and distance are exact. The exterior palette bands differ only
+at 35 product-only globe-limb pixels. All 18,000 pixels in the retained interior
+flare crop have the same native/product palette band, and 17,318 retain the exact
+index. Native/product brightness above six-bit component 32 is 8,338 versus
+7,890; complete-page and palette equality remain informational because the BMP
+capture still lacks snapshot-time simulation and palette-easing state.
+
+The generic orbital gallery had retained the target-local signs authored around
+the former missing exterior half-turn. After the camera repair those eleven
+poses looked away from their targets. Their local X/Z offsets are now negated
+while preserving the authored 23-degree cockpit axis; a fresh default IDEAL
+capture again places the type-1 globe in the forward window. Exact orbital-local
+X/Y/Z overrides are also all-or-none, so matched oracle captures no longer need
+to distort the camera to reproduce a retained ship position.
+
 **Frozen-world native-context checkpoint.** The landed NIV+ capture rig now
 accepts independent capsule and player coordinates plus the exact camera pose
 needed by product checkpoints. Source `user_alfa` is vertical pitch and

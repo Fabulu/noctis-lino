@@ -23,6 +23,9 @@ param(
     [int]$OrbitalViewAngle,
     [ValidateRange(0.01, 100.0)]
     [double]$OrbitalDistanceScale,
+    [double]$OrbitalLocalX,
+    [double]$OrbitalLocalY,
+    [double]$OrbitalLocalZ,
     [int]$ViewPitch,
     [int]$PlayerX,
     [int]$PlayerY,
@@ -93,50 +96,52 @@ $scenes = @(
     @{ Name='planetclose'; FileName='planet-close-space.png'; Mode=0;
        X=3979984; Y=-43407; Z=-43984; Body=0; Type=8; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.046885; LocalY=0.0; LocalZ=-0.110461 },
+       LocalX=-0.046885; LocalY=0.0; LocalZ=0.110461 },
     # Target-relative fine-approach frames for every orbital body class. Each
-    # offset is scaled from the type-8 checkpoint by the target's
-    # generated p_ray, keeping the camera at the same apparent body radius.
+    # offset is scaled from the type-8 checkpoint by the target's generated
+    # p_ray, keeping the camera at the same apparent body radius. Preserve the
+    # authored 23-degree cockpit axis and negate its target-local offset because
+    # source from_vehicle() adds the exterior half-turn before projection.
     @{ Name='orbithot'; FileName='planet-space-hot.png'; Mode=0;
        X=4162480; Y=-6132645; Z=587893; Body=1; Type=0; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.025697; LocalY=0.0; LocalZ=-0.060539 },
+       LocalX=-0.025697; LocalY=0.0; LocalZ=0.060539 },
     @{ Name='orbitlunar'; FileName='planet-space-lunar.png'; Mode=0;
        X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.010794; LocalY=0.0; LocalZ=-0.025432 },
+       LocalX=-0.010794; LocalY=0.0; LocalZ=0.025432 },
     @{ Name='orbitdense'; FileName='planet-space-dense.png'; Mode=0;
        X=4304272; Y=-4664874; Z=-1062549; Body=0; Type=2; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.034346; LocalY=0.0; LocalZ=-0.080919 },
+       LocalX=-0.034346; LocalY=0.0; LocalZ=0.080919 },
     @{ Name='orbithabitable'; FileName='planet-space-habitable.png'; Mode=0;
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.032783; LocalY=0.0; LocalZ=-0.077237 },
+       LocalX=-0.032783; LocalY=0.0; LocalZ=0.077237 },
     @{ Name='orbitrocky'; FileName='planet-space-rocky.png'; Mode=0;
        X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.027804; LocalY=0.0; LocalZ=-0.065506 },
+       LocalX=-0.027804; LocalY=0.0; LocalZ=0.065506 },
     @{ Name='orbitthin'; FileName='planet-space-thin.png'; Mode=0;
        X=-1996240944; Y=72703; Z=944799; Body=3; Type=5; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.030966; LocalY=0.0; LocalZ=-0.072956 },
+       LocalX=-0.030966; LocalY=0.0; LocalZ=0.072956 },
     @{ Name='orbitlarge'; FileName='planet-space-large.png'; Mode=0;
        X=770352; Y=-131847; Z=665208; Body=0; Type=6; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.261698; LocalY=0.0; LocalZ=-0.616521 },
+       LocalX=-0.261698; LocalY=0.0; LocalZ=0.616521 },
     @{ Name='orbitfrozen'; FileName='planet-space-frozen.png'; Mode=0;
        X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.039580; LocalY=0.0; LocalZ=-0.093250 },
+       LocalX=-0.039580; LocalY=0.0; LocalZ=0.093250 },
     @{ Name='orbitmilky'; FileName='planet-space-milky.png'; Mode=0;
        X=3904272; Y=-4365172; Z=-679394; Body=1; Type=8; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.055611; LocalY=0.0; LocalZ=-0.131011 },
+       LocalX=-0.055611; LocalY=0.0; LocalZ=0.131011 },
     @{ Name='orbitsubstellar'; FileName='planet-space-substellar.png'; Mode=0;
        X=1463568; Y=-4728350; Z=-437812; Body=1; Type=9; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.333919; LocalY=0.0; LocalZ=-0.786714 },
+       LocalX=-0.333919; LocalY=0.0; LocalZ=0.786714 },
     # ROTOR IGNE is a generated class-8 multiple system. This native-matched
     # navigation-120 pose keeps body 3 behind the exterior camera and protects
     # the negative visibility contract. Override -NavigationAngle 300 for the
@@ -229,6 +234,11 @@ $scenes = @(
 if ($Scene -ne 'all') {
     $scenes = @($scenes | Where-Object Name -eq $Scene)
 }
+$orbitalLocalOverrides = @('OrbitalLocalX', 'OrbitalLocalY', 'OrbitalLocalZ') |
+    Where-Object { $PSBoundParameters.ContainsKey($_) }
+if ($orbitalLocalOverrides.Count -ne 0 -and $orbitalLocalOverrides.Count -ne 3) {
+    throw '-OrbitalLocalX, -OrbitalLocalY, and -OrbitalLocalZ must be supplied together'
+}
 try {
 foreach ($spec in $scenes) {
     if ($PSBoundParameters.ContainsKey('Longitude')) { $spec.Lon = $Longitude }
@@ -252,6 +262,14 @@ foreach ($spec in $scenes) {
         $spec.LocalX = [double]$spec.LocalX * $OrbitalDistanceScale
         $spec.LocalY = [double]$spec.LocalY * $OrbitalDistanceScale
         $spec.LocalZ = [double]$spec.LocalZ * $OrbitalDistanceScale
+    }
+    if ($orbitalLocalOverrides.Count -eq 3) {
+        if (-not $spec.ContainsKey('LocalZ')) {
+            throw "Scene $($spec.Name) has no orbital local pose to override"
+        }
+        $spec.LocalX = $OrbitalLocalX
+        $spec.LocalY = $OrbitalLocalY
+        $spec.LocalZ = $OrbitalLocalZ
     }
     if ($PSBoundParameters.ContainsKey('ViewPitch')) { $spec.Pitch = $ViewPitch }
     if ($PSBoundParameters.ContainsKey('PlayerX')) { $spec.PlayerX = $PlayerX }

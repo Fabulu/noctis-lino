@@ -68,6 +68,15 @@ white corona and radial flare. The corrected product projects and renders that
 companion, while its remaining corona brightness, palette, shape, and whole-page
 gaps stay explicit rather than being hidden by the negative control.
 
+A paired IDEAL capture extends that correction to a class-0 primary and type-1
+orbital target. At matched clock, camera, radius, distance, and Stardrifter
+position, the product retains the native exterior globe silhouette and all
+18,000 native palette-band assignments where the turned camera sees the primary
+corona and rays through the Stardrifter interior. The gallery's eleven generic
+orbital fixtures now negate their target-local offsets for the restored source
+half-turn while preserving their authored cockpit axis, and the capture tool
+accepts complete exact local X/Y/Z overrides for matched native poses.
+
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred
 pending the exact unpublished harness or paired upstream regeneration.

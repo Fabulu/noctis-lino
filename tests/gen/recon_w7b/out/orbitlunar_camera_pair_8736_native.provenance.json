@@ -1,0 +1,110 @@
+{
+  "artifacts": {
+    "exterior": {
+      "file": "orbitlunar_exterior_8736_native.shot.BMP",
+      "sha256": "89579c32aaee28a93e5b28675921ca055a72c870fb1e00b9381308d3ab9aa559",
+      "indexed_page_sha256": "e032b578eff11f78ca220dbfa5f6df0aae4c4940f7b93ebbf3d47f7b6df2d83a",
+      "six_bit_palette_sha256": "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
+    },
+    "interior": {
+      "file": "orbitlunar_interior_8736_native.shot.BMP",
+      "sha256": "f26d65b7c6a96aed4e34b7b4389cbfd65777e499f521a08f1e2d970ecdc20667",
+      "indexed_page_sha256": "ea08058aff4715a5ef9c27a27dcc27af134660653ce7edfaef251dce146e73fc",
+      "six_bit_palette_sha256": "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
+    }
+  },
+  "star": [174288, -44389, -688771],
+  "target_body": 0,
+  "target_type": 1,
+  "star_class": 0,
+  "cameras": {
+    "exterior": {
+      "position": [0.0, 0.0, -500.0],
+      "user_alfa": 0.0,
+      "user_beta": 0.0,
+      "navigation_beta": 0.0
+    },
+    "interior": {
+      "position": [0.0, 0.0, -500.0],
+      "user_alfa": 0.0,
+      "user_beta": -97.0,
+      "navigation_beta": 0.0
+    }
+  },
+  "continuity_after_snapshot": {
+    "exterior": {
+      "ram_offset": 206300,
+      "sync": 1,
+      "ip_targetted": 0,
+      "ip_reached": 1,
+      "ap_reached": 1,
+      "pwr": 19988,
+      "fcs_status": "TRACKING",
+      "secs": 1344638737.0,
+      "surlight": 16,
+      "dzat": [174254.6744704863, -44388.99342661612, -688775.082612766],
+      "star_local": [-33.32552951370599, 0.006573383878276218, -4.082612765952945]
+    },
+    "interior": {
+      "ram_offset": 206300,
+      "sync": 1,
+      "ip_targetted": 0,
+      "ip_reached": 1,
+      "ap_reached": 1,
+      "pwr": 19988,
+      "fcs_status": "TRACKING",
+      "secs": 1344638737.0,
+      "surlight": 16,
+      "dzat": [174254.67447048417, -44388.99342661612, -688775.0826127492],
+      "star_local": [-33.32552951583057, 0.006573383878276218, -4.082612749189138]
+    }
+  },
+  "capture": {
+    "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+    "timeout_seconds": 360,
+    "stop_poll_milliseconds": 1,
+    "stop_after_file_bytes": 65078,
+    "delayed_snapshot_key_milliseconds": [240000, 300000],
+    "command_sha256": "14508c7c57037cb972c2096bfc6b2aaa76bf532a028971fd7b4d56df7ab51d48",
+    "exterior": {
+      "precapture_current_sha256": "a1b19445967e726b7e1ce686838be5788b627c090e44e167f2b5899206fe4aac",
+      "frozen_ram_sha256": "c4c467c3f556cd7a29e099a525dcc60471be4192a37d042dc56bc733fa71493b",
+      "frozen_adapted_sha256": "12b5d4135aefa432e54887604d3b61d640c8f5f1b8353c2868730702794d5330",
+      "page_vs_frozen_adapted_differences": 7388
+    },
+    "interior": {
+      "precapture_current_sha256": "13d6425f292f5700967a4d6b4563ea344215fa5d7709b5d4bf5966148879192a",
+      "frozen_ram_sha256": "5e9b793ff0dc87fd83d325882322d931198b45ea32c5d9f308415a1bca7ce54c",
+      "frozen_adapted_sha256": "ac9e5b78d367d18a6dad2d91a89de62a9b4b82d506fbd7171f4b84f0e14bdee0",
+      "page_vs_frozen_adapted_differences": 11421
+    },
+    "sandbox_restored": true
+  },
+  "native_visibility": {
+    "exterior": {
+      "target_globe_palette_band": 3,
+      "target_globe_pixel_count": 9232,
+      "target_globe_bounding_box": [98, 52, 216, 149],
+      "primary_disc_or_flare_visible": false
+    },
+    "interior": {
+      "flare_crop": [30, 30, 180, 150],
+      "flare_crop_palette_band_sha256": "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb",
+      "ship_palette_band_pixel_count": 10799,
+      "stellar_palette_band_pixel_count": 7201,
+      "primary_corona_and_radial_flare_visible": true,
+      "stardrifter_occlusion_visible": true
+    }
+  },
+  "authority": {
+    "snapshot_camera_state_retained": true,
+    "camera_reason": "Each staged CURRENT.BIN and its post-snapshot continuity block contain identical position and camera angles.",
+    "snapshot_page_and_palette_retained": true,
+    "paired_simulation_bracket_retained": true,
+    "pair_reason": "Both adjacent-frame continuity blocks report raw second 1344638737, identical navigation state and palettes, and Stardrifter positions within 1.7e-8 on every axis.",
+    "snapshot_simulation_state_retained": false,
+    "simulation_reason": "DOSBox-X was suspended after each completed BMP appeared; adapted had already entered the next frame.",
+    "whole_page_same_state_contract": false,
+    "admissible_contract": "At the retained class-0/type-1 orbital state, the exterior camera shows the target globe with the primary outside the view, while changing only user_beta to -97 authenticates the primary corona and rays through the Stardrifter interior. Product grading may use the exact indexed palette-band geometry in the retained crops and the adjacent-frame camera/position bracket; complete-page equality is not authoritative."
+  }
+}
