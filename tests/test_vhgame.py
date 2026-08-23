@@ -3238,6 +3238,11 @@ def main() -> int:
         "// tracciamento onde in partenza (acqua smossa)",
         "// tracciamento dell'alone del \"sole\"",
     )
+    original_surface_blur = section(
+        original1,
+        "if (waveblur) {",
+        "if (moviestat)",
+    )
     waves = section(ground, '"VHGND waves init"', '"VHGND render animals"')
     check(
         all(token in original_incoming_waves for token in (
@@ -3248,9 +3253,8 @@ def main() -> int:
             "while (w >= 10)", "wr[w] += wd[w];", "wh[w] /= 1.025;",
             "if (hpoint (xx[0], zz[0]) == 0)",
         ))
-        and all(token in original1 for token in (
-            "waveblur = 1 + random (3);", "psmooth_64 (adapted, 160);",
-        ))
+        and "waveblur = 1 + random (3);" in original1
+        and "while (ptr)" in original_surface_blur
         and "VHGNDwavedata = 175;" in ground
         and all(token in waves for token in (
             "[VHGNDwavei] = 0; [VHGNDwavelw] = 10;",
@@ -3264,14 +3268,29 @@ def main() -> int:
             "A '* 40; A / 41;", "[C plus 3] = 0;",
             '"VHGND wave impact check"', "[VHGNDwavehits]+;",
             '"VHGND wave impact tick"', "[VHGNDimpactx] = A;",
-            '"VHGND wave impact finish"', "[VHGNDblurp] = 2560;",
-            "? A < 60480 -> VHGND wave blur pixel;",
+            '"VHGND wave impact finish"',
+            "[VHGNDblurpasses] = A; [VHGNDblursize] = 57920;",
             "A = [VHGNDdosim]; ? A = 0 -> VHGND wave next;",
         ))
         and "[VHGNDalpha] = [VHGalpha]; [VHGNDbeta] = [VHGbeta]; [VHGNDdosim] = [VHGdosim];" in game
         and "[VHGalpha] = A; => VHGND wave impact finish;" in game
         and waves.count("=> PG polymap;") == 1,
         "open oceans carry paced wind crests, wakes, and wet-lens wave impacts",
+    )
+    check(
+        original_surface_blur.count("psmooth_64 (adapted, 160);") == 3
+        and "QUADWORDS = 160 + openhudcount * 80;" in original_surface_blur
+        and all(token in ground for token in (
+            '"VHGND ordinary surface blur"',
+            "A = [VHGNDwaveblur]; ? A <= 0 -> VHGND ordinary surface blur;",
+            "[VHGNDblurpasses] = 2;",
+            "A = [VHGNDhudcount]; A '* 320; A + 320;",
+            "A + 2556; [VHGNDblurp] = A;",
+            "C = E; C + 321; C = [C]; C & 63; A + C;",
+            "A > 2; C = [VHGNDblurval]; C & 192; A | C; [D] = A;",
+        ))
+        and "[VHGNDhudcount] = [VHGhudcount];" in game,
+        "ordinary surface frames restore both exact source smoothing passes",
     )
     original_animals = section(original1, "void setup_animals ()", "void add_height")
     original_live_animal = section(original1, "void live_animal (int n)", "void add_height")

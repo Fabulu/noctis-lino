@@ -164,7 +164,9 @@
 	VHGNDwaveblur = 0; VHGNDwavehits = 0; VHGNDwavehitcx = 0;
 	VHGNDwavehitcz = 0; VHGNDwavehitdelta = 0;
 	VHGNDimpactx = 0; VHGNDimpactz = 0; VHGNDimpacttilt = 0;
-	VHGNDblurp = 0; VHGNDblurpasses = 0; VHGNDblurval = 0;
+	VHGNDblurp = 0; VHGNDblursize = 0; VHGNDblurcount = 0;
+	VHGNDblurpasses = 0; VHGNDblurval = 0;
+	VHGNDhudcount = 180;
 	VHGNDwavecx = 0; VHGNDwavecy = 0; VHGNDwavecz = 0;
 	VHGNDwavepx = 0; VHGNDwavepz = 0; VHGNDwavepr = 0;
 	VHGNDwavep0x = 0; VHGNDwavep0z = 0; VHGNDwavep1x = 0; VHGNDwavep1z = 0;
@@ -4103,22 +4105,31 @@
 	end;
 
 "VHGND wave impact finish"
-	( psmooth_64(adapted,160): exact central-page bounds and the original
-	  two-by-two, low-six-bit colour average.  Direct page units keep this
-	  rare one-to-three pass effect fast enough for interactive use. )
-	A = [VHGNDwaveblur]; ? A <= 0 -> VHGND wave impact finish done;
-	[VHGNDblurpasses] = A;
-    "VHGND wave blur pass"
-	[VHGNDblurp] = 2560;
-    "VHGND wave blur pixel"
-	D = nw; D + RADPT; D + [VHGNDblurp]; E = D; E + 320;
+	( Every ordinary NIV+ surface frame receives two psmooth_64(adapted,160)
+	  passes before the visor is drawn.  A wet-lens wave substitutes waveblur
+	  passes over the full closed-visor range.  Borland discards the allocated
+	  far pointer's +4 offset when it advances DS by 160 paragraphs, so the
+	  first logical destination is page byte 2556 rather than 2560. )
+	A = [VHGNDwaveblur]; ? A <= 0 -> VHGND ordinary surface blur;
+	[VHGNDblurpasses] = A; [VHGNDblursize] = 57920;
+	-> VHGND surface blur pass;
+    "VHGND ordinary surface blur"
+	[VHGNDblurpasses] = 2;
+	A = [VHGNDhudcount]; A '* 320; A + 320; [VHGNDblursize] = A;
+    "VHGND surface blur pass"
+	A = nw; A + RADPT; A + 2556; [VHGNDblurp] = A;
+	[VHGNDblurcount] = [VHGNDblursize];
+    "VHGND surface blur pixel"
+	D = [VHGNDblurp]; E = D; E + 320;
 	A = [E]; [VHGNDblurval] = A; A & 63;
 	C = E; C + 1; C = [C]; C & 63; A + C;
 	C = E; C + 320; C = [C]; C & 63; A + C;
 	C = E; C + 321; C = [C]; C & 63; A + C;
 	A > 2; C = [VHGNDblurval]; C & 192; A | C; [D] = A;
-	[VHGNDblurp]+; A = [VHGNDblurp]; ? A < 60480 -> VHGND wave blur pixel;
-	[VHGNDblurpasses]-; A = [VHGNDblurpasses]; ? A > 0 -> VHGND wave blur pass;
+	[VHGNDblurp]+; [VHGNDblurcount]-;
+	A = [VHGNDblurcount]; ? A > 0 -> VHGND surface blur pixel;
+	[VHGNDblurpasses]-; A = [VHGNDblurpasses]; ? A > 0 -> VHGND surface blur pass;
+	A = [VHGNDwaveblur]; ? A <= 0 -> VHGND wave impact finish done;
 	A = [VHGNDdosim]; ? A = 0 -> VHGND wave impact finish done; [VHGNDwaveblur]-;
     "VHGND wave impact finish done"
 	end;

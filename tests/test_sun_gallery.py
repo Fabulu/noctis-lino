@@ -223,12 +223,29 @@ def check_source_contract(check) -> None:
     check("[Block Pointer] = vhgsun; [Block Size] = 128; isocall;" in game and
           "[Block Pointer] = curpal6; [Block Size] = 3072; isocall;" in game,
           "existing sun and six-bit palette contracts remain intact")
+    check(all(fragment in game for fragment in (
+              "vhgsbgname = { game-s-background-out.bin };",
+              "vhgpsmname = { game-p-surfacemap-out.bin };",
+              "vhgpbgname = { game-p-background-out.bin };",
+              "vhgrendername = { game-render-state-out.bin };",
+              "[VHGdiagbase] = RSBG; [VHGdiagcount] = ZSBG;",
+              "[VHGdiagbase] = RPSM; [VHGdiagcount] = ZPSM;",
+              "[VHGdiagbase] = RPBG; [VHGdiagcount] = ZPBG;",
+              "[vhgrenderstate plus 3] = [VHSdrawcount];",
+              "[vhgrenderstate plus 4] = [brtlseed];",
+              "[vhgrenderstate plus 5] = [SUfseed];",
+          )),
+          "sentinel retains packed physical renderer caches and scalar state")
     check("VHGsentinelquit" in game and
           "[VHGesc] = 1; [Quit Now] = YES;" in game,
           "explicit quit token exits only after complete sentinel diagnostics")
     check("'game-page-out.bin' = 64000" in capture and
           "'game-sun-out.bin' = 128" in capture and
           "'game-palette-out.bin' = 3072" in capture and
+          "'game-s-background-out.bin' = 64800" in capture and
+          "'game-p-surfacemap-out.bin' = 40000" in capture and
+          "'game-p-background-out.bin' = 65552" in capture and
+          "'game-render-state-out.bin' = 24" in capture and
           "$Spec.Name, $entry.Key" in capture,
           "diagnostic capture validates and exports scene-qualified product files")
     check("windows_hidden_process.run" in private_runner and

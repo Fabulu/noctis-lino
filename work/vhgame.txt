@@ -183,6 +183,10 @@
 		vhglocalname = { game-local-out.bin };
 		vhgpalname = { game-palette-out.bin };
 		vhgpagename = { game-page-out.bin };
+		vhgsbgname = { game-s-background-out.bin };
+		vhgpsmname = { game-p-surfacemap-out.bin };
+		vhgpbgname = { game-p-background-out.bin };
+		vhgrendername = { game-render-state-out.bin };
 		vhgprofilename = { game-profile-out.bin };
 	VHGcaption = { Noctis_IV };
 	VHGmenucaption = { GAME };
@@ -205,6 +209,7 @@
 	VHGwallstart = 0; VHGwallelapsed = 0;
 	VHGloopcalls = 0; VHGtimingcalls = 0;
 	VHGsentframes = 0;
+	VHGdiagbase = 0; VHGdiagcount = 0; VHGdiagi = 0; VHGdiagj = 0;
 	VHGpodrange = 0; VHGpoddx = 0; VHGpoddy = 0; VHGpoddz = 0; VHGpodrangesq = 0;
 	VHGpodabsx = 0; VHGpodabsz = 0; VHGpodbearing = 0; VHGpodview = 0; VHGpoddelta = 0;
 	VHGsurfgravm = 0; VHGsurftempt = 0; VHGsurfpressm = 0;
@@ -936,6 +941,7 @@
 	vhgprofile = 32;
 	vhgsun = 32;
 	vhglocal = 44;
+	vhgrenderstate = 6;
 	VHGinfoname = 22;
 	VHGinfoclass = 23;
 	VHGinfobodies = 30;
@@ -3272,6 +3278,7 @@
 		[VHGNDcamx] = [VHGx]; [VHGNDcamy] = [VHGy]; [VHGNDcamz] = [VHGz];
 		[VHGNDplayerrefx] = [VHGsurfrefx]; [VHGNDplayerrefz] = [VHGsurfrefz];
 		[VHGNDalpha] = [VHGalpha]; [VHGNDbeta] = [VHGbeta]; [VHGNDdosim] = [VHGdosim];
+		[VHGNDhudcount] = [VHGhudcount];
 		[VHGNDgalx0] = [MgDzatX0]; [VHGNDgalx1] = [MgDzatX1];
 		[VHGNDgaly0] = [MgDzatY0]; [VHGNDgaly1] = [MgDzatY1];
 		[VHGNDgalz0] = [MgDzatZ0]; [VHGNDgalz1] = [MgDzatZ1];
@@ -10854,6 +10861,19 @@
     "VHG write profile done"
 	end;
 
+	"VHG pack diagnostic region"
+	[VHGdiagi] = 0; [VHGdiagj] = 0;
+    "VHG pack diagnostic unit"
+	A = nw; A + [VHGdiagbase]; A + [VHGdiagi];
+	D = [A plus 0]; D & 255;
+	C = [A plus 1]; C & 255; C < 8;  D | C;
+	C = [A plus 2]; C & 255; C < 16; D | C;
+	C = [A plus 3]; C & 255; C < 24; D | C;
+	A = sppack; A + [VHGdiagj]; [A] = D;
+	[VHGdiagi] + 4; [VHGdiagj]+;
+	A = [VHGdiagi]; ? A '< [VHGdiagcount] -> VHG pack diagnostic unit;
+	end;
+
 	"VHG write sentinel"
 	=> TK read wall; A = [TKtmp]; A - [VHGwallstart]; [VHGwallelapsed] = A;
 	[vhgstate plus 0] = [VHGx]; [vhgstate plus 1] = [VHGy]; [vhgstate plus 2] = [VHGz];
@@ -10943,6 +10963,31 @@
 	[File Name] = vhgpalname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = curpal6; [Block Size] = 3072; isocall;
 	[File Name] = vhgpalname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 3072; isocall;
+	( Export the physical renderer caches at the same completed-frame boundary.
+	  Each logical native byte occupies one Lino unit, so pack the low bytes
+	  before writing rather than exposing the four-times-larger unit storage. )
+	[VHGdiagbase] = RSBG; [VHGdiagcount] = ZSBG; => VHG pack diagnostic region;
+	[File Name] = vhgsbgname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 64800; isocall;
+	[File Name] = vhgsbgname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 64800; isocall;
+	[VHGdiagbase] = RPSM; [VHGdiagcount] = ZPSM; => VHG pack diagnostic region;
+	[File Name] = vhgpsmname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 40000; isocall;
+	[File Name] = vhgpsmname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 40000; isocall;
+	[VHGdiagbase] = RPBG; [VHGdiagcount] = ZPBG; => VHG pack diagnostic region;
+	[File Name] = vhgpbgname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 65552; isocall;
+	[File Name] = vhgpbgname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 65552; isocall;
+	( Scalar state left by the completed sky, star, and terrain render. )
+	[vhgrenderstate plus 0] = [VHGNDgalamp];
+	[vhgrenderstate plus 1] = [VHSamp];
+	[vhgrenderstate plus 2] = [VHScount];
+	[vhgrenderstate plus 3] = [VHSdrawcount];
+	[vhgrenderstate plus 4] = [brtlseed];
+	[vhgrenderstate plus 5] = [SUfseed];
+	[File Name] = vhgrendername; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhgrenderstate; [Block Size] = 24; isocall;
+	[File Name] = vhgrendername; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 24; isocall;
 	A = [VHGsentinelquit]; ? A = 0 -> VHG write sentinel done;
 	[VHGesc] = 1; [Quit Now] = YES;
     "VHG write sentinel done"

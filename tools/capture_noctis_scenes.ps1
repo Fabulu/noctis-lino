@@ -266,6 +266,10 @@ $diagnosticSizes = [ordered]@{
     'game-local-out.bin' = 176
     'game-palette-out.bin' = 3072
     'game-page-out.bin' = 64000
+    'game-s-background-out.bin' = 64800
+    'game-p-surfacemap-out.bin' = 40000
+    'game-p-background-out.bin' = 65552
+    'game-render-state-out.bin' = 24
 }
 
 Add-Type -AssemblyName System.Drawing
