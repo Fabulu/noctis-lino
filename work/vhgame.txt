@@ -41,6 +41,8 @@
 	VHGFCH = 1076101120;		( 10.0 binary64 high )
 	VHGINBOXMAX = 9668628;
 	VHGXMAX = 65536;
+	VHGK5EM50 = 0EB1C432Dh; VHGK5EM51 = 03F0A36E2h;
+	VHGK0010 = 047AE147Bh; VHGK0011 = 03F847AE1h;
 
 	( Open at a practical 2x presentation: iGUI chrome leaves an exact
 	  640x400 work area at 642x426 while the graded framebuffer stays 320x200. )
@@ -148,6 +150,8 @@
 	VHGlocalcompflareok = 0; VHGlocalcompflarecx = 0; VHGlocalcompflarecy = 0;
 	VHGlocalbody = 0; VHGlocalray0 = 0; VHGlocalray1 = 0;
 	VHGlocaldist0 = 0; VHGlocaldist1 = 0; VHGlocallim0 = 0; VHGlocallim1 = 0;
+	VHGtelemetryacc0 = 0; VHGtelemetryacc1 = 0;
+	VHGtelemetryvalue0 = 0; VHGtelemetryvalue1 = 0;
 	VHGlocaltmp0 = 0; VHGlocaltmp1 = 0; VHGlocalcolour = 0; VHGlocaloff = 0;
 	VHGlocalspreads = 1; VHGlocaleffect = 0; VHGlocalmultmask = 64;
 	VHGlocalcentrecolour = 0; VHGlocalband = 0; VHGlocallow = 0;
@@ -943,6 +947,8 @@
 	vhglocal = 44;
 	vhgrenderstate = 6;
 	VHGinfoname = 22;
+	VHGtelemetrystar = 16;
+	VHGtelemetrybody = 16;
 	VHGinfoclass = 23;
 	VHGinfobodies = 30;
 	VHGinfolocal = 23;
@@ -3196,6 +3202,70 @@
 	B ^ VHG space clear eight;
 	end;
 
+"VHG HUD telemetry prepare"
+	( NOCTIS.CPP outer HUD range rows.  Keep the source's binary64 distance,
+	  scale, nearest two-decimal conversion, and separate remote/local gates. )
+	[VHPtelemetrystar] = 0; [VHPtelemetrybody] = 0; => VHG fpu clean;
+	A = [MgAptgt]; ? A = 0 -> VHG HUD telemetry local;
+	A = [VHGlocalactive]; ? A != 0 -> VHG HUD telemetry current star;
+	[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1];
+	[FB0] = [MgApX0]; [FB1] = [MgApX1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[VHGtelemetryacc0] = [FA0]; [VHGtelemetryacc1] = [FA1];
+	[FA0] = [MgDzatY0]; [FA1] = [MgDzatY1];
+	[FB0] = [MgApY0]; [FB1] = [MgApY1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGtelemetryacc0]; [FB1] = [VHGtelemetryacc1]; => FAdd;
+	[VHGtelemetryacc0] = [FA0]; [VHGtelemetryacc1] = [FA1];
+	[FA0] = [MgDzatZ0]; [FA1] = [MgDzatZ1];
+	[FB0] = [MgApZ0]; [FB1] = [MgApZ1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGtelemetryacc0]; [FB1] = [VHGtelemetryacc1]; => FAdd; => FSqrt;
+	-> VHG HUD telemetry star scale;
+    "VHG HUD telemetry current star"
+	( target-from-star + Stardrifter-from-target is the source dzat-nearstar
+	  vector.  Its sign is immaterial to the Euclidean range. )
+	[FA0] = [VHGlocaltx0]; [FA1] = [VHGlocaltx1];
+	[FB0] = [VHGlocalx0]; [FB1] = [VHGlocalx1]; => FAdd;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[VHGtelemetryacc0] = [FA0]; [VHGtelemetryacc1] = [FA1];
+	[FA0] = [VHGlocalty0]; [FA1] = [VHGlocalty1];
+	[FB0] = [VHGlocaly0]; [FB1] = [VHGlocaly1]; => FAdd;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGtelemetryacc0]; [FB1] = [VHGtelemetryacc1]; => FAdd;
+	[VHGtelemetryacc0] = [FA0]; [VHGtelemetryacc1] = [FA1];
+	[FA0] = [VHGlocaltz0]; [FA1] = [VHGlocaltz1];
+	[FB0] = [VHGlocalz0]; [FB1] = [VHGlocalz1]; => FAdd;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGtelemetryacc0]; [FB1] = [VHGtelemetryacc1]; => FAdd; => FSqrt;
+    "VHG HUD telemetry star scale"
+	[FB0] = VHGK5EM50; [FB1] = VHGK5EM51; => FMul;
+	A = [VHGlocalactive]; ? A = 0 -> VHG HUD telemetry star scaled;
+	[FB0] = VHGK0010; [FB1] = VHGK0011; => FMul;
+    "VHG HUD telemetry star scaled"
+	[VHGtelemetryvalue0] = [FA0]; [VHGtelemetryvalue1] = [FA1];
+	[FI] = 100; => IntToF;
+	[FB0] = [VHGtelemetryvalue0]; [FB1] = [VHGtelemetryvalue1]; => FMul; => FToIntNear;
+	[VHGonrowdst] = VHGtelemetrystar; => VHG onboard row begin;
+	[VHGinfofixedvalue] = [FI]; [VHGinfofixeddigits] = 2;
+	=> VHG info append fixed; => VHG onboard row finish;
+	[VHPtelemetrystar] = VHGtelemetrystar;
+    "VHG HUD telemetry local"
+	A = [VHGlocaltarget]; ? A = 0FFFFFFFFh -> VHG HUD telemetry prepared;
+	? A '>= [nsnob] -> VHG HUD telemetry prepared;
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = VHGK0010; [FB1] = VHGK0011; => FMul;
+	[VHGtelemetryvalue0] = [FA0]; [VHGtelemetryvalue1] = [FA1];
+	[FI] = 100; => IntToF;
+	[FB0] = [VHGtelemetryvalue0]; [FB1] = [VHGtelemetryvalue1]; => FMul; => FToIntNear;
+	[VHGonrowdst] = VHGtelemetrybody; => VHG onboard row begin;
+	[VHGinfofixedvalue] = [FI]; [VHGinfofixeddigits] = 2;
+	=> VHG info append fixed; => VHG onboard row finish;
+	[VHPtelemetrybody] = VHGtelemetrybody;
+    "VHG HUD telemetry prepared"
+	=> VHG fpu clean;
+	end;
+
 "VHG interior smooth64"
 	( NOCTIS-0.CPP psmooth_64, operating on Lino's one-byte-per-unit page.
 	  Each destination keeps the first sample's palette band and receives the
@@ -3232,6 +3302,12 @@
 	A = [VHGy]; A + 480; [VHVcamyi] = A;
 	A = [VHGz]; A + 200; [VHVcamzi] = A;
 	=> VH set view; [VHLpower] = [VHGilight]; [VHLemergency] = [VHGelight]; => VH alogena;
+	( The source outer-HUD range rows are world-space indexed glyphs drawn
+	  after vehicle() and before its two smoothing passes. )
+	A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG source outer HUD done;
+	A = [VHGdrawhud]; ? A != 1 -> VHG source outer HUD done;
+	=> VHG HUD telemetry prepare; => VH HUD telemetry;
+    "VHG source outer HUD done"
 	( NIV+ smooths the composed interior twice before sky() and the HUD.  This
 	  is what turns the halogen's raw dotted spokes into the soft visor glow;
 	  omitting it exposed the construction lines and made bright pixels linger.

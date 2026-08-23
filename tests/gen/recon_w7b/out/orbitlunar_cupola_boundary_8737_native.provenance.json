@@ -103,7 +103,7 @@
     "star_local": [-33.337344046565704, 0.006575896761205513, -4.090433066477999],
     "radius": 0.007128,
     "distance": 0.012845967758806344,
-    "inside_complete_page_exact_indices": 23579,
+    "inside_complete_page_exact_indices": 22976,
     "inside_complete_page_palette_band_differences": 3932,
     "roof_complete_page_exact_indices": 61097,
     "roof_complete_page_palette_band_differences": 1588,
@@ -111,11 +111,13 @@
     "status_inside_bright_pixels": 602,
     "status_roof_bright_pixels": 203,
     "status_pair_brightness_mask_differences": 411,
-    "telemetry_inside_bright_pixels": 22,
+    "telemetry_inside_bright_pixels": 750,
     "telemetry_roof_bright_pixels": 63,
+    "telemetry_inside_minus_roof_bright_pixels": 687,
     "roof_telemetry_crop_exact_indices": 4620,
+    "left_range_telemetry_restored": true,
     "inside_full_overlay_parity": false,
-    "open_gap": "The product selects the adjacent roof branch and suppresses the status overlay, but its inside-boundary page still omits the native left-side target/FCS telemetry and does not retain complete interior lighting."
+    "open_gap": "The product selects the adjacent roof branch, suppresses the status overlay, and restores materially visible source-shaped L.Y. and DYAMS range rows inside. Complete interior lighting, the upper target labels, and environmental text remain open."
   },
   "authority": {
     "snapshot_camera_state_retained": true,

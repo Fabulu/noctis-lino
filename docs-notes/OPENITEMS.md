@@ -499,12 +499,15 @@ same-state authority remains disabled.
 
 At those exact product states, the just-outside page retains 61,097 native
 indices with 1,588 band differences, suppresses the interior status overlay,
-and is byte-exact to native across all 4,620 pixels of the telemetry crop. This
-authenticates the strict product branch and roof early return. It also exposes a
-real remaining interior gap rather than hiding it: the just-inside product page
-retains only 23,579 native indices with 3,932 band differences, and has 22
-bright telemetry-crop pixels where native has 601. The missing left target/FCS
-overlay and complete inside lighting, plus actual lift motion, remain open.
+and remains byte-exact to native across all 4,620 pixels of the telemetry crop.
+The inside path now restores the two source range rows with the native binary64
+`5E-5`/`1E-2` scales, two-decimal rounding, fixed visor cameras, indexed glyph
+geometry, colour bands, spacing, and `L.Y.`/`DYAMS` suffixes before both smoothing
+passes. A fresh compiled capture raises the inside crop from 22 to 750 bright
+pixels (native 601), while the roof crop remains unchanged at 63. The just-inside
+complete page retains 22,976 native indices with 3,932 band differences, so exact
+glyph raster, upper target labels, environmental text, complete interior lighting,
+and actual lift motion remain open rather than being claimed as full parity.
 
 The generic orbital gallery had retained the target-local signs authored around
 the former missing exterior half-turn. After the camera repair those eleven

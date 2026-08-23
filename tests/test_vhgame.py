@@ -1207,6 +1207,76 @@ def main() -> int:
         )),
         "resolved stars retain their source class-specific spin instead of universal rotation",
     )
+    original_outer_hud = section(
+        original,
+        "if (active_screen != -1 || draw_hud != 1) goto nohud_1;",
+        "// Messaggio di reset, lampeggiante.",
+    )
+    telemetry_prepare = section(
+        game, '"VHG HUD telemetry prepare"', '"VHG interior smooth64"'
+    )
+    telemetry_draw = section(
+        panels, '"VH HUD telemetry"', '"VH HUD FCS"'
+    )
+    interior_details = section(
+        game, '"VHG interior details"', '"VHG source status ready"'
+    )
+    check(
+        all(token in original_outer_hud for token in (
+            "dxx = dzat_x - ap_target_x;",
+            "dyy = dzat_y - ap_target_y;",
+            "dzz = dzat_z - ap_target_z;",
+            "* 5E-5;",
+            "if (ap_reached && ap_target_id == nearstar_identity) l_dsd *= 0.01;",
+            'sprintf (temp_distance_buffer, "%01.2f", l_dsd);',
+            "cam_x = 450; cam_y = -180; cam_z = -750;",
+            "digit_at ('L', -6, -15, 5, 112, 1);",
+            "digit_at ('Y', -6, -15, 5, 112, 1);",
+            "planet_xyz (ip_targetted);",
+            "* 1E-2;",
+            "cam_x = 450; cam_y = -250; cam_z = -750;",
+            "digit_at ('D', -6, -15, 5, 105, 1);",
+            "digit_at ('S', -6, -15, 5, 105, 1);",
+        ))
+        and all(token in telemetry_prepare for token in (
+            "A = [MgAptgt]; ? A = 0 -> VHG HUD telemetry local;",
+            "[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1];",
+            "[FB0] = [MgApX0]; [FB1] = [MgApX1]; => FSub;",
+            "[FB0] = VHGK5EM50; [FB1] = VHGK5EM51; => FMul;",
+            "[FB0] = VHGK0010; [FB1] = VHGK0011; => FMul;",
+            "[FI] = 100; => IntToF;",
+            "=> FMul; => FToIntNear;",
+            "[VHGinfofixeddigits] = 2;",
+            "A = [VHGlocaltarget]; ? A = 0FFFFFFFFh -> VHG HUD telemetry prepared;",
+            "? A '>= [nsnob] -> VHG HUD telemetry prepared;",
+            "[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];",
+        ))
+        and "VHGK5EM50 = 0EB1C432Dh; VHGK5EM51 = 03F0A36E2h;" in game
+        and "VHGK0010 = 047AE147Bh; VHGK0011 = 03F847AE1h;" in game
+        and "vhpstarunit = { L.Y. };" in panels
+        and "vhpbodyunit = { DYAMS };" in panels
+        and all(token in telemetry_draw for token in (
+            "[VHVcamxi] = 450; A = 0; A - 180; [VHVcamyi] = A;",
+            "[VHVcamxi] = 450; A = 0; A - 250; [VHVcamyi] = A;",
+            "[VHPtelemetrycolour] = 127;",
+            "[VHPtelemetrycolour] = 112;",
+            "[VHPtelemetrycolour] = 120;",
+            "[VHPtelemetrycolour] = 105;",
+            "A = [VHVcamxi]; A - 40; [VHVcamxi] = A; => VH set view;",
+            "[DGdigit] = [VHPchar]; [DGcolor] = [VHPtelemetrycolour]; [DGshader] = 1; => FB digit at;",
+            "[vhcpoly plus 0] = 1096810496; [vhcpoly plus 1] = 3251109888;",
+            "[vhcpoly plus 6] = 3243769856; [vhcpoly plus 7] = 1103626240;",
+        ))
+        and all(token in interior_details for token in (
+            "A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG source outer HUD done;",
+            "A = [VHGdrawhud]; ? A != 1 -> VHG source outer HUD done;",
+            "=> VHG HUD telemetry prepare; => VH HUD telemetry;",
+            "=> VHG interior smooth64; => VHG interior smooth64;",
+        ))
+        and interior_details.index("=> VHG HUD telemetry prepare; => VH HUD telemetry;")
+        < interior_details.index("=> VHG interior smooth64; => VHG interior smooth64;"),
+        "inside Stardrifter restores source-shaped two-decimal L.Y. and DYAMS range rows",
+    )
     check(
         all(token in original1 for token in (
             "global_surface_seed = (nearstar_p_ray[ip_targetted]",

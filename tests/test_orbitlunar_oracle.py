@@ -35,7 +35,7 @@ BOUNDARY_ROOF_ADAPTED_SHA256 = "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7
 PROVENANCE_SHA256 = "da981004d14e9ea86ceb608b419122b51ebd76c2d03c1c9e473e36d9d927e2cb"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
-BOUNDARY_PROVENANCE_SHA256 = "5d78276b92e142080c045d5b9967a3dd10922689817f0111c19c1e50c39c7bba"
+BOUNDARY_PROVENANCE_SHA256 = "a6ba67e3f5684a5a133c6571cc52937544e9e4547ebddef656f010c4a8848ca4"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
@@ -374,6 +374,14 @@ def grade_boundary_product_pair(
         native_inside_page, native_inside_palette, BOUNDARY_TELEMETRY_CROP))
     product_inside_telemetry = sum(bright_mask(
         inside_page, inside_palette, BOUNDARY_TELEMETRY_CROP))
+    product_roof_telemetry_bright = sum(bright_mask(
+        roof_page, roof_palette, BOUNDARY_TELEMETRY_CROP))
+    check(
+        native_inside_telemetry == 601
+        and product_inside_telemetry >= 600
+        and product_inside_telemetry - product_roof_telemetry_bright >= 500,
+        "product restores materially visible inside L.Y. and DYAMS telemetry",
+    )
     print("INFO complete inside-boundary parity remains open "
           f"({inside_exact} exact indices, {inside_band_differences} band differences; "
           f"native/product telemetry brightness {native_inside_telemetry}/"
@@ -743,10 +751,14 @@ def main() -> int:
     )
     check(
         boundary_product.get("raw_clock") == 1344638737
-        and boundary_product.get("inside_full_overlay_parity") is False
+        and boundary_product.get("inside_complete_page_exact_indices") == 22976
+        and boundary_product.get("telemetry_inside_bright_pixels") == 750
+        and boundary_product.get("telemetry_inside_minus_roof_bright_pixels") == 687
         and boundary_product.get("roof_telemetry_crop_exact_indices") == 4620
-        and "omits" in boundary_product.get("open_gap", ""),
-        "cupola-boundary provenance keeps the product inside-overlay gap explicit",
+        and boundary_product.get("left_range_telemetry_restored") is True
+        and boundary_product.get("inside_full_overlay_parity") is False
+        and "Complete interior lighting" in boundary_product.get("open_gap", ""),
+        "cupola-boundary provenance pins restored range rows and the remaining gap",
     )
     check(
         boundary_authority.get("snapshot_camera_state_retained") is True

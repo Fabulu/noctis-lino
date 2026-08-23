@@ -90,10 +90,12 @@ one-unit pair now pins the strict source `pos_y < -500` cupola transition: the
 `-500` frame retains interior status and target telemetry, while `-501` redraws
 the upper cupola after the hull and returns before those details. The product
 selects the same branch, retains 61,097 native indices in the just-outside view,
-and exactly matches the 4,620-pixel roof telemetry crop. Its just-inside view
-still omits the native left target/FCS overlay and has wider lighting differences;
-that gap and lift-motion fidelity remain explicit rather than being claimed as
-complete interior parity.
+and exactly matches the 4,620-pixel roof telemetry crop. The just-inside path now
+restores the source-shaped, two-decimal `L.Y.` and `DYAMS` range rows: a fresh
+compiled capture raises that crop from 22 to 750 bright pixels (native 601) while
+the roof crop remains unchanged. Exact glyph raster, upper labels, environmental
+text, complete interior lighting, and lift-motion fidelity remain explicit rather
+than being claimed as complete interior parity.
 
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred
