@@ -21,6 +21,10 @@ param(
     # alignment * patterns + 8 == filesize exactly, so a mismatched pairing
     # fails loudly rather than miscompiling.
     [string]$Cpu = 'i386',
+    # Compile on a private, inactive WinSta0 desktop by default so the GUI
+    # compiler cannot cover the user's windows or steal focus. This escape
+    # hatch exists only for manual compiler debugging.
+    [switch]$DefaultDesktop,
     # Large GUI builds append many stockfile compounds to the output.  Some
     # Windows scanners briefly lock a growing .exe between appends; compiling
     # under a neutral extension avoids that race, then the settled PE is
@@ -64,6 +68,40 @@ $startedUtc = [DateTime]::UtcNow
 # space to the argument string, which the compiler folds into the output
 # filename ("prog.txt .exe"). ProcessStartInfo.Arguments is passed verbatim.
 $argLine = "--sys:win32--cpu:$Cpu--ext:$compilerExtension--env:$LinoEnv--src:$Src"
+$privateRunnerError = $null
+if (-not $DefaultDesktop) {
+    $built = $null
+    $settled = $false
+    $naturalExitBeforeSettle = $false
+    $privateRunner = Join-Path $PSScriptRoot 'tools\run_lino_compiler_private.py'
+    $privateOutput = @(& python $privateRunner `
+        "--compiler=$Compiler" `
+        "--working-directory=$dir" `
+        "--timeout=$TimeoutSec" `
+        "--error-log=$errorLog" `
+        "--candidate=$compilerOut" `
+        "--candidate=$strayExe" `
+        "--argument=$argLine")
+    $privateStatus = $LASTEXITCODE
+    if ($privateStatus -eq 0 -and $privateOutput.Count -gt 0) {
+        $built = [string]$privateOutput[-1]
+        $settled = Test-Path -LiteralPath $built -PathType Leaf
+    }
+    elseif ($privateStatus -eq 2) {
+        $naturalExitBeforeSettle = $true
+    }
+    elseif ($privateStatus -ne 3) {
+        $fatalLog = Test-Path -LiteralPath $errorLog -PathType Leaf
+        if ($fatalLog) {
+            $fatalLog = (Get-Content -LiteralPath $errorLog -Raw -ErrorAction SilentlyContinue) `
+                -match 'error:|internal problem:'
+        }
+        if (-not $fatalLog) {
+            $privateRunnerError = "private desktop compiler runner failed with exit code $privateStatus"
+        }
+    }
+}
+else {
 $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.FileName        = $Compiler
 $psi.Arguments       = $argLine
@@ -183,6 +221,7 @@ if (-not $compilerExited) {
 try { [void]$proc.WaitForExit(5000) } catch { }
 $compilerExited = $proc.HasExited
 $proc.Dispose()
+}
 $elapsed = [math]::Round(((Get-Date) - $startedAt).TotalSeconds, 1)
 
 # Normalise the stray or deliberately staged name only after the compiler has
@@ -206,6 +245,7 @@ if ($built -and $settled) {
 
 $warnings = @()
 $errors   = @()
+if ($privateRunnerError) { $errors += $privateRunnerError }
 if ($runtimePatchError) { $errors += $runtimePatchError }
 if (Test-Path $errorLog) {
     foreach ($line in (Get-Content $errorLog)) {
