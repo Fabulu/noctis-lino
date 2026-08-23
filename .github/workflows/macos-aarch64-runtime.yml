@@ -31,6 +31,7 @@ on:
       - "tests/fixtures/macos_aarch64_runtime.txt"
       - "tests/test_macos_aarch64_runtime.py"
       - "tests/test_sun_gallery.py"
+      - "tests/native-oracles/**"
       - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.shot.BMP"
       - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.SURFACE.BIN"
       - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.provenance.json"
@@ -86,6 +87,7 @@ on:
       - "tests/fixtures/macos_aarch64_runtime.txt"
       - "tests/test_macos_aarch64_runtime.py"
       - "tests/test_sun_gallery.py"
+      - "tests/native-oracles/**"
       - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.shot.BMP"
       - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.SURFACE.BIN"
       - "tests/gen/recon_w7b/out/hab_sun270_pinned_oracle.provenance.json"
@@ -282,7 +284,7 @@ jobs:
     name: Finalize and execute on Apple Silicon
     needs: compile
     runs-on: macos-15
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Check out finalizer and test oracle
@@ -410,115 +412,20 @@ jobs:
           print("Native ARM64 Cocoa retrace and graceful Lino shutdown passed")
           PY
 
-          python3 tools/make_noctis_checkpoint.py "$data/CURRENT.LIN" \
-            --star-x 1463568 --star-y -4728350 --star-z -437812 \
-            --body 3 --longitude 270 --latitude 60 \
-            --beta 270 --pitch -44 \
-            --player-x 1598248 --player-z 2251369 --fast
-          cp "$data/CURRENT.LIN" "$data/CURRENT.BAK"
-          rm -f "$data"/game-*-out.bin
           python3 - <<'PY'
           from pathlib import Path
           import shutil
           import subprocess
+          import sys
+
+          sys.path.insert(0, str(Path("tools").resolve()))
+          from make_noctis_checkpoint import build_landed_checkpoint
 
           executable = Path("build/Noctis-IV-arm64.game").resolve()
           data = Path("build/noctis-arm64-data").resolve()
-          arguments = ("clock=1344638527", "quit")
-          result = subprocess.run(
-              ["arch", "-arm64", str(executable), *arguments],
-              cwd=data,
-              text=True,
-              stdout=subprocess.PIPE,
-              stderr=subprocess.STDOUT,
-              timeout=300,
-          )
-          output = result.stdout
-          if result.returncode < 0:
-              diagnostic = subprocess.run(
-                  ["lldb", "--batch", "-o", "run",
-                   "-k", "thread backtrace all",
-                   "-k", "register read pc lr sp x19 x20 x21 x22 x23 x24 x25",
-                   str(executable), "--", *arguments],
-                  cwd=data,
-                  text=True,
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.STDOUT,
-                  timeout=180,
-              )
-              output += "\nLLDB CRASH DIAGNOSTIC\n" + diagnostic.stdout
-          print(output)
-          Path("build/macos-aarch64-sun-oracle.txt").write_text(
-              output, encoding="utf-8")
-          if result.returncode != 0:
-              raise SystemExit(
-                  f"pinned ARM64 product run failed with status {result.returncode}")
-
-          expected = {
-              "game-vh-out.bin": 156,
-              "game-sun-out.bin": 128,
-              "game-local-out.bin": 176,
-              "game-palette-out.bin": 3072,
-              "game-page-out.bin": 64000,
-          }
           gallery = Path("build/sun-gallery")
           gallery.mkdir(parents=True, exist_ok=True)
-          for name, size in expected.items():
-              source = data / name
-              if not source.is_file() or source.stat().st_size != size:
-                  raise SystemExit(
-                      f"product did not emit {name} at exactly {size} bytes")
-              shutil.copyfile(source, gallery / f"habitable-{name}")
-          print("Native ARM64 product emitted complete pinned sun diagnostics")
-          PY
-          python3 tests/test_sun_gallery.py \
-            --case hab-sun270 \
-            --product-directory build/sun-gallery
-
-          python3 tools/make_noctis_checkpoint.py "$data/CURRENT.LIN" \
-            --star-x 1463568 --star-y -4728350 --star-z -437812 \
-            --body 2 --longitude 45 --latitude 60 \
-            --beta 90 --pitch -30 \
-            --player-x 1645000 --player-z 1641000 --fast
-          cp "$data/CURRENT.LIN" "$data/CURRENT.BAK"
-          rm -f "$data"/game-*-out.bin
-          python3 - <<'PY'
-          from pathlib import Path
-          import shutil
-          import subprocess
-
-          executable = Path("build/Noctis-IV-arm64.game").resolve()
-          data = Path("build/noctis-arm64-data").resolve()
           arguments = ("clock=1344638527", "quit")
-          result = subprocess.run(
-              ["arch", "-arm64", str(executable), *arguments],
-              cwd=data,
-              text=True,
-              stdout=subprocess.PIPE,
-              stderr=subprocess.STDOUT,
-              timeout=300,
-          )
-          output = result.stdout
-          if result.returncode < 0:
-              diagnostic = subprocess.run(
-                  ["lldb", "--batch", "-o", "run",
-                   "-k", "thread backtrace all",
-                   "-k", "register read pc lr sp x19 x20 x21 x22 x23 x24 x25",
-                   str(executable), "--", *arguments],
-                  cwd=data,
-                  text=True,
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.STDOUT,
-                  timeout=180,
-              )
-              output += "\nLLDB CRASH DIAGNOSTIC\n" + diagnostic.stdout
-          print(output)
-          Path("build/macos-aarch64-thin-sun-oracle.txt").write_text(
-              output, encoding="utf-8")
-          if result.returncode != 0:
-              raise SystemExit(
-                  f"pinned thin-world ARM64 product run failed with status {result.returncode}")
-
           expected = {
               "game-vh-out.bin": 156,
               "game-sun-out.bin": 128,
@@ -526,18 +433,123 @@ jobs:
               "game-palette-out.bin": 3072,
               "game-page-out.bin": 64000,
           }
-          gallery = Path("build/sun-gallery")
-          for name, size in expected.items():
-              source = data / name
-              if not source.is_file() or source.stat().st_size != size:
+          cases = (
+              {
+                  "case": "hab-sun270",
+                  "scene": "habitable",
+                  "log": "build/macos-aarch64-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=1463568, star_y=-4728350, star_z=-437812,
+                      body=3, longitude=270, latitude=60, beta=270, pitch=-44,
+                      player_x=1598248, player_z=2251369, fast=True,
+                  ),
+              },
+              {
+                  "case": "thin-sun45",
+                  "scene": "thin",
+                  "log": "build/macos-aarch64-thin-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=1463568, star_y=-4728350, star_z=-437812,
+                      body=2, longitude=45, latitude=60, beta=90, pitch=-30,
+                      player_x=1645000, player_z=1641000, fast=True,
+                  ),
+              },
+              {
+                  "case": "lunar-sun0",
+                  "scene": "lunarsun",
+                  "log": "build/macos-aarch64-lunar-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=174288, star_y=-44389, star_z=-688771,
+                      body=0, longitude=0, latitude=60, beta=90, pitch=-44,
+                      player_x=1638400, player_y=-19032, player_z=1638400,
+                      fast=True,
+                  ),
+              },
+              {
+                  "case": "dense-sun0",
+                  "scene": "densesun",
+                  "log": "build/macos-aarch64-dense-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=1463568, star_y=-4728350, star_z=-437812,
+                      body=0, longitude=0, latitude=60, beta=90, pitch=-44,
+                      player_x=1638400, player_z=1638400, fast=True,
+                  ),
+              },
+              {
+                  "case": "rocky-sun90",
+                  "scene": "rockysun",
+                  "log": "build/macos-aarch64-rocky-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=1463568, star_y=-4728350, star_z=-437812,
+                      body=9, longitude=90, latitude=60, beta=270, pitch=-38,
+                      player_x=1645000, player_z=1641000, fast=True,
+                  ),
+              },
+              {
+                  "case": "frozen-sun0",
+                  "scene": "frozensun",
+                  "log": "build/macos-aarch64-frozen-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=2952848, star_y=-6448045, star_z=-840503,
+                      body=9, longitude=0, latitude=60, beta=90, pitch=-44,
+                      player_x=1645000, player_z=1641000, fast=True,
+                  ),
+              },
+          )
+
+          for spec in cases:
+              checkpoint = build_landed_checkpoint(**spec["checkpoint"])
+              (data / "CURRENT.LIN").write_bytes(checkpoint)
+              (data / "CURRENT.BAK").write_bytes(checkpoint)
+              for output in data.glob("game-*-out.bin"):
+                  output.unlink()
+
+              result = subprocess.run(
+                  ["arch", "-arm64", str(executable), *arguments],
+                  cwd=data,
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT,
+                  timeout=300,
+              )
+              output = result.stdout
+              if result.returncode < 0:
+                  diagnostic = subprocess.run(
+                      ["lldb", "--batch", "-o", "run",
+                       "-k", "thread backtrace all",
+                       "-k", "register read pc lr sp x19 x20 x21 x22 x23 x24 x25",
+                       str(executable), "--", *arguments],
+                      cwd=data,
+                      text=True,
+                      stdout=subprocess.PIPE,
+                      stderr=subprocess.STDOUT,
+                      timeout=180,
+                  )
+                  output += "\nLLDB CRASH DIAGNOSTIC\n" + diagnostic.stdout
+              print(output)
+              Path(spec["log"]).write_text(output, encoding="utf-8")
+              if result.returncode != 0:
                   raise SystemExit(
-                      f"thin-world product did not emit {name} at exactly {size} bytes")
-              shutil.copyfile(source, gallery / f"thin-{name}")
-          print("Native ARM64 product emitted complete pinned thin-world diagnostics")
+                      f"{spec['case']} ARM64 product run failed with "
+                      f"status {result.returncode}"
+                  )
+
+              for name, size in expected.items():
+                  source = data / name
+                  if not source.is_file() or source.stat().st_size != size:
+                      raise SystemExit(
+                          f"{spec['case']} did not emit {name} at exactly {size} bytes"
+                      )
+                  shutil.copyfile(source, gallery / f"{spec['scene']}-{name}")
+
+              subprocess.run(
+                  [sys.executable, "tests/test_sun_gallery.py",
+                   "--case", spec["case"],
+                   "--product-directory", str(gallery)],
+                  check=True,
+              )
+              print(f"Native ARM64 product passed {spec['case']}")
           PY
-          python3 tests/test_sun_gallery.py \
-            --case thin-sun45 \
-            --product-directory build/sun-gallery
 
       - name: Retain native sun-oracle diagnostics
         if: always()
@@ -545,10 +557,8 @@ jobs:
         with:
           name: macos-aarch64-sun-oracle-${{ github.sha }}
           path: |
-            build/macos-aarch64-sun-oracle.txt
-            build/macos-aarch64-thin-sun-oracle.txt
-            build/sun-gallery/habitable-game-*-out.bin
-            build/sun-gallery/thin-game-*-out.bin
+            build/macos-aarch64*sun-oracle.txt
+            build/sun-gallery/*-game-*-out.bin
           if-no-files-found: warn
           retention-days: 7
 

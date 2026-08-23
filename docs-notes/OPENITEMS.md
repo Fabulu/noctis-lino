@@ -736,8 +736,11 @@ renderers retain distance `9133.45`, exposure `53.2168`, rain `0`, day state,
 albedo 36, and seed 38821023. Both show the small primary disc over the black
 airless sky and deliberately draw no radial flare: the distance exceeds the
 source's `1000 * ray` upper gate. The reproducible `rockysun` scene preserves
-this negative case. Authenticity includes correct beam suppression, not merely
-adding rays whenever a disc is visible.
+this negative case. Its automated product gate requires all 27,000 indices in
+the native `(10,10)..(309,99)` sky crop and all 768 active palette components;
+terrain/HUD-dependent complete-page bands remain informational. Authenticity
+includes correct beam suppression, not merely adding rays whenever a disc is
+visible.
 
 **Dense-atmosphere native-context checkpoint.** LANE I now has a certified
 stock NIV+ comparison at longitude 0, heading 90, pitch -44, and the same raw
@@ -749,22 +752,25 @@ placing raw second `1344638527` on guest date 11 August 2026 rather than the
 Gregorian date inferred by a host library.  With both boundaries corrected,
 NIV+ and Lino agree exactly on rotation period `457`, terminator `77..207`,
 distance bits `41C22E20`, exposure bits `42710A72`, and all three binary32 sun
-coordinates (`C140A69B`, `C1A89AA9`, `B5774B25`).  Both frames show the same
+coordinates (`C140A69B`, `C1A89AA9`, `B5774B25`). Both frames show the same
 large white disc and broad corona over the purple atmosphere. The reproducible
-`densesun` scene records this authenticated positive case. A full-context
-stage dump now proves more than the screenshot: the native and Lino local-sun
-passes change the same 15,469 indexed pixels in the same `(70,9)..(246,112)`
+`densesun` scene records this authenticated visible-disc lower-gate case:
+`24.2725 < 10 * 5.15`, so the later radial-flare pass is correctly suppressed.
+A full-context stage dump now proves more than the screenshot: the native and
+Lino local-sun passes change the same 15,469 indexed pixels in the same `(70,9)..(246,112)`
 box and apply the same transformation to every changed pixel. Their following
 palette-band masks also cover the same 58,240 pixels in
 `(0,9)..(319,190)`. The later `lens_flares_for` pass changes zero pixels in
-both engines at this pose, so the visible corona and radial layout belong to
-the exactly matched local-sun pass. The remaining 2,676 differences were all
+both engines at this pose, so the visible disc and corona belong to the exactly
+matched local-sun pass. The remaining 2,676 differences were all
 zeroed Lino pixels in the panorama mapper's irregular edge area. The port had
 added a rectangular guard-band erase that does not exist in NIV+ and could
 present as a black horizon edge. Removing that erase makes the complete
 64,000-byte pre-sun page exact, so the full background, sun, and mask sequence
-is now byte-exact for this real scene. Final terrain and object compositing
-remain separate coverage.
+is now byte-exact for this real scene. The final product gate requires all
+64,000 native palette bands while leaving its 101 easing-dependent palette
+components informational; final terrain/object low-six-bit indices remain
+separate coverage.
 
 **Airless lunar lower-gate checkpoint.** IDEAL I adds the complementary close
 sun case on a type-1 world at longitude 0, heading 90, and pitch -44. Product
@@ -782,7 +788,10 @@ emit the exact 768 active native components, SHA-256
 `ce2b034ee3da7e553e1d5ba2fd5ccaeee9721b5ee9cdb3bab4515bdb73bc0a81`,
 with smooth mode interpolating only between the original 18.206-Hz fade
 endpoints. The reproducible `lunarsun` scene preserves this close-disc,
-no-beam case. Exact full indexed-frame grading remains open.
+no-beam case. The product gate now requires all 36,000 indices in the native
+`(10,10)..(309,129)` upper-sky crop and all 768 active palette components;
+complete terrain/HUD-dependent bands and low-six-bit indices remain
+informational.
 
 **Frozen-world class-1 checkpoint.** A separate system extends the matrix
 beyond class-0 primaries. On its type-7 body at longitude 0, heading 90, and
@@ -790,8 +799,28 @@ pitch -44, both renderers retain star class 1, stellar radius `21.879`, solar
 distance `34167.4`, exposure `58.695`, rain `0`, and day state. Certified
 frames place the larger white disc against the frozen world's black sky and
 again suppress beams because `34167.4 > 1000 * 21.879`. The reproducible
-`frozensun` scene records this distinct star-size and no-flare case. The wider
-frozen starfield parity item remains open independently.
+`frozensun` scene records this distinct star-size and no-flare case. Its product
+gate requires all 64,000 native palette bands, all 36,000 indices in the
+`(10,10)..(309,129)` upper-sky crop, and all 768 palette components. The lower
+starfield/terrain low-six-bit context remains open independently.
+
+**Six-class automated surface-sun gate, 2026-08-24.** The retained type 1, 2,
+3, 4, 5, and 7 BMP/surface pairs are now immutable test inputs rather than
+untracked capture-tree evidence. One default non-GUI run validates every BMP,
+40-byte surface record, indexed-page hash, six-bit palette hash, projected
+centre, and reproducible 264-byte product checkpoint. Product grading then
+requires exact camera, planet and star class, atmosphere/day/weather state,
+projected-sun admission and centre, pre-flare centre sample, exposure, solar
+distance, and stellar ray. Habitable and thin cases authenticate the positive
+`10*ray <= distance < 1000*ray` interval; lunar/dense authenticate lower-gate
+suppression; rocky/frozen authenticate upper-gate suppression. Authority stays
+case-specific: habitable, thin, dense, and frozen require every palette band;
+lunar, rocky, and frozen additionally require exact 36,000-, 27,000-, and
+36,000-index upper-sky crops; every palette is exact except dense's explicitly
+unretained easing state. The Apple-Silicon product job now executes all six
+checkpoints independently and retains each diagnostic set. Whole final pages
+remain informational where snapshot-time terrain, simulation, or HUD state was
+not captured.
 
 **Frozen-world class-0 positive-flare checkpoint.** RENIET VIII body 7 adds
 the missing positive counterpart at longitude 0, heading 90, pitch -20, and

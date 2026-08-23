@@ -1,11 +1,13 @@
 """Grade retained native surface-sun frames against product diagnostics.
 
-The default mode is non-GUI: it validates a pinned NIV+ BMP oracle and the
+The default mode is non-GUI: it validates six pinned NIV+ BMP oracles and the
 shipping diagnostic/export contracts.  The hosted native Apple-Silicon product
-run supplies the product view, page, palette, and flare-state files.  Exact
-whole-page and post-smoothing palette-index equality are reported but cannot be
-graded where the native rig did not retain the live camera, simulation, and HUD
-state at the instant of its timed snapshot::
+run supplies the product view, page, palette, and flare-state files.  Authority
+is case-specific: complete palette bands or exact upper-sky crops are graded
+only where the retained bytes and deterministic lighting state support them.
+Exact whole-page equality is reported but cannot be graded where the native rig
+did not retain the live camera, simulation, and HUD state at the instant of its
+timed snapshot::
 
     python tests/test_sun_gallery.py --case thin-sun45 \
         --product-directory build/sun-gallery
@@ -68,6 +70,10 @@ CASES = {
         },
         "view": (1598248, -600, 2251369, -44, -90),
         "center": (161, 130),
+        "native_center": 126,
+        "full_band_exact": True,
+        "palette_exact": True,
+        "beam_gate": "positive",
         "product": {
             "mode": 1,
             "landed": 1,
@@ -79,6 +85,7 @@ CASES = {
             "flare": 1,
             "exposure": 35.9996,
             "distance": 243.633,
+            "ray": 5.15,
         },
     },
     "thin-sun45": {
@@ -111,6 +118,10 @@ CASES = {
         },
         "view": (1645000, -2648, 1641000, -30, 90),
         "center": (161, 28),
+        "native_center": 126,
+        "full_band_exact": True,
+        "palette_exact": True,
+        "beam_gate": "positive",
         "product": {
             "mode": 1,
             "landed": 1,
@@ -123,6 +134,202 @@ CASES = {
             "exposure": 49.3038,
             "distance": 112.235,
             "ray": 5.15,
+        },
+    },
+    "lunar-sun0": {
+        "scene": "lunarsun",
+        "oracle": ROOT / "tests" / "native-oracles" / "lunar-sun0"
+        / "native.shot.BMP",
+        "surface": ROOT / "tests" / "native-oracles" / "lunar-sun0"
+        / "native.SURFACE.BIN",
+        "bmp_sha256": "ddc0582655a2e194a97cb071187b26da5a6b368e07be11b31027f70e06b2ffa1",
+        "surface_sha256": "46b02d475662b76691baa8dc8e44fbc3a670adfce7a1e89ebd9dc5031c4efcd1",
+        "surface_state": (
+            0, 60, 100, 100, 8192, 8192,
+            1638400.0, -19032.0, 1638400.0, -44.0, 90.0,
+        ),
+        "page_sha256": "38b5b2347fff4c3fe5016337904a8a51ff1d5f7276e2555e7461f8623a87997b",
+        "palette_sha256": "a6570716a7b04a4629ac7cdfa0ddb21d23305a207a80a8cafda707a50543e9ab",
+        "checkpoint_sha256": "c106a8cad1d21e5c7040a04b55b1ce2d483b2eda4bc73ab515753604a830e705",
+        "checkpoint": {
+            "star_x": 174288,
+            "star_y": -44389,
+            "star_z": -688771,
+            "body": 0,
+            "longitude": 0,
+            "latitude": 60,
+            "beta": 90,
+            "pitch": -44,
+            "player_x": 1638400,
+            "player_y": -19032,
+            "player_z": 1638400,
+            "fast": True,
+        },
+        "view": (1638400, -72280, 1638400, -44, 90),
+        "center": (161, 82),
+        "native_center": 127,
+        "full_band_exact": False,
+        "exact_crop": (10, 10, 310, 130),
+        "palette_exact": True,
+        "beam_gate": "lower",
+        "product": {
+            "mode": 1,
+            "landed": 1,
+            "planet_type": 1,
+            "star_class": 0,
+            "atmosphere": 0,
+            "night": 0,
+            "rain": 0.0,
+            "flare": 1,
+            "exposure": 49.3038,
+            "distance": 34.5763,
+            "ray": 6.955,
+        },
+    },
+    "dense-sun0": {
+        "scene": "densesun",
+        "oracle": ROOT / "tests" / "native-oracles" / "dense-sun0"
+        / "native.shot.BMP",
+        "surface": ROOT / "tests" / "native-oracles" / "dense-sun0"
+        / "native.SURFACE.BIN",
+        "bmp_sha256": "3f49a3ac6d730b028766f354ac81d3cd077dc843a2b6ddd8731d759f39becb47",
+        "surface_sha256": "db6835c47e8edc213d82448ac3d6bf45ba245e71e9c5425eed3c1ec2b982f5dc",
+        "surface_state": (
+            0, 60, 100, 100, 8192, 8192,
+            1638400.0, 1.0, 1638400.0, -44.0, 90.0,
+        ),
+        "page_sha256": "a33a33802da8072710fb732cfe8a68d0037b6239ac4f1e19beecbef52e5df4e7",
+        "palette_sha256": "c7e3d402b9e2a5b6a596a076d25f52209acdfa37fae511a60979a79a3a5aa778",
+        "checkpoint_sha256": "ccb8dcbdeca3f980906bd70e88f0adbc16baa845da5438243cfb809063266c58",
+        "checkpoint": {
+            "star_x": 1463568,
+            "star_y": -4728350,
+            "star_z": -437812,
+            "body": 0,
+            "longitude": 0,
+            "latitude": 60,
+            "beta": 90,
+            "pitch": -44,
+            "player_x": 1638400,
+            "player_z": 1638400,
+            "fast": True,
+        },
+        "view": (1638400, -242264, 1638400, -44, 90),
+        "center": (161, 40),
+        "native_center": 59,
+        "full_band_exact": True,
+        "palette_exact": False,
+        "beam_gate": "lower",
+        "product": {
+            "mode": 1,
+            "landed": 1,
+            "planet_type": 2,
+            "star_class": 0,
+            "atmosphere": 1,
+            "night": 0,
+            "rain": 0.0,
+            "flare": 1,
+            "exposure": 60.2602,
+            "distance": 24.2725,
+            "ray": 5.15,
+        },
+    },
+    "rocky-sun90": {
+        "scene": "rockysun",
+        "oracle": ROOT / "tests" / "native-oracles" / "rocky-sun90"
+        / "native.shot.BMP",
+        "surface": ROOT / "tests" / "native-oracles" / "rocky-sun90"
+        / "native.SURFACE.BIN",
+        "bmp_sha256": "f983407da7c9ff5c9da47560c23d4f9a77040708b70da010ce6b4dc6b9c94b0a",
+        "surface_sha256": "6010d36d894ec6e086e9a7a47e4d7d0ab8e4113527f7c282800fe0c4623e4b09",
+        "surface_state": (
+            90, 60, 8, 8, 0, 0,
+            1645000.0, 1.0, 1641000.0, -38.0, 270.0,
+        ),
+        "page_sha256": "6789a54784a2721cb475d8c7b6eae171b87ab0b46b296ff78a96745a1425dae1",
+        "palette_sha256": "1b7d437f34c8ff90711e56d4ad6a477fe1d9135ddd10d597299f45626a8b6ed2",
+        "checkpoint_sha256": "b4ede164b0e82cea43e50d7f90f9393d36d266192cbf4a89d60360356209c21a",
+        "checkpoint": {
+            "star_x": 1463568,
+            "star_y": -4728350,
+            "star_z": -437812,
+            "body": 9,
+            "longitude": 90,
+            "latitude": 60,
+            "beta": 270,
+            "pitch": -38,
+            "player_x": 1645000,
+            "player_z": 1641000,
+            "fast": True,
+        },
+        "view": (1645000, -57298, 1641000, -38, -90),
+        "center": (161, 44),
+        "native_center": 64,
+        "full_band_exact": False,
+        "exact_crop": (10, 10, 310, 100),
+        "palette_exact": True,
+        "beam_gate": "upper",
+        "product": {
+            "mode": 1,
+            "landed": 1,
+            "planet_type": 4,
+            "star_class": 0,
+            "atmosphere": 0,
+            "night": 0,
+            "rain": 0.0,
+            "flare": 1,
+            "exposure": 53.2168,
+            "distance": 9133.45,
+            "ray": 5.15,
+        },
+    },
+    "frozen-sun0": {
+        "scene": "frozensun",
+        "oracle": ROOT / "tests" / "native-oracles" / "frozen-sun0"
+        / "native.shot.BMP",
+        "surface": ROOT / "tests" / "native-oracles" / "frozen-sun0"
+        / "native.SURFACE.BIN",
+        "bmp_sha256": "1f221358d756737d349926d36e98ae8e99e71063d63c4bf577dbb7971357d01a",
+        "surface_sha256": "0e0efa5fc114a99fcae0b31f467b85dd3ef5e44849794680fd5000d9c6463154",
+        "surface_state": (
+            0, 60, 8, 8, 0, 0,
+            1645000.0, 1.0, 1641000.0, -44.0, 90.0,
+        ),
+        "page_sha256": "f7fc6e9f84073f145e4648f697840afdbd79a04c703aa76957bcc665636ebe96",
+        "palette_sha256": "843334d0b9ac9a7f013810ed80ca46da5b98c2f5f497a7ff7f265371d1f56824",
+        "checkpoint_sha256": "6365747e55504f56f18ad1d901e605fcd8c71d3223790ec41ab070743b7483fe",
+        "checkpoint": {
+            "star_x": 2952848,
+            "star_y": -6448045,
+            "star_z": -840503,
+            "body": 9,
+            "longitude": 0,
+            "latitude": 60,
+            "beta": 90,
+            "pitch": -44,
+            "player_x": 1645000,
+            "player_z": 1641000,
+            "fast": True,
+        },
+        "view": (1645000, -600, 1641000, -44, 90),
+        "center": (161, 46),
+        "native_center": 64,
+        "full_band_exact": True,
+        "exact_crop": (10, 10, 310, 130),
+        "palette_exact": True,
+        "beam_gate": "upper",
+        "product": {
+            "mode": 1,
+            "landed": 1,
+            "planet_type": 7,
+            "star_class": 1,
+            "atmosphere": 0,
+            "night": 0,
+            "rain": 0.0,
+            "flare": 1,
+            "exposure": 58.695,
+            "distance": 34167.4023,
+            "ray": 21.879,
         },
     },
 }
@@ -207,6 +414,19 @@ def mismatch_summary(expected: bytes, actual: bytes, width: int = 320) -> str:
     )
 
 
+def page_crop(page: bytes, rectangle: tuple[int, int, int, int]) -> bytes:
+    x0, y0, x1, y1 = rectangle
+    if not (0 <= x0 < x1 <= 320 and 0 <= y0 < y1 <= 200):
+        raise AssertionError(f"invalid page crop {rectangle}")
+    return b"".join(page[y * 320 + x0 : y * 320 + x1] for y in range(y0, y1))
+
+
+def product_file(directory: Path, scene: str, name: str) -> Path:
+    """Accept shared scene exports and isolated per-scene capture directories."""
+    prefixed = directory / f"{scene}-{name}"
+    return prefixed if prefixed.is_file() else directory / name
+
+
 def check_source_contract(check) -> None:
     game = GAME.read_text(encoding="utf-8")
     capture = CAPTURE.read_text(encoding="utf-8")
@@ -257,24 +477,24 @@ def check_source_contract(check) -> None:
           "units[35:42]" in checkpoint_tool,
           "cross-platform checkpoint builder emits the stable 264-byte subset")
     check(all(fragment in macos_workflow for fragment in (
-              "make_noctis_checkpoint.py",
-              "--longitude 270",
-              "--beta 270",
-              "--pitch -44",
+              "from make_noctis_checkpoint import build_landed_checkpoint",
+              '"case": "hab-sun270"',
+              '"case": "thin-sun45"',
+              '"case": "lunar-sun0"',
+              '"case": "dense-sun0"',
+              '"case": "rocky-sun90"',
+              '"case": "frozen-sun0"',
+              '"scene": "habitable"',
+              '"scene": "thin"',
+              '"scene": "lunarsun"',
+              '"scene": "densesun"',
+              '"scene": "rockysun"',
+              '"scene": "frozensun"',
               '"clock=1344638527"',
-              "--case hab-sun270",
-              "--product-directory build/sun-gallery",
+              '"--product-directory", str(gallery)',
+              "build/sun-gallery/*-game-*-out.bin",
           )),
-          "hosted Apple-Silicon gate executes the pinned habitable product comparison")
-    check(all(fragment in macos_workflow for fragment in (
-              "--body 2 --longitude 45 --latitude 60",
-              "--beta 90 --pitch -30",
-              "--player-x 1645000 --player-z 1641000 --fast",
-              "--case thin-sun45",
-              "build/macos-aarch64-thin-sun-oracle.txt",
-              "build/sun-gallery/thin-game-*-out.bin",
-          )),
-          "hosted Apple-Silicon gate executes and retains the pinned thin-world comparison")
+          "hosted Apple-Silicon gate executes and retains all six surface-sun cases")
     check("Grade the pinned habitable-world sun frame" not in windows_workflow,
           "Windows packaging no longer depends on an unusable hosted GUI desktop")
 
@@ -282,10 +502,10 @@ def check_source_contract(check) -> None:
 def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
                   oracle_palette: tuple[int, ...], check) -> None:
     scene = str(case["scene"])
-    page_path = directory / f"{scene}-game-page-out.bin"
-    palette_path = directory / f"{scene}-game-palette-out.bin"
-    sun_path = directory / f"{scene}-game-sun-out.bin"
-    view_path = directory / f"{scene}-game-vh-out.bin"
+    page_path = product_file(directory, scene, "game-page-out.bin")
+    palette_path = product_file(directory, scene, "game-palette-out.bin")
+    sun_path = product_file(directory, scene, "game-sun-out.bin")
+    view_path = product_file(directory, scene, "game-vh-out.bin")
 
     for path, size in (
         (page_path, 64000),
@@ -314,23 +534,39 @@ def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
         detail = "0 mismatches" if not band_differences else (
             f"{len(band_differences)} mismatches; first pixel {band_differences[0]}"
         )
-        check(not band_differences,
-              f"all product pixels retain the native palette band ({detail})")
+        if case["full_band_exact"]:
+            check(not band_differences,
+                  f"all product pixels retain the native palette band ({detail})")
+        else:
+            print(f"INFO complete-page palette-band equality is not graded ({detail})")
+
+        crop = case.get("exact_crop")
+        if crop is not None:
+            assert isinstance(crop, tuple)
+            native_crop = page_crop(oracle_page, crop)
+            product_crop = page_crop(page, crop)
+            x0, y0, x1, y1 = crop
+            check(
+                product_crop == native_crop,
+                f"product upper-sky crop ({x0},{y0})..({x1 - 1},{y1 - 1}) "
+                f"matches all {len(native_crop):,} native indices "
+                f"({mismatch_summary(native_crop, product_crop, x1 - x0)})",
+            )
+
         cx, cy = case["center"]
         center_offset = cy * 320 + cx
         check(
             (page[center_offset] & 0xC0)
-            == (oracle_page[center_offset] & 0xC0)
-            == 64,
-            "product flare centre retains the native sky palette band after source smoothing",
+            == (oracle_page[center_offset] & 0xC0),
+            "product projected-sun centre retains the native palette band",
         )
         # The retained BMP authenticates the native view and indexed output, but
         # these historical captures do not retain every live HUD/simulation value
-        # at the screenshot instant.  Exact whole-page and low-six-bit centre
-        # equality therefore remain informational: the source's two post-render
-        # psmooth_64 passes mix the centre with snapshot-dependent neighbours.
-        # The complete palette, palette bands, and pinned sun state below are the
-        # admissible cross-product contracts.
+        # at the screenshot instant.  Exact whole-page equality therefore remains
+        # informational.  Positive-flare low-six-bit centre equality additionally
+        # depends on neighbours mixed by the source's two psmooth_64 passes.  The
+        # case-specific palette, palette-band/crop, and pinned sun state below are
+        # the admissible cross-product contracts.
         print(f"INFO complete-page equality is not graded ({summary})")
 
     palette_data = palette_path.read_bytes()
@@ -345,8 +581,13 @@ def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
             f"native={oracle_palette[differences[0]]} "
             f"product={palette[differences[0]]}"
         )
-        check(palette == oracle_palette,
-              f"all 768 six-bit product palette components match native ({detail})")
+        check(all(component <= 63 for component in palette),
+              "product palette retains 768 valid six-bit components")
+        if case["palette_exact"]:
+            check(palette == oracle_palette,
+                  f"all 768 six-bit product palette components match native ({detail})")
+        else:
+            print(f"INFO palette equality is not graded without native easing state ({detail})")
 
     sun_data = sun_path.read_bytes()
     if len(sun_data) == 128:
@@ -369,9 +610,9 @@ def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
             "product diagnostic retains the pinned atmosphere, day/night, and weather state",
         )
         check(sun[16] == expected["flare"],
-              "product diagnostic confirms the expected source flare gate")
+              "product diagnostic confirms projected primary-sun admission")
         check(64 <= sun[19] <= 127,
-              "product diagnostic retains the sky-band sample that admitted the flare")
+              "product diagnostic retains the sky-band sample at the projected centre")
         check(abs(sun[17] - cx) <= 1 and abs(sun[18] - cy) <= 1,
               f"product flare centre {sun[17]},{sun[18]} aligns with native {cx},{cy}")
         check(
@@ -379,25 +620,28 @@ def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
             and abs(floats[8] - expected["distance"]) < 0.01,
             "product retains the pinned native exposure and live solar distance",
         )
-        if "ray" in expected:
-            check(abs(floats[9] - expected["ray"]) < 0.001,
-                  "product retains the pinned native stellar ray")
+        check(abs(floats[9] - expected["ray"]) < 0.001,
+              "product retains the pinned native stellar ray")
+        distance = floats[8]
+        ray = floats[9]
+        gate = case["beam_gate"]
+        if gate == "positive":
+            admitted = 10.0 * ray <= distance < 1000.0 * ray
+            message = "product distance lies inside the native radial-flare interval"
+        elif gate == "lower":
+            admitted = distance < 10.0 * ray
+            message = "product distance authentically suppresses rays below the lower gate"
+        elif gate == "upper":
+            admitted = distance >= 1000.0 * ray
+            message = "product distance authentically suppresses rays at the upper gate"
+        else:
+            raise AssertionError(f"unknown radial-flare gate {gate!r}")
+        check(admitted, message)
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--case", choices=sorted(CASES), default="hab-sun270")
-    parser.add_argument("--product-directory", type=Path)
-    args = parser.parse_args()
-
-    errors: list[str] = []
-
-    def check(condition: bool, message: str) -> None:
-        print("PASS" if condition else "FAIL", message)
-        if not condition:
-            errors.append(message)
-
-    case = CASES[args.case]
+def grade_case(case_name: str, product_directory: Path | None, check) -> None:
+    print(f"--- {case_name} ---")
+    case = CASES[case_name]
     oracle = case["oracle"]
     assert isinstance(oracle, Path)
     data = oracle.read_bytes()
@@ -456,8 +700,8 @@ def main() -> int:
         check(len(palette) == 768 and sha256(raw_palette) == case["palette_sha256"],
               "native BMP yields the pinned 768-component six-bit RGB palette")
         cx, cy = case["center"]
-        check(page[cy * 320 + cx] == 126,
-              "native positive flare retains indexed centre sample 126")
+        check(page[cy * 320 + cx] == case["native_center"],
+              "native oracle retains the pinned projected-sun centre index")
 
     checkpoint_arguments = case["checkpoint"]
     assert isinstance(checkpoint_arguments, dict)
@@ -466,11 +710,32 @@ def main() -> int:
           sha256(checkpoint) == case["checkpoint_sha256"],
           "cross-platform builder reproduces the pinned product checkpoint")
 
-    check_source_contract(check)
-    if args.product_directory is not None and page and palette:
-        grade_product(case, args.product_directory.resolve(), page, palette, check)
+    if product_directory is not None and page and palette:
+        grade_product(case, product_directory.resolve(), page, palette, check)
     else:
         print("SKIP product comparison requires --product-directory (non-GUI contract mode)")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--case", choices=["all", *sorted(CASES)], default="all",
+        help="native/product case to grade (default: all native contracts)",
+    )
+    parser.add_argument("--product-directory", type=Path)
+    args = parser.parse_args()
+
+    errors: list[str] = []
+
+    def check(condition: bool, message: str) -> None:
+        print("PASS" if condition else "FAIL", message)
+        if not condition:
+            errors.append(message)
+
+    check_source_contract(check)
+    selected = CASES if args.case == "all" else (args.case,)
+    for case_name in selected:
+        grade_case(case_name, args.product_directory, check)
 
     if errors:
         print(f"sun gallery: {len(errors)} failure(s)")

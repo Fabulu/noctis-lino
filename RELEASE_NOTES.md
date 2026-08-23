@@ -81,6 +81,19 @@ band, camera, flare gate/position and pre-smoothing sky-band admission sample,
 exposure, distance, and ray remain graded. The separate ten-case primitive
 flare oracle remains byte-exact to its native pages.
 
+That product gate now covers six landable surface classes with retained native
+BMP and surface records: lunar type 1, dense-atmosphere type 2, habitable type
+3, rocky type 4, thin-atmosphere type 5, and frozen type 7 around a class-1
+star. Habitable/thin authenticate positive radial flares, lunar/dense the
+`distance < 10*ray` lower suppression gate, and rocky/frozen the
+`distance >= 1000*ray` upper gate. Authority remains explicit per artifact:
+habitable, thin, dense, and frozen require all 64,000 palette-band assignments;
+lunar, rocky, and frozen require exact 36,000-, 27,000-, and 36,000-pixel
+upper-sky crops; all active palettes are exact except the dense capture whose
+101 easing-dependent components remain informational. The native Apple-Silicon
+job rebuilds and grades all six checkpoints independently and retains their
+product diagnostics.
+
 A paired IDEAL capture extends that correction to a class-0 primary and type-1
 orbital target. At matched clock, camera, radius, distance, and Stardrifter
 position, the product retains the native exterior globe silhouette and all
