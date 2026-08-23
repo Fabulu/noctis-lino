@@ -443,9 +443,14 @@ every axis and the lunar radius and distance are exact. The exterior palette ban
 differ only at 35 product-only globe-limb pixels.
 
 The current private-desktop interior capture also retains the required source HUD
-and `-OpenHud` composition. All 18,000 pixels in `(30,30)-(180,150)` retain the
-native palette band, and 17,395 retain the exact index. Exchanging the pages and
-palettes gives four brightness counts above six-bit component 32: native/native
+and `-OpenHud` composition. It now uses native fixed-chase sync 1 and visibly
+retains `TRACKING`; a compensated authored local Z converges to the exact staged
+`0.01283555` target distance. Compared with the earlier sync-0 discriminator,
+this changes 491 complete-page indices but zero pixels in the graded crop, while
+the 1,190 complete-page palette-band mismatches are unchanged. All 18,000 pixels
+in `(30,30)-(180,150)` retain the native palette band, and 17,395 retain the
+exact index. Exchanging the pages and palettes gives four brightness counts
+above six-bit component 32: native/native
 8,338, native/product 8,338, product/native 8,215, and product/product 8,215.
 Neither crop contains index 77. The current 123-pixel deficit is therefore
 entirely selected by the 605 same-band indexed-page differences; the 54 palette
@@ -583,7 +588,9 @@ the former missing exterior half-turn. After the camera repair those eleven
 poses looked away from their targets. Their local X/Z offsets are now negated
 while preserving the authored 23-degree cockpit axis; a fresh default IDEAL
 capture again places the type-1 globe in the forward window. Exact orbital-local
-X/Y/Z overrides are also all-or-none, so matched oracle captures no longer need
+X/Y/Z overrides are all-or-none, and a bounded orbital-sync override permits
+native fixed-chase discriminators without changing the ordinary sync-0 gallery,
+so matched oracle captures no longer need
 to distort the camera to reproduce a retained ship position.
 
 **Frozen-world native-context checkpoint.** The landed NIV+ capture rig now

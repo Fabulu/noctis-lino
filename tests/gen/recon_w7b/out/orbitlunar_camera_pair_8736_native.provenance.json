@@ -111,19 +111,35 @@
         "view_pitch": 0.0
       },
       "player_position": [0.0, 0.0, -500.0],
-      "orbital_local": [0.0, 0.0, 0.01283555],
-      "reason": "This interior authority requires -OpenHud. Without it, the moving or closed visor selects a materially different composition and is not graded against this crop."
+      "sync": 1,
+      "fcs_status": "TRACKING",
+      "authored_orbital_local": [0.0, 0.0, 0.012942215051003982],
+      "captured_orbital_local": [0.0, 0.0, 0.012835549999999932],
+      "captured_star_local": [-33.32552886049304, 0.006573383880464911, -4.0826127654424],
+      "reason": "This interior authority requires -OpenHud and fixed-chase sync 1. The authored Z compensates chase convergence during the retained private diagnostic run, yielding the native-bound 0.01283555 captured target distance. Without -OpenHud, the moving or closed visor selects a materially different composition and is not graded against this crop."
     },
     "crop": [30, 30, 180, 150],
     "crop_pixels": 18000,
     "product_crop_index_sha256": "c0ecb6a4f83c25e2e4f8155adead874be686643d37bc9747f61dafc7b5a8050f",
-    "product_complete_page_index_sha256": "389fe5a318320dd10d95cc3cc12f18276c491cf60ee524a44b79693793f06e3f",
+    "product_status_crop_index_sha256": "5f2a5a1c0fef751c0b8d359f4b886a54e89959c68311e0d029ed3afa20c524e8",
+    "product_complete_page_index_sha256": "db3a60cde9ca0c38465cd8c97530eef5f9ee1c379ff51cd262c01f9c28d3d0dd",
     "product_palette_u32le_sha256": "f1478f556372e037cefa3551394315c8e1bb6c641283b3c1d41f54041b23e3ed",
     "exact_indices": 17395,
     "differing_indices": 605,
     "palette_band_differences": 0,
-    "complete_page_index_mismatches": 4499,
+    "complete_page_index_mismatches": 4563,
+    "complete_page_palette_band_mismatches": 1190,
     "complete_palette_component_mismatches": 54,
+    "fixed_chase_contract": {
+      "previous_sync": 0,
+      "captured_sync": 1,
+      "visible_fcs_status": "TRACKING",
+      "changed_complete_page_indices": 491,
+      "changed_graded_crop_indices": 0,
+      "previous_complete_page_palette_band_mismatches": 1190,
+      "captured_complete_page_palette_band_mismatches": 1190,
+      "interpretation": "Restoring native sync 1 changes only pixels outside the graded interior crop and visibly replaces STANDBY with native TRACKING. The complete-page band mismatch is unchanged; the larger exact-index mismatch is dominated by the separately open projected-font raster difference rather than a new lighting-band divergence."
+    },
     "brightness_threshold": "maximum six-bit RGB component > 32",
     "brightness_pixels": {
       "native_page_native_palette": 8338,
@@ -138,7 +154,7 @@
     "indexed_page_brightness_deficit_pixels": 123,
     "palette_brightness_contribution_pixels": 0,
     "source_repair_supported": false,
-    "interpretation": "The current 123-pixel brightness deficit is entirely selected by the indexed page: exchanging native and product palettes changes neither page's count. Index 77 occurs zero times in both crops. The 605 differences stay within the native palette bands; complete lighting, complete-page equality, and the 54 unretained palette-easing components remain ungraded pending a source-grounded raster divergence."
+    "interpretation": "The native-state fixed-chase capture visibly retains TRACKING while its graded crop is byte-identical to the earlier staged sync-0 crop. The 123-pixel brightness deficit is entirely selected by the indexed page: exchanging native and product palettes changes neither page's count. Index 77 occurs zero times in both crops. The 605 differences stay within the native palette bands; complete lighting, complete-page equality, and the 54 unretained palette-easing components remain ungraded pending a source-grounded raster divergence."
   },
   "authority": {
     "snapshot_camera_state_retained": true,

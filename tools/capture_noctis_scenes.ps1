@@ -26,6 +26,8 @@ param(
     [double]$OrbitalLocalX,
     [double]$OrbitalLocalY,
     [double]$OrbitalLocalZ,
+    [ValidateRange(0, 7)]
+    [int]$OrbitalSync,
     [int]$ViewPitch,
     [int]$PlayerX,
     [int]$PlayerY,
@@ -270,6 +272,12 @@ foreach ($spec in $scenes) {
         $spec.LocalX = $OrbitalLocalX
         $spec.LocalY = $OrbitalLocalY
         $spec.LocalZ = $OrbitalLocalZ
+    }
+    if ($PSBoundParameters.ContainsKey('OrbitalSync')) {
+        if (-not $spec.ContainsKey('LocalZ')) {
+            throw "Scene $($spec.Name) has no orbital sync state to override"
+        }
+        $spec.Sync = $OrbitalSync
     }
     if ($PSBoundParameters.ContainsKey('ViewPitch')) { $spec.Pitch = $ViewPitch }
     if ($PSBoundParameters.ContainsKey('PlayerX')) { $spec.PlayerX = $PlayerX }

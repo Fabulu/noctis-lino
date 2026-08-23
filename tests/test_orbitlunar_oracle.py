@@ -33,14 +33,16 @@ BOUNDARY_INSIDE_SHA256 = "07873d1191f192135c4050c619230264eebba85114d850b19cf4e1
 BOUNDARY_INSIDE_ADAPTED_SHA256 = "b4d23838f12a91ebe2b67b291a7d8b6704ec1371af484eb663399314d731989f"
 BOUNDARY_ROOF_SHA256 = "b2af5163ef04975a09d05043adb486f511205ef5654511b314677961a2a9dcdf"
 BOUNDARY_ROOF_ADAPTED_SHA256 = "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7bf7f19f2278ca7ea"
-PROVENANCE_SHA256 = "767c9eaf66ae742fff9bfce8fac41a17d7e5c89d89674cc16d3c4dd1de1325b5"
+PROVENANCE_SHA256 = "2fcaea57d37f6e745942799d230dba252b873b439254ff3a73acb461d7500f45"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
 BOUNDARY_PROVENANCE_SHA256 = "198d1db85982088bde7509cbae2a6c47af5db3eac10b7732ee33449f01ec4c95"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
+INTERIOR_STATUS_CROP = (215, 160, 315, 190)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
 PRODUCT_INTERIOR_CROP_SHA256 = "c0ecb6a4f83c25e2e4f8155adead874be686643d37bc9747f61dafc7b5a8050f"
+PRODUCT_INTERIOR_STATUS_SHA256 = "5f2a5a1c0fef751c0b8d359f4b886a54e89959c68311e0d029ed3afa20c524e8"
 PRODUCT_INTERIOR_EXACT_INDICES = 17395
 PRODUCT_INTERIOR_BRIGHTNESS = (8338, 8338, 8215, 8215)
 LIMB_CROP = (10, 75, 90, 125)
@@ -223,6 +225,9 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
         check(sha256(product_crop) == PRODUCT_INTERIOR_CROP_SHA256
               and exact == PRODUCT_INTERIOR_EXACT_INDICES,
               "matched open-HUD product retains the pinned interior-flare indices")
+        check(sha256(crop_indices(page, INTERIOR_STATUS_CROP)) ==
+              PRODUCT_INTERIOR_STATUS_SHA256,
+              "matched fixed-chase product renders the source TRACKING status")
         brightness = (
             bright_crop_count(native_page, native_palette),
             bright_crop_count(native_page, palette),
@@ -726,15 +731,22 @@ def main() -> int:
     )
     product_interior = provenance.get("matched_product_interior_contract", {})
     product_capture = product_interior.get("capture_state", {})
+    product_fixed_chase = product_interior.get("fixed_chase_contract", {})
     product_brightness = product_interior.get("brightness_pixels", {})
     check(
         product_capture.get("private_inactive_desktop") is True
         and product_capture.get("diagnostic_only") is True
         and product_capture.get("raw_clock") == 1344638736
         and product_capture.get("open_hud_switch") is True
+        and product_capture.get("sync") == 1
+        and product_capture.get("fcs_status") == "TRACKING"
+        and product_capture.get("authored_orbital_local") ==
+        [0.0, 0.0, 0.012942215051003982]
+        and product_capture.get("captured_orbital_local") ==
+        [0.0, 0.0, 0.012835549999999932]
         and product_capture.get("camera", {}).get("user_beta") == -97.0
         and product_capture.get("player_position") == [0.0, 0.0, -500.0],
-        "paired provenance pins the matched private open-HUD interior capture state",
+        "paired provenance pins the matched private fixed-chase open-HUD capture state",
     )
     check(
         product_interior.get("product_crop_index_sha256") ==
@@ -742,6 +754,16 @@ def main() -> int:
         and product_interior.get("exact_indices") == PRODUCT_INTERIOR_EXACT_INDICES
         and product_interior.get("differing_indices") == 605
         and product_interior.get("palette_band_differences") == 0
+        and product_interior.get("product_status_crop_index_sha256") ==
+        PRODUCT_INTERIOR_STATUS_SHA256
+        and product_interior.get("complete_page_index_mismatches") == 4563
+        and product_interior.get("complete_page_palette_band_mismatches") == 1190
+        and product_fixed_chase.get("previous_sync") == 0
+        and product_fixed_chase.get("captured_sync") == 1
+        and product_fixed_chase.get("changed_complete_page_indices") == 491
+        and product_fixed_chase.get("changed_graded_crop_indices") == 0
+        and product_fixed_chase.get("previous_complete_page_palette_band_mismatches") == 1190
+        and product_fixed_chase.get("captured_complete_page_palette_band_mismatches") == 1190
         and tuple(product_brightness.get(key) for key in (
             "native_page_native_palette",
             "native_page_product_palette",
@@ -1020,9 +1042,11 @@ def main() -> int:
     check(
         all(name in capture for name in (
             "$OrbitalLocalX", "$OrbitalLocalY", "$OrbitalLocalZ",
-            "must be supplied together",
+            "must be supplied together", "$OrbitalSync",
+            "$spec.Sync = $OrbitalSync",
+            "has no orbital sync state to override",
         )),
-        "capture tool accepts only complete exact orbital-local pose overrides",
+        "capture tool accepts only complete orbital-local poses and bounded sync overrides",
     )
     corrected_orbital_locals = (
         "LocalX=-0.046885; LocalY=0.0; LocalZ=0.110461",

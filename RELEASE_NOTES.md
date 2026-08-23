@@ -110,8 +110,13 @@ inside and roof captures therefore leave band 128 black and match all 192 native
 moon-band components exactly. This removes 187 of the former 241 complete-palette
 mismatches, leaving 54 components tied to still-unretained palette-easing state.
 At the retained interior/primary-flare camera, a current private-desktop
-`-OpenHud` capture matches all 18,000 native palette bands and 17,395 exact
-indices. The native-page/native-palette, native-page/product-palette,
+`-OpenHud` capture now uses native fixed-chase sync 1 and visibly retains
+`TRACKING`; its compensated authored Z converges to the exact staged
+`0.01283555` target distance. Switching from the earlier sync-0 probe changes
+491 complete-page indices but zero pixels in the graded crop, and leaves the
+1,190 complete-page palette-band mismatches unchanged. The capture matches all
+18,000 native palette bands and 17,395 exact indices in that crop. The
+native-page/native-palette, native-page/product-palette,
 product-page/native-palette, and product-page/product-palette brightness counts
 are respectively 8,338, 8,338, 8,215, and 8,215. Thus the current 123-pixel gap
 comes entirely from 605 same-band indexed-page differences; the current palette
