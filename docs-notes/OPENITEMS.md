@@ -415,6 +415,23 @@ native capture must export those exact inputs and the page after each stage; onl
 then can the product repair the first proven divergence, or limit the residual to
 palette easing if all indexed stages match.
 
+The discriminating capture path is now implemented without changing the upstream
+NIV+ clone. `instrument_rotor_igne.py` generates an exactly anchored source copy,
+materializes the companion's real one-time random factor, and atomically publishes
+a 192,062-byte `ROTOR.BIN`: a 62-byte typed scalar header followed by the three
+64,000-byte pages after companion corona, after companion flare, and after
+smoothing before masking. Pages are written as 200 normalized huge-pointer rows,
+and `capture_orbital_w7b.py` can stop on the completed file while preserving and
+restoring pre-existing sandbox outputs. The registered ROTOR oracle checks the
+trigger, field order, 16-bit header layout, one-time RNG use, stage order, size,
+and close-before-rename publication against the available source.
+
+This tooling is not itself the missing native evidence. The ordinary NIV+ build
+route requires Borland C++ 3.1, which is absent from the accessible, non-protected
+fixture tree; no protected `.tmp-*` compiler or capture tree may be reused. A real
+`ROTOR.BIN` and its product-stage comparison therefore remain open rather than
+being inferred from the static instrumentation.
+
 **IDEAL orbital camera pair.** Two retained class-0/type-1 captures now bracket
 the same raw second, fixed-chase state, palette, and Stardrifter position while
 changing only `user_beta` from 0 to -97. The exterior view authenticates the

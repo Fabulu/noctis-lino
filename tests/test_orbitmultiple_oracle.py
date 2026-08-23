@@ -8,6 +8,7 @@ import json
 import math
 import os
 from pathlib import Path
+import runpy
 import struct
 
 
@@ -22,10 +23,14 @@ REFERENCE_ROOT = Path(os.environ.get(
     r"C:\programmieren\noctis\niv-plus\source",
 ))
 ORIGINAL = REFERENCE_ROOT / "NOCTIS-0.CPP"
+ORBITAL_SOURCE = REFERENCE_ROOT / "NOCTIS.CPP"
+INSTRUMENTER = ROOT / "tests" / "gen" / "recon_w7b" / "instrument_rotor_igne.py"
+CAPTURE_RUNNER = ROOT / "tests" / "gen" / "recon_w7b" / "capture_orbital_w7b.py"
 BMP_SHA256 = "27532a2fe2a284f76bf81b630bf28c9fff72a8b1a63146c719a5b9257f9a451b"
 PROVENANCE_SHA256 = "34fa8bf9ab390967137938604781db99737ad336efb1a7637907cc4e1ab9a6f6"
 VISIBLE_BMP_SHA256 = "82eb4b7ba90286fe59b0d6494e397afd44f412b8fec8b97f77dd34359e9ae866"
 VISIBLE_PROVENANCE_SHA256 = "7326b68779d287a9458ff3541f4ba259666e5f425ff6291b09d9c945a53a5d66"
+ROTOR_HEADER = struct.Struct("<8sHHBBddddfdf")
 DIAGNOSTIC_SIZES = (
     ("game-vh-out.bin", 156),
     ("game-sun-out.bin", 128),
@@ -41,6 +46,16 @@ DIAGNOSTIC_SIZES = (
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def appears_in_order(text: str, needles: tuple[str, ...]) -> bool:
+    cursor = 0
+    for needle in needles:
+        cursor = text.find(needle, cursor)
+        if cursor < 0:
+            return False
+        cursor += len(needle)
+    return True
 
 
 def decode_bmp(data: bytes) -> tuple[bytes, tuple[int, ...]]:
@@ -91,6 +106,126 @@ def main() -> int:
         print("PASS" if condition else "FAIL", message)
         if not condition:
             failures.append(message)
+
+    try:
+        instrumenter = runpy.run_path(str(INSTRUMENTER))
+        patches = instrumenter["PATCHES"]
+        if ORBITAL_SOURCE.is_file():
+            source = ORBITAL_SOURCE.read_text(encoding="latin-1")
+        else:
+            source = "\n".join(anchor for _label, anchor, _replacement in patches)
+        patched = instrumenter["instrument_source"](source)
+    except (KeyError, OSError, UnicodeError, ValueError) as error:
+        check(False, f"ROTOR IGNE source fixture patches exactly: {error}")
+        patched = ""
+    else:
+        check(True, "ROTOR IGNE source fixture patches exactly")
+
+    companion = patched.partition(
+        "for (ir = 0; ir < nearstar_nop; ir++) {"
+    )[2].partition("if (l_dsd > 6 * nearstar_ray) {")[0]
+    check(
+        appears_in_order(patched, (
+            "unfreeze ();",
+            "rotor_initial_snapshot = lastSnapshot;",
+            "sync_start ();",
+            "lastSnapshot != rotor_initial_snapshot",
+            "for (ir = 0; ir < nearstar_nop; ir++) {",
+        ))
+        and patched.count("lastSnapshot != rotor_initial_snapshot") == 1
+        and "rotor_capture_pending && ir == 3" in patched
+        and companion.count("if (ir == 3 && rotor_fh > -1") == 2
+        and "nearstar_p_type[ir] == 10" in patched,
+        "ROTOR capture arms only on the post-snapshot frame and body 3 type 10",
+    )
+
+    check(
+        companion.count("fast_flandom()") == 1
+        and "tmp_float = 0.15 - fast_flandom() * 0.3;" in companion
+        and "3 * nearstar_p_ray[ir], tmp_float);" in companion
+        and appears_in_order(companion, (
+            "nearstar_p_qsortdist[ir], nearstar_p_ray[ir],",
+            "tmp_float))",
+            "whiteglobe (adapted, plx, ply, plz,",
+        )),
+        "ROTOR logging consumes the actual one-time companion random factor",
+    )
+
+    header = patched.partition("int rotor_write_header")[2].partition(
+        "void rotor_abort_capture")[0]
+    check(
+        "{ 'N', 'I', 'V', 'R', 'I', '1', '0', 0 }" in header
+        and appears_in_order(header, (
+            "_write (fh, magic, 8)",
+            "_write (fh, &version, 2)",
+            "_write (fh, &body_index, 2)",
+            "_write (fh, &body_type, 1)",
+            "_write (fh, &flags, 1)",
+            "_write (fh, &body_secs, 8)",
+            "_write (fh, &body_x, 8)",
+            "_write (fh, &body_y, 8)",
+            "_write (fh, &body_z, 8)",
+            "_write (fh, &body_distance, 4)",
+            "_write (fh, &body_ray, 8)",
+            "_write (fh, &body_fgm, 4)",
+        ))
+        and "unsigned body_index = 3;" in header
+        and "unsigned char body_type = 10;" in header
+        and ROTOR_HEADER.size == 62,
+        "ROTOR header retains the exact 62-byte typed field layout",
+    )
+
+    check(
+        "#define ROTOR_CAPTURE_SIZE 192062L" in patched
+        and "unsigned char huge *page" in patched
+        and "for (row = 0; row < 200; row++)" in patched
+        and "_write (fh, page + 320L * row, 320) != 320" in patched
+        and patched.count("rotor_write_page (rotor_fh, adapted)") == 3
+        and appears_in_order(patched, (
+            "whiteglobe (adapted, nearstar_x, nearstar_y, nearstar_z,",
+            "whiteglobe (adapted, plx, ply, plz,",
+            "/* Offset 62:",
+            "lens_flares_for (dzat_x, dzat_y, dzat_z, plx, ply, plz,",
+            "/* Offset 64062:",
+            "lens_flares_for (dzat_x, dzat_y, dzat_z,\n"
+            "\t\t\t\t\t\t\t\t nearstar_x, nearstar_y, nearstar_z,",
+            "psmooth_grays (adapted+2880);",
+            "/* Offset 128062:",
+            "mask_pixels (adapted+2880, 64);",
+        )),
+        "ROTOR pages are row-written at corona, companion-flare, and pre-mask smoothing stages",
+    )
+
+    publication = patched.partition("/* Offset 128062:")[2].partition(
+        "mask_pixels (adapted+2880, 64);")[0]
+    check(
+        "rotor_flags |= 1;" in companion
+        and "rotor_flags |= 2;" in companion
+        and '"..\\\\DATA\\\\ROTOR.PRT"' in patched
+        and '"..\\\\DATA\\\\ROTOR.BIN"' in patched
+        and appears_in_order(publication, (
+            "rotor_write_page (rotor_fh, adapted)",
+            "filelength (rotor_fh) != ROTOR_CAPTURE_SIZE",
+            "rotor_close_status = _close (rotor_fh);",
+            "rename (rotor_partial_file, rotor_final_file)",
+        )),
+        "ROTOR flags and 192,062-byte close-before-rename publication are fixed",
+    )
+
+    runner = CAPTURE_RUNNER.read_text(encoding="utf-8")
+    check(
+        'choices=("gallery-bmp", "rotor-bin")' in runner
+        and 'default="gallery-bmp"' in runner
+        and appears_in_order(runner, (
+            'if args.stop_artifact == "rotor-bin":',
+            "stop_path = ROTOR_FINAL",
+            "stop_size = 192_062",
+        ))
+        and runner.count("ROTOR_PARTIAL") >= 3
+        and runner.count("ROTOR_FINAL") >= 5
+        and "shutil.copy2(ROTOR_FINAL, rotor_path)" in runner,
+        "orbital runner preserves BMP default and can stop on final ROTOR.BIN",
+    )
 
     oracle_data = ORACLE.read_bytes()
     check(sha256(oracle_data) == BMP_SHA256,
