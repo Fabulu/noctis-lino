@@ -89,7 +89,12 @@ pixels. Both sources independently satisfy the strict `5*ray < distance <
 1000*ray` companion gate, the star-relative Stardrifter position agrees exactly,
 and all 64,000 complete-page palette bands match. The 0.235294-second phase
 bracket, non-atomic page, and startup palette easing leave exact low-six indices
-and active-palette equality informational rather than claimed.
+and active-palette equality informational rather than claimed. A paired stable
+roof pose puts the same sources in separate upper-cupola panels. Native and
+product have identical 236/115-pixel threshold-79 masks and identical 48/57-pixel
+threshold-87 cores for the two lights, plus all 64,000 matching palette bands;
+only 416 complete-page low-six indices remain different across the adjacent
+0.055556-second phase bracket.
 
 WIRE now supplies the first retained matched positive orbital-primary class
 checkpoint. Its class-7 primary at `(-1187856,-195673,1064757)` has ray

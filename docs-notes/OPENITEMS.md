@@ -323,7 +323,7 @@ screenshot processes can interfere and produced two all-black captures, so
 this matrix must be captured sequentially. Still open: representative views
 for every planet and atmosphere class, weather and day/night boundaries,
 further companion and multiple-sun arrangements, additional orbital views, and
-the full Stardrifter interior/cupola/exterior transition.
+moving Stardrifter interior/cupola/exterior plus launch/landing transitions.
 
 The thin gallery case now also has a full-context NIV+ oracle, not only the
 synthetic uniform-page flare check. An instrumented Borland build rendered the
@@ -448,6 +448,24 @@ palette-easing equality remain informational. This closes one genuine
 multiple-sun interior composition with each source graded independently; it does
 not supply the unavailable native pass-level pages needed to tune the remaining
 ROTOR IGNE intensity/shape gap.
+
+**Dual-companion roof/cupola checkpoint.** Holding the same star-local pose at
+`(0,-750,-1900)` crosses the strict `y < -500` roof boundary while remaining
+1,200 units from the cupola aperture, outside its `<1100` automatic-return gate.
+Native continuity retains that position, `lifter=0`, `STANDBY`, navigation 113,
+and the exact interior checkpoint's star-local coordinates. Both type-10 lights
+remain visible simultaneously through separate upper-cupola panels.
+
+The adjacent-second product exactly matches the native star-local pose and
+retains both strict companion gates and projections. At index threshold 79,
+native and product have the same 236-pixel right mask and 115-pixel left mask,
+point for point; their threshold-87 48/57-pixel core masks are also pointwise
+identical. Every complete-page palette band matches, while only 416 low-six-bit
+indices and 368 active palette components differ. The native BMP preceded the
+frozen adapted page, so complete low-six and active-palette equality remain
+outside the contract despite this unusually close result. This closes a genuine
+two-source roof/cupola composition as well as the interior one; moving lift and
+launch/landing flare transitions remain open.
 
 A scoped source audit found no material caller divergence that can explain that
 61-versus-151 count: native and product retain companion seeding, binary64 ray,

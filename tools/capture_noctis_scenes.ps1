@@ -7,7 +7,7 @@ param(
     [ValidateSet('all', 'stardrifter', 'stardrifterclass0', 'stardrifterclass1', 'stardrifterclass2', 'stardrifterclass3', 'stardrifterclass4', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass8', 'stardrifterclass9', 'stardrifterclass10', 'stardrifterclass11', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
-        'orbitsubstellar', 'orbitmultiple', 'orbitmultiplecompact', 'orbitmultipletriple',
+        'orbitsubstellar', 'orbitmultiple', 'orbitmultiplecompact', 'orbitmultipletriple', 'orbitmultipletripleroof',
         'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass5', 'lunarclass9', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'quartzclass10', 'ruins', 'cube')]
@@ -224,6 +224,13 @@ $scenes = @(
        Beta=0; Nav=113; Pitch=0; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;
        Sync=0;
        LocalX=-2835.4143674072257; LocalY=17.236258154580206; LocalZ=35.891644488482996 },
+    # Hold the same dual-companion phase outside the strict roof boundary and
+    # beyond the cupola's automatic-return aperture.
+    @{ Name='orbitmultipletripleroof'; FileName='planet-space-triple-system-roof.png'; Mode=0;
+       X=4142128; Y=-5182625; Z=-629021; Body=0; Type=10; Lon=0; Lat=60;
+       Beta=0; Nav=113; Pitch=0; Warmup=1; PlayerX=0; PlayerY=-750; PlayerZ=-1900;
+       Sync=0;
+       LocalX=-2835.414399641379; LocalY=17.236258154580206; LocalZ=35.8916321792845 },
     # IDEAL's only body is an authentic type-1 primary. This avoids spending
     # screenshot startup time generating JROT's pathological 80-body system.
     @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;

@@ -15,16 +15,23 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "tests" / "gen" / "recon_w7b" / "out"
 ORACLE = OUT / "orbitmultiple_triple_3226_native.shot.BMP"
 PROVENANCE = OUT / "orbitmultiple_triple_3226_native.provenance.json"
+ROOF_ORACLE = OUT / "orbitmultiple_triple_roof_3229_native.shot.BMP"
+ROOF_PROVENANCE = OUT / "orbitmultiple_triple_roof_3229_native.provenance.json"
 CAPTURE_TOOL = ROOT / "tools" / "capture_noctis_scenes.ps1"
 BMP_SHA256 = "e3ea5a56146280907a11073704a8227b40006edc7a0c1dbaf17bd8ca43eeaeeb"
 PAGE_SHA256 = "3d7f9ea0cd369edbd7e6a16196082b0fa49d532923ad6f3093bff671bf2f8f7a"
 PALETTE_SHA256 = "836c0249a021dd30dbfdd743846d98163af3a8ee316b25c09a79043f80125dd2"
 PROVENANCE_SHA256 = "65b05da7905cbfe640ea642d9a427b6e87a1eeafc4a7f1e5cb87020c3a67f5a3"
+ROOF_BMP_SHA256 = "ff447b2c7025a0b91073c758d2929a72d804bedfb14e3ea79779e67321037b6b"
+ROOF_PAGE_SHA256 = "d4b230cba9f010062598e7436dd4e35ca4aa0f76090454662582eb4d8f9f3609"
+ROOF_PROVENANCE_SHA256 = "f577cc38c154fcb5361c7151c5c03495345e3088af6a45a0f2c5b5d41beffd0f"
 STAR = (4142128, -5182625, -629021)
 TARGET_NATIVE_SEED = (251, 99)
 SECOND_NATIVE_SEED = (68, 101)
 TARGET_PRODUCT_SEED = (249, 96)
 SECOND_PRODUCT_SEED = (67, 98)
+ROOF_TARGET_PRODUCT_SEED = (249, 99)
+ROOF_SECOND_PRODUCT_SEED = (68, 100)
 TARGET_RELATIVE_SHIP = (
     -2835.4143674072257,
     17.236258154580206,
@@ -34,6 +41,21 @@ TARGET_ABSOLUTE = (
     101.31333494339185,
     -2.6696913799585995,
     -264.4884081961804,
+)
+ROOF_TARGET_RELATIVE_SHIP = (
+    -2835.414399641379,
+    17.236258154580206,
+    35.8916321792845,
+)
+ROOF_TARGET_ABSOLUTE = (
+    101.31336717754519,
+    -2.6696913799585995,
+    -264.4883958869819,
+)
+ROOF_SECOND_RELATIVE = (
+    1958.3532561629777,
+    17.23625815470804,
+    2050.784101463341,
 )
 SECOND_RELATIVE = (
     1958.3532877333696,
@@ -131,9 +153,12 @@ def project_flare(relative: tuple[float, float, float]) -> tuple[int, int]:
     return int(rx / z2) + 3 + 160, int(ry / z2) + 100
 
 
-def product_paths(directory: Path) -> tuple[tuple[Path, int], ...]:
+def product_paths(
+    directory: Path,
+    prefix: str = "orbitmultipletriple",
+) -> tuple[tuple[Path, int], ...]:
     return tuple(
-        (directory / f"orbitmultipletriple-{name}", size)
+        (directory / f"{prefix}-{name}", size)
         for name, size in DIAGNOSTIC_SIZES
     )
 
@@ -141,6 +166,7 @@ def product_paths(directory: Path) -> tuple[tuple[Path, int], ...]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--product-directory", type=Path)
+    parser.add_argument("--roof-product-directory", type=Path)
     args = parser.parse_args()
     failures: list[str] = []
 
@@ -164,6 +190,23 @@ def main() -> int:
             "LocalZ=35.891644488482996",
         )),
         "capture tool retains the balanced dual-companion interior pose",
+    )
+    roof_scene = capture.partition(
+        "@{ Name='orbitmultipletripleroof'"
+    )[2].partition("},")[0]
+    check(
+        "'orbitmultipletripleroof'" in capture
+        and all(token in roof_scene for token in (
+            "X=4142128; Y=-5182625; Z=-629021; Body=0; Type=10",
+            "Lon=0; Lat=60",
+            "Beta=0; Nav=113; Pitch=0",
+            "PlayerX=0; PlayerY=-750; PlayerZ=-1900",
+            "Sync=0",
+            "LocalX=-2835.414399641379",
+            "LocalY=17.236258154580206",
+            "LocalZ=35.8916321792845",
+        )),
+        "capture tool retains the stable dual-companion roof/cupola pose",
     )
 
     sys.path.insert(0, str(ROOT / "noctis-harness"))
@@ -285,6 +328,115 @@ def main() -> int:
         "provenance limits grading to the retained two-source phase bracket",
     )
 
+    roof_oracle_data = ROOF_ORACLE.read_bytes()
+    check(sha256(roof_oracle_data) == ROOF_BMP_SHA256,
+          "retained dual-companion roof BMP has its pinned SHA-256")
+    try:
+        roof_native_page, roof_native_palette = decode_bmp(roof_oracle_data)
+    except (AssertionError, OSError, struct.error) as error:
+        check(False, f"dual-companion roof BMP decodes safely: {error}")
+        roof_native_page, roof_native_palette = b"", ()
+    else:
+        check(sha256(roof_native_page) == ROOF_PAGE_SHA256,
+              "roof oracle retains its complete indexed page")
+        check(sha256(bytes(roof_native_palette)) == PALETTE_SHA256,
+              "roof oracle retains all active six-bit palette components")
+
+    roof_native_target: set[tuple[int, int]] = set()
+    roof_native_second: set[tuple[int, int]] = set()
+    roof_native_target_core: set[tuple[int, int]] = set()
+    roof_native_second_core: set[tuple[int, int]] = set()
+    if roof_native_page:
+        roof_native_target = connected_component(
+            roof_native_page, TARGET_NATIVE_SEED, 79)
+        roof_native_second = connected_component(
+            roof_native_page, SECOND_NATIVE_SEED, 79)
+        roof_native_target_core = connected_component(
+            roof_native_page, TARGET_NATIVE_SEED, 87)
+        roof_native_second_core = connected_component(
+            roof_native_page, SECOND_NATIVE_SEED, 87)
+        check(
+            len(roof_native_target) == 236
+            and bounds(roof_native_target) == (212, 97, 264, 104)
+            and len(roof_native_target_core) == 48
+            and bounds(roof_native_target_core) == (244, 97, 256, 101),
+            "native roof view retains the isolated right corona and core",
+        )
+        check(
+            len(roof_native_second) == 115
+            and bounds(roof_native_second) == (56, 97, 77, 106)
+            and len(roof_native_second_core) == 57
+            and bounds(roof_native_second_core) == (64, 97, 73, 104),
+            "native roof view retains the isolated left corona and core",
+        )
+
+    roof_provenance_data = ROOF_PROVENANCE.read_bytes()
+    check(
+        sha256(roof_provenance_data.replace(b"\r\n", b"\n")) ==
+        ROOF_PROVENANCE_SHA256,
+        "dual-companion roof provenance has its pinned normalized SHA-256",
+    )
+    try:
+        roof_provenance = json.loads(roof_provenance_data)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        check(False, f"dual-companion roof provenance decodes safely: {error}")
+        roof_provenance = {}
+    roof_continuity = roof_provenance.get("continuity_after_snapshot", {})
+    roof_visibility = roof_provenance.get("native_visibility", {})
+    roof_matched = roof_provenance.get("matched_product_contract", {})
+    roof_authority = roof_provenance.get("authority", {})
+    check(
+        roof_provenance.get("artifact_sha256") == ROOF_BMP_SHA256
+        and roof_provenance.get("star") == list(STAR)
+        and roof_provenance.get("body_types") == [10, 10, 1]
+        and roof_provenance.get("target_body") == 0
+        and roof_provenance.get("second_companion_body") == 1,
+        "roof provenance identifies both generated type-10 bodies",
+    )
+    check(
+        roof_provenance.get("camera") == {
+            "position": [0.0, -750.0, -1900.0],
+            "user_alfa": 0.0,
+            "user_beta": 0.0,
+            "navigation_beta": 113.0,
+            "on_roof": True,
+            "cupola_aperture_distance": 1200.0,
+        }
+        and roof_continuity.get("sync") == 0
+        and roof_continuity.get("ip_targetted") == 0
+        and roof_continuity.get("ip_reached") == 1
+        and roof_continuity.get("lifter") == 0
+        and roof_continuity.get("fcs_status") == "STANDBY"
+        and math.isclose(roof_continuity.get("secs", 0),
+                         1345723228.9444444, abs_tol=1e-9)
+        and tuple(roof_continuity.get("star_local", ())) == NATIVE_STAR_LOCAL,
+        "roof provenance retains the stable camera and adjacent native state",
+    )
+    check(
+        roof_visibility.get("target_companion_component_pixel_count") == 236
+        and roof_visibility.get("second_companion_component_pixel_count") == 115
+        and roof_visibility.get(
+            "both_companions_visible_through_separate_cupola_panels"
+        ) is True
+        and roof_matched.get("complete_page_index_mismatches") == 416
+        and roof_matched.get("complete_page_palette_band_mismatches") == 0
+        and roof_matched.get("target_component_mask_mismatches_at_index_79") == 0
+        and roof_matched.get("second_component_mask_mismatches_at_index_79") == 0,
+        "roof provenance records exact two-source masks and complete-page bands",
+    )
+    check(
+        roof_authority.get("snapshot_camera_state_retained") is True
+        and roof_authority.get("snapshot_page_and_palette_retained") is True
+        and roof_authority.get("snapshot_simulation_state_retained") is False
+        and roof_authority.get("whole_page_same_state_contract") is False
+        and math.isclose(
+            roof_authority.get("matched_product_phase_bracket_seconds", 0),
+            0.05555558204650879,
+            abs_tol=1e-12,
+        ),
+        "roof provenance limits grading to its adjacent two-source phase",
+    )
+
     if args.product_directory is not None:
         directory = args.product_directory
         required = product_paths(directory)
@@ -381,6 +533,106 @@ def main() -> int:
                 )
                 print(
                     "INFO whole-page equality remains ungraded "
+                    f"({index_mismatches} indices, {band_mismatches} bands, "
+                    f"{palette_mismatches} palette components differ)"
+                )
+
+    if args.roof_product_directory is not None:
+        directory = args.roof_product_directory
+        prefix = "orbitmultipletripleroof"
+        required = product_paths(directory, prefix)
+        for path, size in required:
+            check(path.is_file() and path.stat().st_size == size,
+                  f"roof product emitted {path.name} at exactly {size} bytes")
+        if all(path.is_file() and path.stat().st_size == size for path, size in required):
+            local = (directory / f"{prefix}-game-local-out.bin").read_bytes()
+            page = (directory / f"{prefix}-game-page-out.bin").read_bytes()
+            palette_data = (directory / f"{prefix}-game-palette-out.bin").read_bytes()
+            product_palette = struct.unpack("<768I", palette_data)
+            header = struct.unpack_from("<8i", local)
+            binary64 = lambda unit: struct.unpack_from("<d", local, unit * 4)[0]
+            ship = (binary64(8), binary64(10), binary64(12))
+            target = (binary64(14), binary64(16), binary64(18))
+            second = (binary64(30), binary64(32), binary64(34))
+            check(
+                header[:2] == (0, 1)
+                and header[3:] == (1345723229, 0, 0, 113, 0),
+                "roof product retains the adjacent clock, target, and camera",
+            )
+            check(
+                ship == ROOF_TARGET_RELATIVE_SHIP
+                and target == ROOF_TARGET_ABSOLUTE
+                and tuple(target[index] + ship[index] for index in range(3)) ==
+                NATIVE_STAR_LOCAL,
+                "roof product exactly matches the native star-relative pose",
+            )
+            check(
+                struct.unpack_from("<2i", local, 28 * 4) == (1, 10)
+                and all(math.isclose(value, expected, abs_tol=1e-9)
+                        for value, expected in zip(second, ROOF_SECOND_RELATIVE))
+                and math.isclose(binary64(36), 2835.6415335403276,
+                                 abs_tol=1e-9)
+                and math.isclose(binary64(38), 10.86, abs_tol=1e-12)
+                and struct.unpack_from("<3i", local, 40 * 4) == (1, 73, 101),
+                "roof product independently retains the second companion flare",
+            )
+
+            target_relative = tuple(-value for value in ship)
+            target_distance = math.sqrt(sum(value * value for value in target_relative))
+            check(
+                project_flare(target_relative) == (255, 99)
+                and project_flare(second) == (73, 101)
+                and 5 * binary64(20) < target_distance < 1000 * binary64(20)
+                and 5 * binary64(38) < binary64(36) < 1000 * binary64(38),
+                "roof source projection and strict gates admit both companions",
+            )
+
+            roof_product_target = connected_component(
+                page, ROOF_TARGET_PRODUCT_SEED, 79)
+            roof_product_second = connected_component(
+                page, ROOF_SECOND_PRODUCT_SEED, 79)
+            roof_product_target_core = connected_component(
+                page, ROOF_TARGET_PRODUCT_SEED, 87)
+            roof_product_second_core = connected_component(
+                page, ROOF_SECOND_PRODUCT_SEED, 87)
+            check(
+                len(roof_product_target) == 236
+                and bounds(roof_product_target) == (212, 97, 264, 104)
+                and len(roof_product_target_core) == 48
+                and bounds(roof_product_target_core) == (244, 97, 256, 101),
+                "roof product retains the isolated right corona and core",
+            )
+            check(
+                len(roof_product_second) == 115
+                and bounds(roof_product_second) == (56, 97, 77, 106)
+                and len(roof_product_second_core) == 57
+                and bounds(roof_product_second_core) == (64, 97, 73, 104),
+                "roof product retains the isolated left corona and core",
+            )
+
+            if roof_native_page:
+                index_mismatches = sum(
+                    a != b for a, b in zip(roof_native_page, page))
+                band_mismatches = sum(
+                    (a & 0xC0) != (b & 0xC0)
+                    for a, b in zip(roof_native_page, page)
+                )
+                palette_mismatches = sum(
+                    a != b for a, b in zip(roof_native_palette, product_palette)
+                )
+                check(
+                    roof_product_target == roof_native_target
+                    and roof_product_second == roof_native_second
+                    and roof_product_target_core == roof_native_target_core
+                    and roof_product_second_core == roof_native_second_core,
+                    "native and product have exact per-source roof component masks",
+                )
+                check(
+                    band_mismatches == 0,
+                    "roof product matches all 64,000 native palette bands",
+                )
+                print(
+                    "INFO roof low-six and palette equality remain ungraded "
                     f"({index_mismatches} indices, {band_mismatches} bands, "
                     f"{palette_mismatches} palette components differ)"
                 )
