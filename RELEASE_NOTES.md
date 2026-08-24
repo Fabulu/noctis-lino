@@ -334,17 +334,26 @@ the strict `y < -500` roof switch in both directions, and the source-ordered
 camera-pitch and forward-restraint changes. Every one of the 20 states produces
 a distinct complete indexed page even though presentation continues at 60 Hz.
 
-Capsule recovery now has the same complete production boundary. An opt-in
-`capsuletrace` launch records sixteen signed scalar fields and one complete
+Capsule descent and recovery now have the same complete production boundary. An
+opt-in `capsuletrace` launch records sixteen signed scalar fields and one complete
 64,000-byte indexed page for each authoritative simulation tick while remaining
-inert during ordinary play. A private inactive-desktop run retains exactly 252
-records: counts 1--32 seal while landed, count 33 lifts off, counts 33--250 apply
-the cumulative source `-(count-31)*20` ascent, count 251 clears the capsule and
-renders one final surface page with return pending, and the following clean frame
-commits mode 0 inside the Stardrifter. Every record has `VHGdosim=1` and a
+inert during ordinary play. A private inactive-desktop landing retains exactly
+601 records: 600 airborne descent ticks preserve the source gravity recurrence,
+32-percent rebounds, evolving atmospheric wind, lateral terrain resampling, and
+consecutive source frames; the final record atomically clears capsule state and
+gravity, sets landed state, and snaps to the walking pose at `ground-600`. The
+accepted runs change more than 15,000 indexed pixels at first impact, while
+airborne-to-walking settlement changes more than 22,000 indices and 3,300
+palette-band assignments.
+
+The complementary recovery run retains exactly 252 records: counts 1--32 seal
+while landed, count 33 lifts off, counts 33--250 apply the cumulative source
+`-(count-31)*20` ascent, count 251 clears the capsule and renders one final
+surface page with return pending, and the following clean frame commits mode 0
+inside the Stardrifter. Every descent/recovery record has `VHGdosim=1` and a
 consecutive source frame; the accepted surface-to-ship transitions change more
 than 52,000 indexed pixels and 37,000 palette-band assignments. The deterministic
-capsule profile checkpoint now stages the pod and player at the map centre rather
+capsule profile checkpoint stages the pod and player at the map centre rather
 than at a coordinate that the radial surface clamp moves away from the pod.
 
 Native direct star/body editing now owns character

@@ -447,7 +447,9 @@ def main() -> int:
             "A = [VHGsentinelcapsuletrace]; ? A = 0 -> VHG capsule trace done;",
             "A = [VHGdosim]; ? A = 0 -> VHG capsule trace done;",
             "A = [VHGcapsuletraceactive]; ? A != 0 -> VHG capsule trace capture;",
-            "A = [VHGCstate]; ? A != 2 -> VHG capsule trace done;",
+            "A = [VHGCstate]; ? A = 2 -> VHG capsule trace ascent start;",
+            "? A != 1 -> VHG capsule trace done;",
+            "[VHGcapsuletraceactive] = 3;",
             "[VHGcapsuletraceactive] = 1;",
             "[vhgcapsulestate plus 0] = [VHGCstate];",
             "[vhgcapsulestate plus 5] = [VHGcapsulereturnpending];",
@@ -459,16 +461,19 @@ def main() -> int:
             "A = [VHGcapsuletraceindex]; A * 64000;",
             "[Block Pointer] = sppack; [Block Size] = 64000; isocall;",
             "[VHGcapsuletracecount]+;",
-            "A = [VHGcapsuletraceactive]; ? A = 2 -> VHG capsule trace complete;",
+            "A = [VHGcapsuletraceactive]; ? A = 3 -> VHG capsule trace descent complete;",
+            "? A = 2 -> VHG capsule trace complete;",
             "A = [VHGcapsulereturnpending]; ? A = 0 -> VHG capsule trace complete;",
             "[VHGcapsuletraceactive] = 2;",
+            '"VHG capsule trace descent complete"',
+            "A = [VHGlanded]; ? A = 0 -> VHG capsule trace done;",
             "[VHGcapsuletraceactive] = 0;",
         ))
         and capsule_trace.index("A = [VHGsentinelcapsuletrace];")
         < capsule_trace.index("[SPpreg] = RGADP;")
         < capsule_trace.index("[VHGcapsuletracecount]+;")
         < capsule_trace.index("[VHGcapsuletraceactive] = 2;"),
-        "opt-in capsule trace records the authoritative ascent and clean ship handoff",
+        "opt-in capsule trace records authoritative descent, ascent, and clean handoffs",
     )
     platform = section(game, '"VHG platform"', '"VHG lift tick"')
     ship_input = section(game, '"VHG normal input"', '"VHG surface input"')
