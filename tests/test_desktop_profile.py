@@ -14,6 +14,7 @@ import profile_noctis_desktop as profiler  # noqa: E402
 
 
 GAME = ROOT / "work" / "vhgame.txt"
+GROUND = ROOT / "work" / "vhground.txt"
 PRIVATE_RUNNER = ROOT / "tools" / "windows_hidden_process.py"
 
 
@@ -58,6 +59,40 @@ def main() -> int:
           abs(metrics["input_effect_to_present_ms"] - 4.0912) < 1e-12 and
           metrics["external_counter_comparable"] is False,
           "profile derives internal detection, movement-effect, and presentation latency")
+    surface_metrics = profiler.derived_metrics({**decoded, "mode": 1}, None)
+    check(all(surface_metrics[field] == 0.0 for field in (
+              "average_surface_background_ms",
+              "average_surface_terrain_ms",
+              "average_surface_effects_ms",
+              "average_surface_smoothing_ms",
+          )),
+          "surface profiles expose background, terrain, effects, and smoothing costs")
+
+    synthetic_cores = (0x03, 0x0C, 0x30, 0xC0)
+    check(profiler.select_physical_core(synthetic_cores, "last") == (3, 0xC0) and
+          profiler.select_physical_core(synthetic_cores, "1") == (1, 0x0C),
+          "scheduler selects a complete fixed physical core")
+    affinity, priority, controlled = profiler.make_scheduling_plan(
+        "controlled", "last", synthetic_cores)
+    check(affinity == 0xC0 and
+          priority == profiler.ABOVE_NORMAL_PRIORITY_CLASS and
+          controlled["policy"] == profiler.CONTROLLED_SCHEDULING and
+          controlled["comparable"] is True and
+          controlled["physical_core_masks"] == ["0x3", "0xc", "0x30", "0xc0"],
+          "controlled profiles request one physical core at above-normal priority")
+    affinity, priority, uncontrolled = profiler.make_scheduling_plan(
+        "uncontrolled", "last", synthetic_cores)
+    check(affinity is None and priority is None and
+          uncontrolled["comparable"] is False and
+          "not controlled" in uncontrolled["reason"],
+          "uncontrolled profiles are unambiguously incomparable")
+    try:
+        profiler.select_physical_core(synthetic_cores, "4")
+    except ValueError:
+        bad_core_rejected = True
+    else:
+        bad_core_rejected = False
+    check(bad_core_rejected, "scheduler rejects an unavailable physical core")
 
     for corrupt, description in (
         (data[:-4], "truncated profile"),
@@ -83,8 +118,8 @@ def main() -> int:
           all(struct.unpack_from("<i", item, 27 * 4)[0] == 1
               for item in (surface, capsule, stardrifter, orbital)),
           "sessions preserve product modes with the 60-Hz presenter enabled")
-    check(struct.unpack_from("<ii", capsule, 4 * 4)[0] == 131072 and
-          struct.unpack_from("<i", capsule, 6 * 4)[0] == 131072,
+    check(struct.unpack_from("<ii", capsule, 4 * 4)[0] == 1638400 and
+          struct.unpack_from("<i", capsule, 6 * 4)[0] == 1638400,
           "capsule-return checkpoint starts exactly at the landed capsule")
     local_active, local_body = struct.unpack_from("<ii", orbital, 48 * 4)
     local_x, local_y, local_z = struct.unpack_from("<3d", orbital, 50 * 4)
@@ -93,6 +128,7 @@ def main() -> int:
           "orbital session restores the calibrated close-approach state")
 
     game = GAME.read_text(encoding="utf-8")
+    ground = GROUND.read_text(encoding="utf-8")
     private_runner = PRIVATE_RUNNER.read_text(encoding="utf-8")
     check("VHGSIMADD = 18206; VHGSIMDEN = 60000;" in game,
           "profile instrumentation leaves the 18.206-Hz gameplay cadence intact")
@@ -111,11 +147,22 @@ def main() -> int:
           "game records terminal timing, cadence, deadline, and input fields")
     check(game.count("=> VHG profile W effect;") == 2,
           "W effect timing covers both Stardrifter and surface movement")
+    check(all(fragment in ground for fragment in (
+              "A + [VHGprofspace]; [VHGprofspace] = A;",
+              "A + [VHGprofcupola]; [VHGprofcupola] = A;",
+              "A + [VHGprofhull]; [VHGprofhull] = A;",
+              "A + [VHGprofdetail]; [VHGprofdetail] = A;",
+          )),
+          "surface renderer records background, terrain, effects, and smoothing phases")
     check(all(fragment in private_runner for fragment in (
               "class PrivateDesktopProcess:",
               "EnumDesktopWindows",
               "PostMessageW",
               "QueryPerformanceCounter",
+              "GetLogicalProcessorInformation",
+              "SetProcessAffinityMask",
+              "GetProcessAffinityMask",
+              "GetPriorityClass",
               "TerminateProcess",
           )),
           "profiling runner controls only its private desktop process")

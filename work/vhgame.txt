@@ -11308,14 +11308,17 @@
 	=> TK advance;
 	[Timer Command] = READ COUNTS; isocall; [TKnow] = [Counts]; => TK is late;
 	A = [TKlate]; ? A = 0 -> VHG timing fast wait;
+	A = [TKnow]; A - [TKdeadline]; E = A;
 	A = [VHGprofileactive]; ? A = 0 -> VHG timing miss counted;
 	[VHGprofilemissed]+;
-	A = [TKnow]; A - [TKdeadline]; E = A;
-	A + [VHGprofilelatetotal]; [VHGprofilelatetotal] = A;
+	A = E; A + [VHGprofilelatetotal]; [VHGprofilelatetotal] = A;
 	A = E; ? A '<= [VHGprofilelatemax] -> VHG timing miss counted;
 	[VHGprofilelatemax] = A;
     "VHG timing miss counted"
-	( Overrun: make now the new origin; do not discard another interval. )
+	( A sub-period overrun keeps the absolute 60-Hz grid so the following
+	  cheaper frame can recover ordinary scheduler jitter.  Rebase after a
+	  whole-period miss to prevent unbounded catch-up after a real stall. )
+	A = E; ? A < [TKbase] -> VHG timing done;
 	[TKdeadline] = [TKnow]; [TKacc] = 0; -> VHG timing done;
     "VHG timing fast wait"
 	=> TK wait;

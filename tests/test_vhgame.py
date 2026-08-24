@@ -89,6 +89,18 @@ def signed_lerp(old: int, new: int, phase: int, denominator: int = 60000) -> int
     return old - delta if product < 0 else old + delta
 
 
+def fast_timing_deadline(deadline: int, now: int, period: int,
+                         rebase_threshold: int) -> tuple[int, str]:
+    """Model the bounded catch-up policy after one deadline advance."""
+    advanced = deadline + period
+    lateness = now - advanced
+    if lateness < 0:
+        return advanced, "wait"
+    if lateness < rebase_threshold:
+        return advanced, "catch-up"
+    return now, "rebase"
+
+
 def signed32(value: int) -> int:
     value &= 0xFFFFFFFF
     return value if value < 0x80000000 else value - 0x100000000
@@ -1006,13 +1018,19 @@ def main() -> int:
             "A + [VHGNDbackspan]; [VHGNDzhi] = A;",
             "A + [VHGNDbackspan]; [VHGNDxhi] = A;",
             "A - [VHGNDbackspan]; [VHGNDxlo] = A;",
+            '"VHGND faithful x row bounds"', '"VHGND faithful z row bounds"',
+            "A = 90; A - [VHGNDtmp]; [VHGNDtmp] = A;",
+            "? A <= 65 -> VHGND faithful x row span ready;",
+            "? A <= 65 -> VHGND faithful z row span ready;",
+            "=> VHGND faithful x row bounds; [VHGNDx] = [VHGNDxlo];",
+            "=> VHGND faithful z row bounds; [VHGNDz] = [VHGNDzhi];",
             '"VHGND faithful north"', '"VHGND faithful east"',
             '"VHGND faithful south"', '"VHGND faithful west"',
         ))
         and "? A > 90 -> VHGND tile done;" in tile
         and "[SPcull] = 1" in tile
         and "A > [VHGNDmaxdepth]" in tile,
-        "surface renderer uses NIV+ unit tiles, airborne backspan, painter quadrants, and depth-64 source gates",
+        "surface renderer hoists exact Manhattan row bounds while retaining NIV+ unit tiles, airborne backspan, painter quadrants, and depth-64 gates",
     )
     check(
         "if (depth > 40) return;" in original1
@@ -2476,6 +2494,7 @@ def main() -> int:
         and jet_ticks > jump_ticks and jet_apex < jump_apex and jet_ground == jump_ground,
         "surface jump and hold-to-thrust jetpack follow body gravity and land cleanly",
     )
+    timing_step = section(game, '"VHG timing step"', '"VHG timing rebase"')
     check(
         all(token in game for token in (
             '"VHG fast key"', "[KEY F5]", '"VHG cadence"',
@@ -2490,8 +2509,16 @@ def main() -> int:
         and "VHGfast = 1; VHGfastheld = 0; VHGsimacc = 0;" in game
         and game.count("[VHGsimacc] = 1000000;") == 0
         and "A = [VHGfast]; ? A != 0 -> VHG timing fast;" in game
-        and "=> TK step;" in section(game, '"VHG timing step"', '"VHG timing rebase"')
-        and "[TKdeadline] = [TKnow]; [TKacc] = 0;" in game
+        and "=> TK step;" in timing_step
+        and "A = E; ? A < [TKbase] -> VHG timing done;" in timing_step
+        and "[TKdeadline] = [TKnow]; [TKacc] = 0;" in timing_step
+        and timing_step.index("A = [TKnow]; A - [TKdeadline]; E = A;")
+            < timing_step.index("A = [VHGprofileactive];")
+            < timing_step.index('"VHG timing miss counted"')
+            < timing_step.index("A = E; ? A < [TKbase] -> VHG timing done;")
+        and fast_timing_deadline(1000, 1015, 17, 17) == (1017, "wait")
+        and fast_timing_deadline(1000, 1020, 17, 17) == (1017, "catch-up")
+        and fast_timing_deadline(1000, 1034, 17, 17) == (1034, "rebase")
         and "[VHGNDdosim] = [VHGdosim];" in game
         and "[VHGNDinterpacc] = [VHGinterpacc];" in game
         and ground.count("A = [VHGNDdosim]; ? A = 0") >= 3,

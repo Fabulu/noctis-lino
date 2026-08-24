@@ -2536,6 +2536,9 @@
 	  before any terrain is submitted.  Leaving the whitesun pixels in band 0
 	  turns a clipped bright disc into a dark vertical slab on some palettes. )
 	=> VHT mask page;
+	[Timer Command] = READ COUNTS; isocall; A = [Counts]; A - [VHGprofpart];
+	A + [VHGprofspace]; [VHGprofspace] = A;
+	[Timer Command] = READ COUNTS; isocall; [VHGprofpart] = [Counts];
 	( Terrain and all world objects use the walking camera again. )
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
@@ -2554,6 +2557,9 @@
 	=> VHGND object view setup;
 	[VHGNDanimorphs] = 0; [VHGNDgroundbirds] = 0;
 	=> VHGND traverse faithful;
+	[Timer Command] = READ COUNTS; isocall; A = [Counts]; A - [VHGprofpart];
+	A + [VHGprofcupola]; [VHGprofcupola] = A;
+	[Timer Command] = READ COUNTS; isocall; [VHGprofpart] = [Counts];
     "VHGND render terrain done"
 	( The faithful unit mesh already visits every ruinschart tile in source
 	  painter order.  The old second ruins pass existed only to patch holes
@@ -2564,6 +2570,8 @@
     "VHGND render weather ready"
 	=> VHGND render weather;
     "VHGND render finish"
+	[Timer Command] = READ COUNTS; isocall; A = [Counts]; A - [VHGprofpart];
+	A + [VHGprofhull]; [VHGprofhull] = A;
 	end;
 
 "VHGND terrain cache frame"
@@ -4144,6 +4152,7 @@
 	end;
 
 "VHGND wave impact finish"
+	[Timer Command] = READ COUNTS; isocall; [VHGprofpart] = [Counts];
 	( Every ordinary NIV+ surface frame receives two psmooth_64(adapted,160)
 	  passes before the visor is drawn.  A wet-lens wave substitutes waveblur
 	  passes over the full closed-visor range.  Borland discards the allocated
@@ -4171,6 +4180,8 @@
 	A = [VHGNDwaveblur]; ? A <= 0 -> VHGND wave impact finish done;
 	A = [VHGNDdosim]; ? A = 0 -> VHGND wave impact finish done; [VHGNDwaveblur]-;
     "VHGND wave impact finish done"
+	[Timer Command] = READ COUNTS; isocall; A = [Counts]; A - [VHGprofpart];
+	A + [VHGprofdetail]; [VHGprofdetail] = A;
 	end;
 
 "VHGND wave spawn"
@@ -5139,26 +5150,40 @@
 	? A < 135 -> VHGND faithful east; ? A < 225 -> VHGND faithful south;
 	-> VHGND faithful west;
 
-    "VHGND faithful x bounds"
-	A = [VHGNDcamtx]; A - 65; [VHGNDxlo] = A;
-	? A >= 0 -> VHGND faithful xlo ready; [VHGNDxlo] = 0;
-    "VHGND faithful xlo ready"
-	A = [VHGNDcamtx]; A + 65; [VHGNDxhi] = A;
-	? A '<= 198 -> VHGND faithful x bounds done; [VHGNDxhi] = 198;
-    "VHGND faithful x bounds done"
+    "VHGND faithful x row bounds"
+	( Hoist fragment()'s exact Manhattan rejection to one bound calculation
+	  per row.  The retained 65-tile depth span and painter order are unchanged,
+	  but cells with abs(dx)+abs(dz)>90 never enter the tile service. )
+	A = [VHGNDcamtz]; A - [VHGNDz]; ? A >= 0 -> VHGND faithful x row abs ready;
+	C = 0; C - A; A = C;
+    "VHGND faithful x row abs ready"
+	[VHGNDtmp] = A; A = 90; A - [VHGNDtmp]; [VHGNDtmp] = A;
+	? A <= 65 -> VHGND faithful x row span ready; [VHGNDtmp] = 65;
+    "VHGND faithful x row span ready"
+	A = [VHGNDcamtx]; A - [VHGNDtmp]; [VHGNDxlo] = A;
+	? A >= 0 -> VHGND faithful x row xlo ready; [VHGNDxlo] = 0;
+    "VHGND faithful x row xlo ready"
+	A = [VHGNDcamtx]; A + [VHGNDtmp]; [VHGNDxhi] = A;
+	? A '<= 198 -> VHGND faithful x row bounds done; [VHGNDxhi] = 198;
+    "VHGND faithful x row bounds done"
 	end;
 
-    "VHGND faithful z bounds"
-	A = [VHGNDcamtz]; A - 65; [VHGNDzlo] = A;
-	? A >= 0 -> VHGND faithful zlo ready; [VHGNDzlo] = 0;
-    "VHGND faithful zlo ready"
-	A = [VHGNDcamtz]; A + 65; [VHGNDzhi] = A;
-	? A '<= 198 -> VHGND faithful z bounds done; [VHGNDzhi] = 198;
-    "VHGND faithful z bounds done"
+    "VHGND faithful z row bounds"
+	A = [VHGNDcamtx]; A - [VHGNDx]; ? A >= 0 -> VHGND faithful z row abs ready;
+	C = 0; C - A; A = C;
+    "VHGND faithful z row abs ready"
+	[VHGNDtmp] = A; A = 90; A - [VHGNDtmp]; [VHGNDtmp] = A;
+	? A <= 65 -> VHGND faithful z row span ready; [VHGNDtmp] = 65;
+    "VHGND faithful z row span ready"
+	A = [VHGNDcamtz]; A - [VHGNDtmp]; [VHGNDzlo] = A;
+	? A >= 0 -> VHGND faithful z row zlo ready; [VHGNDzlo] = 0;
+    "VHGND faithful z row zlo ready"
+	A = [VHGNDcamtz]; A + [VHGNDtmp]; [VHGNDzhi] = A;
+	? A '<= 198 -> VHGND faithful z row bounds done; [VHGNDzhi] = 198;
+    "VHGND faithful z row bounds done"
 	end;
 
     "VHGND faithful north"
-	=> VHGND faithful x bounds;
 	A = [VHGNDcamtz]; A - [VHGNDbackspan]; [VHGNDzlo] = A;
 	? A >= 0 -> VHGND faithful north zlo ready; [VHGNDzlo] = 0;
     "VHGND faithful north zlo ready"
@@ -5167,7 +5192,7 @@
     "VHGND faithful north zhi ready"
 	[VHGNDz] = [VHGNDzhi];
     "VHGND faithful north z"
-	[VHGNDx] = [VHGNDxlo];
+	=> VHGND faithful x row bounds; [VHGNDx] = [VHGNDxlo];
     "VHGND faithful north left"
 	A = [VHGNDx]; C = [VHGNDcamtx]; ? A >= C -> VHGND faithful north right start;
 	=> VHGND tile; [VHGNDx]+; -> VHGND faithful north left;
@@ -5181,7 +5206,6 @@
 	end;
 
     "VHGND faithful south"
-	=> VHGND faithful x bounds;
 	A = [VHGNDcamtz]; A - 65; [VHGNDzlo] = A;
 	? A >= 0 -> VHGND faithful south zlo ready; [VHGNDzlo] = 0;
     "VHGND faithful south zlo ready"
@@ -5190,7 +5214,7 @@
     "VHGND faithful south zhi ready"
 	[VHGNDz] = [VHGNDzlo];
     "VHGND faithful south z"
-	[VHGNDx] = [VHGNDxlo];
+	=> VHGND faithful x row bounds; [VHGNDx] = [VHGNDxlo];
     "VHGND faithful south left"
 	A = [VHGNDx]; C = [VHGNDcamtx]; ? A >= C -> VHGND faithful south right start;
 	=> VHGND tile; [VHGNDx]+; -> VHGND faithful south left;
@@ -5204,7 +5228,6 @@
 	end;
 
     "VHGND faithful east"
-	=> VHGND faithful z bounds;
 	A = [VHGNDcamtx]; A - 65; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND faithful east xlo ready; [VHGNDxlo] = 0;
     "VHGND faithful east xlo ready"
@@ -5213,7 +5236,7 @@
     "VHGND faithful east xhi ready"
 	[VHGNDx] = [VHGNDxlo];
     "VHGND faithful east x"
-	[VHGNDz] = [VHGNDzhi];
+	=> VHGND faithful z row bounds; [VHGNDz] = [VHGNDzhi];
     "VHGND faithful east upper"
 	A = [VHGNDz]; C = [VHGNDcamtz]; ? A <= C -> VHGND faithful east lower start;
 	=> VHGND tile; [VHGNDz]-; -> VHGND faithful east upper;
@@ -5227,7 +5250,6 @@
 	end;
 
     "VHGND faithful west"
-	=> VHGND faithful z bounds;
 	A = [VHGNDcamtx]; A - [VHGNDbackspan]; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND faithful west xlo ready; [VHGNDxlo] = 0;
     "VHGND faithful west xlo ready"
@@ -5236,7 +5258,7 @@
     "VHGND faithful west xhi ready"
 	[VHGNDx] = [VHGNDxhi];
     "VHGND faithful west x"
-	[VHGNDz] = [VHGNDzhi];
+	=> VHGND faithful z row bounds; [VHGNDz] = [VHGNDzhi];
     "VHGND faithful west upper"
 	A = [VHGNDz]; C = [VHGNDcamtz]; ? A <= C -> VHGND faithful west lower start;
 	=> VHGND tile; [VHGNDz]-; -> VHGND faithful west upper;

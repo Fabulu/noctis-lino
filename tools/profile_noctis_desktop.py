@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -16,7 +17,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 from make_noctis_checkpoint import build_landed_checkpoint  # noqa: E402
-from windows_hidden_process import PrivateDesktopProcess  # noqa: E402
+from windows_hidden_process import (  # noqa: E402
+    ABOVE_NORMAL_PRIORITY_CLASS,
+    PrivateDesktopProcess,
+    physical_core_affinity_masks,
+)
 
 
 CLOCK_SECONDS = 1344638527
@@ -73,6 +78,59 @@ PROFILE_FIELDS = (
     "trailing_magic",
 )
 SIGNED_FIELDS = {"mode", "landed", "capsule_state", "final_x", "final_z"}
+CONTROLLED_SCHEDULING = "physical-core-above-normal"
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def select_physical_core(core_masks: tuple[int, ...],
+                         requested: str | int) -> tuple[int, int]:
+    if not core_masks:
+        raise ValueError("no physical processor cores are available")
+    if requested == "last":
+        index = len(core_masks) - 1
+    else:
+        try:
+            index = int(requested)
+        except (TypeError, ValueError) as error:
+            raise ValueError("physical core must be 'last' or a nonnegative index") from error
+        if index < 0:
+            raise ValueError("physical core index must be nonnegative")
+    if index >= len(core_masks):
+        raise ValueError(
+            f"physical core {index} is unavailable; valid range is "
+            f"0..{len(core_masks) - 1}")
+    return index, core_masks[index]
+
+
+def make_scheduling_plan(control: str, physical_core: str | int,
+                         core_masks: tuple[int, ...]
+                         ) -> tuple[int | None, int | None, dict[str, object]]:
+    topology = [f"0x{mask:x}" for mask in core_masks]
+    if control == "uncontrolled":
+        return None, None, {
+            "policy": "uncontrolled",
+            "comparable": False,
+            "reason": "process affinity and priority were not controlled",
+            "physical_core_masks": topology,
+        }
+    if control != "controlled":
+        raise ValueError(f"unknown scheduling control {control!r}")
+    index, affinity_mask = select_physical_core(core_masks, physical_core)
+    return affinity_mask, ABOVE_NORMAL_PRIORITY_CLASS, {
+        "policy": CONTROLLED_SCHEDULING,
+        "comparable": True,
+        "physical_core_index": index,
+        "requested_affinity_mask": f"0x{affinity_mask:x}",
+        "requested_priority_class": "above_normal",
+        "physical_core_masks": topology,
+    }
 
 
 def counter_difference(end: int, start: int) -> int:
@@ -242,6 +300,13 @@ def derived_metrics(profile: dict[str, int], _injected_counter: int | None) -> d
         "input_detection_to_present_ms": None,
         "external_counter_comparable": False,
     }
+    if profile["mode"] != 0:
+        metrics.update({
+            "average_surface_background_ms": average("space_counts"),
+            "average_surface_terrain_ms": average("cupola_counts"),
+            "average_surface_effects_ms": average("hull_counts"),
+            "average_surface_smoothing_ms": average("detail_counts"),
+        })
     detected = profile["input_detected_counter"]
     effect = profile["input_effect_counter"]
     presented = profile["input_presented_counter"]
@@ -258,7 +323,13 @@ def derived_metrics(profile: dict[str, int], _injected_counter: int | None) -> d
 
 
 def run_scenario(scenario: str, output_directory: Path, executable: Path,
-                 duration: float, readiness_timeout: float) -> Path:
+                 duration: float, readiness_timeout: float, *,
+                 scheduling_control: str = "controlled",
+                 physical_core: str | int = "last") -> Path:
+    core_masks = physical_core_affinity_masks()
+    affinity_mask, priority_class, scheduling = make_scheduling_plan(
+        scheduling_control, physical_core, core_masks)
+    executable_hash = file_sha256(executable)
     stage = output_directory / scenario
     staged_executable = stage_scenario(
         stage, executable, scenario_checkpoint(scenario))
@@ -266,7 +337,10 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
     injected_counter: int | None = None
     with PrivateDesktopProcess(
             staged_executable, stage,
-            (f"clock={CLOCK_SECONDS}", "profile")) as process:
+            (f"clock={CLOCK_SECONDS}", "profile"),
+            affinity_mask=affinity_mask,
+            priority_class=priority_class) as process:
+        actual_scheduling = process.scheduling_state()
         handle, rectangle = wait_for_ready(process, stage, readiness_timeout)
         ready = time.monotonic()
         time.sleep(1.0)
@@ -295,10 +369,26 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
     raw_profile = profile_path.read_bytes()
     profile = decode_profile(raw_profile)
     (stage / "profile.bin").write_bytes(raw_profile)
+    scheduling["actual"] = actual_scheduling
+    if scheduling["policy"] == CONTROLLED_SCHEDULING:
+        scheduling["comparable"] = (
+            actual_scheduling["process_affinity_mask"] ==
+            scheduling["requested_affinity_mask"]
+            and actual_scheduling["priority_class"] ==
+            scheduling["requested_priority_class"]
+        )
+        if not scheduling["comparable"]:
+            scheduling["reason"] = (
+                "actual process scheduling did not match the requested control")
     report = {
-        "schema": 1,
+        "schema": 2,
         "scenario": scenario,
         "command": [str(staged_executable), f"clock={CLOCK_SECONDS}", "profile"],
+        "provenance": {
+            "executable_path": str(executable.resolve()),
+            "executable_sha256": executable_hash,
+            "scheduling": scheduling,
+        },
         "window_rectangle": rectangle,
         "startup_seconds": ready - started,
         "requested_measurement_seconds": duration,
@@ -325,6 +415,16 @@ def main() -> int:
         "--executable", type=Path, default=ROOT / "work" / "vhgame.exe")
     parser.add_argument("--duration", type=float, default=20.0)
     parser.add_argument("--readiness-timeout", type=float, default=90.0)
+    parser.add_argument(
+        "--scheduling-control", choices=("controlled", "uncontrolled"),
+        default="controlled",
+        help=("pin the game to one physical core at above-normal priority "
+              "(default), or retain an explicitly incomparable uncontrolled run"),
+    )
+    parser.add_argument(
+        "--physical-core", default="last", metavar="INDEX|last",
+        help="physical core used by controlled profiling (default: last)",
+    )
     parser.add_argument("--force", action="store_true",
                         help="replace an already retained scenario report")
     args = parser.parse_args()
@@ -334,20 +434,34 @@ def main() -> int:
     executable = args.executable.resolve()
     if not executable.is_file():
         parser.error(f"missing executable: {executable}")
+    try:
+        make_scheduling_plan(
+            args.scheduling_control, args.physical_core,
+            physical_core_affinity_masks())
+    except (OSError, ValueError) as error:
+        parser.error(str(error))
     output_directory = args.output_directory.resolve()
     for scenario in args.scenario:
         retained = output_directory / scenario / "report.json"
         if retained.is_file() and not args.force:
-            print(f"RETAINED {scenario}: {retained}")
+            report = json.loads(retained.read_text(encoding="utf-8"))
+            scheduling = report.get("provenance", {}).get("scheduling", {})
+            status = ("COMPARABLE" if scheduling.get("comparable")
+                      else "INCOMPARABLE")
+            print(f"RETAINED {status} {scenario}: {retained}")
             continue
         report_path = run_scenario(
             scenario, output_directory, executable,
             args.duration, args.readiness_timeout,
+            scheduling_control=args.scheduling_control,
+            physical_core=args.physical_core,
         )
         report = json.loads(report_path.read_text(encoding="utf-8"))
         metrics = report["metrics"]
+        comparable = report["provenance"]["scheduling"]["comparable"]
         print(
-            f"PROFILE {scenario}: {report['profile']['presentations']} presentations, "
+            f"PROFILE {'COMPARABLE' if comparable else 'INCOMPARABLE'} {scenario}: "
+            f"{report['profile']['presentations']} presentations, "
             f"{metrics['presentation_hz']:.2f} Hz, "
             f"{metrics['simulation_hz']:.3f} simulation Hz, "
             f"{report['profile']['missed_deadlines']} missed deadlines -> {report_path}"
