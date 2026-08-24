@@ -529,6 +529,17 @@ jobs:
                   ),
               },
               {
+                  "case": "rocky-class2-sun0",
+                  "scene": "rockyclass2",
+                  "clock": 1345723230,
+                  "log": "build/macos-aarch64-rocky-class2-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=5800336, star_y=-4462999, star_z=-925592,
+                      body=1, longitude=0, latitude=60, beta=270, pitch=-12,
+                      player_x=1638400, player_z=1638400, fast=True,
+                  ),
+              },
+              {
                   "case": "frozen-sun0",
                   "scene": "frozensun",
                   "log": "build/macos-aarch64-frozen-sun-oracle.txt",

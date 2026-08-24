@@ -1,6 +1,6 @@
 """Grade retained native surface-sun frames against product diagnostics.
 
-The default mode is non-GUI: it validates eleven pinned NIV+ BMP oracles and the
+The default mode is non-GUI: it validates twelve pinned NIV+ BMP oracles and the
 shipping diagnostic/export contracts.  The hosted native Apple-Silicon product
 run supplies the product view, page, palette, and flare-state files.  Authority
 is case-specific: complete palette bands or exact upper-sky crops are graded
@@ -482,6 +482,57 @@ CASES = {
             "ray": 21.879,
         },
     },
+    "rocky-class2-sun0": {
+        "scene": "rockyclass2",
+        "oracle": ROOT / "tests" / "native-oracles" / "rocky-class2-sun0"
+        / "native.shot.BMP",
+        "surface": ROOT / "tests" / "native-oracles" / "rocky-class2-sun0"
+        / "native.SURFACE.BIN",
+        "bmp_sha256": "ea6696f9ad039d0c0409b60ec8997855d1e15c1ca284650ec10b46b4d7f4796d",
+        "surface_sha256": "dcad65a8be49d3522b125625c8f82147b1c80bf1ab59c7812db0c35274203352",
+        "surface_state": (
+            0, 60, 100, 100, 8192, 8192,
+            1638400.0, 1.0, 1638400.0, -12.0, 270.0,
+        ),
+        "page_sha256": "529d63dec71e53a999f2dfc88da926363cad5511c95bb71ed6272105a71ca9b4",
+        "palette_sha256": "87b403eee35a762a83175163c3fd9a48c30339c3a0fe2188c56aa3d4d3b52b03",
+        "checkpoint_sha256": "3bedb6f7fedba26e9fd326edd5d92feaa34df61bb5343fe2f7f34574ccfaef82",
+        "checkpoint": {
+            "star_x": 5800336,
+            "star_y": -4462999,
+            "star_z": -925592,
+            "body": 1,
+            "longitude": 0,
+            "latitude": 60,
+            "beta": 270,
+            "pitch": -12,
+            "player_x": 1638400,
+            "player_z": 1638400,
+            "fast": True,
+        },
+        "clock": 1345723230,
+        "view": (1638400, -10840, 1638400, -12, -90),
+        "center": (161, 100),
+        "native_center": 108,
+        "center_exact": True,
+        "full_band_exact": False,
+        "exact_crop": (10, 10, 310, 100),
+        "palette_exact": True,
+        "beam_gate": "positive",
+        "product": {
+            "mode": 1,
+            "landed": 1,
+            "planet_type": 4,
+            "star_class": 2,
+            "atmosphere": 0,
+            "night": 0,
+            "rain": 0.0,
+            "flare": 1,
+            "exposure": 12.5216,
+            "distance": 61.7717,
+            "ray": 0.363,
+        },
+    },
     "frozen-sun0": {
         "scene": "frozensun",
         "oracle": ROOT / "tests" / "native-oracles" / "frozen-sun0"
@@ -737,6 +788,7 @@ def check_source_contract(check) -> None:
               '"case": "dense-class8-sun0"',
               '"case": "rocky-sun90"',
               '"case": "rocky-class1-sun180"',
+              '"case": "rocky-class2-sun0"',
               '"case": "frozen-sun0"',
               '"case": "quartz-sun228"',
               '"scene": "habitable"',
@@ -748,6 +800,7 @@ def check_source_contract(check) -> None:
               '"scene": "denseclass8"',
               '"scene": "rockysun"',
               '"scene": "rockyclass1"',
+              '"scene": "rockyclass2"',
               '"scene": "frozensun"',
               '"scene": "quartz"',
               "spec.get('clock', 1344638527)",
@@ -757,7 +810,7 @@ def check_source_contract(check) -> None:
               '"--product-directory", str(gallery)',
               "build/sun-gallery/*-game-*-out.bin",
           )),
-          "hosted Apple-Silicon gate executes and retains all eleven surface-sun cases")
+          "hosted Apple-Silicon gate executes and retains all twelve surface-sun cases")
     check("Grade the pinned habitable-world sun frame" not in windows_workflow,
           "Windows packaging no longer depends on an unusable hosted GUI desktop")
 

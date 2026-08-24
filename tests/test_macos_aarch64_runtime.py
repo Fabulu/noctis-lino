@@ -247,6 +247,8 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn('"scene": "lunarclass11"', workflow)
         self.assertIn('"case": "dense-class8-sun0"', workflow)
         self.assertIn('"scene": "denseclass8"', workflow)
+        self.assertIn('"case": "rocky-class2-sun0"', workflow)
+        self.assertIn('"scene": "rockyclass2"', workflow)
         self.assertIn('"clock": 1345636830', workflow)
         self.assertIn('"clock": 1345761727', workflow)
         self.assertIn('gallery / f"{spec[\'scene\']}-{name}"', workflow)

@@ -81,11 +81,11 @@ band, camera, flare gate/position and pre-smoothing sky-band admission sample,
 exposure, distance, and ray remain graded. The separate ten-case primitive
 flare oracle remains byte-exact to its native pages.
 
-That product gate now covers seven landable surface types through eleven retained
+That product gate now covers seven landable surface types through twelve retained
 native BMP and surface records: three lunar type-1 cases, two dense-atmosphere
-type-2 cases, habitable type 3, two rocky type-4 cases, thin-atmosphere type 5,
+type-2 cases, habitable type 3, three rocky type-4 cases, thin-atmosphere type 5,
 frozen type 7 around a class-1 star, and quartz type 8. Habitable, thin, quartz,
-class-1 lunar, class-11 lunar, class-1 rocky, and class-8 dense authenticate
+class-1 lunar, class-11 lunar, class-1/class-2 rocky, and class-8 dense authenticate
 positive radial
 flares; class-0 lunar/dense authenticate the `distance < 10*ray` lower
 suppression gate; class-0 rocky/frozen authenticate the
@@ -109,6 +109,13 @@ product matches centre `(161,100)` at exact index 105, all 768 palette
 components, and all 64,000 final-page palette bands. Its positive interval is
 `10 * 0.256 <= 23.0416 < 1000 * 0.256`; only 450 low-six-bit page values retain
 the snapshot-time smoothing limit.
+ROSVITA II adds the white class-2 primary at `(5800336,-4462999,-925592)`:
+body 1 remains landed with power 17482 at source time `1345723229.7`, and the
+product matches centre `(161,100)` at exact index 108, all 768 palette
+components, and all 27,000 indices in the `(10,10)..(309,99)` upper-sky crop.
+Its positive interval is `10 * 0.363 <= 61.7717 < 1000 * 0.363`; 1,081
+palette-band differences stay confined to snapshot-time horizon rows 115
+through 123.
 The additional dense state keeps body 1 of the class-8 system
 `(-1996240944,72703,944799)` landed with power 19998 at source time
 `1345636830`; the product admits centre `(161,85)`, matches all 64,000
@@ -116,14 +123,14 @@ final-page palette bands, and keeps
 `10 * 6.505 <= 129.4516 < 1000 * 6.505`. Native centre index 60 and product
 index 59 remain in the same band. Authority remains artifact-specific:
 habitable, thin, both dense cases, frozen, and class-1/class-11 lunar require all
-64,000
-palette-band assignments; the lower-gate lunar case, the two rocky cases, and
-frozen additionally require exact 36,000-, 27,000-, 27,000-, and 36,000-index
-upper-sky crops; quartz requires its exact centre index and 36,000-pixel upper-
-sky palette-band crop. All active palettes are exact except the two dense
-captures whose easing-dependent components remain informational. The native
-Apple-Silicon job rebuilds and grades all eleven checkpoints independently with
-their case-specific clocks and retains their product diagnostics.
+64,000 palette-band assignments; the lower-gate lunar case, the three rocky
+cases, and frozen additionally require exact 36,000-, 27,000-, 27,000-,
+27,000-, and 36,000-index upper-sky crops; quartz requires its exact centre
+index and 36,000-pixel upper-sky palette-band crop. All active palettes are
+exact except the two dense captures whose easing-dependent components remain
+informational. The native Apple-Silicon job rebuilds and grades all twelve
+checkpoints independently with their case-specific clocks and retains their
+product diagnostics.
 
 A paired IDEAL capture extends that correction to a class-0 primary and type-1
 orbital target. At matched clock, camera, radius, distance, and Stardrifter

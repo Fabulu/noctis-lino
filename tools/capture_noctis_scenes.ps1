@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'lunarsun', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
+        'lunar', 'lunarsun', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -205,6 +205,10 @@ $scenes = @(
     @{ Name='rockysun'; FileName='planet-rocky-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=90; Lat=60;
        Beta=270; Pitch=-38; PlayerX=1645000; PlayerZ=1641000 },
+    # ROSVITA II around its white class-2 primary, selected for the positive gate.
+    @{ Name='rockyclass2'; X=5800336; Y=-4462999; Z=-925592; Body=1; Type=4;
+       Lon=0; Lat=60; Beta=270; Pitch=-12;
+       PlayerX=1638400; PlayerZ=1638400 },
     @{ Name='thin';      X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=0; Lat=60;
        Beta=167; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
     # Native-matched clear type-5 lighting state. Longitude 45 and the lower
