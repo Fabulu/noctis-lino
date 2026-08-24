@@ -938,6 +938,22 @@ argument. Complete-page
 and exact low-six equality remain ungraded because the native snapshot was not
 state-atomic with frozen RAM and the two start-up palette-easing states differ.
 
+**Orbital class-6 class-suppressed-primary checkpoint.** FUEL TWO at
+`(-125712,-174213,-150246)` is a tracked class-6 primary with ray `5.1290002`,
+spin zero, and no generated bodies. Its checkpoint therefore keeps an
+untargeted exterior Stardrifter at source distance `257.45`, strictly inside
+`6*ray < distance < 1000*ray` and also inside the white-corona interval, without
+inventing a surface target. Extracted native continuity authenticates the
+camera, Dzat, class, zero-body state, and post-snapshot distance; native and
+product retain one compact corona plus the same four isolated background stars
+and no extended radial component. The first 576 native/product palette
+components match. Native/adapted match every index in the 2,025-pixel core;
+native/product match every palette band in that core and the 20,160-pixel upper
+strip. The source's explicit class-6 exclusion, rather than distance,
+explains spoke absence. Whole-page equality, any surface/body claim, and product
+live-distance telemetry remain excluded because the snapshot was non-atomic and
+the orbital view diagnostic has no distance scalar.
+
 **Surface class-10 class-suppressed-flare checkpoint.** BISTARIAL/SORZ at
 `(5411056,-7441017,-1775473)` adds a second source-class exclusion and the first
 retained class-10 case. Body 1 is the primary-owned landable type-8 world. At

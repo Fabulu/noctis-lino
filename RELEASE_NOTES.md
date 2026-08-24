@@ -84,6 +84,19 @@ capture authoring now inverts the source's full exterior
 supports an explicit `--target -1` primary-only pose instead of inventing a
 landable surface for WIRE's sole type-9 body.
 
+FUEL TWO now adds the retained negative companion to WIRE's positive orbital
+primary. The tracked class-6 system at `(-125712,-174213,-150246)` has ray
+`5.1290002` and no generated bodies, so its checkpoint is an untargeted exterior
+Stardrifter rather than an invented surface. Native continuity places source
+distance `257.45` strictly inside
+`6*ray < distance < 1000*ray`, but class 6 authentically excludes the radial
+flare. Native and product retain one compact corona plus the same four isolated
+background stars, match the first 576 palette components and all palette bands
+in the snapshot-stable 2,025-index core and 20,160-index upper strip, and contain
+no extended radial component. Complete-page equality and product live-distance
+telemetry remain explicitly unclaimed; the latter diagnostic does not exist for
+this orbital path.
+
 BISTARIAL/SORZ now adds an independently retained class-10 surface-suppression
 checkpoint. NIV+ authenticates the centred white disc/corona without radial
 spokes on its primary-owned type-8 world, while shipping-product telemetry

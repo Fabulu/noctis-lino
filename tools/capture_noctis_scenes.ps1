@@ -4,7 +4,7 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'stardrifterclass7', 'planetclose',
+    [ValidateSet('all', 'stardrifter', 'stardrifterclass6', 'stardrifterclass7', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
@@ -93,6 +93,12 @@ $scenes = @(
     @{ Name='stardrifter'; Mode=0; X=3979984; Y=-43407; Z=-43984; Body=0; Type=0;
        Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=12;
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=200.0 },
+    # FUEL TWO's class-6 primary has no generated bodies. Hold an untargeted
+    # Stardrifter 50 stellar radii away to authenticate the class exclusion
+    # inside the otherwise-positive orbital flare interval.
+    @{ Name='stardrifterclass6'; Mode=0; X=-125712; Y=-174213; Z=-150246;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=256.45 },
     # WIRE's blue class-7 primary has one authentic type-9 body but no landable
     # surface. Hold the Stardrifter 100 stellar radii away so the source's
     # positive orbital flare gate can be graded without inventing a surface.
