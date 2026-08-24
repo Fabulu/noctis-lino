@@ -130,6 +130,19 @@ the control palette is also exact. Complete pages, the threshold palette/RGB
 image, lower terrain, separate flare state, and later adapted pages remain
 explicitly bounded non-claims.
 
+A second atmospheric pair closes that separate local-primary lens-flare gate
+around binary32 `0x3F99999A` (1.2000000477). Latitude 34, adjacent longitudes 50
+and 51 share surface byte 34, cloud byte 15, recovered albedo 32, DESERT state,
+daylight, and primary-painter admission. Only the independently replayed Borland
+DESERT divisor changes: 4 produces rain 0.9375 and a flare at `(162,94)`; 3
+produces rain 1.25 and suppresses it. Exact rain 1.2 is unreachable from the
+retained quarter-unit cloud/divisor lattice, so this is a source-grounded bracket
+rather than a fabricated equality case. Native and private-desktop product match
+all 1,225 indices in each centred 35-by-35 discriminator and the painter family
+of every one of 64,000 pixels. Complete low-six indexed pages, palettes/RGB,
+settled terrain height, product/native clock identity, and later adapted pages
+remain explicit non-claims.
+
 TRIUMVIRATE - CAESAR adds a genuine class-8 `[10,10,1]` hierarchy with both
 type-10 bodies visible together from the Stardrifter interior. A balanced pose
 places their independently projected flare centres at `(255,99)` and `(73,101)`.

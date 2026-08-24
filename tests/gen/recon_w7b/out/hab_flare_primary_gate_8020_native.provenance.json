@@ -1,0 +1,206 @@
+{
+  "schema": "noctis-native-oracle-provenance-v1",
+  "scene": "atmospheric type-3 primary lens-flare boundary bracketed by binary32 rain 0.9375 and 1.25",
+  "captured_utc": "2026-08-24",
+  "system": {
+    "coordinates": [1463568, -4728350, -437812],
+    "star_class": 0,
+    "star_ray": 5.150000095367432,
+    "number_of_primary_bodies": 12,
+    "number_of_bodies": 78,
+    "target_body": 3,
+    "target_owner": -1,
+    "target_type": 3,
+    "atmosphere": true,
+    "target_orbital_orientation": 2.548180707911721,
+    "orientation_scenario_chop": 1414,
+    "orientation_scenario": 3
+  },
+  "source_maps": {
+    "p_background": "tests/gen/recon_w7a/out/lane_b03_t3.p_background",
+    "p_background_sha256": "17769375e8e5e46f0ec4f4ff762386e4a01c130879de7322cd6abb2cfdeab9c1",
+    "objectschart": "tests/gen/recon_w7a/out/lane_b03_t3.objectschart",
+    "objectschart_sha256": "b5b6e995dd6479326491880b6ecfda0f8a7e9757bda110e8a511b24923099aa3",
+    "latitude": 34,
+    "control50": {"longitude": 50, "surface_pointer": 12290, "surface_sample": 34, "cloud_pointer": 6145, "cloud_sample": 15, "recovered_albedo": 32},
+    "threshold51": {"longitude": 51, "surface_pointer": 12291, "surface_sample": 34, "cloud_pointer": 6145, "cloud_sample": 15, "recovered_albedo": 32}
+  },
+  "landed_camera": {
+    "atlas_quotient": [8, 8],
+    "atlas_remainder": [0, 0],
+    "authored_player": [1598248.0, 1.0, 2251369.0],
+    "pitch": -44.0,
+    "heading": 33.0,
+    "navigation_beta": 0.0,
+    "native_settled_player": {
+      "control50": [1598248.0, -130149.0, 2251369.0],
+      "threshold51": [1598248.0, -76978.875, 2251369.0]
+    },
+    "product_settled_player": {
+      "control50": [1598248, -130749, 2251369],
+      "threshold51": [1598248, -77578, 2251369]
+    }
+  },
+  "native_capture": {
+    "runner": "NIV+ 2.3 under DOSBox-X 2025.05.03",
+    "authority": "Each saved indexed BMP and its active six-bit palette are the authoritative capture. Frozen RAM and adapted support files are later-state diagnostics, not same-frame page substitutes.",
+    "current_sha256": "4a73b344c10b34221bb21f32f09013ac9baa7889ab8de2ff665c52f23ee70bc1",
+    "authored_clock": 1344168020.0,
+    "product_clock": 1344168020,
+    "clock_method": "Both twenty-second snapshots used the same DOS date 06.08.2026 and time 12:00:00.80 command. The retained continuity clocks share the immediately preceding integer second and the same discrete solar state as the product; raw binary64 and integer-second clock identity with the product are explicitly not claimed.",
+    "snapshot_wait_seconds": 20,
+    "snapshot_command": "build/hab-weather-native-matchedsecond8020.cmd",
+    "snapshot_command_sha256": "3139fe284560fd61a5ad7cd2d13d0a6f30e2fba417cf1aea136c920733014ec9",
+    "sync": 3,
+    "target_reached": 1,
+    "charge": 120,
+    "power": 30000,
+    "draw_hud": 0,
+    "continuity_block_address": "0x325dc",
+    "control50": {
+      "longitude": 50,
+      "captured_clock": 1344168019.9166667,
+      "bmp": "hab_flare_control50_8020_native.shot.BMP",
+      "surface": "hab_flare_control50_8020_native.SURFACE.BIN",
+      "bmp_sha256": "25da4331d409d61abee4ff90d697e120ebbbaa14eeec55e42bda30dddb124f58",
+      "surface_sha256": "72fd1d99323a68e8b9a9e7ce258b5e6b8e8c49b6af9303f3653ffdff3fa28fea",
+      "decoded_page_sha256": "d7b530e55eb5bc100b8acd5b567e59ff4b00aee85bfcee9755a2849daaf5d311",
+      "six_bit_palette_sha256": "164bc464ab20ccbe0499f0625ab5c302564b91ec25fb80b878ed02953964f124",
+      "support_memory": "tests/gen/recon_w7b/mem/hab_flare_control50_8020_native.mem",
+      "support_memory_sha256": "40fb066506242e42b00fcac5845ff5f8c0a89966342c2b9bfe035c859cb91382",
+      "support_adapted": "hab_flare_control50_8020_native.adapted",
+      "support_adapted_sha256": "e8b9a0c8bb8d7530ec2df605da85adb2ec38886eeba3936a5ab1eeb116088ac8",
+      "bmp_vs_adapted_index_differences": 38869,
+      "bmp_vs_adapted_palette_band_differences": 1582
+    },
+    "threshold51": {
+      "longitude": 51,
+      "captured_clock": 1344168019.7142856,
+      "bmp": "hab_flare_threshold51_8020_native.shot.BMP",
+      "surface": "hab_flare_threshold51_8020_native.SURFACE.BIN",
+      "bmp_sha256": "3f084b52024c8ab79487df6516966792bddce04dafbf372a47620a07d82458d5",
+      "surface_sha256": "c270e67e6e4184ebf5400c963d0665a02ed05a42698abe09c0f5ea1982387c3e",
+      "decoded_page_sha256": "0aed6fa483eebfcf90b8946e910d00cf971905d6e77c7f764c2851177db93272",
+      "six_bit_palette_sha256": "cfb6e8e8304b80c5ebd9ee8fb4b23d63c9820c1e27bf0eae2e0fdfb7be92d4cc",
+      "support_memory": "tests/gen/recon_w7b/mem/hab_flare_threshold51_8020_native.mem",
+      "support_memory_sha256": "641b7605f3ea58d7ae4a4cbe056311acf61c748517fac9c97a4f98c296d53c68",
+      "support_adapted": "hab_flare_threshold51_8020_native.adapted",
+      "support_adapted_sha256": "d6b7c5ad7c79bce24870e468f3bfea58f8ff652328256d47612570bae1324ba1",
+      "bmp_vs_adapted_index_differences": 20257,
+      "bmp_vs_adapted_palette_band_differences": 1582
+    }
+  },
+  "native_ram_contract": {
+    "continuity": {
+      "clock_address": "0x326c7",
+      "pose_address": "0x32603",
+      "control50": {"clock": 1344168019.9166667, "sync": 3, "target": 3, "target_reached": 1, "settled_player": [1598248.0, -130149.0, 2251369.0], "angles": [-44.0, 33.0, 0.0]},
+      "threshold51": {"clock": 1344168019.7142856, "sync": 3, "target": 3, "target_reached": 1, "settled_player": [1598248.0, -76978.875, 2251369.0], "angles": [-44.0, 33.0, 0.0]}
+    },
+    "weather": {
+      "planet_grav_address": "0x3292a",
+      "rainy_address": "0x3292e",
+      "planet_grav_both": 43.29600143432617,
+      "control50": {"rainy": 0.9375, "albedo": 32, "scenario": 3, "desert_divisor": 4},
+      "threshold51": {"rainy": 1.25, "albedo": 32, "scenario": 3, "desert_divisor": 3}
+    },
+    "rotation_arrays": {
+      "target_index": 3,
+      "rtperiod_address": "0x3816d",
+      "rotation_address": "0x3820d",
+      "term_start_address": "0x382ad",
+      "term_end_address": "0x3834d",
+      "both": {"rtperiod": 694, "raw_rotation": -79, "normalized_rotation": 281, "term_start": 137, "term_end": 267}
+    },
+    "solar_globals": {
+      "crepzone_address": "0x36991",
+      "nightzone_address": "0x36993",
+      "sun_x_factor_address": "0x36995",
+      "scenario_type_address": "0x39164",
+      "primary_distance_address": "0x39165",
+      "primary_ray_address": "0x3916d",
+      "latitude_address": "0x39175",
+      "exposure_address": "0x39179",
+      "sun_xyz_address": "0x3917d",
+      "control50": {"scenario_type": 3, "primary_distance": 243.8081512451172, "primary_ray": 5.150000095367432, "latitude": 39.0, "exposure": 68.08619689941406, "sun_xyz": [-90.9919662475586, -175.7843017578125, 142.34730529785156], "crepzone": 87, "nightzone": 0, "sun_x_factor": 1},
+      "threshold51": {"scenario_type": 3, "primary_distance": 243.8081512451172, "primary_ray": 5.150000095367432, "latitude": 39.0, "exposure": 67.30359649658203, "sun_xyz": [-94.07291412353516, -174.80206298828125, 141.55191040039062], "crepzone": 86, "nightzone": 0, "sun_x_factor": 1}
+    },
+    "rain_derivation": {
+      "formula": "ptr=latitude*360+longitude; cloud=objectschart[ptr>>1]; raw_rain=binary32(min(cloud*0.25,5)); type-3 DESERT divides by random(4)+1",
+      "shared_surface_byte": 34,
+      "shared_cloud_byte": 15,
+      "shared_albedo": 32,
+      "shared_raw_rain": 3.75,
+      "control50": {"seed": 1700, "random_100": 96, "random_4": 3, "divisor": 4, "final_binary32_rain": 0.9375},
+      "threshold51": {"seed": 1734, "random_100": 32, "random_4": 2, "divisor": 3, "final_binary32_rain": 1.25}
+    },
+    "terminator_and_source_gate": {
+      "viewpoint": 268,
+      "plwp": 102,
+      "formula": "plwp=(89-viewpoint+rotation)%360; term_start=(plwp+35)%360; term_end=(term_start+130)%360",
+      "night_interval": [137, 267],
+      "both_daylight": true,
+      "primary_gate": "both rain states are below binary32 2.5, so both retain the local primary painter",
+      "flare_gate": "rainy >= binary32(0x3F99999A) suppresses the separate primary lens flare; 0x3F99999A is binary32 1.2000000476837158"
+    }
+  },
+  "visual_contract": {
+    "source_crop": [145, 77, 180, 112],
+    "source_crop_pixels": 1225,
+    "control50_source_crop_sha256": "10355bcc2d40f2ea340f4fee49ad9f30aa83c45373756ea5105eb0229b76116e",
+    "control50_source_crop_range": [80, 126],
+    "control50_index_126_count": 81,
+    "threshold51_source_crop_sha256": "ca9806b3e72ee72cdf96f2cd03585a4665469828ac5e9ba6c837ad931e9da970",
+    "threshold51_source_crop_range": [74, 127],
+    "threshold51_index_127_count": 1,
+    "native_pair_source_crop_index_differences": 1222,
+    "native_pair_source_crop_palette_band_differences": 0,
+    "native_pair_index_differences": 25024,
+    "native_pair_palette_band_differences": 0,
+    "native_pair_palette_component_differences": 229,
+    "product_pair_index_differences": 24990,
+    "product_pair_palette_band_differences": 0,
+    "product_pair_palette_component_differences": 268,
+    "control50_native_product_index_differences": 13211,
+    "control50_native_product_palette_band_differences": 0,
+    "control50_native_product_palette_component_differences": 465,
+    "threshold51_native_product_index_differences": 13138,
+    "threshold51_native_product_palette_band_differences": 0,
+    "threshold51_native_product_palette_component_differences": 478,
+    "authority_limit": "The centred 35x35 indexed source crops are exact across engines, and all 64,000 pixels remain in the exact native painter family in both states. Complete indexed pages, active palettes/RGB images, settled terrain height, integer-second or raw binary64 clock identity with the product, and later adapted pages are explicit non-claims."
+  },
+  "matched_product": {
+    "runner": "tracked official L.in.oleum build on the private inactive WinSta0 desktop",
+    "clock": 1344168020,
+    "control50": {
+      "directory": "build/renderer-hab-flare-control50",
+      "diagnostic": {"mode": 1, "landed": 1, "planet_type": 3, "star_class": 0, "atmosphere": 1, "night": 0, "rain": 0.9375, "exposure": 68.08619689941406, "distance": 243.80813598632812, "admitted_ray": 5.150000095367432, "admitted_sun_xyz": [-90.99195861816406, -175.78428649902344, 142.34730529785156], "flare_projected": 1, "flare_center": [162, 94], "flare_sample": 122, "rtperiod": 694, "rotation": 281, "viewpoint": 268, "plwp": 102, "term_start": 137, "term_end": 267, "crepzone": 87, "sun_x_factor": 1},
+      "hashes": {
+        "habitable-game-local-out.bin": "5168c839d29f992d3aac93ec165319904df76ed166c06b7d150f35727b49064a",
+        "habitable-game-p-background-out.bin": "882534216d182ded8d042f55d07fe94fba3fd42a43d957d2d442391047847144",
+        "habitable-game-p-surfacemap-out.bin": "68f60a24f8ab3b2b5e3c75cfe6535d1b9492a7afd817149b255685e117d9d8d1",
+        "habitable-game-page-out.bin": "02a4065644888ea051289f91a813f98cbbdd4eb5bf9b01c7a1af831eed02372b",
+        "habitable-game-palette-out.bin": "c289ce6f7df957ad007300cbf18610faf84a3706b002652f4c268ad6e641d1c9",
+        "habitable-game-render-state-out.bin": "969a71e42b159c26a7a12145a7b996e7daa70f0f7dc1f6b09b65dc36eff1de65",
+        "habitable-game-s-background-out.bin": "79bd1c30083c26d93f96d19b21b617d8d0f212a36c70fb4a4d0ad0c99465170d",
+        "habitable-game-sun-out.bin": "1f0712a1a0a42714d9f5e1f5105e68a4401b748af5c30e81088ec9e1cba4212f",
+        "habitable-game-vh-out.bin": "70b332b377eab8e18d2bae163f34f7d1e47e4d5f4c291277594690a0e889b1b8"
+      }
+    },
+    "threshold51": {
+      "directory": "build/renderer-hab-flare-threshold51",
+      "diagnostic": {"mode": 1, "landed": 1, "planet_type": 3, "star_class": 0, "atmosphere": 1, "night": 0, "rain": 1.25, "exposure": 67.30359649658203, "distance": 243.80813598632812, "admitted_ray": 5.150000095367432, "admitted_sun_xyz": [-94.07290649414062, -174.8020477294922, 141.55189514160156], "flare_projected": 0, "rtperiod": 694, "rotation": 281, "viewpoint": 268, "plwp": 102, "term_start": 137, "term_end": 267, "crepzone": 86, "sun_x_factor": 1},
+      "hashes": {
+        "habitable-game-local-out.bin": "69c2be8e8c110ad0d6ec45a9b4b9776607a218fa08b15ad9541ca9ba6327ada0",
+        "habitable-game-p-background-out.bin": "a8337e09747d70774f546cfc18a45cc2a2df6bda3514d3dd4291960033900f24",
+        "habitable-game-p-surfacemap-out.bin": "4a6fb0e63a541c5e6c94e70168caa331f88f5bd903b7fa74c26b06bb5cfba296",
+        "habitable-game-page-out.bin": "cd28dd26685facb8d9d72dd4cc713a6ab3e0272f9ae34804346c642f1450f15c",
+        "habitable-game-palette-out.bin": "b1b9022ba23b6f50c3ba0433e5a4f4491301d00f63dc120a9eb633fdeb331acd",
+        "habitable-game-render-state-out.bin": "a6abdbfda62a6a764f0ef7ef9b7415597de116dd02ec74c14ec5bce2d0048be3",
+        "habitable-game-s-background-out.bin": "79bd1c30083c26d93f96d19b21b617d8d0f212a36c70fb4a4d0ad0c99465170d",
+        "habitable-game-sun-out.bin": "48c995e7970dca1b38126ec8b297c7289022857e2e852af373a60e2a67c8bd11",
+        "habitable-game-vh-out.bin": "c46bb4dc57136e653aa52144db9713be60cd44391bcf0422905ec445e1122943"
+      }
+    }
+  }
+}

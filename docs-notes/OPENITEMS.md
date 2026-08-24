@@ -322,9 +322,9 @@ those inputs, not the unrelated black horizon-pillar defect. Parallel
 screenshot processes can interfere and produced two all-black captures, so
 this matrix must be captured sequentially. The exact frozen-world sunrise and
 sunset-edge pairs below close both ends of one precise day/night interval, and
-the atmospheric pair closes the inclusive local-primary rain-2.5 gate. Still
-open: representative views for every planet and atmosphere class, the separate
-primary-flare rain-1.2 boundary and other material weather transitions, further
+the atmospheric pairs close the inclusive local-primary rain-2.5 gate and
+separate primary-flare rain-1.2 bracket. Still open: representative views for
+every planet and atmosphere class, other material weather transitions, further
 companion and multiple-sun arrangements, additional orbital views, and moving
 transitions among Stardrifter interior/cupola/exterior plus launch/landing
 transitions.
@@ -418,8 +418,31 @@ diagnostics clear their admitted ray/vector while native source globals remain
 populated before the painter gate. Complete pages, threshold RGB/palette, lower
 terrain affected by the bounded settled-height difference, raw-clock identity,
 and later adapted pages remain explicit non-claims. This closes one atmospheric
-primary-painter boundary; the separate rain-1.2 primary-flare boundary and the
-remaining representative atmospheric/weather matrix stay open.
+primary-painter boundary; other material weather transitions and the remaining
+representative atmospheric matrix stay open.
+
+**Exact atmospheric primary-flare checkpoint.** A second same-command pair keeps
+the same LANE IV body and discrete daylight state while landing at latitude 34,
+heading 33, pitch -44, and adjacent longitudes 50/51. Both pointers deliberately
+share surface byte 34, `objectschart[6145]=15`, recovered albedo 32, and the
+system's DESERT scenario. Borland draws `96,3`/`32,2` differ only in the DESERT
+divisor: 4 gives exact binary32 rain 0.9375, while 3 gives 1.25. Exact binary32
+`0x3F99999A` (1.2000000477) is unreachable from the quarter-unit cloud values and
+divisors 1 through 4, so the native pair brackets rather than pretends to equal
+the source threshold.
+
+Both states remain below the independent 2.5 local-primary painter gate, in
+daylight, and at period 694, normalized rotation 281, viewpoint 268, `plwp=102`,
+and terminators 137/267. Product diagnostics retain both primary vectors and
+project the 0.9375 control flare at `(162,94)`, sample 122; the inclusive
+`rainy >= 0x3F99999A` branch suppresses the 1.25 flare. The native control's
+35-by-35 crop keeps the radial lower-crop gradient, while the threshold keeps its
+local-primary disc but flat background below it. Native and product are
+byte-identical over all 1,225 source-crop indices in each state and retain the
+same high-two-bit painter family at every one of 64,000 page positions. Complete
+low-six indexed pages, active palettes/RGB, the roughly 600-unit settled-height
+difference, product/native clock identity, and later adapted pages remain
+explicit non-claims. This closes the primary-flare rain-1.2 boundary.
 
 The Stardrifter local-system pass now restores the companion-star corona's
 source expression too: each type-10 body reseeds the fast generator with its
