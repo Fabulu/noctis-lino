@@ -84,6 +84,16 @@ capture authoring now inverts the source's full exterior
 supports an explicit `--target -1` primary-only pose instead of inventing a
 landable surface for WIRE's sole type-9 body.
 
+EMPTY adds a bodyless class-0 positive orbital-primary checkpoint at
+`(2931408,-6222148,1891299)`, ray `6.44500017`. Extracted native continuity
+places source distance `323.250009` strictly inside both the ordinary orbital
+flare interval and the white-corona interval. Unlike the excluded 5/6/10 cases,
+class 0 admits the 60-spoke flare. Native and warmed private-desktop product
+evidence retain 162/153 bright low-six core pixels with centred bounds, match
+the first 201 palette components, and match every palette band in the inclusive
+4,256-pixel flare crop. Complete-page, matched-clock HUD, surface/body, and
+product live-distance claims remain explicitly excluded.
+
 ASKEW 184 adds the second retained negative orbital-primary checkpoint and the
 class-5 branch of the source exclusion. The tracked bodyless system at
 `(3438192,-1233198,1856484)` has ray `1.49199998`; extracted native continuity

@@ -4,7 +4,7 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass10', 'planetclose',
+    [ValidateSet('all', 'stardrifter', 'stardrifterclass0', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass10', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
@@ -93,6 +93,12 @@ $scenes = @(
     @{ Name='stardrifter'; Mode=0; X=3979984; Y=-43407; Z=-43984; Body=0; Type=0;
        Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=12;
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=200.0 },
+    # EMPTY's bodyless class-0 primary provides the first missing positive
+    # orbital class. Hold it 50 stellar radii away so the compact white corona
+    # and radial flare are both source-admitted without a textured globe.
+    @{ Name='stardrifterclass0'; Mode=0; X=2931408; Y=-6222148; Z=1891299;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=322.25000858306885 },
     # ASKEW 184's class-5 primary has no generated bodies. Keep its centred
     # corona inside the otherwise-positive orbital flare interval to grade the
     # source class exclusion independently of distance and globe occlusion.

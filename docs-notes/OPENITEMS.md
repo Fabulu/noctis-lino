@@ -938,6 +938,19 @@ argument. Complete-page
 and exact low-six equality remain ungraded because the native snapshot was not
 state-atomic with frozen RAM and the two start-up palette-easing states differ.
 
+**Orbital class-0 positive-primary checkpoint.** EMPTY at
+`(2931408,-6222148,1891299)` is a tracked bodyless class-0 primary with ray
+`6.44500017` and spin zero. Its untargeted exterior Stardrifter retains source
+distance `323.250009`, strictly inside both `6*ray < distance < 1000*ray` and
+the white-corona interval. Class 0 passes the source's 5/6/10 exclusions, so the
+radial flare is admitted without inventing a surface target. Native and warmed
+private-desktop product evidence retain 162/153 bright low-six core pixels at
+centred bounds, match the first 201 palette components, and match every palette
+band in the inclusive 4,256-pixel flare crop. The native BMP and post-snapshot
+adapted page differ at only two crop indices and zero crop bands. Whole-page,
+matched-clock HUD, surface/body, and product live-distance claims remain
+excluded.
+
 **Orbital class-5 class-suppressed-primary checkpoint.** ASKEW 184 at
 `(3438192,-1233198,1856484)` is a tracked class-5 primary with ray `1.492`, spin
 zero, and no generated bodies. An untargeted exterior Stardrifter retains source
