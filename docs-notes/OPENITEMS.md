@@ -425,6 +425,30 @@ native indexed companion component remains broader (3,427 versus 2,629 in the
 retained product run), and no native pass-level white-globe/flare/smoothing pages
 exist.
 
+**Independent dual-companion interior checkpoint.** TRIUMVIRATE - CAESAR at
+`(4142128,-5182625,-629021)` is a generated class-8 system with body types
+`[10,10,1]`, so it supplies two genuine type-10 lights rather than one companion
+and an inferred fixture. Selecting body 0 makes its exact relative vector the
+negative authored ship offset, while the source loop's scalar diagnostics retain
+body 1. The source-shaped binary32 projection places body 0 at `(255,99)` and
+body 1 at `(73,101)`; both independently satisfy `5*ray < distance < 1000*ray`.
+A balanced navigation-113 Stardrifter-interior pose keeps both corona/ray
+components separated instead of allowing one central flare to engulf the other.
+
+The retained native indexed page contains a 328-pixel right component and a
+125-pixel left component above index 79, including 61- and 57-pixel brighter
+cores above 87. The private-desktop product retains corresponding 294/111-pixel
+components and 56/49-pixel cores. Its target absolute position plus target-
+relative ship offset equals the frozen native star-local position exactly at
+printed binary64 precision. Product second `1345723226` brackets retained native
+second `1345723225.764706` by 0.235294 second, and every one of the 64,000 page
+indices stays in the same palette band. Exact indices still differ at 40,802
+positions and active palettes at 361 components, so low-six-bit whole-page and
+palette-easing equality remain informational. This closes one genuine
+multiple-sun interior composition with each source graded independently; it does
+not supply the unavailable native pass-level pages needed to tune the remaining
+ROTOR IGNE intensity/shape gap.
+
 A scoped source audit found no material caller divergence that can explain that
 61-versus-151 count: native and product retain companion seeding, binary64 ray,
 binary32 distance, companion-before-primary flare order, smoothing, and masking.

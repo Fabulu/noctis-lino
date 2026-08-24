@@ -7,7 +7,7 @@ param(
     [ValidateSet('all', 'stardrifter', 'stardrifterclass0', 'stardrifterclass1', 'stardrifterclass2', 'stardrifterclass3', 'stardrifterclass4', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass8', 'stardrifterclass9', 'stardrifterclass10', 'stardrifterclass11', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
-        'orbitsubstellar', 'orbitmultiple', 'orbitmultiplecompact',
+        'orbitsubstellar', 'orbitmultiple', 'orbitmultiplecompact', 'orbitmultipletriple',
         'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass5', 'lunarclass9', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'quartzclass10', 'ruins', 'cube')]
@@ -215,6 +215,15 @@ $scenes = @(
        X=-546064; Y=-439032; Z=-1136208; Body=3; Type=4; Lon=0; Lat=60;
        Beta=0; Nav=162; Pitch=0; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;
        Sync=0; LocalX=0.0; LocalY=0.0; LocalZ=-0.05 },
+    # TRIUMVIRATE has two generated type-10 companions and only one ordinary
+    # planet.  Target the first companion so product diagnostics retain its
+    # exact local pose while the ordinary companion diagnostic retains the
+    # second light independently.
+    @{ Name='orbitmultipletriple'; FileName='planet-space-triple-system.png'; Mode=0;
+       X=4142128; Y=-5182625; Z=-629021; Body=0; Type=10; Lon=0; Lat=60;
+       Beta=0; Nav=113; Pitch=0; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;
+       Sync=0;
+       LocalX=-2835.4143674072257; LocalY=17.236258154580206; LocalZ=35.891644488482996 },
     # IDEAL's only body is an authentic type-1 primary. This avoids spending
     # screenshot startup time generating JROT's pathological 80-body system.
     @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;

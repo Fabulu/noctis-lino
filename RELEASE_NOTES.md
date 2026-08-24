@@ -80,6 +80,17 @@ beside-globe arrangement while corroborating, not tuning, the open positive
 companion-intensity gap; non-atomic whole-page and palette equality remain
 ungraded.
 
+TRIUMVIRATE - CAESAR adds a genuine class-8 `[10,10,1]` hierarchy with both
+type-10 bodies visible together from the Stardrifter interior. A balanced pose
+places their independently projected flare centres at `(255,99)` and `(73,101)`.
+Above indexed threshold 79, native retains separate 328- and 125-pixel corona/ray
+components while the adjacent-phase private-desktop product retains 294 and 111
+pixels. Both sources independently satisfy the strict `5*ray < distance <
+1000*ray` companion gate, the star-relative Stardrifter position agrees exactly,
+and all 64,000 complete-page palette bands match. The 0.235294-second phase
+bracket, non-atomic page, and startup palette easing leave exact low-six indices
+and active-palette equality informational rather than claimed.
+
 WIRE now supplies the first retained matched positive orbital-primary class
 checkpoint. Its class-7 primary at `(-1187856,-195673,1064757)` has ray
 `2.1919999`; an untargeted exterior Stardrifter keeps the exact native/product
