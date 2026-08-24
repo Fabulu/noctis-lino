@@ -10,7 +10,7 @@ param(
         'orbitsubstellar', 'orbitmultiple',
         'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass5', 'lunarclass9', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
         'thin', 'thinsun',
-        'frozen', 'frozensun', 'frozenflare', 'quartz', 'ruins', 'cube')]
+        'frozen', 'frozensun', 'frozenflare', 'quartz', 'quartzclass10', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
     [ValidateRange(1, 600)]
@@ -262,6 +262,11 @@ $scenes = @(
        X=-1418337904; Y=1953670; Z=-1274313078; Body=7; Type=7; Lon=0; Lat=60;
        Beta=90; Pitch=-20; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='quartz';    X=1463568; Y=-4728350; Z=-437812; Body=7; Type=8; Lon=0; Lat=60; Beta=180; Pitch=-12 },
+    # BISTARIAL/SORZ II keeps the white disc/corona inside the ordinary radial
+    # interval, while source class 10 authentically suppresses the radial rays.
+    @{ Name='quartzclass10'; X=5411056; Y=-7441017; Z=-1775473; Body=1; Type=8;
+       Lon=333; Lat=60; Beta=270; Pitch=-30;
+       PlayerX=1638400; PlayerY=1; PlayerZ=1638400 },
     # Ylastravenya III's marked ruin edge, photographed outside the Cube.
     @{ Name='ruins';     FileName='planet-triangular-ruins.png';
        X=-56784; Y=-15693; Z=-129542; Body=3; Type=3; Lon=18; Lat=60;

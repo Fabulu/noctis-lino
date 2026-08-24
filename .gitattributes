@@ -1,2 +1,9 @@
 work/igui.txt whitespace=cr-at-eol
 tests/native-oracles/orbital-class7-wire/*.bin binary
+tests/native-oracles/quartz-class10-sun333/README.md text eol=lf
+tests/native-oracles/quartz-class10-sun333/provenance.json text eol=lf
+tests/native-oracles/quartz-class10-sun333/native-capture.cmd binary
+tests/native-oracles/quartz-class10-sun333/*.BMP binary
+tests/native-oracles/quartz-class10-sun333/*.bin binary
+tests/native-oracles/quartz-class10-sun333/*.BIN binary
+tests/native-oracles/quartz-class10-sun333/*.LIN binary

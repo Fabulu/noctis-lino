@@ -938,6 +938,23 @@ argument. Complete-page
 and exact low-six equality remain ungraded because the native snapshot was not
 state-atomic with frozen RAM and the two start-up palette-easing states differ.
 
+**Surface class-10 class-suppressed-flare checkpoint.** BISTARIAL/SORZ at
+`(5411056,-7441017,-1775473)` adds a second source-class exclusion and the first
+retained class-10 case. Body 1 is the primary-owned landable type-8 world. At
+longitude 333, latitude 60, heading 270, pitch -30, and source clock
+`1344638526.9`, native continuity retains class 10, two generated bodies, the
+reached synchronous target, and landed state. The native frame shows its centred
+white disc/corona without radial spokes. Product diagnostics independently place
+distance `400.133026` inside
+`10 * 30.8439999 < distance < 1000 * 30.8439999`, yet radial admission, centre,
+and sample remain zero. Native and product match all 768 six-bit palette
+components, all 572 indices in the half-open `[145,88,171,110]` sun crop, and
+all 29,700 upper-sky palette bands in `[40,10,310,120]`. The authority is
+composite rather than snapshot-atomic: DOSBox-X froze after publishing the BMP,
+so post-snapshot continuity cannot supply native live distance or justify
+whole-page equality; the 9,507 complete-page index and 621 band mismatches remain
+informational.
+
 **Sixteen-case, seven-type automated surface-sun gate, 2026-08-24.** The retained
 sixteen BMP/surface pairs span types 1, 2, 3, 4, 5, 7, and 8 and are immutable
 test inputs rather than untracked capture-tree evidence. One default non-GUI

@@ -84,6 +84,19 @@ capture authoring now inverts the source's full exterior
 supports an explicit `--target -1` primary-only pose instead of inventing a
 landable surface for WIRE's sole type-9 body.
 
+BISTARIAL/SORZ now adds an independently retained class-10 surface-suppression
+checkpoint. NIV+ authenticates the centred white disc/corona without radial
+spokes on its primary-owned type-8 world, while shipping-product telemetry
+places distance `400.133026` strictly inside
+`10 * 30.8439999 < distance < 1000 * 30.8439999` and still reports zero radial
+admission, centre, and sample. The matched evidence has all 768 six-bit palette
+components equal, all 572 indices equal in the half-open sun crop
+`[145,88,171,110]`, and zero palette-band differences across the 29,700-index
+upper-sky crop `[40,10,310,120]`. The gate deliberately combines native visual
+and post-snapshot continuity with product live-distance telemetry: DOSBox-X
+froze after BMP publication, so native live distance and complete-page equality
+remain outside the authority contract.
+
 The retained habitable and thin-atmosphere surface-sun BMP gates now distinguish
 the final indexed contracts their capture provenance can actually support. A
 canonical private-Windows trace places the thin scene's centre at index 126 on
