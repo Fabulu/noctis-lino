@@ -132,7 +132,7 @@ PGTEX_HALFSCAN_NATIVE_CONTRACT = (
 )
 PGTEX_EDGES_NATIVE_CONTRACT = (
     706,
-    "35287904f09856cc4d1a3b8d333c003680a527199d878f9f0d545b47d9506186",
+    "d074905d7696f33b1d22c91ee5b348e3b0b2ab388b42ac4a17144fd3f29a188c",
     24,
 )
 SMOOTH64_CURRENT_SOURCE_ANCHORS = (
@@ -627,10 +627,13 @@ def edges_native_retains_binary64_accumulator(source: str) -> bool:
             b"\x81\xc6\xb0\x00\x00\x00"
             b"\x8b\x87\0\0\0\0\x29\xd0\x40\x51\x89\xc1")
         or encoded[523:531] != b"\xdd\x06\xdb\x97\0\0\0\0"
-        or encoded[615:620] != b"\xdc\x46\xf8\xdd\x1e"
-        or encoded[620:624] != b"\x42\x49\x75\x9b"
-        or encoded[624:657] != (
+        or encoded[531:537] != b"\x8b\x87\0\0\0\0"
+        or encoded[591:596] != b"\xdc\x46\xf8\xdd\x1e"
+        or encoded[596:600] != b"\x42\x49\x75\xb3"
+        or encoded[600:657] != (
             b"\xdd\x06\xdd\x9f\0\0\0\0"
+            b"\x3d\xf0\xd8\xff\xff\x7d\x05\xb8\xf0\xd8\xff\xff"
+            b"\x3d\x10\x27\x00\x00\x7e\x05\xb8\x10\x27\x00\x00"
             b"\x89\x87\0\0\0\0\x89\x97\0\0\0\0"
             b"\x89\x8f\0\0\0\0\x59\x81\xee\xb0\x00\x00\x00")
         or any(
@@ -640,15 +643,15 @@ def edges_native_retains_binary64_accumulator(source: str) -> bool:
                 != target
             for position, target in near_branches
         )
-        or 622 + 2 + int.from_bytes(encoded[623:624], "little", signed=True)
+        or 598 + 2 + int.from_bytes(encoded[599:600], "little", signed=True)
             != 523
         or encoded[-tail_nops - 2:-tail_nops] != bytes((0xEB, tail_nops))
         or encoded[-tail_nops:] != b"\x90" * tail_nops
         or encoded[-tail_nops - 3:-tail_nops - 2] != b"\x5d"
         or b"\xdd\x86\xb0\x00\x00\x00\xdb\x9f\0\0\0\0"
             in encoded[523:638]
-        or b"\x8b\x97\0\0\0\0" in encoded[523:630]
-        or b"\xff\x8f\0\0\0\0" in encoded[523:630]
+        or b"\x8b\x97\0\0\0\0" in encoded[523:638]
+        or b"\xff\x8f\0\0\0\0" in encoded[523:638]
         or encoded.count(b"\x81\xc6\xb0\x00\x00\x00") != 1
         or encoded.count(b"\x81\xee\xb0\x00\x00\x00") != 1
     ):
@@ -657,7 +660,10 @@ def edges_native_retains_binary64_accumulator(source: str) -> bool:
     # FIST and FISTP round the same ST(0).  The retained form leaves that exact
     # loaded binary64 value for the following add, then the same qword store
     # rounds the next row's accumulator and empties the x87 stack.  EDX and ECX
-    # likewise retain the source row and exhausted inclusive count.
+    # likewise retain the source row and exhausted inclusive count.  The broad
+    # clamp is needed only for the final EWax publication: live row bounds are
+    # already constrained to [5, 311], so moving it past the loop leaves both
+    # bounded arrays exact even for the masked-invalid FIST result.
     for initial, slope, first_row, last_row in (
         (-9999.5, 0.125, 5, 21),
         (-0.5, 1.0 / 3.0, 17, 190),
@@ -686,6 +692,20 @@ def edges_native_retains_binary64_accumulator(source: str) -> bool:
             or native_count != 0
         ):
             return False
+
+    def wide_clamp(value: int) -> int:
+        return max(-10000, min(value, 10000))
+
+    for sample in (
+        -0x80000000, -10001, -10000, 4, 5, 311, 312, 10000, 10001,
+    ):
+        for bound in (5, 42, 311):
+            old_fpart = max(bound, min(wide_clamp(sample), 311))
+            new_fpart = max(bound, min(sample, 311))
+            old_ipart = min(bound, max(wide_clamp(sample), 5))
+            new_ipart = min(bound, max(sample, 5))
+            if old_fpart != new_fpart or old_ipart != new_ipart:
+                return False
     return True
 
 
@@ -1289,7 +1309,7 @@ def main() -> int:
                       "DB 9F <dFI mtp bytesperunit>", 1)) and
               not edges_native_retains_binary64_accumulator(
                   staged_texture.replace(
-                      "42 49 75 9B", "42 49 75 9A", 1)),
+                      "42 49 75 B3", "42 49 75 B2", 1)),
               "native edge rows retain exact binary64 accumulation without reloads")
         check(terrain_pixel_loops_preserve_samples(staged_texture) and
               not terrain_pixel_loops_preserve_samples(

@@ -412,15 +412,16 @@
 	    8B 87 <dEWjty mtp bytesperunit> 29 D0 40
 	    51 89 C1
 	    DD 06 DB 97 <dFI mtp bytesperunit>
-	    8B 87 <dFI mtp bytesperunit> 3D F0 D8 FF FF 7D 05 B8 F0 D8 FF FF
-	    3D 10 27 00 00 7E 05 B8 10 27 00 00
+	    8B 87 <dFI mtp bytesperunit>
 	    8D 9C 97 <dfpart mtp bytesperunit> 3B 03 7E 11
 	    3D 37 01 00 00 7C 08 C7 03 37 01 00 00 EB 02 89 03
 	    8D 9C 97 <dipart mtp bytesperunit> 3B 03 7D 0F
 	    83 F8 05 7F 08 C7 03 05 00 00 00 EB 02 89 03
 	    DC 46 F8 DD 1E
-	    42 49 75 9B
+	    42 49 75 B3
 	    DD 06 DD 9F <dFA0 mtp bytesperunit>
+	    3D F0 D8 FF FF 7D 05 B8 F0 D8 FF FF
+	    3D 10 27 00 00 7E 05 B8 10 27 00 00
 	    89 87 <dEWax mtp bytesperunit>
 	    89 97 <dEWh mtp bytesperunit>
 	    89 8F <dEWcx mtp bytesperunit>
