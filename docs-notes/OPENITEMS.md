@@ -951,6 +951,24 @@ adapted page differ at only two crop indices and zero crop bands. Whole-page,
 matched-clock HUD, surface/body, and product live-distance claims remain
 excluded.
 
+**Six-case ordinary positive orbital-primary gallery.** YBARRA, EOGILIE,
+REDIAN, MARRIN, SOLO, and AKYAASLE add bodyless classes 1, 2, 3, 4, 8, and 9.
+Each untargeted exterior pose uses the common `(2813,0,-1397)`, pitch-0,
+beta-23 camera and holds its primary at 50 stellar radii. Extracted continuity
+places all six source distances strictly inside both
+`6*ray < distance < 1000*ray` and `8*ray < distance < 100*ray`; no globe or
+surface is invented, and none of the classes hits the 5/6/10 exclusions. The
+retained 48 case artifacts pin exact authored/frozen continuity, native pages
+and palettes, and warmed private-desktop product camera/state, palettes, and
+pages. Every native/product pair matches all 4,256 palette bands in the
+inclusive `(120,60)..(195,115)` flare crop; native/adapted drift in that crop is
+only two through six indices and zero bands. Largest centred low-six-40
+components range from 111 to 163 native pixels and 108 to 162 product pixels,
+while exact class-colour palette prefixes range from 201 to 284 components.
+EOGILIE's spin 3 does not invoke the class-11-only phase gate. Class 11 remains
+a separate phase-aware checkpoint; complete-page, matched-clock HUD,
+surface/body, and product live-distance claims remain excluded.
+
 **Orbital class-5 class-suppressed-primary checkpoint.** ASKEW 184 at
 `(3438192,-1233198,1856484)` is a tracked class-5 primary with ray `1.492`, spin
 zero, and no generated bodies. An untargeted exterior Stardrifter retains source

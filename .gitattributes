@@ -7,6 +7,13 @@ tests/native-oracles/orbital-class0-empty/native.adapted binary
 tests/native-oracles/orbital-class0-empty/*.BMP binary
 tests/native-oracles/orbital-class0-empty/*.bin binary
 tests/native-oracles/orbital-class0-empty/*.BIN binary
+tests/native-oracles/orbital-positive-class-gallery/README.md text eol=lf
+tests/native-oracles/orbital-positive-class-gallery/provenance.json text eol=lf
+tests/native-oracles/orbital-positive-class-gallery/**/native-capture.cmd binary
+tests/native-oracles/orbital-positive-class-gallery/**/native.adapted binary
+tests/native-oracles/orbital-positive-class-gallery/**/*.BMP binary
+tests/native-oracles/orbital-positive-class-gallery/**/*.bin binary
+tests/native-oracles/orbital-positive-class-gallery/**/*.BIN binary
 tests/native-oracles/orbital-class5-askew-184/README.md text eol=lf
 tests/native-oracles/orbital-class5-askew-184/provenance.json text eol=lf
 tests/native-oracles/orbital-class5-askew-184/native-capture.cmd binary

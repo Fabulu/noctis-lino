@@ -94,6 +94,19 @@ the first 201 palette components, and match every palette band in the inclusive
 4,256-pixel flare crop. Complete-page, matched-clock HUD, surface/body, and
 product live-distance claims remain explicitly excluded.
 
+A retained six-case gallery extends that positive orbital-primary contract to
+all remaining ordinary eligible classes: YBARRA class 1, EOGILIE class 2,
+REDIAN class 3, MARRIN class 4, SOLO class 8, and AKYAASLE class 9. Every
+tracked system is bodyless and is held at 50 stellar radii, strictly inside both
+the orbital flare and white-corona intervals without a textured globe. Across
+all six matched native/product pairs, every palette band in the same inclusive
+4,256-pixel flare crop is exact, two through six native/adapted crop indices
+remain the only local snapshot drift, and independently measured centred bright
+components retain 111–163 native pixels versus 108–162 product pixels. The
+first 201–284 class-specific palette components match exactly. Class 11 remains
+a separate phase-aware checkpoint; whole-page, matched-clock HUD, surface/body,
+and unsupported product live-distance claims remain excluded.
+
 ASKEW 184 adds the second retained negative orbital-primary checkpoint and the
 class-5 branch of the source exclusion. The tracked bodyless system at
 `(3438192,-1233198,1856484)` has ray `1.49199998`; extracted native continuity

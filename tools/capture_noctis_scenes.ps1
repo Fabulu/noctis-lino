@@ -4,7 +4,7 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'stardrifterclass0', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass10', 'planetclose',
+    [ValidateSet('all', 'stardrifter', 'stardrifterclass0', 'stardrifterclass1', 'stardrifterclass2', 'stardrifterclass3', 'stardrifterclass4', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass8', 'stardrifterclass9', 'stardrifterclass10', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
@@ -99,6 +99,20 @@ $scenes = @(
     @{ Name='stardrifterclass0'; Mode=0; X=2931408; Y=-6222148; Z=1891299;
        Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=322.25000858306885 },
+    # Bodyless positive-primary checkpoints hold each missing eligible class 50
+    # stellar radii away, isolating its colour and radial flare without a globe.
+    @{ Name='stardrifterclass1'; Mode=0; X=5476048; Y=-5957484; Z=82716;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=973.3499526977539 },
+    @{ Name='stardrifterclass2'; Mode=0; X=4265328; Y=-5738799; Z=2583670;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=24.09999966621399 },
+    @{ Name='stardrifterclass3'; Mode=0; X=4700336; Y=-4332862; Z=233642;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=1003.2999992370605 },
+    @{ Name='stardrifterclass4'; Mode=0; X=-1325712; Y=773546; Z=757027;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=949.3000030517578 },
     # ASKEW 184's class-5 primary has no generated bodies. Keep its centred
     # corona inside the otherwise-positive orbital flare interval to grade the
     # source class exclusion independently of distance and globe occlusion.
@@ -117,6 +131,12 @@ $scenes = @(
     @{ Name='stardrifterclass7'; Mode=0; X=-1187856; Y=-195673; Z=1064757;
        Body=0; Type=9; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=219.2 },
+    @{ Name='stardrifterclass8'; Mode=0; X=3844976; Y=-4358971; Z=1862310;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=227.34999656677246 },
+    @{ Name='stardrifterclass9'; Mode=0; X=-1150000; Y=2650000; Z=1050000;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=446.99997901916504 },
     # OUTER RUN WIND's class-10 primary has no generated bodies. Its centred
     # corona closes the third source-class exclusion inside the otherwise-
     # positive orbital flare and white-corona intervals.

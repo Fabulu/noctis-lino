@@ -1,0 +1,1771 @@
+{
+  "schema": 1,
+  "case": "orbital-positive-class-gallery",
+  "classes": [
+    1,
+    2,
+    3,
+    4,
+    8,
+    9
+  ],
+  "common": {
+    "mode": "untargeted-exterior-primary",
+    "source_excluded_classes": [
+      5,
+      6,
+      10
+    ],
+    "orbital_flare_interval": {
+      "lower_multiplier": 6,
+      "upper_multiplier": 1000,
+      "bounds": "strict"
+    },
+    "white_corona_interval": {
+      "lower_multiplier": 8,
+      "upper_multiplier": 100,
+      "bounds": "strict"
+    },
+    "authored_clock": 1345723200,
+    "camera": {
+      "position": [
+        2813,
+        0,
+        -1397
+      ],
+      "user_alfa": 0,
+      "user_beta": 23,
+      "navigation_beta": 0,
+      "source_exterior_beta": 203
+    },
+    "requested_distance_in_stellar_radii": 50,
+    "flare_crop": [
+      120,
+      60,
+      195,
+      115
+    ],
+    "flare_crop_coordinate_convention": "inclusive",
+    "flare_crop_pixels": 4256,
+    "flare_crop_band_sha256": "54f421304ba7e5d7a91209dd2f5f42769db4c430e4849ea47b596c5b615a9fda",
+    "native_capture": {
+      "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+      "headless": true,
+      "timeout_seconds": 180,
+      "poll_milliseconds": 1,
+      "cycles": "max",
+      "snapshot_after_seconds": 30
+    },
+    "product_capture": {
+      "runner": "tools/capture_noctis_scenes.ps1",
+      "private_desktop": true,
+      "warmup_seconds": 30,
+      "fast_mode": false
+    },
+    "authority": {
+      "native_snapshot_page_and_palette_retained": true,
+      "native_post_snapshot_continuity_retained": true,
+      "native_snapshot_simulation_state_retained": false,
+      "native_live_orbital_distance_retained": true,
+      "product_live_orbital_distance_retained": false,
+      "surface_or_body_claim": false,
+      "radial_spoke_presence_structurally_graded": true,
+      "whole_page_same_state_contract": false,
+      "matched_clock_hud_contract": false
+    }
+  },
+  "cases": [
+    {
+      "slug": "class1-ybarra",
+      "scene": "stardrifterclass1",
+      "candidate": {
+        "star": [
+          5476048,
+          -5957484,
+          82716
+        ],
+        "star_label": "YBARRA",
+        "catalogue_identity": -2698.482807478778,
+        "star_class": 1,
+        "star_ray": 19.466999053955078,
+        "ap_spin": 0,
+        "generated_system": {
+          "nop": 0,
+          "nob": 0,
+          "has_authentic_body": false,
+          "has_landable_surface": false
+        }
+      },
+      "authored_pose": {
+        "requested_star_distance": 973.3499526977539,
+        "retained_star_distance": 973.3499526976742,
+        "source_l_dsd": 974.3499526976742,
+        "star_minus_dzat": [
+          380.3181254323572,
+          0.0,
+          -895.9733555659914
+        ],
+        "dzat": [
+          5475667.681874568,
+          -5957484.0,
+          83611.97335556599
+        ],
+        "current_local_offset": [
+          -380.3181254325744,
+          0.0,
+          895.9733555659857
+        ]
+      },
+      "orbital_flare_contract": {
+        "lower_threshold": 116.80199432373047,
+        "upper_threshold": 19466.999053955078,
+        "strictly_inside_distance_interval": true,
+        "white_corona_lower_threshold": 155.73599243164062,
+        "white_corona_upper_threshold": 1946.6999053955078,
+        "strictly_inside_white_corona_interval": true,
+        "source_class_eligible": true,
+        "class11_phase_gate_applies": false,
+        "textured_globe_expected": false,
+        "radial_spokes_expected": true
+      },
+      "retained": {
+        "native.CURRENT.BIN": {
+          "size": 385,
+          "sha256": "a60a214bc2ab30616c20dd5126fd88b89832637cb811f60cb37ebbdb55caed70"
+        },
+        "native-capture.cmd": {
+          "size": 82,
+          "sha256": "3de94c13c72b31f0fc2df95e07fa53176b3a72e11f1d4ff1634805408cb19b93"
+        },
+        "native-continuity.bin": {
+          "size": 245,
+          "sha256": "e1e8ab2d210a6d0c45632cc8f9dbce25cab4de82381a348f3396eaca5968bbc2"
+        },
+        "native.adapted": {
+          "size": 65540,
+          "sha256": "928f39fc6bc6c964938dbc988322457a4b0ce9d39081b92ab48e0737b8b761df"
+        },
+        "native.shot.BMP": {
+          "size": 65078,
+          "sha256": "b9bf734cfee96af479b1fee8a740c3839562893a8b11104c214fd3b5d130fa42"
+        },
+        "product-page.bin": {
+          "size": 64000,
+          "sha256": "71ccd6be0461f985fe952458afd65b79eebe4d6e1663935eac62a2e90e03e941"
+        },
+        "product-palette.bin": {
+          "size": 3072,
+          "sha256": "392117f3188fed94aba05ea493095d03dd9f6ab5ccbb99ed5a45c9fd94a0786a"
+        },
+        "product-vh.bin": {
+          "size": 156,
+          "sha256": "49e255a14e1c4c6ec075311c435872b696517c42c3b32609c66b612ac838ac30"
+        }
+      },
+      "native": {
+        "indexed_page_sha256": "3b4937393cb58e4eca5448c267b2aae6dc03551024b8a21201bcac7cf2fbf78e",
+        "six_bit_palette_sha256": "f7e8a5761e8896a09dd714268d7e4d06566ae1b41ab19ca97a1dbf7ad6d591d7",
+        "full_ram_retained": false,
+        "full_ram_size": 16777216,
+        "full_ram_sha256": "397b0604b6d94fa8482a7218c1825f7288b7a5409deda5e3d71bc33ca7d16c03",
+        "continuity_offset_in_full_ram": 206300,
+        "authored_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 20000,
+          "ap_target_class": 1,
+          "nearstar_class": 1,
+          "nearstar_nop": 0,
+          "ap_target_ray": 19.466999053955078,
+          "nearstar_ray": 19.466999053955078,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            5475667.681874568,
+            -5957484.0,
+            83611.97335556599
+          ],
+          "ap_target": [
+            5476048.0,
+            -5957484.0,
+            82716.0
+          ],
+          "nearstar": [
+            5476048.0,
+            -5957484.0,
+            82716.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723200.0
+        },
+        "frozen_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 19999,
+          "ap_target_class": 1,
+          "nearstar_class": 1,
+          "nearstar_nop": 0,
+          "ap_target_ray": 19.466999053955078,
+          "nearstar_ray": 19.466999053955078,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            5475667.681874568,
+            -5957484.0,
+            83611.97335556599
+          ],
+          "ap_target": [
+            5476048.0,
+            -5957484.0,
+            82716.0
+          ],
+          "nearstar": [
+            5476048.0,
+            -5957484.0,
+            82716.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723229.3888888
+        }
+      },
+      "product": {
+        "requested_clock": 1345723200,
+        "utc_diagnostic": 1345703540,
+        "clock_matches_native": false,
+        "clock_independent_contract": true,
+        "camera": {
+          "position": [
+            2813,
+            0,
+            -1397
+          ],
+          "user_alfa": 0,
+          "user_beta": 23,
+          "navigation_beta": 0,
+          "dzat_x": 5475667.681874568
+        },
+        "stellar_state": {
+          "class": 1,
+          "ray": 19.466999053955078,
+          "nop": 0,
+          "nob": 0,
+          "ap_reached": 1
+        },
+        "live_orbital_distance_retained": false,
+        "capture_only_diagnostic_sha256": {
+          "sun": "ca8f25b772486da863a0dc9cef69b3ad461c5869bf3016e0d5486f75a61056c9",
+          "local": "434e307709ebac729e2ddb52fd20f15b27100e0a7c7ed8ff7e33586c2579d8c3",
+          "s-background": "6c1e9a895b00deac8977853e4ac010f30abecca324558606d6a56d300c6399a8",
+          "p-surfacemap": "ffb6996236de2c89fcd63cd720829677d699c44903b0e2d83651533fcc97f4d6",
+          "p-background": "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906",
+          "render-state": "793076c9ad2c5dceb3382454d52143bb4db25e888954d0891440c121adfcddac"
+        }
+      },
+      "native_product_comparison": {
+        "whole_page_index_mismatches": 30133,
+        "whole_page_index_mismatch_bounds": [
+          10,
+          2,
+          313,
+          196
+        ],
+        "whole_page_palette_band_mismatches": 1200,
+        "whole_page_palette_band_mismatch_bounds": [
+          10,
+          31,
+          309,
+          152
+        ],
+        "bmp_vs_adapted_index_mismatches": 6636,
+        "bmp_vs_adapted_index_mismatch_bounds": [
+          0,
+          9,
+          319,
+          190
+        ],
+        "bmp_vs_adapted_palette_band_mismatches": 2217,
+        "bmp_vs_adapted_palette_band_mismatch_bounds": [
+          5,
+          10,
+          311,
+          190
+        ],
+        "palette_exact_prefix_components": 203,
+        "palette_component_mismatches": 228,
+        "palette_mismatch_component_bounds": [
+          203,
+          767
+        ],
+        "native_product_flare_crop_index_mismatches": 3449,
+        "native_product_flare_crop_palette_band_mismatches": 0,
+        "native_adapted_flare_crop_index_mismatches": 3,
+        "native_adapted_flare_crop_palette_band_mismatches": 0,
+        "native_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 163,
+          "largest_eight_connected_component_pixels": 162,
+          "largest_component_bounds": [
+            150,
+            91,
+            165,
+            106
+          ],
+          "singleton_satellites": [
+            [
+              169,
+              96
+            ]
+          ]
+        },
+        "product_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 162,
+          "largest_eight_connected_component_pixels": 161,
+          "largest_component_bounds": [
+            149,
+            89,
+            164,
+            103
+          ],
+          "singleton_satellites": [
+            [
+              169,
+              96
+            ]
+          ]
+        }
+      },
+      "clock_note": "The product's mode-0 UTC diagnostic was 1345703540; the native input used 1345723200 and froze at 1345723229.3888888. Only class 11 applies the source phase gate, so this class-1 flare contract is phase-static. Matched-clock HUD and whole-page equality remain excluded."
+    },
+    {
+      "slug": "class2-eogilie",
+      "scene": "stardrifterclass2",
+      "candidate": {
+        "star": [
+          4265328,
+          -5738799,
+          2583670
+        ],
+        "star_label": "EOGILIE",
+        "catalogue_identity": -63242.71270398989,
+        "star_class": 2,
+        "star_ray": 0.4819999933242798,
+        "ap_spin": 3,
+        "generated_system": {
+          "nop": 0,
+          "nob": 0,
+          "has_authentic_body": false,
+          "has_landable_surface": false
+        }
+      },
+      "authored_pose": {
+        "requested_star_distance": 24.09999966621399,
+        "retained_star_distance": 24.099999666341578,
+        "source_l_dsd": 25.099999666341578,
+        "star_minus_dzat": [
+          9.416620066389441,
+          0.0,
+          -22.184166660998017
+        ],
+        "dzat": [
+          4265318.583379934,
+          -5738799.0,
+          2583692.184166661
+        ],
+        "current_local_offset": [
+          -9.416620066170909,
+          0.0,
+          22.18416666095217
+        ]
+      },
+      "orbital_flare_contract": {
+        "lower_threshold": 2.8919999599456787,
+        "upper_threshold": 481.9999933242798,
+        "strictly_inside_distance_interval": true,
+        "white_corona_lower_threshold": 3.8559999465942383,
+        "white_corona_upper_threshold": 48.19999933242798,
+        "strictly_inside_white_corona_interval": true,
+        "source_class_eligible": true,
+        "class11_phase_gate_applies": false,
+        "textured_globe_expected": false,
+        "radial_spokes_expected": true
+      },
+      "retained": {
+        "native.CURRENT.BIN": {
+          "size": 385,
+          "sha256": "a9116f05d03dcd316e9efab4824950a0c1d95776d7390fe60c274ad3490627c6"
+        },
+        "native-capture.cmd": {
+          "size": 82,
+          "sha256": "3de94c13c72b31f0fc2df95e07fa53176b3a72e11f1d4ff1634805408cb19b93"
+        },
+        "native-continuity.bin": {
+          "size": 245,
+          "sha256": "d5b877f0de8f8e65de4bf3fa05b553b073de2f36a7c1df07d5fac94bbc83d32e"
+        },
+        "native.adapted": {
+          "size": 65540,
+          "sha256": "bcd420c2114899be18cd393f33aebdd18773a981f1e589486907b38e26b1bf8a"
+        },
+        "native.shot.BMP": {
+          "size": 65078,
+          "sha256": "a98496ca8ad3dfa5a597e59541f1c0dd0da66ebff687746e8b7b8403ba986e08"
+        },
+        "product-page.bin": {
+          "size": 64000,
+          "sha256": "fbe29a937ad0bee8101c5e328e4dc1fb0557fe463ab5dc4a8b676b871cf73b10"
+        },
+        "product-palette.bin": {
+          "size": 3072,
+          "sha256": "cd234cd719f0f462015b3d99ad444214cd52626b14d460a40f54bb858d9277fb"
+        },
+        "product-vh.bin": {
+          "size": 156,
+          "sha256": "89dcf06e207e076367e4e28cdb24207f74d4afdf094caf86673b84a02461c99d"
+        }
+      },
+      "native": {
+        "indexed_page_sha256": "c7cbf867e2d410b4e4b5954665ce0a46d915fb46aa686518c60dd390eca4a1e0",
+        "six_bit_palette_sha256": "199f68c70ffbe6de9436dd75978727288b2429c8c668c199eb9a354de2d02269",
+        "full_ram_retained": false,
+        "full_ram_size": 16777216,
+        "full_ram_sha256": "b0eb989c2e118ab3e691691d2a46af465a5d1a622920d2814ab1165ef08b3f34",
+        "continuity_offset_in_full_ram": 206300,
+        "authored_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 20000,
+          "ap_target_class": 2,
+          "nearstar_class": 2,
+          "nearstar_nop": 0,
+          "ap_target_ray": 0.4819999933242798,
+          "nearstar_ray": 0.4819999933242798,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            4265318.583379934,
+            -5738799.0,
+            2583692.184166661
+          ],
+          "ap_target": [
+            4265328.0,
+            -5738799.0,
+            2583670.0
+          ],
+          "nearstar": [
+            4265328.0,
+            -5738799.0,
+            2583670.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723200.0
+        },
+        "frozen_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 19999,
+          "ap_target_class": 2,
+          "nearstar_class": 2,
+          "nearstar_nop": 0,
+          "ap_target_ray": 0.4819999933242798,
+          "nearstar_ray": 0.4819999933242798,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            4265318.583379934,
+            -5738799.0,
+            2583692.184166661
+          ],
+          "ap_target": [
+            4265328.0,
+            -5738799.0,
+            2583670.0
+          ],
+          "nearstar": [
+            4265328.0,
+            -5738799.0,
+            2583670.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723229.4210527
+        }
+      },
+      "product": {
+        "requested_clock": 1345723200,
+        "utc_diagnostic": 1345703549,
+        "clock_matches_native": false,
+        "clock_independent_contract": true,
+        "camera": {
+          "position": [
+            2813,
+            0,
+            -1397
+          ],
+          "user_alfa": 0,
+          "user_beta": 23,
+          "navigation_beta": 0,
+          "dzat_x": 4265318.583379934
+        },
+        "stellar_state": {
+          "class": 2,
+          "ray": 0.4819999933242798,
+          "nop": 0,
+          "nob": 0,
+          "ap_reached": 1
+        },
+        "live_orbital_distance_retained": false,
+        "capture_only_diagnostic_sha256": {
+          "sun": "5027cea7cd84ca2a6cde65a331ea1bd66c343f74b83ea2da4ed692c2713c2296",
+          "local": "923371c6f3055c03373d1d7fa12776aeb710f7c9d8a2a5a5fb0d12c65eb815c7",
+          "s-background": "566605625f4365c63a7a964f56e52aeda8a9223bfb31f618792683673bfdfd0c",
+          "p-surfacemap": "ffb6996236de2c89fcd63cd720829677d699c44903b0e2d83651533fcc97f4d6",
+          "p-background": "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906",
+          "render-state": "59e252f52785342af562fb685c19fb669b7a7734e97754018420b4897934ffd4"
+        }
+      },
+      "native_product_comparison": {
+        "whole_page_index_mismatches": 30753,
+        "whole_page_index_mismatch_bounds": [
+          10,
+          2,
+          313,
+          196
+        ],
+        "whole_page_palette_band_mismatches": 1200,
+        "whole_page_palette_band_mismatch_bounds": [
+          10,
+          31,
+          309,
+          152
+        ],
+        "bmp_vs_adapted_index_mismatches": 15118,
+        "bmp_vs_adapted_index_mismatch_bounds": [
+          0,
+          9,
+          319,
+          190
+        ],
+        "bmp_vs_adapted_palette_band_mismatches": 7154,
+        "bmp_vs_adapted_palette_band_mismatch_bounds": [
+          5,
+          10,
+          311,
+          190
+        ],
+        "palette_exact_prefix_components": 281,
+        "palette_component_mismatches": 249,
+        "palette_mismatch_component_bounds": [
+          281,
+          767
+        ],
+        "native_product_flare_crop_index_mismatches": 3461,
+        "native_product_flare_crop_palette_band_mismatches": 0,
+        "native_adapted_flare_crop_index_mismatches": 6,
+        "native_adapted_flare_crop_palette_band_mismatches": 0,
+        "native_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 164,
+          "largest_eight_connected_component_pixels": 163,
+          "largest_component_bounds": [
+            150,
+            91,
+            165,
+            106
+          ],
+          "singleton_satellites": [
+            [
+              168,
+              96
+            ]
+          ]
+        },
+        "product_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 163,
+          "largest_eight_connected_component_pixels": 162,
+          "largest_component_bounds": [
+            149,
+            89,
+            164,
+            103
+          ],
+          "singleton_satellites": [
+            [
+              168,
+              96
+            ]
+          ]
+        }
+      },
+      "clock_note": "The product's mode-0 UTC diagnostic was 1345703549; the native input used 1345723200 and froze at 1345723229.4210527. Only class 11 applies the source phase gate, so this class-2 flare contract is phase-static. Matched-clock HUD and whole-page equality remain excluded."
+    },
+    {
+      "slug": "class3-redian",
+      "scene": "stardrifterclass3",
+      "candidate": {
+        "star": [
+          4700336,
+          -4332862,
+          233642
+        ],
+        "star_label": "REDIAN",
+        "catalogue_identity": -4758.331299749384,
+        "star_class": 3,
+        "star_ray": 20.06599998474121,
+        "ap_spin": 0,
+        "generated_system": {
+          "nop": 0,
+          "nob": 0,
+          "has_authentic_body": false,
+          "has_landable_surface": false
+        }
+      },
+      "authored_pose": {
+        "requested_star_distance": 1003.2999992370605,
+        "retained_star_distance": 1003.2999992371516,
+        "source_l_dsd": 1004.2999992371516,
+        "star_minus_dzat": [
+          392.0205409154296,
+          0.0,
+          -923.5425187665387
+        ],
+        "dzat": [
+          4699943.979459085,
+          -4332862.0,
+          234565.54251876654
+        ],
+        "current_local_offset": [
+          -392.020540915184,
+          0.0,
+          923.5425187665439
+        ]
+      },
+      "orbital_flare_contract": {
+        "lower_threshold": 120.39599990844727,
+        "upper_threshold": 20065.99998474121,
+        "strictly_inside_distance_interval": true,
+        "white_corona_lower_threshold": 160.5279998779297,
+        "white_corona_upper_threshold": 2006.599998474121,
+        "strictly_inside_white_corona_interval": true,
+        "source_class_eligible": true,
+        "class11_phase_gate_applies": false,
+        "textured_globe_expected": false,
+        "radial_spokes_expected": true
+      },
+      "retained": {
+        "native.CURRENT.BIN": {
+          "size": 385,
+          "sha256": "fd9d1aeab1b002ea64b39033798743231101e05d51f9b63ba827c5ea14ac566c"
+        },
+        "native-capture.cmd": {
+          "size": 82,
+          "sha256": "3de94c13c72b31f0fc2df95e07fa53176b3a72e11f1d4ff1634805408cb19b93"
+        },
+        "native-continuity.bin": {
+          "size": 245,
+          "sha256": "82c8e2e0a8a60f40c1792c3ad98630b3ef8ad1e96c233d8f539e9c975a7a28ed"
+        },
+        "native.adapted": {
+          "size": 65540,
+          "sha256": "1beebf087bfdef64f04fff43ab12644bd6fe18eacbf6d267aa901afc4cd816b5"
+        },
+        "native.shot.BMP": {
+          "size": 65078,
+          "sha256": "840190f022d8fae54ef7db632082d44b3b110387a35487c48b40a500c1d25a49"
+        },
+        "product-page.bin": {
+          "size": 64000,
+          "sha256": "4a56656501552802615539cd1f780f1b3029a2afd3987eaccf211f274b5b4f14"
+        },
+        "product-palette.bin": {
+          "size": 3072,
+          "sha256": "c50ff77981a6cc2523f7192874513f66f3c78e23b6bb3c51c6a5f4496b789940"
+        },
+        "product-vh.bin": {
+          "size": 156,
+          "sha256": "b3e76f35297246a557cb17fc54d062162abb35d9596f76444531282e777822fe"
+        }
+      },
+      "native": {
+        "indexed_page_sha256": "73114982079fb848ae99d4b5551ed371f631995119428037b341659888deab29",
+        "six_bit_palette_sha256": "310449c5eaff1f03da895e6d7aa31243725a7d04d5dc78078813f14fcc80aaf2",
+        "full_ram_retained": false,
+        "full_ram_size": 16777216,
+        "full_ram_sha256": "5f9326e22a8e86eea28420bc0e9c611e46b86ea250293c357c747a4eb4c11e7d",
+        "continuity_offset_in_full_ram": 206300,
+        "authored_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 20000,
+          "ap_target_class": 3,
+          "nearstar_class": 3,
+          "nearstar_nop": 0,
+          "ap_target_ray": 20.06599998474121,
+          "nearstar_ray": 20.06599998474121,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            4699943.979459085,
+            -4332862.0,
+            234565.54251876654
+          ],
+          "ap_target": [
+            4700336.0,
+            -4332862.0,
+            233642.0
+          ],
+          "nearstar": [
+            4700336.0,
+            -4332862.0,
+            233642.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723200.0
+        },
+        "frozen_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 19999,
+          "ap_target_class": 3,
+          "nearstar_class": 3,
+          "nearstar_nop": 0,
+          "ap_target_ray": 20.06599998474121,
+          "nearstar_ray": 20.06599998474121,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            4699943.979459085,
+            -4332862.0,
+            234565.54251876654
+          ],
+          "ap_target": [
+            4700336.0,
+            -4332862.0,
+            233642.0
+          ],
+          "nearstar": [
+            4700336.0,
+            -4332862.0,
+            233642.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723229.4736843
+        }
+      },
+      "product": {
+        "requested_clock": 1345723200,
+        "utc_diagnostic": 1345703561,
+        "clock_matches_native": false,
+        "clock_independent_contract": true,
+        "camera": {
+          "position": [
+            2813,
+            0,
+            -1397
+          ],
+          "user_alfa": 0,
+          "user_beta": 23,
+          "navigation_beta": 0,
+          "dzat_x": 4699943.979459085
+        },
+        "stellar_state": {
+          "class": 3,
+          "ray": 20.06599998474121,
+          "nop": 0,
+          "nob": 0,
+          "ap_reached": 1
+        },
+        "live_orbital_distance_retained": false,
+        "capture_only_diagnostic_sha256": {
+          "sun": "7830e8db911360d969cef882535b76aff92353b5cbca1c6201412a89e3175b40",
+          "local": "d046f4086eef633d399364446ef580a220519475b9c20183436136700e3cfc12",
+          "s-background": "dbd270eda69594483dafa587abfd7a6d99d749d4c8c368b1735894ab0bcc68e7",
+          "p-surfacemap": "ffb6996236de2c89fcd63cd720829677d699c44903b0e2d83651533fcc97f4d6",
+          "p-background": "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906",
+          "render-state": "57de8ef734c313763f0fae66db2599718b6e77de6612cdfefe923f6c5a0377ce"
+        }
+      },
+      "native_product_comparison": {
+        "whole_page_index_mismatches": 27173,
+        "whole_page_index_mismatch_bounds": [
+          10,
+          2,
+          313,
+          196
+        ],
+        "whole_page_palette_band_mismatches": 1200,
+        "whole_page_palette_band_mismatch_bounds": [
+          10,
+          31,
+          309,
+          152
+        ],
+        "bmp_vs_adapted_index_mismatches": 26155,
+        "bmp_vs_adapted_index_mismatch_bounds": [
+          0,
+          9,
+          319,
+          190
+        ],
+        "bmp_vs_adapted_palette_band_mismatches": 19841,
+        "bmp_vs_adapted_palette_band_mismatch_bounds": [
+          5,
+          10,
+          311,
+          185
+        ],
+        "palette_exact_prefix_components": 201,
+        "palette_component_mismatches": 241,
+        "palette_mismatch_component_bounds": [
+          201,
+          767
+        ],
+        "native_product_flare_crop_index_mismatches": 3341,
+        "native_product_flare_crop_palette_band_mismatches": 0,
+        "native_adapted_flare_crop_index_mismatches": 2,
+        "native_adapted_flare_crop_palette_band_mismatches": 0,
+        "native_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 111,
+          "largest_eight_connected_component_pixels": 111,
+          "largest_component_bounds": [
+            151,
+            94,
+            163,
+            106
+          ],
+          "singleton_satellites": []
+        },
+        "product_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 108,
+          "largest_eight_connected_component_pixels": 108,
+          "largest_component_bounds": [
+            150,
+            92,
+            162,
+            102
+          ],
+          "singleton_satellites": []
+        }
+      },
+      "clock_note": "The product's mode-0 UTC diagnostic was 1345703561; the native input used 1345723200 and froze at 1345723229.4736843. Only class 11 applies the source phase gate, so this class-3 flare contract is phase-static. Matched-clock HUD and whole-page equality remain excluded."
+    },
+    {
+      "slug": "class4-marrin",
+      "scene": "stardrifterclass4",
+      "candidate": {
+        "star": [
+          -1325712,
+          773546,
+          757027
+        ],
+        "star_label": "MARRIN",
+        "catalogue_identity": -776.3305940460623,
+        "star_class": 4,
+        "star_ray": 18.986000061035156,
+        "ap_spin": 0,
+        "generated_system": {
+          "nop": 0,
+          "nob": 0,
+          "has_authentic_body": false,
+          "has_landable_surface": false
+        }
+      },
+      "authored_pose": {
+        "requested_star_distance": 949.3000030517578,
+        "retained_star_distance": 949.3000030518166,
+        "source_l_dsd": 950.3000030518166,
+        "star_minus_dzat": [
+          370.92106146737933,
+          0.0,
+          -873.8352601915831
+        ],
+        "dzat": [
+          -1326082.9210614674,
+          773546.0,
+          757900.8352601916
+        ],
+        "current_local_offset": [
+          -370.9210614672842,
+          0.0,
+          873.8352601915595
+        ]
+      },
+      "orbital_flare_contract": {
+        "lower_threshold": 113.91600036621094,
+        "upper_threshold": 18986.000061035156,
+        "strictly_inside_distance_interval": true,
+        "white_corona_lower_threshold": 151.88800048828125,
+        "white_corona_upper_threshold": 1898.6000061035156,
+        "strictly_inside_white_corona_interval": true,
+        "source_class_eligible": true,
+        "class11_phase_gate_applies": false,
+        "textured_globe_expected": false,
+        "radial_spokes_expected": true
+      },
+      "retained": {
+        "native.CURRENT.BIN": {
+          "size": 385,
+          "sha256": "0f9cea6fdf3658c2de2e797e1db1b790eb85df272cd5357616acef5ff7daa017"
+        },
+        "native-capture.cmd": {
+          "size": 82,
+          "sha256": "3de94c13c72b31f0fc2df95e07fa53176b3a72e11f1d4ff1634805408cb19b93"
+        },
+        "native-continuity.bin": {
+          "size": 245,
+          "sha256": "408fcda3832a509b4bbd0695621045bc01dc50a5feb97e6e87c5786a0abe178a"
+        },
+        "native.adapted": {
+          "size": 65540,
+          "sha256": "04d409e0af0c14489b67b73752f1e425a11eaf1c6626976a006929151c768ba1"
+        },
+        "native.shot.BMP": {
+          "size": 65078,
+          "sha256": "4e8c7a1c05c269323d7a619078e78024a495c93f569024077be38a0445a7b99a"
+        },
+        "product-page.bin": {
+          "size": 64000,
+          "sha256": "0ae91bca9642113041bdba6d6bb3448be38e6956265261cbcab4d1dd5d5262d4"
+        },
+        "product-palette.bin": {
+          "size": 3072,
+          "sha256": "4f605d7795ed0f5e57057a98865efe08ec9e112e192b26937e6b8991ae9b9b7f"
+        },
+        "product-vh.bin": {
+          "size": 156,
+          "sha256": "604fa7116565a88756bced19d2a15f519813bb8404d9ef2c6aae1398f15235ad"
+        }
+      },
+      "native": {
+        "indexed_page_sha256": "58a84fbe0fcd658a937911e9558ff2b73a6813578e6b54d800c635ce5b73921e",
+        "six_bit_palette_sha256": "cc0572e8956c0e4b00a72b4354e4817d42bb10d1fb01a338462b9d1e5681ff48",
+        "full_ram_retained": false,
+        "full_ram_size": 16777216,
+        "full_ram_sha256": "f4447908a6ba8e50d378fab833d4c52a3252b0d428c17b608dabe7faf9a1efa9",
+        "continuity_offset_in_full_ram": 206300,
+        "authored_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 20000,
+          "ap_target_class": 4,
+          "nearstar_class": 4,
+          "nearstar_nop": 0,
+          "ap_target_ray": 18.986000061035156,
+          "nearstar_ray": 18.986000061035156,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            -1326082.9210614674,
+            773546.0,
+            757900.8352601916
+          ],
+          "ap_target": [
+            -1325712.0,
+            773546.0,
+            757027.0
+          ],
+          "nearstar": [
+            -1325712.0,
+            773546.0,
+            757027.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723200.0
+        },
+        "frozen_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 19999,
+          "ap_target_class": 4,
+          "nearstar_class": 4,
+          "nearstar_nop": 0,
+          "ap_target_ray": 18.986000061035156,
+          "nearstar_ray": 18.986000061035156,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            -1326082.9210614674,
+            773546.0,
+            757900.8352601916
+          ],
+          "ap_target": [
+            -1325712.0,
+            773546.0,
+            757027.0
+          ],
+          "nearstar": [
+            -1325712.0,
+            773546.0,
+            757027.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723229.6842105
+        }
+      },
+      "product": {
+        "requested_clock": 1345723200,
+        "utc_diagnostic": 1345703580,
+        "clock_matches_native": false,
+        "clock_independent_contract": true,
+        "camera": {
+          "position": [
+            2813,
+            0,
+            -1397
+          ],
+          "user_alfa": 0,
+          "user_beta": 23,
+          "navigation_beta": 0,
+          "dzat_x": -1326082.9210614674
+        },
+        "stellar_state": {
+          "class": 4,
+          "ray": 18.986000061035156,
+          "nop": 0,
+          "nob": 0,
+          "ap_reached": 1
+        },
+        "live_orbital_distance_retained": false,
+        "capture_only_diagnostic_sha256": {
+          "sun": "97d959570d88d740e770dea1370a82a2d53f0e4f107a62cb3806c12227ccee37",
+          "local": "5bd6fea788ae934be970e62032005a2c037a4dea862860d5e565185bf2a8475a",
+          "s-background": "9b53ebdf2670dbd3b62d118ef150da9d0c848ef99f14293c8c31b9b80ba8bfaa",
+          "p-surfacemap": "ffb6996236de2c89fcd63cd720829677d699c44903b0e2d83651533fcc97f4d6",
+          "p-background": "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906",
+          "render-state": "76cced1be225de64198adaa2b1580c0037982773821c5575985371074a237c52"
+        }
+      },
+      "native_product_comparison": {
+        "whole_page_index_mismatches": 30056,
+        "whole_page_index_mismatch_bounds": [
+          10,
+          2,
+          313,
+          195
+        ],
+        "whole_page_palette_band_mismatches": 1200,
+        "whole_page_palette_band_mismatch_bounds": [
+          10,
+          31,
+          309,
+          152
+        ],
+        "bmp_vs_adapted_index_mismatches": 6631,
+        "bmp_vs_adapted_index_mismatch_bounds": [
+          0,
+          9,
+          319,
+          190
+        ],
+        "bmp_vs_adapted_palette_band_mismatches": 2217,
+        "bmp_vs_adapted_palette_band_mismatch_bounds": [
+          5,
+          10,
+          311,
+          190
+        ],
+        "palette_exact_prefix_components": 201,
+        "palette_component_mismatches": 241,
+        "palette_mismatch_component_bounds": [
+          201,
+          767
+        ],
+        "native_product_flare_crop_index_mismatches": 3454,
+        "native_product_flare_crop_palette_band_mismatches": 0,
+        "native_adapted_flare_crop_index_mismatches": 6,
+        "native_adapted_flare_crop_palette_band_mismatches": 0,
+        "native_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 164,
+          "largest_eight_connected_component_pixels": 162,
+          "largest_component_bounds": [
+            150,
+            91,
+            165,
+            106
+          ],
+          "singleton_satellites": [
+            [
+              121,
+              97
+            ],
+            [
+              141,
+              93
+            ]
+          ]
+        },
+        "product_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 163,
+          "largest_eight_connected_component_pixels": 161,
+          "largest_component_bounds": [
+            149,
+            89,
+            164,
+            103
+          ],
+          "singleton_satellites": [
+            [
+              121,
+              97
+            ],
+            [
+              141,
+              93
+            ]
+          ]
+        }
+      },
+      "clock_note": "The product's mode-0 UTC diagnostic was 1345703580; the native input used 1345723200 and froze at 1345723229.6842105. Only class 11 applies the source phase gate, so this class-4 flare contract is phase-static. Matched-clock HUD and whole-page equality remain excluded."
+    },
+    {
+      "slug": "class8-solo",
+      "scene": "stardrifterclass8",
+      "candidate": {
+        "star": [
+          3844976,
+          -4358971,
+          1862310
+        ],
+        "star_label": "SOLO",
+        "catalogue_identity": -31212.574237046658,
+        "star_class": 8,
+        "star_ray": 4.546999931335449,
+        "ap_spin": 0,
+        "generated_system": {
+          "nop": 0,
+          "nob": 0,
+          "has_authentic_body": false,
+          "has_landable_surface": false
+        }
+      },
+      "authored_pose": {
+        "requested_star_distance": 227.34999656677246,
+        "retained_star_distance": 227.3499965668031,
+        "source_l_dsd": 228.3499965668031,
+        "star_minus_dzat": [
+          88.83272072067484,
+          0.0,
+          -209.27677527209744
+        ],
+        "dzat": [
+          3844887.1672792793,
+          -4358971.0,
+          1862519.276775272
+        ],
+        "current_local_offset": [
+          -88.83272072056747,
+          0.0,
+          209.27677527210972
+        ]
+      },
+      "orbital_flare_contract": {
+        "lower_threshold": 27.281999588012695,
+        "upper_threshold": 4546.999931335449,
+        "strictly_inside_distance_interval": true,
+        "white_corona_lower_threshold": 36.375999450683594,
+        "white_corona_upper_threshold": 454.6999931335449,
+        "strictly_inside_white_corona_interval": true,
+        "source_class_eligible": true,
+        "class11_phase_gate_applies": false,
+        "textured_globe_expected": false,
+        "radial_spokes_expected": true
+      },
+      "retained": {
+        "native.CURRENT.BIN": {
+          "size": 385,
+          "sha256": "b8ccf9e370d45b6fbfe8aed65cdef3764d56adc4b4575643d55fce5cfed3db3a"
+        },
+        "native-capture.cmd": {
+          "size": 82,
+          "sha256": "3de94c13c72b31f0fc2df95e07fa53176b3a72e11f1d4ff1634805408cb19b93"
+        },
+        "native-continuity.bin": {
+          "size": 245,
+          "sha256": "52b101fbc7016322fd77fefe8f081039b69b297b4ab004a977f39406d76c2a5f"
+        },
+        "native.adapted": {
+          "size": 65540,
+          "sha256": "7f7e458feeea9ff09f948cdf9e1c8ff80c330218f7724869acb73ff664d31fbe"
+        },
+        "native.shot.BMP": {
+          "size": 65078,
+          "sha256": "ae7baef91795aa1e7ca551f68842ab5ee2dcdd240f143dbffae51458776742e3"
+        },
+        "product-page.bin": {
+          "size": 64000,
+          "sha256": "a5bbf4c6a65d3a17acc0739c51d85dd72bdeea1ab6548908a2ef2635c29729af"
+        },
+        "product-palette.bin": {
+          "size": 3072,
+          "sha256": "73c53ad086d639c9876a77cc35b1ee39076e3af4aec9f8d092445d7fcdca4150"
+        },
+        "product-vh.bin": {
+          "size": 156,
+          "sha256": "9884cd51b47f4694b56c19af870f0484487c74ee7965018f6027209c02623468"
+        }
+      },
+      "native": {
+        "indexed_page_sha256": "d463d2290b23bac4394876b87bfa1eda5da65283f366fe655d763203c6eb985d",
+        "six_bit_palette_sha256": "df0f1dc96be8b6425450f07bddec7330d279a384399a3cbb375aa49864bc18bb",
+        "full_ram_retained": false,
+        "full_ram_size": 16777216,
+        "full_ram_sha256": "4bd0f8db7eb83b6db6163b8ed37f931624b9daf35104ca2d8497de1f5b0280a2",
+        "continuity_offset_in_full_ram": 206300,
+        "authored_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 20000,
+          "ap_target_class": 8,
+          "nearstar_class": 8,
+          "nearstar_nop": 0,
+          "ap_target_ray": 4.546999931335449,
+          "nearstar_ray": 4.546999931335449,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            3844887.1672792793,
+            -4358971.0,
+            1862519.276775272
+          ],
+          "ap_target": [
+            3844976.0,
+            -4358971.0,
+            1862310.0
+          ],
+          "nearstar": [
+            3844976.0,
+            -4358971.0,
+            1862310.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723200.0
+        },
+        "frozen_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 19999,
+          "ap_target_class": 8,
+          "nearstar_class": 8,
+          "nearstar_nop": 0,
+          "ap_target_ray": 4.546999931335449,
+          "nearstar_ray": 4.546999931335449,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            3844887.1672792793,
+            -4358971.0,
+            1862519.276775272
+          ],
+          "ap_target": [
+            3844976.0,
+            -4358971.0,
+            1862310.0
+          ],
+          "nearstar": [
+            3844976.0,
+            -4358971.0,
+            1862310.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723229.5
+        }
+      },
+      "product": {
+        "requested_clock": 1345723200,
+        "utc_diagnostic": 1345703589,
+        "clock_matches_native": false,
+        "clock_independent_contract": true,
+        "camera": {
+          "position": [
+            2813,
+            0,
+            -1397
+          ],
+          "user_alfa": 0,
+          "user_beta": 23,
+          "navigation_beta": 0,
+          "dzat_x": 3844887.1672792793
+        },
+        "stellar_state": {
+          "class": 8,
+          "ray": 4.546999931335449,
+          "nop": 0,
+          "nob": 0,
+          "ap_reached": 1
+        },
+        "live_orbital_distance_retained": false,
+        "capture_only_diagnostic_sha256": {
+          "sun": "6f0b34ab7329dd47bf7b92d3cfcc45e5bc510b9bfdab0f5478e9d0b67ce482cb",
+          "local": "9d773ec407ccd5b52f943d0bdc6d68ac1a102f565bf376c3df437ad6e6ba3208",
+          "s-background": "3fca4baa7bacead0beba4414b4cad8e32ec65be27f15f3fa4e479a18ecf69ce3",
+          "p-surfacemap": "ffb6996236de2c89fcd63cd720829677d699c44903b0e2d83651533fcc97f4d6",
+          "p-background": "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906",
+          "render-state": "ffa41a19ea5188e967f806a5780787153fec45b3526df6f6a12af09b5ae906b3"
+        }
+      },
+      "native_product_comparison": {
+        "whole_page_index_mismatches": 30017,
+        "whole_page_index_mismatch_bounds": [
+          10,
+          2,
+          313,
+          196
+        ],
+        "whole_page_palette_band_mismatches": 1200,
+        "whole_page_palette_band_mismatch_bounds": [
+          10,
+          31,
+          309,
+          152
+        ],
+        "bmp_vs_adapted_index_mismatches": 6543,
+        "bmp_vs_adapted_index_mismatch_bounds": [
+          0,
+          9,
+          319,
+          190
+        ],
+        "bmp_vs_adapted_palette_band_mismatches": 2217,
+        "bmp_vs_adapted_palette_band_mismatch_bounds": [
+          5,
+          10,
+          311,
+          190
+        ],
+        "palette_exact_prefix_components": 281,
+        "palette_component_mismatches": 249,
+        "palette_mismatch_component_bounds": [
+          281,
+          767
+        ],
+        "native_product_flare_crop_index_mismatches": 3421,
+        "native_product_flare_crop_palette_band_mismatches": 0,
+        "native_adapted_flare_crop_index_mismatches": 3,
+        "native_adapted_flare_crop_palette_band_mismatches": 0,
+        "native_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 162,
+          "largest_eight_connected_component_pixels": 161,
+          "largest_component_bounds": [
+            150,
+            91,
+            165,
+            106
+          ],
+          "singleton_satellites": [
+            [
+              151,
+              108
+            ]
+          ]
+        },
+        "product_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 161,
+          "largest_eight_connected_component_pixels": 160,
+          "largest_component_bounds": [
+            149,
+            89,
+            163,
+            103
+          ],
+          "singleton_satellites": [
+            [
+              151,
+              108
+            ]
+          ]
+        }
+      },
+      "clock_note": "The product's mode-0 UTC diagnostic was 1345703589; the native input used 1345723200 and froze at 1345723229.5. Only class 11 applies the source phase gate, so this class-8 flare contract is phase-static. Matched-clock HUD and whole-page equality remain excluded."
+    },
+    {
+      "slug": "class9-akyaasle",
+      "scene": "stardrifterclass9",
+      "candidate": {
+        "star": [
+          -1150000,
+          2650000,
+          1050000
+        ],
+        "star_label": "AKYAASLE",
+        "catalogue_identity": -3199.875,
+        "star_class": 9,
+        "star_ray": 8.9399995803833,
+        "ap_spin": 0,
+        "generated_system": {
+          "nop": 0,
+          "nob": 0,
+          "has_authentic_body": false,
+          "has_landable_surface": false
+        }
+      },
+      "authored_pose": {
+        "requested_star_distance": 446.99997901916504,
+        "retained_star_distance": 446.99997901923007,
+        "source_l_dsd": 447.99997901923007,
+        "star_minus_dzat": [
+          174.65680623683147,
+          0.0,
+          -411.4656501803547
+        ],
+        "dzat": [
+          -1150174.6568062368,
+          2650000.0,
+          1050411.4656501804
+        ],
+        "current_local_offset": [
+          -174.65680623683997,
+          0.0,
+          411.4656501802804
+        ]
+      },
+      "orbital_flare_contract": {
+        "lower_threshold": 53.639997482299805,
+        "upper_threshold": 8939.9995803833,
+        "strictly_inside_distance_interval": true,
+        "white_corona_lower_threshold": 71.5199966430664,
+        "white_corona_upper_threshold": 893.9999580383301,
+        "strictly_inside_white_corona_interval": true,
+        "source_class_eligible": true,
+        "class11_phase_gate_applies": false,
+        "textured_globe_expected": false,
+        "radial_spokes_expected": true
+      },
+      "retained": {
+        "native.CURRENT.BIN": {
+          "size": 385,
+          "sha256": "0263f546f666da8a27abb7d732c229b0112f2853f12bb2af49d7ae3d30b122d6"
+        },
+        "native-capture.cmd": {
+          "size": 82,
+          "sha256": "3de94c13c72b31f0fc2df95e07fa53176b3a72e11f1d4ff1634805408cb19b93"
+        },
+        "native-continuity.bin": {
+          "size": 245,
+          "sha256": "18ad639132bd5a3d509c29100a7966e55de31545df3c46eb07f34bf38303af09"
+        },
+        "native.adapted": {
+          "size": 65540,
+          "sha256": "608582b7e92e46856ac1b57e89928eb5dc76f8b87241604da6af0b6cfc55c90a"
+        },
+        "native.shot.BMP": {
+          "size": 65078,
+          "sha256": "9839550197de0a0b1cb0b4455a9224f2c6396c1b8ad863139a9843d267834fe2"
+        },
+        "product-page.bin": {
+          "size": 64000,
+          "sha256": "3dee3638a93d6758a89c1004b200fd28b62d3cf0b74d2fe1f39203e3ead9b876"
+        },
+        "product-palette.bin": {
+          "size": 3072,
+          "sha256": "7437bb48b950368001d074670992b174933be754d22d789f244acc33a4815dd6"
+        },
+        "product-vh.bin": {
+          "size": 156,
+          "sha256": "f41626e1164acfe5eacb12b5eae63f49209dc0c06f72360d9792b86ae2e5352d"
+        }
+      },
+      "native": {
+        "indexed_page_sha256": "eafc7b56223cabe2127b1b653e72d2d44ab7b3f468801ba0c7104d70fed4af00",
+        "six_bit_palette_sha256": "d94c38f0d7ab349d418d90173c94a0c3c2aac86d10edb9152cff2026fb455522",
+        "full_ram_retained": false,
+        "full_ram_size": 16777216,
+        "full_ram_sha256": "8904b4daace20f1e77a1de4d371193dc3facacd3df76c81fe13f2377589b875c",
+        "continuity_offset_in_full_ram": 206300,
+        "authored_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 20000,
+          "ap_target_class": 9,
+          "nearstar_class": 9,
+          "nearstar_nop": 0,
+          "ap_target_ray": 8.9399995803833,
+          "nearstar_ray": 8.9399995803833,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            -1150174.6568062368,
+            2650000.0,
+            1050411.4656501804
+          ],
+          "ap_target": [
+            -1150000.0,
+            2650000.0,
+            1050000.0
+          ],
+          "nearstar": [
+            -1150000.0,
+            2650000.0,
+            1050000.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723200.0
+        },
+        "frozen_continuity": {
+          "sync": 0,
+          "anti_rad": 1,
+          "charge": 3,
+          "ap_targetted": 1,
+          "ap_reached": 1,
+          "ip_targetted": -1,
+          "ip_reached": 0,
+          "pwr": 19999,
+          "ap_target_class": 9,
+          "nearstar_class": 9,
+          "nearstar_nop": 0,
+          "ap_target_ray": 8.9399995803833,
+          "nearstar_ray": 8.9399995803833,
+          "camera_position": [
+            2813.0,
+            0.0,
+            -1397.0
+          ],
+          "user_alfa": 0.0,
+          "user_beta": 23.0,
+          "navigation_beta": 0.0,
+          "dzat": [
+            -1150174.6568062368,
+            2650000.0,
+            1050411.4656501804
+          ],
+          "ap_target": [
+            -1150000.0,
+            2650000.0,
+            1050000.0
+          ],
+          "nearstar": [
+            -1150000.0,
+            2650000.0,
+            1050000.0
+          ],
+          "fcs_status": "STANDBY",
+          "secs": 1345723229.4444444
+        }
+      },
+      "product": {
+        "requested_clock": 1345723200,
+        "utc_diagnostic": 1345703603,
+        "clock_matches_native": false,
+        "clock_independent_contract": true,
+        "camera": {
+          "position": [
+            2813,
+            0,
+            -1397
+          ],
+          "user_alfa": 0,
+          "user_beta": 23,
+          "navigation_beta": 0,
+          "dzat_x": -1150174.6568062368
+        },
+        "stellar_state": {
+          "class": 9,
+          "ray": 8.9399995803833,
+          "nop": 0,
+          "nob": 0,
+          "ap_reached": 1
+        },
+        "live_orbital_distance_retained": false,
+        "capture_only_diagnostic_sha256": {
+          "sun": "a196b5c49bd2246e016617e4af36facb6bb6138b9582479251b8d900238a66f9",
+          "local": "0a43387c6e769878cfb4fa005c75cfc8bf66a39c9520f8ea3627841732c6d97a",
+          "s-background": "ba970df6a4c27450f880d4e9131bbb088d05b51a8c4fd62b63d54cab872eb7cc",
+          "p-surfacemap": "ffb6996236de2c89fcd63cd720829677d699c44903b0e2d83651533fcc97f4d6",
+          "p-background": "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906",
+          "render-state": "6ae4b7cd343ae43c763659e1dd589b6689f839d55bb2b0d299ef253a5d503fe9"
+        }
+      },
+      "native_product_comparison": {
+        "whole_page_index_mismatches": 30193,
+        "whole_page_index_mismatch_bounds": [
+          10,
+          2,
+          313,
+          196
+        ],
+        "whole_page_palette_band_mismatches": 1200,
+        "whole_page_palette_band_mismatch_bounds": [
+          10,
+          31,
+          309,
+          152
+        ],
+        "bmp_vs_adapted_index_mismatches": 6723,
+        "bmp_vs_adapted_index_mismatch_bounds": [
+          0,
+          9,
+          319,
+          190
+        ],
+        "bmp_vs_adapted_palette_band_mismatches": 2217,
+        "bmp_vs_adapted_palette_band_mismatch_bounds": [
+          5,
+          10,
+          311,
+          190
+        ],
+        "palette_exact_prefix_components": 284,
+        "palette_component_mismatches": 202,
+        "palette_mismatch_component_bounds": [
+          284,
+          767
+        ],
+        "native_product_flare_crop_index_mismatches": 3395,
+        "native_product_flare_crop_palette_band_mismatches": 0,
+        "native_adapted_flare_crop_index_mismatches": 4,
+        "native_adapted_flare_crop_palette_band_mismatches": 0,
+        "native_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 159,
+          "largest_eight_connected_component_pixels": 159,
+          "largest_component_bounds": [
+            150,
+            92,
+            165,
+            106
+          ],
+          "singleton_satellites": []
+        },
+        "product_bright": {
+          "low_six_threshold": 40,
+          "total_pixels": 152,
+          "largest_eight_connected_component_pixels": 152,
+          "largest_component_bounds": [
+            149,
+            89,
+            164,
+            103
+          ],
+          "singleton_satellites": []
+        }
+      },
+      "clock_note": "The product's mode-0 UTC diagnostic was 1345703603; the native input used 1345723200 and froze at 1345723229.4444444. Only class 11 applies the source phase gate, so this class-9 flare contract is phase-static. Matched-clock HUD and whole-page equality remain excluded."
+    }
+  ]
+}
