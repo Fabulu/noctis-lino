@@ -938,6 +938,19 @@ argument. Complete-page
 and exact low-six equality remain ungraded because the native snapshot was not
 state-atomic with frozen RAM and the two start-up palette-easing states differ.
 
+**Orbital class-5 class-suppressed-primary checkpoint.** ASKEW 184 at
+`(3438192,-1233198,1856484)` is a tracked class-5 primary with ray `1.492`, spin
+zero, and no generated bodies. An untargeted exterior Stardrifter retains source
+distance `75.5999992`, strictly inside `6*ray < distance < 1000*ray` and the
+white-corona interval without inventing a surface target. Extracted native
+continuity and a warmed private-desktop product capture authenticate the camera,
+class, zero-body state, and compact beamless corona. Both retain the same five
+isolated background stars. The first 576 native/product palette components
+match; native/adapted match every index in the 2,025-pixel core; native/product
+match every palette band in that core and the 20,160-pixel upper strip. Class 5,
+not distance, explains spoke absence. Whole-page, matched-clock HUD,
+surface/body, and product live-distance claims remain excluded.
+
 **Orbital class-6 class-suppressed-primary checkpoint.** FUEL TWO at
 `(-125712,-174213,-150246)` is a tracked class-6 primary with ray `5.1290002`,
 spin zero, and no generated bodies. Its checkpoint therefore keeps an

@@ -4,7 +4,7 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'stardrifterclass6', 'stardrifterclass7', 'planetclose',
+    [ValidateSet('all', 'stardrifter', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
@@ -93,6 +93,12 @@ $scenes = @(
     @{ Name='stardrifter'; Mode=0; X=3979984; Y=-43407; Z=-43984; Body=0; Type=0;
        Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=12;
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=200.0 },
+    # ASKEW 184's class-5 primary has no generated bodies. Keep its centred
+    # corona inside the otherwise-positive orbital flare interval to grade the
+    # source class exclusion independently of distance and globe occlusion.
+    @{ Name='stardrifterclass5'; Mode=0; X=3438192; Y=-1233198; Z=1856484;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=74.59999918937683 },
     # FUEL TWO's class-6 primary has no generated bodies. Hold an untargeted
     # Stardrifter 50 stellar radii away to authenticate the class exclusion
     # inside the otherwise-positive orbital flare interval.

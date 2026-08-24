@@ -1,5 +1,12 @@
 work/igui.txt whitespace=cr-at-eol
 tests/native-oracles/orbital-class7-wire/*.bin binary
+tests/native-oracles/orbital-class5-askew-184/README.md text eol=lf
+tests/native-oracles/orbital-class5-askew-184/provenance.json text eol=lf
+tests/native-oracles/orbital-class5-askew-184/native-capture.cmd binary
+tests/native-oracles/orbital-class5-askew-184/native.adapted binary
+tests/native-oracles/orbital-class5-askew-184/*.BMP binary
+tests/native-oracles/orbital-class5-askew-184/*.bin binary
+tests/native-oracles/orbital-class5-askew-184/*.BIN binary
 tests/native-oracles/orbital-class6-fuel-two/README.md text eol=lf
 tests/native-oracles/orbital-class6-fuel-two/provenance.json text eol=lf
 tests/native-oracles/orbital-class6-fuel-two/native-capture.cmd binary
