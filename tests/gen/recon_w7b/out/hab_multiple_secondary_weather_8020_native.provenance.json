@@ -1,0 +1,543 @@
+{
+  "schema": "noctis-native-oracle-provenance-v1",
+  "scene": "ROTOR IGNE companion-owned atmospheric type-3 secondary-disc rain-2.0 and secondary-flare rain-2.1 boundaries",
+  "captured_utc": "2026-08-24",
+  "system": {
+    "coordinates": [
+      3866416,
+      -4813508,
+      -735695
+    ],
+    "star_class": 8,
+    "star_ray": 8.48799991607666,
+    "number_of_primary_bodies": 4,
+    "number_of_bodies": 23,
+    "companion_body": 3,
+    "companion_owner": -1,
+    "companion_type": 10,
+    "target_body": 8,
+    "target_owner": 3,
+    "target_type": 3,
+    "atmosphere": true,
+    "target_orbital_orientation": 1.2217304763960306,
+    "orientation_scenario_chop": 678,
+    "orientation_scenario": 3
+  },
+  "source_maps": {
+    "authority": "The orbital NIV+ scout retained the target moon map in s_background because VHGND landing identity selects SUpbase. The orbital p_background was effectively uninitialized for this companion-owned moon, and landed s_background exports are later repurposed terrain buffers.",
+    "s_background": "tests/gen/recon_w7b/out/rotor_igne_b08_t3.s_background",
+    "s_background_sha256": "0ad37e03dcc757a8709c7c469e01a5d3c25a49e5c8bd164fb51bdf55e82acc3b",
+    "objectschart": "tests/gen/recon_w7b/out/rotor_igne_b08_t3.objectschart",
+    "objectschart_sha256": "6dcc93913b612b0d658138f48e74b7cede3fa383f2aade412e36a23ea1065fb5",
+    "latitude": 88,
+    "states": {
+      "low232": {
+        "longitude": 232,
+        "surface_pointer": 31912,
+        "cloud_pointer": 15956,
+        "surface_sample": 48,
+        "cloud_sample": 31,
+        "recovered_albedo": 32,
+        "random_100": 76,
+        "scenario": 3,
+        "divisor_draw": 2,
+        "divisor": 3,
+        "raw_rain": 5.0,
+        "rain": 1.6666666269302368,
+        "command": "build/hab-weather-native-matchedsecond8020.cmd",
+        "command_sha256": "3139fe284560fd61a5ad7cd2d13d0a6f30e2fba417cf1aea136c920733014ec9"
+      },
+      "painter231": {
+        "longitude": 231,
+        "surface_pointer": 31911,
+        "cloud_pointer": 15955,
+        "surface_sample": 26,
+        "cloud_sample": 8,
+        "recovered_albedo": 32,
+        "random_100": 83,
+        "scenario": 3,
+        "divisor_draw": 0,
+        "divisor": 1,
+        "raw_rain": 2.0,
+        "rain": 2.0,
+        "command": "build/hab-weather-native-matchedsecond8020.cmd",
+        "command_sha256": "3139fe284560fd61a5ad7cd2d13d0a6f30e2fba417cf1aea136c920733014ec9"
+      },
+      "flare236": {
+        "longitude": 236,
+        "surface_pointer": 31916,
+        "cloud_pointer": 15958,
+        "surface_sample": 35,
+        "cloud_sample": 17,
+        "recovered_albedo": 32,
+        "random_100": 48,
+        "scenario": 3,
+        "divisor_draw": 1,
+        "divisor": 2,
+        "raw_rain": 4.25,
+        "rain": 2.125,
+        "command": "build/hab-multiple-native-matchedsecond8020.cmd",
+        "command_sha256": "91e45ce77e95b408001af843a2fc2dc00f52801df4073f209c0526dc71bdcfbc"
+      }
+    }
+  },
+  "landed_camera": {
+    "atlas_quotient": [
+      8,
+      8
+    ],
+    "atlas_remainder": [
+      0,
+      0
+    ],
+    "authored_player": [
+      1327104.0,
+      1.0,
+      1884160.0
+    ],
+    "pitch": -20.0,
+    "heading": -30.0,
+    "navigation_beta": 0.0,
+    "native_settled_player": {
+      "low232": [
+        1327104.0,
+        -112640.0,
+        1884160.0
+      ],
+      "painter231": [
+        1327104.0,
+        -112640.0,
+        1884160.0
+      ],
+      "flare236": [
+        1327104.0,
+        -81920.0,
+        1884160.0
+      ]
+    },
+    "product_settled_player": {
+      "low232": [
+        1327104,
+        -113240,
+        1884160
+      ],
+      "painter231": [
+        1327104,
+        -113240,
+        1884160
+      ],
+      "flare236": [
+        1327104,
+        -82520,
+        1884160
+      ]
+    }
+  },
+  "native_capture": {
+    "runner": "NIV+ 2.3 under DOSBox-X 2025.05.03",
+    "authority": "Each saved indexed BMP and its active six-bit palette are authoritative. Frozen RAM and adapted pages are later-state diagnostics, not same-frame page substitutes.",
+    "current_sha256": "574a3a62b1b96bd4cea2be57deaa2df0d019924844a4d27b09151b9a954a4608",
+    "authored_clock": 1344168020.0,
+    "product_clock": 1344168020,
+    "clock_method": "The low and exact-painter captures used guest time 12:00:00.80; the above-flare capture used a bounded 12:00:01.00 retry. All retained continuity clocks are in product integer second 1344168020. Raw binary64 equality and one identical command file are explicitly not claimed.",
+    "snapshot_wait_seconds": 20,
+    "sync": 3,
+    "target_reached": 1,
+    "low232": {
+      "longitude": 232,
+      "captured_clock": 1344168020.2857144,
+      "snapshot_command": "build/hab-weather-native-matchedsecond8020.cmd",
+      "snapshot_command_sha256": "3139fe284560fd61a5ad7cd2d13d0a6f30e2fba417cf1aea136c920733014ec9",
+      "bmp": "hab_multiple_low232_weather8020_native.shot.BMP",
+      "surface": "hab_multiple_low232_weather8020_native.SURFACE.BIN",
+      "bmp_sha256": "81b8cfc6f5ec938c9440fdccd430fbb208e69cf8dec0c7d96df8a4dd0c06d120",
+      "surface_sha256": "132d1a0f364aa6bae16ab3f851b4623670f5a413ca4ca0479c0b76eaffb46cda",
+      "decoded_page_sha256": "b8c6656eb133f487b75ea8b7d8125bcec00dc0d3d57d0da0cd92782808b03fdb",
+      "six_bit_palette_sha256": "dfb2597dcb93dba37cb54aba97c2b607b3f50f1b581c0fb09917d4b3890f008e",
+      "support_memory": "tests/gen/recon_w7b/mem/hab_multiple_low232_weather8020_native.mem",
+      "support_memory_sha256": "1ac5d97ad6759b3182e79f54647bad68dd5468373e7dc3c4074fa83f0dcad74e",
+      "support_adapted": "hab_multiple_low232_weather8020_native.adapted",
+      "support_adapted_sha256": "e87f44d510c0284ca2c795ccfbd0cec15943b5665758cfe37c0f8df70d62fbc3",
+      "bmp_vs_adapted_index_differences": 37262,
+      "bmp_vs_adapted_palette_band_differences": 12675
+    },
+    "painter231": {
+      "longitude": 231,
+      "captured_clock": 1344168020.0,
+      "snapshot_command": "build/hab-weather-native-matchedsecond8020.cmd",
+      "snapshot_command_sha256": "3139fe284560fd61a5ad7cd2d13d0a6f30e2fba417cf1aea136c920733014ec9",
+      "bmp": "hab_multiple_painter231_weather8020_native.shot.BMP",
+      "surface": "hab_multiple_painter231_weather8020_native.SURFACE.BIN",
+      "bmp_sha256": "552d93b9d8220b12c18a232473b364b601c3c1e57d545fd054230c78192243bb",
+      "surface_sha256": "ce0c7c7b2d2e8e0de12d9391f51113ae3063955ab7af1863cbd05122be988c40",
+      "decoded_page_sha256": "1feccec37b1752bb3ababc583d212d86828f10a033b0bf0ff8217bc1b9fdb8a4",
+      "six_bit_palette_sha256": "25a1556fce1fc2fafd961fc0dc8c4a83a9764c97e406f512b8ded12691aa57af",
+      "support_memory": "tests/gen/recon_w7b/mem/hab_multiple_painter231_weather8020_native.mem",
+      "support_memory_sha256": "2177a231290f2c3d3e2eb66d0a1bb3556544a803f57d793d160ee9864522d6bc",
+      "support_adapted": "hab_multiple_painter231_weather8020_native.adapted",
+      "support_adapted_sha256": "5c7b344374f24cf5dddb157472b8553f6281d84b3d800231a0d2c64e6fe4bf8e",
+      "bmp_vs_adapted_index_differences": 37607,
+      "bmp_vs_adapted_palette_band_differences": 13791
+    },
+    "flare236": {
+      "longitude": 236,
+      "captured_clock": 1344168020.625,
+      "snapshot_command": "build/hab-multiple-native-matchedsecond8020.cmd",
+      "snapshot_command_sha256": "91e45ce77e95b408001af843a2fc2dc00f52801df4073f209c0526dc71bdcfbc",
+      "bmp": "hab_multiple_flare236_weather8020_native.shot.BMP",
+      "surface": "hab_multiple_flare236_weather8020_native.SURFACE.BIN",
+      "bmp_sha256": "e2553110de97c31d1fbf471aa7fae2c6609b5c39ef875537e971e437db99dd1d",
+      "surface_sha256": "09fabbc21028e8c13ae2be6b2f9188c11c02432f1d28186beadfe83f3d0e3cf5",
+      "decoded_page_sha256": "86d819cc6744fd013a9187fc24963c8cc971560e8a40824e98f091f31761b895",
+      "six_bit_palette_sha256": "2e4da0dc409fb9dc4872c1bf7c3a98444920649d0dc403fb723b608b387f78a7",
+      "support_memory": "tests/gen/recon_w7b/mem/hab_multiple_flare236_weather8020_native.mem",
+      "support_memory_sha256": "7a29170cb0a73538affce2e1f98ffff500d814c9bde16bddbbd81e628994f612",
+      "support_adapted": "hab_multiple_flare236_weather8020_native.adapted",
+      "support_adapted_sha256": "5ca22a4040ba41924e532fa295eaa526920094f2794edc34c6ea5f8c222c5185",
+      "bmp_vs_adapted_index_differences": 38355,
+      "bmp_vs_adapted_palette_band_differences": 26886
+    }
+  },
+  "native_ram_contract": {
+    "continuity_block_address": "0x325dc",
+    "rainy_address": "0x3292e",
+    "primary_day_globals_address": "0x36991",
+    "solar_globals_address": "0x39164",
+    "secondary_day_globals_address": "0x3918d",
+    "target_rotation_addresses": {
+      "period": "0x38177",
+      "rotation": "0x38217",
+      "term_start": "0x382b7",
+      "term_end": "0x38357"
+    },
+    "both_sources_daylight": true,
+    "shared_discrete": {
+      "period": 620,
+      "rotation": 284,
+      "primary_term_start": 71,
+      "primary_term_end": 201
+    },
+    "weather": {
+      "low232": {
+        "rainy": 1.6666666269302368,
+        "albedo": 32,
+        "scenario": 3,
+        "desert_divisor": 3
+      },
+      "painter231": {
+        "rainy": 2.0,
+        "albedo": 32,
+        "scenario": 3,
+        "desert_divisor": 1
+      },
+      "flare236": {
+        "rainy": 2.125,
+        "albedo": 32,
+        "scenario": 3,
+        "desert_divisor": 2
+      }
+    },
+    "solar": {
+      "low232": {
+        "primary_crepzone": 31,
+        "primary_nightzone": 0,
+        "primary_sun_x_factor": -1,
+        "secondary_crepzone": 76,
+        "secondary_nightzone": 0,
+        "secondary_sun_x_factor": -1,
+        "primary_distance": 1009.3336181640625,
+        "secondary_distance": 4174.939453125,
+        "active_companion_ray": 15.600000381469727,
+        "system_primary_ray": 8.48799991607666
+      },
+      "painter231": {
+        "primary_crepzone": 30,
+        "primary_nightzone": 0,
+        "primary_sun_x_factor": -1,
+        "secondary_crepzone": 75,
+        "secondary_nightzone": 0,
+        "secondary_sun_x_factor": -1,
+        "primary_distance": 1009.3336181640625,
+        "secondary_distance": 4174.939453125,
+        "active_companion_ray": 15.600000381469727,
+        "system_primary_ray": 8.48799991607666
+      },
+      "flare236": {
+        "primary_crepzone": 35,
+        "primary_nightzone": 0,
+        "primary_sun_x_factor": -1,
+        "secondary_crepzone": 80,
+        "secondary_nightzone": 0,
+        "secondary_sun_x_factor": -1,
+        "primary_distance": 1009.3336181640625,
+        "secondary_distance": 4174.939453125,
+        "active_companion_ray": 15.600000381469727,
+        "system_primary_ray": 8.48799991607666
+      }
+    }
+  },
+  "gate_contract": {
+    "primary_disc": "rainy >= binary32(0x40200000) suppresses the local primary disc (2.5)",
+    "primary_flare": "rainy >= binary32(0x3F99999A) suppresses the primary flare (1.2000000476837158)",
+    "secondary_disc": "rainy >= binary32(0x40000000) suppresses the secondary disc inclusively (2.0)",
+    "secondary_flare": "rainy >= binary32(0x40066666) suppresses the secondary flare inclusively (2.0999999046325684)",
+    "isolation": "low232 -> painter231 keeps the primary disc and secondary flare admitted while crossing only the secondary-disc gate. painter231 -> flare236 keeps the primary disc admitted, primary flare suppressed, and secondary disc suppressed while crossing only the secondary-flare gate."
+  },
+  "visual_contract": {
+    "crops": {
+      "low232": {
+        "box": [
+          139,
+          73,
+          200,
+          134
+        ],
+        "pixels": 3721,
+        "native_sha256": "79a57a49edb9038b14745568babfb08a152366dbdf06d1713526b0be5e45433a",
+        "product_sha256": "e7c2befc03e4290e0df8a909c94c08e7c07dd22a7b5a355140a15068faa0d586",
+        "native_range": [
+          87,
+          124
+        ],
+        "product_range": [
+          87,
+          124
+        ],
+        "native_values_ge_120": 4,
+        "product_values_ge_120": 4,
+        "native_product_index_differences": 2529,
+        "native_product_painter_family_differences": 0,
+        "complete_native_product": {
+          "indices": 44551,
+          "bands": 168,
+          "palette_components": 578
+        }
+      },
+      "painter231": {
+        "box": [
+          142,
+          74,
+          203,
+          135
+        ],
+        "pixels": 3721,
+        "native_sha256": "58c1b9ec5c53ff035b6bbbaafd3518347326682a3f9d1cd506e7aea2db12b93b",
+        "product_sha256": "40c6e63819e4b4d9fbb9b19a1432fcf0e956e0c6fbf5b55becefd046f50b8d50",
+        "native_range": [
+          87,
+          116
+        ],
+        "product_range": [
+          87,
+          114
+        ],
+        "native_values_ge_120": 0,
+        "product_values_ge_120": 0,
+        "native_product_index_differences": 2584,
+        "native_product_painter_family_differences": 0,
+        "complete_native_product": {
+          "indices": 44515,
+          "bands": 207,
+          "palette_components": 737
+        }
+      },
+      "flare236": {
+        "box": [
+          147,
+          90,
+          168,
+          111
+        ],
+        "pixels": 441,
+        "native_sha256": "eb0f7470126eaa19794a7a6c1c4dc8c8d096285d17916576231861296682e507",
+        "product_sha256": "e61449203da52385d22de37dcc4dde2e8c8264dfc3b74ec1004cecf2430aa8d9",
+        "native_range": [
+          86,
+          94
+        ],
+        "product_range": [
+          90,
+          92
+        ],
+        "native_values_ge_120": 0,
+        "product_values_ge_120": 0,
+        "native_product_index_differences": 189,
+        "native_product_painter_family_differences": 0,
+        "complete_native_product": {
+          "indices": 45860,
+          "bands": 573,
+          "palette_components": 578
+        }
+      }
+    },
+    "native_pairs": {
+      "low232-painter231": {
+        "native": {
+          "indices": 27469,
+          "bands": 2384,
+          "palette_components": 676
+        },
+        "product": {
+          "indices": 25579,
+          "bands": 2367,
+          "palette_components": 435
+        }
+      },
+      "painter231-flare236": {
+        "native": {
+          "indices": 32964,
+          "bands": 12348,
+          "palette_components": 520
+        },
+        "product": {
+          "indices": 31492,
+          "bands": 11980,
+          "palette_components": 741
+        }
+      }
+    },
+    "authority_limit": "The decoded indexed BMPs and six-bit palettes are capture authority. Each bounded source crop has exact native/product high-two-bit painter families; complete pages, complete palettes/RGB images, lower terrain, exact within-family indices, raw clock identity, product diagnostic sample timing, and later adapted pages are explicit non-claims."
+  },
+  "matched_product": {
+    "runner": "tracked official L.in.oleum build on the private inactive WinSta0 desktop",
+    "clock": 1344168020,
+    "low232": {
+      "directory": "build/renderer-hab-multiple-posb-low232",
+      "diagnostic": {
+        "mode": 1,
+        "landed": 1,
+        "planet_type": 3,
+        "star_class": 8,
+        "atmosphere": 1,
+        "primary_night": 0,
+        "rain": 1.6666666269302368,
+        "primary_exposure": 24.26059913635254,
+        "primary_distance": 1009.3336181640625,
+        "active_companion_ray": 15.600000381469727,
+        "flare": [
+          1,
+          169,
+          103,
+          127
+        ],
+        "secondary_active": 1,
+        "secondary_night": 0,
+        "system_primary_ray": 8.48799991607666,
+        "secondary_distance": 4174.10888671875,
+        "discrete": [
+          620,
+          284,
+          337,
+          36,
+          71,
+          201,
+          31,
+          -1
+        ]
+      },
+      "hashes": {
+        "habitablemultiple-game-local-out.bin": "aaf7b6ac646f5bc1e64e66b9a27df66c85b99c46a9451a4f1db79c22c9102209",
+        "habitablemultiple-game-p-background-out.bin": "46a3d5722c74ddc7f819e3e7486c3d2543e6d7e7badcc8e8a1d5ecf17cad561f",
+        "habitablemultiple-game-p-surfacemap-out.bin": "0fe7bf1be251383f40d64614721050fc2e3f7253e465ad82da2053c358105b35",
+        "habitablemultiple-game-page-out.bin": "92973c41f58c37c85512cc153aa22f298bb62552d1ec9917588019022e7391f6",
+        "habitablemultiple-game-palette-out.bin": "476a9eddbba2a4bd6185c9135046bfb1e8b828ffd8a2f5c2ebfa069e958f227f",
+        "habitablemultiple-game-render-state-out.bin": "d8158f6abd7c75a050558d68d1ac1a164cfd1bd649d2882f0cec7a4a835abc95",
+        "habitablemultiple-game-s-background-out.bin": "16eb45ca532c32748603b8528941f6fc02b9b5cfee99824574c588d528a04d2c",
+        "habitablemultiple-game-sun-out.bin": "0e116b5f4fe6bf1b2a636e2881719e8b8b156e28d53aeb1fbbff7e956dbc491d",
+        "habitablemultiple-game-vh-out.bin": "dfc5973189523db068bbf6c24d9931055d7f4eb1c34b5571be83a3b2e547b8c2"
+      }
+    },
+    "painter231": {
+      "directory": "build/renderer-hab-multiple-posb-painter231",
+      "diagnostic": {
+        "mode": 1,
+        "landed": 1,
+        "planet_type": 3,
+        "star_class": 8,
+        "atmosphere": 1,
+        "primary_night": 0,
+        "rain": 2.0,
+        "primary_exposure": 23.47800064086914,
+        "primary_distance": 1009.3336181640625,
+        "active_companion_ray": 15.600000381469727,
+        "flare": [
+          1,
+          172,
+          104,
+          91
+        ],
+        "secondary_active": 1,
+        "secondary_night": 0,
+        "system_primary_ray": 8.48799991607666,
+        "secondary_distance": 4174.10888671875,
+        "discrete": [
+          620,
+          284,
+          337,
+          36,
+          71,
+          201,
+          30,
+          -1
+        ]
+      },
+      "hashes": {
+        "habitablemultiple-game-local-out.bin": "847cc7a7d3f0b04f8d100dbb80adfcbcde0d1a29e5097ea078228f85137de2db",
+        "habitablemultiple-game-p-background-out.bin": "881d98127ebb3773dc1260d6a7c07cf712cd096f1c6dbedfed0c944e7d767076",
+        "habitablemultiple-game-p-surfacemap-out.bin": "2c4879de165fab7615c72e5e6f8d900ad8bd21c740f9d937bd396e520c69028f",
+        "habitablemultiple-game-page-out.bin": "637b97e9ad98a374bea352c07b8781c4a54acf14057c1bf5a31d8c94bf32632a",
+        "habitablemultiple-game-palette-out.bin": "3375816c160cc8d6d27e67da7635ad234e35c72032296de789d43c4a5ea4da19",
+        "habitablemultiple-game-render-state-out.bin": "4218cf4c062ae31bd7c3d5a47a9c32e1dafeb5642caa268f0a791f5e9637e7b0",
+        "habitablemultiple-game-s-background-out.bin": "16eb45ca532c32748603b8528941f6fc02b9b5cfee99824574c588d528a04d2c",
+        "habitablemultiple-game-sun-out.bin": "df548f9a7ffc1820c797d0929d7e2965163134801c86f4dac122d135d72386e3",
+        "habitablemultiple-game-vh-out.bin": "9970a3e7dd275adf4b29f81d3d7fb9847842d5c51adb55e4f090c039374da148"
+      }
+    },
+    "flare236": {
+      "directory": "build/renderer-hab-multiple-posb-flare236",
+      "diagnostic": {
+        "mode": 1,
+        "landed": 1,
+        "planet_type": 3,
+        "star_class": 8,
+        "atmosphere": 1,
+        "primary_night": 0,
+        "rain": 2.125,
+        "primary_exposure": 27.391000747680664,
+        "primary_distance": 1009.3336181640625,
+        "active_companion_ray": 15.600000381469727,
+        "flare": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "secondary_active": 1,
+        "secondary_night": 0,
+        "system_primary_ray": 8.48799991607666,
+        "secondary_distance": 4174.10888671875,
+        "discrete": [
+          620,
+          284,
+          337,
+          36,
+          71,
+          201,
+          35,
+          -1
+        ]
+      },
+      "hashes": {
+        "habitablemultiple-game-local-out.bin": "976d1c25b64690ac62c6a2b617351570b9843468571c729e72efd8d31f271bb7",
+        "habitablemultiple-game-p-background-out.bin": "5aba0586ff67061be9d0b0f616aec8dc1f7f74ba4dcad572dbf2059f91ab7888",
+        "habitablemultiple-game-p-surfacemap-out.bin": "1f797761c9a8b6660ed6ebbf3ef6e0eb57328831f2c1843a6c9eb6e9deda858d",
+        "habitablemultiple-game-page-out.bin": "21e1e6c42b18ed7e206dc322ada74366f108dbbc161ab83506453aa59ad00bda",
+        "habitablemultiple-game-palette-out.bin": "c764edc8a346d267e34339b94538ce72449cab83956c06dd2788bdbfa0f23245",
+        "habitablemultiple-game-render-state-out.bin": "d8158f6abd7c75a050558d68d1ac1a164cfd1bd649d2882f0cec7a4a835abc95",
+        "habitablemultiple-game-s-background-out.bin": "16eb45ca532c32748603b8528941f6fc02b9b5cfee99824574c588d528a04d2c",
+        "habitablemultiple-game-sun-out.bin": "a4a67e8e3ef90a2fe8d9c13ed8a332ea9572855dca139c1ce1faad6c35a08356",
+        "habitablemultiple-game-vh-out.bin": "172aaa6f5dc106666e67e2ad93e305ee134e18a199d3814d3cb050683735c904"
+      }
+    }
+  }
+}

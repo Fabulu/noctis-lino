@@ -143,6 +143,22 @@ of every one of 64,000 pixels. Complete low-six indexed pages, palettes/RGB,
 settled terrain height, product/native clock identity, and later adapted pages
 remain explicit non-claims.
 
+ROTOR IGNE now adds a genuine landed multiple-sun weather checkpoint. Its
+atmospheric type-3 body 8 is owned by generated type-10 companion body 3, so the
+surface pass independently paints that local companion and the class-8 system
+primary. Retained orbital `s_background` and `objectschart` maps plus the complete
+Borland draw order reconstruct latitude-88 longitude 232/231/236 DESERT rain as
+`1.6666666269302368`, exactly `2.0`, and `2.125`. Both sources remain in daylight.
+The first transition crosses only the inclusive secondary-disc gate while
+retaining the secondary flare; the second crosses only the inclusive binary32
+`0x40066666` secondary-flare gate. The below-2.0 source crop reaches index 124
+with four values at least 120, the exact-2.0 crop has no such values but retains
+its radial flare, and the 2.125 corridor is source-free. Native and
+private-desktop product retain zero high-two-bit painter-family differences in
+all three bounded crops. Complete pages, palettes, terrain, exact within-family
+indices, raw-clock equality, product diagnostic sampling time, and later adapted
+pages remain explicit non-claims.
+
 TRIUMVIRATE - CAESAR adds a genuine class-8 `[10,10,1]` hierarchy with both
 type-10 bodies visible together from the Stardrifter interior. A balanced pose
 places their independently projected flare centres at `(255,99)` and `(73,101)`.

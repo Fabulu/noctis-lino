@@ -321,13 +321,15 @@ oracle exactly. That bright ray is therefore authentic flare geometry for
 those inputs, not the unrelated black horizon-pillar defect. Parallel
 screenshot processes can interfere and produced two all-black captures, so
 this matrix must be captured sequentially. The exact frozen-world sunrise and
-sunset-edge pairs below close both ends of one precise day/night interval, and
-the atmospheric pairs close the inclusive local-primary rain-2.5 gate and
-separate primary-flare rain-1.2 bracket. Still open: representative views for
-every planet and atmosphere class, other material weather transitions, further
-companion and multiple-sun arrangements, additional orbital views, and moving
-transitions among Stardrifter interior/cupola/exterior plus launch/landing
-transitions.
+sunset-edge pairs below close both ends of one precise day/night interval; the
+LANE IV atmospheric pairs close the inclusive local-primary rain-2.5 gate and
+separate primary-flare rain-1.2 bracket; and the landed ROTOR IGNE three-state
+checkpoint closes the independent secondary-disc rain-2.0 and secondary-flare
+binary32-2.1 gates on a companion-owned atmospheric moon. Still open:
+representative views for every planet and atmosphere class, other material
+weather transitions, further companion and multiple-sun arrangements,
+additional orbital views, and moving transitions among Stardrifter
+interior/cupola/exterior plus launch/landing transitions.
 
 The thin gallery case now also has a full-context NIV+ oracle, not only the
 synthetic uniform-page flare check. An instrumented Borland build rendered the
@@ -443,6 +445,40 @@ same high-two-bit painter family at every one of 64,000 page positions. Complete
 low-six indexed pages, active palettes/RGB, the roughly 600-unit settled-height
 difference, product/native clock identity, and later adapted pages remain
 explicit non-claims. This closes the primary-flare rain-1.2 boundary.
+
+**ROTOR IGNE landed secondary-weather checkpoint.** Body 8 is not an ordinary
+primary-owned planet: the generated class-8 hierarchy gives it atmospheric type
+3 and owner 3, while body 3 is a type-10 companion. `VHGND` selects `SUpbase` for
+landing identity, so the authoritative orbital source map is the retained
+`s_background`; the structurally allocated orbital `p_background` was effectively
+uninitialized for this moon, and the landed `s_background` export is later
+repurposed as terrain texture.
+
+At latitude 88, longitudes 232/231/236 address retained surface bytes 48/26/35
+and cloud bytes 31/8/17. Full source-order replay includes the five-percent local
+scenario branch, albedo and polar overrides, and conditional scenario divisor
+only after those decisions. Borland draws produce DESERT divisors 3/1/2 from raw
+rain 5/2/4.25, hence exact binary32 rain `1.6666666269302368`, `2.0`, and
+`2.125`. All retained native RAM and product diagnostics keep the active type-10
+companion and class-8 system primary in daylight, with period 620, rotation 284,
+viewpoint 337, `plwp=36`, and local-primary terminators 71/201.
+
+The low-to-exact-2.0 transition remains below the 2.5 local-primary painter gate,
+above the 1.2 local-primary flare gate, and below the secondary-flare
+`0x40066666` gate. It therefore crosses only the source's inclusive
+`rainy >= 0x40000000` secondary-disc suppression: the low secondary crop reaches
+index 124 with four values at least 120, while the exact-threshold crop reaches
+116 native/114 product with no value at least 120 but retains a radial flare.
+The exact-2.0-to-2.125 transition keeps that disc suppressed and crosses only the
+inclusive binary32 secondary-flare gate; product projection clears and the
+bounded source corridor is source-free. Native and private-desktop product have
+zero high-two-bit painter-family differences across all three selected crops.
+The native clocks differ fractionally but all lie in product integer second
+`1344168020`. Complete pages, active palettes/RGB, lower terrain, exact
+within-family indices, raw-clock identity, product diagnostic sample timing, and
+later adapted pages remain explicit non-claims. This closes both independent
+secondary weather gates for one genuine companion-owned atmospheric surface; it
+does not justify tuning ROTOR IGNE's unresolved orbital companion corona gap.
 
 The Stardrifter local-system pass now restores the companion-star corona's
 source expression too: each type-10 body reseeds the fast generator with its

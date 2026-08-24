@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple', 'orbitmultiplecompact', 'orbitmultipletriple', 'orbitmultipletripleroof', 'orbitmultipletripleexterior',
-        'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass5', 'lunarclass9', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
+        'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass5', 'lunarclass9', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'habitablemultiple', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'quartzclass10', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -286,6 +286,11 @@ $scenes = @(
     @{ Name='habitable'; FileName='planet-habitable-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
        Beta=65; Pitch=-10; Warmup=7; PlayerX=1598248; PlayerZ=2251369 },
+    # ROTOR IGNE's type-3 moon belongs to generated type-10 body 3. It is the
+    # retained landed route for grading primary/secondary weather gates together.
+    @{ Name='habitablemultiple'; FileName='planet-habitable-multiple-suns.png';
+       X=3866416; Y=-4813508; Z=-735695; Body=8; Type=3; Lon=232; Lat=88;
+       Beta=-30; Pitch=-20; Warmup=1; PlayerX=1327104; PlayerZ=1884160 },
     # LANE IV's naturally generated GIANT_TREE at (1086769,2139184), viewed
     # from 45,000 units south. This coordinate and its source parameters were
     # verified directly against the NIV+ tree renderer.
