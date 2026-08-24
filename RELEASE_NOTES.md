@@ -81,13 +81,14 @@ band, camera, flare gate/position and pre-smoothing sky-band admission sample,
 exposure, distance, and ray remain graded. The separate ten-case primitive
 flare oracle remains byte-exact to its native pages.
 
-That product gate now covers seven landable surface classes through eight
-retained native BMP and surface records: lunar type 1, dense-atmosphere type 2,
-habitable type 3, two rocky type-4 cases, thin-atmosphere type 5, frozen type 7
-around a class-1 star, and quartz type 8. Habitable, thin, quartz, and class-1
-rocky authenticate positive radial flares; lunar/dense authenticate the
-`distance < 10*ray` lower suppression gate; class-0 rocky/frozen authenticate
-the `distance >= 1000*ray` upper gate. The certified quartz state keeps body 7
+That product gate now covers seven landable surface classes through nine
+retained native BMP and surface records: two lunar type-1 cases,
+dense-atmosphere type 2, habitable type 3, two rocky type-4 cases,
+thin-atmosphere type 5, frozen type 7 around a class-1 star, and quartz type 8.
+Habitable, thin, quartz, class-1 lunar, and class-1 rocky authenticate positive
+radial flares; class-0 lunar/dense authenticate the `distance < 10*ray` lower
+suppression gate; class-0 rocky/frozen authenticate the
+`distance >= 1000*ray` upper gate. The certified quartz state keeps body 7
 landed with power available at source time `1345761727`; the product matches the
 exact projected centre `(161,101)` and final index 97, all 768 palette
 components, and all 36,000 palette bands in the upper-sky crop, with
@@ -95,15 +96,21 @@ components, and all 36,000 palette bands in the upper-sky crop, with
 power 31505 at source time `1345723230`; around its class-1 star the product
 matches centre `(161,72)`, final index 126, all 768 palette components, and all
 27,000 upper-sky indices, with
-`10 * 21.879 <= 245.8964 < 1000 * 21.879`. Authority remains explicit per
-artifact: habitable, thin, dense, and frozen require all 64,000 palette-band
-assignments; lunar, the two rocky cases, and frozen additionally require exact
-36,000-, 27,000-, 27,000-, and 36,000-index upper-sky crops; quartz requires its
-exact centre index and 36,000-pixel upper-sky palette-band crop. All active
-palettes are exact except the dense capture whose 101 easing-dependent
-components remain informational. The native Apple-Silicon job rebuilds and
-grades all eight checkpoints independently with their case-specific clocks and
-retains their product diagnostics.
+`10 * 21.879 <= 245.8964 < 1000 * 21.879`. The additional lunar state keeps body
+4 landed with power 19998 at source time `1345636830`; around the same class-1
+star the product admits centre `(161,91)`, matches all 768 palette components
+and all 64,000 final-page palette bands, and keeps
+`10 * 21.879 <= 1757.4972 < 1000 * 21.879`. Native centre index 78 and product
+index 80 remain in the same band while snapshot-time smoothing stays explicit.
+Authority remains artifact-specific: habitable, thin, dense, frozen, and the
+class-1 lunar case require all 64,000 palette-band assignments; the lower-gate
+lunar case, the two rocky cases, and frozen additionally require exact 36,000-,
+27,000-, 27,000-, and 36,000-index upper-sky crops; quartz requires its exact
+centre index and 36,000-pixel upper-sky palette-band crop. All active palettes
+are exact except the dense capture whose 101 easing-dependent components remain
+informational. The native Apple-Silicon job rebuilds and grades all nine
+checkpoints independently with their case-specific clocks and retains their
+product diagnostics.
 
 A paired IDEAL capture extends that correction to a class-0 primary and type-1
 orbital target. At matched clock, camera, radius, distance, and Stardrifter

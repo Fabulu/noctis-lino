@@ -242,6 +242,8 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("CURRENT.LIN", workflow)
         self.assertIn("tools/make_noctis_checkpoint.py", workflow)
         self.assertIn("spec.get('clock', 1344638527)", workflow)
+        self.assertIn('"case": "lunar-class1-sun50"', workflow)
+        self.assertIn('"clock": 1345636830', workflow)
         self.assertIn('"clock": 1345761727', workflow)
         self.assertIn('gallery / f"{spec[\'scene\']}-{name}"', workflow)
         self.assertIn("tests/test_sun_gallery.py", workflow)
