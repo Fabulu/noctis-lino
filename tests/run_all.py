@@ -91,6 +91,7 @@ TESTS = [
     ("test_surfaceclass10_oracle.py", "matched BISTARIAL/SORZ class-10 surface evidence protects the landed type-8 pose, in-gate class exclusion, exact palette and sun crop, and non-atomic authority boundary"),
     ("test_orbitprimary_class5_oracle.py", "matched ASKEW 184 class-5 evidence protects the bodyless untargeted exterior pose, strict orbital interval, compact corona, spoke exclusion, palette bands, and non-atomic authority boundary"),
     ("test_orbitprimary_class6_oracle.py", "matched FUEL TWO class-6 evidence protects the bodyless untargeted exterior pose, strict orbital interval, compact corona, spoke exclusion, palette bands, and non-atomic authority boundary"),
+    ("test_orbitprimary_class10_oracle.py", "matched OUTER RUN WIND class-10 evidence protects the bodyless untargeted exterior pose, strict orbital interval, compact corona, spoke exclusion, palette bands, and non-atomic authority boundary"),
     ("test_orbitprimary_oracle.py", "matched WIRE class-7 native/product evidence protects the untargeted exterior camera, strict primary gate, space palette, complete flare-crop bands, and radial core"),
     ("test_orbitmultiple_oracle.py", "matched ROTOR IGNE negative and front-facing native pages/palettes protect the source exterior half-turn and a real type-10 companion flare"),
     ("test_orbitlunar_oracle.py", "matched IDEAL lunar exterior/interior/limb/roof and strict cupola-boundary pages protect orbital, globe, primary, and Stardrifter branch geometry"),

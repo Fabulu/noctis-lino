@@ -109,6 +109,17 @@ no extended radial component. Complete-page equality and product live-distance
 telemetry remain explicitly unclaimed; the latter diagnostic does not exist for
 this orbital path.
 
+OUTER RUN WIND completes the orbital-primary source-exclusion triad with an
+authentic bodyless class-10 system at `(-1027472,-5805997,-5135362)`, ray
+`30.3050003`. Extracted native continuity places source distance `1516.2500153`
+strictly inside both the ordinary orbital flare interval and the white-corona
+interval, but class 10 suppresses radial spokes. Native and warmed
+private-desktop product evidence retain one compact corona plus the same two
+isolated background stars, match the first 576 palette components, and match
+every palette band in the snapshot-stable 2,025-index core and 20,160-index
+upper strip. Complete-page, matched-clock HUD, surface/body, and product
+live-distance claims remain explicitly excluded.
+
 BISTARIAL/SORZ now adds an independently retained class-10 surface-suppression
 checkpoint. NIV+ authenticates the centred white disc/corona without radial
 spokes on its primary-owned type-8 world, while shipping-product telemetry

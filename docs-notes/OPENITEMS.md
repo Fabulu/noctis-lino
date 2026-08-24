@@ -967,6 +967,20 @@ explains spoke absence. Whole-page equality, any surface/body claim, and product
 live-distance telemetry remain excluded because the snapshot was non-atomic and
 the orbital view diagnostic has no distance scalar.
 
+**Orbital class-10 class-suppressed-primary checkpoint.** OUTER RUN WIND at
+`(-1027472,-5805997,-5135362)` completes the source's orbital-primary exclusion
+triad with a tracked class-10 primary, ray `30.3050003`, spin zero, and no
+generated bodies. Its untargeted exterior Stardrifter retains source distance
+`1516.2500153`, strictly inside `6*ray < distance < 1000*ray` and the
+white-corona interval. Extracted native continuity and warmed private-desktop
+product diagnostics authenticate the camera, class, zero-body state, and compact
+beamless corona. Both retain the same two isolated background stars and no
+extended radial component. The first 576 native/product palette components
+match. Native/adapted match every index in the 2,025-pixel core; native/product
+match every palette band in that core and the 20,160-pixel upper strip. Class
+10, not distance, explains spoke absence. Whole-page, matched-clock HUD,
+surface/body, and product live-distance claims remain excluded.
+
 **Surface class-10 class-suppressed-flare checkpoint.** BISTARIAL/SORZ at
 `(5411056,-7441017,-1775473)` adds a second source-class exclusion and the first
 retained class-10 case. Body 1 is the primary-owned landable type-8 world. At

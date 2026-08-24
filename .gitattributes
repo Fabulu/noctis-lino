@@ -14,6 +14,13 @@ tests/native-oracles/orbital-class6-fuel-two/native.adapted binary
 tests/native-oracles/orbital-class6-fuel-two/*.BMP binary
 tests/native-oracles/orbital-class6-fuel-two/*.bin binary
 tests/native-oracles/orbital-class6-fuel-two/*.BIN binary
+tests/native-oracles/orbital-class10-outer-run-wind/README.md text eol=lf
+tests/native-oracles/orbital-class10-outer-run-wind/provenance.json text eol=lf
+tests/native-oracles/orbital-class10-outer-run-wind/native-capture.cmd binary
+tests/native-oracles/orbital-class10-outer-run-wind/native.adapted binary
+tests/native-oracles/orbital-class10-outer-run-wind/*.BMP binary
+tests/native-oracles/orbital-class10-outer-run-wind/*.bin binary
+tests/native-oracles/orbital-class10-outer-run-wind/*.BIN binary
 tests/native-oracles/quartz-class10-sun333/README.md text eol=lf
 tests/native-oracles/quartz-class10-sun333/provenance.json text eol=lf
 tests/native-oracles/quartz-class10-sun333/native-capture.cmd binary

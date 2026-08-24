@@ -4,7 +4,7 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'planetclose',
+    [ValidateSet('all', 'stardrifter', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass10', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
@@ -111,6 +111,12 @@ $scenes = @(
     @{ Name='stardrifterclass7'; Mode=0; X=-1187856; Y=-195673; Z=1064757;
        Body=0; Type=9; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=219.2 },
+    # OUTER RUN WIND's class-10 primary has no generated bodies. Its centred
+    # corona closes the third source-class exclusion inside the otherwise-
+    # positive orbital flare and white-corona intervals.
+    @{ Name='stardrifterclass10'; Mode=0; X=-1027472; Y=-5805997; Z=-5135362;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=1515.250015258789 },
     # The opening system's type-8 primary after a completed fine approach,
     # held 3.88 planetary radii away on the calibrated forward window axis.
     @{ Name='planetclose'; FileName='planet-close-space.png'; Mode=0;
