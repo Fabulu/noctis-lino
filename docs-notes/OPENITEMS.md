@@ -321,11 +321,13 @@ oracle exactly. That bright ray is therefore authentic flare geometry for
 those inputs, not the unrelated black horizon-pillar defect. Parallel
 screenshot processes can interfere and produced two all-black captures, so
 this matrix must be captured sequentially. The exact frozen-world sunrise and
-sunset-edge pairs below close both ends of one precise day/night interval. Still
-open: representative views for every planet and atmosphere class, further
-weather boundaries, further companion and multiple-sun arrangements, additional
-orbital views, and moving transitions among Stardrifter interior/cupola/exterior
-plus launch/landing transitions.
+sunset-edge pairs below close both ends of one precise day/night interval, and
+the atmospheric pair closes the inclusive local-primary rain-2.5 gate. Still
+open: representative views for every planet and atmosphere class, the separate
+primary-flare rain-1.2 boundary and other material weather transitions, further
+companion and multiple-sun arrangements, additional orbital views, and moving
+transitions among Stardrifter interior/cupola/exterior plus launch/landing
+transitions.
 
 The thin gallery case now also has a full-context NIV+ oracle, not only the
 synthetic uniform-page flare check. An instrumented Borland build rendered the
@@ -392,7 +394,32 @@ whole pages differ by 27,264/27,883 indices and active palettes by 652/736
 components. The native later adapted pages differ from their BMP authorities by
 12,842/12,838 indices. Those complete artifacts remain explicit non-claims. The
 exact inclusive start and exclusive end of this representative airless interval
-are now closed; representative atmospheric and weather transitions remain open.
+are now closed.
+
+**Exact atmospheric primary-weather checkpoint.** A same-command pair lands on
+LANE IV body 3 at latitude 56, heading 87, pitch -26, and matched integer second
+`1344168020`. Adjacent longitudes 104/105 sample `p_background` indices
+20264/20265 but deliberately share `objectschart[10132]=21`, so both begin at
+capped binary32 rain 5. Independent source reconstruction recovers albedos 32/40,
+keeps the system's DESERT scenario, and replays Borland draws `55,2`/`14,1`.
+The resulting divisors 3/2 produce exact binary32 rain
+`1.6666666269302368`/`2.5`.
+
+Both native snapshots and product diagnostics retain atmospheric class-0/type-3
+daylight, period 694, normalized rotation 281, viewpoint 268, `plwp=102`,
+terminators 137/267, and `sun_x_factor=1`. Below the gate the centred source
+reaches index 127. At the source's inclusive `rainy >= 0x40200000` gate, where
+`0x40200000` is 2.5 rather than 2.0, the central 11-by-11 crop is 121 copies of
+index 86. Native and product are byte-identical in both 31-by-31 source crops and
+over every one of 45,760 indexed pixels in full-width rows 7 through 149; the
+control active palette is exact too. The two retained native raw clocks differ
+by 0.0681818 second inside the matched integer second, and threshold product
+diagnostics clear their admitted ray/vector while native source globals remain
+populated before the painter gate. Complete pages, threshold RGB/palette, lower
+terrain affected by the bounded settled-height difference, raw-clock identity,
+and later adapted pages remain explicit non-claims. This closes one atmospheric
+primary-painter boundary; the separate rain-1.2 primary-flare boundary and the
+remaining representative atmospheric/weather matrix stay open.
 
 The Stardrifter local-system pass now restores the companion-star corona's
 source expression too: each type-10 body reseeds the fast generator with its

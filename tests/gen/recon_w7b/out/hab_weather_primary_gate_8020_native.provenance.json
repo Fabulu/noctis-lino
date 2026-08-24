@@ -1,0 +1,205 @@
+{
+  "schema": "noctis-native-oracle-provenance-v1",
+  "scene": "atmospheric type-3 primary-sun weather gate below and exactly at binary32 rain 2.5",
+  "captured_utc": "2026-08-24",
+  "system": {
+    "coordinates": [1463568, -4728350, -437812],
+    "star_class": 0,
+    "star_ray": 5.150000095367432,
+    "number_of_primary_bodies": 12,
+    "number_of_bodies": 78,
+    "target_body": 3,
+    "target_owner": -1,
+    "target_type": 3,
+    "atmosphere": true,
+    "target_orbital_orientation": 2.548180707911721,
+    "orientation_scenario_chop": 1414,
+    "orientation_scenario": 3
+  },
+  "source_maps": {
+    "p_background": "tests/gen/recon_w7a/out/lane_b03_t3.p_background",
+    "p_background_sha256": "17769375e8e5e46f0ec4f4ff762386e4a01c130879de7322cd6abb2cfdeab9c1",
+    "objectschart": "tests/gen/recon_w7a/out/lane_b03_t3.objectschart",
+    "objectschart_sha256": "b5b6e995dd6479326491880b6ecfda0f8a7e9757bda110e8a511b24923099aa3",
+    "latitude": 56,
+    "control104": {"longitude": 104, "surface_pointer": 20264, "surface_sample": 38, "cloud_pointer": 10132, "cloud_sample": 21, "recovered_albedo": 32},
+    "threshold105": {"longitude": 105, "surface_pointer": 20265, "surface_sample": 41, "cloud_pointer": 10132, "cloud_sample": 21, "recovered_albedo": 40}
+  },
+  "landed_camera": {
+    "atlas_quotient": [8, 8],
+    "atlas_remainder": [0, 0],
+    "authored_player": [1598248.0, 1.0, 2251369.0],
+    "pitch": -26.0,
+    "heading": 87.0,
+    "navigation_beta": 0.0,
+    "native_settled_player": {
+      "control104": [1598248.0, -89754.25, 2251369.0],
+      "threshold105": [1598248.0, -56265.25, 2251369.0]
+    },
+    "product_settled_player": {
+      "control104": [1598248, -90354, 2251369],
+      "threshold105": [1598248, -56865, 2251369]
+    }
+  },
+  "native_capture": {
+    "runner": "NIV+ 2.3 under DOSBox-X 2025.05.03",
+    "authority": "Each saved indexed BMP and its active six-bit palette are the authoritative capture. Frozen RAM and adapted support files are later-state diagnostics, not same-frame page substitutes.",
+    "current_sha256": "c80a05f35cfb5c1332ab48ac5e0871b6d360f204665c060ffd9282cd3de4f7eb",
+    "authored_clock": 1344168020.0,
+    "product_clock": 1344168020,
+    "clock_method": "Both twenty-second snapshots used the same DOS date 06.08.2026 and time 12:00:00.80 command. Retained continuity clocks are in the same integer second as the product clock but differ by 0.0681818 seconds; raw binary64 equality is explicitly not claimed.",
+    "snapshot_wait_seconds": 20,
+    "snapshot_command": "build/hab-weather-native-matchedsecond8020.cmd",
+    "snapshot_command_sha256": "3139fe284560fd61a5ad7cd2d13d0a6f30e2fba417cf1aea136c920733014ec9",
+    "sync": 3,
+    "target_reached": 1,
+    "charge": 120,
+    "power": 30000,
+    "draw_hud": 0,
+    "continuity_block_address": "0x325dc",
+    "control104": {
+      "longitude": 104,
+      "captured_clock": 1344168020.25,
+      "bmp": "hab_weather_control104_matchedsecond8020_native.shot.BMP",
+      "surface": "hab_weather_control104_matchedsecond8020_native.SURFACE.BIN",
+      "bmp_sha256": "8e34a5a6b6c272c4f26574b0b3f0ae4e6bd42d4b6c36157da42af554630bd434",
+      "surface_sha256": "3de391a4c1c0823af2dd4e739e740b396d8fbc278592930266cbb3c2e3825d06",
+      "decoded_page_sha256": "7f865640de2c00d2835f7cd19b986d3fb9a94a0297a1c4e35c92156765585ca1",
+      "six_bit_palette_sha256": "a4aafbd015f5eab2f798ab58e82d140dbea66ff1305f7fd5e3a341a882629b83",
+      "support_memory": "tests/gen/recon_w7b/mem/hab_weather_control104_matchedsecond8020_native.mem",
+      "support_memory_sha256": "5bf5ea2f5fa9921b8e64c14f98fa47ef1fd4ef10108a46cfc1d51bbbfd56fbfd",
+      "support_adapted": "hab_weather_control104_matchedsecond8020_native.adapted",
+      "support_adapted_sha256": "d4b9d83af9832f3d77d896e8e8c0beac1c89917f6916695b2771732bc3574ff5",
+      "bmp_vs_adapted_index_differences": 22111,
+      "bmp_vs_adapted_palette_band_differences": 6325
+    },
+    "threshold105": {
+      "longitude": 105,
+      "captured_clock": 1344168020.1818182,
+      "bmp": "hab_weather_threshold105_matchedsecond8020_native.shot.BMP",
+      "surface": "hab_weather_threshold105_matchedsecond8020_native.SURFACE.BIN",
+      "bmp_sha256": "b481c980ec50acf1c9ddb131e94e8ab427a7a5eda5a4c4bc3f2f0c34a5c3b49b",
+      "surface_sha256": "be16eaaee291a5493dcdfc9b27d618705c7e0b39ecc298066d22b7283234935b",
+      "decoded_page_sha256": "2709f8932c45aeac22ea5391bd8b2d7b131ad731c0df43c29c808ad281b50c62",
+      "six_bit_palette_sha256": "7aed89a74d2099e64526254a0a462bd5090e379a8d751b37315a92da4e3b68de",
+      "support_memory": "tests/gen/recon_w7b/mem/hab_weather_threshold105_matchedsecond8020_native.mem",
+      "support_memory_sha256": "6ffc1f05a5f7de944fc1829fc1678d512dc8699949ec7193820ebee3a4251571",
+      "support_adapted": "hab_weather_threshold105_matchedsecond8020_native.adapted",
+      "support_adapted_sha256": "4bfece3c4ed17f35eb7659b6bf65d1d2179758e75e6f4a726b1133c4551be4d6",
+      "bmp_vs_adapted_index_differences": 17750,
+      "bmp_vs_adapted_palette_band_differences": 1607
+    }
+  },
+  "native_ram_contract": {
+    "continuity": {
+      "address": "0x325dc",
+      "control104": {"clock": 1344168020.25, "sync": 3, "target": 3, "target_reached": 1, "settled_player": [1598248.0, -89754.25, 2251369.0], "angles": [-26.0, 87.0, 0.0]},
+      "threshold105": {"clock": 1344168020.1818182, "sync": 3, "target": 3, "target_reached": 1, "settled_player": [1598248.0, -56265.25, 2251369.0], "angles": [-26.0, 87.0, 0.0]}
+    },
+    "weather": {
+      "planet_grav_address": "0x3292a",
+      "rainy_address": "0x3292e",
+      "planet_grav_both": 43.29600143432617,
+      "control104": {"rainy": 1.6666666269302368, "albedo": 32, "scenario": 3, "desert_divisor": 3},
+      "threshold105": {"rainy": 2.5, "albedo": 40, "scenario": 3, "desert_divisor": 2}
+    },
+    "rotation_arrays": {
+      "target_index": 3,
+      "rtperiod_address": "0x3816d",
+      "rotation_address": "0x3820d",
+      "term_start_address": "0x382ad",
+      "term_end_address": "0x3834d",
+      "both": {"rtperiod": 694, "raw_rotation": -79, "normalized_rotation": 281, "term_start": 137, "term_end": 267}
+    },
+    "solar_globals": {
+      "crepzone_address": "0x36991",
+      "nightzone_address": "0x36993",
+      "sun_x_factor_address": "0x36995",
+      "scenario_type_address": "0x39164",
+      "primary_distance_address": "0x39165",
+      "primary_ray_address": "0x3916d",
+      "latitude_address": "0x39175",
+      "exposure_address": "0x39179",
+      "sun_xyz_address": "0x3917d",
+      "control104": {"scenario_type": 3, "primary_distance": 243.8081512451172, "primary_ray": 5.150000095367432, "latitude": 6.0, "exposure": 25.8257999420166, "sun_xyz": [-219.45724487304688, -105.6298828125, 11.102144241333008], "crepzone": 33, "nightzone": 0, "sun_x_factor": 1},
+      "threshold105": {"scenario_type": 3, "primary_distance": 243.8081512451172, "primary_ray": 5.150000095367432, "latitude": 6.0, "exposure": 25.04319953918457, "sun_xyz": [-220.88748168945312, -102.63898468017578, 10.787787437438965], "crepzone": 32, "nightzone": 0, "sun_x_factor": 1}
+    },
+    "rain_derivation": {
+      "formula": "ptr=latitude*360+longitude; cloud=objectschart[ptr>>1]; raw_rain=binary32(min(cloud*0.25,5)); type-3 DESERT divides by random(4)+1",
+      "shared_cloud_byte": 21,
+      "shared_raw_rain": 5.0,
+      "control104": {"seed": 5824, "random_100": 55, "random_4": 2, "divisor": 3, "final_binary32_rain": 1.6666666269302368},
+      "threshold105": {"seed": 5880, "random_100": 14, "random_4": 1, "divisor": 2, "final_binary32_rain": 2.5}
+    },
+    "terminator_and_source_gate": {
+      "viewpoint": 268,
+      "plwp": 102,
+      "formula": "plwp=(89-viewpoint+rotation)%360; term_start=(plwp+35)%360; term_end=(term_start+130)%360",
+      "night_interval": [137, 267],
+      "both_daylight": true,
+      "primary_gate": "rainy >= binary32(0x40200000) suppresses the local primary; 0x40200000 is 2.5",
+      "flare_gate": "rainy >= binary32(0x3F99999A) suppresses the separate primary lens flare; both states therefore have no flare"
+    }
+  },
+  "visual_contract": {
+    "source_crop": [145, 85, 176, 116],
+    "source_crop_pixels": 961,
+    "control104_source_crop_sha256": "7d858b2b08fa16c2c7b95d6c3189df464a69f82a40abc69939d17284ba940f05",
+    "control104_source_crop_range": [83, 127],
+    "threshold105_source_crop_sha256": "edaa518d33558b2de4d52aef63cda576dbe2246dab9704becd96049b59bc145a",
+    "threshold105_source_crop_counts": {"85": 254, "86": 563, "87": 144},
+    "threshold105_center_crop": [155, 95, 166, 106],
+    "threshold105_center_crop_indices": "121 copies of index 86",
+    "exact_scene_crop": [0, 7, 320, 150],
+    "exact_scene_crop_pixels": 45760,
+    "control104_exact_scene_crop_sha256": "77112664096e846326784cc9f3edd1bc2be8cfeb3d8eadb7e2c712ece22d235b",
+    "threshold105_exact_scene_crop_sha256": "a855d445287a216295355b2c8975aad5b90f314ebdfdfacbae056a741931720e",
+    "native_pair_index_differences": 16195,
+    "native_pair_palette_band_differences": 4689,
+    "native_pair_palette_component_differences": 678,
+    "product_pair_index_differences": 15738,
+    "product_pair_palette_band_differences": 4337,
+    "product_pair_palette_component_differences": 439,
+    "control104_native_product_index_differences": 5522,
+    "control104_native_product_palette_band_differences": 352,
+    "control104_native_product_palette_component_differences": 0,
+    "threshold105_native_product_index_differences": 309,
+    "threshold105_native_product_palette_band_differences": 0,
+    "threshold105_native_product_palette_component_differences": 754,
+    "authority_limit": "The 45,760 indexed pixels in rows 7..149 and the centred 31x31 source discriminator are exact across engines in both states; the control palette is also exact. Complete pages, the threshold palette/RGB image, lower terrain affected by the bounded settled-height difference, raw binary64 clock identity, admitted-vector diagnostic semantics at the suppressed threshold, and later adapted pages are explicit non-claims."
+  },
+  "matched_product": {
+    "runner": "tracked official L.in.oleum build on the private inactive WinSta0 desktop",
+    "clock": 1344168020,
+    "control104": {
+      "directory": "build/renderer-hab-weather-sun-control104",
+      "diagnostic": {"mode": 1, "landed": 1, "planet_type": 3, "star_class": 0, "atmosphere": 1, "night": 0, "rain": 1.6666666269302368, "exposure": 25.8257999420166, "distance": 243.80813598632812, "admitted_ray": 5.150000095367432, "admitted_sun_xyz": [-219.4572296142578, -105.62987518310547, 11.102143287658691], "flare_projected": 0, "rtperiod": 694, "rotation": 281, "viewpoint": 268, "plwp": 102, "term_start": 137, "term_end": 267, "crepzone": 33, "sun_x_factor": 1},
+      "hashes": {
+        "habitable-game-local-out.bin": "0655bb132a48420176c1264dc6eaf30bf5c306041bca44de450648828882cd11",
+        "habitable-game-p-background-out.bin": "b188c116196f6d5510c596ab16521bd7f324460e77ab8321b09a45cd16b83f68",
+        "habitable-game-p-surfacemap-out.bin": "592f2f226f6402e89c53e822c0703f52c88ba14d8f14d692bb922fa7ae2606e2",
+        "habitable-game-page-out.bin": "3d4e2b9bb217a4410929b9ff8ba84df514bc540b627153550c3258aa003f5ee5",
+        "habitable-game-palette-out.bin": "a4aafbd015f5eab2f798ab58e82d140dbea66ff1305f7fd5e3a341a882629b83",
+        "habitable-game-render-state-out.bin": "847666f3fe1ac0d5bbfa9f63df98231addee318107146a410e3d49e1569f1251",
+        "habitable-game-s-background-out.bin": "79bd1c30083c26d93f96d19b21b617d8d0f212a36c70fb4a4d0ad0c99465170d",
+        "habitable-game-sun-out.bin": "23bbbee69fa5c3771afeedafe193012b9cfa01304aec48064afc3e811fa68781",
+        "habitable-game-vh-out.bin": "66f1df863422d968e8cb85e2d273a24ecc56262ca099c84e9b3e627c97c273b7"
+      }
+    },
+    "threshold105": {
+      "directory": "build/renderer-hab-weather-sun-threshold105",
+      "diagnostic": {"mode": 1, "landed": 1, "planet_type": 3, "star_class": 0, "atmosphere": 1, "night": 0, "rain": 2.5, "exposure": 25.04319953918457, "distance": 243.80813598632812, "admitted_ray": 0.0, "admitted_sun_xyz": [0.0, 0.0, 0.0], "flare_projected": 0, "rtperiod": 694, "rotation": 281, "viewpoint": 268, "plwp": 102, "term_start": 137, "term_end": 267, "crepzone": 32, "sun_x_factor": 1},
+      "hashes": {
+        "habitable-game-local-out.bin": "46496e7ec691a271ef9083e33868acea0a19c7bcfacc66cc1a15c644c13c0c05",
+        "habitable-game-p-background-out.bin": "def68f45fdb6c4060085135966a7c8f9be3125931e5f3bb6e8eb1ebbbf04801f",
+        "habitable-game-p-surfacemap-out.bin": "d31b9bec62653b71c593c2fd7bc20ac69317226616b4045bc0eece21826788da",
+        "habitable-game-page-out.bin": "fe64894edfd7cf3366131427b035ec2dc64458ddd9ceca30b657c45c9bf28ced",
+        "habitable-game-palette-out.bin": "9f4b52a68ba74de19dc5686257c5069793267ec1bae49f00aa3cdb6f9915a6e3",
+        "habitable-game-render-state-out.bin": "fd4cdef79fa5f9b318007c2aed8d244ea9b561eba505a9ff6a4e550b826e4e3e",
+        "habitable-game-s-background-out.bin": "116f96d5c6ea7b14d6ffb773c0fcdca4af17c5b708df340067672dc53890e71b",
+        "habitable-game-sun-out.bin": "b8d66b10d245b8667f339f430706cf81a6fd001416a875a0d1a7156c54f6330d",
+        "habitable-game-vh-out.bin": "faa7dfb376ebcb461f610574662f57554b5ca813edeb3c6115a7aaba4abfa7e1"
+      }
+    }
+  }
+}

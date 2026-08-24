@@ -117,6 +117,19 @@ source-free 12-index horizon crop, the same complete source palette band across
 the pair, and all 25,800 native palette bands in the upper-sky crop. Whole pages,
 complete palettes, and later adapted pages remain explicitly ungraded.
 
+An atmospheric type-3 pair now closes the local-primary weather gate at exact
+binary32 rain 2.5. Adjacent latitude-56 longitudes 104 and 105 share atmosphere
+byte 21 and raw rain 5, but their independently replayed Borland DESERT divisors
+3 and 2 produce rain `1.6666666269302368` and `2.5`. Both same-command native
+captures and the private-desktop product remain in daylight with period 694,
+rotation 281, `plwp=102`, and terminators 137/267. The below-gate control retains
+a centred radial source through index 127; the inclusive-threshold centre is 121
+copies of background index 86. Native and product are byte-identical over both
+31-by-31 source crops and every one of 45,760 scoped scene indices in each state;
+the control palette is also exact. Complete pages, the threshold palette/RGB
+image, lower terrain, separate flare state, and later adapted pages remain
+explicitly bounded non-claims.
+
 TRIUMVIRATE - CAESAR adds a genuine class-8 `[10,10,1]` hierarchy with both
 type-10 bodies visible together from the Stardrifter interior. A balanced pose
 places their independently projected flare centres at `(255,99)` and `(73,101)`.
