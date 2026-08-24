@@ -105,6 +105,21 @@ core-mask differences. The exterior's 37,737 index, 824 complete-page band, and
 365 active-palette differences remain explicit rather than being promoted to a
 whole-page equality claim.
 
+IDEAL now adds a clean globe-before-primary orbital eclipse and nearby positive
+control. Separating the camera's hull rotation (`user_beta=0`) from its celestial
+rotation (`navigation_beta=97`) aligns the class-0 primary and type-1 globe without
+putting the Stardrifter hull across them. At the eclipse phase, native and product
+both retain 9,267 globe-band pixels and become pointwise identical after the
+product's measured `(+2,+2)` shift; neither page contains the seeded primary-shell
+component. At the control phase, the shifted product globe contains every one of
+9,250 native pixels plus 103 clipped-edge pixels, while the central native/product
+white-shell cores overlap at 2,245 pixels with only 71/8 exclusive pixels after a
+`(+1,+3)` shift. Source distance gates prove the compact white shell is admitted
+but the 60-spoke flare is not, so its eclipse absence authenticates the later
+target-globe overwrite rather than source rejection. The native control's HUD
+suppression is now reproducible through `mkcurrent.py`; whole-page, active-palette,
+and later frozen-state equality remain explicitly unclaimed.
+
 WIRE now supplies the first retained matched positive orbital-primary class
 checkpoint. Its class-7 primary at `(-1187856,-195673,1064757)` has ray
 `2.1919999`; an untargeted exterior Stardrifter keeps the exact native/product

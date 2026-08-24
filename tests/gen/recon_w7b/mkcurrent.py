@@ -84,8 +84,8 @@ def star_infos(x, y, z):
 
 
 def build(x, y, z, target, sync=3, secs=1344094201.0, dist=6.0,
-          charge=3, power=20000, lens_mode=0, pos=(0.0, 0.0, -500.0),
-          angles=(0.0, 0.0, 0.0), local=None):
+          charge=3, power=20000, lens_mode=0, draw_hud=1,
+          pos=(0.0, 0.0, -500.0), angles=(0.0, 0.0, 0.0), local=None):
     st = star_infos(x, y, z)
     b = bytearray(BLOCK)
 
@@ -180,7 +180,7 @@ def build(x, y, z, target, sync=3, secs=1344094201.0, dist=6.0,
     tail += b"\x00"                      # option_mouseLook
     tail += struct.pack("<h", 0)         # roofspeed
     tail += struct.pack("<h", 0)         # hud_closed
-    tail += struct.pack("<h", 1)         # draw_hud
+    tail += struct.pack("<h", draw_hud)  # draw_hud
     tail += struct.pack("<h", lens_mode) # lens_flare_mode
     tail += struct.pack("<h", 0)         # seamless_border
     return bytes(b) + bytes(tail), st
@@ -203,6 +203,8 @@ if __name__ == "__main__":
     ap.add_argument("--power", type=int, default=20000,
                     help="restored system power; use 30000 for landed captures")
     ap.add_argument("--lens-mode", type=int, choices=(-1, 0, 1), default=0)
+    ap.add_argument("--draw-hud", type=int, choices=(0, 1), default=1,
+                    help="restored draw_hud continuity flag")
     ap.add_argument("--secs", type=float, default=1344094201.0,
                     help="restored NIV+ seconds-since-1984 value")
     ap.add_argument("--pos-x", type=float, default=0.0)
@@ -228,6 +230,7 @@ if __name__ == "__main__":
     data, st = build(
         a.x, a.y, a.z, a.target, sync=a.sync, secs=a.secs,
         charge=a.charge, power=a.power, lens_mode=a.lens_mode,
+        draw_hud=a.draw_hud,
         pos=(a.pos_x, a.pos_y, a.pos_z),
         angles=(a.pitch, a.view_angle, a.navigation_angle), local=local)
     if a.target >= st["nob"]:

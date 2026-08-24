@@ -99,7 +99,7 @@ TESTS = [
     ("test_orbitmultiple_oracle.py", "matched ROTOR IGNE negative and front-facing native pages/palettes protect the source exterior half-turn and a real type-10 companion flare"),
     ("test_orbitmultiple_compact_oracle.py", "independent compact class-8 native/product evidence keeps a rocky moon terminator and its type-10 parent corona visible together without tuning ROTOR IGNE"),
     ("test_orbitmultiple_triple_oracle.py", "genuine class-8 [10,10,1] native/product evidence independently grades two separated companion coronas in interior and roof/cupola views plus one visible and two hull-occluded sources outside, source projections, strict gates, and scoped palette bands"),
-    ("test_orbitlunar_oracle.py", "matched IDEAL lunar exterior/interior/limb/roof and strict cupola-boundary pages protect orbital, globe, primary, and Stardrifter branch geometry"),
+    ("test_orbitlunar_oracle.py", "matched IDEAL lunar exterior/interior/limb/roof/cupola-boundary and globe-before-primary eclipse pages protect orbital, globe, primary, Stardrifter, and source-order geometry"),
     ("test_surface_flare_oracle.py", "rebuilt ten-case surface-flare probe equals six concatenated Borland pages, three real positive ray/distance pages, and the exact lunar no-beam boundary"),
     ("test_release_notes.py", "tagged GitHub releases contain only their own RELEASE_NOTES section"),
     ("test_fp_transgrade.py", "independent transcendental grading preserves signed zero and the one-ULP boundary"),

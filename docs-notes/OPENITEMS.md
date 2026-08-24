@@ -573,6 +573,37 @@ exact native/product palette-band and brightness masks: 2,408 dark pixels and
 informational. This closes one real orbital beside-primary composition, not the companion-stage
 or Stardrifter transition gaps.
 
+**IDEAL globe-before-primary eclipse pair.** A clean exterior composition now
+uses the source camera split rather than rotating the hull across the target:
+`user_beta=0`, `navigation_beta=97`, and player position `(0,0,-500)`. Celestial
+projection therefore uses beta 277 while the hull retains its beta-0 exterior.
+At raw second `1344638737`, the native target globe is a 9,267-pixel band-3
+component in `(101,51)-(219,148)` and completely removes the primary white-shell
+component. The exact-clock product globe also has 9,267 pixels; translating it
+by `(+2,+2)` makes the masks pointwise identical. Neither eclipse page contains
+an index-112-through-191 primary pixel in `(100,60)-(210,140)`.
+
+A nearby positive control preserves the same camera and fixed star-local ship
+pose while advancing orbital phase to native second `1344638740.7058823` and
+product second `1344638740`. Its target globe moves right and exposes the compact
+primary shell at the centre. The native/product globe masks contain 9,250/9,353
+pixels; after the product shift `(+1,+2)`, all 9,250 native pixels overlap and the
+103 extras are clipped-edge pixels. The seeded native/product white-shell cores
+contain 2,316/2,253 pixels; shifting the product by `(+1,+3)` leaves 2,245 common,
+71 native-only, and 8 product-only pixels. Native `draw_hud=0` suppresses only the
+`SYSTEM RESET` information overlay needed to expose this control; `mkcurrent.py`
+now reproduces that exact 385-byte continuity state and hash.
+
+This is a renderer-order discriminator, not an admission negative. Both primary
+distances are about 33.59, with `(distance+1)/ray` about 4.973: the class-0 compact
+white shell is inside its `<100*ray` gate while the 60-spoke `>6*ray` path is
+excluded. `VHT render` draws that shell before `VHG local render` draws the target
+globe, so only the aligned page overwrites it. Complete page/palette equality and
+the later frozen adapted pages remain explicitly ungraded: the eclipse/control
+native-product pages differ at 11,723/18,736 indices and 309/119 palette
+components. This closes the required primary-behind-globe ordering view while
+leaving additional orbital arrangements and moving transitions open.
+
 **IDEAL roof/cupola checkpoint.** A fourth capture holds the same sync-0
 class-0/type-1 system at raw second `1344638737` and moves the player to the
 stable source roof pose `(0,-750,-1900)`, looking outward at `user_beta=180`.

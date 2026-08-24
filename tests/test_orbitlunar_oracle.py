@@ -1,10 +1,11 @@
-"""Grade native lunar exterior, interior, limb, roof, and cupola-boundary oracles."""
+"""Grade native lunar exterior, interior, boundary, and primary-occlusion oracles."""
 
 from __future__ import annotations
 
 import argparse
 from collections import Counter
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import struct
@@ -19,10 +20,14 @@ ROOF = ORACLE_ROOT / "orbitlunar_roof_8737_native.shot.BMP"
 ROOF_ADAPTED = ORACLE_ROOT / "orbitlunar_roof_8737_native.adapted"
 BOUNDARY_INSIDE = ORACLE_ROOT / "orbitlunar_cupola_boundary_inside_8737_native.shot.BMP"
 BOUNDARY_ROOF = ORACLE_ROOT / "orbitlunar_cupola_boundary_roof_8737_native.shot.BMP"
+ECLIPSE = ORACLE_ROOT / "orbitlunar_eclipse_8737_native.shot.BMP"
+ECLIPSE_CONTROL = ORACLE_ROOT / "orbitlunar_eclipse_control_8740_native.shot.BMP"
 PROVENANCE = ORACLE_ROOT / "orbitlunar_camera_pair_8736_native.provenance.json"
 LIMB_PROVENANCE = ORACLE_ROOT / "orbitlunar_limb_pair_8736_native.provenance.json"
 ROOF_PROVENANCE = ORACLE_ROOT / "orbitlunar_roof_8737_native.provenance.json"
 BOUNDARY_PROVENANCE = ORACLE_ROOT / "orbitlunar_cupola_boundary_8737_native.provenance.json"
+ECLIPSE_PROVENANCE = ORACLE_ROOT / "orbitlunar_eclipse_pair_8737_native.provenance.json"
+MKCURRENT = ROOT / "tests" / "gen" / "recon_w7b" / "mkcurrent.py"
 CAPTURE = ROOT / "tools" / "capture_noctis_scenes.ps1"
 EXTERIOR_SHA256 = "89579c32aaee28a93e5b28675921ca055a72c870fb1e00b9381308d3ab9aa559"
 INTERIOR_SHA256 = "f26d65b7c6a96aed4e34b7b4389cbfd65777e499f521a08f1e2d970ecdc20667"
@@ -33,10 +38,18 @@ BOUNDARY_INSIDE_SHA256 = "07873d1191f192135c4050c619230264eebba85114d850b19cf4e1
 BOUNDARY_INSIDE_ADAPTED_SHA256 = "b4d23838f12a91ebe2b67b291a7d8b6704ec1371af484eb663399314d731989f"
 BOUNDARY_ROOF_SHA256 = "b2af5163ef04975a09d05043adb486f511205ef5654511b314677961a2a9dcdf"
 BOUNDARY_ROOF_ADAPTED_SHA256 = "c4388de9bd149dea19864c8be6970cffa9167bc9128e6ed7bf7f19f2278ca7ea"
+ECLIPSE_SHA256 = "b2427c4174bdbeb3fa109f879603839397bbcae18a49b8d46f209ab1879ba6fc"
+ECLIPSE_CONTROL_SHA256 = "0ac3ad4306aad9473b0f60bfd98581c8bc7295c3c437c8de3d2653ec7bed3497"
+ECLIPSE_PAGE_SHA256 = "5607255f60d6684bf2c91d63fe67d6f1139cd1bfdc0bef102719952dcbbcc31b"
+ECLIPSE_CONTROL_PAGE_SHA256 = "ad06c493d6ccb69be00ddc03116aa2afabdf37990bb57814ea1e81dd191779f8"
+ECLIPSE_PALETTE_SHA256 = "409075528f91531fb2b1110657f82d5c93a5923472a2e6bee5ea0bafda5c74b4"
+ECLIPSE_CONTROL_PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 PROVENANCE_SHA256 = "0657a8266452315c908424088ce83fcd71484cfdc39e0a7aedd8683aa4a16bc2"
 LIMB_PROVENANCE_SHA256 = "e98ee55bc77c8b0b9462cd66693da0e3bcbb96883e2b39c81598f7a336c39644"
 ROOF_PROVENANCE_SHA256 = "a980eb8e695f91bbe72556893965d927dd60ac706a1b0843a52f380d72893e1d"
 BOUNDARY_PROVENANCE_SHA256 = "198d1db85982088bde7509cbae2a6c47af5db3eac10b7732ee33449f01ec4c95"
+ECLIPSE_PROVENANCE_SHA256 = "48027c72fe75d72a0fa54649b833e38616679fa69d306ed20bfa43e1d3919d77"
+CONTROL_CURRENT_SHA256 = "4d4ea488320165d5daa190c3164f2d840f05fed9a13c4148c8fa3bb8acde4cc1"
 PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_STATUS_CROP = (215, 160, 315, 190)
@@ -148,6 +161,45 @@ def band_geometry(page: bytes, band: int) -> tuple[int, tuple[int, int, int, int
         min(x for x, _y in points), min(y for _x, y in points),
         max(x for x, _y in points), max(y for _x, y in points),
     )
+
+
+def point_geometry(points: set[tuple[int, int]]) -> tuple[int, tuple[int, int, int, int]]:
+    if not points:
+        return 0, (0, 0, 0, 0)
+    return len(points), (
+        min(x for x, _y in points), min(y for _x, y in points),
+        max(x for x, _y in points), max(y for _x, y in points),
+    )
+
+
+def band_points(page: bytes, band: int) -> set[tuple[int, int]]:
+    return {(x, y) for y in range(200) for x in range(320)
+            if page[y * 320 + x] >> 6 == band}
+
+
+def indexed_component(page: bytes, seed: tuple[int, int],
+                      lower: int, upper: int) -> set[tuple[int, int]]:
+    remaining = {(x, y) for y in range(200) for x in range(320)
+                 if lower <= page[y * 320 + x] < upper}
+    if seed not in remaining:
+        return set()
+    remaining.remove(seed)
+    component = {seed}
+    pending = [seed]
+    while pending:
+        x, y = pending.pop()
+        for neighbour in ((x - 1, y), (x + 1, y),
+                          (x, y - 1), (x, y + 1)):
+            if neighbour in remaining:
+                remaining.remove(neighbour)
+                component.add(neighbour)
+                pending.append(neighbour)
+    return component
+
+
+def shifted(points: set[tuple[int, int]], dx: int,
+            dy: int) -> set[tuple[int, int]]:
+    return {(x + dx, y + dy) for x, y in points}
 
 
 def bright_crop_count(page: bytes, palette: tuple[int, ...]) -> int:
@@ -386,6 +438,140 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
     print(f"INFO complete-palette equality is not graded ({palette_mismatches} component mismatches)")
 
 
+def grade_eclipse_product_pair(
+        eclipse_directory: Path, control_directory: Path,
+        native_eclipse_page: bytes, native_eclipse_palette: tuple[int, ...],
+        native_control_page: bytes, native_control_palette: tuple[int, ...],
+        native_star_locals: dict[str, tuple[float, ...]],
+        contract: dict, check) -> None:
+    directories = {
+        "eclipse": eclipse_directory,
+        "control": control_directory,
+    }
+    for label, directory in directories.items():
+        for path, size in diagnostic_paths(directory):
+            check(path.is_file() and path.stat().st_size == size,
+                  f"{label} product emitted {path.name} at exactly {size} bytes")
+    if not all(
+            path.is_file() and path.stat().st_size == size
+            for directory in directories.values()
+            for path, size in diagnostic_paths(directory)):
+        return
+
+    products = {}
+    for label, directory in directories.items():
+        expected = contract[label]
+        hashes = expected["hashes"]
+        check(
+            all(sha256((directory / name).read_bytes()) == digest
+                for name, digest in hashes.items()),
+            f"{label} product retains all pinned diagnostic hashes",
+        )
+        local = (directory / "orbitlunar-game-local-out.bin").read_bytes()
+        header = struct.unpack_from("<8i", local)
+        binary64 = lambda unit: struct.unpack_from("<d", local, unit * 4)[0]
+        ship = tuple(binary64(unit) for unit in (8, 10, 12))
+        target = tuple(binary64(unit) for unit in (14, 16, 18))
+        product_local = tuple(target[index] + ship[index] for index in range(3))
+        check(
+            header[:2] == (0, 1)
+            and header[3:] == (expected["clock"], 0, 0, 97, 1)
+            and list(ship) == expected["target_relative"],
+            f"{label} product retains the matched clock, split camera, and target-relative pose",
+        )
+        check(
+            all(abs(native_star_locals[label][index] - product_local[index]) < 0.000001
+                for index in range(3)),
+            f"{label} product brackets the native star-local pose within one millionth",
+        )
+        view_state = struct.unpack(
+            "<39i", (directory / "orbitlunar-game-vh-out.bin").read_bytes())
+        sun = struct.unpack(
+            "<32i", (directory / "orbitlunar-game-sun-out.bin").read_bytes())
+        check(view_state[:5] == (0, 0, -500, 0, 0)
+              and sun[:4] == (0, 1, 1, 0),
+              f"{label} product retains the hull-free exterior and class-0/type-1 context")
+        products[label] = {
+            "local": local,
+            "radius": binary64(20),
+            "distance": binary64(22),
+            "globe": struct.unpack_from("<3i", local, 24 * 4),
+            "magnitude": struct.unpack_from("<f", local, 27 * 4)[0],
+            "page": (directory / "orbitlunar-game-page-out.bin").read_bytes(),
+            "palette": struct.unpack(
+                "<768I", (directory / "orbitlunar-game-palette-out.bin").read_bytes()),
+        }
+
+    eclipse = products["eclipse"]
+    control = products["control"]
+    check(
+        eclipse["radius"] == control["radius"] == 0.007128
+        and eclipse["distance"] == 0.012835646856503022
+        and control["distance"] == 0.012877369513751223
+        and eclipse["globe"] == (1, 158, 99)
+        and control["globe"] == (1, 280, 99)
+        and eclipse["magnitude"] == 0.5553290843963623
+        and control["magnitude"] == 0.6412238478660583,
+        "paired product diagnostics retain both exact visible-globe projections",
+    )
+
+    native_eclipse_globe = band_points(native_eclipse_page, 3)
+    product_eclipse_globe = band_points(eclipse["page"], 3)
+    native_control_globe = band_points(native_control_page, 3)
+    product_control_globe = band_points(control["page"], 3)
+    shifted_eclipse_globe = shifted(product_eclipse_globe, 2, 2)
+    shifted_control_globe = shifted(product_control_globe, 1, 2)
+    check(
+        point_geometry(native_eclipse_globe) == (9267, (101, 51, 219, 148))
+        and point_geometry(product_eclipse_globe) == (9267, (99, 49, 217, 146))
+        and shifted_eclipse_globe == native_eclipse_globe,
+        "product eclipse globe mask is exactly native after the pinned (+2,+2) shift",
+    )
+    check(
+        point_geometry(native_control_globe) == (9250, (213, 43, 309, 155))
+        and point_geometry(product_control_globe) == (9353, (212, 41, 309, 153))
+        and len(native_control_globe & shifted_control_globe) == 9250
+        and len(native_control_globe - shifted_control_globe) == 0
+        and len(shifted_control_globe - native_control_globe) == 103,
+        "shifted control globe contains every native pixel plus 103 clipped-edge pixels",
+    )
+
+    native_eclipse_primary = indexed_component(
+        native_eclipse_page, (160, 100), 112, 192)
+    product_eclipse_primary = indexed_component(
+        eclipse["page"], (160, 100), 112, 192)
+    native_control_primary = indexed_component(
+        native_control_page, (160, 100), 112, 192)
+    product_control_primary = indexed_component(
+        control["page"], (160, 100), 112, 192)
+    shifted_control_primary = shifted(product_control_primary, 1, 3)
+    check(
+        not native_eclipse_primary and not product_eclipse_primary
+        and all(not 112 <= page[y * 320 + x] < 192
+                for page in (native_eclipse_page, eclipse["page"])
+                for y in range(60, 140) for x in range(100, 210)),
+        "both eclipse pages contain no seeded or windowed primary-shell component",
+    )
+    check(
+        point_geometry(native_control_primary) == (2316, (128, 76, 187, 125))
+        and point_geometry(product_control_primary) == (2253, (128, 73, 186, 121))
+        and len(native_control_primary & shifted_control_primary) == 2245
+        and len(native_control_primary - shifted_control_primary) == 71
+        and len(shifted_control_primary - native_control_primary) == 8,
+        "control pages retain the bounded shifted primary white-shell core",
+    )
+
+    for label, native_page, native_palette in (
+            ("eclipse", native_eclipse_page, native_eclipse_palette),
+            ("control", native_control_page, native_control_palette)):
+        page = products[label]["page"]
+        palette = products[label]["palette"]
+        print(f"INFO {label} complete-page equality is not graded "
+              f"({sum(a != b for a, b in zip(native_page, page))} index mismatches)")
+        print(f"INFO {label} complete-palette equality is not graded "
+              f"({sum(a != b for a, b in zip(native_palette, palette))} component mismatches)")
+
+
 def grade_boundary_product_pair(
         inside_directory: Path, roof_directory: Path,
         native_inside_page: bytes, native_inside_palette: tuple[int, ...],
@@ -560,10 +746,15 @@ def main() -> int:
     parser.add_argument("--roof-product-directory", type=Path)
     parser.add_argument("--boundary-inside-product-directory", type=Path)
     parser.add_argument("--boundary-roof-product-directory", type=Path)
+    parser.add_argument("--eclipse-product-directory", type=Path)
+    parser.add_argument("--eclipse-control-product-directory", type=Path)
     args = parser.parse_args()
     if ((args.boundary_inside_product_directory is None) !=
             (args.boundary_roof_product_directory is None)):
         parser.error("boundary inside and roof product directories must be supplied together")
+    if ((args.eclipse_product_directory is None) !=
+            (args.eclipse_control_product_directory is None)):
+        parser.error("eclipse and eclipse-control product directories must be supplied together")
     failures = []
 
     def check(condition: bool, message: str) -> None:
@@ -578,6 +769,8 @@ def main() -> int:
     roof_adapted = ROOF_ADAPTED.read_bytes()
     boundary_inside_data = BOUNDARY_INSIDE.read_bytes()
     boundary_roof_data = BOUNDARY_ROOF.read_bytes()
+    eclipse_data = ECLIPSE.read_bytes()
+    eclipse_control_data = ECLIPSE_CONTROL.read_bytes()
     check(sha256(exterior_data) == EXTERIOR_SHA256,
           "retained lunar exterior BMP has its pinned SHA-256")
     check(sha256(interior_data) == INTERIOR_SHA256,
@@ -593,6 +786,10 @@ def main() -> int:
           "retained just-inside cupola-boundary BMP has its pinned SHA-256")
     check(sha256(boundary_roof_data) == BOUNDARY_ROOF_SHA256,
           "retained just-outside cupola-boundary BMP has its pinned SHA-256")
+    check(sha256(eclipse_data) == ECLIPSE_SHA256,
+          "retained globe-before-primary eclipse BMP has its pinned SHA-256")
+    check(sha256(eclipse_control_data) == ECLIPSE_CONTROL_SHA256,
+          "retained beside-primary eclipse control BMP has its pinned SHA-256")
     try:
         exterior_page, exterior_palette = decode_bmp(EXTERIOR)
         interior_page, interior_palette = decode_bmp(INTERIOR)
@@ -600,12 +797,16 @@ def main() -> int:
         roof_page, roof_palette = decode_bmp(ROOF)
         boundary_inside_page, boundary_inside_palette = decode_bmp(BOUNDARY_INSIDE)
         boundary_roof_page, boundary_roof_palette = decode_bmp(BOUNDARY_ROOF)
+        eclipse_page, eclipse_palette = decode_bmp(ECLIPSE)
+        eclipse_control_page, eclipse_control_palette = decode_bmp(ECLIPSE_CONTROL)
     except (AssertionError, OSError, struct.error) as error:
         check(False, f"lunar native BMPs decode safely: {error}")
         exterior_page = interior_page = limb_page = roof_page = b""
         boundary_inside_page = boundary_roof_page = b""
+        eclipse_page = eclipse_control_page = b""
         exterior_palette = interior_palette = limb_palette = roof_palette = ()
         boundary_inside_palette = boundary_roof_palette = ()
+        eclipse_palette = eclipse_control_palette = ()
     else:
         check(sha256(exterior_page) ==
               "e032b578eff11f78ca220dbfa5f6df0aae4c4940f7b93ebbf3d47f7b6df2d83a",
@@ -625,6 +826,13 @@ def main() -> int:
         check(sha256(boundary_roof_page) ==
               "021b27b9b824f4d090fbd7aa0beca4d5fe780eebd3a14f8e694256ae83d8a950",
               "native just-outside boundary retains its complete indexed page")
+        check(sha256(eclipse_page) == ECLIPSE_PAGE_SHA256
+              and sha256(bytes(eclipse_palette)) == ECLIPSE_PALETTE_SHA256,
+              "native eclipse retains its complete indexed page and active palette")
+        check(sha256(eclipse_control_page) == ECLIPSE_CONTROL_PAGE_SHA256
+              and sha256(bytes(eclipse_control_palette)) ==
+              ECLIPSE_CONTROL_PALETTE_SHA256,
+              "native eclipse control retains its complete indexed page and active palette")
         check(roof_page == roof_adapted[:64000],
               "native roof BMP exactly retains the frozen post-snapshot framebuffer")
         check(sha256(bytes(exterior_palette)) == PALETTE_SHA256
@@ -644,6 +852,23 @@ def main() -> int:
               and limb_bands.count(1) == 1592
               and band_geometry(limb_page, 3) == (8620, (106, 51, 217, 148)),
               "native limb view retains the primary beside the dark lunar globe")
+        eclipse_primary = indexed_component(eclipse_page, (160, 100), 112, 192)
+        eclipse_control_primary = indexed_component(
+            eclipse_control_page, (160, 100), 112, 192)
+        check(
+            band_geometry(eclipse_page, 3) == (9267, (101, 51, 219, 148))
+            and not eclipse_primary
+            and all(not 112 <= eclipse_page[y * 320 + x] < 192
+                    for y in range(60, 140) for x in range(100, 210)),
+            "native aligned globe completely overwrites the admitted primary shell",
+        )
+        check(
+            band_geometry(eclipse_control_page, 3) ==
+            (9250, (213, 43, 309, 155))
+            and point_geometry(eclipse_control_primary) ==
+            (2316, (128, 76, 187, 125)),
+            "native nearby control exposes the primary shell beside the clipped globe",
+        )
         roof_cupola = crop_indices(roof_page, ROOF_CUPOLA_CROP)
         roof_cupola_bands = crop_bands(roof_page, ROOF_CUPOLA_CROP)
         check(sha256(roof_cupola) == ROOF_CUPOLA_INDEX_SHA256
@@ -1119,6 +1344,139 @@ def main() -> int:
         "cupola-boundary provenance states the admissible branch and state limits",
     )
 
+    eclipse_provenance_data = ECLIPSE_PROVENANCE.read_bytes()
+    check(sha256(eclipse_provenance_data.replace(b"\r\n", b"\n")) ==
+          ECLIPSE_PROVENANCE_SHA256,
+          "eclipse-pair provenance has its pinned normalized SHA-256")
+    try:
+        eclipse_provenance = json.loads(eclipse_provenance_data)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        check(False, f"eclipse-pair provenance decodes safely: {error}")
+        eclipse_provenance = {}
+    eclipse_system = eclipse_provenance.get("system", {})
+    eclipse_camera = eclipse_provenance.get("camera", {})
+    eclipse_native = eclipse_provenance.get("native_capture", {})
+    eclipse_native_state = eclipse_native.get("eclipse", {})
+    control_native_state = eclipse_native.get("control", {})
+    eclipse_products = eclipse_provenance.get("matched_product", {})
+    eclipse_order = eclipse_provenance.get("renderer_order_contract", {})
+    eclipse_raster = eclipse_provenance.get("indexed_raster_contract", {})
+    eclipse_non_claims = eclipse_provenance.get("explicit_non_claims", {})
+    check(
+        eclipse_system == {
+            "catalogue_name": "IDEAL",
+            "coordinates": [174288, -44389, -688771],
+            "target_body": 0,
+            "target_type": 1,
+            "primary_class": 0,
+            "primary_ray": 6.955,
+        },
+        "eclipse provenance identifies the exact IDEAL lunar system",
+    )
+    check(
+        eclipse_camera.get("player") == [0.0, 0.0, -500.0]
+        and eclipse_camera.get("pitch") == 0.0
+        and eclipse_camera.get("user_beta") == 0.0
+        and eclipse_camera.get("navigation_beta") == 97.0
+        and eclipse_camera.get("celestial_beta") == 277.0,
+        "eclipse provenance pins the split hull and celestial camera rotations",
+    )
+    check(
+        eclipse_native_state.get("bmp_sha256") == ECLIPSE_SHA256
+        and eclipse_native_state.get("decoded_page_sha256") == ECLIPSE_PAGE_SHA256
+        and eclipse_native_state.get("six_bit_palette_sha256") ==
+        ECLIPSE_PALETTE_SHA256
+        and eclipse_native_state.get("current_sha256") ==
+        "6891502bbdbe34ecb82bc3c98185025cf2ab17d0bfee91366dbc158c3619f4fc"
+        and eclipse_native_state.get("captured_clock") == 1344638737.0
+        and eclipse_native_state.get("sync") == 0
+        and eclipse_native_state.get("target_reached") == 1
+        and eclipse_native_state.get("draw_hud") == 1
+        and eclipse_native_state.get("star_local") ==
+        [-33.33826857001986, 0.006575896761205513, -4.09701392671559]
+        and eclipse_native_state.get("bmp_vs_adapted_index_differences") == 11963,
+        "eclipse provenance brackets the authoritative aligned native state",
+    )
+    check(
+        control_native_state.get("bmp_sha256") == ECLIPSE_CONTROL_SHA256
+        and control_native_state.get("decoded_page_sha256") ==
+        ECLIPSE_CONTROL_PAGE_SHA256
+        and control_native_state.get("six_bit_palette_sha256") ==
+        ECLIPSE_CONTROL_PALETTE_SHA256
+        and control_native_state.get("current_sha256") == CONTROL_CURRENT_SHA256
+        and control_native_state.get("captured_clock") == 1344638740.7058823
+        and control_native_state.get("product_clock") == 1344638740
+        and control_native_state.get("sync") == 0
+        and control_native_state.get("target_reached") == 1
+        and control_native_state.get("draw_hud") == 0
+        and "SYSTEM RESET" in control_native_state.get("draw_hud_rationale", "")
+        and control_native_state.get("star_local") ==
+        [-33.337344046565704, 0.006575896761205513, -4.090433066477999]
+        and control_native_state.get("bmp_vs_adapted_index_differences") == 7395,
+        "eclipse provenance brackets the HUD-suppressed native positive control",
+    )
+    check(
+        eclipse_order.get("order") ==
+        ["primary white shell", "mask_pixels", "target globe"]
+        and eclipse_order.get("white_shell_admitted") is True
+        and eclipse_order.get("sixty_spoke_admitted") is False
+        and eclipse_order.get("eclipse_distance_plus_one_over_ray") ==
+        4.973266916081761
+        and eclipse_order.get("control_distance_plus_one_over_ray") ==
+        4.973019654439753
+        and "target-globe overwrite" in eclipse_order.get("conclusion", ""),
+        "eclipse provenance proves white-shell admission, spoke exclusion, and globe overwrite",
+    )
+    check(
+        eclipse_raster.get("eclipse_product_shift_to_native") == [2, 2]
+        and eclipse_raster.get("eclipse_shifted_symmetric_difference") == 0
+        and eclipse_raster.get("control_product_shift_to_native") == [1, 2]
+        and eclipse_raster.get("control_shifted_overlap") == 9250
+        and eclipse_raster.get("control_shifted_native_only") == 0
+        and eclipse_raster.get("control_shifted_product_only") == 103
+        and eclipse_raster.get("control_primary_product_shift_to_native") == [1, 3]
+        and eclipse_raster.get("control_primary_shifted_overlap") == 2245
+        and eclipse_raster.get("control_primary_shifted_native_only") == 71
+        and eclipse_raster.get("control_primary_shifted_product_only") == 8
+        and eclipse_raster.get("eclipse_native_primary_pixels") == 0
+        and eclipse_raster.get("eclipse_product_primary_pixels") == 0,
+        "eclipse provenance pins the shifted globe and primary-component contracts",
+    )
+    check(
+        eclipse_non_claims.get("whole_page_equal") is False
+        and eclipse_non_claims.get("whole_palette_equal") is False
+        and eclipse_non_claims.get("same_state_bmp_and_adapted") is False
+        and eclipse_non_claims.get("eclipse_native_product_index_differences") == 11723
+        and eclipse_non_claims.get("control_native_product_index_differences") == 18736,
+        "eclipse provenance keeps complete page, palette, and later-state equality ungraded",
+    )
+
+    try:
+        mkcurrent_spec = importlib.util.spec_from_file_location(
+            "orbitlunar_mkcurrent", MKCURRENT)
+        if mkcurrent_spec is None or mkcurrent_spec.loader is None:
+            raise RuntimeError("could not load mkcurrent.py")
+        mkcurrent = importlib.util.module_from_spec(mkcurrent_spec)
+        mkcurrent_spec.loader.exec_module(mkcurrent)
+        rebuilt_control, _star = mkcurrent.build(
+            174288, -44389, -688771, 0,
+            sync=0, secs=1344638736.0, charge=120, power=30000,
+            draw_hud=0, pos=(0.0, 0.0, -500.0),
+            angles=(0.0, 0.0, 97.0),
+            local=(-33.337344046564766,
+                   0.006575896758854271,
+                   -4.09043306650612),
+        )
+    except Exception as error:  # the generator imports the tracked model dynamically
+        check(False, f"HUD-suppressed control state rebuilds safely: {error}")
+    else:
+        check(
+            len(rebuilt_control) == 385
+            and struct.unpack_from("<h", rebuilt_control, 379)[0] == 0
+            and sha256(rebuilt_control) == CONTROL_CURRENT_SHA256,
+            "mkcurrent reproducibly emits the exact HUD-suppressed native control state",
+        )
+
     capture = CAPTURE.read_text(encoding="utf-8")
     check(
         all(name in capture for name in (
@@ -1176,6 +1534,19 @@ def main() -> int:
             boundary_inside_page, boundary_inside_palette,
             boundary_roof_page, boundary_roof_palette,
             boundary_local, check,
+        )
+    if (args.eclipse_product_directory is not None
+            and eclipse_page and eclipse_control_page):
+        grade_eclipse_product_pair(
+            args.eclipse_product_directory,
+            args.eclipse_control_product_directory,
+            eclipse_page, eclipse_palette,
+            eclipse_control_page, eclipse_control_palette,
+            {
+                "eclipse": tuple(eclipse_native_state.get("star_local", ())),
+                "control": tuple(control_native_state.get("star_local", ())),
+            },
+            eclipse_products, check,
         )
 
     if failures:
