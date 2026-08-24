@@ -425,7 +425,6 @@ jobs:
           data = Path("build/noctis-arm64-data").resolve()
           gallery = Path("build/sun-gallery")
           gallery.mkdir(parents=True, exist_ok=True)
-          arguments = ("clock=1344638527", "quit")
           expected = {
               "game-vh-out.bin": 156,
               "game-sun-out.bin": 128,
@@ -495,9 +494,21 @@ jobs:
                       player_x=1645000, player_z=1641000, fast=True,
                   ),
               },
+              {
+                  "case": "quartz-sun228",
+                  "scene": "quartz",
+                  "clock": 1345761727,
+                  "log": "build/macos-aarch64-quartz-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=1463568, star_y=-4728350, star_z=-437812,
+                      body=7, longitude=228, latitude=60, beta=270, pitch=-30,
+                      player_x=1638400, player_z=1638400, fast=True,
+                  ),
+              },
           )
 
           for spec in cases:
+              arguments = (f"clock={spec.get('clock', 1344638527)}", "quit")
               checkpoint = build_landed_checkpoint(**spec["checkpoint"])
               (data / "CURRENT.LIN").write_bytes(checkpoint)
               (data / "CURRENT.BAK").write_bytes(checkpoint)

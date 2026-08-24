@@ -1,6 +1,6 @@
 """Grade retained native surface-sun frames against product diagnostics.
 
-The default mode is non-GUI: it validates six pinned NIV+ BMP oracles and the
+The default mode is non-GUI: it validates seven pinned NIV+ BMP oracles and the
 shipping diagnostic/export contracts.  The hosted native Apple-Silicon product
 run supplies the product view, page, palette, and flare-state files.  Authority
 is case-specific: complete palette bands or exact upper-sky crops are graded
@@ -332,6 +332,57 @@ CASES = {
             "ray": 21.879,
         },
     },
+    "quartz-sun228": {
+        "scene": "quartz",
+        "oracle": ROOT / "tests" / "native-oracles" / "quartz-sun228"
+        / "native.shot.BMP",
+        "surface": ROOT / "tests" / "native-oracles" / "quartz-sun228"
+        / "native.SURFACE.BIN",
+        "bmp_sha256": "9d4ae059276c202e1d55975e38587e0dc40a9a6e01d46f4887e5e621433b9e16",
+        "surface_sha256": "aa6a53c04a3353b9fad206cc1776f236c2df880abe08bbde4f1adbacd0bbd4c8",
+        "surface_state": (
+            228, 60, 100, 100, 8192, 8192,
+            1638400.0, 1.0, 1638400.0, -30.0, 270.0,
+        ),
+        "page_sha256": "06270d9f7af9374196783fefbef368b71b40b921354fc1fe99967a7938acef39",
+        "palette_sha256": "04812fc5c5eeb2fbdc31885443da79e17b791ea67d24ad48754a6c858bec98ad",
+        "checkpoint_sha256": "b0e8b626a114ac99ca0c3eb8b71a585e92a5123ce1e9eadc0589bd56eb0cb6dc",
+        "checkpoint": {
+            "star_x": 1463568,
+            "star_y": -4728350,
+            "star_z": -437812,
+            "body": 7,
+            "longitude": 228,
+            "latitude": 60,
+            "beta": 270,
+            "pitch": -30,
+            "player_x": 1638400,
+            "player_z": 1638400,
+            "fast": True,
+        },
+        "clock": 1345761727,
+        "view": (1638400, -27224, 1638400, -30, -90),
+        "center": (161, 101),
+        "native_center": 97,
+        "center_exact": True,
+        "full_band_exact": False,
+        "band_crop": (10, 10, 310, 130),
+        "palette_exact": True,
+        "beam_gate": "positive",
+        "product": {
+            "mode": 1,
+            "landed": 1,
+            "planet_type": 8,
+            "star_class": 0,
+            "atmosphere": 1,
+            "night": 0,
+            "rain": 0.0,
+            "flare": 1,
+            "exposure": 29.7388,
+            "distance": 3923.7273,
+            "ray": 5.15,
+        },
+    },
 }
 
 
@@ -484,17 +535,20 @@ def check_source_contract(check) -> None:
               '"case": "dense-sun0"',
               '"case": "rocky-sun90"',
               '"case": "frozen-sun0"',
+              '"case": "quartz-sun228"',
               '"scene": "habitable"',
               '"scene": "thin"',
               '"scene": "lunarsun"',
               '"scene": "densesun"',
               '"scene": "rockysun"',
               '"scene": "frozensun"',
-              '"clock=1344638527"',
+              '"scene": "quartz"',
+              "spec.get('clock', 1344638527)",
+              '"clock": 1345761727',
               '"--product-directory", str(gallery)',
               "build/sun-gallery/*-game-*-out.bin",
           )),
-          "hosted Apple-Silicon gate executes and retains all six surface-sun cases")
+          "hosted Apple-Silicon gate executes and retains all seven surface-sun cases")
     check("Grade the pinned habitable-world sun frame" not in windows_workflow,
           "Windows packaging no longer depends on an unusable hosted GUI desktop")
 
@@ -553,8 +607,30 @@ def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
                 f"({mismatch_summary(native_crop, product_crop, x1 - x0)})",
             )
 
+        band_crop = case.get("band_crop")
+        if band_crop is not None:
+            assert isinstance(band_crop, tuple)
+            native_crop = page_crop(oracle_page, band_crop)
+            product_crop = page_crop(page, band_crop)
+            differences = sum(
+                (native & 0xC0) != (product & 0xC0)
+                for native, product in zip(native_crop, product_crop)
+            )
+            x0, y0, x1, y1 = band_crop
+            check(
+                differences == 0,
+                f"product upper-sky crop ({x0},{y0})..({x1 - 1},{y1 - 1}) "
+                f"retains all {len(native_crop):,} native palette bands "
+                f"({differences} mismatches)",
+            )
+
         cx, cy = case["center"]
         center_offset = cy * 320 + cx
+        if case.get("center_exact"):
+            check(
+                page[center_offset] == oracle_page[center_offset],
+                "product projected-sun centre matches the exact native index",
+            )
         check(
             (page[center_offset] & 0xC0)
             == (oracle_page[center_offset] & 0xC0),

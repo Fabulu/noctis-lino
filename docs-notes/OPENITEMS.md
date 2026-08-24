@@ -804,22 +804,35 @@ gate requires all 64,000 native palette bands, all 36,000 indices in the
 `(10,10)..(309,129)` upper-sky crop, and all 768 palette components. The lower
 starfield/terrain low-six-bit context remains open independently.
 
-**Six-class automated surface-sun gate, 2026-08-24.** The retained type 1, 2,
-3, 4, 5, and 7 BMP/surface pairs are now immutable test inputs rather than
+**Quartz-world positive-flare checkpoint.** LANE VIII closes the omitted type-8
+surface class at longitude 228, heading 270, pitch -30, and source time
+`1345761727`. The frozen guest memory retained body 7 as the reached synchronous
+target, `landed=1`, and live power above the target-retention threshold. Product
+and native then place the admitted flare at `(161,101)` with exact final centre
+index 97, exposure `29.7388`, solar distance `3923.7273`, and class-0 stellar
+ray `5.15`; this lies inside `10*ray <= distance < 1000*ray`. All 768 active
+palette components and all 36,000 palette bands in the
+`(10,10)..(309,129)` upper-sky crop are exact. The crop's low-six-bit smoothing
+history and 198 complete-page lower terrain/HUD band differences remain
+informational.
+
+**Seven-class automated surface-sun gate, 2026-08-24.** The retained type 1, 2,
+3, 4, 5, 7, and 8 BMP/surface pairs are now immutable test inputs rather than
 untracked capture-tree evidence. One default non-GUI run validates every BMP,
 40-byte surface record, indexed-page hash, six-bit palette hash, projected
 centre, and reproducible 264-byte product checkpoint. Product grading then
 requires exact camera, planet and star class, atmosphere/day/weather state,
 projected-sun admission and centre, pre-flare centre sample, exposure, solar
-distance, and stellar ray. Habitable and thin cases authenticate the positive
+distance, and stellar ray. Habitable, thin, and quartz cases authenticate the
 `10*ray <= distance < 1000*ray` interval; lunar/dense authenticate lower-gate
 suppression; rocky/frozen authenticate upper-gate suppression. Authority stays
 case-specific: habitable, thin, dense, and frozen require every palette band;
 lunar, rocky, and frozen additionally require exact 36,000-, 27,000-, and
-36,000-index upper-sky crops; every palette is exact except dense's explicitly
-unretained easing state. The Apple-Silicon product job now executes all six
-checkpoints independently and retains each diagnostic set. Whole final pages
-remain informational where snapshot-time terrain, simulation, or HUD state was
+36,000-index upper-sky crops; quartz requires all 36,000 upper-sky palette bands
+and its exact final centre index; every palette is exact except dense's
+explicitly unretained easing state. The Apple-Silicon product job now executes
+all seven checkpoints independently and retains each diagnostic set. Whole
+final pages remain informational where snapshot-time terrain, simulation, or HUD state was
 not captured.
 
 **Frozen-world class-0 positive-flare checkpoint.** RENIET VIII body 7 adds
