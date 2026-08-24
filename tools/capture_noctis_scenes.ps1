@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'lunarsun', 'lunarclass3', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
+        'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -166,6 +166,11 @@ $scenes = @(
     # SIENA V around its orange class-3 primary, selected for the positive gate.
     @{ Name='lunarclass3'; X=3363568; Y=-4274032; Z=-2404452; Body=4; Type=1;
        Lon=75; Lat=60; Beta=270; Pitch=-34;
+       PlayerX=1638400; PlayerZ=1638400 },
+    # RIZI V around its yellow-orange class-4 primary, selected for the positive
+    # gate.
+    @{ Name='lunarclass4'; X=3628560; Y=-4254023; Z=-915798; Body=4; Type=1;
+       Lon=135; Lat=60; Beta=90; Pitch=-5;
        PlayerX=1638400; PlayerZ=1638400 },
     # LUX I around its cyan class-11 primary.  This airless daylight pose is
     # inside the positive gate and keeps the primary centred in clean sky.
