@@ -399,7 +399,7 @@ def main() -> int:
         and "[VHGlifter] = 75;" in lift
         and "=> VHG lift distance;" in lift
         and '"VHG lift postrender"' in game
-        and "=> VHG fpu clean; => VHG lift postrender; => VHG lift trace; => VHG input;" in game
+        and "=> VHG fpu clean; => VHG lift postrender; => VHG lift trace; => VHG capsule trace; => VHG input;" in game
         and "A = [VHGdosim]; ? A = 0 -> VHG lift postrender done;" in game
         and "=> VHG lift tick;\n\t( p_Forward(step) is clamped" in game
         and "=> VHG clamp position;\n    \"VHG skip ship ticks\"" in game
@@ -435,6 +435,40 @@ def main() -> int:
         < lift_trace.index("[SPpreg] = RGADP;")
         < lift_trace.index("[VHGlifttracecount]+;"),
         "opt-in lift trace records one post-restraint page and scalar state per simulation tick",
+    )
+    capsule_trace = section(game, '"VHG capsule trace"', '"VHG lift move"')
+    check(
+        "VHGsentinelcapsuletrace = 0;" in game
+        and "VHGcapsuletraceactive = 0; VHGcapsuletracecount = 0; VHGcapsuletraceindex = 0;" in game
+        and "vhgcapsulestatename = { game-capsule-state-out.bin };" in game
+        and "vhgcapsulepagesname = { game-capsule-pages-out.bin };" in game
+        and "vhgcapsulestate = 16;" in game
+        and all(token in capsule_trace for token in (
+            "A = [VHGsentinelcapsuletrace]; ? A = 0 -> VHG capsule trace done;",
+            "A = [VHGdosim]; ? A = 0 -> VHG capsule trace done;",
+            "A = [VHGcapsuletraceactive]; ? A != 0 -> VHG capsule trace capture;",
+            "A = [VHGCstate]; ? A != 2 -> VHG capsule trace done;",
+            "[VHGcapsuletraceactive] = 1;",
+            "[vhgcapsulestate plus 0] = [VHGCstate];",
+            "[vhgcapsulestate plus 5] = [VHGcapsulereturnpending];",
+            "[vhgcapsulestate plus 6] = [VHGx];",
+            "[vhgcapsulestate plus 15] = [VHGdosim];",
+            "[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;",
+            "A = [VHGcapsuletracecount]; [VHGcapsuletraceindex] = A; A * 64;",
+            "[Block Pointer] = vhgcapsulestate; [Block Size] = 64; isocall;",
+            "A = [VHGcapsuletraceindex]; A * 64000;",
+            "[Block Pointer] = sppack; [Block Size] = 64000; isocall;",
+            "[VHGcapsuletracecount]+;",
+            "A = [VHGcapsuletraceactive]; ? A = 2 -> VHG capsule trace complete;",
+            "A = [VHGcapsulereturnpending]; ? A = 0 -> VHG capsule trace complete;",
+            "[VHGcapsuletraceactive] = 2;",
+            "[VHGcapsuletraceactive] = 0;",
+        ))
+        and capsule_trace.index("A = [VHGsentinelcapsuletrace];")
+        < capsule_trace.index("[SPpreg] = RGADP;")
+        < capsule_trace.index("[VHGcapsuletracecount]+;")
+        < capsule_trace.index("[VHGcapsuletraceactive] = 2;"),
+        "opt-in capsule trace records the authoritative ascent and clean ship handoff",
     )
     platform = section(game, '"VHG platform"', '"VHG lift tick"')
     ship_input = section(game, '"VHG normal input"', '"VHG surface input"')
@@ -1558,7 +1592,10 @@ def main() -> int:
         game, '"VHG freeze diagnostic option"', '"VHG lift trace option"'
     )
     lift_trace_option = section(
-        game, '"VHG lift trace option"', '"VHG profile option"'
+        game, '"VHG lift trace option"', '"VHG capsule trace option"'
+    )
+    capsule_trace_option = section(
+        game, '"VHG capsule trace option"', '"VHG profile option"'
     )
     cadence = section(game, '"VHG cadence"', '"VHG timing step"')
     sentinel_schedule = section(
@@ -1601,6 +1638,21 @@ def main() -> int:
             "? C = 32 -> VHG lift trace found;",
             "[VHGsentinellifttrace] = 1;",
         ))
+        and all(token in capsule_trace_option for token in (
+            "A = Command Line;",
+            "? C != 99 -> VHG capsule trace next;",
+            "? C != 97 -> VHG capsule trace next;",
+            "? C != 112 -> VHG capsule trace next;",
+            "? C != 115 -> VHG capsule trace next;",
+            "? C != 117 -> VHG capsule trace next;",
+            "? C != 108 -> VHG capsule trace next;",
+            "? C != 101 -> VHG capsule trace next;",
+            "? C != 116 -> VHG capsule trace next;",
+            "? C != 114 -> VHG capsule trace next;",
+            "? C = 0 -> VHG capsule trace found;",
+            "? C = 32 -> VHG capsule trace found;",
+            "[VHGsentinelcapsuletrace] = 1;",
+        ))
         and all(token in cadence for token in (
             "A = [VHGsentinelfreeze]; ? A = 0 -> VHG cadence unfrozen;",
             "[VHGdosim] = 0;",
@@ -1626,7 +1678,7 @@ def main() -> int:
             "[Block Pointer] = vhglabelstate; [Block Size] = 32; isocall;",
             "[File Size] = 32; isocall;",
         ))
-        and "=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option;\n\t=> VHG lift trace option; => VHG profile option;" in game
+        and "=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option;\n\t=> VHG lift trace option; => VHG capsule trace option; => VHG profile option;" in game
         and all(token in sentinel_schedule for token in (
             "A = [VHGsent]; ? A = 0 -> VHG sentinel frame ready;",
             "A = [VHGsentinelrepeat]; ? A = 0 -> VHG no sentinel;",

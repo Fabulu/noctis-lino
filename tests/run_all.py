@@ -113,6 +113,7 @@ TESTS = [
     ("test_windows_i386_stage.py", "Windows builds select the native i386 renderer in isolation and record every backend source"),
     ("test_vhgame.py", "live Stardrifter: original lift/aperture constants, synchronized loop, and safe provisional landing renderer"),
     ("test_lift_runtime.py", "private-desktop lift traces retain every source-ordered state and indexed interior/roof transition"),
+    ("test_capsule_runtime.py", "private-desktop capsule trace retains every sealing/ascent tick and the complete surface-to-ship handoff"),
     ("test_label_editing_runtime.py", "private-desktop star/body editor ownership, exact STARMAP mutation rules, and isolated blinking cursor raster"),
 ]
 

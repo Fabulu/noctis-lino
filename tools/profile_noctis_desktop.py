@@ -148,11 +148,11 @@ def scenario_checkpoint(scenario: str) -> bytes:
         latitude=60,
         beta=65,
         pitch=-10,
-        player_x=131072 if at_capsule else 1598248,
+        player_x=1638400 if at_capsule else 1598248,
         player_y=-600,
-        player_z=131072 if at_capsule else 2251369,
-        capsule_x=131072,
-        capsule_z=131072,
+        player_z=1638400 if at_capsule else 2251369,
+        capsule_x=1638400 if at_capsule else 131072,
+        capsule_z=1638400 if at_capsule else 131072,
         fast=True,
     )
 

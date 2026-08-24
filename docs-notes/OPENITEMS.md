@@ -601,6 +601,21 @@ is gated by a complete command-line token and by `VHGdosim`, so ordinary
 launches neither pack nor write it and 60-Hz presentation does not duplicate
 simulation states.
 
+Capsule recovery/ascent is now closed at that same production indexed-page
+boundary. The opt-in `capsuletrace` path records sixteen scalar fields and one
+complete 64,000-byte page only on authoritative `VHGdosim` ticks, starting when
+`VHGCstate=2`. The accepted private-desktop run retains exactly 252 records:
+counts 1--32 stay sealed and landed, count 33 lifts off, counts 33--250 follow
+the cumulative `-(count-31)*20` source displacement, and count 251 clears state,
+count, and recovery while preserving the complete final surface page with
+`VHGcapsulereturnpending=1`. One following record proves the clean handoff with
+mode 0 and pending clear. Accepted surface-to-ship boundaries change more than
+52,000 indexed pixels and 37,000 palette-band assignments. The deterministic
+capsule checkpoint now places both player and pod at the terrain-safe map centre;
+the former edge coordinate was moved away from the pod by the live radial surface
+clamp. This closes the surface-to-Stardrifter return direction, not capsule
+descent/landing, which remains required by the transition matrix.
+
 Exact projected glyph raster across hosts, complete interior lighting, the
 remaining unretained palette-easing state, and whole-row numerical environmental-state
 equality remain open rather than being claimed as full parity.

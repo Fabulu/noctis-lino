@@ -59,8 +59,9 @@
 	VHGalpha = 0; VHGbeta = 0; VHGnavbeta = 0; VHGabs = 0;
 	VHGlifter = 0; VHGliftstep = 0; VHGonroof = 0; VHGridearmed = 1; VHGuprequest = 0; VHGupheld = 0;
 	VHGdx = 0; VHGdz = 0; VHGdist = 0;
-	VHGesc = 0; VHGframe = 0; VHGsent = 0; VHGsentinelquit = 0; VHGsentinelrepeat = 0; VHGsentinelfreeze = 0; VHGsentinellifttrace = 0; VHGfreezeblink = 0; VHGfreezebrtl = 0; VHGfreezesuf = 0; VHGfullescheld = 0;
+	VHGesc = 0; VHGframe = 0; VHGsent = 0; VHGsentinelquit = 0; VHGsentinelrepeat = 0; VHGsentinelfreeze = 0; VHGsentinellifttrace = 0; VHGsentinelcapsuletrace = 0; VHGfreezeblink = 0; VHGfreezebrtl = 0; VHGfreezesuf = 0; VHGfullescheld = 0;
 	VHGlifttraceactive = 0; VHGlifttracecount = 0; VHGlifttraceindex = 0;
+	VHGcapsuletraceactive = 0; VHGcapsuletracecount = 0; VHGcapsuletraceindex = 0;
 	VHGargptr = 0; VHGargvalue = 0; VHGargdigits = 0;
 	VHGmouseheld = 0; VHGmousex = 0; VHGmousey = 0; VHGmousedx = 0; VHGmousedy = 0;
 	VHGmenuheld = 0; VHGmenux = 0; VHGmenuy = 0;
@@ -198,6 +199,8 @@
 		vhgrendername = { game-render-state-out.bin };
 		vhgliftstatename = { game-lift-state-out.bin };
 		vhgliftpagesname = { game-lift-pages-out.bin };
+		vhgcapsulestatename = { game-capsule-state-out.bin };
+		vhgcapsulepagesname = { game-capsule-pages-out.bin };
 		vhgprofilename = { game-profile-out.bin };
 	VHGcaption = { Noctis_IV };
 	VHGmenucaption = { GAME };
@@ -973,6 +976,7 @@
 	vhglabelstate = 8;
 	vhgrenderstate = 6;
 	vhgliftstate = 8;
+	vhgcapsulestate = 16;
 	VHGinfoname = 22;
 	VHGtelemetrystar = 16;
 	VHGtelemetrybody = 16;
@@ -1237,6 +1241,37 @@
     "VHG lift trace option done"
 	end;
 
+"VHG capsule trace option"
+	( `capsuletrace` appends authoritative post-render ascent/return state and
+	  complete indexed pages, including the clean surface-to-ship handoff.  It is
+	  private-desktop acceptance instrumentation and inert on ordinary launches. )
+	A = Command Line;
+	C = [A]; ? C != 0 -> VHG capsule trace leading space; A + 9;
+    "VHG capsule trace leading space"
+	C = [A]; ? C != 32 -> VHG capsule trace scan; A+;
+	-> VHG capsule trace leading space;
+    "VHG capsule trace scan"
+	C = [A]; ? C = 0 -> VHG capsule trace option done;
+	? C != 99 -> VHG capsule trace next;
+	E = A; E+; C = [E]; ? C != 97 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 112 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 115 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 117 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 108 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 101 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 116 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 114 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 97 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 99 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 101 -> VHG capsule trace next; E+;
+	C = [E]; ? C = 0 -> VHG capsule trace found; ? C = 32 -> VHG capsule trace found;
+    "VHG capsule trace next"
+	A+; -> VHG capsule trace scan;
+    "VHG capsule trace found"
+	[VHGsentinelcapsuletrace] = 1;
+    "VHG capsule trace option done"
+	end;
+
 "VHG profile option"
 	( `profile` is an opt-in terminal telemetry token.  Scan independently of
 	  clock=<decimal> so ordinary launches and the first-frame oracle contract
@@ -1313,7 +1348,7 @@
 	=> TK seed; => TK start;
 	=> VHG fps init;
 	=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option;
-	=> VHG lift trace option; => VHG profile option;
+	=> VHG lift trace option; => VHG capsule trace option; => VHG profile option;
 	( Resume the versioned port checkpoint automatically when present.  VHSV
 	  leaves the initialized new-flight state untouched on a missing, stale,
 	  or malformed file, so first launch remains a clean game. )
@@ -1646,7 +1681,7 @@
 		  Rendering uses the same shared stack, so give input a clean ABI boundary;
 		  without it the first walking sample after capsule settlement could return
 		  through a corrupted floating-point helper frame. )
-		=> VHG fpu clean; => VHG lift postrender; => VHG lift trace; => VHG input;
+		=> VHG fpu clean; => VHG lift postrender; => VHG lift trace; => VHG capsule trace; => VHG input;
 	( VHGframe is the retained source-loop clock used by the physical orbital
 	  console.  Extra F5 presentation frames must not accelerate that display. )
 	A = [VHGdosim]; ? A = 0 -> VHG frame count done; [VHGframe]+;
@@ -4724,6 +4759,52 @@
 	A = [VHGlifter]; ? A != 0 -> VHG lift trace done;
 	[VHGlifttraceactive] = 0;
     "VHG lift trace done"
+	end;
+
+"VHG capsule trace"
+	A = [VHGsentinelcapsuletrace]; ? A = 0 -> VHG capsule trace done;
+	A = [VHGdosim]; ? A = 0 -> VHG capsule trace done;
+	A = [VHGcapsuletraceactive]; ? A != 0 -> VHG capsule trace capture;
+	A = [VHGCstate]; ? A != 2 -> VHG capsule trace done;
+	[VHGcapsuletraceactive] = 1;
+    "VHG capsule trace capture"
+	[vhgcapsulestate plus 0] = [VHGCstate];
+	[vhgcapsulestate plus 1] = [VHGCcapcount];
+	[vhgcapsulestate plus 2] = [VHGCrecover];
+	[vhgcapsulestate plus 3] = [VHGlanded];
+	[vhgcapsulestate plus 4] = [VHGmode];
+	[vhgcapsulestate plus 5] = [VHGcapsulereturnpending];
+	[vhgcapsulestate plus 6] = [VHGx];
+	[vhgcapsulestate plus 7] = [VHGy];
+	[vhgcapsulestate plus 8] = [VHGz];
+	[vhgcapsulestate plus 9] = [VHGCground];
+	[vhgcapsulestate plus 10] = [VHGCgravity];
+	[vhgcapsulestate plus 11] = [VHGCwindangle];
+	[vhgcapsulestate plus 12] = [VHGCwindpower];
+	[vhgcapsulestate plus 13] = [VHGframe];
+	[vhgcapsulestate plus 14] = [VHGinterpok];
+	[vhgcapsulestate plus 15] = [VHGdosim];
+	[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;
+	A = [VHGcapsuletracecount]; [VHGcapsuletraceindex] = A; A * 64;
+	[File Name] = vhgcapsulestatename; [File Position] = A; [File Command] = WRITE;
+	[Block Pointer] = vhgcapsulestate; [Block Size] = 64; isocall;
+	A = [VHGcapsuletraceindex]; A * 64000;
+	[File Name] = vhgcapsulepagesname; [File Position] = A; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 64000; isocall;
+	[VHGcapsuletracecount]+;
+	A = [VHGcapsuletracecount]; A * 64;
+	[File Name] = vhgcapsulestatename; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = A; isocall;
+	A = [VHGcapsuletracecount]; A * 64000;
+	[File Name] = vhgcapsulepagesname; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = A; isocall;
+	A = [VHGcapsuletraceactive]; ? A = 2 -> VHG capsule trace complete;
+	A = [VHGCstate]; ? A != 0 -> VHG capsule trace done;
+	A = [VHGcapsulereturnpending]; ? A = 0 -> VHG capsule trace complete;
+	[VHGcapsuletraceactive] = 2; -> VHG capsule trace done;
+    "VHG capsule trace complete"
+	[VHGcapsuletraceactive] = 0;
+    "VHG capsule trace done"
 	end;
 
 "VHG lift move"
