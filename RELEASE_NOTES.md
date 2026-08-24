@@ -81,11 +81,11 @@ band, camera, flare gate/position and pre-smoothing sky-band admission sample,
 exposure, distance, and ray remain graded. The separate ten-case primitive
 flare oracle remains byte-exact to its native pages.
 
-That product gate now covers seven landable surface types through twelve retained
-native BMP and surface records: three lunar type-1 cases, two dense-atmosphere
+That product gate now covers seven landable surface types through thirteen retained
+native BMP and surface records: four lunar type-1 cases, two dense-atmosphere
 type-2 cases, habitable type 3, three rocky type-4 cases, thin-atmosphere type 5,
 frozen type 7 around a class-1 star, and quartz type 8. Habitable, thin, quartz,
-class-1 lunar, class-11 lunar, class-1/class-2 rocky, and class-8 dense authenticate
+class-1/class-3/class-11 lunar, class-1/class-2 rocky, and class-8 dense authenticate
 positive radial
 flares; class-0 lunar/dense authenticate the `distance < 10*ray` lower
 suppression gate; class-0 rocky/frozen authenticate the
@@ -103,6 +103,12 @@ star the product admits centre `(161,91)`, matches all 768 palette components
 and all 64,000 final-page palette bands, and keeps
 `10 * 21.879 <= 1757.4972 < 1000 * 21.879`. Native centre index 78 and product
 index 80 remain in the same band while snapshot-time smoothing stays explicit.
+SIENA V adds the orange class-3 primary at `(3363568,-4274032,-2404452)`: body
+4 remains landed with power 20000 at source time `1345723230.090909`, and the
+product matches centre `(161,71)` at exact index 73, all 768 palette components,
+and all 37,800 indices in the `(40,10)..(309,149)` upper-sky crop. Its positive
+interval is `10 * 27.753 <= 2365.4727 < 1000 * 27.753`; 128 palette-band
+differences stay confined to snapshot-time terrain rows 157 through 185.
 LUX I adds the cyan class-11 primary at `(4879984,-4603699,-1023471)`: body 0
 remains landed with power 17482 at source time `1345723229.7777777`, and the
 product matches centre `(161,100)` at exact index 105, all 768 palette
@@ -123,12 +129,12 @@ final-page palette bands, and keeps
 `10 * 6.505 <= 129.4516 < 1000 * 6.505`. Native centre index 60 and product
 index 59 remain in the same band. Authority remains artifact-specific:
 habitable, thin, both dense cases, frozen, and class-1/class-11 lunar require all
-64,000 palette-band assignments; the lower-gate lunar case, the three rocky
-cases, and frozen additionally require exact 36,000-, 27,000-, 27,000-,
-27,000-, and 36,000-index upper-sky crops; quartz requires its exact centre
-index and 36,000-pixel upper-sky palette-band crop. All active palettes are
+64,000 palette-band assignments; the lower-gate lunar case, class-3 lunar, the
+three rocky cases, and frozen additionally require exact 36,000-, 37,800-,
+27,000-, 27,000-, 27,000-, and 36,000-index upper-sky crops; quartz requires
+its exact centre index and 36,000-pixel upper-sky palette-band crop. All active palettes are
 exact except the two dense captures whose easing-dependent components remain
-informational. The native Apple-Silicon job rebuilds and grades all twelve
+informational. The native Apple-Silicon job rebuilds and grades all thirteen
 checkpoints independently with their case-specific clocks and retains their
 product diagnostics.
 

@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'lunarsun', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
+        'lunar', 'lunarsun', 'lunarclass3', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -163,6 +163,10 @@ $scenes = @(
     @{ Name='lunarsun'; FileName='planet-lunar-sun.png';
        X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
        Beta=90; Pitch=-44; PlayerX=1638400; PlayerY=-19032; PlayerZ=1638400 },
+    # SIENA V around its orange class-3 primary, selected for the positive gate.
+    @{ Name='lunarclass3'; X=3363568; Y=-4274032; Z=-2404452; Body=4; Type=1;
+       Lon=75; Lat=60; Beta=270; Pitch=-34;
+       PlayerX=1638400; PlayerZ=1638400 },
     # LUX I around its cyan class-11 primary.  This airless daylight pose is
     # inside the positive gate and keeps the primary centred in clean sky.
     @{ Name='lunarclass11'; X=4879984; Y=-4603699; Z=-1023471; Body=0; Type=1;

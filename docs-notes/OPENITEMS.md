@@ -850,6 +850,18 @@ final-page palette bands match native. Native centre index 60 and product centre
 index 59 remain in the same band; 29,653 complete-page low-six-bit differences
 and 157 palette components retain their snapshot-time smoothing/easing limit.
 
+**Lunar-world class-3 positive-flare checkpoint.** SIENA V at
+`(3363568,-4274032,-2404452)` adds the orange `(63,30,20)` class-3 primary. At
+longitude 75, heading 270, pitch -34, and certified source time
+`1345723230.090909`, frozen guest memory retains the reached synchronous target,
+`landed=1`, and power 20000. Product diagnostics admit the primary at `(161,71)`
+with exposure `42.2604`, distance `2365.4727`, and class-3 ray `27.753`, inside
+`10*ray <= distance < 1000*ray`. Native and product match centre index 73, all
+768 palette components, and all 37,800 indices in the
+`(40,10)..(309,149)` upper-sky crop. Complete-page equality stays informational;
+128 palette-band differences are confined to snapshot-time terrain rows 157
+through 185.
+
 **Lunar-world class-11 positive-flare checkpoint.** LUX I at
 `(4879984,-4603699,-1023471)` adds the cyan `(0,63,63)` class-11 primary. At
 longitude 135, heading 270, pitch -34, and certified source time
@@ -873,24 +885,24 @@ centre index 108, all 768 palette components, and all 27,000 indices in the
 1,081 palette-band differences are confined to snapshot-time horizon rows 115
 through 123.
 
-**Twelve-case, seven-type automated surface-sun gate, 2026-08-24.** The retained
-twelve BMP/surface pairs span types 1, 2, 3, 4, 5, 7, and 8 and are immutable
+**Thirteen-case, seven-type automated surface-sun gate, 2026-08-24.** The retained
+thirteen BMP/surface pairs span types 1, 2, 3, 4, 5, 7, and 8 and are immutable
 test inputs rather than untracked capture-tree evidence. One default non-GUI
 run validates every BMP, 40-byte surface record, indexed-page hash, six-bit
 palette hash, projected centre, and reproducible 264-byte product checkpoint.
 Product grading then requires exact camera, planet and star class,
 atmosphere/day/weather state, projected-sun admission and centre, pre-flare
 centre sample, exposure, solar distance, and stellar ray. Habitable, thin,
-quartz, class-1 lunar, class-11 lunar, class-1/class-2 rocky, and class-8 dense
+quartz, class-1/class-3/class-11 lunar, class-1/class-2 rocky, and class-8 dense
 cases authenticate the `10*ray <= distance < 1000*ray` interval; class-0
 lunar/dense authenticate lower-gate suppression; class-0 rocky/frozen
 authenticate upper-gate suppression. Authority stays case-specific: habitable,
 thin, both dense cases, frozen, and class-1/class-11 lunar require every palette
-band; the lower-gate lunar, the three rocky cases, and frozen additionally
-require exact 36,000-, 27,000-, 27,000-, 27,000-, and 36,000-index upper-sky
-crops; quartz requires all 36,000 upper-sky palette bands and its exact final
-centre index; every palette is exact except the two dense snapshots' explicitly
-unretained easing states. The Apple-Silicon product job now executes all twelve
+band; the lower-gate lunar, class-3 lunar, the three rocky cases, and frozen
+additionally require exact 36,000-, 37,800-, 27,000-, 27,000-, 27,000-, and
+36,000-index upper-sky crops; quartz requires all 36,000 upper-sky palette bands
+and its exact final centre index; every palette is exact except the two dense snapshots' explicitly
+unretained easing states. The Apple-Silicon product job now executes all thirteen
 checkpoints independently and retains each diagnostic set.
 Whole final pages remain informational where snapshot-time terrain, simulation,
 or HUD state was not captured.
