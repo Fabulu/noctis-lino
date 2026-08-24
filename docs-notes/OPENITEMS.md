@@ -320,12 +320,12 @@ near-vertical ray across the ground: the captured thin input is ray
 oracle exactly. That bright ray is therefore authentic flare geometry for
 those inputs, not the unrelated black horizon-pillar defect. Parallel
 screenshot processes can interfere and produced two all-black captures, so
-this matrix must be captured sequentially. The exact frozen-world sunrise pair
-below closes one precise day/night transition. Still open: representative views
-for every planet and atmosphere class, further weather and sunset boundaries,
-further companion and multiple-sun arrangements, additional orbital views, and
-moving transitions among Stardrifter interior/cupola/exterior plus launch/landing
-transitions.
+this matrix must be captured sequentially. The exact frozen-world sunrise and
+sunset-edge pairs below close both ends of one precise day/night interval. Still
+open: representative views for every planet and atmosphere class, further
+weather boundaries, further companion and multiple-sun arrangements, additional
+orbital views, and moving transitions among Stardrifter interior/cupola/exterior
+plus launch/landing transitions.
 
 The thin gallery case now also has a full-context NIV+ oracle, not only the
 synthetic uniform-page flare check. An instrumented Borland build rendered the
@@ -370,9 +370,29 @@ source palette band unchanged between the two longitudes. The native BMPs are
 the page/palette authorities; their later adapted pages differ by 12,844/12,849
 indices. Native/product whole pages differ by 27,626/28,155 indices and active
 palettes by 730/652 components because terrain, HUD, and palette-fade histories
-are not atomic, so those remain explicit non-claims. This closes sunrise and the
-exact day/night admission boundary for one representative airless world; sunset
-and representative atmospheric/weather transitions remain open.
+are not atomic, so those remain explicit non-claims. This closes the inclusive
+start boundary for one representative airless world.
+
+**Exact frozen-world sunset-edge checkpoint.** A second exact-clock pair keeps
+the same world, native planetary arrays, dry weather, landed camera, and raw
+clock. Longitude 204 remains night one degree before the exclusive end of
+`[75,205)`. Native RAM and product diagnostics both retain `nightzone=1`,
+`crepzone=1`, exact binary32 exposure `0.7825999855995178`, and
+`sun_x_factor=-1`; the night gate suppresses the otherwise exposed primary.
+Longitude 205 leaves night exactly at the exclusive end. Both engines retain
+`nightzone=0`, `crepzone=0`, zero exposure, and `sun_x_factor=-1`; the product
+retains primary ray `21.878999710083008` but projects no source because it is
+behind this camera.
+
+Both native BMPs and both product pages share twelve index-64 values in the
+`(154,92)..(159,93)` source crop. Each engine independently keeps its complete
+index-64-through-127 source palette band unchanged, and the product retains all
+25,800 native palette bands in `(10,10)..(309,95)` for both states. Native/product
+whole pages differ by 27,264/27,883 indices and active palettes by 652/736
+components. The native later adapted pages differ from their BMP authorities by
+12,842/12,838 indices. Those complete artifacts remain explicit non-claims. The
+exact inclusive start and exclusive end of this representative airless interval
+are now closed; representative atmospheric and weather transitions remain open.
 
 The Stardrifter local-system pass now restores the companion-star corona's
 source expression too: each type-10 body reseeds the fast generator with its

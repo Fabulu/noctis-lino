@@ -106,6 +106,17 @@ Whole pages and cross-engine active palettes remain ungraded because terrain,
 HUD, and palette-fade histories differ; the later adapted pages are explicitly
 not substituted for either authoritative BMP.
 
+The same exact frozen-world state now closes the opposite, exclusive terminator
+edge. Longitude 204 is still night inside `[75,205)`: native and product retain
+`nightzone=1`, `crepzone=1`, exposure `0.7825999856`, and `sun_x_factor=-1`, but
+the night gate suppresses the otherwise exposed primary. Longitude 205 is day
+exactly at the exclusive end: both retain `nightzone=0`, `crepzone=0`, zero
+exposure, and `sun_x_factor=-1`; the product keeps the positive primary ray but
+correctly projects no behind-camera source. Both engines retain an exact
+source-free 12-index horizon crop, the same complete source palette band across
+the pair, and all 25,800 native palette bands in the upper-sky crop. Whole pages,
+complete palettes, and later adapted pages remain explicitly ungraded.
+
 TRIUMVIRATE - CAESAR adds a genuine class-8 `[10,10,1]` hierarchy with both
 type-10 bodies visible together from the Stardrifter interior. A balanced pose
 places their independently projected flare centres at `(255,99)` and `(73,101)`.
