@@ -247,6 +247,8 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn('"scene": "lunarclass3"', workflow)
         self.assertIn('"case": "lunar-class4-sun135"', workflow)
         self.assertIn('"scene": "lunarclass4"', workflow)
+        self.assertIn('"case": "lunar-class5-sun270"', workflow)
+        self.assertIn('"scene": "lunarclass5"', workflow)
         self.assertIn('"case": "lunar-class11-sun135"', workflow)
         self.assertIn('"scene": "lunarclass11"', workflow)
         self.assertIn('"case": "dense-class8-sun0"', workflow)

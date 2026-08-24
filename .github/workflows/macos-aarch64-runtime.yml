@@ -498,6 +498,17 @@ jobs:
                   ),
               },
               {
+                  "case": "lunar-class5-sun270",
+                  "scene": "lunarclass5",
+                  "clock": 1345723230,
+                  "log": "build/macos-aarch64-lunar-class5-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=3052848, star_y=-5636380, star_z=-959161,
+                      body=2, longitude=270, latitude=60, beta=270, pitch=-30,
+                      player_x=1638400, player_z=1638400, fast=True,
+                  ),
+              },
+              {
                   "case": "lunar-class11-sun135",
                   "scene": "lunarclass11",
                   "clock": 1345723230,

@@ -1,6 +1,6 @@
 """Grade retained native surface-sun frames against product diagnostics.
 
-The default mode is non-GUI: it validates fourteen pinned NIV+ BMP oracles and the
+The default mode is non-GUI: it validates fifteen pinned NIV+ BMP oracles and the
 shipping diagnostic/export contracts.  The hosted native Apple-Silicon product
 run supplies the product view, page, palette, and flare-state files.  Authority
 is case-specific: complete palette bands or exact upper-sky crops are graded
@@ -25,6 +25,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "work" / "vhgame.txt"
+GROUND = ROOT / "work" / "vhground.txt"
 CAPTURE = ROOT / "tools" / "capture_noctis_scenes.ps1"
 CHECKPOINT_TOOL = ROOT / "tools" / "make_noctis_checkpoint.py"
 PRIVATE_RUNNER = ROOT / "tools" / "run_hidden_noctis.py"
@@ -334,6 +335,57 @@ CASES = {
             "exposure": 4.6956,
             "distance": 1438.3975,
             "ray": 19.877,
+        },
+    },
+    "lunar-class5-sun270": {
+        "scene": "lunarclass5",
+        "oracle": ROOT / "tests" / "native-oracles" / "lunar-class5-sun270"
+        / "native.shot.BMP",
+        "surface": ROOT / "tests" / "native-oracles" / "lunar-class5-sun270"
+        / "native.SURFACE.BIN",
+        "bmp_sha256": "0617cdf3347a7f50c554d15df5f9ef18d1fa80d6cfcaed5b2a66b668102d7f0b",
+        "surface_sha256": "2ac785fe76a8b92b7f5a567770716decad00f63b9f305badb83da20b68c27d87",
+        "surface_state": (
+            270, 60, 100, 100, 8192, 8192,
+            1638400.0, 1.0, 1638400.0, -30.0, 270.0,
+        ),
+        "page_sha256": "3f9986abf40ca5660b786def059e91e6de585a1125179191730af1d267995ca2",
+        "palette_sha256": "bb64a406daa7bad9bbb70d1bf431ba59f4b937bd715e956e55c13664647f91cd",
+        "checkpoint_sha256": "5aff4b06dac0196f5239bf918f8ef7f8b9fb15d7297272710c1b8330d06d6e6a",
+        "checkpoint": {
+            "star_x": 3052848,
+            "star_y": -5636380,
+            "star_z": -959161,
+            "body": 2,
+            "longitude": 270,
+            "latitude": 60,
+            "beta": 270,
+            "pitch": -30,
+            "player_x": 1638400,
+            "player_z": 1638400,
+            "fast": True,
+        },
+        "clock": 1345723230,
+        "view": (1638400, -27224, 1638400, -30, -90),
+        "center": (158, 96),
+        "native_center": 127,
+        "center_exact": True,
+        "full_band_exact": True,
+        "exact_crop": (40, 10, 310, 185),
+        "palette_exact": True,
+        "beam_gate": "class-suppressed",
+        "product": {
+            "mode": 1,
+            "landed": 1,
+            "planet_type": 1,
+            "star_class": 5,
+            "atmosphere": 0,
+            "night": 0,
+            "rain": 0.0,
+            "flare": 0,
+            "exposure": 30.5214,
+            "distance": 32.3576,
+            "ray": 1.39,
         },
     },
     "lunar-class11-sun135": {
@@ -831,6 +883,7 @@ def product_file(directory: Path, scene: str, name: str) -> Path:
 
 def check_source_contract(check) -> None:
     game = GAME.read_text(encoding="utf-8")
+    ground = GROUND.read_text(encoding="utf-8")
     capture = CAPTURE.read_text(encoding="utf-8")
     checkpoint_tool = CHECKPOINT_TOOL.read_text(encoding="utf-8")
     private_runner = PRIVATE_RUNNER.read_text(encoding="utf-8")
@@ -845,6 +898,12 @@ def check_source_contract(check) -> None:
     check("[Block Pointer] = vhgsun; [Block Size] = 128; isocall;" in game and
           "[Block Pointer] = curpal6; [Block Size] = 3072; isocall;" in game,
           "existing sun and six-bit palette contracts remain intact")
+    check(
+        "A = [nsclass]; ? A = 5 -> VHGND primary flare done;" in ground
+        and "? A = 6 -> VHGND primary flare done; ? A = 10 -> VHGND primary flare done;"
+        in ground,
+        "surface renderer retains the source class-5/6/10 radial-flare exclusion",
+    )
     check(all(fragment in game for fragment in (
               "vhgsbgname = { game-s-background-out.bin };",
               "vhgpsmname = { game-p-surfacemap-out.bin };",
@@ -886,6 +945,7 @@ def check_source_contract(check) -> None:
               '"case": "lunar-class1-sun50"',
               '"case": "lunar-class3-sun75"',
               '"case": "lunar-class4-sun135"',
+              '"case": "lunar-class5-sun270"',
               '"case": "lunar-class11-sun135"',
               '"case": "dense-sun0"',
               '"case": "dense-class8-sun0"',
@@ -900,6 +960,7 @@ def check_source_contract(check) -> None:
               '"scene": "lunarclass1"',
               '"scene": "lunarclass3"',
               '"scene": "lunarclass4"',
+              '"scene": "lunarclass5"',
               '"scene": "lunarclass11"',
               '"scene": "densesun"',
               '"scene": "denseclass8"',
@@ -915,7 +976,7 @@ def check_source_contract(check) -> None:
               '"--product-directory", str(gallery)',
               "build/sun-gallery/*-game-*-out.bin",
           )),
-          "hosted Apple-Silicon gate executes and retains all fourteen surface-sun cases")
+          "hosted Apple-Silicon gate executes and retains all fifteen surface-sun cases")
     check("Grade the pinned habitable-world sun frame" not in windows_workflow,
           "Windows packaging no longer depends on an unusable hosted GUI desktop")
 
@@ -1053,11 +1114,15 @@ def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
             "product diagnostic retains the pinned atmosphere, day/night, and weather state",
         )
         check(sun[16] == expected["flare"],
-              "product diagnostic confirms projected primary-sun admission")
-        check(64 <= sun[19] <= 127,
-              "product diagnostic retains the sky-band sample at the projected centre")
-        check(abs(sun[17] - cx) <= 1 and abs(sun[18] - cy) <= 1,
-              f"product flare centre {sun[17]},{sun[18]} aligns with native {cx},{cy}")
+              "product diagnostic confirms the projected primary-sun admission state")
+        if expected["flare"]:
+            check(64 <= sun[19] <= 127,
+                  "product diagnostic retains the sky-band sample at the projected centre")
+            check(abs(sun[17] - cx) <= 1 and abs(sun[18] - cy) <= 1,
+                  f"product flare centre {sun[17]},{sun[18]} aligns with native {cx},{cy}")
+        else:
+            check(sun[17:20] == (0, 0, 0),
+                  "class-suppressed primary leaves no invented flare centre or sample")
         check(
             abs(floats[7] - expected["exposure"]) < 0.01
             and abs(floats[8] - expected["distance"]) < 0.01,
@@ -1077,6 +1142,16 @@ def grade_product(case: dict[str, object], directory: Path, oracle_page: bytes,
         elif gate == "upper":
             admitted = distance >= 1000.0 * ray
             message = "product distance authentically suppresses rays at the upper gate"
+        elif gate == "class-suppressed":
+            admitted = (
+                10.0 * ray <= distance < 1000.0 * ray
+                and expected["star_class"] == 5
+                and sun[16] == 0
+            )
+            message = (
+                "product keeps the class-5 disc inside the radial interval while "
+                "authentically suppressing its rays"
+            )
         else:
             raise AssertionError(f"unknown radial-flare gate {gate!r}")
         check(admitted, message)

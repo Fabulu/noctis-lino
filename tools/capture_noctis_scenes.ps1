@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
+        'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass5', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -171,6 +171,12 @@ $scenes = @(
     # gate.
     @{ Name='lunarclass4'; X=3628560; Y=-4254023; Z=-915798; Body=4; Type=1;
        Lon=135; Lat=60; Beta=90; Pitch=-5;
+       PlayerX=1638400; PlayerZ=1638400 },
+    # GALLID III around its brown-red class-5 primary.  The white disc/corona is
+    # visible inside the radial interval, while the source authentically
+    # suppresses class-5 radial rays.
+    @{ Name='lunarclass5'; X=3052848; Y=-5636380; Z=-959161; Body=2; Type=1;
+       Lon=270; Lat=60; Beta=270; Pitch=-30;
        PlayerX=1638400; PlayerZ=1638400 },
     # LUX I around its cyan class-11 primary.  This airless daylight pose is
     # inside the positive gate and keeps the primary centred in clean sky.
