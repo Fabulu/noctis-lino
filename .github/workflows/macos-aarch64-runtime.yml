@@ -476,6 +476,17 @@ jobs:
                   ),
               },
               {
+                  "case": "lunar-class11-sun135",
+                  "scene": "lunarclass11",
+                  "clock": 1345723230,
+                  "log": "build/macos-aarch64-lunar-class11-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=4879984, star_y=-4603699, star_z=-1023471,
+                      body=0, longitude=135, latitude=60, beta=270, pitch=-34,
+                      player_x=1638400, player_z=1638400, fast=True,
+                  ),
+              },
+              {
                   "case": "dense-sun0",
                   "scene": "densesun",
                   "log": "build/macos-aarch64-dense-sun-oracle.txt",

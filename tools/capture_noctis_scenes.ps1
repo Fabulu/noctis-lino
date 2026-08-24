@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'lunarsun', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
+        'lunar', 'lunarsun', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -163,6 +163,11 @@ $scenes = @(
     @{ Name='lunarsun'; FileName='planet-lunar-sun.png';
        X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
        Beta=90; Pitch=-44; PlayerX=1638400; PlayerY=-19032; PlayerZ=1638400 },
+    # LUX I around its cyan class-11 primary.  This airless daylight pose is
+    # inside the positive gate and keeps the primary centred in clean sky.
+    @{ Name='lunarclass11'; X=4879984; Y=-4603699; Z=-1023471; Body=0; Type=1;
+       Lon=135; Lat=60; Beta=270; Pitch=-34;
+       PlayerX=1638400; PlayerZ=1638400 },
     @{ Name='dense';     X=1463568; Y=-4728350; Z=-437812; Body=0; Type=2; Lon=0; Lat=60; Beta=180; Pitch=-12 },
     # Same-clock stock NIV+ checkpoint.  The dense atmosphere keeps the source
     # disc and broad corona but suppresses radial rays below the 10*ray gate.
