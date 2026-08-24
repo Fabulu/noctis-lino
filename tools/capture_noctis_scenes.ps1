@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'lunarsun', 'dense', 'densesun', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
+        'lunar', 'lunarsun', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -169,6 +169,10 @@ $scenes = @(
     @{ Name='densesun'; FileName='planet-dense-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=0; Type=2; Lon=0; Lat=60;
        Beta=90; Pitch=-44; PlayerX=1638400; PlayerY=0; PlayerZ=1638400 },
+    # Class-8 dense primary whose distance lies inside the radial-flare gate.
+    @{ Name='denseclass8'; X=-1996240944; Y=72703; Z=944799; Body=1; Type=2;
+       Lon=0; Lat=60; Beta=90; Pitch=-30;
+       PlayerX=1638400; PlayerZ=1638400 },
     # Naturally generated plains mammal, birds, vegetation and the local sun.
     @{ Name='habitable'; FileName='planet-habitable-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;

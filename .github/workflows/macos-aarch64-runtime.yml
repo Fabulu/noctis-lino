@@ -486,6 +486,17 @@ jobs:
                   ),
               },
               {
+                  "case": "dense-class8-sun0",
+                  "scene": "denseclass8",
+                  "clock": 1345636830,
+                  "log": "build/macos-aarch64-dense-class8-sun-oracle.txt",
+                  "checkpoint": dict(
+                      star_x=-1996240944, star_y=72703, star_z=944799,
+                      body=1, longitude=0, latitude=60, beta=90, pitch=-30,
+                      player_x=1638400, player_z=1638400, fast=True,
+                  ),
+              },
+              {
                   "case": "rocky-sun90",
                   "scene": "rockysun",
                   "log": "build/macos-aarch64-rocky-sun-oracle.txt",

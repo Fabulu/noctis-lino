@@ -243,6 +243,8 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("tools/make_noctis_checkpoint.py", workflow)
         self.assertIn("spec.get('clock', 1344638527)", workflow)
         self.assertIn('"case": "lunar-class1-sun50"', workflow)
+        self.assertIn('"case": "dense-class8-sun0"', workflow)
+        self.assertIn('"scene": "denseclass8"', workflow)
         self.assertIn('"clock": 1345636830', workflow)
         self.assertIn('"clock": 1345761727', workflow)
         self.assertIn('gallery / f"{spec[\'scene\']}-{name}"', workflow)
