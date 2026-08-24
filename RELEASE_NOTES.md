@@ -93,6 +93,19 @@ not claimed as the cause. Whole-page, active-palette, and later frozen-state
 equality remain ungraded, and the result still does not justify companion flare
 tuning.
 
+An exact-clock airless frozen-world pair now closes a one-degree sunrise boundary.
+At raw native/product clock `1344638527`, body 9 has period 866, historical raw
+rotation `-4` (normalized 356), viewpoint 45, `plwp=40`, and terminators 75 and
+205. Native RAM classifies longitude 74 as dry day with `crepzone=1` and binary32
+exposure `0.7825999856`, then longitude 75 as night with zero exposure exactly at
+the inclusive terminator. The matched product reports the same state. In the
+12-index horizon-source crop, native and product are byte-identical: longitude 74
+retains the same ten source-core pixels and longitude 75 retains none. Both
+engines also keep their complete source palette band unchanged across the pair.
+Whole pages and cross-engine active palettes remain ungraded because terrain,
+HUD, and palette-fade histories differ; the later adapted pages are explicitly
+not substituted for either authoritative BMP.
+
 TRIUMVIRATE - CAESAR adds a genuine class-8 `[10,10,1]` hierarchy with both
 type-10 bodies visible together from the Stardrifter interior. A balanced pose
 places their independently projected flare centres at `(255,99)` and `(73,101)`.

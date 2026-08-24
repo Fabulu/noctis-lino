@@ -1,0 +1,199 @@
+{
+  "schema": "noctis-native-oracle-provenance-v1",
+  "scene": "airless type-7 frozen-world longitude 74 day and longitude 75 night terminator boundary",
+  "captured_utc": "2026-08-24",
+  "system": {
+    "coordinates": [2952848, -6448045, -840503],
+    "star_class": 1,
+    "star_ray": 21.878999710083008,
+    "number_of_primary_bodies": 13,
+    "number_of_bodies": 72,
+    "target_body": 9,
+    "target_owner": -1,
+    "target_type": 7,
+    "target_ray": 0.026135999999999996,
+    "atmosphere": false
+  },
+  "landed_camera": {
+    "latitude": 60,
+    "atlas_quotient": [8, 8],
+    "atlas_remainder": [0, 0],
+    "authored_player": [1645000.0, 1.0, 1641000.0],
+    "settled_player": [1645000.0, 0.0, 1641000.0],
+    "pitch": 0.0,
+    "heading": 90.0,
+    "navigation_beta": 0.0
+  },
+  "native_capture": {
+    "runner": "NIV+ 2.3 under DOSBox-X 2025.05.03",
+    "authority": "Each saved indexed BMP and its active six-bit palette are the authoritative capture. Frozen RAM and adapted support files are later-state diagnostics, not same-frame page substitutes.",
+    "current_sha256": "65a21c1a63f1c6b54595edb42d10c7ec13209c7b130c6a61ac6820cf4b70c165",
+    "initial_clock": 1344638526.0,
+    "captured_clock": 1344638527.0,
+    "clock_method": "Both five-second settled snapshots used DOS date 11.08.2026 and time 22:42:00.00. The retained NIV+ continuity blocks independently record the exact raw integer clock 1344638527.0.",
+    "snapshot_wait_seconds": 5,
+    "snapshot_command_sha256": "3865a8ae5842a595df13fbee603d504ce6684e7861bbc3dd239f84f51aa23aa3",
+    "sync": 3,
+    "target_reached": 1,
+    "charge": 120,
+    "power": 30000,
+    "draw_hud": 0,
+    "continuity_block_address": "0x325dc",
+    "day74": {
+      "longitude": 74,
+      "bmp": "frozen_sunrise_day74_8527_native.shot.BMP",
+      "surface": "frozen_sunrise_day74_8527_native.SURFACE.BIN",
+      "bmp_sha256": "8710927009b7c3d8f9c2130e97bd070197c49c346a8a79a3a8570ad52c40cbd7",
+      "surface_sha256": "17d80bf1edafcfc95ebc37d39e2a8c1df8b109b23543a6ca9f16cd8f475ad1f2",
+      "decoded_page_sha256": "7a4e4acf25f3187268a7fbdfbb3fc57583599db1afd5c651ee0d888bb2610df7",
+      "six_bit_palette_sha256": "970c8193f375a479f74da53f373dc1e25a264036b8376c1ea16698c0e36274c9",
+      "support_memory": "tests/gen/recon_w7b/mem/frozen_sunrise_day74_8527_native.mem",
+      "support_memory_sha256": "3e33a166b9e5c343454577e290e8c8c92cd1129aa3524a53b65dd52e27e801ca",
+      "support_adapted": "frozen_sunrise_day74_8527_native.adapted",
+      "support_adapted_sha256": "94a889ae6701a6392d4fd1ecf1a59d242005084b8ef88bd84ab51f449631c377",
+      "bmp_vs_adapted_index_differences": 12844,
+      "bmp_vs_adapted_palette_band_differences": 4255
+    },
+    "night75": {
+      "longitude": 75,
+      "bmp": "frozen_sunrise_night75_8527_native.shot.BMP",
+      "surface": "frozen_sunrise_night75_8527_native.SURFACE.BIN",
+      "bmp_sha256": "2f25d7b8d5cfc76909ebdd0aeea5fd834db0fd83ef067531969f4558861dbc31",
+      "surface_sha256": "917b085650350bf18553060494554431cfe07afb18a12dd0254348e4d1496afc",
+      "decoded_page_sha256": "e212e44eabc6291d7334f8d704d3c9e9521170d820e8653a0fc915e96ce67742",
+      "six_bit_palette_sha256": "0b8946aab73ab92bb7485d513cd8178e8b5a9225e66e943cc9bcc8ba5cd823f7",
+      "support_memory": "tests/gen/recon_w7b/mem/frozen_sunrise_night75_8527_native.mem",
+      "support_memory_sha256": "0d8dfacfad699d04b2a46aab33b599cb364530cd05b6fff1fe9bc398f92d6139",
+      "support_adapted": "frozen_sunrise_night75_8527_native.adapted",
+      "support_adapted_sha256": "050df780ebacc6f7f4714956221e9fd2dff9130f923d106484c15639ccd726c0",
+      "bmp_vs_adapted_index_differences": 12849,
+      "bmp_vs_adapted_palette_band_differences": 4261
+    }
+  },
+  "native_ram_contract": {
+    "continuity": {
+      "address": "0x325dc",
+      "both": {
+        "clock": 1344638527.0,
+        "sync": 3,
+        "target": 9,
+        "target_reached": 1,
+        "settled_player": [1645000.0, 0.0, 1641000.0],
+        "angles": [0.0, 90.0, 0.0]
+      }
+    },
+    "weather": {
+      "planet_grav_address": "0x3292a",
+      "rainy_address": "0x3292e",
+      "both": {"planet_grav": 52.27199935913086, "rainy": 0.0, "albedo": 20}
+    },
+    "rotation_arrays": {
+      "target_index": 9,
+      "rtperiod_address": "0x38179",
+      "rotation_address": "0x38219",
+      "term_start_address": "0x382b9",
+      "term_end_address": "0x38359",
+      "both": {"rtperiod": 866, "raw_rotation": -4, "normalized_rotation": 356, "term_start": 75, "term_end": 205}
+    },
+    "solar_globals": {
+      "crepzone_address": "0x36991",
+      "nightzone_address": "0x36993",
+      "sun_x_factor_address": "0x36995",
+      "scenario_type_address": "0x39164",
+      "primary_distance_address": "0x39165",
+      "primary_ray_address": "0x3916d",
+      "latitude_address": "0x39175",
+      "exposure_address": "0x39179",
+      "sun_xyz_address": "0x3917d",
+      "day74": {
+        "scenario_type": 0,
+        "primary_distance": 34167.40234375,
+        "primary_ray": 21.878999710083008,
+        "latitude": 0.0,
+        "exposure": 0.7825999855995178,
+        "sun_xyz": [-34164.21484375, -466.67620849609375, -0.000020399065761012025],
+        "crepzone": 1,
+        "nightzone": 0,
+        "sun_x_factor": 1
+      },
+      "night75": {
+        "scenario_type": 0,
+        "primary_distance": 34167.40234375,
+        "primary_ray": 21.878999710083008,
+        "latitude": 0.0,
+        "exposure": 0.0,
+        "sun_xyz": [-34167.40234375, -0.0, -0.0],
+        "crepzone": 0,
+        "nightzone": 1,
+        "sun_x_factor": 1
+      }
+    },
+    "terminator_derivation": {
+      "viewpoint": 45,
+      "plwp": 40,
+      "formula": "plwp=(89-viewpoint+rotation)%360; term_start=(plwp+35)%360; term_end=(term_start+130)%360",
+      "day_rule": "For the straight interval [75,205), longitude 74 is day and one degree before sunrise; longitude 75 is night at the inclusive start boundary.",
+      "exposure_rule": "crepzone * binary32(0.7826)"
+    }
+  },
+  "matched_product": {
+    "runner": "tracked official L.in.oleum build on the private inactive WinSta0 desktop",
+    "clock": 1344638527,
+    "day74": {
+      "directory": "build/renderer-frozen-boundary-day74",
+      "diagnostic": {"mode": 1, "landed": 1, "planet_type": 7, "star_class": 1, "atmosphere": 0, "night": 0, "rain": 0.0, "exposure": 0.7825999855995178, "distance": 34167.40234375, "ray": 21.878999710083008, "source_projected": 1, "center": [161, 99], "sample": 71, "secondary": 0, "rtperiod": 866, "rotation": 356, "viewpoint": 45, "plwp": 40, "term_start": 75, "term_end": 205, "crepzone": 1, "sun_x_factor": 1},
+      "hashes": {
+        "frozensun-game-local-out.bin": "746e01efa7e5359a4662f1c5ce183c5431f80a336fff1918b7d13a56b9b51604",
+        "frozensun-game-p-background-out.bin": "68f9df0efa4d17b63d021150e90157829f354b633627e757b935a0f22739bf54",
+        "frozensun-game-p-surfacemap-out.bin": "e7e2dcff542de95352682dc186432e98f0188084896773f1973276b0577d5305",
+        "frozensun-game-page-out.bin": "e1763f06ddcc00e3b2c75431dc5b40c9d3a5eb9c9418f29af6d67d31b6c65d4c",
+        "frozensun-game-palette-out.bin": "17df64bbe8c296bd0612bbcd1f168503ead4ee5b59def7c566b0eb52335e8579",
+        "frozensun-game-render-state-out.bin": "85129fff180c897afc4462822857187249e28a9d59e2a20ff35d0a2cd0868efd",
+        "frozensun-game-s-background-out.bin": "d043a2d604f110e5746b2875778ccc2f90f76c0e8056aa8d5dd0cca27501ed2c",
+        "frozensun-game-sun-out.bin": "f8d341a22c28e1679c22bfb39a66b87785ede0bd9ab4d348646fcf76e126432f",
+        "frozensun-game-vh-out.bin": "bc47c3621a1bf95dfbfcf364bc45252d44b605da79d542320dc7d32f4a18c0a4"
+      }
+    },
+    "night75": {
+      "directory": "build/renderer-frozen-boundary-night75",
+      "diagnostic": {"mode": 1, "landed": 1, "planet_type": 7, "star_class": 1, "atmosphere": 0, "night": 1, "rain": 0.0, "exposure": 0.0, "distance": 34167.40234375, "ray": 0.0, "source_projected": 0, "center": [0, 0], "sample": 0, "secondary": 0, "rtperiod": 866, "rotation": 356, "viewpoint": 45, "plwp": 40, "term_start": 75, "term_end": 205, "crepzone": 0, "sun_x_factor": 1},
+      "hashes": {
+        "frozensun-game-local-out.bin": "2a9edbacb343791ac62ba70d9ffe28faf4e306a44c8ba0c8d3f2f3f76faca5ae",
+        "frozensun-game-p-background-out.bin": "a016b76152fa28045bbc3963c0ab7b6d0c889b97e06d12e32442a699577169c6",
+        "frozensun-game-p-surfacemap-out.bin": "e7e2dcff542de95352682dc186432e98f0188084896773f1973276b0577d5305",
+        "frozensun-game-page-out.bin": "a09986fead54318ae5943dfe2f3451d5dbca39a75ba22f0e7f607e64e5977acf",
+        "frozensun-game-palette-out.bin": "f2000e40ef6554f39caaf450ced9d338987ae51376898d6cd66e4913de76404a",
+        "frozensun-game-render-state-out.bin": "85129fff180c897afc4462822857187249e28a9d59e2a20ff35d0a2cd0868efd",
+        "frozensun-game-s-background-out.bin": "d043a2d604f110e5746b2875778ccc2f90f76c0e8056aa8d5dd0cca27501ed2c",
+        "frozensun-game-sun-out.bin": "b83882935a5989e7ecac32c25223c5092c1b04730eaa1b576c6c61b78a71e9a0",
+        "frozensun-game-vh-out.bin": "4afc331f209858d7523f035e22178221a0222d417b32b907d219967a50558e5c"
+      }
+    }
+  },
+  "indexed_raster_contract": {
+    "source_core_crop": [154, 92, 160, 94],
+    "day74_indices": [64, 66, 70, 70, 66, 64, 67, 78, 90, 90, 78, 67],
+    "night75_indices": [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64],
+    "day74_non_background_pixels": 10,
+    "night75_non_background_pixels": 0,
+    "native_product_day74_crop_exact": true,
+    "native_product_night75_crop_exact": true,
+    "palette_contract": "Within each engine, the complete 64..127 source palette band is identical between longitude 74 and longitude 75. Cross-engine palette equality is not claimed because the native BMP captured an earlier palette-fade state."
+  },
+  "explicit_non_claims": {
+    "whole_page_equal": false,
+    "whole_palette_equal": false,
+    "same_state_bmp_and_adapted": false,
+    "day74_native_product_index_differences": 27626,
+    "day74_native_product_palette_band_differences": 640,
+    "day74_native_product_palette_component_differences": 730,
+    "night75_native_product_index_differences": 28155,
+    "night75_native_product_palette_band_differences": 631,
+    "night75_native_product_palette_component_differences": 652,
+    "native_day_night_index_differences": 27618,
+    "native_day_night_palette_band_differences": 16,
+    "product_day_night_index_differences": 26707,
+    "product_day_night_palette_band_differences": 37,
+    "note": "The paired oracle grades exact clock and landed-state continuity, native RAM day/night/weather/terminator globals, and the exact 12-index source-core visibility transition. Terrain random state, HUD text, palette-fade phase, whole pages, whole palettes, and later adapted pages remain outside the equality claim."
+  }
+}

@@ -320,8 +320,9 @@ near-vertical ray across the ground: the captured thin input is ray
 oracle exactly. That bright ray is therefore authentic flare geometry for
 those inputs, not the unrelated black horizon-pillar defect. Parallel
 screenshot processes can interfere and produced two all-black captures, so
-this matrix must be captured sequentially. Still open: representative views
-for every planet and atmosphere class, weather and day/night boundaries,
+this matrix must be captured sequentially. The exact frozen-world sunrise pair
+below closes one precise day/night transition. Still open: representative views
+for every planet and atmosphere class, further weather and sunset boundaries,
 further companion and multiple-sun arrangements, additional orbital views, and
 moving transitions among Stardrifter interior/cupola/exterior plus launch/landing
 transitions.
@@ -346,6 +347,32 @@ The production habitable-world sweep also exercised the source weather gates:
 full flare at rain 0.5 and 0.625, sun without primary flare at rain 1.67 and
 2.0, and storm rendering without a flare at rain 2.5 through 5.0. The clear
 case's complete flare page now matches the native oracle byte for byte.
+
+**Exact frozen-world sunrise checkpoint.** A retained pair lands at latitude 60,
+heading 90 on airless type-7 body 9 of the class-1 system
+`(2952848,-6448045,-840503)`. Both five-second NIV+ snapshots retain raw clock
+`1344638527.0`, target 9, sync 3, settled player `(1645000,0,1641000)`, dry
+weather, solar distance `34167.40234375`, and primary ray
+`21.878999710083008`. The native planetary arrays retain period 866, raw
+historical rotation `-4` (normalized 356), term start 75, and term end 205.
+Those values reconstruct viewpoint 45 and `plwp=40` without borrowing product
+state.
+
+At longitude 74, one degree before the inclusive start boundary, native RAM
+retains `crepzone=1`, `nightzone=0`, and exact binary32 exposure
+`0.7825999855995178`; at longitude 75 it retains `crepzone=0`, `nightzone=1`,
+and zero exposure. Product diagnostics match all of those values and project the
+day source at `(161,99)` while suppressing it at night. More importantly, the
+same `(154,92)..(159,93)` indexed crop is exact between native and product: its
+day page contains ten non-background source-core pixels and its night page
+contains zero. Each engine independently keeps its full index-64-through-127
+source palette band unchanged between the two longitudes. The native BMPs are
+the page/palette authorities; their later adapted pages differ by 12,844/12,849
+indices. Native/product whole pages differ by 27,626/28,155 indices and active
+palettes by 730/652 components because terrain, HUD, and palette-fade histories
+are not atomic, so those remain explicit non-claims. This closes sunrise and the
+exact day/night admission boundary for one representative airless world; sunset
+and representative atmospheric/weather transitions remain open.
 
 The Stardrifter local-system pass now restores the companion-star corona's
 source expression too: each type-10 body reseeds the fast generator with its
