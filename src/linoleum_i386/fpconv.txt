@@ -1,0 +1,102 @@
+      ( *** fpconv - staged native i386 x87 conversions ***
+
+        This target-specific library is copied over work/fp/fpconv.txt only in
+        an isolated win32/i386m build stage.  It preserves the portable public
+        ABI while using the original x87 conversion boundaries.  Pure machine
+        fragments touch only the x87 stack and fpabi workspace. )
+
+"variables"
+
+        FCWCSAV = 0;
+        FCWCHOP = 0;
+
+"programme"
+
+"FToIntChop"
+        ---->;
+        => FToIntChop body;
+        <----;
+        end;
+    "FToIntChop body"
+        [FCWCSAV] = 0;
+        {
+            9B                                  (fwait)
+            D9 BF <dFCWCSAV mtp bytesperunit>   (fnstcw [edi+FCWCSAV*4])
+        }
+        A = [FCWCSAV]; A & 0F3FFh; A | 0C00h; [FCWCHOP] = A;
+        {
+            D9 AF <dFCWCHOP mtp bytesperunit>   (fldcw [edi+FCWCHOP*4])
+            DD 87 <dFA0 mtp bytesperunit>        (fld   qword [edi+FA0*4])
+            DB 9F <dFI mtp bytesperunit>         (fistp dword [edi+FI*4])
+            D9 AF <dFCWCSAV mtp bytesperunit>    (fldcw [edi+FCWCSAV*4])
+        }
+        end;
+
+"FToIntNear"
+        {
+            DD 87 <dFA0 mtp bytesperunit>        (fld   qword [edi+FA0*4])
+            DB 9F <dFI mtp bytesperunit>         (fistp dword [edi+FI*4])
+        }
+        end;
+
+"FToInt16Chop"
+        ---->;
+        => FToInt16Chop body;
+        <----;
+        end;
+    "FToInt16Chop body"
+        => FToIntChop;
+        => FNarrow16 body;
+        end;
+
+"FToInt16Near"
+        ---->;
+        => FToInt16Near body;
+        <----;
+        end;
+    "FToInt16Near body"
+        => FToIntNear;
+        => FNarrow16 body;
+        end;
+
+"FNarrow16"
+        ---->;
+        => FNarrow16 body;
+        <----;
+        end;
+    "FNarrow16 body"
+        A = [FI]; A & 0FFFFh; [FI] = A;
+      ? [FI] '< 8000h -> FN16 done;
+        A = [FI]; A - 65536; [FI] = A;
+    "FN16 done"
+        end;
+
+"IntToF"
+        {
+            DB 87 <dFI mtp bytesperunit>         (fild dword [edi+FI*4])
+            DD 9F <dFA0 mtp bytesperunit>        (fstp qword [edi+FA0*4])
+        }
+        end;
+
+"F32Narrow"
+        {
+            DD 87 <dFA0 mtp bytesperunit>        (fld  qword [edi+FA0*4])
+            D9 9F <dFS0 mtp bytesperunit>        (fstp dword [edi+FS0*4])
+            D9 87 <dFS0 mtp bytesperunit>        (fld  dword [edi+FS0*4])
+            DD 9F <dFA0 mtp bytesperunit>        (fstp qword [edi+FA0*4])
+        }
+        end;
+
+"FStoreF32"
+        {
+            DD 87 <dFA0 mtp bytesperunit>        (fld  qword [edi+FA0*4])
+            D9 9F <dFS0 mtp bytesperunit>        (fstp dword [edi+FS0*4])
+        }
+        end;
+
+"FLoadF32"
+        {
+            D9 87 <dFS0 mtp bytesperunit>        (fld  dword [edi+FS0*4])
+            DD 9F <dFA0 mtp bytesperunit>        (fstp qword [edi+FA0*4])
+        }
+        end;

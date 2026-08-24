@@ -6,24 +6,38 @@ set -eu
 
 repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 output=${1:-"$repo/build/vhgame.exe"}
-source="$repo/work/vhgame.txt"
-compiled="$repo/work/vhgame.lxe"
-log="$repo/work/errorlog.txt"
+stage=$(mktemp -d "/tmp/linoleum-windows-i386-source.XXXXXX")
+source="$stage/work/vhgame.txt"
+compiled="$stage/work/vhgame.lxe"
+log="$stage/work/errorlog.txt"
 compiler_log="$repo/build/vhgame-compiler.log"
 compiler="$repo/build/linux-compiler114m.bin"
+compiler_pid=
+stop_compiler() {
+    if [ -n "$compiler_pid" ]; then
+        kill "$compiler_pid" 2>/dev/null || true
+        wait "$compiler_pid" 2>/dev/null || true
+        compiler_pid=
+    fi
+}
+cleanup() {
+    stop_compiler
+    rm -rf "$stage"
+}
+trap cleanup EXIT INT TERM
 
+python3 "$repo/tools/stage_windows_i386_source.py" --output "$stage" >/dev/null
+# Keep CPU/system packs on the build host's native filesystem too. Historical
+# Linux compiler file I/O is not reliable through WSL's mounted Windows drive.
+mkdir -p "$stage/main"
+cp -R "$repo/main/." "$stage/main"
 "$repo/build/build_compiler114m_linux.sh" "$compiler"
 rm -f "$compiled" "$log" "$compiler_log"
 
 xvfb-run -a setarch "$(uname -m)" -X "$compiler" \
-    "--sys:win32--cpu:i386m--ext:.lxe--env:$repo/main--src:$source" \
+    "--sys:win32--cpu:i386m--ext:.lxe--env:$stage/main--src:$source" \
     >"$compiler_log" 2>&1 &
 compiler_pid=$!
-cleanup() {
-    kill "$compiler_pid" 2>/dev/null || true
-    wait "$compiler_pid" 2>/dev/null || true
-}
-trap cleanup EXIT INT TERM
 
 stable=0
 previous=-1
@@ -64,14 +78,13 @@ if [ "$stable" -lt 5 ] || [ ! -s "$compiled" ]; then
     exit 1
 fi
 
-cleanup
-trap - EXIT INT TERM
+stop_compiler
+python3 "$repo/tools/patch_runtime_fcw.py" "$compiled" >/dev/null
 mkdir -p "$(dirname "$output")"
 cp "$compiled" "$output"
-rm -f "$compiled"
 
 provenance="$repo/build/windows-build.provenance.txt"
-python3 - "$output" "$repo" "$compiler" "$provenance" <<'PY'
+python3 - "$output" "$repo" "$compiler" "$provenance" "$stage" <<'PY'
 from pathlib import Path
 import hashlib
 import os
@@ -83,6 +96,7 @@ path = Path(sys.argv[1])
 repo = Path(sys.argv[2])
 compiler = Path(sys.argv[3])
 provenance = Path(sys.argv[4])
+stage = Path(sys.argv[5])
 data = path.read_bytes()
 if len(data) < 1024 or data[:2] != b"MZ":
     raise SystemExit(f"{path} is not a plausible Windows PE")
@@ -105,9 +119,20 @@ if not commit:
     commit = subprocess.check_output(
         ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
     ).strip()
+source_records = []
+source_keys = set()
+source_manifest = stage / "windows-i386-source.provenance.txt"
+for line in source_manifest.read_text(encoding="ascii").splitlines():
+    key, value = line.split("=", 1)
+    if not key or key in source_keys or not value:
+        raise SystemExit(f"invalid staged-source provenance key: {key!r}")
+    source_keys.add(key)
+    source_records.append((key, value))
 records = [
     ("commit", commit),
-    ("source_sha256", sha256(repo / "work/vhgame.txt")),
+    ("source_manifest_sha256", sha256(source_manifest)),
+    *source_records,
+    ("runtime_patcher_sha256", sha256(repo / "tools/patch_runtime_fcw.py")),
     ("executable_sha256", sha256(path)),
     ("compile_script_sha256", sha256(repo / "build/compile_vhgame_linux.sh")),
     (
@@ -122,8 +147,8 @@ records = [
     ("bootstrap_cpu_pack_sha256", sha256(repo / "main/cpu/i386.bin")),
     ("bootstrap_system_pack_sha256", sha256(repo / "main/sys/linux.bin")),
     ("compiler_sha256", sha256(compiler)),
-    ("cpu_pack_sha256", sha256(repo / "main/cpu/i386m.bin")),
-    ("system_pack_sha256", sha256(repo / "main/sys/win32.bin")),
+    ("cpu_pack_sha256", sha256(stage / "main/cpu/i386m.bin")),
+    ("system_pack_sha256", sha256(stage / "main/sys/win32.bin")),
     ("target", "win32/i386m"),
     (
         "build_provenance",
@@ -136,3 +161,5 @@ provenance.write_text(
 print(f"compiled {path} ({len(data)} bytes, {sections} PE sections)")
 print(f"wrote {provenance}")
 PY
+cleanup
+trap - EXIT INT TERM

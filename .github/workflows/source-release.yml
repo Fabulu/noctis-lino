@@ -41,6 +41,10 @@ jobs:
         shell: pwsh
         run: python tests\test_fp_runtime_boundary.py
 
+      - name: Check isolated Windows i386 source staging
+        shell: pwsh
+        run: python tests\test_windows_i386_stage.py
+
       - name: Check the NIVGEN scorer API
         shell: pwsh
         run: python tests\test_nivgen_score.py
@@ -113,28 +117,32 @@ jobs:
         shell: pwsh
         run: |
           $started = [DateTime]::UtcNow
-          $stale = @(
-            'work\vhgame.exe',
-            'work\vhgame.lxe',
-            'work\errorlog.txt'
-          )
-          foreach ($path in $stale) {
-            Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+          $stage = Join-Path $env:RUNNER_TEMP ("noctis-i386-source-{0}-{1}" -f $env:GITHUB_RUN_ID, $env:GITHUB_RUN_ATTEMPT)
+          if (Test-Path -LiteralPath $stage) {
+            throw "Source staging directory already exists: $stage"
+          }
+          python tools\stage_windows_i386_source.py --output $stage
+          if ($LASTEXITCODE -ne 0) {
+            throw "i386 source staging failed with exit code $LASTEXITCODE"
           }
 
+          Remove-Item -LiteralPath 'work\vhgame.exe' -Force -ErrorAction SilentlyContinue
+          $source = Join-Path $stage 'work\vhgame.txt'
           & .\lino_build.ps1 `
-            -Src "$PWD\work\vhgame.txt" `
+            -Src $source `
+            -Compiler "$PWD\main\lib\gen\compiler114m.exe" `
+            -Cpu i386m `
             -TimeoutSec 240 `
             -StageExtension .lxe
           if ($LASTEXITCODE -ne 0) {
             throw "lino_build.ps1 failed with exit code $LASTEXITCODE"
           }
 
-          $path = 'work\vhgame.exe'
-          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            throw 'Compiler produced no work\vhgame.exe'
+          $compiled = Join-Path $stage 'work\vhgame.exe'
+          if (-not (Test-Path -LiteralPath $compiled -PathType Leaf)) {
+            throw "Compiler produced no $compiled"
           }
-          $file = Get-Item -LiteralPath $path
+          $file = Get-Item -LiteralPath $compiled
           if ($file.Length -lt 1024 -or $file.LastWriteTimeUtc -lt $started.AddSeconds(-2)) {
             throw 'Compiler output is missing, stale, or implausibly small'
           }
@@ -156,7 +164,8 @@ jobs:
           if ($machine -ne 0x014c -or $sections -eq 0) {
             throw ("Expected a sectioned i386 PE, got machine 0x{0:X4} with {1} sections" -f $machine, $sections)
           }
-          Get-FileHash -LiteralPath $path -Algorithm SHA256
+          Copy-Item -LiteralPath $compiled -Destination 'work\vhgame.exe'
+          Get-FileHash -LiteralPath 'work\vhgame.exe' -Algorithm SHA256
 
       - name: Package the freshly compiled executable
         shell: pwsh
@@ -173,14 +182,30 @@ jobs:
             -LiteralPath dist\Noctis-IV-windows-x86.zip.sha256 `
             -Encoding ascii
 
-          $sourceHash = (Get-FileHash -LiteralPath work\vhgame.txt -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sourceStage = Join-Path $env:RUNNER_TEMP ("noctis-i386-source-{0}-{1}" -f $env:GITHUB_RUN_ID, $env:GITHUB_RUN_ATTEMPT)
+          $sourceManifest = Join-Path $sourceStage 'windows-i386-source.provenance.txt'
+          if (-not (Test-Path -LiteralPath $sourceManifest -PathType Leaf)) {
+            throw "Missing staged-source provenance: $sourceManifest"
+          }
+          $sourceRecords = @(Get-Content -LiteralPath $sourceManifest)
+          $sourceManifestHash = (Get-FileHash -LiteralPath $sourceManifest -Algorithm SHA256).Hash.ToLowerInvariant()
           $exeHash = (Get-FileHash -LiteralPath work\vhgame.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $compilerHash = (Get-FileHash -LiteralPath main\lib\gen\compiler114m.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $patcherHash = (Get-FileHash -LiteralPath tools\patch_runtime_fcw.py -Algorithm SHA256).Hash.ToLowerInvariant()
+          $buildWrapperHash = (Get-FileHash -LiteralPath lino_build.ps1 -Algorithm SHA256).Hash.ToLowerInvariant()
+          $cpuHash = (Get-FileHash -LiteralPath main\cpu\i386m.bin -Algorithm SHA256).Hash.ToLowerInvariant()
+          $systemHash = (Get-FileHash -LiteralPath main\sys\win32.bin -Algorithm SHA256).Hash.ToLowerInvariant()
           @(
             "commit=$env:GITHUB_SHA"
-            "source_sha256=$sourceHash"
+            "source_manifest_sha256=$sourceManifestHash"
+            $sourceRecords
+            "runtime_patcher_sha256=$patcherHash"
+            "build_wrapper_sha256=$buildWrapperHash"
             "executable_sha256=$exeHash"
+            "archive_sha256=$zipHash"
             "compiler_sha256=$compilerHash"
+            "cpu_pack_sha256=$cpuHash"
+            "system_pack_sha256=$systemHash"
             "validation_reference_commit=94200172ee2ca859de15f0c7b03dfa1939874681"
             "target=win32/i386m"
           ) | Set-Content -LiteralPath dist\Noctis-IV-windows-x86.source.txt -Encoding ascii
