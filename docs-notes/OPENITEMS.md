@@ -965,8 +965,22 @@ inclusive `(120,60)..(195,115)` flare crop; native/adapted drift in that crop is
 only two through six indices and zero bands. Largest centred low-six-40
 components range from 111 to 163 native pixels and 108 to 162 product pixels,
 while exact class-colour palette prefixes range from 201 to 284 components.
-EOGILIE's spin 3 does not invoke the class-11-only phase gate. Class 11 remains
-a separate phase-aware checkpoint; complete-page, matched-clock HUD,
+EOGILIE's spin 3 does not invoke the class-11-only phase gate. Complete-page,
+matched-clock HUD, surface/body, and product live-distance claims remain
+excluded.
+
+**Orbital class-11 phase-positive primary checkpoint.** POE at
+`(3131408,-4623621,1755683)` closes eligible orbital-primary class coverage with
+ray `0.2590000033`, spin 21, and no generated bodies. Both fresh processes
+initialize phase zero. The retained source distance `13.95000017` is above
+`8*ray`, so neither implementation enters the sole textured-globe path that
+advances phase; zero therefore remains inside the class-11 `phase < 90` flare
+gate. The same distance remains strictly inside both the orbital flare and
+white-corona intervals. Native and warmed private-desktop product captures
+retain 160/157-pixel largest centred bright components, the shared singleton at
+`(140,104)`, the first 203 exact palette components, and every band in the
+inclusive 4,256-pixel flare crop. Phase admission is source-grounded rather than
+retained as a direct diagnostic scalar. Whole-page, matched-clock HUD,
 surface/body, and product live-distance claims remain excluded.
 
 **Orbital class-5 class-suppressed-primary checkpoint.** ASKEW 184 at

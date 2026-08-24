@@ -4,7 +4,7 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'stardrifterclass0', 'stardrifterclass1', 'stardrifterclass2', 'stardrifterclass3', 'stardrifterclass4', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass8', 'stardrifterclass9', 'stardrifterclass10', 'planetclose',
+    [ValidateSet('all', 'stardrifter', 'stardrifterclass0', 'stardrifterclass1', 'stardrifterclass2', 'stardrifterclass3', 'stardrifterclass4', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass8', 'stardrifterclass9', 'stardrifterclass10', 'stardrifterclass11', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
@@ -143,6 +143,11 @@ $scenes = @(
     @{ Name='stardrifterclass10'; Mode=0; X=-1027472; Y=-5805997; Z=-5135362;
        Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=1515.250015258789 },
+    # POE's bodyless class-11 primary starts at source gl_start/VHTphase zero.
+    # Keep it 50 stellar radii away so no globe advances that positive phase.
+    @{ Name='stardrifterclass11'; Mode=0; X=3131408; Y=-4623621; Z=1755683;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=12.950000166893005 },
     # The opening system's type-8 primary after a completed fine approach,
     # held 3.88 planetary radii away on the calibrated forward window axis.
     @{ Name='planetclose'; FileName='planet-close-space.png'; Mode=0;

@@ -103,9 +103,21 @@ all six matched native/product pairs, every palette band in the same inclusive
 4,256-pixel flare crop is exact, two through six native/adapted crop indices
 remain the only local snapshot drift, and independently measured centred bright
 components retain 111–163 native pixels versus 108–162 product pixels. The
-first 201–284 class-specific palette components match exactly. Class 11 remains
-a separate phase-aware checkpoint; whole-page, matched-clock HUD, surface/body,
-and unsupported product live-distance claims remain excluded.
+first 201–284 class-specific palette components match exactly. Whole-page,
+matched-clock HUD, surface/body, and unsupported product live-distance claims
+remain excluded.
+
+POE closes eligible orbital-primary class coverage with the phase-aware class-11
+checkpoint. Both fresh processes initialize phase zero, and the 50-radii source
+distance `13.95000017` is above the `8*ray` textured-globe threshold, so neither
+enters the only path that advances POE's spin-21 phase. Zero remains inside the
+source's `phase < 90` flare gate while the same distance stays strictly inside
+both flare/corona intervals. Native and warmed private-desktop product captures
+retain 160/157-pixel centred largest bright components, the shared singleton at
+`(140,104)`, the first 203 palette components, and every band in the 4,256-pixel
+flare crop. The phase is source-grounded rather than retained as a diagnostic
+scalar; whole-page, matched-clock HUD, surface/body, and product live-distance
+claims remain excluded.
 
 ASKEW 184 adds the second retained negative orbital-primary checkpoint and the
 class-5 branch of the source exclusion. The tracked bodyless system at

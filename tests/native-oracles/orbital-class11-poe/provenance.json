@@ -1,0 +1,251 @@
+{
+  "schema": 1,
+  "case": "poe-class11-phase-positive-primary",
+  "candidate": {
+    "star": [3131408, -4623621, 1755683],
+    "star_label": "POE",
+    "catalogue_identity": -25419.557625693295,
+    "hud_suffix": "S11",
+    "star_class": 11,
+    "star_ray": 0.2590000033378601,
+    "ap_spin": 21,
+    "generated_system": {
+      "nop": 0,
+      "nob": 0,
+      "has_authentic_body": false,
+      "has_landable_surface": false
+    },
+    "mode": "untargeted-exterior-primary"
+  },
+  "authored_pose": {
+    "clock": 1345723200,
+    "sync": 0,
+    "ip_targetted": -1,
+    "camera": {
+      "position": [2813, 0, -1397],
+      "user_alfa": 0,
+      "user_beta": 23,
+      "navigation_beta": 0,
+      "source_exterior_beta": 203
+    },
+    "requested_distance_in_stellar_radii": 50,
+    "requested_star_distance": 12.950000166893005,
+    "retained_star_distance": 12.950000166917533,
+    "source_l_dsd": 13.950000166917533,
+    "star_minus_dzat": [5.059968179091811, 0.0, -11.920538005884737],
+    "dzat": [3131402.940031821, -4623621.0, 1755694.920538006],
+    "current_local_offset": [-5.059968179146384, 0.0, 11.920538005834924]
+  },
+  "orbital_flare_contract": {
+    "lower_threshold_multiplier": 6,
+    "upper_threshold_multiplier": 1000,
+    "lower_threshold": 1.5540000200271606,
+    "upper_threshold": 259.0000033378601,
+    "strictly_inside_distance_interval": true,
+    "source_excluded_classes": [5, 6, 10],
+    "source_class_eligible": true,
+    "white_corona_lower_multiplier": 8,
+    "white_corona_upper_multiplier": 100,
+    "white_corona_lower_threshold": 2.072000026702881,
+    "white_corona_upper_threshold": 25.90000033378601,
+    "strictly_inside_white_corona_interval": true,
+    "textured_globe_expected": false,
+    "radial_spokes_expected": true
+  },
+  "class11_phase_contract": {
+    "source_positive_interval": "phase modulo 360 < 90",
+    "historical_initial_gl_start": 0,
+    "product_initial_phase": 0,
+    "star_spin": 21,
+    "phase_advance_requires_textured_globe": true,
+    "textured_globe_upper_distance_multiplier": 8,
+    "source_l_dsd_above_textured_globe_threshold": true,
+    "fresh_native_process": true,
+    "fresh_product_process": true,
+    "phase_advance_path_entered": false,
+    "phase_at_render": 0,
+    "positive_branch_admitted": true,
+    "direct_phase_scalar_retained": false,
+    "evidence": "Both implementations initialize the class-11 phase to zero. Phase advances only after the textured-globe path is admitted below 8*ray. This fresh 50-radii checkpoint has l_dsd > 8*ray, so no render can advance the phase; the retained centred radial spokes independently authenticate the admitted positive branch."
+  },
+  "retained": {
+    "native.CURRENT.BIN": {
+      "size": 385,
+      "sha256": "86386975eb4dc7813e4541ff87dbf67925b13073c5eeb6e12f4c6da1c534e1e4"
+    },
+    "native-capture.cmd": {
+      "size": 82,
+      "sha256": "3de94c13c72b31f0fc2df95e07fa53176b3a72e11f1d4ff1634805408cb19b93"
+    },
+    "native-continuity.bin": {
+      "size": 245,
+      "sha256": "d3474dcfe7ce0bb78d39fe6e6f02ce3c999eac14789e849c6a9486110c688063"
+    },
+    "native.adapted": {
+      "size": 65540,
+      "sha256": "58f54ade34d1396d0fa6bc76253196a2a53f93658c7f5dbf0761cff437a7b513"
+    },
+    "native.shot.BMP": {
+      "size": 65078,
+      "sha256": "15768fbdb7d1cffd7aa432a4d3a9f8086f15fd09fabf0c044e2a02ec39b33e21"
+    },
+    "product-page.bin": {
+      "size": 64000,
+      "sha256": "1f3df10679ec282d319826731488147eecb415e14181b7ea2fac3729f2a0ace7"
+    },
+    "product-palette.bin": {
+      "size": 3072,
+      "sha256": "5b99378c6c77603fd9dc07b22e3a3db05430a68a3d00e4d8adb802edff434541"
+    },
+    "product-vh.bin": {
+      "size": 156,
+      "sha256": "ad3cc11594159c58c815616af39bca29069ee0aedd31f5046701ce7f4729839c"
+    }
+  },
+  "native": {
+    "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+    "headless": true,
+    "timeout_seconds": 180,
+    "poll_milliseconds": 1,
+    "cycles": "max",
+    "snapshot_after_seconds": 30,
+    "indexed_page_sha256": "9761c86f8a18b2aa9bb88967debd38ea843cfe3040ec55b518a8447f042e7bbb",
+    "six_bit_palette_sha256": "a0fb50e837de43ee2a7b15975b8124036d3aeb25527ea7d45dc31ac399f3a7d4",
+    "full_ram_retained": false,
+    "full_ram_size": 16777216,
+    "full_ram_sha256": "07d88e0ba8a76eb6ee2bf5e1965df060b6f90d74be5fddf07701d5a33478efe3",
+    "continuity_offset_in_full_ram": 206300,
+    "authored_continuity": {
+      "sync": 0,
+      "anti_rad": 1,
+      "charge": 3,
+      "ap_targetted": 1,
+      "ap_reached": 1,
+      "ip_targetted": -1,
+      "ip_reached": 0,
+      "pwr": 20000,
+      "ap_target_class": 11,
+      "nearstar_class": 11,
+      "nearstar_nop": 0,
+      "ap_target_ray": 0.2590000033378601,
+      "nearstar_ray": 0.2590000033378601,
+      "camera_position": [2813.0, 0.0, -1397.0],
+      "user_alfa": 0.0,
+      "user_beta": 23.0,
+      "navigation_beta": 0.0,
+      "dzat": [3131402.940031821, -4623621.0, 1755694.920538006],
+      "ap_target": [3131408.0, -4623621.0, 1755683.0],
+      "nearstar": [3131408.0, -4623621.0, 1755683.0],
+      "fcs_status": "STANDBY",
+      "secs": 1345723200.0
+    },
+    "frozen_continuity": {
+      "sync": 0,
+      "anti_rad": 1,
+      "charge": 3,
+      "ap_targetted": 1,
+      "ap_reached": 1,
+      "ip_targetted": -1,
+      "ip_reached": 0,
+      "pwr": 19999,
+      "ap_target_class": 11,
+      "nearstar_class": 11,
+      "nearstar_nop": 0,
+      "ap_target_ray": 0.2590000033378601,
+      "nearstar_ray": 0.2590000033378601,
+      "camera_position": [2813.0, 0.0, -1397.0],
+      "user_alfa": 0.0,
+      "user_beta": 23.0,
+      "navigation_beta": 0.0,
+      "dzat": [3131402.940031821, -4623621.0, 1755694.920538006],
+      "ap_target": [3131408.0, -4623621.0, 1755683.0],
+      "nearstar": [3131408.0, -4623621.0, 1755683.0],
+      "fcs_status": "STANDBY",
+      "secs": 1345723228.1875
+    }
+  },
+  "product": {
+    "runner": "tools/capture_noctis_scenes.ps1",
+    "private_desktop": true,
+    "scene": "stardrifterclass11",
+    "requested_clock": 1345723200,
+    "utc_diagnostic": 1345705736,
+    "warmup_seconds": 30,
+    "fast_mode": false,
+    "clock_matches_native": false,
+    "clock_independent_contract": true,
+    "camera": {
+      "position": [2813, 0, -1397],
+      "user_alfa": 0,
+      "user_beta": 23,
+      "navigation_beta": 0,
+      "dzat_x": 3131402.940031821
+    },
+    "stellar_state": {
+      "class": 11,
+      "ray": 0.2590000033378601,
+      "nop": 0,
+      "nob": 0,
+      "ap_reached": 1
+    },
+    "live_orbital_distance_retained": false,
+    "capture_only_diagnostic_sha256": {
+      "sun": "e6f3e9e2a1b07f097573b79d8e47086bd9bbbcdd00d59e5c6f0e6d5182386cba",
+      "local": "37e3c471508031e1172377492193e3b2f6bce8570d1324c11cd8553e222e24b2",
+      "s-background": "d1738e0efd15c22dd234de35352cac8e9a5c5eb5d2f46d6aed2ee2236686528a",
+      "p-surfacemap": "ffb6996236de2c89fcd63cd720829677d699c44903b0e2d83651533fcc97f4d6",
+      "p-background": "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906",
+      "render-state": "b39a42b703fbf82e72ca82e4dc5da60ee81b75940ff4e1a557ead6795df8b087"
+    }
+  },
+  "native_product_comparison": {
+    "whole_page_index_mismatches": 30632,
+    "whole_page_index_mismatch_bounds": [10, 2, 313, 196],
+    "whole_page_palette_band_mismatches": 1200,
+    "whole_page_palette_band_mismatch_bounds": [10, 31, 309, 152],
+    "bmp_vs_adapted_index_mismatches": 18421,
+    "bmp_vs_adapted_index_mismatch_bounds": [0, 9, 319, 190],
+    "bmp_vs_adapted_palette_band_mismatches": 11690,
+    "bmp_vs_adapted_palette_band_mismatch_bounds": [5, 10, 311, 185],
+    "palette_exact_prefix_components": 203,
+    "palette_component_mismatches": 247,
+    "palette_mismatch_component_bounds": [203, 767],
+    "flare_crop": [120, 60, 195, 115],
+    "flare_crop_coordinate_convention": "inclusive",
+    "flare_crop_pixels": 4256,
+    "native_product_flare_crop_index_mismatches": 3406,
+    "native_product_flare_crop_palette_band_mismatches": 0,
+    "native_adapted_flare_crop_index_mismatches": 2,
+    "native_adapted_flare_crop_palette_band_mismatches": 0,
+    "flare_crop_band_sha256": "54f421304ba7e5d7a91209dd2f5f42769db4c430e4849ea47b596c5b615a9fda",
+    "native_bright": {
+      "low_six_threshold": 40,
+      "total_pixels": 161,
+      "largest_eight_connected_component_pixels": 160,
+      "largest_component_bounds": [151, 91, 165, 106],
+      "singleton_satellites": [[140, 104]]
+    },
+    "product_bright": {
+      "low_six_threshold": 40,
+      "total_pixels": 158,
+      "largest_eight_connected_component_pixels": 157,
+      "largest_component_bounds": [150, 89, 164, 103],
+      "singleton_satellites": [[140, 104]]
+    }
+  },
+  "clock_note": "The product mode-0 UTC diagnostic was 1345705736; the native input used 1345723200 and froze at 1345723228.1875. Unlike other positive classes, class 11 is phase-gated, but the clock difference cannot change this checkpoint: both fresh processes initialize phase zero, and l_dsd remains above 8*ray so neither implementation enters the only path that advances the globe phase. Matched-clock HUD and whole-page equality remain excluded.",
+  "authority": {
+    "native_snapshot_page_and_palette_retained": true,
+    "native_post_snapshot_continuity_retained": true,
+    "native_snapshot_simulation_state_retained": false,
+    "native_live_orbital_distance_retained": true,
+    "product_live_orbital_distance_retained": false,
+    "surface_or_body_claim": false,
+    "phase_scalar_directly_retained": false,
+    "phase_positive_branch_source_grounded": true,
+    "radial_spoke_presence_structurally_graded": true,
+    "whole_page_same_state_contract": false,
+    "matched_clock_hud_contract": false,
+    "admissible_contract": "Fresh native and product processes initialize POE's class-11 phase to zero. The retained distance is above 8*ray, preventing the sole textured-globe phase-advance path while remaining strictly inside both the 6*ray < l_dsd < 1000*ray flare interval and 8*ray < l_dsd < 100*ray white-corona interval. Source gates plus independently pinned native and product bright components authenticate the phase-positive radial flare. The product view authenticates the camera, Dzat X, class, ray, and zero-body system; both frames match all palette bands in the 4,256-pixel flare crop. Direct phase-scalar, whole-page, surface/body, matched-clock HUD, and product live-distance claims are excluded."
+  }
+}
