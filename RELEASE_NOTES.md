@@ -75,7 +75,9 @@ camera at source distance `220.2`, inside the strict
 `6*ray < distance < 1000*ray` gate. Native and product retain 148/136 bright
 low-six flare-core pixels, match the complete 192-component space-palette band,
 and match every palette band in the 4,256-pixel `(120,60)..(195,115)` crop.
-Whole-page and exact low-six equality remain informational because the native
+The default oracle now retains and hashes the product camera/state, palette,
+and page diagnostics, so those cross-engine claims are exercised without a
+local capture-directory argument. Whole-page and exact low-six equality remain informational because the native
 BMP is not state-atomic with frozen RAM and startup palette easing differs. The
 capture authoring now inverts the source's full exterior
 `user_beta + navigation_beta + 180` rotation, and the native continuity builder

@@ -17,7 +17,8 @@ positive primary-flare result.
 ## Reproduction
 
 The 385-byte continuity file was built with the tracked helper's explicit
-untargeted mode:
+untargeted mode. The helper resolves the checkout root dynamically and uses the
+tracked `noctis-harness/ns_spec.py` planetary model:
 
 ```text
 python tests/gen/recon_w7b/mkcurrent.py \
@@ -48,6 +49,14 @@ suspended after publication and the guest had begun its next frame, producing
 30,095 page differences. Complete-page equality against that later page or a
 separately captured product frame is therefore not claimed.
 
+The retained `product-vh.bin`, `product-palette.bin`, and `product-page.bin`
+make the cross-engine claims part of the default test rather than an optional
+local capture check. They pin the loaded local camera and class/ray state, the
+source-authored strict stellar gate, 136 bright core pixels spanning
+`(148,89)..(164,111)`, all 192 native space-palette components, and all 4,256
+native palette bands in the flare crop. A fresh full diagnostic directory can
+still be supplied to the test as an additional regeneration check.
+
 ## Hashes
 
 ```text
@@ -59,4 +68,13 @@ indexed page
 
 packed <768I six-bit palette
 78dff3c46c7cd75014e9e77a05ca9f07ae60bba3af6d3d09ad19c63f45634ec1
+
+product-vh.bin
+7fa37e28b717a0047279edb3c5fa5a800feece6845b670f6e92367e53be7a984
+
+product-palette.bin
+f84be4408d766b3e84e98b3dcebcf1b21febce1c8c8162d9906fb3b4f1af5a15
+
+product-page.bin
+5ee61664dea0b25dbafcdebb0fb936d12b54aeefd4abed4a64b86860e41b2197
 ```

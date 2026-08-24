@@ -63,6 +63,41 @@
       111
     ]
   },
+  "product": {
+    "diagnostics": {
+      "product-vh.bin": "7fa37e28b717a0047279edb3c5fa5a800feece6845b670f6e92367e53be7a984",
+      "product-palette.bin": "f84be4408d766b3e84e98b3dcebcf1b21febce1c8c8162d9906fb3b4f1af5a15",
+      "product-page.bin": "5ee61664dea0b25dbafcdebb0fb936d12b54aeefd4abed4a64b86860e41b2197"
+    },
+    "camera": {
+      "position": [
+        2813,
+        0,
+        -1397
+      ],
+      "user_alfa": 0,
+      "user_beta": 23,
+      "navigation_beta": 0
+    },
+    "dzat_x": -1187941.6482633648,
+    "stellar_state": {
+      "class": 7,
+      "ray": 2.191999912261963,
+      "nop": 1,
+      "nob": 1
+    },
+    "flare_contract": {
+      "low_six_at_least_40": 136,
+      "low_six_at_least_40_bounds": [
+        148,
+        89,
+        164,
+        111
+      ],
+      "space_palette_components_exact": 192,
+      "crop_palette_bands_exact": 4256
+    }
+  },
   "capture": {
     "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
     "timeout_seconds": 180,

@@ -1,1 +1,2 @@
 work/igui.txt whitespace=cr-at-eol
+tests/native-oracles/orbital-class7-wire/*.bin binary

@@ -1,13 +1,11 @@
-r"""Build a ..\DATA\Current.BIN that parks the stardrifter in orbit around a
-chosen planet of a chosen star, so that NOCTIS.EXE calls surface() on the
-first frames without any navigation at all.
+r"""Build a ..\DATA\Current.BIN that parks the Stardrifter at a chosen
+planet or an untargeted primary-star pose without interactive navigation.
 
 The layout is not guessed.  NOCTIS-0.CPP:735-800 declares the continuity
 block starting at `sync` with the byte offset of every field written in the
 source as a trailing comment, and NOCTIS.CPP:452-466 (freeze) writes exactly
 `old_currentbin_length` = 245 bytes from &sync followed by the GOES fields.
-Offsets below are copied from those comments and cross-checked by reading the
-stock 378-byte Current.BIN back (mkcurrent.py --verify).
+Offsets below are copied from those comments.
 
 Why no navigation is needed
 ---------------------------
@@ -21,8 +19,11 @@ planet:
 so the ship converges to ~2 planet radii regardless of where it starts.
 NOCTIS-0.CPP:5339-5345 then sets surfacemap = 1 because d3 < 25*ray, and
 NOCTIS-0.CPP:5376-5418 calls surface() for the two "resident" bodies.
+Untargeted `--target -1` poses instead preserve the explicitly supplied local
+star vector.
 """
 
+from pathlib import Path
 import struct
 import sys
 
@@ -64,20 +65,22 @@ CLASS_RAY = [5000, 15000, 300, 20000, 15000, 1000, 3000,
 CLASS_RAYVAR = [2000, 10000, 200, 15000, 5000, 1000, 3000,
                 500, 5000, 10000, 1000, 10]
 
-sys.path.insert(0, r"C:\programmieren\linoleum\tests\gen\recon_c")
-sys.path.insert(0, r"C:\programmieren\linoleum\noctis-harness")
+ROOT = Path(__file__).resolve().parents[3]
+HARNESS = ROOT / "noctis-harness"
+if str(HARNESS) not in sys.path:
+    sys.path.insert(0, str(HARNESS))
 
 
 def star_infos(x, y, z):
-    """extract_ap_target_infos, NOCTIS-0.CPP:3968.  Uses the Wave-1 LCG."""
-    import pn_model as pm
-    g = pm.Gen()
-    s = pm.extract_ap_target_infos(g, x, y, z)
-    r, gg, b = CLASS_RGB[s.cls]
-    ns = pm.prepare_nearstar(g, s, x, y, z)
-    return dict(cls=s.cls, ray=s.ray, spin=s.spin, r=r, g=gg, b=b,
-                nop=ns["nop"], nob=ns["nob"], owner=ns["owner"],
-                ptype=ns["ptype"])
+    """extract_ap_target_infos + prepare_nearstar via the tracked model."""
+    import ns_spec
+    system = ns_spec.System(x, y, z)
+    r, gg, b = CLASS_RGB[system.cls]
+    return dict(
+        cls=system.cls, ray=system.ray, spin=system.ap_spin,
+        r=r, g=gg, b=b, nop=system.nop, nob=system.nob,
+        owner=system.p_owner, ptype=system.p_type,
+    )
 
 
 def build(x, y, z, target, sync=3, secs=1344094201.0, dist=6.0,
@@ -227,12 +230,12 @@ if __name__ == "__main__":
         charge=a.charge, power=a.power, lens_mode=a.lens_mode,
         pos=(a.pos_x, a.pos_y, a.pos_z),
         angles=(a.pitch, a.view_angle, a.navigation_angle), local=local)
+    if a.target >= st["nob"]:
+        ap.error("--target is outside the generated planetary system")
     open(a.out, "wb").write(data)
     print("star class=%d ray=%.6f nop=%d nob=%d" %
           (st["cls"], st["ray"], st["nop"], st["nob"]))
     if a.target >= 0:
-        if a.target >= st["nop"]:
-            ap.error("--target is outside the generated planetary system")
         print("target body %d  owner=%d  type=%d" %
               (a.target, st["owner"][a.target], st["ptype"][a.target]))
     else:

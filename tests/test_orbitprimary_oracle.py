@@ -16,6 +16,9 @@ ORACLE_ROOT = ROOT / "tests" / "native-oracles" / "orbital-class7-wire"
 ORACLE = ORACLE_ROOT / "native.shot.BMP"
 PROVENANCE = ORACLE_ROOT / "provenance.json"
 README = ORACLE_ROOT / "README.md"
+PRODUCT_VH = ORACLE_ROOT / "product-vh.bin"
+PRODUCT_PALETTE = ORACLE_ROOT / "product-palette.bin"
+PRODUCT_PAGE = ORACLE_ROOT / "product-page.bin"
 STAR_SOURCE = ROOT / "work" / "vhstar.txt"
 GAME = ROOT / "work" / "vhgame.txt"
 CAPTURE = ROOT / "tools" / "capture_noctis_scenes.ps1"
@@ -28,7 +31,10 @@ ORIGINAL = REFERENCE_ROOT / "NOCTIS.CPP"
 BMP_SHA256 = "254daba81c49072da33ec65f2aa9ac639fdf74f887114c22cdba71ce2c1feae1"
 PAGE_SHA256 = "23c2c66529021bf43952b9e0f526f50fb710c4698cdcfc0032631c291e9e5995"
 PALETTE_SHA256 = "78dff3c46c7cd75014e9e77a05ca9f07ae60bba3af6d3d09ad19c63f45634ec1"
-PROVENANCE_SHA256 = "0727043d2ceb6f14a2709a7445a9ccdaf0e07f5cf125cffd71e9e72651bc7a8f"
+PROVENANCE_SHA256 = "047307c02d1c9edada98d41b7b0e49bf56b8fb18b5ad9a36e98eea614a27fb27"
+PRODUCT_VH_SHA256 = "7fa37e28b717a0047279edb3c5fa5a800feece6845b670f6e92367e53be7a984"
+PRODUCT_PALETTE_SHA256 = "f84be4408d766b3e84e98b3dcebcf1b21febce1c8c8162d9906fb3b4f1af5a15"
+PRODUCT_PAGE_SHA256 = "5ee61664dea0b25dbafcdebb0fb936d12b54aeefd4abed4a64b86860e41b2197"
 DIAGNOSTIC_SIZES = (
     ("game-vh-out.bin", 156),
     ("game-sun-out.bin", 128),
@@ -108,6 +114,9 @@ def main() -> int:
         provenance_bytes = PROVENANCE.read_bytes()
         provenance = json.loads(provenance_bytes)
         readme = README.read_text(encoding="utf-8")
+        retained_product_vh = PRODUCT_VH.read_bytes()
+        retained_product_palette = PRODUCT_PALETTE.read_bytes()
+        retained_product_page = PRODUCT_PAGE.read_bytes()
     except (OSError, ValueError, AssertionError, json.JSONDecodeError) as error:
         check(False, f"retained WIRE oracle decodes: {error}")
         return 1
@@ -119,6 +128,21 @@ def main() -> int:
         and sha256(packed_palette) == PALETTE_SHA256
         and sha256(provenance_bytes) == PROVENANCE_SHA256,
         "retained WIRE BMP, page, palette, and provenance hashes are exact",
+    )
+    product_provenance = provenance.get("product", {})
+    check(
+        len(retained_product_vh) == 156
+        and len(retained_product_palette) == 3072
+        and len(retained_product_page) == 64000
+        and sha256(retained_product_vh) == PRODUCT_VH_SHA256
+        and sha256(retained_product_palette) == PRODUCT_PALETTE_SHA256
+        and sha256(retained_product_page) == PRODUCT_PAGE_SHA256
+        and product_provenance.get("diagnostics") == {
+            "product-vh.bin": PRODUCT_VH_SHA256,
+            "product-palette.bin": PRODUCT_PALETTE_SHA256,
+            "product-page.bin": PRODUCT_PAGE_SHA256,
+        },
+        "retained WIRE product diagnostics and provenance hashes are exact",
     )
     check(
         provenance.get("star") == [-1187856, -195673, 1064757]
@@ -214,6 +238,78 @@ def main() -> int:
     else:
         print("INFO NIV+ source tree unavailable; retained source capture remains graded")
 
+    def grade_product(
+            view: bytes, product_page: bytes, palette_bytes: bytes,
+            label: str,
+    ) -> None:
+        view_units = struct.unpack("<39i", view)
+        product_ray = struct.unpack_from("<f", view, 13 * 4)[0]
+        ship_x = struct.unpack_from("<d", view, 8 * 4)[0]
+        authored_distance = 219.2
+        exterior_beta = math.radians(23 + 0 + 180)
+        expected_dzat = (
+            -1187856 - (-math.sin(exterior_beta) * authored_distance),
+            -195673.0,
+            1064757 - (math.cos(exterior_beta) * authored_distance),
+        )
+        check(
+            view_units[:5] == (2813, 0, -1397, 0, 23)
+            and math.isclose(ship_x, expected_dzat[0], rel_tol=0, abs_tol=1e-9)
+            and expected_dzat == (
+                -1187941.6482633648, -195673.0, 1064958.7746638767,
+            )
+            and product_provenance.get("camera") == {
+                "position": [2813, 0, -1397],
+                "user_alfa": 0,
+                "user_beta": 23,
+                "navigation_beta": 0,
+            }
+            and product_provenance.get("dzat_x") == expected_dzat[0]
+            and view_units[10:13] == (30000, 0, 7)
+            and product_ray == ray
+            and view_units[14:17] == (1, 1, 1)
+            and product_provenance.get("stellar_state") == {
+                "class": 7, "ray": ray, "nop": 1, "nob": 1,
+            }
+            and 6 * product_ray < authored_distance + 1 < 1000 * product_ray,
+            f"{label} retains the authored WIRE camera and strict stellar gate",
+        )
+        product_palette = struct.unpack("<768I", palette_bytes)
+        offsets = crop_offsets(CORE_CROP)
+        product_count, product_bounds = bright_low_six_contract(
+            product_page, CORE_CROP, 40)
+        check(
+            product_palette[:192] == palette[:192],
+            f"{label} exactly reproduces the native space-palette band",
+        )
+        check(
+            all((product_page[offset] & 0xC0) ==
+                (page[offset] & 0xC0) for offset in offsets),
+            f"{label} exactly reproduces all 4,256 native flare-crop bands",
+        )
+        check(
+            product_count == 136
+            and product_bounds == (148, 89, 164, 111)
+            and product_provenance.get("flare_contract") == {
+                "low_six_at_least_40": 136,
+                "low_six_at_least_40_bounds": [148, 89, 164, 111],
+                "space_palette_components_exact": 192,
+                "crop_palette_bands_exact": 4256,
+            },
+            f"{label} retains the centred class-7 radial-flare core",
+        )
+        complete_differences = sum(
+            native != product for native, product in zip(page, product_page))
+        print(
+            f"INFO {label} complete-page equality is not graded "
+            f"({complete_differences} index mismatches)"
+        )
+
+    grade_product(
+        retained_product_vh, retained_product_page,
+        retained_product_palette, "retained product",
+    )
+
     if args.product_directory is not None:
         prefix = "stardrifterclass7-"
         required = tuple(
@@ -225,47 +321,14 @@ def main() -> int:
                   f"product emitted {path.name} at exactly {size} bytes")
         if all(path.is_file() and path.stat().st_size == size
                for path, size in required):
-            view = (args.product_directory /
-                    f"{prefix}game-vh-out.bin").read_bytes()
-            view_units = struct.unpack("<39i", view)
-            product_ray = struct.unpack_from("<f", view, 13 * 4)[0]
-            ship_x = struct.unpack_from("<d", view, 8 * 4)[0]
-            check(
-                view_units[:5] == (2813, 0, -1397, 0, 23)
-                and math.isclose(ship_x, -1187941.6482633648,
-                                 rel_tol=0, abs_tol=1e-9)
-                and view_units[10:13] == (30000, 0, 7)
-                and product_ray == ray
-                and view_units[14:17] == (1, 1, 1),
-                "product retains the matched WIRE camera and stellar state",
-            )
-            product_page = (args.product_directory /
-                            f"{prefix}game-page-out.bin").read_bytes()
-            product_palette = struct.unpack(
-                "<768I", (args.product_directory /
-                          f"{prefix}game-palette-out.bin").read_bytes())
-            offsets = crop_offsets(CORE_CROP)
-            product_count, product_bounds = bright_low_six_contract(
-                product_page, CORE_CROP, 40)
-            check(
-                product_palette[:192] == palette[:192],
-                "product exactly reproduces the native space-palette band",
-            )
-            check(
-                all((product_page[offset] & 0xC0) ==
-                    (page[offset] & 0xC0) for offset in offsets),
-                "product exactly reproduces all 4,256 native flare-crop bands",
-            )
-            check(
-                product_count == 136
-                and product_bounds == (148, 89, 164, 111),
-                "product retains the centred class-7 radial-flare core",
-            )
-            complete_differences = sum(
-                native != product for native, product in zip(page, product_page))
-            print(
-                "INFO complete-page equality is not graded "
-                f"({complete_differences} index mismatches)"
+            grade_product(
+                (args.product_directory /
+                 f"{prefix}game-vh-out.bin").read_bytes(),
+                (args.product_directory /
+                 f"{prefix}game-page-out.bin").read_bytes(),
+                (args.product_directory /
+                 f"{prefix}game-palette-out.bin").read_bytes(),
+                "fresh product",
             )
 
     if failures:
