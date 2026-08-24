@@ -55,6 +55,455 @@ the checked native product superseded it.
 The macOS palette repair from PR #22 is included. It converts through
 `FToIntChop` before clamping to `0..63`, avoiding uniform-white planet palettes
 on macOS, and the Rosetta gate rejects any uniform palette before packaging.
+The matched ROTOR IGNE native capture also corrected the Stardrifter exterior
+camera. The source applies `user_beta + navigation_beta + 180`; omitting the
+half-turn had moved a behind-camera companion into the viewport and generated a
+false radial flare. The shipping renderer now retains the source half-turn, and
+the pinned native indexed page, active palette, camera, clock, target-relative
+position, and product diagnostics protect that negative visibility result.
+Complete-page equality remains explicitly ungraded because the captured RAM had
+already begun the following frame. A second native capture rotates only the
+navigation angle and now pins the genuinely front-facing type-10 companion's
+white corona and radial flare. The corrected product projects and renders that
+companion, while its remaining corona brightness, palette, shape, and whole-page
+gaps stay explicit rather than being hidden by the negative control.
+
+A second, independent class-8 arrangement at
+`(-546064,-439032,-1136208)` now places rocky moon 3 and its type-10 parent in
+the same outward Stardrifter frame. The native BMP retains the moon's 2,723-pixel
+terminator component beside a 3,427-pixel companion corona/ray component; the
+matched private-desktop product retains 2,780 and at least 2,000 indexed pixels,
+respectively, and reports separate accepted centres `(89,100)` and `(232,100)`.
+The retained star-relative position matches within one billionth and the orbital
+phase is bracketed within 0.1875 second. This closes one additional companion-
+beside-globe arrangement while corroborating, not tuning, the open positive
+companion-intensity gap; non-atomic whole-page and palette equality remain
+ungraded.
+
+A matched view of that same compact hierarchy now puts the type-10 parent directly
+behind its type-4 moon at exact native/product clock `1345723227`. Product
+diagnostics independently admit the parent at `(164,100)`: distance
+`112.390224` is strictly inside `5 * 8.94 < distance < 1000 * 8.94`. The later
+moon globe removes every index-96-through-127 parent-core pixel in both engines,
+whereas the beside-moon controls retain 756/737-pixel native/product cores. The
+product globe shifted `(-5,+2)` contains all 19,480 native globe pixels plus only
+eight edge pixels. A settled five-second native snapshot removes the transient
+`SYSTEM RESET` overlay without changing the integer phase; `draw_hud=0` alone is
+not claimed as the cause. Whole-page, active-palette, and later frozen-state
+equality remain ungraded, and the result still does not justify companion flare
+tuning.
+
+An exact-clock airless frozen-world pair now closes a one-degree sunrise boundary.
+At raw native/product clock `1344638527`, body 9 has period 866, historical raw
+rotation `-4` (normalized 356), viewpoint 45, `plwp=40`, and terminators 75 and
+205. Native RAM classifies longitude 74 as dry day with `crepzone=1` and binary32
+exposure `0.7825999856`, then longitude 75 as night with zero exposure exactly at
+the inclusive terminator. The matched product reports the same state. In the
+12-index horizon-source crop, native and product are byte-identical: longitude 74
+retains the same ten source-core pixels and longitude 75 retains none. Both
+engines also keep their complete source palette band unchanged across the pair.
+Whole pages and cross-engine active palettes remain ungraded because terrain,
+HUD, and palette-fade histories differ; the later adapted pages are explicitly
+not substituted for either authoritative BMP.
+
+The same exact frozen-world state now closes the opposite, exclusive terminator
+edge. Longitude 204 is still night inside `[75,205)`: native and product retain
+`nightzone=1`, `crepzone=1`, exposure `0.7825999856`, and `sun_x_factor=-1`, but
+the night gate suppresses the otherwise exposed primary. Longitude 205 is day
+exactly at the exclusive end: both retain `nightzone=0`, `crepzone=0`, zero
+exposure, and `sun_x_factor=-1`; the product keeps the positive primary ray but
+correctly projects no behind-camera source. Both engines retain an exact
+source-free 12-index horizon crop, the same complete source palette band across
+the pair, and all 25,800 native palette bands in the upper-sky crop. Whole pages,
+complete palettes, and later adapted pages remain explicitly ungraded.
+
+An atmospheric type-3 pair now closes the local-primary weather gate at exact
+binary32 rain 2.5. Adjacent latitude-56 longitudes 104 and 105 share atmosphere
+byte 21 and raw rain 5, but their independently replayed Borland DESERT divisors
+3 and 2 produce rain `1.6666666269302368` and `2.5`. Both same-command native
+captures and the private-desktop product remain in daylight with period 694,
+rotation 281, `plwp=102`, and terminators 137/267. The below-gate control retains
+a centred radial source through index 127; the inclusive-threshold centre is 121
+copies of background index 86. Native and product are byte-identical over both
+31-by-31 source crops and every one of 45,760 scoped scene indices in each state;
+the control palette is also exact. Complete pages, the threshold palette/RGB
+image, lower terrain, separate flare state, and later adapted pages remain
+explicitly bounded non-claims.
+
+A second atmospheric pair closes that separate local-primary lens-flare gate
+around binary32 `0x3F99999A` (1.2000000477). Latitude 34, adjacent longitudes 50
+and 51 share surface byte 34, cloud byte 15, recovered albedo 32, DESERT state,
+daylight, and primary-painter admission. Only the independently replayed Borland
+DESERT divisor changes: 4 produces rain 0.9375 and a flare at `(162,94)`; 3
+produces rain 1.25 and suppresses it. Exact rain 1.2 is unreachable from the
+retained quarter-unit cloud/divisor lattice, so this is a source-grounded bracket
+rather than a fabricated equality case. Native and private-desktop product match
+all 1,225 indices in each centred 35-by-35 discriminator and the painter family
+of every one of 64,000 pixels. Complete low-six indexed pages, palettes/RGB,
+settled terrain height, product/native clock identity, and later adapted pages
+remain explicit non-claims.
+
+ROTOR IGNE now adds a genuine landed multiple-sun weather checkpoint. Its
+atmospheric type-3 body 8 is owned by generated type-10 companion body 3, so the
+surface pass independently paints that local companion and the class-8 system
+primary. Retained orbital `s_background` and `objectschart` maps plus the complete
+Borland draw order reconstruct latitude-88 longitude 232/231/236 DESERT rain as
+`1.6666666269302368`, exactly `2.0`, and `2.125`. Both sources remain in daylight.
+The first transition crosses only the inclusive secondary-disc gate while
+retaining the secondary flare; the second crosses only the inclusive binary32
+`0x40066666` secondary-flare gate. The below-2.0 source crop reaches index 124
+with four values at least 120, the exact-2.0 crop has no such values but retains
+its radial flare, and the 2.125 corridor is source-free. Native and
+private-desktop product retain zero high-two-bit painter-family differences in
+all three bounded crops. Complete pages, palettes, terrain, exact within-family
+indices, raw-clock equality, product diagnostic sampling time, and later adapted
+pages remain explicit non-claims.
+
+TRIUMVIRATE - CAESAR adds a genuine class-8 `[10,10,1]` hierarchy with both
+type-10 bodies visible together from the Stardrifter interior. A balanced pose
+places their independently projected flare centres at `(255,99)` and `(73,101)`.
+Above indexed threshold 79, native retains separate 328- and 125-pixel corona/ray
+components while the adjacent-phase private-desktop product retains 294 and 111
+pixels. Both sources independently satisfy the strict `5*ray < distance <
+1000*ray` companion gate, the star-relative Stardrifter position agrees exactly,
+and all 64,000 complete-page palette bands match. The 0.235294-second phase
+bracket, non-atomic page, and startup palette easing leave exact low-six indices
+and active-palette equality informational rather than claimed. A paired stable
+roof pose puts the same sources in separate upper-cupola panels. Native and
+product have identical 236/115-pixel threshold-79 masks and identical 48/57-pixel
+threshold-87 cores for the two lights, plus all 64,000 matching palette bands;
+only 416 complete-page low-six indices remain different across the adjacent
+0.055556-second phase bracket. A third pose steps outside the hull at
+`(2813,0,-1397)`: body 1 remains a 58/53-pixel native/product bright component,
+while the eligible class-8 primary at `(232,99)` and selected type-10 body at
+`(255,99)` are independently in-gate but hidden behind the blue right hull.
+Both occluded 3-by-3 projection centres are index-exact, every right-hull palette
+band matches, and the visible source retains the measured one-pixel-right,
+three-pixel-down product-to-native placement with only 9 bright-mask and 7
+core-mask differences. The exterior's 37,737 index, 824 complete-page band, and
+365 active-palette differences remain explicit rather than being promoted to a
+whole-page equality claim.
+
+IDEAL now adds a clean globe-before-primary orbital eclipse and nearby positive
+control. Separating the camera's hull rotation (`user_beta=0`) from its celestial
+rotation (`navigation_beta=97`) aligns the class-0 primary and type-1 globe without
+putting the Stardrifter hull across them. At the eclipse phase, native and product
+both retain 9,267 globe-band pixels and become pointwise identical after the
+product's measured `(+2,+2)` shift; neither page contains the seeded primary-shell
+component. At the control phase, the shifted product globe contains every one of
+9,250 native pixels plus 103 clipped-edge pixels, while the central native/product
+white-shell cores overlap at 2,245 pixels with only 71/8 exclusive pixels after a
+`(+1,+3)` shift. Source distance gates prove the compact white shell is admitted
+but the 60-spoke flare is not, so its eclipse absence authenticates the later
+target-globe overwrite rather than source rejection. The native control's HUD
+suppression is now reproducible through `mkcurrent.py`; whole-page, active-palette,
+and later frozen-state equality remain explicitly unclaimed.
+
+WIRE now supplies the first retained matched positive orbital-primary class
+checkpoint. Its class-7 primary at `(-1187856,-195673,1064757)` has ray
+`2.1919999`; an untargeted exterior Stardrifter keeps the exact native/product
+camera at source distance `220.2`, inside the strict
+`6*ray < distance < 1000*ray` gate. Native and product retain 148/136 bright
+low-six flare-core pixels, match the complete 192-component space-palette band,
+and match every palette band in the 4,256-pixel `(120,60)..(195,115)` crop.
+The default oracle now retains and hashes the product camera/state, palette,
+and page diagnostics, so those cross-engine claims are exercised without a
+local capture-directory argument. Whole-page and exact low-six equality remain informational because the native
+BMP is not state-atomic with frozen RAM and startup palette easing differs. The
+capture authoring now inverts the source's full exterior
+`user_beta + navigation_beta + 180` rotation, and the native continuity builder
+supports an explicit `--target -1` primary-only pose instead of inventing a
+landable surface for WIRE's sole type-9 body.
+
+EMPTY adds a bodyless class-0 positive orbital-primary checkpoint at
+`(2931408,-6222148,1891299)`, ray `6.44500017`. Extracted native continuity
+places source distance `323.250009` strictly inside both the ordinary orbital
+flare interval and the white-corona interval. Unlike the excluded 5/6/10 cases,
+class 0 admits the 60-spoke flare. Native and warmed private-desktop product
+evidence retain 162/153 bright low-six core pixels with centred bounds, match
+the first 201 palette components, and match every palette band in the inclusive
+4,256-pixel flare crop. Complete-page, matched-clock HUD, surface/body, and
+product live-distance claims remain explicitly excluded.
+
+A retained six-case gallery extends that positive orbital-primary contract to
+all remaining ordinary eligible classes: YBARRA class 1, EOGILIE class 2,
+REDIAN class 3, MARRIN class 4, SOLO class 8, and AKYAASLE class 9. Every
+tracked system is bodyless and is held at 50 stellar radii, strictly inside both
+the orbital flare and white-corona intervals without a textured globe. Across
+all six matched native/product pairs, every palette band in the same inclusive
+4,256-pixel flare crop is exact, two through six native/adapted crop indices
+remain the only local snapshot drift, and independently measured centred bright
+components retain 111–163 native pixels versus 108–162 product pixels. The
+first 201–284 class-specific palette components match exactly. Whole-page,
+matched-clock HUD, surface/body, and unsupported product live-distance claims
+remain excluded.
+
+POE closes eligible orbital-primary class coverage with the phase-aware class-11
+checkpoint. Both fresh processes initialize phase zero, and the 50-radii source
+distance `13.95000017` is above the `8*ray` textured-globe threshold, so neither
+enters the only path that advances POE's spin-21 phase. Zero remains inside the
+source's `phase < 90` flare gate while the same distance stays strictly inside
+both flare/corona intervals. Native and warmed private-desktop product captures
+retain 160/157-pixel centred largest bright components, the shared singleton at
+`(140,104)`, the first 203 palette components, and every band in the 4,256-pixel
+flare crop. The phase is source-grounded rather than retained as a diagnostic
+scalar; whole-page, matched-clock HUD, surface/body, and product live-distance
+claims remain excluded.
+
+ASKEW 184 adds the second retained negative orbital-primary checkpoint and the
+class-5 branch of the source exclusion. The tracked bodyless system at
+`(3438192,-1233198,1856484)` has ray `1.49199998`; extracted native continuity
+places source distance `75.5999992` strictly inside both
+`6*ray < distance < 1000*ray` and the white-corona interval. Class 5 alone
+suppresses the radial flare. Native and warmed private-desktop product evidence
+retain one compact corona plus the same five isolated background stars, match
+the first 576 palette components, and match every palette band in the
+snapshot-stable 2,025-index core and the 20,160-index upper strip. Complete-page,
+matched-clock HUD, surface/body, and product live-distance claims remain
+explicitly excluded.
+
+FUEL TWO now adds the retained negative companion to WIRE's positive orbital
+primary. The tracked class-6 system at `(-125712,-174213,-150246)` has ray
+`5.1290002` and no generated bodies, so its checkpoint is an untargeted exterior
+Stardrifter rather than an invented surface. Native continuity places source
+distance `257.45` strictly inside
+`6*ray < distance < 1000*ray`, but class 6 authentically excludes the radial
+flare. Native and product retain one compact corona plus the same four isolated
+background stars, match the first 576 palette components and all palette bands
+in the snapshot-stable 2,025-index core and 20,160-index upper strip, and contain
+no extended radial component. Complete-page equality and product live-distance
+telemetry remain explicitly unclaimed; the latter diagnostic does not exist for
+this orbital path.
+
+OUTER RUN WIND completes the orbital-primary source-exclusion triad with an
+authentic bodyless class-10 system at `(-1027472,-5805997,-5135362)`, ray
+`30.3050003`. Extracted native continuity places source distance `1516.2500153`
+strictly inside both the ordinary orbital flare interval and the white-corona
+interval, but class 10 suppresses radial spokes. Native and warmed
+private-desktop product evidence retain one compact corona plus the same two
+isolated background stars, match the first 576 palette components, and match
+every palette band in the snapshot-stable 2,025-index core and 20,160-index
+upper strip. Complete-page, matched-clock HUD, surface/body, and product
+live-distance claims remain explicitly excluded.
+
+BISTARIAL/SORZ now adds an independently retained class-10 surface-suppression
+checkpoint. NIV+ authenticates the centred white disc/corona without radial
+spokes on its primary-owned type-8 world, while shipping-product telemetry
+places distance `400.133026` strictly inside
+`10 * 30.8439999 < distance < 1000 * 30.8439999` and still reports zero radial
+admission, centre, and sample. The matched evidence has all 768 six-bit palette
+components equal, all 572 indices equal in the half-open sun crop
+`[145,88,171,110]`, and zero palette-band differences across the 29,700-index
+upper-sky crop `[40,10,310,120]`. The gate deliberately combines native visual
+and post-snapshot continuity with product live-distance telemetry: DOSBox-X
+froze after BMP publication, so native live distance and complete-page equality
+remain outside the authority contract.
+
+The retained habitable and thin-atmosphere surface-sun BMP gates now distinguish
+the final indexed contracts their capture provenance can actually support. A
+canonical private-Windows trace places the thin scene's centre at index 126 on
+the completed terrain/flare page; NIV+'s exact two post-render
+`psmooth_64(adapted,160)` passes then change 22,537 indices and mix that centre
+to 125 before the surrounding frame, while the next border pass leaves it
+unchanged. The final low-six-bit centre therefore depends on live neighbouring
+pixels that the timed native BMP did not retain and is no longer misgraded as a
+same-state cross-product value. Exact active palette, every framebuffer palette
+band, camera, flare gate/position and pre-smoothing sky-band admission sample,
+exposure, distance, and ray remain graded. The separate ten-case primitive
+flare oracle remains byte-exact to its native pages.
+
+That product gate now covers seven landable surface types through sixteen
+retained native BMP and surface records: seven lunar type-1 cases, two dense-
+atmosphere type-2 cases, habitable type 3, three rocky type-4 cases, thin-
+atmosphere type 5, frozen type 7 around a class-1 star, and quartz type 8.
+Habitable, thin, quartz, class-1/class-3/class-4/class-9/class-11 lunar,
+class-1/class-2 rocky, and class-8 dense authenticate positive radial flares;
+class-0 lunar/dense authenticate the `distance < 10*ray` lower suppression gate;
+class-0 rocky/frozen authenticate the `distance >= 1000*ray` upper gate; class-5
+lunar remains inside the radial interval while authenticating the source's
+class-specific ray exclusion. The certified quartz state keeps body 7 landed
+with power available at source time `1345761727`; the product matches the exact
+projected centre `(161,101)` and final index 97, all 768 palette
+components, and all 36,000 palette bands in the upper-sky crop, with
+`51.5 <= 3923.7273 < 5150`. The additional rocky state keeps body 1 landed with
+power 31505 at source time `1345723230`; around its class-1 star the product
+matches centre `(161,72)`, final index 126, all 768 palette components, and all
+27,000 upper-sky indices, with
+`10 * 21.879 <= 245.8964 < 1000 * 21.879`. The additional lunar state keeps body
+4 landed with power 19998 at source time `1345636830`; around the same class-1
+star the product admits centre `(161,91)`, matches all 768 palette components
+and all 64,000 final-page palette bands, and keeps
+`10 * 21.879 <= 1757.4972 < 1000 * 21.879`. Native centre index 78 and product
+index 80 remain in the same band while snapshot-time smoothing stays explicit.
+SIENA V adds the orange class-3 primary at `(3363568,-4274032,-2404452)`: body
+4 remains landed with power 20000 at source time `1345723230.090909`, and the
+product matches centre `(161,71)` at exact index 73, all 768 palette components,
+and all 37,800 indices in the `(40,10)..(309,149)` upper-sky crop. Its positive
+interval is `10 * 27.753 <= 2365.4727 < 1000 * 27.753`; 128 palette-band
+differences stay confined to snapshot-time terrain rows 157 through 185.
+RIZI V adds the yellow-orange class-4 primary at `(3628560,-4254023,-915798)`:
+body 4 remains landed with power 20000 at source time `1345723230.0`, and the
+product retains all 768 palette components and all 29,700 palette bands in the
+`(10,10)..(309,108)` upper-sky crop. Native/product centre indices 76/79 stay in
+the same band at `(161,102)`. Its positive interval is
+`10 * 19.877 <= 1438.3975 < 1000 * 19.877`; 489 palette-band differences stay
+confined to snapshot-time horizon and terrain rows 109 through 159.
+GALLID III adds the brown-red class-5 primary at
+`(3052848,-5636380,-959161)`: body 2 remains landed with power 20000 at source
+time `1345723230.0`. The product reproduces the visible white disc and corona at
+exact centre `(158,96)`/index 127, all 768 palette components, all 64,000
+palette bands, and all 47,250 indices in the `(40,10)..(309,184)` sky-and-disc
+crop. Distance `32.3576` remains inside
+`10 * 1.39 <= distance < 1000 * 1.39`, but the source excludes class 5 before
+radial-flare projection and the product authentically reports zero admission;
+only 391 low-six-bit HUD/border values differ outside the exact crop.
+LAMBO VII adds the purple class-9 primary at `(1405360,-789781,-1941535)`:
+body 6 remains landed with power 20000 at source time `1345723230.0`. The
+product admits centre `(161,56)` at exact final index 70, matches all 768
+palette components and all 64,000 palette bands, and reproduces all 49,140
+indices in the `(40,10)..(309,191)` sky-and-flare crop. Its positive interval
+is `10 * 9.841 <= 4244.9551 < 1000 * 9.841`; only 452 low-six-bit HUD/border
+values differ outside the exact crop.
+LUX I adds the cyan class-11 primary at `(4879984,-4603699,-1023471)`: body 0
+remains landed with power 17482 at source time `1345723229.7777777`, and the
+product matches centre `(161,100)` at exact index 105, all 768 palette
+components, and all 64,000 final-page palette bands. Its positive interval is
+`10 * 0.256 <= 23.0416 < 1000 * 0.256`; only 450 low-six-bit page values retain
+the snapshot-time smoothing limit.
+ROSVITA II adds the white class-2 primary at `(5800336,-4462999,-925592)`:
+body 1 remains landed with power 17482 at source time `1345723229.7`, and the
+product matches centre `(161,100)` at exact index 108, all 768 palette
+components, and all 27,000 indices in the `(10,10)..(309,99)` upper-sky crop.
+Its positive interval is `10 * 0.363 <= 61.7717 < 1000 * 0.363`; 1,081
+palette-band differences stay confined to snapshot-time horizon rows 115
+through 123.
+The additional dense state keeps body 1 of the class-8 system
+`(-1996240944,72703,944799)` landed with power 19998 at source time
+`1345636830`; the product admits centre `(161,85)`, matches all 64,000
+final-page palette bands, and keeps
+`10 * 6.505 <= 129.4516 < 1000 * 6.505`. Native centre index 60 and product
+index 59 remain in the same band. Authority remains artifact-specific:
+habitable, thin, both dense cases, frozen, and class-1/class-5/class-9/class-11
+lunar require all 64,000 palette-band assignments; the lower-gate lunar case,
+class-3/class-5/class-9 lunar, the three rocky cases, and frozen additionally
+require exact 36,000-, 37,800-, 47,250-, 49,140-, 27,000-, 27,000-, 27,000-,
+and 36,000-index upper-sky or sky-and-disc crops; class-4 lunar and quartz
+require 29,700- and 36,000-pixel upper-sky palette-band crops, respectively, and
+quartz also requires its exact centre index. All active palettes are exact
+except the two dense captures whose easing-dependent components remain
+informational. The native Apple-Silicon job rebuilds and grades all sixteen
+checkpoints independently with their case-specific clocks and retains their
+product diagnostics.
+
+A paired IDEAL capture extends that correction to a class-0 primary and type-1
+orbital target. At matched clock, camera, radius, distance, and Stardrifter
+position, the product retains the native exterior globe silhouette and all
+18,000 native palette-band assignments where the turned camera sees the primary
+corona and rays through the Stardrifter interior. The gallery's eleven generic
+orbital fixtures now negate their target-local offsets for the restored source
+half-turn while preserving their authored cockpit axis, and the capture tool
+accepts complete exact local X/Y/Z overrides for matched native poses. A third
+sync-0 IDEAL view now pins a genuine primary-beside-globe composition through
+the Stardrifter: all 4,000 primary-window pixels retain the exact native palette
+band and brightness classification, while the product's dark lunar mask differs
+only at 99 bounded limb pixels. A fourth matched IDEAL capture pins the stable
+Stardrifter roof branch at `(0,-750,-1900)`: the native BMP exactly retains its
+frozen 64,000-byte framebuffer, and the product preserves 59,804 exact page
+indices plus bounded upper-cupola and hull palette-band geometry. That retained
+pre-repair checkpoint also exposed its brightness and 241 active-palette
+component differences rather than treating them as exact lighting. Complete-page and palette equality remain
+informational under the retained adjacent-frame authority limits. An additional
+one-unit pair now pins the strict source `pos_y < -500` cupola transition: the
+`-500` frame retains interior status, target telemetry, and the two fixed upper
+target-label rows, while `-501` redraws the upper cupola after the hull and
+returns before those details. The product selects the same branch, retains
+61,619 native indices in the just-outside view, and exactly matches the
+4,620-pixel roof telemetry crop. The just-inside path restores the source-shaped,
+two-decimal `L.Y.` and `DYAMS` range rows plus the native-ordered 24-character
+star and selected-body labels. Live catalogue names produce `IDEAL S00` and
+`CASSANI P01` in the retained fixture; source-authentic unknown-star, planet, and
+moon forms cover misses. The lower environmental fields now update in every
+Stardrifter view at the source quarter, twentieth, fiftieth, and hundredth
+smoothing rates; drawing retains the source `draw_hud` gate, value formats, and
+spacing. All four visor lamps also use the source-ordered, in-place radius-five
+low-six-bit diffusion while preserving their palette bands. The ordinary inside
+and roof product captures each match the native 28-by-5 `GRAVITY`/lower-left-lamp
+crop byte-for-byte; its palette-independent mask contains the same exact 69
+pixels in both modes. This deliberately scoped runtime contract does not claim
+that the differing native and product numerical histories make the complete row
+byte-identical. The base palette also stops inventing a warm ramp for an absent
+moon. In the retained planet state, source `surface()` owns only band 192; fresh
+inside and roof captures therefore leave band 128 black and match all 192 native
+moon-band components exactly. This removes 187 of the former 241 complete-palette
+mismatches, leaving 54 components tied to still-unretained palette-easing state.
+At the retained interior/primary-flare camera, a current private-desktop
+`-OpenHud` capture now uses native fixed-chase sync 1 and visibly retains
+`TRACKING`; its compensated authored Z converges to the exact staged
+`0.01283555` target distance. Switching from the earlier sync-0 probe changes
+491 complete-page indices but zero pixels in the graded crop, and leaves the
+1,190 complete-page palette-band mismatches unchanged. The capture matches all
+18,000 native palette bands and 17,395 exact indices in that crop. The
+native-page/native-palette, native-page/product-palette,
+product-page/native-palette, and product-page/product-palette brightness counts
+are respectively 8,338, 8,338, 8,215, and 8,215. Thus the current 123-pixel gap
+comes entirely from 605 same-band indexed-page differences; the current palette
+mismatch and index 77 contribute zero in this crop. Upper and lower projected
+HUD rows account for 460 differences and 66 deficit pixels, with 367 product
+values equal to native X-1; this is retained for the cross-host font-fidelity
+work. The remaining 145 differences and 57 deficit pixels occupy right-fixture
+and central-flare regions. Source/port ordering, clipping, spoke arithmetic, and
+two-pass smoothing expose no active divergence there, while native pass-level
+intermediates were not retained, so no raster repair is claimed. Repeated
+launches retain identical scoped indexed rasters despite palette variation, so
+those rasters—not unstable product brightness—grade the repair. A new opt-in
+private-desktop lift trace now records the post-render, post-restraint scalar
+state and complete 64,000-byte indexed page on each authoritative simulation
+tick while remaining inert during ordinary launches. The production game
+retains all eight source ascent states from impulse `-100` through `y=-750`, all
+twelve automatic-return states from `+75` through the exact `y=0` deck clamp,
+the strict `y < -500` roof switch in both directions, and the source-ordered
+camera-pitch and forward-restraint changes. Every one of the 20 states produces
+a distinct complete indexed page even though presentation continues at 60 Hz.
+
+Capsule descent and recovery now have the same complete production boundary. An
+opt-in `capsuletrace` launch records sixteen signed scalar fields and one complete
+64,000-byte indexed page for each authoritative simulation tick while remaining
+inert during ordinary play. A private inactive-desktop landing retains exactly
+601 records: 600 airborne descent ticks preserve the source gravity recurrence,
+32-percent rebounds, evolving atmospheric wind, lateral terrain resampling, and
+consecutive source frames; the final record atomically clears capsule state and
+gravity, sets landed state, and snaps to the walking pose at `ground-600`. The
+accepted runs change more than 15,000 indexed pixels at first impact, while
+airborne-to-walking settlement changes more than 22,000 indices and 3,300
+palette-band assignments.
+
+The complementary recovery run retains exactly 252 records: counts 1--32 seal
+while landed, count 33 lifts off, counts 33--250 apply the cumulative source
+`-(count-31)*20` ascent, count 251 clears the capsule and renders one final
+surface page with return pending, and the following clean frame commits mode 0
+inside the Stardrifter. Every descent/recovery record has `VHGdosim=1` and a
+consecutive source frame; the accepted surface-to-ship transitions change more
+than 52,000 indexed pixels and 37,000 palette-band assignments. The deterministic
+capsule profile checkpoint stages the pod and player at the map centre rather
+than at a coordinate that the radial surface clamp moves away from the pod.
+
+Native direct star/body editing now owns character
+input ahead of all other hotkeys and preserves source uppercase conversion,
+Backspace, physical-Escape cancellation and held-key ownership, Return, the
+20-byte cap, exact 32-byte `STARMAP.BIN` appends, and byte-exact player-local
+removal. A registered private-desktop runtime test exercises those rules without
+touching the interactive desktop. Its 32-byte state diagnostic proves active
+editor preconditions, held/released Escape-latch state, native `EXTANT` for
+case-insensitive duplicates, and `DENIED` for consolidated-record removal. Across complete 64,000-byte indexed pages, a full modulo-32 blink cycle recurs
+byte-for-byte, a distinct phase changes only the 34-pixel shader-zero
+underscore, and a same-phase invisible trailing-space edit translates only its
+72 old/new raster pixels by one fixed label position. The HUD projector now
+skips spaces and out-of-atlas bytes instead of redrawing its previous glyph
+through padded cells. Exact projected glyph raster across hosts, complete
+interior lighting, the remaining unretained palette-easing state, and whole-row
+numerical environmental-state equality remain explicit rather than being claimed
+as complete interior parity.
+
 This release does not claim complete NIVGEN parity: the same 22 retained
 XENOFELYS landed-artifact discrepancies described in Beta 23 remain deferred
 pending the exact unpublished harness or paired upstream regeneration.

@@ -8,6 +8,7 @@
 
 "variables"
 
+    Command Line Fixture = { arm64-fixture };
     Global K Fixture Name = { ARM64 GlobalK fixture! };
 
 "workspace"
@@ -16,6 +17,22 @@
     Global K Fixture Read Data = 255;
 
 "programme"
+
+    A = Command Line;
+    ? [A] != ZERO -> command line fixture failed;
+    A + 9;
+    B = Command Line Fixture;
+
+"compare command line fixture"
+
+    C = [A];
+    ? C != [B] -> command line fixture failed;
+    ? C = ZERO -> command line fixture complete;
+    A+;
+    B+;
+    -> compare command line fixture;
+
+"command line fixture complete"
 
     [Global K Name] = FFFFFFFFh;
     [Global K Command] = K DESTROY;
@@ -84,6 +101,10 @@
     D = [PCM data Bits Per Sample];
     E = [PCM data Samples Per Sec];
     end;
+
+"command line fixture failed"
+
+    fail;
 
 "global K fixture failed"
 

@@ -1,0 +1,49 @@
+{
+  "artifact": "orbitmultiple_8526_native.shot.BMP",
+  "artifact_sha256": "27532a2fe2a284f76bf81b630bf28c9fff72a8b1a63146c719a5b9257f9a451b",
+  "indexed_page_sha256": "02456430527875871bd4700a2f1fc555457a76a4807aa1ef8a981c2fbeed6827",
+  "six_bit_palette_sha256": "85d920807169b9699afe1fb0bb489907150f456cccf845ee95f5d806e0da3f56",
+  "star": [3866416, -4813508, -735695],
+  "target_body": 0,
+  "target_type": 5,
+  "star_class": 8,
+  "camera": {
+    "position": [0.0, 0.0, -500.0],
+    "user_alfa": -34.0,
+    "user_beta": 0.0,
+    "navigation_beta": 120.0
+  },
+  "continuity_after_snapshot": {
+    "ram_offset": 206300,
+    "sync": 1,
+    "ip_targetted": 0,
+    "ip_reached": 1,
+    "pwr": 19999,
+    "fcs_status": "TRACKING",
+    "secs": 1344638526.8333333,
+    "surlight": 16,
+    "dzat": [3866349.3531317827, -4813507.9803099455, -735738.296520083],
+    "star_local": [-66.64686821727082, 0.01969005446881056, -43.29652008297853]
+  },
+  "capture": {
+    "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+    "timeout_seconds": 180,
+    "stop_poll_milliseconds": 1,
+    "stop_after_file_bytes": 65078,
+    "precapture_current_sha256": "7ace48077a10fb7ebb6f91e889c5a8348a67dc5fbdd7c700ddca5069fd3767ab",
+    "command_sha256": "29daf6b0505c5c457e76f402366178da091c094ba538270b0bb56c7250d46936",
+    "frozen_ram_sha256": "8d608f2072070643c304782c96fff67f4448f188cddd73a4e635a6cdcf2887c9",
+    "frozen_adapted_sha256": "429e2ea6e46f780e2f0656767cd526e1aae1966fc22b0409b95d0a42dec0282a",
+    "page_vs_frozen_adapted_differences": 30677,
+    "sandbox_restored": true
+  },
+  "authority": {
+    "snapshot_camera_state_retained": true,
+    "camera_reason": "The staged CURRENT.BIN and the post-snapshot continuity block contain identical position and three camera angles.",
+    "snapshot_page_and_palette_retained": true,
+    "snapshot_simulation_state_retained": false,
+    "simulation_reason": "DOSBox-X was suspended after the completed BMP appeared; adapted was already partway through the next frame.",
+    "whole_page_same_state_contract": false,
+    "admissible_contract": "At the retained source camera, the type-10 companion is behind the exterior camera and produces no white globe or radial flare. The complete BMP remains authoritative for that negative visibility result, its indexed page, and its active six-bit palette."
+  }
+}

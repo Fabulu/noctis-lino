@@ -1,0 +1,206 @@
+{
+  "artifacts": {
+    "exterior": {
+      "file": "orbitlunar_exterior_8736_native.shot.BMP",
+      "sha256": "89579c32aaee28a93e5b28675921ca055a72c870fb1e00b9381308d3ab9aa559",
+      "indexed_page_sha256": "e032b578eff11f78ca220dbfa5f6df0aae4c4940f7b93ebbf3d47f7b6df2d83a",
+      "six_bit_palette_sha256": "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
+    },
+    "interior": {
+      "file": "orbitlunar_interior_8736_native.shot.BMP",
+      "sha256": "f26d65b7c6a96aed4e34b7b4389cbfd65777e499f521a08f1e2d970ecdc20667",
+      "indexed_page_sha256": "ea08058aff4715a5ef9c27a27dcc27af134660653ce7edfaef251dce146e73fc",
+      "six_bit_palette_sha256": "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e98077"
+    }
+  },
+  "star": [174288, -44389, -688771],
+  "target_body": 0,
+  "target_type": 1,
+  "star_class": 0,
+  "cameras": {
+    "exterior": {
+      "position": [0.0, 0.0, -500.0],
+      "user_alfa": 0.0,
+      "user_beta": 0.0,
+      "navigation_beta": 0.0
+    },
+    "interior": {
+      "position": [0.0, 0.0, -500.0],
+      "user_alfa": 0.0,
+      "user_beta": -97.0,
+      "navigation_beta": 0.0
+    }
+  },
+  "continuity_after_snapshot": {
+    "exterior": {
+      "ram_offset": 206300,
+      "sync": 1,
+      "ip_targetted": 0,
+      "ip_reached": 1,
+      "ap_reached": 1,
+      "pwr": 19988,
+      "fcs_status": "TRACKING",
+      "secs": 1344638737.0,
+      "surlight": 16,
+      "dzat": [174254.6744704863, -44388.99342661612, -688775.082612766],
+      "star_local": [-33.32552951370599, 0.006573383878276218, -4.082612765952945]
+    },
+    "interior": {
+      "ram_offset": 206300,
+      "sync": 1,
+      "ip_targetted": 0,
+      "ip_reached": 1,
+      "ap_reached": 1,
+      "pwr": 19988,
+      "fcs_status": "TRACKING",
+      "secs": 1344638737.0,
+      "surlight": 16,
+      "dzat": [174254.67447048417, -44388.99342661612, -688775.0826127492],
+      "star_local": [-33.32552951583057, 0.006573383878276218, -4.082612749189138]
+    }
+  },
+  "capture": {
+    "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+    "timeout_seconds": 360,
+    "stop_poll_milliseconds": 1,
+    "stop_after_file_bytes": 65078,
+    "delayed_snapshot_key_milliseconds": [240000, 300000],
+    "command_sha256": "14508c7c57037cb972c2096bfc6b2aaa76bf532a028971fd7b4d56df7ab51d48",
+    "exterior": {
+      "precapture_current_sha256": "a1b19445967e726b7e1ce686838be5788b627c090e44e167f2b5899206fe4aac",
+      "frozen_ram_sha256": "c4c467c3f556cd7a29e099a525dcc60471be4192a37d042dc56bc733fa71493b",
+      "frozen_adapted_sha256": "12b5d4135aefa432e54887604d3b61d640c8f5f1b8353c2868730702794d5330",
+      "page_vs_frozen_adapted_differences": 7388
+    },
+    "interior": {
+      "precapture_current_sha256": "13d6425f292f5700967a4d6b4563ea344215fa5d7709b5d4bf5966148879192a",
+      "frozen_ram_sha256": "5e9b793ff0dc87fd83d325882322d931198b45ea32c5d9f308415a1bca7ce54c",
+      "frozen_adapted_sha256": "ac9e5b78d367d18a6dad2d91a89de62a9b4b82d506fbd7171f4b84f0e14bdee0",
+      "page_vs_frozen_adapted_differences": 11421
+    },
+    "sandbox_restored": true
+  },
+  "native_visibility": {
+    "exterior": {
+      "target_globe_palette_band": 3,
+      "target_globe_pixel_count": 9232,
+      "target_globe_bounding_box": [98, 52, 216, 149],
+      "primary_disc_or_flare_visible": false
+    },
+    "interior": {
+      "flare_crop": [30, 30, 180, 150],
+      "flare_crop_palette_band_sha256": "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb",
+      "ship_palette_band_pixel_count": 10799,
+      "stellar_palette_band_pixel_count": 7201,
+      "primary_corona_and_radial_flare_visible": true,
+      "stardrifter_occlusion_visible": true
+    }
+  },
+  "matched_product_interior_contract": {
+    "capture_state": {
+      "runner": "tools/capture_noctis_scenes.ps1",
+      "private_inactive_desktop": true,
+      "diagnostic_only": true,
+      "raw_clock": 1344638736,
+      "source_hud_enabled": true,
+      "open_hud_switch": true,
+      "camera": {
+        "user_alfa": 0.0,
+        "user_beta": -97.0,
+        "navigation_beta": 0.0,
+        "view_pitch": 0.0
+      },
+      "player_position": [0.0, 0.0, -500.0],
+      "sync": 1,
+      "fcs_status": "TRACKING",
+      "authored_orbital_local": [0.0, 0.0, 0.012942215051003982],
+      "captured_orbital_local": [0.0, 0.0, 0.012835549999999932],
+      "captured_star_local": [-33.32552886049304, 0.006573383880464911, -4.0826127654424],
+      "reason": "This interior authority requires -OpenHud and fixed-chase sync 1. The authored Z compensates chase convergence during the retained private diagnostic run, yielding the native-bound 0.01283555 captured target distance. Without -OpenHud, the moving or closed visor selects a materially different composition and is not graded against this crop."
+    },
+    "crop": [30, 30, 180, 150],
+    "crop_pixels": 18000,
+    "product_crop_index_sha256": "c0ecb6a4f83c25e2e4f8155adead874be686643d37bc9747f61dafc7b5a8050f",
+    "product_status_crop_index_sha256": "5f2a5a1c0fef751c0b8d359f4b886a54e89959c68311e0d029ed3afa20c524e8",
+    "product_complete_page_index_sha256": "db3a60cde9ca0c38465cd8c97530eef5f9ee1c379ff51cd262c01f9c28d3d0dd",
+    "product_palette_u32le_sha256": "f1478f556372e037cefa3551394315c8e1bb6c641283b3c1d41f54041b23e3ed",
+    "exact_indices": 17395,
+    "differing_indices": 605,
+    "palette_band_differences": 0,
+    "complete_page_index_mismatches": 4563,
+    "complete_page_palette_band_mismatches": 1190,
+    "complete_palette_component_mismatches": 54,
+    "fixed_chase_contract": {
+      "previous_sync": 0,
+      "captured_sync": 1,
+      "visible_fcs_status": "TRACKING",
+      "changed_complete_page_indices": 491,
+      "changed_graded_crop_indices": 0,
+      "previous_complete_page_palette_band_mismatches": 1190,
+      "captured_complete_page_palette_band_mismatches": 1190,
+      "interpretation": "Restoring native sync 1 changes only pixels outside the graded interior crop and visibly replaces STANDBY with native TRACKING. The complete-page band mismatch is unchanged; the larger exact-index mismatch is dominated by the separately open projected-font raster difference rather than a new lighting-band divergence."
+    },
+    "difference_decomposition": {
+      "coordinate_system": "top-left origin; bounding boxes use inclusive maxima",
+      "upper_hud": {
+        "differing_indices": 355,
+        "bounding_box": [30, 30, 101, 57],
+        "native_brightness_surplus_pixels": 30
+      },
+      "right_flare_or_fixture_region": {
+        "differing_indices": 131,
+        "bounding_box": [150, 94, 179, 120],
+        "native_brightness_surplus_pixels": 46
+      },
+      "central_flare_region": {
+        "differing_indices": 14,
+        "bounding_box": [39, 95, 149, 124],
+        "native_brightness_surplus_pixels": 11
+      },
+      "lower_hud": {
+        "differing_indices": 105,
+        "bounding_box": [30, 125, 179, 149],
+        "native_brightness_surplus_pixels": 36
+      },
+      "projected_hud_total": {
+        "differing_indices": 460,
+        "native_brightness_surplus_pixels": 66,
+        "product_equals_native_pixel_at_x_minus_1": 367,
+        "docket": "cross-host projected-font fidelity"
+      },
+      "flare_or_fixture_total": {
+        "differing_indices": 145,
+        "native_brightness_surplus_pixels": 57,
+        "source_trace": "The source and port retain hull/fixture/flare/HUD composition before two source-ordered psmooth_64 passes, float-local clipping and truncating casts, x87-width spoke products, center and Stick sampling. The only reviewed angular-step difference is inactive at this close-range camera.",
+        "missing_authority": "Native indexed intermediates after hull/screens, fixture triangles, flare spokes, and each smoothing pass, plus native projected centers and endpoints, were not retained.",
+        "source_repair_supported": false
+      }
+    },
+    "brightness_threshold": "maximum six-bit RGB component > 32",
+    "brightness_pixels": {
+      "native_page_native_palette": 8338,
+      "native_page_product_palette": 8338,
+      "product_page_native_palette": 8215,
+      "product_page_product_palette": 8215
+    },
+    "index_77_pixels": {
+      "native": 0,
+      "product": 0
+    },
+    "indexed_page_brightness_deficit_pixels": 123,
+    "palette_brightness_contribution_pixels": 0,
+    "source_repair_supported": false,
+    "interpretation": "The native-state fixed-chase capture visibly retains TRACKING while its graded crop is byte-identical to the earlier staged sync-0 crop. The 123-pixel brightness deficit is entirely selected by the indexed page: exchanging native and product palettes changes neither page's count, and index 77 occurs zero times in both crops. Upper and lower projected HUD rows account for 460 of 605 differences and 66 deficit pixels; 367 product values equal the native value at X-1, assigning that work to cross-host projected-font fidelity. The remaining 145 differences and 57 deficit pixels occupy right fixture and central flare regions, but the reviewed source ordering, clipping, numeric, spoke, and smoothing paths expose no active implementation divergence. Complete lighting, complete-page equality, the 54 unretained palette-easing components, and pass-level attribution remain ungraded."
+  },
+  "authority": {
+    "snapshot_camera_state_retained": true,
+    "camera_reason": "Each staged CURRENT.BIN and its post-snapshot continuity block contain identical position and camera angles.",
+    "snapshot_page_and_palette_retained": true,
+    "paired_simulation_bracket_retained": true,
+    "pair_reason": "Both adjacent-frame continuity blocks report raw second 1344638737, identical navigation state and palettes, and Stardrifter positions within 1.7e-8 on every axis.",
+    "snapshot_simulation_state_retained": false,
+    "simulation_reason": "DOSBox-X was suspended after each completed BMP appeared; adapted had already entered the next frame.",
+    "whole_page_same_state_contract": false,
+    "admissible_contract": "At the retained class-0/type-1 orbital state, the exterior camera shows the target globe with the primary outside the view, while changing only user_beta to -97 authenticates the primary corona and rays through the Stardrifter interior. Product grading may use the exact indexed palette-band geometry in the retained crops and the adjacent-frame camera/position bracket; complete-page equality is not authoritative."
+  }
+}

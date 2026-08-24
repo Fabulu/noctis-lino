@@ -26,6 +26,12 @@
 	VHPblackout = 0; VHPresetphase = 0;
 	VHPoutptr = 0; VHPoutrows = 0; VHPoutview = 0; VHPouti = 0; VHPoutj = 0;
 	VHPfcsstatus = 0; VHPstatbase = 0; VHPstatlen = 0; VHPstatptr = 0;
+	VHPtelemetrystar = 0; VHPtelemetrybody = 0; VHPtelemetryptr = 0;
+	VHPtelemetrystarlabel = 0; VHPtelemetrybodylabel = 0;
+	VHPtelemetrystaredit = 0; VHPtelemetrybodyedit = 0;
+	VHPtelemetrystarcursor = 0; VHPtelemetrybodycursor = 0;
+	VHPtelemetryedit = 0; VHPtelemetrycursor = 0; VHPtelemetryclock = 0; VHPtelemetryshader = 1;
+	VHPtelemetryi = 0; VHPtelemetrycolour = 0; VHPtelemetrysavedcolour = 0;
 	VHPmessage = 0;
 	VHPcx4 = 0; VHPxbase4 = 0;
 	VHPonsys = 0; VHPoncmd0 = 0; VHPoncmd1 = 0; VHPoncmd2 = 0; VHPoncmd3 = 0;
@@ -45,6 +51,8 @@
 	VHPsx0 = 0; VHPsy0 = 0; VHPsz0 = 0;
 	VHPsx1 = 0; VHPsy1 = 0; VHPsz1 = 0;
 	vhpfontname = { digimap2.bin };
+	vhpstarunit = { L.Y. };
+	vhpbodyunit = { DYAMS };
 	vhpboot0 = { G.O.E.S._OUTPUT_TREE };
 	vhpboot1 = { REVISION_ID_6011/0200 };
 	vhpboot2 = { CHANNEL_READY };
@@ -887,6 +895,82 @@
 	A = FSINY; A + [VHPi]; [PGFi] = A; [PGFt] = [C plus 1]; => PGF setf32;
 	A = FSINZ; A + [VHPi]; [PGFi] = A; [PGFt] = [C plus 2]; => PGF setf32;
 	[VHPi]+; A = [VHPi]; ? A < 4 -> VHP mapped vertex;
+	end;
+
+"VH HUD telemetry"
+	( NOCTIS.CPP outer HUD target labels and range rows.  All use size-5
+	  digit_at geometry, fixed visor cameras, and a -40 camera-X advance. )
+	A = [VHPfontok]; ? A = 0 -> VHP HUD telemetry done;
+	A = [VHPtelemetrystarlabel]; ? A = 0 -> VHP HUD telemetry star range;
+	[VHVcamxi] = 450; [VHVcamyi] = 250;
+	A = 0; A - 750; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	[VHPtelemetryptr] = [VHPtelemetrystarlabel]; [VHPtelemetrycolour] = 127;
+	[VHPtelemetryedit] = [VHPtelemetrystaredit]; [VHPtelemetrycursor] = [VHPtelemetrystarcursor];
+	=> VHP HUD telemetry text;
+    "VHP HUD telemetry star range"
+	A = [VHPtelemetrystar]; ? A = 0 -> VHP HUD telemetry body label;
+	[VHVcamxi] = 450; A = 0; A - 180; [VHVcamyi] = A;
+	A = 0; A - 750; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	[VHPtelemetryptr] = [VHPtelemetrystar]; [VHPtelemetrycolour] = 127;
+	[VHPtelemetryedit] = 0; => VHP HUD telemetry text;
+	A = [VHVcamxi]; A - 40; [VHVcamxi] = A; => VH set view;
+	[VHPtelemetryptr] = vhpstarunit; [VHPtelemetrycolour] = 112;
+	=> VHP HUD telemetry text;
+    "VHP HUD telemetry body label"
+	A = [VHPtelemetrybodylabel]; ? A = 0 -> VHP HUD telemetry body range;
+	[VHVcamxi] = 450; [VHVcamyi] = 180;
+	A = 0; A - 750; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	[VHPtelemetryptr] = [VHPtelemetrybodylabel]; [VHPtelemetrycolour] = 112;
+	[VHPtelemetryedit] = [VHPtelemetrybodyedit]; [VHPtelemetrycursor] = [VHPtelemetrybodycursor];
+	=> VHP HUD telemetry text;
+    "VHP HUD telemetry body range"
+	A = [VHPtelemetrybody]; ? A = 0 -> VHP HUD telemetry done;
+	[VHVcamxi] = 450; A = 0; A - 250; [VHVcamyi] = A;
+	A = 0; A - 750; [VHVcamzi] = A; [VHValpha] = 0; [VHVbeta] = 0; => VH set view;
+	[VHPtelemetryptr] = [VHPtelemetrybody]; [VHPtelemetrycolour] = 120;
+	[VHPtelemetryedit] = 0; => VHP HUD telemetry text;
+	A = [VHVcamxi]; A - 40; [VHVcamxi] = A; => VH set view;
+	[VHPtelemetryptr] = vhpbodyunit; [VHPtelemetrycolour] = 105;
+	=> VHP HUD telemetry text;
+    "VHP HUD telemetry done"
+	[SPflar] = 0; [PGtexf] = 0;
+	end;
+
+"VHP HUD telemetry text"
+	[VHPtelemetryi] = 0; [VHPtelemetryshader] = 1;
+    "VHP HUD telemetry text loop"
+	A = [VHPtelemetryedit]; ? A = 0 -> VHP HUD telemetry character;
+	A = [VHPtelemetryi]; ? A != [VHPtelemetrycursor] -> VHP HUD telemetry character;
+	[VHPtelemetrysavedcolour] = [VHPtelemetrycolour];
+	A = [VHPtelemetryclock]; A % 32; A '* 2; C = 127; C - A; [VHPtelemetrycolour] = C;
+	[VHPchar] = 95; [VHPtelemetryshader] = 0; => VHP HUD telemetry digit;
+	[VHPtelemetrycolour] = [VHPtelemetrysavedcolour]; [VHPtelemetryshader] = 1;
+    "VHP HUD telemetry character"
+	C = [VHPtelemetryptr]; C + [VHPtelemetryi]; A = [C];
+	? A = 0 -> VHP HUD telemetry text done;
+	[VHPchar] = A; => VHP HUD telemetry digit;
+	A = [VHVcamxi]; A - 40; [VHVcamxi] = A; => VH set view;
+	[VHPtelemetryi]+; -> VHP HUD telemetry text loop;
+    "VHP HUD telemetry text done"
+	end;
+
+"VHP HUD telemetry digit"
+	( digit_at returns before both texture construction and projection for spaces
+	  and out-of-atlas bytes; do not remap the previous glyph through padding. )
+	A = [VHPchar]; ? A <= 32 -> VHP HUD telemetry digit done;
+	? A > 96 -> VHP HUD telemetry digit done;
+	[DGdigit] = [VHPchar]; [DGcolor] = [VHPtelemetrycolour]; [DGshader] = [VHPtelemetryshader]; => FB digit at;
+	( digit_at(ch,-6,-15,5): x=-13.5..14 and y=-25..25. )
+	[vhcpoly plus 0] = 1096810496; [vhcpoly plus 1] = 3251109888; [vhcpoly plus 2] = 0;
+	[vhcpoly plus 3] = 1096810496; [vhcpoly plus 4] = 1103626240; [vhcpoly plus 5] = 0;
+	[vhcpoly plus 6] = 3243769856; [vhcpoly plus 7] = 1103626240; [vhcpoly plus 8] = 0;
+	[vhcpoly plus 9] = 3243769856; [vhcpoly plus 10] = 3251109888; [vhcpoly plus 11] = 0;
+	[FI] = VHPTX; => IntToF; [PGFi] = FSTX; => PGF sa;
+	[FI] = VHPTY; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[PGtexf] = 4; [SPsrc] = 1; [SPtinta] = 64; [SPescr] = 0;
+	[SPflar] = 2; [SPcull] = 0; [SPhalf] = 0; [VHPcol] = 64;
+	=> VHP draw mapped quad;
+    "VHP HUD telemetry digit done"
 	end;
 
 "VH HUD FCS"

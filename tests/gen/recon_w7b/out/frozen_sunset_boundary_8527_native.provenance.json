@@ -1,0 +1,195 @@
+{
+  "schema": "noctis-native-oracle-provenance-v1",
+  "scene": "airless type-7 frozen-world longitude 204 night and longitude 205 day sunset terminator boundary",
+  "captured_utc": "2026-08-24",
+  "system": {
+    "coordinates": [2952848, -6448045, -840503],
+    "star_class": 1,
+    "star_ray": 21.878999710083008,
+    "number_of_primary_bodies": 13,
+    "number_of_bodies": 72,
+    "target_body": 9,
+    "target_owner": -1,
+    "target_type": 7,
+    "target_ray": 0.026135999999999996,
+    "atmosphere": false
+  },
+  "landed_camera": {
+    "latitude": 60,
+    "atlas_quotient": [8, 8],
+    "atlas_remainder": [0, 0],
+    "authored_player": [1645000.0, 1.0, 1641000.0],
+    "settled_player": [1645000.0, 0.0, 1641000.0],
+    "pitch": 0.0,
+    "heading": 90.0,
+    "navigation_beta": 0.0
+  },
+  "native_capture": {
+    "runner": "NIV+ 2.3 under DOSBox-X 2025.05.03",
+    "authority": "Each saved indexed BMP and its active six-bit palette are the authoritative capture. Frozen RAM and adapted support files are later-state diagnostics, not same-frame page substitutes.",
+    "current_sha256": "65a21c1a63f1c6b54595edb42d10c7ec13209c7b130c6a61ac6820cf4b70c165",
+    "initial_clock": 1344638526.0,
+    "captured_clock": 1344638527.0,
+    "clock_method": "Both five-second settled snapshots used DOS date 11.08.2026 and time 22:42:00.00. The retained NIV+ continuity blocks independently record the exact raw integer clock 1344638527.0.",
+    "snapshot_wait_seconds": 5,
+    "snapshot_command_sha256": "3865a8ae5842a595df13fbee603d504ce6684e7861bbc3dd239f84f51aa23aa3",
+    "sync": 3,
+    "target_reached": 1,
+    "charge": 120,
+    "power": 30000,
+    "draw_hud": 0,
+    "continuity_block_address": "0x325dc",
+    "night204": {
+      "longitude": 204,
+      "bmp": "frozen_sunset_night204_8527_native.shot.BMP",
+      "surface": "frozen_sunset_night204_8527_native.SURFACE.BIN",
+      "bmp_sha256": "ddcb170956d50411a0add56bef2a1b769ee5eee49707ae9fe9b396a88490a8a2",
+      "surface_sha256": "8c5566a6fed964383428957209b7dbc5c83b7f6b2bc20a0f263750d1c2b91564",
+      "decoded_page_sha256": "8709c41100d84ca9c2fad13146c53e3a95d9c29d5bf0317039d5684b5427a43f",
+      "six_bit_palette_sha256": "0b8946aab73ab92bb7485d513cd8178e8b5a9225e66e943cc9bcc8ba5cd823f7",
+      "support_memory": "tests/gen/recon_w7b/mem/frozen_sunset_night204_8527_native.mem",
+      "support_memory_sha256": "e8d897681b9f0d6206f1ff773cbe2876289755976004395f8aa07995e5a91aab",
+      "support_adapted": "frozen_sunset_night204_8527_native.adapted",
+      "support_adapted_sha256": "657b20aa97112184108d917dc478f0f1991f645c7c56550668ad398ffa848344",
+      "bmp_vs_adapted_index_differences": 12842,
+      "bmp_vs_adapted_palette_band_differences": 4258
+    },
+    "day205": {
+      "longitude": 205,
+      "bmp": "frozen_sunset_day205_8527_native.shot.BMP",
+      "surface": "frozen_sunset_day205_8527_native.SURFACE.BIN",
+      "bmp_sha256": "ba047f363e7a682a22896beb9c3b8e8fd8182d75c09c357f0fdef2ae2a8f1fd5",
+      "surface_sha256": "6bb0d59cb2f062ed8f3d62f62bd6fdde0f578274f8f1fcc0163a8a08928ec55f",
+      "decoded_page_sha256": "a6d80d26d9117aa9e2465bf9a6e2315ca27c6ec65aedb4dcd2d06eb1b2be9ea4",
+      "six_bit_palette_sha256": "cd1b3921fa3483937d12738e7f26238c1e38977fbacd734c116aaebd738fdf87",
+      "support_memory": "tests/gen/recon_w7b/mem/frozen_sunset_day205_8527_native.mem",
+      "support_memory_sha256": "6a7f06362ab04c0e95312ab7e3524af7f84b079d3b456a444217bfb3bb4264fe",
+      "support_adapted": "frozen_sunset_day205_8527_native.adapted",
+      "support_adapted_sha256": "d59840e3facd1b0109feee19d96f88e2a617d163e4ba72e5115bffa3453e011e",
+      "bmp_vs_adapted_index_differences": 12838,
+      "bmp_vs_adapted_palette_band_differences": 4262
+    }
+  },
+  "native_ram_contract": {
+    "continuity": {
+      "address": "0x325dc",
+      "both": {
+        "clock": 1344638527.0,
+        "sync": 3,
+        "target": 9,
+        "target_reached": 1,
+        "settled_player": [1645000.0, 0.0, 1641000.0],
+        "angles": [0.0, 90.0, 0.0]
+      }
+    },
+    "weather": {
+      "planet_grav_address": "0x3292a",
+      "rainy_address": "0x3292e",
+      "both": {"planet_grav": 52.27199935913086, "rainy": 0.0, "albedo": 20}
+    },
+    "rotation_arrays": {
+      "target_index": 9,
+      "rtperiod_address": "0x38179",
+      "rotation_address": "0x38219",
+      "term_start_address": "0x382b9",
+      "term_end_address": "0x38359",
+      "both": {"rtperiod": 866, "raw_rotation": -4, "normalized_rotation": 356, "term_start": 75, "term_end": 205}
+    },
+    "solar_globals": {
+      "crepzone_address": "0x36991",
+      "nightzone_address": "0x36993",
+      "sun_x_factor_address": "0x36995",
+      "scenario_type_address": "0x39164",
+      "primary_distance_address": "0x39165",
+      "primary_ray_address": "0x3916d",
+      "latitude_address": "0x39175",
+      "exposure_address": "0x39179",
+      "sun_xyz_address": "0x3917d",
+      "night204": {
+        "scenario_type": 0,
+        "primary_distance": 34167.40234375,
+        "primary_ray": 21.878999710083008,
+        "latitude": 0.0,
+        "exposure": 0.7825999855995178,
+        "sun_xyz": [34164.21484375, -466.67620849609375, -0.000020399065761012025],
+        "crepzone": 1,
+        "nightzone": 1,
+        "sun_x_factor": -1
+      },
+      "day205": {
+        "scenario_type": 0,
+        "primary_distance": 34167.40234375,
+        "primary_ray": 21.878999710083008,
+        "latitude": 0.0,
+        "exposure": 0.0,
+        "sun_xyz": [34167.40234375, -0.0, -0.0],
+        "crepzone": 0,
+        "nightzone": 0,
+        "sun_x_factor": -1
+      }
+    },
+    "terminator_derivation": {
+      "viewpoint": 45,
+      "plwp": 40,
+      "formula": "plwp=(89-viewpoint+rotation)%360; term_start=(plwp+35)%360; term_end=(term_start+130)%360",
+      "sunset_rule": "For the straight interval [75,205), longitude 204 is night and one degree before sunset; longitude 205 is day at the exclusive end boundary.",
+      "source_rule": "At 204 the night gate suppresses the primary despite crepzone=1 and positive exposure. At 205 the day gate opens but crepzone=0 and sun_x_factor=-1 leave the primary behind this camera; neither page contains a projected source.",
+      "exposure_rule": "crepzone * binary32(0.7826)"
+    }
+  },
+  "visual_contract": {
+    "source_crop": [154, 92, 160, 94],
+    "source_crop_indices_both": [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64],
+    "upper_sky_band_crop": [10, 10, 310, 96],
+    "upper_sky_band_pixels": 25800,
+    "native_pair_index_differences": 27615,
+    "native_pair_palette_band_differences": 18,
+    "native_pair_palette_component_differences": 63,
+    "native_source_band_component_differences": 0,
+    "product_pair_index_differences": 25909,
+    "product_pair_palette_band_differences": 29,
+    "product_pair_palette_component_differences": 458,
+    "product_source_band_component_differences": 0,
+    "night204_native_product_index_differences": 27264,
+    "night204_native_product_palette_band_differences": 636,
+    "night204_native_product_palette_component_differences": 652,
+    "day205_native_product_index_differences": 27883,
+    "day205_native_product_palette_band_differences": 645,
+    "day205_native_product_palette_component_differences": 736,
+    "authority_limit": "The exact source-free crop, complete source palette band, and complete 25,800-pixel upper-sky palette-band crop are graded across engines. Complete pages, complete palettes, and later adapted pages are explicit non-claims."
+  },
+  "matched_product": {
+    "runner": "tracked official L.in.oleum build on the private inactive WinSta0 desktop",
+    "clock": 1344638527,
+    "night204": {
+      "directory": "build/renderer-frozen-boundary-night204",
+      "diagnostic": {"mode": 1, "landed": 1, "planet_type": 7, "star_class": 1, "atmosphere": 0, "night": 1, "rain": 0.0, "exposure": 0.7825999855995178, "distance": 34167.40234375, "ray": 0.0, "source_projected": 0, "center": [0, 0], "sample": 0, "secondary": 0, "rtperiod": 866, "rotation": 356, "viewpoint": 45, "plwp": 40, "term_start": 75, "term_end": 205, "crepzone": 1, "sun_x_factor": -1},
+      "hashes": {
+        "frozensun-game-local-out.bin": "6068d747b4ced0aca8a1d6b04dec4a1e3bc0ba21f19de565473ee57de5f24662",
+        "frozensun-game-p-background-out.bin": "2adfe0da5862517f881bccb811c8c6cdef477beaedd184d5f0a359e9de296017",
+        "frozensun-game-p-surfacemap-out.bin": "e7e2dcff542de95352682dc186432e98f0188084896773f1973276b0577d5305",
+        "frozensun-game-page-out.bin": "9e7de4c05c7c87f96fe0f89fdf8b83738eb0b41c0490a0c39e15ad2c696fa384",
+        "frozensun-game-palette-out.bin": "f2000e40ef6554f39caaf450ced9d338987ae51376898d6cd66e4913de76404a",
+        "frozensun-game-render-state-out.bin": "85129fff180c897afc4462822857187249e28a9d59e2a20ff35d0a2cd0868efd",
+        "frozensun-game-s-background-out.bin": "d043a2d604f110e5746b2875778ccc2f90f76c0e8056aa8d5dd0cca27501ed2c",
+        "frozensun-game-sun-out.bin": "d4edd4ae98b2fb7497ca386fa2d2563e5ca49564dedc8fd49f6019e8b2047898",
+        "frozensun-game-vh-out.bin": "6d54a2c3fc472f046571e9b3d84f9df30d8b23600ca90eaeac157a60fe2148bd"
+      }
+    },
+    "day205": {
+      "directory": "build/renderer-frozen-boundary-day205",
+      "diagnostic": {"mode": 1, "landed": 1, "planet_type": 7, "star_class": 1, "atmosphere": 0, "night": 0, "rain": 0.0, "exposure": 0.0, "distance": 34167.40234375, "ray": 21.878999710083008, "source_projected": 0, "center": [0, 0], "sample": 0, "secondary": 0, "rtperiod": 866, "rotation": 356, "viewpoint": 45, "plwp": 40, "term_start": 75, "term_end": 205, "crepzone": 0, "sun_x_factor": -1},
+      "hashes": {
+        "frozensun-game-local-out.bin": "c2105ba1bfaf69d1e1ff1802b3b1e9cd6c586369d914ee9f797f9fb854c35a75",
+        "frozensun-game-p-background-out.bin": "e0fccdb7f4a88dc267f30adb63d36154575279bcd318b2cadd338668f01e7ca3",
+        "frozensun-game-p-surfacemap-out.bin": "e7e2dcff542de95352682dc186432e98f0188084896773f1973276b0577d5305",
+        "frozensun-game-page-out.bin": "913cdf1a7af54c169fc72732649e638bd79d9b06c77e04b09f74e326378ae344",
+        "frozensun-game-palette-out.bin": "22b0ddeda26fe9fca816f7ad718f5532289f0c2b0e29a05ba41155e3392eed44",
+        "frozensun-game-render-state-out.bin": "85129fff180c897afc4462822857187249e28a9d59e2a20ff35d0a2cd0868efd",
+        "frozensun-game-s-background-out.bin": "d043a2d604f110e5746b2875778ccc2f90f76c0e8056aa8d5dd0cca27501ed2c",
+        "frozensun-game-sun-out.bin": "d3a84e6189b20fdc194c662a01b47e6f3a31247ec60570e49dfb486d8c1bb8bc",
+        "frozensun-game-vh-out.bin": "51d636c63179134d8bd5bd8d3e0553569c67c9a3742d680177d11e2ce177d8d3"
+      }
+    }
+  }
+}

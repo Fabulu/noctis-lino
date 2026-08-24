@@ -49,7 +49,8 @@ _Static_assert(offsetof(struct LNLMINIT, displaymode) == 92,
                "LNLMINIT tail offset changed");
 
 /* Historical slots 0-3 retain their existing meaning. AArch64 owns eight
- * formerly unused UI communication units for full-width runtime pointers. */
+ * formerly unused UI communication units for full-width runtime pointers and
+ * publishes its unit-string command line in the unused gap before display. */
 enum {
     ARM64_UI_ISOKERNEL_LO = 4,
     ARM64_UI_ISOKERNEL_HI = 5,
@@ -59,6 +60,8 @@ enum {
     ARM64_UI_FLOAT_UNARY_HI = 9,
     ARM64_UI_FLOAT_BINARY_LO = 10,
     ARM64_UI_FLOAT_BINARY_HI = 11,
+    ARM64_UI_COMMAND_LINE = 12,
+    ARM64_UI_COMMAND_LINE_CAPACITY = mm_DisplayCommand - ARM64_UI_COMMAND_LINE,
     ARM64_UI_REQUIRED_UNITS = 32947
 };
 

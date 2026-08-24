@@ -24,13 +24,14 @@
 
 	vhcatfile = { STARMAP.BIN };
 	VHCATloaded = 0; VHCATok = 0; VHCATstatus = 0;
+	VHCATstarok = 0; VHCATbodyok = 0;
 	VHCATbytes = 0; VHCATrecs = 0; VHCATrecno = 0;
 	VHCATid0 = 0; VHCATid1 = 0; VHCATtype = 0; VHCATcode = 0;
 	VHCATlowhi = 0; VHCATlowlo = 0; VHCAT highhi = 0; VHCAT highlo = 0;
 	VHCATkeyhi = 0; VHCATkeylo = 0;
 	VHCATvalid = 0;
 	VHCATi = 0; VHCATlen = 0; VHCATshift = 0; VHCATchar = 0;
-	VHCATptr = 0; VHCATfoundptr = 0;
+	VHCATptr = 0; VHCATfoundptr = 0; VHCATremovepos = 0;
 	VHCATbodyi = 0; VHCATlabeled = 0;
 	VHCATcleanin = 0; VHCATcleanout = 0; VHCATcleanword = 0;
 	VHCATcleantotal = 0; VHCATcleanremoved = 0; VHCATcleanboundary = 0;
@@ -41,6 +42,7 @@
 
 	vhcatraw = 320001;
 	vhcatname = 20;
+	vhcattombstone = 2;
 	vhcatstarlabel = 21;
 	vhcatbodylabel = 21;
 
@@ -74,7 +76,7 @@
 	end;
 
 "VHCAT default labels"
-	[VHCATi] = 0;
+	[VHCATstarok] = 0; [VHCATbodyok] = 0; [VHCATi] = 0;
     "VHCAT clear labels"
 	E = vhcatstarlabel; E + [VHCATi]; [E] = 32;
 	E = vhcatbodylabel; E + [VHCATi]; [E] = 32;
@@ -189,7 +191,8 @@
 "VHCAT show star"
 	[VHCATtype] = VHCATS; [VHCATcode] = [VHTclass];
 	[VHCATid0] = [VHTid0]; [VHCATid1] = [VHTid1]; => VHCAT find;
-	A = [VHCATok]; ? A = 0 -> VHCAT show star done; => VHCAT copy label;
+	A = [VHCATok]; ? A = 0 -> VHCAT show star done;
+	[VHCATstarok] = 1; => VHCAT copy label;
     "VHCAT show star done"
 	end;
 
@@ -197,7 +200,8 @@
 	[VHCATtype] = VHCATP; A = [VHGplanet]; A + 1; [VHCATcode] = A;
 	[nsid0] = [VHTid0]; [nsid1] = [VHTid1]; [FI] = A; => NsIdentAddInt;
 	[VHCATid0] = [FA0]; [VHCATid1] = [FA1]; => VHCAT find;
-	A = [VHCATOk]; ? A = 0 -> VHCAT show body done; => VHCAT copy label;
+	A = [VHCATOk]; ? A = 0 -> VHCAT show body done;
+	[VHCATbodyok] = 1; => VHCAT copy label;
     "VHCAT show body done"
 	end;
 
@@ -220,6 +224,16 @@
     "VHCAT count system bodies done"
 	end;
 
+      ( Return one packed name byte in A, folding ASCII lowercase exactly as
+	the native memicmp(..., 20) duplicate-name check does. )
+"VHCAT folded name character"
+	B = [VHCATi]; C = B; B / 4; E + 2; E + B;
+	A = [E]; C & 3; C * 8; A > C; A & FFh;
+	? A < 97 -> VHCAT folded name character done;
+	? A > 122 -> VHCAT folded name character done; A - 32;
+    "VHCAT folded name character done"
+	end;
+
       ( Pack vhcatname, reject duplicate identities/names, append one record.
 	status: 1 added, 2 identity already charted, 3 duplicate name, 0 I/O. )
 "VHCAT add"
@@ -239,7 +253,8 @@
     "VHCAT pack loop"
 	A = [VHCATi]; ? A >= [VHCATlen] -> VHCAT pack done;
 	C = vhcatname; C + A; B = [C]; C = A; C / 4; E = [VHCATfoundptr]; E + 2; E + C;
-	A & 3; A * 8; B < A; A = [E]; A | B; [E] = A;
+	A & 3; A * 8; [VHCATshift] = A; B < A;
+	C = FFh; C < [VHCATshift]; ! C; A = [E]; A & C; A | B; [E] = A;
 	[VHCATi]+; -> VHCAT pack loop;
     "VHCAT pack done"
 	A = [VHCATcode]; B = A; A / 10; A + 48; A < 16; B '% 10; B + 48; B < 24;
@@ -247,14 +262,15 @@
 	[VHCATrecno] = 0;
 "VHCAT duplicate loop"
 	A = [VHCATrecno]; ? A >= [VHCATrecs] -> VHCAT write record;
-	A '* 8; E = vhcatraw; E + 1; E + A; C = [VHCATfoundptr];
+	A '* 8; E = vhcatraw; E + 1; E + A;
 	A = [E]; [VHCATid0] = A; A = [E plus 1]; [VHCATid1] = A;
 	=> VHCAT identity valid; A = [VHCATvalid]; ? A = 0 -> VHCAT duplicate next;
-	A = [E plus 2]; ? A != [C plus 2] -> VHCAT duplicate next;
-	A = [E plus 3]; ? A != [C plus 3] -> VHCAT duplicate next;
-	A = [E plus 4]; ? A != [C plus 4] -> VHCAT duplicate next;
-	A = [E plus 5]; ? A != [C plus 5] -> VHCAT duplicate next;
-	A = [E plus 6]; ? A != [C plus 6] -> VHCAT duplicate next;
+	[VHCATptr] = E; [VHCATi] = 0;
+    "VHCAT duplicate name loop"
+	E = [VHCATptr]; => VHCAT folded name character; [VHCATchar] = A;
+	E = [VHCATfoundptr]; => VHCAT folded name character;
+	? A != [VHCATchar] -> VHCAT duplicate next;
+	[VHCATi]+; A = [VHCATi]; ? A < 20 -> VHCAT duplicate name loop;
 	[VHCATstatus] = 3; -> VHCAT add done;
     "VHCAT duplicate next"
 	[VHCATrecno]+; -> VHCAT duplicate loop;
@@ -276,6 +292,25 @@
     "VHCAT add charted"
 	[VHCATstatus] = 2;
     "VHCAT add done"
+	end;
+
+      ( Remove only a player-local record at or beyond the consolidated boundary.
+        status: 1 removed, 2 protected upstream record, 0 missing or I/O. )
+"VHCAT remove"
+	[VHCATstatus] = 0; => VHCAT find;
+	A = [VHCATok]; ? A = 0 -> VHCAT remove done;
+	A = [VHCATrecno]; A '* VHCATRECBYTES; A + VHCATHDRBYTES;
+	[VHCATremovepos] = A; ? A < [vhcatraw] -> VHCAT remove protected;
+	[vhcattombstone plus 0] = VHCATTOMB0; [vhcattombstone plus 1] = VHCATTOMB1;
+	[File Name] = vhcatfile; [File Position] = [VHCATremovepos]; [File Command] = WRITE;
+	[Block Pointer] = vhcattombstone; [Block Size] = 8; isocall;
+	? [File Status] + ERROR -> VHCAT remove done;
+	A = [Block Size]; ? A != 8 -> VHCAT remove done;
+	E = [VHCATfoundptr]; [E plus 0] = VHCATTOMB0; [E plus 1] = VHCATTOMB1;
+	[VHCATstatus] = 1; -> VHCAT remove done;
+    "VHCAT remove protected"
+	[VHCATstatus] = 2;
+    "VHCAT remove done"
 	end;
 
       ( REPAIR.EXE keeps the first usable identity and marks every later

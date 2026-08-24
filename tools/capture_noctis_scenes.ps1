@@ -4,15 +4,17 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'planetclose',
+    [ValidateSet('all', 'stardrifter', 'stardrifterclass0', 'stardrifterclass1', 'stardrifterclass2', 'stardrifterclass3', 'stardrifterclass4', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass8', 'stardrifterclass9', 'stardrifterclass10', 'stardrifterclass11', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
-        'orbitsubstellar', 'orbitmultiple',
-        'lunar', 'lunarsun', 'dense', 'densesun', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun',
+        'orbitsubstellar', 'orbitmultiple', 'orbitmultiplecompact', 'orbitmultipletriple', 'orbitmultipletripleroof', 'orbitmultipletripleexterior',
+        'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass5', 'lunarclass9', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'habitablemultiple', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
         'thin', 'thinsun',
-        'frozen', 'frozensun', 'frozenflare', 'quartz', 'ruins', 'cube')]
+        'frozen', 'frozensun', 'frozenflare', 'quartz', 'quartzclass10', 'ruins', 'cube')]
     [string]$Scene = 'all',
     [int]$WarmupSeconds = 7,
+    [ValidateRange(1, 600)]
+    [int]$DiagnosticTimeoutSeconds = 180,
     [int]$Longitude,
     [int]$Latitude,
     [int]$BodyIndex,
@@ -21,6 +23,11 @@ param(
     [int]$OrbitalViewAngle,
     [ValidateRange(0.01, 100.0)]
     [double]$OrbitalDistanceScale,
+    [double]$OrbitalLocalX,
+    [double]$OrbitalLocalY,
+    [double]$OrbitalLocalZ,
+    [ValidateRange(0, 7)]
+    [int]$OrbitalSync,
     [int]$ViewPitch,
     [int]$PlayerX,
     [int]$PlayerY,
@@ -44,6 +51,8 @@ param(
     [switch]$CaptureHostWindow,
     [switch]$CapsuleReturn,
     [switch]$OpenFcs,
+    [switch]$DiagnosticOnly,
+    [switch]$DefaultDesktop,
     [switch]$Interactive
 )
 
@@ -66,6 +75,9 @@ $outputPath = if ([IO.Path]::IsPathRooted($OutputDirectory)) {
     [IO.Path]::GetFullPath((Join-Path $projectRoot $OutputDirectory))
 }
 
+if ($DefaultDesktop -and -not $DiagnosticOnly) {
+    throw 'DefaultDesktop requires DiagnosticOnly'
+}
 if (-not (Test-Path -LiteralPath $gameExe -PathType Leaf)) {
     throw "Missing production executable: $gameExe"
 }
@@ -81,63 +93,150 @@ $scenes = @(
     @{ Name='stardrifter'; Mode=0; X=3979984; Y=-43407; Z=-43984; Body=0; Type=0;
        Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=12;
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=200.0 },
+    # EMPTY's bodyless class-0 primary provides the first missing positive
+    # orbital class. Hold it 50 stellar radii away so the compact white corona
+    # and radial flare are both source-admitted without a textured globe.
+    @{ Name='stardrifterclass0'; Mode=0; X=2931408; Y=-6222148; Z=1891299;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=322.25000858306885 },
+    # Bodyless positive-primary checkpoints hold each missing eligible class 50
+    # stellar radii away, isolating its colour and radial flare without a globe.
+    @{ Name='stardrifterclass1'; Mode=0; X=5476048; Y=-5957484; Z=82716;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=973.3499526977539 },
+    @{ Name='stardrifterclass2'; Mode=0; X=4265328; Y=-5738799; Z=2583670;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=24.09999966621399 },
+    @{ Name='stardrifterclass3'; Mode=0; X=4700336; Y=-4332862; Z=233642;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=1003.2999992370605 },
+    @{ Name='stardrifterclass4'; Mode=0; X=-1325712; Y=773546; Z=757027;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=949.3000030517578 },
+    # ASKEW 184's class-5 primary has no generated bodies. Keep its centred
+    # corona inside the otherwise-positive orbital flare interval to grade the
+    # source class exclusion independently of distance and globe occlusion.
+    @{ Name='stardrifterclass5'; Mode=0; X=3438192; Y=-1233198; Z=1856484;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=74.59999918937683 },
+    # FUEL TWO's class-6 primary has no generated bodies. Hold an untargeted
+    # Stardrifter 50 stellar radii away to authenticate the class exclusion
+    # inside the otherwise-positive orbital flare interval.
+    @{ Name='stardrifterclass6'; Mode=0; X=-125712; Y=-174213; Z=-150246;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=256.45 },
+    # WIRE's blue class-7 primary has one authentic type-9 body but no landable
+    # surface. Hold the Stardrifter 100 stellar radii away so the source's
+    # positive orbital flare gate can be graded without inventing a surface.
+    @{ Name='stardrifterclass7'; Mode=0; X=-1187856; Y=-195673; Z=1064757;
+       Body=0; Type=9; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=219.2 },
+    @{ Name='stardrifterclass8'; Mode=0; X=3844976; Y=-4358971; Z=1862310;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=227.34999656677246 },
+    @{ Name='stardrifterclass9'; Mode=0; X=-1150000; Y=2650000; Z=1050000;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=446.99997901916504 },
+    # OUTER RUN WIND's class-10 primary has no generated bodies. Its centred
+    # corona closes the third source-class exclusion inside the otherwise-
+    # positive orbital flare and white-corona intervals.
+    @{ Name='stardrifterclass10'; Mode=0; X=-1027472; Y=-5805997; Z=-5135362;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=1515.250015258789 },
+    # POE's bodyless class-11 primary starts at source gl_start/VHTphase zero.
+    # Keep it 50 stellar radii away so no globe advances that positive phase.
+    @{ Name='stardrifterclass11'; Mode=0; X=3131408; Y=-4623621; Z=1755683;
+       Body=0; Type=0; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=12.950000166893005 },
     # The opening system's type-8 primary after a completed fine approach,
     # held 3.88 planetary radii away on the calibrated forward window axis.
     @{ Name='planetclose'; FileName='planet-close-space.png'; Mode=0;
        X=3979984; Y=-43407; Z=-43984; Body=0; Type=8; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.046885; LocalY=0.0; LocalZ=-0.110461 },
+       LocalX=-0.046885; LocalY=0.0; LocalZ=0.110461 },
     # Target-relative fine-approach frames for every orbital body class. Each
-    # offset is scaled from the type-8 checkpoint by the target's
-    # generated p_ray, keeping the camera at the same apparent body radius.
+    # offset is scaled from the type-8 checkpoint by the target's generated
+    # p_ray, keeping the camera at the same apparent body radius. Preserve the
+    # authored 23-degree cockpit axis and negate its target-local offset because
+    # source from_vehicle() adds the exterior half-turn before projection.
     @{ Name='orbithot'; FileName='planet-space-hot.png'; Mode=0;
        X=4162480; Y=-6132645; Z=587893; Body=1; Type=0; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.025697; LocalY=0.0; LocalZ=-0.060539 },
+       LocalX=-0.025697; LocalY=0.0; LocalZ=0.060539 },
     @{ Name='orbitlunar'; FileName='planet-space-lunar.png'; Mode=0;
        X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.010794; LocalY=0.0; LocalZ=-0.025432 },
+       LocalX=-0.010794; LocalY=0.0; LocalZ=0.025432 },
     @{ Name='orbitdense'; FileName='planet-space-dense.png'; Mode=0;
        X=4304272; Y=-4664874; Z=-1062549; Body=0; Type=2; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.034346; LocalY=0.0; LocalZ=-0.080919 },
+       LocalX=-0.034346; LocalY=0.0; LocalZ=0.080919 },
     @{ Name='orbithabitable'; FileName='planet-space-habitable.png'; Mode=0;
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.032783; LocalY=0.0; LocalZ=-0.077237 },
+       LocalX=-0.032783; LocalY=0.0; LocalZ=0.077237 },
     @{ Name='orbitrocky'; FileName='planet-space-rocky.png'; Mode=0;
        X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.027804; LocalY=0.0; LocalZ=-0.065506 },
+       LocalX=-0.027804; LocalY=0.0; LocalZ=0.065506 },
     @{ Name='orbitthin'; FileName='planet-space-thin.png'; Mode=0;
        X=-1996240944; Y=72703; Z=944799; Body=3; Type=5; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.030966; LocalY=0.0; LocalZ=-0.072956 },
+       LocalX=-0.030966; LocalY=0.0; LocalZ=0.072956 },
     @{ Name='orbitlarge'; FileName='planet-space-large.png'; Mode=0;
        X=770352; Y=-131847; Z=665208; Body=0; Type=6; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.261698; LocalY=0.0; LocalZ=-0.616521 },
+       LocalX=-0.261698; LocalY=0.0; LocalZ=0.616521 },
     @{ Name='orbitfrozen'; FileName='planet-space-frozen.png'; Mode=0;
        X=2952848; Y=-6448045; Z=-840503; Body=9; Type=7; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.039580; LocalY=0.0; LocalZ=-0.093250 },
+       LocalX=-0.039580; LocalY=0.0; LocalZ=0.093250 },
     @{ Name='orbitmilky'; FileName='planet-space-milky.png'; Mode=0;
        X=3904272; Y=-4365172; Z=-679394; Body=1; Type=8; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.055611; LocalY=0.0; LocalZ=-0.131011 },
+       LocalX=-0.055611; LocalY=0.0; LocalZ=0.131011 },
     @{ Name='orbitsubstellar'; FileName='planet-space-substellar.png'; Mode=0;
        X=1463568; Y=-4728350; Z=-437812; Body=1; Type=9; Lon=0; Lat=60;
        Beta=23; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
-       LocalX=0.333919; LocalY=0.0; LocalZ=-0.786714 },
-    # ROTOR IGNE is a generated class-8 multiple system. This certified
-    # native-matched pose keeps the primary behind the camera and exposes body
-    # 3's real companion corona and long radial flare through the open visor.
+       LocalX=-0.333919; LocalY=0.0; LocalZ=0.786714 },
+    # ROTOR IGNE is a generated class-8 multiple system. This native-matched
+    # navigation-120 pose keeps body 3 behind the exterior camera and protects
+    # the negative visibility contract. Override -NavigationAngle 300 for the
+    # retained front-facing companion corona and radial-flare context.
     @{ Name='orbitmultiple'; FileName='planet-space-multiple-system.png'; Mode=0;
        X=3866416; Y=-4813508; Z=-735695; Body=0; Type=5; Lon=0; Lat=60;
        Beta=0; Nav=120; Pitch=-34; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;
        OpenHud=$true; Sync=1;
        LocalX=-0.025440362261571668; LocalY=0.0; LocalZ=-0.014688000000000005 },
+    # A compact independent class-8 system frames rocky moon 3 and its type-10
+    # parent together.  The fixed local pose keeps both the moon terminator and
+    # companion corona on screen without changing ROTOR IGNE's open intensity gap.
+    @{ Name='orbitmultiplecompact'; FileName='planet-space-compact-multiple-system.png'; Mode=0;
+       X=-546064; Y=-439032; Z=-1136208; Body=3; Type=4; Lon=0; Lat=60;
+       Beta=0; Nav=162; Pitch=0; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;
+       Sync=0; LocalX=0.0; LocalY=0.0; LocalZ=-0.05 },
+    # TRIUMVIRATE has two generated type-10 companions and only one ordinary
+    # planet.  Target the first companion so product diagnostics retain its
+    # exact local pose while the ordinary companion diagnostic retains the
+    # second light independently.
+    @{ Name='orbitmultipletriple'; FileName='planet-space-triple-system.png'; Mode=0;
+       X=4142128; Y=-5182625; Z=-629021; Body=0; Type=10; Lon=0; Lat=60;
+       Beta=0; Nav=113; Pitch=0; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;
+       Sync=0;
+       LocalX=-2835.4143674072257; LocalY=17.236258154580206; LocalZ=35.891644488482996 },
+    # Hold the same dual-companion phase outside the strict roof boundary and
+    # beyond the cupola's automatic-return aperture.
+    @{ Name='orbitmultipletripleroof'; FileName='planet-space-triple-system-roof.png'; Mode=0;
+       X=4142128; Y=-5182625; Z=-629021; Body=0; Type=10; Lon=0; Lat=60;
+       Beta=0; Nav=113; Pitch=0; Warmup=1; PlayerX=0; PlayerY=-750; PlayerZ=-1900;
+       Sync=0;
+       LocalX=-2835.414399641379; LocalY=17.236258154580206; LocalZ=35.8916321792845 },
+    # Step outside the hull while preserving the adjacent-phase two-light pose.
+    @{ Name='orbitmultipletripleexterior'; FileName='planet-space-triple-system-exterior.png'; Mode=0;
+       X=4142128; Y=-5182625; Z=-629021; Body=0; Type=10; Lon=0; Lat=60;
+       Beta=0; Nav=113; Pitch=0; Warmup=1; PlayerX=2813; PlayerY=0; PlayerZ=-1397;
+       Sync=0;
+       LocalX=-2835.4143674072257; LocalY=17.236258154580206; LocalZ=35.891644488482996 },
     # IDEAL's only body is an authentic type-1 primary. This avoids spending
     # screenshot startup time generating JROT's pathological 80-body system.
     @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
@@ -148,16 +247,50 @@ $scenes = @(
     @{ Name='lunarsun'; FileName='planet-lunar-sun.png';
        X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
        Beta=90; Pitch=-44; PlayerX=1638400; PlayerY=-19032; PlayerZ=1638400 },
+    # SIENA V around its orange class-3 primary, selected for the positive gate.
+    @{ Name='lunarclass3'; X=3363568; Y=-4274032; Z=-2404452; Body=4; Type=1;
+       Lon=75; Lat=60; Beta=270; Pitch=-34;
+       PlayerX=1638400; PlayerZ=1638400 },
+    # RIZI V around its yellow-orange class-4 primary, selected for the positive
+    # gate.
+    @{ Name='lunarclass4'; X=3628560; Y=-4254023; Z=-915798; Body=4; Type=1;
+       Lon=135; Lat=60; Beta=90; Pitch=-5;
+       PlayerX=1638400; PlayerZ=1638400 },
+    # GALLID III around its brown-red class-5 primary.  The white disc/corona is
+    # visible inside the radial interval, while the source authentically
+    # suppresses class-5 radial rays.
+    @{ Name='lunarclass5'; X=3052848; Y=-5636380; Z=-959161; Body=2; Type=1;
+       Lon=270; Lat=60; Beta=270; Pitch=-30;
+       PlayerX=1638400; PlayerZ=1638400 },
+    # LAMBO VII around its purple class-9 primary, selected near the
+    # multiplicative midpoint of the positive radial interval.
+    @{ Name='lunarclass9'; X=1405360; Y=-789781; Z=-1941535; Body=6; Type=1;
+       Lon=135; Lat=60; Beta=270; Pitch=-34;
+       PlayerX=1638400; PlayerZ=1638400 },
+    # LUX I around its cyan class-11 primary.  This airless daylight pose is
+    # inside the positive gate and keeps the primary centred in clean sky.
+    @{ Name='lunarclass11'; X=4879984; Y=-4603699; Z=-1023471; Body=0; Type=1;
+       Lon=135; Lat=60; Beta=270; Pitch=-34;
+       PlayerX=1638400; PlayerZ=1638400 },
     @{ Name='dense';     X=1463568; Y=-4728350; Z=-437812; Body=0; Type=2; Lon=0; Lat=60; Beta=180; Pitch=-12 },
     # Same-clock stock NIV+ checkpoint.  The dense atmosphere keeps the source
     # disc and broad corona but suppresses radial rays below the 10*ray gate.
     @{ Name='densesun'; FileName='planet-dense-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=0; Type=2; Lon=0; Lat=60;
        Beta=90; Pitch=-44; PlayerX=1638400; PlayerY=0; PlayerZ=1638400 },
+    # Class-8 dense primary whose distance lies inside the radial-flare gate.
+    @{ Name='denseclass8'; X=-1996240944; Y=72703; Z=944799; Body=1; Type=2;
+       Lon=0; Lat=60; Beta=90; Pitch=-30;
+       PlayerX=1638400; PlayerZ=1638400 },
     # Naturally generated plains mammal, birds, vegetation and the local sun.
     @{ Name='habitable'; FileName='planet-habitable-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=3; Type=3; Lon=0; Lat=60;
        Beta=65; Pitch=-10; Warmup=7; PlayerX=1598248; PlayerZ=2251369 },
+    # ROTOR IGNE's type-3 moon belongs to generated type-10 body 3. It is the
+    # retained landed route for grading primary/secondary weather gates together.
+    @{ Name='habitablemultiple'; FileName='planet-habitable-multiple-suns.png';
+       X=3866416; Y=-4813508; Z=-735695; Body=8; Type=3; Lon=232; Lat=88;
+       Beta=-30; Pitch=-20; Warmup=1; PlayerX=1327104; PlayerZ=1884160 },
     # LANE IV's naturally generated GIANT_TREE at (1086769,2139184), viewed
     # from 45,000 units south. This coordinate and its source parameters were
     # verified directly against the NIV+ tree renderer.
@@ -181,6 +314,10 @@ $scenes = @(
     @{ Name='rockysun'; FileName='planet-rocky-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=90; Lat=60;
        Beta=270; Pitch=-38; PlayerX=1645000; PlayerZ=1641000 },
+    # ROSVITA II around its white class-2 primary, selected for the positive gate.
+    @{ Name='rockyclass2'; X=5800336; Y=-4462999; Z=-925592; Body=1; Type=4;
+       Lon=0; Lat=60; Beta=270; Pitch=-12;
+       PlayerX=1638400; PlayerZ=1638400 },
     @{ Name='thin';      X=1463568; Y=-4728350; Z=-437812; Body=2; Type=5; Lon=0; Lat=60;
        Beta=167; Pitch=-12; PlayerX=1645000; PlayerZ=1641000 },
     # Native-matched clear type-5 lighting state. Longitude 45 and the lower
@@ -208,6 +345,11 @@ $scenes = @(
        X=-1418337904; Y=1953670; Z=-1274313078; Body=7; Type=7; Lon=0; Lat=60;
        Beta=90; Pitch=-20; PlayerX=1645000; PlayerZ=1641000 },
     @{ Name='quartz';    X=1463568; Y=-4728350; Z=-437812; Body=7; Type=8; Lon=0; Lat=60; Beta=180; Pitch=-12 },
+    # BISTARIAL/SORZ II keeps the white disc/corona inside the ordinary radial
+    # interval, while source class 10 authentically suppresses the radial rays.
+    @{ Name='quartzclass10'; X=5411056; Y=-7441017; Z=-1775473; Body=1; Type=8;
+       Lon=333; Lat=60; Beta=270; Pitch=-30;
+       PlayerX=1638400; PlayerY=1; PlayerZ=1638400 },
     # Ylastravenya III's marked ruin edge, photographed outside the Cube.
     @{ Name='ruins';     FileName='planet-triangular-ruins.png';
        X=-56784; Y=-15693; Z=-129542; Body=3; Type=3; Lon=18; Lat=60;
@@ -220,6 +362,11 @@ $scenes = @(
 )
 if ($Scene -ne 'all') {
     $scenes = @($scenes | Where-Object Name -eq $Scene)
+}
+$orbitalLocalOverrides = @('OrbitalLocalX', 'OrbitalLocalY', 'OrbitalLocalZ') |
+    Where-Object { $PSBoundParameters.ContainsKey($_) }
+if ($orbitalLocalOverrides.Count -ne 0 -and $orbitalLocalOverrides.Count -ne 3) {
+    throw '-OrbitalLocalX, -OrbitalLocalY, and -OrbitalLocalZ must be supplied together'
 }
 try {
 foreach ($spec in $scenes) {
@@ -245,6 +392,20 @@ foreach ($spec in $scenes) {
         $spec.LocalY = [double]$spec.LocalY * $OrbitalDistanceScale
         $spec.LocalZ = [double]$spec.LocalZ * $OrbitalDistanceScale
     }
+    if ($orbitalLocalOverrides.Count -eq 3) {
+        if (-not $spec.ContainsKey('LocalZ')) {
+            throw "Scene $($spec.Name) has no orbital local pose to override"
+        }
+        $spec.LocalX = $OrbitalLocalX
+        $spec.LocalY = $OrbitalLocalY
+        $spec.LocalZ = $OrbitalLocalZ
+    }
+    if ($PSBoundParameters.ContainsKey('OrbitalSync')) {
+        if (-not $spec.ContainsKey('LocalZ')) {
+            throw "Scene $($spec.Name) has no orbital sync state to override"
+        }
+        $spec.Sync = $OrbitalSync
+    }
     if ($PSBoundParameters.ContainsKey('ViewPitch')) { $spec.Pitch = $ViewPitch }
     if ($PSBoundParameters.ContainsKey('PlayerX')) { $spec.PlayerX = $PlayerX }
     if ($PSBoundParameters.ContainsKey('PlayerY')) { $spec.PlayerY = $PlayerY }
@@ -255,6 +416,17 @@ $assetNames = @(
     'globes.map', 'offsets.map', 'vehicle.ncc', 'mammal.ncc', 'birdy.ncc',
     'digimap2.bin', 'STARMAP.BIN', 'GUIDE.BIN', 'noctis_music.pcm'
 )
+$diagnosticSizes = [ordered]@{
+    'game-vh-out.bin' = 156
+    'game-sun-out.bin' = 128
+    'game-local-out.bin' = 176
+    'game-palette-out.bin' = 3072
+    'game-page-out.bin' = 64000
+    'game-s-background-out.bin' = 64800
+    'game-p-surfacemap-out.bin' = 40000
+    'game-p-background-out.bin' = 65552
+    'game-render-state-out.bin' = 24
+}
 
 Add-Type -AssemblyName System.Drawing
 Add-Type @'
@@ -338,14 +510,17 @@ function New-Checkpoint {
     $u[10] = 0
     $u[11] = -300
     if ($Spec.ContainsKey('StarDistance')) {
-        # Invert VH space flare's beta/alpha rotations so the relative star
-        # vector projects to the centre of the 320x200 source viewport.
+        # Invert VH space flare's exterior beta/alpha rotations so the relative
+        # star vector projects to the centre of the 320x200 source viewport.
+        # from_vehicle() adds navigation_beta and the exterior half-turn.
         $radians = [Math]::PI / 180.0
         $distance = [double]$Spec.StarDistance
+        $navigation = if ($Spec.ContainsKey('Nav')) { [double]$Spec.Nav } else { 0.0 }
+        $exteriorBeta = ($Spec.Beta + $navigation + 180.0) * $radians
         $cosAlpha = [Math]::Cos($pitch * $radians)
-        $relativeX = -[Math]::Sin($Spec.Beta * $radians) * $cosAlpha * $distance
+        $relativeX = -[Math]::Sin($exteriorBeta) * $cosAlpha * $distance
         $relativeY = [Math]::Sin($pitch * $radians) * $distance
-        $relativeZ = [Math]::Cos($Spec.Beta * $radians) * $cosAlpha * $distance
+        $relativeZ = [Math]::Cos($exteriorBeta) * $cosAlpha * $distance
         $galacticX = [double]$Spec.X - $relativeX
         $galacticY = [double]$Spec.Y - $relativeY
         $galacticZ = [double]$Spec.Z - $relativeZ
@@ -507,6 +682,33 @@ function Test-NoctisWindowReady {
     }
 }
 
+function Export-SceneDiagnostics {
+    param(
+        [hashtable]$Spec,
+        [string]$Stage,
+        [string]$OutputPath,
+        [switch]$RequireComplete
+    )
+    foreach ($entry in $diagnosticSizes.GetEnumerator()) {
+        $source = Join-Path $Stage $entry.Key
+        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+            if ($RequireComplete) {
+                throw "Scene $($Spec.Name) did not emit $($entry.Key)"
+            }
+            continue
+        }
+        $length = (Get-Item -LiteralPath $source).Length
+        if ($RequireComplete -and $length -ne $entry.Value) {
+            throw "Scene $($Spec.Name) emitted $($entry.Key) with length $length, expected $($entry.Value)"
+        }
+        $diagnosticName = '{0}-{1}' -f $Spec.Name, $entry.Key
+        $diagnosticPath = Join-Path $OutputPath $diagnosticName
+        Copy-Item -LiteralPath $source -Destination $diagnosticPath -Force
+        Write-Output ("DIAGNOSTIC {0} ({1} bytes) -> {2}" -f
+            $entry.Key, $length, $diagnosticPath)
+    }
+}
+
 foreach ($spec in $scenes) {
     $proc = $null
     $stage = Join-Path $env:TEMP ("noctis-capture-{0}-{1}" -f $spec.Name, [Guid]::NewGuid().ToString('N'))
@@ -518,6 +720,28 @@ foreach ($spec in $scenes) {
         }
         New-Checkpoint -Spec $spec -Path (Join-Path $stage 'CURRENT.LIN')
         Copy-Item -LiteralPath (Join-Path $stage 'CURRENT.LIN') -Destination (Join-Path $stage 'CURRENT.BAK')
+
+        if ($DiagnosticOnly) {
+            if ($Interactive) { throw 'DiagnosticOnly cannot be interactive' }
+            $privateRunner = Join-Path $projectRoot 'tools\run_hidden_noctis.py'
+            $runnerArguments = @(
+                $privateRunner,
+                '--executable', (Join-Path $stage 'Noctis-IV.exe'),
+                '--working-directory', $stage,
+                '--timeout', [string]$DiagnosticTimeoutSeconds
+            )
+            if ($DefaultDesktop) {
+                $runnerArguments += '--default-desktop'
+            }
+            $runnerArguments += @("clock=$ClockSeconds", 'quit')
+            & python @runnerArguments
+            if ($LASTEXITCODE -ne 0) {
+                throw "Scene $($spec.Name) private diagnostic run failed"
+            }
+            Export-SceneDiagnostics -Spec $spec -Stage $stage `
+                -OutputPath $outputPath -RequireComplete
+            continue
+        }
 
         # Automated captures must not open an interactive window on the user's
         # desktop: input would both interrupt them and taint fixed-scene probes.
@@ -739,7 +963,18 @@ foreach ($spec in $scenes) {
                 }
             }
         }
+        if ($KeepStages) {
+            Export-SceneDiagnostics -Spec $spec -Stage $stage `
+                -OutputPath $outputPath -RequireComplete
+        }
     } finally {
+        # Keep any diagnostics emitted before an early product exit. This makes a
+        # hosted failure discriminating without weakening the successful path's
+        # complete size checks above.
+        if (-not $Interactive -and ($KeepStages -or $DiagnosticOnly) -and
+            (Test-Path -LiteralPath $stage)) {
+            Export-SceneDiagnostics -Spec $spec -Stage $stage -OutputPath $outputPath
+        }
         if ($proc -and -not $proc.HasExited) {
             # Prefer the game's own Escape path so it saves state and flushes
             # performance telemetry. Hidden automated windows cannot receive

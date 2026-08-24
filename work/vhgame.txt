@@ -41,6 +41,8 @@
 	VHGFCH = 1076101120;		( 10.0 binary64 high )
 	VHGINBOXMAX = 9668628;
 	VHGXMAX = 65536;
+	VHGK5EM50 = 0EB1C432Dh; VHGK5EM51 = 03F0A36E2h;
+	VHGK0010 = 047AE147Bh; VHGK0011 = 03F847AE1h;
 
 	( Open at a practical 2x presentation: iGUI chrome leaves an exact
 	  640x400 work area at 642x426 while the graded framebuffer stays 320x200. )
@@ -57,7 +59,9 @@
 	VHGalpha = 0; VHGbeta = 0; VHGnavbeta = 0; VHGabs = 0;
 	VHGlifter = 0; VHGliftstep = 0; VHGonroof = 0; VHGridearmed = 1; VHGuprequest = 0; VHGupheld = 0;
 	VHGdx = 0; VHGdz = 0; VHGdist = 0;
-	VHGesc = 0; VHGframe = 0; VHGsent = 0; VHGfullescheld = 0;
+	VHGesc = 0; VHGframe = 0; VHGsent = 0; VHGsentinelquit = 0; VHGsentinelrepeat = 0; VHGsentinelfreeze = 0; VHGsentinellifttrace = 0; VHGsentinelcapsuletrace = 0; VHGfreezeblink = 0; VHGfreezebrtl = 0; VHGfreezesuf = 0; VHGfullescheld = 0;
+	VHGlifttraceactive = 0; VHGlifttracecount = 0; VHGlifttraceindex = 0;
+	VHGcapsuletraceactive = 0; VHGcapsuletracecount = 0; VHGcapsuletraceindex = 0;
 	VHGargptr = 0; VHGargvalue = 0; VHGargdigits = 0;
 	VHGmouseheld = 0; VHGmousex = 0; VHGmousey = 0; VHGmousedx = 0; VHGmousedy = 0;
 	VHGmenuheld = 0; VHGmenux = 0; VHGmenuy = 0;
@@ -71,6 +75,8 @@
 	VHGonrowfp0 = 0; VHGonrowfp1 = 0;
 	VHGconsole = 0; VHGconsoleview = 0; VHGascii = 0; VHGasciiheld = 0; VHGasciikey = 0;
 	VHGconsoleouti = 0; VHGconsoleouty = 0;
+	VHGlabelstar = 0; VHGlabelbody = 0; VHGlabelstarpos = 0; VHGlabelbodypos = 0;
+	VHGlabelused = 0; VHGlabeli = 0; VHGlabelchar = 0; VHGlabelescheld = 0; VHGlabelresult = 0; VHGlabelid0 = 0; VHGlabelid1 = 0; VHGlabelcode = 0;
 	VHGscreen = 0FFFFFFFFh; VHGscreenprev = 0FFFFFFFFh; VHGfcsopen = 0;
 	VHGscrollheld = 0; VHGscrollused = 0;
 	VHGnewasciikey = 0; VHGreturnpending = 0; VHGreturnhookheld = 0;
@@ -148,6 +154,9 @@
 	VHGlocalcompflareok = 0; VHGlocalcompflarecx = 0; VHGlocalcompflarecy = 0;
 	VHGlocalbody = 0; VHGlocalray0 = 0; VHGlocalray1 = 0;
 	VHGlocaldist0 = 0; VHGlocaldist1 = 0; VHGlocallim0 = 0; VHGlocallim1 = 0;
+	VHGtelemetryacc0 = 0; VHGtelemetryacc1 = 0;
+	VHGtelemetryvalue0 = 0; VHGtelemetryvalue1 = 0;
+	VHGhudlabeli = 0; VHGhudlabelsrc = 0; VHGhudlabeldst = 0; VHGhudlabellen = 0;
 	VHGlocaltmp0 = 0; VHGlocaltmp1 = 0; VHGlocalcolour = 0; VHGlocaloff = 0;
 	VHGlocalspreads = 1; VHGlocaleffect = 0; VHGlocalmultmask = 64;
 	VHGlocalcentrecolour = 0; VHGlocalband = 0; VHGlocallow = 0;
@@ -182,6 +191,17 @@
 		vhgsunname = { game-sun-out.bin };
 		vhglocalname = { game-local-out.bin };
 		vhgpalname = { game-palette-out.bin };
+		vhgpagename = { game-page-out.bin };
+		vhgsbgname = { game-s-background-out.bin };
+		vhgpsmname = { game-p-surfacemap-out.bin };
+		vhgpbgname = { game-p-background-out.bin };
+		vhglabelname = { game-label-state-out.bin };
+		vhgrendername = { game-render-state-out.bin };
+		vhgliftstatename = { game-lift-state-out.bin };
+		vhgliftpagesname = { game-lift-pages-out.bin };
+		vhgcapsulestatename = { game-capsule-state-out.bin };
+		vhgcapsulepagesname = { game-capsule-pages-out.bin };
+		vhgprofilename = { game-profile-out.bin };
 	VHGcaption = { Noctis_IV };
 	VHGmenucaption = { GAME };
 	VHGmenu = { NOCTIS_IV };
@@ -203,10 +223,11 @@
 	VHGwallstart = 0; VHGwallelapsed = 0;
 	VHGloopcalls = 0; VHGtimingcalls = 0;
 	VHGsentframes = 0;
+	VHGdiagbase = 0; VHGdiagcount = 0; VHGdiagi = 0; VHGdiagj = 0;
 	VHGpodrange = 0; VHGpoddx = 0; VHGpoddy = 0; VHGpoddz = 0; VHGpodrangesq = 0;
 	VHGpodabsx = 0; VHGpodabsz = 0; VHGpodbearing = 0; VHGpodview = 0; VHGpoddelta = 0;
-	VHGsurfgravm = 0; VHGsurftempt = 0; VHGsurfpressm = 0;
-	VHGsurfpulse = 118; VHGsurfpulsejitter = 0; VHGsurftiredq = 0; VHGsurftempnow = 0;
+	VHGsurfgravm = 1000; VHGsurftempt = 220; VHGsurfpressm = 1000;
+	VHGsurfpulse = 118; VHGsurfpulsejitter = 0; VHGsurftiredq = 0; VHGsurftempnow = 220;
 	VHGsurfgravdisp = 1000; VHGsurftempdisp = 220; VHGsurfpressdisp = 1000; VHGsurfpulsedisp = 118;
 	VHGsurfsmoothden = 0;
 	VHGsurfground = 0; VHGsurfvy = 0; VHGsurfaccel = 1;
@@ -298,6 +319,10 @@
 	VHGmovievalue = 0; VHGmovieden = 0; VHGmoviepos = 0;
 	VHGprofstart = 0; VHGprofnow = 0; VHGprofrender = 0; VHGprofpresent = 0;
 	VHGprofpart = 0; VHGprofspace = 0; VHGprofcupola = 0; VHGprofhull = 0; VHGprofdetail = 0;
+	VHGprofileactive = 0; VHGprofilepresentations = 0; VHGprofilesimticks = 0;
+	VHGprofilemissed = 0; VHGprofilelatemax = 0; VHGprofilelatetotal = 0;
+	VHGprofileinputseen = 0; VHGprofileinputeffect = 0; VHGprofileinputpresent = 0;
+	VHGprofileinputpending = 0; VHGprofileorigin = 0; VHGprofileresetpending = 0;
 	( Present at 60 Hz by default while gameplay simulation remains at its
 	  original 18.206-Hz cadence. F5 retains the classic presentation toggle. )
 	VHGfast = 1; VHGfastheld = 0; VHGsimacc = 0; VHGdosim = 1;
@@ -569,6 +594,9 @@
 	VHGhelpdonetext = { RESCUE COMPLETE };
 	VHGhelpbadtext = { HELP NOT REQUIRED };
 	VHGsignaltext = { SIGNAL };
+	VHGhudstardefault = { UNKNOWN STAR / CLASS };
+	VHGhudplanetdefault = { NAMELESS PLANET / N. };
+	VHGhudmoondefault = { NAMELESS MOON # };
 	VHGresetdashtext = { ---------- };
 	VHGresetglitchtext = { _^*^-!_$[] };
 	VHGresetstandbytext = { STANDBY };
@@ -694,7 +722,11 @@
 	VHGnavradoff = { 9 ANTI-RADIATION OFF };
 	VHGcarttitle = { CARTOGRAPHY };
 	VHGcartstar = { 6 LABEL CURRENT STAR };
+	VHGcartstarassign = { 6 ASSIGN STAR LABEL };
+	VHGcartstarremove = { 6 REMOVE STAR LABEL };
 	VHGcartplanet = { 7 LABEL SELECTED BODY };
+	VHGcartplanetassign = { 7 ASSIGN PLANET LABEL };
+	VHGcartplanetremove = { 7 REMOVE PLANET LABEL };
 	VHGcartnext = { 8 BROWSE TARGETS IN RANGE };
 	VHGcartmanual = { 9 ENTER TARGET COORDINATES };
 	VHGbrowsetitle = { TARGETS IN RANGE };
@@ -765,7 +797,11 @@
 	VHGsrclocal = { local target data };
 	VHGsrcenvironment = { environment data };
 	VHGsrccartstar = { label star as... };
+	VHGsrccartstarassign = { assign star label };
+	VHGsrccartstarremove = { remove star label };
 	VHGsrccartplanet = { label planet as... };
+	VHGsrccartplanetassign = { assign planet label };
+	VHGsrccartplanetremove = { remove planet label };
 	VHGsrccarttargets = { show targets in range };
 	VHGsrccartparsis = { set target to parsis };
 	VHGsrcreset = { reset onboard system };
@@ -906,6 +942,13 @@
 	VHGnameusedtext = { NAME ALREADY IN USE };
 	VHGnamechartedtext = { ALREADY CHARTED };
 	VHGnamefailtext = { NAME FAILED };
+	VHGlabelprompttext = { PROMPT };
+	VHGlabelremovedtext = { REMOVED };
+	VHGlabeldeniedtext = { DENIED };
+	VHGlabelconflicttext = { CONFLICT };
+	VHGlabelassignedtext = { ASSIGNED };
+	VHGlabelextanttext = { EXTANT };
+	VHGlabelerrortext = { INT. ERROR };
 	VHGnewtext = { NEW FLIGHT STARTED };
 
 	( NOCTIS.CPP starmass_correction[], retained as binary64 low/high pairs. )
@@ -927,9 +970,18 @@
 	vhgstate = 18;
 	VHGfpstext = 7;
 	vhgperf = 21;
+	vhgprofile = 32;
 	vhgsun = 32;
 	vhglocal = 44;
+	vhglabelstate = 8;
+	vhgrenderstate = 6;
+	vhgliftstate = 8;
+	vhgcapsulestate = 16;
 	VHGinfoname = 22;
+	VHGtelemetrystar = 16;
+	VHGtelemetrybody = 16;
+	VHGhudstarlabel = 25;
+	VHGhudbodylabel = 25;
 	VHGinfoclass = 23;
 	VHGinfobodies = 30;
 	VHGinfolocal = 23;
@@ -1063,10 +1115,15 @@
 	end;
 
 "VHG capture clock option"
-	( Automated gallery captures may pin the source UTC second with the sole
-	  command-line argument clock=<decimal>. Ordinary launches have an empty
-	  command line and retain the live UTC clock. )
+	( Automated captures may pin the source UTC second with clock=<decimal>.
+	  A following `quit` token is a hosted diagnostic boundary: after writing the
+	  first complete sentinel frame, return through the ordinary save/exit path.
+	  Ordinary launches have an empty command line and retain live UTC. )
 	A = Command Line; [VHGargptr] = A;
+	( AArch64 reserves slots 4..11 for full-width runtime pointers, so its
+	  unit-string command line starts nine units after the legacy slot. )
+	C = [A]; ? C != 0 -> VHG capture clock leading space;
+	A + 9; [VHGargptr] = A;
 	"VHG capture clock leading space"
 	C = [A]; ? C != 32 -> VHG capture clock prefix; A+;
 	-> VHG capture clock leading space;
@@ -1087,10 +1144,158 @@
 	C '* 10; C + E; [VHGargvalue] = C; A+;
 	-> VHG capture clock digit;
     "VHG capture clock parsed"
+	[VHGargptr] = A;
 	A = [VHGargdigits]; ? A = 0 -> VHG capture clock done;
 	A = [VHGargvalue]; ? A <= 0 -> VHG capture clock done;
 	[VHGNDclocksecs] = A; [VHGNDclockoverride] = 1;
+	A = [VHGargptr];
+    "VHG capture clock find suffix"
+	C = [A]; ? C = 0 -> VHG capture clock done; ? C = 32 -> VHG capture clock suffix; A+;
+	-> VHG capture clock find suffix;
+    "VHG capture clock suffix"
+	A+; C = [A]; ? C != 113 -> VHG capture clock done; A+;
+	C = [A]; ? C != 117 -> VHG capture clock done; A+;
+	C = [A]; ? C != 105 -> VHG capture clock done; A+;
+	C = [A]; ? C != 116 -> VHG capture clock done; A+;
+	C = [A]; ? C != 0 -> VHG capture clock done;
+	[VHGsentinelquit] = 1;
     "VHG capture clock done"
+	end;
+
+"VHG repeat sentinel option"
+	( `capture` keeps the complete indexed diagnostic files current for a
+	  private-desktop interaction test.  Ordinary and one-shot oracle launches
+	  retain the single frame-60 write. )
+	A = Command Line;
+	C = [A]; ? C != 0 -> VHG repeat sentinel leading space; A + 9;
+    "VHG repeat sentinel leading space"
+	C = [A]; ? C != 32 -> VHG repeat sentinel scan; A+;
+	-> VHG repeat sentinel leading space;
+    "VHG repeat sentinel scan"
+	C = [A]; ? C = 0 -> VHG repeat sentinel done;
+	? C != 99 -> VHG repeat sentinel next;
+	E = A; E+; C = [E]; ? C != 97 -> VHG repeat sentinel next; E+;
+	C = [E]; ? C != 112 -> VHG repeat sentinel next; E+;
+	C = [E]; ? C != 116 -> VHG repeat sentinel next; E+;
+	C = [E]; ? C != 117 -> VHG repeat sentinel next; E+;
+	C = [E]; ? C != 114 -> VHG repeat sentinel next; E+;
+	C = [E]; ? C != 101 -> VHG repeat sentinel next; E+;
+	C = [E]; ? C = 0 -> VHG repeat sentinel found; ? C = 32 -> VHG repeat sentinel found;
+    "VHG repeat sentinel next"
+	A+; -> VHG repeat sentinel scan;
+    "VHG repeat sentinel found"
+	[VHGsentinelrepeat] = 1;
+    "VHG repeat sentinel done"
+	end;
+
+"VHG freeze diagnostic option"
+	( `freeze` is an opt-in renderer diagnostic: presentation and input continue,
+	  but simulation state stays fixed so paired indexed captures isolate one
+	  raster mutation. Ordinary and existing capture launches remain live. )
+	A = Command Line;
+	C = [A]; ? C != 0 -> VHG freeze leading space; A + 9;
+    "VHG freeze leading space"
+	C = [A]; ? C != 32 -> VHG freeze scan; A+;
+	-> VHG freeze leading space;
+    "VHG freeze scan"
+	C = [A]; ? C = 0 -> VHG freeze diagnostic done;
+	? C != 102 -> VHG freeze next;
+	E = A; E+; C = [E]; ? C != 114 -> VHG freeze next; E+;
+	C = [E]; ? C != 101 -> VHG freeze next; E+;
+	C = [E]; ? C != 101 -> VHG freeze next; E+;
+	C = [E]; ? C != 122 -> VHG freeze next; E+;
+	C = [E]; ? C != 101 -> VHG freeze next; E+;
+	C = [E]; ? C = 0 -> VHG freeze found; ? C = 32 -> VHG freeze found;
+    "VHG freeze next"
+	A+; -> VHG freeze scan;
+    "VHG freeze found"
+	[VHGsentinelfreeze] = 1;
+    "VHG freeze diagnostic done"
+	end;
+
+"VHG lift trace option"
+	( `lifttrace` appends the post-render scalar state and complete indexed page
+	  from every authoritative simulation tick of one lift ride.  It is private-
+	  desktop acceptance instrumentation and is inert on ordinary launches. )
+	A = Command Line;
+	C = [A]; ? C != 0 -> VHG lift trace leading space; A + 9;
+    "VHG lift trace leading space"
+	C = [A]; ? C != 32 -> VHG lift trace scan; A+;
+	-> VHG lift trace leading space;
+    "VHG lift trace scan"
+	C = [A]; ? C = 0 -> VHG lift trace option done;
+	? C != 108 -> VHG lift trace next;
+	E = A; E+; C = [E]; ? C != 105 -> VHG lift trace next; E+;
+	C = [E]; ? C != 102 -> VHG lift trace next; E+;
+	C = [E]; ? C != 116 -> VHG lift trace next; E+;
+	C = [E]; ? C != 116 -> VHG lift trace next; E+;
+	C = [E]; ? C != 114 -> VHG lift trace next; E+;
+	C = [E]; ? C != 97 -> VHG lift trace next; E+;
+	C = [E]; ? C != 99 -> VHG lift trace next; E+;
+	C = [E]; ? C != 101 -> VHG lift trace next; E+;
+	C = [E]; ? C = 0 -> VHG lift trace found; ? C = 32 -> VHG lift trace found;
+    "VHG lift trace next"
+	A+; -> VHG lift trace scan;
+    "VHG lift trace found"
+	[VHGsentinellifttrace] = 1;
+    "VHG lift trace option done"
+	end;
+
+"VHG capsule trace option"
+	( `capsuletrace` appends authoritative post-render descent/recovery state and
+	  complete indexed pages, including clean ship/surface handoff frames.  It is
+	  private-desktop acceptance instrumentation and inert on ordinary launches. )
+	A = Command Line;
+	C = [A]; ? C != 0 -> VHG capsule trace leading space; A + 9;
+    "VHG capsule trace leading space"
+	C = [A]; ? C != 32 -> VHG capsule trace scan; A+;
+	-> VHG capsule trace leading space;
+    "VHG capsule trace scan"
+	C = [A]; ? C = 0 -> VHG capsule trace option done;
+	? C != 99 -> VHG capsule trace next;
+	E = A; E+; C = [E]; ? C != 97 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 112 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 115 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 117 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 108 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 101 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 116 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 114 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 97 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 99 -> VHG capsule trace next; E+;
+	C = [E]; ? C != 101 -> VHG capsule trace next; E+;
+	C = [E]; ? C = 0 -> VHG capsule trace found; ? C = 32 -> VHG capsule trace found;
+    "VHG capsule trace next"
+	A+; -> VHG capsule trace scan;
+    "VHG capsule trace found"
+	[VHGsentinelcapsuletrace] = 1;
+    "VHG capsule trace option done"
+	end;
+
+"VHG profile option"
+	( `profile` is an opt-in terminal telemetry token.  Scan independently of
+	  clock=<decimal> so ordinary launches and the first-frame oracle contract
+	  remain byte-for-byte unchanged. )
+	A = Command Line;
+	C = [A]; ? C != 0 -> VHG profile leading space; A + 9;
+    "VHG profile leading space"
+	C = [A]; ? C != 32 -> VHG profile scan; A+;
+	-> VHG profile leading space;
+    "VHG profile scan"
+	C = [A]; ? C = 0 -> VHG profile option done;
+	? C != 112 -> VHG profile next;
+	E = A; E+; C = [E]; ? C != 114 -> VHG profile next; E+;
+	C = [E]; ? C != 111 -> VHG profile next; E+;
+	C = [E]; ? C != 102 -> VHG profile next; E+;
+	C = [E]; ? C != 105 -> VHG profile next; E+;
+	C = [E]; ? C != 108 -> VHG profile next; E+;
+	C = [E]; ? C != 101 -> VHG profile next; E+;
+	C = [E]; ? C = 0 -> VHG profile found; ? C = 32 -> VHG profile found;
+    "VHG profile next"
+	A+; -> VHG profile scan;
+    "VHG profile found"
+	[VHGprofileactive] = 1;
+    "VHG profile option done"
 	end;
 
 "VHG run"
@@ -1101,7 +1306,7 @@
 	=> PAL float init; => VHG palette;
 	=> SP build rgt; => SP riga init; => SP gman init; => SP load maps;
 	=> SP ncc load; => SP unloadallpv;
-	=> PGF constants; => VH view init;
+	=> PGF constants; => VH view init; => GR float init;
 	A = 0; A - 500; [VHGz] = A; [VHGbeta] = 180;
 	=> VH cupola build;
 	=> VH panels init;
@@ -1142,11 +1347,15 @@
 	=> VHG flight init;
 	=> TK seed; => TK start;
 	=> VHG fps init;
-	=> VHG capture clock option;
+	=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option;
+	=> VHG lift trace option; => VHG capsule trace option; => VHG profile option;
 	( Resume the versioned port checkpoint automatically when present.  VHSV
 	  leaves the initialized new-flight state untouched on a missing, stale,
 	  or malformed file, so first launch remains a clean game. )
 	=> VHG load checkpoint;
+	A = [VHGsentinelfreeze]; ? A = 0 -> VHG freeze frame ready;
+	[VHGframe] = 0; [VHGfreezebrtl] = [brtlseed]; [VHGfreezesuf] = [SUfseed];
+    "VHG freeze frame ready"
 	[VHLpower] = [VHGilight];
 	=> VHG restore window;
 	( iGUI declares Fold Is Active=YES before its first client loop even
@@ -1176,6 +1385,7 @@
 	[Client Exit Action] = service VHG GUI exit;
 	=> TK read wall; [VHGwallstart] = [TKtmp];
 	=> Enter Integrated GUI;
+	=> VHG write profile;
 	=> VHG capsule checkpoint collapse;
 	=> VHSV save;
 	=> VHA stop;
@@ -1267,7 +1477,16 @@
 		  dual publication, plus cursor composition and physical retrace. )
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 		A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofpresent]; [VHGprofpresent] = A;
+		A = [VHGprofileactive]; ? A = 0 -> VHG profile present counted;
+		[VHGprofilepresentations]+;
+		A = [VHGprofileinputpending]; ? A = 0 -> VHG profile present counted;
+		A-; [VHGprofileinputpending] = A; ? A != 0 -> VHG profile present counted;
+		[VHGprofileinputpresent] = [VHGprofnow];
+	    "VHG profile present counted"
 		=> VHG timing step;
+		A = [VHGprofileresetpending]; ? A = 0 -> VHG profile reset done;
+		[VHGprofileresetpending] = 0; => VHG profile reset;
+	    "VHG profile reset done"
 	=> VHG fps tick;
 	A = [VHGesc]; ? A = 0 -> VHG GUI loop done;
 	=> VHG capsule checkpoint collapse;
@@ -1373,6 +1592,9 @@
 
 "VHG one frame"
 	=> VHG cadence;
+	A = [VHGprofileactive]; ? A = 0 -> VHG profile sim counted;
+	A = [VHGdosim]; ? A = 0 -> VHG profile sim counted; [VHGprofilesimticks]+;
+    "VHG profile sim counted"
 	=> VHG interpolation advance;
 	=> VHG fpu clean;
 	=> VHG SL advance; => VHG DL advance; => VHG fpu clean;
@@ -1448,15 +1670,18 @@
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 	A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofrender]; [VHGprofrender] = A;
 		[VHGsentframes]+;
-		A = [VHGsent]; ? A != 0 -> VHG no sentinel;
+		A = [VHGsent]; ? A = 0 -> VHG sentinel frame ready;
+		A = [VHGsentinelrepeat]; ? A = 0 -> VHG no sentinel;
+    "VHG sentinel frame ready"
 		A = [VHGsentframes]; ? A < 60 -> VHG no sentinel;
-		=> VHG write sentinel; [VHGsent] = 1;
+		=> VHG write sentinel; [VHGsent] = 1; [VHGsentframes] = 0;
+		A = [VHGprofileactive]; ? A = 0 -> VHG no sentinel; [VHGprofileresetpending] = 1;
     "VHG no sentinel"
 		( Surface input samples interpolated terrain height through x87 helpers.
 		  Rendering uses the same shared stack, so give input a clean ABI boundary;
 		  without it the first walking sample after capsule settlement could return
 		  through a corrupted floating-point helper frame. )
-		=> VHG fpu clean; => VHG lift postrender; => VHG input;
+		=> VHG fpu clean; => VHG lift postrender; => VHG lift trace; => VHG capsule trace; => VHG input;
 	( VHGframe is the retained source-loop clock used by the physical orbital
 	  console.  Extra F5 presentation frames must not accelerate that display. )
 	A = [VHGdosim]; ? A = 0 -> VHG frame count done; [VHGframe]+;
@@ -2692,14 +2917,11 @@
 	[PVfr] = 16; [PVfg] = 32; [PVfb] = 63; => PAL tavola;
 
 	( Bootstrap bands used before the first system resolves.  VHG star palette
-	  replaces 64..127, while VHGND globe surface replaces the resident moon
-	  and planet bands 128..191 and 192..255 with surface()'s generated colours. )
+	  replaces 64..127, while VHGND globe surface replaces 128..191 only for a
+	  resident moon and 192..255 for a planet. Keep an absent moon band black. )
 	[PVsrc] = range8088; [PVself] = 0;
 	[PVfirst] = 64; [PVn] = 64;
 	[PVfr] = 32; [PVfg] = 48; [PVfb] = 63; => PAL tavola;
-	[PVsrc] = range8088; [PVself] = 0;
-	[PVfirst] = 128; [PVn] = 64;
-	[PVfr] = 63; [PVfg] = 56; [PVfb] = 48; => PAL tavola;
 	[PVsrc] = range8088; [PVself] = 0;
 	[PVfirst] = 192; [PVn] = 64;
 	[PVfr] = 40; [PVfg] = 52; [PVfb] = 63; => PAL tavola;
@@ -3010,13 +3232,19 @@
 	  white trails spread at presentation cadence.  Reuse the completed indexed
 	  page between flight ticks.  Fine approach remains live because its retained
 	  local step advances on every presentation frame; surfaces retain their
-	  interpolation path. )
+	  interpolation path.  The opt-in frozen diagnostic is the exception: it must
+	  rebuild the page while simulation stays fixed so paired captures can isolate
+	  editor and cursor raster changes. )
+	A = [VHGsentinelfreeze]; ? A != 0 -> VHG render live;
 	A = [VHGfast]; ? A = 0 -> VHG render live;
 	A = [VHGdosim]; ? A != 0 -> VHG render live;
 	A = [VHGmode]; ? A != 0 -> VHG render live;
 	A = [VHGlocalactive]; ? A = 0 -> VHG render reused;
 	A = [MgIpreaching]; ? A = 0 -> VHG render reused;
     "VHG render live"
+	A = [VHGsentinelfreeze]; ? A = 0 -> VHG render seeds ready;
+	[brtlseed] = [VHGfreezebrtl]; [SUfseed] = [VHGfreezesuf];
+    "VHG render seeds ready"
 	[Timer Command] = READ COUNTS; isocall; [VHGprofpart] = [Counts];
 	( IsoKernel timer calls do not preserve the x87 stack.  Profiling was
 	  inserted ahead of each render phase, so every camera began with stale
@@ -3024,6 +3252,7 @@
 	  the runtime ABI before the first surface/ship floating-point work. )
 	=> VHG fpu clean;
 	A = [VHGmode]; ? A != 0 -> VHG render surface;
+	A = [VHGsentinelfreeze]; ? A != 0 -> VHG render space clear;
 	A = [MgStspeed]; ? A != 0 -> VHG render space fade;
     "VHG render space clear"
 	=> VHG space clear;
@@ -3039,10 +3268,10 @@
 	[VHSdy0] = [MgDzatY0]; [VHSdy1] = [MgDzatY1];
 	[VHSdz0] = [MgDzatZ0]; [VHSdz1] = [MgDzatZ1];
 	[VHSalpha] = [VHGalpha];
-	( from_vehicle(): user_beta + navigation_beta + 180.  The port's external
-	  VHGbeta convention already includes that source half-turn, as proved by
-	  the native orbital globe poses, so add only navigation_beta here. )
-	A = [VHGbeta]; A + [VHGnavbeta]; A % 360;
+	( from_vehicle(): user_beta + navigation_beta + 180.  VHGbeta is the
+	  source user_beta, so retain the half-turn before installing the exterior
+	  projection matrix. )
+	A = [VHGbeta]; A + [VHGnavbeta]; A + 180; A % 360;
 	? A >= 0 -> VHG external beta ok; A + 360;
     "VHG external beta ok"
 	[VHSbeta] = A; [VHSamp] = [VHGamp];
@@ -3057,7 +3286,12 @@
 	[VHTinterpok] = [VHGinterpok]; [VHTinterpacc] = [VHGinterpacc];
 	( The source's non-spinning star classes use (clock()/360)%360 instead
 	  of gl_start.  READ TIME is milliseconds, matching that visible clock. )
+	A = [VHGsentinelfreeze]; ? A != 0 -> VHG render clock frozen;
 	=> TK read wall; A = [TKtmp]; A / 360; A % 360; [VHTclockphase] = A;
+	-> VHG render clock ready;
+    "VHG render clock frozen"
+	[VHTclockphase] = 0;
+    "VHG render clock ready"
 	=> VHG fpu clean;
 	=> VHG visor flare mode;
 	A = [VHGlocalactive]; ? A != 0 -> VHG close star rendered;
@@ -3126,6 +3360,139 @@
 	B ^ VHG space clear eight;
 	end;
 
+"VHG HUD labels prepare"
+	( NOCTIS.CPP's two fixed 24-character outer-HUD labels.  Catalogue hits
+	  supply the retained 20-byte name; uncharted targets use the source text,
+	  and all rows retain the generated Snn/Pnn suffix. )
+	[VHPtelemetrystarlabel] = 0; [VHPtelemetrybodylabel] = 0;
+	[VHPtelemetrystaredit] = 0; [VHPtelemetrybodyedit] = 0;
+	A = [MgAptgt]; ? A = 0 -> VHG HUD label body;
+	A = [VHGlabelstar]; ? A != 0 -> VHG HUD star label editing;
+	[VHGhudlabeldst] = VHGhudstarlabel;
+	A = [VHCATstarok]; ? A = 0 -> VHG HUD star label default;
+	A = vhcatstarlabel; A + 1; [VHGhudlabelsrc] = A; [VHGhudlabellen] = 20;
+	=> VHG HUD label copy; -> VHG HUD star label suffix;
+    "VHG HUD star label default"
+	[VHGhudlabelsrc] = VHGhudstardefault; [VHGhudlabellen] = 20;
+	=> VHG HUD label copy;
+    "VHG HUD star label suffix"
+	E = VHGhudstarlabel; [E plus 20] = 32; [E plus 21] = 83;
+	A = [VHTclass]; B = A; A / 10; A + 48; [E plus 22] = A;
+	B '% 10; B + 48; [E plus 23] = B; [E plus 24] = 0;
+	[VHPtelemetrystarlabel] = VHGhudstarlabel; -> VHG HUD label body;
+    "VHG HUD star label editing"
+	[VHPtelemetrystarlabel] = VHGhudstarlabel; [VHPtelemetrystaredit] = 1;
+	[VHPtelemetrystarcursor] = [VHGlabelstarpos];
+    "VHG HUD label body"
+	A = [VHGplanet]; ? A '>= [nsnob] -> VHG HUD labels prepared;
+	A = [VHGlabelbody]; ? A != 0 -> VHG HUD body label editing;
+	[VHGhudlabeldst] = VHGhudbodylabel;
+	A = [VHCATbodyok]; ? A = 0 -> VHG HUD body label default;
+	A = vhcatbodylabel; A + 1; [VHGhudlabelsrc] = A; [VHGhudlabellen] = 20;
+	=> VHG HUD label copy; E = VHGhudbodylabel; [E plus 20] = 32;
+	-> VHG HUD body label suffix;
+    "VHG HUD body label default"
+	E = nspowner; E + [VHGplanet]; A = [E]; ? A >= 0 -> VHG HUD moon label default;
+	[VHGhudlabelsrc] = VHGhudplanetdefault; [VHGhudlabellen] = 20;
+	=> VHG HUD label copy; E = VHGhudbodylabel; [E plus 20] = 32;
+	-> VHG HUD body label suffix;
+    "VHG HUD moon label default"
+	[VHGhudlabelsrc] = VHGhudmoondefault; [VHGhudlabellen] = 15;
+	=> VHG HUD label copy;
+	E = VHGhudbodylabel; C = nspmoonid; C + [VHGplanet]; A = [C]; A + 1;
+	B = A; A / 10; A + 48; [E plus 15] = A; B '% 10; B + 48; [E plus 16] = B;
+	[E plus 17] = 47; C = nspowner; C + [VHGplanet]; A = [C]; A + 1;
+	B = A; A / 10; A + 48; [E plus 18] = A; B '% 10; B + 48; [E plus 19] = B;
+	[E plus 20] = 38;
+    "VHG HUD body label suffix"
+	E = VHGhudbodylabel; A = [VHGplanet]; A + 1; B = A;
+	[E plus 21] = 80; A / 10; A + 48; [E plus 22] = A;
+	B '% 10; B + 48; [E plus 23] = B; [E plus 24] = 0;
+	[VHPtelemetrybodylabel] = VHGhudbodylabel; -> VHG HUD labels prepared;
+    "VHG HUD body label editing"
+	[VHPtelemetrybodylabel] = VHGhudbodylabel; [VHPtelemetrybodyedit] = 1;
+	[VHPtelemetrybodycursor] = [VHGlabelbodypos];
+    "VHG HUD labels prepared"
+	end;
+
+"VHG HUD label copy"
+	[VHGhudlabeli] = 0;
+    "VHG HUD label copy loop"
+	A = [VHGhudlabeli]; ? A >= [VHGhudlabellen] -> VHG HUD label copy done;
+	C = [VHGhudlabelsrc]; C + A; E = [VHGhudlabeldst]; E + A; [E] = [C];
+	[VHGhudlabeli]+; -> VHG HUD label copy loop;
+    "VHG HUD label copy done"
+	end;
+
+"VHG HUD telemetry prepare"
+	( NOCTIS.CPP outer HUD range rows.  Keep the source's binary64 distance,
+	  scale, nearest two-decimal conversion, and separate remote/local gates. )
+	[VHPtelemetryclock] = [VHGframe];
+	A = [VHGsentinelfreeze]; ? A = 0 -> VHG HUD telemetry clock ready;
+	[VHPtelemetryclock] = [VHGfreezeblink];
+    "VHG HUD telemetry clock ready"
+	[VHPtelemetrystar] = 0; [VHPtelemetrybody] = 0;
+	=> VHG HUD labels prepare; => VHG fpu clean;
+	A = [MgAptgt]; ? A = 0 -> VHG HUD telemetry local;
+	A = [VHGlocalactive]; ? A != 0 -> VHG HUD telemetry current star;
+	[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1];
+	[FB0] = [MgApX0]; [FB1] = [MgApX1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[VHGtelemetryacc0] = [FA0]; [VHGtelemetryacc1] = [FA1];
+	[FA0] = [MgDzatY0]; [FA1] = [MgDzatY1];
+	[FB0] = [MgApY0]; [FB1] = [MgApY1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGtelemetryacc0]; [FB1] = [VHGtelemetryacc1]; => FAdd;
+	[VHGtelemetryacc0] = [FA0]; [VHGtelemetryacc1] = [FA1];
+	[FA0] = [MgDzatZ0]; [FA1] = [MgDzatZ1];
+	[FB0] = [MgApZ0]; [FB1] = [MgApZ1]; => FSub;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGtelemetryacc0]; [FB1] = [VHGtelemetryacc1]; => FAdd; => FSqrt;
+	-> VHG HUD telemetry star scale;
+    "VHG HUD telemetry current star"
+	( target-from-star + Stardrifter-from-target is the source dzat-nearstar
+	  vector.  Its sign is immaterial to the Euclidean range. )
+	[FA0] = [VHGlocaltx0]; [FA1] = [VHGlocaltx1];
+	[FB0] = [VHGlocalx0]; [FB1] = [VHGlocalx1]; => FAdd;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[VHGtelemetryacc0] = [FA0]; [VHGtelemetryacc1] = [FA1];
+	[FA0] = [VHGlocalty0]; [FA1] = [VHGlocalty1];
+	[FB0] = [VHGlocaly0]; [FB1] = [VHGlocaly1]; => FAdd;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGtelemetryacc0]; [FB1] = [VHGtelemetryacc1]; => FAdd;
+	[VHGtelemetryacc0] = [FA0]; [VHGtelemetryacc1] = [FA1];
+	[FA0] = [VHGlocaltz0]; [FA1] = [VHGlocaltz1];
+	[FB0] = [VHGlocalz0]; [FB1] = [VHGlocalz1]; => FAdd;
+	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [VHGtelemetryacc0]; [FB1] = [VHGtelemetryacc1]; => FAdd; => FSqrt;
+    "VHG HUD telemetry star scale"
+	[FB0] = VHGK5EM50; [FB1] = VHGK5EM51; => FMul;
+	A = [VHGlocalactive]; ? A = 0 -> VHG HUD telemetry star scaled;
+	[FB0] = VHGK0010; [FB1] = VHGK0011; => FMul;
+    "VHG HUD telemetry star scaled"
+	[VHGtelemetryvalue0] = [FA0]; [VHGtelemetryvalue1] = [FA1];
+	[FI] = 100; => IntToF;
+	[FB0] = [VHGtelemetryvalue0]; [FB1] = [VHGtelemetryvalue1]; => FMul; => FToIntNear;
+	[VHGonrowdst] = VHGtelemetrystar; => VHG onboard row begin;
+	[VHGinfofixedvalue] = [FI]; [VHGinfofixeddigits] = 2;
+	=> VHG info append fixed; => VHG onboard row finish;
+	[VHPtelemetrystar] = VHGtelemetrystar;
+    "VHG HUD telemetry local"
+	A = [VHGlocaltarget]; ? A = 0FFFFFFFFh -> VHG HUD telemetry prepared;
+	? A '>= [nsnob] -> VHG HUD telemetry prepared;
+	[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];
+	[FB0] = VHGK0010; [FB1] = VHGK0011; => FMul;
+	[VHGtelemetryvalue0] = [FA0]; [VHGtelemetryvalue1] = [FA1];
+	[FI] = 100; => IntToF;
+	[FB0] = [VHGtelemetryvalue0]; [FB1] = [VHGtelemetryvalue1]; => FMul; => FToIntNear;
+	[VHGonrowdst] = VHGtelemetrybody; => VHG onboard row begin;
+	[VHGinfofixedvalue] = [FI]; [VHGinfofixeddigits] = 2;
+	=> VHG info append fixed; => VHG onboard row finish;
+	[VHPtelemetrybody] = VHGtelemetrybody;
+    "VHG HUD telemetry prepared"
+	=> VHG fpu clean;
+	end;
+
 "VHG interior smooth64"
 	( NOCTIS-0.CPP psmooth_64, operating on Lino's one-byte-per-unit page.
 	  Each destination keeps the first sample's palette band and receives the
@@ -3162,6 +3529,12 @@
 	A = [VHGy]; A + 480; [VHVcamyi] = A;
 	A = [VHGz]; A + 200; [VHVcamzi] = A;
 	=> VH set view; [VHLpower] = [VHGilight]; [VHLemergency] = [VHGelight]; => VH alogena;
+	( The source outer-HUD range rows are world-space indexed glyphs drawn
+	  after vehicle() and before its two smoothing passes. )
+	A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG source outer HUD done;
+	A = [VHGdrawhud]; ? A != 1 -> VHG source outer HUD done;
+	=> VHG HUD telemetry prepare; => VH HUD telemetry;
+    "VHG source outer HUD done"
 	( NIV+ smooths the composed interior twice before sky() and the HUD.  This
 	  is what turns the halogen's raw dotted spokes into the soft visor glow;
 	  omitting it exposed the construction lines and made bright pixels linger.
@@ -3208,6 +3581,7 @@
 		[VHGNDcamx] = [VHGx]; [VHGNDcamy] = [VHGy]; [VHGNDcamz] = [VHGz];
 		[VHGNDplayerrefx] = [VHGsurfrefx]; [VHGNDplayerrefz] = [VHGsurfrefz];
 		[VHGNDalpha] = [VHGalpha]; [VHGNDbeta] = [VHGbeta]; [VHGNDdosim] = [VHGdosim];
+		[VHGNDhudcount] = [VHGhudcount];
 		[VHGNDgalx0] = [MgDzatX0]; [VHGNDgalx1] = [MgDzatX1];
 		[VHGNDgaly0] = [MgDzatY0]; [VHGNDgaly1] = [MgDzatY1];
 		[VHGNDgalz0] = [MgDzatZ0]; [VHGNDgalz1] = [MgDzatZ1];
@@ -3231,14 +3605,25 @@
 		  ship/device character pipeline against partially transitioned surface
 		  state; a queued landing key could otherwise survive into that pipeline
 		  and corrupt its indirect key-table return.  Escape remains immediate. )
-		A = [VHGslcancelheld]; ? A = 0 -> VHG input escape ready;
+		A = [VHGslcancelheld]; ? A = 0 -> VHG input label escape latch;
 		A = [KEY ESCAPE]; ? A = ON -> VHG input done; [VHGslcancelheld] = 0;
+    "VHG input label escape latch"
+		A = [VHGlabelescheld]; ? A = 0 -> VHG input escape ready;
+		A = [KEY ESCAPE]; ? A = ON -> VHG input done; [VHGlabelescheld] = 0;
 	    "VHG input escape ready"
-		A = [KEY ESCAPE]; ? A = ON -> VHG input escape;
+		A = [KEY ESCAPE]; ? A = OFF -> VHG input no physical escape;
+		A = [VHGlabelstar]; A | [VHGlabelbody]; ? A = 0 -> VHG input escape;
+		[VHGlabelescheld] = 1; => VHG label input; -> VHG input done;
+    "VHG input no physical escape"
 		A = [VHGmode]; ? A = 0 -> VHG input active;
 		A = [VHGlanded]; ? A != 0 -> VHG input active;
 		-> VHG input done;
 	    "VHG input active"
+		A = [VHGprofileactive]; ? A = 0 -> VHG profile input sampled;
+		A = [VHGprofileinputseen]; ? A != 0 -> VHG profile input sampled;
+		A = [KEY W]; ? A = OFF -> VHG profile input sampled;
+		[Timer Command] = READ COUNTS; isocall; [VHGprofileinputseen] = [Counts];
+	    "VHG profile input sampled"
 		A = [Client Owns Text Cursor]; ? A = NO -> VHG input done;
 	A = [KEY RETURN]; ? A = ON -> VHG return hook armed;
 	[VHGreturnhookheld] = 0;
@@ -3252,6 +3637,7 @@
 	[Console Command] = CLEAR CONSOLE BUFFER; isocall;
     "VHG console ring ready"
 	=> VHG return key;
+	=> VHG label input; A = [VHGlabelused]; ? A != 0 -> VHG input done;
 	=> VHG fps key;
 	=> VHG graphics key;
 	=> VHG movie key;
@@ -3409,7 +3795,7 @@
 
 	( The source continues sampling player movement during a lift.  The later
 	  centre restraint influences the route but does not lock out controls. )
-	A = [KEY W]; ? A = OFF -> VHG no W; [VHGstepv] = VHGSTEP; => VHG forward;
+	A = [KEY W]; ? A = OFF -> VHG no W; => VHG profile W effect; [VHGstepv] = VHGSTEP; => VHG forward;
     "VHG no W"
 	A = [KEY S]; ? A = OFF -> VHG no S; A = 0; A - VHGSTEP; [VHGstepv] = A; => VHG forward;
     "VHG no S"
@@ -3433,6 +3819,14 @@
 	=> VHG clamp position;
 	=> VHG platform;
 	"VHG input cleanup done"
+	end;
+
+"VHG profile W effect"
+	A = [VHGprofileactive]; ? A = 0 -> VHG profile W effect done;
+	A = [VHGprofileinputeffect]; ? A != 0 -> VHG profile W effect done;
+	[Timer Command] = READ COUNTS; isocall;
+	[VHGprofileinputeffect] = [Counts]; [VHGprofileinputpending] = 2;
+    "VHG profile W effect done"
 	end;
 
 "VHG landing selector input"
@@ -3726,6 +4120,67 @@
     "VHG onboard select done"
 	end;
 
+"VHG label input"
+	( Native label editing owns every ordinary character while active.  Escape
+	  cancels, Backspace clears one padded cell, Return appends the retained
+	  32-byte STARMAP record, and lowercase input is stored in uppercase. )
+	[VHGlabelused] = 0; A = [VHGlabelstar]; A | [VHGlabelbody];
+	? A = 0 -> VHG label input done; [VHGlabelused] = 1;
+	A = [KEY ESCAPE]; ? A = ON -> VHG label cancel;
+	A = [VHGascii]; [VHGlabelchar] = A; [VHGascii] = 0; A = [VHGlabelchar];
+	? A = 0 -> VHG label input done;
+	? A = 27 -> VHG label cancel; ? A = 8 -> VHG label backspace;
+	? A = 13 -> VHG label commit; ? A < 32 -> VHG label input done;
+	? A > 126 -> VHG label input done;
+	? A < 97 -> VHG label character ready; ? A > 122 -> VHG label character ready;
+	-> VHG label lowercase character;
+    "VHG label lowercase character"
+	[VHGlabelchar] - 32;
+    "VHG label character ready"
+	A = [VHGlabelstar]; ? A = 0 -> VHG label body character;
+	A = [VHGlabelstarpos]; ? A >= 20 -> VHG label input done;
+	E = VHGhudstarlabel; E + A; [E] = [VHGlabelchar]; [VHGlabelstarpos]+;
+	-> VHG label input done;
+    "VHG label body character"
+	A = [VHGlabelbodypos]; ? A >= 20 -> VHG label input done;
+	E = VHGhudbodylabel; E + A; [E] = [VHGlabelchar]; [VHGlabelbodypos]+;
+	-> VHG label input done;
+    "VHG label backspace"
+	A = [VHGlabelstar]; ? A = 0 -> VHG label body backspace;
+	A = [VHGlabelstarpos]; ? A <= 0 -> VHG label input done; [VHGlabelstarpos]-;
+	A = [VHGlabelstarpos]; E = VHGhudstarlabel; E + A; [E] = 32;
+	-> VHG label input done;
+    "VHG label body backspace"
+	A = [VHGlabelbodypos]; ? A <= 0 -> VHG label input done; [VHGlabelbodypos]-;
+	A = [VHGlabelbodypos]; E = VHGhudbodylabel; E + A; [E] = 32;
+	-> VHG label input done;
+    "VHG label commit"
+	A = [VHGlabelstar]; ? A = 0 -> VHG label commit body;
+	[VHGhudlabelsrc] = VHGhudstarlabel; [VHGlabelstar] = 0; [VHCATtype] = VHCATS;
+	-> VHG label commit record;
+    "VHG label commit body"
+	[VHGhudlabelsrc] = VHGhudbodylabel; [VHGlabelbody] = 0; [VHCATtype] = VHCATP;
+    "VHG label commit record"
+	[VHCATid0] = [VHGlabelid0]; [VHCATid1] = [VHGlabelid1];
+	[VHCATcode] = [VHGlabelcode]; [VHCATlen] = 20; [VHGlabeli] = 0;
+    "VHG label commit copy"
+	A = [VHGlabeli]; E = [VHGhudlabelsrc]; E + A; C = vhcatname; C + A; [C] = [E];
+	[VHGlabeli]+; A = [VHGlabeli]; ? A < 20 -> VHG label commit copy;
+	=> VHCAT add; A = [VHCATstatus]; ? A = 1 -> VHG label assigned;
+	? A = 3 -> VHG label extant; [VHGlabelresult] = 6; [VHGnoticeptr] = VHGlabelerrortext;
+	-> VHG label commit finish;
+    "VHG label assigned"
+	[VHGlabelresult] = 1; [VHGnoticeptr] = VHGlabelassignedtext; -> VHG label commit finish;
+    "VHG label extant"
+	[VHGlabelresult] = 2; [VHGnoticeptr] = VHGlabelextanttext;
+    "VHG label commit finish"
+	[VHGnoticeframes] = 50; => VHCAT count system bodies; => VHCAT refresh;
+	-> VHG label input done;
+    "VHG label cancel"
+	[VHGascii] = 0; [VHGlabelstar] = 0; [VHGlabelbody] = 0; => VHCAT refresh;
+    "VHG label input done"
+	end;
+
 "VHG navigation steering input"
 	A = [VHGdosim]; ? A = 0 -> VHG navigation steering done;
 	A = [VHGgazex]; ? A > 2500 -> VHG navigation steer right;
@@ -3934,6 +4389,7 @@
 	A = [KEY W]; ? A = ON -> VHG surface do W;
 	A = [VHGmovew]; ? A = 0 -> VHG surface no W;
     "VHG surface do W"
+	=> VHG profile W effect;
 	A = [VHGsurfstep]; A + [VHGstepv]; [VHGsurfstep] = A;
     "VHG surface no W"
 	A = [KEY S]; ? A = ON -> VHG surface do S;
@@ -4273,6 +4729,89 @@
 	A = [VHGx]; A * 3; A / 4; [VHGx] = A;
 	A = [VHGz]; A + 3100; A / 4; C = [VHGz]; C - A; [VHGz] = C;
     "VHG lift postrender done"
+	end;
+
+"VHG lift trace"
+	A = [VHGsentinellifttrace]; ? A = 0 -> VHG lift trace done;
+	A = [VHGdosim]; ? A = 0 -> VHG lift trace done;
+	A = [VHGlifttraceactive]; ? A != 0 -> VHG lift trace capture;
+	A = [VHGlifter]; ? A = 0 -> VHG lift trace done;
+	[VHGlifttraceactive] = 1;
+    "VHG lift trace capture"
+	[vhgliftstate plus 0] = [VHGy]; [vhgliftstate plus 1] = [VHGlifter];
+	[vhgliftstate plus 2] = [VHGonroof]; [vhgliftstate plus 3] = [VHGliftstep];
+	[vhgliftstate plus 4] = [VHGx]; [vhgliftstate plus 5] = [VHGz];
+	[vhgliftstate plus 6] = [VHGalpha]; [vhgliftstate plus 7] = [VHGbeta];
+	[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;
+	A = [VHGlifttracecount]; [VHGlifttraceindex] = A; A * 32;
+	[File Name] = vhgliftstatename; [File Position] = A; [File Command] = WRITE;
+	[Block Pointer] = vhgliftstate; [Block Size] = 32; isocall;
+	A = [VHGlifttraceindex]; A * 64000;
+	[File Name] = vhgliftpagesname; [File Position] = A; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 64000; isocall;
+	[VHGlifttracecount]+;
+	A = [VHGlifttracecount]; A * 32;
+	[File Name] = vhgliftstatename; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = A; isocall;
+	A = [VHGlifttracecount]; A * 64000;
+	[File Name] = vhgliftpagesname; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = A; isocall;
+	A = [VHGlifter]; ? A != 0 -> VHG lift trace done;
+	[VHGlifttraceactive] = 0;
+    "VHG lift trace done"
+	end;
+
+"VHG capsule trace"
+	A = [VHGsentinelcapsuletrace]; ? A = 0 -> VHG capsule trace done;
+	A = [VHGdosim]; ? A = 0 -> VHG capsule trace done;
+	A = [VHGcapsuletraceactive]; ? A != 0 -> VHG capsule trace capture;
+	A = [VHGCstate]; ? A = 2 -> VHG capsule trace ascent start;
+	? A != 1 -> VHG capsule trace done;
+	[VHGcapsuletraceactive] = 3; -> VHG capsule trace capture;
+    "VHG capsule trace ascent start"
+	[VHGcapsuletraceactive] = 1;
+    "VHG capsule trace capture"
+	[vhgcapsulestate plus 0] = [VHGCstate];
+	[vhgcapsulestate plus 1] = [VHGCcapcount];
+	[vhgcapsulestate plus 2] = [VHGCrecover];
+	[vhgcapsulestate plus 3] = [VHGlanded];
+	[vhgcapsulestate plus 4] = [VHGmode];
+	[vhgcapsulestate plus 5] = [VHGcapsulereturnpending];
+	[vhgcapsulestate plus 6] = [VHGx];
+	[vhgcapsulestate plus 7] = [VHGy];
+	[vhgcapsulestate plus 8] = [VHGz];
+	[vhgcapsulestate plus 9] = [VHGCground];
+	[vhgcapsulestate plus 10] = [VHGCgravity];
+	[vhgcapsulestate plus 11] = [VHGCwindangle];
+	[vhgcapsulestate plus 12] = [VHGCwindpower];
+	[vhgcapsulestate plus 13] = [VHGframe];
+	[vhgcapsulestate plus 14] = [VHGinterpok];
+	[vhgcapsulestate plus 15] = [VHGdosim];
+	[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;
+	A = [VHGcapsuletracecount]; [VHGcapsuletraceindex] = A; A * 64;
+	[File Name] = vhgcapsulestatename; [File Position] = A; [File Command] = WRITE;
+	[Block Pointer] = vhgcapsulestate; [Block Size] = 64; isocall;
+	A = [VHGcapsuletraceindex]; A * 64000;
+	[File Name] = vhgcapsulepagesname; [File Position] = A; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 64000; isocall;
+	[VHGcapsuletracecount]+;
+	A = [VHGcapsuletracecount]; A * 64;
+	[File Name] = vhgcapsulestatename; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = A; isocall;
+	A = [VHGcapsuletracecount]; A * 64000;
+	[File Name] = vhgcapsulepagesname; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = A; isocall;
+	A = [VHGcapsuletraceactive]; ? A = 3 -> VHG capsule trace descent complete;
+	? A = 2 -> VHG capsule trace complete;
+	A = [VHGCstate]; ? A != 0 -> VHG capsule trace done;
+	A = [VHGcapsulereturnpending]; ? A = 0 -> VHG capsule trace complete;
+	[VHGcapsuletraceactive] = 2; -> VHG capsule trace done;
+    "VHG capsule trace descent complete"
+	A = [VHGCstate]; ? A != 0 -> VHG capsule trace done;
+	A = [VHGlanded]; ? A = 0 -> VHG capsule trace done;
+    "VHG capsule trace complete"
+	[VHGcapsuletraceactive] = 0;
+    "VHG capsule trace done"
 	end;
 
 "VHG lift move"
@@ -7382,7 +7921,7 @@
 	end;
 
 "VHG surface telemetry update"
-	A = [VHGmode]; ? A = 0 -> VHG surface telemetry update done;
+	A = [VHGmode]; ? A = 0 -> VHG surface telemetry smooth;
 	A = [VHGy]; A / 4000; A + [VHGsurftempt]; [VHGsurftempnow] = A;
 	( NOCTIS.CPP reseeds fast_random from secs/2 and adds two independent
 	  fast_flandom draws scaled by eight to the tiredness-derived pulse. )
@@ -7393,6 +7932,7 @@
 	A = [VHGsurftiredq]; A '* 118; A / 10000; A + 118;
 	A + [VHGsurfpulsejitter]; C = A;
 	A = [SUfval]; A '* 8; A '/ 32768; C - A; [VHGsurfpulse] = C;
+    "VHG surface telemetry smooth"
 	A = [VHGsurfgravm]; D = VHGsurfgravdisp; C = 4; => VHG surface smooth field;
 	A = [VHGsurftempnow]; D = VHGsurftempdisp; C = 20; => VHG surface smooth field;
 	A = [VHGsurfpressm]; D = VHGsurfpressdisp; C = 50; => VHG surface smooth field;
@@ -8255,8 +8795,18 @@
 	[VHPoncmd2] = VHGsrclocal; [VHPoncmd3] = VHGsrcenvironment;
 	[VHPoninfo0] = VHGdevtitle; -> VHG onboard prepare done;
     "VHG onboard prepare cart"
-	[VHPoncmd0] = VHGsrccartstar; [VHPoncmd1] = VHGsrccartplanet;
-	[VHPoncmd2] = VHGsrccarttargets; [VHPoncmd3] = VHGsrccartparsis;
+	A = VHGsrccartstar; C = [VHGlabelstar]; ? C = 0 -> VHG onboard cart star idle;
+	A = VHGsrccartstarassign; -> VHG onboard cart star ready;
+    "VHG onboard cart star idle"
+	C = [VHCATstarok]; ? C = 0 -> VHG onboard cart star ready; A = VHGsrccartstarremove;
+    "VHG onboard cart star ready"
+	[VHPoncmd0] = A;
+	A = VHGsrccartplanet; C = [VHGlabelbody]; ? C = 0 -> VHG onboard cart body idle;
+	A = VHGsrccartplanetassign; -> VHG onboard cart body ready;
+    "VHG onboard cart body idle"
+	C = [VHCATbodyok]; ? C = 0 -> VHG onboard cart body ready; A = VHGsrccartplanetremove;
+    "VHG onboard cart body ready"
+	[VHPoncmd1] = A; [VHPoncmd2] = VHGsrccarttargets; [VHPoncmd3] = VHGsrccartparsis;
 	=> VHG onboard cartography information;
 	[VHPoninfo0] = VHGonboardrow0; [VHPoninfo1] = VHGonboardrow1;
 	[VHPoninfo2] = VHGonboardrow2; -> VHG onboard prepare done;
@@ -8397,8 +8947,18 @@
 	-> VHG device overlay done;
     "VHG device cartography overlay"
 	[VHGinfoy] = 14; [VHGinfoline] = VHGcarttitle; => VHG info draw line;
-	[VHGinfoline] = VHGcartstar; => VHG info draw line;
-	[VHGinfoline] = VHGcartplanet; => VHG info draw line;
+	[VHGinfoline] = VHGcartstar; A = [VHGlabelstar]; ? A = 0 -> VHG device cart star idle;
+	[VHGinfoline] = VHGcartstarassign; -> VHG device cart star selected;
+    "VHG device cart star idle"
+	A = [VHCATstarok]; ? A = 0 -> VHG device cart star selected; [VHGinfoline] = VHGcartstarremove;
+    "VHG device cart star selected"
+	=> VHG info draw line;
+	[VHGinfoline] = VHGcartplanet; A = [VHGlabelbody]; ? A = 0 -> VHG device cart body idle;
+	[VHGinfoline] = VHGcartplanetassign; -> VHG device cart body selected;
+    "VHG device cart body idle"
+	A = [VHCATbodyok]; ? A = 0 -> VHG device cart body selected; [VHGinfoline] = VHGcartplanetremove;
+    "VHG device cart body selected"
+	=> VHG info draw line;
 	[VHGinfoline] = VHGcartnext; => VHG info draw line;
 	[VHGinfoline] = VHGcartmanual; => VHG info draw line;
 	[VHGinfoy] = 176; [VHGinfoline] = VHGdevbackhint; => VHG info draw line;
@@ -10113,10 +10673,44 @@
 	? A = 55 -> VHG device name planet; ? A = 56 -> VHG device next target;
 	? A = 57 -> VHG device manual target; -> VHG device key done;
     "VHG device name star"
-	[VHGprefillsrc] = VHGprefillstar; [VHGprefillcount] = 9; => VHG console prefill;
-	-> VHG device key done;
+	A = [MgAptgt]; ? A != 1 -> VHG label conflict;
+	A = [VHGlabelbody]; ? A != 0 -> VHG label conflict;
+	[VHGlabelid0] = [VHTid0]; [VHGlabelid1] = [VHTid1];
+	[VHGlabelcode] = [VHTclass]; [VHCATtype] = VHCATS;
+	A = [VHCATstarok]; ? A != 0 -> VHG label remove;
+	[VHGlabelstar] = 1; [VHGlabelstarpos] = 0; [VHGhudlabeldst] = VHGhudstarlabel;
+	-> VHG label begin;
     "VHG device name planet"
-	[VHGprefillsrc] = VHGprefillplanet; [VHGprefillcount] = 11; => VHG console prefill;
+	A = [VHGplanet]; ? A '>= [nsnob] -> VHG label conflict;
+	A = [VHGlabelstar]; ? A != 0 -> VHG label conflict;
+	A = [VHGplanet]; A + 1; [VHGlabelcode] = A; [FI] = A;
+	[nsid0] = [VHTid0]; [nsid1] = [VHTid1]; => NsIdentAddInt;
+	[VHGlabelid0] = [FA0]; [VHGlabelid1] = [FA1]; => VHG fpu clean;
+	[VHCATtype] = VHCATP; A = [VHCATbodyok]; ? A != 0 -> VHG label remove;
+	[VHGlabelbody] = 1; [VHGlabelbodypos] = 0; [VHGhudlabeldst] = VHGhudbodylabel;
+    "VHG label begin"
+	[VHGlabelresult] = 0; [VHGlabeli] = 0;
+    "VHG label begin clear"
+	E = [VHGhudlabeldst]; E + [VHGlabeli]; [E] = 32; [VHGlabeli]+;
+	A = [VHGlabeli]; ? A < 21 -> VHG label begin clear;
+	E = [VHGhudlabeldst]; A = [VHCATtype]; [E plus 21] = A;
+	A = [VHGlabelcode]; B = A; A / 10; A + 48; [E plus 22] = A;
+	B '% 10; B + 48; [E plus 23] = B; [E plus 24] = 0;
+	[VHGnoticeptr] = VHGlabelprompttext; [VHGnoticeframes] = 50; [VHGascii] = 0;
+	-> VHG device key done;
+    "VHG label remove"
+	[VHCATid0] = [VHGlabelid0]; [VHCATid1] = [VHGlabelid1]; => VHCAT remove;
+	A = [VHCATstatus]; ? A = 1 -> VHG label removed; ? A = 2 -> VHG label denied;
+	[VHGlabelresult] = 6; [VHGnoticeptr] = VHGlabelerrortext; -> VHG label remove finish;
+    "VHG label removed"
+	[VHGlabelresult] = 3; [VHGnoticeptr] = VHGlabelremovedtext; -> VHG label remove finish;
+    "VHG label denied"
+	[VHGlabelresult] = 4; [VHGnoticeptr] = VHGlabeldeniedtext;
+    "VHG label remove finish"
+	[VHGnoticeframes] = 50; [VHGascii] = 0;
+	=> VHCAT count system bodies; => VHCAT refresh; -> VHG device key done;
+    "VHG label conflict"
+	[VHGlabelresult] = 5; [VHGnoticeptr] = VHGlabelconflicttext; [VHGnoticeframes] = 50; [VHGascii] = 0;
 	-> VHG device key done;
     "VHG device next target"
 	=> VHG browse open; -> VHG device key done;
@@ -10693,6 +11287,9 @@
     "VHG cadence discontinuity"
 	[VHGsimacc] = 0; [VHGsimfrac] = 0; [VHGdosim] = 1;
     "VHG cadence done"
+	A = [VHGsentinelfreeze]; ? A = 0 -> VHG cadence unfrozen;
+	[VHGdosim] = 0;
+    "VHG cadence unfrozen"
 	end;
 
 "VHG timing step"
@@ -10711,6 +11308,13 @@
 	=> TK advance;
 	[Timer Command] = READ COUNTS; isocall; [TKnow] = [Counts]; => TK is late;
 	A = [TKlate]; ? A = 0 -> VHG timing fast wait;
+	A = [VHGprofileactive]; ? A = 0 -> VHG timing miss counted;
+	[VHGprofilemissed]+;
+	A = [TKnow]; A - [TKdeadline]; E = A;
+	A + [VHGprofilelatetotal]; [VHGprofilelatetotal] = A;
+	A = E; ? A '<= [VHGprofilelatemax] -> VHG timing miss counted;
+	[VHGprofilelatemax] = A;
+    "VHG timing miss counted"
 	( Overrun: make now the new origin; do not discard another interval. )
 	[TKdeadline] = [TKnow]; [TKacc] = 0; -> VHG timing done;
     "VHG timing fast wait"
@@ -10721,6 +11325,65 @@
 "VHG timing rebase"
 	[TKacc] = 0; [Timer Command] = READ COUNTS; isocall;
 	[TKdeadline] = [Counts];
+	end;
+
+"VHG profile reset"
+	( The first-frame sentinel is the private runner's readiness boundary.  Keep
+	  its existing 60-frame diagnostics intact, then begin terminal measurement
+	  from zero so cold terrain/model initialization cannot masquerade as
+	  sustained gameplay cost. )
+	[VHGprofilepresentations] = 0; [VHGprofilesimticks] = 0;
+	[VHGprofilemissed] = 0; [VHGprofilelatemax] = 0; [VHGprofilelatetotal] = 0;
+	[VHGprofrender] = 0; [VHGprofpresent] = 0; [VHGprofspace] = 0;
+	[VHGprofcupola] = 0; [VHGprofhull] = 0; [VHGprofdetail] = 0;
+	[VHGprofileinputseen] = 0; [VHGprofileinputeffect] = 0;
+	[VHGprofileinputpresent] = 0; [VHGprofileinputpending] = 0;
+	[TKsleeps] = 0; [VHGloopcalls] = 0; [VHGtimingcalls] = 0;
+	=> TK read wall; [VHGwallstart] = [TKtmp];
+	[Timer Command] = READ COUNTS; isocall; [VHGprofileorigin] = [Counts];
+	end;
+
+"VHG write profile"
+	A = [VHGprofileactive]; ? A = 0 -> VHG write profile done;
+	=> TK read wall; A = [TKtmp]; A - [VHGwallstart]; [VHGwallelapsed] = A;
+	[vhgprofile plus 0] = 56504731h; [vhgprofile plus 1] = 1;
+	[vhgprofile plus 2] = [VHGprofilepresentations];
+	[vhgprofile plus 3] = [VHGprofilesimticks];
+	[vhgprofile plus 4] = [VHGprofilemissed];
+	[vhgprofile plus 5] = [VHGprofilelatemax];
+	[vhgprofile plus 6] = [VHGprofilelatetotal];
+	[vhgprofile plus 7] = [VHGprofrender]; [vhgprofile plus 8] = [VHGprofpresent];
+	[vhgprofile plus 9] = [VHGprofspace]; [vhgprofile plus 10] = [VHGprofcupola];
+	[vhgprofile plus 11] = [VHGprofhull]; [vhgprofile plus 12] = [VHGprofdetail];
+	[vhgprofile plus 13] = [VHGwallelapsed]; [vhgprofile plus 14] = [TKcpms];
+	[vhgprofile plus 15] = [TKsleeps]; [vhgprofile plus 16] = [VHGloopcalls];
+	[vhgprofile plus 17] = [VHGtimingcalls]; [vhgprofile plus 18] = [VHGfps];
+	[vhgprofile plus 19] = [VHGmode]; [vhgprofile plus 20] = [VHGlanded];
+	[vhgprofile plus 21] = [VHGCstate]; [vhgprofile plus 22] = 87;
+	[vhgprofile plus 23] = [VHGprofileorigin]; [vhgprofile plus 24] = [VHGprofileinputseen];
+	[vhgprofile plus 25] = [VHGprofileinputeffect];
+	[vhgprofile plus 26] = [VHGprofileinputpresent];
+	[vhgprofile plus 27] = [VHGx]; [vhgprofile plus 28] = [VHGz];
+	[vhgprofile plus 29] = [VHGfcsopen]; [vhgprofile plus 30] = [VHGfast];
+	[vhgprofile plus 31] = 56504731h;
+	[File Name] = vhgprofilename; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhgprofile; [Block Size] = 128; isocall;
+	[File Name] = vhgprofilename; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = 128; isocall;
+    "VHG write profile done"
+	end;
+
+	"VHG pack diagnostic region"
+	[VHGdiagi] = 0; [VHGdiagj] = 0;
+    "VHG pack diagnostic unit"
+	A = nw; A + [VHGdiagbase]; A + [VHGdiagi];
+	D = [A plus 0]; D & 255;
+	C = [A plus 1]; C & 255; C < 8;  D | C;
+	C = [A plus 2]; C & 255; C < 16; D | C;
+	C = [A plus 3]; C & 255; C < 24; D | C;
+	A = sppack; A + [VHGdiagj]; [A] = D;
+	[VHGdiagi] + 4; [VHGdiagj]+;
+	A = [VHGdiagi]; ? A '< [VHGdiagcount] -> VHG pack diagnostic unit;
 	end;
 
 	"VHG write sentinel"
@@ -10800,10 +11463,59 @@
 	[File Name] = vhglocalname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = vhglocal; [Block Size] = 176; isocall;
 	[File Name] = vhglocalname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 176; isocall;
+	( Pack the complete final logical page separately.  Keep the established
+	  metadata and palette diagnostic sizes unchanged. )
+	[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;
+	[File Name] = vhgpagename; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 64000; isocall;
+	[File Name] = vhgpagename; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 64000; isocall;
 	( Preserve the exact 256-entry six-bit palette used by the final indexed
 	  presenter.  Palette components occupy one 32-bit Lino unit apiece, so the
 	  diagnostic is 768 raw units rather than a packed byte array. )
 	[File Name] = vhgpalname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = curpal6; [Block Size] = 3072; isocall;
 	[File Name] = vhgpalname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 3072; isocall;
+	( Export the physical renderer caches at the same completed-frame boundary.
+	  Each logical native byte occupies one Lino unit, so pack the low bytes
+	  before writing rather than exposing the four-times-larger unit storage. )
+	[VHGdiagbase] = RSBG; [VHGdiagcount] = ZSBG; => VHG pack diagnostic region;
+	[File Name] = vhgsbgname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 64800; isocall;
+	[File Name] = vhgsbgname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 64800; isocall;
+	[VHGdiagbase] = RPSM; [VHGdiagcount] = ZPSM; => VHG pack diagnostic region;
+	[File Name] = vhgpsmname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 40000; isocall;
+	[File Name] = vhgpsmname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 40000; isocall;
+	[VHGdiagbase] = RPBG; [VHGdiagcount] = ZPBG; => VHG pack diagnostic region;
+	[File Name] = vhgpbgname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = sppack; [Block Size] = 65552; isocall;
+	[File Name] = vhgpbgname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 65552; isocall;
+	( Direct-editor state is written immediately before the final completion
+	  marker.  Interaction tests can therefore tie the projected underscore's
+	  indexed colour, last native result, and physical-Escape latch to this exact
+	  retained page. )
+	[vhglabelstate plus 0] = [VHGlabelstar]; [vhglabelstate plus 1] = [VHGlabelbody];
+	[vhglabelstate plus 2] = [VHGlabelstarpos]; [vhglabelstate plus 3] = [VHGlabelbodypos];
+	[vhglabelstate plus 4] = [VHPtelemetryclock]; A = [VHPtelemetryclock]; A % 32; A '* 2;
+	C = 127; C - A; [vhglabelstate plus 5] = C;
+	[vhglabelstate plus 6] = [VHGlabelresult];
+	[vhglabelstate plus 7] = [VHGlabelescheld];
+	[File Name] = vhglabelname; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhglabelstate; [Block Size] = 32; isocall;
+	[File Name] = vhglabelname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 32; isocall;
+	( Scalar state left by the completed sky, star, and terrain render. )
+	[vhgrenderstate plus 0] = [VHGNDgalamp];
+	[vhgrenderstate plus 1] = [VHSamp];
+	[vhgrenderstate plus 2] = [VHScount];
+	[vhgrenderstate plus 3] = [VHSdrawcount];
+	[vhgrenderstate plus 4] = [brtlseed];
+	[vhgrenderstate plus 5] = [SUfseed];
+	[File Name] = vhgrendername; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhgrenderstate; [Block Size] = 24; isocall;
+	[File Name] = vhgrendername; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 24; isocall;
+	A = [VHGsentinelfreeze]; ? A = 0 -> VHG frozen blink ready; [VHGfreezeblink] + 8;
+    "VHG frozen blink ready"
+	A = [VHGsentinelquit]; ? A = 0 -> VHG write sentinel done;
+	[VHGesc] = 1; [Quit Now] = YES;
+    "VHG write sentinel done"
 		end;

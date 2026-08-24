@@ -1,0 +1,58 @@
+{
+  "artifact": "orbitmultiple_visible_8526_native.shot.BMP",
+  "artifact_sha256": "82eb4b7ba90286fe59b0d6494e397afd44f412b8fec8b97f77dd34359e9ae866",
+  "indexed_page_sha256": "d0aecd7c9492207cf3555ba32816b59c980ff83bc3ec064a05ab70e8ed322fcf",
+  "six_bit_palette_sha256": "c8cb93223c6ed82bd0631fce4d06d70314cb0fd91043fa5dd604234958a073bd",
+  "star": [3866416, -4813508, -735695],
+  "target_body": 0,
+  "target_type": 5,
+  "companion_body": 3,
+  "companion_type": 10,
+  "star_class": 8,
+  "camera": {
+    "position": [0.0, 0.0, -500.0],
+    "user_alfa": -34.0,
+    "user_beta": 0.0,
+    "navigation_beta": 300.0
+  },
+  "continuity_after_snapshot": {
+    "ram_offset": 206300,
+    "sync": 1,
+    "ip_targetted": 0,
+    "ip_reached": 1,
+    "pwr": 19999,
+    "fcs_status": "TRACKING",
+    "secs": 1344638526.8,
+    "surlight": 16,
+    "dzat": [3866349.4040086176, -4813507.9803099455, -735738.2671380865],
+    "star_local": [-66.59599138237536, 0.01969005446881056, -43.267138086492196]
+  },
+  "capture": {
+    "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+    "timeout_seconds": 180,
+    "stop_poll_milliseconds": 1,
+    "stop_after_file_bytes": 65078,
+    "precapture_current_sha256": "bb7b446a6f2e7b3bc4583cdc1c5e055e7bbc626881897dbdcf660abeacfa1482",
+    "command_sha256": "29daf6b0505c5c457e76f402366178da091c094ba538270b0bb56c7250d46936",
+    "frozen_ram_sha256": "3dbf1e9fd5655eb03aeb227371cf3d4672c11c99874280520b3171f0aedeb5a3",
+    "frozen_adapted_sha256": "4cf47b9445df068c3d7c66b20e402ab47af1319f686b881971f3d5ca95ae5062",
+    "page_vs_frozen_adapted_differences": 7611,
+    "sandbox_restored": true
+  },
+  "native_visibility": {
+    "bright_crop": [115, 95, 175, 140],
+    "bright_component_threshold": 32,
+    "bright_pixel_count": 151,
+    "ordinary_star_control_count": 1,
+    "companion_corona_and_radial_flare_visible": true
+  },
+  "authority": {
+    "snapshot_camera_state_retained": true,
+    "camera_reason": "The staged CURRENT.BIN and the post-snapshot continuity block contain identical position and three camera angles.",
+    "snapshot_page_and_palette_retained": true,
+    "snapshot_simulation_state_retained": false,
+    "simulation_reason": "DOSBox-X was suspended after the completed BMP appeared; adapted was already partway through the next frame.",
+    "whole_page_same_state_contract": false,
+    "admissible_contract": "At the retained source camera, the front-facing type-10 companion produces its native white corona and radial flare. The complete BMP remains authoritative for that positive visibility result, its indexed page, and its active six-bit palette."
+  }
+}

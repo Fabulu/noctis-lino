@@ -58,6 +58,7 @@ ORIGINAL_OUTBOX = REFERENCE_ROOT / "OUTBOX.CPP"
 ORIGINAL_INBOX = REFERENCE_ROOT / "INBOX.CPP"
 ORIGINAL_HELP = REFERENCE_ROOT.parent / "modules" / "N_Help_3.asm"
 ORIGINAL_REPAIR = REFERENCE_ROOT.parent / "modules" / "REPAIR.EXE"
+WINDOWS_HIDDEN_PROCESS = ROOT / "tools" / "windows_hidden_process.py"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -186,6 +187,18 @@ def epoc_text(seconds: int) -> str:
     """Noctis EPOC plus its three sub-billion zero-padded triads."""
     epoc = 6011 + seconds // 1_000_000_000
     return f"EPOC {epoc} & {seconds // 1_000_000 % 1000:03}.{seconds // 1000 % 1000:03}.{seconds % 1000:03}"
+
+
+def environment_text(gravity: int, temperature: int, pressure: int, pulse: int) -> str:
+    """Source lower-visor values in milli-, tenth-, milli-, and whole units."""
+    sign = "+" if temperature >= 0 else "-"
+    magnitude = abs(temperature)
+    return (
+        f"GRAVITY {max(0, gravity) // 1000}.{max(0, gravity) % 1000:03} "
+        f"FG & TEMPERATURE {sign}{magnitude // 10}.{magnitude % 10}@C & "
+        f"PRESSURE {max(0, pressure) // 1000}.{max(0, pressure) % 1000:03} "
+        f"ATM & PULSE {pulse:3} PPS"
+    )
 
 
 def surface_arc(gravity_mfg: int, thrust_ticks: int = 0) -> tuple[int, int, int]:
@@ -331,6 +344,7 @@ def main() -> int:
     original_inbox = ORIGINAL_INBOX.read_text(encoding="latin-1")
     original_help = ORIGINAL_HELP.read_text(encoding="latin-1")
     original_repair = ORIGINAL_REPAIR.read_bytes()
+    windows_hidden_process = WINDOWS_HIDDEN_PROCESS.read_text(encoding="utf-8")
 
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
@@ -359,6 +373,7 @@ def main() -> int:
         "source-order ascent momentum carries a centered rider clear of automatic return",
     )
     lift = section(game, '"VHG lift tick"', '"VHG lift move"')
+    lift_trace = section(game, '"VHG lift trace"', '"VHG lift move"')
     check(
         all(token in lift for token in (
             "? A > 0 -> VHG lift descending;",
@@ -384,13 +399,81 @@ def main() -> int:
         and "[VHGlifter] = 75;" in lift
         and "=> VHG lift distance;" in lift
         and '"VHG lift postrender"' in game
-        and "=> VHG fpu clean; => VHG lift postrender; => VHG input;" in game
+        and "=> VHG fpu clean; => VHG lift postrender; => VHG lift trace; => VHG capsule trace; => VHG input;" in game
         and "A = [VHGdosim]; ? A = 0 -> VHG lift postrender done;" in game
         and "=> VHG lift tick;\n\t( p_Forward(step) is clamped" in game
         and "=> VHG clamp position;\n    \"VHG skip ship ticks\"" in game
         and "A = [VHGx]; A * 3; A / 4; [VHGx] = A;" in game
         and "A = [VHGz]; A + 3100; A / 4;" in game,
         "lift preserves source trigger, movement, clamp, render, and restraint ordering",
+    )
+    check(
+        "VHGsentinellifttrace = 0;" in game
+        and "VHGlifttraceactive = 0; VHGlifttracecount = 0; VHGlifttraceindex = 0;" in game
+        and "vhgliftstatename = { game-lift-state-out.bin };" in game
+        and "vhgliftpagesname = { game-lift-pages-out.bin };" in game
+        and "vhgliftstate = 8;" in game
+        and all(token in lift_trace for token in (
+            "A = [VHGsentinellifttrace]; ? A = 0 -> VHG lift trace done;",
+            "A = [VHGdosim]; ? A = 0 -> VHG lift trace done;",
+            "A = [VHGlifttraceactive]; ? A != 0 -> VHG lift trace capture;",
+            "A = [VHGlifter]; ? A = 0 -> VHG lift trace done;",
+            "[VHGlifttraceactive] = 1;",
+            "[vhgliftstate plus 0] = [VHGy]; [vhgliftstate plus 1] = [VHGlifter];",
+            "[vhgliftstate plus 2] = [VHGonroof]; [vhgliftstate plus 3] = [VHGliftstep];",
+            "[vhgliftstate plus 4] = [VHGx]; [vhgliftstate plus 5] = [VHGz];",
+            "[vhgliftstate plus 6] = [VHGalpha]; [vhgliftstate plus 7] = [VHGbeta];",
+            "[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;",
+            "A = [VHGlifttracecount]; [VHGlifttraceindex] = A; A * 32;",
+            "[Block Pointer] = vhgliftstate; [Block Size] = 32; isocall;",
+            "A = [VHGlifttraceindex]; A * 64000;",
+            "[Block Pointer] = sppack; [Block Size] = 64000; isocall;",
+            "[VHGlifttracecount]+;",
+            "[VHGlifttraceactive] = 0;",
+        ))
+        and lift_trace.index("A = [VHGsentinellifttrace];")
+        < lift_trace.index("[SPpreg] = RGADP;")
+        < lift_trace.index("[VHGlifttracecount]+;"),
+        "opt-in lift trace records one post-restraint page and scalar state per simulation tick",
+    )
+    capsule_trace = section(game, '"VHG capsule trace"', '"VHG lift move"')
+    check(
+        "VHGsentinelcapsuletrace = 0;" in game
+        and "VHGcapsuletraceactive = 0; VHGcapsuletracecount = 0; VHGcapsuletraceindex = 0;" in game
+        and "vhgcapsulestatename = { game-capsule-state-out.bin };" in game
+        and "vhgcapsulepagesname = { game-capsule-pages-out.bin };" in game
+        and "vhgcapsulestate = 16;" in game
+        and all(token in capsule_trace for token in (
+            "A = [VHGsentinelcapsuletrace]; ? A = 0 -> VHG capsule trace done;",
+            "A = [VHGdosim]; ? A = 0 -> VHG capsule trace done;",
+            "A = [VHGcapsuletraceactive]; ? A != 0 -> VHG capsule trace capture;",
+            "A = [VHGCstate]; ? A = 2 -> VHG capsule trace ascent start;",
+            "? A != 1 -> VHG capsule trace done;",
+            "[VHGcapsuletraceactive] = 3;",
+            "[VHGcapsuletraceactive] = 1;",
+            "[vhgcapsulestate plus 0] = [VHGCstate];",
+            "[vhgcapsulestate plus 5] = [VHGcapsulereturnpending];",
+            "[vhgcapsulestate plus 6] = [VHGx];",
+            "[vhgcapsulestate plus 15] = [VHGdosim];",
+            "[SPpreg] = RGADP; [SPpn] = NPIX; => SP packpage;",
+            "A = [VHGcapsuletracecount]; [VHGcapsuletraceindex] = A; A * 64;",
+            "[Block Pointer] = vhgcapsulestate; [Block Size] = 64; isocall;",
+            "A = [VHGcapsuletraceindex]; A * 64000;",
+            "[Block Pointer] = sppack; [Block Size] = 64000; isocall;",
+            "[VHGcapsuletracecount]+;",
+            "A = [VHGcapsuletraceactive]; ? A = 3 -> VHG capsule trace descent complete;",
+            "? A = 2 -> VHG capsule trace complete;",
+            "A = [VHGcapsulereturnpending]; ? A = 0 -> VHG capsule trace complete;",
+            "[VHGcapsuletraceactive] = 2;",
+            '"VHG capsule trace descent complete"',
+            "A = [VHGlanded]; ? A = 0 -> VHG capsule trace done;",
+            "[VHGcapsuletraceactive] = 0;",
+        ))
+        and capsule_trace.index("A = [VHGsentinelcapsuletrace];")
+        < capsule_trace.index("[SPpreg] = RGADP;")
+        < capsule_trace.index("[VHGcapsuletracecount]+;")
+        < capsule_trace.index("[VHGcapsuletraceactive] = 2;"),
+        "opt-in capsule trace records authoritative descent, ascent, and clean handoffs",
     )
     platform = section(game, '"VHG platform"', '"VHG lift tick"')
     ship_input = section(game, '"VHG normal input"', '"VHG surface input"')
@@ -490,7 +573,7 @@ def main() -> int:
             "[VHPoncmd0] = VHGsrcdevnav;", "[VHPoncmd1] = VHGsrcdevmisc;",
             "A = VHGsrcampoff;", "A = VHGsrcfinderoff;",
             "A = VHGsrctrackoff;", "A = VHGsrcradoff;",
-            "[VHPoncmd0] = VHGsrccartstar;", "[VHPoncmd0] = VHGsrcreset;",
+            "A = VHGsrccartstarremove;", "[VHPoncmd0] = VHGsrcreset;",
             "[VHPoninfo2] = VHGdevselect;", "=> VHG browse format rows;",
         ))
         and all(token in original_gaze for token in (
@@ -1014,10 +1097,21 @@ def main() -> int:
     secondary_sun = section(ground, '"VHGND secondary sun setup"', '"VHGND local sun"')
     opening_sky = section(ground, '"VHGND sky"', '"VHGND general sky"')
     general_sky = section(ground, '"VHGND general sky"', '"VHGND UTC seconds"')
+    utc_seconds = section(ground, '"VHGND UTC seconds"', '"VHGND orbital phase"')
     sun_zero_view = "[VHVcamxi] = 0; [VHVcamyi] = 0; [VHVcamzi] = 0;"
     surface_world_view = (
         "[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; "
         "[VHVcamzi] = [VHGNDcamz];"
+    )
+    check(
+        '"VHGND pinned seconds"' in utc_seconds
+        and "A = [VHGNDclocksecs]; [VHGNDsecs] = A;" in utc_seconds
+        and "=> VHG fpu clean; => SU fp init;" in utc_seconds
+        and "-> VHGND convert seconds;" in utc_seconds
+        and '"VHGND convert seconds"' in utc_seconds
+        and "A = [VHGNDsecs]; [FI] = A; => IntToF;" in utc_seconds
+        and utc_seconds.count("[FI] = A; => IntToF;") == 1,
+        "pinned surface time survives floating-point initialization",
     )
     check(
         all(token in local_sun for token in (
@@ -1195,6 +1289,426 @@ def main() -> int:
             "if (ap_target_class==2) ap_target_spin = random (4) + 1;",
         )),
         "resolved stars retain their source class-specific spin instead of universal rotation",
+    )
+    original_outer_hud = section(
+        original,
+        "if (active_screen != -1 || draw_hud != 1) goto nohud_1;",
+        "// Messaggio di reset, lampeggiante.",
+    )
+    telemetry_prepare = section(
+        game, '"VHG HUD telemetry prepare"', '"VHG interior smooth64"'
+    )
+    telemetry_draw = section(
+        panels, '"VH HUD telemetry"', '"VH HUD FCS"'
+    )
+    interior_details = section(
+        game, '"VHG interior details"', '"VHG source status ready"'
+    )
+    check(
+        all(token in original_outer_hud for token in (
+            "dxx = dzat_x - ap_target_x;",
+            "dyy = dzat_y - ap_target_y;",
+            "dzz = dzat_z - ap_target_z;",
+            "* 5E-5;",
+            "if (ap_reached && ap_target_id == nearstar_identity) l_dsd *= 0.01;",
+            'sprintf (temp_distance_buffer, "%01.2f", l_dsd);',
+            "cam_x = 450; cam_y = -180; cam_z = -750;",
+            "digit_at ('L', -6, -15, 5, 112, 1);",
+            "digit_at ('Y', -6, -15, 5, 112, 1);",
+            "planet_xyz (ip_targetted);",
+            "* 1E-2;",
+            "cam_x = 450; cam_y = -250; cam_z = -750;",
+            "digit_at ('D', -6, -15, 5, 105, 1);",
+            "digit_at ('S', -6, -15, 5, 105, 1);",
+        ))
+        and all(token in telemetry_prepare for token in (
+            "A = [MgAptgt]; ? A = 0 -> VHG HUD telemetry local;",
+            "[FA0] = [MgDzatX0]; [FA1] = [MgDzatX1];",
+            "[FB0] = [MgApX0]; [FB1] = [MgApX1]; => FSub;",
+            "[FB0] = VHGK5EM50; [FB1] = VHGK5EM51; => FMul;",
+            "[FB0] = VHGK0010; [FB1] = VHGK0011; => FMul;",
+            "[FI] = 100; => IntToF;",
+            "=> FMul; => FToIntNear;",
+            "[VHGinfofixeddigits] = 2;",
+            "A = [VHGlocaltarget]; ? A = 0FFFFFFFFh -> VHG HUD telemetry prepared;",
+            "? A '>= [nsnob] -> VHG HUD telemetry prepared;",
+            "[FA0] = [VHGlocaldist0]; [FA1] = [VHGlocaldist1];",
+        ))
+        and "VHGK5EM50 = 0EB1C432Dh; VHGK5EM51 = 03F0A36E2h;" in game
+        and "VHGK0010 = 047AE147Bh; VHGK0011 = 03F847AE1h;" in game
+        and "vhpstarunit = { L.Y. };" in panels
+        and "vhpbodyunit = { DYAMS };" in panels
+        and all(token in telemetry_draw for token in (
+            "[VHVcamxi] = 450; A = 0; A - 180; [VHVcamyi] = A;",
+            "[VHVcamxi] = 450; A = 0; A - 250; [VHVcamyi] = A;",
+            "[VHPtelemetrycolour] = 127;",
+            "[VHPtelemetrycolour] = 112;",
+            "[VHPtelemetrycolour] = 120;",
+            "[VHPtelemetrycolour] = 105;",
+            "A = [VHVcamxi]; A - 40; [VHVcamxi] = A; => VH set view;",
+            "[DGdigit] = [VHPchar]; [DGcolor] = [VHPtelemetrycolour]; [DGshader] = [VHPtelemetryshader]; => FB digit at;",
+            "[vhcpoly plus 0] = 1096810496; [vhcpoly plus 1] = 3251109888;",
+            "[vhcpoly plus 6] = 3243769856; [vhcpoly plus 7] = 1103626240;",
+        ))
+        and all(token in interior_details for token in (
+            "A = [VHGscreen]; ? A != 0FFFFFFFFh -> VHG source outer HUD done;",
+            "A = [VHGdrawhud]; ? A != 1 -> VHG source outer HUD done;",
+            "=> VHG HUD telemetry prepare; => VH HUD telemetry;",
+            "=> VHG interior smooth64; => VHG interior smooth64;",
+        ))
+        and interior_details.index("=> VHG HUD telemetry prepare; => VH HUD telemetry;")
+        < interior_details.index("=> VHG interior smooth64; => VHG interior smooth64;"),
+        "inside Stardrifter restores source-shaped two-decimal L.Y. and DYAMS range rows",
+    )
+    label_prepare = section(
+        game, '"VHG HUD labels prepare"', '"VHG HUD telemetry prepare"'
+    )
+    catalog_labels = section(
+        catalog, '"VHCAT default labels"', '"VHCAT refresh"'
+    )
+    check(
+        all(token in original_outer_hud for token in (
+            "if (ap_targetting || ap_targetted)",
+            "cam_x = 450; cam_y = 250; cam_z = -750;",
+            "for (c = 0; c < 24; c++)",
+            "digit_at (star_label[c], -6, -15, 5, 127, 1);",
+            "if (ip_targetted!=-1)",
+            "update_planet_label ();",
+            "cam_x = 450; cam_y = 180; cam_z = -750;",
+            "digit_at (planet_label[c], -6, -15, 5, 112, 1);",
+        ))
+        and "VHGhudstardefault = { UNKNOWN STAR / CLASS };" in game
+        and "VHGhudplanetdefault = { NAMELESS PLANET / N. };" in game
+        and "VHGhudmoondefault = { NAMELESS MOON # };" in game
+        and "VHGhudstarlabel = 25;" in game
+        and "VHGhudbodylabel = 25;" in game
+        and all(token in catalog_labels for token in (
+            "[VHCATstarok] = 0; [VHCATbodyok] = 0;",
+            "[VHCATstarok] = 1; => VHCAT copy label;",
+            "[VHCATbodyok] = 1; => VHCAT copy label;",
+        ))
+        and all(token in label_prepare for token in (
+            "A = vhcatstarlabel; A + 1; [VHGhudlabelsrc] = A; [VHGhudlabellen] = 20;",
+            "E = VHGhudstarlabel; [E plus 20] = 32; [E plus 21] = 83;",
+            "[E plus 23] = B; [E plus 24] = 0;",
+            "A = vhcatbodylabel; A + 1; [VHGhudlabelsrc] = A; [VHGhudlabellen] = 20;",
+            "[VHGhudlabelsrc] = VHGhudplanetdefault; [VHGhudlabellen] = 20;",
+            "[VHGhudlabelsrc] = VHGhudmoondefault; [VHGhudlabellen] = 15;",
+            "[E plus 15] = A; B '% 10; B + 48; [E plus 16] = B;",
+            "[E plus 17] = 47; C = nspowner;",
+            "[E plus 20] = 38;",
+            "[E plus 21] = 80;",
+            "[VHPtelemetrystarlabel] = VHGhudstarlabel;",
+            "[VHPtelemetrybodylabel] = VHGhudbodylabel;",
+        ))
+        and "=> VHG HUD labels prepare; => VHG fpu clean;" in telemetry_prepare
+        and all(token in telemetry_draw for token in (
+            "[VHVcamxi] = 450; [VHVcamyi] = 250;",
+            "[VHPtelemetryptr] = [VHPtelemetrystarlabel]; [VHPtelemetrycolour] = 127;",
+            "[VHVcamxi] = 450; [VHVcamyi] = 180;",
+            "[VHPtelemetryptr] = [VHPtelemetrybodylabel]; [VHPtelemetrycolour] = 112;",
+            "? A = 0 -> VHP HUD telemetry text done;",
+        ))
+        and telemetry_draw.index("[VHPtelemetrystarlabel]")
+        < telemetry_draw.index("[VHPtelemetrystar]")
+        < telemetry_draw.index("[VHPtelemetrybodylabel]")
+        < telemetry_draw.index("[VHPtelemetrybody]")
+        and interior_details.index("=> VHG HUD telemetry prepare; => VH HUD telemetry;")
+        < interior_details.index("=> VHG interior smooth64; => VHG interior smooth64;"),
+        "inside Stardrifter restores native 24-character catalogue and fallback target labels",
+    )
+    original_label_commands = section(
+        original,
+        "case 3: // galactic cartography commands",
+        "case 4: switch (s_command)",
+    )
+    label_input = section(
+        game, '"VHG label input"', '"VHG navigation steering input"'
+    )
+    label_actions = section(
+        game, '"VHG device name star"', '"VHG device next target"'
+    )
+    catalog_add = section(
+        catalog, '"VHCAT folded name character"', '"VHCAT remove"'
+    )
+    catalog_remove = section(
+        catalog, '"VHCAT remove"', '"VHCAT repair"'
+    )
+    telemetry_text = section(
+        panels, '"VHP HUD telemetry text"', '"VH HUD FCS"'
+    )
+    physical_cart_commands = section(
+        game, '"VHG onboard prepare cart"', '"VHG onboard prepare emergency"'
+    )
+    accessible_cart_commands = section(
+        game, '"VHG device cartography overlay"', '"VHG device emergency overlay"'
+    )
+    check(
+        all(token in original_label_commands for token in (
+            "if (ap_targetted==1 && !ap_targetting && !labplanet)",
+            "if (ip_targetted!=-1 && !labstar)",
+            "labstar_char = 0;", "labplanet_char = 0;",
+            "for (n = 0; n < 21; n++)", "star_id = ap_target_id;",
+            "planet_id = nearstar_identity + ip_targetted + 1;",
+            "star_label_pos >= sm_consolidated",
+            "planet_label_pos >= sm_consolidated",
+            "!memicmp (comp_data+8, star_label, 20)",
+            "!memicmp (comp_data+8, planet_label, 20)",
+            'status ("PROMPT", 50);', 'status ("ASSIGNED", 50);',
+            'status ("EXTANT", 50);', 'status ("REMOVED", 50);',
+            'status ("DENIED", 50);', 'status ("CONFLICT", 50);',
+            'status ("INT. ERROR", 50);',
+        ))
+        and all(token in original for token in (
+            "if (c >= 32 && c <= 126 && labstar_char < 20)",
+            "if (c >= 'a' && c <= 'z') c -= 32;",
+            "star_label[labstar_char] = c;", "star_label[labstar_char] = 32;",
+            "planet_label[labplanet_char] = c;", "planet_label[labplanet_char] = 32;",
+            "if (c == 13)", "dev_commands ();", "goto endmain;",
+        )),
+        "native direct label gates, mutation, persistence, and statuses remain pinned",
+    )
+    check(
+        all(token in label_actions for token in (
+            "A = [MgAptgt]; ? A != 1 -> VHG label conflict;",
+            "A = [VHGlabelbody]; ? A != 0 -> VHG label conflict;",
+            "[VHGlabelid0] = [VHTid0]; [VHGlabelid1] = [VHTid1];",
+            "A = [VHGplanet]; ? A '>= [nsnob] -> VHG label conflict;",
+            "A = [VHGlabelstar]; ? A != 0 -> VHG label conflict;",
+            "[nsid0] = [VHTid0]; [nsid1] = [VHTid1]; => NsIdentAddInt;",
+            "[VHGlabelstar] = 1; [VHGlabelstarpos] = 0;",
+            "[VHGlabelbody] = 1; [VHGlabelbodypos] = 0;",
+            "A < 21 -> VHG label begin clear;",
+            "[E plus 21] = A;", "[E plus 22] = A;", "[E plus 23] = B;",
+            "=> VHCAT remove;", "? A = 1 -> VHG label removed;",
+            "? A = 2 -> VHG label denied;", "[VHGlabelresult] = 0;",
+            "[VHGlabelresult] = 3;", "[VHGlabelresult] = 4;",
+            "[VHGlabelresult] = 5;", "VHGlabelerrortext",
+            "VHGlabelconflicttext",
+        ))
+        and "=> VHG console prefill;" not in label_actions
+        and all(token in catalog_add for token in (
+            "[E plus 2] = 20202020h;", "[VHCATshift] = A; B < A;",
+            "C = FFh; C < [VHCATshift]; ! C;",
+            "A = [E]; A & C; A | B; [E] = A;",
+            "B = [VHCATi]; C = B; B / 4;",
+            "? A < 97 -> VHCAT folded name character done;",
+            "? A > 122 -> VHCAT folded name character done; A - 32;",
+            "[VHCATptr] = E; [VHCATi] = 0;",
+            "E = [VHCATptr]; => VHCAT folded name character; [VHCATchar] = A;",
+            "E = [VHCATfoundptr]; => VHCAT folded name character;",
+            "? A != [VHCATchar] -> VHCAT duplicate next;",
+            "? A < 20 -> VHCAT duplicate name loop;",
+        ))
+        and "A = [E plus 2]; ? A != [C plus 2]" not in catalog_add
+        and all(token in catalog_remove for token in (
+            "A = [VHCATrecno]; A '* VHCATRECBYTES; A + VHCATHDRBYTES;",
+            "? A < [vhcatraw] -> VHCAT remove protected;",
+            "[File Position] = [VHCATremovepos]", "[Block Size] = 8; isocall;",
+            "[VHCATstatus] = 1;", "[VHCATstatus] = 2;",
+        ))
+        and catalog_remove.index("[File Command] = WRITE;")
+        < catalog_remove.index("E = [VHCATfoundptr];")
+        and all(text in game for text in (
+            "VHGlabelprompttext = { PROMPT };",
+            "VHGlabelassignedtext = { ASSIGNED };",
+            "VHGlabelextanttext = { EXTANT };",
+            "VHGlabelremovedtext = { REMOVED };",
+            "VHGlabeldeniedtext = { DENIED };",
+            "VHGlabelconflicttext = { CONFLICT };",
+            "VHGlabelerrortext = { INT. ERROR };",
+        )),
+        "cartography actions retain identities, case-insensitive names, local removal, and native results",
+    )
+    check(
+        all(token in label_input for token in (
+            "[VHGlabelused] = 1;", "A = [KEY ESCAPE];",
+            "? A = 27 -> VHG label cancel;", "? A = 8 -> VHG label backspace;",
+            "? A = 13 -> VHG label commit;", "? A < 32 -> VHG label input done;",
+            "? A > 126 -> VHG label input done;", "? A >= 20 -> VHG label input done;",
+            "A = [VHGascii]; [VHGlabelchar] = A; [VHGascii] = 0; A = [VHGlabelchar];",
+            "-> VHG label lowercase character;",
+            "[VHGlabelchar] - 32;", "[E] = [VHGlabelchar];", "[E] = 32;",
+            "[VHCATlen] = 20;", "=> VHCAT add;",
+            "[VHGlabelresult] = 6;", "[VHGlabelresult] = 1;", "[VHGlabelresult] = 2;",
+            "[VHGlabelstar] = 0;", "[VHGlabelbody] = 0;", "=> VHCAT refresh;",
+        ))
+        and game.index("=> VHG return key;")
+        < game.index("=> VHG label input; A = [VHGlabelused]")
+        < game.index("=> VHG fps key;")
+        < game.index("=> VHG raw snapshot key;")
+        < game.index("=> VHG movie character;")
+        < game.index("=> VHG graphics character;")
+        < game.index("=> VHG menu mouse;")
+        < game.index("=> VHG device key;")
+        and all(token in game for token in (
+            "VHGlabelescheld = 0;",
+            "A = [VHGlabelescheld]; ? A = 0 -> VHG input escape ready;",
+            "A = [VHGlabelstar]; A | [VHGlabelbody]; ? A = 0 -> VHG input escape;",
+            "[VHGlabelescheld] = 1; => VHG label input; -> VHG input done;",
+        ))
+        and game.index("[VHGlabelescheld] = 1; => VHG label input;")
+        < game.index('\n    "VHG input escape"\n')
+        and all(token in physical_cart_commands for token in (
+            "VHGsrccartstarassign", "VHGsrccartstarremove",
+            "VHGsrccartplanetassign", "VHGsrccartplanetremove",
+        ))
+        and all(token in accessible_cart_commands for token in (
+            "VHGcartstarassign", "VHGcartstarremove",
+            "VHGcartplanetassign", "VHGcartplanetremove",
+        )),
+        "direct editor owns text through cancel, edit, commit, and dynamic cartography wording",
+    )
+    check(
+        all(token in original_outer_hud for token in (
+            "if (labstar && c == labstar_char) digit_at ('_', -6, -15, 5, 127 - 2 * (clock()%32), 0);",
+            "if (labplanet && c == labplanet_char) digit_at ('_', -6, -15, 5, 127 - 2 * (clock()%32), 0);",
+        ))
+        and all(token in label_prepare for token in (
+            "[VHPtelemetrystaredit] = 0; [VHPtelemetrybodyedit] = 0;",
+            "[VHPtelemetrystaredit] = 1;",
+            "[VHPtelemetrystarcursor] = [VHGlabelstarpos];",
+            "[VHPtelemetrybodyedit] = 1;",
+            "[VHPtelemetrybodycursor] = [VHGlabelbodypos];",
+        ))
+        and all(token in telemetry_text for token in (
+            "A = [VHPtelemetryi]; ? A != [VHPtelemetrycursor] -> VHP HUD telemetry character;",
+            "A = [VHPtelemetryclock]; A % 32; A '* 2; C = 127; C - A;",
+            "[VHPchar] = 95; [VHPtelemetryshader] = 0; => VHP HUD telemetry digit;",
+            "[VHPtelemetrycolour] = [VHPtelemetrysavedcolour]; [VHPtelemetryshader] = 1;",
+            "A = [VHPchar]; ? A <= 32 -> VHP HUD telemetry digit done;",
+            "? A > 96 -> VHP HUD telemetry digit done;",
+            "[DGshader] = [VHPtelemetryshader]; => FB digit at;",
+        ))
+        and telemetry_text.index("[VHPchar] = 95;")
+        < telemetry_text.index('"VHP HUD telemetry character"')
+        < telemetry_text.index("A = [VHVcamxi]; A - 40;")
+        and "[VHVcamxi]" not in section(
+            telemetry_text,
+            "[VHPchar] = 95;",
+            '"VHP HUD telemetry character"',
+        ),
+        "editing cursor blinks before the fixed-position glyph with native shader ownership",
+    )
+    repeat_sentinel = section(
+        game, '"VHG repeat sentinel option"', '"VHG freeze diagnostic option"'
+    )
+    freeze_diagnostic = section(
+        game, '"VHG freeze diagnostic option"', '"VHG lift trace option"'
+    )
+    lift_trace_option = section(
+        game, '"VHG lift trace option"', '"VHG capsule trace option"'
+    )
+    capsule_trace_option = section(
+        game, '"VHG capsule trace option"', '"VHG profile option"'
+    )
+    cadence = section(game, '"VHG cadence"', '"VHG timing step"')
+    sentinel_schedule = section(
+        game, "[VHGsentframes]+;", "( Surface input samples"
+    )
+    check(
+        "VHGsentinelrepeat = 0;" in game
+        and all(token in repeat_sentinel for token in (
+            "A = Command Line;",
+            "? C != 99 -> VHG repeat sentinel next;",
+            "? C != 97 -> VHG repeat sentinel next;",
+            "? C != 112 -> VHG repeat sentinel next;",
+            "? C != 116 -> VHG repeat sentinel next;",
+            "? C != 117 -> VHG repeat sentinel next;",
+            "? C != 114 -> VHG repeat sentinel next;",
+            "? C != 101 -> VHG repeat sentinel next;",
+            "? C = 0 -> VHG repeat sentinel found;",
+            "? C = 32 -> VHG repeat sentinel found;",
+            "[VHGsentinelrepeat] = 1;",
+        ))
+        and "VHGsentinelfreeze = 0;" in game
+        and all(token in freeze_diagnostic for token in (
+            "? C != 102 -> VHG freeze next;",
+            "? C != 114 -> VHG freeze next;",
+            "? C != 101 -> VHG freeze next;",
+            "? C != 122 -> VHG freeze next;",
+            "[VHGsentinelfreeze] = 1;",
+        ))
+        and all(token in lift_trace_option for token in (
+            "A = Command Line;",
+            "? C != 108 -> VHG lift trace next;",
+            "? C != 105 -> VHG lift trace next;",
+            "? C != 102 -> VHG lift trace next;",
+            "? C != 116 -> VHG lift trace next;",
+            "? C != 114 -> VHG lift trace next;",
+            "? C != 97 -> VHG lift trace next;",
+            "? C != 99 -> VHG lift trace next;",
+            "? C != 101 -> VHG lift trace next;",
+            "? C = 0 -> VHG lift trace found;",
+            "? C = 32 -> VHG lift trace found;",
+            "[VHGsentinellifttrace] = 1;",
+        ))
+        and all(token in capsule_trace_option for token in (
+            "A = Command Line;",
+            "? C != 99 -> VHG capsule trace next;",
+            "? C != 97 -> VHG capsule trace next;",
+            "? C != 112 -> VHG capsule trace next;",
+            "? C != 115 -> VHG capsule trace next;",
+            "? C != 117 -> VHG capsule trace next;",
+            "? C != 108 -> VHG capsule trace next;",
+            "? C != 101 -> VHG capsule trace next;",
+            "? C != 116 -> VHG capsule trace next;",
+            "? C != 114 -> VHG capsule trace next;",
+            "? C = 0 -> VHG capsule trace found;",
+            "? C = 32 -> VHG capsule trace found;",
+            "[VHGsentinelcapsuletrace] = 1;",
+        ))
+        and all(token in cadence for token in (
+            "A = [VHGsentinelfreeze]; ? A = 0 -> VHG cadence unfrozen;",
+            "[VHGdosim] = 0;",
+        ))
+        and "[VHGframe] = 0; [VHGfreezebrtl] = [brtlseed]; [VHGfreezesuf] = [SUfseed];" in game
+        and "[brtlseed] = [VHGfreezebrtl]; [SUfseed] = [VHGfreezesuf];" in game
+        and 'A = [VHGsentinelfreeze]; ? A != 0 -> VHG render live;' in game
+        and 'A = [VHGsentinelfreeze]; ? A != 0 -> VHG render space clear;' in game
+        and 'A = [VHGsentinelfreeze]; ? A != 0 -> VHG render clock frozen;' in game
+        and '[VHTclockphase] = 0;' in game
+        and "vhglabelname = { game-label-state-out.bin };" in game
+        and "vhglabelstate = 8;" in game
+        and all(token in game for token in (
+            "[vhglabelstate plus 0] = [VHGlabelstar];",
+            "[vhglabelstate plus 2] = [VHGlabelstarpos];",
+            "[vhglabelstate plus 4] = [VHPtelemetryclock];",
+            "[VHPtelemetryclock] = [VHGframe];",
+            "[VHPtelemetryclock] = [VHGfreezeblink];",
+            "[VHGfreezeblink] + 8;",
+            "C = 127; C - A; [vhglabelstate plus 5] = C;",
+            "[vhglabelstate plus 6] = [VHGlabelresult];",
+            "[vhglabelstate plus 7] = [VHGlabelescheld];",
+            "[Block Pointer] = vhglabelstate; [Block Size] = 32; isocall;",
+            "[File Size] = 32; isocall;",
+        ))
+        and "=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option;\n\t=> VHG lift trace option; => VHG capsule trace option; => VHG profile option;" in game
+        and all(token in sentinel_schedule for token in (
+            "A = [VHGsent]; ? A = 0 -> VHG sentinel frame ready;",
+            "A = [VHGsentinelrepeat]; ? A = 0 -> VHG no sentinel;",
+            "A = [VHGsentframes]; ? A < 60 -> VHG no sentinel;",
+            "=> VHG write sentinel; [VHGsent] = 1; [VHGsentframes] = 0;",
+        ))
+        and sentinel_schedule.index("A = [VHGsent];")
+        < sentinel_schedule.index("A = [VHGsentinelrepeat];")
+        < sentinel_schedule.index('"VHG sentinel frame ready"')
+        < sentinel_schedule.index("A = [VHGsentframes];")
+        < sentinel_schedule.index("=> VHG write sentinel;"),
+        "capture opt-in repeats complete diagnostics every 60 rendered frames",
+    )
+    check(
+        "WM_CHAR = 0x0102" in windows_hidden_process
+        and all(token in windows_hidden_process for token in (
+            "def post_char(self, handle: int, character: str | int) -> None:",
+            "codepoint = ord(character) if isinstance(character, str) else character",
+            'raise ValueError("post_char accepts one ASCII character")',
+            "self.user32.PostMessageW(handle, WM_CHAR, codepoint, 1)",
+            "ctypes.set_last_error(0)",
+            "raise ctypes.WinError(ctypes.get_last_error())",
+        ))
+        and "if not 0 <= codepoint <= 0x7F:" in windows_hidden_process,
+        "private-desktop input posts one validated ASCII WM_CHAR",
     )
     check(
         all(token in original1 for token in (
@@ -1735,14 +2249,31 @@ def main() -> int:
         )),
         "R and 6-9 restore onboard navigation/miscellaneous devices with live powered effects",
     )
+    base_palette = section(game, '"VHG palette"', '"VHG star palette"')
+    globe_palette = section(ground, '"VHGND globe surface"', '"VHGND general phase setup"')
+    check(
+        all(token in original for token in (
+            "tavola_colori (range8088, 0, 64, 16, 32, 63);",
+            "tavola_colori (tmppal, 0, 256, 64, 64, 64);",
+        ))
+        and "=> PAL zero; => PAL range;" in base_palette
+        and "[PVfirst] = 128;" not in base_palette
+        and all(token in globe_palette for token in (
+            "[SUcbase] = 192; [VHGNDcbase] = 192; => SU select planet;",
+            "[SUcbase] = 128; [VHGNDcbase] = 128; => SU select moon;",
+            "A = sutmppal; A + C; D = pal6; D + C;",
+            '"VHGND globe palette copy"',
+        )),
+        "an absent moon leaves palette band 128 black until a moon surface owns it",
+    )
     resident_scan = section(game, '"VHG local resident scan"', '"VHG local ensure surface"')
     external_camera = section(game, '"VHG render"', '"VHG close star rendered"')
     local_render = section(game, '"VHG local render"', '"VHG local ring"')
     check(
         resident_scan.count("A = [FI]; ? A >= 0") == 3
         and "A = [FI]; ? A '>= 0" not in resident_scan
-        and "A = [VHGbeta]; A + [VHGnavbeta]; A % 360;" in external_camera
-        and "A = [VHGbeta]; A + [VHGnavbeta]; A + 180;" not in external_camera
+        and "A = [VHGbeta]; A + [VHGnavbeta]; A + 180; A % 360;" in external_camera
+        and "beta = user_beta + navigation_beta + 180;" in original0
         and local_render.index("[VHGNDvecindex] = [VHGplanet]; => VHGND absolute body vector;")
         < local_render.index("=> VHG local resident scan;"),
         "orbital renderer selects the nearest resident maps with signed distances and the native exterior pose",
@@ -1814,15 +2345,24 @@ def main() -> int:
     )
     surface_telemetry = section(game, '"VHG surface telemetry init"', '"VHG FCS overlay"')
     surface_overlay = section(game, '"VHG surface telemetry overlay"', '"VHG FCS overlay"')
+    environment_overlay = section(
+        ground, '"VHGND environment HUD"', '"VHGND HUD draw string"')
     check(
-        all(token in original0 for token in (
+        environment_text(1000, 220, 1000, 118) ==
+        "GRAVITY 1.000 FG & TEMPERATURE +22.0@C & PRESSURE 1.000 ATM & PULSE 118 PPS"
+        and all(token in original0 for token in (
             'sprintf (outhudbuffer, "GRAVITY %2.3f FG & TEMPERATURE %+3.1f@C & PRESSURE %2.3f ATM & PULSE %3.0f PPS"',
             "pp_delta = (pp_temp - tp_temp) * 0.05;",
             "pp_delta = (pp_pressure - tp_pressure) * 0.02;",
             "pp_delta = (pp_pulse - tp_pulse) * 0.01;",
+            "smootharound_64 (adapted, 9, 188, 5, 1);",
+            "if (draw_hud == 0 && about == 0 && taking_snapshot == 0",
+            "wrouthud (2, 192, NULL, outhudbuffer);",
         ))
         and "pp_gravity = gravity * 38.26;" in original1
         and 'VHGsurfacetext = { G 0.000FG T +000.0C P 00.000ATM HR 000 };' in game
+        and "VHGsurfgravm = 1000; VHGsurftempt = 220; VHGsurfpressm = 1000;" in game
+        and "VHGsurftempnow = 220;" in game
         and all(token in surface_telemetry for token in (
             "E = nspray;", "[FI] = 38260;", "[GRSKbasetemp]",
             "[GRSKbasepressure]", "A = [VHGy]; A / 4000;",
@@ -1830,7 +2370,9 @@ def main() -> int:
             "A = [VHGutcsecs]; A '/ 2; => SU fast srand;",
             "[SUfmask] = 32767; => SU fast raw;",
             "A '* 8; A '/ 32768;", "[VHGsurfpulsejitter]",
-            '"VHG surface telemetry update"', '"VHG surface smooth field"',
+            '"VHG surface telemetry update"', '"VHG surface telemetry smooth"',
+            "A = [VHGmode]; ? A = 0 -> VHG surface telemetry smooth;",
+            '"VHG surface smooth field"',
             "D = VHGsurfgravdisp; C = 4;", "D = VHGsurftempdisp; C = 20;",
             "D = VHGsurfpressdisp; C = 50;", "D = VHGsurfpulsedisp; C = 100;",
         ))
@@ -1838,7 +2380,7 @@ def main() -> int:
         and "=> VHG UTC timestamp; => VHG visor advance; => VHG surface telemetry update;" in game
         and game.count("=> VHG surface telemetry overlay;") == 1
         and game.count("=> VHG surface telemetry init;") == 2,
-        "surface HUD restores live gravity, temperature, pressure, and pulse telemetry",
+        "shared visor HUD retains source defaults and live surface gravity, temperature, pressure, and pulse telemetry",
     )
     check(
         compass_window(0)[1].startswith("N.........E")
@@ -1858,6 +2400,12 @@ def main() -> int:
             '"VHGND HUD lamps"', "[VHGNDlampsize] = 4;",
             "A = [VHGsurfjet]; ? A = 0 -> VHGND HUD lamp positions ready;",
             "[VHGNDlampsize] = 5; [VHGNDframecol] = 127;",
+            '"VHGND HUD lamp smooth"',
+            "[VHGNDsmoothcx] = 9; [VHGNDsmoothcy] = 188; => VHGND HUD lamp smooth;",
+            "[VHGNDsmoothcx] = 308; [VHGNDsmoothcy] = 188; => VHGND HUD lamp smooth;",
+            "A = [VHGNDsmoothpx]; C = A; A '* C; [VHGNDsmoothsum] = A;",
+            "? A >= 25 -> VHGND HUD lamp smooth next;",
+            "A & 63;", "A & 192; A + [VHGNDsmoothavg]; [D] = A;",
             '"VHGND surface coordinate HUD"', "A = [VHGlandinglon]; => VHGND HUD append number;",
             "A = [VHGx]; A / VHGNDTS; A - 100; => VHGND HUD append number;",
             '"VHGND HUD append number"', '"VHGND HUD row mask"',
@@ -1867,20 +2415,24 @@ def main() -> int:
             "? A < 1000 -> VHGND HUD number hundreds;",
             "A / 1000; A + 48; => VHGND HUD append;",
             '"VHGND environment HUD"', "[VHGNDhudy] = 192;",
-            "A = VHGNDenvgravity; => VHGND HUD append text;",
-            "A = [VHGsurfgravdisp]; => VHGND HUD append fixed three;",
+            "A = [VHGdrawhud]; ? A = 0 -> VHGND environment HUD done;",
+            "A = VHGNDenvgravity; => VHGND HUD append text; A = 32; => VHGND HUD append;",
+            "A = [VHGsurfgravdisp]; => VHGND HUD append fixed three; A = 32; => VHGND HUD append;",
             "A = [VHGsurftempdisp]; => VHGND HUD append signed fixed one;",
-            "A = [VHGsurfpressdisp]; => VHGND HUD append fixed three;",
-            "A = [VHGsurfpulsedisp]; => VHGND HUD append width three;",
-            'VHGNDenvgravity = { GRAVITY };', 'VHGNDenvtemp = {  FG & TEMPERATURE };',
-            'VHGNDenvpress = { @C & PRESSURE };', 'VHGNDenvpulse = {  ATM & PULSE };',
-            'VHGNDenvpps = {  PPS };',
+            "A = [VHGsurfpressdisp]; => VHGND HUD append fixed three; A = 32; => VHGND HUD append;",
+            "A = [VHGsurfpulsedisp]; => VHGND HUD append width three; A = 32; => VHGND HUD append;",
+            'VHGNDenvgravity = { GRAVITY }; VHGNDenvfg = { FG };',
+            'VHGNDenvtemperature = { TEMPERATURE }; VHGNDenvdegree = { @C };',
+            'VHGNDenvpressure = { PRESSURE }; VHGNDenvatm = { ATM };',
+            'VHGNDenvpulse = { PULSE }; VHGNDenvpps = { PPS };',
             'VHGNDshiphints = {  & 5\\FLIGHTCTR R\\DEVICES F2\\PREFS X\\SCREEN OFF };',
             "A = [VHGmode]; ? A != 0 -> VHGND epoch HUD terminate;",
             "A = [VHGonroof]; ? A != 0 -> VHGND epoch HUD terminate;",
             "A = VHGNDshiphints; => VHGND HUD append text;",
             "? A = 92 -> VHGND HUD glyph backslash;", "[VHGNDhudpacked] = 6105;",
         ))
+        and environment_overlay.count("A = 32; => VHGND HUD append;") == 13
+        and environment_overlay.count("A = 38; => VHGND HUD append;") == 3
         and all(token in original0 for token in (
             "cpos = ccom / 9; crem = ccom * 0.44444;",
             "wrouthud (200 - (crem % 4), 2, 28, compass + cpos);",
@@ -2103,8 +2655,9 @@ def main() -> int:
             "C = 310; C + [VHGNDframei];", "C = 200; C - A; [VHGNDframecount] = C;",
             '"VHGND surrounding moving row"', "A = [VHGhudcount]; A + 9; A - [VHGNDframei];",
             "[VHGNDframei]+; A = [VHGNDframei]; ? A < 4 -> VHGND surrounding moving row;",
-            "A = [VHGdrawhud]; ? A = 0 -> VHGND environment HUD done;",
         ))
+        and "A = [VHGdrawhud]; ? A = 0 -> VHGND environment HUD done;" in ground
+        and "A = [VHGmode]; ? A = 0 -> VHGND environment HUD done;" not in ground
         and all(token in flare for token in (
             '"VHF ghost reflections"', "A = [VHFang]; A % 8;",
             "A = [VHFgdx]; A '* 4;", "[FS0] = [VHFgfx]; => FLoadF32;",
@@ -3227,6 +3780,11 @@ def main() -> int:
         "// tracciamento onde in partenza (acqua smossa)",
         "// tracciamento dell'alone del \"sole\"",
     )
+    original_surface_blur = section(
+        original1,
+        "if (waveblur) {",
+        "if (moviestat)",
+    )
     waves = section(ground, '"VHGND waves init"', '"VHGND render animals"')
     check(
         all(token in original_incoming_waves for token in (
@@ -3237,9 +3795,8 @@ def main() -> int:
             "while (w >= 10)", "wr[w] += wd[w];", "wh[w] /= 1.025;",
             "if (hpoint (xx[0], zz[0]) == 0)",
         ))
-        and all(token in original1 for token in (
-            "waveblur = 1 + random (3);", "psmooth_64 (adapted, 160);",
-        ))
+        and "waveblur = 1 + random (3);" in original1
+        and "while (ptr)" in original_surface_blur
         and "VHGNDwavedata = 175;" in ground
         and all(token in waves for token in (
             "[VHGNDwavei] = 0; [VHGNDwavelw] = 10;",
@@ -3253,14 +3810,29 @@ def main() -> int:
             "A '* 40; A / 41;", "[C plus 3] = 0;",
             '"VHGND wave impact check"', "[VHGNDwavehits]+;",
             '"VHGND wave impact tick"', "[VHGNDimpactx] = A;",
-            '"VHGND wave impact finish"', "[VHGNDblurp] = 2560;",
-            "? A < 60480 -> VHGND wave blur pixel;",
+            '"VHGND wave impact finish"',
+            "[VHGNDblurpasses] = A; [VHGNDblursize] = 57920;",
             "A = [VHGNDdosim]; ? A = 0 -> VHGND wave next;",
         ))
         and "[VHGNDalpha] = [VHGalpha]; [VHGNDbeta] = [VHGbeta]; [VHGNDdosim] = [VHGdosim];" in game
         and "[VHGalpha] = A; => VHGND wave impact finish;" in game
         and waves.count("=> PG polymap;") == 1,
         "open oceans carry paced wind crests, wakes, and wet-lens wave impacts",
+    )
+    check(
+        original_surface_blur.count("psmooth_64 (adapted, 160);") == 3
+        and "QUADWORDS = 160 + openhudcount * 80;" in original_surface_blur
+        and all(token in ground for token in (
+            '"VHGND ordinary surface blur"',
+            "A = [VHGNDwaveblur]; ? A <= 0 -> VHGND ordinary surface blur;",
+            "[VHGNDblurpasses] = 2;",
+            "A = [VHGNDhudcount]; A '* 320; A + 320;",
+            "A + 2556; [VHGNDblurp] = A;",
+            "C = E; C + 321; C = [C]; C & 63; A + C;",
+            "A > 2; C = [VHGNDblurval]; C & 192; A | C; [D] = A;",
+        ))
+        and "[VHGNDhudcount] = [VHGhudcount];" in game,
+        "ordinary surface frames restore both exact source smoothing passes",
     )
     original_animals = section(original1, "void setup_animals ()", "void add_height")
     original_live_animal = section(original1, "void live_animal (int n)", "void add_height")

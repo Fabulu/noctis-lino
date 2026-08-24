@@ -72,13 +72,18 @@ def errorlog_for(src):
         return fh.read()
 
 
-def run(exe, out_bin, timeout_sec=60):
+def run(exe, out_bin, timeout_sec=60, expected_bytes=None):
     """Run a compiled lino program and collect the file it writes.
 
+    When expected_bytes is supplied, do not stop a programme that appends its
+    output until the complete artifact has reached that exact size.
     Returns (rc, output, blob). blob is None unless a fresh file appeared.
     """
-    rc, out = _powershell(RUN_PS1, ["-Exe", exe, "-Out", out_bin,
-                                    "-TimeoutSec", str(timeout_sec)])
+    arguments = ["-Exe", exe, "-Out", out_bin,
+                 "-TimeoutSec", str(timeout_sec)]
+    if expected_bytes is not None:
+        arguments.extend(("-ExpectedBytes", str(expected_bytes)))
+    rc, out = _powershell(RUN_PS1, arguments)
     blob = None
     if rc == 0 and os.path.exists(out_bin):
         with open(out_bin, "rb") as fh:

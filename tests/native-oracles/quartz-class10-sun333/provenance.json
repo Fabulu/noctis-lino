@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "case": "bistarial-class10-sun333",
+  "candidate": {
+    "star": [5411056, -7441017, -1775473],
+    "star_label": "BISTARIAL/SORZ",
+    "star_class": 10,
+    "star_ray": 30.8439998626709,
+    "generated_system": {
+      "nop": 2,
+      "nob": 2,
+      "body_index": 1,
+      "body_owner": -1,
+      "body_owner_role": "primary",
+      "body_type": 8,
+      "body_ray": 0.031824
+    },
+    "surface_pose": {
+      "clock": 1344638527,
+      "longitude": 333,
+      "latitude": 60,
+      "player": [1638400, 1, 1638400],
+      "pitch": -30,
+      "heading": 270
+    }
+  },
+  "product": {
+    "binary_sha256": "9c2297e1e51da3283793c86483a905fd603904f8e598495dea95fb92834bf944",
+    "checkpoint": "product.CURRENT.LIN",
+    "checkpoint_sha256": "d300e89708c8c6043cea06d4806ab3e7a9a24a236ef5f480451ae24c3667cc7c",
+    "runner": "tools/run_hidden_noctis.py",
+    "private_desktop": true,
+    "sun_diagnostic": {
+      "mode": 1,
+      "landed": 1,
+      "planet_type": 8,
+      "star_class": 10,
+      "atmosphere": 1,
+      "night": 0,
+      "rain": 0.0,
+      "exposure": 29.7388,
+      "distance": 400.133026,
+      "distance_bits": "43C81107",
+      "ray": 30.8439999,
+      "ray_bits": "41F6C083",
+      "lower_threshold": 308.439999,
+      "upper_threshold": 30843.9999,
+      "strictly_inside_radial_interval": true,
+      "radial_flare_admitted": 0,
+      "flare_center": [0, 0],
+      "flare_sample": 0
+    },
+    "local_diagnostic": {
+      "body_index": 1,
+      "body_type": 8,
+      "body_ray": 0.031824,
+      "phase_clock": 1344638527
+    },
+    "diagnostic_sha256": {
+      "product-vh.bin": "f78bfc9837bc608a243018d55377287a351f366f8c0c75f075af84f8d8cdfe08",
+      "product-sun.bin": "eeaaf19ce8d1951ee79af6d53163d331749067303c8013ea0d64f1653693f1c0",
+      "product-local.bin": "da7a1883067a5f52b2c52349282a92a4d434af9693f9aa759e835ece5a200261",
+      "product-palette.bin": "d8c5ee1c69ab373a2670511c1d020ceb66e19153873abc615270d1a6f27c7e40",
+      "product-page.bin": "846a72617a070ba4ff94dc40618c410421de655d797a983de2637e33ed9e2a9d"
+    }
+  },
+  "native": {
+    "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+    "headless": true,
+    "timeout_seconds": 90,
+    "stop_poll_milliseconds": 1,
+    "snapshot_after_seconds": 30,
+    "current": "native.CURRENT.BIN",
+    "current_sha256": "bec49d24ba3bc946ea774768a96b401f7db0d0e998bc0de84a05620a7ce5d57f",
+    "surface": "native.SURFACE.BIN",
+    "surface_sha256": "742e907ee37d877ee6a720787d769d9aaba1723e511be9130d77221437e54d52",
+    "command": "native-capture.cmd",
+    "command_sha256": "1054cdca274994e7771f958056c4402109e8bb3b1ba8c98b493227ff5dd0f1bc",
+    "bmp": "native.shot.BMP",
+    "bmp_sha256": "384c61522050fb75a63994dc1569e484b769d056c671845d272b09112f68876a",
+    "indexed_page_sha256": "2477cfc669cbfd537321c72f262a141eec1b05c59f0b8700f5cc0f409d62f6cd",
+    "six_bit_palette_sha256": "d8c5ee1c69ab373a2670511c1d020ceb66e19153873abc615270d1a6f27c7e40",
+    "frozen_ram_retained": false,
+    "frozen_ram_sha256": "279b685707ab5a936ff22329edb961df062e7164af287443bb365f9680a6f1b2",
+    "post_snapshot_adapted_retained": false,
+    "post_snapshot_adapted_sha256": "f9648648219a17010d5dd8b9755337f7e9decace79289cb4db314307a69c7dd2",
+    "bmp_vs_post_snapshot_page_mismatches": 24399,
+    "continuity": {
+      "offset": 206300,
+      "sync": 1,
+      "ip_targetted": 1,
+      "ip_reached": 1,
+      "landed": 1,
+      "star_class": 10,
+      "nearstar_nop": 2,
+      "star_ray": 30.8439998626709,
+      "player": [1638400.0, -45056.0, 1638400.0],
+      "pitch": -30.0,
+      "heading_normalized": -90.0,
+      "navigation_angle": 0.0,
+      "frozen_clock": 1344638526.9
+    }
+  },
+  "native_product_comparison": {
+    "six_bit_palette_exact": true,
+    "whole_page_index_mismatches": 9507,
+    "whole_page_palette_band_mismatches": 621,
+    "upper_sky_crop": [40, 10, 310, 120],
+    "upper_sky_crop_pixels": 29700,
+    "upper_sky_index_mismatches": 212,
+    "upper_sky_palette_band_mismatches": 0,
+    "sun_core_crop": [145, 88, 171, 110],
+    "sun_core_crop_pixels": 572,
+    "sun_core_exact": true,
+    "center_index": 127,
+    "center_index_count": 176,
+    "center_index_bounds_in_both": [149, 92, 165, 105]
+  },
+  "clock_note": "NIV+ freezes at 1344638526.9 when the DOS guest is set to 11.08.2026 22:41:37 and the snapshot is scheduled 30 seconds later. A naive Gregorian 10.08.2026 command froze exactly one source day early; the corrected guest date is required for this seconds-since-1984 clock.",
+  "authority": {
+    "native_snapshot_page_and_palette_retained": true,
+    "native_post_snapshot_camera_state_retained": true,
+    "native_snapshot_simulation_state_retained": false,
+    "native_live_distance_retained": false,
+    "whole_page_same_state_contract": false,
+    "admissible_contract": "The retained NIV+ frame and decoded frozen continuity authenticate the landed class-10/type-8 pose and its centred disc/corona without radial spokes. The shipping product independently reports distance 400.133026 strictly inside 10*ray < distance < 1000*ray while radial-flare admission, centre, and sample remain zero. Exact six-bit palette equality, an exact 572-index sun-core crop, and zero palette-band differences across the 29,700-index upper-sky crop tie the native and product visual. Whole-page equality is not authoritative because frozen RAM is post-snapshot and terrain/HUD state differs."
+  }
+}
