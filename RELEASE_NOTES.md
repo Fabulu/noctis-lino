@@ -94,7 +94,16 @@ roof pose puts the same sources in separate upper-cupola panels. Native and
 product have identical 236/115-pixel threshold-79 masks and identical 48/57-pixel
 threshold-87 cores for the two lights, plus all 64,000 matching palette bands;
 only 416 complete-page low-six indices remain different across the adjacent
-0.055556-second phase bracket.
+0.055556-second phase bracket. A third pose steps outside the hull at
+`(2813,0,-1397)`: body 1 remains a 58/53-pixel native/product bright component,
+while the eligible class-8 primary at `(232,99)` and selected type-10 body at
+`(255,99)` are independently in-gate but hidden behind the blue right hull.
+Both occluded 3-by-3 projection centres are index-exact, every right-hull palette
+band matches, and the visible source retains the measured one-pixel-right,
+three-pixel-down product-to-native placement with only 9 bright-mask and 7
+core-mask differences. The exterior's 37,737 index, 824 complete-page band, and
+365 active-palette differences remain explicit rather than being promoted to a
+whole-page equality claim.
 
 WIRE now supplies the first retained matched positive orbital-primary class
 checkpoint. Its class-7 primary at `(-1187856,-195673,1064757)` has ray

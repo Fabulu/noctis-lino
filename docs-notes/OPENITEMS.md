@@ -323,7 +323,8 @@ screenshot processes can interfere and produced two all-black captures, so
 this matrix must be captured sequentially. Still open: representative views
 for every planet and atmosphere class, weather and day/night boundaries,
 further companion and multiple-sun arrangements, additional orbital views, and
-moving Stardrifter interior/cupola/exterior plus launch/landing transitions.
+moving transitions among Stardrifter interior/cupola/exterior plus launch/landing
+transitions.
 
 The thin gallery case now also has a full-context NIV+ oracle, not only the
 synthetic uniform-page flare check. An instrumented Borland build rendered the
@@ -466,6 +467,30 @@ frozen adapted page, so complete low-six and active-palette equality remain
 outside the contract despite this unusually close result. This closes a genuine
 two-source roof/cupola composition as well as the interior one; moving lift and
 launch/landing flare transitions remain open.
+
+**Dual-companion exterior hull-occlusion checkpoint.** Stepping to the standard
+outside position `(2813,0,-1397)` preserves the exact star-local pose and
+navigation-113 source geometry. Body 1 remains visible through the left aperture,
+while source-shaped projection places the class-8 primary at `(232,99)` and the
+selected type-10 body 0 at `(255,99)`, both inside the blue right-hand hull. The
+primary remains strictly inside its `6*ray < distance < 1000*ray` interval and
+both companions remain inside `5*ray < distance < 1000*ray`, so the two negative
+results are renderer-order occlusion rather than distance or class suppression.
+The bright aperture component near x=146 is not any of those projected sources
+and is therefore excluded from source grading.
+
+The retained native page has a 58-pixel body-1 bright component above index 87
+and a 29-pixel core above 95; the product has 53 and 24 pixels. Translating the
+product masks one pixel right and three pixels down leaves symmetric differences
+of only 9 and 7 pixels. In both engines, complete 21-by-17 windows around the
+primary and body-0 projections stay below index 64 in the hull's blue ramp. Their
+central 3-by-3 patches are index-exact, and all 11,766 palette bands in the
+right-hull rectangle match. The full pages still differ at 37,737 indices and
+824 palette bands, while active palettes differ at 365 components. Those
+complete-page values and the non-atomic later frozen page remain explicit
+non-contracts. This closes a stationary genuine exterior positive/negative
+three-source composition; moving interior/cupola/exterior and launch/landing
+transitions remain open.
 
 A scoped source audit found no material caller divergence that can explain that
 61-versus-151 count: native and product retain companion seeding, binary64 ray,
