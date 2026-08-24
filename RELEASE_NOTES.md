@@ -68,6 +68,18 @@ white corona and radial flare. The corrected product projects and renders that
 companion, while its remaining corona brightness, palette, shape, and whole-page
 gaps stay explicit rather than being hidden by the negative control.
 
+A second, independent class-8 arrangement at
+`(-546064,-439032,-1136208)` now places rocky moon 3 and its type-10 parent in
+the same outward Stardrifter frame. The native BMP retains the moon's 2,723-pixel
+terminator component beside a 3,427-pixel companion corona/ray component; the
+matched private-desktop product retains 2,780 and at least 2,000 indexed pixels,
+respectively, and reports separate accepted centres `(89,100)` and `(232,100)`.
+The retained star-relative position matches within one billionth and the orbital
+phase is bracketed within 0.1875 second. This closes one additional companion-
+beside-globe arrangement while corroborating, not tuning, the open positive
+companion-intensity gap; non-atomic whole-page and palette equality remain
+ungraded.
+
 WIRE now supplies the first retained matched positive orbital-primary class
 checkpoint. Its class-7 primary at `(-1187856,-195673,1064757)` has ray
 `2.1919999`; an untargeted exterior Stardrifter keeps the exact native/product

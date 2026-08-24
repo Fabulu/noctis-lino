@@ -322,8 +322,8 @@ those inputs, not the unrelated black horizon-pillar defect. Parallel
 screenshot processes can interfere and produced two all-black captures, so
 this matrix must be captured sequentially. Still open: representative views
 for every planet and atmosphere class, weather and day/night boundaries,
-additional companion and multiple-sun arrangements, orbital views, and the
-full Stardrifter interior/cupola/exterior transition.
+further companion and multiple-sun arrangements, additional orbital views, and
+the full Stardrifter interior/cupola/exterior transition.
 
 The thin gallery case now also has a full-context NIV+ oracle, not only the
 synthetic uniform-page flare check. An instrumented Borland build rendered the
@@ -401,6 +401,29 @@ renders a real corona and rays. Its crop currently contains 61 pixels above the
 same threshold and its complete page differs at 16,155 indices. Those brightness,
 shape, palette, and whole-page gaps remain open; this positive capture prevents
 them from being hidden behind the now-correct negative checkpoint.
+
+**Independent compact companion/globe checkpoint.** A separate generated
+class-8 system at `(-546064,-439032,-1136208)` has only four bodies with types
+`[9,9,10,4]`; rocky moon 3 belongs to type-10 parent 2. A sync-0 outward camera
+at navigation 162 keeps the moon terminator and parent corona in the same frame.
+The native snapshot retains a 2,723-pixel band-2 moon component in
+`(51,74)-(115,126)` and a 3,427-pixel indexed companion corona/ray component in
+`(185,43)-(271,141)`, including a 252-pixel high core. The matched private-
+desktop product reports moon centre `(89,100)`, companion centre `(232,100)`,
+and both admissions; it retains 2,780 moon-band pixels, more than 2,000 corona/
+ray pixels, and more than 200 high-core pixels.
+
+The product's authored target-relative position `(0,0,-0.05)` plus its exact
+body position matches the staged and following-frame native star-local position
+within `1e-9`; native second `1345723227.8125` and product second `1345723228`
+bracket orbital phase by 0.1875 second. The complete pages still differ at
+13,838 indices, 707 palette-band assignments, and 363 active palette components,
+so those remain informational. This closes one real additional companion-beside-
+globe arrangement and independently confirms a substantial positive product
+corona. It does not justify tuning the wider native corona: like ROTOR IGNE, the
+native indexed companion component remains broader (3,427 versus 2,629 in the
+retained product run), and no native pass-level white-globe/flare/smoothing pages
+exist.
 
 A scoped source audit found no material caller divergence that can explain that
 61-versus-151 count: native and product retain companion seeding, binary64 ray,

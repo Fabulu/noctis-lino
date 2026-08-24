@@ -1,0 +1,113 @@
+{
+  "artifact": "orbitmultiple_compact_3228_native.shot.BMP",
+  "artifact_sha256": "2dd8a1470dd40def194363da9fe2be4100da57fdfbee9b95db64c69f7dbd547a",
+  "indexed_page_sha256": "7e8af381d96db273b9e4becfa056f0e6d56588143ad150a3a0517a24d8e54ec4",
+  "six_bit_palette_sha256": "a23a8917d9dfdb0fbe8dea7422d58fa684ccc335a63a49f99fe269fc5fb33170",
+  "star": [-546064, -439032, -1136208],
+  "star_class": 8,
+  "star_body_count": 4,
+  "body_types": [9, 9, 10, 4],
+  "target_body": 3,
+  "target_owner": 2,
+  "target_type": 4,
+  "target_ray": 0.01449,
+  "companion_body": 2,
+  "companion_type": 10,
+  "companion_ray": 8.94,
+  "camera": {
+    "position": [0.0, 0.0, -500.0],
+    "user_alfa": 0.0,
+    "user_beta": 0.0,
+    "navigation_beta": 162.0
+  },
+  "continuity_after_snapshot": {
+    "ram_offset": 206300,
+    "sync": 0,
+    "ip_targetted": 3,
+    "ip_reached": 1,
+    "pwr": 17087,
+    "fcs_status": "STANDBY",
+    "secs": 1345723227.8125,
+    "surlight": 16,
+    "dzat": [-544335.8964477219, -439254.66334072733, -1136375.776529985],
+    "star_local": [1728.1035522781312, -222.66334072733298, -167.77652998501435]
+  },
+  "capture": {
+    "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+    "timeout_seconds": 120,
+    "stop_poll_milliseconds": 1,
+    "stop_after_file_bytes": 65078,
+    "snapshot_key_delay_seconds": 30,
+    "precapture_current_sha256": "ec227f656e75785d71d1d62e1678a18e4b6b1e0b02fbb7faac516d899d705e80",
+    "command_sha256": "1f9237adc68d29c04af769e2fff4b7e62f659348582f58c462bb622d8016fa21",
+    "frozen_ram_sha256": "b8ec035bb6f66de4bd773ecde799b4e411b7e7b8f14ac2f7b6140d0900b52e42",
+    "frozen_adapted_sha256": "2b97ea925dce61641744a0abf21d162a77b044b609238c3089851530329429c9",
+    "page_vs_frozen_adapted_differences": 10825,
+    "sandbox_restored": true
+  },
+  "native_visibility": {
+    "target_palette_band": 2,
+    "target_component_pixel_count": 2723,
+    "target_component_bounding_box": [51, 74, 115, 126],
+    "companion_index_threshold": 64,
+    "companion_component_pixel_count": 3427,
+    "companion_component_bounding_box": [185, 43, 271, 141],
+    "companion_core_index_threshold": 119,
+    "companion_core_pixel_count": 252,
+    "companion_core_bounding_box": [217, 91, 236, 108],
+    "moon_terminator_and_companion_corona_visible_together": true
+  },
+  "matched_product_contract": {
+    "runner": "tools/capture_noctis_scenes.ps1",
+    "scene": "orbitmultiplecompact",
+    "private_inactive_desktop": true,
+    "diagnostic_only": true,
+    "raw_clock": 1345723228,
+    "camera": {
+      "position": [0, 0, -500],
+      "user_alfa": 0,
+      "user_beta": 0,
+      "navigation_beta": 162
+    },
+    "sync": 0,
+    "target_relative_stardrifter": [0.0, 0.0, -0.05],
+    "target_absolute": [1728.1035522781742, -222.66334072733582, -167.72652998498063],
+    "star_local": [1728.1035522781742, -222.66334072733582, -167.77652998498064],
+    "target_projection": {
+      "accepted": true,
+      "center": [89, 100],
+      "palette_band": 2,
+      "component_pixel_count": 2780,
+      "component_bounding_box": [57, 71, 121, 124]
+    },
+    "companion_projection": {
+      "body": 2,
+      "type": 10,
+      "relative": [66.67505933724146, 0.0, 90.50414965097791],
+      "flare_accepted": true,
+      "center": [232, 100],
+      "component_index_threshold": 64,
+      "component_pixel_count": 2629,
+      "component_bounding_box": [185, 55, 268, 137],
+      "core_index_threshold": 119,
+      "core_pixel_count": 228,
+      "core_bounding_box": [216, 88, 234, 104]
+    },
+    "captured_page_sha256": "06e5e82a2627280d34292e4fd102921e4a759906c9edab6f19db27d2e3319138",
+    "captured_palette_u32le_sha256": "198c3e97d4cd8f43478ee4895f27e43f7a30f79a4310d77768dd96963e98dcea",
+    "complete_page_index_mismatches": 13838,
+    "complete_page_palette_band_mismatches": 707,
+    "complete_palette_component_mismatches": 363,
+    "interpretation": "The independent compact class-8 system puts a type-4 moon terminator and its type-10 parent corona in the same exterior frame. The product emits both source admissions and preserves substantial indexed globe/corona components. The native companion remains broader and brighter, so this arrangement corroborates rather than resolves ROTOR IGNE's positive companion-intensity gap; no flare tuning is supported."
+  },
+  "authority": {
+    "snapshot_camera_state_retained": true,
+    "camera_reason": "The staged CURRENT.BIN and post-snapshot continuity block retain identical position and three camera angles.",
+    "snapshot_page_and_palette_retained": true,
+    "snapshot_simulation_state_retained": false,
+    "simulation_reason": "DOSBox-X was suspended after the completed BMP appeared; adapted had already entered the next frame.",
+    "matched_product_phase_bracket_seconds": 0.1875,
+    "whole_page_same_state_contract": false,
+    "admissible_contract": "At the retained source camera and adjacent orbital phase, rocky moon 3 and its type-10 parent are simultaneously front-facing. The native BMP authenticates the moon terminator, the companion corona/rays, their separation, its complete indexed page, and its active six-bit palette. Product grading may authenticate the same admissions, projections, and substantial indexed components, but not whole-page equality or an intensity correction."
+  }
+}

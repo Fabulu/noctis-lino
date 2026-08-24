@@ -97,6 +97,7 @@ TESTS = [
     ("test_orbitprimary_class10_oracle.py", "matched OUTER RUN WIND class-10 evidence protects the bodyless untargeted exterior pose, strict orbital interval, compact corona, spoke exclusion, palette bands, and non-atomic authority boundary"),
     ("test_orbitprimary_oracle.py", "matched WIRE class-7 native/product evidence protects the untargeted exterior camera, strict primary gate, space palette, complete flare-crop bands, and radial core"),
     ("test_orbitmultiple_oracle.py", "matched ROTOR IGNE negative and front-facing native pages/palettes protect the source exterior half-turn and a real type-10 companion flare"),
+    ("test_orbitmultiple_compact_oracle.py", "independent compact class-8 native/product evidence keeps a rocky moon terminator and its type-10 parent corona visible together without tuning ROTOR IGNE"),
     ("test_orbitlunar_oracle.py", "matched IDEAL lunar exterior/interior/limb/roof and strict cupola-boundary pages protect orbital, globe, primary, and Stardrifter branch geometry"),
     ("test_surface_flare_oracle.py", "rebuilt ten-case surface-flare probe equals six concatenated Borland pages, three real positive ray/distance pages, and the exact lunar no-beam boundary"),
     ("test_release_notes.py", "tagged GitHub releases contain only their own RELEASE_NOTES section"),

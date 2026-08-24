@@ -7,7 +7,7 @@ param(
     [ValidateSet('all', 'stardrifter', 'stardrifterclass0', 'stardrifterclass1', 'stardrifterclass2', 'stardrifterclass3', 'stardrifterclass4', 'stardrifterclass5', 'stardrifterclass6', 'stardrifterclass7', 'stardrifterclass8', 'stardrifterclass9', 'stardrifterclass10', 'stardrifterclass11', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
-        'orbitsubstellar', 'orbitmultiple',
+        'orbitsubstellar', 'orbitmultiple', 'orbitmultiplecompact',
         'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass5', 'lunarclass9', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'quartzclass10', 'ruins', 'cube')]
@@ -208,6 +208,13 @@ $scenes = @(
        Beta=0; Nav=120; Pitch=-34; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;
        OpenHud=$true; Sync=1;
        LocalX=-0.025440362261571668; LocalY=0.0; LocalZ=-0.014688000000000005 },
+    # A compact independent class-8 system frames rocky moon 3 and its type-10
+    # parent together.  The fixed local pose keeps both the moon terminator and
+    # companion corona on screen without changing ROTOR IGNE's open intensity gap.
+    @{ Name='orbitmultiplecompact'; FileName='planet-space-compact-multiple-system.png'; Mode=0;
+       X=-546064; Y=-439032; Z=-1136208; Body=3; Type=4; Lon=0; Lat=60;
+       Beta=0; Nav=162; Pitch=0; Warmup=1; PlayerX=0; PlayerY=0; PlayerZ=-500;
+       Sync=0; LocalX=0.0; LocalY=0.0; LocalZ=-0.05 },
     # IDEAL's only body is an authentic type-1 primary. This avoids spending
     # screenshot startup time generating JROT's pathological 80-body system.
     @{ Name='lunar';     X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
