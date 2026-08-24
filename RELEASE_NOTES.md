@@ -80,6 +80,19 @@ beside-globe arrangement while corroborating, not tuning, the open positive
 companion-intensity gap; non-atomic whole-page and palette equality remain
 ungraded.
 
+A matched view of that same compact hierarchy now puts the type-10 parent directly
+behind its type-4 moon at exact native/product clock `1345723227`. Product
+diagnostics independently admit the parent at `(164,100)`: distance
+`112.390224` is strictly inside `5 * 8.94 < distance < 1000 * 8.94`. The later
+moon globe removes every index-96-through-127 parent-core pixel in both engines,
+whereas the beside-moon controls retain 756/737-pixel native/product cores. The
+product globe shifted `(-5,+2)` contains all 19,480 native globe pixels plus only
+eight edge pixels. A settled five-second native snapshot removes the transient
+`SYSTEM RESET` overlay without changing the integer phase; `draw_hud=0` alone is
+not claimed as the cause. Whole-page, active-palette, and later frozen-state
+equality remain ungraded, and the result still does not justify companion flare
+tuning.
+
 TRIUMVIRATE - CAESAR adds a genuine class-8 `[10,10,1]` hierarchy with both
 type-10 bodies visible together from the Stardrifter interior. A balanced pose
 places their independently projected flare centres at `(255,99)` and `(73,101)`.

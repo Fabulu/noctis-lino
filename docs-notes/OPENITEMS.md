@@ -426,6 +426,32 @@ native indexed companion component remains broader (3,427 versus 2,629 in the
 retained product run), and no native pass-level white-globe/flare/smoothing pages
 exist.
 
+**Compact parent-behind-moon eclipse checkpoint.** A second pose in the same
+`[9,9,10,4]` hierarchy rotates navigation to 144 and authors the ship only
+`0.018` units from moon 3. Moving DOS time back before a five-second settled
+snapshot retains exact native raw clock `1345723227.0` while allowing the
+transient `SYSTEM RESET` information overlay to clear. A one-second probe kept
+that overlay with `draw_hud` either enabled or disabled, so the retained evidence
+does not falsely attribute the clean frame to `draw_hud=0` alone. Rebuilding the
+385-byte state with `mkcurrent.py` reproduces SHA-256
+`d7aef1edca52bbfba07e4a3b1c36835250c2b0781e9db711ccba5fa1e9da9360`.
+
+The exact-clock product reports the target at `(159,100)` and parent 2 at
+`(164,100)`. Parent distance `112.39022399999993` is strictly inside
+`5 * 8.94 < distance < 1000 * 8.94`, and its flare diagnostic is accepted before
+the selected target globe renders. Native/product globe masks contain
+19,480/19,488 band-2 pixels; shifting the product mask `(-5,+2)` covers every
+native pixel and leaves only eight product-only edge pixels. Both bounded eclipse
+windows contain zero source-specific indices 96 through 127. The nearby positive
+controls expose 756/737-pixel native/product high-white parent components, so the
+negative is later globe overwrite rather than source rejection. Native and
+product share the integer clock and star-local pose within `1e-9`; the complete
+pages still differ at 22,842 indices and 1,598 palette bands, active palettes at
+187 components, and the native BMP differs from its later adapted page at 24,529
+indices. Those equalities remain unclaimed. This closes a genuine parent-behind-
+moon companion occlusion without providing the unavailable pass-level evidence
+needed to tune the remaining ROTOR IGNE intensity/shape gap.
+
 **Independent dual-companion interior checkpoint.** TRIUMVIRATE - CAESAR at
 `(4142128,-5182625,-629021)` is a generated class-8 system with body types
 `[10,10,1]`, so it supplies two genuine type-10 lights rather than one companion

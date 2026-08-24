@@ -1,0 +1,159 @@
+{
+  "schema": "noctis-native-oracle-provenance-v1",
+  "scene": "compact type-10 parent behind its type-4 moon and beside-moon positive control",
+  "captured_utc": "2026-08-24",
+  "system": {
+    "coordinates": [-546064, -439032, -1136208],
+    "star_class": 8,
+    "body_types": [9, 9, 10, 4],
+    "target_body": 3,
+    "target_owner": 2,
+    "target_type": 4,
+    "target_ray": 0.01449,
+    "parent_body": 2,
+    "parent_type": 10,
+    "parent_ray": 8.94
+  },
+  "camera": {
+    "player": [0.0, 0.0, -500.0],
+    "pitch": 0.0,
+    "user_beta": 0.0,
+    "navigation_beta": 144.0,
+    "celestial_beta": 324.0
+  },
+  "native_capture": {
+    "runner": "NIV+ 2.3 under DOSBox-X 2025.05.03",
+    "authority": "The saved indexed BMP and its active six-bit palette are the authoritative capture. Frozen RAM/adapted support files are later-state diagnostics, not same-frame substitutes.",
+    "eclipse": {
+      "bmp": "orbitmultiple_compact_parent_eclipse_3227_native.shot.BMP",
+      "bmp_sha256": "16ca58d0b6c3324e87193b689f9f852672d94ec41fe722a526fce25d66b1816d",
+      "decoded_page_sha256": "d04299cf142c628866fb57e771c6ad671dbaa88f37ef60a10f1c7dc548aa0043",
+      "six_bit_palette_sha256": "a23a8917d9dfdb0fbe8dea7422d58fa684ccc335a63a49f99fe269fc5fb33170",
+      "current_sha256": "d7aef1edca52bbfba07e4a3b1c36835250c2b0781e9db711ccba5fa1e9da9360",
+      "snapshot_command": "build/orbitmultiple-compact/companion-eclipse-3227-settled.cmd",
+      "snapshot_command_sha256": "6ea98f976e8ad1388a62eb41e8fc274ba97afc539555a8e8459869219dab7ec8",
+      "snapshot_wait_seconds": 5,
+      "initial_clock": 1345723226.0,
+      "captured_clock": 1345723227.0,
+      "clock_method": "DOS time was moved back four seconds before a five-second settled snapshot. This retained the exact integer orbital phase while allowing the transient SYSTEM RESET overlay to clear.",
+      "sync": 0,
+      "target_reached": 1,
+      "charge": 120,
+      "power": 30000,
+      "draw_hud": 0,
+      "draw_hud_limit": "A one-second exact-clock capture retained SYSTEM RESET with draw_hud either enabled or disabled. The settled wait, not draw_hud alone, is the discriminating overlay-removal step.",
+      "fcs_status": "STANDBY",
+      "lifter": 0,
+      "surlight": 16,
+      "star_local": [1728.087772049359, -222.66334072733298, -167.73727823677473],
+      "authored_star_local": [1728.0877720493675, -222.66334072733582, -167.73727823688378],
+      "target_absolute_at_product_clock": [1728.0984530058574, -222.66334072733582, -167.72278971837906],
+      "target_relative_at_product_clock": [-0.010680956489873435, 0.0, -0.014488518504713672],
+      "support_memory": "tests/gen/recon_w7b/mem/orbitmultiple_compact_parent_eclipse_3227_native.mem",
+      "support_memory_sha256": "ba22ac4c08b5660bf56be3dac4ebd6ec7c68656fae151c4251151e8a42abf3e8",
+      "support_adapted": "orbitmultiple_compact_parent_eclipse_3227_native.adapted",
+      "support_adapted_sha256": "c4d1e928d135528fe65da587c872e715bcecd68452275a743a174ed642867877",
+      "bmp_vs_adapted_index_differences": 24529
+    },
+    "positive_control": {
+      "bmp": "orbitmultiple_compact_3228_native.shot.BMP",
+      "bmp_sha256": "2dd8a1470dd40def194363da9fe2be4100da57fdfbee9b95db64c69f7dbd547a",
+      "decoded_page_sha256": "7e8af381d96db273b9e4becfa056f0e6d56588143ad150a3a0517a24d8e54ec4",
+      "six_bit_palette_sha256": "a23a8917d9dfdb0fbe8dea7422d58fa684ccc335a63a49f99fe269fc5fb33170",
+      "captured_clock": 1345723227.8125,
+      "product_clock": 1345723228,
+      "navigation_beta": 162.0,
+      "provenance": "orbitmultiple_compact_3228_native.provenance.json"
+    }
+  },
+  "matched_product": {
+    "runner": "tracked official L.in.oleum build through tools/capture_noctis_scenes.ps1",
+    "eclipse": {
+      "directory": "build/orbitmultiple-compact/official-parent-eclipse-product",
+      "capture_arguments": ["-Scene", "orbitmultiplecompact", "-DiagnosticOnly", "-OutputDirectory", "build/orbitmultiple-compact/official-parent-eclipse-product", "-ClockSeconds", "1345723227", "-ViewAngle", "0", "-NavigationAngle", "144", "-PlayerX", "0", "-PlayerY", "0", "-PlayerZ", "-500", "-OrbitalSync", "0", "-OrbitalLocalX", "-0.010680956489873435", "-OrbitalLocalY", "0", "-OrbitalLocalZ", "-0.014488518504713672"],
+      "clock": 1345723227,
+      "local_header_ignoring_utc": [0, 1, 1345723227, 3, 0, 144, 4],
+      "target_relative": [-0.010680956489873435, 0.0, -0.014488518504713672],
+      "target_absolute": [1728.0984530058574, -222.66334072733582, -167.72278971837906],
+      "star_local": [1728.0877720493675, -222.66334072733582, -167.73727823688378],
+      "target_radius": 0.01449,
+      "target_distance": 0.018,
+      "target_projection": {"accepted": true, "center": [159, 100]},
+      "parent": {
+        "body": 2,
+        "type": 10,
+        "relative": [66.69083846839602, 0.0, 90.46488000960633],
+        "distance": 112.39022399999993,
+        "radius": 8.94,
+        "flare_accepted": true,
+        "center": [164, 100]
+      },
+      "hashes": {
+        "orbitmultiplecompact-game-local-out.bin": "d693c76134a99748ed29bb8924a91f6f2c2f076aa2400e5d436aed0b3b8e0969",
+        "orbitmultiplecompact-game-p-background-out.bin": "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906",
+        "orbitmultiplecompact-game-p-surfacemap-out.bin": "ffb6996236de2c89fcd63cd720829677d699c44903b0e2d83651533fcc97f4d6",
+        "orbitmultiplecompact-game-page-out.bin": "e7e0cf33588160493e327e3f8043904f3439cfc4b84e54f4f1febee0a837fcdd",
+        "orbitmultiplecompact-game-palette-out.bin": "f95a54fb48f4af648b1c7b1f4d985965798d55032ae44b75fc28dd3f40215948",
+        "orbitmultiplecompact-game-render-state-out.bin": "64a9b649c08cedd889708c4552a1a73b177a487c2fcbeb8dac52ba122d949d85",
+        "orbitmultiplecompact-game-s-background-out.bin": "229c36bcc9f7835e049900b996f24266bebfee8cf727a6b74c68bca79eaf6754",
+        "orbitmultiplecompact-game-sun-out.bin": "5fae92409a59bcebab0b6548062fe1f4c82866be02f7afa89ef76f63fbca1cf5",
+        "orbitmultiplecompact-game-vh-out.bin": "b080a1443393e39a4b254c3d3fe4335f283b803d1b55dfdb1fe5847a636168c3"
+      }
+    },
+    "positive_control": {
+      "directory": "build/orbitmultiple-compact/official-product",
+      "clock": 1345723228,
+      "target_projection": {"accepted": true, "center": [89, 100]},
+      "parent": {"body": 2, "type": 10, "flare_accepted": true, "center": [232, 100]},
+      "hashes": {
+        "orbitmultiplecompact-game-local-out.bin": "44a69a4e37699a1cc6096c52555b25f63464dc631b027cd089fc3a09ab443ad7",
+        "orbitmultiplecompact-game-p-background-out.bin": "cdf16f72c5d07b36484056e601ed9687f78477e5d85cee85a34f2406b7fb5906",
+        "orbitmultiplecompact-game-p-surfacemap-out.bin": "ffb6996236de2c89fcd63cd720829677d699c44903b0e2d83651533fcc97f4d6",
+        "orbitmultiplecompact-game-page-out.bin": "06e5e82a2627280d34292e4fd102921e4a759906c9edab6f19db27d2e3319138",
+        "orbitmultiplecompact-game-palette-out.bin": "198c3e97d4cd8f43478ee4895f27e43f7a30f79a4310d77768dd96963e98dcea",
+        "orbitmultiplecompact-game-render-state-out.bin": "ebc8870f31cab62b64a1f59446bd298daf990d8a683ba5aa60995c63017139f8",
+        "orbitmultiplecompact-game-s-background-out.bin": "229c36bcc9f7835e049900b996f24266bebfee8cf727a6b74c68bca79eaf6754",
+        "orbitmultiplecompact-game-sun-out.bin": "5fae92409a59bcebab0b6548062fe1f4c82866be02f7afa89ef76f63fbca1cf5",
+        "orbitmultiplecompact-game-vh-out.bin": "cd6c406c6a08ae7ac2616e764089ea2615539b578aa23a863a9fa92ba99385b7"
+      }
+    }
+  },
+  "renderer_order_contract": {
+    "order": ["type-10 parent white shell and flare", "primary premask and mask_pixels", "other bodies", "selected type-4 target globe"],
+    "source": ["work/vhgame.txt:2196-2201", "work/vhgame.txt:2316-2400", "work/vhgame.txt:2420-2473"],
+    "parent_distance": 112.39022399999993,
+    "lower_strict_gate": 44.7,
+    "upper_strict_gate": 8940.0,
+    "flare_gate": "5 * ray < distance < 1000 * ray",
+    "flare_admitted": true,
+    "conclusion": "The type-10 parent is independently projected and admitted before the selected type-4 moon. Its high-white source component is absent at the eclipse pose because the later target globe overwrites it, not because the source gate rejects it."
+  },
+  "indexed_raster_contract": {
+    "globe_mask": "eight-connected component at the accepted target center whose palette index has top-two-bit band 2",
+    "eclipse_native_globe": {"pixels": 19480, "bbox": [69, 30, 241, 171]},
+    "eclipse_product_globe": {"pixels": 19488, "bbox": [74, 28, 246, 169]},
+    "eclipse_product_shift_to_native": [-5, 2],
+    "eclipse_shifted_overlap": 19480,
+    "eclipse_shifted_native_only": 0,
+    "eclipse_shifted_product_only": 8,
+    "source_core_mask": "indices 96..127 inclusive in the source-centered window",
+    "eclipse_source_window": [120, 60, 205, 140],
+    "eclipse_native_source_core_pixels": 0,
+    "eclipse_product_source_core_pixels": 0,
+    "positive_native_source_core": {"pixels": 756, "bbox": [209, 83, 243, 116]},
+    "positive_product_source_core": {"pixels": 737, "bbox": [209, 81, 242, 112]}
+  },
+  "explicit_non_claims": {
+    "whole_page_equal": false,
+    "whole_palette_equal": false,
+    "same_state_bmp_and_adapted": false,
+    "eclipse_native_product_index_differences": 22842,
+    "eclipse_native_product_palette_band_differences": 1598,
+    "eclipse_native_product_palette_component_differences": 187,
+    "positive_native_product_index_differences": 13838,
+    "positive_native_product_palette_band_differences": 707,
+    "positive_native_product_palette_component_differences": 363,
+    "companion_intensity_tuning_supported": false,
+    "note": "The oracle grades exact-clock state continuity, strict source admission, source-before-globe order, the shifted globe mask, and the positive/negative high-white source discriminator only. It does not support changing the unresolved companion brightness or shape."
+  }
+}
