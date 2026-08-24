@@ -816,24 +816,37 @@ palette components and all 36,000 palette bands in the
 history and 198 complete-page lower terrain/HUD band differences remain
 informational.
 
-**Seven-class automated surface-sun gate, 2026-08-24.** The retained type 1, 2,
-3, 4, 5, 7, and 8 BMP/surface pairs are now immutable test inputs rather than
-untracked capture-tree evidence. One default non-GUI run validates every BMP,
-40-byte surface record, indexed-page hash, six-bit palette hash, projected
-centre, and reproducible 264-byte product checkpoint. Product grading then
-requires exact camera, planet and star class, atmosphere/day/weather state,
-projected-sun admission and centre, pre-flare centre sample, exposure, solar
-distance, and stellar ray. Habitable, thin, and quartz cases authenticate the
+**Rocky-world class-1 positive-flare checkpoint.** Body 1 of the system at
+`(2952848,-6448045,-840503)` supplies the positive counterpart to the retained
+class-0 rocky upper-gate case. At longitude 180, heading 270, pitch -10, and
+certified source time `1345723230`, frozen guest memory retains the reached
+synchronous target, `landed=1`, and power 31505. Native and product agree on the
+admitted centre `(161,72)`, exact final index 126, exposure `17.9998`, distance
+`245.8964`, and class-1 ray `21.879`; the distance lies just inside
+`10*ray <= distance < 1000*ray`. All 768 palette components and all 27,000
+indices in the `(10,10)..(309,99)` upper-sky crop are exact. The remaining
+18,265 complete-page index differences and 671 lower terrain/HUD palette-band
+differences retain their snapshot-time provenance limit.
+
+**Eight-case, seven-class automated surface-sun gate, 2026-08-24.** The retained
+eight BMP/surface pairs span types 1, 2, 3, 4, 5, 7, and 8 and are immutable
+test inputs rather than untracked capture-tree evidence. One default non-GUI
+run validates every BMP, 40-byte surface record, indexed-page hash, six-bit
+palette hash, projected centre, and reproducible 264-byte product checkpoint.
+Product grading then requires exact camera, planet and star class,
+atmosphere/day/weather state, projected-sun admission and centre, pre-flare
+centre sample, exposure, solar distance, and stellar ray. Habitable, thin,
+quartz, and class-1 rocky cases authenticate the
 `10*ray <= distance < 1000*ray` interval; lunar/dense authenticate lower-gate
-suppression; rocky/frozen authenticate upper-gate suppression. Authority stays
-case-specific: habitable, thin, dense, and frozen require every palette band;
-lunar, rocky, and frozen additionally require exact 36,000-, 27,000-, and
-36,000-index upper-sky crops; quartz requires all 36,000 upper-sky palette bands
-and its exact final centre index; every palette is exact except dense's
-explicitly unretained easing state. The Apple-Silicon product job now executes
-all seven checkpoints independently and retains each diagnostic set. Whole
-final pages remain informational where snapshot-time terrain, simulation, or HUD state was
-not captured.
+suppression; class-0 rocky/frozen authenticate upper-gate suppression. Authority
+stays case-specific: habitable, thin, dense, and frozen require every palette
+band; lunar, the two rocky cases, and frozen additionally require exact 36,000-,
+27,000-, 27,000-, and 36,000-index upper-sky crops; quartz requires all 36,000
+upper-sky palette bands and its exact final centre index; every palette is exact
+except dense's explicitly unretained easing state. The Apple-Silicon product job
+now executes all eight checkpoints independently and retains each diagnostic
+set. Whole final pages remain informational where snapshot-time terrain,
+simulation, or HUD state was not captured.
 
 **Frozen-world class-0 positive-flare checkpoint.** RENIET VIII body 7 adds
 the missing positive counterpart at longitude 0, heading 90, pitch -20, and
