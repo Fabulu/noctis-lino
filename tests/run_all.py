@@ -88,6 +88,7 @@ TESTS = [
     ("test_ground.py", "Wave 7b: build_surface() and SURFACE.BIN - generated outputs three-way over types 1,2,3,4,5,7,8; the captured type-3 texture is exact and its post-landing p_surfacemap RAM residual is measured"),
     ("test_sky.py", "Wave 7b: lean create_sky()/horizon/SP join regression; the historical --deep audit established 27 cases/408 records, exact NIV+ anchors, and caught 26 C plus 27 Lino mutants"),
     ("test_sun_gallery.py", "sixteen retained surface-sun oracles across types 1/2/3/4/5/7/8 plus case-specific palette, band/crop, camera, admission, and positive/lower/upper/class-suppressed ray-distance contracts"),
+    ("test_orbitprimary_oracle.py", "matched WIRE class-7 native/product evidence protects the untargeted exterior camera, strict primary gate, space palette, complete flare-crop bands, and radial core"),
     ("test_orbitmultiple_oracle.py", "matched ROTOR IGNE negative and front-facing native pages/palettes protect the source exterior half-turn and a real type-10 companion flare"),
     ("test_orbitlunar_oracle.py", "matched IDEAL lunar exterior/interior/limb/roof and strict cupola-boundary pages protect orbital, globe, primary, and Stardrifter branch geometry"),
     ("test_surface_flare_oracle.py", "rebuilt ten-case surface-flare probe equals six concatenated Borland pages, three real positive ray/distance pages, and the exact lunar no-beam boundary"),

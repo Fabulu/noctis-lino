@@ -4,7 +4,7 @@
 param(
     [string]$OutputDirectory = 'screenshots',
     [string]$GameExecutable,
-    [ValidateSet('all', 'stardrifter', 'planetclose',
+    [ValidateSet('all', 'stardrifter', 'stardrifterclass7', 'planetclose',
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple',
@@ -93,6 +93,12 @@ $scenes = @(
     @{ Name='stardrifter'; Mode=0; X=3979984; Y=-43407; Z=-43984; Body=0; Type=0;
        Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=12;
        PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=200.0 },
+    # WIRE's blue class-7 primary has one authentic type-9 body but no landable
+    # surface. Hold the Stardrifter 100 stellar radii away so the source's
+    # positive orbital flare gate can be graded without inventing a surface.
+    @{ Name='stardrifterclass7'; Mode=0; X=-1187856; Y=-195673; Z=1064757;
+       Body=0; Type=9; Lon=0; Lat=60; Beta=23; Pitch=0; Warmup=1;
+       PlayerX=2813; PlayerY=0; PlayerZ=-1397; StarDistance=219.2 },
     # The opening system's type-8 primary after a completed fine approach,
     # held 3.88 planetary radii away on the calibrated forward window axis.
     @{ Name='planetclose'; FileName='planet-close-space.png'; Mode=0;
@@ -416,14 +422,17 @@ function New-Checkpoint {
     $u[10] = 0
     $u[11] = -300
     if ($Spec.ContainsKey('StarDistance')) {
-        # Invert VH space flare's beta/alpha rotations so the relative star
-        # vector projects to the centre of the 320x200 source viewport.
+        # Invert VH space flare's exterior beta/alpha rotations so the relative
+        # star vector projects to the centre of the 320x200 source viewport.
+        # from_vehicle() adds navigation_beta and the exterior half-turn.
         $radians = [Math]::PI / 180.0
         $distance = [double]$Spec.StarDistance
+        $navigation = if ($Spec.ContainsKey('Nav')) { [double]$Spec.Nav } else { 0.0 }
+        $exteriorBeta = ($Spec.Beta + $navigation + 180.0) * $radians
         $cosAlpha = [Math]::Cos($pitch * $radians)
-        $relativeX = -[Math]::Sin($Spec.Beta * $radians) * $cosAlpha * $distance
+        $relativeX = -[Math]::Sin($exteriorBeta) * $cosAlpha * $distance
         $relativeY = [Math]::Sin($pitch * $radians) * $distance
-        $relativeZ = [Math]::Cos($Spec.Beta * $radians) * $cosAlpha * $distance
+        $relativeZ = [Math]::Cos($exteriorBeta) * $cosAlpha * $distance
         $galacticX = [double]$Spec.X - $relativeX
         $galacticY = [double]$Spec.Y - $relativeY
         $galacticZ = [double]$Spec.Z - $relativeZ

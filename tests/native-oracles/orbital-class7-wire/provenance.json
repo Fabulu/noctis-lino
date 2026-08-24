@@ -1,0 +1,87 @@
+{
+  "artifact": "native.shot.BMP",
+  "artifact_sha256": "254daba81c49072da33ec65f2aa9ac639fdf74f887114c22cdba71ce2c1feae1",
+  "indexed_page_sha256": "23c2c66529021bf43952b9e0f526f50fb710c4698cdcfc0032631c291e9e5995",
+  "six_bit_palette_sha256": "78dff3c46c7cd75014e9e77a05ca9f07ae60bba3af6d3d09ad19c63f45634ec1",
+  "star": [
+    -1187856,
+    -195673,
+    1064757
+  ],
+  "star_name": "WIRE",
+  "star_class": 7,
+  "star_ray": 2.191999912261963,
+  "generated_system": {
+    "nop": 1,
+    "nob": 1,
+    "body_0_type": 9
+  },
+  "camera": {
+    "position": [
+      2813.0,
+      0.0,
+      -1397.0
+    ],
+    "user_alfa": 0.0,
+    "user_beta": 23.0,
+    "navigation_beta": 0.0
+  },
+  "continuity_after_snapshot": {
+    "ram_offset": 206300,
+    "sync": 0,
+    "ip_targetted": -1,
+    "ip_reached": 0,
+    "pwr": 19999,
+    "secs": 1345723229.7058823,
+    "dzat": [
+      -1187941.6482633648,
+      -195673.0,
+      1064958.7746638767
+    ],
+    "star_local": [
+      85.64826336479746,
+      0.0,
+      -201.77466387674212
+    ]
+  },
+  "flare_contract": {
+    "distance": 220.2,
+    "lower_threshold": 13.151999473571777,
+    "upper_threshold": 2191.999912261963,
+    "source_class_eligible": true,
+    "core_crop": [
+      120,
+      60,
+      195,
+      115
+    ],
+    "low_six_at_least_40": 148,
+    "low_six_at_least_40_bounds": [
+      149,
+      91,
+      165,
+      111
+    ]
+  },
+  "capture": {
+    "runner": "tests/gen/recon_w7b/capture_orbital_w7b.py",
+    "timeout_seconds": 180,
+    "stop_poll_milliseconds": 1,
+    "stop_after_file_bytes": 65078,
+    "precapture_current_sha256": "29c2223273b02299f92ce0cf6f3ee7622579d347454bdc142c6456073c31a9f2",
+    "command_sha256": "6092447729def1f688261cfb730fbd77d76fc2695d5e28664d5cfd97d5459724",
+    "frozen_ram_sha256": "887e9e243017bfb62eb41b106ebaac789cf61349ceb489a0067c21867ac56534",
+    "frozen_adapted_sha256": "d138daee0f2de2f137aa3875ef0320d049d1d60a4b0168cd09f63fe004cd5b2b",
+    "page_vs_frozen_adapted_differences": 30095,
+    "sandbox_restored": true
+  },
+  "authority": {
+    "snapshot_camera_state_retained": true,
+    "camera_reason": "The staged CURRENT.BIN and post-snapshot continuity block retain identical position, camera angles, and target-relative star vector.",
+    "snapshot_page_and_palette_retained": true,
+    "snapshot_simulation_state_retained": false,
+    "simulation_reason": "DOSBox-X was suspended after the completed BMP appeared; adapted was already partway through the next frame.",
+    "whole_page_same_state_contract": false,
+    "admissible_contract": "At the retained untargeted exterior camera, the class-7 primary is 220.2 units away, is admitted by the strict orbital primary gate, and produces the visible centred radial-flare core and spokes. The complete BMP remains authoritative for that positive visibility result, indexed page, and active six-bit palette."
+  }
+}
