@@ -99,6 +99,7 @@ FLOAT_SIGNATURES = {
         "[FI] = A; [FA0] := [FI]; [fw plus 508] = [FA0]; [fw plus 509] = [FA1];",
         "[FI] = A; [FA0] := [FI]; [fw plus 516] = [FA0]; [fw plus 517] = [FA1];",
         "[FI] = A; [FA0] := [FI]; [fw plus 524] = [FA0]; [fw plus 525] = [FA1];",
+        "[FI] = [VHGNDvv]; [FA0] := [FI];",
     ),
     "work/supaint.txt": (
         "[SFpx] -- [KF360];",

@@ -6661,6 +6661,8 @@
 	end;
 
 "VHGND vload"
-	[FI] = [VHGNDvv]; => PGF fromint;
-	A = [VHGNDvslot]; A + [VHGNDvi]; [PGFi] = A; => PGF sa;
+	( Exact int32-to-binary64 conversion directly into the selected input slot. )
+	[FI] = [VHGNDvv]; [FA0] := [FI];
+	A = [VHGNDvslot]; A + [VHGNDvi]; A + A; A + fw;
+	[A] = [FA0]; [A plus 1] = [FA1];
 	end;

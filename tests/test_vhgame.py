@@ -1007,6 +1007,7 @@ def main() -> int:
     )
     depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
+    vload = ground[ground.index('"VHGND vload"'):]
     check(
         "A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;" in shade
         and "[SUfmask] = 7; => VHGND render random;" in shade
@@ -1019,6 +1020,13 @@ def main() -> int:
             "=> IntToF;", "=> FMul;", "=> FAdd;", "=> FSqrt;", "=> FToIntChop;"
         ))
         and "? C '<= 32" in shade
+        and all(token in vload for token in (
+            "[FI] = [VHGNDvv]; [FA0] := [FI];",
+            "A = [VHGNDvslot]; A + [VHGNDvi]; A + A; A + fw;",
+            "[A] = [FA0]; [A plus 1] = [FA1];",
+        ))
+        and "=> PGF fromint;" not in vload
+        and "=> PGF sa;" not in vload
         and "A = [VHGNDshade]; [SPtinta] = A; [DBcol] = A;" in tile
         and "=> VHGND palette" not in game,
         "landing terrain uses the original diffuse shade and ground-palette band",
