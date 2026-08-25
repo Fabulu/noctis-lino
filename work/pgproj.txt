@@ -1015,7 +1015,28 @@
 	( The texture basis depends only on the original rotated vertices.  Build
 	  it after projection's conservative screen rejection so wholly off-screen
 	  polygons do not pay for nine gradient crosses and antialias expansion.
-	  No basis operation consumes or changes the clipped/projected vertices. )
+	  Preprojected terrain can go one step further: construct its exact integer
+	  edges first and skip the basis and row setup when every span is empty.  The
+	  two visible scratch bytes that trace always writes are still preserved. )
+	A = [SPterrain]; ? A = 0 -> PG pm basis;
+	A = [SPhalf]; ? A = 0 -> PG pm terrain edges;
+	[SPterrain] = 0; -> PG pm basis;
+    "PG pm terrain edges"
+	[EWvr22] = [PJvr22];
+	[EWminy] = [BXminy];
+	[EWmaxy] = [BXmaxy];
+	=> PG edges;
+	[SPi] = [BXminy];
+    "PG pm terrain span"
+	A = [SPi]; C = fpart; C + A; D = [C];
+	C = ipart; C + A; E = [C];
+	D - E; [SPsec] = D; ? D > 0 -> PG pm basis;
+	[SPi]+; A = [SPi]; ? A '<= [BXmaxy] -> PG pm terrain span;
+	[SPsrc] = 1;
+	A = PGSCRT; A + PGDOFF; [PGdi] = A; [PGval] = [SPtinta]; => PG store;
+	A = PGSCRE; A + PGDOFF; [PGdi] = A; [PGval] = [SPescr];  => PG store;
+	[PJgate] = 0; -> PG pm out;
+    "PG pm basis"
 	A = [PJdx]; [PJnrv] = A;
 	=> PJ vectors;
 	[PJnrv] = 4;
@@ -1039,10 +1060,12 @@
 	[PGFi] = FSK3; => PGF a; [PGFi] = FSK3; => PGF add;
 	[PGFi] = FSK3; => PGF sa; => PGF narrow;
     "PG pm k"
+	A = [SPterrain]; ? A != 0 -> PG pm traced;
 	[EWvr22] = [PJvr22];
 	[EWminy] = [BXminy];
 	[EWmaxy] = [BXmaxy];
 	=> PG edges;
+    "PG pm traced"
 	[SPsrc] = 1;
 	=> PG trace;
 	[PJgate] = 0;

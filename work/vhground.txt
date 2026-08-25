@@ -2733,7 +2733,7 @@
 "VHGND terrain mapped"
 	( Mirrored heights are not the cached surface.  Near-plane triangles keep
 	  polymap's generic four-edge clipping and projection path unchanged. )
-	[SPterrain] = 1;
+	[SPterrain] = 0;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND terrain mapped generic;
 	( Shared unit-grid vertices normally arrived through the preceding
 	  triangle.  Check the three exact cache slots directly before entering
@@ -2789,7 +2789,7 @@
 	A = mp; C = [A plus 4]; [A plus 6] = C; C = [A plus 5]; [A plus 7] = C;
 	A = rwf; [A plus 3] = 1; [PJdoflag] = 4;
 	=> VHGND terrain cached bounds;
-	[PJpreproject] = 1; [PJnrv] = 3; => PG polymap;
+	[SPterrain] = 1; [PJpreproject] = 1; [PJnrv] = 3; => PG polymap;
 	[SPterrain] = 0; end;
 
 "VHGND terrain facing"
