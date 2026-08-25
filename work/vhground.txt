@@ -5772,8 +5772,7 @@
 	  32x32 multiply; publish the same portable Mul64u interface scratch. )
 	A = [SUfseed]; [m64a] = A; [m64b] = A;
 	B = A; A *%' B; [m64lo] = A; [m64hi] = B;
-	A = [m64lo];
-	C = A; C & 0FFh; B = [m64hi]; B & 0FFh; C + B; C & 0FFh;
+	C = A; C & 0FFh; B & 0FFh; C + B; C & 0FFh;
 	A & 0FFFFFF00h; A | C; [SUfeax] = A;
 	B = [SUfseed]; B + A; [SUfseed] = B;
 	A & [SUfmask]; [SUfval] = A; C = A;
@@ -5893,13 +5892,9 @@
 
 "VHGND tree node enter"
 	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebxf] = [A];
-	[PGFt] = [VHGNDtreebxf]; => PGF ldf32; => FToIntChop; [VHGNDtreebx] = [FI];
 	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreebyf] = [A];
-	[PGFt] = [VHGNDtreebyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeby] = [FI];
 	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebzf] = [A];
-	[PGFt] = [VHGNDtreebzf]; => PGF ldf32; => FToIntChop; [VHGNDtreebz] = [FI];
 	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescalef] = [A];
-	[PGFt] = [VHGNDtreescalef]; => PGF ldf32; => FToIntChop; [VHGNDtreescale] = [FI];
 	A = VHGNDtslayers; A + [VHGNDtreelevel]; [VHGNDtreelayers] = [A];
 	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
 	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
@@ -5951,19 +5946,14 @@
 	[VHGNDtreerangef] = [FS0];
 	<----;
 "VHGND tree node range ready"
-	[PGFt] = [VHGNDtreerangef]; => PGF ldf32; => FToIntChop; [VHGNDtreerange] = [FI];
 	C = VHGNDtsrange; C + [VHGNDtreelevel]; [C] = [VHGNDtreerangef];
 	-> VHGND tree node branch;
 
 "VHGND tree node branch"
 	A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebxf] = [A];
-	[PGFt] = [VHGNDtreebxf]; => PGF ldf32; => FToIntChop; [VHGNDtreebx] = [FI];
 	A = VHGNDtsy; A + [VHGNDtreelevel]; [VHGNDtreebyf] = [A];
-	[PGFt] = [VHGNDtreebyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeby] = [FI];
 	A = VHGNDtsz; A + [VHGNDtreelevel]; [VHGNDtreebzf] = [A];
-	[PGFt] = [VHGNDtreebzf]; => PGF ldf32; => FToIntChop; [VHGNDtreebz] = [FI];
 	A = VHGNDtsscale; A + [VHGNDtreelevel]; [VHGNDtreescalef] = [A];
-	[PGFt] = [VHGNDtreescalef]; => PGF ldf32; => FToIntChop; [VHGNDtreescale] = [FI];
 	A = VHGNDtslayers; A + [VHGNDtreelevel]; [VHGNDtreelayers] = [A];
 	A = VHGNDtsroot; A + [VHGNDtreelevel]; [VHGNDtreeisroot] = [A];
 	A = VHGNDtsocc; A + [VHGNDtreelevel]; [VHGNDtreeocc] = [A];
@@ -5971,7 +5961,6 @@
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; [VHGNDtreebranch] = [A];
 	A = [VHGNDtreebranch]; ? A '>= [VHGNDtreebranches] -> VHGND tree node pop;
 	A = VHGNDtsrange; A + [VHGNDtreelevel]; [VHGNDtreerangef] = [A];
-	[PGFt] = [VHGNDtreerangef]; => PGF ldf32; => FToIntChop; [VHGNDtreerange] = [FI];
 	=> VHGND tree direction;
 	A = VHGNDtslseed; A + [VHGNDtreelevel]; C = [A]; [VHTlseed] = C;
 	C + 3; [A] = C; A = [VHTlseed]; => SU fast srand;
@@ -6013,8 +6002,6 @@
 	[VHGNDtreeezf] = [VHGNDtreebzf];
 	<----;
     "VHGND tree endpoint ready"
-	[PGFt] = [VHGNDtreeexf]; => PGF ldf32; => FToIntChop; [VHGNDtreeex] = [FI];
-	[PGFt] = [VHGNDtreeezf]; => PGF ldf32; => FToIntChop; [VHGNDtreeez] = [FI];
 	[SUfmask] = 32767; => VHGND render random; [GRtreeci] = C; => GR tree flandom;
 	C = [VHGNDtreeisroot]; ? C = 0 -> VHGND tree child nonroot height;
 	---->;
@@ -6047,7 +6034,6 @@
 	[VHGNDtreeeyf] = [FS0];
 	<----;
 "VHGND tree child height ready"
-	[PGFt] = [VHGNDtreeeyf]; => PGF ldf32; => FToIntChop; [VHGNDtreeey] = [FI];
 	---->;
 	=> XReset;
 	[FS0] = [VHGNDtreescalef]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
@@ -6067,7 +6053,6 @@
 	[FS0] = [VHTwidthf]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore; => XToF32;
 	[VHGNDtreeer] = [FS0];
 	<----;
-	[PGFt] = [VHTnextscf]; => PGF ldf32; => FToIntChop; [VHTnextsc] = [FI];
 	A = [VHGNDtreeocc]; A '* 9; A + [VHTrootcol]; [VHTfacebase] = A;
 	[VHTfacestep] = 4; [DBflar] = [GRtreeflares]; => VHGND tree limb;
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; C = [A]; C + 1; [A] = C;
@@ -6124,7 +6109,6 @@
 	[PGFi] = FSW1; [PGFt] = [VHTwidthf]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul;
 	=> F32Narrow; => FStoreF32; [VHGNDtreebr] = [FS0];
-	[VHGNDtreeex] = [VHGNDtreebx]; [VHGNDtreeey] = [VHGNDtreeby]; [VHGNDtreeez] = [VHGNDtreebz];
 	[SUfmask] = 31; => VHGND render random; C + [VHTleafcol]; [VHGNDtreecol] = C;
 	[VHTfacebase] = C; [VHTfacestep] = 2;
 	[DBflar] = [GRleafflares]; => VHGND tree leaves;

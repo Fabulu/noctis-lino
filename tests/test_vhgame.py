@@ -3727,7 +3727,7 @@ def main() -> int:
         ))
         and all(token in tree for token in (
             '"VHGND tree node enter"', '"VHGND tree node branch"',
-            "[PGFt] = [VHGNDtreebxf]; => PGF ldf32; => FToIntChop; [VHGNDtreebx] = [FI];",
+            "A = VHGNDtsx; A + [VHGNDtreelevel]; [VHGNDtreebxf] = [A];",
             '"VHGND tree terminal"', '"VHGND tree node pop"',
             "[SUfmask] = 511; => VHGND render random; [VHTkind] = C;",
             "A = [VHTkind]; ? A = 333 -> VHGND tree giant;",
@@ -3764,6 +3764,18 @@ def main() -> int:
             "[VHGNDmushxf] = [VHGNDtreepx]; [VHGNDmushyf] = [VHGNDtreeleafdrop];",
             "[VHGNDmushzf] = [VHGNDtreepz]; [VHGNDmushfloat] = 1;",
         ))
+        and all(token not in tree for token in (
+            "=> FToIntChop; [VHGNDtreebx] = [FI];",
+            "=> FToIntChop; [VHGNDtreeby] = [FI];",
+            "=> FToIntChop; [VHGNDtreebz] = [FI];",
+            "=> FToIntChop; [VHGNDtreescale] = [FI];",
+            "=> FToIntChop; [VHGNDtreerange] = [FI];",
+            "=> FToIntChop; [VHGNDtreeex] = [FI];",
+            "=> FToIntChop; [VHGNDtreeey] = [FI];",
+            "=> FToIntChop; [VHGNDtreeez] = [FI];",
+            "=> FToIntChop; [VHTnextsc] = [FI];",
+        ))
+        and "[VHGNDtreeex] = [VHGNDtreebx];" not in tree
         and "crossed trunk" not in tree
         and "crossed leafy crown" not in tree,
         "trees retain binary32 world parameters and execute the source branch stack safely",
@@ -3823,7 +3835,7 @@ def main() -> int:
             '"VHGND greenmush inner"',
             "A = [SUfseed]; [m64a] = A; [m64b] = A;",
             "B = A; A *%' B; [m64lo] = A; [m64hi] = B;",
-            "C = A; C & 0FFh; B = [m64hi]; B & 0FFh; C + B; C & 0FFh;",
+            "C = A; C & 0FFh; B & 0FFh; C + B; C & 0FFh;",
             "A & 0FFFFFF00h; A | C; [SUfeax] = A;",
             "B = [SUfseed]; B + A; [SUfseed] = B;",
             "A & [SUfmask]; [SUfval] = A; C = A;",
