@@ -40,7 +40,6 @@ ASSETS = (
 )
 VK_ESCAPE = 0x1B
 VK_5 = 0x35
-VK_R = 0x52
 VK_W = 0x57
 
 PROFILE_FIELDS = (
@@ -356,7 +355,7 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
         if scenario == "fcs":
             tap_key(process, handle, VK_5, 1.0)
         elif scenario == "capsule":
-            tap_key(process, handle, VK_R, 1.0)
+            process.post_char(handle, "r")
         else:
             injected_counter = process.performance_counter() & 0xFFFFFFFF
             process.post_key(handle, VK_W, True)

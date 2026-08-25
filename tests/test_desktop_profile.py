@@ -15,6 +15,7 @@ import profile_noctis_desktop as profiler  # noqa: E402
 
 GAME = ROOT / "work" / "vhgame.txt"
 GROUND = ROOT / "work" / "vhground.txt"
+PROFILER = ROOT / "tools" / "profile_noctis_desktop.py"
 PRIVATE_RUNNER = ROOT / "tools" / "windows_hidden_process.py"
 
 
@@ -132,7 +133,11 @@ def main() -> int:
 
     game = GAME.read_text(encoding="utf-8")
     ground = GROUND.read_text(encoding="utf-8")
+    profiler_source = PROFILER.read_text(encoding="utf-8")
     private_runner = PRIVATE_RUNNER.read_text(encoding="utf-8")
+    check('process.post_char(handle, "r")' in profiler_source and
+          "tap_key(process, handle, VK_R" not in profiler_source,
+          "capsule profiles inject the ASCII return command used by the game")
     check("VHGSIMADD = 18206; VHGSIMDEN = 60000;" in game,
           "profile instrumentation leaves the 18.206-Hz gameplay cadence intact")
     check(all(fragment in game for fragment in (
