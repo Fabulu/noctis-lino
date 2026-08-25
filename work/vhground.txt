@@ -5768,8 +5768,10 @@
 	end;
 
 "VHGND render random"
-	( Exact SU fast raw transition using the portable 32x32-to-64 square. )
-	[m64a] = [SUfseed]; [m64b] = [SUfseed]; => Mul64u;
+	( Exact SU fast raw transition using the compiler's unsigned full-width
+	  32x32 multiply; publish the same portable Mul64u interface scratch. )
+	A = [SUfseed]; [m64a] = A; [m64b] = A;
+	B = A; A *%' B; [m64lo] = A; [m64hi] = B;
 	A = [m64lo];
 	C = A; C & 0FFh; B = [m64hi]; B & 0FFh; C + B; C & 0FFh;
 	A & 0FFFFFF00h; A | C; [SUfeax] = A;
