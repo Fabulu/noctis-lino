@@ -289,9 +289,12 @@
 	VHGNDvcry0 = 40000; VHGNDvcry1 = 40000;
 	VHGNDvcrz0 = 40000; VHGNDvcrz1 = 40000;
 	VHGNDvcvisible = 40000; VHGNDvcpx = 40000; VHGNDvcpy = 40000;
-	( Two static triangle normals per cell, cached as their exact binary32 bits. )
-	VHGNDnormstamp = 80000; VHGNDnormx = 80000;
-	VHGNDnormy = 80000; VHGNDnormz = 80000;
+	( Two static triangle normals per cell, cached as the binary64 pairs that
+	  exactly widen their original binary32 stores. )
+	VHGNDnormstamp = 80000;
+	VHGNDnormx0 = 80000; VHGNDnormx1 = 80000;
+	VHGNDnormy0 = 80000; VHGNDnormy1 = 80000;
+	VHGNDnormz0 = 80000; VHGNDnormz1 = 80000;
 	( Three possible source objects per 200x200 quadrant.  Positions and the
 	  post-coordinate fast RNG state are immutable for a generated surface. )
 	VHGNDobjcachex = 120000; VHGNDobjcachey = 120000;
@@ -2795,18 +2798,21 @@
 	A = [VHGNDh1]; A + A; A + [VHGNDvctri]; [VHGNDnormindex] = A;
 	A = VHGNDnormstamp; A + [VHGNDnormindex]; C = [A];
 	A = [VHGNDnormgen]; ? A != C -> VHGND terrain facing build;
-	A = VHGNDnormx; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRX; => PGF setf32;
-	A = VHGNDnormy; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRY; => PGF setf32;
-	A = VHGNDnormz; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRZ; => PGF setf32;
+	A = VHGNDnormx0; A + [VHGNDnormindex]; C = [A]; [fw plus 470] = C;
+	A = VHGNDnormx1; A + [VHGNDnormindex]; C = [A]; [fw plus 471] = C;
+	A = VHGNDnormy0; A + [VHGNDnormindex]; C = [A]; [fw plus 472] = C;
+	A = VHGNDnormy1; A + [VHGNDnormindex]; C = [A]; [fw plus 473] = C;
+	A = VHGNDnormz0; A + [VHGNDnormindex]; C = [A]; [fw plus 474] = C;
+	A = VHGNDnormz1; A + [VHGNDnormindex]; C = [A]; [fw plus 475] = C;
 	=> PG facing dot; end;
     "VHGND terrain facing build"
 	=> VHGND terrain remaining input; => PG facing;
-	[PGFi] = FSRX; => PGF a; => PGF stf32;
-	A = VHGNDnormx; A + [VHGNDnormindex]; C = [PGFt]; [A] = C;
-	[PGFi] = FSRY; => PGF a; => PGF stf32;
-	A = VHGNDnormy; A + [VHGNDnormindex]; C = [PGFt]; [A] = C;
-	[PGFi] = FSRZ; => PGF a; => PGF stf32;
-	A = VHGNDnormz; A + [VHGNDnormindex]; C = [PGFt]; [A] = C;
+	A = VHGNDnormx0; A + [VHGNDnormindex]; C = [fw plus 470]; [A] = C;
+	A = VHGNDnormx1; A + [VHGNDnormindex]; C = [fw plus 471]; [A] = C;
+	A = VHGNDnormy0; A + [VHGNDnormindex]; C = [fw plus 472]; [A] = C;
+	A = VHGNDnormy1; A + [VHGNDnormindex]; C = [fw plus 473]; [A] = C;
+	A = VHGNDnormz0; A + [VHGNDnormindex]; C = [fw plus 474]; [A] = C;
+	A = VHGNDnormz1; A + [VHGNDnormindex]; C = [fw plus 475]; [A] = C;
 	A = VHGNDnormstamp; A + [VHGNDnormindex]; C = [VHGNDnormgen]; [A] = C;
 	end;
     "VHGND terrain facing generic"
