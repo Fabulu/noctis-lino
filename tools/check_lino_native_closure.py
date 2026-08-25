@@ -239,7 +239,7 @@ def float_errors(closure):
 
 def tracked_sources():
     process = subprocess.run(
-        ["git", "ls-files", "-z", "--", "work", "main"],
+        ["git", "ls-files", "-z", "--", "work", "main", "src"],
         cwd=ROOT,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

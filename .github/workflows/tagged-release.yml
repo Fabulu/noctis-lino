@@ -58,10 +58,6 @@ jobs:
         shell: pwsh
         run: python tests\test_fp_runtime_boundary.py
 
-      - name: Check isolated Windows i386 source staging
-        shell: pwsh
-        run: python tests\test_windows_i386_stage.py
-
       - name: Check the NIVGEN scorer API
         shell: pwsh
         run: python tests\test_nivgen_score.py
@@ -177,7 +173,7 @@ jobs:
             $values[$key] = $value
           }
           $requiredKeys = @(
-            'commit', 'source_manifest_sha256', 'source_sha256',
+            'commit', 'source_sha256',
             'runtime_patcher_sha256', 'executable_sha256', 'compile_script_sha256',
             'compiler_runtime_installer_sha256', 'bootstrap_compiler_sha256',
             'compiler_source_sha256',
@@ -192,10 +188,13 @@ jobs:
           if ($values.commit -ne $env:GITHUB_SHA -or $values.target -ne 'win32/i386m') {
             throw 'Build provenance does not identify this commit and target'
           }
+          $sourceHash = (Get-FileHash -LiteralPath work\vhgame.txt -Algorithm SHA256).Hash.ToLowerInvariant()
           $exeHash = (Get-FileHash -LiteralPath work\vhgame.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $compilerHash = (Get-FileHash -LiteralPath build\compiled\linux-compiler114m.bin -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($values.executable_sha256 -ne $exeHash -or $values.compiler_sha256 -ne $compilerHash) {
-            throw 'Downloaded compiler or executable does not match its Linux build provenance'
+          if ($values.source_sha256 -ne $sourceHash -or
+              $values.executable_sha256 -ne $exeHash -or
+              $values.compiler_sha256 -ne $compilerHash) {
+            throw 'Checked-out source, downloaded compiler, or executable does not match its Linux build provenance'
           }
           Copy-Item -LiteralPath $buildProvenance -Destination dist\Noctis-IV-windows-x86.provenance.txt
           @(

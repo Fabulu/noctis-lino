@@ -180,6 +180,12 @@ verification boundaries.
 
 ### Source platforms
 
+Every shipping target compiles the same tracked `work/vhgame.txt` and
+`work/vhnivgen.txt` dependency closure from `work/` and `main/lib`. Platform
+selection changes only compiler CPU/SYS packs, generated executable format, and
+the runtime/ABI implementation below that shared source boundary. Target-specific
+Lino gameplay, renderer, floating-point, or library `.txt` overlays are forbidden.
+
 - Windows x86 is a packaged and regularly played release target.
 - macOS x86_64 is a packaged Cocoa target with resizing, logical pointer mapping,
   fullscreen, AudioToolbox output, and no XQuartz dependency. Intel Macs run it

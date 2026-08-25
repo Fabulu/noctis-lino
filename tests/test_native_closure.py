@@ -3,6 +3,7 @@
 Run: python tests/test_native_closure.py
 """
 from pathlib import Path
+import re
 import sys
 import tempfile
 
@@ -21,6 +22,119 @@ X87_SIGNATURES = (
     ("FCWRead", "9B D9 BF <dFCWTMP mtp bytesperunit>"),
     ("FSWRead", "9B DD BF <dFSW mtp bytesperunit>"),
 )
+CANONICAL_ROOTS = tuple(
+    (ROOT / relative).resolve()
+    for relative in ("work/vhgame.txt", "work/vhnivgen.txt")
+)
+CANONICAL_SHARED_MODULES = tuple(
+    (ROOT / relative).resolve()
+    for relative in (
+        "work/fp/fpconv.txt",
+        "work/fp/fpx87.txt",
+        "work/mul64frag.txt",
+        "work/pgproj.txt",
+        "work/pgtex.txt",
+        "work/vhgame.txt",
+        "work/vhground.txt",
+        "work/vhspace.txt",
+    )
+)
+BUILD_ROUTE_FILES = (
+    "build/compile_vhgame_linux.sh",
+    "build/compile_noctis_macos_linux.sh",
+    ".github/workflows/source-release.yml",
+    ".github/workflows/windows-release.yml",
+    ".github/workflows/macos-aarch64-runtime.yml",
+    ".github/workflows/tagged-release.yml",
+)
+BUILD_SOURCE_PATTERNS = {
+    "build/compile_vhgame_linux.sh": re.compile(
+        r'^source="\$repo/(?P<source>[^"\r\n]+\.txt)"$', re.MULTILINE),
+    "build/compile_noctis_macos_linux.sh": re.compile(
+        r'^source="\$repo/(?P<source>[^"\r\n]+\.txt)"$', re.MULTILINE),
+    ".github/workflows/source-release.yml": re.compile(
+        r'-Src "\$PWD\\(?P<source>[^"\r\n]+\.txt)"'),
+}
+REQUIRED_BUILD_TEXT = {
+    "build/compile_vhgame_linux.sh": (
+        '--sys:win32--cpu:i386m--ext:.lxe--env:$repo/main--src:$source',
+        '("source_sha256", sha256(repo / "work/vhgame.txt"))',
+    ),
+    "build/compile_noctis_macos_linux.sh": (
+        '--sys:macos--cpu:x64--ext:.exe--env:$repo/main--src:$source',
+        '("source_sha256", sha256(repo / "work/vhgame.txt"))',
+    ),
+    ".github/workflows/source-release.yml": (
+        '-Compiler "$PWD\\main\\lib\\gen\\compiler114m.exe"',
+        "-Cpu i386m",
+        "-StageExtension .lxe",
+        "Get-FileHash -LiteralPath work\\vhgame.txt",
+        '"source_sha256=$sourceHash"',
+    ),
+    ".github/workflows/windows-release.yml": (
+        "'commit', 'source_sha256',",
+        "Get-FileHash -LiteralPath work\\vhgame.txt",
+        "$values.source_sha256 -ne $sourceHash",
+    ),
+    ".github/workflows/macos-aarch64-runtime.yml": (
+        "work/vhgame.txt \\\n            build/macos-aarch64-noctis.unsigned \\\n            tracked-work",
+    ),
+    ".github/workflows/tagged-release.yml": (
+        "'commit', 'source_sha256',",
+        "Get-FileHash -LiteralPath work\\vhgame.txt",
+        "$values.source_sha256 -ne $sourceHash",
+    ),
+}
+FORBIDDEN_BUILD_TEXT = (
+    "stage_windows_i386_source",
+    "windows-i386-source",
+    "source_manifest_sha256",
+    "src/linoleum_i386",
+    "src\\linoleum_i386",
+)
+
+
+def target_source_errors(paths):
+    errors = []
+    for path in paths:
+        try:
+            relative = path.resolve().relative_to(ROOT)
+        except ValueError:
+            continue
+        parts = relative.parts
+        if (len(parts) >= 3 and parts[0] == "src" and
+                parts[1].startswith("linoleum_") and
+                path.suffix.lower() == ".txt"):
+            errors.append(
+                f"target-specific Lino source is forbidden: {relative.as_posix()}"
+            )
+    return errors
+
+
+def build_route_errors(route_texts):
+    errors = []
+    for relative, text in route_texts.items():
+        for marker in FORBIDDEN_BUILD_TEXT:
+            if marker in text:
+                errors.append(f"{relative} contains forbidden source routing {marker!r}")
+        for required in REQUIRED_BUILD_TEXT.get(relative, ()):
+            if required not in text:
+                errors.append(f"{relative} lacks canonical build text {required!r}")
+    for relative, pattern in BUILD_SOURCE_PATTERNS.items():
+        sources = [match.replace("\\", "/")
+                   for match in pattern.findall(route_texts.get(relative, ""))]
+        if sources != ["work/vhgame.txt"]:
+            errors.append(
+                f"{relative} must select exactly work/vhgame.txt, got {sources!r}"
+            )
+    return errors
+
+
+def read_build_routes():
+    return {
+        relative: (ROOT / relative).read_text(encoding="utf-8")
+        for relative in BUILD_ROUTE_FILES
+    }
 
 
 def check(condition, message):
@@ -30,7 +144,27 @@ def check(condition, message):
 
 
 def main():
+    check(tuple(path.resolve() for path in gate.DEFAULT_ROOTS) == CANONICAL_ROOTS,
+          "production roots are exactly work/vhgame.txt and work/vhnivgen.txt")
     closure, edges, blocks = gate.scan(gate.DEFAULT_ROOTS)
+    check(set(CANONICAL_SHARED_MODULES).issubset(closure),
+          "production uses the canonical shared renderer, gameplay, multiply, and FP modules")
+    check(not target_source_errors(gate.tracked_sources()),
+          "tracked platform runtime trees contain no target-specific Lino source")
+    routes = read_build_routes()
+    check(not build_route_errors(routes),
+          "shipping build and provenance routes consume canonical work/vhgame.txt")
+
+    synthetic_overlay = ROOT / "src" / "linoleum_synthetic" / "vhground.txt"
+    check(target_source_errors((synthetic_overlay,)),
+          "a synthetic platform-specific Lino source fork is rejected")
+    alternate_routes = dict(routes)
+    alternate_routes["build/compile_vhgame_linux.sh"] = alternate_routes[
+        "build/compile_vhgame_linux.sh"
+    ].replace("work/vhgame.txt", "build/alternate/vhgame.txt")
+    check(build_route_errors(alternate_routes),
+          "a synthetic alternate production source root is rejected")
+
     check(len(closure) > 2 and edges >= len(closure) - 2,
           "shipping roots are checked through their transitive libraries")
     check(not blocks and not gate.block_errors(blocks),

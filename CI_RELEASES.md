@@ -37,6 +37,13 @@ The compatibility boundary and 32-bit glibc/X11 dependencies belong only to the
 compiler host. They do not alter the protected compiler, Lino source, or release
 executables.
 
+All shipping targets consume the same tracked `work/vhgame.txt` /
+`work/vhnivgen.txt` closure from `work/` and `main/lib`. A target may select a
+different compiler CPU/SYS pack, generated format, runtime, or ABI, but may not
+replace or shadow gameplay, renderer, floating-point, library, or other Lino
+`.txt` source. The native-closure gate rejects both target-source trees and
+alternate production source roots.
+
 ## Workflow roles
 
 - `.github/workflows/windows-release.yml` runs on pull requests and master
@@ -79,7 +86,8 @@ jobs have a 30-minute outer bound rather than occupying a runner indefinitely.
 `build/compile_vhgame_linux.sh` writes
 `build/windows-build.provenance.txt` on the Ubuntu host that consumed the bytes.
 This prevents a later Windows checkout from substituting CRLF-converted hashes
-for the actual inputs. The record binds:
+for the actual inputs. The record hashes canonical `work/vhgame.txt` directly as
+`source_sha256` and binds:
 
 - commit, target, root game source, and compile script;
 - Linux dependency installer and protected bootstrap compiler;
