@@ -127,7 +127,8 @@ PGTEX_TERRAIN_NATIVE_CONTRACT = {
 }
 PGTEX_UV_TERRAIN_NATIVE_CONTRACT = (
     273,
-    "12cda7747f8cf6381dd83605d64a51fbf7659a0954c514362cb2eaf50e0e2021",
+    "840217513fb16d7fc6d102cdb48f9f95b8e5621ed59ec7280795b10caa6f1ffd",
+    4,
 )
 PGTEX_HALFSCAN_NATIVE_CONTRACT = (
     112,
@@ -606,7 +607,7 @@ def terrain_facing_gates_prefer_visible_path(source: str) -> bool:
 
 def terrain_uv_native_separates_exact_spills(source: str) -> bool:
     """Check independent UV sums separate exact qword spills and reloads."""
-    expected_length, expected_hash = PGTEX_UV_TERRAIN_NATIVE_CONTRACT
+    expected_length, expected_hash, tail_nops = PGTEX_UV_TERRAIN_NATIVE_CONTRACT
     service = labelled_service(source, "PG uv terrain float")
     bodies = re.findall(r"\{([^}]*)\}", service, flags=re.DOTALL)
     if len(bodies) != 1 or source.count("-> PG uv terrain float;") != 1:
@@ -637,11 +638,25 @@ def terrain_uv_native_separates_exact_spills(source: str) -> bool:
         b"\xdd\x86\xd0\x07\0\0\xd9\x9f\0\0\0\0"
         b"\xd9\x87\0\0\0\0\xdd\x9e\x70\0\0\0"
     )
+    stacked_products = bytes.fromhex(
+        "8d6424f0 dd8690000000 dcb6c0070000 dd9ed8070000 "
+        "dd86c8070000 dc8e80000000 dd1c24 dd86d0070000 "
+        "dc8e88000000 dd5c2408 dd86d8070000 d99f00000000 "
+        "d98700000000 dd9e60000000 dd0424 dc8e60000000 dd1c24 "
+        "dd442408 dc8e60000000 dd96d8070000 dd5c2408 dd0424 "
+        "db9f00000000 dd442408 db9f00000000 8d642410 eb04 90909090"
+    )
     return (
         len(encoded) == expected_length
         and normalized_hash(body) == expected_hash
         and encoded[9:63] == wide_sums
         and encoded[63:135] == narrow_reloads
+        and encoded[135:] == stacked_products
+        and encoded[-tail_nops - 2:-tail_nops] == bytes((0xEB, tail_nops))
+        and encoded[-tail_nops:] == b"\x90" * tail_nops
+        and encoded.count(b"\x8d\x64\x24\xf0") == 1
+        and encoded.count(b"\x8d\x64\x24\x10") == 1
+        and encoded.count(b"\xdd\x96\xd8\x07\0\0") == 1
         and encoded.count(b"\xdd\x9e\xc0\x07\0\0") == 1
         and encoded.count(b"\xdd\x9e\xc8\x07\0\0") == 1
         and encoded.count(b"\xdd\x9e\xd0\x07\0\0") == 1

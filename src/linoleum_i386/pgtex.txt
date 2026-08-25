@@ -518,30 +518,42 @@
 	    D9 87 <dPGUVY mtp bytesperunit>       (fld  dword narrow y)
 	    DD 9E 70 00 00 00                     (fstp qword FSY)
 
+	    ( Stage the independent rounded products on the native stack.  LEA keeps
+	      source flags intact; W0/W1/W2 retain their source values and W3 still
+	      finishes with rounded v.  Every multiply/divide result is reloaded only
+	      after its exact qword or m32 boundary, with an empty x87 stack between
+	      independent chains. )
+	    8D 64 24 F0                           (reserve two qword products)
 	    DD 86 90 00 00 00                     (fld  qword FSUNO)
 	    DC B6 C0 07 00 00                     (fdiv qword wide z)
 	    DD 9E D8 07 00 00                     (fstp qword wide k4)
+	    DD 86 C8 07 00 00                     (fld  qword wide x)
+	    DC 8E 80 00 00 00                     (fmul qword FSTX)
+	    DD 1C 24                              (fstp qword stacked product u)
+	    DD 86 D0 07 00 00                     (fld  qword wide y)
+	    DC 8E 88 00 00 00                     (fmul qword FSTY)
+	    DD 5C 24 08                           (fstp qword stacked product v)
+
 	    DD 86 D8 07 00 00                     (fld  qword wide k4)
 	    D9 9F <dPGUVK4 mtp bytesperunit>      (fstp dword narrow k4)
 	    D9 87 <dPGUVK4 mtp bytesperunit>      (fld  dword k4)
 	    DD 9E 60 00 00 00                     (fstp qword FSK4)
 
-	    DD 86 C8 07 00 00                     (fld  qword wide x)
-	    DC 8E 80 00 00 00                     (fmul qword FSTX)
-	    DD 9E D8 07 00 00                     (fstp qword rounded product)
-	    DD 86 D8 07 00 00                     (fld  qword rounded product)
+	    DD 04 24                              (fld  qword stacked product u)
 	    DC 8E 60 00 00 00                     (fmul qword narrow k4)
-	    DD 9E D8 07 00 00                     (fstp qword rounded u)
-	    DD 86 D8 07 00 00                     (fld  qword rounded u)
+	    DD 1C 24                              (fstp qword rounded u)
+	    DD 44 24 08                           (fld  qword stacked product v)
+	    DC 8E 60 00 00 00                     (fmul qword narrow k4)
+	    DD 96 D8 07 00 00                     (fst  qword final W3)
+	    DD 5C 24 08                           (fstp qword rounded v)
+	    DD 04 24                              (fld  qword rounded u)
 	    DB 9F <dSPun mtp bytesperunit>        (fistp dword SPun)
-	    DD 86 D0 07 00 00                     (fld  qword wide y)
-	    DC 8E 88 00 00 00                     (fmul qword FSTY)
-	    DD 9E D8 07 00 00                     (fstp qword rounded product)
-	    DD 86 D8 07 00 00                     (fld  qword rounded product)
-	    DC 8E 60 00 00 00                     (fmul qword narrow k4)
-	    DD 9E D8 07 00 00                     (fstp qword rounded v)
-	    DD 86 D8 07 00 00                     (fld  qword rounded v)
+	    DD 44 24 08                           (fld  qword rounded v)
 	    DB 9F <dSPvn mtp bytesperunit>        (fistp dword SPvn)
+	    8D 64 24 10                           (release stacked products)
+	    ( Preserve every downstream address after the shorter schedule. )
+	    EB 04
+	    90 90 90 90
 	}
 	end;
 
