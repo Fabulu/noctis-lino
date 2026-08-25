@@ -379,25 +379,24 @@
 	  every selected pixel, so this preserves CSpix exactly without a hot
 	  read-modify-write on every pixel. )
 	A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;
+	( Keep the wrapped destination and UV accumulators in Lino's registers for
+	  the complete 1..16-pixel block.  The texture lookup, tinta addition,
+	  accumulator widths, pixel order and final scratch side effects are the
+	  same as the scalar loop; only redundant per-pixel memory shuttling is gone. )
+	A = [SPdi]; B = [SPdx]; C = [SPax];
     "PG px terrain"
-	( The live terrain path always selects TEX5.  SPdx and SPax are masked after
-	  every update, so (dx_hi << 8) is exactly dx AND FF00h and ax >> 8 already
-	  fits one byte.  Inline that reduced index, the wrapped texture fetch, and
-	  the DOS-page byte store here: retaining PGtexi, PGtmp, PGtexv, PGdi, and
-	  PGval preserves the generic helper side effects while removing three tiny
-	  calls and the seven-way texture dispatch per pixel. )
-	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
-	A = [SPdx]; A & 65280;
-	C = [SPax]; C > 8; A | C; [PGtexi] = A;
-	[PGtmp] = A;
-	A + [PGtexoff]; A + RPBG; A + nw; C = [A]; C & 255; [PGtexv] = C;
-	A = [SPtinta]; A + [PGtexv]; A & 255; [SPch] = A;
-	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
-	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
-	[PGval] = [SPch]; A + SADPT; A + nw; C = [PGval]; C & 255; [A] = C;
-	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	A + 1; A & 65535;
+	D = B; D & 65280;
+	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
+	D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255; [PGtexv] = E;
+	E + [SPtinta]; E & 255; [SPch] = E;
+	C + [SPbp]; C & 65535;
+	D = A; D + 3; D & 65535; [PGdi] = D; [PGval] = E;
+	D + SADPT; D + nw; [D] = E;
+	B + [SPsi]; B & 65535;
 	[SPcl]-;
 	? [SPcl] != 0 -> PG px terrain;
+	[SPdi] = A; [SPdx] = B; [SPax] = C;
 	-> PG row;
 
     "PG px internal"
@@ -541,23 +540,24 @@
     "PG cpx terrain begin"
 	( The culling loop writes two adjacent pixels per iteration. )
 	A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;
+	( Retain the pair destination and UV accumulators across the complete block,
+	  while preserving the source's duplicated stores and final scratch state. )
+	A = [SPdi]; B = [SPdx]; C = [SPax];
     "PG cpx terrain"
-	( Same exact TEX5 specialization as PG px terrain, with the culling path's
-	  paired writes and two-pixel destination advance left unchanged. )
-	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
-	A = [SPdx]; A & 65280;
-	C = [SPax]; C > 8; A | C; [PGtexi] = A;
-	[PGtmp] = A;
-	A + [PGtexoff]; A + RPBG; A + nw; C = [A]; C & 255; [PGtexv] = C;
-	A = [SPtinta]; A + [PGtexv]; A & 255; [SPch] = A;
-	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
-	A = [SPdi]; A + 2; A & 65535; [PGdi] = A;
-	[PGval] = [SPch]; A + SADPT; A + nw; C = [PGval]; C & 255; [A] = C;
-	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
-	[PGval] = [SPch]; A + SADPT; A + nw; C = [PGval]; C & 255; [A] = C;
-	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	A + 2; A & 65535;
+	D = B; D & 65280;
+	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
+	D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255; [PGtexv] = E;
+	E + [SPtinta]; E & 255; [SPch] = E;
+	C + [SPbp]; C & 65535;
+	D = A; D + 2; D & 65535; [PGdi] = D; [PGval] = E;
+	D + SADPT; D + nw; [D] = E;
+	D = A; D + 3; D & 65535; [PGdi] = D;
+	D + SADPT; D + nw; [D] = E;
+	B + [SPsi]; B & 65535;
 	[SPcl]-;
 	? [SPcl] != 0 -> PG cpx terrain;
+	[SPdi] = A; [SPdx] = B; [SPax] = C;
 	-> PG crow tail;
 
     "PG cpx internal"
