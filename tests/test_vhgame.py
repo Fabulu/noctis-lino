@@ -943,35 +943,35 @@ def main() -> int:
     uv_float = section(pgtex, '"PG uv float"', '"PG texel"')
     uv_steps = (
         "[FA0] = [fw plus 30]; [FA1] = [fw plus 31];",
-        "A = FSK3; A + A; A + fw; [FA0] +: [A];",
+        "[FA0] +: [fw plus 22];",
         "[fw plus 496] = [FA0]; [fw plus 497] = [FA1];",
         "~: [FA0]; [fw plus 30] = [FA0]; [fw plus 31] = [FA1];",
         "[FA0] = [fw plus 26]; [FA1] = [fw plus 27];",
-        "A = FSK1; A + A; A + fw; [FA0] +: [A];",
+        "[FA0] +: [fw plus 18];",
         "[fw plus 498] = [FA0]; [fw plus 499] = [FA1];",
         "~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];",
         "[FA0] = [fw plus 28]; [FA1] = [fw plus 29];",
-        "A = FSK2; A + A; A + fw; [FA0] +: [A];",
+        "[FA0] +: [fw plus 20];",
         "[fw plus 500] = [FA0]; [fw plus 501] = [FA1];",
         "~: [FA0]; [fw plus 28] = [FA0]; [fw plus 29] = [FA1];",
         "[FA0] = [fw plus 496]; [FA1] = [fw plus 497];",
         "[FT0] = [FA0]; [FT1] = [FA1];",
         "[FA0] = [fw plus 36]; [FA1] = [fw plus 37];",
-        "A = FT0; [FA0] /: [A];",
+        "[FA0] /: [FT0];",
         "~: [FA0]; [fw plus 24] = [FA0]; [fw plus 25] = [FA1];",
         "[FA0] = [fw plus 498]; [FA1] = [fw plus 499];",
-        "A = FSTX; A + A; A + fw; [FA0] *: [A];",
-        "A = FSK4; A + A; A + fw; [FA0] *: [A];",
+        "[FA0] *: [fw plus 32];",
+        "[FA0] *: [fw plus 24];",
         "[FI] =: [FA0]; [SPun] = [FI];",
         "[FA0] = [fw plus 500]; [FA1] = [fw plus 501];",
-        "A = FSTY; A + A; A + fw; [FA0] *: [A];",
-        "A = FSK4; A + A; A + fw; [FA0] *: [A];",
+        "[FA0] *: [fw plus 34];",
+        "[FA0] *: [fw plus 24];",
         "[FI] =: [FA0]; [SPvn] = [FI];",
     )
     check(
         contains_in_order(uv_float, uv_steps)
-        and uv_float.count("[FA0] +: [A];") == 3
-        and uv_float.count("[FA0] *: [A];") == 4
+        and uv_float.count("[FA0] +:") == 3
+        and uv_float.count("[FA0] *:") == 4
         and uv_float.count("~: [FA0];") == 4
         and uv_float.count("[FI] =: [FA0];") == 2
         and "=> PGF " not in uv_float
@@ -981,24 +981,20 @@ def main() -> int:
     terrain_pixel = section(pgtex, '"PG px terrain begin"', '"PG px internal"')
     terrain_cpixel = section(pgtex, '"PG cpx terrain begin"', '"PG cpx internal"')
     check(
-        "A = [SPterrain]; ? A != 0 -> PG px terrain begin;" in pgtex
-        and "A = [SPterrain]; ? A != 0 -> PG cpx terrain begin;" in pgtex
-        and "A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;" in terrain_pixel
+        "A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;" in terrain_pixel
         and "A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;" in terrain_cpixel
-        and "A = [SPtinta]; A + [PGtexv]; A & 255; [SPch] = A;" in terrain_pixel
-        and "A = [SPtinta]; A + [PGtexv]; A & 255; [SPch] = A;" in terrain_cpixel
-        and "A = [SPdx]; A & 65280;" in terrain_pixel
-        and "A = [SPdx]; A & 65280;" in terrain_cpixel
-        and "C = [SPax]; C > 8; A | C; [PGtexi] = A;" in terrain_pixel
-        and "C = [SPax]; C > 8; A | C; [PGtexi] = A;" in terrain_cpixel
-        and "A > 8; A & 255; A < 8;" not in terrain_pixel
-        and "A > 8; A & 255; A < 8;" not in terrain_cpixel
-        and "C > 8; C & 255;" not in terrain_pixel
-        and "C > 8; C & 255;" not in terrain_cpixel
-        and "A + [PGtexoff]; A + RPBG; A + nw;" in terrain_pixel
-        and "A + [PGtexoff]; A + RPBG; A + nw;" in terrain_cpixel
-        and "A + SADPT; A + nw;" in terrain_pixel
-        and "A + SADPT; A + nw;" in terrain_cpixel
+        and "A = [SPdi]; B = [SPdx]; C = [SPax];" in terrain_pixel
+        and "A = [SPdi]; B = [SPdx]; C = [SPax];" in terrain_cpixel
+        and "D = B; D & 65280;" in terrain_pixel
+        and "D = B; D & 65280;" in terrain_cpixel
+        and "E = C; E > 8; D | E;" in terrain_pixel
+        and "E = C; E > 8; D | E;" in terrain_cpixel
+        and "D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255;" in terrain_pixel
+        and "D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255;" in terrain_cpixel
+        and "E + [SPtinta]; E & 255;" in terrain_pixel
+        and "E + [SPtinta]; E & 255;" in terrain_cpixel
+        and "D + SADPT; D + nw; [D] = E;" in terrain_pixel
+        and "D + SADPT; D + nw; [D] = E;" in terrain_cpixel
         and "=> PG texel;" not in terrain_pixel
         and "=> PG texel;" not in terrain_cpixel
         and "=> PG store;" not in terrain_pixel
@@ -1007,7 +1003,7 @@ def main() -> int:
         and "=> PG scrtinta;" not in terrain_cpixel
         and "[CSpix]+;" not in terrain_pixel
         and "[CSpix]+;" not in terrain_cpixel,
-        "faithful terrain pixels reuse their authoritative local tinta",
+        "faithful terrain pixels retain exact block-local tinta, UV, and destination state",
     )
     depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
@@ -3825,7 +3821,8 @@ def main() -> int:
             "[SUfmask] = [VHGNDmushmask1]; => VHGND render random;",
             "[SUfmask] = [VHGNDmushmask2]; => VHGND render random;",
             '"VHGND greenmush inner"',
-            "[m64a] = [SUfseed]; [m64b] = [SUfseed]; => Mul64u;",
+            "A = [SUfseed]; [m64a] = A; [m64b] = A;",
+            "B = A; A *%' B; [m64lo] = A; [m64hi] = B;",
             "C = A; C & 0FFh; B = [m64hi]; B & 0FFh; C + B; C & 0FFh;",
             "A & 0FFFFFF00h; A | C; [SUfeax] = A;",
             "B = [SUfseed]; B + A; [SUfseed] = B;",
