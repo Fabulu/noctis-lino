@@ -1420,14 +1420,14 @@
 	dir testflags	      = { testflags };
 	dir symbolhash	      = { symbolhash };
 
-    ( instruction patterns index, 609 records, 3x5 bits per record
+    ( instruction patterns index, 634 records, 3x5 bits per record
 
       destination operand type to match variant
 	|
 	|	      source operand type to match variant
 	|		|
 	|		|		      number of variants,
-	|		|		      complessively 6483
+	|		|		      complessively 6506
 	|		|			|
 	|		|			| )
 
@@ -2290,9 +2290,22 @@
 	indirect;	direct; 		5;
 	indirect;	indirect;	       25;
 
+	( exact binary64 arithmetic: direct destination, indirect source )
+
+	direct;	indirect;		5;	( sum )
+	direct;	indirect;		5;	( difference )
+	direct;	indirect;		5;	( product )
+	direct;	indirect;		5;	( quotient )
+
+	( exact binary64 conversions )
+
+	direct;	direct;			1;	( binary64 to nearest int32 )
+	direct;	direct;			1;	( int32 to binary64 )
+	direct;	null;			1;	( binary64 to binary32 and back )
+
     make: units;
 
-    ( instruction patterns quick reference, 76 records, 9 units per record
+    ( instruction patterns quick reference, 83 records, 9 units per record
 
  courtesy markers, for <extend upto> tag starting points and other references
    |
@@ -2382,6 +2395,13 @@
  q73 = { <>	}; extend upto: 7; 121; 27;
  q74 = { *%'	}; extend upto: 7; 121; 27;
  q75 = { *%	}; extend upto: 7; 121; 27;
+ q76 = { +:	}; extend upto: 7;   5;  3;
+ q77 = { -:	}; extend upto: 7;   5;  3;
+ q78 = { *:	}; extend upto: 7;   5;  3;
+ q79 = { /:	}; extend upto: 7;   5;  3;
+ q80 = { =:	}; extend upto: 7;   1;  3;
+ q81 = { :=	}; extend upto: 7;   1;  3;
+ q82 = { ~:	}; extend upto: 7;   1;  3;
 
 
 
@@ -2476,6 +2496,8 @@
 	a64 floating branch = 1; (special x87 unordered comparison mapping)
 	a64 math helper = 1;	(1: sine, 2: cosine through full-width runtime helper)
 	a64 math binary = 1;	(1: partial remainder, 2: partial arc tangent helper)
+	a64 binary64 operation = 1; (3: sum, 4: difference, 5: product, 6: quotient,
+				      7: nearest int32, 8: from int32, 9: narrow binary32)
 	a64 product = 1;		(wide product returns low W12 and high W13)
 
 	stab = max symbols
@@ -2529,7 +2551,7 @@
 			  mtp cpu unit div 7 plus 1;
 	pr wksp 	= packed pr wksp finish minus packed pr wksp
 			  mtp cpu unit div 7 plus 1;
-	ip records	= 627 mtp 3;
+	ip records	= 634 mtp 3;
 
     (parser-related)
 
@@ -2692,7 +2714,7 @@
 
     (cpu pack block)
 
-	cpu pack = 6483 (total number of patterns to read in this buffer)
+	cpu pack = 6506 (total number of patterns to read in this buffer)
 	  mtp 256 as byte size (support upto maximum 256-byte alignment)
 	  plus 2; (plus the header, which is assumed to be 2 units)
 
@@ -3080,7 +3102,7 @@
 
 	[up source] = vector packed ip records;
 	[up target] = ip records;
-	[up length] = 627 mtp 3;
+	[up length] = 634 mtp 3;
 	[up bitspervalue] = 5;
 	=> unpack;
 
@@ -3092,7 +3114,7 @@
 	[file position] = zero;
 	[block pointer] = cpu pack;
 	[block size] =
-	  6483	  (total number of patterns)
+	  6506	  (total number of patterns)
 	  mtp 256 (upto supporting 256-byte alignment)
 	  plus 8; (plus the header, which is assumed to be 2 units)
 	isocall;
@@ -3113,7 +3135,7 @@
        - it can be a library and might not interfere with main program ramtop.
        so, this is to check if there's enough memory to hold the CPU pack...)
       ? [file size] <=
-	  6483	  (total number of patterns)
+	  6506	  (total number of patterns)
 	  mtp 256 (upto supporting 256-byte alignment)
 	  plus 8  (plus the header, which is assumed to be 2 units)
 	    -> cpp j3;
@@ -3124,9 +3146,9 @@
       "cpp j3"
       (this is a validity check for the CPU pack: the whole file whose size is
        always returned by active file operations such as the above <read>, has
-       to be exactly <alignment * 6483 + 8> bytes in size, not more, not less)
+       to be exactly <alignment * 6506 + 8> bytes in size, not more, not less)
 	a = [cpp algn];
-	a * 6483;
+	a * 6506;
 	a + 8;
       ? a = [file size] -> cpp j4;
 	[err string] = msg invalid cpu pack;
@@ -6002,7 +6024,7 @@
 	c + [a plus 8];
       "pp resume search for the two special cases only"
 	a + 9;
-      ? a < 76 mtp 9 relating ip quickreference
+      ? a < 83 mtp 9 relating ip quickreference
 	  -> pp search by instruction string;
       (quick reference record matching symbolic code not found)
 	[err string] = msg unrecognized instruction;
@@ -6382,6 +6404,7 @@
 	[a64 floating branch] = no;
 	[a64 math helper] = no;
 	[a64 math binary] = no;
+	[a64 binary64 operation] = no;
 	[a64 product] = no;
 	[source string] = inst;
 	[target string] = q06;
@@ -6450,6 +6473,27 @@
 	[target string] = q47;
 	=> strcmp;
       ? ok -> pp a64 floating quotient;
+	[target string] = q76;
+	=> strcmp;
+      ? ok -> pp a64 binary64 sum;
+	[target string] = q77;
+	=> strcmp;
+      ? ok -> pp a64 binary64 difference;
+	[target string] = q78;
+	=> strcmp;
+      ? ok -> pp a64 binary64 product;
+	[target string] = q79;
+	=> strcmp;
+      ? ok -> pp a64 binary64 quotient;
+	[target string] = q80;
+	=> strcmp;
+      ? ok -> pp a64 binary64 nearest integer;
+	[target string] = q81;
+	=> strcmp;
+      ? ok -> pp a64 integer to binary64;
+	[target string] = q82;
+	=> strcmp;
+      ? ok -> pp a64 binary64 narrow;
 	[target string] = q66;
 	=> strcmp;
       ? ok -> pp a64 floating partial remainder;
@@ -6682,6 +6726,144 @@
 	[a64 floating operation] = 4;
 	[a64 opcode] = 1E211800h; (FDIV S0,S0,S1)
 	-> pp a64 binary;
+      "pp a64 binary64 sum"
+	[a64 binary64 operation] = 3;
+	-> pp a64 binary64;
+      "pp a64 binary64 difference"
+	[a64 binary64 operation] = 4;
+	-> pp a64 binary64;
+      "pp a64 binary64 product"
+	[a64 binary64 operation] = 5;
+	-> pp a64 binary64;
+      "pp a64 binary64 quotient"
+	[a64 binary64 operation] = 6;
+	-> pp a64 binary64;
+      "pp a64 binary64 nearest integer"
+	[a64 binary64 operation] = 7;
+      ? [op1 class] != direct -> pp a64 unsupported;
+      ? [op2 class] != direct -> pp a64 unsupported;
+
+	(Load the direct binary64 source into raw X0.)
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 word] = 11000529h; (ADD W9,W9,#1)
+	=> a64 emit word;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 word] = AA0B8140h; (ORR X0,X10,X11,LSL #32)
+	=> a64 emit word;
+	-> pp a64 call binary64 helper;
+      "pp a64 integer to binary64"
+	[a64 binary64 operation] = 8;
+      ? [op1 class] != direct -> pp a64 unsupported;
+      ? [op2 class] != direct -> pp a64 unsupported;
+
+	(Load the direct int32 source into W0; the helper interprets its low bits.)
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B20h; (LDR W0,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp a64 call binary64 helper;
+      "pp a64 binary64 narrow"
+	[a64 binary64 operation] = 9;
+      ? [op1 class] != direct -> pp a64 unsupported;
+      ? [op2 class] != null -> pp a64 unsupported;
+
+	(Load the in-place binary64 operand into raw X0.)
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 word] = 11000529h; (ADD W9,W9,#1)
+	=> a64 emit word;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 word] = AA0B8140h; (ORR X0,X10,X11,LSL #32)
+	=> a64 emit word;
+	-> pp a64 call binary64 helper;
+      "pp a64 binary64"
+	(Only the compiler-owned direct/indirect form has a CPU-pack record.)
+      ? [op1 class] != direct -> pp a64 unsupported;
+      ? [op2 class] != indirect -> pp a64 unsupported;
+
+	(Load the destination's adjacent low/high units into raw binary64 X0.)
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 word] = 11000529h; (ADD W9,W9,#1)
+	=> a64 emit word;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 word] = AA0B8140h; (ORR X0,X10,X11,LSL #32)
+	=> a64 emit word;
+
+	(Resolve the indirect source and load its low/high units into X1.)
+	=> a64 emit op2 index;
+	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 word] = 11000529h; (ADD W9,W9,#1)
+	=> a64 emit word;
+	[a64 word] = B8695B2Bh; (LDR W11,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 word] = AA0B8141h; (ORR X1,X10,X11,LSL #32)
+	=> a64 emit word;
+
+      "pp a64 call binary64 helper"
+	(The exact integer helper receives X0, X1, W2 and returns X0.)
+	[a64 reg] = 2;
+	[a64 value] = [a64 binary64 operation];
+	=> a64 emit immediate;
+	[a64 reg] = 9;
+	[a64 value] = [prws];
+	[a64 value] + 10;
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Ah; (low helper pointer half to W10)
+	=> a64 emit word;
+	[a64 reg] = 9;
+	[a64 value] = [prws];
+	[a64 value] + 11;
+	=> a64 emit immediate;
+	[a64 word] = B8695B2Bh; (high helper pointer half to W11)
+	=> a64 emit word;
+	[a64 word] = AA0B8149h; (ORR X9,X10,X11,LSL #32)
+	=> a64 emit word;
+	[a64 word] = A9BF7BFDh; (STP X29,X30,[SP,#-16]!)
+	=> a64 emit word;
+	[a64 word] = D63F0120h; (BLR X9)
+	=> a64 emit word;
+	[a64 word] = A8C17BFDh; (LDP X29,X30,[SP],#16)
+	=> a64 emit word;
+
+	a = [a64 binary64 operation];
+      ? a = 7 -> pp a64 finish binary64 integer;
+
+	(Split the returned raw binary64 into the direct destination units.)
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8295B20h; (STR W0,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	[a64 word] = D360FC0Ah; (LSR X10,X0,#32)
+	=> a64 emit word;
+	[a64 word] = 11000529h; (ADD W9,W9,#1)
+	=> a64 emit word;
+	[a64 word] = B8295B2Ah; (STR W10,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
+      "pp a64 finish binary64 integer"
+	[a64 reg] = 9;
+	[a64 value] = [op1 value];
+	=> a64 emit immediate;
+	[a64 word] = B8295B20h; (STR W0,[x25,w9,UXTW #2])
+	=> a64 emit word;
+	-> pp exit;
       "pp a64 floating partial remainder"
 	[a64 math binary] = 1;
 	-> pp a64 binary;

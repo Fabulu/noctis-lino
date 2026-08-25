@@ -876,7 +876,7 @@
 	[SPi] = [BXminy];
     "PG tr row"
 	( the shared factor, WIDE )
-	A = [SPi]; C = ipart; C + A; [FI] = [C]; => IntToF;
+	A = [SPi]; C = ipart; C + A; [FI] = [C]; => PGF fromint;
 	[PGFi] = FSXC; => PGF sub;
 	[PGFi] = FSUNO; => PGF add;
 	[PGFi] = FSW3; => PGF sa;
@@ -884,7 +884,7 @@
 	( _z = oz + hz*(i - y_centro) + vz*factor )
 	[PGFi] = FSVZ; => PGF mul;
 	[PGFi] = FSW0; => PGF sa;
-	[FI] = [SPi]; => IntToF;
+	[FI] = [SPi]; => PGF fromint;
 	[PGFi] = FSYC; => PGF sub;
 	[PGFi] = FSHZ; => PGF mul;
 	[PGFi] = FSW0; => PGF add;
@@ -900,7 +900,7 @@
 	[PGFi] = FSW3; => PGF a;
 	[PGFi] = FSVX; => PGF mul;
 	[PGFi] = FSW0; => PGF sa;
-	[FI] = [SPi]; => IntToF;
+	[FI] = [SPi]; => PGF fromint;
 	[PGFi] = FSYC; => PGF sub;
 	[PGFi] = FSHX; => PGF mul;
 	[PGFi] = FSW0; => PGF add;
@@ -910,7 +910,7 @@
 	[PGFi] = FSW3; => PGF a;
 	[PGFi] = FSVY; => PGF mul;
 	[PGFi] = FSW0; => PGF sa;
-	[FI] = [SPi]; => IntToF;
+	[FI] = [SPi]; => PGF fromint;
 	[PGFi] = FSYC; => PGF sub;
 	[PGFi] = FSHY; => PGF mul;
 	[PGFi] = FSW0; => PGF add;

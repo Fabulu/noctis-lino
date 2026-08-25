@@ -1,85 +1,131 @@
-"""buildpack.py - build an extended CPU pack containing the MUL-split block.
+"""Build the extended i386m and x64 CPU packs.
 
-Append-only. The pattern index the compiler computes is a running sum over
-earlier records, so adding records at the END leaves every existing index
-untouched and the original 299,576 bytes byte-identical. Nothing that compiles
-today can compile differently against the new pack.
+The protected 6,241-record i386 pack is never modified.  i386m appends the two
+121-record split-multiply blocks and the 23-record exact scalar binary64 block::
 
-The output is written under a NEW NAME (i386m.bin). The pack name is a
-per-invocation command-line argument, so the stock and extended toolchains
-coexist and the compiler's exact size check can never strand us:
+    6241 existing + 121 unsigned + 121 signed + 23 binary64 = 6506 records
+    48 * 6506 + 8 = 312,296 bytes
 
-    algn * patterns + 8 == filesize
+The checked-in x64 pack already contains the same first 6,483 instruction
+patterns at its 145-byte alignment.  Its first 6,483 records are retained
+byte-for-byte and the same 23 x87 records are appended, yielding::
 
-Order follows the existing precedent for split-divide, where the unsigned form
-(/%') precedes the signed (/%): unsigned block first, then signed.
+    145 * 6506 + 8 = 943,378 bytes
 
-    6241 existing + 121 unsigned + 121 signed = 6483 patterns
-    48 * 6483 + 8 = 311,192 bytes
+Outputs are written under tools/ for review.  Nothing under main/cpu/ is
+modified by this script.
 """
 
-import sys
+from pathlib import Path
 
-sys.path.insert(0, ".")
-from genmul import enumerate_block, emit  # noqa: E402
-from packtool import Pack, decode, encode  # noqa: E402
-
-SRC = r"C:\programmieren\linoleum\main\cpu\i386.bin"
-DST = r"C:\programmieren\linoleum\tools\i386m.bin"
-ALIGN = 48
+from genf64ops import I386_PADDING, X64_PADDING, enumerate_block
+import genmul
+from packtool import Pack, decode, encode
 
 
-def block_bytes(signed):
-    return b"".join(emit(code) for _, _, _, _, code, _ in enumerate_block(signed))
+ROOT = Path(__file__).resolve().parents[1]
+CPU_DIR = ROOT / "main" / "cpu"
+OUTPUT_DIR = ROOT / "tools"
+BASE_RECORDS = 6241
+MULTIPLY_RECORDS = 6483
+ARITHMETIC_RECORDS = 6503
+FINAL_RECORDS = 6506
 
 
-def main():
-    original = open(SRC, "rb").read()
-    pack = Pack(original)
-    print(f"source pack: {pack.count} patterns, {len(original)} bytes")
-
-    unsigned = block_bytes(False)
-    signed = block_bytes(True)
-    n_new = (len(unsigned) + len(signed)) // ALIGN
-    print(f"appending: {len(unsigned)//ALIGN} unsigned + {len(signed)//ALIGN} signed"
-          f" = {n_new} patterns")
-
-    out = original + unsigned + signed
-    total = pack.count + n_new
-    expect = ALIGN * total + 8
-
-    # The header's pattern count is implied by file size, so nothing in the
-    # first eight bytes changes.
-    assert out[:8] == original[:8], "header must be untouched"
-    assert out[:len(original)] == original, "existing patterns must be untouched"
-    assert len(out) == expect, f"size {len(out)} != {expect}"
-
-    open(DST, "wb").write(out)
-    print(f"\nwrote {DST}")
-    print(f"  {total} patterns, {len(out)} bytes  (48 * {total} + 8 = {expect})")
-    print(f"  first {len(original)} bytes byte-identical to the stock pack")
-
-    # The new pack must satisfy the same decoder the compiler's interpreter
-    # implements: every record decodes and re-encodes byte-identically.
-    new = Pack(open(DST, "rb").read())
-    bad = 0
-    for n in range(new.count):
-        raw = new.raw(n)
+def validate_pack(blob: bytes, *, alignment: int, count: int, label: str) -> Pack:
+    pack = Pack(blob)
+    if (pack.align, pack.ter, pack.count) != (alignment, b"++", count):
+        raise SystemExit(
+            f"unexpected {label} layout: alignment={pack.align}, "
+            f"terminator={pack.ter!r}, count={pack.count}")
+    for index in range(pack.count):
+        raw = pack.raw(index)
         try:
-            items, padding = decode(raw, new.ter)
-        except ValueError:
-            bad += 1
-            continue
-        if encode(items, padding, new.ter) != raw:
-            bad += 1
-    if bad:
-        print(f"  ROUND-TRIP FAILED on {bad} records")
-        return 1
-    print(f"  all {new.count} records decode and re-encode byte-identically")
+            items, padding = decode(raw, pack.ter)
+        except ValueError as exc:
+            raise SystemExit(f"{label} record {index}: {exc}") from exc
+        if encode(items, padding, pack.ter) != raw:
+            raise SystemExit(f"{label} record {index}: decode/encode mismatch")
+    return pack
 
-    print("\n  main/cpu/i386.bin is unchanged; this is a separate file.")
-    return 0
+
+def f64_block(pack: Pack, padding: bytes) -> bytes:
+    return b"".join(enumerate_block(
+        alignment=pack.align,
+        padding=padding,
+        terminator=pack.ter,
+    ))
+
+
+def build_i386m() -> bytes:
+    stock_blob = (CPU_DIR / "i386.bin").read_bytes()
+    stock = validate_pack(
+        stock_blob, alignment=48, count=BASE_RECORDS, label="protected i386 pack")
+
+    unsigned = [genmul.emit(row[4]) for row in genmul.enumerate_block(False)]
+    signed = [genmul.emit(row[4]) for row in genmul.enumerate_block(True)]
+    if len(unsigned) != 121 or len(signed) != 121:
+        raise SystemExit("split-multiply generator did not produce 121 + 121 records")
+
+    extended_blob = stock_blob + b"".join(unsigned + signed)
+    extended = validate_pack(
+        extended_blob, alignment=48, count=MULTIPLY_RECORDS,
+        label="intermediate i386m pack")
+    final_blob = extended_blob + f64_block(extended, I386_PADDING)
+    validate_pack(
+        final_blob, alignment=48, count=FINAL_RECORDS, label="final i386m pack")
+
+    if final_blob[:len(stock_blob)] != stock_blob:
+        raise SystemExit("protected i386 prefix changed")
+    return final_blob
+
+
+def build_x64() -> bytes:
+    installed_blob = (CPU_DIR / "x64.bin").read_bytes()
+    installed = Pack(installed_blob)
+    if (installed.align, installed.ter) != (145, b"++"):
+        raise SystemExit(
+            "unexpected x64 pack layout: "
+            f"alignment={installed.align}, terminator={installed.ter!r}")
+    if installed.count not in (
+            MULTIPLY_RECORDS, ARITHMETIC_RECORDS, FINAL_RECORDS):
+        raise SystemExit(
+            f"unexpected x64 record count {installed.count}; expected "
+            f"{MULTIPLY_RECORDS}, {ARITHMETIC_RECORDS}, or {FINAL_RECORDS}")
+
+    prefix_size = 8 + MULTIPLY_RECORDS * installed.align
+    prefix_blob = installed_blob[:prefix_size]
+    prefix = validate_pack(
+        prefix_blob, alignment=145, count=MULTIPLY_RECORDS, label="x64 prefix")
+    suffix = f64_block(prefix, X64_PADDING)
+    if installed.count == ARITHMETIC_RECORDS:
+        arithmetic_size = (ARITHMETIC_RECORDS - MULTIPLY_RECORDS) * installed.align
+        if installed_blob[prefix_size:] != suffix[:arithmetic_size]:
+            raise SystemExit("installed x64 arithmetic suffix is not generator-exact")
+    elif installed.count == FINAL_RECORDS and installed_blob[prefix_size:] != suffix:
+        raise SystemExit("installed x64 binary64 suffix is not generator-exact")
+
+    final_blob = prefix_blob + suffix
+    validate_pack(
+        final_blob, alignment=145, count=FINAL_RECORDS, label="final x64 pack")
+    if final_blob[:prefix_size] != prefix_blob:
+        raise SystemExit("x64 6,483-record prefix changed")
+    return final_blob
+
+
+def main() -> None:
+    outputs = (
+        (OUTPUT_DIR / "i386m.bin", build_i386m()),
+        (OUTPUT_DIR / "x64.bin", build_x64()),
+    )
+    for path, blob in outputs:
+        path.write_bytes(blob)
+        pack = Pack(blob)
+        print(
+            f"wrote {path}: {pack.count} records, {len(blob)} bytes "
+            f"({pack.align} * {pack.count} + 8)")
+    print("main/cpu/i386.bin, i386m.bin and x64.bin were not touched")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

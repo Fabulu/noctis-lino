@@ -187,7 +187,7 @@
 	The live accumulator is narrowed before its single slot store. )
 
 "PGF narrow"
-	=> F32Narrow;
+	~: [FA0];
 	=> PGF sa;
 	end;
 
@@ -195,17 +195,28 @@
 ( arithmetic on slots.  FA is the accumulator throughout.               )
 ( ==================================================================== )
 
+      ( The compiler backend performs one x87-PC64 operation followed by
+	a binary64 spill.  A names the indirect source slot pair. )
+
 "PGF add"				( FA += fw[[PGFi]] )
-	=> PGF b; => FAdd; end;
+	A = [PGFi]; A + A; A + fw;
+	[FA0] +: [A];
+	end;
 
 "PGF sub"				( FA -= fw[[PGFi]] )
-	=> PGF b; => FSub; end;
+	A = [PGFi]; A + A; A + fw;
+	[FA0] -: [A];
+	end;
 
 "PGF mul"				( FA *= fw[[PGFi]] )
-	=> PGF b; => FMul; end;
+	A = [PGFi]; A + A; A + fw;
+	[FA0] *: [A];
+	end;
 
 "PGF quo"				( FA /= fw[[PGFi]] )
-	=> PGF b; => FQuo; end;
+	A = [PGFi]; A + A; A + fw;
+	[FA0] /: [A];
+	end;
 
       ( PGF rsub : FA <- fw[[PGFi]] - FA.  fsubr, and the original uses
 	it: "fsubr dword ptr rzf[si]" in every near-plane branch. )
@@ -213,8 +224,7 @@
 "PGF rsub"
 	[FT0] = [FA0]; [FT1] = [FA1];
 	=> PGF a;
-	[FB0] = [FT0]; [FB1] = [FT1];
-	=> FSub;
+	A = FT0; [FA0] -: [A];
 	end;
 
       ( PGF rquo : FA <- fw[[PGFi]] / FA.  fdivr; the span setup's
@@ -223,15 +233,14 @@
 "PGF rquo"
 	[FT0] = [FA0]; [FT1] = [FA1];
 	=> PGF a;
-	[FB0] = [FT0]; [FB1] = [FT1];
-	=> FQuo;
+	A = FT0; [FA0] /: [A];
 	end;
 
       ( PGF int : [FI] <- fistp(FA), NEAREST EVEN, under the live
 	control word.  Rule 3.  Never a bare "=,". )
 
 "PGF int"
-	=> FToIntNear;
+	[FI] =: [FA0];
 	end;
 
       ( PGF fromint : FA <- (double)[FI].  fild of a dword is exact for
@@ -241,7 +250,7 @@
 	near-plane interpolation puts mp[] above 2^24. )
 
 "PGF fromint"
-	=> IntToF;
+	[FA0] := [FI];
 	end;
 
 ( ==================================================================== )
@@ -306,6 +315,6 @@
 
 	( tempXsize = XSIZE = 256*16 = 4096, tempYsize likewise.
 	  Built by integer conversion, which is exact. )
-	[FI] = 4096; => IntToF; [PGFi] = FSTX; => PGF sa;
-	[FI] = 4096; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[FI] = 4096; => PGF fromint; [PGFi] = FSTX; => PGF sa;
+	[FI] = 4096; => PGF fromint; [PGFi] = FSTY; => PGF sa;
 	end;

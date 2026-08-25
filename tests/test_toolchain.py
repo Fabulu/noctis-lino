@@ -4,11 +4,9 @@ of compiler and CPU pack fails loudly instead of quietly producing a binary.
 galaxy2.txt is only buildable by the patched compiler114m.exe together with the
 extended pack -Cpu i386m. Its header states three things this test pins down:
 
-  1. The extended toolchain is installed and the pack in main/cpu matches the
-     one tools/buildpack.py generates in tools/. Both files are gitignored and
-     nothing in the repo copies one to the other, so a clean checkout - or a
-     rebuild of the pack that forgets the copy - leaves the pack the compiler
-     actually reads stale or absent. That is silent breakage today.
+  1. The extended toolchain is installed and both packs under main/cpu match
+     tools/buildpack.py's in-memory output exactly. A stale manual copy cannot
+     silently pass this guard.
   2. Nothing under main/ has been modified: all six PRISTINE.sha256 entries
      still hash correctly. main/lib/gen/compiler.txt in particular is under a
      licence that forbids modification.
@@ -37,10 +35,19 @@ import sys
 
 import linoharness as L
 
+TOOLS = os.path.join(L.REPO, "tools")
+if TOOLS not in sys.path:
+    sys.path.insert(0, TOOLS)
+from buildpack import build_i386m, build_x64  # noqa: E402
+from genf64ops import I386_PADDING, X64_PADDING, enumerate_block  # noqa: E402
+from packtool import Pack  # noqa: E402
+
 
 PRISTINE = os.path.join(L.REPO, "PRISTINE.sha256")
 PACK_INSTALLED = os.path.join(L.REPO, "main", "cpu", "i386m.bin")
-PACK_BUILT = os.path.join(L.REPO, "tools", "i386m.bin")
+PACK_X64 = os.path.join(L.REPO, "main", "cpu", "x64.bin")
+PACK_STOCK = os.path.join(L.REPO, "main", "cpu", "i386.bin")
+COMPILER_SOURCE = os.path.join(L.REPO, "main", "lib", "gen", "compiler114m.txt")
 SUBJECT = os.path.join(L.WORK, "galaxy2.txt")
 
 
@@ -60,18 +67,64 @@ def main():
          "stock compiler present", L.STOCK_COMPILER)
 
     have_installed = os.path.exists(PACK_INSTALLED)
-    have_built = os.path.exists(PACK_BUILT)
     c.ok(have_installed,
          "extended pack installed where the compiler reads it (main/cpu/i386m.bin)",
          "" if have_installed else "MISSING - run tools/buildpack.py, then copy "
                                    "tools/i386m.bin to main/cpu/i386m.bin")
-    if have_installed and have_built:
-        a, b = filesha(PACK_INSTALLED), filesha(PACK_BUILT)
-        c.ok(a == b,
-             "installed pack matches the one buildpack.py generates",
-             "main/cpu %s vs tools %s" % (a[:16], b[:16]))
-    elif have_installed:
-        c.note("tools/i386m.bin absent - cannot cross-check the installed pack")
+
+    have_x64 = os.path.exists(PACK_X64)
+    have_stock = os.path.exists(PACK_STOCK)
+    c.ok(have_x64, "extended x64 pack installed", PACK_X64)
+    c.ok(have_stock, "protected stock i386 pack present", PACK_STOCK)
+    if have_installed and have_x64 and have_stock:
+        stock_blob = open(PACK_STOCK, "rb").read()
+        i386m_blob = open(PACK_INSTALLED, "rb").read()
+        x64_blob = open(PACK_X64, "rb").read()
+        generated_i386m = build_i386m()
+        generated_x64 = build_x64()
+        c.ok(i386m_blob == generated_i386m,
+             "installed i386m pack is generator-exact",
+             "installed %s vs generated %s" %
+             (hashlib.sha256(i386m_blob).hexdigest()[:16],
+              hashlib.sha256(generated_i386m).hexdigest()[:16]))
+        c.ok(x64_blob == generated_x64,
+             "installed x64 pack is generator-exact",
+             "installed %s vs generated %s" %
+             (hashlib.sha256(x64_blob).hexdigest()[:16],
+              hashlib.sha256(generated_x64).hexdigest()[:16]))
+        i386m = Pack(i386m_blob)
+        x64 = Pack(x64_blob)
+        c.ok((i386m.align, i386m.count, len(i386m_blob)) ==
+             (48, 6506, 312296),
+             "i386m has the 6,506-record binary64 layout",
+             "align=%d count=%d bytes=%d" %
+             (i386m.align, i386m.count, len(i386m_blob)))
+        c.ok((x64.align, x64.count, len(x64_blob)) ==
+             (145, 6506, 943378),
+             "x64 has the 6,506-record binary64 layout",
+             "align=%d count=%d bytes=%d" %
+             (x64.align, x64.count, len(x64_blob)))
+        c.ok(i386m_blob[:len(stock_blob)] == stock_blob,
+             "i386m preserves the protected 6,241-record stock prefix")
+        i386_suffix = b"".join(enumerate_block(
+            alignment=i386m.align, padding=I386_PADDING,
+            terminator=i386m.ter))
+        x64_suffix = b"".join(enumerate_block(
+            alignment=x64.align, padding=X64_PADDING,
+            terminator=x64.ter))
+        c.ok(i386m_blob[-len(i386_suffix):] == i386_suffix,
+             "i386m binary64 suffix is generator-exact")
+        c.ok(x64_blob[-len(x64_suffix):] == x64_suffix,
+             "x64 binary64 suffix is generator-exact")
+
+    compiler_source = open(COMPILER_SOURCE, "r", encoding="utf-8").read()
+    c.ok(
+        "ip records\t= 634 mtp 3;" in compiler_source
+        and "[up length] = 634 mtp 3;" in compiler_source
+        and "? a < 83 mtp 9 relating ip quickreference" in compiler_source
+        and "cpu pack = 6506" in compiler_source
+        and all("q%d =" % index in compiler_source for index in range(76, 83)),
+        "compiler metadata owns +:, -:, *:, /:, =:, :=, ~: and 6,506 patterns")
 
     # ---------------------------------------------------------- 2. main/ pristine
     bad = []

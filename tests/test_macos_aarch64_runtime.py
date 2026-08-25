@@ -13,6 +13,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "src" / "linoleum_macos_aarch64"
+FP64_HELPER = ROOT / "src" / "linoleum_aarch64" / "fp64_helper.h"
 WORKFLOW = ROOT / ".github" / "workflows" / "macos-aarch64-runtime.yml"
 COMPILE_SCRIPT = ROOT / "build" / "compile_macos_aarch64_fixture.sh"
 FIXTURE_SOURCE = ROOT / "tests" / "fixtures" / "macos_aarch64_runtime.txt"
@@ -119,6 +120,7 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         header = (RUNTIME / "rtm.h").read_text(encoding="utf-8")
         assembly = (RUNTIME / "isokernel.s").read_text(encoding="utf-8")
         build = (RUNTIME / "build.sh").read_text(encoding="utf-8")
+        helper = FP64_HELPER.read_text(encoding="utf-8")
 
         self.assertIn("sizeof(struct LNLMINIT) == 96", header)
         self.assertIn("ARM64_UI_REQUIRED_UNITS = 32947", header)
@@ -144,6 +146,19 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("lino_display_set_origin", source)
         self.assertIn("mprotect(pCode, pCodeMapBytes, PROT_READ | PROT_EXEC)", source)
         self.assertIn("publish_runtime_pointers();", source)
+        self.assertIn('#include "../linoleum_aarch64/fp64_helper.h"', source)
+        self.assertIn("typedef uint64_t (*float_binary_proc_t)", source)
+        self.assertIn("apply_binary64(left_bits, right_bits, operation)", source)
+        for declaration in (
+            "FLOAT_BINARY64_NEAREST_INT32 = 7",
+            "FLOAT_BINARY64_FROM_INT32 = 8",
+            "FLOAT_BINARY64_NARROW_BINARY32 = 9",
+        ):
+            self.assertIn(declaration, helper)
+        for implementation in (
+            "fp64_nearest_int32", "fp64_from_int32", "fp64_narrow_binary32",
+        ):
+            self.assertIn(implementation, helper)
         for forbidden in ("MAP_FIXED", "realloc(", "PROT_WRITE | PROT_EXEC"):
             self.assertNotIn(forbidden, source)
         self.assertIn(".globl _isokernel", assembly)

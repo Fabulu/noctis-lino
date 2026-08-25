@@ -26,6 +26,8 @@ RUNTIME = ROOT / "src" / "linoleum_aarch64"
 BUILD_SCRIPT = RUNTIME / "build.sh"
 RTM_C = RUNTIME / "rtm.c"
 RTM_H = RUNTIME / "rtm.h"
+FP64_HELPER = RUNTIME / "fp64_helper.h"
+FP64_CONVERSION_TEST = ROOT / "tests" / "fp64_conversion_helper.c"
 ISOKERNEL = RUNTIME / "isokernel.s"
 README = RUNTIME / "README.md"
 WORKFLOW = ROOT / ".github" / "workflows" / "linux-aarch64-runtime.yml"
@@ -1534,6 +1536,100 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "fp conversions good"
 
+    B = p;
+    [lhs] = 0;
+    [rhs] = 3FF00000h;
+    [p] = 1;
+    [q] = 3CA00000h;
+    [lhs] +: [B];
+    ? [lhs] = 0 -> binary64 sum high;
+    fail;
+
+"binary64 sum high"
+
+    ? [rhs] = 3FF00000h -> binary64 difference;
+    fail;
+
+"binary64 difference"
+
+    [lhs] = 0;
+    [rhs] = 3FF00000h;
+    [p] = 1;
+    [q] = 3C900000h;
+    [lhs] -: [B];
+    ? [lhs] = 0 -> binary64 difference high;
+    fail;
+
+"binary64 difference high"
+
+    ? [rhs] = 3FF00000h -> binary64 product;
+    fail;
+
+"binary64 product"
+
+    [lhs] = CEA4B056h;
+    [rhs] = 3FF62571h;
+    [p] = 8DF534E4h;
+    [q] = 3FF1B8C0h;
+    [lhs] *: [B];
+    ? [lhs] = 0E2A7280h -> binary64 product high;
+    fail;
+
+"binary64 product high"
+
+    ? [rhs] = 3FF88782h -> binary64 quotient;
+    fail;
+
+"binary64 quotient"
+
+    [lhs] = B36E5904h;
+    [rhs] = 3FF62A87h;
+    [p] = 1898734Eh;
+    [q] = 3FFE4222h;
+    [lhs] /: [B];
+    ? [lhs] = D44E81CEh -> binary64 quotient high;
+    fail;
+
+"binary64 quotient high"
+
+    ? [rhs] = 3FE77127h -> binary64 nearest int32;
+    fail;
+
+"binary64 nearest int32"
+
+    [lhs] = 0;
+    [rhs] = 3FF80000h;
+    [slot] =: [lhs];
+    ? [slot] = 2 -> binary64 from int32;
+    fail;
+
+"binary64 from int32"
+
+    [slot] = 80000000h;
+    [lhs] := [slot];
+    ? [lhs] = 0 -> binary64 from int32 high;
+    fail;
+
+"binary64 from int32 high"
+
+    ? [rhs] = C1E00000h -> binary64 narrow binary32;
+    fail;
+
+"binary64 narrow binary32"
+
+    [lhs] = 30000000h;
+    [rhs] = 3FF00000h;
+    ~: [lhs];
+    ? [lhs] = 40000000h -> binary64 narrow binary32 high;
+    fail;
+
+"binary64 narrow binary32 high"
+
+    ? [rhs] = 3FF00000h -> binary64 arithmetic good;
+    fail;
+
+"binary64 arithmetic good"
+
     A = 1;
     B = 2;
     C = 3;
@@ -1948,6 +2044,75 @@ def enc_runtime_float_binary_call(app_ws_size: int,
     ]
 
 
+def enc_binary64_direct_indirect(app_ws_size: int, destination: int,
+                                 source_register: int, source_offset: int,
+                                 operation: int) -> list[int]:
+    return [
+        *enc_mov32_w(9, destination),
+        enc_ldr_w_indexed(10),
+        enc_add_sub_immediate_w(9, 9, 1),
+        enc_ldr_w_indexed(11),
+        enc_orr_lsl_x(0, 10, 11, 32),
+        *enc_mov32_w(9, source_offset),
+        enc_add_w(9, source_register, 9),
+        enc_ldr_w_indexed(10),
+        enc_add_sub_immediate_w(9, 9, 1),
+        enc_ldr_w_indexed(11),
+        enc_orr_lsl_x(1, 10, 11, 32),
+        *enc_runtime_float_binary_call(app_ws_size, operation),
+        *enc_mov32_w(9, destination),
+        enc_str_w_indexed(0),
+        enc_lsr_x(10, 0, 32),
+        enc_add_sub_immediate_w(9, 9, 1),
+        enc_str_w_indexed(10),
+    ]
+
+
+def enc_binary64_nearest_int32(app_ws_size: int, destination: int,
+                               source: int) -> list[int]:
+    return [
+        *enc_mov32_w(9, source),
+        enc_ldr_w_indexed(10),
+        enc_add_sub_immediate_w(9, 9, 1),
+        enc_ldr_w_indexed(11),
+        enc_orr_lsl_x(0, 10, 11, 32),
+        *enc_runtime_float_binary_call(app_ws_size, 7),
+        *enc_mov32_w(9, destination),
+        enc_str_w_indexed(0),
+    ]
+
+
+def enc_int32_to_binary64(app_ws_size: int, destination: int,
+                          source: int) -> list[int]:
+    return [
+        *enc_mov32_w(9, source),
+        enc_ldr_w_indexed(0),
+        *enc_runtime_float_binary_call(app_ws_size, 8),
+        *enc_mov32_w(9, destination),
+        enc_str_w_indexed(0),
+        enc_lsr_x(10, 0, 32),
+        enc_add_sub_immediate_w(9, 9, 1),
+        enc_str_w_indexed(10),
+    ]
+
+
+def enc_binary64_narrow_binary32(app_ws_size: int,
+                                  destination: int) -> list[int]:
+    return [
+        *enc_mov32_w(9, destination),
+        enc_ldr_w_indexed(10),
+        enc_add_sub_immediate_w(9, 9, 1),
+        enc_ldr_w_indexed(11),
+        enc_orr_lsl_x(0, 10, 11, 32),
+        *enc_runtime_float_binary_call(app_ws_size, 9),
+        *enc_mov32_w(9, destination),
+        enc_str_w_indexed(0),
+        enc_lsr_x(10, 0, 32),
+        enc_add_sub_immediate_w(9, 9, 1),
+        enc_str_w_indexed(10),
+    ]
+
+
 def enc_binary_w(opcode: int, destination: int, right: int) -> int:
     return enc_data3_w(opcode, destination, destination, right)
 
@@ -2331,6 +2496,54 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("expected_size != file_size", source)
         self.assertNotRegex(source, r"\(unit\)\s*\([^\n]*pCode")
 
+    def test_binary64_helper_is_integer_exact(self) -> None:
+        runtime = RTM_C.read_text(encoding="utf-8")
+        helper = FP64_HELPER.read_text(encoding="utf-8")
+        self.assertIn('#include "fp64_helper.h"', runtime)
+        self.assertIn("typedef uint64_t (*float_binary_proc_t)", runtime)
+        self.assertIn("FLOAT_BINARY64_SUM = 3", helper)
+        self.assertIn("FLOAT_BINARY64_QUOTIENT = 6", helper)
+        self.assertIn("FLOAT_BINARY64_NEAREST_INT32 = 7", helper)
+        self.assertIn("FLOAT_BINARY64_FROM_INT32 = 8", helper)
+        self.assertIn("FLOAT_BINARY64_NARROW_BINARY32 = 9", helper)
+        self.assertIn("__uint128_t", helper)
+        self.assertIn("fp64_normalize_p64", helper)
+        self.assertIn("fp64_pack", helper)
+        self.assertIn("fp64_nearest_int32", helper)
+        self.assertIn("fp64_from_int32", helper)
+        self.assertIn("fp64_narrow_binary32", helper)
+        self.assertNotRegex(helper, r"\b(?:float|double|long double)\b")
+
+    def test_binary64_conversion_helper_vectors_and_x87(self) -> None:
+        compiler = find_tool("HOST_CC", ("cc", "gcc", "clang"))
+        if compiler is None:
+            self.skipTest("native C compiler unavailable")
+        with tempfile.TemporaryDirectory(prefix="lino-fp64-helper-") as directory:
+            executable = Path(directory) / (
+                "fp64-conversion-helper.exe" if os.name == "nt"
+                else "fp64-conversion-helper")
+            build = subprocess.run(
+                [compiler, "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror",
+                 "-I", str(RUNTIME), str(FP64_CONVERSION_TEST),
+                 "-o", str(executable)],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=60,
+            )
+            self.assertEqual(build.returncode, 0, build.stdout)
+            run = subprocess.run(
+                [str(executable)],
+                cwd=ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=60,
+            )
+            self.assertEqual(run.returncode, 0, run.stdout)
+            self.assertIn("fp64 conversion helper: all checks passed", run.stdout)
+
     def test_assembly_abi_is_balanced(self) -> None:
         source = ISOKERNEL.read_text(encoding="utf-8")
         self.assertNotRegex(source, r"\bx18\b")
@@ -2397,7 +2610,9 @@ class StaticContractTests(unittest.TestCase):
             "1E200000h",
             "1E212000h", "54000046h",
             "6B00001Fh", "6A00001Fh", "54000000h",
-            "AA0B8149h", "D63F0120h", "D65F03C0h",
+            "AA0B8149h", "AA0B8140h", "AA0B8141h",
+            "11000529h", "D360FC0Ah", "B8295B2Ah",
+            "D63F0120h", "D65F03C0h",
         ):
             self.assertIn(word, source)
         for token in range(50, 68):
@@ -2409,6 +2624,17 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("[target string] = q73;", source)
         self.assertIn("[target string] = q74;", source)
         self.assertIn("[target string] = q75;", source)
+        for token in range(76, 83):
+            self.assertIn(f"[target string] = q{token};", source)
+        self.assertIn('"pp a64 binary64"', source)
+        self.assertIn("[a64 binary64 operation] = 3;", source)
+        self.assertIn("[a64 binary64 operation] = 6;", source)
+        self.assertIn("[a64 binary64 operation] = 7;", source)
+        self.assertIn("[a64 binary64 operation] = 8;", source)
+        self.assertIn("[a64 binary64 operation] = 9;", source)
+        self.assertIn('"pp a64 binary64 nearest integer"', source)
+        self.assertIn('"pp a64 integer to binary64"', source)
+        self.assertIn('"pp a64 binary64 narrow"', source)
         self.assertIn('"pp a64 call direct"', source)
         self.assertIn('"pp a64 call indirect"', source)
         self.assertIn('"pp a64 emit computed call"', source)
@@ -2437,6 +2663,9 @@ class StaticContractTests(unittest.TestCase):
         self.assertEqual(enc_ldr_w(9, 25, 48), 0xB9403329)
         self.assertEqual(enc_str_x(25, 25, 16), 0xF9000B39)
         self.assertEqual(enc_lsr_x(9, 25, 32), 0xD360FF29)
+        self.assertEqual(enc_lsr_x(10, 0, 32), 0xD360FC0A)
+        self.assertEqual(enc_orr_lsl_x(0, 10, 11, 32), 0xAA0B8140)
+        self.assertEqual(enc_orr_lsl_x(1, 10, 11, 32), 0xAA0B8141)
         self.assertEqual(enc_binary_w(0x0B000000, 19, 20), 0x0B140273)
         self.assertEqual(enc_binary_w(0x1AC02800, 21, 9), 0x1AC92AB5)
         self.assertEqual(enc_add_w(9, 19, 9), 0x0B090269)
@@ -3632,6 +3861,25 @@ class AArch64ExecutionTests(unittest.TestCase):
             ],
         )
         for sequence in binary_transcendental_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        binary64_sequences = (
+            enc_binary64_direct_indirect(app_ws_size, lhs_index, 20, 0,
+                                         operation)
+            for operation in range(3, 7)
+        )
+        for sequence in binary64_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        binary64_conversion_sequences = (
+            enc_binary64_nearest_int32(
+                app_ws_size, slot_index, lhs_index),
+            enc_int32_to_binary64(
+                app_ws_size, lhs_index, slot_index),
+            enc_binary64_narrow_binary32(
+                app_ws_size, lhs_index),
+        )
+        for sequence in binary64_conversion_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         conversion_sequences = (

@@ -12,6 +12,7 @@ LINUX = ROOT / "src" / "linoleum_linux32" / "isokernel.s"
 MACOS = ROOT / "src" / "linoleum_macos64" / "isokernel.s"
 FPCTL = ROOT / "work" / "fp" / "fpctl.txt"
 BUILD = ROOT / "lino_build.ps1"
+LINUX_BUILD = ROOT / "build" / "compile_vhgame_linux.sh"
 HOST_PROBE = ROOT / "tests" / "macos_fcw_probe.c"
 HOST_RUNNER = ROOT / "tests" / "run_macos_fcw_probe.sh"
 MACOS_WORKFLOWS = (
@@ -83,6 +84,13 @@ def main():
           build.index("& python $runtimePatcher $built") <
           build.index("elseif ($built -and $settled"),
           "build wrapper patches the settled output PE before reporting success")
+    linux_build = LINUX_BUILD.read_text(encoding="utf-8")
+    patch_call = 'python3 "$repo/tools/patch_runtime_fcw.py" "$compiled"'
+    check(patch_call in linux_build and
+          linux_build.index(patch_call) <
+          linux_build.index('cp "$compiled" "$output"') <
+          linux_build.index('(\"executable_sha256\", sha256(path))'),
+          "Linux release build patches FCWEXT before copy and provenance")
 
     source_checks(
         LINUX, "ISOKRNLCALL", r"\*pCodeEntry", r"\.L_lino_fcw",

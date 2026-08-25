@@ -12,6 +12,7 @@
 #define _GNU_SOURCE
 
 #include "rtm.h"
+#include "fp64_helper.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -34,7 +35,7 @@ struct init_block {
 };
 
 typedef uint32_t (*float_unary_proc_t)(uint32_t, uint32_t);
-typedef uint32_t (*float_binary_proc_t)(uint32_t, uint32_t, uint32_t);
+typedef uint64_t (*float_binary_proc_t)(uint64_t, uint64_t, uint32_t);
 
 _Static_assert(sizeof(struct init_block) == 112,
                "initialization block layout changed");
@@ -262,8 +263,8 @@ static float apply_float_partial_remainder(float left, float right)
     return fmodf(left, right);
 }
 
-static uint32_t apply_float_binary(uint32_t left_bits, uint32_t right_bits,
-                                   uint32_t operation)
+static uint32_t apply_float_binary32(uint32_t left_bits, uint32_t right_bits,
+                                     uint32_t operation)
 {
     const uint32_t left_magnitude = left_bits & UINT32_C(0x7FFFFFFF);
     const uint32_t right_magnitude = right_bits & UINT32_C(0x7FFFFFFF);
@@ -301,6 +302,17 @@ static uint32_t apply_float_binary(uint32_t left_bits, uint32_t right_bits,
     }
     memcpy(&result, &output, sizeof(result));
     return result;
+}
+
+static uint64_t apply_float_binary(uint64_t left_bits, uint64_t right_bits,
+                                   uint32_t operation)
+{
+    if (operation == FLOAT_BINARY_PARTIAL_REMAINDER ||
+        operation == FLOAT_BINARY_PARTIAL_ARCTANGENT) {
+        return apply_float_binary32((uint32_t) left_bits,
+                                    (uint32_t) right_bits, operation);
+    }
+    return apply_binary64(left_bits, right_bits, operation);
 }
 
 static uintptr_t function_address(proc_t function)
