@@ -380,7 +380,7 @@
     "VHGND scenario icy rain"
 	C = 3; => SU rnd; C + 2;
     "VHGND scenario scale rain"
-	[FS0] = [VHGNDcloudrain]; => FLoadF32; [VHGNDtmp] = C; [FI] = C; => IntToF;
+	[FS0] = [VHGNDcloudrain]; => FLoadF32; [VHGNDtmp] = C; [FI] = C; => PGF fromint;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FS0] = [VHGNDcloudrain]; => FLoadF32;
 	=> FQuo; => F32Narrow; => FStoreF32; [VHGNDcloudrain] = [FS0];
     "VHGND scenario ready"
@@ -432,10 +432,10 @@
 	[VHGNDgenn] = A;
     "VHGND type1 crater loop"
 	A = [VHGNDgenn]; ? A = 0 -> VHGND type1 texture craters;
-	C = 32; => SU rnd; [FI] = C; => IntToF;
+	C = 32; => SU rnd; [FI] = C; => PGF fromint;
 	( NIV+ C literal 0.01 is binary64 3F847AE147AE147B. )
 	[FB0] = 47AE147Bh; [FB1] = 3F847AE1h; => FMul; => F32Narrow; => FStoreF32; [GRfht] = [FS0];
-	C = 20; => SU rnd; C + 5; [FI] = C; => IntToF;
+	C = 20; => SU rnd; C + 5; [FI] = C; => PGF fromint;
 	[FB0] = 33333333h; [FB1] = 3FB33333h; => FMul; => F32Narrow; => FStoreF32; [GRfhmt] = [FS0];
 	C = 50; => SU rnd; C + 5; [SUia] = C;
 	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
@@ -482,7 +482,7 @@
 	C = 25; => SU rnd; C + 1; [VHGNDgeni] = C;     ( radius )
 	C = 200; => SU rnd; [SUcyi] = C;
 	C = 200; => SU rnd; [SUcxi] = C;
-	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[FI] = [VHGNDhr]; => PGF fromint; => F32Narrow; => FStoreF32;
 	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
 	[SUia] = [VHGNDgeni]; => GR round hill;
 	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type8 hill loop;
@@ -515,7 +515,7 @@
 	C = 50; => SU rnd; C + 10; [VHGNDhr] = C;
 	C = 100; => SU rnd; C + 50; [VHGNDgeni] = C;
 	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
-	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[FI] = [VHGNDhr]; => PGF fromint; => F32Narrow; => FStoreF32;
 	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
 	[SUia] = [VHGNDgeni]; => GR round hill;
 	[VHGNDgenn]-; -> VHGND type2 hill loop;
@@ -524,7 +524,7 @@
 	( Nebulous texture: mixed positive/negative shallow craters. )
 	C = 200; => SU rnd; [VHGNDtmp] = C;
 	C = 100; => SU rnd; A = [GRalbedo]; A + [VHGNDtmp]; A - C; [VHGNDgenn] = A;
-	C = 10; => SU rnd; [FI] = C; => IntToF;
+	C = 10; => SU rnd; [FI] = C; => PGF fromint;
 	[FB0] = 47AE147Bh; [FB1] = 3F947AE1h; => FMul;
 	=> F32Narrow; => FStoreF32; [GRfht] = [FS0];
 	A = [VHGNDgenn]; ? A < 0 -> VHGND type2 crater none;
@@ -569,7 +569,7 @@
 	C = 30; => SU rnd; C + 1; [VHGNDhr] = C;
 	C = 200; => SU rnd; C + 1; [VHGNDgeni] = C;
 	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
-	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[FI] = [VHGNDhr]; => PGF fromint; => F32Narrow; => FStoreF32;
 	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
 	[SUia] = [VHGNDgeni]; => GR round hill;
 	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type3 low hill loop;
@@ -580,7 +580,7 @@
 	C = 100; => SU rnd; C + 1; [VHGNDhr] = C;
 	C = 200; => SU rnd; C + 1; [VHGNDgeni] = C;
 	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
-	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[FI] = [VHGNDhr]; => PGF fromint; => F32Narrow; => FStoreF32;
 	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
 	[SUia] = [VHGNDgeni]; => GR round hill;
 	[VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND type3 mountain loop;
@@ -608,14 +608,14 @@
 	C = 100; => SU rnd; C + 25; [VHGNDgeni] = C;
 	C = 15; => SU rnd; C + [VHGNDislandz]; [SUcyi] = C;
 	C = 15; => SU rnd; C + [VHGNDislandx]; [SUcxi] = C;
-	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[FI] = [VHGNDhr]; => PGF fromint; => F32Narrow; => FStoreF32;
 	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
 	[SUia] = [VHGNDgeni]; => GR round hill;
 	( round_hill(cx,cz,random(100)+25,random(100)+1,0,1). )
 	C = 100; => SU rnd; C + 1; [VHGNDhr] = C;
 	C = 100; => SU rnd; C + 25; [VHGNDgeni] = C;
 	[SUcxi] = [VHGNDislandx]; [SUcyi] = [VHGNDislandz];
-	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[FI] = [VHGNDhr]; => PGF fromint; => F32Narrow; => FStoreF32;
 	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1;
 	[SUia] = [VHGNDgeni]; => GR round hill;
 	[VHGNDwaswet] = 1; -> VHGND type3 addtrees;
@@ -686,7 +686,7 @@
 	C = 75; => SU rnd; C + 1; [VHGNDhr] = C;
 	C = 200; => SU rnd; C + 1; [VHGNDgeni] = C;
 	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
-	[FI] = [VHGNDhr]; => IntToF; => F32Narrow; => FStoreF32;
+	[FI] = [VHGNDhr]; => PGF fromint; => F32Narrow; => FStoreF32;
 	[GRfht] = [FS0]; [GRfhmt] = 0; [GRfcanyon] = 1; [SUia] = [VHGNDgeni];
 	=> GR round hill; [VHGNDgenn]-; A = [VHGNDgenn]; ? A != 0 -> VHGND icy hill loop;
 	-> VHGND icy terrain done;
@@ -722,7 +722,7 @@
 	[FB0] = 0; [FB1] = 400C0000h; => FMul;
 	[FB0] = 0; [FB1] = 400C0000h; => FAdd;
 	[FT0] = [FA0]; [FT1] = [FA1];
-	[FI] = [VHGNDgeni]; => IntToF;
+	[FI] = [VHGNDgeni]; => PGF fromint;
 	[FB0] = [FT0]; [FB1] = [FT1]; => FMul;
 	=> F32Narrow; => FStoreF32; [GRfht] = [FS0];
 	=> VHGND flandom;
@@ -776,9 +776,9 @@
     "VHGND type5 crater count ready"
 	[VHGNDgenn] = A;
     "VHGND type5 crater loop"
-	C = 5; => SU rnd; [FI] = C; => IntToF;
+	C = 5; => SU rnd; [FI] = C; => PGF fromint;
 	[FB0] = 0EB851EB8h; [FB1] = 3F8EB851h; => FMul; => F32Narrow; => FStoreF32; [GRfht] = [FS0];
-	C = 10; => SU rnd; C + 10; [FI] = C; => IntToF;
+	C = 10; => SU rnd; C + 10; [FI] = C; => PGF fromint;
 	[FB0] = 147AE148h; [FB1] = 3FD147AEh; => FMul; => F32Narrow; => FStoreF32; [GRfhmt] = [FS0];
 	C = 35; => SU rnd; C + 5; [SUia] = C;
 	C = 200; => SU rnd; [SUcyi] = C; C = 200; => SU rnd; [SUcxi] = C;
@@ -1140,13 +1140,13 @@
 	  Preserve those gates and their body/style tables; ordinary procedural
 	  systems remain untouched. )
 	[VHGNDruinanchor] = 0; [VHGNDruinmarks] = 0;
-	[FI] = 1000000; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1000000; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FMul; => FToIntChop;
 	A = [FI]; ? A = 0FFFF6C3Ch -> VHGND ruins Balas;
-	[FI] = 100000; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 100000; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FMul; => FToIntChop;
 	A = [FI]; ? A = 5F5739F0h -> VHGND ruins Fenia;
-	[FI] = 100000000; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 100000000; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [VHTid0]; [FA1] = [VHTid1]; => FMul; => FToIntChop;
 	A = [FI]; ? A = 0FF4FDBAEh -> VHGND ruins Ylas;
 	end;
@@ -1463,7 +1463,7 @@
 	( NOCTIS-1.CPP:1635-1670.  The five locals are binary32 in the
 	  original.  Narrow every assignment so the occasional density+1 ray
 	  and all following RNG consumption remain faithful. )
-	[FI] = [VHGNDastardensity]; => IntToF;
+	[FI] = [VHGNDastardensity]; => PGF fromint;
 	[FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = 54442D18h; [FA1] = 401921FBh; => FQuo;
 	=> F32Narrow; => FStoreF32; [VHGNDastarad] = [FS0];
@@ -1473,20 +1473,20 @@
 	[FB0] = 54442D18h; [FB1] = 401921FBh; => FCmp;
 	A = [FI]; ? A >= 0 -> VHGND asterism done;
 	( shift_d = (float)random(1000)/1000; shift_d *= size; )
-	C = 1000; => SU rnd; [FI] = C; => IntToF;
+	C = 1000; => SU rnd; [FI] = C; => PGF fromint;
 	[FB0] = 0; [FB1] = 408F4000h; => FQuo;
 	=> F32Narrow; => FStoreF32; [VHGNDastard] = [FS0];
 	[FT0] = [FA0]; [FT1] = [FA1];
-	[FI] = [VHGNDastarsize]; => IntToF;
+	[FI] = [VHGNDastarsize]; => PGF fromint;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FT0]; [FA1] = [FT1];
 	=> FMul; => F32Narrow; => FStoreF32; [VHGNDastard] = [FS0];
 	A = [VHGNDastard]; ? A '< 3F800000h -> VHGND asterism next ray;
 	( var=(float)variation/shift_d; color=(float)base. )
-	[FI] = [VHGNDastarvariation]; => IntToF; [FT0] = [FA0]; [FT1] = [FA1];
+	[FI] = [VHGNDastarvariation]; => PGF fromint; [FT0] = [FA0]; [FT1] = [FA1];
 	[FS0] = [VHGNDastard]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [FT0]; [FA1] = [FT1]; => FQuo;
 	=> F32Narrow; => FStoreF32; [VHGNDastarvar] = [FS0];
-	[FI] = [VHGNDastarbase]; => IntToF;
+	[FI] = [VHGNDastarbase]; => PGF fromint;
 	=> F32Narrow; => FStoreF32; [VHGNDastarcolor] = [FS0];
 	( Angle is constant for the complete ray.  The source recomputes these
 	  identical x87 results at every radial pixel; retain the exact binary64
@@ -1501,13 +1501,13 @@
 	( shift_x = chop(cos(ang)*shift_d+x). )
 	[FS0] = [VHGNDastard]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [VHGNDastarcos0]; [FA1] = [VHGNDastarcos1]; => FMul;
-	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDastarx]; => IntToF;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDastarx]; => PGF fromint;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FT0]; [FA1] = [FT1];
 	=> FAdd; => FToIntChop; [VHGNDastarpx] = [FI];
 	( shift_y = chop(sin(ang)*shift_d+y). )
 	[FS0] = [VHGNDastard]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [VHGNDastarsin0]; [FA1] = [VHGNDastarsin1]; => FMul;
-	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDastary]; => IntToF;
+	[FT0] = [FA0]; [FT1] = [FA1]; [FI] = [VHGNDastary]; => PGF fromint;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FT0]; [FA1] = [FT1];
 	=> FAdd; => FToIntChop; [VHGNDastarpy] = [FI];
 	A = [VHGNDastarpx]; ? A <= 0 -> VHGND asterism advance;
@@ -1575,7 +1575,7 @@
 "VHGND flandom"
 	( Borland helper: random(32767) * 0.000030518, kept wide until
 	  the caller's float store. )
-	C = 32767; => SU rnd; [FI] = C; => IntToF;
+	C = 32767; => SU rnd; [FI] = C; => PGF fromint;
 	[FB0] = 7EDA0BE1h; [FB1] = 3F00000Eh; => FMul;
 	end;
 
@@ -1720,7 +1720,7 @@
 	  the foreground storm renderer. )
 	A = [VHGNDcloud]; ? A '<= 20 -> VHGND identity cloud capped; A = 20;
     "VHGND identity cloud capped"
-	[FI] = A; => IntToF; [FB0] = 0; [FB1] = 3FD00000h; => FMul;
+	[FI] = A; => PGF fromint; [FB0] = 0; [FB1] = 3FD00000h; => FMul;
 	=> F32Narrow; => FStoreF32; [VHGNDcloudrain] = [FS0];
 
 	( fast_srand(p_orb_seed * p_orb_ecc * 12345), followed by the exact
@@ -1869,7 +1869,7 @@
 
 	( Retained surface identity also supplies a stable 0..3.75 cloud load,
 	  in the source quarter-step domain. )
-	A = [VHGNDseed]; A & 15; [FI] = A; => IntToF;
+	A = [VHGNDseed]; A & 15; [FI] = A; => PGF fromint;
 	[FB0] = 0; [FB1] = 3FD00000h; => FMul; => F32Narrow; => FStoreF32;
 	[GRSKrainy] = [FS0];
     "VHGND general filters ready"
@@ -1926,7 +1926,7 @@
 	A = [VHGNDclocksecs]; [VHGNDsecs] = A;
 	=> VHG fpu clean; => SU fp init;
     "VHGND convert seconds"
-	A = [VHGNDsecs]; [FI] = A; => IntToF; [SUsec0] = [FA0]; [SUsec1] = [FA1];
+	A = [VHGNDsecs]; [FI] = A; => PGF fromint; [SUsec0] = [FA0]; [SUsec1] = [FA1];
     "VHGND seconds ready"
 	end;
 
@@ -1956,7 +1956,7 @@
 	[FB0] = [VHGNDorbit0]; [FB1] = [VHGNDorbit1]; => FMul;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHGNDmass0]; [FA1] = [VHGNDmass1];
 	=> FQuo; => FSqrt;
-	[FB0] = [SUsec0]; [FB1] = [SUsec1]; => FMul; => FToIntNear;
+	[FB0] = [SUsec0]; [FB1] = [SUsec1]; => FMul; => PGF int;
 	A = [FI]; A % 360; ? A >= 0 -> VHGND orbital phase ready; A + 360;
     "VHGND orbital phase ready"
 	[VHGNDphase] = A;
@@ -1989,10 +1989,10 @@
 	[VHGNDsf00] = 0; [VHGNDsf01] = 412E8480h;
 	E = nsptype; E + [VHGNDplanet]; A = [E];
 	? A != 0 -> VHGND rotation planet typed;
-	[VHGNDsf01] = 413E8480h; [FI] = [VHGNDplanet]; => IntToF;
+	[VHGNDsf01] = 413E8480h; [FI] = [VHGNDplanet]; => PGF fromint;
 	[VHGNDsf10] = [FA0]; [VHGNDsf11] = [FA1]; -> VHGND rotation planet fields;
     "VHGND rotation planet typed"
-	[FI] = A; => IntToF; [VHGNDsf10] = [FA0]; [VHGNDsf11] = [FA1];
+	[FI] = A; => PGF fromint; [VHGNDsf10] = [FA0]; [VHGNDsf11] = [FA1];
     "VHGND rotation planet fields"
 	A = [VHGNDplanet]; A < 1; E = nsporbseed; E + A;
 	[VHGNDsf20] = [E plus 0]; [VHGNDsf21] = [E plus 1];
@@ -2005,10 +2005,10 @@
 	[FS0] = [nsstarray]; => FLoadF32;
 	[VHGNDsf10] = [FA0]; [VHGNDsf11] = [FA1];
 	E = nsptype; E + [VHGNDplanet]; A = [E]; ? A != 0 -> VHGND rotation moon typed;
-	[VHGNDsf01] = 413E8480h; [FI] = [VHGNDplanet]; => IntToF;
+	[VHGNDsf01] = 413E8480h; [FI] = [VHGNDplanet]; => PGF fromint;
 	[VHGNDsf20] = [FA0]; [VHGNDsf21] = [FA1]; -> VHGND rotation seed calculate;
     "VHGND rotation moon typed"
-	[FI] = A; => IntToF; [VHGNDsf20] = [FA0]; [VHGNDsf21] = [FA1];
+	[FI] = A; => PGF fromint; [VHGNDsf20] = [FA0]; [VHGNDsf21] = [FA1];
 "VHGND rotation seed calculate"
       ? [nivgenf64] != 0 -> VHGND rotation seed calculate f64;
 	=> XReset;
@@ -2189,7 +2189,7 @@
 	[FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [VHGNDownz0]; [FA1] = [VHGNDownz1]; => FNeg; => FAtan2;
 	[FB0] = 0; [FB1] = 40668000h; => FMul;
-	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => PGF int;
 	A = [FI]; A % 360; ? A >= 0 -> VHGND viewpoint normalized; A + 360;
     "VHGND viewpoint normalized"
 	[VHGNDviewpoint] = A;
@@ -2228,7 +2228,7 @@
 	? A >= [VHGNDcrep] -> VHGND exposure ready;
 	[VHGNDcrep] = A; A = 0; A - 1; [VHGNDsunxf] = A;
     "VHGND exposure ready"
-	[FI] = [VHGNDcrep]; => IntToF;
+	[FI] = [VHGNDcrep]; => PGF fromint;
 	[FB0] = 27BB2FECh; [FB1] = 3FE90B0Fh; => FMul; => F32Narrow; => FStoreF32;
 	[GRSKexposure] = [FS0];
 	end;
@@ -2546,8 +2546,8 @@
 	[VHVcamxi] = [VHGNDcamx]; [VHVcamyi] = [VHGNDcamy]; [VHVcamzi] = [VHGNDcamz];
 	[VHValpha] = [VHGNDalpha]; [VHVbeta] = [VHGNDbeta]; => VH set view;
 	( Source fragment() maps p_background across every ground triangle. )
-	[FI] = [VHGNDtscale]; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;
+	[FI] = [VHGNDtscale]; => PGF fromint;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => PGF fromint; => FMul;
 	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 5; [SPsrc] = 1; [SPflar] = 0; [SPcull] = 0; [SPhalf] = 0;
 	A = [GRiptype]; ? A != 3 -> VHGND water render done;
@@ -2914,7 +2914,7 @@
 	[FB0] = [VHGNDsecoz0]; [FB1] = [VHGNDsecoz1]; => FSub; => FNeg;
 	[FB0] = [VHGNDxx0]; [FB1] = [VHGNDxx1]; => FAtan2;
 	[FB0] = 0; [FB1] = 40668000h; => FMul;
-	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => PGF int;
 	A = [FI]; A % 360; ? A >= 0 -> VHGND secondary view normalized; A + 360;
     "VHGND secondary view normalized"
 	[VHGNDsecview] = A; C = 89; C - A; C + [VHGNDrotation]; A = C; A % 360;
@@ -2948,7 +2948,7 @@
 	? A >= [VHGNDseccrep] -> VHGND secondary exposure ready;
 	[VHGNDseccrep] = A; A = 0; A - 1; [VHGNDsecxf] = A;
     "VHGND secondary exposure ready"
-	[FI] = [VHGNDseccrep]; => IntToF;
+	[FI] = [VHGNDseccrep]; => PGF fromint;
 	[FB0] = 27BB2FECh; [FB1] = 3FE90B0Fh; => FMul; => F32Narrow;
 	[VHGNDsecexp] = [FS0];
 
@@ -2956,8 +2956,8 @@
 	A = [VHGNDlat]; A - 60; ? A >= 0 -> VHGND secondary surface latitude;
 	C = 0; C - A; A = C;
     "VHGND secondary surface latitude"
-	[FI] = A; => IntToF; [FB0] = 0; [FB1] = 3FF80000h; => FMul;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 90; => IntToF; => FSub;
+	[FI] = A; => PGF fromint; [FB0] = 0; [FB1] = 3FF80000h; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 90; => PGF fromint; => FSub;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FS0] = [VHGNDseclat]; => FLoadF32; => FAdd;
 	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
 	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
@@ -3029,8 +3029,8 @@
 	A = [VHGNDlat]; A - 60; ? A >= 0 -> VHGND sun latitude absolute;
 	C = 0; C - A; A = C;
     "VHGND sun latitude absolute"
-	[FI] = A; => IntToF; [FB0] = 0; [FB1] = 3FF80000h; => FMul;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 90; => IntToF; => FSub;
+	[FI] = A; => PGF fromint; [FB0] = 0; [FB1] = 3FF80000h; => FMul;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 90; => PGF fromint; => FSub;
 	[FB0] = A2529D39h; [FB1] = 3F91DF46h; => FMul;
 	=> F32Narrow; [VHGNDsuncoord] = [FS0]; [FS0] = [VHGNDsuncoord]; => FLoadF32;
 	[VHGNDsuna0] = [FA0]; [VHGNDsuna1] = [FA1];
@@ -3078,7 +3078,7 @@
     "VHGND sun airless"
 	[FI] = 3; [WHfgm] = 3F000000h;
     "VHGND sun magnitude"
-	=> IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	=> PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
 	[FS0] = [VHGNDsunray]; => FLoadF32; => FMul; => F32Narrow;
 	[WHmag] = [FS0];
 	[FA0] = [VHGNDsunx0]; [FA1] = [VHGNDsunx1]; [PGFi] = SFXX; => PGF sa;
@@ -3102,7 +3102,7 @@
     "VHGND secondary sun airless"
 	[FI] = 3; [WHfgm] = 3F000000h;
     "VHGND secondary sun magnitude"
-	=> IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	=> PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
 	[FS0] = [VHGNDsecray]; => FLoadF32; => FMul; => F32Narrow;
 	[WHmag] = [FS0]; [WHshape] = 1; [WHsun] = 1; [WHdstreg] = RGADP;
 	=> SP white;
@@ -3169,7 +3169,7 @@
 	[PGFi] = SFT0; => PGF sa;
 	[PGFi] = SFZ2; => PGF a; [PGFi] = FSPSA; => PGF mul;
 	[PGFi] = SFT0; => PGF rsub; [PGFi] = SFRY; => PGF sa;
-	[FI] = 1; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 1; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
 	[PGFi] = SFRZ; => PGF a; => FCmp;
 	A = [FI]; ? A <= 0 -> VHGND flare project done;
 	[PGFi] = SFRX; => PGF a; [PGFi] = SFRZ; => PGF quo; => FToIntChop;
@@ -3788,7 +3788,7 @@
 	( random(150/rainy): retain the source's continuous raininess rather than
 	  replacing it with three coarse probability buckets. )
 	[FS0] = [GRSKrainy]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 150; => IntToF; => FQuo; => FToIntChop; [VHGNDflashden] = [FI];
+	[FI] = 150; => PGF fromint; => FQuo; => FToIntChop; [VHGNDflashden] = [FI];
 	A = [VHGNDflashden]; ? A > 0 -> VHGND weather denominator ready;
 	[VHGNDflashden] = 1;
     "VHGND weather denominator ready"
@@ -3817,7 +3817,7 @@
 	( wdircos/wp and wdirsin/wp, narrowed to integer world units once for
 	  the whole field.  The pod owns the live source wind state. )
 	A = [VHGCwindangle]; A + 8; A / 16; [VHVangle] = A; => VHV sincos;
-	[FI] = [VHGCwindpower]; => IntToF; [PGFi] = FSW1; => PGF sa;
+	[FI] = [VHGCwindpower]; => PGF fromint; [PGFi] = FSW1; => PGF sa;
 	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
 	A = [FI]; A / 10; [VHGNDrainwindx] = A;
@@ -3839,14 +3839,14 @@
 	[VHGNDrainviewsina] = [VHVsin]; [VHGNDrainviewcosa] = [VHVcos];
 	[FS0] = [VHGNDrainviewsinb]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
 	[FS0] = [VHGNDrainviewcosa]; => FLoadF32; => FMul; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 1000; => IntToF; => FMul; => FToIntNear;
+	[FI] = 1000; => PGF fromint; => FMul; => PGF int;
 	A = [VHGNDcamx]; A + [FI]; [VHVcamxi] = A;
 	[FS0] = [VHGNDrainviewcosb]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
 	[FS0] = [VHGNDrainviewcosa]; => FLoadF32; => FMul; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 1000; => IntToF; => FMul; => FToIntNear;
+	[FI] = 1000; => PGF fromint; => FMul; => PGF int;
 	A = [VHGNDcamz]; A - [FI]; [VHVcamzi] = A;
 	[FS0] = [VHGNDrainviewsina]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 1000; => IntToF; => FMul; => FToIntNear;
+	[FI] = 1000; => PGF fromint; => FMul; => PGF int;
 	A = [VHGNDcamy]; A - [FI]; [VHVcamyi] = A;
 	=> VH set view;
 	[VHGNDrainindex] = 0; [VHScolor] = 63;
@@ -3862,12 +3862,12 @@
 	A = [VHGNDrainy]; A + 100; [VHGNDrainy2] = A;
 	A = [VHGNDrainz]; A + [VHGNDrainwindz]; [VHGNDrainz2] = A;
 
-	[FI] = [VHGNDrainx]; => IntToF; => F32Narrow; => FStoreF32; [VHSx0] = [FS0];
-	[FI] = [VHGNDrainy]; => IntToF; => F32Narrow; => FStoreF32; [VHSy0] = [FS0];
-	[FI] = [VHGNDrainz]; => IntToF; => F32Narrow; => FStoreF32; [VHSz0] = [FS0];
-	[FI] = [VHGNDrainx2]; => IntToF; => F32Narrow; => FStoreF32; [VHSx1] = [FS0];
-	[FI] = [VHGNDrainy2]; => IntToF; => F32Narrow; => FStoreF32; [VHSy1] = [FS0];
-	[FI] = [VHGNDrainz2]; => IntToF; => F32Narrow; => FStoreF32; [VHSz1] = [FS0];
+	[FI] = [VHGNDrainx]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSx0] = [FS0];
+	[FI] = [VHGNDrainy]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSy0] = [FS0];
+	[FI] = [VHGNDrainz]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSz0] = [FS0];
+	[FI] = [VHGNDrainx2]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSx1] = [FS0];
+	[FI] = [VHGNDrainy2]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSy1] = [FS0];
+	[FI] = [VHGNDrainz2]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSz1] = [FS0];
 	=> VH stick3d; [VHGNDrainstreaks]+;
 	[VHGNDrainindex]+; A = [VHGNDrainindex]; ? A '< [VHGNDraincount] -> VHGND weather rain one;
 	[VHSflare] = 0;
@@ -3923,8 +3923,8 @@
     "VHGND water waves done"
 
 	( Restore fragment()'s ground texture scale and normal polygon mode. )
-	[FI] = [VHGNDtscale]; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;
+	[FI] = [VHGNDtscale]; => PGF fromint;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => PGF fromint; => FMul;
 	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 5; [SPflar] = 0; [DBflar] = 0; [SPhalf] = 0; [SPcull] = 0;
 	end;
@@ -3962,8 +3962,8 @@
 	A = [VHGNDwavesin]; ? A != 0 -> VHGND reflection done;
     "VHGND reflection active"
 	[VHGNDmirror] = 1; [SPhalf] = 1; [SPflar] = 0; [DBflar] = 0;
-	[FI] = [VHGNDtscale]; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;
+	[FI] = [VHGNDtscale]; => PGF fromint;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => PGF fromint; => FMul;
 	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
 	[VHGNDlodstep] = 16; [VHGNDlodradius] = VHGNDFAR;
 	[VHGNDmindepth] = VHGNDMID; [VHGNDmaxdepth] = VHGNDFAR; => VHGND traverse;
@@ -4029,7 +4029,7 @@
 	  and flatten until they disappear. )
 	A = [VHGlanded]; ? A = 0 -> VHGND waves done;
 	=> VHGND wave spawn;
-	[FI] = 8192; => IntToF; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	[FI] = 8192; => PGF fromint; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 5; [SPsrc] = 1; [SPtinta] = 128; [SPescr] = 0;
 	[SPflar] = 1; [DBflar] = 1; [SPcull] = 1; [SPhalf] = 0;
 	[VHGNDwavei] = 0;
@@ -4253,7 +4253,7 @@
 
 "VHGND wave point"
 	[VHVangle] = [VHGNDwaveangle]; => VHV sincos;
-	[FI] = [VHGNDwavepr]; => IntToF; [PGFi] = FSW1; => PGF sa;
+	[FI] = [VHGNDwavepr]; => PGF fromint; [PGFi] = FSW1; => PGF sa;
 	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
 	A = [FI]; A + [VHGNDwavecx]; [VHGNDwavepx] = A;
@@ -4488,23 +4488,23 @@
 "VHGND mammal motion vector"
 	( Exact hundredth-degree pitch to radians, retaining x87 sin rather than
 	  snapping wildlife movement to the camera's integral trig cache. )
-	[FI] = [VHGNDanidir]; => IntToF; [FC0] = [FA0]; [FC1] = [FA1];
-	[FI] = 100; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = [VHGNDanidir]; => PGF fromint; [FC0] = [FA0]; [FC1] = [FA1];
+	[FI] = 100; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [FC0]; [FA1] = [FC1]; => FQuo;
 	[FB0] = VHVDEGLO; [FB1] = VHVDEGHI; => FMul;
 	=> FSin; [FC0] = [FA0]; [FC1] = [FA1];
-	[FI] = [VHGNDanispeed]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
-	[FA0] = [FC0]; [FA1] = [FC1]; => FMul; => FToIntNear;
+	[FI] = [VHGNDanispeed]; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
+	[FA0] = [FC0]; [FA1] = [FC1]; => FMul; => PGF int;
 	[VHGNDanimove] = [FI]; end;
 
 "VHGND mammal cosine motion"
 	( A carries heading*100. )
-	[FI] = A; => IntToF; [FC0] = [FA0]; [FC1] = [FA1];
-	[FI] = 100; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = A; => PGF fromint; [FC0] = [FA0]; [FC1] = [FA1];
+	[FI] = 100; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [FC0]; [FA1] = [FC1]; => FQuo;
 	[FB0] = VHVDEGLO; [FB1] = VHVDEGHI; => FMul; => FCos;
-	[FC0] = [FA0]; [FC1] = [FA1]; [FI] = [VHGNDanispeed]; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FMul; => FToIntNear;
+	[FC0] = [FA0]; [FC1] = [FA1]; [FI] = [VHGNDanispeed]; => PGF fromint;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [FC0]; [FA1] = [FC1]; => FMul; => PGF int;
 	[VHGNDanimove] = [FI]; end;
 
 "VHGND bird behavior"
@@ -4569,12 +4569,12 @@
 "VHGND animal distance"
 	( live_animal measures the old authoritative x/y/z pose with Euclidean
 	  distance. Floating squares avoid overflowing 32-bit world coordinates. )
-	[FI] = [VHGNDanidx]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FI] = [VHGNDanidx]; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1]; => FMul;
 	[FT0] = [FA0]; [FT1] = [FA1];
-	[FI] = [VHGNDanidy]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FI] = [VHGNDanidy]; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1]; => FMul;
 	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; [FT0] = [FA0]; [FT1] = [FA1];
-	[FI] = [VHGNDanidz]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1]; => FMul;
-	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => FSqrt; => FToIntNear;
+	[FI] = [VHGNDanidz]; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1]; => FMul;
+	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => FSqrt; => PGF int;
 	[VHGNDanidist] = [FI];
 	end;
 
@@ -4588,10 +4588,10 @@
     "VHGND animal incl positive"
 	? A <= 50 -> VHGND animal incl clamped; A = 50;
     "VHGND animal incl clamped"
-	[FI] = A; => IntToF;
+	[FI] = A; => PGF fromint;
 	[FB0] = 0; [FB1] = 40490000h; => FAtan2;
 	[FB0] = 0; [FB1] = 40668000h; => FMul;
-	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;
+	[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => PGF int;
 	[VHGNDaniincl] = [FI];
 	end;
 
@@ -4660,10 +4660,10 @@
 	[VHGNDrox] = [VHGNDanix]; [VHGNDroz] = [VHGNDaniz];
 	A = [VHGNDanidir]; A / 100; [VHVangle] = A; => VHV sincos;
 	[FS0] = [VHVsin]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 50; => IntToF; => FMul; => FToIntChop;
+	[FI] = 50; => PGF fromint; => FMul; => FToIntChop;
 	A = [VHGNDrox]; A - [FI]; [VHGNDrox] = A;
 	[FS0] = [VHVcos]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 50; => IntToF; => FMul; => FToIntChop;
+	[FI] = 50; => PGF fromint; => FMul; => FToIntChop;
 	A = [VHGNDroz]; A - [FI]; [VHGNDroz] = A;
     "VHGND animal ahead ready"
 	=> VHGND rock height;
@@ -4677,7 +4677,7 @@
 	A - C; [VHGNDaniy] = A;
 
 	[PVh] = 3; [PVk] = 2; => SP copypv;
-	[FI] = [VHGNDaniscale]; => IntToF; => F32Narrow; => FStoreF32;
+	[FI] = [VHGNDaniscale]; => PGF fromint; => F32Narrow; => FStoreF32;
 	[MOxs] = [FS0]; [MOys] = [FS0]; [MOzs] = [FS0];
 	[MOxa] = 0; [MOya] = 0; [MOza] = 0; A = 0; A - 1; [MOpid] = A; [MOvid] = A; [MOlist] = 0;
 	[PVh] = 3; => SP modpv;
@@ -4695,8 +4695,8 @@
 	=> VHGND mamm legs list; [MOlist] = pvlst; [PVh] = 3; => SP modpv;
 	A = [VHGNDmammphase]; A '/ 1200; [VHGNDswimphase] = A;
 	[MOxs] = 3F800000h; [MOys] = 3F800000h; [MOzs] = 3F800000h;
-	[FI] = 15; => IntToF; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
-	[MOya] = 0; [FI] = [VHGNDswimphase]; => IntToF; => F32Narrow; => FStoreF32; [MOza] = [FS0];
+	[FI] = 15; => PGF fromint; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
+	[MOya] = 0; [FI] = [VHGNDswimphase]; => PGF fromint; => F32Narrow; => FStoreF32; [MOza] = [FS0];
 	A = 0; A - 1; [MOpid] = A; [MOvid] = A; [MOlist] = 0; [PVh] = 3; => SP modpv;
 	-> VHGND animal animated;
 
@@ -4707,10 +4707,10 @@
 	[MOxa] = 0; [MOya] = 0; [MOza] = 0; A = 0; A - 1; [MOpid] = A; [MOvid] = A;
 	=> VHGND mamm rear list; [MOlist] = pvlst; [PVh] = 3; => SP modpv;
 	[MOxs] = 3F800000h; [MOys] = 3F800000h; [MOzs] = 3F800000h;
-	[FI] = 60; => IntToF; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
+	[FI] = 60; => PGF fromint; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
 	[MOya] = 0; [MOza] = 0; [MOlist] = 0; A = 0; A - 1; [MOpid] = A; [MOvid] = A;
 	[PVh] = 3; => SP modpv;
-	A = 0; A - 100; [FI] = A; => IntToF; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
+	A = 0; A - 100; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
 	[MOya] = 0; [MOza] = 0; [MOpid] = 46; [MOvid] = 1;
 	=> VHGND mamm tail list; [MOlist] = pvlst; [PVh] = 3; => SP modpv;
 	A = [VHGNDanimtype]; ? A = 2 -> VHGND animal shaped;
@@ -4720,7 +4720,7 @@
     "VHGND animal shaped"
 
 	[MOxs] = 3F800000h; [MOys] = 3F800000h; [MOzs] = 3F800000h;
-	[FI] = [VHGNDaniincl]; => IntToF; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
+	[FI] = [VHGNDaniincl]; => PGF fromint; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
 	[MOya] = 0; [MOza] = 0; [MOpid] = 16; [MOvid] = 2; [MOlist] = 0;
 	[PVh] = 3; => SP modpv;
 
@@ -4737,11 +4737,11 @@
     "VHGND animal bounce base"
 	C = [VHGNDaniperiod]; C '* [VHGNDaniscale]; C '* A; C '/ 1000;
 	A = [VHGNDaniy]; A - C; [VHGNDaniy] = A;
-	A = [VHGNDaniperiod]; A '* 50; C = 0; C - A; [FI] = C; => IntToF;
+	A = [VHGNDaniperiod]; A '* 50; C = 0; C - A; [FI] = C; => PGF fromint;
 	[FB0] = 0; [FB1] = 408F4000h; => FQuo; => F32Narrow; => FStoreF32;
 	[MOxa] = [FS0]; [MOya] = 0; [MOza] = 0; [MOpid] = 16; [MOvid] = 2; [MOlist] = 0;
 	[PVh] = 3; => SP modpv;
-	A = [VHGNDaniperiod]; A '* 100; [FI] = A; => IntToF;
+	A = [VHGNDaniperiod]; A '* 100; [FI] = A; => PGF fromint;
 	[FB0] = 0; [FB1] = 408F4000h; => FQuo; => F32Narrow; => FStoreF32;
 	[MOxa] = [FS0]; => VHGND mamm rear list; [MOlist] = pvlst; [PVh] = 3; => SP modpv;
 	-> VHGND animal animated;
@@ -4751,33 +4751,33 @@
 	A = [VHGNDaniindex]; A '* 4; => SU fast srand;
 	[SUfmask] = 1; => SU fast raw; A = [SUfval]; ? A = 0 -> VHGND animal animated;
     "VHGND animal tail wag"
-	A = [VHGNDmammphase]; A '/ 250; A - 60; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	A = [VHGNDmammphase]; A '/ 250; A - 60; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32;
 	[MOxa] = 0; [MOya] = [FS0]; [MOza] = 0; [MOpid] = 46; [MOvid] = 1;
 	=> VHGND mamm tail list; [MOlist] = pvlst; [PVh] = 3; => SP modpv;
     "VHGND animal animated"
 	[VHGNDanimorphs]+;
 
-	A = [VHGNDanidir]; A / 100; A + 180; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	A = [VHGNDanidir]; A / 100; A + 180; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32;
 	[MOya] = [FS0]; [MOxa] = 0; [MOza] = 0; [MOlist] = 0; [MOpid] = 16; [MOvid] = 2;
 	[PVh] = 3; => SP modpv;
 	A = [VHGNDanidist]; ? A '>= 75000 -> VHGND animal final midpoints ready;
 	[PVh] = 3; => SP pv midpoints2;
     "VHGND animal final midpoints ready"
 
-	[FI] = [VHGNDanix]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanifx] = [FS0];
-	[FI] = [VHGNDaniy]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanify] = [FS0];
-	[FI] = [VHGNDaniz]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanifz] = [FS0];
-	[FI] = [VHGNDcamx]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamx] = [FS0];
-	[FI] = [VHGNDcamy]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamy] = [FS0];
-	[FI] = [VHGNDcamz]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamz] = [FS0];
+	[FI] = [VHGNDanix]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanifx] = [FS0];
+	[FI] = [VHGNDaniy]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanify] = [FS0];
+	[FI] = [VHGNDaniz]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanifz] = [FS0];
+	[FI] = [VHGNDcamx]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanicamx] = [FS0];
+	[FI] = [VHGNDcamy]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanicamy] = [FS0];
+	[FI] = [VHGNDcamz]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanicamz] = [FS0];
 	[VHGNDdepthsort] = 0; A = [VHGNDanidist]; ? A '>= 75000 -> VHGND animal draw sort ready;
 	[VHGNDdepthsort] = 1;
     "VHGND animal draw sort ready"
 	( live_animal maps every mammal through p_background with XSIZE=65536
 	  and YSIZE=256*T_SCALE. )
-	[FI] = 65536; => IntToF; [PGFi] = FSTX; => PGF sa;
-	[FI] = [VHGNDtscale]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 256; => IntToF; => FMul; [PGFi] = FSTY; => PGF sa;
+	[FI] = 65536; => PGF fromint; [PGFi] = FSTX; => PGF sa;
+	[FI] = [VHGNDtscale]; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 256; => PGF fromint; => FMul; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 5; [SPsrc] = 1;
 	[PVh] = 3; [DWmode] = 1; [DWuds] = [VHGNDdepthsort];
 	[DWcx] = [VHGNDanifx]; [DWcy] = [VHGNDanify]; [DWcz] = [VHGNDanifz];
@@ -4905,7 +4905,7 @@
 	A = [VHGNDaniscale]; C = A; C '* 9; A = [VHGNDroy]; A - C; A - [VHGNDbirdquote]; [VHGNDaniy] = A;
 
 	[PVh] = 5; [PVk] = 4; => SP copypv;
-	[FI] = [VHGNDaniscale]; => IntToF; => F32Narrow; => FStoreF32;
+	[FI] = [VHGNDaniscale]; => PGF fromint; => F32Narrow; => FStoreF32;
 	[MOxs] = [FS0]; [MOys] = [FS0]; [MOzs] = [FS0];
 	[MOxa] = 0; [MOya] = 0; [MOza] = 0; A = 0; A - 1; [MOpid] = A; [MOvid] = A; [MOlist] = 0;
 	[PVh] = 5; => SP modpv;
@@ -4926,14 +4926,14 @@
 	C '* 75; [VHGNDbirdflap] = C;
 	[MOxs] = 3F800000h; [MOys] = 3F800000h; [MOzs] = 3F800000h;
 	[MOpid] = 1; [MOvid] = 0; [MOxa] = 0;
-	[FI] = [VHGNDaniperiod]; => IntToF; [FB0] = 0; [FB1] = 408F4000h;
+	[FI] = [VHGNDaniperiod]; => PGF fromint; [FB0] = 0; [FB1] = 408F4000h;
 	=> FQuo; => F32Narrow; => FStoreF32; [MOya] = [FS0];
-	[FI] = [VHGNDbirdflap]; => IntToF; [FB0] = 0; [FB1] = 408F4000h;
+	[FI] = [VHGNDbirdflap]; => PGF fromint; [FB0] = 0; [FB1] = 408F4000h;
 	=> FQuo; => F32Narrow; => FStoreF32; [MOza] = [FS0];
 	=> VHGND bird wing one list; [MOlist] = pvlst; [PVh] = 5; => SP modpv;
-	A = 0; A - [VHGNDaniperiod]; [FI] = A; => IntToF;
+	A = 0; A - [VHGNDaniperiod]; [FI] = A; => PGF fromint;
 	[FB0] = 0; [FB1] = 408F4000h; => FQuo; => F32Narrow; => FStoreF32; [MOya] = [FS0];
-	A = 0; A - [VHGNDbirdflap]; [FI] = A; => IntToF;
+	A = 0; A - [VHGNDbirdflap]; [FI] = A; => PGF fromint;
 	[FB0] = 0; [FB1] = 408F4000h; => FQuo; => F32Narrow; => FStoreF32; [MOza] = [FS0];
 	=> VHGND bird wing two list; [MOlist] = pvlst; [PVh] = 5; => SP modpv;
 	-> VHGND bird approach pose;
@@ -4941,19 +4941,19 @@
     "VHGND bird flight pose"
 	[MOxs] = 3F800000h; [MOys] = 3F800000h; [MOzs] = 3F800000h;
 	[MOpid] = 18; [MOvid] = 1; [MOya] = 0; [MOza] = 0;
-	A = 0; A - 75; [FI] = A; => IntToF; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
+	A = 0; A - 75; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32; [MOxa] = [FS0];
 	=> VHGND bird legs list; [MOlist] = pvlst; [PVh] = 5; => SP modpv;
 	=> VHGND bird flap interpolate;
     "VHGND bird flap apply"
 	[MOpid] = 1; [MOvid] = 0; [MOxa] = 0; [MOya] = 0;
-	A = 0; A - [VHGNDbirdflap]; [FI] = A; => IntToF; => F32Narrow; => FStoreF32; [MOza] = [FS0];
+	A = 0; A - [VHGNDbirdflap]; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32; [MOza] = [FS0];
 	=> VHGND bird wing one list; [MOlist] = pvlst; [PVh] = 5; => SP modpv;
-	[FI] = [VHGNDbirdflap]; => IntToF; => F32Narrow; => FStoreF32; [MOza] = [FS0];
+	[FI] = [VHGNDbirdflap]; => PGF fromint; => F32Narrow; => FStoreF32; [MOza] = [FS0];
 	=> VHGND bird wing two list; [MOlist] = pvlst; [PVh] = 5; => SP modpv;
 	-> VHGND bird approach pose;
 
     "VHGND bird caught pose"
-	A = 180; A '/ [VHGNDbirdlcount]; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	A = 180; A '/ [VHGNDbirdlcount]; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32;
 	[MOxa] = [FS0]; [MOya] = 0; [MOza] = 0; [MOpid] = 1; [MOvid] = 0; [MOlist] = 0;
 	[PVh] = 5; => SP modpv;
 	-> VHGND bird heading pose;
@@ -4962,33 +4962,33 @@
 	A = [VHGNDbirdquote]; ? A '>= 500 -> VHGND bird heading pose;
 	A = 250; A - [VHGNDbirdquote]; ? A >= 0 -> VHGND bird approach abs; C = 0; C - A; A = C;
     "VHGND bird approach abs"
-	A '/ 10; C = 0; C - A; [FI] = C; => IntToF; => F32Narrow; => FStoreF32;
+	A '/ 10; C = 0; C - A; [FI] = C; => PGF fromint; => F32Narrow; => FStoreF32;
 	[MOxa] = [FS0]; [MOya] = 0; [MOza] = 0; [MOpid] = 1; [MOvid] = 0; [MOlist] = 0;
 	[PVh] = 5; => SP modpv;
 
     "VHGND bird heading pose"
-	A = [VHGNDanidir]; A / 100; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	A = [VHGNDanidir]; A / 100; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32;
 	[MOya] = [FS0]; [MOxa] = 0; [MOza] = 0; [MOlist] = 0; [MOpid] = 1; [MOvid] = 0;
 	[PVh] = 5; => SP modpv;
 	A = [VHGNDanidist]; ? A '>= 75000 -> VHGND bird final midpoints ready;
 	[PVh] = 5; => SP pv midpoints2;
     "VHGND bird final midpoints ready"
 
-	[FI] = [VHGNDanix]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanifx] = [FS0];
-	[FI] = [VHGNDaniy]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanify] = [FS0];
-	[FI] = [VHGNDaniz]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanifz] = [FS0];
-	[FI] = [VHGNDcamx]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamx] = [FS0];
-	[FI] = [VHGNDcamy]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamy] = [FS0];
-	[FI] = [VHGNDcamz]; => IntToF; => F32Narrow; => FStoreF32; [VHGNDanicamz] = [FS0];
+	[FI] = [VHGNDanix]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanifx] = [FS0];
+	[FI] = [VHGNDaniy]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanify] = [FS0];
+	[FI] = [VHGNDaniz]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanifz] = [FS0];
+	[FI] = [VHGNDcamx]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanicamx] = [FS0];
+	[FI] = [VHGNDcamy]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanicamy] = [FS0];
+	[FI] = [VHGNDcamz]; => PGF fromint; => F32Narrow; => FStoreF32; [VHGNDanicamz] = [FS0];
 	[VHGNDdepthsort] = 0; A = [VHGNDanidist]; ? A '>= 75000 -> VHGND bird draw sort ready;
 	[VHGNDdepthsort] = 1;
     "VHGND bird draw sort ready"
 	[VHGNDdrawmode] = 0; A = [VHGNDanidist]; ? A '>= 12500 -> VHGND bird draw mode ready;
 	A = [VHGNDaniindex]; A & 1; A + 1; [VHGNDdrawmode] = A;
     "VHGND bird draw mode ready"
-	[FI] = 65536; => IntToF; [PGFi] = FSTX; => PGF sa;
-	[FI] = [VHGNDtscale]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 256; => IntToF; => FMul; [PGFi] = FSTY; => PGF sa;
+	[FI] = 65536; => PGF fromint; [PGFi] = FSTX; => PGF sa;
+	[FI] = [VHGNDtscale]; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 256; => PGF fromint; => FMul; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 5; [SPsrc] = 1;
 	[PVh] = 5; [DWmode] = [VHGNDdrawmode]; [DWuds] = [VHGNDdepthsort];
 	[DWcx] = [VHGNDanifx]; [DWcy] = [VHGNDanify]; [DWcz] = [VHGNDanifz];
@@ -5007,16 +5007,16 @@
 	C = 0; C - 10; ? A <= C -> VHGND bird next;
 	[VHSx0] = [VHGNDanifx]; [VHSy0] = [VHGNDanify]; [VHSz0] = [VHGNDanifz];
 	[VHSx1] = [VHGNDanicamx]; [VHSz1] = [VHGNDanicamz];
-	A = [VHGNDcamy]; A - 50; [FI] = A; => IntToF; => F32Narrow; => FStoreF32; [VHSy1] = [FS0];
+	A = [VHGNDcamy]; A - 50; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32; [VHSy1] = [FS0];
 	[VHScolor] = 62; => VH stick3d;
-	A = [VHGNDcamx]; A - 50; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	A = [VHGNDcamx]; A - 50; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32;
 	[VHSx1] = [FS0]; => VH stick3d;
-	A = [VHGNDcamx]; A + 50; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	A = [VHGNDcamx]; A + 50; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32;
 	[VHSx1] = [FS0]; => VH stick3d;
 	[VHSx1] = [VHGNDanicamx];
-	A = [VHGNDcamz]; A + 50; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	A = [VHGNDcamz]; A + 50; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32;
 	[VHSz1] = [FS0]; => VH stick3d;
-	A = [VHGNDcamz]; A - 50; [FI] = A; => IntToF; => F32Narrow; => FStoreF32;
+	A = [VHGNDcamz]; A - 50; [FI] = A; => PGF fromint; => F32Narrow; => FStoreF32;
 	[VHSz1] = [FS0]; => VH stick3d;
     "VHGND bird next"
 	A = [VHGNDanisingle]; ? A != 0 -> VHGND birds done;
@@ -5313,14 +5313,14 @@
 	( Fixed 15-bit camera vectors for the conservative distant-tile cull. )
 	[VHVangle] = [VHGNDbeta]; => VHV sincos;
 	[PGFt] = [VHVsin]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 32768; => IntToF; => FMul; => FToIntNear; [VHGNDviewsinb] = [FI];
+	[FI] = 32768; => PGF fromint; => FMul; => PGF int; [VHGNDviewsinb] = [FI];
 	[PGFt] = [VHVcos]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 32768; => IntToF; => FMul; => FToIntNear; [VHGNDviewcosb] = [FI];
+	[FI] = 32768; => PGF fromint; => FMul; => PGF int; [VHGNDviewcosb] = [FI];
 	[VHVangle] = [VHGNDalpha]; => VHV sincos;
 	[PGFt] = [VHVsin]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 32768; => IntToF; => FMul; => FToIntNear; [VHGNDviewsina] = [FI];
+	[FI] = 32768; => PGF fromint; => FMul; => PGF int; [VHGNDviewsina] = [FI];
 	[PGFt] = [VHVcos]; => PGF ldf32; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 32768; => IntToF; => FMul; => FToIntNear; [VHGNDviewcosa] = [FI];
+	[FI] = 32768; => PGF fromint; => FMul; => PGF int; [VHGNDviewcosa] = [FI];
 	end;
 
 "VHGND object view cull"
@@ -5442,7 +5442,7 @@
 	A = [VHGNDshade]; [SPtinta] = A; [DBcol] = A;
 	A = [VHGNDruined]; ? A = 0 -> VHGND tile texture ready;
 	A = [VHGNDshade]; A & 63; A + 64; [SPtinta] = A; [DBcol] = A;
-	[FI] = 512; => IntToF; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	[FI] = 512; => PGF fromint; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile texture ready; [VHGNDruindrawn]+;
     "VHGND tile texture ready"
 	[SPescr] = 0; [DBflar] = 0; [DBent] = 0;
@@ -5492,8 +5492,8 @@
     "VHGND tile second done"
 
 	A = [VHGNDruined]; ? A = 0 -> VHGND tile texture restored;
-	[FI] = [VHGNDtscale]; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => IntToF; => FMul;
+	[FI] = [VHGNDtscale]; => PGF fromint;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => PGF fromint; => FMul;
 	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
     "VHGND tile texture restored"
 	A = [VHGNDruinpass]; ? A != 0 -> VHGND tile done;
@@ -5681,11 +5681,11 @@
 	A = [VHGNDmushscale]; A > 1; [VHGNDtmp] = A;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer setup;
 	[PGFt] = [VHGNDmushxf]; => PGF ldf32; => VHGND fb fa;
-	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushxf] = [FS0];
+	[FI] = [VHGNDtmp]; => PGF fromint; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushxf] = [FS0];
 	[PGFt] = [VHGNDmushyf]; => PGF ldf32; => VHGND fb fa;
-	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushyf] = [FS0];
+	[FI] = [VHGNDtmp]; => PGF fromint; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushyf] = [FS0];
 	[PGFt] = [VHGNDmushzf]; => PGF ldf32; => VHGND fb fa;
-	[FI] = [VHGNDtmp]; => IntToF; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushzf] = [FS0];
+	[FI] = [VHGNDtmp]; => PGF fromint; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushzf] = [FS0];
 	[PGFt] = [VHGNDmushxf]; => PGF ldf32; => FToIntChop; [VHGNDmushx] = [FI];
 	[PGFt] = [VHGNDmushyf]; => PGF ldf32; => FToIntChop; [VHGNDmushy] = [FI];
 	[PGFt] = [VHGNDmushzf]; => PGF ldf32; => FToIntChop; [VHGNDmushz] = [FI];
@@ -5707,21 +5707,21 @@
 	  z-fast_random()) right-to-left while preparing its stack arguments. )
 	[SUfmask] = [VHGNDmushscale]; => VHGND render random;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer z;
-	[FI] = C; => IntToF; => VHGND fb fa; [PGFt] = [VHGNDmushzf]; => PGF ldf32;
+	[FI] = C; => PGF fromint; => VHGND fb fa; [PGFt] = [VHGNDmushzf]; => PGF ldf32;
 	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpzf] = [FS0]; -> VHGND greenmush z ready;
     "VHGND greenmush integer z"
 	A = [VHGNDmushz]; A - C; [VHGNDmushpz] = A;
     "VHGND greenmush z ready"
 	=> VHGND render random;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer y;
-	[FI] = C; => IntToF; => VHGND fb fa; [PGFt] = [VHGNDmushyf]; => PGF ldf32;
+	[FI] = C; => PGF fromint; => VHGND fb fa; [PGFt] = [VHGNDmushyf]; => PGF ldf32;
 	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpyf] = [FS0]; -> VHGND greenmush y ready;
     "VHGND greenmush integer y"
 	A = [VHGNDmushy]; A - C; [VHGNDmushpy] = A;
     "VHGND greenmush y ready"
 	=> VHGND render random;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer x;
-	[FI] = C; => IntToF; => VHGND fb fa; [PGFt] = [VHGNDmushxf]; => PGF ldf32;
+	[FI] = C; => PGF fromint; => VHGND fb fa; [PGFt] = [VHGNDmushxf]; => PGF ldf32;
 	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpxf] = [FS0]; -> VHGND greenmush x ready;
     "VHGND greenmush integer x"
 	A = [VHGNDmushx]; A - C; [VHGNDmushpx] = A;
@@ -5868,9 +5868,9 @@
 "VHGND tree configured"
 	[SPcull] = 0; [DBent] = 0; [VHGNDtreelevel] = 0; [VHGNDtreefloat] = 1;
 	=> VHGND tree trig init;
-	[FI] = [VHGNDoox]; => IntToF; => F32Narrow; => FStoreF32; A = VHGNDtsx; [A] = [FS0];
-	[FI] = [VHGNDooy]; => IntToF; => F32Narrow; => FStoreF32; A = VHGNDtsy; [A] = [FS0];
-	[FI] = [VHGNDooz]; => IntToF; => F32Narrow; => FStoreF32; A = VHGNDtsz; [A] = [FS0];
+	[FI] = [VHGNDoox]; => PGF fromint; => F32Narrow; => FStoreF32; A = VHGNDtsx; [A] = [FS0];
+	[FI] = [VHGNDooy]; => PGF fromint; => F32Narrow; => FStoreF32; A = VHGNDtsy; [A] = [FS0];
+	[FI] = [VHGNDooz]; => PGF fromint; => F32Narrow; => FStoreF32; A = VHGNDtsz; [A] = [FS0];
 	A = VHGNDtsscale; [A] = [VHGNDtreescalef];
 	A = VHGNDtslayers; [A] = [VHGNDtreelayers]; A = VHGNDtsroot; [A] = 1;
 	A = VHGNDtsocc; [A] = 0;
@@ -6177,7 +6177,7 @@
 "VHGND tree direction"
 	( b_angle_delta=(float)(2*M_PI/subdivs), with each step narrowed. )
 	[PGFt] = 40C90FDBh; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
-	[FI] = [VHGNDtreebranches]; => IntToF; => VHGND fb fa;
+	[FI] = [VHGNDtreebranches]; => PGF fromint; => VHGND fb fa;
 	[PGFi] = FSW0; => PGF a; => FQuo; => F32Narrow; => FStoreF32; [VHGNDtmp] = [FS0];
 	[PGFt] = [VHGNDtmp]; => PGF ldf32;
 	[FB0] = [GRK050L]; [FB1] = [GRK050H]; => FMul;
@@ -6198,12 +6198,12 @@
 	( Distant integer-tree fallback remains a single bounded centreline. )
 	A = [VHGNDtreefloat]; ? A != 0 -> VHGND tree limb native faces;
     "VHGND tree limb integer endpoints"
-	[FI] = [VHGNDtreebx]; => IntToF; => F32Narrow; => FStoreF32; [VHSx0] = [FS0];
-	[FI] = [VHGNDtreeby]; => IntToF; => F32Narrow; => FStoreF32; [VHSy0] = [FS0];
-	[FI] = [VHGNDtreebz]; => IntToF; => F32Narrow; => FStoreF32; [VHSz0] = [FS0];
-	[FI] = [VHGNDtreeex]; => IntToF; => F32Narrow; => FStoreF32; [VHSx1] = [FS0];
-	[FI] = [VHGNDtreeey]; => IntToF; => F32Narrow; => FStoreF32; [VHSy1] = [FS0];
-	[FI] = [VHGNDtreeez]; => IntToF; => F32Narrow; => FStoreF32; [VHSz1] = [FS0];
+	[FI] = [VHGNDtreebx]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSx0] = [FS0];
+	[FI] = [VHGNDtreeby]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSy0] = [FS0];
+	[FI] = [VHGNDtreebz]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSz0] = [FS0];
+	[FI] = [VHGNDtreeex]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSx1] = [FS0];
+	[FI] = [VHGNDtreeey]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSy1] = [FS0];
+	[FI] = [VHGNDtreeez]; => PGF fromint; => F32Narrow; => FStoreF32; [VHSz1] = [FS0];
     "VHGND tree limb endpoints ready"
 	[VHSflare] = 0; [VHScolor] = 62; => VH stick3d;
 	end;
@@ -6219,8 +6219,8 @@
     "VHGND tree limb pixel fast"
 	[SPpixfast] = 1;
     "VHGND tree limb mapper ready"
-	[FI] = 768; => IntToF; [PGFi] = FSTX; => PGF sa;
-	[FI] = 2048; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[FI] = 768; => PGF fromint; [PGFi] = FSTX; => PGF sa;
+	[FI] = 2048; => PGF fromint; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 5; A = 0; A - 4; [PGtexoff] = A; [SPsrc] = 1; [SPflar] = [DBflar];
 	[VHGNDtreeside] = 0;
     "VHGND tree limb face"
@@ -6259,8 +6259,8 @@
     "VHGND tree leaf pixel fast"
 	[SPpixfast] = 1;
     "VHGND tree leaf mapper ready"
-	[FI] = 256; => IntToF; [PGFi] = FSTX; => PGF sa;
-	[FI] = 768; => IntToF; [PGFi] = FSTY; => PGF sa;
+	[FI] = 256; => PGF fromint; [PGFi] = FSTX; => PGF sa;
+	[FI] = 768; => PGF fromint; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 5; A = 0; A - 4; [PGtexoff] = A; [SPsrc] = 1; [SPflar] = [DBflar];
 	[VHGNDtreerad] = [VHGNDtreebr];
 	[VHGNDtreeside] = 0;
@@ -6313,21 +6313,21 @@
 	( wdircos/wdirsin = 10*cos/sin(wdir)*wp.  The capsule stores direction
 	  in sixteenth-degrees and power as wp*100. )
 	A = [VHGCwindangle]; A + 8; A / 16; [VHVangle] = A; => VHV sincos;
-	[FI] = [VHGCwindpower]; => IntToF; [PGFi] = FSW1; => PGF sa;
+	[FI] = [VHGCwindpower]; => PGF fromint; [PGFi] = FSW1; => PGF sa;
 	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
-	[FI] = 10; => IntToF; => VHGND fb fa; [PGFi] = FSW0; => PGF a; => FQuo;
+	[FI] = 10; => PGF fromint; => VHGND fb fa; [PGFi] = FSW0; => PGF a; => FQuo;
 	=> F32Narrow; => FStoreF32; [VHGNDtreewindx] = [FS0];
 	[PGFi] = FSW0; [PGFt] = [VHVsin]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; [PGFi] = FSW0; => PGF sa;
-	[FI] = 10; => IntToF; => VHGND fb fa; [PGFi] = FSW0; => PGF a; => FQuo;
+	[FI] = 10; => PGF fromint; => VHGND fb fa; [PGFi] = FSW0; => PGF a; => FQuo;
 	=> F32Narrow; => FStoreF32; [VHGNDtreewindz] = [FS0];
 	end;
 
 "VHGND tree texture restore"
 	[PGtexoff] = 0; [PGtexf] = 0; [SPflar] = 0;
-	[FI] = [VHGNDtscale]; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];
-	[FI] = 256; => IntToF; => FMul; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
+	[FI] = [VHGNDtscale]; => PGF fromint; [FB0] = [FA0]; [FB1] = [FA1];
+	[FI] = 256; => PGF fromint; => FMul; [PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
 	end;
 
 "VHGND tree root height"
@@ -6405,7 +6405,7 @@
 
 "VHGND tree polar point"
 	[VHVangle] = [VHGNDtreeangle]; => VHV sincos;
-	[FI] = [VHGNDtreerad]; => IntToF; [PGFi] = FSW1; => PGF sa;
+	[FI] = [VHGNDtreerad]; => PGF fromint; [PGFi] = FSW1; => PGF sa;
 	[PGFi] = FSW0; [PGFt] = [VHVcos]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF mul; => PGF int;
 	A = [FI]; A + [VHGNDtreecx]; [VHGNDtreepx] = A;
@@ -6630,6 +6630,6 @@
 	end;
 
 "VHGND vload"
-	[FI] = [VHGNDvv]; => IntToF;
+	[FI] = [VHGNDvv]; => PGF fromint;
 	A = [VHGNDvslot]; A + [VHGNDvi]; [PGFi] = A; => PGF sa;
 	end;

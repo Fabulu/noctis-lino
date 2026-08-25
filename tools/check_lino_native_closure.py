@@ -25,7 +25,8 @@ PERIOD_NAMES = {
 FLOAT_OPERATOR_RE = re.compile(
     r"\?\?(?:!=|>=|<=|=|>|<)\s*->|"
     r"(?<!\+)\+\+(?!\+)|(?<![<-])--(?!-)(?!>)|"
-    r"(?<!\*)\*\*(?!\*)|(?<!/)//(?!/)|=,|,="
+    r"(?<!\*)\*\*(?!\*)|(?<!/)//(?!/)|=,|,=|"
+    r"\+:|-:|\*:|/:|=:|:=|~:"
 )
 FLOAT_SIGNATURES = {
     "main/lib/gen/rect.txt": (
@@ -57,6 +58,33 @@ FLOAT_SIGNATURES = {
     ),
     "work/fp/fpconv.txt": (
         "[CVTMP] = [FS0]; [FS0] ,= [FI]; => CV F32 to F64;",
+    ),
+    "work/pgfp.txt": (
+        "~: [FA0];",
+        "[FA0] +: [A];",
+        "[FA0] -: [A];",
+        "[FA0] *: [A];",
+        "[FA0] /: [A];",
+        "A = FT0; [FA0] -: [A];",
+        "A = FT0; [FA0] /: [A];",
+        "[FI] =: [FA0];",
+        "[FA0] := [FI];",
+    ),
+    "work/pgtex.txt": (
+        "A = FSK3; A + A; A + fw; [FA0] +: [A];",
+        "~: [FA0]; [fw plus 30] = [FA0]; [fw plus 31] = [FA1];",
+        "A = FSK1; A + A; A + fw; [FA0] +: [A];",
+        "~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];",
+        "A = FSK2; A + A; A + fw; [FA0] +: [A];",
+        "~: [FA0]; [fw plus 28] = [FA0]; [fw plus 29] = [FA1];",
+        "A = FT0; [FA0] /: [A];",
+        "~: [FA0]; [fw plus 24] = [FA0]; [fw plus 25] = [FA1];",
+        "A = FSTX; A + A; A + fw; [FA0] *: [A];",
+        "A = FSK4; A + A; A + fw; [FA0] *: [A];",
+        "[FI] =: [FA0]; [SPun] = [FI];",
+        "A = FSTY; A + A; A + fw; [FA0] *: [A];",
+        "A = FSK4; A + A; A + fw; [FA0] *: [A];",
+        "[FI] =: [FA0]; [SPvn] = [FI];",
     ),
     "work/supaint.txt": (
         "[SFpx] -- [KF360];",
