@@ -1630,6 +1630,66 @@ COMPILER_FIXTURE_SOURCE = """\
 
 "binary64 arithmetic good"
 
+    [lhs] = 0;
+    [rhs] = 3FF80000h;
+    [p] = 0;
+    [q] = 40000000h;
+    [lhs] +: [p];
+    ? [lhs] = 0 -> binary64 direct sum high;
+    fail;
+
+"binary64 direct sum high"
+
+    ? [rhs] = 400C0000h -> binary64 direct difference;
+    fail;
+
+"binary64 direct difference"
+
+    [lhs] = 0;
+    [rhs] = 40000000h;
+    [p] = 0;
+    [q] = 3FF00000h;
+    [lhs] -: [p];
+    ? [lhs] = 0 -> binary64 direct difference high;
+    fail;
+
+"binary64 direct difference high"
+
+    ? [rhs] = 3FF00000h -> binary64 direct product;
+    fail;
+
+"binary64 direct product"
+
+    [lhs] = 0;
+    [rhs] = 3FF80000h;
+    [p] = 0;
+    [q] = 40000000h;
+    [lhs] *: [p];
+    ? [lhs] = 0 -> binary64 direct product high;
+    fail;
+
+"binary64 direct product high"
+
+    ? [rhs] = 40080000h -> binary64 direct quotient;
+    fail;
+
+"binary64 direct quotient"
+
+    [lhs] = 0;
+    [rhs] = 40080000h;
+    [p] = 0;
+    [q] = 40000000h;
+    [lhs] /: [p];
+    ? [lhs] = 0 -> binary64 direct quotient high;
+    fail;
+
+"binary64 direct quotient high"
+
+    ? [rhs] = 3FF80000h -> binary64 direct arithmetic good;
+    fail;
+
+"binary64 direct arithmetic good"
+
     A = 1;
     B = 2;
     C = 3;
@@ -2055,6 +2115,28 @@ def enc_binary64_direct_indirect(app_ws_size: int, destination: int,
         enc_orr_lsl_x(0, 10, 11, 32),
         *enc_mov32_w(9, source_offset),
         enc_add_w(9, source_register, 9),
+        enc_ldr_w_indexed(10),
+        enc_add_sub_immediate_w(9, 9, 1),
+        enc_ldr_w_indexed(11),
+        enc_orr_lsl_x(1, 10, 11, 32),
+        *enc_runtime_float_binary_call(app_ws_size, operation),
+        *enc_mov32_w(9, destination),
+        enc_str_w_indexed(0),
+        enc_lsr_x(10, 0, 32),
+        enc_add_sub_immediate_w(9, 9, 1),
+        enc_str_w_indexed(10),
+    ]
+
+
+def enc_binary64_direct_direct(app_ws_size: int, destination: int,
+                               source: int, operation: int) -> list[int]:
+    return [
+        *enc_mov32_w(9, destination),
+        enc_ldr_w_indexed(10),
+        enc_add_sub_immediate_w(9, 9, 1),
+        enc_ldr_w_indexed(11),
+        enc_orr_lsl_x(0, 10, 11, 32),
+        *enc_mov32_w(9, source),
         enc_ldr_w_indexed(10),
         enc_add_sub_immediate_w(9, 9, 1),
         enc_ldr_w_indexed(11),
@@ -2627,6 +2709,9 @@ class StaticContractTests(unittest.TestCase):
         for token in range(76, 83):
             self.assertIn(f"[target string] = q{token};", source)
         self.assertIn('"pp a64 binary64"', source)
+        self.assertIn('"pp a64 binary64 direct source"', source)
+        self.assertIn(
+            "? [op2 class] = direct -> pp a64 binary64 direct source;", source)
         self.assertIn("[a64 binary64 operation] = 3;", source)
         self.assertIn("[a64 binary64 operation] = 6;", source)
         self.assertIn("[a64 binary64 operation] = 7;", source)
@@ -3869,6 +3954,14 @@ class AArch64ExecutionTests(unittest.TestCase):
             for operation in range(3, 7)
         )
         for sequence in binary64_sequences:
+            self.assertIn(words_to_bytes(sequence), code)
+
+        binary64_direct_sequences = (
+            enc_binary64_direct_direct(app_ws_size, lhs_index, p_index,
+                                       operation)
+            for operation in range(3, 7)
+        )
+        for sequence in binary64_direct_sequences:
             self.assertIn(words_to_bytes(sequence), code)
 
         binary64_conversion_sequences = (

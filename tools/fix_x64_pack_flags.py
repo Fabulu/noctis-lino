@@ -22,6 +22,7 @@ import argparse
 from pathlib import Path
 import sys
 
+from genf64ops import X64_PADDING, enumerate_block
 from packtool import Pack, decode, encode
 
 
@@ -31,6 +32,8 @@ FIRST_FLOAT_BRANCH = 4819
 LAST_FLOAT_BRANCH = 5610
 EXPECTED_RECORDS = LAST_FLOAT_BRANCH - FIRST_FLOAT_BRANCH + 1
 EXPECTED_CLEANUPS = 1236
+EXPECTED_PACK_RECORDS = 6510
+BINARY64_RECORDS = 27
 OLD_CLEANUP = [
     ("op", 0x48), ("op", 0x83), ("op", 0xC4), ("op", 0x04),
 ]
@@ -79,10 +82,18 @@ def replace_cleanup(items: list[tuple[str, int | str]], start: int, stop: int) -
 
 def transform(blob: bytes) -> tuple[bytes, int]:
     pack = Pack(blob)
-    if (pack.align, pack.ter, pack.count) != (145, b"++", 6483):
+    if (pack.align, pack.ter, pack.count) != (
+            145, b"++", EXPECTED_PACK_RECORDS):
         raise ValueError(
             "unexpected x64 pack layout: "
             f"alignment={pack.align}, terminator={pack.ter!r}, count={pack.count}")
+
+    binary64_suffix = b"".join(enumerate_block(
+        alignment=pack.align, padding=X64_PADDING, terminator=pack.ter))
+    if len(binary64_suffix) != BINARY64_RECORDS * pack.align:
+        raise ValueError("binary64 suffix record coverage mismatch")
+    if blob[-len(binary64_suffix):] != binary64_suffix:
+        raise ValueError("x64 binary64 suffix is not generator-exact")
 
     records = []
     repaired = 0
@@ -123,6 +134,8 @@ def transform(blob: bytes) -> tuple[bytes, int]:
     fixed = blob[:8] + b"".join(records)
     if len(fixed) != len(blob):
         raise ValueError(f"pack size changed from {len(blob)} to {len(fixed)}")
+    if fixed[-len(binary64_suffix):] != binary64_suffix:
+        raise ValueError("x64 binary64 suffix changed during branch audit")
     return fixed, repaired
 
 

@@ -287,17 +287,17 @@
 	( wz = _z + k3 stays WIDE for the reciprocal; the memory _z the
 	  NEXT block reloads is the narrowed one.  "fst" leaves both. )
 	[FA0] = [fw plus 30]; [FA1] = [fw plus 31];
-	A = FSK3; A + A; A + fw; [FA0] +: [A];
+	[FA0] +: [fw plus 22];
 	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
 	~: [FA0]; [fw plus 30] = [FA0]; [fw plus 31] = [FA1];
 
 	[FA0] = [fw plus 26]; [FA1] = [fw plus 27];
-	A = FSK1; A + A; A + fw; [FA0] +: [A];
+	[FA0] +: [fw plus 18];
 	[fw plus 498] = [FA0]; [fw plus 499] = [FA1];
 	~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];
 
 	[FA0] = [fw plus 28]; [FA1] = [fw plus 29];
-	A = FSK2; A + A; A + fw; [FA0] +: [A];
+	[FA0] +: [fw plus 20];
 	[fw plus 500] = [FA0]; [fw plus 501] = [FA1];
 	~: [FA0]; [fw plus 28] = [FA0]; [fw plus 29] = [FA1];
 
@@ -305,17 +305,17 @@
 	[FA0] = [fw plus 496]; [FA1] = [fw plus 497];
 	[FT0] = [FA0]; [FT1] = [FA1];
 	[FA0] = [fw plus 36]; [FA1] = [fw plus 37];
-	A = FT0; [FA0] /: [A];
+	[FA0] /: [FT0];
 	~: [FA0]; [fw plus 24] = [FA0]; [fw plus 25] = [FA1];
 
 	( u and v are built from the WIDE x and y and the NARROW k4 )
 	[FA0] = [fw plus 498]; [FA1] = [fw plus 499];
-	A = FSTX; A + A; A + fw; [FA0] *: [A];
-	A = FSK4; A + A; A + fw; [FA0] *: [A];
+	[FA0] *: [fw plus 32];
+	[FA0] *: [fw plus 24];
 	[FI] =: [FA0]; [SPun] = [FI];
 	[FA0] = [fw plus 500]; [FA1] = [fw plus 501];
-	A = FSTY; A + A; A + fw; [FA0] *: [A];
-	A = FSK4; A + A; A + fw; [FA0] *: [A];
+	[FA0] *: [fw plus 34];
+	[FA0] *: [fw plus 24];
 	[FI] =: [FA0]; [SPvn] = [FI];
 	end;
 

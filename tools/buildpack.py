@@ -1,16 +1,16 @@
 """Build the extended i386m and x64 CPU packs.
 
 The protected 6,241-record i386 pack is never modified.  i386m appends the two
-121-record split-multiply blocks and the 23-record exact scalar binary64 block::
+121-record split-multiply blocks and the 27-record exact scalar binary64 block::
 
-    6241 existing + 121 unsigned + 121 signed + 23 binary64 = 6506 records
-    48 * 6506 + 8 = 312,296 bytes
+    6241 existing + 121 unsigned + 121 signed + 27 binary64 = 6510 records
+    48 * 6510 + 8 = 312,488 bytes
 
-The checked-in x64 pack already contains the same first 6,483 instruction
-patterns at its 145-byte alignment.  Its first 6,483 records are retained
-byte-for-byte and the same 23 x87 records are appended, yielding::
+The checked-in x64 pack contains the same first 6,483 instruction patterns at
+its 145-byte alignment.  Its first 6,483 records are retained byte-for-byte and
+the same 27 x87 records are appended, yielding::
 
-    145 * 6506 + 8 = 943,378 bytes
+    145 * 6510 + 8 = 943,958 bytes
 
 Outputs are written under tools/ for review.  Nothing under main/cpu/ is
 modified by this script.
@@ -28,8 +28,9 @@ CPU_DIR = ROOT / "main" / "cpu"
 OUTPUT_DIR = ROOT / "tools"
 BASE_RECORDS = 6241
 MULTIPLY_RECORDS = 6483
-ARITHMETIC_RECORDS = 6503
-FINAL_RECORDS = 6506
+LEGACY_FINAL_RECORDS = 6506
+ARITHMETIC_RECORDS = 6507
+FINAL_RECORDS = 6510
 
 
 def validate_pack(blob: bytes, *, alignment: int, count: int, label: str) -> Pack:
@@ -88,10 +89,12 @@ def build_x64() -> bytes:
             "unexpected x64 pack layout: "
             f"alignment={installed.align}, terminator={installed.ter!r}")
     if installed.count not in (
-            MULTIPLY_RECORDS, ARITHMETIC_RECORDS, FINAL_RECORDS):
+            MULTIPLY_RECORDS, LEGACY_FINAL_RECORDS,
+            ARITHMETIC_RECORDS, FINAL_RECORDS):
         raise SystemExit(
             f"unexpected x64 record count {installed.count}; expected "
-            f"{MULTIPLY_RECORDS}, {ARITHMETIC_RECORDS}, or {FINAL_RECORDS}")
+            f"{MULTIPLY_RECORDS}, {LEGACY_FINAL_RECORDS}, "
+            f"{ARITHMETIC_RECORDS}, or {FINAL_RECORDS}")
 
     prefix_size = 8 + MULTIPLY_RECORDS * installed.align
     prefix_blob = installed_blob[:prefix_size]

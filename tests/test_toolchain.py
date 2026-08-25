@@ -95,13 +95,13 @@ def main():
         i386m = Pack(i386m_blob)
         x64 = Pack(x64_blob)
         c.ok((i386m.align, i386m.count, len(i386m_blob)) ==
-             (48, 6506, 312296),
-             "i386m has the 6,506-record binary64 layout",
+             (48, 6510, 312488),
+             "i386m has the 6,510-record binary64 layout",
              "align=%d count=%d bytes=%d" %
              (i386m.align, i386m.count, len(i386m_blob)))
         c.ok((x64.align, x64.count, len(x64_blob)) ==
-             (145, 6506, 943378),
-             "x64 has the 6,506-record binary64 layout",
+             (145, 6510, 943958),
+             "x64 has the 6,510-record binary64 layout",
              "align=%d count=%d bytes=%d" %
              (x64.align, x64.count, len(x64_blob)))
         c.ok(i386m_blob[:len(stock_blob)] == stock_blob,
@@ -117,14 +117,31 @@ def main():
         c.ok(x64_blob[-len(x64_suffix):] == x64_suffix,
              "x64 binary64 suffix is generator-exact")
 
+        c.ok(len(i386_suffix) == 27 * i386m.align
+             and len(x64_suffix) == 27 * x64.align,
+             "binary64 suffixes contain 24 arithmetic and 3 conversion records")
+        direct_signatures = (
+            b"\xDC\x87D2.4", b"\xDC\xA7D2.4",
+            b"\xDC\x8FD2.4", b"\xDC\xB7D2.4",
+        )
+        c.ok(all(signature in i386_suffix for signature in direct_signatures)
+             and all(signature in x64_suffix for signature in direct_signatures),
+             "binary64 suffixes contain direct-source +:, -:, *:, /: records")
+
     compiler_source = open(COMPILER_SOURCE, "r", encoding="utf-8").read()
     c.ok(
-        "ip records\t= 634 mtp 3;" in compiler_source
-        and "[up length] = 634 mtp 3;" in compiler_source
+        "ip records\t= 638 mtp 3;" in compiler_source
+        and "[up length] = 638 mtp 3;" in compiler_source
         and "? a < 83 mtp 9 relating ip quickreference" in compiler_source
-        and "cpu pack = 6506" in compiler_source
-        and all("q%d =" % index in compiler_source for index in range(76, 83)),
-        "compiler metadata owns +:, -:, *:, /:, =:, :=, ~: and 6,506 patterns")
+        and "cpu pack = 6510" in compiler_source
+        and all("q%d =" % index in compiler_source for index in range(76, 83))
+        and all(marker in compiler_source for marker in (
+            "q76 = { +:\t}; extend upto: 7;   6;  6;",
+            "q77 = { -:\t}; extend upto: 7;   6;  6;",
+            "q78 = { *:\t}; extend upto: 7;   6;  6;",
+            "q79 = { /:\t}; extend upto: 7;   6;  6;",
+        )),
+        "compiler metadata owns direct-source exact arithmetic and 6,510 patterns")
 
     # ---------------------------------------------------------- 2. main/ pristine
     bad = []

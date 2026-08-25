@@ -1420,14 +1420,14 @@
 	dir testflags	      = { testflags };
 	dir symbolhash	      = { symbolhash };
 
-    ( instruction patterns index, 634 records, 3x5 bits per record
+    ( instruction patterns index, 638 records, 3x5 bits per record
 
       destination operand type to match variant
 	|
 	|	      source operand type to match variant
 	|		|
 	|		|		      number of variants,
-	|		|		      complessively 6506
+	|		|		      complessively 6510
 	|		|			|
 	|		|			| )
 
@@ -2290,12 +2290,16 @@
 	indirect;	direct; 		5;
 	indirect;	indirect;	       25;
 
-	( exact binary64 arithmetic: direct destination, indirect source )
+	( exact binary64 arithmetic: direct destination, indirect/direct source )
 
 	direct;	indirect;		5;	( sum )
+	direct;	direct;			1;
 	direct;	indirect;		5;	( difference )
+	direct;	direct;			1;
 	direct;	indirect;		5;	( product )
+	direct;	direct;			1;
 	direct;	indirect;		5;	( quotient )
+	direct;	direct;			1;
 
 	( exact binary64 conversions )
 
@@ -2395,10 +2399,10 @@
  q73 = { <>	}; extend upto: 7; 121; 27;
  q74 = { *%'	}; extend upto: 7; 121; 27;
  q75 = { *%	}; extend upto: 7; 121; 27;
- q76 = { +:	}; extend upto: 7;   5;  3;
- q77 = { -:	}; extend upto: 7;   5;  3;
- q78 = { *:	}; extend upto: 7;   5;  3;
- q79 = { /:	}; extend upto: 7;   5;  3;
+ q76 = { +:	}; extend upto: 7;   6;  6;
+ q77 = { -:	}; extend upto: 7;   6;  6;
+ q78 = { *:	}; extend upto: 7;   6;  6;
+ q79 = { /:	}; extend upto: 7;   6;  6;
  q80 = { =:	}; extend upto: 7;   1;  3;
  q81 = { :=	}; extend upto: 7;   1;  3;
  q82 = { ~:	}; extend upto: 7;   1;  3;
@@ -2551,7 +2555,7 @@
 			  mtp cpu unit div 7 plus 1;
 	pr wksp 	= packed pr wksp finish minus packed pr wksp
 			  mtp cpu unit div 7 plus 1;
-	ip records	= 634 mtp 3;
+	ip records	= 638 mtp 3;
 
     (parser-related)
 
@@ -2714,7 +2718,7 @@
 
     (cpu pack block)
 
-	cpu pack = 6506 (total number of patterns to read in this buffer)
+	cpu pack = 6510 (total number of patterns to read in this buffer)
 	  mtp 256 as byte size (support upto maximum 256-byte alignment)
 	  plus 2; (plus the header, which is assumed to be 2 units)
 
@@ -3102,7 +3106,7 @@
 
 	[up source] = vector packed ip records;
 	[up target] = ip records;
-	[up length] = 634 mtp 3;
+	[up length] = 638 mtp 3;
 	[up bitspervalue] = 5;
 	=> unpack;
 
@@ -3114,7 +3118,7 @@
 	[file position] = zero;
 	[block pointer] = cpu pack;
 	[block size] =
-	  6506	  (total number of patterns)
+	  6510	  (total number of patterns)
 	  mtp 256 (upto supporting 256-byte alignment)
 	  plus 8; (plus the header, which is assumed to be 2 units)
 	isocall;
@@ -3135,7 +3139,7 @@
        - it can be a library and might not interfere with main program ramtop.
        so, this is to check if there's enough memory to hold the CPU pack...)
       ? [file size] <=
-	  6506	  (total number of patterns)
+	  6510	  (total number of patterns)
 	  mtp 256 (upto supporting 256-byte alignment)
 	  plus 8  (plus the header, which is assumed to be 2 units)
 	    -> cpp j3;
@@ -3146,9 +3150,9 @@
       "cpp j3"
       (this is a validity check for the CPU pack: the whole file whose size is
        always returned by active file operations such as the above <read>, has
-       to be exactly <alignment * 6506 + 8> bytes in size, not more, not less)
+       to be exactly <alignment * 6510 + 8> bytes in size, not more, not less)
 	a = [cpp algn];
-	a * 6506;
+	a * 6510;
 	a + 8;
       ? a = [file size] -> cpp j4;
 	[err string] = msg invalid cpu pack;
@@ -6787,9 +6791,7 @@
 	=> a64 emit word;
 	-> pp a64 call binary64 helper;
       "pp a64 binary64"
-	(Only the compiler-owned direct/indirect form has a CPU-pack record.)
-      ? [op1 class] != direct -> pp a64 unsupported;
-      ? [op2 class] != indirect -> pp a64 unsupported;
+	? [op1 class] != direct -> pp a64 unsupported;
 
 	(Load the destination's adjacent low/high units into raw binary64 X0.)
 	[a64 reg] = 9;
@@ -6804,8 +6806,16 @@
 	[a64 word] = AA0B8140h; (ORR X0,X10,X11,LSL #32)
 	=> a64 emit word;
 
-	(Resolve the indirect source and load its low/high units into X1.)
+	(Resolve the source address from either its direct displacement or register.)
+      ? [op2 class] = direct -> pp a64 binary64 direct source;
+      ? [op2 class] != indirect -> pp a64 unsupported;
 	=> a64 emit op2 index;
+	-> pp a64 binary64 load source;
+      "pp a64 binary64 direct source"
+	[a64 reg] = 9;
+	[a64 value] = [op2 value];
+	=> a64 emit immediate;
+      "pp a64 binary64 load source"
 	[a64 word] = B8695B2Ah; (LDR W10,[x25,w9,UXTW #2])
 	=> a64 emit word;
 	[a64 word] = 11000529h; (ADD W9,W9,#1)

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Generate exact scalar binary64 records for x87 CPU packs.
 
-The arithmetic operations accept a direct binary64 destination and an indirect
-binary64 source::
+The arithmetic operations accept a direct binary64 destination and either an
+indirect or direct binary64 source::
 
     [destination] +: [A]
+    [destination] +: [source]
 
 The conversion operations accept only their one exact shape: binary64-to-int32
 and int32-to-binary64 use direct/direct operands, while binary32 narrowing is an
@@ -67,6 +68,22 @@ def pattern(pointer_register: int, memory_operation: int, *, alignment: int,
                          terminator=terminator)
 
 
+def direct_pattern(memory_operation: int, *, alignment: int, padding: bytes,
+                   terminator: bytes = TERMINATOR) -> bytes:
+    """Return one direct-destination/direct-source arithmetic record."""
+    if memory_operation not in {operation for _, operation in OPERATIONS}:
+        raise ValueError(f"invalid x87 memory operation 0x{memory_operation:02X}")
+
+    body = bytearray((0xDD, 0x87))       # fld qword [edi + D1]
+    body.extend(b"D1.4")
+    body.extend((0xDC, memory_operation | 0x03))
+    body.extend(b"D2.4")                # op qword [edi + D2]
+    body.extend((0xDD, 0x9F))            # fstp qword [edi + D1]
+    body.extend(b"D1.4")
+    return finish_record(body, alignment=alignment, padding=padding,
+                         terminator=terminator)
+
+
 def conversion_pattern(symbol: str, *, alignment: int, padding: bytes,
                        terminator: bytes = TERMINATOR) -> bytes:
     """Return one direct conversion or in-place narrowing record."""
@@ -99,19 +116,23 @@ def conversion_pattern(symbol: str, *, alignment: int, padding: bytes,
 def enumerate_block(*, alignment: int, padding: bytes,
                     terminator: bytes = TERMINATOR) -> list[bytes]:
     """Return arithmetic then conversions in quick-reference order."""
-    records = [
-        pattern(register, operation, alignment=alignment, padding=padding,
-                terminator=terminator)
-        for _symbol, operation in OPERATIONS
-        for register in range(len(LINO_TO_X86))
-    ]
+    records = []
+    for _symbol, operation in OPERATIONS:
+        records.extend(
+            pattern(register, operation, alignment=alignment, padding=padding,
+                    terminator=terminator)
+            for register in range(len(LINO_TO_X86))
+        )
+        records.append(
+            direct_pattern(operation, alignment=alignment, padding=padding,
+                           terminator=terminator))
     records.extend(
         conversion_pattern(symbol, alignment=alignment, padding=padding,
                            terminator=terminator)
         for symbol in CONVERSIONS
     )
-    if len(records) != 23 or len(set(records)) != 23:
-        raise AssertionError("binary64 CPU-pack block must contain 23 unique records")
+    if len(records) != 27 or len(set(records)) != 27:
+        raise AssertionError("binary64 CPU-pack block must contain 27 unique records")
     return records
 
 
