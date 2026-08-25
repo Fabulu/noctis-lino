@@ -6791,11 +6791,11 @@
 	    8B 87 <dVHGNDh1 mtp bytesperunit>
 	    03 87 <dVHGNDseed mtp bytesperunit>
 	    83 C8 03
-	    89 87 <dSUfseed mtp bytesperunit>
+	    89 C3
 	    F7 E0 00 D0
 	    89 87 <dSUfeax mtp bytesperunit>
-	    01 87 <dSUfseed mtp bytesperunit>
-	    8B 9F <dSUfseed mtp bytesperunit>
+	    01 C3
+	    89 9F <dSUfseed mtp bytesperunit>
 	    C7 87 <dSUfmask mtp bytesperunit> 07 00 00 00
 	    83 E0 07
 	    89 87 <dSUfval mtp bytesperunit>
@@ -6807,8 +6807,9 @@
 	( Keep the base shade live in ECX and skip alignment padding instead of
 	  spilling and immediately reloading the same value. )
 	{
-	    EB 0A
+	    EB 12
 	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90
 	}
 	C + A;
 	? C '<= 32 -> VHGND tile shade ready; C = 32;

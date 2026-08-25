@@ -25,7 +25,7 @@ TERRAIN_NATIVE_CONTRACT = {
     "VHGND tile samples native": (
         0, 1, "47c91b73dd6db2af1b8dc142d92ce48ae94e7860292e09c3e46639980af03104"),
     "VHGND tile shade live": (
-        0, 1, "1c268c348212d400260afe3a9acde706d355248ec2bab7a69da91086034931f8"),
+        0, 1, "65ee57e49b7e53937f2cb36447dc2c89bbd7cf2c4f87442b949966f19d89d0c4"),
     "VHGND tile admission live": (
         0, 1, "6de3aec703107d8b1698a5d0376e7082bbba6eef7c3afe4a11682e956274fd31"),
     "VHGND tile first flat alignment": (
@@ -45,7 +45,7 @@ TERRAIN_NATIVE_CONTRACT = {
     "VHGND tile depth": (
         1, 1, "461de6bb0c4102d354386a47a6d2174d3ff2e993ebc3a08440453c8356f16fef"),
     "VHGND tile shade": (
-        1, 1, "b707eb1f18a9eab58b39a60733ff84b00853e181b9ae98616fed7d7b90ef710c"),
+        1, 1, "547e9a5715e477fc3aa915f1b8200fb76ba896000442ee5089e3689641c66d93"),
     "VHGND tree direction": (
         2, 1, "32a4371138d591c601fc1b21b0d53f09e590ab619b05c8e878dbf849ca8fd5ca"),
     "VHGND tree leaf tip vertex": (
@@ -500,7 +500,7 @@ def native_tile_shade_preserves_live_ecx(source: str) -> bool:
     live_label = '"VHGND tile shade live"'
     if (
         len(bodies) != 1
-        or encoded != b"\xeb\x0a" + b"\x90" * 10
+        or encoded != b"\xeb\x12" + b"\x90" * 18
         or 2 + int.from_bytes(encoded[1:2], "little", signed=True)
             != len(encoded)
         or normalized.count(live_label) != 1
@@ -515,6 +515,38 @@ def native_tile_shade_preserves_live_ecx(source: str) -> bool:
         or "C = [VHGNDshade]" in service
     ):
         return False
+
+    for initial_seed in (
+        3, 7, 0x103, 0x7FFFFFFF, 0x80000003, 0xFFFFFFFB, 0xFFFFFFFF,
+    ):
+        product = initial_seed * initial_seed
+        eax = product & 0xFFFFFFFF
+        edx = (product >> 32) & 0xFFFFFFFF
+        folded = (eax & 0xFFFFFF00) | (((eax & 0xFF) + (edx & 0xFF)) & 0xFF)
+        source_sufseed = initial_seed
+        source_sufeax = folded
+        source_sufseed = (source_sufseed + source_sufeax) & 0xFFFFFFFF
+        source_draw = source_sufeax & 7
+        source_parity_even = (source_draw.bit_count() & 1) == 0
+
+        native_ebx = initial_seed
+        native_sufeax = folded
+        native_ebx = (native_ebx + native_sufeax) & 0xFFFFFFFF
+        native_sufseed = native_ebx
+        native_draw = native_sufeax & 7
+        native_parity_even = (native_draw.bit_count() & 1) == 0
+        source_state = (
+            source_draw, source_draw, edx, source_sufseed,
+            source_sufeax, source_sufseed, source_draw,
+            source_draw == 0, source_parity_even,
+        )
+        native_state = (
+            native_draw, native_draw, edx, native_ebx,
+            native_sufeax, native_sufseed, native_draw,
+            native_draw == 0, native_parity_even,
+        )
+        if native_state != source_state:
+            return False
 
     for draw in range(8):
         boundary = 2 * (24 - draw)
@@ -1490,7 +1522,7 @@ def main() -> int:
               "native packed terrain samples preserve low bytes, live state, dead flags, and alignment target")
         check(native_tile_shade_preserves_live_ecx(staged_terrain) and
               not native_tile_shade_preserves_live_ecx(
-                  staged_terrain.replace("EB 0A", "EB 0B", 1)),
+                  staged_terrain.replace("EB 12", "EB 13", 1)),
               "native tile shade keeps ECX live and skips exact alignment padding")
         check(terrain_texture_gates_prefer_unit_path(staged_terrain) and
               not terrain_texture_gates_prefer_unit_path(
