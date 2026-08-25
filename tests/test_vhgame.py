@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "work" / "vhgame.txt"
 GROUND = ROOT / "work" / "vhground.txt"
 PGTEX = ROOT / "work" / "pgtex.txt"
+PGFP = ROOT / "work" / "pgfp.txt"
 GRND = ROOT / "work" / "grnd.txt"
 CUPOLA = ROOT / "work" / "vhcupola.txt"
 CAPSULE = ROOT / "work" / "vhcapsule.txt"
@@ -67,6 +68,16 @@ def section(text: str, start: str, end: str) -> str:
         return text.split(start, 1)[1].split(end, 1)[0]
     except IndexError as exc:
         raise AssertionError(f"missing section boundary: {start!r} / {end!r}") from exc
+
+
+def contains_in_order(text: str, snippets: tuple[str, ...]) -> bool:
+    cursor = 0
+    for snippet in snippets:
+        cursor = text.find(snippet, cursor)
+        if cursor < 0:
+            return False
+        cursor += len(snippet)
+    return True
 
 
 def check(condition: bool, label: str) -> None:
@@ -355,6 +366,7 @@ def main() -> int:
     game = GAME.read_text(encoding="utf-8")
     ground = GROUND.read_text(encoding="utf-8")
     pgtex = PGTEX.read_text(encoding="utf-8")
+    pgfp = PGFP.read_text(encoding="utf-8")
     grnd = GRND.read_text(encoding="utf-8")
     cupola = CUPOLA.read_text(encoding="utf-8")
     capsule_physics = CAPSULE.read_text(encoding="utf-8")
@@ -391,6 +403,52 @@ def main() -> int:
     original_repair = ORIGINAL_REPAIR.read_bytes()
     windows_hidden_process = WINDOWS_HIDDEN_PROCESS.read_text(encoding="utf-8")
 
+    binary64_wrappers = (
+        ("add", "sub", "+:", "FAdd"),
+        ("sub", "mul", "-:", "FSub"),
+        ("mul", "quo", "*:", "FMul"),
+        ("quo", "rsub", "/:", "FQuo"),
+    )
+    check(
+        all(
+            "A = [PGFi]; A + A; A + fw;" in
+            section(pgfp, f'"PGF {name}"', f'"PGF {following}"')
+            and f"[FA0] {operation} [A];" in
+            section(pgfp, f'"PGF {name}"', f'"PGF {following}"')
+            and "=> PGF b;" not in
+            section(pgfp, f'"PGF {name}"', f'"PGF {following}"')
+            and old_operation not in
+            section(pgfp, f'"PGF {name}"', f'"PGF {following}"')
+            for name, following, operation, old_operation in binary64_wrappers
+        ),
+        "renderer scalar wrappers use backend-exact p64-then-p53 operations",
+    )
+    reverse_sub = section(pgfp, '"PGF rsub"', '"PGF rquo"')
+    reverse_quo = section(pgfp, '"PGF rquo"', '"PGF int"')
+    narrow = section(pgfp, '"PGF narrow"', '"PGF add"')
+    to_int = section(pgfp, '"PGF int"', '"PGF fromint"')
+    from_int = section(pgfp, '"PGF fromint"', '( the pinned constants')
+    check(
+        "[FT0] = [FA0]; [FT1] = [FA1];" in reverse_sub
+        and "=> PGF a;" in reverse_sub
+        and "A = FT0; [FA0] -: [A];" in reverse_sub
+        and "FSubR" not in reverse_sub
+        and "[FT0] = [FA0]; [FT1] = [FA1];" in reverse_quo
+        and "=> PGF a;" in reverse_quo
+        and "A = FT0; [FA0] /: [A];" in reverse_quo
+        and "FQuoR" not in reverse_quo,
+        "reverse scalar wrappers reuse the backend-exact arithmetic path",
+    )
+    check(
+        "~: [FA0];" in narrow
+        and narrow.index("~: [FA0];") < narrow.index("=> PGF sa;")
+        and "F32Narrow" not in narrow
+        and "[FI] =: [FA0];" in to_int
+        and "FToIntNear" not in to_int
+        and "[FA0] := [FI];" in from_int
+        and "IntToF" not in from_int,
+        "renderer conversions use the backend-exact direct operators",
+    )
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
         all(token in original_lift for token in (
@@ -882,15 +940,73 @@ def main() -> int:
         and '"PG tex 5"' in (ROOT / "work" / "pgmem.txt").read_text(encoding="utf-8"),
         "faithful terrain triangles remain texture mapped on foot and during capsule flight",
     )
-    terrain_pixel = section(pgtex, '"PG px terrain"', '"PG px internal"')
-    terrain_cpixel = section(pgtex, '"PG cpx terrain"', '"PG cpx internal"')
+    uv_float = section(pgtex, '"PG uv float"', '"PG texel"')
+    uv_steps = (
+        "[FA0] = [fw plus 30]; [FA1] = [fw plus 31];",
+        "A = FSK3; A + A; A + fw; [FA0] +: [A];",
+        "[fw plus 496] = [FA0]; [fw plus 497] = [FA1];",
+        "~: [FA0]; [fw plus 30] = [FA0]; [fw plus 31] = [FA1];",
+        "[FA0] = [fw plus 26]; [FA1] = [fw plus 27];",
+        "A = FSK1; A + A; A + fw; [FA0] +: [A];",
+        "[fw plus 498] = [FA0]; [fw plus 499] = [FA1];",
+        "~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];",
+        "[FA0] = [fw plus 28]; [FA1] = [fw plus 29];",
+        "A = FSK2; A + A; A + fw; [FA0] +: [A];",
+        "[fw plus 500] = [FA0]; [fw plus 501] = [FA1];",
+        "~: [FA0]; [fw plus 28] = [FA0]; [fw plus 29] = [FA1];",
+        "[FA0] = [fw plus 496]; [FA1] = [fw plus 497];",
+        "[FT0] = [FA0]; [FT1] = [FA1];",
+        "[FA0] = [fw plus 36]; [FA1] = [fw plus 37];",
+        "A = FT0; [FA0] /: [A];",
+        "~: [FA0]; [fw plus 24] = [FA0]; [fw plus 25] = [FA1];",
+        "[FA0] = [fw plus 498]; [FA1] = [fw plus 499];",
+        "A = FSTX; A + A; A + fw; [FA0] *: [A];",
+        "A = FSK4; A + A; A + fw; [FA0] *: [A];",
+        "[FI] =: [FA0]; [SPun] = [FI];",
+        "[FA0] = [fw plus 500]; [FA1] = [fw plus 501];",
+        "A = FSTY; A + A; A + fw; [FA0] *: [A];",
+        "A = FSK4; A + A; A + fw; [FA0] *: [A];",
+        "[FI] =: [FA0]; [SPvn] = [FI];",
+    )
     check(
-        "A = [SPterrain]; ? A != 0 -> PG px terrain;" in pgtex
-        and "A = [SPterrain]; ? A != 0 -> PG cpx terrain;" in pgtex
-        and "A = [SPtinta]; [SPch] = A;" in terrain_pixel
-        and "A = [SPtinta]; [SPch] = A;" in terrain_cpixel
+        contains_in_order(uv_float, uv_steps)
+        and uv_float.count("[FA0] +: [A];") == 3
+        and uv_float.count("[FA0] *: [A];") == 4
+        and uv_float.count("~: [FA0];") == 4
+        and uv_float.count("[FI] =: [FA0];") == 2
+        and "=> PGF " not in uv_float
+        and "[PGFi]" not in uv_float,
+        "live texture spans preserve the exact fixed-slot arithmetic and spill schedule",
+    )
+    terrain_pixel = section(pgtex, '"PG px terrain begin"', '"PG px internal"')
+    terrain_cpixel = section(pgtex, '"PG cpx terrain begin"', '"PG cpx internal"')
+    check(
+        "A = [SPterrain]; ? A != 0 -> PG px terrain begin;" in pgtex
+        and "A = [SPterrain]; ? A != 0 -> PG cpx terrain begin;" in pgtex
+        and "A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;" in terrain_pixel
+        and "A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;" in terrain_cpixel
+        and "A = [SPtinta]; A + [PGtexv]; A & 255; [SPch] = A;" in terrain_pixel
+        and "A = [SPtinta]; A + [PGtexv]; A & 255; [SPch] = A;" in terrain_cpixel
+        and "A = [SPdx]; A & 65280;" in terrain_pixel
+        and "A = [SPdx]; A & 65280;" in terrain_cpixel
+        and "C = [SPax]; C > 8; A | C; [PGtexi] = A;" in terrain_pixel
+        and "C = [SPax]; C > 8; A | C; [PGtexi] = A;" in terrain_cpixel
+        and "A > 8; A & 255; A < 8;" not in terrain_pixel
+        and "A > 8; A & 255; A < 8;" not in terrain_cpixel
+        and "C > 8; C & 255;" not in terrain_pixel
+        and "C > 8; C & 255;" not in terrain_cpixel
+        and "A + [PGtexoff]; A + RPBG; A + nw;" in terrain_pixel
+        and "A + [PGtexoff]; A + RPBG; A + nw;" in terrain_cpixel
+        and "A + SADPT; A + nw;" in terrain_pixel
+        and "A + SADPT; A + nw;" in terrain_cpixel
+        and "=> PG texel;" not in terrain_pixel
+        and "=> PG texel;" not in terrain_cpixel
+        and "=> PG store;" not in terrain_pixel
+        and "=> PG store;" not in terrain_cpixel
         and "=> PG scrtinta;" not in terrain_pixel
-        and "=> PG scrtinta;" not in terrain_cpixel,
+        and "=> PG scrtinta;" not in terrain_cpixel
+        and "[CSpix]+;" not in terrain_pixel
+        and "[CSpix]+;" not in terrain_cpixel,
         "faithful terrain pixels reuse their authoritative local tinta",
     )
     depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
@@ -1162,7 +1278,7 @@ def main() -> int:
             "A = [VHGNDcamy]; A - [FI]; [VHVcamyi] = A;",
             "=> FMul; [FB0] = [FA0]; [FB1] = [FA1];",
             "[VHSflare] = 1;", "[VHSflare] = 0;",
-            "[FI] = 150; => IntToF; => FQuo; => FToIntChop;",
+            "[FI] = 150; => PGF fromint; => FQuo; => FToIntChop;",
             "A % 3; A + 1;", "A % 64; A + 64;",
             "C '* [VHGNDflashgain]; C '/ 63;",
             "[VHGNDflashactive] = [VHGNDflashpending]; [VHGNDflashpending] = 0;",
@@ -1193,8 +1309,8 @@ def main() -> int:
         and "=> VHG fpu clean; => SU fp init;" in utc_seconds
         and "-> VHGND convert seconds;" in utc_seconds
         and '"VHGND convert seconds"' in utc_seconds
-        and "A = [VHGNDsecs]; [FI] = A; => IntToF;" in utc_seconds
-        and utc_seconds.count("[FI] = A; => IntToF;") == 1,
+        and "A = [VHGNDsecs]; [FI] = A; => PGF fromint;" in utc_seconds
+        and utc_seconds.count("[FI] = A; => PGF fromint;") == 1,
         "pinned surface time survives floating-point initialization",
     )
     check(
@@ -3636,10 +3752,10 @@ def main() -> int:
             "[VHGNDtreewindz] = [FS0];",
             "[VHGNDtreelevel]+;", "[VHGNDtreelevel]-;",
             "[VHGNDtreecx] = [VHGNDtreebxf];", "[VHGNDtreecx] = [VHGNDtreeexf];",
-            "[FI] = 768; => IntToF; [PGFi] = FSTX; => PGF sa;",
-            "[FI] = 2048; => IntToF; [PGFi] = FSTY; => PGF sa;",
-            "[FI] = 256; => IntToF; [PGFi] = FSTX; => PGF sa;",
-            "[FI] = 768; => IntToF; [PGFi] = FSTY; => PGF sa;",
+            "[FI] = 768; => PGF fromint; [PGFi] = FSTX; => PGF sa;",
+            "[FI] = 2048; => PGF fromint; [PGFi] = FSTY; => PGF sa;",
+            "[FI] = 256; => PGF fromint; [PGFi] = FSTX; => PGF sa;",
+            "[FI] = 768; => PGF fromint; [PGFi] = FSTY; => PGF sa;",
             "[PGtexf] = 5; A = 0; A - 4; [PGtexoff] = A;",
             "[SPterrain] = 0; [SPmapfast] = 1; [SPpixfast] = 0; [SPtrifast] = 0;",
             "[SPterrain] = 0; [SPmapfast] = 1; [SPpixfast] = 0; [SPtrifast] = 1;",
@@ -3849,7 +3965,7 @@ def main() -> int:
             "[VHGNDruinmarks]+;",
         ))
         and all(token in ground for token in (
-            "VHGNDruins = 40000;", '"VHGND render ruins"', "[FI] = 512; => IntToF;",
+            "VHGNDruins = 40000;", '"VHGND render ruins"', "[FI] = 512; => PGF fromint;",
             "A = [VHGNDshade]; A & 63; A + 64;",
         )),
         "the three historical systems carry all six ruin styles and the restored Cube",
@@ -4014,7 +4130,7 @@ def main() -> int:
             "[PGtexf] = 5; [SPsrc] = 1;", "=> SP drawpv;", "=> VH join mode1;",
         ))
         and all(token in ground for token in (
-            '"VHGND animal distance"', "=> FSqrt; => FToIntNear;",
+            '"VHGND animal distance"', "=> FSqrt; => PGF int;",
             "? A '>= 75000 -> VHGND animal draw sort ready;",
             '"VHGND animal land shape"', '"VHGND mammal half phase"',
             "[MOxs] = 3F800000h; [MOys] = 3F333333h; [MOzs] = 3F800000h;",
@@ -4027,7 +4143,7 @@ def main() -> int:
             "A = [VHGNDaniperiod]; A '* 50;", "A = [VHGNDaniperiod]; A '* 100;",
             '"VHGND animal incl clamped"', "[FB0] = 0; [FB1] = 40490000h; => FAtan2;",
             "[FB0] = 0; [FB1] = 40668000h; => FMul;",
-            "[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => FToIntNear;",
+            "[FB0] = 54442D18h; [FB1] = 400921FBh; => FQuo; => PGF int;",
             '"VHGND mamm rear list"', "[A plus 0] = 0C007h;",
             '"VHGND mamm tail list"', "[A plus 4] = 7030h;",
             '"VHGND mamm legs list"', "[A plus 0] = 0F000h;",

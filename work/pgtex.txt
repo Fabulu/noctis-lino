@@ -280,33 +280,43 @@
 	A = [SPuvi]; A+; [SPuvi] = A;
 	end;
     "PG uv float"
-	( _z += k3 ; _x += k1 ; _y += k2 ; k4 = 1/_z ;
-	  u = (_x * tempXsize) * k4 ; v = (_y * tempYsize) * k4.
-	  fst _z / fst _x / fst _y are stores to FLOAT locals, so each
-	  is narrowed; k4 is a float too.  The two fistp are nearest. )
+	( Fixed-slot live chain.  This is the same operation and spill schedule as
+	  the PGF wrappers below, but the span block runs it thousands of times per
+	  frame.  Addressing each named fw pair directly removes the PGFi stores,
+	  slot-address loops, and tiny calls without changing any x87 operation. )
 	( wz = _z + k3 stays WIDE for the reciprocal; the memory _z the
 	  NEXT block reloads is the narrowed one.  "fst" leaves both. )
-	[PGFi] = FSZ; => PGF a; [PGFi] = FSK3; => PGF add;
-	[PGFi] = FSW0; => PGF sa;			( wide z )
-	[PGFi] = FSZ;  => PGF narrow;	( float _z )
+	[FA0] = [fw plus 30]; [FA1] = [fw plus 31];
+	A = FSK3; A + A; A + fw; [FA0] +: [A];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	~: [FA0]; [fw plus 30] = [FA0]; [fw plus 31] = [FA1];
 
-	[PGFi] = FSX; => PGF a; [PGFi] = FSK1; => PGF add;
-	[PGFi] = FSW1; => PGF sa;			( wide x )
-	[PGFi] = FSX; => PGF narrow;
+	[FA0] = [fw plus 26]; [FA1] = [fw plus 27];
+	A = FSK1; A + A; A + fw; [FA0] +: [A];
+	[fw plus 498] = [FA0]; [fw plus 499] = [FA1];
+	~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];
 
-	[PGFi] = FSY; => PGF a; [PGFi] = FSK2; => PGF add;
-	[PGFi] = FSW2; => PGF sa;			( wide y )
-	[PGFi] = FSY; => PGF narrow;
+	[FA0] = [fw plus 28]; [FA1] = [fw plus 29];
+	A = FSK2; A + A; A + fw; [FA0] +: [A];
+	[fw plus 500] = [FA0]; [fw plus 501] = [FA1];
+	~: [FA0]; [fw plus 28] = [FA0]; [fw plus 29] = [FA1];
 
 	( k4 = 1/wide_z, then STORED to a float and reloaded narrow )
-	[PGFi] = FSW0; => PGF a; [PGFi] = FSUNO; => PGF rquo;
-	[PGFi] = FSK4; => PGF narrow;
+	[FA0] = [fw plus 496]; [FA1] = [fw plus 497];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 36]; [FA1] = [fw plus 37];
+	A = FT0; [FA0] /: [A];
+	~: [FA0]; [fw plus 24] = [FA0]; [fw plus 25] = [FA1];
 
 	( u and v are built from the WIDE x and y and the NARROW k4 )
-	[PGFi] = FSW1; => PGF a; [PGFi] = FSTX; => PGF mul;
-	[PGFi] = FSK4; => PGF mul; => PGF int; [SPun] = [FI];
-	[PGFi] = FSW2; => PGF a; [PGFi] = FSTY; => PGF mul;
-	[PGFi] = FSK4; => PGF mul; => PGF int; [SPvn] = [FI];
+	[FA0] = [fw plus 498]; [FA1] = [fw plus 499];
+	A = FSTX; A + A; A + fw; [FA0] *: [A];
+	A = FSK4; A + A; A + fw; [FA0] *: [A];
+	[FI] =: [FA0]; [SPun] = [FI];
+	[FA0] = [fw plus 500]; [FA1] = [fw plus 501];
+	A = FSTY; A + A; A + fw; [FA0] *: [A];
+	A = FSK4; A + A; A + fw; [FA0] *: [A];
+	[FI] =: [FA0]; [SPvn] = [FI];
 	end;
 
 	( PG texel : [PGtexv] <- txtr[ (v_hi << 8) | u_hi ].
@@ -356,7 +366,7 @@
 	( Faithful preprojected terrain has flar zero and keeps its authoritative
 	  tinta in [SPtinta].  Select once per block instead of re-reading the
 	  identical scratch-page byte for every pixel. )
-	A = [SPterrain]; ? A != 0 -> PG px terrain;
+	A = [SPterrain]; ? A != 0 -> PG px terrain begin;
 	A = [SPflar]; A & 15;
 	? A = 0 -> PG px internal;
 	A = [SPflar]; A & 1;  ? A != 0 -> PG px transp;
@@ -364,13 +374,27 @@
 	A = [SPflar]; A & 4;  ? A != 0 -> PG px merger;
 	-> PG px bumper;
 
+    "PG px terrain begin"
+	( Batch the diagnostic pixel total once per block.  The terrain loop writes
+	  every selected pixel, so this preserves CSpix exactly without a hot
+	  read-modify-write on every pixel. )
+	A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;
     "PG px terrain"
+	( The live terrain path always selects TEX5.  SPdx and SPax are masked after
+	  every update, so (dx_hi << 8) is exactly dx AND FF00h and ax >> 8 already
+	  fits one byte.  Inline that reduced index, the wrapped texture fetch, and
+	  the DOS-page byte store here: retaining PGtexi, PGtmp, PGtexv, PGdi, and
+	  PGval preserves the generic helper side effects while removing three tiny
+	  calls and the seven-way texture dispatch per pixel. )
 	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
-	A = [SPtinta]; [SPch] = A;
-	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	A = [SPdx]; A & 65280;
+	C = [SPax]; C > 8; A | C; [PGtexi] = A;
+	[PGtmp] = A;
+	A + [PGtexoff]; A + RPBG; A + nw; C = [A]; C & 255; [PGtexv] = C;
+	A = [SPtinta]; A + [PGtexv]; A & 255; [SPch] = A;
 	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
 	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
-	[PGval] = [SPch]; => PG store; [CSpix]+;
+	[PGval] = [SPch]; A + SADPT; A + nw; C = [PGval]; C & 255; [A] = C;
 	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
 	[SPcl]-;
 	? [SPcl] != 0 -> PG px terrain;
@@ -506,7 +530,7 @@
 	[SPu] = [SPun]; [SPv] = [SPvn];
 	A = [SPdi]; [SPsave] = A;
 
-	A = [SPterrain]; ? A != 0 -> PG cpx terrain;
+	A = [SPterrain]; ? A != 0 -> PG cpx terrain begin;
 	A = [SPflar]; A & 15;
 	? A = 0 -> PG cpx internal;
 	A = [SPflar]; A & 1;  ? A != 0 -> PG cpx transp;
@@ -514,15 +538,23 @@
 	A = [SPflar]; A & 4;  ? A != 0 -> PG cpx merger;
 	-> PG cpx bumper;
 
+    "PG cpx terrain begin"
+	( The culling loop writes two adjacent pixels per iteration. )
+	A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;
     "PG cpx terrain"
+	( Same exact TEX5 specialization as PG px terrain, with the culling path's
+	  paired writes and two-pixel destination advance left unchanged. )
 	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
-	A = [SPtinta]; [SPch] = A;
-	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	A = [SPdx]; A & 65280;
+	C = [SPax]; C > 8; A | C; [PGtexi] = A;
+	[PGtmp] = A;
+	A + [PGtexoff]; A + RPBG; A + nw; C = [A]; C & 255; [PGtexv] = C;
+	A = [SPtinta]; A + [PGtexv]; A & 255; [SPch] = A;
 	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
 	A = [SPdi]; A + 2; A & 65535; [PGdi] = A;
-	[PGval] = [SPch]; => PG store; [CSpix]+;
+	[PGval] = [SPch]; A + SADPT; A + nw; C = [PGval]; C & 255; [A] = C;
 	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
-	[PGval] = [SPch]; => PG store; [CSpix]+;
+	[PGval] = [SPch]; A + SADPT; A + nw; C = [PGval]; C & 255; [A] = C;
 	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
 	[SPcl]-;
 	? [SPcl] != 0 -> PG cpx terrain;
