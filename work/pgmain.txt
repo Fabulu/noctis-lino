@@ -271,6 +271,7 @@
 	=> PG read verts;
 	A = [MNn]; ? A != 3 -> PG pmap basis checked;
 	=> PG basis direct check;
+	=> PG facing direct check;
     "PG pmap basis checked"
 	=> PG polymap;
 	=> PG emit topo;
@@ -297,6 +298,19 @@
     "PG bd same"
 	[PGi]+; A = [PGi]; ? A < 18 -> PG bd compare;
 	[PJnrv] = 3;
+	end;
+
+      ( The cached-terrain facing shortcut consumes a precomputed normal.  Build
+	that normal through the generic path, then compare the generic and fixed-slot
+	dot decisions on every three-vertex PMAP fixture.  pgpack is dead scratch
+	until the ordinary case emitters overwrite it. )
+
+"PG facing direct check"
+	=> PG facing;
+	C = pgpack; [C] = [FCret];
+	=> PG facing dot direct;
+	A = [FCret]; C = pgpack; ? A = [C] -> PG fd same; [MNbad]+;
+    "PG fd same"
 	end;
 
 ( -------------------------------------------------------------------- )

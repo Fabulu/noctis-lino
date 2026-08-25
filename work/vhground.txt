@@ -2798,7 +2798,7 @@
 	A = VHGNDnormx; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRX; => PGF setf32;
 	A = VHGNDnormy; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRY; => PGF setf32;
 	A = VHGNDnormz; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRZ; => PGF setf32;
-	=> PG facing dot; end;
+	=> PG facing dot direct; end;
     "VHGND terrain facing build"
 	=> VHGND terrain remaining input; => PG facing;
 	[PGFi] = FSRX; => PGF a; => PGF stf32;

@@ -649,6 +649,29 @@
     "PG facing done"
 	end;
 
+    "PG facing dot direct"
+	( Cached terrain normals already occupy the fixed r slots.  Retain the
+	  exact p64-then-p53 dot schedule while avoiding the PGFi stores and tiny
+	  slot-service calls on every cache hit. )
+	[FCret] = 0;
+	[FA0] = [fw plus 448]; [FA1] = [fw plus 449];
+	A = fw; A + 508; [FA0] -: [A];
+	A = fw; A + 470; [FA0] *: [A];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FA0] = [fw plus 450]; [FA1] = [fw plus 451];
+	A = fw; A + 516; [FA0] -: [A];
+	A = fw; A + 472; [FA0] *: [A];
+	A = fw; A + 496; [FA0] +: [A];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FA0] = [fw plus 452]; [FA1] = [fw plus 453];
+	A = fw; A + 524; [FA0] -: [A];
+	A = fw; A + 474; [FA0] *: [A];
+	A = fw; A + 496; [FA0] +: [A];
+	[FB0] = [fw plus 486]; [FB1] = [fw plus 487]; => FCmp;
+	A = [FI]; ? A = 2 -> PG facing done; ? A < 0 -> PG facing done;
+	[FCret] = 1;
+	-> PG facing done;
+
 "PG poly3d"
 	[PJmode] = 0;
 	=> PJ rotate;
