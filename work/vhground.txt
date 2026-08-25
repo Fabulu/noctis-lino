@@ -37,7 +37,7 @@
 	VHGNDdepthmid = 0; VHGNDdepthsq = 0; VHGNDdepthstep = 0;
 	VHGNDlodstep = 1; VHGNDlodradius = 4; VHGNDbackspan = 1;
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
-	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
+	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0; VHGNDinputready = 0;
 	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
 	VHGNDvccacheok = 0; VHGNDvccamx = 0; VHGNDvccamy = 0; VHGNDvccamz = 0;
 	VHGNDvcalpha = 0; VHGNDvcbeta = 0;
@@ -2577,6 +2577,39 @@
 	A + [VHGprofhull]; [VHGprofhull] = A;
 	end;
 
+"VHGND terrain common input"
+	( Both terrain triangles share vertex 2.  Facing needs only this vertex once
+	  its static normal is cached; load the other two only on a cache miss or
+	  when the generic clipping path needs the complete triangle. )
+	[VHGNDvi] = 2;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	end;
+
+"VHGND terrain remaining input"
+	[VHGNDvi] = 0;
+	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain remaining second;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDs1]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	-> VHGND terrain remaining ready;
+    "VHGND terrain remaining second"
+	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	[VHGNDvi]+;
+	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
+	A = [VHGNDs3]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
+	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+    "VHGND terrain remaining ready"
+	[VHGNDvi] = 2; [VHGNDinputready] = 1;
+	end;
+
 "VHGND terrain cache frame"
 	( Reuse the exact projected ground grid whenever every camera input is
 	  bit-identical.  Simulation changes waves, fauna and weather, but none of
@@ -2727,6 +2760,9 @@
 	A = VHGNDvcvisible; A + D; A = [A]; ? A = 0 -> VHGND terrain mapped generic;
 	-> VHGND terrain mapped load begin;
     "VHGND terrain mapped ensure begin"
+	A = [VHGNDinputready]; ? A != 0 -> VHGND terrain mapped ensure input ready;
+	=> VHGND terrain remaining input;
+    "VHGND terrain mapped ensure input ready"
 	[VHGNDvi] = 0;
     "VHGND terrain mapped ensure"
 	=> VHGND terrain vertex ensure;
@@ -2769,7 +2805,7 @@
 	A = VHGNDnormz; A + [VHGNDnormindex]; [PGFt] = [A]; [PGFi] = FSRZ; => PGF setf32;
 	=> PG facing dot; end;
     "VHGND terrain facing build"
-	=> PG facing;
+	=> VHGND terrain remaining input; => PG facing;
 	[PGFi] = FSRX; => PGF a; => PGF stf32;
 	A = VHGNDnormx; A + [VHGNDnormindex]; C = [PGFt]; [A] = C;
 	[PGFi] = FSRY; => PGF a; => PGF stf32;
@@ -2779,9 +2815,12 @@
 	A = VHGNDnormstamp; A + [VHGNDnormindex]; C = [VHGNDnormgen]; [A] = C;
 	end;
     "VHGND terrain facing generic"
-	=> PG facing; end;
+	=> VHGND terrain remaining input; => PG facing; end;
 
     "VHGND terrain mapped generic"
+	A = [VHGNDinputready]; ? A != 0 -> VHGND terrain mapped generic input ready;
+	=> VHGND terrain remaining input;
+    "VHGND terrain mapped generic input ready"
 	[PJpreproject] = 0; [PJnrv] = 3; => PG polymap;
 	[SPterrain] = 0; end;
 
@@ -5423,20 +5462,8 @@
 	A = [VHGNDmirror]; ? A = 0 -> VHGND tile mirror cull ready; [SPcull] = 0;
     "VHGND tile mirror cull ready"
 
-	[VHGNDtilepolys] = 0;
-	[VHGNDvi] = 0;
-	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs1]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvi]+;
-	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvi]+;
-	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvctri] = 0; => VHGND terrain facing;
+	[VHGNDtilepolys] = 0; => VHGND terrain common input;
+	[VHGNDinputready] = 0; [VHGNDvctri] = 0; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile first mirror facing;
 	A = [FCret]; ? A = 0 -> VHGND tile first done; -> VHGND tile first visible;
     "VHGND tile first mirror facing"
@@ -5452,19 +5479,7 @@
 	[PGtexf] = 5; [VHGNDvctri] = 0; => VHGND terrain mapped;
     "VHGND tile first done"
 
-	[VHGNDvi] = 0;
-	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs2]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvi]+;
-	A = [VHGNDx]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs3]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvi]+;
-	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
-	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	[VHGNDvctri] = 1; => VHGND terrain facing;
+	[VHGNDinputready] = 0; [VHGNDvctri] = 1; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile second mirror facing;
 	A = [FCret]; ? A = 0 -> VHGND tile second done; -> VHGND tile second visible;
     "VHGND tile second mirror facing"

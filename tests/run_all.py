@@ -88,6 +88,7 @@ TESTS = [
     ("test_surface.py", "Wave 7a: surface() texture byte-exact lino==spec==cref on 10 captures and 14 synthetics; 17 sabotages caught; graded against NIV+ 2.3, NOT 1996"),
     ("test_ground.py", "Wave 7b: build_surface() and SURFACE.BIN - generated outputs three-way over types 1,2,3,4,5,7,8; the captured type-3 texture is exact and its post-landing p_surfacemap RAM residual is measured"),
     ("test_tile_depth.py", "portable integer terrain distance bins equal the historical floor(sqrt) result over every reachable reduced square"),
+    ("test_terrain_inputs.py", "shared terrain vertex inputs are loaded once and reconstructed exactly on every cache, mirror, and clipping fallback"),
     ("test_sky.py", "Wave 7b: lean create_sky()/horizon/SP join regression; the historical --deep audit established 27 cases/408 records, exact NIV+ anchors, and caught 26 C plus 27 Lino mutants"),
     ("test_sun_gallery.py", "sixteen retained surface-sun oracles across types 1/2/3/4/5/7/8 plus case-specific palette, band/crop, camera, admission, and positive/lower/upper/class-suppressed ray-distance contracts"),
     ("test_frozen_sunrise_oracle.py", "exact-clock airless frozen-world evidence protects dry longitude-74 day and inclusive longitude-75 night state, native terminator globals, and an exact ten-pixel-to-zero horizon-source transition"),
