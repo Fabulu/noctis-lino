@@ -117,8 +117,8 @@ FLOAT_SIGNATURES = {
 # the complete exact schedule into this policy file.
 FLOAT_SIGNATURE_HASHES = {
     "work/pgproj.txt": (
-        140,
-        "030622b687a650618df5149ea470317751bfb91f543a1d51d08977d71af9ae4f",
+        148,
+        "75b628b703b14ba1947c758771bf03dc5e5cdebf59d286b6b131aa98b8e130da",
     ),
 }
 
