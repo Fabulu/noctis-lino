@@ -505,16 +505,18 @@
 	    DC 86 50 00 00 00                     (fadd qword FSK2)
 	    DD 9E D0 07 00 00                     (fstp qword wide y)
 
+	    ( Spill each independent binary32 narrowing before widening any of them,
+	      again keeping the x87 stack empty between chains. )
 	    DD 86 C0 07 00 00                     (fld  qword wide z)
 	    D9 9F <dPGUVZ mtp bytesperunit>       (fstp dword narrow z)
-	    D9 87 <dPGUVZ mtp bytesperunit>       (fld  dword narrow z)
-	    DD 9E 78 00 00 00                     (fstp qword FSZ)
 	    DD 86 C8 07 00 00                     (fld  qword wide x)
 	    D9 9F <dPGUVX mtp bytesperunit>       (fstp dword narrow x)
-	    D9 87 <dPGUVX mtp bytesperunit>       (fld  dword narrow x)
-	    DD 9E 68 00 00 00                     (fstp qword FSX)
 	    DD 86 D0 07 00 00                     (fld  qword wide y)
 	    D9 9F <dPGUVY mtp bytesperunit>       (fstp dword narrow y)
+	    D9 87 <dPGUVZ mtp bytesperunit>       (fld  dword narrow z)
+	    DD 9E 78 00 00 00                     (fstp qword FSZ)
+	    D9 87 <dPGUVX mtp bytesperunit>       (fld  dword narrow x)
+	    DD 9E 68 00 00 00                     (fstp qword FSX)
 	    D9 87 <dPGUVY mtp bytesperunit>       (fld  dword narrow y)
 	    DD 9E 70 00 00 00                     (fstp qword FSY)
 

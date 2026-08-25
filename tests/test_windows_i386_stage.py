@@ -127,7 +127,7 @@ PGTEX_TERRAIN_NATIVE_CONTRACT = {
 }
 PGTEX_UV_TERRAIN_NATIVE_CONTRACT = (
     273,
-    "840217513fb16d7fc6d102cdb48f9f95b8e5621ed59ec7280795b10caa6f1ffd",
+    "c4b3d1b3fc79fc914859898716e239f4ff755040d7132e6a427936c99305cdbe",
     4,
 )
 PGTEX_HALFSCAN_NATIVE_CONTRACT = (
@@ -632,10 +632,10 @@ def terrain_uv_native_separates_exact_spills(source: str) -> bool:
     )
     narrow_reloads = (
         b"\xdd\x86\xc0\x07\0\0\xd9\x9f\0\0\0\0"
-        b"\xd9\x87\0\0\0\0\xdd\x9e\x78\0\0\0"
         b"\xdd\x86\xc8\x07\0\0\xd9\x9f\0\0\0\0"
-        b"\xd9\x87\0\0\0\0\xdd\x9e\x68\0\0\0"
         b"\xdd\x86\xd0\x07\0\0\xd9\x9f\0\0\0\0"
+        b"\xd9\x87\0\0\0\0\xdd\x9e\x78\0\0\0"
+        b"\xd9\x87\0\0\0\0\xdd\x9e\x68\0\0\0"
         b"\xd9\x87\0\0\0\0\xdd\x9e\x70\0\0\0"
     )
     stacked_products = bytes.fromhex(
@@ -1364,7 +1364,7 @@ def main() -> int:
               not terrain_uv_native_separates_exact_spills(
                   staged_texture.replace(
                       "DD 9E C0 07 00 00", "DD 9E C8 07 00 00", 1)),
-              "terrain UV separates exact qword spills from dependent reloads")
+              "terrain UV separates exact binary64/binary32 spills from reloads")
         check(edges_native_retains_binary64_accumulator(staged_texture) and
               not edges_native_retains_binary64_accumulator(
                   staged_texture.replace(
