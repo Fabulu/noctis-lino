@@ -125,6 +125,10 @@ PGTEX_TERRAIN_NATIVE_CONTRACT = {
         25,
     ),
 }
+PGTEX_TERRAIN_UNPACK_NATIVE_CONTRACT = (
+    213,
+    "733ff6cca1e51f39a5255e513b2d6ef99e23b05b93bff269a5ccbec483db451b",
+)
 PGTEX_UV_TERRAIN_NATIVE_CONTRACT = (
     273,
     "c4b3d1b3fc79fc914859898716e239f4ff755040d7132e6a427936c99305cdbe",
@@ -772,11 +776,76 @@ def edges_native_retains_binary64_accumulator(source: str) -> bool:
     return True
 
 
+def terrain_unpack_native_preserves_block_state(source: str) -> bool:
+    """Check native terrain UV unpacking preserves slots, registers, and flags."""
+    expected_length, expected_hash = PGTEX_TERRAIN_UNPACK_NATIVE_CONTRACT
+    service = labelled_service(source, "PG terrain unpack native")
+    bodies = re.findall(r"\{([^}]*)\}", service, flags=re.DOTALL)
+    if len(bodies) != 1 or source.count("=> PG terrain unpack native;") != 2:
+        return False
+
+    body = bodies[0]
+    tokens = re.findall(
+        r"<[^>]+>|[0-9A-Fa-f]{2}",
+        re.sub(r"\([^)]*\)", "", body),
+    )
+    encoded = b"".join(
+        b"\0" * 4 if token.startswith("<") else bytes.fromhex(token)
+        for token in tokens
+    )
+    core = bytes.fromhex(
+        "52 8b8700000000 8b8f00000000 29c8 c1f804 25ffff0000 "
+        "898700000000 8b8700000000 8b8f00000000 29c8 c1f804 "
+        "25ffff0000 898700000000 89ca 81e2ffff0000 899700000000 "
+        "8b8700000000 25ffff0000 898700000000 8b9700000000 "
+        "899700000000 8b9700000000 899700000000"
+    )
+    expected = core + b"\xeb\x62" + b"\x90" * 98 + b"\x5a"
+    if (
+        len(encoded) != expected_length
+        or normalized_hash(body) != expected_hash
+        or encoded != expected
+        or source.count("A = [SPu]; A & 65535; [SPax] = A;") != 2
+        or source.count("A = [SPv]; A & 65535; [SPdx] = A;") != 2
+    ):
+        return False
+
+    def signed32(value: int) -> int:
+        value &= 0xFFFFFFFF
+        return value - 0x100000000 if value & 0x80000000 else value
+
+    for old_u, old_v, new_u, new_v, old_d in (
+        (0, 0, 0, 0, 0),
+        (0xABCD, 0x1234, 0xBCDE, 0x3456, 0x89ABCDEF),
+        (0x7FFFFFFF, 0x80000000, 0x80000000, 0x7FFFFFFF, 1),
+        (0xFFFFFFFF, 0x00010000, 0, 0xFFFF0000, 0xFFFFFFFF),
+    ):
+        source_si = (signed32(new_v - old_v) >> 4) & 0xFFFF
+        source_bp = (signed32(new_u - old_u) >> 4) & 0xFFFF
+        source_state = (
+            source_si, source_bp, old_u & 0xFFFF, old_v & 0xFFFF,
+            new_u, new_v,
+        )
+        native_state = (
+            (signed32(new_v - old_v) >> 4) & 0xFFFF,
+            (signed32(new_u - old_u) >> 4) & 0xFFFF,
+            old_u & 0xFFFF, old_v & 0xFFFF, new_u, new_v,
+        )
+        source_registers = (old_v & 0xFFFF, old_u, old_d)
+        native_registers = (old_v & 0xFFFF, old_u, old_d)
+        source_flags = (old_v & 0xFFFF) == 0
+        native_flags = (old_v & 0xFFFF) == 0
+        if ((native_state, native_registers, native_flags) !=
+                (source_state, source_registers, source_flags)):
+            return False
+    return True
+
+
 def terrain_pixel_loops_preserve_samples(source: str) -> bool:
     """Check the opaque terrain loops retain exact UV and pixel semantics."""
     if (
-        source.count("A = [SPu]; A & 65535; [SPax] = A;") != 4
-        or source.count("A = [SPv]; A & 65535; [SPdx] = A;") != 4
+        source.count("A = [SPu]; A & 65535; [SPax] = A;") != 2
+        or source.count("A = [SPv]; A & 65535; [SPdx] = A;") != 2
     ):
         return False
     for label, (expected_length, expected_hash, tail_nops) in (
@@ -1365,6 +1434,12 @@ def main() -> int:
                   staged_texture.replace(
                       "DD 9E C0 07 00 00", "DD 9E C8 07 00 00", 1)),
               "terrain UV separates exact binary64/binary32 spills from reloads")
+        check(terrain_unpack_native_preserves_block_state(staged_texture) and
+              not terrain_unpack_native_preserves_block_state(
+                  staged_texture.replace(
+                      "89 CA\n\t    81 E2 FF FF 00 00",
+                      "89 C2\n\t    81 E2 FF FF 00 00", 1)),
+              "native terrain UV unpack preserves exact block state")
         check(edges_native_retains_binary64_accumulator(staged_texture) and
               not edges_native_retains_binary64_accumulator(
                   staged_texture.replace(

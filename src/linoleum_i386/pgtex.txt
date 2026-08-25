@@ -1060,6 +1060,50 @@
 	}
 	end;
 
+"PG terrain unpack native"
+	( Publish one block's exact 16-bit UV deltas and live accumulators after the
+	  x87 endpoint update.  D is restored; final A, C and flags match the source
+	  sequence so both opaque and mapped-transparent terrain paths can share it. )
+	{
+	    52
+	    8B 87 <dSPvn mtp bytesperunit>
+	    8B 8F <dSPv mtp bytesperunit>
+	    29 C8
+	    C1 F8 04
+	    25 FF FF 00 00
+	    89 87 <dSPsi mtp bytesperunit>
+	    8B 87 <dSPun mtp bytesperunit>
+	    8B 8F <dSPu mtp bytesperunit>
+	    29 C8
+	    C1 F8 04
+	    25 FF FF 00 00
+	    89 87 <dSPbp mtp bytesperunit>
+	    89 CA
+	    81 E2 FF FF 00 00
+	    89 97 <dSPax mtp bytesperunit>
+	    8B 87 <dSPv mtp bytesperunit>
+	    25 FF FF 00 00
+	    89 87 <dSPdx mtp bytesperunit>
+	    8B 97 <dSPun mtp bytesperunit>
+	    89 97 <dSPu mtp bytesperunit>
+	    8B 97 <dSPvn mtp bytesperunit>
+	    89 97 <dSPv mtp bytesperunit>
+	    ( Preserve downstream compiled addresses after replacing both source unpackers. )
+	    EB 62
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90
+	    5A
+	}
+	end;
+
 "PG terrain row"
 	? [SPsec] <= 0 -> PG terrain row end;
 	A = [SPsec]; ? A > 16 -> PG terrain row complete;
@@ -1070,11 +1114,7 @@
 	A = [SPsec]; A - 16; [SPsec] = A;
 	A = [SPcl]; ? A = 0 -> PG terrain row;
 	=> PG uv next;
-	A = [SPvn]; C = [SPv]; A - C; A >> 4; A & 65535; [SPsi] = A;
-	A = [SPun]; C = [SPu]; A - C; A >> 4; A & 65535; [SPbp] = A;
-	A = [SPu]; A & 65535; [SPax] = A;
-	A = [SPv]; A & 65535; [SPdx] = A;
-	[SPu] = [SPun]; [SPv] = [SPvn];
+	=> PG terrain unpack native;
     "PG terrain pixel"
 	A = [SPflar]; A & 1; ? A != 0 -> PG mapped transparent pixel;
 	=> PG terrain pixel native;
@@ -1097,11 +1137,7 @@
 	A = [SPcl]; ? A < 2 -> PG terrain crow;
 	A > 1; [SPcl] = A;
 	=> PG uv next;
-	A = [SPvn]; C = [SPv]; A - C; A >> 4; A & 65535; [SPsi] = A;
-	A = [SPun]; C = [SPu]; A - C; A >> 4; A & 65535; [SPbp] = A;
-	A = [SPu]; A & 65535; [SPax] = A;
-	A = [SPv]; A & 65535; [SPdx] = A;
-	[SPu] = [SPun]; [SPv] = [SPvn];
+	=> PG terrain unpack native;
 	A = [SPdi]; [SPsave] = A;
     "PG terrain cull pixel"
 	A = [SPflar]; A & 1; ? A != 0 -> PG mapped transparent cull pixel;
