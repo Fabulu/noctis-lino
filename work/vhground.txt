@@ -6368,25 +6368,45 @@
 "VHGND tree polar float vertex"
 	=> VHGND tree sincos;
 	---->;
-	=> XReset;
-	[FS0] = [VHVcos]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
-	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
-	[FS0] = [VHGNDtreerad]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
-	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
-	[FS0] = [VHGNDtreecx]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore; => XToF32;
+	[PGFt] = [VHVcos]; [PGFu] = [VHGNDtreecx]; => VHGND tree polar madd;
 	[VHGNDtreepx] = [FS0];
-	=> XReset;
-	[FS0] = [VHVsin]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
-	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
-	[FS0] = [VHGNDtreerad]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
-	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
-	[FS0] = [VHGNDtreecz]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore; => XToF32;
+	[PGFt] = [VHVsin]; [PGFu] = [VHGNDtreecz]; => VHGND tree polar madd;
 	[VHGNDtreepz] = [FS0];
 	<----;
 	A = FSINX; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreepx]; => PGF setf32;
 	A = FSINY; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreecy]; => PGF setf32;
 	A = FSINZ; A + [VHGNDvi]; [PGFi] = A; [PGFt] = [VHGNDtreepz]; => PGF setf32;
 	[VHGNDvi]+;
+	end;
+
+"VHGND tree polar madd"
+	( Every finite binary32 product is exact after a binary64 spill: it has at
+	  most 48 significant bits.  The following sum can differ from the p64
+	  source schedule only when its p53 spill lands exactly on a binary32
+	  rounding midpoint.  For a normal binary64 that means discarded fraction
+	  bits 28..0 are exactly 10000000h.  Subnormal-range results and nonfinite
+	  inputs take the complete p64 path as well. )
+	A = [PGFt]; A & 7F800000h; ? A = 7F800000h -> VHGND tree polar madd p64;
+	A = [PGFu]; A & 7F800000h; ? A = 7F800000h -> VHGND tree polar madd p64;
+	A = [VHGNDtreerad]; A & 7F800000h; ? A = 7F800000h -> VHGND tree polar madd p64;
+	[FS0] = [PGFt]; => FLoadF32;
+	A = [FA0]; [FB0] = A; A = [FA1]; [FB1] = A;
+	[FS0] = [VHGNDtreerad]; => FLoadF32; [FA0] *: [FB0];
+	A = [FA0]; [FB0] = A; A = [FA1]; [FB1] = A;
+	[FS0] = [PGFu]; => FLoadF32; [FA0] +: [FB0];
+	A = [FA1]; A > 20; A & 7FFh; C = A;
+	? C < 897 -> VHGND tree polar madd p64;
+	A = [FA0]; A & 1FFFFFFFh; ? A = 10000000h -> VHGND tree polar madd p64;
+	~: [FA0]; => FStoreF32;
+	end;
+
+"VHGND tree polar madd p64"
+	=> XReset;
+	[FS0] = [PGFt]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [VHGNDtreerad]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	[FS0] = [PGFu]; => FLoadF32; A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore; => XToF32;
 	end;
 
 "VHGND tree trig init"

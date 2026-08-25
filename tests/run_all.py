@@ -83,6 +83,7 @@ TESTS = [
     ("test_geoconv_zero.py", "zero geometry numerators bypass the normalized-only quotient core without changing nonzero results or FP state"),
     ("test_suseed_zero.py", "zero surface contrast numerators bypass the normalized-only quotient core without changing nonzero results or FP state"),
     ("test_grnd_zero.py", "zero tree-parameter numerators bypass the normalized-only quotient core without changing historical scales or FP state"),
+    ("test_tree_polar_madd.py", "guarded p53 tree polar multiply-adds fall back on every binary32 midpoint and remain exact against the p64 schedule"),
     ("test_raster.py", "Wave 6a: rasteriser pages byte-exact over 64,000 pixels; projection measured at delta 0"),
     ("test_spheres.py", "Wave 6b: spheres, background and .NCC loading byte-exact over 2.56 MB of pages; the table's projective model bounded and cross-validated"),
     ("test_surface.py", "Wave 7a: surface() texture byte-exact lino==spec==cref on 10 captures and 14 synthetics; 17 sabotages caught; graded against NIV+ 2.3, NOT 1996"),
