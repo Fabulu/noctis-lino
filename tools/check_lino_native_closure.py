@@ -104,13 +104,13 @@ FLOAT_SIGNATURES = {
     ),
 }
 
-# The direct terrain schedules are deliberately large.  A count plus an ordered-line
-# digest pins them just as strictly as the readable tuples above without copying
-# the complete exact schedules into this policy file.
+# The direct terrain basis is deliberately large.  A count plus an ordered-line
+# digest pins it just as strictly as the readable tuples above without copying
+# the complete exact schedule into this policy file.
 FLOAT_SIGNATURE_HASHES = {
     "work/pgproj.txt": (
-        148,
-        "c9f8b2822db8cfd756e242ad3d5db875621ec18b0c73c3d4ae6f4596672ebf11",
+        140,
+        "53abe0a9a02c8da38c99b6293b8df6e4b6a43fc5ca4ba1ab53a557056212df6d",
     ),
 }
 
