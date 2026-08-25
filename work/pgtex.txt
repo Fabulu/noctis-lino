@@ -175,24 +175,24 @@
 	( kx = (float)(x2-x1) / (float)(y2-y1).
 	  fild/fisub: the subtraction is done in INTEGERS and converted
 	  ONCE.  kx is a float variable and is narrowed. )
-	A = [EWx2]; C = [EWx1]; A - C; [FI] = A; => IntToF;
+	A = [EWx2]; C = [EWx1]; A - C; [FI] = A; [FA0] := [FI];
 	[FT0] = [FA0]; [FT1] = [FA1];
-	A = [EWy2]; C = [EWy1]; A - C; [FI] = A; => IntToF;
+	A = [EWy2]; C = [EWy1]; A - C; [FI] = A; [FA0] := [FI];
 	[FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [FT0]; [FA1] = [FT1];
-	=> FQuo;
+	[FA0] /: [FB0];
 	[PGFi] = FSKX; => PGF narrow;
 
 	( if (y1 < lbyl) { ity = lbyl; x1 = round(x1 + (lbyl-y1)*kx) } )
 	A = [EWy1]; ? A >= PGLBY -> PG ew nocr;
 	[EWity] = PGLBY;
-	[FI] = [EWx1]; => IntToF;
+	[FI] = [EWx1]; [FA0] := [FI];
 	[FT0] = [FA0]; [FT1] = [FA1];
-	A = PGLBY; C = [EWy1]; A - C; [FI] = A; => IntToF;
+	A = PGLBY; C = [EWy1]; A - C; [FI] = A; [FA0] := [FI];
 	[PGFi] = FSKX; => PGF mul;
 	[FB0] = [FT0]; [FB1] = [FT1];
-	=> FAdd;
-	=> PGF int;
+	[FA0] +: [FB0];
+	[FI] =: [FA0];
 	[EWx1] = [FI];
 	-> PG ew crct;
     "PG ew nocr"
@@ -206,7 +206,7 @@
     "PG ew crct2"
 
 	( bndx = (float)x1, and it stays in a REGISTER from here on )
-	[FI] = [EWx1]; => IntToF;
+	[FI] = [EWx1]; [FA0] := [FI];
 	[PGFi] = FSBNDX; => PGF sa;
 
 	( "cmp di,cx / jnl noifor" - the loop runs only when ity < jty.
