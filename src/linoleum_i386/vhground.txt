@@ -6829,15 +6829,15 @@
 	    8B 9F <dVHGNDx mtp bytesperunit>
 	    C1 E3 0E
 	    8B 8F <dVHGNDlodstep mtp bytesperunit>
+	    89 CD
 	    C1 E1 0E
 	    01 D9
 	    8B 97 <dVHGNDz mtp bytesperunit>
 	    C1 E2 0E
-	    8B AF <dVHGNDlodstep mtp bytesperunit>
 	    C1 E5 0E
 	    01 D5
 	    83 BF <dVHGNDvctri mtp bytesperunit> 00
-	    0F 85 B9 00 00 00
+	    0F 85 BD 00 00 00
 	    89 9F <dFI mtp bytesperunit>
 	    DB 87 <dFI mtp bytesperunit>
 	    DD 96 E0 07 00 00
@@ -6871,8 +6871,8 @@
 	    DB 87 <dFI mtp bytesperunit>
 	    DD 96 10 08 00 00
 	    DD 9F <dFA0 mtp bytesperunit>
-	    EB 70
-	    90 90 90 90 90 90
+	    EB 74
+	    90 90 90 90 90 90 90 90 90 90
 	    DD 86 E8 07 00 00
 	    DD 9E E0 07 00 00
 	    DD 86 08 08 00 00

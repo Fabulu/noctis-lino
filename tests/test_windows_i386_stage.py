@@ -41,7 +41,7 @@ TERRAIN_NATIVE_CONTRACT = {
     "VHGND greenmush inner": (
         0, 1, "5cf4a7498af217e76473d5a9ed8ff22417cc1de56219fd2b00c8d8fac186b326"),
     "VHGND terrain triangle load native": (
-        2, 1, "5d1f89328ba375dbf57cbf0e790afbec083dcdf3ae260d9f3ed9823e00e87f8f"),
+        2, 1, "d1426c7a8d1a1a535732f707606b0fd47be483a86c0f9e6860d30c1d4a2ad273"),
     "VHGND tile depth": (
         1, 1, "461de6bb0c4102d354386a47a6d2174d3ff2e993ebc3a08440453c8356f16fef"),
     "VHGND tile shade": (
@@ -241,6 +241,43 @@ def triangle_loader_branches_land_on_instruction_boundaries(source: str) -> bool
         short[1:], "little", signed=True)
     return (near_target == by_line[second_arm][0] and
             short_target == by_line[final_tail][0])
+
+
+def triangle_loader_reuses_lod_register(source: str) -> bool:
+    """Check EBP reuses ECX's unshifted LOD value with exact live state."""
+    service = labelled_service(source, "VHGND terrain triangle load native")
+    bodies = re.findall(r"\{([^}]*)\}", service, flags=re.DOTALL)
+    body = " ".join(bodies[0].split()) if len(bodies) == 1 else ""
+    prefix = (
+        "8B 8F <dVHGNDlodstep mtp bytesperunit> 89 CD C1 E1 0E 01 D9 "
+        "8B 97 <dVHGNDz mtp bytesperunit> C1 E2 0E C1 E5 0E 01 D5"
+    )
+    if (
+        len(bodies) != 1
+        or body.count(prefix) != 1
+        or body.count("<dVHGNDlodstep mtp bytesperunit>") != 1
+    ):
+        return False
+
+    mask = 0xFFFFFFFF
+    for x in (0, 1, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF):
+        for z in (0, 1, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF):
+            for lod in (1, 8, 16):
+                source_ebx = (x << 14) & mask
+                source_ecx = (source_ebx + ((lod << 14) & mask)) & mask
+                source_edx = (z << 14) & mask
+                source_ebp = (((lod << 14) & mask) + source_edx) & mask
+
+                native_ecx = lod
+                native_ebp = native_ecx
+                native_ebx = (x << 14) & mask
+                native_ecx = ((native_ecx << 14) + native_ebx) & mask
+                native_edx = (z << 14) & mask
+                native_ebp = ((native_ebp << 14) + native_edx) & mask
+                if ((native_ebx, native_ecx, native_edx, native_ebp) !=
+                        (source_ebx, source_ecx, source_edx, source_ebp)):
+                    return False
+    return True
 
 
 def smooth64_native_contract(source: str) -> tuple[int, int, int, str, str]:
@@ -1293,15 +1330,15 @@ def first_triangle_height_multistore_preserves_bits(source: str) -> bool:
         "DB 87 <dFI mtp bytesperunit> "
         "DD 96 10 08 00 00 "
         "DD 9F <dFA0 mtp bytesperunit> "
-        "EB 70 "
-        "90 90 90 90 90 90 "
+        "EB 74 "
+        "90 90 90 90 90 90 90 90 90 90 "
         "DD 86 E8 07 00 00"
     )
     if (
         len(bodies) != 1
         or body.count(multistore) != 1
         or "DD 9E 10 08 00 00 DD 86 10 08 00 00" in body
-        or body.split().count("90") != 6
+        or body.split().count("90") != 10
     ):
         return False
 
@@ -1542,6 +1579,11 @@ def main() -> int:
               "streamlined x87 admission preserves every sampled source depth bin")
         check(cached_normal_widen_roundtrips_binary32(),
               "direct cached-normal loads preserve sampled binary32 bit patterns")
+        check(triangle_loader_reuses_lod_register(staged_terrain) and
+              not triangle_loader_reuses_lod_register(
+                  staged_terrain.replace(
+                      "89 CD\n\t    C1 E1 0E", "89 CE\n\t    C1 E1 0E", 1)),
+              "terrain triangle loader reuses exact unshifted LOD state")
         check(second_triangle_reuse_preserves_coordinate_bits(),
               "second terrain triangle reuses exact sampled P2/P4 coordinates")
         check(first_triangle_height_multistore_preserves_bits(staged_terrain) and
@@ -1555,9 +1597,9 @@ def main() -> int:
                   staged_terrain) and
               not triangle_loader_branches_land_on_instruction_boundaries(
                   staged_terrain.replace(
-                      "0F 85 B9 00 00 00", "0F 85 B6 00 00 00", 1)) and
+                      "0F 85 BD 00 00 00", "0F 85 BA 00 00 00", 1)) and
               not triangle_loader_branches_land_on_instruction_boundaries(
-                  staged_terrain.replace("EB 70", "EB 6F", 1)),
+                  staged_terrain.replace("EB 74", "EB 73", 1)),
               "triangle branch verifier rejects off-boundary arm and tail targets")
         check(cached_bounds_skip_duplicate_preserves_state(),
               "three-entry terrain bounds preserve closed-walk bounds and EAX")
