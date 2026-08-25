@@ -110,7 +110,10 @@
 	end;
 
       ( IntToF - FA <- (double)FI.  fild of a dword is exact for every
-	int32, at every precision control, so this one cannot round. )
+	int32, at every precision control, so this one cannot round.  Integers
+	through 2^24 are also exact in binary32: use Lino's native conversion
+	there, widen its bit image exactly, and retain the integer path outside
+	that interval. )
 
 "IntToF"
 	---->;
@@ -118,6 +121,12 @@
 	<----;
 	end;
     "IntToF body"
+	A = [FI]; ? A > 16777216 -> IntToF exact;
+	C = 0; C - 16777216; ? A < C -> IntToF exact;
+	[CVTMP] = [FS0]; [FS0] ,= [FI]; => CV F32 to F64;
+	[FS0] = [CVTMP];
+	end;
+    "IntToF exact"
 	=> CV int to F64;
 	end;
 

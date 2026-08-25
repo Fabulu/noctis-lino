@@ -55,6 +55,9 @@ FLOAT_SIGNATURES = {
         "[RECT V Start Green] ++ [RECT V Delta Green];",
         "[RECT V Start Blue] ++ [RECT V Delta Blue];",
     ),
+    "work/fp/fpconv.txt": (
+        "[CVTMP] = [FS0]; [FS0] ,= [FI]; => CV F32 to F64;",
+    ),
     "work/supaint.txt": (
         "[SFpx] -- [KF360];",
         "[SFpx] ++ [KF360];",

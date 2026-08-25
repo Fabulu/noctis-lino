@@ -1,0 +1,81 @@
+      ( IntToF guarded native-conversion boundary probe. )
+
+"libraries"
+
+	fpabi;
+	fpctl;
+	fpconv;
+
+"directors"
+
+	program name = { inttof };
+	unit = 32;
+
+"variables"
+
+	result file name = { inttof-out.bin };
+
+"workspace"
+
+	results = 33;
+
+"programme"
+
+	A = 07FC12345h; [FS0] = A;
+	A = 0; A - 2147483647; A-; [FI] = A; => IntToF;
+	A = [FA0]; [results plus 0] = A; A = [FA1]; [results plus 1] = A; A = [FS0]; [results plus 2] = A;
+
+	A = 07FC12345h; [FS0] = A;
+	A = 2147483647; [FI] = A; => IntToF;
+	A = [FA0]; [results plus 3] = A; A = [FA1]; [results plus 4] = A; A = [FS0]; [results plus 5] = A;
+
+	A = 07FC12345h; [FS0] = A;
+	A = 0; A - 16777217; [FI] = A; => IntToF;
+	A = [FA0]; [results plus 6] = A; A = [FA1]; [results plus 7] = A; A = [FS0]; [results plus 8] = A;
+
+	A = 07FC12345h; [FS0] = A;
+	A = 0; A - 16777216; [FI] = A; => IntToF;
+	A = [FA0]; [results plus 9] = A; A = [FA1]; [results plus 10] = A; A = [FS0]; [results plus 11] = A;
+
+	A = 07FC12345h; [FS0] = A;
+	A = 0; A - 16777215; [FI] = A; => IntToF;
+	A = [FA0]; [results plus 12] = A; A = [FA1]; [results plus 13] = A; A = [FS0]; [results plus 14] = A;
+
+	A = 07FC12345h; [FS0] = A;
+	A = 0; A - 1; [FI] = A; => IntToF;
+	A = [FA0]; [results plus 15] = A; A = [FA1]; [results plus 16] = A; A = [FS0]; [results plus 17] = A;
+
+	A = 07FC12345h; [FS0] = A;
+	[FI] = 0; => IntToF;
+	A = [FA0]; [results plus 18] = A; A = [FA1]; [results plus 19] = A; A = [FS0]; [results plus 20] = A;
+
+	A = 07FC12345h; [FS0] = A;
+	[FI] = 1; => IntToF;
+	A = [FA0]; [results plus 21] = A; A = [FA1]; [results plus 22] = A; A = [FS0]; [results plus 23] = A;
+
+	A = 07FC12345h; [FS0] = A;
+	A = 16777215; [FI] = A; => IntToF;
+	A = [FA0]; [results plus 24] = A; A = [FA1]; [results plus 25] = A; A = [FS0]; [results plus 26] = A;
+
+	A = 07FC12345h; [FS0] = A;
+	A = 16777216; [FI] = A; => IntToF;
+	A = [FA0]; [results plus 27] = A; A = [FA1]; [results plus 28] = A; A = [FS0]; [results plus 29] = A;
+
+	A = 07FC12345h; [FS0] = A;
+	A = 16777217; [FI] = A; => IntToF;
+	A = [FA0]; [results plus 30] = A; A = [FA1]; [results plus 31] = A; A = [FS0]; [results plus 32] = A;
+
+	[File Name] = result file name;
+	[File Position] = 0;
+	[File Command] = WRITE;
+	[Block Pointer] = results;
+	[Block Size] = 33; [Block Size] * BYTES PER UNIT;
+	isocall;
+
+	[File Name] = result file name;
+	[File Position] = 0;
+	[File Command] = SET SIZE;
+	[File Size] = 33; [File Size] * BYTES PER UNIT;
+	isocall;
+
+	end;

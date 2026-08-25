@@ -171,7 +171,7 @@ def main():
           "the complete production closure contains zero native blocks")
     inventory = gate.float_inventory(closure)
     check(inventory == gate.FLOAT_SIGNATURES and not gate.float_errors(closure),
-          "the 36 reviewed ordinary Lino float operations remain in three files")
+          "the 37 reviewed ordinary Lino float operations remain in four files")
     check(all("??" not in line
               for lines in inventory.values() for line in lines),
           "production has no target-dependent floating comparison")
