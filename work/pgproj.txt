@@ -875,53 +875,64 @@
 	A = PGSCRE; A + PGDOFF; [PGdi] = A; [PGval] = [SPescr];  => PG store;
 	[SPi] = [BXminy];
     "PG tr row"
+	( Fixed-slot form of the same exact row schedule.  Every arithmetic operator
+	  still performs one PC64 operation followed by its binary64 spill, while ~:
+	  remains the original float-variable narrowing point.  Avoiding the PGFi
+	  stores, address loops, and tiny PGF calls matters across thousands of rows. )
+
 	( the shared factor, WIDE )
-	A = [SPi]; C = ipart; C + A; [FI] = [C]; => PGF fromint;
-	[PGFi] = FSXC; => PGF sub;
-	[PGFi] = FSUNO; => PGF add;
-	[PGFi] = FSW3; => PGF sa;
+	A = [SPi]; C = ipart; C + A; [FI] = [C]; [FA0] := [FI];
+	A = fw; A + 38; [FA0] -: [A];
+	A = fw; A + 36; [FA0] +: [A];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
 
 	( _z = oz + hz*(i - y_centro) + vz*factor )
-	[PGFi] = FSVZ; => PGF mul;
-	[PGFi] = FSW0; => PGF sa;
-	[FI] = [SPi]; => PGF fromint;
-	[PGFi] = FSYC; => PGF sub;
-	[PGFi] = FSHZ; => PGF mul;
-	[PGFi] = FSW0; => PGF add;
-	[PGFi] = FSOZ; => PGF add;
-	[PGFi] = FSW1; => PGF sa;
-	[PGFi] = FSZ; => PGF narrow;
+	A = fw; A + 10; [FA0] *: [A];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FI] = [SPi]; [FA0] := [FI];
+	A = fw; A + 40; [FA0] -: [A];
+	A = fw; A + 4; [FA0] *: [A];
+	A = fw; A + 496; [FA0] +: [A];
+	A = fw; A + 16; [FA0] +: [A];
+	[fw plus 498] = [FA0]; [fw plus 499] = [FA1];
+	~: [FA0]; [fw plus 30] = [FA0]; [fw plus 31] = [FA1];
 
 	( k4 = 1/wide_z, then narrowed )
-	[PGFi] = FSW1; => PGF a; [PGFi] = FSUNO; => PGF rquo;
-	[PGFi] = FSK4; => PGF narrow;
+	[FA0] = [fw plus 36]; [FA1] = [fw plus 37];
+	A = fw; A + 498; [FA0] /: [A];
+	~: [FA0]; [fw plus 24] = [FA0]; [fw plus 25] = [FA1];
 
 	( _x = ox + hx*(i - y_centro) + vx*factor )
-	[PGFi] = FSW3; => PGF a;
-	[PGFi] = FSVX; => PGF mul;
-	[PGFi] = FSW0; => PGF sa;
-	[FI] = [SPi]; => PGF fromint;
-	[PGFi] = FSYC; => PGF sub;
-	[PGFi] = FSHX; => PGF mul;
-	[PGFi] = FSW0; => PGF add;
-	[PGFi] = FSOX; => PGF add;
-	[PGFi] = FSX; => PGF narrow;
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
+	A = fw; A + 6; [FA0] *: [A];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FI] = [SPi]; [FA0] := [FI];
+	A = fw; A + 40; [FA0] -: [A];
+	A = fw; [FA0] *: [A];
+	A = fw; A + 496; [FA0] +: [A];
+	A = fw; A + 12; [FA0] +: [A];
+	~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];
 
-	[PGFi] = FSW3; => PGF a;
-	[PGFi] = FSVY; => PGF mul;
-	[PGFi] = FSW0; => PGF sa;
-	[FI] = [SPi]; => PGF fromint;
-	[PGFi] = FSYC; => PGF sub;
-	[PGFi] = FSHY; => PGF mul;
-	[PGFi] = FSW0; => PGF add;
-	[PGFi] = FSOY; => PGF add;
-	[PGFi] = FSY; => PGF narrow;
+	( _y = oy + hy*(i - y_centro) + vy*factor )
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
+	A = fw; A + 8; [FA0] *: [A];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FI] = [SPi]; [FA0] := [FI];
+	A = fw; A + 40; [FA0] -: [A];
+	A = fw; A + 2; [FA0] *: [A];
+	A = fw; A + 496; [FA0] +: [A];
+	A = fw; A + 14; [FA0] +: [A];
+	~: [FA0]; [fw plus 28] = [FA0]; [fw plus 29] = [FA1];
 
 	( u and v from the reloaded narrow x and y )
-	[PGFi] = FSX; => PGF a; [PGFi] = FSTX; => PGF mul;
-	[PGFi] = FSK4; => PGF mul; => PGF int; [SPu] = [FI];
-	[PGFi] = FSY; => PGF a; [PGFi] = FSTY; => PGF mul;
-	[PGFi] = FSK4; => PGF mul; => PGF int; [SPv] = [FI];
+	[FA0] = [fw plus 26]; [FA1] = [fw plus 27];
+	A = fw; A + 32; [FA0] *: [A];
+	A = fw; A + 24; [FA0] *: [A];
+	[FI] =: [FA0]; [SPu] = [FI];
+	[FA0] = [fw plus 28]; [FA1] = [fw plus 29];
+	A = fw; A + 34; [FA0] *: [A];
+	A = fw; A + 24; [FA0] *: [A];
+	[FI] =: [FA0]; [SPv] = [FI];
 
 	A = [SPi]; C = fpart; C + A; D = [C];
 	A = [SPi]; C = ipart; C + A; E = [C];
