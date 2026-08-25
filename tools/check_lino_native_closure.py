@@ -72,19 +72,19 @@ FLOAT_SIGNATURES = {
         "[FA0] := [FI];",
     ),
     "work/pgtex.txt": (
-        "A = FSK3; A + A; A + fw; [FA0] +: [A];",
+        "[FA0] +: [fw plus 22];",
         "~: [FA0]; [fw plus 30] = [FA0]; [fw plus 31] = [FA1];",
-        "A = FSK1; A + A; A + fw; [FA0] +: [A];",
+        "[FA0] +: [fw plus 18];",
         "~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];",
-        "A = FSK2; A + A; A + fw; [FA0] +: [A];",
+        "[FA0] +: [fw plus 20];",
         "~: [FA0]; [fw plus 28] = [FA0]; [fw plus 29] = [FA1];",
-        "A = FT0; [FA0] /: [A];",
+        "[FA0] /: [FT0];",
         "~: [FA0]; [fw plus 24] = [FA0]; [fw plus 25] = [FA1];",
-        "A = FSTX; A + A; A + fw; [FA0] *: [A];",
-        "A = FSK4; A + A; A + fw; [FA0] *: [A];",
+        "[FA0] *: [fw plus 32];",
+        "[FA0] *: [fw plus 24];",
         "[FI] =: [FA0]; [SPun] = [FI];",
-        "A = FSTY; A + A; A + fw; [FA0] *: [A];",
-        "A = FSK4; A + A; A + fw; [FA0] *: [A];",
+        "[FA0] *: [fw plus 34];",
+        "[FA0] *: [fw plus 24];",
         "[FI] =: [FA0]; [SPvn] = [FI];",
     ),
     "work/supaint.txt": (
@@ -110,7 +110,7 @@ FLOAT_SIGNATURES = {
 FLOAT_SIGNATURE_HASHES = {
     "work/pgproj.txt": (
         140,
-        "53abe0a9a02c8da38c99b6293b8df6e4b6a43fc5ca4ba1ab53a557056212df6d",
+        "030622b687a650618df5149ea470317751bfb91f543a1d51d08977d71af9ae4f",
     ),
 }
 
