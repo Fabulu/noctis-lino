@@ -2583,11 +2583,18 @@
 "VHGND terrain common input"
 	( Both terrain triangles share vertex 2.  Facing needs only this vertex once
 	  its static normal is cached; load the other two only on a cache miss or
-	  when the generic clipping path needs the complete triangle. )
+	  when the generic clipping path needs the complete triangle.  Its three
+	  fixed input slots can take the exact int32-to-binary64 conversions directly. )
 	[VHGNDvi] = 2;
-	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
-	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C; [VHGNDvv] = A; [VHGNDvslot] = FSINY; => VHGND vload;
-	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINZ; => VHGND vload;
+	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX;
+	[FI] = A; [FA0] := [FI]; [fw plus 508] = [FA0]; [fw plus 509] = [FA1];
+	A = [VHGNDs4]; A < VHGNDHS; C = A; A = 0; A - C;
+	[VHGNDvv] = A; [VHGNDvslot] = FSINY;
+	[FI] = A; [FA0] := [FI]; [fw plus 516] = [FA0]; [fw plus 517] = [FA1];
+	A = [VHGNDz]; A + [VHGNDlodstep]; A < 14;
+	[VHGNDvv] = A; [VHGNDvslot] = FSINZ;
+	[FI] = A; [FA0] := [FI]; [fw plus 524] = [FA0]; [fw plus 525] = [FA1];
+	[PGFi] = 262; A = fw; A + 524;
 	end;
 
 "VHGND terrain remaining input"
