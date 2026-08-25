@@ -101,6 +101,7 @@
 	VHTfacebase = 0; VHTfacestep = 0; VHTnextsc = 0;
 	VHTcamxsave = 0; VHTcamzsave = 0; VHTseedtilesave = 0;
 	VHTtrigready = 0; VHTtrigi = 0; VHTtriga0 = 0; VHTtriga1 = 0;
+	VHTdirindex = 0;
 	VHGNDgrassgroups = 0; VHGNDgrassfaces = 0; VHGNDgrasstotal = 0;
 	VHGNDgrassdistant = 0; VHGNDgrassrad = 0; VHGNDgrassrange = 0;
 	VHGNDgrassbx = 0; VHGNDgrassby = 0; VHGNDgrassbz = 0;
@@ -306,6 +307,8 @@
 	VHGNDtslayers = 6; VHGNDtsroot = 6; VHGNDtsocc = 6;
 	VHGNDtscount = 6; VHGNDtsbranch = 6; VHGNDtslseed = 6; VHGNDtsrange = 6;
 	VHTsintab = 361; VHTcostab = 361;
+	( Exact branch angles and their binary64 trig images for branch counts 1..4. )
+	VHTdirang = 10; VHTdircos = 20; VHTdirsin = 20;
 	VHGNDenvtext = 128;
 
 "programme"
@@ -5971,8 +5974,8 @@
 	  fpsoft immediately, then keep the multiply and add live in the
 	  extended image until the source's final binary32 store. )
 	---->;
-	[FS0] = [VHGNDtreeangle]; => FLoadF32; => FCos;
-	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [VHTdirindex]; A '* 2; C = VHTdircos; C + A;
+	[XU0] = [C]; C + 1; [XU1] = [C]; => XFromF64;
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
 	[FS0] = [VHGNDtreerangef]; => FLoadF32;
 	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
@@ -5980,8 +5983,8 @@
 	[FS0] = [VHGNDtreebxf]; => FLoadF32;
 	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XAddCore;
 	=> XToF32; [VHGNDtreeexf] = [FS0];
-	[FS0] = [VHGNDtreeangle]; => FLoadF32; => FSin;
-	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	A = [VHTdirindex]; A '* 2; C = VHTdirsin; C + A;
+	[XU0] = [C]; C + 1; [XU1] = [C]; => XFromF64;
 	A = [XS]; [YS] = A; A = [XE]; [YE] = A; A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
 	[FS0] = [VHGNDtreerangef]; => FLoadF32;
 	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64; => XMulCore;
@@ -6131,6 +6134,7 @@
 	  scaling 3000, reduction .75, width .15 and one/two/three/four child
 	  branches selected by the original depth-dependent bit mask. )
 	A = [VHGNDdepth]; ? A >= 3 -> VHGND bush distant;
+	=> VHGND tree trig init;
 	[VHGNDtreescale] = 3000; [VHGNDtreerange] = 2250;
 	[VHGNDtreebr] = 450; [VHGNDtreeer] = 337; [VHGNDtreefaces] = 3;
 	[SUfmask] = 3; => VHGND render random; [VHGNDtreeorient] = C;
@@ -6174,6 +6178,16 @@
 	end;
 
 "VHGND tree direction"
+	=> VHGND tree direction index;
+	A = VHTdirang; A + [VHTdirindex]; [VHGNDtreeangle] = [A];
+	end;
+
+"VHGND tree direction index"
+	A = [VHGNDtreebranches]; C = A; C - 1; A '* C; A / 2;
+	A + [VHGNDtreebranch]; [VHTdirindex] = A;
+	end;
+
+"VHGND tree direction build"
 	( b_angle_delta=(float)(2*M_PI/subdivs), with each step narrowed. )
 	[PGFt] = 40C90FDBh; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
 	[FI] = [VHGNDtreebranches]; => PGF fromint; => VHGND fb fa;
@@ -6182,15 +6196,14 @@
 	[FB0] = [GRK050L]; [FB1] = [GRK050H]; => FMul;
 	=> F32Narrow; => FStoreF32; [VHGNDtreeangle] = [FS0];
 	[VHGNDvi] = 0;
-    "VHGND tree direction advance"
-	A = [VHGNDvi]; ? A '>= [VHGNDtreebranch] -> VHGND tree direction trig;
+    "VHGND tree direction build advance"
+	A = [VHGNDvi]; ? A '>= [VHGNDtreebranch] -> VHGND tree direction build done;
 	[PGFt] = [VHGNDtreeangle]; => PGF ldf32; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSW1; [PGFt] = [VHGNDtmp]; => PGF setf32;
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF add;
 	=> F32Narrow; => FStoreF32; [VHGNDtreeangle] = [FS0];
-	[VHGNDvi]+; -> VHGND tree direction advance;
-    "VHGND tree direction trig"
-    "VHGND tree direction done"
+	[VHGNDvi]+; -> VHGND tree direction build advance;
+    "VHGND tree direction build done"
 	end;
 
 "VHGND tree limb"
@@ -6391,6 +6404,25 @@
 	[PGFi] = FSW0; => PGF a; [FB0] = VHVDEGLO; [FB1] = VHVDEGHI; => FAdd;
 	[VHTtriga0] = [FA0]; [VHTtriga1] = [FA1];
 	[VHTtrigi]+; A = [VHTtrigi]; ? A <= 360 -> VHGND tree trig build;
+
+	( Build the ten reachable branch directions with the same binary32
+	  recurrence, then retain the exact binary64 transcendental images. )
+	[VHGNDtreebranches] = 1;
+    "VHGND tree direction cache count"
+	[VHGNDtreebranch] = 0;
+    "VHGND tree direction cache branch"
+	=> VHGND tree direction build; => VHGND tree direction index;
+	C = VHTdirang; C + [VHTdirindex]; [C] = [VHGNDtreeangle];
+	[FS0] = [VHGNDtreeangle]; => FLoadF32; => FCos;
+	A = [VHTdirindex]; A '* 2; C = VHTdircos; C + A;
+	[C] = [FA0]; C + 1; [C] = [FA1];
+	[FS0] = [VHGNDtreeangle]; => FLoadF32; => FSin;
+	A = [VHTdirindex]; A '* 2; C = VHTdirsin; C + A;
+	[C] = [FA0]; C + 1; [C] = [FA1];
+	[VHGNDtreebranch]+; A = [VHGNDtreebranch];
+	? A < [VHGNDtreebranches] -> VHGND tree direction cache branch;
+	[VHGNDtreebranches]+; A = [VHGNDtreebranches];
+	? A <= 4 -> VHGND tree direction cache count;
 	[VHTtrigready] = 1;
     "VHGND tree trig init done"
 	end;

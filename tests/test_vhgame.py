@@ -3743,6 +3743,9 @@ def main() -> int:
             '"VHGND tree polar vertex"', "A + 72; [VHGNDtreeangle] = A;",
             "A - 36; [VHGNDtreeangle] = A;",
             "[VHVangle] = [VHGNDtreeangle]; => VHV sincos;", '"VHGND tree trig init"',
+            "=> VHGND tree direction build; => VHGND tree direction index;",
+            "A = VHTdirang; A + [VHTdirindex]; [VHGNDtreeangle] = [A];",
+            "A = [VHTdirindex]; A '* 2; C = VHTdircos; C + A;",
             '"VHGND tree leaf tip vertex"', '"VHGND tree polar point"',
             '"VHGND tree wind"', "[VHGNDtreewindx] = [FS0];",
             "[VHGNDtreewindz] = [FS0];",
@@ -3764,6 +3767,7 @@ def main() -> int:
             "[VHGNDmushxf] = [VHGNDtreepx]; [VHGNDmushyf] = [VHGNDtreeleafdrop];",
             "[VHGNDmushzf] = [VHGNDtreepz]; [VHGNDmushfloat] = 1;",
         ))
+        and "VHTdirang = 10; VHTdircos = 20; VHTdirsin = 20;" in ground
         and all(token not in tree for token in (
             "=> FToIntChop; [VHGNDtreebx] = [FI];",
             "=> FToIntChop; [VHGNDtreeby] = [FI];",
