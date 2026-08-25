@@ -2713,9 +2713,9 @@
 	end;
 
 "VHGND terrain cached bounds"
-	( This is projectmap's four-entry min/max walk, including its seed values
-	  and comparison order.  Slot three is the closing duplicate below. )
-	D = mp; [VHGNDmpbase] = D; [VHGNDmpi] = 4;
+	( This is projectmap's min/max walk over the three exact projected
+	  vertices, with the same seed values and comparison order. )
+	D = mp; [VHGNDmpbase] = D; [VHGNDmpi] = 3;
 	[PJminx] = 311; [PJmaxx] = 5; [BXminy] = 190; [BXmaxy] = 10;
     "VHGND terrain cached bounds point"
 	C = [D]; A = [PJminx]; ? C >= A -> VHGND terrain cached minx ready; [PJminx] = C;
@@ -2727,7 +2727,7 @@
 	A = [BXmaxy]; ? C <= A -> VHGND terrain cached maxy ready; [BXmaxy] = C;
     "VHGND terrain cached maxy ready"
 	D + 2; [VHGNDmpi]-; A = [VHGNDmpi]; ? A > 0 -> VHGND terrain cached bounds point;
-	[PJvr] = 4;
+	[PJvr] = 3;
 	end;
 
 "VHGND terrain mapped"
@@ -2781,13 +2781,8 @@
 	=> VHGND terrain vertex load;
 	[VHGNDvi]+; A = [VHGNDvi]; ? A < 3 -> VHGND terrain mapped load;
 
-	( Preserve polymap's four-entry closing edge in every rotated, projected,
-	  visibility and ultima workspace consumed downstream. )
-	A = FSRXF; A + 2; A + A; A + fw; C = [A]; [A plus 2] = C; C = [A plus 1]; [A plus 3] = C;
-	A = FSRYF; A + 2; A + A; A + fw; C = [A]; [A plus 2] = C; C = [A plus 1]; [A plus 3] = C;
-	A = FSRZF; A + 2; A + A; A + fw; C = [A]; [A plus 2] = C; C = [A plus 1]; [A plus 3] = C;
-	A = mp; C = [A plus 4]; [A plus 6] = C; C = [A plus 5]; [A plus 7] = C;
-	A = rwf; [A plus 3] = 1; [PJdoflag] = 4;
+	( The specialized polymap entry consumes the three real rotated/projected
+	  vertices directly.  PG edges closes vertex 2 back to vertex 0 itself. )
 	=> VHGND terrain cached bounds;
 	[SPterrain] = 1; [PJpreproject] = 1; [PJnrv] = 3; => PG polymap;
 	[SPterrain] = 0; end;

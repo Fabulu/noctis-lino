@@ -943,11 +943,16 @@
 	end;
 
 "PG polymap"
+	( Preprojected terrain has already supplied the three exact rotated and
+	  projected vertices, proved them all in front of the near plane, and
+	  computed their screen box.  Enter with the true triangle counts: the
+	  generic path's slot-3 copies and zload are observably dead here. )
+	[PJgate] = 0;
+	A = [PJpreproject]; ? A != 0 -> PG pm preprojected terrain;
 	( nv == 3 duplicates the LAST vertex into slot 3, and it does so
 	  in the CALLER's arrays - polymap really does write x[3].  The
 	  caller zeroes slot 3 before the call; polymap then overwrites
 	  it from slot 2, and the order matters. )
-	[PJgate] = 0;
 	A = [PJnrv]; ? A != 3 -> PG pm r;
 -> PG pm duplicate input generic;
     "PG pm duplicate input generic"
@@ -957,7 +962,6 @@
     "PG pm r"
 	[PJmode] = 1;
 	[PJdx] = [PJnrv];
-	A = [PJpreproject]; ? A != 0 -> PG pm preloaded;
 	A = [PJdx]; ? A != 3 -> PG pm rotate four;
 	( A triangle's fourth input is the bitwise duplicate of vertex 2 above.
 	  Rotate the three unique inputs, then duplicate the resulting float slots
@@ -992,8 +996,12 @@
 	=> PJ zclip;
 	[PJgate] = 2;
 	A = [PJvr2]; ? A < 3 -> PG pm out;
+	-> PG pm 2d;
+    "PG pm preprojected terrain"
+	[PJmode] = 1; [PJdx] = 3; [PJnrv] = 3; [PJvr] = 3;
+	[PJvr2] = 3; [PJvr22] = 6; [PJgate] = 1;
+	-> PG pm projected;
     "PG pm 2d"
-	A = [PJpreproject]; ? A != 0 -> PG pm projected;
 	=> PJ projectmap;
     "PG pm projected"
 	[PJpreproject] = 0;
