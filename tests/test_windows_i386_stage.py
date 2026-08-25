@@ -116,13 +116,13 @@ TERRAIN_FACING_DOT_BODY_HASH = (
 PGTEX_TERRAIN_NATIVE_CONTRACT = {
     "PG terrain pixel native": (
         171,
-        "899c8fce26ad824d9b75c32d696b13241d04edae6cd48873cd05d4e485a5712e",
-        9,
+        "f990b24204f72b5fe4acbc0643ebbbdbf577b93dd8cd837227a6d9af66a90e3a",
+        10,
     ),
     "PG terrain cull pixel native": (
         191,
-        "be947fa42b842f4ce15e39e6a15e853ac469cba83001fb145b00fc2582077e8d",
-        23,
+        "407e8d9c74b1cbccad6ae65392ab186a45d4c353ec5b618d81c40c31563788fc",
+        25,
     ),
 }
 PGTEX_HALFSCAN_NATIVE_CONTRACT = (
@@ -761,7 +761,7 @@ def terrain_pixel_loops_preserve_samples(source: str) -> bool:
             or "03 97 <dPGtexoff mtp bytesperunit>" in normalized
             or "0F B6 94 96 70 68 06 00" in normalized
             or normalized.count("FF B7 <dSPtinta mtp bytesperunit>") != 1
-            or normalized.count("02 54 24 10") != 1
+            or normalized.count("02 54 24 0C") != 1
             or "02 96 <dSPtinta mtp bytesperunit>" in normalized
             or "03 97 <dSPtinta mtp bytesperunit>" in normalized
             or "0F B6 D2" in normalized
@@ -774,10 +774,10 @@ def terrain_pixel_loops_preserve_samples(source: str) -> bool:
             or normalized.count("8B 9F <dSPax mtp bytesperunit>") != 1
             or normalized.count("89 9F <dSPax mtp bytesperunit>") != 1
             or normalized.count("FF B7 <dSPbp mtp bytesperunit>") != 1
-            or normalized.count("66 03 5C 24 0C") != 1
+            or normalized.count("66 03 5C 24 08") != 1
             or "66 03 9F <dSPbp mtp bytesperunit>" in normalized
             or normalized.count("FF B7 <dSPsi mtp bytesperunit>") != 1
-            or normalized.count("66 03 4C 24 08") != 1
+            or normalized.count("66 03 4C 24 04") != 1
             or "66 03 8F <dSPsi mtp bytesperunit>" in normalized
             or "66 03 97 <dSPsi mtp bytesperunit>" in normalized
             or normalized.count("8B 8F <dSPdx mtp bytesperunit>") != 1
@@ -789,7 +789,7 @@ def terrain_pixel_loops_preserve_samples(source: str) -> bool:
             or normalized.split().count("52") != 0
             or normalized.split().count("56") != 1
             or normalized.split().count("57") != 1
-            or normalized.split().count("58") != 1
+            or normalized.split().count("58") != 0
             or normalized.split().count("59") != 0
             or normalized.split().count("5E") != 1
             or normalized.split().count("5F") != 1
@@ -799,12 +799,12 @@ def terrain_pixel_loops_preserve_samples(source: str) -> bool:
             or "66 8D 68" in normalized
             or (label == "PG terrain pixel native" and
                 ("66 40" in normalized or
-                 normalized.count("01 D0") != 1 or
+                 "01 D0" in normalized or
                  normalized.count("66 45") != 1 or
                  normalized.count("89 14 AE") != 1))
             or (label == "PG terrain cull pixel native" and
                 ("66 83 C0 02" in normalized or
-                 normalized.count("8D 04 50") != 1 or
+                 "8D 04 50" in normalized or
                  normalized.count("66 45") != 2 or
                  normalized.count("89 14 AE") != 2))
             or "89 94 AE A0 8B 10 00" in normalized
@@ -826,28 +826,23 @@ def terrain_pixel_loops_preserve_samples(source: str) -> bool:
             or encoded[35:41] != b"\x8b\x8f\0\0\0\0"
             or encoded[41:47] != b"\x8b\x87\0\0\0\0"
             or encoded[47:53] != b"\x8b\x9f\0\0\0\0"
-            or (label == "PG terrain pixel native" and
-                encoded[53:87] != (
-                    b"\x8d\x68\x04\x0f\xb7\xed\x01\xd0\x0f\xb7\xc0\x50"
-                    b"\x8b\x87\0\0\0\0\x8d\x84\x86\x70\x68\x06\x00"
-                    b"\x81\xc6\xa0\x8b\x10\x00\x57\x89\xd7"))
-            or (label == "PG terrain cull pixel native" and
-                encoded[53:88] != (
-                    b"\x8d\x68\x04\x0f\xb7\xed\x8d\x04\x50\x0f\xb7\xc0\x50"
-                    b"\x8b\x87\0\0\0\0\x8d\x84\x86\x70\x68\x06\x00"
-                    b"\x81\xc6\xa0\x8b\x10\x00\x57\x89\xd7"))
+            or encoded[53:81] != (
+                b"\x8d\x68\x04\x0f\xb7\xed"
+                b"\x8b\x87\0\0\0\0\x8d\x84\x86\x70\x68\x06\x00"
+                b"\x81\xc6\xa0\x8b\x10\x00\x57\x89\xd7")
             or loop + 2 + struct.unpack("b", encoded[loop + 1:loop + 2])[0]
-                != (88 if label == "PG terrain cull pixel native" else 87)
-            or encoded[loop + 2:loop + 12] != (
-                b"\x89\xca\x89\xf9\x5f\x58\x8d\x64\x24\x0c")
-            or encoded[loop + 12:loop + 18] != b"\x89\x87\0\0\0\0"
-            or encoded[loop + 18:loop + 24] != b"\x89\x9f\0\0\0\0"
-            or encoded[loop + 24:loop + 30] != b"\x8d\x40\x03\x0f\xb7\xc0"
-            or encoded[loop + 30:loop + 36] != b"\x89\x97\0\0\0\0"
-            or encoded[loop + 36:loop + 42] != b"\x89\x8f\0\0\0\0"
-            or encoded[loop + 42:loop + 43] != b"\x5e"
-            or encoded[loop + 43:loop + 44] != b"\x5d"
-            or outer != loop + 44
+                != 81
+            or encoded[loop + 2:loop + 17] != (
+                b"\x89\xca\x89\xf9\x5f\x8d\x45\xfc\x0f\xb7\xc0"
+                b"\x8d\x64\x24\x0c")
+            or encoded[loop + 17:loop + 23] != b"\x89\x87\0\0\0\0"
+            or encoded[loop + 23:loop + 29] != b"\x89\x9f\0\0\0\0"
+            or encoded[loop + 29:loop + 35] != b"\x8d\x40\x03\x0f\xb7\xc0"
+            or encoded[loop + 35:loop + 41] != b"\x89\x97\0\0\0\0"
+            or encoded[loop + 41:loop + 47] != b"\x89\x8f\0\0\0\0"
+            or encoded[loop + 47:loop + 48] != b"\x5e"
+            or encoded[loop + 48:loop + 49] != b"\x5d"
+            or outer != loop + 49
             or outer + 2 + struct.unpack("b", encoded[outer + 1:outer + 2])[0]
                 != len(encoded)
         ):
@@ -888,9 +883,9 @@ def terrain_pixel_loops_preserve_samples(source: str) -> bool:
                 (live_u, live_v) != (old_u, old_v)):
             return False
 
-    # The native loops precompute final DI and retain the next wrapped store
-    # index in EBP because no in-loop code observes either workspace slot.
-    # Their pointer walk must preserve every source store and final A = DI+3.
+    # The native loops derive final DI from the next wrapped store index in EBP
+    # because no in-loop code observes the workspace slot.  Their pointer walk
+    # must preserve every source store and final A = DI+3.
     for culling in (False, True):
         step = 2 if culling else 1
         counts = (1, 2, 16, 32) if culling else (1, 2, 8, 16)

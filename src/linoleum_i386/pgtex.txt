@@ -866,9 +866,6 @@
 	    8B 9F <dSPax mtp bytesperunit>         (ebx = live u)
 	    8D 68 04                             (ebp = first wrapped store index)
 	    0F B7 ED
-	    01 D0                                (precompute final di)
-	    0F B7 C0
-	    50                                   (retain final di)
 	    8B 87 <dPGtexoff mtp bytesperunit>
 	    8D 84 86 70 68 06 00                 (eax = selected texture page)
 	    81 C6 A0 8B 10 00                    (esi = framebuffer byte base)
@@ -878,17 +875,18 @@
 	    66 89 CA                             (texture index starts from live v)
 	    88 FA                                (u high byte)
 	    0F B6 14 90                          (edx = texture byte)
-	    02 54 24 10    (byte-wrapped tinta)
-	    66 03 5C 24 0C    (16-bit ebx += du)
+	    02 54 24 0C    (byte-wrapped tinta)
+	    66 03 5C 24 08    (16-bit ebx += du)
 	    89 14 AE                (store through retained index)
 	    66 45                               (advance wrapped store index)
-	    66 03 4C 24 08   (16-bit ecx += dv)
+	    66 03 4C 24 04   (16-bit ecx += dv)
 	    4F                          (decrement retained block count)
 	    75 E1                                (jnz block loop)
 	    89 CA                                (publish final v without flags)
 	    89 F9                                (publish zero C from exhausted count)
 	    5F                                   (restore workspace base)
-	    58                                   (restore final di)
+	    8D 45 FC                             (derive wrapped final di from store index)
+	    0F B7 C0
 	    8D 64 24 0C                          (discard cached dv/du/tinta)
 	    89 87 <dSPdi mtp bytesperunit>       (publish final di)
 	    89 9F <dSPax mtp bytesperunit>       (publish final u)
@@ -899,9 +897,8 @@
 	    5E                                   (restore source-visible E/esi)
 	    5D                                   (restore ebp)
 	    ( Preserve every downstream address outside the hot pixel loop. )
-	    EB 09
-	    90 90 90 90 90 90 90 90
-	    90
+	    EB 0A
+	    90 90 90 90 90 90 90 90 90 90
 	}
 	end;
 
@@ -921,9 +918,6 @@
 	    8B 9F <dSPax mtp bytesperunit>       (ebx = live u)
 	    8D 68 04                           (ebp = first wrapped store index)
 	    0F B7 ED
-	    8D 04 50                           (precompute final di = di + 2*count)
-	    0F B7 C0
-	    50
 	    8B 87 <dPGtexoff mtp bytesperunit>
 	    8D 84 86 70 68 06 00               (eax = selected texture page)
 	    81 C6 A0 8B 10 00                  (esi = framebuffer byte base)
@@ -933,19 +927,20 @@
 	    66 89 CA
 	    88 FA
 	    0F B6 14 90
-	    02 54 24 10
-	    66 03 5C 24 0C
+	    02 54 24 0C
+	    66 03 5C 24 08
 	    89 14 AE                 (store di+2)
 	    66 45                                (wrapped di+3)
 	    89 14 AE                 (store di+3)
 	    66 45                                (advance to next store pair)
-	    66 03 4C 24 08
+	    66 03 4C 24 04
 	    4F
 	    75 DC
 	    89 CA                                (publish final v without flags)
 	    89 F9                                (publish zero C from exhausted count)
 	    5F                                   (restore workspace base)
-	    58                                   (restore final di)
+	    8D 45 FC                             (derive wrapped final di from store index)
+	    0F B7 C0
 	    8D 64 24 0C                          (discard cached dv/du/tinta)
 	    89 87 <dSPdi mtp bytesperunit>       (publish final di)
 	    89 9F <dSPax mtp bytesperunit>       (publish final u)
@@ -956,10 +951,10 @@
 	    5E                                   (restore source-visible E/esi)
 	    5D
 	    ( Preserve every downstream address outside the hot pixel loop. )
-	    EB 17
-	    90 90 90 90 90 90 90 90
-	    90 90 90 90 90 90 90 90
-	    90 90 90 90 90 90 90
+	    EB 19
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90 90 90 90 90 90
+	    90 90 90 90 90
 	}
 	end;
 
