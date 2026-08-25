@@ -52,9 +52,12 @@ def main() -> int:
           "profile decoder preserves unsigned counters and signed coordinates")
     check(profiler.counter_difference(0x20, 0xFFFFFFF0) == 0x30,
           "input latency subtraction crosses low-32-bit counter wrap")
-    metrics = profiler.derived_metrics(decoded, 0xFFFFFFF0)
+    metrics = profiler.derived_metrics(decoded, 0xFFFFFFF0, 36_000_000)
     check(metrics["presentation_hz"] == 60.0 and metrics["simulation_hz"] == 18.2,
           "profile derives presentation and authoritative simulation rates")
+    check(metrics["process_cycles"] == 36_000_000 and
+          metrics["average_process_cycles_per_presentation"] == 30_000,
+          "profile derives frequency-independent process cycles per presentation")
     check(abs(metrics["input_detection_to_effect_ms"] - 0.0016) < 1e-12 and
           abs(metrics["input_effect_to_present_ms"] - 4.0912) < 1e-12 and
           metrics["external_counter_comparable"] is False,
@@ -159,6 +162,7 @@ def main() -> int:
               "EnumDesktopWindows",
               "PostMessageW",
               "QueryPerformanceCounter",
+              "QueryProcessCycleTime",
               "GetLogicalProcessorInformation",
               "SetProcessAffinityMask",
               "GetProcessAffinityMask",

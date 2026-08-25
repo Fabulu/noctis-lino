@@ -762,6 +762,19 @@ def main():
         chk.note("lino %-12s %s" % (f, sha_file(os.path.join(SAND, f))[:16]))
     chk.note("oracle pg_ref.c  %s" % sha_file(os.path.join(HARNESS, "pg_ref.c"))[:16])
 
+    with open(os.path.join(SAND, "pgfp.txt"), encoding="utf-8") as source:
+        fp_source = source.read()
+    render_parts = []
+    for name in ("pgfp.txt", "pgtex.txt", "pgproj.txt"):
+        with open(os.path.join(SAND, name), encoding="utf-8") as source:
+            render_parts.append(source.read())
+    render_source = "\n".join(render_parts)
+    narrow_body = fp_source.split('"PGF narrow"', 1)[1].split('"PGF add"', 1)[0]
+    chk.ok("=> PGF a;" not in narrow_body and
+           narrow_body.index("=> F32Narrow;") < narrow_body.index("=> PGF sa;") and
+           "=> PGF sa; => PGF narrow;" not in render_source,
+           "narrowing stores the live accumulator once without a slot round trip")
+
     exe, note = build_lino(SAND, "clean")
     chk.ok(exe is not None, "the lino port builds from work/pg*.txt", note)
     if exe is None:

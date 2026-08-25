@@ -183,11 +183,10 @@
 	=> PGF sa;
 	end;
 
-      ( PGF narrow : fw[[PGFi]] <- (double)(float) fw[[PGFi]].
-	The port's model of "the original stored this to a float". )
+      ( PGF narrow : fw[[PGFi]] <- (double)(float)FA.
+	The live accumulator is narrowed before its single slot store. )
 
 "PGF narrow"
-	=> PGF a;
 	=> F32Narrow;
 	=> PGF sa;
 	end;
@@ -277,10 +276,10 @@
 	[PGFi] = FS16; => PGF a; [PGFi] = FSEMUK; => PGF sa;
 
 	[PGFi] = FSUNO; => PGF a; [PGFi] = FSDPP; => PGF quo;
-	[PGFi] = FSINVD; => PGF sa; => PGF narrow;
+	[PGFi] = FSINVD; => PGF narrow;
 
 	[PGFi] = FSEMUK; => PGF a; [PGFi] = FSDPP; => PGF quo;
-	[PGFi] = FSXCO; => PGF sa; => PGF narrow;
+	[PGFi] = FSXCO; => PGF narrow;
 	[PGFi] = FSXCO; => PGF a; [PGFi] = FSYCO; => PGF sa;
 
 	( alfa = beta = gamma = 0, so change_angle_of_view() leaves the

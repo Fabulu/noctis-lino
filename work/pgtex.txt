@@ -181,7 +181,7 @@
 	[FB0] = [FA0]; [FB1] = [FA1];
 	[FA0] = [FT0]; [FA1] = [FT1];
 	=> FQuo;
-	[PGFi] = FSKX; => PGF sa; => PGF narrow;
+	[PGFi] = FSKX; => PGF narrow;
 
 	( if (y1 < lbyl) { ity = lbyl; x1 = round(x1 + (lbyl-y1)*kx) } )
 	A = [EWy1]; ? A >= PGLBY -> PG ew nocr;
@@ -288,19 +288,19 @@
 	  NEXT block reloads is the narrowed one.  "fst" leaves both. )
 	[PGFi] = FSZ; => PGF a; [PGFi] = FSK3; => PGF add;
 	[PGFi] = FSW0; => PGF sa;			( wide z )
-	[PGFi] = FSZ;  => PGF sa; => PGF narrow;	( float _z )
+	[PGFi] = FSZ;  => PGF narrow;	( float _z )
 
 	[PGFi] = FSX; => PGF a; [PGFi] = FSK1; => PGF add;
 	[PGFi] = FSW1; => PGF sa;			( wide x )
-	[PGFi] = FSX; => PGF sa; => PGF narrow;
+	[PGFi] = FSX; => PGF narrow;
 
 	[PGFi] = FSY; => PGF a; [PGFi] = FSK2; => PGF add;
 	[PGFi] = FSW2; => PGF sa;			( wide y )
-	[PGFi] = FSY; => PGF sa; => PGF narrow;
+	[PGFi] = FSY; => PGF narrow;
 
 	( k4 = 1/wide_z, then STORED to a float and reloaded narrow )
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSUNO; => PGF rquo;
-	[PGFi] = FSK4; => PGF sa; => PGF narrow;
+	[PGFi] = FSK4; => PGF narrow;
 
 	( u and v are built from the WIDE x and y and the NARROW k4 )
 	[PGFi] = FSW1; => PGF a; [PGFi] = FSTX; => PGF mul;

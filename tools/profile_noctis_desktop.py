@@ -271,7 +271,9 @@ def tap_key(process: PrivateDesktopProcess, handle: int, key: int,
     return injected
 
 
-def derived_metrics(profile: dict[str, int], _injected_counter: int | None) -> dict[str, float | int | bool | None]:
+def derived_metrics(profile: dict[str, int], _injected_counter: int | None,
+                    process_cycles: int | None = None
+                    ) -> dict[str, float | int | bool | None]:
     counts_per_ms = profile["counts_per_millisecond"]
     presentations = profile["presentations"]
     wall_ms = profile["wall_milliseconds"]
@@ -299,6 +301,11 @@ def derived_metrics(profile: dict[str, int], _injected_counter: int | None) -> d
         "input_effect_to_present_ms": None,
         "input_detection_to_present_ms": None,
         "external_counter_comparable": False,
+        "process_cycles": process_cycles,
+        "average_process_cycles_per_presentation": (
+            process_cycles / presentations
+            if process_cycles is not None and presentations else None
+        ),
     }
     if profile["mode"] != 0:
         metrics.update({
@@ -335,6 +342,7 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
         stage, executable, scenario_checkpoint(scenario))
     started = time.monotonic()
     injected_counter: int | None = None
+    process_cycles = 0
     with PrivateDesktopProcess(
             staged_executable, stage,
             (f"clock={CLOCK_SECONDS}", "profile"),
@@ -343,6 +351,7 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
         actual_scheduling = process.scheduling_state()
         handle, rectangle = wait_for_ready(process, stage, readiness_timeout)
         ready = time.monotonic()
+        cycle_start = process.process_cycle_count()
         time.sleep(1.0)
         if scenario == "fcs":
             tap_key(process, handle, VK_5, 1.0)
@@ -356,6 +365,7 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
         remaining = duration - (time.monotonic() - ready)
         if remaining > 0:
             time.sleep(remaining)
+        process_cycles = process.process_cycle_count() - cycle_start
         tap_key(process, handle, VK_ESCAPE, 1.0)
         return_code = process.wait(10.0)
         if return_code is None:
@@ -394,7 +404,7 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
         "requested_measurement_seconds": duration,
         "injected_counter": injected_counter,
         "profile": profile,
-        "metrics": derived_metrics(profile, injected_counter),
+        "metrics": derived_metrics(profile, injected_counter, process_cycles),
     }
     report_path = stage / "report.json"
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

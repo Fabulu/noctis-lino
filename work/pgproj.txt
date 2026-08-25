@@ -134,15 +134,15 @@
 	  is what "fld zz" reloads two instructions later. )
 	A = [PJvr]; A + FSINZ; [PGFi] = A; => PGF a;
 	[PGFi] = FSCAMZ; => PGF sub;
-	[PGFi] = FSZZ; => PGF sa; => PGF narrow;
+	[PGFi] = FSZZ; => PGF narrow;
 
 	A = [PJvr]; A + FSINX; [PGFi] = A; => PGF a;
 	[PGFi] = FSCAMX; => PGF sub;
-	[PGFi] = FSXX; => PGF sa; => PGF narrow;
+	[PGFi] = FSXX; => PGF narrow;
 
 	A = [PJvr]; A + FSINY; [PGFi] = A; => PGF a;
 	[PGFi] = FSCAMY; => PGF sub;
-	[PGFi] = FSYY; => PGF sa; => PGF narrow;
+	[PGFi] = FSYY; => PGF narrow;
 
 	( rxf = zz*sinbeta + xx*cosbeta, with the p- or t- table )
 	[PGFi] = FSZZ; => PGF a;
@@ -155,14 +155,14 @@
     "PJ rot b2"
 	[PGFi] = A; => PGF mul;
 	[PGFi] = FSW0; => PGF add;
-	A = [PJvr]; A + FSRXF; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJvr]; A + FSRXF; [PGFi] = A; => PGF narrow;
 
 	( z2 = zz*cosbeta - xx*sinbeta, ALWAYS the t- table )
 	[PGFi] = FSZZ; => PGF a; [PGFi] = FSTCB; => PGF mul;
 	[PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSXX; => PGF a; [PGFi] = FSTSB; => PGF mul;
 	[PGFi] = FSW0; => PGF rsub;
-	[PGFi] = FSZ2; => PGF sa; => PGF narrow;
+	[PGFi] = FSZ2; => PGF narrow;
 
 	( rzf = z2*cosalfa + yy*sinalfa, t- table in BOTH nuclei )
 	[PGFi] = FSZ2; => PGF a; [PGFi] = FSTCA; => PGF mul;
@@ -172,7 +172,7 @@
 	( "fst rzf[si] / fcomp uneg" - the STORE is narrow, the COMPARE
 	  is on the wide value still in st(0). )
 	[PGFi] = FSW1; => PGF sa;
-	A = [PJvr]; A + FSRZF; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJvr]; A + FSRZF; [PGFi] = A; => PGF narrow;
 	[PGFi] = FSW1; => PGF a;
 	[PGFi] = FSUNEG; => PGF b;
 	=> FCmp;
@@ -195,7 +195,7 @@
     "PJ rot a2"
 	[PGFi] = A; => PGF mul;
 	[PGFi] = FSW0; => PGF rsub;
-	A = [PJvr]; A + FSRYF; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJvr]; A + FSRYF; [PGFi] = A; => PGF narrow;
 
 	[PJvr]+;
 	A = [PJvr]; ? A '< [PJnrv] -> PJ rot v;
@@ -240,7 +240,7 @@
 	[PGFi] = FSW1; => PGF sa;
 	[PGFi] = FSW0; => PGF a;
 	[PGFi] = FSW1; => PGF quo;
-	[PGFi] = FSZK; => PGF sa; => PGF narrow;
+	[PGFi] = FSZK; => PGF narrow;
 
 	( X = zk*(X_bx - X_vv) + X_vv, with zk still WIDE in st(0) )
 	[PGFi] = FSW0; => PGF a; [PGFi] = FSW1; => PGF quo;
@@ -249,7 +249,7 @@
 	A = [PJvv]; A + FSRXF; [PGFi] = A; => PGF sub;
 	[PGFi] = FSW2; => PGF mul;
 	A = [PJvv]; A + FSRXF; [PGFi] = A; => PGF add;
-	A = [PJdi]; A + FSUX; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJdi]; A + FSUX; [PGFi] = A; => PGF narrow;
 
 	( Y likewise, and this one reloads zk from MEMORY: "fld zk". )
 	[PGFi] = FSZK; => PGF a;
@@ -258,7 +258,7 @@
 	A = [PJvv]; A + FSRYF; [PGFi] = A; => PGF sub;
 	[PGFi] = FSW2; => PGF mul;
 	A = [PJvv]; A + FSRYF; [PGFi] = A; => PGF add;
-	A = [PJdi]; A + FSUY; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJdi]; A + FSUY; [PGFi] = A; => PGF narrow;
 	-> PJ ze z;
     "PJ ze copy"
 	( the degenerate guard: copy the outside vertex's x and y as BIT
@@ -373,7 +373,7 @@
 	A = [PJvr]; A + FSUX; [PGFi] = A; => PGF mul;
 	[PGFi] = FSXC; => PGF add;
 	[PGFi] = FSW0; => PGF sa;			( the WIDE value )
-	A = [PJvr]; A + FSVX0; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJvr]; A + FSVX0; [PGFi] = A; => PGF narrow;
 	[PGFi] = FSW0; => PGF a; => PGF int;
 	A = [PJvr]; A + A; C = mp; C + A; [C] = [FI];
 
@@ -381,7 +381,7 @@
 	A = [PJvr]; A + FSUY; [PGFi] = A; => PGF mul;
 	[PGFi] = FSYC; => PGF add;
 	[PGFi] = FSW0; => PGF sa;
-	A = [PJvr]; A + FSVY0; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJvr]; A + FSVY0; [PGFi] = A; => PGF narrow;
 	[PGFi] = FSW0; => PGF a; => PGF int;
 	A = [PJvr]; A + A; C = mp; C + A; [C plus 1] = [FI];
 
@@ -606,30 +606,30 @@
 
 	( edge 1 = vertex 0 - vertex 2, narrowed on each float store )
 	[PGFi] = FSINX; => PGF a; A = FSINX; A + 2; [PGFi] = A; => PGF sub;
-	[PGFi] = FSNX; => PGF sa; => PGF narrow;
+	[PGFi] = FSNX; => PGF narrow;
 	[PGFi] = FSINY; => PGF a; A = FSINY; A + 2; [PGFi] = A; => PGF sub;
-	[PGFi] = FSNY; => PGF sa; => PGF narrow;
+	[PGFi] = FSNY; => PGF narrow;
 	[PGFi] = FSINZ; => PGF a; A = FSINZ; A + 2; [PGFi] = A; => PGF sub;
-	[PGFi] = FSNZ; => PGF sa; => PGF narrow;
+	[PGFi] = FSNZ; => PGF narrow;
 
 	( edge 2 = vertex 1 - vertex 2 )
 	A = FSINX; A + 1; [PGFi] = A; => PGF a; A = FSINX; A + 2; [PGFi] = A; => PGF sub;
-	[PGFi] = FSMX; => PGF sa; => PGF narrow;
+	[PGFi] = FSMX; => PGF narrow;
 	A = FSINY; A + 1; [PGFi] = A; => PGF a; A = FSINY; A + 2; [PGFi] = A; => PGF sub;
-	[PGFi] = FSMY; => PGF sa; => PGF narrow;
+	[PGFi] = FSMY; => PGF narrow;
 	A = FSINZ; A + 1; [PGFi] = A; => PGF a; A = FSINZ; A + 2; [PGFi] = A; => PGF sub;
-	[PGFi] = FSMZ; => PGF sa; => PGF narrow;
+	[PGFi] = FSMZ; => PGF narrow;
 
 	( normal = edge1 cross edge2, narrowed like xr/yr/zr )
 	[PGFi] = FSNY; => PGF a; [PGFi] = FSMZ; => PGF mul; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSNZ; => PGF a; [PGFi] = FSMY; => PGF mul; [PGFi] = FSW0; => PGF rsub;
-	[PGFi] = FSRX; => PGF sa; => PGF narrow;
+	[PGFi] = FSRX; => PGF narrow;
 	[PGFi] = FSNZ; => PGF a; [PGFi] = FSMX; => PGF mul; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSNX; => PGF a; [PGFi] = FSMZ; => PGF mul; [PGFi] = FSW0; => PGF rsub;
-	[PGFi] = FSRY; => PGF sa; => PGF narrow;
+	[PGFi] = FSRY; => PGF narrow;
 	[PGFi] = FSNX; => PGF a; [PGFi] = FSMY; => PGF mul; [PGFi] = FSW0; => PGF sa;
 	[PGFi] = FSNY; => PGF a; [PGFi] = FSMX; => PGF mul; [PGFi] = FSW0; => PGF rsub;
-	[PGFi] = FSRZ; => PGF sa; => PGF narrow;
+	[PGFi] = FSRZ; => PGF narrow;
 
     "PG facing dot"
 	( dot = (camera - vertex 2).normal; ftst returns visible for >= 0.
@@ -739,7 +739,7 @@
 	A = FSRXF; A + 3; [PGFi] = A; => PGF add;
     "PJ vc mx3"
 	=> PJ vc scale;
-	[PGFi] = FSMIDX; => PGF sa; => PGF narrow;
+	[PGFi] = FSMIDX; => PGF narrow;
 
 	[PGFi] = FSRYF; => PGF a;
 	A = FSRYF; A + 1; [PGFi] = A; => PGF add;
@@ -748,7 +748,7 @@
 	A = FSRYF; A + 3; [PGFi] = A; => PGF add;
     "PJ vc my3"
 	=> PJ vc scale;
-	[PGFi] = FSMIDY; => PGF sa; => PGF narrow;
+	[PGFi] = FSMIDY; => PGF narrow;
 
 	[PGFi] = FSRZF; => PGF a;
 	A = FSRZF; A + 1; [PGFi] = A; => PGF add;
@@ -757,7 +757,7 @@
 	A = FSRZF; A + 3; [PGFi] = A; => PGF add;
     "PJ vc mz3"
 	=> PJ vc scale;
-	[PGFi] = FSMIDZ; => PGF sa; => PGF narrow;
+	[PGFi] = FSMIDZ; => PGF narrow;
 
 	( trxf[v] = (rxf[v] - midx)*x_antialias + midx, and likewise )
 	[PJvr] = 0;
@@ -766,17 +766,17 @@
 	[PGFi] = FSMIDX; => PGF sub;
 	[PGFi] = FSAAX; => PGF mul;
 	[PGFi] = FSMIDX; => PGF add;
-	A = [PJvr]; A + FSTRX; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJvr]; A + FSTRX; [PGFi] = A; => PGF narrow;
 	A = [PJvr]; A + FSRYF; [PGFi] = A; => PGF a;
 	[PGFi] = FSMIDY; => PGF sub;
 	[PGFi] = FSAAY; => PGF mul;
 	[PGFi] = FSMIDY; => PGF add;
-	A = [PJvr]; A + FSTRY; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJvr]; A + FSTRY; [PGFi] = A; => PGF narrow;
 	A = [PJvr]; A + FSRZF; [PGFi] = A; => PGF a;
 	[PGFi] = FSMIDZ; => PGF sub;
 	[PGFi] = FSAAZ; => PGF mul;
 	[PGFi] = FSMIDZ; => PGF add;
-	A = [PJvr]; A + FSTRZ; [PGFi] = A; => PGF sa; => PGF narrow;
+	A = [PJvr]; A + FSTRZ; [PGFi] = A; => PGF narrow;
 	[PJvr]+;
 	A = [PJvr]; ? A '< [PJdx] -> PJ vc v;
 
@@ -786,26 +786,26 @@
     "PJ vc si3"
 	[PJvv] = C;
 
-	[PGFi] = FSTRX; => PGF a; [PGFi] = FSRX; => PGF sa; => PGF narrow;
-	[PGFi] = FSTRY; => PGF a; [PGFi] = FSRY; => PGF sa; => PGF narrow;
-	[PGFi] = FSTRZ; => PGF a; [PGFi] = FSRZ; => PGF sa; => PGF narrow;
+	[PGFi] = FSTRX; => PGF a; [PGFi] = FSRX; => PGF narrow;
+	[PGFi] = FSTRY; => PGF a; [PGFi] = FSRY; => PGF narrow;
+	[PGFi] = FSTRZ; => PGF a; [PGFi] = FSRZ; => PGF narrow;
 
 	A = FSTRX; A + 1; [PGFi] = A; => PGF a;
-	[PGFi] = FSRX; => PGF sub; [PGFi] = FSMX; => PGF sa; => PGF narrow;
+	[PGFi] = FSRX; => PGF sub; [PGFi] = FSMX; => PGF narrow;
 	A = FSTRY; A + 1; [PGFi] = A; => PGF a;
-	[PGFi] = FSRY; => PGF sub; [PGFi] = FSMY; => PGF sa; => PGF narrow;
+	[PGFi] = FSRY; => PGF sub; [PGFi] = FSMY; => PGF narrow;
 	A = FSTRZ; A + 1; [PGFi] = A; => PGF a;
-	[PGFi] = FSRZ; => PGF sub; [PGFi] = FSMZ; => PGF sa; => PGF narrow;
+	[PGFi] = FSRZ; => PGF sub; [PGFi] = FSMZ; => PGF narrow;
 
 	[PGFi] = FSRX; => PGF a;
 	A = [PJvv]; A + FSTRX; [PGFi] = A; => PGF sub;
-	[PGFi] = FSNX; => PGF sa; => PGF narrow;
+	[PGFi] = FSNX; => PGF narrow;
 	[PGFi] = FSRY; => PGF a;
 	A = [PJvv]; A + FSTRY; [PGFi] = A; => PGF sub;
-	[PGFi] = FSNY; => PGF sa; => PGF narrow;
+	[PGFi] = FSNY; => PGF narrow;
 	[PGFi] = FSRZ; => PGF a;
 	A = [PJvv]; A + FSTRZ; [PGFi] = A; => PGF sub;
-	[PGFi] = FSNZ; => PGF sa; => PGF narrow;
+	[PGFi] = FSNZ; => PGF narrow;
 
 	( hx = (rx*mz - rz*mx)*YCOEFF, and its eight siblings.  Every one
 	  is "fld a / fmul b / fld c / fmul d / fsubp / fmul k / fstp s",
@@ -853,7 +853,7 @@
 	[PGFi] = [CLyo]; => PGF mul;
 	[PGFi] = FSW3;   => PGF rsub;
 	[PGFi] = [CLbnd];=> PGF mul;
-	[PGFi] = [CLt];  => PGF sa; => PGF narrow;
+	[PGFi] = [CLt];  => PGF narrow;
 	end;
 
 ( ==================================================================== )
@@ -890,11 +890,11 @@
 	[PGFi] = FSW0; => PGF add;
 	[PGFi] = FSOZ; => PGF add;
 	[PGFi] = FSW1; => PGF sa;
-	[PGFi] = FSZ; => PGF sa; => PGF narrow;
+	[PGFi] = FSZ; => PGF narrow;
 
 	( k4 = 1/wide_z, then narrowed )
 	[PGFi] = FSW1; => PGF a; [PGFi] = FSUNO; => PGF rquo;
-	[PGFi] = FSK4; => PGF sa; => PGF narrow;
+	[PGFi] = FSK4; => PGF narrow;
 
 	( _x = ox + hx*(i - y_centro) + vx*factor )
 	[PGFi] = FSW3; => PGF a;
@@ -905,7 +905,7 @@
 	[PGFi] = FSHX; => PGF mul;
 	[PGFi] = FSW0; => PGF add;
 	[PGFi] = FSOX; => PGF add;
-	[PGFi] = FSX; => PGF sa; => PGF narrow;
+	[PGFi] = FSX; => PGF narrow;
 
 	[PGFi] = FSW3; => PGF a;
 	[PGFi] = FSVY; => PGF mul;
@@ -915,7 +915,7 @@
 	[PGFi] = FSHY; => PGF mul;
 	[PGFi] = FSW0; => PGF add;
 	[PGFi] = FSOY; => PGF add;
-	[PGFi] = FSY; => PGF sa; => PGF narrow;
+	[PGFi] = FSY; => PGF narrow;
 
 	( u and v from the reloaded narrow x and y )
 	[PGFi] = FSX; => PGF a; [PGFi] = FSTX; => PGF mul;
@@ -1047,18 +1047,18 @@
 	-> PG pm k;
     "PG pm k generic"
 	[PGFi] = FSVX; => PGF a; [PGFi] = FS16; => PGF mul;
-	[PGFi] = FSK1; => PGF sa; => PGF narrow;
+	[PGFi] = FSK1; => PGF narrow;
 	[PGFi] = FSVY; => PGF a; [PGFi] = FS16; => PGF mul;
-	[PGFi] = FSK2; => PGF sa; => PGF narrow;
+	[PGFi] = FSK2; => PGF narrow;
 	[PGFi] = FSVZ; => PGF a; [PGFi] = FS16; => PGF mul;
-	[PGFi] = FSK3; => PGF sa; => PGF narrow;
+	[PGFi] = FSK3; => PGF narrow;
 	A = [SPcull]; ? A = 0 -> PG pm k;
 	[PGFi] = FSK1; => PGF a; [PGFi] = FSK1; => PGF add;
-	[PGFi] = FSK1; => PGF sa; => PGF narrow;
+	[PGFi] = FSK1; => PGF narrow;
 	[PGFi] = FSK2; => PGF a; [PGFi] = FSK2; => PGF add;
-	[PGFi] = FSK2; => PGF sa; => PGF narrow;
+	[PGFi] = FSK2; => PGF narrow;
 	[PGFi] = FSK3; => PGF a; [PGFi] = FSK3; => PGF add;
-	[PGFi] = FSK3; => PGF sa; => PGF narrow;
+	[PGFi] = FSK3; => PGF narrow;
     "PG pm k"
 	A = [SPterrain]; ? A != 0 -> PG pm traced;
 	[EWvr22] = [PJvr22];

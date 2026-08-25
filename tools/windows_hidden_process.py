@@ -142,6 +142,9 @@ def _configured_kernel32():
     kernel32.TerminateProcess.restype = wintypes.BOOL
     kernel32.QueryPerformanceCounter.argtypes = [ctypes.POINTER(ctypes.c_longlong)]
     kernel32.QueryPerformanceCounter.restype = wintypes.BOOL
+    kernel32.QueryProcessCycleTime.argtypes = [
+        wintypes.HANDLE, ctypes.POINTER(ctypes.c_ulonglong)]
+    kernel32.QueryProcessCycleTime.restype = wintypes.BOOL
     kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
     kernel32.CloseHandle.restype = wintypes.BOOL
     user32.EnumDesktopWindows.argtypes = [
@@ -350,6 +353,14 @@ class PrivateDesktopProcess:
     def performance_counter(self) -> int:
         value = ctypes.c_longlong()
         if not self.kernel32.QueryPerformanceCounter(ctypes.byref(value)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        return int(value.value)
+
+    def process_cycle_count(self) -> int:
+        """Return cycles consumed by this process across all of its threads."""
+        value = ctypes.c_ulonglong()
+        if not self.kernel32.QueryProcessCycleTime(
+                self.process.hProcess, ctypes.byref(value)):
             raise ctypes.WinError(ctypes.get_last_error())
         return int(value.value)
 
