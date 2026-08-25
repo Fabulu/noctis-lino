@@ -5189,8 +5189,9 @@
 
     "VHGND faithful x row bounds"
 	( Hoist fragment()'s exact Manhattan rejection to one bound calculation
-	  per row.  The retained 65-tile depth span and painter order are unchanged,
-	  but cells with abs(dx)+abs(dz)>90 never enter the tile service. )
+	  per row.  The retained 65-tile depth span and painter order are unchanged;
+	  every emitted cell proves abs(dx)+abs(dz)<=90 and can enter after the
+	  generic tile guard. )
 	A = [VHGNDcamtz]; A - [VHGNDz]; ? A >= 0 -> VHGND faithful x row abs ready;
 	C = 0; C - A; A = C;
     "VHGND faithful x row abs ready"
@@ -5232,12 +5233,12 @@
 	=> VHGND faithful x row bounds; [VHGNDx] = [VHGNDxlo];
     "VHGND faithful north left"
 	A = [VHGNDx]; C = [VHGNDcamtx]; ? A >= C -> VHGND faithful north right start;
-	=> VHGND tile; [VHGNDx]+; -> VHGND faithful north left;
+	=> VHGND tile source range ready; [VHGNDx]+; -> VHGND faithful north left;
     "VHGND faithful north right start"
 	[VHGNDx] = [VHGNDxhi];
     "VHGND faithful north right"
 	A = [VHGNDx]; C = [VHGNDcamtx]; ? A < C -> VHGND faithful north next z;
-	=> VHGND tile; [VHGNDx]-; -> VHGND faithful north right;
+	=> VHGND tile source range ready; [VHGNDx]-; -> VHGND faithful north right;
     "VHGND faithful north next z"
 	[VHGNDz]-; A = [VHGNDz]; ? A >= [VHGNDzlo] -> VHGND faithful north z;
 	end;
@@ -5254,12 +5255,12 @@
 	=> VHGND faithful x row bounds; [VHGNDx] = [VHGNDxlo];
     "VHGND faithful south left"
 	A = [VHGNDx]; C = [VHGNDcamtx]; ? A >= C -> VHGND faithful south right start;
-	=> VHGND tile; [VHGNDx]+; -> VHGND faithful south left;
+	=> VHGND tile source range ready; [VHGNDx]+; -> VHGND faithful south left;
     "VHGND faithful south right start"
 	[VHGNDx] = [VHGNDxhi];
     "VHGND faithful south right"
 	A = [VHGNDx]; C = [VHGNDcamtx]; ? A < C -> VHGND faithful south next z;
-	=> VHGND tile; [VHGNDx]-; -> VHGND faithful south right;
+	=> VHGND tile source range ready; [VHGNDx]-; -> VHGND faithful south right;
     "VHGND faithful south next z"
 	[VHGNDz]+; A = [VHGNDz]; ? A '<= [VHGNDzhi] -> VHGND faithful south z;
 	end;
@@ -5276,12 +5277,12 @@
 	=> VHGND faithful z row bounds; [VHGNDz] = [VHGNDzhi];
     "VHGND faithful east upper"
 	A = [VHGNDz]; C = [VHGNDcamtz]; ? A <= C -> VHGND faithful east lower start;
-	=> VHGND tile; [VHGNDz]-; -> VHGND faithful east upper;
+	=> VHGND tile source range ready; [VHGNDz]-; -> VHGND faithful east upper;
     "VHGND faithful east lower start"
 	[VHGNDz] = [VHGNDzlo];
     "VHGND faithful east lower"
 	A = [VHGNDz]; C = [VHGNDcamtz]; ? A > C -> VHGND faithful east next x;
-	=> VHGND tile; [VHGNDz]+; -> VHGND faithful east lower;
+	=> VHGND tile source range ready; [VHGNDz]+; -> VHGND faithful east lower;
     "VHGND faithful east next x"
 	[VHGNDx]+; A = [VHGNDx]; ? A '<= [VHGNDxhi] -> VHGND faithful east x;
 	end;
@@ -5298,12 +5299,12 @@
 	=> VHGND faithful z row bounds; [VHGNDz] = [VHGNDzhi];
     "VHGND faithful west upper"
 	A = [VHGNDz]; C = [VHGNDcamtz]; ? A <= C -> VHGND faithful west lower start;
-	=> VHGND tile; [VHGNDz]-; -> VHGND faithful west upper;
+	=> VHGND tile source range ready; [VHGNDz]-; -> VHGND faithful west upper;
     "VHGND faithful west lower start"
 	[VHGNDz] = [VHGNDzlo];
     "VHGND faithful west lower"
 	A = [VHGNDz]; C = [VHGNDcamtz]; ? A > C -> VHGND faithful west next x;
-	=> VHGND tile; [VHGNDz]+; -> VHGND faithful west lower;
+	=> VHGND tile source range ready; [VHGNDz]+; -> VHGND faithful west lower;
     "VHGND faithful west next x"
 	[VHGNDx]-; A = [VHGNDx]; ? A >= [VHGNDxlo] -> VHGND faithful west x;
 	end;

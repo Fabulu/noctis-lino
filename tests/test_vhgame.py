@@ -83,6 +83,37 @@ def aspect_fit(width: int, height: int) -> tuple[int, int, int, int]:
     return draw_width, draw_height, (width - draw_width) // 2, (height - draw_height) // 2
 
 
+def faithful_tiles(cam_x: int, cam_z: int, direction: str,
+                   backspan: int) -> tuple[tuple[int, int], ...]:
+    """Model the four exact painter traversals after their hoisted row guard."""
+    tiles: list[tuple[int, int]] = []
+    if direction in ("north", "south"):
+        if direction == "north":
+            z_lo, z_hi = max(0, cam_z - backspan), min(198, cam_z + 65)
+            rows = range(z_hi, z_lo - 1, -1)
+        else:
+            z_lo, z_hi = max(0, cam_z - 65), min(198, cam_z + backspan)
+            rows = range(z_lo, z_hi + 1)
+        for z in rows:
+            span = min(65, 90 - abs(cam_z - z))
+            x_lo, x_hi = max(0, cam_x - span), min(198, cam_x + span)
+            tiles.extend((x, z) for x in range(x_lo, cam_x))
+            tiles.extend((x, z) for x in range(x_hi, cam_x - 1, -1))
+    else:
+        if direction == "east":
+            x_lo, x_hi = max(0, cam_x - 65), min(198, cam_x + backspan)
+            columns = range(x_lo, x_hi + 1)
+        else:
+            x_lo, x_hi = max(0, cam_x - backspan), min(198, cam_x + 65)
+            columns = range(x_hi, x_lo - 1, -1)
+        for x in columns:
+            span = min(65, 90 - abs(cam_x - x))
+            z_lo, z_hi = max(0, cam_z - span), min(198, cam_z + span)
+            tiles.extend((x, z) for z in range(z_hi, cam_z, -1))
+            tiles.extend((x, z) for z in range(z_lo, cam_z + 1))
+    return tuple(tiles)
+
+
 def signed_lerp(old: int, new: int, phase: int, denominator: int = 60000) -> int:
     product = (new - old) * phase
     delta = abs(product) // denominator
@@ -1011,6 +1042,21 @@ def main() -> int:
         "rocks retain source RNG order, facing, quartz mapping, and distant triangles",
     )
     traversal = section(ground, '"VHGND render"', '"VHGND tile"')
+    faithful = section(ground, '"VHGND traverse faithful"',
+                       '"VHGND object view setup"')
+    faithful_cases = tuple(
+        (cam_x, cam_z, faithful_tiles(cam_x, cam_z, direction, backspan))
+        for cam_x, cam_z in ((0, 0), (0, 198), (100, 100), (198, 0), (198, 198))
+        for direction in ("north", "south", "east", "west")
+        for backspan in (1, 4)
+    )
+    faithful_guard_exact = all(
+        tiles
+        and all(0 <= x <= 198 and 0 <= z <= 198
+                and abs(x - cam_x) + abs(z - cam_z) <= 90
+                for x, z in tiles)
+        for cam_x, cam_z, tiles in faithful_cases
+    )
     check(
         "VHGNDFAR = 64" in ground
         and "iperficie (1);" in original1
@@ -1031,10 +1077,13 @@ def main() -> int:
             '"VHGND faithful north"', '"VHGND faithful east"',
             '"VHGND faithful south"', '"VHGND faithful west"',
         ))
+        and faithful_guard_exact
+        and faithful.count("=> VHGND tile source range ready;") == 8
+        and "=> VHGND tile;" not in faithful
         and "? A > 90 -> VHGND tile done;" in tile
         and "[SPcull] = 1" in tile
         and "A > [VHGNDmaxdepth]" in tile,
-        "surface renderer hoists exact Manhattan row bounds while retaining NIV+ unit tiles, airborne backspan, painter quadrants, and depth-64 gates",
+        "surface renderer hoists exact Manhattan row bounds, bypasses the proved per-tile guard, and retains NIV+ unit tiles, airborne backspan, painter quadrants, and depth-64 gates",
     )
     check(
         "if (depth > 40) return;" in original1
