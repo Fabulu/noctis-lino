@@ -125,6 +125,10 @@ PGTEX_TERRAIN_NATIVE_CONTRACT = {
         25,
     ),
 }
+PGTEX_UV_TERRAIN_NATIVE_CONTRACT = (
+    273,
+    "12cda7747f8cf6381dd83605d64a51fbf7659a0954c514362cb2eaf50e0e2021",
+)
 PGTEX_HALFSCAN_NATIVE_CONTRACT = (
     112,
     "1efb33844df313c58be7c340a28e69340187aa25c7007f9523d53f5ab602430e",
@@ -598,6 +602,50 @@ def terrain_facing_gates_prefer_visible_path(source: str) -> bool:
             if direct_target != source_target:
                 return False
     return True
+
+
+def terrain_uv_native_separates_exact_spills(source: str) -> bool:
+    """Check independent UV sums separate exact qword spills and reloads."""
+    expected_length, expected_hash = PGTEX_UV_TERRAIN_NATIVE_CONTRACT
+    service = labelled_service(source, "PG uv terrain float")
+    bodies = re.findall(r"\{([^}]*)\}", service, flags=re.DOTALL)
+    if len(bodies) != 1 or source.count("-> PG uv terrain float;") != 1:
+        return False
+
+    body = bodies[0]
+    tokens = re.findall(
+        r"<[^>]+>|[0-9A-Fa-f]{2}",
+        re.sub(r"\([^)]*\)", "", body),
+    )
+    encoded = b"".join(
+        b"\0" * 4 if token.startswith("<") else bytes.fromhex(token)
+        for token in tokens
+    )
+    wide_sums = (
+        b"\xdd\x86\x78\0\0\0\xdc\x86\x58\0\0\0"
+        b"\xdd\x9e\xc0\x07\0\0"
+        b"\xdd\x86\x68\0\0\0\xdc\x86\x48\0\0\0"
+        b"\xdd\x9e\xc8\x07\0\0"
+        b"\xdd\x86\x70\0\0\0\xdc\x86\x50\0\0\0"
+        b"\xdd\x9e\xd0\x07\0\0"
+    )
+    narrow_reloads = (
+        b"\xdd\x86\xc0\x07\0\0\xd9\x9f\0\0\0\0"
+        b"\xd9\x87\0\0\0\0\xdd\x9e\x78\0\0\0"
+        b"\xdd\x86\xc8\x07\0\0\xd9\x9f\0\0\0\0"
+        b"\xd9\x87\0\0\0\0\xdd\x9e\x68\0\0\0"
+        b"\xdd\x86\xd0\x07\0\0\xd9\x9f\0\0\0\0"
+        b"\xd9\x87\0\0\0\0\xdd\x9e\x70\0\0\0"
+    )
+    return (
+        len(encoded) == expected_length
+        and normalized_hash(body) == expected_hash
+        and encoded[9:63] == wide_sums
+        and encoded[63:135] == narrow_reloads
+        and encoded.count(b"\xdd\x9e\xc0\x07\0\0") == 1
+        and encoded.count(b"\xdd\x9e\xc8\x07\0\0") == 1
+        and encoded.count(b"\xdd\x9e\xd0\x07\0\0") == 1
+    )
 
 
 def edges_native_retains_binary64_accumulator(source: str) -> bool:
@@ -1297,6 +1345,11 @@ def main() -> int:
               staged_terrain.count("=> PG terrain facing dot native;") == 1 and
               "[VHGNDvctri] = 0; A = fw; [PJfwbase] = A;" in staged_terrain,
               "terrain dot loads invariant fw directly with preserved caller state")
+        check(terrain_uv_native_separates_exact_spills(staged_texture) and
+              not terrain_uv_native_separates_exact_spills(
+                  staged_texture.replace(
+                      "DD 9E C0 07 00 00", "DD 9E C8 07 00 00", 1)),
+              "terrain UV separates exact qword spills from dependent reloads")
         check(edges_native_retains_binary64_accumulator(staged_texture) and
               not edges_native_retains_binary64_accumulator(
                   staged_texture.replace(

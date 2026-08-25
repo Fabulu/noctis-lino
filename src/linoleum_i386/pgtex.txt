@@ -492,25 +492,27 @@
 	{
 	    8B B7 <dPGfwbase mtp bytesperunit>     (esi = runtime fw workspace)
 	    8D 34 B7                              (esi = edi + 4*workspace index)
+	    ( Spill all three independent binary64 sums before narrowing them.
+	      Keeping the x87 stack empty preserves every qword boundary while
+	      separating each store from its dependent reload. )
 	    DD 86 78 00 00 00                     (fld  qword FSZ)
 	    DC 86 58 00 00 00                     (fadd qword FSK3)
 	    DD 9E C0 07 00 00                     (fstp qword wide z)
+	    DD 86 68 00 00 00                     (fld  qword FSX)
+	    DC 86 48 00 00 00                     (fadd qword FSK1)
+	    DD 9E C8 07 00 00                     (fstp qword wide x)
+	    DD 86 70 00 00 00                     (fld  qword FSY)
+	    DC 86 50 00 00 00                     (fadd qword FSK2)
+	    DD 9E D0 07 00 00                     (fstp qword wide y)
+
 	    DD 86 C0 07 00 00                     (fld  qword wide z)
 	    D9 9F <dPGUVZ mtp bytesperunit>       (fstp dword narrow z)
 	    D9 87 <dPGUVZ mtp bytesperunit>       (fld  dword narrow z)
 	    DD 9E 78 00 00 00                     (fstp qword FSZ)
-
-	    DD 86 68 00 00 00                     (fld  qword FSX)
-	    DC 86 48 00 00 00                     (fadd qword FSK1)
-	    DD 9E C8 07 00 00                     (fstp qword wide x)
 	    DD 86 C8 07 00 00                     (fld  qword wide x)
 	    D9 9F <dPGUVX mtp bytesperunit>       (fstp dword narrow x)
 	    D9 87 <dPGUVX mtp bytesperunit>       (fld  dword narrow x)
 	    DD 9E 68 00 00 00                     (fstp qword FSX)
-
-	    DD 86 70 00 00 00                     (fld  qword FSY)
-	    DC 86 50 00 00 00                     (fadd qword FSK2)
-	    DD 9E D0 07 00 00                     (fstp qword wide y)
 	    DD 86 D0 07 00 00                     (fld  qword wide y)
 	    D9 9F <dPGUVY mtp bytesperunit>       (fstp dword narrow y)
 	    D9 87 <dPGUVY mtp bytesperunit>       (fld  dword narrow y)
