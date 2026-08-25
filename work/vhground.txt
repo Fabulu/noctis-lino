@@ -32,6 +32,9 @@
 	VHGNDh1 = 0; VHGNDs1 = 0; VHGNDs2 = 0;
 	VHGNDs3 = 0; VHGNDs4 = 0; VHGNDshade = 0;
 	VHGNDdepth = 0; VHGNDrawdepth = 0; VHGNDdx = 0; VHGNDdz = 0;
+	VHGNDdlo = 0; VHGNDdhi = 0; VHGNDslo = 0; VHGNDshi = 0;
+	VHGNDdepthn = 0; VHGNDdepthlo = 0; VHGNDdepthhi = 0;
+	VHGNDdepthmid = 0; VHGNDdepthsq = 0; VHGNDdepthstep = 0;
 	VHGNDlodstep = 1; VHGNDlodradius = 4; VHGNDbackspan = 1;
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0;
@@ -6566,18 +6569,34 @@
 
 "VHGND tile depth"
 	( hpdep = sqrt((pos_x-tile_centre_x)^2 +
-	               (pos_z-tile_centre_z)^2), then depth=(hpdep>>14)-1. )
+	               (pos_z-tile_centre_z)^2), then depth=(hpdep>>14)-1.
+	  Both differences are exact integers.  For a nonnegative integer S,
+	  floor(sqrt(S))>>14 equals floor(sqrt(floor(S/2^28))).  Form S with
+	  Lino's portable full-width multiply, then find that final nine-bit root
+	  directly instead of routing every visited tile through scalar FP sqrt. )
 	A = [VHGNDx]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
-	C = [VHGNDcamx]; C - A;
-	[VHGNDdx] = C; [FI] = C; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
-	[FT0] = [FA0]; [FT1] = [FA1];
+	C = [VHGNDcamx]; C - A; [VHGNDdx] = C;
+	A = C; B = A; A *% B; [VHGNDdlo] = A; [VHGNDdhi] = B;
 	A = [VHGNDz]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
-	C = [VHGNDcamz]; C - A;
-	[VHGNDdz] = C; [FI] = C; => IntToF;
-	[FB0] = [FA0]; [FB1] = [FA1]; => FMul;
-	[FB0] = [FT0]; [FB1] = [FT1]; => FAdd; => FSqrt; => FToIntChop;
-	A = [FI]; A > 14; [VHGNDrawdepth] = A;
+	C = [VHGNDcamz]; C - A; [VHGNDdz] = C;
+	A = C; B = A; A *% B; [VHGNDslo] = A; [VHGNDshi] = B;
+	A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDdlo] = A;
+	A = C; ? A '>= B -> VHGND tile depth sum ready; [VHGNDdhi]+;
+    "VHGND tile depth sum ready"
+	A = [VHGNDdhi]; A + [VHGNDshi]; [VHGNDdhi] = A;
+	A = [VHGNDdlo]; A > 28; C = A;
+	A = [VHGNDdhi]; A < 4; A | C; [VHGNDdepthn] = A;
+	[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 512; [VHGNDdepthstep] = 9;
+    "VHGND tile depth root"
+	A = [VHGNDdepthlo]; A + [VHGNDdepthhi]; A > 1; [VHGNDdepthmid] = A;
+	A '* A; [VHGNDdepthsq] = A;
+	A = [VHGNDdepthsq]; ? A <= [VHGNDdepthn] -> VHGND tile depth root low;
+	[VHGNDdepthhi] = [VHGNDdepthmid]; -> VHGND tile depth root next;
+    "VHGND tile depth root low"
+	[VHGNDdepthlo] = [VHGNDdepthmid];
+    "VHGND tile depth root next"
+	[VHGNDdepthstep]-; ? [VHGNDdepthstep] != 0 -> VHGND tile depth root;
+	A = [VHGNDdepthlo]; [VHGNDrawdepth] = A;
 	A - 1; ? A >= 0 -> VHGND tile depth ready; A = 0;
     "VHGND tile depth ready"
 	[VHGNDdepth] = A;

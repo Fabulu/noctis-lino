@@ -857,7 +857,11 @@ def main() -> int:
         and shade.count("C + 8; [VHGNDshade] = C;") == 1
         and "=> VHGND tile depth;" in tile
         and "A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;" in tile
-        and "=> FAdd; => FSqrt; => FToIntChop;" in depth
+        and "A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDdlo] = A;" in depth
+        and "[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 512; [VHGNDdepthstep] = 9;" in depth
+        and all(call not in depth for call in (
+            "=> IntToF;", "=> FMul;", "=> FAdd;", "=> FSqrt;", "=> FToIntChop;"
+        ))
         and "? C '<= 32" in shade
         and "A = [VHGNDshade]; [SPtinta] = A; [DBcol] = A;" in tile
         and "=> VHGND palette" not in game,
