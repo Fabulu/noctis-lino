@@ -726,6 +726,9 @@
 	line up between two polygons. )
 
 "PJ vectors"
+	A = [SPterrain]; ? A = 0 -> PJ vectors generic;
+	-> PJ vectors terrain;
+    "PJ vectors generic"
 	( midx/midy/midz - the divisor is a DOUBLE literal, 0.3333333 for
 	  three vertices and 0.25 for four. )
 	A = [PJnrv]; C = 3; ? A = 3 -> PJ vc n3; C = 4;
@@ -830,6 +833,196 @@
 	( oz has NO scale factor at all - "fsubp / fstp oz". )
 	[CLxi] = FSNY; [CLyi] = FSMX; [CLxo] = FSNX; [CLyo] = FSMY;
 	[CLbnd] = FSUNO; [CLt] = FSOZ; => PJ vc cross;
+	end;
+
+    "PJ vectors terrain"
+	( The preprojected terrain entry is always a real three-vertex polygon.
+	  Keep the identical exact operation and float-narrowing schedule, but use
+	  its fixed slots directly instead of routing each step through PGFi and
+	  the tiny PGF services. )
+	[PJdx] = 3;
+	[PGFt] = D64THLO; [PGFu] = D64THHI;
+	[FB0] = [PGFt]; [FB1] = [PGFu];
+
+	( midpoint )
+	[FA0] = [fw plus 64]; [FA1] = [fw plus 65];
+	A = fw; A + 66; [FA0] +: [A];
+	A = fw; A + 68; [FA0] +: [A];
+	[FT0] = [FA0]; [FT1] = [FA1]; A = FB0; [FA0] *: [A];
+	~: [FA0]; [fw plus 408] = [FA0]; [fw plus 409] = [FA1];
+	[FA0] = [fw plus 72]; [FA1] = [fw plus 73];
+	A = fw; A + 74; [FA0] +: [A];
+	A = fw; A + 76; [FA0] +: [A];
+	[FT0] = [FA0]; [FT1] = [FA1]; A = FB0; [FA0] *: [A];
+	~: [FA0]; [fw plus 410] = [FA0]; [fw plus 411] = [FA1];
+	[FA0] = [fw plus 80]; [FA1] = [fw plus 81];
+	A = fw; A + 82; [FA0] +: [A];
+	A = fw; A + 84; [FA0] +: [A];
+	[FT0] = [FA0]; [FT1] = [FA1]; A = FB0; [FA0] *: [A];
+	~: [FA0]; [fw plus 412] = [FA0]; [fw plus 413] = [FA1];
+
+	( antialias-expanded vertices )
+	[FA0] = [fw plus 64]; [FA1] = [fw plus 65];
+	A = fw; A + 408; [FA0] -: [A];
+	A = fw; A + 416; [FA0] *: [A];
+	A = fw; A + 408; [FA0] +: [A];
+	~: [FA0]; [fw plus 384] = [FA0]; [fw plus 385] = [FA1];
+	[FA0] = [fw plus 72]; [FA1] = [fw plus 73];
+	A = fw; A + 410; [FA0] -: [A];
+	A = fw; A + 418; [FA0] *: [A];
+	A = fw; A + 410; [FA0] +: [A];
+	~: [FA0]; [fw plus 392] = [FA0]; [fw plus 393] = [FA1];
+	[FA0] = [fw plus 80]; [FA1] = [fw plus 81];
+	A = fw; A + 412; [FA0] -: [A];
+	A = fw; A + 420; [FA0] *: [A];
+	A = fw; A + 412; [FA0] +: [A];
+	~: [FA0]; [fw plus 400] = [FA0]; [fw plus 401] = [FA1];
+
+	[FA0] = [fw plus 66]; [FA1] = [fw plus 67];
+	A = fw; A + 408; [FA0] -: [A];
+	A = fw; A + 416; [FA0] *: [A];
+	A = fw; A + 408; [FA0] +: [A];
+	~: [FA0]; [fw plus 386] = [FA0]; [fw plus 387] = [FA1];
+	[FA0] = [fw plus 74]; [FA1] = [fw plus 75];
+	A = fw; A + 410; [FA0] -: [A];
+	A = fw; A + 418; [FA0] *: [A];
+	A = fw; A + 410; [FA0] +: [A];
+	~: [FA0]; [fw plus 394] = [FA0]; [fw plus 395] = [FA1];
+	[FA0] = [fw plus 82]; [FA1] = [fw plus 83];
+	A = fw; A + 412; [FA0] -: [A];
+	A = fw; A + 420; [FA0] *: [A];
+	A = fw; A + 412; [FA0] +: [A];
+	~: [FA0]; [fw plus 402] = [FA0]; [fw plus 403] = [FA1];
+
+	[FA0] = [fw plus 68]; [FA1] = [fw plus 69];
+	A = fw; A + 408; [FA0] -: [A];
+	A = fw; A + 416; [FA0] *: [A];
+	A = fw; A + 408; [FA0] +: [A];
+	~: [FA0]; [fw plus 388] = [FA0]; [fw plus 389] = [FA1];
+	[FA0] = [fw plus 76]; [FA1] = [fw plus 77];
+	A = fw; A + 410; [FA0] -: [A];
+	A = fw; A + 418; [FA0] *: [A];
+	A = fw; A + 410; [FA0] +: [A];
+	~: [FA0]; [fw plus 396] = [FA0]; [fw plus 397] = [FA1];
+	[FA0] = [fw plus 84]; [FA1] = [fw plus 85];
+	A = fw; A + 412; [FA0] -: [A];
+	A = fw; A + 420; [FA0] *: [A];
+	A = fw; A + 412; [FA0] +: [A];
+	~: [FA0]; [fw plus 404] = [FA0]; [fw plus 405] = [FA1];
+	[PJvr] = 3; [PJvv] = 2;
+
+	( r, m and n vectors )
+	[FA0] = [fw plus 384]; [FA1] = [fw plus 385];
+	~: [FA0]; [fw plus 470] = [FA0]; [fw plus 471] = [FA1];
+	[FA0] = [fw plus 392]; [FA1] = [fw plus 393];
+	~: [FA0]; [fw plus 472] = [FA0]; [fw plus 473] = [FA1];
+	[FA0] = [fw plus 400]; [FA1] = [fw plus 401];
+	~: [FA0]; [fw plus 474] = [FA0]; [fw plus 475] = [FA1];
+	[FA0] = [fw plus 386]; [FA1] = [fw plus 387];
+	A = fw; A + 470; [FA0] -: [A];
+	~: [FA0]; [fw plus 458] = [FA0]; [fw plus 459] = [FA1];
+	[FA0] = [fw plus 394]; [FA1] = [fw plus 395];
+	A = fw; A + 472; [FA0] -: [A];
+	~: [FA0]; [fw plus 460] = [FA0]; [fw plus 461] = [FA1];
+	[FA0] = [fw plus 402]; [FA1] = [fw plus 403];
+	A = fw; A + 474; [FA0] -: [A];
+	~: [FA0]; [fw plus 462] = [FA0]; [fw plus 463] = [FA1];
+	[FA0] = [fw plus 470]; [FA1] = [fw plus 471];
+	A = fw; A + 388; [FA0] -: [A];
+	~: [FA0]; [fw plus 464] = [FA0]; [fw plus 465] = [FA1];
+	[FA0] = [fw plus 472]; [FA1] = [fw plus 473];
+	A = fw; A + 396; [FA0] -: [A];
+	~: [FA0]; [fw plus 466] = [FA0]; [fw plus 467] = [FA1];
+	[FA0] = [fw plus 474]; [FA1] = [fw plus 475];
+	A = fw; A + 404; [FA0] -: [A];
+	~: [FA0]; [fw plus 468] = [FA0]; [fw plus 469] = [FA1];
+
+	( hx, hy, hz )
+	[FA0] = [fw plus 470]; [FA1] = [fw plus 471];
+	A = fw; A + 462; [FA0] *: [A];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] = [fw plus 474]; [FA1] = [fw plus 475];
+	A = fw; A + 458; [FA0] *: [A];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503]; A = FT0; [FA0] -: [A];
+	A = fw; A + 492; [FA0] *: [A];
+	~: [FA0]; [fw] = [FA0]; [fw plus 1] = [FA1];
+	[FA0] = [fw plus 470]; [FA1] = [fw plus 471];
+	A = fw; A + 468; [FA0] *: [A];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] = [fw plus 474]; [FA1] = [fw plus 475];
+	A = fw; A + 464; [FA0] *: [A];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503]; A = FT0; [FA0] -: [A];
+	A = fw; A + 492; [FA0] *: [A];
+	~: [FA0]; [fw plus 2] = [FA0]; [fw plus 3] = [FA1];
+	[FA0] = [fw plus 464]; [FA1] = [fw plus 465];
+	A = fw; A + 462; [FA0] *: [A];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] = [fw plus 468]; [FA1] = [fw plus 469];
+	A = fw; A + 458; [FA0] *: [A];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503]; A = FT0; [FA0] -: [A];
+	A = fw; A + 52; [FA0] *: [A];
+	~: [FA0]; [fw plus 4] = [FA0]; [fw plus 5] = [FA1];
+
+	( vx, vy, vz )
+	[FA0] = [fw plus 474]; [FA1] = [fw plus 475];
+	A = fw; A + 460; [FA0] *: [A];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] = [fw plus 472]; [FA1] = [fw plus 473];
+	A = fw; A + 462; [FA0] *: [A];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503]; A = FT0; [FA0] -: [A];
+	A = fw; A + 490; [FA0] *: [A];
+	~: [FA0]; [fw plus 6] = [FA0]; [fw plus 7] = [FA1];
+	[FA0] = [fw plus 474]; [FA1] = [fw plus 475];
+	A = fw; A + 466; [FA0] *: [A];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] = [fw plus 472]; [FA1] = [fw plus 473];
+	A = fw; A + 468; [FA0] *: [A];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503]; A = FT0; [FA0] -: [A];
+	A = fw; A + 490; [FA0] *: [A];
+	~: [FA0]; [fw plus 8] = [FA0]; [fw plus 9] = [FA1];
+	[FA0] = [fw plus 468]; [FA1] = [fw plus 469];
+	A = fw; A + 460; [FA0] *: [A];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] = [fw plus 466]; [FA1] = [fw plus 467];
+	A = fw; A + 462; [FA0] *: [A];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503]; A = FT0; [FA0] -: [A];
+	A = fw; A + 52; [FA0] *: [A];
+	~: [FA0]; [fw plus 10] = [FA0]; [fw plus 11] = [FA1];
+
+	( ox, oy, oz )
+	[FA0] = [fw plus 472]; [FA1] = [fw plus 473];
+	A = fw; A + 458; [FA0] *: [A];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] = [fw plus 470]; [FA1] = [fw plus 471];
+	A = fw; A + 460; [FA0] *: [A];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503]; A = FT0; [FA0] -: [A];
+	A = fw; A + 488; [FA0] *: [A];
+	~: [FA0]; [fw plus 12] = [FA0]; [fw plus 13] = [FA1];
+	[FA0] = [fw plus 472]; [FA1] = [fw plus 473];
+	A = fw; A + 464; [FA0] *: [A];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] = [fw plus 470]; [FA1] = [fw plus 471];
+	A = fw; A + 466; [FA0] *: [A];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503]; A = FT0; [FA0] -: [A];
+	A = fw; A + 488; [FA0] *: [A];
+	~: [FA0]; [fw plus 14] = [FA0]; [fw plus 15] = [FA1];
+	[FA0] = [fw plus 466]; [FA1] = [fw plus 467];
+	A = fw; A + 458; [FA0] *: [A];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] = [fw plus 464]; [FA1] = [fw plus 465];
+	A = fw; A + 460; [FA0] *: [A];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503]; A = FT0; [FA0] -: [A];
+	A = fw; A + 36; [FA0] *: [A];
+	~: [FA0]; [fw plus 16] = [FA0]; [fw plus 17] = [FA1];
 	end;
 
     "PJ vc scale"

@@ -11,6 +11,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from pathlib import Path
 import argparse
+import hashlib
 import re
 import subprocess
 import sys
@@ -70,40 +71,6 @@ FLOAT_SIGNATURES = {
         "[FI] =: [FA0];",
         "[FA0] := [FI];",
     ),
-    "work/pgproj.txt": (
-        "A = [SPi]; C = ipart; C + A; [FI] = [C]; [FA0] := [FI];",
-        "A = fw; A + 38; [FA0] -: [A];",
-        "A = fw; A + 36; [FA0] +: [A];",
-        "A = fw; A + 10; [FA0] *: [A];",
-        "[FI] = [SPi]; [FA0] := [FI];",
-        "A = fw; A + 40; [FA0] -: [A];",
-        "A = fw; A + 4; [FA0] *: [A];",
-        "A = fw; A + 496; [FA0] +: [A];",
-        "A = fw; A + 16; [FA0] +: [A];",
-        "~: [FA0]; [fw plus 30] = [FA0]; [fw plus 31] = [FA1];",
-        "A = fw; A + 498; [FA0] /: [A];",
-        "~: [FA0]; [fw plus 24] = [FA0]; [fw plus 25] = [FA1];",
-        "A = fw; A + 6; [FA0] *: [A];",
-        "[FI] = [SPi]; [FA0] := [FI];",
-        "A = fw; A + 40; [FA0] -: [A];",
-        "A = fw; [FA0] *: [A];",
-        "A = fw; A + 496; [FA0] +: [A];",
-        "A = fw; A + 12; [FA0] +: [A];",
-        "~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];",
-        "A = fw; A + 8; [FA0] *: [A];",
-        "[FI] = [SPi]; [FA0] := [FI];",
-        "A = fw; A + 40; [FA0] -: [A];",
-        "A = fw; A + 2; [FA0] *: [A];",
-        "A = fw; A + 496; [FA0] +: [A];",
-        "A = fw; A + 14; [FA0] +: [A];",
-        "~: [FA0]; [fw plus 28] = [FA0]; [fw plus 29] = [FA1];",
-        "A = fw; A + 32; [FA0] *: [A];",
-        "A = fw; A + 24; [FA0] *: [A];",
-        "[FI] =: [FA0]; [SPu] = [FI];",
-        "A = fw; A + 34; [FA0] *: [A];",
-        "A = fw; A + 24; [FA0] *: [A];",
-        "[FI] =: [FA0]; [SPv] = [FI];",
-    ),
     "work/pgtex.txt": (
         "A = FSK3; A + A; A + fw; [FA0] +: [A];",
         "~: [FA0]; [fw plus 30] = [FA0]; [fw plus 31] = [FA1];",
@@ -134,6 +101,16 @@ FLOAT_SIGNATURES = {
         "[SFsr] ++ [SFdr];",
         "[SFsg] ++ [SFdg];",
         "[SFsb] ++ [SFdb];",
+    ),
+}
+
+# The direct terrain basis is deliberately large.  A count plus an ordered-line
+# digest pins it just as strictly as the readable tuples above without copying
+# the complete exact schedule into this policy file.
+FLOAT_SIGNATURE_HASHES = {
+    "work/pgproj.txt": (
+        140,
+        "53abe0a9a02c8da38c99b6293b8df6e4b6a43fc5ca4ba1ab53a557056212df6d",
     ),
 }
 
@@ -292,9 +269,24 @@ def float_inventory(closure):
 def float_errors(closure):
     actual = float_inventory(closure)
     errors = []
-    for path in sorted(set(FLOAT_SIGNATURES) | set(actual)):
-        expected_lines = FLOAT_SIGNATURES.get(path, ())
+    paths = set(FLOAT_SIGNATURES) | set(FLOAT_SIGNATURE_HASHES) | set(actual)
+    for path in sorted(paths):
         actual_lines = actual.get(path, ())
+        if path in FLOAT_SIGNATURE_HASHES:
+            expected_count, expected_digest = FLOAT_SIGNATURE_HASHES[path]
+            actual_digest = hashlib.sha256(
+                ("\n".join(actual_lines) + "\n").encode("utf-8")
+            ).hexdigest()
+            if (len(actual_lines), actual_digest) != (
+                    expected_count, expected_digest):
+                errors.append(
+                    f"ordinary Lino float-operator inventory changed: {path}")
+                errors.append(
+                    f"expected {expected_count} lines, sha256 {expected_digest}")
+                errors.append(
+                    f"actual   {len(actual_lines)} lines, sha256 {actual_digest}")
+            continue
+        expected_lines = FLOAT_SIGNATURES.get(path, ())
         if actual_lines != expected_lines:
             errors.append(f"ordinary Lino float-operator inventory changed: {path}")
             errors.append(f"expected {expected_lines!r}")

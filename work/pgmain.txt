@@ -269,11 +269,35 @@
 	=> PG CR next; [SPcull] = C;
 	=> PG CR next; [SPhalf] = C;
 	=> PG read verts;
+	A = [MNn]; ? A != 3 -> PG pmap basis checked;
+	=> PG basis direct check;
+    "PG pmap basis checked"
 	=> PG polymap;
 	=> PG emit topo;
 	=> PG emit span;
 	=> PG case tail;
 	-> PG run case;
+
+      ( The shipping terrain path has a fixed-slot basis schedule.  Exercise it
+	against the generic schedule on every three-vertex PMAP fixture and compare
+	all nine gradient qwords before the ordinary graded call runs. )
+
+"PG basis direct check"
+	[PJmode] = 1; [PJnrv] = 3; => PJ rotate;
+	[SPterrain] = 0; [PJnrv] = 3; => PJ vectors;
+	[PGi] = 0;
+    "PG bd save"
+	A = [PGi]; C = fw; C + A; D = [C]; C = pgpack; C + A; [C] = D;
+	[PGi]+; A = [PGi]; ? A < 18 -> PG bd save;
+	[SPterrain] = 1; [PJnrv] = 3; => PJ vectors; [SPterrain] = 0;
+	[PGi] = 0;
+    "PG bd compare"
+	A = [PGi]; C = fw; C + A; D = [C]; C = pgpack; C + A;
+	? D = [C] -> PG bd same; [MNbad]+;
+    "PG bd same"
+	[PGi]+; A = [PGi]; ? A < 18 -> PG bd compare;
+	[PJnrv] = 3;
+	end;
 
 ( -------------------------------------------------------------------- )
 ( 8 GCOORD : caseid pre n  then 3n binary32 patterns                    )
