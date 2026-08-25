@@ -385,6 +385,22 @@
 	  same as the scalar loop; only redundant per-pixel memory shuttling is gone. )
 	A = [SPdi]; B = [SPdx]; C = [SPax];
     "PG px terrain"
+	( Publish diagnostic scratch only for the final pixel in each block.  Earlier
+	  iterations consume their index, texel, colour and destination directly;
+	  no call can observe the otherwise dead intermediate stores. )
+	? [SPcl] = 1 -> PG px terrain final;
+	A + 1; A & 65535;
+	D = B; D & 65280;
+	E = C; E > 8; D | E;
+	D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255;
+	E + [SPtinta]; E & 255;
+	C + [SPbp]; C & 65535;
+	D = A; D + 3; D & 65535;
+	D + SADPT; D + nw; [D] = E;
+	B + [SPsi]; B & 65535;
+	[SPcl]-;
+	-> PG px terrain;
+    "PG px terrain final"
 	A + 1; A & 65535;
 	D = B; D & 65280;
 	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
@@ -395,7 +411,6 @@
 	D + SADPT; D + nw; [D] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl]-;
-	? [SPcl] != 0 -> PG px terrain;
 	[SPdi] = A; [SPdx] = B; [SPax] = C;
 	-> PG row;
 
@@ -544,6 +559,23 @@
 	  while preserving the source's duplicated stores and final scratch state. )
 	A = [SPdi]; B = [SPdx]; C = [SPax];
     "PG cpx terrain"
+	( Publish diagnostic scratch only for the final pair in each block.  Both
+	  output stores remain in every iteration and in their original order. )
+	? [SPcl] = 1 -> PG cpx terrain final;
+	A + 2; A & 65535;
+	D = B; D & 65280;
+	E = C; E > 8; D | E;
+	D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255;
+	E + [SPtinta]; E & 255;
+	C + [SPbp]; C & 65535;
+	D = A; D + 2; D & 65535;
+	D + SADPT; D + nw; [D] = E;
+	D = A; D + 3; D & 65535;
+	D + SADPT; D + nw; [D] = E;
+	B + [SPsi]; B & 65535;
+	[SPcl]-;
+	-> PG cpx terrain;
+    "PG cpx terrain final"
 	A + 2; A & 65535;
 	D = B; D & 65280;
 	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
@@ -556,7 +588,6 @@
 	D + SADPT; D + nw; [D] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl]-;
-	? [SPcl] != 0 -> PG cpx terrain;
 	[SPdi] = A; [SPdx] = B; [SPax] = C;
 	-> PG crow tail;
 
