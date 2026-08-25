@@ -19,6 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "work" / "vhgame.txt"
 GROUND = ROOT / "work" / "vhground.txt"
+PGTEX = ROOT / "work" / "pgtex.txt"
 GRND = ROOT / "work" / "grnd.txt"
 CUPOLA = ROOT / "work" / "vhcupola.txt"
 CAPSULE = ROOT / "work" / "vhcapsule.txt"
@@ -353,6 +354,7 @@ def lift_ascent_route(
 def main() -> int:
     game = GAME.read_text(encoding="utf-8")
     ground = GROUND.read_text(encoding="utf-8")
+    pgtex = PGTEX.read_text(encoding="utf-8")
     grnd = GRND.read_text(encoding="utf-8")
     cupola = CUPOLA.read_text(encoding="utf-8")
     capsule_physics = CAPSULE.read_text(encoding="utf-8")
@@ -879,6 +881,17 @@ def main() -> int:
         and "[PJpreproject] = 1; [PJnrv] = 3; => PG polymap;" in ground
         and '"PG tex 5"' in (ROOT / "work" / "pgmem.txt").read_text(encoding="utf-8"),
         "faithful terrain triangles remain texture mapped on foot and during capsule flight",
+    )
+    terrain_pixel = section(pgtex, '"PG px terrain"', '"PG px internal"')
+    terrain_cpixel = section(pgtex, '"PG cpx terrain"', '"PG cpx internal"')
+    check(
+        "A = [SPterrain]; ? A != 0 -> PG px terrain;" in pgtex
+        and "A = [SPterrain]; ? A != 0 -> PG cpx terrain;" in pgtex
+        and "A = [SPtinta]; [SPch] = A;" in terrain_pixel
+        and "A = [SPtinta]; [SPch] = A;" in terrain_cpixel
+        and "=> PG scrtinta;" not in terrain_pixel
+        and "=> PG scrtinta;" not in terrain_cpixel,
+        "faithful terrain pixels reuse their authoritative local tinta",
     )
     depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')

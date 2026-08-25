@@ -353,12 +353,28 @@
 	A = [SPv]; A & 65535; [SPdx] = A;
 	[SPu] = [SPun]; [SPv] = [SPvn];
 
+	( Faithful preprojected terrain has flar zero and keeps its authoritative
+	  tinta in [SPtinta].  Select once per block instead of re-reading the
+	  identical scratch-page byte for every pixel. )
+	A = [SPterrain]; ? A != 0 -> PG px terrain;
 	A = [SPflar]; A & 15;
 	? A = 0 -> PG px internal;
 	A = [SPflar]; A & 1;  ? A != 0 -> PG px transp;
 	A = [SPflar]; A & 2;  ? A != 0 -> PG px bright;
 	A = [SPflar]; A & 4;  ? A != 0 -> PG px merger;
 	-> PG px bumper;
+
+    "PG px terrain"
+	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
+	A = [SPtinta]; [SPch] = A;
+	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG px terrain;
+	-> PG row;
 
     "PG px internal"
 	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
@@ -490,12 +506,27 @@
 	[SPu] = [SPun]; [SPv] = [SPvn];
 	A = [SPdi]; [SPsave] = A;
 
+	A = [SPterrain]; ? A != 0 -> PG cpx terrain;
 	A = [SPflar]; A & 15;
 	? A = 0 -> PG cpx internal;
 	A = [SPflar]; A & 1;  ? A != 0 -> PG cpx transp;
 	A = [SPflar]; A & 2;  ? A != 0 -> PG cpx bright;
 	A = [SPflar]; A & 4;  ? A != 0 -> PG cpx merger;
 	-> PG cpx bumper;
+
+    "PG cpx terrain"
+	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
+	A = [SPtinta]; [SPch] = A;
+	=> PG texel; A = [SPch]; A + [PGtexv]; A & 255; [SPch] = A;
+	C = [SPax]; C + [SPbp]; C & 65535; [SPax] = C;
+	A = [SPdi]; A + 2; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	A = [SPdi]; A + 3; A & 65535; [PGdi] = A;
+	[PGval] = [SPch]; => PG store; [CSpix]+;
+	C = [SPdx]; C + [SPsi]; C & 65535; [SPdx] = C;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG cpx terrain;
+	-> PG crow tail;
 
     "PG cpx internal"
 	A = [SPdi]; A + 2; A & 65535; [SPdi] = A;
