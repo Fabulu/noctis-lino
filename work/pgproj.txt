@@ -568,27 +568,84 @@
 	10 or 190 returns 0, not 1.  Sabotage GETCOORDINCL. )
 
 "PG getcoords"
-	[PJnrv] = 1;
-	[PJmode] = 1;			( the t- table: getcoords is
-					  polymap's nucleus, not poly3d's )
-	=> PJ rotate;
+	( The caller always supplies one vertex and always needs polymap's t-table
+	  nucleus.  Preserve PJ rotate's exact spill schedule and public scratch,
+	  but address the fixed scalar slots directly instead of dispatching through
+	  PJvr, PGFi and the tiny PGF services for every operation. )
+	[PJnrv] = 1; [PJmode] = 1; [PJvr] = 0; [PJdoflag] = 0;
+
+	( translated point, narrowed exactly where zz/xx/yy are stored )
+	[FA0] = [fw plus 520]; [FA1] = [fw plus 521];
+	[FA0] -: [fw plus 452];
+	~: [FA0]; [fw plus 480] = [FA0]; [fw plus 481] = [FA1];
+	[FA0] = [fw plus 504]; [FA1] = [fw plus 505];
+	[FA0] -: [fw plus 448];
+	~: [FA0]; [fw plus 476] = [FA0]; [fw plus 477] = [FA1];
+	[FA0] = [fw plus 512]; [FA1] = [fw plus 513];
+	[FA0] -: [fw plus 450];
+	~: [FA0]; [fw plus 478] = [FA0]; [fw plus 479] = [FA1];
+
+	( rxf = zz*sinbeta + xx*cosbeta )
+	[FA0] = [fw plus 480]; [FA1] = [fw plus 481];
+	[FA0] *: [fw plus 430];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FA0] = [fw plus 476]; [FA1] = [fw plus 477];
+	[FA0] *: [fw plus 428]; [FA0] +: [fw plus 496];
+	~: [FA0]; [fw plus 64] = [FA0]; [fw plus 65] = [FA1];
+
+	( z2 = zz*cosbeta - xx*sinbeta )
+	[FA0] = [fw plus 480]; [FA1] = [fw plus 481];
+	[FA0] *: [fw plus 428];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FA0] = [fw plus 476]; [FA1] = [fw plus 477];
+	[FA0] *: [fw plus 430];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 496]; [FA1] = [fw plus 497]; [FA0] -: [FT0];
+	~: [FA0]; [fw plus 482] = [FA0]; [fw plus 483] = [FA1];
+
+	( rzf = z2*cosalpha + yy*sinalpha; compare the still-wide value )
+	[FA0] = [fw plus 482]; [FA1] = [fw plus 483];
+	[FA0] *: [fw plus 436];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FA0] = [fw plus 478]; [FA1] = [fw plus 479];
+	[FA0] *: [fw plus 438]; [FA0] +: [fw plus 496];
+	[fw plus 498] = [FA0]; [fw plus 499] = [FA1];
+	~: [FA0]; [fw plus 80] = [FA0]; [fw plus 81] = [FA1];
+	[FA0] = [fw plus 498]; [FA1] = [fw plus 499];
+	[PGFi] = FSUNEG;
+	[FB0] = [fw plus 54]; [FB1] = [fw plus 55];
+	=> FCmp;
+	C = 0;
+	A = [FI]; ? A = 2 -> PG gc behind;
+	A = [FI]; ? A < 0 -> PG gc behind;
+	C = 1; [PJdoflag]+;
+    "PG gc behind"
+	A = rwf; [A] = C;
+
+	( ryf = yy*cosalpha - z2*sinalpha )
+	[FA0] = [fw plus 478]; [FA1] = [fw plus 479];
+	[FA0] *: [fw plus 436];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FA0] = [fw plus 482]; [FA1] = [fw plus 483];
+	[FA0] *: [fw plus 438];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 496]; [FA1] = [fw plus 497]; [FA0] -: [FT0];
+	~: [FA0]; [fw plus 72] = [FA0]; [fw plus 73] = [FA1];
+	[PJvr] = 1; [PGFi] = FSRYF;
+
 	[GCret] = 0;
 	A = rwf; A = [A];
 	? A = 0 -> PG gc done;
--> PG gc project generic;
-    "PG gc project generic"
 
 	( my = dpp / rz ; _x_ = my*rx + x_centro ; _y_ = my*ry + y_centro )
-	[PGFi] = FSDPP; => PGF a;
-	[PGFi] = FSRZF; => PGF quo;
-	[PGFi] = FSW3; => PGF sa;
-	[PGFi] = FSRXF; => PGF mul;
-	[PGFi] = FSXC; => PGF add;
-	=> PGF int; [GCx] = [FI];
-	[PGFi] = FSW3; => PGF a;
-	[PGFi] = FSRYF; => PGF mul;
-	[PGFi] = FSYC; => PGF add;
-	=> PGF int; [GCy] = [FI];
+	[FA0] = [fw plus 50]; [FA1] = [fw plus 51];
+	[FA0] /: [fw plus 80];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] *: [fw plus 64]; [FA0] +: [fw plus 38];
+	[FI] =: [FA0]; [GCx] = [FI];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
+	[FA0] *: [fw plus 72]; [FA0] +: [fw plus 40];
+	[FI] =: [FA0]; [GCy] = [FI]; [PGFi] = FSYC;
 
 	"PG gc bounds"
 	A = [GCx]; ? A <= PGLBX -> PG gc done;

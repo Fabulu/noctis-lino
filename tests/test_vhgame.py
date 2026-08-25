@@ -21,6 +21,7 @@ GAME = ROOT / "work" / "vhgame.txt"
 GROUND = ROOT / "work" / "vhground.txt"
 PGTEX = ROOT / "work" / "pgtex.txt"
 PGFP = ROOT / "work" / "pgfp.txt"
+PGPROJ = ROOT / "work" / "pgproj.txt"
 GRND = ROOT / "work" / "grnd.txt"
 CUPOLA = ROOT / "work" / "vhcupola.txt"
 CAPSULE = ROOT / "work" / "vhcapsule.txt"
@@ -367,6 +368,7 @@ def main() -> int:
     ground = GROUND.read_text(encoding="utf-8")
     pgtex = PGTEX.read_text(encoding="utf-8")
     pgfp = PGFP.read_text(encoding="utf-8")
+    pgproj = PGPROJ.read_text(encoding="utf-8")
     grnd = GRND.read_text(encoding="utf-8")
     cupola = CUPOLA.read_text(encoding="utf-8")
     capsule_physics = CAPSULE.read_text(encoding="utf-8")
@@ -448,6 +450,30 @@ def main() -> int:
         and "[FA0] := [FI];" in from_int
         and "IntToF" not in from_int,
         "renderer conversions use the backend-exact direct operators",
+    )
+    getcoords = section(pgproj, '"PG getcoords"', '"PG facing"')
+    check(
+        "=> PJ rotate;" not in getcoords
+        and "=> PGF " not in getcoords
+        and getcoords.count("~: [FA0];") == 7
+        and getcoords.count("[FI] =: [FA0];") == 2
+        and getcoords.count("-:") == 5
+        and getcoords.count("*:") == 10
+        and getcoords.count("+:") == 4
+        and getcoords.count("/:") == 1
+        and all(token in getcoords for token in (
+            "[PJnrv] = 1; [PJmode] = 1; [PJvr] = 0; [PJdoflag] = 0;",
+            "[FA0] = [fw plus 520]; [FA1] = [fw plus 521];",
+            "[FA0] = [fw plus 504]; [FA1] = [fw plus 505];",
+            "[FA0] = [fw plus 512]; [FA1] = [fw plus 513];",
+            "[fw plus 498] = [FA0]; [fw plus 499] = [FA1];",
+            "[FB0] = [fw plus 54]; [FB1] = [fw plus 55];",
+            "=> FCmp;",
+            "[fw plus 502] = [FA0]; [fw plus 503] = [FA1];",
+            "[FI] =: [FA0]; [GCx] = [FI];",
+            "[FI] =: [FA0]; [GCy] = [FI]; [PGFi] = FSYC;",
+        )),
+        "one-point getcoords uses the exact direct scalar schedule",
     )
     original_lift = section(original, "pos_y += lifter;", "//\n\t\t// Risposta al reset")
     check(
