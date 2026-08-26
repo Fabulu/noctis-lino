@@ -1262,6 +1262,12 @@ def main() -> int:
         and "[BXmaxy] = PGUBY;" in terrain_clip
         and "D - E; [SPsec] = D;" in terrain_trace
         and "C = [SPi]; => PG riga; C + E; C & 65535; [SPdi] = C;" in terrain_trace
+        and terrain_trace.count("[FI] = [SPi]; [FA0] := [FI];") == 1
+        and terrain_trace.count("[FA0] -: [fw plus 40];") == 1
+        and "[fw plus 500] = [FA0]; [fw plus 501] = [FA1];" in terrain_trace
+        and terrain_trace.count(
+            "[FA0] = [fw plus 500]; [FA1] = [fw plus 501];"
+        ) == 2
         and maximum_terrain_destination == 61114
         and maximum_terrain_destination < 65536
         and maximum_culling_destination == 61116

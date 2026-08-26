@@ -1167,11 +1167,13 @@
 	[FA0] +: [fw plus 36];
 	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
 
-	( _z = oz + hz*(i - y_centro) + vz*factor )
+	( _z = oz + hz*(i - y_centro) + vz*factor;
+	  retain the shared binary64 row delta for _x and _y. )
 	[FA0] *: [fw plus 10];
 	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
 	[FI] = [SPi]; [FA0] := [FI];
 	[FA0] -: [fw plus 40];
+	[fw plus 500] = [FA0]; [fw plus 501] = [FA1];
 	[FA0] *: [fw plus 4];
 	[FA0] +: [fw plus 496];
 	[FA0] +: [fw plus 16];
@@ -1187,8 +1189,7 @@
 	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
 	[FA0] *: [fw plus 6];
 	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
-	[FI] = [SPi]; [FA0] := [FI];
-	[FA0] -: [fw plus 40];
+	[FA0] = [fw plus 500]; [FA1] = [fw plus 501];
 	[FA0] *: [fw];
 	[FA0] +: [fw plus 496];
 	[FA0] +: [fw plus 12];
@@ -1198,8 +1199,7 @@
 	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
 	[FA0] *: [fw plus 8];
 	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
-	[FI] = [SPi]; [FA0] := [FI];
-	[FA0] -: [fw plus 40];
+	[FA0] = [fw plus 500]; [FA1] = [fw plus 501];
 	[FA0] *: [fw plus 2];
 	[FA0] +: [fw plus 496];
 	[FA0] +: [fw plus 14];
