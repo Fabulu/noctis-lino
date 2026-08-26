@@ -1176,9 +1176,8 @@ def main() -> int:
         and "[SPu] = [SPun]; [SPv] = [SPvn];" not in terrain_crow_control
         and "A = [SPdi]; D = A; D + [SPcl]; [SPdi] = D;" in terrain_pixel
         and (
-            "A = [SPdi]; D = [SPcl]; D + D; D + A; [SPdi] = D;\n"
-            "\tA + SADPT plus nw;\n"
-            "\tD = [SPcl]; D + D; D + A; [PGtmp] = D;"
+            "A = [SPdi]; A + SADPT plus nw;\n"
+            "\tD = [SPcl]; D + D; D + A; [SPdi] = D;"
         ) in terrain_cpixel
         and "B = [SPdx]; C = [SPax];" in terrain_pixel
         and "B = [SPdx]; C = [SPax];" in terrain_cpixel
@@ -1193,7 +1192,7 @@ def main() -> int:
         and '"PG cpx terrain unchecked"' in terrain_cpixel
         and "-> PG cpx terrain unchecked;" in terrain_cpixel
         and "A + 1; ? A = [SPdi] -> PG px terrain final;" in terrain_pixel
-        and "A + 2; ? A = [PGtmp] -> PG cpx terrain final;" in terrain_cpixel
+        and "A + 2; ? A = [SPdi] -> PG cpx terrain final;" in terrain_cpixel
         and terrain_pixel.count("[SPcl]-;") == 0
         and terrain_cpixel.count("[SPcl]-;") == 0
         and terrain_pixel.count("[SPcl] = 0;") == 1
@@ -1218,7 +1217,7 @@ def main() -> int:
         and "A + 2; A & 65535;" not in terrain_cpixel
         and "D = A; D + 2; D & 65535;" not in terrain_cpixel
         and "D = A; D + 3; D & 65535;" not in terrain_cpixel
-        and "D = [SPdi]; D + 2; [PGdi] = D; [PGval] = E;" in terrain_cpixel
+        and "D = [SPcl]; D + D; D + [SPsave]; D + 2; [PGdi] = D; [PGval] = E;" in terrain_cpixel
         and "[PGdi]+;" in terrain_cpixel
         and "D + RPBG; D + nw;" not in terrain_pixel
         and "D + RPBG; D + nw;" not in terrain_cpixel

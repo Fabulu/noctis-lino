@@ -568,12 +568,12 @@
 	A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;
 	( Retain the pair destination and UV accumulators across the complete block,
 	  while preserving the source's duplicated stores and final scratch state.
-	  SPdi keeps the clip-bounded logical endpoint.  Adapt A once to the framebuffer
-	  and hold the corresponding physical endpoint in PGtmp until the final texel
-	  path restores that diagnostic.  The proven destination range never wraps. )
-	A = [SPdi]; D = [SPcl]; D + D; D + A; [SPdi] = D;
-	A + SADPT plus nw;
-	D = [SPcl]; D + D; D + A; [PGtmp] = D;
+	  Adapt A once to the framebuffer and prepublish the corresponding physical
+	  endpoint in SPdi.  No specialized iteration calls out, and PG crow tail
+	  restores SPdi from the logical block start; the final diagnostic is rebuilt
+	  from that same saved start.  The proven destination range never wraps. )
+	A = [SPdi]; A + SADPT plus nw;
+	D = [SPcl]; D + D; D + A; [SPdi] = D;
 	B = [SPdx]; C = [SPax];
 	( Alternate an unchecked and checked pair exactly as in the ordinary terrain
 	  loop.  Counts are 1..17 pairs, including the authentic residual-32 case,
@@ -592,7 +592,7 @@
     "PG cpx terrain"
 	( Publish the remaining diagnostic scratch only for the final pair.  Both
 	  output stores remain in every iteration and in their original order. )
-	A + 2; ? A = [PGtmp] -> PG cpx terrain final;
+	A + 2; ? A = [SPdi] -> PG cpx terrain final;
 	D = B; D & 65280;
 	E = C; E > 8; D | E;
 	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
@@ -608,7 +608,7 @@
 	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255; [PGtexv] = E;
 	E + [SPtinta]; E & 255; [SPch] = E;
 	C + [SPbp]; C & 65535;
-	D = [SPdi]; D + 2; [PGdi] = D; [PGval] = E;
+	D = [SPcl]; D + D; D + [SPsave]; D + 2; [PGdi] = D; [PGval] = E;
 	D = A; D + 2; [D] = E;
 	[PGdi]+;
 	D = A; D + 3; [D] = E;
