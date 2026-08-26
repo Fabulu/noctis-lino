@@ -5696,15 +5696,20 @@
 	  original six-pixel silhouette directly into the adapted page. )
 	A = [VHGNDmushscale]; A > 1; [VHGNDtmp] = A;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer setup;
-	[PGFt] = [VHGNDmushxf]; => PGF ldf32; => VHGND fb fa;
-	[FI] = [VHGNDtmp]; => PGF fromint; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushxf] = [FS0];
-	[PGFt] = [VHGNDmushyf]; => PGF ldf32; => VHGND fb fa;
-	[FI] = [VHGNDtmp]; => PGF fromint; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushyf] = [FS0];
-	[PGFt] = [VHGNDmushzf]; => PGF ldf32; => VHGND fb fa;
-	[FI] = [VHGNDtmp]; => PGF fromint; => FAdd; => F32Narrow; => FStoreF32; [VHGNDmushzf] = [FS0];
-	[PGFt] = [VHGNDmushxf]; => PGF ldf32; => FToIntChop; [VHGNDmushx] = [FI];
-	[PGFt] = [VHGNDmushyf]; => PGF ldf32; => FToIntChop; [VHGNDmushy] = [FI];
-	[PGFt] = [VHGNDmushzf]; => PGF ldf32; => FToIntChop; [VHGNDmushz] = [FI];
+	( The compiler-owned binary64 operators are the exact PGF services below;
+	  address their fixed slots directly and retain every binary32 spill. )
+	[FI] = [VHGNDtmp];
+	[FS0] = [VHGNDmushxf]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1]; [FA0] := [FI];
+	[FA0] +: [FB0]; ~: [FA0]; => FStoreF32;
+	[VHGNDmushxf] = [FS0]; [PGFt] = [VHGNDmushxf]; [FI] =: [FA0]; [VHGNDmushx] = [FI];
+	[FI] = [VHGNDtmp];
+	[FS0] = [VHGNDmushyf]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1]; [FA0] := [FI];
+	[FA0] +: [FB0]; ~: [FA0]; => FStoreF32;
+	[VHGNDmushyf] = [FS0]; [PGFt] = [VHGNDmushyf]; [FI] =: [FA0]; [VHGNDmushy] = [FI];
+	[FI] = [VHGNDtmp];
+	[FS0] = [VHGNDmushzf]; => FLoadF32; [FB0] = [FA0]; [FB1] = [FA1]; [FA0] := [FI];
+	[FA0] +: [FB0]; ~: [FA0]; => FStoreF32;
+	[VHGNDmushzf] = [FS0]; [PGFt] = [VHGNDmushzf]; [FI] =: [FA0]; [VHGNDmushz] = [FI];
 	-> VHGND greenmush seed;
     "VHGND greenmush integer setup"
 	A = [VHGNDmushx]; A + [VHGNDtmp]; [VHGNDmushx] = A;
@@ -5723,22 +5728,22 @@
 	  z-fast_random()) right-to-left while preparing its stack arguments. )
 	[SUfmask] = [VHGNDmushscale]; => VHGND render random;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer z;
-	[FI] = C; => PGF fromint; => VHGND fb fa; [PGFt] = [VHGNDmushzf]; => PGF ldf32;
-	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpzf] = [FS0]; -> VHGND greenmush z ready;
+	[FI] = C; [FB0] := [FI]; [PGFt] = [VHGNDmushzf]; [FS0] = [VHGNDmushzf]; => FLoadF32;
+	[FA0] -: [FB0]; ~: [FA0]; => FStoreF32; [VHGNDmushpzf] = [FS0]; -> VHGND greenmush z ready;
     "VHGND greenmush integer z"
 	A = [VHGNDmushz]; A - C; [VHGNDmushpz] = A;
     "VHGND greenmush z ready"
 	=> VHGND render random;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer y;
-	[FI] = C; => PGF fromint; => VHGND fb fa; [PGFt] = [VHGNDmushyf]; => PGF ldf32;
-	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpyf] = [FS0]; -> VHGND greenmush y ready;
+	[FI] = C; [FB0] := [FI]; [PGFt] = [VHGNDmushyf]; [FS0] = [VHGNDmushyf]; => FLoadF32;
+	[FA0] -: [FB0]; ~: [FA0]; => FStoreF32; [VHGNDmushpyf] = [FS0]; -> VHGND greenmush y ready;
     "VHGND greenmush integer y"
 	A = [VHGNDmushy]; A - C; [VHGNDmushpy] = A;
     "VHGND greenmush y ready"
 	=> VHGND render random;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer x;
-	[FI] = C; => PGF fromint; => VHGND fb fa; [PGFt] = [VHGNDmushxf]; => PGF ldf32;
-	=> FSub; => F32Narrow; => FStoreF32; [VHGNDmushpxf] = [FS0]; -> VHGND greenmush x ready;
+	[FI] = C; [FB0] := [FI]; [PGFt] = [VHGNDmushxf]; [FS0] = [VHGNDmushxf]; => FLoadF32;
+	[FA0] -: [FB0]; ~: [FA0]; => FStoreF32; [VHGNDmushpxf] = [FS0]; -> VHGND greenmush x ready;
     "VHGND greenmush integer x"
 	A = [VHGNDmushx]; A - C; [VHGNDmushpx] = A;
     "VHGND greenmush x ready"
@@ -5746,9 +5751,9 @@
 	  polygon vertex the previous caller left selected. )
 	[VHGNDvi] = 0;
 	A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer inputs;
-	[PGFi] = FSINX; [PGFt] = [VHGNDmushpxf]; => PGF setf32;
-	[PGFi] = FSINY; [PGFt] = [VHGNDmushpyf]; => PGF setf32;
-	[PGFi] = FSINZ; [PGFt] = [VHGNDmushpzf]; => PGF setf32;
+	[PGFi] = FSINX; [PGFt] = [VHGNDmushpxf]; [FS0] = [VHGNDmushpxf]; => FLoadF32; [fw plus 504] = [FA0]; [fw plus 505] = [FA1];
+	[PGFi] = FSINY; [PGFt] = [VHGNDmushpyf]; [FS0] = [VHGNDmushpyf]; => FLoadF32; [fw plus 512] = [FA0]; [fw plus 513] = [FA1];
+	[PGFi] = FSINZ; [PGFt] = [VHGNDmushpzf]; [FS0] = [VHGNDmushpzf]; => FLoadF32; [fw plus 520] = [FA0]; [fw plus 521] = [FA1];
 	-> VHGND greenmush project;
     "VHGND greenmush integer inputs"
 	[VHGNDvv] = [VHGNDmushpx]; [VHGNDvslot] = FSINX; => VHGND vload;

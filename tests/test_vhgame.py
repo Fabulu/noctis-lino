@@ -3890,6 +3890,31 @@ def main() -> int:
         "grass tufts restore source depth visibility, density, scale, and distant foliage",
     )
     check(
+        greenmush.count("[FI] = [VHGNDtmp];") == 3
+        and greenmush.count(
+            "[FB0] = [FA0]; [FB1] = [FA1]; [FA0] := [FI];") == 3
+        and greenmush.count(
+            "[FA0] +: [FB0]; ~: [FA0]; => FStoreF32;") == 3
+        and all(greenmush.count(token) == 2 for token in (
+            "[PGFt] = [VHGNDmushxf];",
+            "[PGFt] = [VHGNDmushyf];",
+            "[PGFt] = [VHGNDmushzf];",
+        ))
+        and all(token in greenmush for token in (
+            "[FI] = C; [FB0] := [FI]; [PGFt] = [VHGNDmushzf]; [FS0] = [VHGNDmushzf]; => FLoadF32;",
+            "[FI] = C; [FB0] := [FI]; [PGFt] = [VHGNDmushyf]; [FS0] = [VHGNDmushyf]; => FLoadF32;",
+            "[FI] = C; [FB0] := [FI]; [PGFt] = [VHGNDmushxf]; [FS0] = [VHGNDmushxf]; => FLoadF32;",
+            "[PGFi] = FSINX; [PGFt] = [VHGNDmushpxf]; [FS0] = [VHGNDmushpxf]; => FLoadF32; [fw plus 504] = [FA0]; [fw plus 505] = [FA1];",
+            "[PGFi] = FSINY; [PGFt] = [VHGNDmushpyf]; [FS0] = [VHGNDmushpyf]; => FLoadF32; [fw plus 512] = [FA0]; [fw plus 513] = [FA1];",
+            "[PGFi] = FSINZ; [PGFt] = [VHGNDmushpzf]; [FS0] = [VHGNDmushpzf]; => FLoadF32; [fw plus 520] = [FA0]; [fw plus 521] = [FA1];",
+        ))
+        and greenmush.count(
+            "[FA0] -: [FB0]; ~: [FA0]; => FStoreF32;") == 3
+        and "=> PGF fromint; => VHGND fb fa;" not in greenmush
+        and "=> PGF setf32;" not in greenmush,
+        "floating foliage expands exact scalar wrappers into fixed slots",
+    )
+    check(
         all(token in ground for token in (
             '"VHGND generate desert"', '"VHGND generate icy"',
             '"VHGND icy snowfield"', '"VHGND icy bare"',
