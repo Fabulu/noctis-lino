@@ -1792,9 +1792,13 @@ def main() -> int:
             "A = VHGNDvcbasisstamp; A + [VHGNDptr]; [A] = 0;",
             "? A < 80000 -> VHGND terrain basis cache clear;",
         ))
-        and all(token in terrain_clip for token in (
-            '"PG pm terrain edges"', "=> PG edges;",
-            '"PG pm terrain span"', "? D > 0 -> PG pm basis;",
+        and contains_in_order(terrain_clip, (
+            '"PG pm terrain edges"',
+            "=> PG edges;",
+            "A = [PJterrainbasisreuse]; ? A != 0 -> PG pm basis;",
+            "[SPi] = [BXminy];",
+            '"PG pm terrain span"',
+            "? D > 0 -> PG pm basis;",
         ))
         and "=> PJ vectors;" in terrain_basis_entry,
         "exact repeated-camera terrain triangles reuse generation-stamped texture bases",

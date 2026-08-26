@@ -1346,6 +1346,9 @@
 	[EWminy] = [BXminy];
 	[EWmaxy] = [BXmaxy];
 	=> PG edges;
+	( A stamped basis proves this identical triangle previously had a positive
+	  span.  Keep exact edge construction, but do not rediscover that fact. )
+	A = [PJterrainbasisreuse]; ? A != 0 -> PG pm basis;
 	[SPi] = [BXminy];
     "PG pm terrain span"
 	A = [SPi]; C = fpart; C + A; D = [C];
