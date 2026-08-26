@@ -200,9 +200,8 @@ def hoisted_greenmush_destination(gc_x: int, gc_y: int, random_x: int,
     return signed32(origin + offset)
 
 
-def terrain_depth_root(depth_n: int, high: int, steps: int) -> int:
+def terrain_depth_root(depth_n: int, low: int, high: int, steps: int) -> int:
     """Model VHGND tile depth's fixed-iteration integer square root."""
-    low = 0
     for _ in range(steps):
         midpoint = (low + high) >> 1
         if midpoint * midpoint <= depth_n:
@@ -1108,12 +1107,13 @@ def main() -> int:
                         squared = dx * dx + dz * dz
                         depth_n = squared >> 28
                         expected = math.isqrt(squared) >> 14
-                        actual = terrain_depth_root(depth_n, 128, 7)
+                        root_low = 0 if depth_n < 4096 else 64
+                        actual = terrain_depth_root(depth_n, root_low, root_low + 64, 6)
                         maximum_tile_root = max(maximum_tile_root, expected)
                         bounded_roots_exact &= actual == expected
     check(
         bounded_roots_exact and maximum_tile_root < 128,
-        "seven-bit terrain roots cover every accepted traversal offset exactly",
+        "split six-bit terrain roots cover every accepted traversal offset exactly",
     )
     check(
         "A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;" in shade
@@ -1122,7 +1122,9 @@ def main() -> int:
         and "=> VHGND tile depth;" in tile
         and "A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;" in tile
         and "A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDdlo] = A;" in depth
-        and "[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 128; [VHGNDdepthstep] = 7;" in depth
+        and "[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 64; [VHGNDdepthstep] = 6;" in depth
+        and "A = [VHGNDdepthn]; ? A < 4096 -> VHGND tile depth root;" in depth
+        and "[VHGNDdepthlo] = 64; [VHGNDdepthhi] = 128;" in depth
         and all(call not in depth for call in (
             "=> IntToF;", "=> FMul;", "=> FAdd;", "=> FSqrt;", "=> FToIntChop;"
         ))
