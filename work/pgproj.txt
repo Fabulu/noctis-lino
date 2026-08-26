@@ -1149,7 +1149,8 @@
 
 	The row setup computes the shared factor (ipart[i] - x_centro + 1)
 	ONCE and uses it three times.  _z stays WIDE for the reciprocal and
-	NARROW in memory; _x and _y are narrowed and reloaded for u and v. )
+	NARROW in memory; _x and _y are narrowed, consumed live for u and v,
+	and retained in memory for the scanline. )
 
 "PG trace"
 	A = PGSCRT; A + PGDOFF; [PGdi] = A; [PGval] = [SPtinta]; => PG store;
@@ -1195,6 +1196,11 @@
 	[FA0] +: [fw plus 12];
 	~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];
 
+	( u from the live narrow x )
+	[FA0] *: [fw plus 32];
+	[FA0] *: [fw plus 24];
+	[FI] =: [FA0]; [SPu] = [FI];
+
 	( _y = oy + hy*(i - y_centro) + vy*factor )
 	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
 	[FA0] *: [fw plus 8];
@@ -1205,12 +1211,7 @@
 	[FA0] +: [fw plus 14];
 	~: [FA0]; [fw plus 28] = [FA0]; [fw plus 29] = [FA1];
 
-	( u and v from the reloaded narrow x and y )
-	[FA0] = [fw plus 26]; [FA1] = [fw plus 27];
-	[FA0] *: [fw plus 32];
-	[FA0] *: [fw plus 24];
-	[FI] =: [FA0]; [SPu] = [FI];
-	[FA0] = [fw plus 28]; [FA1] = [fw plus 29];
+	( v from the live narrow y )
 	[FA0] *: [fw plus 34];
 	[FA0] *: [fw plus 24];
 	[FI] =: [FA0]; [SPv] = [FI];

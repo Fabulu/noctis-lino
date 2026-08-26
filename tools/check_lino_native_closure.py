@@ -142,7 +142,7 @@ FLOAT_SIGNATURES = {
 FLOAT_SIGNATURE_HASHES = {
     "work/pgproj.txt": (
         169,
-        "980cadc0660c79f0d92a2dcbad3b64e61754218e4c74d6388a7d722081e13e12",
+        "f2ebe7895f7edac99d67f1d9d0977737217bf0608dd663b005ec6c3e60ef120b",
     ),
 }
 

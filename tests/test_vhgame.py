@@ -1168,6 +1168,14 @@ def main() -> int:
                 terrain_culling_uv_state_exact &= (
                     actual == (initial + count * step) & 65535
                 )
+    terrain_tint_mask_exact = all(
+        ((((loaded & 255) + tint) & 0xFFFFFFFF) & 255)
+        == (((loaded + tint) & 0xFFFFFFFF) & 255)
+        for low in range(256)
+        for high in (0, 0x100, 0x7FFFFF00, 0xFFFFFF00)
+        for loaded in (high | low,)
+        for tint in (0, 1, 255, 256, 0x7FFFFFFF, 0xFFFFFFFF)
+    )
     check(
         "A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;" in terrain_pixel
         and "A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;" in terrain_cpixel
@@ -1190,6 +1198,7 @@ def main() -> int:
         and terrain_culling_unroll_schedule_exact
         and terrain_culling_destination_hoist_exact
         and terrain_culling_uv_state_exact
+        and terrain_tint_mask_exact
         and "D = [SPcl]; D & 1; ? D != 0 -> PG px terrain;" in terrain_pixel
         and '"PG px terrain unchecked"' in terrain_pixel
         and "-> PG px terrain unchecked;" in terrain_pixel
@@ -1209,15 +1218,22 @@ def main() -> int:
         and "E = C; E > 8; D | E;" in terrain_pixel
         and "E = C; E > 8; D | E;" in terrain_cpixel
         and terrain_pixel.count(
-            "D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;"
+            "D + [PGtexoff]; D + RPBG plus nw; E = [D];"
         ) == 3
         and terrain_cpixel.count(
-            "D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;"
+            "D + [PGtexoff]; D + RPBG plus nw; E = [D];"
         ) == 3
-        and "D = A; D + 3 plus SADPT plus nw; [D] = E;" in terrain_pixel
-        and terrain_pixel.count("D + SADPT plus nw; [D] = E;") == 1
-        and terrain_cpixel.count("D = A; D + 2; [D] = E;") == 3
-        and terrain_cpixel.count("D = A; D + 3; [D] = E;") == 3
+        and terrain_pixel.count("E = [D]; E & 255;") == 1
+        and terrain_cpixel.count("E = [D]; E & 255;") == 1
+        and terrain_pixel.count("E + [SPtinta]; E & 255;") == 3
+        and terrain_cpixel.count("E + [SPtinta]; E & 255;") == 3
+        and terrain_pixel.count("[A plus 3 plus SADPT plus nw] = E;") == 3
+        and "D = A; D + 3 plus SADPT plus nw; [D] = E;" not in terrain_pixel
+        and "D + SADPT plus nw; [D] = E;" not in terrain_pixel
+        and terrain_cpixel.count("[A plus 2] = E;") == 3
+        and terrain_cpixel.count("[A plus 3] = E;") == 3
+        and "D = A; D + 2; [D] = E;" not in terrain_cpixel
+        and "D = A; D + 3; [D] = E;" not in terrain_cpixel
         and "D + SADPT plus nw; [D] = E;" not in terrain_cpixel
         and "A + 2; A & 65535;" not in terrain_cpixel
         and "D = A; D + 2; D & 65535;" not in terrain_cpixel
@@ -1243,6 +1259,20 @@ def main() -> int:
     terrain_edges = section(pgtex, '"PG ol init"', "( S5 - the span engine")
     terrain_clip = section(pgproj, '"PG pm projected"', '"PG pm basis"')
     terrain_trace = section(pgproj, '"PG trace"', '"PG polymap"')
+    terrain_live_u = (
+        "~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];\n\n"
+        "\t( u from the live narrow x )\n"
+        "\t[FA0] *: [fw plus 32];\n"
+        "\t[FA0] *: [fw plus 24];\n"
+        "\t[FI] =: [FA0]; [SPu] = [FI];"
+    )
+    terrain_live_v = (
+        "~: [FA0]; [fw plus 28] = [FA0]; [fw plus 29] = [FA1];\n\n"
+        "\t( v from the live narrow y )\n"
+        "\t[FA0] *: [fw plus 34];\n"
+        "\t[FA0] *: [fw plus 24];\n"
+        "\t[FI] =: [FA0]; [SPv] = [FI];"
+    )
     maximum_terrain_destination = 190 * 320 + 311 + 3
     maximum_culling_destination = 190 * 320 + 311 + 5
     maximum_culling_tail_destination = 190 * 320 + 342
@@ -1268,6 +1298,10 @@ def main() -> int:
         and terrain_trace.count(
             "[FA0] = [fw plus 500]; [FA1] = [fw plus 501];"
         ) == 2
+        and terrain_live_u in terrain_trace
+        and terrain_live_v in terrain_trace
+        and "[FA0] = [fw plus 26]; [FA1] = [fw plus 27];" not in terrain_trace
+        and "[FA0] = [fw plus 28]; [FA1] = [fw plus 29];" not in terrain_trace
         and maximum_terrain_destination == 61114
         and maximum_terrain_destination < 65536
         and maximum_culling_destination == 61116
@@ -1321,18 +1355,29 @@ def main() -> int:
         and shade.count("C + 8; [VHGNDshade] = C;") == 1
         and "=> VHGND tile depth;" in tile
         and "A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;" in tile
-        and "A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDdlo] = A;" in depth
+        and "C = [VHGNDslo]; C + A;" in depth
         and '"VHGND tile depth x row"' in ground
         and all(token in depth for token in (
             '"VHGND tile depth z row"',
-            "A + 8192; C = [VHGNDcamx]; C - A; [VHGNDdx] = C;",
-            "A + 8192; C = [VHGNDcamz]; C - A; [VHGNDdz] = C;",
-            "-> VHGND tile depth x sum;", "-> VHGND tile depth z sum;",
-            "A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDslo] = A;",
+            "A + 8192; A - [VHGNDcamx];",
+            "A + 8192; A - [VHGNDcamz];",
+            "A - [VHGNDcamx]; B = A; A *% B; [VHGNDslo] = A; [VHGNDshi] = B;",
+            "A - [VHGNDcamz]; B = A; A *% B;",
+            "C = [VHGNDslo]; C + A;",
+            "? C '>= A -> VHGND tile depth x sum ready; B + 1;",
+            "B + [VHGNDshi]; -> VHGND tile depth sum ready;",
+            "C = [VHGNDdlo]; C + A;",
+            "? C '>= A -> VHGND tile depth z sum ready; B + 1;",
+            "B + [VHGNDdhi];",
+            "C > 28; A = B; A < 4; A | C; [VHGNDdepthn] = A;",
         ))
+        and "[VHGNDdx] =" not in depth
+        and "[VHGNDdz] =" not in depth
         and "[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 64; [VHGNDdepthstep] = 6;" in depth
         and "A = [VHGNDdepthn]; ? A < 4096 -> VHGND tile depth root;" in depth
         and "[VHGNDdepthlo] = 64; [VHGNDdepthhi] = 128;" in depth
+        and "A '* A; ? A <= [VHGNDdepthn] -> VHGND tile depth root low;" in depth
+        and "[VHGNDdepthsq]" not in depth
         and all(call not in depth for call in (
             "=> IntToF;", "=> FMul;", "=> FAdd;", "=> FSqrt;", "=> FToIntChop;"
         ))
@@ -1505,6 +1550,11 @@ def main() -> int:
     )
     terrain_facing = section(ground, '"VHGND terrain facing"',
                              '"VHGND secondary sun setup"')
+    vertex_load = section(
+        ground,
+        '"VHGND terrain vertex load"',
+        '"VHGND terrain cached bounds"',
+    )
     terrain_pair_indices_exact = all(
         0 <= index < 40000
         for x in (0, 1, 99, 198)
@@ -1598,6 +1648,13 @@ def main() -> int:
         and "[SPcull] = 1" in tile
         and "A > [VHGNDmaxdepth]" in tile,
         "surface renderer hoists exact row bounds and one depth square while retaining painter order and depth-64 gates",
+    )
+    check(
+        "D = [VHGNDvi]; D + D; D + FSRXF plus FSRXF plus fw;" in vertex_load
+        and vertex_load.count("D + 8;") == 2
+        and "A = [VHGNDvi]; A + FSRYF;" not in vertex_load
+        and "A = [VHGNDvi]; A + FSRZF;" not in vertex_load,
+        "terrain cache loads walk contiguous rotated carrier slots",
     )
     check(
         "VHGNDvcpairready = 0;" in ground

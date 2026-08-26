@@ -397,10 +397,10 @@
 	A + 1;
 	D = B; D & 65280;
 	E = C; E > 8; D | E;
-	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D];
 	E + [SPtinta]; E & 255;
 	C + [SPbp]; C & 65535;
-	D = A; D + 3 plus SADPT plus nw; [D] = E;
+	[A plus 3 plus SADPT plus nw] = E;
 	B + [SPsi]; B & 65535;
     "PG px terrain"
 	( Publish the remaining diagnostic scratch only for the final pixel in each
@@ -408,10 +408,10 @@
 	A + 1; ? A = [SPdi] -> PG px terrain final;
 	D = B; D & 65280;
 	E = C; E > 8; D | E;
-	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D];
 	E + [SPtinta]; E & 255;
 	C + [SPbp]; C & 65535;
-	D = A; D + 3 plus SADPT plus nw; [D] = E;
+	[A plus 3 plus SADPT plus nw] = E;
 	B + [SPsi]; B & 65535;
 	-> PG px terrain unchecked;
     "PG px terrain final"
@@ -421,7 +421,7 @@
 	E + [SPtinta]; E & 255; [SPch] = E;
 	C + [SPbp]; C & 65535;
 	D = A; D + 3; [PGdi] = D; [PGval] = E;
-	D + SADPT plus nw; [D] = E;
+	[A plus 3 plus SADPT plus nw] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl] = 0; [SPdx] = B; [SPax] = C;
 	-> PG row;
@@ -583,11 +583,11 @@
 	A + 2;
 	D = B; D & 65280;
 	E = C; E > 8; D | E;
-	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D];
 	E + [SPtinta]; E & 255;
 	C + [SPbp]; C & 65535;
-	D = A; D + 2; [D] = E;
-	D = A; D + 3; [D] = E;
+	[A plus 2] = E;
+	[A plus 3] = E;
 	B + [SPsi]; B & 65535;
     "PG cpx terrain"
 	( Publish the remaining diagnostic scratch only for the final pair.  Both
@@ -595,11 +595,11 @@
 	A + 2; ? A = [SPdi] -> PG cpx terrain final;
 	D = B; D & 65280;
 	E = C; E > 8; D | E;
-	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D];
 	E + [SPtinta]; E & 255;
 	C + [SPbp]; C & 65535;
-	D = A; D + 2; [D] = E;
-	D = A; D + 3; [D] = E;
+	[A plus 2] = E;
+	[A plus 3] = E;
 	B + [SPsi]; B & 65535;
 	-> PG cpx terrain unchecked;
     "PG cpx terrain final"
@@ -609,9 +609,9 @@
 	E + [SPtinta]; E & 255; [SPch] = E;
 	C + [SPbp]; C & 65535;
 	D = [SPcl]; D + D; D + [SPsave]; D + 2; [PGdi] = D; [PGval] = E;
-	D = A; D + 2; [D] = E;
+	[A plus 2] = E;
 	[PGdi]+;
-	D = A; D + 3; [D] = E;
+	[A plus 3] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl] = 0; [SPdx] = B; [SPax] = C;
 	-> PG crow tail;

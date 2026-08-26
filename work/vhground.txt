@@ -2716,13 +2716,13 @@
 
 "VHGND terrain vertex load"
 	=> VHGND terrain vertex index;
-	A = [VHGNDvi]; A + FSRXF; A + A; A + fw; D = A;
+	D = [VHGNDvi]; D + D; D + FSRXF plus FSRXF plus fw;
 	A = VHGNDvcrx0; A + [VHGNDvcindex]; C = [A]; [D] = C;
 	A = VHGNDvcrx1; A + [VHGNDvcindex]; C = [A]; [D plus 1] = C;
-	A = [VHGNDvi]; A + FSRYF; A + A; A + fw; D = A;
+	D + 8;
 	A = VHGNDvcry0; A + [VHGNDvcindex]; C = [A]; [D] = C;
 	A = VHGNDvcry1; A + [VHGNDvcindex]; C = [A]; [D plus 1] = C;
-	A = [VHGNDvi]; A + FSRZF; A + A; A + fw; D = A;
+	D + 8;
 	A = VHGNDvcrz0; A + [VHGNDvcindex]; C = [A]; [D] = C;
 	A = VHGNDvcrz1; A + [VHGNDvcindex]; C = [A]; [D plus 1] = C;
 	A = [VHGNDvi]; A + A; A + mp; D = A;
@@ -6712,13 +6712,13 @@
 	end;
 
 "VHGND tile depth x row"
-	A = [VHGNDx]; A < 14; A + 8192; C = [VHGNDcamx]; C - A; [VHGNDdx] = C;
-	A = C; B = A; A *% B; [VHGNDdlo] = A; [VHGNDdhi] = B;
+	A = [VHGNDx]; A < 14; A + 8192; A - [VHGNDcamx];
+	B = A; A *% B;
 	-> VHGND tile depth x sum;
 
 "VHGND tile depth z row"
-	A = [VHGNDz]; A < 14; A + 8192; C = [VHGNDcamz]; C - A; [VHGNDdz] = C;
-	A = C; B = A; A *% B; [VHGNDslo] = A; [VHGNDshi] = B;
+	A = [VHGNDz]; A < 14; A + 8192; A - [VHGNDcamz];
+	B = A; A *% B;
 	-> VHGND tile depth z sum;
 
 "VHGND tile depth"
@@ -6731,35 +6731,30 @@
 	  span is at most 106 after its coarse-cell centre offset, so the exact root
 	  is strictly below 128. )
 	A = [VHGNDx]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
-	C = [VHGNDcamx]; C - A; [VHGNDdx] = C;
-	A = C; B = A; A *% B; [VHGNDdlo] = A; [VHGNDdhi] = B;
+	A - [VHGNDcamx]; B = A; A *% B; [VHGNDslo] = A; [VHGNDshi] = B;
 	A = [VHGNDz]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
-	C = [VHGNDcamz]; C - A; [VHGNDdz] = C;
-	A = C; B = A; A *% B; [VHGNDslo] = A; [VHGNDshi] = B;
+	A - [VHGNDcamz]; B = A; A *% B;
     "VHGND tile depth x sum"
-	A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDdlo] = A;
-	A = C; ? A '>= B -> VHGND tile depth x sum ready; [VHGNDdhi]+;
+	( Add the fresh square in A:B to the fixed z-square in slo/shi. )
+	C = [VHGNDslo]; C + A;
+	? C '>= A -> VHGND tile depth x sum ready; B + 1;
     "VHGND tile depth x sum ready"
-	A = [VHGNDdhi]; A + [VHGNDshi]; [VHGNDdhi] = A;
-	A = [VHGNDdlo]; A > 28; C = A;
-	A = [VHGNDdhi]; A < 4; A | C; [VHGNDdepthn] = A;
-	-> VHGND tile depth root setup;
+	B + [VHGNDshi]; -> VHGND tile depth sum ready;
     "VHGND tile depth z sum"
-	( Preserve the fixed x-square in dlo/dhi while accumulating into slo/shi. )
-	A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDslo] = A;
-	A = C; ? A '>= B -> VHGND tile depth z sum ready; [VHGNDshi]+;
+	( Add the fresh square in A:B to the fixed x-square in dlo/dhi. )
+	C = [VHGNDdlo]; C + A;
+	? C '>= A -> VHGND tile depth z sum ready; B + 1;
     "VHGND tile depth z sum ready"
-	A = [VHGNDdhi]; A + [VHGNDshi]; [VHGNDshi] = A;
-	A = [VHGNDslo]; A > 28; C = A;
-	A = [VHGNDshi]; A < 4; A | C; [VHGNDdepthn] = A;
+	B + [VHGNDdhi];
+    "VHGND tile depth sum ready"
+	C > 28; A = B; A < 4; A | C; [VHGNDdepthn] = A;
     "VHGND tile depth root setup"
 	[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 64; [VHGNDdepthstep] = 6;
 	A = [VHGNDdepthn]; ? A < 4096 -> VHGND tile depth root;
 	[VHGNDdepthlo] = 64; [VHGNDdepthhi] = 128;
     "VHGND tile depth root"
 	A = [VHGNDdepthlo]; A + [VHGNDdepthhi]; A > 1; [VHGNDdepthmid] = A;
-	A '* A; [VHGNDdepthsq] = A;
-	A = [VHGNDdepthsq]; ? A <= [VHGNDdepthn] -> VHGND tile depth root low;
+	A '* A; ? A <= [VHGNDdepthn] -> VHGND tile depth root low;
 	[VHGNDdepthhi] = [VHGNDdepthmid]; -> VHGND tile depth root next;
     "VHGND tile depth root low"
 	[VHGNDdepthlo] = [VHGNDdepthmid];
