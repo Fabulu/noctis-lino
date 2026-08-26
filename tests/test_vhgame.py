@@ -1258,6 +1258,7 @@ def main() -> int:
     )
     terrain_edges = section(pgtex, '"PG ol init"', "( S5 - the span engine")
     terrain_clip = section(pgproj, '"PG pm projected"', '"PG pm basis"')
+    terrain_basis_entry = section(pgproj, '"PG pm basis"', '"PG pm k generic"')
     terrain_trace = section(pgproj, '"PG trace"', '"PG polymap"')
     terrain_live_u = (
         "~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];\n\n"
@@ -1555,6 +1556,16 @@ def main() -> int:
         '"VHGND terrain vertex load"',
         '"VHGND terrain cached bounds"',
     )
+    terrain_basis_hit = section(
+        pgproj,
+        '"PJ vectors terrain"',
+        '"PJ vectors terrain build"',
+    )
+    terrain_basis_build = section(
+        pgproj,
+        '"PJ vectors terrain build"',
+        '"PJ vc scale"',
+    )
     terrain_pair_indices_exact = all(
         0 <= index < 40000
         for x in (0, 1, 99, 198)
@@ -1575,6 +1586,94 @@ def main() -> int:
         for first in ((
             vertex_words(h1), vertex_words(h1 + 1), vertex_words(h1 + 200)
         ),)
+    )
+    terrain_basis_indices_exact = all(
+        0 <= index < 80000
+        and 0 <= index * 18
+        and index * 18 + 17 < 1440000
+        for x in range(199)
+        for z in range(199)
+        for h1 in (z * 200 + x,)
+        for tri in (0, 1)
+        for index in (h1 * 2 + tri,)
+    )
+    terrain_basis_hit_copies_exact = all(
+        (
+            f"[fw{' plus ' + str(word) if word else ''}] = "
+            f"[D{' plus ' + str(word) if word else ''}];"
+        ) in terrain_basis_hit
+        for word in range(18)
+    )
+    terrain_basis_store_copies_exact = all(
+        (
+            f"[D{' plus ' + str(word) if word else ''}] = "
+            f"[fw{' plus ' + str(word) if word else ''}];"
+        ) in terrain_mapped
+        for word in range(18)
+    )
+
+    basis_stamps: dict[int, int] = {}
+    basis_payload: dict[int, tuple[int, ...]] = {}
+
+    def terrain_basis_step(generation: int, frame_hit: bool, index: int,
+                           built: tuple[int, ...]) -> tuple[tuple[int, ...], str]:
+        if frame_hit and basis_stamps.get(index) == generation:
+            return basis_payload[index], "hit"
+        if frame_hit:
+            basis_payload[index] = built
+            basis_stamps[index] = generation
+            return built, "fill"
+        return built, "bypass"
+
+    basis_index = 39798 * 2 + 1
+    basis_words1 = tuple(
+        (0x13579BDF + word * 0x10203041) & 0xFFFFFFFF
+        for word in range(18)
+    )
+    basis_words2 = tuple(word ^ 0xFFFFFFFF for word in basis_words1)
+    basis_words3 = tuple((word + 0x76543210) & 0xFFFFFFFF for word in basis_words1)
+    basis_bypass, basis_bypass_mode = terrain_basis_step(
+        1, False, basis_index, basis_words1
+    )
+    basis_fill1, basis_fill1_mode = terrain_basis_step(
+        1, True, basis_index, basis_words1
+    )
+    basis_hit1, basis_hit1_mode = terrain_basis_step(
+        1, True, basis_index, basis_words2
+    )
+    basis_move, basis_move_mode = terrain_basis_step(
+        2, False, basis_index, basis_words2
+    )
+    basis_fill2, basis_fill2_mode = terrain_basis_step(
+        2, True, basis_index, basis_words2
+    )
+    basis_hit2, basis_hit2_mode = terrain_basis_step(
+        2, True, basis_index, basis_words3
+    )
+    basis_surface, basis_surface_mode = terrain_basis_step(
+        3, False, basis_index, basis_words3
+    )
+    basis_fill3, basis_fill3_mode = terrain_basis_step(
+        3, True, basis_index, basis_words3
+    )
+    basis_stamps.clear()
+    basis_wrap, basis_wrap_mode = terrain_basis_step(
+        1, True, basis_index, basis_words1
+    )
+    terrain_basis_cache_model_exact = (
+        basis_bypass_mode == "bypass"
+        and basis_fill1_mode == "fill"
+        and basis_hit1_mode == "hit"
+        and basis_move_mode == "bypass"
+        and basis_fill2_mode == "fill"
+        and basis_hit2_mode == "hit"
+        and basis_surface_mode == "bypass"
+        and basis_fill3_mode == "fill"
+        and basis_wrap_mode == "fill"
+        and basis_bypass == basis_fill1 == basis_hit1 == basis_words1
+        and basis_move == basis_fill2 == basis_hit2 == basis_words2
+        and basis_surface == basis_fill3 == basis_words3
+        and basis_wrap == basis_words1
     )
     faithful_cases = tuple(
         (cam_x, cam_z, faithful_tiles(cam_x, cam_z, direction, backspan))
@@ -1655,6 +1754,50 @@ def main() -> int:
         and "A = [VHGNDvi]; A + FSRYF;" not in vertex_load
         and "A = [VHGNDvi]; A + FSRZF;" not in vertex_load,
         "terrain cache loads walk contiguous rotated carrier slots",
+    )
+    check(
+        "VHGNDvcbasisstamp = 80000; VHGNDvcbasis = 1440000;" in ground
+        and terrain_basis_indices_exact
+        and terrain_basis_hit_copies_exact
+        and terrain_basis_store_copies_exact
+        and terrain_basis_cache_model_exact
+        and all(token in terrain_basis_hit for token in (
+            "[PJdx] = 3;",
+            "A = [PJterrainbasisreuse]; ? A = 0 -> PJ vectors terrain build;",
+            "D = [PJterrainbasisp];",
+            "[PJvr] = 3; [PJvv] = 2;",
+        ))
+        and not any(operator in terrain_basis_hit for operator in (
+            "++", "--", "**", "//", "+:", "-:", "*:", "/:", "=:", ":=", "~:"
+        ))
+        and "[PJterrainbasisbuilt] = 1;" in terrain_basis_build
+        and all(token in terrain_mapped for token in (
+            "[PJterrainbasisreuse] = 0; [PJterrainbasisbuilt] = 0;",
+            "A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped basis ready;",
+            "A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [A];",
+            "A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped basis ready;",
+            "A = [VHGNDnormindex]; A '* 18; A + VHGNDvcbasis; [PJterrainbasisp] = A;",
+            "[PJterrainbasisreuse] = 1;",
+            "A = [PJterrainbasisreuse]; ? A != 0 -> VHGND terrain mapped done;",
+            "A = [PJterrainbasisbuilt]; ? A = 0 -> VHGND terrain mapped done;",
+            "A = [VHGNDnormindex]; A '* 18; A + VHGNDvcbasis; D = A;",
+            "A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [VHGNDvcgen]; [A] = C;",
+        ))
+        and terrain_mapped.index("[D plus 17] = [fw plus 17];")
+        < terrain_mapped.index(
+            "A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [VHGNDvcgen]; [A] = C;"
+        )
+        and all(token in terrain_cache for token in (
+            '"VHGND terrain basis cache clear"',
+            "A = VHGNDvcbasisstamp; A + [VHGNDptr]; [A] = 0;",
+            "? A < 80000 -> VHGND terrain basis cache clear;",
+        ))
+        and all(token in terrain_clip for token in (
+            '"PG pm terrain edges"', "=> PG edges;",
+            '"PG pm terrain span"', "? D > 0 -> PG pm basis;",
+        ))
+        and "=> PJ vectors;" in terrain_basis_entry,
+        "exact repeated-camera terrain triangles reuse generation-stamped texture bases",
     )
     check(
         "VHGNDvcpairready = 0;" in ground

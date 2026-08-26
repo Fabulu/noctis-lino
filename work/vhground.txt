@@ -300,6 +300,10 @@
 	VHGNDnormx0 = 80000; VHGNDnormx1 = 80000;
 	VHGNDnormy0 = 80000; VHGNDnormy1 = 80000;
 	VHGNDnormz0 = 80000; VHGNDnormz1 = 80000;
+	( Exact 18-word terrain texture basis for each triangle and camera generation.
+	  Payload records are contiguous so a hit is one address calculation followed
+	  only by integer bit copies. )
+	VHGNDvcbasisstamp = 80000; VHGNDvcbasis = 1440000;
 	( Three possible source objects per 200x200 quadrant.  Positions and the
 	  post-coordinate fast RNG state are immutable for a generated surface. )
 	VHGNDobjcachex = 120000; VHGNDobjcachey = 120000;
@@ -2652,6 +2656,10 @@
     "VHGND terrain cache clear"
 	A = VHGNDvcstamp; A + [VHGNDptr]; [A] = 0;
 	[VHGNDptr]+; A = [VHGNDptr]; ? A < 40000 -> VHGND terrain cache clear;
+	[VHGNDptr] = 0;
+    "VHGND terrain basis cache clear"
+	A = VHGNDvcbasisstamp; A + [VHGNDptr]; [A] = 0;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A < 80000 -> VHGND terrain basis cache clear;
 	[VHGNDvcgen] = 1;
     "VHGND terrain cache frame ready"
 	end;
@@ -2830,10 +2838,37 @@
 
     "VHGND terrain mapped bounds"
 	( The specialized polymap entry consumes the three real rotated/projected
-	  vertices directly.  PG edges closes vertex 2 back to vertex 0 itself. )
+	  vertices directly.  PG edges closes vertex 2 back to vertex 0 itself.
+	  On an exact repeated-camera frame, hand polymap a generation-stamped basis
+	  pointer; its lookup remains after conservative and empty-span rejection. )
 	=> VHGND terrain cached bounds;
+	[PJterrainbasisreuse] = 0; [PJterrainbasisbuilt] = 0;
+	A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped basis ready;
+	A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped basis ready;
+	A = [VHGNDnormindex]; A '* 18; A + VHGNDvcbasis; [PJterrainbasisp] = A;
+	[PJterrainbasisreuse] = 1;
+    "VHGND terrain mapped basis ready"
 	[SPterrain] = 1; [PJpreproject] = 1; [PJnrv] = 3; => PG polymap;
-	[SPterrain] = 0; end;
+	[SPterrain] = 0;
+	A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped done;
+	A = [PJterrainbasisreuse]; ? A != 0 -> VHGND terrain mapped done;
+	A = [PJterrainbasisbuilt]; ? A = 0 -> VHGND terrain mapped done;
+	( Publish a completed miss payload before its generation stamp.  PG trace
+	  consumes but never mutates these 18 exact basis words. )
+	A = [VHGNDnormindex]; A '* 18; A + VHGNDvcbasis; D = A;
+	[D] = [fw]; [D plus 1] = [fw plus 1];
+	[D plus 2] = [fw plus 2]; [D plus 3] = [fw plus 3];
+	[D plus 4] = [fw plus 4]; [D plus 5] = [fw plus 5];
+	[D plus 6] = [fw plus 6]; [D plus 7] = [fw plus 7];
+	[D plus 8] = [fw plus 8]; [D plus 9] = [fw plus 9];
+	[D plus 10] = [fw plus 10]; [D plus 11] = [fw plus 11];
+	[D plus 12] = [fw plus 12]; [D plus 13] = [fw plus 13];
+	[D plus 14] = [fw plus 14]; [D plus 15] = [fw plus 15];
+	[D plus 16] = [fw plus 16]; [D plus 17] = [fw plus 17];
+	A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [VHGNDvcgen]; [A] = C;
+    "VHGND terrain mapped done"
+	end;
 
 "VHGND terrain facing"
 	( Unit terrain geometry is immutable until the next surface generation.

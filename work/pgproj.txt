@@ -73,6 +73,9 @@
 	PJminx	= 0;			( polymap horizontal early-out box )
 	PJmaxx	= 0;
 	PJpreproject = 0;		( caller supplied exact rotated/projected slots )
+	PJterrainbasisreuse = 0;	( caller supplied an exact terrain basis record )
+	PJterrainbasisbuilt = 0;	( specialized terrain basis completed on this call )
+	PJterrainbasisp = 0;		( caller-owned 18-word exact basis record )
 
 	( ---- generic 2-D clip stage ---- )
 	CLxi	= 0;
@@ -925,10 +928,26 @@
 
     "PJ vectors terrain"
 	( The preprojected terrain entry is always a real three-vertex polygon.
-	  Keep the identical exact operation and float-narrowing schedule, but use
-	  its fixed slots directly instead of routing each step through PGFi and
-	  the tiny PGF services. )
+	  Keep the identical exact operation and float-narrowing schedule on a miss.
+	  A caller-proved repeated-camera hit can restore the preceding 18-word basis
+	  by integer bit copy after the ordinary empty-span rejection. )
 	[PJdx] = 3;
+	A = [PJterrainbasisreuse]; ? A = 0 -> PJ vectors terrain build;
+	D = [PJterrainbasisp];
+	[fw] = [D]; [fw plus 1] = [D plus 1];
+	[fw plus 2] = [D plus 2]; [fw plus 3] = [D plus 3];
+	[fw plus 4] = [D plus 4]; [fw plus 5] = [D plus 5];
+	[fw plus 6] = [D plus 6]; [fw plus 7] = [D plus 7];
+	[fw plus 8] = [D plus 8]; [fw plus 9] = [D plus 9];
+	[fw plus 10] = [D plus 10]; [fw plus 11] = [D plus 11];
+	[fw plus 12] = [D plus 12]; [fw plus 13] = [D plus 13];
+	[fw plus 14] = [D plus 14]; [fw plus 15] = [D plus 15];
+	[fw plus 16] = [D plus 16]; [fw plus 17] = [D plus 17];
+	[PJvr] = 3; [PJvv] = 2;
+	end;
+
+    "PJ vectors terrain build"
+	[PJterrainbasisbuilt] = 1;
 	[PGFt] = D64THLO; [PGFu] = D64THHI;
 	[FB0] = [PGFt]; [FB1] = [PGFu];
 
