@@ -1505,6 +1505,21 @@ def main() -> int:
                 for x, z in tiles)
         for cam_x, cam_z, tiles in faithful_cases
     )
+    lod_rows = ((1, 200), (8, 1600), (16, 3200))
+    check(
+        all(step * 200 == row for step, row in lod_rows)
+        and "VHGNDlodstep = 1; VHGNDlodrow = 200;" in ground
+        and ground.count(
+            "[VHGNDlodstep] = 1; [VHGNDlodrow] = 200;"
+        ) == 3
+        and "[VHGNDlodstep] = 8; [VHGNDlodrow] = 1600;" in ground
+        and "[VHGNDlodstep] = 16; [VHGNDlodrow] = 3200;" in ground
+        and "C = [VHGNDlodrow];" in tile
+        and tile.count("A = [VHGNDlodrow];") == 2
+        and "C = [VHGNDlodstep]; C '* VHGNDMAP;" not in tile
+        and "A = [VHGNDlodstep]; A '* VHGNDMAP;" not in tile,
+        "terrain caches each exact LOD map-row stride",
+    )
     check(
         "VHGNDdroptx = 0; VHGNDdroptz = 0;" in ground
         and all(token in faithful for token in (
@@ -1523,7 +1538,7 @@ def main() -> int:
         and "iperficie (1);" in original1
         and "iperficie (4);" in original1
         and all(token in traversal for token in (
-            "=> VHGND traverse faithful;", "[VHGNDlodstep] = 1; [VHGNDlodradius] = 65;",
+            "=> VHGND traverse faithful;", "[VHGNDlodstep] = 1; [VHGNDlodrow] = 200; [VHGNDlodradius] = 65;",
             "[VHGNDbackspan] = 1;", "[VHGNDbackspan] = 4;",
             "A - [VHGNDbackspan]; [VHGNDzlo] = A;",
             "A + [VHGNDbackspan]; [VHGNDzhi] = A;",

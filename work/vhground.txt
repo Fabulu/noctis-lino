@@ -35,7 +35,7 @@
 	VHGNDdlo = 0; VHGNDdhi = 0; VHGNDslo = 0; VHGNDshi = 0;
 	VHGNDdepthn = 0; VHGNDdepthlo = 0; VHGNDdepthhi = 0;
 	VHGNDdepthmid = 0; VHGNDdepthsq = 0; VHGNDdepthstep = 0;
-	VHGNDlodstep = 1; VHGNDlodradius = 4; VHGNDbackspan = 1;
+	VHGNDlodstep = 1; VHGNDlodrow = 200; VHGNDlodradius = 4; VHGNDbackspan = 1;
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0; VHGNDinputready = 0;
 	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
@@ -3993,11 +3993,11 @@
 	[FI] = [VHGNDtscale]; => PGF fromint;
 	[FB0] = [FA0]; [FB1] = [FA1]; [FI] = 256; => PGF fromint; => FMul;
 	[PGFi] = FSTX; => PGF sa; [PGFi] = FSTY; => PGF sa;
-	[VHGNDlodstep] = 16; [VHGNDlodradius] = VHGNDFAR;
+	[VHGNDlodstep] = 16; [VHGNDlodrow] = 3200; [VHGNDlodradius] = VHGNDFAR;
 	[VHGNDmindepth] = VHGNDMID; [VHGNDmaxdepth] = VHGNDFAR; => VHGND traverse;
-	[VHGNDlodstep] = 8; [VHGNDlodradius] = VHGNDMID;
+	[VHGNDlodstep] = 8; [VHGNDlodrow] = 1600; [VHGNDlodradius] = VHGNDMID;
 	[VHGNDmindepth] = VHGNDHALF; [VHGNDmaxdepth] = VHGNDMID; => VHGND traverse;
-	[VHGNDlodstep] = 1; [VHGNDlodradius] = VHGNDHALF;
+	[VHGNDlodstep] = 1; [VHGNDlodrow] = 200; [VHGNDlodradius] = VHGNDHALF;
 	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = VHGNDHALF; => VHGND traverse;
 	=> VHGND render ruins;
 	[VHGNDmirror] = 0; [SPhalf] = 0;
@@ -5136,7 +5136,7 @@
 	  call this compensating path. )
 	[VHGNDruinpass] = 0; A = [VHGlanded]; ? A = 0 -> VHGND render ruins done;
 	A = [VHGNDruinanchor]; ? A = 0 -> VHGND render ruins done;
-	[VHGNDruinpass] = 1; [VHGNDlodstep] = 1; [VHGNDlodradius] = VHGNDFAR;
+	[VHGNDruinpass] = 1; [VHGNDlodstep] = 1; [VHGNDlodrow] = 200; [VHGNDlodradius] = VHGNDFAR;
 	A = 0; A - 1; [VHGNDmindepth] = A; [VHGNDmaxdepth] = VHGNDFAR;
 	A = [VHGNDcamtx]; A - VHGNDFAR; [VHGNDxlo] = A;
 	? A >= 0 -> VHGND ruins render xlo ready; [VHGNDxlo] = 0;
@@ -5207,7 +5207,7 @@
 	  thousands of cells; its coordinates cannot change during this traversal. )
 	A = [VHGNDdropx]; A / VHGNDTS; [VHGNDdroptx] = A;
 	A = [VHGNDdropz]; A / VHGNDTS; [VHGNDdroptz] = A;
-	[VHGNDlodstep] = 1; [VHGNDlodradius] = 65;
+	[VHGNDlodstep] = 1; [VHGNDlodrow] = 200; [VHGNDlodradius] = 65;
 	[VHGNDbackspan] = 1; A = [VHGlanded]; ? A != 0 -> VHGND faithful span ready;
 	[VHGNDbackspan] = 4;
     "VHGND faithful span ready"
@@ -5454,7 +5454,7 @@
 	E = nw; E + RPSM; E + [VHGNDh1];
 	A = [E]; A & 255; [VHGNDs1] = A;
 	A = E; A + [VHGNDlodstep]; A = [A]; A & 255; [VHGNDs2] = A;
-	C = [VHGNDlodstep]; C '* VHGNDMAP;
+	C = [VHGNDlodrow];
 	A = E; A + C; A + [VHGNDlodstep]; A = [A]; A & 255; [VHGNDs3] = A;
 	A = E; A + C; A = [A]; A & 255; [VHGNDs4] = A;
 	A = [GRiptype]; ? A != 3 -> VHGND tile ground present;
@@ -5469,8 +5469,8 @@
 	A = [VHGNDruinanchor]; ? A = 0 -> VHGND tile ruin ready;
 	A = VHGNDruins; A + [VHGNDh1]; A = [A]; ? A != 0 -> VHGND tile ruined;
 	A = VHGNDruins; A + [VHGNDh1]; A + [VHGNDlodstep]; A = [A]; ? A != 0 -> VHGND tile ruined;
-	A = [VHGNDlodstep]; A '* VHGNDMAP; A + [VHGNDlodstep]; A + VHGNDruins; A + [VHGNDh1]; A = [A]; ? A != 0 -> VHGND tile ruined;
-	A = [VHGNDlodstep]; A '* VHGNDMAP; A + VHGNDruins; A + [VHGNDh1]; A = [A]; ? A = 0 -> VHGND tile ruin ready;
+	A = [VHGNDlodrow]; A + [VHGNDlodstep]; A + VHGNDruins; A + [VHGNDh1]; A = [A]; ? A != 0 -> VHGND tile ruined;
+	A = [VHGNDlodrow]; A + VHGNDruins; A + [VHGNDh1]; A = [A]; ? A = 0 -> VHGND tile ruin ready;
     "VHGND tile ruined"
 	[VHGNDruined] = 1;
     "VHGND tile ruin ready"
