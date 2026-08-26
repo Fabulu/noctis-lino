@@ -5771,9 +5771,10 @@
 	D = [VHGNDmushorigin]; D + [VHGNDmushoff];
 	[D] = C; [D plus 1] = C; [D minus 1] = C; [D plus 320] = C;
 	[D minus 320] = C; [D minus 640] = C;
-	[VHGNDmushinner]-; A = [VHGNDmushinner]; ? A > 0 -> VHGND greenmush inner;
+	[VHGNDmushinner] ^ VHGND greenmush inner;
     "VHGND greenmush outer next"
-	[VHGNDmushouter]-; A = [VHGNDmushouter]; ? A > 0 -> VHGND greenmush outer;
+	[VHGNDmushouter] ^ VHGND greenmush outer;
+	A = 0;
 	end;
 
 "VHGND store narrowed"

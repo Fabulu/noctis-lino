@@ -3938,6 +3938,8 @@ def main() -> int:
             "D = [VHGNDmushorigin]; D + [VHGNDmushoff];",
             "[D] = C; [D plus 1] = C; [D minus 1] = C; [D plus 320] = C;",
             "[D minus 320] = C; [D minus 640] = C;",
+            "[VHGNDmushinner] ^ VHGND greenmush inner;",
+            "[VHGNDmushouter] ^ VHGND greenmush outer;",
         )),
         "grass tufts restore source depth visibility, density, scale, and distant foliage",
     )
