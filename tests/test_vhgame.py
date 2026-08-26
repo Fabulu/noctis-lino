@@ -1090,12 +1090,21 @@ def main() -> int:
         and "D = B; D & 65280;" in terrain_cpixel
         and "E = C; E > 8; D | E;" in terrain_pixel
         and "E = C; E > 8; D | E;" in terrain_cpixel
-        and "D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255;" in terrain_pixel
-        and "D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255;" in terrain_cpixel
+        and terrain_pixel.count(
+            "D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;"
+        ) == 2
+        and terrain_cpixel.count(
+            "D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;"
+        ) == 2
+        and "D = A; D + 3 plus SADPT plus nw; [D] = E;" in terrain_pixel
+        and terrain_pixel.count("D + SADPT plus nw; [D] = E;") == 1
+        and terrain_cpixel.count("D + SADPT plus nw; [D] = E;") == 4
+        and "D + RPBG; D + nw;" not in terrain_pixel
+        and "D + RPBG; D + nw;" not in terrain_cpixel
+        and "D + SADPT; D + nw;" not in terrain_pixel
+        and "D + SADPT; D + nw;" not in terrain_cpixel
         and "E + [SPtinta]; E & 255;" in terrain_pixel
         and "E + [SPtinta]; E & 255;" in terrain_cpixel
-        and "D + SADPT; D + nw; [D] = E;" in terrain_pixel
-        and "D + SADPT; D + nw; [D] = E;" in terrain_cpixel
         and "=> PG texel;" not in terrain_pixel
         and "=> PG texel;" not in terrain_cpixel
         and "=> PG store;" not in terrain_pixel
@@ -1104,7 +1113,7 @@ def main() -> int:
         and "=> PG scrtinta;" not in terrain_cpixel
         and "[CSpix]+;" not in terrain_pixel
         and "[CSpix]+;" not in terrain_cpixel,
-        "faithful terrain pixels retain exact block-local tinta, UV, and destination state",
+        "faithful terrain pixels fold exact page bases while retaining tinta, UV, and destination state",
     )
     terrain_edges = section(pgtex, '"PG ol init"', "( S5 - the span engine")
     terrain_clip = section(pgproj, '"PG pm projected"', '"PG pm basis"')

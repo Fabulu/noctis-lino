@@ -382,8 +382,9 @@
 	( Keep the clip-bounded destination and wrapped UV accumulators in Lino's
 	  registers for the complete 1..16-pixel block.  Terrain rows are clipped to
 	  y=10..190 and x=5..311, so the adapted destination reaches at most 61114
-	  and its 16-bit masks are exact no-ops.  Texture lookup, tinta addition, UV
-	  widths, pixel order and final scratch side effects remain unchanged. )
+	  and its 16-bit masks are exact no-ops.  Compiler-resolved texture and
+	  framebuffer bases stay single constructor operands.  Texture lookup, tinta
+	  addition, UV widths, pixel order and final scratch side effects remain unchanged. )
 	A = [SPdi]; B = [SPdx]; C = [SPax];
     "PG px terrain"
 	( Publish diagnostic scratch only for the final pixel in each block.  Earlier
@@ -393,11 +394,10 @@
 	A + 1;
 	D = B; D & 65280;
 	E = C; E > 8; D | E;
-	D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
 	E + [SPtinta]; E & 255;
 	C + [SPbp]; C & 65535;
-	D = A; D + 3;
-	D + SADPT; D + nw; [D] = E;
+	D = A; D + 3 plus SADPT plus nw; [D] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl]-;
 	-> PG px terrain;
@@ -405,11 +405,11 @@
 	A + 1;
 	D = B; D & 65280;
 	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
-	D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255; [PGtexv] = E;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255; [PGtexv] = E;
 	E + [SPtinta]; E & 255; [SPch] = E;
 	C + [SPbp]; C & 65535;
 	D = A; D + 3; [PGdi] = D; [PGval] = E;
-	D + SADPT; D + nw; [D] = E;
+	D + SADPT plus nw; [D] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl]-;
 	[SPdi] = A; [SPdx] = B; [SPax] = C;
@@ -566,13 +566,13 @@
 	A + 2; A & 65535;
 	D = B; D & 65280;
 	E = C; E > 8; D | E;
-	D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
 	E + [SPtinta]; E & 255;
 	C + [SPbp]; C & 65535;
 	D = A; D + 2; D & 65535;
-	D + SADPT; D + nw; [D] = E;
+	D + SADPT plus nw; [D] = E;
 	D = A; D + 3; D & 65535;
-	D + SADPT; D + nw; [D] = E;
+	D + SADPT plus nw; [D] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl]-;
 	-> PG cpx terrain;
@@ -580,13 +580,13 @@
 	A + 2; A & 65535;
 	D = B; D & 65280;
 	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
-	D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255; [PGtexv] = E;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255; [PGtexv] = E;
 	E + [SPtinta]; E & 255; [SPch] = E;
 	C + [SPbp]; C & 65535;
 	D = A; D + 2; D & 65535; [PGdi] = D; [PGval] = E;
-	D + SADPT; D + nw; [D] = E;
+	D + SADPT plus nw; [D] = E;
 	D = A; D + 3; D & 65535; [PGdi] = D;
-	D + SADPT; D + nw; [D] = E;
+	D + SADPT plus nw; [D] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl]-;
 	[SPdi] = A; [SPdx] = B; [SPax] = C;
