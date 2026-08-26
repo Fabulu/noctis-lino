@@ -1028,6 +1028,11 @@ def main() -> int:
     )
 
     tile = section(ground, '"VHGND tile"', '"VHGND tile objects"')
+    capsule_tile_gate = section(
+        tile,
+        "( fragment() paints the settled capsule",
+        '"VHGND tile capsule done"',
+    )
     check(
         tile.count("=> VHGND terrain mapped;") == 2
         and tile.count("=> PG poly3d;") == 2
@@ -1499,6 +1504,19 @@ def main() -> int:
                 and abs(x - cam_x) + abs(z - cam_z) <= 90
                 for x, z in tiles)
         for cam_x, cam_z, tiles in faithful_cases
+    )
+    check(
+        "VHGNDdroptx = 0; VHGNDdroptz = 0;" in ground
+        and all(token in faithful for token in (
+            "A = [VHGNDdropx]; A / VHGNDTS; [VHGNDdroptx] = A;",
+            "A = [VHGNDdropz]; A / VHGNDTS; [VHGNDdroptz] = A;",
+        ))
+        and all(token in capsule_tile_gate for token in (
+            "A = [VHGNDdroptx]; ? A != [VHGNDx] -> VHGND tile capsule done;",
+            "A = [VHGNDdroptz]; ? A != [VHGNDz] -> VHGND tile capsule done;",
+        ))
+        and "A / VHGNDTS;" not in capsule_tile_gate,
+        "settled-capsule tile coordinates are cached outside faithful traversal",
     )
     check(
         "VHGNDFAR = 64" in ground

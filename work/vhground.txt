@@ -69,6 +69,7 @@
 	VHGNDpy = 0;
 	VHGNDhxS = 0; VHGNDhxE = 0; VHGNDhxH = 0; VHGNDhxL = 0;
 	VHGNDdropx = 1646592; VHGNDdropy = 0; VHGNDdropz = 1646592;
+	VHGNDdroptx = 0; VHGNDdroptz = 0;
 	VHGNDbeaconpass = 0;
 	VHGNDviewx = 0; VHGNDviewz = 0;
 	VHGNDocount = 0; VHGNDicx = 0; VHGNDicz = 0;
@@ -5201,7 +5202,11 @@
 	  the source loops over cells that its own depth test must reject.
 	  iperficie's argument extends the near/back edge by one quadrant while
 	  walking and four while the capsule is airborne.  The extra three rows
-	  keep rising and pitched capsule views covered at the bottom of frame. )
+	  keep rising and pitched capsule views covered at the bottom of frame.
+	  Cache the settled capsule's invariant tile once before fragment() visits
+	  thousands of cells; its coordinates cannot change during this traversal. )
+	A = [VHGNDdropx]; A / VHGNDTS; [VHGNDdroptx] = A;
+	A = [VHGNDdropz]; A / VHGNDTS; [VHGNDdroptz] = A;
 	[VHGNDlodstep] = 1; [VHGNDlodradius] = 65;
 	[VHGNDbackspan] = 1; A = [VHGlanded]; ? A != 0 -> VHGND faithful span ready;
 	[VHGNDbackspan] = 4;
@@ -5540,8 +5545,8 @@
 	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile done;
 	( fragment() paints the settled capsule in its terrain cell before fauna
 	  and surface objects, so nearer cells can cover it in painter order. )
-	A = [VHGNDdropx]; A / VHGNDTS; ? A != [VHGNDx] -> VHGND tile capsule done;
-	A = [VHGNDdropz]; A / VHGNDTS; ? A != [VHGNDz] -> VHGND tile capsule done;
+	A = [VHGNDdroptx]; ? A != [VHGNDx] -> VHGND tile capsule done;
+	A = [VHGNDdroptz]; ? A != [VHGNDz] -> VHGND tile capsule done;
 	=> VHGND capsule;
     "VHGND tile capsule done"
 	A = [VHGNDdepth]; ? A > VHGNDOBJECTFAR -> VHGND tile done;
