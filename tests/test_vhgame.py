@@ -150,6 +150,37 @@ def signed32(value: int) -> int:
     return value if value < 0x80000000 else value - 0x100000000
 
 
+def widen_f32_image(bits: int) -> tuple[int, int]:
+    """Return the exact low/high binary64 words for one binary32 image."""
+    sign = bits >> 31
+    exponent = (bits >> 23) & 0xFF
+    fraction = bits & 0x7FFFFF
+    if exponent == 0:
+        if fraction == 0:
+            image = sign << 63
+        else:
+            top = fraction.bit_length() - 1
+            double_exponent = top - 149 + 1023
+            double_fraction = (fraction - (1 << top)) << (52 - top)
+            image = (sign << 63) | (double_exponent << 52) | double_fraction
+    else:
+        double_exponent = 0x7FF if exponent == 0xFF else exponent + 896
+        image = (sign << 63) | (double_exponent << 52) | (fraction << 29)
+    return image & 0xFFFFFFFF, image >> 32
+
+
+def greenmush_store_narrowed(low: int, high: int) -> int:
+    """Model VHGND store narrowed's extraction and FStoreF32 edge policy."""
+    sign = high >> 31
+    exponent = (high >> 20) & 0x7FF
+    if exponent <= 896:
+        return sign << 31
+    if exponent >= 1151:
+        return (sign << 31) | 0x7F800000
+    return ((sign << 31) | ((exponent - 896) << 23) |
+            ((high & 0xFFFFF) << 3) | (low >> 29))
+
+
 def par_foldmul(left: int, right: int) -> int:
     product = signed32(left) * signed32(right)
     return signed32(signed32(product) + signed32(product >> 32))
@@ -3894,7 +3925,7 @@ def main() -> int:
         and greenmush.count(
             "[FB0] = [FA0]; [FB1] = [FA1]; [FA0] := [FI];") == 3
         and greenmush.count(
-            "[FA0] +: [FB0]; ~: [FA0]; => FStoreF32;") == 3
+            "[FA0] +: [FB0]; ~: [FA0]; => VHGND store narrowed;") == 3
         and all(greenmush.count(token) == 2 for token in (
             "[PGFt] = [VHGNDmushxf];",
             "[PGFt] = [VHGNDmushyf];",
@@ -3909,10 +3940,50 @@ def main() -> int:
             "[PGFi] = FSINZ; [PGFt] = [VHGNDmushpzf]; [FS0] = [VHGNDmushpzf]; => FLoadF32; [fw plus 520] = [FA0]; [fw plus 521] = [FA1];",
         ))
         and greenmush.count(
-            "[FA0] -: [FB0]; ~: [FA0]; => FStoreF32;") == 3
+            "[FA0] -: [FB0]; ~: [FA0]; => VHGND store narrowed;") == 3
         and "=> PGF fromint; => VHGND fb fa;" not in greenmush
         and "=> PGF setf32;" not in greenmush,
         "floating foliage expands exact scalar wrappers into fixed slots",
+    )
+    narrowed_store = section(
+        greenmush, '"VHGND store narrowed"', '"VHGND render random"'
+    )
+    check(
+        contains_in_order(narrowed_store, (
+            "A = [FA1]; A > 20; A & 7FFh;",
+            "? A <= 896 -> VHGND store narrowed underflow;",
+            "? A >= 1151 -> VHGND store narrowed overflow;",
+            "A - 896; C = A; C < 23;",
+            "A = [FA1]; A & 0FFFFFh; A < 3;",
+            "B = [FA0]; B > 29; A | B; A | C;",
+            "B = [FA1]; B > 31; B < 31; A | B; [FS0] = A;",
+            '"VHGND store narrowed underflow"',
+            "A = [FA1]; A > 31; A < 31; [FS0] = A;",
+            '"VHGND store narrowed overflow"',
+            "A = 7F800000h; B = [FA1]; B > 31; B < 31; A | B; [FS0] = A;",
+        ))
+        and "=> FStoreF32;" not in greenmush,
+        "foliage extracts an already-narrowed value without a second converter",
+    )
+    store_cases = []
+    fractions = (0, 1, 0x155555, 0x3FFFFF, 0x400000, 0x7FFFFF)
+    for sign in (0, 1):
+        for exponent in range(256):
+            store_cases.extend(
+                (sign << 31) | (exponent << 23) | fraction
+                for fraction in fractions
+            )
+    check(
+        all(
+            greenmush_store_narrowed(*widen_f32_image(bits)) == (
+                (bits & 0x80000000)
+                if ((bits >> 23) & 0xFF) == 0 else
+                ((bits & 0x80000000) | 0x7F800000)
+                if ((bits >> 23) & 0xFF) == 0xFF else bits
+            )
+            for bits in store_cases
+        ),
+        "narrowed foliage extraction matches FStoreF32 across every exponent class",
     )
     check(
         all(token in ground for token in (
