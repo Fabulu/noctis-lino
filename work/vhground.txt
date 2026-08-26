@@ -2829,12 +2829,46 @@
 	[VHGNDvi]+; A = [VHGNDvi]; ? A < 3 -> VHGND terrain mapped front;
 
 	"VHGND terrain mapped load begin"
+	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped load generic begin;
+	( The first unit triangle has fixed cache indices and fixed destination
+	  slots.  Restore its exact carrier words directly instead of rediscovering
+	  those indices through six nested Lino calls. )
+	D = [VHGNDh1];
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 504] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 505] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 512] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 513] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 520] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 521] = C;
+	A = VHGNDvcpx; A + D; C = [A]; [mp] = C;
+	A = VHGNDvcpy; A + D; C = [A]; [mp plus 1] = C;
+	D + 1;
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 506] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 507] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 514] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 515] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 522] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 523] = C;
+	A = VHGNDvcpx; A + D; C = [A]; [mp plus 2] = C;
+	A = VHGNDvcpy; A + D; C = [A]; [mp plus 3] = C;
+	D + 199;
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 508] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 509] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 516] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 517] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 524] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 525] = C;
+	A = VHGNDvcpx; A + D; C = [A]; [mp plus 4] = C;
+	A = VHGNDvcpy; A + D; C = [A]; [mp plus 5] = C;
+	[rwf] = 1; [rwf plus 1] = 1; [rwf plus 2] = 1;
+	[VHGNDvi] = 3; [VHGNDvcindex] = D; [VHGNDvcpairready] = 1;
+	-> VHGND terrain mapped bounds;
+
+    "VHGND terrain mapped load generic begin"
 	[VHGNDvi] = 0;
     "VHGND terrain mapped load"
 	=> VHGND terrain vertex load;
 	[VHGNDvi]+; A = [VHGNDvi]; ? A < 3 -> VHGND terrain mapped load;
-	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped bounds;
-	[VHGNDvcpairready] = 1;
 
     "VHGND terrain mapped bounds"
 	( The specialized polymap entry consumes the three real rotated/projected

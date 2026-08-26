@@ -1549,6 +1549,16 @@ def main() -> int:
         '"VHGND terrain mapped cache second select"',
         '"VHGND terrain mapped cache second"',
     )
+    terrain_first_load = section(
+        terrain_mapped,
+        '"VHGND terrain mapped load begin"',
+        '"VHGND terrain mapped load generic begin"',
+    )
+    terrain_generic_load = section(
+        terrain_mapped,
+        '"VHGND terrain mapped load generic begin"',
+        '"VHGND terrain mapped bounds"',
+    )
     terrain_facing = section(ground, '"VHGND terrain facing"',
                              '"VHGND secondary sun setup"')
     vertex_load = section(
@@ -1586,6 +1596,36 @@ def main() -> int:
         for first in ((
             vertex_words(h1), vertex_words(h1 + 1), vertex_words(h1 + 200)
         ),)
+    )
+    terrain_first_load_copies_exact = all(
+        f"A = {source}; A + D; C = [A]; [{destination}] = C;"
+        in terrain_first_load
+        for source, destination in (
+            ("VHGNDvcrx0", "fw plus 504"),
+            ("VHGNDvcrx1", "fw plus 505"),
+            ("VHGNDvcry0", "fw plus 512"),
+            ("VHGNDvcry1", "fw plus 513"),
+            ("VHGNDvcrz0", "fw plus 520"),
+            ("VHGNDvcrz1", "fw plus 521"),
+            ("VHGNDvcpx", "mp"),
+            ("VHGNDvcpy", "mp plus 1"),
+            ("VHGNDvcrx0", "fw plus 506"),
+            ("VHGNDvcrx1", "fw plus 507"),
+            ("VHGNDvcry0", "fw plus 514"),
+            ("VHGNDvcry1", "fw plus 515"),
+            ("VHGNDvcrz0", "fw plus 522"),
+            ("VHGNDvcrz1", "fw plus 523"),
+            ("VHGNDvcpx", "mp plus 2"),
+            ("VHGNDvcpy", "mp plus 3"),
+            ("VHGNDvcrx0", "fw plus 508"),
+            ("VHGNDvcrx1", "fw plus 509"),
+            ("VHGNDvcry0", "fw plus 516"),
+            ("VHGNDvcry1", "fw plus 517"),
+            ("VHGNDvcrz0", "fw plus 524"),
+            ("VHGNDvcrz1", "fw plus 525"),
+            ("VHGNDvcpx", "mp plus 4"),
+            ("VHGNDvcpy", "mp plus 5"),
+        )
     )
     terrain_basis_indices_exact = all(
         0 <= index < 80000
@@ -1804,6 +1844,33 @@ def main() -> int:
         "exact repeated-camera terrain triangles reuse generation-stamped texture bases",
     )
     check(
+        terrain_first_load_copies_exact
+        and contains_in_order(terrain_first_load, (
+            "A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped load generic begin;",
+            "D = [VHGNDh1];",
+            "A = VHGNDvcpy; A + D; C = [A]; [mp plus 1] = C;",
+            "D + 1;",
+            "A = VHGNDvcpy; A + D; C = [A]; [mp plus 3] = C;",
+            "D + 199;",
+            "A = VHGNDvcpy; A + D; C = [A]; [mp plus 5] = C;",
+            "[rwf] = 1; [rwf plus 1] = 1; [rwf plus 2] = 1;",
+            "[VHGNDvi] = 3; [VHGNDvcindex] = D; [VHGNDvcpairready] = 1;",
+            "-> VHGND terrain mapped bounds;",
+        ))
+        and "=> " not in terrain_first_load
+        and not any(operator in terrain_first_load for operator in (
+            "++", "--", "**", "//", "+:", "-:", "*:", "/:", "=:", ":=", "~:"
+        ))
+        and all(token in terrain_generic_load for token in (
+            "[VHGNDvi] = 0;",
+            '"VHGND terrain mapped load"',
+            "=> VHGND terrain vertex load;",
+            "[VHGNDvi]+; A = [VHGNDvi]; ? A < 3 -> VHGND terrain mapped load;",
+        ))
+        and terrain_generic_load.count("=> VHGND terrain vertex load;") == 1,
+        "first terrain triangle restores exact cache words without indexed calls",
+    )
+    check(
         "VHGNDvcpairready = 0;" in ground
         and "[VHGNDtilepolys] = 0; [VHGNDvcpairready] = 0; => VHGND terrain common input;" in tile
         and "A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped cache second select;" in terrain_mapped
@@ -1831,7 +1898,7 @@ def main() -> int:
         and not any(operator in terrain_pair for operator in (
             "++", "--", "**", "//", "+:", "-:", "*:", "/:", "=:", ":=", "~:"
         ))
-        and "A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped bounds;\n\t[VHGNDvcpairready] = 1;" in terrain_mapped
+        and "[VHGNDvi] = 3; [VHGNDvcindex] = D; [VHGNDvcpairready] = 1;" in terrain_first_load
         and terrain_pair_indices_exact
         and terrain_pair_layout_exact,
         "paired terrain triangles hand exact shared vertex slots to the second mapper",
