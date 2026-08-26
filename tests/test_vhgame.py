@@ -200,6 +200,18 @@ def hoisted_greenmush_destination(gc_x: int, gc_y: int, random_x: int,
     return signed32(origin + offset)
 
 
+def terrain_depth_n_words(dx: int, dz: int) -> int:
+    """Model the two square words and explicit carry used by tile depth."""
+    x_squared = dx * dx
+    z_squared = dz * dz
+    x_low, x_high = x_squared & 0xFFFFFFFF, x_squared >> 32
+    z_low, z_high = z_squared & 0xFFFFFFFF, z_squared >> 32
+    low = (x_low + z_low) & 0xFFFFFFFF
+    carry = int(low < z_low)
+    high = (x_high + z_high + carry) & 0xFFFFFFFF
+    return ((high << 4) | (low >> 28)) & 0xFFFFFFFF
+
+
 def terrain_depth_root(depth_n: int, low: int, high: int, steps: int) -> int:
     """Model VHGND tile depth's fixed-iteration integer square root."""
     for _ in range(steps):
@@ -1092,7 +1104,7 @@ def main() -> int:
         and "[CSpix]+;" not in terrain_cpixel,
         "faithful terrain pixels retain exact block-local tinta, UV, and destination state",
     )
-    depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
+    depth = section(ground, '"VHGND tile depth x row"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
     vload = ground[ground.index('"VHGND vload"'):]
     maximum_tile_root = 0
@@ -1110,10 +1122,13 @@ def main() -> int:
                         root_low = 0 if depth_n < 4096 else 64
                         actual = terrain_depth_root(depth_n, root_low, root_low + 64, 6)
                         maximum_tile_root = max(maximum_tile_root, expected)
-                        bounded_roots_exact &= actual == expected
+                        bounded_roots_exact &= (
+                            terrain_depth_n_words(dx, dz) == depth_n
+                            and actual == expected
+                        )
     check(
         bounded_roots_exact and maximum_tile_root < 128,
-        "split six-bit terrain roots cover every accepted traversal offset exactly",
+        "full-width square words and split roots cover every accepted offset exactly",
     )
     check(
         "A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;" in shade
@@ -1122,6 +1137,14 @@ def main() -> int:
         and "=> VHGND tile depth;" in tile
         and "A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;" in tile
         and "A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDdlo] = A;" in depth
+        and '"VHGND tile depth x row"' in ground
+        and all(token in depth for token in (
+            '"VHGND tile depth z row"',
+            "A + 8192; C = [VHGNDcamx]; C - A; [VHGNDdx] = C;",
+            "A + 8192; C = [VHGNDcamz]; C - A; [VHGNDdz] = C;",
+            "-> VHGND tile depth x sum;", "-> VHGND tile depth z sum;",
+            "A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDslo] = A;",
+        ))
         and "[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 64; [VHGNDdepthstep] = 6;" in depth
         and "A = [VHGNDdepthn]; ? A < 4096 -> VHGND tile depth root;" in depth
         and "[VHGNDdepthlo] = 64; [VHGNDdepthhi] = 128;" in depth
@@ -1316,16 +1339,20 @@ def main() -> int:
             "? A <= 65 -> VHGND faithful z row span ready;",
             "=> VHGND faithful x row bounds; [VHGNDx] = [VHGNDxlo];",
             "=> VHGND faithful z row bounds; [VHGNDz] = [VHGNDzhi];",
+            "A = [VHGNDz]; A < 14; A + 8192; C = [VHGNDcamz]; C - A; [VHGNDdz] = C;",
+            "A = [VHGNDx]; A < 14; A + 8192; C = [VHGNDcamx]; C - A; [VHGNDdx] = C;",
             '"VHGND faithful north"', '"VHGND faithful east"',
             '"VHGND faithful south"', '"VHGND faithful west"',
         ))
         and faithful_guard_exact
-        and faithful.count("=> VHGND tile source range ready;") == 8
+        and faithful.count("=> VHGND tile source x row ready;") == 4
+        and faithful.count("=> VHGND tile source z row ready;") == 4
+        and "=> VHGND tile source range ready;" not in faithful
         and "=> VHGND tile;" not in faithful
         and "? A > 90 -> VHGND tile done;" in tile
         and "[SPcull] = 1" in tile
         and "A > [VHGNDmaxdepth]" in tile,
-        "surface renderer hoists exact Manhattan row bounds, bypasses the proved per-tile guard, and retains NIV+ unit tiles, airborne backspan, painter quadrants, and depth-64 gates",
+        "surface renderer hoists exact row bounds and one depth square while retaining painter order and depth-64 gates",
     )
     check(
         "if (depth > 40) return;" in original1

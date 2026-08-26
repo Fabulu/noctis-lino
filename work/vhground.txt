@@ -5220,6 +5220,9 @@
 	A = [VHGNDcamtx]; A + [VHGNDtmp]; [VHGNDxhi] = A;
 	? A '<= 198 -> VHGND faithful x row bounds done; [VHGNDxhi] = 198;
     "VHGND faithful x row bounds done"
+	( Cache the row's exact z-square once for every x tile below. )
+	A = [VHGNDz]; A < 14; A + 8192; C = [VHGNDcamz]; C - A; [VHGNDdz] = C;
+	A = C; B = A; A *% B; [VHGNDslo] = A; [VHGNDshi] = B;
 	end;
 
     "VHGND faithful z row bounds"
@@ -5235,6 +5238,9 @@
 	A = [VHGNDcamtz]; A + [VHGNDtmp]; [VHGNDzhi] = A;
 	? A '<= 198 -> VHGND faithful z row bounds done; [VHGNDzhi] = 198;
     "VHGND faithful z row bounds done"
+	( Cache the column's exact x-square once for every z tile below. )
+	A = [VHGNDx]; A < 14; A + 8192; C = [VHGNDcamx]; C - A; [VHGNDdx] = C;
+	A = C; B = A; A *% B; [VHGNDdlo] = A; [VHGNDdhi] = B;
 	end;
 
     "VHGND faithful north"
@@ -5249,12 +5255,12 @@
 	=> VHGND faithful x row bounds; [VHGNDx] = [VHGNDxlo];
     "VHGND faithful north left"
 	A = [VHGNDx]; C = [VHGNDcamtx]; ? A >= C -> VHGND faithful north right start;
-	=> VHGND tile source range ready; [VHGNDx]+; -> VHGND faithful north left;
+	=> VHGND tile source x row ready; [VHGNDx]+; -> VHGND faithful north left;
     "VHGND faithful north right start"
 	[VHGNDx] = [VHGNDxhi];
     "VHGND faithful north right"
 	A = [VHGNDx]; C = [VHGNDcamtx]; ? A < C -> VHGND faithful north next z;
-	=> VHGND tile source range ready; [VHGNDx]-; -> VHGND faithful north right;
+	=> VHGND tile source x row ready; [VHGNDx]-; -> VHGND faithful north right;
     "VHGND faithful north next z"
 	[VHGNDz]-; A = [VHGNDz]; ? A >= [VHGNDzlo] -> VHGND faithful north z;
 	end;
@@ -5271,12 +5277,12 @@
 	=> VHGND faithful x row bounds; [VHGNDx] = [VHGNDxlo];
     "VHGND faithful south left"
 	A = [VHGNDx]; C = [VHGNDcamtx]; ? A >= C -> VHGND faithful south right start;
-	=> VHGND tile source range ready; [VHGNDx]+; -> VHGND faithful south left;
+	=> VHGND tile source x row ready; [VHGNDx]+; -> VHGND faithful south left;
     "VHGND faithful south right start"
 	[VHGNDx] = [VHGNDxhi];
     "VHGND faithful south right"
 	A = [VHGNDx]; C = [VHGNDcamtx]; ? A < C -> VHGND faithful south next z;
-	=> VHGND tile source range ready; [VHGNDx]-; -> VHGND faithful south right;
+	=> VHGND tile source x row ready; [VHGNDx]-; -> VHGND faithful south right;
     "VHGND faithful south next z"
 	[VHGNDz]+; A = [VHGNDz]; ? A '<= [VHGNDzhi] -> VHGND faithful south z;
 	end;
@@ -5293,12 +5299,12 @@
 	=> VHGND faithful z row bounds; [VHGNDz] = [VHGNDzhi];
     "VHGND faithful east upper"
 	A = [VHGNDz]; C = [VHGNDcamtz]; ? A <= C -> VHGND faithful east lower start;
-	=> VHGND tile source range ready; [VHGNDz]-; -> VHGND faithful east upper;
+	=> VHGND tile source z row ready; [VHGNDz]-; -> VHGND faithful east upper;
     "VHGND faithful east lower start"
 	[VHGNDz] = [VHGNDzlo];
     "VHGND faithful east lower"
 	A = [VHGNDz]; C = [VHGNDcamtz]; ? A > C -> VHGND faithful east next x;
-	=> VHGND tile source range ready; [VHGNDz]+; -> VHGND faithful east lower;
+	=> VHGND tile source z row ready; [VHGNDz]+; -> VHGND faithful east lower;
     "VHGND faithful east next x"
 	[VHGNDx]+; A = [VHGNDx]; ? A '<= [VHGNDxhi] -> VHGND faithful east x;
 	end;
@@ -5315,12 +5321,12 @@
 	=> VHGND faithful z row bounds; [VHGNDz] = [VHGNDzhi];
     "VHGND faithful west upper"
 	A = [VHGNDz]; C = [VHGNDcamtz]; ? A <= C -> VHGND faithful west lower start;
-	=> VHGND tile source range ready; [VHGNDz]-; -> VHGND faithful west upper;
+	=> VHGND tile source z row ready; [VHGNDz]-; -> VHGND faithful west upper;
     "VHGND faithful west lower start"
 	[VHGNDz] = [VHGNDzlo];
     "VHGND faithful west lower"
 	A = [VHGNDz]; C = [VHGNDcamtz]; ? A > C -> VHGND faithful west next x;
-	=> VHGND tile source range ready; [VHGNDz]+; -> VHGND faithful west lower;
+	=> VHGND tile source z row ready; [VHGNDz]+; -> VHGND faithful west lower;
     "VHGND faithful west next x"
 	[VHGNDx]-; A = [VHGNDx]; ? A >= [VHGNDxlo] -> VHGND faithful west x;
 	end;
@@ -5407,12 +5413,18 @@
 	C = 0; C - A; A = C;
     "VHGND tile abs z ready"
 	A + [VHGNDtmp]; ? A > 90 -> VHGND tile done;
-	"VHGND tile source range ready"
-	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
 	( Source rejects the raw distance bin above 64 before decrementing it.
 	  Do that before the deterministic shade draw so rejected horizon cells
 	  pay neither RNG nor ledger/hash work. )
-	=> VHGND tile depth;
+	"VHGND tile source range ready"
+	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
+	=> VHGND tile depth; -> VHGND tile depth computed;
+	"VHGND tile source x row ready"
+	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
+	=> VHGND tile depth x row; -> VHGND tile depth computed;
+	"VHGND tile source z row ready"
+	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
+	=> VHGND tile depth z row;
     "VHGND tile depth computed"
 	A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;
 	A = [VHGNDdepth]; ? A > [VHGNDmaxdepth] -> VHGND tile done;
@@ -6654,6 +6666,16 @@
 	[VHGNDcamx] = [VHGNDviewx]; [VHGNDcamz] = [VHGNDviewz]; [VHGNDh1] = [VHGNDrocktile];
 	end;
 
+"VHGND tile depth x row"
+	A = [VHGNDx]; A < 14; A + 8192; C = [VHGNDcamx]; C - A; [VHGNDdx] = C;
+	A = C; B = A; A *% B; [VHGNDdlo] = A; [VHGNDdhi] = B;
+	-> VHGND tile depth x sum;
+
+"VHGND tile depth z row"
+	A = [VHGNDz]; A < 14; A + 8192; C = [VHGNDcamz]; C - A; [VHGNDdz] = C;
+	A = C; B = A; A *% B; [VHGNDslo] = A; [VHGNDshi] = B;
+	-> VHGND tile depth z sum;
+
 "VHGND tile depth"
 	( hpdep = sqrt((pos_x-tile_centre_x)^2 +
 	               (pos_z-tile_centre_z)^2), then depth=(hpdep>>14)-1.
@@ -6669,12 +6691,23 @@
 	A = [VHGNDz]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
 	C = [VHGNDcamz]; C - A; [VHGNDdz] = C;
 	A = C; B = A; A *% B; [VHGNDslo] = A; [VHGNDshi] = B;
+    "VHGND tile depth x sum"
 	A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDdlo] = A;
-	A = C; ? A '>= B -> VHGND tile depth sum ready; [VHGNDdhi]+;
-    "VHGND tile depth sum ready"
+	A = C; ? A '>= B -> VHGND tile depth x sum ready; [VHGNDdhi]+;
+    "VHGND tile depth x sum ready"
 	A = [VHGNDdhi]; A + [VHGNDshi]; [VHGNDdhi] = A;
 	A = [VHGNDdlo]; A > 28; C = A;
 	A = [VHGNDdhi]; A < 4; A | C; [VHGNDdepthn] = A;
+	-> VHGND tile depth root setup;
+    "VHGND tile depth z sum"
+	( Preserve the fixed x-square in dlo/dhi while accumulating into slo/shi. )
+	A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDslo] = A;
+	A = C; ? A '>= B -> VHGND tile depth z sum ready; [VHGNDshi]+;
+    "VHGND tile depth z sum ready"
+	A = [VHGNDdhi]; A + [VHGNDshi]; [VHGNDshi] = A;
+	A = [VHGNDslo]; A > 28; C = A;
+	A = [VHGNDshi]; A < 4; A | C; [VHGNDdepthn] = A;
+    "VHGND tile depth root setup"
 	[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 64; [VHGNDdepthstep] = 6;
 	A = [VHGNDdepthn]; ? A < 4096 -> VHGND tile depth root;
 	[VHGNDdepthlo] = 64; [VHGNDdepthhi] = 128;
