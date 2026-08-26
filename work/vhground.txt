@@ -112,7 +112,7 @@
 	VHGNDmushpxf = 0; VHGNDmushpyf = 0; VHGNDmushpzf = 0;
 	VHGNDmushscale = 0; VHGNDmushmask1 = 0; VHGNDmushmask2 = 0;
 	VHGNDmushbase = 0; VHGNDmushcolmask = 0;
-	VHGNDmushouter = 0; VHGNDmushinner = 0; VHGNDmushoff = 0;
+	VHGNDmushouter = 0; VHGNDmushinner = 0; VHGNDmushoff = 0; VHGNDmushorigin = 0;
 	VHGNDviewsinb = 0; VHGNDviewcosb = 0; VHGNDviewsina = 0; VHGNDviewcosa = 0;
 	VHGNDviewrx = 0; VHGNDviewry = 0; VHGNDviewrz = 0; VHGNDviewz2 = 0; VHGNDviewdy = 0;
 	VHGNDrx0 = 0; VHGNDry0 = 0; VHGNDrz0 = 0;
@@ -5763,11 +5763,12 @@
 	=> PG getcoords;
 	A = [GCret]; ? A = 0 -> VHGND greenmush outer next;
 	[SUfmask] = [VHGNDmushmask2]; => VHGND render random; C + 1; [VHGNDmushinner] = C;
+	A = [GCy]; A '* 320; A + [GCx]; A + nw; A + RADPT; [VHGNDmushorigin] = A;
 	"VHGND greenmush inner"
-	[SUfmask] = 7; => VHGND render random; A = [GCy]; A + C; A '* 320; [VHGNDmushoff] = A;
-	=> VHGND render random; A = [GCx]; A + C; C = [VHGNDmushoff]; C + A; [VHGNDmushoff] = C;
+	[SUfmask] = 7; => VHGND render random; A = C; A '* 320; [VHGNDmushoff] = A;
+	=> VHGND render random; A = C; C = [VHGNDmushoff]; C + A; [VHGNDmushoff] = C;
 	[SUfmask] = [VHGNDmushcolmask]; => VHGND render random; C + [VHGNDmushbase];
-	D = nw; D + RADPT; D + [VHGNDmushoff];
+	D = [VHGNDmushorigin]; D + [VHGNDmushoff];
 	[D] = C; [D plus 1] = C; A = D; A - 1; [A] = C; [D plus 320] = C;
 	A = D; A - 320; [A] = C; A = D; A - 640; [A] = C;
 	[VHGNDmushinner]-; A = [VHGNDmushinner]; ? A > 0 -> VHGND greenmush inner;

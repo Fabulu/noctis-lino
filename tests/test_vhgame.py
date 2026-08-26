@@ -181,6 +181,25 @@ def greenmush_store_narrowed(low: int, high: int) -> int:
             ((high & 0xFFFFF) << 3) | (low >> 29))
 
 
+def legacy_greenmush_destination(gc_x: int, gc_y: int, random_x: int,
+                                 random_y: int, page: int, radpt: int) -> int:
+    row = signed32(gc_y + random_y)
+    offset = signed32(row * 320)
+    offset = signed32(offset + signed32(gc_x + random_x))
+    return signed32(signed32(page + radpt) + offset)
+
+
+def hoisted_greenmush_destination(gc_x: int, gc_y: int, random_x: int,
+                                  random_y: int, page: int, radpt: int) -> int:
+    origin = signed32(gc_y * 320)
+    origin = signed32(origin + gc_x)
+    origin = signed32(origin + page)
+    origin = signed32(origin + radpt)
+    offset = signed32(random_y * 320)
+    offset = signed32(offset + random_x)
+    return signed32(origin + offset)
+
+
 def par_foldmul(left: int, right: int) -> int:
     product = signed32(left) * signed32(right)
     return signed32(signed32(product) + signed32(product >> 32))
@@ -3912,13 +3931,31 @@ def main() -> int:
             "A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer y;",
             "A = [VHGNDmushfloat]; ? A = 0 -> VHGND greenmush integer x;",
             "=> PG getcoords;",
-            "[SUfmask] = 7; => VHGND render random; A = [GCy]; A + C; A '* 320; [VHGNDmushoff] = A;",
-            "=> VHGND render random; A = [GCx]; A + C; C = [VHGNDmushoff]; C + A; [VHGNDmushoff] = C;",
+            "A = [GCy]; A '* 320; A + [GCx]; A + nw; A + RADPT; [VHGNDmushorigin] = A;",
+            "[SUfmask] = 7; => VHGND render random; A = C; A '* 320; [VHGNDmushoff] = A;",
+            "=> VHGND render random; A = C; C = [VHGNDmushoff]; C + A; [VHGNDmushoff] = C;",
             "[SUfmask] = [VHGNDmushcolmask]; => VHGND render random; C + [VHGNDmushbase];",
-            "D = nw; D + RADPT; D + [VHGNDmushoff];",
+            "D = [VHGNDmushorigin]; D + [VHGNDmushoff];",
             "[D] = C; [D plus 1] = C;",
         )),
         "grass tufts restore source depth visibility, density, scale, and distant foliage",
+    )
+    stamp_points = (
+        (6, 11), (160, 100), (310, 189),
+        (0x7FFFFFFF, -0x80000000), (-0x80000000, 0x7FFFFFFF),
+    )
+    check(
+        all(
+            legacy_greenmush_destination(x, y, rx, ry, page, radpt) ==
+            hoisted_greenmush_destination(x, y, rx, ry, page, radpt)
+            for x, y in stamp_points
+            for rx in range(8)
+            for ry in range(8)
+            for page, radpt in ((0, 0), (0x12345678, 0x76543210),
+                                (-0x80000000, 0x7FFFFFFF))
+        )
+        and ground.count("[VHGNDmushorigin]") == 2,
+        "foliage hoists the fixed screen origin without changing wrapped destinations",
     )
     check(
         greenmush.count("[FI] = [VHGNDtmp];") == 3
