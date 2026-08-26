@@ -1131,8 +1131,17 @@ def main() -> int:
         "full-width square words and split roots cover every accepted offset exactly",
     )
     check(
-        "A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;" in shade
-        and "[SUfmask] = 7; => VHGND render random;" in shade
+        "A = [VHGNDh1]; A + [VHGNDseed]; A | 3; [SUfseed] = A;" in shade
+        and all(token in shade for token in (
+            "[m64a] = A; [m64b] = A; [SUfmask] = 7;",
+            "B = A; A *%' B; [m64lo] = A; [m64hi] = B;",
+            "C = A; C & 0FFh; B & 0FFh; C + B; C & 0FFh;",
+            "A & 0FFFFFF00h; A | C; [SUfeax] = A;",
+            "B = [SUfseed]; B + A; [SUfseed] = B;",
+            "A & 7; [SUfval] = A; C = A;",
+        ))
+        and "=> SU fast srand;" not in shade
+        and "=> VHGND render random;" not in shade
         and shade.count("C + 8; [VHGNDshade] = C;") == 1
         and "=> VHGND tile depth;" in tile
         and "A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;" in tile
