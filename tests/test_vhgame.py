@@ -1083,6 +1083,12 @@ def main() -> int:
     terrain_cpixel = section(pgtex, '"PG cpx terrain begin"', '"PG cpx internal"')
     terrain_row_control = section(pgtex, '"PG row"', '"PG px terrain begin"')
     terrain_crow_control = section(pgtex, '"PG crow"', '"PG cpx terrain begin"')
+    retained_uv_setup = (
+        "C = [SPv]; A = C; A & 65535; [SPdx] = A;\n"
+        "\tD = [SPvn]; A = D; A - C; A >> 4; A & 65535; [SPsi] = A; [SPv] = D;\n"
+        "\tC = [SPu]; A = C; A & 65535; [SPax] = A;\n"
+        "\tD = [SPun]; A = D; A - C; A >> 4; A & 65535; [SPbp] = A; [SPu] = D;"
+    )
     check(
         "A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;" in terrain_pixel
         and "A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;" in terrain_cpixel
@@ -1090,6 +1096,10 @@ def main() -> int:
         and "A = [SPcl]; ? A = 0 -> PG row;" in terrain_row_control
         and "[SPcl] = 32;" in terrain_crow_control
         and "A > 1; [SPcl] = A;" in terrain_crow_control
+        and retained_uv_setup in terrain_row_control
+        and retained_uv_setup in terrain_crow_control
+        and "[SPu] = [SPun]; [SPv] = [SPvn];" not in terrain_row_control
+        and "[SPu] = [SPun]; [SPv] = [SPvn];" not in terrain_crow_control
         and "A = [SPdi]; D = A; D + [SPcl]; [SPdi] = D;" in terrain_pixel
         and "A = [SPdi]; D = [SPcl]; D + D; D + A; D & 65535; [SPdi] = D;" in terrain_cpixel
         and "B = [SPdx]; C = [SPax];" in terrain_pixel

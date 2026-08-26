@@ -357,11 +357,10 @@
 	=> PG uv next;
 	( si = (v_new - v_old) >> 4 ; bp = (u_new - u_old) >> 4,
 	  both SIGNED 32-bit arithmetic shifts, then used 16-bit. )
-	A = [SPvn]; C = [SPv]; A - C; A >> 4; A & 65535; [SPsi] = A;
-	A = [SPun]; C = [SPu]; A - C; A >> 4; A & 65535; [SPbp] = A;
-	A = [SPu]; A & 65535; [SPax] = A;
-	A = [SPv]; A & 65535; [SPdx] = A;
-	[SPu] = [SPun]; [SPv] = [SPvn];
+	C = [SPv]; A = C; A & 65535; [SPdx] = A;
+	D = [SPvn]; A = D; A - C; A >> 4; A & 65535; [SPsi] = A; [SPv] = D;
+	C = [SPu]; A = C; A & 65535; [SPax] = A;
+	D = [SPun]; A = D; A - C; A >> 4; A & 65535; [SPbp] = A; [SPu] = D;
 
 	( Faithful preprojected terrain has flar zero and keeps its authoritative
 	  tinta in [SPtinta].  Select once per block instead of re-reading the
@@ -537,11 +536,10 @@
 	A > 1; [SPcl] = A;
 
 	=> PG uv next;
-	A = [SPvn]; C = [SPv]; A - C; A >> 4; A & 65535; [SPsi] = A;
-	A = [SPun]; C = [SPu]; A - C; A >> 4; A & 65535; [SPbp] = A;
-	A = [SPu]; A & 65535; [SPax] = A;
-	A = [SPv]; A & 65535; [SPdx] = A;
-	[SPu] = [SPun]; [SPv] = [SPvn];
+	C = [SPv]; A = C; A & 65535; [SPdx] = A;
+	D = [SPvn]; A = D; A - C; A >> 4; A & 65535; [SPsi] = A; [SPv] = D;
+	C = [SPu]; A = C; A & 65535; [SPax] = A;
+	D = [SPun]; A = D; A - C; A >> 4; A & 65535; [SPbp] = A; [SPu] = D;
 	A = [SPdi]; [SPsave] = A;
 
 	A = [SPterrain]; ? A != 0 -> PG cpx terrain begin;
