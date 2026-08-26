@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GAME = ROOT / "work" / "vhgame.txt"
 GROUND = ROOT / "work" / "vhground.txt"
 PGTEX = ROOT / "work" / "pgtex.txt"
+PGMEM = ROOT / "work" / "pgmem.txt"
 PGFP = ROOT / "work" / "pgfp.txt"
 PGPROJ = ROOT / "work" / "pgproj.txt"
 GRND = ROOT / "work" / "grnd.txt"
@@ -440,6 +441,7 @@ def main() -> int:
     game = GAME.read_text(encoding="utf-8")
     ground = GROUND.read_text(encoding="utf-8")
     pgtex = PGTEX.read_text(encoding="utf-8")
+    pgmem = PGMEM.read_text(encoding="utf-8")
     pgfp = PGFP.read_text(encoding="utf-8")
     pgproj = PGPROJ.read_text(encoding="utf-8")
     grnd = GRND.read_text(encoding="utf-8")
@@ -1103,6 +1105,34 @@ def main() -> int:
         and "[CSpix]+;" not in terrain_pixel
         and "[CSpix]+;" not in terrain_cpixel,
         "faithful terrain pixels retain exact block-local tinta, UV, and destination state",
+    )
+    terrain_edges = section(pgtex, '"PG ol init"', "( S5 - the span engine")
+    terrain_clip = section(pgproj, '"PG pm projected"', '"PG pm basis"')
+    terrain_trace = section(pgproj, '"PG trace"', '"PG polymap"')
+    maximum_terrain_destination = 190 * 320 + 311 + 3
+    check(
+        all(token in pgmem for token in (
+            "PGLBX\t= 5;",
+            "PGUBX\t= 311;",
+            "PGLBY\t= 10;",
+            "PGUBY\t= 190;",
+        ))
+        and "[C] = PGLBX;" in terrain_edges
+        and "[C] = PGUBX;" in terrain_edges
+        and "? A >= PGUBX -> PG ew ct2n;" in terrain_edges
+        and "? A <= PGLBX -> PG ew ct4n;" in terrain_edges
+        and "[C] = A;" in terrain_edges
+        and "[BXminy] = PGLBY;" in terrain_clip
+        and "[BXmaxy] = PGUBY;" in terrain_clip
+        and "D - E; [SPsec] = D;" in terrain_trace
+        and "C = [SPi]; => PG riga; C + E; C & 65535; [SPdi] = C;" in terrain_trace
+        and maximum_terrain_destination == 61114
+        and maximum_terrain_destination < 65536
+        and "A + 1; A & 65535;" not in terrain_pixel
+        and "D = A; D + 3; D & 65535;" not in terrain_pixel
+        and terrain_pixel.count("C + [SPbp]; C & 65535;") == 2
+        and terrain_pixel.count("B + [SPsi]; B & 65535;") == 2,
+        "clipped ordinary terrain drops only provably inactive destination masks",
     )
     depth = section(ground, '"VHGND tile depth x row"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')

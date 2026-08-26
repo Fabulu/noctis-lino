@@ -379,35 +379,36 @@
 	  every selected pixel, so this preserves CSpix exactly without a hot
 	  read-modify-write on every pixel. )
 	A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;
-	( Keep the wrapped destination and UV accumulators in Lino's registers for
-	  the complete 1..16-pixel block.  The texture lookup, tinta addition,
-	  accumulator widths, pixel order and final scratch side effects are the
-	  same as the scalar loop; only redundant per-pixel memory shuttling is gone. )
+	( Keep the clip-bounded destination and wrapped UV accumulators in Lino's
+	  registers for the complete 1..16-pixel block.  Terrain rows are clipped to
+	  y=10..190 and x=5..311, so the adapted destination reaches at most 61114
+	  and its 16-bit masks are exact no-ops.  Texture lookup, tinta addition, UV
+	  widths, pixel order and final scratch side effects remain unchanged. )
 	A = [SPdi]; B = [SPdx]; C = [SPax];
     "PG px terrain"
 	( Publish diagnostic scratch only for the final pixel in each block.  Earlier
 	  iterations consume their index, texel, colour and destination directly;
 	  no call can observe the otherwise dead intermediate stores. )
 	? [SPcl] = 1 -> PG px terrain final;
-	A + 1; A & 65535;
+	A + 1;
 	D = B; D & 65280;
 	E = C; E > 8; D | E;
 	D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255;
 	E + [SPtinta]; E & 255;
 	C + [SPbp]; C & 65535;
-	D = A; D + 3; D & 65535;
+	D = A; D + 3;
 	D + SADPT; D + nw; [D] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl]-;
 	-> PG px terrain;
     "PG px terrain final"
-	A + 1; A & 65535;
+	A + 1;
 	D = B; D & 65280;
 	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
 	D + [PGtexoff]; D + RPBG; D + nw; E = [D]; E & 255; [PGtexv] = E;
 	E + [SPtinta]; E & 255; [SPch] = E;
 	C + [SPbp]; C & 65535;
-	D = A; D + 3; D & 65535; [PGdi] = D; [PGval] = E;
+	D = A; D + 3; [PGdi] = D; [PGval] = E;
 	D + SADPT; D + nw; [D] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl]-;
