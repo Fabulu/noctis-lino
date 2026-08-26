@@ -3936,7 +3936,8 @@ def main() -> int:
             "=> VHGND render random; A = C; C = [VHGNDmushoff]; C + A; [VHGNDmushoff] = C;",
             "[SUfmask] = [VHGNDmushcolmask]; => VHGND render random; C + [VHGNDmushbase];",
             "D = [VHGNDmushorigin]; D + [VHGNDmushoff];",
-            "[D] = C; [D plus 1] = C;",
+            "[D] = C; [D plus 1] = C; [D minus 1] = C; [D plus 320] = C;",
+            "[D minus 320] = C; [D minus 640] = C;",
         )),
         "grass tufts restore source depth visibility, density, scale, and distant foliage",
     )
