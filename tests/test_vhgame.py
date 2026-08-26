@@ -1089,8 +1089,7 @@ def main() -> int:
         "\tC = [SPu]; A = C; A & 65535; [SPax] = A;\n"
         "\tD = [SPun]; A = D; A - C; A >> 4; A & 65535; [SPbp] = A; [SPu] = D;"
     )
-    terrain_unroll_schedule_exact = True
-    for count in range(1, 17):
+    def terrain_unroll_visits(count: int) -> list[int]:
         position = 0
         checked = bool(count & 1)
         visited: list[int] = []
@@ -1103,7 +1102,67 @@ def main() -> int:
             if position == count:
                 break
             checked = False
-        terrain_unroll_schedule_exact &= visited == list(range(1, count + 1))
+        return visited
+
+    terrain_unroll_schedule_exact = all(
+        terrain_unroll_visits(count) == list(range(1, count + 1))
+        for count in range(1, 17)
+    )
+    culling_pair_counts: set[int] = set()
+    for span in range(1, 307):
+        remaining = span
+        while remaining > 0:
+            raw_count = 32 if remaining > 32 else (remaining + 2) & 255
+            remaining -= 32
+            if raw_count >= 2:
+                culling_pair_counts.add(raw_count >> 1)
+    terrain_culling_unroll_schedule_exact = (
+        culling_pair_counts == set(range(1, 18))
+        and all(
+            terrain_unroll_visits(count) == list(range(1, count + 1))
+            for count in culling_pair_counts
+        )
+    )
+    terrain_culling_destination_hoist_exact = True
+    framebuffer_base = 0x179AF2
+    for start_x in range(5, 312):
+        for count in range(1, 18):
+            if start_x + 2 * count + 3 > 316:
+                continue
+            visits = terrain_unroll_visits(count)
+            logical = start_x
+            old_writes: list[tuple[int, int, int]] = []
+            for position in visits:
+                logical = (logical + 2) & 65535
+                old_writes.extend((
+                    (framebuffer_base + ((logical + 2) & 65535), position, 0),
+                    (framebuffer_base + ((logical + 3) & 65535), position, 1),
+                ))
+            physical = framebuffer_base + start_x
+            physical_endpoint = physical + 2 * count
+            new_writes: list[tuple[int, int, int]] = []
+            for position in visits:
+                physical += 2
+                new_writes.extend((
+                    (physical + 2, position, 0),
+                    (physical + 3, position, 1),
+                ))
+            terrain_culling_destination_hoist_exact &= (
+                old_writes == new_writes
+                and physical == physical_endpoint
+                and logical == start_x + 2 * count
+                and logical + 3 == start_x + 2 * count + 3
+            )
+    terrain_culling_uv_state_exact = True
+    for initial in (0, 0xFF, 0x100, 0x7FFF, 0xFFFF):
+        for step in (0, 1, 0xFF, 0x100, 0x7FFF, 0xFFFF):
+            for count in culling_pair_counts:
+                actual = initial
+                for _ in terrain_unroll_visits(count):
+                    actual = (actual + step) & 65535
+                terrain_culling_uv_state_exact &= (
+                    actual == (initial + count * step) & 65535
+                )
     check(
         "A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;" in terrain_pixel
         and "A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;" in terrain_cpixel
@@ -1116,10 +1175,17 @@ def main() -> int:
         and "[SPu] = [SPun]; [SPv] = [SPvn];" not in terrain_row_control
         and "[SPu] = [SPun]; [SPv] = [SPvn];" not in terrain_crow_control
         and "A = [SPdi]; D = A; D + [SPcl]; [SPdi] = D;" in terrain_pixel
-        and "A = [SPdi]; D = [SPcl]; D + D; D + A; D & 65535; [SPdi] = D;" in terrain_cpixel
+        and (
+            "A = [SPdi]; D = [SPcl]; D + D; D + A; [SPdi] = D;\n"
+            "\tA + SADPT plus nw;\n"
+            "\tD = [SPcl]; D + D; D + A; [PGtmp] = D;"
+        ) in terrain_cpixel
         and "B = [SPdx]; C = [SPax];" in terrain_pixel
         and "B = [SPdx]; C = [SPax];" in terrain_cpixel
         and terrain_unroll_schedule_exact
+        and terrain_culling_unroll_schedule_exact
+        and terrain_culling_destination_hoist_exact
+        and terrain_culling_uv_state_exact
         and "D = [SPcl]; D & 1; ? D != 0 -> PG px terrain;" in terrain_pixel
         and '"PG px terrain unchecked"' in terrain_pixel
         and "-> PG px terrain unchecked;" in terrain_pixel
@@ -1127,7 +1193,7 @@ def main() -> int:
         and '"PG cpx terrain unchecked"' in terrain_cpixel
         and "-> PG cpx terrain unchecked;" in terrain_cpixel
         and "A + 1; ? A = [SPdi] -> PG px terrain final;" in terrain_pixel
-        and "A + 2; A & 65535; ? A = [SPdi] -> PG cpx terrain final;" in terrain_cpixel
+        and "A + 2; ? A = [PGtmp] -> PG cpx terrain final;" in terrain_cpixel
         and terrain_pixel.count("[SPcl]-;") == 0
         and terrain_cpixel.count("[SPcl]-;") == 0
         and terrain_pixel.count("[SPcl] = 0;") == 1
@@ -1146,7 +1212,14 @@ def main() -> int:
         ) == 3
         and "D = A; D + 3 plus SADPT plus nw; [D] = E;" in terrain_pixel
         and terrain_pixel.count("D + SADPT plus nw; [D] = E;") == 1
-        and terrain_cpixel.count("D + SADPT plus nw; [D] = E;") == 6
+        and terrain_cpixel.count("D = A; D + 2; [D] = E;") == 3
+        and terrain_cpixel.count("D = A; D + 3; [D] = E;") == 3
+        and "D + SADPT plus nw; [D] = E;" not in terrain_cpixel
+        and "A + 2; A & 65535;" not in terrain_cpixel
+        and "D = A; D + 2; D & 65535;" not in terrain_cpixel
+        and "D = A; D + 3; D & 65535;" not in terrain_cpixel
+        and "D = [SPdi]; D + 2; [PGdi] = D; [PGval] = E;" in terrain_cpixel
+        and "[PGdi]+;" in terrain_cpixel
         and "D + RPBG; D + nw;" not in terrain_pixel
         and "D + RPBG; D + nw;" not in terrain_cpixel
         and "D + SADPT; D + nw;" not in terrain_pixel
@@ -1167,6 +1240,8 @@ def main() -> int:
     terrain_clip = section(pgproj, '"PG pm projected"', '"PG pm basis"')
     terrain_trace = section(pgproj, '"PG trace"', '"PG polymap"')
     maximum_terrain_destination = 190 * 320 + 311 + 3
+    maximum_culling_destination = 190 * 320 + 311 + 5
+    maximum_culling_tail_destination = 190 * 320 + 342
     check(
         all(token in pgmem for token in (
             "PGLBX\t= 5;",
@@ -1185,11 +1260,15 @@ def main() -> int:
         and "C = [SPi]; => PG riga; C + E; C & 65535; [SPdi] = C;" in terrain_trace
         and maximum_terrain_destination == 61114
         and maximum_terrain_destination < 65536
+        and maximum_culling_destination == 61116
+        and maximum_culling_destination < 65536
+        and maximum_culling_tail_destination == 61142
+        and maximum_culling_tail_destination < 65536
         and "A + 1; A & 65535;" not in terrain_pixel
         and "D = A; D + 3; D & 65535;" not in terrain_pixel
         and terrain_pixel.count("C + [SPbp]; C & 65535;") == 3
         and terrain_pixel.count("B + [SPsi]; B & 65535;") == 3,
-        "clipped ordinary terrain drops only provably inactive destination masks",
+        "clipped terrain destinations drop only provably inactive masks",
     )
     depth = section(ground, '"VHGND tile depth x row"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
