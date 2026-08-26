@@ -1309,6 +1309,10 @@ def main() -> int:
     traversal = section(ground, '"VHGND render"', '"VHGND tile"')
     faithful = section(ground, '"VHGND traverse faithful"',
                        '"VHGND object view setup"')
+    terrain_cache = section(ground, '"VHGND terrain cache frame"',
+                            '"VHGND terrain vertex index"')
+    terrain_facing = section(ground, '"VHGND terrain facing"',
+                             '"VHGND secondary sun setup"')
     faithful_cases = tuple(
         (cam_x, cam_z, faithful_tiles(cam_x, cam_z, direction, backspan))
         for cam_x, cam_z in ((0, 0), (0, 198), (100, 100), (198, 0), (198, 198))
@@ -1353,6 +1357,37 @@ def main() -> int:
         and "[SPcull] = 1" in tile
         and "A > [VHGNDmaxdepth]" in tile,
         "surface renderer hoists exact row bounds and one depth square while retaining painter order and depth-64 gates",
+    )
+    check(
+        "VHGNDvcfacing = 80000;" in ground
+        and "[VHGNDvccacheok] = 0;" in ground
+        and all(token in terrain_cache for token in (
+            "[VHGNDvcframehit] = 1;",
+            "A = [VHGNDvccacheok]; ? A = 0 -> VHGND terrain cache invalidate;",
+            "A = [VHGNDcamx]; ? A != [VHGNDvccamx] -> VHGND terrain cache invalidate;",
+            "A = [VHGNDcamy]; ? A != [VHGNDvccamy] -> VHGND terrain cache invalidate;",
+            "A = [VHGNDcamz]; ? A != [VHGNDvccamz] -> VHGND terrain cache invalidate;",
+            "A = [VHGNDalpha]; ? A != [VHGNDvcalpha] -> VHGND terrain cache invalidate;",
+            "A = [VHGNDbeta]; ? A != [VHGNDvcbeta] -> VHGND terrain cache invalidate;",
+            '"VHGND terrain cache invalidate"', "[VHGNDvcframehit] = 0;",
+            "[VHGNDvcbeta] = [VHGNDbeta]; [VHGNDvccacheok] = 1;",
+            "[VHGNDvcgen]+;",
+        ))
+        and terrain_cache.index("[VHGNDvcframehit] = 1;")
+        < terrain_cache.index('"VHGND terrain cache invalidate"')
+        < terrain_cache.index("[VHGNDvcframehit] = 0;")
+        and all(token in terrain_facing for token in (
+            "A = [VHGNDmirror]; ? A != 0 -> VHGND terrain facing generic;",
+            "A = [VHGNDh1]; A + A; A + [VHGNDvctri]; [VHGNDnormindex] = A;",
+            "A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain facing cache miss;",
+            "A = VHGNDvcfacing; A + [VHGNDnormindex]; A = [A]; [FCret] = A; end;",
+            '"VHGND terrain facing cache miss"',
+            "=> PG facing dot; -> VHGND terrain facing cache store;",
+            '"VHGND terrain facing cache store"',
+            "A = VHGNDvcfacing; A + [VHGNDnormindex]; C = [FCret]; [A] = C;",
+            '"VHGND terrain facing generic"', "=> VHGND terrain remaining input; => PG facing; end;",
+        )),
+        "bit-identical camera frames reuse only the exact preceding terrain-facing booleans",
     )
     check(
         "if (depth > 40) return;" in original1

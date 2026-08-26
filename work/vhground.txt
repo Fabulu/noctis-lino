@@ -39,7 +39,8 @@
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0; VHGNDinputready = 0;
 	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
-	VHGNDvccacheok = 0; VHGNDvccamx = 0; VHGNDvccamy = 0; VHGNDvccamz = 0;
+	VHGNDvccacheok = 0; VHGNDvcframehit = 0;
+	VHGNDvccamx = 0; VHGNDvccamy = 0; VHGNDvccamz = 0;
 	VHGNDvcalpha = 0; VHGNDvcbeta = 0;
 	VHGNDmpbase = 0; VHGNDmpi = 0;
 	VHGNDnormgen = 0; VHGNDnormindex = 0;
@@ -290,6 +291,8 @@
 	VHGNDvcry0 = 40000; VHGNDvcry1 = 40000;
 	VHGNDvcrz0 = 40000; VHGNDvcrz1 = 40000;
 	VHGNDvcvisible = 40000; VHGNDvcpx = 40000; VHGNDvcpy = 40000;
+	( Exact ordinary-terrain facing result for the current camera generation. )
+	VHGNDvcfacing = 80000;
 	( Two static triangle normals per cell, cached as the binary64 pairs that
 	  exactly widen their original binary32 stores. )
 	VHGNDnormstamp = 80000;
@@ -2628,6 +2631,7 @@
 	  bit-identical.  Simulation changes waves, fauna and weather, but none of
 	  those mutate p_surfacemap; water reflections already take the generic
 	  mirror path and never consume this ordinary-terrain cache. )
+	[VHGNDvcframehit] = 1;
 	A = [VHGNDvccacheok]; ? A = 0 -> VHGND terrain cache invalidate;
 	A = [VHGNDcamx]; ? A != [VHGNDvccamx] -> VHGND terrain cache invalidate;
 	A = [VHGNDcamy]; ? A != [VHGNDvccamy] -> VHGND terrain cache invalidate;
@@ -2636,6 +2640,7 @@
 	A = [VHGNDbeta]; ? A != [VHGNDvcbeta] -> VHGND terrain cache invalidate;
 	end;
     "VHGND terrain cache invalidate"
+	[VHGNDvcframehit] = 0;
 	[VHGNDvccamx] = [VHGNDcamx]; [VHGNDvccamy] = [VHGNDcamy];
 	[VHGNDvccamz] = [VHGNDcamz]; [VHGNDvcalpha] = [VHGNDalpha];
 	[VHGNDvcbeta] = [VHGNDbeta]; [VHGNDvccacheok] = 1;
@@ -2803,9 +2808,13 @@
 "VHGND terrain facing"
 	( Unit terrain geometry is immutable until the next surface generation.
 	  Cache the original routine's narrowed cross product, then retain its exact
-	  camera-relative dot schedule each frame.  Reflections use generic facing. )
+	  camera-relative dot schedule on camera misses.  Bit-identical camera hits
+	  reuse that dot's exact boolean result.  Reflections use generic facing. )
 	A = [VHGNDmirror]; ? A != 0 -> VHGND terrain facing generic;
 	A = [VHGNDh1]; A + A; A + [VHGNDvctri]; [VHGNDnormindex] = A;
+	A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain facing cache miss;
+	A = VHGNDvcfacing; A + [VHGNDnormindex]; A = [A]; [FCret] = A; end;
+    "VHGND terrain facing cache miss"
 	A = VHGNDnormstamp; A + [VHGNDnormindex]; C = [A];
 	A = [VHGNDnormgen]; ? A != C -> VHGND terrain facing build;
 	A = VHGNDnormx0; A + [VHGNDnormindex]; C = [A]; [fw plus 470] = C;
@@ -2814,7 +2823,7 @@
 	A = VHGNDnormy1; A + [VHGNDnormindex]; C = [A]; [fw plus 473] = C;
 	A = VHGNDnormz0; A + [VHGNDnormindex]; C = [A]; [fw plus 474] = C;
 	A = VHGNDnormz1; A + [VHGNDnormindex]; C = [A]; [fw plus 475] = C;
-	=> PG facing dot; end;
+	=> PG facing dot; -> VHGND terrain facing cache store;
     "VHGND terrain facing build"
 	=> VHGND terrain remaining input; => PG facing;
 	A = VHGNDnormx0; A + [VHGNDnormindex]; C = [fw plus 470]; [A] = C;
@@ -2824,6 +2833,8 @@
 	A = VHGNDnormz0; A + [VHGNDnormindex]; C = [fw plus 474]; [A] = C;
 	A = VHGNDnormz1; A + [VHGNDnormindex]; C = [fw plus 475]; [A] = C;
 	A = VHGNDnormstamp; A + [VHGNDnormindex]; C = [VHGNDnormgen]; [A] = C;
+    "VHGND terrain facing cache store"
+	A = VHGNDvcfacing; A + [VHGNDnormindex]; C = [FCret]; [A] = C;
 	end;
     "VHGND terrain facing generic"
 	=> VHGND terrain remaining input; => PG facing; end;
