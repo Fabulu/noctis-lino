@@ -389,6 +389,19 @@
 	  endpoint avoids a hot read-modify-write of SPcl on every pixel. )
 	A = [SPdi]; D = A; D + [SPcl]; [SPdi] = D;
 	B = [SPdx]; C = [SPax];
+	( Odd blocks enter the checked half first; even blocks emit one unchecked
+	  pixel first.  Alternating halves preserve the exact 1..16 pixel order
+	  while testing the prepublished endpoint only once per two pixels. )
+	D = [SPcl]; D & 1; ? D != 0 -> PG px terrain;
+    "PG px terrain unchecked"
+	A + 1;
+	D = B; D & 65280;
+	E = C; E > 8; D | E;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
+	E + [SPtinta]; E & 255;
+	C + [SPbp]; C & 65535;
+	D = A; D + 3 plus SADPT plus nw; [D] = E;
+	B + [SPsi]; B & 65535;
     "PG px terrain"
 	( Publish the remaining diagnostic scratch only for the final pixel in each
 	  block.  Earlier iterations consume their index, texel and colour directly. )
@@ -400,7 +413,7 @@
 	C + [SPbp]; C & 65535;
 	D = A; D + 3 plus SADPT plus nw; [D] = E;
 	B + [SPsi]; B & 65535;
-	-> PG px terrain;
+	-> PG px terrain unchecked;
     "PG px terrain final"
 	D = B; D & 65280;
 	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
@@ -559,6 +572,22 @@
 	  hot read-modify-write of SPcl. )
 	A = [SPdi]; D = [SPcl]; D + D; D + A; D & 65535; [SPdi] = D;
 	B = [SPdx]; C = [SPax];
+	( Alternate an unchecked and checked pair exactly as in the ordinary terrain
+	  loop.  Counts remain 1..16 pairs, and every pair still advances modulo
+	  65536 before writing its two original adjacent destinations. )
+	D = [SPcl]; D & 1; ? D != 0 -> PG cpx terrain;
+    "PG cpx terrain unchecked"
+	A + 2; A & 65535;
+	D = B; D & 65280;
+	E = C; E > 8; D | E;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
+	E + [SPtinta]; E & 255;
+	C + [SPbp]; C & 65535;
+	D = A; D + 2; D & 65535;
+	D + SADPT plus nw; [D] = E;
+	D = A; D + 3; D & 65535;
+	D + SADPT plus nw; [D] = E;
+	B + [SPsi]; B & 65535;
     "PG cpx terrain"
 	( Publish the remaining diagnostic scratch only for the final pair.  Both
 	  output stores remain in every iteration and in their original order. )
@@ -573,7 +602,7 @@
 	D = A; D + 3; D & 65535;
 	D + SADPT plus nw; [D] = E;
 	B + [SPsi]; B & 65535;
-	-> PG cpx terrain;
+	-> PG cpx terrain unchecked;
     "PG cpx terrain final"
 	D = B; D & 65280;
 	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;

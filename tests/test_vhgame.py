@@ -1089,6 +1089,21 @@ def main() -> int:
         "\tC = [SPu]; A = C; A & 65535; [SPax] = A;\n"
         "\tD = [SPun]; A = D; A - C; A >> 4; A & 65535; [SPbp] = A; [SPu] = D;"
     )
+    terrain_unroll_schedule_exact = True
+    for count in range(1, 17):
+        position = 0
+        checked = bool(count & 1)
+        visited: list[int] = []
+        while position < count:
+            if not checked:
+                position += 1
+                visited.append(position)
+            position += 1
+            visited.append(position)
+            if position == count:
+                break
+            checked = False
+        terrain_unroll_schedule_exact &= visited == list(range(1, count + 1))
     check(
         "A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;" in terrain_pixel
         and "A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;" in terrain_cpixel
@@ -1104,6 +1119,13 @@ def main() -> int:
         and "A = [SPdi]; D = [SPcl]; D + D; D + A; D & 65535; [SPdi] = D;" in terrain_cpixel
         and "B = [SPdx]; C = [SPax];" in terrain_pixel
         and "B = [SPdx]; C = [SPax];" in terrain_cpixel
+        and terrain_unroll_schedule_exact
+        and "D = [SPcl]; D & 1; ? D != 0 -> PG px terrain;" in terrain_pixel
+        and '"PG px terrain unchecked"' in terrain_pixel
+        and "-> PG px terrain unchecked;" in terrain_pixel
+        and "D = [SPcl]; D & 1; ? D != 0 -> PG cpx terrain;" in terrain_cpixel
+        and '"PG cpx terrain unchecked"' in terrain_cpixel
+        and "-> PG cpx terrain unchecked;" in terrain_cpixel
         and "A + 1; ? A = [SPdi] -> PG px terrain final;" in terrain_pixel
         and "A + 2; A & 65535; ? A = [SPdi] -> PG cpx terrain final;" in terrain_cpixel
         and terrain_pixel.count("[SPcl]-;") == 0
@@ -1118,13 +1140,13 @@ def main() -> int:
         and "E = C; E > 8; D | E;" in terrain_cpixel
         and terrain_pixel.count(
             "D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;"
-        ) == 2
+        ) == 3
         and terrain_cpixel.count(
             "D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;"
-        ) == 2
+        ) == 3
         and "D = A; D + 3 plus SADPT plus nw; [D] = E;" in terrain_pixel
         and terrain_pixel.count("D + SADPT plus nw; [D] = E;") == 1
-        and terrain_cpixel.count("D + SADPT plus nw; [D] = E;") == 4
+        and terrain_cpixel.count("D + SADPT plus nw; [D] = E;") == 6
         and "D + RPBG; D + nw;" not in terrain_pixel
         and "D + RPBG; D + nw;" not in terrain_cpixel
         and "D + SADPT; D + nw;" not in terrain_pixel
@@ -1165,8 +1187,8 @@ def main() -> int:
         and maximum_terrain_destination < 65536
         and "A + 1; A & 65535;" not in terrain_pixel
         and "D = A; D + 3; D & 65535;" not in terrain_pixel
-        and terrain_pixel.count("C + [SPbp]; C & 65535;") == 2
-        and terrain_pixel.count("B + [SPsi]; B & 65535;") == 2,
+        and terrain_pixel.count("C + [SPbp]; C & 65535;") == 3
+        and terrain_pixel.count("B + [SPsi]; B & 65535;") == 3,
         "clipped ordinary terrain drops only provably inactive destination masks",
     )
     depth = section(ground, '"VHGND tile depth x row"', '"VHGND tile shade"')
