@@ -1081,11 +1081,27 @@ def main() -> int:
     )
     terrain_pixel = section(pgtex, '"PG px terrain begin"', '"PG px internal"')
     terrain_cpixel = section(pgtex, '"PG cpx terrain begin"', '"PG cpx internal"')
+    terrain_row_control = section(pgtex, '"PG row"', '"PG px terrain begin"')
+    terrain_crow_control = section(pgtex, '"PG crow"', '"PG cpx terrain begin"')
     check(
         "A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;" in terrain_pixel
         and "A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;" in terrain_cpixel
-        and "A = [SPdi]; B = [SPdx]; C = [SPax];" in terrain_pixel
-        and "A = [SPdi]; B = [SPdx]; C = [SPax];" in terrain_cpixel
+        and "[SPcl] = 16;" in terrain_row_control
+        and "A = [SPcl]; ? A = 0 -> PG row;" in terrain_row_control
+        and "[SPcl] = 32;" in terrain_crow_control
+        and "A > 1; [SPcl] = A;" in terrain_crow_control
+        and "A = [SPdi]; D = A; D + [SPcl]; [SPdi] = D;" in terrain_pixel
+        and "A = [SPdi]; D = [SPcl]; D + D; D + A; D & 65535; [SPdi] = D;" in terrain_cpixel
+        and "B = [SPdx]; C = [SPax];" in terrain_pixel
+        and "B = [SPdx]; C = [SPax];" in terrain_cpixel
+        and "A + 1; ? A = [SPdi] -> PG px terrain final;" in terrain_pixel
+        and "A + 2; A & 65535; ? A = [SPdi] -> PG cpx terrain final;" in terrain_cpixel
+        and terrain_pixel.count("[SPcl]-;") == 0
+        and terrain_cpixel.count("[SPcl]-;") == 0
+        and terrain_pixel.count("[SPcl] = 0;") == 1
+        and terrain_cpixel.count("[SPcl] = 0;") == 1
+        and "[SPdi] = A;" not in terrain_pixel
+        and "[SPdi] = A;" not in terrain_cpixel
         and "D = B; D & 65280;" in terrain_pixel
         and "D = B; D & 65280;" in terrain_cpixel
         and "E = C; E > 8; D | E;" in terrain_pixel
@@ -1113,7 +1129,7 @@ def main() -> int:
         and "=> PG scrtinta;" not in terrain_cpixel
         and "[CSpix]+;" not in terrain_pixel
         and "[CSpix]+;" not in terrain_cpixel,
-        "faithful terrain pixels fold exact page bases while retaining tinta, UV, and destination state",
+        "faithful terrain blocks use exact endpoints and folded bases while retaining pixel state",
     )
     terrain_edges = section(pgtex, '"PG ol init"', "( S5 - the span engine")
     terrain_clip = section(pgproj, '"PG pm projected"', '"PG pm basis"')

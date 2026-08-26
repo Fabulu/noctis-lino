@@ -385,13 +385,15 @@
 	  and its 16-bit masks are exact no-ops.  Compiler-resolved texture and
 	  framebuffer bases stay single constructor operands.  Texture lookup, tinta
 	  addition, UV widths, pixel order and final scratch side effects remain unchanged. )
-	A = [SPdi]; B = [SPdx]; C = [SPax];
+	( Prepublish the clip-bounded final destination as the block endpoint.  No call
+	  can observe SPdi inside this specialized loop, and comparing against the
+	  endpoint avoids a hot read-modify-write of SPcl on every pixel. )
+	A = [SPdi]; D = A; D + [SPcl]; [SPdi] = D;
+	B = [SPdx]; C = [SPax];
     "PG px terrain"
-	( Publish diagnostic scratch only for the final pixel in each block.  Earlier
-	  iterations consume their index, texel, colour and destination directly;
-	  no call can observe the otherwise dead intermediate stores. )
-	? [SPcl] = 1 -> PG px terrain final;
-	A + 1;
+	( Publish the remaining diagnostic scratch only for the final pixel in each
+	  block.  Earlier iterations consume their index, texel and colour directly. )
+	A + 1; ? A = [SPdi] -> PG px terrain final;
 	D = B; D & 65280;
 	E = C; E > 8; D | E;
 	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
@@ -399,10 +401,8 @@
 	C + [SPbp]; C & 65535;
 	D = A; D + 3 plus SADPT plus nw; [D] = E;
 	B + [SPsi]; B & 65535;
-	[SPcl]-;
 	-> PG px terrain;
     "PG px terrain final"
-	A + 1;
 	D = B; D & 65280;
 	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
 	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255; [PGtexv] = E;
@@ -411,8 +411,7 @@
 	D = A; D + 3; [PGdi] = D; [PGval] = E;
 	D + SADPT plus nw; [D] = E;
 	B + [SPsi]; B & 65535;
-	[SPcl]-;
-	[SPdi] = A; [SPdx] = B; [SPax] = C;
+	[SPcl] = 0; [SPdx] = B; [SPax] = C;
 	-> PG row;
 
     "PG px internal"
@@ -557,13 +556,15 @@
 	( The culling loop writes two adjacent pixels per iteration. )
 	A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;
 	( Retain the pair destination and UV accumulators across the complete block,
-	  while preserving the source's duplicated stores and final scratch state. )
-	A = [SPdi]; B = [SPdx]; C = [SPax];
+	  while preserving the source's duplicated stores and final scratch state.
+	  Prepublish the modulo-16-bit pair endpoint in SPdi so each pair avoids a
+	  hot read-modify-write of SPcl. )
+	A = [SPdi]; D = [SPcl]; D + D; D + A; D & 65535; [SPdi] = D;
+	B = [SPdx]; C = [SPax];
     "PG cpx terrain"
-	( Publish diagnostic scratch only for the final pair in each block.  Both
+	( Publish the remaining diagnostic scratch only for the final pair.  Both
 	  output stores remain in every iteration and in their original order. )
-	? [SPcl] = 1 -> PG cpx terrain final;
-	A + 2; A & 65535;
+	A + 2; A & 65535; ? A = [SPdi] -> PG cpx terrain final;
 	D = B; D & 65280;
 	E = C; E > 8; D | E;
 	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255;
@@ -574,10 +575,8 @@
 	D = A; D + 3; D & 65535;
 	D + SADPT plus nw; [D] = E;
 	B + [SPsi]; B & 65535;
-	[SPcl]-;
 	-> PG cpx terrain;
     "PG cpx terrain final"
-	A + 2; A & 65535;
 	D = B; D & 65280;
 	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
 	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255; [PGtexv] = E;
@@ -588,8 +587,7 @@
 	D = A; D + 3; D & 65535; [PGdi] = D;
 	D + SADPT plus nw; [D] = E;
 	B + [SPsi]; B & 65535;
-	[SPcl]-;
-	[SPdi] = A; [SPdx] = B; [SPax] = C;
+	[SPcl] = 0; [SPdx] = B; [SPax] = C;
 	-> PG crow tail;
 
     "PG cpx internal"
