@@ -1496,8 +1496,36 @@ def main() -> int:
                        '"VHGND object view setup"')
     terrain_cache = section(ground, '"VHGND terrain cache frame"',
                             '"VHGND terrain vertex index"')
+    terrain_mapped = section(ground, '"VHGND terrain mapped"',
+                             '"VHGND terrain facing"')
+    terrain_pair = section(
+        terrain_mapped,
+        '"VHGND terrain mapped cache second select"',
+        '"VHGND terrain mapped cache second"',
+    )
     terrain_facing = section(ground, '"VHGND terrain facing"',
                              '"VHGND secondary sun setup"')
+    terrain_pair_indices_exact = all(
+        0 <= index < 40000
+        for x in (0, 1, 99, 198)
+        for z in (0, 1, 99, 198)
+        for h1 in (z * 200 + x,)
+        for index in (h1, h1 + 1, h1 + 200, h1 + 201)
+    )
+    terrain_pair_layout_exact = all(
+        (first[1], vertex_words(h1 + 201), first[2])
+        == tuple(vertex_words(index) for index in (h1 + 1, h1 + 201, h1 + 200))
+        for h1 in (0, 1, 198, 19900, 39798)
+        for vertex_words in (
+            lambda index: tuple(
+                (index * 0x9E3779B1 + word * 0x7F4A7C15) & 0xFFFFFFFF
+                for word in range(8)
+            ),
+        )
+        for first in ((
+            vertex_words(h1), vertex_words(h1 + 1), vertex_words(h1 + 200)
+        ),)
+    )
     faithful_cases = tuple(
         (cam_x, cam_z, faithful_tiles(cam_x, cam_z, direction, backspan))
         for cam_x, cam_z in ((0, 0), (0, 198), (100, 100), (198, 0), (198, 198))
@@ -1570,6 +1598,39 @@ def main() -> int:
         and "[SPcull] = 1" in tile
         and "A > [VHGNDmaxdepth]" in tile,
         "surface renderer hoists exact row bounds and one depth square while retaining painter order and depth-64 gates",
+    )
+    check(
+        "VHGNDvcpairready = 0;" in ground
+        and "[VHGNDtilepolys] = 0; [VHGNDvcpairready] = 0; => VHGND terrain common input;" in tile
+        and "A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped cache second select;" in terrain_mapped
+        and "A = [VHGNDvcpairready]; ? A = 0 -> VHGND terrain mapped cache second;" in terrain_pair
+        and terrain_pair.count("VHGNDvcstamp") == 1
+        and terrain_pair.count("VHGNDvcvisible") == 1
+        and all(token in terrain_pair for token in (
+            "[fw plus 504] = [fw plus 506]; [fw plus 505] = [fw plus 507];",
+            "[fw plus 512] = [fw plus 514]; [fw plus 513] = [fw plus 515];",
+            "[fw plus 520] = [fw plus 522]; [fw plus 521] = [fw plus 523];",
+            "[mp] = [mp plus 2]; [mp plus 1] = [mp plus 3];",
+            "A = VHGNDvcrx0; A + D; C = [A]; [fw plus 506] = C;",
+            "A = VHGNDvcrx1; A + D; C = [A]; [fw plus 507] = C;",
+            "A = VHGNDvcry0; A + D; C = [A]; [fw plus 514] = C;",
+            "A = VHGNDvcry1; A + D; C = [A]; [fw plus 515] = C;",
+            "A = VHGNDvcrz0; A + D; C = [A]; [fw plus 522] = C;",
+            "A = VHGNDvcrz1; A + D; C = [A]; [fw plus 523] = C;",
+            "A = VHGNDvcpx; A + D; C = [A]; [mp plus 2] = C;",
+            "A = VHGNDvcpy; A + D; C = [A]; [mp plus 3] = C;",
+            "[rwf] = 1; [rwf plus 1] = 1; [rwf plus 2] = 1;",
+            "[VHGNDvi] = 3; A = [VHGNDh1]; A + 200; [VHGNDvcindex] = A;",
+            "-> VHGND terrain mapped bounds;",
+        ))
+        and "=> " not in terrain_pair
+        and not any(operator in terrain_pair for operator in (
+            "++", "--", "**", "//", "+:", "-:", "*:", "/:", "=:", ":=", "~:"
+        ))
+        and "A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped bounds;\n\t[VHGNDvcpairready] = 1;" in terrain_mapped
+        and terrain_pair_indices_exact
+        and terrain_pair_layout_exact,
+        "paired terrain triangles hand exact shared vertex slots to the second mapper",
     )
     check(
         "VHGNDvcfacing = 80000;" in ground

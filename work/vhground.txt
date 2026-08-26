@@ -38,8 +38,8 @@
 	VHGNDlodstep = 1; VHGNDlodrow = 200; VHGNDlodradius = 4; VHGNDbackspan = 1;
 	VHGNDmindepth = 0; VHGNDmaxdepth = 64;
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0; VHGNDinputready = 0;
-	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcfront = 0;
-	VHGNDvccacheok = 0; VHGNDvcframehit = 0;
+	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcpairready = 0;
+	VHGNDvcfront = 0; VHGNDvccacheok = 0; VHGNDvcframehit = 0;
 	VHGNDvccamx = 0; VHGNDvccamy = 0; VHGNDvccamz = 0;
 	VHGNDvcalpha = 0; VHGNDvcbeta = 0;
 	VHGNDmpbase = 0; VHGNDmpi = 0;
@@ -2758,11 +2758,37 @@
 	  triangle.  Check the three exact cache slots directly before entering
 	  the general ensure/front loops; this removes six tiny Lino calls from
 	  the overwhelmingly common cache-hit path without changing a transform. )
-	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped cache second;
+	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped cache second select;
 	A = VHGNDvcstamp; A + [VHGNDh1]; C = [A];
 	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
 	A = VHGNDvcvisible; A + [VHGNDh1]; A = [A]; ? A = 0 -> VHGND terrain mapped generic;
 	A = [VHGNDh1]; A + 1; D = A; -> VHGND terrain mapped cache middle;
+    "VHGND terrain mapped cache second select"
+	A = [VHGNDvcpairready]; ? A = 0 -> VHGND terrain mapped cache second;
+	( The successful first unit triangle retained h1+1 in slot 1 and h1+200
+	  in slot 2.  A current visible h1+201 completes the second triangle, so
+	  hand those exact integer and binary64 bit patterns forward instead of
+	  reloading all three vertices through the indexed cache loop. )
+	D = [VHGNDh1]; D + 201;
+	A = VHGNDvcstamp; A + D; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
+	A = VHGNDvcvisible; A + D; A = [A];
+	? A = 0 -> VHGND terrain mapped generic;
+	[fw plus 504] = [fw plus 506]; [fw plus 505] = [fw plus 507];
+	[fw plus 512] = [fw plus 514]; [fw plus 513] = [fw plus 515];
+	[fw plus 520] = [fw plus 522]; [fw plus 521] = [fw plus 523];
+	[mp] = [mp plus 2]; [mp plus 1] = [mp plus 3];
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 506] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 507] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 514] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 515] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 522] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 523] = C;
+	A = VHGNDvcpx; A + D; C = [A]; [mp plus 2] = C;
+	A = VHGNDvcpy; A + D; C = [A]; [mp plus 3] = C;
+	[rwf] = 1; [rwf plus 1] = 1; [rwf plus 2] = 1;
+	[VHGNDvi] = 3; A = [VHGNDh1]; A + 200; [VHGNDvcindex] = A;
+	-> VHGND terrain mapped bounds;
     "VHGND terrain mapped cache second"
 	A = [VHGNDh1]; A + 1; D = A;
 	A = VHGNDvcstamp; A + D; C = [A];
@@ -2799,7 +2825,10 @@
     "VHGND terrain mapped load"
 	=> VHGND terrain vertex load;
 	[VHGNDvi]+; A = [VHGNDvi]; ? A < 3 -> VHGND terrain mapped load;
+	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped bounds;
+	[VHGNDvcpairready] = 1;
 
+    "VHGND terrain mapped bounds"
 	( The specialized polymap entry consumes the three real rotated/projected
 	  vertices directly.  PG edges closes vertex 2 back to vertex 0 itself. )
 	=> VHGND terrain cached bounds;
@@ -5502,7 +5531,7 @@
 	A = [VHGNDmirror]; ? A = 0 -> VHGND tile mirror cull ready; [SPcull] = 0;
     "VHGND tile mirror cull ready"
 
-	[VHGNDtilepolys] = 0; => VHGND terrain common input;
+	[VHGNDtilepolys] = 0; [VHGNDvcpairready] = 0; => VHGND terrain common input;
 	[VHGNDinputready] = 0; [VHGNDvctri] = 0; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile first mirror facing;
 	A = [FCret]; ? A = 0 -> VHGND tile first done; -> VHGND tile first visible;
