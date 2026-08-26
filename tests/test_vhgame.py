@@ -200,6 +200,18 @@ def hoisted_greenmush_destination(gc_x: int, gc_y: int, random_x: int,
     return signed32(origin + offset)
 
 
+def terrain_depth_root(depth_n: int, high: int, steps: int) -> int:
+    """Model VHGND tile depth's fixed-iteration integer square root."""
+    low = 0
+    for _ in range(steps):
+        midpoint = (low + high) >> 1
+        if midpoint * midpoint <= depth_n:
+            low = midpoint
+        else:
+            high = midpoint
+    return low
+
+
 def par_foldmul(left: int, right: int) -> int:
     product = signed32(left) * signed32(right)
     return signed32(signed32(product) + signed32(product >> 32))
@@ -1084,6 +1096,25 @@ def main() -> int:
     depth = section(ground, '"VHGND tile depth"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
     vload = ground[ground.index('"VHGND vload"'):]
+    maximum_tile_root = 0
+    bounded_roots_exact = True
+    for lod_step in (1, 8, 16):
+        for tile_dx in range(-90, 91):
+            for tile_dz in range(-90 + abs(tile_dx), 91 - abs(tile_dx)):
+                for fraction_x in (0, 16383):
+                    for fraction_z in (0, 16383):
+                        dx = (tile_dx << 14) + (lod_step << 13) - fraction_x
+                        dz = (tile_dz << 14) + (lod_step << 13) - fraction_z
+                        squared = dx * dx + dz * dz
+                        depth_n = squared >> 28
+                        expected = math.isqrt(squared) >> 14
+                        actual = terrain_depth_root(depth_n, 128, 7)
+                        maximum_tile_root = max(maximum_tile_root, expected)
+                        bounded_roots_exact &= actual == expected
+    check(
+        bounded_roots_exact and maximum_tile_root < 128,
+        "seven-bit terrain roots cover every accepted traversal offset exactly",
+    )
     check(
         "A = [VHGNDh1]; A + [VHGNDseed]; => SU fast srand;" in shade
         and "[SUfmask] = 7; => VHGND render random;" in shade
@@ -1091,7 +1122,7 @@ def main() -> int:
         and "=> VHGND tile depth;" in tile
         and "A = [VHGNDrawdepth]; ? A > VHGNDFAR -> VHGND tile done;" in tile
         and "A = [VHGNDdlo]; B = [VHGNDslo]; A + B; C = A; [VHGNDdlo] = A;" in depth
-        and "[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 512; [VHGNDdepthstep] = 9;" in depth
+        and "[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 128; [VHGNDdepthstep] = 7;" in depth
         and all(call not in depth for call in (
             "=> IntToF;", "=> FMul;", "=> FAdd;", "=> FSqrt;", "=> FToIntChop;"
         ))

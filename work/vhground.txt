@@ -6659,8 +6659,9 @@
 	               (pos_z-tile_centre_z)^2), then depth=(hpdep>>14)-1.
 	  Both differences are exact integers.  For a nonnegative integer S,
 	  floor(sqrt(S))>>14 equals floor(sqrt(floor(S/2^28))).  Form S with
-	  Lino's portable full-width multiply, then find that final nine-bit root
-	  directly instead of routing every visited tile through scalar FP sqrt. )
+	  Lino's portable full-width multiply, then find the final seven-bit root
+	  directly.  Every caller's accepted Manhattan span is at most 106 after
+	  its coarse-cell centre offset, so the exact root is strictly below 128. )
 	A = [VHGNDx]; A < 14; C = [VHGNDlodstep]; C < 13; A + C;
 	C = [VHGNDcamx]; C - A; [VHGNDdx] = C;
 	A = C; B = A; A *% B; [VHGNDdlo] = A; [VHGNDdhi] = B;
@@ -6673,7 +6674,7 @@
 	A = [VHGNDdhi]; A + [VHGNDshi]; [VHGNDdhi] = A;
 	A = [VHGNDdlo]; A > 28; C = A;
 	A = [VHGNDdhi]; A < 4; A | C; [VHGNDdepthn] = A;
-	[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 512; [VHGNDdepthstep] = 9;
+	[VHGNDdepthlo] = 0; [VHGNDdepthhi] = 128; [VHGNDdepthstep] = 7;
     "VHGND tile depth root"
 	A = [VHGNDdepthlo]; A + [VHGNDdepthhi]; A > 1; [VHGNDdepthmid] = A;
 	A '* A; [VHGNDdepthsq] = A;
