@@ -348,9 +348,9 @@
 	VHGNDtreecachestarts = 120000; VHGNDtreecachecounts = 120000;
 	VHGNDtreecache0 = 262144; VHGNDtreecache1 = 262144;
 	( Four block-start floor roots per word cover 16,384 depth values in 512 bytes.
-	  From depthn 64, the two smallest consecutive square gaps total 36, so no
-	  32-value block can require more than two exact next-square corrections. )
-	VHGNDhalfdepthroots = 128;
+	  A second half-KiB table retains every root square so the hot correction can
+	  derive both next squares with their exact consecutive odd increments. )
+	VHGNDhalfdepthroots = 128; VHGNDdepthsquares = 128;
 	VHGNDsqc = 32;
 	VHGNDepoctext = 96;
 	( Depth-first build_fractal_tree stack.  Source giant trees need levels 0..4. )
@@ -7310,17 +7310,19 @@
 	end;
 
 "VHGND terrain half depth roots build"
-	( Build one floor root at each 32-value block start.  The monotone root
-	  advances only 127 times while four byte roots accumulate into each word. )
+	( Build one floor root at each 32-value block start and retain q squared as
+	  each monotone root advances.  Four byte roots accumulate into each word. )
 	A = [VHGNDdepthrootready]; ? A != 0 -> VHGND terrain half depth roots build done;
 	[VHGNDdepthrootblock] = 0; [VHGNDdepthrootq] = 0;
 	[VHGNDdepthrootnext] = 1; [VHGNDdepthrootshift] = 0;
 	[VHGNDdepthrootword] = 0; [VHGNDdepthrootp] = 0;
+	[VHGNDdepthsquares] = 0;
     "VHGND terrain half depth root build one"
 	A = [VHGNDdepthrootblock]; A < 5;
 	? A < [VHGNDdepthrootnext] -> VHGND terrain half depth root pack;
-	[VHGNDdepthrootq]+; C = [VHGNDdepthrootq]; C + 1; C '* C;
-	[VHGNDdepthrootnext] = C;
+	[VHGNDdepthrootq]+;
+	D = VHGNDdepthsquares; D + [VHGNDdepthrootq]; A = [VHGNDdepthrootnext]; [D] = A;
+	C = [VHGNDdepthrootq]; C + 1; C '* C; [VHGNDdepthrootnext] = C;
 	-> VHGND terrain half depth root build one;
     "VHGND terrain half depth root pack"
 	A = [VHGNDdepthrootq]; C = [VHGNDdepthrootshift]; A < C;
@@ -7378,19 +7380,21 @@
 	C > 28; A = B; A < 4; A | C; [VHGNDdepthn] = A;
 	( Load the root at floor(depthn/32)*32 from one packed byte.  Above the
 	  retained low-range fallback, no more than the next two squares can occur
-	  inside that block.  Rebuild the fixed root's exact terminal scratch. )
+	  inside that block.  Load q squared once and derive both exact thresholds
+	  through the consecutive odd increments.  Rebuild the terminal scratch. )
 	A = [VHGNDdepthrootready]; ? A = 0 -> VHGND tile depth root setup;
 	A = [VHGNDdepthn]; ? A < 64 -> VHGND tile depth root setup;
 	? A '>= 16384 -> VHGND tile depth root setup;
 	C = A; A > 7; A + VHGNDhalfdepthroots; D = [A];
 	A = C; A > 5; A & 3; A < 3; C = A; A = D; A > C; A & 255;
-	[VHGNDdepthlo] = A; C = A; C + 1; C '* C;
-	A = [VHGNDdepthn]; ? A < C -> VHGND tile depth half terminal;
+	[VHGNDdepthlo] = A;
+	C = VHGNDdepthsquares; C + A; C = [C]; A < 1; A + 1; C + A;
+	A = [VHGNDdepthn]; ? A < C -> VHGND tile depth square terminal;
 	[VHGNDdepthlo]+;
-	A = [VHGNDdepthlo]; C = A; C + 1; C '* C;
-	A = [VHGNDdepthn]; ? A < C -> VHGND tile depth half terminal;
+	A = [VHGNDdepthlo]; A < 1; A + 1; C + A;
+	A = [VHGNDdepthn]; ? A < C -> VHGND tile depth square terminal;
 	[VHGNDdepthlo]+;
-    "VHGND tile depth half terminal"
+    "VHGND tile depth square terminal"
 	A = [VHGNDdepthlo]; C = A; C + 1; [VHGNDdepthhi] = C;
 	A | 1; [VHGNDdepthmid] = A; [VHGNDdepthstep] = 0;
 	-> VHGND tile depth root result;
