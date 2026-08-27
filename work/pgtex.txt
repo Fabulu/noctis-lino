@@ -52,6 +52,8 @@
 	SPHIGH	= 10000;
 
 	UVMAX	= 4096;			( pinned (u,v) samples per case )
+	PGTRCAP = 2000000;		( exact terrain replay stream, in 32-bit words )
+	PGTRSTATE = 118;		( terminal raster-state words per terrain triangle )
 
 "variables"
 
@@ -103,13 +105,282 @@
 	SPmapfast = 0;			( exact fixed-slot setup for other mapped polygons )
 	SPpixfast = 0;			( direct TEX5 pixel loop for plain/transparent modes )
 	SPtrifast = 0;			( exact fixed three-vertex basis specialization )
+	PGtractive = 0;			( append exact terrain stores for one triangle )
+	PGtrused = 0;			( replay-stream words used by this camera generation )
+	PGtrstart = 0;			( current/replayed record's first stream word )
+	PGtrcount = 0;			( exact ordered page stores in the current record )
+	PGtrp = 0; PGtrn = 0;
+	PGtrval = 0;
 "workspace"
 
 	ipart	= 200;
 	fpart	= 200;
 	uvlist	= 8192;			( pinned (u,v) samples, interleaved )
+	PGtrcommands = 2000000;		( absolute page pointer/value pairs plus terminal state )
 
 "programme"
+
+( A positive ordinary terrain triangle can retain its exact ordered page stores
+  and the terminal scratch mutated by edges, vectors and trace.  The stream keeps
+  absolute in-process page pointers and values as adjacent words: replay is one
+  sequential read pair and one direct byte store per original store. )
+
+"PG terrain replay"
+	[PGtrp] = [PGtrstart]; [PGtrn] = [PGtrcount];
+    "PG terrain replay write"
+	A = PGtrcommands; A + [PGtrp]; D = [A]; C = [A plus 1]; [D] = C;
+	A = [PGtrp]; A + 2; [PGtrp] = A;
+	[PGtrn]-; A = [PGtrn]; ? A != 0 -> PG terrain replay write;
+	A = [PGtrcount]; A - 2; C = [CSpix]; A + C; [CSpix] = A;
+	=> PG terrain state load;
+	end;
+
+"PG terrain state save"
+	( ipart/fpart are the only omitted raster workspaces: every later polygon
+	  rebuilds its readable interval before use, and no caller consumes them. )
+	D = PGtrcommands; D + [PGtrused];
+	[D] = [fw];
+	[D plus 1] = [fw plus 1];
+	[D plus 2] = [fw plus 2];
+	[D plus 3] = [fw plus 3];
+	[D plus 4] = [fw plus 4];
+	[D plus 5] = [fw plus 5];
+	[D plus 6] = [fw plus 6];
+	[D plus 7] = [fw plus 7];
+	[D plus 8] = [fw plus 8];
+	[D plus 9] = [fw plus 9];
+	[D plus 10] = [fw plus 10];
+	[D plus 11] = [fw plus 11];
+	[D plus 12] = [fw plus 12];
+	[D plus 13] = [fw plus 13];
+	[D plus 14] = [fw plus 14];
+	[D plus 15] = [fw plus 15];
+	[D plus 16] = [fw plus 16];
+	[D plus 17] = [fw plus 17];
+	[D plus 18] = [fw plus 18];
+	[D plus 19] = [fw plus 19];
+	[D plus 20] = [fw plus 20];
+	[D plus 21] = [fw plus 21];
+	[D plus 22] = [fw plus 22];
+	[D plus 23] = [fw plus 23];
+	[D plus 24] = [fw plus 24];
+	[D plus 25] = [fw plus 25];
+	[D plus 26] = [fw plus 26];
+	[D plus 27] = [fw plus 27];
+	[D plus 28] = [fw plus 28];
+	[D plus 29] = [fw plus 29];
+	[D plus 30] = [fw plus 30];
+	[D plus 31] = [fw plus 31];
+	[D plus 32] = [fw plus 32];
+	[D plus 33] = [fw plus 33];
+	[D plus 34] = [fw plus 34];
+	[D plus 35] = [fw plus 35];
+	[D plus 36] = [fw plus 42];
+	[D plus 37] = [fw plus 43];
+	[D plus 38] = [fw plus 44];
+	[D plus 39] = [fw plus 45];
+	[D plus 40] = [fw plus 496];
+	[D plus 41] = [fw plus 497];
+	[D plus 42] = [fw plus 498];
+	[D plus 43] = [fw plus 499];
+	[D plus 44] = [fw plus 500];
+	[D plus 45] = [fw plus 501];
+	[D plus 46] = [fw plus 502];
+	[D plus 47] = [fw plus 503];
+	[D plus 48] = [SPi];
+	[D plus 49] = [SPsec];
+	[D plus 50] = [SPdi];
+	[D plus 51] = [SPcl];
+	[D plus 52] = [SPax];
+	[D plus 53] = [SPdx];
+	[D plus 54] = [SPbp];
+	[D plus 55] = [SPsi];
+	[D plus 56] = [SPu];
+	[D plus 57] = [SPv];
+	[D plus 58] = [SPun];
+	[D plus 59] = [SPvn];
+	[D plus 60] = [SPsrc];
+	[D plus 61] = [SPuvi];
+	[D plus 62] = [SPuvn];
+	[D plus 63] = [SPch];
+	[D plus 64] = [SPbx];
+	[D plus 65] = [SPt];
+	[D plus 66] = [SPn];
+	[D plus 67] = [SPsave];
+	[D plus 68] = [PGFi];
+	[D plus 69] = [PGFj];
+	[D plus 70] = [PGFt];
+	[D plus 71] = [PGFu];
+	[D plus 72] = [PGtexi];
+	[D plus 73] = [PGtexv];
+	[D plus 74] = [PGtmp];
+	[D plus 75] = [PGdi];
+	[D plus 76] = [PGval];
+	[D plus 77] = [PJmode];
+	[D plus 78] = [PJdx];
+	[D plus 79] = [PJnrv];
+	[D plus 80] = [PJvr];
+	[D plus 81] = [PJvr2];
+	[D plus 82] = [PJvr22];
+	[D plus 83] = [PJgate];
+	[D plus 84] = [PJpreproject];
+	[D plus 85] = [PJvv];
+	[D plus 86] = [EWvr22];
+	[D plus 87] = [EWminy];
+	[D plus 88] = [EWmaxy];
+	[D plus 89] = [EWx1];
+	[D plus 90] = [EWy1];
+	[D plus 91] = [EWx2];
+	[D plus 92] = [EWy2];
+	[D plus 93] = [EWity];
+	[D plus 94] = [EWjty];
+	[D plus 95] = [EWh];
+	[D plus 96] = [EWcx];
+	[D plus 97] = [EWsi];
+	[D plus 98] = [EWax];
+	[D plus 99] = [FA0];
+	[D plus 100] = [FA1];
+	[D plus 101] = [FB0];
+	[D plus 102] = [FB1];
+	[D plus 103] = [FT0];
+	[D plus 104] = [FT1];
+	[D plus 105] = [FI];
+	[D plus 106] = [FS0];
+	[D plus 107] = [BXminy];
+	[D plus 108] = [BXmaxy];
+	[D plus 109] = [PJminx];
+	[D plus 110] = [PJmaxx];
+	[D plus 111] = [mp plus 6];
+	[D plus 112] = [mp plus 7];
+	[D plus 113] = [rwf];
+	[D plus 114] = [rwf plus 1];
+	[D plus 115] = [rwf plus 2];
+	[D plus 116] = [PGi];
+	[D plus 117] = [PGj];
+	A = [PGtrused]; A + PGTRSTATE; [PGtrused] = A;
+	end;
+
+"PG terrain state load"
+	D = PGtrcommands; D + [PGtrp];
+	[fw] = [D];
+	[fw plus 1] = [D plus 1];
+	[fw plus 2] = [D plus 2];
+	[fw plus 3] = [D plus 3];
+	[fw plus 4] = [D plus 4];
+	[fw plus 5] = [D plus 5];
+	[fw plus 6] = [D plus 6];
+	[fw plus 7] = [D plus 7];
+	[fw plus 8] = [D plus 8];
+	[fw plus 9] = [D plus 9];
+	[fw plus 10] = [D plus 10];
+	[fw plus 11] = [D plus 11];
+	[fw plus 12] = [D plus 12];
+	[fw plus 13] = [D plus 13];
+	[fw plus 14] = [D plus 14];
+	[fw plus 15] = [D plus 15];
+	[fw plus 16] = [D plus 16];
+	[fw plus 17] = [D plus 17];
+	[fw plus 18] = [D plus 18];
+	[fw plus 19] = [D plus 19];
+	[fw plus 20] = [D plus 20];
+	[fw plus 21] = [D plus 21];
+	[fw plus 22] = [D plus 22];
+	[fw plus 23] = [D plus 23];
+	[fw plus 24] = [D plus 24];
+	[fw plus 25] = [D plus 25];
+	[fw plus 26] = [D plus 26];
+	[fw plus 27] = [D plus 27];
+	[fw plus 28] = [D plus 28];
+	[fw plus 29] = [D plus 29];
+	[fw plus 30] = [D plus 30];
+	[fw plus 31] = [D plus 31];
+	[fw plus 32] = [D plus 32];
+	[fw plus 33] = [D plus 33];
+	[fw plus 34] = [D plus 34];
+	[fw plus 35] = [D plus 35];
+	[fw plus 42] = [D plus 36];
+	[fw plus 43] = [D plus 37];
+	[fw plus 44] = [D plus 38];
+	[fw plus 45] = [D plus 39];
+	[fw plus 496] = [D plus 40];
+	[fw plus 497] = [D plus 41];
+	[fw plus 498] = [D plus 42];
+	[fw plus 499] = [D plus 43];
+	[fw plus 500] = [D plus 44];
+	[fw plus 501] = [D plus 45];
+	[fw plus 502] = [D plus 46];
+	[fw plus 503] = [D plus 47];
+	[SPi] = [D plus 48];
+	[SPsec] = [D plus 49];
+	[SPdi] = [D plus 50];
+	[SPcl] = [D plus 51];
+	[SPax] = [D plus 52];
+	[SPdx] = [D plus 53];
+	[SPbp] = [D plus 54];
+	[SPsi] = [D plus 55];
+	[SPu] = [D plus 56];
+	[SPv] = [D plus 57];
+	[SPun] = [D plus 58];
+	[SPvn] = [D plus 59];
+	[SPsrc] = [D plus 60];
+	[SPuvi] = [D plus 61];
+	[SPuvn] = [D plus 62];
+	[SPch] = [D plus 63];
+	[SPbx] = [D plus 64];
+	[SPt] = [D plus 65];
+	[SPn] = [D plus 66];
+	[SPsave] = [D plus 67];
+	[PGFi] = [D plus 68];
+	[PGFj] = [D plus 69];
+	[PGFt] = [D plus 70];
+	[PGFu] = [D plus 71];
+	[PGtexi] = [D plus 72];
+	[PGtexv] = [D plus 73];
+	[PGtmp] = [D plus 74];
+	[PGdi] = [D plus 75];
+	[PGval] = [D plus 76];
+	[PJmode] = [D plus 77];
+	[PJdx] = [D plus 78];
+	[PJnrv] = [D plus 79];
+	[PJvr] = [D plus 80];
+	[PJvr2] = [D plus 81];
+	[PJvr22] = [D plus 82];
+	[PJgate] = [D plus 83];
+	[PJpreproject] = [D plus 84];
+	[PJvv] = [D plus 85];
+	[EWvr22] = [D plus 86];
+	[EWminy] = [D plus 87];
+	[EWmaxy] = [D plus 88];
+	[EWx1] = [D plus 89];
+	[EWy1] = [D plus 90];
+	[EWx2] = [D plus 91];
+	[EWy2] = [D plus 92];
+	[EWity] = [D plus 93];
+	[EWjty] = [D plus 94];
+	[EWh] = [D plus 95];
+	[EWcx] = [D plus 96];
+	[EWsi] = [D plus 97];
+	[EWax] = [D plus 98];
+	[FA0] = [D plus 99];
+	[FA1] = [D plus 100];
+	[FB0] = [D plus 101];
+	[FB1] = [D plus 102];
+	[FT0] = [D plus 103];
+	[FT1] = [D plus 104];
+	[FI] = [D plus 105];
+	[FS0] = [D plus 106];
+	[BXminy] = [D plus 107];
+	[BXmaxy] = [D plus 108];
+	[PJminx] = [D plus 109];
+	[PJmaxx] = [D plus 110];
+	[mp plus 6] = [D plus 111];
+	[mp plus 7] = [D plus 112];
+	[rwf] = [D plus 113];
+	[rwf plus 1] = [D plus 114];
+	[rwf plus 2] = [D plus 115];
+	[PGi] = [D plus 116];
+	[PGj] = [D plus 117];
+	end;
 
 ( ==================================================================== )
 ( S4 - the horizontal-limit matrices                                    )
@@ -409,6 +680,7 @@
 	  every selected pixel, so this preserves CSpix exactly without a hot
 	  read-modify-write on every pixel. )
 	A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A;
+	A = [PGtractive]; ? A != 0 -> PG px terrain record begin;
 	( Keep the clip-bounded destination and wrapped UV accumulators in Lino's
 	  registers for the complete 1..16-pixel block.  Terrain rows are clipped to
 	  y=10..190 and x=5..311, so the adapted destination reaches at most 61114
@@ -453,6 +725,53 @@
 	C + [SPbp]; C & 65535;
 	D = A; D + 3; [PGdi] = D; [PGval] = E;
 	[A plus 3 plus SADPT plus nw] = E;
+	B + [SPsi]; B & 65535;
+	[SPcl] = 0; [SPdx] = B; [SPax] = C;
+	-> PG tex5 row;
+
+    "PG px terrain record begin"
+	( Recording is selected once per block and is never entered by a moving
+	  camera.  Preserve the exact direct raster loop while appending each actual
+	  destination pointer and byte after its ordered page store. )
+	A = [SPdi]; D = A; D + [SPcl]; [SPdi] = D;
+	B = [SPdx]; C = [SPax];
+	D = [SPcl]; D & 1; ? D != 0 -> PG px terrain record;
+    "PG px terrain record unchecked"
+	A + 1;
+	D = B; D & 65280;
+	E = C; E > 8; D | E;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D];
+	E + [SPtinta]; E & 255;
+	C + [SPbp]; C & 65535;
+	[A plus 3 plus SADPT plus nw] = E;
+	B + [SPsi]; B & 65535;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 3; E + SADPT plus nw; [D] = E; [D plus 1] = [PGtrval];
+	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+;
+    "PG px terrain record"
+	A + 1; ? A = [SPdi] -> PG px terrain record final;
+	D = B; D & 65280;
+	E = C; E > 8; D | E;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D];
+	E + [SPtinta]; E & 255;
+	C + [SPbp]; C & 65535;
+	[A plus 3 plus SADPT plus nw] = E;
+	B + [SPsi]; B & 65535;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 3; E + SADPT plus nw; [D] = E; [D plus 1] = [PGtrval];
+	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+;
+	-> PG px terrain record unchecked;
+    "PG px terrain record final"
+	D = B; D & 65280;
+	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255; [PGtexv] = E;
+	E + [SPtinta]; E & 255; [SPch] = E;
+	C + [SPbp]; C & 65535;
+	D = A; D + 3; [PGdi] = D; [PGval] = E;
+	[A plus 3 plus SADPT plus nw] = E;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 3; E + SADPT plus nw; [D] = E; [D plus 1] = [PGtrval];
+	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+;
 	B + [SPsi]; B & 65535;
 	[SPcl] = 0; [SPdx] = B; [SPax] = C;
 	-> PG tex5 row;
@@ -648,6 +967,7 @@
     "PG cpx terrain begin"
 	( The culling loop writes two adjacent pixels per iteration. )
 	A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;
+	A = [PGtractive]; ? A != 0 -> PG cpx terrain record begin;
 	( Retain the pair destination and UV accumulators across the complete block,
 	  while preserving the source's duplicated stores and final scratch state.
 	  Adapt A once to the framebuffer and prepublish the corresponding physical
@@ -694,6 +1014,58 @@
 	[A plus 2] = E;
 	[PGdi]+;
 	[A plus 3] = E;
+	B + [SPsi]; B & 65535;
+	[SPcl] = 0; [SPdx] = B; [SPax] = C;
+	-> PG crow tail;
+
+    "PG cpx terrain record begin"
+	A = [SPdi]; A + SADPT plus nw;
+	D = [SPcl]; D + D; D + A; [SPdi] = D;
+	B = [SPdx]; C = [SPax];
+	D = [SPcl]; D & 1; ? D != 0 -> PG cpx terrain record;
+    "PG cpx terrain record unchecked"
+	A + 2;
+	D = B; D & 65280;
+	E = C; E > 8; D | E;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D];
+	E + [SPtinta]; E & 255;
+	C + [SPbp]; C & 65535;
+	[A plus 2] = E;
+	[A plus 3] = E;
+	B + [SPsi]; B & 65535;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 2; [D] = E; E + 1; [D plus 2] = E;
+	[D plus 1] = [PGtrval]; [D plus 3] = [PGtrval];
+	E = [PGtrused]; E + 4; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
+    "PG cpx terrain record"
+	A + 2; ? A = [SPdi] -> PG cpx terrain record final;
+	D = B; D & 65280;
+	E = C; E > 8; D | E;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D];
+	E + [SPtinta]; E & 255;
+	C + [SPbp]; C & 65535;
+	[A plus 2] = E;
+	[A plus 3] = E;
+	B + [SPsi]; B & 65535;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 2; [D] = E; E + 1; [D plus 2] = E;
+	[D plus 1] = [PGtrval]; [D plus 3] = [PGtrval];
+	E = [PGtrused]; E + 4; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
+	-> PG cpx terrain record unchecked;
+    "PG cpx terrain record final"
+	D = B; D & 65280;
+	E = C; E > 8; D | E; [PGtexi] = D; [PGtmp] = D;
+	D + [PGtexoff]; D + RPBG plus nw; E = [D]; E & 255; [PGtexv] = E;
+	E + [SPtinta]; E & 255; [SPch] = E;
+	C + [SPbp]; C & 65535;
+	D = [SPcl]; D + D; D + [SPsave]; D + 2; [PGdi] = D; [PGval] = E;
+	[A plus 2] = E;
+	[PGdi]+;
+	[A plus 3] = E;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 2; [D] = E; E + 1; [D plus 2] = E;
+	[D plus 1] = [PGtrval]; [D plus 3] = [PGtrval];
+	E = [PGtrused]; E + 4; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
 	B + [SPsi]; B & 65535;
 	[SPcl] = 0; [SPdx] = B; [SPax] = C;
 	-> PG crow tail;

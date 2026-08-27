@@ -40,6 +40,7 @@
 	VHGNDvi = 0; VHGNDvv = 0; VHGNDvslot = 0; VHGNDinputready = 0;
 	VHGNDvcgen = 0; VHGNDvcindex = 0; VHGNDvctri = 0; VHGNDvcpairready = 0;
 	VHGNDvcfront = 0; VHGNDvccacheok = 0; VHGNDvcframehit = 0;
+	VHGNDvcrasterstart = 0; VHGNDvcrastercount = 0;
 	VHGNDvccamx = 0; VHGNDvccamy = 0; VHGNDvccamz = 0;
 	VHGNDvcalpha = 0; VHGNDvcbeta = 0;
 	VHGNDmpbase = 0; VHGNDmpi = 0;
@@ -304,6 +305,11 @@
 	  Payload records are contiguous so a hit is one address calculation followed
 	  only by integer bit copies. )
 	VHGNDvcbasisstamp = 80000; VHGNDvcbasis = 1440000;
+	( Exact-camera raster records.  Every stamped count includes the two visible
+	  scratch stores followed by any terrain pixels; its fixed terminal payload
+	  begins immediately after those ordered pointer/value pairs. )
+	VHGNDvcrasterstamp = 80000;
+	VHGNDvcrasterstarts = 80000; VHGNDvcrastercounts = 80000;
 	( Three possible source objects per 200x200 quadrant.  Positions and the
 	  post-coordinate fast RNG state are immutable for a generated surface. )
 	VHGNDobjcachex = 120000; VHGNDobjcachey = 120000;
@@ -2657,7 +2663,7 @@
 	A = [VHGNDbeta]; ? A != [VHGNDvcbeta] -> VHGND terrain cache invalidate;
 	end;
     "VHGND terrain cache invalidate"
-	[VHGNDvcframehit] = 0;
+	[VHGNDvcframehit] = 0; [PGtrused] = 0; [PGtractive] = 0;
 	[VHGNDvccamx] = [VHGNDcamx]; [VHGNDvccamy] = [VHGNDcamy];
 	[VHGNDvccamz] = [VHGNDcamz]; [VHGNDvcalpha] = [VHGNDalpha];
 	[VHGNDvcbeta] = [VHGNDbeta]; [VHGNDvccacheok] = 1;
@@ -2672,6 +2678,10 @@
     "VHGND terrain basis cache clear"
 	A = VHGNDvcbasisstamp; A + [VHGNDptr]; [A] = 0;
 	[VHGNDptr]+; A = [VHGNDptr]; ? A < 80000 -> VHGND terrain basis cache clear;
+	[VHGNDptr] = 0;
+    "VHGND terrain raster cache clear"
+	A = VHGNDvcrasterstamp; A + [VHGNDptr]; [A] = 0;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A < 80000 -> VHGND terrain raster cache clear;
 	[VHGNDvcgen] = 1;
     "VHGND terrain cache frame ready"
 	end;
@@ -2903,12 +2913,48 @@
     "VHGND terrain mapped bounds"
 	( The specialized polymap entry consumes the three real rotated/projected
 	  vertices directly.  PG edges closes vertex 2 back to vertex 0 itself.
-	  On an exact repeated-camera frame, hand polymap a generation-stamped basis
-	  pointer; its lookup remains after conservative and empty-span rejection. )
+	  Exact-camera raster records are consulted only after the paired payload and
+	  bounds are restored, retaining terrain/object painter interleaving. )
 	=> VHGND terrain cached bounds;
     "VHGND terrain mapped basis ready"
+	A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped raster direct;
+	A = VHGNDvcrasterstamp; A + [VHGNDnormindex]; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped raster record select;
+	A = VHGNDvcrastercounts; A + [VHGNDnormindex]; A = [A];
+	[VHGNDvcrastercount] = A; [PGtrcount] = A;
+	A = VHGNDvcrasterstarts; A + [VHGNDnormindex]; A = [A];
+	[VHGNDvcrasterstart] = A; [PGtrstart] = A;
+	[SPterrain] = 1; => PG terrain replay;
+	-> VHGND terrain mapped rendered;
+
+    "VHGND terrain mapped raster record select"
+	( One clipped terrain triangle can issue fewer than 60,000 stores.  Reserve
+	  that complete bound plus its fixed state before enabling the cold recorder,
+	  so overflow always takes the unchanged raster path. )
+	A = [PGtrused]; A + 120118; ? A > PGTRCAP -> VHGND terrain mapped raster direct;
+	[PGtrstart] = [PGtrused]; [PGtrcount] = 2;
+	D = PGtrcommands; D + [PGtrused];
+	A = PGSCRT; A + PGDOFF; A + SADPT plus nw; [D] = A;
+	C = [SPtinta]; C & 255; [D plus 1] = C;
+	A = PGSCRE; A + PGDOFF; A + SADPT plus nw; [D plus 2] = A;
+	C = [SPescr]; C & 255; [D plus 3] = C;
+	A = [PGtrused]; A + 4; [PGtrused] = A; [PGtractive] = 1;
+    "VHGND terrain mapped raster direct"
 	[SPterrain] = 1; [PJpreproject] = 1; [PJnrv] = 3; => PG polymap;
-	[SPterrain] = 0;
+    "VHGND terrain mapped rendered"
+	A = [PGtractive]; [PGtractive] = 0; [SPterrain] = 0;
+	? A = 0 -> VHGND terrain mapped publish basis;
+	A = [PJgate]; ? A != 0 -> VHGND terrain mapped raster discard;
+	=> PG terrain state save;
+	A = VHGNDvcrasterstarts; A + [VHGNDnormindex]; C = [PGtrstart]; [A] = C;
+	A = VHGNDvcrastercounts; A + [VHGNDnormindex]; C = [PGtrcount]; [A] = C;
+    "VHGND terrain mapped raster stamp"
+	A = VHGNDvcrasterstamp; A + [VHGNDnormindex]; C = [VHGNDvcgen]; [A] = C;
+	-> VHGND terrain mapped publish basis;
+    "VHGND terrain mapped raster discard"
+	[PGtrused] = [PGtrstart];
+
+    "VHGND terrain mapped publish basis"
 	A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped done;
 	A = [PJterrainbasisreuse]; ? A != 0 -> VHGND terrain mapped done;
 	A = [PJterrainbasisbuilt]; ? A = 0 -> VHGND terrain mapped done;
@@ -2925,6 +2971,8 @@
 	[D plus 14] = [fw plus 14]; [D plus 15] = [fw plus 15];
 	[D plus 16] = [fw plus 16]; [D plus 17] = [fw plus 17];
 	A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [VHGNDvcgen]; [A] = C;
+	-> VHGND terrain mapped done;
+
     "VHGND terrain mapped done"
 	end;
 

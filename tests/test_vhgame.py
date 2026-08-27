@@ -1140,8 +1140,8 @@ def main() -> int:
         )),
         "live zero-TEX7 merger keeps generic scratch semantics and exact paired pixel order",
     )
-    terrain_pixel = section(pgtex, '"PG px terrain begin"', '"PG px internal"')
-    terrain_cpixel = section(pgtex, '"PG cpx terrain begin"', '"PG cpx internal"')
+    terrain_pixel = section(pgtex, '"PG px terrain begin"', '"PG px terrain record begin"')
+    terrain_cpixel = section(pgtex, '"PG cpx terrain begin"', '"PG cpx terrain record begin"')
     tex5_row = section(pgtex, '"PG tex5 row"', '"PG row"')
     terrain_row_control = section(pgtex, '"PG row"', '"PG px terrain begin"')
     terrain_crow_control = section(pgtex, '"PG crow"', '"PG cpx terrain begin"')
@@ -1686,6 +1686,36 @@ def main() -> int:
     )
     terrain_mapped = section(ground, '"VHGND terrain mapped"',
                              '"VHGND terrain facing"')
+    terrain_raster = section(
+        ground,
+        '"VHGND terrain mapped basis ready"',
+        '"VHGND terrain facing"',
+    )
+    terrain_raster_replay = section(
+        pgtex,
+        '"PG terrain replay"',
+        '"PG terrain state save"',
+    )
+    terrain_state_save = section(
+        pgtex,
+        '"PG terrain state save"',
+        '"PG terrain state load"',
+    )
+    terrain_state_load = section(
+        pgtex,
+        '"PG terrain state load"',
+        "( ==================================================================== )",
+    )
+    terrain_px_record = section(
+        pgtex,
+        '"PG px terrain record begin"',
+        '"PG px internal"',
+    )
+    terrain_cpx_record = section(
+        pgtex,
+        '"PG cpx terrain record begin"',
+        '"PG cpx internal"',
+    )
     terrain_basis_hoist = section(
         terrain_mapped,
         "[SPterrain] = 0;",
@@ -1917,6 +1947,85 @@ def main() -> int:
         and basis_surface == basis_fill3 == basis_words3
         and basis_wrap == basis_words1
     )
+
+    state_save_words = {
+        int(offset or 0): source
+        for offset, source in re.findall(
+            r"\[D(?: plus (\d+))?\] = \[([^\]]+)\];",
+            terrain_state_save,
+        )
+    }
+    state_load_words = {
+        int(offset or 0): destination
+        for destination, offset in re.findall(
+            r"\[([^\]]+)\] = \[D(?: plus (\d+))?\];",
+            terrain_state_load,
+        )
+    }
+    terrain_state_layout_exact = (
+        len(state_save_words) == 118
+        and tuple(sorted(state_save_words)) == tuple(range(118))
+        and state_load_words == state_save_words
+    )
+
+    raster_stamps: dict[int, int] = {}
+    raster_records: dict[int, tuple[tuple[tuple[int, int], ...], tuple[int, ...]]] = {}
+    raster_stream_words = 0
+
+    def terrain_raster_step(
+        generation: int,
+        frame_hit: bool,
+        index: int,
+        pixels: tuple[tuple[int, int], ...],
+        terminal: tuple[int, ...],
+        capacity_words: int = 2_000_000,
+    ) -> tuple[str, tuple[tuple[int, int], ...], tuple[int, ...], int]:
+        nonlocal raster_stream_words
+        scratch = ((0x1000, 17), (0x1001, 29))
+        if not frame_hit:
+            return "bypass", scratch + pixels, terminal, len(pixels)
+        if raster_stamps.get(index) == generation:
+            commands, recorded_terminal = raster_records[index]
+            return "hit", commands, recorded_terminal, len(commands) - 2
+        reserve = 120_118
+        if raster_stream_words + reserve > capacity_words:
+            return "overflow", scratch + pixels, terminal, len(pixels)
+        commands = scratch + pixels
+        raster_stream_words += 2 * len(commands) + 118
+        raster_records[index] = (commands, terminal)
+        raster_stamps[index] = generation
+        return ("empty-fill" if not pixels else "fill"), commands, terminal, len(pixels)
+
+    raster_pixels = ((0x2004, 41), (0x2005, 42), (0x2004, 43))
+    raster_terminal = tuple((word * 0x10203 + 7) & 0xFFFFFFFF for word in range(118))
+    raster_bypass = terrain_raster_step(1, False, 123, raster_pixels, raster_terminal)
+    raster_bypass_unpublished = 123 not in raster_stamps
+    raster_fill = terrain_raster_step(1, True, 123, raster_pixels, raster_terminal)
+    raster_hit = terrain_raster_step(1, True, 123, (), tuple(reversed(raster_terminal)))
+    raster_empty_fill = terrain_raster_step(1, True, 124, (), raster_terminal)
+    raster_empty_hit = terrain_raster_step(1, True, 124, raster_pixels, raster_terminal)
+    raster_overflow = terrain_raster_step(
+        1, True, 125, raster_pixels, raster_terminal, raster_stream_words
+    )
+    raster_stream_words = 0
+    raster_generation_fill = terrain_raster_step(2, True, 123, raster_pixels, raster_terminal)
+    raster_stamps.clear()
+    raster_stream_words = 0
+    raster_wrap_fill = terrain_raster_step(1, True, 123, raster_pixels, raster_terminal)
+    terrain_raster_cache_model_exact = (
+        raster_bypass[0] == "bypass"
+        and raster_bypass_unpublished
+        and raster_fill[0] == "fill"
+        and raster_hit == ("hit", raster_fill[1], raster_terminal, 3)
+        and raster_hit[1][2:] == raster_pixels
+        and raster_empty_fill[0] == "empty-fill"
+        and raster_empty_hit[0] == "hit"
+        and raster_empty_hit[1:] == (raster_empty_fill[1], raster_terminal, 0)
+        and raster_overflow[0] == "overflow"
+        and 125 not in raster_stamps
+        and raster_generation_fill[0] == "fill"
+        and raster_wrap_fill[0] == "fill"
+    )
     faithful_cases = tuple(
         (cam_x, cam_z, faithful_tiles(cam_x, cam_z, direction, backspan))
         for cam_x, cam_z in ((0, 0), (0, 198), (100, 100), (198, 0), (198, 198))
@@ -2100,6 +2209,67 @@ def main() -> int:
         ))
         and "=> PJ vectors;" in terrain_basis_entry,
         "generation-stamped terrain bases hoist proof ahead of vertex ladders",
+    )
+    check(
+        "PGTRCAP = 2000000;" in pgtex
+        and "PGTRSTATE = 118;" in pgtex
+        and "PGtrcommands = 2000000;" in pgtex
+        and "VHGNDvcrasterstamp = 80000;" in ground
+        and "VHGNDvcrasterstarts = 80000; VHGNDvcrastercounts = 80000;" in ground
+        and terrain_state_layout_exact
+        and terrain_raster_cache_model_exact
+        and contains_in_order(terrain_raster_replay, (
+            "[PGtrp] = [PGtrstart]; [PGtrn] = [PGtrcount];",
+            "D = [A]; C = [A plus 1]; [D] = C;",
+            "A = [PGtrp]; A + 2; [PGtrp] = A;",
+            "A = [PGtrcount]; A - 2; C = [CSpix]; A + C; [CSpix] = A;",
+            "=> PG terrain state load;",
+        ))
+        and not any(token in terrain_raster_replay for token in (
+            "PG edges", "PG pm terrain span", "PG trace", "PG uv next", "PG texel"
+        ))
+        and terrain_px_record.count("[PGtrcount]+;") == 3
+        and terrain_px_record.count("[D plus 1] = [PGtrval];") == 3
+        and terrain_cpx_record.count("[PGtrcount]+; [PGtrcount]+;") == 3
+        and terrain_cpx_record.count("[D plus 1] = [PGtrval]; [D plus 3] = [PGtrval];") == 3
+        and contains_in_order(terrain_raster, (
+            "A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped raster direct;",
+            "A = VHGNDvcrasterstamp; A + [VHGNDnormindex]; C = [A];",
+            "A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped raster record select;",
+            "[VHGNDvcrastercount] = A; [PGtrcount] = A;",
+            "[VHGNDvcrasterstart] = A; [PGtrstart] = A;",
+            "[SPterrain] = 1; => PG terrain replay;",
+            '"VHGND terrain mapped raster record select"',
+            "A = [PGtrused]; A + 120118; ? A > PGTRCAP -> VHGND terrain mapped raster direct;",
+            "[PGtrstart] = [PGtrused]; [PGtrcount] = 2;",
+            "A = [PGtrused]; A + 4; [PGtrused] = A; [PGtractive] = 1;",
+            "[SPterrain] = 1; [PJpreproject] = 1; [PJnrv] = 3; => PG polymap;",
+            "A = [PGtractive]; [PGtractive] = 0; [SPterrain] = 0;",
+            "A = [PJgate]; ? A != 0 -> VHGND terrain mapped raster discard;",
+            "=> PG terrain state save;",
+            "A = VHGNDvcrasterstarts; A + [VHGNDnormindex]; C = [PGtrstart]; [A] = C;",
+            "A = VHGNDvcrastercounts; A + [VHGNDnormindex]; C = [PGtrcount]; [A] = C;",
+            '"VHGND terrain mapped raster stamp"',
+            "A = VHGNDvcrasterstamp; A + [VHGNDnormindex]; C = [VHGNDvcgen]; [A] = C;",
+        ))
+        and "[PGtrused] = [PGtrstart];" in terrain_raster
+        and "VHGND terrain mapped empty replay" not in terrain_raster
+        and all(token in terrain_state_save for token in (
+            "[D plus 116] = [PGi];",
+            "[D plus 117] = [PGj];",
+            "A = [PGtrused]; A + PGTRSTATE; [PGtrused] = A;",
+        ))
+        and all(token in terrain_state_load for token in (
+            "[PGi] = [D plus 116];",
+            "[PGj] = [D plus 117];",
+        ))
+        and "[VHGNDvcframehit] = 0; [PGtrused] = 0; [PGtractive] = 0;" in terrain_cache
+        and all(token in terrain_cache for token in (
+            '"VHGND terrain raster cache clear"',
+            "A = VHGNDvcrasterstamp; A + [VHGNDptr]; [A] = 0;",
+            "? A < 80000 -> VHGND terrain raster cache clear;",
+        )),
+        "exact-camera terrain replay publishes complete ordered records and restores exact terminal state",
     )
     check(
         terrain_first_load_copies_exact
