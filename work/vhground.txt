@@ -14,6 +14,8 @@
 	VHGNDABOVE = 32;
 	VHGNDFAR = 64;
 	VHGNDOBJECTFAR = 40;
+	VHGNDTREERECORD = 16;
+	VHGNDTREECACHEWORDS = 262144;
 	VHGNDSTEP = 600;
 	VHGNDSTALK = 80;		( below the source bird-reaction thresholds )
 	VHGNDLO = 122880;		( 7.5 tiles: keep the local grid in-map )
@@ -79,6 +81,13 @@
 	VHGNDcdown = 0; VHGNDrcolor = 0; VHGNDrocktile = 0;
 	VHGNDsctype = 0; VHGNDobjbyte = 0; VHGNDobjclass = 0; VHGNDobjid = 0;
 	VHGNDobjcachep = 0;
+	VHGNDtreecachegen = 0; VHGNDtreecachei = 0;
+	VHGNDtreecachewritebase = 0; VHGNDtreecachereadbase = 0;
+	VHGNDtreecachecursor = 0; VHGNDtreecachestart = 0;
+	VHGNDtreecachecount = 0; VHGNDtreecacheleft = 0;
+	VHGNDtreecachep = 0; VHGNDtreecacherecordp = 0;
+	VHGNDtreecacherecording = 0; VHGNDtreecacherecordok = 0;
+	VHGNDtreecachehit = 0; VHGNDtreecachecopy = 0;
 	VHGNDtreescale = 0; VHGNDtreetop = 0; VHGNDtreeapex = 0; VHGNDtreerad = 0; VHGNDtreecol = 0;
 	VHGNDtreebx = 0; VHGNDtreeby = 0; VHGNDtreebz = 0;
 	VHGNDtreeex = 0; VHGNDtreeey = 0; VHGNDtreeez = 0;
@@ -321,6 +330,12 @@
 	  post-coordinate fast RNG state are immutable for a generated surface. )
 	VHGNDobjcachex = 120000; VHGNDobjcachey = 120000;
 	VHGNDobjcachez = 120000; VHGNDobjcacheseed = 120000;
+	( Consecutive-presentation deterministic tall-tree command cache.  Per-source
+	  metadata points into the previous ping-pong stream; fixed 16-word records
+	  replay only live limb/leaf rendering under the current camera and wind. )
+	VHGNDtreecachestamps = 120000; VHGNDtreecachedepths = 120000;
+	VHGNDtreecachestarts = 120000; VHGNDtreecachecounts = 120000;
+	VHGNDtreecache0 = 262144; VHGNDtreecache1 = 262144;
 	VHGNDsqc = 32;
 	VHGNDepoctext = 96;
 	( Depth-first build_fractal_tree stack.  Source giant trees need levels 0..4. )
@@ -339,6 +354,7 @@
 	  real build_surface switch arms: type 8 milky/quartz and type 4 rocky.
 	  Body 2 is type 6 and is rejected by VHG land. )
 	[VHGNDtick] = 0; [VHGNDptr] = 0; [VHGNDplayerstep] = 0;
+	=> VHGND tree cache advance;
 	[VHGNDvccacheok] = 0;
 	[VHGNDnormgen]+; A = [VHGNDnormgen]; ? A != 0 -> VHGND normal generation ready;
 	[VHGNDptr] = 0;
@@ -2586,6 +2602,7 @@
 	=> VHGND terrain cache frame;
 	=> VHGND object view setup;
 	=> VHGND fauna tiles build;
+	=> VHGND tree cache frame;
 	[VHGNDanimorphs] = 0; [VHGNDgroundbirds] = 0;
 	=> VHGND traverse faithful;
 	[Timer Command] = READ COUNTS; isocall; A = [Counts]; A - [VHGprofpart];
@@ -6061,7 +6078,169 @@
 	A & [SUfmask]; [SUfval] = A; C = A;
 	end;
 
+"VHGND tree cache advance"
+	( Surface generation takes one extra generation step, so a new surface can
+	  never mistake the preceding presentation's source IDs for cache hits. )
+	[VHGNDtreecachegen]+; A = [VHGNDtreecachegen]; ? A != 0 -> VHGND tree cache advance done;
+	[VHGNDtreecachei] = 0;
+    "VHGND tree cache stamps clear"
+	A = VHGNDtreecachestamps; A + [VHGNDtreecachei]; [A] = 0;
+	[VHGNDtreecachei]+; A = [VHGNDtreecachei]; ? A < 120000 -> VHGND tree cache stamps clear;
+	[VHGNDtreecachegen] = 1;
+    "VHGND tree cache advance done"
+	end;
+
+"VHGND tree cache frame"
+	=> VHGND tree cache advance;
+	[VHGNDtreecachecursor] = 0;
+	A = [VHGNDtreecachegen]; A & 1; ? A = 0 -> VHGND tree cache frame even;
+	A = VHGNDtreecache1; [VHGNDtreecachewritebase] = A;
+	A = VHGNDtreecache0; [VHGNDtreecachereadbase] = A; end;
+    "VHGND tree cache frame even"
+	A = VHGNDtreecache0; [VHGNDtreecachewritebase] = A;
+	A = VHGNDtreecache1; [VHGNDtreecachereadbase] = A;
+	end;
+
+"VHGND tree cache lookup"
+	[VHGNDtreecachehit] = 0; [VHGNDtreecacherecording] = 0;
+	A = VHGNDtreecachestamps; A + [VHGNDobjcachep]; C = [A];
+	A = [VHGNDtreecachegen]; A - 1; ? A != C -> VHGND tree cache lookup done;
+	A = VHGNDtreecachedepths; A + [VHGNDobjcachep]; C = [A];
+	A = [VHGNDdepth]; ? A != C -> VHGND tree cache lookup done;
+	A = VHGNDtreecachestarts; A + [VHGNDobjcachep]; [VHGNDtreecachep] = [A];
+	A = VHGNDtreecachecounts; A + [VHGNDobjcachep]; A = [A]; [VHGNDtreecachecount] = A;
+	? A <= 0 -> VHGND tree cache lookup done;
+	[VHGNDtreecachehit] = 1;
+    "VHGND tree cache lookup done"
+	end;
+
+"VHGND tree cache replay"
+	( The previous complete stream is immutable while its records are replayed.
+	  Copy it atomically into this frame's opposite buffer for the next hit. )
+	[VHGNDtreecachecopy] = 1;
+	A = [VHGNDtreecachecount]; A '* VHGNDTREERECORD; A + [VHGNDtreecachecursor];
+	? A '<= VHGNDTREECACHEWORDS -> VHGND tree cache replay capacity ready;
+	[VHGNDtreecachecopy] = 0; -> VHGND tree cache replay capacity done;
+    "VHGND tree cache replay capacity ready"
+	[VHGNDtreecachestart] = [VHGNDtreecachecursor];
+    "VHGND tree cache replay capacity done"
+	[VHGNDtreecacheleft] = [VHGNDtreecachecount];
+	[SPcull] = 0; [DBent] = 0; [VHGNDtreefloat] = 1;
+    "VHGND tree cache replay record"
+	A = [VHGNDtreecacheleft]; ? A <= 0 -> VHGND tree cache replay done;
+	A = [VHGNDtreecachereadbase]; A + [VHGNDtreecachep]; [VHGNDtreecacherecordp] = A;
+	A = [VHGNDtreecachecopy]; ? A = 0 -> VHGND tree cache replay load;
+	C = [VHGNDtreecacherecordp]; A = [VHGNDtreecachewritebase]; A + [VHGNDtreecachecursor];
+	B = [C]; [A] = B; B = [C plus 1]; [A plus 1] = B;
+	B = [C plus 2]; [A plus 2] = B; B = [C plus 3]; [A plus 3] = B;
+	B = [C plus 4]; [A plus 4] = B; B = [C plus 5]; [A plus 5] = B;
+	B = [C plus 6]; [A plus 6] = B; B = [C plus 7]; [A plus 7] = B;
+	B = [C plus 8]; [A plus 8] = B; B = [C plus 9]; [A plus 9] = B;
+	B = [C plus 10]; [A plus 10] = B; B = [C plus 11]; [A plus 11] = B;
+	B = [C plus 12]; [A plus 12] = B; B = [C plus 13]; [A plus 13] = B;
+	B = [C plus 14]; [A plus 14] = B; B = [C plus 15]; [A plus 15] = B;
+	A = [VHGNDtreecachecursor]; A + VHGNDTREERECORD; [VHGNDtreecachecursor] = A;
+    "VHGND tree cache replay load"
+	C = [VHGNDtreecacherecordp]; A = [C plus 1]; [SUfseed] = A;
+	A = [C plus 2]; [VHGNDtreebxf] = A; A = [C plus 3]; [VHGNDtreebyf] = A;
+	A = [C plus 4]; [VHGNDtreebzf] = A; A = [C plus 8]; [VHGNDtreebr] = A;
+	A = [C plus 11]; [VHTfacebase] = A; A = [C plus 12]; [VHTfacestep] = A;
+	A = [C plus 13]; [DBflar] = A; A = [C plus 14]; [VHGNDtreefaces] = A;
+	A = [C]; ? A = 2 -> VHGND tree cache replay leaf;
+	A = [C plus 5]; [VHGNDtreeexf] = A; A = [C plus 6]; [VHGNDtreeeyf] = A;
+	A = [C plus 7]; [VHGNDtreeezf] = A; A = [C plus 9]; [VHGNDtreeer] = A;
+	A = [C plus 10]; [VHGNDtreeisroot] = A;
+	=> VHGND tree limb; -> VHGND tree cache replay record done;
+    "VHGND tree cache replay leaf"
+	A = [C plus 5]; [VHGNDtreeleafx] = A; A = [C plus 6]; [VHGNDtreeleafz] = A;
+	A = [C plus 7]; [VHGNDtreeleafdrop] = A; A = [C plus 9]; [VHGNDtreerangef] = A;
+	=> VHGND tree leaves;
+    "VHGND tree cache replay record done"
+	C = [VHGNDtreecacherecordp]; A = [C plus 15]; [SUfseed] = A;
+	A = [VHGNDtreecachep]; A + VHGNDTREERECORD; [VHGNDtreecachep] = A;
+	[VHGNDtreecacheleft]-; -> VHGND tree cache replay record;
+    "VHGND tree cache replay done"
+	A = [VHGNDtreecachecopy]; ? A = 0 -> VHGND tree cache replay return;
+	=> VHGND tree cache publish payload;
+    "VHGND tree cache replay return"
+	end;
+
+"VHGND tree cache begin"
+	[VHGNDtreecachestart] = [VHGNDtreecachecursor];
+	[VHGNDtreecachecount] = 0; [VHGNDtreecacherecording] = 1;
+	end;
+
+"VHGND tree cache reserve"
+	[VHGNDtreecacherecordok] = 0;
+	A = [VHGNDtreecacherecording]; ? A = 0 -> VHGND tree cache reserve done;
+	A = [VHGNDtreecachecursor]; A + VHGNDTREERECORD;
+	? A '<= VHGNDTREECACHEWORDS -> VHGND tree cache reserve ready;
+	[VHGNDtreecachecursor] = [VHGNDtreecachestart]; [VHGNDtreecacherecording] = 0;
+	-> VHGND tree cache reserve done;
+    "VHGND tree cache reserve ready"
+	A = [VHGNDtreecachewritebase]; A + [VHGNDtreecachecursor]; [VHGNDtreecacherecordp] = A;
+	A = [VHGNDtreecachecursor]; A + VHGNDTREERECORD; [VHGNDtreecachecursor] = A;
+	[VHGNDtreecachecount]+; [VHGNDtreecacherecordok] = 1;
+    "VHGND tree cache reserve done"
+	end;
+
+"VHGND tree cache record limb"
+	=> VHGND tree cache reserve;
+	A = [VHGNDtreecacherecordok]; ? A = 0 -> VHGND tree cache record limb done;
+	C = [VHGNDtreecacherecordp]; [C] = 1; A = [SUfseed]; [C plus 1] = A;
+	A = [VHGNDtreebxf]; [C plus 2] = A; A = [VHGNDtreebyf]; [C plus 3] = A;
+	A = [VHGNDtreebzf]; [C plus 4] = A; A = [VHGNDtreeexf]; [C plus 5] = A;
+	A = [VHGNDtreeeyf]; [C plus 6] = A; A = [VHGNDtreeezf]; [C plus 7] = A;
+	A = [VHGNDtreebr]; [C plus 8] = A; A = [VHGNDtreeer]; [C plus 9] = A;
+	A = [VHGNDtreeisroot]; [C plus 10] = A; A = [VHTfacebase]; [C plus 11] = A;
+	A = [VHTfacestep]; [C plus 12] = A; A = [DBflar]; [C plus 13] = A;
+	A = [VHGNDtreefaces]; [C plus 14] = A; [C plus 15] = 0;
+    "VHGND tree cache record limb done"
+	end;
+
+"VHGND tree cache record leaf"
+	=> VHGND tree cache reserve;
+	A = [VHGNDtreecacherecordok]; ? A = 0 -> VHGND tree cache record leaf done;
+	C = [VHGNDtreecacherecordp]; [C] = 2; A = [SUfseed]; [C plus 1] = A;
+	A = [VHGNDtreebxf]; [C plus 2] = A; A = [VHGNDtreebyf]; [C plus 3] = A;
+	A = [VHGNDtreebzf]; [C plus 4] = A; A = [VHGNDtreeleafx]; [C plus 5] = A;
+	A = [VHGNDtreeleafz]; [C plus 6] = A; A = [VHGNDtreeleafdrop]; [C plus 7] = A;
+	A = [VHGNDtreebr]; [C plus 8] = A; A = [VHGNDtreerangef]; [C plus 9] = A;
+	[C plus 10] = 0; A = [VHTfacebase]; [C plus 11] = A;
+	A = [VHTfacestep]; [C plus 12] = A; A = [DBflar]; [C plus 13] = A;
+	A = [VHGNDtreefaces]; [C plus 14] = A; [C plus 15] = 0;
+    "VHGND tree cache record leaf done"
+	end;
+
+"VHGND tree cache record finish"
+	A = [VHGNDtreecacherecording]; ? A = 0 -> VHGND tree cache record finish done;
+	C = [VHGNDtreecacherecordp]; A = [SUfseed]; [C plus 15] = A;
+    "VHGND tree cache record finish done"
+	end;
+
+"VHGND tree cache publish"
+	A = [VHGNDtreecacherecording]; ? A = 0 -> VHGND tree cache publish done;
+	A = [VHGNDtreecachecount]; ? A <= 0 -> VHGND tree cache publish rollback;
+	=> VHGND tree cache publish payload; -> VHGND tree cache publish done;
+    "VHGND tree cache publish rollback"
+	[VHGNDtreecachecursor] = [VHGNDtreecachestart];
+    "VHGND tree cache publish done"
+	[VHGNDtreecacherecording] = 0;
+	end;
+
+"VHGND tree cache publish payload"
+	( Publish the complete current-buffer payload before its generation stamp. )
+	A = VHGNDtreecachestarts; A + [VHGNDobjcachep]; C = [VHGNDtreecachestart]; [A] = C;
+	A = VHGNDtreecachecounts; A + [VHGNDobjcachep]; C = [VHGNDtreecachecount]; [A] = C;
+	A = VHGNDtreecachedepths; A + [VHGNDobjcachep]; C = [VHGNDdepth]; [A] = C;
+	A = VHGNDtreecachestamps; A + [VHGNDobjcachep]; C = [VHGNDtreecachegen]; [A] = C;
+	end;
+
 "VHGND tree"
+	=> VHGND tree cache lookup;
+	A = [VHGNDtreecachehit]; ? A = 0 -> VHGND tree cache miss;
+	=> VHGND tree cache replay; -> VHGND tree done;
+    "VHGND tree cache miss"
 	( albero()/build_fractal_tree(): retain the world-level parameters from
 	  build_surface, seed each tree from x+y+z+3, and execute the source's
 	  complete depth-first branch structure.  Ordinary trees use two layers;
@@ -6171,6 +6350,7 @@
 	A = VHGNDtsscale; [A] = [VHGNDtreescalef];
 	A = VHGNDtslayers; [A] = [VHGNDtreelayers]; A = VHGNDtsroot; [A] = 1;
 	A = VHGNDtsocc; [A] = 0;
+	=> VHGND tree cache begin;
 	-> VHGND tree node enter;
 
 "VHGND tree node enter"
@@ -6337,7 +6517,8 @@
 	[VHGNDtreeer] = [FS0];
 	<----;
 	A = [VHGNDtreeocc]; A '* 9; A + [VHTrootcol]; [VHTfacebase] = A;
-	[VHTfacestep] = 4; [DBflar] = [GRtreeflares]; => VHGND tree limb;
+	[VHTfacestep] = 4; [DBflar] = [GRtreeflares];
+	=> VHGND tree cache record limb; => VHGND tree limb; => VHGND tree cache record finish;
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; C = [A]; C + 1; [A] = C;
 	[VHGNDtreelevel]+;
 	A = VHGNDtsx; A + [VHGNDtreelevel]; [A] = [VHGNDtreeexf];
@@ -6394,7 +6575,8 @@
 	=> F32Narrow; => FStoreF32; [VHGNDtreebr] = [FS0];
 	[SUfmask] = 31; => VHGND render random; C + [VHTleafcol]; [VHGNDtreecol] = C;
 	[VHTfacebase] = C; [VHTfacestep] = 2;
-	[DBflar] = [GRleafflares]; => VHGND tree leaves;
+	[DBflar] = [GRleafflares];
+	=> VHGND tree cache record leaf; => VHGND tree leaves; => VHGND tree cache record finish;
 	A = VHGNDtsbranch; A + [VHGNDtreelevel]; C = [A]; C + 1; [A] = C;
 	-> VHGND tree node branch;
 
@@ -6402,6 +6584,7 @@
 	A = [VHGNDtreelevel]; ? A = 0 -> VHGND tree done;
 	[VHGNDtreelevel]-; -> VHGND tree node branch;
 "VHGND tree done"
+	=> VHGND tree cache publish;
 	[DBflar] = 0; [VHGNDtreefloat] = 0;
 	end;
 

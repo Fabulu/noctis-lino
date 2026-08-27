@@ -5143,6 +5143,19 @@ def main() -> int:
         "general destinations get source-derived surface seeds and live plains vegetation/trees",
     )
     tree = section(ground, '"VHGND tree"', '"VHGND rock"')
+    tree_build = section(ground, '"VHGND tree"', '"VHGND bush"')
+    tree_cache = section(
+        ground, '"VHGND tree cache advance"', '"VHGND tree"'
+    )
+    tree_cache_replay = section(
+        tree_cache, '"VHGND tree cache replay"', '"VHGND tree cache begin"'
+    )
+    tree_cache_records = section(
+        tree_cache, '"VHGND tree cache begin"', '"VHGND tree cache publish"'
+    )
+    tree_cache_publish = section(
+        tree_cache, '"VHGND tree cache publish"', '"VHGND tree cache publish payload"'
+    )
     bush = section(ground, '"VHGND bush"', '"VHGND tree direction"')
     grass = section(ground, '"VHGND veget"', '"VHGND tree"')
     greenmush = section(ground, '"VHGND greenmush"', '"VHGND tree"')
@@ -5338,6 +5351,120 @@ def main() -> int:
         and "crossed trunk" not in tree
         and "crossed leafy crown" not in tree,
         "trees retain binary32 world parameters and execute the source branch stack safely",
+    )
+    check(
+        all(token in ground for token in (
+            "VHGNDTREERECORD = 16;", "VHGNDTREECACHEWORDS = 262144;",
+            "VHGNDtreecachestamps = 120000; VHGNDtreecachedepths = 120000;",
+            "VHGNDtreecachestarts = 120000; VHGNDtreecachecounts = 120000;",
+            "VHGNDtreecache0 = 262144; VHGNDtreecache1 = 262144;",
+            "A = [VHGNDh1]; A '* 3; A + [VHGNDobjid]; [VHGNDobjcachep] = A;",
+        ))
+        and contains_in_order(ground, (
+            '"VHGND generate"',
+            "[VHGNDtick] = 0; [VHGNDptr] = 0; [VHGNDplayerstep] = 0;",
+            "=> VHGND tree cache advance;",
+            "=> VHGND terrain cache frame;",
+            "=> VHGND object view setup;",
+            "=> VHGND fauna tiles build;",
+            "=> VHGND tree cache frame;",
+            "=> VHGND traverse faithful;",
+        ))
+        and contains_in_order(tree_cache, (
+            "[VHGNDtreecachegen]+;",
+            '"VHGND tree cache stamps clear"',
+            "[VHGNDtreecachegen] = 1;",
+            '"VHGND tree cache frame"',
+            "=> VHGND tree cache advance;",
+            "[VHGNDtreecachecursor] = 0;",
+            "A = VHGNDtreecache1; [VHGNDtreecachewritebase] = A;",
+            "A = VHGNDtreecache0; [VHGNDtreecachereadbase] = A;",
+            '"VHGND tree cache frame even"',
+            "A = VHGNDtreecache0; [VHGNDtreecachewritebase] = A;",
+            "A = VHGNDtreecache1; [VHGNDtreecachereadbase] = A;",
+            '"VHGND tree cache lookup"',
+            "A = VHGNDtreecachestamps; A + [VHGNDobjcachep]; C = [A];",
+            "A = [VHGNDtreecachegen]; A - 1; ? A != C -> VHGND tree cache lookup done;",
+            "A = VHGNDtreecachedepths; A + [VHGNDobjcachep]; C = [A];",
+            "A = [VHGNDdepth]; ? A != C -> VHGND tree cache lookup done;",
+            "[VHGNDtreecachehit] = 1;",
+        ))
+        and contains_in_order(tree_cache_replay, (
+            "[VHGNDtreecachecopy] = 1;",
+            "A = [VHGNDtreecachecount]; A '* VHGNDTREERECORD; A + [VHGNDtreecachecursor];",
+            "? A '<= VHGNDTREECACHEWORDS -> VHGND tree cache replay capacity ready;",
+            "[VHGNDtreecachecopy] = 0;",
+            "[VHGNDtreecachestart] = [VHGNDtreecachecursor];",
+            '"VHGND tree cache replay record"',
+            "A = [VHGNDtreecachereadbase]; A + [VHGNDtreecachep]; [VHGNDtreecacherecordp] = A;",
+            "A = [VHGNDtreecachecopy]; ? A = 0 -> VHGND tree cache replay load;",
+            "B = [C]; [A] = B; B = [C plus 1]; [A plus 1] = B;",
+            "B = [C plus 14]; [A plus 14] = B; B = [C plus 15]; [A plus 15] = B;",
+            "A = [VHGNDtreecachecursor]; A + VHGNDTREERECORD; [VHGNDtreecachecursor] = A;",
+            '"VHGND tree cache replay load"',
+            "A = [C plus 1]; [SUfseed] = A;",
+            "A = [C]; ? A = 2 -> VHGND tree cache replay leaf;",
+            "=> VHGND tree limb;",
+            '"VHGND tree cache replay leaf"',
+            "=> VHGND tree leaves;",
+            "A = [C plus 15]; [SUfseed] = A;",
+            "=> VHGND tree cache publish payload;",
+        ))
+        and all(token in tree_cache_replay for token in (
+            "[SPcull] = 0; [DBent] = 0; [VHGNDtreefloat] = 1;",
+            "A = [C plus 2]; [VHGNDtreebxf] = A;",
+            "A = [C plus 4]; [VHGNDtreebzf] = A;",
+            "A = [C plus 8]; [VHGNDtreebr] = A;",
+            "A = [C plus 11]; [VHTfacebase] = A;",
+            "A = [C plus 13]; [DBflar] = A;",
+            "A = [C plus 5]; [VHGNDtreeexf] = A;",
+            "A = [C plus 10]; [VHGNDtreeisroot] = A;",
+            "A = [C plus 5]; [VHGNDtreeleafx] = A;",
+            "A = [C plus 9]; [VHGNDtreerangef] = A;",
+        ))
+        and contains_in_order(tree_cache_records, (
+            "[VHGNDtreecachestart] = [VHGNDtreecachecursor];",
+            '"VHGND tree cache reserve"',
+            "A = [VHGNDtreecachecursor]; A + VHGNDTREERECORD;",
+            "? A '<= VHGNDTREECACHEWORDS -> VHGND tree cache reserve ready;",
+            "[VHGNDtreecachecursor] = [VHGNDtreecachestart]; [VHGNDtreecacherecording] = 0;",
+            '"VHGND tree cache reserve ready"',
+            "[VHGNDtreecachecount]+; [VHGNDtreecacherecordok] = 1;",
+            '"VHGND tree cache record limb"',
+            "[C] = 1; A = [SUfseed]; [C plus 1] = A;",
+            "A = [VHGNDtreeisroot]; [C plus 10] = A;",
+            '"VHGND tree cache record leaf"',
+            "[C] = 2; A = [SUfseed]; [C plus 1] = A;",
+            "A = [VHGNDtreerangef]; [C plus 9] = A;",
+            '"VHGND tree cache record finish"',
+            "A = [SUfseed]; [C plus 15] = A;",
+        ))
+        and contains_in_order(tree_cache_publish, (
+            "A = [VHGNDtreecachecount]; ? A <= 0 -> VHGND tree cache publish rollback;",
+            "=> VHGND tree cache publish payload;",
+            '"VHGND tree cache publish rollback"',
+            "[VHGNDtreecachecursor] = [VHGNDtreecachestart];",
+        ))
+        and contains_in_order(tree_cache, (
+            '"VHGND tree cache publish payload"',
+            "A = VHGNDtreecachestarts; A + [VHGNDobjcachep]; C = [VHGNDtreecachestart]; [A] = C;",
+            "A = VHGNDtreecachecounts; A + [VHGNDobjcachep]; C = [VHGNDtreecachecount]; [A] = C;",
+            "A = VHGNDtreecachedepths; A + [VHGNDobjcachep]; C = [VHGNDdepth]; [A] = C;",
+            "A = VHGNDtreecachestamps; A + [VHGNDobjcachep]; C = [VHGNDtreecachegen]; [A] = C;",
+        ))
+        and contains_in_order(tree_build, (
+            "=> VHGND tree cache lookup;",
+            "=> VHGND tree cache replay; -> VHGND tree done;",
+            '"VHGND tree configured"',
+            "A = VHGNDtsocc; [A] = 0;",
+            "=> VHGND tree cache begin;",
+            "=> VHGND tree cache record limb; => VHGND tree limb; => VHGND tree cache record finish;",
+            "=> VHGND tree cache record leaf; => VHGND tree leaves; => VHGND tree cache record finish;",
+            '"VHGND tree done"',
+            "=> VHGND tree cache publish;",
+        ))
+        and "tree cache" not in bush,
+        "configured tall trees cache exact ordered draw commands with atomic fallback and RNG replay",
     )
     check(
         "if (y > -15000)" in original1
