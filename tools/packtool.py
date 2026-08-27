@@ -145,12 +145,20 @@ def cmd_verify(pack):
     # right, these must read exactly as expected.
     print()
     print("  landmarks:")
-    expect = {
-        0:    ("=  A,imm",        "B8 <I2.4>"),
-        1406: ("*  signed A,imm", "69 C0 <I2.4>"),
-        2338: ("*' unsigned A,A", "52 F7 E0 5A"),
-        5997: ("/% signed A,A",   "52 99 F7 F8 5A"),
-    }
+    if pack.align == 145:
+        expect = {
+            0:    ("=  A,imm",        "B8 <I2.4>"),
+            1406: ("*  signed A,imm", "69 C0 <I2.4>"),
+            2338: ("*' unsigned A,A", "48 83 EC 04 89 14 24 F7 E0 8B 14 24 48 83 C4 04"),
+            5997: ("/% signed A,A",   "48 83 EC 04 89 14 24 99 F7 F8 8B 14 24 48 83 C4 04"),
+        }
+    else:
+        expect = {
+            0:    ("=  A,imm",        "B8 <I2.4>"),
+            1406: ("*  signed A,imm", "69 C0 <I2.4>"),
+            2338: ("*' unsigned A,A", "52 F7 E0 5A"),
+            5997: ("/% signed A,A",   "52 99 F7 F8 5A"),
+        }
     ok = True
     for n, (label, want) in sorted(expect.items()):
         items, _ = decode(pack.raw(n), pack.ter)

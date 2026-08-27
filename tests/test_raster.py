@@ -771,9 +771,10 @@ def main():
     render_source = "\n".join(render_parts)
     narrow_body = fp_source.split('"PGF narrow"', 1)[1].split('"PGF add"', 1)[0]
     chk.ok("=> PGF a;" not in narrow_body and
-           narrow_body.index("=> F32Narrow;") < narrow_body.index("=> PGF sa;") and
+           narrow_body.index("~: [FA0];") < narrow_body.index("=> PGF sa;") and
+           "=> F32Narrow;" not in narrow_body and
            "=> PGF sa; => PGF narrow;" not in render_source,
-           "narrowing stores the live accumulator once without a slot round trip")
+           "backend-exact narrowing stores the live accumulator once")
 
     exe, note = build_lino(SAND, "clean")
     chk.ok(exe is not None, "the lino port builds from work/pg*.txt", note)
