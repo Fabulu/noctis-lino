@@ -5499,13 +5499,18 @@ def main() -> int:
         ))
         and all(token in leaf_cull for token in (
             "A = [VHGNDleafcullframeok]; ? A = 0 -> VHGND cached leaf near cull done;",
-            "A = [C plus 2]; A & 7F800000h;",
-            "A = [C plus 9]; A & 7F800000h;",
-            "A = [VHGNDtreewindx]; A & 7F800000h;",
-            "A = [VHGNDtreewindz]; A & 7F800000h;",
+            "Every record input stays below 2^27 in magnitude before this shortcut.",
+            "A = [C plus 2]; A & 7FFFFFFFh; ? A >= 4D000000h",
+            "A = [C plus 9]; A & 7FFFFFFFh; ? A >= 4D000000h",
+            "A = [VHGNDtreewindx]; A & 7FFFFFFFh; ? A >= 4D000000h",
+            "A = [VHGNDtreewindz]; A & 7FFFFFFFh; ? A >= 4D000000h",
             "[FB0] = [VHGNDleafcullsupport0]; [FB1] = [VHGNDleafcullsupport1]; [FA0] +: [FB0];",
             "[VHGNDleafcullret] = 1;",
         ))
+        and leaf_cull.count(
+            "A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;"
+        ) == 10
+        and "7F800000h" not in leaf_cull
         and leaf_cull.count("[PJnrv] = 1; => PJ rotate fixed map;") == 2
         and leaf_cull.count("[FB0] = [fw plus 54]; [FB1] = [fw plus 55]; => FCmp;") == 2
         and leaf_cull.count("? A >= 0 -> VHGND cached leaf near cull done;") == 2

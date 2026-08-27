@@ -6229,17 +6229,22 @@
 	  binary32 slack and every possible 1023-mask greenmush displacement. )
 	[VHGNDleafcullret] = 0;
 	A = [VHGNDleafcullframeok]; ? A = 0 -> VHGND cached leaf near cull done;
+	( Every record input stays below 2^27 in magnitude before this shortcut.
+	  Thus a base coordinate stays below 2^28, and a tip coordinate plus the
+	  complete 1056-unit greenmush displacement stays below 2^29.  Binary32
+	  endpoint rounding is then below the fixed 32-unit slack.  The same guard
+	  also rejects every nonfinite input. )
 	C = [VHGNDtreecacherecordp];
-	A = [C plus 2]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
-	A = [C plus 3]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
-	A = [C plus 4]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
-	A = [C plus 5]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
-	A = [C plus 6]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
-	A = [C plus 7]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
-	A = [C plus 8]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
-	A = [C plus 9]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
-	A = [VHGNDtreewindx]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
-	A = [VHGNDtreewindz]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+	A = [C plus 2]; A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;
+	A = [C plus 3]; A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;
+	A = [C plus 4]; A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;
+	A = [C plus 5]; A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;
+	A = [C plus 6]; A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;
+	A = [C plus 7]; A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;
+	A = [C plus 8]; A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;
+	A = [C plus 9]; A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;
+	A = [VHGNDtreewindx]; A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;
+	A = [VHGNDtreewindz]; A & 7FFFFFFFh; ? A >= 4D000000h -> VHGND cached leaf near cull done;
 
 	( Rotate the unshifted tip centre with the mapped-face nucleus. )
 	C = [VHGNDtreecacherecordp]; [FS0] = [C plus 5]; => FLoadF32;
