@@ -124,7 +124,9 @@
 	VHGNDrtop = 0; VHGNDrcol0 = 0; VHGNDrcol1 = 0; VHGNDrcol2 = 0;
 	VHGNDanimals = 0; VHGNDanii = 0; VHGNDanip = 0;
 	VHGNDanisingle = 0; VHGNDmii = 0; VHGNDbii = 0;
-	VHGNDfaunamid = 0; VHGNDfaunabid = 0; VHGNDtilepolys = 0;
+	VHGNDtilepolys = 0;
+	VHGNDfaunaid = 0; VHGNDfaunap = 0;
+	VHGNDfaunatilex = 0; VHGNDfaunatilecurrent = 0;
 	VHGNDpopulation = 0; VHGNDfaunabase = 0; VHGNDfaunarange = 0;
 	VHGNDfaunatype = 0; VHGNDfaunachance = 0;
 	VHGNDfaunabirdp = 0; VHGNDfaunareptp = 0; VHGNDfaunamammp = 0;
@@ -271,6 +273,8 @@
 	  without truncating that population. )
 	VHGNDfaunatypes = 100;
 	VHGNDfaunascales = 100;
+	( Mutable presentation-time tile key for each original LFS/source ID. )
+	VHGNDfaunatiles = 100;
 	( x, z, heading*100, phase, movement type, speed, scale,
 	  target heading*100, target speed, original LFS index. )
 	VHGNDanidata = 1000;
@@ -2581,6 +2585,7 @@
     "VHGND water render done"
 	=> VHGND terrain cache frame;
 	=> VHGND object view setup;
+	=> VHGND fauna tiles build;
 	[VHGNDanimorphs] = 0; [VHGNDgroundbirds] = 0;
 	=> VHGND traverse faithful;
 	[Timer Command] = READ COUNTS; isocall; A = [Counts]; A - [VHGprofpart];
@@ -5764,60 +5769,79 @@
 	end;
 
 "VHGND render tile fauna"
-	( NIV+ scans the mixed life-form array in original ID order for every
-	  fragment.  Mammals and birds are compacted separately here, so merge
-	  their stored source IDs while retaining the dynamic cell test. )
+	( Scan immutable source IDs in their original order.  Compact mammal and
+	  bird counters recover the same record indices, while one mutable tile key
+	  replaces repeated record addressing, signed division and clamping. )
 	A = [GRiptype]; ? A != 3 -> VHGND tile fauna done;
-	[VHGNDmii] = 0; [VHGNDbii] = 0; [VHGNDanisingle] = 1;
-    "VHGND tile fauna merge"
-	[VHGNDfaunamid] = 2147483647; [VHGNDfaunabid] = 2147483647;
-	A = [VHGNDmii]; ? A '>= [VHGNDanimals] -> VHGND tile fauna mammal id ready;
-	A '* 10; A + VHGNDanidata; C = A; [VHGNDfaunamid] = [C plus 9];
-    "VHGND tile fauna mammal id ready"
-	A = [VHGNDbii]; ? A '>= [VHGNDbirds] -> VHGND tile fauna bird id ready;
-	A '* 12; A + VHGNDbirddata; C = A; [VHGNDfaunabid] = [C plus 10];
-    "VHGND tile fauna bird id ready"
-	A = [VHGNDfaunamid]; ? A != 2147483647 -> VHGND tile fauna choose;
-	A = [VHGNDfaunabid]; ? A = 2147483647 -> VHGND tile fauna done;
-    "VHGND tile fauna choose"
-	A = [VHGNDfaunamid]; ? A '< [VHGNDfaunabid] -> VHGND tile fauna mammal;
+	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDfaunatilecurrent] = A;
+	[VHGNDfaunaid] = 0; [VHGNDmii] = 0; [VHGNDbii] = 0; [VHGNDanisingle] = 1;
+    "VHGND tile fauna scan"
+	A = [VHGNDfaunaid]; ? A '>= [VHGNDpopulation] -> VHGND tile fauna done;
+	C = VHGNDfaunatypes; C + A; A = [C];
+	? A = 1 -> VHGND tile fauna bird; ? A = 5 -> VHGND tile fauna mammal;
+	-> VHGND tile fauna next;
 
     "VHGND tile fauna bird"
-	A = [VHGNDbii]; A '* 12; A + VHGNDbirddata; [VHGNDanip] = A; C = A;
-	[VHGNDanix] = [C plus 0]; [VHGNDaniz] = [C plus 1]; => VHGND fauna tile match;
-	A = [VHGNDviewrz]; ? A = 0 -> VHGND tile fauna bird next;
+	C = VHGNDfaunatiles; C + [VHGNDfaunaid]; A = [C];
+	? A != [VHGNDfaunatilecurrent] -> VHGND tile fauna bird next;
 	[VHGNDanii] = [VHGNDbii]; => VHGND render birds;
+	A = [VHGNDbii]; A '* 12; A + VHGNDbirddata; [VHGNDfaunap] = A;
+	=> VHGND fauna tile key store;
     "VHGND tile fauna bird next"
-	[VHGNDbii]+; -> VHGND tile fauna merge;
+	[VHGNDbii]+; -> VHGND tile fauna next;
 
     "VHGND tile fauna mammal"
-	A = [VHGNDmii]; A '* 10; A + VHGNDanidata; [VHGNDanip] = A; C = A;
-	[VHGNDanix] = [C plus 0]; [VHGNDaniz] = [C plus 1]; => VHGND fauna tile match;
-	A = [VHGNDviewrz]; ? A = 0 -> VHGND tile fauna mammal next;
+	C = VHGNDfaunatiles; C + [VHGNDfaunaid]; A = [C];
+	? A != [VHGNDfaunatilecurrent] -> VHGND tile fauna mammal next;
 	[VHGNDanii] = [VHGNDmii]; => VHGND render animals;
+	A = [VHGNDmii]; A '* 10; A + VHGNDanidata; [VHGNDfaunap] = A;
+	=> VHGND fauna tile key store;
     "VHGND tile fauna mammal next"
-	[VHGNDmii]+; -> VHGND tile fauna merge;
+	[VHGNDmii]+;
+    "VHGND tile fauna next"
+	[VHGNDfaunaid]+; -> VHGND tile fauna scan;
 
     "VHGND tile fauna done"
 	[VHGNDanisingle] = 0; [SPskipmid] = 0;
 	end;
 
-"VHGND fauna tile match"
-	[VHGNDviewrz] = 0;
-	A = [VHGNDanix]; A / VHGNDTS;
-	? A >= 0 -> VHGND fauna tile x high; A = 0;
-    "VHGND fauna tile x high"
-	? A '<= 199 -> VHGND fauna tile x ready; A = 199;
-    "VHGND fauna tile x ready"
-	? A != [VHGNDx] -> VHGND fauna tile match done;
-	A = [VHGNDaniz]; A / VHGNDTS;
-	? A >= 0 -> VHGND fauna tile z high; A = 0;
-    "VHGND fauna tile z high"
-	? A '<= 199 -> VHGND fauna tile z ready; A = 199;
-    "VHGND fauna tile z ready"
-	? A != [VHGNDz] -> VHGND fauna tile match done;
-	[VHGNDviewrz] = 1;
-    "VHGND fauna tile match done"
+"VHGND fauna tiles build"
+	( Rebuild from committed records once per presentation.  Reptiles retain
+	  their source classification but have no NIV+ draw record or tile entry. )
+	A = [GRiptype]; ? A != 3 -> VHGND fauna tiles build done;
+	[VHGNDfaunaid] = 0; [VHGNDmii] = 0; [VHGNDbii] = 0;
+    "VHGND fauna tile build one"
+	A = [VHGNDfaunaid]; ? A '>= [VHGNDpopulation] -> VHGND fauna tiles build done;
+	C = VHGNDfaunatypes; C + A; A = [C];
+	? A = 1 -> VHGND fauna tile build bird; ? A = 5 -> VHGND fauna tile build mammal;
+	-> VHGND fauna tile build next;
+    "VHGND fauna tile build bird"
+	A = [VHGNDbii]; A '* 12; A + VHGNDbirddata; [VHGNDfaunap] = A;
+	=> VHGND fauna tile key store; [VHGNDbii]+; -> VHGND fauna tile build next;
+    "VHGND fauna tile build mammal"
+	A = [VHGNDmii]; A '* 10; A + VHGNDanidata; [VHGNDfaunap] = A;
+	=> VHGND fauna tile key store; [VHGNDmii]+;
+    "VHGND fauna tile build next"
+	[VHGNDfaunaid]+; -> VHGND fauna tile build one;
+    "VHGND fauna tiles build done"
+	end;
+
+"VHGND fauna tile key store"
+	( Match fauna tile match's exact signed divisions and edge clamps, then
+	  publish the packed z*200+x key for the current original source ID. )
+	C = [VHGNDfaunap]; A = [C]; A / VHGNDTS;
+	? A >= 0 -> VHGND fauna tile key x high; A = 0;
+    "VHGND fauna tile key x high"
+	? A '<= 199 -> VHGND fauna tile key x ready; A = 199;
+    "VHGND fauna tile key x ready"
+	[VHGNDfaunatilex] = A;
+	A = [C plus 1]; A / VHGNDTS;
+	? A >= 0 -> VHGND fauna tile key z high; A = 0;
+    "VHGND fauna tile key z high"
+	? A '<= 199 -> VHGND fauna tile key z ready; A = 199;
+    "VHGND fauna tile key z ready"
+	A '* VHGNDMAP; A + [VHGNDfaunatilex];
+	C = VHGNDfaunatiles; C + [VHGNDfaunaid]; [C] = A;
 	end;
 
 "VHGND tile objects"

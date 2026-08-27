@@ -1628,6 +1628,15 @@ def main() -> int:
         ground, '"VHGND object view cull"', '"VHGND fauna view cull"'
     )
     tile_detail = section(tile, '"VHGND tile detail visible"', '"VHGND tile done"')
+    fauna_tile = section(
+        ground, '"VHGND render tile fauna"', '"VHGND fauna tiles build"'
+    )
+    fauna_tiles_build = section(
+        ground, '"VHGND fauna tiles build"', '"VHGND fauna tile key store"'
+    )
+    fauna_tile_key = section(
+        ground, '"VHGND fauna tile key store"', '"VHGND tile objects"'
+    )
     rocks = section(ground, '"VHGND rock"', '"VHGND rock height"')
     object_cull_stamps: dict[int, int] = {}
     object_cull_payloads: dict[int, bool] = {}
@@ -1656,6 +1665,166 @@ def main() -> int:
         and object_cull_fill2 == ("fill", False)
         and object_cull_hit2 == ("hit", False)
         and object_cull_wrap == ("fill", True)
+    )
+
+    fauna_types = (
+        "mammal", "reptile", "bird", "mammal",
+        "bird", "reptile", "mammal", "bird",
+    )
+    fauna_positions = (
+        (10 * 16384, 10 * 16384), (-16384, -16384),
+        (10 * 16384, 10 * 16384), (11 * 16384, 10 * 16384),
+        (-3 * 16384, -2 * 16384), (50 * 16384, 50 * 16384),
+        (203 * 16384, 205 * 16384), (-2 * 16384, -4 * 16384),
+    )
+    fauna_tiles = ((10, 10), (11, 10), (0, 0), (199, 199))
+    fauna_relocations = {
+        0: ((10 * 16384 + 123, 10 * 16384 + 456),),
+        2: ((11 * 16384 + 7, 10 * 16384 + 8),
+            (11 * 16384 + 77, 10 * 16384 + 88)),
+        3: ((10 * 16384 + 3, 10 * 16384 + 4),),
+        4: ((202 * 16384, 205 * 16384),
+            (199 * 16384 + 1, 199 * 16384 + 2)),
+        6: ((-3 * 16384, -4 * 16384),),
+        7: ((-16384, -2 * 16384),),
+    }
+
+    def fauna_coord_tile(value: int) -> int:
+        quotient = abs(value) // 16384
+        if value < 0:
+            quotient = -quotient
+        return min(199, max(0, quotient))
+
+    def fauna_key(record: dict[str, int]) -> int:
+        return fauna_coord_tile(record["z"]) * 200 + fauna_coord_tile(record["x"])
+
+    def fauna_records() -> dict[str, list[dict[str, int]]]:
+        records: dict[str, list[dict[str, int]]] = {"mammal": [], "bird": []}
+        for source_id, kind in enumerate(fauna_types):
+            if kind in records:
+                x, z = fauna_positions[source_id]
+                records[kind].append({"id": source_id, "x": x, "z": z})
+        return records
+
+    def fauna_render(records: dict[str, list[dict[str, int]]],
+                     counts: dict[int, int], source_id: int, kind: str,
+                     compact_index: int) -> None:
+        count = counts.get(source_id, 0)
+        moves = fauna_relocations.get(source_id, ())
+        if count < len(moves):
+            records[kind][compact_index]["x"], records[kind][compact_index]["z"] = moves[count]
+        counts[source_id] = count + 1
+
+    def fauna_baseline_model() -> tuple[list[tuple[tuple[int, int], int, str, int]],
+                                        dict[str, list[dict[str, int]]]]:
+        records = fauna_records()
+        rendered: list[tuple[tuple[int, int], int, str, int]] = []
+        counts: dict[int, int] = {}
+        for tile_xy in fauna_tiles:
+            compact = {"mammal": 0, "bird": 0}
+            while (compact["mammal"] < len(records["mammal"])
+                   or compact["bird"] < len(records["bird"])):
+                mammal_id = (records["mammal"][compact["mammal"]]["id"]
+                              if compact["mammal"] < len(records["mammal"])
+                              else 2147483647)
+                bird_id = (records["bird"][compact["bird"]]["id"]
+                            if compact["bird"] < len(records["bird"])
+                            else 2147483647)
+                kind = "mammal" if mammal_id < bird_id else "bird"
+                compact_index = compact[kind]
+                source_id = records[kind][compact_index]["id"]
+                if fauna_key(records[kind][compact_index]) == tile_xy[1] * 200 + tile_xy[0]:
+                    rendered.append((tile_xy, source_id, kind, compact_index))
+                    fauna_render(records, counts, source_id, kind, compact_index)
+                compact[kind] += 1
+        return rendered, records
+
+    def fauna_indexed_model() -> tuple[list[tuple[tuple[int, int], int, str, int]],
+                                       dict[str, list[dict[str, int]]]]:
+        records = fauna_records()
+        keys: dict[int, int] = {}
+        compact = {"mammal": 0, "bird": 0}
+        for source_id, kind in enumerate(fauna_types):
+            if kind in compact:
+                keys[source_id] = fauna_key(records[kind][compact[kind]])
+                compact[kind] += 1
+        rendered: list[tuple[tuple[int, int], int, str, int]] = []
+        counts: dict[int, int] = {}
+        for tile_xy in fauna_tiles:
+            compact = {"mammal": 0, "bird": 0}
+            for source_id, kind in enumerate(fauna_types):
+                if kind not in compact:
+                    continue
+                compact_index = compact[kind]
+                if keys[source_id] == tile_xy[1] * 200 + tile_xy[0]:
+                    rendered.append((tile_xy, source_id, kind, compact_index))
+                    fauna_render(records, counts, source_id, kind, compact_index)
+                    keys[source_id] = fauna_key(records[kind][compact_index])
+                compact[kind] += 1
+        return rendered, records
+
+    fauna_baseline = fauna_baseline_model()
+    fauna_indexed = fauna_indexed_model()
+    fauna_expected_dispatch = [
+        ((10, 10), 0, "mammal", 0), ((10, 10), 2, "bird", 0),
+        ((11, 10), 2, "bird", 0), ((11, 10), 3, "mammal", 1),
+        ((0, 0), 4, "bird", 1), ((0, 0), 7, "bird", 2),
+        ((199, 199), 4, "bird", 1), ((199, 199), 6, "mammal", 2),
+    ]
+    fauna_model_exact = (
+        fauna_baseline == fauna_indexed
+        and fauna_indexed[0] == fauna_expected_dispatch
+    )
+    check(
+        fauna_model_exact
+        and "VHGNDfaunatiles = 100;" in ground
+        and "VHGNDfaunamid" not in ground
+        and "VHGNDfaunabid" not in ground
+        and "=> VHGND fauna tile match;" not in ground
+        and "A / VHGNDTS;" not in fauna_tile
+        and contains_in_order(fauna_tile, (
+            "[VHGNDfaunaid] = 0; [VHGNDmii] = 0; [VHGNDbii] = 0;",
+            "C = VHGNDfaunatypes; C + A; A = [C];",
+            "? A = 1 -> VHGND tile fauna bird; ? A = 5 -> VHGND tile fauna mammal;",
+        ))
+        and contains_in_order(section(
+            fauna_tile, '"VHGND tile fauna bird"', '"VHGND tile fauna bird next"'
+        ), (
+            "C = VHGNDfaunatiles; C + [VHGNDfaunaid]; A = [C];",
+            "[VHGNDanii] = [VHGNDbii]; => VHGND render birds;",
+            "A = [VHGNDbii]; A '* 12; A + VHGNDbirddata; [VHGNDfaunap] = A;",
+            "=> VHGND fauna tile key store;",
+        ))
+        and contains_in_order(section(
+            fauna_tile, '"VHGND tile fauna mammal"', '"VHGND tile fauna mammal next"'
+        ), (
+            "C = VHGNDfaunatiles; C + [VHGNDfaunaid]; A = [C];",
+            "[VHGNDanii] = [VHGNDmii]; => VHGND render animals;",
+            "A = [VHGNDmii]; A '* 10; A + VHGNDanidata; [VHGNDfaunap] = A;",
+            "=> VHGND fauna tile key store;",
+        ))
+        and contains_in_order(fauna_tiles_build, (
+            "[VHGNDfaunaid] = 0; [VHGNDmii] = 0; [VHGNDbii] = 0;",
+            "C = VHGNDfaunatypes; C + A; A = [C];",
+            "? A = 1 -> VHGND fauna tile build bird; ? A = 5 -> VHGND fauna tile build mammal;",
+            "A = [VHGNDbii]; A '* 12; A + VHGNDbirddata; [VHGNDfaunap] = A;",
+            "=> VHGND fauna tile key store; [VHGNDbii]+;",
+            "A = [VHGNDmii]; A '* 10; A + VHGNDanidata; [VHGNDfaunap] = A;",
+            "=> VHGND fauna tile key store; [VHGNDmii]+;",
+        ))
+        and fauna_tile_key.count("A / VHGNDTS;") == 2
+        and contains_in_order(fauna_tile_key, (
+            "C = [VHGNDfaunap]; A = [C]; A / VHGNDTS;",
+            "? A >= 0 -> VHGND fauna tile key x high; A = 0;",
+            "? A '<= 199 -> VHGND fauna tile key x ready; A = 199;",
+            "[VHGNDfaunatilex] = A;",
+            "A = [C plus 1]; A / VHGNDTS;",
+            "? A >= 0 -> VHGND fauna tile key z high; A = 0;",
+            "? A '<= 199 -> VHGND fauna tile key z ready; A = 199;",
+            "A '* VHGNDMAP; A + [VHGNDfaunatilex];",
+            "C = VHGNDfaunatiles; C + [VHGNDfaunaid]; [C] = A;",
+        )),
+        "mutable fauna tile keys preserve source order, clamping, and same-frame migration",
     )
     check(
         '"VHGND felisian line"' in post
@@ -2461,9 +2630,11 @@ def main() -> int:
         and contains_in_order(traversal, (
             "=> VHGND terrain cache frame;",
             "=> VHGND object view setup;",
+            "=> VHGND fauna tiles build;",
             "[VHGNDanimorphs] = 0; [VHGNDgroundbirds] = 0;",
             "=> VHGND traverse faithful;",
         ))
+        and ground.count("=> VHGND fauna tiles build;") == 1
         and ground.count("=> VHGND object view setup;") == 1
         and ground.count("=> VHGND object view cull;") == 1
         and contains_in_order(tile_detail, (
