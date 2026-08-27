@@ -1629,10 +1629,57 @@ def main() -> int:
     )
     tile_detail = section(tile, '"VHGND tile detail visible"', '"VHGND tile done"')
     rocks = section(ground, '"VHGND rock"', '"VHGND rock height"')
+    object_cull_stamps: dict[int, int] = {}
+    object_cull_payloads: dict[int, bool] = {}
+
+    def object_cull_step(generation: int, frame_hit: bool, index: int,
+                         count: int, computed: bool) -> tuple[str, bool]:
+        if count == 0:
+            return "empty", False
+        if frame_hit and object_cull_stamps.get(index) == generation:
+            return "hit", object_cull_payloads[index]
+        object_cull_payloads[index] = computed
+        object_cull_stamps[index] = generation
+        return "fill", computed
+
+    object_cull_empty = object_cull_step(1, False, 20001, 0, True)
+    object_cull_fill1 = object_cull_step(1, False, 20001, 2, True)
+    object_cull_hit1 = object_cull_step(1, True, 20001, 2, False)
+    object_cull_fill2 = object_cull_step(2, False, 20001, 2, False)
+    object_cull_hit2 = object_cull_step(2, True, 20001, 2, True)
+    object_cull_stamps.clear()
+    object_cull_wrap = object_cull_step(1, True, 20001, 2, True)
+    object_cull_model_exact = (
+        object_cull_empty == ("empty", False)
+        and object_cull_fill1 == ("fill", True)
+        and object_cull_hit1 == ("hit", True)
+        and object_cull_fill2 == ("fill", False)
+        and object_cull_hit2 == ("hit", False)
+        and object_cull_wrap == ("fill", True)
+    )
     check(
         '"VHGND felisian line"' in post
         and "A & 0FCh; A | [VHGNDoval]" in post
-        and "[VHGNDobjbyte] = A; A & 3; [VHGNDocount] = A;" in objects
+        and object_cull_model_exact
+        and "[VHGNDobjbyte] = A; A & 3; [VHGNDocount] = A;" in tile_detail
+        and tile_detail.index("=> VHGND render tile fauna;")
+        < tile_detail.index("[VHGNDobjbyte] = A; A & 3; [VHGNDocount] = A;")
+        < tile_detail.index("? A = 0 -> VHGND tile done;")
+        < tile_detail.index("A = [VHGNDvcframehit]; ? A = 0 -> VHGND tile object view cache miss;")
+        and "A = [VHGNDvcgen]; ? A != C -> VHGND tile object view cache miss;" in tile_detail
+        and "A = VHGNDvcobjvisible; A + [VHGNDh1]; A = [A]; [VHGNDviewrz] = A;" in tile_detail
+        and "=> VHGND object view cull;" in tile_detail
+        and tile_detail.index(
+            "A = VHGNDvcobjvisible; A + [VHGNDh1]; C = [VHGNDviewrz]; [A] = C;"
+        ) < tile_detail.index(
+            "A = VHGNDvcobjstamp; A + [VHGNDh1]; C = [VHGNDvcgen]; [A] = C;"
+        )
+        and "A = [VHGNDviewrz]; ? A = 0 -> VHGND tile done;" in tile_detail
+        and "ROBJ" not in objects
+        and (
+            '"VHGND object view cache clear"\n'
+            "\tA = VHGNDvcobjstamp; A + [VHGNDptr]; [A] = 0;"
+        ) in ground
         and '"VHGND type3 done"' in ground
         and "C = 5; => SU rnd; ? C != 0 -> VHGND build surface done;" in ground
         and "[SUfmask] = [VHGNDrockdensity]" in rocks

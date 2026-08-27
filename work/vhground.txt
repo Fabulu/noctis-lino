@@ -293,6 +293,9 @@
 	VHGNDvcry0 = 40000; VHGNDvcry1 = 40000;
 	VHGNDvcrz0 = 40000; VHGNDvcrz1 = 40000;
 	VHGNDvcvisible = 40000; VHGNDvcpx = 40000; VHGNDvcpy = 40000;
+	( Exact conservative static-object visibility for each ordinary tile and
+	  camera generation. )
+	VHGNDvcobjstamp = 40000; VHGNDvcobjvisible = 40000;
 	( Exact ordinary-terrain facing result for the current camera generation. )
 	VHGNDvcfacing = 80000;
 	( Two static triangle normals per cell, cached as the binary64 pairs that
@@ -2674,6 +2677,10 @@
     "VHGND terrain cache clear"
 	A = VHGNDvcstamp; A + [VHGNDptr]; [A] = 0;
 	[VHGNDptr]+; A = [VHGNDptr]; ? A < 40000 -> VHGND terrain cache clear;
+	[VHGNDptr] = 0;
+    "VHGND object view cache clear"
+	A = VHGNDvcobjstamp; A + [VHGNDptr]; [A] = 0;
+	[VHGNDptr]+; A = [VHGNDptr]; ? A < 40000 -> VHGND object view cache clear;
 	[VHGNDptr] = 0;
     "VHGND terrain basis cache clear"
 	A = VHGNDvcbasisstamp; A + [VHGNDptr]; [A] = 0;
@@ -5734,7 +5741,23 @@
 	A = [VHGNDtilepolys]; ? A = 0 -> VHGND tile done;
     "VHGND tile detail visible"
 	=> VHGND render tile fauna;
+	( Reject empty source quadrants before their conservative view transform.
+	  A repeated exact camera restores the transform's exact boolean result;
+	  moving cameras compute it unchanged and publish the payload first. )
+	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
+	A = nw; A + ROBJ; A + [VHGNDh1]; A = [A]; A & 255;
+	[VHGNDobjbyte] = A; A & 3; [VHGNDocount] = A;
+	? A = 0 -> VHGND tile done;
+	A = [VHGNDvcframehit]; ? A = 0 -> VHGND tile object view cache miss;
+	A = VHGNDvcobjstamp; A + [VHGNDh1]; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND tile object view cache miss;
+	A = VHGNDvcobjvisible; A + [VHGNDh1]; A = [A]; [VHGNDviewrz] = A;
+	-> VHGND tile object view ready;
+    "VHGND tile object view cache miss"
 	=> VHGND object view cull;
+	A = VHGNDvcobjvisible; A + [VHGNDh1]; C = [VHGNDviewrz]; [A] = C;
+	A = VHGNDvcobjstamp; A + [VHGNDh1]; C = [VHGNDvcgen]; [A] = C;
+    "VHGND tile object view ready"
 	A = [VHGNDviewrz]; ? A = 0 -> VHGND tile done;
 	=> VHGND tile objects;
 	"VHGND tile done"
@@ -5798,10 +5821,8 @@
 	end;
 
 "VHGND tile objects"
-	( Packed source quadrant: low two bits count, then three 2-bit classes. )
-	A = [VHGNDz]; A '* VHGNDMAP; A + [VHGNDx]; [VHGNDh1] = A;
-	A = nw; A + ROBJ; A + [VHGNDh1]; A = [A]; A & 255;
-	[VHGNDobjbyte] = A; A & 3; [VHGNDocount] = A;
+	( Packed source quadrant: low two bits count, then three 2-bit classes.
+	  The caller has already loaded h1, its byte and its nonzero count. )
 	[VHGNDobjid] = 0;
     "VHGND object loop"
 	A = [VHGNDocount]; ? A = 0 -> VHGND objects done;
