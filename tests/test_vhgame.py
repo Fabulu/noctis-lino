@@ -1425,9 +1425,64 @@ def main() -> int:
         and terrain_pixel.count("B + [SPsi]; B & 65535;") == 3,
         "clipped terrain destinations drop only provably inactive masks",
     )
+    depth_root_build = section(
+        ground,
+        '"VHGND terrain half depth roots build"',
+        '"VHGND tile depth x row"',
+    )
     depth = section(ground, '"VHGND tile depth x row"', '"VHGND tile shade"')
     shade = section(ground, '"VHGND tile shade"', '"VHGND vload"')
     vload = ground[ground.index('"VHGND vload"'):]
+    packed_half_words: list[int] = []
+    packed_build_words: list[int] = []
+    build_q = 0
+    build_next = 1
+    build_word = 0
+    for block in range(512):
+        depth_n = block << 5
+        while depth_n >= build_next:
+            build_q += 1
+            build_next = (build_q + 1) * (build_q + 1)
+        build_word |= build_q << ((block & 3) * 8)
+        if block & 3 == 3:
+            packed_build_words.append(build_word)
+            build_word = 0
+    for word_index in range(128):
+        word = 0
+        for lane in range(4):
+            block = word_index * 4 + lane
+            word |= math.isqrt(block << 5) << (lane * 8)
+        packed_half_words.append(word)
+    packed_half_roots_exact = packed_build_words == packed_half_words
+    packed_half_terminal_exact = True
+    minimum_two_square_gaps = (2 * math.isqrt(64) + 1) + (2 * (math.isqrt(64) + 1) + 1)
+    for depth_n in range(16384):
+        if depth_n < 64:
+            low = 0
+            high = 64
+            midpoint = 0
+            for _ in range(6):
+                midpoint = (low + high) >> 1
+                if midpoint * midpoint <= depth_n:
+                    low = midpoint
+                else:
+                    high = midpoint
+        else:
+            block = depth_n >> 5
+            word = packed_half_words[block >> 2]
+            low = word >> ((block & 3) * 8) & 255
+            for _ in range(2):
+                if depth_n >= (low + 1) * (low + 1):
+                    low += 1
+                else:
+                    break
+            high = low + 1
+            midpoint = low | 1
+        packed_half_terminal_exact &= (
+            low == math.isqrt(depth_n)
+            and (low, high, midpoint, 0)
+            == (math.isqrt(depth_n), math.isqrt(depth_n) + 1, math.isqrt(depth_n) | 1, 0)
+        )
     maximum_tile_root = 0
     bounded_roots_exact = True
     for lod_step in (1, 8, 16):
@@ -1450,6 +1505,44 @@ def main() -> int:
     check(
         bounded_roots_exact and maximum_tile_root < 128,
         "full-width square words and split roots cover every accepted offset exactly",
+    )
+    check(
+        packed_half_roots_exact
+        and packed_half_terminal_exact
+        and minimum_two_square_gaps == 36
+        and ground.count("=> VHGND terrain half depth roots build;") == 1
+        and ground.index("=> VHGND terrain half depth roots build;")
+        < ground.index("[VHGNDtick] = 0; [VHGNDptr] = 0; [VHGNDplayerstep] = 0;")
+        and "VHGNDhalfdepthroots = 128;" in ground
+        and all(token in depth_root_build for token in (
+            "[VHGNDdepthrootblock] = 0; [VHGNDdepthrootq] = 0;",
+            "[VHGNDdepthrootnext] = 1; [VHGNDdepthrootshift] = 0;",
+            "A = [VHGNDdepthrootblock]; A < 5;",
+            "? A < [VHGNDdepthrootnext] -> VHGND terrain half depth root pack;",
+            "[VHGNDdepthrootq]+; C = [VHGNDdepthrootq]; C + 1; C '* C;",
+            "A = [VHGNDdepthrootq]; C = [VHGNDdepthrootshift]; A < C;",
+            "C = VHGNDhalfdepthroots; C + [VHGNDdepthrootp];",
+            "? A >= 128 -> VHGND terrain half depth roots ready;",
+            "[VHGNDdepthrootready] = 1;",
+        ))
+        and all(call not in depth_root_build for call in (
+            "=> SU rnd;", "=> VHGND render random;", "=> FMul;", "=> FSqrt;",
+        ))
+        and all(token in depth for token in (
+            "A = [VHGNDdepthrootready]; ? A = 0 -> VHGND tile depth root setup;",
+            "A = [VHGNDdepthn]; ? A < 64 -> VHGND tile depth root setup;",
+            "? A '>= 16384 -> VHGND tile depth root setup;",
+            "C = A; A > 7; A + VHGNDhalfdepthroots; D = [A];",
+            "A = C; A > 5; A & 3; A < 3; C = A; A = D; A > C; A & 255;",
+            "[VHGNDdepthlo] = A; C = A; C + 1; C '* C;",
+            "A = [VHGNDdepthlo]; C = A; C + 1; C '* C;",
+            "A = [VHGNDdepthn]; ? A < C -> VHGND tile depth half terminal;",
+            "A | 1; [VHGNDdepthmid] = A; [VHGNDdepthstep] = 0;",
+            "-> VHGND tile depth root result;",
+        ))
+        and depth.count("? A < C -> VHGND tile depth half terminal;") == 2
+        and depth.count("[VHGNDdepthlo]+;") == 2,
+        "half-KiB terrain roots use at most two exact corrections",
     )
     check(
         "A = [VHGNDh1]; A + [VHGNDseed]; A | 3; [SUfseed] = A;" in shade
