@@ -11164,7 +11164,12 @@
 	  presented frame cannot represent the alternating three/four-frame gaps
 	  between 18.206-Hz ticks and leaves a visible catch-up step on every short
 	  gap.  Airborne capsule poses participate even though VHGlanded remains
-	  clear during descent and recovery. )
+	  clear during descent and recovery.  Frozen renderer comparisons pin the
+	  current authoritative pose instead of inheriting a host-speed-dependent
+	  residual phase. )
+	A = [VHGsentinelfreeze]; ? A = 0 -> VHG interpolation advance live;
+	[VHGinterpacc] = VHGSIMDEN; -> VHG interpolation advance done;
+    "VHG interpolation advance live"
 	A = [VHGfast]; ? A = 0 -> VHG interpolation advance done;
 	A = [VHGmode]; ? A = 0 -> VHG interpolation advance eligible;
 	A = [VHGlanded]; ? A != 0 -> VHG interpolation advance eligible;

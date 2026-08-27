@@ -2845,7 +2845,8 @@
 	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped cache second select;
 	A = VHGNDvcstamp; A + [VHGNDh1]; C = [A];
 	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
-	A = VHGNDvcvisible; A + [VHGNDh1]; A = [A]; ? A = 0 -> VHGND terrain mapped generic;
+	A = VHGNDvcvisible; A + [VHGNDh1]; A = [A];
+	? A = 0 -> VHGND terrain mapped cache first behind;
 	A = [VHGNDh1]; A + 1; D = A; -> VHGND terrain mapped cache middle;
     "VHGND terrain mapped cache second select"
 	A = [VHGNDvcpairready]; ? A = 0 -> VHGND terrain mapped cache second;
@@ -2878,7 +2879,8 @@
 	A = [VHGNDh1]; A + 1; D = A;
 	A = VHGNDvcstamp; A + D; C = [A];
 	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
-	A = VHGNDvcvisible; A + D; A = [A]; ? A = 0 -> VHGND terrain mapped generic;
+	A = VHGNDvcvisible; A + D; A = [A];
+	? A = 0 -> VHGND terrain mapped cache second behind;
 	A = [VHGNDh1]; A + 201; D = A;
     "VHGND terrain mapped cache middle"
 	A = VHGNDvcstamp; A + D; C = [A];
@@ -2889,6 +2891,80 @@
 	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
 	A = VHGNDvcvisible; A + D; A = [A]; ? A = 0 -> VHGND terrain mapped generic;
 	-> VHGND terrain mapped load begin;
+
+    "VHGND terrain mapped cache first behind"
+	A = [VHGNDh1]; A + 1; D = A;
+	A = VHGNDvcstamp; A + D; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
+	A = VHGNDvcvisible; A + D; A = [A];
+	? A != 0 -> VHGND terrain mapped behind partial;
+	A = [VHGNDh1]; A + 200; D = A;
+	-> VHGND terrain mapped behind last;
+    "VHGND terrain mapped cache second behind"
+	A = [VHGNDh1]; A + 201; D = A;
+	A = VHGNDvcstamp; A + D; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
+	A = VHGNDvcvisible; A + D; A = [A];
+	? A != 0 -> VHGND terrain mapped behind partial;
+	A = [VHGNDh1]; A + 200; D = A;
+    "VHGND terrain mapped behind last"
+	A = VHGNDvcstamp; A + D; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
+	A = VHGNDvcvisible; A + D; A = [A];
+	? A != 0 -> VHGND terrain mapped behind partial;
+	( Polymap first materializes the complete raw triangle even when its near-plane
+	  rotation rejects every vertex.  Preserve those shared input carriers and
+	  the terrain input-ready state while bypassing only the proven-dead rotation. )
+	A = [VHGNDinputready]; ? A != 0 -> VHGND terrain mapped behind input ready;
+	=> VHGND terrain remaining input;
+    "VHGND terrain mapped behind input ready"
+	( Restore the exact rotated carrier arrays and visibility bytes left by
+	  polymap's all-behind path.  Later exact-camera terrain entries may bypass
+	  rotation themselves, so these shared mapper slots remain observable even
+	  though this triangle emits no projected vertex or pixel. )
+	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped behind second payload;
+	D = [VHGNDh1]; -> VHGND terrain mapped behind first payload ready;
+    "VHGND terrain mapped behind second payload"
+	D = [VHGNDh1]; D + 1;
+    "VHGND terrain mapped behind first payload ready"
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 64] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 65] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 72] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 73] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 80] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 81] = C;
+	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped behind second middle;
+	D + 1; -> VHGND terrain mapped behind middle ready;
+    "VHGND terrain mapped behind second middle"
+	D + 200;
+    "VHGND terrain mapped behind middle ready"
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 66] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 67] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 74] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 75] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 82] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 83] = C;
+	D = [VHGNDh1]; D + 200;
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 68] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 69] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 76] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 77] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 84] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 85] = C;
+	[fw plus 510] = [fw plus 508]; [fw plus 511] = [fw plus 509];
+	[fw plus 518] = [fw plus 516]; [fw plus 519] = [fw plus 517];
+	[fw plus 526] = [fw plus 524]; [fw plus 527] = [fw plus 525];
+	[fw plus 70] = [fw plus 68]; [fw plus 71] = [fw plus 69];
+	[fw plus 78] = [fw plus 76]; [fw plus 79] = [fw plus 77];
+	[fw plus 86] = [fw plus 84]; [fw plus 87] = [fw plus 85];
+	[rwf] = 0; [rwf plus 1] = 0; [rwf plus 2] = 0; [rwf plus 3] = 0;
+	[PGFi] = FSRZF plus 2; [PGFj] = FSRZF plus 3;
+	[PJgate] = 1; [PJmode] = 1; [PJdx] = 3; [PJnrv] = 4; [PJvr] = 4;
+	[PJdoflag] = 0; [PJpreproject] = 0; [SPterrain] = 0;
+	end;
+    "VHGND terrain mapped behind partial"
+	-> VHGND terrain mapped generic;
+
     "VHGND terrain mapped ensure begin"
 	A = [VHGNDinputready]; ? A != 0 -> VHGND terrain mapped ensure input ready;
 	=> VHGND terrain remaining input;
@@ -2902,7 +2978,11 @@
     "VHGND terrain mapped front"
 	=> VHGND terrain vertex index;
 	A = VHGNDvcvisible; A + [VHGNDvcindex]; A = [A];
-	? A = 0 -> VHGND terrain mapped generic;
+	? A != 0 -> VHGND terrain mapped front visible;
+	A = [VHGNDvi]; ? A != 0 -> VHGND terrain mapped generic;
+	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped cache second behind;
+	-> VHGND terrain mapped cache first behind;
+    "VHGND terrain mapped front visible"
 	[VHGNDvi]+; A = [VHGNDvi]; ? A < 3 -> VHGND terrain mapped front;
 
 	"VHGND terrain mapped load begin"

@@ -1947,6 +1947,11 @@ def main() -> int:
         '"VHGND terrain mapped cache second select"',
         '"VHGND terrain mapped cache second"',
     )
+    terrain_behind = section(
+        terrain_mapped,
+        '"VHGND terrain mapped cache first behind"',
+        '"VHGND terrain mapped ensure begin"',
+    )
     terrain_first_load = section(
         terrain_mapped,
         '"VHGND terrain mapped load begin"',
@@ -2044,6 +2049,16 @@ def main() -> int:
         for first in ((
             vertex_words(h1), vertex_words(h1 + 1), vertex_words(h1 + 200)
         ),)
+    )
+    terrain_behind_cache_copies_exact = all(
+        f"A = {source}; A + D; C = [A]; [fw plus {destination + slot * 2}] = C;"
+        in terrain_behind
+        for source, destination in (
+            ("VHGNDvcrx0", 64), ("VHGNDvcrx1", 65),
+            ("VHGNDvcry0", 72), ("VHGNDvcry1", 73),
+            ("VHGNDvcrz0", 80), ("VHGNDvcrz1", 81),
+        )
+        for slot in range(3)
     )
     terrain_first_load_copies_exact = all(
         f"A = {source}; A + D; C = [A]; [{destination}] = C;"
@@ -2586,6 +2601,51 @@ def main() -> int:
         and terrain_pair_indices_exact
         and terrain_pair_layout_exact,
         "paired terrain triangles hand exact shared vertex slots to the second mapper",
+    )
+    check(
+        terrain_mapped.count(
+            "? A = 0 -> VHGND terrain mapped cache first behind;"
+        ) == 1
+        and terrain_mapped.count(
+            "? A = 0 -> VHGND terrain mapped cache second behind;"
+        ) == 1
+        and terrain_behind.count(
+            "A = VHGNDvcstamp; A + D; C = [A];"
+        ) == 3
+        and terrain_behind.count(
+            "A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;"
+        ) == 3
+        and terrain_behind.count(
+            "A = VHGNDvcvisible; A + D; A = [A];"
+        ) == 3
+        and terrain_behind.count(
+            "? A != 0 -> VHGND terrain mapped behind partial;"
+        ) == 3
+        and terrain_behind_cache_copies_exact
+        and contains_in_order(terrain_behind, (
+            "A = [VHGNDinputready]; ? A != 0 -> VHGND terrain mapped behind input ready;",
+            "=> VHGND terrain remaining input;",
+            '"VHGND terrain mapped behind input ready"',
+            "A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped behind second payload;",
+            "[fw plus 510] = [fw plus 508]; [fw plus 511] = [fw plus 509];",
+            "[fw plus 518] = [fw plus 516]; [fw plus 519] = [fw plus 517];",
+            "[fw plus 526] = [fw plus 524]; [fw plus 527] = [fw plus 525];",
+            "[fw plus 70] = [fw plus 68]; [fw plus 71] = [fw plus 69];",
+            "[fw plus 78] = [fw plus 76]; [fw plus 79] = [fw plus 77];",
+            "[fw plus 86] = [fw plus 84]; [fw plus 87] = [fw plus 85];",
+            "[rwf] = 0; [rwf plus 1] = 0; [rwf plus 2] = 0; [rwf plus 3] = 0;",
+            "[PGFi] = FSRZF plus 2; [PGFj] = FSRZF plus 3;",
+            "[PJgate] = 1; [PJmode] = 1; [PJdx] = 3; [PJnrv] = 4; [PJvr] = 4;",
+            "[PJdoflag] = 0; [PJpreproject] = 0; [SPterrain] = 0;",
+            "end;",
+            '"VHGND terrain mapped behind partial"',
+            "-> VHGND terrain mapped generic;",
+        ))
+        and "=> PG polymap;" not in terrain_behind
+        and all(token not in ground and token not in game for token in (
+            "VHGNDbehind", "vhgbehind", "game-behind-cull-out.bin",
+        )),
+        "exact cached all-behind terrain skips only dead polymap work and restores shared state",
     )
     check(
         "VHGNDvcfacing = 80000;" in ground
@@ -3231,6 +3291,9 @@ def main() -> int:
         game, '"VHG capsule trace option"', '"VHG profile option"'
     )
     cadence = section(game, '"VHG cadence"', '"VHG timing step"')
+    interpolation_advance = section(
+        game, '"VHG interpolation advance"', '"VHG interpolation apply"'
+    )
     sentinel_schedule = section(
         game, "[VHGsentframes]+;", "( Surface input samples"
     )
@@ -3290,6 +3353,13 @@ def main() -> int:
             "A = [VHGsentinelfreeze]; ? A = 0 -> VHG cadence unfrozen;",
             "[VHGdosim] = 0;",
         ))
+        and contains_in_order(interpolation_advance, (
+            "A = [VHGsentinelfreeze]; ? A = 0 -> VHG interpolation advance live;",
+            "[VHGinterpacc] = VHGSIMDEN; -> VHG interpolation advance done;",
+            '"VHG interpolation advance live"',
+            "A = [VHGfast]; ? A = 0 -> VHG interpolation advance done;",
+        ))
+        and interpolation_advance.count("[VHGinterpacc] = VHGSIMDEN;") == 1
         and "[VHGframe] = 0; [VHGfreezebrtl] = [brtlseed]; [VHGfreezesuf] = [SUfseed];" in game
         and "[brtlseed] = [VHGfreezebrtl]; [SUfseed] = [VHGfreezesuf];" in game
         and 'A = [VHGsentinelfreeze]; ? A != 0 -> VHG render live;' in game
