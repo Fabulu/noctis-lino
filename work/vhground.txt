@@ -100,6 +100,14 @@
 	VHGNDtreeleafx = 0; VHGNDtreeleafz = 0;
 	VHGNDtreelevel = 0; VHGNDtreelayers = 0; VHGNDtreeisroot = 0; VHGNDtreeocc = 0;
 	VHGNDtreefloat = 0;
+	( Conservative cached-leaf camera-depth envelope. )
+	VHGNDleafcullframeok = 0; VHGNDleafcullret = 0;
+	VHGNDleafcullaxz0 = 0; VHGNDleafcullaxz1 = 0;
+	VHGNDleafcullay0 = 0; VHGNDleafcullay1 = 0;
+	VHGNDleafcullpad0 = 0; VHGNDleafcullpad1 = 0;
+	VHGNDleafcullmush0 = 0; VHGNDleafcullmush1 = 0;
+	VHGNDleafcullsupport0 = 0; VHGNDleafcullsupport1 = 0;
+	VHGNDleafcullwork0 = 0; VHGNDleafcullwork1 = 0;
 	VHTkind = 0;
 	VHTforks = 0;
 	VHTpeak = 0;
@@ -2601,6 +2609,7 @@
     "VHGND water render done"
 	=> VHGND terrain cache frame;
 	=> VHGND object view setup;
+	=> VHGND cached leaf cull frame;
 	=> VHGND fauna tiles build;
 	=> VHGND tree cache frame;
 	[VHGNDanimorphs] = 0; [VHGNDgroundbirds] = 0;
@@ -6154,6 +6163,23 @@
     "VHGND tree cache replay leaf"
 	A = [C plus 5]; [VHGNDtreeleafx] = A; A = [C plus 6]; [VHGNDtreeleafz] = A;
 	A = [C plus 7]; [VHGNDtreeleafdrop] = A; A = [C plus 9]; [VHGNDtreerangef] = A;
+	=> VHGND cached leaf near cull;
+	? A = 0 -> VHGND tree cache replay leaf render;
+	( The rejected record executes no painter or RNG work.  Leave the public
+	  renderer controls at the same terminal values as an all-behind leaf fan;
+	  the common epilogue below restores the exact recorded post-RNG seed. )
+	[SPterrain] = 0; [SPmapfast] = 0; [SPpixfast] = 0; [SPtrifast] = 0;
+	[SPsrc] = 1; [SPflar] = 0; [PGtexoff] = 0; [PGtexf] = 0;
+	[VHGNDtreefloat] = 1; [VHGNDmushfloat] = 0; [VHGNDvi] = 0;
+	[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3; [VHGNDmushscale] = 1023;
+	[VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31;
+	[VHGNDmushouter] = 0; [VHGNDmushinner] = 0; [SUfmask] = 1023;
+	[PJnrv] = 1; [PJmode] = 1; [PJvr] = 0; [PJdx] = 3; [PJdoflag] = 0;
+	A = rwf; [A] = 0; [GCret] = 0; [PJgate] = 0; [PJpreproject] = 0; [PJleaftrace] = 0;
+	[VHGNDtreeside] = 0; A = [VHGNDtreefaces]; ? A <= 0 -> VHGND tree cache replay record done;
+	[VHGNDtreeside] = A; A-; A '* [VHTfacestep]; A + [VHTfacebase]; [SPtinta] = A;
+	-> VHGND tree cache replay record done;
+    "VHGND tree cache replay leaf render"
 	=> VHGND tree leaves;
     "VHGND tree cache replay record done"
 	C = [VHGNDtreecacherecordp]; A = [C plus 15]; [SUfseed] = A;
@@ -6163,6 +6189,102 @@
 	A = [VHGNDtreecachecopy]; ? A = 0 -> VHGND tree cache replay return;
 	=> VHGND tree cache publish payload;
     "VHGND tree cache replay return"
+	end;
+
+"VHGND cached leaf cull frame"
+	( Camera-depth support is |cos(alpha)|*(|sin(beta)|+|cos(beta)|)
+	  horizontally and |sin(alpha)| vertically.  Any nonfinite camera state
+	  disables the optimization for the complete presentation. )
+	[VHGNDleafcullframeok] = 0;
+	A = [fw plus 429]; A & 7FF00000h; ? A = 7FF00000h -> VHGND cached leaf cull frame done;
+	A = [fw plus 431]; A & 7FF00000h; ? A = 7FF00000h -> VHGND cached leaf cull frame done;
+	A = [fw plus 437]; A & 7FF00000h; ? A = 7FF00000h -> VHGND cached leaf cull frame done;
+	A = [fw plus 439]; A & 7FF00000h; ? A = 7FF00000h -> VHGND cached leaf cull frame done;
+	A = [fw plus 449]; A & 7FF00000h; ? A = 7FF00000h -> VHGND cached leaf cull frame done;
+	A = [fw plus 451]; A & 7FF00000h; ? A = 7FF00000h -> VHGND cached leaf cull frame done;
+	A = [fw plus 453]; A & 7FF00000h; ? A = 7FF00000h -> VHGND cached leaf cull frame done;
+	A = [fw plus 55]; A & 7FF00000h; ? A = 7FF00000h -> VHGND cached leaf cull frame done;
+	[FI] = 32; => PGF fromint;
+	[VHGNDleafcullpad0] = [FA0]; [VHGNDleafcullpad1] = [FA1];
+	[FI] = 1056; => PGF fromint;
+	[VHGNDleafcullmush0] = [FA0]; [VHGNDleafcullmush1] = [FA1];
+	[FA0] = [fw plus 430]; [FA1] = [fw plus 431]; A = [FA1]; A & 7FFFFFFFh; [FA1] = A;
+	[FB0] = [fw plus 428]; [FB1] = [fw plus 429]; A = [FB1]; A & 7FFFFFFFh; [FB1] = A;
+	[FA0] +: [FB0];
+	[FB0] = [fw plus 436]; [FB1] = [fw plus 437]; A = [FB1]; A & 7FFFFFFFh; [FB1] = A;
+	[FA0] *: [FB0]; [VHGNDleafcullaxz0] = [FA0]; [VHGNDleafcullaxz1] = [FA1];
+	[FA0] = [fw plus 438]; [FA1] = [fw plus 439]; A = [FA1]; A & 7FFFFFFFh; [FA1] = A;
+	[VHGNDleafcullay0] = [FA0]; [VHGNDleafcullay1] = [FA1];
+	[FB0] = [VHGNDleafcullaxz0]; [FB1] = [VHGNDleafcullaxz1]; [FA0] +: [FB0];
+	[FB0] = [VHGNDleafcullmush0]; [FB1] = [VHGNDleafcullmush1]; [FA0] *: [FB0];
+	[FB0] = [VHGNDleafcullpad0]; [FB1] = [VHGNDleafcullpad1]; [FA0] +: [FB0];
+	[VHGNDleafcullsupport0] = [FA0]; [VHGNDleafcullsupport1] = [FA1];
+	[VHGNDleafcullframeok] = 1;
+    "VHGND cached leaf cull frame done"
+	end;
+
+"VHGND cached leaf near cull"
+	( A leaf record is discarded only when both conservative upper depth bounds
+	  are strictly behind FSUNEG.  The tip envelope includes full wind, range,
+	  binary32 slack and every possible 1023-mask greenmush displacement. )
+	[VHGNDleafcullret] = 0;
+	A = [VHGNDleafcullframeok]; ? A = 0 -> VHGND cached leaf near cull done;
+	C = [VHGNDtreecacherecordp];
+	A = [C plus 2]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+	A = [C plus 3]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+	A = [C plus 4]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+	A = [C plus 5]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+	A = [C plus 6]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+	A = [C plus 7]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+	A = [C plus 8]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+	A = [C plus 9]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+	A = [VHGNDtreewindx]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+	A = [VHGNDtreewindz]; A & 7F800000h; ? A = 7F800000h -> VHGND cached leaf near cull done;
+
+	( Rotate the unshifted tip centre with the mapped-face nucleus. )
+	C = [VHGNDtreecacherecordp]; [FS0] = [C plus 5]; => FLoadF32;
+	[fw plus 504] = [FA0]; [fw plus 505] = [FA1];
+	C = [VHGNDtreecacherecordp]; [FS0] = [C plus 7]; => FLoadF32;
+	[fw plus 512] = [FA0]; [fw plus 513] = [FA1];
+	C = [VHGNDtreecacherecordp]; [FS0] = [C plus 6]; => FLoadF32;
+	[fw plus 520] = [FA0]; [fw plus 521] = [FA1];
+	[PJnrv] = 1; => PJ rotate fixed map;
+	C = [VHGNDtreecacherecordp]; [FS0] = [C plus 9]; => FLoadF32;
+	A = [FA1]; A & 7FFFFFFFh; [FA1] = A;
+	[VHGNDleafcullwork0] = [FA0]; [VHGNDleafcullwork1] = [FA1];
+	[FS0] = [VHGNDtreewindx]; => FLoadF32; A = [FA1]; A & 7FFFFFFFh; [FA1] = A;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHGNDleafcullwork0]; [FA1] = [VHGNDleafcullwork1]; [FA0] +: [FB0];
+	[VHGNDleafcullwork0] = [FA0]; [VHGNDleafcullwork1] = [FA1];
+	[FS0] = [VHGNDtreewindz]; => FLoadF32; A = [FA1]; A & 7FFFFFFFh; [FA1] = A;
+	[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHGNDleafcullwork0]; [FA1] = [VHGNDleafcullwork1]; [FA0] +: [FB0];
+	[FB0] = [VHGNDleafcullpad0]; [FB1] = [VHGNDleafcullpad1]; [FA0] +: [FB0];
+	[FB0] = [VHGNDleafcullaxz0]; [FB1] = [VHGNDleafcullaxz1]; [FA0] *: [FB0];
+	[FB0] = [VHGNDleafcullsupport0]; [FB1] = [VHGNDleafcullsupport1]; [FA0] +: [FB0];
+	[FB0] = [fw plus 80]; [FB1] = [fw plus 81]; [FA0] +: [FB0];
+	[FB0] = [fw plus 54]; [FB1] = [fw plus 55]; => FCmp;
+	A = [FI]; ? A = 2 -> VHGND cached leaf near cull done;
+	? A >= 0 -> VHGND cached leaf near cull done;
+
+	( The base vertices stay in the C+8 horizontal polar ring. )
+	C = [VHGNDtreecacherecordp]; [FS0] = [C plus 2]; => FLoadF32;
+	[fw plus 504] = [FA0]; [fw plus 505] = [FA1];
+	C = [VHGNDtreecacherecordp]; [FS0] = [C plus 3]; => FLoadF32;
+	[fw plus 512] = [FA0]; [fw plus 513] = [FA1];
+	C = [VHGNDtreecacherecordp]; [FS0] = [C plus 4]; => FLoadF32;
+	[fw plus 520] = [FA0]; [fw plus 521] = [FA1];
+	[PJnrv] = 1; => PJ rotate fixed map;
+	C = [VHGNDtreecacherecordp]; [FS0] = [C plus 8]; => FLoadF32;
+	A = [FA1]; A & 7FFFFFFFh; [FA1] = A;
+	[FB0] = [VHGNDleafcullpad0]; [FB1] = [VHGNDleafcullpad1]; [FA0] +: [FB0];
+	[FB0] = [VHGNDleafcullaxz0]; [FB1] = [VHGNDleafcullaxz1]; [FA0] *: [FB0];
+	[FB0] = [VHGNDleafcullpad0]; [FB1] = [VHGNDleafcullpad1]; [FA0] +: [FB0];
+	[FB0] = [fw plus 80]; [FB1] = [fw plus 81]; [FA0] +: [FB0];
+	[FB0] = [fw plus 54]; [FB1] = [fw plus 55]; => FCmp;
+	A = [FI]; ? A = 2 -> VHGND cached leaf near cull done;
+	? A >= 0 -> VHGND cached leaf near cull done;
+	[VHGNDleafcullret] = 1;
+    "VHGND cached leaf near cull done"
+	A = [VHGNDleafcullret];
 	end;
 
 "VHGND tree cache begin"

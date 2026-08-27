@@ -5150,6 +5150,12 @@ def main() -> int:
     tree_cache_replay = section(
         tree_cache, '"VHGND tree cache replay"', '"VHGND tree cache begin"'
     )
+    leaf_cull_frame = section(
+        tree_cache, '"VHGND cached leaf cull frame"', '"VHGND cached leaf near cull"'
+    )
+    leaf_cull = section(
+        tree_cache, '"VHGND cached leaf near cull"', '"VHGND tree cache begin"'
+    )
     tree_cache_records = section(
         tree_cache, '"VHGND tree cache begin"', '"VHGND tree cache publish"'
     )
@@ -5465,6 +5471,47 @@ def main() -> int:
         ))
         and "tree cache" not in bush,
         "configured tall trees cache exact ordered draw commands with atomic fallback and RNG replay",
+    )
+    check(
+        "=> VHGND cached leaf cull frame;" in ground
+        and contains_in_order(tree_cache_replay, (
+            '"VHGND tree cache replay leaf"',
+            "A = [C plus 7]; [VHGNDtreeleafdrop] = A; A = [C plus 9]; [VHGNDtreerangef] = A;",
+            "=> VHGND cached leaf near cull;",
+            "? A = 0 -> VHGND tree cache replay leaf render;",
+            "[SPterrain] = 0; [SPmapfast] = 0; [SPpixfast] = 0; [SPtrifast] = 0;",
+            "[VHGNDmushouter] = 0; [VHGNDmushinner] = 0; [SUfmask] = 1023;",
+            "[PJnrv] = 1; [PJmode] = 1; [PJvr] = 0; [PJdx] = 3; [PJdoflag] = 0;",
+            "-> VHGND tree cache replay record done;",
+            '"VHGND tree cache replay leaf render"',
+            "=> VHGND tree leaves;",
+            '"VHGND tree cache replay record done"',
+            "A = [C plus 15]; [SUfseed] = A;",
+        ))
+        and all(token in leaf_cull_frame for token in (
+            "A = [fw plus 429]; A & 7FF00000h;",
+            "A = [fw plus 55]; A & 7FF00000h;",
+            "[FI] = 32; => PGF fromint;",
+            "[FI] = 1056; => PGF fromint;",
+            "[FA0] +: [FB0];",
+            "[FA0] *: [FB0];",
+            "[VHGNDleafcullframeok] = 1;",
+        ))
+        and all(token in leaf_cull for token in (
+            "A = [VHGNDleafcullframeok]; ? A = 0 -> VHGND cached leaf near cull done;",
+            "A = [C plus 2]; A & 7F800000h;",
+            "A = [C plus 9]; A & 7F800000h;",
+            "A = [VHGNDtreewindx]; A & 7F800000h;",
+            "A = [VHGNDtreewindz]; A & 7F800000h;",
+            "[FB0] = [VHGNDleafcullsupport0]; [FB1] = [VHGNDleafcullsupport1]; [FA0] +: [FB0];",
+            "[VHGNDleafcullret] = 1;",
+        ))
+        and leaf_cull.count("[PJnrv] = 1; => PJ rotate fixed map;") == 2
+        and leaf_cull.count("[FB0] = [fw plus 54]; [FB1] = [fw plus 55]; => FCmp;") == 2
+        and leaf_cull.count("? A >= 0 -> VHGND cached leaf near cull done;") == 2
+        and "Timer Command" not in leaf_cull_frame
+        and "Timer Command" not in leaf_cull,
+        "cached leaf replay rejects only conservative all-behind fan and greenmush envelopes",
     )
     check(
         "if (y > -15000)" in original1
