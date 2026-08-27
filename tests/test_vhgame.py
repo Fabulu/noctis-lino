@@ -1084,10 +1084,93 @@ def main() -> int:
         and "[PGFi]" not in uv_float,
         "live texture spans preserve the exact fixed-slot arithmetic and spill schedule",
     )
+    merger7_dispatch = section(pgtex, '"PG row mode"', '"PG px terrain begin"')
+    merger7_generic = section(pgtex, '"PG px merger7 begin"', '"PG px merger7 zero begin"')
+    merger7_zero = section(pgtex, '"PG px merger7 zero begin"', '"PG px merger7 tail"')
+    merger7_tail = section(pgtex, '"PG px merger7 tail"', '"PG px merger"')
+    cupola_merger = section(cupola, '"VHC draw textured panel"', '"VHC draw panel done"')
+
+    def merger7_pair_visits(count: int) -> list[int]:
+        visited: list[int] = []
+        position = 0
+        if count & 1:
+            visited.append(position)
+            position += 1
+        while position < count:
+            visited.extend((position, position + 1))
+            position += 2
+        return visited
+
+    merger7_zero_formula_exact = all(
+        ((old & 192) | ((((old & 63) + 0) & 255) >> 1))
+        == ((old & 192) | ((old & 63) >> 1))
+        for old in range(256)
+    )
+    check(
+        contains_in_order(merger7_dispatch, (
+            '"PG px merger select"',
+            "A = [PGtexf]; ? A = 7 -> PG px merger7 begin;",
+            "-> PG px merger;",
+        ))
+        and "A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A; [PGm7n] = [SPcl];" in merger7_generic
+        and "A = [SPtinta]; ? A = 0 -> PG px merger7 zero begin;" in merger7_generic
+        and "B = [PGSCRT plus PGDOFF plus SADPT plus nw]; B & 255;" in merger7_generic
+        and "E + B; E & 255; E > 1;" in merger7_generic
+        and "PGSCRT" not in merger7_zero
+        and "A = [SPcl]; A & 1; ? A = 0 -> PG px merger7 zero pair begin;" in merger7_zero
+        and merger7_zero.count("D = [A]; D & 255; E = D; E & 63; E > 1;") == 3
+        and "C = [SPdi]; C + 2; C & 65535; [SPdi] = C;" in merger7_zero
+        and "C = [SPcl]; C - 2; [SPcl] = C;" in merger7_zero
+        and all(merger7_pair_visits(count) == list(range(count)) for count in range(1, 17))
+        and merger7_zero_formula_exact
+        and 190 * 320 + 311 + 3 < 63996
+        and contains_in_order(merger7_tail, (
+            "B = [PGm7n]; B-;",
+            "[PGtexi] = A; [PGtmp] = A; [PGtexv] = 0;",
+            "C + [SPbp]; C & 65535; [SPax] = C;",
+            "D + [SPsi]; D & 65535; [SPdx] = D;",
+            "A = [SPdi]; A + 3; A & 65535; [SPt] = A; [PGdi] = A;",
+            "A + SADPT plus nw; D = [A]; D & 255; [SPch] = D; [PGval] = D;",
+            "-> PG row;",
+        ))
+        and contains_in_order(cupola_merger, (
+            "[PGtexf] = 7; [SPtinta] = 0; [SPescr] = 0; [SPflar] = 4;",
+            "[SPcull] = 0; [SPhalf] = 0; => PG polymap;",
+            "[PGtexf] = 0; [SPflar] = 0;",
+        )),
+        "live zero-TEX7 merger keeps generic scratch semantics and exact paired pixel order",
+    )
     terrain_pixel = section(pgtex, '"PG px terrain begin"', '"PG px internal"')
     terrain_cpixel = section(pgtex, '"PG cpx terrain begin"', '"PG cpx internal"')
+    tex5_row = section(pgtex, '"PG tex5 row"', '"PG row"')
     terrain_row_control = section(pgtex, '"PG row"', '"PG px terrain begin"')
     terrain_crow_control = section(pgtex, '"PG crow"', '"PG cpx terrain begin"')
+    tree_plain_dispatch = (
+        "A = [SPterrain]; ? A != 0 -> PG px terrain begin;",
+        "A = [SPflar]; A & 15;",
+        "? A != 0 -> PG row mode;",
+        "A = [SPpixfast]; ? A = 0 -> PG px internal;",
+        "A = [PGtexf]; ? A = 5 -> PG px terrain begin;",
+        "-> PG px internal;",
+        '"PG row mode"',
+        "A = [SPflar]; A & 1;  ? A != 0 -> PG px transp;",
+    )
+    tex5_row_schedule = (
+        "? [SPsec] <= 0 -> PG row end;",
+        "A = [SPsec]; ? A > 16 -> PG tex5 row full;",
+        "[SPcl] = A;",
+        "-> PG tex5 row ready;",
+        '"PG tex5 row full"',
+        "[SPcl] = 16;",
+        '"PG tex5 row ready"',
+        "A = [SPsec]; A - 16; [SPsec] = A;",
+        "=> PG uv float;",
+        "C = [SPv]; A = C; A & 65535; [SPdx] = A;",
+        "D = [SPvn]; A = D; A - C; A >> 4; A & 65535; [SPsi] = A; [SPv] = D;",
+        "C = [SPu]; A = C; A & 65535; [SPax] = A;",
+        "D = [SPun]; A = D; A - C; A >> 4; A & 65535; [SPbp] = A; [SPu] = D;",
+        "-> PG px terrain begin;",
+    )
     retained_uv_setup = (
         "C = [SPv]; A = C; A & 65535; [SPdx] = A;\n"
         "\tD = [SPvn]; A = D; A - C; A >> 4; A & 65535; [SPsi] = A; [SPv] = D;\n"
@@ -1181,6 +1264,19 @@ def main() -> int:
         and "A = [SPcl]; A + A; C = [CSpix]; A + C; [CSpix] = A;" in terrain_cpixel
         and "[SPcl] = 16;" in terrain_row_control
         and "A = [SPcl]; ? A = 0 -> PG row;" in terrain_row_control
+        and contains_in_order(terrain_row_control, tree_plain_dispatch)
+        and contains_in_order(tex5_row, tex5_row_schedule)
+        and "=> PG uv next;" not in tex5_row
+        and "[SPsrc]" not in tex5_row
+        and "[SPterrain]" not in tex5_row
+        and "[SPflar]" not in tex5_row
+        and "[SPpixfast]" not in tex5_row
+        and "[PGtexf]" not in tex5_row
+        and "A & 255; [SPcl] = A;" not in tex5_row
+        and "A = [SPcl]; ? A = 0 -> PG row;" not in tex5_row
+        and "-> PG tex5 row;" in terrain_pixel
+        and "[SPpixfast]" not in terrain_crow_control
+        and "[PGtexf]" not in terrain_crow_control
         and "[SPcl] = 32;" in terrain_crow_control
         and "A > 1; [SPcl] = A;" in terrain_crow_control
         and retained_uv_setup in terrain_row_control
@@ -1217,12 +1313,8 @@ def main() -> int:
         and "D = B; D & 65280;" in terrain_cpixel
         and "E = C; E > 8; D | E;" in terrain_pixel
         and "E = C; E > 8; D | E;" in terrain_cpixel
-        and terrain_pixel.count(
-            "D + [PGtexoff]; D + RPBG plus nw; E = [D];"
-        ) == 3
-        and terrain_cpixel.count(
-            "D + [PGtexoff]; D + RPBG plus nw; E = [D];"
-        ) == 3
+        and terrain_pixel.count("D + [PGtexoff]; D + RPBG plus nw; E = [D];") == 3
+        and terrain_cpixel.count("D + [PGtexoff]; D + RPBG plus nw; E = [D];") == 3
         and terrain_pixel.count("E = [D]; E & 255;") == 1
         and terrain_cpixel.count("E = [D]; E & 255;") == 1
         and terrain_pixel.count("E + [SPtinta]; E & 255;") == 3
@@ -1257,9 +1349,27 @@ def main() -> int:
         "faithful terrain blocks use exact endpoints and folded bases while retaining pixel state",
     )
     terrain_edges = section(pgtex, '"PG ol init"', "( S5 - the span engine")
+    edge_step = section(pgtex, '"PG ew intfor"', '"PG ew next"')
     terrain_clip = section(pgproj, '"PG pm projected"', '"PG pm basis"')
     terrain_basis_entry = section(pgproj, '"PG pm basis"', '"PG pm k generic"')
     terrain_trace = section(pgproj, '"PG trace"', '"PG polymap"')
+    check(
+        contains_in_order(edge_step, (
+            "[PGFi] = FSBNDX; => PGF a;",
+            "[FI] =: [FA0];",
+            "[EWax] = [FI];",
+            "[PGFi] = FSKX; => PGF add;",
+            "A = [EWnarrow]; ? A = 0 -> PG ew wide;",
+            "=> F32Narrow;",
+            "[PGFi] = FSBNDX; => PGF sa;",
+            "[EWh]+;",
+            "[EWcx]-;",
+            "? [EWcx] != 0 -> PG ew intfor;",
+        ))
+        and edge_step.count("[PGFi] = FSBNDX; => PGF a;") == 1
+        and "=> PGF int;" not in edge_step,
+        "edge walk keeps wide bndx live through its integer-only row body",
+    )
     terrain_live_u = (
         "~: [FA0]; [fw plus 26] = [FA0]; [fw plus 27] = [FA1];\n\n"
         "\t( u from the live narrow x )\n"
@@ -1511,6 +1621,13 @@ def main() -> int:
         ground, '"VHGND cache objects"', '"VHGND animals setup"'
     )
     objects = section(ground, '"VHGND tile objects"', '"VHGND veget"')
+    object_view_setup = section(
+        ground, '"VHGND object view setup"', '"VHGND object view cull"'
+    )
+    object_view_cull = section(
+        ground, '"VHGND object view cull"', '"VHGND fauna view cull"'
+    )
+    tile_detail = section(tile, '"VHGND tile detail visible"', '"VHGND tile done"')
     rocks = section(ground, '"VHGND rock"', '"VHGND rock height"')
     check(
         '"VHGND felisian line"' in post
@@ -1542,8 +1659,43 @@ def main() -> int:
                        '"VHGND object view setup"')
     terrain_cache = section(ground, '"VHGND terrain cache frame"',
                             '"VHGND terrain vertex index"')
+    terrain_vertex_ensure = section(
+        ground,
+        '"VHGND terrain vertex ensure"',
+        '"VHGND terrain vertex load"',
+    )
+    terrain_project_one = section(
+        pgproj,
+        '"PJ terrain project one"',
+        '"PJ emit1"',
+    )
+    terrain_common = section(
+        ground,
+        '"VHGND terrain common input"',
+        '"VHGND terrain common input fallback"',
+    )
+    terrain_common_fallback = section(
+        ground,
+        '"VHGND terrain common input fallback"',
+        '"VHGND terrain remaining input"',
+    )
+    terrain_remaining = section(
+        ground,
+        '"VHGND terrain remaining input"',
+        '"VHGND terrain cache frame"',
+    )
     terrain_mapped = section(ground, '"VHGND terrain mapped"',
                              '"VHGND terrain facing"')
+    terrain_basis_hoist = section(
+        terrain_mapped,
+        "[SPterrain] = 0;",
+        '"VHGND terrain mapped cache select"',
+    )
+    terrain_basis_second = section(
+        terrain_basis_hoist,
+        '"VHGND terrain mapped basis second"',
+        '"VHGND terrain mapped cache select"',
+    )
     terrain_pair = section(
         terrain_mapped,
         '"VHGND terrain mapped cache second select"',
@@ -1570,6 +1722,56 @@ def main() -> int:
         pgproj,
         '"PJ vectors terrain"',
         '"PJ vectors terrain build"',
+    )
+    tree_basis_dispatch = section(
+        pgproj,
+        '"PJ vectors"',
+        '"PJ vectors generic"',
+    )
+    tree_basis_entry = section(
+        pgproj,
+        '"PJ vectors tree triangle"',
+        '"PJ vectors generic"',
+    )
+    three_basis_build = section(
+        pgproj,
+        '"PJ vectors three build"',
+        '"PJ vc scale"',
+    )
+    tree_rotate = section(
+        pgproj,
+        '"PJ rotate fixed map"',
+        '"PJ zemit"',
+    )
+    tree_rotate_dispatch = section(
+        pgproj,
+        '"PG pm r"',
+        '"PG pm duplicate rotated generic"',
+    )
+    leaf_front_dispatch = section(
+        pgproj,
+        '"PG pm rotated"',
+        '"PG pm clip"',
+    )
+    leaf_front_project = section(
+        pgproj,
+        '"PJ leaf front projectmap"',
+        '"PJ terrain project one"',
+    )
+    leaf_trace_control = section(
+        pgproj,
+        '"PG trace"',
+        '"PG polymap"',
+    )
+    leaf_trace_dispatch = section(
+        pgproj,
+        '"PG pm traced"',
+        '"PG pm out"',
+    )
+    tree_leaf_scope = section(
+        ground,
+        '"VHGND tree leaves"',
+        '"VHGND tree leaf tip vertex"',
     )
     terrain_basis_build = section(
         pgproj,
@@ -1601,28 +1803,28 @@ def main() -> int:
         f"A = {source}; A + D; C = [A]; [{destination}] = C;"
         in terrain_first_load
         for source, destination in (
-            ("VHGNDvcrx0", "fw plus 504"),
-            ("VHGNDvcrx1", "fw plus 505"),
-            ("VHGNDvcry0", "fw plus 512"),
-            ("VHGNDvcry1", "fw plus 513"),
-            ("VHGNDvcrz0", "fw plus 520"),
-            ("VHGNDvcrz1", "fw plus 521"),
+            ("VHGNDvcrx0", "fw plus 64"),
+            ("VHGNDvcrx1", "fw plus 65"),
+            ("VHGNDvcry0", "fw plus 72"),
+            ("VHGNDvcry1", "fw plus 73"),
+            ("VHGNDvcrz0", "fw plus 80"),
+            ("VHGNDvcrz1", "fw plus 81"),
             ("VHGNDvcpx", "mp"),
             ("VHGNDvcpy", "mp plus 1"),
-            ("VHGNDvcrx0", "fw plus 506"),
-            ("VHGNDvcrx1", "fw plus 507"),
-            ("VHGNDvcry0", "fw plus 514"),
-            ("VHGNDvcry1", "fw plus 515"),
-            ("VHGNDvcrz0", "fw plus 522"),
-            ("VHGNDvcrz1", "fw plus 523"),
+            ("VHGNDvcrx0", "fw plus 66"),
+            ("VHGNDvcrx1", "fw plus 67"),
+            ("VHGNDvcry0", "fw plus 74"),
+            ("VHGNDvcry1", "fw plus 75"),
+            ("VHGNDvcrz0", "fw plus 82"),
+            ("VHGNDvcrz1", "fw plus 83"),
             ("VHGNDvcpx", "mp plus 2"),
             ("VHGNDvcpy", "mp plus 3"),
-            ("VHGNDvcrx0", "fw plus 508"),
-            ("VHGNDvcrx1", "fw plus 509"),
-            ("VHGNDvcry0", "fw plus 516"),
-            ("VHGNDvcry1", "fw plus 517"),
-            ("VHGNDvcrz0", "fw plus 524"),
-            ("VHGNDvcrz1", "fw plus 525"),
+            ("VHGNDvcrx0", "fw plus 68"),
+            ("VHGNDvcrx1", "fw plus 69"),
+            ("VHGNDvcry0", "fw plus 76"),
+            ("VHGNDvcry1", "fw plus 77"),
+            ("VHGNDvcrz0", "fw plus 84"),
+            ("VHGNDvcrz1", "fw plus 85"),
             ("VHGNDvcpx", "mp plus 4"),
             ("VHGNDvcpy", "mp plus 5"),
         )
@@ -1789,6 +1991,37 @@ def main() -> int:
         "surface renderer hoists exact row bounds and one depth square while retaining painter order and depth-64 gates",
     )
     check(
+        all(token in pgfp for token in (
+            "FSDPP\t= 25;", "FSXC\t= 19;", "FSYC\t= 20;",
+            "FSUX\t= 48;", "FSUY\t= 56;", "FSUZ\t= 64;",
+            "FSW0\t= 248;\tFSW1\t= 249;\tFSW2\t= 250;\tFSW3\t= 251;",
+        ))
+        and contains_in_order(terrain_project_one, (
+            "[FA0] = [fw plus 50]; [FA1] = [fw plus 51];",
+            "[FA0] /: [fw plus 128];",
+            "[fw plus 502] = [FA0]; [fw plus 503] = [FA1];",
+            "[FA0] *: [fw plus 96];",
+            "[FA0] +: [fw plus 38];",
+            "[FI] =: [FA0]; [mp] = [FI];",
+            "[FA0] = [fw plus 502]; [FA1] = [fw plus 503];",
+            "[FA0] *: [fw plus 112];",
+            "[FA0] +: [fw plus 40];",
+            "[FI] =: [FA0]; [mp plus 1] = [FI];",
+        ))
+        and terrain_project_one.count("/: [fw plus 128];") == 1
+        and terrain_project_one.count("*: [fw plus") == 2
+        and terrain_project_one.count("+: [fw plus") == 2
+        and terrain_project_one.count("[FI] =: [FA0];") == 2
+        and "=> PGF" not in terrain_project_one
+        and "PJminx" not in terrain_project_one
+        and "PJmaxx" not in terrain_project_one
+        and "BXminy" not in terrain_project_one
+        and "BXmaxy" not in terrain_project_one
+        and "=> PJ terrain project one;" in terrain_vertex_ensure
+        and "=> PJ projectmap;" not in terrain_vertex_ensure,
+        "terrain cache misses project one fixed-slot vertex without discarded bounds",
+    )
+    check(
         "D = [VHGNDvi]; D + D; D + FSRXF plus FSRXF plus fw;" in vertex_load
         and vertex_load.count("D + 8;") == 2
         and "A = [VHGNDvi]; A + FSRYF;" not in vertex_load
@@ -1813,9 +2046,9 @@ def main() -> int:
         and "[PJterrainbasisbuilt] = 1;" in terrain_basis_build
         and all(token in terrain_mapped for token in (
             "[PJterrainbasisreuse] = 0; [PJterrainbasisbuilt] = 0;",
-            "A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped basis ready;",
+            "A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped cache select;",
             "A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [A];",
-            "A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped basis ready;",
+            "A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped cache select;",
             "A = [VHGNDnormindex]; A '* 18; A + VHGNDvcbasis; [PJterrainbasisp] = A;",
             "[PJterrainbasisreuse] = 1;",
             "A = [PJterrainbasisreuse]; ? A != 0 -> VHGND terrain mapped done;",
@@ -1823,6 +2056,31 @@ def main() -> int:
             "A = [VHGNDnormindex]; A '* 18; A + VHGNDvcbasis; D = A;",
             "A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [VHGNDvcgen]; [A] = C;",
         ))
+        and contains_in_order(terrain_basis_hoist, (
+            "A = [VHGNDmirror]; ? A != 0 -> VHGND terrain mapped generic;",
+            "[PJterrainbasisreuse] = 0; [PJterrainbasisbuilt] = 0;",
+            "A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped cache select;",
+            "A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [A];",
+            "A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped cache select;",
+            "A = [VHGNDnormindex]; A '* 18; A + VHGNDvcbasis; [PJterrainbasisp] = A;",
+            "[PJterrainbasisreuse] = 1;",
+            "A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped basis second;",
+            "-> VHGND terrain mapped load first;",
+        ))
+        and contains_in_order(terrain_basis_second, (
+            "A = [VHGNDvcpairready]; ? A = 0 -> VHGND terrain mapped load generic begin;",
+            "D = [VHGNDh1]; D + 201; -> VHGND terrain mapped cache second payload;",
+        ))
+        and terrain_mapped.count(
+            "A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [A];"
+        ) == 1
+        and terrain_mapped.index(
+            "A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [A];"
+        ) < terrain_mapped.index("A = VHGNDvcstamp;")
+        and terrain_mapped.index("=> VHGND terrain cached bounds;")
+        < terrain_mapped.index('"VHGND terrain mapped basis ready"')
+        and terrain_mapped.index("[PJterrainbasisreuse] = 1;")
+        < terrain_mapped.index('"VHGND terrain mapped cache select"')
         and terrain_mapped.index("[D plus 17] = [fw plus 17];")
         < terrain_mapped.index(
             "A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [VHGNDvcgen]; [A] = C;"
@@ -1841,7 +2099,7 @@ def main() -> int:
             "? D > 0 -> PG pm basis;",
         ))
         and "=> PJ vectors;" in terrain_basis_entry,
-        "exact repeated-camera terrain triangles reuse generation-stamped texture bases",
+        "generation-stamped terrain bases hoist proof ahead of vertex ladders",
     )
     check(
         terrain_first_load_copies_exact
@@ -1870,24 +2128,64 @@ def main() -> int:
         and terrain_generic_load.count("=> VHGND terrain vertex load;") == 1,
         "first terrain triangle restores exact cache words without indexed calls",
     )
+    terrain_common_skip_cases = {
+        (frame_hit, mirror, lod_step)
+        for frame_hit in (0, 1)
+        for mirror in (0, 1)
+        for lod_step in (1, 8, 16)
+        if frame_hit == 1 and mirror == 0 and lod_step == 1
+    }
+    check(
+        terrain_common_skip_cases == {(1, 0, 1)}
+        and contains_in_order(tile, (
+            "[VHGNDtilepolys] = 0; [VHGNDvcpairready] = 0;",
+            "A = [VHGNDvcframehit]; ? A = 0 -> VHGND tile common input;",
+            "A = [VHGNDmirror]; ? A != 0 -> VHGND tile common input;",
+            "A = [VHGNDlodstep]; ? A != 1 -> VHGND tile common input;",
+            "-> VHGND tile common input ready;",
+            '"VHGND tile common input"',
+            "=> VHGND terrain common input;",
+            '"VHGND tile common input ready"',
+            "[VHGNDinputready] = 0; [VHGNDvctri] = 0; => VHGND terrain facing;",
+        ))
+        and tile.count("=> VHGND terrain common input;") == 1
+        and all(token in terrain_common for token in (
+            "[VHGNDvi] = 2;",
+            "[fw plus 508] = [FA0]; [fw plus 509] = [FA1];",
+            "[fw plus 516] = [FA0]; [fw plus 517] = [FA1];",
+            "[fw plus 524] = [FA0]; [fw plus 525] = [FA1];",
+        ))
+        and contains_in_order(terrain_common_fallback, (
+            "A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain common input fallback done;",
+            "A = [VHGNDmirror]; ? A != 0 -> VHGND terrain common input fallback done;",
+            "A = [VHGNDlodstep]; ? A != 1 -> VHGND terrain common input fallback done;",
+            "=> VHGND terrain common input;",
+            '"VHGND terrain common input fallback done"',
+        ))
+        and terrain_common_fallback.count("=> VHGND terrain common input;") == 1
+        and terrain_remaining.index("=> VHGND terrain common input fallback;")
+        < terrain_remaining.index("[VHGNDvi] = 0;")
+        and "=> VHGND terrain remaining input;" in terrain_facing
+        and "=> VHGND terrain remaining input;" in terrain_mapped,
+        "repeated unit terrain lazily restores shared raw input only on generic fallback",
+    )
     check(
         "VHGNDvcpairready = 0;" in ground
-        and "[VHGNDtilepolys] = 0; [VHGNDvcpairready] = 0; => VHGND terrain common input;" in tile
         and "A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped cache second select;" in terrain_mapped
         and "A = [VHGNDvcpairready]; ? A = 0 -> VHGND terrain mapped cache second;" in terrain_pair
         and terrain_pair.count("VHGNDvcstamp") == 1
         and terrain_pair.count("VHGNDvcvisible") == 1
         and all(token in terrain_pair for token in (
-            "[fw plus 504] = [fw plus 506]; [fw plus 505] = [fw plus 507];",
-            "[fw plus 512] = [fw plus 514]; [fw plus 513] = [fw plus 515];",
-            "[fw plus 520] = [fw plus 522]; [fw plus 521] = [fw plus 523];",
+            "[fw plus 64] = [fw plus 66]; [fw plus 65] = [fw plus 67];",
+            "[fw plus 72] = [fw plus 74]; [fw plus 73] = [fw plus 75];",
+            "[fw plus 80] = [fw plus 82]; [fw plus 81] = [fw plus 83];",
             "[mp] = [mp plus 2]; [mp plus 1] = [mp plus 3];",
-            "A = VHGNDvcrx0; A + D; C = [A]; [fw plus 506] = C;",
-            "A = VHGNDvcrx1; A + D; C = [A]; [fw plus 507] = C;",
-            "A = VHGNDvcry0; A + D; C = [A]; [fw plus 514] = C;",
-            "A = VHGNDvcry1; A + D; C = [A]; [fw plus 515] = C;",
-            "A = VHGNDvcrz0; A + D; C = [A]; [fw plus 522] = C;",
-            "A = VHGNDvcrz1; A + D; C = [A]; [fw plus 523] = C;",
+            "A = VHGNDvcrx0; A + D; C = [A]; [fw plus 66] = C;",
+            "A = VHGNDvcrx1; A + D; C = [A]; [fw plus 67] = C;",
+            "A = VHGNDvcry0; A + D; C = [A]; [fw plus 74] = C;",
+            "A = VHGNDvcry1; A + D; C = [A]; [fw plus 75] = C;",
+            "A = VHGNDvcrz0; A + D; C = [A]; [fw plus 82] = C;",
+            "A = VHGNDvcrz1; A + D; C = [A]; [fw plus 83] = C;",
             "A = VHGNDvcpx; A + D; C = [A]; [mp plus 2] = C;",
             "A = VHGNDvcpy; A + D; C = [A]; [mp plus 3] = C;",
             "[rwf] = 1; [rwf plus 1] = 1; [rwf plus 2] = 1;",
@@ -1941,13 +2239,35 @@ def main() -> int:
             "A = [VHGNDdepth]; ? A > VHGNDOBJECTFAR -> VHGND tile done;",
             "A = [VHGNDtilepolys]; ? A = 0 -> VHGND tile done;",
             "=> VHGND capsule;", "=> VHGND render tile fauna;",
+            "=> VHGND object view cull;", "=> VHGND tile objects;",
+        ))
+        and contains_in_order(traversal, (
+            "=> VHGND terrain cache frame;",
+            "=> VHGND object view setup;",
+            "[VHGNDanimorphs] = 0; [VHGNDgroundbirds] = 0;",
+            "=> VHGND traverse faithful;",
+        ))
+        and ground.count("=> VHGND object view setup;") == 1
+        and ground.count("=> VHGND object view cull;") == 1
+        and contains_in_order(tile_detail, (
+            "=> VHGND render tile fauna;",
+            "=> VHGND object view cull;",
+            "A = [VHGNDviewrz]; ? A = 0 -> VHGND tile done;",
             "=> VHGND tile objects;",
         ))
+        and "SUfseed" not in object_view_setup
+        and "SUfseed" not in object_view_cull
+        and object_view_cull.count("A / 256;") == 2
+        and object_view_cull.count("A / 32768;") == 3
+        and "A / 4; A + 128;" in object_view_cull
+        and "'/" not in object_view_cull
+        and "C = VHGNDobjcacheseed; C + A; [SUfseed] = [C];" in objects
         and tile.index("=> VHGND capsule;")
         < tile.index("=> VHGND render tile fauna;")
+        < tile.index("=> VHGND object view cull;")
         < tile.index("=> VHGND tile objects;")
         and "=> VHGND render distant objects;" not in traversal,
-        "surface detail retains source per-tile painter order through depth 40",
+        "surface detail keeps source painter order and culls only wholly hidden cached objects through depth 40",
     )
     check(
         "grnd; sky;" in game and "spglobe; spglow; spbg;" in game
@@ -4491,6 +4811,129 @@ def main() -> int:
             "[VHGNDmushxf] = [VHGNDtreepx]; [VHGNDmushyf] = [VHGNDtreeleafdrop];",
             "[VHGNDmushzf] = [VHGNDtreepz]; [VHGNDmushfloat] = 1;",
         ))
+        and contains_in_order(tree_basis_dispatch, (
+            "A = [SPterrain]; ? A != 0 -> PJ vectors terrain;",
+            "A = [SPtrifast]; ? A != 0 -> PJ vectors tree triangle;",
+            "-> PJ vectors generic;",
+            '"PJ vectors tree triangle"',
+            "[PJdx] = 3;",
+            "-> PJ vectors three build;",
+        ))
+        and "PJterrainbasisreuse" not in tree_basis_entry
+        and "PJterrainbasisbuilt" not in tree_basis_entry
+        and '"PJ vectors three build"' in terrain_basis_build
+        and "[PJvr] = 3; [PJvv] = 2;" in three_basis_build
+        and "=> PJ vc cross;" not in three_basis_build
+        and contains_in_order(tree_rotate_dispatch, (
+            "[PJmode] = 1;",
+            "[PJdx] = [PJnrv];",
+            "A = [SPmapfast]; ? A != 0 -> PG pm rotate fixed map;",
+            "A = [PJdx]; ? A != 3 -> PG pm rotate four;",
+            "[PJnrv] = 3;",
+            "=> PJ rotate;",
+            "-> PG pm duplicate rotated generic;",
+            '"PG pm rotate fixed map"',
+            "=> PJ rotate fixed map;",
+            "A = [PJdx]; ? A = 3 -> PG pm duplicate rotated generic;",
+            "-> PG pm preloaded;",
+        ))
+        and contains_in_order(leaf_front_dispatch, (
+            "A = [PJdoflag];",
+            "? A != 4 -> PG pm clip;",
+            "A = [SPtrifast]; ? A = 0 -> PG pm front generic;",
+            "A = [SPmapfast]; ? A = 0 -> PG pm front generic;",
+            "A = [SPterrain]; ? A != 0 -> PG pm front generic;",
+            "A = [PJdx]; ? A != 3 -> PG pm front generic;",
+            "=> PJ leaf front projectmap;",
+            "-> PG pm projected;",
+            '"PG pm front generic"',
+            "=> PJ zload;",
+            "-> PG pm 2d;",
+        ))
+        and contains_in_order(leaf_front_project, (
+            "[fw plus 96] = [fw plus 64]; [fw plus 97] = [fw plus 65];",
+            "[fw plus 112] = [fw plus 72]; [fw plus 113] = [fw plus 73];",
+            "[fw plus 128] = [fw plus 80]; [fw plus 129] = [fw plus 81];",
+            "[fw plus 102] = [fw plus 70]; [fw plus 103] = [fw plus 71];",
+            "[fw plus 118] = [fw plus 78]; [fw plus 119] = [fw plus 79];",
+            "[fw plus 134] = [fw plus 86]; [fw plus 135] = [fw plus 87];",
+            "A = FSRZF; A + 3; [PGFi] = A;",
+            "A = FSUZ; A + 3; [PGFj] = A;",
+            "[PJvr] = 4; [PJvr2] = 4; [PJvr22] = 8;",
+            "[PJvr] = 0;",
+            "[PJminx] = PGUBX; [PJmaxx] = PGLBX;",
+            "[BXminy] = PGUBY; [BXmaxy] = PGLBY;",
+            "[FA0] /: [fw plus 128];",
+            "[FI] =: [FA0]; [mp] = [FI];",
+            "[FA0] /: [fw plus 134];",
+            "[FI] =: [FA0]; [mp plus 7] = [FI];",
+            "[PGFi] = FSYC;",
+        ))
+        and leaf_front_project.count("[fw plus 502] = [FA0];") == 4
+        and leaf_front_project.count("/:") == 4
+        and leaf_front_project.count("*:") == 8
+        and leaf_front_project.count("+:") == 8
+        and leaf_front_project.count("=:") == 8
+        and leaf_front_project.count("[PJvr]+;") == 4
+        and "=> PGF" not in leaf_front_project
+        and "PJ zclip" not in leaf_front_project
+        and "VHGNDleaftracefan" not in ground
+        and "[PJleaftrace]" not in tree_leaf_scope
+        and contains_in_order(leaf_trace_dispatch, (
+            "[SPsrc] = 1; [PJleaftrace] = 0;",
+            "A = [SPtrifast]; ? A = 0 -> PG pm trace call;",
+            "A = [SPmapfast]; ? A = 0 -> PG pm trace call;",
+            "A = [SPpixfast]; ? A = 0 -> PG pm trace call;",
+            "A = [SPterrain]; ? A != 0 -> PG pm trace call;",
+            "A = [SPflar]; A & 15; ? A != 0 -> PG pm trace call;",
+            "A = [PGtexf]; ? A != 5 -> PG pm trace call;",
+            "A = [SPcull]; ? A != 0 -> PG pm trace call;",
+            "A = [SPhalf]; ? A != 0 -> PG pm trace call;",
+            "[PJleaftrace] = 1;",
+            '"PG pm trace call"',
+            "=> PG trace;",
+            "[PJleaftrace] = 0;",
+            "[PJgate] = 0;",
+        ))
+        and contains_in_order(leaf_trace_control, (
+            "D - E; [SPsec] = D;",
+            "A = [PJleaftrace]; ? A = 0 -> PG tr generic scanline;",
+            "C = [SPi]; C '* 320; C & 65535; C + E; C & 65535; [SPdi] = C;",
+            "=> PG tex5 row;",
+            "[SPi]+;",
+            "A = [BXmaxy]; ? A < [SPi] -> PG tr end;",
+            "-> PG tr row;",
+            '"PG tr generic scanline"',
+            "C = [SPi]; => PG riga; C + E; C & 65535; [SPdi] = C;",
+            "=> PG scanline;",
+            "A = [SPhalf]; A & 1;",
+        ))
+        and leaf_trace_control.count("[PJleaftrace]") == 1
+        and leaf_trace_control.count("=> PG tex5 row;") == 1
+        and leaf_trace_control.count("=> PG scanline;") == 1
+        and contains_in_order(tree_rotate, (
+            "[PJvr] = 0; [PJdoflag] = 0;",
+            '"PJ rotate fixed map vertex"',
+            "A = [PJvr]; A + A; D = A;",
+            "A = fw plus 520; A + D;",
+            "A = fw plus 504; A + D;",
+            "A = fw plus 512; A + D;",
+            "[FA0] +: [fw plus 496];",
+            "~: [FA0]; A = fw plus 64; A + D;",
+            "~: [FA0]; A = fw plus 80; A + D;",
+            "[FA0] = [fw plus 498]; [FA1] = [fw plus 499];",
+            "[FB0] = [fw plus 54]; [FB1] = [fw plus 55]; => FCmp;",
+            '"PJ rotate fixed map behind"',
+            "A = rwf; A + [PJvr]; [A] = C;",
+            "~: [FA0]; A = fw plus 72; A + D;",
+            "A = [PJvr]; ? A < [PJnrv] -> PJ rotate fixed map vertex;",
+        ))
+        and tree_rotate.count("-:") == 5
+        and tree_rotate.count("*:") == 8
+        and tree_rotate.count("+:") == 2
+        and tree_rotate.count("~:") == 7
+        and "=> PGF" not in tree_rotate
+        and "[PJmode]" not in tree_rotate
         and "VHTdirang = 10; VHTdircos = 20; VHTdirsin = 20;" in ground
         and all(token not in tree for token in (
             "=> FToIntChop; [VHGNDtreebx] = [FI];",

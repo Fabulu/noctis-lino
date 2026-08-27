@@ -11451,10 +11451,14 @@
 	[vhglocal plus 30] = [VHGlocalcompx0]; [vhglocal plus 31] = [VHGlocalcompx1];
 	[vhglocal plus 32] = [VHGlocalcompy0]; [vhglocal plus 33] = [VHGlocalcompy1];
 	[vhglocal plus 34] = [VHGlocalcompz0]; [vhglocal plus 35] = [VHGlocalcompz1];
-	[vhglocal plus 36] = [VHGlocalcompdist0]; [vhglocal plus 37] = [VHGlocalcompdist1];
-	[vhglocal plus 38] = [VHGlocalcompray0]; [vhglocal plus 39] = [VHGlocalcompray1];
-	[vhglocal plus 40] = [VHGlocalcompflareok]; [vhglocal plus 41] = [VHGlocalcompflarecx];
-	[vhglocal plus 42] = [VHGlocalcompflarecy]; [vhglocal plus 43] = 0;
+	[vhglocal plus 36] = [VHGlocalcompdist0];
+	[vhglocal plus 37] = [VHGlocalcompdist1];
+	[vhglocal plus 38] = [VHGlocalcompray0];
+	[vhglocal plus 39] = [VHGlocalcompray1];
+	[vhglocal plus 40] = [VHGlocalcompflareok];
+	[vhglocal plus 41] = [VHGlocalcompflarecx];
+	[vhglocal plus 42] = [VHGlocalcompflarecy];
+	[vhglocal plus 43] = 0;
 	[File Name] = vhgoutname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = vhgstate; [Block Size] = 72; isocall;
 	[File Position] = 72; [File Command] = WRITE;

@@ -98,6 +98,7 @@
 	SPt	= 0;
 	SPn	= 0;
 	SPsave	= 0;
+	PGm7n	= 0;			( exact TEX7 merger block length )
 	SPterrain = 0;			( exact fixed-buffer ground span specialization )
 	SPmapfast = 0;			( exact fixed-slot setup for other mapped polygons )
 	SPpixfast = 0;			( direct TEX5 pixel loop for plain/transparent modes )
@@ -218,7 +219,7 @@
     "PG ew intfor"
 	( fist bndx - NO POP.  The accumulator keeps running. )
 	[PGFi] = FSBNDX; => PGF a;
-	=> PGF int;
+	[FI] =: [FA0];
 	[EWax] = [FI];
 
 	A = [EWax]; C = 0; C - SPLOW;
@@ -245,7 +246,6 @@
 	C = [SPt]; [C] = PGLBX;
     "PG ew ct3n"
 	( bndx += kx.  The accumulator is WIDE; kx is NARROW. )
-	[PGFi] = FSBNDX; => PGF a;
 	[PGFi] = FSKX; => PGF add;
 	A = [EWnarrow]; ? A = 0 -> PG ew wide;
 	( SABOTAGE HOOK, off by default: quantise the accumulator to
@@ -341,6 +341,29 @@
 "PG screscr"
 	A = PGSCRE; A + PGDOFF; [PGdi] = A; => PG load; end;
 
+      ( PG tex5 row : the proved live, non-culling, plain TEX5 block driver.
+	Terrain and SPpixfast tree polygons both have SPsrc=1.  Their first generic
+	block establishes the proof; leaf trace can establish it once per polygon.
+	Every later block therefore enters the live float chain and direct pixel loop
+	without repeating source, terrain, flare, pixel-mode, or texture dispatch. )
+
+"PG tex5 row"
+	? [SPsec] <= 0 -> PG row end;
+	A = [SPsec]; ? A > 16 -> PG tex5 row full;
+	[SPcl] = A;
+	-> PG tex5 row ready;
+    "PG tex5 row full"
+	[SPcl] = 16;
+    "PG tex5 row ready"
+	A = [SPsec]; A - 16; [SPsec] = A;
+
+	=> PG uv float;
+	C = [SPv]; A = C; A & 65535; [SPdx] = A;
+	D = [SPvn]; A = D; A - C; A >> 4; A & 65535; [SPsi] = A; [SPv] = D;
+	C = [SPu]; A = C; A & 65535; [SPax] = A;
+	D = [SPun]; A = D; A - C; A >> 4; A & 65535; [SPbp] = A; [SPu] = D;
+	-> PG px terrain begin;
+
       ( PG row : the non-culling scanline.  Blocks of at most 16. )
 
 "PG row"
@@ -363,15 +386,23 @@
 	D = [SPun]; A = D; A - C; A >> 4; A & 65535; [SPbp] = A; [SPu] = D;
 
 	( Faithful preprojected terrain has flar zero and keeps its authoritative
-	  tinta in [SPtinta].  Select once per block instead of re-reading the
-	  identical scratch-page byte for every pixel. )
+	  tinta in [SPtinta].  Plain tree limbs and leaves set SPpixfast only while
+	  selecting the same live TEX5 window.  Both remain inside the clip rectangle,
+	  so they share the exact direct block after its two explicit proof gates. )
 	A = [SPterrain]; ? A != 0 -> PG px terrain begin;
 	A = [SPflar]; A & 15;
-	? A = 0 -> PG px internal;
+	? A != 0 -> PG row mode;
+	A = [SPpixfast]; ? A = 0 -> PG px internal;
+	A = [PGtexf]; ? A = 5 -> PG px terrain begin;
+	-> PG px internal;
+    "PG row mode"
 	A = [SPflar]; A & 1;  ? A != 0 -> PG px transp;
 	A = [SPflar]; A & 2;  ? A != 0 -> PG px bright;
-	A = [SPflar]; A & 4;  ? A != 0 -> PG px merger;
+	A = [SPflar]; A & 4;  ? A != 0 -> PG px merger select;
 	-> PG px bumper;
+    "PG px merger select"
+	A = [PGtexf]; ? A = 7 -> PG px merger7 begin;
+	-> PG px merger;
 
     "PG px terrain begin"
 	( Batch the diagnostic pixel total once per block.  The terrain loop writes
@@ -424,7 +455,7 @@
 	[A plus 3 plus SADPT plus nw] = E;
 	B + [SPsi]; B & 65535;
 	[SPcl] = 0; [SPdx] = B; [SPax] = C;
-	-> PG row;
+	-> PG tex5 row;
 
     "PG px internal"
 	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
@@ -470,6 +501,57 @@
 	[PGval] = A; [PGdi] = [SPt]; => PG store; [CSpix]+;
 	[SPcl]-;
 	? [SPcl] != 0 -> PG px bright;
+	-> PG row;
+
+    "PG px merger7 begin"
+	( TEX7 is the live capsule horizon window and is identically zero.  Merger
+	  reads and rewrites the same page byte: old DI+4 is new DI+3.  The clipped
+	  non-culling span cannot reach the visible tinta scratch.  Preserve its
+	  per-pixel read for nonzero tinta; with zero tinta, apply the identical
+	  palette-band transform in ordered pairs. )
+	A = [CSpix]; C = [SPcl]; A + C; [CSpix] = A; [PGm7n] = [SPcl];
+	A = [SPtinta]; ? A = 0 -> PG px merger7 zero begin;
+    "PG px merger7"
+	A = [SPdi]; A + 4; A & 65535; A + SADPT plus nw;
+	D = [A]; D & 255; E = D; E & 63;
+	B = [PGSCRT plus PGDOFF plus SADPT plus nw]; B & 255;
+	E + B; E & 255; E > 1;
+	D & 192; D | E; D & 255; [A] = D;
+	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
+	[SPcl]-;
+	? [SPcl] != 0 -> PG px merger7;
+	-> PG px merger7 tail;
+    "PG px merger7 zero begin"
+	A = [SPcl]; A & 1; ? A = 0 -> PG px merger7 zero pair begin;
+	A = [SPdi]; A + 4; A & 65535; A + SADPT plus nw;
+	D = [A]; D & 255; E = D; E & 63; E > 1;
+	D & 192; D | E; [A] = D;
+	A = [SPdi]; A + 1; A & 65535; [SPdi] = A;
+	[SPcl]-;
+	? [SPcl] = 0 -> PG px merger7 tail;
+    "PG px merger7 zero pair begin"
+	A = [SPdi]; A + 4; A & 65535; A + SADPT plus nw;
+    "PG px merger7 zero pair"
+	D = [A]; D & 255; E = D; E & 63; E > 1;
+	D & 192; D | E; [A] = D; A + 1;
+	D = [A]; D & 255; E = D; E & 63; E > 1;
+	D & 192; D | E; [A] = D; A + 1;
+	C = [SPdi]; C + 2; C & 65535; [SPdi] = C;
+	C = [SPcl]; C - 2; [SPcl] = C;
+	? C != 0 -> PG px merger7 zero pair;
+    "PG px merger7 tail"
+
+	( Publish the exact final pre-increment texture index and the modular UV
+	  endpoints without walking the constant-zero texture once per pixel. )
+	B = [PGm7n]; B-;
+	A = [SPbp]; A * B; A + [SPax]; A & 65535; C = A;
+	A = [SPsi]; A * B; A + [SPdx]; A & 65535; D = A;
+	A = D; A & 65280; E = C; E > 8; E & 255; A | E;
+	[PGtexi] = A; [PGtmp] = A; [PGtexv] = 0;
+	C + [SPbp]; C & 65535; [SPax] = C;
+	D + [SPsi]; D & 65535; [SPdx] = D;
+	A = [SPdi]; A + 3; A & 65535; [SPt] = A; [PGdi] = A;
+	A + SADPT plus nw; D = [A]; D & 255; [SPch] = D; [PGval] = D;
 	-> PG row;
 
     "PG px merger"

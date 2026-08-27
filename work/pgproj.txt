@@ -76,6 +76,7 @@
 	PJterrainbasisreuse = 0;	( caller supplied an exact terrain basis record )
 	PJterrainbasisbuilt = 0;	( specialized terrain basis completed on this call )
 	PJterrainbasisp = 0;		( caller-owned 18-word exact basis record )
+	PJleaftrace = 0;		( proved plain TEX5 leaf trace driver )
 
 	( ---- generic 2-D clip stage ---- )
 	CLxi	= 0;
@@ -202,6 +203,77 @@
 
 	[PJvr]+;
 	A = [PJvr]; ? A '< [PJnrv] -> PJ rot v;
+	end;
+
+"PJ rotate fixed map"
+	( Tree mapped faces enter with three leaf vertices or four limb vertices.
+	  Keep rotate's exact PC64-operation, binary64-spill and binary32-store
+	  schedule, but address the fixed map slots directly instead of crossing the
+	  tiny PGF wrappers for every scalar operation. )
+	[PJvr] = 0; [PJdoflag] = 0;
+    "PJ rotate fixed map vertex"
+	A = [PJvr]; A + A; D = A;
+
+	( zz, xx, yy )
+	A = fw plus 520; A + D; [FA0] = [A]; [FA1] = [A plus 1];
+	[FA0] -: [fw plus 452];
+	~: [FA0]; [fw plus 480] = [FA0]; [fw plus 481] = [FA1];
+	A = fw plus 504; A + D; [FA0] = [A]; [FA1] = [A plus 1];
+	[FA0] -: [fw plus 448];
+	~: [FA0]; [fw plus 476] = [FA0]; [fw plus 477] = [FA1];
+	A = fw plus 512; A + D; [FA0] = [A]; [FA1] = [A plus 1];
+	[FA0] -: [fw plus 450];
+	~: [FA0]; [fw plus 478] = [FA0]; [fw plus 479] = [FA1];
+
+	( rxf )
+	[FA0] = [fw plus 480]; [FA1] = [fw plus 481];
+	[FA0] *: [fw plus 430];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FA0] = [fw plus 476]; [FA1] = [fw plus 477];
+	[FA0] *: [fw plus 428];
+	[FA0] +: [fw plus 496];
+	~: [FA0]; A = fw plus 64; A + D; [A] = [FA0]; [A plus 1] = [FA1];
+
+	( z2 )
+	[FA0] = [fw plus 480]; [FA1] = [fw plus 481];
+	[FA0] *: [fw plus 428];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FA0] = [fw plus 476]; [FA1] = [fw plus 477];
+	[FA0] *: [fw plus 430];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 496]; [FA1] = [fw plus 497]; [FA0] -: [FT0];
+	~: [FA0]; [fw plus 482] = [FA0]; [fw plus 483] = [FA1];
+
+	( rzf, retaining the wide comparison carrier )
+	[FA0] = [fw plus 482]; [FA1] = [fw plus 483];
+	[FA0] *: [fw plus 436];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FA0] = [fw plus 478]; [FA1] = [fw plus 479];
+	[FA0] *: [fw plus 438];
+	[FA0] +: [fw plus 496];
+	[fw plus 498] = [FA0]; [fw plus 499] = [FA1];
+	~: [FA0]; A = fw plus 80; A + D; [A] = [FA0]; [A plus 1] = [FA1];
+	[FA0] = [fw plus 498]; [FA1] = [fw plus 499];
+	[FB0] = [fw plus 54]; [FB1] = [fw plus 55]; => FCmp;
+	C = 0;
+	A = [FI]; ? A = 2 -> PJ rotate fixed map behind;
+	A = [FI]; ? A < 0 -> PJ rotate fixed map behind;
+	C = 1; [PJdoflag]+;
+    "PJ rotate fixed map behind"
+	A = rwf; A + [PJvr]; [A] = C;
+
+	( ryf )
+	[FA0] = [fw plus 478]; [FA1] = [fw plus 479];
+	[FA0] *: [fw plus 436];
+	[fw plus 496] = [FA0]; [fw plus 497] = [FA1];
+	[FA0] = [fw plus 482]; [FA1] = [fw plus 483];
+	[FA0] *: [fw plus 438];
+	[FT0] = [FA0]; [FT1] = [FA1];
+	[FA0] = [fw plus 496]; [FA1] = [fw plus 497]; [FA0] -: [FT0];
+	~: [FA0]; A = fw plus 72; A + D; [A] = [FA0]; [A plus 1] = [FA1];
+
+	[PJvr]+;
+	A = [PJvr]; ? A < [PJnrv] -> PJ rotate fixed map vertex;
 	end;
 
 ( ==================================================================== )
@@ -439,6 +511,126 @@
     "PJ pm y2"
 	[PJvr]+;
 	A = [PJvr]; ? A '< [PJvr2] -> PJ pm v;
+	end;
+
+"PJ leaf front projectmap"
+	( A three-vertex tree leaf has already been duplicated and fixed-rotated,
+	  and all four entries are proved in front of the near plane.  Preserve
+	  zload's complete bit-copy phase, then project all four slots in the exact
+	  generic order without crossing the scalar wrappers.  Slot 3 remains a
+	  fully projected duplicate so the edge topology and scratch state agree. )
+	[fw plus 96] = [fw plus 64]; [fw plus 97] = [fw plus 65];
+	[fw plus 112] = [fw plus 72]; [fw plus 113] = [fw plus 73];
+	[fw plus 128] = [fw plus 80]; [fw plus 129] = [fw plus 81];
+	[fw plus 98] = [fw plus 66]; [fw plus 99] = [fw plus 67];
+	[fw plus 114] = [fw plus 74]; [fw plus 115] = [fw plus 75];
+	[fw plus 130] = [fw plus 82]; [fw plus 131] = [fw plus 83];
+	[fw plus 100] = [fw plus 68]; [fw plus 101] = [fw plus 69];
+	[fw plus 116] = [fw plus 76]; [fw plus 117] = [fw plus 77];
+	[fw plus 132] = [fw plus 84]; [fw plus 133] = [fw plus 85];
+	[fw plus 102] = [fw plus 70]; [fw plus 103] = [fw plus 71];
+	[fw plus 118] = [fw plus 78]; [fw plus 119] = [fw plus 79];
+	[fw plus 134] = [fw plus 86]; [fw plus 135] = [fw plus 87];
+	A = FSRZF; A + 3; [PGFi] = A;
+	A = FSUZ; A + 3; [PGFj] = A;
+	[PJvr] = 4; [PJvr2] = 4; [PJvr22] = 8;
+
+	[PJvr] = 0;
+	[PJminx] = PGUBX; [PJmaxx] = PGLBX;
+	[BXminy] = PGUBY; [BXmaxy] = PGLBY;
+
+	( vertex 0 )
+	[FA0] = [fw plus 50]; [FA1] = [fw plus 51];
+	[FA0] /: [fw plus 128];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] *: [fw plus 96]; [FA0] +: [fw plus 38];
+	[FI] =: [FA0]; [mp] = [FI];
+	A = [FI]; ? A >= [PJminx] -> PJ leaf pm x0 min ready; [PJminx] = A;
+    "PJ leaf pm x0 min ready"
+	A = [FI]; ? A <= [PJmaxx] -> PJ leaf pm x0 max ready; [PJmaxx] = A;
+    "PJ leaf pm x0 max ready"
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
+	[FA0] *: [fw plus 112]; [FA0] +: [fw plus 40];
+	[FI] =: [FA0]; [mp plus 1] = [FI];
+	A = [FI]; ? A >= [BXminy] -> PJ leaf pm y0 min ready; [BXminy] = A;
+    "PJ leaf pm y0 min ready"
+	? A <= [BXmaxy] -> PJ leaf pm y0 max ready; [BXmaxy] = A;
+    "PJ leaf pm y0 max ready"
+	[PJvr]+;
+
+	( vertex 1 )
+	[FA0] = [fw plus 50]; [FA1] = [fw plus 51];
+	[FA0] /: [fw plus 130];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] *: [fw plus 98]; [FA0] +: [fw plus 38];
+	[FI] =: [FA0]; [mp plus 2] = [FI];
+	A = [FI]; ? A >= [PJminx] -> PJ leaf pm x1 min ready; [PJminx] = A;
+    "PJ leaf pm x1 min ready"
+	A = [FI]; ? A <= [PJmaxx] -> PJ leaf pm x1 max ready; [PJmaxx] = A;
+    "PJ leaf pm x1 max ready"
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
+	[FA0] *: [fw plus 114]; [FA0] +: [fw plus 40];
+	[FI] =: [FA0]; [mp plus 3] = [FI];
+	A = [FI]; ? A >= [BXminy] -> PJ leaf pm y1 min ready; [BXminy] = A;
+    "PJ leaf pm y1 min ready"
+	? A <= [BXmaxy] -> PJ leaf pm y1 max ready; [BXmaxy] = A;
+    "PJ leaf pm y1 max ready"
+	[PJvr]+;
+
+	( vertex 2 )
+	[FA0] = [fw plus 50]; [FA1] = [fw plus 51];
+	[FA0] /: [fw plus 132];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] *: [fw plus 100]; [FA0] +: [fw plus 38];
+	[FI] =: [FA0]; [mp plus 4] = [FI];
+	A = [FI]; ? A >= [PJminx] -> PJ leaf pm x2 min ready; [PJminx] = A;
+    "PJ leaf pm x2 min ready"
+	A = [FI]; ? A <= [PJmaxx] -> PJ leaf pm x2 max ready; [PJmaxx] = A;
+    "PJ leaf pm x2 max ready"
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
+	[FA0] *: [fw plus 116]; [FA0] +: [fw plus 40];
+	[FI] =: [FA0]; [mp plus 5] = [FI];
+	A = [FI]; ? A >= [BXminy] -> PJ leaf pm y2 min ready; [BXminy] = A;
+    "PJ leaf pm y2 min ready"
+	? A <= [BXmaxy] -> PJ leaf pm y2 max ready; [BXmaxy] = A;
+    "PJ leaf pm y2 max ready"
+	[PJvr]+;
+
+	( vertex 3, deliberately projected again )
+	[FA0] = [fw plus 50]; [FA1] = [fw plus 51];
+	[FA0] /: [fw plus 134];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] *: [fw plus 102]; [FA0] +: [fw plus 38];
+	[FI] =: [FA0]; [mp plus 6] = [FI];
+	A = [FI]; ? A >= [PJminx] -> PJ leaf pm x3 min ready; [PJminx] = A;
+    "PJ leaf pm x3 min ready"
+	A = [FI]; ? A <= [PJmaxx] -> PJ leaf pm x3 max ready; [PJmaxx] = A;
+    "PJ leaf pm x3 max ready"
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
+	[FA0] *: [fw plus 118]; [FA0] +: [fw plus 40];
+	[FI] =: [FA0]; [mp plus 7] = [FI];
+	A = [FI]; ? A >= [BXminy] -> PJ leaf pm y3 min ready; [BXminy] = A;
+    "PJ leaf pm y3 min ready"
+	? A <= [BXmaxy] -> PJ leaf pm y3 max ready; [BXmaxy] = A;
+    "PJ leaf pm y3 max ready"
+	[PJvr]+;
+	[PGFi] = FSYC;
+	end;
+
+"PJ terrain project one"
+	( A terrain-cache miss has already placed one rotated point in ultima[0].
+	  Preserve projectmap's exact binary64 schedule, but omit its loop and the
+	  min/max writes discarded by VHGND terrain cached bounds. )
+	[FA0] = [fw plus 50]; [FA1] = [fw plus 51];
+	[FA0] /: [fw plus 128];
+	[fw plus 502] = [FA0]; [fw plus 503] = [FA1];
+	[FA0] *: [fw plus 96];
+	[FA0] +: [fw plus 38];
+	[FI] =: [FA0]; [mp] = [FI];
+	[FA0] = [fw plus 502]; [FA1] = [fw plus 503];
+	[FA0] *: [fw plus 112];
+	[FA0] +: [fw plus 40];
+	[FI] =: [FA0]; [mp plus 1] = [FI];
 	end;
 
 "PJ emit1"
@@ -817,8 +1009,14 @@
 	line up between two polygons. )
 
 "PJ vectors"
-	A = [SPterrain]; ? A = 0 -> PJ vectors generic;
-	-> PJ vectors terrain;
+	A = [SPterrain]; ? A != 0 -> PJ vectors terrain;
+	( Live tree-leaf triangles use the same exact fixed-slot build, but neither
+	  consult nor publish the repeated-camera terrain basis cache. )
+	A = [SPtrifast]; ? A != 0 -> PJ vectors tree triangle;
+	-> PJ vectors generic;
+    "PJ vectors tree triangle"
+	[PJdx] = 3;
+	-> PJ vectors three build;
     "PJ vectors generic"
 	( midx/midy/midz - the divisor is a DOUBLE literal, 0.3333333 for
 	  three vertices and 0.25 for four. )
@@ -948,6 +1146,7 @@
 
     "PJ vectors terrain build"
 	[PJterrainbasisbuilt] = 1;
+    "PJ vectors three build"
 	[PGFt] = D64THLO; [PGFu] = D64THHI;
 	[FB0] = [PGFt]; [FB1] = [PGFu];
 
@@ -1238,6 +1437,13 @@
 	A = [SPi]; C = fpart; C + A; D = [C];
 	A = [SPi]; C = ipart; C + A; E = [C];
 	D - E; [SPsec] = D;
+	A = [PJleaftrace]; ? A = 0 -> PG tr generic scanline;
+	C = [SPi]; C '* 320; C & 65535; C + E; C & 65535; [SPdi] = C;
+	=> PG tex5 row;
+	[SPi]+;
+	A = [BXmaxy]; ? A < [SPi] -> PG tr end;
+	-> PG tr row;
+    "PG tr generic scanline"
 	C = [SPi]; => PG riga; C + E; C & 65535; [SPdi] = C;
 	=> PG scanline;
 
@@ -1274,6 +1480,7 @@
     "PG pm r"
 	[PJmode] = 1;
 	[PJdx] = [PJnrv];
+	A = [SPmapfast]; ? A != 0 -> PG pm rotate fixed map;
 	A = [PJdx]; ? A != 3 -> PG pm rotate four;
 	( A triangle's fourth input is the bitwise duplicate of vertex 2 above.
 	  Rotate the three unique inputs, then duplicate the resulting float slots
@@ -1282,6 +1489,10 @@
 	[PJnrv] = 3;
 	=> PJ rotate;
 -> PG pm duplicate rotated generic;
+    "PG pm rotate fixed map"
+	=> PJ rotate fixed map;
+	A = [PJdx]; ? A = 3 -> PG pm duplicate rotated generic;
+	-> PG pm preloaded;
     "PG pm duplicate rotated generic"
 	A = FSRXF; A + 2; [PGFi] = A; A = FSRXF; A + 3; [PGFj] = A; => PGF mov;
 	A = FSRYF; A + 2; [PGFi] = A; A = FSRYF; A + 3; [PGFj] = A; => PGF mov;
@@ -1302,6 +1513,13 @@
 
 	A = [PJdoflag];
 	? A != 4 -> PG pm clip;
+	A = [SPtrifast]; ? A = 0 -> PG pm front generic;
+	A = [SPmapfast]; ? A = 0 -> PG pm front generic;
+	A = [SPterrain]; ? A != 0 -> PG pm front generic;
+	A = [PJdx]; ? A != 3 -> PG pm front generic;
+	=> PJ leaf front projectmap;
+	-> PG pm projected;
+    "PG pm front generic"
 	=> PJ zload;
 	-> PG pm 2d;
     "PG pm clip"
@@ -1389,8 +1607,22 @@
 	[EWmaxy] = [BXmaxy];
 	=> PG edges;
     "PG pm traced"
-	[SPsrc] = 1;
+	[SPsrc] = 1; [PJleaftrace] = 0;
+	( Plain, non-culling TEX5 leaves can select the exact direct row driver once
+	  per polygon.  Partial near-plane clipping is harmless here: edges and the
+	  complete row floating schedule remain common and unchanged. )
+	A = [SPtrifast]; ? A = 0 -> PG pm trace call;
+	A = [SPmapfast]; ? A = 0 -> PG pm trace call;
+	A = [SPpixfast]; ? A = 0 -> PG pm trace call;
+	A = [SPterrain]; ? A != 0 -> PG pm trace call;
+	A = [SPflar]; A & 15; ? A != 0 -> PG pm trace call;
+	A = [PGtexf]; ? A != 5 -> PG pm trace call;
+	A = [SPcull]; ? A != 0 -> PG pm trace call;
+	A = [SPhalf]; ? A != 0 -> PG pm trace call;
+	[PJleaftrace] = 1;
+    "PG pm trace call"
 	=> PG trace;
+	[PJleaftrace] = 0;
 	[PJgate] = 0;
     "PG pm out"
 	end;

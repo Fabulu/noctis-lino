@@ -2608,7 +2608,19 @@
 	[PGFi] = 262; A = fw; A + 524;
 	end;
 
+"VHGND terrain common input fallback"
+	( Exact-camera unit tiles normally consume only cached facing, rotated and
+	  projected payloads.  If one of those slots unexpectedly falls back to the
+	  generic path, restore the shared raw vertex immediately before it is read. )
+	A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain common input fallback done;
+	A = [VHGNDmirror]; ? A != 0 -> VHGND terrain common input fallback done;
+	A = [VHGNDlodstep]; ? A != 1 -> VHGND terrain common input fallback done;
+	=> VHGND terrain common input;
+    "VHGND terrain common input fallback done"
+	end;
+
 "VHGND terrain remaining input"
+	=> VHGND terrain common input fallback;
 	[VHGNDvi] = 0;
 	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain remaining second;
 	A = [VHGNDx]; A < 14; [VHGNDvv] = A; [VHGNDvslot] = FSINX; => VHGND vload;
@@ -2713,7 +2725,7 @@
 	A = FSUY; A + A; A + fw; C = [D]; [A] = C; C = [D plus 1]; [A plus 1] = C;
 	A = [VHGNDvi]; A + FSRZF; A + A; A + fw; D = A;
 	A = FSUZ; A + A; A + fw; C = [D]; [A] = C; C = [D plus 1]; [A plus 1] = C;
-	[PJvr2] = 1; => PJ projectmap;
+	=> PJ terrain project one;
 	A = mp; C = [A]; A = VHGNDvcpx; A + [VHGNDvcindex]; [A] = C;
 	A = mp; C = [A plus 1]; A = VHGNDvcpy; A + [VHGNDvcindex]; [A] = C;
 
@@ -2762,6 +2774,22 @@
 	  polymap's generic four-edge clipping and projection path unchanged. )
 	[SPterrain] = 0;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND terrain mapped generic;
+	( A current texture-basis stamp was published only after this exact-camera
+	  triangle had three current front vertices and completed polymap.  Hoist
+	  that proof ahead of the redundant vertex stamp/visibility ladders, then
+	  restore the same cached payload through the existing specialized loads. )
+	[PJterrainbasisreuse] = 0; [PJterrainbasisbuilt] = 0;
+	A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped cache select;
+	A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [A];
+	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped cache select;
+	A = [VHGNDnormindex]; A '* 18; A + VHGNDvcbasis; [PJterrainbasisp] = A;
+	[PJterrainbasisreuse] = 1;
+	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped basis second;
+	-> VHGND terrain mapped load first;
+    "VHGND terrain mapped basis second"
+	A = [VHGNDvcpairready]; ? A = 0 -> VHGND terrain mapped load generic begin;
+	D = [VHGNDh1]; D + 201; -> VHGND terrain mapped cache second payload;
+    "VHGND terrain mapped cache select"
 	( Shared unit-grid vertices normally arrived through the preceding
 	  triangle.  Check the three exact cache slots directly before entering
 	  the general ensure/front loops; this removes six tiny Lino calls from
@@ -2782,16 +2810,17 @@
 	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped ensure begin;
 	A = VHGNDvcvisible; A + D; A = [A];
 	? A = 0 -> VHGND terrain mapped generic;
-	[fw plus 504] = [fw plus 506]; [fw plus 505] = [fw plus 507];
-	[fw plus 512] = [fw plus 514]; [fw plus 513] = [fw plus 515];
-	[fw plus 520] = [fw plus 522]; [fw plus 521] = [fw plus 523];
+    "VHGND terrain mapped cache second payload"
+	[fw plus 64] = [fw plus 66]; [fw plus 65] = [fw plus 67];
+	[fw plus 72] = [fw plus 74]; [fw plus 73] = [fw plus 75];
+	[fw plus 80] = [fw plus 82]; [fw plus 81] = [fw plus 83];
 	[mp] = [mp plus 2]; [mp plus 1] = [mp plus 3];
-	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 506] = C;
-	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 507] = C;
-	A = VHGNDvcry0; A + D; C = [A]; [fw plus 514] = C;
-	A = VHGNDvcry1; A + D; C = [A]; [fw plus 515] = C;
-	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 522] = C;
-	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 523] = C;
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 66] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 67] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 74] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 75] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 82] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 83] = C;
 	A = VHGNDvcpx; A + D; C = [A]; [mp plus 2] = C;
 	A = VHGNDvcpy; A + D; C = [A]; [mp plus 3] = C;
 	[rwf] = 1; [rwf plus 1] = 1; [rwf plus 2] = 1;
@@ -2830,34 +2859,35 @@
 
 	"VHGND terrain mapped load begin"
 	A = [VHGNDvctri]; ? A != 0 -> VHGND terrain mapped load generic begin;
+    "VHGND terrain mapped load first"
 	( The first unit triangle has fixed cache indices and fixed destination
 	  slots.  Restore its exact carrier words directly instead of rediscovering
 	  those indices through six nested Lino calls. )
 	D = [VHGNDh1];
-	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 504] = C;
-	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 505] = C;
-	A = VHGNDvcry0; A + D; C = [A]; [fw plus 512] = C;
-	A = VHGNDvcry1; A + D; C = [A]; [fw plus 513] = C;
-	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 520] = C;
-	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 521] = C;
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 64] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 65] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 72] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 73] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 80] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 81] = C;
 	A = VHGNDvcpx; A + D; C = [A]; [mp] = C;
 	A = VHGNDvcpy; A + D; C = [A]; [mp plus 1] = C;
 	D + 1;
-	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 506] = C;
-	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 507] = C;
-	A = VHGNDvcry0; A + D; C = [A]; [fw plus 514] = C;
-	A = VHGNDvcry1; A + D; C = [A]; [fw plus 515] = C;
-	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 522] = C;
-	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 523] = C;
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 66] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 67] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 74] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 75] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 82] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 83] = C;
 	A = VHGNDvcpx; A + D; C = [A]; [mp plus 2] = C;
 	A = VHGNDvcpy; A + D; C = [A]; [mp plus 3] = C;
 	D + 199;
-	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 508] = C;
-	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 509] = C;
-	A = VHGNDvcry0; A + D; C = [A]; [fw plus 516] = C;
-	A = VHGNDvcry1; A + D; C = [A]; [fw plus 517] = C;
-	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 524] = C;
-	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 525] = C;
+	A = VHGNDvcrx0; A + D; C = [A]; [fw plus 68] = C;
+	A = VHGNDvcrx1; A + D; C = [A]; [fw plus 69] = C;
+	A = VHGNDvcry0; A + D; C = [A]; [fw plus 76] = C;
+	A = VHGNDvcry1; A + D; C = [A]; [fw plus 77] = C;
+	A = VHGNDvcrz0; A + D; C = [A]; [fw plus 84] = C;
+	A = VHGNDvcrz1; A + D; C = [A]; [fw plus 85] = C;
 	A = VHGNDvcpx; A + D; C = [A]; [mp plus 4] = C;
 	A = VHGNDvcpy; A + D; C = [A]; [mp plus 5] = C;
 	[rwf] = 1; [rwf plus 1] = 1; [rwf plus 2] = 1;
@@ -2876,12 +2906,6 @@
 	  On an exact repeated-camera frame, hand polymap a generation-stamped basis
 	  pointer; its lookup remains after conservative and empty-span rejection. )
 	=> VHGND terrain cached bounds;
-	[PJterrainbasisreuse] = 0; [PJterrainbasisbuilt] = 0;
-	A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped basis ready;
-	A = VHGNDvcbasisstamp; A + [VHGNDnormindex]; C = [A];
-	A = [VHGNDvcgen]; ? A != C -> VHGND terrain mapped basis ready;
-	A = [VHGNDnormindex]; A '* 18; A + VHGNDvcbasis; [PJterrainbasisp] = A;
-	[PJterrainbasisreuse] = 1;
     "VHGND terrain mapped basis ready"
 	[SPterrain] = 1; [PJpreproject] = 1; [PJnrv] = 3; => PG polymap;
 	[SPterrain] = 0;
@@ -5463,22 +5487,22 @@
 	( Coordinates are in 256-world-unit steps.  A four-tile envelope covers
 	  the widest distant foliage and giant-tree silhouette, so only wholly
 	  invisible tiles are rejected before their source RNG is consumed. )
-	A = [VHGNDx]; A < 14; A + 8192; A - [VHGNDcamx]; A '/ 256; [VHGNDdx] = A;
-	A = [VHGNDz]; A < 14; A + 8192; A - [VHGNDcamz]; A '/ 256; [VHGNDdz] = A;
-	( The signed divisions truncate each component toward zero.  Their squared
-	  length therefore never exceeds the exact distance, making the source's
-	  42-tile depth cutoff safe to reject before camera rotation and sqrt. )
+	A = [VHGNDx]; A < 14; A + 8192; A - [VHGNDcamx]; A / 256; [VHGNDdx] = A;
+	A = [VHGNDz]; A < 14; A + 8192; A - [VHGNDcamz]; A / 256; [VHGNDdz] = A;
+	( The signed divisions retain negative components.  Quantizing each axis can
+	  change the squared scaled distance by less than one 256-unit step, so the
+	  42-tile rejection threshold remains beyond the source's depth-40 path. )
 	A = [VHGNDdx]; A '* [VHGNDdx]; [VHGNDtmp] = A;
 	A = [VHGNDdz]; A '* [VHGNDdz]; A + [VHGNDtmp];
 	? A '>= 7225344 -> VHGND object view hidden;
 	A = [VHGNDdz]; A '* [VHGNDviewsinb];
-	C = [VHGNDdx]; C '* [VHGNDviewcosb]; A + C; A '/ 32768; [VHGNDviewrx] = A;
+	C = [VHGNDdx]; C '* [VHGNDviewcosb]; A + C; A / 32768; [VHGNDviewrx] = A;
 	A = [VHGNDdz]; A '* [VHGNDviewcosb];
-	C = [VHGNDdx]; C '* [VHGNDviewsinb]; A - C; A '/ 32768;
-	A '* [VHGNDviewcosa]; A '/ 32768; [VHGNDviewrz] = A;
+	C = [VHGNDdx]; C '* [VHGNDviewsinb]; A - C; A / 32768;
+	A '* [VHGNDviewcosa]; A / 32768; [VHGNDviewrz] = A;
 	A = 0; A - 128; ? [VHGNDviewrz] <= A -> VHGND object view hidden;
 	A = [VHGNDviewrz]; ? A <= 0 -> VHGND object view visible;
-	A '* 3; A '/ 4; A + 128; [VHGNDtmp] = A;
+	A '* 3; A / 4; A + 128; [VHGNDtmp] = A;
 	A = [VHGNDviewrx]; ? A >= 0 -> VHGND object view abs ready;
 	C = 0; C - A; A = C;
     "VHGND object view abs ready"
@@ -5600,7 +5624,17 @@
 	A = [VHGNDmirror]; ? A = 0 -> VHGND tile mirror cull ready; [SPcull] = 0;
     "VHGND tile mirror cull ready"
 
-	[VHGNDtilepolys] = 0; [VHGNDvcpairready] = 0; => VHGND terrain common input;
+	[VHGNDtilepolys] = 0; [VHGNDvcpairready] = 0;
+	( A repeated ordinary unit tile needs no raw input when facing and mapping
+	  both consume their complete exact cache payloads.  Preserve the original
+	  materialization for moving cameras, reflection and coarse flat triangles. )
+	A = [VHGNDvcframehit]; ? A = 0 -> VHGND tile common input;
+	A = [VHGNDmirror]; ? A != 0 -> VHGND tile common input;
+	A = [VHGNDlodstep]; ? A != 1 -> VHGND tile common input;
+	-> VHGND tile common input ready;
+    "VHGND tile common input"
+	=> VHGND terrain common input;
+    "VHGND tile common input ready"
 	[VHGNDinputready] = 0; [VHGNDvctri] = 0; => VHGND terrain facing;
 	A = [VHGNDmirror]; ? A != 0 -> VHGND tile first mirror facing;
 	A = [FCret]; ? A = 0 -> VHGND tile first done; -> VHGND tile first visible;
@@ -5652,6 +5686,8 @@
 	A = [VHGNDtilepolys]; ? A = 0 -> VHGND tile done;
     "VHGND tile detail visible"
 	=> VHGND render tile fauna;
+	=> VHGND object view cull;
+	A = [VHGNDviewrz]; ? A = 0 -> VHGND tile done;
 	=> VHGND tile objects;
 	"VHGND tile done"
 	end;
@@ -6440,7 +6476,9 @@
 	[VHGNDmushxf] = [VHGNDtreepx]; [VHGNDmushyf] = [VHGNDtreeleafdrop];
 	[VHGNDmushzf] = [VHGNDtreepz]; [VHGNDmushfloat] = 1;
 	[VHGNDmushmask1] = 15; [VHGNDmushmask2] = 3; [VHGNDmushscale] = 1023;
-	[VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31; => VHGND greenmush; [VHGNDmushfloat] = 0;
+	[VHGNDmushbase] = 223; [VHGNDmushcolmask] = 31;
+	=> VHGND greenmush;
+	[VHGNDmushfloat] = 0;
 	[VHGNDtreeside]+; -> VHGND tree leaf face;
     "VHGND tree leaves done"
 	[SPmapfast] = 0; [SPpixfast] = 0; [SPtrifast] = 0;
