@@ -143,6 +143,38 @@ def main():
         )),
         "compiler metadata owns direct-source exact arithmetic and 6,510 patterns")
 
+    low16_start = compiler_source.index('      "pp found"')
+    low16_end = compiler_source.index(
+        '      "pp exact low16 mask fallback"', low16_start)
+    low16_codegen = compiler_source[low16_start:low16_end]
+    low16_markers = (
+        "? [i386m target] != yes -> pp exact low16 mask fallback;",
+        "? a != q16 -> pp exact low16 mask fallback;",
+        "? [op1 class] != register -> pp exact low16 mask fallback;",
+        "? [op2 class] != immediate -> pp exact low16 mask fallback;",
+        "? [op2 value] != 65535 -> pp exact low16 mask fallback;",
+        "? [op1 regid] = 0 -> pp exact low16 eax;",
+        "? [op1 regid] = 1 -> pp exact low16 ebx;",
+        "? [op1 regid] = 2 -> pp exact low16 ecx;",
+        "? [op1 regid] = 3 -> pp exact low16 edx;",
+        "? [op1 regid] = 4 -> pp exact low16 esi;",
+        "d = C0h; -> pp exact low16 emit;",
+        "d = DBh; -> pp exact low16 emit;",
+        "d = C9h; -> pp exact low16 emit;",
+        "d = D2h; -> pp exact low16 emit;",
+        "d = F6h;",
+        "[bpos] + 3;",
+        "[byte] = 0Fh; => cat byte;",
+        "[byte] = B7h; => cat byte;",
+        "[byte] = d; => cat byte;",
+    )
+    positions = [low16_codegen.find(marker) for marker in low16_markers]
+    c.ok(
+        all(position >= 0 for position in positions)
+        and positions == sorted(positions)
+        and compiler_source.count('"pp exact low16 mask fallback"') == 1,
+        "i386m register low16 codegen is guarded and emits exact MOVZX bytes")
+
     # ---------------------------------------------------------- 2. main/ pristine
     bad = []
     with open(PRISTINE, "r", encoding="utf-8-sig") as fh:
