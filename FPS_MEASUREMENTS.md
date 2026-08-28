@@ -7,13 +7,14 @@ The retrospective tables below record every result recovered for this publicatio
 ## Current status
 
 - Goal: sustained full-fidelity **60 Hz** presentation while preserving at least **18.206 Hz** authentic simulation.
-- Best retained healthy-host presentation: **59.294871794871796 Hz**.
-- Healthy-host simulation: **18.42948717948718 Hz**.
-- Remaining measured gap: **0.7051282051282044 Hz**.
+- Best retained healthy-host presentation: **59.441973311767086 Hz**.
+- Healthy-host simulation: **18.60088960776385 Hz**.
+- Remaining measured gap: **0.5580266882329141 Hz**.
 - Current production executable: `work/vhgame.exe`, 646,594 bytes, SHA-256 `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501`.
-- The healthy absolute record now represents that current production executable and was measured as Task #120's controlled Baseline A.
+- The healthy absolute record represents that current production executable and was measured as Task #123's controlled Baseline B.
 - The rejected indexed-replay Candidate A reached **58.859223300970875 Hz**, but lost both required Ordering-A metrics to the accepted baseline and was restored.
 - Task #121's exact marked replay LEA was rejected on a depressed host after Candidate A preserved simulation but fell to **45.85286325657224 Hz** versus **55.47652916073969 Hz** for Baseline A and added **8,694,755.280439556 cycles/presentation**. This comparison does not replace the healthy absolute record.
+- Task #123's aligned unchanged replay loop won Ordering A but reversed sharply in Ordering B, losing **13.453520196099156 Hz** and adding **10,898,005.981137909 cycles/presentation**. The candidate was rejected and restored; its Baseline B independently supplied the new healthy absolute production observation.
 
 ## Evidence classes
 
@@ -43,9 +44,10 @@ Candidates run in Candidate A / Baseline A / Baseline B / Candidate B order. Can
 |---|---|---:|---:|---:|---:|---:|---:|---|
 | Packed-threshold Baseline A, then-record | `24d398fc2cd7b8c81222689f6f5c1e9edf886d4771532e379592b661ac8b38b2` | 54.973821989528794 Hz | 18.525976641159886 Hz | 15.071525993902453 ms | 11.76056728760782 ms | 0.8487283214656896 ms | 41,751,507.307692304 | `build/packed-depth-threshold-20260828/baseline-a/capsule/report.json` |
 | Fixed-slot-rotation Baseline A, previous record | `8ad3ad2fdc7bad34123c3987001f28062f44e39e55cd29a2801dc75ff1c5a987` | 57.54962903549228 Hz | 18.64848606376579 Hz | 13.591972683857533 ms | 10.581430141990426 ms | 0.7478364056237748 ms | 39,874,447.452961676 | `build/fixed-terrain-rotate-20260828/baseline-a/capsule/report.json` |
-| Indexed-replay Baseline A, current record | `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501` | **59.294871794871796 Hz** | **18.42948717948718 Hz** | 13.34251048617445 ms | 10.35262836937737 ms | 0.7474050843694494 ms | 38,649,322.01689189 | `build/replay-indexed-loads-20260828/baseline-a/capsule/report.json` |
+| Indexed-replay Baseline A, previous record | `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501` | 59.294871794871796 Hz | 18.42948717948718 Hz | 13.34251048617445 ms | 10.35262836937737 ms | 0.7474050843694494 ms | 38,649,322.01689189 | `build/replay-indexed-loads-20260828/baseline-a/capsule/report.json` |
+| Aligned-loop Baseline B, current record | `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501` | **59.441973311767086 Hz** | **18.60088960776385 Hz** | 12.75301347279859 ms | 9.89368199647547 ms | 0.7287624353362514 ms | 38,665,362.67687075 | `build/replay-aligned-accepted-loop-20260828/baseline-b/capsule/report.json` |
 
-The first row was 5.026178010471206 Hz short of 60. The current record is 0.7051282051282044 Hz short and comes from the accepted production executable.
+The first row was 5.026178010471206 Hz short of 60. The current record is 0.5580266882329141 Hz short and comes from the accepted production executable.
 
 ## Historical production observations
 
@@ -150,6 +152,22 @@ At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher iso
 - The candidate kept the executable at 646,594 bytes, aligned the shortened 34-byte replay body at `0x2fa40`, and preserved every downstream code byte and offset.
 - Disposition: rejected after Ordering B; fidelity skipped; accepted production restored.
 - Evidence: `build/replay-aligned-combined-backedge-20260828/result.json`.
+
+### Aligned unchanged accepted replay loop — Task #123
+
+| Run | Presentation | Simulation | Terrain | Cycles/presentation |
+|---|---:|---:|---:|---:|
+| Candidate A | 57.587391392200445 Hz | 18.58961406344716 Hz | 10.003472124756335 ms | 39,834,633.7368421 |
+| Baseline A | 46.60754794803052 Hz | 18.972984120437204 Hz | 16.01636036106982 ms | 49,317,372.876106195 |
+| Baseline B | 59.441973311767086 Hz | 18.60088960776385 Hz | 9.89368199647547 ms | 38,665,362.67687075 |
+| Candidate B | 45.98845311566793 Hz | 18.713915986462272 Hz | 16.250577849711473 ms | 49,563,368.65800866 |
+
+- Ordering A: +10.979843444169923 Hz and -9,482,739.139264092 cycles/presentation.
+- Ordering B: -13.453520196099156 Hz and +10,898,005.981137909 cycles/presentation.
+- The candidate inserted the cold 11-byte `A = 0; B + 0;` prefix and moved the unchanged accepted 47-byte loop from `0x2fa35` to `0x2fa40`. Executable size and every later instruction byte and offset were preserved.
+- Host conditions crossed sharply between runs. The per-ordering gates reject rather than average the contradictory result; fidelity was skipped and accepted production was restored exactly.
+- Baseline B is separately classified as a healthy-host absolute observation of the unchanged accepted executable and establishes the 59.441973311767086-Hz production record above.
+- Evidence: `build/replay-aligned-accepted-loop-20260828/result.json`.
 
 ## Rejected Ordering-A candidates
 
