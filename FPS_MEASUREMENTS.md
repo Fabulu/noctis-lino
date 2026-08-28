@@ -165,6 +165,7 @@ All candidates in this table passed Candidate A's 18.206-Hz simulation gate, the
 | Unpadded replay register retention, Task #105 | 35.823950870010236 / 36.221444741716404 Hz | 19.037871033776867 Hz | 63,831,594.58857143 / 63,088,209.1875 | -0.39749387170616757 Hz; +743,385.4010714293 cycles | `build/replay-register-retention-20260828/result.json` |
 | Layout-stable register-nonzero branches, Task #114 | 34.328661385334144 / 34.688013136289 Hz | 18.281535648994517 Hz | 65,983,452.964497045 / 65,931,137.1183432 | -0.3593517509548556 Hz; +52,315.84615384787 cycles | `build/compare-zero-backedge-20260828/result.json` |
 | Direct-B absolute replay pointer, Task #115 | 34.16717510677242 / 36.87590636005801 Hz | 18.91397193410616 Hz | 66,846,338.678571425 / 62,043,054.38764045 | -2.70873125328559 Hz; +4,803,284.290930979 cycles | `build/replay-direct-b-pointer-20260828/result.json` |
+| 64-byte-aligned relative replay plus combined backedge, Task #118 | 39.183673469387756 / 39.398862713241265 Hz | 18.775510204081634 Hz | 58,265,913.578125 / 57,233,087.938144326 | -0.21518924385350857 Hz; +1,032,825.6399806738 cycles | `build/replay-aligned-relative-backedge-20260828/result.json` |
 
 ## Candidate-A simulation-gate failures
 
