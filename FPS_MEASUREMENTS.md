@@ -10,7 +10,8 @@ The retrospective tables below record every result recovered for this publicatio
 - Best retained-lineage healthy-host presentation: **59.80668546113572 Hz**.
 - Simulation at that healthy-host record: **18.525976641159886 Hz**.
 - Remaining measured gap: **0.19331453886427852 Hz**.
-- Current production executable: `work/vhgame.exe`, 646,726 bytes, SHA-256 `90fe4e4782baa08b2ae69eec012278a4e70d767314d5769ae45b2e83126b1b21`.
+- Current production executable: `work/vhgame.exe`, 646,726 bytes, SHA-256 `6038ddf024f84e75efc02e537edbf788411aa3efdacc1fb76c426362674c17fd`.
+- Task #140 folded the second paired culling-replay destination into its exact shared-Lino store displacement and removed the hot cursor increment. It won both mandatory metrics in both depressed-host ABBA orderings and passed synchronized authoritative fidelity, so it is retained without replacing the healthy absolute record.
 - Task #127's shared-Lino culling-pair replay won both mandatory metrics in both ABBA orderings and passed synchronized authoritative renderer/gameplay fidelity. Its variable-host Candidate B reached 57.23498589278517 Hz at 18.540910923014913-Hz simulation, so it is retained as a relative optimization without replacing the healthy absolute record.
 - Task #125's Candidate B supplied the retained-lineage healthy absolute record and reported an internal current-FPS field of 60; the fixed five-second external rate remains the binding **59.80668546113572 Hz** observation.
 - The rejected indexed-replay Candidate A reached **58.859223300970875 Hz**, but lost both required Ordering-A metrics to the accepted baseline and was restored.
@@ -53,7 +54,7 @@ Candidates run in Candidate A / Baseline A / Baseline B / Candidate B order. Can
 | Aligned-loop Baseline B, previous record | `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501` | 59.441973311767086 Hz | 18.60088960776385 Hz | 12.75301347279859 ms | 9.89368199647547 ms | 0.7287624353362514 ms | 38,665,362.67687075 | `build/replay-aligned-accepted-loop-20260828/baseline-b/capsule/report.json` |
 | Packed-replay Candidate B, current record | `2945e4b4e0a6c9e22a32f3bc8650986b93a592ebe85b41adbb61fda413c167ef` | **59.80668546113572 Hz** | **18.525976641159886 Hz** | 12.121159669841099 ms | 9.325560789453078 ms | 0.696008338269382 ms | 38,169,628.78787879 | `build/packed-replay-records-20260828/candidate-b/capsule/report.json` |
 
-The first row was 5.026178010471206 Hz short of 60. The retained-lineage record is 0.19331453886427852 Hz short and was measured on Task #125's immediate production predecessor. Task #127's variable-host relative win does not replace that healthy absolute observation.
+The first row was 5.026178010471206 Hz short of 60. The retained-lineage record is 0.19331453886427852 Hz short and was measured on Task #125's immediate production predecessor. Tasks #127 and #140 each retained a depressed/variable-host relative win without replacing that healthy absolute observation.
 
 ## Historical production observations
 
@@ -165,6 +166,25 @@ At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher iso
 - Retained executable: `90fe4e4782baa08b2ae69eec012278a4e70d767314d5769ae45b2e83126b1b21` (646,726 bytes).
 - This variable/depressed-host ABBA pass does not replace Task #125's 59.80668546113572-Hz healthy absolute record.
 - Evidence: `build/culling-pair-replay-20260828/result.json`.
+
+### Folded paired culling-replay destination — Task #140
+
+| Run | Presentation | Simulation | Render | Terrain | Present | Cycles/presentation |
+|---|---:|---:|---:|---:|---:|---:|
+| Candidate A | 39.43154523618895 Hz | 18.815052041633308 Hz | 23.940022560631697 ms | 18.879062041737168 ms | 1.3471257755217145 ms | 57,791,753.964467004 |
+| Baseline A | 36.985759493670884 Hz | 18.789556962025316 Hz | 25.543413147837505 ms | 20.166114940259536 ms | 1.4391662915482097 ms | 61,608,602.57754011 |
+| Baseline B | 36.43061809250921 Hz | 19.03397462136717 Hz | 25.960073681671684 ms | 20.406215828812584 ms | 1.4439639389701813 ms | 62,443,203.494382024 |
+| Candidate B | 37.63658437879401 Hz | 18.818292189397006 Hz | 25.002916175949593 ms | 19.750691791380614 ms | 1.5326973161366921 ms | 60,202,184.758064516 |
+
+- Ordering A: +2.445785742518069 Hz and -3,816,848.613073103 cycles/presentation.
+- Ordering B: +1.2059662862848057 Hz and -2,241,018.736317508 cycles/presentation.
+- Candidate A passed the 18.206-Hz simulation gate; both orderings independently won presentation throughput and cycles/presentation.
+- The shared-Lino culling-pair loop now writes the second exact destination as `D plus 1` directly, removing the hot `D+` while preserving the same ordered stores. The next iteration reloads D, and the terminal state load overwrites it on exit.
+- One unreachable `A+` supplies cold same-size padding. The 28-byte generated replacement range moves the second store displacement by one Lino word, keeps the loop and finish targets exact, and leaves the prefix, suffix, and 646,726-byte file size exact.
+- Independent baseline-repeat control and the candidate are exact across every authoritative renderer and gameplay product after the established host-timing and live-UTC telemetry exclusions.
+- Retained executable: `6038ddf024f84e75efc02e537edbf788411aa3efdacc1fb76c426362674c17fd` (646,726 bytes).
+- This depressed-host ABBA pass does not replace Task #125's 59.80668546113572-Hz healthy absolute record.
+- Evidence: `build/folded-pair-destination-20260828/result.json`.
 
 ## Rejected full-ABBA candidate
 

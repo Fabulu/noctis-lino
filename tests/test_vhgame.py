@@ -2635,16 +2635,21 @@ def main() -> int:
         and contains_in_order(terrain_culling_pair, (
             "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;",
             "D & 65535; [D plus SADPT plus nw] = C;",
-            "D+; [D plus SADPT plus nw] = C;",
+            "[D plus 1 plus SADPT plus nw] = C;",
             "B+; B+; E-; ? E != 0 -> PG terrain replay culling pair;",
             "-> PG terrain replay finish;",
+            "A+;",
         ))
         and terrain_culling_pair.count(
             "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;"
         ) == 1
-        and terrain_culling_pair.count("[D plus SADPT plus nw] = C;") == 2
+        and terrain_culling_pair.count("[D plus SADPT plus nw] = C;") == 1
+        and terrain_culling_pair.count(
+            "[D plus 1 plus SADPT plus nw] = C;"
+        ) == 1
+        and "D+;" not in terrain_culling_pair
         and "[A plus 1]" not in terrain_culling_pair
-        and terrain_culling_pair.strip().endswith("-> PG terrain replay finish;")
+        and terrain_culling_pair.strip().endswith("A+;")
         and game.rfind('"PG terrain replay culling"') > game.rfind('"VHG write sentinel"')
         and contains_in_order(tile, (
             "[SPcull] = 0; A = [VHGNDsctype]; ? A != 3 -> VHGND tile cull normal;",
