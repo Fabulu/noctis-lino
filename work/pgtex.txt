@@ -122,21 +122,23 @@
 
 ( A positive ordinary terrain triangle can retain its exact ordered page stores
   and the terminal scratch mutated by edges, vectors and trace.  Each command packs
-  the exact byte value above its page-relative 16-bit destination: replay is one
-  sequential word read and one direct byte store per original store. )
+  the exact byte value above its page-relative 16-bit destination.  Ordinary records
+  retain the accepted loop; culling records dispatch once to their shared-Lino pair
+  replay at the end of the production root. )
 
 "PG terrain replay"
 	B = [PGtrstart]; E = [PGtrcount];
+	A = [SPcull]; A & 1; ? A != 0 -> PG terrain replay culling;
     "PG terrain replay write"
 	A = PGtrcommands; A + B; D = [A]; C = D; C > 16;
 	D & 65535; [D plus SADPT plus nw] = C;
 	B+; E-; ? E != 0 -> PG terrain replay write;
-	( Redundant terminal stores and dead cursor/register work retain the accepted
-	  routine footprint and every later code offset while keeping all padding
-	  outside the hot loop. )
+    "PG terrain replay finish"
 	[PGtrp] = B; [PGtrn] = E;
-	[PGtrp] = B; [PGtrn] = E;
-	[PGtrp] = B; [PGtrn] = E; B+; A+;
+	( A is dead before the pixel-count load.  This balanced four-byte suffix makes
+	  the one-time dispatch consume only the prior local padding, preserving every
+	  following instruction byte and offset. )
+	A+; A-; A+; A-;
 	A = [PGtrcount]; A - 2; C = [CSpix]; A + C; [CSpix] = A;
 	=> PG terrain state load;
 	end;

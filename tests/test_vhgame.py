@@ -2016,6 +2016,15 @@ def main() -> int:
         '"PG terrain replay"',
         '"PG terrain state save"',
     )
+    terrain_culling_replay = game.split('"PG terrain replay culling"', 1)[1]
+    terrain_culling_scratch = section(
+        terrain_culling_replay,
+        '"PG terrain replay culling scratch"',
+        '"PG terrain replay culling pair"',
+    )
+    terrain_culling_pair = terrain_culling_replay.split(
+        '"PG terrain replay culling pair"', 1
+    )[1]
     terrain_state_save = section(
         pgtex,
         '"PG terrain state save"',
@@ -2303,6 +2312,40 @@ def main() -> int:
         and state_load_words == state_save_words
     )
 
+    def replay_culling_commands(packed: tuple[int, ...]) -> tuple[tuple[int, int], ...]:
+        replayed = [
+            (command & 0xFFFF, command >> 16)
+            for command in packed[:2]
+        ]
+        for index in range(2, len(packed), 2):
+            first = packed[index]
+            second = packed[index + 1]
+            assert second == first + 1
+            offset = first & 0xFFFF
+            value = first >> 16
+            replayed.extend(((offset, value), (offset + 1, value)))
+        return tuple(replayed)
+
+    culling_replay_model_exact = all(
+        replay_culling_commands(tuple(
+            (value << 16) | offset for offset, value in commands
+        )) == commands
+        for pair_count in (0, 1, 2, 17, 255)
+        for first_offset in (0, 31_000, 61_113)
+        for commands in ((
+            ((63_996, 17), (63_997, 29))
+            + tuple(
+                command
+                for pair in range(pair_count)
+                for command in (
+                    (first_offset + 2 * pair, (pair * 73 + 255) & 255),
+                    (first_offset + 2 * pair + 1, (pair * 73 + 255) & 255),
+                )
+            )
+        ),)
+        if not pair_count or first_offset + 2 * pair_count - 1 < 65_536
+    )
+
     raster_stamps: dict[int, int] = {}
     raster_records: dict[int, tuple[tuple[int, ...], tuple[int, ...]]] = {}
     raster_stream_words = 0
@@ -2562,17 +2605,56 @@ def main() -> int:
         and "VHGNDvcrasterstarts = 80000; VHGNDvcrastercounts = 80000;" in ground
         and terrain_state_layout_exact
         and terrain_raster_cache_model_exact
+        and culling_replay_model_exact
         and contains_in_order(terrain_raster_replay, (
             "B = [PGtrstart]; E = [PGtrcount];",
+            "A = [SPcull]; A & 1; ? A != 0 -> PG terrain replay culling;",
             "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;",
             "D & 65535; [D plus SADPT plus nw] = C;",
             "B+; E-; ? E != 0 -> PG terrain replay write;",
+            '"PG terrain replay finish"',
             "[PGtrp] = B; [PGtrn] = E;",
-            "[PGtrp] = B; [PGtrn] = E; B+; A+;",
+            "A+; A-; A+; A-;",
             "A = [PGtrcount]; A - 2; C = [CSpix]; A + C; [CSpix] = A;",
             "=> PG terrain state load;",
         ))
-        and terrain_raster_replay.count("[PGtrp] = B; [PGtrn] = E;") == 3
+        and terrain_raster_replay.count("[PGtrp] = B; [PGtrn] = E;") == 1
+        and terrain_raster_replay.count(
+            "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;"
+        ) == 1
+        and contains_in_order(terrain_culling_scratch, (
+            "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;",
+            "D & 65535; [D plus SADPT plus nw] = C;",
+            "B+; E-; ? E != 0 -> PG terrain replay culling scratch;",
+            "E = [PGtrcount]; E > 1; E-;",
+            "? E = 0 -> PG terrain replay finish;",
+        ))
+        and terrain_culling_scratch.count(
+            "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;"
+        ) == 1
+        and contains_in_order(terrain_culling_pair, (
+            "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;",
+            "D & 65535; [D plus SADPT plus nw] = C;",
+            "D+; [D plus SADPT plus nw] = C;",
+            "B+; B+; E-; ? E != 0 -> PG terrain replay culling pair;",
+            "-> PG terrain replay finish;",
+        ))
+        and terrain_culling_pair.count(
+            "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;"
+        ) == 1
+        and terrain_culling_pair.count("[D plus SADPT plus nw] = C;") == 2
+        and "[A plus 1]" not in terrain_culling_pair
+        and terrain_culling_pair.strip().endswith("-> PG terrain replay finish;")
+        and game.rfind('"PG terrain replay culling"') > game.rfind('"VHG write sentinel"')
+        and contains_in_order(tile, (
+            "[SPcull] = 0; A = [VHGNDsctype]; ? A != 3 -> VHGND tile cull normal;",
+            "A = [VHGNDdepth]; ? A '>= 4 -> VHGND tile cull ready; [SPcull] = 1;",
+            '"VHGND tile cull normal"',
+            "A = [VHGNDdepth]; ? A < 4 -> VHGND tile cull ready; [SPcull] = 1;",
+            '"VHGND tile cull ready"',
+            "A = [VHGNDmirror]; ? A = 0 -> VHGND tile mirror cull ready; [SPcull] = 0;",
+        ))
+        and "[SPcull] =" not in terrain_mapped
         and "A + [PGtrp]" not in terrain_raster_replay
         and "[PGtrn]-" not in terrain_raster_replay
         and not any(token in terrain_raster_replay for token in (

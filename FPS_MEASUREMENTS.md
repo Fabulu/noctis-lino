@@ -7,12 +7,12 @@ The retrospective tables below record every result recovered for this publicatio
 ## Current status
 
 - Goal: sustained full-fidelity **60 Hz** presentation while preserving at least **18.206 Hz** authentic simulation.
-- Best retained healthy-host presentation: **59.80668546113572 Hz**.
-- Healthy-host simulation: **18.525976641159886 Hz**.
+- Best retained-lineage healthy-host presentation: **59.80668546113572 Hz**.
+- Simulation at that healthy-host record: **18.525976641159886 Hz**.
 - Remaining measured gap: **0.19331453886427852 Hz**.
-- Current production executable: `work/vhgame.exe`, 646,594 bytes, SHA-256 `2945e4b4e0a6c9e22a32f3bc8650986b93a592ebe85b41adbb61fda413c167ef`.
-- Task #125's shared-Lino packed terrain replay records won both ABBA orderings in presentation throughput and cycles/presentation, then passed synchronized authoritative renderer/gameplay fidelity.
-- Candidate B supplied the retained healthy absolute record and reported an internal current-FPS field of 60; the fixed five-second external rate remains the binding **59.80668546113572 Hz** observation.
+- Current production executable: `work/vhgame.exe`, 646,726 bytes, SHA-256 `90fe4e4782baa08b2ae69eec012278a4e70d767314d5769ae45b2e83126b1b21`.
+- Task #127's shared-Lino culling-pair replay won both mandatory metrics in both ABBA orderings and passed synchronized authoritative renderer/gameplay fidelity. Its variable-host Candidate B reached 57.23498589278517 Hz at 18.540910923014913-Hz simulation, so it is retained as a relative optimization without replacing the healthy absolute record.
+- Task #125's Candidate B supplied the retained-lineage healthy absolute record and reported an internal current-FPS field of 60; the fixed five-second external rate remains the binding **59.80668546113572 Hz** observation.
 - The rejected indexed-replay Candidate A reached **58.859223300970875 Hz**, but lost both required Ordering-A metrics to the accepted baseline and was restored.
 - Task #121's exact marked replay LEA was rejected on a depressed host after Candidate A preserved simulation but fell to **45.85286325657224 Hz** versus **55.47652916073969 Hz** for Baseline A and added **8,694,755.280439556 cycles/presentation**. This comparison does not replace the healthy absolute record.
 - Task #123's aligned unchanged replay loop won Ordering A but reversed sharply in Ordering B, losing **13.453520196099156 Hz** and adding **10,898,005.981137909 cycles/presentation**. The candidate was rejected and restored; its Baseline B independently supplied the previous 59.441973311767086-Hz healthy production observation.
@@ -49,7 +49,7 @@ Candidates run in Candidate A / Baseline A / Baseline B / Candidate B order. Can
 | Aligned-loop Baseline B, previous record | `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501` | 59.441973311767086 Hz | 18.60088960776385 Hz | 12.75301347279859 ms | 9.89368199647547 ms | 0.7287624353362514 ms | 38,665,362.67687075 | `build/replay-aligned-accepted-loop-20260828/baseline-b/capsule/report.json` |
 | Packed-replay Candidate B, current record | `2945e4b4e0a6c9e22a32f3bc8650986b93a592ebe85b41adbb61fda413c167ef` | **59.80668546113572 Hz** | **18.525976641159886 Hz** | 12.121159669841099 ms | 9.325560789453078 ms | 0.696008338269382 ms | 38,169,628.78787879 | `build/packed-replay-records-20260828/candidate-b/capsule/report.json` |
 
-The first row was 5.026178010471206 Hz short of 60. The current record is 0.19331453886427852 Hz short and comes from the retained packed-replay production executable.
+The first row was 5.026178010471206 Hz short of 60. The retained-lineage record is 0.19331453886427852 Hz short and was measured on Task #125's immediate production predecessor. Task #127's variable-host relative win does not replace that healthy absolute observation.
 
 ## Historical production observations
 
@@ -142,6 +142,25 @@ At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher iso
 - Retained executable: `2945e4b4e0a6c9e22a32f3bc8650986b93a592ebe85b41adbb61fda413c167ef`.
 - Candidate B is the new retained healthy-host absolute record, 0.19331453886427852 Hz short of the external 60-Hz target.
 - Evidence: `build/packed-replay-records-20260828/result.json`.
+
+### Culling-pair terrain replay — Task #127
+
+| Run | Presentation | Simulation | Render | Terrain | Present | Cycles/presentation |
+|---|---:|---:|---:|---:|---:|---:|
+| Candidate A | 52.7829123023208 Hz | 18.895050318340523 Hz | 17.597309320157198 ms | 13.817707844971556 ms | 0.9919776518449542 ms | 43,495,526.92607004 |
+| Baseline A | 40.12841091492777 Hz | 18.258426966292134 Hz | 23.527697434188603 ms | 18.59883261135177 ms | 1.3101038542707986 ms | 56,971,436.595 |
+| Baseline B | 48.75601926163724 Hz | 18.65971107544141 Hz | 16.592855451417748 ms | 12.774296612641178 ms | 0.9142988800842611 ms | 46,903,230.481481485 |
+| Candidate B | 57.23498589278517 Hz | 18.540910923014913 Hz | 14.710946576710624 ms | 11.46324316823797 ms | 0.8150301116506452 ms | 40,058,763.74647887 |
+
+- Ordering A: +12.654501387393033 Hz and -13,475,909.668929957 cycles/presentation.
+- Ordering B: +8.478966631147927 Hz and -6,844,466.735002615 cycles/presentation.
+- Candidate A passed the 18.206-Hz simulation gate; both orderings independently won presentation throughput and cycles/presentation.
+- The shared-Lino culling path retains the first two independent scratch-command decodes, then decodes each proved adjacent equal-value command pair once and performs both exact ordered stores. Ordinary records retain Task #125's accepted one-command loop, `PGtrcount` remains the ordered-store count, and the exact 118-word terminal state remains unchanged.
+- The fixed replay entry ends at the accepted `0x2fa89` downstream offset. Every pre-existing code byte from there through the former final return at `0x9b34e` is exact; the 133-byte shared-Lino culling routine replaces one final padding byte, and the old packaging suffix is byte-exact after the resulting 132-byte shift.
+- Independent baseline-repeat control confines nondeterminism to host timing, live UTC, and its rendered telemetry island. Candidate and baseline are exact across every authoritative renderer and gameplay product after those exclusions.
+- Retained executable: `90fe4e4782baa08b2ae69eec012278a4e70d767314d5769ae45b2e83126b1b21` (646,726 bytes).
+- This variable/depressed-host ABBA pass does not replace Task #125's 59.80668546113572-Hz healthy absolute record.
+- Evidence: `build/culling-pair-replay-20260828/result.json`.
 
 ## Rejected full-ABBA candidate
 
