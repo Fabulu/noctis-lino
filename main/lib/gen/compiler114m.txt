@@ -752,6 +752,7 @@
 	sys junction = { /sys/ }; (appended to --sys, prepended to --sys)
 
 	bin extension = { .bin }; (it's what it expects as SYS/CPU packs ext.)
+	i386m setting = { i386m }; (compiler-owned exact i386m optimizations)
 	aarch64 setting = { aarch64 }; (compiler-owned target, no CPU pack)
 
     (global report)
@@ -2513,6 +2514,7 @@
 	symaps fpos = 1;	(actual position to write to symbols map file)
 
 	unit = 1;		(if set to yes, unit director was specified)
+	i386m target = 1;	(compiler-owned exact i386m optimizations selected)
 	aarch64 target = 1;	(compiler-owned AArch64 emitter selected)
 	cpud = 1;		(cpu delay director value)
 	smap = 1;		(symbols map - requested if nonzero)
@@ -2937,6 +2939,12 @@
 	d = 8;
 	=> copy option;
       ? [cpu setting] = null -> allstop;
+	[source string] = cpu setting;
+	[target string] = i386m setting;
+	=> strcmp;
+      ? failed -> cpu i386m target selected;
+	[i386m target] = yes;
+      "cpu i386m target selected"
 	[source string] = cpu setting;
 	[target string] = aarch64 setting;
 	=> strcmp;
@@ -6036,6 +6044,28 @@
 	=> log error;
 	-> pp exit;
       "pp found"
+      (i386m's packed A '* immediate pattern preserves D around an unsigned
+       multiply.  For the terrain-map stride, IMUL r32,r32,imm32 returns the
+       same low 32-bit product for every input while preserving D directly.
+       An operand-size NOP and one-byte NOP retain the exact original footprint
+       and all later code.)
+      ? [i386m target] != yes -> pp cpu pack found;
+      ? a != q41 -> pp cpu pack found;
+      ? [op1 class] != register -> pp cpu pack found;
+      ? [op1 regid] != 0 -> pp cpu pack found;
+      ? [op2 class] != immediate -> pp cpu pack found;
+      ? [op2 value] != 200 -> pp cpu pack found;
+	[esav] = e;
+	[bpos] + 9;
+      ? [pass] != code pass -> pp loop stop;
+	[byte] = 69h; => cat byte;
+	[byte] = C0h; => cat byte;
+	[byte] = C8h; => cat byte;
+	[byte] = 0; => cat byte; => cat byte; => cat byte;
+	[byte] = 66h; => cat byte;
+	[byte] = 90h; => cat byte; => cat byte;
+	-> pp loop stop;
+      "pp cpu pack found"
       (found instr. pattern - move to variant depending on register operands)
 	a = zero;		(zero variant selector)
       ? [op1 class] = register -> pp adjust for first register operand;
