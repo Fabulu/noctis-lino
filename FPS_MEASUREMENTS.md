@@ -134,6 +134,21 @@ The exact 1-KiB hybrid terrain-root candidate produced a higher isolated Candida
 - Disposition: rejected after Ordering B; fidelity skipped; accepted production restored.
 - Evidence: `build/deferred-terrain-state-20260828/result.json`.
 
+### Aligned direct-B replay plus combined backedge — Task #117
+
+| Run | Presentation | Simulation | Terrain | Cycles/presentation |
+|---|---:|---:|---:|---:|
+| Candidate A | 50.47445992327882 Hz | 18.776499091459723 Hz | 14.657139485695202 ms | 45,312,986.212 |
+| Baseline A | 47.55216693418941 Hz | 18.65971107544141 Hz | 15.61580252264016 ms | 47,872,862.84388185 |
+| Baseline B | 49.91883116883117 Hz | 18.66883116883117 Hz | 14.488042001649005 ms | 45,917,869.63414634 |
+| Candidate B | 48.52579852579853 Hz | 18.632268632268634 Hz | 15.197821258989354 ms | 47,261,369.75949367 |
+
+- Ordering A: +2.9222929890894136 Hz and -2,559,876.6318818554 cycles/presentation.
+- Ordering B: -1.3930326430326403 Hz and +1,343,500.1253473312 cycles/presentation.
+- The candidate kept the executable at 646,594 bytes, aligned the shortened 34-byte replay body at `0x2fa40`, and preserved every downstream code byte and offset.
+- Disposition: rejected after Ordering B; fidelity skipped; accepted production restored.
+- Evidence: `build/replay-aligned-combined-backedge-20260828/result.json`.
+
 ## Rejected Ordering-A candidates
 
 All candidates in this table passed Candidate A's 18.206-Hz simulation gate, then lost either or both required Ordering-A metrics. Reverse ordering and fidelity were skipped.
