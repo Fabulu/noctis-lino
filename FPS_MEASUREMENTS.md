@@ -64,6 +64,7 @@ These are useful host-state observations, not replacements for the healthy recor
 |---|---:|---:|---:|---|---|
 | Task #50 production recheck | 39.603960396 Hz | 18.976897690 Hz | Not retained in task summary | Historical task-record summary; host class not preserved | Completed Task #50 record |
 | Task #85 accepted square-table production recheck | 35.64880831126502 Hz | 18.944795273986557 Hz | 62,802,012.05142857 | Depressed-host absolute observation | `build/production-square-recheck-20260828/capsule/report.json` |
+| Task #141 folded-destination production recheck | 50.82000404940271 Hz | 18.829722615914154 Hz | 45,043,949.79681275 | Depressed-host absolute observation; healthy record unchanged | `build/folded-pair-destination-production-recheck-20260828/capsule/report.json` |
 
 ## Earlier experimental healthy-host peak rejected after full ABBA
 
