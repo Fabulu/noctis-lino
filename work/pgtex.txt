@@ -116,26 +116,27 @@
 	ipart	= 200;
 	fpart	= 200;
 	uvlist	= 8192;			( pinned (u,v) samples, interleaved )
-	PGtrcommands = 2000000;		( absolute page pointer/value pairs plus terminal state )
+	PGtrcommands = 2000000;		( packed page offset/value commands plus terminal state )
 
 "programme"
 
 ( A positive ordinary terrain triangle can retain its exact ordered page stores
-  and the terminal scratch mutated by edges, vectors and trace.  The stream keeps
-  absolute in-process page pointers and values as adjacent words: replay is one
-  sequential read pair and one direct byte store per original store. )
+  and the terminal scratch mutated by edges, vectors and trace.  Each command packs
+  the exact byte value above its page-relative 16-bit destination: replay is one
+  sequential word read and one direct byte store per original store. )
 
 "PG terrain replay"
 	B = [PGtrstart]; E = [PGtrcount];
     "PG terrain replay write"
-	A = PGtrcommands; A + B; D = [A]; C = [A plus 1]; [D] = C;
-	B + 2; E-; ? E != 0 -> PG terrain replay write;
-	( Redundant terminal stores and a dead-B increment retain the accepted routine
-	  footprint and every later code offset while keeping all padding outside the
-	  hot loop. )
+	A = PGtrcommands; A + B; D = [A]; C = D; C > 16;
+	D & 65535; [D plus SADPT plus nw] = C;
+	B+; E-; ? E != 0 -> PG terrain replay write;
+	( Redundant terminal stores and dead cursor/register work retain the accepted
+	  routine footprint and every later code offset while keeping all padding
+	  outside the hot loop. )
 	[PGtrp] = B; [PGtrn] = E;
 	[PGtrp] = B; [PGtrn] = E;
-	[PGtrp] = B; [PGtrn] = E; B+;
+	[PGtrp] = B; [PGtrn] = E; B+; A+;
 	A = [PGtrcount]; A - 2; C = [CSpix]; A + C; [CSpix] = A;
 	=> PG terrain state load;
 	end;
@@ -737,7 +738,9 @@
     "PG px terrain record begin"
 	( Recording is selected once per block and is never entered by a moving
 	  camera.  Preserve the exact direct raster loop while appending each actual
-	  destination pointer and byte after its ordered page store. )
+	  page-relative destination and byte as one packed word after its ordered store.
+	  The dead D-only suffix restores each accepted record-block footprint; D is
+	  overwritten before the next store and is not part of terminal scratch. )
 	A = [SPdi]; D = A; D + [SPcl]; [SPdi] = D;
 	B = [SPdx]; C = [SPax];
 	D = [SPcl]; D & 1; ? D != 0 -> PG px terrain record;
@@ -750,9 +753,10 @@
 	C + [SPbp]; C & 65535;
 	[A plus 3 plus SADPT plus nw] = E;
 	B + [SPsi]; B & 65535;
-	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E + 3; E + SADPT plus nw; [D] = E; [D plus 1] = [PGtrval];
-	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+;
+	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 3; E | [PGtrval]; [D] = E;
+	E = [PGtrused]; E+; [PGtrused] = E; [PGtrcount]+;
+	D + 0; D + 0; D+; D+; D+;
     "PG px terrain record"
 	A + 1; ? A = [SPdi] -> PG px terrain record final;
 	D = B; D & 65280;
@@ -762,9 +766,10 @@
 	C + [SPbp]; C & 65535;
 	[A plus 3 plus SADPT plus nw] = E;
 	B + [SPsi]; B & 65535;
-	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E + 3; E + SADPT plus nw; [D] = E; [D plus 1] = [PGtrval];
-	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+;
+	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 3; E | [PGtrval]; [D] = E;
+	E = [PGtrused]; E+; [PGtrused] = E; [PGtrcount]+;
+	D + 0; D + 0; D+; D+; D+;
 	-> PG px terrain record unchecked;
     "PG px terrain record final"
 	D = B; D & 65280;
@@ -774,9 +779,10 @@
 	C + [SPbp]; C & 65535;
 	D = A; D + 3; [PGdi] = D; [PGval] = E;
 	[A plus 3 plus SADPT plus nw] = E;
-	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E + 3; E + SADPT plus nw; [D] = E; [D plus 1] = [PGtrval];
-	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+;
+	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 3; E | [PGtrval]; [D] = E;
+	E = [PGtrused]; E+; [PGtrused] = E; [PGtrcount]+;
+	D + 0; D + 0; D+; D+; D+;
 	B + [SPsi]; B & 65535;
 	[SPcl] = 0; [SPdx] = B; [SPax] = C;
 	-> PG tex5 row;
@@ -978,7 +984,9 @@
 	  Adapt A once to the framebuffer and prepublish the corresponding physical
 	  endpoint in SPdi.  No specialized iteration calls out, and PG crow tail
 	  restores SPdi from the logical block start; the final diagnostic is rebuilt
-	  from that same saved start.  The proven destination range never wraps. )
+	  from that same saved start.  The y=10..190, x=5..311 clip plus at most three
+	  culling bytes reaches only page offset 61114, so incrementing the first
+	  packed destination cannot carry into its exact byte value. )
 	A = [SPdi]; A + SADPT plus nw;
 	D = [SPcl]; D + D; D + A; [SPdi] = D;
 	B = [SPdx]; C = [SPax];
@@ -1024,6 +1032,9 @@
 	-> PG crow tail;
 
     "PG cpx terrain record begin"
+	( The direct culling cursor is workspace-absolute.  Subtract the fixed page
+	  base only in this cold recorder, then pack the same ordered pair.  Dead
+	  D-only suffixes restore the accepted record-block footprints. )
 	A = [SPdi]; A + SADPT plus nw;
 	D = [SPcl]; D + D; D + A; [SPdi] = D;
 	B = [SPdx]; C = [SPax];
@@ -1038,10 +1049,11 @@
 	[A plus 2] = E;
 	[A plus 3] = E;
 	B + [SPsi]; B & 65535;
-	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E + 2; [D] = E; E + 1; [D plus 2] = E;
-	[D plus 1] = [PGtrval]; [D plus 3] = [PGtrval];
-	E = [PGtrused]; E + 4; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
+	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E - SADPT plus nw; E + 2; E | [PGtrval]; [D] = E;
+	E+; [D plus 1] = E;
+	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
+	D + 0; D + 0; D+; D+; D+; D+;
     "PG cpx terrain record"
 	A + 2; ? A = [SPdi] -> PG cpx terrain record final;
 	D = B; D & 65280;
@@ -1052,10 +1064,11 @@
 	[A plus 2] = E;
 	[A plus 3] = E;
 	B + [SPsi]; B & 65535;
-	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E + 2; [D] = E; E + 1; [D plus 2] = E;
-	[D plus 1] = [PGtrval]; [D plus 3] = [PGtrval];
-	E = [PGtrused]; E + 4; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
+	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E - SADPT plus nw; E + 2; E | [PGtrval]; [D] = E;
+	E+; [D plus 1] = E;
+	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
+	D + 0; D + 0; D+; D+; D+; D+;
 	-> PG cpx terrain record unchecked;
     "PG cpx terrain record final"
 	D = B; D & 65280;
@@ -1067,10 +1080,11 @@
 	[A plus 2] = E;
 	[PGdi]+;
 	[A plus 3] = E;
-	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E + 2; [D] = E; E + 1; [D plus 2] = E;
-	[D plus 1] = [PGtrval]; [D plus 3] = [PGtrval];
-	E = [PGtrused]; E + 4; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
+	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E - SADPT plus nw; E + 2; E | [PGtrval]; [D] = E;
+	E+; [D plus 1] = E;
+	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
+	D + 0; D + 0; D+; D+; D+; D+;
 	B + [SPsi]; B & 65535;
 	[SPcl] = 0; [SPdx] = B; [SPax] = C;
 	-> PG crow tail;

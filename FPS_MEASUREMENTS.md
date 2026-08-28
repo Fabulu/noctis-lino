@@ -7,14 +7,15 @@ The retrospective tables below record every result recovered for this publicatio
 ## Current status
 
 - Goal: sustained full-fidelity **60 Hz** presentation while preserving at least **18.206 Hz** authentic simulation.
-- Best retained healthy-host presentation: **59.441973311767086 Hz**.
-- Healthy-host simulation: **18.60088960776385 Hz**.
-- Remaining measured gap: **0.5580266882329141 Hz**.
-- Current production executable: `work/vhgame.exe`, 646,594 bytes, SHA-256 `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501`.
-- The healthy absolute record represents that current production executable and was measured as Task #123's controlled Baseline B.
+- Best retained healthy-host presentation: **59.80668546113572 Hz**.
+- Healthy-host simulation: **18.525976641159886 Hz**.
+- Remaining measured gap: **0.19331453886427852 Hz**.
+- Current production executable: `work/vhgame.exe`, 646,594 bytes, SHA-256 `2945e4b4e0a6c9e22a32f3bc8650986b93a592ebe85b41adbb61fda413c167ef`.
+- Task #125's shared-Lino packed terrain replay records won both ABBA orderings in presentation throughput and cycles/presentation, then passed synchronized authoritative renderer/gameplay fidelity.
+- Candidate B supplied the retained healthy absolute record and reported an internal current-FPS field of 60; the fixed five-second external rate remains the binding **59.80668546113572 Hz** observation.
 - The rejected indexed-replay Candidate A reached **58.859223300970875 Hz**, but lost both required Ordering-A metrics to the accepted baseline and was restored.
 - Task #121's exact marked replay LEA was rejected on a depressed host after Candidate A preserved simulation but fell to **45.85286325657224 Hz** versus **55.47652916073969 Hz** for Baseline A and added **8,694,755.280439556 cycles/presentation**. This comparison does not replace the healthy absolute record.
-- Task #123's aligned unchanged replay loop won Ordering A but reversed sharply in Ordering B, losing **13.453520196099156 Hz** and adding **10,898,005.981137909 cycles/presentation**. The candidate was rejected and restored; its Baseline B independently supplied the new healthy absolute production observation.
+- Task #123's aligned unchanged replay loop won Ordering A but reversed sharply in Ordering B, losing **13.453520196099156 Hz** and adding **10,898,005.981137909 cycles/presentation**. The candidate was rejected and restored; its Baseline B independently supplied the previous 59.441973311767086-Hz healthy production observation.
 
 ## Evidence classes
 
@@ -45,9 +46,10 @@ Candidates run in Candidate A / Baseline A / Baseline B / Candidate B order. Can
 | Packed-threshold Baseline A, then-record | `24d398fc2cd7b8c81222689f6f5c1e9edf886d4771532e379592b661ac8b38b2` | 54.973821989528794 Hz | 18.525976641159886 Hz | 15.071525993902453 ms | 11.76056728760782 ms | 0.8487283214656896 ms | 41,751,507.307692304 | `build/packed-depth-threshold-20260828/baseline-a/capsule/report.json` |
 | Fixed-slot-rotation Baseline A, previous record | `8ad3ad2fdc7bad34123c3987001f28062f44e39e55cd29a2801dc75ff1c5a987` | 57.54962903549228 Hz | 18.64848606376579 Hz | 13.591972683857533 ms | 10.581430141990426 ms | 0.7478364056237748 ms | 39,874,447.452961676 | `build/fixed-terrain-rotate-20260828/baseline-a/capsule/report.json` |
 | Indexed-replay Baseline A, previous record | `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501` | 59.294871794871796 Hz | 18.42948717948718 Hz | 13.34251048617445 ms | 10.35262836937737 ms | 0.7474050843694494 ms | 38,649,322.01689189 | `build/replay-indexed-loads-20260828/baseline-a/capsule/report.json` |
-| Aligned-loop Baseline B, current record | `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501` | **59.441973311767086 Hz** | **18.60088960776385 Hz** | 12.75301347279859 ms | 9.89368199647547 ms | 0.7287624353362514 ms | 38,665,362.67687075 | `build/replay-aligned-accepted-loop-20260828/baseline-b/capsule/report.json` |
+| Aligned-loop Baseline B, previous record | `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501` | 59.441973311767086 Hz | 18.60088960776385 Hz | 12.75301347279859 ms | 9.89368199647547 ms | 0.7287624353362514 ms | 38,665,362.67687075 | `build/replay-aligned-accepted-loop-20260828/baseline-b/capsule/report.json` |
+| Packed-replay Candidate B, current record | `2945e4b4e0a6c9e22a32f3bc8650986b93a592ebe85b41adbb61fda413c167ef` | **59.80668546113572 Hz** | **18.525976641159886 Hz** | 12.121159669841099 ms | 9.325560789453078 ms | 0.696008338269382 ms | 38,169,628.78787879 | `build/packed-replay-records-20260828/candidate-b/capsule/report.json` |
 
-The first row was 5.026178010471206 Hz short of 60. The current record is 0.5580266882329141 Hz short and comes from the accepted production executable.
+The first row was 5.026178010471206 Hz short of 60. The current record is 0.19331453886427852 Hz short and comes from the retained packed-replay production executable.
 
 ## Historical production observations
 
@@ -118,9 +120,28 @@ At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher iso
 - Ordering A: +0.656498056041354 Hz and -727,031.388936907 cycles/presentation.
 - Ordering B: +1.195450177265009 Hz and -1,635,131.404750754 cycles/presentation.
 - Synchronized indexed-page and semantic-state fidelity: exact.
-- Current production executable: `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501`.
+- Retained executable after this checkpoint: `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501`.
 - Evidence: `build/replay-register-retention-padded-20260828/result.json`.
 - Published implementation: commit `409abb2` (`Retain terrain replay cursors in registers`).
+
+### Packed terrain replay records — Task #125
+
+| Run | Presentation | Simulation | Render | Terrain | Present | Cycles/presentation |
+|---|---:|---:|---:|---:|---:|---:|
+| Candidate A | 53.2483552631579 Hz | 18.70888157894737 Hz | 17.57947668613595 ms | 13.864096092286992 ms | 0.9981466324418601 ms | 42,602,587.91505791 |
+| Baseline A | 47.19645018152481 Hz | 18.55586930213796 Hz | 18.09484515656876 ms | 14.111232926838516 ms | 1.0161043235577398 ms | 48,430,152.77350427 |
+| Baseline B | 51.03256552819698 Hz | 18.46703733121525 Hz | 14.700143158848402 ms | 11.27143081909165 ms | 0.8085332528785215 ms | 44,551,351.44357976 |
+| Candidate B | **59.80668546113572 Hz** | **18.525976641159886 Hz** | 12.121159669841099 ms | 9.325560789453078 ms | 0.696008338269382 ms | **38,169,628.78787879** |
+
+- Ordering A: +6.0519050816330875 Hz and -5,827,564.85844636 cycles/presentation.
+- Ordering B: +8.774119932938738 Hz and -6,381,722.655700974 cycles/presentation.
+- Candidate A passed the 18.206-Hz simulation gate; both orderings won both mandatory metrics independently.
+- Each ordered terrain byte store is retained as one packed shared-Lino command with a 16-bit page offset and exact byte value; the exact 118-word terminal raster state remains unchanged.
+- The candidate and accepted executable are both 646,594 bytes. Exact local dead padding restores every downstream offset around nine intentional change regions.
+- An independent baseline repeat confines nondeterminism to host-timing, live-UTC, and its rendered telemetry island. Candidate and baseline are exact across every authoritative renderer product and gameplay state after those baseline-controlled exclusions.
+- Retained executable: `2945e4b4e0a6c9e22a32f3bc8650986b93a592ebe85b41adbb61fda413c167ef`.
+- Candidate B is the new retained healthy-host absolute record, 0.19331453886427852 Hz short of the external 60-Hz target.
+- Evidence: `build/packed-replay-records-20260828/result.json`.
 
 ## Rejected full-ABBA candidate
 

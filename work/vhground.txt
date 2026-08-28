@@ -3055,16 +3055,19 @@
 
     "VHGND terrain mapped raster record select"
 	( One clipped terrain triangle can issue fewer than 60,000 stores.  Reserve
-	  that complete bound plus its fixed state before enabling the cold recorder,
-	  so overflow always takes the unchanged raster path. )
-	A = [PGtrused]; A + 120118; ? A > PGTRCAP -> VHGND terrain mapped raster direct;
+	  one packed word per store plus its fixed state before enabling the cold
+	  recorder, so overflow always takes the unchanged raster path.  The two
+	  visible scratch destinations are page offsets 63996 and 63997. )
+	A = [PGtrused]; A + 60118; ? A > PGTRCAP -> VHGND terrain mapped raster direct;
 	[PGtrstart] = [PGtrused]; [PGtrcount] = 2;
 	D = PGtrcommands; D + [PGtrused];
-	A = PGSCRT; A + PGDOFF; A + SADPT plus nw; [D] = A;
-	C = [SPtinta]; C & 255; [D plus 1] = C;
-	A = PGSCRE; A + PGDOFF; A + SADPT plus nw; [D plus 2] = A;
-	C = [SPescr]; C & 255; [D plus 3] = C;
-	A = [PGtrused]; A + 4; [PGtrused] = A; [PGtractive] = 1;
+	C = [SPtinta]; C & 255; C < 16;
+	A = PGSCRT; A + PGDOFF; A | C; [D] = A;
+	C = [SPescr]; C & 255; C < 16;
+	A = PGSCRE; A + PGDOFF; A | C; [D plus 1] = A;
+	A = [PGtrused]; A + 2; [PGtrused] = A; [PGtractive] = 1;
+	( Preserve A while restoring the accepted direct-path and downstream offsets. )
+	A + 0; A + 0; A+; A-; A+; A-;
     "VHGND terrain mapped raster direct"
 	[SPterrain] = 1; [PJpreproject] = 1; [PJnrv] = 3; => PG polymap;
     "VHGND terrain mapped rendered"
