@@ -11546,9 +11546,9 @@
 	E = [PGtrcount]; E > 1; E-;
 	? E = 0 -> PG terrain replay finish;
     "PG terrain replay culling pair"
-	A = PGtrcommands; A + B; D = [A]; C = D; C > 16;
+	D = [B relating PGtrcommands]; C = D; C > 16;
 	D & 65535; [D plus SADPT plus nw] = C;
 	[D plus 1 plus SADPT plus nw] = C;
 	B+; B+; E-; ? E != 0 -> PG terrain replay culling pair;
 	-> PG terrain replay finish;
-	A+;
+	A = 0; A+; A+; A+;
