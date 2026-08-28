@@ -18,6 +18,7 @@ The retrospective tables below record every result recovered for this publicatio
 - Task #123's aligned unchanged replay loop won Ordering A but reversed sharply in Ordering B, losing **13.453520196099156 Hz** and adding **10,898,005.981137909 cycles/presentation**. The candidate was rejected and restored; its Baseline B independently supplied the previous 59.441973311767086-Hz healthy production observation.
 - Task #129's fixed-offset culling-scratch replay also reversed after winning Ordering A: Ordering B lost **6.731333731254345 Hz** and added **8,276,088.460966222 cycles/presentation**. Fidelity was skipped and Task #127 was restored exactly.
 - Task #131's fixed three-point projected terrain-bounds unrolling passed Candidate A's simulation gate at **18.208152286364577 Hz**, but Ordering A lost **3.54358616920441 Hz** and added **6,741,130.921997875 cycles/presentation**. Reverse ordering and fidelity were skipped, and Task #127 was restored exactly.
+- Task #135 generalized the exact nine-byte i386m immediate-multiply lowering across 422 production instruction islands while leaving rejected constants 18 and 320 untouched. Candidate A preserved simulation at **18.996489779062564 Hz**, but Ordering A lost **5.111591595534634 Hz** and added **7,305,500.213919416 cycles/presentation**. Reverse ordering and fidelity were skipped, and Task #127 was restored exactly.
 
 ## Evidence classes
 
@@ -246,6 +247,7 @@ All candidates in this table passed Candidate A's 18.206-Hz simulation gate, the
 | Layout-stable indexed replay loads, Task #120 | 58.859223300970875 / 59.294871794871796 Hz | 18.6084142394822 Hz | 38,921,432.501718216 / 38,649,322.01689189 | -0.43564849390092064 Hz; +272,110.48482632637 cycles | `build/replay-indexed-loads-20260828/result.json` |
 | Exact marked i386m replay LEA, Task #121 | 45.85286325657224 / 55.47652916073969 Hz | 18.54493580599144 Hz | 49,998,154.72 / 41,303,399.43956044 | -9.623665904167446 Hz; +8,694,755.280439556 cycles | `build/marked-replay-lea-20260828/result.json` |
 | Fixed three-point projected terrain bounds, Task #131 | 33.93337471549762 / 37.47696088470203 Hz | 18.208152286364577 Hz | 67,581,555.93292683 / 60,840,425.01092896 | -3.54358616920441 Hz; +6,741,130.921997875 cycles | `build/fixed-terrain-bounds-unroll-20260828/result.json` |
+| Generalized layout-stable i386m immediate multiply, Task #135 | 37.580012389015074 / 42.69160398454971 Hz | 18.996489779062564 Hz | 60,807,975.74725275 / 53,502,475.53333333 | -5.111591595534634 Hz; +7,305,500.213919416 cycles | `build/i386m-general-immediate-mul-codegen-20260828/result.json` |
 
 ## Candidate-A simulation-gate failures
 
