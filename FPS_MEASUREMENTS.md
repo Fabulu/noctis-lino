@@ -13,6 +13,7 @@ The retrospective tables below record every result recovered for this publicatio
 - Current production executable: `work/vhgame.exe`, 646,594 bytes, SHA-256 `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501`.
 - The healthy absolute record now represents that current production executable and was measured as Task #120's controlled Baseline A.
 - The rejected indexed-replay Candidate A reached **58.859223300970875 Hz**, but lost both required Ordering-A metrics to the accepted baseline and was restored.
+- Task #121's exact marked replay LEA was rejected on a depressed host after Candidate A preserved simulation but fell to **45.85286325657224 Hz** versus **55.47652916073969 Hz** for Baseline A and added **8,694,755.280439556 cycles/presentation**. This comparison does not replace the healthy absolute record.
 
 ## Evidence classes
 
@@ -168,6 +169,7 @@ All candidates in this table passed Candidate A's 18.206-Hz simulation gate, the
 | Direct-B absolute replay pointer, Task #115 | 34.16717510677242 / 36.87590636005801 Hz | 18.91397193410616 Hz | 66,846,338.678571425 / 62,043,054.38764045 | -2.70873125328559 Hz; +4,803,284.290930979 cycles | `build/replay-direct-b-pointer-20260828/result.json` |
 | 64-byte-aligned relative replay plus combined backedge, Task #118 | 39.183673469387756 / 39.398862713241265 Hz | 18.775510204081634 Hz | 58,265,913.578125 / 57,233,087.938144326 | -0.21518924385350857 Hz; +1,032,825.6399806738 cycles | `build/replay-aligned-relative-backedge-20260828/result.json` |
 | Layout-stable indexed replay loads, Task #120 | 58.859223300970875 / 59.294871794871796 Hz | 18.6084142394822 Hz | 38,921,432.501718216 / 38,649,322.01689189 | -0.43564849390092064 Hz; +272,110.48482632637 cycles | `build/replay-indexed-loads-20260828/result.json` |
+| Exact marked i386m replay LEA, Task #121 | 45.85286325657224 / 55.47652916073969 Hz | 18.54493580599144 Hz | 49,998,154.72 / 41,303,399.43956044 | -9.623665904167446 Hz; +8,694,755.280439556 cycles | `build/marked-replay-lea-20260828/result.json` |
 
 ## Candidate-A simulation-gate failures
 
