@@ -175,6 +175,30 @@ def main():
         and compiler_source.count('"pp exact low16 mask fallback"') == 1,
         "i386m register low16 codegen is guarded and emits exact MOVZX bytes")
 
+    pending_fold_markers = (
+        "pp pending cd = 1;",
+        "pp pending cd position = 1;",
+        "pp pending registers = 5;",
+        "? [inst plus 0] != ampersand -> pp pending cd mismatch;",
+        "? [op1 regid] != 2 -> pp pending cd mismatch;",
+        "? [op2 value] != 65535 -> pp pending cd mismatch;",
+        "? [bpos] != [pp pending cd position] -> pp pending cd mismatch;",
+        "[byte] = 0Fh; => cat byte;",
+        "[byte] = B7h; => cat byte;",
+        "[byte] = CAh; => cat byte;",
+        "? a != ip quickreference -> pp exact pending cd fallback;",
+        "? [op2 regid] != 3 -> pp exact pending cd fallback;",
+        "[pp pending cd position] = [bpos];",
+        '"pp flush pending cd"',
+        "[byte] = 8Bh; => cat byte;",
+    )
+    c.ok(
+        all(marker in compiler_source for marker in pending_fold_markers)
+        and compiler_source.count("[pp pending cd] = no;") == 4
+        and compiler_source.count("=> pp flush pending cd;") == 5
+        and compiler_source.count('"pp flush pending cd"') == 1,
+        "i386m adjacent C = D low16 fold is guarded and flushes every code boundary")
+
     # ---------------------------------------------------------- 2. main/ pristine
     bad = []
     with open(PRISTINE, "r", encoding="utf-8-sig") as fh:

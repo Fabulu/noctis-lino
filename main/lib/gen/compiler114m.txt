@@ -2608,6 +2608,9 @@
 	endt	  = 1;		(flag: if true program is, apparently, closed)
 	esav	  = 1;		(register E SAVing, in LM code building loops)
 	pp return point = 1;	(variable return point of service prog parser)
+	pp pending cd = 1;	(i386m exact C = D awaiting adjacent low16 mask)
+	pp pending cd position = 1;	(instruction pointer before pending C = D)
+	pp pending registers = 5;	(register preservation for pending-move flush)
 
     (parse operand)
 
@@ -3187,6 +3190,7 @@
 	[pass] = 1;	      (this is the first pass)
 	[sfbp] = 0;	      (reset stockfile byte pos. counter)
 	[bpos] = 0;	      (reset instruction pointer)
+	[pp pending cd] = no; (no delayed i386m register move)
 	[dpos] = [base dpos]; (reset top of workspace)
 	[wpos] = [base wpos]; (reset top of rest of workspace)
 	[sssp] = false;       (assume no suspended symbols remaining)
@@ -3383,6 +3387,7 @@
 	[tlns] = 0;	    (reset total lines counter)
 	[tins] = 0;	    (reset total instructions counter)
 	[bpos] = 0;	    (reset instruction pointer for proper logging)
+	[pp pending cd] = no; (no delayed i386m register move)
 	[smap] = no;	    (only log labels since where specified)
 	[pass] = code pass; (signal code pass)
 	=> parse;
@@ -3795,6 +3800,7 @@
 	[cnow] +;
 	-> parse loop;
       "parse stop"
+	=> pp flush pending cd;
       (return to main program flow)
 	[tlns] + [flns];
 	[tins] + [fins];
@@ -3840,6 +3846,7 @@
       ? a  = dirs -> may open string;
       ? a  = vars -> may open string;
       ? a != prog -> err misplaced string declaration; (fatal)
+	=> pp flush pending cd;
       "may open string"
       (set parser flag indicating that it's within a string)
 	b # regb string signal;
@@ -4098,6 +4105,7 @@
 	[a relating pces] = null;
       (when in prog period, don't mind periods' names, only get code labels)
       ? [prid] < prog -> period identification;
+	=> pp flush pending cd;
       (the above condition is false and lets the flow get here only in pass 1
        and in code pass: in pass 1, the label is registered as a symbol and
        associated to the physical instruction pointer address, which will in
@@ -4245,6 +4253,7 @@
        all this can only happen when actually streaming the code, so don't do
        this if you're not doing code pass...)
       ? [levl] > zero -> parsing library code;
+	=> pp flush pending cd;
 	a = [bpos];
       "align code"
       ? a - 3 -> code aligned; (if A is divisible by 4, where 4=bytesperunit)
@@ -5994,6 +6003,31 @@
 	[op1 value] +-;
 	-> pp common stack behavior;
       "pp common stack behavior"
+      (Delay exact i386m C = D long enough to combine an immediately adjacent
+       C & 65535 into MOVZX ECX,DX.  Any other parsed instruction first emits
+       the pending ordinary move and then follows the unchanged CPU-pack path.)
+      ? [pp pending cd] != yes -> pp pending cd clear;
+      ? [i386m target] != yes -> pp pending cd mismatch;
+      ? [inst plus 0] != ampersand -> pp pending cd mismatch;
+      ? [inst plus 1] != null -> pp pending cd mismatch;
+      ? [op1 class] != register -> pp pending cd mismatch;
+      ? [op1 regid] != 2 -> pp pending cd mismatch;
+      ? [op2 class] != immediate -> pp pending cd mismatch;
+      ? [op2 value] != 65535 -> pp pending cd mismatch;
+      ? [op3 class] != null -> pp pending cd mismatch;
+      ? [opx error] != false -> pp pending cd mismatch;
+      ? [bpos] != [pp pending cd position] -> pp pending cd mismatch;
+	[pp pending cd] = no;
+	[esav] = e;
+	[bpos] + 3;
+      ? [pass] != code pass -> pp loop stop;
+	[byte] = 0Fh; => cat byte;
+	[byte] = B7h; => cat byte;
+	[byte] = CAh; => cat byte;
+	-> pp loop stop;
+      "pp pending cd mismatch"
+	=> pp flush pending cd;
+      "pp pending cd clear"
       ? [aarch64 target] = yes -> pp aarch64;
       (search ip index record that matches operand types)
 	[source string] = inst; (preload for strcmp)
@@ -6044,6 +6078,23 @@
 	=> log error;
 	-> pp exit;
       "pp found"
+      (Delay only the exact validated i386m C = D register move.  No bytes or
+       instruction-pointer units are committed until the adjacent instruction,
+       label, raw-code boundary, alignment, or source end resolves the pending
+       state.)
+      ? [i386m target] != yes -> pp exact pending cd fallback;
+      ? a != ip quickreference -> pp exact pending cd fallback;
+      ? [op1 class] != register -> pp exact pending cd fallback;
+      ? [op1 regid] != 2 -> pp exact pending cd fallback;
+      ? [op2 class] != register -> pp exact pending cd fallback;
+      ? [op2 regid] != 3 -> pp exact pending cd fallback;
+      ? [op3 class] != null -> pp exact pending cd fallback;
+      ? [cpud] != null -> pp exact pending cd fallback;
+      ? [opx error] != false -> pp exact pending cd fallback;
+	[pp pending cd] = yes;
+	[pp pending cd position] = [bpos];
+	-> pp exit;
+      "pp exact pending cd fallback"
       (i386m register '& 65535' can zero-extend the same low 16-bit register
        directly.  Select the x86 ModR/M byte for A/EAX, B/EBX, C/ECX, D/EDX,
        or E/ESI; MOVZX returns the same zero-extended value.)
@@ -8652,6 +8703,29 @@
 	-> log syntax error;
 
     (programme parser auxiliary routines)
+
+    "pp flush pending cd"
+      (Commit a delayed exact C = D as the ordinary i386m MOV ECX,EDX.  Preserve
+       every parser register because this boundary helper is called while labels,
+       raw strings, source returns, and already-parsed instructions are live.)
+	[pp pending registers plus 0] = a;
+	[pp pending registers plus 1] = b;
+	[pp pending registers plus 2] = c;
+	[pp pending registers plus 3] = d;
+	[pp pending registers plus 4] = e;
+      ? [pp pending cd] != yes -> pp flush pending cd restore;
+	[pp pending cd] = no;
+	[bpos] + 2;
+      ? [pass] != code pass -> pp flush pending cd restore;
+	[byte] = 8Bh; => cat byte;
+	[byte] = CAh; => cat byte;
+      "pp flush pending cd restore"
+	a = [pp pending registers plus 0];
+	b = [pp pending registers plus 1];
+	c = [pp pending registers plus 2];
+	d = [pp pending registers plus 3];
+	e = [pp pending registers plus 4];
+	leave;
 
     "a64 emit floating target"
 	a = [op3 value];

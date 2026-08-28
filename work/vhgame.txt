@@ -11533,22 +11533,24 @@
 		end;
 
 ( Culling terrain records begin with two independent scratch commands.  Every
-  later pair was emitted as one packed command followed by that command plus one,
-  so decode the first once and retain both exact ordered stores.  PGtrcount stays
-  the ordered-store count: for 2 + 2n stores, (PGtrcount >> 1) - 1 is n. )
+  later pair was emitted as one packed command followed by that command plus
+  65536, so decode the first once and retain both exact ordered stores.  PGtrcount
+  stays the ordered-store count: for 2 + 2n stores, (PGtrcount >> 1) - 1 is n. )
 
 "PG terrain replay culling"
 	E = 2;
     "PG terrain replay culling scratch"
-	A = PGtrcommands; A + B; D = [A]; C = D; C > 16;
-	D & 65535; [D plus SADPT plus nw] = C;
+	A = PGtrcommands; A + B; D = [A]; C = D; C & 65535; D > 16;
+	[D plus SADPT plus nw] = C;
 	B+; E-; ? E != 0 -> PG terrain replay culling scratch;
+	A = B;
 	E = [PGtrcount]; E > 1; E-;
 	? E = 0 -> PG terrain replay finish;
     "PG terrain replay culling pair"
-	D = [B relating PGtrcommands]; C = D; C > 16;
-	D & 65535; [D plus SADPT plus nw] = C;
+	D = [B relating PGtrcommands]; C = D; C & 65535; D > 16;
+	[D plus SADPT plus nw] = C;
 	[D plus 1 plus SADPT plus nw] = C;
 	B+; B+; E-; ? E != 0 -> PG terrain replay culling pair;
 	-> PG terrain replay finish;
+	A = B;
 	A = 0; A+; A+; A+;

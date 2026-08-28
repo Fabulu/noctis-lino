@@ -2314,21 +2314,21 @@ def main() -> int:
 
     def replay_culling_commands(packed: tuple[int, ...]) -> tuple[tuple[int, int], ...]:
         replayed = [
-            (command & 0xFFFF, command >> 16)
+            (command >> 16, command & 0xFFFF)
             for command in packed[:2]
         ]
         for index in range(2, len(packed), 2):
             first = packed[index]
             second = packed[index + 1]
-            assert second == first + 1
-            offset = first & 0xFFFF
-            value = first >> 16
+            assert second == first + 0x10000
+            offset = first >> 16
+            value = first & 0xFFFF
             replayed.extend(((offset, value), (offset + 1, value)))
         return tuple(replayed)
 
     culling_replay_model_exact = all(
         replay_culling_commands(tuple(
-            (value << 16) | offset for offset, value in commands
+            (offset << 16) | value for offset, value in commands
         )) == commands
         for pair_count in (0, 1, 2, 17, 255)
         for first_offset in (0, 31_000, 61_113)
@@ -2365,7 +2365,7 @@ def main() -> int:
         if raster_stamps.get(index) == generation:
             packed_commands, recorded_terminal = raster_records[index]
             commands = tuple(
-                (command & 0xFFFF, command >> 16)
+                (command >> 16, command & 0xFFFF)
                 for command in packed_commands
             )
             return "hit", commands, recorded_terminal, len(commands) - 2
@@ -2376,7 +2376,7 @@ def main() -> int:
         assert all(0 <= offset <= 0xFFFF and 0 <= value <= 0xFF
                    for offset, value in commands)
         packed_commands = tuple(
-            (value << 16) | offset for offset, value in commands
+            (offset << 16) | value for offset, value in commands
         )
         raster_stream_words += len(packed_commands) + 118
         raster_records[index] = (packed_commands, terminal)
@@ -2609,9 +2609,10 @@ def main() -> int:
         and contains_in_order(terrain_raster_replay, (
             "B = [PGtrstart]; E = [PGtrcount];",
             "A = [SPcull]; A & 1; ? A != 0 -> PG terrain replay culling;",
-            "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;",
-            "D & 65535; [D plus SADPT plus nw] = C;",
+            "A = PGtrcommands; A + B; D = [A]; C = D; C & 65535; D > 16;",
+            "[D plus SADPT plus nw] = C;",
             "B+; E-; ? E != 0 -> PG terrain replay write;",
+            "A = B;",
             '"PG terrain replay finish"',
             "[PGtrp] = B; [PGtrn] = E;",
             "A+; A-; A+; A-;",
@@ -2620,28 +2621,30 @@ def main() -> int:
         ))
         and terrain_raster_replay.count("[PGtrp] = B; [PGtrn] = E;") == 1
         and terrain_raster_replay.count(
-            "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;"
+            "A = PGtrcommands; A + B; D = [A]; C = D; C & 65535; D > 16;"
         ) == 1
         and contains_in_order(terrain_culling_scratch, (
-            "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;",
-            "D & 65535; [D plus SADPT plus nw] = C;",
+            "A = PGtrcommands; A + B; D = [A]; C = D; C & 65535; D > 16;",
+            "[D plus SADPT plus nw] = C;",
             "B+; E-; ? E != 0 -> PG terrain replay culling scratch;",
+            "A = B;",
             "E = [PGtrcount]; E > 1; E-;",
             "? E = 0 -> PG terrain replay finish;",
         ))
         and terrain_culling_scratch.count(
-            "A = PGtrcommands; A + B; D = [A]; C = D; C > 16;"
+            "A = PGtrcommands; A + B; D = [A]; C = D; C & 65535; D > 16;"
         ) == 1
         and contains_in_order(terrain_culling_pair, (
-            "D = [B relating PGtrcommands]; C = D; C > 16;",
-            "D & 65535; [D plus SADPT plus nw] = C;",
+            "D = [B relating PGtrcommands]; C = D; C & 65535; D > 16;",
+            "[D plus SADPT plus nw] = C;",
             "[D plus 1 plus SADPT plus nw] = C;",
             "B+; B+; E-; ? E != 0 -> PG terrain replay culling pair;",
             "-> PG terrain replay finish;",
+            "A = B;",
             "A = 0; A+; A+; A+;",
         ))
         and terrain_culling_pair.count(
-            "D = [B relating PGtrcommands]; C = D; C > 16;"
+            "D = [B relating PGtrcommands]; C = D; C & 65535; D > 16;"
         ) == 1
         and "A = PGtrcommands; A + B;" not in terrain_culling_pair
         and terrain_culling_pair.count("[D plus SADPT plus nw] = C;") == 1
@@ -2666,22 +2669,28 @@ def main() -> int:
         and not any(token in terrain_raster_replay for token in (
             "PG edges", "PG pm terrain span", "PG trace", "PG uv next", "PG texel"
         ))
-        and terrain_px_record.count("E < 16; [PGtrval] = E;") == 3
-        and terrain_px_record.count("E | [PGtrval]; [D] = E;") == 3
+        and terrain_px_record.count("[PGtrval] = E;") == 3
+        and terrain_px_record.count(
+            "E = A; E + 3; E < 16; E | [PGtrval]; [D] = E;"
+        ) == 3
         and terrain_px_record.count(
             "E = [PGtrused]; E+; [PGtrused] = E; [PGtrcount]+;"
         ) == 3
         and terrain_px_record.count("D + 0; D + 0; D+; D+; D+;") == 3
-        and terrain_cpx_record.count("E < 16; [PGtrval] = E;") == 3
+        and "E < 16; [PGtrval] = E;" not in terrain_px_record
+        and terrain_cpx_record.count("[PGtrval] = E;") == 3
         and terrain_cpx_record.count("E - SADPT plus nw;") == 3
-        and terrain_cpx_record.count("E | [PGtrval]; [D] = E;") == 3
-        and terrain_cpx_record.count("E+; [D plus 1] = E;") == 3
+        and terrain_cpx_record.count(
+            "E + 2; E < 16; E | [PGtrval]; [D] = E;"
+        ) == 3
+        and terrain_cpx_record.count("E + 65536; [D plus 1] = E;") == 3
         and terrain_cpx_record.count(
             "E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;"
         ) == 3
         and terrain_cpx_record.count(
-            "D + 0; D + 0; D+; D+; D+; D+;"
+            "D + 0; D+; D+; D+; D+; D+;"
         ) == 3
+        and "E < 16; [PGtrval] = E;" not in terrain_cpx_record
         and contains_in_order(terrain_raster, (
             "A = [VHGNDvcframehit]; ? A = 0 -> VHGND terrain mapped raster direct;",
             "A = VHGNDvcrasterstamp; A + [VHGNDnormindex]; C = [A];",
@@ -2692,10 +2701,10 @@ def main() -> int:
             '"VHGND terrain mapped raster record select"',
             "A = [PGtrused]; A + 60118; ? A > PGTRCAP -> VHGND terrain mapped raster direct;",
             "[PGtrstart] = [PGtrused]; [PGtrcount] = 2;",
-            "C = [SPtinta]; C & 255; C < 16;",
-            "A = PGSCRT; A + PGDOFF; A | C; [D] = A;",
-            "C = [SPescr]; C & 255; C < 16;",
-            "A = PGSCRE; A + PGDOFF; A | C; [D plus 1] = A;",
+            "C = [SPtinta]; C & 255;",
+            "A = PGSCRT; A + PGDOFF; A < 16; A | C; [D] = A;",
+            "C = [SPescr]; C & 255;",
+            "A = PGSCRE; A + PGDOFF; A < 16; A | C; [D plus 1] = A;",
             "A = [PGtrused]; A + 2; [PGtrused] = A; [PGtractive] = 1;",
             "A + 0; A + 0; A+; A-; A+; A-;",
             "[SPterrain] = 1; [PJpreproject] = 1; [PJnrv] = 3; => PG polymap;",

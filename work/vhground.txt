@@ -3061,10 +3061,10 @@
 	A = [PGtrused]; A + 60118; ? A > PGTRCAP -> VHGND terrain mapped raster direct;
 	[PGtrstart] = [PGtrused]; [PGtrcount] = 2;
 	D = PGtrcommands; D + [PGtrused];
-	C = [SPtinta]; C & 255; C < 16;
-	A = PGSCRT; A + PGDOFF; A | C; [D] = A;
-	C = [SPescr]; C & 255; C < 16;
-	A = PGSCRE; A + PGDOFF; A | C; [D plus 1] = A;
+	C = [SPtinta]; C & 255;
+	A = PGSCRT; A + PGDOFF; A < 16; A | C; [D] = A;
+	C = [SPescr]; C & 255;
+	A = PGSCRE; A + PGDOFF; A < 16; A | C; [D plus 1] = A;
 	A = [PGtrused]; A + 2; [PGtrused] = A; [PGtractive] = 1;
 	( Preserve A while restoring the accepted direct-path and downstream offsets. )
 	A + 0; A + 0; A+; A-; A+; A-;

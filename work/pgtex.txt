@@ -122,7 +122,7 @@
 
 ( A positive ordinary terrain triangle can retain its exact ordered page stores
   and the terminal scratch mutated by edges, vectors and trace.  Each command packs
-  the exact byte value above its page-relative 16-bit destination.  Ordinary records
+  its page-relative 16-bit destination above the exact byte value.  Ordinary records
   retain the accepted loop; culling records dispatch once to their shared-Lino pair
   replay at the end of the production root. )
 
@@ -130,14 +130,14 @@
 	B = [PGtrstart]; E = [PGtrcount];
 	A = [SPcull]; A & 1; ? A != 0 -> PG terrain replay culling;
     "PG terrain replay write"
-	A = PGtrcommands; A + B; D = [A]; C = D; C > 16;
-	D & 65535; [D plus SADPT plus nw] = C;
+	A = PGtrcommands; A + B; D = [A]; C = D; C & 65535; D > 16;
+	[D plus SADPT plus nw] = C;
 	B+; E-; ? E != 0 -> PG terrain replay write;
+	( A is dead before the common finish.  This two-byte one-time pad keeps that
+	  finish target and every following instruction byte and offset exact. )
+	A = B;
     "PG terrain replay finish"
 	[PGtrp] = B; [PGtrn] = E;
-	( A is dead before the pixel-count load.  This balanced four-byte suffix makes
-	  the one-time dispatch consume only the prior local padding, preserving every
-	  following instruction byte and offset. )
 	A+; A-; A+; A-;
 	A = [PGtrcount]; A - 2; C = [CSpix]; A + C; [CSpix] = A;
 	=> PG terrain state load;
@@ -755,8 +755,8 @@
 	C + [SPbp]; C & 65535;
 	[A plus 3 plus SADPT plus nw] = E;
 	B + [SPsi]; B & 65535;
-	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E + 3; E | [PGtrval]; [D] = E;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 3; E < 16; E | [PGtrval]; [D] = E;
 	E = [PGtrused]; E+; [PGtrused] = E; [PGtrcount]+;
 	D + 0; D + 0; D+; D+; D+;
     "PG px terrain record"
@@ -768,8 +768,8 @@
 	C + [SPbp]; C & 65535;
 	[A plus 3 plus SADPT plus nw] = E;
 	B + [SPsi]; B & 65535;
-	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E + 3; E | [PGtrval]; [D] = E;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 3; E < 16; E | [PGtrval]; [D] = E;
 	E = [PGtrused]; E+; [PGtrused] = E; [PGtrcount]+;
 	D + 0; D + 0; D+; D+; D+;
 	-> PG px terrain record unchecked;
@@ -781,8 +781,8 @@
 	C + [SPbp]; C & 65535;
 	D = A; D + 3; [PGdi] = D; [PGval] = E;
 	[A plus 3 plus SADPT plus nw] = E;
-	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E + 3; E | [PGtrval]; [D] = E;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E + 3; E < 16; E | [PGtrval]; [D] = E;
 	E = [PGtrused]; E+; [PGtrused] = E; [PGtrcount]+;
 	D + 0; D + 0; D+; D+; D+;
 	B + [SPsi]; B & 65535;
@@ -1051,11 +1051,11 @@
 	[A plus 2] = E;
 	[A plus 3] = E;
 	B + [SPsi]; B & 65535;
-	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E - SADPT plus nw; E + 2; E | [PGtrval]; [D] = E;
-	E+; [D plus 1] = E;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E - SADPT plus nw; E + 2; E < 16; E | [PGtrval]; [D] = E;
+	E + 65536; [D plus 1] = E;
 	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
-	D + 0; D + 0; D+; D+; D+; D+;
+	D + 0; D+; D+; D+; D+; D+;
     "PG cpx terrain record"
 	A + 2; ? A = [SPdi] -> PG cpx terrain record final;
 	D = B; D & 65280;
@@ -1066,11 +1066,11 @@
 	[A plus 2] = E;
 	[A plus 3] = E;
 	B + [SPsi]; B & 65535;
-	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E - SADPT plus nw; E + 2; E | [PGtrval]; [D] = E;
-	E+; [D plus 1] = E;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E - SADPT plus nw; E + 2; E < 16; E | [PGtrval]; [D] = E;
+	E + 65536; [D plus 1] = E;
 	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
-	D + 0; D + 0; D+; D+; D+; D+;
+	D + 0; D+; D+; D+; D+; D+;
 	-> PG cpx terrain record unchecked;
     "PG cpx terrain record final"
 	D = B; D & 65280;
@@ -1082,11 +1082,11 @@
 	[A plus 2] = E;
 	[PGdi]+;
 	[A plus 3] = E;
-	E < 16; [PGtrval] = E; D = PGtrcommands; D + [PGtrused];
-	E = A; E - SADPT plus nw; E + 2; E | [PGtrval]; [D] = E;
-	E+; [D plus 1] = E;
+	[PGtrval] = E; D = PGtrcommands; D + [PGtrused];
+	E = A; E - SADPT plus nw; E + 2; E < 16; E | [PGtrval]; [D] = E;
+	E + 65536; [D plus 1] = E;
 	E = [PGtrused]; E + 2; [PGtrused] = E; [PGtrcount]+; [PGtrcount]+;
-	D + 0; D + 0; D+; D+; D+; D+;
+	D + 0; D+; D+; D+; D+; D+;
 	B + [SPsi]; B & 65535;
 	[SPcl] = 0; [SPdx] = B; [SPax] = C;
 	-> PG crow tail;
