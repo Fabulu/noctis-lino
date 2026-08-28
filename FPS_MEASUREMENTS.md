@@ -7,12 +7,12 @@ The retrospective tables below record every result recovered for this publicatio
 ## Current status
 
 - Goal: sustained full-fidelity **60 Hz** presentation while preserving at least **18.206 Hz** authentic simulation.
-- Best retained healthy-host presentation: **57.54962903549228 Hz**.
-- Healthy-host simulation: **18.64848606376579 Hz**.
-- Remaining measured gap: **2.45037096450772 Hz**.
+- Best retained healthy-host presentation: **59.294871794871796 Hz**.
+- Healthy-host simulation: **18.42948717948718 Hz**.
+- Remaining measured gap: **0.7051282051282044 Hz**.
 - Current production executable: `work/vhgame.exe`, 646,594 bytes, SHA-256 `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501`.
-- The healthy absolute record represents executable `8ad3ad2fdc7bad34123c3987001f28062f44e39e55cd29a2801dc75ff1c5a987`. Later retained changes were accepted by controlled ABBA comparisons on the currently depressed host; depressed-host values do not replace the healthy record.
-- A rejected experimental candidate reached **57.71976341015705 Hz**, but it is not a record because it failed the reverse ordering and was never retained.
+- The healthy absolute record now represents that current production executable and was measured as Task #120's controlled Baseline A.
+- The rejected indexed-replay Candidate A reached **58.859223300970875 Hz**, but lost both required Ordering-A metrics to the accepted baseline and was restored.
 
 ## Evidence classes
 
@@ -41,9 +41,10 @@ Candidates run in Candidate A / Baseline A / Baseline B / Candidate B order. Can
 | Checkpoint | Executable SHA-256 | Presentation | Simulation | Render | Terrain | Present | Cycles/presentation | Evidence |
 |---|---|---:|---:|---:|---:|---:|---:|---|
 | Packed-threshold Baseline A, then-record | `24d398fc2cd7b8c81222689f6f5c1e9edf886d4771532e379592b661ac8b38b2` | 54.973821989528794 Hz | 18.525976641159886 Hz | 15.071525993902453 ms | 11.76056728760782 ms | 0.8487283214656896 ms | 41,751,507.307692304 | `build/packed-depth-threshold-20260828/baseline-a/capsule/report.json` |
-| Fixed-slot-rotation Baseline A, current record | `8ad3ad2fdc7bad34123c3987001f28062f44e39e55cd29a2801dc75ff1c5a987` | **57.54962903549228 Hz** | **18.64848606376579 Hz** | 13.591972683857533 ms | 10.581430141990426 ms | 0.7478364056237748 ms | 39,874,447.452961676 | `build/fixed-terrain-rotate-20260828/baseline-a/capsule/report.json` |
+| Fixed-slot-rotation Baseline A, previous record | `8ad3ad2fdc7bad34123c3987001f28062f44e39e55cd29a2801dc75ff1c5a987` | 57.54962903549228 Hz | 18.64848606376579 Hz | 13.591972683857533 ms | 10.581430141990426 ms | 0.7478364056237748 ms | 39,874,447.452961676 | `build/fixed-terrain-rotate-20260828/baseline-a/capsule/report.json` |
+| Indexed-replay Baseline A, current record | `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501` | **59.294871794871796 Hz** | **18.42948717948718 Hz** | 13.34251048617445 ms | 10.35262836937737 ms | 0.7474050843694494 ms | 38,649,322.01689189 | `build/replay-indexed-loads-20260828/baseline-a/capsule/report.json` |
 
-The first row was 5.026178010471206 Hz short of 60. The current record is 2.45037096450772 Hz short. The latter remains the accepted healthy-host absolute record.
+The first row was 5.026178010471206 Hz short of 60. The current record is 0.7051282051282044 Hz short and comes from the accepted production executable.
 
 ## Historical production observations
 
@@ -54,9 +55,9 @@ These are useful host-state observations, not replacements for the healthy recor
 | Task #50 production recheck | 39.603960396 Hz | 18.976897690 Hz | Not retained in task summary | Historical task-record summary; host class not preserved | Completed Task #50 record |
 | Task #85 accepted square-table production recheck | 35.64880831126502 Hz | 18.944795273986557 Hz | 62,802,012.05142857 | Depressed-host absolute observation | `build/production-square-recheck-20260828/capsule/report.json` |
 
-## Experimental healthy-host peak that was rejected
+## Earlier experimental healthy-host peak rejected after full ABBA
 
-The exact 1-KiB hybrid terrain-root candidate produced a higher isolated Candidate A result than the retained record, but acceptance requires both orderings. Host conditions changed sharply before Ordering B; the evidence classes remain separate rather than being averaged.
+At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher isolated Candidate A result than the then-retained record. Acceptance still required both orderings. Host conditions changed sharply before Ordering B; the evidence classes remain separate rather than being averaged.
 
 | Run | Presentation | Simulation | Render | Terrain | Present | Cycles/presentation |
 |---|---:|---:|---:|---:|---:|---:|
@@ -166,6 +167,7 @@ All candidates in this table passed Candidate A's 18.206-Hz simulation gate, the
 | Layout-stable register-nonzero branches, Task #114 | 34.328661385334144 / 34.688013136289 Hz | 18.281535648994517 Hz | 65,983,452.964497045 / 65,931,137.1183432 | -0.3593517509548556 Hz; +52,315.84615384787 cycles | `build/compare-zero-backedge-20260828/result.json` |
 | Direct-B absolute replay pointer, Task #115 | 34.16717510677242 / 36.87590636005801 Hz | 18.91397193410616 Hz | 66,846,338.678571425 / 62,043,054.38764045 | -2.70873125328559 Hz; +4,803,284.290930979 cycles | `build/replay-direct-b-pointer-20260828/result.json` |
 | 64-byte-aligned relative replay plus combined backedge, Task #118 | 39.183673469387756 / 39.398862713241265 Hz | 18.775510204081634 Hz | 58,265,913.578125 / 57,233,087.938144326 | -0.21518924385350857 Hz; +1,032,825.6399806738 cycles | `build/replay-aligned-relative-backedge-20260828/result.json` |
+| Layout-stable indexed replay loads, Task #120 | 58.859223300970875 / 59.294871794871796 Hz | 18.6084142394822 Hz | 38,921,432.501718216 / 38,649,322.01689189 | -0.43564849390092064 Hz; +272,110.48482632637 cycles | `build/replay-indexed-loads-20260828/result.json` |
 
 ## Candidate-A simulation-gate failures
 
