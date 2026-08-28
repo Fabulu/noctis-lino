@@ -16,6 +16,7 @@ The retrospective tables below record every result recovered for this publicatio
 - The rejected indexed-replay Candidate A reached **58.859223300970875 Hz**, but lost both required Ordering-A metrics to the accepted baseline and was restored.
 - Task #121's exact marked replay LEA was rejected on a depressed host after Candidate A preserved simulation but fell to **45.85286325657224 Hz** versus **55.47652916073969 Hz** for Baseline A and added **8,694,755.280439556 cycles/presentation**. This comparison does not replace the healthy absolute record.
 - Task #123's aligned unchanged replay loop won Ordering A but reversed sharply in Ordering B, losing **13.453520196099156 Hz** and adding **10,898,005.981137909 cycles/presentation**. The candidate was rejected and restored; its Baseline B independently supplied the previous 59.441973311767086-Hz healthy production observation.
+- Task #129's fixed-offset culling-scratch replay also reversed after winning Ordering A: Ordering B lost **6.731333731254345 Hz** and added **8,276,088.460966222 cycles/presentation**. Fidelity was skipped and Task #127 was restored exactly.
 
 ## Evidence classes
 
@@ -163,6 +164,21 @@ At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher iso
 - Evidence: `build/culling-pair-replay-20260828/result.json`.
 
 ## Rejected full-ABBA candidate
+
+### Fixed-offset culling-scratch replay — Task #129
+
+| Run | Presentation | Simulation | Render | Terrain | Present | Cycles/presentation |
+|---|---:|---:|---:|---:|---:|---:|
+| Candidate A | 51.250258317834266 Hz | 18.805538334366606 Hz | 18.03740967204002 ms | 14.17082294823289 ms | 1.0191598379027775 ms | 44,871,593.74596774 |
+| Baseline A | 44.367909238249595 Hz | 18.638573743922205 Hz | 21.18756964319859 ms | 16.730832492669872 ms | 1.1748656079632513 ms | 51,420,790.89954338 |
+| Baseline B | 46.69887278582931 Hz | 18.51851851851852 Hz | 20.045023842014075 ms | 15.72910182303246 ms | 1.181150913816102 ms | 48,833,549.051724136 |
+| Candidate B | 39.967539054574964 Hz | 18.867924528301888 Hz | 23.6057060696197 ms | 18.622526545935273 ms | 1.388293517961408 ms | 57,109,637.51269036 |
+
+- Ordering A: +6.882349079584671 Hz and -6,549,197.153575644 cycles/presentation.
+- Ordering B: -6.731333731254345 Hz and +8,276,088.460966222 cycles/presentation.
+- The candidate preserved simulation and passed exact source/model, private-build, and same-size isolated-tail layout checks.
+- Ordering B lost both mandatory metrics, so the contradictory orderings were not averaged, synchronized fidelity was skipped, and Task #127's exact source, test, and executable checkpoint was restored.
+- Evidence: `build/fixed-culling-scratch-replay-20260828/result.json`.
 
 ### Deferred terrain terminal-state loads — Task #92
 
