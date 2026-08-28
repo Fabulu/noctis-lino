@@ -50,16 +50,17 @@ Terrain replay cursor/count retention produced the current production executable
 - Evidence: `build/replay-register-retention-padded-20260828/result.json`.
 - Published implementation: commit `409abb2` (`Retain terrain replay cursors in registers`).
 
-## Latest evaluated experiment
+## Recent evaluated experiments
 
-The layout-stable i386m register-nonzero branch candidate was rejected on 2026-08-28. It reached a byte-exact compiler fixpoint and changed exactly 47 same-size sites, but lost both required Ordering A metrics on the depressed host.
+These measurements are from the currently depressed host and do not replace the healthy absolute record. Rejected implementation changes were restored; only their measurement summaries remain here.
 
-| Run | Presentation | Simulation | Terrain | Cycles/presentation |
-|---|---:|---:|---:|---:|
-| Candidate A | 34.328661385334144 Hz | 18.281535648994517 Hz | 21.682032010346138 ms | 65,983,452.964497045 |
-| Baseline A | 34.688013136289 Hz | 19.088669950738915 Hz | 21.438358697132614 ms | 65,931,137.1183432 |
+| Date | Experiment | Candidate presentation | Candidate simulation | Baseline presentation | Candidate cycles/presentation | Baseline cycles/presentation | Disposition | Evidence |
+|---|---|---:|---:|---:|---:|---:|---|---|
+| 2026-08-28 | Layout-stable i386m register-nonzero branches | 34.328661385334144 Hz | 18.281535648994517 Hz | 34.688013136289 Hz | 65,983,452.964497045 | 65,931,137.1183432 | Rejected after Ordering A: -0.3593517509548556 Hz and +52,315.84615384787 cycles/presentation | `build/compare-zero-backedge-20260828/result.json` |
+| 2026-08-28 | Direct-B absolute terrain replay pointer | 34.16717510677242 Hz | 18.91397193410616 Hz | 36.87590636005801 Hz | 66,846,338.678571425 | 62,043,054.38764045 | Rejected after Ordering A: -2.70873125328559 Hz and +4,803,284.290930979 cycles/presentation | `build/replay-direct-b-pointer-20260828/result.json` |
+| 2026-08-28 | 64-byte-line-aligned direct-B replay pointer | 36.880290205562275 Hz | 18.137847642079805 Hz | Skipped | 61,625,879.96721312 | Skipped | Rejected immediately: Candidate A simulation below 18.206 Hz | `build/replay-aligned-b-pointer-20260828/result.json` |
 
-Candidate minus baseline: -0.3593517509548556 Hz and +52,315.84615384787 cycles/presentation. Ordering B and fidelity were skipped by the binding rejection gate. No candidate code was retained. Local evidence: `build/compare-zero-backedge-20260828/result.json`.
+Ordering B and fidelity were skipped for each row under the binding rejection gates. The production executable remains SHA-256 `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501`.
 
 ## Publication rule
 
