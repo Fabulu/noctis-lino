@@ -2554,12 +2554,17 @@ def main() -> int:
         and terrain_state_layout_exact
         and terrain_raster_cache_model_exact
         and contains_in_order(terrain_raster_replay, (
-            "[PGtrp] = [PGtrstart]; [PGtrn] = [PGtrcount];",
-            "D = [A]; C = [A plus 1]; [D] = C;",
-            "A = [PGtrp]; A + 2; [PGtrp] = A;",
+            "B = [PGtrstart]; E = [PGtrcount];",
+            "A = PGtrcommands; A + B; D = [A]; C = [A plus 1]; [D] = C;",
+            "B + 2; E-; ? E != 0 -> PG terrain replay write;",
+            "[PGtrp] = B; [PGtrn] = E;",
+            "[PGtrp] = B; [PGtrn] = E; B+;",
             "A = [PGtrcount]; A - 2; C = [CSpix]; A + C; [CSpix] = A;",
             "=> PG terrain state load;",
         ))
+        and terrain_raster_replay.count("[PGtrp] = B; [PGtrn] = E;") == 3
+        and "A + [PGtrp]" not in terrain_raster_replay
+        and "[PGtrn]-" not in terrain_raster_replay
         and not any(token in terrain_raster_replay for token in (
             "PG edges", "PG pm terrain span", "PG trace", "PG uv next", "PG texel"
         ))

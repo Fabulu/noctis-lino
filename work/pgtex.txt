@@ -126,11 +126,16 @@
   sequential read pair and one direct byte store per original store. )
 
 "PG terrain replay"
-	[PGtrp] = [PGtrstart]; [PGtrn] = [PGtrcount];
+	B = [PGtrstart]; E = [PGtrcount];
     "PG terrain replay write"
-	A = PGtrcommands; A + [PGtrp]; D = [A]; C = [A plus 1]; [D] = C;
-	A = [PGtrp]; A + 2; [PGtrp] = A;
-	[PGtrn]-; A = [PGtrn]; ? A != 0 -> PG terrain replay write;
+	A = PGtrcommands; A + B; D = [A]; C = [A plus 1]; [D] = C;
+	B + 2; E-; ? E != 0 -> PG terrain replay write;
+	( Redundant terminal stores and a dead-B increment retain the accepted routine
+	  footprint and every later code offset while keeping all padding outside the
+	  hot loop. )
+	[PGtrp] = B; [PGtrn] = E;
+	[PGtrp] = B; [PGtrn] = E;
+	[PGtrp] = B; [PGtrn] = E; B+;
 	A = [PGtrcount]; A - 2; C = [CSpix]; A + C; [CSpix] = A;
 	=> PG terrain state load;
 	end;
