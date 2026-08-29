@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "files": {
+    "finalize.py": {
+      "bytes": 3855,
+      "sha256": "a213ee2fad8aa54fbba45660700a731d3653c5b343bd3ac67c94a06736b83e29"
+    },
+    "orbital/report.json": {
+      "bytes": 2951,
+      "sha256": "6d9b6464c1c1b787126752abd3318ee77450584b6d57b16688b347b9093d08fc"
+    },
+    "post-health/capsule/report.json": {
+      "bytes": 3110,
+      "sha256": "47b1b70ae3168f32f549038d9f1cd8e350e3a3ba3beb0c5af821dd7f8136dfa1"
+    },
+    "result.json": {
+      "bytes": 1507,
+      "sha256": "48d6f27808d761f4c9d8a3fcd7fedb0133d8b10e4bf506f649dd2ebd7e934177"
+    }
+  }
+}

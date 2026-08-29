@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "task": 205,
+  "candidate": "two consecutive post-publication Sleep(0) yields",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "native_gameplay_or_renderer_replacement": false,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "candidate_source_sha256": "b9cdf1922978584018132f8c0841e812653cbb5af9a706f2ee8536b04a2e6ea1",
+  "zero_timeout": true,
+  "scheduler_yields_per_fast_presentation": 2,
+  "deadline_wait_retained": true,
+  "deadline_arithmetic_unchanged": true,
+  "simulation_constants": [
+    18206,
+    60000
+  ],
+  "compiler_unchanged": true,
+  "cpu_pack_unchanged": true,
+  "status": "pass"
+}

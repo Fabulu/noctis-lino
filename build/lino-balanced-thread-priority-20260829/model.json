@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "task": 203,
+  "candidate": "shared-Lino thread priority director 1",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "native_gameplay_or_renderer_replacement": false,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "candidate_source_sha256": "7c50c1d498fd7397c6007a688e422721c51c2dcdf5f32a710023f6a52fd78657",
+  "compiler_unchanged": true,
+  "cpu_pack_unchanged": true,
+  "win32_priority_table": [
+    -2,
+    -1,
+    0,
+    1,
+    2
+  ],
+  "director_index": 1,
+  "windows_thread_priority_value": -1,
+  "windows_thread_priority_name": "THREAD_PRIORITY_BELOW_NORMAL",
+  "intent": "favor the GUI/runtime threads over the application/render thread",
+  "simulation_constants": [
+    18206,
+    60000
+  ],
+  "status": "pass"
+}

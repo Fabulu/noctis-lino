@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "task": 205,
+  "candidate": "two consecutive post-publication Sleep(0) yields",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "native_gameplay_or_renderer_replacement": false,
+  "model": {
+    "schema": 1,
+    "task": 205,
+    "candidate": "two consecutive post-publication Sleep(0) yields",
+    "source_boundary": "one common tracked shared-Lino closure",
+    "native_gameplay_or_renderer_replacement": false,
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "candidate_source_sha256": "b9cdf1922978584018132f8c0841e812653cbb5af9a706f2ee8536b04a2e6ea1",
+    "zero_timeout": true,
+    "scheduler_yields_per_fast_presentation": 2,
+    "deadline_wait_retained": true,
+    "deadline_arithmetic_unchanged": true,
+    "simulation_constants": [
+      18206,
+      60000
+    ],
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "status": "pass"
+  },
+  "health_screen": {
+    "startup_seconds": 8.669907599920407,
+    "presentation_hz": 52.50354753699574,
+    "simulation_hz": 18.85262517737685,
+    "presentations": 259,
+    "missed_deadlines": 182,
+    "cycles_per_presentation": 43552292.185328186,
+    "status": "depressed_host"
+  },
+  "sustained_orbital": "deferred_after_depressed_health_screen",
+  "abba": "deferred_after_depressed_health_screen",
+  "fidelity": "deferred_after_depressed_health_screen",
+  "disposition": "deferred_without_candidate_conclusion",
+  "reason": "the candidate launched with an 8.6699-second startup and a 52.5035-Hz health screen immediately after an independently depressed production control; the host state cannot admit a candidate conclusion",
+  "final_arm": "accepted",
+  "accepted_restored_byte_exact": true
+}

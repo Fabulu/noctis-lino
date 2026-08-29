@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "task": 204,
+  "candidate": "unchanged accepted production sustained recheck",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "pre_run_health_reference": {
+    "path": "build/lino-balanced-thread-priority-20260829/baseline-a/capsule/report.json",
+    "startup_seconds": 6.073743099812418,
+    "presentation_hz": 59.987881236113914,
+    "simulation_hz": 18.582104625328217,
+    "cycles_per_presentation": 38212576.86531986
+  },
+  "orbital_60_seconds": {
+    "startup_seconds": 4.370162799954414,
+    "presentation_hz": 28.43846949327818,
+    "simulation_hz": 18.264002401841413,
+    "presentations": 1705,
+    "missed_deadlines": 1158,
+    "maximum_lateness_ms": 50.89347270098966,
+    "cycles_per_presentation": 80582071.83049853,
+    "average_space_ms": 19.904436588509867
+  },
+  "post_run_health": {
+    "startup_seconds": 7.1929234999697655,
+    "presentation_hz": 56.08040201005025,
+    "simulation_hz": 18.693467336683415,
+    "cycles_per_presentation": 40859726.491039425
+  },
+  "disposition": "depressed_host_no_acceptance_conclusion",
+  "reason": "The accepted baseline was at 59.988 Hz immediately before the minute, but the orbital run collapsed to 28.438 Hz and the immediate capsule control remained depressed at 56.080 Hz. The run preserves simulation but cannot replace healthy sustained evidence.",
+  "production_changed": false
+}

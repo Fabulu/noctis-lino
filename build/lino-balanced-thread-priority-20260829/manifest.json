@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "files": {
+    "verify_model.py": {
+      "bytes": 2175,
+      "sha256": "c42ed0f3e256c07c525a22c9769dfb11b74c16d3d67494322b1e63f4d6ddd9ab"
+    },
+    "verify_production.py": {
+      "bytes": 1465,
+      "sha256": "9bae0b54b4fa4d2c283bd3996f844a04f40f23638864d1357122dd83693d16ca"
+    },
+    "finalize.py": {
+      "bytes": 4121,
+      "sha256": "0e981225d9041eeb90ece455a8087f95845e22eb967e4353bcd67a6d74aa29a6"
+    },
+    "model.json": {
+      "bytes": 836,
+      "sha256": "c3ac59fa719d6b772bfc392b1a27bf2b3ac5f467df3d227bac070310d0dec893"
+    },
+    "production.json": {
+      "bytes": 532,
+      "sha256": "7fac31be41ad68a3db0f375a02bb8fb97b2057531df4472c2540fa2ec142e761"
+    },
+    "accepted/vhgame.txt": {
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    "accepted/vhgame.exe": {
+      "bytes": 645966,
+      "sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823"
+    },
+    "accepted/compiler114m.exe": {
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    "accepted/i386m.bin": {
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    "candidate/vhgame.txt": {
+      "bytes": 571624,
+      "sha256": "7c50c1d498fd7397c6007a688e422721c51c2dcdf5f32a710023f6a52fd78657"
+    },
+    "candidate/vhgame.exe": {
+      "bytes": 645966,
+      "sha256": "9081bc9bf227c302a09bd5ad5949a9617311f1472595c91d4a2d25be3f5f8f34"
+    },
+    "candidate-a/capsule/report.json": {
+      "bytes": 3105,
+      "sha256": "fc9aadf0c9f152842affcb6551ee8d2ab979cd705bbae13b38ec1d062a95770d"
+    },
+    "baseline-a/capsule/report.json": {
+      "bytes": 3109,
+      "sha256": "b2a12836a3177aeb04dabbbdad2490320ee121bea9ae43836663e4c95164fa4f"
+    },
+    "result.json": {
+      "bytes": 3005,
+      "sha256": "7c460c508bcf38d034370d81fc7cd0f4e21684d2c641c50aa7e936df2511761d"
+    }
+  }
+}
