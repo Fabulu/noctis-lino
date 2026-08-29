@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "files": {
+    "apply_candidate.py": {
+      "bytes": 6988,
+      "sha256": "cc34b2da171ef0821a3eb2fdaf8f458a87cbd471397ab8644dbd29bdd8d78cd6"
+    },
+    "verify_model.py": {
+      "bytes": 11450,
+      "sha256": "7cdbea2c8b572e62ba9c5ad4f4131dd18e505324f46fbf0546ced25c397f38c2"
+    },
+    "model.json": {
+      "bytes": 1459,
+      "sha256": "28b9a81a2dfc9979d987fbf7e5c0895555b6964e3cd1991d014f76c20bb3e02e"
+    },
+    "semantic-review.json": {
+      "bytes": 2650,
+      "sha256": "260825d4f9d7dbc9dd36777650aa54ba07977ccab224064a3bdf616971d4b2d9"
+    },
+    "run_arm.py": {
+      "bytes": 3190,
+      "sha256": "f090759e8eb5612187fc90d3fde9482116028cd7424e3d0b805c46bac7bea8a0"
+    },
+    "finalize.py": {
+      "bytes": 7841,
+      "sha256": "362fffc2e76966d6ab2661a733e51611947d55c739abdb499f3c9ca928edbb93"
+    },
+    "accepted/vhgame.txt": {
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    "accepted/vhgame.exe": {
+      "bytes": 645966,
+      "sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823"
+    },
+    "accepted/compiler114m.exe": {
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    "accepted/i386m.bin": {
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    "candidate/vhgame.txt": {
+      "bytes": 573801,
+      "sha256": "a108fa20aa76f77ef49e073b7b1aa2b1eeb9925a35c0fcc182c63e84cadd9a0b"
+    },
+    "candidate/vhgame.exe": {
+      "bytes": 646522,
+      "sha256": "a3a59f4d55179e0618071a76f935989b53a4761ebb0c906335bb9810c919db90"
+    },
+    "candidate-a/capsule/report.json": {
+      "bytes": 3085,
+      "sha256": "39ff75aa15d1dcf4d5195d4f01353d2bb4adf8c0e1aa96505e818c5818a202f2"
+    },
+    "baseline-a/capsule/report.json": {
+      "bytes": 3079,
+      "sha256": "b1e6dfbd3a553ab827cff3efc3a059d66502a157371df70e6c970adb125a4d4c"
+    },
+    "baseline-b/capsule/report.json": {
+      "bytes": 3081,
+      "sha256": "1d131e24c97a3848d9b7f3436683bb3daa70aef1a3ca784eddf837366996f734"
+    },
+    "candidate-b/capsule/report.json": {
+      "bytes": 3080,
+      "sha256": "820fc622f216906853e9b695904150186354775f2fef9f1a753facd040c65a9d"
+    },
+    "result.json": {
+      "bytes": 6849,
+      "sha256": "1fc6d48eddaf817d0ef1754d48b637b5d49610a4afb0904abb81d63ba91d9632"
+    }
+  }
+}
