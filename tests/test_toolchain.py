@@ -48,6 +48,7 @@ PACK_INSTALLED = os.path.join(L.REPO, "main", "cpu", "i386m.bin")
 PACK_X64 = os.path.join(L.REPO, "main", "cpu", "x64.bin")
 PACK_STOCK = os.path.join(L.REPO, "main", "cpu", "i386.bin")
 COMPILER_SOURCE = os.path.join(L.REPO, "main", "lib", "gen", "compiler114m.txt")
+LAYERS_SOURCE = os.path.join(L.REPO, "main", "lib", "gen", "layers.txt")
 SUBJECT = os.path.join(L.WORK, "galaxy2.txt")
 
 
@@ -198,6 +199,60 @@ def main():
         and compiler_source.count("=> pp flush pending cd;") == 5
         and compiler_source.count('"pp flush pending cd"') == 1,
         "i386m adjacent C = D low16 fold is guarded and flushes every code boundary")
+
+    delta_markers = (
+        "pp delta layer marker = { cl2lrexacti386mdeltacopy };",
+        "pp prior code label position = 1;",
+        "[pp prior code label position] = minus 1;",
+        "? [pass] != code pass -> register code label;",
+        "? [i386m target] != yes -> note prior code label;",
+        "[target string] = pp delta layer marker;",
+        "=> pp exact delta layer copy;",
+        "[pp prior code label position] = [bpos];",
+        '"pp exact delta layer copy"',
+        "a - [pp prior code label position];",
+        "? a != 26 -> pp exact delta layer restore;",
+        "? [bbss] < 26 -> pp exact delta layer restore;",
+        "[target string] = vector pp delta layer scalar;",
+        "c = 26;",
+        "c ^ pp exact delta layer compare;",
+        "[target string] = vector pp delta layer exact;",
+        "c = 23;",
+        "c ^ pp exact delta layer write;",
+    )
+    delta_start = compiler_source.index("pp delta layer marker =")
+    delta_end = compiler_source.index("tag extend upto", delta_start)
+    delta_data = compiler_source[delta_start:delta_end]
+    scalar_values = (
+        "8Bh; ACh; 87h; 00h; 00h; 00h; 00h;",
+        "89h; ACh; 9Fh; 00h; 00h; 00h; 00h;",
+        "43h; 40h; 49h; 0Fh; 85h; E9h; FFh; FFh; FFh;",
+        "59h; 5Bh; 58h;",
+    )
+    exact_values = (
+        "29h; D8h; 8Dh; 1Ch; 9Fh; 8Dh; 6Dh; 00h;",
+        "8Bh; 2Ch; 83h; 89h; 2Bh; 8Dh; 5Bh; 04h;",
+        "49h; 0Fh; 85h; F1h; FFh; FFh; FFh;",
+    )
+    c.ok(
+        all(marker in compiler_source for marker in delta_markers)
+        and all(value in delta_data for value in scalar_values + exact_values)
+        and compiler_source.count('"pp exact delta layer copy"') == 1,
+        "i386m marked layer copy requires the exact scalar signature and emits exact delta bytes")
+
+    layers_source = open(LAYERS_SOURCE, "r", encoding="utf-8").read()
+    layer_loop = layers_source[
+        layers_source.index('"CL2LR Scanline"'):
+        layers_source.index('"CL2LR No Region"')]
+    c.ok(
+        layers_source.count('"CL2LR exact i386m delta copy"') == 1
+        and layer_loop.count('"CL2LR Pixel"') == 1
+        and "[B] = [A]; B+; A+;" in layer_loop
+        and "C ^ CL2LR Pixel;" in layer_loop
+        and "<-- C;\n\t<-- B;\n\t<-- A;\n"
+            '    "CL2LR exact i386m delta copy"' in layer_loop
+        and "{" not in layer_loop,
+        "shared layer source marks only the exact scalar loop after its three pops")
 
     # ---------------------------------------------------------- 2. main/ pristine
     bad = []

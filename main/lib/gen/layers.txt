@@ -189,6 +189,7 @@
 	<-- C;
 	<-- B;
 	<-- A;
+    "CL2LR exact i386m delta copy"
 	A + [Display Width];
 	B + [Display Width];
 	D ^ CL2LR Scanline;

@@ -1154,6 +1154,17 @@
 	pfx service = { service }; ("service" pfx. for code labels)
 	pfx shared  = { shared	}; ("shared" pfx. for all symbols - post 1.14)
 
+	pp delta layer marker = { cl2lrexacti386mdeltacopy };
+	vector pp delta layer scalar =
+	  8Bh; ACh; 87h; 00h; 00h; 00h; 00h;
+	  89h; ACh; 9Fh; 00h; 00h; 00h; 00h;
+	  43h; 40h; 49h; 0Fh; 85h; E9h; FFh; FFh; FFh;
+	  59h; 5Bh; 58h;
+	vector pp delta layer exact =
+	  29h; D8h; 8Dh; 1Ch; 9Fh; 8Dh; 6Dh; 00h;
+	  8Bh; 2Ch; 83h; 89h; 2Bh; 8Dh; 5Bh; 04h;
+	  49h; 0Fh; 85h; F1h; FFh; FFh; FFh;
+
 	tag extend upto     = { extendupto }; (static data alignment tags)
 	tag align at	    = { alignat };
 	tag make	    = { make };
@@ -2611,6 +2622,7 @@
 	pp pending cd = 1;	(i386m exact C = D awaiting adjacent low16 mask)
 	pp pending cd position = 1;	(instruction pointer before pending C = D)
 	pp pending registers = 5;	(register preservation for pending-move flush)
+	pp prior code label position = 1; (guards exact marked i386m code substitution)
 
     (parse operand)
 
@@ -3388,6 +3400,7 @@
 	[tins] = 0;	    (reset total instructions counter)
 	[bpos] = 0;	    (reset instruction pointer for proper logging)
 	[pp pending cd] = no; (no delayed i386m register move)
+	[pp prior code label position] = minus 1;
 	[smap] = no;	    (only log labels since where specified)
 	[pass] = code pass; (signal code pass)
 	=> parse;
@@ -4106,6 +4119,20 @@
       (when in prog period, don't mind periods' names, only get code labels)
       ? [prid] < prog -> period identification;
 	=> pp flush pending cd;
+      (In the i386m code pass, one explicit shared-source marker may replace the
+       immediately preceding exact scalar layer-copy bytes without moving any
+       later address; all other labels remain ordinary zero-byte boundaries.)
+      ? [pass] != code pass -> register code label;
+      ? [i386m target] != yes -> note prior code label;
+	[source string] = pces;
+	[target string] = pp delta layer marker;
+	=> strcmp;
+      ? failed -> note prior code label;
+	=> pp exact delta layer copy;
+      "note prior code label"
+	[pp prior code label position] = [bpos];
+	-> log label;
+      "register code label"
       (the above condition is false and lets the flow get here only in pass 1
        and in code pass: in pass 1, the label is registered as a symbol and
        associated to the physical instruction pointer address, which will in
@@ -8720,6 +8747,56 @@
 	[byte] = 8Bh; => cat byte;
 	[byte] = CAh; => cat byte;
       "pp flush pending cd restore"
+	a = [pp pending registers plus 0];
+	b = [pp pending registers plus 1];
+	c = [pp pending registers plus 2];
+	d = [pp pending registers plus 3];
+	e = [pp pending registers plus 4];
+	leave;
+
+    "pp exact delta layer copy"
+      (The marker is a no-op unless it immediately follows the one exact 26-byte
+       i386m scalar loop-and-pop signature and no intervening code label.  The
+       same-size scalar replacement retains the source-minus-destination delta
+       and advances one destination byte pointer; the existing pops restore
+       ECX, EBX and EAX.)
+	[pp pending registers plus 0] = a;
+	[pp pending registers plus 1] = b;
+	[pp pending registers plus 2] = c;
+	[pp pending registers plus 3] = d;
+	[pp pending registers plus 4] = e;
+	a = [bpos];
+	a - [pp prior code label position];
+      ? a != 26 -> pp exact delta layer restore;
+      ? [bbss] < 26 -> pp exact delta layer restore;
+	d = [bbss];
+	d - 26;
+	[target string] = vector pp delta layer scalar;
+	e = [target string];
+	c = 26;
+	[pb stream] = bins;
+      "pp exact delta layer compare"
+	[pb offset] = d;
+	=> get progressive byte;
+	a = [pb bvalue];
+      ? a != [e] -> pp exact delta layer restore;
+	d+;
+	e+;
+	c ^ pp exact delta layer compare;
+	d = [bbss];
+	d - 26;
+	[target string] = vector pp delta layer exact;
+	e = [target string];
+	c = 23;
+      "pp exact delta layer write"
+	[pb offset] = d;
+	a = [e];
+	[pb bvalue] = a;
+	=> set progressive byte;
+	d+;
+	e+;
+	c ^ pp exact delta layer write;
+      "pp exact delta layer restore"
 	a = [pp pending registers plus 0];
 	b = [pp pending registers plus 1];
 	c = [pp pending registers plus 2];

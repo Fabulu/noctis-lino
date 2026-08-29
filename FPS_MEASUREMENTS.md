@@ -10,8 +10,9 @@ The retrospective tables below record every result recovered for this publicatio
 - Best retained-lineage healthy-host presentation: **59.80668546113572 Hz**.
 - Simulation at that healthy-host record: **18.525976641159886 Hz**.
 - Remaining measured gap: **0.19331453886427852 Hz**.
-- Current production executable: `work/vhgame.exe`, 645,966 bytes, SHA-256 `fd0f7912d2ebe84b3fdea8a759f1226465d5516a6965ed01faec94e1aa5985d2`.
-- Current production i386m compiler: `main/lib/gen/compiler114m.exe`, 81,956 bytes, SHA-256 `04e98c971c4f61002529ed5a3b0a1c1587288a9b7ad30fcad19228286edb77de`.
+- Current production executable: `work/vhgame.exe`, 645,966 bytes, SHA-256 `602385f436cae6ab5b49d89f044b1fccf5d565b8679c13b023ea1bdf1d993a65`.
+- Current production i386m compiler: `main/lib/gen/compiler114m.exe`, 82,600 bytes, SHA-256 `fd9de5f91799156d95c34d67a6d40fae4347bd7c7409aee9fcfe324a72a5850a`.
+- Task #167 replaced one exact marked scalar L2L layer-copy body with a same-size i386m destination-pointer/source-delta loop while preserving every load address, ordered store, overlap result, downstream byte, and shared-Lino source boundary. It won presentation by 1.600824228101473 Hz and 2.55783980794763 Hz while removing 2,727,557.8689971715 and 3,737,071.677122414 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. It is retained without replacing the healthy absolute record.
 - Task #153 reversed each terrain replay command to destination-high/value-low fields and added an exact adjacent i386m `C = D; C & 65535` fold to `MOVZX ECX,DX`, removing one dynamically executed extraction instruction at each of three replay decoders. It won presentation by 0.5138524590503692 Hz and 0.4558171701612608 Hz while removing 481,125.0108108148 and 1,784,514.336641848 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. The shared Lino closure remains common to every shipping target; the optimization is retained without replacing the healthy absolute record.
 - Task #149 generalized exact i386m register `& 65535` lowering across all 322 generated A/EAX, B/EBX, C/ECX, and D/EDX sites, with E/ESI support covered by the focused fixture. It won presentation by 2.7516803584764773 Hz and 1.5337899900937515 Hz while removing 3,204,463.332275696 and 2,107,022.1561563835 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. The shared Lino source is unchanged; this target-code-generator checkpoint is retained without replacing the healthy absolute record.
 - Task #145 replaced the paired culling replay's repeated command-base construction with one exact shared-Lino indexed command load. It won presentation by 5.550831977811946 Hz and 8.926258786655339 Hz while removing 8,233,763.470827088 and 12,123,875.996125333 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. It is retained without replacing the healthy absolute record.
@@ -66,7 +67,7 @@ Candidates run in Candidate A / Baseline A / Baseline B / Candidate B order. Can
 | Aligned-loop Baseline B, previous record | `e775171d8c9e07ddd2bd8387e703a778ab7a614789b0f58d3ec01ae408f0d501` | 59.441973311767086 Hz | 18.60088960776385 Hz | 12.75301347279859 ms | 9.89368199647547 ms | 0.7287624353362514 ms | 38,665,362.67687075 | `build/replay-aligned-accepted-loop-20260828/baseline-b/capsule/report.json` |
 | Packed-replay Candidate B, current record | `2945e4b4e0a6c9e22a32f3bc8650986b93a592ebe85b41adbb61fda413c167ef` | **59.80668546113572 Hz** | **18.525976641159886 Hz** | 12.121159669841099 ms | 9.325560789453078 ms | 0.696008338269382 ms | 38,169,628.78787879 | `build/packed-replay-records-20260828/candidate-b/capsule/report.json` |
 
-The first row was 5.026178010471206 Hz short of 60. The retained-lineage record is 0.19331453886427852 Hz short and was measured on Task #125's immediate production predecessor. Tasks #127, #140, #145, #149, and #153 each retained a depressed/variable-host relative win without replacing that healthy absolute observation.
+The first row was 5.026178010471206 Hz short of 60. The retained-lineage record is 0.19331453886427852 Hz short and was measured on Task #125's immediate production predecessor. Tasks #127, #140, #145, #149, #153, and #167 each retained a depressed/variable-host relative win without replacing that healthy absolute observation.
 
 ## Historical production observations
 
@@ -258,6 +259,28 @@ At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher iso
 - Retained executable: `fd0f7912d2ebe84b3fdea8a759f1226465d5516a6965ed01faec94e1aa5985d2` (645,966 bytes).
 - This depressed-host ABBA pass does not replace Task #125's 59.80668546113572-Hz healthy absolute record.
 - Evidence: `build/reversed-terrain-replay-fields-20260828/result.json`.
+
+### Exact scalar delta-pointer layer copy — Task #167
+
+| Run | Presentation | Simulation | Render | Terrain | Present | Cycles/presentation |
+|---|---:|---:|---:|---:|---:|---:|
+| Candidate A | 38.19375372985876 Hz | 18.897951064253032 Hz | 24.345452657421845 ms | 19.440835700230192 ms | 1.655531229115616 ms | 59,792,707.1875 |
+| Baseline A | 36.59292950175729 Hz | 18.81331403762663 Hz | 25.699405058600696 ms | 20.20389517645414 ms | 1.5193388871228952 ms | 62,520,265.05649717 |
+| Baseline B | 38.5885266198927 Hz | 18.984729673957904 Hz | 24.27083257781358 ms | 19.164344421886195 ms | 1.5932874175492624 ms | 59,564,663.93582888 |
+| Candidate B | 41.14636642784033 Hz | 18.62845445240532 Hz | 22.54615004594508 ms | 17.710776706924623 ms | 1.561922401779604 ms | 55,827,592.258706465 |
+
+- Ordering A: +1.600824228101473 Hz and -2,727,557.8689971715 cycles/presentation.
+- Ordering B: +2.55783980794763 Hz and -3,737,071.677122414 cycles/presentation.
+- Candidate A passed the 18.206-Hz simulation gate by 0.6919510642530327 Hz; both orderings independently won presentation throughput and cycles/presentation.
+- One zero-byte label after the shared-Lino layer-copy register saves selects the exact i386m-only compiler lowering. All other targets retain the original pure-Lino scalar loop; no target-specific Lino fork, raw target-machine block, native gameplay/renderer code, or CPU-pack change was introduced.
+- The guarded backend recognizes only the exact 23-byte scalar copy body plus the existing `POP ECX; POP EBX; POP EAX`, retains `A-B` in EAX, advances one destination byte pointer in EBX, and preserves every source address, destination/value store, overlap result, and final EBP value. Its changed CF is overwritten by the existing post-pop ADD before any observation.
+- The 20-case overlap/store-order model, 10,000-case modular address proof, one positive and six fail-closed negative compiler fixtures, 26-check toolchain regression, zero-warning three-stage byte-identical compiler fixpoint, and exact production disassembly/layout proof passed. Exactly 17 byte values changed inside `[0x1a6bc,0x1a6d3)`; the existing pops and every prefix, suffix, downstream address, and 645,966-byte file layout remain exact.
+- The full-frame model preserves 256,000 loads, 256,000 ordered stores, 256,000 loop branches, and 2,048,000 bytes of copy traffic while removing an estimated 254,800 dynamically executed instructions.
+- Independent baseline-repeat control and the candidate are exact across every authoritative renderer/gameplay product after only the established host-timing and live-UTC telemetry exclusions.
+- Retained compiler: `fd9de5f91799156d95c34d67a6d40fae4347bd7c7409aee9fcfe324a72a5850a` (82,600 bytes).
+- Retained executable: `602385f436cae6ab5b49d89f044b1fccf5d565b8679c13b023ea1bdf1d993a65` (645,966 bytes); CPU pack remains `1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7`.
+- This same-host depressed/variable-host ABBA retention does not replace Task #125's 59.80668546113572-Hz healthy absolute record; the measured target gap remains 0.19331453886427852 Hz.
+- Evidence: `build/scalar-delta-layer-copy-20260829/result.json`.
 
 ## Rejected full-ABBA candidates
 
