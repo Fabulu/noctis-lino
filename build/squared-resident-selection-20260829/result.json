@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "task": 207,
+  "candidate": "exact rooted-top-two selection with finite squared-distance rejection",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "model": {
+    "status": "pass",
+    "cases": 579195,
+    "resident_indices_exact": true,
+    "root_collision_preserved": true,
+    "stable_ties_preserved": true,
+    "special_values_use_rooted_fallback": true,
+    "final_full_scan_body_uses_rooted_path": true,
+    "moon_primary_rescan_unchanged_and_rooted": true,
+    "representative_roots": {
+      "accepted": 78,
+      "candidate": 3
+    }
+  },
+  "build": {
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "warnings": 62,
+    "errors": 0,
+    "candidate_executable_bytes": 646398,
+    "candidate_executable_sha256": "fd466f84274c21c8a21000aee7ec816f0f3bdf94c17ba84e84318460d10908d7",
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "raw_target_machine_blocks_added": false
+  },
+  "candidate_a": {
+    "presentation_hz": 60.07281553398058,
+    "simulation_hz": 18.6084142394822,
+    "cycles_per_presentation": 38219907.99663299,
+    "render_ms": 8.653516697909222,
+    "missed_deadlines": 0
+  },
+  "baseline_a": {
+    "presentation_hz": 60.08328375966686,
+    "simulation_hz": 18.441403926234383,
+    "cycles_per_presentation": 37916414.0,
+    "render_ms": 8.67784879288997,
+    "missed_deadlines": 0
+  },
+  "ordering_a": {
+    "presentation_delta_hz": -0.010468225686281585,
+    "cycles_per_presentation_delta": 303493.9966329932,
+    "candidate_won_presentation": false,
+    "candidate_won_cycles": false,
+    "decision": "reject"
+  },
+  "candidate_a_simulation_gate": "pass",
+  "baseline_b": null,
+  "candidate_b": null,
+  "ordering_b": "skipped_after_ordering_a_rejection",
+  "fidelity": "skipped_after_ordering_a_rejection",
+  "disposition": "rejected_after_ordering_a",
+  "final_arm": "accepted",
+  "accepted_restored_byte_exact": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823"
+}

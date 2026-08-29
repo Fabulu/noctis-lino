@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "task": 207,
+  "cases": 579195,
+  "root_collision_preserved": true,
+  "stable_ties_preserved": true,
+  "nan_and_infinity_use_rooted_fallback": true,
+  "final_full_scan_body_uses_rooted_path": true,
+  "moon_primary_rescan_unchanged_and_rooted": true,
+  "resident_indices_exact": true,
+  "selected_distance_terminal_meaning_preserved": true,
+  "representative_accepted_roots": 78,
+  "representative_candidate_roots": 3,
+  "source_boundary": "one common tracked shared-Lino closure",
+  "simulation_constants": [
+    18206,
+    60000
+  ],
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "candidate_source_sha256": "576c4bad2f71568e7d0af440ac8c98b65a15d0bd2112b72883f7ccfbc6751012",
+  "compiler_unchanged": true,
+  "cpu_pack_unchanged": true,
+  "status": "pass"
+}
