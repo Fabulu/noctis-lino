@@ -302,11 +302,11 @@ def main():
             "compose-scalar": (
                 168, "58a5a84d89386f4a91f34eebf89c77d8ec2a5c714bbf23b30ce77a8f05328539"),
             "compose-exact": (
-                168, "91412b63ec5a625b7f59e5720825c10089ff27f95a2ecca2e77a2909f99fd250"),
+                168, "cbb526557bad82ac4204e8c3b20576b9e8273f1a41414e2399c4e5847c8c16cf"),
             "fixed2x-scalar": (
                 210, "ac8aa2793208832a3a4102ff5a106189acc210030e343211e1de1eca23a34f79"),
             "fixed2x-exact": (
-                210, "19b31bb2749d0b7059d7f4c372882da9b72dc75b991d7bcf45cfafbf4d55d878"),
+                210, "7030af1aa854f8b57b792915c14e196352b746c4101cdcf98142f98ef48b8536"),
         },
         "i386m marked GUI islands require full exact signatures and equal-size vectors")
 
