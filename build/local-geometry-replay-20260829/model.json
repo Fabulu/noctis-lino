@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "task": 209,
+  "cases": 4092,
+  "raw_binary64_words_replayed_exactly": true,
+  "signed_zero_nan_infinity_payloads_preserved": true,
+  "type10_distance_state_preserved": true,
+  "epoch_change_fallback_exact": true,
+  "coordinate_pgf_slots_reinstalled": [
+    "SFXX",
+    "SFYY",
+    "SFZZ"
+  ],
+  "workspace_units": 640,
+  "maximum_body_records": 80,
+  "fixed_checkpoint_bodies": 78,
+  "fixed_checkpoint_nonselected_replays": 77,
+  "fixed_checkpoint_duplicate_absolute_vectors_removed": 77,
+  "fixed_checkpoint_duplicate_relative_calculations_removed": 77,
+  "fixed_checkpoint_duplicate_distances_removed_when_ordinary": 77,
+  "resident_scan_unchanged": true,
+  "selected_body_path_unchanged": true,
+  "companion_path_unchanged": true,
+  "rng_and_draw_call_counts_unchanged": true,
+  "simulation_constants": [
+    18206,
+    60000
+  ],
+  "source_boundary": "one common tracked shared-Lino closure",
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "candidate_source_sha256": "66334bf0d6e328100c0016279672096ccb1c5e45909390f634d22f20d3ab88d8",
+  "compiler_unchanged": true,
+  "cpu_pack_unchanged": true,
+  "status": "pass"
+}

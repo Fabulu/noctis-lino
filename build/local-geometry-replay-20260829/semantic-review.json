@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "task": 209,
+  "status": "pass",
+  "verdict": "no semantic hole found in bounded replay path",
+  "replayed_terminal_state": {
+    "values": [
+      "VHGlocalringcx0/1",
+      "VHGlocalringcy0/1",
+      "VHGlocalringcz0/1",
+      "SFXX",
+      "SFYY",
+      "SFZZ",
+      "FA0/1 = VHGlocalringcz0/1",
+      "FB0/1 = VHGlocalz0/1",
+      "PGFi = SFZZ"
+    ],
+    "candidate_reference": "apply_candidate.py:62-68",
+    "accepted_reference": "accepted/vhgame.txt:2722-2737",
+    "pgf_store_reference": "work/pgfp.txt:144-147"
+  },
+  "integer_fp_state": {
+    "FI_replay_required": false,
+    "reason": "Neither skipped helper writes FI; scalar FP operations return through FA and preserve integer registers and stack.",
+    "reference": "work/fp/fpx87.txt:17-24"
+  },
+  "scalar_ring_cadence": {
+    "VHGlocalringc_touched_by_relative_geometry": false,
+    "reference": "accepted/vhgame.txt:2620-2623"
+  },
+  "omitted_side_effects": [
+    "VHGNDvecindex",
+    "VHGNDvecowner",
+    "VHGNDmass*",
+    "VHGNDorbit*",
+    "VHGNDangle*",
+    "VHGNDsin*",
+    "VHGNDcos*",
+    "VHGNDct*",
+    "VHGNDxx*",
+    "VHGNDzz*",
+    "VHGNDso*",
+    "VHGNDco*",
+    "VHGNDvec{x,y,z}*",
+    "VHGNDown{x,y,z}*",
+    "conditional FS0",
+    "helper-private arithmetic scratch",
+    "terminal E"
+  ],
+  "omitted_side_effect_reference": "work/vhground.txt:2093-2197",
+  "liveness_proof": [
+    {
+      "path": "immediate rendering",
+      "proof": "Consumes replayed ring centers and SF slots, not stale VHGNDvec state."
+    },
+    {
+      "path": "close ordinary body",
+      "proof": "VHGND exact viewpoint sets VHGNDvecindex and regenerates scratch before reading it.",
+      "references": [
+        "accepted/vhgame.txt:2273-2274",
+        "work/vhground.txt:2229-2256"
+      ]
+    },
+    {
+      "path": "far and type-10 body",
+      "proof": "Consumes only restored coordinates; the next iteration restores them again."
+    },
+    {
+      "path": "selected body",
+      "proof": "Unconditionally performs fresh viewpoint setup.",
+      "reference": "accepted/vhgame.txt:2316-2323"
+    },
+    {
+      "path": "terminal E",
+      "proof": "Overwritten by radius lookup immediately after geometry readiness.",
+      "reference": "accepted/vhgame.txt:2223-2224"
+    },
+    {
+      "path": "conditional FS0",
+      "proof": "Never consumed without assignment by its caller."
+    }
+  ],
+  "epoch": {
+    "field": "VHGNDsecs",
+    "sufficient": true,
+    "cache_fill_and_stamp_references": [
+      "apply_candidate.py:49",
+      "apply_candidate.py:97-103"
+    ],
+    "surface_phase_setup_reference": "accepted/vhgame.txt:2547-2558",
+    "canonical_seconds_reference": "work/vhground.txt:1824-1834,1953-1989",
+    "geometry_dependency_reference": "work/vhground.txt:2093-2174",
+    "same_second_result": "Canonical SUsec regeneration produces identical geometry from the same VHGNDsecs and static topology.",
+    "rollover_result": "Epoch mismatch takes the accepted live geometry and distance paths; the old epoch conservatively keeps all later bodies live.",
+    "fallback_references": [
+      "apply_candidate.py:60",
+      "apply_candidate.py:81"
+    ]
+  }
+}

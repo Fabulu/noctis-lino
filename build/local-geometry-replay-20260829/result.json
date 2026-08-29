@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "task": 209,
+  "candidate": "same-epoch exact local body geometry replay",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "model": {
+    "status": "pass",
+    "cases": 4092,
+    "raw_binary64_words_replayed_exactly": true,
+    "signed_zero_nan_infinity_payloads_preserved": true,
+    "type10_distance_state_preserved": true,
+    "epoch_change_fallback_exact": true,
+    "coordinate_pgf_slots_reinstalled": [
+      "SFXX",
+      "SFYY",
+      "SFZZ"
+    ],
+    "fixed_checkpoint_nonselected_replays": 77
+  },
+  "semantic_review": {
+    "status": "pass",
+    "verdict": "no semantic hole found in bounded replay path",
+    "omitted_side_effects_dead_before_read": true,
+    "epoch_sufficient": true
+  },
+  "build": {
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "warnings": 62,
+    "errors": 0,
+    "candidate_executable_bytes": 646430,
+    "candidate_executable_sha256": "e5bacf3f1b48b3d05220ebc02573533c751f72d68807a7cca48e0618adaa0645",
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "raw_target_machine_blocks_added": false
+  },
+  "candidate_a": {
+    "presentation_hz": 60.17017828200972,
+    "simulation_hz": 18.638573743922205,
+    "cycles_per_presentation": 38126355.34680135,
+    "render_ms": 12.059566366573161,
+    "missed_deadlines": 22
+  },
+  "baseline_a": {
+    "presentation_hz": 58.2010582010582,
+    "simulation_hz": 18.72201872201872,
+    "cycles_per_presentation": 39437279.58041958,
+    "render_ms": 12.653246065657255,
+    "missed_deadlines": 86
+  },
+  "baseline_b": {
+    "presentation_hz": 58.66935483870968,
+    "simulation_hz": 18.548387096774192,
+    "cycles_per_presentation": 39090568.962199315,
+    "render_ms": 12.582712097954767,
+    "missed_deadlines": 68
+  },
+  "candidate_b": {
+    "presentation_hz": 43.689320388349515,
+    "simulation_hz": 18.810679611650485,
+    "cycles_per_presentation": 52157797.449074075,
+    "render_ms": 20.431688649302853,
+    "missed_deadlines": 135
+  },
+  "candidate_a_simulation_gate": "pass",
+  "candidate_b_simulation_gate": "pass",
+  "ordering_a": {
+    "presentation_delta_hz": 1.9691200809515195,
+    "cycles_per_presentation_delta": -1310924.2336182296,
+    "candidate_won_presentation": true,
+    "candidate_won_cycles": true,
+    "decision": "win"
+  },
+  "ordering_b": {
+    "presentation_delta_hz": -14.980034450360165,
+    "cycles_per_presentation_delta": 13067228.48687476,
+    "candidate_won_presentation": false,
+    "candidate_won_cycles": false,
+    "decision": "loss"
+  },
+  "fidelity": "skipped_after_ordering_b_reversal",
+  "disposition": "rejected_after_contradictory_orderings",
+  "host_classification": "controlled_depressed_and_variable_host_evidence",
+  "orderings_averaged": false,
+  "final_arm": "accepted",
+  "accepted_restored_byte_exact": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823"
+}
