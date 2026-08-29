@@ -10,9 +10,11 @@ The retrospective tables below record every result recovered for this publicatio
 - Best retained-lineage healthy-host presentation: **59.80668546113572 Hz**.
 - Simulation at that healthy-host record: **18.525976641159886 Hz**.
 - Remaining measured gap: **0.19331453886427852 Hz**.
-- Current production executable: `work/vhgame.exe`, 645,966 bytes, SHA-256 `602385f436cae6ab5b49d89f044b1fccf5d565b8679c13b023ea1bdf1d993a65`.
-- Current production i386m compiler: `main/lib/gen/compiler114m.exe`, 82,600 bytes, SHA-256 `fd9de5f91799156d95c34d67a6d40fae4347bd7c7409aee9fcfe324a72a5850a`.
-- Task #167 replaced one exact marked scalar L2L layer-copy body with a same-size i386m destination-pointer/source-delta loop while preserving every load address, ordered store, overlap result, downstream byte, and shared-Lino source boundary. It won presentation by 1.600824228101473 Hz and 2.55783980794763 Hz while removing 2,727,557.8689971715 and 3,737,071.677122414 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. It is retained without replacing the healthy absolute record.
+- Current production executable: `work/vhgame.exe`, 645,966 bytes, SHA-256 `109b9dea631a09f1b1280f8e315a020cf10ebc3ffda5a63d3062123b8dfdbfc0`.
+- Current production i386m compiler: `main/lib/gen/compiler114m.exe`, 86,288 bytes, SHA-256 `07e4a47828d985b6345b9a88ad0d1403b8bc8c9b79d48fd39d118073ce4dd5c2`.
+- Current production CPU pack remains `main/cpu/i386m.bin`, SHA-256 `1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7`.
+- Task #180 retained two fail-closed i386m physical-base/block-index lowerings for the unchanged shared compose and fixed-2x Lino operations. Ordering A won **10.234100760894577 Hz** and removed **11,571,455.772213116 cycles/presentation**; Ordering B won **11.119072658700318 Hz** and removed **13,254,397.755512588 cycles/presentation**. Both candidate arms exceeded 18.206-Hz simulation and synchronized authoritative fidelity passed. This controlled depressed/variable-host retention does not replace the healthy absolute record.
+- Task #167's exact scalar delta-pointer layer copy remains active inside Task #180's compiler. Its original isolated ABBA checkpoint won presentation by 1.600824228101473 Hz and 2.55783980794763 Hz while removing 2,727,557.8689971715 and 3,737,071.677122414 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity.
 - Task #169 folded four exact marked palette-address additions into i386m palette-load displacements while leaving the shared-Lino scalar operations intact. Ordering A won by **12.383072276707573 Hz** and removed **15,041,694.753770493 cycles/presentation**, but Ordering B reversed, losing **7.354369904772071 Hz** and adding **9,963,375.42605704 cycles/presentation**. The contradictory orderings were not averaged; synchronized fidelity was skipped and Task #167 production was restored byte-exactly.
 - Task #171 fused the two exact marked GUI counter tails from `DEC memory; reload; CMP 0; JNE` to `DEC memory; JNE`, preserving all 32,000 counter writes and both island endpoints. Candidate A passed simulation at **18.852787805856398 Hz**, but lost **8.767020116546654 Hz** and added **7,379,992.754345141 cycles/presentation** against Baseline A. Ordering B and fidelity were skipped, and Task #167 production was restored byte-exactly.
 - Task #173 replaced the exact marked Task #167 layer-copy body with a near-jump to a compiler-owned four-dword appendix while leaving the shared scalar Lino loop unchanged. Candidate A passed simulation at **18.86035313001605 Hz**, but lost **11.876222535595687 Hz** and added **12,659,944.07336431 cycles/presentation** against Baseline A. Ordering B and fidelity were skipped, and Task #167 production was restored byte-exactly.
@@ -286,6 +288,28 @@ At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher iso
 - Retained executable: `602385f436cae6ab5b49d89f044b1fccf5d565b8679c13b023ea1bdf1d993a65` (645,966 bytes); CPU pack remains `1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7`.
 - This same-host depressed/variable-host ABBA retention does not replace Task #125's 59.80668546113572-Hz healthy absolute record; the measured target gap remains 0.19331453886427852 Hz.
 - Evidence: `build/scalar-delta-layer-copy-20260829/result.json`.
+
+### Physical-base/block-index GUI lowering — Task #180
+
+| Run | Presentation | Simulation | Render | Terrain | Present | Cycles/presentation |
+|---|---:|---:|---:|---:|---:|---:|
+| Candidate A | 50.40280933691386 Hz | 18.79776905598017 Hz | 18.132617847802514 ms | 14.284454478353183 ms | 1.038682692570554 ms | 45,381,634.03278688 |
+| Baseline A | 40.168708576019284 Hz | 18.879293030729063 Hz | 23.5087267771721 ms | 18.582861831126934 ms | 1.3398970964512182 ms | 56,953,089.805 |
+| Baseline B | 37.93445878848063 Hz | 18.867924528301888 Hz | 24.657584068893783 ms | 19.433576421776852 ms | 1.5911058684068313 ms | 59,873,642.70157068 |
+| Candidate B | 49.05353144718095 Hz | 18.725829432118868 Hz | 18.796846380615293 ms | 14.75097727545768 ms | 1.0700699572124315 ms | 46,619,244.946058095 |
+
+- Ordering A: +10.234100760894577 Hz and -11,571,455.772213116 cycles/presentation.
+- Ordering B: +11.119072658700318 Hz and -13,254,397.755512588 cycles/presentation.
+- Candidate A and Candidate B passed the authentic simulation gate by 0.5917690559801692 Hz and 0.5198294321188683 Hz respectively; both orderings independently won both mandatory metrics and contradictory orderings were not averaged.
+- Two zero-byte labels after the unchanged shared-Lino compose and fixed-2x loops select exact full-signature i386m backend replacements. All shipping targets retain the same tracked `work/vhgame.txt` / `work/vhgui.txt` dependency closure; no architecture-specific gameplay/renderer source fork, raw target-machine block, native replacement, or CPU-pack change was introduced.
+- The two same-size replacements save B in compiler-private EBP, convert C/D/E to physical workspace bases, and use B as a four-pixel block index. They restore exact logical terminal registers before the unchanged outer counter tails and add no native stack memory operations.
+- The 256-case ordered-event/address/state model, explicit modular-wrap cases, twelve byte-identical fail-closed negative fixtures, 28-check toolchain regression, byte-identical three-stage compiler fixpoint, and production disassembly/layout proof passed. Exactly 340 byte values changed inside `[0x771ef,0x77297)` and `[0x77401,0x774d3)`; no external branch enters either island or its unreachable post-RET padding, and every downstream byte and address remains exact.
+- The exact full-presentation traces retain 192,000 compose and 320,000 fixed-2x ordered workspace events while removing 42,800 dynamically executed instructions and 2,239,600 dynamically fetched encoded bytes per presentation.
+- Synchronized baseline, independent baseline-repeat, and candidate captures used `clock=1344638527 quit freeze` on private inactive desktops. The checkpoint and all authoritative renderer/gameplay/state products matched exactly after only the established host-timing and live-UTC telemetry exclusions.
+- Retained compiler: `07e4a47828d985b6345b9a88ad0d1403b8bc8c9b79d48fd39d118073ce4dd5c2` (86,288 bytes).
+- Retained executable: `109b9dea631a09f1b1280f8e315a020cf10ebc3ffda5a63d3062123b8dfdbfc0` (645,966 bytes); CPU pack remains `1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7`.
+- This controlled depressed/variable-host ABBA retention does not replace Task #125's 59.80668546113572-Hz healthy absolute record; the measured target gap remains 0.19331453886427852 Hz.
+- Evidence: `build/gui-block-index-20260829/result.json`; source, semantic, fixture, fixpoint, layout, fidelity, manifest, and storage proofs are retained in the same directory.
 
 ## Rejected full-ABBA candidates
 

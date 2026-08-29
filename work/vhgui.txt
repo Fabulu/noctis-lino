@@ -63,6 +63,7 @@
 	A = [VHGUIx]; ? A != 0 -> VHGUI compose pixel;
 	[VHGUIy]+; A = [VHGUIy]; ? A < 200 -> VHGUI compose row;
 	end;
+    "VHGUI exact i386m block offset compose"
 
 "VHGUI present"
 	( The 1x path copies four composed RGB pixels per loop.  Only Backdrop is
@@ -109,6 +110,7 @@
 	A = [VHGUIx]; ? A != 0 -> VHGUI 2x pixel;
 	[VHGUIy]+; A = [VHGUIy]; ? A < 200 -> VHGUI 2x row;
 	end;
+    "VHGUI exact i386m block offset fixed2x"
     "VHGUI scaled"
 	( Arbitrary fitted window sizes used to interpret one Lino loop per host
 	  pixel. Keep the same Bresenham-style nearest-neighbour accumulators, but

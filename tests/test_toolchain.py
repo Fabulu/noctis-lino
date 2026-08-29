@@ -30,6 +30,7 @@ RUN: python tests/test_toolchain.py
 
 import hashlib
 import os
+import re
 import shutil
 import sys
 
@@ -49,6 +50,7 @@ PACK_X64 = os.path.join(L.REPO, "main", "cpu", "x64.bin")
 PACK_STOCK = os.path.join(L.REPO, "main", "cpu", "i386.bin")
 COMPILER_SOURCE = os.path.join(L.REPO, "main", "lib", "gen", "compiler114m.txt")
 LAYERS_SOURCE = os.path.join(L.REPO, "main", "lib", "gen", "layers.txt")
+VHGUI_SOURCE = os.path.join(L.WORK, "vhgui.txt")
 SUBJECT = os.path.join(L.WORK, "galaxy2.txt")
 
 
@@ -253,6 +255,84 @@ def main():
             '    "CL2LR exact i386m delta copy"' in layer_loop
         and "{" not in layer_loop,
         "shared layer source marks only the exact scalar loop after its three pops")
+
+    vhgui_compiler_markers = (
+        "pp vhgui compose marker = { vhguiexacti386mblockoffsetcompose };",
+        "pp vhgui fixed2x marker = { vhguiexacti386mblockoffsetfixed2x };",
+        "pp exact island scalar = 1;",
+        "pp exact island candidate = 1;",
+        "pp exact island length = 1;",
+        '"examine vhgui compose marker"',
+        '"examine vhgui fixed2x marker"',
+        "[pp exact island length] = 168;",
+        "[pp exact island length] = 210;",
+        '"pp exact marked island"',
+        "? a != [pp exact island length] -> pp exact marked island restore;",
+        "? [bbss] < a -> pp exact marked island restore;",
+        "[target string] = [pp exact island scalar];",
+        "[target string] = [pp exact island candidate];",
+        "c ^ pp exact marked island compare;",
+        "c ^ pp exact marked island write;",
+    )
+
+    def exact_vector(name, next_name):
+        start = compiler_source.index("\tvector " + name + " =")
+        end = compiler_source.index("\n\t" + next_name, start)
+        values = re.findall(r"\b([0-9A-Fa-f]{2})h;", compiler_source[start:end])
+        return bytes(int(value, 16) for value in values)
+
+    vhgui_vectors = {
+        "compose-scalar": exact_vector(
+            "pp vhgui compose scalar", "vector pp vhgui compose exact ="),
+        "compose-exact": exact_vector(
+            "pp vhgui compose exact", "vector pp vhgui fixed2x scalar ="),
+        "fixed2x-scalar": exact_vector(
+            "pp vhgui fixed2x scalar", "vector pp vhgui fixed2x exact ="),
+        "fixed2x-exact": exact_vector(
+            "pp vhgui fixed2x exact", "tag extend upto"),
+    }
+    vhgui_vector_hashes = {
+        name: (len(blob), hashlib.sha256(blob).hexdigest())
+        for name, blob in vhgui_vectors.items()
+    }
+    c.ok(
+        all(marker in compiler_source for marker in vhgui_compiler_markers)
+        and compiler_source.count('"pp exact marked island"') == 1
+        and vhgui_vector_hashes == {
+            "compose-scalar": (
+                168, "58a5a84d89386f4a91f34eebf89c77d8ec2a5c714bbf23b30ce77a8f05328539"),
+            "compose-exact": (
+                168, "91412b63ec5a625b7f59e5720825c10089ff27f95a2ecca2e77a2909f99fd250"),
+            "fixed2x-scalar": (
+                210, "ac8aa2793208832a3a4102ff5a106189acc210030e343211e1de1eca23a34f79"),
+            "fixed2x-exact": (
+                210, "19b31bb2749d0b7059d7f4c372882da9b72dc75b991d7bcf45cfafbf4d55d878"),
+        },
+        "i386m marked GUI islands require full exact signatures and equal-size vectors")
+
+    vhgui_source = open(VHGUI_SOURCE, "r", encoding="utf-8").read()
+    compose_marker = '"VHGUI exact i386m block offset compose"'
+    fixed2x_marker = '"VHGUI exact i386m block offset fixed2x"'
+    compose_source = vhgui_source[
+        vhgui_source.index('"VHGUI compose pixel"'):
+        vhgui_source.index(compose_marker)]
+    fixed2x_source = vhgui_source[
+        vhgui_source.index('"VHGUI 2x pixel"'):
+        vhgui_source.index(fixed2x_marker)]
+    c.ok(
+        vhgui_source.count(compose_marker) == 1
+        and vhgui_source.count(fixed2x_marker) == 1
+        and "A = [C]; A + pal; [D] = [A];" in compose_source
+        and "C + 4; D + 4; [VHGUIx]-;" in compose_source
+        and "? A < 200 -> VHGUI compose row;\n\tend;\n    " + compose_marker
+            in vhgui_source
+        and "[D] = A; [D plus 1] = A; [E] = A; [E plus 1] = A;"
+            in fixed2x_source
+        and "C + 4; D + 8; E + 8; [VHGUIx]-;" in fixed2x_source
+        and "? A < 200 -> VHGUI 2x row;\n\tend;\n    " + fixed2x_marker
+            in vhgui_source
+        and "{" not in compose_source + fixed2x_source,
+        "shared VHGUI loops keep every Lino operation and add only exact zero-byte markers")
 
     # ---------------------------------------------------------- 2. main/ pristine
     bad = []

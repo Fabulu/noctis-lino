@@ -1165,6 +1165,77 @@
 	  8Bh; 2Ch; 83h; 89h; 2Bh; 8Dh; 5Bh; 04h;
 	  49h; 0Fh; 85h; F1h; FFh; FFh; FFh;
 
+	pp vhgui compose marker = { vhguiexacti386mblockoffsetcompose };
+	pp vhgui fixed2x marker = { vhguiexacti386mblockoffsetfixed2x };
+	vector pp vhgui compose scalar =
+	  8Bh; 84h; 8Fh; 00h; 00h; 00h; 00h; 05h; 47h; B8h; 1Dh; 00h;
+	  8Bh; ACh; 87h; 00h; 00h; 00h; 00h; 89h; ACh; 97h; 00h; 00h;
+	  00h; 00h; 8Bh; 84h; 8Fh; 04h; 00h; 00h; 00h; 05h; 47h; B8h;
+	  1Dh; 00h; 8Bh; ACh; 87h; 00h; 00h; 00h; 00h; 89h; ACh; 97h;
+	  04h; 00h; 00h; 00h; 8Bh; 84h; 8Fh; 08h; 00h; 00h; 00h; 05h;
+	  47h; B8h; 1Dh; 00h; 8Bh; ACh; 87h; 00h; 00h; 00h; 00h; 89h;
+	  ACh; 97h; 08h; 00h; 00h; 00h; 8Bh; 84h; 8Fh; 0Ch; 00h; 00h;
+	  00h; 05h; 47h; B8h; 1Dh; 00h; 8Bh; ACh; 87h; 00h; 00h; 00h;
+	  00h; 89h; ACh; 97h; 0Ch; 00h; 00h; 00h; 81h; C1h; 04h; 00h;
+	  00h; 00h; 81h; C2h; 04h; 00h; 00h; 00h; FFh; 8Fh; 40h; 72h;
+	  00h; 00h; 8Bh; 87h; 40h; 72h; 00h; 00h; 3Dh; 00h; 00h; 00h;
+	  00h; 0Fh; 85h; 75h; FFh; FFh; FFh; FFh; 87h; 44h; 72h; 00h;
+	  00h; 8Bh; 87h; 44h; 72h; 00h; 00h; 3Dh; C8h; 00h; 00h; 00h;
+	  0Fh; 8Ch; 2Fh; FFh; FFh; FFh; BDh; 65h; 6Eh; 6Fh; 64h; C3h;
+	vector pp vhgui compose exact =
+	  89h; DDh; 8Dh; 0Ch; 8Fh; 8Dh; 14h; 97h; 31h; DBh; 8Bh; 04h;
+	  99h; 05h; 47h; B8h; 1Dh; 00h; 8Bh; 04h; 87h; 89h; 04h; 9Ah;
+	  8Bh; 44h; 99h; 04h; 05h; 47h; B8h; 1Dh; 00h; 8Bh; 04h; 87h;
+	  89h; 44h; 9Ah; 04h; 8Bh; 44h; 99h; 08h; 05h; 47h; B8h; 1Dh;
+	  00h; 8Bh; 04h; 87h; 89h; 44h; 9Ah; 08h; 8Bh; 44h; 99h; 0Ch;
+	  05h; 47h; B8h; 1Dh; 00h; 8Bh; 04h; 87h; 89h; 44h; 9Ah; 0Ch;
+	  83h; C3h; 04h; FFh; 8Fh; 40h; 72h; 00h; 00h; 8Bh; 87h; 40h;
+	  72h; 00h; 00h; 83h; F8h; 00h; 75h; AEh; 29h; F9h; C1h; E9h;
+	  02h; 81h; C1h; 40h; 01h; 00h; 00h; 29h; FAh; C1h; EAh; 02h;
+	  81h; C2h; 40h; 01h; 00h; 00h; 89h; EBh; FFh; 87h; 44h; 72h;
+	  00h; 00h; 8Bh; 87h; 44h; 72h; 00h; 00h; 3Dh; C8h; 00h; 00h;
+	  00h; 0Fh; 8Ch; 46h; FFh; FFh; FFh; BDh; 65h; 6Eh; 6Fh; 64h;
+	  C3h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h;
+	  90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h;
+	vector pp vhgui fixed2x scalar =
+	  8Bh; 84h; 8Fh; 00h; 00h; 00h; 00h; 89h; 84h; 97h; 00h; 00h;
+	  00h; 00h; 89h; 84h; 97h; 04h; 00h; 00h; 00h; 89h; 84h; B7h;
+	  00h; 00h; 00h; 00h; 89h; 84h; B7h; 04h; 00h; 00h; 00h; 8Bh;
+	  84h; 8Fh; 04h; 00h; 00h; 00h; 89h; 84h; 97h; 08h; 00h; 00h;
+	  00h; 89h; 84h; 97h; 0Ch; 00h; 00h; 00h; 89h; 84h; B7h; 08h;
+	  00h; 00h; 00h; 89h; 84h; B7h; 0Ch; 00h; 00h; 00h; 8Bh; 84h;
+	  8Fh; 08h; 00h; 00h; 00h; 89h; 84h; 97h; 10h; 00h; 00h; 00h;
+	  89h; 84h; 97h; 14h; 00h; 00h; 00h; 89h; 84h; B7h; 10h; 00h;
+	  00h; 00h; 89h; 84h; B7h; 14h; 00h; 00h; 00h; 8Bh; 84h; 8Fh;
+	  0Ch; 00h; 00h; 00h; 89h; 84h; 97h; 18h; 00h; 00h; 00h; 89h;
+	  84h; 97h; 1Ch; 00h; 00h; 00h; 89h; 84h; B7h; 18h; 00h; 00h;
+	  00h; 89h; 84h; B7h; 1Ch; 00h; 00h; 00h; 81h; C1h; 04h; 00h;
+	  00h; 00h; 81h; C2h; 08h; 00h; 00h; 00h; 81h; C6h; 08h; 00h;
+	  00h; 00h; FFh; 8Fh; 40h; 72h; 00h; 00h; 8Bh; 87h; 40h; 72h;
+	  00h; 00h; 3Dh; 00h; 00h; 00h; 00h; 0Fh; 85h; 4Bh; FFh; FFh;
+	  FFh; FFh; 87h; 44h; 72h; 00h; 00h; 8Bh; 87h; 44h; 72h; 00h;
+	  00h; 3Dh; C8h; 00h; 00h; 00h; 0Fh; 8Ch; E7h; FEh; FFh; FFh;
+	  BDh; 65h; 6Eh; 6Fh; 64h; C3h;
+	vector pp vhgui fixed2x exact =
+	  89h; DDh; 8Dh; 0Ch; 8Fh; 8Dh; 14h; 97h; 8Dh; 34h; B7h; 31h;
+	  DBh; 8Bh; 04h; 99h; 89h; 04h; DAh; 89h; 44h; DAh; 04h; 89h;
+	  04h; DEh; 89h; 44h; DEh; 04h; 8Bh; 44h; 99h; 04h; 89h; 44h;
+	  DAh; 08h; 89h; 44h; DAh; 0Ch; 89h; 44h; DEh; 08h; 89h; 44h;
+	  DEh; 0Ch; 8Bh; 44h; 99h; 08h; 89h; 44h; DAh; 10h; 89h; 44h;
+	  DAh; 14h; 89h; 44h; DEh; 10h; 89h; 44h; DEh; 14h; 8Bh; 44h;
+	  99h; 0Ch; 89h; 44h; DAh; 18h; 89h; 44h; DAh; 1Ch; 89h; 44h;
+	  DEh; 18h; 89h; 44h; DEh; 1Ch; 83h; C3h; 04h; FFh; 8Fh; 40h;
+	  72h; 00h; 00h; 8Bh; 87h; 40h; 72h; 00h; 00h; 83h; F8h; 00h;
+	  75h; 9Fh; 29h; F9h; C1h; E9h; 02h; 81h; C1h; 40h; 01h; 00h;
+	  00h; 29h; FAh; C1h; EAh; 02h; 81h; C2h; 80h; 02h; 00h; 00h;
+	  29h; FEh; C1h; EEh; 02h; 81h; C6h; 80h; 02h; 00h; 00h; 89h;
+	  EBh; FFh; 87h; 44h; 72h; 00h; 00h; 8Bh; 87h; 44h; 72h; 00h;
+	  00h; 3Dh; C8h; 00h; 00h; 00h; 0Fh; 8Ch; 0Bh; FFh; FFh; FFh;
+	  BDh; 65h; 6Eh; 6Fh; 64h; C3h; 90h; 90h; 90h; 90h; 90h; 90h;
+	  90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h;
+	  90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h; 90h;
+	  90h; 90h; 90h; 90h; 90h; 90h;
+
 	tag extend upto     = { extendupto }; (static data alignment tags)
 	tag align at	    = { alignat };
 	tag make	    = { make };
@@ -2623,6 +2694,9 @@
 	pp pending cd position = 1;	(instruction pointer before pending C = D)
 	pp pending registers = 5;	(register preservation for pending-move flush)
 	pp prior code label position = 1; (guards exact marked i386m code substitution)
+	pp exact island scalar = 1; (accepted byte vector for marked exact island)
+	pp exact island candidate = 1; (replacement byte vector for marked exact island)
+	pp exact island length = 1; (same-size marked exact island length)
 
     (parse operand)
 
@@ -4119,16 +4193,34 @@
       (when in prog period, don't mind periods' names, only get code labels)
       ? [prid] < prog -> period identification;
 	=> pp flush pending cd;
-      (In the i386m code pass, one explicit shared-source marker may replace the
-       immediately preceding exact scalar layer-copy bytes without moving any
-       later address; all other labels remain ordinary zero-byte boundaries.)
+      (In the i386m code pass, explicit shared-source markers may replace only
+       their immediately preceding exact byte islands without moving any later
+       address; all other labels remain ordinary zero-byte boundaries.)
       ? [pass] != code pass -> register code label;
       ? [i386m target] != yes -> note prior code label;
 	[source string] = pces;
 	[target string] = pp delta layer marker;
 	=> strcmp;
-      ? failed -> note prior code label;
+      ? failed -> examine vhgui compose marker;
 	=> pp exact delta layer copy;
+	-> note prior code label;
+      "examine vhgui compose marker"
+	[target string] = pp vhgui compose marker;
+	=> strcmp;
+      ? failed -> examine vhgui fixed2x marker;
+	[pp exact island scalar] = vector pp vhgui compose scalar;
+	[pp exact island candidate] = vector pp vhgui compose exact;
+	[pp exact island length] = 168;
+	=> pp exact marked island;
+	-> note prior code label;
+      "examine vhgui fixed2x marker"
+	[target string] = pp vhgui fixed2x marker;
+	=> strcmp;
+      ? failed -> note prior code label;
+	[pp exact island scalar] = vector pp vhgui fixed2x scalar;
+	[pp exact island candidate] = vector pp vhgui fixed2x exact;
+	[pp exact island length] = 210;
+	=> pp exact marked island;
       "note prior code label"
 	[pp prior code label position] = [bpos];
 	-> log label;
@@ -8797,6 +8889,55 @@
 	e+;
 	c ^ pp exact delta layer write;
       "pp exact delta layer restore"
+	a = [pp pending registers plus 0];
+	b = [pp pending registers plus 1];
+	c = [pp pending registers plus 2];
+	d = [pp pending registers plus 3];
+	e = [pp pending registers plus 4];
+	leave;
+
+    "pp exact marked island"
+      (Fail closed unless the marker is adjacent to the complete accepted byte
+       vector. Replace the whole island with an equal-size compiler-owned vector
+       so source labels and every downstream address remain unchanged.)
+	[pp pending registers plus 0] = a;
+	[pp pending registers plus 1] = b;
+	[pp pending registers plus 2] = c;
+	[pp pending registers plus 3] = d;
+	[pp pending registers plus 4] = e;
+	a = [bpos];
+	a - [pp prior code label position];
+      ? a != [pp exact island length] -> pp exact marked island restore;
+	a = [pp exact island length];
+      ? [bbss] < a -> pp exact marked island restore;
+	d = [bbss];
+	d - [pp exact island length];
+	[target string] = [pp exact island scalar];
+	e = [target string];
+	c = [pp exact island length];
+	[pb stream] = bins;
+      "pp exact marked island compare"
+	[pb offset] = d;
+	=> get progressive byte;
+	a = [pb bvalue];
+      ? a != [e] -> pp exact marked island restore;
+	d+;
+	e+;
+	c ^ pp exact marked island compare;
+	d = [bbss];
+	d - [pp exact island length];
+	[target string] = [pp exact island candidate];
+	e = [target string];
+	c = [pp exact island length];
+      "pp exact marked island write"
+	[pb offset] = d;
+	a = [e];
+	[pb bvalue] = a;
+	=> set progressive byte;
+	d+;
+	e+;
+	c ^ pp exact marked island write;
+      "pp exact marked island restore"
 	a = [pp pending registers plus 0];
 	b = [pp pending registers plus 1];
 	c = [pp pending registers plus 2];
