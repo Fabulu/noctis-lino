@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "task": 215,
+  "status": "pass",
+  "candidate_source_sha256": "c5371564938a10000d0083499af53b3ed044378f2bf449a390f5461fcba87257",
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "transform_exact": true,
+  "model_cases": 3572,
+  "proven": {
+    "tracking_after_distance_before_generic_comparison": true,
+    "strict_nearer_stable_ties_and_unordered_values": true,
+    "generic_comparison_restores_tracking_fp_effects": true,
+    "pre_final_primary_nearest_state_exact": true,
+    "final_primary_reentry_includes_owner_check": true,
+    "trailing_satellite_owner_checks_unchanged": true,
+    "malformed_no_primary_full_scan_fallback": true,
+    "resident_indices_and_raw_distance_words_exact": true,
+    "fa_fb_fi_fs0_fsw0_pgfi_sf_terminal_state_exact": true,
+    "vhgnd_vector_and_orbit_scratch_exact": true,
+    "localbody_and_relevant_a_through_e_terminal_state_exact": true,
+    "label_and_control_flow_exact": true
+  },
+  "evidence_corrections_before_timing": [
+    "the verifier now asserts candidate/vhgame.txt is byte-exactly the transform output",
+    "the verifier now models owner and guard writes to A/C/E, preservation and helper overwrite of B/D, and terminal A through E",
+    "the verifier now represents FSW0 as the exact relative-X square retained by the planar rooted-distance helper"
+  ],
+  "build": {
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "warnings": 62,
+    "errors": 0,
+    "candidate_executable_bytes": 646346,
+    "candidate_executable_sha256": "0655adbf3d48540625b3aa35dc4bc8c76d85c7a34fddf1cc8c7b0c7992d4a538"
+  },
+  "remaining_mismatches": []
+}

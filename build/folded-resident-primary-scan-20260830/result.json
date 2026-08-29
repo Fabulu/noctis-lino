@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "task": 215,
+  "candidate": "folded nearest-primary resident scan with exact final-primary replay",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "model": {
+    "schema": 1,
+    "task": 215,
+    "cases": 3572,
+    "stable_strict_nearer_primary_selection_exact": true,
+    "equal_distance_raw_words_preserved": true,
+    "unordered_distance_retention_exact": true,
+    "nearest_primary_public_output_exact": true,
+    "generic_top_two_terminal_state_restored_after_tracking": true,
+    "candidate_file_equals_exact_transform": true,
+    "concrete_a_through_e_owner_guard_and_helper_terminal_state_exact": true,
+    "distance_terminal_fsw0_is_exact_relative_x_square": true,
+    "final_primary_fp_and_vhgnd_terminal_state_recomputed": true,
+    "trailing_owner_checks_and_integer_terminal_state_exact": true,
+    "one_primary_exact": true,
+    "nearest_body_already_primary_exact": true,
+    "malformed_no_primary_fallback_exact": true,
+    "fixed_checkpoint_bodies": 78,
+    "fixed_checkpoint_primaries": 12,
+    "accepted_fixed_checkpoint_primary_calculations": 12,
+    "candidate_fixed_checkpoint_primary_calculations": 1,
+    "fixed_checkpoint_absolute_and_rooted_distance_savings": 11,
+    "modeled_primary_calculations_saved": 3654,
+    "simulation_constants": [
+      18206,
+      60000
+    ],
+    "source_boundary": "one common tracked shared-Lino closure",
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "candidate_source_sha256": "c5371564938a10000d0083499af53b3ed044378f2bf449a390f5461fcba87257",
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "status": "pass"
+  },
+  "semantic_review": {
+    "schema": 1,
+    "task": 215,
+    "status": "pass",
+    "candidate_source_sha256": "c5371564938a10000d0083499af53b3ed044378f2bf449a390f5461fcba87257",
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "transform_exact": true,
+    "model_cases": 3572,
+    "proven": {
+      "tracking_after_distance_before_generic_comparison": true,
+      "strict_nearer_stable_ties_and_unordered_values": true,
+      "generic_comparison_restores_tracking_fp_effects": true,
+      "pre_final_primary_nearest_state_exact": true,
+      "final_primary_reentry_includes_owner_check": true,
+      "trailing_satellite_owner_checks_unchanged": true,
+      "malformed_no_primary_full_scan_fallback": true,
+      "resident_indices_and_raw_distance_words_exact": true,
+      "fa_fb_fi_fs0_fsw0_pgfi_sf_terminal_state_exact": true,
+      "vhgnd_vector_and_orbit_scratch_exact": true,
+      "localbody_and_relevant_a_through_e_terminal_state_exact": true,
+      "label_and_control_flow_exact": true
+    },
+    "evidence_corrections_before_timing": [
+      "the verifier now asserts candidate/vhgame.txt is byte-exactly the transform output",
+      "the verifier now models owner and guard writes to A/C/E, preservation and helper overwrite of B/D, and terminal A through E",
+      "the verifier now represents FSW0 as the exact relative-X square retained by the planar rooted-distance helper"
+    ],
+    "build": {
+      "private_inactive_desktop": true,
+      "entry_point": "lino_build.ps1",
+      "warnings": 62,
+      "errors": 0,
+      "candidate_executable_bytes": 646346,
+      "candidate_executable_sha256": "0655adbf3d48540625b3aa35dc4bc8c76d85c7a34fddf1cc8c7b0c7992d4a538"
+    },
+    "remaining_mismatches": []
+  },
+  "build": {
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "warnings": 62,
+    "errors": 0,
+    "candidate_executable_bytes": 646346,
+    "candidate_executable_sha256": "0655adbf3d48540625b3aa35dc4bc8c76d85c7a34fddf1cc8c7b0c7992d4a538",
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "raw_target_machine_blocks_added": false
+  },
+  "abba_order": [
+    "candidate-a",
+    "baseline-a",
+    "baseline-b",
+    "candidate-b"
+  ],
+  "candidate_a": {
+    "presentation_hz": 33.35379578473501,
+    "simulation_hz": 18.21158174749335,
+    "cycles_per_presentation": 66838823.87116564,
+    "render_ms": 28.320167944614823,
+    "missed_deadlines": 163
+  },
+  "baseline_a": {
+    "presentation_hz": 34.32356483340024,
+    "simulation_hz": 18.867924528301888,
+    "cycles_per_presentation": 66198523.96491228,
+    "render_ms": 27.552276664192032,
+    "missed_deadlines": 171
+  },
+  "candidate_a_simulation_gate": "pass",
+  "candidate_a_simulation_margin_hz": 0.005581747493351941,
+  "ordering_a": {
+    "status": "loss",
+    "presentation_gain_hz": -0.9697690486652277,
+    "cycles_per_presentation_removed": -640299.9062533602
+  },
+  "baseline_b": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "candidate_b": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "ordering_b": {
+    "status": "not_reached"
+  },
+  "fidelity": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "sustained_candidate": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "sustained_native_60_hz_status": "still_open",
+  "disposition": "rejected_after_ordering_a_performance_failure",
+  "host_classification": "controlled_severely_depressed_host_evidence",
+  "orderings_averaged": false,
+  "final_arm": "accepted_baseline",
+  "candidate_retained_byte_exact": false,
+  "accepted_restored_byte_exact": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_source_sha256": "c5371564938a10000d0083499af53b3ed044378f2bf449a390f5461fcba87257",
+  "candidate_executable_sha256": "0655adbf3d48540625b3aa35dc4bc8c76d85c7a34fddf1cc8c7b0c7992d4a538"
+}
