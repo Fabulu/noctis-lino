@@ -13,6 +13,7 @@ The retrospective tables below record every result recovered for this publicatio
 - Current production executable: `work/vhgame.exe`, 645,966 bytes, SHA-256 `602385f436cae6ab5b49d89f044b1fccf5d565b8679c13b023ea1bdf1d993a65`.
 - Current production i386m compiler: `main/lib/gen/compiler114m.exe`, 82,600 bytes, SHA-256 `fd9de5f91799156d95c34d67a6d40fae4347bd7c7409aee9fcfe324a72a5850a`.
 - Task #167 replaced one exact marked scalar L2L layer-copy body with a same-size i386m destination-pointer/source-delta loop while preserving every load address, ordered store, overlap result, downstream byte, and shared-Lino source boundary. It won presentation by 1.600824228101473 Hz and 2.55783980794763 Hz while removing 2,727,557.8689971715 and 3,737,071.677122414 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. It is retained without replacing the healthy absolute record.
+- Task #169 folded four exact marked palette-address additions into i386m palette-load displacements while leaving the shared-Lino scalar operations intact. Ordering A won by **12.383072276707573 Hz** and removed **15,041,694.753770493 cycles/presentation**, but Ordering B reversed, losing **7.354369904772071 Hz** and adding **9,963,375.42605704 cycles/presentation**. The contradictory orderings were not averaged; synchronized fidelity was skipped and Task #167 production was restored byte-exactly.
 - Task #153 reversed each terrain replay command to destination-high/value-low fields and added an exact adjacent i386m `C = D; C & 65535` fold to `MOVZX ECX,DX`, removing one dynamically executed extraction instruction at each of three replay decoders. It won presentation by 0.5138524590503692 Hz and 0.4558171701612608 Hz while removing 481,125.0108108148 and 1,784,514.336641848 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. The shared Lino closure remains common to every shipping target; the optimization is retained without replacing the healthy absolute record.
 - Task #149 generalized exact i386m register `& 65535` lowering across all 322 generated A/EAX, B/EBX, C/ECX, and D/EDX sites, with E/ESI support covered by the focused fixture. It won presentation by 2.7516803584764773 Hz and 1.5337899900937515 Hz while removing 3,204,463.332275696 and 2,107,022.1561563835 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. The shared Lino source is unchanged; this target-code-generator checkpoint is retained without replacing the healthy absolute record.
 - Task #145 replaced the paired culling replay's repeated command-base construction with one exact shared-Lino indexed command load. It won presentation by 5.550831977811946 Hz and 8.926258786655339 Hz while removing 8,233,763.470827088 and 12,123,875.996125333 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. It is retained without replacing the healthy absolute record.
@@ -283,6 +284,23 @@ At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher iso
 - Evidence: `build/scalar-delta-layer-copy-20260829/result.json`.
 
 ## Rejected full-ABBA candidates
+
+### Marked palette-address displacement fold — Task #169
+
+| Run | Presentation | Simulation | Render | Terrain | Present | Cycles/presentation |
+|---|---:|---:|---:|---:|---:|---:|
+| Candidate A | 50.200803212851405 Hz | 18.674698795180724 Hz | 17.8089501830689 ms | 13.944154887384888 ms | 1.034095195828248 ms | 45,636,233.82 |
+| Baseline A | 37.81773093614383 Hz | 18.805538334366606 Hz | 24.81988840827305 ms | 19.58173276144088 ms | 1.4794288345267954 ms | 60,677,928.57377049 |
+| Baseline B | 44.699610416239494 Hz | 18.864055771990976 Hz | 21.035356567042186 ms | 16.538932225050907 ms | 1.2387797614801197 ms | 51,194,475.1880734 |
+| Candidate B | 37.34524051146742 Hz | 19.07854678303227 Hz | 25.307361500506012 ms | 19.942022327459725 ms | 1.4592206694848366 ms | 61,157,850.61413044 |
+
+- Ordering A: +12.383072276707573 Hz and -15,041,694.753770493 cycles/presentation.
+- Ordering B: -7.354369904772071 Hz and +9,963,375.42605704 cycles/presentation.
+- Candidate A passed the 18.206-Hz simulation gate by 0.46869879518072466 Hz. Ordering A won both mandatory metrics, but Ordering B lost both; the contradictory orderings were not averaged and synchronized fidelity was skipped.
+- One zero-byte shared-Lino marker selected a fail-closed i386m compiler lowering for the exact always-run palette-compose island. The lowering replaced four `ADD EAX,pal` instructions with equivalent palette-load displacements, leaving all four scalar source additions and stores in shared Lino and preserving 128,000 dword loads, 64,000 ordered stores, and 768,000 bytes of core memory traffic per presentation.
+- The 100,000-case modular address proof, complete 64,000-store frame trace, four overlap/wrap cases, one positive and six fail-closed negative fixtures, 28-check toolchain regression, zero-warning three-stage compiler fixpoint, and production disassembly/layout proof passed. Exactly 140 byte values changed inside `[0x771ef,0x77297)`; all downstream bytes and addresses remained exact, and the replacement retained 20 unreachable NOP bytes to preserve the 645,966-byte executable layout.
+- Task #167 compiler, shared source, test, and executable were restored byte-exactly. The retained healthy absolute record and its 0.19331453886427852-Hz measured gap remain unchanged.
+- Evidence: `build/palette-address-fold-20260829/result.json`; source, semantic, fixture, and layout proofs are retained in the same directory.
 
 ### Cold recorder-backedge padding relocation — Task #159
 
