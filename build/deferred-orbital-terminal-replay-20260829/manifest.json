@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "files": {
+    "apply_candidate.py": {
+      "bytes": 7942,
+      "sha256": "8e282d4790f236e9f31d8d56d5e438d7a76a91d90a0efa45b9593e5839ac32d9"
+    },
+    "verify_model.py": {
+      "bytes": 15122,
+      "sha256": "d90d6865c218d7d774645235346b2a87ae8ab4b84ccd15984daa28136c20a5f8"
+    },
+    "model.json": {
+      "bytes": 1833,
+      "sha256": "fcb705f65aa37bc9c81997ee5367cf3cca435618a2ab11a1026a5ad2a831262d"
+    },
+    "semantic-review.json": {
+      "bytes": 3445,
+      "sha256": "e576d747ba694e52518b79a25650b5cb2564f9ade4be89de58f38052e2a0d989"
+    },
+    "run_arm.py": {
+      "bytes": 3202,
+      "sha256": "59f25ca75df2cdce8831da7b08f7b0f552f2cd13ce190dd76c3fe620558b12c1"
+    },
+    "finalize.py": {
+      "bytes": 6852,
+      "sha256": "289692ba229ef53e836e9f4db9d56fc060faca033c31bf374333c76a5b210ec6"
+    },
+    "accepted/vhgame.txt": {
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    "accepted/vhgame.exe": {
+      "bytes": 645966,
+      "sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823"
+    },
+    "accepted/compiler114m.exe": {
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    "accepted/i386m.bin": {
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    "candidate/vhgame.txt": {
+      "bytes": 574280,
+      "sha256": "83bb319b512647a636ae5dd29f063549a7800c9737f826bedd26a6408fa22329"
+    },
+    "candidate/vhgame.exe": {
+      "bytes": 646622,
+      "sha256": "694591c297ab8c8c6278d16da91e7444a1856c40c6cfa2d6e607e51ba7708a10"
+    },
+    "candidate-a/capsule/report.json": {
+      "bytes": 3100,
+      "sha256": "27b7359fe714468d812520f462f8d118d9d7d4a63ebf51f0ddc9c43d3e86771f"
+    },
+    "result.json": {
+      "bytes": 7078,
+      "sha256": "8cffc2841f989e4182f0528f81733a654dab34e2fe222bbc905350f3e1200361"
+    }
+  }
+}

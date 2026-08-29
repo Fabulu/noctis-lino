@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "task": 212,
+  "candidate_source_sha256": "83bb319b512647a636ae5dd29f063549a7800c9737f826bedd26a6408fa22329",
+  "status": "pass",
+  "development_corrections": [
+    {
+      "issue": "initial model and candidate incorrectly treated surface-cache misses as VHGNDowny0/1 writers",
+      "action": "discarded the unmeasured first build, removed both false pending invalidations, corrected the model, rebuilt, and repeated adversarial semantic review"
+    }
+  ],
+  "record": {
+    "units_per_body": 8,
+    "maximum_bodies": 80,
+    "workspace_units": 640,
+    "hot_hit_vector_words": 6,
+    "deferred_terminal_down_y_words": 2,
+    "references": [
+      "candidate/vhgame.txt:2501-2544",
+      "candidate/vhgame.txt:2755-2766"
+    ]
+  },
+  "terminal_state": {
+    "cache_hits_set_dedicated_pending_body": true,
+    "cache_hits_replay_vector_words_only": true,
+    "wrapper_live_writers_invalidate_pending": true,
+    "direct_companion_writers_invalidate_pending": true,
+    "surface_hits_preserve_pending": true,
+    "surface_misses_preserve_pending": true,
+    "surface_phase_setup_does_not_access_down_y": true,
+    "no_intervening_down_y_read_observes_stale_state": true,
+    "common_render_done_replays_latest_pending_pair_once": true,
+    "strict_preexisting_frame_terminal_state_exact": true,
+    "references": [
+      "candidate/vhgame.txt:2430-2443",
+      "candidate/vhgame.txt:2570-2602",
+      "candidate/vhgame.txt:2755-2766",
+      "work/vhground.txt:1801-1834",
+      "work/vhground.txt:2176-2198",
+      "work/vhground.txt:2229-2256"
+    ]
+  },
+  "paths": {
+    "inactive_render_exact": true,
+    "selected_origin_live": true,
+    "resident_scan_exact": true,
+    "primary_rescan_exact": true,
+    "nonselected_traversal_exact": true,
+    "selected_body_viewpoint_unchanged": true,
+    "companion_absolute_calls_live": true,
+    "surface_cache_hit_exact": true,
+    "surface_cache_miss_exact": true,
+    "rng_and_painter_order_unchanged": true,
+    "type_10_behavior_unchanged": true,
+    "references": [
+      "candidate/vhgame.txt:2182-2201",
+      "candidate/vhgame.txt:2330-2338",
+      "candidate/vhgame.txt:2430-2443",
+      "candidate/vhgame.txt:2501-2544",
+      "candidate/vhgame.txt:2570-2602"
+    ]
+  },
+  "validity": {
+    "epoch_rollover_fails_closed": true,
+    "local_reset_invalidates": true,
+    "local_start_invalidates": true,
+    "checkpoint_restore_invalidates": true,
+    "body_80_disables_fill_and_publication_before_out_of_bounds_access": true,
+    "moving_camera_relative_geometry_recomputed": true,
+    "references": [
+      "candidate/vhgame.txt:2086-2099",
+      "candidate/vhgame.txt:2182-2201",
+      "candidate/vhgame.txt:2501-2544",
+      "candidate/vhgame.txt:2755-2766",
+      "candidate/vhgame.txt:7690-7691"
+    ]
+  },
+  "model": {
+    "cases": 12304,
+    "status": "pass",
+    "references": [
+      "verify_model.py:138-169",
+      "verify_model.py:273-304",
+      "model.json"
+    ]
+  },
+  "public_outputs": {
+    "geometry_exact": true,
+    "resident_selection_exact": true,
+    "pixels_exact": true,
+    "companion_effects_exact": true,
+    "rng_state_exact": true,
+    "painter_order_exact": true
+  },
+  "remaining_mismatches": [],
+  "intentional_private_differences": [
+    "new cache metadata and 640-word workspace",
+    "transient skipped orbital and math scratch updates on cache hits",
+    "reduced absolute-vector call count without RNG or painter-call changes"
+  ]
+}

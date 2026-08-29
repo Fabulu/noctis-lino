@@ -1,0 +1,187 @@
+{
+  "schema": 1,
+  "task": 212,
+  "candidate": "deferred exact orbital terminal down-y replay",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "development_corrections": [
+    {
+      "issue": "initial model and candidate incorrectly treated surface-cache misses as VHGNDowny0/1 writers",
+      "action": "discarded the unmeasured first build, removed both false pending invalidations, corrected the model, rebuilt, and repeated adversarial semantic review"
+    }
+  ],
+  "record": {
+    "addressing": "exact body_index_times_8",
+    "workspace_units": 640,
+    "maximum_bodies": 80,
+    "cold_record_words": 8,
+    "hot_vector_replay_words": 6,
+    "hot_terminal_down_y_pair_replays": 1,
+    "task_210_hot_terminal_down_y_pair_replays": 167
+  },
+  "model": {
+    "status": "pass",
+    "cases": 12304,
+    "raw_absolute_vector_words_replayed_exactly": true,
+    "terminal_owner_relative_y_replayed_once_at_common_render_done": true,
+    "pending_preserved_across_surface_cache_misses": true,
+    "same_frame_epoch_rollover_fails_closed": true,
+    "local_reset_start_restore_invalidate": true,
+    "over_capacity_fails_closed": true,
+    "accepted_calls_per_stable_second": 10020,
+    "candidate_calls_per_stable_second": 78
+  },
+  "semantic_review": {
+    "schema": 1,
+    "task": 212,
+    "candidate_source_sha256": "83bb319b512647a636ae5dd29f063549a7800c9737f826bedd26a6408fa22329",
+    "status": "pass",
+    "development_corrections": [
+      {
+        "issue": "initial model and candidate incorrectly treated surface-cache misses as VHGNDowny0/1 writers",
+        "action": "discarded the unmeasured first build, removed both false pending invalidations, corrected the model, rebuilt, and repeated adversarial semantic review"
+      }
+    ],
+    "record": {
+      "units_per_body": 8,
+      "maximum_bodies": 80,
+      "workspace_units": 640,
+      "hot_hit_vector_words": 6,
+      "deferred_terminal_down_y_words": 2,
+      "references": [
+        "candidate/vhgame.txt:2501-2544",
+        "candidate/vhgame.txt:2755-2766"
+      ]
+    },
+    "terminal_state": {
+      "cache_hits_set_dedicated_pending_body": true,
+      "cache_hits_replay_vector_words_only": true,
+      "wrapper_live_writers_invalidate_pending": true,
+      "direct_companion_writers_invalidate_pending": true,
+      "surface_hits_preserve_pending": true,
+      "surface_misses_preserve_pending": true,
+      "surface_phase_setup_does_not_access_down_y": true,
+      "no_intervening_down_y_read_observes_stale_state": true,
+      "common_render_done_replays_latest_pending_pair_once": true,
+      "strict_preexisting_frame_terminal_state_exact": true,
+      "references": [
+        "candidate/vhgame.txt:2430-2443",
+        "candidate/vhgame.txt:2570-2602",
+        "candidate/vhgame.txt:2755-2766",
+        "work/vhground.txt:1801-1834",
+        "work/vhground.txt:2176-2198",
+        "work/vhground.txt:2229-2256"
+      ]
+    },
+    "paths": {
+      "inactive_render_exact": true,
+      "selected_origin_live": true,
+      "resident_scan_exact": true,
+      "primary_rescan_exact": true,
+      "nonselected_traversal_exact": true,
+      "selected_body_viewpoint_unchanged": true,
+      "companion_absolute_calls_live": true,
+      "surface_cache_hit_exact": true,
+      "surface_cache_miss_exact": true,
+      "rng_and_painter_order_unchanged": true,
+      "type_10_behavior_unchanged": true,
+      "references": [
+        "candidate/vhgame.txt:2182-2201",
+        "candidate/vhgame.txt:2330-2338",
+        "candidate/vhgame.txt:2430-2443",
+        "candidate/vhgame.txt:2501-2544",
+        "candidate/vhgame.txt:2570-2602"
+      ]
+    },
+    "validity": {
+      "epoch_rollover_fails_closed": true,
+      "local_reset_invalidates": true,
+      "local_start_invalidates": true,
+      "checkpoint_restore_invalidates": true,
+      "body_80_disables_fill_and_publication_before_out_of_bounds_access": true,
+      "moving_camera_relative_geometry_recomputed": true,
+      "references": [
+        "candidate/vhgame.txt:2086-2099",
+        "candidate/vhgame.txt:2182-2201",
+        "candidate/vhgame.txt:2501-2544",
+        "candidate/vhgame.txt:2755-2766",
+        "candidate/vhgame.txt:7690-7691"
+      ]
+    },
+    "model": {
+      "cases": 12304,
+      "status": "pass",
+      "references": [
+        "verify_model.py:138-169",
+        "verify_model.py:273-304",
+        "model.json"
+      ]
+    },
+    "public_outputs": {
+      "geometry_exact": true,
+      "resident_selection_exact": true,
+      "pixels_exact": true,
+      "companion_effects_exact": true,
+      "rng_state_exact": true,
+      "painter_order_exact": true
+    },
+    "remaining_mismatches": [],
+    "intentional_private_differences": [
+      "new cache metadata and 640-word workspace",
+      "transient skipped orbital and math scratch updates on cache hits",
+      "reduced absolute-vector call count without RNG or painter-call changes"
+    ]
+  },
+  "build": {
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "warnings": 62,
+    "errors": 0,
+    "candidate_executable_bytes": 646622,
+    "candidate_executable_sha256": "694591c297ab8c8c6278d16da91e7444a1856c40c6cfa2d6e607e51ba7708a10",
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "raw_target_machine_blocks_added": false
+  },
+  "candidate_a": {
+    "presentation_hz": 31.978543428925107,
+    "simulation_hz": 18.155560140292966,
+    "cycles_per_presentation": 68267842.58064516,
+    "render_ms": 28.615505563097525,
+    "missed_deadlines": 155
+  },
+  "candidate_a_simulation_gate": "fail",
+  "candidate_a_simulation_required_hz": 18.206,
+  "candidate_a_simulation_shortfall_hz": 0.05043985970703346,
+  "baseline_a": {
+    "status": "skipped_after_candidate_a_gate_failure"
+  },
+  "baseline_b": {
+    "status": "skipped_after_candidate_a_gate_failure"
+  },
+  "candidate_b": {
+    "status": "skipped_after_candidate_a_gate_failure"
+  },
+  "ordering_a": {
+    "status": "not_reached"
+  },
+  "ordering_b": {
+    "status": "not_reached"
+  },
+  "fidelity": {
+    "status": "skipped_after_candidate_a_gate_failure"
+  },
+  "sustained_candidate": {
+    "status": "skipped_after_candidate_a_gate_failure"
+  },
+  "sustained_native_60_hz_status": "still_open",
+  "disposition": "rejected_after_candidate_a_simulation_gate",
+  "host_classification": "controlled_depressed_host_evidence",
+  "orderings_averaged": false,
+  "final_arm": "accepted_baseline",
+  "candidate_retained_byte_exact": false,
+  "accepted_restored_byte_exact": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_source_sha256": "83bb319b512647a636ae5dd29f063549a7800c9737f826bedd26a6408fa22329",
+  "candidate_executable_sha256": "694591c297ab8c8c6278d16da91e7444a1856c40c6cfa2d6e607e51ba7708a10"
+}
