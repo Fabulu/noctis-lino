@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "task": 206,
+  "kind": "instrumentation_only",
+  "host_health": {
+    "status": "depressed",
+    "startup_seconds": 8.693241500062868,
+    "presentation_hz": 52.091878589007386,
+    "simulation_hz": 18.66283839212469
+  },
+  "vht_discriminator": {
+    "presentation_hz": 22.391043582566972,
+    "simulation_hz": 18.79248300679728,
+    "measured_vht_ms": 0.0,
+    "conclusion": "VHT render is skipped at the fixed orbital checkpoint"
+  },
+  "local_renderer": {
+    "presentation_hz": 31.649421789409615,
+    "simulation_hz": 18.665043619395416,
+    "render_ms": 20.371400065563492,
+    "local_render_ms": 10.764073345590855,
+    "local_share_of_render": 0.5283914365702734
+  },
+  "local_coarse_phases": {
+    "local_total_ms": 14.049253508173276,
+    "star_setup_ms": 8.1441168191003,
+    "other_bodies_ms": 5.839501542435134,
+    "selected_body_ms": 0.06521998808820742,
+    "star_setup_share_of_partition": 0.5797003721178468,
+    "other_bodies_share_of_partition": 0.41565725201696624,
+    "selected_body_share_of_partition": 0.004642375865187075,
+    "simulation_hz": 17.772266997313494,
+    "simulation_gate_note": "instrumentation overhead drove this run below 18.206 Hz; no candidate-performance conclusion is admitted"
+  },
+  "star_setup_phases": {
+    "local_total_ms": 11.959876192009734,
+    "selected_origin_and_resident_scan_ms": 4.8364453509384,
+    "primary_setup_and_companion_coronas_ms": 0.30936110067450306,
+    "mask_and_primary_star_raster_ms": 1.912405489059453,
+    "selected_origin_and_resident_scan_share": 0.6852224602478693,
+    "primary_setup_and_companion_coronas_share": 0.04382995343223339,
+    "mask_and_primary_star_raster_share": 0.2709475863198973
+  },
+  "next_candidate": {
+    "name": "squared-distance resident selection",
+    "edit": "inside VHG local resident scan only, retain the exact three squared coordinate terms and additions but compare their nonnegative binary64 sum directly instead of applying FSqrt before each nearest-body comparison",
+    "reason": "the fixed orbital checkpoint skips VHT render; active local rendering is dominant, and selected-origin/resident selection is the largest measured star/setup subphase"
+  },
+  "disposition": "instrumented_depressed_host_attribution_only",
+  "candidate_fps_conclusion": null,
+  "final_arm": "accepted",
+  "accepted_restored_byte_exact": true
+}

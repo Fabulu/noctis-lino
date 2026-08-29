@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "task": 206,
+  "kind": "instrumentation_only",
+  "counter_semantics": "profile space_counts contains VHG local render plus the required pre-call profiling-boundary FPU reset",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "renderer_calls_unchanged": true,
+  "renderer_products_unchanged": true,
+  "timer_arithmetic_unchanged": true,
+  "simulation_constants": [
+    18206,
+    60000
+  ],
+  "fpu_clean_after_each_inserted_timer_call": true,
+  "profile_schema_unchanged": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "local_instrumented_source_sha256": "f8ac91f14d34f94dc171cc27ae6ef25e48679ee48e6ab8464e20439b81f5622b",
+  "compiler_unchanged": true,
+  "cpu_pack_unchanged": true,
+  "status": "pass"
+}

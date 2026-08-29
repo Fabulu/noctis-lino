@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "task": 206,
+  "kind": "instrumentation_only",
+  "profile_channels": {
+    "space_counts": "complete active VHG local render",
+    "cupola_counts": "selected origin and resident scan",
+    "hull_counts": "primary-star setup and companion coronas",
+    "detail_counts": "mask and primary-star globe or far pixel"
+  },
+  "source_boundary": "one common tracked shared-Lino closure",
+  "renderer_calls_unchanged": true,
+  "renderer_products_unchanged": true,
+  "timer_arithmetic_unchanged": true,
+  "simulation_constants": [
+    18206,
+    60000
+  ],
+  "fpu_clean_after_each_inserted_timer_call": true,
+  "profile_binary_schema_unchanged": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "star_instrumented_source_sha256": "538989d241b7fe90a3c3a34962b806a95227d11ec5df63e3f6c028ba1a4dc80d",
+  "compiler_unchanged": true,
+  "cpu_pack_unchanged": true,
+  "status": "pass"
+}
