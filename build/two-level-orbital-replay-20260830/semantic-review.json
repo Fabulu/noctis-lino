@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "task": 214,
+  "status": "pass",
+  "candidate_source_sha256": "9dfdbf16b7efb84f6770f9c2466e861aec9e4e0103a01ed65b6adacb05f2fd3a",
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "transform_exact": true,
+  "model_cases": 12304,
+  "development_corrections": [
+    {
+      "candidate_source_sha256": "afb1e9971f85ace3fd08502464bfa5ddc7b1b33b4e216a69bfb2c3095545385f",
+      "issue": "the initial unmeasured 16-word candidate omitted strict FP and VHGND helper-terminal state",
+      "action": "discarded the build before timing, restored accepted production, expanded records to 64 words, modeled the strict state, rebuilt, and repeated adversarial review"
+    }
+  ],
+  "record": {
+    "units_per_body": 64,
+    "used_units_per_body": 42,
+    "maximum_bodies": 80,
+    "workspace_units": 5120,
+    "maximum_used_address": 5097,
+    "workspace_final_address": 5119,
+    "terminal_down_y_offsets": [8, 9]
+  },
+  "strict_state": {
+    "cold_fill_captures_before_basis_mutation": true,
+    "cold_fill_restores_absolute_terminal_state": true,
+    "hot_resident_exact": true,
+    "hot_primary_exact": true,
+    "hot_frame_geometry_exact": true,
+    "hot_frame_distance_exact": true,
+    "fa_fb_fi_exact": true,
+    "conditional_fs0_write_or_preserve_exact": true,
+    "pgfi_sf_fsw0_exact": true,
+    "vhgnd_vector_and_orbit_scratch_exact": true,
+    "distance_replay_x_squared_exact": true,
+    "type10_retained_distance_and_fsw0_exact": true
+  },
+  "control_flow": {
+    "epoch_rollover_fails_closed": true,
+    "lifecycle_invalidation_exact": true,
+    "surface_paths_unchanged": true,
+    "terminal_down_y_exact": true,
+    "label_or_branch_defects": []
+  },
+  "remaining_mismatches": []
+}

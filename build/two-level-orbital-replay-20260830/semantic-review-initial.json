@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "task": 214,
+  "status": "fail",
+  "candidate_sha256": "afb1e9971f85ace3fd08502464bfa5ddc7b1b33b4e216a69bfb2c3095545385f",
+  "transform_exact": true,
+  "model_cases": 12304,
+  "proven": [
+    "16-word records fit exactly through body 79; counts outside 1..80 fail closed",
+    "cold fill, hot resident replay and publication control flow are coherent",
+    "selected-relative arithmetic preserves exact (absolute-selected)-camera grouping",
+    "frame geometry, rooted distance, primary selection and type-10 retained-distance outputs are preserved",
+    "selected and companion paths remain live; surface hit/miss and RNG/painter ordering are unchanged",
+    "resident, primary, body, distance and later surface epoch boundaries fail closed",
+    "reset, start and checkpoint restore invalidate the cache",
+    "VHGNDowny0/1 terminal replay selects body 0 for one body and the final nonselected body for multiple bodies, including selected-last",
+    "the corrected fill-basis label and terminal-index subtraction have no remaining label/control-flow defect"
+  ],
+  "remaining_mismatch": {
+    "kind": "strict_preexisting_helper_terminal_state",
+    "details": [
+      "Accepted VHG local body distance writes FSW0, leaves PGFi=FSW0 and returns the rooted distance through FA. Hot primary and frame-distance hits copy only VHGlocaldist0/1, leaving FA, PGFi and FSW0 stale.",
+      "Hot omitted absolute-vector paths do not reproduce FS0 or the VHGND vector/orbit scratch written by the accepted helper chain.",
+      "These values appear dead for rendered public outputs, but they violate the explicitly requested strict FA/FB/FI/FS/PGFi/SF/VHGND helper-state equivalence. verify_model.py does not model them."
+    ],
+    "references": [
+      "candidate/vhgame.txt:2761-2806",
+      "candidate/vhgame.txt:2808-2835",
+      "candidate/vhgame.txt:2892-2897",
+      "accepted/vhgame.txt:2749-2754",
+      "work/vhground.txt:2093-2198",
+      "work/pgfp.txt:134-147,201-214",
+      "verify_model.py:154-309"
+    ]
+  },
+  "action": "discarded the unmeasured build and restored accepted production before redesign",
+  "timing_admitted": false
+}

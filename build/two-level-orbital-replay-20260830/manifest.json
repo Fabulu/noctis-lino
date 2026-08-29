@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "files": {
+    "apply_candidate.py": {
+      "bytes": 18989,
+      "sha256": "d9f807e3b452acb4c5907d486543eb6a3f1c9994d8035449b6cb7105594b8a23"
+    },
+    "verify_model.py": {
+      "bytes": 30542,
+      "sha256": "4b6a86efda56a5fca32fe557720f8852ca27159c348a08165ba73192200cd415"
+    },
+    "model.json": {
+      "bytes": 2574,
+      "sha256": "94488a9c8c15168f3cc485598aa902ae05bda27e631a257c7cb827173312785c"
+    },
+    "semantic-review-initial.json": {
+      "bytes": 2160,
+      "sha256": "8f1825ba8c86208fc4ba1baebd91ffdb8e88a83133d12c67b842d4d1dca43ae7"
+    },
+    "semantic-review.json": {
+      "bytes": 1753,
+      "sha256": "8569751fdb0b62cc5600917baf8e86a9dd79838842943ee092d333d593c1eb04"
+    },
+    "run_arm.py": {
+      "bytes": 3194,
+      "sha256": "2240effd56927ba9920adb2c91b5dcfe3c5b2dc222347425473bbb7633b1cd70"
+    },
+    "finalize.py": {
+      "bytes": 8896,
+      "sha256": "4dceacc39b23575d4016d4300fa7f5f4353c08fcf9a0eaf8ec408e57e0af4adf"
+    },
+    "accepted/vhgame.txt": {
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    "accepted/vhgame.exe": {
+      "bytes": 645966,
+      "sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823"
+    },
+    "accepted/compiler114m.exe": {
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    "accepted/i386m.bin": {
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    "candidate/vhgame.txt": {
+      "bytes": 581891,
+      "sha256": "9dfdbf16b7efb84f6770f9c2466e861aec9e4e0103a01ed65b6adacb05f2fd3a"
+    },
+    "candidate/vhgame.exe": {
+      "bytes": 649346,
+      "sha256": "f6d837436d436483051f80c7615c4b5c2d07a557b8406c2ace749100c6ecb677"
+    },
+    "candidate-a/capsule/report.json": {
+      "bytes": 3107,
+      "sha256": "2bb3144cdf8aba207c4d382135a4860bdeced60b1da255fca7af0d0179d1bd9d"
+    },
+    "baseline-a/capsule/report.json": {
+      "bytes": 3091,
+      "sha256": "6b2dbb3871a8207cb627cefdee3e0fcc45e4dbd114d0041635a05b910eec7f93"
+    },
+    "baseline-b/capsule/report.json": {
+      "bytes": 3101,
+      "sha256": "ec45de5212c6a52d3dc7e03698a83db712a60fcc13ec9a3ab05dcc606e2e3cc1"
+    },
+    "candidate-b/capsule/report.json": {
+      "bytes": 3084,
+      "sha256": "2ee4def6cdcf988f9a9cb977111a1dedf13b29315a127f95bd6a34f87addc261"
+    },
+    "result.json": {
+      "bytes": 8386,
+      "sha256": "c4a3e99439ad5322ab722eb0740ee8bfe8442defb14a93e3981e85f17387adbc"
+    }
+  }
+}

@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "task": 214,
+  "candidate": "two-level exact selected-relative orbital basis and current-frame geometry replay",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "development_corrections": [
+    {
+      "candidate_source_sha256": "afb1e9971f85ace3fd08502464bfa5ddc7b1b33b4e216a69bfb2c3095545385f",
+      "issue": "the initial unmeasured 16-word candidate omitted strict FP and VHGND helper-terminal state",
+      "action": "discarded the build before timing, restored accepted production, expanded records to 64 words, modeled the strict state, rebuilt, and repeated adversarial review"
+    }
+  ],
+  "record": {
+    "workspace_units": 5120,
+    "record_units": 64,
+    "used_record_units": 42,
+    "maximum_cached_bodies": 80,
+    "maximum_used_address": 5097,
+    "workspace_final_address": 5119
+  },
+  "model": {
+    "schema": 1,
+    "task": 214,
+    "cases": 12304,
+    "development_correction": "expanded unmeasured 16-word candidate after adversarial strict-state failure",
+    "raw_binary64_basis_words_replayed_exactly": true,
+    "raw_absolute_and_orbit_scratch_words_replayed_exactly": true,
+    "accepted_arithmetic_grouping_preserved": "(body_absolute-selected_absolute)-camera",
+    "signed_zero_nan_infinity_payloads_preserved": true,
+    "moving_camera_second_subtractions_recomputed": true,
+    "frame_coordinates_and_rooted_distances_replayed_exactly": true,
+    "strict_fa_fb_fi_fs_pgfi_sf_vhgnd_helper_state_exact": true,
+    "conditional_fs0_write_or_preserve_exact": true,
+    "cold_fill_absolute_vector_terminal_state_restored": true,
+    "distance_terminal_fsw0_fa_fb_pgfi_exact": true,
+    "type10_distance_and_fsw0_state_preserved": true,
+    "primary_rescan_terminal_state_preserved": true,
+    "companion_calls_live_and_ordered": true,
+    "surface_paths_do_not_access_terminal_down_y": true,
+    "deterministic_terminal_down_y_replayed_once": true,
+    "per_hit_pending_stores": 0,
+    "same_frame_epoch_rollover_fails_closed": true,
+    "local_reset_start_restore_invalidate": true,
+    "over_capacity_fails_closed": true,
+    "workspace_units": 5120,
+    "record_units": 64,
+    "used_record_units": 42,
+    "maximum_cached_bodies": 80,
+    "fixed_checkpoint_bodies": 78,
+    "fixed_checkpoint_primary_rescan_bodies": 12,
+    "fixed_checkpoint_nonselected_bodies": 77,
+    "accepted_cacheable_absolute_calls_per_presentation": 167,
+    "candidate_cold_cacheable_absolute_calls": 78,
+    "candidate_hot_cacheable_absolute_calls": 0,
+    "accepted_full_relative_calculations": 167,
+    "candidate_cold_full_relative_calculations": 78,
+    "candidate_hot_full_relative_calculations": 0,
+    "candidate_hot_half_relative_calculations": 78,
+    "candidate_hot_distance_square_replays": 89,
+    "hot_scalar_fsub_savings": 768,
+    "hot_rooted_distance_savings": 89,
+    "accepted_calls_per_stable_second_at_60_presentations": 10020,
+    "candidate_calls_per_stable_second_at_60_presentations": 78,
+    "selected_origin_and_selected_render_unchanged": true,
+    "rng_and_draw_call_counts_unchanged": true,
+    "simulation_constants": [
+      18206,
+      60000
+    ],
+    "source_boundary": "one common tracked shared-Lino closure",
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "candidate_source_sha256": "9dfdbf16b7efb84f6770f9c2466e861aec9e4e0103a01ed65b6adacb05f2fd3a",
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "status": "pass"
+  },
+  "semantic_review": {
+    "schema": 1,
+    "task": 214,
+    "status": "pass",
+    "candidate_source_sha256": "9dfdbf16b7efb84f6770f9c2466e861aec9e4e0103a01ed65b6adacb05f2fd3a",
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "transform_exact": true,
+    "model_cases": 12304,
+    "development_corrections": [
+      {
+        "candidate_source_sha256": "afb1e9971f85ace3fd08502464bfa5ddc7b1b33b4e216a69bfb2c3095545385f",
+        "issue": "the initial unmeasured 16-word candidate omitted strict FP and VHGND helper-terminal state",
+        "action": "discarded the build before timing, restored accepted production, expanded records to 64 words, modeled the strict state, rebuilt, and repeated adversarial review"
+      }
+    ],
+    "record": {
+      "units_per_body": 64,
+      "used_units_per_body": 42,
+      "maximum_bodies": 80,
+      "workspace_units": 5120,
+      "maximum_used_address": 5097,
+      "workspace_final_address": 5119,
+      "terminal_down_y_offsets": [
+        8,
+        9
+      ]
+    },
+    "strict_state": {
+      "cold_fill_captures_before_basis_mutation": true,
+      "cold_fill_restores_absolute_terminal_state": true,
+      "hot_resident_exact": true,
+      "hot_primary_exact": true,
+      "hot_frame_geometry_exact": true,
+      "hot_frame_distance_exact": true,
+      "fa_fb_fi_exact": true,
+      "conditional_fs0_write_or_preserve_exact": true,
+      "pgfi_sf_fsw0_exact": true,
+      "vhgnd_vector_and_orbit_scratch_exact": true,
+      "distance_replay_x_squared_exact": true,
+      "type10_retained_distance_and_fsw0_exact": true
+    },
+    "control_flow": {
+      "epoch_rollover_fails_closed": true,
+      "lifecycle_invalidation_exact": true,
+      "surface_paths_unchanged": true,
+      "terminal_down_y_exact": true,
+      "label_or_branch_defects": []
+    },
+    "remaining_mismatches": []
+  },
+  "build": {
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "warnings": 62,
+    "errors": 0,
+    "candidate_executable_bytes": 649346,
+    "candidate_executable_sha256": "f6d837436d436483051f80c7615c4b5c2d07a557b8406c2ace749100c6ecb677",
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "raw_target_machine_blocks_added": false
+  },
+  "abba_order": [
+    "candidate-a",
+    "baseline-a",
+    "baseline-b",
+    "candidate-b"
+  ],
+  "candidate_a": {
+    "presentation_hz": 51.09635888151277,
+    "simulation_hz": 18.708509354254677,
+    "cycles_per_presentation": 44642567.96850394,
+    "render_ms": 17.284501404168864,
+    "missed_deadlines": 168
+  },
+  "baseline_a": {
+    "presentation_hz": 48.338368580060425,
+    "simulation_hz": 18.52970795568983,
+    "cycles_per_presentation": 47257029.079166666,
+    "render_ms": 18.186974704202367,
+    "missed_deadlines": 156
+  },
+  "baseline_b": {
+    "presentation_hz": 42.66347687400319,
+    "simulation_hz": 18.54066985645933,
+    "cycles_per_presentation": 53224363.76168224,
+    "render_ms": 21.478599764248358,
+    "missed_deadlines": 170
+  },
+  "candidate_b": {
+    "presentation_hz": 34.5957011258956,
+    "simulation_hz": 18.014329580348004,
+    "cycles_per_presentation": 65357208.082840234,
+    "render_ms": 27.147845653804485,
+    "missed_deadlines": 169
+  },
+  "candidate_a_simulation_gate": "pass",
+  "candidate_b_simulation_gate": "fail",
+  "candidate_b_simulation_required_hz": 18.206,
+  "candidate_b_simulation_shortfall_hz": 0.19167041965199516,
+  "ordering_a": {
+    "status": "win",
+    "presentation_gain_hz": 2.7579903014523452,
+    "cycles_per_presentation_removed": 2614461.1106627285
+  },
+  "ordering_b": {
+    "status": "loss",
+    "presentation_gain_hz": -8.067775748107586,
+    "cycles_per_presentation_removed": -12132844.321157992
+  },
+  "fidelity": {
+    "status": "skipped_after_ordering_b_simulation_and_performance_failure"
+  },
+  "sustained_candidate": {
+    "status": "skipped_after_ordering_b_simulation_and_performance_failure"
+  },
+  "sustained_native_60_hz_status": "still_open",
+  "disposition": "rejected_after_ordering_b_simulation_and_performance_failure",
+  "host_classification": "controlled_depressed_and_variable_host_evidence",
+  "orderings_averaged": false,
+  "final_arm": "accepted_baseline",
+  "candidate_retained_byte_exact": false,
+  "accepted_restored_byte_exact": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_source_sha256": "9dfdbf16b7efb84f6770f9c2466e861aec9e4e0103a01ed65b6adacb05f2fd3a",
+  "candidate_executable_sha256": "f6d837436d436483051f80c7615c4b5c2d07a557b8406c2ace749100c6ecb677"
+}
