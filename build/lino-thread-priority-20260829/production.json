@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "task": 202,
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_executable_sha256": "c34ab7fff9bef5cb9658b9f3509dca7bc9f7aa2adb42773675675df4bb5ce593",
+  "executable_size": 645966,
+  "difference_offsets": [
+    "0x3c48"
+  ],
+  "accepted_priority_director": 2,
+  "candidate_priority_director": 3,
+  "runtime_code_unchanged": true,
+  "generated_lino_data_and_code_unchanged": true,
+  "stock_assets_unchanged": true,
+  "status": "pass"
+}

@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "task": 201,
+  "sys_pack": {
+    "path": "main/sys/win32.bin",
+    "sha256": "6620f38b49762a434267f6ea46a0c38673f55e5ca87cff7f82dfbda9e0fa175b",
+    "variant_count": 8,
+    "selected_variant": 2,
+    "selected_variant_offset": 39424,
+    "selected_variant_size": 20480,
+    "selected_variant_sha256": "33b0e98df815b18a59f8083f5b81b08d3829befe752087817721ab88aa7d28ed"
+  },
+  "executable": {
+    "path": "work/vhgame.exe",
+    "sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+    "runtime_initialization_difference_bytes": 33,
+    "runtime_initialization_difference_min_offset": 9839,
+    "runtime_initialization_difference_max_offset": 15449
+  },
+  "sleep_implementation": {
+    "handler_virtual_address": "0x402b7b",
+    "handler_bytes": "ffb784020200e8ca100000c3",
+    "timeout_workspace_byte_offset": "0x20284",
+    "sleep_thunk_virtual_address": "0x403c50",
+    "sleep_thunk_bytes": "ff2530404000",
+    "import_iat_virtual_address": "0x404030",
+    "behavior": "push Sleep Timeout; call kernel32!Sleep; return",
+    "sleep_zero_semantics": "direct Windows Sleep(0) scheduler yield"
+  },
+  "conclusion": "The tracked Win32 SYS pack implements Lino SLEEP as a direct call to kernel32!Sleep with the shared workspace timeout. A more precise timed wait would require changing the native SYS-pack runtime/import surface; the next least-invasive candidate should remain in shared Lino.",
+  "status": "pass"
+}

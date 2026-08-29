@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "task": 202,
+  "candidate": "shared-Lino thread priority director 3",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "native_gameplay_or_renderer_replacement": false,
+  "model": {
+    "schema": 1,
+    "task": 202,
+    "candidate": "shared-Lino thread priority director 3",
+    "source_boundary": "one common tracked shared-Lino closure",
+    "native_gameplay_or_renderer_replacement": false,
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "candidate_source_sha256": "e6c9566013f93cd9c05dacb759698f73502c8cd81f2bbeaf91cbbc18499b6732",
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "win32_priority_table": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ],
+    "director_index": 3,
+    "windows_thread_priority_value": 1,
+    "windows_thread_priority_name": "THREAD_PRIORITY_ABOVE_NORMAL",
+    "simulation_constants": [
+      18206,
+      60000
+    ],
+    "status": "pass"
+  },
+  "production": {
+    "schema": 1,
+    "task": 202,
+    "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+    "candidate_executable_sha256": "c34ab7fff9bef5cb9658b9f3509dca7bc9f7aa2adb42773675675df4bb5ce593",
+    "executable_size": 645966,
+    "difference_offsets": [
+      "0x3c48"
+    ],
+    "accepted_priority_director": 2,
+    "candidate_priority_director": 3,
+    "runtime_code_unchanged": true,
+    "generated_lino_data_and_code_unchanged": true,
+    "stock_assets_unchanged": true,
+    "status": "pass"
+  },
+  "host_class": "depressed_host",
+  "candidate_a": {
+    "startup_seconds": 10.23226260021329,
+    "presentation_hz": 41.44035405351036,
+    "simulation_hz": 18.708509354254677,
+    "cycles_per_presentation": 54176460.72815534,
+    "presentations": 206,
+    "missed_deadlines": 205
+  },
+  "baseline_a": {
+    "startup_seconds": 9.95937449997291,
+    "presentation_hz": 45.91836734693877,
+    "simulation_hz": 18.571428571428573,
+    "cycles_per_presentation": 50005057.48,
+    "presentations": 225,
+    "missed_deadlines": 174
+  },
+  "ordering_a": {
+    "candidate_minus_baseline_presentation_hz": -4.478013293428411,
+    "candidate_minus_baseline_cycles_per_presentation": 4171403.2481553406,
+    "presentation_won": false,
+    "cycles_per_presentation_won": false
+  },
+  "ordering_b": "skipped_after_ordering_a_lost_both_mandatory_metrics",
+  "sustained_orbital": "skipped_after_ordering_a_rejection",
+  "fidelity": "skipped_after_ordering_a_rejection",
+  "disposition": "rejected_after_ordering_a",
+  "reason": "Candidate A preserved authentic simulation, but the above-normal Lino application thread lost presentation and increased cycles per presentation against Baseline A on the same depressed host.",
+  "final_arm": "accepted",
+  "accepted_restored_byte_exact": true
+}

@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "files": {
+    "verify_model.py": {
+      "bytes": 2220,
+      "sha256": "77d547372fdc48e865ebaae4883d8c1d314be66c3abe332003b1afba66864001"
+    },
+    "verify_production.py": {
+      "bytes": 1658,
+      "sha256": "c28a2eb1df4ad42e34dffba4fa81d1f0f04743d02ff29298b508690498e2fa3f"
+    },
+    "model.json": {
+      "bytes": 754,
+      "sha256": "9d01af36a0d8e2f2f84a28f4d2416ecabd6210a27a4bb5992c5678a2d2d94466"
+    },
+    "production.json": {
+      "bytes": 532,
+      "sha256": "49b5de98700e3bb7b86a62686e81cfc3cdae63d1e7c15ab774909fd810020d72"
+    },
+    "accepted/vhgame.txt": {
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    "accepted/vhgame.exe": {
+      "bytes": 645966,
+      "sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823"
+    },
+    "accepted/compiler114m.exe": {
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    "accepted/i386m.bin": {
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    "candidate/vhgame.txt": {
+      "bytes": 571624,
+      "sha256": "e6c9566013f93cd9c05dacb759698f73502c8cd81f2bbeaf91cbbc18499b6732"
+    },
+    "candidate/vhgame.exe": {
+      "bytes": 645966,
+      "sha256": "c34ab7fff9bef5cb9658b9f3509dca7bc9f7aa2adb42773675675df4bb5ce593"
+    },
+    "baseline-health/capsule/report.json": {
+      "bytes": 3101,
+      "sha256": "3eb76e167c0dec2f53ba96265b793b12bc682d1c2ea9e2e578c891d7d5244002"
+    },
+    "candidate-a/capsule/report.json": {
+      "bytes": 3096,
+      "sha256": "3f167fc7c9b499d580a01299d0d551eb4102199f6a40c506cd8941de75470a6e"
+    },
+    "baseline-a/capsule/report.json": {
+      "bytes": 3094,
+      "sha256": "145f899c84cd6deb69fd86563fb3059a67f60295333aba877c2b8edf0a208cb1"
+    },
+    "result.json": {
+      "bytes": 2913,
+      "sha256": "9a3047ecc8305fb00cf6617d0cc430e50104a6319ab469bf94dcd489816b1d92"
+    }
+  }
+}
