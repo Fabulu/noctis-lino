@@ -16,6 +16,7 @@ The retrospective tables below record every result recovered for this publicatio
 - Task #169 folded four exact marked palette-address additions into i386m palette-load displacements while leaving the shared-Lino scalar operations intact. Ordering A won by **12.383072276707573 Hz** and removed **15,041,694.753770493 cycles/presentation**, but Ordering B reversed, losing **7.354369904772071 Hz** and adding **9,963,375.42605704 cycles/presentation**. The contradictory orderings were not averaged; synchronized fidelity was skipped and Task #167 production was restored byte-exactly.
 - Task #171 fused the two exact marked GUI counter tails from `DEC memory; reload; CMP 0; JNE` to `DEC memory; JNE`, preserving all 32,000 counter writes and both island endpoints. Candidate A passed simulation at **18.852787805856398 Hz**, but lost **8.767020116546654 Hz** and added **7,379,992.754345141 cycles/presentation** against Baseline A. Ordering B and fidelity were skipped, and Task #167 production was restored byte-exactly.
 - Task #173 replaced the exact marked Task #167 layer-copy body with a near-jump to a compiler-owned four-dword appendix while leaving the shared scalar Lino loop unchanged. Candidate A passed simulation at **18.86035313001605 Hz**, but lost **11.876222535595687 Hz** and added **12,659,944.07336431 cycles/presentation** against Baseline A. Ordering B and fidelity were skipped, and Task #167 production was restored byte-exactly.
+- Task #175 kept the same 23-byte marked scalar-copy island and moved one state-neutral LEA from the hot preheader to the cold row exit so the short-backedge loop fits one aligned fetch block. Ordering A won by **2.711009346717532 Hz** and removed **5,859,078.885536723 cycles/presentation**, but Ordering B lost **1.07469156653638 Hz** and added **1,916,360.4575268775 cycles/presentation**. The contradictory orderings were not averaged; fidelity was skipped and Task #167 production was restored byte-exactly.
 - Task #153 reversed each terrain replay command to destination-high/value-low fields and added an exact adjacent i386m `C = D; C & 65535` fold to `MOVZX ECX,DX`, removing one dynamically executed extraction instruction at each of three replay decoders. It won presentation by 0.5138524590503692 Hz and 0.4558171701612608 Hz while removing 481,125.0108108148 and 1,784,514.336641848 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. The shared Lino closure remains common to every shipping target; the optimization is retained without replacing the healthy absolute record.
 - Task #149 generalized exact i386m register `& 65535` lowering across all 322 generated A/EAX, B/EBX, C/ECX, and D/EDX sites, with E/ESI support covered by the focused fixture. It won presentation by 2.7516803584764773 Hz and 1.5337899900937515 Hz while removing 3,204,463.332275696 and 2,107,022.1561563835 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. The shared Lino source is unchanged; this target-code-generator checkpoint is retained without replacing the healthy absolute record.
 - Task #145 replaced the paired culling replay's repeated command-base construction with one exact shared-Lino indexed command load. It won presentation by 5.550831977811946 Hz and 8.926258786655339 Hz while removing 8,233,763.470827088 and 12,123,875.996125333 cycles/presentation across the two depressed-host orderings, then passed synchronized authoritative fidelity. It is retained without replacing the healthy absolute record.
@@ -286,6 +287,23 @@ At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher iso
 - Evidence: `build/scalar-delta-layer-copy-20260829/result.json`.
 
 ## Rejected full-ABBA candidates
+
+### Same-size in-place marked layer-copy repack — Task #175
+
+| Run | Presentation | Simulation | Render | Terrain | Present | Cycles/presentation |
+|---|---:|---:|---:|---:|---:|---:|
+| Candidate A | 38.45414343395501 Hz | 18.842530282637956 Hz | 24.325050561173462 ms | 19.32901989109901 ms | 1.6040976775197244 ms | 58,049,964.38 |
+| Baseline A | 35.74313408723748 Hz | 18.780290791599352 Hz | 26.29869022430709 ms | 20.72581928433565 ms | 1.5765246833171447 ms | 63,909,043.265536726 |
+| Baseline B | 37.990196078431374 Hz | 18.790849673202615 Hz | 24.87432376420754 ms | 19.538711354532037 ms | 1.439308286853353 ms | 60,057,086.05913979 |
+| Candidate B | 36.915504511894994 Hz | 18.252666119770304 Hz | 25.137509889729518 ms | 19.74712023438659 ms | 1.686747762448697 ms | 61,973,446.516666666 |
+
+- Ordering A: +2.711009346717532 Hz and -5,859,078.885536723 cycles/presentation.
+- Ordering B: -1.07469156653638 Hz and +1,916,360.4575268775 cycles/presentation.
+- Candidate A passed the 18.206-Hz simulation gate by 0.6365302826379562 Hz. Ordering A won both mandatory metrics, but Ordering B lost both; the contradictory orderings were not averaged and synchronized fidelity was skipped.
+- The shared scalar Lino loop and its zero-byte marker remained byte-exact. The fail-closed i386m compiler replacement removed a three-byte preheader no-op, used a short backedge around `[0x1a6c1,0x1a6cc)`, and moved an equivalent seven-byte CS-prefixed LEA to the once-per-row exit `[0x1a6cc,0x1a6d3)`.
+- The 2,564-case ordered overlap model, 28 explicit modular-wrap cases, one positive and six byte-identical negative fixtures, 26-check toolchain regression, zero-warning three-stage compiler fixpoint, and full production-layout proof passed. Exactly 18 byte values changed inside the same 23-byte island; existing pops, every downstream byte and address, the 645,966-byte executable, and the CPU pack remained exact. The full-frame model retained instruction and memory traffic counts while reducing dynamic encoded-byte demand by 1,022,400 bytes.
+- Task #167 compiler, shared source, test, CPU pack, and executable were restored byte-exactly. The retained healthy absolute record and its 0.19331453886427852-Hz measured gap remain unchanged.
+- Evidence: `build/in-place-layer-repack-20260829/result.json`; source, semantic, fixture, fixpoint, layout, ABBA, and storage proofs are retained in the same directory.
 
 ### Marked palette-address displacement fold — Task #169
 
