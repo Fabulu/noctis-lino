@@ -84,8 +84,9 @@
 	xass = 0; xbss = 0; xaso = 0; xasw = 0;
 	xasb = 0; xasbit = 0;
 
-	( square-root state: fixed 128-bit radicand, 64-bit root, 96-bit
-	  restoring remainder, 65-bit trial divisor, and bounded scratch. )
+	( square-root state: fixed 128-bit radicand, root and descending
+	  candidate mask.  Candidate squares use Mul128, so every decision
+	  remains exact in ordinary 32-bit integer instructions. )
 	srd0 = 0; srd1 = 0; srd2 = 0; srd3 = 0;
 	sqrh = 0; sqrl = 0; sqmh = 0; sqml = 0;
 	sqcarry = 0; sqstep = 0;
@@ -1142,12 +1143,11 @@
 	[FA0] = 0; [FA1] = 0;
 	end;
 
-      ( XRootCore - exact restoring sqrt(X) at 64 significand bits.
-	  The normalized 64-bit mantissa forms the same fixed 128-bit
-	  radicand as before.  Each of 64 iterations consumes its next two
-	  high bits, shifts the partial root, and subtracts 2*q+1 exactly
-	  when the 96-bit remainder admits the next root bit.  The final
-	  integer remainder drives the same p64 nearest rounding. )
+      ( XRootCore - exact integer bit-search for sqrt(X) at 64
+	  significand bits.  For an even unbiased exponent the radicand is
+	  M*2^63; for an odd exponent it is M*2^64.  Setting each candidate
+	  root bit and comparing its exact 128-bit square is slower than a
+	  restoring loop, but has no implicit-width or trial-state ambiguity. )
 
 "XRootCore"
 	A = [XE]; A - XBIAS; [xtmp] = A;
@@ -1166,88 +1166,87 @@
 	A = [XMH]; A > 1; [srd3] = A;
     "XRoot radicand ready"
 	[sqrh] = 0; [sqrl] = 0;
-	( E holds each incoming pair; srm3 is assigned from E at the
-	  compatibility boundary before its first read. )
-	[srm0] = 0; [srm1] = 0; [srm2] = 0;
+	[sqmh] = 80000000h; [sqml] = 0;
 	[sqstep] = 0;
-    "XRoot restoring loop"
-	( Consume the radicand's high pair and shift it left by two. )
-	A = [srd3]; A > 30; E = A;
-	A = [srd3]; A < 2; B = [srd2]; B > 30; A | B; [srd3] = A;
-	A = [srd2]; A < 2; B = [srd1]; B > 30; A | B; [srd2] = A;
-	A = [srd1]; A < 2; B = [srd0]; B > 30; A | B; [srd1] = A;
-	A = [srd0]; A < 2; [srd0] = A;
-
-	( remainder = remainder*4 + pair )
-	A = [srm2]; A < 2; B = [srm1]; B > 30; A | B; [srm2] = A;
-	A = [srm1]; A < 2; B = [srm0]; B > 30; A | B; [srm1] = A;
-	A = [srm0]; A < 2; B = E; A | B; [srm0] = A;
-
-	( Shift the partial root and form its 65-bit trial 2*q+1. )
-	A = [sqrl]; A > 31; E = A;
-	A = [sqrh]; A < 1; B = E; A | B; [sqrh] = A;
-	A = [sqrl]; A < 1; [sqrl] = A;
-	A = [sqrh]; A > 31; [sqcarry] = A;
-	A = [sqrh]; A < 1; B = [sqrl]; B > 31; A | B; C = A;
-	A = [sqrl]; A < 1; A | 1; D = A;
-
-	( Accept the next root bit iff remainder >= trial. )
-	A = [srm2]; B = [sqcarry];
-	? A '> B -> XRoot restoring accept;
-	? A '< B -> XRoot restoring next;
-	A = [srm1]; B = C;
-	? A '> B -> XRoot restoring accept;
-	? A '< B -> XRoot restoring next;
-	A = [srm0]; B = D;
-	? A '< B -> XRoot restoring next;
-    "XRoot restoring accept"
-	( Subtract the trial with exact unsigned borrows. )
-	A = [srm0]; B = D;
-	? A '< B -> XRoot restoring low borrow;
-	E = 0; -> XRoot restoring low subtract;
-    "XRoot restoring low borrow"
-	E = 1;
-    "XRoot restoring low subtract"
-	A = [srm0]; A - D; [srm0] = A;
-	A = [srm1]; B = C;
-	? A '> B -> XRoot restoring middle no borrow;
-	? A '< B -> XRoot restoring middle borrow;
-	? E = 0 -> XRoot restoring middle no borrow;
-    "XRoot restoring middle borrow"
-	A = [srm1]; A - C; A - E; [srm1] = A;
-	E = 1; -> XRoot restoring high subtract;
-    "XRoot restoring middle no borrow"
-	A = [srm1]; A - C; A - E; [srm1] = A;
-	E = 0;
-    "XRoot restoring high subtract"
-	A = [srm2]; A - [sqcarry]; A - E; [srm2] = A;
-
-	( Set the admitted low root bit. )
-	[sqrl]+;
-	? [sqrl] != 0 -> XRoot restoring next;
-	[sqrh]+;
-    "XRoot restoring next"
+    "XRoot bit loop"
+	( q |= mask )
+	A = [sqrl]; B = [sqml]; A | B; [sqrl] = A;
+	A = [sqrh]; B = [sqmh]; A | B; [sqrh] = A;
+	( exact q*q )
+	A = [sqrh]; [XMH] = A; [YMH] = A;
+	A = [sqrl]; [XML] = A; [YML] = A;
+	=> Mul128;
+	( reject the candidate if its 128-bit square is too large )
+	A = [xp3]; B = [srd3];
+	? A '> B -> XRoot reject;
+	? A '< B -> XRoot mask;
+	A = [xp2]; B = [srd2];
+	? A '> B -> XRoot reject;
+	? A '< B -> XRoot mask;
+	A = [xp1]; B = [srd1];
+	? A '> B -> XRoot reject;
+	? A '< B -> XRoot mask;
+	A = [xp0]; B = [srd0];
+	? A '> B -> XRoot reject;
+	-> XRoot mask;
+    "XRoot reject"
+	? [sqml] = 0 -> XRoot reject high;
+	A = [sqrl]; A - [sqml]; [sqrl] = A;
+	-> XRoot mask;
+    "XRoot reject high"
+	A = [sqrh]; A - [sqmh]; [sqrh] = A;
+    "XRoot mask"
+	( mask >>= 1 )
+	A = [sqmh]; A & 1; [sqcarry] = A;
+	A = [sqmh]; A > 1; [sqmh] = A;
+	A = [sqml]; A > 1; B = [sqcarry]; B < 31; A | B; [sqml] = A;
 	[sqstep]+;
-	? [sqstep] < 64 -> XRoot restoring loop;
+	? [sqstep] < 64 -> XRoot bit loop;
 
-	( Reproduce the accepted residual subtraction's low-limb equality
-	  borrow.  Since the fixed radicand's low word is zero, this case
-	  occurs exactly when q's low 16 bits are zero.  Subtracting one
-	  from residual word one, with propagation, forms the accepted
-	  private residual before its p64 rounding decision. )
+	( Recompute q*q and form the exact residual S-q*q. )
+	A = [sqrh]; [XMH] = A; [YMH] = A;
+	A = [sqrl]; [XML] = A; [YML] = A;
+	=> Mul128;
+	A = [srd0]; B = [xp0];
+	? A '> B -> XRoot residual low ordered;
+	E = 1; -> XRoot residual low;
+    "XRoot residual low ordered"
 	E = 0;
-	A = [sqrl]; A & XM16;
-	? A != 0 -> XRoot residual compatible;
-	[srm1]-;
-	? [srm1] != 0FFFFFFFFh -> XRoot residual compatible;
-	[srm2]-;
-	? [srm2] != 0FFFFFFFFh -> XRoot residual compatible;
-	E = 0FFFFFFFFh;
-    "XRoot residual compatible"
-	A = E; [srm3] = A;
+    "XRoot residual low"
+	A = [srd0]; A - [xp0]; [srm0] = A;
+	A = [srd1]; B = [xp1];
+	? A '> B -> XRoot residual one greater;
+	? A '< B -> XRoot residual one less;
+	? E = 0 -> XRoot residual one equal;
+	D = 1; -> XRoot residual one ready;
+    "XRoot residual one greater"
+	D = 0; -> XRoot residual one ready;
+    "XRoot residual one less"
+	D = 1; -> XRoot residual one ready;
+    "XRoot residual one equal"
+	D = 0;
+    "XRoot residual one ready"
+	A = [srd1]; A - [xp1]; A - E; [srm1] = A;
+	E = D;
+	A = [srd2]; B = [xp2];
+	? A '> B -> XRoot residual two greater;
+	? A '< B -> XRoot residual two less;
+	? E = 0 -> XRoot residual two equal;
+	D = 1; -> XRoot residual two ready;
+    "XRoot residual two greater"
+	D = 0; -> XRoot residual two ready;
+    "XRoot residual two less"
+	D = 1; -> XRoot residual two ready;
+    "XRoot residual two equal"
+	D = 0;
+    "XRoot residual two ready"
+	A = [srd2]; A - [xp2]; A - E; [srm2] = A;
+	E = D;
+	A = [srd3]; A - [xp3]; A - E; [srm3] = A;
 
-	( Round up iff the accepted residual is greater than q. )
-	? E != 0 -> XRoot increment;
+	( round up iff residual > q; a half-way case is impossible for
+	  an integer radicand and an integer q. )
+	? [srm3] != 0 -> XRoot increment;
 	? [srm2] != 0 -> XRoot increment;
 	A = [srm1]; B = [sqrh];
 	? A '> B -> XRoot increment;
@@ -1256,10 +1255,10 @@
 	? A '> B -> XRoot increment;
 	-> XRoot done;
     "XRoot increment"
-	[sqrl]+;
-	? [sqrl] != 0 -> XRoot done;
-	[sqrh]+;
-	? [sqrh] != 0 -> XRoot overflow;
+	A = [sqrl]; A + 1; [sqrl] = A;
+	? A != 0 -> XRoot done;
+	A = [sqrh]; A + 1; [sqrh] = A;
+	? A != 0 -> XRoot overflow;
 	-> XRoot done;
     "XRoot overflow"
 	[XMH] = 80000000h; [XML] = 0; [xtmp]+;
@@ -1271,8 +1270,6 @@
 	A = [xtmp]; A / 2; A + XBIAS; [XE] = A;
 	[XS] = 0;
 	end;
-	( Unreachable footprint calibration: preserve downstream addresses. )
-	A = 0; A = 0; A = 0; A = 0;
 
       ( XChop32 - truncate the live extended X value to a signed qword,
 	then return its low 32 bits.  XChop16 applies the stellar seed site's

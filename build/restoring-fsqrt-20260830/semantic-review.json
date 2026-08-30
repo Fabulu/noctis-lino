@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "task": 222,
+  "status": "pass",
+  "review_scope": "accepted XRootCore trial-square implementation versus restoring integer-root replacement",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "integer_root": {
+    "accepted_floor_root_exact": true,
+    "candidate_floor_root_exact": true,
+    "restoring_iterations": 64,
+    "candidate_mul128_calls_per_positive_root": 0,
+    "accepted_mul128_calls_per_positive_root": 65
+  },
+  "accepted_residual_compatibility": {
+    "finding": "The accepted low-word subtraction treats equality as a borrow because only strict unsigned greater-than selects the no-borrow path.",
+    "trigger": "q low 16 bits equal zero, because the fixed radicand low word is zero",
+    "accepted_effect": "residual becomes mathematical residual minus 2^32 modulo 2^128",
+    "adversarial_example": "sqrt(1.0) rounds its accepted private p64 root to 0x8000000000000001",
+    "initial_candidate_mismatch_found": true,
+    "initial_candidate_timed_before_review": true,
+    "initial_candidate_reports_excluded_from_final_abba": true,
+    "corrective_action": "candidate now propagates the same false borrow into srm1 through srm3 before the p64 decision",
+    "srm0_through_srm3_exact_after_correction": true,
+    "accepted_p64_exact_after_correction": true,
+    "p53_binary64_output_exact": true
+  },
+  "restoring_arithmetic": {
+    "radicand_pair_consumption_exact": true,
+    "root_shift_exact": true,
+    "trial_2q_plus_1_exact": true,
+    "unsigned_compare_exact": true,
+    "subtraction_borrows_exact": true,
+    "mathematical_remainder_exact_before_compatibility": true,
+    "max_mathematical_remainder_bits": 65
+  },
+  "state_boundary": {
+    "fa0_fa1_exact": true,
+    "public_a_through_e_exact": true,
+    "fb_fi_fflg_fs0_exact": true,
+    "xtop_xdepth_exact": true,
+    "xrej_delta_exact": true,
+    "zero_negative_nan_infinity_dispatch_exact": true,
+    "other_private_x_scratch_unobserved": true
+  },
+  "calibration": {
+    "dead_srm3_initialization_removal_valid": true,
+    "reason": "E holds each incoming pair; srm3 is assigned from E at the compatibility boundary before its first read"
+  },
+  "coverage": {
+    "generic_normalized_mantissas": 65548,
+    "binary64_pipeline_cases": 92146,
+    "special_dispatch_cases": 24,
+    "public_state_cases": 4096,
+    "accepted_false_low_limb_borrow_cases": 3,
+    "pipeline_accepted_vs_mathematical_p64_differences": 1025
+  },
+  "architecture_specific_lino_added": false,
+  "raw_target_machine_blocks_added": false,
+  "remaining_observable_mismatches": [],
+  "review_corrections_applied": [
+    "The first model incorrectly treated the accepted residual as mathematical S-q*q and therefore missed the accepted equality-borrow quirk.",
+    "The two preliminary performance arms were retained as pre-review evidence but excluded from the final strict ABBA sequence.",
+    "The corrected source and independent model reproduce the accepted four-limb residual, private p64 root, p53 spill, and public state exactly."
+  ]
+}

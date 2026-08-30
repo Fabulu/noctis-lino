@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "task": 222,
+  "date": "2026-08-30",
+  "decision": "retained",
+  "files": [
+    {
+      "path": "build/restoring-fsqrt-20260830/accepted/fpsoft.txt",
+      "bytes": 60722,
+      "sha256": "5031845ed5dbc0e7913eca691259873d45f0bfc67f1969a14dbd3c3ae172527a"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/accepted/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/accepted/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/accepted/compiler114m.exe",
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/accepted/i386m.bin",
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/candidate/fpsoft.txt",
+      "bytes": 61264,
+      "sha256": "6b2e209be5b62013276514f8c418cafc92ecb9fd4d9fd6fbdf91453bfebe66d3"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/candidate/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "c4a62f5068262239a8a5665c443a75784fa2472941c9dfdb8fb731f5c8217ca2"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/apply_candidate.py",
+      "bytes": 6691,
+      "sha256": "e63c5adef0612f351edee3e921ad3fa76e13207a751228897c0a91d5ea08d8bc"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/verify_model.py",
+      "bytes": 18344,
+      "sha256": "8df485f7b7830e757367ba5474dfb43d01054ebcd25894dd5a49824978b7077c"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/model.json",
+      "bytes": 1986,
+      "sha256": "f5e4cc20467283f9d19da79dca091472e9543f860f6169f4d4b4393a32da5617"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/semantic-review.json",
+      "bytes": 3033,
+      "sha256": "77a2de74ebef791d1824a28d22bc15829f7a94b31c7fc5cc0f8d43959a6a4530"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/build.json",
+      "bytes": 1102,
+      "sha256": "1ab66bb62412315ab7ff04190265acfa76b8101fcdcc3a6a4a0088d589dd842d"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/verify_production.py",
+      "bytes": 11299,
+      "sha256": "afe66089bbabb342dee45b41c0ed441c75df3fb486babf02e2dc73d9856f397e"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/production-layout.json",
+      "bytes": 1930,
+      "sha256": "ce333ff60ee78b562ca2b801dcf3b71e0657cb1df5edce9f452f7fd0304fa974"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/run_arm.py",
+      "bytes": 3392,
+      "sha256": "2e2e661214756b167479a6fe722995c6696ad5a88b1608276ba469a24ee39ff1"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/capture_fidelity.py",
+      "bytes": 2486,
+      "sha256": "1f6da24aec38aeff3105141d05b70c46ad0d58910b1f1ccd135f02fa5bdc208d"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/compare_fidelity.py",
+      "bytes": 4228,
+      "sha256": "2b32424543bb0fb58548622121a18afdf1e741d1ea97e94fd4c704bf6bfcf6a2"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/fidelity.json",
+      "bytes": 9994,
+      "sha256": "f6240f1382d24aab7c8045c2b55a9a1dbccb54cac8bf3d8204cd23102ccb3040"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/result.json",
+      "bytes": 7022,
+      "sha256": "c0b00c580d56f2040c5d063c822e8b01de117e9b96048b2ba054b81abc382467"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/candidate-a/capsule/report.json",
+      "bytes": 3097,
+      "sha256": "6f519a330d23eebe0dc29b88725f4a38b35ba7321e8b6c5b092edc6cd03a37b9"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/baseline-a/capsule/report.json",
+      "bytes": 3085,
+      "sha256": "a6869360eb744e09eea74509f88c32561a20820861492a122353bbe0e762b67c"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/baseline-b/capsule/report.json",
+      "bytes": 3090,
+      "sha256": "a5d2f4b5a996a56c93fb40480c427b3d5c3bf80dce5a0243f277b6c9c74241b7"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/candidate-b/capsule/report.json",
+      "bytes": 3091,
+      "sha256": "8f99d6cf4005432ab166ee8c03c37e56034fb5c67c77fdb6ba5a409bc3bdbe7a"
+    },
+    {
+      "path": "build/restoring-fsqrt-20260830/sustained-30s/capsule/report.json",
+      "bytes": 2871,
+      "sha256": "050be170b4f074f1bf894564bef174db43cc301ca49c4273a8e04f2aab0a659a"
+    }
+  ],
+  "active": {
+    "work/fp/fpsoft.txt": "6b2e209be5b62013276514f8c418cafc92ecb9fd4d9fd6fbdf91453bfebe66d3",
+    "work/vhgame.exe": "c4a62f5068262239a8a5665c443a75784fa2472941c9dfdb8fb731f5c8217ca2"
+  },
+  "current_files_match_candidate": true
+}
