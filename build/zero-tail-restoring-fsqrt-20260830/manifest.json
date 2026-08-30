@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "task": 228,
+  "date": "2026-08-30",
+  "decision": "rejected-after-contradictory-ordering-b",
+  "files": [
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/accepted/fpsoft.txt",
+      "bytes": 61429,
+      "sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/accepted/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/accepted/compiler114m.exe",
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/accepted/i386m.bin",
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/candidate/fpsoft.txt",
+      "bytes": 62079,
+      "sha256": "da528de24ecc9bb205410a0c41f977726a3bc8edd062235b407a26ca2ee607f3"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/candidate/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "f8fe4281bf27365321da5092280fe8a2a08a33b61cdef14459f8e2c6e64009dc"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/apply_candidate.py",
+      "bytes": 3910,
+      "sha256": "838d177bc9204d71c981acd15917236d6fd88b52a2ef6ae5e959e00a9676cdb8"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/verify_model.py",
+      "bytes": 22699,
+      "sha256": "828f77badbe6e3d39e7bea76a52af0a8dfbb4755f4cb4e1cefa56e726cc3a960"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/model.json",
+      "bytes": 3563,
+      "sha256": "b28c73e90f577eb1e50a502e1a36732b2e0751fb41f1afdc996ce34dddcf69af"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/semantic-review.json",
+      "bytes": 3495,
+      "sha256": "a674ae46e97cd3338635b6515ae23456567be9d9162c803e85821c573e77f93e"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/build.json",
+      "bytes": 552,
+      "sha256": "7c1795ce6c2d78b2c9ab3ab7fe401c54188022cf15e3261fbe8933da428c4c98"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/verify_production.py",
+      "bytes": 27647,
+      "sha256": "9066bbf1d009d5c2e85a66d46128e2e4e8ccad0395a33bf66174025ab86fffc3"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/production-layout.json",
+      "bytes": 3793,
+      "sha256": "163da6751927f960a6ce1137c4bd349da9aa795445237901575bbdb68a936fc9"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/run_arm.py",
+      "bytes": 3416,
+      "sha256": "6cc8467dd7fa0d1262131a3e3777341482ec4114610731c939cf591243491e26"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/finalize.py",
+      "bytes": 15279,
+      "sha256": "54d494b69cd3c57584c6d37d762bdccec5681619f9a040739f9f118ee39dc657"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/result.json",
+      "bytes": 6376,
+      "sha256": "0b3aa97ac0443a4b0231b9eb653980e4415c69f14134213fdb943d9d472715ec"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/candidate-a/capsule/report.json",
+      "bytes": 3105,
+      "sha256": "513b198da122a3fe74431c216d5af61655efb867ebfdf65378f0f9e99fe867e5"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/baseline-a/capsule/report.json",
+      "bytes": 3072,
+      "sha256": "86b5f8da37393a26e4458dce7365ff4a8914458c5c7d0554b5f9f3c14aa5d24c"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/baseline-b/capsule/report.json",
+      "bytes": 3101,
+      "sha256": "ce65e478e124cd9cda396904b3b68e86e950d834d858ee4f199d8fbdcc81ab75"
+    },
+    {
+      "path": "build/zero-tail-restoring-fsqrt-20260830/candidate-b/capsule/report.json",
+      "bytes": 3097,
+      "sha256": "7d3418e705985ad7beb99d3419e76deae815e24c2e48f6a15866a7f012d0b8e0"
+    }
+  ],
+  "active": {
+    "work/fp/fpsoft.txt": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "work/vhgame.exe": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+  },
+  "current_files_match_accepted": true
+}

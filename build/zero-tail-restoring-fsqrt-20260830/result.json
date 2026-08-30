@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "task": 228,
+  "date": "2026-08-30",
+  "decision": "rejected-after-contradictory-ordering-b",
+  "reason": "Ordering A improved both mandatory metrics, but Ordering B reversed presentation throughput while retaining only the cycles improvement. The binding discriminator forbids averaging contradictory orderings, so fidelity and sustained screening were skipped and Task #224 was restored byte-exactly.",
+  "source_boundary": {
+    "implementation": "binary64 zero-tail specialization in the common tracked fpsoft Lino source",
+    "shared_lino_source_changed_experimentally": true,
+    "shared_source": "work/fp/fpsoft.txt",
+    "native_gameplay_or_renderer_code": false,
+    "architecture_specific_lino_fork": false,
+    "raw_target_machine_block": false,
+    "compiler_changed": false,
+    "cpu_pack_changed": false
+  },
+  "candidate": {
+    "description": "process srd3/srd2, cold-transition to 32 known-zero lower pairs, and skip active-buffer shifts after each limb becomes zero",
+    "fpsoft_sha256": "da528de24ecc9bb205410a0c41f977726a3bc8edd062235b407a26ca2ee607f3",
+    "executable_bytes": 645966,
+    "executable_sha256": "f8fe4281bf27365321da5092280fe8a2a08a33b61cdef14459f8e2c6e64009dc"
+  },
+  "accepted_baseline": {
+    "description": "retained Task #224 buffered-limb restoring root",
+    "fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "executable_bytes": 645966,
+    "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+  },
+  "toolchain": {
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7",
+    "build_entry": "lino_build.ps1",
+    "private_inactive_desktop": true,
+    "warnings": 65,
+    "errors": 0
+  },
+  "focused_gates": {
+    "semantic_model": "pass",
+    "adversarial_semantic_review": "pass-after-evidence-hardening",
+    "binary64_pipeline_cases": 92147,
+    "special_dispatch_cases": 24,
+    "minimum_binary64_mantissa_low_zero_bits": 11,
+    "minimum_skipped_buffer_shifts_per_root": 37,
+    "maximum_performed_buffer_shifts_per_root": 27,
+    "integer_root_exact": true,
+    "accepted_private_residual_exact": true,
+    "accepted_p64_root_rounding_exact": true,
+    "p53_binary64_spill_exact": true,
+    "p64_policy_differences_with_identical_p53_spill": 1026,
+    "production_layout": "pass",
+    "root_helper_range": [
+      153329,
+      154441
+    ],
+    "changed_byte_values": 897,
+    "unexpected_changed_bytes": 0,
+    "all_package_bytes_outside_helper_exact": true,
+    "generated_complete_p64_tail_exact": true,
+    "generated_xtof64_call_and_normal_spill_exact": true,
+    "post_return_calibration_direct_entries": 0,
+    "helper_indirect_calls_or_jumps": 0
+  },
+  "discriminator": {
+    "checkpoint": 1344638527,
+    "physical_core_index": 3,
+    "affinity_mask": "0xc0",
+    "priority": "above_normal",
+    "desktop": "private inactive desktop",
+    "requested_measurement_seconds": 5.0,
+    "completed_order": [
+      "candidate-a",
+      "baseline-a",
+      "baseline-b",
+      "candidate-b"
+    ],
+    "profile_origin_counters_in_order": [
+      2354289166,
+      2528279580,
+      2704069459,
+      2863703213
+    ]
+  },
+  "candidate_a": {
+    "presentation_hz": 57.03188879803761,
+    "simulation_hz": 18.806214227309894,
+    "render_ms": 13.693621010818745,
+    "present_ms": 0.8431689729175197,
+    "process_cycles_per_presentation": 40287684.58422939,
+    "missed_deadlines": 82,
+    "presentations": 279,
+    "simulation_ticks": 92,
+    "profile_origin_counter": 2354289166,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "baseline_a": {
+    "presentation_hz": 51.6,
+    "simulation_hz": 18.4,
+    "render_ms": 16.488090994872216,
+    "present_ms": 1.0289449305907108,
+    "process_cycles_per_presentation": 44282944.27906977,
+    "missed_deadlines": 94,
+    "presentations": 258,
+    "simulation_ticks": 92,
+    "profile_origin_counter": 2528279580
+  },
+  "baseline_b": {
+    "presentation_hz": 60.08842443729903,
+    "simulation_hz": 18.488745980707396,
+    "render_ms": 11.550472453680756,
+    "present_ms": 0.731870889742422,
+    "process_cycles_per_presentation": 38118429.21404682,
+    "missed_deadlines": 56,
+    "presentations": 299,
+    "simulation_ticks": 92,
+    "profile_origin_counter": 2704069459
+  },
+  "candidate_b": {
+    "presentation_hz": 59.81717011128776,
+    "simulation_hz": 18.481717011128776,
+    "render_ms": 11.49916998978847,
+    "present_ms": 0.7195693115832453,
+    "process_cycles_per_presentation": 38017847.8372093,
+    "missed_deadlines": 48,
+    "presentations": 301,
+    "simulation_ticks": 93,
+    "profile_origin_counter": 2863703213,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "ordering_a": {
+    "presentation_hz_delta": 5.431888798037612,
+    "cycles_per_presentation_delta": -3995259.694840379,
+    "wins_both_mandatory_metrics": true
+  },
+  "ordering_b": {
+    "presentation_hz_delta": -0.27125432601127386,
+    "cycles_per_presentation_delta": -100581.37683752179,
+    "wins_both_mandatory_metrics": false,
+    "candidate_lost_presentation_hz": true,
+    "candidate_improved_cycles_per_presentation": true
+  },
+  "contradictory_orderings": true,
+  "contradictory_orderings_averaged": false,
+  "fidelity": {
+    "status": "skipped",
+    "evidence_absent": true,
+    "reason": "Fidelity is permitted only after both orderings win"
+  },
+  "sustained_screen": {
+    "status": "skipped",
+    "evidence_absent": true,
+    "reason": "Rejected candidate was not eligible for sustained screening"
+  },
+  "retained_absolute_record": {
+    "presentation_hz": 60.15187849720224,
+    "simulation_hz": 18.585131894484412,
+    "evidence": "build/gui-deferred-demotions-20260829/baseline-a/capsule/report.json",
+    "replaced": false
+  },
+  "restored_production": {
+    "task": 224,
+    "fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "executable_bytes": 645966,
+    "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+    "current_files_match_accepted": true
+  }
+}

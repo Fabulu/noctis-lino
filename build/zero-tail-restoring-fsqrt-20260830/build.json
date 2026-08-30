@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "task": 228,
+  "status": "pass",
+  "private_inactive_desktop": true,
+  "build_entry": "lino_build.ps1",
+  "absolute_build_paths": true,
+  "warnings": 65,
+  "errors": 0,
+  "build_seconds": 11.0,
+  "candidate_fpsoft_sha256": "da528de24ecc9bb205410a0c41f977726a3bc8edd062235b407a26ca2ee607f3",
+  "candidate_executable_bytes": 645966,
+  "candidate_executable_sha256": "f8fe4281bf27365321da5092280fe8a2a08a33b61cdef14459f8e2c6e64009dc",
+  "accepted_executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+}

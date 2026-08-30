@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "task": 228,
+  "status": "pass-after-evidence-hardening",
+  "implementation_semantics": "pass",
+  "review_scope": [
+    "binary64 zero-tail invariant and restoring-state equivalence",
+    "accepted private residual and p64/p53 compatibility",
+    "generated initialization, restoring schedule, p64 tail, and XToF64 boundary",
+    "post-return calibration control-flow claims",
+    "source, compiler, CPU-pack, and executable provenance"
+  ],
+  "independent_review_evidence": {
+    "normal_and_subnormal_cases": 208287,
+    "all_subnormal_normalization_widths": true,
+    "binary64_low_zero_invariant": "pass",
+    "restoring_root_and_terminal_state": "pass",
+    "compatibility_residual_and_public_p53": "pass"
+  },
+  "initial_review": {
+    "status": "fail-evidence-overclaim",
+    "implementation_arithmetic": "appeared correct",
+    "findings": [
+      {
+        "id": "independent-p53-proof",
+        "issue": "The direct model reused the accepted private residual and did not independently spill the mathematical p64 result."
+      },
+      {
+        "id": "generated-tail-coverage",
+        "issue": "Generated initialization and the complete p64/XToF64 tail were not checked despite exactness claims."
+      },
+      {
+        "id": "padding-entry-scope",
+        "issue": "The calibration check excluded direct entries only while describing all control edges."
+      },
+      {
+        "id": "optimization-impossibility-overclaim",
+        "issue": "Two design-impossibility conclusions were emitted as constants rather than scoped implementation facts."
+      }
+    ]
+  },
+  "first_hardening": {
+    "changes": [
+      "Added an independent mathematical-p64-to-p53 spill comparison for every modeled positive finite binary64 input.",
+      "Added contiguous exact generated initialization and complete p64-tail assertions plus the post-root XToF64 call and normal spill sequence.",
+      "Narrowed calibration evidence to no direct entry/no fallthrough and rejected indirect call/jump instructions inside XRootCore.",
+      "Removed unsupported optimization-impossibility claims and retained only source-shaped facts about the measured candidate."
+    ],
+    "re_review": {
+      "status": "fail-one-regression",
+      "finding": "The new p64 compatibility lemma assumed one mismatch direction, but binary64 input 0x3FF28C725373F0DC exhibits the reverse q versus q+1 direction while still spilling identically to p53."
+    }
+  },
+  "final_hardening": {
+    "changes": [
+      "Added binary64 regression 0x3FF28C725373F0DC.",
+      "Made the p64 compatibility assertion direction-neutral: the two policy results differ by one and equal the set {q, q+1}.",
+      "Retained the explicit identical-p53 assertion for every p64-policy mismatch.",
+      "Regenerated model.json and production-layout.json with current verifier hashes while accepted Task #224 production was active."
+    ],
+    "model_cases": 92147,
+    "p64_policy_differences": 1026,
+    "p64_policy_differences_with_identical_p53_spill": 1026
+  },
+  "final_review": {
+    "status": "pass",
+    "remaining_defects_in_re_reviewed_scope": 0,
+    "method": "read-only source/JSON/hash review plus independent reproduction of the reverse p64 case",
+    "writing_verifiers_executed_by_reviewer": false,
+    "writing_verifiers_executed_by_coordinator": true,
+    "verdict": "No remaining material defect."
+  },
+  "protected_paths_inspected_by_reviewer": false,
+  "temporary_paths_inspected_by_reviewer": false
+}
