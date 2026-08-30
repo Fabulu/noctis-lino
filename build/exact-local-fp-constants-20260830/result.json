@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "task": 217,
+  "candidate": "exact raw binary64 words for eleven fixed local-renderer IntToF sites",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "model": {
+    "schema": 1,
+    "task": 217,
+    "status": "pass",
+    "candidate_file_equals_exact_transform": true,
+    "replacement_sites": 11,
+    "fixed_values": [
+      3,
+      5,
+      25,
+      100,
+      250,
+      1000
+    ],
+    "visible_state_cases": 896,
+    "int_to_binary32_to_binary64_words_exact": true,
+    "fi_assignments_retained": true,
+    "fa_words_exact": true,
+    "fs0_preserved": true,
+    "a_through_e_preserved_by_original_wrapper_and_candidate": true,
+    "private_conversion_scratch_unobserved": true,
+    "next_multiply_and_renderer_control_flow_exact": true,
+    "source_changes_confined_to_local_renderer": true,
+    "simulation_constants": [
+      18206,
+      60000
+    ],
+    "source_boundary": "one common tracked shared-Lino closure",
+    "raw_target_machine_blocks_added": false,
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "candidate_source_sha256": "9b7a659facea409838199124ef2843de9de9b557fdf98ad76c9f1fded4f8721d",
+    "fpconv_source_sha256": "bf4e4662ac6697a304acdecf1e7b88c20a115db91b2e3eb99f21739feb6a646a"
+  },
+  "semantic_review": {
+    "schema": 1,
+    "task": 217,
+    "status": "pass",
+    "candidate_source_sha256": "9b7a659facea409838199124ef2843de9de9b557fdf98ad76c9f1fded4f8721d",
+    "review_scope": "eleven fixed positive IntToF calls in the shared-Lino local-system renderer",
+    "source_boundary": "one common tracked shared-Lino closure",
+    "fixed_values": [
+      3,
+      5,
+      25,
+      100,
+      250,
+      1000
+    ],
+    "exactness": {
+      "binary32_values_exact": true,
+      "widened_binary64_words_exact": true,
+      "explicit_fi_assignments_retained": true,
+      "fa_result_exact": true,
+      "fs0_save_restore_equivalent_to_no_touch": true,
+      "a_through_e_wrapper_state_preserved": true,
+      "next_multiply_inputs_and_outputs_exact": true,
+      "renderer_control_flow_exact": true
+    },
+    "private_conversion_scratch": {
+      "declared_private_in_fpconv": true,
+      "referenced_outside_fpconv": false,
+      "read_by_renderer": false,
+      "needed_by_later_conversion_without_reinitialization": false
+    },
+    "internal_flag_state": {
+      "no_control_transfer_before_same_next_fmul": true,
+      "same_fmul_deterministically_overwrites_software_fp_scratch_and_live_flags": true
+    },
+    "raw_target_machine_blocks_added": false,
+    "architecture_specific_lino_added": false,
+    "remaining_mismatches": []
+  },
+  "build": {
+    "schema": 1,
+    "task": 217,
+    "status": "pass",
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "cpu": "i386m",
+    "stage_extension": ".lxe",
+    "warnings": 62,
+    "errors": 0,
+    "elapsed_seconds": 11.6,
+    "candidate_source_sha256": "9b7a659facea409838199124ef2843de9de9b557fdf98ad76c9f1fded4f8721d",
+    "candidate_executable_bytes": 646130,
+    "candidate_executable_sha256": "9030ab6eaa7635d6727f4e91492f266691377f56124866ba146bc261610482a9",
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+  },
+  "abba_order": [
+    "candidate-a",
+    "baseline-a",
+    "baseline-b",
+    "candidate-b"
+  ],
+  "candidate_a": {
+    "presentation_hz": 55.72755417956656,
+    "simulation_hz": 18.988648090815275,
+    "cycles_per_presentation": 41224026.492592596,
+    "render_ms": 15.842902809621249,
+    "missed_deadlines": 171
+  },
+  "baseline_a": {
+    "presentation_hz": 55.90312815338042,
+    "simulation_hz": 18.567103935418768,
+    "cycles_per_presentation": 40954133.981949456,
+    "render_ms": 15.699573277986355,
+    "missed_deadlines": 184
+  },
+  "candidate_a_simulation_gate": "pass",
+  "candidate_a_simulation_margin_hz": 0.7826480908152753,
+  "ordering_a": {
+    "status": "loss",
+    "presentation_gain_hz": -0.17557397381386153,
+    "cycles_per_presentation_removed": -269892.5106431395
+  },
+  "baseline_b": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "candidate_b": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "ordering_b": {
+    "status": "not_reached"
+  },
+  "fidelity": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "sustained_candidate": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "sustained_native_60_hz_status": "still_open",
+  "disposition": "rejected_after_ordering_a_performance_failure",
+  "host_classification": "controlled_depressed_host_evidence",
+  "orderings_averaged": false,
+  "final_arm": "accepted_baseline",
+  "candidate_retained_byte_exact": false,
+  "accepted_restored_byte_exact": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_source_sha256": "9b7a659facea409838199124ef2843de9de9b557fdf98ad76c9f1fded4f8721d",
+  "candidate_executable_sha256": "9030ab6eaa7635d6727f4e91492f266691377f56124866ba146bc261610482a9"
+}

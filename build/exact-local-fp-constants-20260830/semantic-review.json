@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "task": 217,
+  "status": "pass",
+  "candidate_source_sha256": "9b7a659facea409838199124ef2843de9de9b557fdf98ad76c9f1fded4f8721d",
+  "review_scope": "eleven fixed positive IntToF calls in the shared-Lino local-system renderer",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "fixed_values": [3, 5, 25, 100, 250, 1000],
+  "exactness": {
+    "binary32_values_exact": true,
+    "widened_binary64_words_exact": true,
+    "explicit_fi_assignments_retained": true,
+    "fa_result_exact": true,
+    "fs0_save_restore_equivalent_to_no_touch": true,
+    "a_through_e_wrapper_state_preserved": true,
+    "next_multiply_inputs_and_outputs_exact": true,
+    "renderer_control_flow_exact": true
+  },
+  "private_conversion_scratch": {
+    "declared_private_in_fpconv": true,
+    "referenced_outside_fpconv": false,
+    "read_by_renderer": false,
+    "needed_by_later_conversion_without_reinitialization": false
+  },
+  "internal_flag_state": {
+    "no_control_transfer_before_same_next_fmul": true,
+    "same_fmul_deterministically_overwrites_software_fp_scratch_and_live_flags": true
+  },
+  "raw_target_machine_blocks_added": false,
+  "architecture_specific_lino_added": false,
+  "remaining_mismatches": []
+}

@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "task": 217,
+  "status": "pass",
+  "candidate_file_equals_exact_transform": true,
+  "replacement_sites": 11,
+  "fixed_values": [
+    3,
+    5,
+    25,
+    100,
+    250,
+    1000
+  ],
+  "visible_state_cases": 896,
+  "int_to_binary32_to_binary64_words_exact": true,
+  "fi_assignments_retained": true,
+  "fa_words_exact": true,
+  "fs0_preserved": true,
+  "a_through_e_preserved_by_original_wrapper_and_candidate": true,
+  "private_conversion_scratch_unobserved": true,
+  "next_multiply_and_renderer_control_flow_exact": true,
+  "source_changes_confined_to_local_renderer": true,
+  "simulation_constants": [
+    18206,
+    60000
+  ],
+  "source_boundary": "one common tracked shared-Lino closure",
+  "raw_target_machine_blocks_added": false,
+  "compiler_unchanged": true,
+  "cpu_pack_unchanged": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "candidate_source_sha256": "9b7a659facea409838199124ef2843de9de9b557fdf98ad76c9f1fded4f8721d",
+  "fpconv_source_sha256": "bf4e4662ac6697a304acdecf1e7b88c20a115db91b2e3eb99f21739feb6a646a"
+}
