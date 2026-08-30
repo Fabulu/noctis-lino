@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORK = ROOT / "work"
 SANDBOX = ROOT / "tests" / "gen" / "surface-flare-oracle"
 SOURCE = WORK / "vhsurfaceprobe.txt"
+GAME = WORK / "vhgame.txt"
 sys.path.insert(0, str(ROOT / "tests"))
 
 import linoharness as lh  # noqa: E402
@@ -65,6 +66,20 @@ def remove_sandbox() -> None:
     shutil.rmtree(target)
 
 
+def production_replay_tail() -> bytes:
+    """Return the culling replay body supplied by the shipping game root."""
+    source = GAME.read_bytes()
+    start_marker = b'"PG terrain replay culling"'
+    end_marker = b"\t-> PG terrain replay finish;"
+    if source.count(start_marker) != 1:
+        raise RuntimeError("expected one production culling replay entry")
+    start = source.index(start_marker)
+    end = source.find(end_marker, start)
+    if end < 0:
+        raise RuntimeError("production culling replay has no common finish")
+    return source[start:end + len(end_marker)]
+
+
 def stage_source() -> Path:
     remove_sandbox()
     SANDBOX.mkdir(parents=True)
@@ -73,6 +88,10 @@ def stage_source() -> Path:
         destination = SANDBOX / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
+    # pgtex owns the common replay entry while the production game root owns
+    # its culling tail. Link that exact shared-Lino body into this modular probe.
+    with (SANDBOX / "pgtex.txt").open("ab") as output:
+        output.write(b"\n\n" + production_replay_tail() + b"\n")
     main = SANDBOX / SOURCE.name
     shutil.copy2(SOURCE, main)
     return main
