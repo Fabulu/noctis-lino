@@ -66,10 +66,11 @@ NOT GRADED - stated so nobody reads coverage into a PASS
 HOW A CHECK EARNS ITS PLACE
 ===========================
 Both sides are recomputed on every run.  The lino is rebuilt from
-work/pg*.txt into tests/gen/w6a and run with the poll-and-kill runner; the
-oracle is rebuilt from noctis-harness/pg_ref.c with gcc.  Nothing is compared
-against a stored .bin, and in particular nothing is compared against
-work/pg-out.bin, which is an artifact the code under test produced.
+work/pg*.txt plus the exact common-Lino culling-replay tail in work/vhgame.txt
+into tests/gen/w6a and run with the poll-and-kill runner; the oracle is rebuilt
+from noctis-harness/pg_ref.c with gcc.  Nothing is compared against a stored
+.bin, and in particular nothing is compared against work/pg-out.bin, which is
+an artifact the code under test produced.
 
 Every graded check is then BROKEN, in this same run, and required to fail:
 
@@ -182,6 +183,24 @@ def sha_file(path):
         return hashlib.sha256(fh.read()).hexdigest()
 
 
+def production_replay_tail():
+    """Return the culling replay body supplied by the shipping game root."""
+    source = open(os.path.join(WORK, "vhgame.txt"), "rb").read()
+    start_marker = b'"PG terrain replay culling"'
+    end_marker = b"\t-> PG terrain replay finish;"
+    if source.count(start_marker) != 1:
+        raise SystemExit(
+            "test_raster: expected one production culling replay entry"
+        )
+    start = source.index(start_marker)
+    end = source.find(end_marker, start)
+    if end < 0:
+        raise SystemExit(
+            "test_raster: production culling replay has no common finish"
+        )
+    return source[start:end + len(end_marker)]
+
+
 def fresh_sandbox():
     """Copy every input in from source.  Nothing here survives a run."""
     if os.path.isdir(SAND):
@@ -193,6 +212,12 @@ def fresh_sandbox():
         shutil.copy(os.path.join(WORK, "fp", name), os.path.join(SAND, "fp", name))
     shutil.copy(os.path.join(WORK, "pg-corpus.txt"),
                 os.path.join(SAND, "pg-corpus.txt"))
+
+    # pgtex owns the common replay entry and the shipping vhgame root owns its
+    # culling tail.  Link that exact shared-Lino tail into this modular driver;
+    # a stub would let culling replay drift outside the renderer gate.
+    with open(os.path.join(SAND, "pgtex.txt"), "ab") as fh:
+        fh.write(b"\n\n" + production_replay_tail() + b"\n")
 
 
 def build_lino(where, tag):
