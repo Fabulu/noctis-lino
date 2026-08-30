@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "files": {
+    "apply_candidate.py": {
+      "bytes": 10575,
+      "sha256": "6ae55a5f9e3b934044c382b30f3e63ddb29fe7658531c4128b4a2db9c3d5907b"
+    },
+    "verify_model.py": {
+      "bytes": 14196,
+      "sha256": "04a0bf0e829fea1ade7359882fd50e89ae2d20fb87fa06e5340e7420baf84fca"
+    },
+    "model.json": {
+      "bytes": 1650,
+      "sha256": "2731b942edf49ef6d23c748d0ece916ddde39c12e09df5169488260803b372ba"
+    },
+    "semantic-review.json": {
+      "bytes": 1217,
+      "sha256": "29b6a79615f68e6ab9a79964b27dc68e7a7a44747fe1d399268642b81093438f"
+    },
+    "build.json": {
+      "bytes": 664,
+      "sha256": "b2837b6c8121b636b31fc2ccd7795e1de69b03b4934b0f78e61b26485fb2d0bd"
+    },
+    "run_arm.py": {
+      "bytes": 3259,
+      "sha256": "7da8c1c49b64aa23b147ec99c8eedf2384b28f68b90794987d6326b6f09ecba6"
+    },
+    "finalize.py": {
+      "bytes": 6586,
+      "sha256": "c2d96a52d9d2f3e06b43830b7aa120d65132060ceb41640ee1f7969d13878cbd"
+    },
+    "accepted/vhgame.txt": {
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    "accepted/vhgame.exe": {
+      "bytes": 645966,
+      "sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823"
+    },
+    "accepted/compiler114m.exe": {
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    "accepted/i386m.bin": {
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    "candidate/vhgame.txt": {
+      "bytes": 578358,
+      "sha256": "9df0094c40c4e26179d2ff4ce9f17bf6d8015075f986e03d30989c932abcec32"
+    },
+    "candidate/vhgame.exe": {
+      "bytes": 648586,
+      "sha256": "5599ce2b884a2a31617f50d22e6d3f490266516c87e46e6e3497caf5f2aa9eda"
+    },
+    "candidate-a/capsule/report.json": {
+      "bytes": 3085,
+      "sha256": "d34df74454e7b0bc7b7775b5aafb386a05482153f05ceebca0363898896907a3"
+    },
+    "result.json": {
+      "bytes": 5703,
+      "sha256": "5c019499280d3dd79e7af8ee973921b3ab7fa8edd7bed1bcf5578079a9dd9122"
+    }
+  }
+}

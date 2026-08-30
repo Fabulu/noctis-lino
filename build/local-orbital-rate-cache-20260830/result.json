@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "task": 216,
+  "candidate": "local-only cache of the static pre-time VHGND orbital-rate root",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "model": {
+    "schema": 1,
+    "task": 216,
+    "status": "pass",
+    "cases": 3825,
+    "invalidation_cases": 80,
+    "cache_hits_modeled": 3600,
+    "cache_misses_modeled": 3600,
+    "fallbacks_modeled": 450,
+    "candidate_file_equals_exact_transform": true,
+    "body_vector_suffix_statement_exact": true,
+    "cold_static_prefix_statement_and_grouping_exact": true,
+    "dynamic_seconds_suffix_statement_and_grouping_exact": true,
+    "raw_owner_mass_orbit_root_replay_exact": true,
+    "primary_fs0_and_moon_fs0_behavior_exact": true,
+    "fa_fb_fi_fsw0_pgfi_terminal_state_exact": true,
+    "a_through_e_terminal_state_exact": true,
+    "vhgnd_vector_and_orbit_scratch_exact": true,
+    "moon_owner_in_range_uses_exact_cached_body_vector": true,
+    "out_of_range_body_and_owner_fallback_exact": true,
+    "valid_published_last": true,
+    "local_start_and_checkpoint_restore_clear_before_use": true,
+    "only_generated_system_replacement_site_identified": true,
+    "cache_words": 640,
+    "record_words": 8,
+    "records": 80,
+    "highest_used_word": 639,
+    "local_absolute_call_sites_replaced": 6,
+    "non_local_absolute_call_sites_unchanged": 2,
+    "simulation_constants": [
+      18206,
+      60000
+    ],
+    "source_boundary": "one common tracked shared-Lino closure",
+    "raw_target_machine_blocks_added": false,
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "candidate_source_sha256": "9df0094c40c4e26179d2ff4ce9f17bf6d8015075f986e03d30989c932abcec32",
+    "vhground_source_sha256": "6a6f48c7d69500dcb11f0faf71695c89ea860fbd06ecdbd4dc6c02b11a903ba1"
+  },
+  "semantic_review": {
+    "schema": 1,
+    "task": 216,
+    "status": "pass",
+    "candidate_source_sha256": "9df0094c40c4e26179d2ff4ce9f17bf6d8015075f986e03d30989c932abcec32",
+    "review_scope": "local-only cache of the static pre-time VHGND orbital-rate root",
+    "source_boundary": "one common tracked shared-Lino closure",
+    "generated_system_replacement_sites": 1,
+    "cache_invalidation_sites": [
+      "local start before first cached vector call",
+      "checkpoint restore after target-world regeneration and before local-state inspection"
+    ],
+    "record_contract": {
+      "records": 80,
+      "words_per_record": 8,
+      "highest_used_word": 639,
+      "valid_published_last": true,
+      "only_valid_words_cleared": true
+    },
+    "exact_replay": {
+      "cold_static_prefix": true,
+      "live_seconds_suffix": true,
+      "body_vector_suffix": true,
+      "primary_fs0": true,
+      "moon_entry_fs0": true,
+      "a_through_e_terminal_state": true,
+      "fa_fb_fi_fsw0_pgfi_terminal_state": true,
+      "vhgnd_owner_mass_orbit_angle_and_vector_scratch": true,
+      "out_of_range_body_fallback": true,
+      "out_of_range_owner_fallback": true
+    },
+    "raw_target_machine_blocks_added": false,
+    "architecture_specific_lino_added": false,
+    "remaining_mismatches": []
+  },
+  "build": {
+    "schema": 1,
+    "task": 216,
+    "status": "pass",
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "cpu": "i386m",
+    "stage_extension": ".lxe",
+    "warnings": 62,
+    "errors": 0,
+    "elapsed_seconds": 16.1,
+    "candidate_source_sha256": "9df0094c40c4e26179d2ff4ce9f17bf6d8015075f986e03d30989c932abcec32",
+    "candidate_executable_bytes": 648586,
+    "candidate_executable_sha256": "5599ce2b884a2a31617f50d22e6d3f490266516c87e46e6e3497caf5f2aa9eda",
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+  },
+  "abba_order": [
+    "candidate-a",
+    "baseline-a",
+    "baseline-b",
+    "candidate-b"
+  ],
+  "candidate_a": {
+    "presentation_hz": 32.19814241486068,
+    "simulation_hz": 18.163054695562437,
+    "cycles_per_presentation": 69809969.87820514,
+    "render_ms": 29.240459136665613,
+    "missed_deadlines": 156
+  },
+  "candidate_a_simulation_gate": "fail",
+  "candidate_a_simulation_margin_hz": -0.042945304437562726,
+  "baseline_a": {
+    "status": "skipped_after_candidate_a_simulation_failure"
+  },
+  "ordering_a": {
+    "status": "not_reached"
+  },
+  "baseline_b": {
+    "status": "skipped_after_candidate_a_simulation_failure"
+  },
+  "candidate_b": {
+    "status": "skipped_after_candidate_a_simulation_failure"
+  },
+  "ordering_b": {
+    "status": "not_reached"
+  },
+  "fidelity": {
+    "status": "skipped_after_candidate_a_simulation_failure"
+  },
+  "sustained_candidate": {
+    "status": "skipped_after_candidate_a_simulation_failure"
+  },
+  "sustained_native_60_hz_status": "still_open",
+  "disposition": "rejected_after_candidate_a_simulation_failure",
+  "host_classification": "controlled_severely_depressed_host_evidence",
+  "orderings_averaged": false,
+  "final_arm": "accepted_baseline",
+  "candidate_retained_byte_exact": false,
+  "accepted_restored_byte_exact": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_source_sha256": "9df0094c40c4e26179d2ff4ce9f17bf6d8015075f986e03d30989c932abcec32",
+  "candidate_executable_sha256": "5599ce2b884a2a31617f50d22e6d3f490266516c87e46e6e3497caf5f2aa9eda"
+}

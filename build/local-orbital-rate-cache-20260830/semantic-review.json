@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "task": 216,
+  "status": "pass",
+  "candidate_source_sha256": "9df0094c40c4e26179d2ff4ce9f17bf6d8015075f986e03d30989c932abcec32",
+  "review_scope": "local-only cache of the static pre-time VHGND orbital-rate root",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "generated_system_replacement_sites": 1,
+  "cache_invalidation_sites": [
+    "local start before first cached vector call",
+    "checkpoint restore after target-world regeneration and before local-state inspection"
+  ],
+  "record_contract": {
+    "records": 80,
+    "words_per_record": 8,
+    "highest_used_word": 639,
+    "valid_published_last": true,
+    "only_valid_words_cleared": true
+  },
+  "exact_replay": {
+    "cold_static_prefix": true,
+    "live_seconds_suffix": true,
+    "body_vector_suffix": true,
+    "primary_fs0": true,
+    "moon_entry_fs0": true,
+    "a_through_e_terminal_state": true,
+    "fa_fb_fi_fsw0_pgfi_terminal_state": true,
+    "vhgnd_owner_mass_orbit_angle_and_vector_scratch": true,
+    "out_of_range_body_fallback": true,
+    "out_of_range_owner_fallback": true
+  },
+  "raw_target_machine_blocks_added": false,
+  "architecture_specific_lino_added": false,
+  "remaining_mismatches": []
+}

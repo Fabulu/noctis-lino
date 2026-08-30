@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "task": 216,
+  "status": "pass",
+  "private_inactive_desktop": true,
+  "entry_point": "lino_build.ps1",
+  "cpu": "i386m",
+  "stage_extension": ".lxe",
+  "warnings": 62,
+  "errors": 0,
+  "elapsed_seconds": 16.1,
+  "candidate_source_sha256": "9df0094c40c4e26179d2ff4ce9f17bf6d8015075f986e03d30989c932abcec32",
+  "candidate_executable_bytes": 648586,
+  "candidate_executable_sha256": "5599ce2b884a2a31617f50d22e6d3f490266516c87e46e6e3497caf5f2aa9eda",
+  "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+  "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+}
