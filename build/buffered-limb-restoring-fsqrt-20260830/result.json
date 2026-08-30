@@ -1,0 +1,179 @@
+{
+  "schema": 1,
+  "task": 224,
+  "date": "2026-08-30",
+  "decision": "retained-after-dual-ordering-and-fidelity",
+  "reason": "Both independent ABBA orderings improved presentation throughput and cycles per presentation, both candidate arms preserved simulation above 18.206 Hz, and synchronized authoritative fidelity passed. The separate 30-second whole-period screen did not establish sustained 60 Hz, so that project acceptance remains open.",
+  "source_boundary": {
+    "implementation": "one direct active-limb value buffer with three cold dynamic handoffs in the common tracked fpsoft Lino source",
+    "shared_lino_source_changed": true,
+    "shared_source": "work/fp/fpsoft.txt",
+    "native_gameplay_or_renderer_code": false,
+    "architecture_specific_lino_fork": false,
+    "raw_target_machine_block": false,
+    "compiler_changed": false,
+    "cpu_pack_changed": false
+  },
+  "candidate": {
+    "description": "retain 64 restoring decisions while shifting one direct buffered 32-bit radicand limb per pair and loading the next fixed limb only at cold boundaries",
+    "fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "vhgame_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "executable_bytes": 645966,
+    "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+  },
+  "accepted_baseline": {
+    "fpsoft_sha256": "6b2e209be5b62013276514f8c418cafc92ecb9fd4d9fd6fbdf91453bfebe66d3",
+    "vhgame_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "executable_bytes": 645966,
+    "executable_sha256": "c4a62f5068262239a8a5665c443a75784fa2472941c9dfdb8fb731f5c8217ca2"
+  },
+  "toolchain": {
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7",
+    "build_entry": "lino_build.ps1",
+    "private_inactive_desktop": true,
+    "warnings": 64,
+    "errors": 0,
+    "preliminary_relative_path_invocation": {
+      "status": "failed-before-compilation",
+      "error": "file system error: error reading cpu pack",
+      "cause": "relative compiler and environment arguments were resolved from the private runner working directory",
+      "candidate_executable_produced": false,
+      "admitted_to_measurement": false
+    }
+  },
+  "focused_gates": {
+    "semantic_model": "pass",
+    "adversarial_semantic_review": "pass",
+    "generic_normalized_mantissa_cases": 65548,
+    "binary64_pipeline_cases": 92146,
+    "special_dispatch_cases": 24,
+    "public_state_cases": 4096,
+    "accepted_private_residual_exact": true,
+    "accepted_p64_root_rounding_exact": true,
+    "p53_binary64_spill_exact": true,
+    "accepted_restoring_iterations": 64,
+    "candidate_restoring_iterations": 64,
+    "accepted_radix_limb_shifts": 256,
+    "candidate_radix_limb_shifts": 64,
+    "candidate_hot_dynamic_pointer_reads": 0,
+    "candidate_direct_buffer_reads": 64,
+    "candidate_dynamic_limb_handoffs": 3,
+    "production_layout": "pass",
+    "root_helper_range": [
+      153329,
+      154441
+    ],
+    "candidate_body_end": 154441,
+    "accepted_calibration_bytes_consumed": 20,
+    "changed_byte_values": 731,
+    "unexpected_changed_bytes": 0,
+    "all_package_bytes_outside_helper_exact": true,
+    "entry_and_downstream_addresses_exact": true
+  },
+  "discriminator": {
+    "clock_seconds": 1344638527,
+    "physical_core_index": 3,
+    "affinity_mask": "0xc0",
+    "priority": "above_normal",
+    "desktop": "private inactive desktop",
+    "requested_measurement_seconds": 5.0,
+    "completed_order": [
+      "candidate-a",
+      "baseline-a",
+      "baseline-b",
+      "candidate-b"
+    ]
+  },
+  "candidate_a": {
+    "presentation_hz": 54.69703131354209,
+    "simulation_hz": 18.70679137860919,
+    "render_ms": 16.284853001367207,
+    "present_ms": 1.0292867886094248,
+    "process_cycles_per_presentation": 41926568.888475835,
+    "missed_deadlines": 175,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "baseline_a": {
+    "presentation_hz": 53.498779495524815,
+    "simulation_hz": 18.51098454027665,
+    "render_ms": 16.791500618473957,
+    "present_ms": 1.0746562834160083,
+    "process_cycles_per_presentation": 42843247.17490494,
+    "missed_deadlines": 183
+  },
+  "ordering_a": {
+    "presentation_hz_delta": 1.198251818017276,
+    "cycles_per_presentation_delta": -916678.2864291072,
+    "wins_both_mandatory_metrics": true
+  },
+  "baseline_b": {
+    "presentation_hz": 55.24193548387097,
+    "simulation_hz": 18.75,
+    "render_ms": 15.491653979395927,
+    "present_ms": 1.000229141437451,
+    "process_cycles_per_presentation": 41342567.33941606,
+    "missed_deadlines": 147
+  },
+  "candidate_b": {
+    "presentation_hz": 56.59995957145745,
+    "simulation_hz": 18.597129573478878,
+    "render_ms": 14.61919037563903,
+    "present_ms": 0.9015634426697996,
+    "process_cycles_per_presentation": 40547182.532142855,
+    "missed_deadlines": 112,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "ordering_b": {
+    "presentation_hz_delta": 1.3580240875864789,
+    "cycles_per_presentation_delta": -795384.8072732016,
+    "wins_both_mandatory_metrics": true
+  },
+  "contradictory_orderings_averaged": false,
+  "fidelity": {
+    "status": "pass",
+    "authoritative_renderer_products_exact": [
+      "game-sun-out.bin",
+      "game-palette-out.bin",
+      "game-s-background-out.bin",
+      "game-p-surfacemap-out.bin",
+      "game-p-background-out.bin",
+      "game-label-state-out.bin",
+      "game-render-state-out.bin"
+    ],
+    "game_vh_authoritative_state_bytes_0_71_exact": true,
+    "game_vh_host_timing_bytes_72_155_excluded": true,
+    "game_local_exact_except_live_utc_unit_2_bytes_8_11": true,
+    "game_page_exact_outside_live_utc_telemetry_bounds_xy_74_2_92_6": true,
+    "baseline_repeat_control": "pass"
+  },
+  "sustained_screen": {
+    "duration_seconds": 30.0,
+    "presentation_hz": 49.79336088521531,
+    "simulation_hz": 18.29756032528996,
+    "simulation_gate_pass": true,
+    "missed_deadlines": 1012,
+    "presentations": 1494,
+    "maximum_lateness_ms": 39.79539385847797,
+    "render_ms": 12.546715045912771,
+    "present_ms": 6.081586172609143,
+    "process_cycles_per_presentation": 45989303.979250334,
+    "sustained_60_hz_acceptance": false,
+    "classification": "controlled whole-period screen; host/presentation stalls prevented sustained acceptance"
+  },
+  "host_classification": "controlled variable/depressed-host ABBA retention; not an absolute record",
+  "retained_absolute_record": {
+    "presentation_hz": 60.15187849720224,
+    "simulation_hz": 18.585131894484412,
+    "evidence": "build/gui-deferred-demotions-20260829/baseline-a/capsule/report.json",
+    "replaced": false
+  },
+  "retained_production": {
+    "fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "executable_bytes": 645966,
+    "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+    "current_files_match_candidate": true
+  }
+}

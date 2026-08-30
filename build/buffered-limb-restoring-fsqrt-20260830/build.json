@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "task": 224,
+  "status": "pass",
+  "private_inactive_desktop": true,
+  "build_entry": "lino_build.ps1",
+  "absolute_build_paths": true,
+  "preliminary_relative_path_invocation": {
+    "status": "failed-before-compilation",
+    "error": "file system error: error reading cpu pack",
+    "cause": "relative compiler and environment arguments were resolved from the private runner working directory",
+    "candidate_executable_produced": false,
+    "admitted_to_measurement": false
+  },
+  "warnings": 64,
+  "errors": 0,
+  "build_seconds": 9.7,
+  "candidate_fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+  "candidate_executable_bytes": 645966,
+  "candidate_executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+  "accepted_executable_sha256": "c4a62f5068262239a8a5665c443a75784fa2472941c9dfdb8fb731f5c8217ca2"
+}

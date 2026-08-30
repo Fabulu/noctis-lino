@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "task": 224,
+  "date": "2026-08-30",
+  "decision": "retained",
+  "files": [
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/accepted/fpsoft.txt",
+      "bytes": 61264,
+      "sha256": "6b2e209be5b62013276514f8c418cafc92ecb9fd4d9fd6fbdf91453bfebe66d3"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/accepted/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/accepted/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "c4a62f5068262239a8a5665c443a75784fa2472941c9dfdb8fb731f5c8217ca2"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/accepted/compiler114m.exe",
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/accepted/i386m.bin",
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/candidate/fpsoft.txt",
+      "bytes": 61429,
+      "sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/candidate/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/candidate/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/apply_candidate.py",
+      "bytes": 2631,
+      "sha256": "022ed7d6a18d5e0189a924e50a6e1ab1d92dec89160f7b97eac1812a8011bfce"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/verify_model.py",
+      "bytes": 22363,
+      "sha256": "4ec68eff4ea07e1d19bbac89dbc7ddca9fdd16172762ee3f96429fc83298cf64"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/model.json",
+      "bytes": 2513,
+      "sha256": "1f12ab998c0827b4482fb5352bb98c9b7f0a77a9b385611646bd2d757201c8dc"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/semantic-review.json",
+      "bytes": 1783,
+      "sha256": "fe25bb198295fd60bf7a9261a60cf99e6a87bcb926b489e53355ea41b7d1804a"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/build.json",
+      "bytes": 920,
+      "sha256": "8409fa8fdf80fef0c026da2b68548948960eb55dc0f996424df905b9ccbeb802"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/verify_production.py",
+      "bytes": 13668,
+      "sha256": "94aacfaa197737aaf1640028f41c5bd753db3c54b4cbd72674fed4f8f4538bf3"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/production-layout.json",
+      "bytes": 2526,
+      "sha256": "dd68ea2841aa080d70c567257a1ea40c14d8d7adf1016eadc78bf6cb79890a03"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/run_arm.py",
+      "bytes": 3406,
+      "sha256": "d0b5dd0500567d666c11c0e22c1b755a28146dfb5f8e9f45cdabe3c4a207601c"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/capture_fidelity.py",
+      "bytes": 2500,
+      "sha256": "cc1f59c9cc0ca8392e51c57a5778246c827cff3401e6235039fb353790b7481e"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/compare_fidelity.py",
+      "bytes": 4242,
+      "sha256": "8468604ca9aa88589f4077bb9dd1ce11a4a4079dbc3aee988e1488bf8ed906c3"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/fidelity.json",
+      "bytes": 9995,
+      "sha256": "3ba70ad6a7b8a40b5084ddb0622dbef4fdbde88977b25a7a646e98d34d6bd59c"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/run_sustained.py",
+      "bytes": 2668,
+      "sha256": "8918030439ca29325de28249770552c8f968014f5c308db3910a71781b9ea01f"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/finalize.py",
+      "bytes": 14473,
+      "sha256": "3d01e253e629efe0eb9adcf67add454bd9c15c3842785987778d2873f8ed298e"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/result.json",
+      "bytes": 7322,
+      "sha256": "9e4c6663fc34e1e62044c3cb4842aac9520e0b8b01c7f2eaec7cc15da061bf4e"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/candidate-a/capsule/report.json",
+      "bytes": 3109,
+      "sha256": "6653a811e654649b64b9fe7b9259909f674d2b11d1730e5e084bf83188f336c3"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/baseline-a/capsule/report.json",
+      "bytes": 3110,
+      "sha256": "2b041fe4d60f39325e42d308f0447ee5e778baadc92a24f17b2a1d73a8e30cf9"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/baseline-b/capsule/report.json",
+      "bytes": 3096,
+      "sha256": "2e421708a2b2d83f7c18845aab634414e6dd1451b36303661cbded5cc46d3e7a"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/candidate-b/capsule/report.json",
+      "bytes": 3089,
+      "sha256": "21d86ce18770022095d436f2b63cdad93f21ece0bee44c770f3304b71ef2e2d1"
+    },
+    {
+      "path": "build/buffered-limb-restoring-fsqrt-20260830/sustained-30s/capsule/report.json",
+      "bytes": 2888,
+      "sha256": "ed665f6c481ed70bbd240a8c031fbe6a9349bad1c10eea206733b63c723b6325"
+    }
+  ],
+  "active": {
+    "work/fp/fpsoft.txt": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "work/vhgame.exe": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+  },
+  "current_files_match_candidate": true
+}

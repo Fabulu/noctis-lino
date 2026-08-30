@@ -1169,15 +1169,14 @@
 	( E holds each incoming pair; srm3 is assigned from E at the
 	  compatibility boundary before its first read. )
 	[srm0] = 0; [srm1] = 0; [srm2] = 0;
-	( Buffer one radicand limb in direct scratch.  The cold handoff loads
-	  and clears each next fixed limb after sixteen high pairs. )
-	[sqstep] = srd3; A = [srd3]; [sqmh] = A; [srd3] = 0;
-	[sqml] = 16;
+	[sqstep] = 0;
     "XRoot restoring loop"
-	( Consume and shift the directly addressed active-limb buffer. )
-	A = [sqmh]; E = A;
-	A < 2; [sqmh] = A;
-	A = E; A > 30; E = A;
+	( Consume the radicand's high pair and shift it left by two. )
+	A = [srd3]; A > 30; E = A;
+	A = [srd3]; A < 2; B = [srd2]; B > 30; A | B; [srd3] = A;
+	A = [srd2]; A < 2; B = [srd1]; B > 30; A | B; [srd2] = A;
+	A = [srd1]; A < 2; B = [srd0]; B > 30; A | B; [srd1] = A;
+	A = [srd0]; A < 2; [srd0] = A;
 
 	( remainder = remainder*4 + pair )
 	A = [srm2]; A < 2; B = [srm1]; B > 30; A | B; [srm2] = A;
@@ -1228,14 +1227,8 @@
 	? [sqrl] != 0 -> XRoot restoring next;
 	[sqrh]+;
     "XRoot restoring next"
-	[sqml]-;
-	? [sqml] != 0 -> XRoot restoring loop;
-	[sqstep]-;
-	? [sqstep] < srd0 -> XRoot restoring complete;
-	B = [sqstep]; A = [B]; [sqmh] = A;
-	A = 0; [B] = A; [sqml] = 16;
-	-> XRoot restoring loop;
-    "XRoot restoring complete"
+	[sqstep]+;
+	? [sqstep] < 64 -> XRoot restoring loop;
 
 	( Reproduce the accepted residual subtraction's low-limb equality
 	  borrow.  Since the fixed radicand's low word is zero, this case
@@ -1278,7 +1271,8 @@
 	A = [xtmp]; A / 2; A + XBIAS; [XE] = A;
 	[XS] = 0;
 	end;
-	( The buffered handoff consumes the accepted calibration footprint. )
+	( Unreachable footprint calibration: preserve downstream addresses. )
+	A = 0; A = 0; A = 0; A = 0;
 
       ( XChop32 - truncate the live extended X value to a signed qword,
 	then return its low 32 bits.  XChop16 applies the stellar seed site's
