@@ -1,0 +1,325 @@
+{
+  "schema": 1,
+  "task": 235,
+  "clock": 1344638527,
+  "arguments": [
+    "clock=1344638527",
+    "quit",
+    "freeze"
+  ],
+  "runs": {
+    "baseline": {
+      "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+      "checkpoint_sha256": "0a0926a62988c0b553d0e523229c597aa8a7b1bb28c91f6578872d3217e12e70",
+      "products": {
+        "game-vh-out.bin": {
+          "size": 156,
+          "sha256": "0dd21aa2586f3156d5290e4a7f357c5d0b4f4021ecc3b31f982ae66f1930b0a3"
+        },
+        "game-sun-out.bin": {
+          "size": 128,
+          "sha256": "ad4fd343353289cbb9072752be46b0ccc3e1c93d8b7de3581dcf630ce40961f7"
+        },
+        "game-local-out.bin": {
+          "size": 176,
+          "sha256": "efc19297b3271bd64a085e983546e1616772af7065d9b616553d91442ec6adc8"
+        },
+        "game-page-out.bin": {
+          "size": 64000,
+          "sha256": "5d418c79a2002c64820acd9759723db555258f6affd50bbbd9ced5db941c0a0d"
+        },
+        "game-palette-out.bin": {
+          "size": 3072,
+          "sha256": "e80232b4d18d0bb7e794be263ba937626f383f9917d4b8a737ba893a8f752293"
+        },
+        "game-s-background-out.bin": {
+          "size": 64800,
+          "sha256": "3e40b993aca7b280fb7f05a9012c6657f25b23ca8223561816ffa3c5d899415d"
+        },
+        "game-p-surfacemap-out.bin": {
+          "size": 40000,
+          "sha256": "604eb1996bb87751d9fec3a57fec955ad62f3c0e92267dd56bb10af06343712d"
+        },
+        "game-p-background-out.bin": {
+          "size": 65552,
+          "sha256": "090b94faf93d3722e7e3fc5411231f2528af9392c4e6551ecee8204a6818186e"
+        },
+        "game-label-state-out.bin": {
+          "size": 32,
+          "sha256": "19cfb35d739de214fc004e94ac4eb839636c15dca418c591b82e737fbbccf16e"
+        },
+        "game-render-state-out.bin": {
+          "size": 24,
+          "sha256": "e3674666b54b7b2f40665aff1491791ba6d9f76c9fb76a5801d0a313596bcc4c"
+        }
+      }
+    },
+    "baseline_repeat": {
+      "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+      "checkpoint_sha256": "0a0926a62988c0b553d0e523229c597aa8a7b1bb28c91f6578872d3217e12e70",
+      "products": {
+        "game-vh-out.bin": {
+          "size": 156,
+          "sha256": "949f8b2466d8db812588c09b09b7495cdb5df70aa6d24a3e8471d0d261aeccb1"
+        },
+        "game-sun-out.bin": {
+          "size": 128,
+          "sha256": "ad4fd343353289cbb9072752be46b0ccc3e1c93d8b7de3581dcf630ce40961f7"
+        },
+        "game-local-out.bin": {
+          "size": 176,
+          "sha256": "09bec7dc05763d95a38aac205ef81f37d651a253e8c3e4bb73c0c383d1cd44b6"
+        },
+        "game-page-out.bin": {
+          "size": 64000,
+          "sha256": "dca3746cef0d8b69484ac0e47fb939af99095b1147a572240bff1882f9d50dcc"
+        },
+        "game-palette-out.bin": {
+          "size": 3072,
+          "sha256": "e80232b4d18d0bb7e794be263ba937626f383f9917d4b8a737ba893a8f752293"
+        },
+        "game-s-background-out.bin": {
+          "size": 64800,
+          "sha256": "3e40b993aca7b280fb7f05a9012c6657f25b23ca8223561816ffa3c5d899415d"
+        },
+        "game-p-surfacemap-out.bin": {
+          "size": 40000,
+          "sha256": "604eb1996bb87751d9fec3a57fec955ad62f3c0e92267dd56bb10af06343712d"
+        },
+        "game-p-background-out.bin": {
+          "size": 65552,
+          "sha256": "090b94faf93d3722e7e3fc5411231f2528af9392c4e6551ecee8204a6818186e"
+        },
+        "game-label-state-out.bin": {
+          "size": 32,
+          "sha256": "19cfb35d739de214fc004e94ac4eb839636c15dca418c591b82e737fbbccf16e"
+        },
+        "game-render-state-out.bin": {
+          "size": 24,
+          "sha256": "e3674666b54b7b2f40665aff1491791ba6d9f76c9fb76a5801d0a313596bcc4c"
+        }
+      }
+    },
+    "candidate": {
+      "executable_sha256": "70c7fc0a3f97270768eb86ea3ad30d18ffb2811fe07f821aff8ade7d2f2063d4",
+      "checkpoint_sha256": "0a0926a62988c0b553d0e523229c597aa8a7b1bb28c91f6578872d3217e12e70",
+      "products": {
+        "game-vh-out.bin": {
+          "size": 156,
+          "sha256": "3ecf59ff1fcd3ed46a6d099eaafe31220d52be3416ea631b869bfa238795421c"
+        },
+        "game-sun-out.bin": {
+          "size": 128,
+          "sha256": "ad4fd343353289cbb9072752be46b0ccc3e1c93d8b7de3581dcf630ce40961f7"
+        },
+        "game-local-out.bin": {
+          "size": 176,
+          "sha256": "34b8cdc94efc1b89a79d05230ae5e2eb6ace0aac1816bfbdb921f33a6d70eabb"
+        },
+        "game-page-out.bin": {
+          "size": 64000,
+          "sha256": "e3543ab1ca966269ed784147b7cc6221d4276effdb7b5ecad0f1239bb4260a00"
+        },
+        "game-palette-out.bin": {
+          "size": 3072,
+          "sha256": "e80232b4d18d0bb7e794be263ba937626f383f9917d4b8a737ba893a8f752293"
+        },
+        "game-s-background-out.bin": {
+          "size": 64800,
+          "sha256": "3e40b993aca7b280fb7f05a9012c6657f25b23ca8223561816ffa3c5d899415d"
+        },
+        "game-p-surfacemap-out.bin": {
+          "size": 40000,
+          "sha256": "604eb1996bb87751d9fec3a57fec955ad62f3c0e92267dd56bb10af06343712d"
+        },
+        "game-p-background-out.bin": {
+          "size": 65552,
+          "sha256": "090b94faf93d3722e7e3fc5411231f2528af9392c4e6551ecee8204a6818186e"
+        },
+        "game-label-state-out.bin": {
+          "size": 32,
+          "sha256": "19cfb35d739de214fc004e94ac4eb839636c15dca418c591b82e737fbbccf16e"
+        },
+        "game-render-state-out.bin": {
+          "size": 24,
+          "sha256": "e3674666b54b7b2f40665aff1491791ba6d9f76c9fb76a5801d0a313596bcc4c"
+        }
+      }
+    }
+  },
+  "comparisons": {
+    "game-vh-out.bin": {
+      "exact": false,
+      "mismatch_count": 36,
+      "first_mismatch": 72
+    },
+    "game-sun-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-local-out.bin": {
+      "exact": false,
+      "mismatch_count": 2,
+      "first_mismatch": 8
+    },
+    "game-page-out.bin": {
+      "exact": false,
+      "mismatch_count": 8,
+      "first_mismatch": 1046,
+      "mismatch_bounds_xy": [
+        86,
+        3,
+        91,
+        6
+      ]
+    },
+    "game-palette-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-s-background-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-p-surfacemap-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-p-background-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-label-state-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-render-state-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    }
+  },
+  "baseline_reproducibility": {
+    "game-vh-out.bin": {
+      "exact": false,
+      "mismatch_count": 36,
+      "first_mismatch": 72
+    },
+    "game-sun-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-local-out.bin": {
+      "exact": false,
+      "mismatch_count": 2,
+      "first_mismatch": 8
+    },
+    "game-page-out.bin": {
+      "exact": false,
+      "mismatch_count": 13,
+      "first_mismatch": 732,
+      "mismatch_bounds_xy": [
+        86,
+        2,
+        92,
+        6
+      ]
+    },
+    "game-palette-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-s-background-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-p-surfacemap-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-p-background-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-label-state-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    "game-render-state-out.bin": {
+      "exact": true,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    }
+  },
+  "normalized_exact": {
+    "game-vh-out.bin": {
+      "candidate": true,
+      "baseline_repeat": true
+    },
+    "game-sun-out.bin": {
+      "candidate": true,
+      "baseline_repeat": true
+    },
+    "game-local-out.bin": {
+      "candidate": true,
+      "baseline_repeat": true
+    },
+    "game-page-out.bin": {
+      "candidate": true,
+      "baseline_repeat": true
+    },
+    "game-palette-out.bin": {
+      "candidate": true,
+      "baseline_repeat": true
+    },
+    "game-s-background-out.bin": {
+      "candidate": true,
+      "baseline_repeat": true
+    },
+    "game-p-surfacemap-out.bin": {
+      "candidate": true,
+      "baseline_repeat": true
+    },
+    "game-p-background-out.bin": {
+      "candidate": true,
+      "baseline_repeat": true
+    },
+    "game-label-state-out.bin": {
+      "candidate": true,
+      "baseline_repeat": true
+    },
+    "game-render-state-out.bin": {
+      "candidate": true,
+      "baseline_repeat": true
+    }
+  },
+  "fidelity_verdict": {
+    "status": "pass",
+    "authoritative_renderer_products_exact": [
+      "game-sun-out.bin",
+      "game-palette-out.bin",
+      "game-s-background-out.bin",
+      "game-p-surfacemap-out.bin",
+      "game-p-background-out.bin",
+      "game-label-state-out.bin",
+      "game-render-state-out.bin"
+    ],
+    "game_vh_authoritative_state_bytes_0_71_exact": true,
+    "game_vh_host_timing_bytes_72_155_excluded": true,
+    "game_local_exact_except_live_utc_unit_2_bytes_8_11": true,
+    "game_page_exact_outside_live_utc_telemetry_bounds_xy_74_2_92_6": true,
+    "baseline_repeat_control": "pass"
+  }
+}

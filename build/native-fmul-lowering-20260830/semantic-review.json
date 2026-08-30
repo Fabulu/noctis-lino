@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "task": 235,
+  "status": "pass",
+  "review_kind": "one bounded adversarial pre-timing review",
+  "verdict": "pass-for-timing",
+  "material_findings": [],
+  "key_checks": {
+    "finite_special_and_xrej_semantics": "pass",
+    "finite_p64_raw_exponent_0x43fe_spill_overflow": "pass",
+    "exact_122_byte_endpoint": "pass",
+    "complete_island_and_fixed_back_prerequisite_before_mutation": "pass",
+    "two_real_layout_shift_controls": "pass",
+    "three_stage_compiler_fixpoint": "pass",
+    "x64_suppression": "pass",
+    "public_register_and_eflags_boundary": "pass",
+    "x87_entry_depth_stack_status_and_control_word": "pass",
+    "selected_package_confinement": "pass"
+  },
+  "nonblocking_scope_caveats": [
+    {
+      "severity": "info",
+      "topic": "private scratch terminal state",
+      "statement": "The candidate scratch terminal state differs from portable FMul. No concrete selected-package fixed/named observer was identified; 3565 indexed EDI operands remain outside an exhaustive alias proof.",
+      "timing_blocker": false
+    },
+    {
+      "severity": "info",
+      "topic": "indirect transfer scope",
+      "statement": "The sole direct island entry is the unchanged public wrapper and no direct transfer enters the interior; 251 indirect calls and 8 indirect jumps are not exhaustively resolved.",
+      "timing_blocker": false
+    },
+    {
+      "severity": "info",
+      "topic": "architectural x87 sticky status",
+      "statement": "Architectural sticky status is not asserted byte-exact. All 11 selected-package readers overwrite x87 conditions first and discard sticky status.",
+      "timing_blocker": false
+    },
+    {
+      "severity": "info",
+      "topic": "generic runtime patch-site audit",
+      "statement": "Generic complete patch-site validation remains deferred, while the selected package's complete FCW=133F sequence is exact.",
+      "timing_blocker": false
+    }
+  ],
+  "final_review": {
+    "status": "pass",
+    "remaining_material_findings": 0,
+    "timing_permitted": true,
+    "complete_shipping_dependency_closure_audited": false,
+    "scope": "current exact selected i386m candidate package"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "task": 235,
+  "status": "pass",
+  "accepted_fp_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+  "candidate_fp_sha256": "95417cf412787e6f33c773f4f7eb4d5d685f44fceff6b6e21649024b4d8d62dc",
+  "candidate_scalar_sha256": "65c682ca184f6597e010ef75d341434e0dd6dedeb826714915d6aaca8bec3a00",
+  "candidate_scalar_bytes": 122,
+  "candidate_instruction_bytes": 119,
+  "candidate_nop_padding_bytes": 3,
+  "candidate_endpoint": "0x2566A",
+  "source_grounded_proof_lemmas": {
+    "all_finite_binary64_imports_are_exact_in_p64": true,
+    "normalized_subnormal_import_value_identity": true,
+    "xmulcore_and_pc64_fmul_round_same_exact_product_nearest_even": true,
+    "p64_materialized_by_tbyte_store_without_rounding": true,
+    "xtof64_and_qword_store_round_same_p64_value_nearest_even": true,
+    "signed_result_is_operand_sign_xor": true,
+    "finite_product_extended_range_cannot_overflow_or_underflow": true,
+    "therefore_all_finite_binary64_pairs_have_identical_result_bits": true
+  },
+  "all_finite_binary64_pair_equivalence_algebraic": true,
+  "empirical_exhaustion_of_all_finite_pairs_claimed": false,
+  "edge_cases": 9216,
+  "special_cases": 1344,
+  "deterministic_random_finite_cases": 200000,
+  "random_path_counts": {
+    "finite": 152417,
+    "overflow": 24965,
+    "tiny": 22618
+  },
+  "tiny_boundary_vectors": [
+    "below_tie",
+    "exact_tie",
+    "above_tie",
+    "negative_exact_tie"
+  ],
+  "exact_2^-1075_tie_to_zero_increments_xrej": false,
+  "finite_p64_0x43fe_final_p53_overflow_vector": {
+    "left_bits": "5FE6A09E667F3BCC",
+    "right_bits": "5FF6A09E667F3BCD",
+    "result_bits": "7FF0000000000000",
+    "raw_extended_exponent": "43FE",
+    "xrej_delta": 1
+  },
+  "final_spill_overflow_detection_required_and_present": true,
+  "one_xrej_increment_per_rejected_operand": true,
+  "two_rejections_wrap_modulo_2^32": true,
+  "portable_tiny_and_overflow_xrej_policy_exact": true,
+  "signed_zero_policy_exact": true,
+  "fcw": "133F",
+  "precision_control_bits": 3,
+  "rounding_control_bits": 0,
+  "candidate_x87_stack_peak": 1,
+  "candidate_x87_stack_net_change": 0,
+  "candidate_writes_control_word": false,
+  "public_a_through_e_preserved_by_unchanged_wrapper": true,
+  "candidate_branch_targets_are_instruction_boundaries": true,
+  "xrej_fixed_back_prerequisite_bytes": 42,
+  "xrej_fixed_back_prerequisite_distance": 7523,
+  "common_lino_change_is_zero_byte_marker_only": true,
+  "raw_target_machine_block_added_to_shipping_lino": false,
+  "simulation_constants": [
+    18206,
+    60000
+  ]
+}

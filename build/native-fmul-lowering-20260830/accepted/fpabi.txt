@@ -1,0 +1,91 @@
+      ( *** fpabi - the L.in.oleum float register file ***
+
+	This library declares the ABI and nothing else.  Every backend -
+	fpx87, fpsoft, fpnative - is compiled against THIS file and against
+	no other, so a call site never has to know which one is linked.
+
+	WHY THESE ARE "variables" AND NOT "workspace":
+	an ML fragment can only address memory as [edi + disp32] with a
+	STATIC displacement, which is what <dName mtp bytesperunit> gives.
+	Workspace labels are runtime pointers, so operands physically
+	cannot live there.  Everything a fragment touches is here.
+
+	ORDER IS LOAD-BEARING.  fstp qword writes EIGHT BYTES starting at
+	the first unit of a pair, so FA0/FA1 (and FB, FC, FD) must be
+	adjacent and low-half-first.  fpstar slot 0,1 checks this at run
+	time with fld1 before it grades anything: a binary64 1.0 is
+	3FF0000000000000h, so the pair must read 00000000h then 3FF00000h.
+	If the compiler ever reorders declarations that check fails loudly
+	instead of every score below being quietly meaningless.
+
+	THE FOUR DOUBLES.  FA is the accumulator and is ALSO where every
+	chain leaves its result.  FB/FC/FD are operands.  They map onto
+	fpvec.bin's four f64 input slots in this order.
+
+	THE FOUR INTS.  FJ0..FJ3 map onto fpvec.bin's four int32 slots and
+	are what fild/fidiv read.  FI is separate: it is the int RESULT
+	slot, written by fistp and read by IntToF.
+
+	CONTROL WORD NOTE, measured and not documentary: fnstcw reads bit
+	6 back as 1 no matter what was loaded.  Load 103Fh, read 107Fh.
+	So FCWRead masks with 0F3Fh and every comparison must too, or an
+	equality check fails for a reason that has nothing to do with the
+	FPU.
+
+	NAMING NOTE: no symbol here contains a space.  L.in.oleum collapses
+	spaces inside names, so a constant written "FCW EXT" would be the
+	same symbol as a variable written "FCWEXT".                        )
+
+"constants"
+
+	( control words.  RC is bits 11..10, PC is bits 9..8. )
+
+	FCWEXT		= 133Fh;	( PC=64 RC=nearest - the original's )
+	FCWDBL		= 123Fh;	( PC=53 RC=nearest - broken )
+	FCWSGL		= 103Fh;	( PC=24 RC=nearest - broken )
+	FCWEXTCHOP	= 1F3Fh;	( PC=64 RC=chop )
+	FCWMASK		= 0F3Fh;	( bit 6 reads back set - mask it off )
+
+	( FFLG bits )
+
+	FFLGUNORD	= 1;
+	FFLGSTACKBAD	= 2;
+
+"variables"
+
+	( ---- the register file.  DO NOT REORDER. ---- )
+
+	FA0	= 0;		( accumulator double, low half  )
+	FA1	= 0;		( accumulator double, high half )
+	FB0	= 0;
+	FB1	= 0;
+	FC0	= 0;
+	FC1	= 0;
+	FD0	= 0;
+	FD1	= 0;
+
+	FJ0	= 0;		( int32 chain inputs )
+	FJ1	= 0;
+	FJ2	= 0;
+	FJ3	= 0;
+
+	FI	= 0;		( int32 result slot )
+
+	FS0	= 0;		( binary32 scratch - F32Narrow lands here )
+
+	FCW	= 133Fh;	( the word FEnter loads.  Default: original. )
+	FCWSAV	= 0;		( what FEnter found, what FLeave puts back  )
+	FCWTMP	= 0;		( scratch: the chop word FToIntChop builds  )
+	FSW	= 0;		( status word readback )
+	FFLG	= 0;		( sticky flags )
+
+	( ---- spare qword scratch, adjacent pair ---- )
+
+	FT0	= 0;
+	FT1	= 0;
+
+	( Caller precision policy shared by every FP consumer.  The game
+	  leaves this zero; the public NIVGEN driver enables its binary64
+	  expression boundaries only for the duration of one request. )
+
+	nivgenf64 = 0;

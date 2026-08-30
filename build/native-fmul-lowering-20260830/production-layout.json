@@ -1,0 +1,235 @@
+{
+  "schema": 1,
+  "task": 235,
+  "status": "pass",
+  "accepted_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+  "candidate_sha256": "70c7fc0a3f97270768eb86ea3ad30d18ffb2811fe07f821aff8ade7d2f2063d4",
+  "candidate_compiler_sha256": "facfb8b9373c548c569771978606fcd5d5273760ec7b1e2f0b4ee6bcc30d2e78",
+  "executable_bytes": 645966,
+  "header_and_code_boundaries_exact": true,
+  "package_bytes_outside_island_exact": true,
+  "changed_byte_values": 112,
+  "unexpected_changes": 0,
+  "xscalar_mul_start": "0x255f0",
+  "xscalar_mul_end": "0x2566a",
+  "xscalar_sqrt_unchanged_start": "0x2566a",
+  "island_bytes": 122,
+  "accepted_island_instructions": 22,
+  "candidate_island_instructions": 44,
+  "candidate_hardware_fmul": true,
+  "candidate_p64_tbyte_materialization": true,
+  "candidate_p53_qword_spill": true,
+  "candidate_unreachable_nop_bytes": 3,
+  "candidate_x87_stack_peak": 1,
+  "candidate_x87_stack_net_zero": true,
+  "candidate_control_word_writes": 0,
+  "windows_runtime_fcw_133f_sequence_exact": true,
+  "windows_runtime_fcw_133f_sequence_offset": "0x2661",
+  "generated_control_word_operations": 0,
+  "generated_x87_status_readers": 11,
+  "all_status_readers_overwrite_conditions_and_discard_status": true,
+  "candidate_architectural_x87_status_exact": false,
+  "candidate_x87_status_observable_by_selected_package_readers": false,
+  "direct_entries_to_island_start": 1,
+  "direct_entries_to_island_interior": 0,
+  "public_fmul_wrapper": "0x27edd",
+  "public_fmul_wrapper_byte_exact": true,
+  "public_fmul_call_sites": 369,
+  "xscalar_mul_direct_callers": 1,
+  "public_integer_register_save_restore_exact": true,
+  "public_ebp_terminal_state_exact": true,
+  "caller_eflags_successor_states": 2173,
+  "caller_eflags_successor_steps": 2173,
+  "all_direct_fmul_callers_redefine_before_flag_observation": true,
+  "package_direct_function_roots_analyzed": 1355,
+  "sequential_indirect_function_roots_analyzed": [
+    "0x3a751",
+    "0x9505e"
+  ],
+  "all_public_fmul_call_sites_covered_by_x87_depth_analysis": 369,
+  "package_x87_cfg_states": 93939,
+  "package_x87_returns": 1752,
+  "package_x87_peak": 1,
+  "all_direct_fmul_calls_enter_with_empty_x87_stack": true,
+  "all_direct_function_returns_have_empty_x87_stack": true,
+  "xrej_fixed_back_prerequisite_bytes": 42,
+  "xrej_fixed_back_prerequisite_distance": 7523,
+  "xscratch_fixed_references": {
+    "9848": 232,
+    "9852": 229,
+    "9856": 245
+  },
+  "candidate_xscratch_terminal_state_equals_portable": false,
+  "candidate_xscratch_terminal_state_is_private_contract_state": true,
+  "fixed_named_scratch_observer_found": false,
+  "indexed_edi_operands": 3565,
+  "indexed_alias_ranges_exhaustively_proven": false,
+  "materialized_code_label_address_hits": {
+    "xscalar_mul": {
+      "absolute": [],
+      "code_relative": [],
+      "marker_relative": [],
+      "physical_end_relative": []
+    },
+    "xscalar_sqrt": {
+      "absolute": [],
+      "code_relative": [],
+      "marker_relative": [],
+      "physical_end_relative": []
+    },
+    "public_fmul": {
+      "absolute": [],
+      "code_relative": [],
+      "marker_relative": [],
+      "physical_end_relative": []
+    }
+  },
+  "checked_materialized_address_forms_with_hits": 0,
+  "indirect_calls_present": 251,
+  "indirect_jumps_present": 8,
+  "indirect_transfer_targets_exhaustively_resolved": false,
+  "all_finite_binary64_pair_equivalence_algebraic": true,
+  "exact_island_positive_gate": true,
+  "exact_prerequisite_positive_gate": true,
+  "exact_vector_absent_marker_fail_closed": true,
+  "exact_vector_non_i386m_model_fail_closed": true,
+  "exact_island_single_byte_mutations_fail_closed": 122,
+  "exact_prerequisite_single_byte_mutations_fail_closed": 42,
+  "marker_only_accepted_compiler_output_exact": true,
+  "compiler_three_stage_fixpoint": true,
+  "non_i386m_output_comparison_run": true,
+  "non_i386m_cpu": "x64",
+  "non_i386m_outputs_byte_exact": true,
+  "complete_shipping_dependency_closure_audited": false,
+  "lowering_claim_scope": "current exact selected i386m production package",
+  "candidate_memory_operands": [
+    [
+      153072,
+      "lea",
+      "esi, [edi + 0x2620]",
+      [
+        4
+      ]
+    ],
+    [
+      153078,
+      "lea",
+      "edx, [edi + 0x2678]",
+      [
+        4
+      ]
+    ],
+    [
+      153084,
+      "mov",
+      "eax, dword ptr [esi + 4]",
+      [
+        4
+      ]
+    ],
+    [
+      153087,
+      "mov",
+      "ebx, dword ptr [esi + 0xc]",
+      [
+        4
+      ]
+    ],
+    [
+      153114,
+      "fld",
+      "qword ptr [esi]",
+      [
+        8
+      ]
+    ],
+    [
+      153116,
+      "fmul",
+      "qword ptr [esi + 8]",
+      [
+        8
+      ]
+    ],
+    [
+      153119,
+      "fstp",
+      "xword ptr [edx]",
+      [
+        10
+      ]
+    ],
+    [
+      153121,
+      "fld",
+      "xword ptr [edx]",
+      [
+        10
+      ]
+    ],
+    [
+      153123,
+      "fstp",
+      "qword ptr [esi]",
+      [
+        8
+      ]
+    ],
+    [
+      153125,
+      "movzx",
+      "ecx, word ptr [edx + 8]",
+      [
+        2
+      ]
+    ],
+    [
+      153141,
+      "mov",
+      "ecx, dword ptr [esi + 4]",
+      [
+        4
+      ]
+    ],
+    [
+      153154,
+      "inc",
+      "dword ptr [edx + 0x30]",
+      [
+        4
+      ]
+    ],
+    [
+      153158,
+      "inc",
+      "dword ptr [edx + 0x30]",
+      [
+        4
+      ]
+    ],
+    [
+      153173,
+      "inc",
+      "dword ptr [edx + 0x30]",
+      [
+        4
+      ]
+    ],
+    [
+      153185,
+      "mov",
+      "dword ptr [esi], ecx",
+      [
+        4
+      ]
+    ],
+    [
+      153187,
+      "mov",
+      "dword ptr [esi + 4], eax",
+      [
+        4
+      ]
+    ]
+  ]
+}

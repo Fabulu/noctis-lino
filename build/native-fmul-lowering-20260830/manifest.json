@@ -1,0 +1,216 @@
+{
+  "schema": 1,
+  "task": 235,
+  "date": "2026-08-30",
+  "decision": "retained",
+  "files": [
+    {
+      "path": "build/native-fmul-lowering-20260830/accepted/compiler114m.txt",
+      "bytes": 381580,
+      "sha256": "be83e4e9160497af7b3272a5f0245ce813a76927ff3807249dce5c0dd5d00e19"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/accepted/compiler114m.exe",
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/accepted/i386m.bin",
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/accepted/fpsoft.txt",
+      "bytes": 61429,
+      "sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/accepted/fpabi.txt",
+      "bytes": 3223,
+      "sha256": "0c2f2602a82b9619d0bb909098857f804482456c504c2667874046be0598c7fd"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/accepted/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/accepted/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/candidate/compiler114m.txt",
+      "bytes": 384560,
+      "sha256": "c3a185ed4539eff86ea639943e3ea103b9b3065a895ae97bd93de9ff7efb93a0"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/candidate/compiler114m.exe",
+      "bytes": 87760,
+      "sha256": "facfb8b9373c548c569771978606fcd5d5273760ec7b1e2f0b4ee6bcc30d2e78"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/candidate/fpsoft.txt",
+      "bytes": 61460,
+      "sha256": "95417cf412787e6f33c773f4f7eb4d5d685f44fceff6b6e21649024b4d8d62dc"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/candidate/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/candidate/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "70c7fc0a3f97270768eb86ea3ad30d18ffb2811fe07f821aff8ade7d2f2063d4"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/apply_candidate.py",
+      "bytes": 13283,
+      "sha256": "e90772ea4951f11aefb36438ef45e6390869b1f1e339843352f4fb79cb4f0804"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/prepared-source.json",
+      "bytes": 1042,
+      "sha256": "1e2fe6be6fa5675f6c5153a6b79df2178977f293865a8315a732451724951314"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/verify_model.py",
+      "bytes": 16844,
+      "sha256": "0338833dac5e645304edecf834f42f37704f96db75921b26de3810ddc54f9145"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/model.json",
+      "bytes": 2624,
+      "sha256": "7f4620f465427fd0bb3d1e5a8f77478a199550f23101818ee279fcf40934592a"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/build_candidate.py",
+      "bytes": 7742,
+      "sha256": "c2a77828bd83387fc7a7df9317731b397a718961c977fe21584e4a63e2196979"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/build.json",
+      "bytes": 8173,
+      "sha256": "7e13bf862d1bc8d307d1c3505ff840a3b1e3b58df87fda63e7a9f36ef9d5ac32"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/marker-only-i386m/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/accepted-compiler-x64/vhgame.exe",
+      "bytes": 673754,
+      "sha256": "8f79aaa4fbd000aacf2041e6ce51f28c186b06b994474060cce7f3ccaedc900b"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/candidate-compiler-x64/vhgame.exe",
+      "bytes": 673754,
+      "sha256": "8f79aaa4fbd000aacf2041e6ce51f28c186b06b994474060cce7f3ccaedc900b"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/verify_production.py",
+      "bytes": 25367,
+      "sha256": "00f726eba86f1055c61a98555436baa0895298a9fb66957be0f639c76ac13d71"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/production-layout.json",
+      "bytes": 5869,
+      "sha256": "4d97996eba957dbdefe35301922f06959a0fb5d334b4464c9d550ce760002d92"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/verify_fail_closed_build.py",
+      "bytes": 6716,
+      "sha256": "05f6511701be17b3d672a71ab1908d435ff8545f54470ff18f235fbe04ee08ae"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/failclosed-layout-shifts.json",
+      "bytes": 4701,
+      "sha256": "53eaaf57250518f4290f934ef2c8bbc4d9bf075c874e5e22a34c6daa21de33e1"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/runtime-boundary.json",
+      "bytes": 697,
+      "sha256": "8793ad9b874ab7974c4f66ace3a5f362e1e7c215c48eebaa8f0598599382b637"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/semantic-review.json",
+      "bytes": 2171,
+      "sha256": "218638142b1579e14faadfcb9800ede3e7609519f0ffe3ed705cd3adde1ca5b0"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/run_arm.py",
+      "bytes": 5755,
+      "sha256": "666c9f81c3342f65b0d0cf701f412b3c4771ad05b7a91586538ad5c4e6d36ba0"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/timing-decision.json",
+      "bytes": 2697,
+      "sha256": "2ee3948060c11c1c5526eb85eaeded67e68a6e9f8d78534a5277bb9be4c44229"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/capture_fidelity.py",
+      "bytes": 2929,
+      "sha256": "15c89e587cf19acbbba8e0a4d8f3378ff431d53551051b76dfbeec2b443ce587"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/compare_fidelity.py",
+      "bytes": 4250,
+      "sha256": "58008dacd1f64c40883d2e3ea59f2916fe31d46bea24b423b57410357af36dc7"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/fidelity.json",
+      "bytes": 10011,
+      "sha256": "cb66f8e2e437c47bedf725f55577eb772a8564237e778b8e8a68925e20a1dbdd"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/run_sustained.py",
+      "bytes": 3943,
+      "sha256": "1c9f51e076edaeeb9402432bd3b0ea9d4f4521423963355d03590a8eb6358ea7"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/finalize.py",
+      "bytes": 18763,
+      "sha256": "9d41d012f4a02ca0e973023477e9ffedfcf584d7d64d69cec4bb414a85d693dc"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/result.json",
+      "bytes": 8888,
+      "sha256": "0e8cf59f61c4cf982917941d14172c5937ff327b9a06974a97d83eacf48a06dd"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/candidate-a/capsule/report.json",
+      "bytes": 3083,
+      "sha256": "877bf46a3c5e3131846033b8cae4db151a554954a5703d547838a2af45a97402"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/baseline-a/capsule/report.json",
+      "bytes": 3084,
+      "sha256": "fce575390fa03fd6b517a1a949529f9a8b74ba60f39f83cb31cff7deb283a196"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/baseline-b/capsule/report.json",
+      "bytes": 3079,
+      "sha256": "41e2aed6d432ef3b215f258f13df9e6c5b8a792576be53099bc6414e9304bbe1"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/candidate-b/capsule/report.json",
+      "bytes": 3082,
+      "sha256": "f511106fe136b6790bf5b9706568ad0713fa759afb00727ff89f640927c1266e"
+    },
+    {
+      "path": "build/native-fmul-lowering-20260830/sustained-60s/capsule/report.json",
+      "bytes": 2881,
+      "sha256": "9054561d9c6ef657b91cb7bfccb5655b1102278ddfdf5da33d025af5cc11efdf"
+    }
+  ],
+  "active": {
+    "work/fp/fpsoft.txt": "95417cf412787e6f33c773f4f7eb4d5d685f44fceff6b6e21649024b4d8d62dc",
+    "work/vhgame.exe": "70c7fc0a3f97270768eb86ea3ad30d18ffb2811fe07f821aff8ade7d2f2063d4",
+    "main/lib/gen/compiler114m.txt": "c3a185ed4539eff86ea639943e3ea103b9b3065a895ae97bd93de9ff7efb93a0",
+    "main/lib/gen/compiler114m.exe": "facfb8b9373c548c569771978606fcd5d5273760ec7b1e2f0b4ee6bcc30d2e78"
+  },
+  "current_files_match_candidate": true,
+  "sustained_60_hz_acceptance": false
+}

@@ -1123,7 +1123,6 @@
 	=> XMulCore;
 	=> XToF64;
 	end;
-	"XSM exact i386m native fmul"
 
       ( XScalarSqrt - FA <- sqrt(FA), preserving the x87 sequence:
 	  XFromF64 is exact, XRootCore rounds at 64 significand bits, and

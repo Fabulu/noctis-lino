@@ -1167,13 +1167,6 @@
 
 	pp vhgui compose marker = { vhguiexacti386mblockoffsetcompose };
 	pp vhgui fixed2x marker = { vhguiexacti386mblockoffsetfixed2x };
-	pp xsm fmul marker = { xsmexacti386mnativefmul };
-	vector pp xsm fmul prerequisite =
-	  FFh; 87h; A8h; 26h; 00h; 00h; C7h; 87h; 7Ch; 26h; 00h; 00h; 00h; 00h; 00h; 00h; C7h; 87h; 80h; 26h; 00h; 00h; 00h; 00h; 00h; 00h; C7h; 87h; 84h; 26h; 00h; 00h; 00h; 00h; 00h; 00h; BDh; 65h; 6Eh; 6Fh; 64h; C3h;
-	vector pp xsm fmul scalar =
-	  8Bh; 87h; 28h; 26h; 00h; 00h; 89h; 87h; A0h; 26h; 00h; 00h; 8Bh; 87h; 2Ch; 26h; 00h; 00h; 89h; 87h; A4h; 26h; 00h; 00h; E8h; C2h; E1h; FFh; FFh; 8Bh; 87h; 78h; 26h; 00h; 00h; 89h; 87h; 88h; 26h; 00h; 00h; 8Bh; 87h; 7Ch; 26h; 00h; 00h; 89h; 87h; 8Ch; 26h; 00h; 00h; 8Bh; 87h; 80h; 26h; 00h; 00h; 89h; 87h; 90h; 26h; 00h; 00h; 8Bh; 87h; 84h; 26h; 00h; 00h; 89h; 87h; 94h; 26h; 00h; 00h; 8Bh; 87h; 20h; 26h; 00h; 00h; 89h; 87h; A0h; 26h; 00h; 00h; 8Bh; 87h; 24h; 26h; 00h; 00h; 89h; 87h; A4h; 26h; 00h; 00h; E8h; 75h; E1h; FFh; FFh; E8h; 79h; E6h; FFh; FFh; E8h; 82h; F8h; FFh; FFh; BDh; 65h; 6Eh; 6Fh; 64h; C3h;
-	vector pp xsm fmul exact =
-	  8Dh; B7h; 20h; 26h; 00h; 00h; 8Dh; 97h; 78h; 26h; 00h; 00h; 8Bh; 46h; 04h; 8Bh; 5Eh; 0Ch; 89h; C1h; 01h; C9h; 81h; F9h; 00h; 00h; E0h; FFh; 73h; 38h; 89h; D9h; 01h; C9h; 81h; F9h; 00h; 00h; E0h; FFh; 73h; 3Bh; DDh; 06h; DCh; 4Eh; 08h; DBh; 3Ah; DBh; 2Ah; DDh; 1Eh; 0Fh; B7h; 4Ah; 08h; 80h; E5h; 7Fh; 74h; 17h; 66h; 81h; F9h; CCh; 3Bh; 72h; 0Dh; 8Bh; 4Eh; 04h; 01h; C9h; 81h; F9h; 00h; 00h; E0h; FFh; 72h; 03h; FFh; 42h; 30h; C3h; FFh; 42h; 30h; 89h; D9h; 01h; C9h; 81h; F9h; 00h; 00h; E0h; FFh; 72h; 03h; FFh; 42h; 30h; 31h; D8h; C1h; E8h; 1Fh; D1h; C8h; 31h; C9h; 89h; 0Eh; 89h; 46h; 04h; C3h; 90h; 90h; 90h;
 	vector pp vhgui compose scalar =
 	  8Bh; 84h; 8Fh; 00h; 00h; 00h; 00h; 05h; 47h; B8h; 1Dh; 00h;
 	  8Bh; ACh; 87h; 00h; 00h; 00h; 00h; 89h; ACh; 97h; 00h; 00h;
@@ -2704,9 +2697,6 @@
 	pp exact island scalar = 1; (accepted byte vector for marked exact island)
 	pp exact island candidate = 1; (replacement byte vector for marked exact island)
 	pp exact island length = 1; (same-size marked exact island length)
-	pp exact prerequisite scalar = 1; (accepted fixed-back prerequisite vector)
-	pp exact prerequisite length = 1; (zero disables prerequisite gate)
-	pp exact prerequisite distance = 1; (marker to prerequisite start bytes)
 
     (parse operand)
 
@@ -4218,7 +4208,6 @@
 	[target string] = pp vhgui compose marker;
 	=> strcmp;
       ? failed -> examine vhgui fixed2x marker;
-	[pp exact prerequisite length] = 0;
 	[pp exact island scalar] = vector pp vhgui compose scalar;
 	[pp exact island candidate] = vector pp vhgui compose exact;
 	[pp exact island length] = 168;
@@ -4227,23 +4216,10 @@
       "examine vhgui fixed2x marker"
 	[target string] = pp vhgui fixed2x marker;
 	=> strcmp;
-      ? failed -> examine xsm fmul marker;
-	[pp exact prerequisite length] = 0;
+      ? failed -> note prior code label;
 	[pp exact island scalar] = vector pp vhgui fixed2x scalar;
 	[pp exact island candidate] = vector pp vhgui fixed2x exact;
 	[pp exact island length] = 210;
-	=> pp exact marked island;
-	-> note prior code label;
-      "examine xsm fmul marker"
-	[target string] = pp xsm fmul marker;
-	=> strcmp;
-      ? failed -> note prior code label;
-	[pp exact prerequisite scalar] = vector pp xsm fmul prerequisite;
-	[pp exact prerequisite length] = 42;
-	[pp exact prerequisite distance] = 7523;
-	[pp exact island scalar] = vector pp xsm fmul scalar;
-	[pp exact island candidate] = vector pp xsm fmul exact;
-	[pp exact island length] = 122;
 	=> pp exact marked island;
       "note prior code label"
 	[pp prior code label position] = [bpos];
@@ -8929,25 +8905,6 @@
 	[pp pending registers plus 2] = c;
 	[pp pending registers plus 3] = d;
 	[pp pending registers plus 4] = e;
-	a = [pp exact prerequisite length];
-      ? a = 0 -> pp exact marked island local gate;
-	a = [pp exact prerequisite distance];
-      ? [bbss] < a -> pp exact marked island restore;
-	d = [bbss];
-	d - a;
-	[target string] = [pp exact prerequisite scalar];
-	e = [target string];
-	c = [pp exact prerequisite length];
-	[pb stream] = bins;
-      "pp exact marked prerequisite compare"
-	[pb offset] = d;
-	=> get progressive byte;
-	a = [pb bvalue];
-      ? a != [e] -> pp exact marked island restore;
-	d+;
-	e+;
-	c ^ pp exact marked prerequisite compare;
-      "pp exact marked island local gate"
 	a = [bpos];
 	a - [pp prior code label position];
       ? a != [pp exact island length] -> pp exact marked island restore;

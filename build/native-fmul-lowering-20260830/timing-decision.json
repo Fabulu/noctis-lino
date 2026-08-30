@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "task": 235,
+  "status": "pass",
+  "decision": "eligible-for-fidelity",
+  "reason": "Both independent orderings preserved simulation and won both mandatory timing metrics. Authoritative fidelity is now permitted.",
+  "completed_order": [
+    "candidate-a",
+    "baseline-a",
+    "baseline-b",
+    "candidate-b"
+  ],
+  "checkpoint": 1344638527,
+  "requested_measurement_seconds": 5.0,
+  "physical_core_index": 3,
+  "affinity_mask": "0xc0",
+  "priority": "above_normal",
+  "desktop": "private inactive desktop",
+  "candidate_a": {
+    "presentation_hz": 41.59802306425041,
+    "simulation_hz": 18.945634266886326,
+    "render_ms": 22.574325157766054,
+    "present_ms": 1.42001674027247,
+    "process_cycles_per_presentation": 54618652.64851485,
+    "missed_deadlines": 202,
+    "presentations": 202,
+    "simulation_ticks": 92,
+    "profile_origin_counter": 477095268,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "baseline_a": {
+    "presentation_hz": 40.69649726665317,
+    "simulation_hz": 19.032192751569145,
+    "render_ms": 23.01546497088271,
+    "present_ms": 1.4586636091301928,
+    "process_cycles_per_presentation": 55823777.67164179,
+    "missed_deadlines": 201,
+    "presentations": 201,
+    "simulation_ticks": 94,
+    "profile_origin_counter": 910573603
+  },
+  "ordering_a": {
+    "presentation_hz_delta": 0.9015257975972446,
+    "cycles_per_presentation_delta": -1205125.0231269374,
+    "render_ms_delta": -0.4411398131166564,
+    "wins_both_mandatory_metrics": true
+  },
+  "baseline_b": {
+    "presentation_hz": 41.44144144144144,
+    "simulation_hz": 18.81881881881882,
+    "render_ms": 22.44542454534506,
+    "present_ms": 1.5241222048255652,
+    "process_cycles_per_presentation": 54879898.71497585,
+    "missed_deadlines": 207,
+    "presentations": 207,
+    "simulation_ticks": 94,
+    "profile_origin_counter": 1313456898
+  },
+  "candidate_b": {
+    "presentation_hz": 42.4014265900535,
+    "simulation_hz": 18.82306320586487,
+    "render_ms": 22.190915725441652,
+    "present_ms": 1.383397238425509,
+    "process_cycles_per_presentation": 53619531.04672897,
+    "missed_deadlines": 214,
+    "presentations": 214,
+    "simulation_ticks": 95,
+    "profile_origin_counter": 1947373976,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "ordering_b": {
+    "presentation_hz_delta": 0.9599851486120556,
+    "cycles_per_presentation_delta": -1260367.6682468802,
+    "render_ms_delta": -0.2545088199034069,
+    "wins_both_mandatory_metrics": true
+  },
+  "combined_or_averaged_orderings_used": false,
+  "fidelity_permitted": true
+}
