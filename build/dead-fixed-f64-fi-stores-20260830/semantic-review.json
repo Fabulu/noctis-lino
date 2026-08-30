@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "task": 219,
+  "status": "pass",
+  "review_scope": "ten direct fixed-F64 FB operands plus one retained-FI helper site",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "direct_fb_sites": {
+    "count": 10,
+    "fixed_words_exact": true,
+    "fa_reloaded_before_same_fmul": true,
+    "first_fi_observer_preceded_by_fcmp": true,
+    "fcmp_assigns_fi_on_every_exit": true,
+    "observable_state_converges": true
+  },
+  "magnitude_sites": {
+    "count": 2,
+    "f32narrow_preserves_fi": true,
+    "sp_white_first_fi_observer_after_unconditional_fcmp": true
+  },
+  "ring_site": {
+    "count": 1,
+    "fi_assignment_retained": true,
+    "terminal_fi_exact": true,
+    "helper_fa_words_exact": true,
+    "same_next_fmul_inputs": true
+  },
+  "state": {
+    "fb_exact": true,
+    "fa_after_fmul_exact": true,
+    "fi_at_first_observer_exact": true,
+    "fs0_exact": true,
+    "a_through_e_exact": true,
+    "software_fp_scratch_exact_after_fmul": true,
+    "private_conversion_scratch_unobserved": true,
+    "renderer_branches_exact": true
+  },
+  "architecture_specific_lino_added": false,
+  "review_correction_applied": "The model records private CV scratch as unobserved, not overwritten by FMul.",
+  "remaining_observable_mismatches": []
+}

@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "task": 219,
+  "candidate": "remove ten dead fixed-F64 FI/conversion/FA-copy sequences and retain the ring FI store",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "model": {
+    "schema": 1,
+    "task": 219,
+    "status": "pass",
+    "candidate_file_equals_exact_transform": true,
+    "direct_fb_sites": 10,
+    "retained_fi_and_helper_sites": 1,
+    "fixed_values": [
+      3,
+      5,
+      25,
+      100,
+      250,
+      1000
+    ],
+    "visible_state_cases": 1408,
+    "int_to_binary32_to_binary64_words_exact": true,
+    "direct_fb_words_exact": true,
+    "direct_site_fi_stores_proven_dead": true,
+    "direct_site_fa_values_proven_dead_before_same_fmul": true,
+    "first_fi_observer_preceded_by_fcmp": true,
+    "fcmp_all_exits_assign_fi": true,
+    "ring_terminal_fi_store_retained": true,
+    "fs0_preserved": true,
+    "a_through_e_preserved": true,
+    "private_conversion_scratch_unobserved": true,
+    "next_multiply_and_renderer_control_flow_exact": true,
+    "accepted_source_prefix_and_suffix_exact_before_appendix": true,
+    "appendix_after_unreachable_eof_padding": true,
+    "simulation_constants": [
+      18206,
+      60000
+    ],
+    "source_boundary": "one common tracked shared-Lino closure",
+    "raw_target_machine_blocks_added": false,
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "candidate_source_sha256": "2e9ee626a34b2dc2ed90006e184c7a00363a5a3b29d6563dc4853db42f2c0385",
+    "fpconv_source_sha256": "bf4e4662ac6697a304acdecf1e7b88c20a115db91b2e3eb99f21739feb6a646a",
+    "fpx87_source_sha256": "21060049f054523d64518c71ffb6da54caaea2912c3ec834f5d21112d19a6eb3",
+    "spwhite_source_sha256": "ca16e29c6e7f9e8d66bdd9e373af135decca8fecce019fa52f1291c49194dd16"
+  },
+  "semantic_review": {
+    "schema": 1,
+    "task": 219,
+    "status": "pass",
+    "review_scope": "ten direct fixed-F64 FB operands plus one retained-FI helper site",
+    "source_boundary": "one common tracked shared-Lino closure",
+    "direct_fb_sites": {
+      "count": 10,
+      "fixed_words_exact": true,
+      "fa_reloaded_before_same_fmul": true,
+      "first_fi_observer_preceded_by_fcmp": true,
+      "fcmp_assigns_fi_on_every_exit": true,
+      "observable_state_converges": true
+    },
+    "magnitude_sites": {
+      "count": 2,
+      "f32narrow_preserves_fi": true,
+      "sp_white_first_fi_observer_after_unconditional_fcmp": true
+    },
+    "ring_site": {
+      "count": 1,
+      "fi_assignment_retained": true,
+      "terminal_fi_exact": true,
+      "helper_fa_words_exact": true,
+      "same_next_fmul_inputs": true
+    },
+    "state": {
+      "fb_exact": true,
+      "fa_after_fmul_exact": true,
+      "fi_at_first_observer_exact": true,
+      "fs0_exact": true,
+      "a_through_e_exact": true,
+      "software_fp_scratch_exact_after_fmul": true,
+      "private_conversion_scratch_unobserved": true,
+      "renderer_branches_exact": true
+    },
+    "architecture_specific_lino_added": false,
+    "review_correction_applied": "The model records private CV scratch as unobserved, not overwritten by FMul.",
+    "remaining_observable_mismatches": []
+  },
+  "build": {
+    "schema": 1,
+    "task": 219,
+    "status": "pass",
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "cpu": "i386m",
+    "stage_extension": ".lxe",
+    "warnings": 62,
+    "errors": 0,
+    "elapsed_seconds": 9.1,
+    "candidate_source_sha256": "2e9ee626a34b2dc2ed90006e184c7a00363a5a3b29d6563dc4853db42f2c0385",
+    "candidate_executable_bytes": 645802,
+    "candidate_executable_sha256": "faf9eac8ab68b6f18dd0d51920f7fb98446579166ffdd1e7300ab91972402227",
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+  },
+  "production_layout": {
+    "schema": 1,
+    "task": 219,
+    "status": "pass",
+    "accepted_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+    "candidate_sha256": "faf9eac8ab68b6f18dd0d51920f7fb98446579166ffdd1e7300ab91972402227",
+    "accepted_executable_size": 645966,
+    "candidate_executable_size": 645802,
+    "code_start": 102776,
+    "accepted_code_end": 635100,
+    "candidate_code_end": 634936,
+    "code_shrink_bytes": 164,
+    "direct_site_shrink_bytes": 190,
+    "helper_append_bytes": 26,
+    "package_suffix_shift_exact": true,
+    "normalized_preexisting_instructions": 93514,
+    "normalized_instruction_stream_exact": true,
+    "relocated_control_targets": 3592,
+    "control_encoding_changes": 1302,
+    "unexpected_noncontrol_instruction_changes": 0,
+    "direct_fb_sites": 10,
+    "accepted_direct_site_bytes": 39,
+    "candidate_direct_site_bytes": 20,
+    "direct_site_bytes_removed": 19,
+    "external_direct_entries_to_site_starts": 4,
+    "external_direct_entries_to_site_interiors": 0,
+    "ring_fi_store_retained": true,
+    "ring_call_shape_retained": true,
+    "helper_offset": "0x9b01c",
+    "helper_generated_shape_exact": true,
+    "helper_direct_entries": 1,
+    "prior_unreachable_padding_preserved": true,
+    "compiler_alignment_padding_relocated": true,
+    "source_boundary": "shared Lino only"
+  },
+  "required_abba_order": [
+    "candidate-a",
+    "baseline-a",
+    "baseline-b",
+    "candidate-b"
+  ],
+  "performed_arms": [
+    "candidate-a",
+    "baseline-a"
+  ],
+  "candidate_a": {
+    "presentation_hz": 36.50220617729643,
+    "simulation_hz": 18.852787805856398,
+    "cycles_per_presentation": 62162241.472527474,
+    "render_ms": 25.886459502057768,
+    "missed_deadlines": 182
+  },
+  "baseline_a": {
+    "presentation_hz": 38.91977760127085,
+    "simulation_hz": 18.86417791898332,
+    "cycles_per_presentation": 58692867.14285714,
+    "render_ms": 24.271030889011897,
+    "missed_deadlines": 196
+  },
+  "candidate_a_simulation_gate": "pass",
+  "candidate_a_simulation_margin_hz": 0.6467878058563983,
+  "ordering_a": {
+    "status": "loss",
+    "presentation_gain_hz": -2.4175714239744224,
+    "cycles_per_presentation_removed": -3469374.3296703324
+  },
+  "ordering_b": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "fidelity": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "sustained_candidate": {
+    "status": "skipped_after_ordering_a_performance_failure"
+  },
+  "sustained_native_60_hz_status": "still_open",
+  "disposition": "rejected_after_ordering_a_performance_failure",
+  "host_classification": "controlled_depressed_host_evidence",
+  "orderings_averaged": false,
+  "final_arm": "accepted_baseline",
+  "candidate_retained_byte_exact": false,
+  "accepted_restored_byte_exact": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_source_sha256": "2e9ee626a34b2dc2ed90006e184c7a00363a5a3b29d6563dc4853db42f2c0385",
+  "candidate_executable_sha256": "faf9eac8ab68b6f18dd0d51920f7fb98446579166ffdd1e7300ab91972402227"
+}

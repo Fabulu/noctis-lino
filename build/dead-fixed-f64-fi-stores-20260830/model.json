@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "task": 219,
+  "status": "pass",
+  "candidate_file_equals_exact_transform": true,
+  "direct_fb_sites": 10,
+  "retained_fi_and_helper_sites": 1,
+  "fixed_values": [
+    3,
+    5,
+    25,
+    100,
+    250,
+    1000
+  ],
+  "visible_state_cases": 1408,
+  "int_to_binary32_to_binary64_words_exact": true,
+  "direct_fb_words_exact": true,
+  "direct_site_fi_stores_proven_dead": true,
+  "direct_site_fa_values_proven_dead_before_same_fmul": true,
+  "first_fi_observer_preceded_by_fcmp": true,
+  "fcmp_all_exits_assign_fi": true,
+  "ring_terminal_fi_store_retained": true,
+  "fs0_preserved": true,
+  "a_through_e_preserved": true,
+  "private_conversion_scratch_unobserved": true,
+  "next_multiply_and_renderer_control_flow_exact": true,
+  "accepted_source_prefix_and_suffix_exact_before_appendix": true,
+  "appendix_after_unreachable_eof_padding": true,
+  "simulation_constants": [
+    18206,
+    60000
+  ],
+  "source_boundary": "one common tracked shared-Lino closure",
+  "raw_target_machine_blocks_added": false,
+  "compiler_unchanged": true,
+  "cpu_pack_unchanged": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "candidate_source_sha256": "2e9ee626a34b2dc2ed90006e184c7a00363a5a3b29d6563dc4853db42f2c0385",
+  "fpconv_source_sha256": "bf4e4662ac6697a304acdecf1e7b88c20a115db91b2e3eb99f21739feb6a646a",
+  "fpx87_source_sha256": "21060049f054523d64518c71ffb6da54caaea2912c3ec834f5d21112d19a6eb3",
+  "spwhite_source_sha256": "ca16e29c6e7f9e8d66bdd9e373af135decca8fecce019fa52f1291c49194dd16"
+}
