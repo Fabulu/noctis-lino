@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "files": {
+    "apply_candidate.py": {
+      "bytes": 1823,
+      "sha256": "ff55c399cb02cd55bc0382fc8f738724fdae24c6fd44a2b9ee6221e33b425d9d"
+    },
+    "verify_model.py": {
+      "bytes": 13887,
+      "sha256": "00bcb737e918443c9fc1b7fdd783c8ad4a4f595225012def78d8e7a793082630"
+    },
+    "verify_production.py": {
+      "bytes": 8832,
+      "sha256": "19a9aaba63ae5b6a453727251622372454992a9d6fdc0c4b2095077c3f03f96d"
+    },
+    "model.json": {
+      "bytes": 1835,
+      "sha256": "31f86a930ec6995889f895d4be7f75db86e782b8ba3ce9d766a49735c4dad9ca"
+    },
+    "semantic-review.json": {
+      "bytes": 2495,
+      "sha256": "bbe1a4d55d6652201e3273123957bc417f38cd65e7af43bfcf9d23da0d490933"
+    },
+    "build.json": {
+      "bytes": 709,
+      "sha256": "71883f9ed557b6fbbb06f9825aab95d9f55b6a7eaa4b816ee44c9269f2a72e14"
+    },
+    "production-layout.json": {
+      "bytes": 1917,
+      "sha256": "060c9be3208a975db5bda598761d799c59334bcd0351cf3cedbaccb051722bc6"
+    },
+    "run_arm.py": {
+      "bytes": 3256,
+      "sha256": "4e7cbd8a0f7f37acbd65886a9304f8ea75c13539bcf622df52f4c0d06f66dc8e"
+    },
+    "finalize.py": {
+      "bytes": 8894,
+      "sha256": "dcea7dda99240ad95f5925671462ccd357f57cdae91c3f82d17184108920eddd"
+    },
+    "accepted/vhgame.txt": {
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    "accepted/vhgame.exe": {
+      "bytes": 645966,
+      "sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823"
+    },
+    "accepted/compiler114m.exe": {
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    "accepted/i386m.bin": {
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    "candidate/vhgame.txt": {
+      "bytes": 571549,
+      "sha256": "ad8a1a96223f77a9df9073cc8b55073ee04664ca356dd5747ba2e54ce0490172"
+    },
+    "candidate/vhgame.exe": {
+      "bytes": 645966,
+      "sha256": "948343858dfa58d163e0459f56b59c33ff731642af26bb2960a61ddcd6f1d3c1"
+    },
+    "candidate-a/capsule/report.json": {
+      "bytes": 3098,
+      "sha256": "2a29d3845cb2996d134a5685b688fd2b9dfcfb0839477184dce45803e48a15c3"
+    },
+    "baseline-a/capsule/report.json": {
+      "bytes": 3105,
+      "sha256": "94284b21832eb73a977ec2d871f236febf164bebd51153128e6cba54b0c5f602"
+    },
+    "baseline-b/capsule/report.json": {
+      "bytes": 3097,
+      "sha256": "0fd29aa82ab8fc503982babe061fdc8af62b60f5c4bda45ead34ba02836e41aa"
+    },
+    "candidate-b/capsule/report.json": {
+      "bytes": 3100,
+      "sha256": "f2bfa5a07b12b7715470c1e52a8b4c1f1de06a11c5f87c152a4a009b0515bed2"
+    },
+    "result.json": {
+      "bytes": 10227,
+      "sha256": "88e059fd9d725ec359d704eedd6c442d71b571e23bbe223ef05459c59027559b"
+    }
+  }
+}

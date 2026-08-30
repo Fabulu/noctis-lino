@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "task": 220,
+  "status": "pass",
+  "accepted_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_sha256": "948343858dfa58d163e0459f56b59c33ff731642af26bb2960a61ddcd6f1d3c1",
+  "executable_size": 645966,
+  "header_and_code_boundaries_exact": true,
+  "package_bytes_outside_six_islands_exact": true,
+  "changed_byte_values": 330,
+  "replacement_sites": 6,
+  "site_bytes": 68,
+  "site_endpoints_preserved": true,
+  "accepted_site_instructions": 11,
+  "candidate_site_instructions": 10,
+  "generated_instructions_removed": 6,
+  "int_to_f_calls_removed": 6,
+  "portable_fmul_calls_removed": 6,
+  "direct_x87_p64_spill_sequences": 6,
+  "direct_sequence_shape_exact": true,
+  "common_post_product_gate_bytes_exact": true,
+  "external_direct_entries_to_site_starts": 4,
+  "external_direct_entries_to_site_interiors": 0,
+  "unexpected_changes": 0,
+  "sites": [
+    {
+      "offset": "0x7b04a",
+      "value": 250,
+      "accepted_instructions": 11,
+      "candidate_instructions": 10,
+      "bytes": 68
+    },
+    {
+      "offset": "0x7b188",
+      "value": 100,
+      "accepted_instructions": 11,
+      "candidate_instructions": 10,
+      "bytes": 68
+    },
+    {
+      "offset": "0x7b239",
+      "value": 25,
+      "accepted_instructions": 11,
+      "candidate_instructions": 10,
+      "bytes": 68
+    },
+    {
+      "offset": "0x7b695",
+      "value": 250,
+      "accepted_instructions": 11,
+      "candidate_instructions": 10,
+      "bytes": 68
+    },
+    {
+      "offset": "0x7b7c9",
+      "value": 100,
+      "accepted_instructions": 11,
+      "candidate_instructions": 10,
+      "bytes": 68
+    },
+    {
+      "offset": "0x7b875",
+      "value": 25,
+      "accepted_instructions": 11,
+      "candidate_instructions": 10,
+      "bytes": 68
+    }
+  ],
+  "source_boundary": "shared Lino only"
+}

@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "task": 220,
+  "status": "pass",
+  "review_scope": "six ordinary/selected local-render LOD gate multiplies by 25, 100, or 250",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "product_equivalence": {
+    "generated_ray_domain": "positive finite binary64 normals",
+    "zrandom_bounds": [-99, 99],
+    "conservative_ray_bounds": [0.0027270000000000003, 17.94],
+    "fixed_operands": [25, 100, 250],
+    "portable_contract": "XMulCore p64 rounding followed by XToF64 p53 rounding",
+    "direct_contract": "one x87 PC64 multiply followed by a binary64 p53 spill",
+    "products_exact": true,
+    "threshold_branches_exact": true,
+    "validation_kind": "source-grounded algebra plus structurally mirrored proof models",
+    "empirical_cross_host_execution_claimed": false
+  },
+  "gate_state": {
+    "fa_product_and_limit_exact": true,
+    "fb_product_at_comparison_exact": true,
+    "fi_first_observer_preceded_by_same_fcmp": true,
+    "fcmp_assigns_fi_on_every_exit": true,
+    "a_converges_through_a_equals_fi_before_first_observer": true,
+    "b_through_e_exact": true,
+    "fs0_exact": true,
+    "fflg_exact_for_generated_domain": true,
+    "xrej_delta_for_generated_domain": 0,
+    "far_control_exact": true
+  },
+  "register_boundary_proof": {
+    "source_contract": "fpx87 public scalar interface preserves A/B/C/D/E",
+    "accepted_fmul_generated_offset": "0x27edd",
+    "accepted_fmul_generated_shape": [
+      "pushal",
+      "call 0x255f0",
+      "popal",
+      "mov ebp, 0x646f6e65",
+      "ret"
+    ],
+    "accepted_internal_helper_clobbers_restored": true,
+    "candidate_direct_sequence_changes_only_a_before_convergence": true
+  },
+  "unobserved_differences": {
+    "private_cv_scratch": true,
+    "private_x_scratch": true,
+    "hardware_fp_precision_status": true,
+    "shipping_control_observer": false
+  },
+  "selected_and_ordinary_sites_exact": true,
+  "architecture_specific_lino_added": false,
+  "raw_target_machine_blocks_added": false,
+  "review_corrections_applied": [
+    "The lower bound includes the signed two-draw NsZRandom(100) perturbation: min(avg) * (1 - 99/200) * 1.8.",
+    "The randomized product comparison is described as structurally mirrored algebraic proof-model coverage, not empirical cross-host execution.",
+    "The initial D/E objection was retracted after the public wrapper contract and generated pushal/popal FMul boundary proved caller-visible B-E preservation."
+  ],
+  "remaining_observable_mismatches": []
+}

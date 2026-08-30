@@ -1,0 +1,55 @@
+from pathlib import Path
+import hashlib
+
+ROOT = Path("C:/programmieren/linoleum")
+EVIDENCE = ROOT / "build/direct-lod-scalar-mul-20260830"
+SOURCE = ROOT / "work/vhgame.txt"
+ACCEPTED = EVIDENCE / "accepted/vhgame.txt"
+CANDIDATE = EVIDENCE / "candidate/vhgame.txt"
+
+VALUES = (
+    (25, "40390000h", 2),
+    (100, "40590000h", 2),
+    (250, "406F4000h", 2),
+)
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def transform(original):
+    text = original.decode("utf-8")
+    start = text.index('"VHG local render"')
+    end = text.index('"VHG local far pixel"', start)
+    prefix = text[:start]
+    local = text[start:end]
+    suffix = text[end:]
+    for value, high, count in VALUES:
+        old = (
+            f"[FI] = {value}; => IntToF; [FB0] = [FA0]; [FB1] = [FA1];\n"
+            "\t[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; => FMul;")
+        new = (
+            f"[FB0] = 0; [FB1] = {high};\n"
+            "\t[FA0] = [VHGlocalray0]; [FA1] = [VHGlocalray1]; "
+            "A = FB0; [FA0] *: [A];")
+        if "\r\n" in local:
+            old = old.replace("\n", "\r\n")
+            new = new.replace("\n", "\r\n")
+        assert local.count(old) == count, (value, local.count(old), count)
+        local = local.replace(old, new)
+    candidate = (prefix + local + suffix).encode("utf-8")
+    assert candidate != original
+    return candidate
+
+
+if __name__ == "__main__":
+    accepted = ACCEPTED.read_bytes()
+    assert digest(SOURCE) == digest(ACCEPTED)
+    assert digest(ACCEPTED) == (
+        "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25")
+    candidate = transform(accepted)
+    CANDIDATE.write_bytes(candidate)
+    SOURCE.write_bytes(candidate)
+    print(f"accepted_source_sha256={digest(ACCEPTED)}")
+    print(f"candidate_source_sha256={digest(CANDIDATE)}")

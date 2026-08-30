@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "task": 220,
+  "status": "pass",
+  "candidate_file_equals_exact_transform": true,
+  "replacement_sites": 6,
+  "fixed_values": [
+    25,
+    100,
+    250
+  ],
+  "portable_and_direct_product_cases": 197358,
+  "product_validation_kind": "source-grounded structurally mirrored p64/p53 models",
+  "empirical_cross_host_execution_claimed": false,
+  "threshold_branch_cases": 592074,
+  "visible_state_cases": 1536,
+  "p64_then_p53_products_exact": true,
+  "generated_radius_table_entries": 11,
+  "generated_radius_zrandom_bounds": [
+    -99,
+    99
+  ],
+  "generated_ray_lower_bound": 0.0027270000000000003,
+  "generated_ray_upper_bound": 17.94,
+  "generated_products_positive_finite_normal": true,
+  "first_fi_observer_preceded_by_fcmp": true,
+  "fcmp_all_exits_assign_fi": true,
+  "fa_fb_limit_and_branch_state_exact": true,
+  "fs0_and_b_through_e_exact": true,
+  "xrej_delta_for_valid_domain": 0,
+  "private_cv_and_x_scratch_unobserved": true,
+  "hardware_fp_status_unobserved": true,
+  "simulation_constants": [
+    18206,
+    60000
+  ],
+  "source_boundary": "one common tracked shared-Lino closure",
+  "raw_target_machine_blocks_added": false,
+  "compiler_unchanged": true,
+  "cpu_pack_unchanged": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "candidate_source_sha256": "ad8a1a96223f77a9df9073cc8b55073ee04664ca356dd5747ba2e54ce0490172",
+  "pgfp_source_sha256": "e09be20ee70209ebf0042e5386d80152f359b828bba51983ef91e6650c848432",
+  "fpsoft_source_sha256": "5031845ed5dbc0e7913eca691259873d45f0bfc67f1969a14dbd3c3ae172527a",
+  "nstopo_source_sha256": "e44698df8b2d769f2b983c5a139488860fc7337f471628fa6ef2cb6f3955da61",
+  "nsrng_source_sha256": "4fcef46ff8ec73884cb4d2741f66a15eb65fc671bbe3ddc3c5047b1630b5704f"
+}

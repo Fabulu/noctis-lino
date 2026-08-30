@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "task": 220,
+  "candidate": "replace six fixed LOD IntToF plus portable FMul sequences with direct shared-Lino p64-then-p53 scalar multiplies",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "model": {
+    "schema": 1,
+    "task": 220,
+    "status": "pass",
+    "candidate_file_equals_exact_transform": true,
+    "replacement_sites": 6,
+    "fixed_values": [
+      25,
+      100,
+      250
+    ],
+    "portable_and_direct_product_cases": 197358,
+    "product_validation_kind": "source-grounded structurally mirrored p64/p53 models",
+    "empirical_cross_host_execution_claimed": false,
+    "threshold_branch_cases": 592074,
+    "visible_state_cases": 1536,
+    "p64_then_p53_products_exact": true,
+    "generated_radius_table_entries": 11,
+    "generated_radius_zrandom_bounds": [
+      -99,
+      99
+    ],
+    "generated_ray_lower_bound": 0.0027270000000000003,
+    "generated_ray_upper_bound": 17.94,
+    "generated_products_positive_finite_normal": true,
+    "first_fi_observer_preceded_by_fcmp": true,
+    "fcmp_all_exits_assign_fi": true,
+    "fa_fb_limit_and_branch_state_exact": true,
+    "fs0_and_b_through_e_exact": true,
+    "xrej_delta_for_valid_domain": 0,
+    "private_cv_and_x_scratch_unobserved": true,
+    "hardware_fp_status_unobserved": true,
+    "simulation_constants": [
+      18206,
+      60000
+    ],
+    "source_boundary": "one common tracked shared-Lino closure",
+    "raw_target_machine_blocks_added": false,
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "candidate_source_sha256": "ad8a1a96223f77a9df9073cc8b55073ee04664ca356dd5747ba2e54ce0490172",
+    "pgfp_source_sha256": "e09be20ee70209ebf0042e5386d80152f359b828bba51983ef91e6650c848432",
+    "fpsoft_source_sha256": "5031845ed5dbc0e7913eca691259873d45f0bfc67f1969a14dbd3c3ae172527a",
+    "nstopo_source_sha256": "e44698df8b2d769f2b983c5a139488860fc7337f471628fa6ef2cb6f3955da61",
+    "nsrng_source_sha256": "4fcef46ff8ec73884cb4d2741f66a15eb65fc671bbe3ddc3c5047b1630b5704f"
+  },
+  "semantic_review": {
+    "schema": 1,
+    "task": 220,
+    "status": "pass",
+    "review_scope": "six ordinary/selected local-render LOD gate multiplies by 25, 100, or 250",
+    "source_boundary": "one common tracked shared-Lino closure",
+    "product_equivalence": {
+      "generated_ray_domain": "positive finite binary64 normals",
+      "zrandom_bounds": [
+        -99,
+        99
+      ],
+      "conservative_ray_bounds": [
+        0.0027270000000000003,
+        17.94
+      ],
+      "fixed_operands": [
+        25,
+        100,
+        250
+      ],
+      "portable_contract": "XMulCore p64 rounding followed by XToF64 p53 rounding",
+      "direct_contract": "one x87 PC64 multiply followed by a binary64 p53 spill",
+      "products_exact": true,
+      "threshold_branches_exact": true,
+      "validation_kind": "source-grounded algebra plus structurally mirrored proof models",
+      "empirical_cross_host_execution_claimed": false
+    },
+    "gate_state": {
+      "fa_product_and_limit_exact": true,
+      "fb_product_at_comparison_exact": true,
+      "fi_first_observer_preceded_by_same_fcmp": true,
+      "fcmp_assigns_fi_on_every_exit": true,
+      "a_converges_through_a_equals_fi_before_first_observer": true,
+      "b_through_e_exact": true,
+      "fs0_exact": true,
+      "fflg_exact_for_generated_domain": true,
+      "xrej_delta_for_generated_domain": 0,
+      "far_control_exact": true
+    },
+    "register_boundary_proof": {
+      "source_contract": "fpx87 public scalar interface preserves A/B/C/D/E",
+      "accepted_fmul_generated_offset": "0x27edd",
+      "accepted_fmul_generated_shape": [
+        "pushal",
+        "call 0x255f0",
+        "popal",
+        "mov ebp, 0x646f6e65",
+        "ret"
+      ],
+      "accepted_internal_helper_clobbers_restored": true,
+      "candidate_direct_sequence_changes_only_a_before_convergence": true
+    },
+    "unobserved_differences": {
+      "private_cv_scratch": true,
+      "private_x_scratch": true,
+      "hardware_fp_precision_status": true,
+      "shipping_control_observer": false
+    },
+    "selected_and_ordinary_sites_exact": true,
+    "architecture_specific_lino_added": false,
+    "raw_target_machine_blocks_added": false,
+    "review_corrections_applied": [
+      "The lower bound includes the signed two-draw NsZRandom(100) perturbation: min(avg) * (1 - 99/200) * 1.8.",
+      "The randomized product comparison is described as structurally mirrored algebraic proof-model coverage, not empirical cross-host execution.",
+      "The initial D/E objection was retracted after the public wrapper contract and generated pushal/popal FMul boundary proved caller-visible B-E preservation."
+    ],
+    "remaining_observable_mismatches": []
+  },
+  "build": {
+    "schema": 1,
+    "task": 220,
+    "status": "pass",
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "cpu": "i386m",
+    "stage_extension": ".lxe",
+    "warnings": 68,
+    "expected_new_direct_operand_warnings": 6,
+    "errors": 0,
+    "elapsed_seconds": 8.9,
+    "candidate_source_sha256": "ad8a1a96223f77a9df9073cc8b55073ee04664ca356dd5747ba2e54ce0490172",
+    "candidate_executable_bytes": 645966,
+    "candidate_executable_sha256": "948343858dfa58d163e0459f56b59c33ff731642af26bb2960a61ddcd6f1d3c1",
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+  },
+  "production_layout": {
+    "schema": 1,
+    "task": 220,
+    "status": "pass",
+    "accepted_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+    "candidate_sha256": "948343858dfa58d163e0459f56b59c33ff731642af26bb2960a61ddcd6f1d3c1",
+    "executable_size": 645966,
+    "header_and_code_boundaries_exact": true,
+    "package_bytes_outside_six_islands_exact": true,
+    "changed_byte_values": 330,
+    "replacement_sites": 6,
+    "site_bytes": 68,
+    "site_endpoints_preserved": true,
+    "accepted_site_instructions": 11,
+    "candidate_site_instructions": 10,
+    "generated_instructions_removed": 6,
+    "int_to_f_calls_removed": 6,
+    "portable_fmul_calls_removed": 6,
+    "direct_x87_p64_spill_sequences": 6,
+    "direct_sequence_shape_exact": true,
+    "common_post_product_gate_bytes_exact": true,
+    "external_direct_entries_to_site_starts": 4,
+    "external_direct_entries_to_site_interiors": 0,
+    "unexpected_changes": 0,
+    "sites": [
+      {
+        "offset": "0x7b04a",
+        "value": 250,
+        "accepted_instructions": 11,
+        "candidate_instructions": 10,
+        "bytes": 68
+      },
+      {
+        "offset": "0x7b188",
+        "value": 100,
+        "accepted_instructions": 11,
+        "candidate_instructions": 10,
+        "bytes": 68
+      },
+      {
+        "offset": "0x7b239",
+        "value": 25,
+        "accepted_instructions": 11,
+        "candidate_instructions": 10,
+        "bytes": 68
+      },
+      {
+        "offset": "0x7b695",
+        "value": 250,
+        "accepted_instructions": 11,
+        "candidate_instructions": 10,
+        "bytes": 68
+      },
+      {
+        "offset": "0x7b7c9",
+        "value": 100,
+        "accepted_instructions": 11,
+        "candidate_instructions": 10,
+        "bytes": 68
+      },
+      {
+        "offset": "0x7b875",
+        "value": 25,
+        "accepted_instructions": 11,
+        "candidate_instructions": 10,
+        "bytes": 68
+      }
+    ],
+    "source_boundary": "shared Lino only"
+  },
+  "required_abba_order": [
+    "candidate-a",
+    "baseline-a",
+    "baseline-b",
+    "candidate-b"
+  ],
+  "performed_arms": [
+    "candidate-a",
+    "baseline-a",
+    "baseline-b",
+    "candidate-b"
+  ],
+  "candidate_a": {
+    "presentation_hz": 58.47953216374269,
+    "simulation_hz": 18.552127445049404,
+    "cycles_per_presentation": 39077793.69310345,
+    "render_ms": 13.450632605645142,
+    "missed_deadlines": 71
+  },
+  "baseline_a": {
+    "presentation_hz": 53.054662379421224,
+    "simulation_hz": 18.488745980707396,
+    "cycles_per_presentation": 43219063.003787875,
+    "render_ms": 16.770560425945938,
+    "missed_deadlines": 153
+  },
+  "baseline_b": {
+    "presentation_hz": 52.36857885268839,
+    "simulation_hz": 18.58884669198481,
+    "cycles_per_presentation": 43630434.7519084,
+    "render_ms": 17.40065950332507,
+    "missed_deadlines": 197
+  },
+  "candidate_b": {
+    "presentation_hz": 45.73972879983809,
+    "simulation_hz": 18.619712608783647,
+    "cycles_per_presentation": 49567453.82743363,
+    "render_ms": 19.90590871344828,
+    "missed_deadlines": 199
+  },
+  "candidate_a_simulation_gate": "pass",
+  "candidate_a_simulation_margin_hz": 0.3461274450494045,
+  "ordering_a": {
+    "status": "win",
+    "presentation_gain_hz": 5.424869784321466,
+    "cycles_per_presentation_removed": 4141269.3106844276
+  },
+  "ordering_b": {
+    "status": "loss",
+    "presentation_gain_hz": -6.6288500528502965,
+    "cycles_per_presentation_removed": -5937019.075525232
+  },
+  "fidelity": {
+    "status": "skipped_after_contradictory_ordering_b"
+  },
+  "sustained_candidate": {
+    "status": "skipped_after_contradictory_ordering_b"
+  },
+  "sustained_native_60_hz_status": "still_open",
+  "disposition": "rejected_after_contradictory_abba_orderings",
+  "host_classification": "controlled_depressed_host_evidence",
+  "orderings_averaged": false,
+  "final_arm": "accepted_baseline",
+  "candidate_retained_byte_exact": false,
+  "accepted_restored_byte_exact": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_source_sha256": "ad8a1a96223f77a9df9073cc8b55073ee04664ca356dd5747ba2e54ce0490172",
+  "candidate_executable_sha256": "948343858dfa58d163e0459f56b59c33ff731642af26bb2960a61ddcd6f1d3c1"
+}
