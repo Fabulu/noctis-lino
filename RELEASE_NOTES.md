@@ -1567,7 +1567,7 @@ Useful controls:
 
 - The x86_64 Mac package requires Rosetta 2 on Apple Silicon; use the separate
   native arm64 package there when possible.
-- The Mac app is ad-hoc signed, not Developer ID signed or notarized, and does
+- Both Mac apps are ad-hoc signed, not Developer ID signed or notarized, and do
   not enable hardened runtime. First launch can require explicit approval in
   macOS Privacy & Security.
 - The historical Linux runtime's PCM layer remains a stub. The packaged Windows
