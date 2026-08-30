@@ -82,9 +82,13 @@ compile_compiler "$stage/main/linux_compiler.bin" i386 "$stage/bootstrap.log"
 cp "$generated" "$stage/compiler114m-first.bin"
 chmod +x "$stage/compiler114m-first.bin"
 
-compile_compiler "$stage/compiler114m-first.bin" i386m "$stage/fixpoint.log"
-if ! cmp -s "$stage/compiler114m-first.bin" "$generated"; then
-    echo "patched Linux compiler failed its self-hosting fixpoint" >&2
+compile_compiler "$stage/compiler114m-first.bin" i386m "$stage/selfhost-first.log"
+cp "$generated" "$stage/compiler114m-second.bin"
+chmod +x "$stage/compiler114m-second.bin"
+
+compile_compiler "$stage/compiler114m-second.bin" i386m "$stage/fixpoint.log"
+if ! cmp -s "$stage/compiler114m-second.bin" "$generated"; then
+    echo "patched Linux compiler failed its second self-hosting fixpoint" >&2
     exit 1
 fi
 

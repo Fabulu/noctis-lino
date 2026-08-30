@@ -80,6 +80,7 @@ FLOAT_SIGNATURES = {
         "[FA0] +: [FB0];",
         "[FI] =: [FA0];",
         "[FI] = [EWx1]; [FA0] := [FI];",
+        "[FI] =: [FA0];",
         "[FA0] +: [fw plus 22];",
         "~: [FA0]; [fw plus 30] = [FA0]; [fw plus 31] = [FA1];",
         "[FA0] +: [fw plus 18];",
@@ -114,6 +115,21 @@ FLOAT_SIGNATURES = {
         "[FA0] -: [FB0]; ~: [FA0]; => VHGND store narrowed; [VHGNDmushpyf] = [FS0]; -> VHGND greenmush y ready;",
         "[FI] = C; [FB0] := [FI]; [PGFt] = [VHGNDmushxf]; [FS0] = [VHGNDmushxf]; => FLoadF32;",
         "[FA0] -: [FB0]; ~: [FA0]; => VHGND store narrowed; [VHGNDmushpxf] = [FS0]; -> VHGND greenmush x ready;",
+        "[FA0] +: [FB0];",
+        "[FA0] *: [FB0]; [VHGNDleafcullaxz0] = [FA0]; [VHGNDleafcullaxz1] = [FA1];",
+        "[FB0] = [VHGNDleafcullaxz0]; [FB1] = [VHGNDleafcullaxz1]; [FA0] +: [FB0];",
+        "[FB0] = [VHGNDleafcullmush0]; [FB1] = [VHGNDleafcullmush1]; [FA0] *: [FB0];",
+        "[FB0] = [VHGNDleafcullpad0]; [FB1] = [VHGNDleafcullpad1]; [FA0] +: [FB0];",
+        "[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHGNDleafcullwork0]; [FA1] = [VHGNDleafcullwork1]; [FA0] +: [FB0];",
+        "[FB0] = [FA0]; [FB1] = [FA1]; [FA0] = [VHGNDleafcullwork0]; [FA1] = [VHGNDleafcullwork1]; [FA0] +: [FB0];",
+        "[FB0] = [VHGNDleafcullpad0]; [FB1] = [VHGNDleafcullpad1]; [FA0] +: [FB0];",
+        "[FB0] = [VHGNDleafcullaxz0]; [FB1] = [VHGNDleafcullaxz1]; [FA0] *: [FB0];",
+        "[FB0] = [VHGNDleafcullsupport0]; [FB1] = [VHGNDleafcullsupport1]; [FA0] +: [FB0];",
+        "[FB0] = [fw plus 80]; [FB1] = [fw plus 81]; [FA0] +: [FB0];",
+        "[FB0] = [VHGNDleafcullpad0]; [FB1] = [VHGNDleafcullpad1]; [FA0] +: [FB0];",
+        "[FB0] = [VHGNDleafcullaxz0]; [FB1] = [VHGNDleafcullaxz1]; [FA0] *: [FB0];",
+        "[FB0] = [VHGNDleafcullpad0]; [FB1] = [VHGNDleafcullpad1]; [FA0] +: [FB0];",
+        "[FB0] = [fw plus 80]; [FB1] = [fw plus 81]; [FA0] +: [FB0];",
         "[FS0] = [VHGNDtreerad]; => FLoadF32; [FA0] *: [FB0];",
         "[FS0] = [PGFu]; => FLoadF32; [FA0] +: [FB0];",
         "~: [FA0]; => FStoreF32;",
@@ -141,8 +157,8 @@ FLOAT_SIGNATURES = {
 # the complete exact schedule into this policy file.
 FLOAT_SIGNATURE_HASHES = {
     "work/pgproj.txt": (
-        169,
-        "f2ebe7895f7edac99d67f1d9d0977737217bf0608dd663b005ec6c3e60ef120b",
+        218,
+        "888ca798e3e6564da536111c2a1ab7f6f5f4a07c5b37124211b64e80fbcb1347",
     ),
 }
 

@@ -147,6 +147,10 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("mprotect(pCode, pCodeMapBytes, PROT_READ | PROT_EXEC)", source)
         self.assertIn("publish_runtime_pointers();", source)
         self.assertIn('#include "../linoleum_aarch64/fp64_helper.h"', source)
+        self.assertLess(
+            source.index('#include "../linoleum_aarch64/fp64_helper.h"'),
+            source.index('#include "rtm.h"'),
+        )
         self.assertIn("typedef uint64_t (*float_binary_proc_t)", source)
         self.assertIn("apply_binary64(left_bits, right_bits, operation)", source)
         for declaration in (

@@ -27,8 +27,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "rtm.h"
 #include "../linoleum_aarch64/fp64_helper.h"
+#include "rtm.h"
 
 #ifndef MAP_ANONYMOUS
 #define MAP_ANONYMOUS MAP_ANON

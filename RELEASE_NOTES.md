@@ -1,5 +1,40 @@
 # Noctis IV L.in.oleum port -- Windows and macOS prerelease
 
+## Beta 25
+
+Beta 25 publishes the completed native-performance pass while keeping Noctis IV
+in shared, portable L.in.oleum source. Windows x86, macOS x86_64, and macOS arm64
+all compile the same tracked `work/vhgame.txt` dependency closure; there is no
+C/C++ gameplay or renderer replacement, target-specific Lino source fork, or raw
+machine-code block in that shipping closure.
+
+The planetside renderer now reuses exact terrain, foliage, and object work instead
+of recomputing it across hot paths. Retained changes include exact terrain-command
+replay, cached depth and square lookups, deterministic tree geometry, static-object
+and leaf culling, tighter terrain addressing and loop forms, and selected i386m
+compiler lowerings beneath the shared source boundary. Floating-point behavior,
+indexed output, simulation order, and the historical 18.206-Hz simulation contract
+remain protected by focused models, byte comparisons, private-desktop captures,
+and fail-closed compiler checks.
+
+The best healthy five-second production sample reached **60.15187849720224 Hz**
+with **18.585131894484412-Hz** simulation. The retained 60-second sample reached
+**59.800276745077774 Hz** with **18.255172298818-Hz** simulation. It still lost
+about 12 presentation periods and recorded 22.385 ms maximum lateness, so this
+release does **not** claim sustained hitch-free 60-Hz presentation. The complete
+accepted and rejected measurement history is published in `FPS_MEASUREMENTS.md`.
+The final exact-quotient experiment was rejected at its first simulation gate and
+is not in production; the retained compiler and game are the previously accepted
+exact-multiply checkpoint.
+
+Release validation refreshes the reviewed shared-Lino floating-point inventory,
+repairs the native Apple-Silicon runtime's C11 boolean include boundary, and keeps
+the tag-driven nine-asset publication gate. Each Windows, Intel/Rosetta Mac, and
+native Apple-Silicon archive is accompanied by its SHA-256 checksum and provenance
+record. Both Mac apps remain ad-hoc signed rather than Developer ID signed or
+notarized, so first launch may require approval under System Settings, Privacy &
+Security.
+
 ## Beta 24
 
 Beta 24 adds the first native Apple-Silicon Noctis IV package. Download

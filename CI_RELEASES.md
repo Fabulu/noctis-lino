@@ -4,9 +4,10 @@
 
 Beta 21 was the first release whose Windows executable was compiled from tagged
 Lino source on a GitHub-hosted runner. Beta 22 added the public macOS x86_64
-Finder application. Beta 24 adds the separately compiled native Apple-Silicon
-application. Its tagged graph publishes nine generated assets only after all
-three platform packages pass:
+Finder application, and Beta 24 added the separately compiled native
+Apple-Silicon application. Beta 25 publishes the shared-Lino performance
+checkpoint through the same three-platform boundary. Its tagged graph publishes
+nine generated assets only after all three platform packages pass:
 
 ```text
 Noctis-IV-windows-x86.zip
@@ -29,8 +30,10 @@ expected by the historical runtime. It then:
 
 1. compiles `main/lib/gen/compiler114m.txt` with the protected compiler and
    protected i386 CPU pack;
-2. uses the generated compiler and target CPU pack to rebuild itself;
-3. requires a byte-identical self-hosting fixpoint; and
+2. uses that generated compiler and the target i386m CPU pack for the first
+   self-host generation;
+3. uses the first i386m generation for a second i386m self-host generation and
+   requires those last two outputs to be byte-identical; and
 4. uses that fixpoint compiler to build the production target.
 
 The compatibility boundary and 32-bit glibc/X11 dependencies belong only to the
@@ -205,8 +208,8 @@ confirm that it identifies ad-hoc macOS signing and the lack of notarization,
 then create the next annotated beta tag:
 
 ```sh
-git tag -a v0.1.0-beta.24 -m "Noctis IV Lino beta 24"
-git push origin v0.1.0-beta.24
+git tag -a v0.1.0-beta.25 -m "Noctis IV Lino beta 25"
+git push origin v0.1.0-beta.25
 ```
 
 The tag launches all three complete build graphs and publishes only after all

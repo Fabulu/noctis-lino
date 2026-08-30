@@ -113,7 +113,7 @@ TESTS = [
     ("test_surface_flare_oracle.py", "rebuilt ten-case surface-flare probe equals six concatenated Borland pages, three real positive ray/distance pages, and the exact lunar no-beam boundary"),
     ("test_release_notes.py", "tagged GitHub releases contain only their own RELEASE_NOTES section"),
     ("test_fp_transgrade.py", "independent transcendental grading preserves signed zero and the one-ULP boundary"),
-    ("test_native_closure.py", "all shipping targets share the canonical tracked Lino source closure, which contains zero target blocks and retains the exact reviewed 37-operation float inventory"),
+    ("test_native_closure.py", "all shipping targets share the canonical tracked Lino source closure, which contains zero target blocks and retains the exact reviewed 324-operation float inventory"),
     ("test_fp_runtime_boundary.py", "generated Windows PEs and Linux/macOS runtimes install exact FCWEXT below the portable Lino boundary while protected runtime inputs remain upstream-exact"),
     ("test_aarch64_runtime.py", "checked full-width AArch64 ABI, W^X mappings, relocation, image validation, and hosted QEMU execution"),
     ("test_macos_aarch64_runtime.py", "native arm64 Mach-O geometry, Darwin ABI, code-signature suffix, and W^X policy"),

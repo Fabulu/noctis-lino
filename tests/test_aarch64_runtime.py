@@ -2648,6 +2648,7 @@ class StaticContractTests(unittest.TestCase):
         readme = README.read_text(encoding="utf-8")
         workflow = WORKFLOW.read_text(encoding="utf-8")
         run_all = RUN_ALL.read_text(encoding="utf-8")
+        compiler_build = COMPILER_BUILD_SCRIPT.read_text(encoding="utf-8")
         self.assertIn("-static -no-pie", build)
         self.assertIn("-Wl,-z,noexecstack", build)
         self.assertIn("-lm", build)
@@ -2659,6 +2660,22 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("libc6-dev-arm64-cross qemu-user", workflow)
         self.assertIn("libc6:i386 libx11-6:i386", workflow)
         self.assertIn("build/build_compiler114m_linux.sh", workflow)
+        self.assertIn(
+            'compile_compiler "$stage/compiler114m-first.bin" i386m',
+            compiler_build,
+        )
+        self.assertIn(
+            'compile_compiler "$stage/compiler114m-second.bin" i386m',
+            compiler_build,
+        )
+        self.assertIn(
+            'cmp -s "$stage/compiler114m-second.bin" "$generated"',
+            compiler_build,
+        )
+        self.assertNotIn(
+            'cmp -s "$stage/compiler114m-first.bin" "$generated"',
+            compiler_build,
+        )
         self.assertIn("tools/pack_lino_sys.py", workflow)
         self.assertIn("test_aarch64_runtime.py --require-execution -v", workflow)
         self.assertEqual(run_all.count('(\"test_aarch64_runtime.py\",'), 1)
