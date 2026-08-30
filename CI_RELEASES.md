@@ -197,6 +197,22 @@ bytes with SHA-256
 `afa87dae1b4444b1ed4abd3160f3b0f46206540b1fa975f0c9dc604a4abeed47`; its
 finalized game also passed the independent exact-signature-suffix validator.
 
+Beta 25 completed the nine-asset public download audit at immutable commit
+`70516af7f5d06ea45b3d4f36a75084b9f7a19942`. Tagged run 33329557511 and release
+379374071 completed on 2026-08-30. A new empty-directory download matched all
+nine GitHub asset digests, all three adjacent checksums, exact safe ZIP
+inventories, every internal manifest, the i386 PE32 and thin x86_64/arm64 Mach-O
+shapes, bundle identities, deployment targets, and all three provenance records.
+The audit also verified every macOS CodeDirectory code-slot hash, ad-hoc/no-
+hardened-runtime flags, CodeResources SHA-1/SHA-256 maps and nested-game cdhash requirements,
+exact-final-suffix signature/`__LINKEDIT` geometry, the x86_64 appended-Lino
+payload hash, the arm64 finalizer contract, and one shared committed Lino source
+plus byte-identical game data across the three archives. The archive SHA-256
+values are `838c615c7c941bfe953be97221d4367d2d01a39265cdbd34f1d7ecc5f78e52f5`
+(Windows x86), `1772dac9e18f1fbafb004c739073dc543eb84961f684bf30f1917024f8115b5b`
+(macOS x86_64), and `9981a693b45035375d20a7904e7744d9eb0f1d48f396af9cb52264d5b531abfb`
+(macOS arm64).
+
 GitHub's own Actions/release-asset digest is additional evidence, not a
 replacement for the adjacent checksums and internal manifests.
 
