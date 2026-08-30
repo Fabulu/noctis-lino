@@ -40,6 +40,7 @@ ASSETS = (
 )
 VK_ESCAPE = 0x1B
 VK_5 = 0x35
+VK_R = 0x52
 VK_W = 0x57
 
 PROFILE_FIELDS = (
@@ -270,6 +271,87 @@ def tap_key(process: PrivateDesktopProcess, handle: int, key: int,
     return injected
 
 
+def finish_game_shutdown(
+        process: PrivateDesktopProcess, stage: Path, timeout: float = 10.0,
+) -> bool:
+    """Wait for application shutdown, without calling host linger a clean exit.
+
+    The historical GUI host remains resident after the Lino programme has left
+    iGUI.  A fresh terminal profile, both settled checkpoint copies, and removal
+    of the private-desktop window prove that the application's quit/save path
+    completed.  The context manager may then terminate the lingering host.  The
+    return value records whether the host happened to exit naturally as well.
+    """
+    profile_path = stage / "game-profile-out.bin"
+    checkpoint_paths = (stage / "CURRENT.LIN", stage / "CURRENT.BAK")
+    if profile_path.exists():
+        raise RuntimeError("terminal profile exists before shutdown request")
+    checkpoint_mtimes = tuple(path.stat().st_mtime_ns for path in checkpoint_paths)
+    deadline = time.monotonic() + timeout
+    next_escape = 0.0
+    stable_signature: tuple[int, ...] | None = None
+    stable_count = 0
+
+    while time.monotonic() < deadline:
+        return_code = process.poll()
+        if return_code not in (None, 0):
+            raise RuntimeError(f"game host exited with code {return_code}")
+
+        now = time.monotonic()
+        if now >= next_escape and not profile_path.exists() and return_code is None:
+            current_handle = process.main_window_handle()
+            if current_handle is not None:
+                tap_key(process, current_handle, VK_ESCAPE, 0.20)
+            next_escape = now + 3.0
+
+        try:
+            profile_state = profile_path.stat()
+            checkpoint_states = tuple(path.stat() for path in checkpoint_paths)
+        except FileNotFoundError:
+            stable_signature = None
+            stable_count = 0
+            time.sleep(0.05)
+            continue
+
+        if (
+            profile_state.st_size != PROFILE_UNITS * 4
+            or any(state.st_size != 268 for state in checkpoint_states)
+            or any(state.st_mtime_ns <= previous
+                   for state, previous in zip(checkpoint_states, checkpoint_mtimes))
+            or process.main_window_handle() is not None
+        ):
+            stable_signature = None
+            stable_count = 0
+            time.sleep(0.05)
+            continue
+
+        profile_data = profile_path.read_bytes()
+        checkpoints = tuple(path.read_bytes() for path in checkpoint_paths)
+        signature = (
+            profile_state.st_size,
+            profile_state.st_mtime_ns,
+            *(value for state in checkpoint_states
+              for value in (state.st_size, state.st_mtime_ns)),
+        )
+        if (
+            len(profile_data) == PROFILE_UNITS * 4
+            and checkpoints[0] == checkpoints[1]
+            and signature == stable_signature
+        ):
+            stable_count += 1
+        else:
+            stable_signature = signature
+            stable_count = 1
+        if stable_count >= 3:
+            decode_profile(profile_data)
+            return process.poll() == 0
+        time.sleep(0.10)
+
+    raise TimeoutError(
+        "game did not complete terminal profile, checkpoint save, and window teardown"
+    )
+
+
 def derived_metrics(profile: dict[str, int], _injected_counter: int | None,
                     process_cycles: int | None = None
                     ) -> dict[str, float | int | bool | None]:
@@ -365,12 +447,7 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
         if remaining > 0:
             time.sleep(remaining)
         process_cycles = process.process_cycle_count() - cycle_start
-        tap_key(process, handle, VK_ESCAPE, 1.0)
-        return_code = process.wait(10.0)
-        if return_code is None:
-            raise TimeoutError("game did not exit cleanly after Escape")
-        if return_code != 0:
-            raise RuntimeError(f"game exited with code {return_code}")
+        host_exited_naturally = finish_game_shutdown(process, stage)
 
     profile_path = stage / "game-profile-out.bin"
     if not profile_path.is_file():
@@ -401,6 +478,10 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
         "window_rectangle": rectangle,
         "startup_seconds": ready - started,
         "requested_measurement_seconds": duration,
+        "shutdown": {
+            "application_completed": True,
+            "host_exited_naturally": host_exited_naturally,
+        },
         "injected_counter": injected_counter,
         "profile": profile,
         "metrics": derived_metrics(profile, injected_counter, process_cycles),

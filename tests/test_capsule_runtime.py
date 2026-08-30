@@ -15,10 +15,9 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from profile_noctis_desktop import (  # noqa: E402
     CLOCK_SECONDS,
-    VK_ESCAPE,
+    finish_game_shutdown,
     scenario_checkpoint,
     stage_scenario,
-    tap_key,
     wait_for_ready,
 )
 from windows_hidden_process import PrivateDesktopProcess  # noqa: E402
@@ -143,20 +142,6 @@ def wait_for_trace(
     raise TimeoutError(f"capsule trace did not reach the ship within {timeout:.0f}s")
 
 
-def exit_cleanly(process: PrivateDesktopProcess, handle: int) -> None:
-    for _attempt in range(3):
-        if process.poll() is not None:
-            break
-        tap_key(process, handle, VK_ESCAPE, 0.20)
-        if process.wait(3.0) is not None:
-            break
-    return_code = process.poll()
-    if return_code is None:
-        raise TimeoutError("game did not exit cleanly after three Escape presses")
-    if return_code != 0:
-        raise RuntimeError(f"game exited with code {return_code}")
-
-
 def page_difference_count(left: bytes, right: bytes) -> int:
     return sum(a != b for a, b in zip(left, right))
 
@@ -178,12 +163,12 @@ def run_return() -> tuple[list[CapsuleRecord], list[bytes]]:
     with PrivateDesktopProcess(
         executable,
         stage,
-        (f"clock={CLOCK_SECONDS}", "capture", "capsuletrace"),
+        (f"clock={CLOCK_SECONDS}", "capture", "capsuletrace", "profile"),
     ) as process:
         handle, _rectangle = wait_for_ready(process, stage, CAPTURE_TIMEOUT)
         process.post_char(handle, "r")
         records, pages = wait_for_trace(process, stage)
-        exit_cleanly(process, handle)
+        finish_game_shutdown(process, stage)
     return records, pages
 
 

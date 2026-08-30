@@ -19,6 +19,7 @@ from profile_noctis_desktop import (  # noqa: E402
     CLOCK_SECONDS,
     VK_ESCAPE,
     VK_R,
+    finish_game_shutdown,
     scenario_checkpoint,
     stage_scenario,
     tap_key,
@@ -176,21 +177,6 @@ def open_body_action(process: PrivateDesktopProcess, handle: int) -> None:
     post_char(process, handle, "7")
 
 
-def exit_cleanly(process: PrivateDesktopProcess, handle: int) -> None:
-    for _attempt in range(3):
-        if process.poll() is not None:
-            break
-        tap_key(process, handle, VK_ESCAPE, 0.20)
-        return_code = process.wait(3.0)
-        if return_code is not None:
-            break
-    return_code = process.poll()
-    if return_code is None:
-        raise TimeoutError("game did not exit cleanly after three Escape presses")
-    if return_code != 0:
-        raise RuntimeError(f"game exited with code {return_code}")
-
-
 def page_differences(first: bytes, second: bytes) -> list[tuple[int, int]]:
     if len(first) != 64000 or len(second) != 64000:
         raise ValueError("page comparisons require two complete 64,000-byte pages")
@@ -223,7 +209,7 @@ def exercise_assignment_and_removal() -> bytes:
     with PrivateDesktopProcess(
         staged_executable,
         stage,
-        (f"clock={CLOCK_SECONDS}", "capture", "freeze"),
+        (f"clock={CLOCK_SECONDS}", "capture", "freeze", "profile"),
     ) as process:
         handle, _rectangle = wait_for_ready(process, stage, CAPTURE_TIMEOUT)
         capture_mtime, _opening_page = wait_for_capture(process, stage)
@@ -401,7 +387,7 @@ def exercise_assignment_and_removal() -> bytes:
             and removed[12:] == assigned[12:],
             "player-local removal replaces only the eight identity bytes with Removed:",
         )
-        exit_cleanly(process, handle)
+        finish_game_shutdown(process, stage)
     return assigned[4:]
 
 
@@ -413,7 +399,7 @@ def exercise_body_assignment_and_removal() -> None:
     with PrivateDesktopProcess(
         staged_executable,
         stage,
-        (f"clock={CLOCK_SECONDS}", "capture", "freeze"),
+        (f"clock={CLOCK_SECONDS}", "capture", "freeze", "profile"),
     ) as process:
         handle, _rectangle = wait_for_ready(process, stage, CAPTURE_TIMEOUT)
         wait_for_capture(process, stage)
@@ -455,7 +441,7 @@ def exercise_body_assignment_and_removal() -> None:
             and removed[12:] == assigned[12:],
             "player-local body removal replaces only the eight identity bytes",
         )
-        exit_cleanly(process, handle)
+        finish_game_shutdown(process, stage)
 
 
 def exercise_cancel_and_cap() -> None:
@@ -465,7 +451,7 @@ def exercise_cancel_and_cap() -> None:
     with PrivateDesktopProcess(
         staged_executable,
         stage,
-        (f"clock={CLOCK_SECONDS}", "capture", "freeze"),
+        (f"clock={CLOCK_SECONDS}", "capture", "freeze", "profile"),
     ) as process:
         handle, _rectangle = wait_for_ready(process, stage, CAPTURE_TIMEOUT)
         capture_mtime, _opening_page = wait_for_capture(process, stage)
@@ -556,7 +542,7 @@ def exercise_cancel_and_cap() -> None:
             name == b"ABCDEFGHIJKLMNOPQRST" and suffix[:2] == b" S",
             "the direct editor consumes but does not store characters beyond its 20-byte cap",
         )
-        exit_cleanly(process, handle)
+        finish_game_shutdown(process, stage)
 
 
 def exercise_case_insensitive_duplicate(record: bytes) -> None:
@@ -569,7 +555,7 @@ def exercise_case_insensitive_duplicate(record: bytes) -> None:
     with PrivateDesktopProcess(
         staged_executable,
         stage,
-        (f"clock={CLOCK_SECONDS}", "capture", "freeze"),
+        (f"clock={CLOCK_SECONDS}", "capture", "freeze", "profile"),
     ) as process:
         handle, _rectangle = wait_for_ready(process, stage, CAPTURE_TIMEOUT)
         capture_mtime, _opening_page = wait_for_capture(process, stage)
@@ -608,7 +594,7 @@ def exercise_case_insensitive_duplicate(record: bytes) -> None:
             and starmap_path.read_bytes() == seeded_starmap,
             "a case-insensitive duplicate reaches native EXTANT and leaves STARMAP unchanged",
         )
-        exit_cleanly(process, handle)
+        finish_game_shutdown(process, stage)
 
 
 def exercise_consolidated_denial(record: bytes) -> None:
@@ -618,7 +604,7 @@ def exercise_consolidated_denial(record: bytes) -> None:
     with PrivateDesktopProcess(
         staged_executable,
         stage,
-        (f"clock={CLOCK_SECONDS}", "capture", "freeze"),
+        (f"clock={CLOCK_SECONDS}", "capture", "freeze", "profile"),
     ) as process:
         handle, _rectangle = wait_for_ready(process, stage, CAPTURE_TIMEOUT)
         capture_mtime, _page = wait_for_capture(process, stage)
@@ -636,7 +622,7 @@ def exercise_consolidated_denial(record: bytes) -> None:
             and starmap_path.read_bytes() == protected_starmap,
             "consolidated-label removal reaches native DENIED and leaves every STARMAP byte unchanged",
         )
-        exit_cleanly(process, handle)
+        finish_game_shutdown(process, stage)
 
 
 def main() -> int:
