@@ -1,0 +1,346 @@
+{
+  "schema": 1,
+  "task": 237,
+  "status": "pass",
+  "accepted_sha256": "70c7fc0a3f97270768eb86ea3ad30d18ffb2811fe07f821aff8ade7d2f2063d4",
+  "candidate_sha256": "fcb0b008c7d05e383a7759ec6978c7189aae669811c9b4348a511e31c93c5340",
+  "candidate_compiler_sha256": "07621242048e1e49ee01db07f614a6cd0f37a87aef3235139ed17f5b8e666e27",
+  "executable_bytes": 645966,
+  "header_and_code_boundaries_exact": true,
+  "package_bytes_outside_island_exact": true,
+  "changed_byte_values": 224,
+  "unexpected_changes": 0,
+  "xscalar_quo_start": "0x2540f",
+  "xscalar_quo_end": "0x254fc",
+  "xscalar_add_unchanged_start": "0x254fc",
+  "island_bytes": 237,
+  "accepted_island_instructions": 43,
+  "candidate_island_instructions": 116,
+  "candidate_hardware_fdiv": true,
+  "candidate_p64_tbyte_materialization": true,
+  "candidate_direct_p53_qword_spill": false,
+  "candidate_final_spill_uses_portable_xtof64": true,
+  "candidate_internal_unpack_calls": 2,
+  "candidate_portable_xtof64_calls": 1,
+  "candidate_unreachable_nop_bytes": 47,
+  "candidate_x87_stack_peak": 1,
+  "candidate_x87_stack_net_zero": true,
+  "candidate_control_word_writes": 0,
+  "windows_runtime_fcw_133f_sequence_exact": true,
+  "windows_runtime_fcw_133f_sequence_offset": "0x2661",
+  "generated_control_word_operations": 0,
+  "generated_x87_status_readers": 11,
+  "all_status_readers_overwrite_conditions_and_discard_status": true,
+  "candidate_architectural_x87_status_exact": false,
+  "candidate_x87_status_observable_by_selected_package_readers": false,
+  "direct_entries_to_island_start": 1,
+  "direct_entries_to_island_interior": 0,
+  "public_fquo_wrapper": "0x27eea",
+  "public_fquo_wrapper_byte_exact": true,
+  "fquo_body": "0x27ef7",
+  "fquo_body_byte_exact": true,
+  "public_fquo_call_sites": 85,
+  "xscalar_quo_direct_callers": 1,
+  "public_integer_register_save_restore_exact": true,
+  "public_ebp_terminal_state_exact": true,
+  "caller_eflags_successor_states": 336,
+  "caller_eflags_successor_steps": 336,
+  "all_direct_fquo_callers_redefine_before_flag_observation": true,
+  "package_control_flow_roots_analyzed": 6584,
+  "package_direct_transfer_roots_analyzed": 6399,
+  "package_post_terminator_roots_analyzed": 3533,
+  "indirect_only_fquo_roots_analyzed": [
+    "0x2905a",
+    "0x3a751",
+    "0x461ac",
+    "0x461e9"
+  ],
+  "all_public_fquo_call_sites_covered_by_x87_depth_analysis": 85,
+  "package_x87_cfg_states": 624400,
+  "package_x87_instructions_covered": 93676,
+  "package_x87_returns": 7864,
+  "package_x87_peak": 1,
+  "package_calls_proven_at_empty_x87_depth": 9844,
+  "package_indirect_transfers_proven_at_empty_x87_depth": 259,
+  "all_public_fquo_calls_enter_with_empty_x87_stack": true,
+  "all_generated_transfer_boundaries_have_empty_x87_stack": true,
+  "x87_entry_induction_complete_for_decoded_package": true,
+  "xrej_fixed_back_prerequisite_bytes": 42,
+  "xrej_fixed_back_prerequisite_distance": 7157,
+  "xscratch_fixed_reference_range_bytes": 16,
+  "xscratch_fixed_references": {
+    "9848": 230,
+    "9852": 227,
+    "9856": 244,
+    "9860": 248
+  },
+  "candidate_xscratch_terminal_state_equals_portable": true,
+  "terminal_x_identity_proven_for_all_modeled_paths": true,
+  "scratch_observer_absence_required_for_correctness": false,
+  "indexed_edi_operands": 3565,
+  "indexed_alias_ranges_exhaustively_proven": false,
+  "materialized_code_label_address_hits": {
+    "xscalar_quo": {
+      "absolute": [],
+      "code_relative": [],
+      "marker_relative": [],
+      "physical_end_relative": []
+    },
+    "xscalar_add": {
+      "absolute": [],
+      "code_relative": [
+        311395,
+        311475,
+        536509
+      ],
+      "marker_relative": [],
+      "physical_end_relative": []
+    },
+    "public_fquo": {
+      "absolute": [],
+      "code_relative": [],
+      "marker_relative": [],
+      "physical_end_relative": []
+    },
+    "fquo_body": {
+      "absolute": [],
+      "code_relative": [],
+      "marker_relative": [],
+      "physical_end_relative": []
+    }
+  },
+  "checked_materialized_address_forms_with_byte_pattern_hits": 1,
+  "materialized_code_label_operands_found": 0,
+  "unchanged_rel32_jump_false_positive_hits": [
+    311395,
+    311475,
+    536509
+  ],
+  "indirect_calls_present": 251,
+  "indirect_jumps_present": 8,
+  "indirect_transfer_targets_exhaustively_resolved": false,
+  "all_finite_nonzero_binary64_pair_equivalence_algebraic": true,
+  "exact_island_positive_gate": true,
+  "exact_prerequisite_positive_gate": true,
+  "exact_vector_absent_marker_fail_closed": true,
+  "exact_vector_non_i386m_model_fail_closed": true,
+  "exact_island_single_byte_mutations_fail_closed": 237,
+  "exact_prerequisite_single_byte_mutations_fail_closed": 42,
+  "marker_only_accepted_compiler_output_exact": true,
+  "compiler_three_stage_fixpoint": true,
+  "non_i386m_output_comparison_run": true,
+  "non_i386m_cpu": "x64",
+  "non_i386m_outputs_byte_exact": true,
+  "complete_shipping_dependency_closure_audited": false,
+  "lowering_claim_scope": "current exact selected i386m production package",
+  "candidate_memory_operands": [
+    [
+      152591,
+      "lea",
+      "esi, [edi + 0x2620]",
+      [
+        4
+      ]
+    ],
+    [
+      152597,
+      "lea",
+      "edx, [edi + 0x2678]",
+      [
+        4
+      ]
+    ],
+    [
+      152603,
+      "mov",
+      "eax, dword ptr [esi + 4]",
+      [
+        4
+      ]
+    ],
+    [
+      152606,
+      "mov",
+      "ebx, dword ptr [esi + 0xc]",
+      [
+        4
+      ]
+    ],
+    [
+      152614,
+      "mov",
+      "dword ptr [edx], ecx",
+      [
+        4
+      ]
+    ],
+    [
+      152638,
+      "inc",
+      "dword ptr [edx + 0x30]",
+      [
+        4
+      ]
+    ],
+    [
+      152649,
+      "or",
+      "ebx, dword ptr [esi + 8]",
+      [
+        4
+      ]
+    ],
+    [
+      152664,
+      "inc",
+      "dword ptr [edx + 0x30]",
+      [
+        4
+      ]
+    ],
+    [
+      152675,
+      "or",
+      "eax, dword ptr [esi]",
+      [
+        4
+      ]
+    ],
+    [
+      152685,
+      "fld",
+      "qword ptr [esi]",
+      [
+        8
+      ]
+    ],
+    [
+      152687,
+      "fdiv",
+      "qword ptr [esi + 8]",
+      [
+        8
+      ]
+    ],
+    [
+      152690,
+      "fstp",
+      "xword ptr [edx]",
+      [
+        10
+      ]
+    ],
+    [
+      152707,
+      "fld",
+      "qword ptr [esi]",
+      [
+        8
+      ]
+    ],
+    [
+      152709,
+      "fstp",
+      "xword ptr [edx]",
+      [
+        10
+      ]
+    ],
+    [
+      152722,
+      "mov",
+      "dword ptr [edx + 4], ecx",
+      [
+        4
+      ]
+    ],
+    [
+      152725,
+      "mov",
+      "dword ptr [edx + 8], ecx",
+      [
+        4
+      ]
+    ],
+    [
+      152728,
+      "mov",
+      "dword ptr [edx + 0xc], ecx",
+      [
+        4
+      ]
+    ],
+    [
+      152743,
+      "mov",
+      "dword ptr [esi], ecx",
+      [
+        4
+      ]
+    ],
+    [
+      152745,
+      "mov",
+      "dword ptr [esi + 4], ebp",
+      [
+        4
+      ]
+    ],
+    [
+      152749,
+      "movzx",
+      "ecx, word ptr [edx + 8]",
+      [
+        2
+      ]
+    ],
+    [
+      152753,
+      "mov",
+      "ebx, dword ptr [edx]",
+      [
+        4
+      ]
+    ],
+    [
+      152755,
+      "mov",
+      "eax, dword ptr [edx + 4]",
+      [
+        4
+      ]
+    ],
+    [
+      152758,
+      "mov",
+      "dword ptr [edx + 0xc], ebx",
+      [
+        4
+      ]
+    ],
+    [
+      152761,
+      "mov",
+      "dword ptr [edx + 8], eax",
+      [
+        4
+      ]
+    ],
+    [
+      152769,
+      "mov",
+      "dword ptr [edx], ecx",
+      [
+        4
+      ]
+    ],
+    [
+      152777,
+      "mov",
+      "dword ptr [edx + 4], ebx",
+      [
+        4
+      ]
+    ]
+  ]
+}

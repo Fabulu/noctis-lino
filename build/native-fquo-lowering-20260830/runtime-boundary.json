@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "task": 237,
+  "status": "pass",
+  "command": "python tests/test_fp_runtime_boundary.py",
+  "checks_passed": 24,
+  "checks_failed": 0,
+  "windows_protected_variants_exact": true,
+  "windows_post_link_patch_size_preserving": true,
+  "windows_post_link_patch_sequence_occurrence_gate": true,
+  "windows_post_link_patch_complete_site_validated": false,
+  "selected_package_complete_fcw_133f_sequence_exact": true,
+  "build_wrapper_patches_output_before_success": true,
+  "linux_fcw_133f_boundary": true,
+  "macos_fcw_133f_boundary": true,
+  "host_probe_contract": true,
+  "production_fpctl_has_no_target_machine_escape": true,
+  "portable_fpctl_fixed_environment_contract": true
+}

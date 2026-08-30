@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "task": 237,
+  "status": "prepared",
+  "accepted_compiler_source_sha256": "c3a185ed4539eff86ea639943e3ea103b9b3065a895ae97bd93de9ff7efb93a0",
+  "candidate_compiler_source_sha256": "1d424fd70b0aeccf689acbc527419c566895c3e591eb3646b1db6e438f15d4c2",
+  "accepted_fp_sha256": "95417cf412787e6f33c773f4f7eb4d5d685f44fceff6b6e21649024b4d8d62dc",
+  "candidate_fp_sha256": "6681e59e64835fc25ec87ec18387e4c448208cef7fd03040768ebb5c613c7c37",
+  "accepted_game_sha256": "70c7fc0a3f97270768eb86ea3ad30d18ffb2811fe07f821aff8ade7d2f2063d4",
+  "accepted_scalar_bytes": 237,
+  "candidate_scalar_bytes": 237,
+  "candidate_instruction_bytes_before_padding": 190,
+  "candidate_nop_padding_bytes": 47,
+  "xrej_prerequisite_bytes": 42,
+  "xrej_prerequisite_distance": 7157,
+  "prior_internal_label_distance": 44,
+  "candidate_scalar_sha256": "91df2edbd9d166d7dd4be3081f9700af117b306f88007652a34f12f452dd5e52",
+  "common_lino_marker_only": true,
+  "raw_target_machine_block_added_to_shipping_lino": false,
+  "compiler_lowering_below_shared_source_boundary": true
+}

@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "task": 237,
+  "status": "pass",
+  "review_kind": "one bounded adversarial pre-timing review",
+  "verdict": "pass-for-timing",
+  "material_findings": [],
+  "key_checks": {
+    "finite_special_and_xrej_semantics": "pass",
+    "terminal_xs_xe_xmh_xml_identity_all_paths": "pass",
+    "portable_xtof64_final_spill": "pass",
+    "exact_237_byte_endpoint_and_internal_calls": "pass",
+    "complete_island_and_fixed_back_prerequisite_before_mutation": "pass",
+    "full_16_byte_scratch_inventory": "pass",
+    "two_real_layout_shift_controls": "pass",
+    "three_stage_compiler_fixpoint": "pass",
+    "x64_suppression": "pass",
+    "public_register_and_eflags_boundary": "pass",
+    "compositional_package_x87_entry_induction": "pass",
+    "selected_package_status_and_control_word": "pass",
+    "selected_package_confinement": "pass"
+  },
+  "nonblocking_scope_caveats": [
+    {
+      "severity": "info",
+      "topic": "architectural x87 sticky status",
+      "statement": "Architectural x87 sticky status is intentionally not asserted identical. All 11 selected-package readers overwrite comparison conditions first and discard sticky status.",
+      "timing_blocker": false
+    },
+    {
+      "severity": "info",
+      "topic": "indirect transfer and indexed alias scope",
+      "statement": "Indirect targets and indexed EDI aliases are not exhaustively resolved. Every decoded generated transfer boundary is proven to have empty x87 depth, and the candidate terminal XS/XE/XMH/XML image is exact on every modeled path.",
+      "timing_blocker": false
+    },
+    {
+      "severity": "info",
+      "topic": "generic runtime patch-site audit",
+      "statement": "The generic runtime-boundary report does not validate every possible patch site, while the selected package's complete FCW=133F sequence is independently bound and verified.",
+      "timing_blocker": false
+    }
+  ],
+  "final_review": {
+    "status": "pass",
+    "remaining_material_findings": 0,
+    "timing_permitted": true,
+    "complete_shipping_dependency_closure_audited": false,
+    "scope": "current exact selected i386m candidate package"
+  }
+}

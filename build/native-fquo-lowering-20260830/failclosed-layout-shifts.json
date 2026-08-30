@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "task": 237,
+  "status": "pass",
+  "cases": {
+    "fa_shift": {
+      "mutation": "insert one fpabi variable before FA0",
+      "complete_scalar_island_displacements_shifted": true,
+      "accepted_and_candidate_compiler_outputs_byte_exact": true,
+      "generated_candidate_scalar_islands": 0
+    },
+    "xrej_shift": {
+      "mutation": "insert one fpsoft variable between XU1 and XREJ",
+      "fa_fb_xs_xu_and_scalar_island_layout_unchanged": true,
+      "xrej_displacement_and_fixed_back_prerequisite_shifted": true,
+      "accepted_and_candidate_compiler_outputs_byte_exact": true,
+      "generated_candidate_scalar_islands": 0
+    }
+  },
+  "marker_bearing_common_fpsoft_used": true,
+  "both_real_i386m_layout_controls_failed_closed": true,
+  "private_inactive_desktop": true,
+  "default_desktop": false,
+  "production_restored": true,
+  "records": {
+    "fa_shift": {
+      "accepted_compiler": {
+        "command": [
+          "powershell.exe",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "C:\\programmieren\\linoleum\\lino_build.ps1",
+          "-Src",
+          "C:\\programmieren\\linoleum\\work\\vhgame.txt",
+          "-Compiler",
+          "C:\\programmieren\\linoleum\\build\\native-fquo-lowering-20260830\\accepted\\compiler114m.exe",
+          "-LinoEnv",
+          "C:\\programmieren\\linoleum\\main",
+          "-Cpu",
+          "i386m",
+          "-StageExtension",
+          ".lxe"
+        ],
+        "private_inactive_desktop": true,
+        "default_desktop": false,
+        "output_bytes": 645970,
+        "output_sha256": "35822991e46986dac5e42f387563e4c1cc8984e26e52972652f54a7c4dcac1df"
+      },
+      "candidate_compiler": {
+        "command": [
+          "powershell.exe",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "C:\\programmieren\\linoleum\\lino_build.ps1",
+          "-Src",
+          "C:\\programmieren\\linoleum\\work\\vhgame.txt",
+          "-Compiler",
+          "C:\\programmieren\\linoleum\\build\\native-fquo-lowering-20260830\\candidate\\compiler114m.exe",
+          "-LinoEnv",
+          "C:\\programmieren\\linoleum\\main",
+          "-Cpu",
+          "i386m",
+          "-StageExtension",
+          ".lxe"
+        ],
+        "private_inactive_desktop": true,
+        "default_desktop": false,
+        "output_bytes": 645970,
+        "output_sha256": "35822991e46986dac5e42f387563e4c1cc8984e26e52972652f54a7c4dcac1df"
+      },
+      "outputs_byte_exact": true,
+      "output_sha256": "35822991e46986dac5e42f387563e4c1cc8984e26e52972652f54a7c4dcac1df",
+      "output_bytes": 645970,
+      "generated_candidate_scalar_islands": 0
+    },
+    "xrej_shift": {
+      "accepted_compiler": {
+        "command": [
+          "powershell.exe",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "C:\\programmieren\\linoleum\\lino_build.ps1",
+          "-Src",
+          "C:\\programmieren\\linoleum\\work\\vhgame.txt",
+          "-Compiler",
+          "C:\\programmieren\\linoleum\\build\\native-fquo-lowering-20260830\\accepted\\compiler114m.exe",
+          "-LinoEnv",
+          "C:\\programmieren\\linoleum\\main",
+          "-Cpu",
+          "i386m",
+          "-StageExtension",
+          ".lxe"
+        ],
+        "private_inactive_desktop": true,
+        "default_desktop": false,
+        "output_bytes": 645970,
+        "output_sha256": "ab911224a38b341a6ecb1c6265d033aa3ef7217a3b3bc386875717b049100b8e"
+      },
+      "candidate_compiler": {
+        "command": [
+          "powershell.exe",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "C:\\programmieren\\linoleum\\lino_build.ps1",
+          "-Src",
+          "C:\\programmieren\\linoleum\\work\\vhgame.txt",
+          "-Compiler",
+          "C:\\programmieren\\linoleum\\build\\native-fquo-lowering-20260830\\candidate\\compiler114m.exe",
+          "-LinoEnv",
+          "C:\\programmieren\\linoleum\\main",
+          "-Cpu",
+          "i386m",
+          "-StageExtension",
+          ".lxe"
+        ],
+        "private_inactive_desktop": true,
+        "default_desktop": false,
+        "output_bytes": 645970,
+        "output_sha256": "ab911224a38b341a6ecb1c6265d033aa3ef7217a3b3bc386875717b049100b8e"
+      },
+      "outputs_byte_exact": true,
+      "output_sha256": "ab911224a38b341a6ecb1c6265d033aa3ef7217a3b3bc386875717b049100b8e",
+      "output_bytes": 645970,
+      "generated_candidate_scalar_islands": 0
+    }
+  }
+}
