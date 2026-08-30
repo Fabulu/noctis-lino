@@ -4,6 +4,7 @@ Run: python tests/test_native_closure.py
 """
 from pathlib import Path
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -146,6 +147,16 @@ def check(condition, message):
 def main():
     check(tuple(path.resolve() for path in gate.DEFAULT_ROOTS) == CANONICAL_ROOTS,
           "production roots are exactly work/vhgame.txt and work/vhnivgen.txt")
+    attribute = subprocess.run(
+        ["git", "check-attr", "eol", "--", "work/vhgame.txt"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    check(attribute.returncode == 0 and
+          attribute.stdout.strip() == "work/vhgame.txt: eol: lf",
+          "the canonical game source checks out as identical LF bytes on every host")
     closure, edges, blocks = gate.scan(gate.DEFAULT_ROOTS)
     check(set(CANONICAL_SHARED_MODULES).issubset(closure),
           "production uses the canonical shared renderer, gameplay, multiply, and FP modules")
