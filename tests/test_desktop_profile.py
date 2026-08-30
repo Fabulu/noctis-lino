@@ -17,6 +17,8 @@ GAME = ROOT / "work" / "vhgame.txt"
 GROUND = ROOT / "work" / "vhground.txt"
 PROFILER = ROOT / "tools" / "profile_noctis_desktop.py"
 PRIVATE_RUNNER = ROOT / "tools" / "windows_hidden_process.py"
+LINO_PROGRAM_RUNNER = ROOT / "tools" / "run_lino_program_private.py"
+LINO_RUN_SCRIPT = ROOT / "tests" / "linorun.ps1"
 
 
 def main() -> int:
@@ -135,6 +137,8 @@ def main() -> int:
     ground = GROUND.read_text(encoding="utf-8")
     profiler_source = PROFILER.read_text(encoding="utf-8")
     private_runner = PRIVATE_RUNNER.read_text(encoding="utf-8")
+    lino_program_runner = LINO_PROGRAM_RUNNER.read_text(encoding="utf-8")
+    lino_run_script = LINO_RUN_SCRIPT.read_text(encoding="utf-8")
     check('process.post_char(handle, "r")' in profiler_source and
           "tap_key(process, handle, VK_R" not in profiler_source,
           "capsule profiles inject the ASCII return command used by the game")
@@ -175,6 +179,13 @@ def main() -> int:
               "TerminateProcess",
           )),
           "profiling runner controls only its private desktop process")
+    check("PrivateDesktopProcess" in lino_program_runner and
+          "run_lino_program_private.py" in lino_run_script and
+          "System.Diagnostics.Process" not in lino_run_script and
+          "size = fresh_size(args.output, started_ns)" in
+          lino_program_runner.split("if process.poll() is not None:", 1)[1],
+          "compiled Lino tests run only on a private inactive desktop and "
+          "recheck output after process exit")
 
     if failures:
         print(f"desktop profile: {len(failures)} failure(s)")
