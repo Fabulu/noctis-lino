@@ -73,7 +73,7 @@ EXPECTED_SHA256 = {
     "vhsun-out.bin":
         "2882fb4e7f690dae58393a8d0ab027907df3e25900f06fb84be42347e67866d6",
     "vhtree-out.bin":
-        "cd135bd79beef6d801b1d093e72c70771906b7b0443dab70180a9c346a5a2989",
+        "bde1691ac7a286998dcd5558ae4fae778f25f7b1b8fe15cc1e571cf0c94bee14",
     "vhtree-page.bin":
         "fb3e4969cb3bd56c132f1519e5ed137df21c0e77de4a072ee37da74470c1a6be",
     "vhtrans-state.bin":
@@ -98,7 +98,7 @@ EXPECTED_CAPSULE = (
     0, 0, 11, 2342, 5607, 277, 1024, 9, 9, 9,
     0, 30, 62, 2, 0, 324508639,
 )
-EXPECTED_TREE = (1213, 1, 1, 5, 0, 214, 0, 333, 0, 0)
+EXPECTED_TREE = (4856, 1, 1, 5, 0, 214, 0, 333, 0, 0)
 EXPECTED_TRANS_STATE = (
     1448366129, 64,
     11506, -67919, 1060018034, -1086637569, -1087465614, 1060846079,
@@ -225,6 +225,35 @@ def fresh_variants() -> dict[str, Path]:
     return variants
 
 
+def production_replay_tail(work: Path) -> bytes:
+    """Return the culling replay body supplied by the copied game root."""
+    source = (work / "vhgame.txt").read_bytes()
+    start_marker = b'"PG terrain replay culling"'
+    end_marker = b"\t-> PG terrain replay finish;"
+    if source.count(start_marker) != 1:
+        raise RuntimeError("expected one production culling replay entry")
+    start = source.index(start_marker)
+    end = source.find(end_marker, start)
+    if end < 0:
+        raise RuntimeError("production culling replay has no common finish")
+    return source[start:end + len(end_marker)]
+
+
+def production_profile_declaration(work: Path) -> str:
+    """Return vhground's profiling storage declaration from the game root."""
+    names = (
+        "VHGprofpart", "VHGprofspace", "VHGprofcupola",
+        "VHGprofhull", "VHGprofdetail",
+    )
+    lines = [
+        line for line in (work / "vhgame.txt").read_text(encoding="utf-8").splitlines()
+        if all(name in line for name in names)
+    ]
+    if len(lines) != 1:
+        raise RuntimeError("expected one production surface-profile declaration")
+    return lines[0]
+
+
 def build_and_run(work: Path, probe: Probe) -> tuple[dict[str, bytes], str]:
     source = work / probe.source
     executable = source.with_suffix(".exe")
@@ -232,7 +261,38 @@ def build_and_run(work: Path, probe: Probe) -> tuple[dict[str, bytes], str]:
     for stale in (executable, *outputs.values()):
         if stale.exists():
             stale.unlink()
-    rc, build_note = lh.build(str(source), timeout_sec=300)
+    pgtex = work / "pgtex.txt"
+    pgtex_original: bytes | None = None
+    if probe.source != "vhtransmain.txt":
+        # pgtex owns the common replay entry while the production game root
+        # owns its culling tail. Link the exact copied shared-Lino body only
+        # while compiling modular probes; the full-game probe already has it.
+        pgtex_original = pgtex.read_bytes()
+        pgtex.write_bytes(
+            pgtex_original + b"\n\n" + production_replay_tail(work) + b"\n"
+        )
+    source_original: str | None = None
+    if probe.source == "vhtreeprobe.txt":
+        source_original = source.read_text(encoding="utf-8")
+        anchor = '"variables"\n\n'
+        if source_original.count(anchor) != 1:
+            raise RuntimeError("tree probe variables anchor changed")
+        source.write_text(
+            source_original.replace(
+                anchor,
+                anchor + production_profile_declaration(work) + "\n",
+                1,
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
+    try:
+        rc, build_note = lh.build(str(source), timeout_sec=300)
+    finally:
+        if pgtex_original is not None:
+            pgtex.write_bytes(pgtex_original)
+        if source_original is not None:
+            source.write_text(source_original, encoding="utf-8", newline="\n")
     if rc or not executable.is_file():
         errorlog = lh.errorlog_for(str(source))
         raise RuntimeError(

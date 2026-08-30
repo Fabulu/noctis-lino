@@ -79,6 +79,7 @@
 	[PGtexf] = 0; [SPsrc] = 1; [SPflar] = 0; [SPcull] = 0; [SPhalf] = 0;
 	[VHGNDoox] = 1086769; A = 0; A - 149024; [VHGNDooy] = A;
 	[VHGNDooz] = 2139184; [VHGNDh1] = 26066; [VHGNDdepth] = 1;
+	=> VHGND tree cache frame;
 	[VHTRrepeat] = 0;
     "VHTR tree repeat"
 	=> VHGND tree;
