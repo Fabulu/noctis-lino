@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "task": 229,
+  "date": "2026-08-30",
+  "decision": "rejected-after-ordering-a",
+  "files": [
+    {
+      "path": "build/gray-split-mul128-20260830/accepted/fpsoft.txt",
+      "bytes": 61429,
+      "sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/accepted/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/accepted/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/accepted/compiler114m.exe",
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/accepted/i386m.bin",
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/candidate/fpsoft.txt",
+      "bytes": 62190,
+      "sha256": "a2f22335d2473c10b3afe6e15c7aa0bf95380f71f8ab8267445747be6f01be61"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/candidate/vhgame.exe",
+      "bytes": 646170,
+      "sha256": "78dcfbc1b503494414f393f7d3b691be2f326424a42a7ae9a696d4823bb99861"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/apply_candidate.py",
+      "bytes": 2678,
+      "sha256": "e339cbe7b1d32fc84dc423ac5c76668f440742324717e1b513386d893b554ec9"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/verify_model.py",
+      "bytes": 22143,
+      "sha256": "e71fa0937e2e2ef4936103188721df3a60776576d88a17011750a4d9b5dc96d8"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/model.json",
+      "bytes": 2070,
+      "sha256": "48832f5cf9f35688f21b2bc7de99654d568bce226903cc82b0eb5d2bd5b6d823"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/build.json",
+      "bytes": 1574,
+      "sha256": "f7c3a2c4ccb5da737a88c216682b25acfe0d6d9719251b4dec91a7754bdae9d8"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/verify_production.py",
+      "bytes": 36150,
+      "sha256": "600384a7443e40615335b6cf59ac254f794093537ef656006d958d128f066db4"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/production-layout.json",
+      "bytes": 4524,
+      "sha256": "7cb7509ef6cb92afe8ae0aa690d25d42687cf216826276f9a893226c5c5eb2c7"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/semantic-review.json",
+      "bytes": 2778,
+      "sha256": "554ca0e46197123a78ba0492b1247cf258b129520b9c5572155c026c8dc7d3bf"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/run_arm.py",
+      "bytes": 4454,
+      "sha256": "f10f9d89e798077a0aca7ffee7023261d0cb1e384b602bc2f80a09179fc78b54"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/finalize.py",
+      "bytes": 13713,
+      "sha256": "62ab708eee5e61ca9bab31218f2324464a6afe82d941d5679b4535e53524f8a8"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/result.json",
+      "bytes": 5328,
+      "sha256": "213338de48d2297dfbbfde30dbc4e40444e154160e4f950d9a56abf01e7b52ae"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/candidate-a/capsule/report.json",
+      "bytes": 3091,
+      "sha256": "a62634f333c3ed3e80565cea44e5a7a8ab88721935213bf1e68913d8ba452996"
+    },
+    {
+      "path": "build/gray-split-mul128-20260830/baseline-a/capsule/report.json",
+      "bytes": 3093,
+      "sha256": "e2c72963d063fcd8282fed0e904fbff3ed9784f356c474b95fd7bef86a7079a6"
+    }
+  ],
+  "active": {
+    "work/fp/fpsoft.txt": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "work/vhgame.exe": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+  },
+  "current_files_match_accepted": true
+}

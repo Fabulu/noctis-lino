@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "task": 229,
+  "date": "2026-08-30",
+  "decision": "rejected-after-ordering-a",
+  "reason": "Candidate A preserved the authentic simulation gate but lost both mandatory Ordering-A metrics: presentation throughput fell and process cycles per presentation increased. The binding discriminator therefore stopped before Ordering B, fidelity, or sustained screening, with the retained Task #224 pair left active byte-exactly.",
+  "candidate_change_scope": {
+    "implementation": "single-split b,a,c,d Mul128 schedule in common work/fp/fpsoft.txt Lino",
+    "shared_lino_source_changed_experimentally": true,
+    "native_gameplay_or_renderer_code": false,
+    "architecture_specific_lino_fork": false,
+    "candidate_transform_raw_target_machine_block_added": false,
+    "complete_shipping_dependency_closure_audited_here": false,
+    "closure_audit_deferred_to_release_audit": true
+  },
+  "candidate": {
+    "description": "split XML, YMH, YML, and XMH once; invoke the exact XMul32u suffix in b,a,c,d Gray order; restore canonical b and terminal d scratch",
+    "fpsoft_sha256": "a2f22335d2473c10b3afe6e15c7aa0bf95380f71f8ab8267445747be6f01be61",
+    "executable_bytes": 646170,
+    "executable_sha256": "78dcfbc1b503494414f393f7d3b691be2f326424a42a7ae9a696d4823bb99861",
+    "generated_growth_bytes": 204
+  },
+  "accepted_baseline": {
+    "task": 224,
+    "description": "retained buffered-limb restoring-root production",
+    "fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "executable_bytes": 645966,
+    "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+  },
+  "selected_toolchain": {
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7",
+    "build_entry": "lino_build.ps1",
+    "private_inactive_desktop": true,
+    "warnings": 64,
+    "errors": 0
+  },
+  "focused_gates": {
+    "semantic_model": "pass",
+    "adversarial_review": "pass-after-evidence-hardening",
+    "concrete_mul128_cases": 72101,
+    "pipeline_cases": 16402,
+    "generated_machine_cases": 4352,
+    "direct_unsigned_product_exact": true,
+    "terminal_registers_and_workspace_exact": true,
+    "generated_extraction_movzx_shr": {
+      "accepted": 24,
+      "candidate": 12
+    },
+    "dynamic_unsigned_16x16_products": {
+      "accepted": 16,
+      "candidate": 16
+    },
+    "production_layout": "pass",
+    "generated_growth_bytes": 204,
+    "pre_helper_code_bytes_exact": 43187,
+    "downstream_logical_instructions_exact": 86301,
+    "package_unexpected_changes": 0,
+    "complete_shipping_dependency_closure_audited_here": false
+  },
+  "discriminator": {
+    "checkpoint": 1344638527,
+    "physical_core_index": 3,
+    "affinity_mask": "0xc0",
+    "priority": "above_normal",
+    "desktop": "private inactive desktop",
+    "requested_measurement_seconds": 5.0,
+    "completed_order": [
+      "candidate-a",
+      "baseline-a"
+    ],
+    "profile_origin_counters_in_order": [
+      420945297,
+      606360313
+    ]
+  },
+  "candidate_a": {
+    "presentation_hz": 46.14438063986874,
+    "simulation_hz": 19.07301066447908,
+    "render_ms": 20.206745573802834,
+    "present_ms": 1.3452744488829709,
+    "process_cycles_per_presentation": 49649129.51111111,
+    "missed_deadlines": 220,
+    "presentations": 225,
+    "simulation_ticks": 93,
+    "profile_origin_counter": 420945297,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "baseline_a": {
+    "presentation_hz": 50.718685831622174,
+    "simulation_hz": 18.68583162217659,
+    "render_ms": 18.19630559481104,
+    "present_ms": 1.152443317810837,
+    "process_cycles_per_presentation": 45184468.82995951,
+    "missed_deadlines": 208,
+    "presentations": 247,
+    "simulation_ticks": 91,
+    "profile_origin_counter": 606360313
+  },
+  "ordering_a": {
+    "presentation_hz_delta": -4.574305191753432,
+    "cycles_per_presentation_delta": 4464660.681151599,
+    "render_ms_delta": 2.010439978991794,
+    "wins_both_mandatory_metrics": false,
+    "candidate_lost_presentation_hz": true,
+    "candidate_added_cycles_per_presentation": true
+  },
+  "ordering_b": {
+    "status": "skipped",
+    "evidence_absent": true,
+    "reason": "Ordering A lost both mandatory metrics"
+  },
+  "fidelity": {
+    "status": "skipped",
+    "evidence_absent": true,
+    "reason": "Fidelity is permitted only after both orderings win"
+  },
+  "sustained_screen": {
+    "status": "skipped",
+    "evidence_absent": true,
+    "reason": "Rejected candidate was not eligible for sustained screening"
+  },
+  "retained_absolute_record": {
+    "presentation_hz": 60.15187849720224,
+    "simulation_hz": 18.585131894484412,
+    "evidence": "build/gui-deferred-demotions-20260829/baseline-a/capsule/report.json",
+    "replaced": false
+  },
+  "restored_production": {
+    "task": 224,
+    "fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "executable_bytes": 645966,
+    "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+    "current_files_match_accepted": true
+  }
+}
