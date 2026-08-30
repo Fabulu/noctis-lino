@@ -178,8 +178,20 @@ def run_lino(
         temp = Path(temp_name)
         (temp / "niv-input.bin").write_bytes(struct.pack("<32I", *values))
         if os.name == "nt":
-            import windows_hidden_process
-            proc = windows_hidden_process.run(exe, temp, args.timeout)
+            expected_units = OUT_UNITS + (DIAG_UNITS if args.diagnostic else 0)
+            runner = Path(__file__).with_name("run_lino_program_private.py")
+            proc = subprocess.run(
+                [
+                    sys.executable, str(runner),
+                    f"--executable={exe}",
+                    f"--working-directory={temp}",
+                    f"--output={temp / 'niv-output.bin'}",
+                    f"--timeout={args.timeout}",
+                    f"--expected-bytes={expected_units * 4}",
+                ],
+                capture_output=True, text=True, encoding="utf-8",
+                errors="replace", timeout=args.timeout + 15,
+            )
         else:
             proc = subprocess.run(
                 [str(exe)], cwd=temp, capture_output=True, text=True,
