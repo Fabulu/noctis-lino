@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "task": 226,
+  "status": "pass-after-evidence-hardening",
+  "scope": "bounded read-only adversarial review of the odd-carrier recurrence and its model/generated-code evidence",
+  "implementation_semantics": "pass",
+  "independently_checked": {
+    "odd_carrier_recurrence": "T=2*q+1; trial=2*T-1=4*q+1; rejection keeps trial and acceptance adds two",
+    "low_subtract_borrow_impossible": true,
+    "accepted_plus_two_carry_impossible": true,
+    "final_65_bit_decode": "q=T>>1 using sqcarry:C:D",
+    "three_limb_unsigned_subtraction": "pass",
+    "buffered_handoff_bounds": "pass"
+  },
+  "initial_evidence_findings": [
+    {
+      "finding": "the former random state comparison constructed accepted and candidate states identically",
+      "resolution": "removed the tautological state test; source wrapper preservation is checked structurally and synchronized runtime fidelity is explicitly deferred until dual-ordering admission"
+    },
+    {
+      "finding": "the former production proof did not bind model.json to its verifier or inspect generated remainder comparison/subtraction",
+      "resolution": "model.json now records the current model-verifier hash; production proof checks that hash, substantive semantic fields, and exact generated remainder shift, unsigned comparison, borrow propagation, odd-carrier recurrence, and final decode"
+    }
+  ],
+  "final_review": {
+    "status": "pass",
+    "remaining_defects_in_re_reviewed_scope": 0,
+    "public_register_generated_wrapper": "pushal; call XScalarSqrt; popal",
+    "runtime_fidelity_required_if_dual_ordering_wins": true
+  }
+}

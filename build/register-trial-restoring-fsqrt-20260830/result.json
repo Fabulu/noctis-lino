@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "task": 226,
+  "date": "2026-08-30",
+  "decision": "rejected-after-ordering-a",
+  "reason": "Candidate A preserved simulation above 18.206 Hz, but it lost both mandatory Ordering-A metrics: presentation throughput decreased and cycles per presentation increased. The binding discriminator therefore stopped before Ordering B, fidelity, and sustained screening.",
+  "source_boundary": {
+    "implementation": "odd-trial carrier T=2*q+1 in C:D within the common tracked fpsoft Lino source",
+    "shared_lino_source_changed_experimentally": true,
+    "shared_source": "work/fp/fpsoft.txt",
+    "native_gameplay_or_renderer_code": false,
+    "architecture_specific_lino_fork": false,
+    "raw_target_machine_block": false,
+    "compiler_changed": false,
+    "cpu_pack_changed": false
+  },
+  "candidate": {
+    "description": "retain the buffered radicand schedule while carrying T=2*q+1 in C:D and decoding q once after 64 restoring decisions",
+    "fpsoft_sha256": "8fee66095ee27f0c7da81900f34603d2bd4d7d60c356ce51a0cebcb158fc291d",
+    "executable_bytes": 645966,
+    "executable_sha256": "33f235c60cee4852b73723830cf691bf205d21f0bd054a746705fb66a3a420c6"
+  },
+  "accepted_baseline": {
+    "description": "retained Task #224 buffered-limb restoring root",
+    "fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "executable_bytes": 645966,
+    "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+  },
+  "toolchain": {
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7",
+    "build_entry": "lino_build.ps1",
+    "private_inactive_desktop": true,
+    "warnings": 64,
+    "errors": 0
+  },
+  "focused_gates": {
+    "semantic_model": "pass",
+    "adversarial_semantic_review": "pass-after-evidence-hardening",
+    "generic_normalized_mantissa_cases": 65548,
+    "binary64_pipeline_cases": 92146,
+    "special_dispatch_cases": 24,
+    "integer_root_exact": true,
+    "accepted_private_residual_exact": true,
+    "accepted_p64_root_rounding_exact": true,
+    "p53_binary64_spill_exact": true,
+    "production_layout": "pass",
+    "root_helper_range": [
+      153329,
+      154441
+    ],
+    "changed_byte_values": 739,
+    "unexpected_changed_bytes": 0,
+    "all_package_bytes_outside_helper_exact": true,
+    "generated_remainder_comparison_subtraction_exact": true,
+    "generated_public_register_wrapper_exact": true
+  },
+  "discriminator": {
+    "clock_seconds": 1344638527,
+    "physical_core_index": 3,
+    "affinity_mask": "0xc0",
+    "priority": "above_normal",
+    "desktop": "private inactive desktop",
+    "requested_measurement_seconds": 5.0,
+    "completed_order": [
+      "candidate-a",
+      "baseline-a"
+    ]
+  },
+  "candidate_a": {
+    "presentation_hz": 53.00713557594292,
+    "simulation_hz": 18.75637104994903,
+    "render_ms": 16.570408966798198,
+    "present_ms": 1.0243197439035872,
+    "process_cycles_per_presentation": 43331349.30384615,
+    "missed_deadlines": 116,
+    "presentations": 260,
+    "simulation_ticks": 92,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "baseline_a": {
+    "presentation_hz": 56.45645645645646,
+    "simulation_hz": 18.41841841841842,
+    "render_ms": 14.118027181109342,
+    "present_ms": 0.8999134866913825,
+    "process_cycles_per_presentation": 40524461.95390071,
+    "missed_deadlines": 96,
+    "presentations": 282,
+    "simulation_ticks": 92
+  },
+  "ordering_a": {
+    "presentation_hz_delta": -3.4493208805135396,
+    "cycles_per_presentation_delta": 2806887.349945441,
+    "wins_both_mandatory_metrics": false,
+    "candidate_lost_presentation_hz": true,
+    "candidate_lost_cycles_per_presentation": true
+  },
+  "ordering_b": {
+    "status": "skipped",
+    "reason": "Ordering A lost both mandatory metrics"
+  },
+  "contradictory_orderings_averaged": false,
+  "fidelity": {
+    "status": "skipped",
+    "reason": "Fidelity runs are permitted only after both orderings win"
+  },
+  "sustained_screen": {
+    "status": "skipped",
+    "reason": "Rejected candidate was not eligible for sustained screening"
+  },
+  "host_classification": "controlled depressed-host Ordering-A rejection",
+  "retained_absolute_record": {
+    "presentation_hz": 60.15187849720224,
+    "simulation_hz": 18.585131894484412,
+    "evidence": "build/gui-deferred-demotions-20260829/baseline-a/capsule/report.json",
+    "replaced": false
+  },
+  "restored_production": {
+    "task": 224,
+    "fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "executable_bytes": 645966,
+    "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+    "current_files_match_accepted": true
+  }
+}

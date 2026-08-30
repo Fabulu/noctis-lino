@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "task": 226,
+  "date": "2026-08-30",
+  "decision": "rejected-after-ordering-a",
+  "files": [
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/accepted/fpsoft.txt",
+      "bytes": 61429,
+      "sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/accepted/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/accepted/compiler114m.exe",
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/accepted/i386m.bin",
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/candidate/fpsoft.txt",
+      "bytes": 61656,
+      "sha256": "8fee66095ee27f0c7da81900f34603d2bd4d7d60c356ce51a0cebcb158fc291d"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/candidate/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "33f235c60cee4852b73723830cf691bf205d21f0bd054a746705fb66a3a420c6"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/apply_candidate.py",
+      "bytes": 3068,
+      "sha256": "8426c51d97b7fe028ff283f9941d059b23fc650f51a643bad26c74b1e12f6b67"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/verify_model.py",
+      "bytes": 27230,
+      "sha256": "10480fba873ac056b582ec68c23667b91f2627065264873ff4bf0ea872c3e055"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/model.json",
+      "bytes": 3458,
+      "sha256": "49ccb1a8ad936bea1262e39b3a9b445075e1ea322af36413a6b1d64fe888cb4f"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/semantic-review.json",
+      "bytes": 1613,
+      "sha256": "3b8b0b47646fae7bf99aba67105b5f291b0220a308db44e10f319b8890faf238"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/build.json",
+      "bytes": 566,
+      "sha256": "9588247d43bd6513d7cb3893e45b301172f8d36e80c11afd99dd723a3826894f"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/verify_production.py",
+      "bytes": 22412,
+      "sha256": "3d407d8e3af9efa8747f6176db9f51ecc4b4c261aa581f4a40cb02cc8e25259d"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/production-layout.json",
+      "bytes": 3462,
+      "sha256": "044b4980aa34e5a4021a920d291dc00fed42d8f53a6ff32e40f69930261aeee4"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/run_arm.py",
+      "bytes": 3407,
+      "sha256": "89941fe4bee3e294a296ae8aad9ab25ac0877c29691e1532a27e590514993998"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/finalize.py",
+      "bytes": 11778,
+      "sha256": "1e2467ca787b2fea27252433965e254e201c3673ab192c2b1da579a56fe15de1"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/result.json",
+      "bytes": 4952,
+      "sha256": "f3b9f6a53a2930fc989ac6b982c23ae258035169f5d993d425485d74e5006ff9"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/candidate-a/capsule/report.json",
+      "bytes": 3111,
+      "sha256": "0e05e95945e859aa1689af14e28f4a7a41330fe1ff8bc14f80b1530f27a06bb0"
+    },
+    {
+      "path": "build/register-trial-restoring-fsqrt-20260830/baseline-a/capsule/report.json",
+      "bytes": 3107,
+      "sha256": "cb514c41d044e797164c582cf32a6377642550b795eadb06618fc817c999391c"
+    }
+  ],
+  "active": {
+    "work/fp/fpsoft.txt": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "work/vhgame.exe": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+  },
+  "current_files_match_accepted": true
+}
