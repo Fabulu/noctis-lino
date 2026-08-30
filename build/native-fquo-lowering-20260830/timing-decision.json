@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "task": 237,
+  "status": "pass",
+  "decision": "rejected-candidate-a-simulation",
+  "reason": "Candidate A failed the authentic 18.206-Hz simulation gate.",
+  "completed_order": [
+    "candidate-a"
+  ],
+  "checkpoint": 1344638527,
+  "requested_measurement_seconds": 5.0,
+  "physical_core_index": 3,
+  "affinity_mask": "0xc0",
+  "priority": "above_normal",
+  "desktop": "private inactive desktop",
+  "candidate_a": {
+    "presentation_hz": 34.48988021478728,
+    "simulation_hz": 18.174308137133416,
+    "render_ms": 26.285084177299744,
+    "present_ms": 2.216522665624462,
+    "process_cycles_per_presentation": 64513811.30538922,
+    "missed_deadlines": 167,
+    "presentations": 167,
+    "simulation_ticks": 88,
+    "profile_origin_counter": 3146796811,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": false
+  },
+  "baseline_a": null,
+  "ordering_a": null,
+  "baseline_b": null,
+  "candidate_b": null,
+  "ordering_b": null,
+  "combined_or_averaged_orderings_used": false,
+  "fidelity_permitted": false
+}

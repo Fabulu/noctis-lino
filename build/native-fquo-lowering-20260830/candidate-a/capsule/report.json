@@ -1,0 +1,98 @@
+{
+  "schema": 2,
+  "scenario": "capsule",
+  "command": [
+    "C:\\Programmieren\\linoleum\\build\\native-fquo-lowering-20260830\\candidate-a\\capsule\\Noctis-IV.exe",
+    "clock=1344638527",
+    "profile"
+  ],
+  "provenance": {
+    "executable_path": "C:\\Programmieren\\linoleum\\work\\vhgame.exe",
+    "executable_sha256": "fcb0b008c7d05e383a7759ec6978c7189aae669811c9b4348a511e31c93c5340",
+    "scheduling": {
+      "policy": "physical-core-above-normal",
+      "comparable": true,
+      "physical_core_index": 3,
+      "requested_affinity_mask": "0xc0",
+      "requested_priority_class": "above_normal",
+      "physical_core_masks": [
+        "0x3",
+        "0xc",
+        "0x30",
+        "0xc0"
+      ],
+      "actual": {
+        "process_affinity_mask": "0xc0",
+        "system_affinity_mask": "0xff",
+        "priority_class": "above_normal",
+        "priority_class_value": 32768
+      }
+    }
+  },
+  "window_rectangle": [
+    319,
+    123,
+    961,
+    549
+  ],
+  "startup_seconds": 8.236113700084388,
+  "requested_measurement_seconds": 5.0,
+  "injected_counter": null,
+  "profile": {
+    "magic": 1448101681,
+    "schema": 1,
+    "presentations": 167,
+    "simulation_ticks": 88,
+    "missed_deadlines": 167,
+    "maximum_lateness_counts": 544150,
+    "total_lateness_counts": 26486788,
+    "render_counts": 39545988,
+    "present_counts": 3334765,
+    "space_counts": 1317738,
+    "cupola_counts": 31496487,
+    "hull_counts": 453353,
+    "detail_counts": 2411779,
+    "wall_milliseconds": 4842,
+    "counts_per_millisecond": 9009,
+    "sleep_calls": 0,
+    "gui_loop_calls": 167,
+    "timing_calls": 167,
+    "current_fps": 26,
+    "mode": 1,
+    "landed": 1,
+    "capsule_state": 0,
+    "profiled_virtual_key": 87,
+    "profile_origin_counter": 3146796811,
+    "input_detected_counter": 0,
+    "input_effect_counter": 0,
+    "input_presented_counter": 0,
+    "final_x": 1638400,
+    "final_z": 1638400,
+    "fcs_open": 0,
+    "fast_presentation": 1,
+    "trailing_magic": 1448101681
+  },
+  "metrics": {
+    "presentation_hz": 34.48988021478728,
+    "simulation_hz": 18.174308137133416,
+    "missed_deadline_ratio": 1.0,
+    "maximum_lateness_ms": 60.4007104007104,
+    "total_lateness_ms": 2940.036408036408,
+    "average_render_ms": 26.285084177299744,
+    "average_present_ms": 2.216522665624462,
+    "average_space_ms": 0.875862660293798,
+    "average_cupola_ms": 20.934811695290737,
+    "average_hull_ms": 0.30133073845648695,
+    "average_detail_ms": 1.6030403395672859,
+    "input_detection_to_effect_ms": null,
+    "input_effect_to_present_ms": null,
+    "input_detection_to_present_ms": null,
+    "external_counter_comparable": false,
+    "process_cycles": 10773806488,
+    "average_process_cycles_per_presentation": 64513811.30538922,
+    "average_surface_background_ms": 0.875862660293798,
+    "average_surface_terrain_ms": 20.934811695290737,
+    "average_surface_effects_ms": 0.30133073845648695,
+    "average_surface_smoothing_ms": 1.6030403395672859
+  }
+}

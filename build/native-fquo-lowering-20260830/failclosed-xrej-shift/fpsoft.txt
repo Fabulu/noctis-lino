@@ -1,0 +1,2002 @@
+      ( *** fpsoft - the SOFT backend: an x87 in software ***
+
+	The third backend.  It touches no FPU at all: no x87 instruction,
+	no control word, no rounding mode.  Every value is carried as a
+	sign, a 15-bit-biased exponent and a 64-BIT mantissa held in two
+	units - which is the x87 extended format, not binary64 - and every
+	rounding decision is made explicitly in integer code.
+
+	This is the portable arithmetic engine used by the public scalar backend and
+	by generated software chains.  Basic operations reproduce the project's
+	64-bit-significand x87 model exactly.  Sine, cosine and atan2 retain that
+	intermediate precision and the one final binary64 spill, but their reduction
+	is deliberately mathematical rather than an emulation of undocumented
+	microcode: FSIN/FCOS use only a documented 66-bit approximation of pi and
+	lose many binary64 ULPs on large inputs.  A 256-bit Payne-Hanek constant keeps
+	the complete |x|<2^63 instruction domain portable and accurate instead.
+
+	The transcendental contract is therefore two-layered.  The independent
+	Decimal grader requires every final result within one binary64 ULP of the
+	mathematical value (the allowance is for the explicit 64-bit intermediate
+	rounding), while production probes and hashes require consumer-visible game
+	behaviour to remain unchanged.  Legacy x87 agreement is reported as
+	characterization, not silently treated as mathematical truth outside the
+	actual game domain.
+
+	THE STACK MODEL is explicit and is a real 8-entry ring with a TOP
+	that decrements on push, because that is what the thing being
+	modelled is.  A chain that leaves the stack unbalanced does so
+	here too, visibly, instead of quietly working.
+
+	REPRESENTATION.  value = (M / 2^63) * 2^(E - 16383), M in
+	2^63 upto 2^64, exactly the x87 extended significand convention.
+	Zero is E=0, M=0.  Binary64 subnormals are normalized on import.
+	Infinities and NaNs are rejected: they do not occur in Noctis's generation
+	path, and XREJ makes any accidental arrival visible rather than silently
+	wrong.
+
+	Mul128 uses its own portable 16-bit-limb routine for the four exact
+	32x32 partial products.  It therefore builds with the stock Lino
+	compiler and CPU pack and contains no target-machine escape.      )
+
+"constants"
+
+	XBIAS	= 16383;
+	XM16	= 65535;
+
+"variables"
+
+	( st0 image )
+	XS = 0; XE = 0; XMH = 0; XML = 0;
+	( st1 / second operand image )
+	YS = 0; YE = 0; YMH = 0; YML = 0;
+
+	XTOP = 0;			( 0..7, decrements on push )
+	XIN  = 0;			( int32 input to XFild / XFiquo )
+	XU0 = 0; XU1 = 0;		( binary64 input image, low/high )
+	FQUOFAILCLOSEXREJSHIFT = 0;
+	XREJ = 0;
+	XDEPTH = 0;			( how many pushes are live )
+
+	( 128-bit product limbs )
+	xa0 = 0; xa1 = 0; xb0 = 0; xb1 = 0;
+	xc0 = 0; xc1 = 0; xd0 = 0; xd1 = 0;
+	xp0 = 0; xp1 = 0; xp2 = 0; xp3 = 0;
+	xcy = 0;
+	xua = 0; xub = 0; xulo = 0; xuhi = 0;
+	xul0 = 0; xuh0 = 0; xul1 = 0; xuh1 = 0;
+	xup0 = 0; xup1 = 0; xup2 = 0; xup3 = 0;
+	xumid = 0; xutmp = 0;
+
+	( division state: R is 65 bits, Q is 66 bits )
+	rc = 0; rh = 0; rl = 0;
+	qc = 0; qh = 0; ql = 0;
+	xiter = 0; xbrw = 0;
+	xrbit = 0; xsbit = 0; xdel = 0;
+	xtmp = 0; xadr = 0;
+	xi64h = 0; xi64l = 0; xishift = 0;
+
+	( add/sub state: a 67-bit significand is high:low:extra,
+	  with three low guard/round/sticky bits )
+	xash = 0; xasl = 0; xasx = 0;
+	xbsh = 0; xbsl = 0; xbsx = 0;
+	xssh = 0; xssl = 0; xssx = 0;
+	xase = 0; xbse = 0; xasd = 0;
+	xass = 0; xbss = 0; xaso = 0; xasw = 0;
+	xasb = 0; xasbit = 0;
+
+	( square-root state: fixed 128-bit radicand, 64-bit root, 96-bit
+	  restoring remainder, 65-bit trial divisor, and bounded scratch. )
+	srd0 = 0; srd1 = 0; srd2 = 0; srd3 = 0;
+	sqrh = 0; sqrl = 0; sqmh = 0; sqml = 0;
+	sqcarry = 0; sqstep = 0;
+	srm0 = 0; srm1 = 0; srm2 = 0; srm3 = 0;
+
+	( transcendental state.  The named four-word images keep values live
+	  across the integer soft-float cores without using the host stack. )
+	XTINIT = 0; XTOOR = 0; xtsign = 0; xtysign = 0; xtxsign = 0;
+	xtquad = 0; xts = 0; xth = 0; xtpos = 0; xtbit = 0;
+	xti = 0; xtj = 0; xtk = 0; xtnlimb = 0; xtrem = 0;
+	xtcarry = 0; xtmask = 0; xtsum = 0; xtprod = 0;
+	xttable = 0; xtindex = 0; xtsticky = 0;
+
+	TRS = 0; TRE = 0; TRMH = 0; TRML = 0;
+	TZS = 0; TZE = 0; TZMH = 0; TZML = 0;
+	TUS = 0; TUE = 0; TUMH = 0; TUML = 0;
+	TPS = 0; TPE = 0; TPMH = 0; TPML = 0;
+	TBS = 0; TBE = 0; TBMH = 0; TBML = 0;
+	TAS = 0; TAE = 0; TAMH = 0; TAML = 0;
+	TDS = 0; TDE = 0; TDMH = 0; TDML = 0;
+
+	( Positive fractional-power state.  PB and PY retain the caller's
+	  live inputs while the coefficient tables initialize. )
+	XPINIT = 0; xpe = 0; xpn = 0;
+	PBS = 0; PBE = 0; PBMH = 0; PBML = 0;
+	PYS = 0; PYE = 0; PYMH = 0; PYML = 0;
+
+"workspace"
+
+	XSTK = 32;			( 8 entries of 4 units: s e mh ml )
+	XPAY = 20;			( 320-bit Payne-Hanek product / remainder )
+	XPC = 16;			( 256-bit 2/pi, 16-bit little-endian limbs )
+	XMANT = 4;			( input significand, 16-bit limbs )
+	XSINTAB = 40;			( ten four-unit extended coefficients )
+	XCOSTAB = 44;			( eleven four-unit extended coefficients )
+	XPLOGTAB = 60;			( 1,1/3,...,1/29 for log2 reduction )
+	XPEXPTAB = 84;			( 1/0!,1/1!,...,1/20! for exp reduction )
+
+"programme"
+
+( ==================================================================== )
+( the stack                                                             )
+( ==================================================================== )
+
+      ( XAddr0 / XAddr1 - E <- the address of st(0) / st(1).
+	x87 numbering: st(0) is at TOP, st(1) at TOP+1, modulo 8. )
+
+"XAddr0"
+	A = [XTOP]; A & 7; A * 4; B = XSTK; A + B; E = A;
+	end;
+
+"XAddr1"
+	A = [XTOP]; A + 1; A & 7; A * 4; B = XSTK; A + B; E = A;
+	end;
+
+      ( XPush - TOP-- then store the X registers into the new st(0). )
+
+"XPush"
+	A = [XTOP]; A - 1; A & 7; [XTOP] = A;
+	=> XAddr0;
+	A = [XS];  [E] = A;
+	A = [XE];  [E plus 1] = A;
+	A = [XMH]; [E plus 2] = A;
+	A = [XML]; [E plus 3] = A;
+	[XDEPTH]+;
+	end;
+
+      ( XPop - load st(0) into the X registers, then TOP++. )
+
+"XPop"
+	=> XAddr0;
+	A = [E];		[XS]  = A;
+	A = [E plus 1];		[XE]  = A;
+	A = [E plus 2];		[XMH] = A;
+	A = [E plus 3];		[XML] = A;
+	A = [XTOP]; A + 1; A & 7; [XTOP] = A;
+	A = [XDEPTH]; A - 1; [XDEPTH] = A;
+	end;
+
+      ( XLoad0 / XLoad1 - read without popping. )
+
+"XLoad0"
+	=> XAddr0;
+	A = [E];		[XS]  = A;
+	A = [E plus 1];		[XE]  = A;
+	A = [E plus 2];		[XMH] = A;
+	A = [E plus 3];		[XML] = A;
+	end;
+
+"XLoad1"
+	=> XAddr1;
+	A = [E];		[YS]  = A;
+	A = [E plus 1];		[YE]  = A;
+	A = [E plus 2];		[YMH] = A;
+	A = [E plus 3];		[YML] = A;
+	end;
+
+"XStore0"
+	=> XAddr0;
+	A = [XS];  [E] = A;
+	A = [XE];  [E plus 1] = A;
+	A = [XMH]; [E plus 2] = A;
+	A = [XML]; [E plus 3] = A;
+	end;
+
+"XStore1"
+	=> XAddr1;
+	A = [XS];  [E] = A;
+	A = [XE];  [E plus 1] = A;
+	A = [XMH]; [E plus 2] = A;
+	A = [XML]; [E plus 3] = A;
+	end;
+
+      ( XReset - empty stack.  Call once before a chain. )
+
+"XReset"
+	[XTOP] = 0;
+	[XDEPTH] = 0;
+	end;
+
+( ==================================================================== )
+( binary64 -> extended, exact                                           )
+( ==================================================================== )
+
+      ( XFromF64 - XU0:XU1 -> X registers.  Normal binary64 values are
+	exactly representable in the wider 64-bit x87 mantissa.  Binary64
+	subnormals are normalized explicitly rather than delegated to a host. )
+
+"XFromF64"
+	---->;
+	=> XFromF64 body;
+	<----;
+	end;
+    "XFromF64 body"
+	A = [XU1]; A > 31; [XS] = A;
+	A = [XU1]; A > 20; A & 7FFh; [XE] = A;
+	A = [XU1]; A & 0FFFFFh; A < 11;
+	B = [XU0]; B > 21; A | B; [XMH] = A;
+	A = [XU0]; A < 11; [XML] = A;
+      ? [XE] = 0 -> XFF denorm;
+      ? [XE] = 7FFh -> XFF reject;
+	A = [XE]; A + 15360; [XE] = A;
+	A = [XMH]; A | 80000000h; [XMH] = A;
+	end;
+    "XFF denorm"
+	A = [XMH]; B = [XML]; A | B;
+      ? A = 0 -> XFF zero;
+	A = 15361; [XE] = A;
+    "XFF norm"
+	A = [XMH]; A & 80000000h;
+      ? A != 0 -> XFF done;
+	A = [XMH]; A < 1; B = [XML]; B > 31; A | B; [XMH] = A;
+	A = [XML]; A < 1; [XML] = A;
+	[XE]-;
+	-> XFF norm;
+    "XFF zero"
+	[XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+    "XFF reject"
+	[XREJ]+;
+	[XE] = 0; [XMH] = 0; [XML] = 0;
+    "XFF done"
+	end;
+
+( ==================================================================== )
+( int32 -> extended, exact for every int32                              )
+( ==================================================================== )
+
+      ( XFromInt - [XIN] -> X registers.
+
+	fild of a dword cannot round at any precision control, because
+	every int32 fits in 64 bits of mantissa.  So this is a sign,
+	an absolute value and a normalising shift, and nothing else. )
+
+"XFromInt"
+	---->;
+	=> XFromInt body;
+	<----;
+	end;
+    "XFromInt body"
+	[XS] = 0;
+	A = [XIN];
+      ? A != 0 -> XFI nonzero;
+	[XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+    "XFI nonzero"
+	A = [XIN]; A & 80000000h;
+      ? A = 0 -> XFI pos;
+	[XS] = 1;
+	A = 0; A - [XIN]; [xtmp] = A;		( two's complement negate )
+	-> XFI norm;
+    "XFI pos"
+	A = [XIN]; [xtmp] = A;
+    "XFI norm"
+	( shift left until bit 31 is set; count the shifts.
+
+	  -2147483648 negates to itself, which already has bit 31 set,
+	  so it takes zero shifts and lands correctly - the one input
+	  where a naive abs() would loop forever or overflow. )
+	[xiter] = 0;
+    "XFI shl"
+	A = [xtmp]; A & 80000000h;
+      ? A != 0 -> XFI done;
+	A = [xtmp]; A < 1; [xtmp] = A;
+	[xiter]+;
+	-> XFI shl;
+    "XFI done"
+	A = [xtmp]; [XMH] = A;
+	[XML] = 0;
+	( value = xtmp * 2^(iter-31) and xtmp/2^31 is in 1 upto 2,
+	  so the exponent is 16383 + 31 - iter )
+	A = XBIAS; A + 31; A - [xiter]; [XE] = A;
+	end;
+
+( ==================================================================== )
+( multiply, 64-bit mantissa                                             )
+( ==================================================================== )
+
+      ( XMul32u - exact unsigned 32x32 -> 64 using four 16-bit limbs. )
+
+"XMul32u"
+	A = [xua]; A & XM16;			[xul0] = A;
+	A = [xua]; A > 16; A & XM16;		[xuh0] = A;
+	A = [xub]; A & XM16;			[xul1] = A;
+	A = [xub]; A > 16; A & XM16;		[xuh1] = A;
+	A = [xul0]; A '* [xul1];		[xup0] = A;
+	A = [xul0]; A '* [xuh1];		[xup1] = A;
+	A = [xuh0]; A '* [xul1];		[xup2] = A;
+	A = [xuh0]; A '* [xuh1];		[xup3] = A;
+	A = [xup0]; A > 16;			[xutmp] = A;
+	A = [xup1]; A & XM16; A + [xutmp];	[xutmp] = A;
+	A = [xup2]; A & XM16; A + [xutmp];	[xumid] = A;
+	A = [xumid]; A & XM16; A < 16;		[xutmp] = A;
+	A = [xup0]; A & XM16; A | [xutmp];	[xulo] = A;
+	A = [xup3];
+	B = [xup1]; B > 16; A + B;
+	B = [xup2]; B > 16; A + B;
+	B = [xumid]; B > 16; A + B;		[xuhi] = A;
+	end;
+
+      ( Mul128 - XMH:XML times YMH:YML -> xp3:xp2:xp1:xp0, exact.
+	Lifted from work/probe_w3c_sf.txt. )
+
+"Mul128"
+	[xua] = [XML]; [xub] = [YML]; => XMul32u;
+	[xa0] = [xulo]; [xa1] = [xuhi];
+	[xua] = [XML]; [xub] = [YMH]; => XMul32u;
+	[xb0] = [xulo]; [xb1] = [xuhi];
+	[xua] = [XMH]; [xub] = [YML]; => XMul32u;
+	[xc0] = [xulo]; [xc1] = [xuhi];
+	[xua] = [XMH]; [xub] = [YMH]; => XMul32u;
+	[xd0] = [xulo]; [xd1] = [xuhi];
+
+	A = [xa0];			[xp0] = A;
+
+	A = [xa1]; B = [xb0]; A + B; E = 0;
+      ? A '>= B -> m128 c1a;
+	E = 1;
+    "m128 c1a"
+	B = [xc0]; A + B;
+      ? A '>= B -> m128 c1b;
+	E + 1;
+    "m128 c1b"
+	[xp1] = A;
+	[xcy] = E;
+
+	A = [xb1]; B = [xc1]; A + B; D = 0;
+      ? A '>= B -> m128 c2a;
+	D = 1;
+    "m128 c2a"
+	B = [xd0]; A + B;
+      ? A '>= B -> m128 c2b;
+	D + 1;
+    "m128 c2b"
+	B = [xcy]; A + B;
+      ? A '>= B -> m128 c2c;
+	D + 1;
+    "m128 c2c"
+	[xp2] = A;
+
+	A = [xd1]; A + D;		[xp3] = A;
+	end;
+
+      ( XMulCore - the 64-bit-mantissa multiply of X by Y.
+
+	The product of two normalised 64-bit mantissas lies in
+	2^126 upto 2^128.  If it reached 2^127 the top 64 bits are the
+	answer and the exponent gains one; otherwise bits 126..63 are,
+	and it does not.  Everything below the kept 64 bits is a round
+	bit and a sticky. )
+
+"XMulCore"
+	---->;
+	=> XMulCore body;
+	<----;
+	end;
+    "XMulCore body"
+	? [XE] = 0 -> xm zero;
+	? [YE] = 0 -> xm zero;
+	=> Mul128;
+
+	A = [xp3]; A > 31;		[xdel] = A;
+      ? [xdel] = 0 -> xm sh63;
+
+	( product in 2^127 upto 2^128: the answer is bits 127..64 )
+	A = [xp2];			[XML] = A;
+	A = [xp3];			[XMH] = A;
+	A = [xp1]; A > 31;		[xrbit] = A;
+	A = [xp1]; A & 7FFFFFFFh; B = [xp0]; A | B;	[xsbit] = A;
+	-> xm round;
+
+    "xm sh63"
+	A = [xp1]; A > 31; B = [xp2]; B < 1; A | B;	[XML] = A;
+	A = [xp2]; A > 31; B = [xp3]; B < 1; A | B;	[XMH] = A;
+	A = [xp1]; A > 30; A & 1;			[xrbit] = A;
+	A = [xp1]; A & 3FFFFFFFh; B = [xp0]; A | B;	[xsbit] = A;
+
+    "xm round"
+      ? [xrbit] = 0 -> xm exp;
+      ? [xsbit] != 0 -> xm inc;
+	A = [XML]; A & 1;
+      ? A = 0 -> xm exp;
+    "xm inc"
+	A = [XML]; A + 1; [XML] = A;
+      ? A != 0 -> xm exp;
+	A = [XMH]; A + 1; [XMH] = A;
+      ? A != 0 -> xm exp;
+	( the mantissa wrapped past 2^64: it is now exactly 1.0 x 2^1 )
+	A = 80000000h; [XMH] = A;
+	[XML] = 0;
+	A = [xdel]; A + 1; [xdel] = A;
+
+    "xm exp"
+	A = [XE]; A + [YE]; A - XBIAS; A + [xdel];	[XE] = A;
+	A = [XS]; B = [YS]; A # B;			[XS] = A;
+	end;
+
+    "xm zero"
+	A = [XS]; B = [YS]; A # B; [XS] = A;
+	[XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+
+( ==================================================================== )
+( add/subtract, 64-bit mantissa                                        )
+( ==================================================================== )
+
+      ( XAddCore / XSubCore - X <- X +/- Y for finite normal or zero
+	values.  The significand is carried as a 67-bit integer
+	(high:low:extra), where extra contains guard, round and sticky bits.
+	The smaller operand is shifted right with jamming, so the final pack is
+	nearest-even without a binary64 spill.  The input/output images use the
+	usual x87 convention: M is [XMH:XML], E is [XE], and zero is E=0. )
+
+"XAddCore"
+	---->;
+	=> XAddCore body;
+	<----;
+	end;
+    "XAddCore body"
+	[xaso] = 0;
+	-> xas enter;
+
+"XSubCore"
+	---->;
+	=> XSubCore body;
+	<----;
+	end;
+    "XSubCore body"
+	[xaso] = 1;
+	-> xas enter;
+
+    "xas enter"
+	A = [XS]; [xass] = A;
+	A = [YS]; [xbss] = A;
+	A = [xaso]; B = [xbss]; A # B; [xbss] = A;
+	A = [XE]; [xase] = A;
+	A = [YE]; [xbse] = A;
+	A = [XMH]; [xash] = A;
+	A = [XML]; [xasl] = A;
+	A = [YMH]; [xbsh] = A;
+	A = [YML]; [xbsl] = A;
+	? [xase] = 0 -> xas xzero;
+	? [xbse] = 0 -> xas yzero;
+	-> xas magnitude;
+
+    "xas xzero"
+	? [xbse] != 0 -> xas xzero copy;
+	A = [xass]; B = [xbss]; ? A = B -> xas zero same;
+	[XS] = 0; [XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+    "xas zero same"
+	A = [xass]; [XS] = A;
+	[XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+    "xas xzero copy"
+	A = [xbss]; [XS] = A;
+	A = [xbse]; [XE] = A;
+	A = [xbsh]; [XMH] = A;
+	A = [xbsl]; [XML] = A;
+	end;
+
+    "xas yzero"
+	A = [xass]; [XS] = A;
+	A = [xase]; [XE] = A;
+	A = [xash]; [XMH] = A;
+	A = [xasl]; [XML] = A;
+	end;
+
+    ( Put the greater magnitude in the X work image.  Equal
+	  magnitudes keep X, which gives exact cancellation a canonical +0. )
+    "xas magnitude"
+	A = [xase]; B = [xbse];
+	? A '>= B -> xas exponent ordered;
+	-> xas swap;
+    "xas exponent ordered"
+	? A '> B -> xas aligned;
+	? A '< B -> xas swap;
+	A = [xash]; B = [xbsh];
+	? A '> B -> xas aligned;
+	? A '< B -> xas swap;
+	A = [xasl]; B = [xbsl];
+	? A '>= B -> xas aligned;
+	-> xas swap;
+    "xas swap"
+	A = [xase]; B = [xbse]; [xase] = B; [xbse] = A;
+	A = [xass]; B = [xbss]; [xass] = B; [xbss] = A;
+	A = [xash]; B = [xbsh]; [xash] = B; [xbsh] = A;
+	A = [xasl]; B = [xbsl]; [xasl] = B; [xbsl] = A;
+
+    "xas aligned"
+	( X and Y remain unshifted M[63:32]:M[31:0]; extra carries only
+	  the three guard/round/sticky bits below bit zero. )
+	[xasx] = 0; [xbsx] = 0;
+	A = [xase]; A - [xbse]; [xasd] = A;
+	A = [xasd]; ? A > 67 -> xas far;
+	? [xasd] = 0 -> xas op;
+
+    ( Binary-decompose the distance instead of walking one bit at a time.
+	  Each fixed shift keeps the three leading discarded bits in extra and
+	  jams every lower discarded bit into extra bit zero. )
+    "xas shift"
+	A = [xasd]; ? A = 0 -> xas op;
+	? A > 31 -> xas shift32 dispatch;
+	-> xas shift16 dispatch;
+    "xas shift32 dispatch"
+	-> xas shift32;
+    "xas shift32 next"
+	A = [xasd]; A - 32; [xasd] = A; -> xas shift;
+    "xas shift32"
+	A = [xbsx]; [xasbit] = A;
+	A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; [xbsl] = A; [xbsh] = 0;
+	A = [xasw]; A > 29; [xbsx] = A;
+	A = [xasw]; A & 1FFFFFFFh; B = [xasbit]; A | B;
+	? A = 0 -> xas shift32 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift32 sticky done"
+	-> xas shift32 next;
+
+    "xas shift16 dispatch"
+	A = [xasd]; A & 16; ? A = 0 -> xas shift8 dispatch;
+	-> xas shift16;
+    "xas shift16 next"
+	A = [xasd]; A - 16; [xasd] = A; -> xas shift;
+    "xas shift16"
+	A = [xbsx]; [xasbit] = A; A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; A > 16; [xbsh] = A;
+	A = [xasw]; A > 16; B = [xssh]; B < 16; A | B; [xbsl] = A;
+	A = [xasw]; A > 13; A & 7; [xbsx] = A;
+	A = [xasw]; A & 1FFFh; B = [xasbit]; A | B;
+	? A = 0 -> xas shift16 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift16 sticky done"
+	-> xas shift16 next;
+
+    "xas shift8 dispatch"
+	A = [xasd]; A & 8; ? A = 0 -> xas shift4 dispatch;
+	-> xas shift8;
+    "xas shift8 next"
+	A = [xasd]; A - 8; [xasd] = A; -> xas shift;
+    "xas shift8"
+	A = [xbsx]; [xasbit] = A; A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; A > 8; [xbsh] = A;
+	A = [xasw]; A > 8; B = [xssh]; B < 24; A | B; [xbsl] = A;
+	A = [xasw]; A > 5; A & 7; [xbsx] = A;
+	A = [xasw]; A & 1Fh; B = [xasbit]; A | B;
+	? A = 0 -> xas shift8 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift8 sticky done"
+	-> xas shift8 next;
+
+    "xas shift4 dispatch"
+	A = [xasd]; A & 4; ? A = 0 -> xas shift2 dispatch;
+	-> xas shift4;
+    "xas shift4 next"
+	A = [xasd]; A - 4; [xasd] = A; -> xas shift;
+    "xas shift4"
+	A = [xbsx]; [xasbit] = A; A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; A > 4; [xbsh] = A;
+	A = [xasw]; A > 4; B = [xssh]; B < 28; A | B; [xbsl] = A;
+	A = [xasw]; A > 1; A & 7; [xbsx] = A;
+	A = [xasw]; A & 1; B = [xasbit]; A | B;
+	? A = 0 -> xas shift4 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift4 sticky done"
+	-> xas shift4 next;
+
+    "xas shift2 dispatch"
+	A = [xasd]; A & 2; ? A = 0 -> xas shift1 dispatch;
+	-> xas shift2;
+    "xas shift2 next"
+	A = [xasd]; A - 2; [xasd] = A; -> xas shift;
+    "xas shift2"
+	A = [xbsx]; [xasbit] = A; A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; A > 2; [xbsh] = A;
+	A = [xasw]; A > 2; B = [xssh]; B < 30; A | B; [xbsl] = A;
+	A = [xasbit]; A > 2; [xbsx] = A;
+	A = [xasw]; A & 3; A < 1; B = [xbsx]; A | B; [xbsx] = A;
+	A = [xasbit]; A & 3; ? A = 0 -> xas shift2 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift2 sticky done"
+	-> xas shift2 next;
+
+    "xas shift1 dispatch"
+	A = [xasd]; A & 1; ? A = 0 -> xas op;
+	-> xas shift1;
+    "xas shift1"
+	A = [xbsx]; [xasbit] = A; A = [xbsl]; [xasw] = A;
+	A = [xbsh]; [xssh] = A; A > 1; [xbsh] = A;
+	A = [xasw]; A > 1; B = [xssh]; B < 31; A | B; [xbsl] = A;
+	A = [xasbit]; A > 1; [xbsx] = A;
+	A = [xasw]; A & 1; A < 2; B = [xbsx]; A | B; [xbsx] = A;
+	A = [xasbit]; A & 1; ? A = 0 -> xas shift1 sticky done;
+	A = [xbsx]; A | 1; [xbsx] = A;
+    "xas shift1 sticky done"
+	[xasd] = 0; -> xas op;
+
+    "xas far"
+	( All of Y is below the retained 67 bits.  Y is normal and nonzero,
+	  so one sticky bit is sufficient. )
+	[xbsh] = 0; [xbsl] = 0; [xbsx] = 1;
+
+    "xas op"
+	A = [xass]; B = [xbss];
+	? A = B -> xas add;
+	-> xas subtract;
+
+    ( Same signs: add the three words, carrying from extra to low and
+	  from low to high.  xasb is the carry beyond the top word. )
+    "xas add"
+	A = [xasx]; B = [xbsx]; A + B; [xssx] = A; [xasbit] = 0;
+	? A < 8 -> xas add extra ready;
+	[xasbit] = 1;
+    "xas add extra ready"
+	A = [xasl]; B = [xbsl]; A + B; [xssl] = A; [xasb] = 0;
+	? A '>= B -> xas add low ready;
+	[xasb] = 1;
+    "xas add low ready"
+	? [xasbit] = 0 -> xas add high;
+	A = [xssl]; A + 1; [xssl] = A;
+	? A != 0 -> xas add high;
+	[xasb] = 1;
+    "xas add high"
+	A = [xash]; B = [xbsh]; A + B; [xssh] = A; E = 0;
+	? A '>= B -> xas add high base ready;
+	E = 1;
+    "xas add high base ready"
+	[xasw] = E;
+	? [xasb] = 0 -> xas add high combine;
+	A = [xssh]; A + 1; [xssh] = A;
+	? A != 0 -> xas add high combine;
+	[xasw] = 1;
+	"xas add high combine"
+	A = [xasw]; [xasb] = A;
+    "xas add high carry ready"
+	? [xasb] = 0 -> xas pack;
+	( A carry out shifts the 67-bit sum and becomes part of the
+	  normalized high word.  Preserve the old low bit as sticky. )
+	A = [xssx]; A & 1; [xasbit] = A;
+	A = [xssx]; A > 1; [xssx] = A;
+	A = [xssl]; A & 1; A < 2; B = [xssx]; A | B; [xssx] = A;
+	A = [xssl]; A > 1; B = [xssh]; B < 31; A | B; [xssl] = A;
+	A = [xssh]; A > 1; B = [xasb]; B < 31; A | B; [xssh] = A;
+	A = [xasbit]; ? A = 0 -> xas add carry sticky ready;
+	A = [xssx]; A | 1; [xssx] = A;
+    "xas add carry sticky ready"
+	A = [xase]; A + 1; [xase] = A;
+	-> xas pack;
+
+    ( Opposite signs: subtract the smaller magnitude from the larger.
+	  Borrow is propagated extra -> low -> high. )
+    "xas subtract"
+	A = [xasx]; B = [xbsx]; E = 0;
+	? A '>= B -> xas sub extra ordered;
+	E = 1;
+    "xas sub extra ordered"
+	A = [xasx]; A - [xbsx]; [xssx] = A; [xasb] = E;
+	A = [xasl]; B = [xbsl]; [xasbit] = 0;
+	? A '>= B -> xas sub low ordered;
+	[xasbit] = 1;
+    "xas sub low ordered"
+	A = [xasl]; A - [xbsl]; [xssl] = A;
+	? [xasb] = 0 -> xas sub high;
+	A = [xssl]; ? A = 0 -> xas sub extra borrow;
+	A - 1; [xssl] = A; -> xas sub high;
+	"xas sub extra borrow"
+	A = 0; A - 1; [xssl] = A; [xasbit] = 1;
+    "xas sub high"
+	A = [xash]; B = [xbsh]; [xasb] = 0;
+	? A '>= B -> xas sub high ordered;
+	[xasb] = 1;
+    "xas sub high ordered"
+	A = [xash]; A - [xbsh]; [xssh] = A;
+	? [xasbit] = 0 -> xas sub result;
+	A = [xssh]; ? A = 0 -> xas sub high borrow;
+	A - 1; [xssh] = A; -> xas sub result;
+	"xas sub high borrow"
+	A = 0; A - 1; [xssh] = A; [xasb] = 1;
+
+    "xas sub result"
+	A = [xssh]; B = [xssl]; A | B; C = [xssx]; A | C;
+	? A = 0 -> xas zero result;
+	A = [xssh]; A & 80000000h;
+	? A != 0 -> xas pack;
+    "xas sub normalize"
+	A = [xssx]; A > 2; A & 1; [xasbit] = A;
+	A = [xssl]; A > 31; A & 1; [xasw] = A;
+	A = [xssx]; A < 1; A & 7; [xssx] = A;
+	A = [xssl]; A < 1; B = [xasbit]; A | B; [xssl] = A;
+	A = [xssh]; A < 1; B = [xasw]; A | B; [xssh] = A;
+	A = [xase]; A - 1; [xase] = A;
+	? A <= 0 -> xas zero result;
+	A = [xssh]; A & 80000000h;
+	? A = 0 -> xas sub normalize;
+	-> xas pack;
+
+    "xas zero result"
+	[XS] = 0; [XE] = 0; [XMH] = 0; [XML] = 0;
+	end;
+
+
+    ( Pack M and the extra guard/round/sticky bits, then nearest-even
+	  round and sticky bits. )
+    "xas pack"
+	A = [xssh]; [XMH] = A;
+	A = [xssl]; [XML] = A;
+	A = [xssx]; A & 4; ? A = 0 -> xas packed;
+	A = [xssx]; A & 3; ? A != 0 -> xas increment;
+	A = [XML]; A & 1; ? A != 0 -> xas increment;
+	-> xas packed;
+    "xas increment"
+	A = [XML]; A + 1; [XML] = A;
+	? A != 0 -> xas packed;
+	A = [XMH]; A + 1; [XMH] = A;
+	? A != 0 -> xas packed;
+	[XMH] = 80000000h; [XML] = 0;
+	[xase]+;
+    "xas packed"
+	A = [xass]; [XS] = A;
+	A = [xase]; [XE] = A;
+	end;
+
+( ==================================================================== )
+( divide, 64-bit mantissa                                               )
+( ==================================================================== )
+
+      ( XQuoCore - X <- X / Y at 64 bits of mantissa, nearest-even.
+
+	Restoring division, one quotient bit per iteration, which is the
+	shape a port gets without a 64/32 divide primitive.
+
+	Both mantissas are normalised, so the quotient lies in above 0.5 and below 2
+	and 65 iterations from R = MX give
+	    Q = floor(MX * 2^65 / MY)  in above 2^64 and below 2^66,
+	65 or 66 bits.  Which of the two it is IS the exponent decision,
+	so it is read off the top bits rather than being guessed:
+
+	  Q >= 2^65   quotient >= 1   keep Q>>2, round bit is bit 1,
+	                              exponent is EX-EY+bias
+	  Q <  2^65   quotient < 1    keep Q>>1, round bit is bit 0,
+	                              exponent is EX-EY+bias-1
+
+	R needs a 65th bit because R doubles before every comparison;
+	that is `rc`, and forgetting it is the classic way this loop
+	silently produces a quotient that saturates. )
+
+"XQuoCore"
+	---->;
+	=> XQuoCore body;
+	<----;
+	end;
+    "XQuoCore body"
+	A = [XS]; B = [YS]; A # B;	[XS] = A;
+	A = [XE]; A - [YE]; A + XBIAS;	[xtmp] = A;
+
+	[rc] = 0;
+	A = [XMH]; [rh] = A;
+	A = [XML]; [rl] = A;
+	[qc] = 0; [qh] = 0; [ql] = 0;
+	[xiter] = 0;
+
+	( THE PRE-SUBTRACT, and it is not an optimisation.
+
+	  Restoring division needs R < Y at the top of every iteration.
+	  Both mantissas are normalised, so MX can be up to almost twice
+	  MY and the invariant does not hold to start with.  Without this
+	  step the very first doubling can leave R above 2Y, one
+	  subtraction is not enough, and the quotient saturates - which
+	  looks like a plausible number, not like a crash.
+
+	  MY >= 2^63 and MX < 2^64 give MX - MY < MY, so one conditional
+	  subtraction is exactly enough and the invariant then holds for
+	  the whole loop. )
+
+	A = [XMH];
+      ? A '> [YMH] -> xq pre;
+      ? A '< [YMH] -> xq loop;
+	A = [XML];
+      ? A '< [YML] -> xq loop;
+    "xq pre"
+	A = [rl]; E = 0;
+      ? A '>= [YML] -> xq preb;
+	E = 1;
+    "xq preb"
+	A = [rl]; A - [YML]; [rl] = A;
+	A = [rh]; A - [YMH]; A - E; [rh] = A;
+	[ql] = 1;
+
+    "xq loop"
+	( Q <<= 1 )
+	A = [qc]; A < 1; B = [qh]; B > 31; A | B; [qc] = A;
+	A = [qh]; A < 1; B = [ql]; B > 31; A | B; [qh] = A;
+	A = [ql]; A < 1; [ql] = A;
+	( R <<= 1 )
+	A = [rh]; A > 31;			[rc] = A;
+	A = [rh]; A < 1; B = [rl]; B > 31; A | B; [rh] = A;
+	A = [rl]; A < 1; [rl] = A;
+	( if R >= Y then R -= Y, Q |= 1 )
+      ? [rc] != 0 -> xq sub;
+	A = [rh];
+      ? A '> [YMH] -> xq sub;
+      ? A '< [YMH] -> xq next;
+	A = [rl];
+      ? A '< [YML] -> xq next;
+    "xq sub"
+	A = [rl]; E = 0;
+      ? A '>= [YML] -> xq nob;
+	E = 1;
+    "xq nob"
+	A = [rl]; A - [YML]; [rl] = A;
+	A = [rh]; A - [YMH]; A - E; [rh] = A;
+	[rc] = 0;
+	A = [ql]; A | 1; [ql] = A;
+    "xq next"
+	[xiter]+;
+      ? [xiter] < 65 -> xq loop;
+
+	( which side of 2^65 did the quotient land? )
+	A = [qc]; A & 2;
+      ? A = 0 -> xq small;
+
+	( Q in 2^65 upto 2^66: mantissa is Q>>2 )
+	A = [qh]; A > 2; B = [qc]; B < 30; A | B;	[XMH] = A;
+	A = [ql]; A > 2; B = [qh]; B < 30; A | B;	[XML] = A;
+	A = [ql]; A > 1; A & 1;				[xrbit] = A;
+	A = [ql]; A & 1; B = [rh]; A | B; B = [rl]; A | B; [xsbit] = A;
+	A = [xtmp];					[XE] = A;
+	-> xq round;
+
+    "xq small"
+	( Q in 2^64 upto 2^65: mantissa is Q>>1 )
+	A = [qh]; A > 1; B = [qc]; B < 31; A | B;	[XMH] = A;
+	A = [ql]; A > 1; B = [qh]; B < 31; A | B;	[XML] = A;
+	A = [ql]; A & 1;				[xrbit] = A;
+	A = [rh]; B = [rl]; A | B;			[xsbit] = A;
+	A = [xtmp]; A - 1;				[XE] = A;
+
+    "xq round"
+      ? [xrbit] = 0 -> xq done;
+      ? [xsbit] != 0 -> xq inc;
+	A = [XML]; A & 1;
+      ? A = 0 -> xq done;
+    "xq inc"
+	A = [XML]; A + 1; [XML] = A;
+      ? A != 0 -> xq done;
+	A = [XMH]; A + 1; [XMH] = A;
+      ? A != 0 -> xq done;
+	A = 80000000h; [XMH] = A;
+	[XML] = 0;
+	A = [XE]; A + 1; [XE] = A;
+    "xq done"
+	end;
+
+( ==================================================================== )
+( extended -> binary64, the ONE store at the end of a chain              )
+( ==================================================================== )
+
+      ( XToF64 - X registers -> FA0/FA1, round to nearest even.
+
+	This is the SECOND rounding in the pair that makes an 80-bit
+	chain differ from a 53-bit one: the arithmetic happened at 64
+	bits of mantissa and only here does it become 53.  Take that
+	away - round every operation to 53 as it is produced - and the
+	STARMAP score falls from 4194 to 2315.
+
+	    M bits 63     the implicit leading one
+	    M bits 62..11 the 52 stored fraction bits
+	    M bit  10     the round bit
+	    M bits 9..0   the sticky
+	    exponent field = E - 16383 + 1023 = E - 15360             )
+
+"XToF64"
+	---->;
+	=> XToF64 body;
+	<----;
+	end;
+    "XToF64 body"
+      ? [XE] = 0 -> xf zero;
+
+	[xtsticky] = 0;
+	A = [XE]; A - 15360; [xtmp] = A;
+      ? A > 0 -> xf extract;
+
+	( A binary64 subnormal has exponent field zero.  Shift the live
+	  significand by 1-field additional bits, jamming everything removed,
+	  then use the same bit-10 nearest-even spill as the normal path. )
+	A = 1; A - [xtmp]; [xdel] = A;
+      ? A > 53 -> xf tiny;
+    "xf denorm shift"
+	A = [XML]; A & 1; B = [xtsticky]; A | B; [xtsticky] = A;
+	A = [XML]; A > 1;
+	B = [XMH]; B & 1; B < 31; A | B; [XML] = A;
+	A = [XMH]; A > 1; [XMH] = A;
+	[xdel]-; ? [xdel] != 0 -> xf denorm shift;
+	[xtmp] = 0;
+
+    "xf extract"
+	A = [XMH]; A > 11; A & 0FFFFFh;			[xa0] = A;  ( frac hi )
+	A = [XMH]; A & 7FFh; A < 21;
+	B = [XML]; B > 11; A | B;			[xa1] = A;  ( frac lo )
+	A = [XML]; A > 10; A & 1;			[xrbit] = A;
+	A = [XML]; A & 3FFh; B = [xtsticky]; A | B;	[xsbit] = A;
+
+      ? [xrbit] = 0 -> xf pack;
+      ? [xsbit] != 0 -> xf inc;
+	A = [xa1]; A & 1;
+      ? A = 0 -> xf pack;
+    "xf inc"
+	A = [xa1]; A + 1; [xa1] = A;
+      ? A != 0 -> xf pack;
+	A = [xa0]; A + 1; [xa0] = A;
+      ? A != 100000h -> xf pack;
+	[xa0] = 0;
+	A = [xtmp]; A + 1; [xtmp] = A;
+
+    "xf pack"
+      ? [xtmp] < 0     -> xf reject;
+      ? [xtmp] >= 7FFh -> xf overflow;
+	A = [xa1];					[FA0] = A;
+	A = [xa0];
+	B = [xtmp]; B < 20; A | B;
+	B = [XS];   B < 31; A | B;			[FA1] = A;
+	end;
+
+    "xf zero"
+	[FA0] = 0;
+	A = [XS]; A < 31; [FA1] = A;
+	end;
+
+    "xf tiny"
+	[XREJ]+;
+	-> xf zero;
+
+    "xf overflow"
+	[XREJ]+;
+	[FA0] = 0;
+	A = 7FF00000h; B = [XS]; B < 31; A | B; [FA1] = A;
+	end;
+
+    "xf reject"
+	[XREJ]+;
+	-> xf zero;
+
+      ( XToF32 - X registers -> FS0, rounded once from the live 64-bit
+	extended mantissa.  Production enters these chains with RC=nearest;
+	there is deliberately no binary64 intermediate. )
+
+"XToF32"
+	---->;
+	=> XToF32 body;
+	<----;
+	end;
+    "XToF32 body"
+      ? [XE] = 0 -> xf32 zero;
+	[xtsticky] = 0;
+	A = [XE]; A - 16256; [xtmp] = A;
+      ? A > 0 -> xf32 extract;
+
+	( A binary32 subnormal has exponent field zero.  Shift the live
+	  significand by 1-field additional bits with jamming, then use the
+	  same bit-39 nearest-even spill as the normal path. )
+	A = 1; A - [xtmp]; [xdel] = A;
+      ? A > 24 -> xf32 tiny;
+    "xf32 denorm shift"
+	A = [XML]; A & 1; B = [xtsticky]; A | B; [xtsticky] = A;
+	A = [XML]; A > 1;
+	B = [XMH]; B & 1; B < 31; A | B; [XML] = A;
+	A = [XMH]; A > 1; [XMH] = A;
+	[xdel]-; ? [xdel] != 0 -> xf32 denorm shift;
+	[xtmp] = 0;
+
+    "xf32 extract"
+	A = [XMH]; A > 8; A & 7FFFFFh; [xa0] = A;
+	A = [XMH]; A > 7; A & 1; [xrbit] = A;
+	A = [XMH]; A & 7Fh; B = [XML]; A | B; B = [xtsticky]; A | B; [xsbit] = A;
+	      ? [xrbit] = 0 -> xf32 pack;
+	      ? [xsbit] != 0 -> xf32 inc;
+	A = [xa0]; A & 1;
+	      ? A = 0 -> xf32 pack;
+    "xf32 inc"
+	A = [xa0]; A + 1; [xa0] = A;
+	      ? A != 800000h -> xf32 pack;
+	[xa0] = 0; [xtmp]+;
+    "xf32 pack"
+	      ? [xtmp] < 0 -> xf32 reject;
+	      ? [xtmp] >= 0FFh -> xf32 overflow;
+	A = [xa0]; B = [xtmp]; B < 23; A | B;
+	B = [XS]; B < 31; A | B; [FS0] = A;
+	end;
+    "xf32 zero"
+	A = [XS]; A < 31; [FS0] = A;
+	end;
+    "xf32 tiny"
+	-> xf32 zero;
+    "xf32 overflow"
+	A = 7F800000h; B = [XS]; B < 31; A | B; [FS0] = A;
+	end;
+    "xf32 reject"
+	[XREJ]+;
+	A = [XS]; A < 31; [FS0] = A;
+	end;
+
+( ==================================================================== )
+( the schedule primitives - one per x87 mnemonic                        )
+( ==================================================================== )
+
+      ( XFild - push (extended)[XIN] )
+
+"XFild"
+	=> XFromInt;
+	=> XPush;
+	end;
+
+      ( XFiquo - st0 = st0 / (extended)[XIN] )
+
+"XFiquo"
+	=> XFromInt;
+	A = [XS];  [YS]  = A;
+	A = [XE];  [YE]  = A;
+	A = [XMH]; [YMH] = A;
+	A = [XML]; [YML] = A;
+	=> XLoad0;
+	=> XQuoCore;
+	=> XStore0;
+	end;
+
+      ( XFmulp - st1 = st1 * st0, then pop.  The operand order matters
+	for the sign and for nothing else, but it is written the way the
+	instruction is defined anyway. )
+
+"XFmulp"
+	=> XLoad0;
+	A = [XS];  [YS]  = A;
+	A = [XE];  [YE]  = A;
+	A = [XMH]; [YMH] = A;
+	A = [XML]; [YML] = A;
+	=> XPop;			( discard st0, X now holds it )
+	=> XLoad0;			( X <- the old st1, now st0 )
+	=> XMulCore;
+	=> XStore0;
+	end;
+
+      ( XFstpQ - pop st0 and store it as a binary64 in FA. )
+
+"XFstpQ"
+	=> XPop;
+	=> XToF64;
+	end;
+
+( ==================================================================== )
+( Stored-binary64 scalar helpers used by the portable public backend.  )
+( ==================================================================== )
+
+"XScalarQuo"
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+      ? [YE] = 0 -> XSQ zeroden;
+      ? [XE] != 0 -> XSQ nonzero;
+	A = [XS]; B = [YS]; A # B; A < 31; [FA1] = A; [FA0] = 0;
+	end;
+    "XSQ nonzero"
+	=> XQuoCore;
+	=> XToF64;
+	end;
+    "XSQ zeroden"
+	A = [XS]; B = [YS]; A # B; A < 31; A | 7FF00000h; [FA1] = A;
+	[FA0] = 0;
+	end;
+	"XSQ exact i386m native quo"
+
+"XScalarAdd"
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XAddCore;
+	=> XToF64;
+	end;
+
+"XScalarSub"
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XSubCore;
+	=> XToF64;
+	end;
+
+"XScalarMul"
+	A = [FB0]; [XU0] = A; A = [FB1]; [XU1] = A; => XFromF64;
+	A = [XS]; [YS] = A; A = [XE]; [YE] = A;
+	A = [XMH]; [YMH] = A; A = [XML]; [YML] = A;
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	=> XMulCore;
+	=> XToF64;
+	end;
+	"XSM exact i386m native fmul"
+
+      ( XScalarSqrt - FA <- sqrt(FA), preserving the x87 sequence:
+	  XFromF64 is exact, XRootCore rounds at 64 significand bits, and
+	  XToF64 performs the final qword store rounding. )
+
+"XScalarSqrt"
+	A = [FA0]; [XU0] = A; A = [FA1]; [XU1] = A; => XFromF64;
+	? [XE] = 0 -> XSS zero;
+	? [XS] = 0 -> XSS positive;
+	[XREJ]+; [FA0] = 0; [FA1] = 0;
+	end;
+    "XSS positive"
+	=> XRootCore;
+	=> XToF64;
+	end;
+    "XSS zero"
+	[FA0] = 0; [FA1] = 0;
+	end;
+
+      ( XRootCore - exact restoring sqrt(X) at 64 significand bits.
+	  The normalized 64-bit mantissa forms the same fixed 128-bit
+	  radicand as before.  Each of 64 iterations consumes its next two
+	  high bits, shifts the partial root, and subtracts 2*q+1 exactly
+	  when the 96-bit remainder admits the next root bit.  The final
+	  integer remainder drives the same p64 nearest rounding. )
+
+"XRootCore"
+	A = [XE]; A - XBIAS; [xtmp] = A;
+	A = [xtmp]; A & 1;
+	? A = 0 -> XRoot even;
+	[srd0] = 0; [srd1] = 0;
+	A = [XML]; [srd2] = A;
+	A = [XMH]; [srd3] = A;
+	A = [xtmp]; A - 1; [xtmp] = A;
+	-> XRoot radicand ready;
+    "XRoot even"
+	[srd0] = 0;
+	A = [XML]; A < 31; [srd1] = A;
+	A = [XML]; A > 1; [srd2] = A;
+	A = [XMH]; A < 31; B = [srd2]; A | B; [srd2] = A;
+	A = [XMH]; A > 1; [srd3] = A;
+    "XRoot radicand ready"
+	[sqrh] = 0; [sqrl] = 0;
+	( E holds each incoming pair; srm3 is assigned from E at the
+	  compatibility boundary before its first read. )
+	[srm0] = 0; [srm1] = 0; [srm2] = 0;
+	( Buffer one radicand limb in direct scratch.  The cold handoff loads
+	  and clears each next fixed limb after sixteen high pairs. )
+	[sqstep] = srd3; A = [srd3]; [sqmh] = A; [srd3] = 0;
+	[sqml] = 16;
+    "XRoot restoring loop"
+	( Consume and shift the directly addressed active-limb buffer. )
+	A = [sqmh]; E = A;
+	A < 2; [sqmh] = A;
+	A = E; A > 30; E = A;
+
+	( remainder = remainder*4 + pair )
+	A = [srm2]; A < 2; B = [srm1]; B > 30; A | B; [srm2] = A;
+	A = [srm1]; A < 2; B = [srm0]; B > 30; A | B; [srm1] = A;
+	A = [srm0]; A < 2; B = E; A | B; [srm0] = A;
+
+	( Shift the partial root and form its 65-bit trial 2*q+1. )
+	A = [sqrl]; A > 31; E = A;
+	A = [sqrh]; A < 1; B = E; A | B; [sqrh] = A;
+	A = [sqrl]; A < 1; [sqrl] = A;
+	A = [sqrh]; A > 31; [sqcarry] = A;
+	A = [sqrh]; A < 1; B = [sqrl]; B > 31; A | B; C = A;
+	A = [sqrl]; A < 1; A | 1; D = A;
+
+	( Accept the next root bit iff remainder >= trial. )
+	A = [srm2]; B = [sqcarry];
+	? A '> B -> XRoot restoring accept;
+	? A '< B -> XRoot restoring next;
+	A = [srm1]; B = C;
+	? A '> B -> XRoot restoring accept;
+	? A '< B -> XRoot restoring next;
+	A = [srm0]; B = D;
+	? A '< B -> XRoot restoring next;
+    "XRoot restoring accept"
+	( Subtract the trial with exact unsigned borrows. )
+	A = [srm0]; B = D;
+	? A '< B -> XRoot restoring low borrow;
+	E = 0; -> XRoot restoring low subtract;
+    "XRoot restoring low borrow"
+	E = 1;
+    "XRoot restoring low subtract"
+	A = [srm0]; A - D; [srm0] = A;
+	A = [srm1]; B = C;
+	? A '> B -> XRoot restoring middle no borrow;
+	? A '< B -> XRoot restoring middle borrow;
+	? E = 0 -> XRoot restoring middle no borrow;
+    "XRoot restoring middle borrow"
+	A = [srm1]; A - C; A - E; [srm1] = A;
+	E = 1; -> XRoot restoring high subtract;
+    "XRoot restoring middle no borrow"
+	A = [srm1]; A - C; A - E; [srm1] = A;
+	E = 0;
+    "XRoot restoring high subtract"
+	A = [srm2]; A - [sqcarry]; A - E; [srm2] = A;
+
+	( Set the admitted low root bit. )
+	[sqrl]+;
+	? [sqrl] != 0 -> XRoot restoring next;
+	[sqrh]+;
+    "XRoot restoring next"
+	[sqml]-;
+	? [sqml] != 0 -> XRoot restoring loop;
+	[sqstep]-;
+	? [sqstep] < srd0 -> XRoot restoring complete;
+	B = [sqstep]; A = [B]; [sqmh] = A;
+	A = 0; [B] = A; [sqml] = 16;
+	-> XRoot restoring loop;
+    "XRoot restoring complete"
+
+	( Reproduce the accepted residual subtraction's low-limb equality
+	  borrow.  Since the fixed radicand's low word is zero, this case
+	  occurs exactly when q's low 16 bits are zero.  Subtracting one
+	  from residual word one, with propagation, forms the accepted
+	  private residual before its p64 rounding decision. )
+	E = 0;
+	A = [sqrl]; A & XM16;
+	? A != 0 -> XRoot residual compatible;
+	[srm1]-;
+	? [srm1] != 0FFFFFFFFh -> XRoot residual compatible;
+	[srm2]-;
+	? [srm2] != 0FFFFFFFFh -> XRoot residual compatible;
+	E = 0FFFFFFFFh;
+    "XRoot residual compatible"
+	A = E; [srm3] = A;
+
+	( Round up iff the accepted residual is greater than q. )
+	? E != 0 -> XRoot increment;
+	? [srm2] != 0 -> XRoot increment;
+	A = [srm1]; B = [sqrh];
+	? A '> B -> XRoot increment;
+	? A '< B -> XRoot done;
+	A = [srm0]; B = [sqrl];
+	? A '> B -> XRoot increment;
+	-> XRoot done;
+    "XRoot increment"
+	[sqrl]+;
+	? [sqrl] != 0 -> XRoot done;
+	[sqrh]+;
+	? [sqrh] != 0 -> XRoot overflow;
+	-> XRoot done;
+    "XRoot overflow"
+	[XMH] = 80000000h; [XML] = 0; [xtmp]+;
+	-> XRoot finish;
+    "XRoot done"
+	A = [sqrh]; [XMH] = A;
+	A = [sqrl]; [XML] = A;
+    "XRoot finish"
+	A = [xtmp]; A / 2; A + XBIAS; [XE] = A;
+	[XS] = 0;
+	end;
+	( The buffered handoff consumes the accepted calibration footprint. )
+
+      ( XChop32 - truncate the live extended X value to a signed qword,
+	then return its low 32 bits.  XChop16 applies the stellar seed site's
+	final unsigned-word narrowing. )
+
+"XChop32"
+	---->;
+	=> XChop32 body;
+	<----;
+	end;
+    "XChop32 body"
+      ? [XE] = 0 -> XCI zero;
+	A = [XE]; A - XBIAS; [xtmp] = A;
+      ? A < 0 -> XCI zero;
+      ? A > 63 -> XCI zero;
+	A = 63; A - [xtmp]; [xishift] = A;
+	A = [XMH]; [xi64h] = A;
+	A = [XML]; [xi64l] = A;
+      ? [xishift] = 0 -> XCI sign;
+    "XCI shift"
+	A = [xi64l]; A > 1; B = [xi64h]; B < 31; A | B; [xi64l] = A;
+	A = [xi64h]; A > 1; [xi64h] = A;
+	[xishift]-;
+      ? [xishift] != 0 -> XCI shift;
+    "XCI sign"
+      ? [XS] = 0 -> XCI low;
+	A = 0; A - [xi64l]; [xi64l] = A;
+    "XCI low"
+	A = [xi64l]; [FI] = A;
+	end;
+    "XCI zero"
+	[FI] = 0;
+	end;
+
+"XChop16"
+	=> XChop32;
+	A = [FI]; A & 0FFFFh; [FI] = A;
+	end;
+
+      ( XNear32 - round the live extended X value to the nearest signed
+	qword, ties to even, and return its low 32 bits.  This is the portable
+	equivalent of the surface painter's ambient-RC fistp qword. )
+
+"XNear32"
+	---->;
+	=> XNear32 body;
+	<----;
+	end;
+    "XNear32 body"
+      ? [XE] = 0 -> XNI zero;
+	A = [XE]; A - XBIAS; [xtmp] = A;
+      ? A < minus 1 -> XNI zero;
+      ? A > 63 -> XNI zero;
+	A = 63; A - [xtmp]; [xishift] = A;
+	A = [XMH]; [xi64h] = A;
+	A = [XML]; [xi64l] = A;
+	[xrbit] = 0; [xsbit] = 0;
+      ? [xishift] = 0 -> XNI decide;
+    "XNI shift"
+	A = [xi64l]; A & 1; [xasbit] = A;
+	[xishift]-;
+      ? [xishift] = 0 -> XNI round bit;
+	A = [xsbit]; A | [xasbit]; [xsbit] = A;
+	-> XNI shift value;
+    "XNI round bit"
+	[xrbit] = [xasbit];
+    "XNI shift value"
+	A = [xi64l]; A > 1; B = [xi64h]; B < 31; A | B; [xi64l] = A;
+	A = [xi64h]; A > 1; [xi64h] = A;
+      ? [xishift] != 0 -> XNI shift;
+    "XNI decide"
+      ? [xrbit] = 0 -> XNI sign;
+      ? [xsbit] != 0 -> XNI increment;
+	A = [xi64l]; A & 1;
+      ? A = 0 -> XNI sign;
+    "XNI increment"
+	[xi64l]+;
+    "XNI sign"
+      ? [XS] = 0 -> XNI low;
+	A = 0; A - [xi64l]; [xi64l] = A;
+    "XNI low"
+	[FI] = [xi64l];
+	end;
+    "XNI zero"
+	[FI] = 0;
+	end;
+
+( ==================================================================== )
+( portable transcendental constants and value images                    )
+( ==================================================================== )
+
+      ( All table entries are s:e:mh:ml extended images.  2/pi has 256
+	bits and is held as 16-bit little-endian limbs for exact multiplication. )
+
+"XTrigInit"
+	? [XTINIT] != 0 -> XTI done;
+	[XPC plus 0] = 0000C561h; [XPC plus 1] = 0000DEBBh;
+	[XPC plus 2] = 000063ABh; [XPC plus 3] = 0000FE51h;
+	[XPC plus 4] = 00009041h; [XPC plus 5] = 00003C43h;
+	[XPC plus 6] = 00009599h; [XPC plus 7] = 0000DB62h;
+	[XPC plus 8] = 0000DDC0h; [XPC plus 9] = 0000F534h;
+	[XPC plus 10] = 000057D1h; [XPC plus 11] = 0000FC27h;
+	[XPC plus 12] = 00001529h; [XPC plus 13] = 00004E44h;
+	[XPC plus 14] = 0000836Eh; [XPC plus 15] = 0000A2F9h;
+
+		( Polynomial coefficients are generated once below.  The small angle
+		  and atan constants are instruction immediates, not workspace: keeping
+		  the scratch footprint small matters to narrow test/runtime mappings. )
+
+	( sin: (-1)^k/(2k+1)!, k=1..10. )
+	[XIN] = 1; => XFromInt; => XSaveP;
+	[XIN] = 6; => XFromInt; => XCopyXtoY; => XLoadP; => XQuoCore;
+	[XS] = 1; [xtindex] = 0; [xttable] = XSINTAB;
+    "XTI sin loop"
+	=> XStoreTabX;
+	? [xtindex] >= 9 -> XTI cos start;
+	=> XSaveP;
+	A = [xtindex]; A * 2; A + 4; B = A; A + 1; A '* B; [XIN] = A;
+	=> XFromInt; => XCopyXtoY; => XLoadP; => XQuoCore;
+	A = [XS]; A # 1; [XS] = A;
+	[xtindex]+;
+	-> XTI sin loop;
+
+    "XTI cos start"
+	( cos: (-1)^k/(2k)!, k=1..11. )
+	[XIN] = 1; => XFromInt; => XSaveP;
+	[XIN] = 2; => XFromInt; => XCopyXtoY; => XLoadP; => XQuoCore;
+	[XS] = 1; [xtindex] = 0; [xttable] = XCOSTAB;
+    "XTI cos loop"
+	=> XStoreTabX;
+	? [xtindex] >= 10 -> XTI coefficients done;
+	=> XSaveP;
+	A = [xtindex]; A * 2; A + 3; B = A; A + 1; A '* B; [XIN] = A;
+	=> XFromInt; => XCopyXtoY; => XLoadP; => XQuoCore;
+	A = [XS]; A # 1; [XS] = A;
+	[xtindex]+;
+	-> XTI cos loop;
+
+    "XTI coefficients done"
+	[XTINIT] = 1;
+    "XTI done"
+	end;
+
+      ( Four-word image moves. )
+
+"XCopyXtoY"
+	[YS] = [XS]; [YE] = [XE]; [YMH] = [XMH]; [YML] = [XML]; end;
+"XSaveR"
+	[TRS] = [XS]; [TRE] = [XE]; [TRMH] = [XMH]; [TRML] = [XML]; end;
+"XLoadR"
+	[XS] = [TRS]; [XE] = [TRE]; [XMH] = [TRMH]; [XML] = [TRML]; end;
+"XCopyRtoY"
+	[YS] = [TRS]; [YE] = [TRE]; [YMH] = [TRMH]; [YML] = [TRML]; end;
+"XSaveZ"
+	[TZS] = [XS]; [TZE] = [XE]; [TZMH] = [XMH]; [TZML] = [XML]; end;
+"XLoadZ"
+	[XS] = [TZS]; [XE] = [TZE]; [XMH] = [TZMH]; [XML] = [TZML]; end;
+"XCopyZtoY"
+	[YS] = [TZS]; [YE] = [TZE]; [YMH] = [TZMH]; [YML] = [TZML]; end;
+"XSaveU"
+	[TUS] = [XS]; [TUE] = [XE]; [TUMH] = [XMH]; [TUML] = [XML]; end;
+"XLoadU"
+	[XS] = [TUS]; [XE] = [TUE]; [XMH] = [TUMH]; [XML] = [TUML]; end;
+"XCopyUtoY"
+	[YS] = [TUS]; [YE] = [TUE]; [YMH] = [TUMH]; [YML] = [TUML]; end;
+"XSaveP"
+	[TPS] = [XS]; [TPE] = [XE]; [TPMH] = [XMH]; [TPML] = [XML]; end;
+"XLoadP"
+	[XS] = [TPS]; [XE] = [TPE]; [XMH] = [TPMH]; [XML] = [TPML]; end;
+"XCopyPtoY"
+	[YS] = [TPS]; [YE] = [TPE]; [YMH] = [TPMH]; [YML] = [TPML]; end;
+"XSaveB"
+	[TBS] = [XS]; [TBE] = [XE]; [TBMH] = [XMH]; [TBML] = [XML]; end;
+"XLoadB"
+	[XS] = [TBS]; [XE] = [TBE]; [XMH] = [TBMH]; [XML] = [TBML]; end;
+"XCopyBtoY"
+	[YS] = [TBS]; [YE] = [TBE]; [YMH] = [TBMH]; [YML] = [TBML]; end;
+"XSaveA"
+	[TAS] = [XS]; [TAE] = [XE]; [TAMH] = [XMH]; [TAML] = [XML]; end;
+"XLoadA"
+	[XS] = [TAS]; [XE] = [TAE]; [XMH] = [TAMH]; [XML] = [TAML]; end;
+"XCopyAtoY"
+	[YS] = [TAS]; [YE] = [TAE]; [YMH] = [TAMH]; [YML] = [TAML]; end;
+"XSaveD"
+	[TDS] = [XS]; [TDE] = [XE]; [TDMH] = [XMH]; [TDML] = [XML]; end;
+"XLoadD"
+	[XS] = [TDS]; [XE] = [TDE]; [XMH] = [TDMH]; [XML] = [TDML]; end;
+"XCopyDtoY"
+	[YS] = [TDS]; [YE] = [TDE]; [YMH] = [TDMH]; [YML] = [TDML]; end;
+
+"XStoreTabX"
+	E = [xttable]; A = [xtindex]; A * 4; E + A;
+	[E] = [XS]; [E plus 1] = [XE]; [E plus 2] = [XMH]; [E plus 3] = [XML];
+	end;
+"XLoadTabX"
+	E = [xttable]; A = [xtindex]; A * 4; E + A;
+	[XS] = [E]; [XE] = [E plus 1]; [XMH] = [E plus 2]; [XML] = [E plus 3];
+	end;
+"XLoadTabY"
+	E = [xttable]; A = [xtindex]; A * 4; E + A;
+	[YS] = [E]; [YE] = [E plus 1]; [YMH] = [E plus 2]; [YML] = [E plus 3];
+	end;
+"XLoadConstX"
+	A = [xtindex];
+	? A = 0 -> XLCX 0; ? A = 1 -> XLCX 1;
+	? A = 2 -> XLCX 2; ? A = 3 -> XLCX 3;
+	? A = 4 -> XLCX 4; ? A = 5 -> XLCX 5;
+	? A = 6 -> XLCX 6;
+    "XLCX 7"
+	[XS] = 0; [XE] = 03FFDh; [XMH] = 0D413CCCFh; [XML] = 0E7799211h; end;
+    "XLCX 6"
+	[XS] = 0; [XE] = 03FFEh; [XMH] = 0AB0DC155h; [XML] = 0BFCC82F5h; end;
+    "XLCX 5"
+	[XS] = 0; [XE] = 03FFCh; [XMH] = 0CBAFAF02h; [XML] = 0A98AC03Eh; end;
+    "XLCX 4"
+	[XS] = 0; [XE] = 04000h; [XMH] = 0C90FDAA2h; [XML] = 2168C235h; end;
+    "XLCX 3"
+	[XS] = 0; [XE] = 03FFFh; [XMH] = 0C90FDAA2h; [XML] = 2168C235h; end;
+    "XLCX 2"
+	[XS] = 0; [XE] = 03FFEh; [XMH] = 0C90FDAA2h; [XML] = 2168C235h; end;
+    "XLCX 1"
+	[XS] = 0; [XE] = 03FFDh; [XMH] = 0C90FDAA2h; [XML] = 2168C235h; end;
+    "XLCX 0"
+	[XS] = 0; [XE] = 03FFFh; [XMH] = 80000000h; [XML] = 0; end;
+
+"XLoadConstY"
+	A = [xtindex];
+	? A = 0 -> XLCY 0; ? A = 1 -> XLCY 1;
+	? A = 2 -> XLCY 2; ? A = 3 -> XLCY 3;
+	? A = 4 -> XLCY 4; ? A = 5 -> XLCY 5;
+	? A = 6 -> XLCY 6;
+    "XLCY 7"
+	[YS] = 0; [YE] = 03FFDh; [YMH] = 0D413CCCFh; [YML] = 0E7799211h; end;
+    "XLCY 6"
+	[YS] = 0; [YE] = 03FFEh; [YMH] = 0AB0DC155h; [YML] = 0BFCC82F5h; end;
+    "XLCY 5"
+	[YS] = 0; [YE] = 03FFCh; [YMH] = 0CBAFAF02h; [YML] = 0A98AC03Eh; end;
+    "XLCY 4"
+	[YS] = 0; [YE] = 04000h; [YMH] = 0C90FDAA2h; [YML] = 2168C235h; end;
+    "XLCY 3"
+	[YS] = 0; [YE] = 03FFFh; [YMH] = 0C90FDAA2h; [YML] = 2168C235h; end;
+    "XLCY 2"
+	[YS] = 0; [YE] = 03FFEh; [YMH] = 0C90FDAA2h; [YML] = 2168C235h; end;
+    "XLCY 1"
+	[YS] = 0; [YE] = 03FFDh; [YMH] = 0C90FDAA2h; [YML] = 2168C235h; end;
+    "XLCY 0"
+	[YS] = 0; [YE] = 03FFFh; [YMH] = 80000000h; [YML] = 0; end;
+
+      ( FI compares magnitudes X and Y. )
+
+"XMagCmp"
+	A = [XE]; B = [YE]; ? A '> B -> XMC gt; ? A '< B -> XMC lt;
+	A = [XMH]; B = [YMH]; ? A '> B -> XMC gt; ? A '< B -> XMC lt;
+	A = [XML]; B = [YML]; ? A '> B -> XMC gt; ? A '< B -> XMC lt;
+	[FI] = 0; end;
+    "XMC gt"
+	[FI] = 1; end;
+    "XMC lt"
+	A = 0; A - 1; [FI] = A; end;
+
+( ==================================================================== )
+( positive fractional power                                             )
+( ==================================================================== )
+
+      ( Build the two general coefficient tables once.  Division rounds every
+	entry to the same 64-bit significand used by the arithmetic cores. )
+
+"XPowInit"
+      ? [XPINIT] != 0 -> XPI done;
+	[xttable] = XPLOGTAB; [xtindex] = 0;
+    "XPI log loop"
+	A = [xtindex]; A * 2; A + 1; [XIN] = A; => XFromInt; => XCopyXtoY;
+	[XIN] = 1; => XFromInt; => XQuoCore; => XStoreTabX;
+	[xtindex]+; ? [xtindex] < 15 -> XPI log loop;
+
+	[xttable] = XPEXPTAB; [xtindex] = 0;
+	[XIN] = 1; => XFromInt; => XSaveP; => XStoreTabX;
+    "XPI exp loop"
+	[xtindex]+; ? [xtindex] > 20 -> XPI tables done;
+	[XIN] = [xtindex]; => XFromInt; => XCopyXtoY;
+	=> XLoadP; => XQuoCore; => XSaveP; => XStoreTabX;
+	-> XPI exp loop;
+    "XPI tables done"
+	[XPINIT] = 1;
+    "XPI done"
+	end;
+
+      ( XPowPositive - X^Y for the finite positive crater domain.  X and Y
+	arrive as live extended images and X leaves live: there is no binary64
+	spill.  The named scratch images are private, and the explicit X stack is
+	never touched, so XTOP, XDEPTH and all eight XSTK entries are preserved. )
+
+"XPowPositive"
+	( Retain both inputs across first-use table generation. )
+	[PBS] = [XS]; [PBE] = [XE]; [PBMH] = [XMH]; [PBML] = [XML];
+	[PYS] = [YS]; [PYE] = [YE]; [PYMH] = [YMH]; [PYML] = [YML];
+	=> XPowInit;
+	[XS] = [PBS]; [XE] = [PBE]; [XMH] = [PBMH]; [XML] = [PBML];
+
+	( base = 2^e*m, with m moved to [1/sqrt(2),sqrt(2)]. )
+	A = [XE]; A - XBIAS; [xpe] = A;
+	[XS] = 0; [XE] = XBIAS;
+	A = [XMH]; ? A '> 0B504F333h -> XPP halve;
+	? A '< 0B504F333h -> XPP mantissa ready;
+	A = [XML]; ? A '<= 0F9DE6484h -> XPP mantissa ready;
+    "XPP halve"
+	[XE]-; [xpe]+;
+    "XPP mantissa ready"
+	=> XSaveR;
+
+	( z=(m-1)/(m+1), q=z*z. )
+	[YS] = 0; [YE] = XBIAS; [YMH] = 80000000h; [YML] = 0;
+	=> XSubCore; => XSaveA;
+	( An exact power-of-two base has m=1 and therefore z=0.  XQuoCore's
+	  private normalized-finite contract excludes a zero numerator, so retain
+	  the exact zero directly instead of presenting it to the quotient core. )
+	? [XE] = 0 -> XPP zero z;
+	=> XLoadR;
+	[YS] = 0; [YE] = XBIAS; [YMH] = 80000000h; [YML] = 0;
+	=> XAddCore; => XCopyXtoY; => XLoadA; => XQuoCore; => XSaveR;
+	=> XCopyXtoY; => XMulCore; => XSaveZ;
+	-> XPP log begin;
+    "XPP zero z"
+	=> XSaveR; => XSaveZ;
+    "XPP log begin"
+
+	( log2(m)=(2/ln(2))*z*(1+q/3+...+q^14/29). )
+	[xttable] = XPLOGTAB; [xtindex] = 14; => XLoadTabX;
+    "XPP log horner"
+	? [xtindex] = 0 -> XPP log finish;
+	[xtindex]-; => XHornerStep; -> XPP log horner;
+    "XPP log finish"
+	=> XCopyRtoY; => XMulCore;
+	[YS] = 0; [YE] = 04000h; [YMH] = 0B8AA3B29h; [YML] = 5C17F0BCh;
+	=> XMulCore; => XSaveA;
+	[XIN] = [xpe]; => XFromInt; => XCopyAtoY; => XAddCore;
+
+	( t=Y*log2(base), then the historical nearest-even split t=n+f. )
+	[YS] = [PYS]; [YE] = [PYE]; [YMH] = [PYMH]; [YML] = [PYML];
+	=> XMulCore; => XNear32; [xpn] = [FI]; => XSaveA;
+	[XIN] = [xpn]; => XFromInt; => XCopyXtoY; => XLoadA; => XSubCore;
+
+	( 2^f=exp(f*ln(2)); |f*ln(2)|<=ln(2)/2. )
+	[YS] = 0; [YE] = 03FFEh; [YMH] = 0B17217F7h; [YML] = 0D1CF79ACh;
+	=> XMulCore; => XSaveZ;
+	[xttable] = XPEXPTAB; [xtindex] = 20; => XLoadTabX;
+    "XPP exp horner"
+	? [xtindex] = 0 -> XPP exp finish;
+	[xtindex]-; => XHornerStep; -> XPP exp horner;
+    "XPP exp finish"
+	A = [XE]; A + [xpn]; [XE] = A;
+	end;
+
+( ==================================================================== )
+( Payne-Hanek reduction for every finite |binary64 input| below 2^63   )
+( ==================================================================== )
+
+      ( XTrigBit returns bit [xtpos] of XPAY in [xtbit]. )
+
+"XTrigBit"
+	? [xtpos] < 0 -> XTB zero;
+	? [xtpos] >= 320 -> XTB zero;
+	A = [xtpos]; A / 16; [xtk] = A;
+	A = [xtpos]; A & 15; [xtrem] = A;
+	E = XPAY; E + [xtk]; A = [E]; B = [xtrem]; A > B; A & 1; [xtbit] = A;
+	end;
+    "XTB zero"
+	[xtbit] = 0; end;
+
+      ( XTrigReduce reduces abs(FA) to q*(pi/2)+r, |r|<=pi/4.
+	xtquad receives q mod 4, TR receives r, and xtsign retains FA's sign.
+	The exact 64x256 product gives over 190 guard bits even at 2^63. )
+
+"XTrigReduce"
+	=> XTrigInit;
+	[XTOOR] = 0;
+	A = [FA1]; A > 31; [xtsign] = A;
+	A = [FA1]; A & 7FFFFFFFh; [xtsum] = A;
+	A = [xtsum];
+	? A '> 043DFFFFFh -> XTR out of range;
+	? A '< 03FE921FBh -> XTR small;
+	? A '> 03FE921FBh -> XTR full;
+	A = [FA0]; ? A '<= 054442D18h -> XTR small;
+
+    "XTR full"
+	A = [FA0]; [XU0] = A;
+	A = [xtsum]; [XU1] = A;
+	=> XFromF64;
+	A = [XML]; A & 0FFFFh; [XMANT plus 0] = A;
+	A = [XML]; A > 16; [XMANT plus 1] = A;
+	A = [XMH]; A & 0FFFFh; [XMANT plus 2] = A;
+	A = [XMH]; A > 16; [XMANT plus 3] = A;
+	A = 319; A - [XE]; A + XBIAS; [xts] = A;
+
+	[xti] = 0;
+    "XTR clear product"
+	E = XPAY; E + [xti]; [E] = 0;
+	[xti]+; ? [xti] < 20 -> XTR clear product;
+
+	[xti] = 0;
+    "XTR mul outer"
+	[xtcarry] = 0; [xtj] = 0;
+    "XTR mul inner"
+	E = XMANT; E + [xti]; A = [E]; [xtprod] = A;
+	E = XPC; E + [xtj]; A = [xtprod]; A '* [E]; [xtprod] = A;
+	A = [xti]; A + [xtj]; E = XPAY; E + A;
+	A = [E]; A + [xtprod]; A + [xtcarry]; [xtsum] = A;
+	A & 0FFFFh; [E] = A;
+	A = [xtsum]; A > 16; [xtcarry] = A;
+	[xtj]+; ? [xtj] < 16 -> XTR mul inner;
+	A = [xti]; A + 16; E = XPAY; E + A; A = [xtcarry]; [E] = A;
+	[xti]+; ? [xti] < 4 -> XTR mul outer;
+
+	( q mod 4 is product bits S and S+1, plus nearest rounding. )
+	A = [xts]; [xtpos] = A; => XTrigBit; A = [xtbit]; [xtquad] = A;
+	A = [xts]; A + 1; [xtpos] = A; => XTrigBit;
+	A = [xtbit]; A * 2; A + [xtquad]; [xtquad] = A;
+	A = [xts]; A - 1; [xtpos] = A; => XTrigBit;
+	A = [xtbit]; [xtcarry] = A;
+	A = [xtquad]; A + [xtcarry]; A & 3; [xtquad] = A;
+
+	( Keep R=P mod 2^S. )
+	A = [xts]; A + 15; A / 16; [xtnlimb] = A;
+	A = [xts]; A & 15; [xtrem] = A;
+	A = [xtnlimb]; [xti] = A;
+    "XTR clear high"
+	? [xti] >= 20 -> XTR mask partial;
+	E = XPAY; E + [xti]; [E] = 0;
+	[xti]+; -> XTR clear high;
+    "XTR mask partial"
+	? [xtrem] = 0 -> XTR distance;
+	A = 1; B = [xtrem]; A < B; A - 1; [xtmask] = A;
+	A = [xtnlimb]; A - 1; E = XPAY; E + A;
+	A = [E]; A & [xtmask]; [E] = A;
+
+    "XTR distance"
+	( If nearest q rounded up, D=2^S-R; otherwise D=R. )
+	? [xtcarry] = 0 -> XTR find high;
+	[xti] = 0; [xtcarry] = 1;
+    "XTR complement"
+	[xtmask] = 0FFFFh;
+	A = [xti]; B = [xtnlimb]; B - 1;
+	? A != B -> XTR complement mask ready;
+	? [xtrem] = 0 -> XTR complement mask ready;
+	A = 1; B = [xtrem]; A < B; A - 1; [xtmask] = A;
+    "XTR complement mask ready"
+	E = XPAY; E + [xti];
+	A = [E]; A # [xtmask]; A + [xtcarry]; [xtsum] = A;
+	[xtcarry] = 0;
+	A = [xtsum]; B = [xtmask]; ? A '<= B -> XTR complement store;
+	[xtcarry] = 1;
+    "XTR complement store"
+	A = [xtsum]; A & [xtmask]; [E] = A;
+	[xti]+; A = [xti]; ? A < [xtnlimb] -> XTR complement;
+	[xtcarry] = 1;
+
+    "XTR find high"
+	A = [xts]; A - 1; [xth] = A;
+    "XTR find bit"
+	A = [xth]; [xtpos] = A; => XTrigBit;
+	? [xtbit] != 0 -> XTR make mantissa;
+	[xth]-; -> XTR find bit;
+
+    "XTR make mantissa"
+	[XMH] = 0; [XML] = 0; [xti] = 0;
+	A = [xth]; [xtpos] = A;
+    "XTR mantissa bit"
+	A = [XMH]; A < 1; B = [XML]; B > 31; A | B; [XMH] = A;
+	A = [XML]; A < 1; [XML] = A;
+	=> XTrigBit;
+	A = [XML]; A | [xtbit]; [XML] = A;
+	[xtpos]-; [xti]+;
+	? [xti] < 64 -> XTR mantissa bit;
+
+	( Round D/2^S to a 64-bit significand, nearest-even. )
+	=> XTrigBit; A = [xtbit]; [xrbit] = A;
+	[xtsticky] = 0; [xtpos]-;
+    "XTR sticky"
+	? [xtpos] < 0 -> XTR round;
+	=> XTrigBit; ? [xtbit] != 0 -> XTR sticky yes;
+	[xtpos]-; -> XTR sticky;
+    "XTR sticky yes"
+	[xtsticky] = 1;
+    "XTR round"
+	? [xrbit] = 0 -> XTR pack;
+	? [xtsticky] != 0 -> XTR increment;
+	A = [XML]; A & 1; ? A = 0 -> XTR pack;
+    "XTR increment"
+	[XML]+; ? [XML] != 0 -> XTR pack;
+	[XMH]+; ? [XMH] != 0 -> XTR pack;
+	[XMH] = 80000000h; [XML] = 0; [xth]+;
+    "XTR pack"
+	A = XBIAS; A + [xth]; A - [xts]; [XE] = A;
+	A = [xtcarry]; [XS] = A;
+	[xtindex] = 3; => XLoadConstY; => XMulCore; => XSaveR;
+	end;
+
+    "XTR small"
+	A = [FA0]; [XU0] = A;
+	A = [xtsum]; [XU1] = A;
+	=> XFromF64; [XS] = 0; [xtquad] = 0; => XSaveR;
+	end;
+
+    "XTR out of range"
+	[XTOOR] = 1;
+	end;
+
+( ==================================================================== )
+( reduced sine, cosine and arctangent kernels                           )
+( ==================================================================== )
+
+"XHornerStep"
+	=> XSaveP; => XLoadZ; => XCopyPtoY; => XMulCore;
+	=> XLoadTabY; => XAddCore;
+	end;
+
+      ( Atan coefficients are immediate extended images.  This avoids a
+	64-unit table while retaining exactly rounded 64-bit significands. )
+
+"XLoadAtanX"
+	A = [xtindex];
+	? A = 0 -> XLAX 0; ? A = 1 -> XLAX 1;
+	? A = 2 -> XLAX 2; ? A = 3 -> XLAX 3;
+	? A = 4 -> XLAX 4; ? A = 5 -> XLAX 5;
+	? A = 6 -> XLAX 6; ? A = 7 -> XLAX 7;
+	? A = 8 -> XLAX 8; ? A = 9 -> XLAX 9;
+	? A = 10 -> XLAX 10; ? A = 11 -> XLAX 11;
+	? A = 12 -> XLAX 12; ? A = 13 -> XLAX 13;
+	? A = 14 -> XLAX 14;
+    "XLAX 15"
+	[XS] = 0; [XE] = 03FF9h; [XMH] = 0F83E0F83h; [XML] = 0E0F83E10h; end;
+    "XLAX 14"
+	[XS] = 1; [XE] = 03FFAh; [XMH] = 84210842h; [XML] = 10842108h; end;
+    "XLAX 13"
+	[XS] = 0; [XE] = 03FFAh; [XMH] = 8D3DCB08h; [XML] = 0D3DCB08Dh; end;
+    "XLAX 12"
+	[XS] = 1; [XE] = 03FFAh; [XMH] = 97B425EDh; [XML] = 097B425Fh; end;
+    "XLAX 11"
+	[XS] = 0; [XE] = 03FFAh; [XMH] = 0A3D70A3Dh; [XML] = 70A3D70Ah; end;
+    "XLAX 10"
+	[XS] = 1; [XE] = 03FFAh; [XMH] = 0B21642C8h; [XML] = 590B2164h; end;
+    "XLAX 9"
+	[XS] = 0; [XE] = 03FFAh; [XMH] = 0C30C30C3h; [XML] = 0C30C30Ch; end;
+    "XLAX 8"
+	[XS] = 1; [XE] = 03FFAh; [XMH] = 0D79435E5h; [XML] = 0D79435Eh; end;
+    "XLAX 7"
+	[XS] = 0; [XE] = 03FFAh; [XMH] = 0F0F0F0F0h; [XML] = 0F0F0F0F1h; end;
+    "XLAX 6"
+	[XS] = 1; [XE] = 03FFBh; [XMH] = 88888888h; [XML] = 88888889h; end;
+    "XLAX 5"
+	[XS] = 0; [XE] = 03FFBh; [XMH] = 9D89D89Dh; [XML] = 89D89D8Ah; end;
+    "XLAX 4"
+	[XS] = 1; [XE] = 03FFBh; [XMH] = 0BA2E8BA2h; [XML] = 0E8BA2E8Ch; end;
+    "XLAX 3"
+	[XS] = 0; [XE] = 03FFBh; [XMH] = 0E38E38E3h; [XML] = 8E38E38Eh; end;
+    "XLAX 2"
+	[XS] = 1; [XE] = 03FFCh; [XMH] = 92492492h; [XML] = 49249249h; end;
+    "XLAX 1"
+	[XS] = 0; [XE] = 03FFCh; [XMH] = 0CCCCCCCCh; [XML] = 0CCCCCCCDh; end;
+    "XLAX 0"
+	[XS] = 1; [XE] = 03FFDh; [XMH] = 0AAAAAAAAh; [XML] = 0AAAAAAABh; end;
+
+"XAtanHornerStep"
+	=> XSaveP; => XLoadZ; => XCopyPtoY; => XMulCore; => XSaveP;
+	=> XLoadAtanX; => XCopyXtoY; => XLoadP; => XAddCore;
+	end;
+
+      ( On entry TR is in [-pi/4,+pi/4].  Coefficients are extended
+	nearest-even images, and every operation rounds at 64 significand bits. )
+
+"XKernelSin"
+	=> XLoadR; => XCopyRtoY; => XMulCore; => XSaveZ;
+	[xttable] = XSINTAB; [xtindex] = 9; => XLoadTabX;
+    "XKS horner"
+	? [xtindex] = 0 -> XKS finish;
+	[xtindex]-; => XHornerStep; -> XKS horner;
+    "XKS finish"
+	=> XSaveP; => XLoadZ; => XCopyPtoY; => XMulCore; => XSaveP;
+	=> XLoadR; => XCopyPtoY; => XMulCore; => XCopyRtoY; => XAddCore;
+	end;
+
+"XKernelCos"
+	=> XLoadR; => XCopyRtoY; => XMulCore; => XSaveZ;
+	[xttable] = XCOSTAB; [xtindex] = 10; => XLoadTabX;
+    "XKC horner"
+	? [xtindex] = 0 -> XKC finish;
+	[xtindex]-; => XHornerStep; -> XKC horner;
+    "XKC finish"
+	=> XSaveP; => XLoadZ; => XCopyPtoY; => XMulCore;
+	[xtindex] = 0; => XLoadConstY; => XAddCore;
+	end;
+
+      ( XKernelAtan accepts 0<=X<=1.  Three angle-addition intervals leave
+	|u|<=tan(pi/16), then a 33rd-degree odd Taylor polynomial is enough to
+	put the truncation error below the 64-bit-significand rounding boundary. )
+
+"XKernelAtan"
+	=> XSaveZ;
+	[xtindex] = 5; => XLoadConstY; => XMagCmp;
+	? [FI] <= 0 -> XKA direct;
+	[xtindex] = 6; => XLoadConstY; => XMagCmp;
+	? [FI] <= 0 -> XKA middle;
+	-> XKA upper;
+
+    "XKA direct"
+	[XS] = 0; [XE] = 0; [XMH] = 0; [XML] = 0; => XSaveB;
+	=> XLoadZ; => XSaveU;
+	-> XKA polynomial;
+
+    "XKA middle"
+	[xtindex] = 1; => XLoadConstX; => XSaveB;
+	=> XLoadZ; [xtindex] = 7; => XLoadConstY; => XSubCore; => XSaveU;
+	? [TUE] = 0 -> XKA polynomial;
+	=> XLoadZ; [xtindex] = 7; => XLoadConstY; => XMulCore;
+	[xtindex] = 0; => XLoadConstY; => XAddCore; => XSaveP;
+	=> XLoadU; => XCopyPtoY; => XQuoCore; => XSaveU;
+	-> XKA polynomial;
+
+    "XKA upper"
+	[xtindex] = 2; => XLoadConstX; => XSaveB;
+	=> XLoadZ; [xtindex] = 0; => XLoadConstY; => XSubCore; => XSaveU;
+	? [TUE] = 0 -> XKA polynomial;
+	=> XLoadZ; [xtindex] = 0; => XLoadConstY; => XAddCore; => XSaveP;
+	=> XLoadU; => XCopyPtoY; => XQuoCore; => XSaveU;
+
+    "XKA polynomial"
+	=> XLoadU; => XCopyUtoY; => XMulCore; => XSaveZ;
+	[xtindex] = 15; => XLoadAtanX;
+    "XKA horner"
+	? [xtindex] = 0 -> XKA finish;
+	[xtindex]-; => XAtanHornerStep; -> XKA horner;
+    "XKA finish"
+	=> XSaveP; => XLoadZ; => XCopyPtoY; => XMulCore; => XSaveP;
+	=> XLoadU; => XCopyPtoY; => XMulCore; => XCopyUtoY; => XAddCore;
+	=> XCopyBtoY; => XAddCore;
+	end;
+
+( ==================================================================== )
+( stored-binary64 portable transcendental scalar helpers               )
+( ==================================================================== )
+
+"XScalarSin"
+	=> XTrigReduce;
+	? [XTOOR] != 0 -> XSSIN done;
+	A = [xtquad]; A & 1; ? A = 0 -> XSSIN kernel sin;
+	=> XKernelCos; -> XSSIN quadrant;
+    "XSSIN kernel sin"
+	=> XKernelSin;
+    "XSSIN quadrant"
+	A = [xtquad]; ? A < 2 -> XSSIN input sign;
+	A = [XS]; A # 1; [XS] = A;
+    "XSSIN input sign"
+	? [xtsign] = 0 -> XSSIN store;
+	A = [XS]; A # 1; [XS] = A;
+    "XSSIN store"
+	=> XToF64;
+    "XSSIN done"
+	end;
+
+"XScalarCos"
+	=> XTrigReduce;
+	? [XTOOR] != 0 -> XSCOS done;
+	A = [xtquad]; A & 1; ? A = 0 -> XSCOS kernel cos;
+	=> XKernelSin; -> XSCOS quadrant;
+    "XSCOS kernel cos"
+	=> XKernelCos;
+    "XSCOS quadrant"
+	A = [xtquad]; ? A = 1 -> XSCOS negate; ? A = 2 -> XSCOS negate;
+	-> XSCOS store;
+    "XSCOS negate"
+	A = [XS]; A # 1; [XS] = A;
+    "XSCOS store"
+	=> XToF64;
+    "XSCOS done"
+	end;
+
+      ( FA is y and FB is x, exactly matching fpatan's operand order. )
+
+"XScalarAtan2"
+	=> XTrigInit;
+	A = [FA1]; A > 31; [xtysign] = A;
+	A = [FB1]; A > 31; [xtxsign] = A;
+	A = [FA1]; A & 7FFFFFFFh; B = [FA0]; A | B;
+	? A = 0 -> XSA yzero;
+	A = [FB1]; A & 7FFFFFFFh; B = [FB0]; A | B;
+	? A = 0 -> XSA xzero;
+
+	A = [FA0]; [XU0] = A; A = [FA1]; A & 7FFFFFFFh; [XU1] = A;
+	=> XFromF64; => XSaveA;
+	A = [FB0]; [XU0] = A; A = [FB1]; A & 7FFFFFFFh; [XU1] = A;
+	=> XFromF64; => XSaveD;
+	=> XLoadA; => XCopyDtoY; => XMagCmp;
+	? [FI] <= 0 -> XSA y over x;
+
+	=> XLoadD; => XCopyAtoY; => XQuoCore; => XKernelAtan; => XSaveP;
+	[xtindex] = 3; => XLoadConstX; => XCopyPtoY; => XSubCore;
+	-> XSA quadrant;
+
+    "XSA y over x"
+	=> XLoadA; => XCopyDtoY; => XQuoCore; => XKernelAtan;
+
+    "XSA quadrant"
+	? [xtxsign] = 0 -> XSA ysign;
+	=> XSaveP; [xtindex] = 4; => XLoadConstX; => XCopyPtoY; => XSubCore;
+    "XSA ysign"
+	? [xtysign] = 0 -> XSA store;
+	A = [XS]; A # 1; [XS] = A;
+    "XSA store"
+	=> XToF64;
+	end;
+
+    "XSA yzero"
+	? [xtxsign] != 0 -> XSA pi;
+	[FA0] = 0; A = [xtysign]; A < 31; [FA1] = A; end;
+    "XSA pi"
+	[xtindex] = 4; => XLoadConstX; A = [xtysign]; [XS] = A; => XToF64; end;
+    "XSA xzero"
+	[xtindex] = 3; => XLoadConstX; A = [xtysign]; [XS] = A; => XToF64; end;
