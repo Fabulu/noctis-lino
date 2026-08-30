@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "task": 218,
+  "status": "pass",
+  "accepted_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_sha256": "511dec34c189499504ccd86ec94f2f838fb34ad192450317ac0aaec943a6f67a",
+  "accepted_executable_size": 645966,
+  "candidate_executable_size": 646122,
+  "code_start": 102776,
+  "accepted_code_end": 635100,
+  "candidate_code_end": 635256,
+  "code_growth_bytes": 156,
+  "package_suffix_shift_exact": true,
+  "preexisting_instruction_addresses_preserved": true,
+  "preexisting_instruction_encodings_preserved_except_call_rel32": true,
+  "hot_call_sites": 11,
+  "hot_call_offsets": [
+    "0x7ae55",
+    "0x7b054",
+    "0x7b192",
+    "0x7b243",
+    "0x7b69f",
+    "0x7b7d3",
+    "0x7b87f",
+    "0x7bdfe",
+    "0x7be8e",
+    "0x7bf30",
+    "0x7ccfd"
+  ],
+  "accepted_call_target": "0x2820d",
+  "changed_existing_code_bytes": 44,
+  "unexpected_changed_existing_code_bytes": 0,
+  "append_start": "0x9b0da",
+  "helpers": [
+    {
+      "value": 3,
+      "offset": "0x9b0da",
+      "high_word": "0x40080000"
+    },
+    {
+      "value": 5,
+      "offset": "0x9b0f4",
+      "high_word": "0x40140000"
+    },
+    {
+      "value": 25,
+      "offset": "0x9b10e",
+      "high_word": "0x40390000"
+    },
+    {
+      "value": 100,
+      "offset": "0x9b128",
+      "high_word": "0x40590000"
+    },
+    {
+      "value": 250,
+      "offset": "0x9b142",
+      "high_word": "0x406f4000"
+    },
+    {
+      "value": 1000,
+      "offset": "0x9b15c",
+      "high_word": "0x408f4000"
+    }
+  ],
+  "helper_count": 6,
+  "helper_instruction_count": 24,
+  "helper_generated_shape_exact": true,
+  "appendix_direct_entries": 11,
+  "appendix_direct_entries_all_explicit_calls": true,
+  "prior_unreachable_padding_preserved": true,
+  "compiler_alignment_padding_relocated": true,
+  "source_boundary": "shared Lino only"
+}

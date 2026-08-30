@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "task": 218,
+  "status": "pass",
+  "candidate_source_sha256": "1ba39ef3675d95d338ae94117dba36fb71570f392ed8d53931b05642d7391e5d",
+  "review_scope": "same-call-shape local-renderer fixed-F64 helpers appended after unreachable EOF padding",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "hot_sites": {
+    "count": 11,
+    "fi_assignment_retained": true,
+    "one_call_retained": true,
+    "continuation_statement_exact": true
+  },
+  "helpers": {
+    "count": 6,
+    "only_exact_fa_low_high_stores": true,
+    "a_through_e_unchanged": true,
+    "fs0_unchanged": true,
+    "no_raw_target_machine": true
+  },
+  "exactness": {
+    "binary32_to_binary64_words": true,
+    "next_fmul_inputs_and_output": true,
+    "renderer_control_flow": true,
+    "private_conversion_scratch_unobserved": true,
+    "internal_flags_overwritten_by_same_next_fmul": true
+  },
+  "appendix": {
+    "accepted_source_exact_before_appendix_except_eleven_call_targets": true,
+    "placed_after_unreachable_existing_padding": true,
+    "reachable_only_by_explicit_helper_calls": true
+  },
+  "architecture_specific_lino_added": false,
+  "remaining_mismatches": []
+}

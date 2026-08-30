@@ -1,0 +1,235 @@
+{
+  "schema": 1,
+  "task": 218,
+  "candidate": "same-footprint calls to six exact fixed-F64 shared-Lino helpers",
+  "source_boundary": "one common tracked shared-Lino closure",
+  "model": {
+    "schema": 1,
+    "task": 218,
+    "status": "pass",
+    "candidate_file_equals_exact_transform": true,
+    "replacement_sites": 11,
+    "eof_helpers": 6,
+    "fixed_values": [
+      3,
+      5,
+      25,
+      100,
+      250,
+      1000
+    ],
+    "visible_state_cases": 1408,
+    "int_to_binary32_to_binary64_words_exact": true,
+    "fi_assignments_retained": true,
+    "fa_words_exact": true,
+    "fs0_preserved": true,
+    "a_through_e_preserved": true,
+    "private_conversion_scratch_unobserved": true,
+    "same_single_call_shape_at_each_hot_site": true,
+    "next_multiply_and_renderer_control_flow_exact": true,
+    "accepted_source_prefix_and_suffix_exact_before_appendix": true,
+    "appendix_after_unreachable_eof_padding": true,
+    "simulation_constants": [
+      18206,
+      60000
+    ],
+    "source_boundary": "one common tracked shared-Lino closure",
+    "raw_target_machine_blocks_added": false,
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true,
+    "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "candidate_source_sha256": "1ba39ef3675d95d338ae94117dba36fb71570f392ed8d53931b05642d7391e5d",
+    "fpconv_source_sha256": "bf4e4662ac6697a304acdecf1e7b88c20a115db91b2e3eb99f21739feb6a646a"
+  },
+  "semantic_review": {
+    "schema": 1,
+    "task": 218,
+    "status": "pass",
+    "candidate_source_sha256": "1ba39ef3675d95d338ae94117dba36fb71570f392ed8d53931b05642d7391e5d",
+    "review_scope": "same-call-shape local-renderer fixed-F64 helpers appended after unreachable EOF padding",
+    "source_boundary": "one common tracked shared-Lino closure",
+    "hot_sites": {
+      "count": 11,
+      "fi_assignment_retained": true,
+      "one_call_retained": true,
+      "continuation_statement_exact": true
+    },
+    "helpers": {
+      "count": 6,
+      "only_exact_fa_low_high_stores": true,
+      "a_through_e_unchanged": true,
+      "fs0_unchanged": true,
+      "no_raw_target_machine": true
+    },
+    "exactness": {
+      "binary32_to_binary64_words": true,
+      "next_fmul_inputs_and_output": true,
+      "renderer_control_flow": true,
+      "private_conversion_scratch_unobserved": true,
+      "internal_flags_overwritten_by_same_next_fmul": true
+    },
+    "appendix": {
+      "accepted_source_exact_before_appendix_except_eleven_call_targets": true,
+      "placed_after_unreachable_existing_padding": true,
+      "reachable_only_by_explicit_helper_calls": true
+    },
+    "architecture_specific_lino_added": false,
+    "remaining_mismatches": []
+  },
+  "build": {
+    "schema": 1,
+    "task": 218,
+    "status": "pass",
+    "private_inactive_desktop": true,
+    "entry_point": "lino_build.ps1",
+    "cpu": "i386m",
+    "stage_extension": ".lxe",
+    "warnings": 62,
+    "errors": 0,
+    "elapsed_seconds": 29.7,
+    "candidate_source_sha256": "1ba39ef3675d95d338ae94117dba36fb71570f392ed8d53931b05642d7391e5d",
+    "candidate_executable_bytes": 646122,
+    "candidate_executable_sha256": "511dec34c189499504ccd86ec94f2f838fb34ad192450317ac0aaec943a6f67a",
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+  },
+  "production_layout": {
+    "schema": 1,
+    "task": 218,
+    "status": "pass",
+    "accepted_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+    "candidate_sha256": "511dec34c189499504ccd86ec94f2f838fb34ad192450317ac0aaec943a6f67a",
+    "accepted_executable_size": 645966,
+    "candidate_executable_size": 646122,
+    "code_start": 102776,
+    "accepted_code_end": 635100,
+    "candidate_code_end": 635256,
+    "code_growth_bytes": 156,
+    "package_suffix_shift_exact": true,
+    "preexisting_instruction_addresses_preserved": true,
+    "preexisting_instruction_encodings_preserved_except_call_rel32": true,
+    "hot_call_sites": 11,
+    "hot_call_offsets": [
+      "0x7ae55",
+      "0x7b054",
+      "0x7b192",
+      "0x7b243",
+      "0x7b69f",
+      "0x7b7d3",
+      "0x7b87f",
+      "0x7bdfe",
+      "0x7be8e",
+      "0x7bf30",
+      "0x7ccfd"
+    ],
+    "accepted_call_target": "0x2820d",
+    "changed_existing_code_bytes": 44,
+    "unexpected_changed_existing_code_bytes": 0,
+    "append_start": "0x9b0da",
+    "helpers": [
+      {
+        "value": 3,
+        "offset": "0x9b0da",
+        "high_word": "0x40080000"
+      },
+      {
+        "value": 5,
+        "offset": "0x9b0f4",
+        "high_word": "0x40140000"
+      },
+      {
+        "value": 25,
+        "offset": "0x9b10e",
+        "high_word": "0x40390000"
+      },
+      {
+        "value": 100,
+        "offset": "0x9b128",
+        "high_word": "0x40590000"
+      },
+      {
+        "value": 250,
+        "offset": "0x9b142",
+        "high_word": "0x406f4000"
+      },
+      {
+        "value": 1000,
+        "offset": "0x9b15c",
+        "high_word": "0x408f4000"
+      }
+    ],
+    "helper_count": 6,
+    "helper_instruction_count": 24,
+    "helper_generated_shape_exact": true,
+    "appendix_direct_entries": 11,
+    "appendix_direct_entries_all_explicit_calls": true,
+    "prior_unreachable_padding_preserved": true,
+    "compiler_alignment_padding_relocated": true,
+    "source_boundary": "shared Lino only"
+  },
+  "abba_order": [
+    "candidate-a",
+    "baseline-a",
+    "baseline-b",
+    "candidate-b"
+  ],
+  "candidate_a": {
+    "presentation_hz": 48.76580373269115,
+    "simulation_hz": 18.663455749548465,
+    "cycles_per_presentation": 46918247.29218107,
+    "render_ms": 18.865319865319865,
+    "missed_deadlines": 196
+  },
+  "baseline_a": {
+    "presentation_hz": 39.328144203195414,
+    "simulation_hz": 18.844735764031135,
+    "cycles_per_presentation": 58166118.161458336,
+    "render_ms": 23.94501025385212,
+    "missed_deadlines": 190
+  },
+  "baseline_b": {
+    "presentation_hz": 42.92199752373091,
+    "simulation_hz": 18.572018159306644,
+    "cycles_per_presentation": 53559344.495192304,
+    "render_ms": 22.006659801075728,
+    "missed_deadlines": 206
+  },
+  "candidate_b": {
+    "presentation_hz": 35.808748728382504,
+    "simulation_hz": 18.71820956256358,
+    "cycles_per_presentation": 63698736.46590909,
+    "render_ms": 26.30224159920151,
+    "missed_deadlines": 176
+  },
+  "all_simulation_gates": "pass",
+  "candidate_a_simulation_margin_hz": 0.45745574954846546,
+  "candidate_b_simulation_margin_hz": 0.5122095625635801,
+  "ordering_a": {
+    "status": "win",
+    "presentation_gain_hz": 9.437659529495733,
+    "cycles_per_presentation_removed": 11247870.869277269
+  },
+  "ordering_b": {
+    "status": "loss",
+    "presentation_gain_hz": -7.1132487953484045,
+    "cycles_per_presentation_removed": -10139391.97071679
+  },
+  "fidelity": {
+    "status": "skipped_after_ordering_b_performance_failure"
+  },
+  "sustained_candidate": {
+    "status": "skipped_after_ordering_b_performance_failure"
+  },
+  "sustained_native_60_hz_status": "still_open",
+  "disposition": "rejected_after_ordering_b_performance_failure",
+  "host_classification": "controlled_depressed_host_evidence",
+  "contradictory_orderings": true,
+  "orderings_averaged": false,
+  "final_arm": "accepted_baseline",
+  "candidate_retained_byte_exact": false,
+  "accepted_restored_byte_exact": true,
+  "accepted_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+  "accepted_executable_sha256": "81900287fa9e19291a27667b0e23d5c0c6324e86e8b9d8da0ff82a65cc302823",
+  "candidate_source_sha256": "1ba39ef3675d95d338ae94117dba36fb71570f392ed8d53931b05642d7391e5d",
+  "candidate_executable_sha256": "511dec34c189499504ccd86ec94f2f838fb34ad192450317ac0aaec943a6f67a"
+}
