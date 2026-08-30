@@ -1,0 +1,215 @@
+{
+  "schema": 1,
+  "task": 233,
+  "date": "2026-08-30",
+  "decision": "rejected-contradictory-orderings",
+  "files": [
+    {
+      "path": "build/native-fsqrt-lowering-20260830/accepted/compiler114m.txt",
+      "bytes": 381580,
+      "sha256": "be83e4e9160497af7b3272a5f0245ce813a76927ff3807249dce5c0dd5d00e19"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/accepted/compiler114m.exe",
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/accepted/i386m.bin",
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/accepted/fpsoft.txt",
+      "bytes": 61429,
+      "sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/accepted/fpabi.txt",
+      "bytes": 3223,
+      "sha256": "0c2f2602a82b9619d0bb909098857f804482456c504c2667874046be0598c7fd"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/accepted/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/accepted/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/candidate/compiler114m.txt",
+      "bytes": 383623,
+      "sha256": "be307f775701bf76d27aa34359886ad543dbc37bc97e5cc688ba8e3206919ac4"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/candidate/compiler114m.exe",
+      "bytes": 87168,
+      "sha256": "b2f87e8b330fbd479f0bd7b4b8bf536fe4ac06849e6e1fea1f6401930a9f5435"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/candidate/fpsoft.txt",
+      "bytes": 61461,
+      "sha256": "0628995a3ea891d23737c21757e747b1540c3dc1598991cb4380e815cac5bdf0"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/candidate/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/candidate/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "fadbad38814313b000698f591c060d91a53f3b6f701c65f67fbc5845d4d3a4c9"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/apply_candidate.py",
+      "bytes": 10664,
+      "sha256": "b6c916f630f3eeef0778455210336a78b9463f1f0931f67bccf438cc1a53ce0e"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/prepared-source.json",
+      "bytes": 861,
+      "sha256": "b464e444548eb5c8e37b422375bb3060b9f145d0a9179aa7453e3fafb8a307dc"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/verify_model.py",
+      "bytes": 12233,
+      "sha256": "a2df556e2fb1f6198d60abfa8d1359db6cfad2a0e2001cb1475a77354b5089c5"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/model.json",
+      "bytes": 2042,
+      "sha256": "fafa5df4dc023a2d67b1bd872b545aadfa5ce946ed68365e6696e4631f7724d0"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/build_candidate.py",
+      "bytes": 7639,
+      "sha256": "37a4523cf415b9f1a5ad59852d7e0f23c28f3d8ea3931d4d08405317d2b45885"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/build.json",
+      "bytes": 8184,
+      "sha256": "3125418d32867205fcf219f5484d26a5ce0718a32348ae8333bb480b512b10ce"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/marker-only-i386m/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/accepted-compiler-x64/vhgame.exe",
+      "bytes": 673754,
+      "sha256": "8f79aaa4fbd000aacf2041e6ce51f28c186b06b994474060cce7f3ccaedc900b"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/candidate-compiler-x64/vhgame.exe",
+      "bytes": 673754,
+      "sha256": "8f79aaa4fbd000aacf2041e6ce51f28c186b06b994474060cce7f3ccaedc900b"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/verify_production.py",
+      "bytes": 17403,
+      "sha256": "e71f83c6155b90f9d4e14c212cbe1083bde74a9b7847db338fe3e40f66135d3f"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/production-layout.json",
+      "bytes": 3599,
+      "sha256": "21a3923901cfab510c61ae14178526d018219ea6031b4ae04c1091e8cd931a1a"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/verify_fail_closed_build.py",
+      "bytes": 5273,
+      "sha256": "0fc84f7acd6e65c541f9873965916a5fb0c800c19e19f83f9bf5b3c5a4d13209"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/failclosed-layout-shift.json",
+      "bytes": 2176,
+      "sha256": "864550cd9a8a96fbf40e81d7da0672d8cebdc8c180adcd38fd10c7b055ad74e6"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/failclosed-layout-shift/fpabi.txt",
+      "bytes": 3247,
+      "sha256": "18b5fc0046fac0b45fe249701cfff47f197ce8b8bfb64137cf28820d57941759"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/failclosed-layout-shift-accepted/vhgame.exe",
+      "bytes": 645970,
+      "sha256": "35822991e46986dac5e42f387563e4c1cc8984e26e52972652f54a7c4dcac1df"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/failclosed-layout-shift-candidate/vhgame.exe",
+      "bytes": 645970,
+      "sha256": "35822991e46986dac5e42f387563e4c1cc8984e26e52972652f54a7c4dcac1df"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/runtime-boundary.json",
+      "bytes": 697,
+      "sha256": "497d67924363dc4e4212a25e71fa409b36dc3af989788403d59eead3126fce77"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/semantic-review.json",
+      "bytes": 3180,
+      "sha256": "b57a109e7ffd6dd53f1b8656fc3993295c7be6737bd7c924992993d90252f257"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/run_arm.py",
+      "bytes": 5511,
+      "sha256": "02f8ff8ec5b5be52ecb4afde8faee5e8a75279e893d4d099fd18bdbcbb0b9750"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/capture_fidelity.py",
+      "bytes": 2930,
+      "sha256": "320bbd8821c045c1eaebc62544e25faa87d43095b34060fcd6e85c934b95ecde"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/compare_fidelity.py",
+      "bytes": 4234,
+      "sha256": "35d80f4a6dd8f6712af8805d0ae984a57ac5a2e93d766c78ec563ce2c59f03a5"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/run_sustained.py",
+      "bytes": 3944,
+      "sha256": "9cd36ff8328c0d2c1b7a85bca82c3b66d34916c3dc96d1ada3f1b4e2d60b9606"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/finalize.py",
+      "bytes": 15371,
+      "sha256": "30f6ba0e2647262371c4cacf4f49833d5f9f7f764c84f2c23640c8084f0b6802"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/result.json",
+      "bytes": 7139,
+      "sha256": "fed2ac33d60c0452ccd607c7a886d74862dfb0f981b448bfd730802a56b707e8"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/candidate-a/capsule/report.json",
+      "bytes": 3079,
+      "sha256": "5dca27f746092058408f4cc25382236aa1b08d1edee461622fb6eaf1cb754f5e"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/baseline-a/capsule/report.json",
+      "bytes": 3082,
+      "sha256": "06df0871a1190c8ba994bd11e43f306e3d673bff1c033fb9e63502aea251af7b"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/baseline-b/capsule/report.json",
+      "bytes": 3078,
+      "sha256": "f970a7b62916804be0253e064a85c833e1a3c92e271007ad5d76d5e615d5dcea"
+    },
+    {
+      "path": "build/native-fsqrt-lowering-20260830/candidate-b/capsule/report.json",
+      "bytes": 3086,
+      "sha256": "821604c11fccaf150a93273cc24ca7f4feb1ca72cc453dc6d540c127d75cc581"
+    }
+  ],
+  "active": {
+    "work/fp/fpsoft.txt": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "work/vhgame.exe": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+    "main/lib/gen/compiler114m.txt": "be83e4e9160497af7b3272a5f0245ce813a76927ff3807249dce5c0dd5d00e19",
+    "main/lib/gen/compiler114m.exe": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+  },
+  "current_files_match_accepted": true
+}

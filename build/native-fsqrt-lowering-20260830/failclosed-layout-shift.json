@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "task": 233,
+  "status": "pass",
+  "mutation": "insert one fpabi variable before FA0",
+  "fa_and_following_variable_layout_shifted": true,
+  "marker_bearing_common_fpsoft_used": true,
+  "accepted_and_candidate_compiler_outputs_byte_exact": true,
+  "output_sha256": "35822991e46986dac5e42f387563e4c1cc8984e26e52972652f54a7c4dcac1df",
+  "output_bytes": 645970,
+  "generated_fsqrt_instructions": 0,
+  "context_gate_failed_closed_on_real_i386m_build": true,
+  "private_inactive_desktop": true,
+  "default_desktop": false,
+  "production_restored": true,
+  "records": {
+    "accepted_compiler": {
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "C:\\programmieren\\linoleum\\lino_build.ps1",
+        "-Src",
+        "C:\\programmieren\\linoleum\\work\\vhgame.txt",
+        "-Compiler",
+        "C:\\programmieren\\linoleum\\build\\native-fsqrt-lowering-20260830\\accepted\\compiler114m.exe",
+        "-LinoEnv",
+        "C:\\programmieren\\linoleum\\main",
+        "-Cpu",
+        "i386m",
+        "-StageExtension",
+        ".lxe"
+      ],
+      "private_inactive_desktop": true,
+      "default_desktop": false,
+      "output_bytes": 645970,
+      "output_sha256": "35822991e46986dac5e42f387563e4c1cc8984e26e52972652f54a7c4dcac1df"
+    },
+    "candidate_compiler": {
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "C:\\programmieren\\linoleum\\lino_build.ps1",
+        "-Src",
+        "C:\\programmieren\\linoleum\\work\\vhgame.txt",
+        "-Compiler",
+        "C:\\programmieren\\linoleum\\build\\native-fsqrt-lowering-20260830\\candidate\\compiler114m.exe",
+        "-LinoEnv",
+        "C:\\programmieren\\linoleum\\main",
+        "-Cpu",
+        "i386m",
+        "-StageExtension",
+        ".lxe"
+      ],
+      "private_inactive_desktop": true,
+      "default_desktop": false,
+      "output_bytes": 645970,
+      "output_sha256": "35822991e46986dac5e42f387563e4c1cc8984e26e52972652f54a7c4dcac1df"
+    }
+  }
+}

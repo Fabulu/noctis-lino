@@ -1,0 +1,173 @@
+{
+  "schema": 1,
+  "task": 233,
+  "date": "2026-08-30",
+  "decision": "rejected-contradictory-orderings",
+  "reason": "Ordering A improved both mandatory metrics, but Ordering B independently lost presentation throughput and increased process cycles per presentation. The binding discriminator forbids averaging contradictory orderings, so the candidate was rejected before fidelity or sustained screening and Task #224 was restored byte-exactly.",
+  "candidate_change_scope": {
+    "common_lino_change": "zero-byte XSS exact i386m native fsqrt marker only",
+    "compiler_change": "fail-closed exact-context i386m FLD/FSQRT/FSTP lowering below the shared source boundary",
+    "native_gameplay_or_renderer_code": false,
+    "architecture_specific_lino_fork": false,
+    "raw_target_machine_block_added_to_shipping_lino": false,
+    "complete_shipping_dependency_closure_audited_here": false,
+    "closure_audit_deferred_to_release_audit": true
+  },
+  "candidate": {
+    "fpsoft_sha256": "0628995a3ea891d23737c21757e747b1540c3dc1598991cb4380e815cac5bdf0",
+    "compiler_source_sha256": "be307f775701bf76d27aa34359886ad543dbc37bc97e5cc688ba8e3206919ac4",
+    "compiler_sha256": "b2f87e8b330fbd479f0bd7b4b8bf536fe4ac06849e6e1fea1f6401930a9f5435",
+    "executable_bytes": 645966,
+    "executable_sha256": "fadbad38814313b000698f591c060d91a53f3b6f701c65f67fbc5845d4d3a4c9",
+    "island_bytes": 16,
+    "changed_byte_values": 15,
+    "hardware_fsqrt_per_positive_root": 1
+  },
+  "accepted_baseline": {
+    "task": 224,
+    "description": "retained buffered-limb restoring-root production",
+    "fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "compiler_source_sha256": "be83e4e9160497af7b3272a5f0245ce813a76927ff3807249dce5c0dd5d00e19",
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "executable_bytes": 645966,
+    "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+    "integer_restoring_decisions_per_positive_root": 64
+  },
+  "focused_gates": {
+    "source_and_binary64_model": "pass",
+    "binary64_pipeline_cases": 92147,
+    "special_dispatch_cases": 36,
+    "positive_finite_all_input_integer_argument": "pass",
+    "accepted_private_p64_policy_differences": 1026,
+    "all_policy_differences_spill_to_identical_p53": true,
+    "public_a_through_e_exact": true,
+    "candidate_x87_stack_net_zero": true,
+    "architectural_x87_status_exact": false,
+    "selected_package_status_readers_observe_fsqrt_status": false,
+    "runtime_boundary_checks": 24,
+    "compiler_three_stage_fixpoint": true,
+    "marker_only_i386m_output_byte_exact": true,
+    "non_i386m_x64_outputs_byte_exact": true,
+    "package_bytes_outside_16_byte_island_exact": true,
+    "package_unexpected_changes": 0,
+    "exact_context_bytes": 109,
+    "all_context_single_byte_mutations_fail_closed": true,
+    "real_shifted_fa_layout_build_failed_closed": true,
+    "adversarial_review": "pass-after-evidence-hardening",
+    "claim_scope": "current exact selected i386m production package only",
+    "indexed_alias_ranges_exhaustively_proven": false,
+    "indirect_transfer_targets_exhaustively_resolved": false
+  },
+  "discriminator": {
+    "checkpoint": 1344638527,
+    "physical_core_index": 3,
+    "affinity_mask": "0xc0",
+    "priority": "above_normal",
+    "desktop": "private inactive desktop",
+    "requested_measurement_seconds": 5.0,
+    "completed_order": [
+      "candidate-a",
+      "baseline-a",
+      "baseline-b",
+      "candidate-b"
+    ],
+    "profile_origin_counters_in_order": [
+      456028424,
+      1063487372,
+      1642084435,
+      1881813699
+    ]
+  },
+  "candidate_a": {
+    "presentation_hz": 43.39092004821213,
+    "simulation_hz": 18.88308557653676,
+    "render_ms": 21.539756091050577,
+    "present_ms": 1.396505525372362,
+    "process_cycles_per_presentation": 52625779.25925926,
+    "missed_deadlines": 216,
+    "presentations": 216,
+    "simulation_ticks": 94,
+    "profile_origin_counter": 456028424,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "baseline_a": {
+    "presentation_hz": 42.25632848315727,
+    "simulation_hz": 18.736296591588598,
+    "render_ms": 22.23641822080843,
+    "present_ms": 1.3831282943329082,
+    "process_cycles_per_presentation": 54064715.23584906,
+    "missed_deadlines": 212,
+    "presentations": 212,
+    "simulation_ticks": 94,
+    "profile_origin_counter": 1063487372
+  },
+  "ordering_a": {
+    "presentation_hz_delta": 1.134591565054862,
+    "cycles_per_presentation_delta": -1438935.976589799,
+    "render_ms_delta": -0.6966621297578541,
+    "wins_both_mandatory_metrics": true,
+    "candidate_lost_presentation_hz": false,
+    "candidate_added_cycles_per_presentation": false
+  },
+  "baseline_b": {
+    "presentation_hz": 41.55946962200673,
+    "simulation_hz": 18.602810211755394,
+    "render_ms": 22.513773795010636,
+    "present_ms": 1.4101998596180132,
+    "process_cycles_per_presentation": 54491197.5,
+    "missed_deadlines": 210,
+    "presentations": 210,
+    "simulation_ticks": 94,
+    "profile_origin_counter": 1642084435
+  },
+  "candidate_b": {
+    "presentation_hz": 40.294538760482716,
+    "simulation_hz": 19.022294947842095,
+    "render_ms": 23.246156175257394,
+    "present_ms": 1.535524521506099,
+    "process_cycles_per_presentation": 55812908.88832487,
+    "missed_deadlines": 197,
+    "presentations": 197,
+    "simulation_ticks": 93,
+    "profile_origin_counter": 1881813699,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "ordering_b": {
+    "presentation_hz_delta": -1.2649308615240145,
+    "cycles_per_presentation_delta": 1321711.3883248717,
+    "render_ms_delta": 0.732382380246758,
+    "wins_both_mandatory_metrics": false,
+    "candidate_lost_presentation_hz": true,
+    "candidate_added_cycles_per_presentation": true
+  },
+  "combined_interpretation": {
+    "status": "forbidden",
+    "reason": "The two independent orderings disagree; do not average them."
+  },
+  "fidelity": {
+    "status": "skipped",
+    "evidence_absent": true,
+    "reason": "Fidelity is permitted only after both orderings independently win."
+  },
+  "sustained_screen": {
+    "status": "skipped",
+    "evidence_absent": true,
+    "reason": "Rejected candidate was not eligible for sustained screening."
+  },
+  "retained_minute_record": {
+    "presentation_hz": 59.800276745077774,
+    "simulation_hz": 18.255172298818,
+    "replaced": false
+  },
+  "restored_production": {
+    "task": 224,
+    "fpsoft_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "compiler_source_sha256": "be83e4e9160497af7b3272a5f0245ce813a76927ff3807249dce5c0dd5d00e19",
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "executable_bytes": 645966,
+    "executable_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0",
+    "current_files_match_accepted": true
+  }
+}

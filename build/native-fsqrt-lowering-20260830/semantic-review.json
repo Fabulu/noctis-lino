@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "task": 233,
+  "date": "2026-08-30",
+  "status": "pass",
+  "scope": "current exact selected i386m production package only",
+  "timing_admission": "pass",
+  "initial_review": {
+    "status": "fail",
+    "material_findings": 2,
+    "low_findings": 1,
+    "findings": [
+      {
+        "severity": "high",
+        "subject": "FA displacement was not bound by the original 16-byte gate",
+        "closure": "closed",
+        "remediation": "The compiler now validates the exact 109-byte XScalarSqrt context, including every FA operand, before the separate equal-size 16-byte replacement. All 109 one-byte context mutations fail closed, and a real shifted-fpabi i386m negative-control build is byte-exact between accepted and candidate compilers with zero generated FSQRT instructions.",
+        "evidence": [
+          "apply_candidate.py",
+          "verify_production.py",
+          "production-layout.json",
+          "verify_fail_closed_build.py",
+          "failclosed-layout-shift.json"
+        ]
+      },
+      {
+        "severity": "medium",
+        "subject": "Scratch and hidden-entry observability claims exceeded the static evidence",
+        "closure": "closed-by-narrowing",
+        "remediation": "The report now claims only no fixed/named root-scratch observer and the exact public pushal/call/popal boundary. It explicitly records 3563 indexed EDI operands and 259 unresolved indirect transfers and does not claim exhaustive indexed-range or indirect-target resolution.",
+        "evidence": [
+          "verify_model.py",
+          "model.json",
+          "verify_production.py",
+          "production-layout.json"
+        ]
+      },
+      {
+        "severity": "low",
+        "subject": "Runtime patch fail-closed wording exceeded its sequence occurrence gate",
+        "closure": "closed-by-narrowing",
+        "remediation": "The report distinguishes occurrence gating from complete-site validation while retaining the exact complete selected-package FCW 133F sequence at offset 0x2661.",
+        "evidence": [
+          "runtime-boundary.json",
+          "production-layout.json"
+        ]
+      }
+    ]
+  },
+  "final_review": {
+    "status": "pass",
+    "remaining_material_findings": 0,
+    "result": "No material finding blocks the explicitly narrowed current-package timing admission.",
+    "confirmed": {
+      "source_boundary_compliant": true,
+      "all_public_binary64_results_exact": true,
+      "p64_to_p53_compatibility_quirk_closed": true,
+      "x87_fcw_and_stack_contract_supported": true,
+      "selected_package_status_readers_do_not_observe_fsqrt_status": true,
+      "package_byte_confinement_exact": true,
+      "compiler_three_stage_fixpoint": true,
+      "actual_non_i386m_suppression_exact": true,
+      "actual_shifted_layout_negative_control_pass": true
+    },
+    "explicit_nonclaims": {
+      "complete_shipping_dependency_closure_audited": false,
+      "indexed_workspace_alias_ranges_exhaustively_resolved": false,
+      "indirect_transfer_targets_exhaustively_resolved": false,
+      "architectural_x87_status_exact": false,
+      "runtime_patch_complete_site_fail_closed_for_arbitrary_inputs": false
+    }
+  }
+}
