@@ -411,6 +411,24 @@ At the time, the exact 1-KiB hybrid terrain-root candidate produced a higher iso
 
 ## Rejected full-ABBA candidates
 
+### Limb-pointer restoring square root — Task #223
+
+| Run | Presentation | Simulation | Render | Present | Cycles/presentation |
+|---|---:|---:|---:|---:|---:|
+| Candidate A | 58.137195735264534 Hz | 18.507342587004626 Hz | 13.806023541116485 ms | 0.8503744162560068 ms | 39,455,374.09342561 |
+| Baseline A | 55.56682214560941 Hz | 18.657473129182723 Hz | 15.123469560352342 ms | 0.9255768830425335 ms | 41,266,896.0729927 |
+| Baseline B | 57.13136189901428 Hz | 18.507342587004626 Hz | 14.064477577608749 ms | 0.8569736382968403 ms | 40,131,299.89084507 |
+| Candidate B | 56.607534383097466 Hz | 18.536974287422762 Hz | 14.124118349287013 ms | 0.8779872078505246 ms | 40,387,337.81338028 |
+
+- Ordering A: +2.5703735896551265 Hz and -1,811,521.9795670882 cycles/presentation.
+- Ordering B: -0.523827515916814 Hz and +256,037.92253521085 cycles/presentation.
+- Both candidate arms passed the authentic 18.206-Hz simulation gate. Ordering A won both mandatory metrics, but Ordering B lost both; the contradictory orderings were not averaged, synchronized fidelity and sustained screens were skipped, and Task #222 production was restored byte-exactly.
+- The experimental common-Lino helper retained the exact 64 restoring decisions but replaced 256 four-word radicand shifts with 64 dynamic active-limb shifts, 64 pointer reads, and three boundary advances. A 65,548-case normalized model, 92,146-case binary64 model, 4,096 public-state cases, and one adversarial semantic review all passed, including the accepted private equality-borrow residual quirk.
+- Generated-layout proof confined all 722 changed byte values to the exact 1,112-byte root helper island `[0x256f1,0x25b49)`. The 29-byte unreachable shared-Lino calibration preserved the endpoint and every downstream address/byte; no architecture-specific source, raw target-machine block, compiler change, or CPU-pack change was introduced.
+- Restored shared-Lino source: `work/fp/fpsoft.txt`, SHA-256 `6b2e209be5b62013276514f8c418cafc92ecb9fd4d9fd6fbdf91453bfebe66d3`.
+- Restored executable: `c4a62f5068262239a8a5665c443a75784fa2472941c9dfdb8fb731f5c8217ca2` (645,966 bytes).
+- Evidence: `build/limb-pointer-restoring-fsqrt-20260830/result.json`; exact transform, model, adversarial review, private build, production layout, strict ABBA, restoration, and manifest proofs are retained in the same directory.
+
 ### Same-footprint exact fixed-F64 helper calls — Task #218
 
 | Run | Presentation | Simulation | Render | Cycles/presentation |

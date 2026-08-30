@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "task": 223,
+  "date": "2026-08-30",
+  "decision": "rejected-after-contradictory-orderings-restored",
+  "reason": "Ordering A improved both mandatory metrics, but Ordering B independently lost both presentation throughput and cycles per presentation. The orderings were not averaged; fidelity and sustained screens were skipped, and Task #222 was restored.",
+  "source_boundary": {
+    "implementation": "consume the restoring root radicand through one dynamic shared-Lino limb pointer",
+    "shared_lino_source_changed_experimentally": true,
+    "shared_source": "work/fp/fpsoft.txt",
+    "native_gameplay_or_renderer_code": false,
+    "architecture_specific_lino_fork": false,
+    "raw_target_machine_block": false,
+    "compiler_changed": false,
+    "cpu_pack_changed": false
+  },
+  "candidate": {
+    "description": "retain 64 restoring decisions while shifting one active 32-bit radicand limb per pair instead of shifting all four limbs",
+    "fpsoft_sha256": "62401cb0446e44fa4c4f93d51b11088aa25e7f898830a17c5265a37e60da30fb",
+    "vhgame_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "executable_bytes": 645966,
+    "executable_sha256": "9844a08f0fc0d322eac8240d8efa58a9fb20d37872420d8f07cc24751b33e580"
+  },
+  "accepted_baseline": {
+    "fpsoft_sha256": "6b2e209be5b62013276514f8c418cafc92ecb9fd4d9fd6fbdf91453bfebe66d3",
+    "vhgame_source_sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25",
+    "executable_bytes": 645966,
+    "executable_sha256": "c4a62f5068262239a8a5665c443a75784fa2472941c9dfdb8fb731f5c8217ca2"
+  },
+  "toolchain": {
+    "compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+    "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7",
+    "build_entry": "lino_build.ps1",
+    "private_inactive_desktop": true,
+    "warnings": 63,
+    "errors": 0
+  },
+  "focused_gates": {
+    "semantic_model": "pass",
+    "adversarial_semantic_review": "pass",
+    "generic_normalized_mantissa_cases": 65548,
+    "binary64_pipeline_cases": 92146,
+    "special_dispatch_cases": 24,
+    "public_state_cases": 4096,
+    "accepted_private_residual_exact": true,
+    "accepted_p64_root_rounding_exact": true,
+    "p53_binary64_spill_exact": true,
+    "accepted_restoring_iterations": 64,
+    "candidate_restoring_iterations": 64,
+    "accepted_radix_limb_shifts": 256,
+    "candidate_radix_limb_shifts": 64,
+    "candidate_dynamic_limb_pointer_reads": 64,
+    "candidate_limb_boundary_advances": 3,
+    "production_layout": "pass",
+    "root_helper_range": [
+      153329,
+      154441
+    ],
+    "candidate_body_end": 154412,
+    "unreachable_padding_bytes": 29,
+    "changed_byte_values": 722,
+    "unexpected_changed_bytes": 0,
+    "all_package_bytes_outside_helper_exact": true,
+    "entry_and_downstream_addresses_exact": true
+  },
+  "discriminator": {
+    "clock_seconds": 1344638527,
+    "physical_core_index": 3,
+    "affinity_mask": "0xc0",
+    "priority": "above_normal",
+    "desktop": "private inactive desktop",
+    "requested_measurement_seconds": 5.0,
+    "completed_order": [
+      "candidate-a",
+      "baseline-a",
+      "baseline-b",
+      "candidate-b"
+    ]
+  },
+  "candidate_a": {
+    "presentation_hz": 58.137195735264534,
+    "simulation_hz": 18.507342587004626,
+    "render_ms": 13.806023541116485,
+    "present_ms": 0.8503744162560068,
+    "process_cycles_per_presentation": 39455374.09342561,
+    "missed_deadlines": 96,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "baseline_a": {
+    "presentation_hz": 55.56682214560941,
+    "simulation_hz": 18.657473129182723,
+    "render_ms": 15.123469560352342,
+    "present_ms": 0.9255768830425335,
+    "process_cycles_per_presentation": 41266896.0729927,
+    "missed_deadlines": 118
+  },
+  "ordering_a": {
+    "presentation_hz_delta": 2.5703735896551265,
+    "cycles_per_presentation_delta": -1811521.9795670882,
+    "wins_both_mandatory_metrics": true
+  },
+  "baseline_b": {
+    "presentation_hz": 57.13136189901428,
+    "simulation_hz": 18.507342587004626,
+    "render_ms": 14.064477577608749,
+    "present_ms": 0.8569736382968403,
+    "process_cycles_per_presentation": 40131299.89084507,
+    "missed_deadlines": 110
+  },
+  "candidate_b": {
+    "presentation_hz": 56.607534383097466,
+    "simulation_hz": 18.536974287422762,
+    "render_ms": 14.124118349287013,
+    "present_ms": 0.8779872078505246,
+    "process_cycles_per_presentation": 40387337.81338028,
+    "missed_deadlines": 91,
+    "simulation_gate_hz": 18.206,
+    "simulation_gate_pass": true
+  },
+  "ordering_b": {
+    "presentation_hz_delta": -0.523827515916814,
+    "cycles_per_presentation_delta": 256037.92253521085,
+    "wins_both_mandatory_metrics": false
+  },
+  "contradictory_orderings_averaged": false,
+  "fidelity": {
+    "status": "skipped",
+    "reason": "binding dual-ordering performance admission failed in Ordering B"
+  },
+  "sustained_screen": {
+    "status": "skipped",
+    "reason": "candidate was rejected before retention"
+  },
+  "host_classification": "controlled variable-host ABBA rejection",
+  "retained_absolute_record": {
+    "presentation_hz": 60.15187849720224,
+    "simulation_hz": 18.585131894484412,
+    "evidence": "build/gui-deferred-demotions-20260829/baseline-a/capsule/report.json",
+    "replaced": false
+  },
+  "restored_production": {
+    "fpsoft_sha256": "6b2e209be5b62013276514f8c418cafc92ecb9fd4d9fd6fbdf91453bfebe66d3",
+    "executable_bytes": 645966,
+    "executable_sha256": "c4a62f5068262239a8a5665c443a75784fa2472941c9dfdb8fb731f5c8217ca2",
+    "current_files_match_accepted": true,
+    "candidate_retained": false
+  }
+}

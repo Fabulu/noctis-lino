@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "task": 223,
+  "date": "2026-08-30",
+  "decision": "rejected",
+  "files": [
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/accepted/fpsoft.txt",
+      "bytes": 61264,
+      "sha256": "6b2e209be5b62013276514f8c418cafc92ecb9fd4d9fd6fbdf91453bfebe66d3"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/accepted/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/accepted/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "c4a62f5068262239a8a5665c443a75784fa2472941c9dfdb8fb731f5c8217ca2"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/accepted/compiler114m.exe",
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/accepted/i386m.bin",
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/candidate/fpsoft.txt",
+      "bytes": 61414,
+      "sha256": "62401cb0446e44fa4c4f93d51b11088aa25e7f898830a17c5265a37e60da30fb"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/candidate/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/candidate/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "9844a08f0fc0d322eac8240d8efa58a9fb20d37872420d8f07cc24751b33e580"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/apply_candidate.py",
+      "bytes": 2615,
+      "sha256": "1b7f6e59568ead87879a08873411dd1e73f9a466be894df8946d6db39ea63d39"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/verify_model.py",
+      "bytes": 21808,
+      "sha256": "49b008a6887808db7f0b514c0a3d15203b307beb2e4e961cf0c6e114885dc881"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/model.json",
+      "bytes": 2286,
+      "sha256": "afb7da30aa90767cdb267c4f9b28d561b390522431a38c0fe3a4154ba2c4cf49"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/semantic-review.json",
+      "bytes": 1587,
+      "sha256": "59ba065523bd45fefe65c7d88c896ff1bee8ff4d16e3d0e8b2c1df599a531bec"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/build.json",
+      "bytes": 534,
+      "sha256": "9d52020f18bdb8df59bd1d891bc4cba7dc811dc83d2b6b023a351755bf3dc3d6"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/verify_production.py",
+      "bytes": 12471,
+      "sha256": "129e2de5b1abd456dd2e98fd2ea42442d2963a7a1d23247def41dfe0d920d4f9"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/production-layout.json",
+      "bytes": 2217,
+      "sha256": "ef2ddac364bed0d687c5876a46e27d382fe5880400b2c4992eadff4d85765035"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/run_arm.py",
+      "bytes": 3405,
+      "sha256": "f42a768c8d286e465cbc319a3bd4e556af7004150c6a9007532232686bded170"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/finalize.py",
+      "bytes": 11994,
+      "sha256": "922fbfa47680d52935d593d5d2210c639e366646aaf8238ecca6e989fbf8732b"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/result.json",
+      "bytes": 5838,
+      "sha256": "a62d69c5a9fbe24b6227e00e5d80df81fb10d2538abe5e11874c081f3a25868c"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/candidate-a/capsule/report.json",
+      "bytes": 3108,
+      "sha256": "2d0fe6556006b150a81a53e93227a0ffcfb7532c76e7f6050a783304fc1581e7"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/baseline-a/capsule/report.json",
+      "bytes": 3105,
+      "sha256": "69ca8892c5b70c7eb47b2a08575c281a877aff73b45a8710d09110fe58b2ef51"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/baseline-b/capsule/report.json",
+      "bytes": 3106,
+      "sha256": "f66078e300f24a3e8cb81ceeee64cdbd328f7159df698392ba1f65b7a818861a"
+    },
+    {
+      "path": "build/limb-pointer-restoring-fsqrt-20260830/candidate-b/capsule/report.json",
+      "bytes": 3106,
+      "sha256": "eeb0104ef1a1ee60c6eb06b77ef0694b6f0cc09a9ab6fea68c8ca6f9976cd9ea"
+    }
+  ],
+  "active": {
+    "work/fp/fpsoft.txt": "6b2e209be5b62013276514f8c418cafc92ecb9fd4d9fd6fbdf91453bfebe66d3",
+    "work/vhgame.exe": "c4a62f5068262239a8a5665c443a75784fa2472941c9dfdb8fb731f5c8217ca2"
+  },
+  "current_files_match_accepted": true
+}

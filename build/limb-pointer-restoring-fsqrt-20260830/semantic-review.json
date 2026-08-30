@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "task": 223,
+  "status": "pass",
+  "review_kind": "bounded-adversarial",
+  "candidate_fpsoft_sha256": "62401cb0446e44fa4c4f93d51b11088aa25e7f898830a17c5265a37e60da30fb",
+  "accepted_fpsoft_sha256": "6b2e209be5b62013276514f8c418cafc92ecb9fd4d9fd6fbdf91453bfebe66d3",
+  "concrete_defects": [],
+  "dynamic_workspace_addressing": {
+    "status": "pass",
+    "evidence": "B = [sqmh]; A = [B] generates mov ebx,[edi+0x27bc] then mov eax,[edi+ebx*4], with the matching indexed store to the active limb"
+  },
+  "schedule": {
+    "status": "pass",
+    "limbs": 4,
+    "pairs_per_limb": 16,
+    "restoring_decisions": 64,
+    "boundary_advances": 3,
+    "terminal_srd_words_zero": true
+  },
+  "private_scratch": {
+    "status": "pass",
+    "words": ["sqmh", "sqml", "sqstep"],
+    "terminal_values_observable": false
+  },
+  "accepted_semantics": {
+    "status": "pass",
+    "srm_words_exact": true,
+    "p64_root_exact": true,
+    "p53_public_result_exact": true,
+    "equality_borrow_residual_quirk_preserved": true
+  },
+  "generated_control_flow": {
+    "status": "pass",
+    "helper_return": "0x25b2b",
+    "calibration_start": "0x25b2c",
+    "calibration_bytes": 29,
+    "direct_entries_to_calibration": 0,
+    "external_entries_to_helper_interiors": 0
+  },
+  "source_boundary": {
+    "status": "pass",
+    "shared_portable_lino_only": true,
+    "architecture_specific_lino_fork": false,
+    "raw_target_machine_block_added": false,
+    "compiler_unchanged": true,
+    "cpu_pack_unchanged": true
+  },
+  "verdict": "PASS: no concrete semantic defect or failure case found"
+}
