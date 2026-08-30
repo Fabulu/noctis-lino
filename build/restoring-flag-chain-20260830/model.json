@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "task": 231,
+  "status": "pass",
+  "source_exact_transform": true,
+  "common_lino_change_is_zero_byte_marker_only": true,
+  "compiler_change_scope": "i386m fail-closed exact marker lowering",
+  "raw_target_machine_block_added_to_shipping_lino": false,
+  "complete_shipping_dependency_closure_audited": false,
+  "simulation_constants": [
+    18206,
+    60000
+  ],
+  "static_fsqrt_call_sites": 14,
+  "cases": 253438,
+  "coverage": {
+    "accept": 127531,
+    "final-cf-0": 127531,
+    "low-borrow-0": 64519,
+    "low-borrow-1": 63012,
+    "middle-borrow-0": 64873,
+    "middle-borrow-1": 62658,
+    "reject-high": 125727,
+    "reject-low": 36,
+    "reject-middle": 144
+  },
+  "ordered_remainder_write_trace_exact": true,
+  "terminal_a_through_e_exact": true,
+  "terminal_x86_cf_pf_af_zf_sf_of_exact": true,
+  "accepted_final_cf_always_clear": true,
+  "reject_paths_write_nothing": true,
+  "accepted_96_bit_result_exact": true,
+  "accepted_scalar_instructions": 49,
+  "candidate_reachable_instructions": 28,
+  "accepted_compare_instructions": 9,
+  "candidate_compare_instructions": 3,
+  "candidate_sbb_instructions": 1,
+  "island_bytes": 216,
+  "candidate_unreachable_nop_bytes": 97
+}

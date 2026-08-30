@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "task": 231,
+  "status": "pass",
+  "implementation_semantics": "pass",
+  "initial_review": {
+    "status": "fail-evidence-scope",
+    "findings": [
+      {
+        "severity": "medium",
+        "id": "internal-label-reference-scope",
+        "issue": "The suffix matcher intentionally spans internal labels, while the first proof checked only direct control-flow entries and did not audit address materialization or source references."
+      },
+      {
+        "severity": "low",
+        "id": "non-i386-output-overclaim",
+        "issue": "Non-i386 suppression was structurally guarded but only modeled, not empirically output-tested."
+      }
+    ]
+  },
+  "hardening": {
+    "changes": [
+      "Added a bounded exact-name audit across tracked work Lino sources, explicitly excluding protected and temporary paths; all 14 definitions/references are confined to the transformed fpsoft island.",
+      "Audited the complete selected candidate package for direct entries, instruction-immediate address materialization, and raw little-endian physical-address materialization of all six overwritten internal labels; none exist.",
+      "Reported all 259 whole-program indirect control transfers without claiming they were resolved, and narrowed lowering safety to the current exact selected i386m production package.",
+      "Narrowed non-i386 wording to structurally guarded/model-checked and explicitly recorded that no non-i386 output comparison was run.",
+      "Retained the explicit statement that the complete shipping dependency closure is deferred to the release audit."
+    ],
+    "reference_audit": "pass",
+    "current_package_overwritten_label_references": 0,
+    "whole_program_indirect_control_transfers_reported_unresolved": 259
+  },
+  "final_review": {
+    "status": "pass",
+    "remaining_material_findings": 0,
+    "scope": "current exact selected i386m production package only",
+    "review_result": "No remaining material findings; both initial findings are closed within the narrowed claim scope."
+  },
+  "protected_paths_inspected_by_reviewer": false,
+  "temporary_paths_inspected_by_reviewer": false
+}

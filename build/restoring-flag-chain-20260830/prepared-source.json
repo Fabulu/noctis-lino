@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "task": 231,
+  "status": "prepared",
+  "accepted_compiler_source_sha256": "be83e4e9160497af7b3272a5f0245ce813a76927ff3807249dce5c0dd5d00e19",
+  "candidate_compiler_source_sha256": "84c46f074bab19b688a2930b08ff278edbd3d599f032728ce722c7946e488671",
+  "accepted_fp_sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+  "candidate_fp_sha256": "f6aa960d904cd9bc7c162159fac8ab8253bf4dd3c52e6c2b983dfd8af444a0c0",
+  "scalar_island_bytes": 216,
+  "candidate_island_bytes": 216,
+  "candidate_reachable_bytes": 119,
+  "candidate_unreachable_padding_bytes": 97,
+  "common_lino_marker_only": true,
+  "raw_target_machine_block_added_to_shipping_lino": false
+}

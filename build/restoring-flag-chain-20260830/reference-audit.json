@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "task": 231,
+  "status": "pass",
+  "scope": "current selected tracked work Lino source and generated i386m package; complete shipping dependency closure remains deferred",
+  "tracked_source_symbol_hits": 14,
+  "tracked_source_hits_all_in_fpsoft_island": true,
+  "protected_sources_searched": false,
+  "temporary_paths_searched": false,
+  "overwritten_internal_labels": {
+    "XRoot restoring accept": "0x25909",
+    "XRoot restoring low borrow": "0x25923",
+    "XRoot restoring low subtract": "0x25928",
+    "XRoot restoring middle borrow": "0x2595a",
+    "XRoot restoring middle no borrow": "0x25974",
+    "XRoot restoring high subtract": "0x25989"
+  },
+  "external_direct_entries_to_overwritten_labels": 0,
+  "all_direct_entries_to_overwritten_labels": 0,
+  "instruction_immediate_materializations": 0,
+  "package_raw_physical_address_materializations": 0,
+  "whole_program_indirect_control_transfers_reported_unresolved": 259,
+  "current_package_has_reference_to_overwritten_label": false,
+  "candidate_padding_current_package_unreachable": true,
+  "lowering_claim_scope": "current exact selected i386m production package only",
+  "non_i386m_suppression": "structurally guarded in compiler source",
+  "non_i386m_output_comparison_run": false,
+  "complete_shipping_dependency_closure_audited": false
+}

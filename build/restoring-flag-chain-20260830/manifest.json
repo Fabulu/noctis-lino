@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "task": 231,
+  "date": "2026-08-30",
+  "decision": "rejected-contradictory-orderings",
+  "files": [
+    {
+      "path": "build/restoring-flag-chain-20260830/accepted/compiler114m.txt",
+      "bytes": 381580,
+      "sha256": "be83e4e9160497af7b3272a5f0245ce813a76927ff3807249dce5c0dd5d00e19"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/accepted/compiler114m.exe",
+      "bytes": 86288,
+      "sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/accepted/i386m.bin",
+      "bytes": 312488,
+      "sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/accepted/fpsoft.txt",
+      "bytes": 61429,
+      "sha256": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/accepted/vhgame.txt",
+      "bytes": 571601,
+      "sha256": "f1af20ebd55b80e3a1439b0e30f1bb4e0bdcc8e00b7aced1a7b34d7395d3dc25"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/accepted/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/candidate/compiler114m.txt",
+      "bytes": 384636,
+      "sha256": "84c46f074bab19b688a2930b08ff278edbd3d599f032728ce722c7946e488671"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/candidate/compiler114m.exe",
+      "bytes": 88236,
+      "sha256": "78e862bd94cf80685e579e827cf5d46f2c5adfd5a437befc94396b370bfc9e35"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/candidate/fpsoft.txt",
+      "bytes": 61471,
+      "sha256": "f6aa960d904cd9bc7c162159fac8ab8253bf4dd3c52e6c2b983dfd8af444a0c0"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/candidate/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "2dd024c214a49c94fd19dd7f9832a98f6c252a3a1bdcf363de0fbb68c33385f6"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/apply_candidate.py",
+      "bytes": 8607,
+      "sha256": "c932f49b533933bfa0c9ca9c9480c485a56a9a1ff7c50a8d4e5ad71dcff7c66d"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/prepared-source.json",
+      "bytes": 707,
+      "sha256": "853ff7ec078b24dfbb6730f50a64e20cda2dcd698a6a53f9b63877f602b527bf"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/verify_model.py",
+      "bytes": 10512,
+      "sha256": "071ab03ee856ff08045476a86bf18ae4f44464631bdbaabd491e2becaa60bce0"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/model.json",
+      "bytes": 1241,
+      "sha256": "d56550375dc8683a3a02e7037b3beae8c4ef209034e6fbca24b1960f22cbef96"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/build_candidate.py",
+      "bytes": 7061,
+      "sha256": "3b55816ecafcdb81449299b5d584dd9140a146b6ac93aab3b81d486e3c5f4815"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/build.json",
+      "bytes": 6278,
+      "sha256": "5b540818c1c307e5029c33d6081e376976332174ce1226c75a59c205ba49d130"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/marker-only/vhgame.exe",
+      "bytes": 645966,
+      "sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/verify_production.py",
+      "bytes": 15462,
+      "sha256": "cc6b129faa34faaac16d322ddc5244421c9d6fdd4a81283d2f14ccfadd77c492"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/production-layout.json",
+      "bytes": 1961,
+      "sha256": "8702cddf470edcf3148d2d89b6e6d76a4e80a410a0a05854af0efaae8ebd022f"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/verify_references.py",
+      "bytes": 7251,
+      "sha256": "aef8644d1e15c8a77b116f6622816c4c5bc3921adac26c88754b0c97ca269701"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/reference-audit.json",
+      "bytes": 1352,
+      "sha256": "e2ccbdc8b54bcc571c98de3c47fe7adcac3a863d806b769945bf090838de965b"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/semantic-review.json",
+      "bytes": 2141,
+      "sha256": "d40aeb142a15fce3f133842d9a38a46a1745217a59d43e4b614f7014600830ba"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/run_arm.py",
+      "bytes": 5377,
+      "sha256": "75ad5f4a6643a829411eb6239c9bbc2fb94bb10c3743a5c4152b6d00ca940754"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/finalize.py",
+      "bytes": 12557,
+      "sha256": "52bcbdc9ead32dea68e1676fae7eab1a8990373e5b2d934fa0625da8d4eafb97"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/result.json",
+      "bytes": 6248,
+      "sha256": "3dd0dedbfcf8a48affac1116d769aef48e5752fdf2507dd238cff3e267412cfc"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/candidate-a/capsule/report.json",
+      "bytes": 3094,
+      "sha256": "67aff675992f204dec308e5e92bcfa0e473cc32df40d8a683860328e54a79705"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/baseline-a/capsule/report.json",
+      "bytes": 3102,
+      "sha256": "38d0aac984c793948524b48027dbdc246289fb7750ebd197e544dcf3818d0ef6"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/baseline-b/capsule/report.json",
+      "bytes": 3100,
+      "sha256": "b163f4f89bb5f48fe9ac71e9631c8bb650b1b34c1e39af9ea7bf489b679c912f"
+    },
+    {
+      "path": "build/restoring-flag-chain-20260830/candidate-b/capsule/report.json",
+      "bytes": 3099,
+      "sha256": "a987e3ada04cca41741e43c947f169961412f8c8e190301aa7d84efa6b153e54"
+    }
+  ],
+  "active": {
+    "work/fp/fpsoft.txt": "063ecf40b0faab3b2779d8ff159b8fa815eec7b397de0d47e68223841e2a59cc",
+    "work/vhgame.exe": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+  },
+  "current_files_match_accepted": true
+}

@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "task": 231,
+  "status": "pass",
+  "build_entry": "lino_build.ps1",
+  "private_inactive_desktop": true,
+  "default_desktop": false,
+  "cpu_pack_sha256": "1dd1433597c42e30b13bd55bfd02c19ebe465f3e020e4878906f66e7bfcdc4b7",
+  "accepted_compiler_sha256": "cfb39efc611dc96eab47f24c70cc7447a11f3b7cd874c49bfeb4934a42e67e87",
+  "candidate_compiler_source_sha256": "84c46f074bab19b688a2930b08ff278edbd3d599f032728ce722c7946e488671",
+  "candidate_compiler_sha256": "78e862bd94cf80685e579e827cf5d46f2c5adfd5a437befc94396b370bfc9e35",
+  "compiler_fixpoint_sha256": "78e862bd94cf80685e579e827cf5d46f2c5adfd5a437befc94396b370bfc9e35",
+  "compiler_three_stage_fixpoint": true,
+  "marker_only_game_matches_accepted_byte_exactly": true,
+  "candidate_fp_sha256": "f6aa960d904cd9bc7c162159fac8ab8253bf4dd3c52e6c2b983dfd8af444a0c0",
+  "candidate_game_bytes": 645966,
+  "candidate_game_sha256": "2dd024c214a49c94fd19dd7f9832a98f6c252a3a1bdcf363de0fbb68c33385f6",
+  "production_restored": true,
+  "records": {
+    "marker_only_game": {
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "C:\\programmieren\\linoleum\\lino_build.ps1",
+        "-Src",
+        "C:\\programmieren\\linoleum\\work\\vhgame.txt",
+        "-Compiler",
+        "C:\\programmieren\\linoleum\\build\\restoring-flag-chain-20260830\\accepted\\compiler114m.exe",
+        "-LinoEnv",
+        "C:\\programmieren\\linoleum\\main",
+        "-Cpu",
+        "i386m",
+        "-StageExtension",
+        ".lxe"
+      ],
+      "private_inactive_desktop": true,
+      "default_desktop": false,
+      "elapsed_seconds": 15.687083299970254,
+      "log": {
+        "present": true,
+        "warnings": 64,
+        "errors": 0,
+        "lines": 64
+      },
+      "output": "work/vhgame.exe",
+      "output_bytes": 645966,
+      "output_sha256": "e18e8eb45ac0bc03aa2ee1f51ce1ae54f6ee00a0e8a7cef24cbd3adebcdf32a0"
+    },
+    "compiler_stage1": {
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "C:\\programmieren\\linoleum\\lino_build.ps1",
+        "-Src",
+        "C:\\programmieren\\linoleum\\build\\restoring-flag-chain-20260830\\compiler-stage1\\compiler114m.txt",
+        "-Compiler",
+        "C:\\programmieren\\linoleum\\build\\restoring-flag-chain-20260830\\accepted\\compiler114m.exe",
+        "-LinoEnv",
+        "C:\\programmieren\\linoleum\\main",
+        "-Cpu",
+        "i386m",
+        "-StageExtension",
+        ".lxe"
+      ],
+      "private_inactive_desktop": true,
+      "default_desktop": false,
+      "elapsed_seconds": 8.525870299898088,
+      "log": {
+        "present": false,
+        "warnings": 0,
+        "errors": 0,
+        "lines": 0
+      },
+      "output": "build/restoring-flag-chain-20260830/compiler-stage1/compiler114m.exe",
+      "output_bytes": 88236,
+      "output_sha256": "78e862bd94cf80685e579e827cf5d46f2c5adfd5a437befc94396b370bfc9e35"
+    },
+    "compiler_stage2": {
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "C:\\programmieren\\linoleum\\lino_build.ps1",
+        "-Src",
+        "C:\\programmieren\\linoleum\\build\\restoring-flag-chain-20260830\\compiler-stage2\\compiler114m.txt",
+        "-Compiler",
+        "C:\\programmieren\\linoleum\\build\\restoring-flag-chain-20260830\\compiler-stage1\\compiler114m.exe",
+        "-LinoEnv",
+        "C:\\programmieren\\linoleum\\main",
+        "-Cpu",
+        "i386m",
+        "-StageExtension",
+        ".lxe"
+      ],
+      "private_inactive_desktop": true,
+      "default_desktop": false,
+      "elapsed_seconds": 9.675239000003785,
+      "log": {
+        "present": false,
+        "warnings": 0,
+        "errors": 0,
+        "lines": 0
+      },
+      "output": "build/restoring-flag-chain-20260830/compiler-stage2/compiler114m.exe",
+      "output_bytes": 88236,
+      "output_sha256": "78e862bd94cf80685e579e827cf5d46f2c5adfd5a437befc94396b370bfc9e35"
+    },
+    "compiler_stage3": {
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "C:\\programmieren\\linoleum\\lino_build.ps1",
+        "-Src",
+        "C:\\programmieren\\linoleum\\build\\restoring-flag-chain-20260830\\compiler-stage3\\compiler114m.txt",
+        "-Compiler",
+        "C:\\programmieren\\linoleum\\build\\restoring-flag-chain-20260830\\compiler-stage2\\compiler114m.exe",
+        "-LinoEnv",
+        "C:\\programmieren\\linoleum\\main",
+        "-Cpu",
+        "i386m",
+        "-StageExtension",
+        ".lxe"
+      ],
+      "private_inactive_desktop": true,
+      "default_desktop": false,
+      "elapsed_seconds": 10.39119020011276,
+      "log": {
+        "present": false,
+        "warnings": 0,
+        "errors": 0,
+        "lines": 0
+      },
+      "output": "build/restoring-flag-chain-20260830/compiler-stage3/compiler114m.exe",
+      "output_bytes": 88236,
+      "output_sha256": "78e862bd94cf80685e579e827cf5d46f2c5adfd5a437befc94396b370bfc9e35"
+    },
+    "candidate_game": {
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "C:\\programmieren\\linoleum\\lino_build.ps1",
+        "-Src",
+        "C:\\programmieren\\linoleum\\work\\vhgame.txt",
+        "-Compiler",
+        "C:\\programmieren\\linoleum\\build\\restoring-flag-chain-20260830\\candidate\\compiler114m.exe",
+        "-LinoEnv",
+        "C:\\programmieren\\linoleum\\main",
+        "-Cpu",
+        "i386m",
+        "-StageExtension",
+        ".lxe"
+      ],
+      "private_inactive_desktop": true,
+      "default_desktop": false,
+      "elapsed_seconds": 17.67552060005255,
+      "log": {
+        "present": true,
+        "warnings": 64,
+        "errors": 0,
+        "lines": 64
+      },
+      "output": "work/vhgame.exe",
+      "output_bytes": 645966,
+      "output_sha256": "2dd024c214a49c94fd19dd7f9832a98f6c252a3a1bdcf363de0fbb68c33385f6"
+    }
+  }
+}
