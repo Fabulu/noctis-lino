@@ -497,8 +497,9 @@ tick while remaining inert during ordinary launches. The production game
 retains all eight source ascent states from impulse `-100` through `y=-750`, all
 twelve automatic-return states from `+75` through the exact `y=0` deck clamp,
 the strict `y < -500` roof switch in both directions, and the source-ordered
-camera-pitch and forward-restraint changes. Every one of the 20 states produces
-a distinct complete indexed page even though presentation continues at 60 Hz.
+camera-pitch and forward-restraint changes. Each of the 20 states retains one
+complete indexed page; presentation-phase capture can repeat at most one descent
+page while presentation continues at 60 Hz.
 
 Capsule descent and recovery now have the same complete production boundary. An
 opt-in `capsuletrace` launch records sixteen signed scalar fields and one complete
@@ -1529,11 +1530,12 @@ the extracted game folder.
 
 ### macOS
 
-Verify and extract `Noctis-IV-macos-x86_64.zip`, drag `Noctis IV.app` to
-Applications, and open the app rather than its nested game executable. Intel
-Macs run the x86_64 app directly; Apple Silicon requires Rosetta 2. The app is
-ad-hoc signed and not notarized. If first launch is blocked, approve Noctis IV
-under System Settings, Privacy & Security, then open it again.
+Verify and extract the archive for the Mac you use: `Noctis-IV-macos-x86_64.zip`
+for Intel Macs or Rosetta 2, and `Noctis-IV-macos-arm64.zip` for native Apple
+Silicon. Drag `Noctis IV.app` to Applications and open the app rather than its
+nested game executable. Both apps are ad-hoc signed and not notarized. If first
+launch is blocked, approve Noctis IV under System Settings, Privacy & Security,
+then open it again.
 
 The Mac launcher stores mutable state under
 `~/Library/Application Support/Noctis IV`. Back up `CURRENT.LIN`,
@@ -1563,8 +1565,8 @@ Useful controls:
 
 ## Known limitations
 
-- The Mac package is x86_64. Apple Silicon needs Rosetta 2; a native ARM64 CPU
-  pack and runtime remain unfinished.
+- The x86_64 Mac package requires Rosetta 2 on Apple Silicon; use the separate
+  native arm64 package there when possible.
 - The Mac app is ad-hoc signed, not Developer ID signed or notarized, and does
   not enable hardened runtime. First launch can require explicit approval in
   macOS Privacy & Security.
@@ -1577,14 +1579,15 @@ Useful controls:
 
 ## Integrity and licence
 
-Both platform packages include `MANIFEST.sha256` payload coverage. The Windows
-manifest covers every bundled payload file. The Mac manifest covers `Info.plist`,
-the nested game, and immutable Resources; codesign verifies the launcher and
-signature material separately, and package provenance hashes the launcher,
+All three platform packages include `MANIFEST.sha256` payload coverage. The
+Windows manifest covers every bundled payload file. Both Mac manifests cover `Info.plist`,
+the nested game, and immutable Resources; codesign verifies the launchers and
+signature material separately, and package provenance hashes each launcher,
 manifest, and signed game. The GitHub release supplies a checksum and explicit
-provenance record beside each ZIP. The macOS record also distinguishes the
-original compiler output, normalized unsigned Mach-O, unchanged appended Lino
-payload, signed executable, and exact Rosetta result.
+provenance record beside each ZIP. The macOS records also bind their original
+compiler output or unsigned game image, normalized geometry, unchanged appended
+Lino payload, signed executable, release label, and archive; the x86_64 record
+additionally binds its exact Rosetta result.
 
 Noctis IV and Noctis-derived port material are distributed under the original
 WTOF Public License included as `WPL.htm`, with Alessandro Ghignola's
