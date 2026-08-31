@@ -496,12 +496,22 @@ The exact-2.0-to-2.125 transition keeps that disc suppressed and crosses only th
 inclusive binary32 secondary-flare gate; product projection clears and the
 bounded source corridor is source-free. Native and private-desktop product have
 zero high-two-bit painter-family differences across all three selected crops.
-The native clocks differ fractionally but all lie in product integer second
-`1344168020`. Complete pages, active palettes/RGB, lower terrain, exact
-within-family indices, raw-clock identity, product diagnostic sample timing, and
-later adapted pages remain explicit non-claims. This closes both independent
-secondary weather gates for one genuine companion-owned atmospheric surface; it
-does not justify tuning ROTOR IGNE's unresolved orbital companion corona gap.
+A registered Windows-only private-desktop gate now recreates the trio from the
+current shipping shared-Lino executable at exact integer second `1344168020`. It
+enforces the exact landed camera, weather, source admission/suppression, rotation,
+terminators, source-crop hashes/ranges/bright counts, painter-family agreement,
+and the state-independent generated backgrounds, maps, palette, render state, and
+sun diagnostics.
+
+The native clocks differ fractionally but all lie in that product integer second.
+Historical whole `local`, `view`, and `page` hashes and their exact complete-output
+mismatch counts remain pinned in provenance rather than being misrepresented as
+current live equality gates. Current complete page indices, active palettes/RGB,
+lower terrain, exact within-family indices, raw-clock identity, product diagnostic
+sample timing, and later adapted pages remain explicit informational non-claims.
+This closes both independent secondary weather gates for one genuine
+companion-owned atmospheric surface; it does not justify tuning ROTOR IGNE's
+unresolved orbital companion corona gap.
 
 The Stardrifter local-system pass now restores the companion-star corona's
 source expression too: each type-10 body reseeds the fast generator with its
