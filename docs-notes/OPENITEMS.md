@@ -627,6 +627,17 @@ indices. Those equalities remain unclaimed. This closes a genuine parent-behind-
 moon companion occlusion without providing the unavailable pass-level evidence
 needed to tune the remaining ROTOR IGNE intensity/shape gap.
 
+A registered Windows-only private-desktop gate now recreates the positive and
+eclipse pair from the current shipping shared-Lino executable at integer seconds
+`1345723228` and `1345723227`. It enforces the exact camera and star-local poses,
+moon and parent projections, strict parent admission, positive moon/corona/core
+components, complete eclipse globe, translated native-globe coverage, and zero
+source-core pixels after the target-globe overwrite. Historical whole-output
+hashes and exact complete mismatch counts remain pinned in provenance; current
+`local`, `view`, `page`, palette, and complete mismatch values are not substituted
+for live semantic equality gates. The state-independent generated map, background,
+render-state, and sun diagnostics remain exact.
+
 **Independent dual-companion interior checkpoint.** TRIUMVIRATE - CAESAR at
 `(4142128,-5182625,-629021)` is a generated class-8 system with body types
 `[10,10,1]`, so it supplies two genuine type-10 lights rather than one companion
