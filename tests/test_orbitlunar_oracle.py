@@ -54,17 +54,30 @@ PALETTE_SHA256 = "3f78ddd2036be9d6308517d9baff0c3f0d6b181bf46b6f93cd987e4200e980
 INTERIOR_CROP = (30, 30, 180, 150)
 INTERIOR_STATUS_CROP = (215, 160, 315, 190)
 INTERIOR_BAND_SHA256 = "9652c9d0bcd76afa6917a52287633fc55b17dbef148db003813045438fd29bdb"
-PRODUCT_INTERIOR_CROP_SHA256 = "c0ecb6a4f83c25e2e4f8155adead874be686643d37bc9747f61dafc7b5a8050f"
-PRODUCT_INTERIOR_STATUS_SHA256 = "5f2a5a1c0fef751c0b8d359f4b886a54e89959c68311e0d029ed3afa20c524e8"
-PRODUCT_INTERIOR_EXACT_INDICES = 17395
-PRODUCT_INTERIOR_BRIGHTNESS = (8338, 8338, 8215, 8215)
+# The retained provenance records the earlier host-font product capture.  Keep
+# those historical measurements separate from the live shared-TEX4 gate.
+PROVENANCE_PRODUCT_INTERIOR_CROP_SHA256 = (
+    "c0ecb6a4f83c25e2e4f8155adead874be686643d37bc9747f61dafc7b5a8050f"
+)
+PROVENANCE_PRODUCT_INTERIOR_STATUS_SHA256 = (
+    "5f2a5a1c0fef751c0b8d359f4b886a54e89959c68311e0d029ed3afa20c524e8"
+)
+PROVENANCE_PRODUCT_INTERIOR_EXACT_INDICES = 17395
+PROVENANCE_PRODUCT_INTERIOR_BRIGHTNESS = (8338, 8338, 8215, 8215)
+PROVENANCE_INTERIOR_HUD_NATIVE_LEFT_MATCHES = 367
+# The live renderer now uses the shared TEX4 glyph path.  Its upper projected
+# HUD is exact in the graded crop; the remaining differences are bounded to
+# three flare/fixture regions.
+PRODUCT_INTERIOR_CROP_SHA256 = "1b27882a7750d01aed3a7f9a258f19daf0a6f7d24df188ea2b06c9ef19970a67"
+PRODUCT_INTERIOR_STATUS_SHA256 = "eb0a1dc83c5b8c6bd0d59822fc819b055984ece8b31e80fcd5ddc1513deafeab"
+PRODUCT_INTERIOR_EXACT_INDICES = 17825
+PRODUCT_INTERIOR_BRIGHTNESS = (8338, 8338, 8251, 8251)
 INTERIOR_DIFFERENCE_DECOMPOSITION = (
-    ("upper_hud", 355, (30, 30, 101, 57), 30),
+    ("upper_hud", 0, (), 0),
     ("right_fixture", 131, (150, 94, 179, 120), 46),
     ("central_flare", 14, (39, 95, 149, 124), 11),
-    ("lower_hud", 105, (30, 125, 179, 149), 36),
+    ("lower_fixture", 30, (149, 125, 179, 149), 30),
 )
-INTERIOR_HUD_NATIVE_LEFT_MATCHES = 367
 LIMB_CROP = (10, 75, 90, 125)
 LIMB_BAND_SHA256 = "9f7d58392998a5134aba50a131a59dde46c60be997ad446e161bda6bad511be0"
 PRODUCT_LIMB_ALIGNED_BRIGHTNESS_SHA256 = "63bd413d790f3f34be77621822e2b95a44496a4bcd31600b757546a5b208d241"
@@ -321,7 +334,7 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
         check(
             brightness == PRODUCT_INTERIOR_BRIGHTNESS
             and native_crop.count(77) == product_crop.count(77) == 0,
-            "four-way interior brightness isolates the 123-pixel deficit to indexed raster state",
+            "four-way interior brightness isolates the 87-pixel deficit to indexed raster state",
         )
         differences = [
             y * 320 + x
@@ -335,7 +348,7 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
             if y <= 57:
                 region = "upper_hud"
             elif y >= 125:
-                region = "lower_hud"
+                region = "lower_fixture"
             elif x >= 150:
                 region = "right_fixture"
             else:
@@ -369,13 +382,9 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
             decomposition == INTERIOR_DIFFERENCE_DECOMPOSITION,
             "interior residual decomposes into scoped HUD and flare/fixture regions",
         )
-        hud_differences = regions["upper_hud"] + regions["lower_hud"]
         check(
-            len(hud_differences) == 460
-            and sum(page[position] == native_page[position - 1]
-                    for position in hud_differences) ==
-            INTERIOR_HUD_NATIVE_LEFT_MATCHES,
-            "upper and lower HUD differences retain the one-pixel projection signature",
+            not regions["upper_hud"],
+            "shared TEX4 makes the graded upper projected HUD exact to native",
         )
         print("INFO interior-flare brightness remains ungraded "
               f"(native/native {brightness[0]}, native/product {brightness[1]}, "
@@ -457,22 +466,38 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
               f"hull native {sum(bright_mask(native_page, native_palette, ROOF_HULL_CROP))}, "
               f"product {sum(bright_mask(page, palette, ROOF_HULL_CROP))})")
     else:
-        count, bounding_box = band_geometry(page, 3)
-        check(bounding_box == (98, 52, 216, 149) and 9232 <= count <= 9267,
-              "product retains the native exterior lunar globe silhouette")
+        # The product celestial projection is two pixels above the retained
+        # native raster, matching the limb and eclipse authorities above.
+        product_globe = band_points(page, 3)
+        aligned_globe = shifted(product_globe, 0, 2)
+        native_globe = band_points(native_page, 3)
+        product_only = aligned_globe - native_globe
+        check(
+            point_geometry(product_globe) == (9267, (98, 50, 216, 147))
+            and point_geometry(aligned_globe) == (9267, (98, 52, 216, 149))
+            and point_geometry(native_globe) == (9232, (98, 52, 216, 149)),
+            "product retains the authenticated two-pixel exterior projection offset",
+        )
+        check(
+            native_globe <= aligned_globe
+            and len(product_only) == 35
+            and all(native_page[y * 320 + x] >> 6 == 1
+                    for x, y in product_only),
+            "the aligned exterior globe contains native plus exactly 35 limb pixels",
+        )
+        aligned_page = translated_page(page, 0, 2)
         band_differences = [
-            index for index, (native, product) in enumerate(zip(native_page, page))
-            if native >> 6 != product >> 6
+            index for index in range(2 * 320, 64000)
+            if native_page[index] >> 6 != aligned_page[index] >> 6
         ]
         check(
-            len(band_differences) <= 35 and all(
+            len(band_differences) == 35 and all(
                 native_page[index] >> 6 == 1
-                and page[index] >> 6 == 3
-                and 98 <= index % 320 <= 216
-                and 52 <= index // 320 <= 149
+                and aligned_page[index] >> 6 == 3
+                and (index % 320, index // 320) in product_only
                 for index in band_differences
             ),
-            "outside at most 35 product-only limb pixels, the exterior palette bands are exact",
+            "outside the bounded aligned lunar limb surplus, exterior palette bands are exact",
         )
 
     mismatches = sum(a != b for a, b in zip(native_page, page))
@@ -1088,12 +1113,13 @@ def main() -> int:
     )
     check(
         product_interior.get("product_crop_index_sha256") ==
-        PRODUCT_INTERIOR_CROP_SHA256
-        and product_interior.get("exact_indices") == PRODUCT_INTERIOR_EXACT_INDICES
+        PROVENANCE_PRODUCT_INTERIOR_CROP_SHA256
+        and product_interior.get("exact_indices") ==
+        PROVENANCE_PRODUCT_INTERIOR_EXACT_INDICES
         and product_interior.get("differing_indices") == 605
         and product_interior.get("palette_band_differences") == 0
         and product_interior.get("product_status_crop_index_sha256") ==
-        PRODUCT_INTERIOR_STATUS_SHA256
+        PROVENANCE_PRODUCT_INTERIOR_STATUS_SHA256
         and product_interior.get("complete_page_index_mismatches") == 4563
         and product_interior.get("complete_page_palette_band_mismatches") == 1190
         and product_fixed_chase.get("previous_sync") == 0
@@ -1107,7 +1133,7 @@ def main() -> int:
             "native_page_product_palette",
             "product_page_native_palette",
             "product_page_product_palette",
-        )) == PRODUCT_INTERIOR_BRIGHTNESS
+        )) == PROVENANCE_PRODUCT_INTERIOR_BRIGHTNESS
         and product_interior.get("indexed_page_brightness_deficit_pixels") == 123
         and product_interior.get("palette_brightness_contribution_pixels") == 0
         and product_interior.get("source_repair_supported") is False,
@@ -1123,7 +1149,7 @@ def main() -> int:
         and product_hud.get("differing_indices") == 460
         and product_hud.get("native_brightness_surplus_pixels") == 66
         and product_hud.get("product_equals_native_pixel_at_x_minus_1") ==
-        INTERIOR_HUD_NATIVE_LEFT_MATCHES
+        PROVENANCE_INTERIOR_HUD_NATIVE_LEFT_MATCHES
         and product_hud.get("docket") == "cross-host projected-font fidelity"
         and product_flare.get("differing_indices") == 145
         and product_flare.get("native_brightness_surplus_pixels") == 57

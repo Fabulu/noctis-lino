@@ -688,33 +688,41 @@ complete lunar globe silhouette with the primary outside the viewport. The
 turned view authenticates the primary corona and radial rays through the
 Stardrifter interior, including ship occlusion. At the exact product clock and
 camera, the star-relative Stardrifter position differs by less than `1e-6` on
-every axis and the lunar radius and distance are exact. The exterior palette bands
-differ only at 35 product-only globe-limb pixels.
+every axis and the lunar radius and distance are exact. As in the limb and
+eclipse authorities, the raw product celestial raster is two pixels above the
+retained native raster: its 9,267-pixel globe occupies `(98,50)-(216,147)`.
+Translating it by `(0,+2)` contains all 9,232 native globe pixels in
+`(98,52)-(216,149)` plus exactly 35 product-only limb pixels. Outside those 35
+band-1-to-band-3 pixels, every aligned exterior palette band is exact.
 
 The current private-desktop interior capture also retains the required source HUD
-and `-OpenHud` composition. It now uses native fixed-chase sync 1 and visibly
-retains `TRACKING`; a compensated authored local Z converges to the exact staged
-`0.01283555` target distance. Compared with the earlier sync-0 discriminator,
-this changes 491 complete-page indices but zero pixels in the graded crop, while
-the 1,190 complete-page palette-band mismatches are unchanged. All 18,000 pixels
-in `(30,30)-(180,150)` retain the native palette band, and 17,395 retain the
-exact index. Exchanging the pages and palettes gives four brightness counts
-above six-bit component 32: native/native
-8,338, native/product 8,338, product/native 8,215, and product/product 8,215.
-Neither crop contains index 77. The current 123-pixel deficit is therefore
-entirely selected by the 605 same-band indexed-page differences; the 54 palette
-component differences contribute zero in this crop. Upper and lower projected
-HUD rows account for 460 differences and 66 deficit pixels; 367 product values
-equal native X-1, directly assigning that portion to cross-host projected-font
-fidelity. The remaining 145 differences and 57 deficit pixels occupy right
-fixture and central flare regions. A source/port trace retains the same
-composition order, float-local clipping and truncation, x87-width spoke products,
-center and `Stick` sampling, and two source-ordered smoothing passes; the reviewed
-angular-step difference is inactive at this camera. Native pass-level indexed
-buffers and projected endpoints were not retained, so those 145 pixels do not
-yet support a repair. Complete-page, complete-lighting, and complete-palette
-equality remain informational because the BMP capture still lacks snapshot-time
-simulation and palette-easing state.
+and `-OpenHud` composition. It uses native fixed-chase sync 1, visibly retains
+`TRACKING`, and a compensated authored local Z converges to the exact staged
+`0.01283555` target distance. All 18,000 pixels in `(30,30)-(180,150)` retain
+the native palette band, and 17,825 retain the exact index. Exchanging pages and
+palettes gives four brightness counts above six-bit component 32: native/native
+8,338, native/product 8,338, product/native 8,251, and product/product 8,251.
+Neither crop contains index 77. The current 87-pixel deficit is therefore
+entirely selected by the 175 same-band indexed-page differences; the 54 palette
+component differences contribute zero in this crop. Shared TEX4 now makes the
+graded upper projected HUD pointwise exact to native. The remaining differences
+are bounded to 131 right-fixture pixels with a 46-pixel brightness deficit, 14
+central-flare pixels with an 11-pixel deficit, and 30 lower-fixture pixels with
+a 30-pixel deficit.
+
+The earlier 605-pixel host-font product discriminator, including its 460
+projected-HUD differences, remains pinned in native provenance rather than being
+silently rewritten as current-product evidence. A source/port trace retains the
+same composition order, float-local clipping and truncation, x87-width spoke
+products, center and `Stick` sampling, and two source-ordered smoothing passes;
+the reviewed angular-step difference is inactive at this camera. Native
+pass-level indexed buffers and projected endpoints were not retained, so the
+remaining 175 pixels do not support a repair. Complete-page, complete-lighting,
+and complete-palette equality remain informational because the BMP capture still
+lacks snapshot-time simulation and palette-easing state. Successive current
+captures retain the 1,190 complete-page palette-band mismatches while the
+informational low-six-bit complete-page mismatch count can vary outside the
+scoped crops.
 
 A third IDEAL capture supplies the previously missing genuine primary-beside-
 globe positive. It holds the class-0/type-1 system at raw second `1344638736`,
@@ -792,17 +800,19 @@ every axis. The captured BMP's complete 64,000-byte indexed page is also exact
 to the frozen post-snapshot framebuffer, rather than having entered the next
 rendered page.
 
-At the matched clock, position, camera, radius, and distance, the product retains
-59,804 of 64,000 exact page indices. It retains 31,977 of 34,200 exact indices
-in the upper exterior cupola/aperture crop and 18,586 of 19,800 in the lower
-hull crop; their palette-band differences are bounded at 1,660 and 1,190. This
+At the matched clock, position, camera, radius, and distance, the current product
+retains 61,459 of 64,000 exact page indices. It retains 32,004 of 34,200 exact
+indices in the upper exterior cupola/aperture crop, with 1,660 palette-band
+differences, and all 19,800 lower-hull indices and palette bands are exact. This
 authenticates the stable roof branch's upper cupola, grid, aperture, and exterior
-hull composition while keeping the intensity gap explicit: native/product bright
-counts are 21,521/20,346 in the cupola crop and 622/307 in the hull crop. The
-retained pre-repair product palette differed at 241 components. Complete-page and
-exact lighting remain ungraded because the frozen continuity variables still follow
-BMP serialization rather than being snapshot-atomic. This checkpoint protects
-one stationary exterior-cupola state.
+hull composition while keeping the remaining intensity gap explicit:
+native/product bright counts are 21,521/20,356 in the cupola crop and 622/622 in
+the hull crop. The current product palette differs at 54 components. Complete-page
+and exact cupola lighting remain ungraded because the frozen continuity variables
+still follow BMP serialization rather than being snapshot-atomic. A registered
+private-desktop gate now regenerates this state together with the exterior and
+interior camera pair and enforces their scoped contracts against the retained
+native pages. This checkpoint protects one stationary exterior-cupola state.
 
 **IDEAL strict cupola-boundary pair.** Two further captures hold the same
 class-0/type-1 target, raw second `1344638737`, sync-0 ship position, stopped
