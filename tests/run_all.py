@@ -100,6 +100,7 @@ TESTS = [
     ("test_habitable_weather_oracle.py", "same-command atmospheric type-3 evidence independently reconstructs shared-cloud DESERT rain below and at 2.5, inclusive primary suppression, and 45,760 exact native/product scene indices"),
     ("test_habitable_weather_runtime.py", "private-desktop LANE IV pair enforces the current below-2.5 primary admission and inclusive 2.5 weather suppression boundary"),
     ("test_habitable_flare_oracle.py", "same-map atmospheric type-3 evidence independently reconstructs the 0.9375/1.25 DESERT bracket, inclusive rain-1.2 flare suppression, exact source crops, and 64,000 matching painter families"),
+    ("test_habitable_flare_runtime.py", "private-desktop LANE IV pair enforces the current below-1.2 primary-flare admission and inclusive above-threshold suppression bracket"),
     ("test_habitable_multiple_weather_oracle.py", "companion-owned atmospheric type-3 evidence independently reconstructs the 1.6667/2.0/2.125 DESERT states, inclusive secondary-disc/flare weather gates, exact source crops, and native/product painter families"),
     ("test_surfaceclass10_oracle.py", "matched BISTARIAL/SORZ class-10 surface evidence protects the landed type-8 pose, in-gate class exclusion, exact palette and sun crop, and non-atomic authority boundary"),
     ("test_orbitprimary_class0_oracle.py", "matched EMPTY class-0 evidence protects the bodyless untargeted exterior pose, strict orbital interval, positive radial flare, exact crop bands, and non-atomic authority boundary"),

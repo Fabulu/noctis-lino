@@ -457,10 +457,17 @@ project the 0.9375 control flare at `(162,94)`, sample 122; the inclusive
 35-by-35 crop keeps the radial lower-crop gradient, while the threshold keeps its
 local-primary disc but flat background below it. Native and product are
 byte-identical over all 1,225 source-crop indices in each state and retain the
-same high-two-bit painter family at every one of 64,000 page positions. Complete
-low-six indexed pages, active palettes/RGB, the roughly 600-unit settled-height
-difference, product/native clock identity, and later adapted pages remain
-explicit non-claims. This closes the primary-flare rain-1.2 boundary.
+same high-two-bit painter family at every one of 64,000 page positions. A
+registered private-desktop gate regenerates both exact-clock shipping-product
+states and enforces the landed camera, state-independent diagnostics, weather
+bracket, admitted primary vectors, flare transition, exact source crops, and
+complete painter-family equality. Historical whole local/view/page hashes and
+complete-output mismatch counts remain pinned in provenance rather than serving
+as current live gates after checkpoint diagnostics and shared projected text
+changed. Complete low-six indexed pages, active palettes/RGB, the roughly
+600-unit settled-height difference, product/native clock identity, and later
+adapted pages remain explicit non-claims. This closes the primary-flare rain-1.2
+boundary.
 
 **ROTOR IGNE landed secondary-weather checkpoint.** Body 8 is not an ordinary
 primary-owned planet: the generated class-8 hierarchy gives it atmospheric type
