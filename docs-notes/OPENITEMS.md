@@ -1266,9 +1266,11 @@ satisfies `6 * 2.1919999 < 220.2 < 1000 * 2.1919999`; the native frame retains
 space-palette band and all 4,256 palette bands in that flare crop. The default
 test retains and hashes the product camera/state, palette, and page diagnostics,
 so these cross-engine claims cannot disappear behind an omitted local capture
-argument. Complete-page
-and exact low-six equality remain ungraded because the native snapshot was not
-state-atomic with frozen RAM and the two start-up palette-easing states differ.
+argument. A registered private-desktop gate now rebuilds the same one-scene
+shipping-product capture and enforces the camera, strict source gate, palette
+band, crop, and centred radial-core contracts. Complete-page and exact low-six
+equality remain ungraded because the native snapshot was not state-atomic with
+frozen RAM and the two start-up palette-easing states differ.
 
 **Orbital class-0 positive-primary checkpoint.** EMPTY at
 `(2931408,-6222148,1891299)` is a tracked bodyless class-0 primary with ray
