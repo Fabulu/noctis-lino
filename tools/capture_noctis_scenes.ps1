@@ -8,7 +8,7 @@ param(
         'orbithot', 'orbitlunar', 'orbitdense', 'orbithabitable', 'orbitrocky',
         'orbitthin', 'orbitlarge', 'orbitfrozen', 'orbitmilky',
         'orbitsubstellar', 'orbitmultiple', 'orbitmultiplecompact', 'orbitmultipletriple', 'orbitmultipletripleroof', 'orbitmultipletripleexterior',
-        'lunar', 'lunarsun', 'lunarclass3', 'lunarclass4', 'lunarclass5', 'lunarclass9', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'habitablemultiple', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass2',
+        'lunar', 'lunarsun', 'lunarclass1', 'lunarclass3', 'lunarclass4', 'lunarclass5', 'lunarclass9', 'lunarclass11', 'dense', 'densesun', 'denseclass8', 'habitable', 'habitablemultiple', 'tree', 'hopper', 'rocky', 'rockysun', 'rockyclass1', 'rockyclass2',
         'thin', 'thinsun',
         'frozen', 'frozensun', 'frozenflare', 'quartz', 'quartzclass10', 'ruins', 'cube')]
     [string]$Scene = 'all',
@@ -247,6 +247,10 @@ $scenes = @(
     @{ Name='lunarsun'; FileName='planet-lunar-sun.png';
        X=174288; Y=-44389; Z=-688771; Body=0; Type=1; Lon=0; Lat=60;
        Beta=90; Pitch=-44; PlayerX=1638400; PlayerY=-19032; PlayerZ=1638400 },
+    # SEEN V around its class-1 primary, retained by the sun gallery.
+    @{ Name='lunarclass1'; X=2952848; Y=-6448045; Z=-840503; Body=4; Type=1;
+       Lon=50; Lat=60; Beta=90; Pitch=-30;
+       PlayerX=1638400; PlayerZ=1638400 },
     # SIENA V around its orange class-3 primary, selected for the positive gate.
     @{ Name='lunarclass3'; X=3363568; Y=-4274032; Z=-2404452; Body=4; Type=1;
        Lon=75; Lat=60; Beta=270; Pitch=-34;
@@ -314,6 +318,10 @@ $scenes = @(
     @{ Name='rockysun'; FileName='planet-rocky-sun.png';
        X=1463568; Y=-4728350; Z=-437812; Body=9; Type=4; Lon=90; Lat=60;
        Beta=270; Pitch=-38; PlayerX=1645000; PlayerZ=1641000 },
+    # SEEN II around its class-1 primary, retained by the sun gallery.
+    @{ Name='rockyclass1'; X=2952848; Y=-6448045; Z=-840503; Body=1; Type=4;
+       Lon=180; Lat=60; Beta=270; Pitch=-10;
+       PlayerX=1638400; PlayerZ=1638400 },
     # ROSVITA II around its white class-2 primary, selected for the positive gate.
     @{ Name='rockyclass2'; X=5800336; Y=-4462999; Z=-925592; Body=1; Type=4;
        Lon=0; Lat=60; Beta=270; Pitch=-12;

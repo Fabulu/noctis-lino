@@ -1468,8 +1468,16 @@ lunar, the three rocky cases, and frozen additionally require exact 36,000-,
 upper-sky or sky-and-disc crops; class-4 lunar and quartz require 29,700- and
 36,000-pixel upper-sky palette-band crops, respectively, and quartz also requires its exact final
 centre index; every palette is exact except the two dense snapshots' explicitly
-unretained easing states. The Apple-Silicon product job now executes all sixteen
-checkpoints independently and retains each diagnostic set.
+unretained easing states. The Apple-Silicon product job executes all sixteen
+checkpoints independently and retains each diagnostic set. Four registered
+private-desktop Windows gates now run the same live product matrix in bounded
+four-case groups: baseline worlds, lunar classes 1/3/4/5, higher-class/frozen
+variants, and rocky/quartz worlds. Each capture is authored from the retained
+case's exact body, clock, longitude/latitude, camera, and player pose, then graded
+immediately. The 2026-08-31 run passed all sixteen current captures, including
+the previously unavailable `lunarclass1` and `rockyclass1` scenes, every exact
+camera and sun-state diagnostic, all exact palette contracts, all scoped index or
+palette-band crops, the lower/upper distance exclusions, and class-5 suppression.
 Whole final pages remain informational where snapshot-time terrain, simulation,
 or HUD state was not captured.
 

@@ -980,6 +980,15 @@ def check_source_contract(check) -> None:
           "'game-render-state-out.bin' = 24" in capture and
           "$Spec.Name, $entry.Key" in capture,
           "diagnostic capture validates and exports scene-qualified product files")
+    check(
+        capture.count("'lunarclass1'") >= 2
+        and capture.count("'rockyclass1'") >= 2
+        and "Name='lunarclass1'; X=2952848; Y=-6448045; Z=-840503; Body=4; Type=1;"
+        in capture
+        and "Name='rockyclass1'; X=2952848; Y=-6448045; Z=-840503; Body=1; Type=4;"
+        in capture,
+        "Windows capture catalogue retains both class-1 surface-sun checkpoints",
+    )
     check("windows_hidden_process.run" in private_runner and
           "subprocess.run" in private_runner and
           "--default-desktop" in private_runner,
