@@ -768,11 +768,19 @@ This is a renderer-order discriminator, not an admission negative. Both primary
 distances are about 33.59, with `(distance+1)/ray` about 4.973: the class-0 compact
 white shell is inside its `<100*ray` gate while the 60-spoke `>6*ray` path is
 excluded. `VHT render` draws that shell before `VHG local render` draws the target
-globe, so only the aligned page overwrites it. Complete page/palette equality and
-the later frozen adapted pages remain explicitly ungraded: the eclipse/control
-native-product pages differ at 11,723/18,736 indices and 309/119 palette
-components. This closes the required primary-behind-globe ordering view while
-leaving additional orbital arrangements and moving transitions open.
+globe, so only the aligned page overwrites it. A registered private-desktop gate
+now regenerates both shipping-product states and grades the split camera, exact
+clock and target-relative vectors, projection diagnostics, shifted globe masks,
+white-shell admission, and overwrite order. The planet background, surface map,
+render-state, and sun diagnostics remain byte-exact to the retained product
+capture. Historical whole local/view/page/palette/background hashes stay in
+provenance rather than serving as the live gate: checkpoint diagnostics and
+projected text changed while their scoped renderer-order contracts did not.
+Complete page/palette equality and the later frozen adapted pages remain
+explicitly ungraded: the retained eclipse/control native-product pages differ at
+11,723/18,736 indices and 309/119 palette components. This closes the required
+primary-behind-globe ordering view while leaving additional orbital arrangements
+and moving transitions open.
 
 **IDEAL roof/cupola checkpoint.** A fourth capture holds the same sync-0
 class-0/type-1 system at raw second `1344638737` and moves the player to the

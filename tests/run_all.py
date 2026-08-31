@@ -112,6 +112,7 @@ TESTS = [
     ("test_orbitlunar_oracle.py", "matched IDEAL lunar exterior/interior/limb/roof/cupola-boundary and globe-before-primary eclipse pages protect orbital, globe, primary, Stardrifter, and source-order geometry"),
     ("test_orbitlunar_boundary_runtime.py", "private-desktop IDEAL pair crosses the strict interior-to-cupola boundary against retained native pages"),
     ("test_orbitlunar_limb_runtime.py", "private-desktop IDEAL beside-primary view retains the aligned lunar limb and source-window geometry"),
+    ("test_orbitlunar_eclipse_runtime.py", "private-desktop IDEAL pair protects globe-before-primary overwrite and the beside-primary positive control"),
     ("test_surface_flare_oracle.py", "rebuilt ten-case surface-flare probe equals six concatenated Borland pages, three real positive ray/distance pages, and the exact lunar no-beam boundary"),
     ("test_release_notes.py", "tagged GitHub releases contain only their own RELEASE_NOTES section"),
     ("test_fp_transgrade.py", "independent transcendental grading preserves signed zero and the one-ULP boundary"),

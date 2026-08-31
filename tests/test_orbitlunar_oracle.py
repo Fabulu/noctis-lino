@@ -505,10 +505,16 @@ def grade_eclipse_product_pair(
     for label, directory in directories.items():
         expected = contract[label]
         hashes = expected["hashes"]
+        stable_diagnostics = (
+            "orbitlunar-game-p-background-out.bin",
+            "orbitlunar-game-p-surfacemap-out.bin",
+            "orbitlunar-game-render-state-out.bin",
+            "orbitlunar-game-sun-out.bin",
+        )
         check(
-            all(sha256((directory / name).read_bytes()) == digest
-                for name, digest in hashes.items()),
-            f"{label} product retains all pinned diagnostic hashes",
+            all(sha256((directory / name).read_bytes()) == hashes[name]
+                for name in stable_diagnostics),
+            f"{label} product retains the pinned state-independent diagnostics",
         )
         local = (directory / "orbitlunar-game-local-out.bin").read_bytes()
         header = struct.unpack_from("<8i", local)
