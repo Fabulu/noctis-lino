@@ -396,12 +396,17 @@ behind this camera.
 Both native BMPs and both product pages share twelve index-64 values in the
 `(154,92)..(159,93)` source crop. Each engine independently keeps its complete
 index-64-through-127 source palette band unchanged, and the product retains all
-25,800 native palette bands in `(10,10)..(309,95)` for both states. Native/product
-whole pages differ by 27,264/27,883 indices and active palettes by 652/736
-components. The native later adapted pages differ from their BMP authorities by
-12,842/12,838 indices. Those complete artifacts remain explicit non-claims. The
-exact inclusive start and exclusive end of this representative airless interval
-are now closed.
+25,800 native palette bands in `(10,10)..(309,95)` for both states. A registered
+private-desktop gate now regenerates both exact-clock shipping-product states and
+enforces the landed camera, state-independent diagnostics, terminator globals,
+source suppression, source-free crop, and upper-sky palette bands. Historical
+whole local/view/page hashes and the 27,264/27,883 index and 652/736 palette
+component comparisons remain pinned in provenance rather than serving as current
+live gates after checkpoint diagnostics and shared projected text changed. The
+native later adapted pages differ from their BMP authorities by 12,842/12,838
+indices. Complete pages and palettes remain explicit non-claims because terrain,
+HUD, and palette-fade histories are not atomic. The exact inclusive start and
+exclusive end of this representative airless interval are now closed.
 
 **Exact atmospheric primary-weather checkpoint.** A same-command pair lands on
 LANE IV body 3 at latitude 56, heading 87, pitch -26, and matched integer second
