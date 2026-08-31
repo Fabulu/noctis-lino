@@ -569,6 +569,15 @@ same threshold and its complete page differs at 16,155 indices. Those brightness
 shape, palette, and whole-page gaps remain open; this positive capture prevents
 them from being hidden behind the now-correct negative checkpoint.
 
+A registered Windows-only private-desktop gate now recreates both navigation
+states from the current shipping shared-Lino executable at exact integer second
+`1344638526`. It enforces the native target-relative pose bracket, the exterior
+camera half-turn, negative projected depth and no false companion corona at
+navigation 120, then positive projected depth, flare admission, and a substantial
+corona/ray component at navigation 300. Current whole-page differences and the
+native/product corona intensity/shape gap remain explicitly informational rather
+than equality gates.
+
 **Independent compact companion/globe checkpoint.** A separate generated
 class-8 system at `(-546064,-439032,-1136208)` has only four bodies with types
 `[9,9,10,4]`; rocky moon 3 belongs to type-10 parent 2. A sync-0 outward camera

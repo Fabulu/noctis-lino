@@ -113,6 +113,7 @@ TESTS = [
     ("test_orbitprimary_oracle.py", "matched WIRE class-7 native/product evidence protects the untargeted exterior camera, strict primary gate, space palette, complete flare-crop bands, and radial core"),
     ("test_orbitprimary_runtime.py", "private-desktop WIRE class-7 capture protects the current shipping primary flare, exact crop bands, and strict source gate"),
     ("test_orbitmultiple_oracle.py", "matched ROTOR IGNE negative and front-facing native pages/palettes protect the source exterior half-turn and a real type-10 companion flare"),
+    ("test_orbitmultiple_runtime.py", "private-desktop ROTOR IGNE navigation pair protects behind-camera rejection and front-facing type-10 companion corona admission"),
     ("test_orbitmultiple_compact_oracle.py", "independent compact class-8 native/product evidence protects a beside-parent positive and exact-clock parent-behind-moon eclipse, strict source admission, shifted globe masks, and bounded overwrite without tuning ROTOR IGNE"),
     ("test_orbitmultiple_triple_oracle.py", "genuine class-8 [10,10,1] native/product evidence independently grades two separated companion coronas in interior and roof/cupola views plus one visible and two hull-occluded sources outside, source projections, strict gates, and scoped palette bands"),
     ("test_orbitmultiple_triple_roof_runtime.py", "private-desktop TRIUMVIRATE roof capture protects two independent companion masks, strict source gates, exact star-local pose, and all 64,000 palette bands"),
