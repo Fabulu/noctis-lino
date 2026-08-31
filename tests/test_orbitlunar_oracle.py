@@ -87,10 +87,20 @@ BOUNDARY_LABEL_BAND_SHA256 = "d33498e16b51ef474a86b2c7ea87676524f1954b39f67a2a90
 ENVIRONMENT_GLYPH_CROP = (2, 192, 30, 197)
 ENVIRONMENT_GLYPH_MASK_PIXELS = 69
 ENVIRONMENT_GLYPH_MASK_SHA256 = "c9e6820e33c2dd344609b6d37d9eebc9462c786f6fb1d6640c21e0334c5a5941"
-PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256 = "af8dcb9a9dddfc09395804d136d3351f6d4a4973611ff23b5dac4946b08701dc"
+# The retained provenance records the earlier host-font product capture.  Keep
+# those historical hashes separate from the live shipping-renderer gate below.
+PROVENANCE_PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256 = "af8dcb9a9dddfc09395804d136d3351f6d4a4973611ff23b5dac4946b08701dc"
+PROVENANCE_PRODUCT_BOUNDARY_STATUS_ROOF_SHA256 = "2753eb145b19a5add9a9436a9b901e24844d1d713dc525a86803db9587d8ef4b"
+PROVENANCE_PRODUCT_BOUNDARY_TELEMETRY_INSIDE_SHA256 = "1dfb3ab0ce02fe7beecd279a9231df77fd09824dc8b4c1829f09e80e6a0ccbd4"
+PROVENANCE_PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256 = "14597bc2053644ca0fb7f13bf239d4397b44a8078e18cddc67389bcd83da19ff"
+PROVENANCE_PRODUCT_BOUNDARY_LABEL_ROOF_SHA256 = "bf06789b74452cf147d1bff2af08505c093acfeddfbc86bf85b3169055c41d88"
+# The exact live product crops changed when projected panel text moved from
+# host-font approximation to the shared TEX4 glyph renderer; the paired native
+# geometry and branch contracts remain unchanged.
+PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256 = "2d65e7b583923a134b3a2394559cefd7af8aa802f5b388356e286890d8597792"
 PRODUCT_BOUNDARY_STATUS_ROOF_SHA256 = "2753eb145b19a5add9a9436a9b901e24844d1d713dc525a86803db9587d8ef4b"
-PRODUCT_BOUNDARY_TELEMETRY_INSIDE_SHA256 = "1dfb3ab0ce02fe7beecd279a9231df77fd09824dc8b4c1829f09e80e6a0ccbd4"
-PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256 = "14597bc2053644ca0fb7f13bf239d4397b44a8078e18cddc67389bcd83da19ff"
+PRODUCT_BOUNDARY_TELEMETRY_INSIDE_SHA256 = "637c0430cd50a3a45be6bbabdeface87f5a9fc723d8614f9c5a6508fc5dc516e"
+PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256 = "afca4422e2dd72554de061c369e600a3baa0b06a23692cf68d5438c7450c960e"
 PRODUCT_BOUNDARY_LABEL_ROOF_SHA256 = "bf06789b74452cf147d1bff2af08505c093acfeddfbc86bf85b3169055c41d88"
 DIAGNOSTIC_SIZES = (
     ("game-vh-out.bin", 156),
@@ -1275,17 +1285,17 @@ def main() -> int:
         and boundary_capture_state.get("open_hud_switch") is False
         and boundary_capture_state.get("scoped_rasters_repeated_after_recompile") is True
         and boundary_product.get("status_inside_index_sha256") ==
-        PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256
+        PROVENANCE_PRODUCT_BOUNDARY_STATUS_INSIDE_SHA256
         and boundary_product.get("status_roof_index_sha256") ==
-        PRODUCT_BOUNDARY_STATUS_ROOF_SHA256
+        PROVENANCE_PRODUCT_BOUNDARY_STATUS_ROOF_SHA256
         and boundary_product.get("telemetry_inside_index_sha256") ==
-        PRODUCT_BOUNDARY_TELEMETRY_INSIDE_SHA256
+        PROVENANCE_PRODUCT_BOUNDARY_TELEMETRY_INSIDE_SHA256
         and boundary_product.get("roof_telemetry_crop_exact_indices") == 4620
         and boundary_product.get("label_crop") == list(BOUNDARY_LABEL_CROP)
         and boundary_product.get("label_inside_index_sha256") ==
-        PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256
+        PROVENANCE_PRODUCT_BOUNDARY_LABEL_INSIDE_SHA256
         and boundary_product.get("label_roof_index_sha256") ==
-        PRODUCT_BOUNDARY_LABEL_ROOF_SHA256
+        PROVENANCE_PRODUCT_BOUNDARY_LABEL_ROOF_SHA256
         and boundary_environment.get("crop") == list(ENVIRONMENT_GLYPH_CROP)
         and boundary_environment.get("foreground_pixels") ==
         ENVIRONMENT_GLYPH_MASK_PIXELS
