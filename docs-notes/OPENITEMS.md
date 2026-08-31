@@ -657,10 +657,14 @@ printed binary64 precision. Product second `1345723226` brackets retained native
 second `1345723225.764706` by 0.235294 second, and every one of the 64,000 page
 indices stays in the same palette band. Exact indices still differ at 40,802
 positions and active palettes at 361 components, so low-six-bit whole-page and
-palette-easing equality remain informational. This closes one genuine
-multiple-sun interior composition with each source graded independently; it does
-not supply the unavailable native pass-level pages needed to tune the remaining
-ROTOR IGNE intensity/shape gap.
+palette-easing equality remain informational. A registered Windows-only private-
+desktop gate now recreates the current shipping shared-Lino interior at exact
+integer second `1345723226`; it enforces the exact star-local pose, both strict
+source gates and projections, substantial separated corona/core components, and
+all 64,000 native palette bands while reporting low-six and palette differences
+only as information. This closes one genuine multiple-sun interior composition
+with each source graded independently; it does not supply the unavailable native
+pass-level pages needed to tune the remaining ROTOR IGNE intensity/shape gap.
 
 **Dual-companion roof/cupola checkpoint.** Holding the same star-local pose at
 `(0,-750,-1900)` crosses the strict `y < -500` roof boundary while remaining
@@ -707,9 +711,15 @@ central 3-by-3 patches are index-exact, and all 11,766 palette bands in the
 right-hull rectangle match. The full pages still differ at 37,737 indices and
 824 palette bands, while active palettes differ at 365 components. Those
 complete-page values and the non-atomic later frozen page remain explicit
-non-contracts. This closes a stationary genuine exterior positive/negative
-three-source composition; moving interior/cupola/exterior and launch/landing
-transitions remain open.
+non-contracts. A registered Windows-only private-desktop gate now recreates the
+current shipping shared-Lino exterior at exact integer second `1345723226`; it
+enforces all three strict source admissions, the visible companion's bounded
+translated masks, index-exact occluded source centres, and every right-hull
+palette band. Historical matched page/palette hashes and complete mismatch counts
+remain pinned in provenance, while current complete outputs are informational.
+This closes a stationary genuine exterior positive/negative three-source
+composition; moving interior/cupola/exterior and launch/landing transitions
+remain open.
 
 A scoped source audit found no material caller divergence that can explain that
 61-versus-151 count: native and product retain companion seeding, binary64 ray,
