@@ -1021,10 +1021,10 @@
 
 "VHP HUD digit"
 	[DGdigit] = [VHPchar]; [DGcolor] = 120; [DGshader] = 1; => FB digit at;
-	[vhcpoly plus 0] = 1103101952; [vhcpoly plus 1] = 3252158464; [vhcpoly plus 2] = 0;
-	[vhcpoly plus 3] = 1103101952; [vhcpoly plus 4] = 1107558400; [vhcpoly plus 5] = 0;
-	[vhcpoly plus 6] = 3239051264; [vhcpoly plus 7] = 1107558400; [vhcpoly plus 8] = 0;
-	[vhcpoly plus 9] = 3239051264; [vhcpoly plus 10] = 3252158464; [vhcpoly plus 11] = 0;
+	[vhcpoly plus 0] = 1099956224; [vhcpoly plus 1] = 3252158464; [vhcpoly plus 2] = 0;
+	[vhcpoly plus 3] = 1099956224; [vhcpoly plus 4] = 1107558400; [vhcpoly plus 5] = 0;
+	[vhcpoly plus 6] = 3245342720; [vhcpoly plus 7] = 1107558400; [vhcpoly plus 8] = 0;
+	[vhcpoly plus 9] = 3245342720; [vhcpoly plus 10] = 3252158464; [vhcpoly plus 11] = 0;
 	[FI] = VHPTX; => IntToF; [PGFi] = FSTX; => PGF sa;
 	[FI] = VHPTY; => IntToF; [PGFi] = FSTY; => PGF sa;
 	[PGtexf] = 4; [SPsrc] = 1; [SPtinta] = 64; [SPescr] = 0;

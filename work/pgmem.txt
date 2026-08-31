@@ -280,8 +280,10 @@
     "PG tex 3h"
 	[PGtexv] = 255; end;
     "PG tex 4"
-	( TEX4: the live Noctis texture window, based at p_surfacemap. )
-	A = RPSM; A + [PGtexoff]; A + [PGtmp]; A + nw; C = [A]; C & 255;
+	( TEX4: the live Noctis texture window.  Borland farmalloc returns
+	  p_surfacemap at segment offset 4, while polymap drops that nibble when
+	  it derives fs from the far pointer, so fs:[0] is four bytes below it. )
+	A = RPSM; A - 4; A + [PGtexoff]; A + [PGtmp]; A + nw; C = [A]; C & 255;
 	[PGtexv] = C; end;
     "PG tex 5"
 	( TEX5: the live Noctis planetary-ground texture window, based at

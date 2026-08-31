@@ -4616,6 +4616,41 @@ def main() -> int:
         )),
         "F2 and Page Up/Down restore the original HUD, flare, border, and visor behavior",
     )
+    tracking_t_raw = (
+        {(x, y) for y in range(169, 172) for x in range(209, 218)}
+        | {(x, 172) for x in range(212, 215)}
+        | {(213, y) for y in range(173, 187)}
+    )
+    tracking_sampler_index = ((297 >> 8) << 8) | ((6917 >> 8) & 255)
+    tracking_t_closed = {
+        point for point in tracking_t_raw
+        if not (10 <= point[0] < 310 and point[1] in range(186, 190))
+    }
+    tex4 = section(pgmem, '"PG tex 4"', '"PG tex 5"')
+    hud_digit = section(panels, '"VHP HUD digit"', '"VHP draw quad"')
+    surrounding_border = section(
+        ground, '"VHGND surrounding border"', '"VHGND HUD lamps"'
+    )
+    check(
+        tracking_sampler_index == 283
+        and tracking_sampler_index - 4 == 279
+        and "A = RPSM; A - 4; A + [PGtexoff]; A + [PGtmp];" in tex4
+        and all(token in hud_digit for token in (
+            "[vhcpoly plus 0] = 1099956224; [vhcpoly plus 1] = 3252158464; [vhcpoly plus 2] = 0;",
+            "[vhcpoly plus 3] = 1099956224; [vhcpoly plus 4] = 1107558400; [vhcpoly plus 5] = 0;",
+            "[vhcpoly plus 6] = 3245342720; [vhcpoly plus 7] = 1107558400; [vhcpoly plus 8] = 0;",
+            "[vhcpoly plus 9] = 3245342720; [vhcpoly plus 10] = 3252158464; [vhcpoly plus 11] = 0;",
+        ))
+        and len(tracking_t_raw) == 44
+        and tracking_t_raw - tracking_t_closed == {(213, 186)}
+        and len(tracking_t_closed) == 43
+        and "A = [VHGhudcount]; A + 9; A - [VHGNDframei];" in surrounding_border
+        and "[VHGNDframecount] = 300;" in surrounding_border
+        and "=> VHG interpolation apply; => VHG render; => VHGND surrounding frame;" in game
+        and original.index("digit_at (fcs_status_extended[c], -6, -15, 6, 120, 1);")
+        < original.index("surrounding (0, openhudcount);"),
+        "TRACKING T uses the native segment-origin window and closed-visor final mask",
+    )
     check(
         all(
             "=> VHG text both;" not in section(game, start, end)
