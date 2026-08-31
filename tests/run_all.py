@@ -98,6 +98,7 @@ TESTS = [
     ("test_frozen_sunset_oracle.py", "exact-clock airless frozen-world evidence protects longitude-204 night and exclusive longitude-205 day state, native terminator globals, source gating, and 25,800 exact upper-sky palette bands"),
     ("test_frozen_sunset_runtime.py", "private-desktop frozen-world pair enforces the current longitude-204 night to exclusive longitude-205 day source-free transition"),
     ("test_habitable_weather_oracle.py", "same-command atmospheric type-3 evidence independently reconstructs shared-cloud DESERT rain below and at 2.5, inclusive primary suppression, and 45,760 exact native/product scene indices"),
+    ("test_habitable_weather_runtime.py", "private-desktop LANE IV pair enforces the current below-2.5 primary admission and inclusive 2.5 weather suppression boundary"),
     ("test_habitable_flare_oracle.py", "same-map atmospheric type-3 evidence independently reconstructs the 0.9375/1.25 DESERT bracket, inclusive rain-1.2 flare suppression, exact source crops, and 64,000 matching painter families"),
     ("test_habitable_multiple_weather_oracle.py", "companion-owned atmospheric type-3 evidence independently reconstructs the 1.6667/2.0/2.125 DESERT states, inclusive secondary-disc/flare weather gates, exact source crops, and native/product painter families"),
     ("test_surfaceclass10_oracle.py", "matched BISTARIAL/SORZ class-10 surface evidence protects the landed type-8 pose, in-gate class exclusion, exact palette and sun crop, and non-atomic authority boundary"),

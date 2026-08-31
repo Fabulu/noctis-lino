@@ -424,14 +424,20 @@ reaches index 127. At the source's inclusive `rainy >= 0x40200000` gate, where
 `0x40200000` is 2.5 rather than 2.0, the central 11-by-11 crop is 121 copies of
 index 86. Native and product are byte-identical in both 31-by-31 source crops and
 over every one of 45,760 indexed pixels in full-width rows 7 through 149; the
-control active palette is exact too. The two retained native raw clocks differ
-by 0.0681818 second inside the matched integer second, and threshold product
-diagnostics clear their admitted ray/vector while native source globals remain
-populated before the painter gate. Complete pages, threshold RGB/palette, lower
-terrain affected by the bounded settled-height difference, raw-clock identity,
-and later adapted pages remain explicit non-claims. This closes one atmospheric
-primary-painter boundary; other material weather transitions and the remaining
-representative atmospheric matrix stay open.
+control active palette is exact too. A registered private-desktop gate regenerates
+both exact-clock shipping-product states and enforces the landed camera,
+state-independent diagnostics, weather derivation, admission vectors, terminator
+state, and exact 45,760-index scene crops. Historical whole local/view/page hashes
+and complete-output mismatch counts remain pinned in provenance rather than
+serving as current live gates after checkpoint diagnostics and shared projected
+text changed. The two retained native raw clocks differ by 0.0681818 second inside
+the matched integer second, and threshold product diagnostics clear their admitted
+ray/vector while native source globals remain populated before the painter gate.
+Complete pages, threshold RGB/palette, lower terrain affected by the bounded
+settled-height difference, raw-clock identity, and later adapted pages remain
+explicit non-claims. This closes one atmospheric primary-painter boundary; other
+material weather transitions and the remaining representative atmospheric matrix
+stay open.
 
 **Exact atmospheric primary-flare checkpoint.** A second same-command pair keeps
 the same LANE IV body and discrete daylight state while landing at latitude 34,
