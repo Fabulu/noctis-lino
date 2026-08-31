@@ -370,12 +370,17 @@ day source at `(161,99)` while suppressing it at night. More importantly, the
 same `(154,92)..(159,93)` indexed crop is exact between native and product: its
 day page contains ten non-background source-core pixels and its night page
 contains zero. Each engine independently keeps its full index-64-through-127
-source palette band unchanged between the two longitudes. The native BMPs are
-the page/palette authorities; their later adapted pages differ by 12,844/12,849
-indices. Native/product whole pages differ by 27,626/28,155 indices and active
-palettes by 730/652 components because terrain, HUD, and palette-fade histories
-are not atomic, so those remain explicit non-claims. This closes the inclusive
-start boundary for one representative airless world.
+source palette band unchanged between the two longitudes. A registered
+private-desktop gate now regenerates both exact-clock shipping-product states and
+enforces the landed camera, state-independent diagnostics, terminator globals,
+source projection, source crop, and palette-band transition. Historical whole
+local/view/page hashes remain pinned in provenance rather than serving as current
+live gates after checkpoint diagnostics and shared projected text changed. The
+native BMPs are the page/palette authorities; their later adapted pages differ by
+12,844/12,849 indices. Native/product whole pages and active palettes remain
+explicit non-claims because terrain, HUD, and palette-fade histories are not
+atomic. This closes the inclusive start boundary for one representative airless
+world.
 
 **Exact frozen-world sunset-edge checkpoint.** A second exact-clock pair keeps
 the same world, native planetary arrays, dry weather, landed camera, and raw

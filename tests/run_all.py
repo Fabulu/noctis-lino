@@ -94,6 +94,7 @@ TESTS = [
     ("test_sky.py", "Wave 7b: lean create_sky()/horizon/SP join regression; the historical --deep audit established 27 cases/408 records, exact NIV+ anchors, and caught 26 C plus 27 Lino mutants"),
     ("test_sun_gallery.py", "sixteen retained surface-sun oracles across types 1/2/3/4/5/7/8 plus case-specific palette, band/crop, camera, admission, and positive/lower/upper/class-suppressed ray-distance contracts"),
     ("test_frozen_sunrise_oracle.py", "exact-clock airless frozen-world evidence protects dry longitude-74 day and inclusive longitude-75 night state, native terminator globals, and an exact ten-pixel-to-zero horizon-source transition"),
+    ("test_frozen_sunrise_runtime.py", "private-desktop frozen-world pair enforces the current longitude-74 day to inclusive longitude-75 night source transition"),
     ("test_frozen_sunset_oracle.py", "exact-clock airless frozen-world evidence protects longitude-204 night and exclusive longitude-205 day state, native terminator globals, source gating, and 25,800 exact upper-sky palette bands"),
     ("test_habitable_weather_oracle.py", "same-command atmospheric type-3 evidence independently reconstructs shared-cloud DESERT rain below and at 2.5, inclusive primary suppression, and 45,760 exact native/product scene indices"),
     ("test_habitable_flare_oracle.py", "same-map atmospheric type-3 evidence independently reconstructs the 0.9375/1.25 DESERT bracket, inclusive rain-1.2 flare suppression, exact source crops, and 64,000 matching painter families"),
