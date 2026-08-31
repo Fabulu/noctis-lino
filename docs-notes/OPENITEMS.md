@@ -716,21 +716,32 @@ yet support a repair. Complete-page, complete-lighting, and complete-palette
 equality remain informational because the BMP capture still lacks snapshot-time
 simulation and palette-easing state.
 
-A third IDEAL capture now supplies the previously missing genuine primary-beside-
+A third IDEAL capture supplies the previously missing genuine primary-beside-
 globe positive. It holds the class-0/type-1 system at raw second `1344638736`,
 uses a sync-0 target-local pose `(-0.01181518607173147,
 0.0000025128783893597895, 0.005015248936280497)`, and turns only to
 `user_beta=67`. The following-frame native continuity block retains that staged
 star-local position within `3e-11` on every axis, with `STANDBY` flight control.
 Through separate Stardrifter windows, the native page shows the clipped primary
-immediately beside the dark lunar limb. The 4,000-pixel primary-window crop has
-exact native/product palette-band and brightness masks: 2,408 dark pixels and
-1,592 bright pixels. The native globe's band-3 mask is 8,620 pixels in
-`(106,51)-(217,148)`; the product has 8,535 in `(106,51)-(216,148)`, with only
-99 bounded limb-mask differences. The retained pre-repair complete pages differ at
-6,478 indices and their active palettes at 241 components, so those remain
-informational. This closes one real orbital beside-primary composition, not the companion-stage
-or Stardrifter transition gaps.
+immediately beside the dark lunar limb.
+
+The original product measurements in the native provenance were not bound to a
+product executable hash. The executable tracked by their introducing commit
+predates the corrected exterior-camera source, and every tracked corrected-camera
+build tested from the first rebuild (`2707a3cd`) through the current shipping build
+places the otherwise identical product celestial raster two pixels above those
+measurements. This is the same product/native vertical projection convention
+independently retained by the IDEAL eclipse pair below, not a later renderer
+regression. The live gate therefore preserves both coordinate spaces explicitly:
+the raw product globe has 8,535 band-3 pixels in `(106,49)-(216,146)`; translating
+it by `(0,+2)` yields `(106,51)-(216,148)`, exact native palette bands in the
+4,000-pixel primary window, and exactly 99 bounded globe-mask differences against
+the 8,620-pixel native globe. The aligned product brightness mask has 1,647 pixels,
+all 1,592 native-bright pixels plus a bounded 55-pixel product surplus. Historical
+unbound product values remain pinned as provenance but are not presented as a
+live-product raster authority. Complete-page and complete-palette equality remain
+informational. This closes one real orbital beside-primary composition, not the
+companion-stage or Stardrifter transition gaps.
 
 **IDEAL globe-before-primary eclipse pair.** A clean exterior composition now
 uses the source camera split rather than rotating the hull across the target:

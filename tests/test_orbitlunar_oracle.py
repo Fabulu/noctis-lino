@@ -67,6 +67,7 @@ INTERIOR_DIFFERENCE_DECOMPOSITION = (
 INTERIOR_HUD_NATIVE_LEFT_MATCHES = 367
 LIMB_CROP = (10, 75, 90, 125)
 LIMB_BAND_SHA256 = "9f7d58392998a5134aba50a131a59dde46c60be997ad446e161bda6bad511be0"
+PRODUCT_LIMB_ALIGNED_BRIGHTNESS_SHA256 = "63bd413d790f3f34be77621822e2b95a44496a4bcd31600b757546a5b208d241"
 ROOF_CUPOLA_CROP = (10, 10, 310, 124)
 ROOF_CUPOLA_INDEX_SHA256 = "f5e1422cd1daa982c3f92c572783c66eb27002299abe53dadb8b747883b478d3"
 ROOF_CUPOLA_BAND_SHA256 = "1583adc5d2112dbea1f9898eeb26298ab777e3e06c1ced44f0189de68fc4bf45"
@@ -210,6 +211,20 @@ def indexed_component(page: bytes, seed: tuple[int, int],
 def shifted(points: set[tuple[int, int]], dx: int,
             dy: int) -> set[tuple[int, int]]:
     return {(x + dx, y + dy) for x, y in points}
+
+
+def translated_page(page: bytes, dx: int, dy: int) -> bytes:
+    """Translate a 320x200 indexed page, clipping pixels at the viewport edge."""
+    translated = bytearray(64000)
+    for y in range(200):
+        target_y = y + dy
+        if not 0 <= target_y < 200:
+            continue
+        for x in range(320):
+            target_x = x + dx
+            if 0 <= target_x < 320:
+                translated[target_y * 320 + target_x] = page[y * 320 + x]
+    return bytes(translated)
 
 
 def bright_crop_count(page: bytes, palette: tuple[int, ...]) -> int:
@@ -367,25 +382,43 @@ def grade_product(directory: Path, camera_beta: int, native_page: bytes,
               f"product/native {brightness[2]}, product/product {brightness[3]}; "
               "palette contribution zero)")
     elif view == "limb":
+        # Native and product use the already-authenticated two-pixel celestial
+        # projection offset also retained by the eclipse pair below.  The
+        # original limb product measurements were not executable-hash bound;
+        # every tracked corrected-camera build starts at the raw product pose.
+        aligned_page = translated_page(page, 0, 2)
         native_bands = crop_bands(native_page, LIMB_CROP)
-        product_bands = crop_bands(page, LIMB_CROP)
+        product_bands = crop_bands(aligned_page, LIMB_CROP)
         check(product_bands == native_bands,
-              "product exactly retains the native primary-window palette-band geometry")
-        check(bright_mask(page, palette, LIMB_CROP) ==
-              bright_mask(native_page, native_palette, LIMB_CROP),
-              "product exactly retains the native primary-window brightness mask")
-        check(band_geometry(page, 3) == (8535, (106, 51, 216, 148)),
-              "product retains the bounded native lunar limb silhouette")
-        globe_differences = [
-            index for index, (native, product) in enumerate(zip(native_page, page))
-            if (native >> 6 == 3) != (product >> 6 == 3)
-        ]
+              "the aligned product exactly retains the native primary-window palette bands")
+
+        native_brightness = bright_mask(native_page, native_palette, LIMB_CROP)
+        product_brightness = bright_mask(aligned_page, palette, LIMB_CROP)
         check(
-            len(globe_differences) <= 99 and all(
-                106 <= index % 320 <= 217 and 51 <= index // 320 <= 148
-                for index in globe_differences
+            sha256(product_brightness) == PRODUCT_LIMB_ALIGNED_BRIGHTNESS_SHA256
+            and sum(product_brightness) == 1647
+            and sum(product and not native for native, product in zip(
+                native_brightness, product_brightness)) == 55
+            and not any(native and not product for native, product in zip(
+                native_brightness, product_brightness)),
+            "the aligned primary window bounds the product brightness surplus at 55 pixels",
+        )
+
+        product_globe = band_points(page, 3)
+        aligned_globe = shifted(product_globe, 0, 2)
+        native_globe = band_points(native_page, 3)
+        globe_differences = native_globe ^ aligned_globe
+        check(
+            point_geometry(product_globe) == (8535, (106, 49, 216, 146))
+            and point_geometry(aligned_globe) == (8535, (106, 51, 216, 148)),
+            "product retains the authenticated two-pixel lunar projection offset",
+        )
+        check(
+            len(globe_differences) == 99 and all(
+                106 <= x <= 217 and 51 <= y <= 148
+                for x, y in globe_differences
             ),
-            "the beside-primary globe mask differs only at 99 bounded limb pixels",
+            "the aligned beside-primary globe mask differs at exactly 99 bounded limb pixels",
         )
     elif view == "roof":
         exact_page = sum(native == product
@@ -1104,6 +1137,7 @@ def main() -> int:
     limb_authority = limb_provenance.get("authority", {})
     limb_staged = limb_provenance.get("staged_state", {})
     limb_state = limb_provenance.get("continuity_after_snapshot", {})
+    limb_product = limb_provenance.get("product_contract", {})
     check(
         limb_provenance.get("star") == [174288, -44389, -688771]
         and limb_provenance.get("target_body") == 0
@@ -1130,6 +1164,13 @@ def main() -> int:
         and limb_authority.get("snapshot_simulation_state_retained") is False
         and limb_authority.get("whole_page_same_state_contract") is False,
         "limb provenance states the admissible camera, page, palette, and state limits",
+    )
+    check(
+        limb_product.get("globe_palette_band_pixel_count") == 8535
+        and limb_product.get("globe_palette_band_bounding_box") ==
+        [106, 51, 216, 148]
+        and "product_executable_sha256" not in limb_product,
+        "historical limb product measurements remain pinned but not executable-bound",
     )
 
     roof_provenance_data = ROOF_PROVENANCE.read_bytes()
