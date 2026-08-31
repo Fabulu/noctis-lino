@@ -115,6 +115,7 @@ TESTS = [
     ("test_orbitmultiple_oracle.py", "matched ROTOR IGNE negative and front-facing native pages/palettes protect the source exterior half-turn and a real type-10 companion flare"),
     ("test_orbitmultiple_compact_oracle.py", "independent compact class-8 native/product evidence protects a beside-parent positive and exact-clock parent-behind-moon eclipse, strict source admission, shifted globe masks, and bounded overwrite without tuning ROTOR IGNE"),
     ("test_orbitmultiple_triple_oracle.py", "genuine class-8 [10,10,1] native/product evidence independently grades two separated companion coronas in interior and roof/cupola views plus one visible and two hull-occluded sources outside, source projections, strict gates, and scoped palette bands"),
+    ("test_orbitmultiple_triple_roof_runtime.py", "private-desktop TRIUMVIRATE roof capture protects two independent companion masks, strict source gates, exact star-local pose, and all 64,000 palette bands"),
     ("test_orbitlunar_oracle.py", "matched IDEAL lunar exterior/interior/limb/roof/cupola-boundary and globe-before-primary eclipse pages protect orbital, globe, primary, Stardrifter, and source-order geometry"),
     ("test_orbitlunar_viewpoints_runtime.py", "private-desktop IDEAL exterior/interior/roof views retain aligned lunar, primary, Stardrifter, and shared-TEX4 geometry"),
     ("test_orbitlunar_boundary_runtime.py", "private-desktop IDEAL pair crosses the strict interior-to-cupola boundary against retained native pages"),

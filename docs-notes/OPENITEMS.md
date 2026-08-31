@@ -649,14 +649,21 @@ Native continuity retains that position, `lifter=0`, `STANDBY`, navigation 113,
 and the exact interior checkpoint's star-local coordinates. Both type-10 lights
 remain visible simultaneously through separate upper-cupola panels.
 
-The adjacent-second product exactly matches the native star-local pose and
+The retained adjacent-second product exactly matches the native star-local pose and
 retains both strict companion gates and projections. At index threshold 79,
 native and product have the same 236-pixel right mask and 115-pixel left mask,
 point for point; their threshold-87 48/57-pixel core masks are also pointwise
-identical. Every complete-page palette band matches, while only 416 low-six-bit
-indices and 368 active palette components differ. The native BMP preceded the
-frozen adapted page, so complete low-six and active-palette equality remain
-outside the contract despite this unusually close result. This closes a genuine
+identical. Every complete-page palette band matches. The retained authoring
+capture differed at 416 low-six-bit indices and 368 active palette components;
+the native BMP preceded the frozen adapted page, so complete low-six and
+active-palette equality remain outside the contract.
+
+A registered Windows-only private-desktop gate now recreates this roof view from
+the current shipping shared-Lino executable at exact integer second `1345723229`.
+It enforces the exact orbital camera and star-relative pose, both strict source
+gates and projections, both independent corona/core masks, and all 64,000 native
+palette bands. Current complete low-six and active-palette mismatch counts are
+reported only as information rather than frozen live gates. This closes a genuine
 two-source roof/cupola composition as well as the interior one; moving lift and
 launch/landing flare transitions remain open.
 
