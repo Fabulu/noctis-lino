@@ -127,6 +127,7 @@ TESTS = [
     ("test_capsule_runtime.py", "private-desktop capsule trace retains every sealing/ascent tick and the complete surface-to-ship handoff"),
     ("test_capsule_descent_runtime.py", "private-desktop capsule trace retains every fall, bounce, wind-driven terrain sample, and the clean airborne-to-walking settlement"),
     ("test_label_editing_runtime.py", "private-desktop star/body editor ownership, exact STARMAP mutation rules, and isolated blinking cursor raster"),
+    ("test_controls_runtime.py", "private-desktop Stardrifter modifier ownership, modal Escape latching, and ordinary control preservation"),
 ]
 
 # Tests that have a slower, more complete mode of their own. run_all always

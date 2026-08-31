@@ -3,7 +3,7 @@
 "constants"
 
 	VHSVMAGIC = 56485356h;
-	VHSVVERSION = 17;
+	VHSVVERSION = 18;
 	VHSVUNITS = 67;
 
 "variables"
@@ -83,11 +83,14 @@
 	[vhsvbuf plus 58] = [VHGlocalcur0]; [vhsvbuf plus 59] = [VHGlocalcur1];
 	[vhsvbuf plus 60] = [MgIpreaching]; [vhsvbuf plus 61] = [MgIpreached];
 	[vhsvbuf plus 62] = [VHGlocalacc]; [vhsvbuf plus 63] = [VHGlocalphasetick];
-	( Version 15 restores the original physical Preferences subsystem. )
+	( Version 18 adds hosted roofspeed and tri-state mouselook without moving
+	  the four version-15 preference bits. )
 	A = [VHGautoscreenoff]; C = A;
 	A = [VHGrevcontrols]; A '* 2; C + A;
 	A = [VHGmenusalwayson]; A '* 4; C + A;
-	A = [VHGdepolarize]; A '* 8; C + A; [vhsvbuf plus 64] = C;
+	A = [VHGdepolarize]; A '* 8; C + A;
+	A = [VHGroofspeed]; A '* 16; C + A;
+	A = [VHGmouselook]; A '* 32; C + A; [vhsvbuf plus 64] = C;
 	[vhsvbuf plus 65] = [VHGnavbeta];
 	( Version 17 retains the outer-drive running flag in bit 23. Version 16
 	  retained the complete live lighting/reset word while remaining
@@ -144,6 +147,7 @@
 	[VHGdrawhud] = 1; [VHGlensmode] = 0; [VHGseamless] = 0;
 	[VHGhudclosed] = 1; [VHGhudcount] = 180; [VHGhuddelta] = 0;
 	[VHGautoscreenoff] = 0; [VHGrevcontrols] = 0; [VHGmenusalwayson] = 1; [VHGdepolarize] = 0;
+	[VHGroofspeed] = 0; [VHGmouselook] = 1;
 	[VHGautoscreentick] = 100; [VHGnavbeta] = 0; [VHGnavvel] = 0; [VHGnavfrac] = 0;
 	[VHSVdropstored] = 0; [VHSVdropx] = 0; [VHSVdropy] = 0; [VHSVdropz] = 0;
 	[VHSVwindoww] = [Display Width]; [VHSVwindowh] = [Display Height];
@@ -173,7 +177,7 @@
 	? A = 168 -> VHSV load version ten; ? A = 180 -> VHSV load version eleven;
 	? A = 188 -> VHSV load version twelve; ? A = 192 -> VHSV load version thirteen;
 	? A = 256 -> VHSV load version fourteen; ? A = 264 -> VHSV load version fifteen;
-	A = [vhsvbuf plus 1]; ? A = 16 -> VHSV load version ok;
+	A = [vhsvbuf plus 1]; ? A = 16 -> VHSV load version ok; ? A = 17 -> VHSV load version ok;
 	? A != VHSVVERSION -> VHSV load done; -> VHSV load version ok;
     "VHSV load version one"
 	A = [vhsvbuf plus 1]; ? A != 1 -> VHSV load done;
@@ -233,8 +237,8 @@
 	[MgPwr] = [vhsvbuf plus 18]; [MgApreached] = [vhsvbuf plus 19];
 	( Versions before 17 omitted the drive flag. Reconstruct the only stable
 	  invariant they retained: a completed stellar approach is stationary;
-	  an incomplete approach resumes its drive. Version 17 overrides this
-	  migration below with the exact saved bit. )
+	  an incomplete approach resumes its drive. Versions 17 and 18 override
+	  this migration below with the exact saved bit. )
 	A = 1; A - [MgApreached]; [MgStspeed] = A;
 	[VHGlifter] = [vhsvbuf plus 20]; [VHGonroof] = [vhsvbuf plus 21];
 	[VHGlanded] = [vhsvbuf plus 22]; [VHGframe] = [vhsvbuf plus 23];
@@ -405,8 +409,15 @@
 	A = [VHSVsize]; ? A = 264 -> VHSV load preferences stored;
 	? A != 268 -> VHSV load preferences done;
     "VHSV load preferences stored"
-	A = [vhsvbuf plus 64]; ? A '< 0 -> VHSV load done; ? A > 15 -> VHSV load done;
-	C = A; A & 1; [VHGautoscreenoff] = A;
+	A = [vhsvbuf plus 64]; ? A '< 0 -> VHSV load done; C = A;
+	A = [vhsvbuf plus 1]; ? A = 18 -> VHSV load current preferences;
+	A = C; ? A > 15 -> VHSV load done; -> VHSV load preference fields;
+    "VHSV load current preferences"
+	A = C; ? A > 127 -> VHSV load done;
+	A = C; A / 16; A & 1; [VHGroofspeed] = A;
+	A = C; A / 32; A & 3; ? A = 3 -> VHSV load done; [VHGmouselook] = A;
+    "VHSV load preference fields"
+	A = C; A & 1; [VHGautoscreenoff] = A;
 	A = C; A / 2; A & 1; [VHGrevcontrols] = A;
 	A = C; A / 4; A & 1; [VHGmenusalwayson] = A;
 	A = C; A / 8; A & 1; [VHGdepolarize] = A;
@@ -416,13 +427,13 @@
 	A = [VHSVsize]; ? A != 268 -> VHSV load light level done;
 	A = [vhsvbuf plus 66]; ? A '< 0 -> VHSV load done; ? A <= 63 -> VHSV load legacy light level;
 	? A < 4194304 -> VHSV load done;
-	A = [vhsvbuf plus 1]; ? A = VHSVVERSION -> VHSV load current light limit;
-	A = [vhsvbuf plus 66]; ? A > 6317183 -> VHSV load done; -> VHSV load light unpack;
-    "VHSV load current light limit"
-	A = [vhsvbuf plus 66]; ? A > 14705791 -> VHSV load done;
+	A = [vhsvbuf plus 1]; ? A '< 17 -> VHSV load legacy light limit;
+	A = [vhsvbuf plus 66]; ? A > 14705791 -> VHSV load done; -> VHSV load light unpack;
+    "VHSV load legacy light limit"
+	A = [vhsvbuf plus 66]; ? A > 6317183 -> VHSV load done;
     "VHSV load light unpack"
 	A - 4194304; C = A;
-	A = [vhsvbuf plus 1]; ? A != VHSVVERSION -> VHSV load light fields;
+	A = [vhsvbuf plus 1]; ? A '< 17 -> VHSV load light fields;
 	A = C; A / 8388608; A & 1; [MgStspeed] = A;
 	A = C; A & 8388607; C = A;
     "VHSV load light fields"

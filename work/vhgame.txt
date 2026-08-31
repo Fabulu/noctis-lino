@@ -41,6 +41,8 @@
 	VHGFCH = 1076101120;		( 10.0 binary64 high )
 	VHGINBOXMAX = 9668628;
 	VHGXMAX = 65536;
+	VHGBROWSECART = 1; VHGBROWSEFCS = 2;
+	VHGFCS9CLEAR = 1; VHGFCS9CANCEL = 2; VHGFCS9DEPLOY = 3; VHGFCS9IMPOSSIBLE = 4; VHGFCS9ERROR = 5;
 	VHGK5EM50 = 0EB1C432Dh; VHGK5EM51 = 03F0A36E2h;
 	VHGK0010 = 047AE147Bh; VHGK0011 = 03F847AE1h;
 
@@ -59,9 +61,10 @@
 	VHGalpha = 0; VHGbeta = 0; VHGnavbeta = 0; VHGabs = 0;
 	VHGlifter = 0; VHGliftstep = 0; VHGonroof = 0; VHGridearmed = 1; VHGuprequest = 0; VHGupheld = 0;
 	VHGdx = 0; VHGdz = 0; VHGdist = 0;
-	VHGesc = 0; VHGframe = 0; VHGsent = 0; VHGsentinelquit = 0; VHGsentinelrepeat = 0; VHGsentinelfreeze = 0; VHGsentinellifttrace = 0; VHGsentinelcapsuletrace = 0; VHGfreezeblink = 0; VHGfreezebrtl = 0; VHGfreezesuf = 0; VHGfullescheld = 0;
+	VHGesc = 0; VHGframe = 0; VHGsent = 0; VHGsentinelquit = 0; VHGsentinelrepeat = 0; VHGsentinelfreeze = 0; VHGsentinellifttrace = 0; VHGsentinelcapsuletrace = 0; VHGsentinelcontroltrace = 0; VHGfreezeblink = 0; VHGfreezebrtl = 0; VHGfreezesuf = 0; VHGfullescheld = 0; VHGgameescheld = 0;
 	VHGlifttraceactive = 0; VHGlifttracecount = 0; VHGlifttraceindex = 0;
 	VHGcapsuletraceactive = 0; VHGcapsuletracecount = 0; VHGcapsuletraceindex = 0;
+	VHGcontroltracecount = 0; VHGcontroltraceindex = 0;
 	VHGargptr = 0; VHGargvalue = 0; VHGargdigits = 0;
 	VHGmouseheld = 0; VHGmousex = 0; VHGmousey = 0; VHGmousedx = 0; VHGmousedy = 0;
 	VHGmenuheld = 0; VHGmenux = 0; VHGmenuy = 0;
@@ -76,9 +79,9 @@
 	VHGconsole = 0; VHGconsoleview = 0; VHGascii = 0; VHGasciiheld = 0; VHGasciikey = 0;
 	VHGconsoleouti = 0; VHGconsoleouty = 0;
 	VHGlabelstar = 0; VHGlabelbody = 0; VHGlabelstarpos = 0; VHGlabelbodypos = 0;
-	VHGlabelused = 0; VHGlabeli = 0; VHGlabelchar = 0; VHGlabelescheld = 0; VHGlabelresult = 0; VHGlabelid0 = 0; VHGlabelid1 = 0; VHGlabelcode = 0;
+	VHGlabelused = 0; VHGlabeli = 0; VHGlabelchar = 0; VHGlabelresult = 0; VHGlabelid0 = 0; VHGlabelid1 = 0; VHGlabelcode = 0;
 	VHGscreen = 0FFFFFFFFh; VHGscreenprev = 0FFFFFFFFh; VHGfcsopen = 0;
-	VHGscrollheld = 0; VHGscrollused = 0;
+	VHGscrollheld = 0; VHGscrollused = 0; VHGhomeheld = 0;
 	VHGnewasciikey = 0; VHGreturnpending = 0; VHGreturnhookheld = 0;
 	VHGi = 0; VHGptr = 0; VHGseed = 0; VHGstepv = 0;
 	VHGcmdi = 0; VHGcmdvalue = 0; VHGcmdsign = 0; VHGcmddigits = 0; VHGcmdok = 0;
@@ -88,7 +91,7 @@
 	VHGwherematch = 0; VHGwhereexact = 0; VHGwherei = 0; VHGwheretype = 0;
 	VHGwherecode = 0; VHGwhereunderscores = 0;
 	VHGslleast = 0; VHGslrecno = 0; VHGslptr = 0; VHGsli = 0;
-	VHGslactive = 0; VHGslphase = 0; VHGslbudget = 0; VHGslcancelheld = 0;
+	VHGslactive = 0; VHGslphase = 0; VHGslbudget = 0;
 	VHGslgalx0 = 0; VHGslgalx1 = 0; VHGslgaly0 = 0; VHGslgaly1 = 0;
 	VHGslgalz0 = 0; VHGslgalz1 = 0;
 	VHGdlactive = 0; VHGdlbudget = 0; VHGdlsubjecttype = 0; VHGdlsubjectptr = 0;
@@ -201,6 +204,7 @@
 		vhgliftpagesname = { game-lift-pages-out.bin };
 		vhgcapsulestatename = { game-capsule-state-out.bin };
 		vhgcapsulepagesname = { game-capsule-pages-out.bin };
+		vhgcontrolstatename = { game-controls-state-out.bin };
 		vhgprofilename = { game-profile-out.bin };
 	VHGcaption = { Noctis_IV };
 	VHGmenucaption = { GAME };
@@ -274,6 +278,8 @@
 	VHGdeviceheld = 0;
 	( Original PFS defaults from NOCTIS-0.CPP. )
 	VHGautoscreenoff = 0; VHGrevcontrols = 0; VHGmenusalwayson = 1; VHGdepolarize = 0;
+	VHGroofspeed = 0; VHGmouselook = 1;
+	VHGctrlused = 0; VHGctrlsheld = 0; VHGctrldheld = 0; VHGctrldownheld = 0;
 	VHGautoscreentick = 100; VHGnavvel = 0; VHGnavfrac = 0;
 	VHGstarclass = 0; VHGstarr = 0; VHGstarg = 0; VHGstarb = 0;
 	VHGstarinnerR = 0; VHGstarinnerG = 0; VHGstarinnerB = 0;
@@ -298,7 +304,8 @@
 	VHGtrackangle = 0;
 	VHGprefillsrc = 0; VHGprefillcount = 0; VHGprefilli = 0;
 	VHGbrowsecursor = 0; VHGbrowseptr = 0; VHGbrowsestep = 1; VHGbrowsetries = 0;
-	VHGbrowsevalid = 0; VHGbrowsex = 0; VHGbrowsey = 0; VHGbrowsez = 0;
+	VHGbrowsevalid = 0; VHGbrowseorigin = 0; VHGbrowsex = 0; VHGbrowsey = 0; VHGbrowsez = 0;
+	VHGfcs9class = 0;
 	VHGbrowserowaxis = 0; VHGbrowserowdst = 0; VHGbrowserowvalue = 0; VHGbrowserowi = 0;
 	VHGhelpshow = 0; VHGhelpheld = 0; VHGhelpline = 0; VHGhelpy = 0;
 	VHGabout = 0; VHGaboutheld = 0; VHGaboutsrc = 0; VHGaboutx = 0; VHGabouty = 0;
@@ -604,18 +611,18 @@
 	VHGpodtext = { POD 000000 F BIRDS 0 CTRL:STALK R@POD };
 	VHGsurfacetext = { G 0.000FG T +000.0C P 00.000ATM HR 000 };
 	VHGhelptitle = { NOCTIS-IV:CONTROLS };
-	VHGhelpclose = { ?/F9:CLOSE / ESC:QUIT };
-	VHGhelpmenu = { F10:MENU / F1:ORIGINAL-ABOUT };
-	VHGhelpmove = { RMB/ARROWS:LOOK / WASD / 0-9:CRUISE };
+	VHGhelpclose = { ?/F9:CLOSE / ESC:CLOSES ACTIVE PANEL };
+	VHGhelpmenu = { F10:MENU F1:ABOUT CTRL+D:PREFS };
+	VHGhelpmove = { RMB/ARROWS:LOOK WASD:MOVE CTRL+DOWN:MLOOK };
 	VHGhelpjump = { SURFACE:CTRL:STALK / J:JUMP / SPACE:JET };
 	VHGhelplift = { E:LIFT / STEP INTO CUPOLA:RETURN };
-	VHGhelpgoes = { G/ENTER:GOES / TAB:RUN };
+	VHGhelpgoes = { G/ENTER:GOES / TAB:RUN / HOME:CLEAR };
 	VHGhelpnav = { 5:FCS / R:DEVICES / G:GOES };
 	VHGhelpname = { GOES:NAME STAR/PLANET LABEL };
 	VHGhelpbody = { []:SELECT-BODY / L:APPROACH };
-	VHGhelpland = { L@STANDBY:SITE / ARROWS / L:LAND };
+	VHGhelpland = { L@STANDBY:SITE / CTRL+ARROWS:FAST };
 	VHGhelpfuel = { C:COLLECT-LITHIUM / H:RESCUE };
-	VHGhelpsave = { F6:SAVE F7:LOAD / M:SHOT B:RAW };
+	VHGhelpsave = { F6:SAVE F7:LOAD M/B:SHOT CTRL+S:ROOF };
 	VHGhelpview = { F4:FPS F5:60HZ F8:MUSIC I:DATA };
 	VHGabouttitle = { NOCTIS_IV_PLUS };
 	VHGaboutauthors = { BY_MEGA,_NEUZD,_SL,_AND_OTHERS };
@@ -623,8 +630,8 @@
 	VHGaboutspacehead = { SHORTCUT_KEYS_(WHEN_IN_SPACE): };
 	VHGaboutspace0 = { M_OR_ASTERISK_-_SNAPSHOT__________________B_-_RAW_SNAPSHOT };
 	VHGaboutspace1 = { F3_-_MOVIEMAKER___________________________F2_-_VISUAL_EFFECTS_SETTINGS };
-	VHGaboutspace2 = { S_-_TOGGLE_ROOFSPEED______________________UP_ARROW_-_EXIT_TO_ROOF };
-	VHGaboutspace3 = { DOWN_ARROW_-_TOGGLE_MOUSELOOK_____________PLUS_AND_MINUS_-_HUD_BRIGHTNESS };
+	VHGaboutspace2 = { CTRL+S_-_TOGGLE_ROOFSPEED________________E_-_LIFT_TO_ROOF };
+	VHGaboutspace3 = { CTRL+DOWN_-_CYCLE_MOUSELOOK_______________CTRL+D_-_PREFERENCES };
 	VHGaboutsurfacehead = { SHORTCUT_KEYS_(WHEN_ON_THE_SURFACE): };
 	VHGaboutsurface0 = { 0-9_-_MOVEMENT_SPEED______________________LEFT_CLICK_-_WALK_FORWARD };
 	VHGaboutsurface1 = { J_-_JUMP__________________________________L_-_LAND_ON_SURFACE };
@@ -632,7 +639,7 @@
 	VHGaboutsurface3 = { M_OR_ASTERISK_-_SNAPSHOT__________________N_OR_/_-_WIDE_SNAPSHOT };
 	VHGaboutsurface4 = { B_OR_DELETE_-_RAW_SNAPSHOT________________V_OR_PERIOD_-_RAW_WIDE_SNAPSHOT };
 	VHGaboutsurface5 = { F3_-_MOVIEMAKER___________________________F2_-_VISUAL_EFFECTS_SETTINGS };
-	VHGaboutsurface6 = { DOWN_ARROW_-_TOGGLE_MOUSELOOK_____________PLUS_AND_MINUS_-_HUD_BRIGHTNESS };
+	VHGaboutsurface6 = { RMB_-_MOUSELOOK___________________________PLUS_AND_MINUS_-_HUD_BRIGHTNESS };
 	VHGaboutomega = { THIS_STARDRIFTER_IS_EQUIPPED_WITH_THE_OMEGA_DRIVE };
 	VHGaboutrelease = { RELEASE_2.3 };
 	vector VHGaboutwhole = 5; 5; 315; 195;
@@ -837,6 +844,10 @@
 	VHGfcsmcancel = { 8 STOP FINE APPROACH };
 	VHGfcsmrestart = { 8 SELECT ANOTHER LOCAL TARGET };
 	VHGfcsmcapsule = { 9 DEPLOY SURFACE CAPSULE };
+	VHGfcsm9clear = { 9 CLEAR LOCAL TARGET };
+	VHGfcsm9cancel = { 9 CANCEL LANDING REQUEST };
+	VHGfcsm9impossible = { 9 LANDING IMPOSSIBLE };
+	VHGfcsm9error = { 9 ACTION UNAVAILABLE };
 	VHGfcsmhint = { 5:CLOSE / 6-9:SELECT };
 	( Exact NOCTIS.CPP fcs() information-line vocabulary. These fragments are
 	  assembled into live rows because target and resource values can change
@@ -888,6 +899,8 @@
 	VHGflightconflicttext = { VIMANA CONTROL CONFLICT };
 	VHGlocalstoptext = { FINE APPROACH STOPPED };
 	VHGlocalselecttext = { SELECT BODY WITH [ ] THEN PRESS 5,8 };
+	VHGfcscleartext = { LOCAL TARGET CLEARED };
+	VHGfcserrortext = { FCS ACTION ERROR };
 	VHGlightontext = { INTERNAL LIGHT ON };
 	VHGlightofftext = { INTERNAL LIGHT OFF };
 	VHGampontext = { FIELD AMPLIFIER ON };
@@ -977,6 +990,7 @@
 	vhgrenderstate = 6;
 	vhgliftstate = 8;
 	vhgcapsulestate = 16;
+	vhgcontrolstate = 26;
 	VHGinfoname = 22;
 	VHGtelemetrystar = 16;
 	VHGtelemetrybody = 16;
@@ -1272,6 +1286,36 @@
     "VHG capsule trace option done"
 	end;
 
+"VHG control trace option"
+	( `controltrace` appends one versioned state record after each input pass.
+	  It is private-desktop acceptance instrumentation and is inert otherwise. )
+	A = Command Line;
+	C = [A]; ? C != 0 -> VHG control trace leading space; A + 9;
+    "VHG control trace leading space"
+	C = [A]; ? C != 32 -> VHG control trace scan; A+;
+	-> VHG control trace leading space;
+    "VHG control trace scan"
+	C = [A]; ? C = 0 -> VHG control trace option done;
+	? C != 99 -> VHG control trace next;
+	E = A; E+; C = [E]; ? C != 111 -> VHG control trace next; E+;
+	C = [E]; ? C != 110 -> VHG control trace next; E+;
+	C = [E]; ? C != 116 -> VHG control trace next; E+;
+	C = [E]; ? C != 114 -> VHG control trace next; E+;
+	C = [E]; ? C != 111 -> VHG control trace next; E+;
+	C = [E]; ? C != 108 -> VHG control trace next; E+;
+	C = [E]; ? C != 116 -> VHG control trace next; E+;
+	C = [E]; ? C != 114 -> VHG control trace next; E+;
+	C = [E]; ? C != 97 -> VHG control trace next; E+;
+	C = [E]; ? C != 99 -> VHG control trace next; E+;
+	C = [E]; ? C != 101 -> VHG control trace next; E+;
+	C = [E]; ? C = 0 -> VHG control trace found; ? C = 32 -> VHG control trace found;
+    "VHG control trace next"
+	A+; -> VHG control trace scan;
+    "VHG control trace found"
+	[VHGsentinelcontroltrace] = 1;
+    "VHG control trace option done"
+	end;
+
 "VHG profile option"
 	( `profile` is an opt-in terminal telemetry token.  Scan independently of
 	  clock=<decimal> so ordinary launches and the first-frame oracle contract
@@ -1348,7 +1392,7 @@
 	=> TK seed; => TK start;
 	=> VHG fps init;
 	=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option;
-	=> VHG lift trace option; => VHG capsule trace option; => VHG profile option;
+	=> VHG lift trace option; => VHG capsule trace option; => VHG control trace option; => VHG profile option;
 	( Resume the versioned port checkpoint automatically when present.  VHSV
 	  leaves the initialized new-flight state untouched on a missing, stale,
 	  or malformed file, so first launch remains a clean game. )
@@ -1483,7 +1527,11 @@
 		A-; [VHGprofileinputpending] = A; ? A != 0 -> VHG profile present counted;
 		[VHGprofileinputpresent] = [VHGprofnow];
 	    "VHG profile present counted"
+		A = [VHGroofspeed]; ? A = 0 -> VHG present timing wait;
+		A = [VHGonroof]; ? A != 0 -> VHG present timing done;
+	    "VHG present timing wait"
 		=> VHG timing step;
+	    "VHG present timing done"
 		A = [VHGprofileresetpending]; ? A = 0 -> VHG profile reset done;
 		[VHGprofileresetpending] = 0; => VHG profile reset;
 	    "VHG profile reset done"
@@ -1581,7 +1629,12 @@
 	A = [VHGmode]; ? A = 0 -> VHG menu prefs open;
 	[VHGnoticeptr] = VHGshiponlytext; [VHGnoticeframes] = 55; end;
     "VHG menu prefs open"
-	[VHGprefs] = 1; [VHGdevaccess] = 1; [VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0;
+	[VHGdevaccess] = 1; => VHG preferences open;
+	end;
+
+"VHG preferences open"
+	( Callers set accessibility provenance before sharing this state reset. )
+	[VHGprefs] = 1; [VHGdev] = 0; [VHGfcsopen] = 0; [VHGinfo] = 0;
 	[VHGhelpshow] = 0; [VHGabout] = 0; [VHGconsole] = 0;
 	end;
 
@@ -1681,7 +1734,7 @@
 		  Rendering uses the same shared stack, so give input a clean ABI boundary;
 		  without it the first walking sample after capsule settlement could return
 		  through a corrupted floating-point helper frame. )
-		=> VHG fpu clean; => VHG lift postrender; => VHG lift trace; => VHG capsule trace; => VHG input;
+		=> VHG fpu clean; => VHG lift postrender; => VHG lift trace; => VHG capsule trace; => VHG input; => VHG control trace;
 	( VHGframe is the retained source-loop clock used by the physical orbital
 	  console.  Extra F5 presentation frames must not accelerate that display. )
 	A = [VHGdosim]; ? A = 0 -> VHG frame count done; [VHGframe]+;
@@ -3601,20 +3654,15 @@
 	end;
 
 	"VHG input"
-		( Capsule descent/return owns the camera and controls.  Do not run the
-		  ship/device character pipeline against partially transitioned surface
-		  state; a queued landing key could otherwise survive into that pipeline
-		  and corrupt its indirect key-table return.  Escape remains immediate. )
-		A = [VHGslcancelheld]; ? A = 0 -> VHG input label escape latch;
-		A = [KEY ESCAPE]; ? A = ON -> VHG input done; [VHGslcancelheld] = 0;
-    "VHG input label escape latch"
-		A = [VHGlabelescheld]; ? A = 0 -> VHG input escape ready;
-		A = [KEY ESCAPE]; ? A = ON -> VHG input done; [VHGlabelescheld] = 0;
-	    "VHG input escape ready"
-		A = [KEY ESCAPE]; ? A = OFF -> VHG input no physical escape;
-		A = [VHGlabelstar]; A | [VHGlabelbody]; ? A = 0 -> VHG input escape;
-		[VHGlabelescheld] = 1; => VHG label input; -> VHG input done;
-    "VHG input no physical escape"
+		( One gameplay Escape latch owns every modal and quit transition. The outer
+		  iGUI/fullscreen latch remains independent because it changes host display
+		  state rather than gameplay state. )
+		A = [KEY ESCAPE]; ? A = OFF -> VHG input escape released;
+		A = [VHGgameescheld]; ? A != 0 -> VHG input done;
+		[VHGgameescheld] = 1; [Console Command] = CLEAR CONSOLE BUFFER; isocall;
+		=> VHG gameplay escape; -> VHG input done;
+    "VHG input escape released"
+		[VHGgameescheld] = 0;
 		A = [VHGmode]; ? A = 0 -> VHG input active;
 		A = [VHGlanded]; ? A != 0 -> VHG input active;
 		-> VHG input done;
@@ -3636,6 +3684,9 @@
 	  it after copying so 60-Hz presentation cannot repeat one keypress. )
 	[Console Command] = CLEAR CONSOLE BUFFER; isocall;
     "VHG console ring ready"
+	A = [VHGascii]; ? A != 27 -> VHG input no buffered escape;
+	[VHGgameescheld] = 1; => VHG gameplay escape; -> VHG input done;
+    "VHG input no buffered escape"
 	=> VHG return key;
 	=> VHG label input; A = [VHGlabelused]; ? A != 0 -> VHG input done;
 	=> VHG fps key;
@@ -3662,11 +3713,11 @@
 	=> VHG info key;
 	=> VHG screen off key;
 	=> VHG accessibility release;
+	=> VHG modifier input; A = [VHGctrlused]; ? A != 0 -> VHG input done;
 	A = [VHGlandingselect]; ? A != 0 -> VHG landing selector input;
 	=> VHG output scroll; A = [VHGscrollused]; ? A != 0 -> VHG input done;
 	=> VHG visor keys;
-	=> VHG mouse look;
-	A = [KEY ESCAPE]; ? A = ON -> VHG input escape;
+	=> VHG hosted mouse look;
 	( Console characters are edge events, not held state.  Consume them on
 	  every presented frame so the 60-Hz presenter cannot discard two of
 	  every three keystrokes; only physical look/movement stays sim-paced. )
@@ -3686,6 +3737,11 @@
     "VHG activate console shortcut"
 	[VHGfcsopen] = 0; [VHGconsole] = 1; [VHGconsoleview] = 1; -> VHG input done;
     "VHG console input"
+	A = [KEY HOME]; ? A = OFF -> VHG console Home released;
+	A = [VHGhomeheld]; ? A != 0 -> VHG input done;
+	[VHGhomeheld] = 1; [VHGascii] = 0; => VH GOES clear; -> VHG input done;
+    "VHG console Home released"
+	[VHGhomeheld] = 0;
 	A = [VHGascii]; ? A = 0 -> VHG input done;
 	[VHPkey] = A; ? A != 9 -> VHG console key ready; [VHPkey] = 13;
     "VHG console key ready"
@@ -3754,12 +3810,7 @@
 	E = nsptype; E + A; A = [E]; ? A = 0 -> VHG landing unavailable;
 	? A = 6 -> VHG landing unavailable; ? A = 9 -> VHG landing unavailable;
 	? A '>= 10 -> VHG landing unavailable;
-	[VHGlandinglon] = 0; [VHGlandinglat] = 60; [VHGlandingselect] = 1;
-	[VHGlandingview] = 1; A = [VHGscreen]; ? A != 2 -> VHG landing view ready;
-	[VHGlandingview] = 0;
-    "VHG landing view ready"
-	[VHGnoticeptr] = VHGlandselecttext; [VHGnoticeframes] = 75;
-	-> VHG input done;
+	=> VHG landing selector start; -> VHG input done;
     "VHG landing unavailable"
 	[VHGnoticeptr] = VHGlandfailtext; [VHGnoticeframes] = 75; -> VHG input done;
     "VHG look input"
@@ -3803,12 +3854,6 @@
     "VHG no A"
 	A = [KEY D]; ? A = OFF -> VHG input done; [VHGstepv] = VHGSTEP; => VHG strafe;
 	-> VHG input done;
-    "VHG input escape"
-	A = [VHGslactive]; ? A != 0 -> VHG input escape sl;
-	A = [VHGdlactive]; ? A = 0 -> VHG quit;
-	=> VHG DL cancel; -> VHG input done;
-    "VHG input escape sl"
-	=> VHG SL cancel; -> VHG input done;
     "VHG input done"
 	( The shared early-exit path is also used while a planetary capsule owns
 	  the camera (mode=surface, landed=0).  Ship bounds and the Stardrifter
@@ -3821,12 +3866,173 @@
 	"VHG input cleanup done"
 	end;
 
+"VHG gameplay escape"
+	( One fresh edge closes exactly one highest-priority gameplay owner. Every
+	  path returns here, so a held or safety-blocked press cannot fall through
+	  into a second modal or become a delayed quit. )
+	A = [VHGlabelstar]; A | [VHGlabelbody]; ? A = 0 -> VHG gameplay escape SL;
+	[VHGascii] = 0; [VHGlabelstar] = 0; [VHGlabelbody] = 0; => VHCAT refresh; end;
+    "VHG gameplay escape SL"
+	A = [VHGslactive]; ? A = 0 -> VHG gameplay escape DL;
+	[VHGascii] = 0; => VHG SL cancel; end;
+    "VHG gameplay escape DL"
+	A = [VHGdlactive]; ? A = 0 -> VHG gameplay escape landing;
+	[VHGascii] = 0; => VHG DL cancel; end;
+    "VHG gameplay escape landing"
+	A = [VHGlandingselect]; ? A = 0 -> VHG gameplay escape landing request;
+	[VHGlandingselect] = 0; [VHGlandingview] = 1; [VHGascii] = 0;
+	[VHGnoticeptr] = VHGlandcanceltext; [VHGnoticeframes] = 55; end;
+    "VHG gameplay escape landing request"
+	A = [VHGlandpending]; ? A = 0 -> VHG gameplay escape GOES;
+	[VHGlandpending] = 0; [VHGascii] = 0;
+	[VHGnoticeptr] = VHGlandcanceltext; [VHGnoticeframes] = 55; end;
+    "VHG gameplay escape GOES"
+	A = [VHGconsole]; ? A = 0 -> VHG gameplay escape browser;
+	=> VH GOES clear; [VHGconsole] = 0; [VHGconsoleview] = 0; [VHGascii] = 0; end;
+    "VHG gameplay escape browser"
+	A = [VHGdev]; ? A != 6 -> VHG gameplay escape FCS;
+	=> VHG browse restore; end;
+    "VHG gameplay escape FCS"
+	A = [VHGfcsopen]; ? A = 0 -> VHG gameplay escape device;
+	[VHGfcsopen] = 0; [VHGascii] = 0; end;
+    "VHG gameplay escape device"
+	A = [VHGdev]; ? A = 0 -> VHG gameplay escape preferences;
+	[VHGdev] = 0; [VHGascii] = 0; end;
+    "VHG gameplay escape preferences"
+	A = [VHGprefs]; ? A = 0 -> VHG gameplay escape data;
+	[VHGprefs] = 0; [VHGascii] = 0; end;
+    "VHG gameplay escape data"
+	A = [VHGinfo]; ? A = 0 -> VHG gameplay escape graphics;
+	[VHGinfodelta] = 0FFFFFFFCh; [VHGascii] = 0; end;
+    "VHG gameplay escape graphics"
+	A = [VHGgraphics]; ? A = 0 -> VHG gameplay escape movie;
+	[VHGgraphics] = 0; [VHGascii] = 0; end;
+    "VHG gameplay escape movie"
+	A = [VHGmovieview]; ? A = 0 -> VHG gameplay escape help;
+	[VHGmovieview] = 0; [VHGmoviecrossheld] = 0; [VHGmoviehyphenheld] = 0; [VHGascii] = 0; end;
+    "VHG gameplay escape help"
+	A = [VHGhelpshow]; ? A = 0 -> VHG gameplay escape about;
+	[VHGhelpshow] = 0; [VHGascii] = 0; end;
+    "VHG gameplay escape about"
+	A = [VHGabout]; ? A = 0 -> VHG gameplay escape safety;
+	[VHGabout] = 0; [VHGascii] = 0; end;
+    "VHG gameplay escape safety"
+	A = [MgStspeed]; A | [MgIpreaching]; A | [VHGlifter]; ? A = 0 -> VHG gameplay escape quit;
+	[VHGascii] = 0; end;
+    "VHG gameplay escape quit"
+	[VHGascii] = 0; => VHG quit;
+	end;
+
 "VHG profile W effect"
 	A = [VHGprofileactive]; ? A = 0 -> VHG profile W effect done;
 	A = [VHGprofileinputeffect]; ? A != 0 -> VHG profile W effect done;
 	[Timer Command] = READ COUNTS; isocall;
 	[VHGprofileinputeffect] = [Counts]; [VHGprofileinputpending] = 2;
     "VHG profile W effect done"
+	end;
+
+"VHG landing selector start"
+	[VHGlandinglon] = 0; [VHGlandinglat] = 60; [VHGlandingselect] = 1; [VHGlandpending] = 0;
+	[VHGlandingview] = 1; A = [VHGscreen]; ? A != 2 -> VHG landing selector view ready;
+	[VHGlandingview] = 0;
+    "VHG landing selector view ready"
+	[VHGnoticeptr] = VHGlandselecttext; [VHGnoticeframes] = 75;
+	end;
+
+"VHG modifier input"
+	( Context owners see Control chords before ordinary arrows, page keys, and
+	  WASD.  Each toggle latch survives the full chord so no held key leaks into
+	  its displaced look or movement action. )
+	[VHGctrlused] = 0;
+	A = [KEY CONTROL]; ? A = ON -> VHG modifier pressed;
+	[VHGctrlsheld] = 0; [VHGctrldheld] = 0; [VHGctrldownheld] = 0; end;
+    "VHG modifier pressed"
+	A = [KEY S]; ? A = ON -> VHG modifier S held; [VHGctrlsheld] = 0;
+    "VHG modifier S held"
+	A = [KEY D]; ? A = ON -> VHG modifier D held; [VHGctrldheld] = 0;
+    "VHG modifier D held"
+	A = [KEY DOWN]; ? A = ON -> VHG modifier Down held; [VHGctrldownheld] = 0;
+    "VHG modifier Down held"
+	A = [VHGlandingselect]; ? A != 0 -> VHG modifier landing;
+	A = [VHGscreen]; ? A = 1 -> VHG modifier output;
+	[VHGscrollheld] = 0; -> VHG modifier normal;
+
+    "VHG modifier landing"
+	A = [KEY LEFT]; ? A = ON -> VHG modifier landing left;
+	A = [KEY RIGHT]; ? A = ON -> VHG modifier landing right;
+	A = [KEY UP]; ? A = ON -> VHG modifier landing up;
+	A = [KEY DOWN]; ? A = ON -> VHG modifier landing down;
+	end;
+    "VHG modifier landing left"
+	[VHGctrlused] = 1; [VHGascii] = 0; A = [VHGdosim]; ? A = 0 -> VHG modifier done;
+	A = [VHGlandinglon]; A - 3; ? A >= 0 -> VHG modifier landing lon ready; A + 360;
+    "VHG modifier landing lon ready"
+	[VHGlandinglon] = A; end;
+    "VHG modifier landing right"
+	[VHGctrlused] = 1; [VHGascii] = 0; A = [VHGdosim]; ? A = 0 -> VHG modifier done;
+	A = [VHGlandinglon]; A + 3; ? A < 360 -> VHG modifier landing lon ready; A - 360;
+	-> VHG modifier landing lon ready;
+    "VHG modifier landing up"
+	[VHGctrlused] = 1; [VHGascii] = 0; A = [VHGdosim]; ? A = 0 -> VHG modifier done;
+	A = [VHGlandinglat]; A - 3; ? A >= 1 -> VHG modifier landing lat ready; A = 1;
+    "VHG modifier landing lat ready"
+	[VHGlandinglat] = A; end;
+    "VHG modifier landing down"
+	[VHGctrlused] = 1; [VHGctrldownheld] = 1; [VHGascii] = 0;
+	A = [VHGdosim]; ? A = 0 -> VHG modifier done;
+	A = [VHGlandinglat]; A + 3; ? A <= 119 -> VHG modifier landing lat ready; A = 119;
+	-> VHG modifier landing lat ready;
+
+    "VHG modifier output"
+	A = [KEY UP]; ? A = ON -> VHG modifier output top;
+	A = [KEY PGUP]; ? A = ON -> VHG modifier output top;
+	A = [KEY DOWN]; ? A = ON -> VHG modifier output bottom;
+	A = [KEY PGDN]; ? A = ON -> VHG modifier output bottom;
+	[VHGscrollheld] = 0; -> VHG modifier normal;
+    "VHG modifier output top"
+	[VHGctrlused] = 1; [VHGascii] = 0; A = [VHGscrollheld]; ? A != 0 -> VHG modifier done;
+	[VHGscrollheld] = 1; [VHPoutview] = 0; end;
+    "VHG modifier output bottom"
+	[VHGctrlused] = 1; [VHGctrldownheld] = 1; [VHGascii] = 0;
+	A = [VHGscrollheld]; ? A != 0 -> VHG modifier done; [VHGscrollheld] = 1;
+	A = [VHPoutrows]; A - 7; ? A >= 0 -> VHG modifier output bottom ready; A = 0;
+    "VHG modifier output bottom ready"
+	[VHPoutview] = A; end;
+
+    "VHG modifier normal"
+	A = [VHGmode]; ? A != 0 -> VHG modifier done;
+	A = [VHGlabelstar]; A | [VHGlabelbody]; A | [VHGslactive]; A | [VHGdlactive];
+	A | [VHGlandingselect]; A | [VHGlandpending]; A | [VHGconsole]; A | [VHGdev];
+	A | [VHGfcsopen]; A | [VHGprefs]; A | [VHGinfo]; A | [VHGgraphics];
+	A | [VHGmovieview]; A | [VHGhelpshow]; A | [VHGabout]; ? A != 0 -> VHG modifier blocked;
+	A = [MgStspeed]; A | [MgIpreaching]; A | [VHGlifter]; ? A != 0 -> VHG modifier blocked;
+	A = [KEY S]; ? A = ON -> VHG modifier roofspeed;
+	A = [KEY DOWN]; ? A = ON -> VHG modifier mouselook;
+	A = [KEY D]; ? A = ON -> VHG modifier preferences;
+	end;
+    "VHG modifier blocked"
+	( Consume ship aliases while a modal or safety owner is active, and mark
+	  their latches so they cannot fire later without a physical release. )
+	A = [KEY S]; ? A = OFF -> VHG modifier blocked D;
+	[VHGctrlused] = 1; [VHGctrlsheld] = 1; [VHGascii] = 0;
+    "VHG modifier blocked D"
+	A = [KEY D]; ? A = OFF -> VHG modifier blocked Down;
+	[VHGctrlused] = 1; [VHGctrldheld] = 1; [VHGascii] = 0;
+    "VHG modifier blocked Down"
+	A = [KEY DOWN]; ? A = OFF -> VHG modifier done;
+	[VHGctrlused] = 1; [VHGctrldownheld] = 1; [VHGascii] = 0; end;
+    "VHG modifier roofspeed"
+	[VHGctrlused] = 1; [VHGascii] = 0; A = [VHGctrlsheld]; ? A != 0 -> VHG modifier done;
+	[VHGctrlsheld] = 1; A = 1; A - [VHGroofspeed]; [VHGroofspeed] = A; end;
+    "VHG modifier mouselook"
+	[VHGctrlused] = 1; [VHGascii] = 0; A = [VHGctrldownheld]; ? A != 0 -> VHG modifier done;
+	[VHGctrldownheld] = 1; A = [VHGmouselook]; A + 1; ? A < 3 -> VHG modifier mouselook ready; A = 0;
+    "VHG modifier mouselook ready"
+	[VHGmouselook] = A; end;
+    "VHG modifier preferences"
+	[VHGctrlused] = 1; [VHGascii] = 0; A = [VHGctrldheld]; ? A != 0 -> VHG modifier done;
+	[VHGctrldheld] = 1; [VHGdevaccess] = 1; => VHG preferences open; end;
+    "VHG modifier done"
 	end;
 
 "VHG landing selector input"
@@ -3995,8 +4201,16 @@
 	A = [VHGbrowsevalid]; ? A = 0 -> VHG browse unavailable;
 	[VHGdev] = 6; [VHGascii] = 0; end;
     "VHG browse unavailable"
-	[VHGdev] = 0; [VHGascii] = 0;
+	=> VHG browse restore;
 	[VHGnoticeptr] = VHGtargetfailedtext; [VHGnoticeframes] = 75;
+	end;
+
+"VHG browse restore"
+	A = [VHGbrowseorigin]; [VHGbrowseorigin] = 0; [VHGdev] = 0; [VHGfcsopen] = 0; [VHGascii] = 0;
+	? A = VHGBROWSEFCS -> VHG browse restore FCS;
+	[VHGdev] = 4; end;
+    "VHG browse restore FCS"
+	[VHGfcsopen] = 1;
 	end;
 
 "VHG browse seek"
@@ -4109,7 +4323,7 @@
     "VHG onboard select devices"
 	[VHGdev] = 1; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGascii] = 0; -> VHG onboard select done;
     "VHG onboard select prefs"
-	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 1; [VHGascii] = 0;
+	[VHGdevaccess] = 0; [VHGascii] = 0; => VHG preferences open;
 	-> VHG onboard select done;
     "VHG onboard select off"
 	[VHGdev] = 0; [VHGfcsopen] = 0; [VHGprefs] = 0; [VHGascii] = 0; -> VHG onboard select done;
@@ -4199,44 +4413,55 @@
 	[VHGresetcount] = 150; [VHGnoticeptr] = VHGresetdashtext; [VHGnoticeframes] = 55;
 	end;
 
-"VHG mouse look"
+"VHG hosted mouse look"
 	( Right-drag gives the windowed port a conventional mouse-look without
 	  stealing ordinary pointer motion from iGUI chrome or the GAME menu.
 	  Convert host pixels through the current aspect-fit dimensions so the
 	  sensitivity stays stable when the window is resized. )
-	A = [Client Owns Mouse Pointer]; ? A = NO -> VHG mouse look release;
-	A = [VHGconsole]; ? A != 0 -> VHG mouse look release;
-	A = [VHGdev]; ? A != 0 -> VHG mouse look release;
-	A = [VHGinfo]; ? A != 0 -> VHG mouse look release;
-	A = [VHGhelpshow]; ? A != 0 -> VHG mouse look release;
-	A = [VHGlifter]; ? A != 0 -> VHG mouse look release;
-	A = [VHGUIdw]; ? A <= 0 -> VHG mouse look release;
-	A = [VHGUIdh]; ? A <= 0 -> VHG mouse look release;
-	A = [Pointer X Coordinate]; ? A < [VHGUIleft] -> VHG mouse look release;
-	C = [VHGUIleft]; C + [VHGUIdw]; ? A '>= C -> VHG mouse look release;
-	A = [Pointer Y Coordinate]; ? A < [VHGUItop] -> VHG mouse look release;
-	C = [VHGUItop]; C + [VHGUIdh]; ? A '>= C -> VHG mouse look release;
-	A = [Pointer Status]; ? A - PD RIGHT BUTTON DOWN -> VHG mouse look release;
-	A = [VHGmouseheld]; ? A != 0 -> VHG mouse look drag;
+	A = [Client Owns Mouse Pointer]; ? A = NO -> VHG hosted mouse look release;
+	A = [VHGconsole]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGdev]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGfcsopen]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGprefs]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGinfo]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGgraphics]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGmovieview]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGhelpshow]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGabout]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGlandingselect]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGlifter]; ? A != 0 -> VHG hosted mouse look release;
+	A = [VHGmouselook]; ? A = 0 -> VHG hosted mouse look release;
+	A = [VHGUIdw]; ? A <= 0 -> VHG hosted mouse look release;
+	A = [VHGUIdh]; ? A <= 0 -> VHG hosted mouse look release;
+	A = [Pointer X Coordinate]; ? A < [VHGUIleft] -> VHG hosted mouse look release;
+	C = [VHGUIleft]; C + [VHGUIdw]; ? A '>= C -> VHG hosted mouse look release;
+	A = [Pointer Y Coordinate]; ? A < [VHGUItop] -> VHG hosted mouse look release;
+	C = [VHGUItop]; C + [VHGUIdh]; ? A '>= C -> VHG hosted mouse look release;
+	A = [Pointer Status]; ? A - PD RIGHT BUTTON DOWN -> VHG hosted mouse look release;
+	A = [VHGmouseheld]; ? A != 0 -> VHG hosted mouse look drag;
 	[VHGmouseheld] = 1; [VHGmousex] = [Pointer X Coordinate];
 	[VHGmousey] = [Pointer Y Coordinate]; end;
-    "VHG mouse look drag"
+    "VHG hosted mouse look drag"
 	A = [Pointer X Coordinate]; C = A; C - [VHGmousex]; [VHGmousedx] = C; [VHGmousex] = A;
 	A = [Pointer Y Coordinate]; C = A; C - [VHGmousey]; [VHGmousedy] = C; [VHGmousey] = A;
 	A = [VHGmousedx]; A * 320; A / [VHGUIdw]; A / 3;
 	C = [VHGbeta]; C - A; [VHGbeta] = C;
 	A = [VHGmousedy]; A * 200; A / [VHGUIdh]; A / 4;
-	C = [VHGalpha]; C + A; [VHGalpha] = C;
+	C = [VHGmouselook]; ? C = 2 -> VHG hosted mouse look inverted Y;
+	C = [VHGalpha]; C + A; [VHGalpha] = C; -> VHG hosted mouse look alpha ready;
+    "VHG hosted mouse look inverted Y"
+	C = [VHGalpha]; C - A; [VHGalpha] = C;
+    "VHG hosted mouse look alpha ready"
 	A = [VHGalpha]; ? A <= 44 -> VHG mouse alpha high; [VHGalpha] = 44;
     "VHG mouse alpha high"
 	A = [VHGalpha]; ? A >= VHGN44 -> VHG mouse alpha low; [VHGalpha] = VHGN44;
     "VHG mouse alpha low"
 	A = [VHGbeta]; ? A <= 180 -> VHG mouse beta high; A - 360; [VHGbeta] = A;
     "VHG mouse beta high"
-	A = [VHGbeta]; ? A >= VHGN180 -> VHG mouse look done; A + 360; [VHGbeta] = A;
-    "VHG mouse look done"
+	A = [VHGbeta]; ? A >= VHGN180 -> VHG hosted mouse look done; A + 360; [VHGbeta] = A;
+    "VHG hosted mouse look done"
 	end;
-    "VHG mouse look release"
+    "VHG hosted mouse look release"
 	[VHGmouseheld] = 0;
 	end;
 
@@ -4812,6 +5037,32 @@
     "VHG capsule trace complete"
 	[VHGcapsuletraceactive] = 0;
     "VHG capsule trace done"
+	end;
+
+"VHG control trace"
+	A = [VHGsentinelcontroltrace]; ? A = 0 -> VHG control trace done;
+	[VHGcontroltracecount]+;
+	[vhgcontrolstate plus 0] = 56484354h; [vhgcontrolstate plus 1] = 1;
+	[vhgcontrolstate plus 2] = [VHGcontroltracecount];
+	[vhgcontrolstate plus 3] = [VHGesc]; [vhgcontrolstate plus 4] = [VHGgameescheld];
+	[vhgcontrolstate plus 5] = [VHGprefs]; [vhgcontrolstate plus 6] = [VHGdev];
+	[vhgcontrolstate plus 7] = [VHGbrowsevalid]; [vhgcontrolstate plus 8] = [VHGbrowseorigin];
+	[vhgcontrolstate plus 9] = [VHGfcsopen]; [vhgcontrolstate plus 10] = [VHGroofspeed];
+	[vhgcontrolstate plus 11] = [VHGmouselook]; [vhgcontrolstate plus 12] = [VHGx];
+	[vhgcontrolstate plus 13] = [VHGy]; [vhgcontrolstate plus 14] = [VHGz];
+	[vhgcontrolstate plus 15] = [VHGalpha]; [vhgcontrolstate plus 16] = [VHGbeta];
+	[vhgcontrolstate plus 17] = [VHGlandingselect]; [vhgcontrolstate plus 18] = [VHGlandpending];
+	[vhgcontrolstate plus 19] = [VHGlandinglon]; [vhgcontrolstate plus 20] = [VHGlandinglat];
+	[vhgcontrolstate plus 21] = [VHPoutview]; [vhgcontrolstate plus 22] = [VHGfcs9class];
+	[vhgcontrolstate plus 23] = [VHGctrlused]; [vhgcontrolstate plus 24] = [VHGmode];
+	[vhgcontrolstate plus 25] = [VHGascii];
+	A = [VHGcontroltracecount]; A - 1; [VHGcontroltraceindex] = A; A * 104;
+	[File Name] = vhgcontrolstatename; [File Position] = A; [File Command] = WRITE;
+	[Block Pointer] = vhgcontrolstate; [Block Size] = 104; isocall;
+	A = [VHGcontroltracecount]; A * 104;
+	[File Name] = vhgcontrolstatename; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = A; isocall;
+    "VHG control trace done"
 	end;
 
 "VHG lift move"
@@ -5506,7 +5757,7 @@
 	=> VHG SL output hit;
 	[VHGslphase] = 0; [VHGslrecno]+; -> VHG SL advance loop;
     "VHG SL ranged complete"
-	[VHGslactive] = 0; [VHGslphase] = 0; [VHGslcancelheld] = 1;
+	[VHGslactive] = 0; [VHGslphase] = 0;
 	[VHGnoticeptr] = VHGslcompletetext; [VHGnoticeframes] = 75;
 	A = [VHGslleast]; ? A = 0 -> VHG SL ranged no stars;
 	[VHPoutptr] = VHGwherebar; => VH GOES output line;
@@ -5518,7 +5769,7 @@
 
 "VHG SL cancel"
 	A = [VHGslactive]; ? A = 0 -> VHG SL cancel done;
-	[VHGslactive] = 0; [VHGslphase] = 0; [VHGslcancelheld] = 1;
+	[VHGslactive] = 0; [VHGslphase] = 0;
 	[VHPoutptr] = VHGwherebar; => VH GOES output line;
 	[VHPoutptr] = VHGslinterrupted; => VH GOES output line;
 	[VHGnoticeptr] = VHGslinterrupted; [VHGnoticeframes] = 75;
@@ -5708,14 +5959,14 @@
     "VHG DL scan hit"
 	=> VHG DL output tree;
     "VHG DL finish"
-	[VHGdlactive] = 0; [VHGslcancelheld] = 1;
+	[VHGdlactive] = 0;
 	[VHGnoticeptr] = VHGdlcompletetext; [VHGnoticeframes] = 75;
     "VHG DL advance done"
 	end;
 
 "VHG DL cancel"
 	A = [VHGdlactive]; ? A = 0 -> VHG DL cancel done;
-	[VHGdlactive] = 0; [VHGslcancelheld] = 1;
+	[VHGdlactive] = 0;
 	[VHPoutptr] = VHGwherebar; => VH GOES output line;
 	[VHPoutptr] = VHGslinterrupted; => VH GOES output line;
 	[VHGnoticeptr] = VHGslinterrupted; [VHGnoticeframes] = 75;
@@ -8756,7 +9007,7 @@
 	A = VHGfcsmlocal;
     "VHG onboard prepare FCS local"
 	A + 2; [VHPoncmd2] = A;
-	A = VHGfcsmcapsule; A + 2; [VHPoncmd3] = A;
+	=> VHG FCS row9 label; A + 2; [VHPoncmd3] = A;
 	=> VHG onboard FCS information;
 	[VHPoninfo0] = VHGonboardrow0; [VHPoninfo1] = VHGonboardrow1;
 	[VHPoninfo2] = VHGonboardrow2; -> VHG onboard prepare done;
@@ -9006,7 +9257,7 @@
 	[VHGinfoline] = VHGfcsmlocal;
     "VHG FCS menu local selected"
 	=> VHG info draw line;
-	[VHGinfoline] = VHGfcsmcapsule; => VHG info draw line;
+	=> VHG FCS row9 label; [VHGinfoline] = A; => VHG info draw line;
 	[VHGinfoy] = 176; [VHGinfoline] = VHGfcsmhint; => VHG info draw line;
     "VHG FCS menu overlay done"
 	end;
@@ -10486,6 +10737,61 @@
 	[VHGnoticeptr] = VHGsnapshotlimittext; [VHGnoticeframes] = 75;
 	end;
 
+"VHG FCS row9 classify"
+	( Native fcs_commands case 4, guarded before every target-array access. )
+	[VHGfcs9class] = VHGFCS9ERROR;
+	A = [MgIpreaching]; ? A != 0 -> VHG FCS row9 classify done;
+	A = [VHGlocalactive]; ? A = 0 -> VHG FCS row9 classify done;
+	A = [VHGlocaltarget]; ? A '< 0 -> VHG FCS row9 classify done;
+	? A '>= [nsnob] -> VHG FCS row9 classify done;
+	A = [MgIpreached]; ? A = 0 -> VHG FCS row9 classify clear;
+	A = [VHGlandingselect]; A | [VHGlandpending]; ? A != 0 -> VHG FCS row9 classify cancel;
+	A = [VHGlocaltarget]; E = nsptype; E + A; A = [E];
+	? A = 0 -> VHG FCS row9 classify impossible; ? A = 6 -> VHG FCS row9 classify impossible;
+	? A '>= 9 -> VHG FCS row9 classify impossible;
+	[VHGfcs9class] = VHGFCS9DEPLOY; end;
+    "VHG FCS row9 classify clear"
+	[VHGfcs9class] = VHGFCS9CLEAR; end;
+    "VHG FCS row9 classify cancel"
+	[VHGfcs9class] = VHGFCS9CANCEL; end;
+    "VHG FCS row9 classify impossible"
+	[VHGfcs9class] = VHGFCS9IMPOSSIBLE;
+    "VHG FCS row9 classify done"
+	end;
+
+"VHG FCS row9 label"
+	=> VHG FCS row9 classify; A = VHGfcsm9error; C = [VHGfcs9class];
+	? C = VHGFCS9CLEAR -> VHG FCS row9 label clear;
+	? C = VHGFCS9CANCEL -> VHG FCS row9 label cancel;
+	? C = VHGFCS9DEPLOY -> VHG FCS row9 label deploy;
+	? C = VHGFCS9IMPOSSIBLE -> VHG FCS row9 label impossible; end;
+    "VHG FCS row9 label clear"
+	A = VHGfcsm9clear; end;
+    "VHG FCS row9 label cancel"
+	A = VHGfcsm9cancel; end;
+    "VHG FCS row9 label deploy"
+	A = VHGfcsmcapsule; end;
+    "VHG FCS row9 label impossible"
+	A = VHGfcsm9impossible; end;
+
+"VHG FCS row9 action"
+	=> VHG FCS row9 classify; A = [VHGfcs9class];
+	? A = VHGFCS9CLEAR -> VHG FCS row9 clear;
+	? A = VHGFCS9CANCEL -> VHG FCS row9 cancel;
+	? A = VHGFCS9DEPLOY -> VHG FCS row9 deploy;
+	? A = VHGFCS9IMPOSSIBLE -> VHG FCS row9 impossible;
+	[VHGnoticeptr] = VHGfcserrortext; [VHGnoticeframes] = 55; [VHGascii] = 0; end;
+    "VHG FCS row9 clear"
+	=> VHG local reset; [VHGnoticeptr] = VHGfcscleartext; [VHGnoticeframes] = 55; [VHGascii] = 0; end;
+    "VHG FCS row9 cancel"
+	[VHGlandingselect] = 0; [VHGlandpending] = 0; [VHGlandingview] = 1;
+	[VHGnoticeptr] = VHGlandcanceltext; [VHGnoticeframes] = 55; [VHGascii] = 0; end;
+    "VHG FCS row9 deploy"
+	[VHGfcsopen] = 0; [VHGascii] = 0; => VHG landing selector start; end;
+    "VHG FCS row9 impossible"
+	[VHGnoticeptr] = VHGlandfailtext; [VHGnoticeframes] = 55; [VHGascii] = 0;
+	end;
+
 "VHG FCS menu key"
 	( Original top-level key 5 selects fcs(); keys 6..9 dispatch its four
 	  commands. The physical-key bridge has already normalized these into
@@ -10506,7 +10812,7 @@
 	-> VHG FCS menu key done;
     "VHG FCS remote action"
 	A = [MgStspeed]; ? A != 0 -> VHG FCS conflict;
-	[VHGfcsopen] = 0; [VHGascii] = 0; => VHG browse open;
+	[VHGbrowseorigin] = VHGBROWSEFCS; [VHGfcsopen] = 0; [VHGascii] = 0; => VHG browse open;
 	-> VHG FCS menu key done;
     "VHG FCS flight action"
 	A = [MgStspeed]; ? A != 0 -> VHG FCS flight stop;
@@ -10536,8 +10842,7 @@
 	=> VHG local reset; [VHGfcsopen] = 0; [VHGnoticeptr] = VHGlocalselecttext;
 	[VHGnoticeframes] = 75; [VHGascii] = 0; -> VHG FCS menu key done;
     "VHG FCS capsule action"
-	( Re-enter the existing source-shaped L path after closing the menu. )
-	[VHGfcsopen] = 0; [VHGascii] = 76; -> VHG FCS menu key done;
+	=> VHG FCS row9 action; -> VHG FCS menu key done;
     "VHG FCS conflict"
 	[VHGnoticeptr] = VHGflightconflicttext; [VHGnoticeframes] = 55; [VHGascii] = 0;
 	-> VHG FCS menu key done;
@@ -10713,7 +11018,7 @@
 	[VHGlabelresult] = 5; [VHGnoticeptr] = VHGlabelconflicttext; [VHGnoticeframes] = 50; [VHGascii] = 0;
 	-> VHG device key done;
     "VHG device next target"
-	=> VHG browse open; -> VHG device key done;
+	[VHGbrowseorigin] = VHGBROWSECART; => VHG browse open; -> VHG device key done;
     "VHG device manual target"
 	[VHGprefillsrc] = VHGprefillmanual; [VHGprefillcount] = 4; => VHG console prefill;
 	-> VHG device key done;
@@ -10741,9 +11046,9 @@
     "VHG device browser select"
 	A = [VHGbrowsevalid]; ? A = 0 -> VHG device key done;
 	[VHTtx] = [VHGbrowsex]; [VHTty] = [VHGbrowsey]; [VHTtz] = [VHGbrowsez];
-	=> VHG activate target; [VHGdev] = 0; [VHGascii] = 0; -> VHG device key done;
+	=> VHG activate target; [VHGbrowseorigin] = 0; [VHGdev] = 0; [VHGascii] = 0; -> VHG device key done;
     "VHG device browser back"
-	[VHGdev] = 4; [VHGascii] = 0; -> VHG device key done;
+	=> VHG browse restore; -> VHG device key done;
     "VHG device toggle"
 	A = [VHGdev]; ? A = 0 -> VHG device open; ? A = 1 -> VHG device close;
 	[VHGdev] = 1; -> VHG device key done;
@@ -11511,7 +11816,7 @@
 	[vhglabelstate plus 4] = [VHPtelemetryclock]; A = [VHPtelemetryclock]; A % 32; A '* 2;
 	C = 127; C - A; [vhglabelstate plus 5] = C;
 	[vhglabelstate plus 6] = [VHGlabelresult];
-	[vhglabelstate plus 7] = [VHGlabelescheld];
+	[vhglabelstate plus 7] = [VHGgameescheld];
 	[File Name] = vhglabelname; [File Position] = 0; [File Command] = WRITE;
 	[Block Pointer] = vhglabelstate; [Block Size] = 32; isocall;
 	[File Name] = vhglabelname; [File Position] = 0; [File Command] = SET SIZE; [File Size] = 32; isocall;

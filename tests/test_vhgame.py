@@ -63,6 +63,7 @@ ORIGINAL_INBOX = REFERENCE_ROOT / "INBOX.CPP"
 ORIGINAL_HELP = REFERENCE_ROOT.parent / "modules" / "N_Help_3.asm"
 ORIGINAL_REPAIR = REFERENCE_ROOT.parent / "modules" / "REPAIR.EXE"
 WINDOWS_HIDDEN_PROCESS = ROOT / "tools" / "windows_hidden_process.py"
+CAPTURE_SCRIPT = ROOT / "tools" / "capture_noctis_scenes.ps1"
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -437,6 +438,128 @@ def lift_ascent_route(
     return trace
 
 
+def checkpoint_preferences_word(
+    autoscreen: int,
+    reverse: int,
+    menus_always_on: int,
+    depolarize: int,
+    roofspeed: int,
+    mouselook: int,
+) -> int:
+    """Pack v18 word 64 without changing the established preference bits."""
+    return (
+        autoscreen
+        | reverse << 1
+        | menus_always_on << 2
+        | depolarize << 3
+        | roofspeed << 4
+        | mouselook << 5
+    )
+
+
+def checkpoint_preferences(
+    version: int, word: int
+) -> tuple[int, int, int, int, int, int] | None:
+    """Model version-specific validation and migration of checkpoint word 64."""
+    if word < 0:
+        return None
+    if version in (15, 16, 17):
+        if word > 15:
+            return None
+        roofspeed, mouselook = 0, 1
+    elif version == 18:
+        if word & ~127 or (word >> 5) & 3 == 3:
+            return None
+        roofspeed, mouselook = (word >> 4) & 1, (word >> 5) & 3
+    else:
+        return None
+    return (
+        word & 1,
+        (word >> 1) & 1,
+        (word >> 2) & 1,
+        (word >> 3) & 1,
+        roofspeed,
+        mouselook,
+    )
+
+
+def checkpoint_drive(version: int, word66: int, approach_reached: int) -> int:
+    """Model the v16 reconstruction and exact v17/v18 drive-bit contract."""
+    if version >= 17:
+        return (word66 >> 23) & 1
+    return 1 - approach_reached
+
+
+ESCAPE_OWNERS = (
+    "label", "sl", "dl", "landing_selector", "landing_request", "goes",
+    "browser", "fcs", "device", "preferences", "data", "graphics",
+    "movie", "help", "about",
+)
+
+
+def gameplay_escape_step(
+    held: bool, pressed: bool, active: set[str]
+) -> tuple[bool, str | None]:
+    """Model the one-edge, modal-first gameplay Escape dispatcher."""
+    if not pressed:
+        return False, None
+    if held:
+        return True, None
+    for owner in ESCAPE_OWNERS:
+        if owner in active:
+            return True, owner
+    if active.intersection({"drive", "approach", "lift"}):
+        return True, "blocked"
+    return True, "quit"
+
+
+def fcs_row9_class(
+    *, target_valid: bool, approaching: bool, reached: bool,
+    landing_active: bool, body_type: int,
+) -> str:
+    """Model guarded NOCTIS fcs_commands case 4 classification."""
+    if approaching or not target_valid:
+        return "error"
+    if not reached:
+        return "clear"
+    if landing_active:
+        return "cancel"
+    if body_type in (0, 6) or body_type >= 9:
+        return "impossible"
+    return "deploy"
+
+
+def ctrl_edge(value: int, held: bool, pressed: bool, modulo: int = 2) -> tuple[int, bool, bool]:
+    """Return value, next latch, and consumption for a toggle chord."""
+    if not pressed:
+        return value, False, False
+    return ((value + 1) % modulo if not held else value), True, True
+
+
+def landing_ctrl_step(lon: int, lat: int, key: str) -> tuple[int, int]:
+    """Model accelerated native enhanced-key landing movement."""
+    if key == "left":
+        lon = (lon - 3) % 360
+    elif key == "right":
+        lon = (lon + 3) % 360
+    elif key == "up":
+        lat = max(1, lat - 3)
+    elif key == "down":
+        lat = min(119, lat + 3)
+    return lon, lat
+
+
+def goes_character(value: int) -> int | None:
+    """Model GOES quote normalization, uppercase folding, and filtering."""
+    if value == 34:
+        value = 39
+    if 97 <= value <= 122:
+        value -= 32
+    if not 32 <= value <= 90 or value in (36, 38, 60, 62):
+        return None
+    return value
+
+
 def main() -> int:
     game = GAME.read_text(encoding="utf-8")
     ground = GROUND.read_text(encoding="utf-8")
@@ -477,8 +600,204 @@ def main() -> int:
     original_outbox = ORIGINAL_OUTBOX.read_text(encoding="latin-1")
     original_inbox = ORIGINAL_INBOX.read_text(encoding="latin-1")
     original_help = ORIGINAL_HELP.read_text(encoding="latin-1")
+    capture_script = CAPTURE_SCRIPT.read_text(encoding="utf-8")
     original_repair = ORIGINAL_REPAIR.read_bytes()
     windows_hidden_process = WINDOWS_HIDDEN_PROCESS.read_text(encoding="utf-8")
+
+    held, owner = gameplay_escape_step(False, True, {"preferences", "help"})
+    held_again, repeated = gameplay_escape_step(held, True, {"help"})
+    released, release_owner = gameplay_escape_step(held_again, False, {"help"})
+    blocked_held, blocked = gameplay_escape_step(False, True, {"drive"})
+    still_held, delayed = gameplay_escape_step(blocked_held, True, set())
+    fresh_held, fresh = gameplay_escape_step(False, True, set())
+    check(
+        (owner, repeated, released, release_owner, blocked, delayed, fresh)
+        == ("preferences", None, False, None, "blocked", None, "quit")
+        and held and held_again and blocked_held and still_held and fresh_held
+        and all(token in game for token in (
+            '"VHG gameplay escape"', '"VHG gameplay escape SL"',
+            '"VHG gameplay escape landing"', '"VHG gameplay escape GOES"',
+            '"VHG gameplay escape browser"', '"VHG gameplay escape safety"',
+            'A = [VHGgameescheld]; ? A != 0 -> VHG input done;',
+            'A = [VHGbrowseorigin]; [VHGbrowseorigin] = 0;',
+            '? A = VHGBROWSEFCS -> VHG browse restore FCS;',
+        )),
+        "one gameplay Escape edge closes one modal, blocks safely, and restores browser callers",
+    )
+    roof, roof_latch, roof_used = ctrl_edge(0, False, True)
+    roof_held, roof_latch_held, roof_used_held = ctrl_edge(roof, roof_latch, True)
+    roof_released, roof_latch_released, roof_used_released = ctrl_edge(roof_held, roof_latch_held, False)
+    mouse_modes = []
+    mouse, latch = 0, False
+    for _ in range(3):
+        mouse, latch, used = ctrl_edge(mouse, latch, True, 3)
+        mouse_modes.append((mouse, used))
+        mouse, latch, _ = ctrl_edge(mouse, latch, False, 3)
+    check(
+        (roof, roof_held, roof_released) == (1, 1, 1)
+        and (roof_latch, roof_latch_held, roof_latch_released)
+        == (True, True, False)
+        and (roof_used, roof_used_held, roof_used_released)
+        == (True, True, False)
+        and mouse_modes == [(1, True), (2, True), (0, True)]
+        and landing_ctrl_step(1, 2, "left") == (358, 2)
+        and landing_ctrl_step(358, 118, "right") == (1, 118)
+        and landing_ctrl_step(0, 2, "up") == (0, 1)
+        and landing_ctrl_step(0, 118, "down") == (0, 119)
+        and all(token in game for token in (
+            '=> VHG modifier input; A = [VHGctrlused]; ? A != 0 -> VHG input done;',
+            'A = [VHGlandinglon]; A - 3;', 'A = [VHGlandinglat]; A + 3;',
+            '[VHPoutview] = 0;', 'A = [VHPoutrows]; A - 7;',
+            'A = 1; A - [VHGroofspeed]; [VHGroofspeed] = A;',
+            'A = [VHGmouselook]; A + 1;', '[VHGdevaccess] = 1; => VHG preferences open;',
+            'A = [VHGroofspeed]; ? A = 0 -> VHG present timing wait;',
+            'A = [VHGonroof]; ? A != 0 -> VHG present timing done;',
+            'A = [VHGmouselook]; ? A = 0 -> VHG hosted mouse look release;',
+            'C = [VHGmouselook]; ? C = 2 -> VHG hosted mouse look inverted Y;',
+        )),
+        "Ctrl aliases consume held chords, accelerate owned contexts, and preserve ordinary keys",
+    )
+    fcs_cases = {
+        fcs_row9_class(target_valid=False, approaching=False, reached=False, landing_active=False, body_type=3),
+        fcs_row9_class(target_valid=True, approaching=True, reached=False, landing_active=False, body_type=3),
+        fcs_row9_class(target_valid=True, approaching=False, reached=False, landing_active=False, body_type=3),
+        fcs_row9_class(target_valid=True, approaching=False, reached=True, landing_active=True, body_type=3),
+        fcs_row9_class(target_valid=True, approaching=False, reached=True, landing_active=False, body_type=0),
+        fcs_row9_class(target_valid=True, approaching=False, reached=True, landing_active=False, body_type=6),
+        fcs_row9_class(target_valid=True, approaching=False, reached=True, landing_active=False, body_type=9),
+        fcs_row9_class(target_valid=True, approaching=False, reached=True, landing_active=False, body_type=3),
+    }
+    check(
+        fcs_cases == {"error", "clear", "cancel", "impossible", "deploy"}
+        and all(token in original for token in (
+            'case 4: if (!ip_reaching&&ip_targetted!=-1)',
+            'if (!ip_reached)', 'landing_point = 1 - landing_point;',
+            'nearstar_p_type[ip_targetted] == 0',
+            'nearstar_p_type[ip_targetted] == 6',
+            'nearstar_p_type[ip_targetted] >= 9',
+        )),
+        "FCS row 9 classifies every guarded native transition without invalid target access",
+    )
+    check(
+        goes_character(34) == 39
+        and goes_character(39) == 39
+        and goes_character(ord("a")) == ord("A")
+        and goes_character(36) is None
+        and all(token in panels for token in (
+            '? A = 34 -> VHP key quote;', 'A = 39; [VHPkey] = A;',
+        ))
+        and all(token in game for token in (
+            'A = [KEY HOME]; ? A = OFF -> VHG console Home released;',
+            '[VHGhomeheld] = 1; [VHGascii] = 0; => VH GOES clear;',
+        )),
+        "GOES normalizes quotes and gives command-screen Home one clear edge",
+    )
+
+    physical_pages = {
+        "fcs": section(game, '"VHG onboard prepare FCS"', '"VHG onboard prepare root"'),
+        "root": section(game, '"VHG onboard prepare root"', '"VHG onboard prepare nav"'),
+        "navigation": section(game, '"VHG onboard prepare nav"', '"VHG onboard prepare misc"'),
+        "miscellaneous": section(game, '"VHG onboard prepare misc"', '"VHG onboard prepare cart"'),
+        "cartography": section(game, '"VHG onboard prepare cart"', '"VHG onboard prepare emergency"'),
+        "emergency": section(game, '"VHG onboard prepare emergency"', '"VHG onboard prepare browser"'),
+        "browser": section(game, '"VHG onboard prepare browser"', '"VHG onboard prepare done"'),
+        "preferences": section(game, '"VHG onboard prepare"', '"VHG onboard prepare devices"'),
+    }
+    accessible_pages = {
+        "fcs": section(game, '"VHG FCS menu overlay"', '"VHG preferences overlay"'),
+        "root": section(game, '"VHG device root overlay"', '"VHG device navigation overlay"'),
+        "navigation": section(game, '"VHG device navigation overlay"', '"VHG device miscellaneous overlay"'),
+        "miscellaneous": section(game, '"VHG device miscellaneous overlay"', '"VHG device cartography overlay"'),
+        "cartography": section(game, '"VHG device cartography overlay"', '"VHG device emergency overlay"'),
+        "emergency": section(game, '"VHG device emergency overlay"', '"VHG device target browser overlay"'),
+        "browser": section(game, '"VHG device target browser overlay"', '"VHG device overlay done"'),
+        "preferences": section(game, '"VHG preferences overlay"', '"VHG browse format rows"'),
+    }
+    dispatch_pages = {
+        "fcs": section(game, '"VHG FCS menu key"', '"VHG preference key"'),
+        "root": section(game, '"VHG device root key"', '"VHG device open navigation"'),
+        "navigation": section(game, '"VHG device navigation key"', '"VHG device miscellaneous key"'),
+        "miscellaneous": section(game, '"VHG device miscellaneous key"', '"VHG device cartography key"'),
+        "cartography": section(game, '"VHG device cartography key"', '"VHG device emergency key"'),
+        "emergency": section(game, '"VHG device emergency key"', '"VHG device browser key"'),
+        "browser": section(game, '"VHG device browser key"', '"VHG device toggle"'),
+        "preferences": section(game, '"VHG preference key"', '"VHG hull cache apply"'),
+    }
+    control_rows = (
+        ("fcs", 6, "VHGfcsmremote", "VHGfcsmremote", "VHG FCS remote action"),
+        ("fcs", 7, "VHGfcsmstart", "VHGfcsmstart", "VHG FCS flight action"),
+        ("fcs", 8, "VHGfcsmlocal", "VHGfcsmlocal", "VHG FCS local action"),
+        ("fcs", 9, "=> VHG FCS row9 label", "=> VHG FCS row9 label", "=> VHG FCS row9 action"),
+        ("root", 6, "VHGsrcdevnav", "VHGdevnav", "VHG device open navigation"),
+        ("root", 7, "VHGsrcdevmisc", "VHGdevmisc", "VHG device open miscellaneous"),
+        ("root", 8, "VHGsrcdevcart", "VHGdevcart", "VHG device open cartography"),
+        ("root", 9, "VHGsrcdevemergency", "VHGdevemergency", "VHG device open emergency"),
+        ("navigation", 6, "VHGsrcampoff", "VHGnavampoff", "VHG device amplifier"),
+        ("navigation", 7, "VHGsrcfinderoff", "VHGnavfinderoff", "VHG device finder"),
+        ("navigation", 8, "VHGsrctrackoff", "VHGnavtrackoff", "VHG device tracking"),
+        ("navigation", 9, "VHGsrcradoff", "VHGnavradoff", "VHG device radiation"),
+        ("miscellaneous", 6, "VHGsrclightoff", "VHGdevlightoff", "VHG device light"),
+        ("miscellaneous", 7, "VHGsrcremote", "VHGdevremote", "VHG device remote"),
+        ("miscellaneous", 8, "VHGsrclocal", "VHGdevlocal", "VHG device local"),
+        ("miscellaneous", 9, "VHGsrcenvironment", "VHGdevenvironment", "[VHGinfo] = 3"),
+        ("cartography", 6, "VHGsrccartstar", "VHGcartstar", "VHG device name star"),
+        ("cartography", 7, "VHGsrccartplanet", "VHGcartplanet", "VHG device name planet"),
+        ("cartography", 8, "VHGsrccarttargets", "VHGcartnext", "VHG device next target"),
+        ("cartography", 9, "VHGsrccartparsis", "VHGcartmanual", "VHG device manual target"),
+        ("emergency", 6, "VHGsrcreset", "VHGemergencyreset", "VHG device emergency reset"),
+        ("emergency", 7, "VHGsrchelp", "VHGemergencyhelp", "VHG device emergency help"),
+        ("emergency", 8, "VHGsrclithiumoff", "VHGemergencylithiumoff", "VHG device emergency collector"),
+        ("emergency", 9, "VHGsrcclear", "VHGemergencyclear", "VHG device emergency clear"),
+        ("browser", 6, "VHGbrowseprev", "VHGbrowseprev", "VHG device browser previous"),
+        ("browser", 7, "VHGbrowsenext", "VHGbrowsenext", "VHG device browser next"),
+        ("browser", 8, "VHGbrowseselect", "VHGbrowseselect", "VHG device browser select"),
+        ("browser", 9, "VHGbrowseback", "VHGbrowseback", "VHG device browser back"),
+        ("preferences", 6, "VHGprefautooff", "VHGprefmautooff", "VHG preference auto"),
+        ("preferences", 7, "VHGprefnormal", "VHGprefmnormal", "VHG preference reverse"),
+        ("preferences", 8, "VHGprefhidden", "VHGprefmhidden", "VHG preference menus"),
+        ("preferences", 9, "VHGprefdepolarize", "VHGprefmdepolarize", "VHG preference hull"),
+    )
+    missing_rows = [
+        f"{page}:{key}"
+        for page, key, physical, accessible, action in control_rows
+        if physical not in physical_pages[page]
+        or accessible not in accessible_pages[page]
+        or action not in dispatch_pages[page]
+    ]
+    menu_mouse = section(game, '"VHG menu mouse"', '"VHG onboard select"')
+    check(
+        len(control_rows) == 32
+        and not missing_rows
+        and all({key for candidate_page, key, *_ in control_rows if candidate_page == page} == {6, 7, 8, 9}
+                for page in physical_pages)
+        and all(token in menu_mouse for token in (
+            'A = [VHGmenuy]; ? A < 30 -> VHG menu mouse back row;',
+            '? A >= 118 -> VHG menu mouse back row; A - 30; A \'/ 22;',
+            'A = C; A + 54; [VHGmenukey] = A;',
+            'A = [VHGmenuy]; ? A < 96 -> VHG menu mouse button;',
+            '? A >= 184 -> VHG menu mouse button; A - 96; A \'/ 22;',
+        ))
+        and all(token in game for token in (
+            '[VHGgazecontrol] = A;', '[VHGgazecommand] = A;',
+            '[VHPoncontrol] = [VHGgazecontrol]; [VHPoncommand] = [VHGgazecommand];',
+        )),
+        "all 32 onboard rows share complete physical, accessibility, geometry, and action contracts",
+    )
+    check(
+        all(token in game for token in (
+            '`controltrace` appends one versioned state record after each input pass.',
+            '=> VHG input; => VHG control trace;',
+            '[vhgcontrolstate plus 0] = 56484354h; [vhgcontrolstate plus 1] = 1;',
+            '[vhgcontrolstate plus 2] = [VHGcontroltracecount];',
+            '[vhgcontrolstate plus 3] = [VHGesc]; [vhgcontrolstate plus 4] = [VHGgameescheld];',
+            '[vhgcontrolstate plus 8] = [VHGbrowseorigin];',
+            '[vhgcontrolstate plus 10] = [VHGroofspeed];',
+            '[vhgcontrolstate plus 11] = [VHGmouselook];',
+            '[vhgcontrolstate plus 22] = [VHGfcs9class];',
+            '[Block Pointer] = vhgcontrolstate; [Block Size] = 104; isocall;',
+        )),
+        "controltrace is inert by default and publishes complete versioned post-input records",
+    )
 
     binary64_wrappers = (
         ("add", "sub", "+:", "FAdd"),
@@ -712,10 +1031,10 @@ def main() -> int:
         and "p_Forward (step);" in original,
         "lift camera and source forward push share one player heading",
     )
-    mouse_look = section(game, '"VHG mouse look"', '"VHG return key"')
+    mouse_look = section(game, '"VHG hosted mouse look"', '"VHG return key"')
     menu_mouse = section(game, '"VHG menu mouse"', '"VHG systems reset action"')
     check(
-        "=> VHG mouse look;" in game
+        "=> VHG hosted mouse look;" in game
         and all(token in mouse_look for token in (
             "[Client Owns Mouse Pointer]", "PD RIGHT BUTTON DOWN",
             "[VHGconsole]", "[VHGhelpshow]", "[VHGlifter]",
@@ -3463,13 +3782,19 @@ def main() -> int:
         < game.index("=> VHG menu mouse;")
         < game.index("=> VHG device key;")
         and all(token in game for token in (
-            "VHGlabelescheld = 0;",
-            "A = [VHGlabelescheld]; ? A = 0 -> VHG input escape ready;",
-            "A = [VHGlabelstar]; A | [VHGlabelbody]; ? A = 0 -> VHG input escape;",
-            "[VHGlabelescheld] = 1; => VHG label input; -> VHG input done;",
+            "VHGgameescheld = 0;",
+            "A = [KEY ESCAPE]; ? A = OFF -> VHG input escape released;",
+            "A = [VHGgameescheld]; ? A != 0 -> VHG input done;",
+            "[VHGgameescheld] = 1; [Console Command] = CLEAR CONSOLE BUFFER; isocall;",
+            "=> VHG gameplay escape; -> VHG input done;",
+            "[VHGgameescheld] = 0;",
+            "A = [VHGlabelstar]; A | [VHGlabelbody]; ? A = 0 -> VHG gameplay escape SL;",
+            "[VHGascii] = 0; [VHGlabelstar] = 0; [VHGlabelbody] = 0; => VHCAT refresh; end;",
         ))
-        and game.index("[VHGlabelescheld] = 1; => VHG label input;")
-        < game.index('\n    "VHG input escape"\n')
+        and game.index("A = [KEY ESCAPE]; ? A = OFF -> VHG input escape released;")
+        < game.index("=> VHG return key;")
+        and game.index("=> VHG gameplay escape; -> VHG input done;")
+        < game.index("=> VHG label input; A = [VHGlabelused]")
         and all(token in physical_cart_commands for token in (
             "VHGsrccartstarassign", "VHGsrccartstarremove",
             "VHGsrccartplanetassign", "VHGsrccartplanetremove",
@@ -3610,11 +3935,11 @@ def main() -> int:
             "[VHGfreezeblink] + 8;",
             "C = 127; C - A; [vhglabelstate plus 5] = C;",
             "[vhglabelstate plus 6] = [VHGlabelresult];",
-            "[vhglabelstate plus 7] = [VHGlabelescheld];",
+            "[vhglabelstate plus 7] = [VHGgameescheld];",
             "[Block Pointer] = vhglabelstate; [Block Size] = 32; isocall;",
             "[File Size] = 32; isocall;",
         ))
-        and "=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option;\n\t=> VHG lift trace option; => VHG capsule trace option; => VHG profile option;" in game
+        and "=> VHG capture clock option; => VHG repeat sentinel option; => VHG freeze diagnostic option;\n\t=> VHG lift trace option; => VHG capsule trace option; => VHG control trace option; => VHG profile option;" in game
         and all(token in sentinel_schedule for token in (
             "A = [VHGsent]; ? A = 0 -> VHG sentinel frame ready;",
             "A = [VHGsentinelrepeat]; ? A = 0 -> VHG no sentinel;",
@@ -3887,7 +4212,10 @@ def main() -> int:
             '"VHG help key"', "A = [VHGascii]; ? A = 63 -> VHG help key pressed;",
             "A = [KEY F9]; ? A = OFF -> VHG help key released;", '"VHG help overlay"',
             "[Rectangle Bounds] = vector VHGUIregion;", "[Rectangle Target Layer] = VHGUIframe;",
-            "VHGhelpmenu = { F10:MENU / F1:ORIGINAL-ABOUT };",
+            "VHGhelpmenu = { F10:MENU F1:ABOUT CTRL+D:PREFS };",
+            "VHGhelpmove = { RMB/ARROWS:LOOK WASD:MOVE CTRL+DOWN:MLOOK };",
+            "VHGhelpsave = { F6:SAVE F7:LOAD M/B:SHOT CTRL+S:ROOF };",
+            "VHGhelpview = { F4:FPS F5:60HZ F8:MUSIC I:DATA };",
             "[Text Display Origin] = VHGUIframe;", "[VHGhelpline] = VHGhelpfuel;",
             "[VHGhelpline] = VHGhelpview;", "=> VHG help draw line;",
             "[Rectangle Gradients] = vector Standard Black Gradients;", "[Ink] = FFFFFFh;",
@@ -4210,6 +4538,7 @@ def main() -> int:
         "orbital renderer selects the nearest resident maps with signed distances and the native exterior pose",
     )
     fcs_menu_overlay = section(game, '"VHG FCS menu overlay"', '"VHG browse format rows"')
+    fcs_row9 = section(game, '"VHG FCS row9 classify"', '"VHG FCS menu key"')
     fcs_menu_key = section(game, '"VHG FCS menu key"', '"VHG device key"')
     check(
         "case '5': sys = 1; dev_page = 0; break;" in original
@@ -4218,7 +4547,7 @@ def main() -> int:
         and all(token in fcs_menu_overlay for token in (
             '[VHGinfoline] = VHGfcsmenutitle;', 'VHGfcsmremote',
             'VHGfcsmstart', 'VHGfcsmstop', 'VHGfcsmlocal',
-            'VHGfcsmcancel', 'VHGfcsmrestart', 'VHGfcsmcapsule',
+            'VHGfcsmcancel', 'VHGfcsmrestart', '=> VHG FCS row9 label;',
         ))
         and 'Standard Black Gradients' not in fcs_menu_overlay
         and all(token in fcs_menu_key for token in (
@@ -4229,7 +4558,17 @@ def main() -> int:
             '? A = 57 -> VHG FCS capsule action;',
             '[MgStspeed] = 0;', '[MgStspeed] = 1;',
             '=> VHG browse open;', '=> VHG local start;', '=> VHG local reset;',
-            '[VHGfcsopen] = 0; [VHGascii] = 76;',
+            '=> VHG FCS row9 action;',
+        ))
+        and all(token in fcs_row9 for token in (
+            'VHGFCS9CLEAR', 'VHGFCS9CANCEL', 'VHGFCS9DEPLOY',
+            'VHGFCS9IMPOSSIBLE', 'VHGFCS9ERROR',
+            '? A \'< 0 -> VHG FCS row9 classify done;',
+            "? A '>= [nsnob] -> VHG FCS row9 classify done;",
+            'E = nsptype; E + A; A = [E];',
+            '"VHG FCS row9 label"', 'VHGfcsm9clear', 'VHGfcsm9cancel',
+            'VHGfcsmcapsule', 'VHGfcsm9impossible', 'VHGfcsm9error',
+            '"VHG FCS row9 action"', '=> VHG landing selector start;',
         ))
         and '? A = 53 -> VHG select body 5;' not in game
         and 'VHGhelpnav = { 5:FCS / R:DEVICES / G:GOES };' in game,
@@ -4680,7 +5019,7 @@ def main() -> int:
             "[VHGcmdsilent] = 0; [VHGnoticeptr] = VHGunknowntext; [VHGnoticeframes] = 75; => VHG command;",
         ))
         and all(token in save for token in (
-            "VHSVVERSION = 17;", "[vhsvbuf plus 24] = [VHTtx];",
+            "VHSVVERSION = 18;", "[vhsvbuf plus 24] = [VHTtx];",
             "[VHTtx] = [vhsvbuf plus 24];",
         )),
         "GOES NEXT/STAR retarget real Vimana travel and persist the selected star",
@@ -4813,7 +5152,7 @@ def main() -> int:
             "[VHGslline plus 0] = 42;", "? A < 20 -> VHG SL label copy;",
             '"VHG SL ranged start"', '"VHG SL advance"', "[VHGslbudget] = 65536;",
             '"VHG SL scan candidate"', '"VHG SL output distance"', '"VHG SL cancel"',
-            "[VHGslcancelheld] = 1;", "=> VHG SL advance; => VHG DL advance; => VHG fpu clean;",
+            "[VHGslactive] = 0; [VHGslphase] = 0;", "=> VHG SL advance; => VHG DL advance; => VHG fpu clean;",
         ))
         and "=> VHCAT identity valid;" not in sl_section
         and "? A = 95" not in output_line
@@ -5389,6 +5728,38 @@ def main() -> int:
             "lens_flares_for (cam_x, cam_y, cam_z, -3225, 0, -6150, -5e5, 3, hud_closed, 1, 1, 1);",
         )),
         "depleted ships receive the original reserve from a complete lit rescue fly-by",
+    )
+    normal_preferences = checkpoint_preferences_word(0, 0, 1, 0, 0, 1)
+    check(
+        normal_preferences == 36
+        and checkpoint_preferences(15, 4) == (0, 0, 1, 0, 0, 1)
+        and checkpoint_preferences(16, 15) == (1, 1, 1, 1, 0, 1)
+        and checkpoint_preferences(17, 4) == (0, 0, 1, 0, 0, 1)
+        and checkpoint_preferences(18, normal_preferences) == (0, 0, 1, 0, 0, 1)
+        and checkpoint_preferences(18, checkpoint_preferences_word(1, 1, 0, 1, 1, 2))
+        == (1, 1, 0, 1, 1, 2)
+        and checkpoint_preferences(18, 96) is None
+        and checkpoint_preferences(18, 128) is None
+        and checkpoint_preferences(17, 16) is None
+        and checkpoint_drive(16, 1 << 23, 1) == 0
+        and checkpoint_drive(17, 0, 0) == 0
+        and checkpoint_drive(17, 1 << 23, 1) == 1
+        and checkpoint_drive(18, 0, 0) == 0
+        and checkpoint_drive(18, 1 << 23, 1) == 1
+        and all(token in save for token in (
+            "VHSVVERSION = 18;", "VHSVUNITS = 67;",
+            "? A = 16 -> VHSV load version ok; ? A = 17 -> VHSV load version ok;",
+            "A = [VHGroofspeed]; A '* 16;", "A = [VHGmouselook]; A '* 32;",
+            "[VHGroofspeed] = 0; [VHGmouselook] = 1;",
+            "? A = 3 -> VHSV load done;", "[VHGmouselook] = A;",
+            "A = [vhsvbuf plus 1]; ? A '< 17 -> VHSV load light fields;",
+        ))
+        and all(token in capture_script for token in (
+            "[ValidateSet(18)]", "[int]$CheckpointVersion = 18,",
+            "$u = New-Object 'System.Int32[]' 67", "$u[64] = 36",
+            "$u[66] = 4227135", "$byteCount = 268",
+        )),
+        "v18 preferences preserve v15-v17 defaults, v17 drive bits, and the 67-word fixture",
     )
     check(
         all(token in save for token in (
@@ -6393,7 +6764,7 @@ def main() -> int:
         and all(token in game for token in (
             "[KEY CONTROL]", "[VHGstepv] = VHGNDSTALK;",
             "A = [VHGsurfstep]; A + [VHGstepv]; [VHGsurfstep] = A;",
-            "CTRL:STALK", "RMB/ARROWS:LOOK / WASD / 0-9:CRUISE",
+            "CTRL:STALK", "RMB/ARROWS:LOOK WASD:MOVE CTRL+DOWN:MLOOK",
             "[VHGNDcaptures] = [VHSVcaptures];", "=> VHGND restore captures;",
         )),
         "habitable birds react to speed and support discoverable close stalking/capture",

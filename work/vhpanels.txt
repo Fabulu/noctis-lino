@@ -708,10 +708,13 @@
 	[VHPsubmitted] = 0; A = [VHPkey];
 	? A = 8 -> VHP key backspace;
 	? A = 13 -> VHP key enter;
+	? A = 34 -> VHP key quote;
 	? A < 32 -> VHP key done;
 	? A > 122 -> VHP key done;
 	? A < 97 -> VHP key upper done;
-	A - 32; [VHPkey] = A;
+	A - 32; [VHPkey] = A; -> VHP key upper done;
+    "VHP key quote"
+	A = 39; [VHPkey] = A;
     "VHP key upper done"
 	A = [VHPkey]; ? A > 90 -> VHP key underscore;
 	? A = 36 -> VHP key done; ? A = 38 -> VHP key done;

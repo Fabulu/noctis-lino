@@ -41,8 +41,8 @@ param(
     [ValidateSet(-1, 0, 1)]
     [int]$LensMode = 0,
     [switch]$OpenHud,
-    [ValidateSet(15)]
-    [int]$CheckpointVersion = 15,
+    [ValidateSet(18)]
+    [int]$CheckpointVersion = 18,
     [switch]$Fast,
     [switch]$ReportPerformance,
     [int]$ClockSeconds = 1344638527,
@@ -578,13 +578,13 @@ function New-Checkpoint {
         $u[62] = 0
         $u[63] = 0
     }
-    $u[64] = 4
+    # Preference word: menus always on, roofspeed off, normal hosted mouselook.
+    $u[64] = 36
     $u[65] = if ($Spec.ContainsKey('Nav')) { $Spec.Nav } else { 0 }
-    # Synthetic scenes intentionally use the complete version-15 subset.
-    # Versions 16 and 17 add live transient lighting/reset/drive state that
-    # these fixtures do not author and must not invent. The loader reconstructs
-    # the stable stopped-drive invariant from their completed-approach flag.
-    $byteCount = 264
+    # Complete deterministic v18 lighting/reset/drive state: stopped drive,
+    # inactive fade, no burst/reset, and a fully lit interior level.
+    $u[66] = 4227135
+    $byteCount = 268
     $bytes = New-Object byte[] $byteCount
     [Buffer]::BlockCopy($u, 0, $bytes, 0, $bytes.Length)
     [IO.File]::WriteAllBytes($Path, $bytes)
