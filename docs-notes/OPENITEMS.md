@@ -1428,7 +1428,14 @@ extended radial component. The first 576 native/product palette components
 match. Native/adapted match every index in the 2,025-pixel core; native/product
 match every palette band in that core and the 20,160-pixel upper strip. Class
 10, not distance, explains spoke absence. Whole-page, matched-clock HUD,
-surface/body, and product live-distance claims remain excluded.
+surface/body, and product live-distance claims remain excluded. A registered
+private-desktop Windows gate now grades a fresh shipping capture against the
+exact camera/class/zero-body state, 576 palette components, stable core and
+upper-strip palette bands, isolated stars, and compact beamless corona. The
+2026-09-01 acceptance run passed every semantic contract. The historical
+16,283-index/1,200-band complete-page comparison remains pinned only as
+immutable provenance; the current run's 16,004-index/1,200-band comparison is
+reported informationally and is not graded.
 
 **Surface class-10 class-suppressed-flare checkpoint.** BISTARIAL/SORZ at
 `(5411056,-7441017,-1775473)` adds a second source-class exclusion and the first
