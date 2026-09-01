@@ -1444,8 +1444,15 @@ components, all 572 indices in the half-open `[145,88,171,110]` sun crop, and
 all 29,700 upper-sky palette bands in `[40,10,310,120]`. The authority is
 composite rather than snapshot-atomic: DOSBox-X froze after publishing the BMP,
 so post-snapshot continuity cannot supply native live distance or justify
-whole-page equality; the 9,507 complete-page index and 621 band mismatches remain
-informational.
+whole-page equality; the historical 9,507 complete-page index and 621 band
+mismatches remain informational. A registered private-desktop Windows gate now
+authors the exact body, clock, longitude/latitude, camera, and player pose and
+grades a fresh shipping capture against those semantic contracts. The 2026-09-01
+run retained the exact camera, class/body state, primary vector, open distance
+interval with class-10 suppression, all 768 palette components, all 572 sun-crop
+indices, and all 29,700 upper-sky bands. The generated-system epoch is explicitly
+not graded; it varied while the authored clock and every renderer contract stayed
+fixed.
 
 **Sixteen-case, seven-type automated surface-sun gate, 2026-08-24.** The retained
 sixteen BMP/surface pairs span types 1, 2, 3, 4, 5, 7, and 8 and are immutable

@@ -8,6 +8,7 @@ its spokes.  Whole-page equality is deliberately not a same-state contract.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import math
@@ -61,6 +62,14 @@ NATIVE_PAGE_SHA256 = "2477cfc669cbfd537321c72f262a141eec1b05c59f0b8700f5cc0f409d
 PALETTE_SHA256 = "d8c5ee1c69ab373a2670511c1d020ceb66e19153873abc615270d1a6f27c7e40"
 SUN_CROP = (145, 88, 171, 110)
 UPPER_SKY_CROP = (40, 10, 310, 120)
+SCENE = "quartzclass10"
+PRODUCT_FILES = {
+    "view": ("game-vh-out.bin", 156),
+    "sun": ("game-sun-out.bin", 128),
+    "local": ("game-local-out.bin", 176),
+    "palette": ("game-palette-out.bin", 3072),
+    "page": ("game-page-out.bin", 64000),
+}
 
 
 CURRENT_OFFSETS = {
@@ -122,6 +131,26 @@ def page_crop(page: bytes, box: tuple[int, int, int, int]) -> bytes:
     return b"".join(page[y * 320 + x0:y * 320 + x1] for y in range(y0, y1))
 
 
+def product_file(directory: Path, name: str) -> Path:
+    prefixed = directory / f"{SCENE}-{name}"
+    return prefixed if prefixed.is_file() else directory / name
+
+
+def load_product(directory: Path, check) -> dict[str, bytes] | None:
+    product: dict[str, bytes] = {}
+    for key, (name, size) in PRODUCT_FILES.items():
+        path = product_file(directory, name)
+        try:
+            data = path.read_bytes()
+        except OSError as error:
+            check(False, f"current product {path.name} is readable: {error}")
+            continue
+        check(len(data) == size, f"current product emitted {path.name} at exactly {size} bytes")
+        if len(data) == size:
+            product[key] = data
+    return product if len(product) == len(PRODUCT_FILES) else None
+
+
 def decode_current(data: bytes) -> dict[str, int | float]:
     if len(data) != 385:
         raise AssertionError("expected exact 385-byte NIV+ continuity input")
@@ -132,6 +161,10 @@ def decode_current(data: bytes) -> dict[str, int | float]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--product-directory", type=Path)
+    args = parser.parse_args()
+
     failures: list[str] = []
 
     def check(condition: bool, message: str) -> None:
@@ -156,17 +189,31 @@ def main() -> int:
         print(f"FAIL {len(failures)} class-10 surface-oracle checks")
         return 1
 
+    product = {
+        "view": retained["product-vh.bin"],
+        "sun": retained["product-sun.bin"],
+        "local": retained["product-local.bin"],
+        "palette": retained["product-palette.bin"],
+        "page": retained["product-page.bin"],
+    }
+    if args.product_directory is not None:
+        current_product = load_product(args.product_directory.resolve(), check)
+        if current_product is None:
+            print(f"FAIL {len(failures)} class-10 surface-oracle checks")
+            return 1
+        product = current_product
+
     try:
         provenance = json.loads(retained["provenance.json"])
         native_page, native_palette = decode_bmp(retained["native.shot.BMP"])
         native_current = decode_current(retained["native.CURRENT.BIN"])
         native_surface = struct.unpack("<hhiiiifffff", retained["native.SURFACE.BIN"])
         product_checkpoint = struct.unpack("<66i", retained["product.CURRENT.LIN"])
-        product_view = struct.unpack("<39i", retained["product-vh.bin"])
-        product_sun = struct.unpack("<32i", retained["product-sun.bin"])
-        product_sun_floats = struct.unpack("<32f", retained["product-sun.bin"])
-        product_local = struct.unpack("<44i", retained["product-local.bin"])
-        product_palette = struct.unpack("<768I", retained["product-palette.bin"])
+        product_view = struct.unpack("<39i", product["view"])
+        product_sun = struct.unpack("<32i", product["sun"])
+        product_sun_floats = struct.unpack("<32f", product["sun"])
+        product_local = struct.unpack("<44i", product["local"])
+        product_palette = struct.unpack("<768I", product["palette"])
     except (AssertionError, json.JSONDecodeError, struct.error, UnicodeDecodeError) as error:
         check(False, f"retained class-10 oracle decodes safely: {error}")
         return 1
@@ -299,25 +346,31 @@ def main() -> int:
     check(
         product_view[:5] == (1638400, -45656, 1638400, -30, -90)
         and product_view[10:13] == (30000, 0, 10)
-        and math.isclose(struct.unpack_from("<f", retained["product-vh.bin"], 13 * 4)[0],
+        and math.isclose(struct.unpack_from("<f", product["view"], 13 * 4)[0],
                          30.8439998626709, rel_tol=0, abs_tol=1e-15)
         and product_view[14:17] == (2, 2, 1),
         "product view diagnostic retains the landed camera and generated stellar state",
     )
     check(
-        product_local[:8] == (1, 0, 1345695831, 1344638527, 1, -90, 0, 8)
+        product_local[:2] == (1, 0)
+        and product_local[3:8] == (1344638527, 1, -90, 0, 8)
         and math.isclose(
-            struct.unpack_from("<d", retained["product-local.bin"], 20 * 4)[0],
+            struct.unpack_from("<d", product["local"], 20 * 4)[0],
             0.031824, rel_tol=0, abs_tol=1e-15,
         )
         and product_local[28] == -1,
         "product local diagnostic retains body 1, type 8, its radius, and no companion",
     )
+    if args.product_directory is not None:
+        print(
+            "INFO current generated-system epoch is not graded "
+            f"({product_local[2]}; retained capture {1345695831})"
+        )
 
     distance = product_sun_floats[8]
     ray = product_sun_floats[9]
     primary = tuple(
-        struct.unpack_from("<d", retained["product-sun.bin"], unit * 4)[0]
+        struct.unpack_from("<d", product["sun"], unit * 4)[0]
         for unit in (10, 12, 14)
     )
     check(
@@ -347,7 +400,7 @@ def main() -> int:
         and product_palette == native_palette,
         "all 768 six-bit product palette components exactly match native",
     )
-    product_page = retained["product-page.bin"]
+    product_page = product["page"]
     native_sun = page_crop(native_page, SUN_CROP)
     product_sun_crop = page_crop(product_page, SUN_CROP)
     check(
