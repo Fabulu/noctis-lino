@@ -202,6 +202,25 @@ Candidate A nevertheless lost both mandatory production measures to its immediat
 
 The candidate source, service, tests, and generated runtime were removed. Production remains the committed background-cache runtime `7580cf245eb91ef380a155c9`; the browser record and 60-Hz gap are unchanged.
 
+### Retained Chromium exact unsigned-multiply service checkpoint
+
+The next eligible hotspot was the canonical shared-Lino `XMul32u` routine in `work/fp/fpsoft.txt`. That source remains unchanged: its exact four-limb 16-bit implementation is still the authoritative fallback, and `Mul128` still calls it four times per product. LinoJava now recognizes only immediate direct calls as `service:xmul32u`; missing-service, indirect-call, and direct-label entry paths continue through the linked Lino routine. The production static runner expands the exact unsigned 32x32-to-64 operation with `Math.imul`, while publishing every canonical limb/product/middle/result cell, terminal A/B/X, and leaving C/D/E, inputs, active stack, depth, and halt state unchanged.
+
+The focused service test exhausts all 65,536 values in both low/high limb positions and operand directions, plus Cartesian edge cases and 4,096 deterministic full-width pairs against a BigInt product oracle. A compiled fixture compares the ordinary service, static inline, and exact Lino fallback scratch/register state. All **53** LinoJava tests, including current shared Noctis and NIVGEN closure generation, and all **4** real-Chromium Linoctissite tests passed. No shared-Lino source or native artifact changed.
+
+The post-service attribution removed `XMul32u` from the label table. It counted **44,497,092** exact instructions over 35 presentations against **44,494,274** runner-accounted instructions, a difference of **2,818** (**0.006332998120416499%**). The leading eligible non-rejected labels are now `SP dget` at **1,788,490**, `SP cp b` at **1,712,996**, and `SP dput` at **1,712,920**; the two larger GUI loops remain excluded by their production rejections. Evidence: `../Linoctissite/build/browser-profile/surface/instruction-profile-after-xmul32u-5s.json`.
+
+| Runtime | Revisions / runtime | Presentations | Presentation | Simulation | Runner | Display | Instructions/presentation | Evidence |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| Unsigned-multiply candidate before immediate baseline | runtime `0c24625d9803c11e7021f7a1` | 273 | **13.641746743285362 Hz** | **13.641746743285362 Hz** | **60.96080583006471 ms/presentation** | 2.12930403087602 ms/presentation | **804,723.2014652014** | `../Linoctissite/build/browser-profile/surface/xmul32u-candidate-20s.json` |
+| Immediate committed background-cache baseline control | runtime `7580cf245eb91ef380a155c9` | 271 | **13.53666638374111 Hz** | **13.53666638374111 Hz** | **61.26162361482852 ms/presentation** | 2.0645756422373642 ms/presentation | **821,489.8782287823** | `../Linoctissite/build/browser-profile/surface/xmul32u-baseline-control-20s.json` |
+| Unsigned-multiply candidate after immediate baseline | runtime `0c24625d9803c11e7021f7a1` | 284 | **14.187018877591706 Hz** | **14.187018877591706 Hz** | **58.53485914015434 ms/presentation** | 2.0728873249510644 ms/presentation | **803,868.1056338028** | `../Linoctissite/build/browser-profile/surface/xmul32u-candidate-after-baseline-20s.json` |
+| Fully committed unsigned-multiply provenance | Linoleum `9393b335b745e51f47366a2dc1b3520f7c7f2fe0`; LinoJava `663972357bff3fe45386af29c944742b574864d3`; Linoctissite `334b03994c409f677b0006869bc1c55b157e950d`; runtime `0c24625d9803c11e7021f7a1` | 272 | **13.590690377221215 Hz** | **13.590690377221215 Hz** | **71.84375001227154 ms/presentation** | 2.675000000525923 ms/presentation | **801,456.3088235294** | `../Linoctissite/build/browser-profile/surface/xmul32u-committed-20s.json` |
+
+- Both immediate candidate arms independently beat the same matched baseline. The first gained **0.10508035954425132 Hz**, reduced runner cost by **0.30081778476381515 ms/presentation**, and removed **16,766.67676358088 linked instructions/presentation**. The reverse arm gained **0.6503524938505958 Hz**, reduced runner cost by **2.7267644746741837 ms/presentation**, and removed **17,621.7725949795 instructions/presentation**. All production runs had zero drops and no console, request, or page failures.
+- Fully committed **13.590690377221215 Hz** narrowly advances the strict committed browser record by **0.003190876826367983 Hz**. It reaches **22.651150628702023%** of 60 Hz and leaves a **46.409309622778785-Hz** strict committed gap.
+- The highest exact retained-runtime observation remains the earlier **16.042059180629096-Hz** background-cache candidate arm. Current production is runtime `0c24625d9803c11e7021f7a1`; browser/native and 60-Hz parity remain open.
+
 ## Evidence classes
 
 - **Healthy-host absolute:** an absolute production observation on a responsive host. This class establishes progress toward 60 Hz.
