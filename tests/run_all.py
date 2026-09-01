@@ -115,6 +115,7 @@ TESTS = [
     ("test_orbitprimary_class5_oracle.py", "matched ASKEW 184 class-5 evidence protects the bodyless untargeted exterior pose, strict orbital interval, compact corona, spoke exclusion, palette bands, and non-atomic authority boundary"),
     ("test_orbitprimary_class5_runtime.py", "private-desktop ASKEW 184 capture protects the current class-5 compact corona, spoke exclusion, exact palette regions, and strict source gate"),
     ("test_orbitprimary_class6_oracle.py", "matched FUEL TWO class-6 evidence protects the bodyless untargeted exterior pose, strict orbital interval, compact corona, spoke exclusion, palette bands, and non-atomic authority boundary"),
+    ("test_orbitprimary_class6_runtime.py", "private-desktop FUEL TWO capture protects the current class-6 compact corona, spoke exclusion, exact palette regions, and strict source gate"),
     ("test_orbitprimary_class10_oracle.py", "matched OUTER RUN WIND class-10 evidence protects the bodyless untargeted exterior pose, strict orbital interval, compact corona, spoke exclusion, palette bands, and non-atomic authority boundary"),
     ("test_orbitprimary_class10_runtime.py", "private-desktop OUTER RUN WIND capture protects the current class-10 compact corona, spoke exclusion, exact palette regions, and strict source gate"),
     ("test_orbitprimary_oracle.py", "matched WIRE class-7 native/product evidence protects the untargeted exterior camera, strict primary gate, space palette, complete flare-crop bands, and radial core"),

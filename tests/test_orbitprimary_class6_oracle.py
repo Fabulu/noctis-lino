@@ -8,6 +8,7 @@ a same-state contract.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import math
@@ -62,6 +63,12 @@ NATIVE_PALETTE_SHA256 = "15c34e0e8a53b47986cc835782e6ef106c3d88cb91027d53d3b819b
 CORE_CROP = (135, 75, 180, 120)
 SEARCH_CROP = (120, 60, 195, 130)
 UPPER_STRIP = (0, 64, 320, 127)
+SCENE = "stardrifterclass6"
+PRODUCT_FILES = {
+    "view": ("game-vh-out.bin", 156),
+    "palette": ("game-palette-out.bin", 3072),
+    "page": ("game-page-out.bin", 64000),
+}
 
 OFF = {
     "sync": 0,
@@ -177,6 +184,26 @@ def page_crop(page: bytes, box: tuple[int, int, int, int]) -> bytes:
     return b"".join(page[y * 320 + x0:y * 320 + x1] for y in range(y0, y1))
 
 
+def product_file(directory: Path, name: str) -> Path:
+    prefixed = directory / f"{SCENE}-{name}"
+    return prefixed if prefixed.is_file() else directory / name
+
+
+def load_product(directory: Path, check) -> dict[str, bytes] | None:
+    product: dict[str, bytes] = {}
+    for key, (name, size) in PRODUCT_FILES.items():
+        path = product_file(directory, name)
+        try:
+            data = path.read_bytes()
+        except OSError as error:
+            check(False, f"current product {path.name} is readable: {error}")
+            continue
+        check(len(data) == size, f"current product emitted {path.name} at exactly {size} bytes")
+        if len(data) == size:
+            product[key] = data
+    return product if len(product) == len(PRODUCT_FILES) else None
+
+
 def band_bytes(data: bytes) -> bytes:
     return bytes(value & 0xC0 for value in data)
 
@@ -233,6 +260,10 @@ def components(page: bytes, box: tuple[int, int, int, int]) -> list[dict[str, ob
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--product-directory", type=Path)
+    args = parser.parse_args()
+
     failures: list[str] = []
 
     def check(condition: bool, message: str) -> None:
@@ -256,15 +287,27 @@ def main() -> int:
         print(f"FAIL {len(failures)} class-6 orbital-primary checks")
         return 1
 
+    product = {
+        "view": retained["product-vh.bin"],
+        "palette": retained["product-palette.bin"],
+        "page": retained["product-page.bin"],
+    }
+    if args.product_directory is not None:
+        current_product = load_product(args.product_directory.resolve(), check)
+        if current_product is None:
+            print(f"FAIL {len(failures)} class-6 orbital-primary checks")
+            return 1
+        product = current_product
+
     try:
         provenance = json.loads(retained["provenance.json"])
         native_page, native_palette = decode_bmp(retained["native.shot.BMP"])
         authored = decode_continuity(retained["native.CURRENT.BIN"])
         frozen = decode_continuity(retained["native-continuity.bin"])
         adapted_page = retained["native.adapted"][:64000]
-        product_view = struct.unpack("<39i", retained["product-vh.bin"])
-        product_palette = struct.unpack("<768I", retained["product-palette.bin"])
-        product_page = retained["product-page.bin"]
+        product_view = struct.unpack("<39i", product["view"])
+        product_palette = struct.unpack("<768I", product["palette"])
+        product_page = product["page"]
     except (AssertionError, json.JSONDecodeError, struct.error, UnicodeDecodeError) as error:
         check(False, f"retained class-6 oracle decodes safely: {error}")
         return 1
@@ -372,8 +415,8 @@ def main() -> int:
         "capture tooling authors the matched FUEL TWO untargeted pose",
     )
 
-    view_ray = struct.unpack_from("<f", retained["product-vh.bin"], 13 * 4)[0]
-    view_dzat_x = struct.unpack_from("<d", retained["product-vh.bin"], 8 * 4)[0]
+    view_ray = struct.unpack_from("<f", product["view"], 13 * 4)[0]
+    view_dzat_x = struct.unpack_from("<d", product["view"], 8 * 4)[0]
     check(
         product_view[:5] == (2813, 0, -1397, 0, 23)
         and view_dzat_x == expected_dzat[0]
@@ -477,16 +520,20 @@ def main() -> int:
     native_adapted_bands = mismatch_bounds(native_page, adapted_page, bands=True)
     comparison = provenance.get("native_product_comparison", {})
     check(
-        native_product_indices == (16166, (10, 2, 313, 195))
-        and native_product_bands == (1200, (10, 31, 309, 152))
-        and native_adapted_indices[0] == 6648
+        native_adapted_indices[0] == 6648
         and native_adapted_bands[0] == 2217
         and comparison.get("whole_page_index_mismatches") == 16166
         and comparison.get("whole_page_palette_band_mismatches") == 1200
         and comparison.get("bmp_vs_adapted_index_mismatches") == 6648
         and comparison.get("bmp_vs_adapted_palette_band_mismatches") == 2217,
-        "provenance records the nonzero whole-page authority limits",
+        "provenance records the historical nonzero whole-page authority limits",
     )
+    if args.product_directory is None:
+        check(
+            native_product_indices == (16166, (10, 2, 313, 195))
+            and native_product_bands == (1200, (10, 31, 309, 152)),
+            "retained product page preserves its provenance-pinned comparisons",
+        )
     authority = provenance.get("authority", {})
     check(
         authority.get("native_snapshot_page_and_palette_retained") is True
