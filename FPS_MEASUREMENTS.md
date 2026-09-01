@@ -98,6 +98,19 @@ The first committed browser baseline and its native comparison use the same dete
 - At the observed runner cost with scheduler idle removed, the same linked machine would be bounded near **6.18492936805011 presentations/s** before any runner or intrinsic optimization. This is still only **14.807448545861146%** of the matched native presentation rate, so scheduler continuation is the dominant first gap but not the final parity gap.
 - Diagnostic slices established the cause: each ordinary 10,000-instruction `budget` continuation performs roughly 0.2 ms of useful work and then takes the timer-yield path; Chromium clamps the repeated `setTimeout(0)` tasks to roughly 4 ms. Canvas presentation is not the dominant baseline cost.
 
+### Retained Chromium scheduler checkpoint
+
+Linoctissite commit `d1ea3802e0c4c6c3ca89a1d562a92899acaf9643` replaced only the worker host's no-frame `budget` continuation: Chromium workers use `scheduler.yield()` so host messages retain priority without entering the repeated-timer clamp, while older workers retain the conservative timer fallback. Shared Lino gameplay, renderer, machine state, runner code, frame credit, source-level waits, and presentation semantics are unchanged. The real-browser interaction regression and the full four-test Linoctissite gate passed.
+
+| Runtime | Presentations | Presentation | Simulation | Runner | Display | Other wall time | Evidence |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Chromium 151 default worker, committed scheduler retention, 20 seconds | 178 | **8.884274833608059 Hz** | **8.884274833608059 Hz** | 16,268.000005722046 ms total; 91.39325845911262 ms/presentation | 385.49999928474426 ms total; 2.165730333060361 ms/presentation | 16.879623041587916% | `../Linoctissite/build/browser-profile/surface/scheduler-yield-committed-20s.json` |
+
+- The scheduler checkpoint is **29.63468327740689x** the committed timer baseline, a gain of **8.58448169087583 presentations/s**, with zero dropped presentations and no console, request, or page failures.
+- Against the same depressed native comparison, browser throughput rose from **0.7177400534824553%** to **21.269999160461644%** of native presentation and from **1.6380204508243432%** to **48.54221726209466%** of native simulation.
+- Runner work now occupies **81.1962826089731%** of browser wall time, display **1.9240943494389766%**, and all remaining wall time **16.879623041587916%**. The timer clamp is no longer dominant.
+- The interval executed **1,032,112,697** linked-Lino instructions, averaging **5,798,385.938202247 instructions/presentation**. At the measured runner cost with all remaining non-runner idle removed, the current machine is bounded near **10.94172608417697 presentations/s**. The next parity target is therefore measured runner/intrinsic cost, not further scheduler work.
+
 ## Evidence classes
 
 - **Healthy-host absolute:** an absolute production observation on a responsive host. This class establishes progress toward 60 Hz.
