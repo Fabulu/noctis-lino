@@ -1811,6 +1811,9 @@
       ? [UA Disable] = YES -> UAF Idle;
 	[Region To Normalize] = [L2L Region];
 	=> Normalize Region;
+	=> UAF copy common;
+	-> UAF copy complete;
+    "UAF copy common"
 	E = [L2L Region];
 	A = [E plus 1]; A * [Display Width]; A + [E plus 0];
 	B = A; A + Backdrop Layer; B + Primary Display;
@@ -1831,6 +1834,8 @@
 	<-- C; <-- B; <-- A;
 	A + [Display Width]; B + [Display Width];
 	D-; ? D != 0 -> UAF Scanline;
+	leave;
+    "UAF copy complete"
 	[L2L Region] -->;
 	=> RD Retrace Arrow;
 	<-- [L2L Region];

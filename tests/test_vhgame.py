@@ -4193,6 +4193,18 @@ def main() -> int:
         "red close button and Alt+F4 return through checkpoint/audio cleanup",
     )
     gui_loop = section(game, '"service VHG GUI loop"', '"service VHG GUI sleepy"')
+    uaf_fast = section(igui, '"Update Area Fast"', '"Update Area Published"')
+    check(
+        all(token in uaf_fast for token in (
+            "=> Normalize Region;", "=> UAF copy common;", "-> UAF copy complete;",
+            '"UAF copy common"', '"UAF Quad"', '"UAF Tail"',
+            "[B] = [A]; [B plus 1] = [A plus 1]; [B plus 2] = [A plus 2]; [B plus 3] = [A plus 3];",
+            "D-; ? D != 0 -> UAF Scanline;", "leave;", '"UAF copy complete"',
+        ))
+        and uaf_fast.index("=> UAF copy common;") < uaf_fast.index('"UAF copy common"')
+        < uaf_fast.index('"UAF copy complete"') < uaf_fast.index("=> RD Retrace Arrow;"),
+        "fast area publication retains an exact shared-Lino copy fallback behind a portable service boundary",
+    )
     check(
         "[L2L Region] = vector Work Area; => Update Area Fast;" in gui_loop
         and "[Display Command] = RETRACE; [Display Live Region] = WHOLE DISPLAY; isocall;" not in gui_loop
