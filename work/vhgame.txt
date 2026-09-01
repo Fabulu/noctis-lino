@@ -343,6 +343,7 @@
 	VHGinterprenderx = 0; VHGinterprenderz = 0; VHGinterprenderalpha = 0;
 	VHGinterpeffectx = 0; VHGinterpeffectz = 0; VHGinterpeffectalpha = 0;
 	VHGsaveheld = 0; VHGloadheld = 0; VHGmusicheld = 0; VHGnoticeptr = 0; VHGnoticeframes = 0;
+	VHGnoticedrawn = 0;
 	VHGmovew = 0; VHGmovea = 0; VHGmoves = 0; VHGmoved = 0;
 	VHGsnapshotnext = 1; VHGsnapshotnumber = 0; VHGsnapshotvalue = 0;
 	VHGsnapshotden = 0; VHGsnapshotpos = 0; VHGsnapshotrow = 0; VHGsnapshotcol = 0;
@@ -1493,7 +1494,7 @@
 		=> VHG output overlay;
 		=> VHG landing overlay;
 		=> VHG console overlay;
-		=> VHG notice overlay;
+		[VHGnoticedrawn] = 0; => VHG notice overlay;
 		=> VHG info overlay;
 		=> VHG FCS menu overlay;
 		=> VHG preferences overlay;
@@ -8454,6 +8455,7 @@
 	A = [VHGlandingselect]; ? A = 0 -> VHG notice overlay draw;
 	A = [VHGlandingview]; ? A = 0 -> VHG notice overlay done;
     "VHG notice overlay draw"
+	[VHGnoticedrawn] = 1;
 	[String] = [VHGnoticeptr]; [Ink] = 80FF80h;
 	[Text Effect] = service FX Raw;
 	[Text X] = 12; [Text Y] = 176;
@@ -9159,7 +9161,7 @@
 	[VHGinfoline] = VHGdevmisc; => VHG info draw line;
 	[VHGinfoline] = VHGdevcart; => VHG info draw line;
 	[VHGinfoline] = VHGdevemergency; => VHG info draw line;
-	[VHGinfoy] = 176; [VHGinfoline] = VHGdevhint; => VHG info draw line;
+	[VHGinfoline] = VHGdevhint; => VHG info draw hint;
 	-> VHG device overlay done;
     "VHG device navigation overlay"
 	[VHGinfoy] = 14; [VHGinfoline] = VHGnavtitle; => VHG info draw line;
@@ -9183,7 +9185,7 @@
 	[VHGinfoline] = VHGnavradon;
     "VHG device nav rad selected"
 	=> VHG info draw line;
-	[VHGinfoy] = 176; [VHGinfoline] = VHGdevbackhint; => VHG info draw line;
+	[VHGinfoline] = VHGdevbackhint; => VHG info draw hint;
 	-> VHG device overlay done;
     "VHG device miscellaneous overlay"
 	[VHGinfoy] = 14; [VHGinfoline] = VHGdevtitle; => VHG info draw line;
@@ -9194,7 +9196,7 @@
 	[VHGinfoline] = VHGdevremote; => VHG info draw line;
 	[VHGinfoline] = VHGdevlocal; => VHG info draw line;
 	[VHGinfoline] = VHGdevenvironment; => VHG info draw line;
-	[VHGinfoy] = 176; [VHGinfoline] = VHGdevbackhint; => VHG info draw line;
+	[VHGinfoline] = VHGdevbackhint; => VHG info draw hint;
 	-> VHG device overlay done;
     "VHG device cartography overlay"
 	[VHGinfoy] = 14; [VHGinfoline] = VHGcarttitle; => VHG info draw line;
@@ -9212,7 +9214,7 @@
 	=> VHG info draw line;
 	[VHGinfoline] = VHGcartnext; => VHG info draw line;
 	[VHGinfoline] = VHGcartmanual; => VHG info draw line;
-	[VHGinfoy] = 176; [VHGinfoline] = VHGdevbackhint; => VHG info draw line;
+	[VHGinfoline] = VHGdevbackhint; => VHG info draw hint;
 	-> VHG device overlay done;
     "VHG device emergency overlay"
 	[VHGinfoy] = 14; [VHGinfoline] = VHGemergencytitle; => VHG info draw line;
@@ -9223,7 +9225,7 @@
     "VHG device emergency lithium selected"
 	=> VHG info draw line;
 	[VHGinfoline] = VHGemergencyclear; => VHG info draw line;
-	[VHGinfoy] = 176; [VHGinfoline] = VHGdevbackhint; => VHG info draw line;
+	[VHGinfoline] = VHGdevbackhint; => VHG info draw hint;
 	-> VHG device overlay done;
     "VHG device target browser overlay"
 	=> VHG browse format rows;
@@ -9235,7 +9237,7 @@
 	[VHGinfoline] = VHGbrowsenext; => VHG info draw line;
 	[VHGinfoline] = VHGbrowseselect; => VHG info draw line;
 	[VHGinfoline] = VHGbrowseback; => VHG info draw line;
-	[VHGinfoy] = 176; [VHGinfoline] = VHGdevbackhint; => VHG info draw line;
+	( The four keyed action rows already include Back and fill through y=168. )
     "VHG device overlay done"
 	end;
 
@@ -9258,7 +9260,7 @@
     "VHG FCS menu local selected"
 	=> VHG info draw line;
 	=> VHG FCS row9 label; [VHGinfoline] = A; => VHG info draw line;
-	[VHGinfoy] = 176; [VHGinfoline] = VHGfcsmhint; => VHG info draw line;
+	[VHGinfoline] = VHGfcsmhint; => VHG info draw hint;
     "VHG FCS menu overlay done"
 	end;
 
@@ -9284,7 +9286,7 @@
 	[VHGinfoline] = VHGprefmpolarize;
     "VHG preferences hull selected"
 	=> VHG info draw line;
-	[VHGinfoy] = 176; [VHGinfoline] = VHGprefmenuhint; => VHG info draw line;
+	[VHGinfoline] = VHGprefmenuhint; => VHG info draw hint;
     "VHG preferences overlay done"
 	end;
 
@@ -10054,6 +10056,13 @@
 	E = [VHGinfonamesrc]; E + 1; E + [VHGi]; D = VHGinfoname; D + [VHGi]; [D] = [E];
 	[VHGi]+; A = [VHGi]; ? A < 20 -> VHG info name loop;
 	[VHGinfoname plus 20] = 0;
+	end;
+
+"VHG info draw hint"
+	( A rendered notice owns the bottom row for this frame. )
+	A = [VHGnoticedrawn]; ? A != 0 -> VHG info draw hint done;
+	[VHGinfoy] = 176; => VHG info draw line;
+    "VHG info draw hint done"
 	end;
 
 "VHG info draw line"

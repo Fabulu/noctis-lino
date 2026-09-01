@@ -323,6 +323,7 @@
 	? A = 264 -> VHSV load light stored size; ? A != 268 -> VHSV load light done;
     "VHSV load light stored size"
 	A = [vhsvbuf plus 38]; ? A = 1 -> VHSV load light stored;
+	? A = 0 -> VHSV load light stored;
 	? A != 0FFFFFFFFh -> VHSV load done;
     "VHSV load light stored"
 	[VHGilight] = A;

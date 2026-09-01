@@ -490,6 +490,11 @@ def checkpoint_drive(version: int, word66: int, approach_reached: int) -> int:
     return 1 - approach_reached
 
 
+def checkpoint_internal_light(word38: int) -> int | None:
+    """Admit every internal-light state that the shared reset sequence can save."""
+    return word38 if word38 in (-1, 0, 1) else None
+
+
 ESCAPE_OWNERS = (
     "label", "sl", "dl", "landing_selector", "landing_request", "goes",
     "browser", "fcs", "device", "preferences", "data", "graphics",
@@ -782,6 +787,33 @@ def main() -> int:
             '[VHPoncontrol] = [VHGgazecontrol]; [VHPoncommand] = [VHGgazecommand];',
         )),
         "all 32 onboard rows share complete physical, accessibility, geometry, and action contracts",
+    )
+    menu_hints = {
+        "fcs": "VHGfcsmhint",
+        "root": "VHGdevhint",
+        "navigation": "VHGdevbackhint",
+        "miscellaneous": "VHGdevbackhint",
+        "cartography": "VHGdevbackhint",
+        "emergency": "VHGdevbackhint",
+        "preferences": "VHGprefmenuhint",
+    }
+    notice_overlay = section(game, '"VHG notice overlay"', '"VHG info overlay"')
+    info_hint = section(game, '"VHG info draw hint"', '"VHG info draw line"')
+    check(
+        all(
+            hint in accessible_pages[page]
+            and "=> VHG info draw hint;" in accessible_pages[page]
+            for page, hint in menu_hints.items()
+        )
+        and all("[VHGinfoy] = 176" not in page for page in accessible_pages.values())
+        and "VHG info draw hint" not in accessible_pages["browser"]
+        and accessible_pages["browser"].count("=> VHG info draw line;") == 8
+        and "fill through y=168" in accessible_pages["browser"]
+        and "[VHGnoticedrawn] = 0; => VHG notice overlay;" in game
+        and "[VHGnoticedrawn] = 1;" in notice_overlay
+        and "A = [VHGnoticedrawn]; ? A != 0 -> VHG info draw hint done;" in info_hint
+        and "[VHGinfoy] = 176; => VHG info draw line;" in info_hint,
+        "rendered notices exclusively own the bottom menu row and Browser has no overlapping hint",
     )
     check(
         all(token in game for token in (
@@ -5760,6 +5792,11 @@ def main() -> int:
         and checkpoint_drive(17, 1 << 23, 1) == 1
         and checkpoint_drive(18, 0, 0) == 0
         and checkpoint_drive(18, 1 << 23, 1) == 1
+        and checkpoint_internal_light(1) == 1
+        and checkpoint_internal_light(0) == 0
+        and checkpoint_internal_light(-1) == -1
+        and checkpoint_internal_light(2) is None
+        and checkpoint_internal_light(-2) is None
         and all(token in save for token in (
             "VHSVVERSION = 18;", "VHSVUNITS = 67;",
             "? A = 16 -> VHSV load version ok; ? A = 17 -> VHSV load version ok;",
@@ -5767,6 +5804,9 @@ def main() -> int:
             "[VHGroofspeed] = 0; [VHGmouselook] = 1;",
             "? A = 3 -> VHSV load done;", "[VHGmouselook] = A;",
             "A = [vhsvbuf plus 1]; ? A '< 17 -> VHSV load light fields;",
+            "A = [vhsvbuf plus 38]; ? A = 1 -> VHSV load light stored;",
+            "? A = 0 -> VHSV load light stored;",
+            "? A != 0FFFFFFFFh -> VHSV load done;",
         ))
         and all(token in capture_script for token in (
             "[ValidateSet(18)]", "[int]$CheckpointVersion = 18,",
