@@ -3465,7 +3465,9 @@ def main() -> int:
             '"VHT texture cycle"', '"VHT texture cycle texel"',
             "C = [A]; C & 255; D = C; D & 192; C + 1; C & 63; C | D; [A] = C;",
             "? A < 64800 -> VHT texture cycle texel;",
-            '"VHT mask page"', '"VHT mask page pixel"',
+            '"VHT mask page"', "=> VHT mask page common;",
+            '"VHT mask page common"', "-> VHT mask page pixel;",
+            '"VHT mask page pixel"',
             "C = [A]; C & 63; C + 64; [A] = C;",
             "? A < 58240 -> VHT mask page pixel;",
         ))

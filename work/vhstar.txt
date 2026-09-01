@@ -287,10 +287,16 @@
 	( QUADWORDS is 14560 in the live loop, so adapted+2880 spans the
 	  source's exact 182-row space viewport: offsets 2880..61119. )
 	[SPreg] = RGADP; => SP base; C + 2880; [VHTmaskbase] = C; [VHTmaski] = 0;
+	=> VHT mask page common;
+	-> VHT mask page complete;
+    "VHT mask page common"
+	-> VHT mask page pixel;
     "VHT mask page pixel"
 	A = nw; A + [VHTmaskbase]; A + [VHTmaski];
 	C = [A]; C & 63; C + 64; [A] = C;
 	[VHTmaski]+; A = [VHTmaski]; ? A < 58240 -> VHT mask page pixel;
+	end;
+    "VHT mask page complete"
 	end;
 
 "VHT far pixel"
