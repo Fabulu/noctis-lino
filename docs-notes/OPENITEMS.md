@@ -1385,7 +1385,14 @@ retain 160/157-pixel largest centred bright components, the shared singleton at
 `(140,104)`, the first 203 exact palette components, and every band in the
 inclusive 4,256-pixel flare crop. Phase admission is source-grounded rather than
 retained as a direct diagnostic scalar. Whole-page, matched-clock HUD,
-surface/body, and product live-distance claims remain excluded.
+surface/body, and product live-distance claims remain excluded. A registered
+private-desktop Windows gate now grades a fresh process against the exact
+camera/class/zero-body state, source-grounded phase-zero chain, first 203 palette
+components, every flare-crop palette band, centred radial component, and shared
+isolated star. The 2026-09-01 acceptance run passed every semantic contract. The
+historical 30,632-index/1,200-band complete-page comparison remains pinned only
+as immutable provenance; the current run's 30,295-index/1,200-band comparison is
+reported informationally and is not graded.
 
 **Orbital class-5 class-suppressed-primary checkpoint.** ASKEW 184 at
 `(3438192,-1233198,1856484)` is a tracked class-5 primary with ray `1.492`, spin

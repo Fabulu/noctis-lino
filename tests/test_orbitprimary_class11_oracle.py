@@ -8,6 +8,7 @@ Whole-page equality and a directly retained phase scalar are not claimed.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import math
@@ -61,6 +62,12 @@ RETAINED = {
 NATIVE_PAGE_SHA256 = "9761c86f8a18b2aa9bb88967debd38ea843cfe3040ec55b518a8447f042e7bbb"
 NATIVE_PALETTE_SHA256 = "a0fb50e837de43ee2a7b15975b8124036d3aeb25527ea7d45dc31ac399f3a7d4"
 FLARE_CROP = (120, 60, 195, 115)
+SCENE = "stardrifterclass11"
+PRODUCT_FILES = {
+    "view": ("game-vh-out.bin", 156),
+    "palette": ("game-palette-out.bin", 3072),
+    "page": ("game-page-out.bin", 64000),
+}
 
 OFF = {
     "sync": 0, "anti_rad": 1, "charge": 6, "ap_targetted": 9,
@@ -148,6 +155,26 @@ def crop_offsets(box: tuple[int, int, int, int]) -> tuple[int, ...]:
     return tuple(y * 320 + x for y in range(y0, y1 + 1) for x in range(x0, x1 + 1))
 
 
+def product_file(directory: Path, name: str) -> Path:
+    prefixed = directory / f"{SCENE}-{name}"
+    return prefixed if prefixed.is_file() else directory / name
+
+
+def load_product(directory: Path, check) -> dict[str, bytes] | None:
+    product: dict[str, bytes] = {}
+    for key, (name, size) in PRODUCT_FILES.items():
+        path = product_file(directory, name)
+        try:
+            data = path.read_bytes()
+        except OSError as error:
+            check(False, f"current product {path.name} is readable: {error}")
+            continue
+        check(len(data) == size, f"current product emitted {path.name} at exactly {size} bytes")
+        if len(data) == size:
+            product[key] = data
+    return product if len(product) == len(PRODUCT_FILES) else None
+
+
 def bright_contract(page: bytes) -> dict[str, object]:
     x0, y0, x1, y1 = FLARE_CROP
     points = {
@@ -206,6 +233,10 @@ def mismatch_bounds(
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--product-directory", type=Path)
+    args = parser.parse_args()
+
     failures: list[str] = []
 
     def check(condition: bool, message: str) -> None:
@@ -229,15 +260,27 @@ def main() -> int:
         print(f"FAIL {len(failures)} class-11 orbital-primary checks")
         return 1
 
+    product = {
+        "view": retained["product-vh.bin"],
+        "palette": retained["product-palette.bin"],
+        "page": retained["product-page.bin"],
+    }
+    if args.product_directory is not None:
+        current_product = load_product(args.product_directory.resolve(), check)
+        if current_product is None:
+            print(f"FAIL {len(failures)} class-11 orbital-primary checks")
+            return 1
+        product = current_product
+
     try:
         provenance = json.loads(retained["provenance.json"])
         native_page, native_palette = decode_bmp(retained["native.shot.BMP"])
         authored = decode_continuity(retained["native.CURRENT.BIN"])
         frozen = decode_continuity(retained["native-continuity.bin"])
         adapted_page = retained["native.adapted"][:64000]
-        product_view = struct.unpack("<39i", retained["product-vh.bin"])
-        product_palette = struct.unpack("<768I", retained["product-palette.bin"])
-        product_page = retained["product-page.bin"]
+        product_view = struct.unpack("<39i", product["view"])
+        product_palette = struct.unpack("<768I", product["palette"])
+        product_page = product["page"]
     except (AssertionError, json.JSONDecodeError, struct.error, UnicodeDecodeError) as error:
         check(False, f"retained class-11 oracle decodes safely: {error}")
         return 1
@@ -367,8 +410,8 @@ def main() -> int:
         "capture tooling authors the matched phase-positive POE pose",
     )
 
-    view_ray = struct.unpack_from("<f", retained["product-vh.bin"], 13 * 4)[0]
-    view_dzat_x = struct.unpack_from("<d", retained["product-vh.bin"], 8 * 4)[0]
+    view_ray = struct.unpack_from("<f", product["view"], 13 * 4)[0]
+    view_dzat_x = struct.unpack_from("<d", product["view"], 8 * 4)[0]
     check(
         product_view[:5] == (2813, 0, -1397, 0, 23)
         and view_dzat_x == expected_dzat[0]
@@ -458,16 +501,20 @@ def main() -> int:
     native_adapted_indices = mismatch_bounds(native_page, adapted_page)
     native_adapted_bands = mismatch_bounds(native_page, adapted_page, bands=True)
     check(
-        native_product_indices == (30632, (10, 2, 313, 196))
-        and native_product_bands == (1200, (10, 31, 309, 152))
-        and native_adapted_indices == (18421, (0, 9, 319, 190))
+        native_adapted_indices == (18421, (0, 9, 319, 190))
         and native_adapted_bands == (11690, (5, 10, 311, 185))
         and comparison.get("whole_page_index_mismatches") == 30632
         and comparison.get("whole_page_palette_band_mismatches") == 1200
         and comparison.get("bmp_vs_adapted_index_mismatches") == 18421
         and comparison.get("bmp_vs_adapted_palette_band_mismatches") == 11690,
-        "provenance records the nonzero whole-page authority limits",
+        "provenance records the historical nonzero whole-page authority limits",
     )
+    if args.product_directory is None:
+        check(
+            native_product_indices == (30632, (10, 2, 313, 196))
+            and native_product_bands == (1200, (10, 31, 309, 152)),
+            "retained product page preserves its provenance-pinned comparisons",
+        )
     check(
         authority.get("native_snapshot_page_and_palette_retained") is True
         and authority.get("native_post_snapshot_continuity_retained") is True
