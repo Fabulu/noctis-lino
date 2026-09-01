@@ -1,6 +1,6 @@
-# Native FPS measurements
+# Native and browser FPS measurements
 
-This tracked record is updated whenever a retained native-performance checkpoint is published. It keeps healthy-host absolute measurements, depressed-host ABBA comparisons, rejected experiments, and instrumentation-only evidence separate.
+This tracked record is updated whenever a retained performance checkpoint is published. It keeps healthy-host absolute measurements, depressed-host ABBA comparisons, matched browser/native evidence, rejected experiments, and instrumentation-only evidence separate.
 
 The retrospective tables below record every result recovered for this publication pass from retained raw reports and completed task records. Values marked as task-record summaries are rounded exactly as they were preserved there; no missing precision has been invented.
 
@@ -82,6 +82,21 @@ The retrospective tables below record every result recovered for this publicatio
 - Task #161 retained every shared-Lino `PGtrval` publication but formed the two repeating recorder commands from live registers and read `PGtrused` once, removing two semantic instructions and two memory reads per producer while preserving exact ordered state stores and executable layout. The exhaustive model and two-island disassembly proof passed, but Candidate A fell to **39.25455987311658 Hz** versus **40.4659717964439 Hz** for Baseline A and added **1,751,079.4141414165 cycles/presentation**. Ordering B and synchronized fidelity were skipped by the binding Ordering-A rejection, and Task #153 production was restored byte-exactly.
 - Task #163 mirrored the always-run palette-compose and fixed-2x presenter counters in B while preserving all **32,400 `VHGUIx` stores**, **64,000 compose stores**, and **256,000 Backdrop stores** in exact order. The complete trace model and two-island disassembly/layout proof passed, removing 64,000 counter-memory reads and a net 31,600 generated instructions per presentation, but Candidate A simulation was only **18.132555231346394 Hz**, **0.07344476865360505 Hz** below the binding gate. Baseline A, Ordering B, and synchronized fidelity were therefore not admitted, and Task #153 production was restored byte-exactly.
 - Task #165 replaced one exact marked 23-byte i386m scalar L2L row-copy body with a same-size `REP MOVSD` sequence while preserving overlap behavior, ordered stores, executable layout, and the incoming direction flag. Compiler fixpoint, focused positive/negative fixtures, the semantic model, and production layout all passed, and Candidate A preserved simulation at **18.810059292578206 Hz**, but fell to **39.25577591494582 Hz** versus **55.645161290322584 Hz** for Baseline A and added **16,980,524.350543477 cycles/presentation**. Ordering B and synchronized fidelity were skipped by the binding Ordering-A rejection, and Task #153 production was restored byte-exactly.
+
+## Matched Chromium/native shared-Lino baseline — 2026-09-01
+
+The first committed browser baseline and its native comparison use the same deterministic surface checkpoint (version 15, 264 bytes, SHA-256 `ad935c614289925e87a61ac77bfab83bbf6967d6106c6f5fd97425ebc1be5a21`), fixed clock `1344638527`, one-second input warmup, five-second W hold, and 20-second requested measurement. Native ran on a private inactive desktop pinned to physical core 3 / affinity `0xc0` at above-normal priority. Browser ran headless in the default Chromium 151.0.7922.34 module worker with a fresh origin; the profile-only bootstrap scheduler was verified off before measurement.
+
+| Runtime | Revision / artifact | Presentations | Presentation | Simulation | Runtime work | Display/present | Classification | Evidence |
+|---|---|---:|---:|---:|---:|---:|---|---|
+| Native Windows shared Lino | executable SHA-256 `4bbf94ff22befd5c1b4d39ce6010ad4d58becc54782e603040ebe18e29d3e02b` | 833 | **41.76904176904177 Hz** | **18.302161159304017 Hz** | 22.653035002669434 ms render/presentation | 1.111878790766778 ms/presentation | Comparable controlled run, but the host was presentation-depressed: 818 / 833 missed deadlines | `build/matched-browser-native-20260901/current-native-20s-committed/surface/report.json` |
+| Chromium default worker, shared Lino runtime `2e0ab56ab2c6972a0124250d` | Linoctissite `058b462cfdca61998b3482f1c68d59eddae83ad6`; LinoJava `ae4ed67b9b4eda8dff3272d6f79c54285e1d8d0e`; Linoleum `6e1564653ad5376f4207f5b15ede62052be99bc1` | 6 | **0.2997931427322295 Hz** | **0.2997931427322295 Hz** | 970.1000032424927 ms total; 161.68333387374878 ms/presentation | 13.800000190734863 ms total; 2.300000031789144 ms/presentation | Clean committed baseline; no console, request, or page failures | `../Linoctissite/build/browser-profile/surface/committed-baseline-20s.json` |
+
+- Browser presentation throughput was **0.7177400534824553%** of this depressed native sample; browser simulation throughput was **1.6380204508243432%** of native.
+- Chromium executed **34,704,713** linked-Lino instructions during the interval, averaging **5,784,118.833333333 instructions/presentation**.
+- Measured runner work occupied only **4.847155478943549%** of browser wall time and display occupied **0.06895242378142952%**. The remaining **95.08389209727502%** was outside runner and display work.
+- At the observed runner cost with scheduler idle removed, the same linked machine would be bounded near **6.18492936805011 presentations/s** before any runner or intrinsic optimization. This is still only **14.807448545861146%** of the matched native presentation rate, so scheduler continuation is the dominant first gap but not the final parity gap.
+- Diagnostic slices established the cause: each ordinary 10,000-instruction `budget` continuation performs roughly 0.2 ms of useful work and then takes the timer-yield path; Chromium clamps the repeated `setTimeout(0)` tasks to roughly 4 ms. Canvas presentation is not the dominant baseline cost.
 
 ## Evidence classes
 
