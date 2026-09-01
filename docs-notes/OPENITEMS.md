@@ -1351,9 +1351,15 @@ radial flare is admitted without inventing a surface target. Native and warmed
 private-desktop product evidence retain 162/153 bright low-six core pixels at
 centred bounds, match the first 201 palette components, and match every palette
 band in the inclusive 4,256-pixel flare crop. The native BMP and post-snapshot
-adapted page differ at only two crop indices and zero crop bands. Whole-page,
-matched-clock HUD, surface/body, and product live-distance claims remain
-excluded.
+adapted page differ at only two crop indices and zero crop bands. A registered
+private-desktop Windows gate now captures the current shipping EMPTY state and
+grades its exact camera/class/ray/zero-body state, strict source intervals, first
+201 palette components, every flare-crop palette band, and centred positive
+radial component. The 2026-09-01 acceptance run passed every semantic contract.
+The historical 30,058-index/1,200-band complete-page comparison remains pinned
+only as immutable provenance; the current run's 29,742-index/1,200-band
+comparison is reported informationally and is not graded. Matched-clock HUD,
+surface/body, and product live-distance claims remain excluded.
 
 **Six-case ordinary positive orbital-primary gallery.** YBARRA, EOGILIE,
 REDIAN, MARRIN, SOLO, and AKYAASLE add bodyless classes 1, 2, 3, 4, 8, and 9.

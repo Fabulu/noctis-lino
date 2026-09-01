@@ -8,6 +8,7 @@ equality is not a same-state contract.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import math
@@ -60,6 +61,12 @@ RETAINED = {
 NATIVE_PAGE_SHA256 = "d3d99be81f6d4a5f84b76762f30bfb313fa156e6b5e2cb21391dd0f3e020d125"
 NATIVE_PALETTE_SHA256 = "d492ce31940e0b5ae3e05ecd576d061117c9a7e3645a7c6b0fa5d6ab8f16d9b8"
 FLARE_CROP = (120, 60, 195, 115)
+SCENE = "stardrifterclass0"
+PRODUCT_FILES = {
+    "view": ("game-vh-out.bin", 156),
+    "palette": ("game-palette-out.bin", 3072),
+    "page": ("game-page-out.bin", 64000),
+}
 
 OFF = {
     "sync": 0,
@@ -179,6 +186,26 @@ def crop_offsets(box: tuple[int, int, int, int]) -> tuple[int, ...]:
     )
 
 
+def product_file(directory: Path, name: str) -> Path:
+    prefixed = directory / f"{SCENE}-{name}"
+    return prefixed if prefixed.is_file() else directory / name
+
+
+def load_product(directory: Path, check) -> dict[str, bytes] | None:
+    product: dict[str, bytes] = {}
+    for key, (name, size) in PRODUCT_FILES.items():
+        path = product_file(directory, name)
+        try:
+            data = path.read_bytes()
+        except OSError as error:
+            check(False, f"current product {path.name} is readable: {error}")
+            continue
+        check(len(data) == size, f"current product emitted {path.name} at exactly {size} bytes")
+        if len(data) == size:
+            product[key] = data
+    return product if len(product) == len(PRODUCT_FILES) else None
+
+
 def bright_low_six_contract(
         page: bytes, box: tuple[int, int, int, int], threshold: int,
 ) -> tuple[int, tuple[int, int, int, int]]:
@@ -214,6 +241,10 @@ def mismatch_bounds(
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--product-directory", type=Path)
+    args = parser.parse_args()
+
     failures: list[str] = []
 
     def check(condition: bool, message: str) -> None:
@@ -237,15 +268,27 @@ def main() -> int:
         print(f"FAIL {len(failures)} class-0 orbital-primary checks")
         return 1
 
+    product = {
+        "view": retained["product-vh.bin"],
+        "palette": retained["product-palette.bin"],
+        "page": retained["product-page.bin"],
+    }
+    if args.product_directory is not None:
+        current_product = load_product(args.product_directory.resolve(), check)
+        if current_product is None:
+            print(f"FAIL {len(failures)} class-0 orbital-primary checks")
+            return 1
+        product = current_product
+
     try:
         provenance = json.loads(retained["provenance.json"])
         native_page, native_palette = decode_bmp(retained["native.shot.BMP"])
         authored = decode_continuity(retained["native.CURRENT.BIN"])
         frozen = decode_continuity(retained["native-continuity.bin"])
         adapted_page = retained["native.adapted"][:64000]
-        product_view = struct.unpack("<39i", retained["product-vh.bin"])
-        product_palette = struct.unpack("<768I", retained["product-palette.bin"])
-        product_page = retained["product-page.bin"]
+        product_view = struct.unpack("<39i", product["view"])
+        product_palette = struct.unpack("<768I", product["palette"])
+        product_page = product["page"]
     except (AssertionError, json.JSONDecodeError, struct.error, UnicodeDecodeError) as error:
         check(False, f"retained class-0 oracle decodes safely: {error}")
         return 1
@@ -357,8 +400,8 @@ def main() -> int:
         "capture tooling authors the matched EMPTY untargeted pose",
     )
 
-    view_ray = struct.unpack_from("<f", retained["product-vh.bin"], 13 * 4)[0]
-    view_dzat_x = struct.unpack_from("<d", retained["product-vh.bin"], 8 * 4)[0]
+    view_ray = struct.unpack_from("<f", product["view"], 13 * 4)[0]
+    view_dzat_x = struct.unpack_from("<d", product["view"], 8 * 4)[0]
     check(
         product_view[:5] == (2813, 0, -1397, 0, 23)
         and view_dzat_x == expected_dzat[0]
@@ -413,7 +456,6 @@ def main() -> int:
     adapted_crop = bytes(adapted_page[offset] for offset in flare_offsets)
     check(
         len(flare_offsets) == 4256
-        and sum(left != right for left, right in zip(native_crop, product_crop)) == 3395
         and bytes(value & 0xC0 for value in native_crop) ==
             bytes(value & 0xC0 for value in product_crop)
         and sum(left != right for left, right in zip(native_crop, adapted_crop)) == 2
@@ -423,6 +465,11 @@ def main() -> int:
             "54f421304ba7e5d7a91209dd2f5f42769db4c430e4849ea47b596c5b615a9fda",
         "native, adapted, and product retain every band in the 4,256-pixel flare crop",
     )
+    if args.product_directory is None:
+        check(
+            sum(left != right for left, right in zip(native_crop, product_crop)) == 3395,
+            "retained product preserves its provenance-pinned flare-crop comparison",
+        )
 
     native_bright = bright_low_six_contract(native_page, FLARE_CROP, 40)
     product_bright = bright_low_six_contract(product_page, FLARE_CROP, 40)
@@ -449,16 +496,20 @@ def main() -> int:
     native_adapted_bands = mismatch_bounds(native_page, adapted_page, bands=True)
     comparison = provenance.get("native_product_comparison", {})
     check(
-        native_product_indices == (30058, (10, 2, 313, 195))
-        and native_product_bands == (1200, (10, 31, 309, 152))
-        and native_adapted_indices[0] == 6568
+        native_adapted_indices[0] == 6568
         and native_adapted_bands[0] == 2217
         and comparison.get("whole_page_index_mismatches") == 30058
         and comparison.get("whole_page_palette_band_mismatches") == 1200
         and comparison.get("bmp_vs_adapted_index_mismatches") == 6568
         and comparison.get("bmp_vs_adapted_palette_band_mismatches") == 2217,
-        "provenance records the nonzero whole-page authority limits",
+        "provenance records the historical nonzero whole-page authority limits",
     )
+    if args.product_directory is None:
+        check(
+            native_product_indices == (30058, (10, 2, 313, 195))
+            and native_product_bands == (1200, (10, 31, 309, 152)),
+            "retained product page preserves its provenance-pinned comparisons",
+        )
     authority = provenance.get("authority", {})
     check(
         authority.get("native_snapshot_page_and_palette_retained") is True

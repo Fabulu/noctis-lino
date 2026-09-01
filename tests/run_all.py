@@ -110,6 +110,7 @@ TESTS = [
     ("test_surfaceclass10_oracle.py", "matched BISTARIAL/SORZ class-10 surface evidence protects the landed type-8 pose, in-gate class exclusion, exact palette and sun crop, and non-atomic authority boundary"),
     ("test_surfaceclass10_runtime.py", "private-desktop BISTARIAL/SORZ capture protects the current class-10 surface-disc view, exact palette/crops, and in-gate radial-flare suppression"),
     ("test_orbitprimary_class0_oracle.py", "matched EMPTY class-0 evidence protects the bodyless untargeted exterior pose, strict orbital interval, positive radial flare, exact crop bands, and non-atomic authority boundary"),
+    ("test_orbitprimary_class0_runtime.py", "private-desktop EMPTY capture protects the current class-0 positive radial flare, exact crop bands, palette prefix, and strict source gate"),
     ("test_orbitprimary_positive_gallery.py", "six retained bodyless class-1/2/3/4/8/9 positive orbital primaries protect strict flare/corona intervals, exact crop bands, class-colour palette prefixes, centred bright components, and non-atomic authority limits"),
     ("test_orbitprimary_positive_gallery_runtime.py", "private-desktop six-class gallery protects the current bodyless positive orbital primaries, exact flare-crop bands, palette prefixes, and centred radial components"),
     ("test_orbitprimary_class11_oracle.py", "matched POE class-11 evidence protects the fresh phase-zero admission chain, no-globe phase freeze, strict flare/corona intervals, centred radial spokes, exact crop bands, and non-atomic authority limits"),
