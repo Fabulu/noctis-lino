@@ -1371,7 +1371,14 @@ components range from 111 to 163 native pixels and 108 to 162 product pixels,
 while exact class-colour palette prefixes range from 201 to 284 components.
 EOGILIE's spin 3 does not invoke the class-11-only phase gate. Complete-page,
 matched-clock HUD, surface/body, and product live-distance claims remain
-excluded.
+excluded. A registered private-desktop Windows gate now captures and grades all
+six current shipping cases independently. The 2026-09-01 run retained every
+camera/class/ray/zero-body state, class-colour palette prefix, all 4,256
+flare-crop palette bands, and each centred positive radial component. Historical
+complete-page comparisons remain pinned only as immutable provenance; the six
+current comparisons reported 29,831, 30,460, 26,887, 29,762, 29,679, and 29,906
+index differences and 1,200 band differences each, all informational and
+ungraded.
 
 **Orbital class-11 phase-positive primary checkpoint.** POE at
 `(3131408,-4623621,1755683)` closes eligible orbital-primary class coverage with
