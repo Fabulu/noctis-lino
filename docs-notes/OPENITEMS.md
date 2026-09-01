@@ -1398,7 +1398,14 @@ isolated background stars. The first 576 native/product palette components
 match; native/adapted match every index in the 2,025-pixel core; native/product
 match every palette band in that core and the 20,160-pixel upper strip. Class 5,
 not distance, explains spoke absence. Whole-page, matched-clock HUD,
-surface/body, and product live-distance claims remain excluded.
+surface/body, and product live-distance claims remain excluded. A registered
+private-desktop Windows gate now grades a fresh shipping capture against the
+exact camera/class/zero-body state, 576 palette components, stable core and
+upper-strip palette bands, isolated stars, and compact beamless corona. The
+2026-09-01 acceptance run passed every semantic contract. The historical
+16,265-index/1,200-band complete-page comparison remains pinned only as
+immutable provenance; the current run's 15,933-index/1,200-band comparison is
+reported informationally and is not graded.
 
 **Orbital class-6 class-suppressed-primary checkpoint.** FUEL TWO at
 `(-125712,-174213,-150246)` is a tracked class-6 primary with ray `5.1290002`,
