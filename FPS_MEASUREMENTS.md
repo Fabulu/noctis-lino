@@ -194,6 +194,14 @@ The post-service attribution removed both background-cache loop labels. It count
 - The fully committed provenance run had zero drops and no console, request, or page failures. Its **13.085736547194756 Hz** is host-depressed relative to the strict **13.587499500394847-Hz** committed terrain-blur record, so the committed record does not move.
 - The retained runtime's pre-commit **16.042059180629096-Hz** observation is the highest exact browser rate observed so far. Kept distinct from fully committed provenance, it reaches **26.736765301048493%** of 60 Hz and leaves a **43.957940819370904-Hz** observed gap. Browser/native and 60-Hz parity remain open.
 
+### Rejected Chromium indexed-to-RGB composition service
+
+The next bounded candidate wrapped the unchanged 64,000-cell shared-Lino `VHGUI compose pixel` fallback behind `service:vhguicomposecommon`. Its scalar host loop preserved unmasked signed palette addressing, typed-array out-of-range reads, full Int32 palette entries, forward source/destination/palette alias behavior, exact A/C/D/X and `VHGUIx`/`VHGUIy` terminal state, and unchanged B/E/stack state. Focused source and service fixtures passed. The attribution run structurally removed `VHGUI compose pixel`: **24,657,934** exact instructions over 27 presentations versus **24,656,444** runner-accounted instructions, a difference of **1,490** (**0.0060426798125098394%**). Evidence: `../Linoctissite/build/browser-profile/surface/instruction-profile-after-gui-compose-5s.json`.
+
+Candidate A nevertheless lost both mandatory production measures to its immediate committed background-cache baseline. Runtime `25430f0dd7a65fe29ed62e0b` produced 184 presentations at **9.187229750668475 Hz** and **106.40271736357523 ms runner/presentation**; runtime `7580cf245eb91ef380a155c9` then produced 200 at **9.98976049549212 Hz** and **84.9420000064373 ms runner/presentation**. The service removed **272,291.3578260869 linked instructions/presentation**, but lost **0.802530744823645 Hz** and added **21.46071735713793 ms runner/presentation**. Both runs had zero drops and no console, request, or page failures. Reverse ordering and wider gates were skipped by the rejection rule. Evidence: `../Linoctissite/build/browser-profile/surface/gui-compose-candidate-20s.json` and `../Linoctissite/build/browser-profile/surface/gui-compose-baseline-control-20s.json`.
+
+The candidate source, service, tests, and generated runtime were removed. Production remains the committed background-cache runtime `7580cf245eb91ef380a155c9`; the browser record and 60-Hz gap are unchanged.
+
 ## Evidence classes
 
 - **Healthy-host absolute:** an absolute production observation on a responsive host. This class establishes progress toward 60 Hz.
