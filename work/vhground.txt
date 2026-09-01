@@ -4529,6 +4529,11 @@
 	[VHGNDblurpasses] = 2;
 	A = [VHGNDhudcount]; A '* 320; A + 320; [VHGNDblursize] = A;
     "VHGND surface blur pass"
+	=> VHGND surface blur common;
+	-> VHGND surface blur complete;
+    "VHGND surface blur common"
+	-> VHGND surface blur source;
+    "VHGND surface blur source"
 	A = nw; A + RADPT; A + 2556; [VHGNDblurp] = A;
 	[VHGNDblurcount] = [VHGNDblursize];
     "VHGND surface blur pixel"
@@ -4540,7 +4545,9 @@
 	A > 2; C = [VHGNDblurval]; C & 192; A | C; [D] = A;
 	[VHGNDblurp]+; [VHGNDblurcount]-;
 	A = [VHGNDblurcount]; ? A > 0 -> VHGND surface blur pixel;
-	[VHGNDblurpasses]-; A = [VHGNDblurpasses]; ? A > 0 -> VHGND surface blur pass;
+	[VHGNDblurpasses]-; A = [VHGNDblurpasses]; ? A > 0 -> VHGND surface blur source;
+	end;
+    "VHGND surface blur complete"
 	A = [VHGNDwaveblur]; ? A <= 0 -> VHGND wave impact finish done;
 	A = [VHGNDdosim]; ? A = 0 -> VHGND wave impact finish done; [VHGNDwaveblur]-;
     "VHGND wave impact finish done"
