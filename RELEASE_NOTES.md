@@ -1,5 +1,44 @@
 # Noctis IV L.in.oleum port -- Windows and macOS prerelease
 
+## Beta 26
+
+Beta 26 follows the completed native-performance pass with a compatibility and
+verification release. Windows x86, macOS x86_64, macOS arm64, and the browser
+continue to compile the same tracked `work/vhgame.txt` dependency closure. There
+is no C/C++ or JavaScript gameplay or renderer replacement, target-specific Lino
+source fork, or raw target-machine block in the shipping closure.
+
+Projected Stardrifter HUD text now uses the native font bit order and glyph
+placement. The Stardrifter controls and checkpoint contract are now explicit and
+exercised:
+ordinary movement and pitch remain distinct from held Ctrl shortcuts, modal
+Escape cannot become a delayed quit, GAME/FCS/device/Preferences actions retain
+their owning state, Target Browser return paths are protected, and the current
+checkpoint preserves the corresponding stopped-drive, reset, lighting, menu,
+and mouse-look state.
+
+The live renderer oracle has expanded from individual scenes to a broad orbital
+and weather gallery. It now covers lunar limbs and eclipse ordering, cupola and
+hull occlusion, compact and multiple-companion arrangements, class 0/5/6/10/11
+orbital primaries, surface suns, and exact frozen-world and atmospheric
+sunrise, weather, and flare boundaries. These checks keep their scoped indexed,
+palette-band, projection, painter-family, and clock claims explicit rather than
+promoting non-atomic captures to whole-frame equality.
+
+The retained browser now builds 74 shared-Lino modules and 23 stockfiles into
+runtime `ed628cc038426cd430927b0a`. Accepted work includes budget scheduling,
+portable terrain blur, viewport masking and area copy, background restoration,
+exact multiply/root services, structured self-backedges, generated-PC sinking,
+and counted GUI loops. The deployed worker boots, paints, advances simulation,
+and completes the menu, Target Browser, and click-focus routes in fresh Chromium.
+These are measured compatibility and throughput gains, not a claim that the
+browser has reached sustained 60-FPS parity.
+
+Tag publication still waits for all three native packages and publishes each
+archive with an adjacent SHA-256 checksum and provenance record. Both Mac apps
+remain ad-hoc signed rather than Developer ID signed or notarized, so first
+launch may require approval under System Settings, Privacy & Security.
+
 ## Beta 25
 
 Beta 25 publishes the completed native-performance pass while keeping Noctis IV
