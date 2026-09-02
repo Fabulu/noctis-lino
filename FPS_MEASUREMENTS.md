@@ -520,6 +520,19 @@ The candidate lost **4.558863288000969 Hz (31.788778977051724%)** and added **20
 
 Because the first adjacent pair decisively failed both mandatory metrics, the reverse baseline/candidate pair and structural profile were not run. All uncommitted compiler, tests, production selection, and generated candidate artifacts were removed immediately; the restored site was rebuilt and verified byte-clean at retained **8,106-KiB** runtime `ed628cc038426cd430927b0a`. The strict healthy record, 60-Hz gap, highest retained-runtime observation, and browser/native parity status are unchanged.
 
+### Rejected Chromium 2,048-PC generated regions
+
+A production-only candidate restored static generated-runner regions from 1,024 PCs to LinoJava's existing 2,048-PC default. The larger regions reduced generated factory count and allowed PC sinking across boundaries that the 1,024-PC split must publish, while every transfer, service, budget, call, return, direct/interior entry, and generated-region boundary retained the existing linked-Lino semantics. No compiler, shared-Lino, native, or gameplay source changed. The focused region/callback/nested-call differential gate passed **1/1**, and the real-Chromium Linoctissite gate passed **5/5**. The generated candidate fell from the retained rounded **8,106 KiB** to **8,000 KiB** and reported runtime `0b40a3237785149e50df7d71`.
+
+| Runtime | Revisions / runtime | Presentations | Presentation | Simulation | Runner | Display | Instructions/presentation | Evidence |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| 2,048-PC-region candidate before Baseline A | Linoleum `a1770ff20980581efbeb8aead87d32398a0a7f6a`; candidate workspace based on Linoctissite `d7f48952f5a385c5c12683d87f23ff6110d27940` and unchanged LinoJava `b88895a5fa2bea3ab176010f579d3f905c66565d`; runtime `0b40a3237785149e50df7d71` | 233 | **11.641734368570559 Hz** | **11.641734368570559 Hz** | **72.94763949091342 ms/presentation** | 2.366094423465974 ms/presentation | **778,745.652360515** | `../Linoctissite/build/browser-profile/surface/region-2048-candidate-first-20s.json` |
+| Immediate 1,024-PC counted Baseline A | Same repository bases and host; retained runtime `ed628cc038426cd430927b0a` | 249 | **12.436816974126033 Hz** | **12.436816974126033 Hz** | **66.27751001871255 ms/presentation** | 2.3742971899040253 ms/presentation | **780,748.3413654618** | `../Linoctissite/build/browser-profile/surface/region-2048-baseline-first-20s.json` |
+
+The candidate lost **0.7950826055554749 Hz (6.392975045058484%)** and added **6.67012947220087 ms/presentation (10.063940951187892%)** of runner time against its immediate baseline. Its display cost fell only **0.008202766438051068 ms/presentation**, while its sampled instruction count fell **2,002.6890049468493/presentation (0.25650890291285383%)**. Startup was **75.5693568 seconds** candidate and **54.672436000000005 seconds** baseline. Both arms had zero dropped presentations and no console, request, or page failures.
+
+Because the first adjacent pair decisively failed both mandatory metrics, the reverse baseline/candidate pair and structural profile were not run. The one-line production selection was restored immediately, the site was rebuilt, and candidate/generated paths were verified at retained **8,106-KiB** runtime `ed628cc038426cd430927b0a`. The smaller regions remain production. The strict healthy record, 60-Hz gap, highest retained-runtime observation, and browser/native parity status are unchanged.
+
 ## Evidence classes
 
 - **Healthy-host absolute:** an absolute production observation on a responsive host. This class establishes progress toward 60 Hz.
