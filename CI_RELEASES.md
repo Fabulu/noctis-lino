@@ -5,9 +5,10 @@
 Beta 21 was the first release whose Windows executable was compiled from tagged
 Lino source on a GitHub-hosted runner. Beta 22 added the public macOS x86_64
 Finder application, and Beta 24 added the separately compiled native
-Apple-Silicon application. Beta 25 publishes the shared-Lino performance
-checkpoint through the same three-platform boundary. Its tagged graph publishes
-nine generated assets only after all three platform packages pass:
+Apple-Silicon application. Beta 25 published the shared-Lino performance
+checkpoint; Beta 26 publishes the compatibility and verification checkpoint
+through the same three-platform boundary. Its tagged graph publishes nine
+generated assets only after all three platform packages pass:
 
 ```text
 Noctis-IV-windows-x86.zip
@@ -213,6 +214,22 @@ values are `838c615c7c941bfe953be97221d4367d2d01a39265cdbd34f1d7ecc5f78e52f5`
 (macOS x86_64), and `9981a693b45035375d20a7904e7744d9eb0f1d48f396af9cb52264d5b531abfb`
 (macOS arm64).
 
+Beta 26 completed the nine-asset public download audit at immutable commit
+`0131fd22c684113ef42cc82f210ba9379477fa68`. Tagged run 33654619311 and release
+381412392 completed on 2026-09-02. A fresh empty-directory download matched all
+nine GitHub asset digests and all three adjacent checksums, rejected unsafe or
+unexpected ZIP inventories, verified every internal manifest, and identified the
+i386 PE32 and thin x86_64/arm64 Mach-O binaries. The independent audit also
+verified the macOS CodeDirectory slots, signing flags, CodeResources maps and
+nested-game cdhash requirements, exact signature/`__LINKEDIT` suffix geometry,
+appended Lino payloads, bundle identities and deployment targets, all three
+provenance records, one shared committed `work/vhgame.txt`, and byte-identical
+game data across platforms. The archive SHA-256 values are
+`3af3f3c0ffdc22d26fce89a81c7d2fc15798958ac168b8d03be1a6ed3001dba5`
+(Windows x86), `70e4882cdc23bd9ee30f9599631022c43953a9dcc5b64ceba48026a5269f3f3c`
+(macOS x86_64), and `74917e8ef2f8bfd93cd8a8f24941a3630bff9ab472216bd1424b92f1910e1719`
+(macOS arm64).
+
 GitHub's own Actions/release-asset digest is additional evidence, not a
 replacement for the adjacent checksums and internal manifests.
 
@@ -224,8 +241,8 @@ confirm that it identifies ad-hoc macOS signing and the lack of notarization,
 then create the next annotated beta tag:
 
 ```sh
-git tag -a v0.1.0-beta.25 -m "Noctis IV Lino beta 25"
-git push origin v0.1.0-beta.25
+git tag -a v0.1.0-beta.26 -m "Noctis IV Lino beta 26"
+git push origin v0.1.0-beta.26
 ```
 
 The tag launches all three complete build graphs and publishes only after all
