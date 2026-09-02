@@ -563,6 +563,12 @@ The first candidate arm gained **2.198562406823739 Hz (27.515283341765475%)** an
 
 The reverse candidate failed the mandatory presentation metric, so the contradictory arms were not averaged and structural profiling and retention review were skipped. All uncommitted compiler, differential-test, production-selection, and generated candidate changes were removed. Linoctissite was rebuilt and verified at retained **8,106-KiB** runtime `ed628cc038426cd430927b0a`. The strict healthy record, 60-Hz gap, highest retained-runtime observation, and browser/native parity status are unchanged.
 
+### Screened-out Chromium SP fill-page bulk lowering
+
+The next counted-profile loop was `SP fp unit` at linked PCs 16311–16317 in canonical `work/spmem.txt`. It contributed **2,240,230 instructions (0.9002654071617812%)** of the retained **248,841,062**-instruction interval: **320,000** complete seven-instruction fill iterations plus **225** budget-rejected header attempts. The loop is the internal body of generic `SP fill page`, not an isolated gameplay call, and performs a byte-value store through the linked region base while publishing `SPMi`, A, and the address calculation on every iteration.
+
+A generated bulk-fill lowering was screened out before implementation. Exact admission would need unsigned do-while trip semantics for every `SPpn` value, finite budget-bounded chunks, per-PC instruction/profile accounting including rejected next-header attempts, intermediate counter/register publication, direct and interior entry, `machine.callCode()`, and scalar fallbacks for destination wrap, out-of-range memory, and aliases with the counter/value/base workspace. Those requirements duplicate much of the counted-affine machinery for a loop representing less than one percent of retained instructions, while the existing dormant `clearGroundPage` intrinsic already demonstrates the same narrow zero-fill host primitive without supplying generic `SP fill page` semantics. Even eliminating all dispatch represented by the label would cap the structural opportunity at **0.9003%** before counting the stores and guards that still have to execute. No candidate, generated runtime, or ABBA measurement was therefore admitted; production remains runtime `ed628cc038426cd430927b0a`, and the browser record and parity status are unchanged.
+
 ## Evidence classes
 
 - **Healthy-host absolute:** an absolute production observation on a responsive host. This class establishes progress toward 60 Hz.
