@@ -50,23 +50,34 @@ def wait_for_first_frame(
 ) -> tuple[int, tuple[int, int, int, int]]:
     sentinel = package / "game-vh-out.bin"
     deadline = time.monotonic() + READINESS_TIMEOUT
+    last_rectangle: tuple[int, int, int, int] | None = None
+    last_sentinel_size: int | None = None
     while time.monotonic() < deadline:
+        handle = process.desktop_window_handle()
+        if handle is not None:
+            last_rectangle = process.window_rectangle(handle)
+        if sentinel.is_file():
+            last_sentinel_size = sentinel.stat().st_size
         return_code = process.poll()
         if return_code is not None:
             raise RuntimeError(
-                f"package launcher exited during startup with code {return_code}"
+                f"package launcher exited during startup with code {return_code}; "
+                f"last window {last_rectangle}, first-frame bytes "
+                f"{last_sentinel_size}"
             )
-        handle = process.desktop_window_handle()
-        if handle is not None and sentinel.is_file():
-            if sentinel.stat().st_size == FIRST_FRAME_BYTES:
-                rectangle = process.window_rectangle(handle)
-                width = rectangle[2] - rectangle[0]
-                height = rectangle[3] - rectangle[1]
-                require(width >= 320 and height >= 200,
-                        f"game window is unexpectedly small: {rectangle}")
-                return handle, rectangle
+        if handle is not None and last_sentinel_size == FIRST_FRAME_BYTES:
+            rectangle = last_rectangle
+            assert rectangle is not None
+            width = rectangle[2] - rectangle[0]
+            height = rectangle[3] - rectangle[1]
+            require(width >= 320 and height >= 200,
+                    f"game window is unexpectedly small: {rectangle}")
+            return handle, rectangle
         time.sleep(0.10)
-    raise TimeoutError("packaged game did not expose its first rendered frame")
+    raise TimeoutError(
+        "packaged game did not expose its first rendered frame; "
+        f"last window {last_rectangle}, first-frame bytes {last_sentinel_size}"
+    )
 
 
 def request_clean_shutdown(
@@ -125,6 +136,29 @@ def validate_launcher_text() -> None:
                 f"{path.name} opts into the interactive desktop")
 
 
+def diagnose_without_music(package: Path, smoke_root: Path) -> str:
+    diagnostic_package = smoke_root / "Noctis IV no music"
+    diagnostic_caller = smoke_root / "no-music-caller"
+    shutil.copytree(package, diagnostic_package)
+    diagnostic_caller.mkdir()
+    soundtrack = diagnostic_package / "noctis_music.pcm"
+    require(soundtrack.is_file(), "no-music diagnostic lacks the soundtrack")
+    soundtrack.unlink()
+    launcher = diagnostic_package / "Play Noctis IV.cmd"
+    command = Path(os.environ.get("COMSPEC", r"C:\Windows\System32\cmd.exe"))
+    try:
+        with PrivateDesktopProcess(
+            command, diagnostic_caller, ("/d", "/c", str(launcher)),
+        ) as process:
+            handle, rectangle = wait_for_first_frame(process, diagnostic_package)
+            return_code = request_clean_shutdown(process, handle)
+            require(return_code == 0,
+                    f"no-music diagnostic launcher returned {return_code}")
+    except (OSError, RuntimeError, TimeoutError) as error:
+        return f"no-music diagnostic also failed: {error}"
+    return f"no-music diagnostic reached first frame {rectangle} and exited 0"
+
+
 def run_package(package: Path) -> None:
     if os.name != "nt":
         raise OSError("the package playability gate requires Windows")
@@ -146,14 +180,18 @@ def run_package(package: Path) -> None:
         launcher = smoke_package / "Play Noctis IV.cmd"
         command = Path(os.environ.get("COMSPEC", r"C:\Windows\System32\cmd.exe"))
 
-        with PrivateDesktopProcess(
-            command, caller, ("/d", "/c", str(launcher)),
-        ) as process:
-            handle, rectangle = wait_for_first_frame(process, smoke_package)
-            print(f"PASS packaged first frame on private desktop: {rectangle}")
-            return_code = request_clean_shutdown(process, handle)
-            require(return_code == 0,
-                    f"package launcher returned {return_code}, expected 0")
+        try:
+            with PrivateDesktopProcess(
+                command, caller, ("/d", "/c", str(launcher)),
+            ) as process:
+                handle, rectangle = wait_for_first_frame(process, smoke_package)
+                print(f"PASS packaged first frame on private desktop: {rectangle}")
+                return_code = request_clean_shutdown(process, handle)
+                require(return_code == 0,
+                        f"package launcher returned {return_code}, expected 0")
+        except (OSError, RuntimeError, TimeoutError) as error:
+            diagnosis = diagnose_without_music(package, smoke_root)
+            raise RuntimeError(f"{error}; {diagnosis}") from error
 
         checkpoint_hash = validate_checkpoint(smoke_package)
         require(not any(caller.iterdir()),

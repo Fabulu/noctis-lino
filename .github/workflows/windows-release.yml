@@ -130,9 +130,63 @@ jobs:
         shell: pwsh
         run: .\package_noctis.ps1 -OutputDirectory dist\Noctis-IV -SkipBuild
 
+      - name: Enable package crash diagnostics
+        shell: pwsh
+        run: |
+          $dumpDirectory = Join-Path $env:RUNNER_TEMP 'noctis-dumps'
+          New-Item -ItemType Directory -Path $dumpDirectory -Force | Out-Null
+          $dumpKey = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\Noctis-IV.exe'
+          New-Item -Path $dumpKey -Force | Out-Null
+          New-ItemProperty -Path $dumpKey -Name DumpFolder -Value $dumpDirectory `
+            -PropertyType ExpandString -Force | Out-Null
+          New-ItemProperty -Path $dumpKey -Name DumpType -Value 2 `
+            -PropertyType DWord -Force | Out-Null
+          New-ItemProperty -Path $dumpKey -Name DumpCount -Value 2 `
+            -PropertyType DWord -Force | Out-Null
+
+          Add-Type -TypeDefinition @'
+          using System.Runtime.InteropServices;
+          public static class NoctisWaveOutProbe {
+              [DllImport("winmm.dll")]
+              public static extern uint waveOutGetNumDevs();
+          }
+          '@
+          Write-Host "waveOut devices: $([NoctisWaveOutProbe]::waveOutGetNumDevs())"
+          Get-Service Audiosrv, AudioEndpointBuilder |
+            Select-Object Name, Status, StartType | Format-Table | Out-String | Write-Host
+          Get-CimInstance Win32_SoundDevice |
+            Select-Object Name, Status | Format-Table | Out-String | Write-Host
+          Get-CimInstance Win32_VideoController |
+            Select-Object Name, Status, CurrentHorizontalResolution, CurrentVerticalResolution |
+            Format-Table | Out-String | Write-Host
+
       - name: Launch the package from an unrelated directory
         shell: pwsh
         run: python tests\test_windows_package.py --package dist\Noctis-IV
+
+      - name: Report a packaged-game crash
+        if: failure()
+        shell: pwsh
+        run: |
+          $events = Get-WinEvent -FilterHashtable @{
+            LogName = 'Application'
+            Id = 1000
+            StartTime = (Get-Date).AddMinutes(-10)
+          } -ErrorAction SilentlyContinue | Where-Object Message -Match 'Noctis-IV\.exe'
+          if ($events) {
+            $events | Select-Object TimeCreated, ProviderName, Id, Message |
+              Format-List | Out-String -Width 4096 | Write-Host
+          } else {
+            Write-Warning 'No Noctis-IV.exe Application Error event was found'
+          }
+
+      - name: Upload packaged-game crash dumps
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Noctis-IV-windows-crash-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/noctis-dumps/*.dmp
+          if-no-files-found: warn
 
       - name: Create release archive, checksum, and provenance
         shell: pwsh
