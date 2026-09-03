@@ -4,11 +4,11 @@
 
 Beta 21 was the first release whose Windows executable was compiled from tagged
 Lino source on a GitHub-hosted runner. Beta 22 added the public macOS x86_64
-Finder application, and Beta 24 added the separately compiled native
-Apple-Silicon application. Beta 25 published the shared-Lino performance
-checkpoint; Beta 26 publishes the compatibility and verification checkpoint
-through the same three-platform boundary. Its tagged graph publishes nine
-generated assets only after all three platform packages pass:
+Finder application, Beta 24 added the separately compiled native
+Apple-Silicon application, and Beta 26 completed the compatibility and
+verification prerelease line. `v1.0.0` is the first stable release boundary.
+The same tagged graph publishes exactly nine generated assets only after all
+three platform packages pass:
 
 ```text
 Noctis-IV-windows-x86.zip
@@ -75,7 +75,9 @@ alternate production source roots.
 - `.github/workflows/tagged-release.yml` repeats the protected-source regression,
   Windows source build/package, x86_64 macOS build/package, and native arm64
   product graph for every pushed `v*` tag. Publication needs all three platform
-  package jobs, so no partial public release is created when one fails.
+  package jobs, so no partial public release is created when one fails. Exact
+  semver tags such as `v1.0.0` create stable releases; supported beta tags retain
+  GitHub's prerelease classification.
 - `.github/workflows/source-release.yml` remains an optional independent build
   through the historical Win32 compiler on an interactive `lino-gui` runner.
   It is useful as a second compiler-host comparison, but it is not required for
@@ -101,8 +103,14 @@ for the actual inputs. The record hashes canonical `work/vhgame.txt` directly as
 - final i386 PE.
 
 The package job requires every field, verifies the downloaded compiler and PE,
-and copies the record unchanged. The ZIP contains `MANIFEST.sha256` for every
-payload file. The adjacent checksum covers the archive itself.
+and copies the record unchanged. Before archiving, both ordinary master CI and
+the tagged workflow copy the assembled package, invoke `Play Noctis IV.cmd`
+from an unrelated working directory on a private inactive desktop, require the
+real game's first-frame sentinel and window, quit through the normal save path,
+and require exit status zero plus identical package-local v18 `CURRENT.LIN` and
+`CURRENT.BAK`. The caller directory and original package must remain unchanged.
+The ZIP contains `MANIFEST.sha256` for every payload file. The adjacent checksum
+covers the archive itself.
 
 ## macOS build and package gates
 
@@ -233,23 +241,34 @@ game data across platforms. The archive SHA-256 values are
 GitHub's own Actions/release-asset digest is additional evidence, not a
 replacement for the adjacent checksums and internal manifests.
 
-## Creating a prerelease
+## Creating a stable release
 
 Require green master Windows, Intel-macOS runtime, Apple-Silicon Rosetta
-package, and native Apple-Silicon product workflows. Review `RELEASE_NOTES.md`,
-confirm that it identifies ad-hoc macOS signing and the lack of notarization,
-then create the next annotated beta tag:
+package, and native Apple-Silicon product workflows. Run all three private-
+desktop acceptance phases against the exact candidate, review the unique
+`## v1.0.0` section in `RELEASE_NOTES.md`, and confirm that it identifies ad-hoc
+macOS signing and the lack of notarization. Then create the annotated stable tag
+once:
 
 ```sh
-git tag -a v0.1.0-beta.26 -m "Noctis IV Lino beta 26"
-git push origin v0.1.0-beta.26
+python tools/release_notes_for_tag.py v1.0.0
+git tag -a v1.0.0 -m "Noctis IV Lino v1.0.0"
+git push origin v1.0.0
 ```
 
-The tag launches all three complete build graphs and publishes only after all
-jobs pass. If a release already exists for the tag, a manual rerun replaces only
-the nine generated assets. Do not move or recreate a published tag to hide a
-failure; fix master and use the next version. Complete the independent public
-download audit before calling the release verified.
+An exact semver tag creates a normal GitHub release without `--prerelease`.
+Supported beta tags still create prereleases. The tag launches all three complete
+build graphs and publishes only after all jobs pass. The publication step requires
+exactly the nine canonical assets listed above. If a release already exists for
+the tag, a manual rerun preserves its body and replaces only those nine generated
+assets; unexpected remote assets stop the rerun rather than being deleted.
+
+Do not move or recreate `v1.0.0` to hide a failure. Fix forward with a new
+version. Download all nine public assets into an empty directory and complete the
+independent audit before calling the release verified.
+
+Historical beta tags use the corresponding `## Beta N` section and an annotated
+tag such as `v0.1.0-beta.26`; Beta 9 through Beta 26 extraction remains covered.
 
 ## Optional interactive Windows runner
 

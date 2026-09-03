@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import plistlib
+import re
 import struct
 import sys
 import tempfile
@@ -217,6 +218,15 @@ class MacOSAArch64RuntimeTests(unittest.TestCase):
         self.assertIn("tagged_release:", workflow)
         self.assertIn('branches: ["**"]', workflow)
         self.assertIn("Derive native package versions", workflow)
+        version_pattern = re.search(
+            r'match = re\.fullmatch\(\s+r"([^"]+)"', workflow,
+        )
+        self.assertIsNotNone(version_pattern)
+        stable_match = re.fullmatch(version_pattern.group(1), "v1.0.0")
+        self.assertIsNotNone(stable_match)
+        self.assertEqual(stable_match.group(1), "1.0.0")
+        for malformed_tag in ("v100", "v1x0x0", "1.0.0"):
+            self.assertIsNone(re.fullmatch(version_pattern.group(1), malformed_tag))
         self.assertIn("inputs.package_artifact_name", workflow)
         self.assertIn("Upload publishable native package", workflow)
         self.assertIn("--cpu:aarch64", compile_script)

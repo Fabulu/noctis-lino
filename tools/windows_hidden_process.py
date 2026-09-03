@@ -302,16 +302,15 @@ class PrivateDesktopProcess:
             raise ctypes.WinError(ctypes.get_last_error())
         return self.poll()
 
-    def main_window_handle(self) -> int | None:
+    def _largest_window_handle(self, process_id: int | None) -> int | None:
         candidates: list[tuple[int, int]] = []
         callback_error: list[BaseException] = []
 
         def visit(hwnd, _lparam):
             try:
-                process_id = wintypes.DWORD()
-                self.user32.GetWindowThreadProcessId(
-                    hwnd, ctypes.byref(process_id))
-                if process_id.value == self.process.dwProcessId:
+                owner = wintypes.DWORD()
+                self.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+                if process_id is None or owner.value == process_id:
                     rect = RECT()
                     if self.user32.GetWindowRect(hwnd, ctypes.byref(rect)):
                         area = max(0, rect.right - rect.left) * max(
@@ -336,6 +335,13 @@ class PrivateDesktopProcess:
         if not candidates:
             return None
         return max(candidates)[1]
+
+    def main_window_handle(self) -> int | None:
+        return self._largest_window_handle(self.pid)
+
+    def desktop_window_handle(self) -> int | None:
+        """Return the largest window, including one owned by a child process."""
+        return self._largest_window_handle(None)
 
     def window_rectangle(self, handle: int) -> tuple[int, int, int, int]:
         rect = RECT()

@@ -18,8 +18,8 @@ Noctis IV+ game in the language it inspired.
 
 - Explore the procedural Feltyrion galaxy from the fully playable Stardrifter.
 - Approach and land on every planet class, then walk, fly, save, and return.
-- Choose the authentic 18.2 FPS presentation or smooth 60 FPS rendering without
-  changing the original simulation rate.
+- Keep the original 18.206-Hz simulation while desktop presentation defaults to
+  smooth 60 Hz and browser presentation defaults to the authentic cadence.
 - Run the production game in resizable Windows and native Cocoa hosts with music,
   screenshots, panoramas, checkpoints, and the original onboard systems.
 
@@ -86,17 +86,19 @@ its catalogue additions.
   control card, and Esc saves and quits. The iGUI full-screen title-bar button
   toggles full-screen mode; while full-screen, Esc returns to the window first.
 
-The original 18.2 FPS presentation remains the default. The 60 FPS mode
-interpolates player movement, flight, the lift, capsule, wildlife, ocean, and
-close-star poses without changing the original simulation rate.
+Desktop builds default to smooth 60-Hz presentation. F5 selects the authentic
+18.206-Hz presentation instead; either mode retains the original simulation
+rate.
 
 The complete browser build is live at
 [linoctis.pages.dev](https://linoctis.pages.dev/), backed by the separate
 [`Fabulu/linojava`](https://github.com/Fabulu/linojava) runtime. It compiles and
 runs the Lino project as pure JavaScript, with no WebAssembly backend. The real
 Lino-rendered iGUI, menus, framebuffer, game code, persistence, and packaged
-Noctis assets run in the page. Spaceflight and ordinary interface scenes can
-reach 60 FPS; dense landed vegetation remains an active performance target.
+Noctis assets run in the page. Fresh browser sessions default to authentic
+18.206-Hz presentation in both worker and main-thread routes. Experimental
+60-Hz presentation requires `?presentation=60`; sustained 60 FPS and
+browser/native performance parity are not claimed.
 
 ### Flight and surface play
 
@@ -162,16 +164,20 @@ existing directory, so stale files cannot masquerade as bundle content.
 - Double-click `Play Noctis IV.cmd` inside the Windows bundle to play.
 - The launcher anchors assets, checkpoints, catalogue files, and diagnostics to
   the bundle even when started from another working directory.
-- Both platform packages include the original 48,376-record `GUIDE.BIN`. Back up
-  that file with saves and `STARMAP.BIN` to preserve player notes added through
+- All three desktop packages include the original 48,376-record `GUIDE.BIN`. Back
+  up that file with saves and `STARMAP.BIN` to preserve player notes added through
   `CAST`.
 
 Ordinary pushes and pull requests run protected-source, gameplay, source-build,
-and package checks on hosted runners. A version tag matching `v*` rebuilds the
-Windows x86, macOS x86_64, and native macOS arm64 executables from the tagged
-source and publishes a GitHub prerelease only after all three package graphs
-pass. Each ZIP has an adjacent SHA-256 checksum and source/compiler/binary
-provenance record; each extracted package contains its own per-file manifest.
+and package checks on hosted runners. A supported version tag matching `v*`
+rebuilds the Windows x86, macOS x86_64, and native macOS arm64 executables from
+the tagged source and publishes only after all three package graphs pass. Exact
+semver tags such as `v1.0.0` create stable releases; historical beta tags remain
+prereleases. Each release contains exactly nine assets: a ZIP, adjacent SHA-256
+checksum, and source/compiler/binary provenance record for each platform. Each
+extracted package contains its own per-file manifest. Both Windows package paths
+run the launcher from an unrelated working directory on a private inactive
+desktop and require a first frame, clean package-local save, and exit status zero.
 The x86_64 macOS graph additionally proves all seven production NIVGEN hashes
 under Rosetta. Both Mac graphs verify strict nested ad-hoc signatures before and
 after extraction, launcher data behavior, the first Cocoa retrace, and a normal
@@ -277,8 +283,8 @@ silhouette and the source's marked wall bands in frame.
 - [`TEST_COVERAGE.md`](TEST_COVERAGE.md) states what automation and native play
   actually cover, including the representative procedural and native boundaries.
 - [`CI_RELEASES.md`](CI_RELEASES.md) describes hosted source builds, package
-  provenance, macOS validation, the optional interactive runner, and nine-asset
-  tagged prerelease publication.
+  provenance, macOS validation, the optional interactive runner, and exact-nine-
+  asset stable/prerelease publication.
 - [`docs/NIVGEN.md`](docs/NIVGEN.md) documents the public NIVGEN protocol,
   local scoring workflow, known undefined texture tail, and accuracy strategy.
 

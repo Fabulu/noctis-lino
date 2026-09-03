@@ -136,6 +136,7 @@ TESTS = [
     ("test_orbitlunar_limb_runtime.py", "private-desktop IDEAL beside-primary view retains the aligned lunar limb and source-window geometry"),
     ("test_orbitlunar_eclipse_runtime.py", "private-desktop IDEAL pair protects globe-before-primary overwrite and the beside-primary positive control"),
     ("test_surface_flare_oracle.py", "rebuilt ten-case surface-flare probe equals six concatenated Borland pages, three real positive ray/distance pages, and the exact lunar no-beam boundary"),
+    ("test_windows_package.py", "Windows launcher anchors mutable files and the hosted package jobs run a private-desktop first-frame/save/exit gate"),
     ("test_release_notes.py", "tagged GitHub releases contain only their own RELEASE_NOTES section"),
     ("test_fp_transgrade.py", "independent transcendental grading preserves signed zero and the one-ULP boundary"),
     ("test_native_closure.py", "all shipping targets share the canonical tracked Lino source closure, which contains zero target blocks and retains the exact reviewed 324-operation float inventory"),

@@ -1,4 +1,50 @@
-# Noctis IV L.in.oleum port -- Windows and macOS prerelease
+# Noctis IV L.in.oleum port -- release history
+
+## v1.0.0
+
+This is the first stable release of the shared L.in.oleum Noctis IV port.
+Windows x86, macOS x86_64, macOS arm64, and the browser compile the same
+tracked `work/vhgame.txt` dependency closure from `work/` and `main/lib`.
+Gameplay, simulation, rendering, floating-point behavior, and commands remain
+in portable Lino source: the shipping closure has no native or JavaScript
+gameplay replacement, target-specific Lino fork, or raw target-machine block.
+
+A fresh-product acceptance route now proves the core game as a connected
+journey rather than as isolated screens. It calibrates the Vimana, submits a
+real `NEXT` destination, reaches a different generated system, selects a
+landable body, completes fine approach and natural capsule descent, moves on
+the surface, saves and reloads the full local-approach state, returns to the
+Stardrifter, and repeats landing and ascent on a distinct second body. The
+checkpoint loader also now treats capsule terrain altitude as signed, so valid
+surface saves below the elevation origin restore correctly. Keyboard, pointer,
+menu, glyph, Target Browser, FCS, device, Preferences, and clean-shutdown paths
+remain covered on private inactive desktops.
+
+The Galactic Guide acceptance route exercises `CAT`, `CAST`, `REP`, `DELE`,
+`CLEAN`, `REPAIR`, `PRI`, `PRIF`, `OUTBOX`, and `INBOX` through the shipping
+interface. It verifies protected consolidated records, fixed-size local record
+mutation, tombstone cleanup and duplicate repair, persistent restart, exact
+CRLF text exports, preservation of unrelated local records, and idempotent
+exchange import.
+
+Desktop builds continue to default to 60-Hz presentation. Fresh browser
+sessions now default to the authentic 18.206-Hz presentation cadence; browser
+60-Hz presentation is an explicit experimental `?presentation=60` opt-in in
+both worker and main-thread routes. This is not a claim of sustained browser
+60 FPS or browser/native performance parity. The browser remains on the final
+retained no-further-optimization runtime for this release.
+
+The relocatable Windows launcher now invokes `%~dp0Noctis-IV.exe` explicitly
+after anchoring the package directory. This avoids dependence on the caller's
+current-directory executable search policy while preserving package-local assets,
+saves, Guide data, and diagnostics.
+
+The stable tag publishes exactly nine generated assets: an archive, adjacent
+SHA-256 checksum, and provenance record for Windows x86, macOS x86_64, and
+macOS arm64. Publication waits for all three hosted package gates, and the
+Windows package is launched from outside its install directory before release.
+Both Mac apps are ad-hoc signed rather than Developer ID signed or notarized,
+so first launch may require approval under System Settings, Privacy & Security.
 
 ## Beta 26
 

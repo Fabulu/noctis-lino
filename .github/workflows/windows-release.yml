@@ -111,6 +111,11 @@ jobs:
       - name: Check out the port
         uses: actions/checkout@v7
 
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
       - name: Download the compiled PE
         uses: actions/download-artifact@v8
         with:
@@ -124,6 +129,10 @@ jobs:
       - name: Assemble the standalone Windows package
         shell: pwsh
         run: .\package_noctis.ps1 -OutputDirectory dist\Noctis-IV -SkipBuild
+
+      - name: Launch the package from an unrelated directory
+        shell: pwsh
+        run: python tests\test_windows_package.py --package dist\Noctis-IV
 
       - name: Create release archive, checksum, and provenance
         shell: pwsh

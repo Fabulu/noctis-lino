@@ -11,6 +11,39 @@ class, vegetation, trees, mammals, birds, ruins, and the Cube. That result is
 broad regression coverage, not a claim that every procedural seed and native
 input timing combination can be exhaustively enumerated.
 
+## Stable v1 product acceptance (2026-09-03)
+
+Three fresh private-desktop product phases passed against the shipping shared-
+Lino game. The menus phase exercised keyboard and clickable-row routes for
+About, visual effects, moviemaker, controls/help, FCS, the device root and child
+pages, Target Browser, Preferences, data sheets, GOES, and the landing selector.
+Every enabled action was checked for its state or file effect, representative
+disabled/cancel paths were retained, and fixed 320x200 BMP regions protect the
+visible row text, glyphs, and layout.
+
+The journey phase started without `CURRENT.LIN` or `CURRENT.BAK`, calibrated the
+Vimana, submitted `NEXT` through the real GOES character path, and reached a
+different generated system. It selected a landable body, completed fine approach
+and natural capsule descent, moved on the surface, saved and quit, then restored
+the exact selected body, generated body count/type, local-approach state, and
+surface X/Z pose from a v18 checkpoint. It sealed and ascended back to the
+Stardrifter, travelled to a distinct second system/body, repeated natural landing,
+surface movement, and capsule return, then completed a final ship save/quit/reload.
+
+The Guide phase submitted real `CAT`, `CAST`, `REP`, `DELE`, `CLEAN`, `PRI`,
+`PRIF`, `OUTBOX`, `INBOX`, and bounded `REPAIR` commands in isolated product
+copies. Protected consolidated records remained unchanged; local 84-byte records
+were appended, corrected, tombstoned, compacted, restarted, exported with exact
+CRLF 72-column layout, exchanged without losing unrelated local data, and
+re-imported idempotently. The tracked `GUIDE.BIN` and `STARMAP.BIN` hashes were
+unchanged.
+
+The Windows distribution gate additionally copied the assembled package, invoked
+`Play Noctis IV.cmd` from an unrelated directory on a private inactive desktop,
+observed the actual 642x426 first-frame window, exited zero through the normal
+save path, and produced byte-identical package-local v18 primary/backup saves
+without writing in the caller directory or changing the release package.
+
 On 2026-08-19 the complete development macOS x86_64 artifact passed its hosted
 Apple-Silicon path. Unsigned Cocoa and headless runtimes were built on arm64,
 the fixpoint compiler cross-built NIVTEST and the game on Ubuntu, and Rosetta 2
@@ -70,8 +103,8 @@ manual editor oversight rather than inheriting its unreachable far region.
 | Enter a generated planetary system | Source-generated body topology with an animated console map: central star, retained relative orbits/orientations, selected planet, and correctly parented moons; the flight HUD identifies planets versus moons and shows a readable world class plus authoritative landability |
 | Land and walk | Physical capsule descent, gravity, rebounds and settling lead into first-person type-specific terrain, across the source 64-tile view radius with live textures, shading, crevasses, deterministic rocks, historical ruins, open-ocean sea level, calm-water/ice terrain reflections, shimmer, contracting wind crests and expanding swimmer wakes, type-3 vegetation/trees, three mammal gaits, landing/flying/capturable birds, atmospheric skies, type-3 rain/lightning, source-shaped indexed EPOC/SQC/compass and smoothed environmental visor data, low-gravity jumping, hold-to-thrust jetpack flight, and capsule ascent |
 | Resize the game | Live iGUI window with centered 8:5 nearest-neighbour aspect-fit scaling; validated dimensions persist across clean restarts |
-| Save / load | A valid `CURRENT.LIN` resumes automatically at startup; verified saves refresh `CURRENT.BAK`, and a present-but-malformed primary visibly recovers from that last-known-good copy while a deliberately missing primary starts clean. Global F6/F7 checkpoints work in the ship and on settled surfaces, retain target/player state plus the local fine-approach and parked-world state, landing and settled-capsule coordinates, window dimensions, presentation, F2 visual preferences, original PFS preferences and navigation heading, diagnostics, soundtrack, internal light, navigation devices, capture progress, power, lithium, collector, pending-rescue state, and a UTC timestamp for closed-game evolution, and show visible success/failure feedback; v1 through v14 port saves remain loadable and the exact original CURRENT.BIN codec remains available as a component |
-| Distributable bundles | Windows package script builds an isolated play folder; the hosted macOS graph builds a Finder app. Both include assets, player instructions, WPL, internal SHA-256 manifest, adjacent archive checksum, and explicit provenance |
+| Save / load | A valid `CURRENT.LIN` resumes automatically at startup; verified saves refresh `CURRENT.BAK`, and a present-but-malformed primary visibly recovers from that last-known-good copy while a deliberately missing primary starts clean. Global F6/F7 checkpoints work in the ship and on settled surfaces, retain target/player state plus the local fine-approach and parked-world state, landing and settled-capsule coordinates, window dimensions, presentation, F2 visual preferences, original PFS preferences and navigation heading, diagnostics, soundtrack, internal light, navigation devices, capture progress, power, lithium, collector, pending-rescue state, and a UTC timestamp for closed-game evolution, and show visible success/failure feedback; v1 through v17 port saves remain loadable and the exact original CURRENT.BIN codec remains available as a component |
+| Distributable bundles | Windows package script builds an isolated play folder; hosted graphs build x86_64 and native arm64 Finder apps. All include assets, player instructions, WPL, internal SHA-256 manifest, adjacent archive checksum, and explicit provenance; Windows snapshot and tagged packages pass the private-desktop launcher/first-frame/save/exit gate before archiving |
 | Quit | Windows Esc, iGUI close, and Alt+F4 use checkpoint/audio cleanup; macOS window close and AppKit Quit pulse normal Escape intervals until the same Lino save/cleanup path exits |
 
 ## How to run
@@ -85,18 +118,27 @@ powershell -NoProfile -ExecutionPolicy Bypass -File C:\programmieren\linoleum\pl
 
 # Build a self-contained redistributable Windows play folder
 powershell -NoProfile -ExecutionPolicy Bypass -File C:\programmieren\linoleum\package_noctis.ps1
+
+# Run one retained product route (all three run when --phase is omitted)
+python tests\test_playability_runtime.py --phase journey --force
+
+# Prove the assembled Windows launcher/product boundary
+python tests\test_windows_package.py --package dist\Noctis-IV
 ```
 
-For a tagged Mac package, verify `Noctis-IV-macos-x86_64.zip` with its adjacent
+For a tagged Mac package, verify the architecture-appropriate
+`Noctis-IV-macos-x86_64.zip` or `Noctis-IV-macos-arm64.zip` with its adjacent
 checksum, extract `Noctis IV.app`, and open the app. The x86_64 image runs on
-Intel or through Rosetta 2 on Apple Silicon. It is ad-hoc signed and not
-notarized, so first launch can require explicit approval under macOS Privacy &
-Security. Mutable data is under `~/Library/Application Support/Noctis IV`.
+Intel or through Rosetta 2 on Apple Silicon; the arm64 image runs natively on
+Apple Silicon. Both are ad-hoc signed and not notarized, so first launch can
+require explicit approval under macOS Privacy & Security. Mutable data is under
+`~/Library/Application Support/Noctis IV`.
 
-The Windows launcher always uses `work\` as the game directory, preventing checkpoints
-and other persistent files from being split across whichever directory happened
-to be current in the shell. The bounded timeout harness below remains available
-for automated smoke work; it is not the normal interactive launcher.
+The Windows bundle launcher anchors mutable files to its own directory and invokes
+`%~dp0Noctis-IV.exe` explicitly, so it remains relocatable and does not depend on
+the caller's executable search path. The bounded package gate copies the bundle,
+launches it from an unrelated directory on a private inactive desktop, and rejects
+caller-directory writes.
 
 ### Native map-edge and complete capsule-return regression
 

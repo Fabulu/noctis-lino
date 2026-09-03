@@ -70,6 +70,10 @@ jobs:
         shell: pwsh
         run: python tests\test_release_notes.py
 
+      - name: Validate this pushed tag's release-note section
+        shell: pwsh
+        run: python tools\release_notes_for_tag.py $env:GITHUB_REF_NAME --output build\tag-release-notes.md
+
       - name: Run the focused integrated-game regression
         shell: pwsh
         env:
@@ -115,6 +119,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
       - name: Download the compiled PE
         uses: actions/download-artifact@v8
         with:
@@ -151,6 +160,10 @@ jobs:
       - name: Assemble the standalone Windows package
         shell: pwsh
         run: .\package_noctis.ps1 -OutputDirectory dist\Noctis-IV -SkipBuild
+
+      - name: Launch the package from an unrelated directory
+        shell: pwsh
+        run: python tests\test_windows_package.py --package dist\Noctis-IV
 
       - name: Create archive, checksum, and provenance
         shell: pwsh
@@ -546,7 +559,7 @@ jobs:
       package_artifact_name: Noctis-IV-macos-arm64-${{ github.ref_name }}
 
   publish:
-    name: Publish the GitHub prerelease
+    name: Publish the GitHub release
     needs: [package, mac_package, arm64_package]
     runs-on: windows-latest
     permissions:
@@ -599,9 +612,57 @@ jobs:
             'dist\Noctis-IV-macos-arm64.zip.sha256',
             'dist\Noctis-IV-macos-arm64.provenance.txt'
           )
-          if (gh release view $tag 2>$null) {
+          $expectedNames = @(
+            $files | ForEach-Object { Split-Path -Leaf $_ } | Sort-Object
+          )
+          if ($files.Count -ne 9 -or ($expectedNames | Select-Object -Unique).Count -ne 9) {
+            throw 'The release manifest must contain exactly nine unique assets'
+          }
+          foreach ($file in $files) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Missing release asset: $file"
+            }
+          }
+          $actualNames = @(
+            Get-ChildItem -LiteralPath dist -File |
+              Where-Object Name -ne 'release-notes.md' |
+              ForEach-Object Name |
+              Sort-Object
+          )
+          if ($actualNames.Count -ne 9 -or
+              @(Compare-Object $expectedNames $actualNames).Count -ne 0) {
+            throw "Downloaded assets do not exactly match the nine-file release manifest: $($actualNames -join ', ')"
+          }
+
+          $isStable = $tag -cmatch '^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$'
+          gh release view $tag --json tagName 1>$null 2>$null
+          $releaseExists = $LASTEXITCODE -eq 0
+          if ($releaseExists) {
+            $remoteNames = @(gh release view $tag --json assets --jq '.assets[].name')
+            if ($LASTEXITCODE -ne 0) { throw "Could not inspect existing release $tag" }
+            $unexpected = @($remoteNames | Where-Object { $_ -notin $expectedNames })
+            if ($unexpected.Count) {
+              throw "Existing release has unexpected assets; refusing destructive cleanup: $($unexpected -join ', ')"
+            }
             gh release upload $tag @files --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Could not replace release assets for $tag" }
             Write-Host "Existing release body preserved; replaced generated assets only."
           } else {
-            gh release create $tag @files --verify-tag --notes-file $notes --prerelease --title "Noctis IV L.in.oleum port $tag"
+            $releaseArgs = @(
+              'release', 'create', $tag
+            ) + $files + @(
+              '--verify-tag', '--notes-file', $notes,
+              '--title', "Noctis IV L.in.oleum port $tag"
+            )
+            if (-not $isStable) { $releaseArgs += '--prerelease' }
+            gh @releaseArgs
+            if ($LASTEXITCODE -ne 0) { throw "Could not create release $tag" }
+          }
+
+          $publishedNames = @(
+            gh release view $tag --json assets --jq '.assets[].name' | Sort-Object
+          )
+          if ($LASTEXITCODE -ne 0 -or $publishedNames.Count -ne 9 -or
+              @(Compare-Object $expectedNames $publishedNames).Count -ne 0) {
+            throw "Published release does not contain exactly the nine canonical assets: $($publishedNames -join ', ')"
           }
