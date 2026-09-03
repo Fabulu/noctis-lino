@@ -30,6 +30,7 @@ CHECKPOINT_SCHEMA = 18
 FIRST_FRAME_BYTES = 156
 READINESS_TIMEOUT = 120.0
 SHUTDOWN_TIMEOUT = 30.0
+ERROR_INVALID_WINDOW_HANDLE = 1400
 VK_ESCAPE = 0x1B
 
 
@@ -81,6 +82,18 @@ def wait_for_first_frame(
     )
 
 
+def post_shutdown_key(
+        process: PrivateDesktopProcess, handle: int, down: bool,
+) -> bool:
+    try:
+        process.post_key(handle, VK_ESCAPE, down)
+    except OSError as error:
+        if getattr(error, "winerror", None) != ERROR_INVALID_WINDOW_HANDLE:
+            raise
+        return False
+    return True
+
+
 def request_clean_shutdown(
         process: PrivateDesktopProcess, handle: int,
 ) -> int:
@@ -95,10 +108,11 @@ def request_clean_shutdown(
             current = process.desktop_window_handle()
             if current is not None:
                 handle = current
-                process.post_key(handle, VK_ESCAPE, True)
-                time.sleep(0.10)
-                if process.poll() is None:
-                    process.post_key(handle, VK_ESCAPE, False)
+                if post_shutdown_key(process, handle, True):
+                    time.sleep(0.10)
+                    if (process.poll() is None and
+                            process.desktop_window_handle() == handle):
+                        post_shutdown_key(process, handle, False)
             next_escape = now + 2.0
         time.sleep(0.10)
     raise TimeoutError("packaged game did not exit through its save path")
@@ -114,6 +128,33 @@ def validate_checkpoint(package: Path) -> str:
     require(words[1] == CHECKPOINT_SCHEMA,
             f"saved checkpoint schema is {words[1]}, expected {CHECKPOINT_SCHEMA}")
     return hashlib.sha256(current).hexdigest()
+
+
+def validate_shutdown_window_race() -> None:
+    class InvalidWindowHandle(OSError):
+        winerror = ERROR_INVALID_WINDOW_HANDLE
+
+    class ExitingProcess:
+        def __init__(self) -> None:
+            self.polls = 0
+            self.inputs: list[tuple[int, bool]] = []
+
+        def poll(self) -> int | None:
+            self.polls += 1
+            return 0 if self.polls >= 3 else None
+
+        def desktop_window_handle(self) -> int:
+            return 7
+
+        def post_key(self, _handle: int, key: int, down: bool) -> None:
+            self.inputs.append((key, down))
+            if not down:
+                raise InvalidWindowHandle("window closed after key-down")
+
+    process = ExitingProcess()
+    require(request_clean_shutdown(process, 7) == 0 and
+            process.inputs == [(VK_ESCAPE, True), (VK_ESCAPE, False)],
+            "shutdown does not tolerate the game closing before key-up")
 
 
 def validate_launcher_text() -> None:
@@ -225,6 +266,8 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        validate_shutdown_window_race()
+        print("PASS shutdown tolerates the window closing before key-up")
         validate_launcher_text()
         print("PASS launcher anchors and propagates package execution")
         if args.package is not None:
