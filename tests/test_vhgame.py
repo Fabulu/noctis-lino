@@ -4920,7 +4920,9 @@ def main() -> int:
             "[VHSVok] = 0;", "[File Command] = SET SIZE; [File Size] = 268;",
             "[File Command] = TEST;", "? [File Size] != 268 -> VHSV save done;",
             "[VHSVok] = 1;",
-        )),
+            "A = [vhsvbuf plus 43]; ? A >= 1000000 -> VHSV load done; [VHSVdropy] = A;",
+        ))
+        and "A = [vhsvbuf plus 43]; ? A '>= 1000000" not in save,
         "startup resume and F6/F7 cover stable ship/surface checkpoints with fallback",
     )
     save_body = section(save, '"VHSV save"', '"VHSV load"')
@@ -5110,6 +5112,7 @@ def main() -> int:
             "[VHGascii] = 0; [Console Command] = GET CONSOLE INPUT; isocall;",
             "? failed -> VHG console ring ready;", "CLEAR CONSOLE BUFFER",
             "? A = 71 -> VHG activate console shortcut;",
+            "? A = 103 -> VHG activate console shortcut; -> VHG normal input;",
             "? A != 9 -> VHG console key ready; [VHPkey] = 13;",
             "A = [VHGconsole]; ? A != 0 -> VHG device key done;",
             "A = [VHGconsole]; ? A != 0 -> VHG info key done;",

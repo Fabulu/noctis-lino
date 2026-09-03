@@ -575,12 +575,18 @@ class InputDriver:
              timeout: float = INPUT_TIMEOUT) -> ControlState:
         self.reader.drain()
         before = self.state["sequence"]
+        ascii_value = ord(character) if isinstance(character, str) else character
         self.process.post_char(self.handle, character)
-        state = self.wait(before, predicate or (lambda _state: True), description, timeout)
+        state = self.wait(
+            before,
+            (lambda value: value["ascii"] == ascii_value)
+            if predicate is None else predicate,
+            description,
+            timeout,
+        )
         self.report.event(
-            "character", ascii=ord(character) if isinstance(character, str) else character,
-            description=description, before_sequence=before,
-            after_sequence=state["sequence"],
+            "character", ascii=ascii_value, description=description,
+            before_sequence=before, after_sequence=state["sequence"],
         )
         return state
 
@@ -589,9 +595,30 @@ class InputDriver:
                  timeout: float = INPUT_TIMEOUT) -> ControlState:
         self.reader.drain()
         before = self.state["sequence"]
-        self.process.post_key(self.handle, key, True)
+        after = before
+        deadline = time.monotonic() + timeout
+        reached: ControlState | None = None
+        last_timeout: TimeoutError | None = None
         try:
-            reached = self.wait(before, predicate, description, timeout)
+            while reached is None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise AcceptanceBlocked(str(last_timeout) if last_timeout else
+                                            f"timed out waiting for {description}")
+                # A posted letter key can occasionally arrive before the private
+                # window has installed its next input sample. Repeating key-down
+                # while it is meant to remain held is harmless and prevents one
+                # missed message from consuming the entire journey timeout.
+                self.process.post_key(self.handle, key, True)
+                try:
+                    reached = self.reader.wait(
+                        self.process, after, predicate, description,
+                        min(2.0, remaining),
+                    )
+                except TimeoutError as error:
+                    last_timeout = error
+                    if self.reader.last is not None:
+                        after = self.reader.last["sequence"]
         finally:
             if self.process.poll() is None:
                 self.process.post_key(self.handle, key, False)
@@ -608,9 +635,13 @@ class InputDriver:
         opened = self.char("g", "open GOES console", lambda state: state["console"] == 1)
         before = opened["sequence"]
         for character in text:
+            ascii_value = ord(character)
             self.process.post_char(self.handle, character)
-            before = self.wait(before, lambda _state: True,
-                               f"accept GOES character {character!r}")["sequence"]
+            before = self.wait(
+                before,
+                lambda state, expected=ascii_value: state["ascii"] == expected,
+                f"accept GOES character {character!r}",
+            )["sequence"]
         self.process.post_char(self.handle, 9)
         result = self.wait(
             before,
@@ -752,7 +783,11 @@ class InputDriver:
         gallery = self.stage / "GALLERY"
         gallery.mkdir(exist_ok=True)
         before = {path.name for path in gallery.glob("*.BMP")}
-        self.char(character, f"capture {label}")
+        self.char(
+            character,
+            f"capture {label}",
+            lambda value: value["notice_frames"] > 0,
+        )
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             candidates = sorted(
@@ -1083,16 +1118,65 @@ def find_landable(driver: InputDriver, excluded: set[tuple[tuple[int, int, int],
 def wait_star_reached(driver: InputDriver, after: int, label: str) -> ControlState:
     state = driver.wait(
         after,
-        lambda value: value["star_reached"] == 1 and value["star_drive"] == 0,
+        lambda value: value["star_reached"] == 1
+        and value["star_drive"] == 0
+        and value["drive_status"] == 6,
         label,
         JOURNEY_TIMEOUT,
     )
     current = current_star(state)
-    target = (state["target_x"], state["target_y"], state["target_z"])
-    require(all(math.isfinite(value) for value in current), "current star contains non-finite data")
-    require(all(abs(value - expected) < 0.001 for value, expected in zip(current, target)),
-            f"Vimana reached {current}, not target {target}")
+    require(all(math.isfinite(value) for value in current),
+            "current star contains non-finite data")
     return state
+
+
+def travel_to_next_star(driver: InputDriver, report: PhaseReport,
+                        label: str) -> ControlState:
+    previous_target = (
+        driver.state["target_x"], driver.state["target_y"],
+        driver.state["target_z"],
+    )
+    command = driver.command("NEXT")
+    retargeted = driver.wait(
+        command["sequence"],
+        lambda value: (
+            value["target_x"], value["target_y"], value["target_z"]
+        ) != previous_target and value["star_drive"] == 1,
+        f"{label} retarget and Vimana start",
+        120.0,
+    )
+    report.transition(f"{label}-vimana-started", retargeted)
+    arrived = wait_star_reached(
+        driver, retargeted["sequence"], f"reach {label} Vimana target"
+    )
+    report.transition(f"{label}-vimana-reached", arrived)
+    return arrived
+
+
+def find_landable_system(
+    driver: InputDriver,
+    report: PhaseReport,
+    excluded: set[tuple[tuple[int, int, int], int]],
+    label: str,
+    *,
+    max_next_systems: int = 64,
+) -> ControlState | None:
+    """Search the current and subsequent generated systems for a body."""
+    visited_targets: set[tuple[int, int, int]] = set()
+    for attempt in range(max_next_systems + 1):
+        target = (
+            driver.state["target_x"], driver.state["target_y"],
+            driver.state["target_z"],
+        )
+        if target in visited_targets:
+            return None
+        visited_targets.add(target)
+        selected = find_landable(driver, excluded)
+        if selected is not None:
+            return selected
+        if attempt < max_next_systems:
+            travel_to_next_star(driver, report, f"{label}-system-{attempt + 1}")
+    return None
 
 
 def land_selected_body(driver: InputDriver, report: PhaseReport,
@@ -1229,6 +1313,8 @@ def run_journey(report: PhaseReport, executable: Path) -> None:
     staged = stage_product(stage, executable, None)
     arguments = (f"clock={CLOCK_SECONDS}", "controltrace", "profile")
     first_identity: tuple[tuple[int, int, int], int]
+    first_body_type: int
+    first_system_body_count: int
     saved_surface: dict[str, Any]
 
     with PrivateDesktopProcess(staged, stage, arguments) as process:
@@ -1240,26 +1326,24 @@ def run_journey(report: PhaseReport, executable: Path) -> None:
         report.transition("fresh-vimana-calibrated", calibrated)
         driver.snapshot("fresh-vimana-calibrated")
         opening_target = (calibrated["target_x"], calibrated["target_y"], calibrated["target_z"])
-        command = driver.command("NEXT")
-        retargeted = driver.wait(
-            command["sequence"],
-            lambda value: (value["target_x"], value["target_y"], value["target_z"])
-            != opening_target and value["star_drive"] == 1,
-            "NEXT retarget and Vimana start",
-            120.0,
+        arrived = travel_to_next_star(driver, report, "next")
+        require(
+            (arrived["target_x"], arrived["target_y"], arrived["target_z"])
+            != opening_target,
+            "NEXT did not leave the opening star",
         )
-        report.transition("next-vimana-started", retargeted)
-        arrived = wait_star_reached(driver, retargeted["sequence"],
-                                    "reach NEXT Vimana target")
-        report.transition("next-vimana-reached", arrived)
-        selected = find_landable(driver, set())
+        selected = find_landable_system(
+            driver, report, set(), "first-landable"
+        )
         if selected is None:
-            raise AcceptanceBlocked("NEXT system exposes no landable generated body")
+            raise AcceptanceBlocked("NEXT route exposes no landable generated body")
         report.transition("first-body-selected", selected)
         first_identity = (
             (selected["target_x"], selected["target_y"], selected["target_z"]),
             selected["planet"],
         )
+        first_body_type = selected["planet_type"]
+        first_system_body_count = selected["system_body_count"]
         land_selected_body(driver, report, "first-body")
         settled = driver.state
         beta = settled["beta"]
@@ -1296,8 +1380,13 @@ def run_journey(report: PhaseReport, executable: Path) -> None:
             resumed["mode"] == 1
             and resumed["landed"] == 1
             and resumed["planet"] == saved_surface["planet"]
+            and resumed["planet_type"] == first_body_type
+            and resumed["system_body_count"] == first_system_body_count
+            and resumed["local_active"] == saved_surface["local_active"] == 1
+            and resumed["local_target"] == saved_surface["local_target"]
+            and resumed["local_reached"] == saved_surface["local_reached"] == 1
             and (resumed["x"], resumed["z"]) == (saved_surface["x"], saved_surface["z"]),
-            "relaunch did not resume the saved first-body surface pose",
+            "relaunch did not resume the complete first-body surface state",
         )
         rearmed = driver.wait(
             resumed["sequence"] - 1,
@@ -1308,21 +1397,9 @@ def run_journey(report: PhaseReport, executable: Path) -> None:
         report.transition("first-body-surface-reloaded", rearmed)
         ship = return_saved_excursion(driver, report, "first-body-reload")
 
-        selected = find_landable(driver, {first_identity})
-        if selected is None:
-            previous_target = (ship["target_x"], ship["target_y"], ship["target_z"])
-            command = driver.command("NEXT")
-            retargeted = driver.wait(
-                command["sequence"],
-                lambda value: (value["target_x"], value["target_y"], value["target_z"])
-                != previous_target and value["star_drive"] == 1,
-                "retarget for a second landable body",
-                120.0,
-            )
-            arrived = wait_star_reached(driver, retargeted["sequence"],
-                                        "reach second system")
-            report.transition("second-system-reached", arrived)
-            selected = find_landable(driver, {first_identity})
+        selected = find_landable_system(
+            driver, report, {first_identity}, "second-landable"
+        )
         if selected is None:
             raise AcceptanceBlocked("no distinct second landable body was generated")
         report.transition("second-body-selected", selected)

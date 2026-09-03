@@ -359,7 +359,8 @@
     "VHSV load capsule stored"
 	A = [vhsvbuf plus 42]; ? A '< VHGNDLO -> VHSV load done;
 	? A '> VHGNDHI -> VHSV load done; [VHSVdropx] = A;
-	A = [vhsvbuf plus 43]; ? A '>= 1000000 -> VHSV load done; [VHSVdropy] = A;
+	( Surface terrain elevations may be negative; validate drop_y signed. )
+	A = [vhsvbuf plus 43]; ? A >= 1000000 -> VHSV load done; [VHSVdropy] = A;
 	A = [vhsvbuf plus 44]; ? A '< VHGNDLO -> VHSV load done;
 	? A '> VHGNDHI -> VHSV load done; [VHSVdropz] = A;
 	[VHSVdropstored] = 1;

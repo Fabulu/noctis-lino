@@ -3733,7 +3733,8 @@
 	=> VHG HUD brightness key;
 	A = [VHGmode]; ? A != 0 -> VHG surface input;
 	A = [VHGascii]; ? A = 13 -> VHG activate wall console;
-	? A = 71 -> VHG activate console shortcut; ? A != 103 -> VHG normal input;
+	? A = 71 -> VHG activate console shortcut;
+	? A = 103 -> VHG activate console shortcut; -> VHG normal input;
     "VHG activate wall console"
 	A = [VHGscreen]; ? A = 2 -> VHG request landing;
 	? A != 0 -> VHG normal input;
