@@ -4,6 +4,7 @@ Run: python tests/test_fp_runtime_boundary.py
 """
 from pathlib import Path
 import re
+import struct
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,6 +78,44 @@ def main():
             rejected += 1
     check(rejected == 3,
           "post-link patch rejects missing, duplicate, and already-patched runtimes")
+
+    header = struct.unpack_from("<17I", win)
+    check(header[0] == 8,
+          "protected Windows system pack exposes exactly eight runtime variants")
+    overlay = b"exact-generated-code-overlay-witness"
+    variants = []
+    for index in range(8):
+        variant_offset = 68 + header[1 + index]
+        variant_size = header[9 + index]
+        runtime = win[variant_offset:variant_offset + variant_size]
+        protected_runtime = patch_runtime_fcw.patch_runtime_image(runtime + overlay)
+        variants.append((runtime, protected_runtime, variant_size))
+    check(all(len(protected_runtime) == variant_size + len(overlay) and
+              protected_runtime[variant_size:] == overlay
+              for _, protected_runtime, variant_size in variants),
+          "all Win32 runtime variants preserve size and generated-code overlays")
+    audio_runtime, protected, variant_size = variants[2]
+    check(patch_runtime_fcw.NEW_PROTECT_IMPORT in protected and
+          patch_runtime_fcw.OLD_PROTECT_IMPORT not in protected,
+          "audio runtime imports VirtualProtect instead of process-priority tuning")
+    original_thread = patch_runtime_fcw.THREAD_START.search(audio_runtime)
+    check(original_thread is not None and
+          protected.count(b"\x83\xec\x04\x8b\xc4\x50\x6a\x40") == 1 and
+          protected[original_thread.start() + 5:original_thread.end()] ==
+          b"\x90" * (len(original_thread.group(0)) - 5),
+          "worker startup makes only the generated-code allocation executable-writable")
+    damaged_runtime = audio_runtime.replace(
+        patch_runtime_fcw.OLD_PROTECT_IMPORT,
+        b"\0" * len(patch_runtime_fcw.OLD_PROTECT_IMPORT),
+    )
+    rejected = 0
+    for invalid in (damaged_runtime, protected):
+        try:
+            patch_runtime_fcw.patch_runtime_image(invalid)
+        except ValueError:
+            rejected += 1
+    check(rejected == 2,
+          "Win32 executable-code patch rejects damaged and already-patched runtimes")
     build = BUILD.read_text(encoding="utf-8")
     check("tools\\patch_runtime_fcw.py" in build and
           "& python $runtimePatcher $built" in build and

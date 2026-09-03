@@ -37,7 +37,11 @@ retained no-further-optimization runtime for this release.
 The relocatable Windows launcher now invokes `%~dp0Noctis-IV.exe` explicitly
 after anchoring the package directory. This avoids dependence on the caller's
 current-directory executable search policy while preserving package-local assets,
-saves, Guide data, and diagnostics.
+saves, Guide data, and diagnostics. The post-link Win32 runtime boundary also
+marks only the compiler-generated code allocation executable before its worker
+starts, so the historical runtime boots under hosts that enforce data-execution
+prevention without changing shared Lino gameplay or making the workspace heap
+executable.
 
 The stable tag publishes exactly nine generated assets: an archive, adjacent
 SHA-256 checksum, and provenance record for Windows x86, macOS x86_64, and

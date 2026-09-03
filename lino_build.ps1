@@ -236,13 +236,14 @@ if ($built -and $built -ne $outExe) {
 
 # Keep the licence-protected upstream runtime under main/ byte-for-byte intact.
 # The compiler has copied one selected Win32 runtime variant into the settled
-# PE at this point; patch only that output image to install FCWEXT=133Fh.
+# PE at this point; patch only that output image to install FCWEXT=133Fh and
+# make its generated-code allocation executable before worker startup.
 $runtimePatchError = $null
 if ($built -and $settled) {
     $runtimePatcher = Join-Path $PSScriptRoot 'tools\patch_runtime_fcw.py'
     $runtimePatchOutput = & python $runtimePatcher $built 2>&1
     if ($LASTEXITCODE -ne 0) {
-        $runtimePatchError = "runtime FP-boundary patch failed: $($runtimePatchOutput -join ' | ')"
+        $runtimePatchError = "runtime boundary patch failed: $($runtimePatchOutput -join ' | ')"
     }
 }
 
