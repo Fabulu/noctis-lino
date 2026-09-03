@@ -165,6 +165,13 @@ def require(condition: bool, message: str) -> None:
         raise AcceptanceFailure(message)
 
 
+def lino_source_sha256(path: Path) -> str:
+    """Hash canonical LF source bytes independently of checkout policy."""
+    data = path.read_bytes().replace(b"\r\n", b"\n")
+    require(b"\r" not in data, f"Lino source has unsupported line endings: {path}")
+    return hashlib.sha256(data).hexdigest()
+
+
 def exact_state(state: ControlState) -> dict[str, int]:
     return {name: state[name] for name in STATE_EVIDENCE_FIELDS}
 
@@ -440,7 +447,7 @@ class PhaseReport:
             "provenance": {
                 "executable_path": str(executable.resolve()),
                 "executable_sha256": file_sha256(executable),
-                "game_source_sha256": file_sha256(GAME_SOURCE),
+                "game_source_sha256": lino_source_sha256(GAME_SOURCE),
                 "tracked_guide_sha256": file_sha256(TRACKED_GUIDE),
                 "tracked_starmap_sha256": file_sha256(TRACKED_STARMAP),
             },
@@ -569,6 +576,21 @@ class InputDriver:
         self.report.event("key", virtual_key=key, description=description,
                           before_sequence=before, after_sequence=state["sequence"])
         return state
+
+    def save_checkpoint(self, description: str, timeout: float = 20.0) -> bytes:
+        previous = checkpoint_mtimes(self.stage)
+
+        def written(_state: ControlState) -> bool:
+            current = checkpoint_mtimes(self.stage)
+            return current is not None and (
+                previous is None
+                or all(new > old for new, old in zip(current, previous))
+            )
+
+        # Keep F6 down until the synchronous save has updated both files. A short
+        # tap can be consumed entirely between two historical-runtime key polls.
+        self.tap_key(VK_F6, description, written, timeout, hold=0)
+        return wait_for_checkpoint(self.stage, previous, timeout)
 
     def char(self, character: str | int, description: str,
              predicate: Callable[[ControlState], bool] | None = None,
@@ -1264,9 +1286,7 @@ def surface_excursion_and_return(driver: InputDriver, report: PhaseReport,
     report.transition(f"{label}-capsule-recovery-armed", excursion)
     driver.snapshot(f"{label}-excursion")
     if persist:
-        before = checkpoint_mtimes(driver.stage)
-        driver.tap_key(VK_F6, f"save {label} surface checkpoint")
-        payload = wait_for_checkpoint(driver.stage, before)
+        payload = driver.save_checkpoint(f"save {label} surface checkpoint")
         checkpoint = decode_checkpoint(payload)
         require(checkpoint["mode"] == 1 and checkpoint["landed"] == 1,
                 f"{label} surface save is not a settled landed checkpoint")
@@ -1358,9 +1378,7 @@ def run_journey(report: PhaseReport, executable: Path) -> None:
         )
         report.transition("first-body-capsule-recovery-armed", excursion)
         driver.snapshot("first-body-excursion")
-        before = checkpoint_mtimes(stage)
-        driver.tap_key(VK_F6, "save first-body surface checkpoint")
-        payload = wait_for_checkpoint(stage, before)
+        payload = driver.save_checkpoint("save first-body surface checkpoint")
         saved_surface = decode_checkpoint(payload)
         require(saved_surface["mode"] == 1 and saved_surface["landed"] == 1,
                 "first-body checkpoint is not settled on the surface")
@@ -1410,9 +1428,7 @@ def run_journey(report: PhaseReport, executable: Path) -> None:
         require(second_identity != first_identity, "second body repeats first body identity")
         land_selected_body(driver, report, "second-body")
         surface_excursion_and_return(driver, report, "second-body", persist=False)
-        before = checkpoint_mtimes(stage)
-        driver.tap_key(VK_F6, "save final ship checkpoint")
-        payload = wait_for_checkpoint(stage, before)
+        payload = driver.save_checkpoint("save final ship checkpoint")
         final_saved = decode_checkpoint(payload)
         require(final_saved["mode"] == 0 and final_saved["landed"] == 0,
                 "final checkpoint is not aboard the Stardrifter")
