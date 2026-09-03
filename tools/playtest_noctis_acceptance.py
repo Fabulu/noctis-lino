@@ -688,7 +688,7 @@ class InputDriver:
             self.settle_frames(2, "GAME menu pre-open")
             self.reader.drain()
             before = self.state["sequence"]
-            self.raw_tap_key(VK_F10)
+            self.raw_tap_key(VK_F10, hold=0.10)
             paused = self.reader.drain()
             require(paused is not None, "GAME menu opener lost its control trace")
             time.sleep(0.60)
@@ -703,27 +703,28 @@ class InputDriver:
                            timeout: float = INPUT_TIMEOUT) -> ControlState:
         require(0 <= index < 12, f"GAME menu index {index} is invalid")
         before = self.open_game_menu()
-        for _row in range(index):
-            self.raw_tap_key(VK_DOWN)
-        self.raw_tap_key(VK_RETURN)
+        direction = VK_DOWN if index <= 6 else VK_UP
+        steps = index if direction == VK_DOWN else 12 - index
+        for _row in range(steps):
+            self.raw_tap_key(direction, hold=0.10)
+        self.raw_tap_key(VK_RETURN, hold=0.10)
         state = self.wait(
             before, predicate or (lambda _state: True),
             f"invoke GAME row {index}: {description}", timeout,
         )
         self.report.event("game-menu-option", index=index, description=description,
                           before_sequence=before, after_sequence=state["sequence"],
-                          input=[VK_F10, *([VK_DOWN] * index), VK_RETURN])
+                          input=[VK_F10, *([direction] * steps), VK_RETURN])
         return state
 
     def invoke_game_quit(self) -> None:
         before = self.open_game_menu()
-        for _row in range(11):
-            self.raw_tap_key(VK_DOWN)
-        self.raw_tap_key(VK_RETURN)
+        self.raw_tap_key(VK_UP, hold=0.10)
+        self.raw_tap_key(VK_RETURN, hold=0.10)
         self.report.event(
             "game-menu-option", index=11, description="Save and quit",
             before_sequence=before, after_sequence=None,
-            input=[VK_F10, *([VK_DOWN] * 11), VK_RETURN],
+            input=[VK_F10, VK_UP, VK_RETURN],
         )
 
     def _write_control_pointer(self, x: int, y: int, down: bool) -> None:

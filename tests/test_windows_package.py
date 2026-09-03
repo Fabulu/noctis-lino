@@ -133,7 +133,8 @@ def validate_launcher_text() -> None:
                 f"{path.name} does not run the package playability gate once")
         require("Launch the package from an unrelated directory" in workflow,
                 f"{path.name} does not describe the package launch boundary")
-        require("read_bytes().replace(b'\\r\\n', b'\\n')" in workflow,
+        require("Path(r'work\\vhgame.txt').read_bytes().replace(b'\\r\\n', b'\\n')"
+                in workflow,
                 f"{path.name} does not compare canonical LF source provenance")
         require("-DefaultDesktop" not in workflow,
                 f"{path.name} opts into the interactive desktop")

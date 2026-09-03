@@ -74,7 +74,7 @@ REQUIRED_BUILD_TEXT = {
     ),
     ".github/workflows/windows-release.yml": (
         "'commit', 'source_sha256',",
-        "read_bytes().replace(b'\\r\\n', b'\\n')",
+        "Path(r'work\\vhgame.txt').read_bytes().replace(b'\\r\\n', b'\\n')",
         "$values.source_sha256 -ne $sourceHash",
     ),
     ".github/workflows/macos-aarch64-runtime.yml": (
@@ -82,7 +82,7 @@ REQUIRED_BUILD_TEXT = {
     ),
     ".github/workflows/tagged-release.yml": (
         "'commit', 'source_sha256',",
-        "read_bytes().replace(b'\\r\\n', b'\\n')",
+        "Path(r'work\\vhgame.txt').read_bytes().replace(b'\\r\\n', b'\\n')",
         "$values.source_sha256 -ne $sourceHash",
     ),
 }
