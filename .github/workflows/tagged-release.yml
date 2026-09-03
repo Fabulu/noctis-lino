@@ -201,7 +201,7 @@ jobs:
           if ($values.commit -ne $env:GITHUB_SHA -or $values.target -ne 'win32/i386m') {
             throw 'Build provenance does not identify this commit and target'
           }
-          $sourceHash = (Get-FileHash -LiteralPath work\vhgame.txt -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sourceHash = python -c "from pathlib import Path; import hashlib; data = Path(r'work\vhgame.txt').read_bytes().replace(b'\r\n', b'\n'); assert b'\r' not in data; print(hashlib.sha256(data).hexdigest())"
           $exeHash = (Get-FileHash -LiteralPath work\vhgame.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $compilerHash = (Get-FileHash -LiteralPath build\compiled\linux-compiler114m.bin -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($values.source_sha256 -ne $sourceHash -or

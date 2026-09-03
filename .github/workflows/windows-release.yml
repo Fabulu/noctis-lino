@@ -188,6 +188,31 @@ jobs:
           path: ${{ runner.temp }}/noctis-dumps/*.dmp
           if-no-files-found: warn
 
+      - name: Capture the packaged-game startup fault with CDB
+        if: failure()
+        shell: pwsh
+        run: |
+          $candidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\Debuggers\x86\cdb.exe'),
+            (Join-Path $env:ProgramFiles 'Windows Kits\10\Debuggers\x86\cdb.exe')
+          )
+          $cdb = $candidates | Where-Object { Test-Path -LiteralPath $_ } |
+            Select-Object -First 1
+          if (-not $cdb) { throw 'The Windows SDK x86 CDB executable is unavailable' }
+          python tools\diagnose_windows_package_crash.py `
+            --cdb $cdb --package dist\Noctis-IV `
+            --output (Join-Path $env:RUNNER_TEMP 'noctis-cdb')
+
+      - name: Upload packaged-game CDB diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Noctis-IV-windows-cdb-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/noctis-cdb/*.txt
+            ${{ runner.temp }}/noctis-cdb/*.dmp
+          if-no-files-found: warn
+
       - name: Create release archive, checksum, and provenance
         shell: pwsh
         run: |
@@ -219,7 +244,7 @@ jobs:
           if ($values.commit -ne $env:GITHUB_SHA -or $values.target -ne 'win32/i386m') {
             throw 'Build provenance does not identify this commit and target'
           }
-          $sourceHash = (Get-FileHash -LiteralPath work\vhgame.txt -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sourceHash = python -c "from pathlib import Path; import hashlib; data = Path(r'work\vhgame.txt').read_bytes().replace(b'\r\n', b'\n'); assert b'\r' not in data; print(hashlib.sha256(data).hexdigest())"
           $exeHash = (Get-FileHash -LiteralPath work\vhgame.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $compilerHash = (Get-FileHash -LiteralPath build\compiled\linux-compiler114m.bin -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($values.source_sha256 -ne $sourceHash -or

@@ -24,6 +24,7 @@ WINDOWS_WORKFLOWS = (
     ROOT / ".github" / "workflows" / "windows-release.yml",
     ROOT / ".github" / "workflows" / "tagged-release.yml",
 )
+CDB_DIAGNOSTIC = ROOT / "tools" / "diagnose_windows_package_crash.py"
 CHECKPOINT_BYTES = 268
 CHECKPOINT_SCHEMA = 18
 FIRST_FRAME_BYTES = 156
@@ -132,8 +133,19 @@ def validate_launcher_text() -> None:
                 f"{path.name} does not run the package playability gate once")
         require("Launch the package from an unrelated directory" in workflow,
                 f"{path.name} does not describe the package launch boundary")
+        require("read_bytes().replace(b'\\r\\n', b'\\n')" in workflow,
+                f"{path.name} does not compare canonical LF source provenance")
         require("-DefaultDesktop" not in workflow,
                 f"{path.name} opts into the interactive desktop")
+
+    diagnostic = CDB_DIAGNOSTIC.read_text(encoding="utf-8")
+    snapshot_workflow = WINDOWS_WORKFLOWS[0].read_text(encoding="utf-8")
+    require("PrivateDesktopProcess(" in diagnostic and
+            '"-cf", str(commands), "-logo", str(log), str(target)' in diagnostic,
+            "CDB diagnostic does not launch the target on a private desktop")
+    require("python tools\\diagnose_windows_package_crash.py" in snapshot_workflow and
+            "Windows Kits\\10\\Debuggers\\x86\\cdb.exe" in snapshot_workflow,
+            "snapshot workflow does not invoke the x86 CDB startup diagnostic")
 
 
 def diagnose_without_music(package: Path, smoke_root: Path) -> str:
