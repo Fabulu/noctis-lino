@@ -21,6 +21,11 @@ WAIT_TIMEOUT = 258
 WM_CHAR = 0x0102
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101
+MAPVK_VK_TO_VSC = 0
+EXTENDED_KEYS = frozenset({
+    0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,  # navigation
+    0x2D, 0x2E, 0x6F, 0x90, 0x91,
+})
 WNDENUMPROC = getattr(ctypes, "WINFUNCTYPE", ctypes.CFUNCTYPE)(
     wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 
@@ -155,6 +160,8 @@ def _configured_kernel32():
     user32.GetWindowThreadProcessId.restype = wintypes.DWORD
     user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(RECT)]
     user32.GetWindowRect.restype = wintypes.BOOL
+    user32.MapVirtualKeyW.argtypes = [wintypes.UINT, wintypes.UINT]
+    user32.MapVirtualKeyW.restype = wintypes.UINT
     user32.PostMessageW.argtypes = [
         wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
     user32.PostMessageW.restype = wintypes.BOOL
@@ -345,7 +352,12 @@ class PrivateDesktopProcess:
 
     def post_key(self, handle: int, virtual_key: int, down: bool) -> None:
         message = WM_KEYDOWN if down else WM_KEYUP
-        lparam = 1 if down else 0xC0000001
+        scan_code = self.user32.MapVirtualKeyW(virtual_key, MAPVK_VK_TO_VSC)
+        lparam = 1 | (scan_code << 16)
+        if virtual_key in EXTENDED_KEYS:
+            lparam |= 1 << 24
+        if not down:
+            lparam |= 3 << 30
         if not self.user32.PostMessageW(
                 handle, message, virtual_key, lparam):
             raise ctypes.WinError(ctypes.get_last_error())

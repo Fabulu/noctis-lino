@@ -13,6 +13,12 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
+from noctis_control_trace import (  # noqa: E402
+    ControlState,
+    TRACE_BYTES,
+    TRACE_NAME,
+    decode_trace,
+)
 from profile_noctis_desktop import (  # noqa: E402
     CLOCK_SECONDS,
     decode_profile,
@@ -25,26 +31,13 @@ from windows_hidden_process import PrivateDesktopProcess  # noqa: E402
 
 STAGE = ROOT / "build" / "controls-runtime"
 EXECUTABLE = ROOT / "work" / "vhgame.exe"
-TRACE_NAME = "game-controls-state-out.bin"
-TRACE_MAGIC = 0x56484354
-TRACE_SCHEMA = 1
-TRACE_WORDS = 26
-TRACE_BYTES = TRACE_WORDS * 4
 TIMEOUT = 90.0
 VK_CONTROL = 0x11
 VK_ESCAPE = 0x1B
 VK_DOWN = 0x28
 VK_D = 0x44
 VK_S = 0x53
-FIELDS = (
-    "magic", "schema", "sequence", "quit", "escape_held", "preferences",
-    "device", "browser_valid", "browser_origin", "fcs_open", "roofspeed",
-    "mouselook", "x", "y", "z", "alpha", "beta", "landing_select",
-    "landing_pending", "landing_longitude", "landing_latitude", "output_view",
-    "fcs_row9_class", "ctrl_used", "mode", "ascii",
-)
 FAILURES: list[str] = []
-ControlState = dict[str, int]
 
 
 def check(condition: bool, label: str) -> None:
@@ -67,25 +60,6 @@ def v18_stardrifter_checkpoint() -> bytes:
     if len(checkpoint) != 268:
         raise AssertionError(f"v18 fixture is {len(checkpoint)} bytes, expected 268")
     return bytes(checkpoint)
-
-
-def decode_trace(path: Path) -> list[ControlState]:
-    data = path.read_bytes()
-    if not data or len(data) % TRACE_BYTES:
-        raise ValueError(f"control trace has incomplete length {len(data)}")
-    records = [
-        dict(zip(FIELDS, struct.unpack_from("<26i", data, offset)))
-        for offset in range(0, len(data), TRACE_BYTES)
-    ]
-    if any(
-        record["magic"] != TRACE_MAGIC or record["schema"] != TRACE_SCHEMA
-        for record in records
-    ):
-        raise ValueError("control trace contains a bad magic or schema")
-    sequences = [record["sequence"] for record in records]
-    if sequences != list(range(1, len(records) + 1)):
-        raise ValueError("control trace sequence is stale, duplicated, or incomplete")
-    return records
 
 
 def wait_for_records(
@@ -224,8 +198,11 @@ def main() -> int:
             and opening["roofspeed"] == 0
             and opening["mouselook"] == 1
             and opening["preferences"] == 0
+            and opening["fast_presentation"] == 1
+            and opening["star_drive"] == 0
+            and opening["star_reached"] == 1
             and opening["quit"] == 0,
-            "a deterministic v18 Stardrifter fixture starts with normal control preferences",
+            "a deterministic v18 Stardrifter fixture starts with normal controls and 60-Hz presentation",
         )
 
         process.post_key(handle, VK_S, True)
