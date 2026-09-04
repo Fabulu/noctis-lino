@@ -44,6 +44,37 @@ observed the actual 642x426 first-frame window, exited zero through the normal
 save path, and produced byte-identical package-local v18 primary/backup saves
 without writing in the caller directory or changing the release package.
 
+### Final public release download audit (2026-09-04)
+
+The immutable
+[`v1.0.0`](https://github.com/Fabulu/noctis-lino/releases/tag/v1.0.0) release
+was audited from a fresh download of all nine actual public assets. The normal
+stable release is neither draft nor prerelease. Remote annotated tag object
+`ecf037c489fb92da6f37542fe95212fd03bb0165` peeled to commit
+`38c638af1f2af628b0bd90205d429573e8ce3aa6`, and all three provenance records
+bound that commit to canonical shared-source SHA-256
+`c586a54c34dc73adbb6ac1a304152709189423cb27246aea01462f7667269a9e`.
+
+The Windows x86 archive is 23,494,398 bytes with SHA-256
+`3c1200e19169fb9a7d6846325bd3659139750356d0cf3710a0aeecb6b7b75c69`
+and contains 14 files with 13 internal manifest records. The macOS x86_64
+archive is 23,150,971 bytes with SHA-256
+`73bed850987b963ecd6339bff0417595f0d3282ffb9074e959cfb8c4e0efe79e`
+and contains 20 files with 17 manifest records. The macOS arm64 archive is
+23,175,351 bytes with SHA-256
+`561e925bae6ec035e61206371140b7038add8f026bb4ca39ed9b3c92185272f0`
+and contains 18 files with 15 manifest records.
+
+Every GitHub digest and adjacent checksum matched. The audit rejected unsafe
+ZIP shapes, checked every CRC and extracted byte, verified all internal
+manifest records, identified the expected i386 PE32 and thin x86_64/arm64
+Mach-O binaries, and validated bundle version 1.0.0/build 24. Both Mac packages
+passed every CodeDirectory code and special slot, ad-hoc/non-hardened signing
+flags, CodeResources hash map and nested-game cdhash, and final
+signature/`__LINKEDIT` boundary. Reversing that finalization reproduced both
+unsigned compiler-output hashes; all nine shared game-data files were
+byte-identical across platforms. No release asset or tag was changed.
+
 On 2026-08-19 the complete development macOS x86_64 artifact passed its hosted
 Apple-Silicon path. Unsigned Cocoa and headless runtimes were built on arm64,
 the fixpoint compiler cross-built NIVTEST and the game on Ubuntu, and Rosetta 2
@@ -68,7 +99,8 @@ release-asset digests and adjacent checksums, the exact 14-file Windows and
 structure, reverse-normalized and original Mac executable hashes, the unchanged
 Lino payload, and the 7/7 result. This is bounded end-to-end Rosetta evidence.
 Intel CI builds both runtime modes, but an equivalent extracted-app gameplay
-smoke has not yet run on an Intel host, and native ARM64 is not claimed.
+smoke has not yet run on an Intel host. That historical Beta 22 audit did not
+yet include the later native arm64 package; the stable audit above does.
 
 On 2026-08-12 the production capture path placed the opening system's selected
 star at a source-valid 200-unit flare distance by inverting the live camera

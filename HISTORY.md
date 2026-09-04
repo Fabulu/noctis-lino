@@ -6,6 +6,38 @@ the integrated game, and what remains. It complements `PLAYTEST.md`, which is
 the detailed evidence log, and `PORTPLAN.md`, which is the technical
 implementation and source-parity ledger.
 
+## 2026-09-04 -- stable v1.0.0 and verified public downloads
+
+The first stable release completes the shared-Lino desktop product boundary.
+Windows x86, macOS x86_64, and native macOS arm64 all compile the same tracked
+`work/vhgame.txt` closure; platform differences remain confined to compiler
+CPU/SYS packs, generated formats, and runtime/ABI code. The release candidate
+passed three connected private-desktop acceptance phases: complete menu/device
+and glyph routes, a real two-system/two-body Vimana journey through natural
+landing, surface persistence, capsule ascent and reload, and the isolated
+Galactic Guide mutation/export/exchange workflow.
+
+Annotated tag `v1.0.0` points to immutable Linoleum commit
+`38c638af1f2af628b0bd90205d429573e8ce3aa6`. The stable GitHub release
+published exactly nine assets: an archive, checksum, and provenance record for
+each desktop architecture. On 2026-09-04 a fresh download of the actual public
+assets passed independent digest, checksum, safe-inventory, CRC, extracted-byte,
+internal-manifest, PE/Mach-O, source-provenance, complete Mac-signature, unsigned-
+image reconstruction, and cross-platform game-data checks. The archive hashes
+are `3c1200e19169fb9a7d6846325bd3659139750356d0cf3710a0aeecb6b7b75c69`
+(Windows x86), `73bed850987b963ecd6339bff0417595f0d3282ffb9074e959cfb8c4e0efe79e`
+(macOS x86_64), and `561e925bae6ec035e61206371140b7038add8f026bb4ca39ed9b3c92185272f0`
+(macOS arm64). The audit did not move the tag or replace any asset.
+
+The browser product was then repinned to that exact stable Linoleum commit,
+retaining LinoJava runtime `ed628cc038426cd430927b0a` and the authentic
+18.206-Hz default presentation. Linoctissite commit
+`4060ebede1a6ead2cfe06dcb906417ace9dfbbef` was built, tested, deployed to
+[`linoctis.pages.dev`](https://linoctis.pages.dev/), and live-smoked through
+boot, simulation, GAME, Target Browser, FCS click-focus, and continued input.
+This closes the planned optimization cycle without claiming sustained browser
+60 FPS or browser/native performance parity.
+
 ## 2026-08-19 -- verified macOS application package
 
 The x86_64 game now crosses the complete application boundary rather than ending

@@ -1,7 +1,7 @@
 # Native macOS AArch64 Linoleum runtime
 
 This directory contains the checked runtime for running compiler-owned AArch64
-Lino code natively on Apple Silicon. Its current product checkpoint links the
+Lino code natively on Apple Silicon. Its stable product boundary links the
 shared Cocoa display, input, console, and file services and runs full Noctis
 through first retrace and graceful Lino shutdown. The Finder-safe native app package
 adds an arm64 launcher, safe per-user data staging, an internal manifest, exact
@@ -9,8 +9,9 @@ signature validation, and archive checksum/provenance. The shared AudioQueue ser
 publishes the historical stereo 16-bit/44.1 kHz PCM ABI and remains optional when
 no output device is available. Checked GlobalK dispatch supports iGUI's optional
 sleepy-window coordination with 24-unit names, 255-unit values, and per-user atomic
-storage. Networking, clipboard integration, and broader product-level playtests
-remain deferred.
+storage. Networking and clipboard integration remain optional service gaps not
+reached by the shipping Noctis closure; product retrace, save, quit, package, and
+public-download gates are complete.
 
 The register ABI matches the Linux bridge:
 
@@ -57,6 +58,14 @@ finalized game and its recorded build provenance. It emits
 Apple-Silicon gate extracts the archive independently and exercises both first
 retrace and graceful shutdown through the launcher.
 
-Open work after this checkpoint includes broader product-level audio/playtesting
-on physical Apple-Silicon systems and optional services only when shipped features
-make them reachable.
+The immutable stable `v1.0.0` native archive was independently downloaded after
+publication. Its SHA-256 is
+`561e925bae6ec035e61206371140b7038add8f026bb4ca39ed9b3c92185272f0`;
+its exact 18-file inventory and 15-record internal manifest, safe extraction,
+thin arm64 structure, bundle version 1.0.0/build 24, complete nested signatures,
+16-KiB `__LINKEDIT` geometry, provenance-bound reconstructed unsigned compiler
+output, and byte-identical shared game data all passed.
+
+Remaining work is additional hardware/audio-device breadth and optional runtime
+services only when a shipping Lino feature makes them reachable. It is not a
+missing native port or release-package boundary.

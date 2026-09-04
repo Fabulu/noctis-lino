@@ -238,6 +238,42 @@ game data across platforms. The archive SHA-256 values are
 (macOS x86_64), and `74917e8ef2f8bfd93cd8a8f24941a3630bff9ab472216bd1424b92f1910e1719`
 (macOS arm64).
 
+Stable `v1.0.0` completed the final post-publication audit on 2026-09-04. The
+normal, non-draft, non-prerelease release published at
+[`v1.0.0`](https://github.com/Fabulu/noctis-lino/releases/tag/v1.0.0) contains
+exactly nine assets. A fresh download matched each GitHub digest, adjacent
+checksum, and provenance archive hash. The remote annotated tag object
+`ecf037c489fb92da6f37542fe95212fd03bb0165` peeled to immutable commit
+`38c638af1f2af628b0bd90205d429573e8ce3aa6`; all three provenance records
+matched that commit and canonical shared-source SHA-256
+`c586a54c34dc73adbb6ac1a304152709189423cb27246aea01462f7667269a9e`.
+
+The Windows archive is 23,494,398 bytes with SHA-256
+`3c1200e19169fb9a7d6846325bd3659139750356d0cf3710a0aeecb6b7b75c69`;
+its exact 14-file inventory and 13-record internal manifest passed, and its
+game is the expected four-section i386 PE32. The x86_64 Mac archive is
+23,150,971 bytes with SHA-256
+`73bed850987b963ecd6339bff0417595f0d3282ffb9074e959cfb8c4e0efe79e`;
+its exact 20-file inventory and 17-record manifest passed. The arm64 Mac
+archive is 23,175,351 bytes with SHA-256
+`561e925bae6ec035e61206371140b7038add8f026bb4ca39ed9b3c92185272f0`;
+its exact 18-file inventory and 15-record manifest passed.
+
+Both thin Mac games and launchers passed every SHA-256 CodeDirectory code and
+special slot, ad-hoc/non-hardened flags, CodeResources SHA-1/SHA-256 maps and
+nested-game cdhash requirements, and exact final signature/`__LINKEDIT`
+geometry. Removing the terminal signatures and restoring original geometry
+reproduced compiler-output hashes
+`044b7613f62f5a7ea4a272a6df52d910dfeed1500156a65dc413f6453680a5c1`
+(x86_64) and
+`711301762c8933a3247bc7ddf894b34f83f3cc8357fa127f855cee0c0a7774ef`
+(arm64); both signatures began after exactly 14 zero alignment bytes. The
+x86_64 normalized image and appended payload also reproduced their provenance
+hashes. Fresh extraction passed CRC and extracted-byte identity checks, and all
+nine shared game-data files were byte-identical across Windows, x86_64, and
+arm64. This audit examined the published bytes; it did not recreate, move, or
+replace the stable tag or any release asset.
+
 GitHub's own Actions/release-asset digest is additional evidence, not a
 replacement for the adjacent checksums and internal manifests.
 

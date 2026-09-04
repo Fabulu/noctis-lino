@@ -2,8 +2,8 @@
 
 This directory ports the L.in.oleum runtime to a thin x86_64 Mach-O. The normal
 build uses native Cocoa and AudioToolbox with no XQuartz dependency. Apple
-Silicon executes the same image through Rosetta 2; native ARM64 is a separate
-unfinished port.
+Silicon executes the same image through Rosetta 2; the separately built native
+arm64 port is complete under `src/linoleum_macos_aarch64`.
 
 ## Runtime boundary
 
@@ -110,10 +110,17 @@ Hosted checks establish the following:
   through normal Lino save/cleanup to a nonempty `CURRENT.LIN`.
 - Launcher tests verify immutable-resource repair, regular mutable database
   preservation, and rejection of non-regular mutable paths.
+- The actual stable `v1.0.0` archive was downloaded after publication. Its exact
+  20-file inventory and 17-record manifest, SHA-256
+  `73bed850987b963ecd6339bff0417595f0d3282ffb9074e959cfb8c4e0efe79e`, thin
+  x86_64 structure, bundle 1.0.0/build 24 metadata, complete nested signatures,
+  provenance, reconstructed unsigned compiler output and normalized image, and
+  shared game data all passed independent audit.
 
-The x86_64 app is the current Intel target and the Rosetta 2 fallback for Apple
-Silicon. Native ARM64 and Developer ID/notarized distribution remain future
-work; see `PORTPLAN-MACOS.md` at the repository root.
+The x86_64 app is the stable Intel target and the Rosetta 2 fallback for Apple
+Silicon. A separate stable native arm64 package is available for Apple Silicon.
+Developer ID/notarized distribution remains future work; see
+`PORTPLAN-MACOS.md` at the repository root.
 
 ## Headless invocation
 

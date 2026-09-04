@@ -1,12 +1,13 @@
-# macOS x86_64 port status and ARM64 plan
+# macOS x86_64 and arm64 port status
 
 ## Goal and current boundary
 
-The first macOS target is complete at the technical release boundary: the
-Noctis IV Lino program is compiled into a native x86_64 Mach-O, hosted by Cocoa
-and AudioToolbox, assembled as a Finder application, ad-hoc signed, and tested
-end to end on Apple Silicon through Rosetta 2. The same x86_64 runtime builds on
-Intel macOS. Native ARM64 remains a separate future port.
+Both macOS targets are complete at the stable technical release boundary. The
+shared Noctis IV Lino program is compiled separately into thin x86_64 and arm64
+Mach-O games, hosted by Cocoa and AudioToolbox, assembled as Finder
+applications, ad-hoc signed, and tested end to end on Apple Silicon. The x86_64
+app runs on Intel directly and on Apple Silicon through Rosetta 2; the arm64 app
+runs natively on Apple Silicon.
 
 The compiler bootstrap remains Linux-hosted. Windows is not part of the macOS
 build chain:
@@ -14,8 +15,8 @@ build chain:
 ```text
 protected i386 Linux compiler
   -> compiler114m bootstrap and byte-identical self-hosting fixpoint
-  -> x64 CPU pack + macOS SYS pack
-  -> Noctis-IV.game and headless nivtest Mach-O images
+  -> x64 or AArch64 CPU pack + matching macOS SYS pack
+  -> x86_64 or arm64 Noctis-IV.game (plus headless NIVTEST where applicable)
   -> Apple package, signature, archive, checksum, and provenance
 ```
 
@@ -62,7 +63,27 @@ memory-mapping, and signing concerns stay below the language boundary.
 - A separate headless build runs NIVGEN and other deterministic console jobs
   without linking Cocoa or AudioToolbox.
 
-### Finder application and mutable state
+### Native macOS arm64 runtime
+
+- `src/linoleum_macos_aarch64` supplies the thin arm64 runtime and compiler-owned
+  AArch64 target used by the stable Apple-Silicon package, with a macOS 11.0
+  deployment target and the normal 4-GiB `__PAGEZERO`.
+- Lino registers occupy x19 through x25 while Darwin's x18 remains reserved.
+  Full-width runtime, code-origin, and scalar-helper pointers cross the 32-bit
+  Lino workspace through checked communication slots; generated procedure values
+  remain code-relative.
+- Workspace remains read/write and non-executable. Code is writable only while
+  loading, its instruction cache is cleared, and it is sealed read/execute before
+  entry. Growth remaps safely and republishes every full-width pointer.
+- The shared Cocoa services provide resizing, fullscreen, logical pointer and
+  keyboard input, files, captures, focus handling, and graceful save/quit.
+  AudioQueue supplies the historical PCM ABI, and checked GlobalK storage covers
+  the optional iGUI coordination path.
+- Hosted Apple-Silicon execution proves the compiler-owned fixture and complete
+  Noctis game above 4 GiB, first Cocoa retrace, GlobalK and audio metadata, and
+  raw plus freshly extracted package save/quit behavior.
+
+### Finder applications and mutable state
 
 The package has this boundary:
 
@@ -94,11 +115,12 @@ The historical compiler appends Lino bytes after the runtime's original
 because bytes exist outside every segment. Packaging therefore performs one
 narrow normalization before signing:
 
-1. parse the complete thin little-endian x86_64 Mach-O and the unique
+1. parse the complete thin little-endian x86_64 or arm64 Mach-O and the unique
    `LNLMInit` paragraph;
 2. require `__LINKEDIT` to end at the original runtime boundary and to be the
    final file-backed and virtual-memory segment;
-3. require 4 KiB page geometry and a zero-filled 16-byte load-command slot;
+3. require the target's exact page geometry and a zero-filled 16-byte
+   load-command slot (4 KiB for x86_64, 16 KiB for arm64);
 4. extend only `__LINKEDIT.filesize` and page-aligned `__LINKEDIT.vmsize` over
    the complete unsigned historical file; and
 5. prove that no other byte changed.
@@ -115,22 +137,26 @@ Users may therefore need to approve the first launch in macOS Privacy & Security
 
 ## Release verification
 
-The release graph deliberately spans three hosts:
+The release graph keeps compiler and runtime provenance explicit across its hosts:
 
-1. Apple Silicon builds unsigned headless and Cocoa x86_64 runtimes and records
-   the actual Xcode, SDK, compiler, deployment target, host, and runtime hashes.
-2. Ubuntu verifies that provenance, reaches the compiler fixpoint, and compiles
-   the production game and dedicated NIVTEST image.
-3. Apple Silicon verifies transferred provenance, runs the production sector
-   through Rosetta, and requires all seven authoritative hashes.
-4. Packaging normalizes and signs the app, verifies its non-signature manifest,
-   extracts the ZIP, re-verifies signatures and manifest, exercises launcher
-   repair/preservation/rejection behavior, reaches the first real Cocoa retrace,
+1. macOS hosts build the exact x86_64 and arm64 runtime inputs and record the
+   actual Xcode, SDK, compiler, deployment target, host, and runtime hashes.
+2. Ubuntu verifies transferred provenance, reaches the compiler fixpoint, audits
+   the selected CPU pack, and compiles each production game from the same tracked
+   Lino closure.
+3. Apple Silicon runs the x86_64 production sector through Rosetta and requires
+   all seven authoritative NIVGEN hashes; the native graph executes the
+   compiler-owned AArch64 fixture and full Noctis game with all runtime pointers
+   above 4 GiB.
+4. Each package normalizes and signs its app, verifies its non-signature
+   manifest, extracts the ZIP, re-verifies signatures and manifest, exercises
+   launcher repair/preservation/rejection behavior, reaches a real Cocoa retrace,
    and exits through the normal Escape path with a nonempty `CURRENT.LIN`.
-5. The release publishes the ZIP beside an archive checksum and a provenance
-   record binding the source build, runtimes, compiler, original executable,
-   normalized executable, unchanged Lino payload, signed executable, launcher,
-   manifest, NIVTEST evidence, and archive.
+5. Stable publication waits for Windows and both Mac graphs, then publishes one
+   ZIP, checksum, and provenance record per platform: exactly nine assets. Mac
+   provenance binds the source, compiler, runtime, original and normalized
+   images, unchanged Lino payload, signed executable, launcher, manifest,
+   architecture, deployment target, bundle identity, and archive.
 
 The exact Rosetta fixture is:
 
@@ -139,22 +165,26 @@ surf=390A2CCB  atmo=114562E8  pal=26961E4A
 hm=97022FD7    oc=22913F4E    stex=0D52F001  sky=1E308D29
 ```
 
-The first complete development archive passed these gates at commit
+The first complete development x86_64 archive passed these gates at commit
 `9fbc1e62870e62f34f98775a8dd01e6af5894957` and was independently downloaded
-and audited. Beta 22 then rebuilt the same technical boundary from tagged commit
-`ccd7aecdcd4a9692b5c9890268e810f877598b7d`, published the first public Mac
-archive beside its checksum and provenance, and passed an independent public
-six-asset download audit.
+and audited. Beta 22 then published the first public x86_64 Mac archive. Beta 24
+added the independently compiled native arm64 package and expanded tagged
+publication to all nine Windows/x86_64/arm64 assets.
+
+Stable `v1.0.0` completed both architecture paths at commit
+`38c638af1f2af628b0bd90205d429573e8ce3aa6`. A final 2026-09-04 audit freshly
+downloaded all nine actual release assets. The x86_64 archive (20 files, 17
+manifest records) has SHA-256
+`73bed850987b963ecd6339bff0417595f0d3282ffb9074e959cfb8c4e0efe79e`;
+the arm64 archive (18 files, 15 manifest records) has SHA-256
+`561e925bae6ec035e61206371140b7038add8f026bb4ca39ed9b3c92185272f0`.
+Both passed safe extraction, complete manifests, thin architecture and bundle
+metadata, every CodeDirectory and CodeResources slot, nested-game cdhashes,
+ad-hoc/non-hardened flags, exact final signature/`__LINKEDIT` geometry, and
+reconstruction of the provenance-bound unsigned compiler output. Shared game
+data remained byte-identical to the Windows package.
 
 ## Remaining macOS work
-
-### Native ARM64
-
-ARM64 requires a new AArch64 CPU pack, an ARM64 IsoKernel register bridge, and an
-ARM64 runtime. It must reproduce the same language-level arithmetic, conversion,
-branch, status, and consumer-boundary behavior before it can replace the x86_64
-fallback. Rosetta 2 remains the supported Apple Silicon route until that work is
-complete.
 
 ### Distribution hardening
 
@@ -166,7 +196,9 @@ signed and not notarized.
 
 ### Additional coverage
 
-The end-to-end application smoke currently runs on Apple Silicon through Rosetta
-2, while Intel CI builds the Cocoa and headless runtimes. A direct Intel package
-play smoke would add host breadth. It is not a substitute for Rosetta numerical
-checks or for future native ARM64 exactness.
+The x86_64 end-to-end application smoke runs on Apple Silicon through Rosetta 2,
+while Intel CI builds the Cocoa and headless runtimes. A direct Intel package
+play smoke would add host breadth. Native arm64 product execution and package
+save/quit are already required on Apple Silicon, but additional hardware and
+audio-device breadth would strengthen that evidence; neither substitutes for
+the Rosetta numerical checks.

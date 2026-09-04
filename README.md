@@ -31,6 +31,17 @@ planets, explore weather and terrain, return in the capsule, and save the
 journey. The practical 2x window retains Noctis's authentic 320x200 software
 framebuffer and resizes without changing simulation or rendering coordinates.
 
+The immutable [v1.0.0 release](https://github.com/Fabulu/noctis-lino/releases/tag/v1.0.0)
+provides all three desktop packages. A final post-publication audit downloaded
+all nine public assets and verified their GitHub digests, adjacent checksums,
+safe archive inventories, internal manifests, executable architectures,
+provenance, Mac signatures, and byte-identical shared game data. The archive
+SHA-256 values are `3c1200e19169fb9a7d6846325bd3659139750356d0cf3710a0aeecb6b7b75c69`
+(Windows x86), `73bed850987b963ecd6339bff0417595f0d3282ffb9074e959cfb8c4e0efe79e`
+(macOS x86_64), and `561e925bae6ec035e61206371140b7038add8f026bb4ca39ed9b3c92185272f0`
+(macOS arm64). See [CI_RELEASES.md](CI_RELEASES.md) for the complete audit
+boundary.
+
 From PowerShell in the repository root, run:
 
 ```powershell
@@ -50,10 +61,10 @@ dimensions, so a resized game reopens at the same size.
 ### macOS packages
 
 Download `Noctis-IV-macos-arm64.zip` for an Apple-Silicon Mac or
-`Noctis-IV-macos-x86_64.zip` for an Intel Mac from the
-[GitHub releases page](https://github.com/Fabulu/noctis-lino/releases). Verify it
-with the adjacent `.sha256` file, extract it, and drag `Noctis IV.app` to
-Applications. The native arm64 app targets macOS 11.0 or newer. The x86_64 app
+`Noctis-IV-macos-x86_64.zip` for an Intel Mac from the immutable
+[v1.0.0 release](https://github.com/Fabulu/noctis-lino/releases/tag/v1.0.0).
+Verify it with the adjacent `.sha256` file, extract it, and drag `Noctis IV.app`
+to Applications. The native arm64 app targets macOS 11.0 or newer. The x86_64 app
 targets macOS 10.15 or newer and can also run through Rosetta 2 on Apple Silicon.
 
 Both apps are ad-hoc signed rather than Developer ID signed or notarized.
@@ -276,8 +287,8 @@ silhouette and the source's marked wall bands in frame.
 - [`PLAYTEST.md`](PLAYTEST.md) is the detailed capability and verification log.
 - [`PORTPLAN.md`](PORTPLAN.md) is the technical implementation and source-parity
   ledger; [`PORTPLAN-MACOS.md`](PORTPLAN-MACOS.md) records the completed x86_64
-  host/package boundary, while `src/linoleum_macos_aarch64/README.md` documents
-  the native Apple-Silicon runtime and package boundary.
+  and arm64 host/package boundaries, with target-specific runtime details under
+  `src/linoleum_macos64/` and `src/linoleum_macos_aarch64/`.
 - [`RELEASE_NOTES.md`](RELEASE_NOTES.md) describes the current desktop release and
   its known limitations.
 - [`TEST_COVERAGE.md`](TEST_COVERAGE.md) states what automation and native play

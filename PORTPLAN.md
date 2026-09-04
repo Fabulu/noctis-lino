@@ -47,6 +47,27 @@ first -- a broken foundation makes every later result meaningless.
 
 ## Done
 
+### Publish and independently audit stable v1.0.0
+
+- The complete menu, two-body journey, and Galactic Guide acceptance phases
+  passed against fresh product copies on private inactive Windows desktops.
+  They protect actual playable transitions, v18 persistence, every enabled
+  menu/device route, visible text and glyphs, and Guide mutation/export/exchange
+  without leaving the shared Lino source boundary.
+- Immutable annotated tag `v1.0.0` points to commit
+  `38c638af1f2af628b0bd90205d429573e8ce3aa6` and published exactly nine stable
+  assets for Windows x86, macOS x86_64, and macOS arm64.
+- A fresh 2026-09-04 download of all nine public assets passed GitHub-digest,
+  adjacent-checksum, provenance, safe-ZIP, CRC, extracted-byte, complete-manifest,
+  architecture, PE/Mach-O, Mac-signature, unsigned-image reconstruction, shared-
+  source, and cross-platform data checks. The release tag and assets remain
+  unchanged.
+- The production browser site is pinned to that exact stable Linoleum commit at
+  Linoctissite commit `4060ebede1a6ead2cfe06dcb906417ace9dfbbef`, deployed at
+  `https://linoctis.pages.dev`, and live-smoked through boot, simulation, menus,
+  Target Browser, and FCS click-focus. It retains authentic 18.206-Hz default
+  presentation; no new optimization pass or browser 60-FPS parity claim is open.
+
 ### Complete the release audit and long-duration run
 
 - All 24 registered release suites pass. The sole broad-run failure was a Wave

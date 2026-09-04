@@ -50,6 +50,20 @@ Windows package is launched from outside its install directory before release.
 Both Mac apps are ad-hoc signed rather than Developer ID signed or notarized,
 so first launch may require approval under System Settings, Privacy & Security.
 
+The final 2026-09-04 post-publication audit downloaded all nine actual
+[`v1.0.0`](https://github.com/Fabulu/noctis-lino/releases/tag/v1.0.0) assets.
+It independently peeled annotated tag object
+`ecf037c489fb92da6f37542fe95212fd03bb0165` to commit
+`38c638af1f2af628b0bd90205d429573e8ce3aa6`, matched canonical shared-Lino
+source hash `c586a54c34dc73adbb6ac1a304152709189423cb27246aea01462f7667269a9e`,
+and verified GitHub digests, adjacent checksums, safe ZIP inventories, internal
+manifests, executable structures, provenance, complete Mac code signatures,
+and byte-identical shared game data. The final archive SHA-256 values are
+`3c1200e19169fb9a7d6846325bd3659139750356d0cf3710a0aeecb6b7b75c69`
+(Windows x86), `73bed850987b963ecd6339bff0417595f0d3282ffb9074e959cfb8c4e0efe79e`
+(macOS x86_64), and `561e925bae6ec035e61206371140b7038add8f026bb4ca39ed9b3c92185272f0`
+(macOS arm64). The immutable release passed without replacing any asset.
+
 ## Beta 26
 
 Beta 26 follows the completed native-performance pass with a compatibility and
