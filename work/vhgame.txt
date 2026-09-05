@@ -288,7 +288,7 @@
 	VHGstartargetinnerR = 0; VHGstartargetinnerG = 0; VHGstartargetinnerB = 0;
 	VHGstarcurrentR = 0; VHGstarcurrentG = 0; VHGstarcurrentB = 0;
 	VHGstarcurrentinnerR = 0; VHGstarcurrentinnerG = 0; VHGstarcurrentinnerB = 0;
-	VHGstarpaletteok = 0;
+	VHGstarcurrentok = 0; VHGstarpaletteok = 0;
 	VHGshipr = 0; VHGshipg = 0; VHGshipb = 0;
 	VHGshipoldr = 0; VHGshipoldg = 0; VHGshipoldb = 0;
 	VHGshipstz0 = 0; VHGshipstz1 = 0; VHGshipden0 = 0; VHGshipden1 = 0;
@@ -3085,6 +3085,17 @@
 	[VHGstartargetinnerB] = [VHTpalsat];
 
     "VHG star palette compare"
+	( The first resolved star already has complete colour targets.  Seed this
+	  port's easing state once instead of fading the shared console band up from
+	  black for 64 simulation ticks; later target changes still ease normally. )
+	A = [VHGstarcurrentok]; ? A != 0 -> VHG star palette compare live;
+	[VHGstarcurrentR] = [VHGstartargetR]; [VHGstarcurrentG] = [VHGstartargetG];
+	[VHGstarcurrentB] = [VHGstartargetB];
+	[VHGstarcurrentinnerR] = [VHGstartargetinnerR];
+	[VHGstarcurrentinnerG] = [VHGstartargetinnerG];
+	[VHGstarcurrentinnerB] = [VHGstartargetinnerB];
+	[VHGstarcurrentok] = 1; [VHGstarpaletteok] = 0; -> VHG star palette shades;
+    "VHG star palette compare live"
 	A = [VHGstarcurrentR]; ? A != [VHGstartargetR] -> VHG star palette changed;
 	A = [VHGstarcurrentG]; ? A != [VHGstartargetG] -> VHG star palette changed;
 	A = [VHGstarcurrentB]; ? A != [VHGstartargetB] -> VHG star palette changed;

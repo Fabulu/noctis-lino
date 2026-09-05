@@ -4572,6 +4572,30 @@ def main() -> int:
         )),
         "R and 6-9 restore onboard navigation/miscellaneous devices with live powered effects",
     )
+    star_palette_update = section(
+        game, '"VHG star palette update"', '"VHG star palette update done"'
+    )
+    check(
+        "VHGstarcurrentok = 0;" in game
+        and all(token in star_palette_update for token in (
+            "A = [VHGstarcurrentok]; ? A != 0 -> VHG star palette compare live;",
+            "[VHGstarcurrentR] = [VHGstartargetR];",
+            "[VHGstarcurrentG] = [VHGstartargetG];",
+            "[VHGstarcurrentB] = [VHGstartargetB];",
+            "[VHGstarcurrentinnerR] = [VHGstartargetinnerR];",
+            "[VHGstarcurrentinnerG] = [VHGstartargetinnerG];",
+            "[VHGstarcurrentinnerB] = [VHGstartargetinnerB];",
+            "[VHGstarcurrentok] = 1;",
+            '"VHG star palette compare live"',
+            "[VHGstarcurrentR]+;", "[VHGstarcurrentR]-;",
+            "[VHGstarcurrentinnerB]+;", "[VHGstarcurrentinnerB]-;",
+        ))
+        and star_palette_update.index("[VHGstarcurrentR] = [VHGstartargetR];")
+        < star_palette_update.index('"VHG star palette compare live"')
+        < star_palette_update.index("[VHGstarcurrentR]+;")
+        and "if (ire < ir) ire++; if (ire > ir) ire--;" in original,
+        "first resolved stellar palette is readable immediately while later targets retain source easing",
+    )
     base_palette = section(game, '"VHG palette"', '"VHG star palette"')
     globe_palette = section(ground, '"VHGND globe surface"', '"VHGND general phase setup"')
     check(
