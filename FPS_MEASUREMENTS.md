@@ -11,6 +11,7 @@ The retrospective tables below record every result recovered for this publicatio
 - Simulation at that healthy-host record: **18.585131894484412 Hz**.
 - The fixed five-second retained-lineage record exceeds 60 Hz by **0.15187849720224267 Hz**.
 - Sustained acceptance remains open. The retained lineage held **59.88741964493888 Hz** for 30 seconds and **59.800276745077774 Hz** for 60 seconds on healthy controlled moving-surface runs while preserving **18.252672950737768 Hz** and **18.255172298818 Hz** simulation respectively. The minute run lost about 12 whole presentation periods and recorded a 22.385111828196283-ms maximum lateness, so it does not yet prove hitch-free 60-Hz pacing. Task #235's separate current-production 60-second whole-period screen preserved **18.23870065898955-Hz** simulation but reached only **33.64840577780736 Hz** with **1,385 / 2,022** missed deadlines on a depressed/stalling host; it does not supersede the healthy evidence. A rejected pure-Lino zero-timeout-yield experiment materially improved the previously collapsing orbital minute from **48.38468068108054 Hz** to **59.768851585398345 Hz**, but it lost Ordering B presentation by **0.04755192797978358 Hz** and was restored under the binding no-averaging rule.
+- Browser Stardrifter regression repair is published as LinoJava **0.5.0** and Linoctis **1.0.1**. A controlled clean-host, four-runs-per-arm, interleaved 20-second comparison improved produced presentation from **39.41374614380273 Hz** to **59.453386317851844 Hz** and reduced runner cost from **13.834562100873656** to **4.583079100585792 ms/presentation**. The exact deployed runtime and interactions passed production verification. This is a repaired boundary and strong short-block result, not a sustained one-minute 60-FPS claim.
 - Current production shared-Lino floating-point source: `work/fp/fpsoft.txt`, SHA-256 `95417cf412787e6f33c773f4f7eb4d5d685f44fceff6b6e21649024b4d8d62dc`.
 - Current production executable: `work/vhgame.exe`, 650,790 bytes, SHA-256 `924f8e7d5c863d98985f1de6a072d9e879ad345b6a56c08225b6de9a00900eee`.
 - Current production i386m compiler: `main/lib/gen/compiler114m.exe`, 87,760 bytes, SHA-256 `facfb8b9373c548c569771978606fcd5d5273760ec7b1e2f0b4ee6bcc30d2e78`.
@@ -625,7 +626,69 @@ Two exact same-host Stardrifter screens compared the same Linoleum closure and 1
 | `33963927133` | **22.146744296709297** | **22.373120610369767** | **30.116636911911748** | **29.497339649887756** | **-775,117.3121350342** | 4.4768% / 4.0157% | Valid weak relative win; workflow summary step had a later jq syntax error, while all eight raw profiles and interaction/error gates completed cleanly |
 | `33964480662` | **21.998514532435024** | **22.010916772053484** | **30.819385321070005** | **30.598731053673312** | **-674,027.7776266178** | 9.5886% / 5.6465% | Rejected as a performance conclusion because both control spreads exceeded the 5% gate |
 
-The service path repeatably removes the two linked-loop instruction buckets and both aggregate screens point in the same, small runner-cost direction, but it does **not** reproduce a material 29.884-to-22-Hz repair. The first valid screen gained only **0.22637631366047017 Hz**; the second noisy screen was effectively neutral at **0.012402239618459987 Hz**. This is retained as exact structural/minor acceleration evidence, not as proof that the reported browser regression is fixed and not as a new absolute browser record. A local 100%-loaded-host observation is excluded from performance evidence. The forward release remains blocked on a separate demonstrated boundary.
+The service path repeatably removes the two linked-loop instruction buckets and both aggregate screens point in the same, small runner-cost direction, but it does **not** reproduce a material 29.884-to-22-Hz repair. The first valid screen gained only **0.22637631366047017 Hz**; the second noisy screen was effectively neutral at **0.012402239618459987 Hz**. This is retained as exact structural/minor acceleration evidence, not as proof that the reported browser regression is fixed and not as a new absolute browser record. A local 100%-loaded-host observation is excluded from performance evidence. The result remains useful because it proves the service mechanism itself, but the small wall-time movement correctly left the forward release blocked until a separate dominant boundary was demonstrated. The later attribution and smoothing repair below supersede that release-blocked status.
+
+### Dominant Stardrifter owner — attribution only
+
+GitHub Actions run [`33966946405`](https://github.com/Fabulu/Linoctissite/actions/runs/33966946405) profiled the deterministic schema-18 Stardrifter checkpoint with instruction counting enabled. Instruction profiling disables generated static runners, so these figures identify linked-Lino ownership only; they are not wall-performance, interaction, or release-acceptance evidence.
+
+Across 55 produced presentations, the profile counted 336,246,743 linked instructions. The existing callable `VHT smooth grays` path dominated the interval:
+
+| Label | Counted instructions | Instructions/presentation |
+|---|---:|---:|
+| `SU dw at` | 187,968,000 | 3,417,600 |
+| `VHT smooth gray pixel` | 122,210,000 | 2,222,000 |
+| Combined smoothing ownership | **310,178,000** | **5,639,600** |
+
+The two rows own over 92% of the counted interval. This supplied the missing demonstrated boundary that the earlier exact VHGUI screen did not.
+
+### Exact Stardrifter smoothing repair
+
+`work/vhstar.txt` already exposed the bounded `VHT smooth grays` routine while retaining its complete portable shared-Lino body. LinoJava commit `5d16d444255a3787e7ad114c53e15b36b99cda2f` added `service:vhtsmoothgrays` below that source boundary. The service reproduces the routine's packed 32-bit carry behavior, sequential in-place reads and writes, workspace scratch, A/B/C/D/E/X terminal state, and stack depth. If the service is absent, execution falls through to the same linked-Lino routine.
+
+The focused differential compared every workspace word plus registers and stack depth after the fallback and service calls; it passed. The complete LinoJava suite passed **61 / 61**, the demo build passed, and `npm pack --dry-run` passed without publishing a first npm-registry package. Gameplay, simulation, rendering, and the authoritative implementation therefore remain Lino. The shared source pin is Linoleum `92ddf9abe501c704bf2bb29858bda0f5444aa09b`; no target-specific Lino source or raw target-machine block was introduced.
+
+### Controlled clean-host repair result
+
+GitHub Actions run [`33968366621`](https://github.com/Fabulu/Linoctissite/actions/runs/33968366621) used four 20-second observations per arm in the interleaved order fallback/service/service/fallback/service/fallback/fallback/service. Both arms used the same deterministic checkpoint, clock, current Chromium host, 10,000-instruction worker budget, `scheduler.yield()` continuation, site code, and Linoleum source. The only service discriminator was LinoJava fallback `fc3ff3292f57ae8477095c9edf2b91a44d905f5b` versus service commit `5d16d444255a3787e7ad114c53e15b36b99cda2f`.
+
+| Arm | Runs | Produced presentation | Runner ms/presentation | Linked instructions/presentation | Control spread |
+|---|---:|---:|---:|---:|---:|
+| Linked-Lino fallback | 4 | **39.41374614380273 Hz** | 13.834562100873656 | 2,841,927.0457895887 | 2.8806910539886164% |
+| Exact smoothing service | 4 | **59.453386317851844 Hz** | 4.583079100585792 | 147,991.47565543535 | 0.16207567640924822% |
+| Service minus fallback | — | **+20.03964017404911 Hz** | **-9.251483000287864** | **-2,693,935.5701341536** | — |
+
+Every run retained canvas focus, opened and dismissed the GAME menu, drained pointer transitions, and recorded no console, request, or page failure. The final calibrated gate passed. It supersedes the earlier directional five-second screen with 12.48% fallback spread and the valid 20-second data set whose workflow result was rejected only by a miscalibrated five-million-instruction threshold.
+
+The four service observations were 59.40663315779479, 59.43930092583333, 59.502992635817655, and 59.4646185519616 produced presentations/s. This demonstrates that the identified regression boundary is repaired. It does **not** establish a sustained one-minute 60-FPS result.
+
+Evidence: `../Linoctissite/build/star-smoothing-calibrated-33968366621/summary.json`.
+
+### Published browser releases and production verification
+
+- LinoJava [`v0.5.0`](https://github.com/Fabulu/linojava/releases/tag/v0.5.0) points to `8e53b565862b9a40d213b1b32ca7fcb869f1ec7c`, which adds release documentation on top of the tested service commit.
+- Linoctis [`v1.0.1`](https://github.com/Fabulu/Linoctissite/releases/tag/v1.0.1) points to `7cd4cc70e5b657add33e424d65764be6ef4415a0` and pins that LinoJava release plus Linoleum `92ddf9abe501c704bf2bb29858bda0f5444aa09b`.
+- Clean build, complete test, and pinned-artifact-diff gates passed in GitHub Actions run [`33970756568`](https://github.com/Fabulu/Linoctissite/actions/runs/33970756568).
+- The exact image is deployed at `https://linoctis.pages.dev`. Its manifest runtime ID is `70492b9919353c4c0e88740b`; generated-runner SHA-256 is `70492b9919353c4c0e88740b3af4d40c43a708b15d3bf8ddf5d44514103d6b41`; deployed intrinsic SHA-256 is `7bbb1453710f4144d40821b3dffe0bddcf95c888bf16e7dcc19f64f2e91c4029`.
+
+A fresh production probe cleared the saved fast-mode word before launch and confirmed the browser's authentic **18.206-Hz** default. Both physical Stardrifter panel backgrounds were `[40, 36, 28, 255]`; the left crop contained 16 colors and 5,455 non-background pixels, while the right contained 16 colors and 8,139 non-background pixels. Click focus remained on `game`, the GAME menu opened and dismissed, pointer transitions drained to zero, and console, request, and page failure lists remained empty.
+
+The same production image yielded only **7.611296556989561 produced presentations/s** during a separate 20.1017-second experimental-60 observation on the loaded local host, with 124.77516340741924 runner ms/presentation. This is retained as host-local observational evidence only. Exact production hashes and behavior passed, while the clean controlled A/B supplies the qualifying relative performance result; the low local absolute sample neither replaces that result nor supports a new sustained claim.
+
+Evidence: `../Linoctissite/build/production-v1.0.1/verification.json`.
+
+### Post-publication source-archive audit
+
+On 2026-09-05, fresh GitHub release metadata and both automatically generated source archives were downloaded for Linoctis `v1.0.1` and LinoJava `v0.5.0`. Neither release has a separately uploaded binary asset; the ZIP and tar.gz links are the published GitHub source artifacts.
+
+| Release | Tag object / target commit | ZIP | tar.gz | Payload audit |
+|---|---|---|---|---|
+| Linoctis `v1.0.1` | `1b894354cdd5cf17a7287e10cdcf70b61a5fa5f0` / `7cd4cc70e5b657add33e424d65764be6ef4415a0` | 927,993 bytes; `697fc8663158b3620a439d77b65eac5da79336832b0dca8180daa6a71b14d74b` | 918,566 bytes; `a6de88f1daff2d708c93c1d7f6ceece3a3fd832d21901b58dfc6a8eb66f71fa0` | 23 file payloads identical across formats; package version, dependency pins, and runtime checked |
+| LinoJava `v0.5.0` | `7cc845d645f9ae66b0e7e07e5ce28e60d980be94` / `8e53b565862b9a40d213b1b32ca7fcb869f1ec7c` | 194,392 bytes; `bf3f518e7a44308310a863a1b958506a504f5de19ed1648d544e24b26ab676ea` | 179,440 bytes; `de4be59c89a95be51470dbbab0fc4488db1656fce7bee6b5c4cd7376e383ab3f` | 33 file payloads identical across formats; package version, service, differential, and fallback documentation checked |
+
+The site archive's generated runner is byte-identical to production. Its tracked intrinsic uses LF and hashes to `71e63a0926bdf0217794eb1c35665da1c4c15bb3b7c71c38fae3f0561f0830a1`; the Windows-deployed copy uses CRLF and hashes to `7bbb1453710f4144d40821b3dffe0bddcf95c888bf16e7dcc19f64f2e91c4029`. They are byte-identical after line-ending normalization. The production manifest independently reports the same runtime ID, so the final archive and live-image audit passed without moving or altering Linoleum `v1.0.0`.
+
+Evidence: `../Linoctissite/build/post-publication-v1.0.1-audit/audit.json`.
 
 ## Evidence classes
 
