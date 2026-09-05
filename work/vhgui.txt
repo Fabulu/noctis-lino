@@ -47,6 +47,10 @@
 
 "VHGUI prepare"
 	=> VHGUI resize;
+	=> VHGUI compose;
+	end;
+
+"VHGUI compose"
 	( Compose one logical RGB page from the authentic indexed framebuffer.
 	  HUD/help text is added to this page before presentation, so it follows
 	  the same nearest-neighbour scaling as the rendered scene. )
@@ -95,6 +99,10 @@
 	  coordinate accumulators once per destination pixel. )
 	A = [VHGUIdw]; ? A != 640 -> VHGUI scaled;
 	A = [VHGUIdh]; ? A != 400 -> VHGUI scaled;
+	=> VHGUI fixed 2x;
+	end;
+
+    "VHGUI fixed 2x"
 	[VHGUIy] = 0;
     "VHGUI 2x row"
 	A = [VHGUIy]; A '* 320; C = A; C + VHGUIframe;
