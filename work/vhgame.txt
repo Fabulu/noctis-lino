@@ -30,6 +30,7 @@
 	VHGNEAR = 1120403456;		( 100.0f: source-wide near plane )
 	VHGSTEP = 80;
 	VHGSIMADD = 18206; VHGSIMDEN = 60000;
+	VHGPTRCAP = 4096; VHGPTRSTRIDE = 7; VHGPTRHEADER = 8;
 	VHGN44 = 0FFFFFFD4h;
 	VHGN45 = 0FFFFFFD3h;
 	VHGN90 = 0FFFFFFA6h;
@@ -207,6 +208,7 @@
 		vhgcontrolstatename = { game-controls-state-out.bin };
 		vhgcontrolpointername = { game-controls-pointer-in.bin };
 		vhgprofilename = { game-profile-out.bin };
+		vhgptracename = { game-presentation-trace-out.bin };
 	VHGcaption = { Noctis_IV };
 	VHGmenucaption = { GAME };
 	VHGmenu = { NOCTIS_IV };
@@ -331,6 +333,9 @@
 	VHGprofilemissed = 0; VHGprofilelatemax = 0; VHGprofilelatetotal = 0;
 	VHGprofileinputseen = 0; VHGprofileinputeffect = 0; VHGprofileinputpresent = 0;
 	VHGprofileinputpending = 0; VHGprofileorigin = 0; VHGprofileresetpending = 0;
+	VHGptracecount = 0; VHGptraceoverflow = 0; VHGptraceptr = 0; VHGptracesize = 0;
+	VHGpresentx = 0; VHGpresenty = 0; VHGpresentz = 0;
+	VHGpresentalpha = 0; VHGpresentbeta = 0;
 	( Present at 60 Hz by default while gameplay simulation remains at its
 	  original 18.206-Hz cadence. F5 retains the classic presentation toggle. )
 	VHGfast = 1; VHGfastheld = 0; VHGsimacc = 0; VHGdosim = 1;
@@ -986,6 +991,7 @@
 	VHGfpstext = 7;
 	vhgperf = 21;
 	vhgprofile = 32;
+	vhgptrace = 28680;
 	vhgsun = 32;
 	vhglocal = 44;
 	vhglabelstate = 8;
@@ -1524,6 +1530,7 @@
 		  dual publication, plus cursor composition and physical retrace. )
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 		A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofpresent]; [VHGprofpresent] = A;
+		=> VHG profile presentation trace;
 		A = [VHGprofileactive]; ? A = 0 -> VHG profile present counted;
 		[VHGprofilepresentations]+;
 		A = [VHGprofileinputpending]; ? A = 0 -> VHG profile present counted;
@@ -1721,7 +1728,10 @@
 		"VHG visor tick done"
 		[Timer Command] = READ COUNTS; isocall; [VHGprofstart] = [Counts];
 		=> VHG visor flare mode;
-		=> VHG interpolation apply; => VHG render; => VHGND surrounding frame;
+		=> VHG interpolation apply;
+		[VHGpresentx] = [VHGx]; [VHGpresenty] = [VHGy]; [VHGpresentz] = [VHGz];
+		[VHGpresentalpha] = [VHGalpha]; [VHGpresentbeta] = [VHGbeta];
+		=> VHG render; => VHGND surrounding frame;
 		=> VHG source info overlay; => VHG interpolation restore;
 		[Timer Command] = READ COUNTS; isocall; [VHGprofnow] = [Counts];
 	A = [VHGprofnow]; A - [VHGprofstart]; A + [VHGprofrender]; [VHGprofrender] = A;
@@ -11735,6 +11745,19 @@
 	[TKdeadline] = [Counts];
 	end;
 
+"VHG profile presentation trace"
+	A = [VHGprofileactive]; ? A = 0 -> VHG profile presentation trace done;
+	A = [VHGptracecount]; ? A < VHGPTRCAP -> VHG profile presentation trace store;
+	[VHGptraceoverflow]+; -> VHG profile presentation trace done;
+    "VHG profile presentation trace store"
+	A '* VHGPTRSTRIDE; A + VHGPTRHEADER; A + vhgptrace; [VHGptraceptr] = A; D = A;
+	[D plus 0] = [VHGprofnow]; [D plus 1] = [VHGpresentx];
+	[D plus 2] = [VHGpresenty]; [D plus 3] = [VHGpresentz];
+	[D plus 4] = [VHGpresentalpha]; [D plus 5] = [VHGpresentbeta];
+	[D plus 6] = [VHGprofilesimticks]; [VHGptracecount]+;
+    "VHG profile presentation trace done"
+	end;
+
 "VHG profile reset"
 	( The first-frame sentinel is the private runner's readiness boundary.  Keep
 	  its existing 60-frame diagnostics intact, then begin terminal measurement
@@ -11746,6 +11769,7 @@
 	[VHGprofcupola] = 0; [VHGprofhull] = 0; [VHGprofdetail] = 0;
 	[VHGprofileinputseen] = 0; [VHGprofileinputeffect] = 0;
 	[VHGprofileinputpresent] = 0; [VHGprofileinputpending] = 0;
+	[VHGptracecount] = 0; [VHGptraceoverflow] = 0;
 	[TKsleeps] = 0; [VHGloopcalls] = 0; [VHGtimingcalls] = 0;
 	=> TK read wall; [VHGwallstart] = [TKtmp];
 	[Timer Command] = READ COUNTS; isocall; [VHGprofileorigin] = [Counts];
@@ -11778,7 +11802,21 @@
 	[Block Pointer] = vhgprofile; [Block Size] = 128; isocall;
 	[File Name] = vhgprofilename; [File Position] = 0; [File Command] = SET SIZE;
 	[File Size] = 128; isocall;
+	=> VHG write presentation trace;
     "VHG write profile done"
+	end;
+
+"VHG write presentation trace"
+	[vhgptrace plus 0] = 56505431h; [vhgptrace plus 1] = 1;
+	[vhgptrace plus 2] = [VHGptracecount]; [vhgptrace plus 3] = VHGPTRSTRIDE;
+	[vhgptrace plus 4] = [TKcpms]; [vhgptrace plus 5] = [VHGptraceoverflow];
+	[vhgptrace plus 6] = [VHGprofilepresentations]; [vhgptrace plus 7] = 56505431h;
+	A = [VHGptracecount]; A '* VHGPTRSTRIDE; A + VHGPTRHEADER; A '* 4;
+	[VHGptracesize] = A;
+	[File Name] = vhgptracename; [File Position] = 0; [File Command] = WRITE;
+	[Block Pointer] = vhgptrace; [Block Size] = [VHGptracesize]; isocall;
+	[File Name] = vhgptracename; [File Position] = 0; [File Command] = SET SIZE;
+	[File Size] = [VHGptracesize]; isocall;
 	end;
 
 	"VHG pack diagnostic region"

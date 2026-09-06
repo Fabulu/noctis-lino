@@ -360,6 +360,22 @@ python tests\run_all.py galaxy    # tests whose filename contains "galaxy"
 python tests\run_all.py --deep    # full release and historical audit
 ```
 
+Sustained native acceptance runs can require exact evidence for every completed
+presentation:
+
+```powershell
+python tools\profile_noctis_desktop.py --scenario surface --duration 60 `
+  --require-presentation-trace --output-directory build\desktop-minute
+```
+
+The profiler launches the game on a private inactive desktop. In profile mode,
+the shared Lino game records the completion timestamp, authoritative simulation
+tick, and exact rendered X/Y/Z/alpha/beta pose for up to 4,096 presentations.
+`report.json` contains the decoded records and duplicate-pose/timing metrics;
+`presentation-trace.bin` retains the raw evidence. The required-trace option
+rejects older executables or retained reports without that evidence, and any
+capacity overflow is reported explicitly rather than silently truncating a run.
+
 Use the smallest relevant regression or playable smoke during ordinary work.
 Run the complete roster before a release. Individual checks describe any GCC,
 native-fixture, or external-reference requirements they have. The compiler

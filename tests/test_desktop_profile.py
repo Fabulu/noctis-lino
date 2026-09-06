@@ -66,6 +66,31 @@ def main() -> int:
           abs(metrics["input_effect_to_present_ms"] - 4.0912) < 1e-12 and
           metrics["external_counter_comparable"] is False,
           "profile derives internal detection, movement-effect, and presentation latency")
+
+    trace_values = [
+        profiler.PRESENTATION_TRACE_MAGIC,
+        profiler.PRESENTATION_TRACE_SCHEMA,
+        3,
+        profiler.PRESENTATION_TRACE_STRIDE_UNITS,
+        1000,
+        0,
+        3,
+        profiler.PRESENTATION_TRACE_MAGIC,
+        0xFFFFFFF0, 0xFFFFFFFF, 2, 3, 4, 5, 0,
+        0x00000020, 0xFFFFFFFF, 2, 3, 4, 5, 0,
+        0x00000050, 7, 8, 9, 10, 11, 1,
+    ]
+    trace_data = struct.pack(f"<{len(trace_values)}I", *trace_values)
+    trace = profiler.decode_presentation_trace(trace_data)
+    check(trace["records"][0]["pose"]["x"] == -1 and
+          trace["records"][1]["elapsed_counts"] == 0x30 and
+          trace["records"][2]["simulation_ticks"] == 1,
+          "presentation trace preserves signed poses, wrapped timestamps, and ticks")
+    check(trace["metrics"]["unique_pose_count"] == 2 and
+          trace["metrics"]["consecutive_duplicate_pose_count"] == 1 and
+          trace["metrics"]["maximum_same_pose_run"] == 2 and
+          abs(trace["metrics"]["maximum_interval_ms"] - 0.048) < 1e-12,
+          "presentation trace diagnoses exact consecutive duplicate poses")
     surface_metrics = profiler.derived_metrics({**decoded, "mode": 1}, None)
     check(all(surface_metrics[field] == 0.0 for field in (
               "average_surface_background_ms",
@@ -114,6 +139,22 @@ def main() -> int:
             passed = False
         check(passed, f"decoder rejects {description}")
 
+    for corrupt, description in (
+        (trace_data[:-4], "truncated presentation trace"),
+        (struct.pack(f"<{len(trace_values)}I", *([0] + trace_values[1:])),
+         "bad presentation trace magic"),
+        (struct.pack(f"<{len(trace_values)}I",
+                     *(trace_values[:6] + [4] + trace_values[7:])),
+         "presentation trace count mismatch"),
+    ):
+        try:
+            profiler.decode_presentation_trace(corrupt)
+        except ValueError:
+            passed = True
+        else:
+            passed = False
+        check(passed, f"decoder rejects {description}")
+
     surface = profiler.scenario_checkpoint("surface")
     capsule = profiler.scenario_checkpoint("capsule")
     stardrifter = profiler.scenario_checkpoint("stardrifter")
@@ -144,12 +185,23 @@ def main() -> int:
     check('process.post_char(handle, "r")' in profiler_source and
           "tap_key(process, handle, VK_R" not in profiler_source,
           "capsule profiles inject the ASCII return command used by the game")
+    check("--require-presentation-trace" in profiler_source and
+          "decode_presentation_trace(raw_trace)" in profiler_source and
+          '"presentation-trace.bin"' in profiler_source,
+          "minute profiles can require and retain decoded per-presentation evidence")
     check("VHGSIMADD = 18206; VHGSIMDEN = 60000;" in game,
           "profile instrumentation leaves the 18.206-Hz gameplay cadence intact")
     check(all(fragment in game for fragment in (
               "vhgprofilename = { game-profile-out.bin };",
+              "vhgptracename = { game-presentation-trace-out.bin };",
+              "VHGPTRCAP = 4096; VHGPTRSTRIDE = 7; VHGPTRHEADER = 8;",
               "=> PGF constants; => VH view init; => GR float init;",
               "[VHGprofilepresentations]+;",
+              "=> VHG interpolation apply;\n\t\t[VHGpresentx] = [VHGx];",
+              "[VHGpresentbeta] = [VHGbeta];\n\t\t=> VHG render;",
+              "=> VHG profile presentation trace;",
+              "[D plus 0] = [VHGprofnow]; [D plus 1] = [VHGpresentx];",
+              "[D plus 6] = [VHGprofilesimticks]; [VHGptracecount]+;",
               "[VHGprofilesimticks]+;",
               "[VHGprofilemissed]+;",
               "[VHGprofileinputseen] = [Counts];",
@@ -157,6 +209,8 @@ def main() -> int:
               "[VHGprofileinputpresent] = [VHGprofnow];",
               "[Block Pointer] = vhgprofile; [Block Size] = 128; isocall;",
               "[File Size] = 128; isocall;",
+              "[vhgptrace plus 6] = [VHGprofilepresentations];",
+              "[Block Pointer] = vhgptrace; [Block Size] = [VHGptracesize]; isocall;",
           )),
           "game records terminal timing, cadence, deadline, and input fields")
     check(game.count("=> VHG profile W effect;") == 2,

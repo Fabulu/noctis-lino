@@ -27,6 +27,12 @@ from windows_hidden_process import (  # noqa: E402
 CLOCK_SECONDS = 1344638527
 PROFILE_MAGIC = 0x56504731
 PROFILE_UNITS = 32
+PRESENTATION_TRACE_MAGIC = 0x56505431
+PRESENTATION_TRACE_SCHEMA = 1
+PRESENTATION_TRACE_HEADER_UNITS = 8
+PRESENTATION_TRACE_STRIDE_UNITS = 7
+PRESENTATION_TRACE_CAPACITY = 4096
+PRESENTATION_TRACE_FILENAME = "game-presentation-trace-out.bin"
 ASSETS = (
     "globes.map",
     "offsets.map",
@@ -156,6 +162,102 @@ def decode_profile(data: bytes) -> dict[str, int]:
     return profile
 
 
+def decode_presentation_trace(data: bytes) -> dict[str, object]:
+    header_bytes = PRESENTATION_TRACE_HEADER_UNITS * 4
+    if len(data) < header_bytes or len(data) % 4:
+        raise ValueError("presentation trace is truncated or not unit-aligned")
+    header = struct.unpack_from("<8I", data)
+    magic, schema, count, stride, counts_per_ms, overflow, presentations, trailing = header
+    if magic != PRESENTATION_TRACE_MAGIC or trailing != PRESENTATION_TRACE_MAGIC:
+        raise ValueError("presentation trace magic is incomplete or corrupt")
+    if schema != PRESENTATION_TRACE_SCHEMA:
+        raise ValueError(f"unsupported presentation trace schema {schema}")
+    if stride != PRESENTATION_TRACE_STRIDE_UNITS:
+        raise ValueError(f"presentation trace stride is {stride}, expected 7")
+    if counts_per_ms == 0:
+        raise ValueError("presentation trace has no performance-counter calibration")
+    if count > PRESENTATION_TRACE_CAPACITY:
+        raise ValueError("presentation trace count exceeds its fixed capacity")
+    if count + overflow != presentations:
+        raise ValueError("presentation trace count and overflow do not cover the profile")
+    if overflow and count != PRESENTATION_TRACE_CAPACITY:
+        raise ValueError("presentation trace overflowed before filling its fixed capacity")
+    expected_bytes = (PRESENTATION_TRACE_HEADER_UNITS + count * stride) * 4
+    if len(data) != expected_bytes:
+        raise ValueError(
+            f"presentation trace is {len(data)} bytes, expected {expected_bytes}")
+
+    unsigned = struct.unpack(f"<{len(data) // 4}I", data)
+    signed = struct.unpack(f"<{len(data) // 4}i", data)
+    records: list[dict[str, object]] = []
+    first_timestamp = unsigned[PRESENTATION_TRACE_HEADER_UNITS] if count else 0
+    previous_pose: tuple[int, ...] | None = None
+    consecutive_duplicates = 0
+    maximum_same_pose_run = 0
+    same_pose_run = 0
+    identities: set[str] = set()
+    intervals_ms: list[float] = []
+    previous_timestamp: int | None = None
+
+    for index in range(count):
+        base = PRESENTATION_TRACE_HEADER_UNITS + index * stride
+        timestamp = unsigned[base]
+        pose = tuple(signed[base + offset] for offset in range(1, 6))
+        identity = "-".join(f"{value & 0xFFFFFFFF:08x}" for value in pose)
+        elapsed_counts = counter_difference(timestamp, first_timestamp)
+        if previous_timestamp is not None:
+            intervals_ms.append(
+                counter_difference(timestamp, previous_timestamp) / counts_per_ms)
+        if pose == previous_pose:
+            consecutive_duplicates += 1
+            same_pose_run += 1
+        else:
+            same_pose_run = 1
+        maximum_same_pose_run = max(maximum_same_pose_run, same_pose_run)
+        previous_pose = pose
+        previous_timestamp = timestamp
+        identities.add(identity)
+        records.append({
+            "index": index,
+            "timestamp_counts": timestamp,
+            "elapsed_counts": elapsed_counts,
+            "elapsed_ms": elapsed_counts / counts_per_ms,
+            "pose_identity": identity,
+            "pose": {
+                "x": pose[0],
+                "y": pose[1],
+                "z": pose[2],
+                "alpha": pose[3],
+                "beta": pose[4],
+            },
+            "simulation_ticks": unsigned[base + 6],
+        })
+
+    return {
+        "schema": schema,
+        "count": count,
+        "capacity": PRESENTATION_TRACE_CAPACITY,
+        "stride_units": stride,
+        "counts_per_millisecond": counts_per_ms,
+        "overflow": overflow,
+        "profile_presentations": presentations,
+        "metrics": {
+            "unique_pose_count": len(identities),
+            "consecutive_duplicate_pose_count": consecutive_duplicates,
+            "maximum_same_pose_run": maximum_same_pose_run,
+            "first_timestamp_counts": first_timestamp if count else None,
+            "last_timestamp_counts": previous_timestamp,
+            "elapsed_ms": (
+                counter_difference(previous_timestamp, first_timestamp) / counts_per_ms
+                if previous_timestamp is not None else None
+            ),
+            "minimum_interval_ms": min(intervals_ms) if intervals_ms else None,
+            "maximum_interval_ms": max(intervals_ms) if intervals_ms else None,
+        },
+        "records": records,
+    }
+
+
 def _space_checkpoint(*, orbital: bool) -> bytes:
     checkpoint = bytearray(build_landed_checkpoint(
         star_x=1463568,
@@ -233,7 +335,9 @@ def stage_scenario(stage: Path, executable: Path, checkpoint: bytes) -> Path:
         "game-palette-out.bin",
         "game-page-out.bin",
         "game-profile-out.bin",
+        PRESENTATION_TRACE_FILENAME,
         "profile.bin",
+        "presentation-trace.bin",
         "report.json",
     ):
         path = stage / name
@@ -413,7 +517,8 @@ def derived_metrics(profile: dict[str, int], _injected_counter: int | None,
 def run_scenario(scenario: str, output_directory: Path, executable: Path,
                  duration: float, readiness_timeout: float, *,
                  scheduling_control: str = "controlled",
-                 physical_core: str | int = "last") -> Path:
+                 physical_core: str | int = "last",
+                 require_presentation_trace: bool = False) -> Path:
     core_masks = physical_core_affinity_masks()
     affinity_mask, priority_class, scheduling = make_scheduling_plan(
         scheduling_control, physical_core, core_masks)
@@ -455,6 +560,26 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
     raw_profile = profile_path.read_bytes()
     profile = decode_profile(raw_profile)
     (stage / "profile.bin").write_bytes(raw_profile)
+
+    trace_path = stage / PRESENTATION_TRACE_FILENAME
+    if trace_path.is_file():
+        raw_trace = trace_path.read_bytes()
+        presentation_trace = {
+            "available": True,
+            **decode_presentation_trace(raw_trace),
+        }
+        if presentation_trace["profile_presentations"] != profile["presentations"]:
+            raise ValueError(
+                "presentation trace does not describe the terminal profile")
+        (stage / "presentation-trace.bin").write_bytes(raw_trace)
+    elif require_presentation_trace:
+        raise FileNotFoundError("game did not emit its required presentation trace")
+    else:
+        presentation_trace = {
+            "available": False,
+            "reason": "executable predates per-presentation trace instrumentation",
+        }
+
     scheduling["actual"] = actual_scheduling
     if scheduling["policy"] == CONTROLLED_SCHEDULING:
         scheduling["comparable"] = (
@@ -474,6 +599,7 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
             "executable_path": str(executable.resolve()),
             "executable_sha256": executable_hash,
             "scheduling": scheduling,
+            "presentation_trace_required": require_presentation_trace,
         },
         "window_rectangle": rectangle,
         "startup_seconds": ready - started,
@@ -484,6 +610,7 @@ def run_scenario(scenario: str, output_directory: Path, executable: Path,
         },
         "injected_counter": injected_counter,
         "profile": profile,
+        "presentation_trace": presentation_trace,
         "metrics": derived_metrics(profile, injected_counter, process_cycles),
     }
     report_path = stage / "report.json"
@@ -517,6 +644,10 @@ def main() -> int:
     )
     parser.add_argument("--force", action="store_true",
                         help="replace an already retained scenario report")
+    parser.add_argument(
+        "--require-presentation-trace", action="store_true",
+        help="reject executables that do not emit per-presentation pose/timestamp data",
+    )
     args = parser.parse_args()
     if not 5.0 <= args.duration <= 120.0:
         parser.error("--duration must be between 5 and 120 seconds")
@@ -535,6 +666,10 @@ def main() -> int:
         retained = output_directory / scenario / "report.json"
         if retained.is_file() and not args.force:
             report = json.loads(retained.read_text(encoding="utf-8"))
+            if (args.require_presentation_trace and
+                    not report.get("presentation_trace", {}).get("available")):
+                parser.error(
+                    f"retained {scenario} report has no required presentation trace")
             scheduling = report.get("provenance", {}).get("scheduling", {})
             status = ("COMPARABLE" if scheduling.get("comparable")
                       else "INCOMPARABLE")
@@ -545,6 +680,7 @@ def main() -> int:
             args.duration, args.readiness_timeout,
             scheduling_control=args.scheduling_control,
             physical_core=args.physical_core,
+            require_presentation_trace=args.require_presentation_trace,
         )
         report = json.loads(report_path.read_text(encoding="utf-8"))
         metrics = report["metrics"]
